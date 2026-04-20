@@ -1,0 +1,38 @@
+diff --git a/test/inductor/test_perf.py b/test/inductor/test_perf.py
+index 4b72049..89003af 100644
+--- a/test/inductor/test_perf.py
++++ b/test/inductor/test_perf.py
+@@ -1,10 +1,17 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ import contextlib
+ import re
+ from unittest.mock import patch
+ 
+ import functorch
+-import torch
+ import torch._inductor.config as config
+ import torch.autograd
+ from torch._inductor import metrics
+@@ -36,6 +43,7 @@ if HAS_CUDA:
+     import triton.language as tl  # @manual
+ 
+     from torch.testing._internal.triton_utils import add_kernel
++import torch_npu._inductor
+ 
+ aten = torch.ops.aten
+ 
+@@ -1289,5 +1297,4 @@ class WouldBeNiceIfItWorked:
+ if __name__ == "__main__":
+     from torch._inductor.test_case import run_tests
+ 
+-    if HAS_CUDA:
+-        run_tests(needs="filelock")
++    run_tests(needs="filelock")

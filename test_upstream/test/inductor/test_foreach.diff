@@ -1,0 +1,30 @@
+diff --git a/test/inductor/test_foreach.py b/test/inductor/test_foreach.py
+index e68ed88..9c216b1 100644
+--- a/test/inductor/test_foreach.py
++++ b/test/inductor/test_foreach.py
+@@ -1,9 +1,16 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ 
+ import sys
+ import unittest
+ 
+-import torch
+ import torch._inductor
+ from torch._higher_order_ops import foreach_map
+ from torch._inductor.test_case import TestCase
+@@ -33,6 +40,7 @@ except (unittest.SkipTest, ImportError) as e:
+     if __name__ == "__main__":
+         sys.exit(0)
+     raise
++import torch_npu._inductor
+ 
+ 
+ def foreach_map_wrapper(op):

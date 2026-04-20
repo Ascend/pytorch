@@ -1,0 +1,42 @@
+diff --git a/test/inductor/test_torchinductor_dynamic_shapes.py b/test/inductor/test_torchinductor_dynamic_shapes.py
+index 332ec3c..764f28f 100644
+--- a/test/inductor/test_torchinductor_dynamic_shapes.py
++++ b/test/inductor/test_torchinductor_dynamic_shapes.py
+@@ -1,3 +1,11 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ import contextlib
+ import importlib
+@@ -8,7 +16,6 @@ import sys
+ import unittest
+ from functools import partial
+ 
+-import torch
+ import torch.library
+ from torch._dynamo.testing import CompileCounterWithBackend, make_test_cls_with_patches
+ from torch._inductor import metrics
+@@ -47,7 +54,7 @@ from inductor.test_torchinductor import (  # @manual=fbcode//caffe2/test/inducto
+     copy_tests,
+     TestFailure,
+ )
+-
++import torch_npu._inductor
+ 
+ importlib.import_module("filelock")
+ 
+@@ -121,8 +128,6 @@ class TestInductorDynamic(TestCase):
+     def setUp(self):
+         # HAS_CUDA also checks compute capability to skip tests
+         # on older devices
+-        if not HAS_GPU:
+-            self.skipTest("Triton not available")
+         torch._dynamo.reset()
+         TestCase.setUp(self)
+         # this should be in setUpClass, but device-generic tests

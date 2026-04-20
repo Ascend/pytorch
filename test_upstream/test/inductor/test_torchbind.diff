@@ -1,0 +1,31 @@
+diff --git a/test/inductor/test_torchbind.py b/test/inductor/test_torchbind.py
+index d948bed..c6a878a 100644
+--- a/test/inductor/test_torchbind.py
++++ b/test/inductor/test_torchbind.py
+@@ -1,10 +1,17 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: functorch"]
+ import json
+ import tempfile
+ import zipfile
+ from pathlib import Path
+ 
+-import torch
+ import torch._dynamo
+ import torch._functorch
+ import torch._inductor
+@@ -17,6 +24,7 @@ from torch.testing._internal.torchbind_impls import (
+     _empty_tensor_queue,
+     init_torchbind_implementations,
+ )
++import torch_npu._inductor
+ 
+ 
+ class TestTorchbind(TestCase):

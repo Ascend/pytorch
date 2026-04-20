@@ -1,0 +1,37 @@
+diff --git a/test/inductor/test_mps_basic.py b/test/inductor/test_mps_basic.py
+index aa5a9eb..53a63cb 100644
+--- a/test/inductor/test_mps_basic.py
++++ b/test/inductor/test_mps_basic.py
+@@ -1,9 +1,16 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: mps"]
+ import importlib
+ import os
+ import sys
+ 
+-import torch
+ from torch.testing import make_tensor
+ from torch.testing._internal.common_dtype import get_all_dtypes
+ from torch.testing._internal.common_utils import (
+@@ -28,6 +35,7 @@ from inductor.test_torchinductor import (  # @manual=fbcode//caffe2/test/inducto
+     CommonTemplate,
+     TestCase,
+ )
++import torch_npu._inductor
+ 
+ 
+ # TODO: Remove this file.
+@@ -225,5 +233,4 @@ instantiate_parametrized_tests(MPSBasicTests)
+ if __name__ == "__main__":
+     from torch._dynamo.test_case import run_tests
+ 
+-    if torch.backends.mps.is_available():
+-        run_tests(needs="filelock")
++    run_tests(needs="filelock")

@@ -1,0 +1,33 @@
+diff --git a/test/inductor/test_triton_syntax.py b/test/inductor/test_triton_syntax.py
+index 49f0bd0..d82828e 100644
+--- a/test/inductor/test_triton_syntax.py
++++ b/test/inductor/test_triton_syntax.py
+@@ -1,12 +1,19 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ 
+-import torch
+ from torch._inductor.test_case import TestCase
+ from torch.testing._internal.inductor_utils import GPU_TYPE, HAS_GPU, requires_gpu
++import torch_npu._inductor
+ 
+ 
+ class TestTritonSyntacticallyValid(TestCase):
+-    @requires_gpu()
+     def test_triton_sqrt(self):
+         # https://github.com/pytorch/pytorch/issues/142328
+         import math
+@@ -57,5 +64,4 @@ class TestTritonSyntacticallyValid(TestCase):
+ if __name__ == "__main__":
+     from torch._inductor.test_case import run_tests
+ 
+-    if HAS_GPU:
+-        run_tests()
++    run_tests()

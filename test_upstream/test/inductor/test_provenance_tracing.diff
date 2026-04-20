@@ -1,0 +1,32 @@
+diff --git a/test/inductor/test_provenance_tracing.py b/test/inductor/test_provenance_tracing.py
+index 58bb102..7d49060 100644
+--- a/test/inductor/test_provenance_tracing.py
++++ b/test/inductor/test_provenance_tracing.py
+@@ -1,3 +1,11 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ 
+ import json
+@@ -7,7 +15,6 @@ import shutil
+ import tempfile
+ from pathlib import Path
+ 
+-import torch
+ from torch._inductor import config
+ from torch._inductor.debug import create_node_mapping
+ from torch._inductor.test_case import run_tests, TestCase
+@@ -18,6 +25,7 @@ try:
+     from .test_aot_inductor_utils import AOTIRunnerUtil
+ except ImportError:
+     from test_aot_inductor_utils import AOTIRunnerUtil
++import torch_npu._inductor
+ 
+ 
+ class Model(torch.nn.Module):

@@ -1,0 +1,38 @@
+diff --git a/test/inductor/test_scatter_optimization.py b/test/inductor/test_scatter_optimization.py
+index a67b3e2..190979b 100644
+--- a/test/inductor/test_scatter_optimization.py
++++ b/test/inductor/test_scatter_optimization.py
+@@ -1,10 +1,17 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ 
+ import copy
+ import os
+ import unittest
+ 
+-import torch
+ from torch import nn
+ from torch._dynamo.utils import counters, same
+ from torch._inductor import metrics
+@@ -14,6 +21,7 @@ from torch.testing._internal.inductor_utils import GPU_TYPE, HAS_GPU
+ 
+ 
+ DO_PERF_TEST = os.environ.get("DO_PERF_TEST") == "1"
++import torch_npu._inductor
+ 
+ 
+ class TestScatterOpt(TestCase):
+@@ -202,5 +210,4 @@ if HAS_GPU:
+ if __name__ == "__main__":
+     from torch._inductor.test_case import run_tests
+ 
+-    if HAS_GPU:
+-        run_tests()
++    run_tests()

@@ -1,0 +1,32 @@
+diff --git a/test/inductor/test_compiled_autograd.py b/test/inductor/test_compiled_autograd.py
+index 730e363..5d2c5a6 100644
+--- a/test/inductor/test_compiled_autograd.py
++++ b/test/inductor/test_compiled_autograd.py
+@@ -1,3 +1,11 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ # ruff: noqa: F841
+ import contextlib
+@@ -18,7 +26,6 @@ from pathlib import Path
+ from string import Template
+ from unittest import mock
+ 
+-import torch
+ import torch.nn as nn
+ import torch.nn.functional as F
+ from torch import _inductor as inductor
+@@ -47,6 +54,7 @@ from torch.testing._internal.logging_utils import logs_to_string
+ 
+ 
+ # note: these tests are not run on windows due to inductor_utils.HAS_CPU
++import torch_npu._inductor
+ 
+ 
+ def make_compiler_fn(

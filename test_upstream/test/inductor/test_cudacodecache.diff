@@ -1,0 +1,38 @@
+diff --git a/test/inductor/test_cudacodecache.py b/test/inductor/test_cudacodecache.py
+index 2054c9a..51a0966 100644
+--- a/test/inductor/test_cudacodecache.py
++++ b/test/inductor/test_cudacodecache.py
+@@ -1,9 +1,16 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ 
+ import ctypes
+ import unittest
+ 
+-import torch
+ from torch._inductor import config
+ from torch._inductor.async_compile import AsyncCompile
+ from torch._inductor.codecache import CUDACodeCache
+@@ -11,7 +18,7 @@ from torch._inductor.codegen.cuda.cuda_env import nvcc_exist
+ from torch._inductor.exc import CUDACompileError
+ from torch._inductor.test_case import TestCase as InductorTestCase
+ from torch._inductor.utils import fresh_inductor_cache
+-
++import torch_npu._inductor
+ 
+ _SOURCE_CODE = r"""
+ 
+@@ -95,5 +102,4 @@ class TestCUDACodeCache(InductorTestCase):
+ if __name__ == "__main__":
+     from torch._inductor.test_case import run_tests
+ 
+-    if nvcc_exist():
+-        run_tests("cuda")
++    run_tests("cuda")

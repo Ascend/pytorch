@@ -1,0 +1,32 @@
+diff --git a/test/inductor/test_async_compile.py b/test/inductor/test_async_compile.py
+index d05fa47..5660cf3 100644
+--- a/test/inductor/test_async_compile.py
++++ b/test/inductor/test_async_compile.py
+@@ -1,5 +1,12 @@
+-# Owner(s): ["module: inductor"]
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
++# Owner(s): ["module: inductor"]
+ from torch._inductor import config
+ from torch._inductor.async_compile import AsyncCompile, shutdown_compile_workers
+ from torch._inductor.test_case import run_tests, TestCase
+@@ -13,12 +20,10 @@ from torch.testing._internal.inductor_utils import (
+     requires_gpu,
+     requires_triton,
+ )
+-
++import torch_npu._inductor
+ 
+ @instantiate_parametrized_tests
+ class TestAsyncCompile(TestCase):
+-    @requires_gpu()
+-    @requires_triton()
+     @parametrize("method", ("subprocess", "fork", "spawn"))
+     def test_pool(self, method):
+         def fn(x, y):

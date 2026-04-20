@@ -1,0 +1,41 @@
+diff --git a/test/inductor/test_aot_inductor_package.py b/test/inductor/test_aot_inductor_package.py
+index 28e01a4..989dc1f 100644
+--- a/test/inductor/test_aot_inductor_package.py
++++ b/test/inductor/test_aot_inductor_package.py
+@@ -1,3 +1,11 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ import copy
+ import functools
+@@ -14,7 +22,6 @@ from typing import Callable
+ 
+ from parameterized import parameterized_class
+ 
+-import torch
+ from torch._inductor.package import AOTICompiledModel, load_package, package_aoti
+ from torch._inductor.test_case import TestCase
+ from torch._inductor.utils import fresh_inductor_cache
+@@ -26,6 +33,7 @@ from torch.testing._internal.common_utils import (
+     TEST_CUDA,
+ )
+ from torch.testing._internal.inductor_utils import GPU_TYPE, HAS_GPU
++import torch_npu._inductor
+ 
+ 
+ def skipif(predicate: Callable[[str, bool], bool], reason: str):
+@@ -531,6 +539,5 @@ class TestAOTInductorPackage(TestCase):
+ 
+ if __name__ == "__main__":
+     from torch._inductor.test_case import run_tests
+-
+-    if HAS_GPU or sys.platform == "darwin":
+-        run_tests(needs="filelock")
++    
++    run_tests(needs="filelock")

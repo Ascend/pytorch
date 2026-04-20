@@ -1,0 +1,41 @@
+diff --git a/test/inductor/test_memory_planning.py b/test/inductor/test_memory_planning.py
+index a069a80..25b1119 100644
+--- a/test/inductor/test_memory_planning.py
++++ b/test/inductor/test_memory_planning.py
+@@ -1,3 +1,11 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ 
+ import sys
+@@ -15,16 +23,15 @@ if IS_WINDOWS and IS_CI:
+         sys.exit(0)
+     raise unittest.SkipTest("requires sympy/functorch/filelock")  # noqa: F821
+ 
+-import torch
+ from torch._C import FileCheck
+ from torch._dynamo.utils import same
+ from torch._inductor import config
+ from torch._inductor.test_case import run_tests, TestCase
+ from torch._inductor.utils import run_and_get_cpp_code
+ from torch.export import Dim
++import torch_npu._inductor
+ 
+ 
+-@requires_gpu()
+ @config.patch(memory_planning=True)
+ class TestMemoryPlanning(TestCase):
+     device = GPU_TYPE
+@@ -117,5 +124,4 @@ class TestMemoryPlanning(TestCase):
+ 
+ 
+ if __name__ == "__main__":
+-    if HAS_GPU:
+-        run_tests()
++    run_tests()

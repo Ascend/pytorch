@@ -1,0 +1,40 @@
+
+diff --git a/test/inductor/test_pattern_matcher.py b/test/inductor/test_pattern_matcher.py
+index 8009f7f..7caa615 100644
+--- a/test/inductor/test_pattern_matcher.py
++++ b/test/inductor/test_pattern_matcher.py
+@@ -1,3 +1,11 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ import copy
+ import itertools
+@@ -5,7 +13,6 @@ import os
+ import unittest
+ from typing import Callable, Optional
+ 
+-import torch
+ import torch._dynamo.config as dynamo_config
+ import torch._inductor.config as inductor_config
+ import torch._inductor.fx_passes.post_grad
+@@ -44,6 +51,7 @@ from torch.testing._internal.common_utils import (
+ )
+ from torch.testing._internal.inductor_utils import GPU_TYPE, HAS_GPU, IS_BIG_GPU
+ from torch.utils import _pytree as pytree
++import torch_npu._inductor
+ 
+ 
+ aten = torch.ops.aten
+@@ -1664,5 +1672,4 @@ class TestPatternMatcher(TestCase):
+ 
+ 
+ if __name__ == "__main__":
+-    if IS_LINUX and HAS_GPU:
+-        run_tests()
++    run_tests()

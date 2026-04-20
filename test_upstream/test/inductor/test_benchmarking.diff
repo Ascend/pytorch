@@ -1,0 +1,30 @@
+diff --git a/test/inductor/test_benchmarking.py b/test/inductor/test_benchmarking.py
+index 8b27c28..35ffc92 100644
+--- a/test/inductor/test_benchmarking.py
++++ b/test/inductor/test_benchmarking.py
+@@ -1,8 +1,15 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ 
+ import unittest
+ 
+-import torch
+ from torch._dynamo.utils import counters
+ from torch._inductor.runtime.benchmarking import Benchmarker, TritonBenchmarker
+ from torch._inductor.test_case import run_tests, TestCase
+@@ -18,7 +25,7 @@ ALL_BENCHMARKER_CLASSES = (
+     Benchmarker,
+     TritonBenchmarker,
+ )
+-
++import torch_npu._inductor
+ 
+ @instantiate_parametrized_tests
+ class TestBenchmarker(TestCase):

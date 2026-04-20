@@ -1,0 +1,223 @@
+diff --git a/test/inductor/test_torchinductor.py b/test/inductor/test_torchinductor.py
+index fea793f..bce3058 100644
+--- a/test/inductor/test_torchinductor.py
++++ b/test/inductor/test_torchinductor.py
+@@ -1,3 +1,11 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ # ruff: noqa: F841
+ import contextlib
+@@ -26,7 +34,6 @@ from unittest.mock import patch
+ 
+ import numpy as np
+ 
+-import torch
+ import torch._dynamo.config as dynamo_config
+ import torch._inductor.aoti_eager
+ import torch.nn as nn
+@@ -132,6 +139,7 @@ from torch.testing._internal.inductor_utils import (
+     skipCUDAIf,
+ )
+ from torch.testing._internal.triton_utils import requires_cuda
++import torch_npu._inductor
+ 
+ 
+ _T = TypeVar("_T")
+@@ -4312,7 +4320,6 @@ class CommonTemplate:
+             ),
+         )
+ 
+-    @requires_gpu()
+     def test_to_device(self):
+         def fn(a):
+             if a.device.type == "cpu":
+@@ -4343,7 +4350,6 @@ class CommonTemplate:
+             ),
+         )
+ 
+-    @requires_gpu()
+     def test_to_device_constant(self):
+         def fn(a):
+             d1 = a.device.type
+@@ -4364,7 +4370,6 @@ class CommonTemplate:
+             (torch.randn([10]),),
+         )
+ 
+-    @requires_gpu()
+     @xfail_if_triton_cpu
+     def test_multi_device(self):
+         def fn(x):
+@@ -7240,7 +7245,6 @@ class CommonTemplate:
+ 
+     # The following 2 tests are meant to check the logic that drops
+     # xmask from triton load/store if xnumel = 1
+-    @requires_gpu()
+     def test_single_elem(self):
+         def fn(a):
+             b = a + 1
+@@ -7248,7 +7252,6 @@ class CommonTemplate:
+ 
+         self.common(fn, (torch.randn(1),))
+ 
+-    @requires_gpu()
+     def test_single_elem_indirect(self):
+         def fn(a, b):
+             c = a[b] + 1
+@@ -7262,7 +7265,6 @@ class CommonTemplate:
+     # This test is meant to check for issues from the logic
+     # that drops xmask from trito load/store if XBLOCK divides xnumel
+ 
+-    @requires_gpu()
+     def test_xblock_divides_xnumel(self):
+         def fn(a):
+             b = a + 1
+@@ -8947,7 +8949,6 @@ class CommonTemplate:
+         a1 = fn(x).clone()
+         self.assertFalse(torch.allclose(a0, a1))
+ 
+-    @requires_gpu()
+     @skip_if_triton_cpu("Flaky on Triton CPU")
+     def test_like_rands3(self):
+         # rand_like with `device` which is different from `x.device`
+@@ -9710,7 +9711,6 @@ class CommonTemplate:
+         ]
+         self.common(forward, args, atol=1e-5, rtol=1e-5)
+ 
+-    @requires_gpu()
+     @skip_if_halide  # cascading accuracy issues due rsqrt fallback
+     def test_tmp_not_defined_issue3(self):
+         test_device = torch.device(type=self.device)
+@@ -10107,7 +10107,6 @@ class CommonTemplate:
+     # Shape padding causes the inputs to all get specialized, so the codegen
+     # test fails
+     @expectedFailureCodegenDynamic
+-    @requires_gpu()
+     @torch._inductor.config.patch("shape_padding", True)
+     def test_shape_padding(self):
+         dtypes = [
+@@ -10136,7 +10135,6 @@ class CommonTemplate:
+             self.common(lambda x, y: torch.matmul(x, y), (x, y))
+             self.common(lambda x, y, z: torch.baddbmm(z, x, y), (x, y, z))
+ 
+-    @requires_gpu()
+     @torch._inductor.config.patch("layout_optimization", True)
+     @tf32_on_and_off(0.005)
+     def test_inductor_layout_optimization_input_mutations(self):
+@@ -10161,7 +10159,6 @@ class CommonTemplate:
+             self.assertEqual(out_ref.stride(), out_test.stride())
+             self.assertEqual(x_ref, x_test)
+ 
+-    @requires_gpu()
+     def test_stride_preservation_with_stride_modifying_fx_pass(self):
+         def f(x):
+             return x + 1
+@@ -10458,7 +10455,6 @@ class CommonTemplate:
+         # expanded dim should not cause copy in require_stride_order
+         assertGeneratedKernelCountEqual(self, 0)
+ 
+-    @requires_gpu()
+     @parametrize("prefer_nd_tiling", (False, True))
+     @parametrize("use_block_ptr", (False, True))
+     @unittest.skipIf(
+@@ -10538,7 +10534,6 @@ class CommonTemplate:
+             if not is_halide_backend(self.device):
+                 self.assertEqual(have_block_ptr, use_block_ptr)
+ 
+-    @requires_gpu()
+     @unittest.skipIf(
+         not PLATFORM_SUPPORTS_MEM_EFF_ATTENTION,
+         "Does not support mem_eff_attention",
+@@ -10583,7 +10578,6 @@ class CommonTemplate:
+             rtol=1e4,
+         )
+ 
+-    @requires_gpu()
+     @unittest.skipIf(
+         not PLATFORM_SUPPORTS_MEM_EFF_ATTENTION,
+         "Does not support mem_eff_attention",
+@@ -11282,7 +11276,6 @@ class CommonTemplate:
+ 
+         self.common(fn, (inp, offsets), check_lowp=False)
+ 
+-    @requires_gpu()
+     @config.patch(assume_aligned_inputs=False)
+     def test_config_option_dont_assume_alignment(self):
+         def fn(x: torch.Tensor) -> torch.Tensor:
+@@ -11309,7 +11302,6 @@ class CommonTemplate:
+                 res2 = fn_c(inp2)
+                 self.assertEqual(ref2, res2, atol=1e-5, rtol=1e-5)
+ 
+-    @requires_gpu()
+     @config.patch(assume_aligned_inputs=False)
+     def test_config_option_dont_assume_alignment_recompiles(self):
+         # Inputs:
+@@ -11356,7 +11348,6 @@ class CommonTemplate:
+         # see Note: [Input Alignment handling in Inductor]
+         self.assertLessEqual(len(failed_guards), failed_guard_count_iteration_2)
+ 
+-    @requires_gpu()
+     @config.patch(assume_aligned_inputs=False)
+     def test_config_option_dont_assume_alignment_cudagraphs(self):
+         def fn(x):
+@@ -11483,7 +11474,6 @@ class CommonTemplate:
+         # No error
+         f(x)
+ 
+-    @requires_gpu()
+     @torch._inductor.config.patch("layout_optimization", True)
+     @torch._inductor.config.patch("keep_output_stride", False)
+     @config.patch(implicit_fallbacks=True)
+@@ -11519,7 +11509,6 @@ class CommonTemplate:
+             # But because our custom op needs fixed layout, the assertions in the custom op will pass
+             self.common(fn, (inp,), check_lowp=False)
+ 
+-    @requires_gpu()
+     @config.patch(implicit_fallbacks=True)
+     @skip_if_cpp_wrapper(
+         "Without major redesign, cpp_wrapper will not support custom ops that are "
+@@ -11612,7 +11601,6 @@ class CommonTemplate:
+             compiled_inductor_out = compiled_inductor_f(x)
+             self.assertEqual(compiled_inductor_out, eager_out)
+ 
+-    @requires_gpu()
+     @config.patch(implicit_fallbacks=True)
+     def test_custom_op_fixed_layout_channels_last(self):
+         class Block(nn.Module):
+@@ -11953,7 +11941,6 @@ class CommonTemplate:
+             FileCheck().check("aten.view.dtype(reinterpret_tensor").run(code[0])
+ 
+     @xfail_if_triton_cpu
+-    @requires_gpu()
+     def test_scalar_cpu_tensor_arg(self):
+         def fn(x, y):
+             return x + y.sum()
+@@ -12486,7 +12473,6 @@ class CommonTemplate:
+             with self.assertRaisesRegex(RuntimeError, "Output size is too small"):
+                 _ = torch.compile(model)(inputs)
+ 
+-    @requires_gpu()
+     @config.patch(fallback_random=True)
+     @unittest.skipIf(
+         config.cpp_wrapper,
+@@ -13137,7 +13123,6 @@ if HAS_GPU:
+             out[0].sum().backward()
+             self.assertEqual(inp.grad, inp_ref.grad)
+ 
+-        @requires_gpu()
+         @unittest.skipIf(
+             not PLATFORM_SUPPORTS_MEM_EFF_ATTENTION,
+             "Does not support mem_eff_attention",
+@@ -14349,5 +14334,4 @@ def _run_and_get_stripped_kernels(
+ if __name__ == "__main__":
+     from torch._inductor.test_case import run_tests
+ 
+-    if HAS_CPU or HAS_GPU:
+-        run_tests(needs="filelock")
++    run_tests(needs="filelock")

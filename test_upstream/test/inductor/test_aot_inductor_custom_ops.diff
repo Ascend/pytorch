@@ -1,0 +1,43 @@
+diff --git a/test/inductor/test_aot_inductor_custom_ops.py b/test/inductor/test_aot_inductor_custom_ops.py
+index ce2ef37..4e8fa94 100644
+--- a/test/inductor/test_aot_inductor_custom_ops.py
++++ b/test/inductor/test_aot_inductor_custom_ops.py
+@@ -1,3 +1,11 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ # This test requires libaoti_custom_ops.so to be built, which happnes when BUILD_TEST = 1
+ import logging
+@@ -5,7 +13,6 @@ import os
+ import sys
+ import unittest
+ 
+-import torch
+ import torch._export
+ import torch._inductor
+ import torch._inductor.config
+@@ -56,7 +63,7 @@ except (unittest.SkipTest, ImportError):
+     if __name__ == "__main__":
+         sys.exit(0)
+     raise
+-
++import torch_npu._inductor
+ 
+ @torch.library.custom_op(
+     "aoti_custom_ops::fn_with_incorrect_optional_tensor", mutates_args=()
+@@ -460,7 +467,5 @@ copy_tests(
+ 
+ if __name__ == "__main__":
+     from torch._inductor.test_case import run_tests
+-
+-    # cpp_extension N/A in fbcode
+-    if HAS_CUDA or sys.platform == "darwin":
+-        run_tests(needs="filelock")
++    
++    run_tests(needs="filelock")

@@ -1,0 +1,27 @@
+diff --git a/test/inductor/test_split_cat_fx_aten_passes.py b/test/inductor/test_split_cat_fx_aten_passes.py
+index 99ee583..c6fc266 100644
+--- a/test/inductor/test_split_cat_fx_aten_passes.py
++++ b/test/inductor/test_split_cat_fx_aten_passes.py
+@@ -1,6 +1,13 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ 
+-import torch
+ import torch._inductor
+ from torch._dynamo.utils import counters
+ from torch._inductor.test_case import run_tests, TestCase
+@@ -15,6 +22,7 @@ try:
+     has_fbgemm = True
+ except Exception:
+     has_fbgemm = False
++import torch_npu._inductor
+ 
+ 
+ class TestSplitCat(torch.nn.Module):

@@ -1,0 +1,24 @@
+diff --git a/test/inductor/test_external_callables.py b/test/inductor/test_external_callables.py
+index eadf00d..1a88d91 100644
+--- a/test/inductor/test_external_callables.py
++++ b/test/inductor/test_external_callables.py
+@@ -1,10 +1,18 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ import unittest
+ 
+-import torch
+ from torch._inductor import config
+ from torch._inductor.test_case import run_tests, TestCase
+ from torch.testing._internal.common_cuda import TEST_CUDA
++import torch_npu._inductor
+ 
+ 
+ class MatMulModule(torch.nn.Module):

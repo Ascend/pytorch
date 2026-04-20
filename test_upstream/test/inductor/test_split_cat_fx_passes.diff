@@ -1,0 +1,42 @@
+diff --git a/test/inductor/test_split_cat_fx_passes.py b/test/inductor/test_split_cat_fx_passes.py
+index 238e5ae..5b6d123 100644
+--- a/test/inductor/test_split_cat_fx_passes.py
++++ b/test/inductor/test_split_cat_fx_passes.py
+@@ -1,13 +1,21 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ 
+ 
+-import torch
+ from torch._dynamo.utils import counters
+ from torch._inductor.fx_passes.misc_patterns import numpy_compat_normalization
+ from torch._inductor.test_case import run_tests, TestCase
+ from torch.testing._internal.common_utils import IS_LINUX
+ from torch.testing._internal.inductor_utils import GPU_TYPE, HAS_GPU
+ from torch.testing._internal.triton_utils import requires_gpu
++import torch_npu._inductor
+ 
+ 
+ def patch(f):
+@@ -1524,7 +1532,6 @@ class TestSplitCatFxPasses(TestCase):
+                 self.assertTrue(k not in {"x", "x1", "x2", "a", "axis", "keepdims"})
+ 
+     @patch
+-    @requires_gpu
+     def test_stack_normalization_axis_kwarg(self):
+         def fn(x, y):
+             return torch.stack([x, y], axis=1)
+@@ -1537,5 +1544,4 @@ class TestSplitCatFxPasses(TestCase):
+ 
+ 
+ if __name__ == "__main__":
+-    if IS_LINUX and HAS_GPU:
+-        run_tests()
++    run_tests()

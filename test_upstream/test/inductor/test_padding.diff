@@ -1,0 +1,46 @@
+diff --git a/test/inductor/test_padding.py b/test/inductor/test_padding.py
+index 74eb018..d0f7505 100644
+--- a/test/inductor/test_padding.py
++++ b/test/inductor/test_padding.py
+@@ -1,10 +1,17 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ import copy
+ import functools
+ import os
+ import unittest
+ 
+-import torch
+ from torch import nn, Tensor
+ from torch._dynamo.convert_frame import maybe_cprofile
+ from torch._dynamo.device_interface import get_interface_for_device
+@@ -33,6 +40,7 @@ try:
+     HAS_TRANSFORMER = True
+ except ImportError:
+     HAS_TRANSFORMER = False
++import torch_npu._inductor
+ 
+ 
+ def get_optim(m):
+@@ -90,7 +98,6 @@ def forward_and_backward_pass(m, inputs):
+         "triton.cudagraphs": USE_CUDA_GRAPHS,
+     }
+ )
+-@requires_gpu()
+ class TestCaseBase(TestCase):
+     @classmethod
+     def setUpClass(cls):
+@@ -765,5 +772,4 @@ class PaddingTest(TestCaseBase):
+ 
+ 
+ if __name__ == "__main__":
+-    if HAS_GPU:
+-        run_tests()
++    run_tests()

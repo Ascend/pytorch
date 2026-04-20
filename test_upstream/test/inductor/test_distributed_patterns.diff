@@ -1,0 +1,53 @@
+diff --git a/test/inductor/test_distributed_patterns.py b/test/inductor/test_distributed_patterns.py
+index b61f355..bd93cd0 100644
+--- a/test/inductor/test_distributed_patterns.py
++++ b/test/inductor/test_distributed_patterns.py
+@@ -1,15 +1,22 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["oncall: pt2"]
+ import dataclasses
+ import functools
+ 
+-import torch
+ from torch import nn
+ from torch._dynamo import compiled_autograd
+ from torch._dynamo.test_case import run_tests, TestCase
+ from torch._dynamo.testing import CompileCounter
+ from torch.testing._internal.common_utils import IS_MACOS, skipIfRocm, skipIfXpu
+ from torch.testing._internal.inductor_utils import GPU_TYPE, HAS_CPU, requires_gpu
+-
++import torch_npu._inductor
+ 
+ # Fake distributed
+ WORLD_SIZE = 2
+@@ -204,7 +211,6 @@ class DistributedPatternTests(TestCase):
+         self._test_storage_resize_zero("cpu")
+ 
+     @skipIfRocm
+-    @requires_gpu()
+     def test_storage_resize_zero_gpu(self):
+         self._test_storage_resize_zero(GPU_TYPE)
+ 
+@@ -229,7 +235,6 @@ class DistributedPatternTests(TestCase):
+         self._test_storage_resize_nonzero("cpu")
+ 
+     @skipIfRocm
+-    @requires_gpu()
+     def test_storage_resize_nonzero_gpu(self):
+         self._test_storage_resize_nonzero(GPU_TYPE)
+ 
+@@ -483,7 +488,6 @@ class DistributedPatternTests(TestCase):
+ 
+     @skipIfRocm
+     @skipIfXpu
+-    @requires_gpu()
+     @torch._functorch.config.patch(recompute_views=True)
+     def test_fake_distributed_inductor(self):
+         m1, inp1 = init_fake_distributed(GPU_TYPE)

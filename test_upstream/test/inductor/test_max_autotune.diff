@@ -1,0 +1,40 @@
+diff --git a/test/inductor/test_max_autotune.py b/test/inductor/test_max_autotune.py
+index 741353f..7abfd4c 100644
+--- a/test/inductor/test_max_autotune.py
++++ b/test/inductor/test_max_autotune.py
+@@ -1,3 +1,11 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ import contextlib
+ import json
+@@ -7,7 +15,6 @@ import tempfile
+ import unittest
+ from typing import Callable, Optional
+ 
+-import torch
+ from torch import multiprocessing as mp, nn
+ from torch._dynamo import reset
+ from torch._dynamo.exc import BackendCompilerFailed
+@@ -50,6 +57,7 @@ from torch.testing._internal.inductor_utils import GPU_TYPE, HAS_CPU, HAS_CUDA,
+ torch.set_float32_matmul_precision("high")
+ if HAS_CUDA:
+     torch.cuda.memory._set_allocator_settings("expandable_segments:False")
++import torch_npu._inductor
+ 
+ 
+ def _get_func_call() -> str:
+@@ -1666,6 +1674,4 @@ class TestPrologueFusion(TestCase):
+ if __name__ == "__main__":
+     from torch._inductor.utils import is_big_gpu
+ 
+-    # Set env to make it work in CI.
+-    if HAS_GPU and HAS_CPU and is_big_gpu():
+-        run_tests()
++    run_tests()

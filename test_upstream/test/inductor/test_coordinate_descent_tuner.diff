@@ -1,0 +1,38 @@
+diff --git a/test/inductor/test_coordinate_descent_tuner.py b/test/inductor/test_coordinate_descent_tuner.py
+index 7ad0994..39f0110 100644
+--- a/test/inductor/test_coordinate_descent_tuner.py
++++ b/test/inductor/test_coordinate_descent_tuner.py
+@@ -1,10 +1,17 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ 
+ import sys
+ import unittest
+ from unittest import mock
+ 
+-import torch
+ from torch._inductor.runtime.hints import TRITON_MAX_BLOCK
+ from torch._inductor.test_case import run_tests, TestCase
+ from torch.testing._internal.common_utils import IS_LINUX
+@@ -26,6 +33,7 @@ config.benchmark_kernel = True
+ config.coordinate_descent_tuning = True
+ 
+ orig_compare_config = CoordescTuner.compare_config
++import torch_npu._inductor
+ 
+ 
+ def mock_compare_config_prefer_larger_XBLOCK(
+@@ -114,5 +122,4 @@ class TestCoordinateDescentTuner(TestCase):
+ 
+ 
+ if __name__ == "__main__":
+-    if IS_LINUX and HAS_GPU:
+-        run_tests()
++    run_tests()

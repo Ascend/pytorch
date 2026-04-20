@@ -1,0 +1,39 @@
+diff --git a/test/inductor/test_profiler.py b/test/inductor/test_profiler.py
+index 75e6a7e..ceae5d0 100644
+--- a/test/inductor/test_profiler.py
++++ b/test/inductor/test_profiler.py
+@@ -1,3 +1,11 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ import json
+ import os
+@@ -5,7 +13,6 @@ import tempfile
+ import unittest
+ from typing import Callable, Optional
+ 
+-import torch
+ import torch._inductor.test_case
+ import torch._inductor.utils
+ from torch import _dynamo as torchdynamo
+@@ -17,6 +24,7 @@ from torch.utils._triton import has_triton
+ 
+ 
+ HAS_TRITON = has_triton()
++import torch_npu._inductor
+ 
+ 
+ class DynamoProfilerTests(torch._inductor.test_case.TestCase):
+@@ -284,5 +292,4 @@ class DynamoProfilerTests(torch._inductor.test_case.TestCase):
+ if __name__ == "__main__":
+     from torch._inductor.test_case import run_tests
+ 
+-    if HAS_CUDA:
+-        run_tests()
++    run_tests()

@@ -1,0 +1,38 @@
+diff --git a/test/inductor/test_multi_kernel.py b/test/inductor/test_multi_kernel.py
+index 78c8f7b..bae05e2 100644
+--- a/test/inductor/test_multi_kernel.py
++++ b/test/inductor/test_multi_kernel.py
+@@ -1,10 +1,17 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ 
+ import os
+ import re
+ import unittest
+ 
+-import torch
+ from torch import nn
+ from torch._dynamo.testing import reset_rng_state
+ from torch._inductor import config, test_operators
+@@ -19,6 +26,7 @@ from torch.testing._internal.common_utils import (
+     skipIfXpu,
+ )
+ from torch.testing._internal.inductor_utils import GPU_TYPE, HAS_GPU
++import torch_npu._inductor
+ 
+ 
+ class TransformerSnippet(nn.Module):
+@@ -299,5 +307,4 @@ class MultiKernelTest(TestCase):
+ if __name__ == "__main__":
+     from torch._inductor.test_case import run_tests
+ 
+-    if HAS_GPU:
+-        run_tests()
++    run_tests()

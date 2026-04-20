@@ -1,0 +1,35 @@
+diff --git a/test/inductor/test_dependencies.py b/test/inductor/test_dependencies.py
+index ea500c9..ad305ba 100644
+--- a/test/inductor/test_dependencies.py
++++ b/test/inductor/test_dependencies.py
+@@ -1,7 +1,14 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ import contextlib
+ 
+-import torch
+ from torch._inductor.dependencies import MemoryDep
+ from torch._inductor.graph import GraphLowering
+ from torch._inductor.ir import Buffer, FixedLayout, Pointwise
+@@ -9,6 +16,7 @@ from torch._inductor.test_case import TestCase as InductorTestCase
+ from torch._inductor.utils import sympy_index_symbol
+ from torch._inductor.virtualized import ops, V
+ from torch.testing._internal.inductor_utils import GPU_TYPE, HAS_CPU, HAS_GPU
++import torch_npu._inductor
+ 
+ 
+ class TestDependencies(InductorTestCase):
+@@ -164,5 +172,4 @@ class TestDependencies(InductorTestCase):
+ if __name__ == "__main__":
+     from torch._inductor.test_case import run_tests
+ 
+-    if HAS_CPU and HAS_GPU:
+-        run_tests("sympy")
++    run_tests("sympy")

@@ -1,0 +1,39 @@
+diff --git a/test/inductor/test_combo_kernels.py b/test/inductor/test_combo_kernels.py
+index bccdaca..323a638 100644
+--- a/test/inductor/test_combo_kernels.py
++++ b/test/inductor/test_combo_kernels.py
+@@ -1,10 +1,17 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ 
+ import contextlib
+ import sys
+ import unittest
+ 
+-import torch
+ import torch._inductor
+ from torch.testing._internal.common_utils import (
+     instantiate_parametrized_tests,
+@@ -29,7 +36,7 @@ except (unittest.SkipTest, ImportError) as e:
+     if __name__ == "__main__":
+         sys.exit(0)
+     raise
+-
++import torch_npu._inductor
+ 
+ @instantiate_parametrized_tests
+ class ComboKernelTests(TestCase):
+@@ -539,5 +546,4 @@ class ComboKernelDynamicShapesTests(TestCase):
+ if __name__ == "__main__":
+     from torch._dynamo.test_case import run_tests
+ 
+-    if HAS_CPU or HAS_CUDA:
+-        run_tests(needs="filelock")
++    run_tests(needs="filelock")

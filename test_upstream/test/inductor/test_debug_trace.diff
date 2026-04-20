@@ -1,0 +1,32 @@
+diff --git a/test/inductor/test_debug_trace.py b/test/inductor/test_debug_trace.py
+index 145932a..9a2a69b 100644
+--- a/test/inductor/test_debug_trace.py
++++ b/test/inductor/test_debug_trace.py
+@@ -1,3 +1,11 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ import logging
+ import os
+@@ -8,7 +16,6 @@ import tempfile
+ import unittest
+ from pathlib import Path
+ 
+-import torch
+ from torch._inductor import config, test_operators
+ from torch._inductor.utils import fresh_inductor_cache
+ from torch.testing._internal.common_utils import skipIfWindows
+@@ -25,6 +32,7 @@ except unittest.SkipTest:
+     if __name__ == "__main__":
+         sys.exit(0)
+     raise
++import torch_npu._inductor
+ 
+ 
+ def filesize(filename: Path):

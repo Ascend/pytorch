@@ -1,0 +1,31 @@
+diff --git a/test/inductor/test_compile_worker.py b/test/inductor/test_compile_worker.py
+index d6fc2fc..c59632b 100644
+--- a/test/inductor/test_compile_worker.py
++++ b/test/inductor/test_compile_worker.py
+@@ -1,3 +1,11 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ import operator
+ import os
+@@ -10,6 +18,7 @@ from torch._inductor.compile_worker.subproc_pool import (
+ from torch._inductor.test_case import TestCase
+ from torch.testing._internal.common_utils import skipIfWindows
+ from torch.testing._internal.inductor_utils import HAS_CPU
++import torch_npu._inductor
+ 
+ 
+ class TestCompileWorker(TestCase):
+@@ -57,5 +66,4 @@ class TestCompileWorker(TestCase):
+ if __name__ == "__main__":
+     from torch._inductor.test_case import run_tests
+ 
+-    if HAS_CPU:
+-        run_tests()
++    run_tests()

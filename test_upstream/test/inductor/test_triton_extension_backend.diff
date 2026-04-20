@@ -1,0 +1,31 @@
+diff --git a/test/inductor/test_triton_extension_backend.py b/test/inductor/test_triton_extension_backend.py
+index 37b3240..ea6b0c3 100644
+--- a/test/inductor/test_triton_extension_backend.py
++++ b/test/inductor/test_triton_extension_backend.py
+@@ -1,10 +1,17 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ import random
+ import string
+ import sys
+ import unittest
+ 
+-import torch
+ import torch._dynamo
+ import torch.utils.cpp_extension
+ 
+@@ -56,6 +63,7 @@ except unittest.SkipTest:
+ 
+ 
+ TestCase = test_torchinductor.TestCase
++import torch_npu._inductor
+ 
+ 
+ def mock_triton_hash_with_backend(*args, **kwargs):

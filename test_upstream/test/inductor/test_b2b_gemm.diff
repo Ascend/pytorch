@@ -1,0 +1,35 @@
+diff --git a/test/inductor/test_b2b_gemm.py b/test/inductor/test_b2b_gemm.py
+index 60bbfd6..c6681ce 100644
+--- a/test/inductor/test_b2b_gemm.py
++++ b/test/inductor/test_b2b_gemm.py
+@@ -1,14 +1,21 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ import os
+ import unittest
+ 
+-import torch
+ from torch._inductor.runtime.benchmarking import benchmarker
+ from torch._inductor.test_case import run_tests, TestCase
+ from torch._inductor.utils import run_and_get_code
+ from torch.testing._internal.common_utils import skipIfXpu
+ from torch.testing._internal.inductor_utils import GPU_TYPE, HAS_GPU
+-
++import torch_npu._inductor
+ 
+ @skipIfXpu(msg="Segmentation fault on CI machine")
+ class B2BGEMMTest(TestCase):
+@@ -335,5 +342,4 @@ class B2BGEMMTest(TestCase):
+ 
+ 
+ if __name__ == "__main__":
+-    if HAS_GPU:
+-        run_tests()
++    run_tests()

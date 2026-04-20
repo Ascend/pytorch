@@ -1,0 +1,39 @@
+diff --git a/test/inductor/test_binary_folding.py b/test/inductor/test_binary_folding.py
+index cac7586..c54201a 100644
+--- a/test/inductor/test_binary_folding.py
++++ b/test/inductor/test_binary_folding.py
+@@ -1,3 +1,11 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ import functools
+ import importlib
+@@ -5,7 +13,6 @@ import itertools
+ import os
+ import sys
+ 
+-import torch
+ from torch import nn
+ from torch._dynamo.utils import counters
+ from torch._inductor import config as inductor_config
+@@ -34,6 +41,7 @@ from torch.testing._internal.inductor_utils import GPU_TYPE, HAS_CPU, HAS_GPU
+ 
+ 
+ aten = torch.ops.aten
++import torch_npu._inductor
+ 
+ 
+ class BinaryFoldingTemplate(TestCase):
+@@ -360,5 +368,4 @@ del BinaryFoldingTemplate
+ if __name__ == "__main__":
+     from torch._inductor.test_case import run_tests
+ 
+-    if HAS_CPU or HAS_GPU:
+-        run_tests(needs="filelock")
++    run_tests(needs="filelock")

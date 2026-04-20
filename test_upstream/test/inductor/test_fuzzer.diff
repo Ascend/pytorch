@@ -1,0 +1,31 @@
+diff --git a/test/inductor/test_fuzzer.py b/test/inductor/test_fuzzer.py
+index cf36465..04883e0 100644
+--- a/test/inductor/test_fuzzer.py
++++ b/test/inductor/test_fuzzer.py
+@@ -1,3 +1,11 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: dynamo"]
+ 
+ import sys
+@@ -5,13 +13,13 @@ import unittest
+ from typing import Literal
+ from unittest.mock import MagicMock, patch
+ 
+-import torch
+ from torch._dynamo import config as dynamo_config
+ from torch._inductor import config as inductor_config
+ from torch._inductor.fuzzer import ConfigFuzzer, MODULE_DEFAULTS, SamplingMethod, Status
+ from torch._inductor.test_case import run_tests, TestCase
+ from torch.testing._internal import fake_config_module as fake_config
+ from torch.testing._internal.inductor_utils import GPU_TYPE, HAS_GPU
++import torch_npu._inductor
+ 
+ 
+ def create_simple_test_model_cpu():

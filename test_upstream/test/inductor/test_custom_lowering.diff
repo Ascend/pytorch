@@ -1,0 +1,70 @@
+diff --git a/test/inductor/test_custom_lowering.py b/test/inductor/test_custom_lowering.py
+index 4786a97..369cdff 100644
+--- a/test/inductor/test_custom_lowering.py
++++ b/test/inductor/test_custom_lowering.py
+@@ -1,9 +1,16 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ 
+ from functools import partial
+ from unittest import skipIf
+ 
+-import torch
+ from torch._inductor.ir import Pointwise
+ from torch._inductor.lowering import make_pointwise, register_lowering
+ from torch._inductor.test_case import TestCase as InductorTestCase
+@@ -15,7 +22,7 @@ from torch.testing._internal.inductor_utils import (
+     HAS_GPU,
+     requires_gpu,
+ )
+-
++import torch_npu._inductor
+ 
+ # These tests check issues for lowerings that aren't in the main pytorch repo
+ class TestCustomLowering(InductorTestCase):
+@@ -140,7 +147,6 @@ class TestCustomLowering(InductorTestCase):
+             torch.ops.test_inductor_ops.add_custom, type_promotion_kind=None
+         )(add_custom_lowering)
+ 
+-    @requires_gpu()
+     @skipIf(GPU_TYPE == "mps", "Not applicable to MPS")
+     def test_jagged_to_padded_dense_sanity_cuda(self):
+         def fn(inp, offsets, max_seq_len):
+@@ -166,7 +172,6 @@ class TestCustomLowering(InductorTestCase):
+             fn(inp, offsets, max_seq_len), fn_opt(inp, offsets, max_seq_len)
+         )
+ 
+-    @requires_gpu()
+     @skipIf(GPU_TYPE == "mps", "Not applicable to MPS")
+     def test_jagged_to_padded_dense_zero_size(self):
+         # Previously, the masking was being completely stripped for the
+@@ -188,7 +193,6 @@ class TestCustomLowering(InductorTestCase):
+             fn(inp, offsets, max_seq_len), fn_opt(inp, offsets, max_seq_len)
+         )
+ 
+-    @requires_gpu()
+     @skipIfRocm
+     @skipIfXpu
+     @skipIf(GPU_TYPE == "mps", "Not applicable to MPS")
+@@ -203,7 +207,6 @@ class TestCustomLowering(InductorTestCase):
+         b = fn_opt(inp)
+         self.assertEqual(a, b)
+ 
+-    @requires_gpu()
+     @skipIfRocm
+     @skipIfXpu
+     @skipIf(GPU_TYPE == "mps", "Not applicable to MPS")
+@@ -223,5 +226,4 @@ class TestCustomLowering(InductorTestCase):
+ if __name__ == "__main__":
+     from torch._inductor.test_case import run_tests
+ 
+-    if HAS_CPU or HAS_GPU:
+-        run_tests(needs="filelock")
++    run_tests(needs="filelock")

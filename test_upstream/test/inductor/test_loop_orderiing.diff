@@ -1,0 +1,39 @@
+diff --git a/test/inductor/test_loop_ordering.py b/test/inductor/test_loop_ordering.py
+index 4bd3b33..af3a334 100644
+--- a/test/inductor/test_loop_ordering.py
++++ b/test/inductor/test_loop_ordering.py
+@@ -1,3 +1,11 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ 
+ import contextlib
+@@ -6,7 +14,6 @@ import unittest
+ 
+ import numpy as np
+ 
+-import torch
+ from torch import nn
+ from torch._dynamo.testing import rand_strided
+ from torch._dynamo.utils import same
+@@ -30,6 +37,7 @@ DO_PERF_TEST = os.environ.get("DO_PERF_TEST") == "1"
+ 
+ if HAS_GPU:
+     torch.set_default_device(GPU_TYPE)
++import torch_npu._inductor
+ 
+ 
+ class MockScheduler:
+@@ -508,5 +516,4 @@ class LoopOrderingTest(TestCase):
+ 
+ 
+ if __name__ == "__main__":
+-    if HAS_GPU:
+-        run_tests()
++    run_tests()

@@ -1,0 +1,28 @@
+diff --git a/test/inductor/test_fx_fusion.py b/test/inductor/test_fx_fusion.py
+index ebe9837..c9ba37e 100644
+--- a/test/inductor/test_fx_fusion.py
++++ b/test/inductor/test_fx_fusion.py
+@@ -1,7 +1,14 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ from typing import Any, Callable
+ 
+-import torch
+ from torch._inductor.fx_passes.pre_grad import (
+     linear_permute_fusion,
+     linear_transpose,
+@@ -16,6 +23,7 @@ from torch.fx.passes.shape_prop import ShapeProp
+ 
+ 
+ PassFunc = Callable[[torch.fx.GraphModule, Any], torch.fx.GraphModule]
++import torch_npu._inductor
+ 
+ 
+ def chain_passes(*passes: PassFunc) -> PassFunc:

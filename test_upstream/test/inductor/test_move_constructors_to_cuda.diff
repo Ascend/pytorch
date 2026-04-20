@@ -1,0 +1,37 @@
+diff --git a/test/inductor/test_move_constructors_to_cuda.py b/test/inductor/test_move_constructors_to_cuda.py
+index 3c3b870..e7d7416 100644
+--- a/test/inductor/test_move_constructors_to_cuda.py
++++ b/test/inductor/test_move_constructors_to_cuda.py
+@@ -1,16 +1,23 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ 
+ import functools
+ import unittest
+ 
+-import torch
+ from torch._inductor.test_case import run_tests, TestCase
+ from torch._inductor.utils import run_and_get_code
+ from torch.testing import FileCheck
+ from torch.testing._internal.common_cuda import TEST_MULTIGPU
+ from torch.testing._internal.common_utils import IS_LINUX
+ from torch.testing._internal.inductor_utils import HAS_CUDA
+-
++import torch_npu._inductor
+ 
+ requires_multigpu = functools.partial(
+     unittest.skipIf, not TEST_MULTIGPU, "requires multiple cuda devices"
+@@ -112,5 +119,4 @@ class TestMoveConstructorsToCuda(TestCase):
+ 
+ 
+ if __name__ == "__main__":
+-    if IS_LINUX and HAS_CUDA:
+-        run_tests()
++    run_tests()

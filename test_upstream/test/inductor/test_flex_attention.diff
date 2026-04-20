@@ -1,0 +1,33 @@
+diff --git a/test/inductor/test_flex_attention.py b/test/inductor/test_flex_attention.py
+index 7f7e6db..1f014af 100644
+--- a/test/inductor/test_flex_attention.py
++++ b/test/inductor/test_flex_attention.py
+@@ -1,3 +1,11 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ # flake8: noqa: B950
+ 
+@@ -13,7 +21,6 @@ from typing import Callable, Optional, Union
+ from unittest import expectedFailure, skip, skipUnless
+ from unittest.mock import patch
+ 
+-import torch
+ from torch._dynamo.testing import CompileCounterWithBackend, normalize_gm
+ from torch._inductor import metrics
+ from torch._inductor.test_case import TestCase as InductorTestCase
+@@ -40,7 +47,7 @@ from torch.testing._internal.common_device_type import (
+ )
+ from torch.testing._internal.common_utils import IS_MACOS, TEST_WITH_ROCM
+ from torch.utils._triton import has_triton
+-
++import torch_npu._inductor
+ 
+ # Use this decorator only when hitting Triton bugs on H100
+ running_on_a100_only = skipUnless(

@@ -1,0 +1,30 @@
+diff --git a/test/inductor/test_block_analysis.py b/test/inductor/test_block_analysis.py
+index 3d2cb03..8448b23 100644
+--- a/test/inductor/test_block_analysis.py
++++ b/test/inductor/test_block_analysis.py
+@@ -1,8 +1,15 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ 
+ import sympy
+ 
+-import torch
+ from torch._inductor.codegen.block_analysis import BlockPatternMatcher
+ from torch._inductor.utils import sympy_dot
+ from torch._inductor.virtualized import V
+@@ -14,7 +21,7 @@ from torch.testing._internal.common_utils import (
+ )
+ from torch.testing._internal.inductor_utils import dummy_graph
+ from torch.utils._sympy.functions import FloorDiv, Identity, ModularIndexing
+-
++import torch_npu._inductor
+ 
+ # Some useful symbols
+ x, y = sympy.symbols("x y")

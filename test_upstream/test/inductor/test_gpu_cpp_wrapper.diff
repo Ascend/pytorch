@@ -1,0 +1,39 @@
+diff --git a/test/inductor/test_gpu_cpp_wrapper.py b/test/inductor/test_gpu_cpp_wrapper.py
+index db7ba15..82aefe2 100644
+--- a/test/inductor/test_gpu_cpp_wrapper.py
++++ b/test/inductor/test_gpu_cpp_wrapper.py
+@@ -1,10 +1,17 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ import itertools
+ import sys
+ import unittest
+ from typing import NamedTuple
+ 
+-import torch
+ from torch._inductor import config
+ from torch._inductor.test_case import TestCase as InductorTestCase
+ from torch._inductor.utils import is_gpu
+@@ -37,7 +44,7 @@ except unittest.SkipTest:
+     if __name__ == "__main__":
+         sys.exit(0)
+     raise
+-
++import torch_npu._inductor
+ 
+ _desired_test_bases = get_desired_device_type_test_bases(allow_xpu=True)
+ RUN_GPU = HAS_GPU and any(
+@@ -338,5 +345,4 @@ if RUN_GPU:
+ if __name__ == "__main__":
+     from torch._inductor.test_case import run_tests
+ 
+-    if RUN_GPU:
+-        run_tests(needs="filelock")
++    run_tests(needs="filelock")

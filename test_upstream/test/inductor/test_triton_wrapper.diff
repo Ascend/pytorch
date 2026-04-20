@@ -1,0 +1,35 @@
+diff --git a/test/inductor/test_triton_wrapper.py b/test/inductor/test_triton_wrapper.py
+index 1005071..e0ae3cf 100644
+--- a/test/inductor/test_triton_wrapper.py
++++ b/test/inductor/test_triton_wrapper.py
+@@ -1,14 +1,22 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ 
+ import os
+ import subprocess
+ import sys
+ 
+-import torch
+ import torch._inductor.async_compile  # noqa: F401 required to warm up AsyncCompile pools
+ from torch._inductor.codecache import PyCodeCache
+ from torch._inductor.test_case import run_tests, TestCase
+ from torch.testing._internal.inductor_utils import GPU_TYPE, HAS_GPU
++import torch_npu._inductor
+ 
+ 
+ class TestTritonWrapper(TestCase):
+@@ -56,5 +64,4 @@ class TestTritonWrapper(TestCase):
+ 
+ 
+ if __name__ == "__main__":
+-    if HAS_GPU:
+-        run_tests()
++    run_tests()
