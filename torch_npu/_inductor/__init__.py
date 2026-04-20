@@ -11,6 +11,7 @@ else:
     import torch
     from torch._dynamo.device_interface import register_interface_for_device, get_interface_for_device
     from torch._inductor import lowering as inductor_lowering
+    from torch._inductor.lowering import make_fallback as ori_make_fallback
     from torch._inductor.choices import InductorChoices
     from torch._inductor.codegen.common import register_backend_for_device, register_device_op_overrides
     from torch._inductor.runtime import autotune_cache
@@ -89,7 +90,7 @@ else:
 
     _register_npu_inductor_decompositons()
 
-    if npu_config.enable_full_lowering_fallback:
+    if npu_config.enable_full_lowering_fallback.strip()=='allfallback':
         _enable_full_lowering_fallback()
     else:
         _register_npu_inductor_fallbacks()
