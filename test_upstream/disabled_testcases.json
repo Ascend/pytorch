@@ -835,5 +835,13 @@
     "test_fake_autocast_argsort_npu_float32 (__main__.TestFakeTensorPRIVATEUSE1)": ["", [""]],
     "test_pointwise_ops_argsort_npu_float32 (__main__.TestFakeTensorPRIVATEUSE1)": ["", [""]],
     "test_Conv2d_backward_depthwise_cpu_float64 (__main__.TestConvolutionNNDeviceTypeCPU)": ["", [""]],
-    "test_Conv2d_backward_depthwise_cpu_complex128 (__main__.TestConvolutionNNDeviceTypeCPU)": ["", [""]]
+    "test_Conv2d_backward_depthwise_cpu_complex128 (__main__.TestConvolutionNNDeviceTypeCPU)": ["", [""]],
+    "test_to_float64_after_init (__main__.TestFullyShardCastAfterInit)": ["", [""]],
+    "test_inductor_single_op (__main__.TestCollectivesInductor.test_inductor_single_op)": ["", [""]],
+    "test_all_to_all_single_inductor_split_sizes_none (__main__.TestCollectivesMultiProc.test_all_to_all_single_inductor_split_sizes_none)": ["", [""]],
+    "test_allgather_output_buffer_reuse (__main__.TestCollectivesMultiProc.test_allgather_output_buffer_reuse)": ["", [""]],
+    "test_allreduce_input_buffer_reuse (__main__.TestCollectivesMultiProc.test_allreduce_input_buffer_reuse)": ["", [""]],
+    "test_eager_async_allreduce_inductor_wait (__main__.TestCollectivesMultiProc.test_eager_async_allreduce_inductor_wait)": ["", [""]],
+    "test_autocast_sdpa (__main__.CtxManagerTests.test_autocast_sdpa)": ["", [""]],
+    "test_sdpa_dynamic_shapes_cuda (__main__.ReproTestsDeviceCUDA.test_sdpa_dynamic_shapes_cuda)": ["", [""]]
   }
