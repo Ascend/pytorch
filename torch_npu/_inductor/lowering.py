@@ -39,6 +39,7 @@ from torch._inductor.lowering import (
     get_promoted_dtype,
 )
 from .. import npu_dtype_cast, _npu_dtype_cast
+from .config import log, enable_full_lowering_fallback
 from .lowering_op_list import GENERATE_LIST, GENERATE_LIST2, FALLBACK_LIST, LOWERING_OVERLOAD_OP
 from . import config as npu_config
 from .lowering_fx import (
@@ -150,12 +151,39 @@ def _init_set(input_list, output_set):
                 output_set.add(other_fn)
 
 
+def _resolve_op_from_name(op_name: str):
+    try:
+        obj = torch.ops
+        for part in op_name.split('.'):
+            obj = getattr(obj, part)
+        return obj
+    except AttributeError:
+        log.warning(f"[npu|inductor|lowering|fallback] invalid identifier name: {op_name}")
+        return None
+
+
 def _register_npu_inductor_fallbacks():
     gen_set = set()
     _init_set(GENERATE_LIST, gen_set)
     overload_op_set = set()
     _init_set(LOWERING_OVERLOAD_OP, overload_op_set)
 
+    env_fallback_list = enable_full_lowering_fallback
+    if env_fallback_list:
+        for op_name in env_fallback_list.split(','):
+            op_name = op_name.strip()
+            op = _resolve_op_from_name(op_name)
+            if isinstance(op, (torch._ops.OpOverloadPacket, torch._ops.OpOverload, torch._ops.HigherOrderOperator)):
+                FALLBACK_LIST.append(op)
+                log.info(f"[npu|inductor|lowering|fallback] User specified fallback: {op_name}")
+            else:
+                log.warning(f"[npu|inductor|lowering|fallback] Cannot resolve operator: {op_name}")
+    # 算子fallback
+    for op in lowering.lowerings:
+        if op in FALLBACK_LIST and op not in decompositions \
+            and isinstance(op, (torch._ops.OpOverloadPacket, torch._ops.OpOverload, torch._ops.HigherOrderOperator)):
+            make_fallback(op)
+            
     # 把不在白名单的op fallback
     for op in lowerings:
         if op not in decompositions and op not in gen_set:
