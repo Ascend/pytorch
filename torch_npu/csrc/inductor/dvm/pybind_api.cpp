@@ -260,9 +260,8 @@ py::object TorchKernelPy::Run(py::args args)
         if (!contiguity_flags_.empty() && !contiguity_flags_[i]) {
             if (i < num_inputs) {
                 tensor = tensor.contiguous();
-            } else {
-                TORCH_CHECK(!tensor.is_contiguous(), "Expected non-contiguous output tensor at index ", i);
-                tensor = out_refs.emplace_back(tensor, at::empty_like(tensor)).second;
+            } else if (!tensor.is_contiguous()) {
+                tensor = out_refs.emplace_back(tensor, at::empty(tensor.sizes(), tensor.options())).second;
             }
         }
         tensor_list.emplace_back(tensor);
@@ -673,9 +672,8 @@ py::object DynKernelPy::Run(py::args args)
             if (!contiguity_flags_.empty() && !contiguity_flags_[i]) {
                 if (i < num_inputs + num_sym) {
                     tensor = tensor.contiguous();
-                } else {
-                    TORCH_CHECK(!tensor.is_contiguous(), "Expected non-contiguous output tensor at index ", i);
-                    tensor = out_refs.emplace_back(tensor, at::empty_like(tensor)).second;
+                } else if (!tensor.is_contiguous()) {
+                    tensor = out_refs.emplace_back(tensor, at::empty(tensor.sizes(), tensor.options())).second;
                 }
             }
             if (i < num_inputs + num_sym) {
