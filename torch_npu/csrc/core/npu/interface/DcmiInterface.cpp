@@ -22,6 +22,7 @@ LOAD_FUNCTION(dcmi_get_card_num_list)
 // dcmiv2 functions
 LOAD_FUNCTION(dcmiv2_init)
 LOAD_FUNCTION(dcmiv2_get_affinity_cpu_info_by_device_id)
+LOAD_FUNCTION(dcmiv2_get_affinity_cpu_info_by_dev_id)
 LOAD_FUNCTION(dcmiv2_get_device_list)
 
 int DcmiInit(void)
@@ -61,20 +62,34 @@ int DcmiGetCardNumList(int *card_num, int *card_list, int list_len)
 
 int DcmiGetAffinityCpuInfoByDeviceId(int card_id, int device_id, char *affinity_cpu, int *length)
 {
+    // Use dcmiv2_get_affinity_cpu_info_by_dev_id first
+    using dcmiv2GetAffinityCpuInfoByDevIdFunc = int(*)(int, char *, int *);
+    static dcmiv2GetAffinityCpuInfoByDevIdFunc func_v2_1 = nullptr;
+    if (func_v2_1 == nullptr) {
+        func_v2_1 = (dcmiv2GetAffinityCpuInfoByDevIdFunc)GET_FUNC(dcmiv2_get_affinity_cpu_info_by_dev_id);
+    }
+    if (func_v2_1 != nullptr) {
+        return func_v2_1(card_id, affinity_cpu, length);
+    }
+
     using dcmiv2GetAffinityCpuInfoByDeviceIdFunc = int(*)(int, char *, int *);
     static dcmiv2GetAffinityCpuInfoByDeviceIdFunc func_v2 = nullptr;
-    func_v2 = (dcmiv2GetAffinityCpuInfoByDeviceIdFunc)GET_FUNC(dcmiv2_get_affinity_cpu_info_by_device_id);
+    if (func_v2 == nullptr) {
+        func_v2 = (dcmiv2GetAffinityCpuInfoByDeviceIdFunc)GET_FUNC(dcmiv2_get_affinity_cpu_info_by_device_id);
+    }
     if (func_v2 != nullptr) {
         return func_v2(card_id, affinity_cpu, length);
     }
+
     using dcmiGetAffinityCpuInfoByDeviceIdFunc = int(*)(int, int, char *, int *);
     static dcmiGetAffinityCpuInfoByDeviceIdFunc func = nullptr;
-    func = (dcmiGetAffinityCpuInfoByDeviceIdFunc)GET_FUNC(dcmi_get_affinity_cpu_info_by_device_id);
     if (func == nullptr) {
-        TORCH_CHECK(false, "Failed to find function dcmi_get_affinity_cpu_info_by_device_id, "
-                    " maybe your hdk version is too low, please upgrade it", PTA_ERROR(ErrCode::NOT_FOUND));
+        func = (dcmiGetAffinityCpuInfoByDeviceIdFunc)GET_FUNC(dcmi_get_affinity_cpu_info_by_device_id);
     }
-    return func(card_id, device_id, affinity_cpu, length);
+    if (func != nullptr) {
+        return func(card_id, device_id, affinity_cpu, length);
+    }
+    TORCH_CHECK(false, "Failed to get affinity cpu info, maybe your hdk version is too low, please upgrade it", PTA_ERROR(ErrCode::NOT_FOUND));
 }
 
 int DcmiGetDeviceIdInCard(int card_id, int *device_id_max, int *mcu_id, int *cpu_id)
