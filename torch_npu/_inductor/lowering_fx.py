@@ -196,7 +196,7 @@ def process_ir_constant(inp: ExpandView) -> Union[TracedGraph, int, float]:
 
 
 def fetch_graphs(inputs: Optional[List[TensorBox]]):
-    if isinstance(inputs, (TensorBox, ir.StorageBox, ir.View, sympy.Symbol, ir.Constant)):
+    if isinstance(inputs, (TensorBox, ir.StorageBox, ir.View, sympy.Symbol, ir.Constant, ir.ReinterpretView)):
         inputs = [inputs]
     input_graphs = []
     for inp in inputs:
@@ -1825,10 +1825,6 @@ def _register_npu_inductor_fallbacks_fx(make_reduction):
             fn = register_fn_to_aten_fn(fn, aten.mul)
             return make_pointwise(fn)(a, b)
 
-    @register_lowering([aten.reciprocal], broadcast=True, )
-    def reciprocal(a):
-        return div(1.0, a)
-
     @register_lowering([prims.div], broadcast=True)
     def div_prim(a, b):
         is_integral = all(lowering.is_boolean_type(x) or lowering.is_integer_type(x) for x in [a, b])
@@ -2036,6 +2032,7 @@ def _register_npu_inductor_fallbacks_fx(make_reduction):
     register_pointwise_numeric(aten.log10)
     register_pointwise_numeric(aten.log2)
     register_pointwise_numeric(aten.nextafter)
+    register_pointwise_numeric(aten.reciprocal)
 
     register_inplace(aten.add_, add)
     register_inplace(aten.bitwise_and_, bitwise_and)
