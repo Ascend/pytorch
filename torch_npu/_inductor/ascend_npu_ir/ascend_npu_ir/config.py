@@ -23,9 +23,9 @@ disable_any_pbr = True
 autotune_fx_fallback = False
 cache_named_op = False
 
-# NPU_INDUCTOR_FALLBACK_ALL=1 forces ops entering the NPU inductor lowering
+# NPU_INDUCTOR_FALLBACK_LIST=allfallback forces ops entering the NPU inductor lowering
 # path to register fallback lowerings, so optimized/fused lowerings are not used. 
-enable_full_lowering_fallback = os.environ.get("NPU_INDUCTOR_FALLBACK_ALL", "0").lower() in ("1", "true", "yes")
+enable_full_lowering_fallback = os.environ.get("NPU_INDUCTOR_FALLBACK_LIST", "")
 
 traced_graph_cache = os.environ.get("ANIR_TRACED_GRAPH_CACHE", None)
 torch_mlir_dump_path = os.environ.get("ANIR_TORCH_MLIR_DUMP", None)
@@ -117,7 +117,7 @@ support {"off", "include", "exclude"}, to
 """
 fallback_to_aten_mode: str = "exclude"
 
-if enable_full_lowering_fallback:
+if enable_full_lowering_fallback.strip()=='allfallback':
     fallback_to_aten_mode = "all"
 
 REDUCTION_OPS = [

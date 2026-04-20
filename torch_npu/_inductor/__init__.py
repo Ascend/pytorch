@@ -103,7 +103,7 @@ else:
 
     _register_npu_inductor_decompositons()
 
-    if npu_config.enable_full_lowering_fallback:
+    if npu_config.enable_full_lowering_fallback.strip()=='allfallback':
         _enable_full_lowering_fallback()
     else:
         _register_npu_inductor_fallbacks()
