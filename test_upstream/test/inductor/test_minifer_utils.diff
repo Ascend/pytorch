@@ -23,3 +23,4 @@ index 95b25aa..89bf818 100644
  
  
  class MinifierUtilsTests(TestCase):
+ 
