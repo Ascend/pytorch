@@ -8,6 +8,7 @@ from torch._inductor.lowering import lowerings, make_fallback
 from torch._inductor import decomposition
 import torch._ops
 from .. import config
+from .utils import logger
 from ..npu.utils import run_once, get_anir_mode
 
 aten = torch.ops.aten
@@ -18,6 +19,29 @@ prims = torch.ops.prims
 def _register_npu_inductor_fallbacks():
     gen_set = set()
     fallback_set = set()
+    fallback_set_exclude = set()
+    env_fallback_list = config.enable_full_lowering_fallback
+    
+    def _resolve_op_from_name(op_name: str):
+        try:
+            obj = torch.ops
+            for part in op_name.split('.'):
+                obj = getattr(obj, part)
+            return obj
+        except AttributeError:
+            log.warning(f"[npu|inductor|lowering|fallback] invalid identifier name: {op_name}")
+            return None
+    
+    if env_fallback_list:
+        for op_name in env_fallback_list.split(','):
+            op_name = op_name.strip()
+            op = _resolve_op_from_name(op_name)
+            if isinstance(op, torch._ops.OpOverloadPacket):
+                fallback_set.add(op)
+                fallback_set_exclude.add(op)
+                logger.info(f"[npu|inductor|lowering|fallback] User specified fallback: {op_name}")
+            else:
+                logger.warning(f"[npu|inductor|lowering|fallback] Cannot resolve operator: {op_name}")
 
     for fn in config.GENERATE_LIST:
         gen_set.add(fn)
@@ -70,6 +94,7 @@ def _register_npu_inductor_fallbacks():
         fallback_via_fallback_set(fallback_set=fallback_set)
     elif config.fallback_to_aten_mode == 'exclude':
         fallback_except_gen_set(gen_set=gen_set)
+        fallback_via_fallback_set(fallback_set=fallback_set_exclude)
     elif config.fallback_to_aten_mode == 'all':
         enable_full_lowering_fallback()
 

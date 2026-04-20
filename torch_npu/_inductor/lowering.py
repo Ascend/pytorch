@@ -72,7 +72,7 @@ from . import ir as npu_ir
 from .codegen.triton_utils import NPUKernelType
 from .ir import IndexputTemplate, ScatterTemplate
 from .lowering_override_list import LOWERING_OVERRIDE_OP
-from .config import inductor_indirect_memory_mode, lowering_cat_with_concat_kernel, log, is_ascend950
+from .config import inductor_indirect_memory_mode, lowering_cat_with_concat_kernel, log, is_ascend950, enable_full_lowering_fallback
 
 from .lowering_fallback_list import FALLBACK_LIST, NPU_EXTRA_FALLBACK_LIST
 
@@ -180,8 +180,28 @@ def _add_overload(input_list, output_set):
                 other_fn = getattr(fn, overload)
                 output_set.add(other_fn)
 
+def _resolve_op_from_name(op_name: str):
+    try:
+        obj = torch.ops
+        for part in op_name.split('.'):
+            obj = getattr(obj, part)
+        return obj
+    except AttributeError:
+        log.warning(f"[npu|inductor|lowering|fallback] invalid identifier name: {op_name}")
+        return None
 
 def _register_npu_inductor_fallbacks():
+    
+    env_fallback_list = enable_full_lowering_fallback
+    if env_fallback_list:
+        for op_name in env_fallback_list.split(','):
+            op_name = op_name.strip()
+            op = _resolve_op_from_name(op_name)
+            if isinstance(op, (torch._ops.OpOverloadPacket, torch._ops.OpOverload, torch._ops.HigherOrderOperator)):
+                FALLBACK_LIST.append(op)
+                log.info(f"[npu|inductor|lowering|fallback] User specified fallback: {op_name}")
+            else:
+                log.warning(f"[npu|inductor|lowering|fallback] Cannot resolve operator: {op_name}")
     # fallback
     for op in lowering.lowerings:
         if op in FALLBACK_LIST and op not in decompositions \
