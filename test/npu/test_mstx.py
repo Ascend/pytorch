@@ -11,7 +11,8 @@ class TestMstx(TestCase):
     range_domain = ''
 
     def setUp(self):
-        def stub_mark(message: str, stream=None, domain: str = 'default'):
+        def stub_mark(message: str, stream_id: int = 0, device_index: int = 0,
+                      device_type: int = 0, domain: str = 'default'):
             self.mark_msg = message
             self.mark_domain = domain
 
@@ -25,7 +26,8 @@ class TestMstx(TestCase):
             self.range_domain = domain
             return self.range_id
 
-        def stub_range_start(message: str, stream=None, domain: str = 'default'):
+        def stub_range_start(message: str, stream_id: int = 0, device_index: int = 0,
+                             device_type: int = 0, domain: str = 'default'):
             self.range_msg = message
             self.range_id += 1
             self.range_domain = domain
