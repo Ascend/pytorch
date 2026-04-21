@@ -770,6 +770,7 @@
     "test_python_ref_meta__refs_logical_xor_npu_int64 (__main__.TestCommonPRIVATEUSE1)": ["", [""]],
     "test_python_ref_meta__refs_logical_xor_npu_int8 (__main__.TestCommonPRIVATEUSE1)": ["", [""]],
     "test_python_ref_meta__refs_logical_xor_npu_uint8 (__main__.TestCommonPRIVATEUSE1)": ["", [""]],
+    "test_compare_cpu_nn_functional_max_pool1d_npu_float32 (__main__.TestCommonPRIVATEUSE1)": ["", [""]],
     "test_cow_input___rmod___npu_float32 (__main__.TestCompositeCompliancePRIVATEUSE1)": ["", [""]],
     "test_cow_input_angle_npu_float32 (__main__.TestCompositeCompliancePRIVATEUSE1)": ["", [""]],
     "test_cow_input_bernoulli_npu_float32 (__main__.TestCompositeCompliancePRIVATEUSE1)": ["", [""]],
