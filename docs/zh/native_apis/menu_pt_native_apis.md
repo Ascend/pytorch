@@ -249,5 +249,7 @@
     -   [添加二进制黑名单示例](example_of_adding_a_binary_blocklist.md)
 
 - [确定性计算API支持清单](deterministic_computing_apis.md)
+- [支持DTensor的API清单](dtensor_supported_apis.md)
+- [支持入图的API清单](graph_supported_apis.md)
 - [附录](appendixes.md)
   - [添加二进制黑名单示例](example_of_adding_a_binary_blocklist.md)
