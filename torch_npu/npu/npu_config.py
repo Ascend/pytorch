@@ -32,13 +32,13 @@ _option_map = {"ACL_PRECISION_MODE": ["allow_fp32_to_fp16", "must_keep_origin_dt
 _deprecated_option_set = {"ACL_OP_SELECT_IMPL_MODE", "ACL_OPTYPELIST_FOR_IMPLMODE"}
 
 
-@unique
 class _CubeMathType(IntEnum):
     KEEP_DTYPE = 0
     ALLOW_FP32_DOWN_PRECISION = 1
     USE_FP16 = 2
     USE_HF32 = 3
-    FORCE_GRP_ACC_FOR_FP32 = 4
+    FORCE_GRP_ACC_FOR_FP32 = 4 # deprecate, but use as a transition for now
+    USE_FP32_ADD = 4
 
 
 def _check_compile_option(name, value) -> bool:
