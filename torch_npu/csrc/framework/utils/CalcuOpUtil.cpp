@@ -344,6 +344,7 @@ using aclCubeMathType = enum : int8_t {
     USE_FP16 = 2,
     USE_HF32 = 3,
     FORCE_GRP_ACC_FOR_FP32 = 4,
+    USE_FP32_ADD = 4,
 };
 
 static std::unordered_map<uint8_t, aclCubeMathType> ACL_CUBE_MATH_TYPE_MAP = {
@@ -354,7 +355,7 @@ static std::unordered_map<uint8_t, aclCubeMathType> ACL_CUBE_MATH_TYPE_MAP_PASST
     {0b01, ALLOW_FP32_DOWN_PRECISION},
     {0b10, USE_FP16},
     {0b11, USE_HF32},
-    {0b100, FORCE_GRP_ACC_FOR_FP32}
+    {0b100, USE_FP32_ADD}
 };
 
 int8_t CalcuOpUtil::GetCubeMathType()
