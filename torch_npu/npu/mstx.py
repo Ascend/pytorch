@@ -46,8 +46,11 @@ class mstx:
             return
         if stream:
             if isinstance(stream, torch_npu.npu.streams.Stream):
-                stream = stream.npu_stream
-                torch_npu._C._mstx._mark(message, stream, domain)
+                torch_npu._C._mstx._mark(message,
+                                         stream.stream_id,
+                                         stream.device_index,
+                                         stream.device_type,
+                                         domain)
             else:
                 warnings.warn("Invalid stream for mstx.mark func. Please input valid stream.")
                 return
@@ -65,8 +68,11 @@ class mstx:
             return 0
         if stream:
             if isinstance(stream, torch_npu.npu.streams.Stream):
-                stream = stream.npu_stream
-                return torch_npu._C._mstx._range_start(message, stream, domain)
+                return torch_npu._C._mstx._range_start(message,
+                                                       stream.stream_id,
+                                                       stream.device_index,
+                                                       stream.device_type,
+                                                       domain)
             else:
                 warnings.warn("Invalid stream for mstx.range_start func. Please input valid stream.")
                 return 0

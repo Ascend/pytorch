@@ -18,6 +18,7 @@
 #include "torch_npu/csrc/toolkit/profiler/common/utils.h"
 #include "torch_npu/csrc/framework/interface/LibAscendHal.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
+#include "torch_npu/csrc/core/npu/NPUStream.h"
 
 namespace torch_npu {
 namespace profiler {
@@ -140,11 +141,15 @@ PyObject* THNPModule_mark(PyObject* _unused, PyObject* args)
     const char* message;
     const char* domain;
     PyObject* stream_o = nullptr;
-    if (!PyArg_ParseTuple(args, "sOs", &message, &stream_o, &domain)) {
+    int64_t stream_id = 0;
+    int64_t device_index = 0;
+    int64_t device_type = 0;
+    if (!PyArg_ParseTuple(args, "sLLLs", &message, &stream_id, &device_index, &device_type, &domain)) {
         return nullptr;
     }
-    aclrtStream stream = static_cast<aclrtStream>(PyLong_AsVoidPtr(stream_o));
-    mstxMark(message, stream, domain);
+    auto stream = c10_npu::NPUStream::unpack3(
+        stream_id, device_index, static_cast<c10::DeviceType>(device_type));
+    mstxMark(message, stream.stream(false), domain);
     Py_RETURN_NONE;
     END_HANDLE_TH_ERRORS
 }
@@ -152,14 +157,18 @@ PyObject* THNPModule_mark(PyObject* _unused, PyObject* args)
 PyObject* THNPModule_rangeStart(PyObject* _unused, PyObject* args)
 {
     HANDLE_TH_ERRORS
+    int invalid_range_id = 0;
     const char* message;
     const char* domain;
-    PyObject* stream_o = nullptr;
-    if (!PyArg_ParseTuple(args, "sOs", &message, &stream_o, &domain)) {
+    int64_t stream_id = 0;
+    int64_t device_index = 0;
+    int64_t device_type = 0;
+    if (!PyArg_ParseTuple(args, "sLLLs", &message, &stream_id, &device_index, &device_type, &domain)) {
         return nullptr;
     }
-    aclrtStream stream = static_cast<aclrtStream>(PyLong_AsVoidPtr(stream_o));
-    int id = mstxRangeStart(message, stream, domain);
+    auto stream = c10_npu::NPUStream::unpack3(
+        stream_id, device_index, static_cast<c10::DeviceType>(device_type));
+    int id = mstxRangeStart(message, stream.stream(false), domain);
     return PyLong_FromLong(id);
     END_HANDLE_TH_ERRORS
 }
