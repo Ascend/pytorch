@@ -13,6 +13,7 @@ import tempfile
 from unittest.mock import patch
 
 import torch
+import torch_npu
 from torch.distributed.checkpoint.format_utils import BroadcastingTorchSaveReader
 from torch.testing._internal.common_utils import TestCase, run_tests
 
@@ -26,15 +27,22 @@ class TestBroadcastingTorchSaveReader(TestCase):
 
     def setUp(self):
         """Runs before each test method: creates a valid temporary checkpoint file."""
-        self.temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pt")
-        torch.save({"dummy": torch.tensor([1, 2, 3])}, self.temp_file.name)
-        self.temp_file.close()
-        self.valid_checkpoint_id = self.temp_file.name
+        fd, self.temp_file_path = tempfile.mkstemp(suffix=".pt", dir=".")
+        os.close(fd)
+
+        tensor = torch.tensor([1, 2, 3], device="npu")
+        torch.save({"dummy": tensor}, self.temp_file_path)
+        self.valid_checkpoint_id = self.temp_file_path
 
     def tearDown(self):
         """Runs after each test method: deletes the temporary file to clean up."""
         if os.path.exists(self.valid_checkpoint_id):
             os.unlink(self.valid_checkpoint_id)
+
+            self.assertFalse(
+                os.path.exists(self.valid_checkpoint_id),
+                f"tearDown failed to cleanup file: {self.valid_checkpoint_id}"
+            )
 
     def test_validate_checkpoint_id_valid_path(self):
         """Passing a path to an existing file should return True."""
@@ -43,14 +51,14 @@ class TestBroadcastingTorchSaveReader(TestCase):
 
     def test_validate_checkpoint_id_invalid_path(self):
         """Passing a path to a non-existent file should return False."""
-        non_existent = "/tmp/does_not_exist_12345.pt"
+        non_existent = "does_not_exist_12345.pt"
         result = BroadcastingTorchSaveReader.validate_checkpoint_id(non_existent)
         self.assertFalse(result, "non-existent file should return False")
 
     def test_reset_updates_checkpoint_id(self):
         """Verify that the reset method correctly updates the internal checkpoint_id."""
-        reader = BroadcastingTorchSaveReader(checkpoint_id="/old/path.pt")
-        new_path = "/new/path.pt"
+        reader = BroadcastingTorchSaveReader(checkpoint_id="old_path.pt")
+        new_path = "new_path.pt"
         reader.reset(new_path)
         self.assertEqual(reader.checkpoint_id, new_path, "reset should update checkpoint_id")
 
