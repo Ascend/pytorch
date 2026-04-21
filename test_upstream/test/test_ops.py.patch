@@ -1,5 +1,5 @@
 diff --git a/test/test_ops.py b/test/test_ops.py
-index 871b643..2d037f4 100644
+index 871b643..b13da9b 100644
 --- a/test/test_ops.py
 +++ b/test/test_ops.py
 @@ -4,6 +4,7 @@ import copy
@@ -53,7 +53,7 @@ index 871b643..2d037f4 100644
          samples = op.reference_inputs(device, dtype)
  
          for sample in samples:
-@@ -637,11 +645,13 @@ class TestCommon(TestCase):
+@@ -637,11 +645,15 @@ class TestCommon(TestCase):
              )
          self._ref_test_helper(contextlib.nullcontext, device, dtype, op)
  
@@ -63,12 +63,14 @@ index 871b643..2d037f4 100644
      @parametrize("executor", ["aten"])
      @skipIfTorchInductor("Takes too long for inductor")
      def test_python_ref_executor(self, device, dtype, op, executor):
-+        if cuda_device_str.startswith('cpu'):
++        if device.startswith('cpu'):
 +            raise unittest.SkipTest("onlyCUDA skip cpu")
++        if device.startswith('npu') and 'dropout' in op.name:
++            raise unittest.SkipTest("Expected: dropout is not comparable")
          if (
              TEST_WITH_ROCM
              and (op.name == "_refs.fft.ihfftn" or op.name == "_refs.fft.ihfft2")
-@@ -2113,7 +2123,7 @@ class TestMathBits(TestCase):
+@@ -2113,7 +2125,7 @@ class TestMathBits(TestCase):
                      cloned1_tensor = (
                          cloned1 if isinstance(cloned1, torch.Tensor) else cloned1[0]
                      )
@@ -77,7 +79,7 @@ index 871b643..2d037f4 100644
  
                      tensor.grad, cloned1_tensor.grad = None, None
  
-@@ -2125,7 +2135,7 @@ class TestMathBits(TestCase):
+@@ -2125,7 +2137,7 @@ class TestMathBits(TestCase):
                              math_op_view(math_op_physical(grad))
                          )
  
@@ -86,7 +88,7 @@ index 871b643..2d037f4 100644
  
      @ops(ops_and_refs, allowed_dtypes=(torch.cfloat,))
      def test_conj_view(self, device, dtype, op):
-@@ -2508,6 +2518,7 @@ fake_autocast_device_skips = defaultdict(dict)
+@@ -2508,6 +2520,7 @@ fake_autocast_device_skips = defaultdict(dict)
  # TODO: investigate/fix
  fake_autocast_device_skips["cpu"] = {"linalg.pinv"}
  fake_autocast_device_skips["cuda"] = {"linalg.pinv", "pinverse"}
@@ -94,7 +96,7 @@ index 871b643..2d037f4 100644
  
  
  dynamic_output_op_tests = (
-@@ -2794,15 +2805,17 @@ class TestFakeTensor(TestCase):
+@@ -2794,15 +2807,17 @@ class TestFakeTensor(TestCase):
              except torch._subclasses.fake_tensor.UnsupportedOperatorException:
                  pass
  
@@ -114,7 +116,7 @@ index 871b643..2d037f4 100644
      @ops([op for op in op_db if op.supports_autograd], allowed_dtypes=(torch.float,))
      @skipOps(
          "TestFakeTensor",
-@@ -2810,7 +2823,9 @@ class TestFakeTensor(TestCase):
+@@ -2810,7 +2825,9 @@ class TestFakeTensor(TestCase):
          fake_backward_xfails | fake_autocast_backward_xfails,
      )
      def test_fake_crossref_backward_amp(self, device, dtype, op):
