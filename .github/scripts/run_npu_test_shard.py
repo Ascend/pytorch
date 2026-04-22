@@ -117,51 +117,6 @@ class ShardPlanResult:
 # ==============================================================================
 
 
-# Excluded shard special tests: directories and files excluded by discover_tests.py
-# (blocklisted_patterns and blocklisted_tests), but should be tested on NPU.
-# Excluded shard dynamically scans these directories/files, then applies
-# whitelist/blacklist from case_paths_ci.yml before execution.
-EXCLUDED_TESTS_PATTERNS = [
-    # blocklisted_patterns from discover_tests.py (directories)
-    "test/custom_backend",      # all test files in this directory
-    "test/custom_operator",     # all test files in this directory
-    "test/fx",                  # all test files in this directory
-    "test/mobile",              # all test files in this directory
-    "test/quantization",        # all test files in this directory
-    # blocklisted_tests from discover_tests.py (individual files)
-    "test/test_bundled_images.py",
-    "test/test_cpp_extensions_aot.py",
-    "test/test_determination.py",
-    "test/test_jit_string.py",
-    "test/test_kernel_launch_checks.py",
-    "test/test_nnapi.py",
-    "test/test_static_runtime.py",
-    "test/test_throughput_benchmark.py",
-]
-
-
-def path_matches_excluded_pattern(path: str) -> bool:
-    """
-    Check if a test file path matches any excluded test pattern.
-
-    Args:
-        path: Test file path with 'test/' prefix (e.g., 'test/fx/test_common_passes.py')
-
-    Returns:
-        True if path matches any pattern in EXCLUDED_TESTS_PATTERNS
-    """
-    for pattern in EXCLUDED_TESTS_PATTERNS:
-        if pattern.endswith('.py'):
-            # Exact file match
-            if path == pattern:
-                return True
-        else:
-            # Directory match: path starts with pattern + '/'
-            if path.startswith(pattern + '/'):
-                return True
-    return False
-
-
 def get_shard_type_prefix(shard_type: str) -> str:
     """
     Convert shard type to short prefix for file naming.
@@ -375,7 +330,7 @@ def filter_tests_by_type(test_files: List[str], shard_type: str) -> Tuple[List[s
 
     Args:
         test_files: List of test file paths (with test/ prefix)
-        shard_type: "distributed", "excluded", or "regular"
+        shard_type: "distributed" or "regular"
 
     Returns:
         Tuple of (selected_files, excluded_files)
@@ -384,21 +339,11 @@ def filter_tests_by_type(test_files: List[str], shard_type: str) -> Tuple[List[s
         # Distributed tests: files starting with test/distributed/
         selected = [f for f in test_files if f.startswith("test/distributed/")]
         excluded = [f for f in test_files if not f.startswith("test/distributed/")]
-    elif shard_type == "excluded":
-        # Excluded shard: dynamically match files from EXCLUDED_TESTS_PATTERNS
-        # These are directories/files excluded by discover_tests.py but should run on NPU
-        selected = [f for f in test_files if path_matches_excluded_pattern(f)]
-        excluded = [f for f in test_files if not path_matches_excluded_pattern(f)]
     else:
-        # Regular tests: exclude distributed and excluded pattern files
-        selected = [
-            f for f in test_files
-            if not f.startswith("test/distributed/") and not path_matches_excluded_pattern(f)
-        ]
-        excluded = [
-            f for f in test_files
-            if f.startswith("test/distributed/") or path_matches_excluded_pattern(f)
-        ]
+        # Regular tests: all non-distributed tests
+        # Whitelist/blacklist filtering happens in Step 3
+        selected = [f for f in test_files if not f.startswith("test/distributed/")]
+        excluded = [f for f in test_files if f.startswith("test/distributed/")]
 
     return selected, excluded
 
