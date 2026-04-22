@@ -1001,8 +1001,8 @@ class NPUCachingAutotuner(CachingAutotuner):
                     # 如果发现任何一个 numel 参数为 0，基本可以确定该 kernel 不应启动
                     if not isinstance(arg, (bool, torch.Tensor)) and val == 0:
                          return
-                    if hasattr(arg, 'item') and arg.ndim == 0 and val == 0:
-                         return
+                    # if hasattr(arg, 'item') and arg.ndim == 0 and val == 0:
+                    #      return
                 except:
                     continue
 
