@@ -1,26 +1,49 @@
-import os
-import stat
+# Copyright (c) 2026 Huawei Technologies Co., Ltd
+# All rights reserved.
+#
+# Licensed under the BSD 3-Clause License  (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# https://opensource.org/licenses/BSD-3-Clause
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# Owner(s): ["oncall: profiler"]
 import copy
 import json
+import os
+import stat
+import subprocess
 import time
 import unittest.mock as mock
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
+import torch_npu.profiler.dynamic_profile as dp
+from torch_npu.profiler._dynamic_profiler._dynamic_profiler_config_context import (
+    ConfigContext,
+)
+from torch_npu.profiler._dynamic_profiler._dynamic_profiler_monitor_shm import (
+    DynamicProfilerShareMemory,
+)
+from torch_npu.profiler._dynamic_profiler._dynamic_profiler_utils import (
+    DynamicProfilerUtils,
+)
+from torch_npu.profiler.dynamic_profile import _DynamicProfile
+from torch_npu.profiler.profiler import profile, tensorboard_trace_handler
+from torch_npu.profiler.scheduler import Schedule as schedule
+from torch_npu.testing.testcase import run_tests, TestCase
+from torch_npu.utils._path_manager import PathManager
 
 import torch
-from torch_npu.utils._path_manager import PathManager
-from torch_npu.profiler.profiler import tensorboard_trace_handler, profile
-from torch_npu.profiler.scheduler import Schedule as schedule
-from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.profiler._dynamic_profiler._dynamic_profiler_config_context import ConfigContext
-from torch_npu.profiler._dynamic_profiler._dynamic_profiler_monitor_shm import DynamicProfilerShareMemory
-import torch_npu.profiler.dynamic_profile as dp
-from torch_npu.profiler._dynamic_profiler._dynamic_profiler_utils import DynamicProfilerUtils
-from torch_npu.profiler.dynamic_profile import _DynamicProfile
 
 
 class SmallModel(torch.nn.Module):
     def __init__(self, in_channel=3, out_channel=12):
-        super(SmallModel, self).__init__()
+        super().__init__()
         self.conv1 = torch.nn.Conv2d(in_channel, in_channel, 3, padding=1)
         self.relu1 = torch.nn.ReLU()
         self.conv2 = torch.nn.Conv2d(in_channel, out_channel, 3, padding=1)
@@ -43,7 +66,9 @@ class TrainModel:
 
     def train_one_step(self):
         inputs = torch.rand(self.input_shape).to(self.device)
-        target = torch.rand(self.out_shape).reshape(self.out_shape[0], -1).to(self.device)
+        target = (
+            torch.rand(self.out_shape).reshape(self.out_shape[0], -1).to(self.device)
+        )
         output = self.model(inputs)
         loss = self.criterion(output, target)
         self.optimizer.zero_grad()
@@ -57,7 +82,7 @@ class TestDynamicProfiler(TestCase):
     model_train = TrainModel()
     small_steps = 1
     large_steps = 5
-    flags = os.O_WRONLY
+    flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
     mode = stat.S_IRUSR | stat.S_IWUSR
     start_step = 0
 
@@ -68,8 +93,12 @@ class TestDynamicProfiler(TestCase):
         cls.results_path = f"./dynamic_profiler_results_{str(os.getpid())}"
         cls.default_prof_dir = os.path.join(cls.results_path, "default_prof_dir")
         cls.rank_prof_dir = os.path.join(cls.results_path, "rank_prof_dir")
-        cls.invalid_rank_prof_dir = os.path.join(cls.results_path, "invalid_rank_prof_dir")
-        cls.active_rank_prof_dir = os.path.join(cls.results_path, "active_rank_prof_dir")
+        cls.invalid_rank_prof_dir = os.path.join(
+            cls.results_path, "invalid_rank_prof_dir"
+        )
+        cls.active_rank_prof_dir = os.path.join(
+            cls.results_path, "active_rank_prof_dir"
+        )
         cls.cfg_prof_dir = os.path.join(cls.results_path, "cfg_prof_dir")
         cls.cfg_path = os.path.join(cls.results_path, "profiler_config.json")
         os.environ["RANK"] = "0"
@@ -82,18 +111,22 @@ class TestDynamicProfiler(TestCase):
 
     def test_modify_cfg_prof_dir_invalid(self):
         cfg_json = copy.deepcopy(self.json_sample)
-        cfg_json['prof_dir'] = 1
+        cfg_json["prof_dir"] = 1
         cfg_ctx = ConfigContext(cfg_json)
         prof = profile(
             activities=cfg_ctx.activities(),
-            schedule=schedule(wait=0, warmup=0, active=cfg_ctx.active(), repeat=1, skip_first=0),
-            on_trace_ready=tensorboard_trace_handler(self.cfg_prof_dir, analyse_flag=cfg_ctx.analyse()),
+            schedule=schedule(
+                wait=0, warmup=0, active=cfg_ctx.active(), repeat=1, skip_first=0
+            ),
+            on_trace_ready=tensorboard_trace_handler(
+                self.cfg_prof_dir, analyse_flag=cfg_ctx.analyse()
+            ),
             record_shapes=cfg_ctx.record_shapes,
             profile_memory=cfg_ctx.profile_memory,
             with_stack=cfg_ctx.with_stack,
             with_flops=cfg_ctx.with_flops,
             with_modules=cfg_ctx.with_modules,
-            experimental_config=cfg_ctx.experimental_config
+            experimental_config=cfg_ctx.experimental_config,
         )
         prof.start()
         prof.stop()
@@ -106,18 +139,22 @@ class TestDynamicProfiler(TestCase):
 
     def test_modify_cfg_analyse_invalid(self):
         cfg_json = copy.deepcopy(self.json_sample)
-        cfg_json['analyse'] = "1"
+        cfg_json["analyse"] = "1"
         cfg_ctx = ConfigContext(cfg_json)
         prof = profile(
             activities=cfg_ctx.activities(),
-            schedule=schedule(wait=0, warmup=0, active=cfg_ctx.active(), repeat=1, skip_first=0),
-            on_trace_ready=tensorboard_trace_handler(self.cfg_prof_dir, analyse_flag=cfg_ctx.analyse()),
+            schedule=schedule(
+                wait=0, warmup=0, active=cfg_ctx.active(), repeat=1, skip_first=0
+            ),
+            on_trace_ready=tensorboard_trace_handler(
+                self.cfg_prof_dir, analyse_flag=cfg_ctx.analyse()
+            ),
             record_shapes=cfg_ctx.record_shapes,
             profile_memory=cfg_ctx.profile_memory,
             with_stack=cfg_ctx.with_stack,
             with_flops=cfg_ctx.with_flops,
             with_modules=cfg_ctx.with_modules,
-            experimental_config=cfg_ctx.experimental_config
+            experimental_config=cfg_ctx.experimental_config,
         )
         prof.start()
         prof.stop()
@@ -130,18 +167,22 @@ class TestDynamicProfiler(TestCase):
 
     def test_modify_cfg_record_shapes_invalid(self):
         cfg_json = copy.deepcopy(self.json_sample)
-        cfg_json['record_shapes'] = "1"
+        cfg_json["record_shapes"] = "1"
         cfg_ctx = ConfigContext(cfg_json)
         prof = profile(
             activities=cfg_ctx.activities(),
-            schedule=schedule(wait=0, warmup=0, active=cfg_ctx.active(), repeat=1, skip_first=0),
-            on_trace_ready=tensorboard_trace_handler(self.cfg_prof_dir, analyse_flag=cfg_ctx.analyse()),
+            schedule=schedule(
+                wait=0, warmup=0, active=cfg_ctx.active(), repeat=1, skip_first=0
+            ),
+            on_trace_ready=tensorboard_trace_handler(
+                self.cfg_prof_dir, analyse_flag=cfg_ctx.analyse()
+            ),
             record_shapes=cfg_ctx.record_shapes,
             profile_memory=cfg_ctx.profile_memory,
             with_stack=cfg_ctx.with_stack,
             with_flops=cfg_ctx.with_flops,
             with_modules=cfg_ctx.with_modules,
-            experimental_config=cfg_ctx.experimental_config
+            experimental_config=cfg_ctx.experimental_config,
         )
         prof.start()
         prof.stop()
@@ -154,18 +195,22 @@ class TestDynamicProfiler(TestCase):
 
     def test_modify_cfg_profile_memory_invalid(self):
         cfg_json = copy.deepcopy(self.json_sample)
-        cfg_json['profile_memory'] = "1"
+        cfg_json["profile_memory"] = "1"
         cfg_ctx = ConfigContext(cfg_json)
         prof = profile(
             activities=cfg_ctx.activities(),
-            schedule=schedule(wait=0, warmup=0, active=cfg_ctx.active(), repeat=1, skip_first=0),
-            on_trace_ready=tensorboard_trace_handler(self.cfg_prof_dir, analyse_flag=cfg_ctx.analyse()),
+            schedule=schedule(
+                wait=0, warmup=0, active=cfg_ctx.active(), repeat=1, skip_first=0
+            ),
+            on_trace_ready=tensorboard_trace_handler(
+                self.cfg_prof_dir, analyse_flag=cfg_ctx.analyse()
+            ),
             record_shapes=cfg_ctx.record_shapes,
             profile_memory=cfg_ctx.profile_memory,
             with_stack=cfg_ctx.with_stack,
             with_flops=cfg_ctx.with_flops,
             with_modules=cfg_ctx.with_modules,
-            experimental_config=cfg_ctx.experimental_config
+            experimental_config=cfg_ctx.experimental_config,
         )
         prof.start()
         prof.stop()
@@ -178,18 +223,22 @@ class TestDynamicProfiler(TestCase):
 
     def test_modify_cfg_with_stack_invalid(self):
         cfg_json = copy.deepcopy(self.json_sample)
-        cfg_json['with_stack'] = "1"
+        cfg_json["with_stack"] = "1"
         cfg_ctx = ConfigContext(cfg_json)
         prof = profile(
             activities=cfg_ctx.activities(),
-            schedule=schedule(wait=0, warmup=0, active=cfg_ctx.active(), repeat=1, skip_first=0),
-            on_trace_ready=tensorboard_trace_handler(self.cfg_prof_dir, analyse_flag=cfg_ctx.analyse()),
+            schedule=schedule(
+                wait=0, warmup=0, active=cfg_ctx.active(), repeat=1, skip_first=0
+            ),
+            on_trace_ready=tensorboard_trace_handler(
+                self.cfg_prof_dir, analyse_flag=cfg_ctx.analyse()
+            ),
             record_shapes=cfg_ctx.record_shapes,
             profile_memory=cfg_ctx.profile_memory,
             with_stack=cfg_ctx.with_stack,
             with_flops=cfg_ctx.with_flops,
             with_modules=cfg_ctx.with_modules,
-            experimental_config=cfg_ctx.experimental_config
+            experimental_config=cfg_ctx.experimental_config,
         )
         prof.start()
         prof.stop()
@@ -202,18 +251,22 @@ class TestDynamicProfiler(TestCase):
 
     def test_modify_cfg_with_flops_invalid(self):
         cfg_json = copy.deepcopy(self.json_sample)
-        cfg_json['with_flops'] = "1"
+        cfg_json["with_flops"] = "1"
         cfg_ctx = ConfigContext(cfg_json)
         prof = profile(
             activities=cfg_ctx.activities(),
-            schedule=schedule(wait=0, warmup=0, active=cfg_ctx.active(), repeat=1, skip_first=0),
-            on_trace_ready=tensorboard_trace_handler(self.cfg_prof_dir, analyse_flag=cfg_ctx.analyse()),
+            schedule=schedule(
+                wait=0, warmup=0, active=cfg_ctx.active(), repeat=1, skip_first=0
+            ),
+            on_trace_ready=tensorboard_trace_handler(
+                self.cfg_prof_dir, analyse_flag=cfg_ctx.analyse()
+            ),
             record_shapes=cfg_ctx.record_shapes,
             profile_memory=cfg_ctx.profile_memory,
             with_stack=cfg_ctx.with_stack,
             with_flops=cfg_ctx.with_flops,
             with_modules=cfg_ctx.with_modules,
-            experimental_config=cfg_ctx.experimental_config
+            experimental_config=cfg_ctx.experimental_config,
         )
         prof.start()
         prof.stop()
@@ -226,18 +279,22 @@ class TestDynamicProfiler(TestCase):
 
     def test_modify_cfg_with_modules_invalid(self):
         cfg_json = copy.deepcopy(self.json_sample)
-        cfg_json['with_modules'] = "1"
+        cfg_json["with_modules"] = "1"
         cfg_ctx = ConfigContext(cfg_json)
         prof = profile(
             activities=cfg_ctx.activities(),
-            schedule=schedule(wait=0, warmup=0, active=cfg_ctx.active(), repeat=1, skip_first=0),
-            on_trace_ready=tensorboard_trace_handler(self.cfg_prof_dir, analyse_flag=cfg_ctx.analyse()),
+            schedule=schedule(
+                wait=0, warmup=0, active=cfg_ctx.active(), repeat=1, skip_first=0
+            ),
+            on_trace_ready=tensorboard_trace_handler(
+                self.cfg_prof_dir, analyse_flag=cfg_ctx.analyse()
+            ),
             record_shapes=cfg_ctx.record_shapes,
             profile_memory=cfg_ctx.profile_memory,
             with_stack=cfg_ctx.with_stack,
             with_flops=cfg_ctx.with_flops,
             with_modules=cfg_ctx.with_modules,
-            experimental_config=cfg_ctx.experimental_config
+            experimental_config=cfg_ctx.experimental_config,
         )
         prof.start()
         prof.stop()
@@ -250,18 +307,22 @@ class TestDynamicProfiler(TestCase):
 
     def test_modify_cfg_rank_invalid(self):
         cfg_json = copy.deepcopy(self.json_sample)
-        cfg_json['is_rank'] = "1"
+        cfg_json["is_rank"] = "1"
         cfg_ctx = ConfigContext(cfg_json)
         prof = profile(
             activities=cfg_ctx.activities(),
-            schedule=schedule(wait=0, warmup=0, active=cfg_ctx.active(), repeat=1, skip_first=0),
-            on_trace_ready=tensorboard_trace_handler(self.cfg_prof_dir, analyse_flag=cfg_ctx.analyse()),
+            schedule=schedule(
+                wait=0, warmup=0, active=cfg_ctx.active(), repeat=1, skip_first=0
+            ),
+            on_trace_ready=tensorboard_trace_handler(
+                self.cfg_prof_dir, analyse_flag=cfg_ctx.analyse()
+            ),
             record_shapes=cfg_ctx.record_shapes,
             profile_memory=cfg_ctx.profile_memory,
             with_stack=cfg_ctx.with_stack,
             with_flops=cfg_ctx.with_flops,
             with_modules=cfg_ctx.with_modules,
-            experimental_config=cfg_ctx.experimental_config
+            experimental_config=cfg_ctx.experimental_config,
         )
         prof.start()
         prof.stop()
@@ -274,19 +335,23 @@ class TestDynamicProfiler(TestCase):
 
     def test_modify_cfg_rank_list_invalid(self):
         cfg_json = copy.deepcopy(self.json_sample)
-        cfg_json['is_rank'] = True
-        cfg_json['rank_list'] = "1"
+        cfg_json["is_rank"] = True
+        cfg_json["rank_list"] = "1"
         cfg_ctx = ConfigContext(cfg_json)
         prof = profile(
             activities=cfg_ctx.activities(),
-            schedule=schedule(wait=0, warmup=0, active=cfg_ctx.active(), repeat=1, skip_first=0),
-            on_trace_ready=tensorboard_trace_handler(self.cfg_prof_dir, analyse_flag=cfg_ctx.analyse()),
+            schedule=schedule(
+                wait=0, warmup=0, active=cfg_ctx.active(), repeat=1, skip_first=0
+            ),
+            on_trace_ready=tensorboard_trace_handler(
+                self.cfg_prof_dir, analyse_flag=cfg_ctx.analyse()
+            ),
             record_shapes=cfg_ctx.record_shapes,
             profile_memory=cfg_ctx.profile_memory,
             with_stack=cfg_ctx.with_stack,
             with_flops=cfg_ctx.with_flops,
             with_modules=cfg_ctx.with_modules,
-            experimental_config=cfg_ctx.experimental_config
+            experimental_config=cfg_ctx.experimental_config,
         )
         prof.start()
         prof.stop()
@@ -299,20 +364,24 @@ class TestDynamicProfiler(TestCase):
 
     def test_modify_cfg_profiler_level_invalid(self):
         cfg_json = copy.deepcopy(self.json_sample)
-        if 'experimental_config' not in cfg_json.keys():
-            self.assertTrue('experimental_config' in cfg_json.keys())
-        cfg_json['experimental_config']['profiler_level'] = "1"
+        if "experimental_config" not in cfg_json:
+            self.assertTrue("experimental_config" in cfg_json)
+        cfg_json["experimental_config"]["profiler_level"] = "1"
         cfg_ctx = ConfigContext(cfg_json)
         prof = profile(
             activities=cfg_ctx.activities(),
-            schedule=schedule(wait=0, warmup=0, active=cfg_ctx.active(), repeat=1, skip_first=0),
-            on_trace_ready=tensorboard_trace_handler(self.cfg_prof_dir, analyse_flag=cfg_ctx.analyse()),
+            schedule=schedule(
+                wait=0, warmup=0, active=cfg_ctx.active(), repeat=1, skip_first=0
+            ),
+            on_trace_ready=tensorboard_trace_handler(
+                self.cfg_prof_dir, analyse_flag=cfg_ctx.analyse()
+            ),
             record_shapes=cfg_ctx.record_shapes,
             profile_memory=cfg_ctx.profile_memory,
             with_stack=cfg_ctx.with_stack,
             with_flops=cfg_ctx.with_flops,
             with_modules=cfg_ctx.with_modules,
-            experimental_config=cfg_ctx.experimental_config
+            experimental_config=cfg_ctx.experimental_config,
         )
         prof.start()
         prof.stop()
@@ -325,20 +394,24 @@ class TestDynamicProfiler(TestCase):
 
     def test_modify_cfg_aic_metrics_invalid(self):
         cfg_json = copy.deepcopy(self.json_sample)
-        if 'experimental_config' not in cfg_json.keys():
-            self.assertTrue('experimental_config' in cfg_json.keys())
-        cfg_json['experimental_config']['aic_metrics'] = "1"
+        if "experimental_config" not in cfg_json:
+            self.assertTrue("experimental_config" in cfg_json)
+        cfg_json["experimental_config"]["aic_metrics"] = "1"
         cfg_ctx = ConfigContext(cfg_json)
         prof = profile(
             activities=cfg_ctx.activities(),
-            schedule=schedule(wait=0, warmup=0, active=cfg_ctx.active(), repeat=1, skip_first=0),
-            on_trace_ready=tensorboard_trace_handler(self.cfg_prof_dir, analyse_flag=cfg_ctx.analyse()),
+            schedule=schedule(
+                wait=0, warmup=0, active=cfg_ctx.active(), repeat=1, skip_first=0
+            ),
+            on_trace_ready=tensorboard_trace_handler(
+                self.cfg_prof_dir, analyse_flag=cfg_ctx.analyse()
+            ),
             record_shapes=cfg_ctx.record_shapes,
             profile_memory=cfg_ctx.profile_memory,
             with_stack=cfg_ctx.with_stack,
             with_flops=cfg_ctx.with_flops,
             with_modules=cfg_ctx.with_modules,
-            experimental_config=cfg_ctx.experimental_config
+            experimental_config=cfg_ctx.experimental_config,
         )
         prof.start()
         prof.stop()
@@ -351,20 +424,24 @@ class TestDynamicProfiler(TestCase):
 
     def test_modify_cfg_l2_cache_invalid(self):
         cfg_json = copy.deepcopy(self.json_sample)
-        if 'experimental_config' not in cfg_json.keys():
-            self.assertTrue('experimental_config' in cfg_json.keys())
-        cfg_json['experimental_config']['l2_cache'] = "1"
+        if "experimental_config" not in cfg_json:
+            self.assertTrue("experimental_config" in cfg_json)
+        cfg_json["experimental_config"]["l2_cache"] = "1"
         cfg_ctx = ConfigContext(cfg_json)
         prof = profile(
             activities=cfg_ctx.activities(),
-            schedule=schedule(wait=0, warmup=0, active=cfg_ctx.active(), repeat=1, skip_first=0),
-            on_trace_ready=tensorboard_trace_handler(self.cfg_prof_dir, analyse_flag=cfg_ctx.analyse()),
+            schedule=schedule(
+                wait=0, warmup=0, active=cfg_ctx.active(), repeat=1, skip_first=0
+            ),
+            on_trace_ready=tensorboard_trace_handler(
+                self.cfg_prof_dir, analyse_flag=cfg_ctx.analyse()
+            ),
             record_shapes=cfg_ctx.record_shapes,
             profile_memory=cfg_ctx.profile_memory,
             with_stack=cfg_ctx.with_stack,
             with_flops=cfg_ctx.with_flops,
             with_modules=cfg_ctx.with_modules,
-            experimental_config=cfg_ctx.experimental_config
+            experimental_config=cfg_ctx.experimental_config,
         )
         prof.start()
         prof.stop()
@@ -377,20 +454,24 @@ class TestDynamicProfiler(TestCase):
 
     def test_modify_cfg_data_simplification_invalid(self):
         cfg_json = copy.deepcopy(self.json_sample)
-        if 'experimental_config' not in cfg_json.keys():
-            self.assertTrue('experimental_config' in cfg_json.keys())
-        cfg_json['experimental_config']['data_simplification'] = "1"
+        if "experimental_config" not in cfg_json:
+            self.assertTrue("experimental_config" in cfg_json)
+        cfg_json["experimental_config"]["data_simplification"] = "1"
         cfg_ctx = ConfigContext(cfg_json)
         prof = profile(
             activities=cfg_ctx.activities(),
-            schedule=schedule(wait=0, warmup=0, active=cfg_ctx.active(), repeat=1, skip_first=0),
-            on_trace_ready=tensorboard_trace_handler(self.cfg_prof_dir, analyse_flag=cfg_ctx.analyse()),
+            schedule=schedule(
+                wait=0, warmup=0, active=cfg_ctx.active(), repeat=1, skip_first=0
+            ),
+            on_trace_ready=tensorboard_trace_handler(
+                self.cfg_prof_dir, analyse_flag=cfg_ctx.analyse()
+            ),
             record_shapes=cfg_ctx.record_shapes,
             profile_memory=cfg_ctx.profile_memory,
             with_stack=cfg_ctx.with_stack,
             with_flops=cfg_ctx.with_flops,
             with_modules=cfg_ctx.with_modules,
-            experimental_config=cfg_ctx.experimental_config
+            experimental_config=cfg_ctx.experimental_config,
         )
         prof.start()
         prof.stop()
@@ -403,20 +484,24 @@ class TestDynamicProfiler(TestCase):
 
     def test_modify_cfg_record_op_args_invalid(self):
         cfg_json = copy.deepcopy(self.json_sample)
-        if 'experimental_config' not in cfg_json.keys():
-            self.assertTrue('experimental_config' in cfg_json.keys())
-        cfg_json['experimental_config']['record_op_args'] = "1"
+        if "experimental_config" not in cfg_json:
+            self.assertTrue("experimental_config" in cfg_json)
+        cfg_json["experimental_config"]["record_op_args"] = "1"
         cfg_ctx = ConfigContext(cfg_json)
         prof = profile(
             activities=cfg_ctx.activities(),
-            schedule=schedule(wait=0, warmup=0, active=cfg_ctx.active(), repeat=1, skip_first=0),
-            on_trace_ready=tensorboard_trace_handler(self.cfg_prof_dir, analyse_flag=cfg_ctx.analyse()),
+            schedule=schedule(
+                wait=0, warmup=0, active=cfg_ctx.active(), repeat=1, skip_first=0
+            ),
+            on_trace_ready=tensorboard_trace_handler(
+                self.cfg_prof_dir, analyse_flag=cfg_ctx.analyse()
+            ),
             record_shapes=cfg_ctx.record_shapes,
             profile_memory=cfg_ctx.profile_memory,
             with_stack=cfg_ctx.with_stack,
             with_flops=cfg_ctx.with_flops,
             with_modules=cfg_ctx.with_modules,
-            experimental_config=cfg_ctx.experimental_config
+            experimental_config=cfg_ctx.experimental_config,
         )
         prof.start()
         prof.stop()
@@ -429,21 +514,25 @@ class TestDynamicProfiler(TestCase):
 
     def test_modify_cfg_export_type_invalid(self) -> None:
         cfg_json = copy.deepcopy(self.json_sample)
-        cfg_json['is_rank'] = False
-        if 'experimental_config' not in cfg_json.keys():
-            self.assertTrue('experimental_config' in cfg_json.keys())
-        cfg_json['experimental_config']['export_type'] = 1
+        cfg_json["is_rank"] = False
+        if "experimental_config" not in cfg_json:
+            self.assertTrue("experimental_config" in cfg_json)
+        cfg_json["experimental_config"]["export_type"] = 1
         cfg_ctx = ConfigContext(cfg_json)
         prof = profile(
             activities=cfg_ctx.activities(),
-            schedule=schedule(wait=0, warmup=0, active=cfg_ctx.active(), repeat=1, skip_first=0),
-            on_trace_ready=tensorboard_trace_handler(self.cfg_prof_dir, analyse_flag=cfg_ctx.analyse()),
+            schedule=schedule(
+                wait=0, warmup=0, active=cfg_ctx.active(), repeat=1, skip_first=0
+            ),
+            on_trace_ready=tensorboard_trace_handler(
+                self.cfg_prof_dir, analyse_flag=cfg_ctx.analyse()
+            ),
             record_shapes=cfg_ctx.record_shapes,
             profile_memory=cfg_ctx.profile_memory,
             with_stack=cfg_ctx.with_stack,
             with_flops=cfg_ctx.with_flops,
             with_modules=cfg_ctx.with_modules,
-            experimental_config=cfg_ctx.experimental_config
+            experimental_config=cfg_ctx.experimental_config,
         )
         prof.start()
         prof.stop()
@@ -454,15 +543,31 @@ class TestDynamicProfiler(TestCase):
             PathManager.remove_path_safety(self.cfg_prof_dir)
         self.assertTrue(has_prof)
 
+    def ps_eT_grep(self, thread_name):
+        proc = subprocess.Popen(["ps", "-eT"], stdout=subprocess.PIPE, text=True)
+        grep = subprocess.Popen(
+            ["grep", thread_name],
+            stdin=proc.stdout,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        output, _ = grep.communicate()
+        return output.strip() != ""
+
     def test_dynamic_profiler_default_start(self):
         cfg_json = copy.deepcopy(self.json_sample)
-        cfg_json['prof_dir'] = self.default_prof_dir
-        cfg_json['start_step'] = TestDynamicProfiler.start_step + 1
-        with os.fdopen(os.open(self.cfg_path, self.flags, self.mode), 'w') as f:
+        cfg_json["prof_dir"] = self.default_prof_dir
+        cfg_json["start_step"] = TestDynamicProfiler.start_step + 1
+        # 验证删除配置文件不会影响profiler功能
+        os.remove(self.cfg_path)
+        with os.fdopen(os.open(self.cfg_path, self.flags, self.mode), "w") as f:
             time.sleep(1)
             json.dump(cfg_json, f, indent=4)
         time.sleep(3)
         dp.step()
+        # 检查监控进程DynMonitorProc名称是否正确
+        self.assertTrue(self.ps_eT_grep("DynMonitorProc"))
         TestDynamicProfiler.start_step += 1
         self.model_train.train_one_step()
         dp.step()
@@ -476,9 +581,9 @@ class TestDynamicProfiler(TestCase):
 
     def test_dynamic_profiler_default_start_next_step(self):
         cfg_json = copy.deepcopy(self.json_sample)
-        cfg_json['prof_dir'] = self.default_prof_dir
-        cfg_json['start_step'] = -1
-        with os.fdopen(os.open(self.cfg_path, self.flags, self.mode), 'w') as f:
+        cfg_json["prof_dir"] = self.default_prof_dir
+        cfg_json["start_step"] = -1
+        with os.fdopen(os.open(self.cfg_path, self.flags, self.mode), "w") as f:
             time.sleep(1)
             json.dump(cfg_json, f, indent=4)
         time.sleep(3)
@@ -494,12 +599,12 @@ class TestDynamicProfiler(TestCase):
 
     def test_dynamic_profiler_rank(self):
         cfg_json = copy.deepcopy(self.json_sample)
-        cfg_json['prof_dir'] = self.rank_prof_dir
-        cfg_json['is_rank'] = True
-        cfg_json['rank_list'] = [0]
-        cfg_json['start_step'] = TestDynamicProfiler.start_step + 1
+        cfg_json["prof_dir"] = self.rank_prof_dir
+        cfg_json["is_rank"] = True
+        cfg_json["rank_list"] = [0]
+        cfg_json["start_step"] = TestDynamicProfiler.start_step + 1
 
-        with os.fdopen(os.open(self.cfg_path, self.flags, self.mode), 'w') as f:
+        with os.fdopen(os.open(self.cfg_path, self.flags, self.mode), "w") as f:
             time.sleep(1)
             json.dump(cfg_json, f, indent=4)
         time.sleep(3)
@@ -517,12 +622,12 @@ class TestDynamicProfiler(TestCase):
 
     def test_dynamic_profiler_rank_invalid(self):
         cfg_json = copy.deepcopy(self.json_sample)
-        cfg_json['prof_dir'] = self.invalid_rank_prof_dir
-        cfg_json['is_rank'] = True
-        cfg_json['rank_list'] = [1]
-        cfg_json['start_step'] = TestDynamicProfiler.start_step + 1
+        cfg_json["prof_dir"] = self.invalid_rank_prof_dir
+        cfg_json["is_rank"] = True
+        cfg_json["rank_list"] = [1]
+        cfg_json["start_step"] = TestDynamicProfiler.start_step + 1
 
-        with os.fdopen(os.open(self.cfg_path, self.flags, self.mode), 'w') as f:
+        with os.fdopen(os.open(self.cfg_path, self.flags, self.mode), "w") as f:
             time.sleep(1)
             json.dump(cfg_json, f, indent=4)
         time.sleep(3)
@@ -566,7 +671,9 @@ class TestDynamicProfiler(TestCase):
 
     def test_out_log_dyno_model(self):
         original_model = DynamicProfilerUtils.DYNAMIC_PROFILER_MODEL
-        DynamicProfilerUtils.DYNAMIC_PROFILER_MODEL = DynamicProfilerUtils.DynamicProfilerConfigModel.DYNO_CONFIG
+        DynamicProfilerUtils.DYNAMIC_PROFILER_MODEL = (
+            DynamicProfilerUtils.DynamicProfilerConfigModel.DYNO_CONFIG
+        )
         original_stdout_log = DynamicProfilerUtils.stdout_log
         log_calls = []
 
@@ -576,14 +683,28 @@ class TestDynamicProfiler(TestCase):
         DynamicProfilerUtils.stdout_log = log_function
 
         try:
-            DynamicProfilerUtils.out_log("test information", DynamicProfilerUtils.LoggerLevelEnum.INFO)
-            DynamicProfilerUtils.out_log("test warning", DynamicProfilerUtils.LoggerLevelEnum.WARNING)
-            DynamicProfilerUtils.out_log("test error", DynamicProfilerUtils.LoggerLevelEnum.ERROR)
+            DynamicProfilerUtils.out_log(
+                "test information", DynamicProfilerUtils.LoggerLevelEnum.INFO
+            )
+            DynamicProfilerUtils.out_log(
+                "test warning", DynamicProfilerUtils.LoggerLevelEnum.WARNING
+            )
+            DynamicProfilerUtils.out_log(
+                "test error", DynamicProfilerUtils.LoggerLevelEnum.ERROR
+            )
 
             self.assertEqual(len(log_calls), 3)
-            self.assertEqual(log_calls[0], ("test information", DynamicProfilerUtils.LoggerLevelEnum.INFO))
-            self.assertEqual(log_calls[1], ("test warning", DynamicProfilerUtils.LoggerLevelEnum.WARNING))
-            self.assertEqual(log_calls[2], ("test error", DynamicProfilerUtils.LoggerLevelEnum.ERROR))
+            self.assertEqual(
+                log_calls[0],
+                ("test information", DynamicProfilerUtils.LoggerLevelEnum.INFO),
+            )
+            self.assertEqual(
+                log_calls[1],
+                ("test warning", DynamicProfilerUtils.LoggerLevelEnum.WARNING),
+            )
+            self.assertEqual(
+                log_calls[2], ("test error", DynamicProfilerUtils.LoggerLevelEnum.ERROR)
+            )
         finally:
             DynamicProfilerUtils.DYNAMIC_PROFILER_MODEL = original_model
             DynamicProfilerUtils.stdout_log = original_stdout_log
@@ -591,60 +712,86 @@ class TestDynamicProfiler(TestCase):
     def test_clean_shm_for_killed_pid_time_none(self):
         shm_instance = DynamicProfilerShareMemory(self.results_path, self.cfg_path, 0)
         with mock.patch(
-                'torch_npu.profiler._dynamic_profiler._dynamic_profiler_monitor_shm.DynamicProfilerShareMemory._get_pid_st_ctime',
-                return_value=None):
+            "torch_npu.profiler._dynamic_profiler._dynamic_profiler_monitor_shm.DynamicProfilerShareMemory._get_pid_st_ctime",
+            return_value=None,
+        ):
             try:
                 shm_instance._clean_shm_for_killed()
             except Exception:
-                self.fail("_clean_shm_for_killed should not raise exception when pid_time is None")
+                self.fail(
+                    "_clean_shm_for_killed should not raise exception when pid_time is None"
+                )
 
     def test_create_shm_over_py38_retry_failure(self):
         from multiprocessing import shared_memory
-        with mock.patch('multiprocessing.resource_tracker.register', lambda *args, **kwargs: None):
-            with mock.patch.object(shared_memory.SharedMemory, '__init__', side_effect=FileNotFoundError("Test error")):
+
+        with mock.patch(
+            "multiprocessing.resource_tracker.register", lambda *args, **kwargs: None
+        ):
+            with mock.patch.object(
+                shared_memory.SharedMemory,
+                "__init__",
+                side_effect=FileNotFoundError("Test error"),
+            ):
                 with self.assertRaises(RuntimeError):
-                    shm_instance = DynamicProfilerShareMemory(self.results_path, self.cfg_path, 0)
+                    shm_instance = DynamicProfilerShareMemory(
+                        self.results_path, self.cfg_path, 0
+                    )
                     shm_instance._create_shm_over_py38()
 
     def test_get_pid_st_ctime_exception(self):
         shm_instance = DynamicProfilerShareMemory(self.results_path, self.cfg_path, 0)
-        with mock.patch('os.open', side_effect=Exception("Test exception")):
+        with mock.patch("os.open", side_effect=Exception("Test exception")):
             result = shm_instance._get_pid_st_ctime(12345)
             self.assertIsNone(result)
 
     def test_call_dyno_monitor_with_proxy(self):
-        from torch_npu.profiler._dynamic_profiler._dynamic_profiler_monitor import DynamicProfilerMonitor
+        from torch_npu.profiler._dynamic_profiler._dynamic_profiler_monitor import (
+            DynamicProfilerMonitor,
+        )
 
         monitor = DynamicProfilerMonitor()
         mock_proxy = MagicMock()
-        with patch('torch_npu.profiler._dynamic_profiler._dynamic_profiler_monitor.PyDynamic' \
-                   'MonitorProxySingleton') as mock_singleton:
+        with patch(
+            "torch_npu.profiler._dynamic_profiler._dynamic_profiler_monitor.PyDynamic"
+            "MonitorProxySingleton"
+        ) as mock_singleton:
             mock_singleton_instance = MagicMock()
             mock_singleton_instance.get_proxy.return_value = mock_proxy
             mock_singleton.return_value = mock_singleton_instance
-            test_data = {'key': 'value', 'number': 123}
+            test_data = {"key": "value", "number": 123}
             monitor._call_dyno_monitor(test_data)
             mock_proxy.enable_dyno_npu_monitor.assert_called_once()
 
     def test_clean_resource_with_process(self):
-        from torch_npu.profiler._dynamic_profiler._dynamic_profiler_monitor import DynamicProfilerMonitor
+        from torch_npu.profiler._dynamic_profiler._dynamic_profiler_monitor import (
+            DynamicProfilerMonitor,
+        )
+
         monitor = DynamicProfilerMonitor()
         monitor._process = MagicMock()
-        with patch.object(monitor, '_shared_loop_flag') as mock_flag:
+        with patch.object(monitor, "_shared_loop_flag") as mock_flag:
             monitor.clean_resource()
             mock_flag.value = False
             monitor._process.join.assert_called_once()
 
     def test_shm_to_prof_conf_context_read_time_exception(self):
-        from torch_npu.profiler._dynamic_profiler._dynamic_profiler_monitor import DynamicProfilerMonitor
+        from torch_npu.profiler._dynamic_profiler._dynamic_profiler_monitor import (
+            DynamicProfilerMonitor,
+        )
 
         monitor = DynamicProfilerMonitor()
-        with patch.object(monitor._shm_obj, 'read_bytes', side_effect=Exception("Read error")):
+        with patch.object(
+            monitor._shm_obj, "read_bytes", side_effect=Exception("Read error")
+        ):
             result = monitor.shm_to_prof_conf_context()
             self.assertIsNone(result)
 
     def test_shm_to_prof_conf_context_none_shm(self):
-        from torch_npu.profiler._dynamic_profiler._dynamic_profiler_monitor import DynamicProfilerMonitor
+        from torch_npu.profiler._dynamic_profiler._dynamic_profiler_monitor import (
+            DynamicProfilerMonitor,
+        )
+
         monitor = DynamicProfilerMonitor()
         monitor._shm_obj = None
         result = monitor.shm_to_prof_conf_context()
@@ -654,7 +801,6 @@ class TestDynamicProfiler(TestCase):
         dp.start()
         dp.start()
         self.assertIsNotNone(_DynamicProfile().prof)
-
 
     def test_init_repeated_warning(self):
         dp.init(self.results_path)
