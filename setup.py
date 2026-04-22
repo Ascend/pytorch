@@ -325,6 +325,7 @@ class Clean(distutils.command.clean.clean):
             if os.path.exists(file_path):
                 os.remove(file_path)
 
+USE_NINJA = os.environ["CMAKE_GENERATOR"].lower() == "ninja" if "CMAKE_GENERATOR" in os.environ else shutil.which("ninja")
 
 class CPPLibBuild(build_clib, object):
     def run(self):
@@ -377,8 +378,15 @@ class CPPLibBuild(build_clib, object):
         if os.getenv('_ABI_VERSION') is not None:
             cmake_args.append('-DABI_VERSION=' + os.getenv('_ABI_VERSION'))
 
-        max_jobs = os.getenv("MAX_JOBS", str(multiprocessing.cpu_count()))
-        build_args = ['-j', max_jobs]
+        if USE_NINJA:
+            cmake_args.append("-GNinja")
+
+        max_jobs = os.getenv("MAX_JOBS")
+        if max_jobs is not None or not USE_NINJA:
+            max_jobs = max_jobs or str(multiprocessing.cpu_count())
+            build_args = ['-j', max_jobs]
+        else:
+            build_args = []
 
         subprocess.check_call([self.cmake, BASE_DIR] + cmake_args, cwd=build_type_dir, env=os.environ)
         for base_dir, dirs, files in os.walk(build_type_dir):
@@ -389,7 +397,10 @@ class CPPLibBuild(build_clib, object):
                 file_path = os.path.join(base_dir, file_name)
                 os.chmod(file_path, mode=BUILD_PERMISSION)
 
-        subprocess.check_call(['make'] + build_args, cwd=build_type_dir, env=os.environ)
+        if USE_NINJA:
+            subprocess.check_call(['ninja'] + build_args, cwd=build_type_dir, env=os.environ)
+        else:
+            subprocess.check_call(['make'] + build_args, cwd=build_type_dir, env=os.environ)
 
 
 class Build(build_ext, object):
