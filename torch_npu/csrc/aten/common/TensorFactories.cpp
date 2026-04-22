@@ -155,7 +155,7 @@ at::Tensor empty_like_npu(
         return result;
     }
 
-    auto memory_format = options.memory_format_opt().value_or(c10::MemoryFormat::Contiguous);
+    auto memory_format = options.memory_format_opt().value_or(c10::MemoryFormat::Preserve);
 
     if (self.is_quantized()) {
         // To support all features of c10::MemoryFormat::Preserve we need to add

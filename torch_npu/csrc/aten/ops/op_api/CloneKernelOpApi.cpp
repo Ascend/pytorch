@@ -27,9 +27,13 @@ at::Tensor NPUNativeOpApiFunctions::clone(const at::Tensor &src, c10::optional<c
     DO_COMPATIBILITY(aclnnInplaceCopy, NPUNativeFunctions::clone(src, format));
     auto memory_format = format.value_or(c10::MemoryFormat::Preserve);
     at::Tensor self;
-    if (memory_format == c10::MemoryFormat::Preserve && src.is_non_overlapping_and_dense())
+    if (memory_format == c10::MemoryFormat::Preserve)
     {
-        self = at::empty_strided_symint(src.sym_sizes(), src.sym_strides(), src.options());
+        if (src.is_non_overlapping_and_dense()) {
+            self = at::empty_strided_symint(src.sym_sizes(), src.sym_strides(), src.options());
+        } else {
+            self = at_npu::native::NPUNativeFunctions::empty_like(src);
+        }
     } else {
         self = OpPreparation::apply_tensor_without_format(src);
     }
