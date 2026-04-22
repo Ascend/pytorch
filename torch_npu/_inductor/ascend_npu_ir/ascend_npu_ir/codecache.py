@@ -241,7 +241,10 @@ class CustomAsyncCompile(AsyncCompile):
                     kernel.get_best_kernel()
                     return kernel
                 except:
-                    compile_args = kernel.get_autotune_config()
+                    if kernel._should_disable_autotune_for_determinism():
+                        compile_args = [(None, True, True)]
+                    else:
+                        compile_args = kernel.get_autotune_config()
                     futures = []
                     for cargs in compile_args:
                         future = self.process_pool().submit(
