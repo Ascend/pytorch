@@ -1114,9 +1114,19 @@ def transform_dims_in_indexing(self, indices):
         log.debug(f"[Linear] linear analyse res:{analyse_res}")
         
         if not analyse_res["can_split_all"]:
-            raise ValueError(f"Can not split expression:{self.indexing}"\
-                             f"\nrange_tree_nodes:{V.kernel.range_tree_nodes}"\
-                             f"\nanalyse_res:{analyse_res}")
+            if is_ascend950:
+                log.warning(
+                    f"Skip memory access linearization due to can not split expression:{self.indexing}"\
+                    f"\nrange_tree_nodes:{V.kernel.range_tree_nodes}"\
+                    f"\nanalyse_res:{analyse_res}"
+                )
+                # Set SIMT_ONLY compile option for dynamic shapes on A5
+                V.kernel.npu_kernel_type = NPUKernelType.SIMT_ONLY
+                return
+            else:
+                raise ValueError(f"Can not split expression:{self.indexing}"\
+                                 f"\nrange_tree_nodes:{V.kernel.range_tree_nodes}"\
+                                 f"\nanalyse_res:{analyse_res}")
         self.indexing[key] = split_expression(index_expr)
 
     if V.kernel is not None and isinstance(V.kernel, NPUIndexTritonKernel):
