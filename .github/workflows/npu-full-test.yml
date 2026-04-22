@@ -1,0 +1,535 @@
+name: PyTorch NPU Full Test (v2.7.1)
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - 'release/**'
+    paths:
+      - '.github/workflows/npu-full-test.yml'
+      - '.github/workflows/_build-torch-npu.yml'
+      - '.github/scripts/run_npu_test_shard.py'
+      - '.github/scripts/pytest_disabled_testcases_plugin.py'
+      - '.github/scripts/generate_npu_full_test_report.py'
+      - 'test_upstream/**'
+  pull_request:
+    paths:
+      - '.github/workflows/npu-full-test.yml'
+      - '.github/workflows/_build-torch-npu.yml'
+      - '.github/scripts/run_npu_test_shard.py'
+      - '.github/scripts/pytest_disabled_testcases_plugin.py'
+      - '.github/scripts/generate_npu_full_test_report.py'
+      - 'test_upstream/**'
+  schedule:
+    - cron: '0 22 * * 1'  # UTC 22:00 (Beijing time next day 06:00), every Monday
+  workflow_dispatch:
+    inputs:
+      distributed_shards:
+        description: 'Number of shards for distributed tests (default 10)'
+        required: false
+        default: '10'
+        type: string
+      regular_shards:
+        description: 'Number of shards for regular tests (default 40)'
+        required: false
+        default: '40'
+        type: string
+
+env:
+  PYTHON_VERSION: '3.11'
+  PYTORCH_VERSION: '2.7.1'
+  PREPARED_TEST_SRC_ARTIFACT: 'pytorch-test-src-v2.7.1-patched'
+  TORCH_NPU_WHEEL_ARTIFACT: 'torch-npu-wheel-v2.7.1-source'
+  DOCKER_IMAGE: 'swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.11.0_a2_aarch64_builder:20260331'
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      distributed_matrix: ${{ steps.set_matrix.outputs.distributed_matrix }}
+      regular_matrix: ${{ steps.set_matrix.outputs.regular_matrix }}
+      distributed_shards: ${{ steps.set_matrix.outputs.distributed_shards }}
+      regular_shards: ${{ steps.set_matrix.outputs.regular_shards }}
+      patch_count: ${{ steps.apply_patches.outputs.patch_count }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set shard matrices
+        id: set_matrix
+        run: |
+          # Get shard counts from inputs or use defaults (total 50 shards: 10 distributed + 40 regular)
+          DISTRIBUTED_SHARDS=${{ inputs.distributed_shards || '10' }}
+          REGULAR_SHARDS=${{ inputs.regular_shards || '40' }}
+
+          # Build distributed shard matrix
+          DIST_SHARDS=$(seq 1 ${DISTRIBUTED_SHARDS} | tr '\n' ',' | sed 's/,$//')
+          # Build regular shard matrix
+          REG_SHARDS=$(seq 1 ${REGULAR_SHARDS} | tr '\n' ',' | sed 's/,$//')
+
+          echo "distributed_matrix=[${DIST_SHARDS}]" >> $GITHUB_OUTPUT
+          echo "distributed_shards=${DISTRIBUTED_SHARDS}" >> $GITHUB_OUTPUT
+
+          echo "regular_matrix=[${REG_SHARDS}]" >> $GITHUB_OUTPUT
+          echo "regular_shards=${REGULAR_SHARDS}" >> $GITHUB_OUTPUT
+
+          echo "Distributed tests: ${DISTRIBUTED_SHARDS} shards (matrix: ${DIST_SHARDS})"
+          echo "Regular tests: ${REGULAR_SHARDS} shards (matrix: ${REG_SHARDS})"
+          echo "Total shards configured: $((${DISTRIBUTED_SHARDS} + ${REGULAR_SHARDS}))"
+
+      - name: Clone PyTorch v${{ env.PYTORCH_VERSION }} (for test source)
+        run: |
+          git clone --depth=1 --branch v${{ env.PYTORCH_VERSION }} \
+            https://github.com/pytorch/pytorch.git pytorch-test-src
+
+      - name: Copy test_upstream patches
+        run: |
+          cp -r test_upstream pytorch-test-src/
+
+      - name: Apply NPU patches
+        id: apply_patches
+        run: |
+          cd pytorch-test-src/test_upstream
+          chmod +x apply_patch.sh
+          # Count patch files before applying
+          PATCH_COUNT=$(find . -name "*.patch" -o -name "*.diff" | wc -l)
+          echo "Found ${PATCH_COUNT} patch files"
+          ./apply_patch.sh 2>&1 | tee /tmp/patch.log
+          APPLY_STATUS=$?
+          # Use patch file count as the metric (more reliable than grep Chinese output)
+          echo "patch_count=${PATCH_COUNT}" >> $GITHUB_OUTPUT
+          echo "apply_status=${APPLY_STATUS}" >> $GITHUB_OUTPUT
+          # Fail if apply_patch.sh returned non-zero
+          if [ ${APPLY_STATUS} -ne 0 ]; then
+            echo "Patch application failed!"
+            exit 1
+          fi
+
+      - name: Package prepared test source
+        run: |
+          tar -czf pytorch-test-src.tar.gz pytorch-test-src
+
+      - name: Upload prepared test source
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.PREPARED_TEST_SRC_ARTIFACT }}
+          path: pytorch-test-src.tar.gz
+          retention-days: 7
+
+      - name: Upload prepare logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prepare-logs
+          path: /tmp/patch.log
+          if-no-files-found: warn
+          retention-days: 30
+
+  build_torch_npu:
+    needs: prepare
+    uses: ./.github/workflows/_build-torch-npu.yml
+    with:
+      python_version: '3.11'
+      pytorch_version: '2.7.1'
+      torch_npu_wheel_artifact: 'torch-npu-wheel-v2.7.1-source'
+      max_jobs: '40'
+
+  upload_torch_npu_wheel:
+    needs: build_torch_npu
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download torch-npu wheel from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.TORCH_NPU_WHEEL_ARTIFACT }}
+          path: torch-npu-wheel
+
+      - name: Upload torch-npu wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: torch-npu-wheel-${{ env.PYTORCH_VERSION }}
+          path: torch-npu-wheel/*.whl
+          retention-days: 30
+
+  # ============================================================================
+  # Distributed Tests: linux-aarch64-a3-8 runner, serial execution, default 10 shards
+  # ============================================================================
+  test_distributed:
+    needs:
+      - prepare
+      - upload_torch_npu_wheel
+    runs-on: linux-aarch64-a3-8
+    container:
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.11.0_a2_aarch64_builder:20260331
+      options: --user root
+    strategy:
+      matrix:
+        shard: ${{ fromJson(needs.prepare.outputs.distributed_matrix) }}
+      fail-fast: false
+      max-parallel: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          path: ascend_pytorch
+
+      - name: Setup cache directories
+        run: |
+          mkdir -p /github/home/.cache/pip
+          chmod -R 777 /github/home/.cache
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: /github/home/.cache/pip
+          key: pip-arm-dist-py${{ env.PYTHON_VERSION }}-v${{ env.PYTORCH_VERSION }}
+          restore-keys: |
+            pip-arm-dist-py${{ env.PYTHON_VERSION }}-
+
+      - name: Download built torch_npu wheel
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.TORCH_NPU_WHEEL_ARTIFACT }}
+          path: torch-npu-wheel-artifact
+
+      - name: Uninstall pre-installed torch/torchvision
+        run: |
+          pip${{ env.PYTHON_VERSION }} uninstall -y torch torchvision || true
+          echo "Pre-installed torch/torchvision uninstalled"
+
+      - name: Install PyTorch ${{ env.PYTORCH_VERSION }} and built torch_npu
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          PIP=pip${{ env.PYTHON_VERSION }}
+          PYTHON=python${{ env.PYTHON_VERSION }}
+          export PIP_CACHE_DIR=/github/home/.cache/pip
+
+          $PIP install --upgrade pip
+          $PIP install torch==${{ env.PYTORCH_VERSION }}
+          TORCH_NPU_WHL=$(ls torch-npu-wheel-artifact/*.whl | head -1)
+          $PIP install "${TORCH_NPU_WHL}"
+
+          echo "PyTorch ${{ env.PYTORCH_VERSION }} and torch_npu installed from ${TORCH_NPU_WHL}"
+
+      - name: Download prepared test source
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.PREPARED_TEST_SRC_ARTIFACT }}
+          path: prepared-test-src-artifact
+
+      - name: Extract prepared test source
+        run: |
+          tar -xzf prepared-test-src-artifact/pytorch-test-src.tar.gz
+
+      - name: Verify NPU availability
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          PYTHON=python${{ env.PYTHON_VERSION }}
+          $PYTHON -c "
+          import torch
+          print(f'torch: {torch.__version__}')
+          import torch_npu
+          print(f'torch_npu: {torch_npu.__version__}')
+          print(f'NPU available: {torch.npu.is_available()}')
+          print(f'NPU count: {torch.npu.device_count()}')
+          if torch.npu.is_available():
+              print(f'NPU name: {torch.npu.get_device_name(0)}')
+          "
+
+      - name: Install test dependencies
+        run: |
+          PIP=pip${{ env.PYTHON_VERSION }}
+          cd pytorch-test-src
+
+          $PIP install pytest pytest-timeout pytest-xdist hypothesis zstandard pyyaml
+          $PIP install pytest-rerunfailures pytest-flakefinder
+          $PIP install 'pytest-subtests==0.13.1' 'xdoctest==1.1.0' 'pulp>=2.9'
+
+          if [ -f requirements.txt ]; then
+            $PIP install -r requirements.txt || true
+          fi
+
+      - name: Run distributed shard ${{ matrix.shard }}/${{ needs.prepare.outputs.distributed_shards }}
+        id: run_test
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          PYTHON=python${{ env.PYTHON_VERSION }}
+          REPORT_DIR=test-reports
+
+          mkdir -p ${REPORT_DIR}
+
+          # Distributed tests: serial execution (parallel=1)
+          set +e
+          $PYTHON ascend_pytorch/.github/scripts/run_npu_test_shard.py \
+            --shard ${{ matrix.shard }} \
+            --num-shards ${NUM_DISTRIBUTED_SHARDS} \
+            --test-type distributed \
+            --test-dir pytorch-test-src/test \
+            --disabled-testcases pytorch-test-src/test_upstream/disabled_testcases.json \
+            --case-paths-config pytorch-test-src/test_upstream/case_paths_ci.yml \
+            --report-dir ${REPORT_DIR} \
+            --timeout 600 \
+            --parallel 1 \
+            2>&1 | tee /tmp/test_shard_dist_${{ matrix.shard }}.log
+
+          TEST_STATUS=${PIPESTATUS[0]}
+          set -e
+          echo "status=${TEST_STATUS}" >> $GITHUB_OUTPUT
+          exit ${TEST_STATUS}
+        env:
+          NUM_DISTRIBUTED_SHARDS: ${{ needs.prepare.outputs.distributed_shards }}
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-dist-${{ matrix.shard }}
+          path: |
+            test-reports/
+            pytorch-test-src/test/test-reports/
+          retention-days: 30
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-dist-${{ matrix.shard }}
+          path: /tmp/test_shard_dist_${{ matrix.shard }}.log
+          if-no-files-found: warn
+
+  # ============================================================================
+  # Regular Tests: linux-aarch64-a3-2 runner, serial execution (parallel=1), default 40 shards
+  # ============================================================================
+  test_regular:
+    needs:
+      - prepare
+      - upload_torch_npu_wheel
+    runs-on: linux-aarch64-a3-2
+    container:
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.11.0_a2_aarch64_builder:20260331
+      options: --user root
+    strategy:
+      matrix:
+        shard: ${{ fromJson(needs.prepare.outputs.regular_matrix) }}
+      fail-fast: false
+      max-parallel: 40
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          path: ascend_pytorch
+
+      - name: Setup cache directories
+        run: |
+          mkdir -p /github/home/.cache/pip
+          chmod -R 777 /github/home/.cache
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: /github/home/.cache/pip
+          key: pip-arm-regular-py${{ env.PYTHON_VERSION }}-v${{ env.PYTORCH_VERSION }}
+          restore-keys: |
+            pip-arm-regular-py${{ env.PYTHON_VERSION }}-
+
+      - name: Download built torch_npu wheel
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.TORCH_NPU_WHEEL_ARTIFACT }}
+          path: torch-npu-wheel-artifact
+
+      - name: Uninstall pre-installed torch/torchvision
+        run: |
+          pip${{ env.PYTHON_VERSION }} uninstall -y torch torchvision || true
+          echo "Pre-installed torch/torchvision uninstalled"
+
+      - name: Install PyTorch ${{ env.PYTORCH_VERSION }} and built torch_npu
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          PIP=pip${{ env.PYTHON_VERSION }}
+          PYTHON=python${{ env.PYTHON_VERSION }}
+          export PIP_CACHE_DIR=/github/home/.cache/pip
+
+          $PIP install --upgrade pip
+          $PIP install torch==${{ env.PYTORCH_VERSION }}
+          TORCH_NPU_WHL=$(ls torch-npu-wheel-artifact/*.whl | head -1)
+          $PIP install "${TORCH_NPU_WHL}"
+
+          echo "PyTorch ${{ env.PYTORCH_VERSION }} and torch_npu installed from ${TORCH_NPU_WHL}"
+
+      - name: Download prepared test source
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.PREPARED_TEST_SRC_ARTIFACT }}
+          path: prepared-test-src-artifact
+
+      - name: Extract prepared test source
+        run: |
+          tar -xzf prepared-test-src-artifact/pytorch-test-src.tar.gz
+
+      - name: Verify NPU availability
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          PYTHON=python${{ env.PYTHON_VERSION }}
+          $PYTHON -c "
+          import torch
+          print(f'torch: {torch.__version__}')
+          import torch_npu
+          print(f'torch_npu: {torch_npu.__version__}')
+          print(f'NPU available: {torch.npu.is_available()}')
+          print(f'NPU count: {torch.npu.device_count()}')
+          if torch.npu.is_available():
+              print(f'NPU name: {torch.npu.get_device_name(0)}')
+          "
+
+      - name: Install test dependencies
+        run: |
+          PIP=pip${{ env.PYTHON_VERSION }}
+          cd pytorch-test-src
+
+          $PIP install pytest pytest-timeout pytest-xdist hypothesis zstandard pyyaml
+          $PIP install pytest-rerunfailures pytest-flakefinder
+          $PIP install 'pytest-subtests==0.13.1' 'xdoctest==1.1.0' 'pulp>=2.9'
+
+          if [ -f requirements.txt ]; then
+            $PIP install -r requirements.txt || true
+          fi
+
+      - name: Run regular shard ${{ matrix.shard }}/${{ needs.prepare.outputs.regular_shards }}
+        id: run_test
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          PYTHON=python${{ env.PYTHON_VERSION }}
+          REPORT_DIR=test-reports
+
+          mkdir -p ${REPORT_DIR}
+
+          # Regular tests: serial execution (1 worker) to avoid OOM
+          set +e
+          $PYTHON ascend_pytorch/.github/scripts/run_npu_test_shard.py \
+            --shard ${{ matrix.shard }} \
+            --num-shards ${NUM_REGULAR_SHARDS} \
+            --test-type regular \
+            --test-dir pytorch-test-src/test \
+            --disabled-testcases pytorch-test-src/test_upstream/disabled_testcases.json \
+            --case-paths-config pytorch-test-src/test_upstream/case_paths_ci.yml \
+            --report-dir ${REPORT_DIR} \
+            --timeout 600 \
+            --parallel 1 \
+            2>&1 | tee /tmp/test_shard_reg_${{ matrix.shard }}.log
+
+          TEST_STATUS=${PIPESTATUS[0]}
+          set -e
+          echo "status=${TEST_STATUS}" >> $GITHUB_OUTPUT
+          exit ${TEST_STATUS}
+        env:
+          NUM_REGULAR_SHARDS: ${{ needs.prepare.outputs.regular_shards }}
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-reg-${{ matrix.shard }}
+          path: |
+            test-reports/
+            pytorch-test-src/test/test-reports/
+          retention-days: 30
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-reg-${{ matrix.shard }}
+          path: /tmp/test_shard_reg_${{ matrix.shard }}.log
+          if-no-files-found: warn
+
+  report:
+    needs:
+      - prepare
+      - build_torch_npu
+      - upload_torch_npu_wheel
+      - test_distributed
+      - test_regular
+    if: always() && needs.prepare.result == 'success' && needs.build_torch_npu.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Download distributed shard reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-reports-dist-*
+          path: all-test-reports
+          merge-multiple: true
+
+      - name: Download regular shard reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-reports-reg-*
+          path: all-test-reports
+          merge-multiple: true
+
+      - name: Generate consolidated summary
+        run: |
+          PYTHON=python
+          REPORT_MD=npu-full-test-summary.md
+          REPORT_JSON=npu-full-test-summary.json
+
+          # Combine both shard matrices for reporting
+          DIST_MATRIX='${{ needs.prepare.outputs.distributed_matrix }}'
+          REG_MATRIX='${{ needs.prepare.outputs.regular_matrix }}'
+          COMBINED_MATRIX=$(python3 -c "import sys,json; dist=json.loads('${DIST_MATRIX}'); reg=json.loads('${REG_MATRIX}'); print(json.dumps(['dist-'+str(s) for s in dist]+['reg-'+str(s) for s in reg]))")
+
+          $PYTHON .github/scripts/generate_npu_full_test_report.py \
+            --reports-root all-test-reports \
+            --output-markdown ${REPORT_MD} \
+            --output-json ${REPORT_JSON} \
+            --pytorch-version "${{ env.PYTORCH_VERSION }}" \
+            --torch-npu-whl "${{ needs.build_torch_npu.outputs.wheel_name || 'source-build.whl' }}" \
+            --patch-count "${{ needs.prepare.outputs.patch_count || 'N/A' }}" \
+            --shard-matrix-json "${COMBINED_MATRIX}" \
+            --docker-image "${{ env.DOCKER_IMAGE }}" \
+            --runner "linux-aarch64-a3-8 (distributed), linux-aarch64-a3-2 (regular)"
+
+          cat ${REPORT_MD} >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload consolidated summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: npu-full-test-summary
+          path: |
+            npu-full-test-summary.md
+            npu-full-test-summary.json
+          retention-days: 30
