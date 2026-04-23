@@ -10,7 +10,7 @@
 - 审查Pull Request并协助其他贡献者。
 - 传播项目:在博客文章、社交媒体上分享PyTorch，或给仓库点个⭐。
 
-## 寻找可贡献的问题  
+## 寻找可贡献的问题
 
 您可以通过查看[Issues列表](https://gitcode.com/Ascend/pytorch/issues)了解项目的发展计划和路线图。
 
@@ -37,16 +37,16 @@ cd pytorch
 
 ```
 3. 在个人仓库进行代码开发
-	代码开发请遵循  **[代码规范](#代码规范)**  
+	代码开发请遵循  **[代码规范](#代码规范)**
 
 4. 代码测试
 	参见 **[代码测试](https://gitcode.com/Ascend/pytorch/blob/master/test/README.md)**
 
-5.  **[门禁异常处理](#门禁异常处理)**  
+5.  **[门禁异常处理](#门禁异常处理)**
 
-6.  **[提交Pull Request](#提交Pull-Request)**  
+6.  **[提交Pull Request](#提交Pull-Request)**
 
-7.  **[报告问题](#报告问题)**  
+7.  **[报告问题](#报告问题)**
 
 #### 代码规范
 
@@ -54,7 +54,7 @@ cd pytorch
 
 -   编码指南
 
-    请在PyTorch社区使用规统一的编码分格，python建议的编码风格是[PEP 8编码样式](https://pep8.org/)，C++编码所建议的风格是  [Google C++编码指南](http://google.github.io/styleguide/cppguide.html)  。可以使用[CppLint](https://github.com/cpplint/cpplint)，[CppCheck](http://cppcheck.sourceforge.net/)，[CMakeLint](https://github.com/cmake-lint/cmake-lint)，[CodeSpell](https://github.com/codespell-project/codespell)，  [Lizard](http://www.lizard.ws/)，[ShellCheck](https://github.com/koalaman/shellcheck)和[pylint](https://pylint.org/)检查代码的格式，建议在您的IDE中安装这些插件。
+    请在PyTorch社区使用规统一的编码分格，python建议的编码风格是[PEP 8编码样式](https://pep8.org/)，C++编码所建议的风格是  [Google C++编码指南](http://google.github.io/styleguide/cppguide.html)  。执行代码检查，可参照[本地静态检查](#本地静态检查)。
 
 -   单元测试指南
 
@@ -115,7 +115,7 @@ cd pytorch
    - 功能验证
    - CheckList
    确认信息完整准确后提交Pull Request，等待代码审查
-   
+
 #### 报告问题
 
 为项目做出贡献的一个好方法是在遇到问题时发送详细报告。我们总是很感激写得很好、彻底的错误报告，并会由此感谢您！
@@ -135,6 +135,59 @@ cd pytorch
 -   如果您发现一个未解决的问题，而这正是您要解决的问题，请对该问题发表一些评论，告诉其他人您将负责它。
 -   如果问题已打开一段时间，建议贡献者在解决该问题之前进行预检查。
 -   如果您解决了自己报告的问题，则还需要在关闭该问题之前让其他人知道。
+
+### 本地静态检查
+
+项目使用 [lintrunner](https://github.com/suo/lintrunner) 进行静态检查，支持在本地运行与 CI 完全一致的检查项，
+包括 Python 代码风格（Flake8、Ruff、PYFMT）、C++ 格式（ClangFormat、ClangTidy）、拼写检查（Codespell）等。
+
+#### 安装依赖
+
+```bash
+# 安装 lintrunner 及 uv（部分 linter 需要）
+pip install lintrunner
+pip install uv
+```
+
+#### 初始化（首次使用或更新时执行一次）
+
+```bash
+# 下载 lintrunner 所需的外部二进制工具（clang-format、clang-tidy 等）
+lintrunner init
+```
+
+#### 执行静态检查
+
+```bash
+# 检查当前工作区改动和HEAD提交的文件增量（工作区 + HEAD）
+lintrunner
+
+# 仅运行指定检查项
+lintrunner --take FLAKE8,RUFF,PYFMT,SPACES,TABS,NEWLINE
+
+# 自动修复可自动修复的问题（formatter 类 linter, 如忽略PYREFLY）
+lintrunner --skip PYREFLY -a
+
+# 仅检查当前工作区改动的文件增量
+git diff --name-only HEAD | xargs lintrunner
+```
+
+> **提示**：`--take` 参数可指定只运行部分检查项，常用项如下：
+>
+> | 代码 | 说明 |
+> |------|------|
+> | `FLAKE8` | Python 语法与风格检查 |
+> | `RUFF` | Python 快速 lint 与 import 排序 |
+> | `PYFMT` | Python 代码格式化（usort + ruff-format） |
+> | `CLANGFORMAT` | C++ 代码格式化 |
+> | `CLANGTIDY` | C++ 静态分析 |
+> | `SPACES` | 行尾空格检查 |
+> | `TABS` | Tab 字符检查 |
+> | `NEWLINE` | 文件末尾换行检查 |
+> | `CODESPELL` | 拼写检查，如果是误报可以将误报词按照字典序添加至 `tools/linter/dictionary.txt` 后再重新检查 |
+
+更多执行命令可参照[lintrunner wiki](https://github.com/pytorch/pytorch/wiki/lintrunner)。
+
 ## 社区准则
 
 ### 行为准则
@@ -150,5 +203,3 @@ cd pytorch
 
 - **Issues**:用于报告Bug、提出功能建议和讨论技术问题
 - **Pull Requests**:用于代码审查和讨论具体实现
-
-
