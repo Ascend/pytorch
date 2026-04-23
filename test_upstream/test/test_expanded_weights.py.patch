@@ -1,5 +1,5 @@
 diff --git a/test/test_expanded_weights.py b/test/test_expanded_weights.py
-index 7f210bf..3306604 100644
+index 7f210bf79a2..814138670eb 100644
 --- a/test/test_expanded_weights.py
 +++ b/test/test_expanded_weights.py
 @@ -40,6 +40,14 @@ from torch.testing._internal.common_utils import (
@@ -17,3 +17,25 @@ index 7f210bf..3306604 100644
  
  class TestContext:
      pass
+@@ -565,6 +573,10 @@ class TestExpandedWeightFunctional(TestCase):
+                 nn.Linear(32 * (7**num_dim), num_classes, bias=True),
+             )
+ 
++        # Conv using HF32 (half-precision floating point) for Ascend-dedicated operator
++        # internal calculation introduces errors that are amplified in subsequent calculations.
++        if 'npu' in device:
++            torch.npu.conv.allow_hf32 = False
+         atol, rtol = self._compute_tolerances(device)
+         return self._test_conv_model(
+             group_norm_model, 7, num_dim, device, atol=atol, rtol=rtol
+@@ -585,6 +597,10 @@ class TestExpandedWeightFunctional(TestCase):
+                 nn.Linear(32 * (7**num_dim), num_classes, bias=True),
+             )
+ 
++        # Conv using HF32 (half-precision floating point) for Ascend-dedicated operator
++        # internal calculation introduces errors that are amplified in subsequent calculations.
++        if 'npu' in device:
++            torch.npu.conv.allow_hf32 = False
+         atol, rtol = self._compute_tolerances(device)
+         return self._test_conv_model(
+             layer_norm_model, 7, num_dim, device, atol=atol, rtol=rtol
