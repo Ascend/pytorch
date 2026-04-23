@@ -23,6 +23,7 @@ class NPUDeviceOpOverrides(DeviceOpOverrides):
 
 
 def _inductor_register_device_op_overrides():
+    from torch._inductor.codegen import cpu_device_op_overrides, mps_device_op_overrides
     register_device_op_overrides('npu', NPUDeviceOpOverrides())
 
 
