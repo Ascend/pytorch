@@ -11,6 +11,11 @@ on:
         required: true
         type: string
         description: The upstream commit SHA to build
+      upstream_fork_repo:
+        required: false
+        type: string
+        default: ''
+        description: The fork repository full name for PR from fork (owner/repo)
       downstream_repo:
         required: true
         type: string
@@ -21,10 +26,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Step 1: Checkout upstream PyTorch PR code
+      # Use fork repo if available (PR from fork), otherwise use upstream repo (push or PR from same repo)
       - name: Checkout upstream PyTorch PR
         uses: actions/checkout@v6
         with:
-          repository: ${{ inputs.upstream_repo }}
+          repository: ${{ inputs.upstream_fork_repo != '' && inputs.upstream_fork_repo || inputs.upstream_repo }}
           ref: ${{ inputs.upstream_sha }}
           submodules: recursive
           path: pytorch
@@ -34,7 +40,11 @@ jobs:
         run: |
           echo "============================================"
           echo "Building PyTorch from upstream PR..."
-          echo "Repository: ${{ inputs.upstream_repo }}"
+          if [ -n "${{ inputs.upstream_fork_repo }}" ]; then
+            echo "Fork Repository: ${{ inputs.upstream_fork_repo }}"
+          else
+            echo "Repository: ${{ inputs.upstream_repo }}"
+          fi
           echo "Commit SHA: ${{ inputs.upstream_sha }}"
           echo "============================================"
           # TODO: Add actual PyTorch build commands
@@ -84,7 +94,11 @@ jobs:
           echo "============================================"
           echo "Build Summary"
           echo "============================================"
-          echo "1. PyTorch upstream PR: ${{ inputs.upstream_repo }}@${{ inputs.upstream_sha }}"
+          if [ -n "${{ inputs.upstream_fork_repo }}" ]; then
+            echo "1. PyTorch fork PR: ${{ inputs.upstream_fork_repo }}@${{ inputs.upstream_sha }}"
+          else
+            echo "1. PyTorch upstream: ${{ inputs.upstream_repo }}@${{ inputs.upstream_sha }}"
+          fi
           echo "2. PyTorch build: SUCCESS (simulated)"
           echo "3. PyTorch install: SUCCESS (simulated)"
           echo "4. torch_npu master: ${{ inputs.downstream_repo }}"

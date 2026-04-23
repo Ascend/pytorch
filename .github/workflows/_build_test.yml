@@ -13,4 +13,5 @@ jobs:
     with:
       upstream_repo: pytorch/pytorch
       upstream_sha: main
+      upstream_fork_repo: ''
       downstream_repo: ${{ github.repository }}
