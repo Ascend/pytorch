@@ -1,7 +1,7 @@
-diff --git a/test_jit.py b/test_jit.py
+diff --git a/test/test_jit.py b/test/test_jit.py
 index 0a49ab3..ec7c14f 100644
---- a/test_jit.py
-+++ b/test_jit.py
+--- a/test/test_jit.py
++++ b/test/test_jit.py
 @@ -1,8 +1,12 @@
  # Owner(s): ["oncall: jit"]
  # ruff: noqa: F841
