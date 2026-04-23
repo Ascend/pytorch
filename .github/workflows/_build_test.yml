@@ -1,0 +1,16 @@
+name: Test Build Workflow
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/_build.yml'
+      - '.github/workflows/_build_test.yml'
+  workflow_dispatch:
+
+jobs:
+  test-build:
+    uses: ./.github/workflows/_build.yml
+    with:
+      upstream_repo: pytorch/pytorch
+      upstream_sha: main
+      downstream_repo: ${{ github.repository }}
