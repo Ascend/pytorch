@@ -27,44 +27,15 @@ permissions:
 
 jobs:
   cancel-pr:
-      if: ${{ github.event.client_payload.payload.action == 'closed' }}
-      runs-on: ubuntu-latest
-      steps:
-        - run: echo "PR closed, canceling older runs in the same concurrency group"
-  ci:
-    if: ${{ github.event.client_payload.payload.action != 'closed' }}
+    if: ${{ github.event.client_payload.payload.action == 'closed' }}
     runs-on: ubuntu-latest
-
     steps:
-      # Step 1: Check out this downstream repo
-      - name: Checkout downstream repo
-        uses: actions/checkout@v6
+      - run: echo "PR closed, canceling older runs in the same concurrency group"
 
-      # Step 2: Check out the upstream PyTorch commit that triggered this run.
-      - name: Checkout upstream PR commit
-        if: ${{ github.event.client_payload.event_type == 'pull_request' }}
-        uses: actions/checkout@v6
-        with:
-          repository: ${{ github.event.client_payload.payload.repository.full_name }}
-          ref: ${{ github.event.client_payload.payload.pull_request.head.sha }}
-          token: ${{ github.token }}
-          submodules: recursive
-          path: pytorch
-
-      - name: Checkout upstream push commit
-        if: ${{ github.event.client_payload.event_type == 'push' }}
-        uses: actions/checkout@v6
-        with:
-          repository: ${{ github.event.client_payload.payload.repository.full_name }}
-          ref: ${{ github.event.client_payload.payload.after }}
-          token: ${{ github.token }}
-          submodules: recursive
-          path: pytorch
-
-
-      # Step 3: Run CI
-      - name: Run CI
-        run: |
-          echo "Running downstream workflow 0..."
-          sleep 10
-          echo "Done"
+  build:
+    if: ${{ github.event.client_payload.payload.action != 'closed' }}
+    uses: ./.github/workflows/_build.yml
+    with:
+      upstream_repo: ${{ github.event.client_payload.payload.repository.full_name }}
+      upstream_sha: ${{ github.event.client_payload.event_type == 'pull_request' && github.event.client_payload.payload.pull_request.head.sha || github.event.client_payload.payload.after }}
+      downstream_repo: ${{ github.repository }}
