@@ -1250,6 +1250,15 @@ private:
         std::vector<c10_npu::NPUStream> &streamVal,
         int p2pRank);
 
+    bool createHCCLCommSub(
+        const std::string& devicesKey,
+        const std::vector<at::Device>& devices,
+        HcclCommType commType,
+        HcclCommConfig* commConfig,
+        std::vector<std::shared_ptr<HCCLComm>> &hcclComms,
+        std::vector<c10_npu::NPUStream> &streamVal,
+        int p2pRank);
+
     void createHCCLCommForZeroCopy(
         std::vector<std::shared_ptr<HCCLComm>> &hcclComms,
         std::unordered_map<std::string, std::string> &envMap);
