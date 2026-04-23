@@ -238,8 +238,6 @@ def create_shard_info(shard: int, num_shards: int, timestamp: str) -> Dict:
         "path_filtered_out_files": 0,
         "excluded_test_files": 0,
         "disabled_count": 0,
-        "disabled_count_matched": 0,
-        "disabled_count_deselected": 0,
         "whitelist_entries": 0,
         "blacklist_entries": 0,
         "junit_generated": False,
@@ -345,12 +343,6 @@ def get_shard_log_file(report_dir: Path, shard: int, shard_type: str = "regular"
     return report_dir / f"test_shard_{prefix}-{shard}.log"
 
 
-def get_disabled_testcases_report_file(report_dir: str, shard: int, shard_type: str = "regular") -> str:
-    """Get path for disabled testcase report file."""
-    prefix = get_shard_type_prefix(shard_type)
-    return os.path.join(report_dir, f"shard_{prefix}-{shard}_disabled_testcases.json")
-
-
 def load_disabled_testcases_count(json_file: str) -> int:
     """Count entries in disabled_testcases.json."""
     if not json_file or not os.path.exists(json_file):
@@ -362,31 +354,6 @@ def load_disabled_testcases_count(json_file: str) -> int:
     if isinstance(data, (dict, list)):
         return len(data)
     return 0
-
-
-def load_disabled_testcases_report(report_dir: str, shard: int, shard_type: str = "regular") -> Dict:
-    """Load disabled testcase report for a shard."""
-    report_file = get_disabled_testcases_report_file(report_dir, shard, shard_type)
-
-    if not os.path.exists(report_file):
-        return {
-            "disabled_count_matched": 0,
-            "disabled_count_deselected": 0,
-        }
-
-    try:
-        with open(report_file, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        return {
-            "disabled_count_matched": data.get("disabled_count_matched", 0),
-            "disabled_count_deselected": data.get("disabled_count_deselected", 0),
-        }
-    except Exception as exc:
-        print(f"Warning: Failed to read disabled testcase report: {exc}")
-        return {
-            "disabled_count_matched": 0,
-            "disabled_count_deselected": 0,
-        }
 
 
 # ==============================================================================

@@ -263,10 +263,8 @@ def build_execution_env(
     test_dir: Path,
     script_dir: Path,
     disabled_testcases_file: str,
-    report_dir: str,
     shard: int,
     shard_type: str,
-    result_module,
 ) -> Dict[str, str]:
     """Build environment variables for test execution."""
     repo_root = test_dir.parent
@@ -287,16 +285,15 @@ def build_execution_env(
         "PYTORCH_TEST_NPU": "1",
         "TORCH_DEVICE_BACKEND_AUTOLOAD": "1",
         "NO_TD": "1",
-        "PYTEST_ADDOPTS": os.environ.get("PYTEST_ADDOPTS", ""),
         "PYTHONUNBUFFERED": "1",
         "CI": "true",
     }
 
+    # Use PyTorch's built-in DISABLED_TESTS_FILE mechanism for skipping test cases
     if disabled_testcases_file:
-        updates["NPU_DISABLED_TESTCASES_JSON"] = os.path.abspath(disabled_testcases_file)
-        updates["NPU_DISABLED_TESTCASES_REPORT"] = os.path.abspath(
-            result_module.get_disabled_testcases_report_file(report_dir, shard, shard_type)
-        )
+        # The disabled_testcases.json format is similar to .pytorch-disabled-tests.json
+        # Set DISABLED_TESTS_FILE to use PyTorch's built-in skip mechanism
+        updates["DISABLED_TESTS_FILE"] = os.path.abspath(disabled_testcases_file)
 
     return updates
 
@@ -342,8 +339,6 @@ def build_pytest_command(
         "--tb=short",
         "--continue-on-collection-errors",
         f"--junitxml={xml_file}",
-        "-p",
-        "pytest_disabled_testcases_plugin",
     ]
 
     if timeout > 0:
@@ -652,12 +647,11 @@ def main():
 
     # Clean old files
     clean_existing_junit_xml(report_dir)
-    remove_existing_file(Path(result_module.get_disabled_testcases_report_file(str(report_dir), args.shard, shard_type)))
     remove_existing_file(result_module.get_shard_log_file(report_dir, args.shard, shard_type))
 
     # Build execution env
     env_updates = build_execution_env(
-        test_dir, script_dir, args.disabled_testcases, str(report_dir), args.shard, shard_type, result_module
+        test_dir, script_dir, args.disabled_testcases, args.shard, shard_type
     )
 
     # ==========================================================================
@@ -704,10 +698,6 @@ def main():
     info["startup_failures"] = int(log_metrics.get("startup_failures", 0))
     info["import_failures"] = int(log_metrics.get("import_failures", 0))
     info["test_failures"] = int(log_metrics.get("test_failures", 0))
-
-    # Load disabled testcase report
-    disabled_report = result_module.load_disabled_testcases_report(str(report_dir), args.shard, shard_type)
-    info.update(disabled_report)
 
     # ==========================================================================
     # Generate reports
