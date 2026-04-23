@@ -24,14 +24,14 @@ on:
   workflow_dispatch:
     inputs:
       distributed_shards:
-        description: 'Number of shards for distributed tests (default 2)'
+        description: 'Number of shards for distributed tests (default 10)'
         required: false
-        default: '2'
+        default: '10'
         type: string
       regular_shards:
-        description: 'Number of shards for regular tests (default 2)'
+        description: 'Number of shards for regular tests (default 10)'
         required: false
-        default: '2'
+        default: '10'
         type: string
 
 env:
@@ -65,9 +65,9 @@ jobs:
       - name: Set shard matrices
         id: set_matrix
         run: |
-          # Get shard counts from inputs or use defaults (total 4 shards: 2 distributed + 2 regular)
-          DISTRIBUTED_SHARDS=${{ inputs.distributed_shards || '2' }}
-          REGULAR_SHARDS=${{ inputs.regular_shards || '2' }}
+          # Get shard counts from inputs or use defaults (total 20 shards: 10 distributed + 10 regular)
+          DISTRIBUTED_SHARDS=${{ inputs.distributed_shards || '10' }}
+          REGULAR_SHARDS=${{ inputs.regular_shards || '10' }}
 
           # Build distributed shard matrix
           DIST_SHARDS=$(seq 1 ${DISTRIBUTED_SHARDS} | tr '\n' ',' | sed 's/,$//')
@@ -159,7 +159,7 @@ jobs:
           retention-days: 30
 
   # ============================================================================
-  # Distributed Tests: linux-aarch64-a3-8 runner, serial execution, default 2 shards (for testing)
+  # Distributed Tests: linux-aarch64-a3-8 runner, serial execution, default 10 shards
   # ============================================================================
   test_distributed:
     needs:
@@ -173,7 +173,7 @@ jobs:
       matrix:
         shard: ${{ fromJson(needs.prepare.outputs.distributed_matrix) }}
       fail-fast: false
-      max-parallel: 2
+      max-parallel: 10
 
     steps:
       - name: Checkout repository
@@ -335,7 +335,7 @@ jobs:
           if-no-files-found: warn
 
   # ============================================================================
-  # Regular Tests: linux-aarch64-a3-8 runner (8-card NPU), parallel execution, default 2 shards (for testing)
+  # Regular Tests: linux-aarch64-a3-8 runner (8-card NPU), parallel execution, default 10 shards
   # ============================================================================
   test_regular:
     needs:
@@ -349,7 +349,7 @@ jobs:
       matrix:
         shard: ${{ fromJson(needs.prepare.outputs.regular_matrix) }}
       fail-fast: false
-      max-parallel: 2
+      max-parallel: 10
 
     steps:
       - name: Checkout repository
