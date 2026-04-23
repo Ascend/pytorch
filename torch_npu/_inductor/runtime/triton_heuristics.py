@@ -521,7 +521,7 @@ class NPUCachingAutotuner(CachingAutotuner):
                 exc = e
         if len(compile_results) == 0:
             raise NoTritonConfigsError(
-                f"No valid triton configs. {type(compile_exc_results[0]).__name__}: {compile_exc_results[0]} \nStack trace:{compile_exc_stack_results[0]}"
+                f"No valid triton configs. {type(exc).__name__}: {exc} \nStack trace:{exc_stack}"
             )
         log.info(f"kernel: {self.get_fn_name()} compile cost time: {time.perf_counter() - compile_start_time}s")
         self.compile_results = compile_results
@@ -775,7 +775,7 @@ class NPUCachingAutotuner(CachingAutotuner):
 
         if len(compile_results) == 0:
             raise NoTritonConfigsError(
-                f"No valid triton configs. {type(compile_exc_results[0]).__name__}: {compile_exc_results[0]} \nStack trace:{compile_exc_stack_results[0]}"
+                f"No valid triton configs for kernel {self.get_fn_name()}. {type(compile_exc_results[0]).__name__}: {compile_exc_results[0]} \nStack trace:{compile_exc_stack_results[0]}"
             )
         self.compile_results = compile_results
         self.configs = None
