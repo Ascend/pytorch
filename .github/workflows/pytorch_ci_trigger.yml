@@ -37,6 +37,6 @@ jobs:
     uses: ./.github/workflows/_build.yml
     with:
       upstream_repo: ${{ github.event.client_payload.payload.repository.full_name }}
-      upstream_sha: ${{ github.event_client_payload.event_type == 'pull_request' && github.event_client_payload.payload.pull_request.head.sha || github.event_client_payload.payload.after }}
-      upstream_fork_repo: ${{ github.event_client_payload.event_type == 'pull_request' && github.event_client_payload.payload.pull_request.head.repo.full_name || '' }}
+      upstream_sha: ${{ github.event.client_payload.event_type == 'pull_request' && github.event.client_payload.payload.pull_request.head.sha || github.event.client_payload.payload.after }}
+      upstream_fork_repo: ${{ github.event.client_payload.event_type == 'pull_request' && github.event.client_payload.payload.pull_request.head.repo.full_name || '' }}
       downstream_repo: ${{ github.repository }}
