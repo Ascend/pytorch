@@ -696,7 +696,14 @@ class NPUCachingAutotuner(CachingAutotuner):
             "triton_meta": self.triton_meta,
             "def_args": input_launcher.def_args,
             "call_args": input_launcher.call_args,
+            "mix_mode": input_launcher.bin.metadata.mix_mode,
+            "parallel_mode": input_launcher.bin.metadata.parallel_mode,
+            "force_simt_only": input_launcher.bin.metadata.force_simt_only
         }
+        enable_simt = ("simt" in params["parallel_mode"]) or params["force_simt_only"]
+        if npu_config.is_ascend950 and enable_simt:
+            params["shared_mem_dynamic_size"] = input_launcher.bin.metadata.shared_mem_dynamic_size
+
         from torch._inductor.codecache import CudaKernelParamCache
 
         bin_type = "npubin"
