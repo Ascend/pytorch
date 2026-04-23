@@ -110,6 +110,30 @@ fi
 
 echo "Torch package location: $TORCH_PATH"
 
+# Show torch installation directory contents for diagnostics
+echo ""
+echo "=== Torch installation directory structure ==="
+echo "Top-level directories in $TORCH_PATH:"
+ls -d "$TORCH_PATH"/*/ 2>/dev/null | head -20 || ls "$TORCH_PATH" | head -20
+
+echo ""
+echo "Testing directory contents:"
+if [ -d "$TORCH_PATH/testing" ]; then
+    ls -la "$TORCH_PATH/testing" | head -15
+    echo ""
+    if [ -d "$TORCH_PATH/testing/_internal" ]; then
+        echo "Testing/_internal directory contents:"
+        ls "$TORCH_PATH/testing/_internal" | head -20
+    else
+        echo "NOTE: torch.testing._internal directory NOT FOUND"
+        echo "This module may not be included in this torch installation"
+    fi
+else
+    echo "NOTE: torch.testing directory NOT FOUND"
+fi
+echo "=== End of torch directory structure ==="
+echo ""
+
 # Verify patch directory exists
 if [ ! -d "$PATCH_DIR" ]; then
     echo "ERROR: Patch directory not found: $PATCH_DIR"
