@@ -174,8 +174,13 @@ echo "========================================"
 echo "Applying torch environment patches..."
 echo "========================================"
 
-# Change to torch package directory (patch files use paths like torch/testing/_internal/...)
-cd "$TORCH_PATH"
+# Change to the parent directory of torch package (site-packages)
+# Patch files use paths like "torch/testing/_internal/common_utils.py"
+# With -p1, this becomes "testing/_internal/common_utils.py" which we need to find
+# So we cd to the parent of torch (site-packages) and use -p1
+TORCH_PARENT_DIR=$(dirname "$TORCH_PATH")
+echo "Working directory: $TORCH_PARENT_DIR"
+cd "$TORCH_PARENT_DIR"
 
 # Function to extract target file path from patch
 get_target_file_from_patch() {
@@ -183,10 +188,10 @@ get_target_file_from_patch() {
     # Extract the --- a/... line to find target file
     local target_line=$(grep -m1 "^--- a/" "$patch_file" 2>/dev/null || grep -m1 "^--- " "$patch_file" 2>/dev/null)
     if [ -n "$target_line" ]; then
-        # Strip "--- a/" prefix and get the path (for -p1, we remove the first component)
+        # Strip "--- a/" prefix and get the path
+        # For -p1 from site-packages/, the path stays as torch/file.py
         local target_path=$(echo "$target_line" | sed 's/^--- a\///' | sed 's/^--- //')
-        # Remove first path component for -p1 (torch/file.py -> file.py)
-        echo "$target_path" | cut -d'/' -f2-
+        echo "$target_path"
     fi
 }
 
@@ -205,8 +210,8 @@ for patch_file in $PATCH_FILES; do
         echo "[MISSING] $patch_rel - Target file not found: $target_file"
         MISSING_COUNT=$((MISSING_COUNT + 1))
         if $VERBOSE; then
-            echo "  Expected at: $TORCH_PATH/$target_file"
-            echo "  Check if torch.testing._internal module is installed"
+            echo "  Expected at: $TORCH_PARENT_DIR/$target_file"
+            echo "  Check if the file exists in torch package"
         fi
         continue
     fi
