@@ -14,8 +14,8 @@ from torch.nn.parameter import UninitializedTensorMixin
 from torch._utils import _get_device_module
 from torch.utils import cpp_extension
 from torch.autograd.profiler_util import Kernel
-import torch_npu
 from torch_npu.utils import _dynamo
+import torch_npu
 
 try:
     from packaging.version import Version as Version
@@ -53,7 +53,15 @@ cur_path = os.path.dirname(os.path.realpath(__file__))
 config_path = os.path.join(cur_path, 'apis_config.json')
 
 
-class _GeneratorProxy(torch.Generator):
+class _TorchTypeProxyMeta(type(torch.Generator)):
+
+    # Keep isinstance(obj, torch.Generator/Event) working for base C++ objects
+    # when torch.Generator/Event is rebound to a proxy type.
+    def __instancecheck__(cls, instance):
+        return super().__instancecheck__(instance) or isinstance(instance, cls.__mro__[1])
+
+
+class _GeneratorProxy(torch.Generator, metaclass=_TorchTypeProxyMeta):
 
     def __new__(cls, device='cpu'):
         device = _replace_cuda_to_npu_in_list([device], None)[0]
@@ -61,7 +69,7 @@ class _GeneratorProxy(torch.Generator):
         return instance
 
 
-class _EventProxy(torch.Event):
+class _EventProxy(torch.Event, metaclass=_TorchTypeProxyMeta):
 
     def __new__(cls, *args, **kwargs):
         if args:
@@ -281,6 +289,7 @@ def _jit_script(obj, *args, **kwargs):
         return obj
 
 
+
 def _jit_script_method(fn):
     return fn
 
@@ -393,7 +402,7 @@ def _patch_nametuple(nametuple):
         return original__new__(cls, *args, **kwargs)
     nametuple.__new__ = new_nametuple__new__
     
-
+    
 def _compose_wrappers(*wrappers):
 
     def compose(f):
