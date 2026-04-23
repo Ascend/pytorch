@@ -10,7 +10,6 @@ on:
       - '.github/workflows/npu-full-test.yml'
       - '.github/workflows/_build-torch-npu.yml'
       - '.github/scripts/run_npu_test_shard.py'
-      - '.github/scripts/pytest_disabled_testcases_plugin.py'
       - '.github/scripts/generate_npu_full_test_report.py'
       - 'test_upstream/**'
   pull_request:
@@ -18,7 +17,6 @@ on:
       - '.github/workflows/npu-full-test.yml'
       - '.github/workflows/_build-torch-npu.yml'
       - '.github/scripts/run_npu_test_shard.py'
-      - '.github/scripts/pytest_disabled_testcases_plugin.py'
       - '.github/scripts/generate_npu_full_test_report.py'
       - 'test_upstream/**'
   schedule:
@@ -266,6 +264,24 @@ jobs:
             $PIP install -r requirements.txt || true
           fi
 
+      - name: Apply torch environment patches
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          PYTHON=python${{ env.PYTHON_VERSION }}
+          cd ascend_pytorch/test_upstream
+          chmod +x torch_env_patch.sh
+
+          echo "=== Applying torch environment patches ==="
+          ./torch_env_patch.sh --python=${{ env.PYTHON_VERSION }} --verbose 2>&1 | tee /tmp/torch_env_patch_dist_${{ matrix.shard }}.log
+          PATCH_STATUS=$?
+
+          if [ ${PATCH_STATUS} -ne 0 ]; then
+            echo "WARNING: Torch environment patch application returned non-zero status: ${PATCH_STATUS}"
+            echo "Tests will continue, but some may fail due to missing patches"
+          fi
+
       - name: Run distributed shard ${{ matrix.shard }}/${{ needs.prepare.outputs.distributed_shards }}
         id: run_test
         run: |
@@ -313,7 +329,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: logs-dist-${{ matrix.shard }}
-          path: /tmp/test_shard_dist_${{ matrix.shard }}.log
+          path: |
+            /tmp/test_shard_dist_${{ matrix.shard }}.log
+            /tmp/torch_env_patch_dist_${{ matrix.shard }}.log
           if-no-files-found: warn
 
   # ============================================================================
@@ -422,6 +440,24 @@ jobs:
             $PIP install -r requirements.txt || true
           fi
 
+      - name: Apply torch environment patches
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          PYTHON=python${{ env.PYTHON_VERSION }}
+          cd ascend_pytorch/test_upstream
+          chmod +x torch_env_patch.sh
+
+          echo "=== Applying torch environment patches ==="
+          ./torch_env_patch.sh --python=${{ env.PYTHON_VERSION }} --verbose 2>&1 | tee /tmp/torch_env_patch_reg_${{ matrix.shard }}.log
+          PATCH_STATUS=$?
+
+          if [ ${PATCH_STATUS} -ne 0 ]; then
+            echo "WARNING: Torch environment patch application returned non-zero status: ${PATCH_STATUS}"
+            echo "Tests will continue, but some may fail due to missing patches"
+          fi
+
       - name: Run regular shard ${{ matrix.shard }}/${{ needs.prepare.outputs.regular_shards }}
         id: run_test
         run: |
@@ -469,7 +505,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: logs-reg-${{ matrix.shard }}
-          path: /tmp/test_shard_reg_${{ matrix.shard }}.log
+          path: |
+            /tmp/test_shard_reg_${{ matrix.shard }}.log
+            /tmp/torch_env_patch_reg_${{ matrix.shard }}.log
           if-no-files-found: warn
 
   report:
