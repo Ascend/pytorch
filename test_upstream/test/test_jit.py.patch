@@ -1,18 +1,17 @@
-diff --git a/test_jit.py b/test_jit.py
-index 0a49ab3..ec7c14f 100644
---- a/test_jit.py
-+++ b/test_jit.py
-@@ -1,8 +1,12 @@
+diff --git a/test/test_jit.py b/test/test_jit.py
+index 0a49ab3..588d3a4 100644
+--- a/test/test_jit.py
++++ b/test/test_jit.py
+@@ -1,7 +1,12 @@
  # Owner(s): ["oncall: jit"]
  # ruff: noqa: F841
 +import torch_npu
 +from torch_npu.utils import _dynamo
 +_dynamo.use_jit_script = True
 +from torch_npu.contrib import transfer_to_npu
- 
+
  import torch
--
 +torch.cuda.get_device_capability = lambda :(10, 0)
+
  # This is how we include tests located in test/jit/...
  # They are included here so that they are invoked when you call `test_jit.py`,
- # do not run these test files directly.
