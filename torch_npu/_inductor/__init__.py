@@ -1,5 +1,8 @@
 import os
 
+from .codegen.common import register_device_op_overrides_npu
+register_device_op_overrides_npu()
+
 if os.getenv('TORCHINDUCTOR_NPU_BACKEND', 'default') == 'mlir':
     try:
         import torch_mlir
@@ -45,13 +48,6 @@ else:
 
 
     _inductor_register_backend_for_device()
-
-
-    def _inductor_register_device_op_overrides():
-        register_device_op_overrides('npu', NewNPUDeviceOpOverrides())
-
-
-    _inductor_register_device_op_overrides()
 
     device = get_interface_for_device("npu")
 
@@ -113,34 +109,9 @@ else:
     InductorChoices.should_use_persistent_reduction = should_use_persistent_reduction
     autotune_cache._load_cached_autotuning = _load_cached_autotuning
 
-
-    def patch_device_override_func():
-        def get_device_op_overrides_patch(device_name: str):
-            def register_cpu_backend():
-                from torch._inductor.codegen import cpu_device_op_overrides
-
-                return
-
-            def register_mps_backend():
-                from torch._inductor.codegen import mps_device_op_overrides
-
-                return
-
-            backend_factory = {"cpu": register_cpu_backend, "mps": register_mps_backend}
-
-            if device_name not in torch._inductor.codegen.common.device_op_overrides_dict:
-                if device_name not in backend_factory:
-                    raise ValueError("backend not found: ", device_name)
-                backend_factory[device_name]()
-
-            return torch._inductor.codegen.common.device_op_overrides_dict[device_name]
-
-        torch._inductor.graph.get_device_op_overrides = get_device_op_overrides_patch
-
     register_fa_pass()
     patch_cache_base_get_system()
     patch_is_gpu()
     patch_has_triton()
     disable_foreach()
-    patch_device_override_func()
     patch_get_optimization_cflags()
