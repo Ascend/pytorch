@@ -1,8 +1,8 @@
 diff --git a/test/test_jit.py b/test/test_jit.py
-index 0a49ab3..588d3a4 100644
+index 0a49ab3..ec7c14f 100644
 --- a/test/test_jit.py
 +++ b/test/test_jit.py
-@@ -1,7 +1,12 @@
+@@ -1,8 +1,12 @@
  # Owner(s): ["oncall: jit"]
  # ruff: noqa: F841
 +import torch_npu

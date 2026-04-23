@@ -9,16 +9,12 @@ import sympy
 import torch
 from torch import dtype as torch_dtype
 from torch._inductor import config
+from torch._inductor.codecache import get_cpp_wrapper_cubin_path_name
 from torch._inductor.codegen.aoti_hipify_utils import maybe_hipify_code_wrapper
 from torch._inductor.codegen.cpp_utils import cexpr, DTYPE_TO_CPP, DEVICE_TO_ATEN
-from torch._inductor.codegen.cpp_wrapper_gpu import CppWrapperGpu, DeferredTritonCallWrapper
-from torch._inductor.codegen.multi_kernel import MultiKernelCall
-from torch._inductor.codegen.wrapper import PythonWrapperCodegen, SymbolicCallArg, pexpr
-from torch._inductor.ir import IRNode, TensorBox, GraphPartitionSignature
-from torch._inductor.codegen.cpp_wrapper_gpu import CppWrapperGpu, DeferredTritonCallWrapper, UnwrapUnspecArg
+from torch._inductor.codegen.cpp_wrapper_gpu import CppWrapperGpu, DeferredTritonCallWrapper, UnwrapUnspecArg, cpp_string_literal
 from torch._inductor.codegen.wrapper import PythonWrapperCodegen, SymbolicCallArg
 from torch._inductor.ir import GraphPartitionSignature
-from torch._inductor.runtime import triton_heuristics
 from torch._inductor.runtime.runtime_utils import dynamo_timed
 from torch._inductor.utils import IndentedBuffer
 from torch._inductor.virtualized import V
@@ -72,6 +68,22 @@ class DeferredNpuTritonCallWrapper(DeferredTritonCallWrapper):
         )
         prefix.writeline("if (grid_0 == 0 || grid_1 == 0 || grid_2 == 0) return;")
 
+    def generate_load_kernel(self, prefix, kernel_var_name, params):
+        prefix.writeline(f"if ({kernel_var_name} == nullptr) {{")
+        with prefix.indent():
+            load_kernel_args = [
+                cpp_string_literal(params[get_cpp_wrapper_cubin_path_name()]),
+                cpp_string_literal(params["mangled_name"]),
+                # add mix_mode into kernel load param
+                cpp_string_literal(params["mix_mode"]),
+                str(params["shared_mem"]),
+                "cubin_dir_",
+            ]
+            prefix.writeline(
+                f"{kernel_var_name} = loadKernel({', '.join(load_kernel_args)}); "
+            )
+        prefix.writeline("}")
+
     def generate_launch_kernel(self, prefix, wrapper, kernel_var_name, params):
         triton_meta = params["triton_meta"]
         arg_type_lookup = dict(zip(params["def_args"], self.arg_types))
@@ -79,17 +91,14 @@ class DeferredNpuTritonCallWrapper(DeferredTritonCallWrapper):
         call_args = [name for name in params["call_args"] if name not in triton_meta["constants"]]
         arg_types = [arg_type_lookup[name] for name in call_args]
         arg_signatures = [triton_meta["signature"][name] for name in call_args]
-        call, call_args_str = wrapper.generate_args_decl(
-            prefix,
-            call_args,
-            arg_types,
-            arg_signatures,
-            kernel_var_name,
-            self.kernel_id,
-        )
-        prefix.writeline(f"{call_args_str}")
-
-        prefix.writeline(r"launchKernel({}, {});".format(call, f'"{kernel_var_name}"'))
+        enable_simt = npu_config.is_ascend950 and ("simt" in params["parallel_mode"] or params["force_simt_only"])
+        prefix.splice(f"""
+        auto launch_call = [=]() {{
+        {wrapper.generate_args_decl(prefix, call_args, arg_types, arg_signatures, True, enable_simt)}
+        {wrapper.generate_launch_preparation(kernel_var_name, params, enable_simt)}
+        }};
+        """)
+        prefix.writeline(r"launchKernel({}, {});".format("launch_call", f'"{kernel_var_name}"'))
 
 
 class CppWrapperNpu(CppWrapperGpu):
@@ -365,9 +374,8 @@ class CppWrapperNpu(CppWrapperGpu):
         call_args,
         arg_types,
         arg_signatures,
-        kernel_name,
-        kernel_id,
         is_triton_kernel=True,
+        enable_simt=False
     ):
         """
         Generates any declarations of args to pass into a kernel call, and then returns the arg names.
@@ -463,42 +471,58 @@ class CppWrapperNpu(CppWrapperGpu):
             process_args(arg, arg_type, arg_signature)
 
         ffts_str = """
-        void* ffts_addr = NULL;
-        uint32_t ffts_len;
-        ret = rtGetC2cCtrlAddr((uint64_t*)&ffts_addr, &ffts_len);
-        if (ret != RT_ERROR_NONE) return ret;
-        """
-        launch_str = f"""
-    auto launch_call_{kernel_id} = [=]() {{
-        rtError_t ret;
-        {ffts_str if target_support_ffts else ''}
-        void* workspace_addr = NULL;
-        void* sync_block_lock = NULL;
+            void* ffts_addr = NULL;
+            uint32_t ffts_len;
+            ret = rtGetC2cCtrlAddr((uint64_t*)&ffts_addr, &ffts_len);
+            if (ret != RT_ERROR_NONE) {
+                throw std::runtime_error(std::string("rtGetC2cCtrlAddr failed, 0x") + std::to_string(ret));
+            }
+            """
 
-        struct __attribute__((packed)) {{
-            {"void* ffts_addr __attribute__((aligned(8)));" if target_support_ffts else ''}
-            void* sync_block_lock __attribute__((aligned(8)));
-            void* workspace_addr __attribute__((aligned(8)));
-            {struct_def_body}
-            int32_t grid_0 __attribute__((aligned(4)));
-            int32_t grid_1 __attribute__((aligned(4)));
-            int32_t grid_2 __attribute__((aligned(4)));
-        }} kernel_args = {{
-            {"static_cast<void*>(ffts_addr)," if target_support_ffts else ''}
-            static_cast<void*>(sync_block_lock),
-            static_cast<void*>(workspace_addr),
-            {struct_arg_body}
-            static_cast<int32_t>(grid_0),
-            static_cast<int32_t>(grid_1),
-            static_cast<int32_t>(grid_2)
-        }};
-        
-        uint32_t block_num = grid_0 * grid_1 * grid_2;
-        auto arg_ptr = static_cast<void*>(&kernel_args);
-        auto arg_size = sizeof(kernel_args);
-        ret = rtKernelLaunch({kernel_name}, block_num, arg_ptr, arg_size, NULL, stream_);
-        if (ret != RT_ERROR_NONE) return ret;
-        return ret;
-    }};
-        """
-        return f"launch_call_{kernel_id}", launch_str
+        args_str = f"""
+            rtError_t ret;
+            {ffts_str if target_support_ffts else ''}
+            {"void* workspace_addr = NULL;" if not enable_simt else ""}
+            {"void* sync_block_lock = NULL;" if not enable_simt else ""}
+    
+            struct __attribute__((packed)) {{
+                {"void* ffts_addr __attribute__((aligned(8)));" if target_support_ffts else ''}
+                {"void* sync_block_lock __attribute__((aligned(8)));" if not enable_simt else ''}
+                {"void* workspace_addr __attribute__((aligned(8)));" if not enable_simt else ''}
+                {struct_def_body}
+                int32_t grid_0 __attribute__((aligned(4)));
+                int32_t grid_1 __attribute__((aligned(4)));
+                int32_t grid_2 __attribute__((aligned(4)));
+            }} kernel_args = {{
+                {"static_cast<void*>(ffts_addr)," if target_support_ffts else ''}
+                {"static_cast<void*>(sync_block_lock)," if not enable_simt else ''}
+                {"static_cast<void*>(workspace_addr)," if not enable_simt else ''}
+                {struct_arg_body}
+                static_cast<int32_t>(grid_0),
+                static_cast<int32_t>(grid_1),
+                static_cast<int32_t>(grid_2)
+        }};"""
+
+        return args_str
+
+    def generate_launch_preparation(self, kernel_var_name, params, enable_simt):
+        if enable_simt:
+            shared_mem_dynamic_size = params["shared_mem_dynamic_size"]
+            cpp_kernel_launch = \
+            f"""
+                rtArgsEx_t argsInfo = {{}};
+                argsInfo.args = static_cast<void*>(&kernel_args);
+                argsInfo.argsSize = sizeof(kernel_args);
+                rtTaskCfgInfo_t cfgInfo = {{}};
+                cfgInfo.localMemorySize = {shared_mem_dynamic_size};
+                ret = rtKernelLaunchWithFlagV2({kernel_var_name}, block_num, &argsInfo, NULL, stream_, 0, &cfgInfo);"""
+        else:
+            cpp_kernel_launch = f"""
+                ret = rtKernelLaunch({kernel_var_name}, block_num, static_cast<void*>(&kernel_args), sizeof(kernel_args), NULL, stream_);"""
+
+        launch_str = f"""
+            uint32_t block_num = grid_0 * grid_1 * grid_2;
+            {cpp_kernel_launch}
+            if (ret != RT_ERROR_NONE) return ret;
+            return ret;"""
+        return launch_str
