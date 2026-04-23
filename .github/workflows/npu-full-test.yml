@@ -60,6 +60,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
+          repository: kerer-ai/pytorch
+          ref: v2.7.1_dev
           fetch-depth: 1
 
       - name: Set shard matrices
@@ -179,6 +181,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
+          repository: kerer-ai/pytorch
+          ref: v2.7.1_dev
           fetch-depth: 1
           path: ascend_pytorch
 
@@ -333,6 +337,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
+          repository: kerer-ai/pytorch
+          ref: v2.7.1_dev
           fetch-depth: 1
           path: ascend_pytorch
 
@@ -479,6 +485,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
+          repository: kerer-ai/pytorch
+          ref: v2.7.1_dev
           fetch-depth: 1
 
       - name: Setup Python ${{ env.PYTHON_VERSION }}
