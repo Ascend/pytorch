@@ -62,7 +62,7 @@ while [[ $# -gt 0 ]]; do
             echo ""
             echo "Options:"
             echo "  --python=<version>   Python version (e.g., 3.11)"
-            echo "  --patch-dir=<path>   Patch directory (default: test_upstream/torch)"
+            echo "  --patch-dir=<path>   Patch directory (default: ./torch relative to script)"
             echo "  --dry-run            Check only, don't apply patches"
             echo "  -v, --verbose        Show verbose output"
             echo "  -h, --help           Show this help message"
@@ -78,7 +78,7 @@ done
 
 # Apply environment variables if not set via arguments
 PYTHON_VERSION="${PYTHON_VERSION:-${PYTHON_VERSION:-}}"
-PATCH_DIR="${PATCH_DIR:-${TORCH_PATCH_DIR:-$SCRIPT_DIR/test_upstream/torch}}"
+PATCH_DIR="${PATCH_DIR:-${TORCH_PATCH_DIR:-$SCRIPT_DIR/torch}}"
 
 # Resolve Python executable
 if [ -n "$PYTHON_VERSION" ]; then
