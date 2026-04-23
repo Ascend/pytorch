@@ -49,6 +49,8 @@
 |torch.distributed.elastic.rendezvous.RendezvousHandler.num_nodes_waiting|是|-|
 |torch.distributed.elastic.rendezvous.RendezvousHandler.set_closed|是|-|
 |torch.distributed.elastic.rendezvous.RendezvousHandler.shutdown|是|-|
+|torch.distributed.elastic.rendezvous.RendezvousHandler.use_agent_store|是|-|
+|torch.distributed.elastic.rendezvous.RendezvousInfo|是|-|
 |torch.distributed.elastic.rendezvous.api.RendezvousError|是|-|
 |torch.distributed.elastic.rendezvous.api.RendezvousClosedError|是|-|
 |torch.distributed.elastic.rendezvous.api.RendezvousTimeoutError|是|-|
