@@ -133,6 +133,16 @@ echo "Found $PATCH_COUNT patch files"
 SUCCESS_COUNT=0
 FAIL_COUNT=0
 SKIP_COUNT=0
+MISSING_COUNT=0
+
+# Verify torch.testing._internal exists (common target for patches)
+if [ ! -d "$TORCH_PATH/testing/_internal" ]; then
+    echo ""
+    echo "WARNING: torch.testing._internal directory not found in torch package"
+    echo "Some patches may fail to apply"
+    echo "Expected path: $TORCH_PATH/testing/_internal"
+    echo ""
+fi
 
 # Apply patches
 echo ""
@@ -143,6 +153,19 @@ echo "========================================"
 # Change to torch package directory (patch files use paths like torch/testing/_internal/...)
 cd "$TORCH_PATH"
 
+# Function to extract target file path from patch
+get_target_file_from_patch() {
+    local patch_file="$1"
+    # Extract the --- a/... line to find target file
+    local target_line=$(grep -m1 "^--- a/" "$patch_file" 2>/dev/null || grep -m1 "^--- " "$patch_file" 2>/dev/null)
+    if [ -n "$target_line" ]; then
+        # Strip "--- a/" prefix and get the path (for -p1, we remove the first component)
+        local target_path=$(echo "$target_line" | sed 's/^--- a\///' | sed 's/^--- //')
+        # Remove first path component for -p1 (torch/file.py -> file.py)
+        echo "$target_path" | cut -d'/' -f2-
+    fi
+}
+
 for patch_file in $PATCH_FILES; do
     # Get relative patch name for display
     patch_rel=$(realpath --relative-to="$SCRIPT_DIR" "$patch_file" 2>/dev/null || basename "$patch_file")
@@ -150,6 +173,18 @@ for patch_file in $PATCH_FILES; do
     if $VERBOSE; then
         echo ""
         echo "Processing: $patch_rel"
+    fi
+
+    # Extract and check target file
+    target_file=$(get_target_file_from_patch "$patch_file")
+    if [ -n "$target_file" ] && [ ! -f "$target_file" ]; then
+        echo "[MISSING] $patch_rel - Target file not found: $target_file"
+        MISSING_COUNT=$((MISSING_COUNT + 1))
+        if $VERBOSE; then
+            echo "  Expected at: $TORCH_PATH/$target_file"
+            echo "  Check if torch.testing._internal module is installed"
+        fi
+        continue
     fi
 
     if $DRY_RUN; then
@@ -211,15 +246,16 @@ echo "========================================"
 echo "Total patches:    $PATCH_COUNT"
 echo "Successfully:     $SUCCESS_COUNT"
 echo "Skipped (applied): $SKIP_COUNT"
+echo "Missing targets:  $MISSING_COUNT"
 echo "Failed:           $FAIL_COUNT"
 echo ""
 
 if $DRY_RUN; then
     echo "(Dry run mode - no patches were actually applied)"
 else
-    if [ $FAIL_COUNT -gt 0 ]; then
+    if [ $FAIL_COUNT -gt 0 ] || [ $MISSING_COUNT -gt 0 ]; then
         echo "WARNING: Some patches failed to apply"
-        echo "This may indicate version mismatch or already modified files"
+        echo "This may indicate version mismatch or missing files in torch package"
         exit 1
     else
         echo "All patches applied successfully!"

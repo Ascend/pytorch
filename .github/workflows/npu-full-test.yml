@@ -218,7 +218,7 @@ jobs:
           export PIP_CACHE_DIR=/github/home/.cache/pip
 
           $PIP install --upgrade pip
-          $PIP install torch==${{ env.PYTORCH_VERSION }}
+          $PIP install torch==${{ env.PYTORCH_VERSION }} --index-url https://download.pytorch.org/whl/cpu
           TORCH_NPU_WHL=$(ls torch-npu-wheel-artifact/*.whl | head -1)
           $PIP install "${TORCH_NPU_WHL}"
 
@@ -394,7 +394,7 @@ jobs:
           export PIP_CACHE_DIR=/github/home/.cache/pip
 
           $PIP install --upgrade pip
-          $PIP install torch==${{ env.PYTORCH_VERSION }}
+          $PIP install torch==${{ env.PYTORCH_VERSION }} --index-url https://download.pytorch.org/whl/cpu
           TORCH_NPU_WHL=$(ls torch-npu-wheel-artifact/*.whl | head -1)
           $PIP install "${TORCH_NPU_WHL}"
 
