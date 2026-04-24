@@ -204,16 +204,31 @@ jobs:
 
       - name: Install CANN package
         run: |
-          curl -O https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/cann-package/20260330/install_cann_A3.sh
-          # Convert CRLF to LF (script has Windows line endings)
-          sed -i 's/\r$//' install_cann_A3.sh
-          chmod +x install_cann_A3.sh
-          bash install_cann_A3.sh
+          # Uninstall old CANN
+          cd /usr/local/Ascend/cann
+          bash cann_uninstall.sh || true
+          cd /usr/local/Ascend/
+          rm -rf cann*
+          cd /home
+          rm -rf cann
 
-          # Set environment variables after CANN installation
-          source /usr/local/Ascend/cann/set_env.sh
-          source /usr/local/Ascend/nnal/atb/set_env.sh
-          echo "CANN package installed and environment variables set"
+          # Download new CANN packages
+          mkdir -p cann && cd cann
+          curl -O https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/cann-package/20260330/Ascend-cann-toolkit_9.0.0-beta.2_linux-aarch64.run
+          curl -O https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/cann-package/20260330/Ascend-cann-A3-ops_9.0.0-beta.2_linux-aarch64.run
+          curl -O https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/cann-package/20260330/Ascend-cann-nnal_9.0.0-beta.2_linux-aarch64.run
+
+          if [[ $? -ne 0 ]]; then
+            echo "Failed to download CANN packages"
+            exit 1
+          fi
+
+          # Install CANN packages
+          chmod +x Ascend-cann*.run
+          ./Ascend-cann-toolkit*.run --full --quiet --install-path=/usr/local/Ascend && source /usr/local/Ascend/cann/set_env.sh && echo "toolkit install success"
+          ./Ascend-cann-A3*.run --install --quiet --install-path=/usr/local/Ascend && echo "ops install success"
+          ./Ascend-cann-nnal*.run --install --quiet --install-path=/usr/local/Ascend && source /usr/local/Ascend/nnal/atb/set_env.sh && echo "nnal install success"
+          rm -rf *
 
           # Output /usr/local/Ascend directory contents for verification
           echo "=== /usr/local/Ascend directory contents ==="
@@ -402,16 +417,31 @@ jobs:
 
       - name: Install CANN package
         run: |
-          curl -O https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/cann-package/20260330/install_cann_A3.sh
-          # Convert CRLF to LF (script has Windows line endings)
-          sed -i 's/\r$//' install_cann_A3.sh
-          chmod +x install_cann_A3.sh
-          bash install_cann_A3.sh
+          # Uninstall old CANN
+          cd /usr/local/Ascend/cann
+          bash cann_uninstall.sh || true
+          cd /usr/local/Ascend/
+          rm -rf cann*
+          cd /home
+          rm -rf cann
 
-          # Set environment variables after CANN installation
-          source /usr/local/Ascend/cann/set_env.sh
-          source /usr/local/Ascend/nnal/atb/set_env.sh
-          echo "CANN package installed and environment variables set"
+          # Download new CANN packages
+          mkdir -p cann && cd cann
+          curl -O https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/cann-package/20260330/Ascend-cann-toolkit_9.0.0-beta.2_linux-aarch64.run
+          curl -O https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/cann-package/20260330/Ascend-cann-A3-ops_9.0.0-beta.2_linux-aarch64.run
+          curl -O https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/cann-package/20260330/Ascend-cann-nnal_9.0.0-beta.2_linux-aarch64.run
+
+          if [[ $? -ne 0 ]]; then
+            echo "Failed to download CANN packages"
+            exit 1
+          fi
+
+          # Install CANN packages
+          chmod +x Ascend-cann*.run
+          ./Ascend-cann-toolkit*.run --full --quiet --install-path=/usr/local/Ascend && source /usr/local/Ascend/cann/set_env.sh && echo "toolkit install success"
+          ./Ascend-cann-A3*.run --install --quiet --install-path=/usr/local/Ascend && echo "ops install success"
+          ./Ascend-cann-nnal*.run --install --quiet --install-path=/usr/local/Ascend && source /usr/local/Ascend/nnal/atb/set_env.sh && echo "nnal install success"
+          rm -rf *
 
           # Output /usr/local/Ascend directory contents for verification
           echo "=== /usr/local/Ascend directory contents ==="
@@ -586,16 +616,31 @@ jobs:
 
       - name: Install CANN package
         run: |
-          curl -O https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/cann-package/20260330/install_cann_A3.sh
-          # Convert CRLF to LF (script has Windows line endings)
-          sed -i 's/\r$//' install_cann_A3.sh
-          chmod +x install_cann_A3.sh
-          bash install_cann_A3.sh
+          # Uninstall old CANN
+          cd /usr/local/Ascend/cann
+          bash cann_uninstall.sh || true
+          cd /usr/local/Ascend/
+          rm -rf cann*
+          cd /home
+          rm -rf cann
 
-          # Set environment variables after CANN installation
-          source /usr/local/Ascend/cann/set_env.sh
-          source /usr/local/Ascend/nnal/atb/set_env.sh
-          echo "CANN package installed and environment variables set"
+          # Download new CANN packages
+          mkdir -p cann && cd cann
+          curl -O https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/cann-package/20260330/Ascend-cann-toolkit_9.0.0-beta.2_linux-aarch64.run
+          curl -O https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/cann-package/20260330/Ascend-cann-A3-ops_9.0.0-beta.2_linux-aarch64.run
+          curl -O https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/cann-package/20260330/Ascend-cann-nnal_9.0.0-beta.2_linux-aarch64.run
+
+          if [[ $? -ne 0 ]]; then
+            echo "Failed to download CANN packages"
+            exit 1
+          fi
+
+          # Install CANN packages
+          chmod +x Ascend-cann*.run
+          ./Ascend-cann-toolkit*.run --full --quiet --install-path=/usr/local/Ascend && source /usr/local/Ascend/cann/set_env.sh && echo "toolkit install success"
+          ./Ascend-cann-A3*.run --install --quiet --install-path=/usr/local/Ascend && echo "ops install success"
+          ./Ascend-cann-nnal*.run --install --quiet --install-path=/usr/local/Ascend && source /usr/local/Ascend/nnal/atb/set_env.sh && echo "nnal install success"
+          rm -rf *
 
           # Output /usr/local/Ascend directory contents for verification
           echo "=== /usr/local/Ascend directory contents ==="
