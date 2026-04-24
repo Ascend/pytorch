@@ -206,6 +206,8 @@ jobs:
       - name: Install CANN package
         run: |
           curl -O https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/cann-package/20260330/install_cann_A3.sh
+          # Convert CRLF to LF (script has Windows line endings)
+          sed -i 's/\r$//' install_cann_A3.sh
           chmod +x install_cann_A3.sh
           bash install_cann_A3.sh
 
@@ -394,6 +396,8 @@ jobs:
       - name: Install CANN package
         run: |
           curl -O https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/cann-package/20260330/install_cann_A3.sh
+          # Convert CRLF to LF (script has Windows line endings)
+          sed -i 's/\r$//' install_cann_A3.sh
           chmod +x install_cann_A3.sh
           bash install_cann_A3.sh
 
@@ -568,6 +572,8 @@ jobs:
       - name: Install CANN package
         run: |
           curl -O https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/cann-package/20260330/install_cann_A3.sh
+          # Convert CRLF to LF (script has Windows line endings)
+          sed -i 's/\r$//' install_cann_A3.sh
           chmod +x install_cann_A3.sh
           bash install_cann_A3.sh
 
