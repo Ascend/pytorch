@@ -31,7 +31,7 @@ torch\_npu\_run和torchrun的使用方式类似。torch\_npu\_run的部分可选
 - nnodes：节点数量，或节点数量范围，格式为 <最小节点数\>:<最大节点数\>。
 - nproc\_per\_node：每个节点的工作进程数，支持的值有auto、cpu、gpu或整数。
 - node\_rank：多节点分布式训练中节点的排名。
-- rdzv\_backend：建立集合通信连接的后端机制。
+- rdzv\_backend：建立集合通信连接的后端机制。当前仅支持的值为 `parallel`。
 - rdzv\_endpoint：用于集合的后端服务地址，格式为 <主机名\>:<端口号\>。
 - rdzv\_id：用户定义的ID，用于唯一标识作业的工作组。每个节点都使用此ID加入特定工作组。
 - standalone：表示在单机上运行分布式训练任务，适用于单节点多进程作业。

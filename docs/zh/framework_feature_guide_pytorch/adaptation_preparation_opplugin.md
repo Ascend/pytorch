@@ -1,6 +1,6 @@
 # 适配前准备
 
-- 参考PyTorch原生[Aten IR定义](https://github.com/pytorch/pytorch/tree/main/aten/src/ATen/native#readme)，明确算子名称、入参/返回值、语义等信息。
+- 参考PyTorch原生[ATen IR定义](https://github.com/pytorch/pytorch/tree/main/aten/src/ATen/native#readme)，明确算子名称、入参/返回值、语义等信息。
 
 - 选择算子适配方式：优先选择aclnn算子（存于op_plugin/ops/opapi），兼容需求可选aclop算子（存于op_plugin/ops/aclops）。
 

@@ -72,12 +72,12 @@ symint:
 
 - all\_version：表示当前PyTorch支持的所有版本，版本列表会根据torch_npu演进调整，具体以代码为准。可通过[]设置算子支持的版本范围，例如[v2.1, newest]代表该算子支持从v2.1到最新版本。
 - official和custom：分别表示该字段下的算子为PyTorch原生和自定义算子；symint字段表明该算子支持symint类型的入参，该种算子请参考[symint算子适配](#symint算子适配)。
-- func：表示定义算子的schema(算子描述规范)，其内容完全遵循PyTorch原生Aten IR算子schema的定义规则，通过“算子名称+入参列表+返回参数”的结构化形式，完整描述算子的调用接口与语义约束。具体规则可参考[PyTorch scheme规则](reference.md#section001)。
+- func：表示定义算子的schema(算子描述规范)，其内容完全遵循PyTorch原生Aten IR算子schema的定义规则，通过“算子名称+入参列表+返回参数”的结构化形式，完整描述算子的调用接口与语义约束。具体规则可参考[PyTorch schema规则](reference.md#section001)。
 - acl\_op：表示在该版本支持acl\_op调用，如果支持的版本与all\_version表示的版本一致，则可以用"all\_version"表示，可选字段。
 - op\_api：表示在该版本支持op\_api调用，如果支持的版本与all\_version表示的版本一致，则可以用"all\_version"表示，可选字段。
 - gen\_opapi：对于支持op\_api调用的算子，如果适配代码简单，可以直接调用底层算子，不需要额外的适配，则可以考虑用结构化适配的方式自动生成适配代码，详见章节[结构化适配介绍(可选)](#结构化适配介绍可选)。
-- exposed：表示商用算子支持的版本，一般只用设置正向算子接口。
-- internal_format_opapi：表示支持昇腾亲和格式NZ数据分发到op_api算子调用的白名单机制。当前对于入参为昇腾亲和格式的数据默认被分发到acl_op调用；只有当算子显示添加internal_format_opapi字段并加入白名单后，才会将NZ格式数据分发到op_api调用路径。
+- exposed：表示商用算子支持的版本，一般只需设置正向算子接口。
+- internal_format_opapi：表示支持昇腾亲和格式NZ数据分发到op_api算子调用的白名单机制。当前对于入参为昇腾亲和格式的数据默认被分发到acl_op调用；只有当算子显式添加internal_format_opapi字段并加入白名单后，才会将NZ格式数据分发到op_api调用路径。
 
 > [!NOTE]  
 > 如果存在某个算子适配有两个版本不一致，则需要两个都加上，如std.correction在PyTorch1.11.0版本和PyTorch2.1.0及以上版本的入参名称不同，则需要分开写成两个，通过version区分。<br>
@@ -96,7 +96,7 @@ symint:
 > [!NOTE]  
 > 仅适用于需要进行前反向绑定的算子。
 
-在神经网络中，前向函数用于计算输出和损失，反向函数用于计算梯度，这两个函数是互相关联的。Pytorch在执行算子操作时，不仅会执行前向计算，还会保存反向函数中的必要信息，因此需要执行算子的前反向绑定，即前向函数和反向函数的绑定。
+在神经网络中，前向函数用于计算输出和损失，反向函数用于计算梯度，这两个函数是互相关联的。PyTorch在执行算子操作时，不仅会执行前向计算，还会保存反向函数中的必要信息，因此需要执行算子的前反向绑定，即前向函数和反向函数的绑定。
 对于原生的算子，官方已有前反向绑定逻辑，插件侧有对应前向算子和反向算子配置即可。对于自定义算子，则需要在插件侧配置前反向自动绑定。具体操作包括：
 
 1. 实现前向和反向算子yaml适配：与[yaml算子适配规则](#yaml算子适配规则)中一致，分别适配前向算子和反向算子，并在op\_plugin\_functions.yaml中配置前向和反向算子。
@@ -127,7 +127,7 @@ backward:
 
 - name：需要前反向绑定的算子接口，同op\_plugin\_functions.yaml中函数声明。
 - self和算子接口输入参数：定义入参的梯度计算方法，对于简单的可以直接用数据公式说明，对于复杂的通过底层实现的反向函数声明。
-- output_differentiability：定义输出的可微行，通过列表的方式定义多个输出中哪些是可微的。
+- output_differentiability：定义输出的可微性，通过列表的方式定义多个输出中哪些是可微的。
 - result：算子接口的返回结果。
 
 > [!NOTE]  
@@ -422,7 +422,7 @@ aclop算子是早期的算子实现方式，不推荐使用。适配文件路径
             .Run(); 
         return result; 
     } 
-    } // namespace acl_op
+    } // namespace
     
     // abs api实现函数，名称唯一，参数与torch api一致。 
     at::Tensor abs(const at::Tensor& self)
@@ -451,7 +451,7 @@ aclop算子是早期的算子实现方式，不推荐使用。适配文件路径
           if (!npu_utils::check_match(&result)) { 
               // 若result非连续，创建连续tensor(contig_tensor)，接收ACLOP算子(abs)的输出。再将contig_tensor拷贝到原始输出result。
               at::Tensor contiguous_result = npu_utils::format_contiguous(result); 
-              abs_out_nocheck(contigTensor, self); 
+              abs_out_nocheck(contiguous_result, self); 
               npu_utils::format_fresh_view(result, contiguous_result); 
           } else { 
               // 若result连续，直接调用ACLOP算子。

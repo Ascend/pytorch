@@ -12,7 +12,7 @@ torch.compile\(\)包含如下核心组件：
 |--------------------|--|----------------------------------------------------------------------------------------------------------|
 | Dynamo             |前端编译器（代码转换器）| TorchDynamo能够JIT（即时）将用户的eager（动态图）代码编译为FX Graph，进而交给其他lowering编译器（如Inductor）进行编译，最终生成优化过后的底层机器代码，达到加速效果。 |
 | Inductor           |后端编译器（高效代码生成器）| 具备基于多种模式（包括Triton/MLIR/DVM）的自动生成高性能算子能力，能够显著减少开发者手动设计Tiling、管理内存等工作量。支持算子融合等图优化策略，通过减少内存访问次数来提升性能。  |
-| NPUGraph（ACLGraph） |硬件级下沉优化（NPU操作录制）| 捕获一系列NPU操作（如 kernel 调用、内存拷贝）组成静态图缓存在NPU device设备上；一次捕获、多次复跑，避免重复的 kernel 启动开销（kernel launch overhead）。   |
+| NPUGraph（ACLGraph） |硬件级下沉优化（NPU操作录制）| 捕获一系列NPU操作（如 kernel 调用、内存拷贝）组成静态图缓存在NPU设备上；一次捕获、多次复跑，避免重复的 kernel 启动开销（kernel launch overhead）。   |
 | NPUGraph_EX        |轻量化高性能图后端| 融合了ACLGraph的图下沉调度能力，在PyTorch FX图上叠加亲和NPU的图优化和编译缓存复用等能力，进一步加速大模型在NPU上编译运行。                                |
 | NPUGraph Tree      |动态形状路由与子图管理| 管理多个有关联的 NPUGraphs，让 NPUGraph的优化收益能覆盖动态形状场景，而非仅局限于固定形状，优化段图场景多个子图的内存使用。                                  |
 
@@ -20,8 +20,8 @@ torch.compile\(\)包含如下核心组件：
 
 Inductor后端：通过torch.compile(backend="inductor")使能，以降低Python开销和kernel启动开销为核心，通过Dynamo+Inductor协同，在不改变模型逻辑的前提下，自动进行算子融合和生成，提升训练或推理的吞吐量，尤其适合迭代次数多、单步计算量中等的场景。
 
-- Triton模式：Inductor后端的默认模式，基于Triton-Ascend生成融合算子。关于Triton-Ascend的详细介绍，可以参考[Triton-Ascend官方仓库](https://gitcode.com/Ascend/triton-ascend);
-- MLIR模式：通过torch.compile(backend="inductor", options={"npu_backend": "mlir"})使能，基于Torch-MLIR生成融合算子。关于Torch-MLIR的详细介绍，可以参考[Torch-MLIR官方仓库](https://github.com/llvm/torch-mlir);
+- Triton模式：Inductor后端的默认模式，基于Triton-Ascend生成融合算子。关于Triton-Ascend的详细介绍，可以参考[Triton-Ascend官方仓库](https://gitcode.com/Ascend/triton-ascend)。
+- MLIR模式：通过torch.compile(backend="inductor", options={"npu_backend": "mlir"})使能，基于Torch-MLIR生成融合算子。关于Torch-MLIR的详细介绍，可以参考[Torch-MLIR官方仓库](https://github.com/llvm/torch-mlir)。
 - DVM模式：通过torch.compile(backend="inductor", options={"npu_backend": "dvm"})使能，基于DVM生成融合算子。关于DVM的详细介绍，可以参考[DVM官方仓库](https://gitcode.com/mindspore/dvm/tree/master)。
 
 NPUGraph后端：通过torch.compile(backend="npugraphs")使能，利用NPUGraphs技术，彻底消除NPU任务的启动开销和CPU至NPU同步开销，适合eager模式存在host bound且kernel调用频繁但输入形状固定的场景，整体功能与backend="cudagraphs"一致。如需了解NPUGraph的工作原理、核心优势、API详解和更多使用示例，请参阅 [NPUGraph](pytorch_npugraph_desc.md)。
@@ -88,7 +88,7 @@ def compile(model, *, fullgraph = False, dynamic = None, backend = "inductor", m
         backend="inductor",  # 指定后端为 Inductor
         mode="reduce-overhead"  # 优化策略：降低开销
     )
-    # 如果需要指定算子编译器，加上选项options={"npu_backend":"mlir"/“dvm"}
+    # 如果需要指定算子编译器，加上选项options={"npu_backend":"mlir"}或options={"npu_backend":"dvm"}
 
     # 3. 正常训练/推理（使用方式与原始模型完全一致）
     optimizer = torch.optim.Adam(compiled_model.parameters(), lr=1e-3)
@@ -185,5 +185,5 @@ def compile(model, *, fullgraph = False, dynamic = None, backend = "inductor", m
 
 1. 优化器（optimizer）通常不入图，优化器的step\(\)包含Python侧动态逻辑（如学习率调度、梯度累积、自适应更新规则），难以被静态图捕获。
 2. torch.compile\(backend="npugraphs"\)必须固定输入形状（捕获后无法修改 batch\_size、序列长度等）。torch.compile\(backend="inductor"\)支持动态形状，但会触发重新编译（增加开销），建议尽量固定形状。
-3. 使用NPUGraph（ACLGraph）时需要判断算子在replay时是否需要更新，如需更新，启用update机制。
+3. 使用NPUGraph（ACLGraph）时，需根据算子特性判断在重放（replay）阶段是否需要更新。若需要更新，请启用相应的update机制。具体机制说明请参阅 [NPUGraph](pytorch_npugraph_desc.md)。
 4. 仅算子全部为NN算子时，方可使用NPUGraph（ACLGraph）。

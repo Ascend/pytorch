@@ -2,7 +2,7 @@
 
 ## 简介
 
-Ascend Extension for PyTorch可以通过设置环境变量CPU\_AFFINITY\_CONF来开启粗/细粒度绑核。该配置能够避免线程间抢占，提高缓存命中，避免跨NUMA（非统一内存访问架构）节点的内存访问，减少任务调度开销，优化任务执行效率。
+Ascend Extension for PyTorch可以通过设置环境变量CPU\_AFFINITY\_CONF来开启粗/细粒度绑核。该配置能够避免线程间抢占，提高缓存命中率，避免跨NUMA（非统一内存访问架构）节点的内存访问，减少任务调度开销，优化任务执行效率。
 
 可选的绑核方案如下：
 

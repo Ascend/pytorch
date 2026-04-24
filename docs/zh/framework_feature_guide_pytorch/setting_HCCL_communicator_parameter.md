@@ -31,7 +31,7 @@
 
 - hccl\_op\_expansion\_mode：设置通信算法的编排展开位置。
 
-    - 0：默认值，代表通信算法的编排展开位置，和**HCCL\_OP\_EXPANSION\_MODE**环境变量的取值保持一致**。**
+    - 0：默认值，代表通信算法的编排展开位置，和**HCCL\_OP\_EXPANSION\_MODE**环境变量的取值保持一致。
     - 1：代表通信算法的编排展开位置为Host侧CPU。
     - 2：代表通信算法的编排展开位置在device侧的AI CPU计算单元。
     - 3：代表通信算法的编排展开位置在device侧的AI Vector Core计算单元。

@@ -2,11 +2,11 @@
 
 ## PyTorch schema规则<a id="section001"></a>
 
-官方schema（算子描述规范）指导可参见[LINK](https://github.com/pytorch/pytorch/blob/main/aten/src/ATen/native/README.md)。
+官方schema（算子描述规范）指导文档可参见[LINK](https://github.com/pytorch/pytorch/blob/main/aten/src/ATen/native/README.md)。
 
 由于PyTorch 2.1.0版本使用官方的torchgen进行代码生成，因此要遵循官方的一些生成规范，未满足schema规范的算子会在编译时报错。当前涉及到的有：
 
-- 函数名以"new_"开头、"_like"结尾或入参中带有tensor_options但又没tensor入参的，需要有CompositeExplicitAutograd的dispatch。
+- 函数名以"new_"开头、"_like"结尾或入参中带有tensor_options但没有tensor入参的，需要有CompositeExplicitAutograd的dispatch。
 
     ```yaml
     - func: empty_with_format(int[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, int acl_format=2) -> Tensor

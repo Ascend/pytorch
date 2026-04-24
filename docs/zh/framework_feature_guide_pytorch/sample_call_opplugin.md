@@ -1,6 +1,6 @@
 # 调用样例
 
-完成了PyTorch框架的适配插件开发后，即可实现从PyTorch框架调用Ascend C自定义算子。下文以自定义npu\_add\_custom算子为例，介绍PyTorch 2.7.1框架下，算子适配开发过程。
+完成了PyTorch框架的适配插件开发后，即可实现从PyTorch框架调用Ascend C自定义算子。下文以自定义npu\_add\_custom算子为例，介绍PyTorch 2.7.1框架下算子适配的开发过程。
 
 ## 适配前准备
 
@@ -92,7 +92,7 @@
         ```
 
    - 通用化算子适配。
-      1. 在op_plugin/ops/opapi目录下，创建AddCustomKernelNpuOpApi.cpp文件并实现算子适配主体函数npu\_add\_custom和npu\_add\_custom\_backward。其核心逻辑为调用EXEC\_NPU\_CMD接口，完成输出结果的计算，EXEC\_NPU\_CMD第一个入参格式为aclnn+Optype（算子类型），之后的参数分别为输入输出。其中由于add操作的反向计算相对简单，因此不需要调用算子进行计算。
+      1. 在op_plugin/ops/opapi目录下，创建AddCustomKernelNpuOpApi.cpp文件并实现算子适配主体函数npu\_add\_custom和npu\_add\_custom\_backward。其核心逻辑为调用EXEC\_NPU\_CMD接口完成输出结果的计算。EXEC\_NPU\_CMD第一个入参格式为aclnn+Optype（算子类型），之后的参数分别为输入输出。其中由于add操作的反向计算相对简单，因此不需要调用算子进行计算。
 
           ```bash
           vi op_plugin/ops/opapi/AddCustomKernelNpuOpApi.cpp
@@ -201,7 +201,7 @@
 
 ## 编译验证
 
-1. 编译Ascend Extension for PyTorch插件并安装，推荐使用容器场景进行编译，具体操作可参考《AscendExtension for PyTorch 软件安装指南》中的“[方式二：源码编译安装](../installation_guide/compilation_installation_using_source_code.md)”章节的“方式一（推荐）：容器场景”。
+1. 编译Ascend Extension for PyTorch插件并安装，推荐使用容器场景进行编译，具体操作可参考《Ascend Extension for PyTorch 软件安装指南》中的“[方式二：源码编译安装](../installation_guide/compilation_installation_using_source_code.md)”章节的“方式一（推荐）：容器场景”。
 
 2. 上述开发过程完成后，调用开发者测试脚本，验证基本功能是否正常。
 

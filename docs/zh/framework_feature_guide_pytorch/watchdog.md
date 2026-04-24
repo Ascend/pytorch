@@ -2,14 +2,14 @@
 
 ## 简介
 
-在不影响大模型训练性能和精度的前提下，能快速稳定发现错误。WatchDog监视进程，可显著提高使用HCCL的PyTorch分布式训练的可靠性。WatchDog本质上是通过捕获集合通信中出现的错误，从子进程抛出异常，停止主进程训练，来防止分布式训练被阻塞。
+WatchDog能在不影响大模型训练性能和精度的前提下，快速稳定发现错误。WatchDog监视进程，可显著提高使用HCCL的PyTorch分布式训练的可靠性。WatchDog本质上是通过捕获集合通信中出现的错误，从子进程抛出异常，停止主进程训练，来防止分布式训练被阻塞。
 
 **图 1**  WatchDog工作示意图  
 ![](../figures/watchdog_working_principle.png)
 
 上图展示了WatchDog进程在分布式训练中如何工作。首先，WatchDog线程在每一个进程初始化process\_group时拉起，一个WatchDog线程监视一个进程中的process\_group。然后，WatchDog线程在workCleanupLoop子函数中异步监视集合通信异常，捕获到异常后在WatchDog主函数中将异常重新抛出，使得训练的主进程能感知到异常，从而快速结束训练任务。
 
-WatchDog不仅支持算子执行异常监测、通信超时监测、超时分析，还支持ERROR CQE检测。CQE检测是检测device网口通信链路情况，当通信链路异常时，通常反映为ERROR CQE。
+WatchDog不仅支持算子执行异常监测、通信超时监测、超时分析，还支持ERROR CQE检测。CQE检测用于监测device网口通信链路状态，当通信链路异常时，通常表现为ERROR CQE。
 
 ## 使用场景
 
@@ -39,4 +39,4 @@ export HCCL_ASYNC_ERROR_HANDLING=1
 ## 约束说明
 
 - 此环境变量仅适用于基于PyTorch框架构建的神经网络的场景，且使用HCCL作为通信后端。
-- 通过此环境变量开启异步错误处理时，为了更好地明确HCCL超时原因，建议new\_group和init\_process\_group传参的timeout时间大于HCCL\_CONNECT\_TIMEOUT和HCCL\_EXEC\_TIMEOUT环境变量配置的时间，HCCL\_CONNECT\_TIMEOUT具体参考《CANN 环境变量参考》中的“[HCCL\_CONNECT\_TIMEOUT](https://www.hiascend.com/document/detail/zh/canncommercial/850/maintenref/envvar/envref_07_0077.html)”章节，HCCL\_EXEC\_TIMEOUT具体请参考《CANN 环境变量参考》中的“[HCCL\_EXEC\_TIMEOUT](https://www.hiascend.com/document/detail/zh/canncommercial/850/maintenref/envvar/envref_07_0078.html)”章节。
+- 通过此环境变量开启异步错误处理时，为了更好地明确HCCL超时原因，建议将new\_group和init\_process\_group传参的timeout时间设置为大于HCCL\_CONNECT\_TIMEOUT和HCCL\_EXEC\_TIMEOUT环境变量配置的时间。HCCL\_CONNECT\_TIMEOUT具体参考《CANN 环境变量参考》中的“[HCCL\_CONNECT\_TIMEOUT](https://www.hiascend.com/document/detail/zh/canncommercial/850/maintenref/envvar/envref_07_0077.html)”章节，HCCL\_EXEC\_TIMEOUT具体请参考《CANN 环境变量参考》中的“[HCCL\_EXEC\_TIMEOUT](https://www.hiascend.com/document/detail/zh/canncommercial/850/maintenref/envvar/envref_07_0078.html)”章节。
