@@ -235,11 +235,7 @@ def npugraphify_impl(
             graph.replay()
             return static_outputs
 
-    return align_inputs_from_check_idxs(
-        run,
-        inputs_to_check=check_input_idxs,
-        mutated_input_idxs=OrderedSet(),
-    )
+    return align_inputs_from_check_idxs(run, check_input_idxs)
 
 
 def check_for_skip(aot_model: torch.fx.GraphModule, num_fixed) -> Optional[str]:
