@@ -1011,5 +1011,11 @@
     "test_unsupported_dtypes (__main__.TestTEFuserStatic)": ["", [""]],
     "test_where_and_typing (__main__.TestTEFuserStatic)": ["", [""]],
     "test_where_ops (__main__.TestTEFuserStatic)": ["", [""]],
-    "test_with_strict_fusion (__main__.TestTEFuserStatic)": ["", [""]]
+    "test_with_strict_fusion (__main__.TestTEFuserStatic)": ["", [""]],
+    "test_errors (jit.test_backends.TestBackends)": ["", [""]],
+    "test_errors (jit.test_backends.TestBackendsWithCompiler)": ["", [""]],
+    "test_imported_classes (jit.test_class_type.TestClassType)": ["", [""]],
+    "test_serialization_sharing (__main__.TestScript)": ["", [""]],
+    "test_torch_tensor_dtype (__main__.TestScript)": ["", [""]],
+    "test_lstm_concat_cuda (__main__.TestFuser)": ["", [""]]
 }
