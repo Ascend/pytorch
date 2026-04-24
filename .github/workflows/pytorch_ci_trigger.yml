@@ -1,0 +1,42 @@
+name: PyTorch CI Trigger
+
+run-name: >-
+  PyTorch CI Trigger -
+  ${{
+    github.event.client_payload.event_type == 'pull_request' &&
+    format(
+      'PR #{0} ({1})',
+      github.event.client_payload.payload.pull_request.number,
+      github.event.client_payload.payload.action
+    ) ||
+    format('Push {0}', github.event.client_payload.payload.after)
+  }}
+on:
+  repository_dispatch:
+    types: [pull_request, push]
+
+concurrency:
+  group: >-
+    ci-${{ github.event.client_payload.payload.repository.full_name }}-${{
+    github.event.client_payload.payload.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  id-token: write  # Required by report-ci-result to obtain an OIDC token
+
+jobs:
+  cancel-pr:
+    if: ${{ github.event.client_payload.payload.action == 'closed' }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "PR closed, canceling older runs in the same concurrency group"
+
+  build:
+    if: ${{ github.event.client_payload.payload.action != 'closed' }}
+    uses: ./.github/workflows/_build.yml
+    with:
+      upstream_repo: ${{ github.event.client_payload.payload.repository.full_name }}
+      upstream_sha: ${{ github.event_client_payload.event_type == 'pull_request' && github.event_client_payload.payload.pull_request.head.sha || github.event_client_payload.payload.after }}
+      upstream_fork_repo: ${{ github.event_client_payload.event_type == 'pull_request' && github.event_client_payload.payload.pull_request.head.repo.full_name || '' }}
+      downstream_repo: ${{ github.repository }}

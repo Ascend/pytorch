@@ -1,0 +1,106 @@
+name: Build PyTorch and torch_npu
+
+on:
+  workflow_call:
+    inputs:
+      upstream_repo:
+        required: true
+        type: string
+        description: The upstream repository full name (owner/repo)
+      upstream_sha:
+        required: true
+        type: string
+        description: The upstream commit SHA to build
+      upstream_fork_repo:
+        required: false
+        type: string
+        default: ''
+        description: The fork repository full name for PR from fork (owner/repo)
+      downstream_repo:
+        required: true
+        type: string
+        description: The downstream repository full name (owner/repo)
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # Step 1: Checkout upstream PyTorch PR code
+      # Use fork repo if available (PR from fork), otherwise use upstream repo (push or PR from same repo)
+      - name: Checkout upstream PyTorch PR
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ inputs.upstream_fork_repo != '' && inputs.upstream_fork_repo || inputs.upstream_repo }}
+          ref: ${{ inputs.upstream_sha }}
+          submodules: recursive
+          path: pytorch
+
+      # Step 2: Build PyTorch
+      - name: Build PyTorch
+        run: |
+          echo "============================================"
+          echo "Building PyTorch from upstream PR..."
+          if [ -n "${{ inputs.upstream_fork_repo }}" ]; then
+            echo "Fork Repository: ${{ inputs.upstream_fork_repo }}"
+          else
+            echo "Repository: ${{ inputs.upstream_repo }}"
+          fi
+          echo "Commit SHA: ${{ inputs.upstream_sha }}"
+          echo "============================================"
+          # TODO: Add actual PyTorch build commands
+          # Example:
+          # cd pytorch
+          # pip install -r requirements.txt
+          # python setup.py develop
+          echo "[SIMULATED] PyTorch build completed successfully!"
+
+      # Step 3: Install PyTorch wheel
+      - name: Install PyTorch wheel
+        run: |
+          echo "============================================"
+          echo "Installing PyTorch wheel..."
+          echo "============================================"
+          # TODO: Add actual install commands
+          # Example:
+          # pip install pytorch/dist/torch*.whl
+          echo "[SIMULATED] PyTorch wheel installed successfully!"
+
+      # Step 4: Checkout downstream repo (torch_npu) master
+      - name: Checkout downstream repo (torch_npu)
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ inputs.downstream_repo }}
+          ref: master
+          submodules: recursive
+          path: torch_npu
+
+      # Step 5: Build torch_npu
+      - name: Build torch_npu
+        run: |
+          echo "============================================"
+          echo "Building torch_npu from downstream master..."
+          echo "Repository: ${{ inputs.downstream_repo }}"
+          echo "Branch: master"
+          echo "============================================"
+          # TODO: Add actual torch_npu build commands
+          # Example:
+          # cd torch_npu
+          # pip install -r requirements.txt
+          # bash ci/build.sh
+          echo "[SIMULATED] torch_npu build completed successfully!"
+
+      - name: Summary
+        run: |
+          echo "============================================"
+          echo "Build Summary"
+          echo "============================================"
+          if [ -n "${{ inputs.upstream_fork_repo }}" ]; then
+            echo "1. PyTorch fork PR: ${{ inputs.upstream_fork_repo }}@${{ inputs.upstream_sha }}"
+          else
+            echo "1. PyTorch upstream: ${{ inputs.upstream_repo }}@${{ inputs.upstream_sha }}"
+          fi
+          echo "2. PyTorch build: SUCCESS (simulated)"
+          echo "3. PyTorch install: SUCCESS (simulated)"
+          echo "4. torch_npu master: ${{ inputs.downstream_repo }}"
+          echo "5. torch_npu build: SUCCESS (simulated)"
+          echo "============================================"
