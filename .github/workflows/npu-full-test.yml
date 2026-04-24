@@ -74,9 +74,10 @@ jobs:
           DISTRIBUTED_SHARDS=${{ inputs.distributed_shards || '5' }}
           REGULAR_SHARDS=${{ inputs.regular_shards || '10' }}
 
-          # Testing phase: only run first shard for each type
-          DIST_SHARDS="1"
-          REG_SHARDS="1"
+          # Build distributed shard matrix
+          DIST_SHARDS=$(seq 1 ${DISTRIBUTED_SHARDS} | tr '\n' ',' | sed 's/,$//')
+          # Build regular shard matrix
+          REG_SHARDS=$(seq 1 ${REGULAR_SHARDS} | tr '\n' ',' | sed 's/,$//')
 
           echo "distributed_matrix=[${DIST_SHARDS}]" >> $GITHUB_OUTPUT
           echo "distributed_shards=${DISTRIBUTED_SHARDS}" >> $GITHUB_OUTPUT
@@ -84,9 +85,9 @@ jobs:
           echo "regular_matrix=[${REG_SHARDS}]" >> $GITHUB_OUTPUT
           echo "regular_shards=${REGULAR_SHARDS}" >> $GITHUB_OUTPUT
 
-          echo "Distributed tests: Testing phase - only shard 1 (configured ${DISTRIBUTED_SHARDS} shards)"
-          echo "Regular tests: Testing phase - only shard 1 (configured ${REGULAR_SHARDS} shards)"
-          echo "Total shards to run: 2 (1 distributed + 1 regular)"
+          echo "Distributed tests: ${DISTRIBUTED_SHARDS} shards (matrix: ${DIST_SHARDS})"
+          echo "Regular tests: ${REGULAR_SHARDS} shards (matrix: ${REG_SHARDS})"
+          echo "Total shards configured: $((${DISTRIBUTED_SHARDS} + ${REGULAR_SHARDS}))"
 
       - name: Clone PyTorch v${{ env.PYTORCH_VERSION }} (for test source)
         run: |
