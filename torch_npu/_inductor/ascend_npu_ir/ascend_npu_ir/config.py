@@ -1,6 +1,8 @@
 import os
 import sys
 import time
+import logging
+import re
 
 import torch
 from os.path import abspath, dirname
@@ -31,15 +33,61 @@ traced_graph_cache = os.environ.get("ANIR_TRACED_GRAPH_CACHE", None)
 torch_mlir_dump_path = os.environ.get("ANIR_TORCH_MLIR_DUMP", None)
 
 acc_check_during_tune = os.environ.get("ANIR_ACC_CHECK_DURING_TUNE", "0") == "1"
-online_acc_comp = os.environ.get("ANIR_ONLINE_ACC_COMP", "0") == "1"
 runtime_error_dump = os.environ.get("ANIR_RUNTIME_ERROR_DUMP", "0") == "1"
 fallback_dump = os.environ.get("ANIR_FALLBACK_DUMP", "0") == "1"
 fallback_fold_expand = os.environ.get("ANIR_FALLBACK_FOLD_EXPAND", "0") == "1"
+
+online_acc_comp = os.environ.get("INDUCTOR_ASCEND_CHECK_ACCURACY", "0") == "1"
+rtol_f32 = 1.3e-6
+rtol_f16 = 1e-3
+rtol_bf16 = 1.6e-2
+rtol_default = 1.3e-6
+atol_default = 1e-5
+
+
+def parse_rtol_atol(env_str: str):
+    rtol, atol = None, None
+    if not env_str.strip():
+        return rtol, atol
+    
+    parts = [p.strip() for p in env_str.split(",") if p.strip()]
+    for part in parts:
+        match = re.match(r"^(rtol|atol)\s*=s\*([0-9.eE+-]+)$", part, re.IGNORECASE)
+        if not match:
+            logging.warning(
+                f"INDUCTOR_ASCEND_CHECK_ACCURACY_RTOL_ATOL environment variable has invalid format: {part}. "
+                f"It should be like 'rtol=1e-6,atol=1e-5'. "
+            )
+            continue
+        
+        key, value_str = match.groups()
+        try:
+            value = float(value_str)
+            if key.lower() == "rtol":
+                rtol = value
+            elif key.lower() == "atol":
+                atol = value
+        except ValueError:
+            logging.warning(
+                f"INDUCTOR_ASCEND_CHECK_ACCURACY_RTOL_ATOL environment variable has invalid value for {key}: {value_str}. "
+                f"It should be a float number. "
+            )
+            continue
+    return rtol, atol
+
+if online_acc_comp:
+    ENV_TOL_STR = os.environ.get("INDUCTOR_ASCEND_CHECK_ACCURACY_RTOL_ATOL", "")
+    rtol_custom, atol_custom = parse_rtol_atol(ENV_TOL_STR)
+    if rtol_custom is not None:
+        rtol_f32 = rtol_f16 = rtol_bf16 = rtol_default = rtol_custom
+    if atol_custom is not None:
+        atol_default = atol_custom
+
 acc_comp_tol = {
-    torch.float32: {'rtol': 1.3e-6, 'atol': 1e-5},
-    torch.float16: {'rtol': 1e-3, 'atol': 1e-5},
-    torch.bfloat16: {'rtol': 1.6e-2, 'atol': 1e-5},
-    "default": {'rtol': 1.3e-6, 'atol': 1e-5},
+    torch.float32: {'rtol': rtol_f32, 'atol': atol_default},
+    torch.float16: {'rtol': rtol_f16, 'atol': atol_default},
+    torch.bfloat16: {'rtol': rtol_bf16, 'atol': atol_default},
+    "default": {'rtol': rtol_default, 'atol': atol_default},
 }
 tune_error_time = 99999.9
 
