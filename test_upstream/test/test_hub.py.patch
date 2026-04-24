@@ -16,6 +16,5 @@ index 1447b3d..b8c2474 100644
 
          self._assert_trusted_list_is_empty()
 +
-+
 +if __name__ == "__main__":
 +    run_tests()

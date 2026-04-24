@@ -11,6 +11,7 @@ from torch import dtype as torch_dtype
 from torch._inductor import config
 from torch._inductor.codecache import get_cpp_wrapper_cubin_path_name
 from torch._inductor.codegen.aoti_hipify_utils import maybe_hipify_code_wrapper
+from torch._inductor.codegen.common import get_device_op_overrides
 from torch._inductor.codegen.cpp_utils import cexpr, DTYPE_TO_CPP, DEVICE_TO_ATEN
 from torch._inductor.codegen.cpp_wrapper_gpu import CppWrapperGpu, DeferredTritonCallWrapper, UnwrapUnspecArg, cpp_string_literal
 from torch._inductor.codegen.wrapper import PythonWrapperCodegen, SymbolicCallArg
@@ -20,7 +21,6 @@ from torch._inductor.utils import IndentedBuffer
 from torch._inductor.virtualized import V
 from torch._inductor.utils import ALIGN_BYTES
 
-from .common import get_device_op_overrides
 from .. import config as npu_config
 from ..runtime.triton_heuristics import GridExprNpu
 from ..utils import triton_support_ffts, NPU_ALIGN_BYTES

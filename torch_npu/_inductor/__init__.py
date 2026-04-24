@@ -7,8 +7,8 @@ AsyncCompile.warm_pool()
 os.environ["TORCH_DEVICE_BACKEND_AUTOLOAD"] = ORG_AUTOLOAD
 
 # all backends need register npu/cpu/mps device_op_overrides
-from .codegen.common import patch_get_device_op_overrides
-patch_get_device_op_overrides()
+from .codegen.common import register_device_op_overrides_npu
+register_device_op_overrides_npu()
 
 if os.getenv('TORCHINDUCTOR_NPU_BACKEND', 'default') == 'mlir':
     try:
