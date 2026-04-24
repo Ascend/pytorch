@@ -10,6 +10,9 @@ else()
   message(STATUS "CMAKE_CXX_COMPILER_LAUNCHER:${CMAKE_CXX_COMPILER_LAUNCHER}")
 endif()
 
+project(TORCHNPU CXX C)
+add_compile_options(-fmacro-prefix-map=${CMAKE_SOURCE_DIR}/=)
+
 find_program(MOLD_LINKER mold)
 if(MOLD_LINKER)
   add_link_options(-fuse-ld=mold)
@@ -17,9 +20,6 @@ if(MOLD_LINKER)
 else()
   message(STATUS "mold linker not found, using default linker")
 endif()
-
-project(TORCHNPU CXX C)
-add_compile_options(-fmacro-prefix-map=${CMAKE_SOURCE_DIR}/=)
 
 set(LINUX TRUE)
 set(CMAKE_INSTALL_MESSAGE NEVER)
@@ -44,7 +44,7 @@ SET(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
 
 # LTO&PGO optimization in compile option
 SET(IF_APPEND FALSE)
-if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
   SET(APPEND_FLAGS "-fGNU-compatibility -Wno-non-pod-varargs")
   if(NOT MOLD_LINKER)
     add_link_options(-fuse-ld=lld)
