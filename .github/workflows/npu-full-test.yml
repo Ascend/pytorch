@@ -203,6 +203,17 @@ jobs:
           restore-keys: |
             pip-arm-dist-py${{ env.PYTHON_VERSION }}-
 
+      - name: Install CANN package
+        run: |
+          curl -O https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/cann-package/20260330/install_cann_A3.sh
+          chmod +x install_cann_A3.sh
+          bash install_cann_A3.sh
+
+          # Set environment variables after CANN installation
+          source /usr/local/Ascend/cann/set_env.sh
+          source /usr/local/Ascend/nnal/atb/set_env.sh
+          echo "CANN package installed and environment variables set"
+
       - name: Download built torch_npu wheel
         uses: actions/download-artifact@v4
         with:
@@ -380,6 +391,17 @@ jobs:
           restore-keys: |
             pip-arm-regular-py${{ env.PYTHON_VERSION }}-
 
+      - name: Install CANN package
+        run: |
+          curl -O https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/cann-package/20260330/install_cann_A3.sh
+          chmod +x install_cann_A3.sh
+          bash install_cann_A3.sh
+
+          # Set environment variables after CANN installation
+          source /usr/local/Ascend/cann/set_env.sh
+          source /usr/local/Ascend/nnal/atb/set_env.sh
+          echo "CANN package installed and environment variables set"
+
       - name: Download built torch_npu wheel
         uses: actions/download-artifact@v4
         with:
@@ -542,6 +564,17 @@ jobs:
       - name: Setup cache directories
         run: |
           mkdir -p /github/home/.cache/pip
+
+      - name: Install CANN package
+        run: |
+          curl -O https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/cann-package/20260330/install_cann_A3.sh
+          chmod +x install_cann_A3.sh
+          bash install_cann_A3.sh
+
+          # Set environment variables after CANN installation
+          source /usr/local/Ascend/cann/set_env.sh
+          source /usr/local/Ascend/nnal/atb/set_env.sh
+          echo "CANN package installed and environment variables set"
 
       - name: Download built torch_npu wheel
         uses: actions/download-artifact@v4
