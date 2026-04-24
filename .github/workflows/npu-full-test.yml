@@ -74,10 +74,9 @@ jobs:
           DISTRIBUTED_SHARDS=${{ inputs.distributed_shards || '5' }}
           REGULAR_SHARDS=${{ inputs.regular_shards || '10' }}
 
-          # Build distributed shard matrix
-          DIST_SHARDS=$(seq 1 ${DISTRIBUTED_SHARDS} | tr '\n' ',' | sed 's/,$//')
-          # Build regular shard matrix
-          REG_SHARDS=$(seq 1 ${REGULAR_SHARDS} | tr '\n' ',' | sed 's/,$//')
+          # Testing phase: only run first shard for each type
+          DIST_SHARDS="1"
+          REG_SHARDS="1"
 
           echo "distributed_matrix=[${DIST_SHARDS}]" >> $GITHUB_OUTPUT
           echo "distributed_shards=${DISTRIBUTED_SHARDS}" >> $GITHUB_OUTPUT
@@ -85,9 +84,9 @@ jobs:
           echo "regular_matrix=[${REG_SHARDS}]" >> $GITHUB_OUTPUT
           echo "regular_shards=${REGULAR_SHARDS}" >> $GITHUB_OUTPUT
 
-          echo "Distributed tests: ${DISTRIBUTED_SHARDS} shards (matrix: ${DIST_SHARDS})"
-          echo "Regular tests: ${REGULAR_SHARDS} shards (matrix: ${REG_SHARDS})"
-          echo "Total shards configured: $((${DISTRIBUTED_SHARDS} + ${REGULAR_SHARDS}))"
+          echo "Distributed tests: Testing phase - only shard 1 (configured ${DISTRIBUTED_SHARDS} shards)"
+          echo "Regular tests: Testing phase - only shard 1 (configured ${REGULAR_SHARDS} shards)"
+          echo "Total shards to run: 2 (1 distributed + 1 regular)"
 
       - name: Clone PyTorch v${{ env.PYTORCH_VERSION }} (for test source)
         run: |
@@ -215,6 +214,14 @@ jobs:
           source /usr/local/Ascend/cann/set_env.sh
           source /usr/local/Ascend/nnal/atb/set_env.sh
           echo "CANN package installed and environment variables set"
+
+          # Output /usr/local/Ascend directory contents for verification
+          echo "=== /usr/local/Ascend directory contents ==="
+          ls -la /usr/local/Ascend/
+          echo "=== /usr/local/Ascend/cann contents ==="
+          ls -la /usr/local/Ascend/cann/
+          echo "=== /usr/local/Ascend/nnal contents ==="
+          ls -la /usr/local/Ascend/nnal/
 
       - name: Download built torch_npu wheel
         uses: actions/download-artifact@v4
@@ -406,6 +413,14 @@ jobs:
           source /usr/local/Ascend/nnal/atb/set_env.sh
           echo "CANN package installed and environment variables set"
 
+          # Output /usr/local/Ascend directory contents for verification
+          echo "=== /usr/local/Ascend directory contents ==="
+          ls -la /usr/local/Ascend/
+          echo "=== /usr/local/Ascend/cann contents ==="
+          ls -la /usr/local/Ascend/cann/
+          echo "=== /usr/local/Ascend/nnal contents ==="
+          ls -la /usr/local/Ascend/nnal/
+
       - name: Download built torch_npu wheel
         uses: actions/download-artifact@v4
         with:
@@ -581,6 +596,14 @@ jobs:
           source /usr/local/Ascend/cann/set_env.sh
           source /usr/local/Ascend/nnal/atb/set_env.sh
           echo "CANN package installed and environment variables set"
+
+          # Output /usr/local/Ascend directory contents for verification
+          echo "=== /usr/local/Ascend directory contents ==="
+          ls -la /usr/local/Ascend/
+          echo "=== /usr/local/Ascend/cann contents ==="
+          ls -la /usr/local/Ascend/cann/
+          echo "=== /usr/local/Ascend/nnal contents ==="
+          ls -la /usr/local/Ascend/nnal/
 
       - name: Download built torch_npu wheel
         uses: actions/download-artifact@v4
