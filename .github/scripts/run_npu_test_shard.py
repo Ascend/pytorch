@@ -541,6 +541,57 @@ def run_tests_via_pytest(
 
 
 # ==============================================================================
+# Test Files Input Parser
+# ==============================================================================
+
+
+def parse_test_files_input(test_files_str: str, test_dir: Path) -> List[str]:
+    """
+    Parse comma-separated test file input and return standardized test file paths.
+
+    Args:
+        test_files_str: Comma-separated test file paths (e.g., "test_meta.py,test_nn.py")
+        test_dir: Path to PyTorch test directory
+
+    Returns:
+        List of standardized test file paths (e.g., ["test/test_meta.py", "test/test_nn.py"])
+
+    Raises:
+        FileNotFoundError: If any specified test file does not exist
+    """
+    files = [f.strip() for f in test_files_str.split(",") if f.strip()]
+    result = []
+
+    for f in files:
+        # Normalize path format: ensure starts with "test/"
+        if not f.startswith("test/"):
+            f = "test/" + f
+
+        # Remove leading "test/" prefix if it's duplicated
+        if f.startswith("test/test/"):
+            f = f[5:]
+
+        # Verify file exists
+        full_path = test_dir.parent / f
+        if not full_path.exists():
+            # Try with .py extension if not provided
+            if not f.endswith(".py"):
+                f_with_ext = f + ".py"
+                full_path_with_ext = test_dir.parent / f_with_ext
+                if full_path_with_ext.exists():
+                    f = f_with_ext
+                    full_path = full_path_with_ext
+                else:
+                    raise FileNotFoundError(f"Test file not found: {f} or {f_with_ext}")
+            else:
+                raise FileNotFoundError(f"Test file not found: {f}")
+
+        result.append(f)
+
+    return result
+
+
+# ==============================================================================
 # CLI
 # ==============================================================================
 
@@ -550,14 +601,15 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="Run PyTorch NPU tests for a shard via per-file isolation"
     )
-    parser.add_argument("--shard", type=int, required=True, help="Shard number (1-indexed)")
-    parser.add_argument("--num-shards", type=int, required=True, help="Total number of shards")
+    parser.add_argument("--test-files", type=str, help="Comma-separated test file paths to run directly (skip shard assignment, e.g., 'test_meta.py,test_nn.py')")
+    parser.add_argument("--shard", type=int, help="Shard number (1-indexed, required if --test-files not set)")
+    parser.add_argument("--num-shards", type=int, help="Total number of shards (required if --test-files not set)")
     parser.add_argument(
         "--test-type",
         type=str,
         choices=["distributed", "regular"],
         default="regular",
-        help="Test type",
+        help="Test type (ignored if --test-files is set)",
     )
     parser.add_argument("--test-dir", type=str, required=True, help="Path to PyTorch test directory")
     parser.add_argument("--disabled-testcases", type=str, help="Path to disabled_testcases.json")
@@ -565,20 +617,20 @@ def parse_args():
     parser.add_argument("--report-dir", type=str, default="test-reports", help="Directory for reports")
     parser.add_argument("--timeout", type=int, default=600, help="Per-test timeout")
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
-    parser.add_argument("--parallel", type=int, default=2, help="Parallel workers")
-    return parser.parse_args()
+    parser.add_argument("--parallel", type=int, default=1, help="Parallel workers (default 1 for safety)")
+    args = parser.parse_args()
+
+    # Validate required arguments based on mode
+    if not args.test_files:
+        if not args.shard or not args.num_shards:
+            parser.error("--shard and --num-shards are required when --test-files is not set")
+
+    return args
 
 
 def main():
     """Main entry point."""
     args = parse_args()
-
-    # Validate shard number
-    if args.shard < 1 or args.shard > args.num_shards:
-        raise ValueError(f"Invalid shard {args.shard}; expected 1 <= shard <= {args.num_shards}")
-
-    shard_type = args.test_type
-    timestamp = datetime.now().isoformat()
 
     # Resolve paths
     test_dir = Path(args.test_dir).resolve()
@@ -593,6 +645,122 @@ def main():
     # Load modules
     discover_module = load_discover_module(script_dir)
     result_module = load_parse_test_results_module(script_dir)
+
+    timestamp = datetime.now().isoformat()
+
+    # ==========================================================================
+    # Mode: Direct execution of specified test files
+    # ==========================================================================
+    if args.test_files:
+        print("=" * 80)
+        print("Custom Test Files Execution Mode")
+        print("=" * 80)
+
+        # Parse test files input
+        planned_tests = parse_test_files_input(args.test_files, test_dir)
+
+        # Use fixed shard number for custom mode
+        shard = 1
+        num_shards = 1
+        shard_type = "custom"
+
+        print(f"Test files specified: {len(planned_tests)}")
+        print(f"Test directory: {test_dir}")
+        print(f"Parallel workers: {args.parallel}")
+        print("Execution mode: per-file isolation")
+        if args.disabled_testcases:
+            disabled_count = result_module.load_disabled_testcases_count(args.disabled_testcases)
+            print(f"Disabled testcase entries: {disabled_count}")
+        print(f"\n{'=' * 80}\n")
+
+        for index, target in enumerate(planned_tests, 1):
+            display_name = strip_test_prefix_and_suffix(target)
+            print(f"  [{index:03d}] {display_name}")
+
+        # Create info dict for custom mode
+        info = result_module.create_shard_info(shard, num_shards, timestamp)
+        info["selection_mode"] = "custom_files"
+        info["shard_type"] = shard_type
+        info["shard_files"] = len(planned_tests)
+        info["total_files"] = len(planned_tests)
+        info["selected_test_files"] = len(planned_tests)
+        info["parallel_procs"] = args.parallel
+        if args.disabled_testcases:
+            info["disabled_count"] = result_module.load_disabled_testcases_count(args.disabled_testcases)
+
+        # Save test plan
+        result_module.save_test_plan_file(str(report_dir), shard, planned_tests, shard_type)
+
+        # Clean old files
+        clean_existing_junit_xml(report_dir)
+        remove_existing_file(result_module.get_shard_log_file(report_dir, shard, shard_type))
+
+        # Build execution env
+        env_updates = build_execution_env(
+            test_dir, script_dir, args.disabled_testcases, shard, shard_type
+        )
+
+        # Execute tests
+        missing_files = []
+        if planned_tests:
+            returncode, duration, missing_files = run_tests_via_pytest(
+                planned_tests,
+                shard,
+                test_dir,
+                report_dir,
+                env_updates,
+                args.timeout,
+                args.verbose,
+                args.parallel,
+                shard_type,
+                result_module,
+            )
+            info["per_file_isolation"] = True
+            info["returncode"] = returncode
+            info["duration"] = duration
+            info["missing_files_count"] = len(missing_files)
+
+        # Save info and stats
+        result_module.save_info_file(str(report_dir), shard, info, shard_type)
+
+        stats = {
+            "total": 0,
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "errors": 0,
+            "duration": duration,
+            "returncode": returncode,
+            "per_file_isolation": True,
+            "missing_files_count": len(missing_files),
+        }
+
+        # Try to aggregate stats from generated XML files
+        xml_stats = result_module.aggregate_junit_stats([report_dir])
+        if xml_stats.get("total", 0) > 0:
+            stats.update(xml_stats)
+
+        result_module.save_stats_file(str(report_dir), shard, stats, shard_type)
+
+        if missing_files:
+            result_module.save_missing_files_file(str(report_dir), shard, missing_files, shard_type)
+            print(f"\nWARNING: {len(missing_files)} files did not generate XML (likely crashed)")
+
+        # Print summary
+        result_module.print_stats_summary(shard, stats, shard_type)
+
+        sys.exit(returncode)
+
+    # ==========================================================================
+    # Mode: Shard-based execution (original logic)
+    # ==========================================================================
+
+    # Validate shard number
+    if args.shard < 1 or args.shard > args.num_shards:
+        raise ValueError(f"Invalid shard {args.shard}; expected 1 <= shard <= {args.num_shards}")
+
+    shard_type = args.test_type
+    timestamp = datetime.now().isoformat()
 
     # ==========================================================================
     # Execute test planning

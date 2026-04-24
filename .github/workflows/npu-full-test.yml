@@ -33,6 +33,11 @@ on:
         required: false
         default: '10'
         type: string
+      test_files:
+        description: 'Test files to run directly (comma-separated, e.g., "test_meta.py,test_nn.py"). Skip shard assignment if set.'
+        required: false
+        default: ''
+        type: string
 
 env:
   PYTHON_VERSION: '3.11'
@@ -165,6 +170,7 @@ jobs:
     needs:
       - prepare
       - upload_torch_npu_wheel
+    if: ${{ github.event.inputs.test_files == '' }}
     runs-on: linux-aarch64-a3-8
     container:
       image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.11.0_a2_aarch64_builder:20260331
@@ -341,6 +347,7 @@ jobs:
     needs:
       - prepare
       - upload_torch_npu_wheel
+    if: ${{ github.event.inputs.test_files == '' }}
     runs-on: linux-aarch64-a3-8
     container:
       image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.11.0_a2_aarch64_builder:20260331
@@ -480,7 +487,7 @@ jobs:
             --case-paths-config pytorch-test-src/test_upstream/case_paths_ci.yml \
             --report-dir ${REPORT_DIR} \
             --timeout 600 \
-            --parallel 2 \
+            --parallel 1 \
             2>&1 | tee /tmp/test_shard_reg_${{ matrix.shard }}.log
 
           TEST_STATUS=${PIPESTATUS[0]}
@@ -510,6 +517,122 @@ jobs:
             /tmp/torch_env_patch_reg_${{ matrix.shard }}.log
           if-no-files-found: warn
 
+  # ============================================================================
+  # Custom Test Files: Run specified test files directly (skip shard assignment)
+  # ============================================================================
+  test_custom:
+    needs:
+      - prepare
+      - upload_torch_npu_wheel
+    if: ${{ github.event.inputs.test_files != '' }}
+    runs-on: linux-aarch64-a3-8
+    container:
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.11.0_a2_aarch64_builder:20260331
+      options: --user root
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          repository: kerer-ai/pytorch
+          ref: v2.7.1_dev
+          fetch-depth: 1
+          path: ascend_pytorch
+
+      - name: Setup cache directories
+        run: |
+          mkdir -p /github/home/.cache/pip
+
+      - name: Download built torch_npu wheel
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.TORCH_NPU_WHEEL_ARTIFACT }}
+          path: torch-npu-wheel-artifact
+
+      - name: Install PyTorch and torch_npu
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          # Uninstall pre-installed torch/torchvision
+          pip3.11 uninstall -y torch torchvision || true
+
+          # Install PyTorch 2.7.1
+          pip3.11 install torch==${{ env.PYTORCH_VERSION }}
+
+          # Install built torch_npu wheel
+          TORCH_NPU_WHL=$(ls torch-npu-wheel-artifact/*.whl | head -1)
+          pip3.11 install "${TORCH_NPU_WHL}"
+
+      - name: Download prepared test source
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.PREPARED_TEST_SRC_ARTIFACT }}
+          path: pytorch-test-src-artifact
+
+      - name: Extract test source
+        run: |
+          tar -xzf pytorch-test-src-artifact/pytorch-test-src.tar.gz
+
+      - name: Verify NPU availability
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          python3.11 - <<'PY'
+          import torch
+          import torch_npu
+          print(f'torch: {torch.__version__}')
+          print(f'torch_npu: {torch_npu.__version__}')
+          print(f'NPU available: {torch.npu.is_available()}')
+          print(f'NPU count: {torch.npu.device_count()}')
+          PY
+
+      - name: Install test dependencies
+        run: |
+          pip3.11 install pytest pytest-timeout pytest-xdist hypothesis zstandard pyyaml
+          pip3.11 install pytest-rerunfailures pytest-flakefinder pytest-subtests==0.13.1 xdoctest==1.1.0 pulp>=2.9
+          pip3.11 install -r pytorch-test-src/requirements.txt
+
+      - name: Run custom test files
+        id: run_tests
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          REPORT_DIR=test-reports
+          mkdir -p ${REPORT_DIR}
+
+          python3.11 ascend_pytorch/.github/scripts/run_npu_test_shard.py \
+            --test-files "${{ github.event.inputs.test_files }}" \
+            --test-dir pytorch-test-src/test \
+            --disabled-testcases pytorch-test-src/test_upstream/disabled_testcases.json \
+            --report-dir ${REPORT_DIR} \
+            --timeout 600 \
+            --parallel 1 \
+            --verbose \
+            2>&1 | tee /tmp/test_custom.log
+
+          TEST_STATUS=${PIPESTATUS[0]}
+          echo "status=${TEST_STATUS}" >> $GITHUB_OUTPUT
+          exit ${TEST_STATUS}
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-custom
+          path: test-reports/
+          retention-days: 30
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-custom
+          path: /tmp/test_custom.log
+          if-no-files-found: warn
+
   report:
     needs:
       - prepare
@@ -517,6 +640,7 @@ jobs:
       - upload_torch_npu_wheel
       - test_distributed
       - test_regular
+      - test_custom
     if: always() && needs.prepare.result == 'success' && needs.build_torch_npu.result == 'success'
     runs-on: ubuntu-latest
     steps:
