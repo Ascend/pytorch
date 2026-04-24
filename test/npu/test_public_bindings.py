@@ -476,12 +476,16 @@ class TestPublicBindings(TestCase):
             "torch.testing._internal.distributed.rpc.rpc_test",
             "torch.testing._internal.distributed.rpc.tensorpipe_rpc_agent_test_fixture",
             "torch.testing._internal.distributed.rpc_utils",
+            "torch.testing._internal.py312_intrinsics",
             "torch.utils.tensorboard._caffe2_graph",
             "torch._inductor.codegen.cuda.cuda_template",
             "torch._inductor.codegen.cutedsl._cutedsl_utils",
             "torch._inductor.codegen.cuda.gemm_template",
             "torch._inductor.runtime.triton_helpers",
-            "torch._inductor.kernel.vendored_templates.cutedsl_grouped_gemm",
+            "torch._inductor.kernel.vendored_templates.cutedsl.kernels.cutedsl_grouped_gemm",  # depends on cutlass
+            "torch._inductor.kernel.vendored_templates.cutedsl.dense_blockscaled_gemm_persistent",  # depends on cutlass
+            "torch._inductor.kernel.vendored_templates.cutedsl.wrappers",  # depends on cutlass_api
+            "torch._inductor.kernel.vendored_templates.cutedsl.wrappers.dense_blockscaled_gemm_kernel",  # depends on cutlass_api
             "torch.ao.pruning._experimental.data_sparsifier.lightning.callbacks.data_sparsity",
             "torch.backends._coreml.preprocess",
             "torch.contrib._tensorboard_vis",

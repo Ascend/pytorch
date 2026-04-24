@@ -5,8 +5,6 @@ import torch_npu
 
 
 def hccl_timeout():
-    os.environ["MASTER_ADDR"] = "127.0.0.1"
-    os.environ["MASTER_PORT"] = "29500"
     os.environ["HCCL_WHITELIST_DISABLE"] = "1"
     os.environ["HCCL_EXEC_TIMEOUT"] = "180"
     backend = "hccl"

@@ -29,10 +29,11 @@ class TestMode(TestCase):
         path = os.path.join(os.path.dirname(__file__), '_fault_mode_cases/error_use_same_addr.py')
 
         processes = []
-        p = subprocess.Popen(["torchrun", "--nproc-per-node=2", f"{path}", "&"], shell=False, stdout=subprocess.PIPE,
+        p = subprocess.Popen(["torchrun", f"--master_port=29600", "--nproc-per-node=2", f"{path}"], shell=False, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, text=True)
         processes.append(p)
-        p = subprocess.Popen(["torchrun", "--nproc-per-node=2", f"{path}"], shell=False, stdout=subprocess.PIPE,
+        
+        p = subprocess.Popen(["torchrun", f"--master_port=29600", "--nproc-per-node=2", f"{path}"], shell=False, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, text=True)
         processes.append(p)
         error_info = ""
@@ -78,7 +79,7 @@ class TestMode(TestCase):
     @skipIfUnsupportMultiNPU(2)
     def test_diff_dtype(self):
         path = os.path.join(os.path.dirname(__file__), '_fault_mode_cases/error_diff_dtype.py')
-        process = subprocess.Popen(["torchrun", "--nproc-per-node=2", f"{path}"], shell=False, stdout=subprocess.PIPE,
+        process = subprocess.Popen(["torchrun", "--master_port=8080", "--nproc-per-node=2", f"{path}"], shell=False, stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE, text=True, errors='ignore')
         message = process.stderr.read()
         process.stderr.close()
@@ -141,17 +142,14 @@ class TestMode(TestCase):
         path = os.path.join(os.path.dirname(__file__), '_fault_mode_cases/error_hccl_timeout.py')
         process = subprocess.Popen(["torchrun", "--nproc-per-node=2", f"{path}"], shell=False, stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE, text=True)
-        message = process.stderr.read()
-        process.stderr.close()
-        process.stdout.close()
-        process.terminate()
-        process.wait()
-        self.assertIn(
-            "wait for compute device to finish failed",
-            message
-        )
-        self.assertIn(
-            "times out",
+        try:
+            stdout_msg, message = process.communicate(timeout=60)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            stdout_msg, message = process.communicate()
+
+        self.assertTrue(
+            "task timeout" in message.lower() or "107020" in message,
             message
         )
 

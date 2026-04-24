@@ -5,8 +5,6 @@ import torch_npu
 
 
 def diff_type():
-    os.environ["MASTER_ADDR"] = "127.0.0.1"
-    os.environ["MASTER_PORT"] = "29500"
     os.environ["HCCL_WHITELIST_DISABLE"] = "1"
     backend = "hccl"
     dist.init_process_group(backend)

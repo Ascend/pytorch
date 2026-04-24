@@ -6,7 +6,7 @@ import operator
 import torch
 from torch import distributed as dist
 from torch.distributed.fsdp import fully_shard as torch_fully_shard
-from torch.distributed.fsdp._fully_shard._fsdp_common import compiled_autograd_enabled, TrainingState
+from torch.distributed.fsdp._fully_shard._fsdp_common import TrainingState
 from torch.distributed.fsdp._fully_shard._fsdp_param import FSDPParam, ShardedState
 from torch.distributed.fsdp._fully_shard._fsdp_param_group import FSDPParamGroup
 from torch.distributed.fsdp._fully_shard._fsdp_state import FSDPState
@@ -87,9 +87,6 @@ def _patched_finalize_backward(self):
 def _patched_get_param_all_gather_inputs(
     fsdp_params: list[FSDPParam],
 ) -> list[list[torch.Tensor]]:
-    if compiled_autograd_enabled():
-        return [fsdp_param.all_gather_inputs for fsdp_param in fsdp_params]
-
     # Intentionally try to run a fast-path that bypasses abstractions for the
     # common FSDP case of bf16/fp32 mixed precision in order to use foreach
     # copy for lower CPU overhead and more efficient copying in eager
