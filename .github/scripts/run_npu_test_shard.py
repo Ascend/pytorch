@@ -559,13 +559,21 @@ def run_tests_with_case_isolation(
                 status_str = case_result["status"]
                 duration_str = f"{case_result['duration']:.2f}s"
                 command_str = case_result.get("command", "")
+                message = case_result.get("message", "")
                 log_handle.write(f"    Command: {command_str}\n")
                 log_handle.write(f"    Status: {status_str}, Duration: {duration_str}\n")
-                if case_result["message"]:
-                    log_handle.write(f"    Message: {case_result['message'][:200]}\n")
+                if message:
+                    log_handle.write(f"    Message: {message[:500]}\n")
                 log_handle.flush()
 
                 print(f"      {status_str} ({duration_str})")
+                # Print error message for failed/error cases to stdout
+                if status_str in ("failed", "error", "crashed", "timeout") and message:
+                    # Print first few lines of error message
+                    msg_lines = message.splitlines()[:5]
+                    for msg_line in msg_lines:
+                        if msg_line.strip():
+                            print(f"        {msg_line[:200]}")
 
                 cases_list.append(case_result)
 
