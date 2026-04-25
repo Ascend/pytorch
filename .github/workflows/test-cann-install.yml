@@ -1,4 +1,4 @@
-name: Test CANN Installation
+name: Test Ascend-cann-9.0.0-beta.2 Installation
 
 on:
   push:
