@@ -42,6 +42,14 @@ ${return_type} ${type_wrapper_name}(${formals});
 """)
 
 
+OVERWRITE_API_LIST = [
+    'matmul',
+    'matmul.out',
+    'matmul_backward',
+    'matmul_double_backward',
+]
+
+
 def gen_variable_type(
     out: str,
     fns_with_diff_infos: List[NativeFunctionWithDifferentiabilityInfo],
@@ -125,7 +133,11 @@ def gen_variable_type_func(
                 type_definition = type_definition.replace('at::redispatch', 'at_npu::redispatch')
             type_definition = type_definition.replace('_symint', '')
 
-        wrapper_registration = gen_wrapper_registration(f, "Default")
+        if str(f.func.name) in OVERWRITE_API_LIST:
+            wrapper_registration = f"""if (std::getenv("TORCH_NPU_USE_COMPATIBLE_IMPL") == nullptr || std::string(std::getenv("TORCH_NPU_USE_COMPATIBLE_IMPL")) != "1") {{
+    {gen_wrapper_registration(f, "Default")}}}"""
+        else:
+            wrapper_registration = gen_wrapper_registration(f, "Default")
         result[f"type_derived_method_definitions"] = [type_definition]
         if str(f.func.name) in NPU_AUTOGRAD_FUNCTION:
             result[f"wrapper_registrations_aten"] = []
