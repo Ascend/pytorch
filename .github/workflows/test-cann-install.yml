@@ -89,9 +89,12 @@ jobs:
           ls -la /home/
 
       - name: Download CANN packages
+        id: download
         run: |
           echo "=== Step 3: Download CANN packages ==="
-          mkdir -p /home/cann && cd /home/cann
+          echo "Creating /home/cann directory..."
+          mkdir -pv /home/cann
+          cd /home/cann
           echo "Current dir: $(pwd)"
 
           echo "Downloading toolkit..."
@@ -102,7 +105,7 @@ jobs:
           curl -O https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/cann-package/20260330/Ascend-cann-nnal_9.0.0-beta.2_linux-aarch64.run
 
           echo "=== Downloaded files ==="
-          ls -la
+          ls -la /home/cann/
 
           echo "=== Verifying downloads ==="
           for f in Ascend-cann*.run; do
@@ -113,6 +116,20 @@ jobs:
               exit 1
             fi
           done
+
+          echo "download_dir=/home/cann" >> $GITHUB_OUTPUT
+
+      - name: Verify download directory exists
+        run: |
+          echo "=== Verifying download directory ==="
+          if [ -d /home/cann ]; then
+            echo "/home/cann directory exists"
+            ls -la /home/cann/
+          else
+            echo "ERROR: /home/cann directory does NOT exist!"
+            echo "This means the download step failed to create it"
+            exit 1
+          fi
 
       - name: Install CANN toolkit
         run: |
