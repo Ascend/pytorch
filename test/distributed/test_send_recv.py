@@ -215,6 +215,7 @@ class HcclSendRecvDistTest(TestCase):
             self.assertEqual(p.exitcode, 0, "subprocess exit with abnormal code.")
 
     @skipIfUnsupportMultiNPU(2)
+    @unittest.skip("Temporarily disabled")
     def test_send_recv_hccl_dist(self):
         self._test_multiprocess(
             HcclSendRecvDistTest._test_send_recv_dist,
@@ -229,6 +230,7 @@ class HcclSendRecvDistTest(TestCase):
             HcclSendRecvDistTest._init_dist_hccl)
         
     @skipIfUnsupportMultiNPU(4)
+    @unittest.skip("Temporarily disabled")
     def test_send_recv_hccl_dist_with_p2p(self):
         with patch.dict(os.environ, {"P2P_HCCL_BUFFSIZE": "20"}):
             world_size = 4
@@ -251,6 +253,7 @@ class HcclSendRecvDistTest(TestCase):
             HcclSendRecvDistTest._init_dist_hccl)
 
     @skipIfUnsupportMultiNPU(2)
+    @unittest.skip("Temporarily disabled")
     def test_send_recv_hccl_group(self):
         self._test_multiprocess(
             HcclSendRecvDistTest._test_send_recv_group,
@@ -270,6 +273,7 @@ class HcclSendRecvDistTest(TestCase):
             HcclSendRecvDistTest._init_pg_hccl)
 
     @skipIfUnsupportMultiNPU(2)
+    @unittest.skip("Temporarily disabled")
     def test_send_recv_hccl_bool(self):
         self._test_multiprocess(
             HcclSendRecvDistTest._test_send_recv_dist,

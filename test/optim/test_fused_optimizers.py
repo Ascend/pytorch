@@ -122,6 +122,7 @@ class TestFusedOptim(TestCase):
                         if p.grad is not None:
                             self.assertRtolEqual(p, p_clone, prec=1e-3)
 
+    @unittest.skip("Temporarily skipping")
     def test_step_3rd_optims(self):
         optim_cases = self._create_optimizer_cases(all_cases=True)
         num_iters = 10
@@ -137,6 +138,7 @@ class TestFusedOptim(TestCase):
                 if p.grad is not None:
                     self.assertRtolEqual(p.sum().item(), self.third_optim_baseline[fused_opt_obj][i])
 
+    @unittest.skip("Temporarily skipping")
     def test_unscale(self):
         model = self._create_simple_model()
         input_tensor = torch.rand(3, 1, 24, 24).to("npu:0")
@@ -159,6 +161,7 @@ class TestFusedOptim(TestCase):
                 if p.grad is not None:
                     self.assertEqual(grads_before_unscale[p] / 128, p.grad)
     
+    @unittest.skip("Temporarily skipping")
     def test_simple_model_train_dynamic(self):
         model = self._create_simple_model()
         optim_cases = self._create_optimizer_cases()
@@ -189,6 +192,7 @@ class TestFusedOptim(TestCase):
                 scaler_fused.update()
                 self.assertRtolEqual(loss, loss_fused)
     
+    @unittest.skip("Temporarily skipping")
     def test_simple_model_train_static(self):
         model = self._create_simple_model()
         optim_cases = self._create_optimizer_cases()

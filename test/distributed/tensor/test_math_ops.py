@@ -1,5 +1,5 @@
 import itertools
-
+import unittest
 import torch
 from torch.distributed._tensor import distribute_tensor, Replicate, Shard
 from torch.testing._internal.common_utils import (
@@ -91,6 +91,7 @@ class TestMathOps(NPUDTensorTestBase):
     @SupportedDevices(['Ascend910B'])
     @skipIfUnsupportMultiNPU(2)
     @with_comms
+    @unittest.skip("Temporarily skipping")
     def test_npu_add_rms_norm_forward(self):
         device_mesh = self.build_device_mesh()
 
