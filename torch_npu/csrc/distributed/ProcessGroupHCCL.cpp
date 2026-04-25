@@ -4672,7 +4672,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::batch_isend_irecv_inner(
             at_npu::native::OpCommand::RunOpApiV3("HcclBatchSendRecv", hccl_call, false, &stream);
             return HCCL_SUCCESS;
         },
-        [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
+        [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {
             // No need to detect recv.
             if (c10_npu::model_state().get_model_mode() == c10_npu::ModelMode::L_TRAIN
                 && c10_npu::option::OptionsManager::GetSilenceCheckFlag() != c10_npu::option::CHECK_CLOSE) {
@@ -4680,6 +4680,30 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::batch_isend_irecv_inner(
                     if (op_type[i] != "irecv") {
                         c10_npu::NPUStreamGuard guard(hcclStreams[0]);
                         silenceCheck(tensors[i], c10d::OpType::SEND);
+                    }
+                }
+            }
+            // collective() only records tensors_tmp={tensors[0]} via its input loop.
+            // tensors[1..n] also participate in HCCL DMA but are invisible to the
+            // allocator — record them here to prevent use-after-free across streams.
+            auto mode = c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse();
+            for (size_t i = 1; i < tensors.size(); ++i) {
+                if (mode == c10_npu::option::AVOID_RECORD_STREAM) {
+                    work->stashed_for_allocator_safety_.push_back(tensors[i]);
+                } else {
+                    c10_npu::NPUCachingAllocator::recordStream(
+                        tensors[i].storage().data_ptr(), hcclStreams[0]);
+                    if (mode == c10_npu::option::ERASE_RECORD_STREAM ||
+                        mode == c10_npu::option::ERASE_RECORD_STREAM_WITH_OPTIMIZE) {
+                        work->recorded_inputs_.push_back(
+                            std::make_pair(tensors[i].storage().getWeakStorageImpl(), hcclStreams[0]));
+                        if (mode == c10_npu::option::ERASE_RECORD_STREAM_WITH_OPTIMIZE) {
+                            auto block_ptr = c10_npu::NPUCachingAllocator::getBlockPtr(
+                                tensors[i].storage().data_ptr());
+                            work->recorded_block_ptr_for_inputs_.push_back(block_ptr);
+                            c10_npu::NPUCachingAllocator::recordHcclWorkForBlock(
+                                block_ptr, static_cast<void*>(work.get()));
+                        }
                     }
                 }
             }
