@@ -44,7 +44,7 @@ env:
   PYTORCH_VERSION: '2.7.1'
   PREPARED_TEST_SRC_ARTIFACT: 'pytorch-test-src-v2.7.1-patched'
   TORCH_NPU_WHEEL_ARTIFACT: 'torch-npu-wheel-v2.7.1-source'
-  DOCKER_IMAGE: 'swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.11.0_a2_aarch64_builder:20260331'
+  DOCKER_IMAGE: 'swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.7.1_a3_aarch64_builder:20260424'
 
 defaults:
   run:
@@ -173,7 +173,7 @@ jobs:
     if: ${{ github.event.inputs.test_files == '' }}
     runs-on: linux-aarch64-a3-8
     container:
-      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.11.0_a2_aarch64_builder:20260331
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.7.1_a3_aarch64_builder:20260424
       options: --user root
     strategy:
       matrix:
@@ -202,44 +202,6 @@ jobs:
           key: pip-arm-dist-py${{ env.PYTHON_VERSION }}-v${{ env.PYTORCH_VERSION }}
           restore-keys: |
             pip-arm-dist-py${{ env.PYTHON_VERSION }}-
-
-      - name: Install CANN package
-        run: |
-          # Uninstall old CANN
-          cd /usr/local/Ascend/cann
-          bash cann_uninstall.sh || true
-          cd /usr/local/Ascend/
-          rm -rf cann*
-          cd /home
-          rm -rf cann
-
-          # Download new CANN packages
-          mkdir -p cann && cd cann
-          curl -O https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/cann-package/20260330/Ascend-cann-toolkit_9.0.0-beta.2_linux-aarch64.run
-          curl -O https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/cann-package/20260330/Ascend-cann-A3-ops_9.0.0-beta.2_linux-aarch64.run
-          curl -O https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/cann-package/20260330/Ascend-cann-nnal_9.0.0-beta.2_linux-aarch64.run
-
-          # Verify all downloads succeeded
-          for f in Ascend-cann*.run; do
-            if [[ ! -f "$f" ]]; then
-              echo "Failed to download CANN packages"
-              exit 1
-            fi
-          done
-
-          # Install CANN packages
-          chmod +x Ascend-cann*.run
-          ./Ascend-cann-toolkit*.run --full --quiet --install-path=/usr/local/Ascend && echo "toolkit install success"
-          ./Ascend-cann-A3*.run --install --quiet --install-path=/usr/local/Ascend && echo "ops install success"
-          ./Ascend-cann-nnal*.run --install --quiet --install-path=/usr/local/Ascend && echo "nnal install success"
-
-          # Output /usr/local/Ascend directory contents for verification
-          echo "=== /usr/local/Ascend directory contents ==="
-          ls -la /usr/local/Ascend/
-          echo "=== /usr/local/Ascend/cann contents ==="
-          ls -la /usr/local/Ascend/cann/
-          echo "=== /usr/local/Ascend/nnal contents ==="
-          ls -la /usr/local/Ascend/nnal/
 
       - name: Download built torch_npu wheel
         uses: actions/download-artifact@v4
@@ -388,7 +350,7 @@ jobs:
     if: ${{ github.event.inputs.test_files == '' }}
     runs-on: linux-aarch64-a3-2
     container:
-      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.11.0_a2_aarch64_builder:20260331
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.7.1_a3_aarch64_builder:20260424
       options: --user root
     strategy:
       matrix:
@@ -417,44 +379,6 @@ jobs:
           key: pip-arm-regular-py${{ env.PYTHON_VERSION }}-v${{ env.PYTORCH_VERSION }}
           restore-keys: |
             pip-arm-regular-py${{ env.PYTHON_VERSION }}-
-
-      - name: Install CANN package
-        run: |
-          # Uninstall old CANN
-          cd /usr/local/Ascend/cann
-          bash cann_uninstall.sh || true
-          cd /usr/local/Ascend/
-          rm -rf cann*
-          cd /home
-          rm -rf cann
-
-          # Download new CANN packages
-          mkdir -p cann && cd cann
-          curl -O https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/cann-package/20260330/Ascend-cann-toolkit_9.0.0-beta.2_linux-aarch64.run
-          curl -O https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/cann-package/20260330/Ascend-cann-A3-ops_9.0.0-beta.2_linux-aarch64.run
-          curl -O https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/cann-package/20260330/Ascend-cann-nnal_9.0.0-beta.2_linux-aarch64.run
-
-          # Verify all downloads succeeded
-          for f in Ascend-cann*.run; do
-            if [[ ! -f "$f" ]]; then
-              echo "Failed to download CANN packages"
-              exit 1
-            fi
-          done
-
-          # Install CANN packages
-          chmod +x Ascend-cann*.run
-          ./Ascend-cann-toolkit*.run --full --quiet --install-path=/usr/local/Ascend && echo "toolkit install success"
-          ./Ascend-cann-A3*.run --install --quiet --install-path=/usr/local/Ascend && echo "ops install success"
-          ./Ascend-cann-nnal*.run --install --quiet --install-path=/usr/local/Ascend && echo "nnal install success"
-
-          # Output /usr/local/Ascend directory contents for verification
-          echo "=== /usr/local/Ascend directory contents ==="
-          ls -la /usr/local/Ascend/
-          echo "=== /usr/local/Ascend/cann contents ==="
-          ls -la /usr/local/Ascend/cann/
-          echo "=== /usr/local/Ascend/nnal contents ==="
-          ls -la /usr/local/Ascend/nnal/
 
       - name: Download built torch_npu wheel
         uses: actions/download-artifact@v4
@@ -603,7 +527,7 @@ jobs:
     if: ${{ github.event.inputs.test_files != '' }}
     runs-on: linux-aarch64-a3-8
     container:
-      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.11.0_a2_aarch64_builder:20260331
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.7.1_a3_aarch64_builder:20260424
       options: --user root
 
     steps:
@@ -618,44 +542,6 @@ jobs:
       - name: Setup cache directories
         run: |
           mkdir -p /github/home/.cache/pip
-
-      - name: Install CANN package
-        run: |
-          # Uninstall old CANN
-          cd /usr/local/Ascend/cann
-          bash cann_uninstall.sh || true
-          cd /usr/local/Ascend/
-          rm -rf cann*
-          cd /home
-          rm -rf cann
-
-          # Download new CANN packages
-          mkdir -p cann && cd cann
-          curl -O https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/cann-package/20260330/Ascend-cann-toolkit_9.0.0-beta.2_linux-aarch64.run
-          curl -O https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/cann-package/20260330/Ascend-cann-A3-ops_9.0.0-beta.2_linux-aarch64.run
-          curl -O https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/cann-package/20260330/Ascend-cann-nnal_9.0.0-beta.2_linux-aarch64.run
-
-          # Verify all downloads succeeded
-          for f in Ascend-cann*.run; do
-            if [[ ! -f "$f" ]]; then
-              echo "Failed to download CANN packages"
-              exit 1
-            fi
-          done
-
-          # Install CANN packages
-          chmod +x Ascend-cann*.run
-          ./Ascend-cann-toolkit*.run --full --quiet --install-path=/usr/local/Ascend && echo "toolkit install success"
-          ./Ascend-cann-A3*.run --install --quiet --install-path=/usr/local/Ascend && echo "ops install success"
-          ./Ascend-cann-nnal*.run --install --quiet --install-path=/usr/local/Ascend && echo "nnal install success"
-
-          # Output /usr/local/Ascend directory contents for verification
-          echo "=== /usr/local/Ascend directory contents ==="
-          ls -la /usr/local/Ascend/
-          echo "=== /usr/local/Ascend/cann contents ==="
-          ls -la /usr/local/Ascend/cann/
-          echo "=== /usr/local/Ascend/nnal contents ==="
-          ls -la /usr/local/Ascend/nnal/
 
       - name: Download built torch_npu wheel
         uses: actions/download-artifact@v4
