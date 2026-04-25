@@ -5,19 +5,23 @@ Run a shard of patched upstream PyTorch tests via per-case isolation pytest exec
 This script focuses on:
     - Test discovery (via discover_test_files.py)
     - Shard assignment (Step 4)
-    - Per-case isolation execution (strict serial, each case in own process)
+    - Per-case isolation execution (serial or concurrent subprocess)
 
 Result parsing is handled by parse_test_results.py.
 
 Test types:
-    - distributed: NPU distributed tests (test/distributed/*)
-    - regular: All other tests
+    - distributed: NPU distributed tests (test/distributed/*) - serial execution
+    - regular: All other tests - concurrent execution (max 4 workers by default)
 
 Each shard executes tests in per-case isolation mode:
     - First collect all test cases via pytest --collect-only
-    - Each case runs in its own pytest subprocess (strict serial)
-    - NPU kernel crashes won't cascade to other cases
+    - Each case runs in its own pytest subprocess
+    - NPU kernel crashes won't cascade to other cases (each case isolated)
     - Results recorded in cases.json file
+
+Execution modes:
+    - Serial: One case at a time (for distributed tests)
+    - Concurrent: Up to max_workers subprocesses running simultaneously (for regular tests)
 
 Usage:
     python run_npu_test_shard.py \
@@ -29,6 +33,7 @@ Usage:
         --disabled-testcases /path/to/disabled_testcases.json \
         --report-dir test-reports \
         --timeout 1200 \
+        --max-workers 4 \
         --verbose
 """
 
@@ -37,10 +42,14 @@ import dataclasses
 import importlib.util
 import json
 import os
+import signal
 import subprocess
 import sys
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
+from queue import Queue
 from time import monotonic
 from typing import Dict, List, Optional, Tuple
 
@@ -107,6 +116,139 @@ class ShardPlanResult:
             "num_shards": self.shard_assignment.num_shards,
             "shard_files": self.shard_assignment.planned_count,
         }
+
+
+# ==============================================================================
+# Concurrent Execution Data Classes
+# ==============================================================================
+
+
+@dataclasses.dataclass
+class CaseExecutionTask:
+    """Task for concurrent case execution."""
+    case_idx: int
+    nodeid: str
+    test_file: str
+    file_idx: int
+
+
+@dataclasses.dataclass
+class ConcurrentExecutionConfig:
+    """Configuration for concurrent execution."""
+    max_workers: int = 4
+    per_case_timeout: int = 1200
+    verbose: bool = False
+
+
+class ConcurrentResultAggregator:
+    """Thread-safe result aggregator for concurrent execution."""
+
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._cases_list: List[Dict] = []
+        self._worst_returncode: int = 0
+        self._passed_count: int = 0
+        self._failed_count: int = 0
+        self._error_count: int = 0
+        self._skipped_count: int = 0
+        self._crashed_count: int = 0
+        self._timeout_count: int = 0
+        self._total_cases: int = 0
+
+    def add_case_result(self, case_result: Dict) -> None:
+        """Thread-safe add case result."""
+        with self._lock:
+            self._cases_list.append(case_result)
+            self._total_cases += 1
+
+            status = case_result.get("status", "error")
+            if status == "passed":
+                self._passed_count += 1
+            elif status == "failed":
+                self._failed_count += 1
+            elif status == "skipped":
+                self._skipped_count += 1
+            elif status == "crashed":
+                self._crashed_count += 1
+                self._error_count += 1
+            elif status == "timeout":
+                self._timeout_count += 1
+                self._error_count += 1
+            else:
+                self._error_count += 1
+
+            # Track worst returncode (ignore skipped/no_tests)
+            rc = case_result.get("returncode", 1)
+            if rc != 0 and rc != 3 and rc != 5:
+                if self._worst_returncode == 0:
+                    self._worst_returncode = rc
+
+    def get_sorted_cases(self) -> List[Dict]:
+        """Get cases sorted by case_idx."""
+        with self._lock:
+            return sorted(self._cases_list, key=lambda x: x.get("case_idx", 0))
+
+    def get_summary(self) -> Dict:
+        """Get execution summary."""
+        with self._lock:
+            return {
+                "total_cases": self._total_cases,
+                "passed_count": self._passed_count,
+                "failed_count": self._failed_count,
+                "error_count": self._error_count,
+                "skipped_count": self._skipped_count,
+                "crashed_count": self._crashed_count,
+                "timeout_count": self._timeout_count,
+                "worst_returncode": self._worst_returncode,
+            }
+
+
+class ProgressTracker:
+    """Thread-safe progress tracker with real-time output."""
+
+    def __init__(self, total_tasks: int):
+        self._total_tasks = total_tasks
+        self._completed_tasks = 0
+        self._lock = threading.Lock()
+        self._start_time = monotonic()
+
+    def mark_completed(self, nodeid: str, status: str, duration: float) -> None:
+        """Mark task completed and print progress."""
+        with self._lock:
+            self._completed_tasks += 1
+            elapsed = monotonic() - self._start_time
+            progress_pct = (self._completed_tasks / self._total_tasks) * 100
+
+            # Status indicator
+            status_icon = {
+                "passed": "[PASS]",
+                "failed": "[FAIL]",
+                "error": "[ERR]",
+                "crashed": "[CRASH]",
+                "timeout": "[TIMEOUT]",
+                "skipped": "[SKIP]",
+            }.get(status, "[?]")
+
+            # Truncate nodeid for display
+            display_nodeid = nodeid[:60] + "..." if len(nodeid) > 60 else nodeid
+
+            print(f"[{self._completed_tasks}/{self._total_tasks}] {progress_pct:.1f}% "
+                  f"{status_icon} {display_nodeid} ({duration:.1f}s) "
+                  f"[elapsed: {elapsed:.0f}s]")
+
+    def get_progress(self) -> Tuple[int, int]:
+        """Get current progress."""
+        with self._lock:
+            return self._completed_tasks, self._total_tasks
+
+
+def get_signal_name(signal_num: int) -> str:
+    """Convert signal number to human-readable name."""
+    try:
+        name = signal.Signals(signal_num).name
+        return f"{name}({signal_num})"
+    except ValueError:
+        return f"SIG{signal_num}"
 
 
 # ==============================================================================
@@ -490,6 +632,411 @@ def run_single_test_case(
         }
 
 
+# ==============================================================================
+# Concurrent Case Execution
+# ==============================================================================
+
+
+def run_single_case_concurrent(
+    task: CaseExecutionTask,
+    test_dir: Path,
+    merged_env: Dict[str, str],
+    config: ConcurrentExecutionConfig,
+    result_aggregator: ConcurrentResultAggregator,
+    progress_tracker: ProgressTracker,
+    log_queue: Queue,
+) -> Dict:
+    """
+    Execute a single test case in subprocess (for concurrent execution).
+
+    This function runs in ThreadPoolExecutor threads. Each call spawns
+    an independent subprocess for the test case. Core dumps and crashes
+    in the subprocess do NOT affect the main Python process or other
+    concurrent tasks.
+
+    CRITICAL: This function must catch ALL exceptions and return a result
+    dict. It should NEVER raise exceptions to ThreadPoolExecutor level.
+
+    Args:
+        task: Case execution task with nodeid and metadata
+        test_dir: PyTorch test directory
+        merged_env: Environment variables
+        config: Execution configuration
+        result_aggregator: Thread-safe result collector
+        progress_tracker: Thread-safe progress tracker
+        log_queue: Queue for log messages
+
+    Returns:
+        Dict with case result (never raises exception)
+    """
+    start_time = monotonic()
+    original_nodeid = task.nodeid
+    case_nodeid = task.nodeid
+
+    # Strip test/ prefix for pytest execution
+    if case_nodeid.startswith("test/"):
+        case_nodeid = case_nodeid[5:]
+
+    command = [
+        sys.executable,
+        "-m",
+        "pytest",
+        "--color=no",
+        "-ra",
+        "--tb=short",
+        case_nodeid,
+    ]
+
+    if config.per_case_timeout > 0:
+        command.append(f"--timeout={config.per_case_timeout}")
+
+    if config.verbose:
+        command.append("-vv")
+    else:
+        command.append("-v")
+
+    command_str = " ".join(command)
+
+    # Log start
+    log_queue.put({
+        "type": "case_start",
+        "case_idx": task.case_idx,
+        "nodeid": original_nodeid,
+        "file": task.test_file,
+        "command": command_str,
+    })
+
+    # Execute subprocess - CRITICAL: catch ALL exceptions
+    try:
+        result = subprocess.run(
+            command,
+            cwd=str(test_dir),
+            env=merged_env,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=config.per_case_timeout + 30,  # Extra buffer
+        )
+
+        duration = monotonic() - start_time
+        returncode = result.returncode
+
+        # Determine status (including crashed with negative returncode)
+        if returncode == 0:
+            status = "passed"
+        elif returncode == 1:
+            status = "failed"
+        elif returncode == 2:
+            status = "error"
+        elif returncode == 3:
+            status = "skipped"
+        elif returncode == 4:
+            status = "error"
+        elif returncode == 5:
+            status = "no_tests"
+        elif returncode < 0:
+            # Core dump or signal crash
+            status = "crashed"
+            signal_name = get_signal_name(abs(returncode))
+        else:
+            status = "error"
+
+        # Extract error message
+        message = ""
+        if status in ("failed", "error", "crashed"):
+            output = result.stderr + result.stdout
+            lines = output.splitlines()
+            error_lines = [l for l in lines[-20:] if l.strip()]
+            message = "\n".join(error_lines[-5:])[:500]
+            if status == "crashed":
+                message = f"Process crashed with {signal_name}\n{message}"
+
+        case_result = {
+            "nodeid": original_nodeid,
+            "status": status,
+            "duration": duration,
+            "returncode": returncode,
+            "message": message,
+            "command": command_str,
+            "file": task.test_file,
+            "case_idx": task.case_idx,
+        }
+
+    except subprocess.TimeoutExpired:
+        # Timeout - return result, don't raise
+        duration = monotonic() - start_time
+        case_result = {
+            "nodeid": original_nodeid,
+            "status": "timeout",
+            "duration": duration,
+            "returncode": -1,
+            "message": f"Timeout after {config.per_case_timeout}s",
+            "command": command_str,
+            "file": task.test_file,
+            "case_idx": task.case_idx,
+        }
+
+    except Exception as e:
+        # Any other exception - return result, don't raise
+        duration = monotonic() - start_time
+        case_result = {
+            "nodeid": original_nodeid,
+            "status": "error",
+            "duration": duration,
+            "returncode": 1,
+            "message": f"Unexpected error: {str(e)[:200]}",
+            "command": command_str,
+            "file": task.test_file,
+            "case_idx": task.case_idx,
+        }
+
+    # Log finish
+    log_queue.put({
+        "type": "case_finish",
+        "case_idx": task.case_idx,
+        "nodeid": original_nodeid,
+        "status": case_result["status"],
+        "duration": case_result["duration"],
+        "message": case_result["message"][:200] if case_result["message"] else "",
+    })
+
+    # Update aggregator (thread-safe)
+    result_aggregator.add_case_result(case_result)
+
+    # Update progress (thread-safe)
+    progress_tracker.mark_completed(original_nodeid, case_result["status"], duration)
+
+    return case_result
+
+
+def log_writer_thread(log_queue: Queue, log_file: Path, stop_event: threading.Event) -> None:
+    """
+    Background thread for writing logs.
+
+    Ensures thread-safe log file writes while concurrent tasks run.
+    """
+    with log_file.open("w", encoding="utf-8") as log_handle:
+        while not stop_event.is_set() or not log_queue.empty():
+            try:
+                log_entry = log_queue.get(timeout=0.5)
+            except:
+                continue
+
+            if log_entry.get("type") == "header":
+                log_handle.write(log_entry.get("content", ""))
+                log_handle.flush()
+            elif log_entry.get("type") == "case_start":
+                log_handle.write(f"\n[{log_entry['case_idx']}] {log_entry['nodeid']}\n")
+                log_handle.write(f"  File: {log_entry.get('file', '')}\n")
+                log_handle.write(f"  Command: {log_entry.get('command', '')}\n")
+                log_handle.flush()
+            elif log_entry.get("type") == "case_finish":
+                status_str = log_entry.get("status", "")
+                duration_str = f"{log_entry.get('duration', 0):.2f}s"
+                log_handle.write(f"  Status: {status_str}, Duration: {duration_str}\n")
+                if log_entry.get("message"):
+                    log_handle.write(f"  Message: {log_entry['message']}\n")
+                log_handle.flush()
+            elif log_entry.get("type") == "summary":
+                log_handle.write(log_entry.get("content", ""))
+                log_handle.flush()
+
+
+def run_tests_with_concurrent_isolation(
+    planned_tests: List[str],
+    shard: int,
+    test_dir: Path,
+    report_dir: Path,
+    env_updates: Dict[str, str],
+    timeout: int,
+    verbose: bool,
+    shard_type: str,
+    max_workers: int,
+    result_module,
+) -> Tuple[int, float, List[Dict]]:
+    """
+    Execute tests with concurrent per-case isolation.
+
+    Each test case runs in its own pytest subprocess for crash isolation.
+    Up to max_workers subprocesses execute concurrently via ThreadPoolExecutor.
+
+    Core dumps in subprocess do NOT affect:
+    - The main Python process
+    - Other concurrent subprocesses
+    - Pending tasks in the queue
+
+    Args:
+        planned_tests: List of test file paths
+        shard: Shard number
+        test_dir: PyTorch test directory
+        report_dir: Report output directory
+        env_updates: Environment variable updates
+        timeout: Per-case timeout in seconds
+        verbose: Verbose output
+        shard_type: "distributed" or "regular"
+        max_workers: Maximum concurrent subprocesses (default: 4)
+        result_module: parse_test_results module
+
+    Returns:
+        Tuple of (worst_returncode, duration, cases_list_sorted)
+    """
+    start = monotonic()
+    log_file = result_module.get_shard_log_file(report_dir, shard, shard_type)
+
+    merged_env = os.environ.copy()
+    merged_env.update(env_updates)
+
+    config = ConcurrentExecutionConfig(
+        max_workers=max_workers,
+        per_case_timeout=timeout,
+        verbose=verbose,
+    )
+
+    # Thread-safe result aggregator
+    result_aggregator = ConcurrentResultAggregator()
+
+    # Log queue and writer thread
+    log_queue = Queue()
+    stop_event = threading.Event()
+    log_thread = threading.Thread(
+        target=log_writer_thread,
+        args=(log_queue, log_file, stop_event),
+        daemon=True,
+    )
+
+    # Write log header
+    log_queue.put({
+        "type": "header",
+        "content": (
+            "=" * 80 + "\n"
+            f"Concurrent per-case isolation pytest execution ({shard_type} shard)\n"
+            "=" * 80 + "\n"
+            f"Total test files: {len(planned_tests)}\n"
+            f"Max concurrent workers: {max_workers}\n"
+            "Execution mode: concurrent subprocess, each case isolated\n"
+            "=" * 80 + "\n\n"
+        ),
+    })
+
+    log_thread.start()
+
+    print(f"\n{'=' * 80}")
+    print(f"Concurrent per-case isolation mode: {len(planned_tests)} files")
+    print(f"Execution mode: {max_workers} workers concurrent, each case in subprocess")
+    print(f"{'=' * 80}\n")
+
+    # Phase 1: Collect all test cases (serial, as parsing test files)
+    all_tasks: List[CaseExecutionTask] = []
+    case_idx = 0
+
+    print("Phase 1: Collecting test cases...")
+    for file_idx, test_file in enumerate(planned_tests, 1):
+        test_name = strip_test_prefix_and_suffix(test_file)
+        print(f"\n  [File {file_idx}/{len(planned_tests)}] Collecting: {test_name}")
+
+        case_nodeids = collect_test_cases(test_file, test_dir, merged_env)
+
+        if not case_nodeids:
+            print(f"    No cases collected")
+            continue
+
+        print(f"    Collected {len(case_nodeids)} cases")
+
+        for nodeid in case_nodeids:
+            case_idx += 1
+            all_tasks.append(CaseExecutionTask(
+                case_idx=case_idx,
+                nodeid=nodeid,
+                test_file=test_file,
+                file_idx=file_idx,
+            ))
+
+    total_cases = len(all_tasks)
+    print(f"\n{'=' * 80}")
+    print(f"Phase 2: Concurrent execution with {max_workers} workers")
+    print(f"Total cases to execute: {total_cases}")
+    print(f"{'=' * 80}\n")
+
+    # Phase 2: Concurrent execution via ThreadPoolExecutor
+    progress_tracker = ProgressTracker(total_cases)
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # Submit all tasks
+        future_to_task = {
+            executor.submit(
+                run_single_case_concurrent,
+                task,
+                test_dir,
+                merged_env,
+                config,
+                result_aggregator,
+                progress_tracker,
+                log_queue,
+            ): task
+            for task in all_tasks
+        }
+
+        # Wait for completion (as_completed gives results as they finish)
+        for future in as_completed(future_to_task):
+            task = future_to_task[future]
+            try:
+                # Result already collected in aggregator
+                _ = future.result()
+            except Exception as e:
+                # Should never happen (run_single_case_concurrent catches all)
+                # But as safety, create error result
+                case_result = {
+                    "nodeid": task.nodeid,
+                    "status": "error",
+                    "duration": 0.0,
+                    "returncode": 1,
+                    "message": f"Future error: {str(e)[:200]}",
+                    "file": task.test_file,
+                    "case_idx": task.case_idx,
+                }
+                result_aggregator.add_case_result(case_result)
+                progress_tracker.mark_completed(task.nodeid, "error", 0.0)
+
+    # Stop log thread
+    elapsed = monotonic() - start
+    summary = result_aggregator.get_summary()
+
+    log_queue.put({
+        "type": "summary",
+        "content": (
+            f"\n{'=' * 80}\n"
+            f"Summary: {summary['total_cases']} cases executed\n"
+            f"  Passed: {summary['passed_count']}\n"
+            f"  Failed: {summary['failed_count']}\n"
+            f"  Errors: {summary['error_count']}\n"
+            f"  Crashed: {summary['crashed_count']}\n"
+            f"  Timeout: {summary['timeout_count']}\n"
+            f"  Skipped: {summary['skipped_count']}\n"
+            f"  Duration: {elapsed:.2f}s\n"
+            f"  Concurrent workers: {max_workers}\n"
+            f"{'=' * 80}\n"
+        ),
+    })
+
+    stop_event.set()
+    log_thread.join(timeout=5)
+
+    # Print final summary
+    print(f"\n{'=' * 80}")
+    print(f"Summary: {summary['total_cases']} cases executed")
+    print(f"  Passed: {summary['passed_count']}")
+    print(f"  Failed: {summary['failed_count']}")
+    print(f"  Errors: {summary['error_count']}")
+    print(f"  Crashed: {summary['crashed_count']}")
+    print(f"  Timeout: {summary['timeout_count']}")
+    print(f"  Skipped: {summary['skipped_count']}")
+    print(f"  Duration: {elapsed:.2f}s")
+    print(f"{'=' * 80}")
+
+    return summary["worst_returncode"], elapsed, result_aggregator.get_sorted_cases()
+
+
 def run_tests_with_case_isolation(
     planned_tests: List[str],
     shard: int,
@@ -762,13 +1309,19 @@ def parse_args():
         type=str,
         choices=["distributed", "regular"],
         default="regular",
-        help="Test type (ignored if --test-files is set)",
+        help="Test type (ignored if --test-files is set). distributed uses serial execution, regular uses concurrent.",
     )
     parser.add_argument("--test-dir", type=str, required=True, help="Path to PyTorch test directory")
     parser.add_argument("--disabled-testcases", type=str, help="Path to disabled_testcases.json")
     parser.add_argument("--case-paths-config", type=str, help="Path to case_paths_ci.yml")
     parser.add_argument("--report-dir", type=str, default="test-reports", help="Directory for reports")
     parser.add_argument("--timeout", type=int, default=1200, help="Per-case timeout in seconds (default: 1200 = 20 minutes)")
+    parser.add_argument(
+        "--max-workers",
+        type=int,
+        default=4,
+        help="Maximum concurrent workers for regular tests (default: 4). Each worker runs one pytest subprocess.",
+    )
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
     args = parser.parse_args()
 
@@ -776,6 +1329,12 @@ def parse_args():
     if not args.test_files:
         if not args.shard or not args.num_shards:
             parser.error("--shard and --num-shards are required when --test-files is not set")
+
+    # Validate max_workers
+    if args.max_workers < 1:
+        parser.error("--max-workers must be at least 1")
+    if args.max_workers > 8:
+        print(f"WARNING: --max-workers={args.max_workers} is high, may cause resource contention")
 
     return args
 
@@ -818,7 +1377,7 @@ def main():
 
         print(f"Test files specified: {len(planned_tests)}")
         print(f"Test directory: {test_dir}")
-        print("Execution mode: per-case isolation (strict serial)")
+        print(f"Execution mode: concurrent ({args.max_workers} workers, per-case subprocess isolation)")
         if args.disabled_testcases:
             disabled_count = result_module.load_disabled_testcases_count(args.disabled_testcases)
             print(f"Disabled testcase entries: {disabled_count}")
@@ -850,10 +1409,11 @@ def main():
             test_dir, script_dir, args.disabled_testcases, shard, shard_type
         )
 
-        # Execute tests
+        # Execute tests (custom mode uses concurrent execution by default)
         cases_list = []
         if planned_tests:
-            returncode, duration, cases_list = run_tests_with_case_isolation(
+            # Custom mode: concurrent execution for efficiency
+            returncode, duration, cases_list = run_tests_with_concurrent_isolation(
                 planned_tests,
                 shard,
                 test_dir,
@@ -862,9 +1422,11 @@ def main():
                 args.timeout,
                 args.verbose,
                 shard_type,
+                args.max_workers,
                 result_module,
             )
             info["per_case_isolation"] = True
+            info["concurrent_workers"] = args.max_workers
             info["returncode"] = returncode
             info["duration"] = duration
 
@@ -877,7 +1439,8 @@ def main():
         cases_data = {
             "shard": shard,
             "shard_type": shard_type,
-            "execution_mode": "case_isolation",
+            "execution_mode": "concurrent",
+            "concurrent_workers": args.max_workers,
             "total_cases": len(cases_list),
             "passed": passed_count,
             "failed": failed_count,
@@ -963,7 +1526,10 @@ def main():
     print(create_test_plan_summary(plan_result))
     print(f"\nRepository root: {repo_root}")
     print(f"Test directory: {test_dir}")
-    print("Execution mode: per-case isolation (strict serial)")
+    if shard_type == "distributed":
+        print("Execution mode: SERIAL (per-case subprocess isolation)")
+    else:
+        print(f"Execution mode: CONCURRENT ({args.max_workers} workers, per-case subprocess isolation)")
     if args.case_paths_config:
         print(f"Case path rules: {args.case_paths_config}")
     print(f"Disabled testcase entries: {info['disabled_count']}")
@@ -983,21 +1549,44 @@ def main():
     )
 
     # ==========================================================================
-    # Execute tests
+    # Execute tests - choose execution mode based on shard_type
     # ==========================================================================
+    # distributed tests: serial execution (each case in own process, one at a time)
+    # regular tests: concurrent execution (max_workers subprocesses simultaneously)
     cases_list = []
     if planned_tests:
-        returncode, duration, cases_list = run_tests_with_case_isolation(
-            planned_tests,
-            args.shard,
-            test_dir,
-            report_dir,
-            env_updates,
-            args.timeout,
-            args.verbose,
-            shard_type,
-            result_module,
-        )
+        if shard_type == "distributed":
+            # Distributed tests: serial execution for stability
+            print("\nExecution mode: SERIAL (distributed tests require sequential execution)")
+            returncode, duration, cases_list = run_tests_with_case_isolation(
+                planned_tests,
+                args.shard,
+                test_dir,
+                report_dir,
+                env_updates,
+                args.timeout,
+                args.verbose,
+                shard_type,
+                result_module,
+            )
+            info["execution_mode"] = "serial"
+        else:
+            # Regular tests: concurrent execution for efficiency
+            print(f"\nExecution mode: CONCURRENT ({args.max_workers} workers)")
+            returncode, duration, cases_list = run_tests_with_concurrent_isolation(
+                planned_tests,
+                args.shard,
+                test_dir,
+                report_dir,
+                env_updates,
+                args.timeout,
+                args.verbose,
+                shard_type,
+                args.max_workers,
+                result_module,
+            )
+            info["execution_mode"] = "concurrent"
+            info["concurrent_workers"] = args.max_workers
         info["per_case_isolation"] = True
     else:
         print("No test files assigned to this shard after file-level filtering.")
@@ -1013,7 +1602,8 @@ def main():
     cases_data = {
         "shard": args.shard,
         "shard_type": shard_type,
-        "execution_mode": "case_isolation",
+        "execution_mode": info.get("execution_mode", "serial"),
+        "concurrent_workers": info.get("concurrent_workers", 1),
         "total_cases": len(cases_list),
         "passed": passed_count,
         "failed": failed_count,
