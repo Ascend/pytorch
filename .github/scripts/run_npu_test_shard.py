@@ -300,17 +300,40 @@ def collect_test_cases(test_file: str, test_dir: Path, env: Dict) -> List[str]:
         )
 
         # Check for collection errors (import failures, etc.)
-        if result.stderr:
-            stderr_lines = result.stderr.strip().splitlines()
-            # Print warning if there are errors (various error types)
-            stderr_lower = result.stderr.lower()
-            if stderr_lines and any(
-                kw in stderr_lower
-                for kw in ["error", "failed", "importerror", "modulenotfound", "traceback", "exception"]
-            ):
-                print(f"    WARNING: Collection errors for {test_file}:")
+        # pytest outputs collection errors to stdout, not stderr
+        stdout_lower = result.stdout.lower()
+        stderr_lower = result.stderr.lower() if result.stderr else ""
+
+        # Keywords that indicate collection failure
+        error_keywords = [
+            "error collecting",
+            "importerror",
+            "modulenotfound",
+            "traceback",
+            "exception",
+        ]
+
+        # Check both stdout and stderr for error indicators
+        has_error = any(kw in stdout_lower for kw in error_keywords) or \
+                    any(kw in stderr_lower for kw in error_keywords)
+
+        if has_error:
+            print(f"    WARNING: Collection errors for {test_file}:")
+            # Print relevant lines from stdout (pytest collection errors are in stdout)
+            stdout_lines = result.stdout.strip().splitlines()
+            # Find lines containing error information
+            for line in stdout_lines[-15:]:
+                if line.strip() and any(
+                    kw in line.lower()
+                    for kw in ["error", "import", "traceback", "module", "hint", "e   ", "==="]
+                ):
+                    print(f"      {line[:200]}")
+            # Also print stderr if relevant
+            if result.stderr:
+                stderr_lines = result.stderr.strip().splitlines()
                 for line in stderr_lines[-10:]:
-                    print(f"      {line}")
+                    if line.strip():
+                        print(f"      {line[:200]}")
 
         # Parse nodeids from output
         nodeids = []
