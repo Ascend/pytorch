@@ -1,0 +1,40 @@
+diff --git a/test/distributed/elastic/rendezvous/c10d_rendezvous_backend_test.py b/test/distributed/elastic/rendezvous/c10d_rendezvous_backend_test.py
+index 82bc62d..521513e 100644
+--- a/test/distributed/elastic/rendezvous/c10d_rendezvous_backend_test.py
++++ b/test/distributed/elastic/rendezvous/c10d_rendezvous_backend_test.py
+@@ -75,7 +75,7 @@
+         port = get_free_port()
+         self._params = RendezvousParameters(
+             backend="dummy_backend",
+-            endpoint=f"localhost:{port}",
++            endpoint=f"127.0.0.1:{port}",
+             run_id="dummy_run_id",
+             min_nodes=1,
+             max_nodes=1,
+@@ -98,7 +98,7 @@
+         self._expected_endpoint_file = tmp_path
+         self._expected_temp_dir = tempfile.gettempdir()
+ 
+-        self._expected_endpoint_host = "localhost"
++        self._expected_endpoint_host = "127.0.0.1"
+         self._expected_endpoint_port = port
+         self._expected_store_type = TCPStore
+         self._expected_read_timeout = timedelta(seconds=10)
+@@ -150,7 +150,7 @@
+                 )
+ 
+     def test_create_backend_returns_backend_if_is_host_is_false(self) -> None:
+-        TCPStore(  # type: ignore[call-arg]
++        self._bootstrap_store = TCPStore(  # type: ignore[call-arg]
+             self._expected_endpoint_host, self._expected_endpoint_port, is_master=True
+         )
+ 
+@@ -166,7 +166,7 @@
+     def test_create_backend_returns_backend_if_is_host_is_not_specified_and_store_already_exists(
+         self,
+     ) -> None:
+-        TCPStore(  # type: ignore[call-arg]
++        self._bootstrap_store = TCPStore(  # type: ignore[call-arg]
+             self._expected_endpoint_host, self._expected_endpoint_port, is_master=True
+         )
+ 
