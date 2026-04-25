@@ -620,7 +620,11 @@ def build_execution_env(
         "TORCH_DEVICE_BACKEND_AUTOLOAD": "1",
         "NO_TD": "1",
         "PYTHONUNBUFFERED": "1",
-        "CI": "true",
+        # Note: Do NOT set CI=true here, as some test files have conditional
+        # test generation logic like:
+        #   if not (IS_CI and torch.cuda.is_available()):
+        #       globals().update(generate_tests(...))
+        # Setting CI=true would prevent test case generation in those files.
     }
 
     # Use PyTorch's built-in DISABLED_TESTS_FILE mechanism for skipping test cases
