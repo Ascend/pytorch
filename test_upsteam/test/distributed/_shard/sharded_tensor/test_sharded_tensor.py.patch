@@ -1,0 +1,16 @@
+diff --git a/test/distributed/_shard/sharded_tensor/test_sharded_tensor.py b/test/distributed/_shard/sharded_tensor/test_sharded_tensor.py
+index 7439b26..f0aaaaa 100644
+--- a/test/distributed/_shard/sharded_tensor/test_sharded_tensor.py
++++ b/test/distributed/_shard/sharded_tensor/test_sharded_tensor.py
+@@ -3089,6 +3089,10 @@ class TestCustomOps(ShardedTensorTestBase):
+                 pass
+ 
+ 
+ class TestShardMetadata(ShardedTensorTestBase):
++    def destroy_pg(self) -> None:
++        dist.barrier()
++        dist.destroy_process_group()
++
+     @with_comms
+     @requires_nccl()
+     def test_shard_metadata_init(self):
