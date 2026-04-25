@@ -1,9 +1,10 @@
 import copy
 from collections import defaultdict
+from types import SimpleNamespace
 
 import torch
 from torch.fx import Graph, GraphModule, Node
-from torch.library import custom_op
+from torch.library import Library
 from torch.utils._pytree import tree_map
 from torch._inductor import config as inductor_config
 from torch._inductor.codegen.wrapper import PythonWrapperCodegen
@@ -22,6 +23,7 @@ from .graph_build import DvmCodegenInterpreter
 from .fx_test import generate_dvm_fx_case
 from .op_emitter import DVM_OP_REGISTRY
 from .fx_pass import (
+    decompose_k1_matmul_to_mul,
     insert_promote_cast_by_pos_prims,
     insert_sum_fp32_prepost_cast_prims,
     expand_to_reshape,
@@ -172,6 +174,7 @@ class _FusedMeta:
 
 # fused_id -> meta
 _fused_metas: dict[int, _FusedMeta] = {}
+_fused_libs: dict[str, Library] = {}
 
 
 def _fused_run_stub(*args, **kwargs):
@@ -234,15 +237,19 @@ class GraphFusionPartitioner(CapabilityBasedPartitioner):
         if custom is not None:
             return custom
         schema = self._build_schema(input_types, output_len)
+        op_name = "fused_graph_" + op_def
+        qualname = "dvm::" + op_name
 
-        custom = custom_op(
-            "dvm::fused_graph_" + op_def,
-            _fused_run_stub,
-            mutates_args=(),
-            device_types="npu",
-            schema=schema,
-        )
-        custom.register_fake(_fused_run_fake)
+        lib = Library("dvm", "FRAGMENT")
+        # Use flexible_layout so shared producers can stay shared, instead of
+        # each fused_graph consumer materializing its own fixed-stride copy.
+        lib.define(op_name + schema, tags=[torch._C.Tag.flexible_layout])
+        lib._register_fake(op_name, _fused_run_fake, _stacklevel=1)
+        lib.impl(op_name, _fused_run_stub, "CompositeExplicitAutograd")
+
+        opoverload = getattr(getattr(torch.ops.dvm, op_name), "default")
+        custom = SimpleNamespace(_opoverload=opoverload, _lib=lib, _qualname=qualname)
+        _fused_libs[qualname] = lib
         self.fused_op_map_[op_def] = custom
         return custom
 
@@ -285,6 +292,7 @@ class GraphFusionPartitioner(CapabilityBasedPartitioner):
             )
 
             # post-processing inside sub graph
+            decompose_k1_matmul_to_mul(sub_gm)
             insert_promote_cast_by_pos_prims(sub_gm)
             insert_sum_fp32_prepost_cast_prims(sub_gm)
             expand_to_reshape(sub_gm)

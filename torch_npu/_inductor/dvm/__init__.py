@@ -184,4 +184,3 @@ def _install_bf16_promote():
 
 
 _install_bf16_promote()
-Kernel.set_deterministic(torch.are_deterministic_algorithms_enabled())

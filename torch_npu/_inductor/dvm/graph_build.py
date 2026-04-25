@@ -102,6 +102,7 @@ class DvmCodegenInterpreter(torch.fx.Interpreter):
             if meta.get("trans", False):
                 self.cont_flag_input.append(True)
                 shape = val.mT.shape
+                shape = [-1 if isinstance(s, torch.SymInt) else s for s in shape]
                 return load(shape, dtype)
             else:
                 self.cont_flag_input.append(is_contiguous)
