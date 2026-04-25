@@ -1,0 +1,219 @@
+name: Test CANN Installation
+
+on:
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: '3.11'
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  test_cann_install:
+    runs-on: linux-aarch64-a3-2
+    container:
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.11.0_a2_aarch64_builder:20260331
+      options: --user root
+
+    steps:
+      - name: Debug - Show initial environment
+        run: |
+          echo "=== Current working directory ==="
+          pwd
+          echo "=== Environment variables ==="
+          env | sort
+          echo "=== Current user ==="
+          whoami
+          echo "=== Home directory ==="
+          echo "HOME: ${HOME}"
+          echo "=== /usr/local/Ascend before uninstall ==="
+          ls -la /usr/local/Ascend/ || echo "Directory not found"
+          echo "=== /usr/local/Ascend/cann before uninstall ==="
+          ls -la /usr/local/Ascend/cann/ || echo "Directory not found"
+
+      - name: Debug - Check cann_uninstall.sh
+        run: |
+          echo "=== Checking cann_uninstall.sh ==="
+          if [ -f /usr/local/Ascend/cann/cann_uninstall.sh ]; then
+            echo "cann_uninstall.sh exists"
+            ls -la /usr/local/Ascend/cann/cann_uninstall.sh
+            head -20 /usr/local/Ascend/cann/cann_uninstall.sh
+          else
+            echo "cann_uninstall.sh NOT found"
+            find /usr/local/Ascend -name "*uninstall*" 2>/dev/null || true
+          fi
+
+      - name: Uninstall old CANN
+        run: |
+          echo "=== Step 1: Uninstall old CANN ==="
+          cd /usr/local/Ascend/cann || { echo "Cannot cd to /usr/local/Ascend/cann"; exit 1; }
+          echo "Current dir: $(pwd)"
+
+          if [ -f cann_uninstall.sh ]; then
+            echo "Running cann_uninstall.sh..."
+            bash cann_uninstall.sh 2>&1 | tee /tmp/uninstall.log || echo "Uninstall returned non-zero (may be expected)"
+            echo "=== Uninstall output ==="
+            cat /tmp/uninstall.log
+          else
+            echo "cann_uninstall.sh not found, skipping uninstall"
+          fi
+
+          echo "=== After uninstall, checking /usr/local/Ascend/cann ==="
+          ls -la /usr/local/Ascend/cann/ 2>/dev/null || echo "Directory may be empty or removed"
+
+      - name: Clean old CANN files
+        run: |
+          echo "=== Step 2: Clean old CANN files ==="
+          cd /usr/local/Ascend/ || { echo "Cannot cd to /usr/local/Ascend"; exit 1; }
+          echo "Current dir: $(pwd)"
+
+          echo "=== Before cleanup ==="
+          ls -la /usr/local/Ascend/
+
+          echo "Removing cann* directories..."
+          rm -rf cann* 2>&1 || echo "rm returned error"
+          echo "=== After cleanup ==="
+          ls -la /usr/local/Ascend/
+
+          echo "=== Cleaning /home/cann ==="
+          cd /home
+          rm -rf cann 2>&1 || echo "No /home/cann to remove"
+          ls -la /home/
+
+      - name: Download CANN packages
+        run: |
+          echo "=== Step 3: Download CANN packages ==="
+          mkdir -p cann && cd cann
+          echo "Current dir: $(pwd)"
+
+          echo "Downloading toolkit..."
+          curl -O https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/cann-package/20260330/Ascend-cann-toolkit_9.0.0-beta.2_linux-aarch64.run
+          echo "Downloading A3-ops..."
+          curl -O https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/cann-package/20260330/Ascend-cann-A3-ops_9.0.0-beta.2_linux-aarch64.run
+          echo "Downloading nnal..."
+          curl -O https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/cann-package/20260330/Ascend-cann-nnal_9.0.0-beta.2_linux-aarch64.run
+
+          echo "=== Downloaded files ==="
+          ls -la
+
+          echo "=== Verifying downloads ==="
+          for f in Ascend-cann*.run; do
+            if [ -f "$f" ]; then
+              echo "File $f exists, size: $(stat -c%s "$f")"
+            else
+              echo "ERROR: File $f missing!"
+              exit 1
+            fi
+          done
+
+      - name: Install CANN toolkit
+        run: |
+          echo "=== Step 4: Install CANN toolkit ==="
+          cd /home/cann || { echo "Cannot cd to /home/cann"; exit 1; }
+          echo "Current dir: $(pwd)"
+
+          chmod +x Ascend-cann*.run
+
+          echo "Installing toolkit..."
+          ./Ascend-cann-toolkit_9.0.0-beta.2_linux-aarch64.run --full --quiet --install-path=/usr/local/Ascend 2>&1 | tee /tmp/toolkit_install.log
+          TOOLKIT_STATUS=$?
+          echo "Toolkit install status: ${TOOLKIT_STATUS}"
+
+          if [ ${TOOLKIT_STATUS} -eq 0 ]; then
+            echo "toolkit install success"
+            echo "=== /usr/local/Ascend after toolkit install ==="
+            ls -la /usr/local/Ascend/
+            echo "=== /usr/local/Ascend/cann after toolkit install ==="
+            ls -la /usr/local/Ascend/cann/ 2>/dev/null || echo "cann directory not found"
+          else
+            echo "Toolkit install FAILED!"
+            cat /tmp/toolkit_install.log
+            exit 1
+          fi
+
+      - name: Install CANN A3-ops
+        run: |
+          echo "=== Step 5: Install CANN A3-ops ==="
+          cd /home/cann || { echo "Cannot cd to /home/cann"; exit 1; }
+
+          echo "Installing A3-ops..."
+          ./Ascend-cann-A3-ops_9.0.0-beta.2_linux-aarch64.run --install --quiet --install-path=/usr/local/Ascend 2>&1 | tee /tmp/ops_install.log
+          OPS_STATUS=$?
+          echo "A3-ops install status: ${OPS_STATUS}"
+
+          if [ ${OPS_STATUS} -eq 0 ]; then
+            echo "ops install success"
+          else
+            echo "A3-ops install FAILED!"
+            cat /tmp/ops_install.log
+            exit 1
+          fi
+
+      - name: Install CANN nnal
+        run: |
+          echo "=== Step 6: Install CANN nnal ==="
+          cd /home/cann || { echo "Cannot cd to /home/cann"; exit 1; }
+
+          echo "Installing nnal..."
+          ./Ascend-cann-nnal_9.0.0-beta.2_linux-aarch64.run --install --quiet --install-path=/usr/local/Ascend 2>&1 | tee /tmp/nnal_install.log
+          NNAL_STATUS=$?
+          echo "nnal install status: ${NNAL_STATUS}"
+
+          if [ ${NNAL_STATUS} -eq 0 ]; then
+            echo "nnal install success"
+            echo "=== /usr/local/Ascend/nnal after nnal install ==="
+            ls -la /usr/local/Ascend/nnal/ 2>/dev/null || echo "nnal directory not found"
+          else
+            echo "nnal install FAILED!"
+            cat /tmp/nnal_install.log
+            exit 1
+          fi
+
+      - name: Verify CANN installation
+        run: |
+          echo "=== Step 7: Verify CANN installation ==="
+          echo "=== /usr/local/Ascend directory contents ==="
+          ls -la /usr/local/Ascend/
+
+          echo "=== /usr/local/Ascend/cann contents ==="
+          ls -la /usr/local/Ascend/cann/
+
+          echo "=== /usr/local/Ascend/nnal contents ==="
+          ls -la /usr/local/Ascend/nnal/
+
+          echo "=== Checking set_env.sh files ==="
+          if [ -f /usr/local/Ascend/cann/set_env.sh ]; then
+            echo "cann/set_env.sh exists"
+            cat /usr/local/Ascend/cann/set_env.sh
+          else
+            echo "ERROR: cann/set_env.sh not found!"
+          fi
+
+          if [ -f /usr/local/Ascend/nnal/atb/set_env.sh ]; then
+            echo "nnal/atb/set_env.sh exists"
+            cat /usr/local/Ascend/nnal/atb/set_env.sh
+          else
+            echo "ERROR: nnal/atb/set_env.sh not found!"
+          fi
+
+      - name: Test environment setup
+        run: |
+          echo "=== Step 8: Test environment setup ==="
+          source /usr/local/Ascend/cann/set_env.sh 2>&1 || { echo "Failed to source cann set_env.sh"; exit 1; }
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>&1 || { echo "Failed to source nnal set_env.sh"; exit 1; }
+
+          echo "=== Environment after sourcing ==="
+          env | grep -i ascend || echo "No ASCEND env vars"
+          env | grep -i cann || echo "No CANN env vars"
+
+      - name: Upload debug logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cann-install-debug-logs
+          path: |
+            /tmp/*.log
+          if-no-files-found: warn
+          retention-days: 7
