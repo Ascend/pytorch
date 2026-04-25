@@ -1,7 +1,9 @@
 name: Test CANN Installation
 
 on:
-  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/test-cann-install.yml'
 
 env:
   PYTHON_VERSION: '3.11'
