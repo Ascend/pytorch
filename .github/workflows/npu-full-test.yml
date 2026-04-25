@@ -24,14 +24,14 @@ on:
   workflow_dispatch:
     inputs:
       distributed_shards:
-        description: 'Number of shards for distributed tests (default 5)'
-        required: false
-        default: '5'
-        type: string
-      regular_shards:
-        description: 'Number of shards for regular tests (default 10)'
+        description: 'Number of shards for distributed tests (default 10)'
         required: false
         default: '10'
+        type: string
+      regular_shards:
+        description: 'Number of shards for regular tests (default 30)'
+        required: false
+        default: '30'
         type: string
       test_files:
         description: 'Test files to run directly (comma-separated, e.g., "test_meta.py,test_nn.py"). Skip shard assignment if set.'
@@ -70,9 +70,9 @@ jobs:
       - name: Set shard matrices
         id: set_matrix
         run: |
-          # Get shard counts from inputs or use defaults (total 15 shards: 5 distributed + 10 regular)
-          DISTRIBUTED_SHARDS=${{ inputs.distributed_shards || '5' }}
-          REGULAR_SHARDS=${{ inputs.regular_shards || '10' }}
+          # Get shard counts from inputs or use defaults (total 40 shards: 10 distributed + 30 regular)
+          DISTRIBUTED_SHARDS=${{ inputs.distributed_shards || '10' }}
+          REGULAR_SHARDS=${{ inputs.regular_shards || '30' }}
 
           # Build distributed shard matrix
           DIST_SHARDS=$(seq 1 ${DISTRIBUTED_SHARDS} | tr '\n' ',' | sed 's/,$//')
@@ -164,14 +164,14 @@ jobs:
           retention-days: 30
 
   # ============================================================================
-  # Distributed Tests: linux-aarch64-a3-16 runner (16-card NPU), serial execution, default 5 shards
+  # Distributed Tests: linux-aarch64-a3-8 runner (8-card NPU), serial execution, default 10 shards
   # ============================================================================
   test_distributed:
     needs:
       - prepare
       - upload_torch_npu_wheel
     if: ${{ github.event.inputs.test_files == '' }}
-    runs-on: linux-aarch64-a3-16
+    runs-on: linux-aarch64-a3-8
     container:
       image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.11.0_a2_aarch64_builder:20260331
       options: --user root
@@ -179,7 +179,7 @@ jobs:
       matrix:
         shard: ${{ fromJson(needs.prepare.outputs.distributed_matrix) }}
       fail-fast: false
-      max-parallel: 5
+      max-parallel: 10
 
     steps:
       - name: Checkout repository
@@ -379,14 +379,14 @@ jobs:
           if-no-files-found: warn
 
   # ============================================================================
-  # Regular Tests: linux-aarch64-a3-8 runner (8-card NPU), serial execution, default 10 shards
+  # Regular Tests: linux-aarch64-a3-2 runner (2-card NPU), serial execution, default 30 shards
   # ============================================================================
   test_regular:
     needs:
       - prepare
       - upload_torch_npu_wheel
     if: ${{ github.event.inputs.test_files == '' }}
-    runs-on: linux-aarch64-a3-8
+    runs-on: linux-aarch64-a3-2
     container:
       image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.11.0_a2_aarch64_builder:20260331
       options: --user root
@@ -394,7 +394,7 @@ jobs:
       matrix:
         shard: ${{ fromJson(needs.prepare.outputs.regular_matrix) }}
       fail-fast: false
-      max-parallel: 10
+      max-parallel: 30
 
     steps:
       - name: Checkout repository
@@ -594,7 +594,7 @@ jobs:
           if-no-files-found: warn
 
   # ============================================================================
-  # Custom Test Files: Run specified test files directly (skip shard assignment)
+  # Custom Test Files: linux-aarch64-a3-8 runner, serial execution, no sharding
   # ============================================================================
   test_custom:
     needs:
@@ -804,7 +804,7 @@ jobs:
             --patch-count "${{ needs.prepare.outputs.patch_count || 'N/A' }}" \
             --shard-matrix-json "${COMBINED_MATRIX}" \
             --docker-image "${{ env.DOCKER_IMAGE }}" \
-            --runner "linux-aarch64-a3-16 (distributed), linux-aarch64-a3-8 (regular)"
+            --runner "linux-aarch64-a3-8 (distributed), linux-aarch64-a3-2 (regular), linux-aarch64-a3-8 (custom)"
 
           cat ${REPORT_MD} >> $GITHUB_STEP_SUMMARY
 
