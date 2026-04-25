@@ -945,7 +945,8 @@ void ProcessGroupHCCL::WorkHCCL::synchronizeInternal(std::chrono::milliseconds t
                     rank_,
                     "] Work ",
                     (*this),
-                    " timed out in blocking wait (HCCL_BLOCKING_WAIT=1).");
+                    " timed out in blocking wait "
+                    "(TORCH_HCCL_BLOCKING_WAIT=1 or HCCL_BLOCKING_WAIT=1).");
                 LOG(ERROR) << exceptionMsg;
                 break;
             }
@@ -1054,7 +1055,7 @@ ProcessGroupHCCL::ProcessGroupHCCL(
     }
     TORCH_NPU_HCCL_LOGI("Set op wait timeout to %u.", kOpWaitTimeout);
     NPU_CHECK_ERROR(c10_npu::acl::AclrtSetOpWaitTimeout(kOpWaitTimeout));
-    const char* blockingWait = getenv(HCCL_BLOCKING_WAIT);
+    blockingWait_ = c10d::getCvarBool(TORCH_HCCL_BLOCKING_WAIT, false);
 
     logPrefix_ = createLogPrefix();
     if (options_->global_ranks_in_group.empty()) {
@@ -1093,34 +1094,19 @@ ProcessGroupHCCL::ProcessGroupHCCL(
         }
     }
 
-    try {
-        if (blockingWait != nullptr) {
-            auto val = std::stoi(blockingWait);
-            if (val == 1) {
-                // Make wait() and synchronize() a blocking call.
-                blockingWait_ = true;
-            } else if (val != 0) {
-                throw std::runtime_error("Invalid value for environment variable: " + std::string(HCCL_BLOCKING_WAIT)
-                + DIST_ERROR(ErrCode::VALUE));
-            }
-        }
-    } catch (std::exception& e) {
-        throw std::runtime_error("Invalid value for environment variable: " + std::string(HCCL_BLOCKING_WAIT)
-        + DIST_ERROR(ErrCode::VALUE));
-    }
     asyncErrorHandling_ =
         static_cast<ErrorHandlingMode>(c10_npu::option::OptionsManager::CheckUseHcclAsyncErrorHandleEnable());
     desyncDebug_ = static_cast<bool>(c10_npu::option::OptionsManager::CheckUseDesyncDebugEnable());
     if (blockingWait_) {
         if (asyncErrorHandling_ != NoHandling || desyncDebug_) {
-        LOG(INFO) << "[Rank " << rank_ << "] HCCL_BLOCKING_WAIT and "
+        LOG(INFO) << "[Rank " << rank_ << "] TORCH_HCCL_BLOCKING_WAIT and "
                     << "HCCL_ASYNC_ERROR_HANDLING|HCCL_DESYNC_DEBUG"
                     << "should not both be enabled. "
-                    << "Only HCCL_BLOCKING_WAIT is being used in this process.";
+                    << "Only TORCH_HCCL_BLOCKING_WAIT is being used in this process.";
         asyncErrorHandling_ = NoHandling;
         desyncDebug_ = false;
         LOG(INFO) << logPrefix()
-        << "HCCL_BLOCKING_WAIT is enabled, NO watchdog thread is created.";
+        << "TORCH_HCCL_BLOCKING_WAIT is enabled, NO watchdog thread is created.";
         }
     } else {
         if (desyncDebug_ && asyncErrorHandling_ == NoHandling) {
