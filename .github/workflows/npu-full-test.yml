@@ -172,7 +172,7 @@ jobs:
       - upload_torch_npu_wheel
     if: ${{ github.event.inputs.test_files == '' }}
     runs-on: linux-aarch64-a3-8
-    timeout-minutes: 600
+    timeout-minutes: 1200
     container:
       image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.7.1_a3_aarch64_builder:20260424
       options: --user root
@@ -350,7 +350,7 @@ jobs:
       - upload_torch_npu_wheel
     if: ${{ github.event.inputs.test_files == '' }}
     runs-on: linux-aarch64-a3-2
-    timeout-minutes: 600
+    timeout-minutes: 1200
     container:
       image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.7.1_a3_aarch64_builder:20260424
       options: --user root
@@ -528,7 +528,7 @@ jobs:
       - upload_torch_npu_wheel
     if: ${{ github.event.inputs.test_files != '' }}
     runs-on: linux-aarch64-a3-8
-    timeout-minutes: 600
+    timeout-minutes: 1200
     container:
       image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.7.1_a3_aarch64_builder:20260424
       options: --user root
