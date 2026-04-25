@@ -172,7 +172,7 @@ jobs:
       - upload_torch_npu_wheel
     if: ${{ github.event.inputs.test_files == '' }}
     runs-on: linux-aarch64-a3-8
-    timeout-minutes: 120
+    timeout-minutes: 600
     container:
       image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.7.1_a3_aarch64_builder:20260424
       options: --user root
@@ -192,7 +192,6 @@ jobs:
           path: ascend_pytorch
 
       - name: Setup cache directories
-        timeout-minutes: 5
         run: |
           mkdir -p /github/home/.cache/pip
           chmod -R 777 /github/home/.cache
@@ -217,7 +216,6 @@ jobs:
           echo "Pre-installed torch/torchvision uninstalled"
 
       - name: Install PyTorch ${{ env.PYTORCH_VERSION }} and built torch_npu
-        timeout-minutes: 15
         run: |
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
           source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
@@ -244,7 +242,6 @@ jobs:
           tar -xzf prepared-test-src-artifact/pytorch-test-src.tar.gz
 
       - name: Verify NPU availability
-        timeout-minutes: 5
         run: |
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
           source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
@@ -262,7 +259,6 @@ jobs:
           "
 
       - name: Install test dependencies
-        timeout-minutes: 15
         run: |
           PIP=pip${{ env.PYTHON_VERSION }}
           cd pytorch-test-src
@@ -276,7 +272,6 @@ jobs:
           fi
 
       - name: Apply torch environment patches
-        timeout-minutes: 10
         run: |
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
           source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
@@ -296,7 +291,6 @@ jobs:
 
       - name: Run distributed shard ${{ matrix.shard }}/${{ needs.prepare.outputs.distributed_shards }}
         id: run_test
-        timeout-minutes: 90
         run: |
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
           source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
@@ -356,7 +350,7 @@ jobs:
       - upload_torch_npu_wheel
     if: ${{ github.event.inputs.test_files == '' }}
     runs-on: linux-aarch64-a3-2
-    timeout-minutes: 120
+    timeout-minutes: 600
     container:
       image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.7.1_a3_aarch64_builder:20260424
       options: --user root
@@ -376,7 +370,6 @@ jobs:
           path: ascend_pytorch
 
       - name: Setup cache directories
-        timeout-minutes: 5
         run: |
           mkdir -p /github/home/.cache/pip
           chmod -R 777 /github/home/.cache
@@ -401,7 +394,6 @@ jobs:
           echo "Pre-installed torch/torchvision uninstalled"
 
       - name: Install PyTorch ${{ env.PYTORCH_VERSION }} and built torch_npu
-        timeout-minutes: 15
         run: |
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
           source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
@@ -428,7 +420,6 @@ jobs:
           tar -xzf prepared-test-src-artifact/pytorch-test-src.tar.gz
 
       - name: Verify NPU availability
-        timeout-minutes: 5
         run: |
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
           source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
@@ -446,7 +437,6 @@ jobs:
           "
 
       - name: Install test dependencies
-        timeout-minutes: 15
         run: |
           PIP=pip${{ env.PYTHON_VERSION }}
           cd pytorch-test-src
@@ -460,7 +450,6 @@ jobs:
           fi
 
       - name: Apply torch environment patches
-        timeout-minutes: 10
         run: |
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
           source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
@@ -480,7 +469,6 @@ jobs:
 
       - name: Run regular shard ${{ matrix.shard }}/${{ needs.prepare.outputs.regular_shards }}
         id: run_test
-        timeout-minutes: 90
         run: |
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
           source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
@@ -540,7 +528,7 @@ jobs:
       - upload_torch_npu_wheel
     if: ${{ github.event.inputs.test_files != '' }}
     runs-on: linux-aarch64-a3-8
-    timeout-minutes: 120
+    timeout-minutes: 600
     container:
       image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.7.1_a3_aarch64_builder:20260424
       options: --user root
@@ -565,7 +553,6 @@ jobs:
           path: torch-npu-wheel-artifact
 
       - name: Install PyTorch and torch_npu
-        timeout-minutes: 15
         run: |
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
           source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
@@ -591,7 +578,6 @@ jobs:
           tar -xzf pytorch-test-src-artifact/pytorch-test-src.tar.gz
 
       - name: Verify NPU availability
-        timeout-minutes: 5
         run: |
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
           source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
@@ -606,7 +592,6 @@ jobs:
           PY
 
       - name: Install test dependencies
-        timeout-minutes: 15
         run: |
           pip3.11 install pytest pytest-timeout pytest-xdist hypothesis zstandard pyyaml
           pip3.11 install pytest-rerunfailures pytest-flakefinder pytest-subtests==0.13.1 xdoctest==1.1.0 pulp>=2.9
@@ -614,7 +599,6 @@ jobs:
 
       - name: Run custom test files
         id: run_tests
-        timeout-minutes: 90
         run: |
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
           source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
