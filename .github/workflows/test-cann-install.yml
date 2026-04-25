@@ -4,6 +4,10 @@ on:
   push:
     paths:
       - '.github/workflows/test-cann-install.yml'
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - '.github/workflows/test-cann-install.yml'
 
 env:
   PYTHON_VERSION: '3.11'
