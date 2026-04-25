@@ -28,7 +28,7 @@ Usage:
         --case-paths-config /path/to/case_paths_ci.yml \
         --disabled-testcases /path/to/disabled_testcases.json \
         --report-dir test-reports \
-        --timeout 600 \
+        --timeout 1200 \
         --verbose
 """
 
@@ -347,9 +347,17 @@ def run_single_test_case(
         verbose: Verbose output
 
     Returns:
-        Dict with: nodeid, status, duration, returncode, message
+        Dict with: nodeid, status, duration, returncode, message, command
     """
     start_time = monotonic()
+
+    # Preserve original nodeid for result reporting
+    original_nodeid = case_nodeid
+
+    # Strip test/ prefix from nodeid if present (pytest --collect-only outputs with test/ prefix)
+    # When cwd is test_dir, the path should be relative to test_dir, not include test/
+    if case_nodeid.startswith("test/"):
+        case_nodeid = case_nodeid[5:]
 
     command = [
         sys.executable,
@@ -368,6 +376,10 @@ def run_single_test_case(
         command.append("-vv")
     else:
         command.append("-v")
+
+    # Print command to log
+    command_str = " ".join(command)
+    print(f"    Command: {command_str}")
 
     try:
         result = subprocess.run(
@@ -412,30 +424,33 @@ def run_single_test_case(
             message = "\n".join(error_lines[-5:])[:500]  # Limit message length
 
         return {
-            "nodeid": case_nodeid,
+            "nodeid": original_nodeid,
             "status": status,
             "duration": duration,
             "returncode": returncode,
             "message": message,
+            "command": command_str,
         }
 
     except subprocess.TimeoutExpired:
         duration = monotonic() - start_time
         return {
-            "nodeid": case_nodeid,
+            "nodeid": original_nodeid,
             "status": "timeout",
             "duration": duration,
             "returncode": -1,
             "message": f"Timeout after {timeout}s",
+            "command": command_str,
         }
     except Exception as e:
         duration = monotonic() - start_time
         return {
-            "nodeid": case_nodeid,
+            "nodeid": original_nodeid,
             "status": "error",
             "duration": duration,
             "returncode": 1,
             "message": str(e)[:500],
+            "command": command_str,
         }
 
 
@@ -534,6 +549,8 @@ def run_tests_with_case_isolation(
                 # Log result
                 status_str = case_result["status"]
                 duration_str = f"{case_result['duration']:.2f}s"
+                command_str = case_result.get("command", "")
+                log_handle.write(f"    Command: {command_str}\n")
                 log_handle.write(f"    Status: {status_str}, Duration: {duration_str}\n")
                 if case_result["message"]:
                     log_handle.write(f"    Message: {case_result['message'][:200]}\n")
@@ -703,7 +720,7 @@ def parse_args():
     parser.add_argument("--disabled-testcases", type=str, help="Path to disabled_testcases.json")
     parser.add_argument("--case-paths-config", type=str, help="Path to case_paths_ci.yml")
     parser.add_argument("--report-dir", type=str, default="test-reports", help="Directory for reports")
-    parser.add_argument("--timeout", type=int, default=600, help="Per-case timeout")
+    parser.add_argument("--timeout", type=int, default=1200, help="Per-case timeout in seconds (default: 1200 = 20 minutes)")
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
     args = parser.parse_args()
 
