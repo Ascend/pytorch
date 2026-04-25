@@ -494,6 +494,7 @@ def discover_shard_files(
     Dict[Tuple[str, int], Path],  # unhandled_files
     Dict[Tuple[str, int], Path],  # xml_files
     Dict[Tuple[str, int], Path],  # missing_files
+    Dict[Tuple[str, int], Path],  # cases_files
 ]:
     """
     Discover all shard report files in the reports directory.
@@ -504,6 +505,7 @@ def discover_shard_files(
     Examples:
     - shard_dist-1_stats.json
     - shard_reg-1_info.json
+    - shard_dist-1_cases.json  (case-level results)
     """
     stats_files = {}
     info_files = {}
@@ -512,6 +514,7 @@ def discover_shard_files(
     unhandled_files = {}
     xml_files = {}
     missing_files = {}
+    cases_files = {}
 
     def parse_shard_filename(path: Path, suffix_pattern: str) -> Tuple[str, int]:
         """
@@ -578,7 +581,13 @@ def discover_shard_files(
         if key:
             missing_files[key] = path
 
-    return stats_files, info_files, plan_files, excluded_files, unhandled_files, xml_files, missing_files
+    # Discover case-level results files
+    for path in reports_root.rglob("shard_*_cases.json"):
+        key = parse_shard_filename(path, "cases")
+        if key:
+            cases_files[key] = path
+
+    return stats_files, info_files, plan_files, excluded_files, unhandled_files, xml_files, missing_files, cases_files
 
 
 def get_shard_status(stats: Dict, present: bool) -> str:
@@ -753,9 +762,9 @@ def main():
     expected_special_tests = parse_expected_special_tests(args.expected_special_tests_json)
     special_reports_root = Path(args.special_reports_root) if args.special_reports_root else None
 
-    stats_files, info_files, plan_files, excluded_files, unhandled_files, xml_files, missing_files_paths = discover_shard_files(reports_root)
+    stats_files, info_files, plan_files, excluded_files, unhandled_files, xml_files, missing_files_paths, cases_files = discover_shard_files(reports_root)
     special_test_files = discover_special_test_files(special_reports_root)
-    shard_ids = requested_shards or sorted(set(stats_files) | set(info_files))
+    shard_ids = requested_shards or sorted(set(stats_files) | set(info_files) | set(cases_files))
 
     status_counts = Counter()
     totals = {
@@ -777,6 +786,12 @@ def main():
         "import_failures": 0,
         "test_failures": 0,
         "missing_files": 0,
+        "total_cases": 0,
+        "case_passed": 0,
+        "case_failed": 0,
+        "case_errors": 0,
+        "case_crashed": 0,
+        "case_timeout": 0,
     }
     shard_rows = []
     unique_planned_files = set()
@@ -784,6 +799,7 @@ def main():
     unique_unhandled_tests = set()
     unique_missing_files = set()
     selection_modes = set()
+    cases_results = {}  # Store case-level results for each shard
 
     for shard_type, shard_num in shard_ids:
         shard_key = (shard_type, shard_num)
@@ -793,6 +809,7 @@ def main():
         excluded_path = excluded_files.get(shard_key)
         unhandled_path = unhandled_files.get(shard_key)
         missing_path = missing_files_paths.get(shard_key)
+        cases_path = cases_files.get(shard_key)
         stats = load_json_file(stats_path) if stats_path else {}
         info = load_json_file(info_path) if info_path else {}
         selected_test_entries = get_selected_test_entries(info)
@@ -803,7 +820,27 @@ def main():
         excluded_test_files = load_text_lines(excluded_path) if excluded_path else []
         unhandled_tests = load_text_lines(unhandled_path) if unhandled_path else []
         missing_files_list = load_text_lines(missing_path) if missing_path else []
-        present = bool(stats_path)
+
+        # Load case-level results if available
+        cases_data = load_json_file(cases_path) if cases_path else {}
+        if cases_data:
+            cases_results[shard_key] = cases_data
+            # Override stats with case-level data
+            stats["total"] = cases_data.get("total_cases", 0)
+            stats["passed"] = cases_data.get("passed", 0)
+            stats["failed"] = cases_data.get("failed", 0)
+            stats["errors"] = cases_data.get("errors", 0)
+            stats["skipped"] = cases_data.get("skipped", 0)
+            stats["duration"] = cases_data.get("duration", 0.0)
+            # Update totals
+            totals["total_cases"] += cases_data.get("total_cases", 0)
+            totals["case_passed"] += cases_data.get("passed", 0)
+            totals["case_failed"] += cases_data.get("failed", 0)
+            totals["case_errors"] += cases_data.get("errors", 0)
+            totals["case_crashed"] += cases_data.get("crashed", 0)
+            totals["case_timeout"] += cases_data.get("timeout", 0)
+
+        present = bool(stats_path or cases_path)
 
         # Parse ALL XML files to get per-test-file statistics
         # This includes Phase 1 (run_test.py) and Phase 2 (pytest fallback) results
@@ -989,6 +1026,20 @@ def main():
     if include_special_tests:
         overview_rows.append(["Special tests expected", str(len(special_test_names))])
 
+    # Add case-level statistics if available
+    if totals["total_cases"] > 0:
+        overview_rows.append([
+            "Case-level stats",
+            (
+                f"{totals['total_cases']} cases; "
+                f"{totals['case_passed']} passed; "
+                f"{totals['case_failed']} failed; "
+                f"{totals['case_errors']} errors; "
+                f"{totals['case_crashed']} crashed; "
+                f"{totals['case_timeout']} timeout"
+            ),
+        ])
+
     shard_status_rows = [
         [status, str(status_counts[status])]
         for status in ("CRASHED", "ERROR", "FAILED", "TIMEOUT", "INCOMPLETE", "MISSING", "NO TESTS", "PASSED")
@@ -1034,6 +1085,30 @@ def main():
             ],
         )
     )
+
+    # Add case-level statistics table if available
+    if cases_results:
+        markdown_lines.extend(["", "## 用例级执行统计"])
+        markdown_lines.extend(
+            render_table(
+                ["Shard", "总用例", "通过", "失败", "错误", "崩溃", "超时", "Duration"],
+                [
+                    [
+                        f"{row['shard']}",
+                        str(row["total"]),
+                        str(row["passed"]),
+                        str(row["failed"]),
+                        str(row["errors"]),
+                        str(row.get("crashed", 0)),
+                        str(row.get("timeout", 0)),
+                        format_duration(row["duration"]),
+                    ]
+                    for row in sorted_shards
+                    if (row["shard_type"], row["shard_num"]) in cases_results
+                ],
+            )
+        )
+        markdown_lines.extend(["", "失败用例详情见 artifact: `npu-full-test-summary.json`"])
     if include_unhandled_tests:
         markdown_lines.extend(["", "## Unhandled Special Tests"])
         markdown_lines.extend(format_scope_list(unhandled_tests_list))
@@ -1088,6 +1163,21 @@ def main():
         "failed_shards": [row for row in shard_rows if row["status"] not in ("PASSED", "NO TESTS")],
         "slowest_shards": slowest,
     }
+
+    # Add case-level results if available
+    if cases_results:
+        report_json["cases_results"] = {
+            "total_cases": totals["total_cases"],
+            "passed": totals["case_passed"],
+            "failed": totals["case_failed"],
+            "errors": totals["case_errors"],
+            "crashed": totals["case_crashed"],
+            "timeout": totals["case_timeout"],
+            "shards": {
+                f"{shard_type}-{shard_num}": data
+                for (shard_type, shard_num), data in cases_results.items()
+            },
+        }
 
     if include_special_tests:
         report_json["special_tests"] = {

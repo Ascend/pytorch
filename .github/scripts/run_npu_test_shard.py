@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-Run a shard of patched upstream PyTorch tests via per-file isolation pytest execution.
+Run a shard of patched upstream PyTorch tests via per-case isolation pytest execution.
 
 This script focuses on:
     - Test discovery (via discover_test_files.py)
     - Shard assignment (Step 4)
-    - Per-file isolation execution
+    - Per-case isolation execution (strict serial, each case in own process)
 
 Result parsing is handled by parse_test_results.py.
 
@@ -13,11 +13,11 @@ Test types:
     - distributed: NPU distributed tests (test/distributed/*)
     - regular: All other tests
 
-Each shard executes tests in per-file isolation mode:
-    - Each test file runs in its own pytest subprocess
-    - ThreadPoolExecutor for parallel file execution
-    - NPU kernel crashes won't cascade to other files
-    - Missing XML reports indicate crashed files
+Each shard executes tests in per-case isolation mode:
+    - First collect all test cases via pytest --collect-only
+    - Each case runs in its own pytest subprocess (strict serial)
+    - NPU kernel crashes won't cascade to other cases
+    - Results recorded in cases.json file
 
 Usage:
     python run_npu_test_shard.py \
@@ -29,7 +29,7 @@ Usage:
         --disabled-testcases /path/to/disabled_testcases.json \
         --report-dir test-reports \
         --timeout 600 \
-        --parallel 2
+        --verbose
 """
 
 import argparse
@@ -39,8 +39,6 @@ import json
 import os
 import subprocess
 import sys
-import threading
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
 from time import monotonic
@@ -259,6 +257,325 @@ def load_installed_torch_root() -> str:
         return ""
 
 
+# ==============================================================================
+# Case Collection
+# ==============================================================================
+
+
+def collect_test_cases(test_file: str, test_dir: Path, env: Dict) -> List[str]:
+    """
+    Collect all test cases from a test file via pytest --collect-only.
+
+    Args:
+        test_file: Test file path (e.g., "test/test_autograd.py")
+        test_dir: Path to PyTorch test directory
+        env: Environment dict for subprocess
+
+    Returns:
+        List of case nodeids (e.g., ["test_autograd.py::TestAutograd::test_grad"])
+    """
+    # Strip test/ prefix if present
+    if test_file.startswith("test/"):
+        test_file = test_file[5:]
+
+    command = [
+        sys.executable,
+        "-m",
+        "pytest",
+        "--collect-only",
+        "--quiet",
+        test_file,
+    ]
+
+    try:
+        result = subprocess.run(
+            command,
+            cwd=str(test_dir),
+            env=env,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=60,  # Collection timeout
+        )
+
+        # Parse nodeids from output
+        nodeids = []
+        for line in result.stdout.splitlines():
+            # pytest --collect-only outputs nodeids like:
+            # <Function test_grad>
+            # or with verbose:
+            # test_autograd.py::TestAutograd::test_grad
+            if "::" in line:
+                # Extract nodeid (remove leading spaces and markers)
+                nodeid = line.strip()
+                # Remove pytest markers like <Function ...>
+                if nodeid.startswith("<"):
+                    continue
+                nodeids.append(nodeid)
+
+        return nodeids
+
+    except subprocess.TimeoutExpired:
+        print(f"WARNING: Collection timeout for {test_file}")
+        return []
+    except Exception as e:
+        print(f"WARNING: Collection failed for {test_file}: {e}")
+        return []
+
+
+# ==============================================================================
+# Case Execution
+# ==============================================================================
+
+
+def run_single_test_case(
+    case_nodeid: str,
+    test_dir: Path,
+    env: Dict,
+    timeout: int,
+    verbose: bool,
+) -> Dict:
+    """
+    Run a single test case in isolated subprocess.
+
+    Args:
+        case_nodeid: Test case nodeid (e.g., "test_autograd.py::TestAutograd::test_grad")
+        test_dir: Path to PyTorch test directory
+        env: Environment dict for subprocess
+        timeout: Per-case timeout in seconds
+        verbose: Verbose output
+
+    Returns:
+        Dict with: nodeid, status, duration, returncode, message
+    """
+    start_time = monotonic()
+
+    command = [
+        sys.executable,
+        "-m",
+        "pytest",
+        "--color=no",
+        "-ra",
+        "--tb=short",
+        case_nodeid,
+    ]
+
+    if timeout > 0:
+        command.append(f"--timeout={timeout}")
+
+    if verbose:
+        command.append("-vv")
+    else:
+        command.append("-v")
+
+    try:
+        result = subprocess.run(
+            command,
+            cwd=str(test_dir),
+            env=env,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=timeout + 10,  # Extra buffer for timeout handling
+        )
+
+        duration = monotonic() - start_time
+        returncode = result.returncode
+
+        # Determine status
+        if returncode == 0:
+            status = "passed"
+        elif returncode == 1:
+            status = "failed"
+        elif returncode == 2:
+            status = "error"
+        elif returncode == 3:
+            status = "skipped"
+        elif returncode == 4:
+            status = "error"  # usage error
+        elif returncode == 5:
+            status = "no_tests"
+        elif returncode < 0:
+            status = "crashed"
+        else:
+            status = "error"
+
+        # Extract error message from output
+        message = ""
+        if status in ("failed", "error", "crashed"):
+            # Extract last meaningful lines from stderr/stdout
+            output = result.stderr + result.stdout
+            lines = output.splitlines()
+            error_lines = [l for l in lines[-20:] if l.strip()]
+            message = "\n".join(error_lines[-5:])[:500]  # Limit message length
+
+        return {
+            "nodeid": case_nodeid,
+            "status": status,
+            "duration": duration,
+            "returncode": returncode,
+            "message": message,
+        }
+
+    except subprocess.TimeoutExpired:
+        duration = monotonic() - start_time
+        return {
+            "nodeid": case_nodeid,
+            "status": "timeout",
+            "duration": duration,
+            "returncode": -1,
+            "message": f"Timeout after {timeout}s",
+        }
+    except Exception as e:
+        duration = monotonic() - start_time
+        return {
+            "nodeid": case_nodeid,
+            "status": "error",
+            "duration": duration,
+            "returncode": 1,
+            "message": str(e)[:500],
+        }
+
+
+def run_tests_with_case_isolation(
+    planned_tests: List[str],
+    shard: int,
+    test_dir: Path,
+    report_dir: Path,
+    env_updates: Dict[str, str],
+    timeout: int,
+    verbose: bool,
+    shard_type: str,
+    result_module,
+) -> Tuple[int, float, List[Dict]]:
+    """
+    Execute tests with per-case isolation (strict serial execution).
+
+    Each test case runs in its own pytest subprocess for crash isolation.
+    No parallel execution - strict serial processing.
+
+    Returns:
+        Tuple of (worst_returncode, duration, cases_list)
+    """
+    start = monotonic()
+    prefix = result_module.get_shard_type_prefix(shard_type)
+    log_file = result_module.get_shard_log_file(report_dir, shard, shard_type)
+
+    merged_env = os.environ.copy()
+    merged_env.update(env_updates)
+
+    cases_list = []
+    worst_returncode = 0
+
+    with log_file.open("w", encoding="utf-8") as log_handle:
+        log_handle.write("=" * 80 + "\n")
+        log_handle.write(f"Per-case isolation pytest execution ({shard_type} shard)\n")
+        log_handle.write("=" * 80 + "\n")
+        log_handle.write(f"Total test files: {len(planned_tests)}\n")
+        log_handle.write("Execution mode: strict serial, each case in own process\n")
+        log_handle.write("=" * 80 + "\n\n")
+        log_handle.flush()
+
+        print(f"\n{'=' * 80}")
+        print(f"Per-case isolation mode: {len(planned_tests)} files")
+        print("Execution mode: strict serial, each case in own process")
+        print(f"{'=' * 80}\n")
+
+        total_cases = 0
+        case_idx = 0
+
+        for file_idx, test_file in enumerate(planned_tests, 1):
+            test_name = strip_test_prefix_and_suffix(test_file)
+
+            log_handle.write(f"\n{'=' * 80}\n")
+            log_handle.write(f"[File {file_idx}/{len(planned_tests)}] {test_name}\n")
+            log_handle.write(f"{'=' * 80}\n")
+            log_handle.flush()
+
+            print(f"\n[File {file_idx}/{len(planned_tests)}] {test_name}")
+            print("  Collecting test cases...")
+
+            # Collect cases for this file
+            case_nodeids = collect_test_cases(test_file, test_dir, merged_env)
+
+            if not case_nodeids:
+                log_handle.write(f"  No cases collected\n")
+                print(f"    No cases collected")
+                continue
+
+            log_handle.write(f"  Collected {len(case_nodeids)} cases\n")
+            log_handle.flush()
+            print(f"    Collected {len(case_nodeids)} cases")
+
+            # Execute each case serially
+            for nodeid in case_nodeids:
+                case_idx += 1
+                total_cases += 1
+
+                log_handle.write(f"\n  [{case_idx}] {nodeid}\n")
+                log_handle.flush()
+
+                print(f"    [{case_idx}] {nodeid}")
+
+                # Run single case
+                case_result = run_single_test_case(
+                    nodeid,
+                    test_dir,
+                    merged_env,
+                    timeout,
+                    verbose,
+                )
+
+                # Add file info
+                case_result["file"] = test_file
+
+                # Log result
+                status_str = case_result["status"]
+                duration_str = f"{case_result['duration']:.2f}s"
+                log_handle.write(f"    Status: {status_str}, Duration: {duration_str}\n")
+                if case_result["message"]:
+                    log_handle.write(f"    Message: {case_result['message'][:200]}\n")
+                log_handle.flush()
+
+                print(f"      {status_str} ({duration_str})")
+
+                cases_list.append(case_result)
+
+                # Track worst returncode
+                rc = case_result["returncode"]
+                if rc != 0 and rc != 3 and rc != 5:  # Ignore skipped/no_tests
+                    if worst_returncode == 0:
+                        worst_returncode = rc
+
+        # Summary
+        elapsed = monotonic() - start
+
+        passed_count = sum(1 for c in cases_list if c["status"] == "passed")
+        failed_count = sum(1 for c in cases_list if c["status"] == "failed")
+        error_count = sum(1 for c in cases_list if c["status"] in ("error", "crashed", "timeout"))
+        skipped_count = sum(1 for c in cases_list if c["status"] == "skipped")
+
+        log_handle.write(f"\n{'=' * 80}\n")
+        log_handle.write(f"Summary: {total_cases} cases executed\n")
+        log_handle.write(f"  Passed: {passed_count}\n")
+        log_handle.write(f"  Failed: {failed_count}\n")
+        log_handle.write(f"  Errors: {error_count}\n")
+        log_handle.write(f"  Skipped: {skipped_count}\n")
+        log_handle.write(f"  Duration: {elapsed:.2f}s\n")
+        log_handle.write(f"{'=' * 80}\n")
+        log_handle.flush()
+
+        print(f"\n{'=' * 80}")
+        print(f"Summary: {total_cases} cases executed")
+        print(f"  Passed: {passed_count}, Failed: {failed_count}, Errors: {error_count}")
+        print(f"  Duration: {elapsed:.2f}s")
+        print(f"{'=' * 80}")
+
+    return worst_returncode, elapsed, cases_list
+
+
 def build_execution_env(
     test_dir: Path,
     script_dir: Path,
@@ -309,235 +626,6 @@ def clean_existing_junit_xml(report_dir: Path) -> None:
 def remove_existing_file(path: Path) -> None:
     """Remove existing file."""
     path.unlink(missing_ok=True)
-
-
-# ==============================================================================
-# Test Execution
-# ==============================================================================
-
-
-def build_pytest_command(
-    planned_tests: List[str],
-    report_dir: Path,
-    shard: int,
-    timeout: int,
-    verbose: bool,
-    shard_type: str,
-    result_module,
-    xml_suffix: str = "",
-) -> List[str]:
-    """Build pytest command."""
-    prefix = result_module.get_shard_type_prefix(shard_type)
-    xml_file = report_dir / f"shard_{prefix}-{shard}_pytest{xml_suffix}.xml"
-
-    command = [
-        sys.executable,
-        "-m",
-        "pytest",
-        "--color=no",
-        "-ra",
-        "--tb=short",
-        "--continue-on-collection-errors",
-        f"--junitxml={xml_file}",
-    ]
-
-    if timeout > 0:
-        command.append(f"--timeout={timeout}")
-
-    if verbose:
-        command.append("-vv")
-    else:
-        command.append("-v")
-
-    for test in planned_tests:
-        if test.startswith("test/"):
-            test_stripped = test[5:]
-        else:
-            test_stripped = test
-        command.append(test_stripped)
-
-    return command
-
-
-def _run_pytest_subprocess_to_file(
-    command: List[str],
-    cwd: Path,
-    env: Dict[str, str],
-    log_file: Path,
-) -> int:
-    """Run pytest subprocess, capture output to file."""
-    log_file.parent.mkdir(parents=True, exist_ok=True)
-
-    process = subprocess.Popen(
-        command,
-        cwd=str(cwd),
-        env=env,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        bufsize=1,
-    )
-
-    raw_returncode = 0
-    try:
-        with log_file.open("w", encoding="utf-8") as f:
-            assert process.stdout is not None
-            for line in process.stdout:
-                f.write(line)
-                sys.stdout.write(line)
-                sys.stdout.flush()
-        raw_returncode = process.wait()
-    except BaseException:
-        process.kill()
-        raw_returncode = 1
-    finally:
-        if process.stdout is not None:
-            process.stdout.close()
-
-    return raw_returncode
-
-
-def run_tests_via_pytest(
-    planned_tests: List[str],
-    shard: int,
-    test_dir: Path,
-    report_dir: Path,
-    env_updates: Dict[str, str],
-    timeout: int,
-    verbose: bool,
-    parallel: int,
-    shard_type: str,
-    result_module,
-) -> Tuple[int, float, List[str]]:
-    """
-    Run tests with per-file isolation.
-
-    Each test file runs in its own pytest subprocess for crash isolation.
-    ThreadPoolExecutor handles parallel execution.
-
-    Returns:
-        Tuple of (worst_returncode, duration, missing_files)
-    """
-    start = monotonic()
-    prefix = result_module.get_shard_type_prefix(shard_type)
-    log_file = result_module.get_shard_log_file(report_dir, shard, shard_type)
-
-    merged_env = os.environ.copy()
-    merged_env.update(env_updates)
-
-    executed_files = {}
-    isolation_parallel = parallel if parallel > 0 else 2
-    worst_returncode = 0
-
-    with log_file.open("w", encoding="utf-8") as log_handle:
-        log_handle.write("=" * 80 + "\n")
-        log_handle.write(f"Per-file isolation pytest execution ({shard_type} shard)\n")
-        log_handle.write("=" * 80 + "\n")
-        log_handle.write(f"Total test files: {len(planned_tests)}\n")
-        log_handle.write(f"Parallel workers: {isolation_parallel}\n")
-        log_handle.write("Each file runs in its own subprocess for crash isolation\n")
-        log_handle.write("=" * 80 + "\n\n")
-        log_handle.flush()
-
-        print(f"\n{'=' * 80}")
-        print(f"Per-file isolation mode: {len(planned_tests)} files with {isolation_parallel} parallel workers")
-        print("Each file runs in its own subprocess for crash isolation")
-        print(f"{'=' * 80}\n")
-
-        log_lock = threading.Lock()
-
-        def run_single_file_isolated(test_file: str, idx: int) -> Tuple[str, int, bool, str]:
-            """Run single test file in isolated subprocess."""
-            test_name = strip_test_prefix_and_suffix(test_file)
-            safe_name = test_name.replace("/", "_")
-            expected_xml = report_dir / f"shard_{prefix}-{shard}_pytest_{safe_name}.xml"
-
-            command = build_pytest_command(
-                [test_file],
-                report_dir,
-                shard,
-                timeout,
-                verbose,
-                shard_type,
-                result_module,
-                xml_suffix=f"_{safe_name}",
-            )
-
-            full_command_str = " ".join(command)
-            file_log_path = report_dir / f"shard_{prefix}-{shard}_log_{safe_name}.txt"
-
-            with log_lock:
-                log_handle.write(f"\n{'=' * 80}\n")
-                log_handle.write(f"[File {idx}/{len(planned_tests)}] {test_name}\n")
-                log_handle.write(f"{'=' * 80}\n")
-                log_handle.write(f"Command: {full_command_str}\n")
-                log_handle.write(f"Expected XML: {expected_xml.name}\n")
-                log_handle.flush()
-
-            print(f"\n[{idx}/{len(planned_tests)}] {test_name}")
-            print(f"  Command: {full_command_str}")
-
-            rc = _run_pytest_subprocess_to_file(command, test_dir, merged_env, file_log_path)
-            xml_generated = expected_xml.exists()
-
-            if file_log_path.exists():
-                with log_lock:
-                    try:
-                        file_log_content = file_log_path.read_text(encoding="utf-8", errors="replace")
-                        log_handle.write(file_log_content)
-                        log_handle.write("\n")
-                        if xml_generated:
-                            log_handle.write(f"  Result: SUCCESS (returncode={rc})\n")
-                        else:
-                            log_handle.write(f"  Result: CRASH - NO XML (returncode={rc})\n")
-                        log_handle.write(f"{'=' * 80}\n\n")
-                        log_handle.flush()
-                    except Exception:
-                        pass
-
-            if not xml_generated:
-                print(f"    WARNING: No XML for {test_name} (likely crashed)")
-
-            return (test_file, rc, xml_generated, test_name)
-
-        # Execute files in parallel
-        with ThreadPoolExecutor(max_workers=isolation_parallel) as executor:
-            futures = {}
-            for idx, test_file in enumerate(planned_tests, 1):
-                future = executor.submit(run_single_file_isolated, test_file, idx)
-                futures[future] = test_file
-
-            for future in as_completed(futures):
-                test_file, rc, xml_generated, test_name = future.result()
-                executed_files[test_file] = {
-                    "xml_expected": report_dir / f"shard_{prefix}-{shard}_pytest_{test_name.replace('/', '_')}.xml",
-                    "xml_generated": xml_generated,
-                    "returncode": rc,
-                    "test_name": test_name,
-                }
-                if rc != 0 and rc != 5:
-                    worst_returncode = rc if worst_returncode == 0 else worst_returncode
-
-    # Identify missing files (crashed)
-    missing_files = []
-    for test_file, info in executed_files.items():
-        if not info["xml_generated"]:
-            missing_files.append(test_file)
-
-    if missing_files:
-        result_module.save_missing_files_file(str(report_dir), shard, missing_files, shard_type)
-        print(f"\nWARNING: {len(missing_files)} files did not generate XML (likely crashed)")
-
-    elapsed = monotonic() - start
-
-    if worst_returncode != 0:
-        print(f"\n{shard_type.capitalize()} shard tests completed with errors (returncode: {worst_returncode})")
-    else:
-        print(f"\n{shard_type.capitalize()} shard tests completed successfully")
-
-    return worst_returncode, elapsed, missing_files
 
 
 # ==============================================================================
@@ -599,7 +687,7 @@ def parse_test_files_input(test_files_str: str, test_dir: Path) -> List[str]:
 def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
-        description="Run PyTorch NPU tests for a shard via per-file isolation"
+        description="Run PyTorch NPU tests for a shard via per-case isolation"
     )
     parser.add_argument("--test-files", type=str, help="Comma-separated test file paths to run directly (skip shard assignment, e.g., 'test_meta.py,test_nn.py')")
     parser.add_argument("--shard", type=int, help="Shard number (1-indexed, required if --test-files not set)")
@@ -615,9 +703,8 @@ def parse_args():
     parser.add_argument("--disabled-testcases", type=str, help="Path to disabled_testcases.json")
     parser.add_argument("--case-paths-config", type=str, help="Path to case_paths_ci.yml")
     parser.add_argument("--report-dir", type=str, default="test-reports", help="Directory for reports")
-    parser.add_argument("--timeout", type=int, default=600, help="Per-test timeout")
+    parser.add_argument("--timeout", type=int, default=600, help="Per-case timeout")
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
-    parser.add_argument("--parallel", type=int, default=1, help="Parallel workers (default 1 for safety)")
     args = parser.parse_args()
 
     # Validate required arguments based on mode
@@ -666,8 +753,7 @@ def main():
 
         print(f"Test files specified: {len(planned_tests)}")
         print(f"Test directory: {test_dir}")
-        print(f"Parallel workers: {args.parallel}")
-        print("Execution mode: per-file isolation")
+        print("Execution mode: per-case isolation (strict serial)")
         if args.disabled_testcases:
             disabled_count = result_module.load_disabled_testcases_count(args.disabled_testcases)
             print(f"Disabled testcase entries: {disabled_count}")
@@ -684,7 +770,6 @@ def main():
         info["shard_files"] = len(planned_tests)
         info["total_files"] = len(planned_tests)
         info["selected_test_files"] = len(planned_tests)
-        info["parallel_procs"] = args.parallel
         if args.disabled_testcases:
             info["disabled_count"] = result_module.load_disabled_testcases_count(args.disabled_testcases)
 
@@ -701,9 +786,9 @@ def main():
         )
 
         # Execute tests
-        missing_files = []
+        cases_list = []
         if planned_tests:
-            returncode, duration, missing_files = run_tests_via_pytest(
+            returncode, duration, cases_list = run_tests_with_case_isolation(
                 planned_tests,
                 shard,
                 test_dir,
@@ -711,40 +796,52 @@ def main():
                 env_updates,
                 args.timeout,
                 args.verbose,
-                args.parallel,
                 shard_type,
                 result_module,
             )
-            info["per_file_isolation"] = True
+            info["per_case_isolation"] = True
             info["returncode"] = returncode
             info["duration"] = duration
-            info["missing_files_count"] = len(missing_files)
+
+        # Build cases.json data
+        passed_count = sum(1 for c in cases_list if c["status"] == "passed")
+        failed_count = sum(1 for c in cases_list if c["status"] == "failed")
+        error_count = sum(1 for c in cases_list if c["status"] in ("error", "crashed", "timeout"))
+        skipped_count = sum(1 for c in cases_list if c["status"] == "skipped")
+
+        cases_data = {
+            "shard": shard,
+            "shard_type": shard_type,
+            "execution_mode": "case_isolation",
+            "total_cases": len(cases_list),
+            "passed": passed_count,
+            "failed": failed_count,
+            "errors": error_count,
+            "skipped": skipped_count,
+            "crashed": sum(1 for c in cases_list if c["status"] == "crashed"),
+            "timeout": sum(1 for c in cases_list if c["status"] == "timeout"),
+            "duration": duration,
+            "cases": cases_list,
+        }
+
+        # Save cases.json
+        result_module.save_cases_file(str(report_dir), shard, cases_data, shard_type)
 
         # Save info and stats
         result_module.save_info_file(str(report_dir), shard, info, shard_type)
 
         stats = {
-            "total": 0,
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "errors": 0,
+            "total": len(cases_list),
+            "passed": passed_count,
+            "failed": failed_count,
+            "skipped": skipped_count,
+            "errors": error_count,
             "duration": duration,
             "returncode": returncode,
-            "per_file_isolation": True,
-            "missing_files_count": len(missing_files),
+            "per_case_isolation": True,
         }
 
-        # Try to aggregate stats from generated XML files
-        xml_stats = result_module.aggregate_junit_stats([report_dir])
-        if xml_stats.get("total", 0) > 0:
-            stats.update(xml_stats)
-
         result_module.save_stats_file(str(report_dir), shard, stats, shard_type)
-
-        if missing_files:
-            result_module.save_missing_files_file(str(report_dir), shard, missing_files, shard_type)
-            print(f"\nWARNING: {len(missing_files)} files did not generate XML (likely crashed)")
 
         # Print summary
         result_module.print_stats_summary(shard, stats, shard_type)
@@ -782,7 +879,6 @@ def main():
     info.update(plan_result.to_info_dict())
     info["shard_type"] = shard_type
     info["disabled_count"] = result_module.load_disabled_testcases_count(args.disabled_testcases)
-    info["parallel_procs"] = args.parallel
     info["selected_test_files"] = plan_result.discovery.metadata.get("rules_selected", 0)
     info["excluded_test_files"] = plan_result.discovery.metadata.get("rules_excluded", 0)
     info["shard_files"] = plan_result.shard_assignment.planned_count
@@ -802,8 +898,7 @@ def main():
     print(create_test_plan_summary(plan_result))
     print(f"\nRepository root: {repo_root}")
     print(f"Test directory: {test_dir}")
-    print(f"Parallel workers: {args.parallel}")
-    print("Execution mode: per-file isolation")
+    print("Execution mode: per-case isolation (strict serial)")
     if args.case_paths_config:
         print(f"Case path rules: {args.case_paths_config}")
     print(f"Disabled testcase entries: {info['disabled_count']}")
@@ -825,9 +920,9 @@ def main():
     # ==========================================================================
     # Execute tests
     # ==========================================================================
-    missing_files = []
+    cases_list = []
     if planned_tests:
-        returncode, duration, missing_files = run_tests_via_pytest(
+        returncode, duration, cases_list = run_tests_with_case_isolation(
             planned_tests,
             args.shard,
             test_dir,
@@ -835,41 +930,53 @@ def main():
             env_updates,
             args.timeout,
             args.verbose,
-            args.parallel,
             shard_type,
             result_module,
         )
-        info["per_file_isolation"] = True
-        info["effective_parallel"] = args.parallel
-        info["missing_files_count"] = len(missing_files)
+        info["per_case_isolation"] = True
     else:
         print("No test files assigned to this shard after file-level filtering.")
         returncode = 0
         duration = 0.0
 
-    # ==========================================================================
-    # Parse results (via parse_test_results module)
-    # ==========================================================================
-    stats, log_metrics = result_module.parse_shard_results(
-        report_dir=report_dir,
-        shard=args.shard,
-        shard_type=shard_type,
-        returncode=returncode,
-        duration=duration,
-        missing_files=missing_files,
-    )
+    # Build cases.json data
+    passed_count = sum(1 for c in cases_list if c["status"] == "passed")
+    failed_count = sum(1 for c in cases_list if c["status"] == "failed")
+    error_count = sum(1 for c in cases_list if c["status"] in ("error", "crashed", "timeout"))
+    skipped_count = sum(1 for c in cases_list if c["status"] == "skipped")
 
-    # Update info with parsed results
-    info["junit_generated"] = bool(stats.get("junit_generated", False))
-    info["junit_xml_files"] = int(stats.get("junit_xml_files", 0))
-    info["zero_item_test_files"] = int(log_metrics.get("zero_item_test_files", 0))
-    info["startup_failures"] = int(log_metrics.get("startup_failures", 0))
-    info["import_failures"] = int(log_metrics.get("import_failures", 0))
-    info["test_failures"] = int(log_metrics.get("test_failures", 0))
+    cases_data = {
+        "shard": args.shard,
+        "shard_type": shard_type,
+        "execution_mode": "case_isolation",
+        "total_cases": len(cases_list),
+        "passed": passed_count,
+        "failed": failed_count,
+        "errors": error_count,
+        "skipped": skipped_count,
+        "crashed": sum(1 for c in cases_list if c["status"] == "crashed"),
+        "timeout": sum(1 for c in cases_list if c["status"] == "timeout"),
+        "duration": duration,
+        "cases": cases_list,
+    }
+
+    # Save cases.json
+    result_module.save_cases_file(str(report_dir), args.shard, cases_data, shard_type)
 
     # ==========================================================================
     # Generate reports
     # ==========================================================================
+    stats = {
+        "total": len(cases_list),
+        "passed": passed_count,
+        "failed": failed_count,
+        "skipped": skipped_count,
+        "errors": error_count,
+        "duration": duration,
+        "returncode": returncode,
+        "per_case_isolation": True,
+    }
+
     result_module.save_info_file(str(report_dir), args.shard, info, shard_type)
     result_module.save_stats_file(str(report_dir), args.shard, stats, shard_type)
     result_module.print_stats_summary(args.shard, stats, shard_type)

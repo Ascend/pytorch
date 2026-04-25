@@ -414,6 +414,30 @@ def save_missing_files_file(report_dir: str, shard: int, missing_files: List[str
     return missing_file
 
 
+def save_cases_file(report_dir: str, shard: int, cases_data: Dict, shard_type: str = "regular") -> str:
+    """Save case-level results to JSON file."""
+    os.makedirs(report_dir, exist_ok=True)
+    prefix = get_shard_type_prefix(shard_type)
+    cases_file = os.path.join(report_dir, f"shard_{prefix}-{shard}_cases.json")
+    with open(cases_file, "w", encoding="utf-8") as f:
+        json.dump(cases_data, f, indent=2, ensure_ascii=False)
+    return cases_file
+
+
+def load_cases_file(report_dir: Path, shard: int, shard_type: str = "regular") -> Dict:
+    """Load case-level results from JSON file."""
+    prefix = get_shard_type_prefix(shard_type)
+    cases_file = report_dir / f"shard_{prefix}-{shard}_cases.json"
+    if not cases_file.exists():
+        return {}
+    try:
+        with open(cases_file, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"Warning: Failed to load cases file {cases_file}: {e}")
+        return {}
+
+
 # ==============================================================================
 # Summary Printing
 # ==============================================================================

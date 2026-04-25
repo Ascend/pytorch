@@ -24,14 +24,14 @@ on:
   workflow_dispatch:
     inputs:
       distributed_shards:
-        description: 'Number of shards for distributed tests (default 10)'
+        description: 'Number of shards for distributed tests (default 20)'
         required: false
-        default: '10'
+        default: '20'
         type: string
       regular_shards:
-        description: 'Number of shards for regular tests (default 30)'
+        description: 'Number of shards for regular tests (default 60)'
         required: false
-        default: '30'
+        default: '60'
         type: string
       test_files:
         description: 'Test files to run directly (comma-separated, e.g., "test_meta.py,test_nn.py"). Skip shard assignment if set.'
@@ -70,9 +70,9 @@ jobs:
       - name: Set shard matrices
         id: set_matrix
         run: |
-          # Get shard counts from inputs or use defaults (total 40 shards: 10 distributed + 30 regular)
-          DISTRIBUTED_SHARDS=${{ inputs.distributed_shards || '10' }}
-          REGULAR_SHARDS=${{ inputs.regular_shards || '30' }}
+          # Get shard counts from inputs or use defaults (total 80 shards: 20 distributed + 60 regular)
+          DISTRIBUTED_SHARDS=${{ inputs.distributed_shards || '20' }}
+          REGULAR_SHARDS=${{ inputs.regular_shards || '60' }}
 
           # Build distributed shard matrix
           DIST_SHARDS=$(seq 1 ${DISTRIBUTED_SHARDS} | tr '\n' ',' | sed 's/,$//')
@@ -180,7 +180,7 @@ jobs:
       matrix:
         shard: ${{ fromJson(needs.prepare.outputs.distributed_matrix) }}
       fail-fast: false
-      max-parallel: 10
+      max-parallel: 20
 
     steps:
       - name: Checkout repository
@@ -300,7 +300,7 @@ jobs:
 
           mkdir -p ${REPORT_DIR}
 
-          # Distributed tests: serial execution (parallel=1)
+          # Distributed tests: per-case isolation execution
           set +e
           $PYTHON ascend_pytorch/.github/scripts/run_npu_test_shard.py \
             --shard ${{ matrix.shard }} \
@@ -311,7 +311,6 @@ jobs:
             --case-paths-config pytorch-test-src/test_upstream/case_paths_ci.yml \
             --report-dir ${REPORT_DIR} \
             --timeout 600 \
-            --parallel 1 \
             2>&1 | tee /tmp/test_shard_dist_${{ matrix.shard }}.log
 
           TEST_STATUS=${PIPESTATUS[0]}
@@ -358,7 +357,7 @@ jobs:
       matrix:
         shard: ${{ fromJson(needs.prepare.outputs.regular_matrix) }}
       fail-fast: false
-      max-parallel: 30
+      max-parallel: 60
 
     steps:
       - name: Checkout repository
@@ -478,7 +477,7 @@ jobs:
 
           mkdir -p ${REPORT_DIR}
 
-          # Regular tests: parallel execution (2 workers) on 8-card NPU
+          # Regular tests: per-case isolation execution
           set +e
           $PYTHON ascend_pytorch/.github/scripts/run_npu_test_shard.py \
             --shard ${{ matrix.shard }} \
@@ -489,7 +488,6 @@ jobs:
             --case-paths-config pytorch-test-src/test_upstream/case_paths_ci.yml \
             --report-dir ${REPORT_DIR} \
             --timeout 600 \
-            --parallel 1 \
             2>&1 | tee /tmp/test_shard_reg_${{ matrix.shard }}.log
 
           TEST_STATUS=${PIPESTATUS[0]}
@@ -606,13 +604,13 @@ jobs:
           REPORT_DIR=test-reports
           mkdir -p ${REPORT_DIR}
 
+          # Custom test files: per-case isolation execution
           python3.11 ascend_pytorch/.github/scripts/run_npu_test_shard.py \
             --test-files "${{ github.event.inputs.test_files }}" \
             --test-dir pytorch-test-src/test \
             --disabled-testcases pytorch-test-src/test_upstream/disabled_testcases.json \
             --report-dir ${REPORT_DIR} \
             --timeout 600 \
-            --parallel 1 \
             --verbose \
             2>&1 | tee /tmp/test_custom.log
 
