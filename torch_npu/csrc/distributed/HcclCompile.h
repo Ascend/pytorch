@@ -336,8 +336,9 @@ bool hcclReduceScatterVExist()
     c10::call_once(flag, [&]() {
         auto func = GET_FUNC(HcclReduceScatterV)
         if (func != nullptr &&
-            c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend310P1 &&
-            c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend310B1) {
+            ((c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend310P1 &&
+              c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend310B1) ||
+              c10_npu::GetSocVersion() == c10_npu::SocVersion::Ascend950)) {
             exist = true;
         }
     });
