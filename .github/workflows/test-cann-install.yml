@@ -91,7 +91,7 @@ jobs:
       - name: Download CANN packages
         run: |
           echo "=== Step 3: Download CANN packages ==="
-          mkdir -p cann && cd cann
+          mkdir -p /home/cann && cd /home/cann
           echo "Current dir: $(pwd)"
 
           echo "Downloading toolkit..."
