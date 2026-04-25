@@ -311,6 +311,7 @@ jobs:
             --case-paths-config pytorch-test-src/test_upstream/case_paths_ci.yml \
             --report-dir ${REPORT_DIR} \
             --timeout 1200 \
+            --verbose \
             2>&1 | tee /tmp/test_shard_dist_${{ matrix.shard }}.log
 
           TEST_STATUS=${PIPESTATUS[0]}
@@ -488,6 +489,7 @@ jobs:
             --case-paths-config pytorch-test-src/test_upstream/case_paths_ci.yml \
             --report-dir ${REPORT_DIR} \
             --timeout 1200 \
+            --verbose \
             2>&1 | tee /tmp/test_shard_reg_${{ matrix.shard }}.log
 
           TEST_STATUS=${PIPESTATUS[0]}
