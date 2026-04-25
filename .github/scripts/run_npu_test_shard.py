@@ -302,8 +302,12 @@ def collect_test_cases(test_file: str, test_dir: Path, env: Dict) -> List[str]:
         # Check for collection errors (import failures, etc.)
         if result.stderr:
             stderr_lines = result.stderr.strip().splitlines()
-            # Print warning if there are errors
-            if stderr_lines and ("error" in result.stderr.lower() or "failed" in result.stderr.lower()):
+            # Print warning if there are errors (various error types)
+            stderr_lower = result.stderr.lower()
+            if stderr_lines and any(
+                kw in stderr_lower
+                for kw in ["error", "failed", "importerror", "modulenotfound", "traceback", "exception"]
+            ):
                 print(f"    WARNING: Collection errors for {test_file}:")
                 for line in stderr_lines[-10:]:
                     print(f"      {line}")
