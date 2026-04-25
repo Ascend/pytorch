@@ -299,6 +299,15 @@ def collect_test_cases(test_file: str, test_dir: Path, env: Dict) -> List[str]:
             timeout=60,  # Collection timeout
         )
 
+        # Check for collection errors (import failures, etc.)
+        if result.stderr:
+            stderr_lines = result.stderr.strip().splitlines()
+            # Print warning if there are errors
+            if stderr_lines and ("error" in result.stderr.lower() or "failed" in result.stderr.lower()):
+                print(f"    WARNING: Collection errors for {test_file}:")
+                for line in stderr_lines[-10:]:
+                    print(f"      {line}")
+
         # Parse nodeids from output
         nodeids = []
         for line in result.stdout.splitlines():
