@@ -37,6 +37,11 @@ def collect_cases_for_file(test_file: str, test_dir: Path) -> Tuple[str, List[st
     else:
         test_file_rel = test_file
 
+    # Extract display name (remove test/ prefix and .py suffix)
+    display_name = test_file_rel
+    if display_name.endswith(".py"):
+        display_name = display_name[:-3]
+
     command = [
         sys.executable,
         "-m",
@@ -62,9 +67,15 @@ def collect_cases_for_file(test_file: str, test_dir: Path) -> Tuple[str, List[st
             if "::" in line and not line.strip().startswith("<"):
                 nodeids.append(line.strip())
 
+        # Print log for each file: file name and case count
+        print(f"  {display_name}: {len(nodeids)} cases")
+
         return (test_file, nodeids)
+    except subprocess.TimeoutExpired:
+        print(f"  {display_name}: TIMEOUT (collection took >120s)")
+        return (test_file, [])
     except Exception as e:
-        print(f"WARNING: Failed to collect {test_file}: {e}")
+        print(f"  {display_name}: ERROR - {e}")
         return (test_file, [])
 
 
@@ -77,6 +88,7 @@ def collect_all_cases(
     all_cases = []
 
     print(f"Collecting cases from {len(test_files)} files with {parallel} workers...")
+    print("=" * 60)
 
     with ThreadPoolExecutor(max_workers=parallel) as executor:
         futures = {
@@ -95,8 +107,12 @@ def collect_all_cases(
                     "file": test_file,
                 })
 
-            if completed % 50 == 0 or completed == len(test_files):
-                print(f"  Progress: {completed}/{len(test_files)} files, {len(all_cases)} cases")
+            # Print progress summary every 100 files
+            if completed % 100 == 0:
+                print(f"  [Progress: {completed}/{len(test_files)} files, {len(all_cases)} total cases]")
+
+    print("=" * 60)
+    print(f"Collection complete: {len(all_cases)} cases from {len(test_files)} files")
 
     return all_cases
 
