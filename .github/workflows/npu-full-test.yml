@@ -54,10 +54,6 @@ jobs:
   prepare:
     runs-on: ubuntu-latest
     outputs:
-      distributed_matrix: ${{ steps.set_matrix.outputs.distributed_matrix }}
-      regular_matrix: ${{ steps.set_matrix.outputs.regular_matrix }}
-      distributed_shards: ${{ steps.set_matrix.outputs.distributed_shards }}
-      regular_shards: ${{ steps.set_matrix.outputs.regular_shards }}
       patch_count: ${{ steps.apply_patches.outputs.patch_count }}
     steps:
       - name: Checkout repository
@@ -66,28 +62,6 @@ jobs:
           repository: kerer-ai/pytorch
           ref: v2.7.1_dev
           fetch-depth: 1
-
-      - name: Set shard matrices
-        id: set_matrix
-        run: |
-          # Case-level sharding: 4 distributed shards + 6 regular shards
-          DISTRIBUTED_SHARDS='4'
-          REGULAR_SHARDS='6'
-
-          # Build distributed shard matrix
-          DIST_SHARDS=$(seq 1 ${DISTRIBUTED_SHARDS} | tr '\n' ',' | sed 's/,$//')
-          # Build regular shard matrix
-          REG_SHARDS=$(seq 1 ${REGULAR_SHARDS} | tr '\n' ',' | sed 's/,$//')
-
-          echo "distributed_matrix=[${DIST_SHARDS}]" >> $GITHUB_OUTPUT
-          echo "distributed_shards=${DISTRIBUTED_SHARDS}" >> $GITHUB_OUTPUT
-
-          echo "regular_matrix=[${REG_SHARDS}]" >> $GITHUB_OUTPUT
-          echo "regular_shards=${REGULAR_SHARDS}" >> $GITHUB_OUTPUT
-
-          echo "Distributed tests: ${DISTRIBUTED_SHARDS} shards (case-level, serial execution, linux-aarch64-a3-8)"
-          echo "Regular tests: ${REGULAR_SHARDS} shards (case-level, 64 workers, linux-aarch64-a3-16)"
-          echo "Total shards configured: $((${DISTRIBUTED_SHARDS} + ${REGULAR_SHARDS}))"
 
       - name: Clone PyTorch v${{ env.PYTORCH_VERSION }} (for test source)
         run: |
@@ -120,31 +94,6 @@ jobs:
       - name: Package prepared test source
         run: |
           tar -czf pytorch-test-src.tar.gz pytorch-test-src
-
-      - name: Collect all test cases and shard
-        run: |
-          cd pytorch-test-src
-
-          echo "=== Collecting all test cases ==="
-          python ../ascend_pytorch/.github/scripts/collect_all_cases.py \
-            --test-dir test \
-            --case-paths-config test_upstream/case_paths_ci.yml \
-            --distributed-shards 4 \
-            --regular-shards 6 \
-            --output-dir cases_shards \
-            --parallel 16 \
-            2>&1 | tee /tmp/collect_cases.log
-
-          # Verify output
-          ls -la cases_shards/
-          cat cases_shards/cases_collection_summary.json
-
-      - name: Upload cases shard JSONs
-        uses: actions/upload-artifact@v4
-        with:
-          name: cases-shards
-          path: pytorch-test-src/cases_shards/
-          retention-days: 7
 
       - name: Upload prepared test source
         uses: actions/upload-artifact@v4
@@ -189,12 +138,200 @@ jobs:
           retention-days: 30
 
   # ============================================================================
+  # Collect Cases: Run on NPU runner to ensure correct torch environment
+  # Collect all test cases via pytest --collect-only and split into shards
+  # ============================================================================
+  collect_cases:
+    needs:
+      - prepare
+      - upload_torch_npu_wheel
+    if: ${{ github.event.inputs.test_files == '' }}
+    runs-on: linux-aarch64-a3-8
+    timeout-minutes: 60
+    container:
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.7.1_a3_aarch64_builder:20260424
+      options: --user root
+    outputs:
+      distributed_matrix: ${{ steps.collect_and_shard.outputs.distributed_matrix }}
+      regular_matrix: ${{ steps.collect_and_shard.outputs.regular_matrix }}
+      distributed_shards: ${{ steps.collect_and_shard.outputs.distributed_shards }}
+      regular_shards: ${{ steps.collect_and_shard.outputs.regular_shards }}
+      total_cases: ${{ steps.collect_and_shard.outputs.total_cases }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          repository: kerer-ai/pytorch
+          ref: v2.7.1_dev
+          fetch-depth: 1
+          path: ascend_pytorch
+
+      - name: Setup cache directories
+        run: |
+          mkdir -p /github/home/.cache/pip
+          chmod -R 777 /github/home/.cache
+
+      - name: Download built torch_npu wheel
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.TORCH_NPU_WHEEL_ARTIFACT }}
+          path: torch-npu-wheel-artifact
+
+      - name: Uninstall pre-installed torch/torchvision
+        run: |
+          pip${{ env.PYTHON_VERSION }} uninstall -y torch torchvision || true
+          echo "Pre-installed torch/torchvision uninstalled"
+
+      - name: Install PyTorch ${{ env.PYTORCH_VERSION }} and built torch_npu
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          PIP=pip${{ env.PYTHON_VERSION }}
+          PYTHON=python${{ env.PYTHON_VERSION }}
+          export PIP_CACHE_DIR=/github/home/.cache/pip
+
+          $PIP install --upgrade pip
+          $PIP install torch==${{ env.PYTORCH_VERSION }} --index-url https://download.pytorch.org/whl/cpu
+          TORCH_NPU_WHL=$(ls torch-npu-wheel-artifact/*.whl | head -1)
+          $PIP install "${TORCH_NPU_WHL}"
+
+          echo "PyTorch ${{ env.PYTORCH_VERSION }} and torch_npu installed from ${TORCH_NPU_WHL}"
+
+      - name: Download prepared test source
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.PREPARED_TEST_SRC_ARTIFACT }}
+          path: prepared-test-src-artifact
+
+      - name: Extract prepared test source
+        run: |
+          tar -xzf prepared-test-src-artifact/pytorch-test-src.tar.gz
+
+      - name: Verify NPU availability
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          PYTHON=python${{ env.PYTHON_VERSION }}
+          $PYTHON -c "
+          import torch
+          print(f'torch: {torch.__version__}')
+          import torch_npu
+          print(f'torch_npu: {torch_npu.__version__}')
+          print(f'NPU available: {torch.npu.is_available()}')
+          print(f'NPU count: {torch.npu.device_count()}')
+          "
+
+      - name: Install test dependencies
+        run: |
+          PIP=pip${{ env.PYTHON_VERSION }}
+          cd pytorch-test-src
+
+          $PIP install pytest pytest-timeout pytest-xdist hypothesis zstandard pyyaml
+          $PIP install pytest-rerunfailures pytest-flakefinder
+          $PIP install 'pytest-subtests==0.13.1' 'xdoctest==1.1.0' 'pulp>=2.9'
+
+          if [ -f requirements.txt ]; then
+            $PIP install -r requirements.txt || true
+          fi
+
+      - name: Apply torch environment patches
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          PYTHON=python${{ env.PYTHON_VERSION }}
+          cd ascend_pytorch/test_upstream
+          chmod +x torch_env_patch.sh
+
+          echo "=== Applying torch environment patches ==="
+          ./torch_env_patch.sh --python=${{ env.PYTHON_VERSION }} --verbose 2>&1 | tee /tmp/torch_env_patch_collect.log
+          PATCH_STATUS=$?
+
+          if [ ${PATCH_STATUS} -ne 0 ]; then
+            echo "WARNING: Torch environment patch application returned non-zero status: ${PATCH_STATUS}"
+            echo "Case collection will continue, but some tests may fail later"
+          fi
+
+      - name: Collect all test cases and shard
+        id: collect_and_shard
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          PYTHON=python${{ env.PYTHON_VERSION }}
+          cd pytorch-test-src
+
+          # Case-level sharding: 4 distributed shards + 6 regular shards
+          DISTRIBUTED_SHARDS='4'
+          REGULAR_SHARDS='6'
+
+          echo "=== Collecting all test cases ==="
+          echo "Distributed shards: ${DISTRIBUTED_SHARDS}"
+          echo "Regular shards: ${REGULAR_SHARDS}"
+
+          $PYTHON ../ascend_pytorch/.github/scripts/collect_all_cases.py \
+            --test-dir test \
+            --case-paths-config test_upstream/case_paths_ci.yml \
+            --distributed-shards ${DISTRIBUTED_SHARDS} \
+            --regular-shards ${REGULAR_SHARDS} \
+            --output-dir cases_shards \
+            --parallel 16 \
+            2>&1 | tee /tmp/collect_cases.log
+
+          # Verify output
+          echo "=== Generated shard files ==="
+          ls -la cases_shards/
+
+          echo "=== Collection summary ==="
+          cat cases_shards/cases_collection_summary.json
+
+          # Extract total cases from summary
+          TOTAL_CASES=$(python3 -c "import json; d=json.load(open('cases_shards/cases_collection_summary.json')); print(d['total_cases'])")
+
+          # Build shard matrices
+          DIST_SHARDS=$(seq 1 ${DISTRIBUTED_SHARDS} | tr '\n' ',' | sed 's/,$//')
+          REG_SHARDS=$(seq 1 ${REGULAR_SHARDS} | tr '\n' ',' | sed 's/,$//')
+
+          echo "distributed_matrix=[${DIST_SHARDS}]" >> $GITHUB_OUTPUT
+          echo "distributed_shards=${DISTRIBUTED_SHARDS}" >> $GITHUB_OUTPUT
+          echo "regular_matrix=[${REG_SHARDS}]" >> $GITHUB_OUTPUT
+          echo "regular_shards=${REGULAR_SHARDS}" >> $GITHUB_OUTPUT
+          echo "total_cases=${TOTAL_CASES}" >> $GITHUB_OUTPUT
+
+          echo "=== Shard configuration ==="
+          echo "Distributed tests: ${DISTRIBUTED_SHARDS} shards (case-level, serial execution, linux-aarch64-a3-8)"
+          echo "Regular tests: ${REGULAR_SHARDS} shards (case-level, 64 workers, linux-aarch64-a3-16)"
+          echo "Total cases: ${TOTAL_CASES}"
+
+      - name: Upload cases shard JSONs
+        uses: actions/upload-artifact@v4
+        with:
+          name: cases-shards
+          path: pytorch-test-src/cases_shards/
+          retention-days: 7
+
+      - name: Upload collect logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: collect-cases-logs
+          path: |
+            /tmp/collect_cases.log
+            /tmp/torch_env_patch_collect.log
+          if-no-files-found: warn
+          retention-days: 30
+
+  # ============================================================================
   # Distributed Tests: linux-aarch64-a3-8 runner (8-card NPU), serial execution
   # Case-level sharding (4 shards, ~equal cases per shard)
   # ============================================================================
   test_distributed:
     needs:
       - prepare
+      - collect_cases
       - upload_torch_npu_wheel
     if: ${{ github.event.inputs.test_files == '' }}
     runs-on: linux-aarch64-a3-8
@@ -204,7 +341,7 @@ jobs:
       options: --user root
     strategy:
       matrix:
-        shard: ${{ fromJson(needs.prepare.outputs.distributed_matrix) }}
+        shard: ${{ fromJson(needs.collect_cases.outputs.distributed_matrix) }}
       fail-fast: false
       max-parallel: 4
 
@@ -321,7 +458,7 @@ jobs:
           name: cases-shards
           path: cases-shards
 
-      - name: Run distributed shard ${{ matrix.shard }}/${{ needs.prepare.outputs.distributed_shards }}
+      - name: Run distributed shard ${{ matrix.shard }}/${{ needs.collect_cases.outputs.distributed_shards }}
         id: run_test
         run: |
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
@@ -384,6 +521,7 @@ jobs:
   test_regular:
     needs:
       - prepare
+      - collect_cases
       - upload_torch_npu_wheel
     if: ${{ github.event.inputs.test_files == '' }}
     runs-on: linux-aarch64-a3-16
@@ -393,7 +531,7 @@ jobs:
       options: --user root
     strategy:
       matrix:
-        shard: ${{ fromJson(needs.prepare.outputs.regular_matrix) }}
+        shard: ${{ fromJson(needs.collect_cases.outputs.regular_matrix) }}
       fail-fast: false
       max-parallel: 6
 
@@ -510,7 +648,7 @@ jobs:
           name: cases-shards
           path: cases-shards
 
-      - name: Run regular shard ${{ matrix.shard }}/${{ needs.prepare.outputs.regular_shards }}
+      - name: Run regular shard ${{ matrix.shard }}/${{ needs.collect_cases.outputs.regular_shards }}
         id: run_test
         run: |
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
@@ -689,10 +827,11 @@ jobs:
       - prepare
       - build_torch_npu
       - upload_torch_npu_wheel
+      - collect_cases
       - test_distributed
       - test_regular
       - test_custom
-    if: always() && needs.prepare.result == 'success' && needs.build_torch_npu.result == 'success'
+    if: always() && needs.prepare.result == 'success' && needs.build_torch_npu.result == 'success' && needs.collect_cases.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -728,8 +867,8 @@ jobs:
           REPORT_JSON=npu-full-test-summary.json
 
           # Combine both shard matrices for reporting
-          DIST_MATRIX='${{ needs.prepare.outputs.distributed_matrix }}'
-          REG_MATRIX='${{ needs.prepare.outputs.regular_matrix }}'
+          DIST_MATRIX='${{ needs.collect_cases.outputs.distributed_matrix }}'
+          REG_MATRIX='${{ needs.collect_cases.outputs.regular_matrix }}'
           COMBINED_MATRIX=$(python3 -c "import sys,json; dist=json.loads('${DIST_MATRIX}'); reg=json.loads('${REG_MATRIX}'); print(json.dumps(['dist-'+str(s) for s in dist]+['reg-'+str(s) for s in reg]))")
 
           $PYTHON .github/scripts/generate_npu_full_test_report.py \
