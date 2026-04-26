@@ -234,7 +234,7 @@ class ProgressTracker:
 
             print(f"[{self._completed_tasks}/{self._total_tasks}] {progress_pct:.1f}% "
                   f"{status_icon} {display_nodeid} ({duration:.1f}s) "
-                  f"[elapsed: {elapsed:.0f}s]")
+                  f"[elapsed: {elapsed:.0f}s]", flush=True)
 
     def get_progress(self) -> Tuple[int, int]:
         """Get current progress."""
@@ -697,6 +697,11 @@ def run_single_case_concurrent(
 
     command_str = " ".join(command)
 
+    # Print start log to stdout (before execution)
+    # Truncate nodeid for display
+    display_nodeid = original_nodeid[:70] + "..." if len(original_nodeid) > 70 else original_nodeid
+    print(f"[{task.case_idx}] Starting: {display_nodeid}", flush=True)
+
     # Log start
     log_queue.put({
         "type": "case_start",
@@ -1023,16 +1028,16 @@ def run_tests_with_concurrent_isolation(
     log_thread.join(timeout=5)
 
     # Print final summary
-    print(f"\n{'=' * 80}")
-    print(f"Summary: {summary['total_cases']} cases executed")
-    print(f"  Passed: {summary['passed_count']}")
-    print(f"  Failed: {summary['failed_count']}")
-    print(f"  Errors: {summary['error_count']}")
-    print(f"  Crashed: {summary['crashed_count']}")
-    print(f"  Timeout: {summary['timeout_count']}")
-    print(f"  Skipped: {summary['skipped_count']}")
-    print(f"  Duration: {elapsed:.2f}s")
-    print(f"{'=' * 80}")
+    print(f"\n{'=' * 80}", flush=True)
+    print(f"Summary: {summary['total_cases']} cases executed", flush=True)
+    print(f"  Passed: {summary['passed_count']}", flush=True)
+    print(f"  Failed: {summary['failed_count']}", flush=True)
+    print(f"  Errors: {summary['error_count']}", flush=True)
+    print(f"  Crashed: {summary['crashed_count']}", flush=True)
+    print(f"  Timeout: {summary['timeout_count']}", flush=True)
+    print(f"  Skipped: {summary['skipped_count']}", flush=True)
+    print(f"  Duration: {elapsed:.2f}s", flush=True)
+    print(f"{'=' * 80}", flush=True)
 
     return summary["worst_returncode"], elapsed, result_aggregator.get_sorted_cases()
 
@@ -1257,13 +1262,13 @@ def run_tests_with_tasks_concurrent(
 
     log_thread.start()
 
-    print(f"\n{'=' * 80}")
-    print(f"Pre-collected cases: {len(tasks)} cases")
-    print(f"Execution mode: {max_workers} workers concurrent, each case in subprocess")
-    print(f"{'=' * 80}\n")
+    print(f"\n{'=' * 80}", flush=True)
+    print(f"Pre-collected cases: {len(tasks)} cases", flush=True)
+    print(f"Execution mode: {max_workers} workers concurrent, each case in subprocess", flush=True)
+    print(f"{'=' * 80}\n", flush=True)
 
     total_cases = len(tasks)
-    print(f"Phase 1: Executing {total_cases} pre-collected cases...")
+    print(f"Phase 1: Executing {total_cases} pre-collected cases...", flush=True)
 
     # Phase 2: Concurrent execution via ThreadPoolExecutor
     progress_tracker = ProgressTracker(total_cases)
@@ -1330,16 +1335,16 @@ def run_tests_with_tasks_concurrent(
     log_thread.join(timeout=5)
 
     # Print final summary
-    print(f"\n{'=' * 80}")
-    print(f"Summary: {summary['total_cases']} cases executed")
-    print(f"  Passed: {summary['passed_count']}")
-    print(f"  Failed: {summary['failed_count']}")
-    print(f"  Errors: {summary['error_count']}")
-    print(f"  Crashed: {summary['crashed_count']}")
-    print(f"  Timeout: {summary['timeout_count']}")
-    print(f"  Skipped: {summary['skipped_count']}")
-    print(f"  Duration: {elapsed:.2f}s")
-    print(f"{'=' * 80}")
+    print(f"\n{'=' * 80}", flush=True)
+    print(f"Summary: {summary['total_cases']} cases executed", flush=True)
+    print(f"  Passed: {summary['passed_count']}", flush=True)
+    print(f"  Failed: {summary['failed_count']}", flush=True)
+    print(f"  Errors: {summary['error_count']}", flush=True)
+    print(f"  Crashed: {summary['crashed_count']}", flush=True)
+    print(f"  Timeout: {summary['timeout_count']}", flush=True)
+    print(f"  Skipped: {summary['skipped_count']}", flush=True)
+    print(f"  Duration: {elapsed:.2f}s", flush=True)
+    print(f"{'=' * 80}", flush=True)
 
     return summary["worst_returncode"], elapsed, result_aggregator.get_sorted_cases()
 
