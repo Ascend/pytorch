@@ -439,6 +439,174 @@ def load_cases_file(report_dir: Path, shard: int, shard_type: str = "regular") -
 
 
 # ==============================================================================
+# Case Aggregation by File
+# ==============================================================================
+
+
+def aggregate_cases_by_file(cases_list: List[Dict]) -> Dict[str, Dict]:
+    """
+    Aggregate case results by test file.
+
+    This function groups test cases by their source file and computes
+    statistics (passed, failed, errors, etc.) per file. It also collects
+    detailed failure information for reporting.
+
+    Args:
+        cases_list: List of case result dicts with "nodeid", "file", "status" keys
+
+    Returns:
+        Dict mapping test file path -> aggregated stats
+        Each entry contains:
+            - file: test file path
+            - total: total cases in file
+            - passed, failed, errors, crashed, timeout, skipped: counts
+            - failed_cases: list of failed/error/crashed/timeout cases with details
+            - duration: total execution time for file
+    """
+    file_stats = {}
+
+    for case in cases_list:
+        test_file = case.get("file", "unknown")
+        if not test_file:
+            # Try to extract file from nodeid
+            nodeid = case.get("nodeid", "")
+            if "::" in nodeid:
+                test_file = nodeid.split("::")[0]
+            else:
+                test_file = "unknown"
+
+        status = case.get("status", "error")
+        duration = case.get("duration", 0.0)
+
+        if test_file not in file_stats:
+            file_stats[test_file] = {
+                "file": test_file,
+                "total": 0,
+                "passed": 0,
+                "failed": 0,
+                "errors": 0,
+                "crashed": 0,
+                "timeout": 0,
+                "skipped": 0,
+                "failed_cases": [],
+                "duration": 0.0,
+            }
+
+        stats = file_stats[test_file]
+        stats["total"] += 1
+        stats["duration"] += duration
+
+        if status == "passed":
+            stats["passed"] += 1
+        elif status == "failed":
+            stats["failed"] += 1
+            stats["failed_cases"].append({
+                "nodeid": case.get("nodeid"),
+                "status": "failed",
+                "message": case.get("message", ""),
+                "duration": duration,
+            })
+        elif status == "error":
+            stats["errors"] += 1
+            stats["failed_cases"].append({
+                "nodeid": case.get("nodeid"),
+                "status": "error",
+                "message": case.get("message", ""),
+                "duration": duration,
+            })
+        elif status == "crashed":
+            stats["crashed"] += 1
+            stats["failed_cases"].append({
+                "nodeid": case.get("nodeid"),
+                "status": "crashed",
+                "message": case.get("message", ""),
+                "duration": duration,
+            })
+        elif status == "timeout":
+            stats["timeout"] += 1
+            stats["failed_cases"].append({
+                "nodeid": case.get("nodeid"),
+                "status": "timeout",
+                "message": f"Timeout after {duration}s",
+                "duration": duration,
+            })
+        elif status == "skipped":
+            stats["skipped"] += 1
+
+    return file_stats
+
+
+def aggregate_all_cases_by_file(cases_results: Dict) -> Dict[str, Dict]:
+    """
+    Aggregate all cases from multiple shards by test file.
+
+    Args:
+        cases_results: Dict mapping shard_key -> cases_data (from shard_*_cases.json)
+
+    Returns:
+        Dict mapping test file -> aggregated stats across all shards
+    """
+    all_file_stats = {}
+
+    for shard_key, cases_data in cases_results.items():
+        shard_cases = cases_data.get("cases", [])
+        file_stats = aggregate_cases_by_file(shard_cases)
+
+        for test_file, stats in file_stats.items():
+            if test_file not in all_file_stats:
+                all_file_stats[test_file] = {
+                    "file": test_file,
+                    "total": 0,
+                    "passed": 0,
+                    "failed": 0,
+                    "errors": 0,
+                    "crashed": 0,
+                    "timeout": 0,
+                    "skipped": 0,
+                    "failed_cases": [],
+                    "duration": 0.0,
+                }
+
+            existing = all_file_stats[test_file]
+            existing["total"] += stats["total"]
+            existing["passed"] += stats["passed"]
+            existing["failed"] += stats["failed"]
+            existing["errors"] += stats["errors"]
+            existing["crashed"] += stats["crashed"]
+            existing["timeout"] += stats["timeout"]
+            existing["skipped"] += stats["skipped"]
+            existing["duration"] += stats["duration"]
+            existing["failed_cases"].extend(stats["failed_cases"])
+
+    # Sort failed_cases within each file
+    for test_file in all_file_stats:
+        all_file_stats[test_file]["failed_cases"].sort(
+            key=lambda x: x.get("nodeid", "")
+        )
+
+    return all_file_stats
+
+
+def get_files_with_failures(file_stats: Dict[str, Dict]) -> List[Dict]:
+    """
+    Get list of test files that have failures/errors/crashes/timeout.
+
+    Args:
+        file_stats: Dict from aggregate_all_cases_by_file()
+
+    Returns:
+        List of file stats dicts sorted by file name, only including files with failures
+    """
+    failed_files = []
+    for test_file, stats in file_stats.items():
+        if stats["failed"] > 0 or stats["errors"] > 0 or stats["crashed"] > 0 or stats["timeout"] > 0:
+            failed_files.append(stats)
+
+    failed_files.sort(key=lambda x: x["file"])
+    return failed_files
+
+
+# ==============================================================================
 # Summary Printing
 # ==============================================================================
 

@@ -70,9 +70,9 @@ jobs:
       - name: Set shard matrices
         id: set_matrix
         run: |
-          # Get shard counts from inputs or use defaults (total 80 shards: 20 distributed + 60 regular)
-          DISTRIBUTED_SHARDS=${{ inputs.distributed_shards || '20' }}
-          REGULAR_SHARDS=${{ inputs.regular_shards || '60' }}
+          # Case-level sharding: 4 distributed shards + 6 regular shards
+          DISTRIBUTED_SHARDS='4'
+          REGULAR_SHARDS='6'
 
           # Build distributed shard matrix
           DIST_SHARDS=$(seq 1 ${DISTRIBUTED_SHARDS} | tr '\n' ',' | sed 's/,$//')
@@ -85,8 +85,8 @@ jobs:
           echo "regular_matrix=[${REG_SHARDS}]" >> $GITHUB_OUTPUT
           echo "regular_shards=${REGULAR_SHARDS}" >> $GITHUB_OUTPUT
 
-          echo "Distributed tests: ${DISTRIBUTED_SHARDS} shards (matrix: ${DIST_SHARDS})"
-          echo "Regular tests: ${REGULAR_SHARDS} shards (matrix: ${REG_SHARDS})"
+          echo "Distributed tests: ${DISTRIBUTED_SHARDS} shards (case-level, serial execution, linux-aarch64-a3-8)"
+          echo "Regular tests: ${REGULAR_SHARDS} shards (case-level, 64 workers, linux-aarch64-a3-16)"
           echo "Total shards configured: $((${DISTRIBUTED_SHARDS} + ${REGULAR_SHARDS}))"
 
       - name: Clone PyTorch v${{ env.PYTORCH_VERSION }} (for test source)
@@ -120,6 +120,31 @@ jobs:
       - name: Package prepared test source
         run: |
           tar -czf pytorch-test-src.tar.gz pytorch-test-src
+
+      - name: Collect all test cases and shard
+        run: |
+          cd pytorch-test-src
+
+          echo "=== Collecting all test cases ==="
+          python ../ascend_pytorch/.github/scripts/collect_all_cases.py \
+            --test-dir test \
+            --case-paths-config test_upstream/case_paths_ci.yml \
+            --distributed-shards 4 \
+            --regular-shards 6 \
+            --output-dir cases_shards \
+            --parallel 16 \
+            2>&1 | tee /tmp/collect_cases.log
+
+          # Verify output
+          ls -la cases_shards/
+          cat cases_shards/cases_collection_summary.json
+
+      - name: Upload cases shard JSONs
+        uses: actions/upload-artifact@v4
+        with:
+          name: cases-shards
+          path: pytorch-test-src/cases_shards/
+          retention-days: 7
 
       - name: Upload prepared test source
         uses: actions/upload-artifact@v4
@@ -164,7 +189,8 @@ jobs:
           retention-days: 30
 
   # ============================================================================
-  # Distributed Tests: linux-aarch64-a3-8 runner (8-card NPU), serial execution, default 10 shards
+  # Distributed Tests: linux-aarch64-a3-8 runner (8-card NPU), serial execution
+  # Case-level sharding (4 shards, ~equal cases per shard)
   # ============================================================================
   test_distributed:
     needs:
@@ -180,7 +206,7 @@ jobs:
       matrix:
         shard: ${{ fromJson(needs.prepare.outputs.distributed_matrix) }}
       fail-fast: false
-      max-parallel: 20
+      max-parallel: 4
 
     steps:
       - name: Checkout repository
@@ -289,6 +315,12 @@ jobs:
             echo "Tests will continue, but some may fail due to missing patches"
           fi
 
+      - name: Download cases shard JSONs
+        uses: actions/download-artifact@v4
+        with:
+          name: cases-shards
+          path: cases-shards
+
       - name: Run distributed shard ${{ matrix.shard }}/${{ needs.prepare.outputs.distributed_shards }}
         id: run_test
         run: |
@@ -297,18 +329,24 @@ jobs:
 
           PYTHON=python${{ env.PYTHON_VERSION }}
           REPORT_DIR=test-reports
+          CASES_JSON="cases-shards/distributed_cases_shard_${{ matrix.shard }}.json"
 
           mkdir -p ${REPORT_DIR}
 
-          # Distributed tests: per-case isolation execution
+          # Get case count from JSON
+          TOTAL_CASES=$(python3 -c "import json; d=json.load(open('${CASES_JSON}')); print(d['total_cases'])")
+
+          echo "=== Distributed Shard ${{ matrix.shard }} (Case-level) ==="
+          echo "Total cases: ${TOTAL_CASES}"
+          echo "Runner: linux-aarch64-a3-8 (8-card NPU)"
+          echo "Execution mode: SERIAL"
+
+          # Distributed tests: pre-collected cases, serial execution
           set +e
           $PYTHON ascend_pytorch/.github/scripts/run_npu_test_shard.py \
-            --shard ${{ matrix.shard }} \
-            --num-shards ${NUM_DISTRIBUTED_SHARDS} \
-            --test-type distributed \
+            --cases-json "${CASES_JSON}" \
             --test-dir pytorch-test-src/test \
             --disabled-testcases pytorch-test-src/test_upstream/disabled_testcases.json \
-            --case-paths-config pytorch-test-src/test_upstream/case_paths_ci.yml \
             --report-dir ${REPORT_DIR} \
             --timeout 1200 \
             --verbose \
@@ -318,8 +356,6 @@ jobs:
           set -e
           echo "status=${TEST_STATUS}" >> $GITHUB_OUTPUT
           exit ${TEST_STATUS}
-        env:
-          NUM_DISTRIBUTED_SHARDS: ${{ needs.prepare.outputs.distributed_shards }}
 
       - name: Upload test reports
         if: always()
@@ -342,14 +378,15 @@ jobs:
           if-no-files-found: warn
 
   # ============================================================================
-  # Regular Tests: linux-aarch64-a3-2 runner (2-card NPU), serial execution, default 30 shards
+  # Regular Tests: linux-aarch64-a3-16 runner (16-card NPU), 64 concurrent workers
+  # Case-level sharding (6 shards, ~equal cases per shard)
   # ============================================================================
   test_regular:
     needs:
       - prepare
       - upload_torch_npu_wheel
     if: ${{ github.event.inputs.test_files == '' }}
-    runs-on: linux-aarch64-a3-2
+    runs-on: linux-aarch64-a3-16
     timeout-minutes: 1200
     container:
       image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.7.1_a3_aarch64_builder:20260424
@@ -358,7 +395,7 @@ jobs:
       matrix:
         shard: ${{ fromJson(needs.prepare.outputs.regular_matrix) }}
       fail-fast: false
-      max-parallel: 60
+      max-parallel: 6
 
     steps:
       - name: Checkout repository
@@ -467,6 +504,12 @@ jobs:
             echo "Tests will continue, but some may fail due to missing patches"
           fi
 
+      - name: Download cases shard JSONs
+        uses: actions/download-artifact@v4
+        with:
+          name: cases-shards
+          path: cases-shards
+
       - name: Run regular shard ${{ matrix.shard }}/${{ needs.prepare.outputs.regular_shards }}
         id: run_test
         run: |
@@ -475,20 +518,27 @@ jobs:
 
           PYTHON=python${{ env.PYTHON_VERSION }}
           REPORT_DIR=test-reports
+          CASES_JSON="cases-shards/regular_cases_shard_${{ matrix.shard }}.json"
 
           mkdir -p ${REPORT_DIR}
 
-          # Regular tests: per-case isolation execution
+          # Get case count from JSON
+          TOTAL_CASES=$(python3 -c "import json; d=json.load(open('${CASES_JSON}')); print(d['total_cases'])")
+
+          echo "=== Regular Shard ${{ matrix.shard }} (Case-level) ==="
+          echo "Total cases: ${TOTAL_CASES}"
+          echo "Runner: linux-aarch64-a3-16 (16-card NPU)"
+          echo "Execution mode: CONCURRENT (64 workers)"
+
+          # Regular tests: pre-collected cases, 64 concurrent workers
           set +e
           $PYTHON ascend_pytorch/.github/scripts/run_npu_test_shard.py \
-            --shard ${{ matrix.shard }} \
-            --num-shards ${NUM_REGULAR_SHARDS} \
-            --test-type regular \
+            --cases-json "${CASES_JSON}" \
             --test-dir pytorch-test-src/test \
             --disabled-testcases pytorch-test-src/test_upstream/disabled_testcases.json \
-            --case-paths-config pytorch-test-src/test_upstream/case_paths_ci.yml \
             --report-dir ${REPORT_DIR} \
             --timeout 1200 \
+            --max-workers 64 \
             --verbose \
             2>&1 | tee /tmp/test_shard_reg_${{ matrix.shard }}.log
 
@@ -496,8 +546,6 @@ jobs:
           set -e
           echo "status=${TEST_STATUS}" >> $GITHUB_OUTPUT
           exit ${TEST_STATUS}
-        env:
-          NUM_REGULAR_SHARDS: ${{ needs.prepare.outputs.regular_shards }}
 
       - name: Upload test reports
         if: always()
@@ -693,7 +741,7 @@ jobs:
             --patch-count "${{ needs.prepare.outputs.patch_count || 'N/A' }}" \
             --shard-matrix-json "${COMBINED_MATRIX}" \
             --docker-image "${{ env.DOCKER_IMAGE }}" \
-            --runner "linux-aarch64-a3-8 (distributed), linux-aarch64-a3-2 (regular), linux-aarch64-a3-8 (custom)"
+            --runner "linux-aarch64-a3-8 (distributed, serial), linux-aarch64-a3-16 (regular, 64 workers), linux-aarch64-a3-8 (custom)"
 
           cat ${REPORT_MD} >> $GITHUB_STEP_SUMMARY
 

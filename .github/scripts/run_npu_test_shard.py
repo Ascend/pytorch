@@ -1184,6 +1184,166 @@ def run_tests_with_case_isolation(
     return worst_returncode, elapsed, cases_list
 
 
+def run_tests_with_tasks_concurrent(
+    tasks: List[CaseExecutionTask],
+    shard: int,
+    test_dir: Path,
+    report_dir: Path,
+    env_updates: Dict[str, str],
+    timeout: int,
+    verbose: bool,
+    shard_type: str,
+    max_workers: int,
+    result_module,
+) -> Tuple[int, float, List[Dict]]:
+    """
+    Execute pre-collected test cases with concurrent per-case isolation.
+
+    This function takes CaseExecutionTask objects directly (pre-collected cases)
+    and executes them concurrently without the file-level case collection phase.
+
+    Args:
+        tasks: List of CaseExecutionTask objects (pre-collected cases)
+        shard: Shard number
+        test_dir: PyTorch test directory
+        report_dir: Report output directory
+        env_updates: Environment variable updates
+        timeout: Per-case timeout in seconds
+        verbose: Verbose output
+        shard_type: "distributed" or "regular"
+        max_workers: Maximum concurrent subprocesses
+        result_module: parse_test_results module
+
+    Returns:
+        Tuple of (worst_returncode, duration, cases_list_sorted)
+    """
+    start = monotonic()
+    log_file = result_module.get_shard_log_file(report_dir, shard, shard_type)
+
+    merged_env = os.environ.copy()
+    merged_env.update(env_updates)
+
+    config = ConcurrentExecutionConfig(
+        max_workers=max_workers,
+        per_case_timeout=timeout,
+        verbose=verbose,
+    )
+
+    # Thread-safe result aggregator
+    result_aggregator = ConcurrentResultAggregator()
+
+    # Log queue and writer thread
+    log_queue = Queue()
+    stop_event = threading.Event()
+    log_thread = threading.Thread(
+        target=log_writer_thread,
+        args=(log_queue, log_file, stop_event),
+        daemon=True,
+    )
+
+    # Write log header
+    log_queue.put({
+        "type": "header",
+        "content": (
+            "=" * 80 + "\n"
+            f"Pre-collected cases concurrent execution ({shard_type} shard)\n"
+            "=" * 80 + "\n"
+            f"Total cases: {len(tasks)}\n"
+            f"Max concurrent workers: {max_workers}\n"
+            "Execution mode: concurrent subprocess, each case isolated\n"
+            "=" * 80 + "\n\n"
+        ),
+    })
+
+    log_thread.start()
+
+    print(f"\n{'=' * 80}")
+    print(f"Pre-collected cases: {len(tasks)} cases")
+    print(f"Execution mode: {max_workers} workers concurrent, each case in subprocess")
+    print(f"{'=' * 80}\n")
+
+    total_cases = len(tasks)
+    print(f"Phase 1: Executing {total_cases} pre-collected cases...")
+
+    # Phase 2: Concurrent execution via ThreadPoolExecutor
+    progress_tracker = ProgressTracker(total_cases)
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # Submit all tasks
+        future_to_task = {
+            executor.submit(
+                run_single_case_concurrent,
+                task,
+                test_dir,
+                merged_env,
+                config,
+                result_aggregator,
+                progress_tracker,
+                log_queue,
+            ): task
+            for task in tasks
+        }
+
+        # Wait for completion (as_completed gives results as they finish)
+        for future in as_completed(future_to_task):
+            task = future_to_task[future]
+            try:
+                # Result already collected in aggregator
+                _ = future.result()
+            except Exception as e:
+                # Should never happen (run_single_case_concurrent catches all)
+                # But as safety, create error result
+                case_result = {
+                    "nodeid": task.nodeid,
+                    "status": "error",
+                    "duration": 0.0,
+                    "returncode": 1,
+                    "message": f"Future error: {str(e)[:200]}",
+                    "file": task.test_file,
+                    "case_idx": task.case_idx,
+                }
+                result_aggregator.add_case_result(case_result)
+                progress_tracker.mark_completed(task.nodeid, "error", 0.0)
+
+    # Stop log thread
+    elapsed = monotonic() - start
+    summary = result_aggregator.get_summary()
+
+    log_queue.put({
+        "type": "summary",
+        "content": (
+            f"\n{'=' * 80}\n"
+            f"Summary: {summary['total_cases']} cases executed\n"
+            f"  Passed: {summary['passed_count']}\n"
+            f"  Failed: {summary['failed_count']}\n"
+            f"  Errors: {summary['error_count']}\n"
+            f"  Crashed: {summary['crashed_count']}\n"
+            f"  Timeout: {summary['timeout_count']}\n"
+            f"  Skipped: {summary['skipped_count']}\n"
+            f"  Duration: {elapsed:.2f}s\n"
+            f"  Concurrent workers: {max_workers}\n"
+            f"{'=' * 80}\n"
+        ),
+    })
+
+    stop_event.set()
+    log_thread.join(timeout=5)
+
+    # Print final summary
+    print(f"\n{'=' * 80}")
+    print(f"Summary: {summary['total_cases']} cases executed")
+    print(f"  Passed: {summary['passed_count']}")
+    print(f"  Failed: {summary['failed_count']}")
+    print(f"  Errors: {summary['error_count']}")
+    print(f"  Crashed: {summary['crashed_count']}")
+    print(f"  Timeout: {summary['timeout_count']}")
+    print(f"  Skipped: {summary['skipped_count']}")
+    print(f"  Duration: {elapsed:.2f}s")
+    print(f"{'=' * 80}")
+
+    return summary["worst_returncode"], elapsed, result_aggregator.get_sorted_cases()
+
+
 def build_execution_env(
     test_dir: Path,
     script_dir: Path,
@@ -1302,8 +1462,9 @@ def parse_args():
         description="Run PyTorch NPU tests for a shard via per-case isolation"
     )
     parser.add_argument("--test-files", type=str, help="Comma-separated test file paths to run directly (skip shard assignment, e.g., 'test_meta.py,test_nn.py')")
-    parser.add_argument("--shard", type=int, help="Shard number (1-indexed, required if --test-files not set)")
-    parser.add_argument("--num-shards", type=int, help="Total number of shards (required if --test-files not set)")
+    parser.add_argument("--cases-json", type=str, help="Path to pre-collected cases JSON file (skip case collection, use test_type from JSON)")
+    parser.add_argument("--shard", type=int, help="Shard number (1-indexed, required if --test-files/--cases-json not set)")
+    parser.add_argument("--num-shards", type=int, help="Total number of shards (required if --test-files/--cases-json not set)")
     parser.add_argument(
         "--test-type",
         type=str,
@@ -1326,15 +1487,15 @@ def parse_args():
     args = parser.parse_args()
 
     # Validate required arguments based on mode
-    if not args.test_files:
+    if not args.test_files and not args.cases_json:
         if not args.shard or not args.num_shards:
-            parser.error("--shard and --num-shards are required when --test-files is not set")
+            parser.error("--shard and --num-shards are required when --test-files/--cases-json is not set")
 
     # Validate max_workers
     if args.max_workers < 1:
         parser.error("--max-workers must be at least 1")
-    if args.max_workers > 8:
-        print(f"WARNING: --max-workers={args.max_workers} is high, may cause resource contention")
+    if args.max_workers > 128:
+        print(f"WARNING: --max-workers={args.max_workers} is very high, may cause resource contention")
 
     return args
 
@@ -1464,6 +1625,159 @@ def main():
             "failed": failed_count,
             "skipped": skipped_count,
             "errors": error_count,
+            "duration": duration,
+            "returncode": returncode,
+            "per_case_isolation": True,
+        }
+
+        result_module.save_stats_file(str(report_dir), shard, stats, shard_type)
+
+        # Print summary
+        result_module.print_stats_summary(shard, stats, shard_type)
+
+        sys.exit(returncode)
+
+    # ==========================================================================
+    # Mode: Pre-collected cases JSON execution
+    # ==========================================================================
+    if args.cases_json:
+        print("=" * 80)
+        print("Pre-collected Cases Execution Mode")
+        print("=" * 80)
+
+        cases_file = Path(args.cases_json).resolve()
+        if not cases_file.exists():
+            raise FileNotFoundError(f"Cases JSON file not found: {cases_file}")
+
+        cases_data = json.loads(cases_file.read_text(encoding="utf-8"))
+
+        shard = cases_data["shard"]
+        num_shards = cases_data["num_shards"]
+        shard_type = cases_data.get("test_type", "regular")
+        planned_cases = cases_data["cases"]
+        total_cases = len(planned_cases)
+
+        print(f"Cases JSON: {cases_file}")
+        print(f"Shard: {shard}/{num_shards}")
+        print(f"Test type: {shard_type}")
+        print(f"Total cases: {total_cases}")
+        print(f"Test directory: {test_dir}")
+
+        # Execution mode based on test_type
+        if shard_type == "distributed":
+            print(f"Execution mode: SERIAL (per-case subprocess isolation)")
+        else:
+            print(f"Execution mode: CONCURRENT ({args.max_workers} workers, per-case subprocess isolation)")
+
+        if args.disabled_testcases:
+            disabled_count = result_module.load_disabled_testcases_count(args.disabled_testcases)
+            print(f"Disabled testcase entries: {disabled_count}")
+
+        print(f"\n{'=' * 80}\n")
+
+        # Create info dict for cases-json mode
+        info = result_module.create_shard_info(shard, num_shards, timestamp)
+        info["selection_mode"] = "cases_json"
+        info["shard_type"] = shard_type
+        info["cases_json_file"] = str(cases_file)
+        info["total_cases"] = total_cases
+        info["per_case_isolation"] = True
+        if args.disabled_testcases:
+            info["disabled_count"] = result_module.load_disabled_testcases_count(args.disabled_testcases)
+
+        # Clean old files
+        clean_existing_junit_xml(report_dir)
+        remove_existing_file(result_module.get_shard_log_file(report_dir, shard, shard_type))
+
+        # Build execution env
+        env_updates = build_execution_env(
+            test_dir, script_dir, args.disabled_testcases, shard, shard_type
+        )
+
+        # Convert cases to CaseExecutionTask format
+        tasks = []
+        for i, case in enumerate(planned_cases, 1):
+            tasks.append(CaseExecutionTask(
+                case_idx=i,
+                nodeid=case["nodeid"],
+                test_file=case.get("file", ""),
+                file_idx=0,
+            ))
+
+        # Execute tests based on shard_type
+        cases_list = []
+        if tasks:
+            # Determine execution mode and worker count
+            if shard_type == "distributed":
+                # Distributed: serial execution (1 worker)
+                effective_workers = 1
+                print(f"\nExecution mode: SERIAL (distributed tests require sequential execution)")
+            else:
+                # Regular: concurrent execution
+                effective_workers = args.max_workers
+                print(f"\nExecution mode: CONCURRENT ({effective_workers} workers)")
+
+            # Execute tasks directly using the new function
+            returncode, duration, cases_list = run_tests_with_tasks_concurrent(
+                tasks,
+                shard,
+                test_dir,
+                report_dir,
+                env_updates,
+                args.timeout,
+                args.verbose,
+                shard_type,
+                effective_workers,
+                result_module,
+            )
+            info["execution_mode"] = "serial" if effective_workers == 1 else "concurrent"
+            info["concurrent_workers"] = effective_workers
+
+            info["returncode"] = returncode
+            info["duration"] = duration
+        else:
+            print("No cases to execute.")
+            returncode = 0
+            duration = 0.0
+
+        # Build cases.json data
+        passed_count = sum(1 for c in cases_list if c["status"] == "passed")
+        failed_count = sum(1 for c in cases_list if c["status"] == "failed")
+        error_count = sum(1 for c in cases_list if c["status"] in ("error", "crashed", "timeout"))
+        skipped_count = sum(1 for c in cases_list if c["status"] == "skipped")
+        crashed_count = sum(1 for c in cases_list if c["status"] == "crashed")
+        timeout_count = sum(1 for c in cases_list if c["status"] == "timeout")
+
+        output_cases_data = {
+            "shard": shard,
+            "shard_type": shard_type,
+            "execution_mode": info.get("execution_mode", "unknown"),
+            "concurrent_workers": info.get("concurrent_workers", 1),
+            "total_cases": len(cases_list),
+            "passed": passed_count,
+            "failed": failed_count,
+            "errors": error_count,
+            "skipped": skipped_count,
+            "crashed": crashed_count,
+            "timeout": timeout_count,
+            "duration": duration,
+            "cases": cases_list,
+        }
+
+        # Save cases.json
+        result_module.save_cases_file(str(report_dir), shard, output_cases_data, shard_type)
+
+        # Save info and stats
+        result_module.save_info_file(str(report_dir), shard, info, shard_type)
+
+        stats = {
+            "total": len(cases_list),
+            "passed": passed_count,
+            "failed": failed_count,
+            "skipped": skipped_count,
+            "errors": error_count,
+            "crashed": crashed_count,
+            "timeout": timeout_count,
             "duration": duration,
             "returncode": returncode,
             "per_case_isolation": True,
