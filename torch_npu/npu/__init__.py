@@ -456,6 +456,10 @@ def _launch_host_func(op_stream, fn, user_data):
     torch_npu._C._launch_host_func(op_stream, fn, user_data)
 
 
+def _launch_host_func_pending(op_stream, fn, user_data):
+    torch_npu._C._launch_host_func_pending(op_stream, fn, user_data)
+
+
 def _subscribe_report(op_stream):
     torch_npu._C._subscribe_report(op_stream)
 
