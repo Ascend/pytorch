@@ -6,10 +6,28 @@
 #include <atomic>
 
 #include <c10/core/Device.h>
-#include "torch_npu/csrc/core/npu/npu_log.h"
+#include "torch_npu/csrc/logging/LogContext.h"
 #include <third_party/acl/inc/acl/acl_op.h>
 
 namespace c10_npu {
+
+inline std::shared_ptr<npu_logging::Logger>& GetQueueLogger()
+{
+    static std::shared_ptr<npu_logging::Logger> logger = npu_logging::logging().getLogger("torch_npu.dispatch");
+    return logger;
+}
+
+#define TORCH_NPU_QUEUE_LOGD(format, ...)                                      \
+    do {                                                                       \
+        TORCH_NPU_LOGD(c10_npu::GetQueueLogger(), format, ##__VA_ARGS__);      \
+        ASCEND_LOGD(format, ##__VA_ARGS__);                                    \
+    } while (0);
+
+#define TORCH_NPU_QUEUE_LOGI(format, ...)                                      \
+    do {                                                                       \
+        TORCH_NPU_LOGI(c10_npu::GetQueueLogger(), format, ##__VA_ARGS__);      \
+        ASCEND_LOGI(format, ##__VA_ARGS__);                                    \
+    } while (0);
 
 struct sring_idx {
   bool working = false;

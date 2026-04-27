@@ -33,7 +33,6 @@ LOAD_FUNCTION(mstxMemRegionsUnregister)
 // save python range id with cann mstx range id.
 // when mstx.range_end(id) is called, we can check if this id is invalid
 static std::unordered_map<int, mstxRangeId> g_rangeIdMap;
-static std::shared_ptr<npu_logging::Logger> loggerEnv = npu_logging::logging().getLogger("torch_npu.env");
 
 static std::mutex g_mutex;
 
@@ -42,7 +41,7 @@ static bool IsSupportMstxFuncImpl()
     static auto checkSupport = []() -> bool {
         char* path = std::getenv("ASCEND_HOME_PATH");
         if (path != nullptr) {
-            loggerEnv->info("get env ASCEND_HOME_PATH = %s", path);
+            TORCH_NPU_ENV_LOGI("get env ASCEND_HOME_PATH = %s", path);
             std::string soPath = std::string(path) + "/lib64/libms_tools_ext.so";
             soPath = torch_npu::toolkit::profiler::Utils::RealPath(soPath);
             return !soPath.empty();
