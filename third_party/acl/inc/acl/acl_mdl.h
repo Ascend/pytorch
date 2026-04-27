@@ -1646,10 +1646,11 @@ ACL_FUNC_VISIBILITY aclError aclmdlRICaptureTaskUpdateEnd(aclrtStream stream);
  * @brief dump the json content of the model
  * @param modelRI [IN] model runtime instance
  * @param path [IN] json file path
+ * @param flags [IN] control whether to dump Kernel Args
  * @retval ACL_SUCCESS The function is successfully executed.
  * @retval OtherValues Failure
  */
-ACL_FUNC_VISIBILITY aclError aclmdlRIDebugJsonPrint(aclmdlRI modelRI, const char* path);
+ACL_FUNC_VISIBILITY aclError aclmdlRIDebugJsonPrint(aclmdlRI modelRI, const char* path, uint32_t flags);
 
 /**
  * @ingroup AscendCL
