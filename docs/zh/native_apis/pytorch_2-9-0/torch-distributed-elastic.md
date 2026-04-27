@@ -57,6 +57,8 @@
 |torch.distributed.elastic.rendezvous.api.RendezvousConnectionError|是|-|
 |torch.distributed.elastic.rendezvous.api.RendezvousStateError|是|-|
 |torch.distributed.elastic.rendezvous.api.RendezvousGracefulExitError|是|-|
+|torch.distributed.elastic.rendezvous.api.RendezvousStoreInfo|是|-|
+|torch.distributed.elastic.rendezvous.api.RendezvousStoreInfo.build|是|-|
 |torch.distributed.elastic.rendezvous.dynamic_rendezvous.create_handler|是|-|
 |torch.distributed.elastic.rendezvous.dynamic_rendezvous.DynamicRendezvousHandler|是|-|
 |torch.distributed.elastic.rendezvous.dynamic_rendezvous.DynamicRendezvousHandler.from_backend|是|-|
