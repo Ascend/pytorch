@@ -506,17 +506,30 @@ def collect_test_cases(test_file: str, test_dir: Path, env: Dict) -> List[str]:
     """
     Collect all test cases from a test file via pytest --collect-only.
 
+    Adds test file's parent directory to PYTHONPATH to enable
+    imports of sibling modules (e.g., 'from model_registry import MLPModule').
+
     Args:
         test_file: Test file path (e.g., "test/test_autograd.py")
         test_dir: Path to PyTorch test directory
-        env: Environment dict for subprocess
+        env: Environment dict for subprocess (will be modified for this call)
 
     Returns:
         List of case nodeids (e.g., ["test_autograd.py::TestAutograd::test_grad"])
     """
     # Strip test/ prefix if present
+    original_test_file = test_file
     if test_file.startswith("test/"):
         test_file = test_file[5:]
+
+    # Get test file's parent directory for PYTHONPATH
+    test_file_path = Path(test_file)
+    test_file_dir = test_dir / test_file_path.parent
+
+    # Build per-file environment with test file directory in PYTHONPATH
+    file_env = env.copy()
+    existing_pythonpath = file_env.get("PYTHONPATH", "")
+    file_env["PYTHONPATH"] = str(test_file_dir) + (":" + existing_pythonpath if existing_pythonpath else "")
 
     command = [
         sys.executable,
@@ -531,7 +544,7 @@ def collect_test_cases(test_file: str, test_dir: Path, env: Dict) -> List[str]:
         result = subprocess.run(
             command,
             cwd=str(test_dir),
-            env=env,
+            env=file_env,  # Use per-file environment with test file directory in PYTHONPATH
             capture_output=True,
             text=True,
             encoding="utf-8",
@@ -620,12 +633,16 @@ def run_single_test_case(
     """
     Run a single test case in isolated subprocess.
 
+    Adds test file's parent directory to PYTHONPATH to enable
+    imports of sibling modules (e.g., 'from model_registry import MLPModule').
+
     Args:
         case_nodeid: Test case nodeid (e.g., "test_autograd.py::TestAutograd::test_grad")
         test_dir: Path to PyTorch test directory
-        env: Environment dict for subprocess
+        env: Environment dict for subprocess (will be modified for this call)
         timeout: Per-case timeout in seconds
         verbose: Verbose output
+        test_file: Test file path for PYTHONPATH calculation
 
     Returns:
         Dict with: nodeid, status, duration, returncode, message, command
@@ -639,6 +656,20 @@ def run_single_test_case(
     # When cwd is test_dir, the path should be relative to test_dir, not include test/
     if case_nodeid.startswith("test/"):
         case_nodeid = case_nodeid[5:]
+
+    # Build per-case environment with test file directory in PYTHONPATH
+    case_env = env.copy()
+    if test_file:
+        if test_file.startswith("test/"):
+            test_file_rel = test_file[5:]
+        else:
+            test_file_rel = test_file
+
+        test_file_path = Path(test_file_rel)
+        test_file_dir = test_dir / test_file_path.parent
+
+        existing_pythonpath = case_env.get("PYTHONPATH", "")
+        case_env["PYTHONPATH"] = str(test_file_dir) + (":" + existing_pythonpath if existing_pythonpath else "")
 
     command = [
         sys.executable,
@@ -666,7 +697,7 @@ def run_single_test_case(
         result = subprocess.run(
             command,
             cwd=str(test_dir),
-            env=env,
+            env=case_env,  # Use per-case environment with test file directory in PYTHONPATH
             capture_output=True,
             text=True,
             encoding="utf-8",
@@ -858,6 +889,21 @@ def run_single_case_concurrent(
 
     command_str = " ".join(command)
 
+    # Build per-case environment with test file directory in PYTHONPATH
+    # This enables imports of sibling modules (e.g., 'from model_registry import MLPModule')
+    case_env = merged_env.copy()
+    test_file = task.test_file
+    if test_file.startswith("test/"):
+        test_file_rel = test_file[5:]
+    else:
+        test_file_rel = test_file
+
+    test_file_path = Path(test_file_rel)
+    test_file_dir = test_dir / test_file_path.parent
+
+    existing_pythonpath = case_env.get("PYTHONPATH", "")
+    case_env["PYTHONPATH"] = str(test_file_dir) + (":" + existing_pythonpath if existing_pythonpath else "")
+
     # Print start log to stdout (before execution)
     # Truncate nodeid for display
     display_nodeid = original_nodeid[:70] + "..." if len(original_nodeid) > 70 else original_nodeid
@@ -877,7 +923,7 @@ def run_single_case_concurrent(
         result = subprocess.run(
             command,
             cwd=str(test_dir),
-            env=merged_env,
+            env=case_env,  # Use per-case environment with test file directory in PYTHONPATH
             capture_output=True,
             text=True,
             encoding="utf-8",

@@ -20,6 +20,7 @@ Usage:
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -30,8 +31,36 @@ from typing import Dict, List, Tuple
 import discover_test_files
 
 
+def get_test_file_parent_dir(test_file: str, test_dir: Path) -> Path:
+    """
+    Get the parent directory of a test file.
+
+    This directory should be added to PYTHONPATH to enable
+    imports of sibling modules (e.g., model_registry.py).
+
+    Args:
+        test_file: Test file path (e.g., "test/distributed/pipelining/test_backward.py")
+        test_dir: Path to PyTorch test directory
+
+    Returns:
+        Path to the test file's parent directory
+    """
+    if test_file.startswith("test/"):
+        test_file_rel = test_file[5:]
+    else:
+        test_file_rel = test_file
+
+    test_file_path = Path(test_file_rel)
+    return test_dir / test_file_path.parent
+
+
 def collect_cases_for_file(test_file: str, test_dir: Path) -> Tuple[str, List[str]]:
-    """Collect test cases from a single file."""
+    """
+    Collect test cases from a single file.
+
+    Adds test file's parent directory to PYTHONPATH to enable
+    imports of sibling modules (e.g., 'from model_registry import MLPModule').
+    """
     if test_file.startswith("test/"):
         test_file_rel = test_file[5:]
     else:
@@ -41,6 +70,14 @@ def collect_cases_for_file(test_file: str, test_dir: Path) -> Tuple[str, List[st
     display_name = test_file_rel
     if display_name.endswith(".py"):
         display_name = display_name[:-3]
+
+    # Get test file's parent directory for PYTHONPATH
+    test_file_dir = get_test_file_parent_dir(test_file, test_dir)
+
+    # Build environment with test file directory in PYTHONPATH
+    env = os.environ.copy()
+    existing_pythonpath = env.get("PYTHONPATH", "")
+    env["PYTHONPATH"] = str(test_file_dir) + (":" + existing_pythonpath if existing_pythonpath else "")
 
     command = [
         sys.executable,
@@ -55,6 +92,7 @@ def collect_cases_for_file(test_file: str, test_dir: Path) -> Tuple[str, List[st
         result = subprocess.run(
             command,
             cwd=str(test_dir),
+            env=env,
             capture_output=True,
             text=True,
             encoding="utf-8",
