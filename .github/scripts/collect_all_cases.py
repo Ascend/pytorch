@@ -54,12 +54,19 @@ def get_test_file_parent_dir(test_file: str, test_dir: Path) -> Path:
     return test_dir / test_file_path.parent
 
 
-def collect_cases_for_file(test_file: str, test_dir: Path) -> Tuple[str, List[str]]:
+def collect_cases_for_file(test_file: str, test_dir: Path) -> Tuple[str, List[str], bool, str]:
     """
     Collect test cases from a single file.
 
     Adds test file's parent directory to PYTHONPATH to enable
     imports of sibling modules (e.g., 'from model_registry import MLPModule').
+
+    Returns:
+        Tuple of (test_file, nodeids, success, error_message)
+        - test_file: Original test file path
+        - nodeids: List of collected test case nodeids
+        - success: True if collection succeeded without errors
+        - error_message: Error details if collection failed, empty string otherwise
     """
     if test_file.startswith("test/"):
         test_file_rel = test_file[5:]
@@ -105,16 +112,30 @@ def collect_cases_for_file(test_file: str, test_dir: Path) -> Tuple[str, List[st
             if "::" in line and not line.strip().startswith("<"):
                 nodeids.append(line.strip())
 
-        # Print log for each file: file name and case count
-        print(f"  {display_name}: {len(nodeids)} cases")
+        # Check for collection errors
+        # pytest outputs errors to stdout (ERRORS section), warnings to stderr
+        if result.returncode != 0:
+            # Collection failed - combine stdout (has ERRORS section) and stderr
+            error_msg = result.stdout.strip()
+            if result.stderr.strip():
+                error_msg += "\n--- stderr ---\n" + result.stderr.strip()
+            return (test_file, nodeids, False, error_msg)
+        elif result.stderr.strip():
+            # Only warnings (returncode == 0) - success if cases were collected
+            if len(nodeids) > 0:
+                return (test_file, nodeids, True, "")
+            # No cases collected but has stderr warnings - treat as failed
+            return (test_file, nodeids, False, result.stderr.strip())
 
-        return (test_file, nodeids)
+        # Success: returncode == 0, no stderr warnings
+        return (test_file, nodeids, True, "")
+
     except subprocess.TimeoutExpired:
-        print(f"  {display_name}: TIMEOUT (collection took >120s)")
-        return (test_file, [])
+        error_msg = f"TIMEOUT: Collection took >120s for {display_name}"
+        return (test_file, [], False, error_msg)
     except Exception as e:
-        print(f"  {display_name}: ERROR - {e}")
-        return (test_file, [])
+        error_msg = f"ERROR: {e}"
+        return (test_file, [], False, error_msg)
 
 
 def collect_all_cases(
@@ -124,6 +145,7 @@ def collect_all_cases(
 ) -> List[Dict]:
     """Collect all cases from all files."""
     all_cases = []
+    failed_files = []  # Track files with collection errors
 
     print(f"Collecting cases from {len(test_files)} files with {parallel} workers...")
     print("=" * 60)
@@ -135,22 +157,69 @@ def collect_all_cases(
         }
 
         completed = 0
+        successful_count = 0
+        failed_count = 0
+        total_cases = 0
+
         for future in as_completed(futures):
-            test_file, nodeids = future.result()
+            test_file, nodeids, success, error_msg = future.result()
             completed += 1
 
-            for nodeid in nodeids:
-                all_cases.append({
-                    "nodeid": nodeid,
-                    "file": test_file,
+            # Extract display name for logging
+            if test_file.startswith("test/"):
+                display_name = test_file[5:]
+            else:
+                display_name = test_file
+            if display_name.endswith(".py"):
+                display_name = display_name[:-3]
+
+            if success:
+                successful_count += 1
+                # Print concise log for successful files
+                print(f"  {display_name}: {len(nodeids)} cases")
+                for nodeid in nodeids:
+                    all_cases.append({
+                        "nodeid": nodeid,
+                        "file": test_file,
+                    })
+            else:
+                failed_count += 1
+                failed_files.append({
+                    "file": display_name,
+                    "error": error_msg,
+                    "cases": len(nodeids),
                 })
+                # Still add any cases that were collected despite errors
+                for nodeid in nodeids:
+                    all_cases.append({
+                        "nodeid": nodeid,
+                        "file": test_file,
+                    })
+
+            # Update total cases count for progress display
+            total_cases += len(nodeids)
 
             # Print progress summary every 100 files
             if completed % 100 == 0:
-                print(f"  [Progress: {completed}/{len(test_files)} files, {len(all_cases)} total cases]")
+                print(f"  [Progress: {completed}/{len(test_files)} files, {successful_count} ok, {failed_count} failed, {total_cases} cases]")
 
     print("=" * 60)
-    print(f"Collection complete: {len(all_cases)} cases from {len(test_files)} files")
+
+    # Output collection errors to stderr (visible in action logs)
+    if failed_files:
+        print(f"\n!!! Collection errors ({failed_count} files) !!!", file=sys.stderr)
+        print("=" * 80, file=sys.stderr)
+        for failed in failed_files:
+            print(f"\n[FAILED] {failed['file']}: {failed['cases']} cases", file=sys.stderr)
+            print("-" * 40, file=sys.stderr)
+            # Print the full error message
+            print(failed['error'], file=sys.stderr)
+        print("=" * 80, file=sys.stderr)
+
+    # Final summary
+    print(f"Collection complete: {len(all_cases)} cases from {successful_count}/{len(test_files)} files")
+    if failed_count > 0:
+        print(f"  WARNING: {failed_count} files had collection errors (see stderr for details)")
 
     return all_cases
 
