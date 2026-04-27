@@ -39,6 +39,7 @@ TORCH_NPU_API void super_kernel_scope_begin(const char* scope_name);
 TORCH_NPU_API void super_kernel_scope_end(const char* scope_name);
 
 TORCH_NPU_API void launch_callback(c10_npu::NPUStream stream, NPUCallbackFunc func, void *fnData);
+TORCH_NPU_API void launch_host_func(c10_npu::NPUStream stream, NPUCallbackFunc func, void *fnData);
 TORCH_NPU_API void subscribe_report(uint64_t threadId, c10_npu::NPUStream stream);
 TORCH_NPU_API void unsubscribe_report(uint64_t threadId, c10_npu::NPUStream stream);
 
