@@ -278,6 +278,7 @@ jobs:
             --distributed-shards ${DISTRIBUTED_SHARDS} \
             --regular-shards ${REGULAR_SHARDS} \
             --output-dir cases_shards \
+            --error-log-dir collection_errors \
             --parallel 16 \
             2>&1 | tee /tmp/collect_cases.log
 
@@ -306,12 +307,29 @@ jobs:
           echo "Regular tests: ${REGULAR_SHARDS} shards (case-level, 32 workers, linux-aarch64-a3-16)"
           echo "Total cases: ${TOTAL_CASES}"
 
+          # Package error logs if any
+          if [ -d "collection_errors" ] && [ "$(ls -A collection_errors 2>/dev/null)" ]; then
+            echo "=== Packaging collection error logs ==="
+            tar -czf collection_errors.tar.gz collection_errors/
+            echo "Error logs packaged: collection_errors.tar.gz"
+            ls -la collection_errors.tar.gz
+          fi
+
       - name: Upload cases shard JSONs
         uses: actions/upload-artifact@v4
         with:
           name: cases-shards
           path: pytorch-test-src/cases_shards/
           retention-days: 7
+
+      - name: Upload collection error logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: collection-error-logs
+          path: pytorch-test-src/collection_errors.tar.gz
+          if-no-files-found: ignore
+          retention-days: 30
 
       - name: Upload collect logs
         if: always()

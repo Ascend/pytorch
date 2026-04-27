@@ -7,6 +7,7 @@ This script runs in prepare job (once) to:
 2. Collect all test cases via pytest --collect-only
 3. Split cases evenly into N shards
 4. Output shard JSON files for each type
+5. Save collection error logs for failed files
 
 Usage:
     python collect_all_cases.py \
@@ -15,6 +16,7 @@ Usage:
         --distributed-shards 2 \
         --regular-shards 5 \
         --output-dir /path/to/output \
+        --error-log-dir /path/to/error_logs \
         --parallel 16
 """
 
@@ -141,14 +143,29 @@ def collect_cases_for_file(test_file: str, test_dir: Path) -> Tuple[str, List[st
 def collect_all_cases(
     test_files: List[str],
     test_dir: Path,
+    error_log_dir: Path,
     parallel: int = 16,
 ) -> List[Dict]:
-    """Collect all cases from all files."""
+    """
+    Collect all cases from all files.
+
+    Args:
+        test_files: List of test file paths
+        test_dir: Path to PyTorch test directory
+        error_log_dir: Directory to save error logs for failed collections
+        parallel: Number of parallel workers
+
+    Returns:
+        List of dicts with nodeid and file for each collected case
+    """
     all_cases = []
-    failed_files = []  # Track files with collection errors
+    failed_files = []  # Track files with collection errors for logging
 
     print(f"Collecting cases from {len(test_files)} files with {parallel} workers...")
     print("=" * 60)
+
+    # Create error log directory
+    error_log_dir.mkdir(parents=True, exist_ok=True)
 
     with ThreadPoolExecutor(max_workers=parallel) as executor:
         futures = {
@@ -184,10 +201,14 @@ def collect_all_cases(
                     })
             else:
                 failed_count += 1
+                # Print concise log for failed files
+                print(f"  [FAILED] {display_name}: {len(nodeids)} cases")
+                # Save error details to log file
                 failed_files.append({
                     "file": display_name,
                     "error": error_msg,
                     "cases": len(nodeids),
+                    "test_file": test_file,
                 })
                 # Still add any cases that were collected despite errors
                 for nodeid in nodeids:
@@ -205,23 +226,63 @@ def collect_all_cases(
 
     print("=" * 60)
 
-    # Output collection errors to stderr (visible in action logs)
+    # Save error logs to files
     if failed_files:
-        print(f"\n!!! Collection errors ({failed_count} files) !!!", file=sys.stderr)
-        print("=" * 80, file=sys.stderr)
-        for failed in failed_files:
-            print(f"\n[FAILED] {failed['file']}: {failed['cases']} cases", file=sys.stderr)
-            print("-" * 40, file=sys.stderr)
-            # Print the full error message
-            print(failed['error'], file=sys.stderr)
-        print("=" * 80, file=sys.stderr)
+        save_error_logs(failed_files, error_log_dir)
 
     # Final summary
     print(f"Collection complete: {len(all_cases)} cases from {successful_count}/{len(test_files)} files")
     if failed_count > 0:
-        print(f"  WARNING: {failed_count} files had collection errors (see stderr for details)")
+        print(f"  WARNING: {failed_count} files had collection errors (logs saved to {error_log_dir})")
 
     return all_cases
+
+
+def save_error_logs(failed_files: List[Dict], error_log_dir: Path) -> None:
+    """
+    Save collection error logs to individual files and create a summary.
+
+    Args:
+        failed_files: List of dicts with file, error, cases info
+        error_log_dir: Directory to save error logs
+    """
+    print(f"Saving error logs for {len(failed_files)} failed files...")
+
+    # Save individual error log files
+    for failed in failed_files:
+        # Create safe filename from display name (replace / with _)
+        safe_name = failed['file'].replace('/', '_')
+        log_file = error_log_dir / f"{safe_name}.log"
+
+        # Write error log
+        with open(log_file, 'w', encoding='utf-8') as f:
+            f.write(f"File: {failed['file']}\n")
+            f.write(f"Cases collected: {failed['cases']}\n")
+            f.write(f"Test file path: {failed['test_file']}\n")
+            f.write("=" * 80 + "\n")
+            f.write("Collection Error:\n")
+            f.write("=" * 80 + "\n")
+            f.write(failed['error'])
+            f.write("\n")
+
+    # Save summary JSON
+    summary_file = error_log_dir / "collection_errors_summary.json"
+    summary_data = {
+        "total_failed": len(failed_files),
+        "failed_files": [
+            {
+                "file": f['file'],
+                "cases": f['cases'],
+                "test_file": f['test_file'],
+                "log_file": f"{f['file'].replace('/', '_')}.log",
+            }
+            for f in failed_files
+        ],
+    }
+    summary_file.write_text(json.dumps(summary_data, indent=2), encoding='utf-8')
+
+    print(f"  Error logs saved to {error_log_dir}")
+    print(f"  Summary: {summary_file}")
 
 
 def split_cases_into_shards(cases: List[Dict], num_shards: int) -> List[List[Dict]]:
@@ -277,6 +338,10 @@ def main():
     output_dir = Path(args.output_dir).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    # Error log directory for failed collections
+    error_log_dir = Path(args.error_log_dir).resolve() if args.error_log_dir else output_dir / "collection_errors"
+    error_log_dir.mkdir(parents=True, exist_ok=True)
+
     summaries = []
 
     # ========================================
@@ -293,7 +358,7 @@ def main():
     )
     print(f"Found {len(dist_files)} distributed test files")
 
-    dist_cases = collect_all_cases(dist_files, test_dir, args.parallel)
+    dist_cases = collect_all_cases(dist_files, test_dir, error_log_dir / "distributed", args.parallel)
     print(f"Total distributed cases: {len(dist_cases)}")
 
     dist_summary = save_shards(dist_cases, args.distributed_shards, "distributed", output_dir)
@@ -313,7 +378,7 @@ def main():
     )
     print(f"Found {len(reg_files)} regular test files")
 
-    reg_cases = collect_all_cases(reg_files, test_dir, args.parallel)
+    reg_cases = collect_all_cases(reg_files, test_dir, error_log_dir / "regular", args.parallel)
     print(f"Total regular cases: {len(reg_cases)}")
 
     reg_summary = save_shards(reg_cases, args.regular_shards, "regular", output_dir)
@@ -353,6 +418,7 @@ def parse_args():
     parser.add_argument("--distributed-shards", type=int, default=2, help="Distributed test shards")
     parser.add_argument("--regular-shards", type=int, default=5, help="Regular test shards")
     parser.add_argument("--output-dir", required=True, help="Output directory for shard JSONs")
+    parser.add_argument("--error-log-dir", help="Output directory for collection error logs (default: output-dir/collection_errors)")
     parser.add_argument("--parallel", type=int, default=16, help="Parallel collection workers")
     return parser.parse_args()
 
