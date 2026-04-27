@@ -1059,19 +1059,17 @@ def main():
             "Tests",
             (
                 f"{totals['total']} total; {totals['passed']} passed; {totals['failed']} failed; "
-                f"{totals['skipped']} skipped; {totals['errors']} errors"
+                f"{totals['errors']} errors; {totals['skipped']} skipped"
             ),
         ],
         ["Duration", format_duration(totals["duration"])],
     ]
-    if include_selected_entries:
-        overview_rows.insert(9, ["Selected test entries", str(totals["selected_test_entries"])])
     if totals["missing_files"] > 0:
         overview_rows.append(["Missing files", f"{totals['missing_files']} crashed without report"])
     if include_special_tests:
         overview_rows.append(["Special tests expected", str(len(special_test_names))])
 
-    # Add case-level statistics if available
+    # Add case-level statistics if available (replace Tests row with case-level data)
     if totals["total_cases"] > 0:
         overview_rows.append([
             "Case-level stats",

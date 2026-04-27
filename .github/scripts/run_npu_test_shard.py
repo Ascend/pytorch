@@ -267,11 +267,12 @@ class ConcurrentResultAggregator:
                 self._skipped_count += 1
             elif status == "crashed":
                 self._crashed_count += 1
-                self._error_count += 1
             elif status == "timeout":
                 self._timeout_count += 1
+            elif status == "error":
                 self._error_count += 1
             else:
+                # Unknown status treated as error
                 self._error_count += 1
 
             # Track worst returncode (ignore skipped/no_tests)
@@ -1381,7 +1382,9 @@ def run_tests_with_case_isolation(
 
         passed_count = sum(1 for c in cases_list if c["status"] == "passed")
         failed_count = sum(1 for c in cases_list if c["status"] == "failed")
-        error_count = sum(1 for c in cases_list if c["status"] in ("error", "crashed", "timeout"))
+        error_count = sum(1 for c in cases_list if c["status"] == "error")
+        crashed_count = sum(1 for c in cases_list if c["status"] == "crashed")
+        timeout_count = sum(1 for c in cases_list if c["status"] == "timeout")
         skipped_count = sum(1 for c in cases_list if c["status"] == "skipped")
 
         log_handle.write(f"\n{'=' * 80}\n")
@@ -1389,6 +1392,8 @@ def run_tests_with_case_isolation(
         log_handle.write(f"  Passed: {passed_count}\n")
         log_handle.write(f"  Failed: {failed_count}\n")
         log_handle.write(f"  Errors: {error_count}\n")
+        log_handle.write(f"  Crashed: {crashed_count}\n")
+        log_handle.write(f"  Timeout: {timeout_count}\n")
         log_handle.write(f"  Skipped: {skipped_count}\n")
         log_handle.write(f"  Duration: {elapsed:.2f}s\n")
         log_handle.write(f"{'=' * 80}\n")
@@ -1396,7 +1401,7 @@ def run_tests_with_case_isolation(
 
         print(f"\n{'=' * 80}")
         print(f"Summary: {total_cases} cases executed")
-        print(f"  Passed: {passed_count}, Failed: {failed_count}, Errors: {error_count}")
+        print(f"  Passed: {passed_count}, Failed: {failed_count}, Errors: {error_count}, Crashed: {crashed_count}, Timeout: {timeout_count}")
         print(f"  Duration: {elapsed:.2f}s")
         print(f"{'=' * 80}")
 
@@ -1816,7 +1821,9 @@ def main():
         # Build cases.json data
         passed_count = sum(1 for c in cases_list if c["status"] == "passed")
         failed_count = sum(1 for c in cases_list if c["status"] == "failed")
-        error_count = sum(1 for c in cases_list if c["status"] in ("error", "crashed", "timeout"))
+        error_count = sum(1 for c in cases_list if c["status"] == "error")
+        crashed_count = sum(1 for c in cases_list if c["status"] == "crashed")
+        timeout_count = sum(1 for c in cases_list if c["status"] == "timeout")
         skipped_count = sum(1 for c in cases_list if c["status"] == "skipped")
 
         cases_data = {
@@ -1829,8 +1836,8 @@ def main():
             "failed": failed_count,
             "errors": error_count,
             "skipped": skipped_count,
-            "crashed": sum(1 for c in cases_list if c["status"] == "crashed"),
-            "timeout": sum(1 for c in cases_list if c["status"] == "timeout"),
+            "crashed": crashed_count,
+            "timeout": timeout_count,
             "duration": duration,
             "cases": cases_list,
         }
@@ -1965,7 +1972,7 @@ def main():
         # Build cases.json data
         passed_count = sum(1 for c in cases_list if c["status"] == "passed")
         failed_count = sum(1 for c in cases_list if c["status"] == "failed")
-        error_count = sum(1 for c in cases_list if c["status"] in ("error", "crashed", "timeout"))
+        error_count = sum(1 for c in cases_list if c["status"] == "error")
         skipped_count = sum(1 for c in cases_list if c["status"] == "skipped")
         crashed_count = sum(1 for c in cases_list if c["status"] == "crashed")
         timeout_count = sum(1 for c in cases_list if c["status"] == "timeout")
@@ -2132,7 +2139,9 @@ def main():
     # Build cases.json data
     passed_count = sum(1 for c in cases_list if c["status"] == "passed")
     failed_count = sum(1 for c in cases_list if c["status"] == "failed")
-    error_count = sum(1 for c in cases_list if c["status"] in ("error", "crashed", "timeout"))
+    error_count = sum(1 for c in cases_list if c["status"] == "error")
+    crashed_count = sum(1 for c in cases_list if c["status"] == "crashed")
+    timeout_count = sum(1 for c in cases_list if c["status"] == "timeout")
     skipped_count = sum(1 for c in cases_list if c["status"] == "skipped")
 
     cases_data = {
@@ -2145,8 +2154,8 @@ def main():
         "failed": failed_count,
         "errors": error_count,
         "skipped": skipped_count,
-        "crashed": sum(1 for c in cases_list if c["status"] == "crashed"),
-        "timeout": sum(1 for c in cases_list if c["status"] == "timeout"),
+        "crashed": crashed_count,
+        "timeout": timeout_count,
         "duration": duration,
         "cases": cases_list,
     }
