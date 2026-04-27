@@ -858,6 +858,8 @@ def main():
             stats["failed"] = cases_data.get("failed", 0)
             stats["errors"] = cases_data.get("errors", 0)
             stats["skipped"] = cases_data.get("skipped", 0)
+            stats["crashed"] = cases_data.get("crashed", 0)
+            stats["timeout"] = cases_data.get("timeout", 0)
             stats["duration"] = cases_data.get("duration", 0.0)
             # Update totals
             totals["total_cases"] += cases_data.get("total_cases", 0)
@@ -957,6 +959,8 @@ def main():
                 "failed": int(stats.get("failed", 0)),
                 "skipped": int(stats.get("skipped", 0)),
                 "errors": int(stats.get("errors", 0)),
+                "crashed": int(stats.get("crashed", 0)),
+                "timeout": int(stats.get("timeout", 0)),
                 "duration": float(stats.get("duration", 0.0)),
                 "planned_files": int(info.get("shard_files", 0)),
                 "discovered_test_files": int(info.get("total_files", 0)),
@@ -1058,7 +1062,6 @@ def main():
                 f"{totals['skipped']} skipped; {totals['errors']} errors"
             ),
         ],
-        ["JUnit", f"{totals['junit_generated_shards']} shards, {totals['junit_xml_files']} xml files"],
         ["Duration", format_duration(totals["duration"])],
     ]
     if include_selected_entries:
@@ -1082,12 +1085,6 @@ def main():
             ),
         ])
 
-    shard_status_rows = [
-        [status, str(status_counts[status])]
-        for status in ("CRASHED", "ERROR", "FAILED", "TIMEOUT", "INCOMPLETE", "MISSING", "NO TESTS", "PASSED")
-        if status_counts[status] > 0
-    ]
-
     markdown_lines = [
         "# PyTorch NPU Full Test Summary",
         "",
@@ -1097,34 +1094,6 @@ def main():
         render_table(
             ["Item", "Value"],
             overview_rows,
-        )
-    )
-    markdown_lines.extend(["", "## Shard Status"])
-    markdown_lines.extend(
-        render_table(
-            ["Status", "Shard count"],
-            shard_status_rows or [["PASSED", "0"]],
-        )
-    )
-    # Show all shards in detail table
-    markdown_lines.extend(["", "## 分片任务详情"])
-    markdown_lines.extend(
-        render_table(
-            ["Shard", "Status", "总用例数", "通过用例数", "Failed", "Errors", "Duration", "测试文件详情", "Note"],
-            [
-                [
-                    str(row["shard"]),
-                    row["status"],
-                    str(row["total"]),
-                    str(row["passed"]),
-                    str(row["failed"]),
-                    str(row["errors"]),
-                    format_duration(row["duration"]),
-                    format_testsuite_details_cell(row["testsuite_stats"]),
-                    format_summary_note(row["note"]),
-                ]
-                for row in sorted_shards
-            ],
         )
     )
 
