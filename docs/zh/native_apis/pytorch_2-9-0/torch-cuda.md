@@ -57,7 +57,7 @@
 |torch.cuda.CUDAGraph|torch.npu.NPUGraph|是|当前仅支持推理场景，不支持训练场景|
 |torch.cuda.CUDAGraph.capture_begin|torch.npu.NPUGraph.capture_begin|是|当前仅支持推理场景，不支持训练场景|
 |torch.cuda.CUDAGraph.capture_end|torch.npu.NPUGraph.capture_end|是|当前仅支持推理场景，不支持训练场景|
-|torch.cuda.CUDAGraph.debug_dump|torch.npu.NPUGraph.debug_dump|是|当前仅支持推理场景，不支持训练场景导出文件内容为json格式|
+|torch.cuda.CUDAGraph.debug_dump|torch.npu.NPUGraph.debug_dump|是|当前仅支持推理场景，不支持训练场景<br>导出文件内容为json格式|
 |torch.cuda.CUDAGraph.pool|torch.npu.NPUGraph.pool|是|当前仅支持推理场景，不支持训练场景|
 |torch.cuda.CUDAGraph.replay|torch.npu.NPUGraph.replay|是|当前仅支持推理场景，不支持训练场景|
 |torch.cuda.CUDAGraph.reset|torch.npu.NPUGraph.reset|是|当前仅支持推理场景，不支持训练场景|

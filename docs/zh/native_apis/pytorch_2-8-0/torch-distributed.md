@@ -30,7 +30,7 @@
 |torch.distributed.Store.num_keys|是|-|
 |torch.distributed.Store.delete_key|是|-|
 |torch.distributed.Store.set_timeout|是|-|
-|torch.distributed.new_group|是|当pg_options函数传入类型为torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()时，配置该变量属性hccl_config可控制HCCL通信域缓存区大小。具体示例可参考《PyTorch 训练模型迁移调优指南》的“hccl_buffer_size”章节，配置变量属性hccl_config的group_name字段可以设置HCCL通信域的通信组自定义名称，取值为长度不超过32的字符串。|
+|torch.distributed.new_group|是|当pg_options函数传入类型为torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()时，配置该变量属性hccl_config可控制HCCL通信域缓存区大小。具体示例可参考《PyTorch 训练模型迁移调优指南》的“[hccl_buffer_size](https://gitcode.com/Ascend/docs/blob/master/FrameworkPTAdapter/26.0.0/zh/pytorch_model_migration_fine_tuning/hccl_buffer_size.md)”章节。配置变量属性hccl_config的group_name字段可以设置HCCL通信域的通信组自定义名称，取值为长度不超过32的字符串。|
 |torch.distributed.get_group_rank|是|-|
 |torch.distributed.get_global_rank|是|-|
 |torch.distributed.get_process_group_ranks|是|-|

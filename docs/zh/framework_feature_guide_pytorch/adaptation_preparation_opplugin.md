@@ -17,4 +17,4 @@
     
       - *2.7.1*为PyTorch版本，用户需根据实际情况指定PyTorch版本。
       - *26.0.0*为Ascend Extension for PyTorch软件版本。
-   3. 在OpPlugin算子适配前，请先确保CANN已有相关算子实现，具体可查询[CANN 算子库接口](https://www.hiascend.com/document/detail/zh/canncommercial/850/API/aolapi/operatorlist_00001.html)。
+   3. 在OpPlugin算子适配前，请先确保CANN已有相关算子实现，具体可查询[CANN 算子库](https://www.hiascend.com/document/detail/zh/canncommercial/900/API/aolapi/operatorlist_00001.html)。

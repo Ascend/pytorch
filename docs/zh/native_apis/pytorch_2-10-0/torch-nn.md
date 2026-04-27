@@ -134,7 +134,7 @@
 |torch.nn.ReplicationPad2d|是|支持fp16，fp32，complex64，complex128|
 |torch.nn.ReplicationPad3d|否|-|
 |torch.nn.ZeroPad1d|是|支持bf16，fp16，fp32，fp64，complex64，complex128<br>支持2-3维|
-|torch.nn.ZeroPad2d|是|可能回退至CPU执行|a
+|torch.nn.ZeroPad2d|是|可能回退至CPU执行|
 |torch.nn.ZeroPad3d|是|支持bf16，fp16，fp32，fp64，complex64，complex128<br>支持5-6维|
 |torch.nn.ConstantPad1d|是|支持int8，bool<br>在输入x为六维以上时可能会出现性能下降问题|
 |torch.nn.ConstantPad2d|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>在输入x为六维以上时可能会出现性能下降问题|

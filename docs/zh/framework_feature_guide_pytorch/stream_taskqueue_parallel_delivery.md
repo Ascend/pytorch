@@ -32,7 +32,7 @@ export PER_STREAM_QUEUE=1
 ## 约束说明
 
 - 该特性依赖TaskQueue，当TASK\_QUEUE\_ENABLE配置为"1"/"2"时，此特性才能生效。
-- 该特性不支持快恢场景。
+- 该特性不支持[进程级在线恢复](https://gitcode.com/Ascend/mind-cluster/blob/branch_v26.0.0/docs/zh/scheduling/usage/resumable_training/04_configuring_fault_handling_policies.md#%E9%85%8D%E7%BD%AE%E8%BF%9B%E7%A8%8B%E7%BA%A7%E5%9C%A8%E7%BA%BF%E6%81%A2%E5%A4%8D)的场景。
 - 开启此特性时，非默认流的TaskQueue的OOM不会立即触发内存快照。
 - 开启此特性时，多流情况下会有多个TaskQueue，对应多个线程，可能存在资源抢占，影响性能。
 - 开启此特性时，如果多流间存在Event交互，为了Event在二级流水保序下发，一级流水可能会有额外耗时，影响性能。

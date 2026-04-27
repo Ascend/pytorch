@@ -31,7 +31,7 @@
   - [基于OpPlugin算子适配开发](./opplugin_operator_adaptation.md)
     - [概述](./adaptation_overview_opplugin.md)
     - [算子适配流程](./adaptation_flow_opplugin.md)
-    - [opplugin算子适配]()
+    - [OpPlugin算子适配]()
       - [适配前准备](./adaptation_preparation_opplugin.md)
       - [适配开发](./adaptation_development_opplugin.md)
       - [编译验证](./adaptation_compile_opplugin.md)                                    
