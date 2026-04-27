@@ -210,7 +210,7 @@ HcclResult HCCLComm::checkForHcclError()
         if (result != HCCL_SUCCESS) {
             std::string temp_str = std::string("Failed to get HCCL error code: ") + std::to_string(result);
             const char* errmsg = temp_str.c_str();
-            ASCEND_LOGE(errmsg);
+            ASCEND_LOGE("%s", errmsg);
             LOG(ERROR) << c10::str(errmsg);
             return result; // return this error result instead of hcclAsyncErr_
         }

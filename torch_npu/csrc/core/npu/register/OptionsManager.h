@@ -1,15 +1,27 @@
 #pragma once
 
 #include <map>
+#include <memory>
 #include <string>
 #include <unordered_map>
 
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
 
-namespace c10_npu {
-namespace option {
+namespace npu_logging {
+class Logger;
+}
 
+namespace c10_npu {
+C10_NPU_API std::shared_ptr<npu_logging::Logger>& GetEnvLogger();
+
+#define TORCH_NPU_ENV_LOGI(format, ...)                                        \
+    do {                                                                       \
+        TORCH_NPU_LOGI(c10_npu::GetEnvLogger(), format, ##__VA_ARGS__);        \
+        ASCEND_LOGI(format, ##__VA_ARGS__);                                    \
+    } while (0);
+
+namespace option {
 enum ReuseMode {
     CLOSE = 0,
     ERASE_RECORD_STREAM = 1,

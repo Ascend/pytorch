@@ -42,8 +42,6 @@ std::atomic<bool> g_used_aclop{false};
 namespace at_npu {
 namespace native {
 
-static std::shared_ptr<npu_logging::Logger> logger = npu_logging::logging().getLogger("torch_npu.dispatch.time");
-
 OpCommand::OpCommand()
 {
     aclCmds = OpCommandImpls::GetInstance();
@@ -249,12 +247,10 @@ void OpCommand::RunOpApiV2(const string &op_name, const PROC_FUNC &func, bool sy
         auto start = std::chrono::steady_clock::now();
 
         c10_npu::enCurrentNPUStream(&params);
-        
+
         auto end = std::chrono::steady_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
-        if (logger != nullptr) {
-            logger->info("enQueue duration is (ns): %d", duration);
-        }
+        TORCH_NPU_DISPATCH_TIME_LOGI("enQueue duration is (ns): %d", duration);
 
 #ifndef BUILD_LIBTORCH
         at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, op_name, params.correlation_id);
