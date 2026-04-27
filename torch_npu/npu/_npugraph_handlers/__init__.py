@@ -23,3 +23,10 @@ from .ifa_handler import (  # noqa: F401
     _IFAv2DefaultHandler,
 )
 from .simple_handler import _SimpleGraphHandler  # noqa: F401
+
+# Register FA v3 handlers (FR-5: TND + ACLgraph fallback support)
+# This must be imported to trigger @register_npu_graph_handler decorators
+from ._fa3_graph_handler import (  # noqa: F401
+    FA3ForwardHandler,
+    FA3BackwardHandler,
+)

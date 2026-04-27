@@ -4,7 +4,7 @@ from typing import Optional
 import torch
 import torch_npu
 
-
+from torch._inductor.ir import Operation
 # Not good implementation, but no other way
 def get_current_raw_stream(device):
     return torch.npu.current_stream(device).npu_stream
@@ -17,15 +17,15 @@ def patch_is_same_tensor():
         if isinstance(data, FakeTensor) or isinstance(value, FakeTensor):
             return False
         return (
-            not data.is_mkldnn
-            and data.size() == value.size()
-            and data.stride() == value.stride()
-            and data.dtype == value.dtype
-            and data.device == value.device
-            and data.untyped_storage().data_ptr() == value.untyped_storage().data_ptr()
-            and data.storage_offset() == value.storage_offset()
+                not data.is_mkldnn
+                and data.size() == value.size()
+                and data.stride() == value.stride()
+                and data.dtype == value.dtype
+                and data.device == value.device
+                and data.untyped_storage().data_ptr() == value.untyped_storage().data_ptr()
+                and data.storage_offset() == value.storage_offset()
         )
-    
+
     from torch._inductor import utils, graph
     utils.is_same_tensor = is_same_tensor
     # We need to do extra-patch because of code like `from xxx import is_same_tensor`
@@ -83,6 +83,58 @@ def patch_has_triton():
     torch.utils._triton.has_triton = has_triton
     torch._inductor.scheduler.has_triton = has_triton
 
+def patch_is_cudagraph_unsafe_op():
+    def is_cudagraph_unsafe_op(node: Operation) -> bool:
+        """
+            Returns True if the node is an op that is not cudagraphable.
+            Usually only custom ops have this tag.
+            """
+        from torch._inductor import ir
+
+        if not isinstance(node, ir.FallbackKernel):
+            return False
+        if (
+                isinstance(node.op_overload, torch._ops.OpOverload)
+                and torch._C.Tag.cudagraph_unsafe in node.op_overload.tags  # type: ignore[attr-defined]
+        ):
+            return True
+        # ---------------------------------------------------------------------
+        # FA v3 specific check: TND + keep_prob fallback / not supported
+        # When keep_prob is in the range [0, 1) (i.e., dropout is enabled),
+        # the operator should not be captured by ACLGraph. According to the spec,
+        # we raise an explicit error if the user invokes the atomic interface
+        # directly, otherwise we treat it as unsafe for the graph partition.
+        # ---------------------------------------------------------------------
+        fx_node = getattr(node, "fx_node", None)
+        if fx_node is None:
+            return False
+        target = fx_node.target
+        if not isinstance(target, torch._ops.OpOverload):
+            return False
+        if target in (
+                torch.ops.npu.npu_fusion_attention_v3.default,
+                torch.ops.npu.npu_fusion_attention_grad_v3.default,
+        ):
+            from torch.fx.operator_schemas import normalize_function
+            normalized = normalize_function(
+                target, fx_node.args, fx_node.kwargs, normalize_to_only_use_kwargs=True
+            )
+            if normalized is not None:
+                _, kwargs = normalized
+                keep_prob = kwargs.get("keep_prob")
+                input_layout = kwargs.get("input_layout")
+                if (
+                    keep_prob is not None
+                    and float(keep_prob) < 1
+                    and input_layout is not None
+                    and str(input_layout).upper() == "TND"
+                ):
+                    return True
+        return False
+
+    from torch._inductor import utils as inductor_utils
+    inductor_utils.is_cudagraph_unsafe_op = is_cudagraph_unsafe_op
+    torch._inductor.scheduler.is_cudagraph_unsafe_op = is_cudagraph_unsafe_op
 
 def _fx_node_is_input_dependent_cudagraph_unsafe(fx_node: torch.fx.Node) -> bool:
     """
@@ -100,9 +152,9 @@ def _fx_node_is_input_dependent_cudagraph_unsafe(fx_node: torch.fx.Node) -> bool
 
     # index_put with boolean indices triggers .nonzero() during capture
     if target in (
-        torch.ops.aten.index_put.default,
-        torch.ops.aten.index_put_.default,
-        torch.ops.aten._unsafe_index_put.default,
+            torch.ops.aten.index_put.default,
+            torch.ops.aten.index_put_.default,
+            torch.ops.aten._unsafe_index_put.default,
     ):
         normalized = normalize_function(
             target, fx_node.args, fx_node.kwargs, normalize_to_only_use_kwargs=True
@@ -112,11 +164,10 @@ def _fx_node_is_input_dependent_cudagraph_unsafe(fx_node: torch.fx.Node) -> bool
             indices = kwargs["indices"]
             for idx in indices:
                 if idx is not None and idx.meta["val"].dtype in (
-                    torch.bool,
-                    torch.uint8,
+                        torch.bool,
+                        torch.uint8,
                 ):
                     return True
-
     return False
 
 
@@ -125,7 +176,7 @@ def patch_get_first_incompatible_cudagraph_node():
     from torch.utils._ordered_set import OrderedSet
 
     def get_first_incompatible_cudagraph_node(
-        gm: torch.fx.GraphModule,
+            gm: torch.fx.GraphModule,
     ) -> Optional[torch.fx.Node]:
         forbidden_set = OrderedSet(
             [
@@ -168,9 +219,9 @@ def patch_get_first_incompatible_cudagraph_node():
                 return node
 
             if (
-                not torch._inductor.config.graph_partition
-                and isinstance(node.target, torch._ops.OpOverload)
-                and torch._C.Tag.cudagraph_unsafe in node.target.tags  # type: ignore[attr-defined]
+                    not torch._inductor.config.graph_partition
+                    and isinstance(node.target, torch._ops.OpOverload)
+                    and torch._C.Tag.cudagraph_unsafe in node.target.tags  # type: ignore[attr-defined]
             ):
                 # skip cudagraph if a cudagraph_unsafe op is detected.
                 # graph_partition helps by splitting on this cudagraph_unsafe
