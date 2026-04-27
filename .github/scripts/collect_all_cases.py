@@ -114,28 +114,23 @@ def collect_cases_for_file(test_file: str, test_dir: Path) -> Tuple[str, List[st
             if "::" in line and not line.strip().startswith("<"):
                 nodeids.append(line.strip())
 
-        # Check for collection errors
-        # pytest outputs errors to stdout (ERRORS section), warnings to stderr
-        # Key insight: "no tests collected" with returncode != 0 is NOT an error,
-        # only "ERROR collecting" / "error during collection" are real errors
-        if result.returncode != 0:
-            # Check if stdout contains actual collection ERROR (not just "no tests")
-            stdout_content = result.stdout.strip()
-            stderr_content = result.stderr.strip()
-
-            # Only treat as error if there's actual ERROR output
-            if "ERROR collecting" in stdout_content or "error during collection" in stdout_content.lower():
-                # Real collection error - combine stdout and stderr
-                error_msg = stdout_content
-                if stderr_content:
-                    error_msg += "\n--- stderr ---\n" + stderr_content
-                return (test_file, nodeids, False, error_msg)
-
-            # returncode != 0 but no ERROR message - just no tests in file, treat as success
+        # Check for collection errors based on pytest exit codes:
+        #   0: all passed (success)
+        #   2: pytest error (includes collection errors like ImportError)
+        #   3: all skipped (success)
+        #   4: command line error (error)
+        #   5: no tests collected (NOT an error - file has no test cases)
+        # Key insight: returncode 5 is normal, not an error
+        if result.returncode in (0, 3, 5):
+            # Normal: passed, skipped, or no tests in file
             return (test_file, nodeids, True, "")
-
-        # returncode == 0: success
-        return (test_file, nodeids, True, "")
+        else:
+            # returncode 2, 4: real collection error
+            # Combine stdout (has ERRORS section) and stderr for error message
+            error_msg = result.stdout.strip()
+            if result.stderr.strip():
+                error_msg += "\n--- stderr ---\n" + result.stderr.strip()
+            return (test_file, nodeids, False, error_msg)
 
     except subprocess.TimeoutExpired:
         error_msg = f"TIMEOUT: Collection took >120s for {display_name}"
