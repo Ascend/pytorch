@@ -13,8 +13,13 @@ template <typename T>
 using shared_ptr_class_ = py::class_<T, std::shared_ptr<T>>;
 static std::map<c10_npu::NPUStream, std::vector<PyFuncStruct *>> callbacks = {};
 constexpr int processReportTimeout = 100;
+constexpr int pendingCallRetryCount = 16;
+constexpr auto pendingCallRetryInterval = std::chrono::milliseconds(1);
 static ThreadArgs* threadArgs = nullptr;
 static uint64_t threadId = -1;
+static std::mutex pendingCallbacksMutex;
+static std::deque<PyFuncStruct*> pendingCallbacksQueue;
+static std::atomic<bool> pendingCallScheduled{false};
 
 void *process_callback(void *arg)
 {
@@ -51,6 +56,90 @@ void LaunchCallFunc(void *userData)
     }
     PyGILState_Release(state);
 }
+
+namespace {
+
+int PendingCallHandler(void *arg);
+
+bool TrySchedulePendingCall()
+{
+    for (int retry = 0; retry < pendingCallRetryCount; ++retry) {
+        if (Py_AddPendingCall(PendingCallHandler, nullptr) == 0) {
+            return true;
+        }
+        std::this_thread::sleep_for(pendingCallRetryInterval);
+    }
+    return false;
+}
+
+void StartPendingCallRetryThread()
+{
+    std::thread([]() {
+        while (!TrySchedulePendingCall()) {
+            std::this_thread::sleep_for(pendingCallRetryInterval);
+        }
+    }).detach();
+}
+
+int PendingCallHandler(void *arg)
+{
+    std::deque<PyFuncStruct*> readyCallbacks;
+    {
+        std::lock_guard<std::mutex> lock(pendingCallbacksMutex);
+        pendingCallScheduled.store(false, std::memory_order_release);
+        readyCallbacks.swap(pendingCallbacksQueue);
+    }
+
+    for (auto* data : readyCallbacks) {
+        if (data == nullptr) {
+            continue;
+        }
+        PyObject* result = PyObject_CallObject(data->pyFunc, data->pyFuncArgs);
+        if (result != nullptr) {
+            Py_XDECREF(result);
+        } else {
+            PyErr_WriteUnraisable(data->pyFunc);
+        }
+    }
+
+    bool shouldScheduleAgain = false;
+    {
+        std::lock_guard<std::mutex> lock(pendingCallbacksMutex);
+        if (!pendingCallbacksQueue.empty() &&
+            !pendingCallScheduled.exchange(true, std::memory_order_acq_rel)) {
+            shouldScheduleAgain = true;
+        }
+    }
+
+    if (shouldScheduleAgain && !TrySchedulePendingCall()) {
+        StartPendingCallRetryThread();
+    }
+
+    return 0;
+}
+
+void LaunchCallbackViaPendingCall(void *userData)
+{
+    auto* data = static_cast<PyFuncStruct*>(userData);
+    if (data == nullptr) {
+        return;
+    }
+
+    bool shouldSchedule = false;
+    {
+        std::lock_guard<std::mutex> lock(pendingCallbacksMutex);
+        pendingCallbacksQueue.emplace_back(data);
+        if (!pendingCallScheduled.exchange(true, std::memory_order_acq_rel)) {
+            shouldSchedule = true;
+        }
+    }
+
+    if (shouldSchedule && !TrySchedulePendingCall()) {
+        StartPendingCallRetryThread();
+    }
+}
+
+} // namespace
 
 class AclSkOptionHelper {
 public:
@@ -206,6 +295,14 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
             PyFuncStruct *data = new(std::nothrow) PyFuncStruct(func, userDataList);
             c10_npu::launch_callback(stream, LaunchCallFunc, data);
             callbacks[stream].emplace_back(data);
+        })
+        .def("_launch_host_func_pending", [](py::object py_stream, py::object py_func, py::object py_data) {
+            auto func = (*py_func).ptr();
+            auto userDataList = (*py_data).ptr();
+            auto stream = THNPUtils_PyObject_to_NPUStream((*py_stream).ptr());
+            auto data = std::make_unique<PyFuncStruct>(func, userDataList);
+            c10_npu::launch_host_func(stream, LaunchCallbackViaPendingCall, data.get());
+            (void)data.release();
         })
         .def("_subscribe_report", [](py::object py_stream) {
             auto stream = (*py_stream).ptr();

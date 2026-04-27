@@ -111,6 +111,33 @@ def _super_kernel_scope_end_impl(scope_name: Optional[str] = None) -> None:
         )
     _super_kernel_scope_end(scope_name)
 
+
+def _print_callback_pending(tensor_name, tensor_arg):
+    output = str(tensor_arg)
+    if tensor_name is not None:
+        output = f"{tensor_name}={output}"
+    output = f"{output}, shape={tuple(tensor_arg.shape)}, dtype={tensor_arg.dtype}"
+    print(output, flush=True)
+
+
+def _print_npugraph_tensor_impl(input, tensor_name=None):
+    if not isinstance(input, torch.Tensor):
+        return
+
+    device = input.device
+    if device.type != "npu":
+        _print_callback_pending(tensor_name, input)
+        return
+
+    cpu_arg = input.to("cpu", non_blocking=True)
+    current_compute_stream = torch_npu.npu.current_stream()
+    torch_npu.npu._launch_host_func_pending(
+        current_compute_stream,
+        _print_callback_pending,
+        (tensor_name, cpu_arg),
+    )
+
+
 _npu_lib = torch.library.Library("npu", "FRAGMENT")
 if not hasattr(torch.ops.npu, "super_kernel_scope_begin"):
     _npu_lib.define("super_kernel_scope_begin(str? scope_name=None) -> ()")
@@ -125,6 +152,7 @@ if not hasattr(torch.ops.npu, "super_kernel_scope_begin"):
     def _super_kernel_scope_begin_meta(scope_name: Optional[str] = None):
         pass
 
+
 if not hasattr(torch.ops.npu, "super_kernel_scope_end"):
     _npu_lib.define("super_kernel_scope_end(str? scope_name=None) -> ()")
 
@@ -136,6 +164,19 @@ if not hasattr(torch.ops.npu, "super_kernel_scope_end"):
 
     @torch.library.register_fake("npu::super_kernel_scope_end")
     def _super_kernel_scope_end_meta(scope_name: Optional[str] = None):
+        pass
+
+
+if not hasattr(torch.ops.npu, "print_npugraph_tensor"):
+    _npu_lib.define("print_npugraph_tensor(Tensor input, *, str? tensor_name=None) -> ()")
+
+    _npu_lib.impl("print_npugraph_tensor", _print_npugraph_tensor_impl, "PrivateUse1")
+    _npu_lib.impl("print_npugraph_tensor", lambda input, *, tensor_name=None: None, "CPU")
+
+    has_side_effect(torch.ops.npu.print_npugraph_tensor.default)
+
+    @torch.library.register_fake("npu::print_npugraph_tensor")
+    def _print_npugraph_tensor_meta(input, *, tensor_name=None):
         pass
 
 
