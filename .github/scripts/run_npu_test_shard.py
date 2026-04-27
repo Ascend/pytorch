@@ -140,6 +140,103 @@ class ConcurrentExecutionConfig:
     verbose: bool = False
 
 
+# ==============================================================================
+# Failed Case Log Saving Functions
+# ==============================================================================
+
+
+def sanitize_nodeid_for_filename(nodeid: str) -> str:
+    """
+    Convert nodeid to a safe filename.
+
+    Replaces special characters with underscores and truncates if too long.
+    """
+    # Replace special characters
+    safe_name = nodeid.replace("::", "_").replace("/", "_").replace("\\", "_")
+    safe_name = safe_name.replace("(", "_").replace(")", "_").replace("[", "_").replace("]", "_")
+    safe_name = safe_name.replace("*", "_").replace("?", "_").replace(" ", "_")
+    safe_name = safe_name.replace(".", "_")
+
+    # Remove leading underscores and collapse multiple underscores
+    while safe_name.startswith("_"):
+        safe_name = safe_name[1:]
+    while "__" in safe_name:
+        safe_name = safe_name.replace("__", "_")
+
+    # Truncate if too long (max 200 chars)
+    if len(safe_name) > 200:
+        safe_name = safe_name[:200]
+
+    return safe_name or "unknown_case"
+
+
+def save_failed_case_log(
+    report_dir: Path,
+    shard: int,
+    shard_type: str,
+    nodeid: str,
+    case_idx: int,
+    status: str,
+    stdout: str,
+    stderr: str,
+    duration: float,
+    returncode: int,
+    command: str,
+) -> Path:
+    """
+    Save complete execution log for a failed case.
+
+    Creates a dedicated log file containing:
+    - Case metadata (nodeid, status, duration, returncode)
+    - Full stdout and stderr output
+    - Execution command
+
+    Returns:
+        Path to the saved log file
+    """
+    # Only save for failed/error/crashed/timeout cases
+    if status not in ("failed", "error", "crashed", "timeout"):
+        return None
+
+    # Create failed cases log directory
+    failed_logs_dir = report_dir / "failed_cases_logs"
+    failed_logs_dir.mkdir(parents=True, exist_ok=True)
+
+    # Generate safe filename
+    safe_name = sanitize_nodeid_for_filename(nodeid)
+    prefix = "dist" if shard_type == "distributed" else "reg"
+    log_filename = f"{prefix}-{shard}_{case_idx}_{safe_name}.log"
+    log_path = failed_logs_dir / log_filename
+
+    # Write log content
+    content_lines = [
+        "=" * 80,
+        f"FAILED CASE LOG",
+        "=" * 80,
+        f"Shard: {prefix}-{shard}",
+        f"Case Index: {case_idx}",
+        f"Nodeid: {nodeid}",
+        f"Status: {status}",
+        f"Duration: {duration:.2f}s",
+        f"Return Code: {returncode}",
+        f"Command: {command}",
+        "=" * 80,
+        "",
+        "STDOUT:",
+        "-" * 80,
+        stdout or "(empty)",
+        "",
+        "STDERR:",
+        "-" * 80,
+        stderr or "(empty)",
+        "",
+        "=" * 80,
+    ]
+
+    log_path.write_text("\n".join(content_lines), encoding="utf-8")
+    return log_path
+
+
 class ConcurrentResultAggregator:
     """Thread-safe result aggregator for concurrent execution."""
 
@@ -513,6 +610,11 @@ def run_single_test_case(
     env: Dict,
     timeout: int,
     verbose: bool,
+    report_dir: Path = None,
+    shard: int = 0,
+    shard_type: str = "regular",
+    case_idx: int = 0,
+    test_file: str = "",
 ) -> Dict:
     """
     Run a single test case in isolated subprocess.
@@ -601,7 +703,7 @@ def run_single_test_case(
             error_lines = [l for l in lines[-20:] if l.strip()]
             message = "\n".join(error_lines[-5:])[:500]  # Limit message length
 
-        return {
+        case_result = {
             "nodeid": original_nodeid,
             "status": status,
             "duration": duration,
@@ -610,9 +712,27 @@ def run_single_test_case(
             "command": command_str,
         }
 
+        # Save failed case log to file
+        if status in ("failed", "error", "crashed") and report_dir:
+            save_failed_case_log(
+                report_dir=report_dir,
+                shard=shard,
+                shard_type=shard_type,
+                nodeid=original_nodeid,
+                case_idx=case_idx,
+                status=status,
+                stdout=result.stdout,
+                stderr=result.stderr,
+                duration=duration,
+                returncode=returncode,
+                command=command_str,
+            )
+
+        return case_result
+
     except subprocess.TimeoutExpired:
         duration = monotonic() - start_time
-        return {
+        case_result = {
             "nodeid": original_nodeid,
             "status": "timeout",
             "duration": duration,
@@ -620,9 +740,28 @@ def run_single_test_case(
             "message": f"Timeout after {timeout}s",
             "command": command_str,
         }
+
+        # Save timeout case log
+        if report_dir:
+            save_failed_case_log(
+                report_dir=report_dir,
+                shard=shard,
+                shard_type=shard_type,
+                nodeid=original_nodeid,
+                case_idx=case_idx,
+                status="timeout",
+                stdout="(process timed out, no output captured)",
+                stderr="(process timed out, no output captured)",
+                duration=duration,
+                returncode=-1,
+                command=command_str,
+            )
+
+        return case_result
+
     except Exception as e:
         duration = monotonic() - start_time
-        return {
+        case_result = {
             "nodeid": original_nodeid,
             "status": "error",
             "duration": duration,
@@ -630,6 +769,24 @@ def run_single_test_case(
             "message": str(e)[:500],
             "command": command_str,
         }
+
+        # Save error case log
+        if report_dir:
+            save_failed_case_log(
+                report_dir=report_dir,
+                shard=shard,
+                shard_type=shard_type,
+                nodeid=original_nodeid,
+                case_idx=case_idx,
+                status="error",
+                stdout="(exception occurred before execution)",
+                stderr=str(e),
+                duration=duration,
+                returncode=1,
+                command=command_str,
+            )
+
+        return case_result
 
 
 # ==============================================================================
@@ -645,6 +802,9 @@ def run_single_case_concurrent(
     result_aggregator: ConcurrentResultAggregator,
     progress_tracker: ProgressTracker,
     log_queue: Queue,
+    report_dir: Path,
+    shard: int,
+    shard_type: str,
 ) -> Dict:
     """
     Execute a single test case in subprocess (for concurrent execution).
@@ -768,6 +928,22 @@ def run_single_case_concurrent(
             "case_idx": task.case_idx,
         }
 
+        # Save failed case log to file
+        if status in ("failed", "error", "crashed"):
+            save_failed_case_log(
+                report_dir=report_dir,
+                shard=shard,
+                shard_type=shard_type,
+                nodeid=original_nodeid,
+                case_idx=task.case_idx,
+                status=status,
+                stdout=result.stdout,
+                stderr=result.stderr,
+                duration=duration,
+                returncode=returncode,
+                command=command_str,
+            )
+
     except subprocess.TimeoutExpired:
         # Timeout - return result, don't raise
         duration = monotonic() - start_time
@@ -782,6 +958,21 @@ def run_single_case_concurrent(
             "case_idx": task.case_idx,
         }
 
+        # Save timeout case log
+        save_failed_case_log(
+            report_dir=report_dir,
+            shard=shard,
+            shard_type=shard_type,
+            nodeid=original_nodeid,
+            case_idx=task.case_idx,
+            status="timeout",
+            stdout="(process timed out, no output captured)",
+            stderr="(process timed out, no output captured)",
+            duration=duration,
+            returncode=-1,
+            command=command_str,
+        )
+
     except Exception as e:
         # Any other exception - return result, don't raise
         duration = monotonic() - start_time
@@ -795,6 +986,21 @@ def run_single_case_concurrent(
             "file": task.test_file,
             "case_idx": task.case_idx,
         }
+
+        # Save error case log
+        save_failed_case_log(
+            report_dir=report_dir,
+            shard=shard,
+            shard_type=shard_type,
+            nodeid=original_nodeid,
+            case_idx=task.case_idx,
+            status="error",
+            stdout="(exception occurred before execution)",
+            stderr=str(e),
+            duration=duration,
+            returncode=1,
+            command=command_str,
+        )
 
     # Log finish
     log_queue.put({
@@ -978,6 +1184,9 @@ def run_tests_with_concurrent_isolation(
                 result_aggregator,
                 progress_tracker,
                 log_queue,
+                report_dir,
+                shard,
+                shard_type,
             ): task
             for task in all_tasks
         }
@@ -1129,6 +1338,11 @@ def run_tests_with_case_isolation(
                     merged_env,
                     timeout,
                     verbose,
+                    report_dir,
+                    shard,
+                    shard_type,
+                    case_idx,
+                    test_file,
                 )
 
                 # Add file info
@@ -1285,6 +1499,9 @@ def run_tests_with_tasks_concurrent(
                 result_aggregator,
                 progress_tracker,
                 log_queue,
+                report_dir,
+                shard,
+                shard_type,
             ): task
             for task in tasks
         }
