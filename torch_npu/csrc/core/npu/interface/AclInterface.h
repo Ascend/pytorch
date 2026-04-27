@@ -252,7 +252,7 @@ aclError AclmdlRICaptureTaskUpdateBegin(aclrtStream stream, aclrtTaskGrp handle)
 
 aclError AclmdlRICaptureTaskUpdateEnd(aclrtStream stream);
 
-aclError AclmdlRIDebugJsonPrint(aclmdlRI modelRI, const char* path);
+aclError AclmdlRIDebugJsonPrint(aclmdlRI modelRI, const char* path, uint32_t flags);
 
 aclError AclmdlRICaptureThreadExchangeMode(aclmdlRICaptureMode* mode);
 
