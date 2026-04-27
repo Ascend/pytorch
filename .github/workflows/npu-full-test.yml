@@ -264,9 +264,9 @@ jobs:
           PYTHON=python${{ env.PYTHON_VERSION }}
           cd pytorch-test-src
 
-          # Case-level sharding: 4 distributed shards + 6 regular shards
+          # Case-level sharding: 4 distributed shards + 5 regular shards
           DISTRIBUTED_SHARDS='4'
-          REGULAR_SHARDS='6'
+          REGULAR_SHARDS='5'
 
           echo "=== Collecting all test cases ==="
           echo "Distributed shards: ${DISTRIBUTED_SHARDS}"
