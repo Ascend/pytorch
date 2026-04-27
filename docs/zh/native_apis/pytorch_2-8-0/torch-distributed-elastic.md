@@ -12,6 +12,7 @@
 |torch.distributed.elastic.agent.server.WorkerSpec.get_entrypoint_name|是|-|
 |torch.distributed.elastic.agent.server.WorkerState|是|-|
 |torch.distributed.elastic.agent.server.WorkerState.is_running|是|-|
+|torch.distributed.elastic.control_plane.worker_main|是|-|
 |torch.distributed.elastic.agent.server.Worker|是|-|
 |torch.distributed.elastic.agent.server.WorkerGroup|是|-|
 |torch.distributed.elastic.agent.server.local_elastic_agent.LocalElasticAgent|是|-|
