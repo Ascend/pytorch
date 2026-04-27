@@ -116,20 +116,25 @@ def collect_cases_for_file(test_file: str, test_dir: Path) -> Tuple[str, List[st
 
         # Check for collection errors
         # pytest outputs errors to stdout (ERRORS section), warnings to stderr
+        # Key insight: "no tests collected" with returncode != 0 is NOT an error,
+        # only "ERROR collecting" / "error during collection" are real errors
         if result.returncode != 0:
-            # Collection failed - combine stdout (has ERRORS section) and stderr
-            error_msg = result.stdout.strip()
-            if result.stderr.strip():
-                error_msg += "\n--- stderr ---\n" + result.stderr.strip()
-            return (test_file, nodeids, False, error_msg)
-        elif result.stderr.strip():
-            # Only warnings (returncode == 0) - success if cases were collected
-            if len(nodeids) > 0:
-                return (test_file, nodeids, True, "")
-            # No cases collected but has stderr warnings - treat as failed
-            return (test_file, nodeids, False, result.stderr.strip())
+            # Check if stdout contains actual collection ERROR (not just "no tests")
+            stdout_content = result.stdout.strip()
+            stderr_content = result.stderr.strip()
 
-        # Success: returncode == 0, no stderr warnings
+            # Only treat as error if there's actual ERROR output
+            if "ERROR collecting" in stdout_content or "error during collection" in stdout_content.lower():
+                # Real collection error - combine stdout and stderr
+                error_msg = stdout_content
+                if stderr_content:
+                    error_msg += "\n--- stderr ---\n" + stderr_content
+                return (test_file, nodeids, False, error_msg)
+
+            # returncode != 0 but no ERROR message - just no tests in file, treat as success
+            return (test_file, nodeids, True, "")
+
+        # returncode == 0: success
         return (test_file, nodeids, True, "")
 
     except subprocess.TimeoutExpired:
