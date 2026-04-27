@@ -298,7 +298,7 @@ void NPUGraph::debug_dump(const std::string& debug_path)
 {
     if (has_graph_exec_) {
         TORCH_WARN("calling NPUGraph::debug_dump() for model id ", model_ri_);
-        NPU_CHECK_ERROR(c10_npu::acl::AclmdlRIDebugJsonPrint(model_ri_, debug_path.c_str()));
+        NPU_CHECK_ERROR(c10_npu::acl::AclmdlRIDebugJsonPrint(model_ri_, debug_path.c_str(), 1));
     } else {
         TORCH_WARN("Called NPUGraph::debug_dump without a preceding successful capture.");
     }

@@ -1176,17 +1176,17 @@ aclError AclmdlRICaptureTaskUpdateEnd(aclrtStream stream)
     return func(stream);
 }
 
-aclError AclmdlRIDebugJsonPrint(aclmdlRI modelRI, const char* path)
+aclError AclmdlRIDebugJsonPrint(aclmdlRI modelRI, const char* path, uint32_t flags)
 {
-    ACL_CALL_LOG("aclmdlRIDebugJsonPrint", "modelRI=" << modelRI << ", path=" << (path ? path : "nullptr"));
-    typedef aclError (*AclmdlRIDebugJsonPrint)(aclmdlRI, const char*);
+    ACL_CALL_LOG("aclmdlRIDebugJsonPrint", "modelRI=" << modelRI << ", path=" << (path ? path : "nullptr") << ", flags=" << flags);
+    typedef aclError (*AclmdlRIDebugJsonPrint)(aclmdlRI, const char*, uint32_t flags);
     static AclmdlRIDebugJsonPrint func = nullptr;
     if (func == nullptr) {
         func = (AclmdlRIDebugJsonPrint) GET_FUNC(aclmdlRIDebugJsonPrint);
     }
 
     TORCH_CHECK(func, "Failed to find function aclmdlRIDebugJsonPrint", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(modelRI, path);
+    return func(modelRI, path, flags);
 }
 
 aclError AclrtHostRegister(void *ptr, uint64_t size, aclrtHostRegisterType type, void **devPtr)
