@@ -2,6 +2,7 @@
 #define __PULGIN_NATIVE_UTILS_OP_PARAM_MAKER__
 
 #include "torch_npu/csrc/core/npu/NPUStream.h"
+#include "torch_npu/csrc/logging/LogContext.h"
 
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "torch_npu/csrc/framework/interface/AclOpCompileInterface.h"
@@ -16,6 +17,42 @@
 
 namespace at_npu {
 namespace native {
+
+inline std::shared_ptr<npu_logging::Logger>& GetDispatchLogger()
+{
+    static std::shared_ptr<npu_logging::Logger> logger = npu_logging::logging().getLogger("torch_npu.dispatch");
+    return logger;
+}
+
+#define TORCH_NPU_DISPATCH_LOGD(format, ...)                                   \
+    do {                                                                       \
+        TORCH_NPU_LOGD(at_npu::native::GetDispatchLogger(), format, ##__VA_ARGS__); \
+        ASCEND_LOGD(format, ##__VA_ARGS__);                                    \
+    } while (0);
+
+#define TORCH_NPU_DISPATCH_LOGI(format, ...)                                   \
+    do {                                                                       \
+        TORCH_NPU_LOGI(at_npu::native::GetDispatchLogger(), format, ##__VA_ARGS__); \
+        ASCEND_LOGI(format, ##__VA_ARGS__);                                    \
+    } while (0);
+
+#define TORCH_NPU_DISPATCH_LOGIL(format, ...)                                  \
+    do {                                                                       \
+        TORCH_NPU_LOGIL(at_npu::native::GetDispatchLogger(), format, ##__VA_ARGS__); \
+        ASCEND_LOGI(format, ##__VA_ARGS__);                                    \
+    } while (0);
+
+inline std::shared_ptr<npu_logging::Logger>& GetDispatchTimeLogger()
+{
+    static std::shared_ptr<npu_logging::Logger> loggerTime = npu_logging::logging().getLogger("torch_npu.dispatch.time");
+    return loggerTime;
+}
+
+#define TORCH_NPU_DISPATCH_TIME_LOGI(format, ...)                              \
+    do {                                                                       \
+        TORCH_NPU_LOGI(at_npu::native::GetDispatchTimeLogger(), format, ##__VA_ARGS__); \
+        ASCEND_LOGI(format, ##__VA_ARGS__);                                    \
+    } while (0);
 
 typedef union {
     ExecuteParas exeParas;

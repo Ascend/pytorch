@@ -24,24 +24,24 @@
 #define ASCEND_LOGE(fmt, ...)                                                                           \
     do {                                                                                                \
         if (c10_npu::option::OptionsManager::isACLGlobalLogOn(ACL_ERROR)) {                             \
-            aclAppLog(ACL_ERROR, __FUNCTION__, FILE_NAME, __LINE__, "[PTA]:"#fmt, ##__VA_ARGS__);   \
+            aclAppLog(ACL_ERROR, FILE_NAME, __FUNCTION__, __LINE__, "[PTA]:" fmt, ##__VA_ARGS__);   \
         }                                                                                               \
     } while (0);
 #define ASCEND_LOGW(fmt, ...)                                                                           \
     do {                                                                                                \
         if (c10_npu::option::OptionsManager::isACLGlobalLogOn(ACL_WARNING)) {                           \
-            aclAppLog(ACL_WARNING, __FUNCTION__, FILE_NAME, __LINE__, "[PTA]:"#fmt, ##__VA_ARGS__); \
+            aclAppLog(ACL_WARNING, FILE_NAME, __FUNCTION__, __LINE__, "[PTA]:" fmt, ##__VA_ARGS__); \
         }                                                                                               \
     } while (0);
 #define ASCEND_LOGI(fmt, ...)                                                                           \
     do {                                                                                                \
         if (c10_npu::option::OptionsManager::isACLGlobalLogOn(ACL_INFO)) {                              \
-            aclAppLog(ACL_INFO, __FUNCTION__, FILE_NAME, __LINE__, "[PTA]:"#fmt, ##__VA_ARGS__);    \
+            aclAppLog(ACL_INFO, FILE_NAME, __FUNCTION__, __LINE__, "[PTA]:" fmt, ##__VA_ARGS__);    \
         }                                                                                               \
     } while (0);
 #define ASCEND_LOGD(fmt, ...)                                                                           \
     do {                                                                                                \
         if (c10_npu::option::OptionsManager::isACLGlobalLogOn(ACL_DEBUG)) {                             \
-            aclAppLog(ACL_DEBUG, __FUNCTION__, FILE_NAME, __LINE__, "[PTA]:"#fmt, ##__VA_ARGS__);   \
+            aclAppLog(ACL_DEBUG, FILE_NAME, __FUNCTION__, __LINE__, "[PTA]:" fmt, ##__VA_ARGS__);   \
         }                                                                                               \
     } while (0);

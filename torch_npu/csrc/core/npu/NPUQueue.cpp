@@ -171,7 +171,6 @@ static constexpr size_t kQueueCapacity = 4096;
 static std::string repo_error;
 static std::string acl_error;
 
-static std::shared_ptr<npu_logging::Logger> logger = npu_logging::logging().getLogger("torch_npu.dispatch");
 std::unordered_map<RepoStatus, std::string> deviceErrorMap = {
     {RepoStatus::UCE_EXIT, "UCE ERROR"},
     {RepoStatus::HBM_ECC_EXIT, "HBM MULTI BIT ECC ERROR"},
@@ -242,7 +241,7 @@ void Repository::ChangeStatus(RepoStatus expected, RepoStatus desired)
 
 NPUStatus Repository::MakeSureQueueEmpty(bool check_error)
 {
-    logger->debug("MakeSureQueueEmpty: start, device = %d, write_idx = %u, read_idx = %u, status = %d",
+    TORCH_NPU_QUEUE_LOGD("MakeSureQueueEmpty: start, device = %d, write_idx = %u, read_idx = %u, status = %d",
         device_idx, write_idx.idx, read_idx.idx, GetStatus());
     std::string error_msg;
     std::string runtime_error;
@@ -272,10 +271,10 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error)
             need_empty = true;
             __sync_synchronize();
             if (!IsEmptyQueue()) { // double-check, very important idea
-                logger->info("MakeSureQueueEmpty: wait for efd_empty, device = %d, write_idx = %u, read_idx = %u, status = %d",
+                TORCH_NPU_QUEUE_LOGI("MakeSureQueueEmpty: wait for efd_empty, device = %d, write_idx = %u, read_idx = %u, status = %d",
                     device_idx, write_idx.idx, read_idx.idx, GetStatus());
                 s = eventfd_read(efd_empty, &u);
-                logger->info("MakeSureQueueEmpty: wait for efd_empty end, device = %d, write_idx = %u, read_idx = %u, status = %d, s = %d",
+                TORCH_NPU_QUEUE_LOGI("MakeSureQueueEmpty: wait for efd_empty end, device = %d, write_idx = %u, read_idx = %u, status = %d, s = %d",
                     device_idx, write_idx.idx, read_idx.idx, GetStatus(), s);
                 if (s != 0) {
                     if (errno == EINTR) {
@@ -352,7 +351,7 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error)
             throw std::runtime_error(runtime_error);
         }
     }
-    logger->debug("MakeSureQueueEmpty: clearing successful, device = %d, write_idx = %u, read_idx = %u, status = %d",
+    TORCH_NPU_QUEUE_LOGD("MakeSureQueueEmpty: clearing successful, device = %d, write_idx = %u, read_idx = %u, status = %d",
         device_idx, write_idx.idx, read_idx.idx, GetStatus());
 
     return NPU_STATUS_SUCCESS;
@@ -366,7 +365,7 @@ bool Repository::WriteQueue(void *cur_paras)
     ThrowDeviceError(current_status, cur_paras);
 
     if (IsFullQueue()) {
-        logger->info("WriteQueue: taskqueue is full, device = %d, write_idx = %u, read_idx = %u, status = %d",
+        TORCH_NPU_QUEUE_LOGI("WriteQueue: taskqueue is full, device = %d, write_idx = %u, read_idx = %u, status = %d",
             device_idx, write_idx.idx, read_idx.idx, GetStatus());
         return false;
     }
@@ -375,10 +374,8 @@ bool Repository::WriteQueue(void *cur_paras)
     manager().Copy(datas, write_idx.idx, cur_paras);
     __sync_synchronize();
 
-    if (logger->getAllowLevel() == npu_logging::LoggingLevel::DEBUG) {
-        logger->debug("WriteQueue: write success, %s, device = %d, write_idx = %u, read_idx = %u, status = %d",
-            get_func_error_msg(cur_paras).c_str(), device_idx, write_idx.idx, read_idx.idx, GetStatus());
-    }
+    TORCH_NPU_QUEUE_LOGD("WriteQueue: write success, %s, device = %d, write_idx = %u, read_idx = %u, status = %d",
+        get_func_error_msg(cur_paras).c_str(), device_idx, write_idx.idx, read_idx.idx, GetStatus());
     write_idx.idx = (write_idx.idx + 1) & (kQueueCapacity - 1);
     return true;
 }
@@ -457,7 +454,7 @@ bool Repository::ReadQueue()
         repo_error = get_func_error_msg(manager().getCurrentParams(datas, read_idx.idx));
         ASCEND_LOGE("---Thread---%llu: device = %d, write_idx = %u, read_idx = %u, status = %d, ret = %d",
             std::this_thread::get_id(), device_idx, write_idx.idx, read_idx.idx, GetStatus(), ret);
-        logger->info("ReadQueue: read failed, %s, device = %d, write_idx = %u, read_idx = %u, status = %d, ret = %d",
+        TORCH_NPU_QUEUE_LOGI("ReadQueue: read failed, %s, device = %d, write_idx = %u, read_idx = %u, status = %d, ret = %d",
             repo_error.c_str(), device_idx, write_idx.idx, read_idx.idx, GetStatus(), ret);
         while (!IsEmptyQueue()) { // ignore other tasks
             manager().Release(datas, read_idx.idx, releaseQueue);
@@ -487,11 +484,8 @@ bool Repository::ReadQueue()
     manager().Release(datas, read_idx.idx, releaseQueue);
     __sync_synchronize();
 
-    if (logger->getAllowLevel() == npu_logging::LoggingLevel::DEBUG) {
-        logger->debug("ReadQueue: read success, %s, device = %d, write_idx = %u, read_idx = %u, status = %d",
-            get_func_error_msg(manager().getCurrentParams(datas, read_idx.idx)).c_str(), device_idx, write_idx.idx, read_idx.idx, GetStatus());
-    }
-
+    TORCH_NPU_QUEUE_LOGD("ReadQueue: read success, %s, device = %d, write_idx = %u, read_idx = %u, status = %d",
+        get_func_error_msg(manager().getCurrentParams(datas, read_idx.idx)).c_str(), device_idx, write_idx.idx, read_idx.idx, GetStatus());
     read_idx.idx = (read_idx.idx + 1) & (kQueueCapacity - 1);
 
     if (GetStatus() == RepoStatus::STOP_EXIT) {
@@ -535,10 +529,9 @@ void Repository::Enqueue(void *cur_paras)
         ASCEND_LOGE("Task queue is not initialized, shouldn't call Enqueue(). !!");
         return;
     }
-    if (logger->getAllowLevel() == npu_logging::LoggingLevel::DEBUG) {
-        logger->debug("Enqueue: start, %s, device = %d, write_idx = %u, read_idx = %u, status = %d",
-            get_func_error_msg(cur_paras).c_str(), device_idx, write_idx.idx, read_idx.idx, GetStatus());
-    }
+
+    TORCH_NPU_QUEUE_LOGD("Enqueue: start, %s, device = %d, write_idx = %u, read_idx = %u, status = %d",
+        get_func_error_msg(cur_paras).c_str(), device_idx, write_idx.idx, read_idx.idx, GetStatus());
 
     const RepoStatus current_status = GetStatus();
     ThrowDeviceError(current_status, cur_paras);
@@ -609,7 +602,7 @@ void Repository::Enqueue(void *cur_paras)
             SetWriteWorking(false);
             __sync_synchronize();
             if (IsFullQueue()) {
-                logger->info("Enqueue: taskqueue is full, wait for efd_write, device = %d, write_idx = %u, read_idx = %u, status = %d",
+                TORCH_NPU_QUEUE_LOGI("Enqueue: taskqueue is full, wait for efd_write, device = %d, write_idx = %u, read_idx = %u, status = %d",
                     device_idx, write_idx.idx, read_idx.idx, GetStatus());
 #ifndef BUILD_LIBTORCH
                 // double check the current thread hold a Gil lock
@@ -629,7 +622,7 @@ void Repository::Enqueue(void *cur_paras)
 #else
                 s = eventfd_read(efd_write, &u);
 #endif
-                logger->info("Enqueue: taskqueue is full, wait for efd_write end, device = %d, write_idx = %u, read_idx = %u, status = %d, s = %d",
+                TORCH_NPU_QUEUE_LOGI("Enqueue: taskqueue is full, wait for efd_write end, device = %d, write_idx = %u, read_idx = %u, status = %d, s = %d",
                     device_idx, write_idx.idx, read_idx.idx, GetStatus(), s);
                 if (s != 0) {
                     if (errno == EINTR) {
@@ -696,10 +689,10 @@ void Repository::Dequeue()
             SetReadWorking(false);
             __sync_synchronize();
             if (IsEmptyQueue()) {
-                logger->info("Dequeue: taskqueue is empty, wait for efd_read, device = %d, write_idx = %u, read_idx = %u, status = %d",
+                TORCH_NPU_QUEUE_LOGI("Dequeue: taskqueue is empty, wait for efd_read, device = %d, write_idx = %u, read_idx = %u, status = %d",
                     device_idx, write_idx.idx, read_idx.idx, GetStatus());
                 s = eventfd_read(efd_read, &u);
-                logger->info("Dequeue: taskqueue is empty, wait for efd_read end, device = %d, write_idx = %u, read_idx = %u, status = %d, s = %d",
+                TORCH_NPU_QUEUE_LOGI("Dequeue: taskqueue is empty, wait for efd_read end, device = %d, write_idx = %u, read_idx = %u, status = %d, s = %d",
                     device_idx, write_idx.idx, read_idx.idx, GetStatus(), s);
                 if (s != 0) {
                     if (errno == EINTR) {
