@@ -88,6 +88,11 @@ void launch_callback(c10_npu::NPUStream stream, NPUCallbackFunc func, void *fnDa
     NPU_CHECK_ERROR(c10_npu::acl::AclrtLaunchCallback(func, fnData, type, stream));
 }
 
+void launch_host_func(c10_npu::NPUStream stream, NPUCallbackFunc func, void *fnData)
+{
+    NPU_CHECK_ERROR(c10_npu::acl::AclrtLaunchHostFunc(stream, func, fnData));
+}
+
 void subscribe_report(uint64_t threadId, c10_npu::NPUStream stream)
 {
     NPU_CHECK_ERROR(c10_npu::acl::AclrtSubscribeReport(threadId, stream));
