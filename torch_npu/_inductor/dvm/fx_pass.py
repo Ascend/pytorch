@@ -67,6 +67,53 @@ def make_cast_node(g, src: Node, target_dtype: torch.dtype) -> Node:
     return cast
 
 
+def decompose_k1_matmul_to_mul(gm: GraphModule) -> GraphModule:
+    g = gm.graph
+    changed = False
+
+    for node in list(g.nodes):
+        if node.op != "call_function":
+            continue
+        if node.target not in (aten.mm.default, aten.bmm.default):
+            continue
+
+        lhs, rhs = node.args[:2]
+
+        if not isinstance(lhs, Node) or not isinstance(rhs, Node):
+            continue
+
+        lhs_val = lhs.meta.get("val", None)
+        rhs_val = rhs.meta.get("val", None)
+        if not isinstance(lhs_val, FakeTensor) or not isinstance(rhs_val, FakeTensor):
+            continue
+
+        if _is_last2_transpose_tensor(lhs_val):
+            continue
+        if _is_last2_transpose_tensor(rhs_val):
+            continue
+
+        lhs_k = lhs_val.shape[-1]
+        rhs_k = rhs_val.shape[-2]
+
+        if isinstance(lhs_k, torch.SymInt) or isinstance(rhs_k, torch.SymInt):
+            continue
+        if lhs_k != 1 or rhs_k != 1:
+            continue
+
+        with g.inserting_before(node):
+            mul_node = g.call_function(aten.mul.Tensor, args=(lhs, rhs))
+            mul_node.meta["val"] = node.meta["val"]
+
+        node.replace_all_uses_with(mul_node)
+        g.erase_node(node)
+        changed = True
+
+    if changed:
+        g.lint()
+        gm.recompile()
+    return gm
+
+
 def insert_sum_fp32_prepost_cast_prims(gm: GraphModule):
     g = gm.graph
     for node in g.nodes:

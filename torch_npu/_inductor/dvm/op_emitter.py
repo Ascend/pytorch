@@ -85,6 +85,9 @@ def _is_last2_transpose_tensor(t: torch._subclasses.FakeTensor) -> bool:
     if t.dim() < 2:
         return False
 
+    if t.is_contiguous():
+        return False
+
     if not (t.stride(-2) == 1 and t.stride(-1) == t.size(-2)):
         return False
 
@@ -101,6 +104,7 @@ def mm_rule(node: torch.fx.Node):
     UINT16_MAX = (1 << 16) - 1
     UINT8_MAX = (1 << 8) - 1
     MAX_INNER = UINT16_MAX - UINT8_MAX
+    SMALL_OUTPUT_MAX = 256
 
     def inner_axis_length(t: torch._subclasses.FakeTensor):
         if _is_last2_transpose_tensor(t):
@@ -116,6 +120,28 @@ def mm_rule(node: torch.fx.Node):
             return False
         return True
 
+    def check_output(output_node):
+        t = output_node.meta["val"]
+        last_two_dims = t.shape[-2:]
+        if all(not isinstance(dim, torch.SymInt) for dim in last_two_dims) and all(
+            dim <= SMALL_OUTPUT_MAX for dim in last_two_dims
+        ):
+            return False
+        return True
+
+    def check_k1_fusion(lhs_node, rhs_node):
+        lhs_t = lhs_node.meta["val"]
+        rhs_t = rhs_node.meta["val"]
+        lhs_k = lhs_t.shape[-1]
+        rhs_k = rhs_t.shape[-2]
+        if isinstance(lhs_k, torch.SymInt) or isinstance(rhs_k, torch.SymInt):
+            return True
+        if lhs_k == 1 and rhs_k == 1:
+            return (not _is_last2_transpose_tensor(lhs_t)) and (
+                not _is_last2_transpose_tensor(rhs_t)
+            )
+        return True
+
     if node.target in [aten.mm.default, aten.bmm.default]:
         lhs = node.args[0]
         rhs = node.args[1]
@@ -127,7 +153,12 @@ def mm_rule(node: torch.fx.Node):
     if node.meta["val"].dtype not in (torch.float16, torch.bfloat16):
         return False
 
-    return check(lhs) and check(rhs)
+    return (
+        check(lhs)
+        and check(rhs)
+        and check_output(node)
+        and check_k1_fusion(lhs, rhs)
+    )
 
 
 def register_dvm_op(*ops, rule=common_rule):
