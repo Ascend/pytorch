@@ -1133,7 +1133,7 @@ def main():
             markdown_lines.extend(["", "## 测试文件结果汇总"])
 
             file_rows = []
-            for fs in sorted_files[:100]:  # Limit to top 100 files
+            for fs in sorted_files:  # Show all files
                 failed_total = fs["failed"] + fs["errors"] + fs["crashed"] + fs["timeout"]
                 fail_rate = f"{(failed_total / fs['total'] * 100):.1f}%" if fs["total"] > 0 else "0%"
                 file_rows.append([
@@ -1153,35 +1153,6 @@ def main():
                     file_rows,
                 )
             )
-
-            # Add failure details for files with failures
-            failed_files = parse_test_results.get_files_with_failures(file_stats)
-            if failed_files:
-                markdown_lines.extend(["", "## 失败用例详情"])
-
-                for ff in failed_files[:50]:  # Limit to top 50 files with failures
-                    total_failures = ff["failed"] + ff["errors"] + ff["crashed"] + ff["timeout"]
-                    file_name = sanitize_markdown_cell(ff["file"])
-
-                    markdown_lines.append(f"\n### {file_name} ({total_failures} failed/error)")
-
-                    # Show failed cases in a table
-                    if ff["failed_cases"]:
-                        # Limit to top 20 failed cases per file
-                        case_rows = []
-                        for fc in ff["failed_cases"][:20]:
-                            nodeid_short = sanitize_markdown_cell(fc.get("nodeid", "").split("::")[-1])
-                            status = fc.get("status", "unknown")
-                            message_short = sanitize_markdown_cell(fc.get("message", "")[:100])
-                            case_rows.append([nodeid_short, status, message_short])
-
-                        markdown_lines.extend(
-                            render_table(["用例", "状态", "消息"], case_rows)
-                        )
-
-                        if len(ff["failed_cases"]) > 20:
-                            remaining = len(ff["failed_cases"]) - 20
-                            markdown_lines.append(f"... 还有 {remaining} 个失败用例，详情见 JSON 报告")
 
     if include_unhandled_tests:
         markdown_lines.extend(["", "## Unhandled Special Tests"])
