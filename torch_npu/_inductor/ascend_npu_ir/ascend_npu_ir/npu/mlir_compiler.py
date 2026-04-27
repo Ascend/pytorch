@@ -590,7 +590,7 @@ class NpuMlirCompiler:
                 )
                 print(f"Kernel Name: {self.kernel_name}\n{msg}", flush=True)
                 has_acc_error = True
-                args[idx + num_inputs].copy_(expected)
+
                 del abs_diff
                 del rel_diff
             del matches
@@ -673,8 +673,7 @@ class NpuMlirCompiler:
         (launcher,) = self.launchers
         (is_fallback_kernel, ) = self.is_fallback_kernels
 
-        if anir_config.fx_subgraph_dump_path and \
-            anir_config.online_acc_comp and \
+        if anir_config.online_acc_comp and \
             not is_fallback_kernel:
             output = self.acc_compare_and_dump(*args, **kwargs)
             if self.non_contiguous_outputs:

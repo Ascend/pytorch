@@ -191,6 +191,30 @@ def _define_dvm_kernel(self, src_code, mlir_kernel, traced_graph, mode=None):
                 mlir_kernel.dvm_codegen.KERNEL_NAME_PLACEHOLDER, func_name
             )
             compile_wrapper.writeline(func_name)
+
+            if anir_config.online_acc_comp:
+                dump_path = os.path.join(
+                    os.getenv("TORCHINDUCTOR_CACHE_DIR"),
+                    anir_config.traced_graph_cache,
+                    str(current_device.index),
+                    traced_graph_hash,
+                )
+                if not os.path.exists(dump_path):
+                    os.makedirs(dump_path, exist_ok=True)
+                    to_folder(
+                        mlir_kernel._gm,
+                        dump_path,
+                        graph_hash=traced_graph_hash,
+                        module_name=traced_graph_hash,
+                    )
+                compile_wrapper.writeline(
+                    f"{kernel_name}._acc_meta = {{"
+                    f"'traced_graph_hash': {traced_graph_hash!r}, "
+                    f"'traced_graph_cache': {anir_config.traced_graph_cache!r}, "
+                    f"'device_index': {current_device.index}, "
+                    f"'num_outputs': {mlir_kernel.num_outputs}}}"
+                )
+            
             wrapper.define_kernel(kernel_name, compile_wrapper.getvalue(), func_code)
 
     return kernel_name

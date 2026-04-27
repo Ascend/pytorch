@@ -1,4 +1,6 @@
 import os
+import sys
+import importlib
 import hashlib
 import torch
 
@@ -121,3 +123,86 @@ if __name__ == "__main__":
 
     print(f"[ok] generated: {file_path}")
     return file_path
+
+
+def _load_fx_model(acc_meta):
+    """Load the traced FX GraphModule from disk for accuracy comparison."""
+    if acc_meta.get('_fx_model') is not None:
+        return acc_meta['_fx_model']
+    dump_path = os.path.join(
+        os.getenv("TORCHINDUCTOR_CACHE_DIR"),
+        acc_meta['traced_graph_cache'],
+        str(acc_meta['device_index']),
+        acc_meta['traced_graph_hash'],
+    )
+    sys.path.insert(0, dump_path)
+    try:
+        module = importlib.import_module(acc_meta['traced_graph_hash'])
+    finally:
+        sys.path.remove(dump_path)
+    Model = getattr(module, acc_meta['traced_graph_hash'])
+    model = Model()
+    acc_meta['_fx_model'] = model
+    return model
+ 
+ 
+def _accuracy_check_run(kobj, acc_meta, kernel_name, args):
+    """Run DVM kernel then compare outputs against FX graph reference."""
+    from torch._inductor.compile_fx import clone_preserve_strides
+    from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir import (
+        config as anir_config,
+    )
+
+    fx_model = _load_fx_model(acc_meta)
+
+    num_outputs = acc_meta['num_outputs']
+    num_inputs = len(args) - num_outputs
+
+    fx_inputs = []
+    for arg in args[:num_inputs]:
+        if isinstance(arg, torch.Tensor):
+            inp = clone_preserve_strides(arg)
+            if arg.dtype == torch.bfloat16:
+                inp = inp.float()
+            fx_inputs.append(inp)
+        else:
+            fx_inputs.append(arg)
+
+    fx_outputs = fx_model.forward(*fx_inputs)
+    if not isinstance(fx_outputs, (tuple, list)):
+        fx_outputs = (fx_outputs,)
+
+    kobj.run(*args)
+
+    for idx, (actual, expected) in enumerate(
+        zip(args[num_inputs:], fx_outputs)
+    ):
+        if not isinstance(actual, torch.Tensor):
+            continue
+        if actual.dtype != expected.dtype:
+            expected = expected.to(actual.dtype)
+        tol = anir_config.acc_comp_tol.get(
+            actual.dtype, anir_config.acc_comp_tol["default"]
+        )
+        rtol, atol = tol["rtol"], tol["atol"]
+        matches = torch.isclose(
+            actual, expected, rtol=rtol, atol=atol, equal_nan=True
+        )
+        if not matches.all():
+            abs_diff = torch.abs(actual - expected)
+            rel_diff = abs_diff / torch.clamp(torch.abs(expected), min=1e-20)
+            rel_diff.masked_fill_(matches, 0)
+            num_el = matches.numel()
+            num_mis = num_el - int(torch.sum(matches))
+            print(
+                f"CHECK ACCURACY FAILED! "
+                f"Kernel: {kernel_name}, "
+                f"Output idx: {idx}, "
+                f"Mismatched: {num_mis}/{num_el} ({num_mis / num_el:.1%}), "
+                f"Greatest Rel Diff: {rel_diff.max().item()}, "
+                f"Greatest Abs Diff: {abs_diff.max().item()}",
+                flush=True,
+            )
+
+            del abs_diff, rel_diff
+        del matches

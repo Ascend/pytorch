@@ -12,6 +12,8 @@ from torch_npu._C.dvm import (
     TorchKernel as Kernel,
 )
 
+from .fx_test import _accuracy_check_run
+
 
 debug_mode = False
 
@@ -112,12 +114,16 @@ def kernel(
             return outputs
 
         def run(*args, **kwargs):
-            kobj.run(*args)
+            if fn._acc_meta is not None:
+                _accuracy_check_run(kobj, fn._acc_meta, kernel_name, args)
+            else:
+                kobj.run(*args)
             if debug_mode:
                 _post_run(args)
 
         fn.run = run
         fn.kobj = kobj
+        fn._acc_meta = None
 
         return fn
 
