@@ -64,7 +64,7 @@ import torch.fx._pytree as fx_pytree
 import torch.multiprocessing as mp
 from scipy.stats import gmean, ttest_ind
 from torch._dynamo.profiler import fx_insert_profiling, Profiler
-from torch._dynamo.testing import dummy_fx_compile, format_speedup, same
+from torch._dynamo.testing import dummy_fx_compile, format_speedup, same, reduce_to_scalar_loss
 from torch._dynamo.utils import clone_inputs, graph_break_reasons
 from torch._functorch.aot_autograd import set_model_name
 from torch._inductor import config as inductor_config
@@ -873,6 +873,120 @@ class BenchmarkRunner:
             return " ".join(map(str, results))
         
 
+    def _get_precision_checker_cast_dtype(self):
+        if self.args.precision_checker_cast_dtype is None:
+            return None
+        dtype_map = {
+            "bf16": torch.bfloat16,
+            "bfloat16": torch.bfloat16,
+            "fp16": torch.float16,
+            "float16": torch.float16,
+            "fp32": torch.float32,
+            "float32": torch.float32,
+        }
+        return dtype_map[self.args.precision_checker_cast_dtype]
+
+
+    def run_precision_checker_test(
+        self, name, model, example_inputs, optimize_ctx, experiment, tag=None
+    ):
+        import msprobe
+        from msprobe.pytorch.compile_accuracy_checker.precision_checker import PrecisionChecker
+
+        start_stats = get_dynamo_stats()
+
+        def record_status(status, result=None, error=None):
+            headers = ["dev", "name", "batch_size", "precision_checker"]
+            fields = [current_device, current_name, current_batch_size, status]
+            if tag is not None:
+                headers.insert(3, "tag")
+                fields.insert(3, tag)
+
+            if result is not None:
+                def diff_passed(diff):
+                    if diff.note:
+                        return diff.note.startswith("SKIP") or diff.note == "IGNORED"
+                    return all(
+                        vals is None or all(item.allclose for item in vals)
+                        for vals in (
+                            diff.fwd_input,
+                            diff.fwd_output,
+                            diff.grad_input,
+                            diff.grad_output,
+                        )
+                    )
+
+                failed_modules = sum(
+                    1
+                    for diff in result.diffs
+                    if not diff_passed(diff)
+                )
+                headers.extend(
+                    ["loss_eager", "loss_compiled", "loss_diff", "failed_modules"]
+                )
+                fields.extend(
+                    [
+                        result.loss_eager,
+                        result.loss_compiled,
+                        result.loss_diff,
+                        failed_modules,
+                    ]
+                )
+            if error is not None:
+                headers.append("error")
+                fields.append(type(error).__name__)
+
+            dynamo_stats = get_dynamo_stats()
+            dynamo_stats.subtract(start_stats)
+            for k, v in dynamo_stats.items():
+                headers.append(k)
+                fields.append(v)
+            output_csv(output_filename, headers, fields)
+            return status
+
+        model, example_inputs = self.maybe_cast(model, example_inputs)
+        model = self.deepcopy_and_maybe_ddp(model)
+
+        checker = PrecisionChecker(
+            backend="aot_eager",
+            dump_graphs=self.args.precision_checker_dump_graphs,
+            graph_dir=self.args.precision_checker_graph_dir,
+            cast_dtype=self._get_precision_checker_cast_dtype(),
+            capture_input=self.args.precision_checker_capture_input,
+            single_pass=self.args.precision_checker_single_pass,
+        )
+        checker.wrap(model)
+        print(f"precision_checker: backend=aot_eager")
+
+        def run_step(mod):
+            cloned_inputs = clone_inputs(example_inputs)
+            mod.zero_grad(True)
+            with self.autocast():
+                output = mod(*cloned_inputs)
+                loss = reduce_to_scalar_loss(output)
+            if loss.requires_grad:
+                self.grad_scaler.scale(loss).backward()
+            return loss
+
+        reset_rng_state()
+        torch._dynamo.reset()
+        try:
+            with torch.enable_grad():
+                result = checker.compare(run_step, model)
+        except Exception as e:
+            log.exception(e)
+            status = (
+                "OOM"
+                if isinstance(e, torch.cuda.OutOfMemoryError)
+                else "fail_to_run"
+            )
+            return record_status(status, error=e)
+
+        checker.report(result)
+        status = "pass_precision_checker" if result.all_pass else "fail_precision_checker"
+        return record_status(status, result=result)
+    
+
     def run_one_model(
         self,
         name,
@@ -905,6 +1019,11 @@ class BenchmarkRunner:
             
         elif self.args.performance:
             status = self.run_performance_test(
+                name, model, example_inputs, optimize_ctx, experiment, tag
+            )
+            print(status)
+        elif self.args.precision_checker:
+            status = self.run_precision_checker_test(
                 name, model, example_inputs, optimize_ctx, experiment, tag
             )
             print(status)
@@ -1149,6 +1268,51 @@ def parse_args(args=None):
     mode_group.add_argument(
         "--performance", action="store_true", help="Measures performance speedup"
     )
+    mode_group.add_argument(
+        "--precision-checker",
+        action="store_true",
+        help="Runs torch_npu precision checker for eager vs compiled module diffs",
+    )
+    parser.add_argument(
+        "--precision-checker-capture-input",
+        action="store_true",
+        help="Also compare inputs captured by forward pre-hooks",
+    )
+    parser.add_argument(
+        "--precision-checker-single-pass",
+        action="store_true",
+        help="Run only the compiled pass and compare wrapped module outputs in hooks",
+    )
+    parser.add_argument(
+        "--precision-checker-dump-graphs",
+        action="store_true",
+        help="Dump FX graphs captured during precision checker compilation",
+    )
+    parser.add_argument(
+        "--precision-checker-graph-dir",
+        default="./graph_dump",
+        help="Directory for precision checker graph dumps",
+    )
+    parser.add_argument(
+        "--precision-checker-cast-dtype",
+        choices=["bf16", "bfloat16", "fp16", "float16", "fp32", "float32"],
+        help="Cast compiled-side inputs to this dtype inside precision checker",
+    )
+    parser.add_argument(
+        "--precision-checker-modules",
+        nargs="+",
+        help="Exact module names to wrap. Defaults to all leaf modules.",
+    )
+    parser.add_argument(
+        "--precision-checker-module-types",
+        nargs="+",
+        help="Module class names to wrap, for example Linear Conv2d LayerNorm.",
+    )
+    parser.add_argument(
+        "--precision-checker-ignore-modules",
+        nargs="+",
+        help="Exact module names to ignore in precision checker reports.",
+    )
     run_mode_group = parser.add_mutually_exclusive_group(required=True)
     run_mode_group.add_argument(
         "--training",
@@ -1211,6 +1375,8 @@ def run(runner, args, original_dir=None):
         experiment = speedup_experiment
         if args.accuracy:
             output_filename = f"accuracy_{args.backend}.csv"
+        elif args.precision_checker:
+            output_filename=f"precision_checker_{args.backend}.csv"
         else:
             output_filename = f"speedup_{args.backend}.csv"
 
@@ -1221,7 +1387,7 @@ def run(runner, args, original_dir=None):
             raise AssertionError("DDP benchmark is currently only hooked up to --accuracy bench")
         if not args.training:
             raise AssertionError("DDP benchmark requires --training mode")
-    if args.accuracy:
+    if args.accuracy or args.precision_checker:
         # Use small batch size. We use >1 batch size to ensure we test
         # batch_norm type of operators that work on batch dims.
         if args.batch_size is None:
@@ -1452,6 +1618,12 @@ def run(runner, args, original_dir=None):
             def write_csv(status, name=name, placeholder_batch_size=placeholder_batch_size):
                 if args.accuracy:
                     headers = ["dev", "name", "batch_size", "accuracy"]
+                    rows = [
+                        [device, name, placeholder_batch_size, status]
+                        for device in args.devices
+                    ]
+                elif args.precision_checker:
+                    headers = ["dev", "name", "batch_size", "precision_checker"]
                     rows = [
                         [device, name, placeholder_batch_size, status]
                         for device in args.devices

@@ -108,6 +108,17 @@
     python3 torchbench.py --accuracy --cold-start-latency --train --float32 --backend inductor --npu-backend mlir --only BERT_pytorch --iterations 50
     ```
 
+5. eager与aot\_eager精度对比定位
+
+    ```shell
+    # 不使能--only，默认运行torchbench_models_list.txt目录下的所有模型
+    python3 torchbench.py --precision-checker --train --float32 --backend aot_eager
+
+    # 使能--only，运行指定模型
+    python3 torchbench.py --precision-checker --train --float32 --backend aot_eager --only BERT_pytorch
+    ```
+    执行上述命令之后，会在终端界面打印出网络模型各模块的精度对比结果。当前工具仅支持eager与aot_eager模式对比。
+
 ## 结果展示
 1. 执行下述命令，测试精度、编译时间、端到端总时间，并保存日志
     ```shell

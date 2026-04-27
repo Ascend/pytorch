@@ -227,7 +227,10 @@ class TorchBenchmarkRunner(BenchmarkRunner):
             batch_size = USE_SMALL_BATCH_SIZE[model_name]
 
         # Control the memory footprint for few models
-        if self.args.accuracy and model_name in MAX_BATCH_SIZE_FOR_ACCURACY_CHECK:
+        if (
+            (self.args.accuracy or self.args.precision_checker)
+            and model_name in MAX_BATCH_SIZE_FOR_ACCURACY_CHECK
+        ):
             batch_size = min(batch_size, MAX_BATCH_SIZE_FOR_ACCURACY_CHECK[model_name])
 
         # workaround "RuntimeError: not allowed to set torch.backends.cudnn flags"
