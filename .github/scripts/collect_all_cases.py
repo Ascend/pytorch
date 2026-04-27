@@ -12,8 +12,8 @@ Usage:
     python collect_all_cases.py \
         --test-dir /path/to/pytorch/test \
         --case-paths-config /path/to/case_paths_ci.yml \
-        --distributed-shards 4 \
-        --regular-shards 6 \
+        --distributed-shards 2 \
+        --regular-shards 5 \
         --output-dir /path/to/output \
         --parallel 16
 """
@@ -243,8 +243,8 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Collect and shard test cases")
     parser.add_argument("--test-dir", required=True, help="PyTorch test directory")
     parser.add_argument("--case-paths-config", help="case_paths_ci.yml path")
-    parser.add_argument("--distributed-shards", type=int, default=4, help="Distributed test shards")
-    parser.add_argument("--regular-shards", type=int, default=6, help="Regular test shards")
+    parser.add_argument("--distributed-shards", type=int, default=2, help="Distributed test shards")
+    parser.add_argument("--regular-shards", type=int, default=5, help="Regular test shards")
     parser.add_argument("--output-dir", required=True, help="Output directory for shard JSONs")
     parser.add_argument("--parallel", type=int, default=16, help="Parallel collection workers")
     return parser.parse_args()

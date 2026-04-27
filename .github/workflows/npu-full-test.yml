@@ -29,9 +29,9 @@ on:
         default: '20'
         type: string
       regular_shards:
-        description: 'Number of shards for regular tests (default 60)'
+        description: 'Number of shards for regular tests (default 5)'
         required: false
-        default: '60'
+        default: '5'
         type: string
       test_files:
         description: 'Test files to run directly (comma-separated, e.g., "test_meta.py,test_nn.py"). Skip shard assignment if set.'
@@ -325,8 +325,8 @@ jobs:
           retention-days: 30
 
   # ============================================================================
-  # Distributed Tests: linux-aarch64-a3-8 runner (8-card NPU), serial execution
-  # Case-level sharding (4 shards, ~equal cases per shard)
+  # Distributed Tests: linux-aarch64-a3-16 runner (16-card NPU), serial execution
+  # Case-level sharding (2 shards, ~equal cases per shard)
   # ============================================================================
   test_distributed:
     needs:
@@ -475,7 +475,7 @@ jobs:
 
           echo "=== Distributed Shard ${{ matrix.shard }} (Case-level) ==="
           echo "Total cases: ${TOTAL_CASES}"
-          echo "Runner: linux-aarch64-a3-8 (8-card NPU)"
+          echo "Runner: linux-aarch64-a3-16 (16-card NPU)"
           echo "Execution mode: SERIAL"
 
           # Distributed tests: pre-collected cases, serial execution
