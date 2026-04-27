@@ -860,6 +860,12 @@ jobs:
           path: all-test-reports
           merge-multiple: true
 
+      - name: Download cases collection summary
+        uses: actions/download-artifact@v4
+        with:
+          name: cases-shards
+          path: cases-shards
+
       - name: Generate consolidated summary
         run: |
           PYTHON=python
@@ -880,7 +886,8 @@ jobs:
             --patch-count "${{ needs.prepare.outputs.patch_count || 'N/A' }}" \
             --shard-matrix-json "${COMBINED_MATRIX}" \
             --docker-image "${{ env.DOCKER_IMAGE }}" \
-            --runner "linux-aarch64-a3-8 (distributed, serial), linux-aarch64-a3-16 (regular, 64 workers), linux-aarch64-a3-8 (custom)"
+            --runner "linux-aarch64-a3-8 (distributed, serial), linux-aarch64-a3-16 (regular, 64 workers), linux-aarch64-a3-8 (custom)" \
+            --cases-summary cases-shards/cases_collection_summary.json
 
           cat ${REPORT_MD} >> $GITHUB_STEP_SUMMARY
 

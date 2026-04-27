@@ -216,9 +216,16 @@ def main():
     # Step 3: Save overall summary
     # ========================================
     overall_summary = {
-        "distributed": dist_summary,
-        "regular": reg_summary,
+        "distributed": {
+            "cases_summary": dist_summary,
+            "discovery_metadata": dist_meta,
+        },
+        "regular": {
+            "cases_summary": reg_summary,
+            "discovery_metadata": reg_meta,
+        },
         "total_cases": len(dist_cases) + len(reg_cases),
+        "total_files_scanned": dist_meta.get("total_files", 0) + reg_meta.get("total_files", 0),
     }
     summary_file = output_dir / "cases_collection_summary.json"
     summary_file.write_text(json.dumps(overall_summary, indent=2), encoding="utf-8")

@@ -28,6 +28,7 @@ def parse_args():
     parser.add_argument("--runner", default="N/A", help="Runner machine type")
     parser.add_argument("--special-reports-root", help="Root directory containing special test report files")
     parser.add_argument("--expected-special-tests-json", default="[]", help="JSON array of expected special test names")
+    parser.add_argument("--cases-summary", help="Path to cases_collection_summary.json for file discovery stats")
     return parser.parse_args()
 
 
@@ -765,6 +766,29 @@ def main():
     expected_special_tests = parse_expected_special_tests(args.expected_special_tests_json)
     special_reports_root = Path(args.special_reports_root) if args.special_reports_root else None
 
+    # Load cases collection summary for file discovery stats
+    cases_summary_data = None
+    file_discovery_stats = {
+        "total_files_scanned": 0,
+        "distributed_files_before_filter": 0,
+        "distributed_files_after_filter": 0,
+        "regular_files_before_filter": 0,
+        "regular_files_after_filter": 0,
+    }
+    if args.cases_summary:
+        cases_summary_path = Path(args.cases_summary)
+        if cases_summary_path.exists():
+            cases_summary_data = load_json_file(cases_summary_path)
+            # Extract file discovery stats from metadata
+            if cases_summary_data:
+                file_discovery_stats["total_files_scanned"] = cases_summary_data.get("total_files_scanned", 0)
+                dist_meta = cases_summary_data.get("distributed", {}).get("discovery_metadata", {})
+                reg_meta = cases_summary_data.get("regular", {}).get("discovery_metadata", {})
+                file_discovery_stats["distributed_files_before_filter"] = dist_meta.get("type_selected", 0)
+                file_discovery_stats["distributed_files_after_filter"] = dist_meta.get("rules_selected", 0)
+                file_discovery_stats["regular_files_before_filter"] = reg_meta.get("type_selected", 0)
+                file_discovery_stats["regular_files_after_filter"] = reg_meta.get("rules_selected", 0)
+
     stats_files, info_files, plan_files, excluded_files, unhandled_files, xml_files, missing_files_paths, cases_files = discover_shard_files(reports_root)
     special_test_files = discover_special_test_files(special_reports_root)
     shard_ids = requested_shards or sorted(set(stats_files) | set(info_files) | set(cases_files))
@@ -996,6 +1020,28 @@ def main():
 
     include_special_tests = bool(special_test_names or special_test_rows)
 
+    # Build Selection row content based on available data
+    if cases_summary_data:
+        # Use file discovery stats from cases_collection_summary.json
+        total_scanned = file_discovery_stats["total_files_scanned"]
+        dist_before = file_discovery_stats["distributed_files_before_filter"]
+        dist_after = file_discovery_stats["distributed_files_after_filter"]
+        reg_before = file_discovery_stats["regular_files_before_filter"]
+        reg_after = file_discovery_stats["regular_files_after_filter"]
+        total_after_filter = dist_after + reg_after
+        selection_content = (
+            f"扫描发现 {total_scanned} 个测试文件; "
+            f"黑白名单过滤后 {total_after_filter} 个文件 "
+            f"(distributed: {dist_before} -> {dist_after}, regular: {reg_before} -> {reg_after})"
+        )
+    else:
+        # Fallback to original selection mode display
+        selection_content = (
+            f"{selection_mode_display}; "
+            f"{totals['selected_test_files']} selected, "
+            f"{totals['path_filtered_out_files']} filtered out"
+        )
+
     overview_rows = [
         ["Overall result", overall_status],
         ["PyTorch", f"`v{args.pytorch_version}`"],
@@ -1004,14 +1050,7 @@ def main():
         ["Docker image", f"`{args.docker_image}`"],
         ["Runner", f"`{args.runner}`"],
         ["Shards", f"{received_reports} / {expected_reports} reported"],
-        [
-            "Selection",
-            (
-                f"{selection_mode_display}; "
-                f"{totals['selected_test_files']} selected, "
-                f"{totals['path_filtered_out_files']} filtered out"
-            ),
-        ],
+        ["Selection", selection_content],
         [
             "Tests",
             (
@@ -1208,6 +1247,7 @@ def main():
         "runner": args.runner,
         "status_counts": dict(status_counts),
         "totals": totals,
+        "file_discovery_stats": file_discovery_stats,
         "execution_scope": {
             "selection_mode": sorted(selection_modes),
             "selected_test_entries": totals["selected_test_entries"],
@@ -1229,6 +1269,10 @@ def main():
         "failed_shards": [row for row in shard_rows if row["status"] not in ("PASSED", "NO TESTS")],
         "slowest_shards": slowest,
     }
+
+    # Add full cases summary if available
+    if cases_summary_data:
+        report_json["cases_collection_summary"] = cases_summary_data
 
     # Add case-level results if available
     if cases_results:
