@@ -9,16 +9,18 @@ enum class aclskOptionType : uint32_t {
     PRELOAD_CODE = 0,
     SPLIT_MODE = 1,
     STREAM_FUSION = 2,
-    DEBUG_DCCI_DISABLE_ON_KERNEL = 3,
+    DCCI_DISABLE_ON_KERNEL = 3,
     DEBUG_SYNC_ALL = 4,
     KERNEL_MAP = 5,
     CONSTANT_CODEGEN = 6,  // 常量化代码生成选项
     AUTO_OP_PARALLEL = 7,  // 优化多流算子排布
-    DEBUG_DCCI_BEFORE_KERNEL_START = 8,
+    DCCI_BEFORE_KERNEL_START = 8,
     DEBUG_OP_EXEC_TRACE = 9,
     DEBUG_CROSS_CORE_SYNC_CHECK = 10,
     OPT_EXTEND_OPTION = 11,   // 扩展选项，预留后续使用
     DEBUG_EXTEND_OPTION = 12, // 扩展选项，预留后续使用
+    DCCI_AFTER_KERNEL_END = 13,
+    AGGRESSIVE_OPT_STRATEGIES = 14, // value memory wait breaker policy
     SK_OPTION_MAX = 0xFFFFFFFF
 };
 
@@ -74,6 +76,24 @@ struct aclskExtendOption {
 };
 
 /**
+ * aggressiveOpts.valueBreakerBypass is a bitmask-style value-memory wait policy:
+ *  - ACLSK_VALUE_BREAKER_BYPASS_NONE (0b00): reject write/wait pairing relation, keep wait unfusible
+ *  - ACLSK_VALUE_BREAKER_BYPASS_PAIRED_WAIT (0b01): for paired write+wait, existing rule must pass or SK exits
+ *  - ACLSK_VALUE_BREAKER_BYPASS_UNPAIRED_WAIT (0b10): for waits whose writes are outside modelRI, allow wait fusion
+ */
+enum aclskValueBreakerBypassFlag : uint32_t {
+    ACLSK_VALUE_BREAKER_BYPASS_NONE = 0b00U,
+    ACLSK_VALUE_BREAKER_BYPASS_PAIRED_WAIT = 0b01U,
+    ACLSK_VALUE_BREAKER_BYPASS_UNPAIRED_WAIT = 0b10U
+};
+
+struct aclskAggressiveOptStrategies {
+    uint32_t eventBreakerBypass;
+    uint32_t valueBreakerBypass;
+    uint32_t taskBreakerBypass;
+};
+
+/**
  * 常量化代码生成选项
  * enableConstant: 1 启用常量化, 0 禁用常量化
  */
@@ -97,6 +117,8 @@ struct aclskOption {
         aclskDebugCrossCoreSyncCheckOption debugCrossCoreSyncCheck;
         aclskExtendOption optExtend;
         aclskExtendOption debugExtend;
+        aclskDcciOption dcciAfterKernelEnd;
+        aclskAggressiveOptStrategies aggressiveOpts;
     };
 };
 
