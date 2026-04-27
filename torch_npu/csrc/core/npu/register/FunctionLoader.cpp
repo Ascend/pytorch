@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/register/FunctionLoader.h"
 
@@ -24,14 +25,7 @@ void FunctionLoader::Set(const std::string &name)
 
 void *FunctionLoader::Get(const std::string &name)
 {
-    if (this->handle == nullptr) {
-        auto handle = dlopen(this->fileName.c_str(), this->flags);
-        if (handle == nullptr) {
-            AT_ERROR(dlerror());
-            return nullptr;
-        }
-        this->handle = handle;
-    }
+    std::lock_guard<std::mutex> lock(this->mu_);
 
     auto itr = registry.find(name);
     if (itr == registry.end()) {
@@ -43,7 +37,37 @@ void *FunctionLoader::Get(const std::string &name)
         return itr->second;
     }
 
-    auto func = dlsym(this->handle, name.c_str());
+    // When LD_PRELOAD is set, prefer RTLD_DEFAULT so that symbols overridden
+    // by the user's preloaded .so take precedence over libascendcl.so's own
+    // implementation. Opt-in by the presence of LD_PRELOAD itself; without
+    // LD_PRELOAD the behavior is identical to the original path.
+    static const bool preload_enabled = []() {
+        const char *env = std::getenv("LD_PRELOAD");
+        bool enabled = (env != nullptr && env[0] != '\0');
+        if (enabled) {
+            TORCH_NPU_WARN_ONCE("LD_PRELOAD detected, FunctionLoader prefers "
+                                "RTLD_DEFAULT for symbol resolution.");
+        }
+        return enabled;
+    }();
+
+    void *func = nullptr;
+    if (preload_enabled) {
+        func = dlsym(RTLD_DEFAULT, name.c_str());
+    }
+
+    if (func == nullptr) {
+        if (this->handle == nullptr) {
+            auto handle = dlopen(this->fileName.c_str(), this->flags);
+            if (handle == nullptr) {
+                AT_ERROR(dlerror());
+                return nullptr;
+            }
+            this->handle = handle;
+        }
+        func = dlsym(this->handle, name.c_str());
+    }
+
     if (func == nullptr) {
         return nullptr;
     }
