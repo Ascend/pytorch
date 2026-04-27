@@ -181,7 +181,7 @@ uint32_t ScheduleContextHolder::InitFfn()
 
     uint64_t token_info_aligned_size = AlignUp(token_info_size, kBufAlignSize);
     if (token_info_aligned_size < token_info_size) {
-        ASCEND_LOGE("token_info_size=" << token_info_size << " overflow after align with " << kBufAlignSize << ".");
+        ASCEND_LOGE("token_info_size=%lu overflow after align with %lu.", token_info_size, kBufAlignSize);
         return kFailure;
     }
     if (ffn_window_size_ <= token_info_aligned_size) {

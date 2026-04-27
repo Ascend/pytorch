@@ -19,17 +19,22 @@
 #include "torch_npu/csrc/logging/LogContext.h"
 
 namespace c10_npu {
+
+std::shared_ptr<npu_logging::Logger>& GetEnvLogger()
+{
+    static std::shared_ptr<npu_logging::Logger> loggerEnv = npu_logging::logging().getLogger("torch_npu.env");
+    return loggerEnv;
+}
+
 namespace option {
 
 using namespace std;
-
-static std::shared_ptr<npu_logging::Logger> loggerEnv = npu_logging::logging().getLogger("torch_npu.env");
 
 char* get_and_log_env(const char* env_str)
 {
     char* env_val = std::getenv(env_str);
     if (env_val != nullptr) {
-        loggerEnv->info("get env %s = %s", env_str, env_val);
+        TORCH_NPU_ENV_LOGI("get env %s = %s", env_str, env_val);
     }
     return env_val;
 }
@@ -241,7 +246,9 @@ uint32_t OptionsManager::CheckUseDesyncDebugEnable()
 bool OptionsManager::isACLGlobalLogOn(aclLogLevel level)
 {
     const static int getACLGlobalLogLevel = []() -> int {
-        char* env_val = get_and_log_env("ASCEND_GLOBAL_LOG_LEVEL");
+        // Directly use std::getenv to get environment variables to avoid circular dependency caused by calling get_and_log_env
+        char* env_val = std::getenv("ASCEND_GLOBAL_LOG_LEVEL");
+        TORCH_NPU_LOGI(c10_npu::GetEnvLogger(), "get env ASCEND_GLOBAL_LOG_LEVEL = %s", env_val);
         int64_t envFlag = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : ACL_ERROR;
         std::unordered_map<int32_t, std::string> logLevelMode = getLogLevelMode();
         if (logLevelMode.find(envFlag) == logLevelMode.end()) {
