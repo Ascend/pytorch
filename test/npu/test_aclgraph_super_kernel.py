@@ -194,11 +194,77 @@ class TestAclgraphSuperKernelOptimize(TestCase):
                 debug_options={'debug_extend': 123}
             )
 
-        # debug_dcci_before_kernel_start expects list, not int
+        # dcci_before_kernel_start expects list, not int
         with self.assertRaises(RuntimeError):
             g.super_kernel_optimize(
-                optimize_options=None,
-                debug_options={'debug_dcci_before_kernel_start': 1}
+                optimize_options={'dcci_before_kernel_start': 1},
+                debug_options=None
+            )
+
+        # aggressive_opt_strategies expects dict, not int
+        with self.assertRaises(RuntimeError):
+            g.super_kernel_optimize(
+                optimize_options={'aggressive_opt_strategies': 123},
+                debug_options=None
+            )
+
+    def test_aggressive_opt_strategies_sub_option_type_validation(self):
+        """Test aggressive_opt_strategies sub-option type validation"""
+        torch.npu.set_device(0)
+
+        g = torch.npu.NPUGraph()
+
+        # sub-option expects int, not str
+        with self.assertRaises(RuntimeError):
+            g.super_kernel_optimize(
+                optimize_options={'aggressive_opt_strategies': {'event_breaker_bypass': 'invalid'}},
+                debug_options=None
+            )
+
+        with self.assertRaises(RuntimeError):
+            g.super_kernel_optimize(
+                optimize_options={'aggressive_opt_strategies': {'value_breaker_bypass': 'invalid'}},
+                debug_options=None
+            )
+
+        with self.assertRaises(RuntimeError):
+            g.super_kernel_optimize(
+                optimize_options={'aggressive_opt_strategies': {'task_breaker_bypass': 'invalid'}},
+                debug_options=None
+            )
+
+        # invalid sub-key
+        with self.assertRaises(RuntimeError):
+            g.super_kernel_optimize(
+                optimize_options={'aggressive_opt_strategies': {'invalid_sub_key': 1}},
+                debug_options=None
+            )
+
+    def test_dcci_list_element_type_validation(self):
+        """Test dcci list element type validation"""
+        torch.npu.set_device(0)
+
+        g = torch.npu.NPUGraph()
+
+        # dcci_before_kernel_start list element expects str, not int
+        with self.assertRaises(RuntimeError):
+            g.super_kernel_optimize(
+                optimize_options={'dcci_before_kernel_start': [123, 'valid']},
+                debug_options=None
+            )
+
+        # dcci_after_kernel_end list element expects str, not None
+        with self.assertRaises(RuntimeError):
+            g.super_kernel_optimize(
+                optimize_options={'dcci_after_kernel_end': ['valid', None]},
+                debug_options=None
+            )
+
+        # dcci_disable_on_kernel list element expects str, not dict
+        with self.assertRaises(RuntimeError):
+            g.super_kernel_optimize(
+                optimize_options={'dcci_disable_on_kernel': [{'key': 'value'}]},
+                debug_options=None
             )
 
 
@@ -226,15 +292,19 @@ class TestAclgraphSuperKernelIntegration(TestCase):
             'stream_fusion': 1,
             'constant_codegen': 1,
             'auto_op_parallel': 1,
-            'opt_extend': 'test_opt_value'
+            'dcci_before_kernel_start': [],
+            'dcci_after_kernel_end': [],
+            'dcci_disable_on_kernel': [],
+            'aggressive_opt_strategies': {
+                'event_breaker_bypass': 1,
+                'value_breaker_bypass': 1,
+                'task_breaker_bypass': 1
+            }
         }
         debug_options = {
             'debug_sync_all': 1,
-            'debug_dcci_disable_on_kernel': ['kernel_a', 'kernel_b'],
-            'debug_dcci_before_kernel_start': ['kernel_c'],
             'debug_op_exec_trace': 1,
-            'debug_cross_core_sync_check': 1,
-            'debug_extend': 'test_debug_value'
+            'debug_cross_core_sync_check': 1
         }
 
         g.super_kernel_optimize(optimize_options=optimize_options, debug_options=debug_options)

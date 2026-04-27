@@ -1,3 +1,4 @@
+#include <deque>
 #include <thread>
 #include <vector>
 
@@ -55,8 +56,8 @@ void LaunchCallFunc(void *userData)
 class AclSkOptionHelper {
 public:
     std::vector<aclskOption> optionsVec;
-    std::vector<std::string> stringPool;
-    std::vector<std::vector<char*>> ptrArrayPool;
+    std::deque<std::string> stringPool;
+    std::deque<std::vector<char*>> ptrArrayPool;
     void processInitOption(const std::string& key, int value)
     {
         static const std::unordered_map<std::string, std::function<void(aclskOption&, int)>> optionHandlers = {
@@ -104,10 +105,35 @@ public:
 
     void processStringArrayOption(const std::string& key, const std::vector<std::string>& values)
     {
-        if (key == "debug_dcci_disable_on_kernel") {
+        if (key == "dcci_disable_on_kernel") {
             processDcciDisableOnKernel(values);
-        } else if (key == "debug_dcci_before_kernel_start") {
+        } else if (key == "dcci_before_kernel_start") {
             processDcciBeforeKernelStart(values);
+        } else if (key == "dcci_after_kernel_end") {
+            processDcciAfterKernelEnd(values);
+        }
+    }
+
+    uint32_t getDictIntDefault(const py::dict& d, const std::string& key, uint32_t default_val)
+    {
+        if (d.contains(key)) {
+            py::object item = d.attr("__getitem__")(key);
+            if (py::isinstance<py::int_>(item)) {
+                return item.cast<uint32_t>();
+            }
+        }
+        return default_val;
+    }
+
+    void processDictOption(const std::string& key, const py::dict& dict_value)
+    {
+        if (key == "aggressive_opt_strategies") {
+            aclskOption opt = {};
+            opt.optionType = aclskOptionType::AGGRESSIVE_OPT_STRATEGIES;
+            opt.aggressiveOpts.eventBreakerBypass = getDictIntDefault(dict_value, "event_breaker_bypass", 0);
+            opt.aggressiveOpts.valueBreakerBypass = getDictIntDefault(dict_value, "value_breaker_bypass", 0);
+            opt.aggressiveOpts.taskBreakerBypass = getDictIntDefault(dict_value, "task_breaker_bypass", 0);
+            optionsVec.push_back(opt);
         }
     }
 
@@ -140,7 +166,7 @@ private:
     void processDcciDisableOnKernel(const std::vector<std::string>& values)
     {
         aclskOption opt = {};
-        opt.optionType = aclskOptionType::DEBUG_DCCI_DISABLE_ON_KERNEL;
+        opt.optionType = aclskOptionType::DCCI_DISABLE_ON_KERNEL;
         opt.disableKernelDcci.kernelCnt = static_cast<int>(values.size());
         opt.disableKernelDcci.kernelNames = convertStringArray(values);
         optionsVec.push_back(opt);
@@ -149,9 +175,18 @@ private:
     void processDcciBeforeKernelStart(const std::vector<std::string>& values)
     {
         aclskOption opt = {};
-        opt.optionType = aclskOptionType::DEBUG_DCCI_BEFORE_KERNEL_START;
+        opt.optionType = aclskOptionType::DCCI_BEFORE_KERNEL_START;
         opt.dcciBeforeKernelStart.kernelCnt = static_cast<int>(values.size());
         opt.dcciBeforeKernelStart.kernelNames = convertStringArray(values);
+        optionsVec.push_back(opt);
+    }
+
+    void processDcciAfterKernelEnd(const std::vector<std::string>& values)
+    {
+        aclskOption opt = {};
+        opt.optionType = aclskOptionType::DCCI_AFTER_KERNEL_END;
+        opt.dcciAfterKernelEnd.kernelCnt = static_cast<int>(values.size());
+        opt.dcciAfterKernelEnd.kernelNames = convertStringArray(values);
         optionsVec.push_back(opt);
     }
 
@@ -439,11 +474,15 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
                     auto opts = optimize_options.cast<py::dict>();
                     for (auto item : opts) {
                         std::string key = py::str(item.first);
-                        if (py::isinstance<py::int_>(item.second)) {
-                            helper.processInitOption(key, item.second.cast<int>());
+                        if (py::isinstance<py::dict>(item.second)) {
+                            helper.processDictOption(key, item.second.cast<py::dict>());
                         } else if (py::isinstance<py::str>(item.second)) {
                             helper.processStringOption(key, item.second.cast<std::string>());
-                        }
+                        } else if (py::isinstance<py::list>(item.second)) {
+                            helper.processStringArrayOption(key, item.second.cast<std::vector<std::string>>());
+                        } else if (py::isinstance<py::int_>(item.second)) {
+                            helper.processInitOption(key, item.second.cast<int>());
+                        } 
                     }
                 }
 
@@ -453,8 +492,6 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
                         std::string key = py::str(item.first);
                         if (py::isinstance<py::int_>(item.second)) {
                             helper.processInitOption(key, item.second.cast<int>());
-                        } else if (py::isinstance<py::list>(item.second)) {
-                            helper.processStringArrayOption(key, item.second.cast<std::vector<std::string>>());
                         } else if (py::isinstance<py::str>(item.second)) {
                             helper.processStringOption(key, item.second.cast<std::string>());
                         }
