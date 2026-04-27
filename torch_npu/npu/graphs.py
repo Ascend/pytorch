@@ -454,11 +454,16 @@ class NPUGraph(torch_npu._C._NPUGraph):
                 constant_codegen (int) - Enables/disables constant code generation.
                 auto_op_parallel (int) - Enables/disables auto op parallel optimization.
                 opt_extend (str) - Extended optimization option string.
+                dcci_before_kernel_start (list[str]) - List of kernel names to insert DCCI before kernel start.
+                dcci_after_kernel_end (list[str]) - List of kernel names to insert DCCI after kernel end.
+                dcci_disable_on_kernel (list[str]) - List of kernel names to disable DCCI.
+                aggressive_opt_strategies (dict) - Aggressive optimization strategies:
+                    event_breaker_bypass (int) - Event wait继续融合（默认死锁检测通过融合）
+                    value_breaker_bypass (int) - Value wait融合策略
+                    task_breaker_bypass (int) - 不支持算子继续融合（默认断开）
 
             debug_options (optional):
                 debug_sync_all (int) - Enables debug synchronization for all operations.
-                debug_dcci_disable_on_kernel (list) - List of kernel names to disable DCCI optimization.
-                debug_dcci_before_kernel_start (list) - List of kernel names to insert DCCI before kernel start.
                 debug_op_exec_trace (int) - Enables/disables op execution trace.
                 debug_cross_core_sync_check (int) - Enables/disables cross core sync check.
                 debug_extend (str) - Extended debug option string.
@@ -493,17 +498,31 @@ class NPUGraph(torch_npu._C._NPUGraph):
                 },
                 'opt_extend': {
                     'value_type': str
+                },
+                'dcci_before_kernel_start': {
+                    'value_type': list,
+                    'element_type': str
+                },
+                'dcci_after_kernel_end': {
+                    'value_type': list,
+                    'element_type': str
+                },
+                'dcci_disable_on_kernel': {
+                    'value_type': list,
+                    'element_type': str
+                },
+                'aggressive_opt_strategies': {
+                    'value_type': dict,
+                    'sub_options': {
+                        'event_breaker_bypass': {'value_type': int},
+                        'value_breaker_bypass': {'value_type': int},
+                        'task_breaker_bypass': {'value_type': int}
+                    }
                 }
             },
             'debug_options': {
                 'debug_sync_all': {
                     'value_type': int
-                },
-                'debug_dcci_disable_on_kernel': {
-                    'value_type': list
-                },
-                'debug_dcci_before_kernel_start': {
-                    'value_type': list
                 },
                 'debug_op_exec_trace': {
                     'value_type': int
@@ -528,6 +547,23 @@ class NPUGraph(torch_npu._C._NPUGraph):
             if not isinstance(value, expected_type):
                 raise RuntimeError(f"{option_name} param['{key}'] must be {expected_type.__name__}, "
                                    f"got {type(value).__name__}", pta_error(ErrCode.PARAM))
+
+            if expected_type == dict and 'sub_options' in valid_options[option_name][key]:
+                for sub_key, sub_value in value.items():
+                    if sub_key not in valid_options[option_name][key]['sub_options']:
+                        raise RuntimeError(f"Invalid sub_key '{sub_key}' in {option_name}['{key}'].",
+                                           pta_error(ErrCode.PARAM))
+                    sub_expected_type = valid_options[option_name][key]['sub_options'][sub_key]['value_type']
+                    if not isinstance(sub_value, sub_expected_type):
+                        raise RuntimeError(f"{option_name}['{key}']['{sub_key}'] must be {sub_expected_type.__name__}, "
+                                           f"got {type(sub_value).__name__}", pta_error(ErrCode.PARAM))
+
+            if expected_type == list and 'element_type' in valid_options[option_name][key]:
+                element_type = valid_options[option_name][key]['element_type']
+                for i, elem in enumerate(value):
+                    if not isinstance(elem, element_type):
+                        raise RuntimeError(f"{option_name}['{key}'][{i}] must be {element_type.__name__}, "
+                                           f"got {type(elem).__name__}", pta_error(ErrCode.PARAM))
 
 
 class graph:
