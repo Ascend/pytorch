@@ -51,7 +51,11 @@ from torch._inductor.runtime.triton_heuristics import (
     config_to_dict,
     config_from_dict,
     FixedGrid,
-    PrecomputedGrid
+    PrecomputedGrid,
+    Grid1D,
+    Grid2D,
+    Grid2DWithYZOverflow,
+    Grid3D
 )
 # used for wrapper codegen, do not remove this
 from torch._inductor.runtime.triton_heuristics import ( # noqa: F401
@@ -222,9 +226,9 @@ class GridNpu(GridExpr):
 
 def is_namedtuple_isinstance(obj):
     return (
-        isinstance(obj, tuple) and 
-        hasattr(obj, '_fields') and 
-        hasattr(obj, '_asdict') and 
+        isinstance(obj, tuple) and
+        hasattr(obj, '_fields') and
+        hasattr(obj, '_asdict') and
         callable(getattr(obj, '_asdict'))
     )
 
@@ -381,7 +385,12 @@ class TritonCompileResultNpu(TritonCompileResult):
             for arg in fn.arg_names
             if "_numel" in arg
         ]
-        grid = GridExprNpu.from_meta_and_set_numel(self.inductor_meta, cfg, numels)
+        linear_mode = self.inductor_meta.get('inductor_ascend_linear_mode', 'no_linear')
+        grid = None
+        if linear_mode == 'no_linear':
+            grid = GridExpr.from_meta(self.inductor_meta, cfg)
+        else:
+            grid = GridExprNpu.from_meta_and_set_numel(self.inductor_meta, cfg, numels)
         # grid.prefix is usually empty, grid.x_grid is something like `-(xnumel//-1024)`
         lines = [
             f"def launcher({', '.join(def_args)}, stream):",
@@ -494,6 +503,112 @@ class NPUCachingAutotuner(CachingAutotuner):
             self._precompile_worker()
             self._make_launchers()
 
+    def _triton_make_ttir(self):
+        if not self.configs:
+            raise NoTritonConfigsError("No triton configs are available")
+
+        def make_ttir_from_cfg(cfg):    
+            """Ahead of time compile a given autotuner config."""
+            compile_meta = copy.deepcopy(self.triton_meta)
+            cfg_kwargs = cfg.kwargs
+            for k, v in cfg_kwargs.items():
+                if k not in self.fn.arg_names:
+                    continue
+                compile_meta["constants"][k] = v
+
+            for i in self.fn.constexprs:
+                arg_name = self.fn.arg_names[i]
+                if arg_name not in compile_meta["constants"] and (
+                    arg_name == "num_warps" or arg_name == "num_stages"
+                ):
+                    compile_meta["constants"][arg_name] = getattr(cfg, arg_name)
+            compile_meta["num_warps"] = cfg.num_warps
+            compile_meta["num_stages"] = cfg.num_stages
+            compile_meta["debug"] = (
+                os.getenv("INDUCTOR_ASCEND_DEBUG", 'false').lower() in ('true', '1')
+                and self.inductor_meta.get("assert_indirect_indexing", True)
+                and not self.inductor_meta.get("is_hip", False)
+            )
+
+            compile_meta['compile_mode'] = cfg_kwargs.get('compile_mode')
+
+            # device type will be "hip" rather than "cuda" here
+            compile_meta["device_type"] = self.device_props.type
+            compile_meta["cc"] = self.device_props.cc
+
+            if not ASTSource:
+                raise RuntimeError(
+                    "Installed triton version too old, please upgrade")
+
+            src_attrs = compile_meta["configs"][0] if compile_meta.get(
+                "configs", None) else None
+            src = ASTSource(self.fn, compile_meta["signature"],
+                            compile_meta["constants"], src_attrs)
+            cc_warp_size = 32
+            target = GPUTarget(
+                compile_meta["device_type"],
+                compile_meta["cc"],
+                cc_warp_size,
+            )
+            options = {
+                "num_warps": compile_meta["num_warps"],
+                "num_stages": compile_meta["num_stages"],
+                "debug": compile_meta["debug"],
+                "multibuffer": cfg_kwargs.get('multibuffer', False),
+                "compile_mode": compile_meta['compile_mode'],
+                "enable_vf_fusion": cfg_kwargs.get('enable_vf_fusion', False),
+            }
+            # pure simt stack overflow check
+            if compile_meta['compile_mode'] == NPUKernelType.SIMT_ONLY.compile_mode():
+                options['simt_stack_limit'] = npu_config.simt_default_warp_stacksize
+
+            try:
+                from triton.compiler.code_generator import ast_to_ttir
+                from triton.compiler.compiler import make_backend
+                from triton._C.libtriton import ir
+                from triton._C.libtriton.ascend import ir as ascend_ir
+
+                backend = make_backend(target)
+                extra_options = src.parse_options()
+                options = backend.parse_options(dict(options or dict(), **extra_options))
+                context = ir.context()
+                ir.load_dialects(context)
+                ascend_ir.load_dialects(context)
+                ttir_module = ast_to_ttir(self.fn, src, context, options, {},
+                                          {})
+                log.debug(
+                    "Triton precompile success: %s\n%s\nmodule: %s",
+                    self.inductor_meta.get("kernel_name", "triton_"),
+                    self.fn.src,
+                    str(ttir_module),
+                )
+            except Exception as e:
+                log.debug(
+                    "Triton precompile failed: %s\n%s\nmetadata: %s",
+                    self.inductor_meta.get("kernel_name", "triton_"),
+                    self.fn.src,
+                    compile_meta,
+                )
+                raise e
+
+            return ttir_module
+
+        compile_results = []
+        exc = None
+        exc_stack = ""
+        test_config = self.configs[0]
+        try:
+            compile_results.append(make_ttir_from_cfg(test_config))
+        except Exception as e:
+            import traceback
+            exc_stack = traceback.format_exc()
+            exc = e
+        if len(compile_results) == 0:
+            raise NoTritonConfigsError(
+                f"Failed to compile config {test_config} for make ttir {self.fn.__name__}: {exc} \nStack trace:{exc_stack}"
+            )
+        self.compile_results = compile_results
+
     def _precompile_worker(self):
         if self.compile_results:
             for result in self.compile_results:
@@ -545,7 +660,7 @@ class NPUCachingAutotuner(CachingAutotuner):
         compile_meta["num_warps"] = cfg.num_warps
         compile_meta["num_stages"] = cfg.num_stages
         compile_meta["debug"] = (
-            os.getenv("INDUCTOR_ASCEND_DEBUG", 'false').lower() in ('true', '1') 
+            os.getenv("INDUCTOR_ASCEND_DEBUG", 'false').lower() in ('true', '1')
             and self.inductor_meta.get("assert_indirect_indexing", True)
             and not self.inductor_meta.get("is_hip", False)
         )
@@ -978,7 +1093,7 @@ class NPUCachingAutotuner(CachingAutotuner):
             if config.triton.cudagraphs:
                 raise RuntimeError(
                     "Accuracy checking tool (INDUCTOR_ASCEND_CHECK_ACCURACY=1) is not compatible with aclgraph.\n"
- 	                 "Please set torch._inductor.config.triton.cudagraphs = False before using accuracy checking tool."
+                   "Please set torch._inductor.config.triton.cudagraphs = False before using accuracy checking tool."
                 )
             _ = self.data_dump(*args)
 
@@ -1169,7 +1284,6 @@ def cached_autotune(
         raise RuntimeError("assert len(configs) == 1 or filename")
 
     inductor_meta = {} if inductor_meta is None else inductor_meta
-
     disabled = inductor_meta.get("force_disable_caches", False)
 
     # on disk caching logic and/or remote caching
@@ -1270,7 +1384,7 @@ def brutal_prune_tiling_configs_if_fast_run(configs, inductor_meta) -> List[Conf
         max_num = int(max_num_str)
     except ValueError:
         max_num = -1
-    
+
     if max_num > 0 and len(configs) > max_num:
         configs = configs[-1 * max_num:]
         logging.debug("[%s], prune tiling configs to [%s]",
@@ -1301,6 +1415,7 @@ def triton_config_npu_index(
     input_signature = triton_meta["signature"]
     input_ptr_num = len(list(filter(lambda k: 'ptr' in k, input_signature))) if triton_meta is not None else 0
     npu_kernel_type = NPUKernelType(inductor_meta.get("npu_kernel_type", "simd"))
+    size_hints = [size_hints.get(axis_name, 1) for axis_name in axis_names]
 
     if npu_config.fasta_autotune:
         from .fasta_autotune import FastATileGenerator
@@ -1346,31 +1461,45 @@ def triton_config_npu_index(
         cfg.kwargs["split_axis"] = tuple(split_axis)
         cfg.kwargs["split_blocks"] = tuple(split_blocks)
 
+    inductor_ascend_linear_mode = inductor_meta.get(
+        "inductor_ascend_linear_mode", "no_linear"
+    )
+    if inductor_ascend_linear_mode == "no_linear":
+        for tiling_cfg in configs:
+            tiling_kwargs = copy.deepcopy(tiling_cfg.kwargs)
+            for tiling, tling_value in tiling_kwargs.items():
+                if isinstance(tiling, str) and tiling.endswith("SUB"):
+                    tiling_cfg.kwargs[tiling.rstrip("_SUB")] = tling_value
+    elif inductor_ascend_linear_mode == "no_linear_loop":
+        for tiling_cfg in configs:
+            tiling_kwargs = copy.deepcopy(tiling_cfg.kwargs)
+            for tiling, tling_value in tiling_kwargs.items():
+                if isinstance(tiling, str) and tiling.endswith(
+                        "SUB") and tiling.startswith("R"):
+                    tiling_cfg.kwargs[tiling.rstrip("_SUB")] = tling_value
+
     logging.debug("[%s], generate candidate tiling count: [%s]",
                 inductor_meta["kernel_name"],
                 len(configs))
-    
+
     # if fast run, we prune the configs to the last max_num configs
     configs = brutal_prune_tiling_configs_if_fast_run(configs, inductor_meta)
     return configs
-    
 
 def pointwise(
-        size_hints,
-        triton_meta,
-        tile_hint=None,
-        filename=None,
-        min_elem_per_thread=0,
-        inductor_meta=None,
+    size_hints,
+    triton_meta,
+    tile_hint=None,
+    filename=None,
+    min_elem_per_thread=0,
+    inductor_meta=None,
 ):
     inductor_meta = {} if inductor_meta is None else inductor_meta
-    triton_config_with_settings = functools.partial(
-        triton_config_npu_index,
-        triton_meta=triton_meta
-    )
+    configs = triton_config_npu_index(size_hints, inductor_meta, triton_meta)
+
     return cached_autotune(
         size_hints,
-        triton_config_with_settings(size_hints, inductor_meta=inductor_meta),
+        [*configs],
         triton_meta=triton_meta,
         inductor_meta=inductor_meta,
         heuristic_type=HeuristicType.POINTWISE,
@@ -1379,11 +1508,11 @@ def pointwise(
 
 
 def reduction(
-        size_hints,
-        reduction_hint=False,
-        triton_meta=None,
-        filename=None,
-        inductor_meta=None,
+    size_hints,
+    reduction_hint=False,
+    triton_meta=None,
+    filename=None,
+    inductor_meta=None,
 ):
     """args to @triton.heuristics()"""
     inductor_meta = {} if inductor_meta is None else inductor_meta
@@ -1391,12 +1520,17 @@ def reduction(
     if triton_meta is None:
         raise RuntimeError("assert triton_meta is not None")
 
-    contiguous_config = triton_config_npu_index(size_hints, inductor_meta=inductor_meta,
-                                                triton_meta=triton_meta, is_reduction=True)
+    configs = triton_config_npu_index(
+        size_hints,
+        inductor_meta=inductor_meta,
+        triton_meta=triton_meta,
+        is_reduction=True,
+    )
+
     return cached_autotune(
         size_hints,
         [
-            *contiguous_config,
+            *configs,
         ],
         triton_meta=triton_meta,
         inductor_meta=inductor_meta,
@@ -1406,16 +1540,22 @@ def reduction(
 
 
 def persistent_reduction(
-        size_hints,
-        reduction_hint=False,
-        triton_meta=None,
-        filename=None,
-        inductor_meta=None,
+    size_hints,
+    reduction_hint=False,
+    triton_meta=None,
+    filename=None,
+    inductor_meta=None,
 ):
     inductor_meta = {} if inductor_meta is None else inductor_meta
     inductor_meta["reduction_hint"] = reduction_hint
-    configs = triton_config_npu_index(size_hints, inductor_meta=inductor_meta, is_reduction=True,
-                                      triton_meta=triton_meta, is_persistent_reduction=True)
+
+    configs = triton_config_npu_index(
+        size_hints,
+        inductor_meta=inductor_meta,
+        is_reduction=True,
+        triton_meta=triton_meta,
+        is_persistent_reduction=True,
+    )
 
     return cached_autotune(
         size_hints,
@@ -1462,7 +1602,7 @@ def _benchmark_all_configs(self, *args, **kwargs):
         stream = device_interface.get_raw_stream(device_interface.current_device())
         kernel_call_fn = kernel_call(launcher)
         tilling_kernel_list.append(kernel_call_fn)
-        
+
         # Make sure single tiling run success
         try:
             kernel_call_fn()

@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from typing import Sequence, Union, TYPE_CHECKING
 
 import torch
@@ -11,9 +10,10 @@ from torch._inductor.scheduler import (
     SchedulerNode,
 )
 
-from ..autotune_process import FusedCATLASSBenchmarkRequest
 from .catlass.catlass_scheduling import CATLASSScheduling
-from .scheduling import NPUTritonScheduling
+from .scheduling import NPUTritonScheduling, NPUNoLinearTritonScheduling
+from ..autotune_process import FusedCATLASSBenchmarkRequest
+from ..config import log, is_ascend950
 
 if TYPE_CHECKING:
     from torch._inductor.common import BackendFeature
@@ -33,6 +33,7 @@ class NPUCombinedScheduling(BaseScheduling):
     def __init__(self, scheduler: Scheduler) -> None:
         super().__init__(scheduler)
         self._scheduler = scheduler
+        self._nolinear_triton_scheduling = NPUNoLinearTritonScheduling(scheduler)
         self._triton_scheduling = NPUTritonScheduling(scheduler)
         self._catlass_scheduling = CATLASSScheduling(scheduler)
 
@@ -82,8 +83,36 @@ class NPUCombinedScheduling(BaseScheduling):
                 template_node, epilogue_nodes, prologue_nodes
             )
 
+    def node_can_linear(self, node: Union[FusedSchedulerNode, SchedulerNode]):
+        # user config use linear scheduling for ascend.
+        nodes = node.get_nodes()
+        cat_kernel = False
+        for n in nodes:
+            for body_index in n._body.indexing_exprs.values():
+                if 'cat_store' in str(body_index):
+                    cat_kernel = True
+        if cat_kernel:
+            return True
+
+        from ..config import inductor_ascend_linear_mode
+        if inductor_ascend_linear_mode != "linear":
+            return False
+        return True
+
     def codegen_node(self, node: Union[FusedSchedulerNode, SchedulerNode]):
-        return self._triton_scheduling.codegen_node(node)
+        if not is_ascend950:
+            return self._triton_scheduling.codegen_node(node)
+
+        if self.node_can_linear(node):
+            try:
+                return self._triton_scheduling.codegen_node(node)
+            except Exception as e:
+                log.exception(f"linear codegen for node {node} raise error: {e}, fallback to origin codegen")
+        # regroup snode
+        for snode in node.get_nodes():
+            group_fn = self._nolinear_triton_scheduling.group_fn
+            snode.group = (snode.group[0], group_fn(snode._sizes))
+        return self._nolinear_triton_scheduling.codegen_node(node)
 
     def codegen_sync(self):
         return self._triton_scheduling.codegen_sync()

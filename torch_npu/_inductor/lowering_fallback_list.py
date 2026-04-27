@@ -31,7 +31,7 @@ from torch._higher_order_ops._invoke_quant import invoke_quant
 from torch._higher_order_ops.associative_scan import associative_scan
 from torch._higher_order_ops.effects import with_effects
 
-from .config import inductor_indirect_memory_mode
+from .config import inductor_indirect_memory_mode, inductor_ascend_linear_mode
 
 aten = torch.ops.aten
 prims = torch.ops.prims
@@ -1104,6 +1104,11 @@ TORCH_NATIVE_FALLBACK_LIST = [
 ]
 
 FALLBACK_LIST = TORCH_NATIVE_FALLBACK_LIST + NPU_EXTRA_FALLBACK_LIST
+
+if inductor_indirect_memory_mode != 'linear':
+    FALLBACK_LIST += [
+        aten.isnan,
+    ]
 
 INDIRECT_MEM_FALLBACK_LIST = [
     aten.embedding,

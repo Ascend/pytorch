@@ -2,10 +2,12 @@ from typing import List, Tuple, Dict, Any, Optional, cast
 import os
 import itertools
 from math import gcd
+
 import sympy
 from sympy import Integer
 import torch
-from torch._inductor.ir import (ReductionHint, IRNode, ModularIndexing, FloorDiv, sympy_product, Reduction)
+from torch._inductor.ir import (ReductionHint, IRNode, ModularIndexing,
+                                FloorDiv, sympy_product, Reduction)
 from torch._inductor.scheduler import SchedulerNode
 from torch._inductor.utils import sympy_subs, sympy_index_symbol, has_free_symbols
 from torch._inductor.virtualized import V
@@ -13,58 +15,10 @@ from torch._inductor.loop_body import MemoryUsageType, LoopBody, CaptureIndexing
 from torch._inductor.codegen.common import BackendFeature
 from torch._inductor import config, sizevars
 from torch.utils._sympy.value_ranges import IntInfinity, ValueRanges
-from torch_npu._inductor.codegen.triton import NPUIndexTritonKernel
+
+from .triton import NPUIndexTritonKernel
 from .triton_utils import get_indirect_var, get_indirect_mem_var, NPUKernelType
 from ..config import log, inductor_indirect_memory_mode, is_ascend950
-
-
-def reduction_split_factor(reduction_ranges):
-    ranges = [num for num in reduction_ranges if num > 1]
-    if len(ranges) == 0:
-        return 1
-    return min(ranges)
-
-
-def num_splits(
-    device,
-    dst_dtype,
-    src_dtype,
-    inner_fn,
-    ranges,
-    reduction_ranges,
-    reduction_type,
-    reduction_numel,
-    input_node=None,
-):
-    def _is_static(x: object) -> bool:
-        return isinstance(x, (int, Integer))
-
-    reduction_numel_hint = V.graph.sizevars.symbolic_hint(reduction_numel)
-    numel_hint = V.graph.sizevars.symbolic_hint(sympy_product(ranges))
-    if not (_is_static(reduction_numel_hint) and _is_static(numel_hint)):
-        # We don't support unbacked symints
-        return ReductionHint.DEFAULT, 1
-
-    should_split = reduction_type == "scan" or (
-        not V.graph.has_feature(device, BackendFeature.REDUCE_TO_SINGLE_ELEMENT)
-        and reduction_type
-        not in (
-            "argmax",
-            "argmin",
-        )
-        and config.split_reductions
-    )
-
-    if should_split:
-        inner_reduction_splits = reduction_split_factor
-    else:
-        def inner_reduction_splits(reduction_ranges):
-            return 1
-
-    if numel_hint == 1:
-        split = inner_reduction_splits(reduction_ranges)
-        return ReductionHint.INNER, split
-    return ReductionHint.DEFAULT, 1
 
 
 def detect_flattened_dims(kernel, index):
@@ -201,26 +155,26 @@ def rebuild_flattened_dims(indexing):
         return any([index.find(key) for key in kernel.expr_substituted.keys()])
 
     kernel = V.kernel
-    
+
     log.debug(
         "rebuild_flattened_dims: indexing_keys=%s, range_tree_nodes=%s",
         list(indexing.keys()), list(kernel.range_tree_nodes.keys())
     )
-    
+
     # Process non-Store indices first to populate range_tree_nodes_substituted.
     # Then process Store indices and skip those with unified anchors
     # (symbols that have multiple expansion candidates).
     store_keys = getattr(kernel, 'store_index_keys', set())
     store_items = []
-    
+
     for key, index in indexing.items():
         if key in store_keys:
             store_items.append((key, index))
             continue
-        
+
         # 1. try to find out flattened axis from indexing
         flatten_dims = detect_flattened_dims(kernel, index)
-        
+
         # 2. try to rebuild these flattened dims
         for var, flatten_dim in flatten_dims.items():
             if (var in kernel.range_tree_nodes):
@@ -233,12 +187,12 @@ def rebuild_flattened_dims(indexing):
         if find_index_in_substitute(index, kernel):
             new_index = sympy_subs(index, kernel.expr_substituted)
             indexing[key] = new_index
-    
+
     log.debug(
         "rebuild_flattened_dims: range_tree_nodes_substituted=%s, store_items=%s",
         kernel.range_tree_nodes_substituted, store_items
     )
-    
+
     # Now process Store indices. Skip those containing a unified anchor:
     # a symbol that is the only one with its prefix in the Store index AND
     # has multiple expansion candidates in range_tree_nodes_substituted.
@@ -262,12 +216,12 @@ def rebuild_flattened_dims(indexing):
                     key, sym
                 )
                 break
-        
+
         if skip:
             continue
-        
+
         flatten_dims = detect_flattened_dims(kernel, index)
-        
+
         for var, flatten_dim in flatten_dims.items():
             if (var in kernel.range_tree_nodes):
                 old_node = kernel.range_tree_nodes[var]
@@ -279,7 +233,7 @@ def rebuild_flattened_dims(indexing):
         if find_index_in_substitute(index, kernel):
             new_index = sympy_subs(index, kernel.expr_substituted)
             indexing[key] = new_index
-    
+
     log.debug(
         "rebuild_flattened_dims: range_trees AFTER=%s",
         [(t.prefix, t.var_list) for t in kernel.range_trees]
@@ -319,7 +273,7 @@ def substituted_dims_in_indexing(self, indexing, kernel, range_tree_nodes_substi
 
 def generate_body_indexing(body, indices):
     index = list(itertools.chain.from_iterable(indices))
-    
+
     if not (len(index) == len(body.var_ranges)):
         raise RuntimeError("assert len(index) == len(body.var_ranges), (index, body.var_ranges)")
     if not (all(v not in body.var_ranges for v in index)):
@@ -332,7 +286,7 @@ def generate_body_indexing(body, indices):
         name: sympy_subs(expr, replacements)
         for name, expr in body.indexing_exprs.items()
     }
-    
+
     setattr(body, 'indirect_replacements', {})
     body.generate_indirect_replacements()
 
@@ -378,16 +332,16 @@ def remove_zero_terms_impl(expr, var_ranges):
         if statically_known(base < divisor):
             return sympy.Integer(0)
         return FloorDiv(base, divisor)
-    
+
     replacements = {}
     for sub_expr in expr.atoms(FloorDiv):
         base, divisor = sub_expr.args
         if statically_known(base < divisor):
             replacements[sub_expr] = sympy.Integer(0)
-    
+
     if replacements:
         expr = expr.xreplace(replacements)
-    
+
     return expr
 
 
@@ -418,37 +372,37 @@ def analyze_expression(expr, range_tree_nodes):
         "can_split_all": True,
         "split_details": {}
     }
-    
+
     # Recursively collect all FloorDiv and ModularIndexing expressions
     def collect_expressions(sub_expr, path=""):
         """Recursively collect FloorDiv and ModularIndexing expressions"""
         nonlocal result
-        
+
         # If it's a FloorDiv expression
         if isinstance(sub_expr, FloorDiv):
             analysis = analyze_floordiv_expression(sub_expr, range_tree_nodes)
             analysis["path"] = path
             result["floordiv_expressions"].append(analysis)
-            
+
             # Update the can_split_all flag
             if not analysis.get("can_split", True):
                 result["can_split_all"] = False
-        
+
         # If it's a ModularIndexing expression
         elif isinstance(sub_expr, ModularIndexing):
             analysis = analyze_modular_expression(sub_expr, range_tree_nodes)
             analysis["path"] = path
             result["modular_expressions"].append(analysis)
-            
+
             # Check if it can be split
             if not analysis.get("can_split", True):
                 result["can_split_all"] = False
-        
+
         # Recursively process sub-expressions
         if hasattr(sub_expr, 'args'):
             for i, arg in enumerate(sub_expr.args):
                 collect_expressions(arg, f"{path}.args[{i}]")
-    
+
     # Start collection
     collect_expressions(expr, "")
     return result
@@ -469,53 +423,53 @@ def calculate_max_remainder(coeff, length, divisor_or_mod):
     # Try to convert coefficient and divisor/modulus to integers
     coeff_int = int(coeff) if isinstance(coeff, sympy.Integer) else None
     divisor_int = int(divisor_or_mod) if isinstance(divisor_or_mod, sympy.Integer) else None
-    
+
     # If not integers, use conservative estimate
     if coeff_int is None or divisor_int is None:
         return min(divisor_or_mod - 1, coeff * (length - 1))
-    
+
     # If coefficient is 0, remainder is always 0
     if coeff_int == 0:
         return 0
-    
+
     # Calculate greatest common divisor
     g = gcd(coeff_int, divisor_int)
-    
+
     # If length-1 is large enough, can reach maximum remainder divisor_int - g
     # The remainder period is divisor_int/g
     period = divisor_int // g
-    
+
     # If symbol's value range covers the entire period, then maximum remainder is divisor_int - g
     if length - 1 >= period - 1:
         return divisor_int - g
     else:
         # Cannot reach maximum remainder, need to calculate the maximum remainder within the range [0, length-1]
         max_k = length - 1
-        
+
         # Remainder sequence: 0, coeff, 2*coeff, ... mod divisor_int
         # We need to find k ∈ [0, max_k] such that (coeff_int * k) % divisor_int is maximized
-        
+
         # Calculate maximum possible value
         max_possible = coeff_int * max_k
-        
+
         if max_possible < divisor_int:
             # If maximum possible value is less than divisor, then maximum remainder is the maximum possible value
             return max_possible
         else:
             # Calculate max_possible % divisor_int
             remainder = max_possible % divisor_int
-            
+
             # Find the largest multiple of g that does not exceed remainder
             # Because all remainders are multiples of g
             max_remainder = remainder // g * g
             start_k = max(0, max_k - period + 1)
             best_remainder = max_remainder
-            
+
             for k in range(start_k, max_k + 1):
                 r = (coeff_int * k) % divisor_int
                 if r > best_remainder:
                     best_remainder = r
-            
+
             return best_remainder
 
 
@@ -528,35 +482,35 @@ def analyze_floordiv_expression(expr, range_tree_nodes: Dict) -> Dict:
         "details": {},
         "split_form": ""
     }
-    
+
     if not isinstance(expr, FloorDiv):
         result["reason"] = "not FloorDiv expression"
         return result
-    
+
     arg, divisor = expr.args[0], expr.args[1]
     free_symbols = arg.free_symbols
     num_symbols = len(free_symbols)
-    
+
     result["details"]["divisor"] = divisor
     result["details"]["expr"] = arg
     result["details"]["num_symbols"] = num_symbols
     result["details"]["symbols"] = list(free_symbols)
-    
+
     # Multi-dimensional memory access expressions (≥2 dimensions) require splitting;
     # unary(single-dimension) expressions do not.
     if num_symbols < 2:
         result["can_split"] = True
         result["reason"] = f"num_symbols {num_symbols} < 2, no need split"
         return result
-    
+
     if not isinstance(arg, sympy.Add):
         result["reason"] = f"expr {arg} not sympy.Add expression, can not split"
         return result
-    
+
     add_terms = arg.args
     max_remainder_sum = 0
     term_details = []
-    
+
     for term in add_terms:
         term_info = {
             "term": term,
@@ -570,7 +524,7 @@ def analyze_floordiv_expression(expr, range_tree_nodes: Dict) -> Dict:
 
         coeff = 1
         symbol = None
-        
+
         if isinstance(term, sympy.Symbol):
             symbol = term
         elif isinstance(term, sympy.Mul):
@@ -580,51 +534,51 @@ def analyze_floordiv_expression(expr, range_tree_nodes: Dict) -> Dict:
                     symbol = factor
                 elif factor.is_number:
                     constant_factors.append(factor)
-            
+
             if constant_factors:
                 coeff = 1
                 for cf in constant_factors:
                     coeff *= cf
-        
+
         term_info["coeff"] = coeff
         term_info["symbol"] = symbol
-        
+
         if symbol is None:
             result["reason"] = f"term {term} with no symbol"
             result["details"]["term_details"] = term_details
             return result
-        
+
         if symbol not in range_tree_nodes:
             result["reason"] = f"symbol {symbol} not in range_tree_nodes"
             result["details"]["term_details"] = term_details
             return result
-        
+
         length = range_tree_nodes[symbol].length
         term_info["length"] = length
-        
+
         max_term_value = coeff * (length - 1)
         term_info["max_value"] = max_term_value
-        
+
         max_remainder = calculate_max_remainder(coeff, length, divisor)
         term_info["max_remainder"] = max_remainder
-        
+
         max_remainder_sum += max_remainder
-    
+
     result["details"]["term_details"] = term_details
     result["details"]["max_remainder_sum"] = max_remainder_sum
-    
+
     if max_remainder_sum < divisor:
         result["can_split"] = True
         result["reason"] = f"expr can split, max_remainder_sum {max_remainder_sum} < divisor {divisor}"
-        
+
         split_terms = []
         for term in add_terms:
             split_terms.append(f"({term} // {divisor})")
-        
+
         result["split_form"] = " + ".join(split_terms)
     else:
         result["reason"] = f"expr can not split, max_remainder_sum {max_remainder_sum} >= divisor {divisor}"
-    
+
     return result
 
 
@@ -647,47 +601,47 @@ def analyze_modular_expression(expr, range_tree_nodes: Dict) -> Dict:
         "details": {},
         "split_form": ""
     }
-    
+
     # Check number of arguments
     args = expr.args
     if len(args) != 3:
         result["reason"] = f"ModularIndexing must have 3 args, but {len(args)} found"
         return result
-    
+
     expr_to_mod, lower, upper = args
-    
+
     # Check free symbols in expr_to_mod
     free_symbols = expr_to_mod.free_symbols
     num_symbols = len(free_symbols)
-    
+
     result["details"]["expr_to_mod"] = expr_to_mod
     result["details"]["lower"] = lower
     result["details"]["upper"] = upper
     result["details"]["num_symbols"] = num_symbols
     result["details"]["symbols"] = list(free_symbols)
-    
+
     if num_symbols < 2:
         result["can_split"] = True
         result["reason"] = f"num_symbols {num_symbols} < 2, no need split"
         return result
-    
+
     # Check if expr_to_mod is an addition
     if not isinstance(expr_to_mod, sympy.Add):
         result["can_split"] = True
         result["reason"] = f"expr {expr_to_mod} not sympy.Add expression, no need split"
         return result
-    
+
     # For ModularIndexing, the split condition is:
     # (expr1 % mod) + (expr2 % mod) < mod
     # where mod = upper - lower + 1
-    
+
     mod = upper - lower + 1
-    
+
     # Calculate the maximum sum of remainders
     add_terms = expr_to_mod.args
     max_remainder_sum = 0
     term_details = []
-    
+
     for term in add_terms:
         term_info = {
             "term": term,
@@ -704,7 +658,7 @@ def analyze_modular_expression(expr, range_tree_nodes: Dict) -> Dict:
         # Extract coefficient and symbol
         coeff = 1
         symbol = None
-        
+
         if isinstance(term, sympy.Symbol):
             symbol = term
         elif isinstance(term, sympy.Mul):
@@ -714,65 +668,65 @@ def analyze_modular_expression(expr, range_tree_nodes: Dict) -> Dict:
                     symbol = factor
                 elif factor.is_number:
                     constant_factors.append(factor)
-            
+
             if constant_factors:
                 coeff = 1
                 for cf in constant_factors:
                     coeff *= cf
-        
+
         term_info["coeff"] = coeff
         term_info["symbol"] = symbol
-        
+
         if symbol is None:
             result["reason"] = f"term {term} with no symbol"
             result["details"]["term_details"] = term_details
             return result
-        
+
         # Get symbol's length
         if symbol not in range_tree_nodes:
             result["reason"] = f"symbol {symbol} not in range_tree_nodes"
             result["details"]["term_details"] = term_details
             return result
-        
+
         node = range_tree_nodes[symbol]
         length = node.length
         term_info["length"] = length
-        
+
         # Calculate maximum possible value
         max_term_value = coeff * (length - 1)
         term_info["max_value"] = max_term_value
-        
+
         if coeff is not None and mod is not None:
             gcd_val = gcd(coeff, mod)
             term_info["gcd_val"] = gcd_val
-            
+
             # Remainder period
             period = mod // gcd_val
             term_info["period"] = period
-        
+
         max_remainder = calculate_max_remainder(coeff, length, mod)
         term_info["max_remainder"] = max_remainder
-        
+
         max_remainder_sum += max_remainder
-    
+
     result["details"]["term_details"] = term_details
     result["details"]["max_remainder_sum"] = max_remainder_sum
     result["details"]["mod"] = mod
-    
+
     # Determine if it can be split
     if max_remainder_sum < mod:
         result["can_split"] = True
         result["reason"] = f"expr can split, max_remainder_sum {max_remainder_sum} < mod {mod}"
-        
+
         # Generate the split expression form
         split_terms = []
         for term in add_terms:
             split_terms.append(f"ModularIndexing({term}, {lower}, {upper})")
-        
+
         result["split_form"] = " + ".join(split_terms)
     else:
         result["reason"] = f"expr can not split, max_remainder_sum {max_remainder_sum} >= mod {mod}"
-    
+
     return result
 
 
@@ -785,31 +739,31 @@ def extract_modular_indexing_coefficient(expr):
     """
     if not isinstance(expr, ModularIndexing):
         return expr
-    
+
     args = expr.args
     if len(args) != 3:
         return expr
-    
+
     expr_to_mod, lower, upper = args
-    
+
     # Check if expr_to_mod is a multiplication expression
     if isinstance(expr_to_mod, sympy.Mul):
         # Find constant coefficient
         coefficient = 1
         other_factors = []
-        
+
         for factor in expr_to_mod.args:
             # Check if it's an integer constant
             if isinstance(factor, sympy.Integer) and factor.is_constant():
                 coefficient = coefficient * factor
             else:
                 other_factors.append(factor)
-        
+
         # If a constant coefficient greater than 1 is found
         if coefficient != 1:
             # Calculate modulus range
             mod_range = upper - lower + 1
-            
+
             # Check if coefficient can divide modulus range
             if mod_range % coefficient == 0:
                 # Construct new ModularIndexing arguments
@@ -821,16 +775,16 @@ def extract_modular_indexing_coefficient(expr):
                 else:
                     # If no other factors, use 1
                     new_expr = sympy.Integer(1)
-                
+
                 # Calculate new upper bound
                 new_upper = lower + mod_range // coefficient - 1
-                
+
                 # Create new ModularIndexing
                 new_mod = ModularIndexing(new_expr, lower, new_upper)
-                
+
                 # Return coefficient multiplied by new ModularIndexing
                 return coefficient * new_mod
-    
+
     return expr
 
 
@@ -842,7 +796,7 @@ def eliminate_zero_term(term):
         numel = V.kernel.range_tree_nodes[expr].length
     else:
         numel = V.kernel.range_tree_nodes_removed[expr].length
-    
+
     length = term.eval(numel, divisor)
     if length == 0:
         return sympy.Integer(0)
@@ -865,10 +819,10 @@ def eliminate_modular(term):
     # If not a ModularIndexing expression, return directly
     if not isinstance(term, sympy.Function) or term.func.__name__ != 'ModularIndexing':
         return term
-    
+
     # Get arguments
     expr, lower, upper = term.args
-    
+
     # Get symbol's length information
     def get_symbol_length(symbol: sympy.Symbol) -> Optional[int]:
         """Get symbol's length (from range tree)"""
@@ -877,7 +831,7 @@ def eliminate_modular(term):
         elif symbol in V.kernel.range_tree_nodes_removed:
             return V.kernel.range_tree_nodes_removed[symbol].length
         return None
-    
+
     # Handle symbol expression
     if isinstance(expr, sympy.Symbol):
         numel = get_symbol_length(expr)
@@ -885,13 +839,13 @@ def eliminate_modular(term):
             length = term.eval(numel, lower, upper)
             if length == numel:
                 return expr
-    
+
     # Handle multiplication expression
     elif isinstance(expr, sympy.Mul):
         # Try to extract coefficient and variable
         coeff = 1
         var = None
-        
+
         for arg in expr.args:
             if isinstance(arg, sympy.Symbol):
                 var = arg
@@ -900,14 +854,14 @@ def eliminate_modular(term):
             else:
                 # Contains complex cases with non-symbols and non-numbers, not supported yet
                 return term
-        
+
         if var is not None:
             numel = get_symbol_length(var)
             if numel is not None:
                 length = term.eval(numel, lower, upper)
                 if length == numel:
                     return expr  # Return entire multiplication expression
-    
+
     # Unsupported cases, return original expression
     return term
 
@@ -936,7 +890,7 @@ def split_expression(expr):
         # Get floor arguments
         arg = expr.args[0]
         divisor = expr.args[1]
-        
+
         # Check if arg is Add
         if isinstance(arg, sympy.Add):
             # Assume denominator is 1: floor(a+b) -> floor(a) + floor(b)
@@ -946,10 +900,10 @@ def split_expression(expr):
                 new_term = eliminate_zero_term(new_term)
                 split_terms.append(new_term)
             return sympy.Add(*split_terms)
-        
+
         # Cannot split, return original expression
         return expr
-    
+
     # 4. If it's a ModularIndexing expression
     elif isinstance(expr, ModularIndexing):
         args = expr.args
@@ -957,7 +911,7 @@ def split_expression(expr):
 
         # If first argument is Add, split it
         if isinstance(expr_to_mod, sympy.Add):
-            # Split: ModularIndexing(a+b, lower, upper) -> 
+            # Split: ModularIndexing(a+b, lower, upper) ->
             # ModularIndexing(a, lower, upper) + ModularIndexing(b, lower, upper)
             split_terms = []
             for term in expr_to_mod.args:
@@ -999,13 +953,13 @@ def has_dynamic_shape(var_ranges):
             # Check 1: If length is a pure Symbol, it's dynamic
             if isinstance(length, sympy.Symbol):
                 return True
-            
+
             # Check 2: If length has free symbols (expression with unknowns), it's dynamic
             if hasattr(length, 'free_symbols'):
                 free_syms = length.free_symbols
                 if free_syms:
                     return True
-            
+
             # Check 3: If length is not a concrete number, it's dynamic
             if not isinstance(length, (int, sympy.Integer)):
                 return True
@@ -1039,7 +993,7 @@ def check_subexpr_for_dynamic_symbols(expr):
                 return True
             if hasattr(upper, 'free_symbols') and upper.free_symbols:
                 return True
-    
+
     elif isinstance(expr, FloorDiv):
         args = expr.args
         if len(args) >= 1:
@@ -1049,13 +1003,13 @@ def check_subexpr_for_dynamic_symbols(expr):
                 return True
             if hasattr(divisor, 'free_symbols') and divisor.free_symbols:
                 return True
-    
+
     # Recursively check args
     if hasattr(expr, 'args'):
         for arg in expr.args:
             if check_subexpr_for_dynamic_symbols(arg):
                 return True
-    
+
     return False
 
 
@@ -1076,17 +1030,17 @@ def should_skip_linearization_on_a5(var_ranges, indexing):
     """
     if not is_ascend950:
         return False
-    
+
     # Check var_ranges for dynamic shapes
     if has_dynamic_shape(var_ranges):
         return True
-    
+
     # Check indexing expressions for symbolic bounds
     if indexing:
         for key, index_expr in indexing.items():
             if check_subexpr_for_dynamic_symbols(index_expr):
                 return True
-    
+
     return False
 
 
@@ -1095,7 +1049,7 @@ def transform_dims_in_indexing(self, indices):
     if self.indexing is None:
         remove_zero_terms(self.indexing_exprs, self.var_ranges)
         generate_body_indexing(self, indices)
-    
+
     # Step 2: Check for dynamic shapes (only skip on A5 platform)
     if should_skip_linearization_on_a5(self.var_ranges, self.indexing):
         log.info(
@@ -1105,14 +1059,14 @@ def transform_dims_in_indexing(self, indices):
         # Set SIMT_ONLY compile option for dynamic shapes on A5
         V.kernel.npu_kernel_type = NPUKernelType.SIMT_ONLY
         return  # Early return, skip linearization on A5 with dynamic shapes
-    
+
     # Step 3: Perform memory access linearization
     log.debug(f"[Linear] ori indexing:{self.indexing}\nV.kernel.range_tree_nodes:{V.kernel.range_tree_nodes}")
-    
+
     for key, index_expr in self.indexing.items():
         analyse_res = analyze_expression(index_expr, V.kernel.range_tree_nodes)
         log.debug(f"[Linear] linear analyse res:{analyse_res}")
-        
+
         if not analyse_res["can_split_all"]:
             if is_ascend950:
                 log.warning(
@@ -1133,10 +1087,10 @@ def transform_dims_in_indexing(self, indices):
         rebuild_flattened_dims(self.indexing)
 
 
-# subsititude indirct var with real axis var 
+# subsititude indirct var with real axis var
 def substitube_indirect_index(self, index):
-    indirect_var = None 
-    
+    indirect_var = None
+
     for symbol in index.free_symbols:
         indirect_var = get_indirect_var(str(symbol))
         if indirect_var:
@@ -1158,7 +1112,7 @@ def get_load_index_from_subblock(loop_body, subblock):
         load_index = get_indirect_index(loop_body, node, node_map)
         if load_index:
             return load_index
-    
+
     return None
 
 
@@ -1231,11 +1185,11 @@ def define_npu_kernel_type(loop_body):
                     continue
                 if 'indirect' in str(loop_body.indexing[load_index]):
                     return NPUKernelType.SIMT_ONLY
-                    
+
             elif check_pointwise_op(reduction_index):
                 pointwise_node = node_map.get(reduction_index, None)
                 if pointwise_node is None:
-                    continue           
+                    continue
                 pointwise_inputs = pointwise_node.args
                 for pointwise_input in pointwise_inputs:
                     if 'load' not in pointwise_input.name:
@@ -1245,7 +1199,7 @@ def define_npu_kernel_type(loop_body):
                         continue
                     get_load_index = node_map.get(load_node.args[load_index_pos].name, None)
                     if get_load_index is None:
-                        continue                 
+                        continue
                     load_index = get_load_index.args[0]
                     if load_index not in loop_body.indexing:
                         continue
@@ -1342,15 +1296,6 @@ def generate_indirect_replacements(self):
         self.indirect_replacements[indirect_var_symbol] = origin_index
 
 
-# select tiling axis, recover missing dimensions,
-def loopbody__call__(self, *indices):
-    if self.indexing is None:
-        generate_body_indexing(self, indices)
-    result = self.root_block()
-    self.indexing = None
-    return result
-
-
 def loop_body_block_index_select(self, name: str, index: sympy.Expr, indirect_var, set_indirect, bound, index_select_type):
     index = self._simplify(index)
     index = self._add_index(index, MemoryUsageType.LOAD, buffer_name=name)
@@ -1406,11 +1351,19 @@ def loop_body_block_cat_store(self, dst, src, size, store_offset_index, output_b
 def simplify_indexing_cat_store(self, dst, src, size, store_offset_index, output_buffer_index):
     return self._inner.cat_store(dst, src, size, self._simplify(store_offset_index), self._simplify(output_buffer_index))
 
-def patch_num_split():
-    Reduction.num_splits = num_splits
-
 def patch_loop_body():
     # todo: move patch function to loop_body.py
+    origin_loopbody_call = LoopBody.__call__
+
+    # select tiling axis, recover missing dimensions,
+    def loopbody__call__(self, *indices):
+        if V.kernel is not None and not isinstance(V.kernel, NPUIndexTritonKernel):
+            return origin_loopbody_call(self, *indices)
+        if self.indexing is None:
+            generate_body_indexing(self, indices)
+        result = self.root_block()
+        self.indexing = None
+        return result
     LoopBody.__call__ = loopbody__call__
 
     setattr(LoopBody, 'transform_dims_in_indexing', transform_dims_in_indexing)

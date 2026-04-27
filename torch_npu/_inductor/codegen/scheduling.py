@@ -5,7 +5,9 @@ import functools
 import os
 from typing import Dict, Sequence, List, Iterable, Any, Union
 import sympy
+
 import torch
+from torch.fx.immutable_collections import immutable_dict
 from torch._dynamo.utils import counters, preserve_rng_state
 from torch._inductor import scheduler, metrics
 from torch._inductor.codecache import code_hash, PyCodeCache
@@ -14,17 +16,9 @@ from torch._inductor.codegen.simd import DisableReduction, EnableReduction, SIMD
 from torch._inductor.codegen.simd import schedule_log, scheduler, WhyNoFuse, TritonTemplateBuffer
 from torch._inductor.codegen.triton import (TritonScheduling, log, config)
 from torch._inductor.codegen.triton import (
-    TritonScheduling,
-    BaseSchedulerNode,
-    config,
-    schedule_log,
-    get_fused_kernel_name,
-    get_kernel_category_by_source_code,
-    Placeholder,
-    get_kernel_metadata,
-    get_path,
-    IndentedBuffer
-)
+    TritonScheduling, BaseSchedulerNode, config, schedule_log,
+    get_fused_kernel_name, get_kernel_category_by_source_code, Placeholder,
+    get_kernel_metadata, get_path, IndentedBuffer)
 from torch._inductor.runtime.benchmarking import benchmarker
 from torch._inductor.utils import sympy_index_symbol, ModularIndexing, FloorDiv, sympy_product
 from torch._inductor.virtualized import V
@@ -32,25 +26,73 @@ from torch._inductor.dependencies import MemoryDep, StarDep, WeakDep
 from torch.utils._ordered_set import OrderedSet
 from torch._inductor.codegen.simd import CandidateTiling
 
-from .triton import NPUIndexTritonKernel, flatten
+from .triton import NPUIndexTritonKernel, NPUTritonKernel, NPUTritonKernelWithLoop, flatten
 from .kernel_analysis import ReductionAnalysis
 from .npu_kernel_features import NumelList, NPUKernelFeatures
 from .split_tiling import SplitTiling
 from .triton import NPUIndexTritonKernel
 from .. import config as npu_config
-from ..lowering import (
-    create_fx_from_snodes_by_traced_graph,
-    create_compile_kwargs,
-    generate_fx_graph_code,
-    dump_fx_graph_code
-)
-
+from ..lowering import (create_fx_from_snodes_by_traced_graph,
+                        create_compile_kwargs, generate_fx_graph_code,
+                        dump_fx_graph_code)
 from ..config import log
+
+
+def flatten_groups(nums):
+    res = []
+    for i in nums:
+        if isinstance(i, Iterable):
+            for x in i:
+                res.append(x)
+        else:
+            res.append(i)
+    return res
+
+class NPUNoLinearTritonScheduling(TritonScheduling):
+    def __init__(self, input_scheduler):
+        super().__init__(input_scheduler)
+        from ..config import inductor_ascend_linear_mode
+        self.kernel_type = NPUTritonKernelWithLoop
+        if inductor_ascend_linear_mode == 'no_linear':
+            self.kernel_type = NPUTritonKernel
 
 class NPUTritonScheduling(TritonScheduling):
     def __init__(self, input_scheduler):
         super().__init__(input_scheduler)
         self.kernel_type = NPUIndexTritonKernel
+
+    def group_fn(self, sizes):
+        groups = list()
+        for s in sizes:
+            if not s:
+                groups.append(1)
+            elif isinstance(s, list):
+                group = flatten(s)
+                groups.append(NumelList(tuple(group)) if isinstance(group, list) else group)
+            else:
+                groups.append(s)
+        return tuple(groups)
+
+    @classmethod
+    def create_tiling(
+            cls, pw_tiling: Sequence[sympy.Expr], reduction_tiling: Sequence[sympy.Expr]
+    ) -> Dict[str, sympy.Expr]:
+        """
+        Create a tiling dict from pointwise and reduction splits.
+        """
+
+        pw_tiling = flatten_groups(pw_tiling)
+        pw_prefixes = ["w", "v", "t", "z", "y", "x"][-len(pw_tiling):]
+        if len(reduction_tiling) == 0:
+            reduction_prefixes = []
+        else:
+            reduction_tiling = flatten_groups(reduction_tiling)
+            reduction_tiling = [NumelList(reduction_tiling).numels()]
+            reduction_prefixes = ["r"][: len(reduction_tiling)]
+        tiling = immutable_dict(
+            list(zip(pw_prefixes, pw_tiling))
+            + list(zip(reduction_prefixes, reduction_tiling)))
+        return tiling
 
     def create_kernel_choices(
             self, kernel_features: SIMDKernelFeatures, kernel_args, kernel_kwargs
@@ -61,6 +103,31 @@ class NPUTritonScheduling(TritonScheduling):
             kernel_kwargs["override_cooperative_reduction"] = False
 
         return [self.kernel_type(*kernel_args, **kernel_kwargs)]
+
+    def make_ttir_for_check(self, src_code):
+        # 1. use triton_ as tmp kernel name
+        checker_src_code = src_code.replace(str(Placeholder.KERNEL_NAME),
+                                            "triton_")
+        # 2. find inductor_meta str
+        inductor_meta_str = next(
+            (line for line in checker_src_code.splitlines()
+             if "inductor_meta" in line),
+            None,
+        )
+        inductor_meta = eval(inductor_meta_str.strip().split("=", 1)[1].rstrip(','))
+        # 3. disable cache and limit configs count for precompile
+        inductor_meta["force_disable_caches"] = True
+        checker_src_code = checker_src_code.replace(
+            inductor_meta_str, f"    inductor_meta={inductor_meta},")
+        mod = PyCodeCache.load(checker_src_code)
+        # 4. precompile for dsl check
+        mod.triton_._triton_make_ttir()
+        # 5. remove tmp compile cache
+        try:
+            assert mod.__file__
+            os.remove(mod.__file__)
+        except FileNotFoundError:
+            pass
 
     # transform indexing before call codegen_node_schedule_with_kernel
     def codegen_node_schedule(self, kernel_features: SIMDKernelFeatures, nodes):
@@ -83,6 +150,7 @@ class NPUTritonScheduling(TritonScheduling):
         for kernel in kernels:
             with V.set_kernel_handler(kernel):
                 src_code = kernel.codegen_kernel()
+                self.make_ttir_for_check(src_code)
 
             V.graph.removed_buffers |= kernel.removed_buffers
             V.graph.inplaced_to_remove |= kernel.inplaced_to_remove
@@ -523,7 +591,7 @@ class NPUTritonScheduling(TritonScheduling):
                 raise AssertionError
             if numel1 == numel2 * rnumel2:
                 if not all(
-                    SIMDKernel.is_compatible((numel2, rnumel2), n.get_ranges())
+                    NPUIndexTritonKernel.is_compatible((numel2, rnumel2), n.get_ranges())
                     for n in node1.get_nodes()
                 ):
                     why("nodes numel/rnumel incompatibility")

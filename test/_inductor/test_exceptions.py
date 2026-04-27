@@ -24,7 +24,7 @@ import torch
 import torch_npu
 
 @triton_heuristics.pointwise(
-    size_hints=[16384, 32], tile_hint=TileHint.DEFAULT,
+    size_hints={'y0': 16384, 'x1': 32}, tile_hint=TileHint.DEFAULT,
     filename=__file__,
     triton_meta={'signature': {'in_ptr0': '*fp16', 'in_ptr1': '*fp16', 'out_ptr0': '*fp16', 'y0_numel': 'i32', 'x1_numel': 'i32'},
     'device': DeviceProperties(type='npu', index=0, multi_processor_count=40, cc='Ascend910B3', 

@@ -39,18 +39,17 @@ else:
     )
     from .config import log as npulog
     from .codegen._sizevars import patch_simplify
-    from .codegen.ir import patch_num_split, patch_loop_body, patch_indexing
-    from .codegen.triton import patch_gen_common_triton_ext_imports, patch_triton_scheduling, patch_is_compatible
+    from .codegen.ir import patch_loop_body, patch_indexing
+    from .codegen.triton import patch_gen_common_triton_ext_imports, patch_triton_scheduling
     from .decomposition import _register_npu_inductor_decompositons
     from .graph import patch_count_bytes, patch_codegen_with_cpp_wrapper, patch_run_node
-    from .ir import patch_fallback_kernel_codegen
+    from .ir import patch_fallback_kernel_codegen, patch_num_splits
     from .lowering import make_reduction
     from .runtime import (
         patch_load_cached_autotuning,
         patch_create_device_properties,
         patch_triton_heuristics_cached_autotune
     )
-    from .choices import NPUInductorChoices
     from .utils import (
         patch_is_gpu,
         patch_has_triton,
@@ -132,11 +131,10 @@ else:
     patch_scheduler()
     patch_gen_common_triton_ext_imports()
     patch_simplify()
-    patch_num_split()
+    patch_num_splits()
     patch_loop_body()
     patch_indexing()
     patch_triton_scheduling()
-    patch_is_compatible()
 
     patch_create_device_properties()
     patch_load_cached_autotuning()
@@ -163,8 +161,6 @@ else:
 
     if (max_precompiled_thread_num > 1):
         _replace_precompile()
-
-    torch._inductor.virtualized.V.set_choices_handler(NPUInductorChoices())
 
     register_fa_pass()
     patch_cache_base_get_system()

@@ -24,7 +24,6 @@ class TileGenerator:
     def __init__(self, numels, axis_names, tiling_axis, no_loop_axis, split_axis, low_dims, persistent_reduction,
                   dtype, npu_kernel_type=NPUKernelType.SIMD, input_ptr_num=0, dual_reduction=False):
         self.numels = copy.deepcopy(numels)
-
         self.blocks = [x for x in self.numels]
         self.candidate_blocks = []
         self.sub_blocks = self.blocks.copy()
