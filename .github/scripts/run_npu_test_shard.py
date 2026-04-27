@@ -557,12 +557,14 @@ def collect_test_cases(test_file: str, test_dir: Path, env: Dict) -> List[str]:
         #   2: pytest error (includes collection errors like ImportError)
         #   3: all skipped (success)
         #   4: command line error (error)
-        #   5: no tests collected (NOT an error - file has no test cases)
-        # Key insight: returncode 5 is normal, not an error
+        #   5: no tests collected (ERROR - test file should have cases)
+        # Key insight: if a test file is selected for execution, it should have cases.
+        # returncode 5 means 0 cases collected, which indicates a problem.
         stdout_content = result.stdout.strip()
 
-        if result.returncode not in (0, 3, 5):
-            # returncode 2, 4: real collection error
+        if result.returncode not in (0, 3):
+            # returncode 2, 4, 5: real collection error
+            # returncode 5 specifically means no tests collected - a problem for selected files
             print(f"    WARNING: Collection errors for {test_file}:")
             # Print relevant lines from stdout (pytest collection errors are in stdout)
             stdout_lines = stdout_content.splitlines()

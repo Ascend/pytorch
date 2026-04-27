@@ -119,14 +119,15 @@ def collect_cases_for_file(test_file: str, test_dir: Path) -> Tuple[str, List[st
         #   2: pytest error (includes collection errors like ImportError)
         #   3: all skipped (success)
         #   4: command line error (error)
-        #   5: no tests collected (NOT an error - file has no test cases)
-        # Key insight: returncode 5 is normal, not an error
-        if result.returncode in (0, 3, 5):
-            # Normal: passed, skipped, or no tests in file
+        #   5: no tests collected (ERROR - test file should have cases)
+        # Key insight: if a test file is selected for execution, it should have cases.
+        # returncode 5 means 0 cases collected, which indicates a problem.
+        if result.returncode in (0, 3):
+            # Normal: passed or skipped
             return (test_file, nodeids, True, "")
         else:
-            # returncode 2, 4: real collection error
-            # Combine stdout (has ERRORS section) and stderr for error message
+            # returncode 2, 4, 5: real collection error
+            # returncode 5 specifically means no tests collected - a problem for selected files
             error_msg = result.stdout.strip()
             if result.stderr.strip():
                 error_msg += "\n--- stderr ---\n" + result.stderr.strip()
