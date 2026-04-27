@@ -19,6 +19,8 @@ static pthread_t main_thread;
 static bool start_main_thread_bind = false;
 static std::mutex core_map_mutex;
 static bool lazy_bind = true;
+static bool force_bind = false;
+
 
 using ThreadCoreMap = std::unordered_map<ThreadType, CoreIdRange>;
 
@@ -96,6 +98,23 @@ void parseCPUAffinityConf(uint32_t &mode, std::vector<CoreIdRange> &ranges)
         int lazy_bind_val = std::stoi(match_for_lazy_bind[1].str());
         if (lazy_bind_val == 0) {
             lazy_bind = false;
+        }
+    }
+
+    std::regex pattern_for_force("force:(\\d)");
+    std::smatch match_for_force;
+    if (std::regex_search(inputStr, match_for_force, pattern_for_force)) {
+        int force_val = std::stoi(match_for_force[1].str());
+        if (force_val != 0 && force_val != 1) {
+            ASCEND_LOGE("force value must be 0 or 1, got: %d", force_val);
+        } else {
+            force_bind = (force_val != 0);
+        }
+    } else {
+        std::regex pattern_for_force_check("force:([^,]+)");
+        std::smatch match_for_force_check;
+        if (std::regex_search(inputStr, match_for_force_check, pattern_for_force_check)) {
+            ASCEND_LOGE("force value must be 0 or 1, got: %s", match_for_force_check[1].str().c_str());
         }
     }
 
@@ -181,12 +200,54 @@ bool getThreadAffinityInfo()
         return false;
     }
 
+    if (force_bind) {
+        ASCEND_LOGI("CPU affinity force mode enabled, skipping affinity conflict detection, applying CPU_AFFINITY_CONF binding."); 
+        return true;
+    }
+
     cpu_set_t mask;
     pthread_getaffinity_np(pthread_self(), sizeof(mask), &mask);
+
+    std::ostringstream affinity_oss;
+    affinity_oss << "[";
+    int cpu_count = sysconf(_SC_NPROCESSORS_ONLN);
+    int range_start = -1;
+    bool first_range = true;
+    for (int k = 0; k < cpu_count; ++k) {
+        if (CPU_ISSET(k, &mask)) {
+            if (range_start == -1) {
+                range_start = k;
+            }
+        } else {
+            if (range_start != -1) {
+                if (!first_range) affinity_oss << ", ";
+                if (range_start == k - 1) {
+                    affinity_oss << range_start;
+                } else {
+                    affinity_oss << range_start << "-" << (k - 1);
+                }
+                range_start = -1;
+                first_range = false;
+            }
+        }
+    }
+    if (range_start != -1) {
+        if (!first_range) affinity_oss << ", ";
+        if (range_start == cpu_count - 1) {
+            affinity_oss << range_start;
+        } else {
+            affinity_oss << range_start << "-" << (cpu_count - 1);
+        }
+    }
+    affinity_oss << "]";
+    ASCEND_LOGI("Current thread CPU affinity mask: %s", affinity_oss.str().c_str());
+    
     for (auto &range : device_ranges) {
-        for (unsigned int i = range.start; i < range.end; i++) {
+        for (unsigned int i = range.start; i <= range.end; i++) {
             if (!CPU_ISSET(i, &mask)) {
-                ASCEND_LOGW("Thread affinity is already set.");
+                ASCEND_LOGW("Thread affinity conflict detected! Expected core %u (in config range [%u, %u]) is NOT in current thread affinity mask. %s",
+                            i, range.start, range.end, affinity_oss.str().c_str());
+                ASCEND_LOGW("Thread affinity is already set. Use force:1 to skip this check and force bind.");
                 return false;
             }
         }
