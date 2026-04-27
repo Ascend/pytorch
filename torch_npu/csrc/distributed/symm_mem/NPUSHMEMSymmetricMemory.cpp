@@ -11,7 +11,6 @@ namespace symmetric_memory {
 /* Start of NPUSHMEMSymmetricMemory implementation */
 
 constexpr size_t npu_signal_pad_size = 2048;
-static std::shared_ptr<npu_logging::Logger> logger = npu_logging::logging().getLogger("torch_npu.symmetric_memory");
 static NPUStoreExchange storeExchange = NPUStoreExchange("NPUSHMEMSymmetricMemory");
 
 NPUSHMEMAllocation::~NPUSHMEMAllocation()
@@ -22,9 +21,9 @@ NPUSHMEMAllocation::~NPUSHMEMAllocation()
     }
     auto device = c10::Device(at::DeviceType::PrivateUse1, device_idx);
     at::DeviceGuard device_guard(device);
-    logger->debug("~NPUSHMEMAllocation, start Shmem_free, ptr is %p.", ptr);
+    TORCH_NPU_SYMMEM_LOGD("~NPUSHMEMAllocation, start Shmem_free, ptr is %p.", ptr);
     Aclshmem_free(ptr);  // shmem_free has no return value
-    logger->debug("~NPUSHMEMAllocation, end Shmem_free, ptr is %p.", ptr);
+    TORCH_NPU_SYMMEM_LOGD("~NPUSHMEMAllocation, end Shmem_free, ptr is %p.", ptr);
 }
 
 NPUSHMEMSymmetricMemory::NPUSHMEMSymmetricMemory(
@@ -59,7 +58,7 @@ NPUSHMEMSymmetricMemory::NPUSHMEMSymmetricMemory(
                     ss << ", ";
                 }
             }
-            logger->debug("[rank %d] rank_to_global_rank: %s, group_name: %s, exchanged_n_times: %d.",
+            TORCH_NPU_SYMMEM_LOGD("[rank %d] rank_to_global_rank: %s, group_name: %s, exchanged_n_times: %d.",
                 rank_, (ss.str()).c_str(), group_name_.c_str(), exchanged_n_times);
         }
     }
@@ -68,20 +67,20 @@ NPUSHMEMSymmetricMemory::NPUSHMEMSymmetricMemory(
         auto buffer = Aclshmem_ptr(allocation->ptr, rank_to_global_rank_[r]);
         TORCH_CHECK(buffer != nullptr, "shmem_ptr return nullptr with ptr ", allocation->ptr, DIST_ERROR(ErrCode::MEMORY));
         buffers_.push_back(buffer);
-        logger->debug("[rank %d] NPUSHMEMSymmetricMemory shmem_ptr, r is %d, rank_to_global_rank is %d, ptr is %p, shmem_ptr is %p.",
+        TORCH_NPU_SYMMEM_LOGD("[rank %d] NPUSHMEMSymmetricMemory shmem_ptr, r is %d, rank_to_global_rank is %d, ptr is %p, shmem_ptr is %p.",
             rank_, r, rank_to_global_rank_[r], allocation->ptr, buffer);
     }
 
     // to be done
     // signal_pads_ buffers_dev_ signal_pads_dev_ rank_to_global_rank_dev_
-    logger->debug("NPUSHMEMSymmetricMemory created, buffer_size is %d, device_idx is %d, group_name is %s.",
+    TORCH_NPU_SYMMEM_LOGD("NPUSHMEMSymmetricMemory created, buffer_size is %d, device_idx is %d, group_name is %s.",
         allocation->buffer_size, allocation->device_idx, group_name_.c_str());
 }
 
 NPUSHMEMSymmetricMemory::~NPUSHMEMSymmetricMemory()
 {
     // to be done
-    logger->debug("NPUSHMEMSymmetricMemory destroy, group_name is %s", group_name_.c_str());
+    TORCH_NPU_SYMMEM_LOGD("NPUSHMEMSymmetricMemory destroy, group_name is %s", group_name_.c_str());
 }
 
 std::vector<void*> NPUSHMEMSymmetricMemory::get_buffer_ptrs()
@@ -184,7 +183,7 @@ void* NPUSHMEMSymmetricMemoryAllocator::alloc(
         group_name == std::nullopt,
         "NPUSHMEMSymmetricMemoryAllocator::alloc "
         "must not be called with a group_name", DIST_ERROR(ErrCode::PARAM));
-    logger->debug("NPUSHMEMSymmetricMemoryAllocator alloc start, size is %d, device is %d, group_name is %s",
+    TORCH_NPU_SYMMEM_LOGD("NPUSHMEMSymmetricMemoryAllocator alloc start, size is %d, device is %d, group_name is %s",
         size, device_idx, group_name == std::nullopt ? "" : (*group_name).c_str());
 
     c10_npu::LazySetDevice(device_idx);
@@ -200,16 +199,16 @@ void* NPUSHMEMSymmetricMemoryAllocator::alloc(
         std::make_shared<NPUSHMEMAllocation>(ptr, size, device_idx);
     // to be done: thread safety
     allocations_.try_emplace(ptr, std::move(allocation));
-    logger->debug("NPUSHMEMSymmetricMemoryAllocator alloc end, size is %d, device is %d, group_name is %s, ptr is %p",
+    TORCH_NPU_SYMMEM_LOGD("NPUSHMEMSymmetricMemoryAllocator alloc end, size is %d, device is %d, group_name is %s, ptr is %p",
         size, device_idx, group_name == std::nullopt ? "" : (*group_name).c_str(), ptr);
     return ptr;
 }
 
 void NPUSHMEMSymmetricMemoryAllocator::free(void* ptr)
 {
-    logger->debug("NPUSHMEMSymmetricMemoryAllocator free start, ptr is %p", ptr);
+    TORCH_NPU_SYMMEM_LOGD("NPUSHMEMSymmetricMemoryAllocator free start, ptr is %p", ptr);
     allocations_.erase(ptr);
-    logger->debug("NPUSHMEMSymmetricMemoryAllocator free end, ptr is %p", ptr);
+    TORCH_NPU_SYMMEM_LOGD("NPUSHMEMSymmetricMemoryAllocator free end, ptr is %p", ptr);
 }
 
 size_t NPUSHMEMSymmetricMemoryAllocator::get_alloc_size(void* ptr)
@@ -225,7 +224,7 @@ c10::intrusive_ptr<SymmetricMemory> NPUSHMEMSymmetricMemoryAllocator::rendezvous
     void* ptr,
     const std::optional<std::string>& group_name)
 {
-    logger->debug("NPUSHMEMSymmetricMemoryAllocator rendezvous start, ptr is %p, group_name is %s", ptr, (*group_name).c_str());
+    TORCH_NPU_SYMMEM_LOGD("NPUSHMEMSymmetricMemoryAllocator rendezvous start, ptr is %p, group_name is %s", ptr, (*group_name).c_str());
     TORCH_CHECK(group_name.has_value(), "rendezvous, group_name is invalid.", DIST_ERROR(ErrCode::PARAM));
     {
         auto it = symm_mems_.find(std::make_tuple(ptr, *group_name));
@@ -239,7 +238,7 @@ c10::intrusive_ptr<SymmetricMemory> NPUSHMEMSymmetricMemoryAllocator::rendezvous
         c10::make_intrusive<NPUSHMEMSymmetricMemory>(it->second, *group_name);
 
     symm_mems_[std::make_tuple(ptr, *group_name)] = symm_mem;
-    logger->debug("NPUSHMEMSymmetricMemoryAllocator rendezvous end, ptr is %p, group_name is %s", ptr, (*group_name).c_str());
+    TORCH_NPU_SYMMEM_LOGD("NPUSHMEMSymmetricMemoryAllocator rendezvous end, ptr is %p, group_name is %s", ptr, (*group_name).c_str());
     return symm_mem;
 }
 

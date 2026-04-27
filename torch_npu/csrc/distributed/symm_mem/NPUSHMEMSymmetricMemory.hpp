@@ -5,9 +5,22 @@
 #include <memory>
 #include <torch/csrc/distributed/c10d/SymmetricMemory.hpp>
 #include "torch_npu/csrc/distributed/symm_mem/NPUSHMEMInterface.h"
+#include "torch_npu/csrc/logging/LogContext.h"
 
 namespace c10d {
 namespace symmetric_memory {
+
+inline std::shared_ptr<npu_logging::Logger>& GetSymmMemLogger()
+{
+    static std::shared_ptr<npu_logging::Logger> logger = npu_logging::logging().getLogger("torch_npu.symmetric_memory");
+    return logger;
+}
+
+#define TORCH_NPU_SYMMEM_LOGD(format, ...)                                     \
+    do {                                                                       \
+        TORCH_NPU_LOGD(c10d::symmetric_memory::GetSymmMemLogger(), format, ##__VA_ARGS__); \
+        ASCEND_LOGD(format, ##__VA_ARGS__);                                    \
+    } while (0);
 
 struct NPUSHMEMAllocation {
     void* ptr;
