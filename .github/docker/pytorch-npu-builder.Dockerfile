@@ -1,5 +1,35 @@
-# 基于 PyTorch manylinux builder 镜像
-FROM ghcr.io/pytorch/manylinux-builder:aarch64
+# 基于 PyPA manylinux 2_28 aarch64 镜像 (与 PyTorch 主干一致)
+FROM quay.io/pypa/manylinux_2_28_aarch64
+
+# 安装必要的 OS 包
+RUN yum -y install epel-release && \
+    yum -y update && \
+    yum install -y \
+        autoconf \
+        automake \
+        bison \
+        bzip2 \
+        curl \
+        diffutils \
+        file \
+        git \
+        less \
+        libffi-devel \
+        libgomp \
+        make \
+        openssl-devel \
+        patch \
+        perl \
+        unzip \
+        util-linux \
+        wget \
+        which \
+        xz \
+        yasm \
+        zstd \
+        sudo && \
+    yum install -y --enablerepo=powertools ninja-build && \
+    rm -rf /var/cache/yum
 
 # 设置工作目录
 WORKDIR /root
@@ -24,5 +54,9 @@ ENV ASCEND_HOME=/usr/local/Ascend
 RUN printf '#!/bin/bash\nsource /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true\nsource /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true\n' > /etc/profile.d/cann_env.sh && \
     chmod +x /etc/profile.d/cann_env.sh
 
+# 设置 Python 3.11 为默认版本
+ENV PYTHON_VERSION=3.11
+ENV PATH=/opt/python/cp311-cp311/bin:$PATH
+
 # 预安装 pytest 等测试依赖
-RUN pip3.11 install pytest pytest-timeout pytest-xdist hypothesis pyyaml zstandard
+RUN pip install pytest pytest-timeout pytest-xdist hypothesis pyyaml zstandard
