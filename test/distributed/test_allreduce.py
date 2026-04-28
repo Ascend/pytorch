@@ -170,12 +170,10 @@ class HcomAllReduceTest(TestCase):
     @skipIfUnsupportMultiNPU(2)
     def test_dist_all_reduce_pre_mul(self):
         ranks = [2]
-        dtype_list = [np.int32, np.int8]
+        dtype_list = [np.float32, np.float16]
         shape_format = [[i, 2, [4, 9]] for i in dtype_list]
         for world_size in ranks:
             for shape in shape_format:
-                if shape[0] == np.int8:
-                    shape[1] = 0
                 exp_input, input1 = create_common_tensor(shape, -10, 10)
                 expected = self._construct_excepted_result(exp_input, world_size, shape[0], dist.ReduceOp.SUM)
                 expected = expected * 2
