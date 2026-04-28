@@ -176,10 +176,23 @@ def run_cmake():
     if os.getenv('_ABI_VERSION') is not None:
         cmake_args.append('-DABI_VERSION=' + os.getenv('_ABI_VERSION'))
 
-    build_args = ['-j', str(multiprocessing.cpu_count())]
+    use_ninja = os.environ["CMAKE_GENERATOR"].lower() == "ninja" if "CMAKE_GENERATOR" in os.environ else which("ninja") is not None
+    if use_ninja:
+        cmake_args.append("-GNinja")
+
+    max_jobs = os.getenv("MAX_JOBS")
+    if max_jobs is not None or not use_ninja:
+        max_jobs = max_jobs or str(multiprocessing.cpu_count())
+        jobs_args = ["-j", max_jobs]
+    else:
+        jobs_args = []
 
     subprocess.check_call([cmake, BASE_DIR] + cmake_args, cwd=build_type_dir, env=os.environ)
-    subprocess.check_call(['make'] + build_args, cwd=build_type_dir, env=os.environ)
+
+    build_cmd = [cmake, "--build", "."]
+    if jobs_args:
+        build_cmd += ["--"] + jobs_args
+    subprocess.check_call(build_cmd, cwd=build_type_dir, env=os.environ)
     if which('eu-strip') is not None:
         generate_dbg_files_and_strip()
 
