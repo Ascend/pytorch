@@ -16,7 +16,7 @@ env:
 jobs:
   build:
     runs-on: ubuntu-22.04-arm
-    environment: quay
+    environment: QUAY_USERNAME
     permissions:
       contents: read
 
