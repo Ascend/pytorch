@@ -1,7 +1,14 @@
 # 基于 PyPA manylinux 2_28 aarch64 镜像 (与 PyTorch 主干一致)
 FROM quay.io/pypa/manylinux_2_28_aarch64
 
-# 安装必要的 OS 包
+ARG GCCTOOLSET_VERSION=13
+
+# Language variables
+ENV LC_ALL=en_US.UTF-8
+ENV LANG=en_US.UTF-8
+ENV LANGUAGE=en_US.UTF-8
+
+# 安装必要的 OS 包 (与 PyTorch 官方 Dockerfile 一致)
 RUN yum -y install epel-release && \
     yum -y update && \
     yum install -y \
@@ -27,9 +34,20 @@ RUN yum -y install epel-release && \
         xz \
         yasm \
         zstd \
-        sudo && \
+        sudo \
+        gcc-toolset-${GCCTOOLSET_VERSION}-gcc \
+        gcc-toolset-${GCCTOOLSET_VERSION}-gcc-c++ \
+        gcc-toolset-${GCCTOOLSET_VERSION}-gcc-gfortran \
+        gcc-toolset-${GCCTOOLSET_VERSION}-gdb && \
     yum install -y --enablerepo=powertools ninja-build && \
     rm -rf /var/cache/yum
+
+# 确保使用正确的 devtoolset
+ENV PATH=/opt/rh/gcc-toolset-${GCCTOOLSET_VERSION}/root/usr/bin:$PATH
+ENV LD_LIBRARY_PATH=/opt/rh/gcc-toolset-${GCCTOOLSET_VERSION}/root/usr/lib64:/opt/rh/gcc-toolset-${GCCTOOLSET_VERSION}/root/usr/lib:$LD_LIBRARY_PATH
+
+# git 2.36+ 需要配置 safe.directory
+RUN git config --global --add safe.directory "*"
 
 # 设置工作目录
 WORKDIR /root
@@ -57,6 +75,3 @@ RUN printf '#!/bin/bash\nsource /usr/local/Ascend/cann/set_env.sh 2>/dev/null ||
 # 设置 Python 3.11 为默认版本
 ENV PYTHON_VERSION=3.11
 ENV PATH=/opt/python/cp311-cp311/bin:$PATH
-
-# 预安装 pytest 等测试依赖
-RUN pip install pytest pytest-timeout pytest-xdist hypothesis pyyaml zstandard
