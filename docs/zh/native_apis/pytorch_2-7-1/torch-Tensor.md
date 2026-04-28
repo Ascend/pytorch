@@ -307,6 +307,7 @@
 |Tensor.nan_to_num_|是|-|
 |Tensor.ne|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.ne_|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|Tensor.nextafter_|是|回退至CPU执行|
 |Tensor.not_equal|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>可能回退至CPU执行|
 |Tensor.not_equal_|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.neg|是|支持bf16，fp16，fp32，int8，int32，int64|
