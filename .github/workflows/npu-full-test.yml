@@ -1,14 +1,12 @@
 name: PyTorch NPU Full Test(main 分支)
 
 on:
-  push:
+  pull_request:
     branches: [main, master]
     paths:
       - '.github/workflows/**'
       - '.github/scripts/**'
       - '.github/docker/**'
-  schedule:
-    - cron: '0 22 * * 1'  # UTC 22:00, Beijing 06:00, every Monday
   workflow_dispatch:
     inputs:
       docker_image_tag:
@@ -27,7 +25,7 @@ on:
         type: number
 
 env:
-  REGISTRY: ghcr.io
+  REGISTRY: quay.io
   PYTHON_VERSION: '3.11'
 
 jobs:
