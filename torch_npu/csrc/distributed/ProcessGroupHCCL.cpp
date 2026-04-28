@@ -134,9 +134,18 @@ uint64_t getNumelForHCCL(const at::Tensor& self)
 
 HcclReduceOp getHcclReduceOp(const c10d::ReduceOp reduceOp, at::Tensor& input)
 {
-    if (reduceOp == c10d::ReduceOp::AVG || reduceOp == c10d::ReduceOp::PREMUL_SUM) {
+    if (reduceOp == c10d::ReduceOp::AVG) {
         // HCCL does not support ReduceOp::AVG yet
         // PTA supports it by summing first, then dividing
+        return HCCL_REDUCE_SUM;
+    }
+
+    if (reduceOp == c10d::ReduceOp::PREMUL_SUM) {
+        TORCH_CHECK(
+            input.scalar_type() == at::kHalf || input.scalar_type() == at::kFloat ||
+            input.scalar_type() == at::kBFloat16 || input.scalar_type() == at::kDouble,
+            "PreMulSum Data type must be half, float, bfloat16 or double",
+            DIST_ERROR(ErrCode::TYPE));
         return HCCL_REDUCE_SUM;
     }
 
