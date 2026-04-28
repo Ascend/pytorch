@@ -59,6 +59,15 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Set package visibility to public
+        run: |
+          curl -X PATCH \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/orgs/${{ steps.tag.outputs.repo_owner }}/packages/container/${{ env.IMAGE_NAME }}" \
+            -d '{"visibility":"public"}'
+          echo "Package visibility set to public"
+
       - name: Output image URL
         run: |
           echo "Built image: ${{ env.REGISTRY }}/${{ steps.tag.outputs.repo_owner }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.tag }}"
