@@ -49,6 +49,10 @@ ENV LD_LIBRARY_PATH=/opt/rh/gcc-toolset-${GCCTOOLSET_VERSION}/root/usr/lib64:/op
 # git 2.36+ 需要配置 safe.directory
 RUN git config --global --add safe.directory "*"
 
+# 设置 Python 3.11 为默认版本 (CANN 安装需要 Python 环境)
+ENV PYTHON_VERSION=3.11
+ENV PATH=/opt/python/cp311-cp311/bin:$PATH
+
 # 设置工作目录
 WORKDIR /root
 
@@ -71,7 +75,3 @@ ENV ASCEND_HOME=/usr/local/Ascend
 # 添加 CANN 环境初始化脚本
 RUN printf '#!/bin/bash\nsource /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true\nsource /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true\n' > /etc/profile.d/cann_env.sh && \
     chmod +x /etc/profile.d/cann_env.sh
-
-# 设置 Python 3.11 为默认版本
-ENV PYTHON_VERSION=3.11
-ENV PATH=/opt/python/cp311-cp311/bin:$PATH
