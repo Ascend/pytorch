@@ -29,9 +29,6 @@ on:
         description: 'Test source artifact name'
         value: 'test-src-main'
 
-env:
-  REGISTRY: ghcr.io
-
 jobs:
   build:
     runs-on: linux-aarch64-a3-16
@@ -39,14 +36,14 @@ jobs:
       docker-image: ${{ steps.set_image.outputs.docker-image }}
 
     container:
-      image: ${{ env.REGISTRY }}/ascend/pytorch-npu-builder:${{ inputs.docker_image_tag }}
+      image: ghcr.io/ascend/pytorch-npu-builder:${{ inputs.docker_image_tag }}
       options: --user root
 
     steps:
       - name: Set Docker image URL
         id: set_image
         run: |
-          DOCKER_IMAGE="${{ env.REGISTRY }}/ascend/pytorch-npu-builder:${{ inputs.docker_image_tag }}"
+          DOCKER_IMAGE="ghcr.io/ascend/pytorch-npu-builder:${{ inputs.docker_image_tag }}"
           echo "docker-image=${DOCKER_IMAGE}" >> $GITHUB_OUTPUT
           echo "Using Docker image: ${DOCKER_IMAGE}"
 
