@@ -33,8 +33,28 @@ def parse_args():
 
 
 def load_json_file(path: Path) -> Dict:
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+    """Load JSON file with error handling for malformed/truncated files."""
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except json.JSONDecodeError as e:
+        print(f"Warning: Invalid JSON in {path}: {e}")
+        # Read file content to diagnose truncation
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                content = f.read()
+            print(f"  File size: {len(content)} bytes")
+            # Show context around error position
+            error_pos = e.pos if hasattr(e, 'pos') else 0
+            start = max(0, error_pos - 100)
+            end = min(len(content), error_pos + 100)
+            print(f"  Context around error (pos {error_pos}): ...{content[start:end]}...")
+        except Exception:
+            pass
+        return {}
+    except Exception as e:
+        print(f"Warning: Failed to load {path}: {e}")
+        return {}
 
 
 def parse_junit_xml_testsuites(xml_path: Path) -> List[Dict]:

@@ -24,14 +24,14 @@ on:
   workflow_dispatch:
     inputs:
       distributed_shards:
-        description: 'Number of shards for distributed tests (default 20)'
+        description: 'Number of shards for distributed tests (default 3)'
         required: false
-        default: '20'
+        default: '3'
         type: string
       regular_shards:
-        description: 'Number of shards for regular tests (default 5)'
+        description: 'Number of shards for regular tests (default 20)'
         required: false
-        default: '5'
+        default: '20'
         type: string
       test_files:
         description: 'Test files to run directly (comma-separated, e.g., "test_meta.py,test_nn.py"). Skip shard assignment if set.'
@@ -264,9 +264,9 @@ jobs:
           PYTHON=python${{ env.PYTHON_VERSION }}
           cd pytorch-test-src
 
-          # Case-level sharding: 2 distributed shards + 5 regular shards
-          DISTRIBUTED_SHARDS='2'
-          REGULAR_SHARDS='5'
+          # Case-level sharding: 3 distributed shards + 20 regular shards
+          DISTRIBUTED_SHARDS='3'
+          REGULAR_SHARDS='20'
 
           echo "=== Collecting all test cases ==="
           echo "Distributed shards: ${DISTRIBUTED_SHARDS}"
@@ -304,7 +304,7 @@ jobs:
 
           echo "=== Shard configuration ==="
           echo "Distributed tests: ${DISTRIBUTED_SHARDS} shards (case-level, serial execution, linux-aarch64-a3-16)"
-          echo "Regular tests: ${REGULAR_SHARDS} shards (case-level, 32 workers, linux-aarch64-a3-16)"
+          echo "Regular tests: ${REGULAR_SHARDS} shards (case-level, 8 workers, linux-aarch64-a3-4)"
           echo "Total cases: ${TOTAL_CASES}"
 
           # Package error logs if any
@@ -344,7 +344,7 @@ jobs:
 
   # ============================================================================
   # Distributed Tests: linux-aarch64-a3-16 runner (16-card NPU), serial execution
-  # Case-level sharding (2 shards, ~equal cases per shard)
+  # Case-level sharding (3 shards, ~equal cases per shard)
   # ============================================================================
   test_distributed:
     needs:
@@ -361,7 +361,7 @@ jobs:
       matrix:
         shard: ${{ fromJson(needs.collect_cases.outputs.distributed_matrix) }}
       fail-fast: false
-      max-parallel: 2
+      max-parallel: 3
 
     steps:
       - name: Checkout repository
@@ -533,8 +533,8 @@ jobs:
           if-no-files-found: warn
 
   # ============================================================================
-  # Regular Tests: linux-aarch64-a3-16 runner (16-card NPU), 32 concurrent workers
-  # Case-level sharding (5 shards, ~equal cases per shard)
+  # Regular Tests: linux-aarch64-a3-4 runner (4-card NPU), 8 concurrent workers
+  # Case-level sharding (20 shards, ~equal cases per shard)
   # ============================================================================
   test_regular:
     needs:
@@ -542,7 +542,7 @@ jobs:
       - collect_cases
       - upload_torch_npu_wheel
     if: ${{ github.event.inputs.test_files == '' }}
-    runs-on: linux-aarch64-a3-16
+    runs-on: linux-aarch64-a3-4
     timeout-minutes: 1200
     container:
       image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.7.1_a3_aarch64_builder:20260424
@@ -551,7 +551,7 @@ jobs:
       matrix:
         shard: ${{ fromJson(needs.collect_cases.outputs.regular_matrix) }}
       fail-fast: false
-      max-parallel: 5
+      max-parallel: 20
 
     steps:
       - name: Checkout repository
@@ -683,10 +683,10 @@ jobs:
 
           echo "=== Regular Shard ${{ matrix.shard }} (Case-level) ==="
           echo "Total cases: ${TOTAL_CASES}"
-          echo "Runner: linux-aarch64-a3-16 (16-card NPU)"
-          echo "Execution mode: CONCURRENT (32 workers)"
+          echo "Runner: linux-aarch64-a3-4 (4-card NPU)"
+          echo "Execution mode: CONCURRENT (8 workers)"
 
-          # Regular tests: pre-collected cases, 32 concurrent workers
+          # Regular tests: pre-collected cases, 8 concurrent workers
           set +e
           $PYTHON ascend_pytorch/.github/scripts/run_npu_test_shard.py \
             --cases-json "${CASES_JSON}" \
@@ -694,7 +694,7 @@ jobs:
             --disabled-testcases pytorch-test-src/test_upstream/disabled_testcases.json \
             --report-dir ${REPORT_DIR} \
             --timeout 1200 \
-            --max-workers 32 \
+            --max-workers 8 \
             --verbose \
             2>&1 | tee /tmp/test_shard_reg_${{ matrix.shard }}.log
 
@@ -904,7 +904,7 @@ jobs:
             --patch-count "${{ needs.prepare.outputs.patch_count || 'N/A' }}" \
             --shard-matrix-json "${COMBINED_MATRIX}" \
             --docker-image "${{ env.DOCKER_IMAGE }}" \
-            --runner "linux-aarch64-a3-16 (distributed, serial), linux-aarch64-a3-16 (regular, 32 workers), linux-aarch64-a3-8 (custom)" \
+            --runner "linux-aarch64-a3-16 (distributed, serial), linux-aarch64-a3-4 (regular, 8 workers), linux-aarch64-a3-8 (custom)" \
             --cases-summary cases-shards/cases_collection_summary.json
 
           cat ${REPORT_MD} >> $GITHUB_STEP_SUMMARY
