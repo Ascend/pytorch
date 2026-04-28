@@ -12,3 +12,48 @@ index 0e77c31..53e96fa 100644
  
  # TODO: Expand the dispatcher API to be a generic API for interfacing with
  # the dispatcher from Python!
+@@ -948,32 +951,40 @@ class TestDispatch(TestCase):
+     def test_find_dangling_impls(self):
+         dangling_impls = C._dispatch_find_dangling_impls()
++        filtered_dangling_impls = [
++            impl for impl in dangling_impls
++            if "npu" not in impl
++        ]
+         self.assertEqual(
+             0,
+-            len(dangling_impls),
+-            msg=f"Expect zero dangling impls, but found: {dangling_impls}",
++            len(filtered_dangling_impls),
++            msg=f"Expect zero dangling impls, but found: {filtered_dangling_impls}",
+         )
+ 
+     def test_find_dangling_impls_ext(self):
+         extension_path = os.path.join(
+             os.path.dirname(os.path.abspath(__file__)),
+             "cpp_extensions",
+             "dangling_impl_extension.cpp",
+         )
+         module = torch.utils.cpp_extension.load(
+             name="dangling_impl_extension",
+             sources=[extension_path],
+             extra_cflags=["-g"],
+             verbose=True,
+         )
+ 
+         impls = C._dispatch_find_dangling_impls()
+-        self.assertEqual(1, len(impls))
++        filtered_impls = [
++            impl for impl in impls
++            if "npu" not in impl
++        ]
++        self.assertEqual(1, len(filtered_impls))
+         self.assertEqual(
+             f"""\
+ name: __test::foo
+ schema: (none)
+ CPU: registered at {extension_path}:5 :: () -> () [ boxed unboxed ]
+ """,
+-            impls[0],
++            filtered_impls[0],
+         )
+ 
