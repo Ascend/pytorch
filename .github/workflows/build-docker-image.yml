@@ -6,6 +6,10 @@ on:
     paths:
       - '.github/docker/pytorch-npu-builder.Dockerfile'
       - '.github/workflows/build-docker-image.yml'
+  pull_request:
+    paths:
+      - '.github/docker/pytorch-npu-builder.Dockerfile'
+      - '.github/workflows/build-docker-image.yml'
   schedule:
     - cron: '0 2 * * 0'  # UTC 02:00, Beijing 10:00, every Sunday
   workflow_dispatch:

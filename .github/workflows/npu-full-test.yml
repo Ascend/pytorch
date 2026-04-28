@@ -1,4 +1,4 @@
-name: PyTorch NPU Full Test
+name: PyTorch NPU Full Test(main 分支)
 
 on:
   push:
