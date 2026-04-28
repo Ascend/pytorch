@@ -64,6 +64,7 @@ RUN mkdir -p cann && cd cann && \
     chmod +x Ascend-cann*.run && \
     ./Ascend-cann-toolkit*.run --full --quiet --install-path=/usr/local/Ascend && \
     ./Ascend-cann-A3*.run --install --quiet --install-path=/usr/local/Ascend && \
+    source /usr/local/Ascend/cann/set_env.sh && \
     ./Ascend-cann-nnal*.run --install --quiet --install-path=/usr/local/Ascend && \
     rm -rf cann
 
