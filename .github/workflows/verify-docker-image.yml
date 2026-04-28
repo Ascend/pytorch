@@ -1,6 +1,10 @@
 name: Verify Docker Image Pull
 
 on:
+  push:
+    branches: [dev_master]
+    paths:
+      - '.github/workflows/verify-docker-image.yml'
   workflow_dispatch:
     inputs:
       docker_image:
@@ -8,40 +12,49 @@ on:
         default: 'quay.io/kerer/pytorch:manylinux-cann9.0.0-beta.2-20260428'
         type: string
 
+env:
+  DEFAULT_IMAGE: 'quay.io/kerer/pytorch:manylinux-cann9.0.0-beta.2-20260428'
+
 jobs:
   verify-image:
     runs-on: linux-aarch64-a3-16
     timeout-minutes: 30
 
     steps:
+      - name: Set image name
+        id: image
+        run: |
+          IMAGE="${{ inputs.docker_image || env.DEFAULT_IMAGE }}"
+          echo "image=${IMAGE}" >> $GITHUB_OUTPUT
+          echo "Using image: ${IMAGE}"
+
       - name: Pull Docker image
         run: |
-          echo "Pulling image: ${{ inputs.docker_image }}"
-          docker pull ${{ inputs.docker_image }}
+          docker pull ${{ steps.image.outputs.image }}
 
       - name: Verify image exists
         run: |
-          docker images ${{ inputs.docker_image }}
+          docker images ${{ steps.image.outputs.image }}
 
       - name: Check CANN environment
         run: |
-          docker run --rm ${{ inputs.docker_image }} \
+          docker run --rm ${{ steps.image.outputs.image }} \
             bash -c "source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true && \
                      echo 'CANN_PATH: $CANN_PATH' && \
                      ls -la /usr/local/Ascend/cann/ | head -20"
 
       - name: Check Python version
         run: |
-          docker run --rm ${{ inputs.docker_image }} \
+          docker run --rm ${{ steps.image.outputs.image }} \
             bash -c "python3.11 --version && pip3.11 list | grep -E 'torch|pytest'"
 
       - name: Verify CANN toolkit installation
         run: |
-          docker run --rm ${{ inputs.docker_image }} \
+          docker run --rm ${{ steps.image.outputs.image }} \
             bash -c "ls -la /usr/local/Ascend/ && \
                      cat /usr/local/Ascend/cann/version.info 2>/dev/null || echo 'version.info not found'"
 
       - name: Clean up
         if: always()
         run: |
-          docker rmi ${{ inputs.docker_image }} 2>/dev/null || true
+          docker rmi ${{ steps.image.outputs.image }} 2>/dev/null || true
