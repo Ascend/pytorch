@@ -7,11 +7,6 @@ on:
       - '.github/workflows/**'
       - '.github/scripts/**'
       - '.github/docker/**'
-  pull_request:
-    paths:
-      - '.github/workflows/**'
-      - '.github/scripts/**'
-      - '.github/docker/**'
   schedule:
     - cron: '0 22 * * 1'  # UTC 22:00, Beijing 06:00, every Monday
   workflow_dispatch:
