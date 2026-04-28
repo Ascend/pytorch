@@ -1,0 +1,21 @@
+diff --git a/test/distributed/elastic/timer/local_timer_test.py b/test/distributed/elastic/timer/local_timer_test.py
+index 8818b17..7441eb5 100644
+--- a/test/distributed/elastic/timer/local_timer_test.py
++++ b/test/distributed/elastic/timer/local_timer_test.py
+@@ -15,7 +15,6 @@ import torch.distributed.elastic.timer as timer
+ from torch.distributed.elastic.timer.api import TimerRequest
+ from torch.distributed.elastic.timer.local_timer import MultiprocessingRequestQueue
+ from torch.testing._internal.common_utils import (
+-    IS_ARM64,
+     IS_MACOS,
+     IS_WINDOWS,
+     run_tests,
+@@ -26,7 +25,7 @@ from torch.testing._internal.common_utils import (
+ 
+ 
+ # timer is not supported on these platforms
+-INVALID_PLATFORMS = IS_WINDOWS or IS_MACOS or TEST_WITH_DEV_DBG_ASAN or IS_ARM64
++INVALID_PLATFORMS = IS_WINDOWS or IS_MACOS or TEST_WITH_DEV_DBG_ASAN
+ 
+ if not INVALID_PLATFORMS:
+     # func2 should time out
