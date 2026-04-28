@@ -2,26 +2,16 @@ name: Build Docker Image
 
 on:
   push:
-    branches: [main, master]
+    branches: [dev_master]
     paths:
       - '.github/docker/pytorch-npu-builder.Dockerfile'
       - '.github/workflows/build-docker-image.yml'
-  pull_request:
-    paths:
-      - '.github/docker/pytorch-npu-builder.Dockerfile'
-      - '.github/workflows/build-docker-image.yml'
-  schedule:
-    - cron: '0 2 * * 0'  # UTC 02:00, Beijing 10:00, every Sunday
-  workflow_dispatch:
-    inputs:
-      cann_version:
-        description: 'CANN version'
-        default: '9.0.0-beta.2'
 
 env:
   REGISTRY: quay.io
   IMAGE_NAME: pytorch-npu-builder
   QUAY_ORG: kerer
+  CANN_VERSION: '9.0.0-beta.2'
 
 jobs:
   build:
@@ -47,7 +37,7 @@ jobs:
         id: tag
         run: |
           TIMESTAMP=$(date +%Y%m%d)
-          echo "tag=manylinux-cann${{ inputs.cann_version || '9.0.0-beta.2' }}-${TIMESTAMP}" >> $GITHUB_OUTPUT
+          echo "tag=manylinux-cann${{ env.CANN_VERSION }}-${TIMESTAMP}" >> $GITHUB_OUTPUT
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
