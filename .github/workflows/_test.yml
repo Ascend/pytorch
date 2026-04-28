@@ -33,7 +33,9 @@ jobs:
       - name: Checkout scripts
         uses: actions/checkout@v4
         with:
-          sparse-checkout: .github/scripts
+          sparse-checkout: |
+            .github/scripts
+            .ci/docker
 
       - name: Download torch wheel
         uses: actions/download-artifact@v4
@@ -68,9 +70,7 @@ jobs:
 
       - name: Install test dependencies
         run: |
-          pip${{ env.PYTHON_VERSION }} install \
-            pytest pytest-timeout pytest-xdist \
-            hypothesis numpy expecttest pyyaml zstandard packaging
+          pip${{ env.PYTHON_VERSION }} install -r .ci/docker/requirements-ci.txt
 
       - name: Run ${{ inputs.test-type }} shard ${{ inputs.shard-index }}
         run: |
