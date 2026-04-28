@@ -1,6 +1,6 @@
 #pragma once
 
-#include "third_party/acl/inc/acl/acl_sk.h"
+#include "third_party/acl/inc/acl/super_kernel.h"
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "third_party/acl/inc/acl/acl_mdl.h"
 
