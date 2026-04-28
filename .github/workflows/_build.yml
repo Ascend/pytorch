@@ -3,104 +3,126 @@ name: Build PyTorch and torch_npu
 on:
   workflow_call:
     inputs:
-      upstream_repo:
+      pytorch_branch:
         required: true
         type: string
-        description: The upstream repository full name (owner/repo)
-      upstream_sha:
+        default: 'main'
+      python_version:
         required: true
         type: string
-        description: The upstream commit SHA to build
-      upstream_fork_repo:
-        required: false
-        type: string
-        default: ''
-        description: The fork repository full name for PR from fork (owner/repo)
-      downstream_repo:
+        default: '3.11'
+      docker_image_tag:
         required: true
         type: string
-        description: The downstream repository full name (owner/repo)
+        description: 'Docker image tag with timestamp'
+    outputs:
+      docker-image:
+        description: 'Full Docker image URL'
+        value: ${{ jobs.build.outputs.docker-image }}
+      torch-wheel:
+        description: 'PyTorch wheel artifact name'
+        value: 'torch-wheel-main'
+      torch-npu-wheel:
+        description: 'torch_npu wheel artifact name'
+        value: 'torch-npu-wheel-main'
+      test-src:
+        description: 'Test source artifact name'
+        value: 'test-src-main'
+
+env:
+  REGISTRY: ghcr.io
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: linux-aarch64-a3-16
+    outputs:
+      docker-image: ${{ steps.set_image.outputs.docker-image }}
+
+    container:
+      image: ${{ env.REGISTRY }}/${{ github.repository_owner }}/pytorch-npu-builder:${{ inputs.docker_image_tag }}
+      options: --user root
+
     steps:
-      # Step 1: Checkout upstream PyTorch PR code
-      # Use fork repo if available (PR from fork), otherwise use upstream repo (push or PR from same repo)
-      - name: Checkout upstream PyTorch PR
-        uses: actions/checkout@v6
+      - name: Set Docker image URL
+        id: set_image
+        run: |
+          DOCKER_IMAGE="${{ env.REGISTRY }}/${{ github.repository_owner }}/pytorch-npu-builder:${{ inputs.docker_image_tag }}"
+          echo "docker-image=${DOCKER_IMAGE}" >> $GITHUB_OUTPUT
+          echo "Using Docker image: ${DOCKER_IMAGE}"
+
+      - name: Setup CANN environment
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+      - name: Clone upstream PyTorch main
+        run: |
+          git clone --depth=1 --branch ${{ inputs.pytorch_branch }} \
+            https://github.com/pytorch/pytorch.git pytorch-src
+          PYTORCH_SHA=$(cd pytorch-src && git rev-parse HEAD)
+          echo "pytorch_sha=${PYTORCH_SHA}"
+
+      - name: Checkout torch_npu
+        uses: actions/checkout@v4
         with:
-          repository: ${{ inputs.upstream_fork_repo != '' && inputs.upstream_fork_repo || inputs.upstream_repo }}
-          ref: ${{ inputs.upstream_sha }}
+          path: torch_npu-src
           submodules: recursive
-          path: pytorch
 
-      # Step 2: Build PyTorch
-      - name: Build PyTorch
+      - name: Build PyTorch wheel
         run: |
-          echo "============================================"
-          echo "Building PyTorch from upstream PR..."
-          if [ -n "${{ inputs.upstream_fork_repo }}" ]; then
-            echo "Fork Repository: ${{ inputs.upstream_fork_repo }}"
-          else
-            echo "Repository: ${{ inputs.upstream_repo }}"
-          fi
-          echo "Commit SHA: ${{ inputs.upstream_sha }}"
-          echo "============================================"
-          # TODO: Add actual PyTorch build commands
-          # Example:
-          # cd pytorch
-          # pip install -r requirements.txt
-          # python setup.py develop
-          echo "[SIMULATED] PyTorch build completed successfully!"
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
 
-      # Step 3: Install PyTorch wheel
-      - name: Install PyTorch wheel
+          cd pytorch-src
+          pip${{ inputs.python_version }} install pyyaml setuptools wheel cmake ninja
+
+          export MAX_JOBS=40
+          export USE_CUDA=0
+          export USE_CUDNN=0
+          export CMAKE_BUILD_TYPE=Release
+
+          python${{ inputs.python_version }} setup.py build bdist_wheel
+
+          echo "PyTorch wheel built:"
+          ls -la dist/
+
+      - name: Build torch_npu wheel
         run: |
-          echo "============================================"
-          echo "Installing PyTorch wheel..."
-          echo "============================================"
-          # TODO: Add actual install commands
-          # Example:
-          # pip install pytorch/dist/torch*.whl
-          echo "[SIMULATED] PyTorch wheel installed successfully!"
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
 
-      # Step 4: Checkout downstream repo (torch_npu) master
-      - name: Checkout downstream repo (torch_npu)
-        uses: actions/checkout@v6
+          pip${{ inputs.python_version }} install pytorch-src/dist/*.whl
+
+          cd torch_npu-src
+          pip${{ inputs.python_version }} install pyyaml setuptools wheel cmake ninja
+
+          export MAX_JOBS=40
+          bash ci/build.sh --python=${{ inputs.python_version }}
+
+          echo "torch_npu wheel built:"
+          ls -la dist/
+
+      - name: Package test source
+        run: |
+          tar -czf test-src.tar.gz pytorch-src
+          ls -la test-src.tar.gz
+
+      - name: Upload PyTorch wheel
+        uses: actions/upload-artifact@v4
         with:
-          repository: ${{ inputs.downstream_repo }}
-          ref: master
-          submodules: recursive
-          path: torch_npu
+          name: torch-wheel-main
+          path: pytorch-src/dist/*.whl
+          retention-days: 7
 
-      # Step 5: Build torch_npu
-      - name: Build torch_npu
-        run: |
-          echo "============================================"
-          echo "Building torch_npu from downstream master..."
-          echo "Repository: ${{ inputs.downstream_repo }}"
-          echo "Branch: master"
-          echo "============================================"
-          # TODO: Add actual torch_npu build commands
-          # Example:
-          # cd torch_npu
-          # pip install -r requirements.txt
-          # bash ci/build.sh
-          echo "[SIMULATED] torch_npu build completed successfully!"
+      - name: Upload torch_npu wheel
+        uses: actions/upload-artifact@v4
+        with:
+          name: torch-npu-wheel-main
+          path: torch_npu-src/dist/*.whl
+          retention-days: 7
 
-      - name: Summary
-        run: |
-          echo "============================================"
-          echo "Build Summary"
-          echo "============================================"
-          if [ -n "${{ inputs.upstream_fork_repo }}" ]; then
-            echo "1. PyTorch fork PR: ${{ inputs.upstream_fork_repo }}@${{ inputs.upstream_sha }}"
-          else
-            echo "1. PyTorch upstream: ${{ inputs.upstream_repo }}@${{ inputs.upstream_sha }}"
-          fi
-          echo "2. PyTorch build: SUCCESS (simulated)"
-          echo "3. PyTorch install: SUCCESS (simulated)"
-          echo "4. torch_npu master: ${{ inputs.downstream_repo }}"
-          echo "5. torch_npu build: SUCCESS (simulated)"
-          echo "============================================"
+      - name: Upload test source
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-src-main
+          path: test-src.tar.gz
+          retention-days: 7

@@ -1,0 +1,125 @@
+name: PyTorch NPU Full Test
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - '.github/workflows/**'
+      - '.github/scripts/**'
+      - '.github/docker/**'
+  schedule:
+    - cron: '0 22 * * 1'  # UTC 22:00, Beijing 06:00, every Monday
+  workflow_dispatch:
+    inputs:
+      docker_image_tag:
+        description: 'Docker image tag (e.g., manylinux-cann9.0-20260428)'
+        default: 'latest'
+      pytorch_branch:
+        description: 'PyTorch branch to build'
+        default: 'main'
+      distributed_shards:
+        description: 'Distributed test shards'
+        default: 2
+        type: number
+      regular_shards:
+        description: 'Regular test shards'
+        default: 5
+        type: number
+
+env:
+  REGISTRY: ghcr.io
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  build:
+    uses: ./.github/workflows/_build.yml
+    with:
+      pytorch_branch: ${{ inputs.pytorch_branch || 'main' }}
+      python_version: '3.11'
+      docker_image_tag: ${{ inputs.docker_image_tag || 'latest' }}
+
+  collect_cases:
+    needs: build
+    uses: ./.github/workflows/_collect.yml
+    with:
+      docker-image: ${{ needs.build.outputs.docker-image }}
+      distributed-shards: ${{ inputs.distributed_shards || 2 }}
+      regular-shards: ${{ inputs.regular_shards || 5 }}
+
+  test_distributed:
+    needs:
+      - build
+      - collect_cases
+    strategy:
+      matrix:
+        shard: ${{ fromJson(needs.collect_cases.outputs.distributed_matrix) }}
+      fail-fast: false
+      max-parallel: 2
+    uses: ./.github/workflows/_test.yml
+    with:
+      docker-image: ${{ needs.build.outputs.docker-image }}
+      test-type: distributed
+      shard-index: ${{ matrix.shard }}
+      max-workers: 1
+
+  test_regular:
+    needs:
+      - build
+      - collect_cases
+    strategy:
+      matrix:
+        shard: ${{ fromJson(needs.collect_cases.outputs.regular_matrix) }}
+      fail-fast: false
+      max-parallel: 5
+    uses: ./.github/workflows/_test.yml
+    with:
+      docker-image: ${{ needs.build.outputs.docker-image }}
+      test-type: regular
+      shard-index: ${{ matrix.shard }}
+      max-workers: 32
+
+  report:
+    needs:
+      - test_distributed
+      - test_regular
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Checkout scripts
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/scripts
+
+      - name: Download all test reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-reports-*
+          path: all-reports
+          merge-multiple: false
+
+      - name: Generate consolidated report
+        run: |
+          python .github/scripts/generate_report.py \
+            --reports-root all-reports \
+            --output-markdown report.md \
+            --output-json report.json
+
+      - name: Upload final report
+        uses: actions/upload-artifact@v4
+        with:
+          name: npu-full-test-report
+          path: |
+            report.md
+            report.json
+          retention-days: 30
+
+      - name: Package all logs
+        run: tar -czf all-test-logs.tar.gz all-reports/
+
+      - name: Upload logs artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: all-test-logs
+          path: all-test-logs.tar.gz
+          retention-days: 30
