@@ -48,7 +48,9 @@ jobs:
         id: tag
         run: |
           TIMESTAMP=$(date +%Y%m%d)
+          REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
           echo "tag=manylinux-cann${{ inputs.cann_version || '9.0.0-beta.2' }}-${TIMESTAMP}" >> $GITHUB_OUTPUT
+          echo "repo_owner=${REPO_OWNER}" >> $GITHUB_OUTPUT
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -57,11 +59,11 @@ jobs:
           file: .github/docker/pytorch-npu-builder.Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           tags: |
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.tag }}
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ steps.tag.outputs.repo_owner }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.tag }}
+            ${{ env.REGISTRY }}/${{ steps.tag.outputs.repo_owner }}/${{ env.IMAGE_NAME }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Output image URL
         run: |
-          echo "Built image: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.tag }}"
+          echo "Built image: ${{ env.REGISTRY }}/${{ steps.tag.outputs.repo_owner }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.tag }}"
