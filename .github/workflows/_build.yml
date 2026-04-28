@@ -39,14 +39,14 @@ jobs:
       docker-image: ${{ steps.set_image.outputs.docker-image }}
 
     container:
-      image: ${{ env.REGISTRY }}/${{ github.repository_owner }}/pytorch-npu-builder:${{ inputs.docker_image_tag }}
+      image: ${{ env.REGISTRY }}/ascend/pytorch-npu-builder:${{ inputs.docker_image_tag }}
       options: --user root
 
     steps:
       - name: Set Docker image URL
         id: set_image
         run: |
-          DOCKER_IMAGE="${{ env.REGISTRY }}/${{ github.repository_owner }}/pytorch-npu-builder:${{ inputs.docker_image_tag }}"
+          DOCKER_IMAGE="${{ env.REGISTRY }}/ascend/pytorch-npu-builder:${{ inputs.docker_image_tag }}"
           echo "docker-image=${DOCKER_IMAGE}" >> $GITHUB_OUTPUT
           echo "Using Docker image: ${DOCKER_IMAGE}"
 
