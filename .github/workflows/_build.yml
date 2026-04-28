@@ -38,9 +38,6 @@ jobs:
     container:
       image: ghcr.io/ascend/pytorch-npu-builder:${{ inputs.docker_image_tag }}
       options: --user root
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
       - name: Set Docker image URL
