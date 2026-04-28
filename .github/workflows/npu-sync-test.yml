@@ -1,4 +1,4 @@
-name: PyTorch NPU Full Test(main 分支)
+name: PyTorch NPU Sync Test
 
 on:
   pull_request:

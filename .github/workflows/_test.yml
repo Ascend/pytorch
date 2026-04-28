@@ -66,6 +66,12 @@ jobs:
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
           pip${{ env.PYTHON_VERSION }} install wheels/*.whl
 
+      - name: Install test dependencies
+        run: |
+          pip${{ env.PYTHON_VERSION }} install \
+            pytest pytest-timeout pytest-xdist \
+            hypothesis numpy expecttest pyyaml zstandard packaging
+
       - name: Run ${{ inputs.test-type }} shard ${{ inputs.shard-index }}
         run: |
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
@@ -75,6 +81,7 @@ jobs:
             --cases-json cases-shards/${{ inputs.test-type }}_cases_shard_${{ inputs.shard-index }}.json \
             --test-dir pytorch-src/test \
             --report-dir test-reports \
+            --timeout 300 \
             --max-workers ${{ inputs.max-workers }} \
             --verbose
 

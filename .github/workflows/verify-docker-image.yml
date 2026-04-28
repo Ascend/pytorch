@@ -46,7 +46,7 @@ jobs:
       - name: Check Python version
         run: |
           docker run --rm ${{ steps.image.outputs.image }} \
-            bash -c "python3.11 --version && pip3.11 list | grep -E 'torch|pytest' || echo 'No torch/pytest packages found'"
+            bash -c "python3.11 --version"
 
       - name: Verify CANN toolkit installation
         run: |

@@ -32,6 +32,7 @@ on:
 jobs:
   build:
     runs-on: linux-aarch64-a3-16
+    timeout-minutes: 240
     outputs:
       docker-image: ${{ steps.set_image.outputs.docker-image }}
 
