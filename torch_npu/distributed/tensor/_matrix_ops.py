@@ -5,6 +5,7 @@ import torch
 from torch.distributed._tensor.experimental import register_sharding
 from torch.distributed.tensor._dtensor_spec import DTensorSpec, TensorMeta
 from torch.distributed.tensor._ops.utils import expand_to_full_mesh_op_strategy
+from torch.distributed.tensor._ops._matrix_ops import _mm_like_strategy
 from torch_npu._compat.distributed import register_op_strategy
 from torch.distributed.tensor import DTensor, Partial, Replicate, Shard
 from torch.distributed.tensor._op_schema import (
@@ -820,6 +821,12 @@ def custom_dropout_backward_sharding(op_schema: OpSchema) -> OpStrategy:
     ])
 
     return output_strategy
+
+
+@register_op_strategy(npu.npu_bmmV2.default)
+def custom_bmm_strategy(op_schema: OpSchema):
+    mesh = op_schema.get_mesh_from_args()
+    return _mm_like_strategy("bmk,bkn->bmn", mesh, op_schema)
 
 
 customized_ops = {

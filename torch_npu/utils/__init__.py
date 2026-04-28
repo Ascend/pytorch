@@ -9,7 +9,6 @@ from .storage import _add_storage_methods
 from .combine_tensors import npu_combine_tensors, get_part_combined_tensor, is_combined_tensor_valid
 from .serialization import _add_serialization_methods, save_async
 from .npu_intercept import _cann_package_check, _add_intercept_methods
-from .dtensor import _register_ops_under_dtensor_rules
 from .collect_env import _add_collect_env_methods
 from ._dynamo import add_dynamo_methods
 from ._inductor import _inductor_register_device_op_overrides
