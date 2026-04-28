@@ -14,10 +14,13 @@ __all__ = [
 
 import gc
 import logging
+import os
 import re
+import threading
 import typing
 from copy import deepcopy
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import List, Dict, Any, Optional, Tuple
 
 import torch
@@ -112,12 +115,67 @@ def _super_kernel_scope_end_impl(scope_name: Optional[str] = None) -> None:
     _super_kernel_scope_end(scope_name)
 
 
+_save_npugraph_tensor_lock = threading.Lock()
+_save_npugraph_tensor_counters = {}
+
+
+def _build_save_npugraph_tensor_path(save_path=None, device_index=None, overwrite=False):
+    if save_path is None:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+        save_path = f"tensor_{timestamp}.pt"
+    if not isinstance(save_path, str):
+        raise TypeError(f"save_path must be str or None, but got {type(save_path).__name__}")
+    if not isinstance(overwrite, bool):
+        raise TypeError(f"overwrite must be bool, but got {type(overwrite).__name__}")
+
+    directory, filename = os.path.split(save_path)
+    stem, suffix = os.path.splitext(filename)
+    if not stem:
+        raise ValueError("save_path must include a file name")
+    if not suffix:
+        suffix = ".pt"
+
+    file_stem = stem
+    if device_index is not None:
+        file_stem = f"{file_stem}_device_{device_index}"
+
+    if overwrite:
+        final_name = f"{file_stem}{suffix}"
+        return os.path.join(directory, final_name) if directory else final_name
+
+    counter_key = os.path.join(directory, f"{file_stem}{suffix}")
+    with _save_npugraph_tensor_lock:
+        file_index = _save_npugraph_tensor_counters.get(counter_key, 0)
+        _save_npugraph_tensor_counters[counter_key] = file_index + 1
+
+    final_name = f"{file_stem}_{file_index}{suffix}"
+    return os.path.join(directory, final_name) if directory else final_name
+
+
 def _print_callback_pending(tensor_name, tensor_arg):
     output = str(tensor_arg)
     if tensor_name is not None:
         output = f"{tensor_name}={output}"
     output = f"{output}, shape={tuple(tensor_arg.shape)}, dtype={tensor_arg.dtype}"
     print(output, flush=True)
+
+
+def _save_callback_pending(tensor_arg, str_arg):
+    torch.save(tensor_arg, str_arg)
+
+
+def _validate_tensor_list(inputs):
+    if not isinstance(inputs, (list, tuple)):
+        raise TypeError(f"input must be Tensor or TensorList, but got {type(inputs).__name__}")
+    if len(inputs) == 0:
+        raise ValueError("input tensor list must not be empty")
+    if not all(isinstance(tensor, torch.Tensor) for tensor in inputs):
+        raise TypeError("all elements in input tensor list must be Tensor")
+    first_device = inputs[0].device
+    for tensor in inputs[1:]:
+        if tensor.device != first_device:
+            raise ValueError("all tensors in input tensor list must be on the same device")
+    return first_device
 
 
 def _print_npugraph_tensor_impl(input, tensor_name=None):
@@ -136,6 +194,33 @@ def _print_npugraph_tensor_impl(input, tensor_name=None):
         _print_callback_pending,
         (tensor_name, cpu_arg),
     )
+
+
+def _save_npugraph_tensor_impl(input, save_path=None, overwrite=False):
+    if not isinstance(input, torch.Tensor):
+        return
+
+    device = input.device
+    if device.type != "npu":
+        torch.save(input, _build_save_npugraph_tensor_path(save_path, overwrite=overwrite))
+        return
+
+    final_path = _build_save_npugraph_tensor_path(save_path, device.index, overwrite)
+    cpu_arg = input.to("cpu", non_blocking=True)
+    current_compute_stream = torch_npu.npu.current_stream()
+    torch_npu.npu._launch_host_func_pending(current_compute_stream, _save_callback_pending, (cpu_arg, final_path))
+
+
+def _save_npugraph_tensor_tensor_list_impl(input, save_path=None, overwrite=False):
+    device = _validate_tensor_list(input)
+    if device.type != "npu":
+        torch.save(list(input), _build_save_npugraph_tensor_path(save_path, overwrite=overwrite))
+        return
+
+    final_path = _build_save_npugraph_tensor_path(save_path, device.index, overwrite)
+    cpu_args = [tensor.to("cpu", non_blocking=True) for tensor in input]
+    current_compute_stream = torch_npu.npu.current_stream()
+    torch_npu.npu._launch_host_func_pending(current_compute_stream, _save_callback_pending, (cpu_args, final_path))
 
 
 _npu_lib = torch.library.Library("npu", "FRAGMENT")
@@ -177,6 +262,27 @@ if not hasattr(torch.ops.npu, "print_npugraph_tensor"):
 
     @torch.library.register_fake("npu::print_npugraph_tensor")
     def _print_npugraph_tensor_meta(input, *, tensor_name=None):
+        pass
+
+
+if not hasattr(torch.ops.npu, "save_npugraph_tensor"):
+    _npu_lib.define("save_npugraph_tensor(Tensor input, *, str? save_path=None, bool overwrite=False) -> ()")
+    _npu_lib.define("save_npugraph_tensor.tensor_list(Tensor[] input, *, str? save_path=None, bool overwrite=False) -> ()")
+
+    _npu_lib.impl("save_npugraph_tensor", _save_npugraph_tensor_impl, "PrivateUse1")
+    _npu_lib.impl("save_npugraph_tensor", lambda input, *, save_path=None, overwrite=False: None, "CPU")
+    _npu_lib.impl("save_npugraph_tensor.tensor_list", _save_npugraph_tensor_tensor_list_impl, "PrivateUse1")
+    _npu_lib.impl("save_npugraph_tensor.tensor_list", lambda input, *, save_path=None, overwrite=False: None, "CPU")
+
+    has_side_effect(torch.ops.npu.save_npugraph_tensor.default)
+    has_side_effect(torch.ops.npu.save_npugraph_tensor.tensor_list)
+
+    @torch.library.register_fake("npu::save_npugraph_tensor")
+    def _save_npugraph_tensor_meta(input, *, save_path=None, overwrite=False):
+        pass
+
+    @torch.library.register_fake("npu::save_npugraph_tensor.tensor_list")
+    def _save_npugraph_tensor_tensor_list_meta(input, *, save_path=None, overwrite=False):
         pass
 
 
