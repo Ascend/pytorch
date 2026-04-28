@@ -6,6 +6,10 @@ on:
     paths:
       - '.github/docker/pytorch-npu-builder.Dockerfile'
       - '.github/workflows/build-docker-image.yml'
+  pull_request:
+    paths:
+      - '.github/docker/pytorch-npu-builder.Dockerfile'
+      - '.github/workflows/build-docker-image.yml'
   schedule:
     - cron: '0 2 * * 0'  # UTC 02:00, Beijing 10:00, every Sunday
   workflow_dispatch:
@@ -52,7 +56,7 @@ jobs:
         with:
           context: .github/docker
           file: .github/docker/pytorch-npu-builder.Dockerfile
-          push: true
+          push: ${{ github.event_name != 'pull_request' }}
           tags: |
             ${{ env.REGISTRY }}/${{ steps.tag.outputs.repo_owner }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.tag }}
             ${{ env.REGISTRY }}/${{ steps.tag.outputs.repo_owner }}/${{ env.IMAGE_NAME }}:latest
@@ -60,6 +64,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Set package visibility to public
+        if: github.event_name != 'pull_request'
         run: |
           curl -X PATCH \
             -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
