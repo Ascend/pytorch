@@ -123,7 +123,7 @@ jobs:
 
           # 配置 ccache
           ccache --set-config=cache_dir=~/.cache/ccache
-          ccache --set-config=max_size=5G
+          ccache --set-config=max_size=20G
           ccache --set-config=compression=true
 
           # 使用符号链接方式让 ccache 模拟 gcc/g++
@@ -162,7 +162,7 @@ jobs:
           pip${{ inputs.python_version }} install -r requirements-build.txt
 
           # 设置构建环境变量
-          export MAX_JOBS=40
+          export MAX_JOBS=80
           export USE_CUDA=0
           export USE_CUDNN=0
           export USE_DISTRIBUTED=1
@@ -194,7 +194,7 @@ jobs:
           pip${{ inputs.python_version }} install --upgrade pip setuptools wheel
           pip${{ inputs.python_version }} install cmake ninja numpy packaging pyyaml requests six typing-extensions
 
-          export MAX_JOBS=40
+          export MAX_JOBS=80
 
           # 禁用 torchair 构建（上游 PyTorch main API 变化导致兼容性问题）
           bash ci/build.sh --python=${{ inputs.python_version }} --disable_torchair
