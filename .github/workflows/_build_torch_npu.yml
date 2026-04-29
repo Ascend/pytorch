@@ -34,6 +34,8 @@ env:
   CACHE_VERSION: 'v2'
   # GitHub 代理 URL（用于加速 git clone，留空则不使用代理）
   GH_PROXY_URL: 'https://gh-proxy.test.osinfra.cn'
+  # PyPI 缓存 URL（用于加速 pip 下载）
+  PYPI_CACHE_URL: 'http://cache-service.nginx-pypi-cache.svc.cluster.local/pypi/simple'
 
 jobs:
   build:
@@ -114,6 +116,17 @@ jobs:
       - name: Setup pip cache directory
         run: |
           mkdir -p ~/.cache/pip
+
+      - name: Configure pip index URL
+        run: |
+          # 配置 pip 使用 PyPI 缓存加速下载
+          if [ -n "${{ env.PYPI_CACHE_URL }}" ]; then
+            pip${{ inputs.python_version }} config set global.index-url ${{ env.PYPI_CACHE_URL }}
+            pip${{ inputs.python_version }} config set global.trusted-host "cache-service.nginx-pypi-cache.svc.cluster.local"
+            echo "pip index-url configured: ${{ env.PYPI_CACHE_URL }}"
+          else
+            echo "No PyPI cache URL configured, using default"
+          fi
 
       # ==================== ccache 缓存配置 ====================
       # ccache 是真正加速编译的关键（可节省 30-60 分钟）

@@ -20,6 +20,8 @@ on:
 env:
   PYTHON_VERSION: '3.11'
   CACHE_VERSION: 'v2'
+  # PyPI 缓存 URL（用于加速 pip 下载）
+  PYPI_CACHE_URL: 'http://cache-service.nginx-pypi-cache.svc.cluster.local/pypi/simple'
 
 jobs:
   test:
@@ -58,6 +60,17 @@ jobs:
       - name: Setup pip cache directory
         run: |
           mkdir -p ~/.cache/pip
+
+      - name: Configure pip index URL
+        run: |
+          # 配置 pip 使用 PyPI 缓存加速下载
+          if [ -n "${{ env.PYPI_CACHE_URL }}" ]; then
+            pip${{ env.PYTHON_VERSION }} config set global.index-url ${{ env.PYPI_CACHE_URL }}
+            pip${{ env.PYTHON_VERSION }} config set global.trusted-host "cache-service.nginx-pypi-cache.svc.cluster.local"
+            echo "pip index-url configured: ${{ env.PYPI_CACHE_URL }}"
+          else
+            echo "No PyPI cache URL configured, using default"
+          fi
 
       - name: Download torch wheel
         uses: actions/download-artifact@v4
