@@ -76,12 +76,15 @@ jobs:
       - name: Get PyTorch build cache key
         id: pytorch_cache_key
         run: |
-          # 缓存键基于：PyTorch SHA + requirements-build.txt 内容 + 缓存版本
+          # 缓存键顺序：低频变化在前，高频变化在后
+          # requirements-build.txt 变化频率 < PyTorch commit SHA
           PYTORCH_SHA="${{ steps.clone_pytorch.outputs.pytorch_sha }}"
           REQUIREMENTS_HASH=$(cd pytorch-src && sha256sum requirements-build.txt | cut -d' ' -f1)
-          echo "cache_key=${{ env.CACHE_VERSION }}-pytorch-${PYTORCH_SHA}-${REQUIREMENTS_HASH}" >> $GITHUB_OUTPUT
+          echo "cache_key=${{ env.CACHE_VERSION }}-pytorch-${REQUIREMENTS_HASH}-${PYTORCH_SHA}" >> $GITHUB_OUTPUT
+          echo "partial_key=${{ env.CACHE_VERSION }}-pytorch-${REQUIREMENTS_HASH}-" >> $GITHUB_OUTPUT
 
       - name: Restore PyTorch build cache
+        id: restore_pytorch_cache
         uses: actions/cache/restore@v4
         with:
           path: |
@@ -90,18 +93,33 @@ jobs:
             ~/.cache/pip
           key: ${{ steps.pytorch_cache_key.outputs.cache_key }}
           restore-keys: |
+            ${{ steps.pytorch_cache_key.outputs.partial_key }}
             ${{ env.CACHE_VERSION }}-pytorch-
 
-      - name: Check if PyTorch wheel exists
+      - name: Check if PyTorch wheel exists (complete match only)
         id: check_pytorch_wheel
         run: |
-          if ls pytorch-src/dist/*.whl 1>/dev/null 2>&1; then
-            echo "wheel_exists=true" >> $GITHUB_OUTPUT
-            echo "Found cached PyTorch wheel:"
-            ls -la pytorch-src/dist/
+          # 只有完整匹配缓存（key 完全匹配）才能复用 wheel
+          # 降级匹配的缓存可能来自不同 commit，不能复用 wheel
+          CACHE_KEY="${{ steps.pytorch_cache_key.outputs.cache_key }}"
+          RESTORED_KEY="${{ steps.restore_pytorch_cache.outputs.cache-hit == 'true' && steps.restore_pytorch_cache.outputs.cache-matched-key || '' }}"
+
+          if [[ "$CACHE_KEY" == "$RESTORED_KEY" ]]; then
+            # 完整匹配，检查 wheel 是否存在
+            if ls pytorch-src/dist/*.whl 1>/dev/null 2>&1; then
+              echo "wheel_exists=true" >> $GITHUB_OUTPUT
+              echo "Found cached PyTorch wheel (complete match):"
+              ls -la pytorch-src/dist/
+            else
+              echo "wheel_exists=false" >> $GITHUB_OUTPUT
+              echo "Complete match but no wheel found, will rebuild"
+            fi
           else
+            # 降级匹配或未命中缓存，不能复用 wheel，需要重新构建
             echo "wheel_exists=false" >> $GITHUB_OUTPUT
-            echo "No cached wheel found, will build PyTorch"
+            echo "Cache hit type: ${RESTORED_KEY:-'miss'} (not complete match, will rebuild)"
+            # 清理可能存在的旧 wheel，避免版本混淆
+            rm -rf pytorch-src/dist/*.whl 2>/dev/null || true
           fi
 
       - name: Build PyTorch wheel
@@ -143,12 +161,15 @@ jobs:
       - name: Get torch_npu build cache key
         id: torch_npu_cache_key
         run: |
-          # 缓存键基于：torch_npu 仓库 SHA + PyTorch SHA + 缓存版本
+          # 缓存键顺序：低频变化在前，高频变化在后
+          # torch_npu SHA 变化频率 < PyTorch SHA 变化频率
           TORCH_NPU_SHA=$(cd torch_npu-src && git rev-parse HEAD)
           PYTORCH_SHA="${{ steps.clone_pytorch.outputs.pytorch_sha }}"
           echo "cache_key=${{ env.CACHE_VERSION }}-torch_npu-${TORCH_NPU_SHA}-${PYTORCH_SHA}" >> $GITHUB_OUTPUT
+          echo "partial_key=${{ env.CACHE_VERSION }}-torch_npu-${TORCH_NPU_SHA}-" >> $GITHUB_OUTPUT
 
       - name: Restore torch_npu build cache
+        id: restore_torch_npu_cache
         uses: actions/cache/restore@v4
         with:
           path: |
@@ -156,18 +177,32 @@ jobs:
             torch_npu-src/dist
           key: ${{ steps.torch_npu_cache_key.outputs.cache_key }}
           restore-keys: |
+            ${{ steps.torch_npu_cache_key.outputs.partial_key }}
             ${{ env.CACHE_VERSION }}-torch_npu-
 
-      - name: Check if torch_npu wheel exists
+      - name: Check if torch_npu wheel exists (complete match only)
         id: check_torch_npu_wheel
         run: |
-          if ls torch_npu-src/dist/*.whl 1>/dev/null 2>&1; then
-            echo "wheel_exists=true" >> $GITHUB_OUTPUT
-            echo "Found cached torch_npu wheel:"
-            ls -la torch_npu-src/dist/
+          # 只有完整匹配缓存才能复用 wheel（依赖的 PyTorch 版本必须相同）
+          CACHE_KEY="${{ steps.torch_npu_cache_key.outputs.cache_key }}"
+          RESTORED_KEY="${{ steps.restore_torch_npu_cache.outputs.cache-hit == 'true' && steps.restore_torch_npu_cache.outputs.cache-matched-key || '' }}"
+
+          if [[ "$CACHE_KEY" == "$RESTORED_KEY" ]]; then
+            # 完整匹配，检查 wheel 是否存在
+            if ls torch_npu-src/dist/*.whl 1>/dev/null 2>&1; then
+              echo "wheel_exists=true" >> $GITHUB_OUTPUT
+              echo "Found cached torch_npu wheel (complete match):"
+              ls -la torch_npu-src/dist/
+            else
+              echo "wheel_exists=false" >> $GITHUB_OUTPUT
+              echo "Complete match but no wheel found, will rebuild"
+            fi
           else
+            # 降级匹配或未命中缓存，不能复用 wheel
             echo "wheel_exists=false" >> $GITHUB_OUTPUT
-            echo "No cached wheel found, will build torch_npu"
+            echo "Cache hit type: ${RESTORED_KEY:-'miss'} (not complete match, will rebuild)"
+            # 清理可能存在的旧 wheel
+            rm -rf torch_npu-src/dist/*.whl 2>/dev/null || true
           fi
 
       - name: Build torch_npu wheel
