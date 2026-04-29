@@ -32,6 +32,8 @@ on:
 env:
   # 缓存版本号，当需要强制刷新缓存时修改此值
   CACHE_VERSION: 'v1'
+  # GitHub 代理 URL（用于加速 git clone，留空则不使用代理）
+  GH_PROXY_URL: 'https://gh-proxy.test.osinfra.cn'
 
 jobs:
   build:
@@ -60,11 +62,30 @@ jobs:
       - name: Clone upstream PyTorch main
         id: clone_pytorch
         run: |
+          # 使用代理加速 git clone（如果配置了 GH_PROXY_URL）
+          PYTORCH_REPO="https://github.com/pytorch/pytorch.git"
+          if [ -n "${{ env.GH_PROXY_URL }}" ]; then
+            PYTORCH_REPO="${{ env.GH_PROXY_URL }}/${PYTORCH_REPO}"
+            echo "Using proxy: ${PYTORCH_REPO}"
+          fi
+
           git clone --depth=1 --branch ${{ inputs.pytorch_branch }} \
-            https://github.com/pytorch/pytorch.git pytorch-src
+            "${PYTORCH_REPO}" pytorch-src
           PYTORCH_SHA=$(cd pytorch-src && git rev-parse HEAD)
           echo "pytorch_sha=${PYTORCH_SHA}" >> $GITHUB_OUTPUT
           echo "Cloned PyTorch commit: ${PYTORCH_SHA}"
+
+      - name: Configure git proxy for faster clone
+        run: |
+          # 配置 git URL rewrite 来使用代理（加速 submodules clone）
+          if [ -n "${{ env.GH_PROXY_URL }}" ]; then
+            git config --global url."${{ env.GH_PROXY_URL }}/https://github.com/".insteadOf "https://github.com/"
+            git config --global url."${{ env.GH_PROXY_URL }}/https://gitlab.com/".insteadOf "https://gitlab.com/"
+            echo "Git proxy configured:"
+            git config --global --list | grep url
+          else
+            echo "No proxy configured, using direct connection"
+          fi
 
       - name: Checkout torch_npu
         uses: actions/checkout@v4
