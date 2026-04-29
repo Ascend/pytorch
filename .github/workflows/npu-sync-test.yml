@@ -30,7 +30,7 @@ env:
 
 jobs:
   build:
-    uses: ./.github/workflows/_build.yml
+    uses: ./.github/workflows/_build_torch_npu.yml
     with:
       pytorch_branch: ${{ inputs.pytorch_branch || 'main' }}
       python_version: '3.11'
