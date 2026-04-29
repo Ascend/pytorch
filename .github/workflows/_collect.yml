@@ -129,9 +129,8 @@ jobs:
         id: collect
         run: |
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
-          cd pytorch-src
 
-          python${{ env.PYTHON_VERSION }} ../.github/scripts/collect_all_cases.py \
+          python${{ env.PYTHON_VERSION }} .github/scripts/collect_all_cases.py \
             --test-dir test \
             --distributed-shards ${{ inputs.distributed-shards }} \
             --regular-shards ${{ inputs.regular-shards }} \
@@ -154,4 +153,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: cases-shards
-          path: pytorch-src/cases_shards/
+          path: cases_shards/

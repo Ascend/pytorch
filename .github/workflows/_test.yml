@@ -119,7 +119,7 @@ jobs:
 
           python .github/scripts/run_npu_test_shard.py \
             --cases-json cases-shards/${{ inputs.test-type }}_cases_shard_${{ inputs.shard-index }}.json \
-            --test-dir pytorch-src/test \
+            --test-dir test \
             --report-dir test-reports \
             --timeout 300 \
             --max-workers ${{ inputs.max-workers }} \

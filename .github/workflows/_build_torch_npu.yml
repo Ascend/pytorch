@@ -274,12 +274,8 @@ jobs:
       # ==================== 打包和上传 ====================
       - name: Package test source
         run: |
-          tar -czf test-src.tar.gz \
-            --exclude='pytorch-src/build' \
-            --exclude='pytorch-src/dist' \
-            --exclude='torch_npu-src/build' \
-            --exclude='torch_npu-src/dist' \
-            pytorch-src
+          # 只打包测试目录，不需要整个 PyTorch 源码
+          tar -czf test-src.tar.gz pytorch-src/test
           ls -la test-src.tar.gz
 
       - name: Upload PyTorch wheel
