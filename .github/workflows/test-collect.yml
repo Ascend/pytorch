@@ -121,9 +121,30 @@ jobs:
 
       - name: Verify NPU availability
         run: |
+          echo "=== CANN Directory Contents ==="
+          ls -la /usr/local/Ascend/ || echo "Ascend directory not found"
+          echo ""
+          echo "=== CANN Version Info ==="
+          if [ -d /usr/local/Ascend/cann ]; then
+            ls -la /usr/local/Ascend/cann/
+            echo ""
+            echo "=== CANN Version File ==="
+            cat /usr/local/Ascend/cann/version.info 2>/dev/null || echo "version.info not found"
+          else
+            echo "CANN directory not found"
+          fi
+          echo ""
+          echo "=== NNAL Directory Contents ==="
+          if [ -d /usr/local/Ascend/nnal ]; then
+            ls -la /usr/local/Ascend/nnal/
+          else
+            echo "NNAL directory not found"
+          fi
+
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
           source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
 
+          echo ""
           echo "=== NPU-SMI Info ==="
           npu-smi info || echo "npu-smi not available"
 
