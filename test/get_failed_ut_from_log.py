@@ -1,6 +1,19 @@
 import argparse
 import json
+import os
 import re
+
+
+def _get_disabled_tests_file():
+    try:
+        from torch_npu._compat.version import CURRENT_VERSION
+        ver = f"{CURRENT_VERSION[0]}.{CURRENT_VERSION[1]}"
+        versioned = f"unsupported_test_cases/.pytorch-disabled-tests-{ver}.json"
+        if os.path.exists(versioned):
+            return versioned
+    except Exception:
+        pass
+    return "unsupported_test_cases/.pytorch-disabled-tests.json"
 
 
 def get_error_or_fail_ut(file):
@@ -18,7 +31,7 @@ def get_error_or_fail_ut(file):
 
 
 def write_to_json(ut_list=None):
-    file1 = "unsupported_test_cases/.pytorch-disabled-tests.json"
+    file1 = _get_disabled_tests_file()
     fr = open(file1)
     content = json.load(fr)
     if not ut_list:
@@ -26,6 +39,7 @@ def write_to_json(ut_list=None):
     for line in ut_list:
         content[line] = ["", [""]]
     with open("./pytorch-disabled-tests.json", mode="w") as fp:
+        # TODO: now only write main file, need rename to different version manually.
         fp.write("{\n")
         length = len(content.keys()) - 1
         for i, (key, (value1, value2)) in enumerate(content.items()):

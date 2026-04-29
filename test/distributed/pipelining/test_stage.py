@@ -15,14 +15,14 @@ from torch.distributed.pipelining import (
     ScheduleGPipe,
 )
 from torch.distributed.pipelining._utils import PipeliningShapeError
-from torch.testing._internal.common_cuda import TEST_MULTIGPU
 from torch.testing._internal.common_distributed import (
-    MultiProcContinousTest,
+    MultiProcContinuousTest,
     requires_nccl,
 )
 from torch.testing._internal.common_utils import (
     instantiate_parametrized_tests,
     parametrize,
+    run_tests,
     skip_but_pass_in_sandcastle_if,
 )
 from torch.utils._pytree import tree_map_only
@@ -31,6 +31,7 @@ from torch.utils._pytree import tree_map_only
 d_hid = 512
 batch_size = 256
 chunks = 4
+device_type = "npu"
 
 torch.manual_seed(0)
 
@@ -59,7 +60,8 @@ def get_flatten_hook():
     return flatten_hook
 
 
-class StageTest(MultiProcContinousTest):
+class StageTest(MultiProcContinuousTest):
+    world_size = int(os.getenv("WORLD_SIZE", 2))
     @classmethod
     def backend_str(cls) -> str:
         # Testing with HCCL backend
@@ -74,6 +76,10 @@ class StageTest(MultiProcContinousTest):
         super().setUpClass()
         dev_id = cls.rank % torch.npu.device_count()
         cls.device = torch.device(f"npu:{dev_id}")
+
+    @property
+    def device(self) -> torch.device:
+        return torch.device(device_type, self.rank)
 
     @parametrize("ModelClass", [ExampleCode, MultiMLP])
     def test_tracer(self, ModelClass):
@@ -306,6 +312,7 @@ class StageTest(MultiProcContinousTest):
             self.device,
             dw_builder=lambda: None,
         )
+        stage_with_dw_builder.has_backward = True
         with self.assertRaisesRegex(AssertionError, "backward_one_chunk"):
             stage_with_dw_builder.backward_weight_one_chunk(bwd_chunk_id=0)
 
@@ -325,18 +332,4 @@ if __name__ == "__main__":
         )
         sys.exit(0)
 
-    rank = int(os.getenv("RANK", -1))
-    world_size = int(os.getenv("WORLD_SIZE", 2))
-
-    if rank != -1:
-        # Launched with torchrun or other multi-proc launchers. Directly run the test.
-        StageTest.run_rank(rank, world_size)
-    else:
-        # Launched as a single process. Spawn subprocess to run the tests.
-        # Also need a rendezvous file for `init_process_group` purpose.
-        rdvz_file = tempfile.NamedTemporaryFile(delete=False).name
-        torch.multiprocessing.spawn(
-            StageTest.run_rank,
-            nprocs=world_size,
-            args=(world_size, rdvz_file),
-        )
+    run_tests()

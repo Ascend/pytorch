@@ -1,3 +1,4 @@
+import enum
 import importlib
 import inspect
 import json
@@ -123,6 +124,14 @@ def is_not_compatibility(base_str, new_str, api_str=None):
     return False
 
 
+def _normalize_enum_signature(obj, signature):
+    # Python 3.11+ adds boundary=None to Enum class signatures via EnumMeta.__call__.
+    # Strip it so that signatures stored on 3.10 and those captured on 3.11+ compare equal.
+    if inspect.isclass(obj) and issubclass(obj, enum.Enum):
+        signature = re.sub(r',\s*boundary=[^,)]+', '', signature)
+    return signature
+
+
 def api_signature(obj, api_str, content, base_schema, failure_list):
     signature = inspect.signature(obj)
     signature = str(signature)
@@ -130,8 +139,10 @@ def api_signature(obj, api_str, content, base_schema, failure_list):
         signature = re.sub("Any = <module 'pickle' from .+\\.py'>", "Any = <module 'pickle'>", signature)
     if re.search(" at 0x[\\da-zA-Z]+>", signature):
         signature = re.sub(" at 0x[\\da-zA-Z]+>", ">", signature)
+    signature = _normalize_enum_signature(obj, signature)
     if api_str in base_schema.keys():
         value = base_schema[api_str]["signature"]
+        value = _normalize_enum_signature(obj, value)
         if is_not_compatibility(value, signature, api_str=api_str):
             set_failure_list(api_str, value, signature, failure_list)
     content[api_str] = {"signature": signature}
