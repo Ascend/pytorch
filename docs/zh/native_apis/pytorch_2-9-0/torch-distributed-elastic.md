@@ -28,6 +28,10 @@
 |torch.distributed.elastic.agent.server.SimpleElasticAgent._start_workers|是|-|
 |torch.distributed.elastic.agent.server.SimpleElasticAgent._stop_workers|是|-|
 |torch.distributed.elastic.agent.server.api.RunResult|是|-|
+|torch.distributed.elastic.agent.server.health_check_server.create_healthcheck_server|是|-|
+|torch.distributed.elastic.agent.server.health_check_server.HealthCheckServer|是|-|
+|torch.distributed.elastic.agent.server.health_check_server.HealthCheckServer.start|是|-|
+|torch.distributed.elastic.agent.server.health_check_server.HealthCheckServer.stop|是|-|
 |torch.distributed.elastic.multiprocessing.start_processes|是|-|
 |torch.distributed.elastic.multiprocessing.api.PContext|是|-|
 |torch.distributed.elastic.multiprocessing.api.MultiprocessContext|是|-|
