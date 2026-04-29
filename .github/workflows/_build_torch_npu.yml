@@ -162,7 +162,7 @@ jobs:
           pip${{ inputs.python_version }} install -r requirements-build.txt
 
           # 设置构建环境变量
-          export MAX_JOBS=80
+          export MAX_JOBS=128
           export USE_CUDA=0
           export USE_CUDNN=0
           export USE_DISTRIBUTED=1
@@ -194,7 +194,7 @@ jobs:
           pip${{ inputs.python_version }} install --upgrade pip setuptools wheel
           pip${{ inputs.python_version }} install cmake ninja numpy packaging pyyaml requests six typing-extensions
 
-          export MAX_JOBS=80
+          export MAX_JOBS=128
 
           # 禁用 torchair 构建（上游 PyTorch main API 变化导致兼容性问题）
           bash ci/build.sh --python=${{ inputs.python_version }} --disable_torchair
