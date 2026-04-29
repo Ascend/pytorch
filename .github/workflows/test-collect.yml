@@ -176,9 +176,11 @@ jobs:
       - name: Get test list from run_test.py
         id: get_tests
         run: |
-          cd pytorch-src
+          # 切换到 test 目录执行，避免根目录 torch 与安装的 torch 库冲突
+          cd pytorch-src/test
+
           # 获取 --help 输出，从中解析测试列表
-          python${{ env.PYTHON_VERSION }} test/run_test.py --help > /tmp/run_test_help.txt 2>&1 || true
+          python${{ env.PYTHON_VERSION }} run_test.py --help > /tmp/run_test_help.txt 2>&1 || true
           cat /tmp/run_test_help.txt
 
           # 解析测试列表（从 "where TESTS is any of:" 后面获取）
@@ -219,7 +221,9 @@ jobs:
         timeout-minutes: 120
         run: |
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
-          cd pytorch-src
+
+          # 切换到 test 目录执行，避免根目录 torch 与安装的 torch 库冲突
+          cd pytorch-src/test
 
           echo "=== Starting test execution ==="
           TEST_COUNT=0
@@ -239,7 +243,7 @@ jobs:
 
             # 运行测试，捕获输出，即使失败也继续
             set +e
-            python${{ env.PYTHON_VERSION }} test/run_test.py -i "${test_name}" -v 2>&1 | tee /tmp/test_output_${TEST_COUNT}.log
+            python${{ env.PYTHON_VERSION }} run_test.py -i "${test_name}" -v 2>&1 | tee /tmp/test_output_${TEST_COUNT}.log
             TEST_EXIT_CODE=${PIPESTATUS[0]}
             set -e
 
