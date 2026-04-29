@@ -68,13 +68,18 @@ def collect_cases_from_file(test_dir: Path, test_file: str, parallel: int = 1, v
             if verbose:
                 print(f"[ERROR] {test_file}: pytest returned {result.returncode}")
                 if result.stderr:
-                    print(f"  stderr: {result.stderr[:200]}")
+                    # 打印完整 stderr，不截断
+                    for line in result.stderr.splitlines():
+                        print(f"  {line}")
         elif len(cases) == 0:
             # No cases collected, might be import error or empty file
             if result.stderr:
                 error_msg = result.stderr.strip()
                 if verbose:
-                    print(f"[WARN] {test_file}: 0 cases collected, stderr: {result.stderr[:200]}")
+                    print(f"[WARN] {test_file}: 0 cases collected")
+                    # 打印完整 stderr
+                    for line in result.stderr.splitlines():
+                        print(f"  {line}")
             else:
                 if verbose:
                     print(f"[WARN] {test_file}: 0 cases collected (possibly empty or all skipped)")
@@ -185,15 +190,20 @@ def collect_all_cases(
         if distributed_errors:
             print(f"Distributed files with errors: {len(distributed_errors)}")
             for file, error in sorted(distributed_errors.items())[:10]:
-                print(f"  {file}: {error[:100]}")
+                # 打印完整错误信息
+                print(f"  {file}:")
+                for line in error.splitlines()[:5]:  # 只打印前5行避免过长
+                    print(f"    {line}")
             if len(distributed_errors) > 10:
-                print(f"  ... and {len(distributed_errors) - 10} more")
+                print(f"  ... and {len(distributed_errors) - 10} more files")
         if regular_errors:
             print(f"Regular files with errors: {len(regular_errors)}")
             for file, error in sorted(regular_errors.items())[:10]:
-                print(f"  {file}: {error[:100]}")
+                print(f"  {file}:")
+                for line in error.splitlines()[:5]:
+                    print(f"    {line}")
             if len(regular_errors) > 10:
-                print(f"  ... and {len(regular_errors) - 10} more")
+                print(f"  ... and {len(regular_errors) - 10} more files")
 
     # Shard cases
     distributed_sharded = shard_cases(distributed_cases, distributed_shards)
