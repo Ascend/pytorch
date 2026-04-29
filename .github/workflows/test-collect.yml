@@ -171,3 +171,98 @@ jobs:
           else
             echo "Summary file not found"
           fi
+
+      # ==================== 使用 run_test.py 运行测试 ====================
+      - name: Get test list from run_test.py
+        id: get_tests
+        run: |
+          cd pytorch-src
+          # 获取 --help 输出，从中解析测试列表
+          python${{ env.PYTHON_VERSION }} test/run_test.py --help > /tmp/run_test_help.txt 2>&1 || true
+          cat /tmp/run_test_help.txt
+
+          # 解析测试列表（从 "where TESTS is any of:" 后面获取）
+          python${{ env.PYTHON_VERSION }} -c "
+          import re
+          with open('/tmp/run_test_help.txt') as f:
+              content = f.read()
+          # 查找测试列表
+          match = re.search(r'where TESTS is any of:\s*(.+)', content)
+          if match:
+              tests_str = match.group(1)
+              # 解析逗号分隔的测试名称
+              tests = [t.strip() for t in tests_str.split(',')]
+              # 保存到文件
+              with open('/tmp/test_list.txt', 'w') as f:
+                  for t in tests:
+                      if t:
+                          f.write(t + '\n')
+              print(f'Found {len([t for t in tests if t])} tests')
+              print('Tests:', tests[:20], '...')
+          else:
+              print('Could not find TESTS list in help output')
+              # 如果解析失败，使用默认测试列表
+              default_tests = ['test_nn', 'test_torch', 'test_autograd', 'test_distributions', 'test_indexing', 'test_type_promotion']
+              with open('/tmp/test_list.txt', 'w') as f:
+                  for t in default_tests:
+                      f.write(t + '\n')
+              print(f'Using default test list: {default_tests}')
+          "
+
+          # 输出测试数量
+          TEST_COUNT=$(wc -l < /tmp/test_list.txt)
+          echo "test_count=${TEST_COUNT}" >> $GITHUB_OUTPUT
+          echo "=== Tests to run (${TEST_COUNT} tests) ==="
+          cat /tmp/test_list.txt
+
+      - name: Run tests using run_test.py
+        timeout-minutes: 120
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          cd pytorch-src
+
+          echo "=== Starting test execution ==="
+          TEST_COUNT=0
+          PASSED=0
+          FAILED=0
+
+          while IFS= read -r test_name; do
+            if [ -z "$test_name" ]; then
+              continue
+            fi
+
+            TEST_COUNT=$((TEST_COUNT + 1))
+            echo ""
+            echo "============================================"
+            echo "Test ${TEST_COUNT}: ${test_name}"
+            echo "============================================"
+
+            # 运行测试，捕获输出，即使失败也继续
+            set +e
+            python${{ env.PYTHON_VERSION }} test/run_test.py -i "${test_name}" -v 2>&1 | tee /tmp/test_output_${TEST_COUNT}.log
+            TEST_EXIT_CODE=${PIPESTATUS[0]}
+            set -e
+
+            # 检查结果
+            if [ $TEST_EXIT_CODE -eq 0 ]; then
+              echo ">>> ${test_name}: PASSED"
+              PASSED=$((PASSED + 1))
+            else
+              echo ">>> ${test_name}: FAILED (exit code: ${TEST_EXIT_CODE})"
+              FAILED=$((FAILED + 1))
+            fi
+
+            echo ""
+            echo "--------------------------------------------"
+            echo "Summary so far: ${PASSED} passed, ${FAILED} failed out of ${TEST_COUNT} tests"
+            echo "--------------------------------------------"
+
+          done < /tmp/test_list.txt
+
+          echo ""
+          echo "============================================"
+          echo "=== FINAL SUMMARY ==="
+          echo "Total tests run: ${TEST_COUNT}"
+          echo "Passed: ${PASSED}"
+          echo "Failed: ${FAILED}"
+          echo "============================================"
