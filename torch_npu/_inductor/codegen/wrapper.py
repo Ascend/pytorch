@@ -33,11 +33,17 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
     @cache_on_self
     def write_triton_header_once(self) -> None:
         super().write_triton_header_once()
+        import_str = f"""
+            import torch_npu
+            has_initialized = False
+        """
         if config.triton.autotune_at_compile_time:
+            self.kernel_autotune_calls.splice(import_str)
             self.kernel_autotune_calls.splice(
                 "import torch_npu._inductor.runtime.triton_heuristics as triton_heuristics"
             )
         if not V.graph.cpp_wrapper:
+            self.imports.splice(import_str, strip=True)
             self.imports.splice(
                 "import torch_npu._inductor.runtime.triton_heuristics as triton_heuristics"
             )
