@@ -93,72 +93,88 @@ jobs:
           path: torch_npu-src
           submodules: recursive
 
-      # ==================== PyTorch 构建缓存 ====================
-      # 只缓存 build 目录和 pip cache，不缓存 wheel（wheel 几乎不会复用）
-      - name: Get PyTorch build cache key
-        id: pytorch_cache_key
+      # ==================== 缓存配置 ====================
+      - name: Get cache key
+        id: cache_key
         run: |
-          # 缓存键顺序：低频变化在前，高频变化在后
-          # requirements-build.txt 变化频率 < PyTorch commit SHA
+          # 缓存键基于：requirements-build.txt + PyTorch SHA + torch_npu SHA
           PYTORCH_SHA="${{ steps.clone_pytorch.outputs.pytorch_sha }}"
+          TORCH_NPU_SHA=$(cd torch_npu-src && git rev-parse HEAD)
           REQUIREMENTS_HASH=$(cd pytorch-src && sha256sum requirements-build.txt | cut -d' ' -f1)
-          echo "cache_key=${{ env.CACHE_VERSION }}-pytorch-${REQUIREMENTS_HASH}-${PYTORCH_SHA}" >> $GITHUB_OUTPUT
-          echo "partial_key=${{ env.CACHE_VERSION }}-pytorch-${REQUIREMENTS_HASH}-" >> $GITHUB_OUTPUT
+          echo "cache_key=${{ env.CACHE_VERSION }}-${REQUIREMENTS_HASH}-${PYTORCH_SHA}-${TORCH_NPU_SHA}" >> $GITHUB_OUTPUT
+          echo "partial_key=${{ env.CACHE_VERSION }}-${REQUIREMENTS_HASH}-${PYTORCH_SHA}-" >> $GITHUB_OUTPUT
+          echo "pip_key=${{ env.CACHE_VERSION }}-pip-${REQUIREMENTS_HASH}" >> $GITHUB_OUTPUT
 
-      - name: Restore PyTorch build cache
-        id: restore_pytorch_cache
+      - name: Restore pip cache
         uses: actions/cache/restore@v4
         with:
-          # 只缓存 build 目录（CMake 构建缓存）和 pip cache
-          # 不缓存 dist 目录（wheel 包几乎不会复用，每次 commit 都需要重新构建）
-          path: |
-            pytorch-src/build
-            ~/.cache/pip
-          key: ${{ steps.pytorch_cache_key.outputs.cache_key }}
+          path: ~/.cache/pip
+          key: ${{ steps.cache_key.outputs.pip_key }}
           restore-keys: |
-            ${{ steps.pytorch_cache_key.outputs.partial_key }}
-            ${{ env.CACHE_VERSION }}-pytorch-
+            ${{ env.CACHE_VERSION }}-pip-
 
-      - name: Display PyTorch cache restore status
+      - name: Restore ccache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/ccache
+          key: ${{ steps.cache_key.outputs.cache_key }}
+          restore-keys: |
+            ${{ steps.cache_key.outputs.partial_key }}
+            ${{ env.CACHE_VERSION }}-
+
+      - name: Setup ccache
         run: |
-          echo "=== PyTorch Cache Restore Status ==="
-          echo "Cache hit: ${{ steps.restore_pytorch_cache.outputs.cache-hit }}"
-          echo "Matched key: ${{ steps.restore_pytorch_cache.outputs.cache-matched-key }}"
-          echo "Requested key: ${{ steps.pytorch_cache_key.outputs.cache_key }}"
+          # 安装 ccache（manylinux 镜像没有预装）
+          yum install -y ccache
+
+          # 配置 ccache
+          ccache --set-config=cache_dir=~/.cache/ccache
+          ccache --set-config=max_size=5G
+          ccache --set-config=compression=true
+
+          # 设置 ccache 环境变量（让 CMake 使用 ccache）
+          export CC="ccache gcc"
+          export CXX="ccache g++"
+          export CMAKE_C_COMPILER_LAUNCHER=ccache
+          export CMAKE_CXX_COMPILER_LAUNCHER=ccache
+
+          echo "CCACHE_DIR=~/.cache/ccache" >> $GITHUB_ENV
+          echo "CC=ccache gcc" >> $GITHUB_ENV
+          echo "CXX=ccache g++" >> $GITHUB_ENV
+
+          echo "=== ccache Configuration ==="
+          ccache --show-config
+
           echo ""
-          echo "=== Restored Directory Sizes ==="
-          if [ -d "pytorch-src/build" ]; then
-            BUILD_SIZE=$(du -sh pytorch-src/build 2>/dev/null | cut -f1)
-            echo "pytorch-src/build: ${BUILD_SIZE}"
-          else
-            echo "pytorch-src/build: not found"
-          fi
+          echo "=== ccache Statistics (before build) ==="
+          ccache --show-stats
+
+      - name: Display cache restore status
+        run: |
+          echo "=== Cache Restore Status ==="
           echo ""
-          echo "=== pip Cache Status ==="
+          echo "=== pip Cache ==="
           pip${{ inputs.python_version }} cache info 2>/dev/null || echo "pip cache info not available"
           if [ -d ~/.cache/pip ]; then
             PIP_SIZE=$(du -sh ~/.cache/pip 2>/dev/null | cut -f1)
             echo "pip cache size: ${PIP_SIZE}"
           else
-            echo "pip cache directory: not found"
+            echo "pip cache: not found"
           fi
+          echo ""
+          echo "=== ccache ==="
+          ccache --show-stats || echo "ccache not available"
 
+      # ==================== 构建 PyTorch ====================
       - name: Build PyTorch wheel
         run: |
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
 
           cd pytorch-src
 
-          # 安装构建依赖（使用上游 PyTorch requirements-build.txt）
+          # 安装构建依赖
           pip${{ inputs.python_version }} install --upgrade pip setuptools wheel
           pip${{ inputs.python_version }} install -r requirements-build.txt
-
-          # 显示 pip 安装后的缓存状态
-          echo ""
-          echo "=== pip Cache After Install ==="
-          pip${{ inputs.python_version }} cache info 2>/dev/null || echo "pip cache info not available"
-          PIP_SIZE=$(du -sh ~/.cache/pip 2>/dev/null | cut -f1)
-          echo "pip cache size: ${PIP_SIZE}"
 
           # 设置构建环境变量
           export MAX_JOBS=40
@@ -166,75 +182,23 @@ jobs:
           export USE_CUDNN=0
           export USE_DISTRIBUTED=1  # 启用分布式支持（torch_npu 必需）
           export CMAKE_BUILD_TYPE=Release
-          export USE_OPENMP=1       # 启用 OpenMP（torch_npu CMakeLists.txt 默认使用）
-          export USE_MKLDNN=0       # 禁用 MKLDNN（NPU 不需要 Intel CPU 库）
+          export USE_OPENMP=1       # 启用 OpenMP
+          export USE_MKLDNN=0       # 禁用 MKLDNN
+
+          # ccache 配置（已在上一步设置）
+          export CMAKE_C_COMPILER_LAUNCHER=ccache
+          export CMAKE_CXX_COMPILER_LAUNCHER=ccache
 
           python${{ inputs.python_version }} setup.py build bdist_wheel
 
           echo "PyTorch wheel built:"
           ls -la dist/
 
-      - name: Save PyTorch build cache
-        # 只在构建成功时保存缓存（避免保存损坏的中间文件）
-        if: success()
-        uses: actions/cache/save@v4
-        with:
-          path: |
-            pytorch-src/build
-            ~/.cache/pip
-          key: ${{ steps.pytorch_cache_key.outputs.cache_key }}
-
-      - name: Display PyTorch cache save status
-        if: success()
-        run: |
-          echo "=== PyTorch Cache Saved ==="
-          echo "Cache key: ${{ steps.pytorch_cache_key.outputs.cache_key }}"
           echo ""
-          echo "=== Saved Directory Sizes ==="
-          BUILD_SIZE=$(du -sh pytorch-src/build 2>/dev/null | cut -f1)
-          echo "pytorch-src/build: ${BUILD_SIZE}"
-          PIP_SIZE=$(du -sh ~/.cache/pip 2>/dev/null | cut -f1)
-          echo "pip cache: ${PIP_SIZE}"
+          echo "=== ccache Statistics (after PyTorch build) ==="
+          ccache --show-stats
 
-      # ==================== torch_npu 构建缓存 ====================
-      # 只缓存 build 目录，不缓存 wheel
-      - name: Get torch_npu build cache key
-        id: torch_npu_cache_key
-        run: |
-          # 缓存键顺序：低频变化在前，高频变化在后
-          # torch_npu SHA 变化频率 < PyTorch SHA 变化频率
-          TORCH_NPU_SHA=$(cd torch_npu-src && git rev-parse HEAD)
-          PYTORCH_SHA="${{ steps.clone_pytorch.outputs.pytorch_sha }}"
-          echo "cache_key=${{ env.CACHE_VERSION }}-torch_npu-${TORCH_NPU_SHA}-${PYTORCH_SHA}" >> $GITHUB_OUTPUT
-          echo "partial_key=${{ env.CACHE_VERSION }}-torch_npu-${TORCH_NPU_SHA}-" >> $GITHUB_OUTPUT
-
-      - name: Restore torch_npu build cache
-        id: restore_torch_npu_cache
-        uses: actions/cache/restore@v4
-        with:
-          # 只缓存 build 目录（CMake 构建缓存）
-          # 不缓存 dist 目录（wheel 包依赖特定 PyTorch 版本，几乎不会复用）
-          path: torch_npu-src/build
-          key: ${{ steps.torch_npu_cache_key.outputs.cache_key }}
-          restore-keys: |
-            ${{ steps.torch_npu_cache_key.outputs.partial_key }}
-            ${{ env.CACHE_VERSION }}-torch_npu-
-
-      - name: Display torch_npu cache restore status
-        run: |
-          echo "=== torch_npu Cache Restore Status ==="
-          echo "Cache hit: ${{ steps.restore_torch_npu_cache.outputs.cache-hit }}"
-          echo "Matched key: ${{ steps.restore_torch_npu_cache.outputs.cache-matched-key }}"
-          echo "Requested key: ${{ steps.torch_npu_cache_key.outputs.cache_key }}"
-          echo ""
-          echo "=== Restored Directory Sizes ==="
-          if [ -d "torch_npu-src/build" ]; then
-            BUILD_SIZE=$(du -sh torch_npu-src/build 2>/dev/null | cut -f1)
-            echo "torch_npu-src/build: ${BUILD_SIZE}"
-          else
-            echo "torch_npu-src/build: not found"
-          fi
-
+      # ==================== 构建 torch_npu ====================
       - name: Build torch_npu wheel
         run: |
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
@@ -250,33 +214,48 @@ jobs:
           pip${{ inputs.python_version }} install cmake ninja numpy packaging pyyaml requests six typing-extensions
 
           export MAX_JOBS=40
+          export CMAKE_C_COMPILER_LAUNCHER=ccache
+          export CMAKE_CXX_COMPILER_LAUNCHER=ccache
+
           bash ci/build.sh --python=${{ inputs.python_version }}
 
           echo "torch_npu wheel built:"
           ls -la dist/
 
-      - name: Save torch_npu build cache
-        # 只在构建成功时保存缓存
+          echo ""
+          echo "=== ccache Statistics (after torch_npu build) ==="
+          ccache --show-stats
+
+      # ==================== 保存缓存 ====================
+      - name: Save pip cache
         if: success()
         uses: actions/cache/save@v4
         with:
-          path: torch_npu-src/build
-          key: ${{ steps.torch_npu_cache_key.outputs.cache_key }}
+          path: ~/.cache/pip
+          key: ${{ steps.cache_key.outputs.pip_key }}
 
-      - name: Display torch_npu cache save status
+      - name: Save ccache
+        if: success()
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/ccache
+          key: ${{ steps.cache_key.outputs.cache_key }}
+
+      - name: Display cache save status
         if: success()
         run: |
-          echo "=== torch_npu Cache Saved ==="
-          echo "Cache key: ${{ steps.torch_npu_cache_key.outputs.cache_key }}"
+          echo "=== Cache Saved ==="
+          echo "pip key: ${{ steps.cache_key.outputs.pip_key }}"
+          echo "ccache key: ${{ steps.cache_key.outputs.cache_key }}"
           echo ""
-          echo "=== Saved Directory Sizes ==="
-          BUILD_SIZE=$(du -sh torch_npu-src/build 2>/dev/null | cut -f1)
-          echo "torch_npu-src/build: ${BUILD_SIZE}"
+          PIP_SIZE=$(du -sh ~/.cache/pip 2>/dev/null | cut -f1)
+          CCACHE_SIZE=$(du -sh ~/.cache/ccache 2>/dev/null | cut -f1)
+          echo "pip cache: ${PIP_SIZE}"
+          echo "ccache: ${CCACHE_SIZE}"
 
       # ==================== 打包和上传 ====================
       - name: Package test source
         run: |
-          # 排除 build 和 dist 目录（编译产物，测试不需要）
           tar -czf test-src.tar.gz \
             --exclude='pytorch-src/build' \
             --exclude='pytorch-src/dist' \
