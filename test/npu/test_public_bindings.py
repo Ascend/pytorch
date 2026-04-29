@@ -672,6 +672,12 @@ class TestPublicBindings(TestCase):
             "torch_npu._inductor.fasta_autotune",
             "torch_npu._inductor.profiler",
             "torch_npu._inductor.kernel.flex_attention",
+            "torch_npu._inductor.fx_passes.parallel_scheduler_pass",
+            "torch_npu._inductor.fx_passes.parallelism_strategy_base",
+            "torch_npu._inductor.fx_passes.parallelism_strategy_cv",
+            "torch_npu._inductor.fx_passes.parallelism_strategy_default",
+            "torch_npu._inductor.fx_passes.parallelism_strategy_framework",
+            "torch_npu._inductor.fx_passes.utils.schedule_node_utils",
         }
 
         # No new entries should be added to this list.

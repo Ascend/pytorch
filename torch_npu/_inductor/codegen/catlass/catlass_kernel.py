@@ -17,7 +17,7 @@ from torch._inductor.ir import (Buffer, ChoiceCaller, IRNode, Layout,
                                 PrimitiveInfoType, TemplateBuffer, TensorBox)
 from torch._inductor.utils import sympy_product
 from torch._inductor.virtualized import ops, V
-
+from ...fx_passes.utils.schedule_node_utils import is_multi_stream
 from ...autotune_process import CATLASSBenchmarkRequest
 
 if TYPE_CHECKING:
@@ -282,6 +282,7 @@ class CATLASSTemplateKernel(Kernel):
     def call_kernel(
         self,
         name: str,
+        origin_node,
         node: CATLASSTemplateBuffer,
     ) -> None:
         """
@@ -334,7 +335,10 @@ class CATLASSTemplateKernel(Kernel):
                 zero_mode=WorkspaceZeroMode.UNINITIALIZED,
                 outer_name=WorkspaceArg.unique_name(),
             )
-            wrapper.generate_workspace_allocation(ws)
+            if is_multi_stream():
+                wrapper.generate_workspace_allocation(ws, origin_node)
+            else:
+                wrapper.generate_workspace_allocation(ws)
             workspace = str(ws.outer_name)
             call_args.append(
                 workspace
@@ -346,15 +350,27 @@ class CATLASSTemplateKernel(Kernel):
             call_args.append("nullptr" if V.graph.cpp_wrapper else "None")
         if V.graph.cpp_wrapper:
             arg_types.append("uint8_t*")
-
-        wrapper.generate_kernel_call(
-            name,
-            call_args,
-            triton=False,
-            arg_types=arg_types,
-        )
+        if is_multi_stream():
+            wrapper.generate_kernel_call(
+                name,
+                call_args,
+                origin_node,
+                triton=False,
+                arg_types=arg_types,
+            )
+        else:
+            wrapper.generate_kernel_call(
+                name,
+                call_args,
+                origin_node=None,
+                triton=False,
+                arg_types=arg_types,
+            )
         if ws:
-            wrapper.generate_workspace_deallocation(ws)
+            if is_multi_stream():
+                wrapper.generate_workspace_deallocation(ws, origin_node)
+            else:
+                wrapper.generate_workspace_deallocation(ws)
 
     def dtype(self, node: IRNode) -> Optional[str]:
         """

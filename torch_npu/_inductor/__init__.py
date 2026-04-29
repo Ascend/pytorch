@@ -142,6 +142,9 @@ else:
 
     pre_grad_custom_pass_fuc()
     post_grad_custom_pass_fuc()
+    if os.environ.get("PARALLEL_SCHEDULER_OPTIMIZAR", "false").lower() == "true":
+        from .fx_passes.parallel_scheduler_pass import parallel_scheduler
+        parallel_scheduler()
 
     # register fx_pass should be put behind of _register_npu_inductor_decompositons
     def _replace_benchmark_all_configs():

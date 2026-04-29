@@ -32,9 +32,13 @@ from .npu_kernel_features import NumelList, NPUKernelFeatures
 from .split_tiling import SplitTiling
 from .triton import NPUIndexTritonKernel
 from .. import config as npu_config
-from ..lowering import (create_fx_from_snodes_by_traced_graph,
-                        create_compile_kwargs, generate_fx_graph_code,
-                        dump_fx_graph_code)
+from ..lowering import (
+    create_fx_from_snodes_by_traced_graph,
+    create_compile_kwargs,
+    generate_fx_graph_code,
+    dump_fx_graph_code
+)
+from ..fx_passes.utils.schedule_node_utils import is_multi_stream
 from ..config import log
 
 
@@ -130,7 +134,7 @@ class NPUTritonScheduling(TritonScheduling):
             pass
 
     # transform indexing before call codegen_node_schedule_with_kernel
-    def codegen_node_schedule(self, kernel_features: SIMDKernelFeatures, nodes):
+    def codegen_node_schedule(self, kernel_features: SIMDKernelFeatures, nodes, origin_node=None):
         node_schedule = kernel_features.node_schedule
         tiling = self.select_tiling(
             node_schedule, kernel_features.numel, kernel_features.reduction_numel
@@ -184,7 +188,10 @@ class NPUTritonScheduling(TritonScheduling):
                 node.mark_run()
 
         self.codegen_comment(node_schedule)
-        final_kernel.call_kernel(final_kernel.kernel_name)
+        if is_multi_stream():
+            final_kernel.call_kernel(name=final_kernel.kernel_name, origin_node=origin_node)
+        else:
+            final_kernel.call_kernel(name=final_kernel.kernel_name, origin_node=None)
 
         if npu_config.dump_fx_graph and traced_graph is not None:
             new_compile_kwargs = create_compile_kwargs(final_kernel, fx_call_args, fx_args)
@@ -270,7 +277,7 @@ class NPUTritonScheduling(TritonScheduling):
             kernel_name, src_code = self.define_kernel(src_code, node_schedule, kernel, traced_graph_hash)
 
         self.codegen_comment(node_schedule)
-        kernel.call_kernel(kernel_name, template_node.node)
+        kernel.call_kernel(kernel_name, template_node, template_node.node)
 
         V.graph.removed_buffers |= kernel.removed_buffers
         V.graph.inplaced_to_remove |= kernel.inplaced_to_remove
@@ -469,10 +476,14 @@ class NPUTritonScheduling(TritonScheduling):
 
         node_schedule = self.generate_node_schedule(nodes, numel, rnumel)
         schedule_log.debug("Schedule:\n %s", node_schedule)
-
-        return self.codegen_node_schedule(
-            NPUKernelFeatures(node_schedule, numel, rnumel), nodes
-        )
+        if is_multi_stream():
+            return self.codegen_node_schedule(
+                NPUKernelFeatures(node_schedule, numel, rnumel), nodes, node
+            )
+        else:
+            return self.codegen_node_schedule(
+                NPUKernelFeatures(node_schedule, numel, rnumel), nodes
+            )
 
     def can_fuse(self, node1, node2):
         """

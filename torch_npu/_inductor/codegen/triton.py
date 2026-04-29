@@ -88,6 +88,8 @@ from .kernel_analysis import (
 )
 from .npu_kernel_features import NumelList
 from .triton_utils import NPUKernelType
+from torch._inductor.ir import IRNode
+from ..fx_passes.utils.schedule_node_utils import is_multi_stream
 
 
 def flatten(nums):
@@ -4089,3 +4091,27 @@ class NPUIndexTritonKernel(TritonKernel):
         self.exit_stack.enter_context(V.set_ops_handler(CSEProxy()))
         self.exit_stack.enter_context(V.set_kernel_handler(self))
         return self
+
+
+    def call_kernel(self, name: str, origin_node=None, node: Optional[IRNode] = None):
+        if is_multi_stream():
+            wrapper = V.graph.wrapper_code
+            wrapper.write_triton_header_once()
+            _, call_args, _, arg_types = self.args.python_argdefs()
+            self.add_numel_to_call_args(name, call_args, arg_types)
+
+            for ws in self.args.workspace_args:
+                wrapper.generate_workspace_allocation(ws, origin_node)
+            wrapper.generate_kernel_call(
+                name,
+                call_args,
+                origin_node,
+                triton=True,
+                arg_types=arg_types,
+                triton_meta=self.triton_meta,
+            )
+
+            for ws in reversed(self.args.workspace_args):
+                wrapper.generate_workspace_deallocation(ws, origin_node)
+        else:
+            super().call_kernel(name, node)

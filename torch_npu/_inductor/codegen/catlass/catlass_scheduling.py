@@ -30,7 +30,7 @@ from torch_npu._inductor.codegen.catlass.catlass_python_evg import (
     CatlassEVGCodegen,
     MockCatlassHandler,
 )
-
+from ...fx_passes.utils.schedule_node_utils import is_multi_stream
 from ...autotune_process import FusedCATLASSBenchmarkRequest
 from ...config import catlass as catlass_config
 from .catlass_kernel import CATLASSTemplateBuffer
@@ -191,7 +191,10 @@ class CATLASSScheduling(BaseScheduling):
                 call_args, kernel_name, arg_signatures, kernel
             )
             with debug_printer_manager:
-                kernel.call_kernel(kernel_name, ctb)
+                if is_multi_stream():
+                    kernel.call_kernel(kernel_name, template_node, ctb)
+                else:
+                    kernel.call_kernel(kernel_name, None, ctb)
 
             V.graph.removed_buffers |= kernel.removed_buffers
             self.free_buffers_in_scheduler()
