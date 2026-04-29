@@ -82,6 +82,29 @@ jobs:
         run: |
           pip${{ env.PYTHON_VERSION }} install --upgrade pip setuptools wheel
 
+      # ==================== Clone PyTorch for test source（提前克隆） ====================
+      - name: Clone PyTorch test source
+        run: |
+          # 使用代理加速 git clone，只获取测试用例（浅克隆，无 submodules）
+          PYTORCH_REPO="https://github.com/pytorch/pytorch.git"
+          if [ -n "${{ env.GH_PROXY_URL }}" ]; then
+            PYTORCH_REPO="${{ env.GH_PROXY_URL }}/${PYTORCH_REPO}"
+            echo "Using proxy: ${PYTORCH_REPO}"
+          fi
+          git clone --depth=1 "${PYTORCH_REPO}" pytorch-src
+          echo "Cloned PyTorch test directory"
+
+      - name: Install test dependencies
+        run: |
+          # 安装当前仓库的基础测试依赖
+          pip${{ env.PYTHON_VERSION }} install -r .ci/docker/requirements-ci.txt
+
+          # 安装上游 PyTorch 的完整测试依赖
+          pip${{ env.PYTHON_VERSION }} install -r pytorch-src/.ci/docker/requirements-ci.txt || true
+
+          # 安装 PyTorch 开发依赖（可选）
+          pip${{ env.PYTHON_VERSION }} install expecttest hypothesis fsspec sympy optree networkx psutil || true
+
       # ==================== Download artifacts from previous workflow run ====================
       - name: Download artifacts from workflow run
         uses: dawidd6/action-download-artifact@v3
@@ -101,18 +124,6 @@ jobs:
           path: wheels
           repo: Ascend/pytorch
           github_token: ${{ secrets.GITHUB_TOKEN }}
-
-      # ==================== Clone PyTorch for test source ====================
-      - name: Clone PyTorch test source
-        run: |
-          # 使用代理加速 git clone，只获取测试用例（浅克隆，无 submodules）
-          PYTORCH_REPO="https://github.com/pytorch/pytorch.git"
-          if [ -n "${{ env.GH_PROXY_URL }}" ]; then
-            PYTORCH_REPO="${{ env.GH_PROXY_URL }}/${PYTORCH_REPO}"
-            echo "Using proxy: ${PYTORCH_REPO}"
-          fi
-          git clone --depth=1 "${PYTORCH_REPO}" pytorch-src
-          echo "Cloned PyTorch test directory"
 
       - name: Install wheels
         run: |
@@ -160,17 +171,6 @@ jobs:
               print(f'NPU name: {torch.npu.get_device_name(0)}')
               print(f'NPU capability: {torch.npu.get_device_capability(0)}')
           "
-
-      - name: Install test dependencies
-        run: |
-          # 安装当前仓库的基础测试依赖
-          pip${{ env.PYTHON_VERSION }} install -r .ci/docker/requirements-ci.txt
-
-          # 安装上游 PyTorch 的完整测试依赖
-          pip${{ env.PYTHON_VERSION }} install -r pytorch-src/.ci/docker/requirements-ci.txt || true
-
-          # 安装 PyTorch 开发依赖（可选）
-          pip${{ env.PYTHON_VERSION }} install expecttest hypothesis fsspec sympy optree networkx psutil || true
 
       # ==================== 保存 pip 缓存 ====================
       - name: Save pip cache
