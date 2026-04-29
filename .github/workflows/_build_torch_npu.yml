@@ -148,7 +148,8 @@ jobs:
           ls -la dist/
 
       - name: Save PyTorch build cache
-        if: steps.check_pytorch_wheel.outputs.wheel_exists != 'true' && always()
+        # 只在构建成功时保存缓存（避免保存损坏的中间文件）
+        if: steps.check_pytorch_wheel.outputs.wheel_exists != 'true' && success()
         uses: actions/cache/save@v4
         with:
           path: |
@@ -227,7 +228,8 @@ jobs:
           ls -la dist/
 
       - name: Save torch_npu build cache
-        if: steps.check_torch_npu_wheel.outputs.wheel_exists != 'true' && always()
+        # 只在构建成功时保存缓存（避免保存损坏的中间文件）
+        if: steps.check_torch_npu_wheel.outputs.wheel_exists != 'true' && success()
         uses: actions/cache/save@v4
         with:
           path: |
@@ -238,7 +240,12 @@ jobs:
       # ==================== 打包和上传 ====================
       - name: Package test source
         run: |
-          tar -czf test-src.tar.gz pytorch-src
+          # 排除 build 目录（编译产物，测试不需要）
+          # 排除 dist 目录（wheel 包已单独上传）
+          tar -czf test-src.tar.gz \
+            --exclude='pytorch-src/build' \
+            --exclude='pytorch-src/dist' \
+            pytorch-src
           ls -la test-src.tar.gz
 
       - name: Upload PyTorch wheel
