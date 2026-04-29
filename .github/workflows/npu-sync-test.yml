@@ -1,12 +1,6 @@
 name: PyTorch NPU Sync Test
 
 on:
-  pull_request:
-    branches: [main, master]
-    paths:
-      - '.github/workflows/**'
-      - '.github/scripts/**'
-      - '.github/docker/**'
   workflow_dispatch:
     inputs:
       docker_image_tag:

@@ -1,0 +1,171 @@
+name: Test Collect Stage
+
+on:
+  pull_request:
+    branches: [main, master]
+    paths:
+      - '.github/workflows/**'
+      - '.github/scripts/**'
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Workflow run ID to download artifacts from'
+        required: true
+        default: '25097789439'
+      distributed_shards:
+        description: 'Distributed test shards'
+        default: 2
+        type: number
+      regular_shards:
+        description: 'Regular test shards'
+        default: 5
+        type: number
+
+env:
+  PYTHON_VERSION: '3.11'
+  CACHE_VERSION: 'v2'
+  PYPI_CACHE_URL: 'http://cache-service.nginx-pypi-cache.svc.cluster.local/pypi/simple'
+
+jobs:
+  collect:
+    runs-on: linux-aarch64-a3-16
+    timeout-minutes: 60
+    outputs:
+      distributed_matrix: ${{ steps.collect.outputs.distributed_matrix }}
+      regular_matrix: ${{ steps.collect.outputs.regular_matrix }}
+      total_cases: ${{ steps.collect.outputs.total_cases }}
+
+    container:
+      image: quay.io/kerer/pytorch:latest
+      options: --user root
+
+    steps:
+      - name: Checkout scripts
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            .github/scripts
+            .ci/docker
+
+      # ==================== pip 缓存配置 ====================
+      - name: Get pip cache key
+        id: pip_key
+        run: |
+          REQUIREMENTS_HASH=$(sha256sum .ci/docker/requirements-ci.txt | cut -d' ' -f1)
+          echo "cache_key=${{ env.CACHE_VERSION }}-pip-collect-${{ env.PYTHON_VERSION }}-${REQUIREMENTS_HASH}" >> $GITHUB_OUTPUT
+
+      - name: Restore pip cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ steps.pip_key.outputs.cache_key }}
+          restore-keys: |
+            ${{ env.CACHE_VERSION }}-pip-collect-${{ env.PYTHON_VERSION }}-
+            ${{ env.CACHE_VERSION }}-pip-collect-
+
+      - name: Setup pip cache directory
+        run: |
+          mkdir -p ~/.cache/pip
+
+      - name: Configure pip index URL
+        run: |
+          if [ -n "${{ env.PYPI_CACHE_URL }}" ]; then
+            pip${{ env.PYTHON_VERSION }} config set global.index-url ${{ env.PYPI_CACHE_URL }}
+            pip${{ env.PYTHON_VERSION }} config set global.trusted-host "cache-service.nginx-pypi-cache.svc.cluster.local"
+            echo "pip index-url configured: ${{ env.PYPI_CACHE_URL }}"
+          else
+            echo "No PyPI cache URL configured, using default"
+          fi
+
+      - name: Upgrade pip and setuptools
+        run: |
+          pip${{ env.PYTHON_VERSION }} install --upgrade pip setuptools wheel
+
+      # ==================== Download artifacts from previous workflow run ====================
+      - name: Download artifacts from workflow run
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          run_id: ${{ inputs.run_id || '25097789439' }}
+          name: torch-wheel-main
+          path: wheels
+          repo: Ascend/pytorch
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          skip_unpack: false
+
+      - name: Download torch_npu wheel from workflow run
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          run_id: ${{ inputs.run_id || '25097789439' }}
+          name: torch-npu-wheel-main
+          path: wheels
+          repo: Ascend/pytorch
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download test source from workflow run
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          run_id: ${{ inputs.run_id || '25097789439' }}
+          name: test-src-main
+          repo: Ascend/pytorch
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract test source
+        run: tar -xzf test-src.tar.gz
+
+      - name: Install wheels
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          pip${{ env.PYTHON_VERSION }} install wheels/*.whl
+
+      - name: Install test dependencies
+        run: |
+          pip${{ env.PYTHON_VERSION }} install -r .ci/docker/requirements-ci.txt
+
+      # ==================== 保存 pip 缓存 ====================
+      - name: Save pip cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ steps.pip_key.outputs.cache_key }}
+
+      - name: Collect all test cases
+        id: collect
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+
+          python${{ env.PYTHON_VERSION }} .github/scripts/collect_all_cases.py \
+            --test-dir test \
+            --distributed-shards ${{ inputs.distributed_shards || 2 }} \
+            --regular-shards ${{ inputs.regular_shards || 5 }} \
+            --output-dir cases_shards \
+            --parallel 16 \
+            --verbose
+
+          TOTAL=$(python${{ env.PYTHON_VERSION }} -c "import json; d=json.load(open('cases_shards/cases_collection_summary.json')); print(d['total_cases'])")
+          echo "total_cases=${TOTAL}" >> $GITHUB_OUTPUT
+
+          # Generate shard matrices
+          python${{ env.PYTHON_VERSION }} -c "
+          import json
+          d_shards = ${{ inputs.distributed_shards || 2 }}
+          r_shards = ${{ inputs.regular_shards || 5 }}
+          print(f'distributed_matrix={json.dumps(list(range(1, d_shards + 1)))}')
+          print(f'regular_matrix={json.dumps(list(range(1, r_shards + 1)))}')
+          " >> $GITHUB_OUTPUT
+
+      - name: Upload cases shard JSONs
+        uses: actions/upload-artifact@v4
+        with:
+          name: cases-shards
+          path: cases_shards/
+
+      - name: Print collection summary
+        if: always()
+        run: |
+          echo "=== Collection Summary ==="
+          if [ -f cases_shards/cases_collection_summary.json ]; then
+            cat cases_shards/cases_collection_summary.json
+          else
+            echo "Summary file not found"
+          fi
