@@ -27,6 +27,9 @@ on:
 
 env:
   PYTHON_VERSION: '3.11'
+  CACHE_VERSION: 'v2'
+  # PyPI 缓存 URL（用于加速 pip 下载）
+  PYPI_CACHE_URL: 'http://cache-service.nginx-pypi-cache.svc.cluster.local/pypi/simple'
 
 jobs:
   collect:
@@ -48,6 +51,42 @@ jobs:
           sparse-checkout: |
             .github/scripts
             .ci/docker
+
+      # ==================== pip 缓存配置 ====================
+      - name: Get pip cache key
+        id: pip_key
+        run: |
+          REQUIREMENTS_HASH=$(sha256sum .ci/docker/requirements-ci.txt | cut -d' ' -f1)
+          echo "cache_key=${{ env.CACHE_VERSION }}-pip-collect-${{ env.PYTHON_VERSION }}-${REQUIREMENTS_HASH}" >> $GITHUB_OUTPUT
+
+      - name: Restore pip cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ steps.pip_key.outputs.cache_key }}
+          restore-keys: |
+            ${{ env.CACHE_VERSION }}-pip-collect-${{ env.PYTHON_VERSION }}-
+            ${{ env.CACHE_VERSION }}-pip-collect-
+
+      - name: Setup pip cache directory
+        run: |
+          mkdir -p ~/.cache/pip
+
+      - name: Configure pip index URL
+        run: |
+          # 配置 pip 使用 PyPI 缓存加速下载
+          if [ -n "${{ env.PYPI_CACHE_URL }}" ]; then
+            pip${{ env.PYTHON_VERSION }} config set global.index-url ${{ env.PYPI_CACHE_URL }}
+            pip${{ env.PYTHON_VERSION }} config set global.trusted-host "cache-service.nginx-pypi-cache.svc.cluster.local"
+            echo "pip index-url configured: ${{ env.PYPI_CACHE_URL }}"
+          else
+            echo "No PyPI cache URL configured, using default"
+          fi
+
+      - name: Upgrade pip and setuptools
+        run: |
+          # 先升级 pip 和 setuptools，避免旧版包兼容性问题
+          pip${{ env.PYTHON_VERSION }} install --upgrade pip setuptools wheel
 
       - name: Download wheels
         uses: actions/download-artifact@v4
@@ -77,6 +116,14 @@ jobs:
       - name: Install test dependencies
         run: |
           pip${{ env.PYTHON_VERSION }} install -r .ci/docker/requirements-ci.txt
+
+      # ==================== 保存 pip 缓存 ====================
+      - name: Save pip cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ steps.pip_key.outputs.cache_key }}
 
       - name: Collect all test cases
         id: collect

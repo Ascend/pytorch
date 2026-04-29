@@ -128,6 +128,11 @@ jobs:
             echo "No PyPI cache URL configured, using default"
           fi
 
+      - name: Upgrade pip and setuptools
+        run: |
+          # 先升级 pip 和 setuptools，避免旧版包兼容性问题
+          pip${{ inputs.python_version }} install --upgrade pip setuptools wheel
+
       # ==================== ccache 缓存配置 ====================
       # ccache 是真正加速编译的关键（可节省 30-60 分钟）
       - name: Get ccache key

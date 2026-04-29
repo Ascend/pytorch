@@ -72,6 +72,11 @@ jobs:
             echo "No PyPI cache URL configured, using default"
           fi
 
+      - name: Upgrade pip and setuptools
+        run: |
+          # 先升级 pip 和 setuptools，避免旧版包兼容性问题
+          pip${{ env.PYTHON_VERSION }} install --upgrade pip setuptools wheel
+
       - name: Download torch wheel
         uses: actions/download-artifact@v4
         with:
