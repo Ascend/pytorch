@@ -217,7 +217,10 @@ jobs:
           export CMAKE_C_COMPILER_LAUNCHER=ccache
           export CMAKE_CXX_COMPILER_LAUNCHER=ccache
 
-          bash ci/build.sh --python=${{ inputs.python_version }}
+          # 禁用 torchair 构建（上游 PyTorch main API 变化导致兼容性问题）
+          # torchair 依赖 PyTorch 内部的 six::isTuple() API，该 API 在新版已移除
+          # 临时禁用，等待 torch_npu/torchair 适配新版 PyTorch API
+          bash ci/build.sh --python=${{ inputs.python_version }} --disable_torchair
 
           echo "torch_npu wheel built:"
           ls -la dist/
