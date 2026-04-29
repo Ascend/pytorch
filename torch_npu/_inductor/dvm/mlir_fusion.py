@@ -250,27 +250,25 @@ def _dvm_can_fuse_horizontal(self, node1, node2):
 
 
 def _patch_lowering_type_checks():
+    import torch._inductor.graph as inductor_graph
+    import torch._inductor.lowering as inductor_lowering
+    import torch._inductor.pattern_matcher as pattern_matcher
+    import torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.inductor_patch.lowering as npu_lowering_mod
+
+    fallback_node_due_to_unsupported_type = (
+        inductor_lowering.fallback_node_due_to_unsupported_type
+    )
 
     def _fallback_node_due_to_unsupported_type(
         node: torch.fx.Node, allow_cpu_inputs=True
     ):
-        if "val" in node.meta:
-            for meta in pytree.tree_leaves(node.meta["val"]):
-                if not isinstance(meta, torch._subclasses.FakeTensor):
-                    continue
-
-                if meta.is_cpu:
-                    return True
+        if fallback_node_due_to_unsupported_type(node, allow_cpu_inputs):
+            return True
 
         if node.target in DVM_OP_REGISTRY:
             _, rule = DVM_OP_REGISTRY.get(node.target)
             return not rule(node)
         return not common_rule(node)
-
-    import torch._inductor.graph as inductor_graph
-    import torch._inductor.lowering as inductor_lowering
-    import torch._inductor.pattern_matcher as pattern_matcher
-    import torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.inductor_patch.lowering as npu_lowering_mod
 
     inductor_lowering.fallback_node_due_to_unsupported_type = (
         _fallback_node_due_to_unsupported_type
