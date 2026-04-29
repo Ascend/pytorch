@@ -31,7 +31,7 @@ on:
 
 env:
   # 缓存版本号，当需要强制刷新缓存时修改此值
-  CACHE_VERSION: 'v1'
+  CACHE_VERSION: 'v2'
   # GitHub 代理 URL（用于加速 git clone，留空则不使用代理）
   GH_PROXY_URL: 'https://gh-proxy.test.osinfra.cn'
 
@@ -93,34 +93,28 @@ jobs:
           path: torch_npu-src
           submodules: recursive
 
-      # ==================== 缓存配置 ====================
-      - name: Get cache key
-        id: cache_key
+      # ==================== ccache 缓存配置 ====================
+      # 只使用 ccache 缓存，不使用 pip 缓存
+      # pip 缓存可能导致依赖查找问题，且 pip 下载已经很快（几秒）
+      # ccache 是真正加速编译的关键（可节省 30-60 分钟）
+      - name: Get ccache key
+        id: ccache_key
         run: |
-          # 缓存键基于：requirements-build.txt + PyTorch SHA + torch_npu SHA
+          # ccache 缓存键基于：requirements-build.txt + PyTorch SHA + torch_npu SHA
           PYTORCH_SHA="${{ steps.clone_pytorch.outputs.pytorch_sha }}"
           TORCH_NPU_SHA=$(cd torch_npu-src && git rev-parse HEAD)
           REQUIREMENTS_HASH=$(cd pytorch-src && sha256sum requirements-build.txt | cut -d' ' -f1)
-          echo "cache_key=${{ env.CACHE_VERSION }}-${REQUIREMENTS_HASH}-${PYTORCH_SHA}-${TORCH_NPU_SHA}" >> $GITHUB_OUTPUT
-          echo "partial_key=${{ env.CACHE_VERSION }}-${REQUIREMENTS_HASH}-${PYTORCH_SHA}-" >> $GITHUB_OUTPUT
-          echo "pip_key=${{ env.CACHE_VERSION }}-pip-${REQUIREMENTS_HASH}" >> $GITHUB_OUTPUT
-
-      - name: Restore pip cache
-        uses: actions/cache/restore@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ steps.cache_key.outputs.pip_key }}
-          restore-keys: |
-            ${{ env.CACHE_VERSION }}-pip-
+          echo "cache_key=${{ env.CACHE_VERSION }}-ccache-${REQUIREMENTS_HASH}-${PYTORCH_SHA}-${TORCH_NPU_SHA}" >> $GITHUB_OUTPUT
+          echo "partial_key=${{ env.CACHE_VERSION }}-ccache-${REQUIREMENTS_HASH}-${PYTORCH_SHA}-" >> $GITHUB_OUTPUT
 
       - name: Restore ccache
         uses: actions/cache/restore@v4
         with:
           path: ~/.cache/ccache
-          key: ${{ steps.cache_key.outputs.cache_key }}
+          key: ${{ steps.ccache_key.outputs.cache_key }}
           restore-keys: |
-            ${{ steps.cache_key.outputs.partial_key }}
-            ${{ env.CACHE_VERSION }}-
+            ${{ steps.ccache_key.outputs.partial_key }}
+            ${{ env.CACHE_VERSION }}-ccache-
 
       - name: Setup ccache
         run: |
@@ -132,12 +126,7 @@ jobs:
           ccache --set-config=max_size=5G
           ccache --set-config=compression=true
 
-          # 设置 ccache 环境变量（让 CMake 使用 ccache）
-          export CC="ccache gcc"
-          export CXX="ccache g++"
-          export CMAKE_C_COMPILER_LAUNCHER=ccache
-          export CMAKE_CXX_COMPILER_LAUNCHER=ccache
-
+          # 设置 ccache 环境变量
           echo "CCACHE_DIR=~/.cache/ccache" >> $GITHUB_ENV
           echo "CC=ccache gcc" >> $GITHUB_ENV
           echo "CXX=ccache g++" >> $GITHUB_ENV
@@ -149,22 +138,6 @@ jobs:
           echo "=== ccache Statistics (before build) ==="
           ccache --show-stats
 
-      - name: Display cache restore status
-        run: |
-          echo "=== Cache Restore Status ==="
-          echo ""
-          echo "=== pip Cache ==="
-          pip${{ inputs.python_version }} cache info 2>/dev/null || echo "pip cache info not available"
-          if [ -d ~/.cache/pip ]; then
-            PIP_SIZE=$(du -sh ~/.cache/pip 2>/dev/null | cut -f1)
-            echo "pip cache size: ${PIP_SIZE}"
-          else
-            echo "pip cache: not found"
-          fi
-          echo ""
-          echo "=== ccache ==="
-          ccache --show-stats || echo "ccache not available"
-
       # ==================== 构建 PyTorch ====================
       - name: Build PyTorch wheel
         run: |
@@ -172,7 +145,7 @@ jobs:
 
           cd pytorch-src
 
-          # 安装构建依赖
+          # 安装构建依赖（不使用 pip 缓存，避免依赖查找问题）
           pip${{ inputs.python_version }} install --upgrade pip setuptools wheel
           pip${{ inputs.python_version }} install -r requirements-build.txt
 
@@ -180,12 +153,10 @@ jobs:
           export MAX_JOBS=40
           export USE_CUDA=0
           export USE_CUDNN=0
-          export USE_DISTRIBUTED=1  # 启用分布式支持（torch_npu 必需）
+          export USE_DISTRIBUTED=1
           export CMAKE_BUILD_TYPE=Release
-          export USE_OPENMP=1       # 启用 OpenMP
-          export USE_MKLDNN=0       # 禁用 MKLDNN
-
-          # ccache 配置（已在上一步设置）
+          export USE_OPENMP=1
+          export USE_MKLDNN=0
           export CMAKE_C_COMPILER_LAUNCHER=ccache
           export CMAKE_CXX_COMPILER_LAUNCHER=ccache
 
@@ -218,8 +189,6 @@ jobs:
           export CMAKE_CXX_COMPILER_LAUNCHER=ccache
 
           # 禁用 torchair 构建（上游 PyTorch main API 变化导致兼容性问题）
-          # torchair 依赖 PyTorch 内部的 six::isTuple() API，该 API 在新版已移除
-          # 临时禁用，等待 torch_npu/torchair 适配新版 PyTorch API
           bash ci/build.sh --python=${{ inputs.python_version }} --disable_torchair
 
           echo "torch_npu wheel built:"
@@ -229,32 +198,21 @@ jobs:
           echo "=== ccache Statistics (after torch_npu build) ==="
           ccache --show-stats
 
-      # ==================== 保存缓存 ====================
-      - name: Save pip cache
-        if: success()
-        uses: actions/cache/save@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ steps.cache_key.outputs.pip_key }}
-
+      # ==================== 保存 ccache 缓存 ====================
       - name: Save ccache
         if: success()
         uses: actions/cache/save@v4
         with:
           path: ~/.cache/ccache
-          key: ${{ steps.cache_key.outputs.cache_key }}
+          key: ${{ steps.ccache_key.outputs.cache_key }}
 
-      - name: Display cache save status
+      - name: Display ccache save status
         if: success()
         run: |
-          echo "=== Cache Saved ==="
-          echo "pip key: ${{ steps.cache_key.outputs.pip_key }}"
-          echo "ccache key: ${{ steps.cache_key.outputs.cache_key }}"
-          echo ""
-          PIP_SIZE=$(du -sh ~/.cache/pip 2>/dev/null | cut -f1)
+          echo "=== ccache Saved ==="
+          echo "Key: ${{ steps.ccache_key.outputs.cache_key }}"
           CCACHE_SIZE=$(du -sh ~/.cache/ccache 2>/dev/null | cut -f1)
-          echo "pip cache: ${PIP_SIZE}"
-          echo "ccache: ${CCACHE_SIZE}"
+          echo "ccache size: ${CCACHE_SIZE}"
 
       # ==================== 打包和上传 ====================
       - name: Package test source
