@@ -2,7 +2,7 @@ diff --git a/test/inductor/test_split_cat_fx_aten_passes.py b/test/inductor/test
 index 99ee583..c6fc266 100644
 --- a/test/inductor/test_split_cat_fx_aten_passes.py
 +++ b/test/inductor/test_split_cat_fx_aten_passes.py
-@@ -1,6 +1,13 @@
+@@ -1,11 +1,17 @@
 +import torch
 +import torch_npu
 +from torch_npu.contrib import transfer_to_npu
@@ -17,7 +17,12 @@ index 99ee583..c6fc266 100644
  import torch._inductor
  from torch._dynamo.utils import counters
  from torch._inductor.test_case import run_tests, TestCase
-@@ -15,6 +22,7 @@ try:
+ from torch.testing._internal.inductor_utils import GPU_TYPE
+-from torch.testing._internal.triton_utils import requires_cuda
+ 
+ 
+ try:
+@@ -15,6 +21,7 @@ try:
      has_fbgemm = True
  except Exception:
      has_fbgemm = False
@@ -25,3 +30,19 @@ index 99ee583..c6fc266 100644
  
  
  class TestSplitCat(torch.nn.Module):
+@@ -106,7 +113,6 @@ class TestSplitCatAten(TestCase):
+             self.compare_dict_tensors(ref_grad, res_grad, rtol=rtol, atol=atol)
+         )
+ 
+-    @requires_cuda
+     @torch._inductor.config.patch(
+         pre_grad_fusion_options={},
+         post_grad_fusion_options={
+@@ -132,7 +138,6 @@ class TestSplitCatAten(TestCase):
+         self.compare_parameters(module, traced, rtol=1e-8, atol=1e-8)
+         counters.clear()
+ 
+-    @requires_cuda
+     @torch._inductor.config.patch(
+         pre_grad_fusion_options={},
+         post_grad_fusion_options={
