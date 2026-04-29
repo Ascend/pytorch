@@ -30,11 +30,18 @@ def is_distributed_test(test_file: str) -> bool:
     return False
 
 
-def collect_cases_from_file(test_dir: Path, test_file: str, parallel: int = 1) -> List[str]:
-    """Collect test cases from a single test file using pytest --collect-only."""
+def collect_cases_from_file(test_dir: Path, test_file: str, parallel: int = 1, verbose: bool = False) -> Tuple[List[str], str]:
+    """Collect test cases from a single test file using pytest --collect-only.
+
+    Returns:
+        Tuple of (cases list, error message or empty string)
+    """
     full_path = test_dir / test_file
     if not full_path.exists():
-        return []
+        error = f"File not found: {full_path}"
+        if verbose:
+            print(f"[SKIP] {test_file}: {error}")
+        return [], error
 
     try:
         result = subprocess.run(
@@ -54,13 +61,38 @@ def collect_cases_from_file(test_dir: Path, test_file: str, parallel: int = 1) -
                 if case_id and not case_id.startswith("<"):
                     cases.append(case_id)
 
-        return cases
+        # Check for errors
+        error_msg = ""
+        if result.returncode != 0:
+            error_msg = result.stderr.strip() if result.stderr else "Unknown error"
+            if verbose:
+                print(f"[ERROR] {test_file}: pytest returned {result.returncode}")
+                if result.stderr:
+                    print(f"  stderr: {result.stderr[:200]}")
+        elif len(cases) == 0:
+            # No cases collected, might be import error or empty file
+            if result.stderr:
+                error_msg = result.stderr.strip()
+                if verbose:
+                    print(f"[WARN] {test_file}: 0 cases collected, stderr: {result.stderr[:200]}")
+            else:
+                if verbose:
+                    print(f"[WARN] {test_file}: 0 cases collected (possibly empty or all skipped)")
+        else:
+            if verbose:
+                print(f"[OK] {test_file}: {len(cases)} cases collected")
+
+        return cases, error_msg
     except subprocess.TimeoutExpired:
-        print(f"Timeout collecting cases from {test_file}")
-        return []
+        error = "Timeout after 60s"
+        if verbose:
+            print(f"[TIMEOUT] {test_file}: {error}")
+        return [], error
     except Exception as e:
-        print(f"Error collecting cases from {test_file}: {e}")
-        return []
+        error = str(e)
+        if verbose:
+            print(f"[EXCEPTION] {test_file}: {error}")
+        return [], error
 
 
 def discover_test_files(test_dir: Path) -> List[str]:
@@ -86,7 +118,8 @@ def collect_all_cases(
     distributed_shards: int,
     regular_shards: int,
     output_dir: str,
-    parallel: int = 1
+    parallel: int = 1,
+    verbose: bool = False
 ) -> Dict:
     """Collect all test cases and shard them."""
     test_dir_path = Path(test_dir)
@@ -106,33 +139,61 @@ def collect_all_cases(
     print(f"Distributed test files: {len(distributed_files)}")
     print(f"Regular test files: {len(regular_files)}")
 
+    if verbose:
+        print("\n=== Collecting distributed cases ===")
+
     # Collect cases in parallel
     print("Collecting distributed cases...")
     distributed_cases = []
+    distributed_errors = {}
     with ThreadPoolExecutor(max_workers=parallel) as executor:
         futures = {
-            executor.submit(collect_cases_from_file, test_dir_path, f, parallel): f
+            executor.submit(collect_cases_from_file, test_dir_path, f, parallel, verbose): f
             for f in distributed_files
         }
         for future in as_completed(futures):
             file = futures[future]
-            cases = future.result()
+            cases, error = future.result()
             distributed_cases.extend(cases)
+            if error:
+                distributed_errors[file] = error
+
+    if verbose:
+        print("\n=== Collecting regular cases ===")
 
     print("Collecting regular cases...")
     regular_cases = []
+    regular_errors = {}
     with ThreadPoolExecutor(max_workers=parallel) as executor:
         futures = {
-            executor.submit(collect_cases_from_file, test_dir_path, f, parallel): f
+            executor.submit(collect_cases_from_file, test_dir_path, f, parallel, verbose): f
             for f in regular_files
         }
         for future in as_completed(futures):
             file = futures[future]
-            cases = future.result()
+            cases, error = future.result()
             regular_cases.extend(cases)
+            if error:
+                regular_errors[file] = error
 
     print(f"Total distributed cases: {len(distributed_cases)}")
     print(f"Total regular cases: {len(regular_cases)}")
+
+    # Print summary of errors if any
+    if distributed_errors or regular_errors:
+        print("\n=== Collection Errors Summary ===")
+        if distributed_errors:
+            print(f"Distributed files with errors: {len(distributed_errors)}")
+            for file, error in sorted(distributed_errors.items())[:10]:
+                print(f"  {file}: {error[:100]}")
+            if len(distributed_errors) > 10:
+                print(f"  ... and {len(distributed_errors) - 10} more")
+        if regular_errors:
+            print(f"Regular files with errors: {len(regular_errors)}")
+            for file, error in sorted(regular_errors.items())[:10]:
+                print(f"  {file}: {error[:100]}")
+            if len(regular_errors) > 10:
+                print(f"  ... and {len(regular_errors) - 10} more")
 
     # Shard cases
     distributed_sharded = shard_cases(distributed_cases, distributed_shards)
@@ -187,6 +248,7 @@ def main():
     parser.add_argument("--regular-shards", type=int, default=5, help="Number of regular test shards")
     parser.add_argument("--output-dir", required=True, help="Output directory for shard JSON files")
     parser.add_argument("--parallel", type=int, default=1, help="Number of parallel collectors")
+    parser.add_argument("--verbose", action="store_true", help="Print detailed collection progress")
 
     args = parser.parse_args()
 
@@ -195,7 +257,8 @@ def main():
         distributed_shards=args.distributed_shards,
         regular_shards=args.regular_shards,
         output_dir=args.output_dir,
-        parallel=args.parallel
+        parallel=args.parallel,
+        verbose=args.verbose
     )
 
     print("\nCollection Summary:")

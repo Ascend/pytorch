@@ -135,7 +135,8 @@ jobs:
             --distributed-shards ${{ inputs.distributed-shards }} \
             --regular-shards ${{ inputs.regular-shards }} \
             --output-dir cases_shards \
-            --parallel 16
+            --parallel 16 \
+            --verbose
 
           TOTAL=$(python${{ env.PYTHON_VERSION }} -c "import json; d=json.load(open('cases_shards/cases_collection_summary.json')); print(d['total_cases'])")
           echo "total_cases=${TOTAL}" >> $GITHUB_OUTPUT
