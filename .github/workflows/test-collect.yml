@@ -246,14 +246,12 @@ jobs:
           # 如果都失败，使用默认列表
           if [ ! -f /tmp/test_list.txt ] || [ ! -s /tmp/test_list.txt ]; then
             echo "All methods failed, using default test list"
-            cat > /tmp/test_list.txt << 'DEFAULT_TESTS'
-test_nn
-test_torch
-test_autograd
-test_distributions
-test_indexing
-test_type_promotion
-DEFAULT_TESTS
+            echo "test_nn" > /tmp/test_list.txt
+            echo "test_torch" >> /tmp/test_list.txt
+            echo "test_autograd" >> /tmp/test_list.txt
+            echo "test_distributions" >> /tmp/test_list.txt
+            echo "test_indexing" >> /tmp/test_list.txt
+            echo "test_type_promotion" >> /tmp/test_list.txt
           fi
 
           # 输出测试数量
