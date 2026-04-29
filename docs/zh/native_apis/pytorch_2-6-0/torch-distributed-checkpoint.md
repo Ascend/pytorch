@@ -5,6 +5,7 @@
 
 |API名称|是否支持|限制与说明|
 |--|--|--|
+|torch.distributed.checkpoint.state_dict_saver.save|是|-|
 |torch.distributed.checkpoint.state_dict_saver.save_state_dict|是|-|
 |torch.distributed.checkpoint.state_dict_loader.load_state_dict|是|-|
 |torch.distributed.checkpoint.stateful.Stateful|是|-|
