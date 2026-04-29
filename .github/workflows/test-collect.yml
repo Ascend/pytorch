@@ -142,7 +142,14 @@ jobs:
 
       - name: Install test dependencies
         run: |
+          # 安装当前仓库的基础测试依赖
           pip${{ env.PYTHON_VERSION }} install -r .ci/docker/requirements-ci.txt
+
+          # 安装上游 PyTorch 的完整测试依赖
+          pip${{ env.PYTHON_VERSION }} install -r pytorch-src/.ci/docker/requirements-ci.txt || true
+
+          # 安装 PyTorch 开发依赖（可选）
+          pip${{ env.PYTHON_VERSION }} install expecttest hypothesis fsspec sympy optree networkx psutil || true
 
       # ==================== 保存 pip 缓存 ====================
       - name: Save pip cache
