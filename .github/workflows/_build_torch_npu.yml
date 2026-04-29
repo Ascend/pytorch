@@ -126,13 +126,25 @@ jobs:
           ccache --set-config=max_size=5G
           ccache --set-config=compression=true
 
-          # 设置 ccache 环境变量
+          # 使用符号链接方式让 ccache 模拟 gcc/g++
+          # 这是推荐的方式，避免 CMake 直接把编译选项传给 ccache
+          # CMake 会调用 gcc，但实际上通过符号链接调用 ccache
+          mkdir -p /usr/local/bin
+          ln -sf /usr/bin/ccache /usr/local/bin/gcc
+          ln -sf /usr/bin/ccache /usr/local/bin/g++
+          ln -sf /usr/bin/ccache /usr/local/bin/cc
+          ln -sf /usr/bin/ccache /usr/local/bin/c++
+
+          # 设置 PATH 优先使用符号链接
+          echo "PATH=/usr/local/bin:$PATH" >> $GITHUB_ENV
           echo "CCACHE_DIR=~/.cache/ccache" >> $GITHUB_ENV
-          echo "CC=ccache gcc" >> $GITHUB_ENV
-          echo "CXX=ccache g++" >> $GITHUB_ENV
 
           echo "=== ccache Configuration ==="
           ccache --show-config
+
+          echo ""
+          echo "=== Symbolic Links ==="
+          ls -la /usr/local/bin/gcc /usr/local/bin/g++
 
           echo ""
           echo "=== ccache Statistics (before build) ==="
@@ -157,8 +169,6 @@ jobs:
           export CMAKE_BUILD_TYPE=Release
           export USE_OPENMP=1
           export USE_MKLDNN=0
-          export CMAKE_C_COMPILER_LAUNCHER=ccache
-          export CMAKE_CXX_COMPILER_LAUNCHER=ccache
 
           python${{ inputs.python_version }} setup.py build bdist_wheel
 
@@ -185,8 +195,6 @@ jobs:
           pip${{ inputs.python_version }} install cmake ninja numpy packaging pyyaml requests six typing-extensions
 
           export MAX_JOBS=40
-          export CMAKE_C_COMPILER_LAUNCHER=ccache
-          export CMAKE_CXX_COMPILER_LAUNCHER=ccache
 
           # 禁用 torchair 构建（上游 PyTorch main API 变化导致兼容性问题）
           bash ci/build.sh --python=${{ inputs.python_version }} --disable_torchair
