@@ -228,21 +228,21 @@ jobs:
 
       # ==================== 保存缓存 ====================
       - name: Save pip cache
-        if: success()
+        if: always()
         uses: actions/cache/save@v4
         with:
           path: ~/.cache/pip
           key: ${{ steps.pip_key.outputs.cache_key }}
 
       - name: Save ccache
-        if: success()
+        if: always()
         uses: actions/cache/save@v4
         with:
           path: ~/.cache/ccache
           key: ${{ steps.ccache_key.outputs.cache_key }}
 
       - name: Display cache save status
-        if: success()
+        if: always()
         run: |
           echo "=== Cache Saved ==="
           echo "pip cache key: ${{ steps.pip_key.outputs.cache_key }}"
