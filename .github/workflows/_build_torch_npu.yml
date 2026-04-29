@@ -94,6 +94,7 @@ jobs:
           submodules: recursive
 
       # ==================== PyTorch 构建缓存 ====================
+      # 只缓存 build 目录和 pip cache，不缓存 wheel（wheel 几乎不会复用）
       - name: Get PyTorch build cache key
         id: pytorch_cache_key
         run: |
@@ -108,18 +109,19 @@ jobs:
         id: restore_pytorch_cache
         uses: actions/cache/restore@v4
         with:
+          # 只缓存 build 目录（CMake 构建缓存）和 pip cache
+          # 不缓存 dist 目录（wheel 包几乎不会复用，每次 commit 都需要重新构建）
           path: |
             pytorch-src/build
-            pytorch-src/dist
             ~/.cache/pip
           key: ${{ steps.pytorch_cache_key.outputs.cache_key }}
           restore-keys: |
             ${{ steps.pytorch_cache_key.outputs.partial_key }}
             ${{ env.CACHE_VERSION }}-pytorch-
 
-      - name: Display cache restore status
+      - name: Display PyTorch cache restore status
         run: |
-          echo "=== GitHub Actions Cache Restore Status ==="
+          echo "=== PyTorch Cache Restore Status ==="
           echo "Cache hit: ${{ steps.restore_pytorch_cache.outputs.cache-hit }}"
           echo "Matched key: ${{ steps.restore_pytorch_cache.outputs.cache-matched-key }}"
           echo "Requested key: ${{ steps.pytorch_cache_key.outputs.cache_key }}"
@@ -131,12 +133,6 @@ jobs:
           else
             echo "pytorch-src/build: not found"
           fi
-          if [ -d "pytorch-src/dist" ]; then
-            DIST_SIZE=$(du -sh pytorch-src/dist 2>/dev/null | cut -f1)
-            echo "pytorch-src/dist: ${DIST_SIZE}"
-          else
-            echo "pytorch-src/dist: not found"
-          fi
           echo ""
           echo "=== pip Cache Status ==="
           pip${{ inputs.python_version }} cache info 2>/dev/null || echo "pip cache info not available"
@@ -147,34 +143,7 @@ jobs:
             echo "pip cache directory: not found"
           fi
 
-      - name: Check if PyTorch wheel exists (complete match only)
-        id: check_pytorch_wheel
-        run: |
-          # 只有完整匹配缓存（key 完全匹配）才能复用 wheel
-          # 降级匹配的缓存可能来自不同 commit，不能复用 wheel
-          CACHE_KEY="${{ steps.pytorch_cache_key.outputs.cache_key }}"
-          RESTORED_KEY="${{ steps.restore_pytorch_cache.outputs.cache-hit == 'true' && steps.restore_pytorch_cache.outputs.cache-matched-key || '' }}"
-
-          if [[ "$CACHE_KEY" == "$RESTORED_KEY" ]]; then
-            # 完整匹配，检查 wheel 是否存在
-            if ls pytorch-src/dist/*.whl 1>/dev/null 2>&1; then
-              echo "wheel_exists=true" >> $GITHUB_OUTPUT
-              echo "Found cached PyTorch wheel (complete match):"
-              ls -la pytorch-src/dist/
-            else
-              echo "wheel_exists=false" >> $GITHUB_OUTPUT
-              echo "Complete match but no wheel found, will rebuild"
-            fi
-          else
-            # 降级匹配或未命中缓存，不能复用 wheel，需要重新构建
-            echo "wheel_exists=false" >> $GITHUB_OUTPUT
-            echo "Cache hit type: ${RESTORED_KEY:-'miss'} (not complete match, will rebuild)"
-            # 清理可能存在的旧 wheel，避免版本混淆
-            rm -rf pytorch-src/dist/*.whl 2>/dev/null || true
-          fi
-
       - name: Build PyTorch wheel
-        if: steps.check_pytorch_wheel.outputs.wheel_exists != 'true'
         run: |
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
 
@@ -207,17 +176,16 @@ jobs:
 
       - name: Save PyTorch build cache
         # 只在构建成功时保存缓存（避免保存损坏的中间文件）
-        if: steps.check_pytorch_wheel.outputs.wheel_exists != 'true' && success()
+        if: success()
         uses: actions/cache/save@v4
         with:
           path: |
             pytorch-src/build
-            pytorch-src/dist
             ~/.cache/pip
           key: ${{ steps.pytorch_cache_key.outputs.cache_key }}
 
       - name: Display PyTorch cache save status
-        if: steps.check_pytorch_wheel.outputs.wheel_exists != 'true' && success()
+        if: success()
         run: |
           echo "=== PyTorch Cache Saved ==="
           echo "Cache key: ${{ steps.pytorch_cache_key.outputs.cache_key }}"
@@ -225,15 +193,11 @@ jobs:
           echo "=== Saved Directory Sizes ==="
           BUILD_SIZE=$(du -sh pytorch-src/build 2>/dev/null | cut -f1)
           echo "pytorch-src/build: ${BUILD_SIZE}"
-          DIST_SIZE=$(du -sh pytorch-src/dist 2>/dev/null | cut -f1)
-          echo "pytorch-src/dist: ${DIST_SIZE}"
           PIP_SIZE=$(du -sh ~/.cache/pip 2>/dev/null | cut -f1)
           echo "pip cache: ${PIP_SIZE}"
-          echo ""
-          echo "=== pip Cache Info ==="
-          pip${{ inputs.python_version }} cache info 2>/dev/null || echo "pip cache info not available"
 
       # ==================== torch_npu 构建缓存 ====================
+      # 只缓存 build 目录，不缓存 wheel
       - name: Get torch_npu build cache key
         id: torch_npu_cache_key
         run: |
@@ -248,9 +212,9 @@ jobs:
         id: restore_torch_npu_cache
         uses: actions/cache/restore@v4
         with:
-          path: |
-            torch_npu-src/build
-            torch_npu-src/dist
+          # 只缓存 build 目录（CMake 构建缓存）
+          # 不缓存 dist 目录（wheel 包依赖特定 PyTorch 版本，几乎不会复用）
+          path: torch_npu-src/build
           key: ${{ steps.torch_npu_cache_key.outputs.cache_key }}
           restore-keys: |
             ${{ steps.torch_npu_cache_key.outputs.partial_key }}
@@ -270,40 +234,8 @@ jobs:
           else
             echo "torch_npu-src/build: not found"
           fi
-          if [ -d "torch_npu-src/dist" ]; then
-            DIST_SIZE=$(du -sh torch_npu-src/dist 2>/dev/null | cut -f1)
-            echo "torch_npu-src/dist: ${DIST_SIZE}"
-          else
-            echo "torch_npu-src/dist: not found"
-          fi
-
-      - name: Check if torch_npu wheel exists (complete match only)
-        id: check_torch_npu_wheel
-        run: |
-          # 只有完整匹配缓存才能复用 wheel（依赖的 PyTorch 版本必须相同）
-          CACHE_KEY="${{ steps.torch_npu_cache_key.outputs.cache_key }}"
-          RESTORED_KEY="${{ steps.restore_torch_npu_cache.outputs.cache-hit == 'true' && steps.restore_torch_npu_cache.outputs.cache-matched-key || '' }}"
-
-          if [[ "$CACHE_KEY" == "$RESTORED_KEY" ]]; then
-            # 完整匹配，检查 wheel 是否存在
-            if ls torch_npu-src/dist/*.whl 1>/dev/null 2>&1; then
-              echo "wheel_exists=true" >> $GITHUB_OUTPUT
-              echo "Found cached torch_npu wheel (complete match):"
-              ls -la torch_npu-src/dist/
-            else
-              echo "wheel_exists=false" >> $GITHUB_OUTPUT
-              echo "Complete match but no wheel found, will rebuild"
-            fi
-          else
-            # 降级匹配或未命中缓存，不能复用 wheel
-            echo "wheel_exists=false" >> $GITHUB_OUTPUT
-            echo "Cache hit type: ${RESTORED_KEY:-'miss'} (not complete match, will rebuild)"
-            # 清理可能存在的旧 wheel
-            rm -rf torch_npu-src/dist/*.whl 2>/dev/null || true
-          fi
 
       - name: Build torch_npu wheel
-        if: steps.check_torch_npu_wheel.outputs.wheel_exists != 'true'
         run: |
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
           source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
@@ -313,7 +245,7 @@ jobs:
 
           cd torch_npu-src
 
-          # 安装构建依赖（与 PyTorch 构建保持一致）
+          # 安装构建依赖
           pip${{ inputs.python_version }} install --upgrade pip setuptools wheel
           pip${{ inputs.python_version }} install cmake ninja numpy packaging pyyaml requests six typing-extensions
 
@@ -324,17 +256,15 @@ jobs:
           ls -la dist/
 
       - name: Save torch_npu build cache
-        # 只在构建成功时保存缓存（避免保存损坏的中间文件）
-        if: steps.check_torch_npu_wheel.outputs.wheel_exists != 'true' && success()
+        # 只在构建成功时保存缓存
+        if: success()
         uses: actions/cache/save@v4
         with:
-          path: |
-            torch_npu-src/build
-            torch_npu-src/dist
+          path: torch_npu-src/build
           key: ${{ steps.torch_npu_cache_key.outputs.cache_key }}
 
       - name: Display torch_npu cache save status
-        if: steps.check_torch_npu_wheel.outputs.wheel_exists != 'true' && success()
+        if: success()
         run: |
           echo "=== torch_npu Cache Saved ==="
           echo "Cache key: ${{ steps.torch_npu_cache_key.outputs.cache_key }}"
@@ -342,17 +272,16 @@ jobs:
           echo "=== Saved Directory Sizes ==="
           BUILD_SIZE=$(du -sh torch_npu-src/build 2>/dev/null | cut -f1)
           echo "torch_npu-src/build: ${BUILD_SIZE}"
-          DIST_SIZE=$(du -sh torch_npu-src/dist 2>/dev/null | cut -f1)
-          echo "torch_npu-src/dist: ${DIST_SIZE}"
 
       # ==================== 打包和上传 ====================
       - name: Package test source
         run: |
-          # 排除 build 目录（编译产物，测试不需要）
-          # 排除 dist 目录（wheel 包已单独上传）
+          # 排除 build 和 dist 目录（编译产物，测试不需要）
           tar -czf test-src.tar.gz \
             --exclude='pytorch-src/build' \
             --exclude='pytorch-src/dist' \
+            --exclude='torch_npu-src/build' \
+            --exclude='torch_npu-src/dist' \
             pytorch-src
           ls -la test-src.tar.gz
 
