@@ -25,6 +25,7 @@ env:
   PYTHON_VERSION: '3.11'
   CACHE_VERSION: 'v2'
   PYPI_CACHE_URL: 'http://cache-service.nginx-pypi-cache.svc.cluster.local/pypi/simple'
+  GH_PROXY_URL: 'https://gh-proxy.test.osinfra.cn'
 
 jobs:
   collect:
@@ -101,16 +102,17 @@ jobs:
           repo: Ascend/pytorch
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Download test source from workflow run
-        uses: dawidd6/action-download-artifact@v3
-        with:
-          run_id: ${{ inputs.run_id || '25097789439' }}
-          name: test-src-main
-          repo: Ascend/pytorch
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract test source
-        run: tar -xzf test-src.tar.gz
+      # ==================== Clone PyTorch for test source ====================
+      - name: Clone PyTorch test source
+        run: |
+          # 使用代理加速 git clone，只获取测试用例（浅克隆，无 submodules）
+          PYTORCH_REPO="https://github.com/pytorch/pytorch.git"
+          if [ -n "${{ env.GH_PROXY_URL }}" ]; then
+            PYTORCH_REPO="${{ env.GH_PROXY_URL }}/${PYTORCH_REPO}"
+            echo "Using proxy: ${PYTORCH_REPO}"
+          fi
+          git clone --depth=1 "${PYTORCH_REPO}" pytorch-src
+          echo "Cloned PyTorch test directory"
 
       - name: Install wheels
         run: |
@@ -135,7 +137,7 @@ jobs:
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
 
           python${{ env.PYTHON_VERSION }} .github/scripts/collect_all_cases.py \
-            --test-dir test \
+            --test-dir pytorch-src/test \
             --distributed-shards ${{ inputs.distributed_shards || 2 }} \
             --regular-shards ${{ inputs.regular_shards || 5 }} \
             --output-dir cases_shards \
