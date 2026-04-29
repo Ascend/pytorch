@@ -19,6 +19,7 @@ on:
 
 env:
   PYTHON_VERSION: '3.11'
+  CACHE_VERSION: 'v2'
 
 jobs:
   test:
@@ -36,6 +37,27 @@ jobs:
           sparse-checkout: |
             .github/scripts
             .ci/docker
+
+      # ==================== pip 缓存配置 ====================
+      # pip 缓存加速测试依赖下载
+      - name: Get pip cache key
+        id: pip_key
+        run: |
+          REQUIREMENTS_HASH=$(sha256sum .ci/docker/requirements-ci.txt | cut -d' ' -f1)
+          echo "cache_key=${{ env.CACHE_VERSION }}-pip-test-${{ env.PYTHON_VERSION }}-${REQUIREMENTS_HASH}" >> $GITHUB_OUTPUT
+
+      - name: Restore pip cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ steps.pip_key.outputs.cache_key }}
+          restore-keys: |
+            ${{ env.CACHE_VERSION }}-pip-test-${{ env.PYTHON_VERSION }}-
+            ${{ env.CACHE_VERSION }}-pip-test-
+
+      - name: Setup pip cache directory
+        run: |
+          mkdir -p ~/.cache/pip
 
       - name: Download torch wheel
         uses: actions/download-artifact@v4
@@ -84,6 +106,14 @@ jobs:
             --timeout 300 \
             --max-workers ${{ inputs.max-workers }} \
             --verbose
+
+      # ==================== 保存 pip 缓存 ====================
+      - name: Save pip cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ steps.pip_key.outputs.cache_key }}
 
       - name: Upload test reports
         if: always()
