@@ -30,7 +30,7 @@ env:
 jobs:
   collect:
     runs-on: linux-aarch64-a3-16
-    timeout-minutes: 60
+    timeout-minutes: 180
     outputs:
       distributed_matrix: ${{ steps.collect.outputs.distributed_matrix }}
       regular_matrix: ${{ steps.collect.outputs.regular_matrix }}
@@ -207,43 +207,63 @@ jobs:
           # 切换到 test 目录执行，避免根目录 torch 与安装的 torch 库冲突
           cd pytorch-src/test
 
-          # 获取 --help 输出，从中解析测试列表
-          python${{ env.PYTHON_VERSION }} run_test.py --help > /tmp/run_test_help.txt 2>&1 || true
-          cat /tmp/run_test_help.txt
-
-          # 解析测试列表（从 "where TESTS is any of:" 后面获取）
+          # 方法1: 直接从 discover_tests.py 获取测试列表（更可靠）
           python${{ env.PYTHON_VERSION }} -c "
-          import re
-          with open('/tmp/run_test_help.txt') as f:
-              content = f.read()
-          # 查找测试列表
-          match = re.search(r'where TESTS is any of:\s*(.+)', content)
-          if match:
-              tests_str = match.group(1)
-              # 解析逗号分隔的测试名称
-              tests = [t.strip() for t in tests_str.split(',')]
-              # 保存到文件
-              with open('/tmp/test_list.txt', 'w') as f:
-                  for t in tests:
-                      if t:
-                          f.write(t + '\n')
-              print(f'Found {len([t for t in tests if t])} tests')
-              print('Tests:', tests[:20], '...')
-          else:
-              print('Could not find TESTS list in help output')
-              # 如果解析失败，使用默认测试列表
-              default_tests = ['test_nn', 'test_torch', 'test_autograd', 'test_distributions', 'test_indexing', 'test_type_promotion']
-              with open('/tmp/test_list.txt', 'w') as f:
-                  for t in default_tests:
-                      f.write(t + '\n')
-              print(f'Using default test list: {default_tests}')
-          "
+          import sys
+          sys.path.insert(0, '../tools/testing')
+          from discover_tests import TESTS
+          with open('/tmp/test_list.txt', 'w') as f:
+              for t in TESTS:
+                  f.write(t + '\n')
+          print(f'Found {len(TESTS)} tests from discover_tests.py')
+          " 2>/dev/null || true
+
+          # 如果方法1失败，尝试方法2: 从 --help 解析
+          if [ ! -f /tmp/test_list.txt ] || [ ! -s /tmp/test_list.txt ]; then
+            echo "Method 1 failed, trying method 2 (parse --help)"
+            python${{ env.PYTHON_VERSION }} run_test.py --help > /tmp/run_test_help.txt 2>&1 || true
+
+            # 解析测试列表
+            python${{ env.PYTHON_VERSION }} -c "
+            import re
+            with open('/tmp/run_test_help.txt') as f:
+                content = f.read()
+            # 查找测试列表 (格式: where TESTS is any of: xxx, yyy, zzz)
+            match = re.search(r'where TESTS is any of:\s*(.+)', content)
+            if match:
+                tests_str = match.group(1).strip()
+                tests = [t.strip() for t in tests_str.split(',')]
+                tests = [t for t in tests if t]
+                with open('/tmp/test_list.txt', 'w') as f:
+                    for t in tests:
+                        f.write(t + '\n')
+                print(f'Found {len(tests)} tests from --help')
+            else:
+                print('Could not find TESTS list')
+            "
+          fi
+
+          # 如果都失败，使用默认列表
+          if [ ! -f /tmp/test_list.txt ] || [ ! -s /tmp/test_list.txt ]; then
+            echo "All methods failed, using default test list"
+            cat > /tmp/test_list.txt << 'DEFAULT_TESTS'
+test_nn
+test_torch
+test_autograd
+test_distributions
+test_indexing
+test_type_promotion
+DEFAULT_TESTS
+          fi
 
           # 输出测试数量
           TEST_COUNT=$(wc -l < /tmp/test_list.txt)
           echo "test_count=${TEST_COUNT}" >> $GITHUB_OUTPUT
           echo "=== Tests to run (${TEST_COUNT} tests) ==="
-          cat /tmp/test_list.txt
+          head -20 /tmp/test_list.txt
+          if [ $TEST_COUNT -gt 20 ]; then
+            echo "... and $(($TEST_COUNT - 20)) more tests"
+          fi
 
       - name: Run tests using run_test.py
         timeout-minutes: 120
@@ -302,3 +322,24 @@ jobs:
           echo "Passed: ${PASSED}"
           echo "Failed: ${FAILED}"
           echo "============================================"
+
+          # 保存结果摘要
+          echo "{\"total\": ${TEST_COUNT}, \"passed\": ${PASSED}, \"failed\": ${FAILED}}" > /tmp/test_results_summary.json
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-run-results
+          path: |
+            /tmp/test_output_*.log
+            /tmp/test_results_summary.json
+          retention-days: 7
+
+      - name: Print final summary
+        if: always()
+        run: |
+          echo "=== Final Test Results ==="
+          if [ -f /tmp/test_results_summary.json ]; then
+            cat /tmp/test_results_summary.json
+          fi
