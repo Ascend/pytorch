@@ -132,6 +132,9 @@ jobs:
 
       - name: Verify NPU availability
         run: |
+          # 切换到 /tmp 目录，避免 pytorch-src 源码目录干扰 torch 导入
+          cd /tmp
+
           echo "=== CANN Directory Contents ==="
           ls -la /usr/local/Ascend/ || echo "Ascend directory not found"
           echo ""
