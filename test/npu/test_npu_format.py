@@ -23,6 +23,8 @@ class TestNPUFormat(TestCase):
         fmt2 = torch_npu.get_npu_format(out2)
         self.assertEqual(fmt2, torch_npu.Format.NHWC)
 
+        torch_npu.npu.config.allow_internal_format = True
+        
         out3 = torch_npu.npu_format_cast(tensor, torch_npu.Format.FRACTAL_NZ)
         fmt3 = torch_npu.get_npu_format(out3)
         self.assertEqual(fmt3, torch_npu.Format.FRACTAL_NZ)
