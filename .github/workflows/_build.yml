@@ -71,19 +71,12 @@ jobs:
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
 
           cd pytorch-src
+          pip${{ inputs.python_version }} install pyyaml setuptools wheel cmake ninja
 
-          # 安装构建依赖（使用上游 PyTorch requirements-build.txt）
-          pip${{ inputs.python_version }} install --upgrade pip setuptools wheel
-          pip${{ inputs.python_version }} install -r requirements-build.txt
-
-          # 设置构建环境变量
           export MAX_JOBS=40
           export USE_CUDA=0
           export USE_CUDNN=0
-          export USE_DISTRIBUTED=1  # 启用分布式支持
           export CMAKE_BUILD_TYPE=Release
-          export USE_OPENMP=1       # 启用 OpenMP
-          export USE_MKLDNN=0       # 禁用 MKLDNN (NPU 版本)
 
           python${{ inputs.python_version }} setup.py build bdist_wheel
 
@@ -95,14 +88,10 @@ jobs:
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
           source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
 
-          # 安装刚编译的 PyTorch
           pip${{ inputs.python_version }} install pytorch-src/dist/*.whl
 
           cd torch_npu-src
-
-          # 安装构建依赖（与 PyTorch 构建保持一致）
-          pip${{ inputs.python_version }} install --upgrade pip setuptools wheel
-          pip${{ inputs.python_version }} install cmake ninja numpy packaging pyyaml requests six typing-extensions
+          pip${{ inputs.python_version }} install pyyaml setuptools wheel cmake ninja
 
           export MAX_JOBS=40
           bash ci/build.sh --python=${{ inputs.python_version }}

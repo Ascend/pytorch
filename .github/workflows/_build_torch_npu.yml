@@ -1,0 +1,228 @@
+name: Build PyTorch and torch_npu (with cache)
+
+on:
+  workflow_call:
+    inputs:
+      pytorch_branch:
+        required: true
+        type: string
+        default: 'main'
+      python_version:
+        required: true
+        type: string
+        default: '3.11'
+      docker_image_tag:
+        required: true
+        type: string
+        description: 'Docker image tag with timestamp'
+    outputs:
+      docker-image:
+        description: 'Full Docker image URL'
+        value: ${{ jobs.build.outputs.docker-image }}
+      torch-wheel:
+        description: 'PyTorch wheel artifact name'
+        value: 'torch-wheel-main'
+      torch-npu-wheel:
+        description: 'torch_npu wheel artifact name'
+        value: 'torch-npu-wheel-main'
+      test-src:
+        description: 'Test source artifact name'
+        value: 'test-src-main'
+
+env:
+  # 缓存版本号，当需要强制刷新缓存时修改此值
+  CACHE_VERSION: 'v1'
+
+jobs:
+  build:
+    runs-on: linux-aarch64-a3-16
+    timeout-minutes: 240
+    outputs:
+      docker-image: ${{ steps.set_image.outputs.docker-image }}
+
+    container:
+      image: quay.io/kerer/pytorch:${{ inputs.docker_image_tag }}
+      options: --user root
+
+    steps:
+      - name: Set Docker image URL
+        id: set_image
+        run: |
+          DOCKER_IMAGE="quay.io/kerer/pytorch:${{ inputs.docker_image_tag }}"
+          echo "docker-image=${DOCKER_IMAGE}" >> $GITHUB_OUTPUT
+          echo "Using Docker image: ${DOCKER_IMAGE}"
+
+      - name: Setup CANN environment
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+      - name: Clone upstream PyTorch main
+        id: clone_pytorch
+        run: |
+          git clone --depth=1 --branch ${{ inputs.pytorch_branch }} \
+            https://github.com/pytorch/pytorch.git pytorch-src
+          PYTORCH_SHA=$(cd pytorch-src && git rev-parse HEAD)
+          echo "pytorch_sha=${PYTORCH_SHA}" >> $GITHUB_OUTPUT
+          echo "Cloned PyTorch commit: ${PYTORCH_SHA}"
+
+      - name: Checkout torch_npu
+        uses: actions/checkout@v4
+        with:
+          path: torch_npu-src
+          submodules: recursive
+
+      # ==================== PyTorch 构建缓存 ====================
+      - name: Get PyTorch build cache key
+        id: pytorch_cache_key
+        run: |
+          # 缓存键基于：PyTorch SHA + requirements-build.txt 内容 + 缓存版本
+          PYTORCH_SHA="${{ steps.clone_pytorch.outputs.pytorch_sha }}"
+          REQUIREMENTS_HASH=$(cd pytorch-src && sha256sum requirements-build.txt | cut -d' ' -f1)
+          echo "cache_key=${{ env.CACHE_VERSION }}-pytorch-${PYTORCH_SHA}-${REQUIREMENTS_HASH}" >> $GITHUB_OUTPUT
+
+      - name: Restore PyTorch build cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            pytorch-src/build
+            pytorch-src/dist
+            ~/.cache/pip
+          key: ${{ steps.pytorch_cache_key.outputs.cache_key }}
+          restore-keys: |
+            ${{ env.CACHE_VERSION }}-pytorch-
+
+      - name: Check if PyTorch wheel exists
+        id: check_pytorch_wheel
+        run: |
+          if ls pytorch-src/dist/*.whl 1>/dev/null 2>&1; then
+            echo "wheel_exists=true" >> $GITHUB_OUTPUT
+            echo "Found cached PyTorch wheel:"
+            ls -la pytorch-src/dist/
+          else
+            echo "wheel_exists=false" >> $GITHUB_OUTPUT
+            echo "No cached wheel found, will build PyTorch"
+          fi
+
+      - name: Build PyTorch wheel
+        if: steps.check_pytorch_wheel.outputs.wheel_exists != 'true'
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+
+          cd pytorch-src
+
+          # 安装构建依赖（使用上游 PyTorch requirements-build.txt）
+          pip${{ inputs.python_version }} install --upgrade pip setuptools wheel
+          pip${{ inputs.python_version }} install -r requirements-build.txt
+
+          # 设置构建环境变量
+          export MAX_JOBS=40
+          export USE_CUDA=0
+          export USE_CUDNN=0
+          export USE_DISTRIBUTED=1  # 启用分布式支持（torch_npu 必需）
+          export CMAKE_BUILD_TYPE=Release
+          export USE_OPENMP=1       # 启用 OpenMP（torch_npu CMakeLists.txt 默认使用）
+          export USE_MKLDNN=0       # 禁用 MKLDNN（NPU 不需要 Intel CPU 库）
+
+          python${{ inputs.python_version }} setup.py build bdist_wheel
+
+          echo "PyTorch wheel built:"
+          ls -la dist/
+
+      - name: Save PyTorch build cache
+        if: steps.check_pytorch_wheel.outputs.wheel_exists != 'true' && always()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            pytorch-src/build
+            pytorch-src/dist
+            ~/.cache/pip
+          key: ${{ steps.pytorch_cache_key.outputs.cache_key }}
+
+      # ==================== torch_npu 构建缓存 ====================
+      - name: Get torch_npu build cache key
+        id: torch_npu_cache_key
+        run: |
+          # 缓存键基于：torch_npu 仓库 SHA + PyTorch SHA + 缓存版本
+          TORCH_NPU_SHA=$(cd torch_npu-src && git rev-parse HEAD)
+          PYTORCH_SHA="${{ steps.clone_pytorch.outputs.pytorch_sha }}"
+          echo "cache_key=${{ env.CACHE_VERSION }}-torch_npu-${TORCH_NPU_SHA}-${PYTORCH_SHA}" >> $GITHUB_OUTPUT
+
+      - name: Restore torch_npu build cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            torch_npu-src/build
+            torch_npu-src/dist
+          key: ${{ steps.torch_npu_cache_key.outputs.cache_key }}
+          restore-keys: |
+            ${{ env.CACHE_VERSION }}-torch_npu-
+
+      - name: Check if torch_npu wheel exists
+        id: check_torch_npu_wheel
+        run: |
+          if ls torch_npu-src/dist/*.whl 1>/dev/null 2>&1; then
+            echo "wheel_exists=true" >> $GITHUB_OUTPUT
+            echo "Found cached torch_npu wheel:"
+            ls -la torch_npu-src/dist/
+          else
+            echo "wheel_exists=false" >> $GITHUB_OUTPUT
+            echo "No cached wheel found, will build torch_npu"
+          fi
+
+      - name: Build torch_npu wheel
+        if: steps.check_torch_npu_wheel.outputs.wheel_exists != 'true'
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          # 安装刚编译的 PyTorch
+          pip${{ inputs.python_version }} install pytorch-src/dist/*.whl
+
+          cd torch_npu-src
+
+          # 安装构建依赖（与 PyTorch 构建保持一致）
+          pip${{ inputs.python_version }} install --upgrade pip setuptools wheel
+          pip${{ inputs.python_version }} install cmake ninja numpy packaging pyyaml requests six typing-extensions
+
+          export MAX_JOBS=40
+          bash ci/build.sh --python=${{ inputs.python_version }}
+
+          echo "torch_npu wheel built:"
+          ls -la dist/
+
+      - name: Save torch_npu build cache
+        if: steps.check_torch_npu_wheel.outputs.wheel_exists != 'true' && always()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            torch_npu-src/build
+            torch_npu-src/dist
+          key: ${{ steps.torch_npu_cache_key.outputs.cache_key }}
+
+      # ==================== 打包和上传 ====================
+      - name: Package test source
+        run: |
+          tar -czf test-src.tar.gz pytorch-src
+          ls -la test-src.tar.gz
+
+      - name: Upload PyTorch wheel
+        uses: actions/upload-artifact@v4
+        with:
+          name: torch-wheel-main
+          path: pytorch-src/dist/*.whl
+          retention-days: 7
+
+      - name: Upload torch_npu wheel
+        uses: actions/upload-artifact@v4
+        with:
+          name: torch-npu-wheel-main
+          path: torch_npu-src/dist/*.whl
+          retention-days: 7
+
+      - name: Upload test source
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-src-main
+          path: test-src.tar.gz
+          retention-days: 7
