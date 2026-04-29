@@ -1,4 +1,5 @@
 {
+    "test_batch_vs_slicing_jiterator_binary_npu_bfloat16 (__main__.TestBinaryUfuncsPRIVATEUSE1)": ["jiterator is a CUDA-exclusive JIT kernel compilation mechanism (relies on NVRTC); NPU has no CUDA runtime and no equivalent implementation, test not applicable", [""]],
     "test_binary_op_list_error_cases__foreach_clamp_max_npu_bfloat16 (__main__.TestForeachPRIVATEUSE1)": ["", [""]],
     "test_deterministic_replication_pad2d_npu (__main__.TestTorchDeviceTypePRIVATEUSE1)": ["", [""]],
     "test_to_with_tensor (__main__.TestTorch)": ["", [""]],
