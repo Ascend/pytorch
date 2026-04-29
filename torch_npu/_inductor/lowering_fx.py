@@ -37,6 +37,7 @@ from torch._inductor.ir import (
     validate_ir,
     View,
 )
+from torch._inductor.lowering import mul
 from torch._inductor.scheduler import (
     Dep,
     WeakDep,
@@ -456,16 +457,6 @@ def fetch_graphs(inputs: Optional[List[TensorBox]]):
         traced_graph = inp.get_traced_graph()
         if (
             traced_graph is not None
-            and not isinstance(inp, (ir.ConcatKernel, npu_ir.ConcatKernel))
-            and not (
-                hasattr(inp, 'data')
-                and isinstance(inp.data, (ir.ConcatKernel, npu_ir.ConcatKernel))
-            )
-            and not (
-                hasattr(inp, 'data')
-                and hasattr(inp.data, 'data')
-                and isinstance(inp.data.data, (ir.ConcatKernel, npu_ir.ConcatKernel))
-            )
         ):
             input_graphs.append(traced_graph)
             continue

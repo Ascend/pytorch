@@ -100,8 +100,6 @@ class SplitTiling:
                     continue
                 if axis in self.kernel.split_axis:
                     continue
-                if axis == self.kernel.sorted_axis[-1] and self.kernel.contains_cat_node():
-                    continue
                 axis.is_split_axis = True
                 return axis
             return None
@@ -122,9 +120,7 @@ class SplitTiling:
 
         if not self.kernel.split_axis and self.kernel.sorted_axis:
             self.kernel.split_axis.append(self.kernel.sorted_axis[0])
-            # todo: improve or remove this condition check
-            if not self.kernel.contains_cat_node():
-                self.kernel.sorted_axis[0].is_split_axis = True
+            self.kernel.sorted_axis[0].is_split_axis = True
 
         self.kernel.split_axis.sort(reverse=True, key=self.key)
         for i, x in enumerate(self.kernel.split_axis):

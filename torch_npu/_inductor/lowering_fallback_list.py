@@ -1076,6 +1076,7 @@ if inductor_indirect_memory_mode != 'linear':
     ]
 
 INDIRECT_MEM_FALLBACK_LIST = [
+    aten.cat,
     aten.embedding,
     aten.embedding.default,
     aten.embedding.out,

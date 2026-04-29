@@ -42,6 +42,7 @@ else:
     from .codegen.ir import patch_loop_body, patch_indexing
     from .codegen.triton import patch_gen_common_triton_ext_imports, patch_triton_scheduling
     from .decomposition import _register_npu_inductor_decompositons
+    from .dependencies import patch_extract_read_writes
     from .graph import patch_count_bytes, patch_codegen_with_cpp_wrapper, patch_run_node
     from .ir import patch_fallback_kernel_codegen, patch_num_splits
     from .lowering import make_reduction
@@ -53,7 +54,6 @@ else:
     from .utils import (
         patch_is_gpu,
         patch_has_triton,
-        disable_foreach,
         patch_get_first_incompatible_cudagraph_node
     )
     from .codecache import patch_aot_code_compiler_compile, patch_cache_base_get_system
@@ -171,27 +171,14 @@ else:
     patch_run_node()
     patch_is_gpu()
     patch_has_triton()
-    disable_foreach()
     patch_get_first_incompatible_cudagraph_node()
     patch_get_optimization_cflags()
-
+    patch_extract_read_writes()
 
     def add_additional_op():
         from torch._prims_common import ELEMENTWISE_TYPE_PROMOTION_KIND
         from torch._inductor.ops_handler import OpsHandler
         from torch._inductor.utils import register_op_dtype_propagation_rules
-
-        def cat_insert_slice(self, dst, src, offset, size, output_size):
-            return self._default("cat_insert_slice", (dst, src, offset, size, output_size), {})
-
-        OpsHandler.cat_insert_slice = cat_insert_slice
-        register_op_dtype_propagation_rules("cat_insert_slice", ELEMENTWISE_TYPE_PROMOTION_KIND.DEFAULT, None)
-
-        def cat_store(self, dst, src, size, store_offset_index, output_buffer_index):
-            return self._default("cat_store", (dst, src, size, store_offset_index, output_buffer_index), {})
-
-        OpsHandler.cat_store = cat_store
-        register_op_dtype_propagation_rules("cat_store", ELEMENTWISE_TYPE_PROMOTION_KIND.DEFAULT, None)
 
         def index_select(self, name, index, indirect_var, set_indirect, bound, index_select_type):
             return self._default("index_select", (name, index, indirect_var, set_indirect, bound, index_select_type), {})
@@ -216,6 +203,5 @@ else:
 
         OpsHandler.scatter_template = scatter_template
         register_op_dtype_propagation_rules("scatter_template", ELEMENTWISE_TYPE_PROMOTION_KIND.DEFAULT, None)
-
 
     add_additional_op()

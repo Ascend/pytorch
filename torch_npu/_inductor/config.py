@@ -170,9 +170,6 @@ if is_ascend950:
 if Ascend910B1 <= get_soc_version() < Ascend310B1 or get_soc_version() >= Ascend910_9391:
     num_vector_core = num_cube_core * 2
 
-use_store_in_cat = os.environ.get("USE_STORE_IN_CAT", False)
-max_cat_size_in_per_kernel = 4 * 1024
-max_cat_count_in_per_kernel = None
 inductor_indirect_memory_mode = None
 if is_ascend950:
     # A5 INDUCTOR_INDIRECT_MEMORY_MODE: fallback, simt_template, simt_only, simd_simt_mix
@@ -181,11 +178,6 @@ if is_ascend950:
         inductor_indirect_memory_mode = None
     if inductor_indirect_memory_mode not in [None, "simt_template", "simt_only", "simd_simt_mix"]:
         inductor_indirect_memory_mode = "simd_simt_mix"
-    # if mode in "simt_only", "simd_simt_mix", should use load store cat
-    if inductor_indirect_memory_mode in ["simt_only", "simd_simt_mix"]:
-        use_store_in_cat = True
-        # simt only or simd_simt_mix only need small size for concat
-        max_cat_size_in_per_kernel = 1024
 
 # simt default stacksize is 256 * 32 Byte
 simt_default_warp_stacksize = 256 * 32
@@ -193,10 +185,6 @@ simt_default_warp_stacksize = 256 * 32
 # nddma switch
 default_nddma_switch = '1' if is_ascend950 else '0'
 nddma_switch = os.getenv("TORCHINDUCTOR_NDDMA", default_nddma_switch) == '1'
-
-lowering_cat_with_concat_kernel = False
-if is_ascend950:
-    lowering_cat_with_concat_kernel = True
 
 log_level_env = os.getenv('INDUCTOR_ASCEND_LOG_LEVEL', 'WARNING').upper()
 log_level_mapping = {

@@ -52,6 +52,8 @@ from torch._inductor.runtime.triton_heuristics import (
     config_from_dict,
     FixedGrid,
     PrecomputedGrid,
+    SequentialComboKernelGrid,
+    PrecomputedGrid,
     Grid1D,
     Grid2D,
     Grid2DWithYZOverflow,
@@ -61,7 +63,6 @@ from torch._inductor.runtime.triton_heuristics import (
 from torch._inductor.runtime.triton_heuristics import ( # noqa: F401
     fixed_config,
     user_autotune,
-    foreach,
     template
 )
 
@@ -507,7 +508,7 @@ class NPUCachingAutotuner(CachingAutotuner):
         if not self.configs:
             raise NoTritonConfigsError("No triton configs are available")
 
-        def make_ttir_from_cfg(cfg):    
+        def make_ttir_from_cfg(cfg):
             """Ahead of time compile a given autotuner config."""
             compile_meta = copy.deepcopy(self.triton_meta)
             cfg_kwargs = cfg.kwargs
@@ -1566,6 +1567,28 @@ def persistent_reduction(
         heuristic_type=HeuristicType.PERSISTENT_REDUCTION,
     )
 
+def foreach(size_hints, triton_meta, num_warps, filename=None, inductor_meta=None):
+    """
+    Compile a triton foreach kernel
+    """
+    inductor_meta = {} if inductor_meta is None else inductor_meta
+
+    configs = triton_config_npu_index(
+        size_hints,
+        inductor_meta=inductor_meta,
+        is_reduction=True,
+        triton_meta=triton_meta,
+        is_persistent_reduction=True,
+    )
+
+    return cached_autotune(
+        size_hints,
+        configs,
+        triton_meta=triton_meta,
+        inductor_meta=inductor_meta,
+        heuristic_type=HeuristicType.TEMPLATE,
+        filename=filename,
+    )
 
 def benchmark_all_configs(self, *args, **kwargs):
     with dynamo_timed("benchmark_all_configs"):

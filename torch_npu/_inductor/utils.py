@@ -62,15 +62,6 @@ def patch_has_triton():
     torch._inductor.scheduler.has_triton = has_triton
 
 
-def disable_foreach():
-    from torch._inductor.scheduler import Scheduler
-
-    def create_foreach_nodes(self):
-        return
-
-    Scheduler.create_foreach_nodes = create_foreach_nodes
-
-
 def _fx_node_is_input_dependent_cudagraph_unsafe(fx_node: torch.fx.Node) -> bool:
     """
     Check if an FX node is cudagraph-unsafe based on its input arguments.

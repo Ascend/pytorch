@@ -3,34 +3,32 @@ import contextlib
 import itertools
 import functools
 import os
-from typing import Dict, Sequence, List, Iterable, Any, Union
+from typing import Sequence, List, Any, Union, Iterable
 import sympy
 
 import torch
 from torch.fx.immutable_collections import immutable_dict
 from torch._dynamo.utils import counters, preserve_rng_state
-from torch._inductor import scheduler, metrics
+from torch._inductor import metrics
 from torch._inductor.codecache import code_hash, PyCodeCache
 from torch._inductor.codegen.multi_kernel import MultiKernel
 from torch._inductor.codegen.simd import DisableReduction, EnableReduction, SIMDKernelFeatures, SIMDKernel
 from torch._inductor.codegen.simd import schedule_log, scheduler, WhyNoFuse, TritonTemplateBuffer
-from torch._inductor.codegen.triton import (TritonScheduling, log, config)
+from torch._inductor.codegen.simd_kernel_features import NodeScheduleMarker
 from torch._inductor.codegen.triton import (
     TritonScheduling, BaseSchedulerNode, config, schedule_log,
     get_fused_kernel_name, get_kernel_category_by_source_code, Placeholder,
     get_kernel_metadata, get_path, IndentedBuffer)
 from torch._inductor.runtime.benchmarking import benchmarker
-from torch._inductor.utils import sympy_index_symbol, ModularIndexing, FloorDiv, sympy_product
+from torch._inductor.utils import sympy_product
 from torch._inductor.virtualized import V
-from torch._inductor.dependencies import MemoryDep, StarDep, WeakDep
+from torch._inductor.dependencies import MemoryDep, StarDep
 from torch.utils._ordered_set import OrderedSet
 from torch._inductor.codegen.simd import CandidateTiling
 
-from .triton import NPUIndexTritonKernel, NPUTritonKernel, NPUTritonKernelWithLoop, flatten
-from .kernel_analysis import ReductionAnalysis
 from .npu_kernel_features import NumelList, NPUKernelFeatures
-from .split_tiling import SplitTiling
-from .triton import NPUIndexTritonKernel
+from .triton import NPUIndexTritonKernel, NPUTritonKernel, NPUTritonKernelWithLoop, flatten
+from .triton_combo_kernel import NPUComboKernel
 from .. import config as npu_config
 from ..lowering import (
     create_fx_from_snodes_by_traced_graph,
@@ -80,7 +78,7 @@ class NPUTritonScheduling(TritonScheduling):
     @classmethod
     def create_tiling(
             cls, pw_tiling: Sequence[sympy.Expr], reduction_tiling: Sequence[sympy.Expr]
-    ) -> Dict[str, sympy.Expr]:
+    ) -> dict[str, sympy.Expr]:
         """
         Create a tiling dict from pointwise and reduction splits.
         """
@@ -143,9 +141,6 @@ class NPUTritonScheduling(TritonScheduling):
         kernels = self.create_kernel_choices(
             kernel_features, [tiling], {"features": kernel_features}
         )
-        kernel = kernels[0]
-        setattr(kernel, "node_schedule", node_schedule)
-        self.decide_codegen_dims_in_kernel(node_schedule, kernel)
 
         for kernel in kernels:
             self.codegen_node_schedule_with_kernel(node_schedule, kernel)
@@ -283,6 +278,86 @@ class NPUTritonScheduling(TritonScheduling):
         V.graph.inplaced_to_remove |= kernel.inplaced_to_remove
         self.scheduler.free_buffers()
         return None
+
+    def codegen_combo_kernel(self, combo_kernel_node):
+        subkernel_nodes = combo_kernel_node.get_subkernel_nodes()
+        custom_part_algorithm = combo_kernel_node.use_custom_partition_algo
+        enable_autotune = combo_kernel_node.enable_autotune
+        mixed_sizes = config.combo_kernel_allow_mixed_sizes > 1 or (
+            config.combo_kernel_allow_mixed_sizes == 1 and custom_part_algorithm
+        )
+
+        kernel_code_list = self.generate_combo_kernel_code(
+            subkernel_nodes, custom_part_algorithm, enable_autotune, mixed_sizes
+        )
+
+        for src_code, kernel, _ in kernel_code_list:
+            kernel_name, _ = self.define_kernel(src_code, [combo_kernel_node], kernel, None)
+            self.codegen_comment([combo_kernel_node])
+            log.debug("ComboKernels: generated kernel %s.", kernel_name)
+            kernel.call_kernel(V.graph.wrapper_code, kernel_name)
+
+        self.free_buffers_in_scheduler()
+
+    def generate_combo_kernel_code(
+        self,
+        subkernel_nodes: list[BaseSchedulerNode],
+        custom_part_algorithm: bool,
+        enable_autotune: bool,
+        mixed_sizes: bool,
+        only_gen_src_code: bool = False,
+    ) -> list[tuple[str, Any, Any]]:
+
+        fused_node_lists = [node.get_nodes() for node in subkernel_nodes]
+        subkernel_map, node_schedule_map = {}, {}
+        for pn, nodes in zip(subkernel_nodes, fused_node_lists):
+            _, (numel, rnumel) = max(nodes, key=lambda x: int(x.is_reduction())).group
+            node_schedule = self.generate_node_schedule(nodes, numel, rnumel)
+            tiling = self.select_tiling(node_schedule, numel, rnumel)
+            node_schedule_map[pn] = node_schedule, tiling, numel, rnumel
+            subkernel_map[pn] = NPUComboKernel.create_triton_kernel(
+                tiling,
+                features=NPUKernelFeatures(node_schedule, numel, rnumel),
+                optimize_mask=not mixed_sizes,
+            )
+
+        partitions = NPUComboKernel.horizontal_partition(
+            nodes=subkernel_nodes,
+            triton_scheduling=self,
+            custom_algorithm=custom_part_algorithm,
+            kernel_map=subkernel_map,
+            node_info_map=node_schedule_map,
+        )
+        log.debug(
+            "ComboKernels: %d nodes partitioned into %s groups",
+            len(subkernel_nodes),
+            [len(p) for p in partitions],
+        )
+        kernel_code_list = []
+        for node_group in partitions:
+            fused_node_lists = [node.get_nodes() for node in node_group]
+            kernel = NPUComboKernel(
+                enable_autotune=enable_autotune,
+                mixed_sizes=mixed_sizes,
+            )
+
+            for pn, nodes in zip(node_group, fused_node_lists):
+                self.codegen_node_schedule_with_kernel(
+                    node_schedule_map[pn][0],
+                    kernel.create_sub_kernel(subkernel_map[pn]),
+                )
+                subkernel = subkernel_map[pn]
+                node_schedule = node_schedule_map[pn][0]
+                if not only_gen_src_code:
+                    with V.set_kernel_handler(subkernel):  # type: ignore[call-arg]
+                        for node in NodeScheduleMarker.only_nodes(node_schedule):
+                            node.mark_run()
+                V.graph.removed_buffers |= subkernel.removed_buffers
+                V.graph.inplaced_to_remove |= subkernel.inplaced_to_remove
+
+            src_code = kernel.codegen_kernel()
+            kernel_code_list.append((src_code, kernel, node_group))
+        return kernel_code_list
 
     def define_kernel(self, src_code, node_schedule, kernel, traced_graph_hash: str):
         wrapper = V.graph.wrapper_code
@@ -445,8 +520,6 @@ class NPUTritonScheduling(TritonScheduling):
                 tiling,
                 features=NPUKernelFeatures(node_schedule, numel, rnumel),
             )
-            setattr(kernel, "node_schedule", node_schedule)
-            self.decide_codegen_dims_in_kernel(node_schedule, kernel)
             self.codegen_node_schedule_with_kernel(node_schedule, kernel)
             with config.patch(
                 "benchmark_kernel", benchmark_kernel
@@ -495,14 +568,6 @@ class NPUTritonScheduling(TritonScheduling):
             node2, scheduler.ForeachKernelSchedulerNode
         ):
             return scheduler.ForeachKernelSchedulerNode.can_fuse(node1, node2)
-
-        has_cat_store = (isinstance(node1, scheduler.SchedulerNode)
-                            and hasattr(node1, "_body")
-                            and node1._body is not None
-                            and node1._body.has_op("cat_store"))
-
-        if has_cat_store:
-            return False
 
         _, (numel1, rnumel1) = node1.group
         _, (numel2, rnumel2) = node2.group
@@ -636,174 +701,6 @@ class NPUTritonScheduling(TritonScheduling):
 
     can_fuse_vertical = can_fuse
     can_fuse_horizontal = can_fuse
-
-    def _store_keeps_unified_anchor(self, var, index):
-        """
-        Check if a Store index keeps the unified axis as the only axis with the same prefix.
-
-        Args:
-            var: The unified axis symbol to check.
-            index: The Store index expression to analyze.
-
-        Returns:
-            True if the Store index contains only ``var`` as the axis with the same prefix.
-        """
-        if var not in index.free_symbols:
-            return False
-        prefix = str(var)[0]
-        same_prefix_symbols = sorted(
-            [
-                sym for sym in index.free_symbols
-                if getattr(sym, "name", str(sym)).startswith(prefix)
-            ],
-            key=str,
-        )
-        return len(same_prefix_symbols) == 1 and same_prefix_symbols[0] == var
-
-    def _iter_schedule_nodes(self, node_schedule):
-        """
-        Iterate over real scheduled nodes, skipping reduction sentinels.
-        """
-        for node in node_schedule:
-            if node not in (EnableReduction, DisableReduction):
-                yield node
-
-    def _iter_store_indices(self, node_schedule, kernel):
-        """
-        Yield Store key/index pairs from scheduled nodes.
-        """
-        for node in self._iter_schedule_nodes(node_schedule):
-            for key in kernel.store_index_keys:
-                if key in node._body.indexing:
-                    yield key, node._body.indexing[key]
-
-    def _mark_store_index_keys(self, node_schedule, kernel):
-        """
-        Collect Store index keys before any indexing transformation happens.
-        """
-        kernel.store_index_keys = set()
-        for node in self._iter_schedule_nodes(node_schedule):
-            from torch._inductor.loop_body import MemoryUsageType
-
-            names = []
-            for write in node._body.memory_usage[MemoryUsageType.STORE]:
-                names.append(write.index_name)
-            for write in node._body.memory_usage[MemoryUsageType.STORE_REDUCTION]:
-                names.append(write.index_name)
-            indexing_dict = node._body.indexing
-            if indexing_dict is None:
-                indexing_dict = node._body.indexing_exprs
-                log.debug("Fallback to indexing_exprs for early Store key detection")
-            for key in indexing_dict.keys():
-                if key in names:
-                    kernel.store_index_keys.add(key)
-                    log.info("Marked Store index key early: %s", key)
-
-    def _transform_schedule_indexing(self, node_schedule, kernel):
-        """
-        Transform loop-body indexing and collect substitution candidates.
-        """
-        stack = contextlib.ExitStack()
-        for node in node_schedule:
-            if node is DisableReduction:
-                stack.enter_context(kernel.disable_reduction())
-            elif node is EnableReduction:
-                stack.close()
-            else:
-                index_vars = kernel.split_and_set_ranges(node.get_ranges())
-                node._body.transform_dims_in_indexing(index_vars)
-
-        self.additional_nodes_to_be_subs(kernel, kernel.range_tree_nodes_substituted)
-
-        for node in self._iter_schedule_nodes(node_schedule):
-            indexing = node._body.indexing
-            node._body.substituted_dims_in_indexing(indexing, kernel, kernel.range_tree_nodes_substituted)
-
-    def _record_store_unified_indexing(self, node_schedule, kernel):
-        """
-        Record Store indexing expressions used by unified-axis guards.
-        """
-        kernel.store_unified_indexing = []
-        for key, index in self._iter_store_indices(node_schedule, kernel):
-            kernel.store_unified_indexing.append(index)
-            log.debug("Recorded Store unified indexing: key=%s, index=%s", key, index)
-
-    def _should_preserve_substituted_var(self, node_schedule, kernel, var, candidates):
-        """
-        Check whether a substituted parent axis should remain in the kernel.
-        """
-        if len(candidates) <= 1:
-            return False
-
-        for key, index in self._iter_store_indices(node_schedule, kernel):
-            if self._store_keeps_unified_anchor(var, index):
-                log.info(
-                    "Preserve substituted var %s because Store key %s keeps the unified anchor",
-                    var,
-                    key,
-                )
-                return True
-        return False
-
-    def _remove_substituted_dims_from_kernel(self, node_schedule, kernel):
-        """
-        Remove substituted parent dimensions unless a Store-side unified anchor preserves them.
-        """
-        for var, candidates in kernel.range_tree_nodes_substituted.items():
-            if self._should_preserve_substituted_var(node_schedule, kernel, var, candidates):
-                continue
-
-            if var in kernel.range_tree_nodes:
-                root = kernel.range_tree_nodes[var].parent
-                root.remove_entry(var)
-
-    def _finalize_kernel_codegen_dims(self, kernel):
-        """
-        Finalize split/tiling/no-loop axis metadata after substitutions are resolved.
-        """
-        split_tiling = SplitTiling(kernel)
-        split_tiling.select_split_tiling_axis()
-        kernel.load_store_indexing = split_tiling.indexing
-
-        if kernel.inside_reduction and getattr(kernel, "find_reduction_node", None) is not None:
-            from torch._inductor import ir
-
-            reduction_node = kernel.find_reduction_node()
-            if reduction_node is not None and isinstance(reduction_node, ir.Reduction):
-                kernel.reduce_analysis = ReductionAnalysis(kernel)
-                if kernel.is_unified_simt_kernel() and kernel.reduction_dim() != len(kernel.golden_var_list) - 1:
-                    kernel.persistent_reduction = False
-
-        split_tiling.select_no_loop_axis()
-
-    def decide_codegen_dims_in_kernel(self, node_schedule, kernel):
-        with kernel:
-            self._mark_store_index_keys(node_schedule, kernel)
-            self._transform_schedule_indexing(node_schedule, kernel)
-            self._record_store_unified_indexing(node_schedule, kernel)
-            self._remove_substituted_dims_from_kernel(node_schedule, kernel)
-            self._finalize_kernel_codegen_dims(kernel)
-
-    def additional_nodes_to_be_subs(self, kernel, node_to_be_substituted):
-        for node in kernel.range_tree_nodes.values():
-            if node.expr != sympy_index_symbol(f"{node.parent.prefix}index") \
-                    or len(node.parent.var_ranges) == 1 \
-                    or node.symbol() in node_to_be_substituted:
-                continue
-            numel = sympy.Integer(1)
-            new_var_expr = sympy.Integer(0)
-            for k, s in node.parent.var_ranges.items():
-                if k == node.symbol():
-                    continue
-                numel = numel * s
-                sub_node = kernel.range_tree_nodes[k]
-                new_var_expr = new_var_expr + sub_node.symbol() * sub_node.divisor
-
-            if numel == node.length:
-                node_to_be_substituted[node.symbol()] = [(node.length, new_var_expr)]
-            else:
-                log.warning("sub nodes (expr%s, numel:%d) can not make up parent node(%s:%d)",
-                            new_var_expr, numel, node.symbol(), node.length)
 
     @classmethod
     @functools.lru_cache(32)

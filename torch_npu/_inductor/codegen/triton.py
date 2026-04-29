@@ -1,3 +1,4 @@
+import contextlib
 import functools
 import itertools
 import operator
@@ -18,6 +19,7 @@ import math
 import sympy
 import torch
 from torch._inductor import config, ir
+from torch.fx.immutable_collections import immutable_dict
 from torch.utils._ordered_set import OrderedSet
 from torch._inductor.codegen.common import (
     IndentedBuffer,
@@ -31,7 +33,8 @@ from torch._inductor.codegen.triton import (
     IndexingOptions,
     triton_reshape,
     TritonCSEVariable,
-    triton_compute_type, TritonScheduling
+    triton_compute_type,
+    TritonScheduling
 )
 from torch._inductor.ops_handler import OpsHandler
 from torch._inductor.codegen.triton import (
@@ -50,6 +53,7 @@ from torch._inductor.codegen.triton import (
 )
 from torch._inductor.codegen.triton_utils import config_of, signature_of, signature_to_meta, should_unwrap_unspec_arg
 from torch._inductor.dtype_propagation import DtypePropagationOpsHandler
+from torch._inductor.ir import IRNode
 from torch._inductor.runtime.hints import DeviceProperties, ReductionHint
 from torch._inductor.runtime.runtime_utils import next_power_of_2
 from torch._inductor.scheduler import SchedulerNode
@@ -87,8 +91,8 @@ from .kernel_analysis import (
     collect_stride_sorted_vars_from_nodes,
 )
 from .npu_kernel_features import NumelList
+from .split_tiling import SplitTiling
 from .triton_utils import NPUKernelType
-from torch._inductor.ir import IRNode
 from ..fx_passes.utils.schedule_node_utils import is_multi_stream
 
 
@@ -332,10 +336,11 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
         self.split_order = None
         self.var_directions = {}
         self.directions = []
-        # don't use functools.lru_cache(None), so that previous indexing_code produdec by previous index,
+        # don't use functools.lru_cache(None), so that previous indexing_code produced by previous index,
         # could be overwritten
         self.codegen = self._codegen
         self.is_no_loop_axis = False
+        self.is_sub_kernel = False
 
     # axis mask
     def _codegen_mask(self):
@@ -441,7 +446,10 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
             dtype_cast_str = ".to(tl.int64)"
 
         if self.is_split_axis:
-            lines.append(f"{self.symbol()}_offset = tl.program_id({self.split_order}){dtype_cast_str} * {BLOCK_NAME}")
+            if self.is_sub_kernel:
+                lines.append(f"{self.symbol()}_offset = pid_offset{dtype_cast_str} * {BLOCK_NAME}")
+            else:
+                lines.append(f"{self.symbol()}_offset = tl.program_id({self.split_order}){dtype_cast_str} * {BLOCK_NAME}")
 
         if self.is_no_loop_axis:
             lines.append(f"base_{self.name}= tl.arange(0, {BLOCK_NAME_SUB}){dtype_cast_str}")
@@ -567,6 +575,10 @@ class IterationRangesRootNPUIndex(IterationRangesRoot):
                     "lookup: created new node %s for divisor=%s, length=%s",
                     node.symbol(), divisor, length
                 )
+
+            # not a good implement
+            if len(self.pid_cache) > 0:
+                node.is_sub_kernel = True
 
         return self.nodes[expr]
 
@@ -1198,6 +1210,8 @@ class NPUIndexTritonKernel(TritonKernel):
         self.load_store_indexing = None
         self.npu_kernel_type = NPUKernelType.SIMD
         self.current_subblock_axis = set()
+        self.node_schedule = self.features.node_schedule
+        self.decide_codegen_dims_in_kernel()
 
     def should_use_persistent_reduction(self) -> bool:
         """
@@ -1248,6 +1262,174 @@ class NPUIndexTritonKernel(TritonKernel):
             return True
         except CantSplit:
             return False
+
+    def decide_codegen_dims_in_kernel(self):
+        with self:
+            self._mark_store_index_keys()
+            self._transform_schedule_indexing()
+            self._record_store_unified_indexing()
+            self._remove_substituted_dims_from_kernel()
+            self._finalize_kernel_codegen_dims()
+
+    def _store_keeps_unified_anchor(self, var, index):
+        """
+        Check if a Store index keeps the unified axis as the only axis with the same prefix.
+
+        Args:
+            var: The unified axis symbol to check.
+            index: The Store index expression to analyze.
+
+        Returns:
+            True if the Store index contains only ``var`` as the axis with the same prefix.
+        """
+        if var not in index.free_symbols:
+            return False
+        prefix = str(var)[0]
+        same_prefix_symbols = sorted(
+            [
+                sym for sym in index.free_symbols
+                if getattr(sym, "name", str(sym)).startswith(prefix)
+            ],
+            key=str,
+        )
+        return len(same_prefix_symbols) == 1 and same_prefix_symbols[0] == var
+
+    def _iter_schedule_nodes(self, node_schedule):
+        """
+        Iterate over real scheduled nodes, skipping reduction sentinels.
+        """
+        for node in node_schedule:
+            if node not in (EnableReduction, DisableReduction):
+                yield node
+
+    def _iter_store_indices(self):
+        """
+        Yield Store key/index pairs from scheduled nodes.
+        """
+        for node in self._iter_schedule_nodes(self.node_schedule):
+            for key in self.store_index_keys:
+                if key in node._body.indexing:
+                    yield key, node._body.indexing[key]
+
+    def _mark_store_index_keys(self):
+        """
+        Collect Store index keys before any indexing transformation happens.
+        """
+        self.store_index_keys = set()
+        for node in self._iter_schedule_nodes(self.node_schedule):
+            from torch._inductor.loop_body import MemoryUsageType
+
+            names = []
+            for write in node._body.memory_usage[MemoryUsageType.STORE]:
+                names.append(write.index_name)
+            for write in node._body.memory_usage[MemoryUsageType.STORE_REDUCTION]:
+                names.append(write.index_name)
+            indexing_dict = node._body.indexing
+            if indexing_dict is None:
+                indexing_dict = node._body.indexing_exprs
+                log.debug("Fallback to indexing_exprs for early Store key detection")
+            for key in indexing_dict.keys():
+                if key in names:
+                    self.store_index_keys.add(key)
+                    log.info("Marked Store index key early: %s", key)
+
+    def _transform_schedule_indexing(self):
+        """
+        Transform loop-body indexing and collect substitution candidates.
+        """
+        stack = contextlib.ExitStack()
+        for node in self.node_schedule:
+            if node is DisableReduction:
+                stack.enter_context(self.disable_reduction())
+            elif node is EnableReduction:
+                stack.close()
+            else:
+                index_vars = self.split_and_set_ranges(node.get_ranges())
+                node._body.transform_dims_in_indexing(index_vars)
+
+        self.additional_nodes_to_be_subs()
+
+        for node in self._iter_schedule_nodes(self.node_schedule):
+            indexing = node._body.indexing
+            node._body.substituted_dims_in_indexing(indexing, self, self.range_tree_nodes_substituted)
+
+    def _record_store_unified_indexing(self):
+        """
+        Record Store indexing expressions used by unified-axis guards.
+        """
+        self.store_unified_indexing = []
+        for key, index in self._iter_store_indices():
+            self.store_unified_indexing.append(index)
+            log.debug("Recorded Store unified indexing: key=%s, index=%s", key, index)
+
+    def _should_preserve_substituted_var(self, var, candidates):
+        """
+        Check whether a substituted parent axis should remain in the kernel.
+        """
+        if len(candidates) <= 1:
+            return False
+
+        for key, index in self._iter_store_indices():
+            if self._store_keeps_unified_anchor(var, index):
+                log.info(
+                    "Preserve substituted var %s because Store key %s keeps the unified anchor",
+                    var,
+                    key,
+                )
+                return True
+        return False
+
+    def _remove_substituted_dims_from_kernel(self):
+        """
+        Remove substituted parent dimensions unless a Store-side unified anchor preserves them.
+        """
+        for var, candidates in self.range_tree_nodes_substituted.items():
+            if self._should_preserve_substituted_var(var, candidates):
+                continue
+
+            if var in self.range_tree_nodes:
+                root = self.range_tree_nodes[var].parent
+                root.remove_entry(var)
+
+    def _finalize_kernel_codegen_dims(self):
+        """
+        Finalize split/tiling/no-loop axis metadata after substitutions are resolved.
+        """
+        split_tiling = SplitTiling(self)
+        split_tiling.select_split_tiling_axis()
+        self.load_store_indexing = split_tiling.indexing
+
+        if self.inside_reduction and self.find_reduction_node is not None:
+            from torch._inductor import ir
+
+            reduction_node = self.find_reduction_node()
+            if reduction_node is not None and isinstance(reduction_node, ir.Reduction):
+                self.reduce_analysis = ReductionAnalysis(self)
+                if self.is_unified_simt_kernel() and self.reduction_dim() != len(self.golden_var_list) - 1:
+                    self.persistent_reduction = False
+
+        split_tiling.select_no_loop_axis()
+
+    def additional_nodes_to_be_subs(self):
+        for node in self.range_tree_nodes.values():
+            if node.expr != sympy_index_symbol(f"{node.parent.prefix}index") \
+                    or len(node.parent.var_ranges) == 1 \
+                    or node.symbol() in self.range_tree_nodes_substituted:
+                continue
+            numel = sympy.Integer(1)
+            new_var_expr = sympy.Integer(0)
+            for k, s in node.parent.var_ranges.items():
+                if k == node.symbol():
+                    continue
+                numel = numel * s
+                sub_node = self.range_tree_nodes[k]
+                new_var_expr = new_var_expr + sub_node.symbol() * sub_node.divisor
+
+            if numel == node.length:
+                self.range_tree_nodes_substituted[node.symbol()] = [(node.length, new_var_expr)]
+            else:
+                log.warning("sub nodes (expr%s, numel:%d) can not make up parent node(%s:%d)",
+                            new_var_expr, numel, node.symbol(), node.length)
 
     def scan(
         self,
@@ -1956,7 +2138,9 @@ class NPUIndexTritonKernel(TritonKernel):
                     self.body.writeline(f"for loop_{range_val.name} in range(loops_{range_val.name}):")
                     do_indent = True
                 loop_body(index, indexing_code, is_last_axis, do_indent)
+                self.body.splice(self.post_loop_combine)
                 self.body.splice(self.post_loop_store)
+                self.post_loop_combine.clear()
                 self.post_loop_store.clear()
 
             # tiling axis and but not last tiling
@@ -2105,22 +2289,6 @@ class NPUIndexTritonKernel(TritonKernel):
 
         if not self.inside_reduction:
             self.outside_loop_vars.add(value)
-
-    def contains_cat_node(self):
-        node = self.current_node
-        if node is not None and isinstance(node, SchedulerNode):
-            cat_node = node.node.data
-            if cat_node is not None and hasattr(cat_node, "inner_fn_str") and "ops.cat" in cat_node.inner_fn_str():
-                return True
-
-        for node in self.node_schedule:
-            if node in (EnableReduction, DisableReduction):
-                continue
-            cat_node = node.node.data
-            if cat_node is not None and hasattr(cat_node, "inner_fn_str") and "ops.cat" in cat_node.inner_fn_str():
-                return True
-
-        return False
 
     def find_reduction_node(self):
         node = self.current_node
@@ -3066,7 +3234,7 @@ class NPUIndexTritonKernel(TritonKernel):
                 {accumulator_index} = {where_cond(f'{accumulator_index}_next', accumulator_index)}
                 """
                 )
-                final_argreduce(self.post_loop_store, result_var, accumulator, accumulator_index)
+                final_argreduce(self.post_loop_combine, result_var, accumulator, accumulator_index)
             elif is_welford_reduction(reduction_type):
                 raise RuntimeError("assert False, welford_reduction and is not supported now..")
             else:
@@ -3079,11 +3247,11 @@ class NPUIndexTritonKernel(TritonKernel):
                 if src_dtype == torch.bool:
                     accumulator = f"{accumulator}.to(tl.int8)"
                     result_type = triton_compute_type(dtype)
-                    self.post_loop_store.writeline(
+                    self.post_loop_combine.writeline(
                         f"{result_var} = {final_reduction(accumulator)}.to({result_type})"
                     )
                 else:
-                    self.post_loop_store.writeline(
+                    self.post_loop_combine.writeline(
                         f"{result_var} = {final_reduction(accumulator)}"
                     )
 
@@ -3936,7 +4104,7 @@ class NPUIndexTritonKernel(TritonKernel):
                                         f"tl.reshape({indirect_var}, ({indice_shape}, ))",
                                         dtype=dtype)
                 out_triton_type = triton_type(dtype)
-                if self.contains_cat_node() and index_select_type == "embedding":
+                if index_select_type == "embedding":
                     shape_val = ",".join(value_shapes[:-1] + [str(src_stride[0])])
                 out_var = self.cse.generate(self.compute,
                                         f"tl.full(({shape_val}, ), 0, dtype={out_triton_type})",
@@ -3952,9 +4120,6 @@ class NPUIndexTritonKernel(TritonKernel):
                     BLOCK_NAME_SUB = f"{axis.name.upper()}BLOCK_SUB"
                     output_shapes.append(BLOCK_NAME_SUB)
                 output_shapes_vals = ", ".join(output_shapes)
-                if self.contains_cat_node() and index_select_type == "embedding":
-                    output_shapes_vals = ",".join(output_shapes[:-1] + [str(src_stride[0])])
-
                 line = f"tl.reshape({index_select_var}, ({output_shapes_vals}, ))"
 
                 index_select_var = self.cse.generate(self.compute,

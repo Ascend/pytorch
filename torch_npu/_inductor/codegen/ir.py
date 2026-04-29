@@ -1,4 +1,4 @@
-from typing import List, Tuple, Dict, Any, Optional, cast
+from typing import Dict, Optional, cast
 import os
 import itertools
 from math import gcd
@@ -63,12 +63,14 @@ def detect_flattened_dims(kernel, index):
     else:
         pass
 
-    # make sure FloorDiv, MouldarIndexing must be in-pair
+    # make sure FloorDiv, ModularIndexing must be in-pair
     for var, divisors in new_vars.items():
         if var in kernel.range_tree_nodes:
             parent_axis = kernel.range_tree_nodes[var]
-        else:
+        elif var in kernel.range_tree_nodes_removed:
             parent_axis = kernel.range_tree_nodes_removed[var]
+        else:
+            continue
         for divisor, pair in divisors.items():
             if not pair[0] and not pair[1]:
                 pass
@@ -177,10 +179,12 @@ def rebuild_flattened_dims(indexing):
 
         # 2. try to rebuild these flattened dims
         for var, flatten_dim in flatten_dims.items():
-            if (var in kernel.range_tree_nodes):
+            if var in kernel.range_tree_nodes:
                 old_node = kernel.range_tree_nodes[var]
-            else:
+            elif var in kernel.range_tree_nodes_removed:
                 old_node = kernel.range_tree_nodes_removed[var]
+            else:
+                continue
 
             rebuild_flattened_dim(key, index, old_node, flatten_dim)
 
@@ -223,10 +227,12 @@ def rebuild_flattened_dims(indexing):
         flatten_dims = detect_flattened_dims(kernel, index)
 
         for var, flatten_dim in flatten_dims.items():
-            if (var in kernel.range_tree_nodes):
+            if var in kernel.range_tree_nodes:
                 old_node = kernel.range_tree_nodes[var]
-            else:
+            elif var in kernel.range_tree_nodes_removed:
                 old_node = kernel.range_tree_nodes_removed[var]
+            else:
+                continue
 
             rebuild_flattened_dim(key, index, old_node, flatten_dim)
 
@@ -792,10 +798,12 @@ def eliminate_zero_term(term):
     expr, divisor = term.args
     if not isinstance(expr, sympy.Symbol):
         return term
-    if (expr in V.kernel.range_tree_nodes):
+    if expr in V.kernel.range_tree_nodes:
         numel = V.kernel.range_tree_nodes[expr].length
-    else:
+    elif expr in V.kernel.range_tree_nodes_removed:
         numel = V.kernel.range_tree_nodes_removed[expr].length
+    else:
+        return term
 
     length = term.eval(numel, divisor)
     if length == 0:
@@ -1339,18 +1347,6 @@ def loop_body_block_scatter_template(self, name, index, value, indirect_var, bou
 def simplify_indexing_scatter_template(self, name, index, value, indirect_var, boundary):
     return self._inner.scatter_template(name, self._simplify(index), value, str(indirect_var), boundary)
 
-
-def loop_body_block_cat_store(self, dst, src, size, store_offset_index, output_buffer_index):
-    store_offset_index = self._simplify(store_offset_index)
-    store_offset_index = self._add_index(store_offset_index, MemoryUsageType.STORE, buffer_name=dst)
-    output_buffer_index = self._simplify(output_buffer_index)
-    output_buffer_index = self._add_index(output_buffer_index, MemoryUsageType.STORE, buffer_name=dst)
-    return self._inner.cat_store(dst, src, size, store_offset_index, output_buffer_index)
-
-
-def simplify_indexing_cat_store(self, dst, src, size, store_offset_index, output_buffer_index):
-    return self._inner.cat_store(dst, src, size, self._simplify(store_offset_index), self._simplify(output_buffer_index))
-
 def patch_loop_body():
     # todo: move patch function to loop_body.py
     origin_loopbody_call = LoopBody.__call__
@@ -1382,5 +1378,3 @@ def patch_indexing():
     setattr(sizevars.SimplifyIndexing, 'indexput_template', simplify_indexing_indexput_template)
     setattr(CaptureIndexing, 'scatter_template', loop_body_block_scatter_template)
     setattr(sizevars.SimplifyIndexing, 'scatter_template', simplify_indexing_scatter_template)
-    setattr(CaptureIndexing, 'cat_store', loop_body_block_cat_store)
-    setattr(sizevars.SimplifyIndexing, 'cat_store', simplify_indexing_cat_store)

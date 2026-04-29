@@ -23,9 +23,6 @@ from torch._inductor import lowering
 from torch._inductor.decomposition import decompositions, pw_cast_for_opmath
 from torch._inductor.ir import ExpandView, TensorBox, ops_wrapper, StorageBox, View
 from torch._inductor.ir import Reduction, Pointwise
-from torch._prims_common import (
-    is_float_dtype,
-)
 from torch._inductor.lowering import (
     lowerings,
     make_fallback,
@@ -57,6 +54,7 @@ from torch._inductor.ops_handler import ReductionType
 from torch._inductor.utils import sympy_product
 from torch._prims_common import (
     is_boolean_dtype,
+    is_float_dtype,
     is_integer_dtype,
     get_computation_dtype,
     ELEMENTWISE_TYPE_PROMOTION_KIND,
@@ -72,7 +70,7 @@ from . import ir as npu_ir
 from .codegen.triton_utils import NPUKernelType
 from .ir import IndexputTemplate, ScatterTemplate
 from .lowering_override_list import LOWERING_OVERRIDE_OP
-from .config import inductor_indirect_memory_mode, lowering_cat_with_concat_kernel, log, is_ascend950, enable_full_lowering_fallback
+from .config import inductor_indirect_memory_mode, log, is_ascend950, enable_full_lowering_fallback
 
 from .lowering_fallback_list import FALLBACK_LIST, NPU_EXTRA_FALLBACK_LIST
 
@@ -191,7 +189,7 @@ def _resolve_op_from_name(op_name: str):
         return None
 
 def _register_npu_inductor_fallbacks():
-    
+
     env_fallback_list = enable_full_lowering_fallback
     if env_fallback_list:
         for op_name in env_fallback_list.split(','):
@@ -421,47 +419,6 @@ def _register_npu_inductor_fallbacks():
                 return fallback_pow_tensor_tensor(a, b)
 
         return pow_native(a, b)
-
-
-    @register_lowering(aten.cat)
-    def cat(inputs, dim=0):
-        if len(inputs) == 1:
-            return clone(inputs[0])
-            
-        def _is_dynamic(shape):
-            return any((isinstance(s, (sympy.Symbol, sympy.Expr)) and len(s.free_symbols) > 0) for s in shape)
-
-        is_dynamic = any(_is_dynamic(inp.get_size()) for inp in inputs)
-
-        if is_dynamic:
-            return fallback_handler(aten.cat.default)(inputs, dim)
-
-        if inputs[0].get_device().type == "npu" and lowering_cat_with_concat_kernel:
-            def is_reindex_view(x) -> bool:
-                if isinstance(x, (TensorBox, ir.StorageBox)):
-                    return is_reindex_view(x.data)
-                if isinstance(x, ir.View) and "ModularIndexing" in x.reindex_str():
-                    return True
-                return False
-
-            for inp in inputs:
-                if is_reindex_view(inp):
-                    return fallback_handler(aten.cat.default)(inputs, dim)
-
-            input_dims = len(inputs[0].get_size())
-            if input_dims > 1 and (dim == -1 or dim == input_dims - 1):
-                return TensorBox(npu_ir.ConcatKernel.create(inputs, dim, False))
-            else:
-                return fallback_handler(aten.cat.default)(inputs, dim)
-        else:
-            dim = _validate_dim(inputs[0], dim, 0)
-            dtype = get_promoted_dtype(
-                *inputs,
-                type_promotion_kind=ELEMENTWISE_TYPE_PROMOTION_KIND.DEFAULT
-
-            )
-            inputs = [to_dtype(inp, dtype) for inp in inputs]
-            return TensorBox(ir.ConcatKernel.create(inputs, dim))
 
     @register_lowering(aten.gather, type_promotion_kind=None)
     def gather(x, dim, index, sparse_grad=False):
@@ -961,19 +918,6 @@ def _register_npu_inductor_fallbacks():
 
         return lowering.index(x, indices)
 
-    @register_lowering(aten.cat)
-    def cat(inputs, dim=0):
-        if len(inputs) == 1:
-            return clone(inputs[0])
-        dim = _validate_dim(inputs[0], dim, 0)
-        dtype = get_promoted_dtype(
-            *inputs,
-            type_promotion_kind=ELEMENTWISE_TYPE_PROMOTION_KIND.DEFAULT
-
-        )
-        inputs = [to_dtype(inp, dtype) for inp in inputs]
-        return TensorBox(ir.ConcatKernel.create(inputs, dim))
-
     @register_lowering(aten.native_layer_norm)
     def native_layer_norm(
         x,
@@ -1037,7 +981,7 @@ def get_nested_attr(obj, attr_path, default=None):
         return reduce(getattr, attr_path.split('.'), obj)
     except AttributeError:
         return default
-    
+
 
 def _fallback_ops_with_meta():
     """
@@ -1061,7 +1005,7 @@ def _fallback_ops_with_meta():
             name, overload = name_with_overload.split(".", 1)
         else:
             name, overload = name_with_overload, "default"
-            
+
         normalized_path = f"{namespace}.{name}.{overload}"
         op_overload = get_nested_attr(torch.ops, normalized_path)
         if not isinstance(op_overload, torch._ops.OpOverload):

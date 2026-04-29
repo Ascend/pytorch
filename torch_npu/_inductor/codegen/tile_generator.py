@@ -373,6 +373,8 @@ class TileGenerator:
             total_numel = self.calculate_total_numel()
             for candi_block in self.candidate_blocks:
                 self.add_to_configs(candi_block)
+            if not self.candidate_blocks:
+                self.add_to_configs(self.sub_blocks)
             min_numel = min(low_dim_numels)
             descent_all_axis(min_numel)
             total_numel_2 = self.calculate_total_numel()
