@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <memory>
 #include <mutex>
+#include <utility>
 #include <unordered_map>
 #include <vector>
 #include <torch/csrc/THP.h>
@@ -111,6 +112,8 @@ protected:
     std::vector<ShapeWithRef*> shapes_;
     std::vector<NDObject*> loads_;
     std::vector<NDObject*> stores_;
+    std::vector<at::Tensor> tensor_list_;
+    std::vector<std::pair<at::Tensor, at::Tensor> > out_refs_;
     std::vector<bool> contiguity_flags_;
     size_t ws_size_;
     int kernel_type_;

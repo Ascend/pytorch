@@ -249,11 +249,9 @@ py::object TorchKernelPy::Run(py::args args)
     const auto num_outputs = stores_.size();
     TORCH_CHECK(args.size() == num_inputs + num_outputs, "DVM kernel run expects ", num_inputs + num_outputs,
                 " tensors, got ", args.size());
-    std::vector<at::Tensor> tensor_list;
-    std::vector<std::pair<at::Tensor, at::Tensor> > out_refs;
     auto addr = std::make_shared<std::vector<void*> >();
-    tensor_list.reserve(args.size());
-    out_refs.reserve(num_outputs);
+    tensor_list_.reserve(args.size());
+    out_refs_.reserve(num_outputs);
     addr->resize(num_inputs + num_outputs);
     for (size_t i = 0; i < args.size(); i++) {
         auto tensor = args[i].cast<at::Tensor>();
@@ -261,10 +259,10 @@ py::object TorchKernelPy::Run(py::args args)
             if (i < num_inputs) {
                 tensor = tensor.contiguous();
             } else if (!tensor.is_contiguous()) {
-                tensor = out_refs.emplace_back(tensor, at::empty(tensor.sizes(), tensor.options())).second;
+                tensor = out_refs_.emplace_back(tensor, at::empty(tensor.sizes(), tensor.options())).second;
             }
         }
-        tensor_list.emplace_back(tensor);
+        tensor_list_.emplace_back(tensor);
         (*addr)[i] = tensor.data_ptr();
     }
 
@@ -280,9 +278,11 @@ py::object TorchKernelPy::Run(py::args args)
         at_npu::native::OpCommand::RunOpApiV2(op_name_, dvm_call);
     }
 
-    for (auto [ori_tensor, cur_tensor] : out_refs) {
+    for (auto& [ori_tensor, cur_tensor] : out_refs_) {
         ori_tensor.copy_(cur_tensor);
     }
+    tensor_list_.clear();
+    out_refs_.clear();
     return py::none();
 }
 
@@ -656,16 +656,13 @@ py::object DynKernelPy::Run(py::args args)
     const auto num_sym = sym_scalar_input_.size();
     TORCH_CHECK(args.size() == num_inputs + num_outputs + num_sym, "DynKernel expects ",
                 num_inputs + num_outputs + num_sym, " args, got ", args.size());
-    std::vector<at::Tensor> tensor_list;
-    std::vector<std::pair<at::Tensor, at::Tensor> > out_refs;
-
     auto info = std::make_shared<DynamicInfo>();
     info->shape.reserve(num_inputs);
     info->strides.reserve(num_inputs);
     info->scalars.reserve(num_sym);
     info->addr.reserve(num_inputs + num_outputs);
-    tensor_list.reserve(num_inputs + num_outputs);
-    out_refs.reserve(num_outputs);
+    tensor_list_.reserve(num_inputs + num_outputs);
+    out_refs_.reserve(num_outputs);
     for (size_t i = 0; i < args.size(); i++) {
         if (THPVariable_Check(args[i].ptr())) {
             auto tensor = args[i].cast<at::Tensor>();
@@ -673,14 +670,14 @@ py::object DynKernelPy::Run(py::args args)
                 if (i < num_inputs + num_sym) {
                     tensor = tensor.contiguous();
                 } else if (!tensor.is_contiguous()) {
-                    tensor = out_refs.emplace_back(tensor, at::empty(tensor.sizes(), tensor.options())).second;
+                    tensor = out_refs_.emplace_back(tensor, at::empty(tensor.sizes(), tensor.options())).second;
                 }
             }
             if (i < num_inputs + num_sym) {
                 info->shape.emplace_back(tensor.sizes().vec());
                 info->strides.emplace_back(tensor.strides().vec());
             }
-            tensor_list.emplace_back(tensor);
+            tensor_list_.emplace_back(tensor);
             info->addr.emplace_back(tensor.data_ptr());
         } else if (py::isinstance<c10::SymFloat>(args[i])) {
             info->scalars.emplace_back(static_cast<float>(args[i].cast<c10::SymFloat>().expect_float()));
@@ -719,9 +716,11 @@ py::object DynKernelPy::Run(py::args args)
 
     at_npu::native::OpCommand::RunOpApiV2(op_name_, dvm_call);
 
-    for (auto [ori_tensor, cur_tensor] : out_refs) {
+    for (auto& [ori_tensor, cur_tensor] : out_refs_) {
         ori_tensor.copy_(cur_tensor);
     }
+    tensor_list_.clear();
+    out_refs_.clear();
     return py::none();
 }
 

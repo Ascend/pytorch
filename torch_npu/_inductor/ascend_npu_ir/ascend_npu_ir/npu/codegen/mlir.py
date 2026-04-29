@@ -222,6 +222,28 @@ def find_common_positions(list1, list2):
     
     return merged_list, positions
 
+def refresh_input_meta_with_buffer_layout(node):
+    val = node.meta.get('val')
+    try:
+        layout = getattr(V.graph.try_get_buffer(node.target), "layout", None)
+    except Exception:
+        layout = None
+    if not torch.is_tensor(val) or layout is None:
+        return val
+
+    size, stride = tuple(layout.size), tuple(layout.stride)
+    if val.size() != size or val.stride() != stride:
+        with V.graph.fake_mode:
+            val = torch.empty_strided(
+                size,
+                stride,
+                dtype=val.dtype,
+                device=val.device,
+                requires_grad=val.requires_grad,
+            )
+        node.meta['val'] = val
+    return val
+
 def create_fx_from_snodes_by_traced_graph(snodes: List[scheduler.SchedulerNode], triton_kernel: TritonKernel):
     call_inputs = []
     for snode in snodes:
@@ -234,7 +256,7 @@ def create_fx_from_snodes_by_traced_graph(snodes: List[scheduler.SchedulerNode],
     for node in traced_graph.graph.nodes:
         if node.op == 'placeholder':
             call_inputs.append(node.target)
-            inputs.append(node.meta['val'])
+            inputs.append(refresh_input_meta_with_buffer_layout(node))
     non_contiguous_indices = {}
     non_contiguous_indices["inputs"] = [i for i, inp in enumerate(inputs) if torch.is_tensor(inp) and not inp.is_contiguous()]
     num_inputs = len(call_inputs)

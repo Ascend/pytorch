@@ -47,11 +47,12 @@ def generate_dvm_fx_case(
     input_lines = []
     for i, n in enumerate(inputs):
         v = n.meta["val"]
+        fill = "random_()" if v.dtype == torch.bool else "uniform_(0, 1)"
         input_lines.append(
             f"arg{i} = torch.empty_strided("
             f"torch.Size({tuple(v.shape)}), "
             f"{tuple(v.stride())}, "
-            f"dtype={v.dtype}, device='npu').uniform_(0, 1)"
+            f"dtype={v.dtype}, device='npu').{fill}"
         )
 
     input_code = "\n    ".join(input_lines)
@@ -67,6 +68,14 @@ def generate_dvm_fx_case(
             "with DvmGraphFusionPatch():",
             "    compiled = torch.compile(model, backend=\"inductor\", dynamic=False)",
             f"    out = compiled({fwd_args})",
+            "    deterministic_state = torch.are_deterministic_algorithms_enabled()",
+            "    deterministic_warn_only = torch.is_deterministic_algorithms_warn_only_enabled()",
+            "    try:",
+            "        torch.use_deterministic_algorithms(True)",
+            "        deterministic_compiled = torch.compile(model, backend=\"inductor\", dynamic=False)",
+            f"        deterministic_out = deterministic_compiled({fwd_args})",
+            "    finally:",
+            "        torch.use_deterministic_algorithms(deterministic_state, warn_only=deterministic_warn_only)",
         ]
     else:
         fusion_env = 'os.environ["TORCHINDUCTOR_NPU_BACKEND"] = "dvm"'
@@ -74,6 +83,14 @@ def generate_dvm_fx_case(
         compile_lines = [
             "compiled = torch.compile(model, backend=\"inductor\", dynamic=False)",
             f"out = compiled({fwd_args})",
+            "deterministic_state = torch.are_deterministic_algorithms_enabled()",
+            "deterministic_warn_only = torch.is_deterministic_algorithms_warn_only_enabled()",
+            "try:",
+            "    torch.use_deterministic_algorithms(True)",
+            "    deterministic_compiled = torch.compile(model, backend=\"inductor\", dynamic=False)",
+            f"    deterministic_out = deterministic_compiled({fwd_args})",
+            "finally:",
+            "    torch.use_deterministic_algorithms(deterministic_state, warn_only=deterministic_warn_only)",
         ]
     compile_code = "\n    ".join(compile_lines)
     env_lines = fusion_env
@@ -111,6 +128,7 @@ def test_case():
     {compile_code}
 
     _assert_close(ref, out)
+    _assert_close(ref, deterministic_out)
 
 
 if __name__ == "__main__":
