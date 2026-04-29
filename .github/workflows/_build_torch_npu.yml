@@ -96,6 +96,36 @@ jobs:
             ${{ steps.pytorch_cache_key.outputs.partial_key }}
             ${{ env.CACHE_VERSION }}-pytorch-
 
+      - name: Display cache restore status
+        run: |
+          echo "=== GitHub Actions Cache Restore Status ==="
+          echo "Cache hit: ${{ steps.restore_pytorch_cache.outputs.cache-hit }}"
+          echo "Matched key: ${{ steps.restore_pytorch_cache.outputs.cache-matched-key }}"
+          echo "Requested key: ${{ steps.pytorch_cache_key.outputs.cache_key }}"
+          echo ""
+          echo "=== Restored Directory Sizes ==="
+          if [ -d "pytorch-src/build" ]; then
+            BUILD_SIZE=$(du -sh pytorch-src/build 2>/dev/null | cut -f1)
+            echo "pytorch-src/build: ${BUILD_SIZE}"
+          else
+            echo "pytorch-src/build: not found"
+          fi
+          if [ -d "pytorch-src/dist" ]; then
+            DIST_SIZE=$(du -sh pytorch-src/dist 2>/dev/null | cut -f1)
+            echo "pytorch-src/dist: ${DIST_SIZE}"
+          else
+            echo "pytorch-src/dist: not found"
+          fi
+          echo ""
+          echo "=== pip Cache Status ==="
+          pip${{ inputs.python_version }} cache info 2>/dev/null || echo "pip cache info not available"
+          if [ -d ~/.cache/pip ]; then
+            PIP_SIZE=$(du -sh ~/.cache/pip 2>/dev/null | cut -f1)
+            echo "pip cache size: ${PIP_SIZE}"
+          else
+            echo "pip cache directory: not found"
+          fi
+
       - name: Check if PyTorch wheel exists (complete match only)
         id: check_pytorch_wheel
         run: |
@@ -133,6 +163,13 @@ jobs:
           pip${{ inputs.python_version }} install --upgrade pip setuptools wheel
           pip${{ inputs.python_version }} install -r requirements-build.txt
 
+          # 显示 pip 安装后的缓存状态
+          echo ""
+          echo "=== pip Cache After Install ==="
+          pip${{ inputs.python_version }} cache info 2>/dev/null || echo "pip cache info not available"
+          PIP_SIZE=$(du -sh ~/.cache/pip 2>/dev/null | cut -f1)
+          echo "pip cache size: ${PIP_SIZE}"
+
           # 设置构建环境变量
           export MAX_JOBS=40
           export USE_CUDA=0
@@ -158,6 +195,23 @@ jobs:
             ~/.cache/pip
           key: ${{ steps.pytorch_cache_key.outputs.cache_key }}
 
+      - name: Display PyTorch cache save status
+        if: steps.check_pytorch_wheel.outputs.wheel_exists != 'true' && success()
+        run: |
+          echo "=== PyTorch Cache Saved ==="
+          echo "Cache key: ${{ steps.pytorch_cache_key.outputs.cache_key }}"
+          echo ""
+          echo "=== Saved Directory Sizes ==="
+          BUILD_SIZE=$(du -sh pytorch-src/build 2>/dev/null | cut -f1)
+          echo "pytorch-src/build: ${BUILD_SIZE}"
+          DIST_SIZE=$(du -sh pytorch-src/dist 2>/dev/null | cut -f1)
+          echo "pytorch-src/dist: ${DIST_SIZE}"
+          PIP_SIZE=$(du -sh ~/.cache/pip 2>/dev/null | cut -f1)
+          echo "pip cache: ${PIP_SIZE}"
+          echo ""
+          echo "=== pip Cache Info ==="
+          pip${{ inputs.python_version }} cache info 2>/dev/null || echo "pip cache info not available"
+
       # ==================== torch_npu 构建缓存 ====================
       - name: Get torch_npu build cache key
         id: torch_npu_cache_key
@@ -180,6 +234,27 @@ jobs:
           restore-keys: |
             ${{ steps.torch_npu_cache_key.outputs.partial_key }}
             ${{ env.CACHE_VERSION }}-torch_npu-
+
+      - name: Display torch_npu cache restore status
+        run: |
+          echo "=== torch_npu Cache Restore Status ==="
+          echo "Cache hit: ${{ steps.restore_torch_npu_cache.outputs.cache-hit }}"
+          echo "Matched key: ${{ steps.restore_torch_npu_cache.outputs.cache-matched-key }}"
+          echo "Requested key: ${{ steps.torch_npu_cache_key.outputs.cache_key }}"
+          echo ""
+          echo "=== Restored Directory Sizes ==="
+          if [ -d "torch_npu-src/build" ]; then
+            BUILD_SIZE=$(du -sh torch_npu-src/build 2>/dev/null | cut -f1)
+            echo "torch_npu-src/build: ${BUILD_SIZE}"
+          else
+            echo "torch_npu-src/build: not found"
+          fi
+          if [ -d "torch_npu-src/dist" ]; then
+            DIST_SIZE=$(du -sh torch_npu-src/dist 2>/dev/null | cut -f1)
+            echo "torch_npu-src/dist: ${DIST_SIZE}"
+          else
+            echo "torch_npu-src/dist: not found"
+          fi
 
       - name: Check if torch_npu wheel exists (complete match only)
         id: check_torch_npu_wheel
@@ -236,6 +311,18 @@ jobs:
             torch_npu-src/build
             torch_npu-src/dist
           key: ${{ steps.torch_npu_cache_key.outputs.cache_key }}
+
+      - name: Display torch_npu cache save status
+        if: steps.check_torch_npu_wheel.outputs.wheel_exists != 'true' && success()
+        run: |
+          echo "=== torch_npu Cache Saved ==="
+          echo "Cache key: ${{ steps.torch_npu_cache_key.outputs.cache_key }}"
+          echo ""
+          echo "=== Saved Directory Sizes ==="
+          BUILD_SIZE=$(du -sh torch_npu-src/build 2>/dev/null | cut -f1)
+          echo "torch_npu-src/build: ${BUILD_SIZE}"
+          DIST_SIZE=$(du -sh torch_npu-src/dist 2>/dev/null | cut -f1)
+          echo "torch_npu-src/dist: ${DIST_SIZE}"
 
       # ==================== 打包和上传 ====================
       - name: Package test source
