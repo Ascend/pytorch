@@ -37,6 +37,11 @@
 |torch.distributed.elastic.multiprocessing.api.MultiprocessContext|是|-|
 |torch.distributed.elastic.multiprocessing.api.SubprocessContext|是|-|
 |torch.distributed.elastic.multiprocessing.api.RunProcsResult|是|-|
+|torch.distributed.elastic.multiprocessing.api.DefaultLogsSpecs|是|-|
+|torch.distributed.elastic.multiprocessing.api.DefaultLogsSpecs.reify|是|-|
+|torch.distributed.elastic.multiprocessing.api.LogsDest|是|-|
+|torch.distributed.elastic.multiprocessing.api.LogsSpecs|是|-|
+|torch.distributed.elastic.multiprocessing.api.LogsSpecs.reify|是|-|
 |torch.distributed.elastic.multiprocessing.errors.record|是|-|
 |torch.distributed.elastic.multiprocessing.errors.ChildFailedError|是|-|
 |torch.distributed.elastic.multiprocessing.errors.ErrorHandler|是|-|
