@@ -1247,7 +1247,7 @@ bool AclrtMallocHostWithCfgExist()
         if (currentCANNVersion == "") {
             return false;
         }
-        const std::string kMinDriverVersion = "25.5.2";
+        const std::string kMinDriverVersion = "26.0.rc1";
         if (!IsGteDriverVersion(kMinDriverVersion)) {
             return false;
         }
