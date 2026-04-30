@@ -1,0 +1,14 @@
+transformers==4.57.1
+accelerate==1.11.0
+peft==0.17.1
+datasets==4.5.0
+pyarrow==23.0.0
+tokenizers==0.22.2
+sentencepiece==0.2.1
+safetensors==0.6.2
+tqdm==4.67.1
+torchvision==0.22.1
+numpy==1.26.4
+protobuf==7.34.1
+huggingface-hub==0.36.2
+diffusers==0.37.0
