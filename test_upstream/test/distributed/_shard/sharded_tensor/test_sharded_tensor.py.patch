@@ -314,7 +314,7 @@ index 7439b26..d0ca36e 100644
 +            self.assertEqual(f"rank:{rank}/npu:{rank}", str(shard_metadata.placement))
  
      @skipIfRocm
-     @with_comms
+     @with_comms(init_rpc=False)
 @@ -2801,7 +2806,7 @@ class TestShardedTensorFromLocalShards(ShardedTensorTestBase):
              placement=f"rank:{self.rank}/cpu",
          )
@@ -324,3 +324,15 @@ index 7439b26..d0ca36e 100644
      @skip_if_lt_x_gpu(4)
      def test_init_from_local_shards_invalid_pin_memory(self):
          # pin memory can only be on dense cpu
+@@ -3089,6 +3089,10 @@ class TestCustomOps(ShardedTensorTestBase):
+                 pass
+ 
+ 
+ class TestShardMetadata(ShardedTensorTestBase):
++    def destroy_pg(self) -> None:
++        dist.barrier()
++        dist.destroy_process_group()
++
+     @with_comms
+     @requires_nccl()
+     def test_shard_metadata_init(self):
