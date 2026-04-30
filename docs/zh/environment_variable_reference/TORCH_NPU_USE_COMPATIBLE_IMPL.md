@@ -17,7 +17,7 @@ export TORCH_NPU_USE_COMPATIBLE_IMPL=1
 
 - 此环境变量需要在`import torch`之前配置才能生效。
 
-- 目前仅支持`torch.nn.functional.gelu`、`torch.matmul`。
+- 目前仅支持`torch.nn.functional.gelu`、`torch.matmul`、`torch.nn.functional.max_pool1d`、`torch.nn.functional.max_pool2d`。
 
 - 配置`TORCH_NPU_USE_COMPATIBLE_IMPL`会影响[torch_npu.npu.use_compatible_impl(is_enable)](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-npu/torch_npu-npu-use_compatible_impl.md)
 的状态。配置`TORCH_NPU_USE_COMPATIBLE_IMPL=1`时会自动配置`torch_npu.npu.use_compatible_impl(True)`。
