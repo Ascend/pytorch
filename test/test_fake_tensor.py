@@ -1823,6 +1823,62 @@ class TestGroupedMatmul(TestCase):
             self.assertTrue(x[0].shape[0] == res[0].shape[0])
             self.assertTrue(w[0].shape[2] == res[0].shape[1])
 
+    def test_npu_grouped_matmul_meta_5(self):
+        # K_SPLIT (group_type=2) with multi-weight and split_item=2
+        with FakeTensorMode():
+            torch.manual_seed(0)
+            x1 = torch.randn(256, 1792, dtype=torch.float16).npu()
+            x = [x1.t()]
+            w1 = torch.randn(256, 256, dtype=torch.float16).npu()
+            w2 = torch.randn(256, 256, dtype=torch.float16).npu()
+            w3 = torch.randn(512, 256, dtype=torch.float16).npu()
+            w4 = torch.randn(768, 256, dtype=torch.float16).npu()
+            w = [w1, w2, w3, w4]
+            group_list = torch.tensor([256, 512, 1024, 1792]).npu()
+            split_item = 2
+
+            res = torch_npu.npu_grouped_matmul(x, w, bias=None, group_list=group_list,
+                                               split_item=split_item, group_type=2,
+                                               group_list_type=0)
+            self.assertTrue(len(res[0].shape) == 3)
+            self.assertTrue(group_list.shape[0] == res[0].shape[0])
+            self.assertTrue(x1.shape[1] == res[0].shape[1])
+            self.assertTrue(w1.shape[1] == res[0].shape[2])
+
+    def test_npu_grouped_matmul_meta_6(self):
+        # K_SPLIT (group_type=2) with single-weight and split_item=3
+        with FakeTensorMode():
+            torch.manual_seed(0)
+            x1 = torch.randn(256, 1792, dtype=torch.float16).npu()
+            x = [x1.t()]
+            w1 = torch.randn(1792, 256, dtype=torch.float16).npu()
+            w = [w1]
+            group_list = torch.tensor([256, 512, 1024, 1792]).npu()
+            split_item = 3
+
+            res = torch_npu.npu_grouped_matmul(x, w, bias=None, group_list=group_list,
+                                               split_item=split_item, group_type=2,
+                                               group_list_type=0)
+            self.assertTrue(len(res[0].shape) == 3)
+            self.assertTrue(group_list.shape[0] == res[0].shape[0])
+            self.assertTrue(x1.shape[1] == res[0].shape[1])
+            self.assertTrue(w1.shape[1] == res[0].shape[2])
+
+    def test_npu_grouped_matmul_meta_invalid_group_type(self):
+        # Negative test: invalid group_type should be rejected by meta layer
+        with FakeTensorMode():
+            torch.manual_seed(0)
+            x1 = torch.randn(256, 256, dtype=torch.float16).npu()
+            x = [x1]
+            w1 = torch.randn(256, 256, dtype=torch.float16).npu()
+            w = [w1]
+            group_list = torch.tensor([256]).npu()
+
+            for invalid_type in [1, 3, 100]:
+                with self.assertRaisesRegex(RuntimeError, "group_type only supports"):
+                    torch_npu.npu_grouped_matmul(x, w, group_list=group_list,
+                                                 split_item=2, group_type=invalid_type)
+
 
 class TestQuantMatmul(TestCase):
     def test_npu_quant_matmul_meta(self):
