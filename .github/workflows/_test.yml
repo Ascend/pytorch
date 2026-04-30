@@ -1,0 +1,142 @@
+name: Run NPU Tests
+
+on:
+  workflow_call:
+    inputs:
+      docker-image:
+        required: true
+        type: string
+      test-type:
+        required: true
+        type: string
+      shard-index:
+        required: true
+        type: number
+      max-workers:
+        required: false
+        type: number
+        default: 1
+
+env:
+  PYTHON_VERSION: '3.11'
+  CACHE_VERSION: 'v2'
+  # PyPI 缓存 URL（用于加速 pip 下载）
+  PYPI_CACHE_URL: 'http://cache-service.nginx-pypi-cache.svc.cluster.local/pypi/simple'
+
+jobs:
+  test:
+    runs-on: linux-aarch64-a3-16
+    timeout-minutes: 1200
+
+    container:
+      image: ${{ inputs.docker-image }}
+      options: --user root
+
+    steps:
+      - name: Checkout scripts
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            .github/scripts
+            .ci/docker
+
+      # ==================== pip 缓存配置 ====================
+      # pip 缓存加速测试依赖下载
+      - name: Get pip cache key
+        id: pip_key
+        run: |
+          REQUIREMENTS_HASH=$(sha256sum .ci/docker/requirements-ci.txt | cut -d' ' -f1)
+          echo "cache_key=${{ env.CACHE_VERSION }}-pip-test-${{ env.PYTHON_VERSION }}-${REQUIREMENTS_HASH}" >> $GITHUB_OUTPUT
+
+      - name: Restore pip cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ steps.pip_key.outputs.cache_key }}
+          restore-keys: |
+            ${{ env.CACHE_VERSION }}-pip-test-${{ env.PYTHON_VERSION }}-
+            ${{ env.CACHE_VERSION }}-pip-test-
+
+      - name: Setup pip cache directory
+        run: |
+          mkdir -p ~/.cache/pip
+
+      - name: Configure pip index URL
+        run: |
+          # 配置 pip 使用 PyPI 缓存加速下载
+          if [ -n "${{ env.PYPI_CACHE_URL }}" ]; then
+            pip${{ env.PYTHON_VERSION }} config set global.index-url ${{ env.PYPI_CACHE_URL }}
+            pip${{ env.PYTHON_VERSION }} config set global.trusted-host "cache-service.nginx-pypi-cache.svc.cluster.local"
+            echo "pip index-url configured: ${{ env.PYPI_CACHE_URL }}"
+          else
+            echo "No PyPI cache URL configured, using default"
+          fi
+
+      - name: Upgrade pip and setuptools
+        run: |
+          # 先升级 pip 和 setuptools，避免旧版包兼容性问题
+          pip${{ env.PYTHON_VERSION }} install --upgrade pip setuptools wheel
+
+      - name: Download torch wheel
+        uses: actions/download-artifact@v4
+        with:
+          name: torch-wheel-main
+          path: wheels
+
+      - name: Download torch_npu wheel
+        uses: actions/download-artifact@v4
+        with:
+          name: torch-npu-wheel-main
+          path: wheels
+
+      - name: Download test source
+        uses: actions/download-artifact@v4
+        with:
+          name: test-src-main
+
+      - name: Download cases shard
+        uses: actions/download-artifact@v4
+        with:
+          name: cases-shards
+          path: cases-shards
+
+      - name: Extract test source
+        run: tar -xzf test-src.tar.gz
+
+      - name: Install wheels
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          pip${{ env.PYTHON_VERSION }} install wheels/*.whl
+
+      - name: Install test dependencies
+        run: |
+          pip${{ env.PYTHON_VERSION }} install -r .ci/docker/requirements-ci.txt
+
+      - name: Run ${{ inputs.test-type }} shard ${{ inputs.shard-index }}
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          python .github/scripts/run_npu_test_shard.py \
+            --cases-json cases-shards/${{ inputs.test-type }}_cases_shard_${{ inputs.shard-index }}.json \
+            --test-dir test \
+            --report-dir test-reports \
+            --timeout 300 \
+            --max-workers ${{ inputs.max-workers }} \
+            --verbose
+
+      # ==================== 保存 pip 缓存 ====================
+      - name: Save pip cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ steps.pip_key.outputs.cache_key }}
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-${{ inputs.test-type }}-${{ inputs.shard-index }}
+          path: test-reports/
+          retention-days: 30
