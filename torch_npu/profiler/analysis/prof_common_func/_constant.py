@@ -229,6 +229,10 @@ class Constant(object):
     PYTHON_TRACE_DATA = "python_trace_data"
     MSTX_OP_DATA = "mstx_op_data"
 
+    # msprof env name
+    MSPROF_STATIC_ENV = "PROFILER_SAMPLECONFIG"
+    MSPROF_DYNAMIC_ENV = "PROFILING_MODE"
+
 
 def print_info_msg(message: str):
     current_time = time.localtime()
