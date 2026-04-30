@@ -4,8 +4,8 @@
 > 若API“是否支持”为“是”，“限制与说明”为“-”，说明此API和原生API支持度保持一致。<br>
 > 在使用支持的cuda接口时，需要将API名称中的cuda替换为NPU形式才能使用：torch.cuda.替换为torch_npu.npu.或torch.npu.。torch_npu.npu.和torch.npu.两种调用方式，功能一致。举例如下：
 >
->`torch.cuda.current_device` --> `torch_npu.npu.current_device`
->`torch.cuda.current_device` --> `torch.npu.current_device`
+> `torch.cuda.current_device` --> `torch_npu.npu.current_device`<br>
+> `torch.cuda.current_device` --> `torch.npu.current_device`
 >
 
 |API名称|NPU形式名称|是否支持|限制与说明|

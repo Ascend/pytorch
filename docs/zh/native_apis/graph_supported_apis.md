@@ -4,7 +4,7 @@
 
 > [!NOTE]  
 >
-> - 标注"支持入图"的 API，表示该接口可在 `torch.compile` 编译后的计算图中正常使用，能够被图捕获并参与优化。关于图模式的说明请参考[PyTorch图模式](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.0.0/docs/zh/framework_feature_guide_pytorch/pytorch_graph_mode.md)
+> - 标注"支持入图"的 API，表示该接口可在 `torch.compile` 编译后的计算图中正常使用，能够被图捕获并参与优化。关于图模式的说明请参考[PyTorch图模式](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.0.0/docs/zh/framework_feature_guide_pytorch/pytorch_graph_mode.md)。
 > - 本文档展示的列表为已验证过支持入图的API。部分未验证的API可能也具备支持入图的能力，在昇腾NPU环境中请谨慎使用。我们将持续验证更多API并定期更新本文档。
 
 **表 1**  昇腾支持入图的API列表<a id="昇腾支持入图的API列表"></a>
