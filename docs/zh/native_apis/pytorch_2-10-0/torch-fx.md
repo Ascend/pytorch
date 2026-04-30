@@ -90,3 +90,4 @@
 |torch.fx.Transformer.placeholder|是|支持fp32|
 |torch.fx.Transformer.transform|是|-|
 |torch.fx.replace_pattern|是|-|
+|torch.fx.passes.regional_inductor.regional_inductor|是|-|
