@@ -4258,7 +4258,7 @@ class NPUIndexTritonKernel(TritonKernel):
         return self
 
 
-    def call_kernel(self, name: str, origin_node=None, node: Optional[IRNode] = None):
+    def call_kernel(self, name: str, node: Optional[IRNode] = None, origin_node=None):
         if is_multi_stream():
             wrapper = V.graph.wrapper_code
             wrapper.write_triton_header_once()

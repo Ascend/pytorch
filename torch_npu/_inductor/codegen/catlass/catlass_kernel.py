@@ -282,8 +282,8 @@ class CATLASSTemplateKernel(Kernel):
     def call_kernel(
         self,
         name: str,
-        origin_node,
         node: CATLASSTemplateBuffer,
+        origin_node=None,
     ) -> None:
         """
         Generates code to call the kernel through V.graph.wrapper_code.

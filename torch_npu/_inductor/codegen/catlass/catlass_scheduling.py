@@ -192,9 +192,9 @@ class CATLASSScheduling(BaseScheduling):
             )
             with debug_printer_manager:
                 if is_multi_stream():
-                    kernel.call_kernel(kernel_name, template_node, ctb)
+                    kernel.call_kernel(kernel_name, ctb, template_node)
                 else:
-                    kernel.call_kernel(kernel_name, None, ctb)
+                    kernel.call_kernel(kernel_name, ctb, None)
 
             V.graph.removed_buffers |= kernel.removed_buffers
             self.free_buffers_in_scheduler()

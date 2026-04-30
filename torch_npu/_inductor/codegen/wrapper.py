@@ -368,13 +368,13 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
             self.buffer_args_multi_stream_intent[name] = multi_stream_intent
 
 
-    def generate_workspace_allocation(self, ws: WorkspaceArg, origin_node):
+    def generate_workspace_allocation(self, ws: WorkspaceArg, origin_node=None):
         if is_multi_stream():
             self.update_buffer_define_multi_stream(ws.get_name(), origin_node)
         super().generate_workspace_allocation(ws)
 
 
-    def generate_workspace_deallocation(self, ws: WorkspaceArg, origin_node):
+    def generate_workspace_deallocation(self, ws: WorkspaceArg, origin_node=None):
         if is_multi_stream():
             self.update_buffer_args_multi_stream_intent(ws.get_name(), origin_node)
         super().generate_workspace_deallocation(ws)
