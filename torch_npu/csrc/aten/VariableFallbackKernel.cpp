@@ -11,12 +11,17 @@
 #include "torch_npu/csrc/core/npu/NPUException.h"
 
 // COMPAT(>= 2.11): Handle PyTorch autograd API changes
-#include <torch_npu/_compat/version.h>
-#if CURRENT_VERSION >= (2, 11)
-// In PyTorch 2.11+, Node uses c10::intrusive_ptr and deleteNode is removed
+// PyTorch provides version macros that we can use in C++ code
+// TORCH_VERSION_MAJOR, TORCH_VERSION_MINOR are defined in torch/csrc/api/include/torch/version.h
+#if defined(TORCH_VERSION_MAJOR) && defined(TORCH_VERSION_MINOR)
+#if TORCH_VERSION_MAJOR >= 2 && TORCH_VERSION_MINOR >= 11
 #define USE_INTRUSIVE_PTR_FOR_NODE 1
 #else
 #define USE_INTRUSIVE_PTR_FOR_NODE 0
+#endif
+#else
+// Fallback: assume newer PyTorch if version macros not defined
+#define USE_INTRUSIVE_PTR_FOR_NODE 1
 #endif
 
 /*
