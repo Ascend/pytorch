@@ -115,7 +115,63 @@ jobs:
 
       - name: Install test dependencies
         run: |
+          # 安装当前仓库的基础测试依赖
           pip${{ env.PYTHON_VERSION }} install -r .ci/docker/requirements-ci.txt
+
+          # 安装上游 PyTorch 的完整测试依赖（从已下载的源码）
+          pip${{ env.PYTHON_VERSION }} install -r pytorch-src/.ci/docker/requirements-ci.txt || true
+
+          # 安装 PyTorch 开发依赖（可选）
+          pip${{ env.PYTHON_VERSION }} install expecttest hypothesis fsspec sympy optree networkx psutil || true
+
+      # ==================== Verify NPU availability ====================
+      - name: Verify NPU availability
+        continue-on-error: true
+        run: |
+          # 切换到 /tmp 目录，避免 pytorch-src 源码目录干扰 torch 导入
+          cd /tmp
+
+          echo "=== CANN Directory Contents ==="
+          ls -la /usr/local/Ascend/ || echo "Ascend directory not found"
+          echo ""
+          echo "=== CANN Version Info ==="
+          if [ -d /usr/local/Ascend/cann ]; then
+            ls -la /usr/local/Ascend/cann/
+            echo ""
+            echo "=== CANN Version File ==="
+            cat /usr/local/Ascend/cann/version.info 2>/dev/null || echo "version.info not found"
+          else
+            echo "CANN directory not found"
+          fi
+          echo ""
+          echo "=== NNAL Directory Contents ==="
+          if [ -d /usr/local/Ascend/nnal ]; then
+            ls -la /usr/local/Ascend/nnal/
+          else
+            echo "NNAL directory not found"
+          fi
+
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          echo ""
+          echo "=== NPU-SMI Info ==="
+          npu-smi info || echo "npu-smi not available"
+
+          PYTHON=python${{ env.PYTHON_VERSION }}
+          echo ""
+          echo "=== PyTorch and NPU Info ==="
+          $PYTHON -c "
+          import torch
+          print(f'torch: {torch.__version__}')
+          import torch_npu
+          print(f'torch_npu: {torch_npu.__version__}')
+          print(f'NPU available: {torch.npu.is_available()}')
+          print(f'NPU count: {torch.npu.device_count()}')
+          if torch.npu.is_available():
+              print(f'NPU name: {torch.npu.get_device_name(0)}')
+              print(f'NPU capability: {torch.npu.get_device_capability(0)}')
+          " 2>&1 || echo "torch/torch_npu import failed - this is expected if torch and torch_npu versions are mismatched"
 
       # ==================== 保存 pip 缓存 ====================
       - name: Save pip cache
@@ -129,9 +185,13 @@ jobs:
         id: collect
         run: |
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          echo "=== NPU-SMI Info ==="
+          npu-smi info || echo "npu-smi not available"
 
           python${{ env.PYTHON_VERSION }} .github/scripts/collect_all_cases.py \
-            --test-dir test \
+            --test-dir pytorch-src/test \
             --distributed-shards ${{ inputs.distributed-shards }} \
             --regular-shards ${{ inputs.regular-shards }} \
             --output-dir cases_shards \
