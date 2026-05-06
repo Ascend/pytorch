@@ -432,6 +432,11 @@ def _init():
     _device_wrapper(torch.cuda, torch_cuda_fn_white_list)
     torch.cuda.device.__init__ = _wrapper_cuda(torch.cuda.device.__init__)
     torch.cuda.amp.autocast_mode = torch_npu.npu.amp.autocast_mode
+    
+    def _update_cuda_default_generators():
+        torch.cuda.default_generators = torch_npu.npu.default_generators
+    
+    torch_npu.npu._lazy_call(_update_cuda_default_generators)
 
     # torch.cuda.memory.*
     _device_wrapper(torch.npu.memory, ['_record_memory_history', '_snapshot'])
