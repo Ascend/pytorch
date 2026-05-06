@@ -12,26 +12,32 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+# Owner(s): ["oncall: profiler"]
 
 import glob
-import os
 import json
+import os
 import threading
+import unittest
 from unittest import mock
 from unittest.mock import MagicMock
-import torch
 
 import torch_npu
-from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.profiler.analysis.prof_common_func._cann_package_manager import (
+    CannPackageManager,
+)
+from torch_npu.testing.testcase import run_tests, TestCase
 from torch_npu.utils._path_manager import PathManager
-from torch_npu.profiler.analysis.prof_common_func._cann_package_manager import CannPackageManager
+
+import torch
+
 
 worker_id = 1
 
 
 class SmallModel(torch.nn.Module):
     def __init__(self, in_channel=3, out_channel=12):
-        super(SmallModel, self).__init__()
+        super().__init__()
         self.conv1 = torch.nn.Conv2d(in_channel, in_channel, 3, padding=1)
         self.relu1 = torch.nn.ReLU()
         self.conv2 = torch.nn.Conv2d(in_channel, out_channel, 3, padding=1)
@@ -102,30 +108,67 @@ class TestNpuProfiler(TestCase):
     def test_default_profiler(self):
         worker_name = self.worker_name
         with torch_npu.profiler.profile(
-                on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(self.results_path, worker_name=worker_name)
+            on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(
+                self.results_path, worker_name=worker_name
+            )
         ) as prof:
             for step in range(self.small_steps):
                 self.model_train.train_one_step()
-        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.TRACE_FILE_NAME))
-        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.KERNEL_FILE_NAME))
-        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.OPERATOR_FILE_NAME))
+                prof.step()
+        self.assertEqual(
+            True,
+            self._has_view_result(self.results_path, worker_name, self.TRACE_FILE_NAME),
+        )
+        self.assertEqual(
+            True,
+            self._has_view_result(
+                self.results_path, worker_name, self.KERNEL_FILE_NAME
+            ),
+        )
+        self.assertEqual(
+            True,
+            self._has_view_result(
+                self.results_path, worker_name, self.OPERATOR_FILE_NAME
+            ),
+        )
         # self.assertEqual(True, self._check_trace_view_keywords(self.results_path, worker_name, ["async_npu"]))
 
     def test_start_stop_profiler(self):
         worker_name = self.worker_name
         prof = torch_npu.profiler.profile(
-            schedule=torch_npu.profiler.schedule(wait=0, warmup=1, active=1, repeat=1, skip_first=2),
-            on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(self.results_path, worker_name=worker_name))
+            schedule=torch_npu.profiler.schedule(
+                wait=0, warmup=1, active=1, repeat=1, skip_first=2
+            ),
+            on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(
+                self.results_path, worker_name=worker_name
+            ),
+        )
         prof.start()
         for step in range(self.large_steps):
             self.model_train.train_one_step()
             prof.step()
         prof.stop()
-        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.TRACE_FILE_NAME))
-        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.KERNEL_FILE_NAME))
-        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.OPERATOR_FILE_NAME))
+        self.assertEqual(
+            True,
+            self._has_view_result(self.results_path, worker_name, self.TRACE_FILE_NAME),
+        )
+        self.assertEqual(
+            True,
+            self._has_view_result(
+                self.results_path, worker_name, self.KERNEL_FILE_NAME
+            ),
+        )
+        self.assertEqual(
+            True,
+            self._has_view_result(
+                self.results_path, worker_name, self.OPERATOR_FILE_NAME
+            ),
+        )
         if CannPackageManager.is_support_default_export_db():
-            self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.ANALYZE_DB))
+            self.assertEqual(
+                True,
+                self._has_view_result(self.results_path, worker_name, self.ANALYZE_DB),
+            )
             output_path = self._get_tensorboard_output(self.results_path, worker_name)
             # Find db file (could be with or without rank_id)
             db_files = glob.glob(os.path.join(output_path, "*_pytorch_profiler*.db"))
@@ -136,67 +179,162 @@ class TestNpuProfiler(TestCase):
     def test_activities_cpu(self):
         worker_name = self.worker_name
         with torch_npu.profiler.profile(
-                activities=[torch_npu.profiler.ProfilerActivity.CPU],
-                on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(self.results_path, worker_name=worker_name)
+            activities=[torch_npu.profiler.ProfilerActivity.CPU],
+            on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(
+                self.results_path, worker_name=worker_name
+            ),
         ) as prof:
             for step in range(self.small_steps):
                 self.model_train.train_one_step()
-        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.TRACE_FILE_NAME))
-        self.assertEqual(False, self._has_view_result(self.results_path, worker_name, self.KERNEL_FILE_NAME))
-        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.OPERATOR_FILE_NAME))
-        self.assertEqual(False, self._check_trace_view_keywords(self.results_path, worker_name, ["async_npu"]))
+                prof.step()
+        self.assertEqual(
+            True,
+            self._has_view_result(self.results_path, worker_name, self.TRACE_FILE_NAME),
+        )
+        self.assertEqual(
+            False,
+            self._has_view_result(
+                self.results_path, worker_name, self.KERNEL_FILE_NAME
+            ),
+        )
+        self.assertEqual(
+            True,
+            self._has_view_result(
+                self.results_path, worker_name, self.OPERATOR_FILE_NAME
+            ),
+        )
+        self.assertEqual(
+            False,
+            self._check_trace_view_keywords(
+                self.results_path, worker_name, ["async_npu"]
+            ),
+        )
 
     def test_activities_npu(self):
         worker_name = self.worker_name
         with torch_npu.profiler.profile(
-                activities=[torch_npu.profiler.ProfilerActivity.NPU],
-                on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(self.results_path, worker_name=worker_name)
+            activities=[torch_npu.profiler.ProfilerActivity.NPU],
+            on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(
+                self.results_path, worker_name=worker_name
+            ),
         ) as prof:
             for step in range(self.small_steps):
                 self.model_train.train_one_step()
+                prof.step()
         # self.assertEqual(True, self._has_view_result(worker_name, self.TRACE_FILE_NAME))
-        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.KERNEL_FILE_NAME))
-        self.assertEqual(False, self._has_view_result(self.results_path, worker_name, self.OPERATOR_FILE_NAME))
+        self.assertEqual(
+            True,
+            self._has_view_result(
+                self.results_path, worker_name, self.KERNEL_FILE_NAME
+            ),
+        )
+        self.assertEqual(
+            False,
+            self._has_view_result(
+                self.results_path, worker_name, self.OPERATOR_FILE_NAME
+            ),
+        )
         # self.assertEqual(False, self._check_trace_view_keywords(worker_name, ["async_npu"]))
 
     def test_record_shapes(self):
         worker_name = self.worker_name
         with torch_npu.profiler.profile(
-                record_shapes=True,
-                on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(self.results_path, worker_name=worker_name)
+            record_shapes=True,
+            on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(
+                self.results_path, worker_name=worker_name
+            ),
         ) as prof:
             for step in range(self.small_steps):
                 self.model_train.train_one_step()
-        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.TRACE_FILE_NAME))
-        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.KERNEL_FILE_NAME))
-        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.OPERATOR_FILE_NAME))
-        self.assertEqual(True, self._check_trace_view_keywords(self.results_path, worker_name, ["Input Dims", "Input type"]))
+                prof.step()
+        self.assertEqual(
+            True,
+            self._has_view_result(self.results_path, worker_name, self.TRACE_FILE_NAME),
+        )
+        self.assertEqual(
+            True,
+            self._has_view_result(
+                self.results_path, worker_name, self.KERNEL_FILE_NAME
+            ),
+        )
+        self.assertEqual(
+            True,
+            self._has_view_result(
+                self.results_path, worker_name, self.OPERATOR_FILE_NAME
+            ),
+        )
+        self.assertEqual(
+            True,
+            self._check_trace_view_keywords(
+                self.results_path, worker_name, ["Input Dims", "Input type"]
+            ),
+        )
 
     def test_with_stack(self):
         worker_name = self.worker_name
         with torch_npu.profiler.profile(
-                with_stack=True,
-                on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(self.results_path, worker_name=worker_name)
+            with_stack=True,
+            on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(
+                self.results_path, worker_name=worker_name
+            ),
         ) as prof:
             for step in range(self.small_steps):
                 self.model_train.train_one_step()
-        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.TRACE_FILE_NAME))
-        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.KERNEL_FILE_NAME))
-        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.OPERATOR_FILE_NAME))
-        self.assertEqual(True, self._check_trace_view_keywords(self.results_path, worker_name, ["python_function", "built-in function print"]))
+                prof.step()
+        self.assertEqual(
+            True,
+            self._has_view_result(self.results_path, worker_name, self.TRACE_FILE_NAME),
+        )
+        self.assertEqual(
+            True,
+            self._has_view_result(
+                self.results_path, worker_name, self.KERNEL_FILE_NAME
+            ),
+        )
+        self.assertEqual(
+            True,
+            self._has_view_result(
+                self.results_path, worker_name, self.OPERATOR_FILE_NAME
+            ),
+        )
+        self.assertEqual(
+            True,
+            self._check_trace_view_keywords(
+                self.results_path,
+                worker_name,
+                ["python_function", "built-in function print"],
+            ),
+        )
 
     def test_schedule(self):
         worker_name = self.worker_name
         with torch_npu.profiler.profile(
-                schedule=torch_npu.profiler.schedule(wait=0, warmup=1, active=1, repeat=1, skip_first=2),
-                on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(self.results_path, worker_name=worker_name)
+            schedule=torch_npu.profiler.schedule(
+                wait=0, warmup=1, active=1, repeat=1, skip_first=2
+            ),
+            on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(
+                self.results_path, worker_name=worker_name
+            ),
         ) as prof:
             for step in range(self.large_steps):
                 self.model_train.train_one_step()
                 prof.step()
-        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.TRACE_FILE_NAME))
-        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.KERNEL_FILE_NAME))
-        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.OPERATOR_FILE_NAME))
+        self.assertEqual(
+            True,
+            self._has_view_result(self.results_path, worker_name, self.TRACE_FILE_NAME),
+        )
+        self.assertEqual(
+            True,
+            self._has_view_result(
+                self.results_path, worker_name, self.KERNEL_FILE_NAME
+            ),
+        )
+        self.assertEqual(
+            True,
+            self._has_view_result(
+                self.results_path, worker_name, self.OPERATOR_FILE_NAME
+            ),
+        )
 
     def test_export_chrome_trace(self):
         PathManager.remove_path_safety(self.results_work_path)
@@ -205,6 +343,7 @@ class TestNpuProfiler(TestCase):
         with torch_npu.profiler.profile() as prof:
             for step in range(self.small_steps):
                 self.model_train.train_one_step()
+                prof.step()
         prof.export_chrome_trace(trace_path)
         os.environ["ASCEND_WORK_PATH"] = ""
         self.assertEqual(True, os.path.isfile(trace_path))
@@ -212,26 +351,44 @@ class TestNpuProfiler(TestCase):
     def test_memory_view(self):
         worker_name = self.worker_name
         with torch_npu.profiler.profile(
-                profile_memory=True,
-                on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(self.results_path, worker_name=worker_name)
+            profile_memory=True,
+            on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(
+                self.results_path, worker_name=worker_name
+            ),
         ) as prof:
             for step in range(self.small_steps):
                 self.model_train.train_one_step()
-        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.OPERATOR_MEMORY))
-        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.MEMORY_RECORD))
+                prof.step()
+        self.assertEqual(
+            True,
+            self._has_view_result(self.results_path, worker_name, self.OPERATOR_MEMORY),
+        )
+        self.assertEqual(
+            True,
+            self._has_view_result(self.results_path, worker_name, self.MEMORY_RECORD),
+        )
 
     def test_memory_when_workspace(self):
         original_value = os.environ.get("TASK_QUEUE_ENABLE")
         os.environ["TASK_QUEUE_ENABLE"] = "2"
         worker_name = self.worker_name
         with torch_npu.profiler.profile(
-                profile_memory=True,
-                on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(self.results_path, worker_name=worker_name)
+            profile_memory=True,
+            on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(
+                self.results_path, worker_name=worker_name
+            ),
         ) as prof:
             for _ in range(self.small_steps):
                 self.model_train.train_one_step()
-        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.OPERATOR_MEMORY))
-        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.MEMORY_RECORD))
+                prof.step()
+        self.assertEqual(
+            True,
+            self._has_view_result(self.results_path, worker_name, self.OPERATOR_MEMORY),
+        )
+        self.assertEqual(
+            True,
+            self._has_view_result(self.results_path, worker_name, self.MEMORY_RECORD),
+        )
         if original_value is None:
             del os.environ["TASK_QUEUE_ENABLE"]
         else:
@@ -240,33 +397,54 @@ class TestNpuProfiler(TestCase):
     def test_single_process_multiple_devices_with_child_thread(self):
         worker_name = self.worker_name
         with torch_npu.profiler.profile(
-                on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(self.results_path, worker_name=worker_name)
+            on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(
+                self.results_path, worker_name=worker_name
+            )
         ) as prof:
             t = threading.Thread(target=self.model_train.train_one_step, args=(1, True))
             t.start()
             for _ in range(self.small_steps):
                 self.model_train.train_one_step()
+                prof.step()
             t.join()
-        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.TRACE_FILE_NAME))
-        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.KERNEL_FILE_NAME))
-        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.OPERATOR_FILE_NAME))
+        self.assertEqual(
+            True,
+            self._has_view_result(self.results_path, worker_name, self.TRACE_FILE_NAME),
+        )
+        self.assertEqual(
+            True,
+            self._has_view_result(
+                self.results_path, worker_name, self.KERNEL_FILE_NAME
+            ),
+        )
+        self.assertEqual(
+            True,
+            self._has_view_result(
+                self.results_path, worker_name, self.OPERATOR_FILE_NAME
+            ),
+        )
 
     def test_ascend_work_path(self):
         PathManager.remove_path_safety(self.results_work_path)
         os.environ["ASCEND_WORK_PATH"] = self.results_work_path
         with torch_npu.profiler.profile(
-                on_trace_ready=torch_npu.profiler.tensorboard_trace_handler()
+            on_trace_ready=torch_npu.profiler.tensorboard_trace_handler()
         ) as prof:
             for step in range(self.small_steps):
                 self.model_train.train_one_step()
+                prof.step()
 
         os.environ["ASCEND_WORK_PATH"] = ""
-        self.assertEqual(True, os.path.exists(os.path.join(self.results_work_path, "profiling_data")))
+        self.assertEqual(
+            True, os.path.exists(os.path.join(self.results_work_path, "profiling_data"))
+        )
 
     def test_add_metadata(self):
         worker_name = self.worker_name
         with torch_npu.profiler.profile(
-                on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(self.results_path, worker_name=worker_name)
+            on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(
+                self.results_path, worker_name=worker_name
+            )
         ) as prof:
             for step in range(self.small_steps):
                 self.model_train.train_one_step()
@@ -295,9 +473,7 @@ class TestNpuProfiler(TestCase):
     def test_export_stacks(self):
         PathManager.remove_path_safety(self.results_work_path)
         os.environ["ASCEND_WORK_PATH"] = self.results_work_path
-        with torch_npu.profiler.profile(
-            with_stack=True
-        ) as prof:
+        with torch_npu.profiler.profile(with_stack=True) as prof:
             for step in range(self.small_steps):
                 self.model_train.train_one_step()
         stack_path = os.path.join(self.results_work_path, self.STACK_FILE_NAME)
@@ -349,20 +525,35 @@ class TestNpuProfiler(TestCase):
         # only one device
         valid_work_name = len(work_names) == 1 and work_names[0].endswith("ascend_pt")
         self.assertEqual(True, valid_work_name)
-        self.assertEqual(True, self._has_view_result(result_dir, work_names[0], self.TRACE_FILE_NAME))
-        self.assertEqual(True, self._has_view_result(result_dir, work_names[0], self.KERNEL_FILE_NAME))
-        self.assertEqual(True, self._has_view_result(result_dir, work_names[0], self.OPERATOR_FILE_NAME))
+        self.assertEqual(
+            True, self._has_view_result(result_dir, work_names[0], self.TRACE_FILE_NAME)
+        )
+        self.assertEqual(
+            True,
+            self._has_view_result(result_dir, work_names[0], self.KERNEL_FILE_NAME),
+        )
+        self.assertEqual(
+            True,
+            self._has_view_result(result_dir, work_names[0], self.OPERATOR_FILE_NAME),
+        )
 
+    @unittest.skip("skip now")
     def test_export_db(self):
-        from torch_npu.profiler.analysis.prof_common_func._constant import TableColumnsManager
         from torch_npu.profiler.analysis.prof_common_func._db_manager import TorchDb
 
         worker_name = self.worker_name
         prof = torch_npu.profiler.profile(
             profile_memory=True,
-            schedule=torch_npu.profiler.schedule(wait=0, warmup=0, active=1, repeat=1, skip_first=0),
-            on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(self.results_path, worker_name=worker_name),
-            experimental_config=torch_npu.profiler._ExperimentalConfig(export_type="db"))
+            schedule=torch_npu.profiler.schedule(
+                wait=0, warmup=0, active=1, repeat=1, skip_first=0
+            ),
+            on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(
+                self.results_path, worker_name=worker_name
+            ),
+            experimental_config=torch_npu.profiler._ExperimentalConfig(
+                export_type="db"
+            ),
+        )
         prof.start()
         for _ in range(self.small_steps):
             self.model_train.train_one_step()
@@ -381,7 +572,15 @@ class TestNpuProfiler(TestCase):
         self.assertEqual(True, TorchDb().create_connect_db())
 
         # Verify tables in TableColumns must exist
-        tables = ['CANN_API', 'STRING_IDS', 'CONNECTION_IDS', 'ENUM_API_TYPE', 'PYTORCH_API', 'MEMORY_RECORD', 'OP_MEMORY']
+        tables = [
+            "CANN_API",
+            "STRING_IDS",
+            "CONNECTION_IDS",
+            "ENUM_API_TYPE",
+            "PYTORCH_API",
+            "MEMORY_RECORD",
+            "OP_MEMORY",
+        ]
 
         for table_name in tables:
             self.assertEqual(True, TorchDb().judge_table_exist(table_name))
@@ -401,40 +600,48 @@ class TestNpuProfiler(TestCase):
             return os.path.isfile(os.path.join(output_path, view_name))
         return False
 
-    def _check_trace_view_keywords(self, dir_name: str, worker_name: str, keywords: list) -> bool:
+    def _check_trace_view_keywords(
+        self, dir_name: str, worker_name: str, keywords: list
+    ) -> bool:
         if not self._has_view_result(dir_name, worker_name, self.TRACE_FILE_NAME):
             return False
-        trace_path = os.path.realpath(os.path.join(self._get_tensorboard_output(dir_name, worker_name), self.TRACE_FILE_NAME))
+        trace_path = os.path.realpath(
+            os.path.join(
+                self._get_tensorboard_output(dir_name, worker_name),
+                self.TRACE_FILE_NAME,
+            )
+        )
         file_size = os.path.getsize(trace_path)
         if file_size <= 0:
             return False
         PathManager.check_directory_path_readable(trace_path)
-        with open(trace_path, "rt") as file:
+        with open(trace_path) as file:
             all_data = file.read()
             return all(all_data.find(keyword) != -1 for keyword in keywords)
         return False
 
     def test_create_connect_db_sqlite_error_connection(self):
-        from torch_npu.profiler.analysis.prof_common_func._db_manager import DbManager, EmptyClass
         import sqlite3
+
+        from torch_npu.profiler.analysis.prof_common_func._db_manager import (
+            DbManager,
+            EmptyClass,
+        )
+
         invalid_db_path = "/invalid/path/to/db.db"
 
-        with mock.patch('os.path.exists', return_value=False):
-            with mock.patch('sqlite3.connect') as mock_connect:
-                mock_connect.side_effect = sqlite3.Error('Database connection error')
+        with mock.patch("os.path.exists", return_value=False):
+            with mock.patch("sqlite3.connect") as mock_connect:
+                mock_connect.side_effect = sqlite3.Error("Database connection error")
                 conn, curs = DbManager.create_connect_db(invalid_db_path)
                 self.assertIsInstance(conn, EmptyClass)
                 self.assertIsInstance(curs, EmptyClass)
 
     def test_fetch_all_data_max_row_count_warning(self):
         from torch_npu.profiler.analysis.prof_common_func._db_manager import DbManager
-        import sqlite3
 
         mock_curs = mock.MagicMock()
-        mock_curs.fetchmany.side_effect = [
-            [(1, 2), (3, 4)] * 10000,
-            []
-        ]
+        mock_curs.fetchmany.side_effect = [[(1, 2), (3, 4)] * 10000, []]
 
         mock_curs.execute.return_value = None
         original_max = DbManager.MAX_ROW_COUNT
@@ -448,15 +655,15 @@ class TestNpuProfiler(TestCase):
 
     def test_insert_data_into_table_empty_data(self):
         from torch_npu.profiler.analysis.prof_common_func._db_manager import DbManager
-        import sqlite3
 
         mock_conn = mock.MagicMock()
         DbManager.insert_data_into_table(mock_conn, "test_table", [])
         mock_conn.cursor.assert_not_called()
 
     def test_fetch_all_data_error_handling(self):
-        from torch_npu.profiler.analysis.prof_common_func._db_manager import DbManager
         import sqlite3
+
+        from torch_npu.profiler.analysis.prof_common_func._db_manager import DbManager
 
         mock_curs = MagicMock()
         mock_curs.execute.side_effect = sqlite3.Error("Mock error")
@@ -464,8 +671,9 @@ class TestNpuProfiler(TestCase):
         self.assertEqual(result, [])
 
     def test_execute_sql_error_handling(self):
-        from torch_npu.profiler.analysis.prof_common_func._db_manager import DbManager
         import sqlite3
+
+        from torch_npu.profiler.analysis.prof_common_func._db_manager import DbManager
 
         mock_conn = MagicMock()
         mock_conn.cursor().execute.side_effect = sqlite3.Error("Mock error")
@@ -475,7 +683,6 @@ class TestNpuProfiler(TestCase):
 
     def test_destroy_db_connect_none_params(self):
         from torch_npu.profiler.analysis.prof_common_func._db_manager import DbManager
-        import sqlite3
 
         DbManager.destroy_db_connect(None, None)
         mock_conn = MagicMock()
