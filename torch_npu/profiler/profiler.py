@@ -1,50 +1,48 @@
-import os.path
+# ruff: noqa: UP045, UP007
 import json
+import os.path
+from collections.abc import Callable, Iterable
 from sys import getsizeof
-from typing import Optional, Iterable, Callable, Any, Union
+from typing import Any, Optional, Union
 
 import torch.autograd.profiler as prof
 import torch_npu.npu
 from torch_npu._C._profiler import (
-    _enable_profiler_in_child_thread,
     _disable_profiler_in_child_thread,
+    _enable_profiler_in_child_thread,
     _ExperimentalConfig as C_ExperimentalConfig,
+    NpuProfilerConfig,
     ProfilerActivity,
-    NpuProfilerConfig
 )
 from torch_npu.utils._error_code import ErrCode, prof_error
 
-from .experimental_config import _ExperimentalConfig
-from ._profiler_path_creator import ProfPathCreator
-from .profiler_interface import _ProfInterface, supported_activities
-from ._profiler_action_controller import ProfActionController
-from .scheduler import _default_schedule_fn, ProfilerAction
-from .analysis.prof_common_func._constant import Constant
-from .analysis.prof_common_func._constant import print_warn_msg
-from .analysis.prof_common_func._utils import no_exception_func
-from .analysis._npu_profiler import NpuProfiler
-from .analysis.prof_common_func._path_manager import ProfilerPathManager
 from ..utils._path_manager import PathManager
+from ._profiler_action_controller import ProfActionController
+from ._profiler_path_creator import ProfPathCreator
+from .analysis._npu_profiler import NpuProfiler
+from .analysis.prof_common_func._constant import Constant, print_warn_msg
+from .analysis.prof_common_func._path_manager import ProfilerPathManager
+from .analysis.prof_common_func._utils import no_exception_func
+from .experimental_config import _ExperimentalConfig
+from .profiler_interface import _ProfInterface, supported_activities
+from .scheduler import _default_schedule_fn, ProfilerAction
 
-__all__ = [
-    'supported_activities',
-    'analyse',
-    'tensorboard_trace_handler',
-    'profile'
-]
+
+__all__ = ["supported_activities", "analyse", "tensorboard_trace_handler", "profile"]
 
 
 class _KinetoProfile:
     def __init__(
-            self,
-            *,
-            activities: Optional[Iterable[ProfilerActivity]] = None,
-            record_shapes: bool = False,
-            profile_memory: bool = False,
-            with_stack: bool = False,
-            with_flops: bool = False,
-            with_modules: bool = False,
-            experimental_config: Optional[_ExperimentalConfig] = None,
+        self,
+        *,
+        activities: Optional[Iterable[ProfilerActivity]] = None,
+        record_shapes: bool = False,
+        profile_memory: bool = False,
+        with_stack: bool = False,
+        with_flops: bool = False,
+        with_modules: bool = False,
+        experimental_config: Optional[_ExperimentalConfig] = None,
+        custom_trace_id_callback: Optional[Callable[[], str]] = None,
     ):
         self.metadata = {}
         self.prof_if = _ProfInterface(
@@ -55,7 +53,8 @@ class _KinetoProfile:
             with_flops=with_flops,
             with_modules=with_modules,
             experimental_config=experimental_config,
-            metadata=self.metadata
+            metadata=self.metadata,
+            custom_trace_id_callback=custom_trace_id_callback,
         )
         self.max_meta_size = 50 * 1024
         self.max_str_len = 4096
@@ -81,7 +80,10 @@ class _KinetoProfile:
         PathManager.check_input_file_path(output_path)
         file_name = os.path.basename(output_path)
         if not file_name.endswith(".json"):
-            raise RuntimeError("Invalid parameter output_path, which must be a json file." + prof_error(ErrCode.VALUE))
+            raise RuntimeError(
+                "Invalid parameter output_path, which must be a json file."
+                + prof_error(ErrCode.VALUE)
+            )
         if not self.prof_if.prof_path:
             print_warn_msg("Invalid profiling path.")
             return
@@ -90,14 +92,16 @@ class _KinetoProfile:
     @no_exception_func()
     def add_metadata(self, key: str, value: str):
         if not isinstance(key, str) or not isinstance(value, str):
-            print_warn_msg("The key and value of metadata must be string. Skip this metadata.")
+            print_warn_msg(
+                "The key and value of metadata must be string. Skip this metadata."
+            )
             return
         if not self._check_str_valid(key) or not self._check_str_valid(value):
             print_warn_msg("Invalid input key or value. Skip this metadata.")
             return
         add_size = getsizeof(key) + getsizeof(value)
         if getsizeof(self.metadata) + add_size < self.max_meta_size:
-            if key in self.metadata.keys():
+            if key in self.metadata:
                 print_warn_msg(f"{key} is already saved as metadata, override it.")
             self.metadata[key] = value
         else:
@@ -106,7 +110,9 @@ class _KinetoProfile:
     @no_exception_func()
     def add_metadata_json(self, key: str, value: str):
         if not isinstance(key, str) or not isinstance(value, str):
-            print_warn_msg("The key and value of metadata must be string. Skip this metadata.")
+            print_warn_msg(
+                "The key and value of metadata must be string. Skip this metadata."
+            )
             return
         if not self._check_str_valid(key) or not self._check_str_valid(value):
             print_warn_msg("Invalid input key or value. Skip this metadata.")
@@ -114,11 +120,13 @@ class _KinetoProfile:
         add_size = getsizeof(key) + getsizeof(value)
         if getsizeof(self.metadata) + add_size < self.max_meta_size:
             try:
-                if key in self.metadata.keys():
+                if key in self.metadata:
                     print_warn_msg(f"{key} is already saved as metadata, override it.")
                 self.metadata[key] = json.loads(value)
             except ValueError:
-                print_warn_msg("The metadata value must be json format string. Skip this metadata")
+                print_warn_msg(
+                    "The metadata value must be json format string. Skip this metadata"
+                )
         else:
             print_warn_msg("Too many metadata added. Skip this metadata")
 
@@ -130,8 +138,10 @@ class _KinetoProfile:
             print_warn_msg("Function export_stacks() requires with_stack=True.")
             return
         if metric not in self._support_export_stacks_metrics():
-            print_warn_msg("Metric should be self_cpu_time_total or self_npu_time_total."
-                           "Here it is presumed to be self_cpu_time_total.")
+            print_warn_msg(
+                "Metric should be self_cpu_time_total or self_npu_time_total."
+                "Here it is presumed to be self_cpu_time_total."
+            )
             metric = Constant.METRIC_CPU_TIME
         if not self.prof_if.prof_path:
             print_warn_msg("Invalid profiling path.")
@@ -139,7 +149,9 @@ class _KinetoProfile:
         self.prof_if.analyse(Constant.EXPORT_STACK, output_path, metric=metric)
 
     @no_exception_func()
-    def export_memory_timeline(self, output_path: str, device: Optional[str] = None) -> None:
+    def export_memory_timeline(
+        self, output_path: str, device: Optional[str] = None
+    ) -> None:
         if device is None:
             device = "npu:0" if torch_npu.npu.is_available() else "cpu"
         missing = []
@@ -156,7 +168,9 @@ class _KinetoProfile:
         if not self.prof_if.prof_path:
             print_warn_msg("Invalid profiling path.")
             return
-        self.prof_if.analyse(Constant.EXPORT_MEMORY_TIMELINE, output_path, device=device)
+        self.prof_if.analyse(
+            Constant.EXPORT_MEMORY_TIMELINE, output_path, device=device
+        )
 
     def _check_str_valid(self, input_str: str):
         if len(input_str) > self.max_str_len:
@@ -168,8 +182,12 @@ class _KinetoProfile:
 
 
 @no_exception_func()
-def tensorboard_trace_handler(dir_name: str = None, worker_name: str = None,
-                              analyse_flag: bool = True, async_mode: bool = False):
+def tensorboard_trace_handler(
+    dir_name: Optional[str] = None,
+    worker_name: Optional[str] = None,
+    analyse_flag: bool = True,
+    async_mode: bool = False,
+):
     ProfPathCreator().init(worker_name=worker_name, dir_name=dir_name)
     if not isinstance(analyse_flag, bool):
         print_warn_msg("analyse_flag is not bool, set by default.")
@@ -187,27 +205,30 @@ def tensorboard_trace_handler(dir_name: str = None, worker_name: str = None,
 
 class profile(_KinetoProfile):
     def __init__(
-            self,
-            *,
-            activities: Optional[Iterable[ProfilerActivity]] = None,
-            schedule: Optional[Callable[[int], ProfilerAction]] = None,
-            on_trace_ready: Optional[Callable[..., Any]] = None,
-            record_shapes: bool = False,
-            profile_memory: bool = False,
-            with_stack: bool = False,
-            with_flops: bool = False,
-            with_modules: bool = False,
-            experimental_config: Optional[_ExperimentalConfig] = None,
-            # deprecated:
-            use_cuda: Optional[bool] = None,
+        self,
+        *,
+        activities: Optional[Iterable[ProfilerActivity]] = None,
+        schedule: Optional[Callable[[int], ProfilerAction]] = None,
+        on_trace_ready: Optional[Callable[..., Any]] = None,
+        record_shapes: bool = False,
+        profile_memory: bool = False,
+        with_stack: bool = False,
+        with_flops: bool = False,
+        with_modules: bool = False,
+        experimental_config: Optional[_ExperimentalConfig] = None,
+        custom_trace_id_callback: Optional[Callable[[], str]] = None,
+        # deprecated:
+        use_cuda: Optional[bool] = None,
     ):
-        super().__init__(activities=activities,
-                        record_shapes=record_shapes,
-                        profile_memory=profile_memory,
-                        with_stack=with_stack,
-                        with_flops=with_flops,
-                        with_modules=with_modules,
-                        experimental_config=experimental_config)
+        super().__init__(
+            activities=activities,
+            record_shapes=record_shapes,
+            profile_memory=profile_memory,
+            with_stack=with_stack,
+            with_flops=with_flops,
+            with_modules=with_modules,
+            experimental_config=experimental_config,
+        )
         activities_set = set(activities) if activities else supported_activities()
         if schedule and isinstance(schedule, Callable):
             self.schedule = schedule
@@ -230,7 +251,8 @@ class profile(_KinetoProfile):
             with_modules=with_modules,
             experimental_config=experimental_config,
             schedule=self.schedule,
-            metadata=self.metadata
+            metadata=self.metadata,
+            custom_trace_id_callback=custom_trace_id_callback,
         )
         self.on_trace_ready = on_trace_ready
         self.step_num = 0
@@ -240,7 +262,9 @@ class profile(_KinetoProfile):
         if use_cuda is not None:
             print_warn_msg("This is npu environment, use_cuda is invalid")
         self.stopped = False
-        self.action_controller = ProfActionController(self, self.prof_if, self.on_trace_ready)
+        self.action_controller = ProfActionController(
+            self, self.prof_if, self.on_trace_ready
+        )
 
     @no_exception_func()
     def __enter__(self):
@@ -253,7 +277,7 @@ class profile(_KinetoProfile):
 
     @no_exception_func()
     def __del__(self):
-        if self.stopped == False:
+        if not self.stopped:
             self.stop()
 
     @no_exception_func()
@@ -267,7 +291,9 @@ class profile(_KinetoProfile):
             ProfPathCreator().init(export_only_mode=True)
         self.action_controller.transit_action(ProfilerAction.NONE, self.current_action)
         if self.record_steps:
-            self.step_rec_fn = prof.record_function("ProfilerStep#" + str(self.step_num + self._step_num_offset))
+            self.step_rec_fn = prof.record_function(
+                "ProfilerStep#" + str(self.step_num + self._step_num_offset)
+            )
             self.step_rec_fn.__enter__()
 
     @no_exception_func()
@@ -289,31 +315,51 @@ class profile(_KinetoProfile):
         self.current_action = self.schedule(self.step_num)
         self.action_controller.transit_action(prev_action, self.current_action)
         if self.record_steps:
-            self.step_rec_fn = prof.record_function("ProfilerStep#" + str(self.step_num + self._step_num_offset))
+            self.step_rec_fn = prof.record_function(
+                "ProfilerStep#" + str(self.step_num + self._step_num_offset)
+            )
             self.step_rec_fn.__enter__()
+
+    @no_exception_func()
+    def set_custom_trace_id_callback(self, callback: Callable[[], str]) -> None:
+        self.prof_if.custom_trace_id_callback = callback
+
+    @no_exception_func()
+    def get_trace_id(self) -> str:
+        return self.prof_if.trace_id
 
     @classmethod
     @no_exception_func()
-    def enable_profiler_in_child_thread(cls,
-            record_shapes: bool = False,
-            profile_memory: bool = False,
-            with_stack: bool = False,
-            with_flops: bool = False,
-            with_modules: bool = False):
+    def enable_profiler_in_child_thread(
+        cls,
+        record_shapes: bool = False,
+        profile_memory: bool = False,
+        with_stack: bool = False,
+        with_flops: bool = False,
+        with_modules: bool = False,
+    ):
         params = {
-            'record_shapes': record_shapes,
-            'profile_memory': profile_memory,
-            'with_stack': with_stack,
-            'with_flops': with_flops,
-            'with_modules': with_modules
+            "record_shapes": record_shapes,
+            "profile_memory": profile_memory,
+            "with_stack": with_stack,
+            "with_flops": with_flops,
+            "with_modules": with_modules,
         }
         for param_name, param_value in params.items():
             if not isinstance(param_value, bool):
-                print_warn_msg(f"{param_name} in enable_profiler_in_child_thread is not bool, reset it to False.")
+                print_warn_msg(
+                    f"{param_name} in enable_profiler_in_child_thread is not bool, reset it to False."
+                )
                 params[param_name] = False
-        npu_prof_config = NpuProfilerConfig('', params['record_shapes'], params['profile_memory'], 
-                                            params['with_stack'], params['with_flops'], params['with_modules'], 
-                                            C_ExperimentalConfig())
+        npu_prof_config = NpuProfilerConfig(
+            "",
+            params["record_shapes"],
+            params["profile_memory"],
+            params["with_stack"],
+            params["with_flops"],
+            params["with_modules"],
+            C_ExperimentalConfig(),
+        )
         _enable_profiler_in_child_thread(npu_prof_config)
 
     @classmethod
@@ -324,24 +370,37 @@ class profile(_KinetoProfile):
 
 
 @no_exception_func()
-def analyse(profiler_path: str, max_process_number: int = Constant.DEFAULT_PROCESS_NUMBER,
-            export_type: Union[str, list] = None):
+def analyse(
+    profiler_path: str,
+    max_process_number: int = Constant.DEFAULT_PROCESS_NUMBER,
+    export_type: Optional[Union[str, list]] = None,
+):
     if not isinstance(max_process_number, int) or max_process_number <= 0:
         max_process_number = Constant.DEFAULT_PROCESS_NUMBER
         print_warn_msg("Invalid max_process_number, reset it to default!")
     if max_process_number > os.cpu_count():
         max_process_number = os.cpu_count()
-        print_warn_msg("max_process_number exceeds the number of cpu cores, reset it to the number of cpu cores!")
+        print_warn_msg(
+            "max_process_number exceeds the number of cpu cores, reset it to the number of cpu cores!"
+        )
     if export_type is not None:
         if isinstance(export_type, str):
             export_type = [export_type]
         elif isinstance(export_type, list):
             export_type = list(set(export_type))
         else:
-            print_warn_msg(f"Invalid parameter export_type: {export_type}, reset it to None.")
+            print_warn_msg(
+                f"Invalid parameter export_type: {export_type}, reset it to None."
+            )
             export_type = None
         if export_type is not None:
-            if not export_type or not all(_type in [Constant.Text, Constant.Db] for _type in export_type):
-                print_warn_msg(f"Invalid parameter export_type: {export_type}, reset it to None.")
+            if not export_type or not all(
+                _type in [Constant.Text, Constant.Db] for _type in export_type
+            ):
+                print_warn_msg(
+                    f"Invalid parameter export_type: {export_type}, reset it to None."
+                )
                 export_type = None
-    NpuProfiler.analyse(profiler_path, max_process_number=max_process_number, export_type=export_type)
+    NpuProfiler.analyse(
+        profiler_path, max_process_number=max_process_number, export_type=export_type
+    )

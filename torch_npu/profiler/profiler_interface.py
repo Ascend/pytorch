@@ -2,6 +2,7 @@
 import functools
 import os
 import time
+import uuid
 from collections.abc import Callable, Iterable
 from typing import Optional
 
@@ -70,18 +71,21 @@ def _disable_event_record():
 
 class _ProfInterface:
     PARALLEL_GROUP_KEY = "parallel_group_info"
+    TRACE_ID_KEY = "trace_id"
+    MAX_TRACE_ID_LEN = 1024
 
     def __init__(
         self,
-        activities: Iterable[ProfilerActivity] | None = None,
+        activities: Optional[Iterable[ProfilerActivity]] = None,
         record_shapes: bool = False,
         profile_memory: bool = False,
         with_stack: bool = False,
         with_flops: bool = False,
         with_modules: bool = False,
-        schedule: Callable[[int], ProfilerAction] | None = None,
+        schedule: Optional[Callable[[int], ProfilerAction]] = None,
         metadata: Optional[dict] = None,
-        experimental_config: _ExperimentalConfig | None = None,
+        experimental_config: Optional[_ExperimentalConfig] = None,
+        custom_trace_id_callback: Optional[Callable[[], str]] = None,
     ) -> None:
         self._is_env_valid = check_msprof_env()
         self.prof_path = ""
@@ -100,6 +104,8 @@ class _ProfInterface:
         self.experimental_config = experimental_config
         self.schedule = schedule
         self.metadata = metadata
+        self.custom_trace_id_callback = custom_trace_id_callback
+        self.trace_id = ""
         self.gc_detector = None
         self._check_params()
 
@@ -112,6 +118,7 @@ class _ProfInterface:
         ProfPathCreator().create_prof_dir()
         self.prof_path = ProfPathCreator().get_prof_dir()
         _init_profiler(self.prof_path, self.activities)
+        self.trace_id = self.create_trace_id()
 
     def warmup_trace(self):
         if not self._is_env_valid:
@@ -200,6 +207,32 @@ class _ProfInterface:
         if self.check_gc_detect_enable() and self.gc_detector is not None:
             self.gc_detector.stop()
             self.gc_detector = None
+
+    def default_trace_id(self):
+        # Generate a UUID
+        uuid_raw = uuid.uuid4()
+        return f"{uuid_raw.int:032X}"
+
+    def create_trace_id(self):
+        if not self.custom_trace_id_callback:
+            return self.default_trace_id()
+        if not isinstance(self.custom_trace_id_callback, Callable):
+            print_warn_msg(
+                "Parameter custom_trace_id_callback is not callable, reset it to default."
+            )
+            return self.default_trace_id()
+        try:
+            trace_id = self.custom_trace_id_callback()
+            if isinstance(trace_id, str) and len(trace_id) <= self.MAX_TRACE_ID_LEN:
+                return trace_id
+            print_warn_msg(
+                f"Parameter custom_trace_id_callback should return str(max length: {self.MAX_TRACE_ID_LEN}), reset it to default."
+            )
+        except Exception as e:
+            print_warn_msg(
+                f"Parameter custom_trace_id_callback raised an exception: {e}, reset it to default."
+            )
+        return self.default_trace_id()
 
     def _check_params(self):
         for activity in self.activities:
@@ -319,6 +352,7 @@ class _ProfInterface:
         if Constant.Text in self.experimental_config.export_type:
             self.metadata.update(collect_env_vars())
         self._add_group_info_to_metadata()
+        self._add_trace_id_to_metadata()
         if not self.metadata:
             return
         if not ProfPathCreator().is_prof_inited:
@@ -371,6 +405,9 @@ class _ProfInterface:
                     self.metadata.update({self.PARALLEL_GROUP_KEY: group_info})
         except Exception as err:
             print_warn_msg(f"Failed to get parallel group info, Exception: {str(err)}.")
+
+    def _add_trace_id_to_metadata(self):
+        self.metadata.update({self.TRACE_ID_KEY: self.trace_id})
 
 
 @no_exception_func(set())
