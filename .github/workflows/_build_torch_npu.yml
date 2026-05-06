@@ -138,15 +138,20 @@ jobs:
 
       # ==================== ccache 缓存配置 ====================
       # ccache 是真正加速编译的关键（可节省 30-60 分钟）
+      # 注意：PyTorch 每次 clone 都是新 commit，所以缓存键不包含 PyTorch SHA
+      # 我们依赖 torch_npu SHA 和 requirements-build.txt hash 作为缓存键
       - name: Get ccache key
         id: ccache_key
         run: |
-          # ccache 缓存键基于：requirements-build.txt + PyTorch SHA + torch_npu SHA
-          PYTORCH_SHA="${{ steps.clone_pytorch.outputs.pytorch_sha }}"
+          # ccache 缓存键：torch_npu SHA + requirements hash
+          # PyTorch SHA 每次都变化（--depth=1 clone 最新），所以不包含在缓存键中
           TORCH_NPU_SHA=$(cd torch_npu-src && git rev-parse HEAD)
           REQUIREMENTS_HASH=$(cd pytorch-src && sha256sum requirements-build.txt | cut -d' ' -f1)
-          echo "cache_key=${{ env.CACHE_VERSION }}-ccache-${REQUIREMENTS_HASH}-${PYTORCH_SHA}-${TORCH_NPU_SHA}" >> $GITHUB_OUTPUT
-          echo "partial_key=${{ env.CACHE_VERSION }}-ccache-${REQUIREMENTS_HASH}-${PYTORCH_SHA}-" >> $GITHUB_OUTPUT
+          echo "cache_key=${{ env.CACHE_VERSION }}-ccache-${REQUIREMENTS_HASH}-${TORCH_NPU_SHA}" >> $GITHUB_OUTPUT
+          # partial_key 用于恢复同版本 requirements 的缓存（不同 torch_npu 版本）
+          echo "partial_key=${{ env.CACHE_VERSION }}-ccache-${REQUIREMENTS_HASH}-" >> $GITHUB_OUTPUT
+          # base_key 用于恢复同 CACHE_VERSION 的所有缓存
+          echo "base_key=${{ env.CACHE_VERSION }}-ccache-" >> $GITHUB_OUTPUT
 
       - name: Restore ccache
         uses: actions/cache/restore@v4
@@ -155,21 +160,26 @@ jobs:
           key: ${{ steps.ccache_key.outputs.cache_key }}
           restore-keys: |
             ${{ steps.ccache_key.outputs.partial_key }}
-            ${{ env.CACHE_VERSION }}-ccache-
+            ${{ steps.ccache_key.outputs.base_key }}
 
       - name: Setup ccache
         run: |
           # 安装 ccache（manylinux 镜像没有预装）
           yum install -y ccache
 
-          # 配置 ccache
-          ccache --set-config=cache_dir=~/.cache/ccache
-          ccache --set-config=max_size=20G
-          ccache --set-config=compression=true
+          # 创建 ccache 配置目录
+          mkdir -p ~/.cache/ccache
+
+          # 直接写入配置文件（确保优先级高于 /etc/ccache.conf）
+          cat > ~/.cache/ccache/ccache.conf << 'EOF'
+          max_size = 20G
+          cache_dir = ~/.cache/ccache
+          compression = true
+          compression_level = 6
+          EOF
 
           # 使用符号链接方式让 ccache 模拟 gcc/g++
           # 这是推荐的方式，避免 CMake 直接把编译选项传给 ccache
-          # CMake 会调用 gcc，但实际上通过符号链接调用 ccache
           mkdir -p /usr/local/bin
           ln -sf /usr/bin/ccache /usr/local/bin/gcc
           ln -sf /usr/bin/ccache /usr/local/bin/g++
@@ -180,8 +190,16 @@ jobs:
           echo "PATH=/usr/local/bin:$PATH" >> $GITHUB_ENV
           echo "CCACHE_DIR=~/.cache/ccache" >> $GITHUB_ENV
 
+          # 设置编译器环境变量，确保 CMake/Ninja 使用 ccache
+          echo "CC=/usr/local/bin/gcc" >> $GITHUB_ENV
+          echo "CXX=/usr/local/bin/g++" >> $GITHUB_ENV
+
           echo "=== ccache Configuration ==="
           ccache --show-config
+
+          echo ""
+          echo "=== Config File Contents ==="
+          cat ~/.cache/ccache/ccache.conf
 
           echo ""
           echo "=== Symbolic Links ==="
@@ -210,6 +228,13 @@ jobs:
           export CMAKE_BUILD_TYPE=Release
           export USE_OPENMP=1
           export USE_MKLDNN=0
+
+          # 确保使用 ccache（CMake 会检测 CC/CXX 环境变量）
+          export CC=/usr/local/bin/gcc
+          export CXX=/usr/local/bin/g++
+
+          # 清除 ccache 统计（开始新的构建）
+          ccache --zero-stats
 
           python${{ inputs.python_version }} setup.py build bdist_wheel
 
@@ -253,6 +278,10 @@ jobs:
           cd torch_npu-src
 
           export MAX_JOBS=128
+
+          # 确保使用 ccache
+          export CC=/usr/local/bin/gcc
+          export CXX=/usr/local/bin/g++
 
           # 禁用 torchair 构建（上游 PyTorch main API 变化导致兼容性问题）
           bash ci/build.sh --python=${{ inputs.python_version }} --disable_torchair
