@@ -1749,7 +1749,7 @@
     "signature": "(profiler_level: int = 'Level0', aic_metrics: int = 'ACL_AICORE_PIPE_UTILIZATION', l2_cache: bool = False, msprof_tx: bool = False, mstx: bool = False, data_simplification: bool = True, record_op_args: bool = False, op_attr: bool = False, gc_detect_threshold: float = None, export_type: Union[str, list] = 'text', host_sys: list = None, sys_io: bool = False, sys_interconnection: bool = False, mstx_domain_include: list = None, mstx_domain_exclude: list = None)"
   },
   "torch_npu.profiler.profile": {
-    "signature": "(*, activities: Optional[Iterable[torch_npu._C._profiler.ProfilerActivity]] = None, schedule: Optional[Callable[[int], torch_npu.profiler.scheduler.ProfilerAction]] = None, on_trace_ready: Optional[Callable[..., Any]] = None, record_shapes: bool = False, profile_memory: bool = False, with_stack: bool = False, with_flops: bool = False, with_modules: bool = False, experimental_config: Optional[torch_npu.profiler.experimental_config._ExperimentalConfig] = None, use_cuda: Optional[bool] = None)"
+    "signature": "(*, activities: Optional[collections.abc.Iterable[torch_npu._C._profiler.ProfilerActivity]] = None, schedule: Optional[collections.abc.Callable[[int], torch_npu.profiler.scheduler.ProfilerAction]] = None, on_trace_ready: Optional[collections.abc.Callable[..., Any]] = None, record_shapes: bool = False, profile_memory: bool = False, with_stack: bool = False, with_flops: bool = False, with_modules: bool = False, experimental_config: Optional[torch_npu.profiler.experimental_config._ExperimentalConfig] = None, custom_trace_id_callback: Optional[collections.abc.Callable[[], str]] = None, use_cuda: Optional[bool] = None)"
   },
   "torch_npu.profiler.profile.start": {
     "signature": "(self)"
@@ -1760,6 +1760,12 @@
   "torch_npu.profiler.profile.step": {
     "signature": "(self)"
   },
+  "torch_npu.profiler.profile.get_trace_id": {
+    "signature": "(self) -> str"
+  },
+  "torch_npu.profiler.profile.set_custom_trace_id_callback": {
+    "signature": "(self, callback: collections.abc.Callable[[], str]) -> None"
+  },
   "torch_npu.profiler.profile.enable_profiler_in_child_thread": {
     "signature": "(record_shapes: bool = False, profile_memory: bool = False, with_stack: bool = False, with_flops: bool = False, with_modules: bool = False)"
   },
@@ -1767,7 +1773,7 @@
     "signature": "()"
   },
   "torch_npu.profiler.schedule": {
-    "signature": "(wait: int, active: int, warmup: int = 0, repeat: int = 0, skip_first: int = 0) -> None"
+    "signature": "(wait: int, active: int, warmup: int = 0, repeat: int = 0, skip_first: int = 0, skip_first_wait: int = 0) -> None"
   },
   "torch_npu.profiler.supported_activities": {
     "signature": "()"
@@ -1782,7 +1788,7 @@
     "signature": "()"
   },
   "torch_npu.profiler.tensorboard_trace_handler": {
-    "signature": "(dir_name: str = None, worker_name: str = None, analyse_flag: bool = True, async_mode: bool = False)"
+    "signature": "(dir_name: Optional[str] = None, worker_name: Optional[str] = None, analyse_flag: bool = True, async_mode: bool = False)"
   },
   "torch_npu.profiler.dynamic_profile.init": {
     "signature": "(path: str)"
@@ -1815,10 +1821,10 @@
     "signature": "()"
   },
   "torch_npu.profiler.profiler.analyse": {
-    "signature": "(profiler_path: str, max_process_number: int = 36, export_type: Union[str, list] = None)"
+    "signature": "(profiler_path: str, max_process_number: int = 320, export_type: Union[str, list, NoneType] = None)"
   },
   "torch_npu.profiler.profiler.profile": {
-    "signature": "(*, activities: Optional[Iterable[torch_npu._C._profiler.ProfilerActivity]] = None, schedule: Optional[Callable[[int], torch_npu.profiler.scheduler.ProfilerAction]] = None, on_trace_ready: Optional[Callable[..., Any]] = None, record_shapes: bool = False, profile_memory: bool = False, with_stack: bool = False, with_flops: bool = False, with_modules: bool = False, experimental_config: Optional[torch_npu.profiler.experimental_config._ExperimentalConfig] = None, use_cuda: Optional[bool] = None)"
+    "signature": "(*, activities: Optional[collections.abc.Iterable[torch_npu._C._profiler.ProfilerActivity]] = None, schedule: Optional[collections.abc.Callable[[int], torch_npu.profiler.scheduler.ProfilerAction]] = None, on_trace_ready: Optional[collections.abc.Callable[..., Any]] = None, record_shapes: bool = False, profile_memory: bool = False, with_stack: bool = False, with_flops: bool = False, with_modules: bool = False, experimental_config: Optional[torch_npu.profiler.experimental_config._ExperimentalConfig] = None, custom_trace_id_callback: Optional[collections.abc.Callable[[], str]] = None, use_cuda: Optional[bool] = None)"
   },
   "torch_npu.profiler.profiler.profile.start": {
     "signature": "(self)"
@@ -1828,6 +1834,12 @@
   },
   "torch_npu.profiler.profiler.profile.step": {
     "signature": "(self)"
+  },
+  "torch_npu.profiler.profiler.profile.get_trace_id": {
+    "signature": "(self) -> str"
+  },
+  "torch_npu.profiler.profiler.profile.set_custom_trace_id_callback": {
+    "signature": "(self, callback: collections.abc.Callable[[], str]) -> None"
   },
   "torch_npu.profiler.profiler.profile.enable_profiler_in_child_thread": {
     "signature": "(record_shapes: bool = False, profile_memory: bool = False, with_stack: bool = False, with_flops: bool = False, with_modules: bool = False)"
@@ -1839,7 +1851,7 @@
     "signature": "()"
   },
   "torch_npu.profiler.profiler.tensorboard_trace_handler": {
-    "signature": "(dir_name: str = None, worker_name: str = None, analyse_flag: bool = True, async_mode: bool = False)"
+    "signature": "(dir_name: Optional[str] = None, worker_name: Optional[str] = None, analyse_flag: bool = True, async_mode: bool = False)"
   },
   "torch_npu.profiler.profiler_interface.supported_activities": {
     "signature": "()"
@@ -1848,7 +1860,7 @@
     "signature": "(value, names=None, *, module=None, qualname=None, type=None, start=1)"
   },
   "torch_npu.profiler.scheduler.Schedule": {
-    "signature": "(wait: int, active: int, warmup: int = 0, repeat: int = 0, skip_first: int = 0) -> None"
+    "signature": "(wait: int, active: int, warmup: int = 0, repeat: int = 0, skip_first: int = 0, skip_first_wait: int = 0) -> None"
   },
   "torch_npu.testing.common_distributed.TestSkip": {
     "signature": "(exit_code, message)"
