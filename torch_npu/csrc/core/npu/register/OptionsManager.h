@@ -13,7 +13,7 @@ class Logger;
 }
 
 namespace c10_npu {
-C10_NPU_API std::shared_ptr<npu_logging::Logger>& GetEnvLogger();
+std::shared_ptr<npu_logging::Logger>& GetEnvLogger();
 
 #define TORCH_NPU_ENV_LOGI(format, ...)                                        \
     do {                                                                       \
