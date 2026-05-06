@@ -256,8 +256,13 @@ class TreeManagerContainer:
 local = threading.local()
 
 # one tree manager per device
-local.tree_manager_containers = {}
-local.tree_manager_locks = defaultdict(threading.Lock)
+# Use npu-specific TLS keys to avoid colliding with upstream
+# torch._inductor.cudagraph_trees, which stashes the same-named objects under
+# the keys "tree_manager_containers" / "tree_manager_locks". Upstream's stash
+# does not INCREF, so overwriting an entry triggers use-after-free on the
+# previous owner. See cudagraph_trees.py lines 306-321.
+local.npu_tree_manager_containers = {}
+local.npu_tree_manager_locks = defaultdict(threading.Lock)
 
 
 # only incremented by user call of mark_step_begin
@@ -267,8 +272,8 @@ class MarkStepBox:
 
 # We need to register this as an object that will be copied over as TLS when new
 # threads are created in autograd
-torch._C._stash_obj_in_tls("tree_manager_containers", local.tree_manager_containers)
-torch._C._stash_obj_in_tls("tree_manager_locks", local.tree_manager_locks)
+torch._C._stash_obj_in_tls("npu_tree_manager_containers", local.npu_tree_manager_containers)
+torch._C._stash_obj_in_tls("npu_tree_manager_locks", local.npu_tree_manager_locks)
 
 
 def mark_step_begin() -> None:
@@ -281,8 +286,8 @@ def mark_step_begin() -> None:
 def reset_npugraph_trees() -> None:
     "Clear all npugraph trees"
     # see shutdown below for why this is necessary
-    container_dict = get_obj(local, "tree_manager_containers")
-    locks_dict = get_obj(local, "tree_manager_locks")
+    container_dict = get_obj(local, "npu_tree_manager_containers")
+    locks_dict = get_obj(local, "npu_tree_manager_locks")
     for device, lock in locks_dict.items():
         with lock:
             container = container_dict.get(device)
@@ -307,8 +312,8 @@ def get_obj(thread_local: Any, attr_name: str) -> Any:
 
 
 def get_container(device_index: int) -> TreeManagerContainer:
-    container_dict = get_obj(local, "tree_manager_containers")
-    lock = get_obj(local, "tree_manager_locks")[device_index]
+    container_dict = get_obj(local, "npu_tree_manager_containers")
+    lock = get_obj(local, "npu_tree_manager_locks")[device_index]
 
     with lock:
         if device_index not in container_dict:

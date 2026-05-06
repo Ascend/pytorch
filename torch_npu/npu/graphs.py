@@ -731,6 +731,7 @@ class graph:
         if force_npugraph_gc:
             gc.collect()
         torch.npu.empty_cache()
+        torch_npu.npu.host_empty_cache()
 
         # Stackoverflow seems comfortable with this pattern
         self.stream_ctx.__enter__()
