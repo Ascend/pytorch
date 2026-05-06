@@ -369,21 +369,11 @@ build_image() {
 
     log_verbose "Dockerfile: $dockerfile"
 
-    # 构建参数
-    local build_args="
-        --build-arg CANN_TOOLKIT_URL=${CANN_TOOLKIT_URL}
-        --build-arg CANN_A3OPS_URL=${CANN_A3OPS_URL}
-        --build-arg CANN_NNAL_URL=${CANN_NNAL_URL}
-        --build-arg CANN_VERSION=${CANN_VERSION_FULL}
-    "
+    # 构建参数（单行格式，避免换行符问题）
+    local build_args="--build-arg CANN_TOOLKIT_URL=${CANN_TOOLKIT_URL} --build-arg CANN_A3OPS_URL=${CANN_A3OPS_URL} --build-arg CANN_NNAL_URL=${CANN_NNAL_URL} --build-arg CANN_VERSION=${CANN_VERSION_FULL}"
 
-    # 构建命令
-    local build_cmd="docker buildx build \
-        ${build_args} \
-        ${tag_args} \
-        --file ${dockerfile} \
-        --platform linux/arm64 \
-        ${dockerfile_dir}"
+    # 构建命令（单行格式）
+    local build_cmd="docker buildx build ${build_args} ${tag_args} --file ${dockerfile} --platform linux/arm64 ${dockerfile_dir}"
 
     if [[ "$PUSH_IMAGE" == "true" ]]; then
         build_cmd+=" --push"
