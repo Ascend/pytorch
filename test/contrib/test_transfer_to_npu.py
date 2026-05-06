@@ -399,6 +399,11 @@ class TestTransferToNpu(TestCase):
 
     def test_host_empty_cache_is_patched(self):
         self.assertEqual(torch._C._host_emptyCache, torch_npu._C._npu_hostEmptyCache)
+        
+    def test_update_cuda_default_generators(self):
+        torch.randn(1).npu()
+        self.assertEqual(torch.cuda.default_generators, torch_npu.npu.default_generators)
+        self.assertNotEqual(torch.cuda.default_generators, ())
 
 if __name__ == "__main__":
     run_tests()
