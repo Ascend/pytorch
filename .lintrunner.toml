@@ -2,6 +2,7 @@
 code = 'FLAKE8'
 include_patterns = ['**/*.py']
 exclude_patterns = [
+    'test_upstream/**',
     '.git/**',
     'build_test_custom_build/**',
     'build/**',
@@ -295,6 +296,7 @@ command = [
 code = 'TYPEIGNORE'
 include_patterns = ['**/*.py', '**/*.pyi']
 exclude_patterns = [
+    'test_upstream/**',
     'fb/**',
     '**/fb/**',
     'test/test_jit.py',
@@ -337,6 +339,7 @@ command = [
 code = 'NOQA'
 include_patterns = ['**/*.py', '**/*.pyi']
 exclude_patterns = [
+    'test_upstream/**',
     'caffe2/**',
     'fb/**',
     '**/fb/**'
@@ -383,6 +386,7 @@ command = [
 code = 'NEWLINE'
 include_patterns=['**']
 exclude_patterns=[
+    'test_upstream/**',
     '**/contrib/**',
     'third_party/**',
     '**/*.bat',
@@ -412,6 +416,7 @@ is_formatter = true
 code = 'SPACES'
 include_patterns = ['**']
 exclude_patterns = [
+    'test_upstream/**',
     '**/contrib/**',
     '**/*.diff',
     '**/*.patch',
@@ -440,6 +445,7 @@ command = [
 code = 'TABS'
 include_patterns = ['**']
 exclude_patterns = [
+    'test_upstream/**',
     '**/*.svg',
     '**/*Makefile',
     '**/contrib/**',
@@ -477,6 +483,7 @@ include_patterns = [
     '**/*.h',
 ]
 exclude_patterns = [
+    'test_upstream/**',
     'torch/headeronly/macros/Macros.h',
 ]
 command = [
@@ -500,6 +507,7 @@ include_patterns = [
     '**/*.h',
 ]
 exclude_patterns = [
+    'test_upstream/**',
     'torch/headeronly/macros/Macros.h',
 ]
 command = [
@@ -523,6 +531,7 @@ include_patterns = [
     '**/*.h',
 ]
 exclude_patterns = [
+    'test_upstream/**',
     # Vendored code (do not modify)
     'c10/util/flat_hash_map.h',
     'c10/util/order_preserving_flat_hash_map.h',
@@ -589,6 +598,7 @@ include_patterns = [
     '**/*.h',
 ]
 exclude_patterns = [
+    'test_upstream/**',
     'torch/csrc/utils/pybind.h',
     'torch/utils/benchmark/utils/valgrind_wrapper/compat_bindings.cpp',
     'caffe2/**/*',
@@ -654,6 +664,7 @@ include_patterns = [
     '**/*.h',
 ]
 exclude_patterns = [
+    'test_upstream/**',
     # The place for all orphan specializations
     'torch/csrc/utils/pybind.h',
     # These specializations are non-orphan
@@ -714,6 +725,7 @@ command = [
 code = 'EXEC'
 include_patterns = ['**']
 exclude_patterns = [
+    'test_upstream/**',
     'third_party/**',
     'torch/bin/**',
     '**/*.so',
@@ -820,6 +832,7 @@ include_patterns = [
 # These are not library code, but scripts in their own right, and so
 # therefore are permitted to use logging
 exclude_patterns = [
+    'test_upstream/**',
     'tools/**',
     'test/**',
     'benchmarks/**',
@@ -945,6 +958,7 @@ include_patterns = [
     'test/**/*_test.py',
 ]
 exclude_patterns = [
+    'test_upstream/**',
     'test/run_test.py',
     '**/fb/**',
 ]
@@ -961,6 +975,7 @@ include_patterns = [
     'test/**/test_*.py',
 ]
 exclude_patterns = [
+    'test_upstream/**',
     'test/run_test.py',
     '**/fb/**',
     'test/dynamo/cpython/3.13/**',
@@ -1145,6 +1160,7 @@ include_patterns = [
     '**',
 ]
 exclude_patterns = [
+    'test_upstream/**',
     # We don't care too much about files in this directory, don't enforce
     # spelling on them
     'caffe2/**',
@@ -1177,6 +1193,7 @@ command = [
     '@{{PATHSFILE}}'
 ]
 exclude_patterns = [
+    'test_upstream/**',
     'tools/gen_vulkan_spv.py',
     # We don't care too much about files in this directory, don't enforce
     # formatting on them
@@ -1478,6 +1495,7 @@ include_patterns = [
 code = 'COPYRIGHT'
 include_patterns = ['**']
 exclude_patterns = [
+    'test_upstream/**',
     '.lintrunner.toml',
     'fb/**',
     '**/fb/**',
@@ -1521,6 +1539,7 @@ is_formatter = true
 code = 'LINTRUNNER_VERSION'
 include_patterns = ['**']
 exclude_patterns = [
+    'test_upstream/**',
     'fb/**',
     '**/fb/**',
 ]
@@ -1538,6 +1557,7 @@ include_patterns = [
     'pyproject.toml',
 ]
 exclude_patterns = [
+    'test_upstream/**',
     'caffe2/**',
     'functorch/docs/**',
     'torch/_inductor/fx_passes/serialized_patterns/**',
@@ -1755,6 +1775,7 @@ include_patterns = [
     'test/**/test_*.py',
 ]
 exclude_patterns = [
+    'test_upstream/**',
     # CPython tests
     'test/dynamo/cpython/**',
 ]
