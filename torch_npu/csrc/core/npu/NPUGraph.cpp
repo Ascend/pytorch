@@ -1,4 +1,5 @@
 #include "torch_npu/csrc/core/npu/NPUGraph.h"
+#include "torch_npu/csrc/core/npu/NPUAllocatorConfig.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
@@ -14,6 +15,7 @@
 #include <vector>
 
 #include <ATen/Functions.h>
+#include <ATen/core/CachingHostAllocator.h>
 
 namespace c10_npu {
 
@@ -171,6 +173,17 @@ void NPUGraph::capture_begin(MempoolId_t pool, aclmdlRICaptureMode capture_mode,
         "export TASK_QUEUE_ENABLE=1/0.",
         PTA_ERROR(ErrCode::NOT_SUPPORT));
 
+    TORCH_CHECK(
+        !c10_npu::NPUCachingAllocator::CachingAllocatorConfig::pin_memory_expandable_segments(),
+        "ACLGraph capture is not supported when pin_memory_expandable_segments=True. "
+        "NPUExpandableHostAllocatorImpl overrides allocate/free/empty_cache/record_event "
+        "and does not integrate with the base CachingHostAllocator's private pool mechanism, "
+        "which would cause capture-time pinned blocks to be incorrectly recycled and lead to "
+        "data corruption on graph replay. "
+        "Please unset pin_memory_expandable_segments in PYTORCH_NPU_ALLOC_CONF to use ACLGraph "
+        "with pin_memory, or avoid pin_memory calls inside capture regions.",
+        PTA_ERROR(ErrCode::NOT_SUPPORT));
+
     TORCH_CHECK(!has_graph_exec_,
                 "This NPUGraph instance already owns a captured graph. "
                 "To capture a new graph, create a new instance.");
@@ -211,15 +224,27 @@ void NPUGraph::capture_begin(MempoolId_t pool, aclmdlRICaptureMode capture_mode,
         TORCH_INTERNAL_ASSERT(mempool_id_.first > 0);
     }
 
-    // Addendum: beginAllocateStreamToPool is now called before cudaStreamBeginCapture to prevent an
-    // autograd thread's free() call triggering an invalid cudaEventRecord in the caching allocator
-    // due to the capture status being updated _after_ a capture had already started.
-    c10_npu::NPUCachingAllocator::beginAllocateToPool(capture_dev_, mempool_id_, [this](aclrtStream stream) {
+    auto filter = [this](aclrtStream stream) -> bool {
         aclmdlRICaptureStatus status;
         aclmdlRI model_ri;
         NPU_CHECK_ERROR(c10_npu::acl::AclmdlRICaptureGetInfo(stream, &status, &model_ri));
-        return status == aclmdlRICaptureStatus::ACL_MODEL_RI_CAPTURE_STATUS_ACTIVE && model_ri == model_ri_;
-    });
+        return status == aclmdlRICaptureStatus::ACL_MODEL_RI_CAPTURE_STATUS_ACTIVE
+            && model_ri == model_ri_;
+    };
+
+    // Addendum: beginAllocateStreamToPool is now called before cudaStreamBeginCapture to prevent an
+    // autograd thread's free() call triggering an invalid cudaEventRecord in the caching allocator
+    // due to the capture status being updated _after_ a capture had already started.
+    c10_npu::NPUCachingAllocator::beginAllocateToPool(capture_dev_, mempool_id_, filter);
+
+    // Register host allocator to the same private pool for pin_memory support during capture.
+    // Use stream(false) to obtain the raw aclrtStream without flushing the PTA task queue,
+    // since AclmdlRICaptureGetInfo only queries stream state and does not require queue drain.
+    at::getHostAllocator(at::kPrivateUse1)->begin_allocate_to_pool(
+        mempool_id_,
+        [filter](c10::Stream stream) {
+            return filter(c10_npu::NPUStream(c10_npu::NPUStream::UNCHECKED, stream).stream(false));
+        });
 
     // At this point, any NCCL watchdogs should be aware that we are in capture mode
     // and therefore should not enqueue any additional work that could be event-queried.
@@ -252,6 +277,7 @@ void NPUGraph::capture_end()
     NPU_CHECK_ERROR(c10_npu::acl::AclmdlRICaptureEnd(capture_stream_, &model_ri));
 
     c10_npu::NPUCachingAllocator::endAllocateToPool(capture_dev_, mempool_id_);
+    at::getHostAllocator(at::kPrivateUse1)->end_allocate_to_pool(mempool_id_);
 
     TORCH_CHECK(model_ri == model_ri_, "Invalid end capture model id: ", model_ri);
 
@@ -340,6 +366,7 @@ void NPUGraph::reset()
     if (has_graph_exec_) {
         // notifyCaptureDestroy may throw. How should we handle this?
         c10_npu::NPUCachingAllocator::releasePool(capture_dev_, mempool_id_);
+        at::getHostAllocator(at::kPrivateUse1)->release_pool(mempool_id_);
         if (c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
             NPU_CHECK_WARN(c10_npu::acl::AclmdlRIDestroy(model_ri_));
         }

@@ -4,6 +4,7 @@
 
 #include <c10/core/DeviceGuard.h>
 #include <c10/util/llvmMathExtras.h>
+#include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include <c10/util/Logging.h>
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
@@ -181,6 +182,25 @@ public:
     bool pinned_use_background_threads() override
     {
         return c10_npu::NPUCachingAllocator::CachingAllocatorConfig::pinned_use_background_threads();
+    }
+
+    c10_npu::NPUStream get_current_stream() const override
+    {
+        if (c10_npu::GetLocalDevice() < 0) {
+            c10_npu::SetCurrentDevice();
+        }
+        return c10_npu::getCurrentNPUStream();
+    }
+
+    bool stream_is_capturing(c10_npu::NPUStream s) const override
+    {
+        aclmdlRICaptureStatus status = aclmdlRICaptureStatus::ACL_MODEL_RI_CAPTURE_STATUS_NONE;
+        aclmdlRI model_ri = nullptr;
+        auto ret = c10_npu::acl::AclmdlRICaptureGetInfo(s.stream(false), &status, &model_ri);
+        if (ret != ACL_ERROR_NONE) {
+            return false;
+        }
+        return status != aclmdlRICaptureStatus::ACL_MODEL_RI_CAPTURE_STATUS_NONE;
     }
 
     virtual void resetHostAccumulatedStats()
@@ -1238,6 +1258,26 @@ struct NPUCachingHostAllocator final
     void reset_peak_stats() override
     {
         impl_->resetHostPeakStats();
+    }
+
+    void begin_allocate_to_pool(
+        c10::MempoolId_t pool_id,
+        std::function<bool(c10::Stream)> filter) override
+    {
+        setAllocator();
+        impl_->begin_allocate_to_pool(pool_id, std::move(filter));
+    }
+
+    void end_allocate_to_pool(c10::MempoolId_t pool_id) override
+    {
+        setAllocator();
+        impl_->end_allocate_to_pool(pool_id);
+    }
+
+    void release_pool(c10::MempoolId_t pool_id) override
+    {
+        setAllocator();
+        impl_->release_pool(pool_id);
     }
 
     void setAllocator()
