@@ -2530,7 +2530,10 @@ class NPUIndexTritonKernel(TritonKernel):
                             continue
 
                         dims.append(str(sym))
-                        numels.append(int(size))
+                        if isinstance(size, (int, sympy.Integer)):
+                            numels.append(int(size))
+                        else:
+                            numels.append(size)
 
                     if len(dims) == len(sorted_strides):
                         result[prefix] = {'dims': dims, 'numels': numels}
