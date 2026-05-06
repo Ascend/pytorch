@@ -1,11 +1,6 @@
 name: Test Collect Stage
 
 on:
-  pull_request:
-    branches: [main, master]
-    paths:
-      - '.github/workflows/**'
-      - '.github/scripts/**'
   workflow_dispatch:
     inputs:
       run_id:
