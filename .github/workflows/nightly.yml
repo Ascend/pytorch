@@ -12,7 +12,6 @@ on:
       - '.github/workflows/_build.yml'
       - '.github/workflows/_test.yml'
       - '.github/workflows/nightly.yml'
-      - 'ci/build.sh'
   workflow_dispatch:
     inputs:
       pytorch_branch:
