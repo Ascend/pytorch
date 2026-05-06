@@ -9,6 +9,8 @@ bLoads
 bStore
 bStores
 BU
+CANN
+cann
 contiguities
 contiguity
 coo
