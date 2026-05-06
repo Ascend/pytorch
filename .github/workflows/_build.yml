@@ -11,10 +11,11 @@ on:
         required: true
         type: string
         default: '3.11'
-      docker_image_tag:
+      docker_image:
         required: true
         type: string
-        description: 'Docker image tag with timestamp'
+        description: 'Full Docker image URL (e.g., quay.io/kerer/pytorch:tag)'
+        default: 'quay.io/kerer/pytorch:manylinux-cann9.0.0-beta.2-20260428'
     outputs:
       docker-image:
         description: 'Full Docker image URL'
@@ -48,16 +49,15 @@ jobs:
       docker-image: ${{ steps.set_image.outputs.docker-image }}
 
     container:
-      image: quay.io/kerer/pytorch:${{ inputs.docker_image_tag }}
+      image: ${{ inputs.docker_image }}
       options: --user root
 
     steps:
       - name: Set Docker image URL
         id: set_image
         run: |
-          DOCKER_IMAGE="quay.io/kerer/pytorch:${{ inputs.docker_image_tag }}"
-          echo "docker-image=${DOCKER_IMAGE}" >> $GITHUB_OUTPUT
-          echo "Using Docker image: ${DOCKER_IMAGE}"
+          echo "docker-image=${{ inputs.docker_image }}" >> $GITHUB_OUTPUT
+          echo "Using Docker image: ${{ inputs.docker_image }}"
 
       - name: Setup CANN environment
         run: |

@@ -30,15 +30,16 @@ on:
           - '3.9'
           - '3.8'
         default: '3.11'
+      docker_image:
+        description: 'Docker image for build and test'
+        required: true
+        type: string
+        default: 'quay.io/kerer/pytorch:manylinux-cann9.0.0-beta.2-20260428'
       skip_build:
         description: 'Skip build (use cached artifacts)'
         required: false
         type: boolean
         default: false
-
-env:
-  # Docker 镜像仓库
-  DOCKER_REGISTRY: 'quay.io/kerer/pytorch'
 
 jobs:
   # ==================== 编译阶段 ====================
@@ -49,7 +50,7 @@ jobs:
     with:
       pytorch_branch: ${{ inputs.pytorch_branch || 'main' }}
       python_version: ${{ inputs.python_version || '3.11' }}
-      docker_image_tag: ${{ github.event_name == 'schedule' && 'nightly-latest' || format('nightly-{0}', github.run_number) }}
+      docker_image: ${{ inputs.docker_image || 'quay.io/kerer/pytorch:manylinux-cann9.0.0-beta.2-20260428' }}
 
   # ==================== 测试阶段 ====================
   test:
@@ -59,7 +60,7 @@ jobs:
     uses: ./.github/workflows/_test.yml
     with:
       python_version: ${{ inputs.python_version || '3.11' }}
-      docker_image_tag: ${{ github.event_name == 'schedule' && 'nightly-latest' || format('nightly-{0}', github.run_number) }}
+      docker_image: ${{ inputs.docker_image || 'quay.io/kerer/pytorch:manylinux-cann9.0.0-beta.2-20260428' }}
 
   # ==================== 报告阶段 ====================
   report:
@@ -81,7 +82,7 @@ jobs:
           echo "**Configuration:**" >> $GITHUB_STEP_SUMMARY
           echo "- PyTorch branch: ${PYTORCH_BRANCH}" >> $GITHUB_STEP_SUMMARY
           echo "- Python version: ${PYTHON_VERSION}" >> $GITHUB_STEP_SUMMARY
-          echo "- Docker image tag: ${DOCKER_TAG}" >> $GITHUB_STEP_SUMMARY
+          echo "- Docker image: ${DOCKER_IMAGE}" >> $GITHUB_STEP_SUMMARY
           echo "- Trigger: ${TRIGGER_TYPE}" >> $GITHUB_STEP_SUMMARY
           echo "- Run number: ${RUN_NUMBER}" >> $GITHUB_STEP_SUMMARY
         env:
@@ -89,7 +90,7 @@ jobs:
           TEST_STATUS: ${{ needs.test.result == 'success' && '✅ Success' || needs.test.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }}
           PYTORCH_BRANCH: ${{ inputs.pytorch_branch || 'main' }}
           PYTHON_VERSION: ${{ inputs.python_version || '3.11' }}
-          DOCKER_TAG: ${{ github.event_name == 'schedule' && 'nightly-latest' || format('nightly-{0}', github.run_number) }}
+          DOCKER_IMAGE: ${{ inputs.docker_image || 'quay.io/kerer/pytorch:manylinux-cann9.0.0-beta.2-20260428' }}
           TRIGGER_TYPE: ${{ github.event_name }}
           RUN_NUMBER: ${{ github.run_number }}
 

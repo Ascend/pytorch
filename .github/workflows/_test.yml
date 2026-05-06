@@ -7,10 +7,11 @@ on:
         required: true
         type: string
         default: '3.11'
-      docker_image_tag:
+      docker_image:
         required: true
         type: string
-        description: 'Docker image tag (same as build)'
+        description: 'Full Docker image URL (same as build)'
+        default: 'quay.io/kerer/pytorch:manylinux-cann9.0.0-beta.2-20260428'
     outputs:
       test-result:
         description: 'Test result (success/failure)'
@@ -27,7 +28,7 @@ jobs:
       result: ${{ steps.final_status.outputs.result }}
 
     container:
-      image: quay.io/kerer/pytorch:${{ inputs.docker_image_tag }}
+      image: ${{ inputs.docker_image }}
       options: --user root
 
     steps:
@@ -116,8 +117,12 @@ jobs:
         run: |
           cd /tmp
 
-          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
-          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+          if ! source /usr/local/Ascend/cann/set_env.sh 2>/dev/null; then
+            echo "::warning::Failed to source CANN environment script"
+          fi
+          if ! source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null; then
+            echo "::warning::Failed to source ATB environment script"
+          fi
 
           PYTHON=python${{ env.PYTHON_VERSION }}
 
