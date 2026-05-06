@@ -1,8 +1,11 @@
 import itertools
+
 import torch
-from torch._inductor.virtualized import ops, OpsValue, V
-from torch._inductor.ir import log, Layout
 from torch._inductor import config
+from torch._inductor.ir import ExternKernel, Layout, log
+from torch._inductor.virtualized import V
+
+from . import config as npu_config
 
 
 def patch_fallback_kernel_codegen():
@@ -10,10 +13,13 @@ def patch_fallback_kernel_codegen():
         kernel = self.op_overload
         if kernel.namespace == "aten":  # type: ignore[union-attr]
             if not isinstance(kernel, torch._ops.OpOverload):
-                raise AssertionError(f"kernel should be OpOverload, but got {type(kernel)}")
+                raise AssertionError(
+                    f"kernel should be OpOverload, but got {type(kernel)}"
+                )
             if V.graph.cpp_wrapper:
                 # Fallback all npu op to proxy executor and warn when gpu do not.
                 from torchgen.aoti.fallback_ops import inductor_fallback_ops
+
                 self.use_runtime_dispatch = True
                 if str(kernel) in inductor_fallback_ops:
                     log.warning(
@@ -85,4 +91,34 @@ def patch_fallback_kernel_codegen():
         self.codegen_unbacked_symbol_defs(wrapper)
 
     from torch._inductor.ir import FallbackKernel
+
     FallbackKernel.codegen = codegen_npu
+
+
+def patch_extern_kernel_codegen_size_asserts():
+    original_codegen_size_asserts = ExternKernel.codegen_size_asserts
+
+    def npu_codegen_size_asserts(self, wrapper):
+        fx_node = getattr(self, "fx_node", None)
+
+        should_skip = False
+        if fx_node and fx_node.target:
+            skip_config = npu_config.skip_specific_stride_asserts
+
+            # Only skip ops that are in the configured list
+            if isinstance(skip_config, (list, tuple)):
+                should_skip = fx_node.target in skip_config
+
+        if should_skip:
+            if config.size_asserts and not V.graph.cpp_wrapper:
+                from torch._inductor.utils import sympy_product
+
+                if sympy_product(self.get_size()) == 0:
+                    return
+                wrapper.writeline(
+                    f"# NPU: Skipping stride assertion for {fx_node.target} (stride may change at runtime)"
+                )
+        else:
+            original_codegen_size_asserts(self, wrapper)
+
+    ExternKernel.codegen_size_asserts = npu_codegen_size_asserts
