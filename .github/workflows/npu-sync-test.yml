@@ -10,8 +10,8 @@ on:
   workflow_dispatch:
     inputs:
       docker_image_tag:
-        description: 'Docker image tag (e.g., manylinux-cann9.0-20260428)'
-        default: 'latest'
+        description: 'Docker image tag (e.g., manylinux-cann9.0.0-beta.2-20260428)'
+        default: 'manylinux-cann9.0.0-beta.2-20260428'
       pytorch_branch:
         description: 'PyTorch branch to build'
         default: 'main'
