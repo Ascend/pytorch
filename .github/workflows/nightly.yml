@@ -1,0 +1,125 @@
+name: Nightly Build Integration
+
+on:
+  schedule:
+    # 每天凌晨 2:00 UTC+8 运行 (UTC 18:00)
+    - cron: '0 18 * * *'
+  pull_request:
+    branches:
+      - master
+      - master_nightly_build
+    paths:
+      - '.github/workflows/_build.yml'
+      - '.github/workflows/_test.yml'
+      - '.github/workflows/nightly.yml'
+      - 'ci/build.sh'
+  workflow_dispatch:
+    inputs:
+      pytorch_branch:
+        description: 'PyTorch branch to build'
+        required: true
+        type: string
+        default: 'main'
+      python_version:
+        description: 'Python version'
+        required: true
+        type: choice
+        options:
+          - '3.11'
+          - '3.10'
+          - '3.9'
+          - '3.8'
+        default: '3.11'
+      skip_build:
+        description: 'Skip build (use cached artifacts)'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  # Docker 镜像仓库
+  DOCKER_REGISTRY: 'quay.io/kerer/pytorch'
+
+jobs:
+  # ==================== 编译阶段 ====================
+  build:
+    name: Build PyTorch and torch_npu
+    if: ${{ inputs.skip_build != true }}
+    uses: ./.github/workflows/_build.yml
+    with:
+      pytorch_branch: ${{ inputs.pytorch_branch || 'main' }}
+      python_version: ${{ inputs.python_version || '3.11' }}
+      docker_image_tag: ${{ github.event_name == 'schedule' && 'nightly-latest' || format('nightly-{0}', github.run_number) }}
+
+  # ==================== 测试阶段 ====================
+  test:
+    name: Test torch_npu wheels
+    needs: build
+    if: always() && needs.build.result == 'success'
+    uses: ./.github/workflows/_test.yml
+    with:
+      python_version: ${{ inputs.python_version || '3.11' }}
+      docker_image_tag: ${{ github.event_name == 'schedule' && 'nightly-latest' || format('nightly-{0}', github.run_number) }}
+
+  # ==================== 报告阶段 ====================
+  report:
+    name: Build Report
+    needs: [build, test]
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Generate build report
+        run: |
+          echo "## Nightly Build Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Item | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Build | ${BUILD_STATUS} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Test | ${TEST_STATUS} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Configuration:**" >> $GITHUB_STEP_SUMMARY
+          echo "- PyTorch branch: ${PYTORCH_BRANCH}" >> $GITHUB_STEP_SUMMARY
+          echo "- Python version: ${PYTHON_VERSION}" >> $GITHUB_STEP_SUMMARY
+          echo "- Docker image tag: ${DOCKER_TAG}" >> $GITHUB_STEP_SUMMARY
+          echo "- Trigger: ${TRIGGER_TYPE}" >> $GITHUB_STEP_SUMMARY
+          echo "- Run number: ${RUN_NUMBER}" >> $GITHUB_STEP_SUMMARY
+        env:
+          BUILD_STATUS: ${{ needs.build.result == 'success' && '✅ Success' || needs.build.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }}
+          TEST_STATUS: ${{ needs.test.result == 'success' && '✅ Success' || needs.test.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }}
+          PYTORCH_BRANCH: ${{ inputs.pytorch_branch || 'main' }}
+          PYTHON_VERSION: ${{ inputs.python_version || '3.11' }}
+          DOCKER_TAG: ${{ github.event_name == 'schedule' && 'nightly-latest' || format('nightly-{0}', github.run_number) }}
+          TRIGGER_TYPE: ${{ github.event_name }}
+          RUN_NUMBER: ${{ github.run_number }}
+
+      - name: Check overall status
+        run: |
+          BUILD_RESULT="${{ needs.build.result }}"
+          TEST_RESULT="${{ needs.test.result }}"
+
+          # Build skipped is OK when skip_build is true
+          BUILD_OK=false
+          if [[ "$BUILD_RESULT" == "skipped" && "${{ inputs.skip_build }}" == "true" ]]; then
+            BUILD_OK=true
+          elif [[ "$BUILD_RESULT" == "success" ]]; then
+            BUILD_OK=true
+          fi
+
+          # Test must succeed (or be skipped when build was skipped)
+          TEST_OK=false
+          if [[ "$TEST_RESULT" == "success" ]]; then
+            TEST_OK=true
+          elif [[ "$BUILD_RESULT" == "skipped" && "$TEST_RESULT" == "skipped" ]]; then
+            TEST_OK=true
+          fi
+
+          if [[ "$BUILD_OK" == true && "$TEST_OK" == true ]]; then
+            echo "Overall status: PASSED ✅"
+            exit 0
+          else
+            echo "Overall status: FAILED ❌"
+            echo "Build result: $BUILD_RESULT"
+            echo "Test result: $TEST_RESULT"
+            exit 1
+          fi

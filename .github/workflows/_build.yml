@@ -1,106 +1,358 @@
-name: Build PyTorch and torch_npu
+name: Build PyTorch and torch_npu (with cache)
 
 on:
   workflow_call:
     inputs:
-      upstream_repo:
+      pytorch_branch:
         required: true
         type: string
-        description: The upstream repository full name (owner/repo)
-      upstream_sha:
+        default: 'main'
+      python_version:
         required: true
         type: string
-        description: The upstream commit SHA to build
-      upstream_fork_repo:
-        required: false
-        type: string
-        default: ''
-        description: The fork repository full name for PR from fork (owner/repo)
-      downstream_repo:
+        default: '3.11'
+      docker_image_tag:
         required: true
         type: string
-        description: The downstream repository full name (owner/repo)
+        description: 'Docker image tag with timestamp'
+    outputs:
+      docker-image:
+        description: 'Full Docker image URL'
+        value: ${{ jobs.build.outputs.docker-image }}
+      torch-wheel:
+        description: 'PyTorch wheel artifact name'
+        value: 'torch-wheel-main'
+      torch-npu-wheel:
+        description: 'torch_npu wheel artifact name'
+        value: 'torch-npu-wheel-main'
+      test-src:
+        description: 'Test source artifact name'
+        value: 'test-src-main'
+
+env:
+  # 缓存版本号，当需要强制刷新缓存时修改此值
+  CACHE_VERSION: 'v2'
+  # GitHub 代理 URL（用于加速 git clone，留空则不使用代理）
+  GH_PROXY_URL: 'https://gh-proxy.test.osinfra.cn'
+  # PyPI 缓存 URL（用于加速 pip 下载）
+  PYPI_CACHE_URL: 'http://cache-service.nginx-pypi-cache.svc.cluster.local/pypi/simple'
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: linux-aarch64-a3-16
+    timeout-minutes: 240
+    outputs:
+      docker-image: ${{ steps.set_image.outputs.docker-image }}
+
+    container:
+      image: quay.io/kerer/pytorch:${{ inputs.docker_image_tag }}
+      options: --user root
+
     steps:
-      # Step 1: Checkout upstream PyTorch PR code
-      # Use fork repo if available (PR from fork), otherwise use upstream repo (push or PR from same repo)
-      - name: Checkout upstream PyTorch PR
-        uses: actions/checkout@v6
-        with:
-          repository: ${{ inputs.upstream_fork_repo != '' && inputs.upstream_fork_repo || inputs.upstream_repo }}
-          ref: ${{ inputs.upstream_sha }}
-          submodules: recursive
-          path: pytorch
-
-      # Step 2: Build PyTorch
-      - name: Build PyTorch
+      - name: Set Docker image URL
+        id: set_image
         run: |
-          echo "============================================"
-          echo "Building PyTorch from upstream PR..."
-          if [ -n "${{ inputs.upstream_fork_repo }}" ]; then
-            echo "Fork Repository: ${{ inputs.upstream_fork_repo }}"
-          else
-            echo "Repository: ${{ inputs.upstream_repo }}"
+          DOCKER_IMAGE="quay.io/kerer/pytorch:${{ inputs.docker_image_tag }}"
+          echo "docker-image=${DOCKER_IMAGE}" >> $GITHUB_OUTPUT
+          echo "Using Docker image: ${DOCKER_IMAGE}"
+
+      - name: Setup CANN environment
+        run: |
+          if ! source /usr/local/Ascend/cann/set_env.sh 2>/dev/null; then
+            echo "::warning::Failed to source CANN environment script"
           fi
-          echo "Commit SHA: ${{ inputs.upstream_sha }}"
-          echo "============================================"
-          # TODO: Add actual PyTorch build commands
-          # Example:
-          # cd pytorch
-          # pip install -r requirements.txt
-          # python setup.py develop
-          echo "[SIMULATED] PyTorch build completed successfully!"
-
-      # Step 3: Install PyTorch wheel
-      - name: Install PyTorch wheel
-        run: |
-          echo "============================================"
-          echo "Installing PyTorch wheel..."
-          echo "============================================"
-          # TODO: Add actual install commands
-          # Example:
-          # pip install pytorch/dist/torch*.whl
-          echo "[SIMULATED] PyTorch wheel installed successfully!"
-
-      # Step 4: Checkout downstream repo (torch_npu) master
-      - name: Checkout downstream repo (torch_npu)
-        uses: actions/checkout@v6
-        with:
-          repository: ${{ inputs.downstream_repo }}
-          ref: master
-          submodules: recursive
-          path: torch_npu
-
-      # Step 5: Build torch_npu
-      - name: Build torch_npu
-        run: |
-          echo "============================================"
-          echo "Building torch_npu from downstream master..."
-          echo "Repository: ${{ inputs.downstream_repo }}"
-          echo "Branch: master"
-          echo "============================================"
-          # TODO: Add actual torch_npu build commands
-          # Example:
-          # cd torch_npu
-          # pip install -r requirements.txt
-          # bash ci/build.sh
-          echo "[SIMULATED] torch_npu build completed successfully!"
-
-      - name: Summary
-        run: |
-          echo "============================================"
-          echo "Build Summary"
-          echo "============================================"
-          if [ -n "${{ inputs.upstream_fork_repo }}" ]; then
-            echo "1. PyTorch fork PR: ${{ inputs.upstream_fork_repo }}@${{ inputs.upstream_sha }}"
-          else
-            echo "1. PyTorch upstream: ${{ inputs.upstream_repo }}@${{ inputs.upstream_sha }}"
+          if ! source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null; then
+            echo "::warning::Failed to source ATB environment script"
           fi
-          echo "2. PyTorch build: SUCCESS (simulated)"
-          echo "3. PyTorch install: SUCCESS (simulated)"
-          echo "4. torch_npu master: ${{ inputs.downstream_repo }}"
-          echo "5. torch_npu build: SUCCESS (simulated)"
-          echo "============================================"
+
+      - name: Configure git proxy for faster clone
+        run: |
+          # 配置 git URL rewrite 来使用代理（加速 clone 和 submodules）
+          if [ -n "${{ env.GH_PROXY_URL }}" ]; then
+            git config --global url."${{ env.GH_PROXY_URL }}/https://github.com/".insteadOf "https://github.com/"
+            git config --global url."${{ env.GH_PROXY_URL }}/https://gitlab.com/".insteadOf "https://gitlab.com/"
+            echo "Git proxy configured:"
+            git config --global --list | grep url
+          else
+            echo "No proxy configured, using direct connection"
+          fi
+
+      - name: Clone upstream PyTorch with submodules
+        id: clone_pytorch
+        run: |
+          # --recurse-submodules 同时下载所有 submodules（使用已配置的 git proxy）
+          git clone --depth=1 --recurse-submodules --branch ${{ inputs.pytorch_branch }} \
+            "https://github.com/pytorch/pytorch.git" pytorch-src
+          PYTORCH_SHA=$(cd pytorch-src && git rev-parse HEAD)
+          echo "pytorch_sha=${PYTORCH_SHA}" >> $GITHUB_OUTPUT
+          echo "Cloned PyTorch commit: ${PYTORCH_SHA}"
+          echo "Submodules downloaded:"
+          ls -la pytorch-src/third_party/ | head -20
+
+      - name: Checkout torch_npu
+        uses: actions/checkout@v4
+        with:
+          path: torch_npu-src
+          submodules: recursive
+
+      # ==================== pip 缓存配置 ====================
+      # pip 缓存加速依赖下载，不影响构建结果
+      # 缓存键基于 requirements-build.txt hash（依赖变化频率低）
+      - name: Get pip cache key
+        id: pip_key
+        run: |
+          REQUIREMENTS_HASH=$(cd pytorch-src && sha256sum requirements-build.txt | cut -d' ' -f1)
+          echo "cache_key=${{ env.CACHE_VERSION }}-pip-${{ inputs.python_version }}-${REQUIREMENTS_HASH}" >> $GITHUB_OUTPUT
+
+      - name: Restore pip cache
+        uses: actions/cache/restore@v4
+        with:
+          path: $HOME/.cache/pip
+          key: ${{ steps.pip_key.outputs.cache_key }}
+          restore-keys: |
+            ${{ env.CACHE_VERSION }}-pip-${{ inputs.python_version }}-
+            ${{ env.CACHE_VERSION }}-pip-
+
+      - name: Setup pip cache directory and upgrade pip
+        run: |
+          mkdir -p "$HOME/.cache/pip"
+          # 升级 pip 和 setuptools，避免旧版包兼容性问题
+          pip${{ inputs.python_version }} install --upgrade pip setuptools wheel
+
+      - name: Configure pip index URL
+        run: |
+          # 配置 pip 使用 PyPI 缓存加速下载
+          if [ -n "${{ env.PYPI_CACHE_URL }}" ]; then
+            pip${{ inputs.python_version }} config set global.index-url ${{ env.PYPI_CACHE_URL }}
+            pip${{ inputs.python_version }} config set global.trusted-host "cache-service.nginx-pypi-cache.svc.cluster.local"
+            echo "pip index-url configured: ${{ env.PYPI_CACHE_URL }}"
+          else
+            echo "No PyPI cache URL configured, using default"
+          fi
+
+      # ==================== ccache 缓存配置 ====================
+      # ccache 是真正加速编译的关键（可节省 30-60 分钟）
+      # 我们依赖 torch_npu SHA 和 requirements-build.txt hash 作为缓存键
+      - name: Get ccache key
+        id: ccache_key
+        run: |
+          # ccache 缓存键：torch_npu SHA + requirements hash
+          # PyTorch SHA 每次都变化（--depth=1 clone 最新），所以不包含在缓存键中
+          TORCH_NPU_SHA=$(cd torch_npu-src && git rev-parse HEAD)
+          REQUIREMENTS_HASH=$(cd pytorch-src && sha256sum requirements-build.txt | cut -d' ' -f1)
+          echo "cache_key=${{ env.CACHE_VERSION }}-ccache-${REQUIREMENTS_HASH}-${TORCH_NPU_SHA}" >> $GITHUB_OUTPUT
+          # partial_key 用于恢复同版本 requirements 的缓存（不同 torch_npu 版本）
+          echo "partial_key=${{ env.CACHE_VERSION }}-ccache-${REQUIREMENTS_HASH}-" >> $GITHUB_OUTPUT
+          # base_key 用于恢复同 CACHE_VERSION 的所有缓存
+          echo "base_key=${{ env.CACHE_VERSION }}-ccache-" >> $GITHUB_OUTPUT
+
+      - name: Restore ccache
+        uses: actions/cache/restore@v4
+        with:
+          path: $HOME/.cache/ccache
+          key: ${{ steps.ccache_key.outputs.cache_key }}
+          restore-keys: |
+            ${{ steps.ccache_key.outputs.partial_key }}
+            ${{ steps.ccache_key.outputs.base_key }}
+
+      - name: Setup ccache
+        run: |
+          # 安装 ccache（manylinux 镜像没有预装）
+          yum install -y ccache
+
+          # 创建 ccache 配置目录（使用 $HOME 变量）
+          CCACHE_DIR_PATH="$HOME/.cache/ccache"
+          mkdir -p "$CCACHE_DIR_PATH"
+
+          # 直接写入配置文件（使用 $HOME 变量）
+          cat > "$CCACHE_DIR_PATH/ccache.conf" << EOF
+          max_size = 20G
+          cache_dir = $HOME/.cache/ccache
+          compression = true
+          compression_level = 6
+          EOF
+
+          # 使用符号链接方式让 ccache 模拟 gcc/g++
+          mkdir -p /usr/local/bin
+          ln -sf /usr/bin/ccache /usr/local/bin/gcc
+          ln -sf /usr/bin/ccache /usr/local/bin/g++
+          ln -sf /usr/bin/ccache /usr/local/bin/cc
+          ln -sf /usr/bin/ccache /usr/local/bin/c++
+
+          # 设置 PATH 优先使用符号链接
+          echo "PATH=/usr/local/bin:$PATH" >> $GITHUB_ENV
+
+          # 设置 CCACHE_DIR（使用 $HOME 变量）
+          echo "CCACHE_DIR=$CCACHE_DIR_PATH" >> $GITHUB_ENV
+
+          # 设置编译器环境变量，确保 CMake/Ninja 使用 ccache
+          echo "CC=/usr/local/bin/gcc" >> $GITHUB_ENV
+          echo "CXX=/usr/local/bin/g++" >> $GITHUB_ENV
+
+          echo "=== ccache Configuration ==="
+          CCACHE_DIR="$CCACHE_DIR_PATH" ccache --show-config
+
+          echo ""
+          echo "=== Config File Contents ==="
+          cat "$CCACHE_DIR_PATH/ccache.conf"
+
+          echo ""
+          echo "=== Cache Directory ==="
+          ls -la "$CCACHE_DIR_PATH/"
+
+          echo ""
+          echo "=== Symbolic Links ==="
+          ls -la /usr/local/bin/gcc /usr/local/bin/g++
+
+          echo ""
+          echo "=== ccache Statistics (before build) ==="
+          CCACHE_DIR="$CCACHE_DIR_PATH" ccache --show-stats
+
+      # ==================== 构建 PyTorch ====================
+      - name: Build PyTorch wheel
+        run: |
+          if ! source /usr/local/Ascend/cann/set_env.sh 2>/dev/null; then
+            echo "::warning::Failed to source CANN environment script"
+          fi
+
+          cd pytorch-src
+
+          # 安装构建依赖（pip 缓存已恢复，加速下载）
+          pip${{ inputs.python_version }} install -r requirements-build.txt
+
+          # 设置构建环境变量
+          export MAX_JOBS=128
+          export USE_CUDA=0
+          export USE_CUDNN=0
+          export USE_DISTRIBUTED=1
+          export CMAKE_BUILD_TYPE=Release
+          export USE_OPENMP=1
+          export USE_MKLDNN=0
+
+          # 确保使用 ccache（CMake 会检测 CC/CXX 环境变量）
+          export CC=/usr/local/bin/gcc
+          export CXX=/usr/local/bin/g++
+          export CCACHE_DIR="$HOME/.cache/ccache"
+
+          # 清除 ccache 统计（开始新的构建）
+          ccache --zero-stats
+
+          python${{ inputs.python_version }} setup.py build bdist_wheel
+
+          echo "PyTorch wheel built:"
+          ls -la dist/
+
+          echo ""
+          echo "=== ccache Statistics (after PyTorch build) ==="
+          ccache --show-stats
+
+      # ==================== 构建 torch_npu ====================
+      - name: Install PyTorch wheel and build dependencies
+        run: |
+          if ! source /usr/local/Ascend/cann/set_env.sh 2>/dev/null; then
+            echo "::warning::Failed to source CANN environment script"
+          fi
+          if ! source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null; then
+            echo "::warning::Failed to source ATB environment script"
+          fi
+
+          echo "=== Installing built PyTorch wheel ==="
+          pip${{ inputs.python_version }} install pytorch-src/dist/*.whl
+
+          echo ""
+          echo "=== Verifying PyTorch installation ==="
+          python${{ inputs.python_version }} -c "import torch; print(f'torch version: {torch.__version__}')"
+
+          echo ""
+          echo "=== Installing torch_npu build dependencies ==="
+          pip${{ inputs.python_version }} install cmake ninja numpy packaging pyyaml requests six typing-extensions
+
+          cd torch_npu-src
+
+          # 显示 ccache 统计（依赖安装阶段）
+          echo ""
+          echo "=== ccache Statistics (before torch_npu build) ==="
+          CCACHE_DIR="$HOME/.cache/ccache" ccache --show-stats
+
+      - name: Build torch_npu wheel
+        run: |
+          if ! source /usr/local/Ascend/cann/set_env.sh 2>/dev/null; then
+            echo "::warning::Failed to source CANN environment script"
+          fi
+          if ! source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null; then
+            echo "::warning::Failed to source ATB environment script"
+          fi
+
+          cd torch_npu-src
+
+          export MAX_JOBS=128
+
+          # 确保使用 ccache
+          export CC=/usr/local/bin/gcc
+          export CXX=/usr/local/bin/g++
+          export CCACHE_DIR="$HOME/.cache/ccache"
+
+          # 禁用 torchair 构建（上游 PyTorch main API 变化导致兼容性问题）
+          bash ci/build.sh --python=${{ inputs.python_version }} --disable_torchair
+
+          echo "torch_npu wheel built:"
+          ls -la dist/
+
+          echo ""
+          echo "=== ccache Statistics (after torch_npu build) ==="
+          ccache --show-stats
+
+      # ==================== 保存缓存 ====================
+      - name: Save pip cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: $HOME/.cache/pip
+          key: ${{ steps.pip_key.outputs.cache_key }}
+
+      - name: Save ccache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: $HOME/.cache/ccache
+          key: ${{ steps.ccache_key.outputs.cache_key }}
+
+      - name: Display cache save status
+        if: always()
+        run: |
+          echo "=== Cache Saved ==="
+          echo "pip cache key: ${{ steps.pip_key.outputs.cache_key }}"
+          PIP_CACHE_SIZE=$(du -sh "$HOME/.cache/pip" 2>/dev/null | cut -f1)
+          echo "pip cache size: ${PIP_CACHE_SIZE}"
+          echo ""
+          echo "ccache key: ${{ steps.ccache_key.outputs.cache_key }}"
+          CCACHE_SIZE=$(du -sh "$HOME/.cache/ccache" 2>/dev/null | cut -f1)
+          echo "ccache size: ${CCACHE_SIZE}"
+
+      # ==================== 打包和上传 ====================
+      - name: Package test source
+        run: |
+          # 只打包测试目录，不需要整个 PyTorch 源码
+          tar -czf test-src.tar.gz pytorch-src/test
+          ls -la test-src.tar.gz
+
+      - name: Upload PyTorch wheel
+        uses: actions/upload-artifact@v4
+        with:
+          name: torch-wheel-main
+          path: pytorch-src/dist/*.whl
+          retention-days: 7
+
+      - name: Upload torch_npu wheel
+        uses: actions/upload-artifact@v4
+        with:
+          name: torch-npu-wheel-main
+          path: torch_npu-src/dist/*.whl
+          retention-days: 7
+
+      - name: Upload test source
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-src-main
+          path: test-src.tar.gz
+          retention-days: 7
