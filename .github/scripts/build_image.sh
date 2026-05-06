@@ -343,8 +343,24 @@ build_image() {
     fi
 
     # Dockerfile 路径
-    local dockerfile_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/.github/docker"
+    # 使用 git 获取项目根目录（更可靠）
+    local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    local project_root
+
+    # 尝试使用 git 获取项目根目录
+    if git rev-parse --show-toplevel &>/dev/null; then
+        project_root="$(git rev-parse --show-toplevel)"
+    else
+        # 如果不在 git 仓库中，从脚本目录向上推导
+        project_root="$(cd "${script_dir}/.." && pwd)"
+    fi
+
+    local dockerfile_dir="${project_root}/.github/docker"
     local dockerfile="${dockerfile_dir}/pytorch-npu-builder.Dockerfile"
+
+    log_verbose "Script dir: ${script_dir}"
+    log_verbose "Project root: ${project_root}"
+    log_verbose "Dockerfile dir: ${dockerfile_dir}"
 
     if [[ ! -f "$dockerfile" ]]; then
         log_error "Dockerfile 不存在: $dockerfile"
