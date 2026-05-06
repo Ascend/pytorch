@@ -89,6 +89,12 @@ In some special scenarios, users may need to compile **torch-npu** by themselves
    bash ci/build.sh --python=3.8
    ```
 
+   Use `--torch=<version>` to build against a specific PyTorch version (supported: 2.10.0, 2.11.0, 2.12.0). The installed PyTorch must match the specified version.
+
+   ```
+   bash ci/build.sh --python=3.8 --torch=2.10.0
+   ```
+
 **Tips**
 
    If you would like to compile with new C++ ABI, then first run this command, at this point, the recommended compilation environment is same to community torch package: glibc 2.28, gcc 11.2.1

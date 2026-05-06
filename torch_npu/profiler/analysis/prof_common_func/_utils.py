@@ -1,7 +1,7 @@
 import os
 import functools
-from ._constant import print_error_msg
-
+from ._constant import print_error_msg, print_warn_msg
+from ._constant import Constant
 
 def collect_env_vars():
     collected_env_vars = {
@@ -18,6 +18,29 @@ def collect_env_vars():
 
     return {"ENV_VARIABLES": collected_env_vars}
 
+
+def check_msprof_env() -> bool:
+    """Check if msprof environment variables are set."""
+    if hasattr(check_msprof_env, '_called'):
+        return check_msprof_env._cached_result
+
+    check_msprof_env._called = True
+
+    static_env = os.getenv(Constant.MSPROF_STATIC_ENV)
+    dynamic_env = os.getenv(Constant.MSPROF_DYNAMIC_ENV)
+
+    if static_env:
+        print_warn_msg("If performance data is collected using the 'msprof' tool. "
+                       "torch_npu profiler api is not effective.")
+
+    if dynamic_env:
+        print_warn_msg(
+            f"Environment variable '{Constant.MSPROF_DYNAMIC_ENV}' is set. "
+            f"torch_npu profiler api is not effective. "
+            f"Please execute 'unset {Constant.MSPROF_DYNAMIC_ENV}'.")
+
+    check_msprof_env._cached_result = not (static_env or dynamic_env)
+    return check_msprof_env._cached_result
 
 def no_exception_func(default_ret=None):
     def decorator(func):

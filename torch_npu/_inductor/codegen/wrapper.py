@@ -1,25 +1,25 @@
-import os
 import copy
-from typing import Any, Callable, Optional, TYPE_CHECKING, Union
 import hashlib
+import os
+
 import sympy
 
 import torch
-from torch._inductor import config
-from torch._inductor.codegen.wrapper import PythonWrapperCodegen, SymbolicCallArg, SubgraphPythonWrapperCodegen
-from torch._inductor.runtime import triton_heuristics
-from torch._inductor.utils import (
-    cache_on_self,
-)
-from torch._inductor.virtualized import V
-from torch._subclasses.fake_tensor import FakeTensor, FakeTensorMode
-from torch.utils._sympy.singleton_int import SingletonInt
-from torch._inductor.ir import GraphPartitionSignature
-
-from torch_npu._inductor import config as npu_config
 import torch_npu.npu.aclnn
+from torch._inductor import config
+from torch._inductor.codegen.wrapper import (
+    PythonWrapperCodegen,
+    SubgraphPythonWrapperCodegen,
+    SymbolicCallArg,
+)
+from torch._inductor.ir import GraphPartitionSignature
+from torch._inductor.runtime import triton_heuristics
+from torch._inductor.utils import cache_on_self
+from torch._inductor.virtualized import V
+from torch._subclasses.fake_tensor import FakeTensor
+from torch.utils._sympy.singleton_int import SingletonInt
+from torch_npu._inductor import config as npu_config
 from torch_npu._inductor.codegen.triton import NPUIndexTritonKernel
-from torch_npu._inductor.npu_triton_heuristics import PrecomputedGridNpu, user_autotune_npu
 
 
 class NPUWrapperCodeGen(PythonWrapperCodegen):
@@ -31,16 +31,18 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
         is_subgraph: bool,
         subgraph_name: str,
         parent_wrapper: PythonWrapperCodegen,
-        partition_signatures: Optional[GraphPartitionSignature] = None,
+        partition_signatures: GraphPartitionSignature | None = None,
     ):
         if is_subgraph:
-            return SubgraphPythonWrapperCodegen(subgraph_name, parent_wrapper, partition_signatures)
+            return SubgraphPythonWrapperCodegen(
+                subgraph_name, parent_wrapper, partition_signatures
+            )
         return NPUWrapperCodeGen()
 
     def write_header(self) -> None:
         super().write_header()
         self.imports.splice(
-            f"""
+            """
                 import torch_npu
             """,
             strip=True,
@@ -86,10 +88,6 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
         # it suffices as a type hint for the purposes of producing the correct code for this type.
         return SymbolicCallArg(expr, numel_expr)
 
-    # don't free anything
-    def make_buffer_free(self, buffer):
-        return ""
-
     # don't assert
     def codegen_input_size_asserts(self) -> None:
         pass
@@ -104,7 +102,7 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
         """
         if not config.benchmark_harness:
             return None
-        
+
         if npu_config.aot_inductor.debug_kernel:
             return self.add_npu_repro(output)
 
@@ -127,7 +125,7 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
                     "print(result)",
                 ]
             )
-    
+
     def add_repro_func(self, output):
         seen_constants = set()
 
@@ -140,11 +138,11 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
             )
 
         def get_hash(name):
-            byte = name.encode('utf-8')
-            sha1 = hashlib.sha1()
+            byte = name.encode("utf-8")
+            sha1 = hashlib.sha1(usedforsecurity=False)
             sha1.update(byte)
             return sha1.hexdigest()
-        
+
         def save_tensor(tensor, path):
             dirname = os.path.dirname(path)
             if not os.path.exists(dirname):
@@ -154,21 +152,22 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
         def add_real_tensor(name, tensor):
             tensor_dir = npu_config.aot_inductor.repro_tensor_path
             if isinstance(tensor, FakeTensor):
-                raise RuntimeError(f"Could not generate repro func because detected {name} is FakeTensor "
-                                   f"when trying to dump it. Set repro and debug_kernel false to avoid it.")
+                raise RuntimeError(
+                    f"Could not generate repro func because detected {name} is FakeTensor "
+                    f"when trying to dump it. Set repro and debug_kernel false to avoid it."
+                )
             hash_name = get_hash(name)
             tensor_path = os.path.join(os.getcwd(), tensor_dir, f"{hash_name}.pt")
             if name not in seen_constants:
                 save_tensor(tensor, tensor_path)
                 seen_constants.add(name)
-            output.writeline(
-                f"{name} = torch.load('{tensor_path}')"
-            )
+            output.writeline(f"{name} = torch.load('{tensor_path}')")
 
         def add_torchbind_input(name, value):
             import pickle
 
             output.writeline(f"{name} = pickle.loads({pickle.dumps(value)!r})")
+
         output.writelines(
             ["", "", f"def repro_run({', '.join(V.graph.graph_inputs.keys())}):"]
         )
@@ -193,11 +192,11 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
                     # these 'global var_name' lines
                     output.writeline(f"global {name}")
                     add_torchbind_input(name, torchbind_obj)
-            
+
             call_str = f"call([{', '.join(V.graph.graph_inputs.keys())}])"
             output.writeline(f"fn = lambda: {call_str}")
             output.writeline("return fn()")
-    
+
     def add_benchmark_func(self, output):
         def add_fake_input(name, shape, stride, device, dtype):
             output.writeline(
@@ -244,7 +243,7 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
                         value.get_device(),
                         value.get_dtype(),
                     )
-            
+
             call_str = f"repro_run({', '.join(V.graph.graph_inputs.keys())})"
             output.writeline(f"fn = lambda: {call_str}")
             output.writeline("return fn()")
@@ -252,54 +251,52 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
     def write_prefix(self) -> None:
         super().write_prefix()
         if torch_npu.npu.aclnn._use_static_aclnn_kernel:
-            with self.prefix.indent():
-                self.prefix.writeline('global has_initialized')
-                self.prefix.writeline('if not has_initialized:')
             self.prefix.do_indent()
             with self.prefix.indent():
-                self.prefix.writeline('from torch_npu._inductor.npu_static_kernel import StaticKernelCompiler')
-                self.prefix.writeline('static_kernel_compiler = StaticKernelCompiler()')
-                self.prefix.writeline('static_kernel_compiler.__enter__()')
-                self.prefix.writeline('has_initialized = True')
+                self.prefix.writeline("global has_initialized")
+                self.prefix.writeline("if not has_initialized:")
+            self.prefix.do_indent()
+            with self.prefix.indent():
+                self.prefix.writeline(
+                    "from torch_npu._inductor.npu_static_kernel import StaticKernelCompiler"
+                )
+                self.prefix.writeline("static_kernel_compiler = StaticKernelCompiler()")
+                self.prefix.writeline("static_kernel_compiler.__enter__()")
+                self.prefix.writeline("has_initialized = True")
             self.prefix.do_indent()
 
     def generate_return(self, output_refs: list[str]) -> None:
         if torch_npu.npu.aclnn._use_static_aclnn_kernel:
             self.wrapper_call.do_unindent()
             with self.wrapper_call.indent():
-                self.wrapper_call.writeline('if not has_initialized:')
+                self.wrapper_call.writeline("if not has_initialized:")
             self.wrapper_call.do_indent()
             with self.wrapper_call.indent():
-                self.wrapper_call.writeline('exc_info=(None, None, None)')
-                self.wrapper_call.writeline('static_kernel_compiler.__exit__(*exc_info)')
+                self.wrapper_call.writeline("exc_info=(None, None, None)")
+                self.wrapper_call.writeline(
+                    "static_kernel_compiler.__exit__(*exc_info)"
+                )
         super().generate_return(output_refs)
 
     def define_kernel(
         self,
         kernel_name: str,
         kernel_body: str,
-        metadata: Optional[str] = None,
+        metadata: str | None = None,
         gpu: bool = True,
-        cpp_definition: Optional[str] = None,
+        cpp_definition: str | None = None,
     ):
         # 重写父类逻辑，将triton_heuristics.user_autotune替换为npu_triton_heuristics.user_autotune_npu，
         # 将PrecomputedGrid替换为PrecomputedGridNpu，以适配NPU设备，避免core dump错误。
         if "user_autotune" in kernel_body and "user_autotune_npu" not in kernel_body:
             kernel_body = kernel_body.replace(
                 "triton_heuristics.user_autotune(",
-                "npu_triton_heuristics.user_autotune_npu("
+                "npu_triton_heuristics.user_autotune_npu(",
             )
+            kernel_body = kernel_body.replace("PrecomputedGrid", "PrecomputedGridNpu")
+            kernel_body = kernel_body.replace("FixedGrid", "FixedGridNpu")
+            # import npu_triton_heuristicsd相关头文件
             kernel_body = kernel_body.replace(
-                "PrecomputedGrid",
-                "PrecomputedGridNpu"
-            )
-            kernel_body = kernel_body.replace(
-                "FixedGrid",
-                "FixedGridNpu"
-            )
-            #import npu_triton_heuristicsd相关头文件
-            kernel_body = kernel_body.replace(
-                "'''\n",
-                "'''\n" + NPUIndexTritonKernel.gen_triton_ext_imports() + "\n"
+                "'''\n", "'''\n" + NPUIndexTritonKernel.gen_triton_ext_imports() + "\n"
             )
         super().define_kernel(kernel_name, kernel_body, metadata, gpu, cpp_definition)

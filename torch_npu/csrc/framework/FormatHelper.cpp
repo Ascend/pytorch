@@ -12,7 +12,10 @@ namespace {
 
 constexpr int BLOCKSIZE = 16;
 constexpr int BLOCKBYTES = 32;
-constexpr int NZ_C0_16_LASTSIZE = 16;
+constexpr int C0_16 = 16;
+constexpr int C0_32 = 32;
+constexpr int C0_2 = 2;
+constexpr int C0_4 = 4;
 
 // base format is ND/NCHW
 FormatShape InferShapeLessTo4(c10::IntArrayRef dims, size_t itemsize);
@@ -20,6 +23,9 @@ FormatShape InferShape4To5(c10::IntArrayRef dims, size_t itemsize);
 FormatShape InferShape5To4(c10::IntArrayRef dims, size_t itemsize);
 FormatShape InferShapeNDToNZ(c10::IntArrayRef dims, size_t itemsize);
 FormatShape InferShapeNDToNZC016(c10::IntArrayRef dims, size_t itemsize);
+FormatShape InferShapeNDToNZC032(c10::IntArrayRef dims, size_t itemsize);
+FormatShape InferShapeNDToNZC02(c10::IntArrayRef dims, size_t itemsize);
+FormatShape InferShapeNDToNZC04(c10::IntArrayRef dims, size_t itemsize);
 FormatShape InferShapeNDToZ(c10::IntArrayRef dims, size_t itemsize);
 FormatShape InferShapeofNCHW(c10::IntArrayRef dims, size_t itemsize);
 FormatShape InferShapeofND(c10::IntArrayRef dims, size_t itemsize);
@@ -57,11 +63,11 @@ std::unordered_map<aclFormat, FormatHelper::FormatInfo> FormatHelper::Initialize
         {ACL_FORMAT_FRACTAL_NZ_C0_16,
             (FormatInfo){ACL_FORMAT_FRACTAL_NZ_C0_16, ACL_FORMAT_ND, InferShapeNDToNZC016, "FRACTAL_NZ_C0_16", true}},
         {ACL_FORMAT_FRACTAL_NZ_C0_32,
-            (FormatInfo){ACL_FORMAT_FRACTAL_NZ_C0_32, ACL_FORMAT_ND, nullptr, "FRACTAL_NZ_C0_32", true}},
+            (FormatInfo){ACL_FORMAT_FRACTAL_NZ_C0_32, ACL_FORMAT_ND, InferShapeNDToNZC032, "FRACTAL_NZ_C0_32", true}},
         {ACL_FORMAT_FRACTAL_NZ_C0_2,
-            (FormatInfo){ACL_FORMAT_FRACTAL_NZ_C0_2, ACL_FORMAT_ND, nullptr, "FRACTAL_NZ_C0_2", true}},
+            (FormatInfo){ACL_FORMAT_FRACTAL_NZ_C0_2, ACL_FORMAT_ND, InferShapeNDToNZC02, "FRACTAL_NZ_C0_2", true}},
         {ACL_FORMAT_FRACTAL_NZ_C0_4,
-            (FormatInfo){ACL_FORMAT_FRACTAL_NZ_C0_4, ACL_FORMAT_ND, nullptr, "FRACTAL_NZ_C0_4", true}},
+            (FormatInfo){ACL_FORMAT_FRACTAL_NZ_C0_4, ACL_FORMAT_ND, InferShapeNDToNZC04, "FRACTAL_NZ_C0_4", true}},
         {ACL_FORMAT_FRACTAL_NZ_C0_8,
             (FormatInfo){ACL_FORMAT_FRACTAL_NZ_C0_8, ACL_FORMAT_ND, nullptr, "FRACTAL_NZ_C0_8", true}},
     };
@@ -305,7 +311,8 @@ FormatShape InferShapeNDToNZ(c10::IntArrayRef dims, size_t itemsize)
     return res;
 }
 
-FormatShape InferShapeNDToNZC016(c10::IntArrayRef dims, size_t itemsize)
+template <int C0Value>
+FormatShape InferShapeNDToNZWithC0(c10::IntArrayRef dims, size_t itemsize)
 {
     FormatShape res;
     // sum(keepdim = false) may make tensor dim = 0
@@ -329,13 +336,29 @@ FormatShape InferShapeNDToNZC016(c10::IntArrayRef dims, size_t itemsize)
 
     AT_ASSERT(itemsize != 0, "dtype itemsize should not be 0", OPS_ERROR(ErrCode::PARAM));
 
-    auto lastSize = NZ_C0_16_LASTSIZE;
+    auto lastSize = C0Value;
     res.emplace_back((dim[i + 1] + lastSize - 1) / lastSize);
     res.emplace_back((dim[i] + BLOCKSIZE - 1) / BLOCKSIZE);
     res.emplace_back(BLOCKSIZE);
     res.emplace_back(lastSize);
 
     return res;
+}
+
+FormatShape InferShapeNDToNZC016(c10::IntArrayRef dims, size_t itemsize) {
+    return InferShapeNDToNZWithC0<C0_16>(dims, itemsize);
+}
+
+FormatShape InferShapeNDToNZC032(c10::IntArrayRef dims, size_t itemsize) {
+    return InferShapeNDToNZWithC0<C0_32>(dims, itemsize);
+}
+
+FormatShape InferShapeNDToNZC02(c10::IntArrayRef dims, size_t itemsize) {
+    return InferShapeNDToNZWithC0<C0_2>(dims, itemsize);
+}
+
+FormatShape InferShapeNDToNZC04(c10::IntArrayRef dims, size_t itemsize) {
+    return InferShapeNDToNZWithC0<C0_4>(dims, itemsize);
 }
 
 FormatShape InferShapeNDToZ(c10::IntArrayRef dims, size_t itemsize)

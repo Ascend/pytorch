@@ -169,6 +169,10 @@ git checkout -b {new_branch_name} origin/master
 # 安装依赖并编译
 bash ci/build.sh --python=3.10
 
+# 针对指定的 PyTorch 版本构建（支持 2.10.0 / 2.11.0 / 2.12.0）
+# 要求环境中已安装对应版本的 PyTorch
+bash ci/build.sh --python=3.10 --torch=2.10.0
+
 # 或使用 CMake 手动编译
 mkdir build && cd build
 cmake ..

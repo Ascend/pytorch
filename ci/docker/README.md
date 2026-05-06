@@ -35,3 +35,8 @@ Take Python 3.9 as an example
 cd /home/pytorch
 bash ci/build.sh --python=3.9
 ```
+
+Use `--torch=<version>` to target a specific PyTorch version (supported: 2.10.0, 2.11.0, 2.12.0). The installed PyTorch must match.
+```Shell
+bash ci/build.sh --python=3.9 --torch=2.11.0
+```

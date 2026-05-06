@@ -10,6 +10,9 @@ if os.getenv('TORCHINDUCTOR_NPU_BACKEND', 'default') == 'mlir':
     except:
         raise ImportError("torch_mlir is not installed, install it first.")
     from .ascend_npu_ir.ascend_npu_ir.npu import npu_inductor_plugin
+    from .utils import patch_is_gpu,patch_has_triton
+    patch_is_gpu()
+    patch_has_triton()
 else:
     import torch
     from torch._dynamo.device_interface import register_interface_for_device, get_interface_for_device

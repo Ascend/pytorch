@@ -8,14 +8,31 @@ from torch_npu._compat.distributed import (
 )
 from torch_npu._compat.version import CURRENT_VERSION
 
+aten = torch.ops.aten
 npu = torch.ops.npu
 
-custom_pointwise_ops = {
+# Linear pointwise ops from upstream
+custom_linear_pointwise_ops = {
     npu.npu_dtype_cast.default: 0,
     npu._npu_dtype_cast.default: 0,
     npu.npu_dtype_cast_backward.default: 0,
     npu._npu_dtype_cast_backward.default: 0,
 }
+
+# Additional pointwise ops from upstream (use linearity=0)
+custom_pointwise_ops = [
+    # please keep the entries below alphabetically sorted
+    # native ops
+    aten.isclose.default,
+    aten.isfinite.default,
+    # custom ops
+    npu.fast_gelu.default,
+    npu.npu_fast_gelu.default,
+    npu.npu_layer_norm_eval.default,
+    # backward point-wise ops
+    # please keep the entries below alphabetically sorted
+    npu.npu_fast_gelu_backward.default
+]
 
 
 def _custom_pointwise_strategy_new(
@@ -86,9 +103,9 @@ def _infer_broadcast_dims_map(common_shape, arg_shape):
     return result
 
 
-def custom_pointwise_strategy(op_schema: OpSchema):
+def custom_linear_pointwise_strategy(op_schema: OpSchema):
     """Legacy strategy function for PyTorch < 2.11."""
-    op_type = custom_pointwise_ops.get(op_schema.op, -1)
+    op_type = custom_linear_pointwise_ops.get(op_schema.op, -1)
     return pointwise_strategy(op_schema, linearity=op_type)
 
 
@@ -96,6 +113,14 @@ def custom_pointwise_strategy(op_schema: OpSchema):
 if CURRENT_VERSION >= (2, 11):
     # Use new register_single_dim_strategy API for PyTorch 2.11+
     if register_single_dim_strategy is not None:
+        # Register linear pointwise ops
+        for op in custom_linear_pointwise_ops:
+            register_single_dim_strategy(
+                op,
+                schema_info=RuntimeSchemaInfo(static_kwargkey=["out"])
+            )(_custom_pointwise_strategy_new)
+
+        # Register additional pointwise ops
         for op in custom_pointwise_ops:
             register_single_dim_strategy(
                 op,
@@ -108,10 +133,17 @@ if CURRENT_VERSION >= (2, 11):
 else:
     # Use legacy pointwise_strategy for PyTorch < 2.11
     if pointwise_strategy is not None:
+        # Register linear pointwise ops
+        for op in custom_linear_pointwise_ops:
+            register_op_strategy(
+                op, schema_info=RuntimeSchemaInfo(static_kwargkey=["out"])
+            )(custom_linear_pointwise_strategy)
+
+        # Register additional pointwise ops
         for op in custom_pointwise_ops:
             register_op_strategy(
                 op, schema_info=RuntimeSchemaInfo(static_kwargkey=["out"])
-            )(custom_pointwise_strategy)
+            )(pointwise_strategy)
     else:
         # Fallback if pointwise_strategy is not available
         pass

@@ -16,6 +16,7 @@ namespace native {
 
 static std::unordered_map<int, int> FORMAT_REAL_TO_FAKE {
     { ACL_FORMAT_FRACTAL_NZ_C0_32, ACL_FORMAT_FRACTAL_NZ_C0_16 },
+    { ACL_FORMAT_ND, ACL_FORMAT_ND },
 };
 
 using tensor_list = std::vector<at::Tensor>;
@@ -107,6 +108,12 @@ at::Tensor create_tensor_with_format_and_shape(c10::IntArrayRef baseSizes,
 at::Tensor format_cast_impl_out_npu_aclnn(const at::Tensor& src,
     int64_t acl_format, c10::IntArrayRef storageSizes, c10::optional<int64_t> src_dtype)
 {
+    if (!FormatHelper::IsBaseFormatType(src) && !src.is_contiguous()) {
+        TORCH_CHECK(false,
+            "npu_format_cast aclnn interface does not support non-contiguous tensor with internal format ",
+            FormatHelper::GetFormatName(src), ".",
+            OPS_ERROR(ErrCode::NOT_SUPPORT));
+    }
     auto src_new = src.contiguous();
     auto src_new_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src_new)->npu_desc_;
 

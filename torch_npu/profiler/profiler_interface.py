@@ -31,7 +31,7 @@ from .analysis.prof_common_func._constant import Constant
 from .analysis._npu_profiler import NpuProfiler
 from .analysis.prof_common_func._constant import print_warn_msg
 from .analysis.prof_common_func._file_manager import FileManager
-from .analysis.prof_common_func._utils import collect_env_vars, no_exception_func
+from .analysis.prof_common_func._utils import collect_env_vars, no_exception_func, check_msprof_env
 from .analysis.prof_common_func._path_manager import ProfilerPathManager
 from .analysis.prof_common_func._log import ProfilerLogger
 from ..utils._path_manager import PathManager
@@ -80,6 +80,7 @@ class _ProfInterface:
         metadata: Dict = None,
         experimental_config: Optional[_ExperimentalConfig] = None,
     ) -> None:
+        self._is_env_valid = check_msprof_env()
         self.prof_path = ""
         self.syscnt_enable = False
         self.freq = 100
@@ -98,20 +99,28 @@ class _ProfInterface:
         self.metadata = metadata
         self.gc_detector = None
         self._check_params()
-        _lazy_init()
+
+        if self._is_env_valid:
+            _lazy_init()
 
     def init_trace(self):
+        if not self._is_env_valid:
+            return
         ProfPathCreator().create_prof_dir()
         self.prof_path = ProfPathCreator().get_prof_dir()
         _init_profiler(self.prof_path, self.activities)
 
     def warmup_trace(self):
+        if not self._is_env_valid:
+            return
         prof_config = [self.prof_path, self.record_shapes, self.profile_memory,
                        self.with_stack, self.with_flops, self.with_modules, self.experimental_config()]
         npu_prof_config = NpuProfilerConfig(*tuple(prof_config))
         _warmup_profiler(npu_prof_config, self.activities)
 
     def start_trace(self):
+        if not self._is_env_valid:
+            return
         prof_config = [self.prof_path, self.record_shapes, self.profile_memory,
                        self.with_stack, self.with_flops, self.with_modules, self.experimental_config()]
         npu_prof_config = NpuProfilerConfig(*tuple(prof_config))
@@ -125,11 +134,15 @@ class _ProfInterface:
         self.start_gc_detect()
 
     def stop_trace(self):
+        if not self._is_env_valid:
+            return
         _stop_profiler()
         self.stop_gc_detect()
         _disable_event_record()
 
     def finalize_trace(self):
+        if not self._is_env_valid:
+            return
         _finalize_profiler()
         self._dump_profiler_info()
         self._dump_metadata()
@@ -137,9 +150,13 @@ class _ProfInterface:
         ProfilerLogger.destroy()
 
     def delete_prof_dir(self):
+        if not self._is_env_valid:
+            return
         ProfPathCreator().delete_prof_dir()
 
     def analyse(self, analysis_type: str = Constant.TENSORBOARD_TRACE_HANDLER, output_path: str = None, **kwargs):
+        if not self._is_env_valid:
+            return
         try:
             NpuProfiler.analyse(self.prof_path, analysis_type, output_path, **kwargs)
         except Exception as e:

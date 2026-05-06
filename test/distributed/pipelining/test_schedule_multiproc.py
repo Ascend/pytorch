@@ -28,15 +28,15 @@ from torch.distributed.pipelining import (
     ScheduleZBVZeroBubble,
 )
 from torch.distributed.pipelining.schedules import _PipelineScheduleRuntime
-from torch.testing._internal.common_cuda import TEST_MULTIGPU
 from torch.testing._internal.common_distributed import (
-    MultiProcContinousTest,
+    MultiProcContinuousTest,
     requires_nccl,
 )
 from torch.testing._internal.common_utils import (
     check_leaked_tensors,
     instantiate_parametrized_tests,
     parametrize,
+    run_tests,
     skip_but_pass_in_sandcastle_if,
 )
 
@@ -45,11 +45,14 @@ logger = logging.getLogger(__name__)
 
 d_hid = 512
 batch_size = 256
+device_type = "npu"
 
 torch.manual_seed(0)
 
 
-class ScheduleTest(MultiProcContinousTest):
+class ScheduleTest(MultiProcContinuousTest):
+    world_size = int(os.getenv("WORLD_SIZE", 2))
+
     @classmethod
     def backend_str(cls) -> str:
         # Testing with HCCL backend
@@ -64,6 +67,10 @@ class ScheduleTest(MultiProcContinousTest):
         super().setUpClass()
         dev_id = cls.rank % torch.npu.device_count()
         cls.device = torch.device(f"npu:{dev_id}")
+    
+    @property
+    def device(self) -> torch.device:
+        return torch.device(device_type, self.rank)
 
     @parametrize("ScheduleClass", [_ScheduleForwardOnly])
     def test_forward_only(self, ScheduleClass):
@@ -424,7 +431,7 @@ class ScheduleTest(MultiProcContinousTest):
                 loss_fn=loss_fn,
                 scale_grads=False,
             )
-            tmp_schedule._load_actions(old_schedule.pipeline_order)
+            tmp_schedule._prepare_schedule_with_comms(old_schedule.pipeline_order)
             # test that csv round-trip works for compute_comms schedule
             schedule = _PipelineScheduleRuntime(
                 stages,
@@ -442,7 +449,7 @@ class ScheduleTest(MultiProcContinousTest):
                 loss_fn=loss_fn,
                 scale_grads=False,
             )
-            one_more_schedule._load_actions(
+            one_more_schedule._prepare_schedule_with_comms(
                 schedule.pipeline_order_with_comms, format="compute_comms"
             )
             self.assertEqual(
@@ -769,7 +776,7 @@ class ScheduleTest(MultiProcContinousTest):
                 num_microbatches,
                 loss_fn=loss_fn,
             )
-            schedule._load_actions(old_schedule.pipeline_order)
+            schedule._prepare_schedule_with_comms(old_schedule.pipeline_order)
 
         # Run
         for _ in range(2):
@@ -941,18 +948,4 @@ if __name__ == "__main__":
         )
         sys.exit(0)
 
-    rank = int(os.getenv("RANK", -1))
-    world_size = int(os.getenv("WORLD_SIZE", 2))
-
-    if rank != -1:
-        # Launched with torchrun or other multi-proc launchers. Directly run the test.
-        ScheduleTest.run_rank(rank, world_size)
-    else:
-        # Launched as a single process. Spawn subprocess to run the tests.
-        # Also need a rendezvous file for `init_process_group` purpose.
-        rdvz_file = tempfile.NamedTemporaryFile(delete=False).name
-        torch.multiprocessing.spawn(
-            ScheduleTest.run_rank,
-            nprocs=world_size,
-            args=(world_size, rdvz_file),
-        )
+    run_tests()

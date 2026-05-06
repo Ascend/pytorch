@@ -1,3 +1,5 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates
+# Owner(s): ["oncall: distributed"]
 import itertools
 from typing import cast, List, Optional
 from unittest import skip
@@ -6,7 +8,7 @@ import torch
 from torch.distributed._tensor import DeviceMesh, distribute_tensor
 from torch.distributed._tensor.api import DTensor
 from torch.distributed._tensor.placement_types import (
-    _Partial,
+    Partial,
     Placement,
     Replicate,
     Shard,
@@ -16,6 +18,7 @@ from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTe
 
 import torch_npu
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
+npu = torch.ops.npu
 
 
 class DistMatrixOpsTest(DTensorTestBase):
@@ -60,7 +63,7 @@ class DistMatrixOpsTest(DTensorTestBase):
 
         # test if addmm output is a partial
         self.assertIsInstance(dist_res, DTensor)
-        self.assertIsInstance(dist_res.placements[0], _Partial)
+        self.assertIsInstance(dist_res.placements[0], Partial)
 
         # test if result is the same as tensor
         replica_res = dist_res.redistribute(device_mesh, replica_spec)
@@ -130,10 +133,10 @@ class DistMatrixOpsTest(DTensorTestBase):
         da = distribute_tensor(a, device_mesh, [Shard(1)])
         db = distribute_tensor(b, device_mesh, [Shard(0)])
 
-        # mm(da, db) should return a _Partial tensor.
-        # transposing it should keep it _Partial
+        # mm(da, db) should return a Partial tensor.
+        # transposing it should keep it Partial
         dc = torch.mm(da, db).t()
-        self.assertTrue(isinstance(dc.placements[0], _Partial))
+        self.assertTrue(isinstance(dc.placements[0], Partial))
         # check that the local and distributed op results match
         self.assertEqual(
             c,
@@ -271,6 +274,50 @@ class DistMatrixOpsTest(DTensorTestBase):
         for spec in shard_specs_comb:
             test_placement_comb([spec[0]], [spec[1]])
 
+
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms
+    def test_npu_bmmV2(self):
+        device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
+        mat1 = torch.rand(4, 8, 4, device=self.device_type, requires_grad=True)
+        mat2 = torch.rand(4, 4, 8, device=self.device_type, requires_grad=True)
+        local_result = npu.npu_bmmV2(mat1, mat2)
+        grad_local_res = torch.ones_like(local_result)
+        local_result.backward(grad_local_res)
+
+        def test_placement_comb(
+            placements1: List[Placement],
+            placements2: List[Placement],
+        ) -> None:
+            mat1_dt = distribute_tensor(mat1, device_mesh, placements1)
+            mat2_dt = distribute_tensor(mat2, device_mesh, placements2)
+            dist_res = cast(DTensor, npu.npu_bmmV2(mat1_dt, mat2_dt)).redistribute(
+                device_mesh, [Replicate()]
+            )
+            dist_local_res = dist_res.to_local()
+            self.assertEqual(dist_local_res, local_result)
+
+            # test backward
+            # it generates a different grad shape
+            grad_dist_res = torch.ones_like(dist_res)
+            dist_res.backward(grad_dist_res)
+            self.assertIsNotNone(mat1_dt.grad)
+            mat1_dt_grad = cast(DTensor, mat1_dt.grad)
+            mat1_grad_local = mat1_dt_grad.redistribute(
+                device_mesh, [Replicate()]
+            ).to_local()
+            self.assertEqual(mat1_grad_local, mat1.grad)
+
+        shard0_spec = Shard(0)
+        shard1_spec = Shard(1)
+        shard2_spec = Shard(2)
+        replica_spec = Replicate()
+        placement_specs = [shard0_spec, shard1_spec, shard2_spec, replica_spec]
+        shard_specs_comb = list(itertools.product(placement_specs, placement_specs))
+
+        # tests that currently pass
+        for spec in shard_specs_comb:
+            test_placement_comb([spec[0]], [spec[1]])
 
 if __name__ == "__main__":
     run_tests()
