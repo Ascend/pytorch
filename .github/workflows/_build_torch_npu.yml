@@ -110,7 +110,7 @@ jobs:
       - name: Restore pip cache
         uses: actions/cache/restore@v4
         with:
-          path: ~/.cache/pip
+          path: /root/.cache/pip
           key: ${{ steps.pip_key.outputs.cache_key }}
           restore-keys: |
             ${{ env.CACHE_VERSION }}-pip-${{ inputs.python_version }}-
@@ -118,7 +118,7 @@ jobs:
 
       - name: Setup pip cache directory
         run: |
-          mkdir -p ~/.cache/pip
+          mkdir -p /root/.cache/pip
 
       - name: Configure pip index URL
         run: |
@@ -156,7 +156,7 @@ jobs:
       - name: Restore ccache
         uses: actions/cache/restore@v4
         with:
-          path: ~/.cache/ccache
+          path: /root/.cache/ccache
           key: ${{ steps.ccache_key.outputs.cache_key }}
           restore-keys: |
             ${{ steps.ccache_key.outputs.partial_key }}
@@ -167,19 +167,19 @@ jobs:
           # 安装 ccache（manylinux 镜像没有预装）
           yum install -y ccache
 
-          # 创建 ccache 配置目录
-          mkdir -p ~/.cache/ccache
+          # 创建 ccache 配置目录（使用绝对路径）
+          CCACHE_DIR_PATH="/root/.cache/ccache"
+          mkdir -p "$CCACHE_DIR_PATH"
 
-          # 直接写入配置文件（确保优先级高于 /etc/ccache.conf）
-          cat > ~/.cache/ccache/ccache.conf << 'EOF'
+          # 直接写入配置文件（使用绝对路径）
+          cat > "$CCACHE_DIR_PATH/ccache.conf" << 'EOF'
           max_size = 20G
-          cache_dir = ~/.cache/ccache
+          cache_dir = /root/.cache/ccache
           compression = true
           compression_level = 6
           EOF
 
           # 使用符号链接方式让 ccache 模拟 gcc/g++
-          # 这是推荐的方式，避免 CMake 直接把编译选项传给 ccache
           mkdir -p /usr/local/bin
           ln -sf /usr/bin/ccache /usr/local/bin/gcc
           ln -sf /usr/bin/ccache /usr/local/bin/g++
@@ -188,18 +188,24 @@ jobs:
 
           # 设置 PATH 优先使用符号链接
           echo "PATH=/usr/local/bin:$PATH" >> $GITHUB_ENV
-          echo "CCACHE_DIR=~/.cache/ccache" >> $GITHUB_ENV
+
+          # 设置 CCACHE_DIR（使用绝对路径，不使用 ~）
+          echo "CCACHE_DIR=$CCACHE_DIR_PATH" >> $GITHUB_ENV
 
           # 设置编译器环境变量，确保 CMake/Ninja 使用 ccache
           echo "CC=/usr/local/bin/gcc" >> $GITHUB_ENV
           echo "CXX=/usr/local/bin/g++" >> $GITHUB_ENV
 
           echo "=== ccache Configuration ==="
-          ccache --show-config
+          CCACHE_DIR="$CCACHE_DIR_PATH" ccache --show-config
 
           echo ""
           echo "=== Config File Contents ==="
-          cat ~/.cache/ccache/ccache.conf
+          cat "$CCACHE_DIR_PATH/ccache.conf"
+
+          echo ""
+          echo "=== Cache Directory ==="
+          ls -la "$CCACHE_DIR_PATH/"
 
           echo ""
           echo "=== Symbolic Links ==="
@@ -207,7 +213,7 @@ jobs:
 
           echo ""
           echo "=== ccache Statistics (before build) ==="
-          ccache --show-stats
+          CCACHE_DIR="$CCACHE_DIR_PATH" ccache --show-stats
 
       # ==================== 构建 PyTorch ====================
       - name: Build PyTorch wheel
@@ -232,6 +238,7 @@ jobs:
           # 确保使用 ccache（CMake 会检测 CC/CXX 环境变量）
           export CC=/usr/local/bin/gcc
           export CXX=/usr/local/bin/g++
+          export CCACHE_DIR=/root/.cache/ccache
 
           # 清除 ccache 统计（开始新的构建）
           ccache --zero-stats
@@ -268,7 +275,7 @@ jobs:
           # 显示 ccache 统计（依赖安装阶段）
           echo ""
           echo "=== ccache Statistics (before torch_npu build) ==="
-          ccache --show-stats
+          CCACHE_DIR=/root/.cache/ccache ccache --show-stats
 
       - name: Build torch_npu wheel
         run: |
@@ -282,6 +289,7 @@ jobs:
           # 确保使用 ccache
           export CC=/usr/local/bin/gcc
           export CXX=/usr/local/bin/g++
+          export CCACHE_DIR=/root/.cache/ccache
 
           # 禁用 torchair 构建（上游 PyTorch main API 变化导致兼容性问题）
           bash ci/build.sh --python=${{ inputs.python_version }} --disable_torchair
@@ -298,14 +306,14 @@ jobs:
         if: always()
         uses: actions/cache/save@v4
         with:
-          path: ~/.cache/pip
+          path: /root/.cache/pip
           key: ${{ steps.pip_key.outputs.cache_key }}
 
       - name: Save ccache
         if: always()
         uses: actions/cache/save@v4
         with:
-          path: ~/.cache/ccache
+          path: /root/.cache/ccache
           key: ${{ steps.ccache_key.outputs.cache_key }}
 
       - name: Display cache save status
@@ -313,11 +321,11 @@ jobs:
         run: |
           echo "=== Cache Saved ==="
           echo "pip cache key: ${{ steps.pip_key.outputs.cache_key }}"
-          PIP_CACHE_SIZE=$(du -sh ~/.cache/pip 2>/dev/null | cut -f1)
+          PIP_CACHE_SIZE=$(du -sh /root/.cache/pip 2>/dev/null | cut -f1)
           echo "pip cache size: ${PIP_CACHE_SIZE}"
           echo ""
           echo "ccache key: ${{ steps.ccache_key.outputs.cache_key }}"
-          CCACHE_SIZE=$(du -sh ~/.cache/ccache 2>/dev/null | cut -f1)
+          CCACHE_SIZE=$(du -sh /root/.cache/ccache 2>/dev/null | cut -f1)
           echo "ccache size: ${CCACHE_SIZE}"
 
       # ==================== 打包和上传 ====================
