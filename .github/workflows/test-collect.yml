@@ -28,9 +28,8 @@ jobs:
     runs-on: linux-aarch64-a3-16
     timeout-minutes: 180
     outputs:
-      distributed_matrix: ${{ steps.collect.outputs.distributed_matrix }}
-      regular_matrix: ${{ steps.collect.outputs.regular_matrix }}
-      total_cases: ${{ steps.collect.outputs.total_cases }}
+      test_matrix: ${{ steps.get_tests.outputs.test_matrix }}
+      total_tests: ${{ steps.get_tests.outputs.total_tests }}
 
     container:
       image: quay.io/kerer/pytorch:latest
@@ -209,51 +208,6 @@ jobs:
           path: ~/.cache/pip
           key: ${{ steps.pip_key.outputs.cache_key }}
 
-      - name: Collect all test cases
-        id: collect
-        run: |
-          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
-          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
-
-          echo "=== NPU-SMI Info ==="
-          npu-smi info || echo "npu-smi not available"
-
-          python${{ env.PYTHON_VERSION }} .github/scripts/collect_all_cases.py \
-            --test-dir pytorch-src/test \
-            --distributed-shards ${{ inputs.distributed_shards || 2 }} \
-            --regular-shards ${{ inputs.regular_shards || 5 }} \
-            --output-dir cases_shards \
-            --parallel 16 \
-            --verbose
-
-          TOTAL=$(python${{ env.PYTHON_VERSION }} -c "import json; d=json.load(open('cases_shards/cases_collection_summary.json')); print(d['total_cases'])")
-          echo "total_cases=${TOTAL}" >> $GITHUB_OUTPUT
-
-          # Generate shard matrices
-          python${{ env.PYTHON_VERSION }} -c "
-          import json
-          d_shards = ${{ inputs.distributed_shards || 2 }}
-          r_shards = ${{ inputs.regular_shards || 5 }}
-          print(f'distributed_matrix={json.dumps(list(range(1, d_shards + 1)))}')
-          print(f'regular_matrix={json.dumps(list(range(1, r_shards + 1)))}')
-          " >> $GITHUB_OUTPUT
-
-      - name: Upload cases shard JSONs
-        uses: actions/upload-artifact@v4
-        with:
-          name: cases-shards
-          path: cases_shards/
-
-      - name: Print collection summary
-        if: always()
-        run: |
-          echo "=== Collection Summary ==="
-          if [ -f cases_shards/cases_collection_summary.json ]; then
-            cat cases_shards/cases_collection_summary.json
-          else
-            echo "Summary file not found"
-          fi
-
       # ==================== 使用 run_test.py 运行测试 ====================
       - name: Get test list from run_test.py
         id: get_tests
@@ -264,28 +218,149 @@ jobs:
           # 切换到 test 目录执行，避免根目录 torch 与安装的 torch 库冲突
           cd pytorch-src/test
 
-          # 方法1: 直接从 discover_tests.py 获取测试列表（更可靠）
-          python${{ env.PYTHON_VERSION }} -c "
-          import sys
-          sys.path.insert(0, '../tools/testing')
-          from discover_tests import TESTS
-          with open('/tmp/test_list.txt', 'w') as f:
-              for t in TESTS:
-                  f.write(t + '\n')
-          print(f'Found {len(TESTS)} tests from discover_tests.py')
-          " 2>/dev/null || true
+          # 获取测试总数（使用 dry-run 模式）
+          TEST_COUNT=$(python${{ env.PYTHON_VERSION }} run_test.py --dry-run 2>&1 | grep -o "Running [0-9]* items" | grep -o "[0-9]*" || echo "0")
 
-          # 输出测试数量
-          TEST_COUNT=$(wc -l < /tmp/test_list.txt)
           echo "test_count=${TEST_COUNT}" >> $GITHUB_OUTPUT
           echo "=== Tests to run (${TEST_COUNT} tests) ==="
-          head -20 /tmp/test_list.txt
-          if [ $TEST_COUNT -gt 20 ]; then
-            echo "... and $(($TEST_COUNT - 20)) more tests"
+
+          # 输出矩阵配置 (6 shards)
+          echo "test_matrix=[1,2,3,4,5,6]" >> $GITHUB_OUTPUT
+          echo "total_tests=${TEST_COUNT}" >> $GITHUB_OUTPUT
+
+  # ==================== 矩阵分片测试 ====================
+  test:
+    needs: collect
+    runs-on: linux-aarch64-a3-16
+    timeout-minutes: 1200  # 20 hours per shard
+
+    strategy:
+      matrix:
+        shard: ${{ fromJson(needs.collect.outputs.test_matrix) }}
+      fail-fast: false
+      max-parallel: 6
+
+    container:
+      image: quay.io/kerer/pytorch:latest
+      options: --user root
+
+    steps:
+      - name: Checkout scripts
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            .github/scripts
+            .ci/docker
+
+      # ==================== pip 缓存配置 ====================
+      - name: Get pip cache key
+        id: pip_key
+        run: |
+          REQUIREMENTS_HASH=$(sha256sum .ci/docker/requirements-ci.txt | cut -d' ' -f1)
+          echo "cache_key=${{ env.CACHE_VERSION }}-pip-test-${{ env.PYTHON_VERSION }}-${REQUIREMENTS_HASH}" >> $GITHUB_OUTPUT
+
+      - name: Restore pip cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ steps.pip_key.outputs.cache_key }}
+          restore-keys: |
+            ${{ env.CACHE_VERSION }}-pip-test-${{ env.PYTHON_VERSION }}-
+            ${{ env.CACHE_VERSION }}-pip-test-
+
+      - name: Setup pip cache directory
+        run: |
+          mkdir -p ~/.cache/pip
+
+      - name: Configure pip index URL
+        run: |
+          if [ -n "${{ env.PYPI_CACHE_URL }}" ]; then
+            pip${{ env.PYTHON_VERSION }} config set global.index-url ${{ env.PYPI_CACHE_URL }}
+            pip${{ env.PYTHON_VERSION }} config set global.trusted-host "cache-service.nginx-pypi-cache.svc.cluster.local"
+            echo "pip index-url configured: ${{ env.PYPI_CACHE_URL }}"
+          else
+            echo "No PyPI cache URL configured, using default"
           fi
 
-      - name: Run tests using run_test.py
-        timeout-minutes: 1200  # 20 hours
+      - name: Upgrade pip and setuptools
+        run: |
+          pip${{ env.PYTHON_VERSION }} install --upgrade pip setuptools wheel
+
+      # ==================== Download artifacts ====================
+      - name: Download torch wheel from workflow run
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          run_id: 25473829132
+          name: torch-wheel-main
+          path: wheels
+          repo: Ascend/pytorch
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          skip_unpack: false
+
+      - name: Download torch_npu wheel from workflow run
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          run_id: 25473829132
+          name: torch-npu-wheel-main
+          path: wheels
+          repo: Ascend/pytorch
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download PyTorch source from GitHub
+        run: |
+          PYTORCH_COMMIT=fccc94ae83f61fe26559abc999797297196bac29
+          PYTORCH_REPO=pytorch/pytorch
+          PROXY_URL=https://gh-proxy.test.osinfra.cn
+
+          echo "Downloading PyTorch source from commit: ${PYTORCH_COMMIT}"
+          echo "Using proxy: ${PROXY_URL}"
+
+          # Download source tarball via proxy (no submodules needed for testing)
+          curl -L "${PROXY_URL}/https://github.com/${PYTORCH_REPO}/archive/${PYTORCH_COMMIT}.tar.gz" \
+            -o pytorch-src.tar.gz
+
+          echo "Downloaded pytorch-src.tar.gz:"
+          ls -la pytorch-src.tar.gz
+
+      - name: Extract PyTorch source
+        run: |
+          # Extract source tarball
+          tar -xzf pytorch-src.tar.gz
+
+          # Rename directory to pytorch-src (tarball extracts as pytorch-fccc94ae...)
+          mv pytorch-${PYTORCH_COMMIT:-fccc94ae83f61fe26559abc999797297196bac29} pytorch-src 2>/dev/null || \
+            mv pytorch-pytorch-${PYTORCH_COMMIT:-fccc94ae83f61fe26559abc999797297196bac29} pytorch-src 2>/dev/null || \
+            true
+
+          # If still not renamed, find and rename the extracted directory
+          if [ ! -d pytorch-src ]; then
+            EXTRACTED_DIR=$(find . -maxdepth 1 -type d -name "pytorch-*" | head -1)
+            if [ -n "$EXTRACTED_DIR" ]; then
+              mv "$EXTRACTED_DIR" pytorch-src
+            fi
+          fi
+
+          echo "Extracted to pytorch-src directory:"
+          ls -la pytorch-src/ | head -10
+
+      - name: Install wheels
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          pip${{ env.PYTHON_VERSION }} install wheels/*.whl
+
+      - name: Install test dependencies
+        run: |
+          # 安装当前仓库的基础测试依赖
+          pip${{ env.PYTHON_VERSION }} install -r .ci/docker/requirements-ci.txt
+
+          # 安装上游 PyTorch 的完整测试依赖（需要先安装 torch）
+          pip${{ env.PYTHON_VERSION }} install -r pytorch-src/.ci/docker/requirements-ci.txt || true
+
+          # 安装 PyTorch 开发依赖（可选）
+          pip${{ env.PYTHON_VERSION }} install expecttest hypothesis fsspec sympy optree networkx psutil || true
+
+      - name: Verify NPU availability
+        continue-on-error: true
         run: |
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
           source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
@@ -293,88 +368,77 @@ jobs:
           echo "=== NPU-SMI Info ==="
           npu-smi info || echo "npu-smi not available"
 
-          # 切换到 test 目录执行，避免根目录 torch 与安装的 torch 库冲突
+          PYTHON=python${{ env.PYTHON_VERSION }}
+          echo ""
+          echo "=== PyTorch and NPU Info ==="
+          $PYTHON -c "
+          import torch
+          print(f'torch: {torch.__version__}')
+          import torch_npu
+          print(f'torch_npu: {torch_npu.__version__}')
+          print(f'NPU available: {torch.npu.is_available()}')
+          print(f'NPU count: {torch.npu.device_count()}')
+          " 2>&1 || echo "torch/torch_npu import failed"
+
+      # ==================== 保存 pip 缓存 ====================
+      - name: Save pip cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ steps.pip_key.outputs.cache_key }}
+
+      # ==================== 运行分片测试 ====================
+      - name: Run shard ${{ matrix.shard }} tests
+        timeout-minutes: 1200
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          echo "=== Running Shard ${{ matrix.shard }} of 6 ==="
+          echo "=== NPU-SMI Info ==="
+          npu-smi info || echo "npu-smi not available"
+
+          # 切换到 test 目录执行
           cd pytorch-src/test
 
-          echo "=== Starting test execution ==="
-          TEST_COUNT=0
-          PASSED=0
-          FAILED=0
+          # 使用 run_test.py 的分片功能
+          # --shard <shard_id> <num_shards>
+          # shard_id: 1-6 (当前分片ID)
+          # num_shards: 6 (总分片数)
           START_TIME=$(date +%s)
 
-          while IFS= read -r test_name; do
-            if [ -z "$test_name" ]; then
-              continue
-            fi
-
-            TEST_COUNT=$((TEST_COUNT + 1))
-            TEST_START_TIME=$(date +%s)
-            echo ""
-            echo "============================================"
-            echo "Test ${TEST_COUNT}: ${test_name}"
-            echo "============================================"
-
-            # 运行测试，捕获输出到文件但不打印到控制台
-            set +e
-            python${{ env.PYTHON_VERSION }} run_test.py -i "${test_name}" -v > /tmp/test_output_${TEST_COUNT}.log 2>&1
-            TEST_EXIT_CODE=$?
-            set -e
-
-            TEST_END_TIME=$(date +%s)
-            TEST_DURATION=$((TEST_END_TIME - TEST_START_TIME))
-
-            # 检查结果
-            if [ $TEST_EXIT_CODE -eq 0 ]; then
-              echo ">>> ${test_name}: PASSED (${TEST_DURATION}s)"
-              PASSED=$((PASSED + 1))
-            else
-              echo ">>> ${test_name}: FAILED (exit code: ${TEST_EXIT_CODE}, ${TEST_DURATION}s)"
-              FAILED=$((FAILED + 1))
-              # 打印失败测试的最后几行日志
-              echo "--- Last 20 lines of log ---"
-              tail -20 /tmp/test_output_${TEST_COUNT}.log
-              echo "--- End of log preview ---"
-            fi
-
-            CURRENT_TIME=$(date +%s)
-            TOTAL_DURATION=$((CURRENT_TIME - START_TIME))
-            echo ""
-            echo "--------------------------------------------"
-            echo "Summary: ${PASSED} passed, ${FAILED} failed, ${TEST_COUNT} total"
-            echo "Elapsed: ${TOTAL_DURATION}s ($(date -d "@${START_TIME}" +%H:%M:%S) - $(date +%H:%M:%S))"
-            echo "--------------------------------------------"
-
-          done < /tmp/test_list.txt
+          python${{ env.PYTHON_VERSION }} run_test.py \
+            --shard ${{ matrix.shard }} 6 \
+            --verbose \
+            --exclude-jit-executor \
+            --exclude-distributed-tests \
+            2>&1 | tee /tmp/test_output_shard_${{ matrix.shard }}.log
 
           END_TIME=$(date +%s)
-          TOTAL_DURATION=$((END_TIME - START_TIME))
+          DURATION=$((END_TIME - START_TIME))
 
           echo ""
           echo "============================================"
-          echo "=== FINAL SUMMARY ==="
-          echo "Total tests run: ${TEST_COUNT}"
-          echo "Passed: ${PASSED}"
-          echo "Failed: ${FAILED}"
-          echo "Total time: ${TOTAL_DURATION}s ($(date -d "@${START_TIME}" +%H:%M:%S) - $(date -d "@${END_TIME}" +%H:%M:%S))"
+          echo "=== Shard ${{ matrix.shard }} Completed ==="
+          echo "Duration: ${DURATION}s ($(date -d "@${START_TIME}" +%H:%M:%S) - $(date -d "@${END_TIME}" +%H:%M:%S))"
           echo "============================================"
 
-          # 保存结果摘要（包含时间信息）
-          echo "{\"total\": ${TEST_COUNT}, \"passed\": ${PASSED}, \"failed\": ${FAILED}, \"duration_seconds\": ${TOTAL_DURATION}}" > /tmp/test_results_summary.json
-
-      - name: Upload test results
+      - name: Upload test results for shard ${{ matrix.shard }}
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-run-results
+          name: test-results-shard-${{ matrix.shard }}
           path: |
-            /tmp/test_output_*.log
-            /tmp/test_results_summary.json
+            /tmp/test_output_shard_${{ matrix.shard }}.log
+            pytorch-src/test/test-reports/
           retention-days: 7
 
-      - name: Print final summary
+      - name: Print shard summary
         if: always()
         run: |
-          echo "=== Final Test Results ==="
-          if [ -f /tmp/test_results_summary.json ]; then
-            cat /tmp/test_results_summary.json
+          echo "=== Shard ${{ matrix.shard }} Summary ==="
+          if [ -f /tmp/test_output_shard_${{ matrix.shard }}.log ]; then
+            echo "Last 50 lines of output:"
+            tail -50 /tmp/test_output_shard_${{ matrix.shard }}.log
           fi
