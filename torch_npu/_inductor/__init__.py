@@ -36,13 +36,7 @@ else:
 
     from . import codegen, config as npu_config
     from .codecache import patch_aot_code_compiler_compile, patch_cache_base_get_system
-    from .config import (
-        aggresive_autotune,
-        disable_comprehensive_padding,
-        log as npulog,
-        num_vector_core,
-        set_compile_threads,
-    )
+    from .config import aggresive_autotune, log as npulog, num_vector_core
     from .cpp_builder import patch_get_optimization_cflags
     from .decomposition import _register_npu_inductor_decompositons
     from .lowering import make_reduction, npu_make_fallback
@@ -57,9 +51,6 @@ else:
         patch_has_triton,
         patch_is_gpu,
     )
-
-    set_compile_threads()
-    disable_comprehensive_padding()
 
     def _inductor_register_backend_for_device():
         from .codegen.cpp_wrapper import CppWrapperNpu
