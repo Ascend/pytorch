@@ -451,6 +451,14 @@ jobs:
           name: test-shards
           path: shards
 
+      - name: Verify shard files
+        run: |
+          echo "=== Checking shard files ==="
+          ls -la shards/
+          echo ""
+          echo "=== Shard ${{ matrix.shard }} content preview ==="
+          cat shards/shard_${{ matrix.shard }}.json | head -20
+
       - name: Run shard ${{ matrix.shard }} tests
         timeout-minutes: 1200
         run: |
@@ -461,11 +469,8 @@ jobs:
           echo "=== NPU-SMI Info ==="
           npu-smi info || echo "npu-smi not available"
 
-          # 切换到 test 目录执行，避免根目录 torch 与安装的 torch 库冲突
-          cd pytorch-src/test
-
-          # 从 JSON 文件获取测试列表
-          TEST_LIST=$(cat ../shards/shard_${{ matrix.shard }}.json | python${{ env.PYTHON_VERSION }} -c "import sys, json; data = json.load(sys.stdin); print('\n'.join(data['tests']))")
+          # 从 JSON 文件获取测试列表（在工作目录根目录）
+          TEST_LIST=$(cat shards/shard_${{ matrix.shard }}.json | python${{ env.PYTHON_VERSION }} -c "import sys, json; data = json.load(sys.stdin); print('\n'.join(data['tests']))")
 
           # 保存到临时文件
           echo "$TEST_LIST" > /tmp/test_list_shard_${{ matrix.shard }}.txt
@@ -476,6 +481,9 @@ jobs:
           if [ $TEST_COUNT_IN_SHARD -gt 10 ]; then
             echo "... and $(($TEST_COUNT_IN_SHARD - 10)) more tests"
           fi
+
+          # 切换到 test 目录执行，避免根目录 torch 与安装的 torch 库冲突
+          cd pytorch-src/test
 
           # 开始执行测试
           echo "=== Starting test execution ==="
