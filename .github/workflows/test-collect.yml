@@ -208,8 +208,8 @@ jobs:
           path: ~/.cache/pip
           key: ${{ steps.pip_key.outputs.cache_key }}
 
-      # ==================== 使用 run_test.py 运行测试 ====================
-      - name: Get test list from run_test.py
+      # ==================== 使用 discover_tests.py 获取测试列表并分片 ====================
+      - name: Get test list and create shards
         id: get_tests
         run: |
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
@@ -218,29 +218,71 @@ jobs:
           # 切换到 test 目录执行，避免根目录 torch 与安装的 torch 库冲突
           cd pytorch-src/test
 
-          # 直接从 discover_tests.py 获取测试列表（更可靠）
+          # 创建分片 JSON 文件目录
+          mkdir -p /tmp/shards
+
+          # 从 discover_tests.py 获取测试列表并分片
           python${{ env.PYTHON_VERSION }} -c "
           import sys
+          import json
           sys.path.insert(0, '../tools/testing')
           from discover_tests import TESTS
-          with open('/tmp/test_list.txt', 'w') as f:
-              for t in TESTS:
-                  f.write(t + '\n')
-          print(f'Found {len(TESTS)} tests from discover_tests.py')
-          " 2>/dev/null || true
 
-          # 输出测试数量
-          TEST_COUNT=$(wc -l < /tmp/test_list.txt)
-          echo "test_count=${TEST_COUNT}" >> $GITHUB_OUTPUT
-          echo "=== Tests to run (${TEST_COUNT} tests) ==="
-          head -20 /tmp/test_list.txt
-          if [ $TEST_COUNT -gt 20 ]; then
-            echo "... and $(($TEST_COUNT - 20)) more tests"
-          fi
+          NUM_SHARDS = 6
+
+          # 平均分片
+          tests_per_shard = len(TESTS) // NUM_SHARDS
+          remainder = len(TESTS) % NUM_SHARDS
+
+          shard_data = {}
+          start_idx = 0
+
+          for shard_id in range(1, NUM_SHARDS + 1):
+              # 前几个 shard 多分配余数
+              extra = 1 if shard_id <= remainder else 0
+              end_idx = start_idx + tests_per_shard + extra
+              shard_tests = TESTS[start_idx:end_idx]
+
+              shard_data[shard_id] = {
+                  'shard_id': shard_id,
+                  'total_shards': NUM_SHARDS,
+                  'tests': shard_tests,
+                  'test_count': len(shard_tests)
+              }
+
+              # 写入 JSON 文件
+              with open(f'/tmp/shards/shard_{shard_id}.json', 'w') as f:
+                  json.dump(shard_data[shard_id], f, indent=2)
+
+              print(f'Shard {shard_id}: {len(shard_tests)} tests')
+              start_idx = end_idx
+
+          # 写入汇总信息
+          summary = {
+              'total_tests': len(TESTS),
+              'num_shards': NUM_SHARDS,
+              'shard_distribution': {k: v['test_count'] for k, v in shard_data.items()}
+          }
+          with open('/tmp/shards/summary.json', 'w') as f:
+              json.dump(summary, f, indent=2)
+
+          print(f'Total tests: {len(TESTS)}')
+          "
 
           # 输出矩阵配置 (6 shards)
           echo "test_matrix=[1,2,3,4,5,6]" >> $GITHUB_OUTPUT
-          echo "total_tests=${TEST_COUNT}" >> $GITHUB_OUTPUT
+          echo "total_tests=$(cat /tmp/shards/summary.json | grep -o '\"total_tests\": [0-9]*' | grep -o '[0-9]*')" >> $GITHUB_OUTPUT
+
+          # 显示分片分布
+          echo "=== Shard Distribution ==="
+          cat /tmp/shards/summary.json
+
+      - name: Upload shard JSONs
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-shards
+          path: /tmp/shards/
+          retention-days: 1
 
   # ==================== 矩阵分片测试 ====================
   test:
@@ -403,6 +445,12 @@ jobs:
           key: ${{ steps.pip_key.outputs.cache_key }}
 
       # ==================== 运行分片测试 ====================
+      - name: Download shard JSON
+        uses: actions/download-artifact@v4
+        with:
+          name: test-shards
+          path: shards
+
       - name: Run shard ${{ matrix.shard }} tests
         timeout-minutes: 1200
         run: |
@@ -413,30 +461,87 @@ jobs:
           echo "=== NPU-SMI Info ==="
           npu-smi info || echo "npu-smi not available"
 
-          # 切换到 test 目录执行
+          # 切换到 test 目录执行，避免根目录 torch 与安装的 torch 库冲突
           cd pytorch-src/test
 
-          # 使用 run_test.py 的分片功能
-          # --shard <shard_id> <num_shards>
-          # shard_id: 1-6 (当前分片ID)
-          # num_shards: 6 (总分片数)
+          # 从 JSON 文件获取测试列表
+          TEST_LIST=$(cat ../shards/shard_${{ matrix.shard }}.json | python${{ env.PYTHON_VERSION }} -c "import sys, json; data = json.load(sys.stdin); print('\n'.join(data['tests']))")
+
+          # 保存到临时文件
+          echo "$TEST_LIST" > /tmp/test_list_shard_${{ matrix.shard }}.txt
+
+          TEST_COUNT_IN_SHARD=$(wc -l < /tmp/test_list_shard_${{ matrix.shard }}.txt)
+          echo "=== Shard ${{ matrix.shard }} contains ${TEST_COUNT_IN_SHARD} tests ==="
+          head -10 /tmp/test_list_shard_${{ matrix.shard }}.txt
+          if [ $TEST_COUNT_IN_SHARD -gt 10 ]; then
+            echo "... and $(($TEST_COUNT_IN_SHARD - 10)) more tests"
+          fi
+
+          # 开始执行测试
+          echo "=== Starting test execution ==="
+          TEST_COUNT=0
+          PASSED=0
+          FAILED=0
           START_TIME=$(date +%s)
 
-          python${{ env.PYTHON_VERSION }} run_test.py \
-            --shard ${{ matrix.shard }} 6 \
-            --verbose \
-            --exclude-jit-executor \
-            --exclude-distributed-tests \
-            2>&1 | tee /tmp/test_output_shard_${{ matrix.shard }}.log
+          while IFS= read -r test_name; do
+            if [ -z "$test_name" ]; then
+              continue
+            fi
+
+            TEST_COUNT=$((TEST_COUNT + 1))
+            TEST_START_TIME=$(date +%s)
+            echo ""
+            echo "============================================"
+            echo "Test ${TEST_COUNT}/${TEST_COUNT_IN_SHARD}: ${test_name}"
+            echo "============================================"
+
+            # 运行测试，捕获输出到文件但不打印到控制台
+            set +e
+            python${{ env.PYTHON_VERSION }} run_test.py -i "${test_name}" -v > /tmp/test_output_${{ matrix.shard }}_${TEST_COUNT}.log 2>&1
+            TEST_EXIT_CODE=$?
+            set -e
+
+            TEST_END_TIME=$(date +%s)
+            TEST_DURATION=$((TEST_END_TIME - TEST_START_TIME))
+
+            # 检查结果
+            if [ $TEST_EXIT_CODE -eq 0 ]; then
+              echo ">>> ${test_name}: PASSED (${TEST_DURATION}s)"
+              PASSED=$((PASSED + 1))
+            else
+              echo ">>> ${test_name}: FAILED (exit code: ${TEST_EXIT_CODE}, ${TEST_DURATION}s)"
+              FAILED=$((FAILED + 1))
+              # 打印失败测试的最后几行日志
+              echo "--- Last 20 lines of log ---"
+              tail -20 /tmp/test_output_${{ matrix.shard }}_${TEST_COUNT}.log
+              echo "--- End of log preview ---"
+            fi
+
+            CURRENT_TIME=$(date +%s)
+            TOTAL_DURATION=$((CURRENT_TIME - START_TIME))
+            echo ""
+            echo "--------------------------------------------"
+            echo "Shard ${{ matrix.shard }} Summary: ${PASSED} passed, ${FAILED} failed, ${TEST_COUNT}/${TEST_COUNT_IN_SHARD} done"
+            echo "Elapsed: ${TOTAL_DURATION}s ($(date -d "@${START_TIME}" +%H:%M:%S) - $(date +%H:%M:%S))"
+            echo "--------------------------------------------"
+
+          done < /tmp/test_list_shard_${{ matrix.shard }}.txt
 
           END_TIME=$(date +%s)
-          DURATION=$((END_TIME - START_TIME))
+          TOTAL_DURATION=$((END_TIME - START_TIME))
 
           echo ""
           echo "============================================"
-          echo "=== Shard ${{ matrix.shard }} Completed ==="
-          echo "Duration: ${DURATION}s ($(date -d "@${START_TIME}" +%H:%M:%S) - $(date -d "@${END_TIME}" +%H:%M:%S))"
+          echo "=== SHARD ${{ matrix.shard }} FINAL SUMMARY ==="
+          echo "Total tests run: ${TEST_COUNT}"
+          echo "Passed: ${PASSED}"
+          echo "Failed: ${FAILED}"
+          echo "Total time: ${TOTAL_DURATION}s ($(date -d "@${START_TIME}" +%H:%M:%S) - $(date -d "@${END_TIME}" +%H:%M:%S))"
           echo "============================================"
+
+          # 保存结果摘要（包含时间信息）
+          echo "{\"shard_id\": ${{ matrix.shard }}, \"total\": ${TEST_COUNT}, \"passed\": ${PASSED}, \"failed\": ${FAILED}, \"duration_seconds\": ${TOTAL_DURATION}}" > /tmp/test_results_summary_shard_${{ matrix.shard }}.json
 
       - name: Upload test results for shard ${{ matrix.shard }}
         if: always()
@@ -444,15 +549,14 @@ jobs:
         with:
           name: test-results-shard-${{ matrix.shard }}
           path: |
-            /tmp/test_output_shard_${{ matrix.shard }}.log
-            pytorch-src/test/test-reports/
+            /tmp/test_output_${{ matrix.shard }}_*.log
+            /tmp/test_results_summary_shard_${{ matrix.shard }}.json
           retention-days: 7
 
       - name: Print shard summary
         if: always()
         run: |
           echo "=== Shard ${{ matrix.shard }} Summary ==="
-          if [ -f /tmp/test_output_shard_${{ matrix.shard }}.log ]; then
-            echo "Last 50 lines of output:"
-            tail -50 /tmp/test_output_shard_${{ matrix.shard }}.log
+          if [ -f /tmp/test_results_summary_shard_${{ matrix.shard }}.json ]; then
+            cat /tmp/test_results_summary_shard_${{ matrix.shard }}.json
           fi
