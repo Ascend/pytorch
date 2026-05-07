@@ -65,7 +65,7 @@ jobs:
   report:
     name: Build Report
     needs: [build, test]
-    if: always()
+    if: success() || (needs.build.result == 'skipped' && inputs.skip_build == true)
     runs-on: ubuntu-latest
 
     steps:
@@ -92,34 +92,3 @@ jobs:
           DOCKER_IMAGE: ${{ inputs.docker_image || 'quay.io/kerer/pytorch:manylinux-cann9.0.0-beta.2-20260428' }}
           TRIGGER_TYPE: ${{ github.event_name }}
           RUN_NUMBER: ${{ github.run_number }}
-
-      - name: Check overall status
-        run: |
-          BUILD_RESULT="${{ needs.build.result }}"
-          TEST_RESULT="${{ needs.test.result }}"
-
-          # Build skipped is OK when skip_build is true
-          BUILD_OK=false
-          if [[ "$BUILD_RESULT" == "skipped" && "${{ inputs.skip_build }}" == "true" ]]; then
-            BUILD_OK=true
-          elif [[ "$BUILD_RESULT" == "success" ]]; then
-            BUILD_OK=true
-          fi
-
-          # Test must succeed (or be skipped when build was skipped)
-          TEST_OK=false
-          if [[ "$TEST_RESULT" == "success" ]]; then
-            TEST_OK=true
-          elif [[ "$BUILD_RESULT" == "skipped" && "$TEST_RESULT" == "skipped" ]]; then
-            TEST_OK=true
-          fi
-
-          if [[ "$BUILD_OK" == true && "$TEST_OK" == true ]]; then
-            echo "Overall status: PASSED ✅"
-            exit 0
-          else
-            echo "Overall status: FAILED ❌"
-            echo "Build result: $BUILD_RESULT"
-            echo "Test result: $TEST_RESULT"
-            exit 1
-          fi
