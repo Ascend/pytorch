@@ -218,11 +218,25 @@ jobs:
           # 切换到 test 目录执行，避免根目录 torch 与安装的 torch 库冲突
           cd pytorch-src/test
 
-          # 获取测试总数（使用 dry-run 模式）
-          TEST_COUNT=$(python${{ env.PYTHON_VERSION }} run_test.py --dry-run 2>&1 | grep -o "Running [0-9]* items" | grep -o "[0-9]*" || echo "0")
+          # 直接从 discover_tests.py 获取测试列表（更可靠）
+          python${{ env.PYTHON_VERSION }} -c "
+          import sys
+          sys.path.insert(0, '../tools/testing')
+          from discover_tests import TESTS
+          with open('/tmp/test_list.txt', 'w') as f:
+              for t in TESTS:
+                  f.write(t + '\n')
+          print(f'Found {len(TESTS)} tests from discover_tests.py')
+          " 2>/dev/null || true
 
+          # 输出测试数量
+          TEST_COUNT=$(wc -l < /tmp/test_list.txt)
           echo "test_count=${TEST_COUNT}" >> $GITHUB_OUTPUT
           echo "=== Tests to run (${TEST_COUNT} tests) ==="
+          head -20 /tmp/test_list.txt
+          if [ $TEST_COUNT -gt 20 ]; then
+            echo "... and $(($TEST_COUNT - 20)) more tests"
+          fi
 
           # 输出矩阵配置 (6 shards)
           echo "test_matrix=[1,2,3,4,5,6]" >> $GITHUB_OUTPUT
