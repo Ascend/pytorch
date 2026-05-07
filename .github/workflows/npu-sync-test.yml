@@ -1,12 +1,6 @@
 name: PyTorch NPU Sync Test
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-    branches:
-      - main
-      - master
-      - 'release/**'
   workflow_dispatch:
     inputs:
       docker_image_tag:

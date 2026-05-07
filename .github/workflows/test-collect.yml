@@ -1,6 +1,12 @@
 name: Test Collect Stage
 
 on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+      - master
+      - 'release/**'
   workflow_dispatch:
     inputs:
       run_id:
