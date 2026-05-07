@@ -39,6 +39,7 @@
 #include "torch_npu/csrc/core/npu/interface/AclInterface.h"
 #include "torch_npu/csrc/core/OverflowUtils.h"
 #include "torch_npu/csrc/npu/Module.h"
+#include "torch_npu/csrc/npu/NPURecovery.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
 #include "torch_npu/csrc/npu/DataParallelComm.h"
 #include "torch_npu/csrc/npu/NPUPluggableAllocator.h"
