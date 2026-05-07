@@ -37,15 +37,42 @@ def collect_cases_from_file(test_dir: Path, test_file: str, parallel: int = 1, v
         Tuple of (cases list, error message or empty string)
     """
     full_path = test_dir / test_file
+
+    # ===== DEBUG: Print path details for first few files =====
+    if verbose and "distributed/_composable/fsdp" in test_file:
+        print("\n=== DEBUG: collect_cases_from_file ===")
+        print(f"test_file: {test_file}")
+        print(f"test_dir: {test_dir}")
+        print(f"test_dir.resolve(): {test_dir.resolve()}")
+        print(f"full_path: {full_path}")
+        print(f"full_path.resolve(): {full_path.resolve()}")
+        print(f"full_path.exists(): {full_path.exists()}")
+        print(f"cwd for pytest: {test_dir}")
+        print("=" * 50)
+
     if not full_path.exists():
         error = f"File not found: {full_path}"
         if verbose:
             print(f"[SKIP] {test_file}: {error}")
+            # DEBUG: Show what files exist in similar location
+            parent = full_path.parent
+            if parent.exists():
+                print(f"  DEBUG: Files in {parent}:")
+                for item in sorted(parent.iterdir())[:10]:
+                    print(f"    {item.name}")
+            else:
+                print(f"  DEBUG: Parent directory {parent} does not exist")
         return [], error
 
     try:
+        # ===== DEBUG: Print pytest command for specific files =====
+        pytest_cmd = ["pytest", "--collect-only", "-q", str(full_path)]
+        if verbose and "distributed/_composable/fsdp" in test_file:
+            print(f"\nDEBUG: pytest command: {pytest_cmd}")
+            print(f"DEBUG: cwd: {str(test_dir)}")
+
         result = subprocess.run(
-            ["pytest", "--collect-only", "-q", str(full_path)],
+            pytest_cmd,
             capture_output=True,
             text=True,
             timeout=60,
@@ -130,6 +157,42 @@ def collect_all_cases(
     test_dir_path = Path(test_dir)
     if not test_dir_path.exists():
         raise FileNotFoundError(f"Test directory not found: {test_dir}")
+
+    # ===== DEBUG: Print directory structure and paths =====
+    print("\n=== DEBUG: Directory Structure and Paths ===")
+    print(f"Current working directory: {os.getcwd()}")
+    print(f"test_dir argument: {test_dir}")
+    print(f"test_dir_path: {test_dir_path}")
+    print(f"test_dir_path.resolve(): {test_dir_path.resolve()}")
+    print(f"test_dir_path exists: {test_dir_path.exists()}")
+    print(f"test_dir_path is absolute: {test_dir_path.is_absolute()}")
+
+    # List top-level directories in test_dir
+    if test_dir_path.exists():
+        print(f"\nTop-level items in test_dir_path:")
+        for item in sorted(test_dir_path.iterdir())[:20]:
+            print(f"  {item.name} {'[DIR]' if item.is_dir() else '[FILE]'}")
+
+        # Check distributed directory specifically
+        distributed_path = test_dir_path / "distributed"
+        if distributed_path.exists():
+            print(f"\ndistributed/ directory exists: {distributed_path}")
+            print(f"Contents of distributed/ (first 20 items):")
+            for item in sorted(distributed_path.iterdir())[:20]:
+                print(f"  {item.name} {'[DIR]' if item.is_dir() else '[FILE]'}")
+
+            # Check _composable/fsdp specifically
+            fsdp_path = distributed_path / "_composable" / "fsdp"
+            if fsdp_path.exists():
+                print(f"\n_fsdp path exists: {fsdp_path}")
+                print(f"Contents of fsdp/ (first 10 items):")
+                for item in sorted(fsdp_path.iterdir())[:10]:
+                    print(f"  {item.name} {'[DIR]' if item.is_dir() else '[FILE]'}")
+            else:
+                print(f"\nfsdp path NOT found: {fsdp_path}")
+        else:
+            print(f"\ndistributed/ directory NOT found")
+    print("=" * 50 + "\n")
 
     output_dir_path = Path(output_dir)
     output_dir_path.mkdir(parents=True, exist_ok=True)
