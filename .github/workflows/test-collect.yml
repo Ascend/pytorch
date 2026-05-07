@@ -83,17 +83,37 @@ jobs:
         run: |
           pip${{ env.PYTHON_VERSION }} install --upgrade pip setuptools wheel
 
-      # ==================== Clone PyTorch for test source（提前克隆） ====================
-      - name: Clone PyTorch test source
-        run: |
-          # 使用代理加速 git clone，只获取测试用例（浅克隆，无 submodules）
-          PYTORCH_REPO="https://github.com/pytorch/pytorch.git"
-          if [ -n "${{ env.GH_PROXY_URL }}" ]; then
-            PYTORCH_REPO="${{ env.GH_PROXY_URL }}/${PYTORCH_REPO}"
-            echo "Using proxy: ${PYTORCH_REPO}"
-          fi
-          git clone --depth=1 "${PYTORCH_REPO}" pytorch-src
-          echo "Cloned PyTorch test directory"
+      # ==================== Download artifacts from Ascend/pytorch workflow run ====================
+      # 从固定 workflow run 下载: https://github.com/Ascend/pytorch/actions/runs/25473494025
+      - name: Download torch wheel from workflow run
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          run_id: 25473494025
+          name: torch-wheel-main
+          path: wheels
+          repo: Ascend/pytorch
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          skip_unpack: false
+
+      - name: Download torch_npu wheel from workflow run
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          run_id: 25473494025
+          name: torch-npu-wheel-main
+          path: wheels
+          repo: Ascend/pytorch
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download PyTorch source and build artifacts from workflow run
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          run_id: 25473494025
+          name: pytorch-src-main
+          repo: Ascend/pytorch
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract PyTorch source
+        run: tar -xzf pytorch-src.tar.gz
 
       - name: Install test dependencies
         run: |
@@ -105,26 +125,6 @@ jobs:
 
           # 安装 PyTorch 开发依赖（可选）
           pip${{ env.PYTHON_VERSION }} install expecttest hypothesis fsspec sympy optree networkx psutil || true
-
-      # ==================== Download artifacts from previous workflow run ====================
-      - name: Download artifacts from workflow run
-        uses: dawidd6/action-download-artifact@v3
-        with:
-          run_id: ${{ inputs.run_id || '25097789439' }}
-          name: torch-wheel-main
-          path: wheels
-          repo: Ascend/pytorch
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          skip_unpack: false
-
-      - name: Download torch_npu wheel from workflow run
-        uses: dawidd6/action-download-artifact@v3
-        with:
-          run_id: ${{ inputs.run_id || '25097789439' }}
-          name: torch-npu-wheel-main
-          path: wheels
-          repo: Ascend/pytorch
-          github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install wheels
         run: |
