@@ -115,7 +115,7 @@ StorageWeakRefPointer = int
 StorageDataPtr = int
 NBytes = int
 S = TypeVar("S", bound="StorageWeakRefWrapper")
-log = logging.getLogger("torch_npu.aclgraph")
+log = logging.getLogger("torch_npu.npugraph")
 
 
 @dataclasses.dataclass(frozen=True)
@@ -351,9 +351,9 @@ def npugraphify_impl(
             return fn(inputs)
 
         if int_key is None:
-            log.info("recording npugraph tree for graph without symints")
+            log.debug("[NPUGRAPH-TREE][Compile] recording, key=None")
         else:
-            log.info("recording npugraph tree for symint key %s", int_key)
+            log.debug("[NPUGRAPH-TREE][Compile] recording, key=%s", int_key)
 
         if not has_warn:
             has_warn = maybe_warning_due_to_dynamic_shape(fn_cache, int_key)
@@ -1064,6 +1064,7 @@ class NPUGraphNode:
         return outputs
 
     def run(self, new_inputs: List[InputType]) -> OutputType:
+        log.debug("[NPUGRAPH-TREE][Node][Run] node=%s", self.id)
         self.check_static_inputs_are_stable(new_inputs)
         for item in new_inputs:
             if isinstance(item, torch.Tensor) and item.dtype == torch.int32 and item.device.type == "cpu":
@@ -2205,7 +2206,7 @@ class NPUGraphTreeManager:
         if isinstance(self.current_node, NPUWarmupNode):
             raise RuntimeError("self.current_node is NPUWarmupNode object")
         graph_id = self.new_graph_id()
-        log.debug(f"Recording function {function_id.id} of graph recording id {graph_id.id}")
+        log.debug("[NPUGRAPH-TREE][Node][Record] function=%s, graph=%s", function_id.id, graph_id.id)
         torch.npu.synchronize()
         node = NPUGraphNode(
             self.ids_to_funcs[function_id],
@@ -2233,7 +2234,7 @@ class NPUGraphTreeManager:
         self.current_node = node
         self.path_state = ExecutionState.EXECUTION
         self.update_generation()
-        log.debug(f"execute graph, id is {self.current_node.id}")
+        log.debug("[NPUGRAPH-TREE][Execute] node=%s", self.current_node.id)
         return node.run(new_inputs)
 
     def run_eager(
@@ -2243,9 +2244,9 @@ class NPUGraphTreeManager:
         # we will deallocate it
         already_warm = function_id in self.warmed_up_functions
         if not already_warm:
-            log.debug(f"Running warmup of function {function_id}")
+            log.debug("[NPUGRAPH-TREE][Warmup] Running warmup, function=%s", function_id)
         else:
-            log.debug(f"Running eager of function {function_id} because ancestor needed to warm up")
+            log.debug("[NPUGRAPH-TREE][Eager] Running eager (ancestor warmup), function=%s", function_id)
         self.warmed_up_functions.add(function_id)
         node = NPUWarmupNode(
             self.ids_to_funcs[function_id],
