@@ -1,23 +1,25 @@
 import json
-import os
 import re
-from json import JSONDecodeError
 from configparser import ConfigParser
+from json import JSONDecodeError
 
+from .prof_bean._ai_cpu_bean import AiCpuBean
+from .prof_bean._api_statistic_bean import ApiStatisticBean
+from .prof_bean._hccs_bean import HccsBean
+from .prof_bean._l2_cache_bean import L2CacheBean
+from .prof_bean._nic_bean import NicBean
+from .prof_bean._npu_module_mem_bean import NpuModuleMemoryBean
+from .prof_bean._op_statistic_bean import OpStatisticBean
+from .prof_bean._pcie_bean import PcieBean
+from .prof_bean._roce_bean import RoCEBean
+from .prof_bean._soc_pmu_bean import SocPmuBean
+from .prof_bean._task_time_bean import TaskTimeBean
+from .prof_common_func._constant import Constant, print_error_msg, print_warn_msg
 from .prof_common_func._file_manager import FileManager
 from .prof_common_func._path_manager import ProfilerPathManager
 from .prof_common_func._singleton import Singleton
-from .prof_common_func._constant import Constant, print_warn_msg, print_error_msg
-from .prof_bean._ai_cpu_bean import AiCpuBean
 from .prof_parse._cann_file_parser import CANNDataEnum, CANNFileParser
-from .prof_bean._l2_cache_bean import L2CacheBean
-from .prof_bean._api_statistic_bean import ApiStatisticBean
-from .prof_bean._op_statistic_bean import OpStatisticBean
-from .prof_bean._npu_module_mem_bean import NpuModuleMemoryBean
-from .prof_bean._nic_bean import NicBean
-from .prof_bean._roce_bean import RoCEBean
-from .prof_bean._pcie_bean import PcieBean
-from .prof_bean._hccs_bean import HccsBean
+
 
 __all__ = []
 
@@ -26,20 +28,39 @@ __all__ = []
 class ProfilerConfig:
     LEVEL_PARSER_CONFIG = {
         Constant.LEVEL_NONE: [],
-        Constant.LEVEL0: [(CANNDataEnum.NPU_MODULE_MEM, NpuModuleMemoryBean)],
-        Constant.LEVEL1: [(CANNDataEnum.OP_STATISTIC, OpStatisticBean),
-                          (CANNDataEnum.API_STATISTIC, ApiStatisticBean),
-                          (CANNDataEnum.NPU_MODULE_MEM, NpuModuleMemoryBean)],
-        Constant.LEVEL2: [(CANNDataEnum.AI_CPU, AiCpuBean), 
-                          (CANNDataEnum.OP_STATISTIC, OpStatisticBean),
-                          (CANNDataEnum.API_STATISTIC, ApiStatisticBean),
-                          (CANNDataEnum.NPU_MODULE_MEM, NpuModuleMemoryBean)]
+        Constant.LEVEL0: [
+            (CANNDataEnum.NPU_MODULE_MEM, NpuModuleMemoryBean),
+            (CANNDataEnum.TASK_TIME, TaskTimeBean),
+        ],
+        Constant.LEVEL1: [
+            (CANNDataEnum.OP_STATISTIC, OpStatisticBean),
+            (CANNDataEnum.API_STATISTIC, ApiStatisticBean),
+            (CANNDataEnum.NPU_MODULE_MEM, NpuModuleMemoryBean),
+            (CANNDataEnum.TASK_TIME, TaskTimeBean),
+        ],
+        Constant.LEVEL2: [
+            (CANNDataEnum.AI_CPU, AiCpuBean),
+            (CANNDataEnum.OP_STATISTIC, OpStatisticBean),
+            (CANNDataEnum.API_STATISTIC, ApiStatisticBean),
+            (CANNDataEnum.NPU_MODULE_MEM, NpuModuleMemoryBean),
+            (CANNDataEnum.TASK_TIME, TaskTimeBean),
+        ],
     }
     LEVEL_TRACE_PRUNE_CONFIG = {
         Constant.LEVEL_NONE: [],
-        Constant.LEVEL0: ['CANN', 'AscendCL', 'Runtime', 'GE', 'Node', 'Model', 'Hccl', 'acl_to_npu', 'Communication@'],
+        Constant.LEVEL0: [
+            "CANN",
+            "AscendCL",
+            "Runtime",
+            "GE",
+            "Node",
+            "Model",
+            "Hccl",
+            "acl_to_npu",
+            "Communication@",
+        ],
         Constant.LEVEL1: [],
-        Constant.LEVEL2: []
+        Constant.LEVEL2: [],
     }
 
     def __init__(self):
@@ -90,11 +111,11 @@ class ProfilerConfig:
             print_error_msg(f"Input string is not str, get type: {type(string)}")
             return False
 
-        pattern = re.compile(r'^[-+]?[0-9]{0,20}\.?[0-9]{1,20}([eE][-+]?[0-9]{1,20})?$')
+        pattern = re.compile(r"^[-+]?[0-9]{0,20}\.?[0-9]{1,20}([eE][-+]?[0-9]{1,20})?$")
         return bool(pattern.match(string))
 
     def get_timestamp_from_syscnt(self, syscnt: int, time_fmt: int = 1000):
-        if self._syscnt_enable == False:
+        if not self._syscnt_enable:
             return syscnt
         else:
             if abs(self._freq) < 1e-15:
@@ -112,7 +133,7 @@ class ProfilerConfig:
             try:
                 jsondata = json.loads(FileManager.file_read_all(info_path, "rt"))
                 config_freq = jsondata.get("CPU")[0].get("Frequency")
-                if (self.is_number(str(config_freq))):
+                if self.is_number(str(config_freq)):
                     self._freq = float(config_freq)
             except JSONDecodeError:
                 print_warn_msg("Failed to get profiler info json from file.")
@@ -125,12 +146,16 @@ class ProfilerConfig:
             start_log.read(host_start_log_path)
             config_offset = start_log.get("Host", "clock_monotonic_raw")
             config_start_cnt = start_log.get("Host", "cntvct")
-            if self.is_number(str(config_offset)) and self.is_number(str(config_start_cnt)):
+            if self.is_number(str(config_offset)) and self.is_number(
+                str(config_start_cnt)
+            ):
                 self._time_offset = int(config_offset)
                 self._start_cnt = int(config_start_cnt)
         else:
             # 保存的offset 和 cnt
-            self._time_offset = start_info.get(Constant.StartMonotonic, self._time_offset)
+            self._time_offset = start_info.get(
+                Constant.StartMonotonic, self._time_offset
+            )
             self._start_cnt = start_info.get(Constant.StartCnt, self._start_cnt)
 
     @classmethod
@@ -147,7 +172,9 @@ class ProfilerConfig:
     def load_info(self, profiler_path: str):
         if self._is_load:
             return
-        info_json = self._get_json_data(ProfilerPathManager.get_info_file_path(profiler_path))
+        info_json = self._get_json_data(
+            ProfilerPathManager.get_info_file_path(profiler_path)
+        )
         self.load_activities(profiler_path, info_json)
         self.load_rank_info(info_json)
         self.load_experimental_cfg_info(info_json)
@@ -156,17 +183,24 @@ class ProfilerConfig:
         self._is_load = True
 
     def load_activities(self, profiler_path: str, info_json: dict):
-        self._activities = (info_json.get(Constant.CONFIG, {}).get(Constant.COMMON_CONFIG, {})
-                            .get(Constant.ACTIVITIES, []))
+        self._activities = (
+            info_json.get(Constant.CONFIG, {})
+            .get(Constant.COMMON_CONFIG, {})
+            .get(Constant.ACTIVITIES, [])
+        )
         fwk_path = ProfilerPathManager.get_fwk_path(profiler_path)
         cann_path = ProfilerPathManager.get_cann_path(profiler_path)
 
         if Constant.CPU_ACTIVITIES in self._activities and not fwk_path:
-            print_error_msg("ProfilerActivity.CPU is set in activities, but FWK Profiling data does not exist.")
+            print_error_msg(
+                "ProfilerActivity.CPU is set in activities, but FWK Profiling data does not exist."
+            )
             self._activities.remove(Constant.CPU_ACTIVITIES)
 
         if Constant.NPU_ACTIVITIES in self._activities and not cann_path:
-            print_error_msg("ProfilerActivity.NPU is set in activities, but CANN Profiling data does not exist.")
+            print_error_msg(
+                "ProfilerActivity.NPU is set in activities, but CANN Profiling data does not exist."
+            )
             self._activities.remove(Constant.NPU_ACTIVITIES)
 
     def load_rank_info(self, info_json: dict):
@@ -178,26 +212,39 @@ class ProfilerConfig:
         end_info = info_json.get(Constant.END_INFO, {})
         if not self._localtime_diff and end_info:
             self._localtime_diff = int(end_info.get(Constant.FWK_END_TIME, 0)) - int(
-                end_info.get(Constant.FWK_END_MONOTONIC, 0))
+                end_info.get(Constant.FWK_END_MONOTONIC, 0)
+            )
 
     def load_experimental_cfg_info(self, info_json: dict):
-        experimental_config = info_json.get(Constant.CONFIG, {}).get(Constant.EXPERIMENTAL_CONFIG, {})
-        self._profiler_level = experimental_config.get(Constant.PROFILER_LEVEL, self._profiler_level)
-        self._ai_core_metrics = experimental_config.get(Constant.AI_CORE_METRICS, self._ai_core_metrics)
+        experimental_config = info_json.get(Constant.CONFIG, {}).get(
+            Constant.EXPERIMENTAL_CONFIG, {}
+        )
+        self._profiler_level = experimental_config.get(
+            Constant.PROFILER_LEVEL, self._profiler_level
+        )
+        self._ai_core_metrics = experimental_config.get(
+            Constant.AI_CORE_METRICS, self._ai_core_metrics
+        )
         self._l2_cache = experimental_config.get(Constant.L2_CACHE, self._l2_cache)
         self._msprof_tx = experimental_config.get(Constant.MSPROF_TX, self._msprof_tx)
         self._op_attr = experimental_config.get(Constant.OP_ATTR, self._op_attr)
-        self._data_simplification = experimental_config.get(Constant.DATA_SIMPLIFICATION, self._data_simplification)
-        self._export_type = self._get_export_type_from_profiler_info(experimental_config)
+        self._data_simplification = experimental_config.get(
+            Constant.DATA_SIMPLIFICATION, self._data_simplification
+        )
+        self._export_type = self._get_export_type_from_profiler_info(
+            experimental_config
+        )
         self._sys_io = experimental_config.get(Constant.SYS_IO, self._sys_io)
-        self._sys_interconnection = experimental_config.get(Constant.SYS_INTERCONNECTION, self._sys_interconnection)
+        self._sys_interconnection = experimental_config.get(
+            Constant.SYS_INTERCONNECTION, self._sys_interconnection
+        )
 
     def get_parser_bean(self):
         return (
-            self.LEVEL_PARSER_CONFIG.get(self._profiler_level) +
-            self._get_l2_cache_bean() +
-            self._get_sys_io_bean() +
-            self._get_sys_interconnection_bean()
+            self.LEVEL_PARSER_CONFIG.get(self._profiler_level)
+            + self._get_l2_cache_bean()
+            + self._get_sys_io_bean()
+            + self._get_sys_interconnection_bean()
         )
 
     def get_prune_config(self):
@@ -216,19 +263,33 @@ class ProfilerConfig:
         return self._profiler_level
 
     def _get_l2_cache_bean(self):
-        return [(CANNDataEnum.L2_CACHE, L2CacheBean)] if self._l2_cache else []
-    
+        return (
+            [(CANNDataEnum.L2_CACHE, L2CacheBean), (CANNDataEnum.SOC_PMU, SocPmuBean)]
+            if self._l2_cache
+            else []
+        )
+
     def _get_sys_io_bean(self):
-        return [(CANNDataEnum.NIC, NicBean), (CANNDataEnum.ROCE, RoCEBean)] if self._sys_io else []
+        return (
+            [(CANNDataEnum.NIC, NicBean), (CANNDataEnum.ROCE, RoCEBean)]
+            if self._sys_io
+            else []
+        )
 
     def _get_sys_interconnection_bean(self):
-        return [(CANNDataEnum.PCIE, PcieBean), (CANNDataEnum.HCCS, HccsBean)] if self._sys_interconnection else []
+        return (
+            [(CANNDataEnum.PCIE, PcieBean), (CANNDataEnum.HCCS, HccsBean)]
+            if self._sys_interconnection
+            else []
+        )
 
     def _get_export_type_from_profiler_info(self, experimental_config: dict) -> list:
         export_type = experimental_config.get(Constant.EXPORT_TYPE, self._export_type)
         if not export_type:
-            print_warn_msg(f"Invalid parameter export_type from profiler_info.json: {export_type}, "
-                           f"reset it to text.")
+            print_warn_msg(
+                f"Invalid parameter export_type from profiler_info.json: {export_type}, "
+                f"reset it to text."
+            )
             return [Constant.Text]
         if isinstance(export_type, str):
             export_type = [export_type]
@@ -236,14 +297,21 @@ class ProfilerConfig:
             try:
                 export_type = list(set(export_type))
             except Exception as error:
-                print_warn_msg(f"Invalid parameter export_type from profiler_info.json: {export_type}, "
-                               f"reset it to text. Error is {error}")
+                print_warn_msg(
+                    f"Invalid parameter export_type from profiler_info.json: {export_type}, "
+                    f"reset it to text. Error is {error}"
+                )
                 return [Constant.Text]
         else:
             print_warn_msg(
-                "Invalid parameter export_type from profiler_info.json: %s, reset it to text." % export_type)
+                f"Invalid parameter export_type from profiler_info.json: {export_type}, reset it to text."
+            )
             return [Constant.Text]
-        if not all(tmp_type in [Constant.Text, Constant.Db] for tmp_type in export_type):
-            print_warn_msg("Invalid parameter export_type from profiler_info.json, reset it to text.")
+        if not all(
+            tmp_type in [Constant.Text, Constant.Db] for tmp_type in export_type
+        ):
+            print_warn_msg(
+                "Invalid parameter export_type from profiler_info.json, reset it to text."
+            )
             return [Constant.Text]
         return export_type

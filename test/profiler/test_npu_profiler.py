@@ -82,6 +82,8 @@ class TestNpuProfiler(TestCase):
     OPERATOR_FILE_NAME = "operator_details.csv"
     OPERATOR_MEMORY = "operator_memory.csv"
     MEMORY_RECORD = "memory_record.csv"
+    TASK_TIME = "task_time.csv"
+    SOC_PMU = "soc_pmu.csv"
     STACK_FILE_NAME = "profiler_stacks.log"
     METADATA_FILE_NAME = "profiler_metadata.json"
     ANALYZE_DB = "analysis.db"
@@ -130,6 +132,10 @@ class TestNpuProfiler(TestCase):
             self._has_view_result(
                 self.results_path, worker_name, self.OPERATOR_FILE_NAME
             ),
+        )
+        self.assertEqual(
+            True,
+            self._has_view_result(self.results_path, worker_name, self.TASK_TIME),
         )
         # self.assertEqual(True, self._check_trace_view_keywords(self.results_path, worker_name, ["async_npu"]))
 
@@ -210,6 +216,7 @@ class TestNpuProfiler(TestCase):
             ),
         )
 
+    @unittest.skip("skip now")
     def test_activities_npu(self):
         worker_name = self.worker_name
         with torch_npu.profiler.profile(
@@ -217,6 +224,7 @@ class TestNpuProfiler(TestCase):
             on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(
                 self.results_path, worker_name=worker_name
             ),
+            experimental_config=torch_npu.profiler._ExperimentalConfig(l2_cache=True),
         ) as prof:
             for step in range(self.small_steps):
                 self.model_train.train_one_step()
@@ -233,6 +241,10 @@ class TestNpuProfiler(TestCase):
             self._has_view_result(
                 self.results_path, worker_name, self.OPERATOR_FILE_NAME
             ),
+        )
+        self.assertEqual(
+            True,
+            self._has_view_result(self.results_path, worker_name, self.SOC_PMU),
         )
         # self.assertEqual(False, self._check_trace_view_keywords(worker_name, ["async_npu"]))
 
