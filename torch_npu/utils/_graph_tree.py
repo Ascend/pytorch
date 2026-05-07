@@ -73,7 +73,8 @@ def check_multiple_devices_or_any_cpu_nodes(
     if cpu_node:
         msg = f"cpu device ({cpu_node.name})"
         stack_trace = _get_use_stack_trace(cpu_node)
-        log.info(f"skip with cpu node, msg is {msg}, stack_trace is {stack_trace}")
+        log.info("NPUGraph: skipped — CPU node detected (%s)", cpu_node.name)
+        log.debug("[NPUGRAPH][DFX] Fix: use .to('npu'), stack:\n%s", stack_trace)
         if stack_trace:
             return format_default_skip_message(f"{msg}. Found from : \n {stack_trace}")
         return format_default_skip_message(msg)
@@ -85,6 +86,8 @@ def check_multiple_devices_or_any_cpu_nodes(
         return None
 
     keys_repr = (repr(key) for key in device_node_mapping.keys())
+    log.info("NPUGraph: skipped — multiple devices (%s)", list(device_node_mapping.keys()))
+    log.warning("[NPUGRAPH][DFX] Fix: ensure all tensors on same NPU device")
     return format_default_skip_message(f"multiple devices: {', '.join(keys_repr)}")
 
 
@@ -286,9 +289,9 @@ def npugraphs(dynamo_model, dynamo_inputs):
         skip_msg = check_for_skip(aot_model, fixed)
         if skip_msg:
             BoxedBool.disable(do_npugraphs)
-            log_cudagraph_skip_and_bump_counter(
-                f"skipping npugraphs due to {skip_msg}"
-            )
+            log.info("NPUGraph: skipped — %s", skip_msg)
+            log.warning("[NPUGRAPH][DFX] Fix: check skip reason above, common causes: "
+                        "input mutation, incompatible ops, data-dependent control flow")
             return interp
 
         boxed_device_index.set(get_device_index(aot_model))
