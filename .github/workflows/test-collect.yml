@@ -9,10 +9,6 @@ on:
       - 'release/**'
   workflow_dispatch:
     inputs:
-      run_id:
-        description: 'Workflow run ID to download artifacts from'
-        required: true
-        default: '25097789439'
       distributed_shards:
         description: 'Distributed test shards'
         default: 2
@@ -26,7 +22,6 @@ env:
   PYTHON_VERSION: '3.11'
   CACHE_VERSION: 'v2'
   PYPI_CACHE_URL: 'http://cache-service.nginx-pypi-cache.svc.cluster.local/pypi/simple'
-  GH_PROXY_URL: 'https://gh-proxy.test.osinfra.cn'
 
 jobs:
   collect:
@@ -84,7 +79,8 @@ jobs:
           pip${{ env.PYTHON_VERSION }} install --upgrade pip setuptools wheel
 
       # ==================== Download artifacts from Ascend/pytorch workflow run ====================
-      # 从固定 workflow run 下载: https://github.com/Ascend/pytorch/actions/runs/25473494025
+      # 固定 workflow run: https://github.com/Ascend/pytorch/actions/runs/25473494025
+      # 包含: torch wheel, torch_npu wheel, pytorch 源码 + 编译产物
       - name: Download torch wheel from workflow run
         uses: dawidd6/action-download-artifact@v3
         with:
@@ -115,21 +111,21 @@ jobs:
       - name: Extract PyTorch source
         run: tar -xzf pytorch-src.tar.gz
 
+      - name: Install wheels
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          pip${{ env.PYTHON_VERSION }} install wheels/*.whl
+
       - name: Install test dependencies
         run: |
           # 安装当前仓库的基础测试依赖
           pip${{ env.PYTHON_VERSION }} install -r .ci/docker/requirements-ci.txt
 
-          # 安装上游 PyTorch 的完整测试依赖
+          # 安装上游 PyTorch 的完整测试依赖（需要先安装 torch）
           pip${{ env.PYTHON_VERSION }} install -r pytorch-src/.ci/docker/requirements-ci.txt || true
 
           # 安装 PyTorch 开发依赖（可选）
           pip${{ env.PYTHON_VERSION }} install expecttest hypothesis fsspec sympy optree networkx psutil || true
-
-      - name: Install wheels
-        run: |
-          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
-          pip${{ env.PYTHON_VERSION }} install wheels/*.whl
 
       - name: Verify NPU availability
         continue-on-error: true
