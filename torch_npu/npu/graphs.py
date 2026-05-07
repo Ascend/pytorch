@@ -61,6 +61,9 @@ from torch_npu._C import (  # noqa: F401
 )
 
 
+log = logging.getLogger("torch_npu.npugraph")
+
+
 def is_current_stream_capturing():
     r"""Return True if NPU graph capture is underway on the current NPU stream, False otherwise.
 
@@ -518,6 +521,7 @@ class NPUGraph(torch_npu._C._NPUGraph):
 
     def replay(self):
         r"""Replay the NPU work captured by this graph."""
+        log.debug("[NPUGRAPH][Replay] graph_id=%s", id(self))
         super().replay()
 
     def reset(self):
@@ -533,6 +537,7 @@ class NPUGraph(torch_npu._C._NPUGraph):
         return super().pool()
 
     def update(self, cpu_update_input):
+        log.debug("NPUGraph: updating graph (%s inputs)...", len(cpu_update_input))
         if not self.auto_dispatch_capture:
             raise RuntimeError(
                 "The current graph configuration does not support update,"
@@ -727,6 +732,9 @@ class graph:
         self.npu_graph.auto_dispatch_capture = auto_dispatch_capture
 
     def __enter__(self):
+        log.debug("[NPUGRAPH][Capture] device=%s, pool=%s, mode=%s, auto_dispatch=%s",
+                  torch.npu.current_device(), self.pool, self.capture_error_mode,
+                  self.npu_graph.auto_dispatch_capture)
         torch.npu.synchronize()
         if force_npugraph_gc:
             gc.collect()
@@ -742,6 +750,12 @@ class graph:
         )
 
     def __exit__(self, exc_type, exc_value, traceback):
+        if exc_type is not None:
+            log.error("NPUGraph: ERROR — capture failed: %s: %s", exc_type.__name__, exc_value)
+            log.warning("[NPUGRAPH][DFX] common causes: default stream, CPU ops, multi-device tensors, "
+                        "dynamic control flow on tensor values")
+        else:
+            log.debug("NPUGraph: capture completed, graph_id=%s", id(self.npu_graph))
         self.npu_graph.capture_end()
         if self.npu_graph.auto_dispatch_capture:
             self.npu_graph.graph_dispatch_mode.__exit__(exc_type, exc_value, traceback)
@@ -818,7 +832,11 @@ def make_graphed_callables(
         The automatic mixed precision is supported in :func:`~torch.cuda.make_graphed_callables` only with disabled
         caching. The context manager `torch.cuda.amp.autocast()` must have `cache_enabled=False`.
     """
+    log.debug("NPUGraph: make_graphed_callables (callables=%s, warmup=%s)...",
+              len(callables), num_warmup_iters)
     if torch_npu.npu.is_autocast_enabled() and torch.is_autocast_cache_enabled():
+        log.error("NPUGraph: ERROR — autocast caching not supported")
+        log.warning("[NPUGRAPH][DFX] Fix: set cache_enabled=False in torch.autocast()")
         raise RuntimeError(
             "make_graphed_callables does not support the autocast caching. Please set `cache_enabled=False`."
         )
@@ -835,6 +853,8 @@ def make_graphed_callables(
     for c, args in zip(callables, sample_args):
         if isinstance(c, torch.nn.Module):
             if len(c._backward_hooks) > 0 or len(c._forward_hooks) > 0 or len(c._forward_pre_hooks) > 0:
+                log.error("NPUGraph: ERROR — hooks registered on module %s", type(c).__name__)
+                log.warning("[NPUGRAPH][DFX] Fix: remove hooks before make_graphed_callables, re-register after")
                 raise RuntimeError("Modules must not have hooks registered at the time they are passed. However, "
                     + "registering hooks on modules after passing them through make_graphed_callables is allowed.")
             if any(b.requires_grad for b in c.buffers()):
@@ -1041,6 +1061,7 @@ def make_graphed_callables(
         else:
             ret.append(graphed)
 
+    log.debug("NPUGraph: graphed callables ready")
     if just_one_callable:
         return ret[0]
 

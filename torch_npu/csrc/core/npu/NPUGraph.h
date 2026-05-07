@@ -11,6 +11,33 @@
 #include "torch_npu/csrc/core/npu/NPUGraphsUtils.h"
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
+#include "torch_npu/csrc/logging/LogContext.h"
+
+namespace npu_logging {
+class Logger;
+}
+
+inline std::shared_ptr<npu_logging::Logger>& GetNPUGraphLogger()
+{
+    static std::shared_ptr<npu_logging::Logger> logger =
+        npu_logging::logging().getLogger("torch_npu.npugraph");
+    return logger;
+}
+
+#define NPUGRAPH_LOGD(format, ...)                                           \
+    do {                                                                      \
+        TORCH_NPU_LOGD(GetNPUGraphLogger(), format, ##__VA_ARGS__);           \
+    } while (0);
+
+#define NPUGRAPH_LOGI(format, ...)                                           \
+    do {                                                                      \
+        TORCH_NPU_LOGI(GetNPUGraphLogger(), format, ##__VA_ARGS__);           \
+    } while (0);
+
+#define NPUGRAPH_LOGE(format, ...)                                           \
+    do {                                                                      \
+        TORCH_NPU_LOGE(GetNPUGraphLogger(), format, ##__VA_ARGS__);           \
+    } while (0);
 
 namespace at {
     struct Generator;
