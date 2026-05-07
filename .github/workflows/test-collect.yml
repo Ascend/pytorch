@@ -321,42 +321,6 @@ jobs:
           print(f'Found {len(TESTS)} tests from discover_tests.py')
           " 2>/dev/null || true
 
-          # 如果方法1失败，尝试方法2: 从 --help 解析
-          if [ ! -f /tmp/test_list.txt ] || [ ! -s /tmp/test_list.txt ]; then
-            echo "Method 1 failed, trying method 2 (parse --help)"
-            python${{ env.PYTHON_VERSION }} run_test.py --help > /tmp/run_test_help.txt 2>&1 || true
-
-            # 解析测试列表
-            python${{ env.PYTHON_VERSION }} -c "
-            import re
-            with open('/tmp/run_test_help.txt') as f:
-                content = f.read()
-            # 查找测试列表 (格式: where TESTS is any of: xxx, yyy, zzz)
-            match = re.search(r'where TESTS is any of:\s*(.+)', content)
-            if match:
-                tests_str = match.group(1).strip()
-                tests = [t.strip() for t in tests_str.split(',')]
-                tests = [t for t in tests if t]
-                with open('/tmp/test_list.txt', 'w') as f:
-                    for t in tests:
-                        f.write(t + '\n')
-                print(f'Found {len(tests)} tests from --help')
-            else:
-                print('Could not find TESTS list')
-            "
-          fi
-
-          # 如果都失败，使用默认列表
-          if [ ! -f /tmp/test_list.txt ] || [ ! -s /tmp/test_list.txt ]; then
-            echo "All methods failed, using default test list"
-            echo "test_nn" > /tmp/test_list.txt
-            echo "test_torch" >> /tmp/test_list.txt
-            echo "test_autograd" >> /tmp/test_list.txt
-            echo "test_distributions" >> /tmp/test_list.txt
-            echo "test_indexing" >> /tmp/test_list.txt
-            echo "test_type_promotion" >> /tmp/test_list.txt
-          fi
-
           # 输出测试数量
           TEST_COUNT=$(wc -l < /tmp/test_list.txt)
           echo "test_count=${TEST_COUNT}" >> $GITHUB_OUTPUT
@@ -382,6 +346,7 @@ jobs:
           TEST_COUNT=0
           PASSED=0
           FAILED=0
+          START_TIME=$(date +%s)
 
           while IFS= read -r test_name; do
             if [ -z "$test_name" ]; then
@@ -389,32 +354,46 @@ jobs:
             fi
 
             TEST_COUNT=$((TEST_COUNT + 1))
+            TEST_START_TIME=$(date +%s)
             echo ""
             echo "============================================"
             echo "Test ${TEST_COUNT}: ${test_name}"
             echo "============================================"
 
-            # 运行测试，捕获输出，即使失败也继续
+            # 运行测试，捕获输出到文件但不打印到控制台
             set +e
-            python${{ env.PYTHON_VERSION }} run_test.py -i "${test_name}" -v 2>&1 | tee /tmp/test_output_${TEST_COUNT}.log
-            TEST_EXIT_CODE=${PIPESTATUS[0]}
+            python${{ env.PYTHON_VERSION }} run_test.py -i "${test_name}" -v > /tmp/test_output_${TEST_COUNT}.log 2>&1
+            TEST_EXIT_CODE=$?
             set -e
+
+            TEST_END_TIME=$(date +%s)
+            TEST_DURATION=$((TEST_END_TIME - TEST_START_TIME))
 
             # 检查结果
             if [ $TEST_EXIT_CODE -eq 0 ]; then
-              echo ">>> ${test_name}: PASSED"
+              echo ">>> ${test_name}: PASSED (${TEST_DURATION}s)"
               PASSED=$((PASSED + 1))
             else
-              echo ">>> ${test_name}: FAILED (exit code: ${TEST_EXIT_CODE})"
+              echo ">>> ${test_name}: FAILED (exit code: ${TEST_EXIT_CODE}, ${TEST_DURATION}s)"
               FAILED=$((FAILED + 1))
+              # 打印失败测试的最后几行日志
+              echo "--- Last 20 lines of log ---"
+              tail -20 /tmp/test_output_${TEST_COUNT}.log
+              echo "--- End of log preview ---"
             fi
 
+            CURRENT_TIME=$(date +%s)
+            TOTAL_DURATION=$((CURRENT_TIME - START_TIME))
             echo ""
             echo "--------------------------------------------"
-            echo "Summary so far: ${PASSED} passed, ${FAILED} failed out of ${TEST_COUNT} tests"
+            echo "Summary: ${PASSED} passed, ${FAILED} failed, ${TEST_COUNT} total"
+            echo "Elapsed: ${TOTAL_DURATION}s ($(date -d "@${START_TIME}" +%H:%M:%S) - $(date +%H:%M:%S))"
             echo "--------------------------------------------"
 
           done < /tmp/test_list.txt
+
+          END_TIME=$(date +%s)
+          TOTAL_DURATION=$((END_TIME - START_TIME))
 
           echo ""
           echo "============================================"
@@ -422,10 +401,11 @@ jobs:
           echo "Total tests run: ${TEST_COUNT}"
           echo "Passed: ${PASSED}"
           echo "Failed: ${FAILED}"
+          echo "Total time: ${TOTAL_DURATION}s ($(date -d "@${START_TIME}" +%H:%M:%S) - $(date -d "@${END_TIME}" +%H:%M:%S))"
           echo "============================================"
 
-          # 保存结果摘要
-          echo "{\"total\": ${TEST_COUNT}, \"passed\": ${PASSED}, \"failed\": ${FAILED}}" > /tmp/test_results_summary.json
+          # 保存结果摘要（包含时间信息）
+          echo "{\"total\": ${TEST_COUNT}, \"passed\": ${PASSED}, \"failed\": ${FAILED}, \"duration_seconds\": ${TOTAL_DURATION}}" > /tmp/test_results_summary.json
 
       - name: Upload test results
         if: always()
