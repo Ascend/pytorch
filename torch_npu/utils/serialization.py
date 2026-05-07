@@ -18,7 +18,7 @@ import torch_npu
 from torch_npu.utils._error_code import ErrCode, pta_error
 from .utils import _should_print_warning
 
-__all__ = ["load", "save", "save_async"]
+__all__ = ["load", "save_async"]
 
 ALWAYS_WARN_LEGACY_SERIALIZATION = False
 RE_MAP_CPU = False
@@ -423,23 +423,6 @@ def _npu_save(
         zip_file.write_record(name, storage, num_bytes)
 
 
-def save(
-    obj: object,
-    f: FileLike,
-    pickle_module: Any = pickle,
-    pickle_protocol: int = DEFAULT_PROTOCOL,
-    _use_new_zipfile_serialization: bool = True,
-    _disable_byteorder_record: bool = False
-) -> None:
-    if _use_new_zipfile_serialization is False:
-        warn_massage = (
-            "Warning: torch.save with \"_use_new_zipfile_serialization = False\" is not recommended for npu tensor, which may bring unexpected errors and hopefully set \"_use_new_zipfile_serialization = True\"",
-            "if it is necessary to use this, please convert the npu tensor to cpu tensor for saving"
-        )
-        _warn_legacy_serialization(warn_massage, "save")
-    return torch.serialization.save(obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization, _disable_byteorder_record)
-
-
 def save_async(
     obj: object,
     f,
@@ -581,6 +564,20 @@ def _save(obj, pickle_module, pickle_protocol):
 
 
 def _add_serialization_methods():
-    torch.save = save
-    torch.load = load
     torch.serialization._save = _npu_save
+    torch.load = load
+
+    _orig_legacy_save = torch.serialization._legacy_save
+
+    def _npu_legacy_save(obj, f, pickle_module, pickle_protocol):
+        warn_massage = (
+            "Warning: torch.save with \"_use_new_zipfile_serialization = False\" is not recommended "
+            "for npu tensor, which may bring unexpected errors and hopefully set "
+            "\"_use_new_zipfile_serialization = True\"",
+            "if it is necessary to use this, please convert the npu tensor to cpu tensor for saving"
+        )
+        _warn_legacy_serialization(warn_massage, "save")
+        return _orig_legacy_save(obj, f, pickle_module, pickle_protocol)
+
+    torch.serialization._legacy_save = _npu_legacy_save
+
