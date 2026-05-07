@@ -25,7 +25,16 @@ exclude_patterns = [
     'test/dynamo/cpython/**',
     # Tests from the NumPy test suite
     'test/torch_np/numpy_test/**/*.py',
+    # Skip all tests for NPUGraph
     'third_party/**',
+    # NPUGraph logs files
+    'torch_npu/_logging/_internal.py',
+    'torch_npu/csrc/core/npu/NPUGraph.cpp',
+    'torch_npu/csrc/core/npu/NPUGraph.h',
+    'torch_npu/csrc/npu/Graph.cpp',
+    'torch_npu/npu/_graph_tree.py',
+    'torch_npu/npu/graphs.py',
+    'torch_npu/utils/_graph_tree.py',
     'torch/include/**',
     'torch/lib/**',
     'venv/**',
@@ -399,6 +408,14 @@ exclude_patterns=[
     '**/*.png',
     '**/*.gz',
     '**/*.patch',
+    # NPUGraph logs files
+    'torch_npu/_logging/_internal.py',
+    'torch_npu/csrc/core/npu/NPUGraph.cpp',
+    'torch_npu/csrc/core/npu/NPUGraph.h',
+    'torch_npu/csrc/npu/Graph.cpp',
+    'torch_npu/npu/_graph_tree.py',
+    'torch_npu/npu/graphs.py',
+    'torch_npu/utils/_graph_tree.py',
 ]
 command = [
     'python3',
@@ -421,6 +438,14 @@ exclude_patterns = [
     '**/fb/**',
     'test/cpp/jit/upgrader_models/*.ptl',
     'test/cpp/jit/upgrader_models/*.ptl.ff',
+    # NPUGraph logs files
+    'torch_npu/_logging/_internal.py',
+    'torch_npu/csrc/core/npu/NPUGraph.cpp',
+    'torch_npu/csrc/core/npu/NPUGraph.h',
+    'torch_npu/csrc/npu/Graph.cpp',
+    'torch_npu/npu/_graph_tree.py',
+    'torch_npu/npu/graphs.py',
+    'torch_npu/utils/_graph_tree.py',
 ]
 command = [
     'python3',
@@ -454,6 +479,14 @@ exclude_patterns = [
     '.ci/docker/common/install_rocm_drm.sh',
     '.lintrunner.toml',
     '**/*.patch',
+    # NPUGraph logs files
+    'torch_npu/_logging/_internal.py',
+    'torch_npu/csrc/core/npu/NPUGraph.cpp',
+    'torch_npu/csrc/core/npu/NPUGraph.h',
+    'torch_npu/csrc/npu/Graph.cpp',
+    'torch_npu/npu/_graph_tree.py',
+    'torch_npu/npu/graphs.py',
+    'torch_npu/utils/_graph_tree.py',
 ]
 command = [
     'python3',
@@ -534,6 +567,10 @@ exclude_patterns = [
     'test/cpp/**/*.cpp',
     # Python C API bindings use python_error/py::error_already_set for exception propagation
     'torch_npu/csrc/npu/Module.cpp',
+    # NPUGraph logs files
+    'torch_npu/csrc/core/npu/NPUGraph.cpp',
+    'torch_npu/csrc/core/npu/NPUGraph.h',
+    'torch_npu/csrc/npu/Graph.cpp',
 ]
 command = [
     'python3',
@@ -831,6 +868,11 @@ exclude_patterns = [
     'caffe2/**',
     'fb/**',
     '**/fb/**',
+    # NPUGraph logs files
+    'torch_npu/_logging/_internal.py',
+    'torch_npu/npu/_graph_tree.py',
+    'torch_npu/npu/graphs.py',
+    'torch_npu/utils/_graph_tree.py',
 ]
 command = [
     'python3',
@@ -1160,6 +1202,14 @@ exclude_patterns = [
     'torch/_inductor/kernel/vendored_templates/cutedsl/kernels/**',
     'torch/_inductor/kernel/vendored_templates/cutedsl/dense_blockscaled_gemm_persistent.py',
     'torch/utils/model_dump/preact.mjs',
+    # NPUGraph logs files
+    'torch_npu/_logging/_internal.py',
+    'torch_npu/csrc/core/npu/NPUGraph.cpp',
+    'torch_npu/csrc/core/npu/NPUGraph.h',
+    'torch_npu/csrc/npu/Graph.cpp',
+    'torch_npu/npu/_graph_tree.py',
+    'torch_npu/npu/graphs.py',
+    'torch_npu/utils/_graph_tree.py',
 ]
 is_formatter = true
 
@@ -1439,6 +1489,11 @@ exclude_patterns = [
     'torch/utils/throughput_benchmark.py',
     'torch/utils/viz/__init__.py',
     'torch/utils/viz/_cycles.py',
+    # NPUGraph logs files
+    'torch_npu/_logging/_internal.py',
+    'torch_npu/npu/_graph_tree.py',
+    'torch_npu/npu/graphs.py',
+    'torch_npu/utils/_graph_tree.py',
 ]
 is_formatter = true
 
@@ -1552,6 +1607,11 @@ exclude_patterns = [
     'third_party/**',
     'fb/**',
     '**/fb/**',
+    # NPUGraph logs files
+    'torch_npu/_logging/_internal.py',
+    'torch_npu/npu/_graph_tree.py',
+    'torch_npu/npu/graphs.py',
+    'torch_npu/utils/_graph_tree.py',
 ]
 command = [
     'uv',
