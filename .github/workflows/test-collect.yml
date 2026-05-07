@@ -79,12 +79,12 @@ jobs:
           pip${{ env.PYTHON_VERSION }} install --upgrade pip setuptools wheel
 
       # ==================== Download artifacts from Ascend/pytorch workflow run ====================
-      # 固定 workflow run: https://github.com/Ascend/pytorch/actions/runs/25473494025
+      # 固定 workflow run: https://github.com/Ascend/pytorch/actions/runs/25473829132
       # 包含: torch wheel, torch_npu wheel, pytorch 源码 + 编译产物
       - name: Download torch wheel from workflow run
         uses: dawidd6/action-download-artifact@v3
         with:
-          run_id: 25473494025
+          run_id: 25473829132
           name: torch-wheel-main
           path: wheels
           repo: Ascend/pytorch
@@ -94,7 +94,7 @@ jobs:
       - name: Download torch_npu wheel from workflow run
         uses: dawidd6/action-download-artifact@v3
         with:
-          run_id: 25473494025
+          run_id: 25473829132
           name: torch-npu-wheel-main
           path: wheels
           repo: Ascend/pytorch
@@ -103,7 +103,7 @@ jobs:
       - name: Download PyTorch source and build artifacts from workflow run
         uses: dawidd6/action-download-artifact@v3
         with:
-          run_id: 25473494025
+          run_id: 25473829132
           name: pytorch-src-main
           repo: Ascend/pytorch
           github_token: ${{ secrets.GITHUB_TOKEN }}
