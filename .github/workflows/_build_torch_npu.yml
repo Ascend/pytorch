@@ -83,14 +83,21 @@ jobs:
             echo "Using proxy: ${PYTORCH_REPO}"
           fi
 
-          # --recurse-submodules 同时下载所有 submodules（使用已配置的 git proxy）
-          git clone --depth=1 --recurse-submodules --branch ${{ inputs.pytorch_branch }} \
-            "${PYTORCH_REPO}" pytorch-src
-          PYTORCH_SHA=$(cd pytorch-src && git rev-parse HEAD)
+          # 克隆指定 commit: fccc94ae83f61fe26559abc999797297196bac29
+          # 先浅克隆，再 fetch 指定 commit，最后 checkout
+          git clone --depth=1 "${PYTORCH_REPO}" pytorch-src
+          cd pytorch-src
+          git fetch --depth=1 origin fccc94ae83f61fe26559abc999797297196bac29
+          git checkout fccc94ae83f61fe26559abc999797297196bac29
+
+          # 初始化 submodules
+          git submodule update --init --recursive
+
+          PYTORCH_SHA=$(git rev-parse HEAD)
           echo "pytorch_sha=${PYTORCH_SHA}" >> $GITHUB_OUTPUT
           echo "Cloned PyTorch commit: ${PYTORCH_SHA}"
           echo "Submodules downloaded:"
-          ls -la pytorch-src/third_party/ | head -20
+          ls -la third_party/ | head -20
 
       - name: Checkout torch_npu
         uses: actions/checkout@v4
