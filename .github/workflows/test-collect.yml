@@ -100,16 +100,42 @@ jobs:
           repo: Ascend/pytorch
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Download PyTorch source and build artifacts from workflow run
-        uses: dawidd6/action-download-artifact@v3
-        with:
-          run_id: 25473829132
-          name: pytorch-src-main
-          repo: Ascend/pytorch
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download PyTorch source from GitHub
+        run: |
+          PYTORCH_COMMIT=fccc94ae83f61fe26559abc999797297196bac29
+          PYTORCH_REPO=pytorch/pytorch
+          PROXY_URL=https://gh-proxy.test.osinfra.cn
+
+          echo "Downloading PyTorch source from commit: ${PYTORCH_COMMIT}"
+          echo "Using proxy: ${PROXY_URL}"
+
+          # Download source tarball via proxy (no submodules needed for testing)
+          curl -L "${PROXY_URL}/https://github.com/${PYTORCH_REPO}/archive/${PYTORCH_COMMIT}.tar.gz" \
+            -o pytorch-src.tar.gz
+
+          echo "Downloaded pytorch-src.tar.gz:"
+          ls -la pytorch-src.tar.gz
 
       - name: Extract PyTorch source
-        run: tar -xzf pytorch-src.tar.gz
+        run: |
+          # Extract source tarball
+          tar -xzf pytorch-src.tar.gz
+
+          # Rename directory to pytorch-src (tarball extracts as pytorch-fccc94ae...)
+          mv pytorch-${PYTORCH_COMMIT:-fccc94ae83f61fe26559abc999797297196bac29} pytorch-src 2>/dev/null || \
+            mv pytorch-pytorch-${PYTORCH_COMMIT:-fccc94ae83f61fe26559abc999797297196bac29} pytorch-src 2>/dev/null || \
+            true
+
+          # If still not renamed, find and rename the extracted directory
+          if [ ! -d pytorch-src ]; then
+            EXTRACTED_DIR=$(find . -maxdepth 1 -type d -name "pytorch-*" | head -1)
+            if [ -n "$EXTRACTED_DIR" ]; then
+              mv "$EXTRACTED_DIR" pytorch-src
+            fi
+          fi
+
+          echo "Extracted to pytorch-src directory:"
+          ls -la pytorch-src/ | head -10
 
       - name: DEBUG - Print pytorch-src directory structure
         run: |
