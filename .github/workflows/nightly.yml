@@ -83,7 +83,6 @@ jobs:
           echo "- Python version: ${PYTHON_VERSION}" >> $GITHUB_STEP_SUMMARY
           echo "- Docker image: ${DOCKER_IMAGE}" >> $GITHUB_STEP_SUMMARY
           echo "- Trigger: ${TRIGGER_TYPE}" >> $GITHUB_STEP_SUMMARY
-          echo "- Run number: ${RUN_NUMBER}" >> $GITHUB_STEP_SUMMARY
         env:
           BUILD_STATUS: ${{ needs.build.result == 'success' && '✅ Success' || needs.build.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }}
           TEST_STATUS: ${{ needs.test.result == 'success' && '✅ Success' || needs.test.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }}
@@ -91,4 +90,3 @@ jobs:
           PYTHON_VERSION: ${{ inputs.python_version || '3.11' }}
           DOCKER_IMAGE: ${{ inputs.docker_image || 'quay.io/kerer/pytorch:manylinux-cann9.0.0-beta.2-20260428' }}
           TRIGGER_TYPE: ${{ github.event_name }}
-          RUN_NUMBER: ${{ github.run_number }}
