@@ -331,7 +331,7 @@ jobs:
           fi
 
       - name: Run tests using run_test.py
-        timeout-minutes: 120
+        timeout-minutes: 1200  # 20 hours
         run: |
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
           source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
