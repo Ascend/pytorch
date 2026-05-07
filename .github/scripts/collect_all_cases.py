@@ -33,21 +33,28 @@ def is_distributed_test(test_file: str) -> bool:
 def collect_cases_from_file(test_dir: Path, test_file: str, parallel: int = 1, verbose: bool = False) -> Tuple[List[str], str]:
     """Collect test cases from a single test file using pytest --collect-only.
 
+    Args:
+        test_dir: The test directory path (used as cwd for pytest)
+        test_file: Relative path to test file from test_dir (e.g., "dynamo/test_regional_inductor.py")
+        parallel: Number of parallel collectors (not used in this function)
+        verbose: Print debug information
+
     Returns:
         Tuple of (cases list, error message or empty string)
     """
     full_path = test_dir / test_file
 
-    # ===== DEBUG: Print path details for first few files =====
-    if verbose and "distributed/_composable/fsdp" in test_file:
+    # ===== DEBUG: Print path details for specific files =====
+    if verbose and ("distributed/_composable/fsdp" in test_file or "dynamo" in test_file):
         print("\n=== DEBUG: collect_cases_from_file ===")
-        print(f"test_file: {test_file}")
+        print(f"test_file (relative): {test_file}")
         print(f"test_dir: {test_dir}")
         print(f"test_dir.resolve(): {test_dir.resolve()}")
-        print(f"full_path: {full_path}")
+        print(f"full_path (test_dir / test_file): {full_path}")
         print(f"full_path.resolve(): {full_path.resolve()}")
         print(f"full_path.exists(): {full_path.exists()}")
-        print(f"cwd for pytest: {test_dir}")
+        print(f"cwd for pytest: {str(test_dir)}")
+        print(f"pytest arg (should be relative): {test_file}")
         print("=" * 50)
 
     if not full_path.exists():
@@ -65,9 +72,11 @@ def collect_cases_from_file(test_dir: Path, test_file: str, parallel: int = 1, v
         return [], error
 
     try:
-        # ===== DEBUG: Print pytest command for specific files =====
-        pytest_cmd = ["pytest", "--collect-only", "-q", str(full_path)]
-        if verbose and "distributed/_composable/fsdp" in test_file:
+        # Use test_file (relative path) as pytest argument since cwd is test_dir
+        # pytest command should be: pytest --collect-only -q dynamo/test_regional_inductor.py
+        # NOT: pytest --collect-only -q pytorch-src/test/dynamo/test_regional_inductor.py
+        pytest_cmd = ["pytest", "--collect-only", "-q", test_file]
+        if verbose and ("distributed/_composable/fsdp" in test_file or "dynamo" in test_file):
             print(f"\nDEBUG: pytest command: {pytest_cmd}")
             print(f"DEBUG: cwd: {str(test_dir)}")
 
