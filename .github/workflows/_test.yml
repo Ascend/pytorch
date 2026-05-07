@@ -89,10 +89,10 @@ jobs:
           name: torch-npu-wheel-main
           path: wheels
 
-      - name: Download test source
+      - name: Download PyTorch source and build artifacts
         uses: actions/download-artifact@v4
         with:
-          name: test-src-main
+          name: pytorch-src-main
 
       - name: Download cases shard
         uses: actions/download-artifact@v4
@@ -100,8 +100,8 @@ jobs:
           name: cases-shards
           path: cases-shards
 
-      - name: Extract test source
-        run: tar -xzf test-src.tar.gz
+      - name: Extract PyTorch source
+        run: tar -xzf pytorch-src.tar.gz
 
       - name: Install wheels
         run: |

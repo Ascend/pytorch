@@ -336,11 +336,35 @@ jobs:
           echo "ccache size: ${CCACHE_SIZE}"
 
       # ==================== 打包和上传 ====================
-      - name: Package test source
+      - name: Package PyTorch source and build artifacts
         run: |
-          # 只打包测试目录，不需要整个 PyTorch 源码
-          tar -czf test-src.tar.gz pytorch-src/test
-          ls -la test-src.tar.gz
+          # 打包整个 pytorch-src 目录（包含测试源码和编译产物）
+          # 排除不必要的文件以减小体积：
+          # - .git 目录（最占空间）
+          # - build/ 目录中的编译中间产物（CMakeFiles, .o 文件等）
+          # - dist/*.whl（已单独上传为 artifact）
+
+          echo "=== PyTorch source directory size ==="
+          du -sh pytorch-src/
+
+          echo ""
+          echo "=== Build artifacts location ==="
+          ls -la pytorch-src/build/lib.*/torch/*.so 2>/dev/null | head -5 || echo "No .so files found in build/lib"
+          ls -la pytorch-src/torch/_C.so 2>/dev/null || echo "No _C.so in torch/"
+
+          echo ""
+          echo "=== Creating archive (excluding large unnecessary files) ==="
+          tar -czf pytorch-src.tar.gz \
+            --exclude='pytorch-src/.git' \
+            --exclude='pytorch-src/build/CMakeFiles' \
+            --exclude='pytorch-src/build/*.o' \
+            --exclude='pytorch-src/build/**/*.o' \
+            --exclude='pytorch-src/dist/*.whl' \
+            pytorch-src
+
+          echo ""
+          echo "=== Archive size ==="
+          ls -lh pytorch-src.tar.gz
 
       - name: Upload PyTorch wheel
         uses: actions/upload-artifact@v4
@@ -356,9 +380,9 @@ jobs:
           path: torch_npu-src/dist/*.whl
           retention-days: 7
 
-      - name: Upload test source
+      - name: Upload PyTorch source and build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: test-src-main
-          path: test-src.tar.gz
+          name: pytorch-src-main
+          path: pytorch-src.tar.gz
           retention-days: 7
