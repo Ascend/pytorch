@@ -137,52 +137,6 @@ jobs:
           echo "Extracted to pytorch-src directory:"
           ls -la pytorch-src/ | head -10
 
-      - name: DEBUG - Print pytorch-src directory structure
-        run: |
-          echo "=== Current working directory ==="
-          pwd
-          echo ""
-          echo "=== Top-level files in current directory ==="
-          ls -la
-          echo ""
-          echo "=== pytorch-src directory exists? ==="
-          ls -la pytorch-src/ || echo "pytorch-src directory not found"
-          echo ""
-          echo "=== pytorch-src/test directory exists? ==="
-          ls -la pytorch-src/test/ || echo "pytorch-src/test directory not found"
-          echo ""
-          echo "=== pytorch-src/test subdirectories (first 20) ==="
-          if [ -d pytorch-src/test ]; then
-            ls -la pytorch-src/test/ | head -25
-          fi
-          echo ""
-          echo "=== pytorch-src/test/distributed directory ==="
-          if [ -d pytorch-src/test/distributed ]; then
-            ls -la pytorch-src/test/distributed/ | head -20
-            echo ""
-            echo "=== pytorch-src/test/distributed/_composable directory ==="
-            if [ -d pytorch-src/test/distributed/_composable ]; then
-              ls -la pytorch-src/test/distributed/_composable/
-              echo ""
-              echo "=== pytorch-src/test/distributed/_composable/fsdp directory ==="
-              if [ -d pytorch-src/test/distributed/_composable/fsdp ]; then
-                ls -la pytorch-src/test/distributed/_composable/fsdp/ | head -15
-              else
-                echo "fsdp directory NOT found"
-              fi
-            else
-              echo "_composable directory NOT found"
-            fi
-          else
-            echo "distributed directory NOT found"
-          fi
-          echo ""
-          echo "=== Find test_fully_shard files ==="
-          find pytorch-src/test -name "test_fully_shard*.py" 2>/dev/null || echo "No test_fully_shard files found"
-          echo ""
-          echo "=== Check if pytorch-src.tar.gz still exists ==="
-          ls -la pytorch-src.tar.gz || echo "pytorch-src.tar.gz not found after extraction"
-
       - name: Install wheels
         run: |
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
