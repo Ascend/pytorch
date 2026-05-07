@@ -1,5 +1,7 @@
+# ruff: noqa: UP045,UP007
 import os
 import time
+from typing import Union
 
 from torch_npu.utils import _should_print_warning
 from torch_npu.utils._error_code import ErrCode, prof_error
@@ -280,7 +282,7 @@ def convert_ns2us_str(ns, tail="") -> str:
     return result + tail
 
 
-def convert_us2ns(us: str | float | int, tail="\t") -> int:
+def convert_us2ns(us: Union[str, float, int], tail="\t") -> int:
     # convert us to ns
     us = str(us)
     # remove \t
