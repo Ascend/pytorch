@@ -5,7 +5,6 @@ python-version = "3.12"
 project-includes = [
     "torch",
     "caffe2",
-    "tools",
     "test/test_bundled_images.py",
     "test/test_bundled_inputs.py",
     "test/test_complex.py",
@@ -21,6 +20,7 @@ project-includes = [
     "test/test_utils.py",
 ]
 project-excludes = [
+  "tools/**",
   "torch/_inductor/runtime/triton_heuristics.py",
   "torch/_inductor/runtime/triton_helpers.py",
   "torch/_inductor/runtime/halide_helpers.py",
@@ -118,6 +118,7 @@ untyped-def-behavior = "check-and-infer-return-any"
 # In lots of places they define their attributes in `_init` or similar.
 # https://github.com/pytorch/pytorch/blob/75f3e5a88df60caef27fd9c9df3fd51161378fcc/torch/fx/experimental/symbolic_shapes.py#L3632C1-L3633C1
 errors.implicitly-defined-attribute = false
+errors.missing-import = false
 # In many methods that are overridden, parameters are renamed.
 # We can come up with a codemod for this in the future
 errors.bad-param-name-override = false
