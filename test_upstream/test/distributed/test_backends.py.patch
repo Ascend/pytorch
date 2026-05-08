@@ -20,3 +20,26 @@ index baf78bb..9fc90a5 100644
          else:
              with self.assertRaises(ValueError):
                  dist.get_default_backend_for_device(device)
+@@ -40,11 +47,20 @@ class TestMiscCollectiveUtils(TestCase):
+         )
+         pg = dist.distributed_c10d._get_default_group()
+         backend_pg = pg._get_backend_name()
+-        assert backend_pg == backend
++
++        if "npu" in device:
++            # NPU registers via PrivateUse1 mechanism, so _get_backend_name() returns
++            # "custom" rather than the logical name "hccl"
++            assert backend_pg in (backend, "custom"), (
++                f"Expected backend_pg to be '{backend}' or 'custom', got '{backend_pg}'"
++                )
++        else:
++            assert backend_pg == backend
++        
+         dist.destroy_process_group()
+ 
+ 
+-devices = ["cpu", "cuda", "hpu"]
++devices = ["cpu", "cuda", "hpu", "npu"]
+ instantiate_device_type_tests(TestMiscCollectiveUtils, globals(), only_for=devices)
+ 
+ if __name__ == "__main__":

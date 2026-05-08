@@ -9,5 +9,17 @@ index ca38c54..cb6e638 100644
 +from torch_npu.contrib import transfer_to_npu
 +
  # Owner(s): ["oncall: distributed"]
- 
- import copy
+ import torch_npu.testing
+ import torch_npu
+@@ -1907,6 +1912,11 @@ class ProcessGroupWithDispatchedCollectivesTests(MultiProcessTestCase):
+                 world_size=self.world_size,
+                 store=store,
+             )
++            
++            # On NPU, nccl is replaced by hccl and the process group reports name "custom"
++            if (backend == dist.Backend.NCCL and getattr(torch, "npu", None) is not None and torch.npu.is_available()):
++                excepted_backend = "custom"
++
+             pg = c10d._get_default_group()
+             self.assertEqual(pg.rank(), self.rank)
+             self.assertEqual(pg.size(), self.world_size)
