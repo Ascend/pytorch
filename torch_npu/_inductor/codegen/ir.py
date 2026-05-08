@@ -1,28 +1,24 @@
-from typing import Dict, Optional, cast
-import os
 import itertools
 from math import gcd
+from typing import cast
 
 import sympy
-from sympy import Integer
+
 import torch
-from torch._inductor.ir import (ReductionHint, IRNode, ModularIndexing,
-                                FloorDiv, sympy_product, Reduction)
-from torch._inductor.scheduler import SchedulerNode
-from torch._inductor.utils import sympy_subs, sympy_index_symbol, has_free_symbols
+from torch._inductor import sizevars
+from torch._inductor.ir import FloorDiv, ModularIndexing
+from torch._inductor.loop_body import CaptureIndexing, LoopBody, MemoryUsageType
+from torch._inductor.utils import has_free_symbols, sympy_index_symbol, sympy_subs
 from torch._inductor.virtualized import V
-from torch._inductor.loop_body import MemoryUsageType, LoopBody, CaptureIndexing
-from torch._inductor.codegen.common import BackendFeature
-from torch._inductor import config, sizevars
 from torch.utils._sympy.value_ranges import IntInfinity, ValueRanges
 
+from ..config import inductor_indirect_memory_mode, is_ascend950, log
 from .triton import NPUIndexTritonKernel
-from .triton_utils import get_indirect_var, get_indirect_mem_var, NPUKernelType
-from ..config import log, inductor_indirect_memory_mode, is_ascend950
+from .triton_utils import get_indirect_mem_var, get_indirect_var, NPUKernelType
 
 
 def detect_flattened_dims(kernel, index):
-    new_vars = {}
+    new_vars = {}  # noqa: set_linter
     if not isinstance(index, (sympy.core.add.Add, ModularIndexing, FloorDiv)):
         return new_vars
 
@@ -41,8 +37,8 @@ def detect_flattened_dims(kernel, index):
             var, divisor = expr.args
             init_new_vars(var, divisor)
             # over than 1 node_schedule, var may be deleted in kernel.range_tree_nodes
-            # it shoule be find in range_tree_nodes_removed dict
-            if (var in kernel.range_tree_nodes):
+            # it should be found in range_tree_nodes_removed dict
+            if var in kernel.range_tree_nodes:
                 numel = kernel.range_tree_nodes[var].length
             else:
                 numel = kernel.range_tree_nodes_removed[var].length
@@ -70,7 +66,10 @@ def detect_flattened_dims(kernel, index):
         elif var in kernel.range_tree_nodes_removed:
             parent_axis = kernel.range_tree_nodes_removed[var]
         else:
-            continue
+            raise RuntimeError(
+                f"detect_flattened_dims not support var {var} with divisors {divisors} yet"
+            )
+
         for divisor, pair in divisors.items():
             if not pair[0] and not pair[1]:
                 pass
@@ -90,7 +89,7 @@ def detect_flattened_dims(kernel, index):
 
 
 def _should_skip_store_substitution(key, index, var, has_multiple_expansions, kernel):
-    if not (hasattr(kernel, 'store_index_keys') and key in kernel.store_index_keys):
+    if not (hasattr(kernel, "store_index_keys") and key in kernel.store_index_keys):
         return False
     if not has_multiple_expansions:
         return False
@@ -100,7 +99,8 @@ def _should_skip_store_substitution(key, index, var, has_multiple_expansions, ke
     prefix = str(var)[0]
     same_prefix_symbols = sorted(
         [
-            sym for sym in index.free_symbols
+            sym
+            for sym in index.free_symbols
             if getattr(sym, "name", str(sym)).startswith(prefix)
         ],
         key=str,
@@ -111,17 +111,17 @@ def _should_skip_store_substitution(key, index, var, has_multiple_expansions, ke
 def rebuild_flattened_dims(indexing):
     """
     Rebuild flattened dimensions in indexing expressions.
-    
+
     This function processes indexing expressions to detect and rebuild
     flattened dimensions. For Store indices with unified anchors
     (symbols that have multiple expansion candidates), the processing
     is is skipped to preserve the unified axis.
     """
+
     def rebuild_flattened_dim(key, index, old_node, flatten_dim):
-        for _, pair in flatten_dim.items():
+        for pair in flatten_dim.values():
             new_var_expr = sympy.Integer(0)
             origin_axis_length = 0
-            pair_is_valid = True
             # don't create duplicated axis, e.g. y1:1024, y1 % 1024 is duplicated
             expr, divisor, length = pair[1]
             if not old_node.parent.duplicated_check(divisor, length):
@@ -146,27 +146,32 @@ def rebuild_flattened_dims(indexing):
 
             if old_node.symbol() not in V.kernel.range_tree_nodes_substituted:
                 V.kernel.range_tree_nodes_substituted[old_node.symbol()] = []
-            V.kernel.range_tree_nodes_substituted[old_node.symbol()].append((origin_axis_length, new_var_expr))
+            V.kernel.range_tree_nodes_substituted[old_node.symbol()].append(
+                (origin_axis_length, new_var_expr)
+            )
 
             log.debug(
                 "rebuild_flattened_dim: key=%s, old_node=%s, new_var_expr=%s",
-                key, old_node.symbol(), new_var_expr
+                key,
+                old_node.symbol(),
+                new_var_expr,
             )
 
     def find_index_in_substitute(index, kernel):
-        return any([index.find(key) for key in kernel.expr_substituted.keys()])
+        return any(index.find(key) for key in kernel.expr_substituted)
 
     kernel = V.kernel
 
     log.debug(
         "rebuild_flattened_dims: indexing_keys=%s, range_tree_nodes=%s",
-        list(indexing.keys()), list(kernel.range_tree_nodes.keys())
+        list(indexing.keys()),
+        list(kernel.range_tree_nodes.keys()),
     )
 
     # Process non-Store indices first to populate range_tree_nodes_substituted.
     # Then process Store indices and skip those with unified anchors
     # (symbols that have multiple expansion candidates).
-    store_keys = getattr(kernel, 'store_index_keys', set())
+    store_keys = getattr(kernel, "store_index_keys", {})  # noqa: set_linter
     store_items = []
 
     for key, index in indexing.items():
@@ -184,7 +189,9 @@ def rebuild_flattened_dims(indexing):
             elif var in kernel.range_tree_nodes_removed:
                 old_node = kernel.range_tree_nodes_removed[var]
             else:
-                continue
+                raise RuntimeError(
+                    f"rebuild_flattened_dims not support var {var} with flatten_dim {flatten_dim} yet"
+                )
 
             rebuild_flattened_dim(key, index, old_node, flatten_dim)
 
@@ -194,7 +201,8 @@ def rebuild_flattened_dims(indexing):
 
     log.debug(
         "rebuild_flattened_dims: range_tree_nodes_substituted=%s, store_items=%s",
-        kernel.range_tree_nodes_substituted, store_items
+        kernel.range_tree_nodes_substituted,
+        store_items,
     )
 
     # Now process Store indices. Skip those containing a unified anchor:
@@ -205,19 +213,24 @@ def rebuild_flattened_dims(indexing):
         for sym in index.free_symbols:
             prefix = str(sym)[0]
             same_prefix_symbols = [
-                s for s in index.free_symbols
+                s
+                for s in index.free_symbols
                 if getattr(s, "name", str(s)).startswith(prefix)
             ]
             # Check if this symbol is a unified anchor:
             # 1. It's the only symbol with this prefix in the Store index
             # 2. It has multiple expansion candidates (multiple expansion patterns)
-            if (len(same_prefix_symbols) == 1 and same_prefix_symbols[0] == sym
-                    and sym in kernel.range_tree_nodes_substituted
-                    and len(kernel.range_tree_nodes_substituted[sym]) > 1):
+            if (
+                len(same_prefix_symbols) == 1
+                and same_prefix_symbols[0] == sym
+                and sym in kernel.range_tree_nodes_substituted
+                and len(kernel.range_tree_nodes_substituted[sym]) > 1
+            ):
                 skip = True
                 log.info(
                     "Skip Store index %s because %s is a unified anchor with multiple expansions",
-                    key, sym
+                    key,
+                    sym,
                 )
                 break
 
@@ -242,7 +255,7 @@ def rebuild_flattened_dims(indexing):
 
     log.debug(
         "rebuild_flattened_dims: range_trees AFTER=%s",
-        [(t.prefix, t.var_list) for t in kernel.range_trees]
+        [(t.prefix, t.var_list) for t in kernel.range_trees],
     )
 
 
@@ -256,14 +269,21 @@ def substituted_dims_in_indexing(self, indexing, kernel, range_tree_nodes_substi
         expr = exprs[0][1]
         node = kernel.range_tree_nodes[var]
         if node.length != numel:
-            log.debug("sub nodes (expr%s, numel:%d) can not substitute parent node(%s:%d)",
-                      expr, numel, node.symbol(), node.length)
+            log.debug(
+                "sub nodes (expr%s, numel:%d) can not substitute parent node(%s:%d)",
+                expr,
+                numel,
+                node.symbol(),
+                node.length,
+            )
             continue
 
         has_multiple_expansions = len(candidates) > 1
 
         for key, index in indexing.items():
-            if _should_skip_store_substitution(key, index, var, has_multiple_expansions, kernel):
+            if _should_skip_store_substitution(
+                key, index, var, has_multiple_expansions, kernel
+            ):
                 log.info(
                     "Skip Store substitution for key=%s var=%s because Store unified anchor is preserved",
                     key,
@@ -281,22 +301,24 @@ def generate_body_indexing(body, indices):
     index = list(itertools.chain.from_iterable(indices))
 
     if not (len(index) == len(body.var_ranges)):
-        raise RuntimeError("assert len(index) == len(body.var_ranges), (index, body.var_ranges)")
+        raise RuntimeError(
+            "assert len(index) == len(body.var_ranges), (index, body.var_ranges)"
+        )
     if not (all(v not in body.var_ranges for v in index)):
         raise RuntimeError("assert all(v not in body.var_ranges for v in index)")
 
     replacements = dict(zip(body.var_ranges.keys(), index))
     indexing_map = dict(zip(index, body.var_ranges.keys()))
-    setattr(body, 'indexing_map', indexing_map)
+    body.indexing_map = indexing_map
     body.indexing = {
         name: sympy_subs(expr, replacements)
         for name, expr in body.indexing_exprs.items()
     }
 
-    setattr(body, 'indirect_replacements', {})
+    body.indirect_replacements = {}
     body.generate_indirect_replacements()
 
-    setattr(body, 'masked_indexing', {})
+    body.masked_indexing = {}
     body.generate_masked_indexing()
 
 
@@ -363,11 +385,11 @@ def analyze_expression(expr, range_tree_nodes):
     """
     Analyze the entire expression, identify all FloorDiv and ModularIndexing expressions
     and determine if they can be split
-    
+
     Parameters:
         expr: sympy expression
         range_tree_nodes: dictionary mapping symbols to range nodes
-        
+
     Returns:
         Dict: analysis result dictionary
     """
@@ -376,7 +398,7 @@ def analyze_expression(expr, range_tree_nodes):
         "floordiv_expressions": [],
         "modular_expressions": [],
         "can_split_all": True,
-        "split_details": {}
+        "split_details": {},
     }
 
     # Recursively collect all FloorDiv and ModularIndexing expressions
@@ -405,7 +427,7 @@ def analyze_expression(expr, range_tree_nodes):
                 result["can_split_all"] = False
 
         # Recursively process sub-expressions
-        if hasattr(sub_expr, 'args'):
+        if hasattr(sub_expr, "args"):
             for i, arg in enumerate(sub_expr.args):
                 collect_expressions(arg, f"{path}.args[{i}]")
 
@@ -417,18 +439,20 @@ def analyze_expression(expr, range_tree_nodes):
 def calculate_max_remainder(coeff, length, divisor_or_mod):
     """
     Calculate the maximum remainder for term coeff * symbol, where symbol ∈ [0, length-1]
-    
+
     Parameters:
-        coeff: coefficient
-        length: symbol's value range length (symbol ∈ [0, length-1])
-        divisor_or_mod: divisor or modulus
-        
+        coeff: coeff
+        length: length
+        divisor_or_mod: divisor_or_mod
+
     Returns:
-        maximum remainder value
+        result
     """
     # Try to convert coefficient and divisor/modulus to integers
     coeff_int = int(coeff) if isinstance(coeff, sympy.Integer) else None
-    divisor_int = int(divisor_or_mod) if isinstance(divisor_or_mod, sympy.Integer) else None
+    divisor_int = (
+        int(divisor_or_mod) if isinstance(divisor_or_mod, sympy.Integer) else None
+    )
 
     # If not integers, use conservative estimate
     if coeff_int is None or divisor_int is None:
@@ -479,14 +503,24 @@ def calculate_max_remainder(coeff, length, divisor_or_mod):
             return best_remainder
 
 
-def analyze_floordiv_expression(expr, range_tree_nodes: Dict) -> Dict:
+def analyze_floordiv_expression(expr, range_tree_nodes: dict) -> dict:
+    """
+    analyze_floordiv_expression for expr and range_tree_nodes
+
+    Parameters:
+        expr: expr
+        range_tree_nodes: symbol's value range length (symbol ∈ [0, length-1])
+
+    Returns:
+        maximum remainder value
+    """
     result = {
         "expression": str(expr),
         "type": "FloorDiv",
         "can_split": False,
         "reason": "",
         "details": {},
-        "split_form": ""
+        "split_form": "",
     }
 
     if not isinstance(expr, FloorDiv):
@@ -524,7 +558,7 @@ def analyze_floordiv_expression(expr, range_tree_nodes: Dict) -> Dict:
             "symbol": None,
             "length": None,
             "max_value": None,
-            "max_remainder": None
+            "max_remainder": None,
         }
         term_details.append(term_info)
 
@@ -575,7 +609,9 @@ def analyze_floordiv_expression(expr, range_tree_nodes: Dict) -> Dict:
 
     if max_remainder_sum < divisor:
         result["can_split"] = True
-        result["reason"] = f"expr can split, max_remainder_sum {max_remainder_sum} < divisor {divisor}"
+        result["reason"] = (
+            f"expr can split, max_remainder_sum {max_remainder_sum} < divisor {divisor}"
+        )
 
         split_terms = []
         for term in add_terms:
@@ -583,19 +619,21 @@ def analyze_floordiv_expression(expr, range_tree_nodes: Dict) -> Dict:
 
         result["split_form"] = " + ".join(split_terms)
     else:
-        result["reason"] = f"expr can not split, max_remainder_sum {max_remainder_sum} >= divisor {divisor}"
+        result["reason"] = (
+            f"expr can not split, max_remainder_sum {max_remainder_sum} >= divisor {divisor}"
+        )
 
     return result
 
 
-def analyze_modular_expression(expr, range_tree_nodes: Dict) -> Dict:
+def analyze_modular_expression(expr, range_tree_nodes: dict) -> dict:
     """
     Analyze a single ModularIndexing expression
-    
+
     Parameters:
         expr: ModularIndexing expression
         range_tree_nodes: dictionary mapping symbols to range nodes
-        
+
     Returns:
         Dict: analysis result dictionary
     """
@@ -605,7 +643,7 @@ def analyze_modular_expression(expr, range_tree_nodes: Dict) -> Dict:
         "can_split": False,
         "reason": "",
         "details": {},
-        "split_form": ""
+        "split_form": "",
     }
 
     # Check number of arguments
@@ -657,7 +695,7 @@ def analyze_modular_expression(expr, range_tree_nodes: Dict) -> Dict:
             "max_value": None,
             "max_remainder": None,
             "gcd_val": None,
-            "period": None
+            "period": None,
         }
         term_details.append(term_info)
 
@@ -722,7 +760,9 @@ def analyze_modular_expression(expr, range_tree_nodes: Dict) -> Dict:
     # Determine if it can be split
     if max_remainder_sum < mod:
         result["can_split"] = True
-        result["reason"] = f"expr can split, max_remainder_sum {max_remainder_sum} < mod {mod}"
+        result["reason"] = (
+            f"expr can split, max_remainder_sum {max_remainder_sum} < mod {mod}"
+        )
 
         # Generate the split expression form
         split_terms = []
@@ -731,7 +771,9 @@ def analyze_modular_expression(expr, range_tree_nodes: Dict) -> Dict:
 
         result["split_form"] = " + ".join(split_terms)
     else:
-        result["reason"] = f"expr can not split, max_remainder_sum {max_remainder_sum} >= mod {mod}"
+        result["reason"] = (
+            f"expr can not split, max_remainder_sum {max_remainder_sum} >= mod {mod}"
+        )
 
     return result
 
@@ -739,7 +781,7 @@ def analyze_modular_expression(expr, range_tree_nodes: Dict) -> Dict:
 def extract_modular_indexing_coefficient(expr):
     """
     Extract coefficient from ModularIndexing expression
-    
+
     Convert ModularIndexing(k*x, lower, upper) to k * ModularIndexing(x, lower, upper/k)
     Condition: k is a constant and can divide (upper - lower + 1)
     """
@@ -803,7 +845,9 @@ def eliminate_zero_term(term):
     elif expr in V.kernel.range_tree_nodes_removed:
         numel = V.kernel.range_tree_nodes_removed[expr].length
     else:
-        return term
+        raise RuntimeError(
+            f"eliminate_zero_term not support var {expr} with divisor {divisor} yet"
+        )
 
     length = term.eval(numel, divisor)
     if length == 0:
@@ -814,25 +858,25 @@ def eliminate_zero_term(term):
 def eliminate_modular(term):
     """
     Eliminate unnecessary ModularIndexing expressions
-    
+
     When ModularIndexing(expr, lower, upper) has the same range as the entire range,
     it can be simplified to expr itself.
-    
+
     Parameters:
         term: ModularIndexing expression
-        
+
     Returns:
         Simplified expression or original expression
     """
     # If not a ModularIndexing expression, return directly
-    if not isinstance(term, sympy.Function) or term.func.__name__ != 'ModularIndexing':
+    if not isinstance(term, sympy.Function) or term.func.__name__ != "ModularIndexing":
         return term
 
     # Get arguments
     expr, lower, upper = term.args
 
     # Get symbol's length information
-    def get_symbol_length(symbol: sympy.Symbol) -> Optional[int]:
+    def get_symbol_length(symbol: sympy.Symbol) -> int | None:
         """Get symbol's length (from range tree)"""
         if symbol in V.kernel.range_tree_nodes:
             return V.kernel.range_tree_nodes[symbol].length
@@ -957,13 +1001,13 @@ def has_dynamic_shape(var_ranges):
         bool: True if any dimension is dynamic, False otherwise
     """
     try:
-        for var, length in var_ranges.items():
+        for length in var_ranges.values():
             # Check 1: If length is a pure Symbol, it's dynamic
             if isinstance(length, sympy.Symbol):
                 return True
 
             # Check 2: If length has free symbols (expression with unknowns), it's dynamic
-            if hasattr(length, 'free_symbols'):
+            if hasattr(length, "free_symbols"):
                 free_syms = length.free_symbols
                 if free_syms:
                     return True
@@ -974,21 +1018,21 @@ def has_dynamic_shape(var_ranges):
 
         return False
 
-    except Exception as e:
-        log.warning(f"Error checking dynamic shape: {e}")
+    except Exception:
+        log.exception("Exception in checking dynamic shape")
         return False
 
 
 def check_subexpr_for_dynamic_symbols(expr):
     """
     Recursively check if expression contains symbolic variables in problematic contexts.
-    
+
     Checks ModularIndexing.upper and FloorDiv.divisor for symbolic variables.
     These parameters cause issues in linearization when they are symbolic.
-    
+
     Args:
         expr: sympy expression to check
-        
+
     Returns:
         bool: True if expression contains symbolic bounds, False otherwise
     """
@@ -999,7 +1043,7 @@ def check_subexpr_for_dynamic_symbols(expr):
             # If upper is a symbol or has free symbols, it's dynamic
             if isinstance(upper, sympy.Symbol):
                 return True
-            if hasattr(upper, 'free_symbols') and upper.free_symbols:
+            if hasattr(upper, "free_symbols") and upper.free_symbols:
                 return True
 
     elif isinstance(expr, FloorDiv):
@@ -1009,11 +1053,11 @@ def check_subexpr_for_dynamic_symbols(expr):
             # If divisor is a symbol or has free symbols, it's dynamic
             if isinstance(divisor, sympy.Symbol):
                 return True
-            if hasattr(divisor, 'free_symbols') and divisor.free_symbols:
+            if hasattr(divisor, "free_symbols") and divisor.free_symbols:
                 return True
 
     # Recursively check args
-    if hasattr(expr, 'args'):
+    if hasattr(expr, "args"):
         for arg in expr.args:
             if check_subexpr_for_dynamic_symbols(arg):
                 return True
@@ -1024,15 +1068,15 @@ def check_subexpr_for_dynamic_symbols(expr):
 def should_skip_linearization_on_a5(var_ranges, indexing):
     """
     Determine if memory access linearization should be skipped on A5 platform.
-    
+
     On A5 platform, skip linearization when:
     1. var_ranges contain dynamic shapes (symbolic lengths)
     2. indexing expressions contain symbolic bounds in ModularIndexing/FloorDiv
-    
+
     Args:
         var_ranges: Dict mapping symbols to their range lengths
         indexing: Dict mapping buffer names to index expressions
-        
+
     Returns:
         bool: True if should skip linearization on A5, False otherwise
     """
@@ -1045,7 +1089,7 @@ def should_skip_linearization_on_a5(var_ranges, indexing):
 
     # Check indexing expressions for symbolic bounds
     if indexing:
-        for key, index_expr in indexing.items():
+        for index_expr in indexing.values():
             if check_subexpr_for_dynamic_symbols(index_expr):
                 return True
 
@@ -1061,34 +1105,43 @@ def transform_dims_in_indexing(self, indices):
     # Step 2: Check for dynamic shapes (only skip on A5 platform)
     if should_skip_linearization_on_a5(self.var_ranges, self.indexing):
         log.info(
-            "Skip memory access linearization due to dynamic shape on A5. "
-            f"var_ranges: {self.var_ranges}"
+            "Skip memory access linearization due to dynamic shape on A5, var_ranges: %s",
+            self.var_ranges,
         )
         # Set SIMT_ONLY compile option for dynamic shapes on A5
         V.kernel.npu_kernel_type = NPUKernelType.SIMT_ONLY
         return  # Early return, skip linearization on A5 with dynamic shapes
 
     # Step 3: Perform memory access linearization
-    log.debug(f"[Linear] ori indexing:{self.indexing}\nV.kernel.range_tree_nodes:{V.kernel.range_tree_nodes}")
+    log.debug(
+        "[Linear] ori indexing:%s\nV.kernel.range_tree_nodes: %s",
+        self.indexing,
+        V.kernel.range_tree_nodes,
+    )
 
     for key, index_expr in self.indexing.items():
         analyse_res = analyze_expression(index_expr, V.kernel.range_tree_nodes)
-        log.debug(f"[Linear] linear analyse res:{analyse_res}")
+        log.debug("[Linear] linear analyse res: %s", analyse_res)
 
         if not analyse_res["can_split_all"]:
             if is_ascend950:
                 log.warning(
-                    f"Skip memory access linearization due to can not split expression:{self.indexing}"\
-                    f"\nrange_tree_nodes:{V.kernel.range_tree_nodes}"\
-                    f"\nanalyse_res:{analyse_res}"
+                    "Skip memory access linearization due to can not split expression: %s"
+                    "\nrange_tree_nodes:%s"
+                    "\nanalyse_res:%s",
+                    self.indexing,
+                    V.kernel.range_tree_nodes,
+                    analyse_res,
                 )
                 # Set SIMT_ONLY compile option for dynamic shapes on A5
                 V.kernel.npu_kernel_type = NPUKernelType.SIMT_ONLY
                 return
             else:
-                raise ValueError(f"Can not split expression:{self.indexing}"\
-                                 f"\nrange_tree_nodes:{V.kernel.range_tree_nodes}"\
-                                 f"\nanalyse_res:{analyse_res}")
+                raise ValueError(
+                    f"Can not split expression:{self.indexing}"
+                    f"\nrange_tree_nodes:{V.kernel.range_tree_nodes}"
+                    f"\nanalyse_res:{analyse_res}"
+                )
         self.indexing[key] = split_expression(index_expr)
 
     if V.kernel is not None and isinstance(V.kernel, NPUIndexTritonKernel):
@@ -1139,12 +1192,14 @@ def get_indirect_index(loop_body, find_node, node_map):
         if not isinstance(node, torch.fx.node.Node):
             continue
         node = node_map[node.name]
-        if 'get_index' in node.name:
+        if "get_index" in node.name:
             return node.args[0]
-        if 'masked_subblock' in node.name:
+        if "masked_subblock" in node.name:
             if node.name not in loop_body.subblocks:
                 raise RuntimeError(f"can't find {node.name} in loopbody")
-            load_index = get_load_index_from_subblock(loop_body, loop_body.subblocks[node.name])
+            load_index = get_load_index_from_subblock(
+                loop_body, loop_body.subblocks[node.name]
+            )
         else:
             load_index = get_indirect_index(loop_body, node, node_map)
         if load_index:
@@ -1154,34 +1209,32 @@ def get_indirect_index(loop_body, find_node, node_map):
 
 
 def define_npu_kernel_type(loop_body):
-    '''
-        For indirect load + sum pattern: simt_only is faster
-    '''
-    pointwise_op_list = [
-        'mul',
-        'add'
-    ]
+    """
+    For indirect load + sum pattern: simt_only is faster
+    """
+    pointwise_op_list = ["mul", "add"]
 
     def check_pointwise_op(reduction_index):
         for pointwise_op in pointwise_op_list:
             if pointwise_op in reduction_index:
                 return True
         return False
+
     if inductor_indirect_memory_mode != str(NPUKernelType.SIMD_SIMT_MIX):
         return NPUKernelType(inductor_indirect_memory_mode)
 
     node_map = {}
     for node in loop_body.root_block.graph.nodes:
         node_map[node.name] = node
-        if 'reduction' == node.name:
-            reduction_type_pos = 3 # 3 is reduction_type_pos
-            reduction_index_pos = 4 # 4 is reduction_index_pos
-            load_index_pos = 2 # 2 is load index position
+        if "reduction" == node.name:
+            reduction_type_pos = 3  # 3 is reduction_type_pos
+            reduction_index_pos = 4  # 4 is reduction_index_pos
+            load_index_pos = 2  # 2 is load index position
             reduction_type = node.args[reduction_type_pos]
-            if reduction_type != 'sum':
+            if reduction_type != "sum":
                 continue
             reduction_index = str(node.args[reduction_index_pos])
-            if 'load' in reduction_index:
+            if "load" in reduction_index:
                 if reduction_index not in node_map:
                     continue
                 load_node = node_map[reduction_index]
@@ -1191,43 +1244,45 @@ def define_npu_kernel_type(loop_body):
                 load_index = get_load_index.args[0]
                 if load_index not in loop_body.indexing:
                     continue
-                if 'indirect' in str(loop_body.indexing[load_index]):
+                if "indirect" in str(loop_body.indexing[load_index]):
                     return NPUKernelType.SIMT_ONLY
 
             elif check_pointwise_op(reduction_index):
-                pointwise_node = node_map.get(reduction_index, None)
+                pointwise_node = node_map.get(reduction_index)
                 if pointwise_node is None:
                     continue
                 pointwise_inputs = pointwise_node.args
                 for pointwise_input in pointwise_inputs:
-                    if 'load' not in pointwise_input.name:
+                    if "load" not in pointwise_input.name:
                         continue
                     load_node = node_map.get(pointwise_input.name, None)
                     if load_node is None:
                         continue
-                    get_load_index = node_map.get(load_node.args[load_index_pos].name, None)
+                    get_load_index = node_map.get(
+                        load_node.args[load_index_pos].name, None
+                    )
                     if get_load_index is None:
                         continue
                     load_index = get_load_index.args[0]
                     if load_index not in loop_body.indexing:
                         continue
-                    if 'indirect' in str(loop_body.indexing[load_index]):
+                    if "indirect" in str(loop_body.indexing[load_index]):
                         return NPUKernelType.SIMT_ONLY
 
     return NPUKernelType(inductor_indirect_memory_mode)
 
 
 def get_masked_index(loop_body, find_node, node_map):
-    all_load_indexs = set()
+    all_load_indexs = set()  # noqa: set_linter
     for node in find_node.args:
         if not isinstance(node, torch.fx.node.Node):
             continue
         if node.name not in node_map:
             continue
         node = node_map[node.name]
-        if 'get_index' in node.name:
-            return {node.args[0]}
-        if 'masked_subblock' in node.name:
+        if "get_index" in node.name:
+            return {node.args[0]}  # noqa: set_linter
+        if "masked_subblock" in node.name:
             continue
         else:
             load_index = get_masked_index(loop_body, node, node_map)
@@ -1238,13 +1293,13 @@ def get_masked_index(loop_body, find_node, node_map):
 
 
 def generate_masked_indexing(self):
-    masked_index_ids = {}
+    masked_index_ids = {}  # noqa: set_linter
 
     def add_masked_indexing_from_graph(graph):
-        node_map = {}
+        node_map = {}  # noqa: set_linter
         for node in graph.nodes:
             node_map[node.name] = node
-            if 'masked_subblock' in node.name:
+            if "masked_subblock" in node.name:
                 masked_indexs = get_masked_index(self, node.args[0], node_map)
                 masked_index_ids[node.name] = masked_indexs
 
@@ -1255,24 +1310,24 @@ def generate_masked_indexing(self):
     for subblock_name in self.subblocks:
         if subblock_name in masked_index_ids:
             # change indexid to real index
-            index_vars = set()
+            index_vars = set()  # noqa: set_linter
             for index_id in masked_index_ids[subblock_name]:
                 coefficients_dict = self.indexing[index_id].as_coefficients_dict()
-                for key, _ in coefficients_dict.items():
+                for key in coefficients_dict:
                     if not key.free_symbols:
                         continue
                     index_vars = index_vars.union(key.free_symbols)
-            self.masked_indexing[subblock_name] = set(str(var) for var in index_vars)
+            self.masked_indexing[subblock_name] = {str(var) for var in index_vars}  # noqa: set_linter
 
 
 def generate_indirect_replacements(self):
-    '''
+    """
     ir:
         get_index=self.get_index('index0')
         load=ops.load('arg2_1', get_index)
         set_indirect0=ops.set_indirect(load)
     find { indirect0 : index0 }
-    '''
+    """
     node_map = {}
     indirect_node_map = {}
     for node in self.root_block.graph.nodes:
@@ -1282,11 +1337,11 @@ def generate_indirect_replacements(self):
             indirect_var = node.args[4]
             if indirect_var in indirect_node_map:
                 indirect_node = indirect_node_map[indirect_var]
-                indirect_node.meta['indirect_template'] = True
+                indirect_node.meta["indirect_template"] = True
             indirect_var_symbol = sympy_index_symbol(indirect_var)
             origin_index = self.indirect_replacements.get(indirect_var_symbol, "")
-            if 'indirect' in str(origin_index):
-                node.meta['multi_indirect_index'] = True
+            if "indirect" in str(origin_index):
+                node.meta["multi_indirect_index"] = True
             continue
         indirect_var = get_indirect_var(node.name)
         if indirect_var is None:
@@ -1304,48 +1359,88 @@ def generate_indirect_replacements(self):
         self.indirect_replacements[indirect_var_symbol] = origin_index
 
 
-def loop_body_block_index_select(self, name: str, index: sympy.Expr, indirect_var, set_indirect, bound, index_select_type):
+def loop_body_block_index_select(
+    self,
+    name: str,
+    index: sympy.Expr,
+    indirect_var,
+    set_indirect,
+    bound,
+    index_select_type,
+):
     index = self._simplify(index)
     index = self._add_index(index, MemoryUsageType.LOAD, buffer_name=name)
-    return self._inner.index_select(name, index, indirect_var, str(set_indirect), bound, index_select_type)
+    return self._inner.index_select(
+        name, index, indirect_var, str(set_indirect), bound, index_select_type
+    )
 
 
-def simplify_indexing_index_select(self, name: str, index: sympy.Expr, indirect_var, set_indirect, bound, index_select_type):
-    return self._inner.index_select(name, self._simplify(index), indirect_var, str(set_indirect), bound, index_select_type)
+def simplify_indexing_index_select(
+    self,
+    name: str,
+    index: sympy.Expr,
+    indirect_var,
+    set_indirect,
+    bound,
+    index_select_type,
+):
+    return self._inner.index_select(
+        name,
+        self._simplify(index),
+        indirect_var,
+        str(set_indirect),
+        bound,
+        index_select_type,
+    )
 
 
-def loop_body_block_gather_template(self, name: str, index: sympy.Expr, indirect_var, set_indirect, index_boundary):
+def loop_body_block_gather_template(
+    self, name: str, index: sympy.Expr, indirect_var, set_indirect, index_boundary
+):
     index = self._simplify(index)
     index = self._add_index(index, MemoryUsageType.LOAD, buffer_name=name)
-    return self._inner.gather_template(name, index, indirect_var, str(set_indirect), index_boundary)
+    return self._inner.gather_template(
+        name, index, indirect_var, str(set_indirect), index_boundary
+    )
 
 
-def simplify_indexing_gather_template(self, name: str, index: sympy.Expr, indirect_var, set_indirect, index_boundary):
-    return self._inner.gather_template(name, self._simplify(index), indirect_var, str(set_indirect), index_boundary)
+def simplify_indexing_gather_template(
+    self, name: str, index: sympy.Expr, indirect_var, set_indirect, index_boundary
+):
+    return self._inner.gather_template(
+        name, self._simplify(index), indirect_var, str(set_indirect), index_boundary
+    )
 
 
 def loop_body_block_indexput_template(self, name, index, value, indirect_var, boundary):
     index = self._simplify(index)
-    index = self._add_index(
-        index, MemoryUsageType.STORE, buffer_name=name
+    index = self._add_index(index, MemoryUsageType.STORE, buffer_name=name)
+    return self._inner.indexput_template(
+        name, index, value, str(indirect_var), boundary
     )
-    return self._inner.indexput_template(name, index, value, str(indirect_var), boundary)
 
 
-def simplify_indexing_indexput_template(self, name, index, value, indirect_var, boundary):
-    return self._inner.indexput_template(name, self._simplify(index), value, str(indirect_var), boundary)
+def simplify_indexing_indexput_template(
+    self, name, index, value, indirect_var, boundary
+):
+    return self._inner.indexput_template(
+        name, self._simplify(index), value, str(indirect_var), boundary
+    )
 
 
 def loop_body_block_scatter_template(self, name, index, value, indirect_var, boundary):
     index = self._simplify(index)
-    index = self._add_index(
-        index, MemoryUsageType.STORE, buffer_name=name
-    )
+    index = self._add_index(index, MemoryUsageType.STORE, buffer_name=name)
     return self._inner.scatter_template(name, index, value, str(indirect_var), boundary)
 
 
-def simplify_indexing_scatter_template(self, name, index, value, indirect_var, boundary):
-    return self._inner.scatter_template(name, self._simplify(index), value, str(indirect_var), boundary)
+def simplify_indexing_scatter_template(
+    self, name, index, value, indirect_var, boundary
+):
+    return self._inner.scatter_template(
+        name, self._simplify(index), value, str(indirect_var), boundary
+    )
+
 
 def patch_loop_body():
     # todo: move patch function to loop_body.py
@@ -1360,21 +1455,23 @@ def patch_loop_body():
         result = self.root_block()
         self.indexing = None
         return result
+
     LoopBody.__call__ = loopbody__call__
 
-    setattr(LoopBody, 'transform_dims_in_indexing', transform_dims_in_indexing)
-    setattr(LoopBody, 'substituted_dims_in_indexing', substituted_dims_in_indexing)
-    setattr(LoopBody, 'generate_indirect_replacements', generate_indirect_replacements)
-    setattr(LoopBody, 'generate_masked_indexing', generate_masked_indexing)
-    setattr(LoopBody, 'substitube_indirect_index', substitube_indirect_index)
+    LoopBody.transform_dims_in_indexing = transform_dims_in_indexing
+    LoopBody.substituted_dims_in_indexing = substituted_dims_in_indexing
+    LoopBody.generate_indirect_replacements = generate_indirect_replacements
+    LoopBody.generate_masked_indexing = generate_masked_indexing
+    LoopBody.substitube_indirect_index = substitube_indirect_index
+
 
 def patch_indexing():
     # todo: move patch function to loop_body.py and _sizevars.py
-    setattr(CaptureIndexing, 'index_select', loop_body_block_index_select)
-    setattr(sizevars.SimplifyIndexing, 'index_select', simplify_indexing_index_select)
-    setattr(CaptureIndexing, 'gather_template', loop_body_block_gather_template)
-    setattr(sizevars.SimplifyIndexing, 'gather_template', simplify_indexing_gather_template)
-    setattr(CaptureIndexing, 'indexput_template', loop_body_block_indexput_template)
-    setattr(sizevars.SimplifyIndexing, 'indexput_template', simplify_indexing_indexput_template)
-    setattr(CaptureIndexing, 'scatter_template', loop_body_block_scatter_template)
-    setattr(sizevars.SimplifyIndexing, 'scatter_template', simplify_indexing_scatter_template)
+    CaptureIndexing.index_select = loop_body_block_index_select
+    sizevars.SimplifyIndexing.index_select = simplify_indexing_index_select
+    CaptureIndexing.gather_template = loop_body_block_gather_template
+    sizevars.SimplifyIndexing.gather_template = simplify_indexing_gather_template
+    CaptureIndexing.indexput_template = loop_body_block_indexput_template
+    sizevars.SimplifyIndexing.indexput_template = simplify_indexing_indexput_template
+    CaptureIndexing.scatter_template = loop_body_block_scatter_template
+    sizevars.SimplifyIndexing.scatter_template = simplify_indexing_scatter_template

@@ -1,5 +1,6 @@
 from __future__ import annotations
-from typing import Sequence, Union, TYPE_CHECKING, Optional
+
+from typing import TYPE_CHECKING
 
 from torch._inductor.codegen.cuda_combined_scheduling import CUDACombinedScheduling
 from torch._inductor.scheduler import (
@@ -10,14 +11,14 @@ from torch._inductor.scheduler import (
     SchedulerNode,
 )
 
-from .catlass.catlass_scheduling import CATLASSScheduling
-from .scheduling import NPUTritonScheduling, NPUNoLinearTritonScheduling
 from ..autotune_process import FusedCATLASSBenchmarkRequest
-from ..config import log, is_ascend950
+from ..config import is_ascend950, log
+from .catlass.catlass_scheduling import CATLASSScheduling
+from .scheduling import NPUNoLinearTritonScheduling, NPUTritonScheduling
+
 
 if TYPE_CHECKING:
-    from torch._inductor.common import BackendFeature
-    from torch.utils._ordered_set import OrderedSet
+    from collections.abc import Sequence
 
 
 class NPUCombinedScheduling(CUDACombinedScheduling):
@@ -30,7 +31,7 @@ class NPUCombinedScheduling(CUDACombinedScheduling):
     this would also be the place to do it.
     """
 
-    def __init__(self, scheduler: Optional[Scheduler]) -> None:
+    def __init__(self, scheduler: Scheduler | None) -> None:
         BaseScheduling.__init__(self, scheduler)
         self._nolinear_triton_scheduling = NPUNoLinearTritonScheduling(scheduler)
         self._triton_scheduling = NPUTritonScheduling(scheduler)
@@ -61,7 +62,7 @@ class NPUCombinedScheduling(CUDACombinedScheduling):
         prologue_nodes: Sequence[BaseSchedulerNode],
     ):
         if self._catlass_scheduling.is_catlass_template(template_node):
-            assert not prologue_nodes
+            assert not prologue_nodes  # noqa: S101
             return self._catlass_scheduling.codegen_template(
                 template_node, epilogue_nodes, prologue_nodes
             )
@@ -70,31 +71,26 @@ class NPUCombinedScheduling(CUDACombinedScheduling):
                 template_node, epilogue_nodes, prologue_nodes
             )
 
-    def node_can_linear(self, node: Union[FusedSchedulerNode, SchedulerNode]):
+    def node_can_linear(self):
         # user config use linear scheduling for ascend.
-        nodes = node.get_nodes()
-        cat_kernel = False
-        for n in nodes:
-            for body_index in n._body.indexing_exprs.values():
-                if 'cat_store' in str(body_index):
-                    cat_kernel = True
-        if cat_kernel:
-            return True
-
         from ..config import inductor_ascend_linear_mode
+
         if inductor_ascend_linear_mode != "linear":
             return False
         return True
 
-    def codegen_node(self, node: Union[FusedSchedulerNode, SchedulerNode]):
+    def codegen_node(self, node: FusedSchedulerNode | SchedulerNode):
         if not is_ascend950:
             return self._triton_scheduling.codegen_node(node)
 
-        if self.node_can_linear(node):
+        if self.node_can_linear():
             try:
                 return self._triton_scheduling.codegen_node(node)
-            except Exception as e:
-                log.exception(f"linear codegen for node {node} raise error: {e}, fallback to origin codegen")
+            except Exception:
+                log.exception(
+                    "linear codegen for node %s raise error, fallback to origin codegen",
+                    node,
+                )
         # regroup snode
         for snode in node.get_nodes():
             group_fn = self._nolinear_triton_scheduling.group_fn
