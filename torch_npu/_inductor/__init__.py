@@ -12,10 +12,11 @@ if os.getenv("TORCHINDUCTOR_NPU_BACKEND", "default") == "mlir":
     except ImportError as e:
         raise ImportError("torch_mlir is not installed, install it first.") from e
     from .ascend_npu_ir.ascend_npu_ir.npu import npu_inductor_plugin
-    from .utils import patch_has_triton, patch_is_gpu
+    from .utils import patch_has_triton, patch_has_triton_tma, patch_is_gpu
 
     patch_is_gpu()
     patch_has_triton()
+    patch_has_triton_tma()
 else:
     import torch
     from torch._dynamo.device_interface import (
@@ -49,6 +50,7 @@ else:
         get_current_raw_stream,
         patch_fx_node_is_input_dependent_cudagraph_unsafe,
         patch_has_triton,
+        patch_has_triton_tma,
         patch_is_gpu,
     )
 
@@ -130,6 +132,7 @@ else:
     patch_cache_base_get_system()
     patch_is_gpu()
     patch_has_triton()
+    patch_has_triton_tma()
     disable_foreach()
     patch_get_optimization_cflags()
     patch_fx_node_is_input_dependent_cudagraph_unsafe()
