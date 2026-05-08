@@ -1,4 +1,5 @@
 import functools
+
 import torch
 import torch_npu
 
@@ -15,16 +16,17 @@ def patch_is_same_tensor():
         if isinstance(data, FakeTensor) or isinstance(value, FakeTensor):
             return False
         return (
-                not data.is_mkldnn
-                and data.size() == value.size()
-                and data.stride() == value.stride()
-                and data.dtype == value.dtype
-                and data.device == value.device
-                and data.untyped_storage().data_ptr() == value.untyped_storage().data_ptr()
-                and data.storage_offset() == value.storage_offset()
+            not data.is_mkldnn
+            and data.size() == value.size()
+            and data.stride() == value.stride()
+            and data.dtype == value.dtype
+            and data.device == value.device
+            and data.untyped_storage().data_ptr() == value.untyped_storage().data_ptr()
+            and data.storage_offset() == value.storage_offset()
         )
 
-    from torch._inductor import utils, graph
+    from torch._inductor import graph, utils
+
     utils.is_same_tensor = is_same_tensor
     # We need to do extra-patch because of code like `from xxx import is_same_tensor`
     graph.is_same_tensor = is_same_tensor
@@ -33,7 +35,7 @@ def patch_is_same_tensor():
 def patch_is_gpu():
     from torch._inductor.utils import GPU_TYPES
 
-    GPU_TYPES.append('npu')
+    GPU_TYPES.append("npu")
 
     def _return_false(device_interface):
         return False
@@ -66,7 +68,7 @@ def patch_has_triton():
             "cuda": cuda_extra_check,
             "xpu": _return_true,
             "cpu": cpu_extra_check,
-            "npu": _return_true
+            "npu": _return_true,
         }
 
         def is_device_compatible_with_triton():
@@ -80,6 +82,26 @@ def patch_has_triton():
 
     torch.utils._triton.has_triton = has_triton
     torch._inductor.scheduler.has_triton = has_triton
+
+
+def patch_has_triton_tma():
+    from torch.utils._triton import has_triton_package
+
+    @functools.lru_cache(None)
+    def has_triton_tma():
+        if has_triton_package():
+            if torch_npu.npu.is_available() and not torch.version.hip:
+                try:
+                    from triton.tools.experimental_descriptor import (  # noqa: F401
+                        create_1d_tma_descriptor,
+                        create_2d_tma_descriptor,
+                    )
+
+                    return True
+                except ImportError:
+                    pass
+
+        return False
 
 
 def _fx_node_is_input_dependent_cudagraph_unsafe(fx_node: torch.fx.Node) -> bool:
@@ -98,9 +120,9 @@ def _fx_node_is_input_dependent_cudagraph_unsafe(fx_node: torch.fx.Node) -> bool
 
     # index_put with boolean indices triggers .nonzero() during capture
     if target in (
-            torch.ops.aten.index_put.default,
-            torch.ops.aten.index_put_.default,
-            torch.ops.aten._unsafe_index_put.default,
+        torch.ops.aten.index_put.default,
+        torch.ops.aten.index_put_.default,
+        torch.ops.aten._unsafe_index_put.default,
     ):
         normalized = normalize_function(
             target, fx_node.args, fx_node.kwargs, normalize_to_only_use_kwargs=True
@@ -110,8 +132,8 @@ def _fx_node_is_input_dependent_cudagraph_unsafe(fx_node: torch.fx.Node) -> bool
             indices = kwargs["indices"]
             for idx in indices:
                 if idx is not None and idx.meta["val"].dtype in (
-                        torch.bool,
-                        torch.uint8,
+                    torch.bool,
+                    torch.uint8,
                 ):
                     return True
 
@@ -123,8 +145,8 @@ def _fx_node_is_input_dependent_cudagraph_unsafe(fx_node: torch.fx.Node) -> bool
     # directly, otherwise we treat it as unsafe for the graph partition.
     # ---------------------------------------------------------------------
     if target in (
-            torch.ops.npu.npu_fusion_attention_v3.default,
-            torch.ops.npu.npu_fusion_attention_grad_v3.default,
+        torch.ops.npu.npu_fusion_attention_v3.default,
+        torch.ops.npu.npu_fusion_attention_grad_v3.default,
     ):
         normalized = normalize_function(
             target, fx_node.args, fx_node.kwargs, normalize_to_only_use_kwargs=True
@@ -145,11 +167,17 @@ def _fx_node_is_input_dependent_cudagraph_unsafe(fx_node: torch.fx.Node) -> bool
 
 
 def patch_fx_node_is_input_dependent_cudagraph_unsafe():
-
     from torch._inductor import utils as inductor_utils
-    inductor_utils._fx_node_is_input_dependent_cudagraph_unsafe = _fx_node_is_input_dependent_cudagraph_unsafe
+
+    inductor_utils._fx_node_is_input_dependent_cudagraph_unsafe = (
+        _fx_node_is_input_dependent_cudagraph_unsafe
+    )
     from torch._inductor import lowering as inductor_lowering
-    inductor_lowering._fx_node_is_input_dependent_cudagraph_unsafe = _fx_node_is_input_dependent_cudagraph_unsafe
+
+    inductor_lowering._fx_node_is_input_dependent_cudagraph_unsafe = (
+        _fx_node_is_input_dependent_cudagraph_unsafe
+    )
+
 
 def disable_foreach():
     from torch._inductor.scheduler import Scheduler
