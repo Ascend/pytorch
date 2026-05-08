@@ -161,7 +161,7 @@ def register_inductor_npu():
 
 
 def patch_inductor_wrapper():
-    from typing import Any, Literal
+    from typing import Any, Literal, Optional
 
     from torch import _TorchCompileInductorWrapper
     from torch.utils._config_module import _ConfigEntry, Config, ConfigModule
@@ -175,7 +175,7 @@ def patch_inductor_wrapper():
         register_inductor_npu()
         return src_call(self, model_, inputs_)
 
-    def new_apply_options(self, options: dict[str, Any] | None):
+    def new_apply_options(self, options: Optional[dict[str, Any]]):
         if options is not None and options.get("enable_shape_handling", False):
             if not is_inductor_npu_initialized():
                 register_inductor_npu()
