@@ -22,6 +22,8 @@ def run_single_case(
     case_id: str,
     test_dir: Path,
     timeout: int,
+    test_index: int = 0,
+    total_tests: int = 0,
     verbose: bool = False
 ) -> Dict:
     """Run a single test case in a subprocess."""
@@ -48,7 +50,10 @@ def run_single_case(
 
     cmd = ["pytest", "-v", "--timeout=300", "-x", case_id]
 
+    # Print progress and command before execution
     if verbose:
+        if test_index > 0 and total_tests > 0:
+            print(f"Test {test_index}/{total_tests}: { ' '.join(cmd)}")
         print(f"Running: {case_id}")
 
     start_time = time.time()
@@ -144,14 +149,16 @@ def run_shard(
 
     print(f"Running tests with {max_workers} workers...")
 
+    total_tests = len(cases)
+
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {
-            executor.submit(run_single_case, case, test_dir_path, timeout, verbose): case
-            for case in cases
+            executor.submit(run_single_case, case, test_dir_path, timeout, idx, total_tests, verbose): (case, idx)
+            for idx, case in enumerate(cases, start=1)
         }
 
         for future in as_completed(futures):
-            case = futures[future]
+            case, idx = futures[future]
             result = future.result()
             results.append(result)
 
