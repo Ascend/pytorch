@@ -168,17 +168,7 @@ def run_shard(
             else:
                 stats["unknown"] += 1
 
-    # Save results - simplified format with only case_id, duration, status
-    simplified_results = [
-        {
-            "case_id": r["case_id"],
-            "duration": r["duration"],
-            "status": r["status"],
-        }
-        for r in results
-    ]
-
-    # Save simplified results JSON
+    # Save results JSON (contains case_id, duration, status, output, error, timestamp)
     results_file = report_dir_path / f"shard_{shard_index}_results.json"
     with open(results_file, "w") as f:
         json.dump({
@@ -186,7 +176,7 @@ def run_shard(
             "total_shards": total_shards,
             "total_cases": len(cases),
             "stats": stats,
-            "results": simplified_results,
+            "results": results,
         }, f, indent=2)
 
     print(f"\nShard {shard_index} Results saved to {results_file}")
