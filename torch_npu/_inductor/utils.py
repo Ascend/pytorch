@@ -82,6 +82,8 @@ def patch_has_triton_tma():
 
         return False
 
+    torch.utils._triton.has_triton_tma = has_triton_tma
+
 
 def _fx_node_is_input_dependent_cudagraph_unsafe(fx_node: torch.fx.Node) -> bool:
     """
