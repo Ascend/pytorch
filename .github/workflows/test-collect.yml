@@ -1,12 +1,6 @@
 name: Test Collect Stage
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-    branches:
-      - main
-      - master
-      - 'release/**'
   workflow_dispatch:
     inputs:
       distributed_shards:
