@@ -1,7 +1,6 @@
 import functools
 
 import torch
-import torch_npu
 from torch._inductor.ir import Operation
 
 
@@ -85,24 +84,12 @@ def patch_has_triton():
     torch._inductor.scheduler.has_triton = has_triton
 
 
-def patch_has_triton_tma():
-    from torch.utils._triton import has_triton_package
-
+def patch_device_supports_tma():
     @functools.lru_cache(None)
-    def has_triton_tma():
-        if has_triton_package():
-            if torch_npu.npu.is_available() and not torch.version.hip:
-                try:
-                    from triton.tools.experimental_descriptor import (  # noqa: F401
-                        create_1d_tma_descriptor,
-                        create_2d_tma_descriptor,
-                    )
+    def _device_supports_tma():
+        return torch.npu.is_available() and not torch.version.hip
 
-                    return True
-                except ImportError:
-                    pass
-
-        return False
+    torch.utils._triton._device_supports_tma = _device_supports_tma
 
 
 def patch_is_cudagraph_unsafe_op():
