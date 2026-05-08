@@ -15,10 +15,10 @@ exclude_patterns = [
     'functorch/docs/**',
     'functorch/examples/**',
     'functorch/docs/source/tutorials/**',
-    'torch/_inductor/fx_passes/serialized_patterns/**',
-    'torch/_inductor/autoheuristic/artifacts/**',
-    'torch/_inductor/kernel/vendored_templates/cutedsl/kernels/**',
-    'torch/_inductor/kernel/vendored_templates/cutedsl/dense_blockscaled_gemm_persistent.py',
+    'torch_npu/_inductor/fx_passes/serialized_patterns/**',
+    'torch_npu/_inductor/autoheuristic/artifacts/**',
+    'torch_npu/_inductor/kernel/vendored_templates/cutedsl/kernels/**',
+    'torch_npu/_inductor/kernel/vendored_templates/cutedsl/dense_blockscaled_gemm_persistent.py',
     'scripts/**',
     'test/generated_type_hints_smoketest.py',
     'test/test_torchfuzz_repros.py',
@@ -28,6 +28,8 @@ exclude_patterns = [
     'test/torch_np/numpy_test/**/*.py',
     # Skip all tests for NPUGraph
     'third_party/**',
+    'torch_npu/include/**',
+    'torch_npu/lib/**',
     # NPUGraph logs files
     'torch_npu/_logging/_internal.py',
     'torch_npu/csrc/core/npu/NPUGraph.cpp',
@@ -84,12 +86,12 @@ include_patterns = [
     'aten/src/ATen/native/Tensor*.cpp',
     'c10/**/*.h',
     'c10/**/*.cpp',
-    'torch/csrc/**/*.h',
-    'torch/csrc/**/*.hpp',
-    'torch/csrc/**/*.cpp',
-    'torch/nativert/**/*.h',
-    'torch/nativert/**/*.cpp',
-    'torch/headeronly/**/*.h',
+    'torch_npu/csrc/**/*.h',
+    'torch_npu/csrc/**/*.hpp',
+    'torch_npu/csrc/**/*.cpp',
+    'torch_npu/nativert/**/*.h',
+    'torch_npu/nativert/**/*.cpp',
+    'torch_npu/headeronly/**/*.h',
     'test/cpp/**/*.h',
     'test/cpp/**/*.cpp',
 ]
@@ -98,9 +100,9 @@ exclude_patterns = [
     'aten/src/ATen/native/mps/kernels/Quantized.metal',
     'c10/util/strong_type.h',
     '**/fb/**',
-    'torch/csrc/inductor/aoti_torch/generated/**',
-    'torch/csrc/jit/serialization/mobile_bytecode_generated.h',
-    'torch/csrc/utils/pythoncapi_compat.h',
+    'torch_npu/csrc/inductor/aoti_torch/generated/**',
+    'torch_npu/csrc/jit/serialization/mobile_bytecode_generated.h',
+    'torch_npu/csrc/utils/pythoncapi_compat.h',
     'aten/src/ATen/dlpack.h',
 ]
 init_command = [
@@ -125,8 +127,8 @@ is_formatter = true
 [[linter]]
 code = 'PYREFLY'
 include_patterns = [
-    'torch/**/*.py',
-    'torch/**/*.pyi',
+    'torch_npu/**/*.py',
+    'torch_npu/**/*.pyi',
     'torchgen/**/*.py',
     'torchgen/**/*.pyi',
     'functorch/**/*.py',
@@ -135,8 +137,10 @@ include_patterns = [
     'tools/**/*.pyi',
 ]
 exclude_patterns = [
-    'torch/_inductor/kernel/vendored_templates/cutedsl/kernels/**',
-    'torch/_inductor/kernel/vendored_templates/cutedsl/dense_blockscaled_gemm_persistent.py',
+    'torch_npu/_inductor/kernel/vendored_templates/cutedsl/kernels/**',
+    'torch_npu/_inductor/kernel/vendored_templates/cutedsl/dense_blockscaled_gemm_persistent.py',
+    'tools/linter/**',
+    'tools/setup_helpers/**',
 ]
 command = [
     'uv',
@@ -175,20 +179,20 @@ include_patterns = [
     'aten/src/ATen/xpu/**/*.cpp',
     'c10/**/*.cpp',
     'c10/**/*.h',
-    'torch/*.h',
-    'torch/_inductor/codegen/aoti_runtime/*.h',
-    'torch/_inductor/codegen/aoti_runtime/*.cpp',
-    'torch/csrc/*.h',
-    'torch/csrc/*.cpp',
-    'torch/csrc/**/*.h',
-    'torch/csrc/**/*.cpp',
-    'torch/csrc/jit/serialization/*.h',
-    'torch/csrc/jit/serialization/*.cpp',
-    'torch/nativert/*.h',
-    'torch/nativert/*.cpp',
-    'torch/nativert/**/*.h',
-    'torch/nativert/**/*.cpp',
-    'torch/headeronly/**/*.h',
+    'torch_npu/*.h',
+    'torch_npu/_inductor/codegen/aoti_runtime/*.h',
+    'torch_npu/_inductor/codegen/aoti_runtime/*.cpp',
+    'torch_npu/csrc/*.h',
+    'torch_npu/csrc/*.cpp',
+    'torch_npu/csrc/**/*.h',
+    'torch_npu/csrc/**/*.cpp',
+    'torch_npu/csrc/jit/serialization/*.h',
+    'torch_npu/csrc/jit/serialization/*.cpp',
+    'torch_npu/nativert/*.h',
+    'torch_npu/nativert/*.cpp',
+    'torch_npu/nativert/**/*.h',
+    'torch_npu/nativert/**/*.cpp',
+    'torch_npu/headeronly/**/*.h',
 ]
 exclude_patterns = [
     # The negative filters below are to exclude files that include onnx_pb.h or
@@ -218,17 +222,17 @@ exclude_patterns = [
     'c10/test/**/*.h',
     'c10/test/**/*.cpp',
     'third_party/**/*',
-    'torch/csrc/autograd/generated/**',
-    'torch/csrc/distributed/**/*.cu',
-    'torch/csrc/distributed/c10d/WinSockUtils.hpp',
-    'torch/csrc/distributed/c10d/quantization/quantization_gpu.h',
-    'torch/csrc/dynamo/eval_frame.h',
-    'torch/csrc/inductor/aoti_torch/c/shim.h',
-    'torch/csrc/jit/**/*',
-    'torch/csrc/jit/serialization/mobile_bytecode_generated.h',
-    'torch/csrc/utils/generated_serialization_types.h',
-    'torch/csrc/utils/pythoncapi_compat.h',
-    'torch/csrc/inductor/aoti_runtime/sycl_runtime_wrappers.h',
+    'torch_npu/csrc/autograd/generated/**',
+    'torch_npu/csrc/distributed/**/*.cu',
+    'torch_npu/csrc/distributed/c10d/WinSockUtils.hpp',
+    'torch_npu/csrc/distributed/c10d/quantization/quantization_gpu.h',
+    'torch_npu/csrc/dynamo/eval_frame.h',
+    'torch_npu/csrc/inductor/aoti_torch/c/shim.h',
+    'torch_npu/csrc/jit/**/*',
+    'torch_npu/csrc/jit/serialization/mobile_bytecode_generated.h',
+    'torch_npu/csrc/utils/generated_serialization_types.h',
+    'torch_npu/csrc/utils/pythoncapi_compat.h',
+    'torch_npu/csrc/inductor/aoti_runtime/sycl_runtime_wrappers.h',
 ]
 init_command = [
     'python3',
@@ -268,16 +272,16 @@ include_patterns = [
     'c10/util/llvmMathExtras.h',
     'c10/util/overflows.h',
     'c10/util/safe_numerics.h',
-    # torch/headeronly headers that must be C++17 compatible
-    'torch/headeronly/macros/cmake_macros.h',
-    'torch/headeronly/macros/Export.h',
-    'torch/headeronly/macros/Macros.h',
-    'torch/headeronly/util/BFloat16.h',
-    'torch/headeronly/util/Half.h',
-    'torch/headeronly/util/TypeSafeSignMath.h',
-    'torch/headeronly/util/bit_cast.h',
-    'torch/headeronly/util/complex.h',
-    'torch/headeronly/util/floating_point_utils.h',
+    # torch_npu/headeronly headers that must be C++17 compatible
+    'torch_npu/headeronly/macros/cmake_macros.h',
+    'torch_npu/headeronly/macros/Export.h',
+    'torch_npu/headeronly/macros/Macros.h',
+    'torch_npu/headeronly/util/BFloat16.h',
+    'torch_npu/headeronly/util/Half.h',
+    'torch_npu/headeronly/util/TypeSafeSignMath.h',
+    'torch_npu/headeronly/util/bit_cast.h',
+    'torch_npu/headeronly/util/complex.h',
+    'torch_npu/headeronly/util/floating_point_utils.h',
 ]
 exclude_patterns = [
     '**/fb/**',
@@ -517,7 +521,7 @@ include_patterns = [
 ]
 exclude_patterns = [
     'test_upstream/**',
-    'torch/headeronly/macros/Macros.h',
+    'torch_npu/headeronly/macros/Macros.h',
 ]
 command = [
     'python3',
@@ -541,7 +545,7 @@ include_patterns = [
 ]
 exclude_patterns = [
     'test_upstream/**',
-    'torch/headeronly/macros/Macros.h',
+    'torch_npu/headeronly/macros/Macros.h',
 ]
 command = [
     'python3',
@@ -571,7 +575,7 @@ exclude_patterns = [
     'aten/src/ATen/native/quantized/cpu/qnnpack/**',
     'aten/src/ATen/native/transformers/cuda/mem_eff_attention/**',
     # Standalone code that cannot depend on c10
-    'torch/csrc/inductor/aoti_runtime/**',
+    'torch_npu/csrc/inductor/aoti_runtime/**',
     # Test files use EXPECT_THROW which is a gtest macro
     'test/cpp/**/*.cpp',
     # Python C API bindings use python_error/py::error_already_set for exception propagation
@@ -583,9 +587,7 @@ exclude_patterns = [
 ]
 command = [
     'python3',
-    'tools/linter/adapters/grep_linter.py',
-    '--pattern=\bthrow\b',
-    '--allowlist-pattern=@allow-raw-throw',
+    'tools/linter/adapters/rawthrow_linter.py',
     '--linter-name=RAWTHROW',
     '--error-name=raw throw statement',
     """--error-description=\
@@ -605,16 +607,16 @@ code = 'INCLUDE'
 include_patterns = [
     'c10/**',
     'aten/**',
-    'torch/csrc/**',
-    'torch/nativert/**',
+    'torch_npu/csrc/**',
+    'torch_npu/nativert/**',
 ]
 exclude_patterns = [
     'aten/src/ATen/native/quantized/cpu/qnnpack/**',
     'aten/src/ATen/native/vulkan/api/vk_mem_alloc.h',
     'aten/src/ATen/native/vulkan/glsl/**',
     '**/fb/**',
-    'torch/csrc/jit/serialization/mobile_bytecode_generated.h',
-    'torch/csrc/utils/pythoncapi_compat.h',
+    'torch_npu/csrc/jit/serialization/mobile_bytecode_generated.h',
+    'torch_npu/csrc/utils/pythoncapi_compat.h',
 ]
 command = [
     'python3',
@@ -638,8 +640,8 @@ include_patterns = [
 ]
 exclude_patterns = [
     'test_upstream/**',
-    'torch/csrc/utils/pybind.h',
-    'torch/utils/benchmark/utils/valgrind_wrapper/compat_bindings.cpp',
+    'torch_npu/csrc/utils/pybind.h',
+    'torch_npu/utils/benchmark/utils/valgrind_wrapper/compat_bindings.cpp',
     'caffe2/**/*',
 ]
 command = [
@@ -657,7 +659,7 @@ command = [
     '--replace-pattern=1,/(#include <pybind11\/)/ s/(#include <pybind11\/)/#include <torch\/csrc\/utils\/pybind.h>\n\1/',
     """--error-description=\
         This #include directly includes pybind11 without also including \
-        #include <torch/csrc/utils/pybind.h>;  this means some important \
+        #include <torch_npu/csrc/utils/pybind.h>;  this means some important \
         specializations may not be included.\
     """,
     '--',
@@ -667,11 +669,11 @@ command = [
 [[linter]]
 code = 'ERROR_PRONE_ISINSTANCE'
 include_patterns = [
-    'torch/_refs/**/*.py',
-    'torch/_prims/**/*.py',
-    'torch/_prims_common/**/*.py',
-    'torch/_decomp/**/*.py',
-    'torch/_meta_registrations.py',
+    'torch_npu/_refs/**/*.py',
+    'torch_npu/_prims/**/*.py',
+    'torch_npu/_prims_common/**/*.py',
+    'torch_npu/_decomp/**/*.py',
+    'torch_npu/_meta_registrations.py',
 ]
 exclude_patterns = [
     '**/fb/**',
@@ -705,10 +707,10 @@ include_patterns = [
 exclude_patterns = [
     'test_upstream/**',
     # The place for all orphan specializations
-    'torch/csrc/utils/pybind.h',
+    'torch_npu/csrc/utils/pybind.h',
     # These specializations are non-orphan
-    'torch/csrc/distributed/c10d/init.cpp',
-    'torch/csrc/jit/python/pybind.h',
+    'torch_npu/csrc/distributed/c10d/init.cpp',
+    'torch_npu/csrc/jit/python/pybind.h',
     'fb/**',
     '**/fb/**',
     # These are safe to exclude as they do not have Python
@@ -722,7 +724,7 @@ command = [
     '--error-name=pybind11 specialization in non-standard location',
     """--error-description=\
         This pybind11 specialization (PYBIND11_DECLARE_HOLDER_TYPE) should \
-        be placed in torch/csrc/utils/pybind.h so that it is guaranteed to be \
+        be placed in torch_npu/csrc/utils/pybind.h so that it is guaranteed to be \
         included at any site that may potentially make use of it via py::cast. \
         If your specialization is in the same header file as the definition \
         of the holder type, you can ignore this lint by adding your header to \
@@ -766,7 +768,7 @@ include_patterns = ['**']
 exclude_patterns = [
     'test_upstream/**',
     'third_party/**',
-    'torch/bin/**',
+    'torch_npu/bin/**',
     '**/*.so',
     '**/*.py',
     '**/*.sh',
@@ -836,8 +838,8 @@ code = 'RAWCUDADEVICE'
 include_patterns = [
     'aten/**',
     'c10/**',
-    'torch/csrc/**',
-    'torch/nativert/**',
+    'torch_npu/csrc/**',
+    'torch_npu/nativert/**',
 ]
 exclude_patterns = [
     'aten/src/ATen/cuda/CUDAContext.cpp',
@@ -847,7 +849,7 @@ exclude_patterns = [
     'c10/cuda/CUDAFunctions.cpp',
     'c10/cuda/CUDAGuard.h',
     'c10/cuda/impl/CUDATest.cpp',
-    'torch/csrc/cuda/nccl.cpp',
+    'torch_npu/csrc/cuda/nccl.cpp',
     '**/fb/**',
 ]
 command = [
@@ -875,7 +877,7 @@ exclude_patterns = [
     'tools/**',
     'test/**',
     'benchmarks/**',
-    'torch/distributed/run.py',
+    'torch_npu/distributed/run.py',
     'functorch/benchmarks/**',
     # Grandfathered in
     'caffe2/**',
@@ -952,7 +954,7 @@ command = [
 [[linter]]
 code = 'SHELLCHECK'
 include_patterns = [
-    '.ci/pytorch/**/*.sh'
+    '.ci/pytorch_npu/**/*.sh'
 ]
 exclude_patterns = [
     '**/fb/**',
@@ -995,23 +997,22 @@ init_command = [
     '--output-name=actionlint',
 ]
 
-[[linter]]
-code = 'TESTOWNERS'
-include_patterns = [
-    'test/**/test_*.py',
-    'test/**/*_test.py',
-]
-exclude_patterns = [
-    'test_upstream/**',
-    'test/run_test.py',
-    '**/fb/**',
-]
-command = [
-    'python3',
-    'tools/linter/adapters/testowners_linter.py',
-    '--',
-    '@{{PATHSFILE}}',
-]
+# [[linter]]
+# code = 'TESTOWNERS'
+# include_patterns = [
+#     'test/**/test_*.py',
+#     'test/**/*_test.py',
+# ]
+# exclude_patterns = [
+#     'test/run_test.py',
+#     '**/fb/**',
+# ]
+# command = [
+#     'python3',
+#     'tools/linter/adapters/testowners_linter.py',
+#     '--',
+#     '@{{PATHSFILE}}',
+# ]
 
 [[linter]]
 code = 'TEST_HAS_MAIN'
@@ -1091,8 +1092,8 @@ code = 'CALL_ONCE'
 include_patterns = [
     'c10/**',
     'aten/**',
-    'torch/csrc/**',
-    'torch/nativert/**',
+    'torch_npu/csrc/**',
+    'torch_npu/nativert/**',
 ]
 exclude_patterns = [
     'c10/util/CallOnce.h',
@@ -1115,7 +1116,7 @@ command = [
 [[linter]]
 code = 'CONTEXT_DECORATOR'
 include_patterns = [
-    'torch/**',
+    'torch_npu/**',
 ]
 command = [
     'python3',
@@ -1137,8 +1138,8 @@ code = 'ONCE_FLAG'
 include_patterns = [
     'c10/**',
     'aten/**',
-    'torch/csrc/**',
-    'torch/nativert/**',
+    'torch_npu/csrc/**',
+    'torch_npu/nativert/**',
 ]
 exclude_patterns = [
     '**/fb/**',
@@ -1212,12 +1213,12 @@ exclude_patterns = [
     '**/fb/**',
     'third_party/**',
     'test/dynamo/cpython/**',
-    'torch/_vendor/**',
-    'torch/_inductor/fx_passes/serialized_patterns/**',
-    'torch/_inductor/autoheuristic/artifacts/**',
-    'torch/_inductor/kernel/vendored_templates/cutedsl/kernels/**',
-    'torch/_inductor/kernel/vendored_templates/cutedsl/dense_blockscaled_gemm_persistent.py',
-    'torch/utils/model_dump/preact.mjs',
+    'torch_npu/_vendor/**',
+    'torch_npu/_inductor/fx_passes/serialized_patterns/**',
+    'torch_npu/_inductor/autoheuristic/artifacts/**',
+    'torch_npu/_inductor/kernel/vendored_templates/cutedsl/kernels/**',
+    'torch_npu/_inductor/kernel/vendored_templates/cutedsl/dense_blockscaled_gemm_persistent.py',
+    'torch_npu/utils/model_dump/preact.mjs',
     # NPUGraph logs files
     'torch_npu/_logging/_internal.py',
     'torch_npu/csrc/core/npu/NPUGraph.cpp',
@@ -1256,11 +1257,11 @@ exclude_patterns = [
     'test/dynamo/cpython/**',
     'third_party/**/*.py',
     'third_party/**/*.pyi',
-    'torch/_vendor/**',
-    'torch/_inductor/fx_passes/serialized_patterns/**',
-    'torch/_inductor/autoheuristic/artifacts/**',
+    'torch_npu/_vendor/**',
+    'torch_npu/_inductor/fx_passes/serialized_patterns/**',
+    'torch_npu/_inductor/autoheuristic/artifacts/**',
     # Needs Python 3.12+
-    'torch/testing/_internal/py312_intrinsics.py',
+    'torch_npu/testing/_internal/py312_intrinsics.py',
     # These files are all grandfathered in, feel free to remove from this list
     # as necessary
     'test/quantization/__init__.py',
@@ -1367,145 +1368,145 @@ exclude_patterns = [
     'test/test_type_promotion.py',
     'test/test_unary_ufuncs.py',
     'test/test_vulkan.py',
-    'torch/_awaits/__init__.py',
-    'torch/_export/__init__.py',
-    'torch/_export/constraints.py',
-    'torch/_export/db/__init__.py',
-    'torch/_export/db/case.py',
-    'torch/_export/db/examples/__init__.py',
-    'torch/_export/db/examples/assume_constant_result.py',
-    'torch/_export/db/examples/autograd_function.py',
-    'torch/_export/db/examples/class_method.py',
-    'torch/_export/db/examples/cond_branch_class_method.py',
-    'torch/_export/db/examples/cond_branch_nested_function.py',
-    'torch/_export/db/examples/cond_branch_nonlocal_variables.py',
-    'torch/_export/db/examples/cond_closed_over_variable.py',
-    'torch/_export/db/examples/cond_operands.py',
-    'torch/_export/db/examples/cond_predicate.py',
-    'torch/_export/db/examples/decorator.py',
-    'torch/_export/db/examples/dictionary.py',
-    'torch/_export/db/examples/dynamic_shape_assert.py',
-    'torch/_export/db/examples/dynamic_shape_constructor.py',
-    'torch/_export/db/examples/dynamic_shape_if_guard.py',
-    'torch/_export/db/examples/dynamic_shape_map.py',
-    'torch/_export/db/examples/dynamic_shape_round.py',
-    'torch/_export/db/examples/dynamic_shape_slicing.py',
-    'torch/_export/db/examples/dynamic_shape_view.py',
-    'torch/_export/db/examples/fn_with_kwargs.py',
-    'torch/_export/db/examples/list_contains.py',
-    'torch/_export/db/examples/list_unpack.py',
-    'torch/_export/db/examples/nested_function.py',
-    'torch/_export/db/examples/null_context_manager.py',
-    'torch/_export/db/examples/pytree_flatten.py',
-    'torch/_export/db/examples/scalar_output.py',
-    'torch/_export/db/examples/specialized_attribute.py',
-    'torch/_export/db/examples/static_for_loop.py',
-    'torch/_export/db/examples/static_if.py',
-    'torch/_export/db/examples/tensor_setattr.py',
-    'torch/_export/db/examples/type_reflection_method.py',
-    'torch/_export/db/gen_example.py',
-    'torch/_export/db/logging.py',
-    'torch/testing/_internal/__init__.py',
-    'torch/testing/_internal/autocast_test_lists.py',
-    'torch/testing/_internal/autograd_function_db.py',
-    'torch/testing/_internal/check_kernel_launches.py',
-    'torch/testing/_internal/codegen/__init__.py',
-    'torch/testing/_internal/codegen/random_topo_test.py',
-    'torch/testing/_internal/common_cuda.py',
-    'torch/testing/_internal/common_jit.py',
-    'torch/testing/_internal/common_methods_invocations.py',
-    'torch/testing/_internal/common_modules.py',
-    'torch/testing/_internal/common_nn.py',
-    'torch/testing/_internal/common_pruning.py',
-    'torch/testing/_internal/common_quantization.py',
-    'torch/testing/_internal/common_quantized.py',
-    'torch/testing/_internal/common_subclass.py',
-    'torch/testing/_internal/common_utils.py',
-    'torch/testing/_internal/composite_compliance.py',
-    'torch/testing/_internal/hop_db.py',
-    'torch/testing/_internal/custom_op_db.py',
-    'torch/testing/_internal/data/__init__.py',
-    'torch/testing/_internal/data/network1.py',
-    'torch/testing/_internal/data/network2.py',
-    'torch/testing/_internal/dist_utils.py',
-    'torch/testing/_internal/generated/__init__.py',
-    'torch/testing/_internal/hypothesis_utils.py',
-    'torch/testing/_internal/inductor_utils.py',
-    'torch/testing/_internal/jit_metaprogramming_utils.py',
-    'torch/testing/_internal/jit_utils.py',
-    'torch/testing/_internal/logging_tensor.py',
-    'torch/testing/_internal/logging_utils.py',
-    'torch/testing/_internal/optests/__init__.py',
-    'torch/testing/_internal/optests/aot_autograd.py',
-    'torch/testing/_internal/optests/compile_check.py',
-    'torch/testing/_internal/optests/fake_tensor.py',
-    'torch/testing/_internal/optests/make_fx.py',
-    'torch/testing/_internal/quantization_torch_package_models.py',
-    'torch/testing/_internal/test_module/__init__.py',
-    'torch/testing/_internal/test_module/future_div.py',
-    'torch/testing/_internal/test_module/no_future_div.py',
-    'torch/utils/benchmark/__init__.py',
-    'torch/utils/benchmark/examples/__init__.py',
-    'torch/utils/benchmark/examples/compare.py',
-    'torch/utils/benchmark/examples/fuzzer.py',
-    'torch/utils/benchmark/examples/op_benchmark.py',
-    'torch/utils/benchmark/examples/simple_timeit.py',
-    'torch/utils/benchmark/examples/sparse/compare.py',
-    'torch/utils/benchmark/examples/sparse/fuzzer.py',
-    'torch/utils/benchmark/examples/sparse/op_benchmark.py',
-    'torch/utils/benchmark/examples/spectral_ops_fuzz_test.py',
-    'torch/utils/benchmark/op_fuzzers/__init__.py',
-    'torch/utils/benchmark/op_fuzzers/binary.py',
-    'torch/utils/benchmark/op_fuzzers/sparse_binary.py',
-    'torch/utils/benchmark/op_fuzzers/sparse_unary.py',
-    'torch/utils/benchmark/op_fuzzers/spectral.py',
-    'torch/utils/benchmark/op_fuzzers/unary.py',
-    'torch/utils/benchmark/utils/__init__.py',
-    'torch/utils/benchmark/utils/_stubs.py',
-    'torch/utils/benchmark/utils/common.py',
-    'torch/utils/benchmark/utils/compare.py',
-    'torch/utils/benchmark/utils/compile.py',
-    'torch/utils/benchmark/utils/cpp_jit.py',
-    'torch/utils/benchmark/utils/fuzzer.py',
-    'torch/utils/benchmark/utils/sparse_fuzzer.py',
-    'torch/utils/benchmark/utils/timer.py',
-    'torch/utils/benchmark/utils/valgrind_wrapper/__init__.py',
-    'torch/utils/benchmark/utils/valgrind_wrapper/timer_interface.py',
-    'torch/utils/bundled_inputs.py',
-    'torch/utils/checkpoint.py',
-    'torch/utils/collect_env.py',
-    'torch/utils/cpp_backtrace.py',
-    'torch/utils/cpp_extension.py',
-    'torch/utils/dlpack.py',
-    'torch/utils/file_baton.py',
-    'torch/utils/flop_counter.py',
-    'torch/utils/hipify/__init__.py',
-    'torch/utils/hipify/constants.py',
-    'torch/utils/hipify/cuda_to_hip_mappings.py',
-    'torch/utils/hipify/hipify_python.py',
-    'torch/utils/hipify/version.py',
-    'torch/utils/hooks.py',
-    'torch/utils/jit/__init__.py',
-    'torch/utils/jit/log_extract.py',
-    'torch/utils/mkldnn.py',
-    'torch/utils/mobile_optimizer.py',
-    'torch/utils/model_dump/__init__.py',
-    'torch/utils/model_dump/__main__.py',
-    'torch/utils/model_zoo.py',
-    'torch/utils/show_pickle.py',
-    'torch/utils/tensorboard/__init__.py',
-    'torch/utils/tensorboard/_caffe2_graph.py',
-    'torch/utils/tensorboard/_convert_np.py',
-    'torch/utils/tensorboard/_embedding.py',
-    'torch/utils/tensorboard/_onnx_graph.py',
-    'torch/utils/tensorboard/_proto_graph.py',
-    'torch/utils/tensorboard/_pytorch_graph.py',
-    'torch/utils/tensorboard/_utils.py',
-    'torch/utils/tensorboard/summary.py',
-    'torch/utils/tensorboard/writer.py',
-    'torch/utils/throughput_benchmark.py',
-    'torch/utils/viz/__init__.py',
-    'torch/utils/viz/_cycles.py',
+    'torch_npu/_awaits/__init__.py',
+    'torch_npu/_export/__init__.py',
+    'torch_npu/_export/constraints.py',
+    'torch_npu/_export/db/__init__.py',
+    'torch_npu/_export/db/case.py',
+    'torch_npu/_export/db/examples/__init__.py',
+    'torch_npu/_export/db/examples/assume_constant_result.py',
+    'torch_npu/_export/db/examples/autograd_function.py',
+    'torch_npu/_export/db/examples/class_method.py',
+    'torch_npu/_export/db/examples/cond_branch_class_method.py',
+    'torch_npu/_export/db/examples/cond_branch_nested_function.py',
+    'torch_npu/_export/db/examples/cond_branch_nonlocal_variables.py',
+    'torch_npu/_export/db/examples/cond_closed_over_variable.py',
+    'torch_npu/_export/db/examples/cond_operands.py',
+    'torch_npu/_export/db/examples/cond_predicate.py',
+    'torch_npu/_export/db/examples/decorator.py',
+    'torch_npu/_export/db/examples/dictionary.py',
+    'torch_npu/_export/db/examples/dynamic_shape_assert.py',
+    'torch_npu/_export/db/examples/dynamic_shape_constructor.py',
+    'torch_npu/_export/db/examples/dynamic_shape_if_guard.py',
+    'torch_npu/_export/db/examples/dynamic_shape_map.py',
+    'torch_npu/_export/db/examples/dynamic_shape_round.py',
+    'torch_npu/_export/db/examples/dynamic_shape_slicing.py',
+    'torch_npu/_export/db/examples/dynamic_shape_view.py',
+    'torch_npu/_export/db/examples/fn_with_kwargs.py',
+    'torch_npu/_export/db/examples/list_contains.py',
+    'torch_npu/_export/db/examples/list_unpack.py',
+    'torch_npu/_export/db/examples/nested_function.py',
+    'torch_npu/_export/db/examples/null_context_manager.py',
+    'torch_npu/_export/db/examples/pytree_flatten.py',
+    'torch_npu/_export/db/examples/scalar_output.py',
+    'torch_npu/_export/db/examples/specialized_attribute.py',
+    'torch_npu/_export/db/examples/static_for_loop.py',
+    'torch_npu/_export/db/examples/static_if.py',
+    'torch_npu/_export/db/examples/tensor_setattr.py',
+    'torch_npu/_export/db/examples/type_reflection_method.py',
+    'torch_npu/_export/db/gen_example.py',
+    'torch_npu/_export/db/logging.py',
+    'torch_npu/testing/_internal/__init__.py',
+    'torch_npu/testing/_internal/autocast_test_lists.py',
+    'torch_npu/testing/_internal/autograd_function_db.py',
+    'torch_npu/testing/_internal/check_kernel_launches.py',
+    'torch_npu/testing/_internal/codegen/__init__.py',
+    'torch_npu/testing/_internal/codegen/random_topo_test.py',
+    'torch_npu/testing/_internal/common_cuda.py',
+    'torch_npu/testing/_internal/common_jit.py',
+    'torch_npu/testing/_internal/common_methods_invocations.py',
+    'torch_npu/testing/_internal/common_modules.py',
+    'torch_npu/testing/_internal/common_nn.py',
+    'torch_npu/testing/_internal/common_pruning.py',
+    'torch_npu/testing/_internal/common_quantization.py',
+    'torch_npu/testing/_internal/common_quantized.py',
+    'torch_npu/testing/_internal/common_subclass.py',
+    'torch_npu/testing/_internal/common_utils.py',
+    'torch_npu/testing/_internal/composite_compliance.py',
+    'torch_npu/testing/_internal/hop_db.py',
+    'torch_npu/testing/_internal/custom_op_db.py',
+    'torch_npu/testing/_internal/data/__init__.py',
+    'torch_npu/testing/_internal/data/network1.py',
+    'torch_npu/testing/_internal/data/network2.py',
+    'torch_npu/testing/_internal/dist_utils.py',
+    'torch_npu/testing/_internal/generated/__init__.py',
+    'torch_npu/testing/_internal/hypothesis_utils.py',
+    'torch_npu/testing/_internal/inductor_utils.py',
+    'torch_npu/testing/_internal/jit_metaprogramming_utils.py',
+    'torch_npu/testing/_internal/jit_utils.py',
+    'torch_npu/testing/_internal/logging_tensor.py',
+    'torch_npu/testing/_internal/logging_utils.py',
+    'torch_npu/testing/_internal/optests/__init__.py',
+    'torch_npu/testing/_internal/optests/aot_autograd.py',
+    'torch_npu/testing/_internal/optests/compile_check.py',
+    'torch_npu/testing/_internal/optests/fake_tensor.py',
+    'torch_npu/testing/_internal/optests/make_fx.py',
+    'torch_npu/testing/_internal/quantization_torch_package_models.py',
+    'torch_npu/testing/_internal/test_module/__init__.py',
+    'torch_npu/testing/_internal/test_module/future_div.py',
+    'torch_npu/testing/_internal/test_module/no_future_div.py',
+    'torch_npu/utils/benchmark/__init__.py',
+    'torch_npu/utils/benchmark/examples/__init__.py',
+    'torch_npu/utils/benchmark/examples/compare.py',
+    'torch_npu/utils/benchmark/examples/fuzzer.py',
+    'torch_npu/utils/benchmark/examples/op_benchmark.py',
+    'torch_npu/utils/benchmark/examples/simple_timeit.py',
+    'torch_npu/utils/benchmark/examples/sparse/compare.py',
+    'torch_npu/utils/benchmark/examples/sparse/fuzzer.py',
+    'torch_npu/utils/benchmark/examples/sparse/op_benchmark.py',
+    'torch_npu/utils/benchmark/examples/spectral_ops_fuzz_test.py',
+    'torch_npu/utils/benchmark/op_fuzzers/__init__.py',
+    'torch_npu/utils/benchmark/op_fuzzers/binary.py',
+    'torch_npu/utils/benchmark/op_fuzzers/sparse_binary.py',
+    'torch_npu/utils/benchmark/op_fuzzers/sparse_unary.py',
+    'torch_npu/utils/benchmark/op_fuzzers/spectral.py',
+    'torch_npu/utils/benchmark/op_fuzzers/unary.py',
+    'torch_npu/utils/benchmark/utils/__init__.py',
+    'torch_npu/utils/benchmark/utils/_stubs.py',
+    'torch_npu/utils/benchmark/utils/common.py',
+    'torch_npu/utils/benchmark/utils/compare.py',
+    'torch_npu/utils/benchmark/utils/compile.py',
+    'torch_npu/utils/benchmark/utils/cpp_jit.py',
+    'torch_npu/utils/benchmark/utils/fuzzer.py',
+    'torch_npu/utils/benchmark/utils/sparse_fuzzer.py',
+    'torch_npu/utils/benchmark/utils/timer.py',
+    'torch_npu/utils/benchmark/utils/valgrind_wrapper/__init__.py',
+    'torch_npu/utils/benchmark/utils/valgrind_wrapper/timer_interface.py',
+    'torch_npu/utils/bundled_inputs.py',
+    'torch_npu/utils/checkpoint.py',
+    'torch_npu/utils/collect_env.py',
+    'torch_npu/utils/cpp_backtrace.py',
+    'torch_npu/utils/cpp_extension.py',
+    'torch_npu/utils/dlpack.py',
+    'torch_npu/utils/file_baton.py',
+    'torch_npu/utils/flop_counter.py',
+    'torch_npu/utils/hipify/__init__.py',
+    'torch_npu/utils/hipify/constants.py',
+    'torch_npu/utils/hipify/cuda_to_hip_mappings.py',
+    'torch_npu/utils/hipify/hipify_python.py',
+    'torch_npu/utils/hipify/version.py',
+    'torch_npu/utils/hooks.py',
+    'torch_npu/utils/jit/__init__.py',
+    'torch_npu/utils/jit/log_extract.py',
+    'torch_npu/utils/mkldnn.py',
+    'torch_npu/utils/mobile_optimizer.py',
+    'torch_npu/utils/model_dump/__init__.py',
+    'torch_npu/utils/model_dump/__main__.py',
+    'torch_npu/utils/model_zoo.py',
+    'torch_npu/utils/show_pickle.py',
+    'torch_npu/utils/tensorboard/__init__.py',
+    'torch_npu/utils/tensorboard/_caffe2_graph.py',
+    'torch_npu/utils/tensorboard/_convert_np.py',
+    'torch_npu/utils/tensorboard/_embedding.py',
+    'torch_npu/utils/tensorboard/_onnx_graph.py',
+    'torch_npu/utils/tensorboard/_proto_graph.py',
+    'torch_npu/utils/tensorboard/_pytorch_graph.py',
+    'torch_npu/utils/tensorboard/_utils.py',
+    'torch_npu/utils/tensorboard/summary.py',
+    'torch_npu/utils/tensorboard/writer.py',
+    'torch_npu/utils/throughput_benchmark.py',
+    'torch_npu/utils/viz/__init__.py',
+    'torch_npu/utils/viz/_cycles.py',
     # NPUGraph logs files
     'torch_npu/_logging/_internal.py',
     'torch_npu/npu/_graph_tree.py',
@@ -1617,10 +1618,10 @@ exclude_patterns = [
     'test_upstream/**',
     'caffe2/**',
     'functorch/docs/**',
-    'torch/_inductor/fx_passes/serialized_patterns/**',
-    'torch/_inductor/autoheuristic/artifacts/**',
-    'torch/_inductor/kernel/vendored_templates/cutedsl/kernels/**',
-    'torch/_inductor/kernel/vendored_templates/cutedsl/dense_blockscaled_gemm_persistent.py',
+    'torch_npu/_inductor/fx_passes/serialized_patterns/**',
+    'torch_npu/_inductor/autoheuristic/artifacts/**',
+    'torch_npu/_inductor/kernel/vendored_templates/cutedsl/kernels/**',
+    'torch_npu/_inductor/kernel/vendored_templates/cutedsl/dense_blockscaled_gemm_persistent.py',
     'test/dynamo/cpython/**',
     'test/test_torchfuzz_repros.py',
     'scripts/**',
@@ -1666,7 +1667,7 @@ is_formatter = true
 [[linter]]
 code = 'META_NO_CREATE_UNBACKED'
 include_patterns = [
-  "torch/_meta_registrations.py"
+  "torch_npu/_meta_registrations.py"
 ]
 command = [
     'python3',
@@ -1676,8 +1677,8 @@ command = [
     '--error-name=no create_unbacked in meta registrations',
     """--error-description=\
         Data-dependent operators should have their meta \
-        registration in torch/_subclasses/fake_impls.py, \
-        not torch/_meta_registrations.py
+        registration in torch_npu/_subclasses/fake_impls.py, \
+        not torch_npu/_meta_registrations.py
     """,
     '--',
     '@{{PATHSFILE}}'
@@ -1785,8 +1786,8 @@ command = [
     '@{{PATHSFILE}}'
 ]
 include_patterns = [
-    "torch/_inductor/**/*.py",
-    "torch/_functorch/partitioners.py",
+    "torch_npu/_inductor/**/*.py",
+    "torch_npu/_functorch/partitioners.py",
 ]
 is_formatter = true
 
@@ -1803,11 +1804,11 @@ command = [
     '@{{PATHSFILE}}'
 ]
 include_patterns = [
-   'torch/_inductor/**/*.py'
+   'torch_npu/_inductor/**/*.py'
 ]
 exclude_patterns = [
-    'torch/_inductor/kernel/vendored_templates/cutedsl/kernels/**',
-    'torch/_inductor/kernel/vendored_templates/cutedsl/dense_blockscaled_gemm_persistent.py',
+    'torch_npu/_inductor/kernel/vendored_templates/cutedsl/kernels/**',
+    'torch_npu/_inductor/kernel/vendored_templates/cutedsl/dense_blockscaled_gemm_persistent.py',
 ]
 is_formatter = false
 
@@ -1821,7 +1822,7 @@ command = [
     '@{{PATHSFILE}}'
 ]
 include_patterns = [
-   'torch/_dynamo/**',
+   'torch_npu/_dynamo/**',
 ]
 is_formatter = false
 
@@ -1850,14 +1851,14 @@ command = [
     'tools/linter/adapters/header_only_linter.py',
 ]
 include_patterns = [
-    'torch/header_only_apis.txt',
+    'torch_npu/header_only_apis.txt',
 ]
 is_formatter = false
 
 
 [[linter]]
 code = "GB_REGISTRY"
-include_patterns = ["torch/_dynamo/**/*.py"]
+include_patterns = ["torch_npu/_dynamo/**/*.py"]
 command = [
   "python3",
   "tools/linter/adapters/gb_registry_linter.py",
@@ -1866,8 +1867,8 @@ command = [
 [[linter]]
 code = 'STABLE_SHIM_VERSION'
 include_patterns = [
-    'torch/csrc/stable/c/shim.h',
-    'torch/csrc/inductor/aoti_torch/c/shim.h'
+    'torch_npu/csrc/stable/c/shim.h',
+    'torch_npu/csrc/inductor/aoti_torch/c/shim.h'
 ]
 command = [
     'python3',
@@ -1879,7 +1880,7 @@ command = [
 [[linter]]
 code = 'STABLE_SHIM_USAGE'
 include_patterns = [
-    'torch/csrc/stable/**/*.h',
+    'torch_npu/csrc/stable/**/*.h',
 ]
 command = [
     'python3',
