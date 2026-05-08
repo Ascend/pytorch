@@ -490,7 +490,12 @@ jobs:
           TEST_COUNT=0
           PASSED=0
           FAILED=0
+          TIMEOUT=0
+          CRASHED=0
           START_TIME=$(date +%s)
+
+          # 单测试超时：30分钟
+          SINGLE_TEST_TIMEOUT=1800
 
           while IFS= read -r test_name; do
             if [ -z "$test_name" ]; then
@@ -504,25 +509,38 @@ jobs:
             echo "Test ${TEST_COUNT}/${TEST_COUNT_IN_SHARD}: ${test_name}"
             echo "============================================"
 
-            # 运行测试，捕获输出到文件但不打印到控制台
+            # 运行测试，捕获输出到文件，带超时控制
             set +e
-            python${{ env.PYTHON_VERSION }} run_test.py -i "${test_name}" -v > /tmp/test_output_${{ matrix.shard }}_${TEST_COUNT}.log 2>&1
+            timeout ${SINGLE_TEST_TIMEOUT}s python${{ env.PYTHON_VERSION }} run_test.py -i "${test_name}" -v > /tmp/test_output_${{ matrix.shard }}_${TEST_COUNT}.log 2>&1
             TEST_EXIT_CODE=$?
             set -e
 
             TEST_END_TIME=$(date +%s)
             TEST_DURATION=$((TEST_END_TIME - TEST_START_TIME))
 
-            # 检查结果
+            # 检查结果（区分失败、超时、崩溃）
+            # timeout exit codes: 124=timeout, 137=OOM killed, 139=segfault, etc.
             if [ $TEST_EXIT_CODE -eq 0 ]; then
               echo ">>> ${test_name}: PASSED (${TEST_DURATION}s)"
               PASSED=$((PASSED + 1))
+            elif [ $TEST_EXIT_CODE -eq 124 ]; then
+              echo ">>> ${test_name}: TIMEOUT (${TEST_DURATION}s, killed after ${SINGLE_TEST_TIMEOUT}s)"
+              TIMEOUT=$((TIMEOUT + 1))
+              echo "--- Last 20 lines of log ---"
+              tail -20 /tmp/test_output_${{ matrix.shard }}_${TEST_COUNT}.log || echo "(log file may be empty)"
+              echo "--- End of log preview ---"
             else
-              echo ">>> ${test_name}: FAILED (exit code: ${TEST_EXIT_CODE}, ${TEST_DURATION}s)"
-              FAILED=$((FAILED + 1))
+              # 区分普通失败和可能的崩溃
+              if [ $TEST_EXIT_CODE -ge 128 ]; then
+                echo ">>> ${test_name}: CRASHED (exit code: ${TEST_EXIT_CODE}, signal: $(($TEST_EXIT_CODE - 128)), ${TEST_DURATION}s)"
+                CRASHED=$((CRASHED + 1))
+              else
+                echo ">>> ${test_name}: FAILED (exit code: ${TEST_EXIT_CODE}, ${TEST_DURATION}s)"
+                FAILED=$((FAILED + 1))
+              fi
               # 打印失败测试的最后几行日志
               echo "--- Last 20 lines of log ---"
-              tail -20 /tmp/test_output_${{ matrix.shard }}_${TEST_COUNT}.log
+              tail -20 /tmp/test_output_${{ matrix.shard }}_${TEST_COUNT}.log || echo "(log file may be empty)"
               echo "--- End of log preview ---"
             fi
 
@@ -530,7 +548,7 @@ jobs:
             TOTAL_DURATION=$((CURRENT_TIME - START_TIME))
             echo ""
             echo "--------------------------------------------"
-            echo "Shard ${{ matrix.shard }} Summary: ${PASSED} passed, ${FAILED} failed, ${TEST_COUNT}/${TEST_COUNT_IN_SHARD} done"
+            echo "Shard ${{ matrix.shard }} Summary: ${PASSED} passed, ${FAILED} failed, ${TIMEOUT} timeout, ${CRASHED} crashed, ${TEST_COUNT}/${TEST_COUNT_IN_SHARD} done"
             echo "Elapsed: ${TOTAL_DURATION}s ($(date -d "@${START_TIME}" +%H:%M:%S) - $(date +%H:%M:%S))"
             echo "--------------------------------------------"
 
@@ -545,11 +563,13 @@ jobs:
           echo "Total tests run: ${TEST_COUNT}"
           echo "Passed: ${PASSED}"
           echo "Failed: ${FAILED}"
+          echo "Timeout: ${TIMEOUT}"
+          echo "Crashed: ${CRASHED}"
           echo "Total time: ${TOTAL_DURATION}s ($(date -d "@${START_TIME}" +%H:%M:%S) - $(date -d "@${END_TIME}" +%H:%M:%S))"
           echo "============================================"
 
           # 保存结果摘要（包含时间信息）
-          echo "{\"shard_id\": ${{ matrix.shard }}, \"total\": ${TEST_COUNT}, \"passed\": ${PASSED}, \"failed\": ${FAILED}, \"duration_seconds\": ${TOTAL_DURATION}}" > /tmp/test_results_summary_shard_${{ matrix.shard }}.json
+          echo "{\"shard_id\": ${{ matrix.shard }}, \"total\": ${TEST_COUNT}, \"passed\": ${PASSED}, \"failed\": ${FAILED}, \"timeout\": ${TIMEOUT}, \"crashed\": ${CRASHED}, \"duration_seconds\": ${TOTAL_DURATION}}" > /tmp/test_results_summary_shard_${{ matrix.shard }}.json
 
       - name: Upload test results for shard ${{ matrix.shard }}
         if: always()
