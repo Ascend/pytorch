@@ -39,6 +39,7 @@ standard_library = ["typing_extensions"]
 
 [tool.ruff]
 line-length = 88
+target-version = "py39"
 src = ["caffe2", "torch", "torchgen", "functorch", "test"]
 extend-exclude = ["third_party", "test/dynamo/cpython"]
 
@@ -100,8 +101,10 @@ ignore = [
     "SIM117",
     "SIM300", # Yoda condition detected
     "TC006",
-    # TODO: Remove Python-3.10 specific suppressions
-    "B905",
+    # Python 3.10+ syntax upgrades — keep disabled while supporting py39
+    "B905",   # zip() strict= parameter (3.10+)
+    "UP007",  # Union[X, Y] -> X | Y (3.10+)
+    "UP045",  # Optional[X] -> X | None (3.10+)
 ]
 select = [
     "B",
