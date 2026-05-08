@@ -2,15 +2,15 @@ from __future__ import annotations
 
 import functools
 import logging
-from typing import List, Optional
 
-import sympy
 import torch
 import torch_npu
+
 
 log = logging.getLogger("torch._inductor")
 
 NPU_ALIGN_BYTES = 32
+
 
 def get_current_raw_stream(device):
     return torch.npu.current_stream(device).npu_stream
@@ -18,7 +18,8 @@ def get_current_raw_stream(device):
 
 def patch_is_gpu():
     from torch._inductor.utils import GPU_TYPES
-    GPU_TYPES.append('npu')
+
+    GPU_TYPES.append("npu")
 
 
 def patch_has_triton():
@@ -46,7 +47,7 @@ def patch_has_triton():
             "cuda": cuda_extra_check,
             "xpu": _return_true,
             "cpu": cpu_extra_check,
-            "npu": _return_true
+            "npu": _return_true,
         }
 
         def is_device_compatible_with_triton():
@@ -60,6 +61,26 @@ def patch_has_triton():
 
     torch.utils._triton.has_triton = has_triton
     torch._inductor.scheduler.has_triton = has_triton
+
+
+def patch_has_triton_tma():
+    from torch.utils._triton import has_triton_package
+
+    @functools.lru_cache(None)
+    def has_triton_tma():
+        if has_triton_package():
+            if torch_npu.npu.is_available() and not torch.version.hip:
+                try:
+                    from triton.tools.experimental_descriptor import (  # noqa: F401
+                        create_1d_tma_descriptor,
+                        create_2d_tma_descriptor,
+                    )
+
+                    return True
+                except ImportError:
+                    pass
+
+        return False
 
 
 def _fx_node_is_input_dependent_cudagraph_unsafe(fx_node: torch.fx.Node) -> bool:
@@ -104,7 +125,7 @@ def patch_get_first_incompatible_cudagraph_node():
 
     def get_first_incompatible_cudagraph_node(
         gm: torch.fx.GraphModule,
-    ) -> Optional[torch.fx.Node]:
+    ) -> torch.fx.Node | None:
         forbidden_set = OrderedSet(
             [
                 "aten._fused_moving_avg_obs_fq_helper.default",
@@ -149,16 +170,28 @@ def patch_get_first_incompatible_cudagraph_node():
         return None
 
     from torch._inductor import utils as inductor_utils
-    inductor_utils.get_first_incompatible_cudagraph_node = get_first_incompatible_cudagraph_node
+
+    inductor_utils.get_first_incompatible_cudagraph_node = (
+        get_first_incompatible_cudagraph_node
+    )
 
     from torch._inductor import compile_fx
-    compile_fx.get_first_incompatible_cudagraph_node = get_first_incompatible_cudagraph_node
+
+    compile_fx.get_first_incompatible_cudagraph_node = (
+        get_first_incompatible_cudagraph_node
+    )
 
     from torch._dynamo.backends import cudagraphs
-    cudagraphs.get_first_incompatible_cudagraph_node = get_first_incompatible_cudagraph_node
+
+    cudagraphs.get_first_incompatible_cudagraph_node = (
+        get_first_incompatible_cudagraph_node
+    )
 
     from torch_npu.utils import _graph_tree
-    _graph_tree.get_first_incompatible_cudagraph_node = get_first_incompatible_cudagraph_node
+
+    _graph_tree.get_first_incompatible_cudagraph_node = (
+        get_first_incompatible_cudagraph_node
+    )
 
 
 class classproperty:
@@ -169,15 +202,15 @@ class classproperty:
         return self.func(owner)
 
 
-def _use_template_for_npu(layout, allowed_layout_dtypes: List[torch.dtype]) -> bool:
+def _use_template_for_npu(layout, allowed_layout_dtypes: list[torch.dtype]) -> bool:
     return layout.device.type == "npu" and layout.dtype in allowed_layout_dtypes
 
 
 def use_triton_template(
-    layout: Layout, *, enable_int32: bool = False, enable_float8: bool = False
+    layout, *, enable_int32: bool = False, enable_float8: bool = False
 ) -> bool:
-    from torch._inductor.utils import is_gpu, _use_autotune_backend, use_max_autotune
     from torch._inductor.codegen.common import BackendFeature, has_backend_feature
+    from torch._inductor.utils import _use_autotune_backend, is_gpu, use_max_autotune
 
     layout_dtypes = [torch.float16, torch.bfloat16, torch.float32]
     if enable_int32:
@@ -198,17 +231,17 @@ def use_triton_template(
     )
 
 
-def use_catlass_template(op_name: str, layout: Layout, m: int, n: int, k: int) -> bool:
-    from torch._inductor.virtualized import V
+def use_catlass_template(op_name, layout, m: int, n: int, k: int) -> bool:
     from torch._inductor.utils import _use_autotune_backend, use_max_autotune
+    from torch._inductor.virtualized import V
 
-    from .config import catlass as catlass_config
     from .codegen.catlass.catlass_utils import try_import_catlass
+    from .config import catlass as catlass_config
 
     enabled_ops = catlass_config.catlass_enabled_ops.upper()
     if enabled_ops == "ALL":
         pass
-    elif not op_name.upper() in [x.strip() for x in enabled_ops.split(",")]:
+    elif op_name.upper() not in [x.strip() for x in enabled_ops.split(",")]:
         return False
 
     gemm_size = V.graph.sizevars.size_hint(m * n * k, fallback=-1)
@@ -240,9 +273,10 @@ def use_catlass_template(op_name: str, layout: Layout, m: int, n: int, k: int) -
 
 def triton_support_ffts():
     from triton.backends.ascend.utils import (
+        force_disable_ffts,
         get_ascend_arch_from_env,
         is_ffts_supported,
-        force_disable_ffts
     )
+
     arch = get_ascend_arch_from_env()
     return is_ffts_supported(arch) and (not force_disable_ffts())

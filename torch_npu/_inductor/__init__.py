@@ -90,6 +90,7 @@ else:
     from .utils import (
         patch_get_first_incompatible_cudagraph_node,
         patch_has_triton,
+        patch_has_triton_tma,
         patch_is_gpu,
     )
 
@@ -193,6 +194,7 @@ else:
     patch_run_node()
     patch_is_gpu()
     patch_has_triton()
+    patch_has_triton_tma()
     patch_get_first_incompatible_cudagraph_node()
     patch_get_optimization_cflags()
     patch_extract_read_writes()
