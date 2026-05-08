@@ -1,21 +1,20 @@
-from typing import (
-    Callable,
-    Optional,
-)
+#!/usr/bin/env python3
+from collections.abc import Callable, Sequence
 from typing_extensions import Never
-from collections.abc import Sequence
 
 from sympy import Expr, Integer
+
 import torch
-from torch._inductor.ir import Reduction, log, Scatter, ReductionHint, sympy_product
-from torch._inductor.codegen.common import BackendFeature
-from torch._inductor.virtualized import ops, V
-from torch._inductor.utils import ir_dataclass
 from torch._inductor import config
+from torch._inductor.codegen.common import BackendFeature
+from torch._inductor.ir import log, Reduction, ReductionHint, Scatter, sympy_product
+from torch._inductor.utils import ir_dataclass
+from torch._inductor.virtualized import ops, V
 
 
 def patch_fallback_kernel_codegen():
     from torch._inductor.ir import FallbackKernel
+
     origin_fallback_codegen = FallbackKernel.codegen
 
     # todo:
@@ -26,10 +25,13 @@ def patch_fallback_kernel_codegen():
         kernel = self.op_overload
         if kernel.namespace == "aten":  # type: ignore[union-attr]
             if not isinstance(kernel, torch._ops.OpOverload):
-                raise AssertionError(f"kernel should be OpOverload, but got {type(kernel)}")
+                raise AssertionError(
+                    f"kernel should be OpOverload, but got {type(kernel)}"
+                )
             if V.graph.cpp_wrapper:
                 # Fallback all npu op to proxy executor and warn when gpu do not.
                 from torchgen.aoti.fallback_ops import inductor_fallback_ops
+
                 self.use_runtime_dispatch = True
                 if str(kernel) in inductor_fallback_ops:
                     log.warning(
@@ -43,11 +45,11 @@ def patch_fallback_kernel_codegen():
 
 @ir_dataclass
 class IndexputTemplate(Scatter):
-    boundary: Optional[int] = None
+    boundary: int | None = None
 
     def store_output(
         self,
-        output_name: Optional[str],
+        output_name: str | None,
         indexer: Callable[[Sequence[Expr]], Never],
         store_vars: Sequence[Expr],
     ) -> None:
@@ -66,14 +68,14 @@ class IndexputTemplate(Scatter):
             indexer(output_indexer),
             loader(store_vars),
             indirect_indexer,
-            self.boundary
+            self.boundary,
         )
 
 
 class ScatterTemplate(Scatter):
     def store_output(
         self,
-        output_name: Optional[str],
+        output_name: str | None,
         indexer: Callable[[Sequence[Expr]], Never],
         store_vars: Sequence[Expr],
     ) -> None:
@@ -97,8 +99,16 @@ class ScatterTemplate(Scatter):
 
 
 def reduction_split_factor(reduction_ranges):
-    ranges = [num for num in reduction_ranges if num > 1]
-    if len(ranges) == 0:
+    def get_hint(x):
+        if isinstance(x, (int, float)):
+            return x
+        try:
+            return int(V.graph.sizevars.size_hint(x))
+        except Exception:
+            return 1
+
+    ranges = [h for num in reduction_ranges if (h := get_hint(num)) > 1]
+    if not ranges:
         return 1
     return min(ranges)
 
@@ -136,6 +146,7 @@ def num_splits(
     if should_split:
         inner_reduction_splits = reduction_split_factor
     else:
+
         def inner_reduction_splits(reduction_ranges):
             return 1
 
@@ -143,6 +154,7 @@ def num_splits(
         split = inner_reduction_splits(reduction_ranges)
         return ReductionHint.INNER, split
     return ReductionHint.DEFAULT, 1
+
 
 def patch_num_splits():
     Reduction.num_splits = num_splits
