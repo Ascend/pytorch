@@ -1,17 +1,19 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates
 # Owner(s): ["oncall: distributed"]
 
-from typing import Any, Callable, Dict, Optional, Sequence
+from collections.abc import Callable, Sequence
+from typing import Any
 from unittest import skip
 
-import torch
+import torch_npu
+from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU, with_comms
 
+import torch
 import torch.utils._pytree as pytree
 from torch import Tensor
-
 from torch.distributed._tensor import DeviceMesh, distribute_tensor, DTensor
 from torch.distributed._tensor.placement_types import (
-    _Partial,
+    Partial,
     Placement,
     Replicate,
     Shard,
@@ -20,8 +22,8 @@ from torch.distributed.distributed_c10d import ReduceOp
 from torch.testing._internal.common_utils import run_tests
 from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTestBase
 
-import torch_npu
-from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
+
+npu = torch.ops.npu
 
 
 def no_op():
@@ -79,9 +81,9 @@ class DistElementwiseOpsTest(DTensorTestBase):
         device_mesh: DeviceMesh,
         placements: Sequence[Placement],
         op: Callable,
-        pre_op_fn: Optional[Callable] = None,
+        pre_op_fn: Callable | None = None,
         args: Sequence[Any] = tuple(),
-        kwargs: Optional[Dict[str, Any]] = None,
+        kwargs: dict[str, Any] | None = None,
     ):
         if pre_op_fn is None:
             pre_op_fn = no_op
@@ -114,7 +116,7 @@ class DistElementwiseOpsTest(DTensorTestBase):
         *,
         device_mesh: DeviceMesh,
         placements: Sequence[Placement],
-        pre_op_fn: Optional[Callable] = None,
+        pre_op_fn: Callable | None = None,
         input_size: Sequence[int],
         op: Callable,
         **kwargs,
@@ -140,8 +142,8 @@ class DistElementwiseOpsTest(DTensorTestBase):
     @with_comms
     def test_partial_add(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
-        d_1 = DTensor.from_local(torch.rand(2, 2), device_mesh, [_Partial()])
-        d_2 = DTensor.from_local(torch.rand(2, 2), device_mesh, [_Partial()])
+        d_1 = DTensor.from_local(torch.rand(2, 2), device_mesh, [Partial()])
+        d_2 = DTensor.from_local(torch.rand(2, 2), device_mesh, [Partial()])
         d_3 = d_1 + d_2
         self.assertEqual(d_3._spec.placements[0].is_partial(), True)
 
@@ -160,6 +162,30 @@ class DistElementwiseOpsTest(DTensorTestBase):
             placements=[Replicate()],
             input_size=(8, 5),
             op=torch.nn.functional.gelu,
+        )
+        self._run_sharded_elementwise_ops(
+            device_mesh=device_mesh,
+            placements=[Shard(0)],
+            input_size=(8, 5),
+            op=npu.fast_gelu,
+        )
+        self._run_sharded_elementwise_ops(
+            device_mesh=device_mesh,
+            placements=[Replicate()],
+            input_size=(8, 5),
+            op=npu.fast_gelu,
+        )
+        self._run_sharded_elementwise_ops(
+            device_mesh=device_mesh,
+            placements=[Shard(0)],
+            input_size=(8, 5),
+            op=npu.npu_fast_gelu,
+        )
+        self._run_sharded_elementwise_ops(
+            device_mesh=device_mesh,
+            placements=[Replicate()],
+            input_size=(8, 5),
+            op=npu.npu_fast_gelu,
         )
         self._run_sharded_elementwise_ops(
             device_mesh=device_mesh,
@@ -221,7 +247,7 @@ class DistElementwiseOpsTest(DTensorTestBase):
         with self.assertRaisesRegex(RuntimeError, "supported"):
             self._run_sharded_elementwise_ops(
                 device_mesh=device_mesh,
-                placements=[_Partial(ReduceOp.SUM)],
+                placements=[Partial(ReduceOp.SUM)],
                 input_size=(8, 5),
                 op=torch.nn.functional.dropout,
             )
@@ -257,16 +283,21 @@ class DistElementwiseOpsTest(DTensorTestBase):
         local_result = torch_npu.npu_dtype_cast(npu_input, dst_dtype)
 
         # distributed tensor
-        device_mesh = init_device_mesh(self.device_type, [1, 4], mesh_dim_names=["dp", "tp"])
+        device_mesh = init_device_mesh(
+            self.device_type, [1, 4], mesh_dim_names=["dp", "tp"]
+        )
         shard0_spec = Shard(0)
         strided_shard0_spec = _StridedShard(0, split_factor=4)
         replica_spec = Replicate()
-        dt_input = distribute_tensor(npu_input, device_mesh, [strided_shard0_spec, shard0_spec])
+        dt_input = distribute_tensor(
+            npu_input, device_mesh, [strided_shard0_spec, shard0_spec]
+        )
         dist_res: DTensor = torch_npu.npu_dtype_cast(dt_input, dst_dtype).redistribute(
             device_mesh, [replica_spec, replica_spec]
         )
         self.assertEqual(dist_res.to_local().dtype, dst_dtype)
         self.assertEqual(dist_res.to_local(), local_result)
+
 
 if __name__ == "__main__":
     run_tests()
