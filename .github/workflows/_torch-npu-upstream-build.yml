@@ -393,25 +393,3 @@ jobs:
           name: pytorch-src-main
           path: pytorch-src.tar.gz
           retention-days: 7
-
-      # ==================== 长期制品保存 ====================
-      - name: Upload torch wheel (long-term)
-        uses: actions/upload-artifact@v4
-        with:
-          name: torch-wheel-${{ inputs.pytorch_ref }}
-          path: pytorch-src/dist/*.whl
-          retention-days: 30
-
-      - name: Upload torch_npu wheel (long-term)
-        uses: actions/upload-artifact@v4
-        with:
-          name: torch-npu-wheel-${{ inputs.pytorch_ref }}
-          path: torch_npu-src/dist/*.whl
-          retention-days: 30
-
-      - name: Upload PyTorch source (long-term)
-        uses: actions/upload-artifact@v4
-        with:
-          name: pytorch-src-${{ inputs.pytorch_ref }}
-          path: pytorch-src.tar.gz
-          retention-days: 30
