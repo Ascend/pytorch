@@ -191,8 +191,10 @@ void* NPUSHMEMSymmetricMemoryAllocator::alloc(
     TORCH_CHECK(ptr != nullptr, "shmem_malloc return nullptr with size ", size, DIST_ERROR(ErrCode::MEMORY));
     auto allocation =
         std::make_shared<NPUSHMEMAllocation>(ptr, size, device_idx);
-    // to be done: thread safety
-    allocations_.try_emplace(ptr, std::move(allocation));
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        allocations_.try_emplace(ptr, std::move(allocation));
+    }
     TORCH_NPU_SYMMEM_LOGD("NPUSHMEMSymmetricMemoryAllocator alloc end, size is %d, device is %d, group_name is %s, ptr is %p",
         size, device_idx, group_name == std::nullopt ? "" : (*group_name).c_str(), ptr);
     return ptr;
@@ -201,12 +203,16 @@ void* NPUSHMEMSymmetricMemoryAllocator::alloc(
 void NPUSHMEMSymmetricMemoryAllocator::free(void* ptr)
 {
     TORCH_NPU_SYMMEM_LOGD("NPUSHMEMSymmetricMemoryAllocator free start, ptr is %p", ptr);
-    allocations_.erase(ptr);
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        allocations_.erase(ptr);
+    }
     TORCH_NPU_SYMMEM_LOGD("NPUSHMEMSymmetricMemoryAllocator free end, ptr is %p", ptr);
 }
 
 size_t NPUSHMEMSymmetricMemoryAllocator::get_alloc_size(void* ptr)
 {
+    std::lock_guard<std::mutex> lock(mutex_);
     auto it = allocations_.find(ptr);
     if (it == allocations_.end()) {
         TORCH_CHECK(false, ptr, " is not allocated with NPUSHMEMSymmetricMemoryAllocator", DIST_ERROR(ErrCode::PARAM));
@@ -220,6 +226,7 @@ c10::intrusive_ptr<SymmetricMemory> NPUSHMEMSymmetricMemoryAllocator::rendezvous
 {
     TORCH_NPU_SYMMEM_LOGD("NPUSHMEMSymmetricMemoryAllocator rendezvous start, ptr is %p, group_name is %s", ptr, (*group_name).c_str());
     TORCH_CHECK(group_name.has_value(), "rendezvous, group_name is invalid.", DIST_ERROR(ErrCode::PARAM));
+    std::lock_guard<std::mutex> lock(mutex_);
     {
         auto it = symm_mems_.find(std::make_tuple(ptr, *group_name));
         if (it != symm_mems_.end()) {
