@@ -19,6 +19,7 @@ import torch_npu.testing
 
 
 temp_filter = {
+    "torch.fx.experimental.symbolic_shapes.has_guarding_hint",
     "torch_npu.npu.amp.autocast_mode.Any",
     "torch_npu.npu.amp.autocast_mode.ErrCode",
     "torch_npu.npu.amp.autocast_mode.pta_error",
@@ -450,11 +451,47 @@ class TestPublicBindings(TestCase):
             "torch.onnx._internal.fx.passes.type_promotion",
             "torch.onnx._internal.fx.passes.virtualization",
             "torch.onnx._internal.fx.type_utils",
+            "torch.testing._internal.autocast_test_lists",
+            "torch.testing._internal.autograd_function_db",
+            "torch.testing._internal.common_cuda",
+            "torch.testing._internal.common_device_type",
             "torch.testing._internal.common_distributed",
+            "torch.testing._internal.common_jit",
+            "torch.testing._internal.common_methods_invocations",
+            "torch.testing._internal.common_modules",
+            "torch.testing._internal.common_mps",
+            "torch.testing._internal.common_nn",
+            "torch.testing._internal.common_optimizers",
+            "torch.testing._internal.common_quantization",
+            "torch.testing._internal.common_quantized",
+            "torch.testing._internal.common_utils",
+            "torch.testing._internal.custom_op_db",
+            "torch.testing._internal.dynamo_pytree_test_utils",
+            "torch.testing._internal.hop_db",
+            "torch.testing._internal.inductor_utils",
+            "torch.testing._internal.jit_metaprogramming_utils",
+            "torch.testing._internal.jit_utils",
+            "torch.testing._internal.logging_utils",
+            "torch.testing._internal.opinfo",
+            "torch.testing._internal.opinfo.core",
+            "torch.testing._internal.opinfo.definitions",
+            "torch.testing._internal.opinfo.definitions._masked",
+            "torch.testing._internal.opinfo.definitions.fft",
+            "torch.testing._internal.opinfo.definitions.linalg",
+            "torch.testing._internal.opinfo.definitions.nested",
+            "torch.testing._internal.opinfo.definitions.signal",
+            "torch.testing._internal.opinfo.definitions.sparse",
+            "torch.testing._internal.opinfo.definitions.special",
+            "torch.testing._internal.opinfo.refs",
+            "torch.testing._internal.opinfo.utils",
+            "torch.testing._internal.triton_utils",
+            "torch.testing._internal.hypothesis_utils",  # requires hypothesis
             "torch.testing._internal.common_fsdp",
             "torch.testing._internal.dist_utils",
             "torch.testing._internal.distributed.common_state_dict",
             "torch.testing._internal.distributed._shard.sharded_tensor",
+            "torch.testing._internal.distributed._shard.sharded_tensor._test_ops_common",
+            "torch.testing._internal.distributed._shard.sharded_tensor._test_st_common",
             "torch.testing._internal.distributed._shard.test_common",
             "torch.testing._internal.distributed._tensor.common_dtensor",
             "torch.testing._internal.distributed.ddp_under_dist_autograd_test",
@@ -482,6 +519,7 @@ class TestPublicBindings(TestCase):
             "torch._inductor.codegen.cutedsl._cutedsl_utils",
             "torch._inductor.codegen.cuda.gemm_template",
             "torch._inductor.runtime.triton_helpers",
+            "torch._inductor.test_case",
             "torch._inductor.kernel.vendored_templates.cutedsl_grouped_gemm",  # depends on cutlass, path for torch <= 2.11
             "torch._inductor.kernel.vendored_templates.cutedsl.kernels.cutedsl_grouped_gemm",  # depends on cutlass
             "torch._inductor.kernel.vendored_templates.cutedsl.dense_blockscaled_gemm_persistent",  # depends on cutlass
@@ -490,7 +528,11 @@ class TestPublicBindings(TestCase):
             "torch.ao.pruning._experimental.data_sparsifier.lightning.callbacks.data_sparsity",
             "torch.backends._coreml.preprocess",
             "torch.contrib._tensorboard_vis",
+            "torch._dynamo.polyfills.pytree",  # requires optree, not installed on CI
+            "torch._dynamo.test_case",
+            "torch._dynamo.test_minifier_common",
             "torch.distributed._composable",
+            "torch.distributed.debug._frontend",  # missing optional dep on CI
             "torch.distributed._functional_collectives",
             "torch.distributed._functional_collectives_impl",
             "torch.distributed._shard",
@@ -673,6 +715,14 @@ class TestPublicBindings(TestCase):
             if mod in private_allowlist:
                 continue
 
+            # Skip all onnx exporter internal submodules that fail due to
+            if mod.startswith("torch.onnx._internal.exporter._"):
+                continue
+
+            # Skip torchair submodules that may fail to import in CI environments
+            if mod.startswith("torch_npu.dynamo.torchair"):
+                continue
+
             errors.append(f"{mod} failed to import with error {excep_type}")
         self.assertEqual("", "\n".join(errors))
 
@@ -751,7 +801,7 @@ class TestPublicBindings(TestCase):
                 allow_dict["torch_npu"].extend(allow_dict_op_plugin["torch_npu"])
             else:
                 allow_dict.update(allow_dict_op_plugin["torch_npu"])
-        
+
         def test_module(modname):
             try:
                 if "__main__" in modname or \

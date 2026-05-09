@@ -1,5 +1,5 @@
---extra-index-url https://download.pytorch.org/whl/nightly/cpu
--f https://data.pyg.org/whl/torch-2.10.0+cpu.html
+--extra-index-url https://download.pytorch.org/whl/test/cpu
+-f https://data.pyg.org/whl/torch-2.11.0+cpu.html
 
 coverage
 beartype==0.17.0
@@ -7,7 +7,7 @@ expecttest==0.1.3
 hypothesis
 mypy==1.16.0
 numpy==1.25.2
-onnx==1.20.0
+onnx==1.21.0
 onnxruntime==1.23.1
 onnx-ir==0.1.16
 onnxscript==0.6.2
@@ -18,6 +18,6 @@ transformers==4.40.0
 pytest==8.1.1
 parameterized==0.9.0
 torch-scatter==2.1.2
-torchvision==0.26.0.dev20260317
+torchvision==0.27.0
 ml-dtypes==0.2.0
 protobuf==6.33.5

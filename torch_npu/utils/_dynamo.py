@@ -159,7 +159,7 @@ def register_inductor_npu():
 
 
 def patch_inductor_wrapper():
-    from typing import Any, Literal
+    from typing import Any
 
     from torch import _TorchCompileInductorWrapper
     from torch.utils._config_module import _ConfigEntry, Config, ConfigModule
@@ -174,16 +174,21 @@ def patch_inductor_wrapper():
 
     def new_get_config_copy(self) -> dict[str, Any]:
         ori_dict = src_get_config_copy(self)
-        NpuBackendType = Literal["default", "mlir", "dvm"]
         if "npu_backend" not in ori_dict:
             ori_dict["npu_backend"] = "default"
-            self._config["npu_backend"] = _ConfigEntry(
-                Config(default="default", value_type=NpuBackendType)
-            )
+            cfg = Config(default="default", value_type=str)
+            # PyTorch >=2.12 added a required `name` arg to _ConfigEntry.
+            if "name" in inspect.signature(_ConfigEntry.__init__).parameters:
+                self._config["npu_backend"] = _ConfigEntry(cfg, "npu_backend")
+            else:
+                self._config["npu_backend"] = _ConfigEntry(cfg)
         return ori_dict
 
-    def new_init(self, mode, options, dynamic):
-        src_init(self, mode, options, dynamic)
+    def new_init(self, mode, options, dynamic, name=None):
+        if name is not None:
+            src_init(self, mode, options, dynamic, name)
+        else:
+            src_init(self, mode, options, dynamic)
         if (
             self.config.get("npu_backend") == "mlir"
             or torch._inductor.config.npu_backend == "mlir"

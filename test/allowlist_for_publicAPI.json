@@ -2099,7 +2099,7 @@
     "fx_placeholder_targets",
     "fx_placeholder_vals",
     "guard_bool",
-    "has_hint",
+    "has_guarding_hint",
     "is_symbolic",
     "parallel_and",
     "parallel_or",
@@ -2826,7 +2826,8 @@
     "npu_geglu",
     "npu_moe_gating_top_k_softmax",
     "npu_moe_init_routing",
-    "npu_fused_infer_attention_score_v2"
+    "npu_fused_infer_attention_score_v2",
+    "save_npugraph_tensor"
   ],
   "torch_npu.contrib": [
     "npu_fused_attention_with_layernorm",

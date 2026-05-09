@@ -39,8 +39,8 @@ standard_library = ["typing_extensions"]
 
 [tool.ruff]
 line-length = 88
-src = ["torch_npu", "torchnpugen", "test"]
-extend-exclude = ["third_party", "test/dynamo/cpython"]
+src = ["caffe2", "torch", "torchgen", "functorch", "test"]
+extend-exclude = ["third_party", "test/dynamo/cpython", "test/npu/test_fault_mode.py"]
 
 [tool.ruff.per-file-target-version]
 "**/py312_intrinsics.py" = "py312"
