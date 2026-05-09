@@ -1,0 +1,22 @@
+diff --git a/test/quantization/core/test_quantized_tensor.py b/test/quantization/core/test_quantized_tensor.py
+index 5517b9d8e..d1022a11f 100644
+--- a/test/quantization/core/test_quantized_tensor.py
++++ b/test/quantization/core/test_quantized_tensor.py
+@@ -577,12 +577,12 @@ class TestQuantizedTensor(TestCase):
+     @unittest.skipIf(not torch.cuda.is_available(), 'CUDA is not available')
+     def test_compare_per_channel_device_numerics(self):
+         dtype_and_zero_types = [
+-            (torch.quint8, torch.float),
+-            (torch.qint8, torch.float),
++            (torch.quint8, torch.int32),
++            (torch.qint8, torch.int32),
+             #  (torch.qint32, torch.float) not supported for quantize_per_channel
+-            (torch.quint8, torch.long),
+-            (torch.qint8, torch.long),
+-            (torch.qint32, torch.long),
++            (torch.quint8, torch.int32),
++            (torch.qint8, torch.int32),
++            (torch.qint32, torch.int32),
+         ]
+         axis = 1
+         device = torch.device('cuda')
