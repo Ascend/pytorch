@@ -107,8 +107,8 @@ jobs:
       - name: Checkout torch_npu
         uses: actions/checkout@v4
         with:
-          repository: kerer-ai/pytorch
-          ref: ${{ inputs.torch_npu_ref }}
+          repository: ${{ github.repository }}
+          ref: ${{ inputs.torch_npu_ref || github.ref }}
           path: torch_npu-src
           submodules: recursive
 
