@@ -91,6 +91,12 @@ jobs:
 
           echo "Installed PyTorch and torch_npu from built wheels"
 
+      - name: Install test dependencies
+        run: |
+          pip${{ inputs.python_version }} install pytest pytest-timeout pytest-xdist hypothesis zstandard pyyaml
+          pip${{ inputs.python_version }} install pytest-rerunfailures pytest-flakefinder pytest-subtests==0.13.1 xdoctest==1.1.0 pulp>=2.9
+          pip${{ inputs.python_version }} install -r pytorch-src/requirements.txt || true
+
       - name: Verify NPU availability
         run: |
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
@@ -104,12 +110,6 @@ jobs:
           print(f'NPU available: {torch.npu.is_available()}')
           print(f'NPU count: {torch.npu.device_count()}')
           PY
-
-      - name: Install test dependencies
-        run: |
-          pip${{ inputs.python_version }} install pytest pytest-timeout pytest-xdist hypothesis zstandard pyyaml
-          pip${{ inputs.python_version }} install pytest-rerunfailures pytest-flakefinder pytest-subtests==0.13.1 xdoctest==1.1.0 pulp>=2.9
-          pip${{ inputs.python_version }} install -r pytorch-src/requirements.txt || true
 
       - name: Run custom test files
         id: run_tests

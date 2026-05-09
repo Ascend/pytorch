@@ -132,6 +132,19 @@ jobs:
           echo "torch: ${TORCH_WHL}"
           echo "torch_npu: ${TORCH_NPU_WHL}"
 
+      - name: Install test dependencies
+        run: |
+          PIP=pip${{ inputs.python_version }}
+          cd pytorch-src
+
+          $PIP install pytest pytest-timeout pytest-xdist hypothesis zstandard pyyaml
+          $PIP install pytest-rerunfailures pytest-flakefinder
+          $PIP install 'pytest-subtests==0.13.1' 'xdoctest==1.1.0' 'pulp>=2.9'
+
+          if [ -f requirements.txt ]; then
+            $PIP install -r requirements.txt || true
+          fi
+
       - name: Verify NPU availability
         run: |
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
@@ -146,19 +159,6 @@ jobs:
           print(f'NPU available: {torch.npu.is_available()}')
           print(f'NPU count: {torch.npu.device_count()}')
           "
-
-      - name: Install test dependencies
-        run: |
-          PIP=pip${{ inputs.python_version }}
-          cd pytorch-src
-
-          $PIP install pytest pytest-timeout pytest-xdist hypothesis zstandard pyyaml
-          $PIP install pytest-rerunfailures pytest-flakefinder
-          $PIP install 'pytest-subtests==0.13.1' 'xdoctest==1.1.0' 'pulp>=2.9'
-
-          if [ -f requirements.txt ]; then
-            $PIP install -r requirements.txt || true
-          fi
 
       - name: Collect all test cases and shard
         id: collect_and_shard
