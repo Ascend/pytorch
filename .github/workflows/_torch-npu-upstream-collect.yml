@@ -50,6 +50,10 @@ on:
         description: Total number of test cases
         value: ${{ jobs.collect.outputs.total_cases }}
 
+env:
+  # PyPI 缓存 URL（用于加速 pip 下载）
+  PYPI_CACHE_URL: 'http://cache-service.nginx-pypi-cache.svc.cluster.local/pypi/simple'
+
 jobs:
   collect:
     runs-on: linux-aarch64-a3-16
@@ -117,6 +121,13 @@ jobs:
           PIP=pip${{ inputs.python_version }}
           PYTHON=python${{ inputs.python_version }}
           export PIP_CACHE_DIR=/github/home/.cache/pip
+
+          # Configure pip to use PyPI cache for faster downloads
+          if [ -n "${{ env.PYPI_CACHE_URL }}" ]; then
+            $PIP config set global.index-url ${{ env.PYPI_CACHE_URL }}
+            $PIP config set global.trusted-host "cache-service.nginx-pypi-cache.svc.cluster.local"
+            echo "pip index-url configured: ${{ env.PYPI_CACHE_URL }}"
+          fi
 
           $PIP install --upgrade pip
 
