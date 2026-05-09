@@ -1,0 +1,16 @@
+diff --git a/test/test_multiprocessing_spawn.py b/test/test_multiprocessing_spawn.py
+old mode 100644
+new mode 100755
+index d093e01921d..f4a010b6b48
+--- a/test/test_multiprocessing_spawn.py
++++ b/test/test_multiprocessing_spawn.py
+@@ -7,7 +7,8 @@ import signal
+ import sys
+ import time
+ import unittest
+-
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch.multiprocessing as mp
+ 
+ from torch.testing._internal.common_utils import (

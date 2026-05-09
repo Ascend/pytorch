@@ -1,0 +1,59 @@
+diff --git a/test/test_multiprocessing.py b/test/test_multiprocessing.py
+old mode 100644
+new mode 100755
+index 85c3b4d2cb3..2634b214c0d
+--- a/test/test_multiprocessing.py
++++ b/test/test_multiprocessing.py
+@@ -8,7 +8,8 @@ import sys
+ import time
+ import unittest
+ from sys import platform
+-
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch
+ import torch.cuda
+ import torch.multiprocessing as mp
+@@ -112,7 +113,7 @@ def send_tensor_with_untyped_storage(queue, event):
+             ref_counter_offset,
+             event_handle,
+             event_sync_required,
+-        ) = storage._share_cuda_()
++        ) = storage._share_npu_()
+         specs.append(
+             {
+                 "tensor_cls": type(tensor),
+@@ -650,15 +651,16 @@ class TestMultiprocessing(TestCase):
+         stderr = TestCase.runWithPytorchAPIUsageStderr(
+             """\
+ import torch
++import torch_npu
+ from torch.multiprocessing import Process
+ def run(rank):
+-    torch.cuda.set_device(rank)
++    torch.npu.set_device(rank)
+ if __name__ == "__main__":
+     size = 2
+     processes = []
+     for rank in range(size):
+         # it would work fine without the line below
+-        x = torch.rand(20, 2).cuda()
++        x = torch.rand(20, 2).npu()
+         p = Process(target=run, args=(rank,))
+         p.start()
+         processes.append(p)
+@@ -683,7 +685,7 @@ if __name__ == "__main__":
+         specs = queue.get()
+         tensors = []
+         for spec in specs:
+-            tensors.append(mp.reductions.rebuild_cuda_tensor(**spec))
++            tensors.append(torch_npu.multiprocessing.reductions.rebuild_npu_tensor(**spec))
+         self.assertEqual(tensors, [1, 1])
+ 
+         del tensors, spec
+@@ -1052,4 +1054,5 @@ if __name__ == "__main__":
+ 
+ 
+ if __name__ == "__main__":
++    mp.set_start_method('spawn', force=True)
+     run_tests()
