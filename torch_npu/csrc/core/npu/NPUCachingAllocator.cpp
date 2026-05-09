@@ -92,7 +92,6 @@ using stream_set = ska::flat_hash_set<c10_npu::NPUStream>;
 constexpr size_t kMinBlockSize = 512;                 // all sizes are rounded to at least 512 bytes
 constexpr size_t kSmallSize = 1048576;                // largest "small" allocation is 1 MiB
 constexpr size_t kExtraLargeBuffer = 1073741824;      // "extra large" allocations may be packed in 1 GB blocks
-constexpr size_t kMinLargeAlloc = 10485760;           // allocations between 1 and 10 MiB may use kLargeBuffer
 constexpr size_t kRoundLarge = 2097152;               // round up large allocs to 2 MiB
 constexpr size_t kAlignRoundLarge = 16384;            // round up large allocs to 16 KB
 constexpr size_t kSmallPoolVirAddrSize = 2147483648;  // 2 GB
@@ -954,7 +953,7 @@ bool saveDevMemUsageInfo(const int& device)
 //    - taskqueue wait a empty signal from the sub-thread.
 //
 // 2. Sub-thread:
-//    - Python function (tbe op compile) called in CANN may trigger GC that introduces a resource release operation.
+//    - Python function (the op compile) called in CANN may trigger GC that introduces a resource release operation.
 //    - The release operation (`free`) cannot acquire the same lock holded in main thread.
 //    - Unable to send a signal to the main thread.
 class UnlockGuard {
@@ -1468,7 +1467,7 @@ public:
 
         block->allocated = false;
 
-        // following logic might modifying underlaying Block, causing the size
+        // following logic might modifying underlying Block, causing the size
         // changed. We store ahead for reporting
         auto orig_block_ptr = block->ptr;
         auto orig_block_size = block->size;
@@ -1587,7 +1586,7 @@ public:
         std::lock_guard<std::recursive_mutex> lock(mutex);
         block->stream_uses.erase(stream);
 
-        // free block, lazy destory block related events
+        // free block, lazy destroy block related events
         for (auto it = npu_events[stream].begin(); it != npu_events[stream].end();) {
             if (block != it->second) {
                 it++;
@@ -2003,7 +2002,7 @@ public:
         const auto all_blocks = get_all_blocks();
 
         for (const Block * const head_block : all_blocks) {
-            // For expandable segments, we report one segment for each continguous
+            // For expandable segments, we report one segment for each contiguous
             // mapped range of memory
             if (head_block->prev && head_block->prev->mapped) {
                 continue;
@@ -2240,13 +2239,12 @@ private:
                 return c;
             }
         }
-        auto custom_segment_size = CachingAllocatorConfig::segment_size_mb();
         auto segment_size = pool->is_small ?
-                kSmallBuffer : (custom_segment_size > 0 ? custom_segment_size : kLargeBuffer);
+                kSmallBuffer : get_custom_expandable_segment_size(pool->is_small);
         // 此处申请虚拟内存，segment_size是页大小，实际虚拟内存巨大
-        if (IsMallocPage1GMem(pool->is_small)) {
-            segment_size = kExtraLargeBuffer;
-        }
+         if (IsMallocPage1GMem(pool->is_small)) {
+             segment_size = kExtraLargeBuffer;
+         }
         auto segment = new (std::nothrow) ExpandableSegment(device, stream, segment_size);
         if (!segment) {
             TORCH_NPU_MEMORY_LOGE("Failed to allocate ExpandableSegment.");
@@ -2391,7 +2389,7 @@ private:
             // cannot be freed when requested, but fully free pages
             // of expandable blocks can always be freed.
             // The logic to track this as statistic is pretty involved,
-            // so we simply just exclude expandable segements from
+            // so we simply just exclude expandable segments from
             // inactive_split
             if (!block->expandable_segment_) {
                 update_stat(stats.inactive_split[stat_type], net_change_inactive_split_blocks);
@@ -2488,12 +2486,22 @@ private:
         }
     }
 
+    static size_t get_custom_expandable_segment_size(bool is_small_pool)
+    {
+        auto large_segment_size = CachingAllocatorConfig::large_segment_size();
+        if (large_segment_size != kLargeBuffer) {  // if large_segment_size_mb is set
+            return large_segment_size;
+        }
+        auto custom_segment_size = CachingAllocatorConfig::segment_size_mb();  // if segment_size_mb is set
+        return custom_segment_size > 0 ? custom_segment_size : kLargeBuffer;
+    }
+
     static size_t get_allocation_size(size_t size)
     {
         if (size <= kSmallSize) {
             return kSmallBuffer;
         } else if (size < kMinLargeAlloc) {
-            return kLargeBuffer;
+            return CachingAllocatorConfig::large_segment_size();
         } else {
             return kRoundLarge * ((size + kRoundLarge - 1) / kRoundLarge);
         }
@@ -3018,7 +3026,7 @@ private:
             npu_events[stream].emplace_back(std::move(event), block);
         }
         if (ret_ctx == ACL_ERROR_NONE) {
-            NPU_CHECK_ERROR(aclrtSetCurrentContext(compiler_ctx)); 
+            NPU_CHECK_ERROR(aclrtSetCurrentContext(compiler_ctx));
             // Setting context will exchange device implicitly, so we need to reset the cached device here to ensure consistency.
             NPU_CHECK_ERROR(c10_npu::SetDevice(pre_device));
         }
@@ -3407,7 +3415,7 @@ public:
 
         if (block->stream != c10_npu::getCurrentNPUStream(block->device).stream(false)) {
             // If the Stream applying for tensor block different from
-            // the stream of submiting event wait task in HCCL synchronize()
+            // the stream of submitting event wait task in HCCL synchronize()
             // method, the recordSteam can not be erased.
             // New tensor creation may use the block before HCCL op is complete.
             return;
@@ -3429,7 +3437,7 @@ public:
 
         if (block->stream != c10_npu::getCurrentNPUStream(block->device).stream(false) || block->hccl_work_ptr != work_ptr) {
             // If the Stream applying for tensor block different from
-            // the stream of submiting event wait task in HCCL synchronize()
+            // the stream of submitting event wait task in HCCL synchronize()
             // method, the recordSteam can not be erased.
             // New tensor creation may use the block before HCCL op is complete.
             return;
@@ -3546,7 +3554,7 @@ public:
             TORCH_NPU_MEMORY_LOGE("%s", retmsg.c_str());
             TORCH_CHECK_WITH(OutOfMemoryError, false, retmsg.c_str());
         }
-        
+
         int device = 0;
         NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
         LazySetDevice(device);

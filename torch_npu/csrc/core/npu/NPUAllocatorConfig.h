@@ -44,6 +44,7 @@ private:
 constexpr size_t kAlignRoundLarge = 16384;            // round up large allocs to 16 KB
 constexpr size_t kSmallBuffer = 2097152;              // "small" allocations are packed in 2 MiB blocks
 constexpr size_t kLargeBuffer = 20971520;             // "large" allocations may be packed in 20 MiB blocks
+constexpr size_t kMinLargeAlloc = 10485760;           // allocations between 1 and 10 MiB may use kLargeBuffer
 constexpr size_t kMB = 1024 * 1024;                   // 1 MB
 constexpr size_t k20MB = 20;                          // 20 MB for segmemt_size
 constexpr size_t k512MB = 512;                        // 512 MB for segmemt_size
@@ -97,6 +98,11 @@ public:
         return instance().m_segment_size_mb;
     }
 
+    static size_t large_segment_size()
+    {
+        return instance().large_segment_size_;
+    }
+
     static size_t roundup_power2_divisions(size_t size);
 
     static size_t pinned_use_background_threads()
@@ -127,6 +133,7 @@ private:
     size_t m_base_addr_aligned_size = kAlignRoundLarge;
     bool m_page_size_1g = false; // 新增1G页配置标志
     size_t m_segment_size_mb;
+    std::atomic<size_t> large_segment_size_{kLargeBuffer};
     std::vector<size_t> m_roundup_power2_divisions;
     std::atomic<bool> m_pinned_use_background_threads; // A flag to enable background thread for processing events.
     bool m_multi_stream_lazy_reclaim = false;
@@ -153,6 +160,7 @@ private:
     size_t parseAddrAlignSize(const std::vector<std::string> &config, size_t i);
     size_t parsePageSize(const std::vector<std::string> &config, size_t i);
     size_t parseSegmentSizeMb(const std::vector<std::string> &config, size_t i);
+    size_t parseLargeSegmentSize(const std::vector<std::string> &config, size_t i);
     size_t parseRoundUpPower2Divisions(const std::vector<std::string> &config, size_t i);
     size_t parsePinnedUseBackgroundThreads(const std::vector<std::string> &config, size_t i);
     size_t parseMultiStreamLazyReclaim(const std::vector<std::string> &config, size_t i);
