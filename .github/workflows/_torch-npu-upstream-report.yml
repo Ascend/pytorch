@@ -34,8 +34,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          repository: kerer-ai/pytorch
-          ref: v2.7.1_dev
+          repository: ${{ github.repository }}
+          ref: ${{ github.ref }}
           fetch-depth: 1
 
       - name: Setup Python ${{ inputs.python_version }}
