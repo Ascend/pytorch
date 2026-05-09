@@ -1,44 +1,78 @@
 __all__ = ["is_hccl_available", "reinit_process_group"]
 
-import os
-from datetime import timedelta
-from typing import Optional
-from functools import wraps
-import warnings
 import logging
+import os
+import warnings
+from datetime import timedelta
+from functools import wraps
+
 import torch
 import torch.distributed as dist
 import torch.distributed.distributed_c10d as dist_c10d
+from torch._C._distributed_c10d import (
+    _DistributedBackendOptions,
+    _register_process_group,
+    PrefixStore,
+)
+from torch.distributed.distributed_c10d import (
+    _check_p2p_op_list,
+    _check_single_tensor,
+    _check_tensor_list,
+    _check_valid_timeout,
+    _coalescing_manager,
+    _create_process_group_wrapper,
+    _ensure_all_tensors_same_dtype,
+    _find_pg_by_ranks_and_tag,
+    _get_default_group,
+    _get_group_size,
+    _get_object_coll_device,
+    _get_split_source,
+    _GLOO_AVAILABLE,
+    _object_to_tensor,
+    _process_group_color,
+    _rank_not_in_group,
+    _tensor_to_object,
+    _unregister_all_process_groups,
+    _unregister_process_group,
+    _update_default_pg,
+    _validate_output_list_for_rank,
+    _warn_not_in_group,
+    all_gather,
+    Backend,
+    BackendConfig,
+    DebugLevel,
+    GatherOptions,
+    get_debug_level,
+    get_group_rank,
+    get_rank,
+    get_world_size,
+    GroupMember,
+    is_gloo_available,
+    is_initialized,
+    is_mpi_available,
+    is_nccl_available,
+    is_ucc_available,
+    is_xccl_available,
+    isend,
+    ProcessGroup,
+    ReduceScatterOptions,
+)
 from torch.distributed.elastic.rendezvous import RendezvousParameters
-from torch.distributed.distributed_c10d import _get_default_group, get_group_rank, _check_single_tensor, \
-    _check_tensor_list, _coalescing_manager, _ensure_all_tensors_same_dtype, get_rank, _rank_not_in_group, \
-    _warn_not_in_group, GatherOptions, _validate_output_list_for_rank, GroupMember, _get_group_size, \
-    _get_object_coll_device, _object_to_tensor, get_world_size, _tensor_to_object, all_gather, Backend, \
-    get_backend, GatherOptions, _update_default_pg, _unregister_all_process_groups, \
-    ProcessGroup, default_pg_timeout, ReduceScatterOptions, _unregister_process_group, _check_valid_timeout, \
-    _find_pg_by_ranks_and_tag, is_initialized, _get_split_source, BackendConfig, is_mpi_available, is_gloo_available, \
-    is_nccl_available, is_ucc_available, is_xccl_available, get_debug_level, DebugLevel, _process_group_color, \
-    _create_process_group_wrapper, _GLOO_AVAILABLE, _check_p2p_op_list, isend
-
-from torch._C._distributed_c10d import PrefixStore, _register_process_group, _DistributedBackendOptions
-
-from torch_npu.utils._error_code import ErrCode, dist_error
 from torch_npu import npu
 from torch_npu.utils import get_cann_version
+from torch_npu.utils._error_code import dist_error, ErrCode
+
 
 if is_mpi_available():
     from torch.distributed.distributed_c10d import ProcessGroupMPI
 if is_nccl_available():
     from torch.distributed.distributed_c10d import ProcessGroupNCCL
 if is_gloo_available():
-    from torch._C._distributed_c10d import _ProcessGroupWrapper
     from torch.distributed.distributed_c10d import ProcessGroupGloo
 if is_ucc_available():
     from torch.distributed.distributed_c10d import ProcessGroupUCC
 if is_xccl_available():
     from torch.distributed.distributed_c10d import ProcessGroupXCCL
-
-
 
 logger = logging.getLogger("torch.distributed")
 origin_get_sequence_number_for_group = ProcessGroup._get_sequence_number_for_group
@@ -67,14 +101,26 @@ def _batch_isend_irecv(p2p_op_list):
             group = _get_default_group()
             is_multi_pg = False
         _group = group._get_backend(device)
-        is_supported_device_name = (npu_device_name >= "Ascend910B1" and npu_device_name <= "Ascend910B4_1") or \
-            (npu_device_name >= "Ascend910_9362" and npu_device_name <= "Ascend910_9391")
-        if isinstance(group, ProcessGroup) and cann_version >= "9.0.0" and is_supported_device_name:
+        is_supported_device_name = (
+            npu_device_name >= "Ascend910B1" and npu_device_name <= "Ascend910B4_1"
+        ) or (
+            npu_device_name >= "Ascend910_9362" and npu_device_name <= "Ascend910_9391"
+        )
+        if (
+            isinstance(group, ProcessGroup)
+            and cann_version >= "9.0.0"
+            and is_supported_device_name
+        ):
             # coalescing manager
             _check_p2p_op_list(p2p_op_list)
             with _coalescing_manager(group=group, device=device, async_ops=True) as cm:
                 for p2p_op in p2p_op_list:
-                    p2p_op.op(p2p_op.tensor, group=p2p_op.group, tag=p2p_op.tag, **peer_kwarg(p2p_op))
+                    p2p_op.op(
+                        p2p_op.tensor,
+                        group=p2p_op.group,
+                        tag=p2p_op.tag,
+                        **peer_kwarg(p2p_op),
+                    )
             return cm.works
         else:
             # batch_isend_irecv
@@ -84,10 +130,15 @@ def _batch_isend_irecv(p2p_op_list):
             for p2p_op in p2p_op_list:
                 if p2p_op.tensor.device.type != "npu":
                     deviceType = p2p_op.tensor.device.type
-                    raise RuntimeError(f"No backend type associated with device type {deviceType}" + dist_error(ErrCode.PARAM))
+                    raise RuntimeError(
+                        f"No backend type associated with device type {deviceType}"
+                        + dist_error(ErrCode.PARAM)
+                    )
                 op_type.append(p2p_op.op.__name__)
                 tensors.append(p2p_op.tensor)
-                rank_for_op = get_group_rank(group, p2p_op.peer) if is_multi_pg else p2p_op.peer
+                rank_for_op = (
+                    get_group_rank(group, p2p_op.peer) if is_multi_pg else p2p_op.peer
+                )
                 remote_rank_list.append(rank_for_op)
             return [_group.batch_isend_irecv(op_type, tensors, remote_rank_list)]
     else:
@@ -118,7 +169,7 @@ def _gather(tensor, gather_list=None, dst=0, group=None, async_op=False):
         Async work handle, if async_op is set to True.
         None, if not async_op or if not part of the group
     Note:
-        Npu replaces gather with all_gather in default mode, uses gather with group send/recv in compatibility mode 
+        Npu replaces gather with all_gather in default mode, uses gather with group send/recv in compatibility mode
     """
 
     _check_single_tensor(tensor, "tensor")
@@ -136,30 +187,38 @@ def _gather(tensor, gather_list=None, dst=0, group=None, async_op=False):
 
     _validate_output_list_for_rank(my_rank, dst, gather_list)
     group_size = _get_group_size(group)
-    recv_size_list = [None for _ in range(group_size)] if my_rank != dst else \
-        [tensor.size() for tensor in gather_list]
+    recv_size_list = (
+        [None for _ in range(group_size)]
+        if my_rank != dst
+        else [tensor.size() for tensor in gather_list]
+    )
 
     input_tensors = [tensor]
     opts = GatherOptions()
     opts.rootRank = dst
     use_compatible_impl = False
-    if tensor.device.type == 'npu':
+    if tensor.device.type == "npu":
         use_compatible_impl = npu.are_compatible_impl_enabled()
 
     if group is None or group is GroupMember.WORLD:
         default_pg = _get_default_group()
-        if tensor.device.type == 'npu':
+        if tensor.device.type == "npu":
             if use_compatible_impl:
                 output_tensors = [gather_list] if my_rank == dst else []
                 _group = default_pg._get_backend(torch.device("npu"))
                 work = _group.gather(output_tensors, input_tensors, opts)
             else:
                 if my_rank == dst:
-                    warnings.warn("HCCL doesn't support gather at the moment. Implemented with allgather instead.")
+                    warnings.warn(
+                        "HCCL doesn't support gather at the moment. Implemented with allgather instead."
+                    )
                 # To handle tensors of different shape on each rank, update recv shape first.
                 dist.broadcast_object_list(recv_size_list, dst, group)
                 if not gather_list:
-                    gather_list = [torch.empty(tensor_size, dtype=tensor.dtype).npu() for tensor_size in recv_size_list]
+                    gather_list = [
+                        torch.empty(tensor_size, dtype=tensor.dtype).npu()
+                        for tensor_size in recv_size_list
+                    ]
 
                 output_tensors = [gather_list]
                 _group = default_pg._get_backend(torch.device("npu"))
@@ -169,18 +228,23 @@ def _gather(tensor, gather_list=None, dst=0, group=None, async_op=False):
             default_pg = _get_default_group()
             work = default_pg.gather(output_tensors, input_tensors, opts)
     else:
-        if tensor.device.type == 'npu':
+        if tensor.device.type == "npu":
             if use_compatible_impl:
                 output_tensors = [gather_list] if my_rank == dst else []
                 _group = group._get_backend(torch.device("npu"))
                 work = _group.gather(output_tensors, input_tensors, opts)
             else:
                 if my_rank == dst:
-                    warnings.warn("HCCL doesn't support gather at the moment. Implemented with allgather instead.")
+                    warnings.warn(
+                        "HCCL doesn't support gather at the moment. Implemented with allgather instead."
+                    )
                 # To handle tensors of different shape on each rank, update recv shape first.
                 dist.broadcast_object_list(recv_size_list, dst, group)
                 if not gather_list:
-                    gather_list = [torch.empty(tensor_size, dtype=tensor.dtype).npu() for tensor_size in recv_size_list]
+                    gather_list = [
+                        torch.empty(tensor_size, dtype=tensor.dtype).npu()
+                        for tensor_size in recv_size_list
+                    ]
 
                 output_tensors = [gather_list]
                 _group = group._get_backend(torch.device("npu"))
@@ -219,8 +283,7 @@ def _gather_object(obj, object_gather_list=None, dst=0, group=None):
         group_size, dtype=torch.long, device=current_device
     )
     object_size_list = [
-        object_sizes_tensor[i].unsqueeze(dim=0)
-        for i in range(group_size)
+        object_sizes_tensor[i].unsqueeze(dim=0) for i in range(group_size)
     ]
     # Allgather tensor sizes. An all-gather is needed here despite this being a
     # gather, since each rank needs to broadcast a tensor of the same (maximal)
@@ -269,7 +332,9 @@ def _clear_pg_cache_in_torch(group: ProcessGroup):
         del dist_c10d._world.pg_backend_config[group]
     if dist_c10d._world.pg_to_tag.get(group) is not None:
         del dist_c10d._world.pg_to_tag[group]
-    tags_list = [key for key, value in dist_c10d._world.tags_to_pg.items() if group in value]
+    tags_list = [
+        key for key, value in dist_c10d._world.tags_to_pg.items() if group in value
+    ]
     if len(tags_list) > 0:
         for tag in tags_list:
             del dist_c10d._world.tags_to_pg[tag]
@@ -278,46 +343,62 @@ def _clear_pg_cache_in_torch(group: ProcessGroup):
 
 def reinit_process_group(group=None, rebuild_link=True):
     device_id = torch.npu.current_device()
-    logger.info(f"reinit process group, group={group}, rebuild link={rebuild_link}, device={device_id}")
+    logger.info(
+        "reinit process group, group=%s, rebuild link=%s, device=%s",
+        group,
+        rebuild_link,
+        device_id,
+    )
     if group is None:
         group = dist_c10d._world.default_pg
     if not rebuild_link:
-        npu_device = torch.device('npu')
+        npu_device = torch.device("npu")
         for pg in dist_c10d._pg_map:
-            if (npu_device in pg._device_types):
+            if npu_device in pg._device_types:
                 pg._get_backend(npu_device).resume_hccl_comm(device_id)
-        logger.info(f"resume hccl comm end, device_id={device_id}")
+        logger.info("resume hccl comm end, device_id=%s", device_id)
         return None
     else:
         backend = dist_c10d.Backend(dist_c10d._world.pg_map[group][0])
-        if 'hccl' in backend:
-            logger.info(f"reinit hccl comm start, group={group}, device_id={device_id}")
-            group._get_backend(torch.device('npu'))._delete_tcpstore_key()
-            group._get_backend(torch.device('npu')).abort_hccl_comm("reinit")
-        logger.info(f"reinit hccl comm end, group={group}, device_id={device_id}")
+        if "hccl" in backend:
+            logger.info(
+                "reinit hccl comm start, group=%s, device_id=%s", group, device_id
+            )
+            group._get_backend(torch.device("npu"))._delete_tcpstore_key()
+            group._get_backend(torch.device("npu")).abort_hccl_comm("reinit")
+        logger.info("reinit hccl comm end, group=%s, device_id=%s", group, device_id)
         return group
 
 
 def _comm_switch_nic(ranks, useBackup):
     nRanks = len(ranks)
-    npu_device = torch.device('npu')
-    rankid = int(os.environ['RANK'])
+    npu_device = torch.device("npu")
+    rankid = int(os.environ["RANK"])
     result = True
     for pg in dist_c10d._pg_map:
-        if (npu_device in pg._device_types):
-            presult = pg._get_backend(npu_device)._set_switch_nic_comm(rankid, nRanks, ranks, useBackup)
+        if npu_device in pg._device_types:
+            presult = pg._get_backend(npu_device)._set_switch_nic_comm(
+                rankid, nRanks, ranks, useBackup
+            )
             if not presult:
                 result = False
     return result
 
 
-def _reduce_scatter_tensor_uneven(output, input, input_split_sizes=None, op=dist.ReduceOp.SUM, group=None, async_op=False):
+def _reduce_scatter_tensor_uneven(
+    output,
+    input,
+    input_split_sizes=None,
+    op=dist.ReduceOp.SUM,
+    group=None,
+    async_op=False,
+):
     if _rank_not_in_group(group):
         _warn_not_in_group("reduce_scatter_tensor_uneven")
         return None
 
-    if output.device.type != 'npu' or input.device.type != 'npu': 
-        warnings.warn("Support for Tensors is limited to those of type npu") 
+    if output.device.type != "npu" or input.device.type != "npu":
+        warnings.warn("Support for Tensors is limited to those of type npu")
         return None
 
     if group is None or group is GroupMember.WORLD:
@@ -327,7 +408,7 @@ def _reduce_scatter_tensor_uneven(output, input, input_split_sizes=None, op=dist
     opts = ReduceScatterOptions()
     opts.reduceOp = op
     input_split_sizes = [] if input_split_sizes is None else input_split_sizes
-    
+
     work = group.reduce_scatter_tensor_uneven(output, input, input_split_sizes, opts)
 
     if async_op:
@@ -337,15 +418,17 @@ def _reduce_scatter_tensor_uneven(output, input, input_split_sizes=None, op=dist
         return None
 
 
-def _all_gather_into_tensor_uneven(output, input, output_split_sizes=None, group=None, async_op=False):
+def _all_gather_into_tensor_uneven(
+    output, input, output_split_sizes=None, group=None, async_op=False
+):
     if _rank_not_in_group(group):
         _warn_not_in_group("all_gather_into_tensor_uneven")
         return None
-    
-    if output.device.type != 'npu' or input.device.type != 'npu':
-        warnings.warn("Support for Tensors is limited to those of type npu") 
+
+    if output.device.type != "npu" or input.device.type != "npu":
+        warnings.warn("Support for Tensors is limited to those of type npu")
         return None
-    
+
     if group is None or group is GroupMember.WORLD:
         group = _get_default_group()
     group = group._get_backend(torch.device("npu"))
@@ -365,13 +448,18 @@ def _trigger__get_addr_and_port_decorator(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         # Only supports obtaining the master_addr and master_port through the endpoint when the backend is static.
-        if len(args) > 0 and isinstance(args[0], RendezvousParameters) and args[0].backend == "parallel":
+        if (
+            len(args) > 0
+            and isinstance(args[0], RendezvousParameters)
+            and args[0].backend == "parallel"
+        ):
             args[0].backend = "static"
             master_addr, master_port = func(*args, **kwargs)
             args[0].backend = "parallel"
             return master_addr, master_port
         else:
             return func(*args, **kwargs)
+
     return wrapper
 
 
@@ -384,8 +472,11 @@ def _trigger_rendezvous_decorator(func):
                 master_addr = os.getenv("MASTER_ADDR", "127.0.0.1")
                 master_port = os.getenv("MASTER_PORT", "29500")
                 args = (f"parallel://{master_addr}:{master_port}",) + args[1:]
-                logger.info(f"torch_npu_run change the rendezvous url from env:// to {args[0]}")
+                logger.info(
+                    "torch_npu_run change the rendezvous url from env:// to %s", args[0]
+                )
         return func(*args, **kwargs)
+
     return wrapper
 
 
@@ -496,7 +587,8 @@ def _patched_new_process_group_helper(
     backend_config = BackendConfig(backend)
     # Set the default backend when single backend is passed in.
     if "," not in str(backend) and ":" not in str(backend):
-        assert backend in Backend.backend_type_map, f"Unknown backend type {backend}"
+        if backend not in Backend.backend_type_map:
+            raise ValueError(f"Unknown backend type {backend}")
         if backend == Backend.UNDEFINED:
             # Currently when backend is UNDEFINED, both ``gloo`` and ``nccl`` backends
             # will be created, we use nccl(if cuda is available) or gloo as default
@@ -560,9 +652,10 @@ def _patched_new_process_group_helper(
             if not is_nccl_available():
                 raise RuntimeError("Distributed package doesn't have NCCL built in")
             if backend_options is not None:
-                assert isinstance(backend_options, ProcessGroupNCCL.Options), (
-                    "Expected backend_options argument to be of type ProcessGroupNCCL.Options"
-                )
+                if not isinstance(backend_options, ProcessGroupNCCL.Options):
+                    raise AssertionError(
+                        "Expected backend_options argument to be of type ProcessGroupNCCL.Options"
+                    )
                 if backend_options._timeout != timeout:
                     warnings.warn(
                         "backend_options._timeout was specified, "
@@ -602,9 +695,8 @@ def _patched_new_process_group_helper(
             )
             backend_type = ProcessGroup.BackendType.XCCL
         else:
-            assert backend_str.upper() in Backend._plugins, (
-                f"Unknown c10d backend type {backend_str.upper()}"
-            )
+            if backend_str.upper() not in Backend._plugins:
+                raise ValueError(f"Unknown c10d backend type {backend_str.upper()}")
 
             backend_plugin = Backend._plugins[backend_str.upper()]
             creator_fn = backend_plugin.creator_fn
@@ -628,10 +720,12 @@ def _patched_new_process_group_helper(
 
         # Set sequence numbers for gloo and nccl backends.
         if backend_str == Backend.GLOO:
-            assert isinstance(backend_class, ProcessGroupGloo)
+            if not isinstance(backend_class, ProcessGroupGloo):
+                raise AssertionError("Expected backend_class to be ProcessGroupGloo")
             backend_class._set_sequence_number_for_group()
         elif backend_str == Backend.NCCL:
-            assert isinstance(backend_class, ProcessGroupNCCL)
+            if not isinstance(backend_class, ProcessGroupNCCL):
+                raise AssertionError("Expected backend_class to be ProcessGroupNCCL")
             backend_class._set_sequence_number_for_group()
 
         # If the type is a subclass of ProcessGroup then return this process group immediately
@@ -668,7 +762,7 @@ def _patched_new_process_group_helper(
 
         # register only a single backend when all get_device_backend_map values are the same
         if len(set(backend_config.get_device_backend_map().values())) == 1:
-            for device in backend_config.get_device_backend_map().keys():
+            for device in backend_config.get_device_backend_map():
                 pg._register_backend(torch.device(device), backend_type, backend_class)
 
             # break out of outer loop to not create any more backends
@@ -677,8 +771,10 @@ def _patched_new_process_group_helper(
         pg._register_backend(torch.device(device), backend_type, backend_class)
 
     # set group_name and group_dsec to backend
-    assert group_name is not None
-    assert group_desc is not None
+    if group_name is None:
+        raise AssertionError("group_name should not be None")
+    if group_desc is None:
+        raise AssertionError("group_desc should not be None")
     pg._set_group_name(group_name)
     pg._set_group_desc(group_desc)
 
@@ -703,7 +799,10 @@ def _patched_new_process_group_helper(
     dist_c10d._world.pg_to_tag[pg] = pg_tag
     return pg, prefix_store
 
-torch.distributed.distributed_c10d._new_process_group_helper = _patched_new_process_group_helper
+
+torch.distributed.distributed_c10d._new_process_group_helper = (
+    _patched_new_process_group_helper
+)
 
 
 def _hccl_add_ephemeral_timeout_for_all_pgs(timeout: timedelta) -> None:
@@ -733,9 +832,11 @@ def _hccl_add_ephemeral_timeout_for_all_pgs(timeout: timedelta) -> None:
     except ImportError:
         return
 
-    for pg in _world.pg_map.keys():
+    for pg in dist_c10d._world.pg_map:
         devices = pg._device_types
         if torch.device("npu") in devices:
             backend = pg._get_backend(torch.device("npu"))
-            if isinstance(backend, ProcessGroupHCCL) and hasattr(backend, "_add_ephemeral_timeout"):
+            if isinstance(backend, ProcessGroupHCCL) and hasattr(
+                backend, "_add_ephemeral_timeout"
+            ):
                 backend._add_ephemeral_timeout(timeout)
