@@ -172,7 +172,7 @@ void Shmem_putmem_on_stream(void *dst, void *src, size_t elem_size, int32_t pe, 
         func = (ShmemApiFunc)GET_FUNC(aclshmemx_putmem_on_stream);
     }
     TORCH_CHECK(func, "Failed to find function ", "aclshmemx_putmem_on_stream", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(dst, src, elem_size, pe, stream);
+    func(dst, src, elem_size, pe, stream);
 }
 
 void Shmem_getmem_on_stream(void *dst, void *src, size_t elem_size, int32_t pe, aclrtStream stream)
@@ -183,7 +183,7 @@ void Shmem_getmem_on_stream(void *dst, void *src, size_t elem_size, int32_t pe, 
         func = (ShmemApiFunc)GET_FUNC(aclshmemx_getmem_on_stream);
     }
     TORCH_CHECK(func, "Failed to find function ", "aclshmemx_getmem_on_stream", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(dst, src, elem_size, pe, stream);
+    func(dst, src, elem_size, pe, stream);
 }
 
 void *Aclshmem_ptr(void *ptr, int pe)
