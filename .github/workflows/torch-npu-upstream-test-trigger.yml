@@ -1,0 +1,70 @@
+name: Torch NPU Upstream Main Test Trigger
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - 'release/**'
+    paths:
+      - '.github/workflows/torch-npu-upstream-test-trigger.yml'
+      - '.github/workflows/_torch-npu-upstream*.yml'
+      - '.github/scripts/*.py'
+      - 'test_upstream/**'
+  pull_request:
+    paths:
+      - '.github/workflows/torch-npu-upstream-test-trigger.yml'
+      - '.github/workflows/_torch-npu-upstream*.yml'
+      - '.github/scripts/*.py'
+      - 'test_upstream/**'
+  schedule:
+    - cron: '0 22 * * 1'  # UTC 22:00 (Beijing time next day 06:00), every Monday
+  workflow_dispatch:
+    inputs:
+      python_version:
+        description: 'Python version (default 3.11)'
+        required: false
+        default: '3.11'
+        type: string
+      pytorch_ref:
+        description: 'PyTorch branch, tag, or commit SHA to build (default fccc94ae83f61fe26559abc999797297196bac29)'
+        required: false
+        default: 'fccc94ae83f61fe26559abc999797297196bac29'
+        type: string
+      torch_npu_ref:
+        description: 'torch_npu branch, tag, or commit SHA to build (default master)'
+        required: false
+        default: 'master'
+        type: string
+      docker_image:
+        description: 'Docker image to use for all jobs (default quay.io/kerer/pytorch:manylinux-cann9.0.0-beta.2-20260428)'
+        required: false
+        default: 'quay.io/kerer/pytorch:manylinux-cann9.0.0-beta.2-20260428'
+        type: string
+      distributed_shards:
+        description: 'Number of shards for distributed tests (default 2)'
+        required: false
+        default: '2'
+        type: string
+      regular_shards:
+        description: 'Number of shards for regular tests (default 5)'
+        required: false
+        default: '5'
+        type: string
+      test_files:
+        description: 'Test files to run directly (comma-separated, e.g., "test_meta.py,test_nn.py"). Skip shard assignment if set.'
+        required: false
+        default: ''
+        type: string
+
+jobs:
+  trigger_test:
+    uses: ./.github/workflows/_torch-npu-upstream-test.yml
+    with:
+      python_version: ${{ github.event.inputs.python_version || '3.11' }}
+      pytorch_ref: ${{ github.event.inputs.pytorch_ref || 'fccc94ae83f61fe26559abc999797297196bac29' }}
+      torch_npu_ref: ${{ github.event.inputs.torch_npu_ref || 'master' }}
+      docker_image: ${{ github.event.inputs.docker_image || 'quay.io/kerer/pytorch:manylinux-cann9.0.0-beta.2-20260428' }}
+      distributed_shards: ${{ github.event.inputs.distributed_shards || '2' }}
+      regular_shards: ${{ github.event.inputs.regular_shards || '5' }}
+      test_files: ${{ github.event.inputs.test_files || '' }}

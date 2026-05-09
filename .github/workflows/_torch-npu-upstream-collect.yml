@@ -1,0 +1,246 @@
+name: Torch NPU Upstream Collect
+
+on:
+  workflow_call:
+    inputs:
+      python_version:
+        required: true
+        type: string
+        description: Python version to use
+      torch_wheel_artifact:
+        required: true
+        type: string
+        description: Name of the torch wheel artifact from build
+      torch_npu_wheel_artifact:
+        required: true
+        type: string
+        description: Name of the torch_npu wheel artifact from build
+      pytorch_src_artifact:
+        required: true
+        type: string
+        description: Name of the pytorch source artifact from build
+      docker_image:
+        required: true
+        type: string
+        description: Docker image to use
+      distributed_shards:
+        required: false
+        type: string
+        default: '2'
+        description: Number of shards for distributed tests
+      regular_shards:
+        required: false
+        type: string
+        default: '5'
+        description: Number of shards for regular tests
+    outputs:
+      distributed_matrix:
+        description: Distributed shard matrix JSON
+        value: ${{ jobs.collect.outputs.distributed_matrix }}
+      regular_matrix:
+        description: Regular shard matrix JSON
+        value: ${{ jobs.collect.outputs.regular_matrix }}
+      distributed_shards:
+        description: Number of distributed shards
+        value: ${{ jobs.collect.outputs.distributed_shards }}
+      regular_shards:
+        description: Number of regular shards
+        value: ${{ jobs.collect.outputs.regular_shards }}
+      total_cases:
+        description: Total number of test cases
+        value: ${{ jobs.collect.outputs.total_cases }}
+
+jobs:
+  collect:
+    runs-on: linux-aarch64-a3-16
+    timeout-minutes: 60
+    container:
+      image: ${{ inputs.docker_image }}
+      options: --user root
+    outputs:
+      distributed_matrix: ${{ steps.collect_and_shard.outputs.distributed_matrix }}
+      regular_matrix: ${{ steps.collect_and_shard.outputs.regular_matrix }}
+      distributed_shards: ${{ steps.collect_and_shard.outputs.distributed_shards }}
+      regular_shards: ${{ steps.collect_and_shard.outputs.regular_shards }}
+      total_cases: ${{ steps.collect_and_shard.outputs.total_cases }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          repository: kerer-ai/pytorch
+          ref: v2.7.1_dev
+          fetch-depth: 1
+          path: ascend_pytorch
+
+      - name: Setup cache directories
+        run: |
+          mkdir -p /github/home/.cache/pip
+          chmod -R 777 /github/home/.cache
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: /github/home/.cache/pip
+          key: pip-arm-collect-py${{ inputs.python_version }}
+          restore-keys: |
+            pip-arm-collect-py${{ inputs.python_version }}-
+            pip-arm-collect-
+
+      - name: Download built torch wheel
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.torch_wheel_artifact }}
+          path: torch-wheel-artifact
+
+      - name: Download built torch_npu wheel
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.torch_npu_wheel_artifact }}
+          path: torch-npu-wheel-artifact
+
+      - name: Download PyTorch source and test code
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.pytorch_src_artifact }}
+          path: pytorch-src-artifact
+
+      - name: Extract PyTorch source
+        run: |
+          tar -xzf pytorch-src-artifact/pytorch-src.tar.gz
+
+      - name: Install built PyTorch and torch_npu
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          PIP=pip${{ inputs.python_version }}
+          PYTHON=python${{ inputs.python_version }}
+          export PIP_CACHE_DIR=/github/home/.cache/pip
+
+          $PIP install --upgrade pip
+
+          # Install built torch wheel
+          TORCH_WHL=$(ls torch-wheel-artifact/*.whl | head -1)
+          $PIP install "${TORCH_WHL}"
+
+          # Install built torch_npu wheel
+          TORCH_NPU_WHL=$(ls torch-npu-wheel-artifact/*.whl | head -1)
+          $PIP install "${TORCH_NPU_WHL}"
+
+          echo "Installed PyTorch and torch_npu from built wheels"
+          echo "torch: ${TORCH_WHL}"
+          echo "torch_npu: ${TORCH_NPU_WHL}"
+
+      - name: Verify NPU availability
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          PYTHON=python${{ inputs.python_version }}
+          $PYTHON -c "
+          import torch
+          print(f'torch: {torch.__version__}')
+          import torch_npu
+          print(f'torch_npu: {torch_npu.__version__}')
+          print(f'NPU available: {torch.npu.is_available()}')
+          print(f'NPU count: {torch.npu.device_count()}')
+          "
+
+      - name: Install test dependencies
+        run: |
+          PIP=pip${{ inputs.python_version }}
+          cd pytorch-src
+
+          $PIP install pytest pytest-timeout pytest-xdist hypothesis zstandard pyyaml
+          $PIP install pytest-rerunfailures pytest-flakefinder
+          $PIP install 'pytest-subtests==0.13.1' 'xdoctest==1.1.0' 'pulp>=2.9'
+
+          if [ -f requirements.txt ]; then
+            $PIP install -r requirements.txt || true
+          fi
+
+      - name: Collect all test cases and shard
+        id: collect_and_shard
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          PYTHON=python${{ inputs.python_version }}
+          cd pytorch-src
+
+          # Case-level sharding
+          DISTRIBUTED_SHARDS='${{ inputs.distributed_shards }}'
+          REGULAR_SHARDS='${{ inputs.regular_shards }}'
+
+          echo "=== Collecting all test cases ==="
+          echo "Distributed shards: ${DISTRIBUTED_SHARDS}"
+          echo "Regular shards: ${REGULAR_SHARDS}"
+
+          $PYTHON ../ascend_pytorch/.github/scripts/collect_all_cases.py \
+            --test-dir test \
+            --case-paths-config test_upstream/case_paths_ci.yml \
+            --distributed-shards ${DISTRIBUTED_SHARDS} \
+            --regular-shards ${REGULAR_SHARDS} \
+            --output-dir cases_shards \
+            --error-log-dir collection_errors \
+            --parallel 16 \
+            2>&1 | tee /tmp/collect_cases.log
+
+          # Verify output
+          echo "=== Generated shard files ==="
+          ls -la cases_shards/
+
+          echo "=== Collection summary ==="
+          cat cases_shards/cases_collection_summary.json
+
+          # Extract total cases from summary
+          TOTAL_CASES=$(python3 -c "import json; d=json.load(open('cases_shards/cases_collection_summary.json')); print(d['total_cases'])")
+
+          # Build shard matrices
+          DIST_SHARDS=$(seq 1 ${DISTRIBUTED_SHARDS} | tr '\n' ',' | sed 's/,$//')
+          REG_SHARDS=$(seq 1 ${REGULAR_SHARDS} | tr '\n' ',' | sed 's/,$//')
+
+          echo "distributed_matrix=[${DIST_SHARDS}]" >> $GITHUB_OUTPUT
+          echo "distributed_shards=${DISTRIBUTED_SHARDS}" >> $GITHUB_OUTPUT
+          echo "regular_matrix=[${REG_SHARDS}]" >> $GITHUB_OUTPUT
+          echo "regular_shards=${REGULAR_SHARDS}" >> $GITHUB_OUTPUT
+          echo "total_cases=${TOTAL_CASES}" >> $GITHUB_OUTPUT
+
+          echo "=== Shard configuration ==="
+          echo "Distributed tests: ${DISTRIBUTED_SHARDS} shards (case-level, serial execution, linux-aarch64-a3-16)"
+          echo "Regular tests: ${REGULAR_SHARDS} shards (case-level, 64 workers, linux-aarch64-a3-16)"
+          echo "Total cases: ${TOTAL_CASES}"
+
+          # Package error logs if any
+          if [ -d "collection_errors" ] && [ "$(ls -A collection_errors 2>/dev/null)" ]; then
+            echo "=== Packaging collection error logs ==="
+            tar -czf collection_errors.tar.gz collection_errors/
+            echo "Error logs packaged: collection_errors.tar.gz"
+            ls -la collection_errors.tar.gz
+          fi
+
+      - name: Upload cases shard JSONs
+        uses: actions/upload-artifact@v4
+        with:
+          name: cases-shards
+          path: pytorch-src/cases_shards/
+          retention-days: 7
+
+      - name: Upload collection error logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: collection-error-logs
+          path: pytorch-src/collection_errors.tar.gz
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Upload collect logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: collect-cases-logs
+          path: /tmp/collect_cases.log
+          if-no-files-found: warn
+          retention-days: 30

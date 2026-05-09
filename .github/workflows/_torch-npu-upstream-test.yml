@@ -1,0 +1,143 @@
+name: Torch NPU Upstream Test
+
+on:
+  workflow_call:
+    inputs:
+      python_version:
+        required: true
+        type: string
+        description: Python version to use
+      pytorch_ref:
+        required: false
+        type: string
+        default: 'fccc94ae83f61fe26559abc999797297196bac29'
+        description: PyTorch branch, tag, or commit SHA to build
+      torch_npu_ref:
+        required: false
+        type: string
+        default: 'master'
+        description: torch_npu branch, tag, or commit SHA to build
+      docker_image:
+        required: false
+        type: string
+        default: 'quay.io/kerer/pytorch:manylinux-cann9.0.0-beta.2-20260428'
+        description: Docker image to use for all jobs
+      distributed_shards:
+        required: false
+        type: string
+        default: '2'
+        description: Number of shards for distributed tests
+      regular_shards:
+        required: false
+        type: string
+        default: '5'
+        description: Number of shards for regular tests
+      test_files:
+        required: false
+        type: string
+        default: ''
+        description: Test files to run directly (comma-separated)
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  # ============================================================================
+  # 1. Build PyTorch and torch_npu Wheels
+  # ============================================================================
+  build:
+    uses: ./.github/workflows/_torch-npu-upstream-build.yml
+    with:
+      pytorch_ref: ${{ inputs.pytorch_ref }}
+      torch_npu_ref: ${{ inputs.torch_npu_ref }}
+      python_version: ${{ inputs.python_version }}
+      docker_image: ${{ inputs.docker_image }}
+
+  # ============================================================================
+  # 2. Collect Test Cases (only when test_files is empty)
+  # ============================================================================
+  collect_cases:
+    needs:
+      - build
+    if: ${{ inputs.test_files == '' }}
+    uses: ./.github/workflows/_torch-npu-upstream-collect.yml
+    with:
+      python_version: ${{ inputs.python_version }}
+      torch_wheel_artifact: ${{ needs.build.outputs.torch-wheel }}
+      torch_npu_wheel_artifact: ${{ needs.build.outputs.torch-npu-wheel }}
+      pytorch_src_artifact: ${{ needs.build.outputs.pytorch-src }}
+      docker_image: ${{ inputs.docker_image }}
+      distributed_shards: ${{ inputs.distributed_shards }}
+      regular_shards: ${{ inputs.regular_shards }}
+
+  # ============================================================================
+  # 3. Run Distributed Tests (only when test_files is empty)
+  # ============================================================================
+  test_distributed:
+    needs:
+      - build
+      - collect_cases
+    if: ${{ inputs.test_files == '' }}
+    uses: ./.github/workflows/_torch-npu-upstream-test-dist.yml
+    with:
+      python_version: ${{ inputs.python_version }}
+      torch_wheel_artifact: ${{ needs.build.outputs.torch-wheel }}
+      torch_npu_wheel_artifact: ${{ needs.build.outputs.torch-npu-wheel }}
+      pytorch_src_artifact: ${{ needs.build.outputs.pytorch-src }}
+      docker_image: ${{ inputs.docker_image }}
+      distributed_matrix: ${{ needs.collect_cases.outputs.distributed_matrix }}
+      distributed_shards: ${{ needs.collect_cases.outputs.distributed_shards }}
+
+  # ============================================================================
+  # 4. Run Regular Tests (only when test_files is empty)
+  # ============================================================================
+  test_regular:
+    needs:
+      - build
+      - collect_cases
+    if: ${{ inputs.test_files == '' }}
+    uses: ./.github/workflows/_torch-npu-upstream-test-regular.yml
+    with:
+      python_version: ${{ inputs.python_version }}
+      torch_wheel_artifact: ${{ needs.build.outputs.torch-wheel }}
+      torch_npu_wheel_artifact: ${{ needs.build.outputs.torch-npu-wheel }}
+      pytorch_src_artifact: ${{ needs.build.outputs.pytorch-src }}
+      docker_image: ${{ inputs.docker_image }}
+      regular_matrix: ${{ needs.collect_cases.outputs.regular_matrix }}
+      regular_shards: ${{ needs.collect_cases.outputs.regular_shards }}
+
+  # ============================================================================
+  # 5. Run Custom Tests (only when test_files is provided)
+  # ============================================================================
+  test_custom:
+    needs:
+      - build
+    if: ${{ inputs.test_files != '' }}
+    uses: ./.github/workflows/_torch-npu-upstream-test-custom.yml
+    with:
+      python_version: ${{ inputs.python_version }}
+      torch_wheel_artifact: ${{ needs.build.outputs.torch-wheel }}
+      torch_npu_wheel_artifact: ${{ needs.build.outputs.torch-npu-wheel }}
+      pytorch_src_artifact: ${{ needs.build.outputs.pytorch-src }}
+      docker_image: ${{ inputs.docker_image }}
+      test_files: ${{ inputs.test_files }}
+
+  # ============================================================================
+  # 6. Generate Test Report
+  # ============================================================================
+  report:
+    needs:
+      - build
+      - collect_cases
+      - test_distributed
+      - test_regular
+      - test_custom
+    if: always() && needs.build.result == 'success'
+    uses: ./.github/workflows/_torch-npu-upstream-report.yml
+    with:
+      python_version: ${{ inputs.python_version }}
+      torch_npu_wheel_name: ${{ needs.build.outputs.torch-npu-wheel }}
+      docker_image: ${{ inputs.docker_image }}
+      distributed_matrix: ${{ needs.collect_cases.outputs.distributed_matrix || '[]' }}
+      regular_matrix: ${{ needs.collect_cases.outputs.regular_matrix || '[]' }}

@@ -1,9 +1,23 @@
 #!/usr/bin/env python3
 """
-Collect all test cases from PyTorch test directory and shard them.
+Collect all test cases and split into shards.
 
-This script scans the test directory, collects all test cases using pytest --collect-only,
-classifies them as distributed or regular tests, and shards them for parallel execution.
+This script runs in prepare job (once) to:
+1. Discover test files by type (distributed/regular)
+2. Collect all test cases via pytest --collect-only
+3. Split cases evenly into N shards
+4. Output shard JSON files for each type
+5. Save collection error logs for failed files
+
+Usage:
+    python collect_all_cases.py \
+        --test-dir /path/to/pytorch/test \
+        --case-paths-config /path/to/case_paths_ci.yml \
+        --distributed-shards 2 \
+        --regular-shards 5 \
+        --output-dir /path/to/output \
+        --error-log-dir /path/to/error_logs \
+        --parallel 16
 """
 
 import argparse
@@ -13,340 +27,401 @@ import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Tuple
+
+# Import discover_test_files module
+import discover_test_files
 
 
-DISTRIBUTED_TEST_DIRS = [
-    "distributed",
-    "distributed/algorithms/nn",
-]
+def get_test_file_parent_dir(test_file: str, test_dir: Path) -> Path:
+    """
+    Get the parent directory of a test file.
 
-
-def is_distributed_test(test_file: str) -> bool:
-    """Check if a test file is in distributed test directories."""
-    for dir_prefix in DISTRIBUTED_TEST_DIRS:
-        if test_file.startswith(dir_prefix):
-            return True
-    return False
-
-
-def collect_cases_from_file(test_dir: Path, test_file: str, parallel: int = 1, verbose: bool = False) -> Tuple[List[str], str]:
-    """Collect test cases from a single test file using pytest --collect-only.
+    This directory should be added to PYTHONPATH to enable
+    imports of sibling modules (e.g., model_registry.py).
 
     Args:
-        test_dir: The test directory path (used as cwd for pytest)
-        test_file: Relative path to test file from test_dir (e.g., "dynamo/test_regional_inductor.py")
-        parallel: Number of parallel collectors (not used in this function)
-        verbose: Print debug information
+        test_file: Test file path (e.g., "test/distributed/pipelining/test_backward.py")
+        test_dir: Path to PyTorch test directory
 
     Returns:
-        Tuple of (cases list, error message or empty string)
+        Path to the test file's parent directory
     """
-    full_path = test_dir / test_file
+    if test_file.startswith("test/"):
+        test_file_rel = test_file[5:]
+    else:
+        test_file_rel = test_file
 
-    # ===== DEBUG: Print path details for specific files =====
-    if verbose and ("distributed/_composable/fsdp" in test_file or "dynamo" in test_file):
-        print("\n=== DEBUG: collect_cases_from_file ===")
-        print(f"test_file (relative): {test_file}")
-        print(f"test_dir: {test_dir}")
-        print(f"test_dir.resolve(): {test_dir.resolve()}")
-        print(f"full_path (test_dir / test_file): {full_path}")
-        print(f"full_path.resolve(): {full_path.resolve()}")
-        print(f"full_path.exists(): {full_path.exists()}")
-        print(f"cwd for pytest: {str(test_dir)}")
-        print(f"pytest arg (should be relative): {test_file}")
-        print("=" * 50)
+    test_file_path = Path(test_file_rel)
+    return test_dir / test_file_path.parent
 
-    if not full_path.exists():
-        error = f"File not found: {full_path}"
-        if verbose:
-            print(f"[SKIP] {test_file}: {error}")
-            # DEBUG: Show what files exist in similar location
-            parent = full_path.parent
-            if parent.exists():
-                print(f"  DEBUG: Files in {parent}:")
-                for item in sorted(parent.iterdir())[:10]:
-                    print(f"    {item.name}")
-            else:
-                print(f"  DEBUG: Parent directory {parent} does not exist")
-        return [], error
+
+def collect_cases_for_file(test_file: str, test_dir: Path) -> Tuple[str, List[str], bool, str]:
+    """
+    Collect test cases from a single file.
+
+    Adds test file's parent directory to PYTHONPATH to enable
+    imports of sibling modules (e.g., 'from model_registry import MLPModule').
+
+    Returns:
+        Tuple of (test_file, nodeids, success, error_message)
+        - test_file: Original test file path
+        - nodeids: List of collected test case nodeids
+        - success: True if collection succeeded without errors
+        - error_message: Error details if collection failed, empty string otherwise
+    """
+    if test_file.startswith("test/"):
+        test_file_rel = test_file[5:]
+    else:
+        test_file_rel = test_file
+
+    # Extract display name (remove test/ prefix and .py suffix)
+    display_name = test_file_rel
+    if display_name.endswith(".py"):
+        display_name = display_name[:-3]
+
+    # Get test file's parent directory for PYTHONPATH
+    test_file_dir = get_test_file_parent_dir(test_file, test_dir)
+
+    # Build environment with test file directory in PYTHONPATH
+    env = os.environ.copy()
+    existing_pythonpath = env.get("PYTHONPATH", "")
+    env["PYTHONPATH"] = str(test_file_dir) + (":" + existing_pythonpath if existing_pythonpath else "")
+
+    command = [
+        sys.executable,
+        "-m",
+        "pytest",
+        "--collect-only",
+        "--quiet",
+        test_file_rel,
+    ]
 
     try:
-        # Use test_file (relative path) as pytest argument since cwd is test_dir
-        # pytest command should be: pytest --collect-only -q dynamo/test_regional_inductor.py
-        # NOT: pytest --collect-only -q pytorch-src/test/dynamo/test_regional_inductor.py
-        pytest_cmd = ["pytest", "--collect-only", "-q", test_file]
-        if verbose and ("distributed/_composable/fsdp" in test_file or "dynamo" in test_file):
-            print(f"\nDEBUG: pytest command: {pytest_cmd}")
-            print(f"DEBUG: cwd: {str(test_dir)}")
-
         result = subprocess.run(
-            pytest_cmd,
+            command,
+            cwd=str(test_dir),
+            env=env,
             capture_output=True,
             text=True,
-            timeout=60,
-            cwd=str(test_dir),
-            env={**os.environ, "PYTEST_ADDOPTS": ""}
+            encoding="utf-8",
+            errors="replace",
+            timeout=120,
         )
 
-        cases = []
+        nodeids = []
         for line in result.stdout.splitlines():
-            # Parse pytest output format: "test_file.py::TestClass::test_method"
-            if "::" in line and not line.startswith("="):
-                case_id = line.strip()
-                if case_id and not case_id.startswith("<"):
-                    cases.append(case_id)
+            if "::" in line and not line.strip().startswith("<"):
+                nodeids.append(line.strip())
 
-        # Check for errors
-        error_msg = ""
-        if result.returncode != 0:
-            error_msg = result.stderr.strip() if result.stderr else "Unknown error"
-            if verbose:
-                print(f"[ERROR] {test_file}: pytest returned {result.returncode}")
-                if result.stderr:
-                    # 打印完整 stderr，不截断
-                    for line in result.stderr.splitlines():
-                        print(f"  {line}")
-        elif len(cases) == 0:
-            # No cases collected, might be import error or empty file
-            if result.stderr:
-                error_msg = result.stderr.strip()
-                if verbose:
-                    print(f"[WARN] {test_file}: 0 cases collected")
-                    # 打印完整 stderr
-                    for line in result.stderr.splitlines():
-                        print(f"  {line}")
-            else:
-                if verbose:
-                    print(f"[WARN] {test_file}: 0 cases collected (possibly empty or all skipped)")
+        # Check for collection errors based on pytest exit codes:
+        #   0: all passed (success)
+        #   2: pytest error (includes collection errors like ImportError)
+        #   3: all skipped (success)
+        #   4: command line error (error)
+        #   5: no tests collected (ERROR - test file should have cases)
+        # Key insight: if a test file is selected for execution, it should have cases.
+        # returncode 5 means 0 cases collected, which indicates a problem.
+        if result.returncode in (0, 3):
+            # Normal: passed or skipped
+            return (test_file, nodeids, True, "")
         else:
-            if verbose:
-                print(f"[OK] {test_file}: {len(cases)} cases collected")
+            # returncode 2, 4, 5: real collection error
+            # returncode 5 specifically means no tests collected - a problem for selected files
+            error_msg = result.stdout.strip()
+            if result.stderr.strip():
+                error_msg += "\n--- stderr ---\n" + result.stderr.strip()
+            return (test_file, nodeids, False, error_msg)
 
-        return cases, error_msg
     except subprocess.TimeoutExpired:
-        error = "Timeout after 60s"
-        if verbose:
-            print(f"[TIMEOUT] {test_file}: {error}")
-        return [], error
+        error_msg = f"TIMEOUT: Collection took >120s for {display_name}"
+        return (test_file, [], False, error_msg)
     except Exception as e:
-        error = str(e)
-        if verbose:
-            print(f"[EXCEPTION] {test_file}: {error}")
-        return [], error
-
-
-def discover_test_files(test_dir: Path) -> List[str]:
-    """Discover all test_*.py files in the test directory."""
-    test_files = []
-    for py_file in test_dir.rglob("test_*.py"):
-        rel_path = str(py_file.relative_to(test_dir))
-        test_files.append(rel_path)
-    return sorted(test_files)
-
-
-def shard_cases(cases: List[str], num_shards: int) -> List[List[str]]:
-    """Shard cases evenly across shards."""
-    shards = [[] for _ in range(num_shards)]
-    for i, case in enumerate(cases):
-        shard_idx = i % num_shards
-        shards[shard_idx].append(case)
-    return shards
+        error_msg = f"ERROR: {e}"
+        return (test_file, [], False, error_msg)
 
 
 def collect_all_cases(
-    test_dir: str,
-    distributed_shards: int,
-    regular_shards: int,
-    output_dir: str,
-    parallel: int = 1,
-    verbose: bool = False
-) -> Dict:
-    """Collect all test cases and shard them."""
-    test_dir_path = Path(test_dir)
-    if not test_dir_path.exists():
-        raise FileNotFoundError(f"Test directory not found: {test_dir}")
+    test_files: List[str],
+    test_dir: Path,
+    error_log_dir: Path,
+    parallel: int = 16,
+) -> List[Dict]:
+    """
+    Collect all cases from all files.
 
-    # ===== DEBUG: Print directory structure and paths =====
-    print("\n=== DEBUG: Directory Structure and Paths ===")
-    print(f"Current working directory: {os.getcwd()}")
-    print(f"test_dir argument: {test_dir}")
-    print(f"test_dir_path: {test_dir_path}")
-    print(f"test_dir_path.resolve(): {test_dir_path.resolve()}")
-    print(f"test_dir_path exists: {test_dir_path.exists()}")
-    print(f"test_dir_path is absolute: {test_dir_path.is_absolute()}")
+    Args:
+        test_files: List of test file paths
+        test_dir: Path to PyTorch test directory
+        error_log_dir: Directory to save error logs for failed collections
+        parallel: Number of parallel workers
 
-    # List top-level directories in test_dir
-    if test_dir_path.exists():
-        print(f"\nTop-level items in test_dir_path:")
-        for item in sorted(test_dir_path.iterdir())[:20]:
-            print(f"  {item.name} {'[DIR]' if item.is_dir() else '[FILE]'}")
+    Returns:
+        List of dicts with nodeid and file for each collected case
+    """
+    all_cases = []
+    failed_files = []  # Track files with collection errors for logging
 
-        # Check distributed directory specifically
-        distributed_path = test_dir_path / "distributed"
-        if distributed_path.exists():
-            print(f"\ndistributed/ directory exists: {distributed_path}")
-            print(f"Contents of distributed/ (first 20 items):")
-            for item in sorted(distributed_path.iterdir())[:20]:
-                print(f"  {item.name} {'[DIR]' if item.is_dir() else '[FILE]'}")
+    print(f"Collecting cases from {len(test_files)} files with {parallel} workers...")
+    print("=" * 60)
 
-            # Check _composable/fsdp specifically
-            fsdp_path = distributed_path / "_composable" / "fsdp"
-            if fsdp_path.exists():
-                print(f"\n_fsdp path exists: {fsdp_path}")
-                print(f"Contents of fsdp/ (first 10 items):")
-                for item in sorted(fsdp_path.iterdir())[:10]:
-                    print(f"  {item.name} {'[DIR]' if item.is_dir() else '[FILE]'}")
+    # Create error log directory
+    error_log_dir.mkdir(parents=True, exist_ok=True)
+
+    with ThreadPoolExecutor(max_workers=parallel) as executor:
+        futures = {
+            executor.submit(collect_cases_for_file, f, test_dir): f
+            for f in test_files
+        }
+
+        completed = 0
+        successful_count = 0
+        failed_count = 0
+        total_cases = 0
+
+        for future in as_completed(futures):
+            test_file, nodeids, success, error_msg = future.result()
+            completed += 1
+
+            # Extract display name for logging
+            if test_file.startswith("test/"):
+                display_name = test_file[5:]
             else:
-                print(f"\nfsdp path NOT found: {fsdp_path}")
-        else:
-            print(f"\ndistributed/ directory NOT found")
-    print("=" * 50 + "\n")
+                display_name = test_file
+            if display_name.endswith(".py"):
+                display_name = display_name[:-3]
 
-    output_dir_path = Path(output_dir)
-    output_dir_path.mkdir(parents=True, exist_ok=True)
+            if success:
+                successful_count += 1
+                # Print concise log for successful files
+                print(f"  {display_name}: {len(nodeids)} cases")
+                for nodeid in nodeids:
+                    all_cases.append({
+                        "nodeid": nodeid,
+                        "file": test_file,
+                    })
+            else:
+                failed_count += 1
+                # Print concise log for failed files
+                print(f"  [FAILED] {display_name}: {len(nodeids)} cases")
+                # Save error details to log file
+                failed_files.append({
+                    "file": display_name,
+                    "error": error_msg,
+                    "cases": len(nodeids),
+                    "test_file": test_file,
+                })
+                # Still add any cases that were collected despite errors
+                for nodeid in nodeids:
+                    all_cases.append({
+                        "nodeid": nodeid,
+                        "file": test_file,
+                    })
 
-    print(f"Discovering test files in {test_dir}...")
-    test_files = discover_test_files(test_dir_path)
-    print(f"Found {len(test_files)} test files")
+            # Update total cases count for progress display
+            total_cases += len(nodeids)
 
-    distributed_files = [f for f in test_files if is_distributed_test(f)]
-    regular_files = [f for f in test_files if not is_distributed_test(f)]
+            # Print progress summary every 100 files
+            if completed % 100 == 0:
+                print(f"  [Progress: {completed}/{len(test_files)} files, {successful_count} ok, {failed_count} failed, {total_cases} cases]")
 
-    print(f"Distributed test files: {len(distributed_files)}")
-    print(f"Regular test files: {len(regular_files)}")
+    print("=" * 60)
 
-    if verbose:
-        print("\n=== Collecting distributed cases ===")
+    # Save error logs to files
+    if failed_files:
+        save_error_logs(failed_files, error_log_dir)
 
-    # Collect cases in parallel
-    print("Collecting distributed cases...")
-    distributed_cases = []
-    distributed_errors = {}
-    with ThreadPoolExecutor(max_workers=parallel) as executor:
-        futures = {
-            executor.submit(collect_cases_from_file, test_dir_path, f, parallel, verbose): f
-            for f in distributed_files
-        }
-        for future in as_completed(futures):
-            file = futures[future]
-            cases, error = future.result()
-            distributed_cases.extend(cases)
-            if error:
-                distributed_errors[file] = error
+    # Final summary
+    print(f"Collection complete: {len(all_cases)} cases from {successful_count}/{len(test_files)} files")
+    if failed_count > 0:
+        print(f"  WARNING: {failed_count} files had collection errors (logs saved to {error_log_dir})")
 
-    if verbose:
-        print("\n=== Collecting regular cases ===")
+    return all_cases
 
-    print("Collecting regular cases...")
-    regular_cases = []
-    regular_errors = {}
-    with ThreadPoolExecutor(max_workers=parallel) as executor:
-        futures = {
-            executor.submit(collect_cases_from_file, test_dir_path, f, parallel, verbose): f
-            for f in regular_files
-        }
-        for future in as_completed(futures):
-            file = futures[future]
-            cases, error = future.result()
-            regular_cases.extend(cases)
-            if error:
-                regular_errors[file] = error
 
-    print(f"Total distributed cases: {len(distributed_cases)}")
-    print(f"Total regular cases: {len(regular_cases)}")
+def save_error_logs(failed_files: List[Dict], error_log_dir: Path) -> None:
+    """
+    Save collection error logs to individual files and create a summary.
 
-    # Print summary of errors if any
-    if distributed_errors or regular_errors:
-        print("\n=== Collection Errors Summary ===")
-        if distributed_errors:
-            print(f"Distributed files with errors: {len(distributed_errors)}")
-            for file, error in sorted(distributed_errors.items())[:10]:
-                # 打印完整错误信息
-                print(f"  {file}:")
-                for line in error.splitlines()[:5]:  # 只打印前5行避免过长
-                    print(f"    {line}")
-            if len(distributed_errors) > 10:
-                print(f"  ... and {len(distributed_errors) - 10} more files")
-        if regular_errors:
-            print(f"Regular files with errors: {len(regular_errors)}")
-            for file, error in sorted(regular_errors.items())[:10]:
-                print(f"  {file}:")
-                for line in error.splitlines()[:5]:
-                    print(f"    {line}")
-            if len(regular_errors) > 10:
-                print(f"  ... and {len(regular_errors) - 10} more files")
+    Args:
+        failed_files: List of dicts with file, error, cases info
+        error_log_dir: Directory to save error logs
+    """
+    print(f"Saving error logs for {len(failed_files)} failed files...")
 
-    # Shard cases
-    distributed_sharded = shard_cases(distributed_cases, distributed_shards)
-    regular_sharded = shard_cases(regular_cases, regular_shards)
+    # Save individual error log files
+    for failed in failed_files:
+        # Create safe filename from display name (replace / with _)
+        safe_name = failed['file'].replace('/', '_')
+        log_file = error_log_dir / f"{safe_name}.log"
 
-    # Save shards to JSON files
-    for i, shard in enumerate(distributed_sharded, 1):
-        shard_file = output_dir_path / f"distributed_cases_shard_{i}.json"
-        with open(shard_file, "w") as f:
-            json.dump({
-                "shard_index": i,
-                "total_shards": distributed_shards,
-                "cases": shard,
-                "count": len(shard)
-            }, f, indent=2)
-        print(f"Saved distributed shard {i} with {len(shard)} cases to {shard_file}")
+        # Write error log
+        with open(log_file, 'w', encoding='utf-8') as f:
+            f.write(f"File: {failed['file']}\n")
+            f.write(f"Cases collected: {failed['cases']}\n")
+            f.write(f"Test file path: {failed['test_file']}\n")
+            f.write("=" * 80 + "\n")
+            f.write("Collection Error:\n")
+            f.write("=" * 80 + "\n")
+            f.write(failed['error'])
+            f.write("\n")
 
-    for i, shard in enumerate(regular_sharded, 1):
-        shard_file = output_dir_path / f"regular_cases_shard_{i}.json"
-        with open(shard_file, "w") as f:
-            json.dump({
-                "shard_index": i,
-                "total_shards": regular_shards,
-                "cases": shard,
-                "count": len(shard)
-            }, f, indent=2)
-        print(f"Saved regular shard {i} with {len(shard)} cases to {shard_file}")
-
-    # Save summary
-    summary = {
-        "total_cases": len(distributed_cases) + len(regular_cases),
-        "distributed_cases": len(distributed_cases),
-        "regular_cases": len(regular_cases),
-        "distributed_shards": distributed_shards,
-        "regular_shards": regular_shards,
-        "distributed_files": len(distributed_files),
-        "regular_files": len(regular_files),
+    # Save summary JSON
+    summary_file = error_log_dir / "collection_errors_summary.json"
+    summary_data = {
+        "total_failed": len(failed_files),
+        "failed_files": [
+            {
+                "file": f['file'],
+                "cases": f['cases'],
+                "test_file": f['test_file'],
+                "log_file": f"{f['file'].replace('/', '_')}.log",
+            }
+            for f in failed_files
+        ],
     }
+    summary_file.write_text(json.dumps(summary_data, indent=2), encoding='utf-8')
 
-    summary_file = output_dir_path / "cases_collection_summary.json"
-    with open(summary_file, "w") as f:
-        json.dump(summary, f, indent=2)
-    print(f"Saved summary to {summary_file}")
+    print(f"  Error logs saved to {error_log_dir}")
+    print(f"  Summary: {summary_file}")
 
-    return summary
+
+def split_cases_into_shards(cases: List[Dict], num_shards: int) -> List[List[Dict]]:
+    """Split cases evenly into shards."""
+    total = len(cases)
+    base_size = total // num_shards
+    remainder = total % num_shards
+
+    shards = []
+    start = 0
+    for i in range(num_shards):
+        size = base_size + (1 if i < remainder else 0)
+        shards.append(cases[start:start + size])
+        start += size
+
+    return shards
+
+
+def save_shards(
+    cases: List[Dict],
+    num_shards: int,
+    test_type: str,
+    output_dir: Path,
+) -> Dict:
+    """Save shard JSONs and return summary."""
+    shards = split_cases_into_shards(cases, num_shards)
+
+    print(f"\nSaving {test_type} shards...")
+    for i, shard_cases in enumerate(shards, 1):
+        shard_file = output_dir / f"{test_type}_cases_shard_{i}.json"
+        shard_data = {
+            "shard": i,
+            "num_shards": num_shards,
+            "test_type": test_type,
+            "total_cases": len(shard_cases),
+            "cases": shard_cases,
+        }
+        shard_file.write_text(json.dumps(shard_data, indent=2), encoding="utf-8")
+        print(f"  Shard {i}: {len(shard_cases)} cases -> {shard_file}")
+
+    return {
+        "test_type": test_type,
+        "num_shards": num_shards,
+        "total_cases": len(cases),
+        "shard_sizes": [len(s) for s in shards],
+    }
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Collect and shard PyTorch test cases")
-    parser.add_argument("--test-dir", required=True, help="PyTorch test directory path")
-    parser.add_argument("--distributed-shards", type=int, default=2, help="Number of distributed test shards")
-    parser.add_argument("--regular-shards", type=int, default=5, help="Number of regular test shards")
-    parser.add_argument("--output-dir", required=True, help="Output directory for shard JSON files")
-    parser.add_argument("--parallel", type=int, default=1, help="Number of parallel collectors")
-    parser.add_argument("--verbose", action="store_true", help="Print detailed collection progress")
+    args = parse_args()
 
-    args = parser.parse_args()
+    test_dir = Path(args.test_dir).resolve()
+    output_dir = Path(args.output_dir).resolve()
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-    summary = collect_all_cases(
-        test_dir=args.test_dir,
-        distributed_shards=args.distributed_shards,
-        regular_shards=args.regular_shards,
-        output_dir=args.output_dir,
-        parallel=args.parallel,
-        verbose=args.verbose
+    # Error log directory for failed collections
+    error_log_dir = Path(args.error_log_dir).resolve() if args.error_log_dir else output_dir / "collection_errors"
+    error_log_dir.mkdir(parents=True, exist_ok=True)
+
+    summaries = []
+
+    # ========================================
+    # Step 1: Collect distributed test cases
+    # ========================================
+    print("=" * 80)
+    print("Collecting distributed test cases")
+    print("=" * 80)
+
+    dist_files, dist_meta = discover_test_files.discover_test_files(
+        test_dir=test_dir,
+        test_type="distributed",
+        case_paths_config=args.case_paths_config,
     )
+    print(f"Found {len(dist_files)} distributed test files")
 
-    print("\nCollection Summary:")
-    print(f"  Total cases: {summary['total_cases']}")
-    print(f"  Distributed cases: {summary['distributed_cases']} ({summary['distributed_shards']} shards)")
-    print(f"  Regular cases: {summary['regular_cases']} ({summary['regular_shards']} shards)")
+    dist_cases = collect_all_cases(dist_files, test_dir, error_log_dir / "distributed", args.parallel)
+    print(f"Total distributed cases: {len(dist_cases)}")
+
+    dist_summary = save_shards(dist_cases, args.distributed_shards, "distributed", output_dir)
+    summaries.append(dist_summary)
+
+    # ========================================
+    # Step 2: Collect regular test cases
+    # ========================================
+    print("\n" + "=" * 80)
+    print("Collecting regular test cases")
+    print("=" * 80)
+
+    reg_files, reg_meta = discover_test_files.discover_test_files(
+        test_dir=test_dir,
+        test_type="regular",
+        case_paths_config=args.case_paths_config,
+    )
+    print(f"Found {len(reg_files)} regular test files")
+
+    reg_cases = collect_all_cases(reg_files, test_dir, error_log_dir / "regular", args.parallel)
+    print(f"Total regular cases: {len(reg_cases)}")
+
+    reg_summary = save_shards(reg_cases, args.regular_shards, "regular", output_dir)
+    summaries.append(reg_summary)
+
+    # ========================================
+    # Step 3: Save overall summary
+    # ========================================
+    overall_summary = {
+        "distributed": {
+            "cases_summary": dist_summary,
+            "discovery_metadata": dist_meta,
+        },
+        "regular": {
+            "cases_summary": reg_summary,
+            "discovery_metadata": reg_meta,
+        },
+        "total_cases": len(dist_cases) + len(reg_cases),
+        "total_files_scanned": dist_meta.get("total_files", 0) + reg_meta.get("total_files", 0),
+    }
+    summary_file = output_dir / "cases_collection_summary.json"
+    summary_file.write_text(json.dumps(overall_summary, indent=2), encoding="utf-8")
+    print(f"\nOverall summary saved to {summary_file}")
+
+    print("\n" + "=" * 80)
+    print("Collection Complete")
+    print("=" * 80)
+    print(f"Distributed: {len(dist_cases)} cases -> {args.distributed_shards} shards (serial execution)")
+    print(f"Regular: {len(reg_cases)} cases -> {args.regular_shards} shards (parallel execution)")
+    print(f"Total: {len(dist_cases) + len(reg_cases)} cases")
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Collect and shard test cases")
+    parser.add_argument("--test-dir", required=True, help="PyTorch test directory")
+    parser.add_argument("--case-paths-config", help="case_paths_ci.yml path")
+    parser.add_argument("--distributed-shards", type=int, default=2, help="Distributed test shards")
+    parser.add_argument("--regular-shards", type=int, default=5, help="Regular test shards")
+    parser.add_argument("--output-dir", required=True, help="Output directory for shard JSONs")
+    parser.add_argument("--error-log-dir", help="Output directory for collection error logs (default: output-dir/collection_errors)")
+    parser.add_argument("--parallel", type=int, default=16, help="Parallel collection workers")
+    return parser.parse_args()
 
 
 if __name__ == "__main__":

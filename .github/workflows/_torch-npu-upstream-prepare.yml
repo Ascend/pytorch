@@ -1,0 +1,49 @@
+name: Torch NPU Upstream Prepare
+
+on:
+  workflow_call:
+    inputs:
+      pytorch_version:
+        required: true
+        type: string
+        description: PyTorch version to clone for test source
+      prepared_test_src_artifact:
+        required: true
+        type: string
+        description: Name of the artifact for prepared test source
+    
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          repository: kerer-ai/pytorch
+          ref: v2.7.1_dev
+          fetch-depth: 1
+
+      - name: Clone PyTorch v${{ inputs.pytorch_version }} (for test source)
+        run: |
+          git clone --depth=1 --branch v${{ inputs.pytorch_version }} \
+            https://github.com/pytorch/pytorch.git pytorch-test-src
+
+      - name: Package prepared test source
+        run: |
+          tar -czf pytorch-test-src.tar.gz pytorch-test-src
+
+      - name: Upload prepared test source
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.prepared_test_src_artifact }}
+          path: pytorch-test-src.tar.gz
+          retention-days: 7
+
+      - name: Upload prepare logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prepare-logs
+          path: /tmp/*.log
+          if-no-files-found: warn
+          retention-days: 30
