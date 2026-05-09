@@ -1,12 +1,15 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates
+# Owner(s): ["oncall: distributed"]
 import itertools
-from typing import cast, List
+from typing import cast
+
+from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU, with_comms
 
 import torch
 import torch.distributed as dist
 from torch import rand, randn, Tensor
-from torch.distributed._tensor import DeviceMesh, distribute_tensor, Replicate, Shard
-from torch.distributed._tensor.debug import CommDebugMode
-from torch.distributed._tensor.ops._view_ops import (
+from torch.distributed.tensor import DeviceMesh, distribute_tensor, Replicate, Shard
+from torch.distributed.tensor._ops._view_ops import (
     Broadcast,
     dim_maps,
     Flatten,
@@ -16,13 +19,14 @@ from torch.distributed._tensor.ops._view_ops import (
     Split,
     view_groups,
 )
-from torch.distributed._tensor.placement_types import Placement
+from torch.distributed.tensor.debug import CommDebugMode
+from torch.distributed.tensor.placement_types import Placement
 from torch.testing._internal.common_utils import run_tests
 from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTestBase
 from torch.utils import _pytree as pytree
 
-import torch_npu
-from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
+
+npu = torch.ops.npu
 
 
 class TestViewOps(DTensorTestBase):
@@ -152,7 +156,7 @@ class TestViewOps(DTensorTestBase):
         if op == torch.unbind:
             no_shard_dims.add(kwargs.get("dim", 0))
 
-        sharding_choices = cast(List[Placement], [Replicate()]) + [
+        sharding_choices = cast(list[Placement], [Replicate()]) + [
             Shard(i) for i, s in enumerate(in_shape) if s > 1 and i not in no_shard_dims
         ]
 
@@ -355,6 +359,16 @@ class TestViewOps(DTensorTestBase):
         )
         self.dimmap_test(
             torch.permute,
+            (randn(24, 36, 28), (-1, -3, -2)),
+            (InputDim(2), InputDim(0), InputDim(1)),
+        )
+        self.dimmap_test(
+            npu.npu_transpose,
+            (randn(24, 36, 28), (2, 0, 1)),
+            (InputDim(2), InputDim(0), InputDim(1)),
+        )
+        self.dimmap_test(
+            npu.npu_transpose,
             (randn(24, 36, 28), (-1, -3, -2)),
             (InputDim(2), InputDim(0), InputDim(1)),
         )
