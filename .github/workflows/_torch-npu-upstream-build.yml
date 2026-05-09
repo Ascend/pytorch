@@ -107,8 +107,8 @@ jobs:
       - name: Checkout torch_npu
         uses: actions/checkout@v4
         with:
-          repository: ${{ github.repository }}
-          ref: ${{ inputs.torch_npu_ref || github.ref }}
+          repository: Ascend/pytorch
+          ref: ${{ inputs.torch_npu_ref }}
           path: torch_npu-src
           submodules: recursive
 
