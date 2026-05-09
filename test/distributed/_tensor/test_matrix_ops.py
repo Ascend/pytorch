@@ -1,6 +1,11 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates
+# Owner(s): ["oncall: distributed"]
 import itertools
-from typing import cast, List, Optional
+from typing import cast
 from unittest import skip
+
+from torch_npu.testing._internal.common_dtensor import NPUDTensorTestBase
+from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU, with_comms
 
 import torch
 from torch.distributed._tensor import DeviceMesh, distribute_tensor
@@ -13,9 +18,8 @@ from torch.distributed.tensor.placement_types import (
 )
 from torch.testing._internal.common_utils import run_tests
 
-import torch_npu
-from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
-from torch_npu.testing._internal.common_dtensor import NPUDTensorTestBase
+
+npu = torch.ops.npu
 
 
 class DistMatrixOpsTest(NPUDTensorTestBase):
@@ -48,9 +52,13 @@ class DistMatrixOpsTest(NPUDTensorTestBase):
         shard1_spec = [Shard(1)]
         replica_spec = [Replicate()]
 
-        tensor_to_shard1 = torch.randn(12, 8, requires_grad=True, device=self.device_type)
+        tensor_to_shard1 = torch.randn(
+            12, 8, requires_grad=True, device=self.device_type
+        )
         mat1 = distribute_tensor(tensor_to_shard1, device_mesh, shard1_spec)
-        tensor_to_shard0 = torch.randn(8, 4, requires_grad=True, device=self.device_type)
+        tensor_to_shard0 = torch.randn(
+            8, 4, requires_grad=True, device=self.device_type
+        )
         mat2 = distribute_tensor(tensor_to_shard0, device_mesh, shard0_spec)
         input_tensor = torch.randn(4, requires_grad=True, device=self.device_type)
         input1 = distribute_tensor(input_tensor, device_mesh, replica_spec)
@@ -87,7 +95,7 @@ class DistMatrixOpsTest(NPUDTensorTestBase):
         local_res = torch.mm(t1, t2)
 
         def test_placement_comb(
-            placements1: List[Placement], placements2: List[Placement]
+            placements1: list[Placement], placements2: list[Placement]
         ) -> None:
             dt1 = distribute_tensor(t1, device_mesh, placements1)
             dt2 = distribute_tensor(t2, device_mesh, placements2)
@@ -150,12 +158,12 @@ class DistMatrixOpsTest(NPUDTensorTestBase):
         batch_2 = torch.rand(4, 8, 8, requires_grad=True)
 
         def test_placement_comb(
-            tensor_placements: List[Placement],
-            batch_1_placements: List[Placement],
-            batch_2_placements: List[Placement],
+            tensor_placements: list[Placement],
+            batch_1_placements: list[Placement],
+            batch_2_placements: list[Placement],
             beta: int,
             alpha: int,
-            batch_1_grad: Optional[torch.Tensor],
+            batch_1_grad: torch.Tensor | None,
         ) -> None:
             tensor_dt = distribute_tensor(tensor, device_mesh, tensor_placements)
             batch_1_dt = distribute_tensor(batch_1, device_mesh, batch_1_placements)
@@ -238,12 +246,56 @@ class DistMatrixOpsTest(NPUDTensorTestBase):
         local_result.backward(grad_local_res)
 
         def test_placement_comb(
-            placements1: List[Placement],
-            placements2: List[Placement],
+            placements1: list[Placement],
+            placements2: list[Placement],
         ) -> None:
             mat1_dt = distribute_tensor(mat1, device_mesh, placements1)
             mat2_dt = distribute_tensor(mat2, device_mesh, placements2)
             dist_res = cast(DTensor, torch.bmm(mat1_dt, mat2_dt)).redistribute(
+                device_mesh, [Replicate()]
+            )
+            dist_local_res = dist_res.to_local()
+            self.assertEqual(dist_local_res, local_result)
+
+            # test backward
+            # it generates a different grad shape
+            grad_dist_res = torch.ones_like(dist_res)
+            dist_res.backward(grad_dist_res)
+            self.assertIsNotNone(mat1_dt.grad)
+            mat1_dt_grad = cast(DTensor, mat1_dt.grad)
+            mat1_grad_local = mat1_dt_grad.redistribute(
+                device_mesh, [Replicate()]
+            ).to_local()
+            self.assertEqual(mat1_grad_local, mat1.grad)
+
+        shard0_spec = Shard(0)
+        shard1_spec = Shard(1)
+        shard2_spec = Shard(2)
+        replica_spec = Replicate()
+        placement_specs = [shard0_spec, shard1_spec, shard2_spec, replica_spec]
+        shard_specs_comb = list(itertools.product(placement_specs, placement_specs))
+
+        # tests that currently pass
+        for spec in shard_specs_comb:
+            test_placement_comb([spec[0]], [spec[1]])
+
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms
+    def test_npu_bmmV2(self):
+        device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
+        mat1 = torch.rand(4, 8, 4, device=self.device_type, requires_grad=True)
+        mat2 = torch.rand(4, 4, 8, device=self.device_type, requires_grad=True)
+        local_result = npu.npu_bmmV2(mat1, mat2)
+        grad_local_res = torch.ones_like(local_result)
+        local_result.backward(grad_local_res)
+
+        def test_placement_comb(
+            placements1: list[Placement],
+            placements2: list[Placement],
+        ) -> None:
+            mat1_dt = distribute_tensor(mat1, device_mesh, placements1)
+            mat2_dt = distribute_tensor(mat2, device_mesh, placements2)
+            dist_res = cast(DTensor, npu.npu_bmmV2(mat1_dt, mat2_dt)).redistribute(
                 device_mesh, [Replicate()]
             )
             dist_local_res = dist_res.to_local()
