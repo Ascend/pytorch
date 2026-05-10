@@ -137,7 +137,7 @@ jobs:
             --test-files "${{ inputs.test_files }}" \
             --test-dir pytorch-src/test \
             --report-dir ${REPORT_DIR} \
-            --timeout 1200 \
+            --timeout 60 \
             --verbose \
             2>&1 | tee /tmp/test_custom.log
 

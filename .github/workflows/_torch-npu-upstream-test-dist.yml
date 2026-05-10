@@ -186,7 +186,7 @@ jobs:
             --cases-json "${CASES_JSON}" \
             --test-dir pytorch-src/test \
             --report-dir ${REPORT_DIR} \
-            --timeout 1200 \
+            --timeout 60 \
             --verbose \
             2>&1 | tee /tmp/test_shard_dist_${{ matrix.shard }}.log
 
