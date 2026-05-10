@@ -38,6 +38,7 @@ env:
 
 jobs:
   run_tests:
+    name: test_regular (${{ matrix.shard }}/${{ inputs.regular_shards }})
     runs-on: linux-aarch64-a3-16
     timeout-minutes: 1200
     container:
