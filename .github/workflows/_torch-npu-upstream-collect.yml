@@ -190,7 +190,6 @@ jobs:
 
           $PYTHON ../ascend_pytorch/.github/scripts/collect_all_cases.py \
             --test-dir test \
-            --case-paths-config test_upstream/case_paths_ci.yml \
             --distributed-shards ${DISTRIBUTED_SHARDS} \
             --regular-shards ${REGULAR_SHARDS} \
             --output-dir cases_shards \

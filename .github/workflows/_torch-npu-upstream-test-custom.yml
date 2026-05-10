@@ -135,7 +135,6 @@ jobs:
           python${{ inputs.python_version }} ascend_pytorch/.github/scripts/run_npu_test_shard.py \
             --test-files "${{ inputs.test_files }}" \
             --test-dir pytorch-src/test \
-            --disabled-testcases pytorch-src/test_upstream/disabled_testcases.json \
             --report-dir ${REPORT_DIR} \
             --timeout 1200 \
             --verbose \

@@ -184,7 +184,6 @@ jobs:
           $PYTHON ascend_pytorch/.github/scripts/run_npu_test_shard.py \
             --cases-json "${CASES_JSON}" \
             --test-dir pytorch-src/test \
-            --disabled-testcases pytorch-src/test_upstream/disabled_testcases.json \
             --report-dir ${REPORT_DIR} \
             --timeout 1200 \
             --verbose \
