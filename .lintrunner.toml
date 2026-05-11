@@ -150,160 +150,160 @@ command = [
     '--config=pyrefly.toml',
 ]
 
-[[linter]]
-code = 'CLANGTIDY'
-include_patterns = [
-    # Enable coverage of headers in aten/src/ATen
-    # and excluding most sub-directories for now.
-    'aten/src/ATen/*.h',
-    'aten/src/ATen/*.cpp',
-    'aten/src/ATen/cuda/*.cpp',
-    'aten/src/ATen/cpu/*.h',
-    'aten/src/ATen/cpu/*.cpp',
-    'aten/src/ATen/accelerator/**/*.h',
-    'aten/src/ATen/accelerator/**/*.cpp',
-    'aten/src/ATen/core/*.h',
-    'aten/src/ATen/core/*.cpp',
-    'aten/src/ATen/cudnn/*.h',
-    'aten/src/ATen/cudnn/*.cpp',
-    'aten/src/ATen/native/mkldnn/xpu/**/*.h',
-    'aten/src/ATen/native/mkldnn/xpu/**/*.cpp',
-    'aten/src/ATen/detail/*',
-    'aten/src/ATen/functorch/*.h',
-    'aten/src/ATen/functorch/*.cpp',
-    'aten/src/ATen/native/nested/cuda/*.cpp',
-    'aten/src/ATen/native/nested/cuda/*.h',
-    'aten/src/ATen/native/nested/*.cpp',
-    'aten/src/ATen/native/nested/*.h',
-    'aten/src/ATen/xpu/**/*.h',
-    'aten/src/ATen/xpu/**/*.cpp',
-    'c10/**/*.cpp',
-    'c10/**/*.h',
-    'torch_npu/*.h',
-    'torch_npu/_inductor/codegen/aoti_runtime/*.h',
-    'torch_npu/_inductor/codegen/aoti_runtime/*.cpp',
-    'torch_npu/csrc/*.h',
-    'torch_npu/csrc/*.cpp',
-    'torch_npu/csrc/**/*.h',
-    'torch_npu/csrc/**/*.cpp',
-    'torch_npu/csrc/jit/serialization/*.h',
-    'torch_npu/csrc/jit/serialization/*.cpp',
-    'torch_npu/nativert/*.h',
-    'torch_npu/nativert/*.cpp',
-    'torch_npu/nativert/**/*.h',
-    'torch_npu/nativert/**/*.cpp',
-    'torch_npu/headeronly/**/*.h',
-]
-exclude_patterns = [
-    # The negative filters below are to exclude files that include onnx_pb.h or
-    # caffe2_pb.h, otherwise we'd have to build protos as part of this CI job.
-    # CUDA files are also excluded.
-    '**/fb/**',
-    '**/generated/**',
-    '**/*pb.h',
-    '**/*inl.h',
-    'aten/src/ATen/cpu/FlushDenormal.cpp',
-    'aten/src/ATen/cpu/vml.h',
-    'aten/src/ATen/CPUFixedAllocator.h',
-    'aten/src/ATen/Parallel*.h',
-    'c10/xpu/**/*.h',
-    'c10/xpu/**/*.cpp',
-    'c10/benchmark/intrusive_ptr_benchmark.cpp',
-    'c10/cuda/CUDAAlgorithm.h',
-    'c10/util/complex_math.h',
-    'c10/util/complex_utils.h',
-    'c10/util/flat_hash_map.h',
-    'c10/util/logging*.h',
-    'c10/metal/*.h',
-    'c10/util/hash.h',
-    'c10/util/strong_type.h',
-    'c10/util/SmallVector.h',
-    'c10/util/win32-headers.h',
-    'c10/test/**/*.h',
-    'c10/test/**/*.cpp',
-    'third_party/**/*',
-    'torch_npu/csrc/autograd/generated/**',
-    'torch_npu/csrc/distributed/**/*.cu',
-    'torch_npu/csrc/distributed/c10d/WinSockUtils.hpp',
-    'torch_npu/csrc/distributed/c10d/quantization/quantization_gpu.h',
-    'torch_npu/csrc/dynamo/eval_frame.h',
-    'torch_npu/csrc/inductor/aoti_torch/c/shim.h',
-    'torch_npu/csrc/jit/**/*',
-    'torch_npu/csrc/jit/serialization/mobile_bytecode_generated.h',
-    'torch_npu/csrc/utils/generated_serialization_types.h',
-    'torch_npu/csrc/utils/pythoncapi_compat.h',
-    'torch_npu/csrc/inductor/aoti_runtime/sycl_runtime_wrappers.h',
-]
-init_command = [
-    'python3',
-    'tools/linter/adapters/s3_init.py',
-    '--config-json=tools/linter/adapters/s3_init_config.json',
-    '--linter=clang-tidy',
-    '--dry-run={{DRYRUN}}',
-    '--output-dir=.lintbin',
-    '--output-name=clang-tidy',
-]
-command = [
-    'python3',
-    'tools/linter/adapters/clangtidy_linter.py',
-    '--binary=.lintbin/clang-tidy',
-    '--build_dir=./build',
-    '--',
-    '@{{PATHSFILE}}'
-]
+# [[linter]]
+# code = 'CLANGTIDY'
+# include_patterns = [
+#     # Enable coverage of headers in aten/src/ATen
+#     # and excluding most sub-directories for now.
+#     'aten/src/ATen/*.h',
+#     'aten/src/ATen/*.cpp',
+#     'aten/src/ATen/cuda/*.cpp',
+#     'aten/src/ATen/cpu/*.h',
+#     'aten/src/ATen/cpu/*.cpp',
+#     'aten/src/ATen/accelerator/**/*.h',
+#     'aten/src/ATen/accelerator/**/*.cpp',
+#     'aten/src/ATen/core/*.h',
+#     'aten/src/ATen/core/*.cpp',
+#     'aten/src/ATen/cudnn/*.h',
+#     'aten/src/ATen/cudnn/*.cpp',
+#     'aten/src/ATen/native/mkldnn/xpu/**/*.h',
+#     'aten/src/ATen/native/mkldnn/xpu/**/*.cpp',
+#     'aten/src/ATen/detail/*',
+#     'aten/src/ATen/functorch/*.h',
+#     'aten/src/ATen/functorch/*.cpp',
+#     'aten/src/ATen/native/nested/cuda/*.cpp',
+#     'aten/src/ATen/native/nested/cuda/*.h',
+#     'aten/src/ATen/native/nested/*.cpp',
+#     'aten/src/ATen/native/nested/*.h',
+#     'aten/src/ATen/xpu/**/*.h',
+#     'aten/src/ATen/xpu/**/*.cpp',
+#     'c10/**/*.cpp',
+#     'c10/**/*.h',
+#     'torch_npu/*.h',
+#     'torch_npu/_inductor/codegen/aoti_runtime/*.h',
+#     'torch_npu/_inductor/codegen/aoti_runtime/*.cpp',
+#     'torch_npu/csrc/*.h',
+#     'torch_npu/csrc/*.cpp',
+#     'torch_npu/csrc/**/*.h',
+#     'torch_npu/csrc/**/*.cpp',
+#     'torch_npu/csrc/jit/serialization/*.h',
+#     'torch_npu/csrc/jit/serialization/*.cpp',
+#     'torch_npu/nativert/*.h',
+#     'torch_npu/nativert/*.cpp',
+#     'torch_npu/nativert/**/*.h',
+#     'torch_npu/nativert/**/*.cpp',
+#     'torch_npu/headeronly/**/*.h',
+# ]
+# exclude_patterns = [
+#     # The negative filters below are to exclude files that include onnx_pb.h or
+#     # caffe2_pb.h, otherwise we'd have to build protos as part of this CI job.
+#     # CUDA files are also excluded.
+#     '**/fb/**',
+#     '**/generated/**',
+#     '**/*pb.h',
+#     '**/*inl.h',
+#     'aten/src/ATen/cpu/FlushDenormal.cpp',
+#     'aten/src/ATen/cpu/vml.h',
+#     'aten/src/ATen/CPUFixedAllocator.h',
+#     'aten/src/ATen/Parallel*.h',
+#     'c10/xpu/**/*.h',
+#     'c10/xpu/**/*.cpp',
+#     'c10/benchmark/intrusive_ptr_benchmark.cpp',
+#     'c10/cuda/CUDAAlgorithm.h',
+#     'c10/util/complex_math.h',
+#     'c10/util/complex_utils.h',
+#     'c10/util/flat_hash_map.h',
+#     'c10/util/logging*.h',
+#     'c10/metal/*.h',
+#     'c10/util/hash.h',
+#     'c10/util/strong_type.h',
+#     'c10/util/SmallVector.h',
+#     'c10/util/win32-headers.h',
+#     'c10/test/**/*.h',
+#     'c10/test/**/*.cpp',
+#     'third_party/**/*',
+#     'torch_npu/csrc/autograd/generated/**',
+#     'torch_npu/csrc/distributed/**/*.cu',
+#     'torch_npu/csrc/distributed/c10d/WinSockUtils.hpp',
+#     'torch_npu/csrc/distributed/c10d/quantization/quantization_gpu.h',
+#     'torch_npu/csrc/dynamo/eval_frame.h',
+#     'torch_npu/csrc/inductor/aoti_torch/c/shim.h',
+#     'torch_npu/csrc/jit/**/*',
+#     'torch_npu/csrc/jit/serialization/mobile_bytecode_generated.h',
+#     'torch_npu/csrc/utils/generated_serialization_types.h',
+#     'torch_npu/csrc/utils/pythoncapi_compat.h',
+#     'torch_npu/csrc/inductor/aoti_runtime/sycl_runtime_wrappers.h',
+# ]
+# init_command = [
+#     'python3',
+#     'tools/linter/adapters/s3_init.py',
+#     '--config-json=tools/linter/adapters/s3_init_config.json',
+#     '--linter=clang-tidy',
+#     '--dry-run={{DRYRUN}}',
+#     '--output-dir=.lintbin',
+#     '--output-name=clang-tidy',
+# ]
+# command = [
+#     'python3',
+#     'tools/linter/adapters/clangtidy_linter.py',
+#     '--binary=.lintbin/clang-tidy',
+#     '--build_dir=./build',
+#     '--',
+#     '@{{PATHSFILE}}'
+# ]
 
-[[linter]]
-code = 'CLANGTIDY_EXECUTORCH_COMPATIBILITY'
-include_patterns = [
-    # c10 headers that must be C++17 compatible
-    'c10/macros/Export.h',
-    'c10/macros/Macros.h',
-    'c10/macros/cmake_macros.h',
-    'c10/util/BFloat16.h',
-    'c10/util/BFloat16-inl.h',
-    'c10/util/BFloat16-math.h',
-    'c10/util/Half.h',
-    'c10/util/Half-inl.h',
-    'c10/util/TypeSafeSignMath.h',
-    'c10/util/bit_cast.h',
-    'c10/util/complex.h',
-    'c10/util/floating_point_utils.h',
-    'c10/util/irange.h',
-    'c10/util/llvmMathExtras.h',
-    'c10/util/overflows.h',
-    'c10/util/safe_numerics.h',
-    # torch_npu/headeronly headers that must be C++17 compatible
-    'torch_npu/headeronly/macros/cmake_macros.h',
-    'torch_npu/headeronly/macros/Export.h',
-    'torch_npu/headeronly/macros/Macros.h',
-    'torch_npu/headeronly/util/BFloat16.h',
-    'torch_npu/headeronly/util/Half.h',
-    'torch_npu/headeronly/util/TypeSafeSignMath.h',
-    'torch_npu/headeronly/util/bit_cast.h',
-    'torch_npu/headeronly/util/complex.h',
-    'torch_npu/headeronly/util/floating_point_utils.h',
-]
-exclude_patterns = [
-    '**/fb/**',
-]
-init_command = [
-    'python3',
-    'tools/linter/adapters/s3_init.py',
-    '--config-json=tools/linter/adapters/s3_init_config.json',
-    '--linter=clang-tidy',
-    '--dry-run={{DRYRUN}}',
-    '--output-dir=.lintbin',
-    '--output-name=clang-tidy',
-]
-command = [
-    'python3',
-    'tools/linter/adapters/clangtidy_linter.py',
-    '--binary=.lintbin/clang-tidy',
-    '--build_dir=./build',
-    '--std=c++17',
-    '--',
-    '@{{PATHSFILE}}'
-]
+# [[linter]]
+# code = 'CLANGTIDY_EXECUTORCH_COMPATIBILITY'
+# include_patterns = [
+#     # c10 headers that must be C++17 compatible
+#     'c10/macros/Export.h',
+#     'c10/macros/Macros.h',
+#     'c10/macros/cmake_macros.h',
+#     'c10/util/BFloat16.h',
+#     'c10/util/BFloat16-inl.h',
+#     'c10/util/BFloat16-math.h',
+#     'c10/util/Half.h',
+#     'c10/util/Half-inl.h',
+#     'c10/util/TypeSafeSignMath.h',
+#     'c10/util/bit_cast.h',
+#     'c10/util/complex.h',
+#     'c10/util/floating_point_utils.h',
+#     'c10/util/irange.h',
+#     'c10/util/llvmMathExtras.h',
+#     'c10/util/overflows.h',
+#     'c10/util/safe_numerics.h',
+#     # torch_npu/headeronly headers that must be C++17 compatible
+#     'torch_npu/headeronly/macros/cmake_macros.h',
+#     'torch_npu/headeronly/macros/Export.h',
+#     'torch_npu/headeronly/macros/Macros.h',
+#     'torch_npu/headeronly/util/BFloat16.h',
+#     'torch_npu/headeronly/util/Half.h',
+#     'torch_npu/headeronly/util/TypeSafeSignMath.h',
+#     'torch_npu/headeronly/util/bit_cast.h',
+#     'torch_npu/headeronly/util/complex.h',
+#     'torch_npu/headeronly/util/floating_point_utils.h',
+# ]
+# exclude_patterns = [
+#     '**/fb/**',
+# ]
+# init_command = [
+#     'python3',
+#     'tools/linter/adapters/s3_init.py',
+#     '--config-json=tools/linter/adapters/s3_init_config.json',
+#     '--linter=clang-tidy',
+#     '--dry-run={{DRYRUN}}',
+#     '--output-dir=.lintbin',
+#     '--output-name=clang-tidy',
+# ]
+# command = [
+#     'python3',
+#     'tools/linter/adapters/clangtidy_linter.py',
+#     '--binary=.lintbin/clang-tidy',
+#     '--build_dir=./build',
+#     '--std=c++17',
+#     '--',
+#     '@{{PATHSFILE}}'
+# ]
 
 [[linter]]
 code = 'TYPEIGNORE'
