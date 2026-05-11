@@ -29,9 +29,9 @@
     - qos\_service\_level：该参数取值范围0\~7。默认值为0xffffffff，此时HCCL会读取环境变量**HCCL\_RDMA\_SL**的取值。环境变量**HCCL\_RDMA\_SL**的详情请参见《CANN 环境变量参考》中的“[HCCL\_RDMA\_SL](https://www.hiascend.com/document/detail/zh/canncommercial/900/maintenref/envvar/envref_07_0090.html)”章节。
     - qos\_traffic\_class：该参数取值范围0\~255。默认值为0xffffffff，此时HCCL会读取环境变量**HCCL\_RDMA\_TC**的取值。环境变量**HCCL\_RDMA\_TC**的详情请参见《CANN 环境变量参考》中的“[HCCL\_RDMA\_TC](https://www.hiascend.com/document/detail/zh/canncommercial/900/maintenref/envvar/envref_07_0089.html)”章节。
 
-- hccl\_op\_expansion\_mode：设置通信算法的编排展开位置。
+- hccl\_op\_expansion\_mode：设置通信算法的编排展开位置，默认值为环境变量**HCCL\_OP\_EXPANSION\_MODE**的取值，若环境变量**HCCL\_OP\_EXPANSION\_MODE**未设置则该参数默认值为0。不同型号的AI处理器支持的参数取值及说明请参见《CANN HCCL集合通信库接口》中的“[HcclCommConfig](https://www.hiascend.com/document/detail/zh/canncommercial/900/API/hcclug/hcclcpp_07_0047.html)”章节的hcclOpExpansionMode参数。
 
-    - 0：默认值，代表通信算法的编排展开位置，和**HCCL\_OP\_EXPANSION\_MODE**环境变量的取值保持一致**。**
+    - 0：代表默认通信算法的编排展开位置。
     - 1：代表通信算法的编排展开位置为Host侧CPU。
     - 2：代表通信算法的编排展开位置在device侧的AI CPU计算单元。
     - 3：代表通信算法的编排展开位置在device侧的AI Vector Core计算单元。
