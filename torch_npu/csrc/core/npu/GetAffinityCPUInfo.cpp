@@ -1,131 +1,153 @@
+#include <c10/core/Device.h>
 #include <climits>
+#include <iterator>
 #include <unordered_map>
-#include "torch_npu/csrc/core/npu/interface/DcmiInterface.h"
-#include "torch_npu/csrc/core/npu/NPUException.h"
-#include "torch_npu/csrc/core/npu/NPUAffinityController.h"
 
+#include <torch_npu/csrc/core/npu/NPUAffinityController.h>
+#include <torch_npu/csrc/core/npu/NPUException.h>
+#include <torch_npu/csrc/core/npu/interface/DcmiInterface.h>
+
+namespace {
 constexpr int NPU_OK = 0;
+using c10_npu::CoreId;
+using c10_npu::CoreIdList;
+using c10_npu::isAllDigits;
 
-static int DcmiInit()
-{
+std::unordered_map<int, CoreIdList> CardIdAffinityCPU;
+
+void DcmiInit() {
+  static bool initialized = false;
+  if (!initialized) {
     int ret = c10_npu::dcmi::DcmiInit();
-    if (ret != NPU_OK) {
-        TORCH_CHECK(false, "Failed to init dcmi. ", PTA_ERROR(ErrCode::INTERNAL));
-    }
-    return ret;
+    TORCH_CHECK(
+        ret == NPU_OK,
+        "Failed to init dcmi. Error code: ",
+        ret,
+        PTA_ERROR(ErrCode::ACL));
+    initialized = true;
+  }
 }
 
-std::string GetAffinityCPUBaseInfo(int card_id)
-{
-    int ret = DcmiInit();
-    int device_id = 0;
-    int device_id_max = 0;
-    int mcu_id = 0;
-    int cpu_id = 0;
-    ret = c10_npu::dcmi::DcmiGetDeviceIdInCard(card_id, &device_id_max, &mcu_id, &cpu_id);
-    if (ret != NPU_OK) {
-        TORCH_NPU_WARN_ONCE("dcmi_get_device_id_in_card is not supported. "
-                            "The npu_affine configuration of CPU_AFFINITY_CONF will be disabled.");
-        return "";
-    }
-    device_id = std::max(0, device_id_max - 1);
-    char affinity_cpu[TOPO_INFO_MAX_LENTH] = {0};
-    int length = 0;
-    ret = c10_npu::dcmi::DcmiGetAffinityCpuInfoByDeviceId(card_id, device_id, affinity_cpu, &length);
-    if (ret == NPU_OK) {
-        return affinity_cpu;
-    }
-    TORCH_NPU_WARN_ONCE("dcmi_get_affinity_cpu_info_by_device_id is not supported. "
-                        "The npu_affine configuration of CPU_AFFINITY_CONF will be disabled.");
+std::string GetAffinityCPUBaseInfo(int card_id) {
+  int device_id = 0;
+  int device_id_max = 0;
+  int mcu_id = 0;
+  int cpu_id = 0;
+  int ret = c10_npu::dcmi::DcmiGetDeviceIdInCard(
+      card_id, &device_id_max, &mcu_id, &cpu_id);
+  if (ret != NPU_OK) {
+    TORCH_NPU_WARN_ONCE(
+        "dcmi get device id in card is not supported. "
+        "The npu_affine configuration of CPU_AFFINITY_CONF will be disabled.");
     return "";
+  }
+  device_id = std::max(0, device_id_max - 1);
+  char affinity_cpu[TOPO_INFO_MAX_LENTH] = {0};
+  int length = 0;
+  ret = c10_npu::dcmi::DcmiGetAffinityCpuInfoByDeviceId(
+      card_id, device_id, affinity_cpu, &length);
+  if (ret == NPU_OK) {
+    return affinity_cpu;
+  }
+  TORCH_NPU_WARN_ONCE(
+      "dcmi get affinity cpu info by device id is not supported. "
+      "The npu_affine configuration of CPU_AFFINITY_CONF will be disabled.");
+  return "";
 }
 
-std::unordered_map<int, c10_npu::CoreIdRange> CardIdAffinityCPU;
-
-c10_npu::CoreIdRange parseAffinityCPU(const std::string cpuString)
-{
-    size_t pos = cpuString.find("-");
-    if (pos != std::string::npos) {
-        std::string start = cpuString.substr(0, pos);
-        std::string end = cpuString.substr(pos + 1);
-
-        char* start_endptr = nullptr;
-        char* end_endptr = nullptr;
-
-        errno = 0;
-        long startNum = strtol(start.c_str(), &start_endptr, 10);
-        long endNum = strtol(end.c_str(), &end_endptr, 10);
-        if (start_endptr != start.c_str() && *start_endptr == '\0' &&
-            end_endptr != end.c_str() && *end_endptr == '\0' &&
-            startNum >= 0 && endNum >= 0 && startNum <= INT_MAX && endNum <= INT_MAX &&
-            errno != ERANGE &&
-            startNum < endNum) {
-            return c10_npu::CoreIdRange{static_cast<int>(startNum), static_cast<int>(endNum)};
+CoreIdList parseAffinityCores(const std::string cpuString) {
+  CoreIdList cores;
+  TORCH_CHECK(
+      !cpuString.empty(),
+      "Affinity cpu string is empty",
+      PTA_ERROR(ErrCode::VALUE));
+  std::stringstream ss_value(cpuString);
+  std::string range;
+  while (std::getline(ss_value, range, ',')) {
+    size_t dashPos = range.find('-');
+    if (dashPos != std::string::npos) {
+      std::string startStr = range.substr(0, dashPos);
+      std::string endStr = range.substr(dashPos + 1);
+      if (isAllDigits(startStr) && isAllDigits(endStr)) {
+        CoreId start = static_cast<CoreId>(std::stoi(startStr));
+        CoreId end = static_cast<CoreId>(std::stoi(endStr));
+        for (CoreId id = start; id <= end; ++id) {
+          cores.insert(id);
         }
+      }
     }
-    TORCH_CHECK(false, "affinity cpu " + cpuString + " is error ", PTA_ERROR(ErrCode::VALUE));
+  }
+  return cores;
 }
 
-void GetExclusiveAffinityCPU()
-{
-    int ret = DcmiInit();
-    int device_count = 0;
-    int card_id_list[16];
-    int list_len = 16;
-    ret = c10_npu::dcmi::DcmiGetCardNumList(&device_count, card_id_list, list_len);
-    std::unordered_map<std::string, int> SameAffinityCpuNum;
-    std::map<int, std::string> CardIdAffinityCpuDefault;
-    for (int i = 0; i < device_count; i++) {
-        std::string affinity_cpu = GetAffinityCPUBaseInfo(i);
-        if (affinity_cpu.find(",") != std::string::npos) {
-            ASCEND_LOGW("torch_npu not support affinity cpu format:%s when set npu_affine:1.", affinity_cpu.c_str());
-            CardIdAffinityCPU.clear();
-            return;
-        }
-        if (affinity_cpu.empty()) {
-            return;
-        }
-        CardIdAffinityCpuDefault[i] = affinity_cpu;
-        auto it = SameAffinityCpuNum.find(affinity_cpu);
-        if (it != SameAffinityCpuNum.end()) {
-            SameAffinityCpuNum[affinity_cpu] = it->second + 1;
-        } else {
-            SameAffinityCpuNum[affinity_cpu] = 1;
-        }
-    }
-    std::unordered_map<std::string, int> offsetMap;
-    for (const auto& it : CardIdAffinityCpuDefault) {
-        int card_id = it.first;
-        std::string affinity_cpu = it.second;
-        int same_num = 1;
-        auto find_same_affinity_cpu = SameAffinityCpuNum.find(affinity_cpu);
-        if (find_same_affinity_cpu != SameAffinityCpuNum.end()) {
-            same_num = find_same_affinity_cpu->second;
-        }
-        int offset = 0;
-        auto find_offset = offsetMap.find(affinity_cpu);
-        if (find_offset != offsetMap.end()) {
-            offset = find_offset->second;
-        }
-        c10_npu::CoreIdRange cpu_range = parseAffinityCPU(affinity_cpu);
-        unsigned int length = (cpu_range.end - cpu_range.start + 1) / static_cast<unsigned int>(same_num);
-        c10_npu::CoreIdRange exclusiveAffinityCpu = {
-            cpu_range.start + static_cast<unsigned int>(offset) * length,
-            (cpu_range.start + length - 1) + static_cast<unsigned int>(offset) * length};
-        offsetMap[affinity_cpu] = offset + 1;
-        CardIdAffinityCPU[card_id] = exclusiveAffinityCpu;
-    }
-}
+void GetExclusiveAffinityCPU() {
+  static bool initialized = false;
+  if (initialized) {
+    return;
+  }
+  initialized = true;
+  DcmiInit();
 
-c10_npu::CoreIdRange GetAssignAffinityCPU(int card_id)
-{
-    GetExclusiveAffinityCPU();
-    if (CardIdAffinityCPU.empty()) {
-        return {0, 0};
+  int device_count = 0;
+  int card_id_list[16];
+  int list_len = 16;
+  TORCH_CHECK(
+      c10_npu::dcmi::DcmiGetCardNumList(
+          &device_count, card_id_list, list_len) == NPU_OK,
+      "Dcmi get card num failed.");
+  std::unordered_map<std::string, std::vector<int>> rangeAndDevs;
+  for (int i = 0; i < device_count; i++) {
+    std::string affinity_range = GetAffinityCPUBaseInfo(i);
+    if (affinity_range.empty()) {
+      TORCH_NPU_WARN_ONCE(
+          "Get affinity cpu info by device id is not supported, "
+          "The npu_affine configuration of CPU_AFFINITY_CONF will be disabled.");
+      return;
     }
-    auto it = CardIdAffinityCPU.find(card_id);
-    if (it != CardIdAffinityCPU.end()) {
-        return it->second;
+    rangeAndDevs[affinity_range].push_back(i);
+    ASCEND_LOGD(
+        "Device_id: %d, affinity_range: %s.", i, affinity_range.c_str());
+  }
+  for (auto& [affinity_range, dev_list] : rangeAndDevs) {
+    CoreIdList cores = parseAffinityCores(affinity_range);
+    int per_dev_cores = cores.size() / dev_list.size();
+    if (per_dev_cores == 0) {
+      ASCEND_LOGD("Insufficient cores for device allocation.");
+      for (int i = 0; i < dev_list.size(); ++i) {
+        CardIdAffinityCPU[dev_list[i]].insert(cores.begin(), cores.end());
+      }
+      continue;
     }
-    TORCH_CHECK(false, "card_id ", std::to_string(card_id), " is invalid.", PTA_ERROR(ErrCode::VALUE));
+    for (int i = 0; i < dev_list.size(); ++i) {
+      auto& dev_i = CardIdAffinityCPU[dev_list[i]];
+      auto it = cores.begin();
+      std::advance(it, i * per_dev_cores);
+      auto end_it = cores.begin();
+      if (i == dev_list.size() - 1) {
+        end_it = cores.end();
+      } else {
+        std::advance(end_it, (i + 1) * per_dev_cores);
+      }
+      dev_i.insert(it, end_it);
+    }
+  }
 }
+} // namespace
+
+namespace c10_npu {
+CoreIdList GetAffinityCores(int card_id) {
+  GetExclusiveAffinityCPU();
+  if (CardIdAffinityCPU.empty()) {
+    return CoreIdList{};
+  }
+  auto it = CardIdAffinityCPU.find(card_id);
+  if (it != CardIdAffinityCPU.end()) {
+    return it->second;
+  }
+  TORCH_CHECK(
+      false,
+      "Can't get affinity cores for card_id ",
+      std::to_string(card_id),
+      PTA_ERROR(ErrCode::VALUE));
+}
+} // namespace c10_npu

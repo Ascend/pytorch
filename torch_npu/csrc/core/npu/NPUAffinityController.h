@@ -1,32 +1,39 @@
 #pragma once
 #include <c10/core/Device.h>
+#include <torch_npu/csrc/core/npu/GetAffinityCPUInfo.h>
+#include <set>
 
 namespace c10_npu {
 
-using CoreId = unsigned int;
-struct CoreIdRange {
-    CoreId start;
-    CoreId end;
-};
-
 enum ThreadType {
-    MAIN_THREAD = 0,        // 1st performance hotspot, responsible for operator dispatching.
-    ACL_THREAD = 1,         // 2rd performance hotspot in PTA, responsible for handling the task queue.
-    RELEASE_THREAD = 2,     // Thread responsible for resource release.
-    WATCHDOG_THREAD = 3,    // Thread responsible for HCCL communication monitoring.
-    OTHER_THREAD = 4,       // Mostly refers to threads in PyTorch's motorized sleep thread pool, which
-                            // are not considered in PTA.
-    USER_THREAD = 5,        // Thread responsible for user.
+  MAIN_THREAD =
+      0, // 1st performance hotspot, responsible for operator dispatching.
+  ACL_THREAD = 1, // 2nd performance hotspot in PTA, responsible for handling
+                  // the task queue.
+  RELEASE_THREAD = 2, // Thread responsible for resource release.
+  WATCHDOG_THREAD = 3, // Thread responsible for HCCL communication monitoring.
+  OTHER_THREAD = 4, // Mostly refers to threads in PyTorch's motorized sleep
+                    // thread pool, which are not considered in PTA.
+  USER_THREAD = 5, // Thread responsible for user.
 };
 
 void SetThreadType(ThreadType type);
 void SetThreadAffinity(c10::DeviceIndex device);
 void SetThreadAffinity(ThreadType type);
+void SetThreadAffinity(const CoreIdList core_ids);
 void SetThreadAffinity(int core_start, int core_end);
 
 void SetMainThread();
 bool NeedMainThreadBind();
 bool SetThreadAffinityInInitialize();
 void StartMainThreadBind(c10::DeviceIndex device_id);
+
+inline bool isAllDigits(const std::string& str) {
+  if (str.empty()) {
+    return false;
+  }
+  return std::all_of(
+      str.begin(), str.end(), [](unsigned char c) { return std::isdigit(c); });
+}
 
 } // namespace c10_npu
