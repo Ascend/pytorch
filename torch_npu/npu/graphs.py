@@ -348,6 +348,11 @@ class _GraphDispatchMode(torch.utils._python_dispatch.TorchDispatchMode):
         handler_cls = _NPU_GRAPH_OP_HANDLERS.get(func.__name__)
 
         if handler_cls:
+            # Operator-specific: handler can opt out entirely for certain args
+            if hasattr(handler_cls, 'should_handle'):
+                if not handler_cls.should_handle(func, args, kwargs):
+                    return func(*args, **kwargs)
+
             # 1) Common: obtain stream and event
             stream = torch_npu.npu.current_stream()
             event = torch.npu.ExternalEvent()
@@ -832,8 +837,7 @@ def make_graphed_callables(
         The automatic mixed precision is supported in :func:`~torch.cuda.make_graphed_callables` only with disabled
         caching. The context manager `torch.cuda.amp.autocast()` must have `cache_enabled=False`.
     """
-    log.debug("NPUGraph: make_graphed_callables (callables=%s, warmup=%s)...",
-              len(callables), num_warmup_iters)
+
     if torch_npu.npu.is_autocast_enabled() and torch.is_autocast_cache_enabled():
         log.error("NPUGraph: ERROR — autocast caching not supported")
         log.warning("[NPUGRAPH][DFX] Fix: set cache_enabled=False in torch.autocast()")
