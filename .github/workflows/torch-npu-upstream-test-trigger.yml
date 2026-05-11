@@ -42,7 +42,7 @@ on:
         default: 'quay.io/kerer/pytorch:manylinux-cann9.0.0-beta.2-20260428'
         type: string
       distributed_shards:
-        description: 'Number of shards for distributed tests (default 2)'
+        description: 'Number of shards for distributed tests (default 3)'
         required: false
         default: '3'
         type: string
@@ -65,6 +65,6 @@ jobs:
       pytorch_ref: ${{ github.event.inputs.pytorch_ref || 'fccc94ae83f61fe26559abc999797297196bac29' }}
       torch_npu_ref: ${{ github.event.inputs.torch_npu_ref || 'master' }}
       docker_image: ${{ github.event.inputs.docker_image || 'quay.io/kerer/pytorch:manylinux-cann9.0.0-beta.2-20260428' }}
-      distributed_shards: ${{ github.event.inputs.distributed_shards || '2' }}
+      distributed_shards: ${{ github.event.inputs.distributed_shards || '3' }}
       regular_shards: ${{ github.event.inputs.regular_shards || '5' }}
       test_files: ${{ github.event.inputs.test_files || '' }}
