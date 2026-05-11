@@ -723,9 +723,10 @@ def run_single_test_case(
         existing_pythonpath = case_env.get("PYTHONPATH", "")
         case_env["PYTHONPATH"] = str(test_file_dir) + (":" + existing_pythonpath if existing_pythonpath else "")
 
-    # Generate XML file path for this case
+    # Generate XML file path for this case with descriptive name
     prefix = "dist" if shard_type == "distributed" else "reg"
-    xml_filename = f"case_{prefix}-{shard}_{case_idx}.xml"
+    safe_case_name = sanitize_nodeid_for_filename(original_nodeid)
+    xml_filename = f"{prefix}-{shard}_{case_idx}_{safe_case_name}.xml"
     xml_file = report_dir / "junit_xmls" / xml_filename
     xml_file.parent.mkdir(parents=True, exist_ok=True)
 
@@ -917,9 +918,10 @@ def run_single_case_concurrent(
     if case_nodeid.startswith("test/"):
         case_nodeid = case_nodeid[5:]
 
-    # Generate XML file path for this case
+    # Generate XML file path with descriptive name
     prefix = "dist" if shard_type == "distributed" else "reg"
-    xml_filename = f"case_{prefix}-{shard}_{task.case_idx}.xml"
+    safe_case_name = sanitize_nodeid_for_filename(original_nodeid)
+    xml_filename = f"{prefix}-{shard}_{task.case_idx}_{safe_case_name}.xml"
     xml_file = report_dir / "junit_xmls" / xml_filename
 
     command = [
