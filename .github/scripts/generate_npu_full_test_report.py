@@ -6,7 +6,6 @@ Generate a consolidated markdown/json report for the NPU full test workflow.
 import argparse
 import json
 import re
-import xml.etree.ElementTree as ET
 from collections import Counter
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional
@@ -55,340 +54,6 @@ def load_json_file(path: Path) -> Dict:
     except Exception as e:
         print(f"Warning: Failed to load {path}: {e}")
         return {}
-
-
-def parse_junit_xml_testsuites(xml_path: Path) -> List[Dict]:
-    """
-    Parse JUnit XML file and extract per-testsuite statistics.
-
-    Each testsuite represents a test file with its own stats:
-    - name: test file name
-    - tests: total test cases
-    - failures: failed test cases
-    - errors: error test cases
-    - skipped: skipped test cases
-    - time: execution time in seconds
-
-    Returns a list of testsuite statistics.
-    """
-    testsuites = []
-
-    if not xml_path.exists():
-        return testsuites
-
-    try:
-        tree = ET.parse(xml_path)
-        root = tree.getroot()
-
-        # Handle both <testsuites> and <testsuite> as root
-        if root.tag == "testsuites":
-            for testsuite in root.findall("testsuite"):
-                stats = parse_testsuite_element(testsuite)
-                if stats:
-                    testsuites.append(stats)
-        elif root.tag == "testsuite":
-            stats = parse_testsuite_element(root)
-            if stats:
-                testsuites.append(stats)
-
-    except ET.ParseError as e:
-        print(f"Warning: Failed to parse XML {xml_path}: {e}")
-    except Exception as e:
-        print(f"Warning: Error reading XML {xml_path}: {e}")
-
-    return testsuites
-
-
-def parse_testsuite_element(testsuite: ET.Element) -> Optional[Dict]:
-    """Parse a single testsuite element and return its statistics."""
-    try:
-        name = testsuite.get("name", "unknown")
-        tests = int(testsuite.get("tests", 0))
-        failures = int(testsuite.get("failures", 0))
-        errors = int(testsuite.get("errors", 0))
-        skipped = int(testsuite.get("skipped", 0))
-        time = float(testsuite.get("time", 0.0))
-        passed = tests - failures - errors - skipped
-
-        return {
-            "name": name,
-            "tests": tests,
-            "passed": passed,
-            "failures": failures,
-            "errors": errors,
-            "skipped": skipped,
-            "time": time,
-        }
-    except (ValueError, TypeError):
-        return None
-
-
-def extract_test_identifier(test_path: str) -> str:
-    """
-    Extract a test identifier from a test file path.
-
-    Converts paths like:
-    - "test/distributed/_composable/fsdp/test_fully_shard_autograd.py"
-    To:
-    - "distributed._composable.fsdp.test_fully_shard_autograd"
-
-    This matches the testsuite naming convention used by pytest/run_test.py.
-    """
-    # Remove 'test/' prefix if present
-    path = test_path
-    if path.startswith("test/"):
-        path = path[5:]
-    # Remove '.py' suffix
-    if path.endswith(".py"):
-        path = path[:-3]
-    # Convert path separators to dots
-    path = path.replace("/", ".").replace("\\", ".")
-    return path
-
-
-def aggregate_testsuite_stats_for_shard(
-    reports_root: Path,
-    shard_type: str,
-    shard: int,
-    planned_files: List[str],
-) -> List[Dict]:
-    """
-    Aggregate all testsuite statistics for a specific shard.
-
-    The test execution generates XML files named `shard_{type}-{shard}_pytest*.xml`.
-    Each XML file contains testcases with `file` attribute indicating the test file.
-
-    Args:
-        reports_root: Root directory containing all merged report files
-        shard_type: Shard type ("distributed" or "regular")
-        shard: Shard number to aggregate for
-        planned_files: List of test file paths planned for this shard
-
-    Returns:
-        List of testsuite statistics for tests belonging to this shard.
-    """
-    all_testsuites = {}
-    # Map from test identifier -> aggregated stats
-
-    # Build set of test identifiers from planned files
-    planned_identifiers = set()
-    for planned in planned_files:
-        identifier = extract_test_identifier(planned)
-        if identifier:
-            planned_identifiers.add(identifier)
-
-    # Also include just the test file names for simpler matching
-    planned_test_names = set()
-    for planned in planned_files:
-        name = Path(planned).name.replace(".py", "")
-        planned_test_names.add(name)
-
-    print(f"DEBUG: planned_files count={len(planned_files)}, planned_identifiers count={len(planned_identifiers)}")
-    if planned_identifiers:
-        print(f"DEBUG: First 3 planned_identifiers: {list(planned_identifiers)[:3]}")
-
-    # Convert shard_type to file prefix ("distributed" -> "dist", "regular" -> "reg")
-    type_prefix = "dist" if shard_type == "distributed" else "reg"
-
-    # Debug: List all files in reports_root
-    print(f"DEBUG aggregate_testsuite_stats_for_shard: shard_type={shard_type}, shard={shard}")
-    print(f"DEBUG: reports_root={reports_root}, exists={reports_root.exists()}")
-    if reports_root.exists():
-        all_xml_files = list(reports_root.rglob("*.xml"))
-        print(f"DEBUG: Total XML files in reports_root (rglob): {len(all_xml_files)}")
-        matching_xml_files = list(reports_root.rglob(f"shard_{type_prefix}-{shard}_pytest*.xml"))
-        print(f"DEBUG: Matching XML files for shard_{type_prefix}-{shard}_pytest*.xml (rglob): {len(matching_xml_files)}")
-        for xf in matching_xml_files[:5]:
-            print(f"DEBUG:   - {xf.relative_to(reports_root)}")
-
-    # Find all XML files for this shard: shard_{type}-{shard}_pytest*.xml
-    # Use rglob to search recursively (files may be in subdirectories due to artifact merge)
-    for xml_path in reports_root.rglob(f"shard_{type_prefix}-{shard}_pytest*.xml"):
-        # Parse testcase elements and aggregate by file attribute
-        test_file_stats = aggregate_testcases_by_file(xml_path, planned_identifiers, planned_test_names)
-        for test_id, stats in test_file_stats.items():
-            if test_id in all_testsuites:
-                # Merge with existing stats
-                existing = all_testsuites[test_id]
-                existing["tests"] += stats["tests"]
-                existing["passed"] += stats["passed"]
-                existing["failures"] += stats["failures"]
-                existing["errors"] += stats["errors"]
-                existing["skipped"] += stats["skipped"]
-                existing["time"] += stats["time"]
-            else:
-                all_testsuites[test_id] = stats
-
-    # Also check nested directories for Phase 1 style XMLs (run_test.py output)
-    phase1_patterns = [
-        "junit",
-        "pytorch-test-src/test/test-reports/python-pytest",
-    ]
-
-    for phase1_pattern in phase1_patterns:
-        phase1_base = reports_root / phase1_pattern
-        if not phase1_base.exists():
-            continue
-
-        for test_dir in phase1_base.iterdir():
-            if not test_dir.is_dir():
-                continue
-            test_identifier = test_dir.name
-            matched = False
-            for planned_id in planned_identifiers:
-                if test_identifier == planned_id or test_identifier.startswith(planned_id) or planned_id.startswith(test_identifier):
-                    matched = True
-                    break
-            if not matched:
-                for test_name in planned_test_names:
-                    if test_identifier.endswith(test_name) or test_name in test_identifier:
-                        matched = True
-                        break
-            if not matched:
-                continue
-
-            if test_identifier not in all_testsuites:
-                all_testsuites[test_identifier] = {
-                    "name": test_identifier,
-                    "tests": 0,
-                    "passed": 0,
-                    "failures": 0,
-                    "errors": 0,
-                    "skipped": 0,
-                    "time": 0.0,
-                }
-            aggregated = all_testsuites[test_identifier]
-
-            for xml_file in test_dir.glob("*.xml"):
-                testsuites = parse_junit_xml_testsuites(xml_file)
-                for ts in testsuites:
-                    aggregated["tests"] += ts.get("tests", 0)
-                    aggregated["passed"] += ts.get("passed", 0)
-                    aggregated["failures"] += ts.get("failures", 0)
-                    aggregated["errors"] += ts.get("errors", 0)
-                    aggregated["skipped"] += ts.get("skipped", 0)
-                    aggregated["time"] += ts.get("time", 0.0)
-
-    # Convert to list and sort by name
-    result = list(all_testsuites.values())
-    result.sort(key=lambda x: x["name"])
-
-    return result
-
-
-def aggregate_testcases_by_file(xml_path: Path, planned_identifiers: set, planned_test_names: set) -> Dict[str, Dict]:
-    """
-    Parse XML file and aggregate testcase statistics by file attribute.
-
-    Used for XMLs where testsuite name is generic "pytest".
-    If planned_identifiers is empty, accept all testcases.
-    """
-    result = {}
-    debug_count = 0
-
-    try:
-        tree = ET.parse(xml_path)
-        root = tree.getroot()
-
-        # Find all testcase elements
-        testcases = root.findall(".//testcase")
-        print(f"DEBUG aggregate_testcases_by_file: {xml_path.name}, testcases={len(testcases)}, planned_ids={len(planned_identifiers)}")
-
-        for testcase in testcases:
-            file_attr = testcase.get("file", "")
-            classname_attr = testcase.get("classname", "")
-
-            # Extract test identifier from file attribute or classname
-            test_identifier = None
-
-            if file_attr:
-                # e.g., "distributed/fsdp/test_fsdp_sharded_grad_scaler.py"
-                test_identifier = extract_test_identifier("test/" + file_attr) if not file_attr.startswith("test/") else extract_test_identifier(file_attr)
-                if debug_count < 3:
-                    print(f"DEBUG: file_attr='{file_attr}' -> test_identifier='{test_identifier}'")
-                    debug_count += 1
-            elif classname_attr:
-                # classname format: "test.distributed._composable.fsdp.test_fully_shard_comm.TestFullyShardCollectiveOps"
-                # The last part is the class name, need to extract the module path
-                # e.g., extract "test.distributed._composable.fsdp.test_fully_shard_comm" (module name)
-                parts = classname_attr.split(".")
-                if len(parts) > 1:
-                    # Remove the last part (class name like TestFullyShardCollectiveOps)
-                    # Keep everything before the class name
-                    module_parts = parts[:-1]
-                    classname_attr = ".".join(module_parts)
-                # Convert to match planned_identifiers format (dot-separated, no test/ prefix)
-                # planned_identifiers format: "distributed._composable.fsdp.test_fully_shard_comm"
-                test_identifier = classname_attr
-                # Remove 'test.' prefix if present to match planned_identifiers
-                if test_identifier.startswith("test."):
-                    test_identifier = test_identifier[5:]
-                if debug_count < 3:
-                    print(f"DEBUG: classname_attr='{classname_attr}' -> test_identifier='{test_identifier}'")
-                    debug_count += 1
-
-            if not test_identifier:
-                continue
-
-            # If planned_identifiers is empty, accept all testcases
-            # Otherwise, check if this test belongs to planned files
-            if planned_identifiers or planned_test_names:
-                matched = False
-                for planned_id in planned_identifiers:
-                    if test_identifier == planned_id or test_identifier.startswith(planned_id) or planned_id.startswith(test_identifier):
-                        matched = True
-                        break
-                if not matched:
-                    for test_name in planned_test_names:
-                        if test_identifier.endswith(test_name) or test_name in test_identifier:
-                            matched = True
-                            break
-                if not matched:
-                    continue
-
-            # Initialize stats for this test file
-            if test_identifier not in result:
-                result[test_identifier] = {
-                    "name": test_identifier,
-                    "tests": 0,
-                    "passed": 0,
-                    "failures": 0,
-                    "errors": 0,
-                    "skipped": 0,
-                    "time": 0.0,
-                }
-
-            # Count testcase
-            stats = result[test_identifier]
-            stats["tests"] += 1
-
-            # Determine outcome
-            failure = testcase.find("failure")
-            error = testcase.find("error")
-            skipped = testcase.find("skipped")
-
-            if failure is not None:
-                stats["failures"] += 1
-            elif error is not None:
-                stats["errors"] += 1
-            elif skipped is not None:
-                stats["skipped"] += 1
-            else:
-                stats["passed"] += 1
-
-            # Add time
-            time_str = testcase.get("time", "0")
-            try:
-                stats["time"] += float(time_str)
-            except ValueError:
-                pass
-
-    except ET.ParseError as e:
-        print(f"Warning: Failed to parse XML {xml_path}: {e}")
-    except Exception as e:
-        print(f"Warning: Error reading XML {xml_path}: {e}")
-
-    return result
 
 
 def parse_requested_shards(raw: str) -> List[Tuple[str, int]]:
@@ -475,7 +140,6 @@ def discover_shard_files(
 ) -> Tuple[
     Dict[Tuple[str, int], Path],  # stats_files
     Dict[Tuple[str, int], Path],  # info_files
-    Dict[Tuple[str, int], Path],  # xml_files
     Dict[Tuple[str, int], Path],  # cases_files
 ]:
     """
@@ -491,7 +155,6 @@ def discover_shard_files(
     """
     stats_files = {}
     info_files = {}
-    xml_files = {}
     cases_files = {}
 
     def parse_shard_filename(path: Path, suffix_pattern: str) -> Tuple[str, int]:
@@ -523,27 +186,13 @@ def discover_shard_files(
         if key:
             info_files[key] = path
 
-    # Discover XML files for per-test-file statistics
-    for path in reports_root.rglob("shard_*_pytest*.xml"):
-        # XML filename: shard_{type}-{number}_pytest{suffix}.xml
-        stem = path.stem
-        match = re.match(r"shard_(dist|reg)-(\d+)_pytest", stem)
-        if match:
-            type_prefix = match.group(1)
-            shard_num = int(match.group(2))
-            if type_prefix == "dist":
-                key = ("distributed", shard_num)
-            elif type_prefix == "reg":
-                key = ("regular", shard_num)
-            xml_files[key] = path
-
     # Discover case-level results files
     for path in reports_root.rglob("shard_*_cases.json"):
         key = parse_shard_filename(path, "cases")
         if key:
             cases_files[key] = path
 
-    return stats_files, info_files, xml_files, cases_files
+    return stats_files, info_files, cases_files
 
 
 def build_file_to_shards_map(cases_shards_dir: Path) -> Dict[str, List[str]]:
@@ -698,7 +347,7 @@ def main():
                 file_discovery_stats["distributed_files"] = cases_summary_data.get("distributed_files", 0)
                 file_discovery_stats["regular_files"] = cases_summary_data.get("regular_files", 0)
 
-    stats_files, info_files, xml_files, cases_files = discover_shard_files(reports_root)
+    stats_files, info_files, cases_files = discover_shard_files(reports_root)
     special_test_files = discover_special_test_files(special_reports_root)
     shard_ids = requested_shards or sorted(set(stats_files) | set(info_files) | set(cases_files))
 
@@ -753,47 +402,6 @@ def main():
             totals["duration"] += cases_data.get("duration", 0.0)
 
         present = bool(stats_path or cases_path)
-
-        # Parse ALL XML files to get per-test-file statistics
-        testsuite_stats = aggregate_testsuite_stats_for_shard(reports_root, shard_type, shard_num, [])
-
-        # If testsuite_stats has entries, aggregate their totals and override incomplete status
-        has_phase1_xmls = len(testsuite_stats) > 0
-        if has_phase1_xmls:
-            # Aggregate stats from Phase 1 XMLs
-            xml_totals = {
-                "tests": 0,
-                "passed": 0,
-                "failures": 0,
-                "errors": 0,
-                "skipped": 0,
-                "time": 0.0,
-            }
-            for ts in testsuite_stats:
-                xml_totals["tests"] += ts.get("tests", 0)
-                xml_totals["passed"] += ts.get("passed", 0)
-                xml_totals["failures"] += ts.get("failures", 0)
-                xml_totals["errors"] += ts.get("errors", 0)
-                xml_totals["skipped"] += ts.get("skipped", 0)
-                xml_totals["time"] += ts.get("time", 0.0)
-
-            # Use XML data to fill stats if:
-            # 1. stats.json doesn't exist (stats is empty) but we have XML data
-            # 2. stats.json exists but is incomplete and we have XML data to override
-            # This ensures per-file isolation mode shards get correct totals even without stats.json
-            if xml_totals["tests"] > 0:
-                # Always fill stats from XML if stats is empty or incomplete
-                if not stats or stats.get("incomplete"):
-                    stats["incomplete"] = False
-                    stats["total"] = xml_totals["tests"]
-                    stats["passed"] = xml_totals["passed"]
-                    stats["failed"] = xml_totals["failures"]
-                    stats["errors"] = xml_totals["errors"]
-                    stats["skipped"] = xml_totals["skipped"]
-                    stats["duration"] = xml_totals["time"]
-                    # Mark as present if we have XML data (even without stats.json)
-                    if not present:
-                        present = True
 
         if info.get("selection_mode"):
             selection_modes.add(str(info.get("selection_mode")))
