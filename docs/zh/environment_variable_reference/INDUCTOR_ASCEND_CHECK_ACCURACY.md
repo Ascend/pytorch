@@ -4,7 +4,7 @@
 
 INDUCTOR_ASCEND_CHECK_ACCURACY是Ascend Extension for PyTorch提供的精度校验工具，仅在torch.compile图编译后端为"Inductor"且模式为"Triton"时自动检测融合算子的数值精度。
 
-该工具可捕获融合算子对应的FX子图，生成独立可执行的单算子测试用例，并在相同输入条件下比对eager与triton的输出差异。当差异超出预设阈值时，自动输出精度校验失败日志及诊断信息，辅助开发者快速定位精度问题。
+该工具可捕获融合算子对应的FX子图，生成独立可执行的单算子测试用例，并在相同输入条件下比对eager与Triton的输出差异。当差异超出预设阈值时，自动输出精度校验失败日志及诊断信息，辅助开发者快速定位精度问题。
 
 ## 配置示例
 
@@ -42,5 +42,5 @@ export INDUCTOR_ASCEND_CHECK_ACCURACY_RTOL_ATOL="rtol=1e-6,atol=1e-7"
 
 ## 支持的型号
 
-- <term>Atlas A2训练系列产品</term>
-- <term>Atlas A3训练系列产品</term>
+- <term>Atlas A2 训练系列产品</term>
+- <term>Atlas A3 训练系列产品</term>

@@ -168,4 +168,4 @@
 |torch.ao.ns._numeric_suite_fx.extract_results_n_shadows_model|是|-|
 |torch.ao.ns._numeric_suite_fx.print_comparisons_n_shadows_model|是|-|
 |torch.ao.ns.fx.utils.compute_sqnr|否|-|
-|torch.ao.quantization.get_default_qat_qconfig该API为Quantization Aware Training依赖接口，未在PyTorch对外文档中呈现，具体使用请参考LINK。|是|在aarch64系统中只能使用qnnpack backend|
+|torch.ao.quantization.get_default_qat_qconfig|是|该API为Quantization Aware Training依赖接口，未在PyTorch对外文档中呈现，具体使用请参考[LINK](https://pytorch.org/blog/introduction-to-quantization-on-pytorch/)<br>在aarch64系统中只能使用qnnpack backend|

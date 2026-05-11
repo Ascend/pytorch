@@ -420,6 +420,7 @@ exclude_patterns=[
     'torch_npu/npu/_graph_tree.py',
     'torch_npu/npu/graphs.py',
     'torch_npu/utils/_graph_tree.py',
+    '**/*.md',
 ]
 command = [
     'python3',
@@ -450,6 +451,7 @@ exclude_patterns = [
     'torch_npu/npu/_graph_tree.py',
     'torch_npu/npu/graphs.py',
     'torch_npu/utils/_graph_tree.py',
+    '**/*.md',
 ]
 command = [
     'python3',

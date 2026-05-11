@@ -29,7 +29,7 @@ export TORCH_NPU_COMPACT_ERROR_OUTPUT=1
 
 - 设置为默认值0，正常进行ERROR打印时：
 
-    ```ColdFusion
+    ```python
     >>> torch_npu.npu.set_device(100)
     ......
     RuntimeError: Initialize:build/CMakeFiles/torch_npu.dir/compiler_depend.ts:147 NPU function error: c10_npu::SetDevice(device_id_), error code is 107001
@@ -47,7 +47,7 @@ export TORCH_NPU_COMPACT_ERROR_OUTPUT=1
 
 - 设置为1，开启精简打印时：
 
-    ```ColdFusion
+    ```python
     >>> torch_npu.npu.set_device(100)
     ......
     RuntimeError: CANN error: The argument is invalid.Reason: Set device failed, invalid device, set drv device=100, valid device range is [0, 8) Solution: 1.Check the input parameter range of the function. 2.Check the function invocation relationship.

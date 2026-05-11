@@ -4,7 +4,7 @@
 
 若用户进行训练或者在线推理，请参考以下完成安装前准备。
 
-- 安装配套版本的NPU驱动固件、CANN软件（Toolkit、ops和NNAL）并配置CANN环境变量，具体请参考《[CANN 软件安装指南](https://www.hiascend.com/document/detail/zh/canncommercial/850/softwareinst/instg/instg_0000.html)》（商用版）或《[CANN 软件安装指南](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/850/softwareinst/instg/instg_0000.html)》（社区版）。
+ - 请参考《[CANN 快速安装](https://www.hiascend.com/cann/download)》安装昇腾NPU驱动和CANN软件（包含Toolkit、ops和NNAL包），并配置环境变量。
 
     CANN软件提供进程级环境变量设置脚本，训练或推理场景下使用NPU执行业务代码前需要调用该脚本，否则业务代码将无法执行。
 
@@ -15,10 +15,10 @@
 
     以上命令以root用户安装后的默认路径为例，请用户根据set\_env.sh的实际路径进行替换。
 
-- 容器场景下源码编译安装torch\_npu插件，涉及从外部网络获取社区提供基础镜像、Python第三方库以及编译使用源码，代理配置等相关网络问题请参考[Docker官方文档](https://docs.docker.com/engine/cli/proxy/)。
-- 在安装不同类型操作系统所需依赖前，请在安装用户下检查源是否可用。以配置华为镜像源为例，可参考[华为开源镜像站](https://mirrors.huaweicloud.com/)中镜像源对应的配置方法操作。
-- Python3.11的调度（即下发）性能优于Python3.10，建议用Python3.11及以上。
-- 通过源码编译安装PyTorch框架和torch\_npu插件时，需安装如下环境依赖。
+ - 容器场景下源码编译安装torch\_npu插件，涉及从外部网络获取社区提供基础镜像、Python第三方库以及编译使用源码，代理配置等相关网络问题请参考[Docker官方文档](https://docs.docker.com/engine/cli/proxy/)。
+ - 在安装不同类型操作系统所需依赖前，请在安装用户下检查源是否可用。以配置华为镜像源为例，可参考[华为开源镜像站](https://mirrors.huaweicloud.com/)中镜像源对应的配置方法操作。
+ - Python3.11的调度（即下发）性能优于Python3.10，建议用Python3.11及以上。
+ - 通过源码编译安装PyTorch框架和torch\_npu插件时，需安装如下环境依赖。
 
     ```bash
     pip3 install pyyaml

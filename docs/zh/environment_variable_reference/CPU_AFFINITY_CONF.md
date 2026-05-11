@@ -7,7 +7,7 @@ Ascend Extension for PyTorch可以通过设置环境变量CPU\_AFFINITY\_CONF来
 可选的绑核方案如下：
 
 - **粗粒度绑核**：将所有任务绑定在NPU业务绑核区间的所有CPU核上，避免不同卡任务之间的线程抢占。
-- **细粒度绑核**：在粗粒度绑核的基础上进一步优化，将PTA热点线程（主线程、二级流水线程等）锚定在NPU业务绑核区间的固定CPU核上，即，主线程绑定在绑核区间的第一个CPU核上，二级流水线程绑定在绑核区间的第二个CPU核上，以此类推，非热点线程（如dataloader线程）则绑定在区间的剩余CPU核上，与热点线程隔离，减少核间切换的开销。
+- **细粒度绑核**：在粗粒度绑核的基础上进一步优化，将torch_npu热点线程（主线程、二级流水线程等）锚定在NPU业务绑核区间的固定CPU核上，即，主线程绑定在绑核区间的第一个CPU核上，二级流水线程绑定在绑核区间的第二个CPU核上，以此类推，非热点线程（如dataloader线程）则绑定在区间的剩余CPU核上，与热点线程隔离，减少核间切换的开销。
 
     > [!NOTE]  
     >
@@ -46,7 +46,7 @@ Ascend Extension for PyTorch可以通过设置环境变量CPU\_AFFINITY\_CONF来
 > - 绑核注意虚拟机与物理机的拓扑结构是否一致。默认情况下，npu0或Device 0对应的核组是NUMA0；但是Docker等虚拟机环境可能会改变映射关系，推荐根据映射关系自定义绑核范围。
 > - 绑核前会检测绑核区间，如果绑核区间内存在CPU核非亲和，就会判定为线程已有亲和性，则不触发该环境变量对应的绑核（`force`参数不配置时的默认行为）。在容器核隔离场景下，此检测可能误判，可通过设置`force:1`跳过检测。
 > - 绑核对于不同模型优化程度不同，部分业务场景可能会有额外线程，线程抢占反而导致性能劣化。
-> - 对于用户自定义线程，因为子线程继承主线程的亲和性，推荐在拉起子线程的位置前后，通过调用torch\_npu.utils.set\_thread\_affinity和torch\_npu.utils.reset\_thread\_affinity来管理子线程的CPU亲和性，具体可参考《Ascend Extension for PyTorch 自定义 API参考》中的“[torch\_npu.utils.set\_thread\_affinity](https://gitcode.com/Ascend/op-plugin/blob/7.3.0/docs/context/torch_npu-utils.set_thread_affinity.md)”章节和《Ascend Extension for PyTorch 自定义 API参考》中的“[torch\_npu.utils.reset\_thread\_affinity](https://gitcode.com/Ascend/op-plugin/blob/7.3.0/docs/context/torch_npu-utils.reset_thread_affinity.md)”章节。
+> - 对于用户自定义线程，因为子线程继承主线程的亲和性，推荐在拉起子线程的位置前后，通过调用torch\_npu.utils.set\_thread\_affinity和torch\_npu.utils.reset\_thread\_affinity来管理子线程的CPU亲和性，具体可参考《Ascend Extension for PyTorch 自定义 API参考》中的“[torch\_npu.utils.set\_thread\_affinity](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-utils/torch_npu-utils.set_thread_affinity.md)”章节和《Ascend Extension for PyTorch 自定义 API参考》中的“[torch\_npu.utils.reset\_thread\_affinity](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-utils/torch_npu-utils.reset_thread_affinity.md)”章节。
 > - 亲和性绑核区间可以通过命令**npu-smi info -t topo**查看。
 
 ## 配置示例

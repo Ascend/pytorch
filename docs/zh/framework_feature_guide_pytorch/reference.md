@@ -1,12 +1,12 @@
 # 常见参考
 
-## PyTorch scheme规则<a id="section001"></a>
+## PyTorch schema规则<a id="section001"></a>
 
-官方schema(算子描述规范)指导可参见[LINK](https://github.com/pytorch/pytorch/blob/main/aten/src/ATen/native/README.md)。
+官方schema（算子描述规范）指导可参见[LINK](https://github.com/pytorch/pytorch/blob/main/aten/src/ATen/native/README.md)。
 
-由于PTA 2.1版本使用官方的torchgen进行代码生成，因此要遵循官方的一些生成规范，未满足schema规范的算子会在编译时报错。当前有涉及到的有：
+由于PyTorch 2.1版本使用官方的torchgen进行代码生成，因此要遵循官方的一些生成规范，未满足schema规范的算子会在编译时报错。当前有涉及到的有：
 
-- 函数名已"new_"开头、"_like"结尾或入参中带有tensor_options但又没tensor入参的，需要有CompositeExplicitAutograd的dispatch。
+- 函数名以"new_"开头、"_like"结尾或入参中带有tensor_options但又没tensor入参的，需要有CompositeExplicitAutograd的dispatch。
 
     ```yaml
     - func: empty_with_format(int[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, int acl_format=2) -> Tensor
@@ -69,7 +69,7 @@ torch_npu算子操作基础接口可参见[LINK](https://gitcode.com/Ascend/pyto
 
 ## 算子适配常见宏定义<a id="section003"></a>
 
-算子适配宏定义接口可参见[LINK](https://gitcode.com/Ascend/op-plugin/blob/7.3.0/op_plugin/utils/op_api_common.h)。常见宏定义如下：
+算子适配宏定义接口可参见[LINK](https://gitcode.com/Ascend/op-plugin/blob/master/op_plugin/utils/op_api_common.h)。常见宏定义如下：
 
 - **`DO_COMPATIBILITY`**  
    - 功能：用于算子兼容性处理，当NPU原生算子不可用时自动降级为备选实现（如CPU版本），确保不同环境下的功能兼容性。  

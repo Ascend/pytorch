@@ -4,7 +4,7 @@
 
 回显信息中存在关键字“**RuntimeError: Tensors must be contiguous**”，类似如下打印信息：
 
-```ColdFusion
+```text
 Traceback (most recent call last):
   File "distributed/_mode_cases/error_discontinuous_tensor.py", line 21, in <module>
     discontinuous_tensor()

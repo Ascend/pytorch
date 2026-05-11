@@ -5,7 +5,7 @@
 
 |API名称|是否支持|限制与说明|
 |--|--|--|
-|torch.distributed.fsdp.FullyShardedDataParallel|是|在昇腾NPU场景中使用FSDP，推荐传入“device_id=torch.device("npu:0")”设备相关参数|
+|torch.distributed.fsdp.FullyShardedDataParallel|是|支持bf16，fp16，fp32<br>在昇腾NPU场景中使用FSDP，推荐传入“device_id=torch.device("npu:0")”设备相关参数|
 |torch.distributed.fsdp.FullyShardedDataParallel.apply|是|-|
 |torch.distributed.fsdp.FullyShardedDataParallel.check_is_root|是|-|
 |torch.distributed.fsdp.FullyShardedDataParallel.clip_grad_norm_|是|-|

@@ -2,7 +2,7 @@
 
 ## 简介
 
-torch.compile\(\)是PyTorch 2.0+推出的核心优化接口，通过"动态图捕获+静态图优化+高效代码生成"的方式显著加速模型训练和推理任务。Ascend Extension for PyTorch在2.6.0以上版本已支持该特性，为用户提供三种常用的backend配置选项，分别是torch.compile\(backend="inductor"\)、torch.compile\(backend="npugraphs"\)和torch.compile\(backend="npugraph_ex"\)。
+torch.compile\(\)是PyTorch 2.0+推出的核心优化接口，通过“动态图捕获+静态图优化+高效代码生成”的方式显著加速模型训练和推理任务。Ascend Extension for PyTorch在2.6.0以上版本已支持该特性，为用户提供三种常用的backend配置选项，分别是torch.compile\(backend="inductor"\)、torch.compile\(backend="npugraphs"\)和torch.compile\(backend="npugraph_ex"\)。
 
 torch.compile\(\)包含如下核心组件：
 
@@ -10,7 +10,7 @@ torch.compile\(\)包含如下核心组件：
 
 | 组件                 |定位| 作用                                                                                                       |
 |--------------------|--|----------------------------------------------------------------------------------------------------------|
-| Dynamo             |前端编译器（代码转换器）| TorchDynamo能够JIT（即时）将用户的eager（动态图）代码编译为FX Graph，进而交给其他lowering编译器（如Inductor）进行编译，最终生成优化过后的底层机器代码，达到加速效果。 |
+| Dynamo             |前端编译器（代码转换器）| TorchDynamo能够JIT（即时）将用户的eager（动态图）代码编译为FX Graph（PyTorch的中间表示），进而交给其他lowering编译器（如Inductor-负责将图转换为高效机器码的后端编译器）进行编译，最终生成优化过后的底层机器代码，达到加速效果。 |
 | Inductor           |后端编译器（高效代码生成器）| 具备基于多种模式（包括Triton/MLIR/DVM）的自动生成高性能算子能力，能够显著减少开发者手动设计Tiling、管理内存等工作量。支持算子融合等图优化策略，通过减少内存访问次数来提升性能。  |
 | NPUGraph（ACLGraph） |硬件级下沉优化（NPU操作录制）| 捕获一系列NPU操作（如 kernel 调用、内存拷贝）组成静态图缓存在NPU device设备上；一次捕获、多次复跑，避免重复的 kernel 启动开销（kernel launch overhead）。   |
 | NPUGraph_EX        |轻量化高性能图后端| 融合了ACLGraph的图下沉调度能力，在PyTorch FX图上叠加亲和NPU的图优化和编译缓存复用等能力，进一步加速大模型在NPU上编译运行。                                |
@@ -55,7 +55,7 @@ def compile(model, *, fullgraph = False, dynamic = None, backend = "inductor", m
       - trace.enabled
       - enable\_shape\_handling
       - npu\_backend
-    - npugraph_ex支持的参数和详细使用指导请参考：[PyTorch图模式使用(TorchAir)](https://gitcode.com/Ascend/torchair/docs) - npugraph_ex后端。
+    - npugraph_ex支持的参数和详细使用指导请参考《PyTorch图模式使用(TorchAir)》中的[npugraph_ex后端](https://gitcode.com/Ascend/torchair/blob/master/docs/zh/npugraph_ex/npugraph_ex.md)。
 
 - **disable**：可选参数，是否关闭torch.compile能力，默认值为False。
 
@@ -105,8 +105,7 @@ def compile(model, *, fullgraph = False, dynamic = None, backend = "inductor", m
     
         optimizer.zero_grad()
         loss.backward()
-        optimizer.step()
-    
+        optimizer.step()   
     ```
 
 - NPUGraph后端`torch.compile(backend="npugraphs")`示例：

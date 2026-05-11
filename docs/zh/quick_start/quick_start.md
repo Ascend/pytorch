@@ -4,12 +4,8 @@
 
 本快速入门以在Atlas 800T A2 训练服务器上运行为例。
 
-- 驱动和固件、CANN软件安装请参考《[CANN 软件安装指南](https://www.hiascend.com/document/detail/zh/canncommercial/850/softwareinst/instg/instg_0000.html)》（商用版）或《[CANN 软件安装指南](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/850/softwareinst/instg/instg_0000.html)》（社区版）：
-    - 安装方式：选择“在物理机上安装”
-    - 安装类型：选择“离线安装”
-    - 操作系统：选择可用的操作系统（兼容性请参考[兼容性查询助手](https://www.hiascend.com/hardware/compatibility)）
- 
-- 安装PyTorch框架及torch\_npu插件请参见《[Ascend Extension for PyTorch 软件安装指南](../installation_guide/installation_description.md)》。
+- 请参考《[CANN 快速安装](https://www.hiascend.com/cann/download)》安装昇腾NPU驱动和CANN软件（包含Toolkit、ops和NNAL包），并配置环境变量。
+- 请参考《[Ascend Extension for PyTorch 软件安装指南](../installation_guide/installation_description.md)》安装PyTorch框架及torch\_npu插件。
 
 ## 模型迁移训练
 
@@ -97,7 +93,7 @@
     - 若用户使用<term>Atlas A2 训练系列产品</term>或<term>Atlas A3 训练系列产品</term>，则可以自行选择是否开启混合精度。
 
     > [!NOTE]  
-    > 具体介绍可参见《PyTorch 训练模型迁移调优指南》中的“[混合精度适配](https://www.hiascend.com/document/detail/zh/Pytorch/730/ptmoddevg/trainingmigrguide/PT_LMTMOG_0026.html)”章节。
+    > 具体介绍可参见《PyTorch 训练模型迁移调优指南》中的“[混合精度适配](https://gitcode.com/Ascend/docs/blob/master/FrameworkPTAdapter/26.0.0/zh/pytorch_model_migration_fine_tuning/adaptation_introduction.md)”章节。
 
     ```diff
         import time
@@ -108,7 +104,7 @@
     +   from torch_npu.contrib import transfer_to_npu    # 使能自动迁移
     ```
 
-    若未使能自动迁移，用户可参考《PyTorch 训练模型迁移调优指南》中的“[手工迁移](https://www.hiascend.com/document/detail/zh/Pytorch/730/ptmoddevg/trainingmigrguide/PT_LMTMOG_0016.html)”章节进行相关操作。
+    若未使能自动迁移，用户可参考《PyTorch 训练模型迁移调优指南》中的“[手工迁移](https://gitcode.com/Ascend/docs/blob/master/FrameworkPTAdapter/26.0.0/zh/pytorch_model_migration_fine_tuning/manual_migration.md)”章节进行相关操作。
 
 3. 使能AMP混合精度计算。若用户使用<term>Atlas A2 训练系列产品</term>或<term>Atlas A3 训练系列产品</term>，则可以选择跳过此步骤。
 
@@ -168,7 +164,7 @@
 
 ## 进阶开发
 
-- 如果您想体验PyTorch模型训练迁移更丰富的功能，请前往《[PyTorch 训练模型迁移调优指南](https://www.hiascend.com/document/detail/zh/Pytorch/730/ptmoddevg/trainingmigrguide/PT_LMTMOG_0002.html)》文档阅读了解。
+- 如果您想体验PyTorch模型训练迁移更丰富的功能，请前往《[PyTorch 训练模型迁移调优指南](https://gitcode.com/Ascend/docs/blob/master/FrameworkPTAdapter/26.0.0/zh/pytorch_model_migration_fine_tuning/overview.md)》文档阅读了解。
 - 如果您想体验大模型训练更丰富的功能，请参见[表1](#模型迁移指导)了解。
 
     **表 1**  模型迁移指导<a id="模型迁移指导"></a>    
@@ -176,6 +172,6 @@
     |大模型|组件|迁移指导|
     |--|--|--|
     |Megatron-LM分布式大模型|MindSpeed Core亲和加速模块|请参见《[分布式训练加速库迁移指南](https://gitcode.com/Ascend/MindSpeed/blob/master/docs/zh/user-guide/model-migration.md)》。|
-    |Megatron-LM大语言模型|MindSpeed LLM套件|请参见《[MindSpeed LLM用户使用手册](https://gitcode.com/Ascend/MindSpeed-LLM/wiki/Home.md)》中的“MindSpeed LLM迁移指南（PyTorch框架）”章节。|
+    |Megatron-LM大语言模型|MindSpeed LLM套件|请参见《[MindSpeed LLM文档导读](https://gitcode.com/Ascend/MindSpeed-LLM/blob/master/docs/zh/docs_guide.md)》。|
     |Megatron-LM多模态模型|MindSpeed MM套件|请参见《[MindSpeed MM迁移调优指南](https://gitcode.com/Ascend/MindSpeed-MM/blob/master/docs/zh/pytorch/model-migration.md)》。|
     |大语言模型或多模态模型|MindSpeed RL套件|请参见《[MindSpeed RL使用指南](https://gitcode.com/Ascend/MindSpeed-RL/tree/master/docs/solutions)》。|

@@ -59,4 +59,4 @@ torch_npu.npu.memory._dump_snapshot("my_snapshot.pickle")
 ## 约束说明
 
 - Ascend Extension for PyTorch 6.0.0及以上版本支持该功能。
-- 内存溢出（OOM）时保存内存快照csv文件特性，仅在Ascend HDK 25.5.0及以上版本和CANN商发8.5.0及以上版本上支持。
+- 内存溢出（OOM）时保存内存快照csv文件特性，仅在Ascend HDK 25.5.0及以上版本和CANN商用8.5.0及以上版本上支持。

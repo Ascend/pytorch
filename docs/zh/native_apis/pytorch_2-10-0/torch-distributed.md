@@ -6,7 +6,7 @@
 |API名称|是否支持|限制与说明|
 |--|--|--|
 |torch.distributed.is_available|是|-|
-|torch.distributed.init_process_group|是|当pg_options函数传入类型为torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()时，配置该变量属性hccl_config可控制HCCL通信域缓存区大小。具体示例可参考《PyTorch 训练模型迁移调优指南》的“[hccl_buffer_size](https://www.hiascend.com/document/detail/zh/Pytorch/730/ptmoddevg/trainingmigrguide/performance_tuning_0057.html)”章节，配置变量属性hccl_config的group_name字段可以设置HCCL通信域的通信组自定义名称，取值为长度不超过32的字符串。|
+|torch.distributed.init_process_group|是|当pg_options函数传入类型为torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()时，配置该变量属性hccl_config可控制HCCL通信域缓存区大小。具体示例可参考《PyTorch 训练模型迁移调优指南》的“[hccl_buffer_size](https://gitcode.com/Ascend/docs/blob/master/FrameworkPTAdapter/26.0.0/zh/pytorch_model_migration_fine_tuning/hccl_buffer_size.md)”章节，配置变量属性hccl_config的group_name字段可以设置HCCL通信域的通信组自定义名称，取值为长度不超过32的字符串。|
 |torch.distributed.is_initialized|是|-|
 |torch.distributed.is_mpi_available|是|-|
 |torch.distributed.is_nccl_available|是|-|
@@ -46,7 +46,7 @@
 |torch.distributed.FileStore.path|是|-|
 |torch.distributed.PrefixStore.\_\_init\_\_|是|-|
 |torch.distributed.PrefixStore.underlying_store|是|-|
-|torch.distributed.new_group|是|当pg_options函数传入类型为torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()时，配置该变量属性hccl_config可控制HCCL通信域缓存区大小。具体示例可参考《PyTorch 训练模型迁移调优指南》的“hccl_buffer_size”章节，配置变量属性hccl_config的group_name字段可以设置HCCL通信域的通信组自定义名称，取值为长度不超过32的字符串。|
+|torch.distributed.new_group|是|当pg_options函数传入类型为torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()时，配置该变量属性hccl_config可控制HCCL通信域缓存区大小。具体示例可参考《PyTorch 训练模型迁移调优指南》的“[hccl_buffer_size](https://gitcode.com/Ascend/docs/blob/master/FrameworkPTAdapter/26.0.0/zh/pytorch_model_migration_fine_tuning/hccl_buffer_size.md)”章节。配置变量属性hccl_config的group_name字段可以设置HCCL通信域的通信组自定义名称，取值为长度不超过32的字符串。|
 |torch.distributed.get_group_rank|是|-|
 |torch.distributed.get_global_rank|是|-|
 |torch.distributed.get_process_group_ranks|是|-|
@@ -59,7 +59,7 @@
 |torch.distributed.P2POp|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |torch.distributed.broadcast|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |torch.distributed.broadcast_object_list|是|-|
-|torch.distributed.all_reduce|是|支持bf16，fp16， fp32， int32， int64， bool|
+|torch.distributed.all_reduce|是|支持bf16，fp16，fp32，int32，int64，bool|
 |torch.distributed.reduce|是|支持bf16，fp16，fp32，uint8，int8，int32，int64，bool|
 |torch.distributed.all_gather|是|支持bf16，fp16，fp32，int8，int32，bool|
 |torch.distributed.all_gather_into_tensor|是|支持bf16，fp16，fp32，int8，int32，bool<br>world size不支持3，5，6，7|
@@ -69,7 +69,7 @@
 |torch.distributed.scatter|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool<br>通过设置torch_npu.npu.use_compatible_impl(True)，torch.distributed.scatter切换至与原生实现保持一致|
 |torch.distributed.scatter_object_list|是|不涉及dtype参数|
 |torch.distributed.reduce_scatter|是|支持bf16，fp16，fp32，int8，int32|
-|torch.distributed.reduce_scatter_tensor|是|支持bf16，fp16，fp32，int8，int32world size不支持3，5，6，7<br>针对<term>Atlas A2 训练系列产品</term>，当前版本"prod"操作不支持int16、bf16数据类型|
+|torch.distributed.reduce_scatter_tensor|是|支持bf16，fp16，fp32，int8，int32<br>world size不支持3，5，6，7<br>针对<term>Atlas A2 训练系列产品</term>，当前版本"prod"操作不支持int16、bf16数据类型|
 |torch.distributed.all_to_all_single|是|支持fp32|
 |torch.distributed.all_to_all|是|支持fp32<br>通过设置torch_npu.npu.use_compatible_impl(True)，torch.distributed.all_to_all切换至与原生实现保持一致|
 |torch.distributed.barrier|是|-|

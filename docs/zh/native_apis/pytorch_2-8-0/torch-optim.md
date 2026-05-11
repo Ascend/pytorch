@@ -47,7 +47,7 @@
 |torch.optim.Adam.state_dict|是|-|
 |torch.optim.Adam.step|否|-|
 |torch.optim.Adam.zero_grad|是|-|
-|torch.optim.AdamW|是|支持bf16，fp16，fp32<br>优化器在启动foreach的情况下（默认情况foreach=None或foreach=True），当被优化的参数分组过多时由于foreach算子的特性会导致性能下降。这种情况建议设置为foreach=False<br>优化器在启动fused的情况下（fused=True），暂不支持grad_scale和found_inf参数。对标_single_tensor_adamw实现，fp32与cpu/cuda一致，fp16和bf16采用升精度实现，与cpu/cuda不一致|
+|torch.optim.AdamW|是|支持bf16，fp16，fp32，complex64<br>优化器在启动foreach的情况下（默认情况foreach=None或foreach=True），当被优化的参数分组过多时由于foreach算子的特性会导致性能下降。这种情况建议设置为foreach=False<br>优化器在启动fused的情况下（fused=True），暂不支持grad_scale和found_inf参数。对标_single_tensor_adamw实现，fp32与cpu/cuda一致，fp16和bf16采用升精度实现，与cpu/cuda不一致|
 |torch.optim.AdamW.add_param_group|是|-|
 |torch.optim.AdamW.load_state_dict|是|-|
 |torch.optim.AdamW.register_load_state_dict_post_hook|是|-|

@@ -6,7 +6,8 @@
 |API名称|是否支持|限制与说明|
 |--|--|--|
 |torch.distributed.tensor.parallel.parallelize_module|否|-|
-|torch.distributed.tensor.parallel.ColwiseParallel|否|-|
+|torch.distributed.tensor.parallel.ColwiseParallel|是|支持bf16，fp16，fp32|
 |torch.distributed.tensor.parallel.RowwiseParallel|否|-|
 |torch.distributed.tensor.parallel.PrepareModuleInput|否|-|
 |torch.distributed.tensor.parallel.PrepareModuleOutput|是|-|
+|torch.distributed.tensor.parallel.loss_parallel|是|支持bf16，fp16，fp32，int64|

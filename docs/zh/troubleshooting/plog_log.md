@@ -15,8 +15,8 @@
 **图 3**  plog日志示例（HCCL）<a id="plog日志示例_HCCL"></a>  
 ![](../figures/plog_log_HCCL.png)
 
-**图 4**  plog日志示例（底层报错OOM）  
+**图 4**  plog日志示例（底层报错OOM）
 ![](../figures/plog_log_OOM.png)
 
-> [!NOTE]  
-> 更多日志详细介绍可参见《[CANN 日志参考](https://www.hiascend.com/document/detail/zh/canncommercial/850/maintenref/logreference/logreference_0001.html)》。
+> [!NOTE]
+> 更多日志详细介绍可参见《[CANN 日志参考](https://www.hiascend.com/document/detail/zh/canncommercial/900/maintenref/logreference/logreference_0001.html)》。

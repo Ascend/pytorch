@@ -14,7 +14,7 @@
 
 - garbage\_collection\_threshold:<value\>，垃圾回收阈值。
 
-    主动回收未使用的NPU内存块。在设置value阈值（例如0.8）后，如果NPU内存容量使用超过阈值（即分配给NPU应用程序的总内存的80%），缓存分配器将开始回收NPU内存块，优先释放最先申请和长时间未复用的内存块，避免释放积极复用的内存块。其中<value\>取值范围为\(0.0,1.0\)。默认不开启该功能。垃圾回收阈值需与内存因子配合使用，内存因子可参考《[Ascend Extension for PyTorch 自定义API参考](https://gitcode.com/Ascend/op-plugin/blob/7.3.0/docs/context/overview.md)》的“torch\_npu.npu.set\_per\_process\_memory\_fraction”。
+    主动回收未使用的NPU内存块。在设置value阈值（例如0.8）后，如果NPU内存容量使用超过阈值（即分配给NPU应用程序的总内存的80%），缓存分配器将开始回收NPU内存块，优先释放最先申请和长时间未复用的内存块，避免释放积极复用的内存块。其中<value\>取值范围为\(0.0,1.0\)。默认不开启该功能。垃圾回收阈值需与内存因子配合使用，内存因子可参考《[Ascend Extension for PyTorch 自定义API参考](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/overview.md)》的“torch\_npu.npu.set\_per\_process\_memory\_fraction”。
 
 - expandable\_segments:<value\>，使能内存池扩展段功能，即虚拟内存特性。
 
@@ -134,7 +134,7 @@ export PYTORCH_NPU_ALLOC_CONF=pinned_mem_register:True
 
 - expandable\_segments特性需在Ascend HDK 23.0.0及以上版本上使用。
 - max\_split\_size\_mb和garbage\_collection\_threshold中任意一个为非默认值时，expandable\_segments必须设置为False。
-- page\_size特性要求在Ascend HDK 25.0.RC1及以上版本、CANN商发8.1.RC1及以上版本使用，支持如下产品：
+- page\_size特性要求在Ascend HDK 25.0.RC1及以上版本、CANN商用8.1.RC1及以上版本使用，支持如下产品：
     - <term>Atlas A2 训练系列产品</term>
     - <term>Atlas A3 训练系列产品</term>
 
@@ -147,7 +147,7 @@ export PYTORCH_NPU_ALLOC_CONF=pinned_mem_register:True
 - pin_memory_expandable_segments特性要求最低Ascend Extension for PyTorch 7.3.0之后版本、Ascend HDK 25.5.0及以上版本、CANN商发8.5.0及以上版本使用。
 - pinned_use_background_threads特性要求在Ascend Extension for PyTorch 26.0.0及之后版本且PyTorch 2.8.0及以上版本使用。
 - pinned_mem_register使用注意事项如下：
-    - 特性要求Ascend Extension for PyTorch 26.0.0及以上版本、Ascend HDK 26.0.rc1及以上版本、CANN商发8.5.0及以上版本使用。
+    - 特性要求Ascend Extension for PyTorch 26.0.0及以上版本、Ascend HDK 26.0.rc1及以上版本、CANN商用8.5.0及以上版本使用。
     - 与pin_memory_expandable_segments特性不支持同时配置。
 - multi_stream_lazy_reclaim使用注意事项：
     - 特性要求在Ascend Extension for PyTorch 7.3.0以上版本上使用。
