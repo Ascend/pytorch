@@ -1,0 +1,21 @@
+diff --git a/test/distributed/elastic/multiprocessing/api_test.py b/test/distributed/elastic/multiprocessing/api_test.py
+index 6e0f273..8e81d9c 100644
+--- a/test/distributed/elastic/multiprocessing/api_test.py
++++ b/test/distributed/elastic/multiprocessing/api_test.py
+@@ -20,6 +20,7 @@ from typing import Callable, Union
+ from unittest import mock
+ 
+ import torch
++import torch_npu
+ import torch.multiprocessing as mp
+ from torch.distributed.elastic.multiprocessing import ProcessFailure, start_processes
+ from torch.distributed.elastic.multiprocessing.api import (
+@@ -163,7 +164,7 @@ def dummy_compute() -> torch.Tensor:
+     """
+     returns a predefined size random Tensor
+     """
+-    return torch.rand(100, 100)
++    return torch.rand(100, 100).npu()
+ 
+ 
+ def redirects_oss_test() -> list[Std]:
