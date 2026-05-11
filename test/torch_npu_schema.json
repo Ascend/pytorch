@@ -2268,7 +2268,7 @@
     "signature": "(self)"
   },
   "torch_npu.utils.set_thread_affinity": {
-    "signature": "(core_range: List[int] = None)"
+    "signature": "(core_range: list[int] | list[list[int]] | None = None)"
   },
   "torch_npu.utils.reset_thread_affinity": {
     "signature": "()"
