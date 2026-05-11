@@ -33,6 +33,9 @@ on:
       pytorch-src:
         description: 'PyTorch source and test code artifact name'
         value: 'pytorch-src-main'
+      pytorch-version:
+        description: 'PyTorch version string'
+        value: ${{ jobs.build.outputs.pytorch-version }}
 
 env:
   # 缓存版本号，当需要强制刷新缓存时修改此值
@@ -46,6 +49,8 @@ jobs:
   build:
     runs-on: linux-aarch64-a3-16
     timeout-minutes: 240
+    outputs:
+      pytorch-version: ${{ steps.get_version.outputs.pytorch_version }}
 
     container:
       image: ${{ inputs.docker_image }}
@@ -279,8 +284,19 @@ jobs:
           echo "=== Verifying PyTorch installation ==="
           python${{ inputs.python_version }} -c "import torch; print(f'torch version: {torch.__version__}')"
 
-          echo ""
-          echo "=== Installing torch_npu build dependencies ==="
+      - name: Get PyTorch version
+        id: get_version
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          PYTORCH_VERSION=$(python${{ inputs.python_version }} -c "import torch; print(torch.__version__)")
+          echo "pytorch_version=${PYTORCH_VERSION}" >> $GITHUB_OUTPUT
+          echo "PyTorch version: ${PYTORCH_VERSION}"
+
+      - name: Install torch_npu build dependencies
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
           pip${{ inputs.python_version }} install --upgrade pip setuptools wheel
           pip${{ inputs.python_version }} install cmake ninja numpy packaging pyyaml requests six typing-extensions
 

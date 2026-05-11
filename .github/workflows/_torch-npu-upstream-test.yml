@@ -137,6 +137,7 @@ jobs:
     uses: ./.github/workflows/_torch-npu-upstream-report.yml
     with:
       python_version: ${{ inputs.python_version }}
+      pytorch_version: ${{ needs.build.outputs.pytorch-version }}
       torch_npu_wheel_name: ${{ needs.build.outputs.torch-npu-wheel }}
       docker_image: ${{ inputs.docker_image }}
       distributed_matrix: ${{ needs.collect_cases.outputs.distributed_matrix || '[]' }}

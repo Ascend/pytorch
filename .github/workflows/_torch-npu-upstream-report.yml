@@ -7,6 +7,10 @@ on:
         required: true
         type: string
         description: Python version to use
+      pytorch_version:
+        required: true
+        type: string
+        description: PyTorch version string
       torch_npu_wheel_name:
         required: false
         type: string
@@ -87,6 +91,7 @@ jobs:
             --reports-root all-test-reports \
             --output-markdown ${REPORT_MD} \
             --output-json ${REPORT_JSON} \
+            --pytorch-version "${{ inputs.pytorch_version }}" \
             --torch-npu-whl "${{ inputs.torch_npu_wheel_name }}" \
             --shard-matrix-json "${COMBINED_MATRIX}" \
             --docker-image "${{ inputs.docker_image }}" \

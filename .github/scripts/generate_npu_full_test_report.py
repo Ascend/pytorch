@@ -492,22 +492,6 @@ def get_int_value(payload: Dict, *keys: str) -> int:
     return 0
 
 
-def get_selected_test_entries(info: Dict) -> int:
-    return get_int_value(info, "selected_test_entries", "upstream_selected_tests")
-
-
-def get_selected_test_files(info: Dict) -> int:
-    return get_int_value(info, "selected_test_files", "upstream_selected_file_tests")
-
-
-def get_path_filtered_out_files(info: Dict) -> int:
-    return get_int_value(info, "path_filtered_out_files", "excluded_test_files")
-
-
-def get_unhandled_special_tests(info: Dict) -> int:
-    return get_int_value(info, "unhandled_special_tests", "upstream_unhandled_tests")
-
-
 def discover_shard_files(
     reports_root: Path,
 ) -> Tuple[
@@ -614,6 +598,62 @@ def discover_shard_files(
     return stats_files, info_files, plan_files, excluded_files, unhandled_files, xml_files, missing_files, cases_files
 
 
+def build_file_to_shards_map(cases_shards_dir: Path) -> Dict[str, List[str]]:
+    """
+    Build a mapping from test file path to shard IDs.
+
+    Scans all shard JSON files in cases_shards_dir and extracts file->shard mapping.
+
+    Args:
+        cases_shards_dir: Directory containing shard JSON files like
+                          distributed_cases_shard_1.json, regular_cases_shard_2.json
+
+    Returns:
+        Dict mapping file path (e.g., "test/test_ops.py") to list of shard IDs
+        (e.g., ["dist-1", "reg-2", "reg-3"])
+    """
+    file_to_shards = {}
+
+    if not cases_shards_dir or not cases_shards_dir.exists():
+        return file_to_shards
+
+    # Pattern: {test_type}_cases_shard_{num}.json
+    for shard_file in cases_shards_dir.glob("*_cases_shard_*.json"):
+        try:
+            data = load_json_file(shard_file)
+            test_type = data.get("test_type", "regular")
+            shard_num = data.get("shard", 0)
+
+            # Build shard ID: "dist-1" or "reg-2"
+            shard_prefix = "dist" if test_type == "distributed" else "reg"
+            shard_id = f"{shard_prefix}-{shard_num}"
+
+            # Extract file paths from cases
+            cases = data.get("cases", [])
+            for case in cases:
+                file_path = case.get("file", "")
+                if file_path:
+                    # Normalize file path (remove leading "test/" if present for consistency)
+                    normalized_file = file_path
+                    if normalized_file.startswith("test/"):
+                        normalized_file = normalized_file[5:]
+
+                    if normalized_file not in file_to_shards:
+                        file_to_shards[normalized_file] = []
+                    if shard_id not in file_to_shards[normalized_file]:
+                        file_to_shards[normalized_file].append(shard_id)
+        except Exception as e:
+            print(f"Warning: Failed to parse shard file {shard_file}: {e}")
+            continue
+
+    # Sort shard IDs for each file
+    for file_path in file_to_shards:
+        # Sort by type (dist first) then number
+        file_to_shards[file_path].sort(key=lambda x: (0 if x.startswith("dist") else 1, int(x.split("-")[1])))
+
+    return file_to_shards
+
+
 def get_shard_status(stats: Dict, present: bool) -> str:
     if not present:
         return "MISSING"
@@ -652,19 +692,6 @@ def format_duration(seconds: float) -> str:
     if minutes > 0:
         return f"{minutes}m {secs:.1f}s"
     return f"{secs:.1f}s"
-
-
-def build_note(stats: Dict) -> str:
-    notes = []
-    if stats.get("crash_signal"):
-        notes.append(stats["crash_signal"])
-    if stats.get("timed_out"):
-        notes.append("overall timeout")
-    if stats.get("incomplete"):
-        notes.append("no junit xml")
-    if stats.get("error_message"):
-        notes.append(stats["error_message"])
-    return "; ".join(notes)
 
 
 def sanitize_markdown_cell(value: str) -> str:
@@ -813,32 +840,21 @@ def main():
     special_test_files = discover_special_test_files(special_reports_root)
     shard_ids = requested_shards or sorted(set(stats_files) | set(info_files) | set(cases_files))
 
+    # Build file to shards mapping from cases-shards directory
+    cases_shards_dir = Path(args.cases_summary).parent if args.cases_summary else None
+    file_to_shards_map = build_file_to_shards_map(cases_shards_dir)
+
     status_counts = Counter()
     totals = {
         "total": 0,
         "passed": 0,
         "failed": 0,
-        "skipped": 0,
         "errors": 0,
+        "skipped": 0,
+        "crashed": 0,
+        "timeout": 0,
         "duration": 0.0,
-        "discovered_test_files": 0,
-        "selected_test_entries": 0,
-        "selected_test_files": 0,
-        "path_filtered_out_files": 0,
-        "planned_files": 0,
-        "junit_generated_shards": 0,
-        "junit_xml_files": 0,
-        "zero_item_test_files": 0,
-        "startup_failures": 0,
-        "import_failures": 0,
-        "test_failures": 0,
         "missing_files": 0,
-        "total_cases": 0,
-        "case_passed": 0,
-        "case_failed": 0,
-        "case_errors": 0,
-        "case_crashed": 0,
-        "case_timeout": 0,
     }
     shard_rows = []
     unique_planned_files = set()
@@ -859,10 +875,6 @@ def main():
         cases_path = cases_files.get(shard_key)
         stats = load_json_file(stats_path) if stats_path else {}
         info = load_json_file(info_path) if info_path else {}
-        selected_test_entries = get_selected_test_entries(info)
-        selected_test_files = get_selected_test_files(info)
-        path_filtered_out_files = get_path_filtered_out_files(info)
-        unhandled_special_tests = get_unhandled_special_tests(info)
         planned_files = load_text_lines(plan_path) if plan_path else []
         excluded_test_files = load_text_lines(excluded_path) if excluded_path else []
         unhandled_tests = load_text_lines(unhandled_path) if unhandled_path else []
@@ -881,13 +893,15 @@ def main():
             stats["crashed"] = cases_data.get("crashed", 0)
             stats["timeout"] = cases_data.get("timeout", 0)
             stats["duration"] = cases_data.get("duration", 0.0)
-            # Update totals
-            totals["total_cases"] += cases_data.get("total_cases", 0)
-            totals["case_passed"] += cases_data.get("passed", 0)
-            totals["case_failed"] += cases_data.get("failed", 0)
-            totals["case_errors"] += cases_data.get("errors", 0)
-            totals["case_crashed"] += cases_data.get("crashed", 0)
-            totals["case_timeout"] += cases_data.get("timeout", 0)
+            # Update totals (正交累加: total = passed + failed + errors + skipped + crashed + timeout)
+            totals["total"] += cases_data.get("total_cases", 0)
+            totals["passed"] += cases_data.get("passed", 0)
+            totals["failed"] += cases_data.get("failed", 0)
+            totals["errors"] += cases_data.get("errors", 0)
+            totals["skipped"] += cases_data.get("skipped", 0)
+            totals["crashed"] += cases_data.get("crashed", 0)
+            totals["timeout"] += cases_data.get("timeout", 0)
+            totals["duration"] += cases_data.get("duration", 0.0)
 
         present = bool(stats_path or cases_path)
 
@@ -945,25 +959,6 @@ def main():
         status = get_shard_status(stats, present)
         status_counts[status] += 1
 
-        totals["total"] += int(stats.get("total", 0))
-        totals["passed"] += int(stats.get("passed", 0))
-        totals["failed"] += int(stats.get("failed", 0))
-        totals["skipped"] += int(stats.get("skipped", 0))
-        totals["errors"] += int(stats.get("errors", 0))
-        totals["duration"] += float(stats.get("duration", 0.0))
-        totals["discovered_test_files"] = max(
-            totals["discovered_test_files"], int(info.get("total_files", 0))
-        )
-        totals["selected_test_entries"] = max(totals["selected_test_entries"], selected_test_entries)
-        totals["selected_test_files"] = max(totals["selected_test_files"], selected_test_files)
-        totals["path_filtered_out_files"] = max(totals["path_filtered_out_files"], path_filtered_out_files)
-        totals["planned_files"] += int(info.get("shard_files", 0))
-        totals["junit_generated_shards"] += 1 if info.get("junit_generated") else 0
-        totals["junit_xml_files"] += int(info.get("junit_xml_files", 0) or stats.get("junit_xml_files", 0))
-        totals["zero_item_test_files"] += int(info.get("zero_item_test_files", 0) or stats.get("zero_item_test_files", 0))
-        totals["startup_failures"] += int(info.get("startup_failures", 0) or stats.get("startup_failures", 0))
-        totals["import_failures"] += int(info.get("import_failures", 0) or stats.get("import_failures", 0))
-        totals["test_failures"] += int(info.get("test_failures", 0) or stats.get("test_failures", 0))
         totals["missing_files"] += len(missing_files_list)
 
         # Convert shard_type to display prefix ("distributed" -> "dist", "regular" -> "reg")
@@ -982,23 +977,6 @@ def main():
                 "crashed": int(stats.get("crashed", 0)),
                 "timeout": int(stats.get("timeout", 0)),
                 "duration": float(stats.get("duration", 0.0)),
-                "planned_files": int(info.get("shard_files", 0)),
-                "discovered_test_files": int(info.get("total_files", 0)),
-                "selected_test_entries": selected_test_entries,
-                "selected_test_files": selected_test_files,
-                "unhandled_special_tests": unhandled_special_tests,
-                "planned_file_names": planned_files,
-                "path_filtered_out_files": path_filtered_out_files,
-                "disabled_matched": int(info.get("disabled_count_matched", 0)),
-                "disabled_deselected": int(info.get("disabled_count_deselected", 0)),
-                "junit_generated": bool(info.get("junit_generated", stats.get("junit_generated", False))),
-                "junit_xml_files": int(info.get("junit_xml_files", stats.get("junit_xml_files", 0))),
-                "zero_item_test_files": int(info.get("zero_item_test_files", stats.get("zero_item_test_files", 0))),
-                "startup_failures": int(info.get("startup_failures", stats.get("startup_failures", 0))),
-                "import_failures": int(info.get("import_failures", stats.get("import_failures", 0))),
-                "test_failures": int(info.get("test_failures", stats.get("test_failures", 0))),
-                "note": build_note(stats),
-                "testsuite_stats": testsuite_stats,  # Per-test-file statistics
             }
         )
 
@@ -1009,17 +987,11 @@ def main():
     unique_planned_count = len(unique_planned_files)
     excluded_test_files_list = sorted(unique_excluded_files)
     unhandled_tests_list = sorted(unique_unhandled_tests)
-    not_covered_by_requested_shards = max(
-        totals["selected_test_files"] - unique_planned_count,
-        0,
-    )
     selection_mode_display = ", ".join(sorted(selection_modes)) if selection_modes else "-"
-    include_selected_entries = totals["selected_test_entries"] > 0
     include_unhandled_tests = bool(unhandled_tests_list)
 
     # Show all shards in the detail table
     sorted_shards = sorted(shard_rows, key=lambda row: (row["shard_type"], row["shard_num"]))
-    slowest = sorted(shard_rows, key=lambda row: row["duration"], reverse=True)[:20]
     special_test_names = expected_special_tests or sorted(special_test_files)
     special_test_rows = []
     special_status_counts = Counter()
@@ -1060,11 +1032,16 @@ def main():
         )
     else:
         # Fallback to original selection mode display
-        selection_content = (
-            f"{selection_mode_display}; "
-            f"{totals['selected_test_files']} selected, "
-            f"{totals['path_filtered_out_files']} filtered out"
-        )
+        selection_content = selection_mode_display
+
+    # Extract planned cases count from cases_collection_summary.json
+    planned_total_cases = 0
+    planned_dist_cases = 0
+    planned_reg_cases = 0
+    if cases_summary_data:
+        planned_total_cases = cases_summary_data.get("total_cases", 0)
+        planned_dist_cases = cases_summary_data.get("distributed", {}).get("cases_summary", {}).get("total_cases", 0)
+        planned_reg_cases = cases_summary_data.get("regular", {}).get("cases_summary", {}).get("total_cases", 0)
 
     overview_rows = [
         ["Overall result", overall_status],
@@ -1076,32 +1053,25 @@ def main():
         ["Shards", f"{received_reports} / {expected_reports} reported"],
         ["Selection", selection_content],
         [
-            "Tests",
+            "实际执行用例",
             (
                 f"{totals['total']} total; {totals['passed']} passed; {totals['failed']} failed; "
-                f"{totals['errors']} errors; {totals['skipped']} skipped"
+                f"{totals['errors']} errors; {totals['skipped']} skipped; "
+                f"{totals['crashed']} crashed; {totals['timeout']} timeout"
             ),
         ],
-        ["Duration", format_duration(totals["duration"])],
     ]
+    # Add planned cases count row if available
+    if planned_total_cases > 0:
+        overview_rows.append([
+            "规划用例总数",
+            f"{planned_total_cases} (distributed: {planned_dist_cases}, regular: {planned_reg_cases})",
+        ])
+    overview_rows.append(["Duration", format_duration(totals["duration"])])
     if totals["missing_files"] > 0:
         overview_rows.append(["Missing files", f"{totals['missing_files']} crashed without report"])
     if include_special_tests:
         overview_rows.append(["Special tests expected", str(len(special_test_names))])
-
-    # Add case-level statistics if available (replace Tests row with case-level data)
-    if totals["total_cases"] > 0:
-        overview_rows.append([
-            "Case-level stats",
-            (
-                f"{totals['total_cases']} cases; "
-                f"{totals['case_passed']} passed; "
-                f"{totals['case_failed']} failed; "
-                f"{totals['case_errors']} errors; "
-                f"{totals['case_crashed']} crashed; "
-                f"{totals['case_timeout']} timeout"
-            ),
-        ])
 
     markdown_lines = [
         "# PyTorch NPU Full Test Summary",
@@ -1154,8 +1124,17 @@ def main():
             for fs in sorted_files:  # Show all files
                 failed_total = fs["failed"] + fs["errors"] + fs["crashed"] + fs["timeout"]
                 fail_rate = f"{(failed_total / fs['total'] * 100):.1f}%" if fs["total"] > 0 else "0%"
+                # Get shard info for this file
+                file_path = fs["file"]
+                # Normalize file path for lookup (remove leading "test/")
+                lookup_path = file_path
+                if lookup_path.startswith("test/"):
+                    lookup_path = lookup_path[5:]
+                shards_for_file = file_to_shards_map.get(lookup_path, [])
+                shard_info = ", ".join(shards_for_file) if shards_for_file else "-"
                 file_rows.append([
                     sanitize_markdown_cell(fs["file"]),
+                    shard_info,
                     str(fs["total"]),
                     str(fs["passed"]),
                     str(fs["failed"]),
@@ -1167,7 +1146,7 @@ def main():
 
             markdown_lines.extend(
                 render_table(
-                    ["测试文件", "总用例", "通过", "失败", "错误", "崩溃", "超时", "失败率"],
+                    ["测试文件", "分片", "总用例", "通过", "失败", "错误", "崩溃", "超时", "失败率"],
                     file_rows,
                 )
             )
@@ -1206,26 +1185,23 @@ def main():
         "status_counts": dict(status_counts),
         "totals": totals,
         "file_discovery_stats": file_discovery_stats,
+        "planned_cases": {
+            "total": planned_total_cases,
+            "distributed": planned_dist_cases,
+            "regular": planned_reg_cases,
+        },
         "execution_scope": {
             "selection_mode": sorted(selection_modes),
-            "selected_test_entries": totals["selected_test_entries"],
-            "selected_test_files": totals["selected_test_files"],
-            "path_filtered_out_files": totals["path_filtered_out_files"],
             "unique_planned_test_files": unique_planned_count,
-            "files_not_covered_by_requested_shards": not_covered_by_requested_shards,
             "excluded_test_files": excluded_test_files_list,
             "unhandled_special_tests": unhandled_tests_list,
             "missing_files": sorted(unique_missing_files),
         },
         "failure_breakdown": {
-            "startup_failures": totals["startup_failures"],
-            "import_failures": totals["import_failures"],
-            "test_failures": totals["test_failures"],
             "missing_files": totals["missing_files"],
         },
         "shards": shard_rows,
         "failed_shards": [row for row in shard_rows if row["status"] not in ("PASSED", "NO TESTS")],
-        "slowest_shards": slowest,
     }
 
     # Add full cases summary if available
@@ -1235,12 +1211,6 @@ def main():
     # Add case-level results if available
     if cases_results:
         report_json["cases_results"] = {
-            "total_cases": totals["total_cases"],
-            "passed": totals["case_passed"],
-            "failed": totals["case_failed"],
-            "errors": totals["case_errors"],
-            "crashed": totals["case_crashed"],
-            "timeout": totals["case_timeout"],
             "shards": {
                 f"{shard_type}-{shard_num}": data
                 for (shard_type, shard_num), data in cases_results.items()
@@ -1249,8 +1219,18 @@ def main():
 
         # Add file-level aggregation
         file_stats = parse_test_results.aggregate_all_cases_by_file(cases_results)
+        # Add shard info to file stats
+        file_stats_with_shards = {}
+        for file_path, stats in file_stats.items():
+            # Normalize file path for lookup
+            lookup_path = file_path
+            if lookup_path.startswith("test/"):
+                lookup_path = lookup_path[5:]
+            shards_for_file = file_to_shards_map.get(lookup_path, [])
+            stats["shards"] = shards_for_file
+            file_stats_with_shards[file_path] = stats
         report_json["file_level_stats"] = dict(sorted(
-            file_stats.items(),
+            file_stats_with_shards.items(),
             key=lambda x: (-x[1]["total"], x[0])
         ))
 
