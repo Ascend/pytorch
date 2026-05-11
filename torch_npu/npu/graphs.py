@@ -349,6 +349,10 @@ class _GraphDispatchMode(torch.utils._python_dispatch.TorchDispatchMode):
 
         if handler_cls:
             # 1) Common: obtain stream and event
+            if hasattr(handler_cls, 'should_handle'):
+                if not handler_cls.should_handle(func, args, kwargs):
+                    return func(*args, **kwargs)
+
             stream = torch_npu.npu.current_stream()
             event = torch.npu.ExternalEvent()
             event.wait(stream)
