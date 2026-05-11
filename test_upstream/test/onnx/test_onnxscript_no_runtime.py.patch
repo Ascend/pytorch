@@ -2,7 +2,15 @@ diff --git a/test/onnx/test_onnxscript_no_runtime.py b/test/onnx/test_onnxscript
 index fcac54d..92b4975 100644
 --- a/test/onnx/test_onnxscript_no_runtime.py
 +++ b/test/onnx/test_onnxscript_no_runtime.py
-@@ -10,6 +10,15 @@ import onnxscript
+@@ -3,6 +3,7 @@
+ """Test the support on onnxscript in PyTorch-ONNX converter."""
+ 
+ import io
++from typing import Sequence
+ 
+ import onnx
+ 
+@@ -10,6 +11,15 @@ import onnxscript
  from onnxscript.onnx_types import FLOAT
  
  import torch
@@ -18,7 +26,16 @@ index fcac54d..92b4975 100644
  from torch.onnx._internal import jit_utils
  from torch.testing._internal import common_utils
  
-@@ -160,3 +169,7 @@ class TestONNXScriptExport(common_utils.TestCase):
+@@ -50,7 +60,7 @@ class TestONNXScriptExport(common_utils.TestCase):
+         # 2. Register layer_norm onnxscript function as custom Op
+         @onnxscript.script(custom_opset)
+         def layer_norm(
+-            X, axes: list[int], weight: FLOAT[...], bias: FLOAT[...], eps: float
++            X, axes: Sequence[int], weight: FLOAT[...], bias: FLOAT[...], eps: float
+         ):
+             mean = op.ReduceMean(X, axes=axes)
+             D = X - mean  # op.Sub(X, mean)
+@@ -160,3 +170,7 @@ class TestONNXScriptExport(common_utils.TestCase):
          )
          loop_selu_proto = onnx.load(io.BytesIO(saved_model.getvalue()))
          self.assertEqual(len(loop_selu_proto.functions), 1)
