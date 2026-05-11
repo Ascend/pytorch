@@ -1,9 +1,8 @@
-#include "torch_npu/csrc/core/npu/NPUException.h"
-#include "torch_npu/csrc/core/npu/NPUFunctions.h"
-#include "torch_npu/csrc/core/npu/NPUStream.h"
-#include "torch_npu/csrc/core/npu/NpuVariables.h"
-#include "torch_npu/csrc/core/npu/register/OptionsManager.h"
-
+#include <torch_npu/csrc/core/npu/NPUException.h>
+#include <torch_npu/csrc/core/npu/NPUFunctions.h>
+#include <torch_npu/csrc/core/npu/NPUStream.h>
+#include <torch_npu/csrc/core/npu/NpuVariables.h>
+#include <torch_npu/csrc/core/npu/register/OptionsManager.h>
 
 namespace {
 
@@ -12,8 +11,7 @@ std::unordered_map<SubModule, std::string> submoduleMap = {
     {SubModule::OPS, "OPS"},
     {SubModule::DIST, "DIST"},
     {SubModule::GRAPH, "GRAPH"},
-    {SubModule::PROF, "PROF"}
-};
+    {SubModule::PROF, "PROF"}};
 
 std::unordered_map<ErrCode, std::string> errCodeMap = {
     {ErrCode::SUC, "success"},
@@ -31,95 +29,99 @@ std::unordered_map<ErrCode, std::string> errCodeMap = {
     {ErrCode::PERMISSION, "permission error"},
     {ErrCode::ACL, "call acl api failed"},
     {ErrCode::HCCL, "call hccl api failed"},
-    {ErrCode::GE, "call ge api failed"}
-};
+    {ErrCode::GE, "call ge api failed"}};
 
-std::string getCurrentTimestamp()
-{
-    auto now = std::chrono::system_clock::now();
-    auto micros = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch());
+std::string getCurrentTimestamp() {
+  auto now = std::chrono::system_clock::now();
+  auto micros = std::chrono::duration_cast<std::chrono::microseconds>(
+      now.time_since_epoch());
 
-    std::time_t currentTime = std::chrono::system_clock::to_time_t(now);
-    std::tm* timeInfo = std::localtime(&currentTime);
+  std::time_t currentTime = std::chrono::system_clock::to_time_t(now);
+  std::tm* timeInfo = std::localtime(&currentTime);
 
-    auto milli_time = std::chrono::duration_cast<std::chrono::milliseconds>(micros).count() % 1000;
-    auto micro_time = micros.count() % 1000;
+  auto milli_time =
+      std::chrono::duration_cast<std::chrono::milliseconds>(micros).count() %
+      1000;
+  auto micro_time = micros.count() % 1000;
 
-    std::ostringstream oss;
-    oss << std::put_time(timeInfo, "%Y-%m-%d-%H:%M:%S");
-    return oss.str();
+  std::ostringstream oss;
+  oss << std::put_time(timeInfo, "%Y-%m-%d-%H:%M:%S");
+  return oss.str();
 }
 
-std::string formatDeviceErrorType(const aclrtErrorType error_type)
-{
-    if (error_type == ACL_RT_ERROR_OTHERS) {
-        return "0xFFFF";
-    }
-    return std::to_string(static_cast<int>(error_type));
+std::string formatDeviceErrorType(const aclrtErrorType error_type) {
+  if (error_type == ACL_RT_ERROR_OTHERS) {
+    return "0xFFFF";
+  }
+  return std::to_string(static_cast<int>(error_type));
 }
 
-std::string getRecentAclErrorMessage()
-{
-    const char* recent_error_msg = c10_npu::acl::AclGetErrMsg();
-    return recent_error_msg == nullptr ? "" : std::string(recent_error_msg);
+std::string formatDeviceErrorVerbose(
+    const aclrtErrorInfo& deviceErrInfo,
+    const std::string& device_error_msg) {
+  std::string error_detail = device_error_msg;
+  if (error_detail.empty() &&
+      (deviceErrInfo.errorType == ACL_RT_ERROR_OTHERS ||
+       deviceErrInfo.errorType == ACL_RT_NO_ERROR)) {
+    return "";
+  }
+  if (error_detail.empty()) {
+    return "device error type " +
+        formatDeviceErrorType(deviceErrInfo.errorType);
+  }
+  return "device error type " + formatDeviceErrorType(deviceErrInfo.errorType) +
+      ", " + error_detail;
 }
 
-std::string formatDeviceErrorVerbose(const aclrtErrorInfo& deviceErrInfo, const std::string& device_error_msg)
-{
-    std::string error_detail = device_error_msg;
-    if (error_detail.empty() && deviceErrInfo.errorType == ACL_RT_ERROR_OTHERS) {
-        error_detail = getRecentAclErrorMessage();
-    }
-    if (error_detail.empty()) {
-        return "device error type " + formatDeviceErrorType(deviceErrInfo.errorType);
-    }
-    return "device error type " + formatDeviceErrorType(deviceErrInfo.errorType) + ", " + error_detail;
-}
-
-c10::WarningHandler* getBaseHandler_()
-{
-    static c10::WarningHandler warning_handler_ = c10::WarningHandler();
-    return &warning_handler_;
+c10::WarningHandler* getBaseHandler_() {
+  static c10::WarningHandler warning_handler_ = c10::WarningHandler();
+  return &warning_handler_;
 };
 
 } // namespace
 
-void warn_(const ::c10::Warning& warning)
-{
-    if (!c10_npu::option::OptionsManager::ShouldPrintWarning()) {
-        return;
-    }
+void warn_(const ::c10::Warning& warning) {
+  if (!c10_npu::option::OptionsManager::ShouldPrintWarning()) {
+    return;
+  }
   getBaseHandler_()->process(warning);
 }
 
-std::string formatErrorCode(SubModule submodule, ErrCode errorCode)
-{
-    if (c10_npu::option::OptionsManager::IsCompactErrorOutput()) {
-        return "";
-    }
-    std::ostringstream oss;
-    int deviceIndex = -1;
-    c10_npu::GetDevice(&deviceIndex);
-    auto rank_id = c10_npu::option::OptionsManager::GetRankId();
-    oss << "\n[ERROR] " << getCurrentTimestamp() << " (PID:" << getpid() << ", Device:" << deviceIndex << ", RankID:" << rank_id << ") ";
-    oss << "ERR" << std::setw(2) << std::setfill('0') << static_cast<int>(submodule);
-    oss << std::setw(3) << std::setfill('0') << static_cast<int>(errorCode);
-    oss << " " << submoduleMap[submodule] << " " << errCodeMap[errorCode];
+std::string formatErrorCode(SubModule submodule, ErrCode errorCode) {
+  if (c10_npu::option::OptionsManager::IsCompactErrorOutput()) {
+    return "";
+  }
+  std::ostringstream oss;
+  int deviceIndex = -1;
+  c10_npu::GetDevice(&deviceIndex);
+  auto rank_id = c10_npu::option::OptionsManager::GetRankId();
+  oss << "\n[ERROR] " << getCurrentTimestamp() << " (PID:" << getpid()
+      << ", Device:" << deviceIndex << ", RankID:" << rank_id << ") ";
+  oss << "ERR" << std::setw(2) << std::setfill('0')
+      << static_cast<int>(submodule);
+  oss << std::setw(3) << std::setfill('0') << static_cast<int>(errorCode);
+  oss << " " << submoduleMap[submodule] << " " << errCodeMap[errorCode];
 
-    return oss.str();
+  return oss.str();
 }
 
 namespace c10_npu {
 
 std::unordered_map<int, std::function<std::string(int)>> errCodeHandlerMap = {
-    {ACL_ERROR_RT_DEVICE_TASK_ABORT, std::bind(&handleDeviceTaskAbort, std::placeholders::_1)},
-    {ACL_ERROR_RT_HBM_MULTI_BIT_ECC_ERROR, std::bind(&handleHbmMultiBitEccError, std::placeholders::_1)},
-    {ACL_ERROR_RT_DEVICE_MEM_ERROR, std::bind(&handleDeviceMemError, std::placeholders::_1)},
-    {ACL_ERROR_RT_SUSPECT_DEVICE_MEM_ERROR, std::bind(&handleSuspectDeviceMemError, std::placeholders::_1)},
-    {ACL_ERROR_RT_LINK_ERROR, std::bind(&handleLinkError, std::placeholders::_1)},
-    {ACL_ERROR_RT_COMM_OP_RETRY_FAIL, std::bind(&handleHcclOpRetryFailed, std::placeholders::_1)},
-    {ACL_ERROR_RT_SUSPECT_REMOTE_ERROR, std::bind(&handleSuspectRemoteError, std::placeholders::_1)}
-};
+    {ACL_ERROR_RT_DEVICE_TASK_ABORT,
+     std::bind(&handleDeviceTaskAbort, std::placeholders::_1)},
+    {ACL_ERROR_RT_HBM_MULTI_BIT_ECC_ERROR,
+     std::bind(&handleHbmMultiBitEccError, std::placeholders::_1)},
+    {ACL_ERROR_RT_DEVICE_MEM_ERROR,
+     std::bind(&handleDeviceMemError, std::placeholders::_1)},
+    {ACL_ERROR_RT_SUSPECT_DEVICE_MEM_ERROR,
+     std::bind(&handleSuspectDeviceMemError, std::placeholders::_1)},
+    {ACL_ERROR_RT_LINK_ERROR,
+     std::bind(&handleLinkError, std::placeholders::_1)},
+    {ACL_ERROR_RT_COMM_OP_RETRY_FAIL,
+     std::bind(&handleHcclOpRetryFailed, std::placeholders::_1)},
+    {ACL_ERROR_RT_SUSPECT_REMOTE_ERROR,
+     std::bind(&handleSuspectRemoteError, std::placeholders::_1)}};
 
 MemUceInfo memUceInfo;
 DeviceErrorInfo deviceErrorInfo;
@@ -127,310 +129,310 @@ DeviceErrorInfo deviceErrorInfo;
 std::mutex memUceInfoMutex;
 std::mutex deviceErrorInfoMutex;
 
-bool ShouldAppendDeviceErrorVerbose()
-{
-    return c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend950;
+bool ShouldAppendDeviceErrorVerbose() {
+  return c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend950;
 }
 
-void set_mem_uce_info(MemUceInfo& info)
-{
-    std::lock_guard<std::mutex> lock(memUceInfoMutex);
-    memUceInfo = info;
+void set_mem_uce_info(MemUceInfo& info) {
+  std::lock_guard<std::mutex> lock(memUceInfoMutex);
+  memUceInfo = info;
 }
 
-MemUceInfo get_mem_uce_info()
-{
-    std::lock_guard<std::mutex> lock(memUceInfoMutex);
-    return memUceInfo;
+MemUceInfo get_mem_uce_info() {
+  std::lock_guard<std::mutex> lock(memUceInfoMutex);
+  return memUceInfo;
 }
 
-void clear_mem_uce_info()
-{
-    std::lock_guard<std::mutex> lock(memUceInfoMutex);
-    memUceInfo.clear();
+void clear_mem_uce_info() {
+  std::lock_guard<std::mutex> lock(memUceInfoMutex);
+  memUceInfo.clear();
 }
 
 namespace {
 
-void set_device_error_info(const c10_npu::DeviceErrorInfo& info)
-{
-    std::lock_guard<std::mutex> lock(c10_npu::deviceErrorInfoMutex);
-    c10_npu::deviceErrorInfo = info;
+void set_device_error_info(const c10_npu::DeviceErrorInfo& info) {
+  std::lock_guard<std::mutex> lock(c10_npu::deviceErrorInfoMutex);
+  c10_npu::deviceErrorInfo = info;
 }
 
-c10_npu::DeviceErrorInfo get_device_error_info()
-{
-    std::lock_guard<std::mutex> lock(c10_npu::deviceErrorInfoMutex);
-    return c10_npu::deviceErrorInfo;
+c10_npu::DeviceErrorInfo get_device_error_info() {
+  std::lock_guard<std::mutex> lock(c10_npu::deviceErrorInfoMutex);
+  return c10_npu::deviceErrorInfo;
 }
 
 } // namespace
 
-void clear_device_error_info()
-{
-    std::lock_guard<std::mutex> lock(deviceErrorInfoMutex);
-    deviceErrorInfo = DeviceErrorInfo();
+void clear_device_error_info() {
+  std::lock_guard<std::mutex> lock(deviceErrorInfoMutex);
+  deviceErrorInfo = DeviceErrorInfo();
 }
 
-const std::string c10_npu_check_error_message(std::string& errmsg)
-{
-    static const std::regex errorRegex(R"(^E[1-9A-Z]9999)");
-    if (std::regex_search(errmsg, errorRegex)) {
-        return "CANN Inner Error. Please rectify the fault based on the error information in the ascend log.";
-    }
-    
-    std::regex dateRegex(R"(\d{4}-\d{2}-\d{2}-\d{2}:\d{2}:\d{2}\.\d{3}\.\d{3})");
-    std::smatch match;
+const std::string c10_npu_check_error_message(std::string& errmsg) {
+  static const std::regex errorRegex(R"(^E[1-9A-Z]9999)");
+  if (std::regex_search(errmsg, errorRegex)) {
+    return "CANN Inner Error. Please rectify the fault based on the error information in the ascend log.";
+  }
 
-    if (std::regex_search(errmsg, match, dateRegex)) {
-        size_t dateEndPos = static_cast<size_t>(match.position(0) + match.length(0));
-        size_t tracePos = errmsg.find("TraceBack (most recent call last):\n", dateEndPos);
-        std::string content;
-        if (tracePos != std::string::npos) {
-            content = errmsg.substr(dateEndPos, tracePos - dateEndPos);
-        } else {
-            content = errmsg.substr(dateEndPos);
-        }
+  std::regex dateRegex(R"(\d{4}-\d{2}-\d{2}-\d{2}:\d{2}:\d{2}\.\d{3}\.\d{3})");
+  std::smatch match;
 
-        std::regex ws_regex("[\\s\\t\\n\\r]+");
-        content = std::regex_replace(content, ws_regex, " ");
-        if (!content.empty() && content.front() == ' ') {
-            content.erase(0, 1);
-        }
-        if (!content.empty() && content.back() == ' ') {
-            content.pop_back();
-        }
-
-        return content;
-    }
-
-    return "";
-}
-
-
-const char *c10_npu_get_error_message()
-{
-    auto errmsg = c10_npu::acl::AclGetErrMsg();
-    if (c10_npu::option::OptionsManager::IsCompactErrorOutput()) {
-        std::string log(errmsg);
-        std::string errmsg_ = c10_npu::c10_npu_check_error_message(log);
-        if (errmsg_ == "") {
-            c10_npu::setRepoErrMsg(errmsg);
-            return errmsg;
-        }
-        thread_local std::string processedErrMsg = "CANN error: " + errmsg_;
-        c10_npu::setRepoErrMsg(processedErrMsg.c_str());
-        return processedErrMsg.c_str();
+  if (std::regex_search(errmsg, match, dateRegex)) {
+    size_t dateEndPos =
+        static_cast<size_t>(match.position(0) + match.length(0));
+    size_t tracePos =
+        errmsg.find("TraceBack (most recent call last):\n", dateEndPos);
+    std::string content;
+    if (tracePos != std::string::npos) {
+      content = errmsg.substr(dateEndPos, tracePos - dateEndPos);
     } else {
-        c10_npu::setRepoErrMsg(errmsg);
-        return errmsg;
+      content = errmsg.substr(dateEndPos);
     }
+
+    std::regex ws_regex("[\\s\\t\\n\\r]+");
+    content = std::regex_replace(content, ws_regex, " ");
+    if (!content.empty() && content.front() == ' ') {
+      content.erase(0, 1);
+    }
+    if (!content.empty() && content.back() == ' ') {
+      content.pop_back();
+    }
+
+    return content;
+  }
+
+  return "";
 }
 
-std::string cacheDeviceErrorVerboseMsg(const std::string& device_error_msg)
-{
-    if (!ShouldAppendDeviceErrorVerbose()) {
-        return "";
+const char* c10_npu_get_error_message() {
+  auto errmsg = c10_npu::acl::AclGetErrMsg();
+  if (c10_npu::option::OptionsManager::IsCompactErrorOutput()) {
+    std::string log(errmsg);
+    std::string errmsg_ = c10_npu::c10_npu_check_error_message(log);
+    if (errmsg_ == "") {
+      c10_npu::setRepoErrMsg(errmsg);
+      return errmsg;
     }
-    if (!c10_npu::acl::IsExistAclrtGetErrorVerbose()) {
-        ASCEND_LOGI("AclrtGetErrorVerbose not supported on current device.");
-        return "";
-    }
-    clear_device_error_info();
-    // 解决当前Device未初始化时，循环初始化问题
-    int device = c10_npu::GetLocalDevice();
-    if (device < 0) {
-        return "";
-    }
-    DeviceErrorInfo cacheInfo;
-    cacheInfo.device = device;
-    auto ret = c10_npu::acl::AclrtGetErrorVerbose(device, &cacheInfo.info);
-    if (ret != ACL_ERROR_NONE) {
-        ASCEND_LOGE("AclrtGetErrorVerbose failed, device is %d, error code is %d.", device, ret);
-        return "";
-    }
-    cacheInfo.is_valid = true;
-    set_device_error_info(cacheInfo);
-    std::string err_msg = formatDeviceErrorVerbose(cacheInfo.info, device_error_msg);
-    return err_msg;
+    thread_local std::string processedErrMsg = "CANN error: " + errmsg_;
+    c10_npu::setRepoErrMsg(processedErrMsg.c_str());
+    return processedErrMsg.c_str();
+  } else {
+    c10_npu::setRepoErrMsg(errmsg);
+    return errmsg;
+  }
 }
 
-bool repair_device_error()
-{
-    if (!ShouldAppendDeviceErrorVerbose()) {
-        return false;
-    }
-    auto error_info = get_device_error_info();
-    if (!error_info.is_valid) {
-        return false;
-    }
-    if (!c10_npu::acl::IsExistAclrtRepairError()) {
-        ASCEND_LOGI("AclrtRepairError not supported on current device.");
-        return false;
-    }
-    auto ret = c10_npu::acl::AclrtRepairError(error_info.device, &error_info.info);
-    if (ret != ACL_ERROR_NONE) {
-        ASCEND_LOGE("AclrtRepairError failed, device is %d, error code is %d.", error_info.device, ret);
-        return false;
-    }
-    return true;
-}
-
-void record_mem_hbm_ecc_error()
-{
-    MemUceInfo memUceInfo_;
-    memUceInfo_.is_hbm_ecc_error = true;
-    int device = 0;
-    auto err = c10_npu::GetDevice(&device);
-    if (err != ACL_ERROR_NONE) {
-        ASCEND_LOGE("GetDevice failed when record_mem_hbm_ecc_error.");
-        return;
-    }
-    memUceInfo_.device = device;
-    ASCEND_LOGI("record_mem_hbm_ecc_error device is %d.", device);
-    err = c10_npu::acl::AclrtGetMemUceInfo(
+std::string cacheDeviceErrorVerboseMsg(const std::string& device_error_msg) {
+  if (!ShouldAppendDeviceErrorVerbose()) {
+    return "";
+  }
+  if (!c10_npu::acl::IsExistAclrtGetErrorVerbose()) {
+    ASCEND_LOGI("AclrtGetErrorVerbose not supported on current device.");
+    return "";
+  }
+  clear_device_error_info();
+  // 解决当前Device未初始化时，循环初始化问题
+  int device = c10_npu::GetLocalDevice();
+  if (device < 0) {
+    return "";
+  }
+  DeviceErrorInfo cacheInfo;
+  cacheInfo.device = device;
+  auto ret = c10_npu::acl::AclrtGetErrorVerbose(device, &cacheInfo.info);
+  if (ret != ACL_ERROR_NONE) {
+    ASCEND_LOGE(
+        "AclrtGetErrorVerbose failed, device is %d, error code is %d.",
         device,
-        memUceInfo_.info,
-        sizeof(memUceInfo_.info) / sizeof(aclrtMemUceInfo),
-        &memUceInfo_.retSize
-    );
-    if (err != ACL_ERROR_NONE) {
-        ASCEND_LOGE("AclrtGetMemUceInfo failed when record_mem_hbm_ecc_error.");
-        return;
-    }
-    ASCEND_LOGE("Log HBM MULTI BIT ECC ERROR, set is_hbm_ecc_error param is true, device is %d, retSize is %d.",
-        memUceInfo_.device, memUceInfo_.retSize);
-    set_mem_uce_info(memUceInfo_);
+        ret);
+    return "";
+  }
+  cacheInfo.is_valid = true;
+  set_device_error_info(cacheInfo);
+  std::string err_msg =
+      formatDeviceErrorVerbose(cacheInfo.info, device_error_msg);
+  return err_msg;
 }
 
-bool checkUceErrAndRepair(bool check_error, std::string& err_msg)
-{
-    int device = 0;
-    auto err = c10_npu::GetDevice(&device);
-    if (err != ACL_ERROR_NONE) {
-        err_msg = "ERROR happened in GetDevice.";
-        if (check_error) {
-            TORCH_CHECK(false, err_msg, PTA_ERROR(ErrCode::ACL));
-        } else {
-            err_msg += PTA_ERROR(ErrCode::ACL);
-            return false;
-        }
-    }
+bool repair_device_error() {
+  if (!ShouldAppendDeviceErrorVerbose()) {
+    return false;
+  }
+  auto error_info = get_device_error_info();
+  if (!error_info.is_valid) {
+    return false;
+  }
+  if (!c10_npu::acl::IsExistAclrtRepairError()) {
+    ASCEND_LOGI("AclrtRepairError not supported on current device.");
+    return false;
+  }
+  auto ret =
+      c10_npu::acl::AclrtRepairError(error_info.device, &error_info.info);
+  if (ret != ACL_ERROR_NONE) {
+    ASCEND_LOGE(
+        "AclrtRepairError failed, device is %d, error code is %d.",
+        error_info.device,
+        ret);
+    return false;
+  }
+  return true;
+}
 
-    MemUceInfo memUceInfo_;
-    memUceInfo_.device = device;
-    err = c10_npu::acl::AclrtGetMemUceInfo(device, memUceInfo_.info, sizeof(memUceInfo_.info) / sizeof(aclrtMemUceInfo), &memUceInfo_.retSize);
-    if (err == ACL_ERROR_NONE) {
-        if (memUceInfo_.retSize > 0) {
-            ASCEND_LOGE("AclrtGetMemUceInfo get UCE ERROR, retSize is %d", memUceInfo_.retSize);
-            set_mem_uce_info(memUceInfo_);
-            return true;
-        } else {
-            err_msg = "AclrtGetMemUceInfo get UCE ERROR, retSize is " + std::to_string(memUceInfo_.retSize);
-        }
+void record_mem_hbm_ecc_error() {
+  MemUceInfo memUceInfo_;
+  memUceInfo_.is_hbm_ecc_error = true;
+  int device = 0;
+  auto err = c10_npu::GetDevice(&device);
+  if (err != ACL_ERROR_NONE) {
+    ASCEND_LOGE("GetDevice failed when record_mem_hbm_ecc_error.");
+    return;
+  }
+  memUceInfo_.device = device;
+  ASCEND_LOGI("record_mem_hbm_ecc_error device is %d.", device);
+  err = c10_npu::acl::AclrtGetMemUceInfo(
+      device,
+      memUceInfo_.info,
+      sizeof(memUceInfo_.info) / sizeof(aclrtMemUceInfo),
+      &memUceInfo_.retSize);
+  if (err != ACL_ERROR_NONE) {
+    ASCEND_LOGE("AclrtGetMemUceInfo failed when record_mem_hbm_ecc_error.");
+    return;
+  }
+  ASCEND_LOGE(
+      "Log HBM MULTI BIT ECC ERROR, set is_hbm_ecc_error param is true, device is %d, retSize is %d.",
+      memUceInfo_.device,
+      memUceInfo_.retSize);
+  set_mem_uce_info(memUceInfo_);
+}
+
+bool checkUceErrAndRepair(bool check_error, std::string& err_msg) {
+  int device = 0;
+  auto err = c10_npu::GetDevice(&device);
+  if (err != ACL_ERROR_NONE) {
+    err_msg = "ERROR happened in GetDevice.";
+    if (check_error) {
+      TORCH_CHECK(false, err_msg, PTA_ERROR(ErrCode::ACL));
     } else {
-        static c10_npu::acl::AclErrorCode err_map;
-        err_msg = std::string(__func__) + ":" + __FILE__ + ":" + std::to_string(__LINE__) +
-                        " NPU error, error code is " + std::to_string(err) + PTA_ERROR(ErrCode::ACL) +
-                        (err_map.error_code_map.find(err) != err_map.error_code_map.end() ?
-                        "\n[Error]: " + err_map.error_code_map[err] : ".") +
-                        "\n" + c10_npu_get_error_message();
-        if (check_error) {
-            TORCH_CHECK(false, err_msg);
-        }
+      err_msg += PTA_ERROR(ErrCode::ACL);
+      return false;
     }
-    return false;
-}
+  }
 
-std::string handleDeviceTaskAbort(int errorCode)
-{
-    ASCEND_LOGE("getRepoStopFlag in Run, throw FORCE STOP.");
-    return "FORCE STOP";
-}
-
-std::string handleHbmMultiBitEccError(int errorCode)
-{
-    ASCEND_LOGE("getRepoStopFlag in Run, throw ECC ERROR.");
-    std::string error_msg(c10_npu::c10_npu_get_error_message());
-    std::regex pattern(R"(time us= (\d+)\.)");
-    std::smatch match;
-    std::string time_msg = "";
-    if (std::regex_search(error_msg, match, pattern)) {
-        if (match.size() > 1) {
-            time_msg = match[1].str();
-        }
+  MemUceInfo memUceInfo_;
+  memUceInfo_.device = device;
+  err = c10_npu::acl::AclrtGetMemUceInfo(
+      device,
+      memUceInfo_.info,
+      sizeof(memUceInfo_.info) / sizeof(aclrtMemUceInfo),
+      &memUceInfo_.retSize);
+  if (err == ACL_ERROR_NONE) {
+    if (memUceInfo_.retSize > 0) {
+      ASCEND_LOGE(
+          "AclrtGetMemUceInfo get UCE ERROR, retSize is %d",
+          memUceInfo_.retSize);
+      set_mem_uce_info(memUceInfo_);
+      return true;
+    } else {
+      err_msg = "AclrtGetMemUceInfo get UCE ERROR, retSize is " +
+          std::to_string(memUceInfo_.retSize);
     }
-    c10_npu::record_mem_hbm_ecc_error();
-    return "HBM MULTI BIT ECC ERROR." + error_msg + "time is " + time_msg;
-}
-
-std::string handleDeviceMemError(int errorCode)
-{
-    std::string error_msg = "";
-    if (c10_npu::checkUceErrAndRepair(true, error_msg)) {
-        ASCEND_LOGE("getRepoStopFlag in Run, throw UCE ERROR.");
-        return "UCE ERROR";
+  } else {
+    static c10_npu::acl::AclErrorCode err_map;
+    err_msg = std::string(__func__) + ":" + __FILE__ + ":" +
+        std::to_string(__LINE__) + " NPU error, error code is " +
+        std::to_string(err) + PTA_ERROR(ErrCode::ACL) +
+        (err_map.error_code_map.find(err) != err_map.error_code_map.end()
+             ? "\n[Error]: " + err_map.error_code_map[err]
+             : ".") +
+        "\n" + c10_npu_get_error_message();
+    if (check_error) {
+      TORCH_CHECK(false, err_msg);
     }
-    return "";
+  }
+  return false;
 }
 
-std::string handleSuspectDeviceMemError(int errorCode)
-{
-    ASCEND_LOGE("getRepoStopFlag in Run, throw SUSPECT MEM ERROR.");
-    return "SUSPECT MEM ERROR";
+std::string handleDeviceTaskAbort(int errorCode) {
+  ASCEND_LOGE("getRepoStopFlag in Run, throw FORCE STOP.");
+  return "FORCE STOP";
 }
 
-std::string handleLinkError(int errorCode)
-{
-    std::string link_error_name = ShouldAppendDeviceErrorVerbose() ? "UB LINK ERROR" : "HCCS LINK ERROR";
-    ASCEND_LOGE("getRepoStopFlag in Run, throw %s.", link_error_name.c_str());
-    return link_error_name;
-}
-
-std::string handleHcclOpRetryFailed(int errorCode)
-{
-    ASCEND_LOGE("getRepoStopFlag in Run, throw HCCL OP RETRY FAILED.");
-    return "HCCL OP RETRY FAILED";
-}
-
-std::string handleSuspectRemoteError(int errorCode)
-{
-    ASCEND_LOGE("getRepoStopFlag in Run, throw SUSPECT REMOTE ERROR.");
-    return "SUSPECT REMOTE ERROR";
-}
-
-std::string handleDeviceError(int errorCode)
-{
-    auto handlerIter = errCodeHandlerMap.find(errorCode);
-    if (handlerIter != errCodeHandlerMap.end()) {
-        std::function<std::string(int)> handler = handlerIter->second;
-        if (handler != nullptr) {
-            return handler(errorCode);
-        }
+std::string handleHbmMultiBitEccError(int errorCode) {
+  ASCEND_LOGE("getRepoStopFlag in Run, throw ECC ERROR.");
+  std::string error_msg(c10_npu::c10_npu_get_error_message());
+  std::regex pattern(R"(time us= (\d+)\.)");
+  std::smatch match;
+  std::string time_msg = "";
+  if (std::regex_search(error_msg, match, pattern)) {
+    if (match.size() > 1) {
+      time_msg = match[1].str();
     }
-    return "";
+  }
+  c10_npu::record_mem_hbm_ecc_error();
+  return "HBM MULTI BIT ECC ERROR." + error_msg + "time is " + time_msg;
 }
 
-std::string getDeviceErrorMessage(int errorCode)
-{
-    std::string device_error_msg = handleDeviceError(errorCode);
-    if (!ShouldAppendDeviceErrorVerbose()) {
-        return device_error_msg;
-    }
-
-    std::string device_error_verbose = cacheDeviceErrorVerboseMsg(device_error_msg);
-    return device_error_verbose.empty() ? device_error_msg : device_error_verbose;
+std::string handleDeviceMemError(int errorCode) {
+  std::string error_msg = "";
+  if (c10_npu::checkUceErrAndRepair(true, error_msg)) {
+    ASCEND_LOGE("getRepoStopFlag in Run, throw UCE ERROR.");
+    return "UCE ERROR";
+  }
+  return "";
 }
 
-bool isCannOOM(const std::string &errMsg)
-{
-    const char *oom_error_msg = "Failed to allocate memory";
-    const char *oom_error_code = "EL0004";
-    // Use OR matching for keyword and error code to be compatible with different CANN versions
-    if (errMsg.find(oom_error_code) != std::string::npos || errMsg.find(oom_error_msg) != std::string::npos) {
-        return true;
+std::string handleSuspectDeviceMemError(int errorCode) {
+  ASCEND_LOGE("getRepoStopFlag in Run, throw SUSPECT MEM ERROR.");
+  return "SUSPECT MEM ERROR";
+}
+
+std::string handleLinkError(int errorCode) {
+  std::string link_error_name =
+      ShouldAppendDeviceErrorVerbose() ? "UB LINK ERROR" : "HCCS LINK ERROR";
+  ASCEND_LOGE("getRepoStopFlag in Run, throw %s.", link_error_name.c_str());
+  return link_error_name;
+}
+
+std::string handleHcclOpRetryFailed(int errorCode) {
+  ASCEND_LOGE("getRepoStopFlag in Run, throw HCCL OP RETRY FAILED.");
+  return "HCCL OP RETRY FAILED";
+}
+
+std::string handleSuspectRemoteError(int errorCode) {
+  ASCEND_LOGE("getRepoStopFlag in Run, throw SUSPECT REMOTE ERROR.");
+  return "SUSPECT REMOTE ERROR";
+}
+
+std::string handleDeviceError(int errorCode) {
+  auto handlerIter = errCodeHandlerMap.find(errorCode);
+  if (handlerIter != errCodeHandlerMap.end()) {
+    std::function<std::string(int)> handler = handlerIter->second;
+    if (handler != nullptr) {
+      return handler(errorCode);
     }
-    return false;
+  }
+  return "";
+}
+
+std::string getDeviceErrorMessage(int errorCode) {
+  std::string device_error_msg = handleDeviceError(errorCode);
+  if (!ShouldAppendDeviceErrorVerbose()) {
+    return device_error_msg;
+  }
+
+  std::string device_error_verbose =
+      cacheDeviceErrorVerboseMsg(device_error_msg);
+  return device_error_verbose.empty() ? device_error_msg : device_error_verbose;
+}
+
+bool isCannOOM(const std::string& errMsg) {
+  const char* oom_error_msg = "Failed to allocate memory";
+  const char* oom_error_code = "EL0004";
+  // Use OR matching for keyword and error code to be compatible with different
+  // CANN versions
+  if (errMsg.find(oom_error_code) != std::string::npos ||
+      errMsg.find(oom_error_msg) != std::string::npos) {
+    return true;
+  }
+  return false;
 }
 
 } // namespace c10_npu
