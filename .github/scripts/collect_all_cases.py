@@ -388,6 +388,14 @@ def main():
     # ========================================
     # Step 3: Save overall summary
     # ========================================
+    # Calculate file counts (distributed + regular = total_files, no overlap)
+    dist_total = dist_meta.get("total_files", 0)
+    dist_selected = dist_meta.get("type_selected", 0)
+    reg_total = reg_meta.get("total_files", 0)
+    reg_selected = reg_meta.get("type_selected", 0)
+    # total_files is same for both (all test_*.py files), use one value
+    total_files = dist_total
+
     overall_summary = {
         "distributed": {
             "cases_summary": dist_summary,
@@ -398,7 +406,9 @@ def main():
             "discovery_metadata": reg_meta,
         },
         "total_cases": len(dist_cases) + len(reg_cases),
-        "total_files_scanned": dist_meta.get("total_files", 0) + reg_meta.get("total_files", 0),
+        "total_files_scanned": total_files,
+        "distributed_files": dist_selected,
+        "regular_files": reg_selected,
     }
     summary_file = output_dir / "cases_collection_summary.json"
     summary_file.write_text(json.dumps(overall_summary, indent=2), encoding="utf-8")
