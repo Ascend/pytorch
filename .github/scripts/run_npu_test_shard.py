@@ -42,10 +42,12 @@ import dataclasses
 import importlib.util
 import json
 import os
+import re
 import signal
 import subprocess
 import sys
 import threading
+import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
@@ -194,8 +196,9 @@ def save_failed_case_log(
     Returns:
         Path to the saved log file
     """
-    # Only save for failed/error/crashed/timeout cases
-    if status not in ("failed", "error", "crashed", "timeout"):
+    # Save log for error/timeout cases (no XML generated)
+    # Cases with valid XML don't need log saving (XML contains all info)
+    if status not in ("error", "timeout"):
         return None
 
     # Create failed cases log directory
@@ -248,7 +251,6 @@ class ConcurrentResultAggregator:
         self._failed_count: int = 0
         self._error_count: int = 0
         self._skipped_count: int = 0
-        self._crashed_count: int = 0
         self._timeout_count: int = 0
         self._total_cases: int = 0
 
@@ -265,19 +267,15 @@ class ConcurrentResultAggregator:
                 self._failed_count += 1
             elif status == "skipped":
                 self._skipped_count += 1
-            elif status == "crashed":
-                self._crashed_count += 1
             elif status == "timeout":
                 self._timeout_count += 1
-            elif status == "error":
-                self._error_count += 1
             else:
-                # Unknown status treated as error
+                # error
                 self._error_count += 1
 
-            # Track worst returncode (ignore skipped/no_tests)
+            # Track worst returncode (ignore skipped)
             rc = case_result.get("returncode", 1)
-            if rc != 0 and rc != 3 and rc != 5:
+            if rc != 0:
                 if self._worst_returncode == 0:
                     self._worst_returncode = rc
 
@@ -295,7 +293,6 @@ class ConcurrentResultAggregator:
                 "failed_count": self._failed_count,
                 "error_count": self._error_count,
                 "skipped_count": self._skipped_count,
-                "crashed_count": self._crashed_count,
                 "timeout_count": self._timeout_count,
                 "worst_returncode": self._worst_returncode,
             }
@@ -322,8 +319,7 @@ class ProgressTracker:
                 "passed": "[PASS]",
                 "failed": "[FAIL]",
                 "error": "[ERR]",
-                "crashed": "[CRASH]",
-                "timeout": "[TIMEOUT]",
+                "timeout": "[TIME]",
                 "skipped": "[SKIP]",
             }.get(status, "[?]")
 
@@ -338,6 +334,66 @@ class ProgressTracker:
         """Get current progress."""
         with self._lock:
             return self._completed_tasks, self._total_tasks
+
+
+# ==============================================================================
+# JUnit XML Parsing for Accurate Status Detection
+# ==============================================================================
+
+
+def parse_junit_xml_status(xml_file: Path) -> Dict:
+    """
+    解析 JUnit XML 报告，获取测试状态。
+
+    Args:
+        xml_file: JUnit XML 文件路径
+
+    Returns:
+        Dict: {"status": "passed" | "skipped" | "failed" | "error" | "no_xml", "message": str}
+    """
+    if not xml_file.exists():
+        return {"status": "no_xml", "message": "XML file not generated"}
+
+    try:
+        tree = ET.parse(str(xml_file))
+        root = tree.getroot()
+
+        for testcase in root.iter("testcase"):
+            result = {"status": "passed", "message": ""}
+
+            # Check <skipped>
+            skipped_elem = testcase.find("skipped")
+            if skipped_elem is not None:
+                result["status"] = "skipped"
+                result["message"] = skipped_elem.get("message", "")
+                return result
+
+            # Check <failure>
+            failure_elem = testcase.find("failure")
+            if failure_elem is not None:
+                result["status"] = "failed"
+                result["message"] = failure_elem.get("message", "")
+                return result
+
+            # Check <error>
+            error_elem = testcase.find("error")
+            if error_elem is not None:
+                result["status"] = "error"
+                result["message"] = error_elem.get("message", "")
+                return result
+
+            # No failure/error/skipped = passed
+            return result
+
+        return {"status": "error", "message": "No testcase in XML"}
+
+    except Exception:
+        return {"status": "no_xml", "message": "XML parse failed"}
+
+
+# ==============================================================================
+# Utility Functions
+# ==============================================================================
 
 
 def get_signal_name(signal_num: int) -> str:
@@ -621,10 +677,13 @@ def run_single_test_case(
     test_file: str = "",
 ) -> Dict:
     """
-    Run a single test case in isolated subprocess.
+    Run a single test case in isolated subprocess with JUnit XML output.
 
     Adds test file's parent directory to PYTHONPATH to enable
     imports of sibling modules (e.g., 'from model_registry import MLPModule').
+
+    Uses JUnit XML report for accurate status detection (passed/skipped/failed/error).
+    pytest returncode cannot distinguish passed from skipped accurately.
 
     Args:
         case_nodeid: Test case nodeid (e.g., "test_autograd.py::TestAutograd::test_grad")
@@ -632,6 +691,10 @@ def run_single_test_case(
         env: Environment dict for subprocess (will be modified for this call)
         timeout: Per-case timeout in seconds
         verbose: Verbose output
+        report_dir: Directory for XML reports and logs
+        shard: Shard number for XML filename
+        shard_type: "distributed" or "regular"
+        case_idx: Case index for XML filename
         test_file: Test file path for PYTHONPATH calculation
 
     Returns:
@@ -643,7 +706,6 @@ def run_single_test_case(
     original_nodeid = case_nodeid
 
     # Strip test/ prefix from nodeid if present (pytest --collect-only outputs with test/ prefix)
-    # When cwd is test_dir, the path should be relative to test_dir, not include test/
     if case_nodeid.startswith("test/"):
         case_nodeid = case_nodeid[5:]
 
@@ -661,6 +723,12 @@ def run_single_test_case(
         existing_pythonpath = case_env.get("PYTHONPATH", "")
         case_env["PYTHONPATH"] = str(test_file_dir) + (":" + existing_pythonpath if existing_pythonpath else "")
 
+    # Generate XML file path for this case
+    prefix = "dist" if shard_type == "distributed" else "reg"
+    xml_filename = f"case_{prefix}-{shard}_{case_idx}.xml"
+    xml_file = report_dir / "junit_xmls" / xml_filename
+    xml_file.parent.mkdir(parents=True, exist_ok=True)
+
     command = [
         sys.executable,
         "-m",
@@ -669,6 +737,8 @@ def run_single_test_case(
         "-ra",
         "--tb=short",
         case_nodeid,
+        f"--junitxml={xml_file}",
+        "--junit-prefix=",
     ]
 
     if timeout > 0:
@@ -687,7 +757,7 @@ def run_single_test_case(
         result = subprocess.run(
             command,
             cwd=str(test_dir),
-            env=case_env,  # Use per-case environment with test file directory in PYTHONPATH
+            env=case_env,
             capture_output=True,
             text=True,
             encoding="utf-8",
@@ -698,32 +768,34 @@ def run_single_test_case(
         duration = monotonic() - start_time
         returncode = result.returncode
 
-        # Determine status
-        if returncode == 0:
-            status = "passed"
-        elif returncode == 1:
-            status = "failed"
-        elif returncode == 2:
-            status = "error"
-        elif returncode == 3:
-            status = "skipped"
-        elif returncode == 4:
-            status = "error"  # usage error
-        elif returncode == 5:
-            status = "no_tests"
-        elif returncode < 0:
-            status = "crashed"
-        else:
-            status = "error"
+        # Parse JUnit XML for status (simple logic)
+        # - Has XML: use XML status (passed/failed/skipped/error), don't save logs
+        # - No XML: status = error, save stdout/stderr
+        xml_result = parse_junit_xml_status(xml_file)
+        xml_status = xml_result.get("status")
 
-        # Extract error message from output
-        message = ""
-        if status in ("failed", "error", "crashed"):
-            # Extract last meaningful lines from stderr/stdout
-            output = result.stderr + result.stdout
-            lines = output.splitlines()
-            error_lines = [l for l in lines[-20:] if l.strip()]
-            message = "\n".join(error_lines[-5:])[:500]  # Limit message length
+        if xml_status == "no_xml":
+            # No XML generated → error, save logs
+            status = "error"
+            message = xml_result.get("message")
+            if report_dir:
+                save_failed_case_log(
+                    report_dir=report_dir,
+                    shard=shard,
+                    shard_type=shard_type,
+                    nodeid=original_nodeid,
+                    case_idx=case_idx,
+                    status=status,
+                    stdout=result.stdout,
+                    stderr=result.stderr,
+                    duration=duration,
+                    returncode=returncode,
+                    command=command_str,
+                )
+        else:
+            # Has valid XML → use XML status, don't save logs
+            status = xml_status
+            message = xml_result.get("message", "")
 
         case_result = {
             "nodeid": original_nodeid,
@@ -734,36 +806,22 @@ def run_single_test_case(
             "command": command_str,
         }
 
-        # Save failed case log to file
-        if status in ("failed", "error", "crashed") and report_dir:
-            save_failed_case_log(
-                report_dir=report_dir,
-                shard=shard,
-                shard_type=shard_type,
-                nodeid=original_nodeid,
-                case_idx=case_idx,
-                status=status,
-                stdout=result.stdout,
-                stderr=result.stderr,
-                duration=duration,
-                returncode=returncode,
-                command=command_str,
-            )
-
         return case_result
 
     except subprocess.TimeoutExpired:
         duration = monotonic() - start_time
+        # Timeout → no XML generated
+        status = "timeout"
         case_result = {
             "nodeid": original_nodeid,
-            "status": "timeout",
+            "status": status,
             "duration": duration,
             "returncode": -1,
             "message": f"Timeout after {timeout}s",
             "command": command_str,
         }
 
-        # Save timeout case log
+        # Save log for timeout (no XML)
         if report_dir:
             save_failed_case_log(
                 report_dir=report_dir,
@@ -771,7 +829,7 @@ def run_single_test_case(
                 shard_type=shard_type,
                 nodeid=original_nodeid,
                 case_idx=case_idx,
-                status="timeout",
+                status=status,
                 stdout="(process timed out, no output captured)",
                 stderr="(process timed out, no output captured)",
                 duration=duration,
@@ -859,6 +917,11 @@ def run_single_case_concurrent(
     if case_nodeid.startswith("test/"):
         case_nodeid = case_nodeid[5:]
 
+    # Generate XML file path for this case
+    prefix = "dist" if shard_type == "distributed" else "reg"
+    xml_filename = f"case_{prefix}-{shard}_{task.case_idx}.xml"
+    xml_file = report_dir / "junit_xmls" / xml_filename
+
     command = [
         sys.executable,
         "-m",
@@ -867,6 +930,8 @@ def run_single_case_concurrent(
         "-ra",
         "--tb=short",
         case_nodeid,
+        f"--junitxml={xml_file}",
+        "--junit-prefix=",
     ]
 
     if config.per_case_timeout > 0:
@@ -924,49 +989,16 @@ def run_single_case_concurrent(
         duration = monotonic() - start_time
         returncode = result.returncode
 
-        # Determine status (including crashed with negative returncode)
-        if returncode == 0:
-            status = "passed"
-        elif returncode == 1:
-            status = "failed"
-        elif returncode == 2:
-            status = "error"
-        elif returncode == 3:
-            status = "skipped"
-        elif returncode == 4:
-            status = "error"
-        elif returncode == 5:
-            status = "no_tests"
-        elif returncode < 0:
-            # Core dump or signal crash
-            status = "crashed"
-            signal_name = get_signal_name(abs(returncode))
-        else:
-            status = "error"
+        # Parse JUnit XML for status
+        # - Has XML: use XML status, don't save logs
+        # - No XML: error, save logs
+        xml_result = parse_junit_xml_status(xml_file)
+        xml_status = xml_result.get("status")
 
-        # Extract error message
-        message = ""
-        if status in ("failed", "error", "crashed"):
-            output = result.stderr + result.stdout
-            lines = output.splitlines()
-            error_lines = [l for l in lines[-20:] if l.strip()]
-            message = "\n".join(error_lines[-5:])[:500]
-            if status == "crashed":
-                message = f"Process crashed with {signal_name}\n{message}"
-
-        case_result = {
-            "nodeid": original_nodeid,
-            "status": status,
-            "duration": duration,
-            "returncode": returncode,
-            "message": message,
-            "command": command_str,
-            "file": task.test_file,
-            "case_idx": task.case_idx,
-        }
-
-        # Save failed case log to file
-        if status in ("failed", "error", "crashed"):
+        if xml_status == "no_xml":
+            # No XML → error, save logs
+            status = "error"
+            message = xml_result.get("message")
             save_failed_case_log(
                 report_dir=report_dir,
                 shard=shard,
@@ -980,13 +1012,29 @@ def run_single_case_concurrent(
                 returncode=returncode,
                 command=command_str,
             )
+        else:
+            # Has XML → use XML status, don't save logs
+            status = xml_status
+            message = xml_result.get("message", "")
 
-    except subprocess.TimeoutExpired:
-        # Timeout - return result, don't raise
-        duration = monotonic() - start_time
         case_result = {
             "nodeid": original_nodeid,
-            "status": "timeout",
+            "status": status,
+            "duration": duration,
+            "returncode": returncode,
+            "message": message,
+            "command": command_str,
+            "file": task.test_file,
+            "case_idx": task.case_idx,
+        }
+
+    except subprocess.TimeoutExpired:
+        # Timeout → no XML, status = timeout
+        duration = monotonic() - start_time
+        status = "timeout"
+        case_result = {
+            "nodeid": original_nodeid,
+            "status": status,
             "duration": duration,
             "returncode": -1,
             "message": f"Timeout after {config.per_case_timeout}s",
@@ -995,14 +1043,14 @@ def run_single_case_concurrent(
             "case_idx": task.case_idx,
         }
 
-        # Save timeout case log
+        # Save log for timeout
         save_failed_case_log(
             report_dir=report_dir,
             shard=shard,
             shard_type=shard_type,
             nodeid=original_nodeid,
             case_idx=task.case_idx,
-            status="timeout",
+            status=status,
             stdout="(process timed out, no output captured)",
             stderr="(process timed out, no output captured)",
             duration=duration,
@@ -1131,6 +1179,10 @@ def run_tests_with_concurrent_isolation(
     """
     start = monotonic()
     log_file = result_module.get_shard_log_file(report_dir, shard, shard_type)
+
+    # Create junit_xmls directory for XML reports
+    junit_xml_dir = report_dir / "junit_xmls"
+    junit_xml_dir.mkdir(parents=True, exist_ok=True)
 
     merged_env = os.environ.copy()
     merged_env.update(env_updates)
@@ -1261,7 +1313,6 @@ def run_tests_with_concurrent_isolation(
             f"  Passed: {summary['passed_count']}\n"
             f"  Failed: {summary['failed_count']}\n"
             f"  Errors: {summary['error_count']}\n"
-            f"  Crashed: {summary['crashed_count']}\n"
             f"  Timeout: {summary['timeout_count']}\n"
             f"  Skipped: {summary['skipped_count']}\n"
             f"  Duration: {elapsed:.2f}s\n"
@@ -1279,7 +1330,6 @@ def run_tests_with_concurrent_isolation(
     print(f"  Passed: {summary['passed_count']}", flush=True)
     print(f"  Failed: {summary['failed_count']}", flush=True)
     print(f"  Errors: {summary['error_count']}", flush=True)
-    print(f"  Crashed: {summary['crashed_count']}", flush=True)
     print(f"  Timeout: {summary['timeout_count']}", flush=True)
     print(f"  Skipped: {summary['skipped_count']}", flush=True)
     print(f"  Duration: {elapsed:.2f}s", flush=True)
@@ -1311,6 +1361,10 @@ def run_tests_with_case_isolation(
     start = monotonic()
     prefix = result_module.get_shard_type_prefix(shard_type)
     log_file = result_module.get_shard_log_file(report_dir, shard, shard_type)
+
+    # Create junit_xmls directory for XML reports
+    junit_xml_dir = report_dir / "junit_xmls"
+    junit_xml_dir.mkdir(parents=True, exist_ok=True)
 
     merged_env = os.environ.copy()
     merged_env.update(env_updates)
@@ -1398,7 +1452,7 @@ def run_tests_with_case_isolation(
 
                 print(f"      {status_str} ({duration_str})")
                 # Print error message for failed/error cases to stdout
-                if status_str in ("failed", "error", "crashed", "timeout") and message:
+                if status_str in ("failed", "error") and message:
                     # Print first few lines of error message
                     msg_lines = message.splitlines()[:5]
                     for msg_line in msg_lines:
@@ -1419,7 +1473,6 @@ def run_tests_with_case_isolation(
         passed_count = sum(1 for c in cases_list if c["status"] == "passed")
         failed_count = sum(1 for c in cases_list if c["status"] == "failed")
         error_count = sum(1 for c in cases_list if c["status"] == "error")
-        crashed_count = sum(1 for c in cases_list if c["status"] == "crashed")
         timeout_count = sum(1 for c in cases_list if c["status"] == "timeout")
         skipped_count = sum(1 for c in cases_list if c["status"] == "skipped")
 
@@ -1428,7 +1481,6 @@ def run_tests_with_case_isolation(
         log_handle.write(f"  Passed: {passed_count}\n")
         log_handle.write(f"  Failed: {failed_count}\n")
         log_handle.write(f"  Errors: {error_count}\n")
-        log_handle.write(f"  Crashed: {crashed_count}\n")
         log_handle.write(f"  Timeout: {timeout_count}\n")
         log_handle.write(f"  Skipped: {skipped_count}\n")
         log_handle.write(f"  Duration: {elapsed:.2f}s\n")
@@ -1437,7 +1489,7 @@ def run_tests_with_case_isolation(
 
         print(f"\n{'=' * 80}")
         print(f"Summary: {total_cases} cases executed")
-        print(f"  Passed: {passed_count}, Failed: {failed_count}, Errors: {error_count}, Crashed: {crashed_count}, Timeout: {timeout_count}")
+        print(f"  Passed: {passed_count}, Failed: {failed_count}, Errors: {error_count}, Timeout: {timeout_count}, Skipped: {skipped_count}")
         print(f"  Duration: {elapsed:.2f}s")
         print(f"{'=' * 80}")
 
@@ -1479,6 +1531,10 @@ def run_tests_with_tasks_concurrent(
     """
     start = monotonic()
     log_file = result_module.get_shard_log_file(report_dir, shard, shard_type)
+
+    # Create junit_xmls directory for XML reports
+    junit_xml_dir = report_dir / "junit_xmls"
+    junit_xml_dir.mkdir(parents=True, exist_ok=True)
 
     merged_env = os.environ.copy()
     merged_env.update(env_updates)
@@ -1580,7 +1636,6 @@ def run_tests_with_tasks_concurrent(
             f"  Passed: {summary['passed_count']}\n"
             f"  Failed: {summary['failed_count']}\n"
             f"  Errors: {summary['error_count']}\n"
-            f"  Crashed: {summary['crashed_count']}\n"
             f"  Timeout: {summary['timeout_count']}\n"
             f"  Skipped: {summary['skipped_count']}\n"
             f"  Duration: {elapsed:.2f}s\n"
@@ -1598,7 +1653,6 @@ def run_tests_with_tasks_concurrent(
     print(f"  Passed: {summary['passed_count']}", flush=True)
     print(f"  Failed: {summary['failed_count']}", flush=True)
     print(f"  Errors: {summary['error_count']}", flush=True)
-    print(f"  Crashed: {summary['crashed_count']}", flush=True)
     print(f"  Timeout: {summary['timeout_count']}", flush=True)
     print(f"  Skipped: {summary['skipped_count']}", flush=True)
     print(f"  Duration: {elapsed:.2f}s", flush=True)
@@ -1858,7 +1912,6 @@ def main():
         passed_count = sum(1 for c in cases_list if c["status"] == "passed")
         failed_count = sum(1 for c in cases_list if c["status"] == "failed")
         error_count = sum(1 for c in cases_list if c["status"] == "error")
-        crashed_count = sum(1 for c in cases_list if c["status"] == "crashed")
         timeout_count = sum(1 for c in cases_list if c["status"] == "timeout")
         skipped_count = sum(1 for c in cases_list if c["status"] == "skipped")
 
@@ -1871,9 +1924,8 @@ def main():
             "passed": passed_count,
             "failed": failed_count,
             "errors": error_count,
-            "skipped": skipped_count,
-            "crashed": crashed_count,
             "timeout": timeout_count,
+            "skipped": skipped_count,
             "duration": duration,
             "cases": cases_list,
         }
@@ -1890,6 +1942,7 @@ def main():
             "failed": failed_count,
             "skipped": skipped_count,
             "errors": error_count,
+            "timeout": timeout_count,
             "duration": duration,
             "returncode": returncode,
             "per_case_isolation": True,
@@ -2011,9 +2064,8 @@ def main():
         passed_count = sum(1 for c in cases_list if c["status"] == "passed")
         failed_count = sum(1 for c in cases_list if c["status"] == "failed")
         error_count = sum(1 for c in cases_list if c["status"] == "error")
-        skipped_count = sum(1 for c in cases_list if c["status"] == "skipped")
-        crashed_count = sum(1 for c in cases_list if c["status"] == "crashed")
         timeout_count = sum(1 for c in cases_list if c["status"] == "timeout")
+        skipped_count = sum(1 for c in cases_list if c["status"] == "skipped")
 
         output_cases_data = {
             "shard": shard,
@@ -2024,9 +2076,8 @@ def main():
             "passed": passed_count,
             "failed": failed_count,
             "errors": error_count,
-            "skipped": skipped_count,
-            "crashed": crashed_count,
             "timeout": timeout_count,
+            "skipped": skipped_count,
             "duration": duration,
             "cases": cases_list,
         }
@@ -2043,7 +2094,6 @@ def main():
             "failed": failed_count,
             "skipped": skipped_count,
             "errors": error_count,
-            "crashed": crashed_count,
             "timeout": timeout_count,
             "duration": duration,
             "returncode": returncode,
@@ -2180,7 +2230,6 @@ def main():
     passed_count = sum(1 for c in cases_list if c["status"] == "passed")
     failed_count = sum(1 for c in cases_list if c["status"] == "failed")
     error_count = sum(1 for c in cases_list if c["status"] == "error")
-    crashed_count = sum(1 for c in cases_list if c["status"] == "crashed")
     timeout_count = sum(1 for c in cases_list if c["status"] == "timeout")
     skipped_count = sum(1 for c in cases_list if c["status"] == "skipped")
 
@@ -2193,9 +2242,8 @@ def main():
         "passed": passed_count,
         "failed": failed_count,
         "errors": error_count,
-        "skipped": skipped_count,
-        "crashed": crashed_count,
         "timeout": timeout_count,
+        "skipped": skipped_count,
         "duration": duration,
         "cases": cases_list,
     }
