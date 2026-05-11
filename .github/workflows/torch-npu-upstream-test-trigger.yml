@@ -44,7 +44,7 @@ on:
       distributed_shards:
         description: 'Number of shards for distributed tests (default 2)'
         required: false
-        default: '2'
+        default: '3'
         type: string
       regular_shards:
         description: 'Number of shards for regular tests (default 5)'
