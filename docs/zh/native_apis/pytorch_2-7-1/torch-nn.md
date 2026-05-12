@@ -55,7 +55,8 @@
 |torch.nn.Module.to_empty|是|支持fp32|
 |torch.nn.Module.train|是|支持fp32|
 |torch.nn.Module.type|是|支持fp16，fp32，int64|
-|torch.nn.Module.xpu|否|-|
+|torch.nn.Module.xpu|是|NPU形式名称为torch.nn.Module.npu|
+|torch.nn.Module.npu|否|-|
 |torch.nn.Module.zero_grad|是|支持fp32|
 |torch.nn.Sequential|是|支持fp32|
 |torch.nn.Sequential.append|是|支持fp32|
