@@ -53,6 +53,15 @@ jobs:
       - name: Setup cache directories
         run: |
           mkdir -p /github/home/.cache/pip
+          chmod -R 777 /github/home/.cache
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: /github/home/.cache/pip
+          key: pip-arm-custom-py${{ inputs.python_version }}
+          restore-keys: |
+            pip-arm-custom-py${{ inputs.python_version }}-
 
       - name: Download built torch wheel
         uses: actions/download-artifact@v4
@@ -105,9 +114,30 @@ jobs:
 
       - name: Install test dependencies
         run: |
-          pip${{ inputs.python_version }} install pytest pytest-timeout pytest-xdist hypothesis zstandard pyyaml
-          pip${{ inputs.python_version }} install pytest-rerunfailures pytest-flakefinder pytest-subtests==0.13.1 xdoctest==1.1.0 pulp>=2.9
-          pip${{ inputs.python_version }} install -r pytorch-src/requirements.txt || true
+          PIP=pip${{ inputs.python_version }}
+          export PIP_CACHE_DIR=/github/home/.cache/pip
+
+          # Configure pip to use PyPI cache for faster downloads
+          if [ -n "${{ env.PYPI_CACHE_URL }}" ]; then
+            $PIP config set global.index-url ${{ env.PYPI_CACHE_URL }} || true
+            $PIP config set global.trusted-host "cache-service.nginx-pypi-cache.svc.cluster.local" || true
+          fi
+
+          $PIP install pytest pytest-timeout pytest-xdist hypothesis zstandard pyyaml
+          $PIP install pytest-rerunfailures pytest-flakefinder pytest-subtests==0.13.1 xdoctest==1.1.0 pulp>=2.9
+
+          # Optional dependencies for ONNX tests
+          $PIP install onnxruntime onnxscript onnx-ir ml-dtypes || true
+
+          # torchvision for ONNX model tests (install without deps to bypass torch version check)
+          $PIP install numpy pillow || true
+          $PIP install torchvision --no-deps || true
+
+          # Other optional dependencies
+          $PIP install parameterized pandas || true
+          $PIP install opencv-python || true
+
+          $PIP install -r pytorch-src/requirements.txt || true
 
       - name: Verify NPU availability
         run: |

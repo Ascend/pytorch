@@ -57,7 +57,7 @@ env:
 jobs:
   collect:
     runs-on: linux-aarch64-a3-16
-    timeout-minutes: 60
+    timeout-minutes: 120
     container:
       image: ${{ inputs.docker_image }}
       options: --user root
@@ -146,12 +146,29 @@ jobs:
       - name: Install test dependencies
         run: |
           PIP=pip${{ inputs.python_version }}
+          export PIP_CACHE_DIR=/github/home/.cache/pip
           cd pytorch-src
 
+          # Core test dependencies
           $PIP install pytest pytest-timeout pytest-xdist hypothesis zstandard pyyaml
           $PIP install pytest-rerunfailures pytest-flakefinder
           $PIP install 'pytest-subtests==0.13.1' 'xdoctest==1.1.0' 'pulp>=2.9'
 
+          # Optional dependencies for ONNX tests
+          # These are not in PyTorch requirements.txt but needed by specific tests
+          $PIP install onnxruntime onnxscript onnx-ir ml-dtypes || true
+
+          # torchvision for ONNX model tests (install without deps to bypass torch version check)
+          # PyPI torchvision requires exact torch version (torch==2.11.0), but we have dev build
+          # Use --no-deps to skip torch dependency, we already have our compiled torch installed
+          $PIP install numpy pillow || true
+          $PIP install torchvision --no-deps || true
+
+          # Other optional dependencies
+          $PIP install parameterized pandas || true
+          $PIP install opencv-python || true
+
+          # PyTorch requirements (if exists)
           if [ -f requirements.txt ]; then
             $PIP install -r requirements.txt || true
           fi
@@ -180,6 +197,11 @@ jobs:
           PYTHON=python${{ inputs.python_version }}
           cd pytorch-src
 
+          # 设置 BACKEND 环境变量，避免分布式测试收集阶段 KeyError
+          # 值设为 hccl（NPU 分布式后端），不是 gloo/nccl 时测试类不会被定义
+          # 结果：pytest 收集到 0 个用例，不会报错
+          export BACKEND="hccl"
+
           # Case-level sharding
           DISTRIBUTED_SHARDS='${{ inputs.distributed_shards }}'
           REGULAR_SHARDS='${{ inputs.regular_shards }}'
@@ -190,6 +212,7 @@ jobs:
 
           $PYTHON ../ascend_pytorch/.github/scripts/collect_all_cases.py \
             --test-dir test \
+            --case-paths-config ../ascend_pytorch/test_upstream/case_paths_ci.yml \
             --distributed-shards ${DISTRIBUTED_SHARDS} \
             --regular-shards ${REGULAR_SHARDS} \
             --output-dir cases_shards \
