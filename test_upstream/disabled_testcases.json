@@ -1019,6 +1019,6 @@
     "test_serialization_sharing (__main__.TestScript)": ["", [""]],
     "test_torch_tensor_dtype (__main__.TestScript)": ["", [""]],
     "test_lstm_concat_cuda (__main__.TestFuser)": ["", [""]],
-    "test_fused_sdp_choice_type_dense_npu (__main__.TestSDPACudaOnlyPRIVATEUSE1)": ["CUDA-only SDP backend selection logic does not apply to PrivateUse1 backend; NPU should use test_fused_sdp_choice_xpu series in TestSDPAXpuOnly", [""]]
+    "test_fused_sdp_choice_type_dense_npu (__main__.TestSDPACudaOnlyPRIVATEUSE1)": ["CUDA-only SDP backend selection logic does not apply to PrivateUse1 backend; NPU should use test_fused_sdp_choice_xpu series in TestSDPAXpuOnly", [""]],
     "test_fused_sdp_choice_type_nested_npu (__main__.TestSDPACudaOnlyPRIVATEUSE1)": ["CUDA-only SDP backend selection logic does not apply to PrivateUse1 backend; NPU should use test_fused_sdp_choice_xpu series in TestSDPAXpuOnly", [""]]
 }
