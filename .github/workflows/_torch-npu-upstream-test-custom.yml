@@ -148,6 +148,16 @@ jobs:
       - name: Package and upload test reports
         if: always()
         run: |
+          # Package junit XMLs into compressed archive
+          if [ -d "test-reports/junit_xmls" ]; then
+            echo "=== Compressing junit XMLs ==="
+            XML_COUNT=$(find test-reports/junit_xmls -type f -name "*.xml" | wc -l)
+            echo "Found ${XML_COUNT} XML files"
+            tar -czf test-reports/junit_xmls.tar.gz -C test-reports junit_xmls
+            rm -rf test-reports/junit_xmls
+            echo "JUnit XMLs compressed"
+          fi
+
           # Package failed cases logs into compressed archive
           if [ -d "test-reports/failed_cases_logs" ]; then
             echo "=== Compressing failed cases logs ==="

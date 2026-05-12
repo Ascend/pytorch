@@ -152,11 +152,17 @@ def sanitize_nodeid_for_filename(nodeid: str) -> str:
     Convert nodeid to a safe filename.
 
     Replaces special characters with underscores and truncates if too long.
+    Invalid characters for NTFS/filesystems: " : < > | * ? \r \n
     """
-    # Replace special characters
+    # Replace special characters (including NTFS-invalid chars)
     safe_name = nodeid.replace("::", "_").replace("/", "_").replace("\\", "_")
     safe_name = safe_name.replace("(", "_").replace(")", "_").replace("[", "_").replace("]", "_")
-    safe_name = safe_name.replace("*", "_").replace("?", "_").replace(" ", "_")
+    # NTFS-invalid characters that GitHub Actions artifact upload rejects
+    safe_name = safe_name.replace("<", "_lt_").replace(">", "_gt_")
+    safe_name = safe_name.replace('"', "_quot_").replace("|", "_pipe_")
+    safe_name = safe_name.replace("*", "_star_").replace("?", "_q_")
+    safe_name = safe_name.replace(":", "_colon_")
+    safe_name = safe_name.replace(" ", "_")
     safe_name = safe_name.replace(".", "_")
 
     # Remove leading underscores and collapse multiple underscores
@@ -1152,6 +1158,7 @@ def run_tests_with_concurrent_isolation(
     shard_type: str,
     max_workers: int,
     result_module,
+    quick_test: int = None,
 ) -> Tuple[int, float, List[Dict]]:
     """
     Execute tests with concurrent per-case isolation.
@@ -1175,6 +1182,7 @@ def run_tests_with_concurrent_isolation(
         shard_type: "distributed" or "regular"
         max_workers: Maximum concurrent subprocesses (default: 4)
         result_module: parse_test_results module
+        quick_test: Maximum number of cases to execute (None = all cases)
 
     Returns:
         Tuple of (worst_returncode, duration, cases_list_sorted)
@@ -1233,7 +1241,15 @@ def run_tests_with_concurrent_isolation(
     case_idx = 0
 
     print("Phase 1: Collecting test cases...")
+    if quick_test:
+        print(f"  Quick test mode: will collect up to {quick_test} cases")
+
     for file_idx, test_file in enumerate(planned_tests, 1):
+        # Quick test: stop collecting if already have enough cases
+        if quick_test and case_idx >= quick_test:
+            print(f"\n  Quick test limit reached ({quick_test} cases), stopping collection")
+            break
+
         test_name = strip_test_prefix_and_suffix(test_file)
         print(f"\n  [File {file_idx}/{len(planned_tests)}] Collecting: {test_name}")
 
@@ -1253,6 +1269,11 @@ def run_tests_with_concurrent_isolation(
                 test_file=test_file,
                 file_idx=file_idx,
             ))
+
+            # Quick test: stop collecting if reached limit
+            if quick_test and case_idx >= quick_test:
+                print(f"    Quick test limit reached ({quick_test} cases)")
+                break
 
     total_cases = len(all_tasks)
     print(f"\n{'=' * 80}")
@@ -1350,12 +1371,16 @@ def run_tests_with_case_isolation(
     verbose: bool,
     shard_type: str,
     result_module,
+    quick_test: int = None,
 ) -> Tuple[int, float, List[Dict]]:
     """
     Execute tests with per-case isolation (strict serial execution).
 
     Each test case runs in its own pytest subprocess for crash isolation.
     No parallel execution - strict serial processing.
+
+    Args:
+        quick_test: Maximum number of cases to execute (None = all cases)
 
     Returns:
         Tuple of (worst_returncode, duration, cases_list)
@@ -1386,12 +1411,19 @@ def run_tests_with_case_isolation(
         print(f"\n{'=' * 80}")
         print(f"Per-case isolation mode: {len(planned_tests)} files")
         print("Execution mode: strict serial, each case in own process")
+        if quick_test:
+            print(f"Quick test mode: will execute up to {quick_test} cases")
         print(f"{'=' * 80}\n")
 
         total_cases = 0
         case_idx = 0
 
         for file_idx, test_file in enumerate(planned_tests, 1):
+            # Quick test: stop if already have enough cases
+            if quick_test and case_idx >= quick_test:
+                print(f"\nQuick test limit reached ({quick_test} cases), stopping execution")
+                break
+
             test_name = strip_test_prefix_and_suffix(test_file)
 
             log_handle.write(f"\n{'=' * 80}\n")
@@ -1469,6 +1501,11 @@ def run_tests_with_case_isolation(
                     if worst_returncode == 0:
                         worst_returncode = rc
 
+                # Quick test: stop after executing enough cases
+                if quick_test and case_idx >= quick_test:
+                    print(f"    Quick test limit reached ({quick_test} cases), stopping")
+                    break
+
         # Summary
         elapsed = monotonic() - start
 
@@ -1509,6 +1546,7 @@ def run_tests_with_tasks_concurrent(
     shard_type: str,
     max_workers: int,
     result_module,
+    quick_test: int = None,
 ) -> Tuple[int, float, List[Dict]]:
     """
     Execute pre-collected test cases with concurrent per-case isolation.
@@ -1527,6 +1565,7 @@ def run_tests_with_tasks_concurrent(
         shard_type: "distributed" or "regular"
         max_workers: Maximum concurrent subprocesses
         result_module: parse_test_results module
+        quick_test: Maximum number of cases to execute (None = all cases)
 
     Returns:
         Tuple of (worst_returncode, duration, cases_list_sorted)
@@ -1574,6 +1613,11 @@ def run_tests_with_tasks_concurrent(
     })
 
     log_thread.start()
+
+    # Quick test: limit number of cases to execute
+    if quick_test and len(tasks) > quick_test:
+        tasks = tasks[:quick_test]
+        print(f"\nQuick test mode: executing only {quick_test} cases", flush=True)
 
     print(f"\n{'=' * 80}", flush=True)
     print(f"Pre-collected cases: {len(tasks)} cases", flush=True)
@@ -1803,6 +1847,7 @@ def parse_args():
         help="Maximum concurrent workers for regular tests (default: 4). Each worker runs one pytest subprocess.",
     )
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
+    parser.add_argument("--quick-test", type=int, default=None, help="Quick test mode: execute only N cases for fast verification (default: None, run all cases)")
     args = parser.parse_args()
 
     # Validate required arguments based on mode
@@ -1904,6 +1949,7 @@ def main():
                 shard_type,
                 args.max_workers,
                 result_module,
+                args.quick_test,
             )
             info["per_case_isolation"] = True
             info["concurrent_workers"] = args.max_workers
@@ -2051,6 +2097,7 @@ def main():
                 shard_type,
                 effective_workers,
                 result_module,
+                args.quick_test,
             )
             info["execution_mode"] = "serial" if effective_workers == 1 else "concurrent"
             info["concurrent_workers"] = effective_workers
@@ -2193,6 +2240,8 @@ def main():
         if shard_type == "distributed":
             # Distributed tests: serial execution for stability
             print("\nExecution mode: SERIAL (distributed tests require sequential execution)")
+            if args.quick_test:
+                print(f"Quick test mode: will execute up to {args.quick_test} cases")
             returncode, duration, cases_list = run_tests_with_case_isolation(
                 planned_tests,
                 args.shard,
@@ -2203,11 +2252,14 @@ def main():
                 args.verbose,
                 shard_type,
                 result_module,
+                args.quick_test,
             )
             info["execution_mode"] = "serial"
         else:
             # Regular tests: concurrent execution for efficiency
             print(f"\nExecution mode: CONCURRENT ({args.max_workers} workers)")
+            if args.quick_test:
+                print(f"Quick test mode: will execute up to {args.quick_test} cases")
             returncode, duration, cases_list = run_tests_with_concurrent_isolation(
                 planned_tests,
                 args.shard,
@@ -2219,6 +2271,7 @@ def main():
                 shard_type,
                 args.max_workers,
                 result_module,
+                args.quick_test,
             )
             info["execution_mode"] = "concurrent"
             info["concurrent_workers"] = args.max_workers

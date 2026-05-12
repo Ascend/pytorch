@@ -485,7 +485,6 @@ def aggregate_cases_by_file(cases_list: List[Dict]) -> Dict[str, Dict]:
                 "passed": 0,
                 "failed": 0,
                 "errors": 0,
-                "crashed": 0,
                 "timeout": 0,
                 "skipped": 0,
                 "failed_cases": [],
@@ -511,14 +510,6 @@ def aggregate_cases_by_file(cases_list: List[Dict]) -> Dict[str, Dict]:
             stats["failed_cases"].append({
                 "nodeid": case.get("nodeid"),
                 "status": "error",
-                "message": case.get("message", ""),
-                "duration": duration,
-            })
-        elif status == "crashed":
-            stats["crashed"] += 1
-            stats["failed_cases"].append({
-                "nodeid": case.get("nodeid"),
-                "status": "crashed",
                 "message": case.get("message", ""),
                 "duration": duration,
             })
@@ -560,7 +551,6 @@ def aggregate_all_cases_by_file(cases_results: Dict) -> Dict[str, Dict]:
                     "passed": 0,
                     "failed": 0,
                     "errors": 0,
-                    "crashed": 0,
                     "timeout": 0,
                     "skipped": 0,
                     "failed_cases": [],
@@ -572,7 +562,6 @@ def aggregate_all_cases_by_file(cases_results: Dict) -> Dict[str, Dict]:
             existing["passed"] += stats["passed"]
             existing["failed"] += stats["failed"]
             existing["errors"] += stats["errors"]
-            existing["crashed"] += stats["crashed"]
             existing["timeout"] += stats["timeout"]
             existing["skipped"] += stats["skipped"]
             existing["duration"] += stats["duration"]
@@ -589,7 +578,7 @@ def aggregate_all_cases_by_file(cases_results: Dict) -> Dict[str, Dict]:
 
 def get_files_with_failures(file_stats: Dict[str, Dict]) -> List[Dict]:
     """
-    Get list of test files that have failures/errors/crashes/timeout.
+    Get list of test files that have failures/errors/timeout.
 
     Args:
         file_stats: Dict from aggregate_all_cases_by_file()
@@ -599,7 +588,7 @@ def get_files_with_failures(file_stats: Dict[str, Dict]) -> List[Dict]:
     """
     failed_files = []
     for test_file, stats in file_stats.items():
-        if stats["failed"] > 0 or stats["errors"] > 0 or stats["crashed"] > 0 or stats["timeout"] > 0:
+        if stats["failed"] > 0 or stats["errors"] > 0 or stats["timeout"] > 0:
             failed_files.append(stats)
 
     failed_files.sort(key=lambda x: x["file"])

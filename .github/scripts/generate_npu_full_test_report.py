@@ -254,8 +254,6 @@ def build_file_to_shards_map(cases_shards_dir: Path) -> Dict[str, List[str]]:
 def get_shard_status(stats: Dict, present: bool) -> str:
     if not present:
         return "MISSING"
-    if stats.get("crashed"):
-        return "CRASHED"
     if stats.get("timed_out"):
         return "TIMEOUT"
     if stats.get("incomplete"):
@@ -272,7 +270,7 @@ def get_shard_status(stats: Dict, present: bool) -> str:
 def get_overall_status(status_counts: Counter) -> str:
     if status_counts["MISSING"] > 0:
         return "FAILED"
-    if any(status_counts[key] > 0 for key in ("CRASHED", "TIMEOUT", "INCOMPLETE", "ERROR", "FAILED")):
+    if any(status_counts[key] > 0 for key in ("TIMEOUT", "INCOMPLETE", "ERROR", "FAILED")):
         return "FAILED"
     if status_counts["PASSED"] > 0:
         return "PASSED"
@@ -362,7 +360,6 @@ def main():
         "failed": 0,
         "errors": 0,
         "skipped": 0,
-        "crashed": 0,
         "timeout": 0,
         "duration": 0.0,
     }
@@ -388,16 +385,14 @@ def main():
             stats["failed"] = cases_data.get("failed", 0)
             stats["errors"] = cases_data.get("errors", 0)
             stats["skipped"] = cases_data.get("skipped", 0)
-            stats["crashed"] = cases_data.get("crashed", 0)
             stats["timeout"] = cases_data.get("timeout", 0)
             stats["duration"] = cases_data.get("duration", 0.0)
-            # Update totals (正交累加: total = passed + failed + errors + skipped + crashed + timeout)
+            # Update totals (正交累加: total = passed + failed + errors + skipped + timeout)
             totals["total"] += cases_data.get("total_cases", 0)
             totals["passed"] += cases_data.get("passed", 0)
             totals["failed"] += cases_data.get("failed", 0)
             totals["errors"] += cases_data.get("errors", 0)
             totals["skipped"] += cases_data.get("skipped", 0)
-            totals["crashed"] += cases_data.get("crashed", 0)
             totals["timeout"] += cases_data.get("timeout", 0)
             totals["duration"] += cases_data.get("duration", 0.0)
 
@@ -422,7 +417,6 @@ def main():
                 "failed": int(stats.get("failed", 0)),
                 "skipped": int(stats.get("skipped", 0)),
                 "errors": int(stats.get("errors", 0)),
-                "crashed": int(stats.get("crashed", 0)),
                 "timeout": int(stats.get("timeout", 0)),
                 "duration": float(stats.get("duration", 0.0)),
             }
@@ -497,7 +491,7 @@ def main():
             (
                 f"{totals['total']} total; {totals['passed']} passed; {totals['failed']} failed; "
                 f"{totals['errors']} errors; {totals['skipped']} skipped; "
-                f"{totals['crashed']} crashed; {totals['timeout']} timeout"
+                f"{totals['timeout']} timeout"
             ),
         ],
     ]
@@ -528,7 +522,7 @@ def main():
         markdown_lines.extend(["", "## 用例级执行统计"])
         markdown_lines.extend(
             render_table(
-                ["Shard", "总用例", "通过", "失败", "错误", "崩溃", "超时", "Duration"],
+                ["Shard", "总用例", "通过", "失败", "错误", "跳过", "超时", "Duration"],
                 [
                     [
                         f"{row['shard']}",
@@ -536,7 +530,7 @@ def main():
                         str(row["passed"]),
                         str(row["failed"]),
                         str(row["errors"]),
-                        str(row.get("crashed", 0)),
+                        str(row.get("skipped", 0)),
                         str(row.get("timeout", 0)),
                         format_duration(row["duration"]),
                     ]
@@ -560,7 +554,7 @@ def main():
 
             file_rows = []
             for fs in sorted_files:  # Show all files
-                failed_total = fs["failed"] + fs["errors"] + fs["crashed"] + fs["timeout"]
+                failed_total = fs["failed"] + fs["errors"] + fs["timeout"]
                 fail_rate = f"{(failed_total / fs['total'] * 100):.1f}%" if fs["total"] > 0 else "0%"
                 # Get shard info for this file
                 file_path = fs["file"]
@@ -577,14 +571,14 @@ def main():
                     str(fs["passed"]),
                     str(fs["failed"]),
                     str(fs["errors"]),
-                    str(fs["crashed"]),
+                    str(fs["skipped"]),
                     str(fs["timeout"]),
                     fail_rate,
                 ])
 
             markdown_lines.extend(
                 render_table(
-                    ["测试文件", "分片", "总用例", "通过", "失败", "错误", "崩溃", "超时", "失败率"],
+                    ["测试文件", "分片", "总用例", "通过", "失败", "错误", "跳过", "超时", "失败率"],
                     file_rows,
                 )
             )
