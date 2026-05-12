@@ -192,7 +192,6 @@ void parseDeviceCoreRange(
 
     std::regex npuPattern("^npu[0-9]{1,2}$");
     if (!std::regex_match(key, npuPattern)) {
-      ASCEND_LOGW("Invalid device name: %s", key.c_str());
       continue;
     }
     int device_id = std::stoi(key.substr(3)); // Skip first 3 chars ("npu").
