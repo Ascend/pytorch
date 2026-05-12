@@ -1,0 +1,117 @@
+name: Torch NPU Upstream Report
+
+on:
+  workflow_call:
+    inputs:
+      python_version:
+        required: true
+        type: string
+        description: Python version to use
+      pytorch_version:
+        required: true
+        type: string
+        description: PyTorch version
+      torch_npu_wheel_name:
+        required: false
+        type: string
+        default: 'source-build.whl'
+        description: Name of the torch_npu wheel file
+      patch_count:
+        required: false
+        type: string
+        default: 'N/A'
+        description: Number of patches applied
+      docker_image:
+        required: true
+        type: string
+        description: Docker image used for tests
+      distributed_matrix:
+        required: false
+        type: string
+        default: '[]'
+        description: Distributed shard matrix JSON
+      regular_matrix:
+        required: false
+        type: string
+        default: '[]'
+        description: Regular shard matrix JSON
+
+jobs:
+  generate_report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          repository: kerer-ai/pytorch
+          ref: v2.7.1_dev
+          fetch-depth: 1
+
+      - name: Setup Python ${{ inputs.python_version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python_version }}
+
+      - name: Download distributed shard reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-reports-dist-*
+          path: all-test-reports
+          merge-multiple: true
+
+      - name: Download regular shard reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-reports-reg-*
+          path: all-test-reports
+          merge-multiple: true
+
+      - name: Download custom test reports
+        uses: actions/download-artifact@v4
+        with:
+          name: test-reports-custom
+          path: all-test-reports
+          merge-multiple: true
+        continue-on-error: true
+
+      - name: Download cases collection summary
+        uses: actions/download-artifact@v4
+        with:
+          name: cases-shards
+          path: cases-shards
+        continue-on-error: true
+
+      - name: Generate consolidated summary
+        run: |
+          PYTHON=python
+          REPORT_MD=npu-full-test-summary.md
+          REPORT_JSON=npu-full-test-summary.json
+
+          # Combine both shard matrices for reporting
+          DIST_MATRIX='${{ inputs.distributed_matrix }}'
+          REG_MATRIX='${{ inputs.regular_matrix }}'
+          COMBINED_MATRIX=$(python3 -c "import sys,json; dist=json.loads('${DIST_MATRIX}'); reg=json.loads('${REG_MATRIX}'); print(json.dumps(['dist-'+str(s) for s in dist]+['reg-'+str(s) for s in reg]))")
+
+          $PYTHON .github/scripts/generate_npu_full_test_report.py \
+            --reports-root all-test-reports \
+            --output-markdown ${REPORT_MD} \
+            --output-json ${REPORT_JSON} \
+            --pytorch-version "${{ inputs.pytorch_version }}" \
+            --torch-npu-whl "${{ inputs.torch_npu_wheel_name }}" \
+            --patch-count "${{ inputs.patch_count }}" \
+            --shard-matrix-json "${COMBINED_MATRIX}" \
+            --docker-image "${{ inputs.docker_image }}" \
+            --runner "linux-aarch64-a3-16 (distributed, serial), linux-aarch64-a3-16 (regular, 64 workers), linux-aarch64-a3-8 (custom)" \
+            --cases-summary cases-shards/cases_collection_summary.json
+
+          cat ${REPORT_MD} >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload consolidated summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: npu-full-test-summary
+          path: |
+            npu-full-test-summary.md
+            npu-full-test-summary.json
+          retention-days: 30

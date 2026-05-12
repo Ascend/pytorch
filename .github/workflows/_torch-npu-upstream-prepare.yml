@@ -1,0 +1,78 @@
+name: Torch NPU Upstream Prepare
+
+on:
+  workflow_call:
+    inputs:
+      pytorch_version:
+        required: true
+        type: string
+        description: PyTorch version to clone for test source
+      prepared_test_src_artifact:
+        required: true
+        type: string
+        description: Name of the artifact for prepared test source
+    outputs:
+      patch_count:
+        description: Number of patches applied
+        value: ${{ jobs.prepare.outputs.patch_count }}
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      patch_count: ${{ steps.apply_patches.outputs.patch_count }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          repository: kerer-ai/pytorch
+          ref: v2.7.1_dev
+          fetch-depth: 1
+
+      - name: Clone PyTorch v${{ inputs.pytorch_version }} (for test source)
+        run: |
+          git clone --depth=1 --branch v${{ inputs.pytorch_version }} \
+            https://github.com/pytorch/pytorch.git pytorch-test-src
+
+      - name: Copy test_upstream patches
+        run: |
+          cp -r test_upstream pytorch-test-src/
+
+      - name: Apply NPU patches
+        id: apply_patches
+        run: |
+          cd pytorch-test-src/test_upstream
+          chmod +x apply_patch.sh
+          # Count patch files before applying
+          PATCH_COUNT=$(find . -name "*.patch" -o -name "*.diff" | wc -l)
+          echo "Found ${PATCH_COUNT} patch files"
+          ./apply_patch.sh 2>&1 | tee /tmp/patch.log
+          APPLY_STATUS=$?
+          # Use patch file count as the metric (more reliable than grep Chinese output)
+          echo "patch_count=${PATCH_COUNT}" >> $GITHUB_OUTPUT
+          echo "apply_status=${APPLY_STATUS}" >> $GITHUB_OUTPUT
+          # Fail if apply_patch.sh returned non-zero
+          if [ ${APPLY_STATUS} -ne 0 ]; then
+            echo "Patch application failed!"
+            exit 1
+          fi
+
+      - name: Package prepared test source
+        run: |
+          tar -czf pytorch-test-src.tar.gz pytorch-test-src
+
+      - name: Upload prepared test source
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.prepared_test_src_artifact }}
+          path: pytorch-test-src.tar.gz
+          retention-days: 7
+
+      - name: Upload prepare logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prepare-logs
+          path: /tmp/patch.log
+          if-no-files-found: warn
+          retention-days: 30
