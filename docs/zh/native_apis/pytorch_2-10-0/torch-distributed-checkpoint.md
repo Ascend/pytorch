@@ -61,6 +61,11 @@
 |torch.distributed.checkpoint.state_dict.set_model_state_dict|是|-|
 |torch.distributed.checkpoint.state_dict.set_optimizer_state_dict|是|-|
 |torch.distributed.checkpoint.state_dict.StateDictOptions|是|-|
+|torch.distributed.checkpoint.format_utils.BroadcastingTorchSaveReader|是|-|
+|torch.distributed.checkpoint.format_utils.BroadcastingTorchSaveReader.read_metadata|是|-|
+|torch.distributed.checkpoint.format_utils.BroadcastingTorchSaveReader.prepare_local_plan|是|-|
+|torch.distributed.checkpoint.format_utils.BroadcastingTorchSaveReader.prepare_global_plan|是|-|
+|torch.distributed.checkpoint.format_utils.BroadcastingTorchSaveReader.read_data|是|-|
 |torch.distributed.checkpoint.format_utils.BroadcastingTorchSaveReader.reset|是|-|
 |torch.distributed.checkpoint.format_utils.BroadcastingTorchSaveReader.set_up_storage_reader|是|-|
 |torch.distributed.checkpoint.format_utils.BroadcastingTorchSaveReader.validate_checkpoint_id|是|-|
