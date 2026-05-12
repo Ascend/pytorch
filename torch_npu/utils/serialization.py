@@ -1,25 +1,39 @@
 import io
 import os
-import sys
 import pickle
 import re
+import sys
 import threading
-from typing import Dict, Any, Optional, Union
-from typing_extensions import TypeGuard
+from typing import Any, TypeGuard
 
 import torch
-from torch.serialization import _check_dill_version, _open_file_like, _is_zipfile, \
-    _open_zipfile_reader, _is_torchscript_zip, _weights_only_unpickler, \
-    _legacy_load, _load, FileLike, MAP_LOCATION, DEFAULT_PROTOCOL, \
-    normalize_storage_type, location_tag, _serialization_tls, _get_storage_alignment, \
-    _open_zipfile_writer
-from torch.serialization import _default_to_weights_only, UNSAFE_MESSAGE
-
 import torch_npu
+from torch.serialization import (  # noqa: F401
+    _check_dill_version,
+    _default_to_weights_only,
+    _get_storage_alignment,
+    _is_torchscript_zip,
+    _is_zipfile,
+    _legacy_load,
+    _load,
+    _open_file_like,
+    _open_zipfile_reader,
+    _open_zipfile_writer,
+    _serialization_tls,
+    _weights_only_unpickler,
+    DEFAULT_PROTOCOL,
+    FileLike,
+    location_tag,
+    MAP_LOCATION,
+    normalize_storage_type,
+    UNSAFE_MESSAGE,
+)
 from torch_npu.utils._error_code import ErrCode, pta_error
+
 from .utils import _should_print_warning
 
-__all__ = ["load", "save", "save_async"]
+
+__all__ = ["load", "save_async"]
 
 ALWAYS_WARN_LEGACY_SERIALIZATION = False
 RE_MAP_CPU = False
@@ -130,11 +144,11 @@ def _remap_result(cpu_result, map_location):
 def _update_cpu_remap_info(map_location):
     global RE_MAP_CPU
     RE_MAP_CPU = False
-    if isinstance(map_location, (str, torch.device)) and 'cpu' in str(map_location):
+    if isinstance(map_location, (str, torch.device)) and "cpu" in str(map_location):
         RE_MAP_CPU = True
 
 
-def _is_path(name_or_buffer) -> TypeGuard[Union[str, os.PathLike]]:
+def _is_path(name_or_buffer) -> TypeGuard[str | os.PathLike]:
     return isinstance(name_or_buffer, (str, os.PathLike))
 
 
@@ -143,15 +157,13 @@ def load(
     map_location: MAP_LOCATION = None,
     pickle_module: Any = None,
     *,
-    weights_only: Optional[bool] = None,
-    mmap: Optional[bool] = None,
-    **pickle_load_args: Any
+    weights_only: bool | None = None,
+    mmap: bool | None = None,
+    **pickle_load_args: Any,
 ) -> Any:
     _update_cpu_remap_info(map_location)
     torch._C._log_api_usage_once("torch.load")
-    DOCS_MESSAGE = (
-        "\n\nCheck the documentation of torch.load to learn more about types accepted by default with weights_only."
-    )
+    DOCS_MESSAGE = "\n\nCheck the documentation of torch.load to learn more about types accepted by default with weights_only."
 
     def _get_wo_message(message: str) -> str:
         unsafe_global_pattern = r"GLOBAL (\S+) was not an allowed global by default."
@@ -212,8 +224,10 @@ def load(
 
     if weights_only:
         if pickle_module is not None:
-            raise RuntimeError("Can not safely load weights when explicit pickle_module is specified" +
-                               pta_error(ErrCode.PARAM))
+            raise RuntimeError(
+                "Can not safely load weights when explicit pickle_module is specified"
+                + pta_error(ErrCode.PARAM)
+            )
     else:
         if pickle_module is None:
             pickle_module = pickle
@@ -221,70 +235,109 @@ def load(
     # make flipping default BC-compatible
     if mmap is None:
         from torch.utils.serialization import config
+
         mmap = config.load.mmap
 
     _check_dill_version(pickle_module)
 
-    if 'encoding' not in pickle_load_args.keys():
-        pickle_load_args['encoding'] = 'utf-8'
+    if "encoding" not in pickle_load_args:
+        pickle_load_args["encoding"] = "utf-8"
 
-    with _open_file_like(f, 'rb') as opened_file:
+    with _open_file_like(f, "rb") as opened_file:
         if _is_zipfile(opened_file):
             orig_position = opened_file.tell()
             overall_storage = None
             with _open_zipfile_reader(opened_file) as opened_zipfile:
                 if _is_torchscript_zip(opened_zipfile):
-                    print(f"Warning: 'torch.load' received a zip file that looks like a TorchScript archive"
-                          " dispatching to 'torch.jit.load' (call 'torch.jit.load' directly to silence this warning)")
+                    print(
+                        "Warning: 'torch.load' received a zip file that looks like a TorchScript archive"
+                        " dispatching to 'torch.jit.load' (call 'torch.jit.load' directly to silence this warning)"
+                    )
                     if weights_only:
                         raise RuntimeError(
                             "Cannot use ``weights_only=True`` with TorchScript archives passed to "
-                            "``torch.load``. " + UNSAFE_MESSAGE + pta_error(ErrCode.PARAM)
+                            "``torch.load``. "
+                            + UNSAFE_MESSAGE
+                            + pta_error(ErrCode.PARAM)
                         )
                     opened_file.seek(orig_position)
                     return torch.jit.load(opened_file, map_location=map_location)
                 if mmap:
                     if not _is_path(f):
-                        raise ValueError("f must be a file path in order to use the mmap argument")
+                        raise ValueError(
+                            "f must be a file path in order to use the mmap argument"
+                        )
                     size = os.path.getsize(f)
-                    overall_storage = torch.UntypedStorage.from_file(os.fspath(f), False, size)
+                    overall_storage = torch.UntypedStorage.from_file(
+                        os.fspath(f), False, size
+                    )
                 if weights_only:
                     try:
-                        return _load(opened_zipfile, map_location, _weights_only_unpickler,
-                                     overall_storage=overall_storage, **pickle_load_args)
+                        return _load(
+                            opened_zipfile,
+                            map_location,
+                            _weights_only_unpickler,
+                            overall_storage=overall_storage,
+                            **pickle_load_args,
+                        )
                     except RuntimeError as e:
-                        raise pickle.UnpicklingError(_get_wo_message(str(e)) + pta_error(ErrCode.SYSCALL)) from None
-                return _load(opened_zipfile, map_location, pickle_module,
-                             overall_storage=overall_storage, **pickle_load_args)
+                        raise pickle.UnpicklingError(
+                            _get_wo_message(str(e)) + pta_error(ErrCode.SYSCALL)
+                        ) from None
+                return _load(
+                    opened_zipfile,
+                    map_location,
+                    pickle_module,
+                    overall_storage=overall_storage,
+                    **pickle_load_args,
+                )
         else:
             if mmap:
-                raise RuntimeError("mmap can only be used with files saved with "
-                                   "`torch.save(_use_new_zipfile_serialization=True), "
-                                   "please torch.save your checkpoint with this option in order to use mmap."
-                                   + pta_error(ErrCode.PARAM))
+                raise RuntimeError(
+                    "mmap can only be used with files saved with "
+                    "`torch.save(_use_new_zipfile_serialization=True), "
+                    "please torch.save your checkpoint with this option in order to use mmap."
+                    + pta_error(ErrCode.PARAM)
+                )
             if weights_only:
                 try:
-                    return _legacy_load(opened_file, map_location, _weights_only_unpickler, **pickle_load_args)
+                    return _legacy_load(
+                        opened_file,
+                        map_location,
+                        _weights_only_unpickler,
+                        **pickle_load_args,
+                    )
                 except RuntimeError as e:
-                    raise pickle.UnpicklingError(_get_wo_message(str(e)) + pta_error(ErrCode.SYSCALL)) from None
+                    raise pickle.UnpicklingError(
+                        _get_wo_message(str(e)) + pta_error(ErrCode.SYSCALL)
+                    ) from None
 
             warn_massage = (
-                "Warning: since the loaded file is not a zipfile, only \"torch.device\" and \"str\" type parameters "
+                'Warning: since the loaded file is not a zipfile, only "torch.device" and "str" type parameters '
                 "are currently supported for parameter types of map_location. If parameter types of map_location is "
-                "\"Callable[[torch.Tensor, str], torch.Tensor]\" or \"Dict[str, str]\", which is only support for "
+                '"Callable[[torch.Tensor, str], torch.Tensor]" or "Dict[str, str]", which is only support for '
                 "zipfile, all tensors are currently loaded onto the CPU, which may introduce problems."
             )
             _warn_legacy_serialization(warn_massage, "load")
 
-            if map_location is not None and isinstance(map_location, (torch.device, str)):
-                cpu_result = _legacy_load(opened_file, "cpu", pickle_module, **pickle_load_args)
+            if map_location is not None and isinstance(
+                map_location, (torch.device, str)
+            ):
+                cpu_result = _legacy_load(
+                    opened_file, "cpu", pickle_module, **pickle_load_args
+                )
                 if isinstance(map_location, str) and "cpu" in map_location:
                     return cpu_result
-                if isinstance(map_location, torch.device) and "cpu" in map_location.type:
+                if (
+                    isinstance(map_location, torch.device)
+                    and "cpu" in map_location.type
+                ):
                     return cpu_result
                 return _remap_result(cpu_result, map_location)
             else:
-                return _legacy_load(opened_file, "cpu", pickle_module, **pickle_load_args)
+                return _legacy_load(
+                    opened_file, "cpu", pickle_module, **pickle_load_args
+                )
 
 
 def _npu_save(
@@ -310,23 +363,33 @@ def _npu_save(
                 storage_type_str = obj._pickle_storage_type()
                 storage_type = getattr(torch, storage_type_str)
                 is_fake = hasattr(obj, "_fake_device") and obj._fake_device is not None
-                is_meta = (str(storage.device) == "meta")
+                is_meta = str(storage.device) == "meta"
                 if storage.device.type == "cpu" or is_fake or is_meta:
                     storage_numel = obj._size()
                 else:
-                    storage_tensor = torch_npu._C._tensor_construct_from_storage(storage)
-                    storage_numel = storage_tensor.size().numel() * storage_tensor.element_size() // obj._element_size()
+                    storage_tensor = torch_npu._C._tensor_construct_from_storage(
+                        storage
+                    )
+                    storage_numel = (
+                        storage_tensor.size().numel()
+                        * storage_tensor.element_size()
+                        // obj._element_size()
+                    )
 
             else:
                 storage = obj
                 storage_dtype = torch.uint8
                 storage_type = normalize_storage_type(type(obj))
-                is_meta = (str(storage.device) == "meta")
+                is_meta = str(storage.device) == "meta"
                 if storage.device.type == "cpu" or is_meta or storage.data_ptr() == 0:
                     storage_numel = storage.nbytes()
                 else:
-                    storage_tensor = torch_npu._C._tensor_construct_from_storage(storage)
-                    storage_numel = storage_tensor.size().numel() * storage_tensor.element_size()
+                    storage_tensor = torch_npu._C._tensor_construct_from_storage(
+                        storage
+                    )
+                    storage_numel = (
+                        storage_tensor.size().numel() * storage_tensor.element_size()
+                    )
 
             # If storage is allocated, ensure that any other saved storages
             # pointing to the same data all have the same dtype. If storage is
@@ -382,7 +445,7 @@ def _npu_save(
         zip_file.write_record("byteorder", sys.byteorder, len(sys.byteorder))
 
     # Write each tensor to a file named tensor/the_tensor_key in the zip archive
-    for key in serialized_storages.keys():
+    for key in serialized_storages:
         name = f"data/{key}"
         storage = serialized_storages[key]
         global _serialization_tls
@@ -404,11 +467,7 @@ def _npu_save(
 
             if (
                 config.save.use_pinned_memory_for_d2h
-                and (
-                    acc := torch.accelerator.current_accelerator(
-                        check_available=True
-                    )
-                )
+                and (acc := torch.accelerator.current_accelerator(check_available=True))
                 is not None
                 and acc.type == storage.device.type
             ):
@@ -428,11 +487,7 @@ def _npu_save(
 
             if (
                 config.save.use_pinned_memory_for_d2h
-                and (
-                    acc := torch.accelerator.current_accelerator(
-                        check_available=True
-                    )
-                )
+                and (acc := torch.accelerator.current_accelerator(check_available=True))
                 is not None
                 and acc.type == "npu"
             ):
@@ -446,23 +501,6 @@ def _npu_save(
         zip_file.write_record(name, storage, num_bytes)
 
 
-def save(
-    obj: object,
-    f: FileLike,
-    pickle_module: Any = pickle,
-    pickle_protocol: int = DEFAULT_PROTOCOL,
-    _use_new_zipfile_serialization: bool = True,
-    _disable_byteorder_record: bool = False
-) -> None:
-    if _use_new_zipfile_serialization is False:
-        warn_massage = (
-            "Warning: torch.save with \"_use_new_zipfile_serialization = False\" is not recommended for npu tensor, which may bring unexpected errors and hopefully set \"_use_new_zipfile_serialization = True\"",
-            "if it is necessary to use this, please convert the npu tensor to cpu tensor for saving"
-        )
-        _warn_legacy_serialization(warn_massage, "save")
-    return torch.serialization.save(obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization, _disable_byteorder_record)
-
-
 def save_async(
     obj: object,
     f,
@@ -470,26 +508,35 @@ def save_async(
     pickle_protocol: int = DEFAULT_PROTOCOL,
     _use_new_zipfile_serialization: bool = True,
     _disable_byteorder_record: bool = False,
-    model: torch.nn.Module = None
+    model: torch.nn.Module = None,
 ) -> None:
     if _use_new_zipfile_serialization is False:
-        raise RuntimeError("Error: torch_npu.save_async with \"_use_new_zipfile_serialization = False\"\
-                           is not recommended for npu tensor, which may bring unexpected errors and hopefully \
-                           set \"_use_new_zipfile_serialization = True\"",
-                           "if it is necessary to use this, please convert the npu tensor to cpu tensor for saving" +
-                           pta_error(ErrCode.PARAM))
+        raise RuntimeError(
+            'Error: torch_npu.save_async with "_use_new_zipfile_serialization = False"'
+            " is not recommended for npu tensor, which may bring unexpected errors and hopefully"
+            ' set "_use_new_zipfile_serialization = True"',
+            "if it is necessary to use this, please convert the npu tensor to cpu tensor for saving"
+            + pta_error(ErrCode.PARAM),
+        )
 
     _check_dill_version(pickle_module)
-    save_args = (obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization, _disable_byteorder_record)
+    save_args = (
+        obj,
+        f,
+        pickle_module,
+        pickle_protocol,
+        _use_new_zipfile_serialization,
+        _disable_byteorder_record,
+    )
 
     device = torch.npu.current_device()
-    save_thread = threading.Thread(target=_save_data_thread, args=(save_args, device, model))
+    save_thread = threading.Thread(
+        target=_save_data_thread, args=(save_args, device, model)
+    )
     save_thread.start()
 
 
-def _save_data_thread(save_args,
-                     device,
-                     model: torch.nn.Module = None):
+def _save_data_thread(save_args, device, model: torch.nn.Module = None):
     global save_async_stream_map
     torch.npu.set_device(device)
 
@@ -504,28 +551,37 @@ def _save_data_thread(save_args,
     else:
         save_async_stream = save_async_stream_map[device]
 
-    obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization, _disable_byteorder_record = save_args
+    (
+        obj,
+        f,
+        pickle_module,
+        pickle_protocol,
+        _use_new_zipfile_serialization,
+        _disable_byteorder_record,
+    ) = save_args
     with torch.npu.stream(save_async_stream):
         data_value, serialized_storages = _save(obj, pickle_module, pickle_protocol)
         storage_value = []
         for key in sorted(serialized_storages.keys()):
-            name = f'data/{key}'
+            name = f"data/{key}"
             storage = serialized_storages.get(key)
             # given that we copy things around anyway, we might use storage.cpu()
             # this means to that to get tensors serialized, you need to implement
             # .cpu() on the underlying Storage
-            if storage.device.type != 'cpu':
+            if storage.device.type != "cpu":
                 storage = storage.cpu()
             # Now that it is on the CPU we can directly copy it into the zip file
             if storage.device.type != "cpu":
                 storage_tensor = torch_npu._C._tensor_construct_from_storage(storage)
-                num_bytes = storage_tensor.size().numel() * storage_tensor.element_size()
+                num_bytes = (
+                    storage_tensor.size().numel() * storage_tensor.element_size()
+                )
             else:
                 num_bytes = storage.nbytes()
             storage_value.append((name, storage, num_bytes))
 
     with _open_zipfile_writer(f) as opened_zipfile:
-        opened_zipfile.write_record('data.pkl', data_value, len(data_value))
+        opened_zipfile.write_record("data.pkl", data_value, len(data_value))
 
         for name, storage, num_bytes in storage_value:
             opened_zipfile.write_record(name, storage.data_ptr(), num_bytes)
@@ -533,24 +589,29 @@ def _save_data_thread(save_args,
 
 def _save(obj, pickle_module, pickle_protocol):
     serialized_storages = {}
-    id_map: Dict[int, str] = {}
+    id_map: dict[int, str] = {}
 
     # Since loading storages that view the same data with different dtypes is
     # not supported, we need to keep track of the dtype associated with each
     # storage data_ptr and throw an error if the dtype is ever different.
-    storage_dtypes: Dict[int, torch.dtype] = {}
+    storage_dtypes: dict[int, torch.dtype] = {}
 
     def persistent_id(obj):
         if isinstance(obj, torch.storage.TypedStorage) or torch.is_storage(obj):
-
             if isinstance(obj, torch.storage.TypedStorage):
                 storage = obj._untyped_storage
                 storage_dtype = obj.dtype
                 storage_type_str = obj._pickle_storage_type()
                 storage_type = getattr(torch, storage_type_str)
                 if storage.device.type != "cpu":
-                    storage_tensor = torch_npu._C._tensor_construct_from_storage(storage)
-                    storage_numel = storage_tensor.size().numel() * storage_tensor.element_size() // obj._element_size()
+                    storage_tensor = torch_npu._C._tensor_construct_from_storage(
+                        storage
+                    )
+                    storage_numel = (
+                        storage_tensor.size().numel()
+                        * storage_tensor.element_size()
+                        // obj._element_size()
+                    )
                 else:
                     storage_numel = obj._size()
 
@@ -559,8 +620,12 @@ def _save(obj, pickle_module, pickle_protocol):
                 storage_dtype = torch.uint8
                 storage_type = normalize_storage_type(type(obj))
                 if storage.device.type != "cpu":
-                    storage_tensor = torch_npu._C._tensor_construct_from_storage(storage)
-                    storage_numel = storage_tensor.size().numel() * storage_tensor.element_size()
+                    storage_tensor = torch_npu._C._tensor_construct_from_storage(
+                        storage
+                    )
+                    storage_numel = (
+                        storage_tensor.size().numel() * storage_tensor.element_size()
+                    )
                 else:
                     storage_numel = storage.nbytes()
 
@@ -571,8 +636,10 @@ def _save(obj, pickle_module, pickle_protocol):
                 if storage.data_ptr() in storage_dtypes:
                     if storage_dtype != storage_dtypes[storage.data_ptr()]:
                         raise RuntimeError(
-                            'Cannot save multiple tensors or storages that '
-                            'view the same data as different types' + pta_error(ErrCode.VALUE))
+                            "Cannot save multiple tensors or storages that "
+                            "view the same data as different types"
+                            + pta_error(ErrCode.VALUE)
+                        )
                 else:
                     storage_dtypes[storage.data_ptr()] = storage_dtype
 
@@ -580,11 +647,7 @@ def _save(obj, pickle_module, pickle_protocol):
             location = location_tag(storage)
             serialized_storages[storage_key] = storage
 
-            return ('storage',
-                    storage_type,
-                    storage_key,
-                    location,
-                    storage_numel)
+            return ("storage", storage_type, storage_key, location, storage_numel)
 
         return None
 
@@ -604,7 +667,21 @@ def _save(obj, pickle_module, pickle_protocol):
 
 
 def _add_serialization_methods():
-    torch.save = save
-    torch.load = load
     torch.serialization._save = _npu_save
+    torch.load = load
+
+    _orig_legacy_save = torch.serialization._legacy_save
+
+    def _npu_legacy_save(obj, f, pickle_module, pickle_protocol):
+        warn_massage = (
+            'Warning: torch.save with "_use_new_zipfile_serialization = False" is not recommended '
+            "for npu tensor, which may bring unexpected errors and hopefully set "
+            '"_use_new_zipfile_serialization = True"',
+            "if it is necessary to use this, please convert the npu tensor to cpu tensor for saving",
+        )
+        _warn_legacy_serialization(warn_massage, "save")
+        return _orig_legacy_save(obj, f, pickle_module, pickle_protocol)
+
+    torch.serialization._legacy_save = _npu_legacy_save
+
     torch.serialization.add_safe_globals([torch_npu.utils.storage._rebuild_npu_tensor])
