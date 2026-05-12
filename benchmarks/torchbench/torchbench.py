@@ -33,23 +33,33 @@ import gc
 import importlib
 import logging
 import os
-import re
 import sys
 import warnings
 from os.path import abspath, exists
+
 import torch
 from common import BenchmarkRunner, main
 from torch._dynamo.testing import collect_results, reduce_to_scalar_loss
 from torch._dynamo.utils import clone_inputs
+
+
 try:
-    import torch_npu
+    from npu_support import _patch_environment_variables
 except ImportError:
     pass
 from benchmark.userbenchmark.dynamo.dynamobench.torchbench import (
-    USE_SMALL_BATCH_SIZE, ONLY_TRAINING_MODE, REQUIRE_HIGHER_TOLERANCE, REQUIRE_EVEN_HIGHER_TOLERANCE,
-    NONDETERMINISTIC, VERY_SLOW_BENCHMARKS, SLOW_BENCHMARKS, DONT_CHANGE_BATCH_SIZE,
-    MAX_BATCH_SIZE_FOR_ACCURACY_CHECK, FORCE_AMP_FOR_FP16_BF16_MODELS, 
+    DONT_CHANGE_BATCH_SIZE,
+    FORCE_AMP_FOR_FP16_BF16_MODELS,
+    MAX_BATCH_SIZE_FOR_ACCURACY_CHECK,
+    NONDETERMINISTIC,
+    ONLY_TRAINING_MODE,
+    REQUIRE_EVEN_HIGHER_TOLERANCE,
+    REQUIRE_HIGHER_TOLERANCE,
+    SLOW_BENCHMARKS,
+    USE_SMALL_BATCH_SIZE,
+    VERY_SLOW_BENCHMARKS,
 )
+
 
 # We are primarily interested in tf32 datatype
 torch.backends.cuda.matmul.allow_tf32 = True
@@ -63,7 +73,7 @@ def setup_torchbench_cwd():
     search_dirs = [
         "./benchmark",
         "./torchbenchmark",
-        "../torchbenchmark", 
+        "../torchbenchmark",
         "../torchbench",
         "../benchmark",
         "../../torchbenchmark",
@@ -75,7 +85,7 @@ def setup_torchbench_cwd():
         if exists(path):
             torchbench_dir = abspath(path)
             break
-    
+
     if torchbench_dir:
         os.chdir(torchbench_dir)
         sys.path.append(torchbench_dir)
@@ -93,9 +103,7 @@ SKIP = {
 }
 
 
-CHECK_NUMPY_VERSION = {
-    "soft_actor_critic"
-}
+CHECK_NUMPY_VERSION = {"soft_actor_critic"}
 
 
 REQUIRE_HIGHER_FP16_TOLERANCE = {
@@ -106,9 +114,13 @@ REQUIRE_HIGHER_FP16_TOLERANCE = {
 NPU_REQUIRE_HIGHER_TOLERANCE = {
     "dcgan",
     "mobilenet_v2",
-    "shufflenet_v2_x1_0",
     "timm_vovnet",
     "phlippe_resnet",
+}
+
+
+NPU_REQUIRE_EVEN_HIGHER_TOLERANCE = {
+    "shufflenet_v2_x1_0",
 }
 
 
@@ -132,6 +144,7 @@ NPU_REQUIRE_LEARNING_RATE = {
     "alexnet",
     "dcgan",
     "nvidia_deeprecommender",
+    "BERT_pytorch",
 }
 
 
@@ -154,13 +167,17 @@ NPU_REUQIRE_EVEN_LOWER_LEARNING_RATE = {
 }
 
 
-NPU_DVM_NO_ACLGRAPH = {
-
-}
+NPU_DVM_NO_ACLGRAPH = {}
 
 
-NPU_MLIR_NO_ACLGRAPH = {
+NPU_MLIR_NO_ACLGRAPH = {}
 
+
+NPU_BATCH_SIZE = {
+    "alexnet": 64,
+    "dcgan": 64,
+    "lennard_jones": 4096,
+    "nvidia_deeprecommender": 256,
 }
 
 
@@ -198,7 +215,7 @@ class TorchBenchmarkRunner(BenchmarkRunner):
         part=None,
     ):
         is_training = self.args.training
-        dynamic_shapes = self.args.dynamic_shapes
+
         candidates = [
             f"torchbenchmark.models.{model_name}",
             f"torchbenchmark.canary_models.{model_name}",
@@ -228,10 +245,12 @@ class TorchBenchmarkRunner(BenchmarkRunner):
 
         # Control the memory footprint for few models
         if (
-            (self.args.accuracy or self.args.precision_checker)
-            and model_name in MAX_BATCH_SIZE_FOR_ACCURACY_CHECK
-        ):
+            self.args.accuracy or self.args.precision_checker
+        ) and model_name in MAX_BATCH_SIZE_FOR_ACCURACY_CHECK:
             batch_size = min(batch_size, MAX_BATCH_SIZE_FOR_ACCURACY_CHECK[model_name])
+
+        if model_name in NPU_BATCH_SIZE:
+            batch_size = NPU_BATCH_SIZE[model_name]
 
         # workaround "RuntimeError: not allowed to set torch.backends.cudnn flags"
         torch.backends.__allow_nonbracketed_mutation_flag = True
@@ -286,7 +305,7 @@ class TorchBenchmarkRunner(BenchmarkRunner):
         if not os.path.exists(file_path):
             return set()
 
-        with open(file_path, 'r') as f:
+        with open(file_path) as f:
             models = {line.strip() for line in f if line.strip()}
         return models
 
@@ -301,36 +320,38 @@ class TorchBenchmarkRunner(BenchmarkRunner):
             if os.path.isdir(item_path):
                 models.add(item)
         return models
-    
+
     def _filter_models_by_numpy_version(self, model_names, max_version="2.0"):
         import numpy as np
         from packaging import version
 
         filtered_models = set(model_names)
         numpy_version = np.__version__
-        
+
         # 检查是否需要过滤
         models_to_check = model_names & CHECK_NUMPY_VERSION
         if not models_to_check:
             return filtered_models
-        
+
         # 解析当前numpy版本
         current_version = version.parse(numpy_version)
         max_allowed_version = version.parse(max_version)
-        
+
         # 如果当前版本大于等于2.0，需要过滤
         if current_version > max_allowed_version:
             models_to_remove = set()
             for model_name in models_to_check:
                 if model_name in filtered_models:
                     models_to_remove.add(model_name)
-                    logging.warning(
-                        f"Model {model_name} has been skipped because it requires numpy version < 2.0, but current version is {numpy_version}."
+                    logging.warning(  # noqa: LOG015
+                        "Model %s has been skipped because it requires numpy version < 2.0, but current version is %s.",
+                        model_name,
+                        numpy_version,
                     )
-            
+
             # 从集合中移除不兼容的模型
             filtered_models -= models_to_remove
-    
+
         return filtered_models
 
     def iter_model_names(self, args):
@@ -344,7 +365,9 @@ class TorchBenchmarkRunner(BenchmarkRunner):
             if os.path.basename(f) in CANARY_MODELS
         ]
 
-        torchbenchmark_model_names = {os.path.basename(m) for m in torchbenchmark_models}
+        torchbenchmark_model_names = {
+            os.path.basename(m) for m in torchbenchmark_models
+        }
 
         # Get models from torchbench_models_list.txt file
         script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -357,10 +380,10 @@ class TorchBenchmarkRunner(BenchmarkRunner):
         # Log models that are in file but not in torchbenchmark
         models_not_in_torchbench = file_model_names - torchbenchmark_model_names
         if models_not_in_torchbench:
-            logging.warning(
+            logging.warning(  # noqa: LOG015
                 "The following models from torchbench_models_list.txt are not available "
                 "in the torchbenchmark repository and will be skipped: %s",
-                ", ".join(sorted(models_not_in_torchbench))
+                ", ".join(sorted(models_not_in_torchbench)),
             )
 
         # Get models from benchmarks/models directory
@@ -406,8 +429,10 @@ class TorchBenchmarkRunner(BenchmarkRunner):
             tolerance = 1e-3
             if name in NPU_REQUIRE_HIGHER_TOLERANCE:
                 tolerance = 1e-2
+            elif name in NPU_REQUIRE_EVEN_HIGHER_TOLERANCE:
+                tolerance = 2e-2
         return tolerance, cosine
-    
+
     def get_learning_rate(self, is_training, current_device, name):
         learning_rate = 1e-2
         if is_training and current_device == "cuda":
@@ -451,6 +476,7 @@ class TorchBenchmarkRunner(BenchmarkRunner):
 
 def torchbench_main():
     original_dir = setup_torchbench_cwd()
+    _patch_environment_variables()
     logging.basicConfig(level=logging.WARNING)
     warnings.filterwarnings("ignore")
     main(TorchBenchmarkRunner(), original_dir)

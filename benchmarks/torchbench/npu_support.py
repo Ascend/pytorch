@@ -1,19 +1,37 @@
-import importlib
-import json
 import logging
 import os
 import sys
-from typing import Optional, Tuple, Type, Union
 
 import torch
 import torch.nn as nn
-import torchair
-import common
+
 import torch_npu
-from torch_npu.dynamo.torchair._utils.path_manager import PathManager
+
 
 log = logging.getLogger(__name__)
 _patch_table = {}
+
+
+def _patch_environment_variables():
+    """Patch to allow configuring torchbenchmark paths from environment variables.
+    This patch modifies the REPO_PATH and DATA_PATH variables in the torchbenchmark
+    module to use values from environment variables if they are set.
+    """
+    import os
+    from pathlib import Path
+
+    try:
+        import torchbenchmark  # noqa: F401
+
+        torchbenchmark_module = sys.modules["torchbenchmark"]
+        # Update DATA_PATH if environment variable is set
+        if "TORCHBENCH_DATA_PATH" in os.environ:
+            new_data_path = Path(os.environ["TORCHBENCH_DATA_PATH"])
+            torchbenchmark_module.DATA_PATH = new_data_path
+            log.info(f"Updated DATA_PATH to: {new_data_path}")  # noqa: G004
+
+    except Exception as e:
+        log.warning(f"Failed to patch torchbenchmark environment variables: {e}")  # noqa: G004
 
 
 def register_patch(*model_names):
@@ -27,8 +45,11 @@ def register_patch(*model_names):
 
 def check_transformers_version(required_version):
     import transformers
+
     if transformers.__version__ != required_version:
-        log.warning(f"transformers.__version__ is not equal to {required_version}, which may cause error patch.")
+        log.warning(
+            f"transformers.__version__ is not equal to {required_version}, which may cause error patch."  # noqa: G004
+        )
 
 
 def use_aclnn():
@@ -53,13 +74,21 @@ def _hf_t5_mt5_conditionalgeneration_forward_new(
 
     if past_key_value is not None:
         if len(past_key_value) != 2:
-            raise ValueError(f"past_key_value should have 2 past states. Got {len(past_key_value)} past states")
-        real_seq_length += past_key_value[0].shape[2] if query_length is None else query_length
+            raise ValueError(
+                f"past_key_value should have 2 past states. Got {len(past_key_value)} past states"
+            )
+        real_seq_length += (
+            past_key_value[0].shape[2] if query_length is None else query_length
+        )
 
-    key_length = real_seq_length if key_value_states is None else key_value_states.shape[1]
+    key_length = (
+        real_seq_length if key_value_states is None else key_value_states.shape[1]
+    )
 
     def shape(states):
-        return states.view(batch_size, -1, self.n_heads, self.key_value_proj_dim).transpose(1, 2)
+        return states.view(
+            batch_size, -1, self.n_heads, self.key_value_proj_dim
+        ).transpose(1, 2)
 
     def unshape(states):
         return states.transpose(1, 2).contiguous().view(batch_size, -1, self.inner_dim)
@@ -82,10 +111,16 @@ def _hf_t5_mt5_conditionalgeneration_forward_new(
     query_states = shape(self.q(hidden_states))
 
     key_states = project(
-        hidden_states, self.k, key_value_states, past_key_value[0] if past_key_value is not None else None
+        hidden_states,
+        self.k,
+        key_value_states,
+        past_key_value[0] if past_key_value is not None else None,
     )
     value_states = project(
-        hidden_states, self.v, key_value_states, past_key_value[1] if past_key_value is not None else None
+        hidden_states,
+        self.v,
+        key_value_states,
+        past_key_value[1] if past_key_value is not None else None,
     )
 
     scores = torch.matmul(query_states, key_states.transpose(3, 2))
@@ -93,15 +128,19 @@ def _hf_t5_mt5_conditionalgeneration_forward_new(
     def process_position_bias():
         if not self.has_relative_attention_bias:
             position_bias = torch.zeros(
-                (1, self.n_heads, real_seq_length, key_length), device=scores.device, dtype=scores.dtype
+                (1, self.n_heads, real_seq_length, key_length),
+                device=scores.device,
+                dtype=scores.dtype,
             )
             if self.gradient_checkpointing and self.training:
                 position_bias.requires_grad = True
         else:
-            position_bias = self.compute_bias(real_seq_length, key_length, device=scores.device)
+            position_bias = self.compute_bias(
+                real_seq_length, key_length, device=scores.device
+            )
 
         if past_key_value is not None:
-            position_bias = position_bias[:, :, -hidden_states.size(1):, :]
+            position_bias = position_bias[:, :, -hidden_states.size(1) :, :]
 
         if mask is not None:
             position_bias = position_bias + mask
@@ -123,7 +162,9 @@ def _hf_t5_mt5_conditionalgeneration_forward_new(
 
     attn_weights = nn.functional.softmax(scores.float(), dim=-1).type_as(scores)
 
-    attn_weights = nn.functional.dropout(attn_weights, p=self.dropout, training=self.training)
+    attn_weights = nn.functional.dropout(
+        attn_weights, p=self.dropout, training=self.training
+    )
 
     if layer_head_mask is not None:
         attn_weights = attn_weights * layer_head_mask
@@ -131,7 +172,9 @@ def _hf_t5_mt5_conditionalgeneration_forward_new(
     attn_output = unshape(torch.matmul(attn_weights, value_states))
     attn_output = self.o(attn_output)
 
-    present_key_value_state = (key_states, value_states) if (self.is_decoder and use_cache) else None
+    present_key_value_state = (
+        (key_states, value_states) if (self.is_decoder and use_cache) else None
+    )
     outputs = (attn_output,) + (present_key_value_state,) + (position_bias,)
 
     if output_attentions:
@@ -143,6 +186,7 @@ def _hf_t5_mt5_conditionalgeneration_forward_new(
 def _patch_model_1():
     # For model LearningToPaint.
     from torchbenchmark.models import LearningToPaint
+
     USE_DEVICE = torch.cuda.is_available() or torch_npu.npu.is_available()
     LearningToPaint.baseline.utils.util.USE_CUDA = USE_DEVICE
 
@@ -157,55 +201,14 @@ def _patch_model_3():
     try:
         from transformers.models.t5.modeling_t5 import T5Attention
     except ImportError:
-        log.warning("Import transformers failed or could not get T5Attention "
-                    "from module transformers.models.t5.modeling_t5")
+        log.warning(
+            "Import transformers failed or could not get T5Attention "
+            "from module transformers.models.t5.modeling_t5"
+        )
         return
     check_transformers_version("4.36.0")
 
     T5Attention.forward = _hf_t5_mt5_conditionalgeneration_forward_new
-
-
-@register_patch("fastNLP_Bert")
-def _patch_model_5():
-    os.environ['BREAK_GRAPH_OP_LIST'] = 'NN.LINEAR'
-    # None-public interface, just for test.
-    # This env is added after torchair's init,
-    # so need to call break_graph patch again,
-    torchair._utils.npu_patch_break_graph()
-
-
-@register_patch("hf_Longformer")
-def _patch_model_6():
-    """
-    Hf_Longformer failed accurazy test because of discontiguous memory.
-    Solving the problem by adding  .contiguous() after .view() and .as_strided in LongformerSelfAttention._chunk.
-    This patch would be removed in the near future.
-    """
-    # close AddLayerNormFusionPass
-    close_view_optimise()
-    module_spec = importlib.util.find_spec("transformers")
-    if module_spec is None:
-        return
-    from transformers.models.longformer import LongformerSelfAttention
-    src_chunk = LongformerSelfAttention._chunk
-
-    def _chunk(cls, hidden_states, window_overlap, onnx_export: bool = False):
-        if not onnx_export:
-            hidden_states = hidden_states.view(
-                hidden_states.size(0),
-                torch.div(hidden_states.size(1), (window_overlap * 2), rounding_mode="trunc"),
-                window_overlap * 2,
-                hidden_states.size(2),
-            ).contiguous()
-            chunk_size = list(hidden_states.size())
-            chunk_size[1] = chunk_size[1] * 2 - 1
-
-            chunk_stride = list(hidden_states.stride())
-            chunk_stride[1] = chunk_stride[1] // 2
-            return hidden_states.as_strided(size=chunk_size, stride=chunk_stride).contiguous()
-        return src_chunk(hidden_states, window_overlap, True)
-
-    LongformerSelfAttention._chunk = _chunk
 
 
 @register_patch("soft_actor_critic")
@@ -215,8 +218,12 @@ def _patch_model_7():
     Solving the problem by adding  .contiguous() in soft_actor_critic/net.py line:242 SquashedNormal.__init__
     This patch would be removed in the near future.
     """
-    from torchbenchmark.models.soft_actor_critic.nets import StochasticActor, SquashedNormal, BetaDist
     import torch.nn.functional as F
+    from torchbenchmark.models.soft_actor_critic.nets import (
+        BetaDist,
+        SquashedNormal,
+        StochasticActor,
+    )
 
     def new_forward(self, state):
         x = F.relu(self.fc1(state))
@@ -226,7 +233,7 @@ def _patch_model_7():
         if self.dist_impl == "pyd":
             log_std = torch.tanh(log_std)
             log_std = self.log_std_low + 0.5 * (
-                    self.log_std_high - self.log_std_low
+                self.log_std_high - self.log_std_low
             ) * (log_std + 1)
             std = log_std.exp()
             dist = SquashedNormal(mu.contiguous(), std.contiguous())
@@ -239,326 +246,115 @@ def _patch_model_7():
     StochasticActor.forward = new_forward
 
 
-@register_patch("dcgan", "mobilenet_v2", "phlippe_resnet", "shufflenet_v2_x1_0", "squeezenet1_1", "vgg16",
-                "alexnet", "densenet121", "maml_omniglot")
-def _patch_model_8():
-    """
-    close conv amp for some model only in accuracy mode.
-    This patch would be removed in the near future.
-    """
-    if {"--only", "--amp", "--accuracy"} <= set(sys.argv):
-        from torch.nn.modules.conv import Conv2d
-
-        def conv2d_amp_disabled(self, x):
-            with torch.npu.amp.autocast(enabled=False):
-                return self._conv_forward(x, self.weight, self.bias)
-
-        Conv2d.forward = conv2d_amp_disabled
-
-
-@register_patch("timm_nfnet")
-def _patch_model_9():
-    # close conv amp for timm_nfnet only in accuracy mode.
-    # Increase the batch_size to a larger size 16,
-    # to mitigate the impact of BatchNorm's tolerance on convolution
-    if {"--only", "--amp", "--accuracy"} <= set(sys.argv):
-        try:
-            import timm
-            import torch.nn.functional as F
-            from timm.layers.std_conv import ScaledStdConv2dSame
-            from timm.layers.padding import pad_same
-        except ImportError:
-            log.warning("Import timm failed or could not get ScaledStdConv2dSame"
-                        "from module timm.layers.std_conv.ScaledStdConv2dSame")
-            return
-        if timm.__version__ != '0.9.16':
-            log.warning("timm.__version__ is not equal to 0.9.16, which may cause error patch.")
-
-        def new_forward(self, x):
-            if self.same_pad:
-                x = pad_same(x, self.kernel_size, self.stride, self.dilation)
-            weight = F.batch_norm(
-                self.weight.reshape(1, self.out_channels, -1), None, None,
-                weight=(self.gain * self.scale).view(-1),
-                training=True, momentum=0., eps=self.eps).reshape_as(self.weight)
-            with torch.npu.amp.autocast(enabled=False):
-                return F.conv2d(x, weight, self.bias, self.stride, self.padding, self.dilation, self.groups)
-
-        ScaledStdConv2dSame.forward = new_forward
-
-    try:
-        from torchbenchmark.models.timm_nfnet import Model
-    except ImportError:
-        log.warning("Import Model failed or could not find timm_nfnet"
-                    "from module torchbenchmark.models.timm_nfnet.Model")
-        return
-
-    def new__init(self, test, device, jit=False, batch_size=None, extra_args=None):
-        super(Model, self).__init__(test=test, model_name='dm_nfnet_f0',
-                                    device=device, batch_size=16, extra_args=extra_args)
-
-    Model.__init__ = new__init
-
-
 @register_patch("nvidia_deeprecommender")
 def _patch_model_10():
     try:
-        from torch_npu.contrib import transfer_to_npu
-        import torch_npu._inductor
+        import torch
+        from torch._inductor import decomposition as inductor_decomp
+
+        import torch_npu._inductor  # noqa: F401
+        from torch_npu.contrib import transfer_to_npu  # noqa: F401
     except ImportError:
         log.warning("NPU_FlAG is False!")
         return
 
     try:
-        from torchbenchmark.models.nvidia_deeprecommender.nvtrain import DeepRecommenderTrainBenchmark
+        from torchbenchmark.models.nvidia_deeprecommender.nvtrain import (
+            DeepRecommenderTrainBenchmark,
+        )
     except ImportError:
-        log.warning("Import nvidia_deeprecommender failed or could not get DeepRecommenderTrainBenchmark"
-                    "from module torchbenchmark.models.nvidia_deeprecommender.nvtrain.DeepRecommenderTrainBenchmark")
+        log.warning(
+            "Import nvidia_deeprecommender failed or could not get DeepRecommenderTrainBenchmark"
+            "from module torchbenchmark.models.nvidia_deeprecommender.nvtrain.DeepRecommenderTrainBenchmark"
+        )
         return
 
-    def new_init(self, device="cpu", jit=False, batch_size=256, process_command_line=False):
+    def new_init(
+        self, device="cpu", jit=False, batch_size=256, process_command_line=False
+    ):
         self.TrainInit("cuda", jit, batch_size, process_command_line)
 
     DeepRecommenderTrainBenchmark.__init__ = new_init
 
+    def expm1(x):
+        tensor = torch.exp(x) - torch.ones_like(x)
+        return tensor
 
-@register_patch("functorch_dp_cifar10")
-def _patch_model_11():
-    if {"--only", "--amp", "--accuracy"} <= set(sys.argv):
-        try:
-            from torchbenchmark.models.functorch_dp_cifar10 import Model
-            import torchvision.models as models
-        except ImportError:
-            log.warning("import torchvision fail or could not get Model from module "
-                        "torchbenchmark.models.functorch_dp_cifar10")
-            return
-
-        def new_init(self, test, device, batch_size=None, extra_args=None):
-            if extra_args is None:
-                extra_args = []
-            super(Model, self).__init__(test=test, device=device, batch_size=32, extra_args=extra_args)
-            self.model = models.__dict__['resnet18'](
-                pretrained=False, norm_layer=(lambda c: nn.GroupNorm(min(c, 32), c)))
-            self.model = self.model.to(device)
-            self.example_inputs = (
-                torch.randn((self.batch_size, 3, 32, 32), device=self.device),
-            )
-            self.example_target = torch.randint(0, 10, (self.batch_size,), device=self.device)
-            self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.001)
-            self.criterion = nn.CrossEntropyLoss()
-
-        Model.__init__ = new_init
+    inductor_decomp.register_decomposition(torch.ops.aten.expm1)(expm1)
 
 
-def create_fusion_switch_file():
-    fusion_config = {}
-    fusion_config.setdefault("Switch", {}).setdefault("GraphFusion", {})["AddLayerNormFusionPass"] = "off"
-    fusion_config_file = os.path.join(os.getcwd(), "fusion_switch.cfg")
-    PathManager.check_path_writeable_and_safety(fusion_config_file)
-    with os.fdopen(os.open(fusion_config_file, os.O_WRONLY | os.O_CREAT, mode=600), 'w') as f:
-        json.dump(fusion_config, f)
-    config = torchair.CompilerConfig()
-    config.fusion_config.fusion_switch_file = fusion_config_file
-
-    def clean_fusion_config_file():
-        PathManager.remove_file_safety(fusion_config_file)
-
-    from common import register_callback
-    register_callback(clean_fusion_config_file)
-    return config
-
-
-def close_view_optimise():
-    config = create_fusion_switch_file()
-    config.experimental_config.enable_view_optimize = False
-    npu_backend = torchair.get_npu_backend(compiler_config=config)
-
-    def compile_with_view_switch(args):
-        return torch._dynamo.optimize(npu_backend, nopython=args.nopython)
-    common.compile_with_backend = compile_with_view_switch
-
-
-def close_add_layer_norm_fusion_pass():
-    npu_backend = torchair.get_npu_backend(compiler_config=create_fusion_switch_file())
-
-    def compile_with_fusion_switch(args):
-        return torch._dynamo.optimize(npu_backend, nopython=args.nopython)
-    common.compile_with_backend = compile_with_fusion_switch
-
-
-@register_patch("moco")
-def _patch_model_13():
-    from argparse import Namespace
-    import torch.distributed as dist
-
-    try:
-        from torch_npu.contrib import transfer_to_npu
-    except ImportError:
-        log.warning("NPU_FlAG is False!")
-        return
-
-    try:
-        import torchvision.models as models
-        from torchbenchmark.models.moco import Model
-        from torchbenchmark.models.moco.moco.builder import MoCo
-    except ImportError:
-        log.warning("import torchvision fail or could not get Model,MoCo from module torchbenchmark.models.moco ")
-        return
-
-    def new_init(self, test, device, batch_size=None, extra_args=None):
-        if extra_args is None:
-            extra_args = []
-        super(Model, self).__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
-        self.opt = Namespace(**{
-            "arch": "resnet50", "epochs": 2, "start_epoch": 0, "lr": 0.03, "schedule": [120, 160], "momentum": 0.9,
-            "weight_decay": 1e-4, "gpu": None, "moco_dim": 128, "moco_k": 32000, "moco_m": 0.999, "moco_t": 0.07,
-            "mlp": False, "aug_plus": False, "cos": False, "fake_data": True, "distributed": True,
-        })
-        try:
-            dist.init_process_group(backend="nccl", init_method="tcp://localhost:10001", world_size=1, rank=0)
-        except RuntimeError:
-            pass  # already initialized?
-
-        if device == "cpu":
-            raise NotImplementedError("DistributedDataParallel/allgather requires npu")
-
-        self.model = MoCo(
-            models.__dict__[self.opt.arch],
-            self.opt.moco_dim,
-            self.opt.moco_k,
-            self.opt.moco_m,
-            self.opt.moco_t,
-            self.opt.mlp,
-        )
-        self.model.to(self.device)
-
-        # Define loss function (criterion) and optimizer
-        self.criterion = nn.CrossEntropyLoss().to(self.device)
-
-        self.optimizer = torch.optim.SGD(
-            self.model.parameters(),
-            self.opt.lr,
-            momentum=self.opt.momentum,
-            weight_decay=self.opt.weight_decay,
-        )
-
-        def collate_train_fn(data):
-            ind = data[0]
-            return [batches[2 * ind], batches[2 * ind + 1]], 0
-
-        batches = []
-        for _ in range(4):
-            batches.append(torch.randn(self.batch_size, 3, 224, 224).to(self.device))
-        self.example_inputs = torch.utils.data.DataLoader(range(2), collate_fn=collate_train_fn)
-        if torch.cuda.is_available():
-            for _, (images, _) in enumerate(self.example_inputs):
-                images[0] = images[0].cuda(device=0, non_blocking=True)
-                images[1] = images[1].cuda(device=0, non_blocking=True)
-        else:
-            for _, (images, _) in enumerate(self.example_inputs):
-                images[0] = images[0].npu(device=0, non_blocking=True)
-                images[1] = images[1].npu(device=0, non_blocking=True)
-
-    Model.__init__ = new_init
-
-    if {"--only", "--amp", "--accuracy"} <= set(sys.argv):
-        try:
-            import torchvision
-            from torchvision.models.resnet import ResNet
-        except ImportError:
-            log.warning("Import torchvision failed or could not get ResNet "
-                        "from module torchvision.models.resnet")
-            return
-
-        def _new_forward_impl(self, x):
-            # See note [TorchScript super()]
-            x = self.conv1(x)
-            x = self.bn1(x)
-            x = self.relu(x)
-            x = self.maxpool(x)
-
-            x = self.layer1(x)
-            x = self.layer2(x)
-            x = self.layer3(x)
-            x = self.layer4(x)
-
-            @torch.compiler.disable(recursive=False)
-            def avgpool(x):
-                x = self.avgpool(x)
-                return x
-
-            x = self.avgpool(x)
-            x = torch.flatten(x, 1)
-            x = self.fc(x)
-            return x
-
-        ResNet._forward_impl = _new_forward_impl
-
-
-@register_patch("timm_vovnet")
-def _patch_model_14():
-    if {"--only", "--amp", "--accuracy"} <= set(sys.argv):
-        import torch.nn.functional as F
-        from torch.nn.modules.conv import Conv2d
-        from torch.nn.modules.pooling import AdaptiveAvgPool2d
-        from torch.nn.modules.linear import Linear
-
-        def conv2d_amp_disabled(self, x):
-            with torch.npu.amp.autocast(enabled=False):
-                return self._conv_forward(x, self.weight, self.bias)
-        Conv2d.forward = conv2d_amp_disabled
-
-        def adaptive_avgpool_amp_disabled(self, x):
-            with torch.npu.amp.autocast(enabled=False):
-                return F.adaptive_avg_pool2d(x.float(), self.output_size)
-        AdaptiveAvgPool2d.forward = adaptive_avgpool_amp_disabled
-
-        def linear_amp_disabled(self, x):
-            with torch.npu.amp.autocast(enabled=False):
-                return F.linear(x, self.weight, self.bias)
-        Linear.forward = linear_amp_disabled
-
-
-@register_patch("resnet50", "resnet152", "resnext50_32x4d")
+@register_patch("resnet50", "resnet152", "resnext50_32x4d", "densenet121")
 def _patch_model_18():
-    if {"--only", "--amp", "--accuracy"} <= set(sys.argv):
-        try:
-            import torchvision.models as models
-        except ImportError:
-            log.warning("Import torchvision failed or could not get models "
-                    "from module torchvision.models")
-            return
-
-        if 'resnet50' in sys.argv:
-            from torchbenchmark.models.resnet50 import Model
-            model = 'resnet50'
-            weight = models.ResNet50_Weights.IMAGENET1K_V1
-        elif 'resnet152' in sys.argv:
-            from torchbenchmark.models.resnet152 import Model
-            model = 'resnet152'
-            weight = models.ResNet152_Weights.IMAGENET1K_V1
-        elif 'resnext50_32x4d' in sys.argv:
-            from torchbenchmark.models.resnext50_32x4d import Model
-            model = 'resnext50_32x4d'
-            weight = models.ResNeXt50_32X4D_Weights.IMAGENET1K_V1
-        else:
-            raise RuntimeError("args.only expect model resnet50, resnet152 or resnext50_32x4d")
-
-        def new_init(self, test, device, batch_size=None, extra_args=None):
-            if extra_args is None:
-                extra_args = []
-            super(Model, self).__init__(model_name=model, test=test, device=device,
-                                        batch_size=32, weights=weight,
-                                        extra_args=extra_args)
-        Model.__init__ = new_init
+    patch_remove_decomposition(
+        [
+            "aten._native_batch_norm_legit_no_training",
+            "aten.threshold_backward",
+            "aten.native_batch_norm_backward",
+        ]
+    )
 
 
 @register_patch("torch_multimodal_clip")
 def _patch_model_19():
     try:
+        # Import the model class and necessary modules
+        from PIL import Image
+        from torchbenchmark import DATA_PATH
+        from torchbenchmark.models.torch_multimodal_clip import Model
+        from torchmultimodal.models.clip.model import clip_vit_b32
+        from torchmultimodal.modules.losses.contrastive_loss_with_temperature import (
+            ContrastiveLossWithTemperature,
+        )
+        from torchmultimodal.transforms.clip_transform import (
+            CLIPImageTransform,
+            CLIPTextTransform,
+        )
+    except ImportError:
+        log.warning(
+            "from torchmultimodal import Model failed or could not get DATA_PATH from torchbenchmark"
+        )
+        return
+
+    def new_init(self, test, device, batch_size=1, extra_args=None):
+        if extra_args is None:
+            extra_args = []
+        super(Model, self).__init__(
+            test=test, device=device, batch_size=batch_size, extra_args=extra_args
+        )
+
+        # use global DATA_PATH directly instead of local .data folder
+        self.data_folder = str(DATA_PATH)
+        self.image_name = "pizza.jpg"
+        self.image = Image.open(os.path.join(self.data_folder, self.image_name))
+        self.text = ["pizza", "dog"] * 16
+        self.img_transform = CLIPImageTransform(is_train=False)
+        self.text_transform = CLIPTextTransform()
+
+        self.images = [self.image for _ in range(self.batch_size)]
+        self.texts = [self.text for _ in range(self.batch_size)]
+
+        self.image_tensor = self.img_transform(self.images).to(self.device)
+        self.text_tensor = self.text_transform(self.text).to(self.device)
+        self.model = clip_vit_b32()
+        self.model.to(self.device)
+
+        # Create optimizer
+        self.loss_fn = ContrastiveLossWithTemperature()
+        self.optimizer = torch.optim.AdamW(
+            list(self.model.parameters()) + list(self.loss_fn.parameters()),
+            lr=5.0e-4,
+            weight_decay=1.0e-4,
+            eps=1.0e-6,
+        )
+
+    Model.__init__ = new_init
+
+    try:
         from torchmultimodal.models.clip.text_encoder import CLIPTextEncoder
     except ImportError:
-        log.warning("from torchmultimodal.models.clip.text_encoder import CLIPTextEncoder failed")
+        log.warning(
+            "from torchmultimodal.models.clip.text_encoder import CLIPTextEncoder failed"
+        )
         return
 
     def new_forward(self, text, return_hidden_state: bool = False):
@@ -574,12 +370,14 @@ def _patch_model_19():
         # [n_ctx, bs, transformer.width] -> [bs, n_ctx, transformer.width]
         embeddings = torch.permute(embeddings, (1, 0, 2))
         hidden_state = self.ln_final(embeddings)
-        hidden_state = hidden_state * 1 # pass
+        hidden_state = hidden_state * 1  # pass
         if return_hidden_state:
             return hidden_state
 
         projected_embeddings = self.projection(
-            hidden_state[torch.arange(hidden_state.shape[0], device="npu"), text.argmax(dim=-1)]
+            hidden_state[
+                torch.arange(hidden_state.shape[0], device="npu"), text.argmax(dim=-1)
+            ]
         )
         return projected_embeddings
 
@@ -589,7 +387,10 @@ def _patch_model_19():
 def patch_remove_ops_from_generate_list(op_names=None):
     try:
         import torch
-        from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir import config as anir_config
+
+        from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir import (
+            config as anir_config,
+        )
 
         if not op_names:
             print("[patch] No op names provided, nothing to do.")
@@ -605,20 +406,51 @@ def patch_remove_ops_from_generate_list(op_names=None):
                 anir_config.GENERATE_LIST.remove(op)
                 print(f"[patch] Successfully removed {name} from GENERATE_LIST.")
             else:
-                print(f"[patch] {name} not found in GENERATE_LIST (maybe already removed).")
+                print(
+                    f"[patch] {name} not found in GENERATE_LIST (maybe already removed)."
+                )
 
     except Exception as e:
         print(f"[patch] Failed to modify GENERATE_LIST: {e}")
 
 
+def patch_remove_decomposition(op_names=None):
+    try:
+        from torch._decomp import remove_decompositions
+        from torch._inductor import decomposition as inductor_decomp
+
+        if not op_names:
+            print("[patch] No op names provided, nothing to do.")
+            return
+
+        ops = []
+        for name in op_names:
+            op = torch.ops
+            for p in name.split("."):
+                op = getattr(op, p)
+            ops.append(op)
+
+        remove_decompositions(inductor_decomp.decompositions, ops)
+        print(f"[patch] Successfully removed {len(ops)} decompositions from inductor.")
+
+    except Exception as e:
+        print(f"[patch] Failed to remove decompositions from inductor: {e}")
+
+
 @register_patch("speech_transformer")
 def _patch_model_20():
     import numpy as np
+
     try:
-        from torchbenchmark.models.speech_transformer.speech_transformer.transformer.attention import MultiHeadAttention, ScaledDotProductAttention
+        from torchbenchmark.models.speech_transformer.speech_transformer.transformer.attention import (
+            MultiHeadAttention,
+            ScaledDotProductAttention,
+        )
     except ImportError:
-        log.warning("import torchvision fail or could not get MultiHeadAttention or ScaledDotProductAttention from module "
-                    "torchbenchmark.models.speech_transformer.transformer.attention")
+        log.warning(
+            "import torchvision fail or could not get MultiHeadAttention or ScaledDotProductAttention from module "
+            "torchbenchmark.models.speech_transformer.transformer.attention"
+        )
         return
 
     def new_init(self, n_head, d_model, d_k, d_v, dropout=0.1):
@@ -636,9 +468,10 @@ def _patch_model_20():
         nn.init.normal_(self.w_vs.weight, mean=0, std=np.sqrt(2.0 / (d_model + d_v)))
 
         # fix two different devices npu, cpu
-        self.temperature = d_k ** 0.5
-        self.attention = ScaledDotProductAttention(temperature=self.temperature,
-                                                   attn_dropout=dropout)
+        self.temperature = d_k**0.5
+        self.attention = ScaledDotProductAttention(
+            temperature=self.temperature, attn_dropout=dropout
+        )
         self.layer_norm = nn.LayerNorm(d_model)
 
         self.fc = nn.Linear(n_head * d_v, d_model)
@@ -651,9 +484,40 @@ def _patch_model_20():
     patch_remove_ops_from_generate_list(["aten.cat", "aten.full"])
 
 
+@register_patch("hf_T5_base")
+def _patch_model_21():
+    # The current operator suffers from severe performance degradation.
+    # This patch will be removed after the issue is fixed in the future.
+    patch_remove_decomposition(["aten._softmax"])
+
+
+@register_patch("hf_T5_large")
+def _patch_model_22():
+    # The current operator suffers from severe performance degradation.
+    # This patch will be removed after the issue is fixed in the future.
+    patch_remove_decomposition(["aten._softmax"])
+
+
+@register_patch("pytorch_unet")
+def _patch_model_23():
+    # Patch to address performance issues in the current network
+    # 1. Prevent aten.constant_pad_nd from participating in fusion.
+    #    This operator will be officially removed from the whitelist in future PTA versions,
+    #    at which point this patch will be deleted.
+    # 2. Disable decomposition for aten.upsample_bilinear2d.default
+    patch_remove_ops_from_generate_list(["aten.constant_pad_nd"])
+
+
+@register_patch("squeezenet1_1")
+def _patch_squeezenet1_1():
+    """
+    fallbackdiv
+    """
+    patch_remove_ops_from_generate_list(["aten.div"])
+
 
 def patch_model(model_name):
-    if model_name not in _patch_table.keys():
+    if model_name not in _patch_table:
         return
     # do patch
     _patch_table[model_name]()
