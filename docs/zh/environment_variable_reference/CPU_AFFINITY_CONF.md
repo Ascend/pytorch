@@ -32,7 +32,8 @@ Ascend Extension for PyTorch可以通过设置环境变量CPU\_AFFINITY\_CONF来
 
 3. npu<value1\>:<value2\>-<value3\>：可选参数，表示自定义NPU业务绑核区间。自定义NPU业务绑核区间仅在开启绑核特性时生效，即mode配置为1或2时生效。
     - npu<value1\>:<value2\>-<value3\>表示第“value1”张卡绑定在“value2”到“value3”的闭区间CPU核上。例如，“npu0:0-2”表示NPU卡0的业务线程的绑核区间为\[0,2\]。
-    - 支持修改部分NPU卡的业务绑核区间。例如，设置环境变量CPU\_AFFINITY\_CONF=1,npu0:0-0时，NPU卡0的业务绑核区间修改为\[0,0\]，而NPU卡1则保持原来的业务绑核区间。
+    - 支持同一张NPU卡配置多个业务绑核区间。例如，设置环境变量CPU\_AFFINITY\_CONF=1,npu0:0-2,npu0:4-5时，NPU卡0的业务绑核区间为\[0,2\]和\[4,5\]。
+    - 支持配置多张NPU卡的业务绑核区间。例如，设置环境变量CPU\_AFFINITY\_CONF=1,npu0:0-0,npu2:1-2,npu2:4-4时，NPU卡0的业务绑核区间修改为\[0,0\]，NPU卡2的业务绑核区间修改为\[1,2\]和\[4,4\]，其他NPU卡则保持原来的业务绑核区间。
 
 4. npu\_affine:<value4\>：可选参数，表示是否开启NPU亲和性绑核。
     - 0或未设置：表示不启用亲和性绑核功能。
@@ -65,10 +66,10 @@ export CPU_AFFINITY_CONF=2
 
 示例三：自定义NPU业务绑核区间
 
-比如，NPU卡0绑核区间为\[0,1\]，NPU卡1绑核区间为\[2,5\]，NPU卡3绑核区间为\[6,6\]，其他NPU卡绑核区间为默认设置。其设置方式如下：
+比如，NPU卡0绑核区间为\[0,1\]，NPU卡1绑核区间为\[2,5\]和\[7,8\]，NPU卡3绑核区间为\[9,9\]，其他NPU卡绑核区间为默认设置。其设置方式如下：
 
 ```bash
-export CPU_AFFINITY_CONF=1,npu0:0-1,npu1:2-5,npu3:6-6
+export CPU_AFFINITY_CONF=1,npu0:0-1,npu1:2-5,npu1:7-8,npu3:9-9
 ```
 
 示例四：NPU亲和性绑核

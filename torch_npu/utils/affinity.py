@@ -1,11 +1,14 @@
 __all__ = []
 
+from typing import List, Optional, Union
 
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, pta_error
 
 
-def _set_thread_affinity(core_range: list[int] | list[list[int]] | None = None):
+def _set_thread_affinity(
+    core_range: Optional[Union[List[int], List[List[int]]]] = None
+):
     """Set thread CPU affinity.
 
     Args:
