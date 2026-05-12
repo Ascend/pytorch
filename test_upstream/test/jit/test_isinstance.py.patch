@@ -1,11 +1,77 @@
 diff --git a/test/jit/test_isinstance.py b/test/jit/test_isinstance.py
-index 53b7015..69d509c 100644
+index 53b7015..8139df0 100644
 --- a/test/jit/test_isinstance.py
 +++ b/test/jit/test_isinstance.py
-@@ -1,3 +1,6 @@
-+import torch_npu
-+from torch_npu.contrib import transfer_to_npu
-+
- # Owner(s): ["oncall: jit"]
+@@ -6,6 +6,7 @@ import warnings
+ from typing import Any, Dict, List, Optional, Tuple
  
- import os
+ import torch
++import torch_npu
+ 
+ 
+ # Make the helper files in test/ importable
+@@ -62,7 +63,7 @@ class TestIsinstance(JitTestCase):
+             assert torch.jit.isinstance(x, List[torch.Tensor])
+             assert not torch.jit.isinstance(x, Tuple[int])
+ 
+-        x = [torch.tensor([1]), torch.tensor([2]), torch.tensor([3])]
++        x = [torch.tensor([1]).npu(), torch.tensor([2]).npu(), torch.tensor([3]).npu()]
+         self.checkScript(list_tensor_test, (x,))
+ 
+     def test_dict(self):
+@@ -78,7 +79,7 @@ class TestIsinstance(JitTestCase):
+         def dict_int_tensor_test(x: Any):
+             assert torch.jit.isinstance(x, Dict[int, torch.Tensor])
+ 
+-        x = {2: torch.tensor([2])}
++        x = {2: torch.tensor([2]).npu()}
+         self.checkScript(dict_int_tensor_test, (x,))
+ 
+     def test_tuple(self):
+@@ -94,7 +95,7 @@ class TestIsinstance(JitTestCase):
+         def tuple_tensor_test(x: Any):
+             assert torch.jit.isinstance(x, Tuple[torch.Tensor, torch.Tensor])
+ 
+-        x = (torch.tensor([1]), torch.tensor([[2], [3]]))
++        x = (torch.tensor([1]).npu(), torch.tensor([[2], [3]]).npu())
+         self.checkScript(tuple_tensor_test, (x,))
+ 
+     def test_optional(self):
+@@ -102,7 +103,7 @@ class TestIsinstance(JitTestCase):
+             assert torch.jit.isinstance(x, Optional[torch.Tensor])
+             assert not torch.jit.isinstance(x, Optional[str])
+ 
+-        x = torch.ones(3, 3)
++        x = torch.ones(3, 3).npu()
+         self.checkScript(optional_test, (x,))
+ 
+     def test_optional_none(self):
+@@ -159,7 +160,7 @@ class TestIsinstance(JitTestCase):
+         def list_tensor_type_true(x: Any):
+             assert torch.jit.isinstance(x, List[torch.Tensor])
+ 
+-        x = [torch.rand(3, 3), torch.rand(4, 3)]
++        x = [torch.rand(3, 3).npu(), torch.rand(4, 3).npu()]
+         self.checkScript(list_tensor_type_true, (x,))
+ 
+     def test_tensor_type_false(self):
+@@ -215,7 +216,7 @@ class TestIsinstance(JitTestCase):
+                 assert "111222" == str_cat
+             assert hit
+ 
+-        x = [torch.rand(3, 3), torch.rand(4, 3)]
++        x = [torch.rand(3, 3).npu(), torch.rand(4, 3).npu()]
+         self.checkScript(type_refinement, (x,))
+         x = {"1": "111", "2": "222"}
+         self.checkScript(type_refinement, (x,))
+@@ -349,8 +350,8 @@ class TestIsinstance(JitTestCase):
+     def test_empty_container_special_cases(self):
+         # Should not throw "Boolean value of Tensor with no values is
+         # ambiguous" error
+-        torch._jit_internal.check_empty_containers(torch.Tensor([]))
++        torch._jit_internal.check_empty_containers(torch.Tensor([]).npu())
+ 
+         # Should not throw "Boolean value of Tensor with more than
+         # one value is ambiguous" error
+-        torch._jit_internal.check_empty_containers(torch.rand(2, 3))
++        torch._jit_internal.check_empty_containers(torch.rand(2, 3).npu())
