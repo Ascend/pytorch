@@ -30,29 +30,22 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from __future__ import annotations
+
 import argparse
 import collections
 import contextlib
 import copy
 import csv
-import dataclasses
 import functools
-import importlib
-import itertools
+import json
 import logging
 import os
-import pathlib
 import random
-import shutil
-import signal
 import subprocess
 import sys
 import time
 import warnings
-from contextlib import contextmanager
-from typing import Any, Callable, Mapping, NamedTuple, Optional, Tuple, Type
-from unittest.mock import MagicMock
-import json
+
 import numpy as np
 import pandas as pd
 import psutil
@@ -60,33 +53,41 @@ import torch
 import torch._dynamo
 import torch._dynamo.utils
 import torch.distributed
-import torch.fx._pytree as fx_pytree
 import torch.multiprocessing as mp
-from scipy.stats import gmean, ttest_ind
-from torch._dynamo.profiler import fx_insert_profiling, Profiler
-from torch._dynamo.testing import dummy_fx_compile, format_speedup, same, reduce_to_scalar_loss
+from torch._dynamo.testing import reduce_to_scalar_loss, same
 from torch._dynamo.utils import clone_inputs, graph_break_reasons
 from torch._functorch.aot_autograd import set_model_name
 from torch._inductor import config as inductor_config
-from torch._inductor.utils import fresh_inductor_cache
-from torch._subclasses.fake_tensor import FakeTensorMode
-from torch.utils import _pytree as pytree
 from torch.utils._pytree import tree_map, tree_map_only
 from tqdm.auto import tqdm, trange
+
+
 try:
     import torch_npu
+
     is_npu_available = torch_npu.npu.is_available()
     from npu_support import patch_model
+
     from profiler import NPUProfiler
 except ImportError:
     # ignore the error if torch_npu is not installed
     is_npu_available = False
     from profiler import CUDAProfiler
+
 from benchmark.userbenchmark.dynamo.dynamobench.common import (
-    load_model_from_path, Stats, randomize_input, speedup_experiment_ds,
-    baselines, null_experiment, DummyGradScaler, cast_to_bf16, cast_to_fp16,
-    cast_to_fp64, cast_to_fp32, maybe_fresh_cache, maybe_init_distributed,
+    cast_to_bf16,
+    cast_to_fp16,
+    cast_to_fp32,
+    cast_to_fp64,
+    DummyGradScaler,
+    load_model_from_path,
+    maybe_fresh_cache,
+    maybe_init_distributed,
+    null_experiment,
+    randomize_input,
+    Stats,
 )
+
 
 log = logging.getLogger(__name__)
 # We are primarily interested in TF32
@@ -126,7 +127,7 @@ class PathManager:
             os.close(os.open(path, os.O_WRONLY | os.O_CREAT, cls.DATA_FILE_AUTHORITY))
         except Exception as err:
             raise RuntimeError(msg) from err
-        
+
     @classmethod
     def check_directory_path_readable(cls, path):
         cls.check_path_owner_consistent(path)
@@ -345,7 +346,9 @@ def speedup_experiment(args, model_iter_fn, model, example_inputs, **kwargs):
     )
     headers, data = torch._dynamo.utils.compile_times(repr="csv", aggregate=True)
     if output_filename.find(".csv") <= 0:
-        raise AssertionError(f"expected output_filename to be a .csv, but got {output_filename}")
+        raise AssertionError(
+            f"expected output_filename to be a .csv, but got {output_filename}"
+        )
     output_csv(
         output_filename[:-4] + "_compilation_metrics.csv",
         first_headers + headers,
@@ -419,7 +422,7 @@ class BenchmarkRunner:
             return
 
         if self.args.amp and self.args.devices == ["cuda"]:
-            # AMP training can lead to small loss values which can undeflow
+            # AMP training can lead to small loss values which can underflow
             # gradient values returning in zero gradients. To solve this
             # problem, PyTorch introduces GradScaler. GradScaler is a stateful
             # structure, that scales the loss values to prevent underflow. Loss
@@ -496,10 +499,10 @@ class BenchmarkRunner:
         return set()
 
     def get_tolerance_and_cosine_flag(self, is_training, curr_device, name):
-        raise NotImplementedError()
-    
+        raise NotImplementedError
+
     def get_learning_rate(self, is_training, curr_device, name):
-        raise NotImplementedError()
+        raise NotImplementedError
 
     @property
     def equal_nan(self):
@@ -580,11 +583,29 @@ class BenchmarkRunner:
         end_step = min(int(n * 0.8) - 1, n - 1)
 
         step_times = []
-        prof_output_dir = os.path.join(self.args.prof_output_path, self.args.only, run_mode)
+        prof_output_dir = os.path.join(
+            self.args.prof_output_path, self.args.only, run_mode
+        )
         if is_npu_available:
-            prof = NPUProfiler(enable=self.args.enable_profiler, warmup=10, active=n, save_path=prof_output_dir)
+            prof_level = (
+                f"level{self.args.enable_profiler}"
+                if self.args.enable_profiler is not None
+                else "level0"
+            )
+            prof = NPUProfiler(
+                enable=self.args.enable_profiler is not None,
+                level=prof_level,
+                warmup=10,
+                active=n,
+                save_path=prof_output_dir,
+            )
         else:
-            prof = CUDAProfiler(enable=self.args.enable_profiler, warmup=10, active=n, save_path=prof_output_dir)
+            prof = CUDAProfiler(
+                enable=self.args.enable_profiler is not None,
+                warmup=10,
+                active=n,
+                save_path=prof_output_dir,
+            )
 
         prof.start()
         for i in range(n):
@@ -596,18 +617,22 @@ class BenchmarkRunner:
             prof.step()
             step_times.append(elapsed_ms)
             if i != n - 1:
-                print(f"[{run_mode}] step: {i+1} step_time: {elapsed_ms} ms loss: {output}")
+                print(
+                    f"[{run_mode}] step: {i + 1} step_time: {elapsed_ms} ms loss: {output}"
+                )
             else:
-                print(f"[{run_mode}] step: {i+1} step_time: {elapsed_ms} ms")
+                print(f"[{run_mode}] step: {i + 1} step_time: {elapsed_ms} ms")
         prof.stop()
 
-        steps = step_times[start_step:end_step + 1]
+        steps = step_times[start_step : end_step + 1]
         if steps:
             total_ms = sum(steps)
             avg_ms = total_ms / len(steps)
-            print(f"[{run_mode}] summary [{start_step+1}-{end_step+1}] "
+            print(
+                f"[{run_mode}] summary [{start_step + 1}-{end_step + 1}] "
                 f"total steps time: {total_ms:.2f} ms, "
-                f"avg step time: {avg_ms:.2f} ms")
+                f"avg step time: {avg_ms:.2f} ms"
+            )
 
         return output
 
@@ -625,7 +650,9 @@ class BenchmarkRunner:
         model = self.deepcopy_model(model)
         if self.args.ddp:
             if not torch.distributed.is_available():
-                raise AssertionError("Can't use DDP without a distributed enabled build")
+                raise AssertionError(
+                    "Can't use DDP without a distributed enabled build"
+                )
             from torch.nn.parallel import DistributedDataParallel as DDP
 
             model = DDP(model, find_unused_parameters=True)
@@ -642,7 +669,7 @@ class BenchmarkRunner:
         start_stats = get_dynamo_stats()
         lr = self.get_learning_rate(self.args.training, current_device, name)
         print(f"learning rate: {lr}")
-        
+
         def record_status(accuracy_status, dynamo_start_stats):
             """
             Records the status in the csv file
@@ -703,7 +730,6 @@ class BenchmarkRunner:
         model, example_inputs = self.maybe_cast(model, example_inputs)
         accuracy_status = "pass_accuracy"
 
-
         with self.pick_grad(name, self.args.training):
             # Get results of native pytorch
             reset_rng_state()
@@ -719,7 +745,7 @@ class BenchmarkRunner:
                     if isinstance(e, torch.cuda.OutOfMemoryError)
                     else "eager_1st_run_fail"
                 )
-                log.exception(e)
+                log.exception(e)  # noqa: TRY401 G200
                 return record_status(accuracy_status, dynamo_start_stats=start_stats)
 
             # Rerun native pytorch
@@ -741,18 +767,16 @@ class BenchmarkRunner:
             # Two eager runs should have exactly same result
             is_same = True
             try:
-                if (
-                    not same(
-                        correct_result,
-                        correct_rerun_result,
-                        fp64_ref=None,
-                        cos_similarity=False,
-                        tol=0,
-                        equal_nan=self.equal_nan,
-                    )
+                if not same(
+                    correct_result,
+                    correct_rerun_result,
+                    fp64_ref=None,
+                    cos_similarity=False,
+                    tol=0,
+                    equal_nan=self.equal_nan,
                 ):
                     is_same = False
-            except Exception as e:
+            except Exception:
                 # Sometimes torch.allclose may throw RuntimeError
                 is_same = False
 
@@ -769,9 +793,11 @@ class BenchmarkRunner:
                 model_copy = self.deepcopy_and_maybe_ddp(model)
                 self.init_optimizer(name, current_device, model_copy.parameters(), lr)
                 optimized_model = optimize_ctx(model_copy)
-                new_result = self.run_n_iterations(optimized_model, example_inputs, "compile")
+                new_result = self.run_n_iterations(
+                    optimized_model, example_inputs, "compile"
+                )
             except Exception as e:
-                log.exception(e)
+                log.exception(e)  # noqa: TRY401 G200
                 print(
                     "TorchDynamo optimized model failed to run because of following error"
                 )
@@ -792,7 +818,7 @@ class BenchmarkRunner:
                     tol=tolerance,
                 ):
                     is_same = False
-            except Exception as e:
+            except Exception:
                 # Sometimes torch.allclose may throw RuntimeError
                 is_same = False
 
@@ -871,7 +897,6 @@ class BenchmarkRunner:
                 model.name = name
             results.append(experiment(model, example_inputs, **experiment_kwargs))
             return " ".join(map(str, results))
-        
 
     def _get_precision_checker_cast_dtype(self):
         if self.args.precision_checker_cast_dtype is None:
@@ -886,12 +911,12 @@ class BenchmarkRunner:
         }
         return dtype_map[self.args.precision_checker_cast_dtype]
 
-
     def run_precision_checker_test(
         self, name, model, example_inputs, optimize_ctx, experiment, tag=None
     ):
-        import msprobe
-        from msprobe.pytorch.compile_accuracy_checker.precision_checker import PrecisionChecker
+        from msprobe.pytorch.compile_accuracy_checker.precision_checker import (
+            PrecisionChecker,
+        )
 
         start_stats = get_dynamo_stats()
 
@@ -903,6 +928,7 @@ class BenchmarkRunner:
                 fields.insert(3, tag)
 
             if result is not None:
+
                 def diff_passed(diff):
                     if diff.note:
                         return diff.note.startswith("SKIP") or diff.note == "IGNORED"
@@ -917,9 +943,7 @@ class BenchmarkRunner:
                     )
 
                 failed_modules = sum(
-                    1
-                    for diff in result.diffs
-                    if not diff_passed(diff)
+                    1 for diff in result.diffs if not diff_passed(diff)
                 )
                 headers.extend(
                     ["loss_eager", "loss_compiled", "loss_diff", "failed_modules"]
@@ -956,7 +980,7 @@ class BenchmarkRunner:
             single_pass=self.args.precision_checker_single_pass,
         )
         checker.wrap(model)
-        print(f"precision_checker: backend=aot_eager")
+        print("precision_checker: backend=aot_eager")
 
         def run_step(mod):
             cloned_inputs = clone_inputs(example_inputs)
@@ -974,18 +998,17 @@ class BenchmarkRunner:
             with torch.enable_grad():
                 result = checker.compare(run_step, model)
         except Exception as e:
-            log.exception(e)
+            log.exception(e)  # noqa: TRY401 G200
             status = (
-                "OOM"
-                if isinstance(e, torch.cuda.OutOfMemoryError)
-                else "fail_to_run"
+                "OOM" if isinstance(e, torch.cuda.OutOfMemoryError) else "fail_to_run"
             )
             return record_status(status, error=e)
 
         checker.report(result)
-        status = "pass_precision_checker" if result.all_pass else "fail_precision_checker"
+        status = (
+            "pass_precision_checker" if result.all_pass else "fail_precision_checker"
+        )
         return record_status(status, result=result)
-    
 
     def run_one_model(
         self,
@@ -1012,11 +1035,17 @@ class BenchmarkRunner:
             if self.args.dump_compile_time:
                 headers, values = torch._dynamo.utils.compile_times("csv")
                 for header, value in zip(headers, values):
-                    if header == "async_compile.wait":
-                        numbers = [float(num.strip()) for num in value.split(',') if num.strip()]
+                    if header == "PyCodeCache.load_by_key_path":
+                        numbers = [
+                            float(num.strip())
+                            for num in value.split(",")
+                            if num.strip()
+                        ]
                         op_compile_time = sum(numbers)
-                print(f"op_compile_time:{op_compile_time * 1e3} ms", )
-            
+                print(
+                    f"op_compile_time:{op_compile_time * 1e3} ms",
+                )
+
         elif self.args.performance:
             status = self.run_performance_test(
                 name, model, example_inputs, optimize_ctx, experiment, tag
@@ -1064,7 +1093,7 @@ def parse_args(args=None):
     iterations_per_run_help = """
         Run this may iterations for each time measurement. This is mainly used for
         XLA training. We want to run multiple iterations per measurement so the
-        tracing and computation for different iteartions can overlap with each
+        tracing and computation for different iterations can overlap with each
         other. This makes sure we have an accurate xla baseline.
     """
     parser.add_argument(
@@ -1145,6 +1174,11 @@ def parse_args(args=None):
         help="Runs a dynamic shapes version of the benchmark, if available.",
     )
     parser.add_argument(
+        "--dynamic-batch-only",
+        action="store_true",
+        help="Only assume batch dimension is dynamic.  Implies --dynamic-shapes",
+    )
+    parser.add_argument(
         "--output",
         help="Overrides the output filename",
     )
@@ -1191,6 +1225,12 @@ def parse_args(args=None):
         help="Disables aclgraph for NPU Inductor",
     )
     parser.add_argument(
+        "--aclgraph-mode",
+        choices=["max-autotune", "reduce-overhead"],
+        default="max-autotune",
+        help="Specifies aclgraph mode for NPU Inductor (only effective when --disable-aclgraph is not set)",
+    )
+    parser.add_argument(
         "--disable-split-reductions",
         action="store_true",
         help="Disables split reductions for Inductor",
@@ -1225,13 +1265,17 @@ def parse_args(args=None):
     )
     parser.add_argument(
         "--enable-profiler",
-        action="store_true",
-        help="Enable profile for NPU and GPU."
+        type=int,
+        nargs="?",
+        default=None,
+        const=0,
+        choices=[0, 1, 2],
+        help="Enable profile for NPU and GPU. Specify level 0, 1, or 2 (default: 0 if enabled without level) for NPU profiler.",
     )
     parser.add_argument(
         "--prof-output-path",
         help="Overrides the profile output path",
-        default="./profile"
+        default="./profile",
     )
     parser.add_argument(
         "--dump-compile-time",
@@ -1333,9 +1377,9 @@ def process_entry(rank, runner, original_dir, args):
         world_size=args.world_size,
         port=args.distributed_master_port,
     ):
-        return maybe_fresh_cache(
-            run, (args.cold_start_latency and args.only)
-        )(runner, args, original_dir)
+        return maybe_fresh_cache(run, (args.cold_start_latency and args.only))(
+            runner, args, original_dir
+        )
 
 
 def main(runner, original_dir=None):
@@ -1376,15 +1420,24 @@ def run(runner, args, original_dir=None):
         if args.accuracy:
             output_filename = f"accuracy_{args.backend}.csv"
         elif args.precision_checker:
-            output_filename=f"precision_checker_{args.backend}.csv"
+            output_filename = f"precision_checker_{args.backend}.csv"
         else:
             output_filename = f"speedup_{args.backend}.csv"
+
+    if args.dynamic_batch_only:
+        args.dynamic_shapes = True
+        torch._dynamo.config.assume_static_by_default = True
+    if args.dynamic_shapes:
+        if not args.dynamic_batch_only:
+            torch._dynamo.config.assume_static_by_default = False
 
     if args.ddp:
         # but just to measure impact on singlenode of performing graph-breaks.
         # Left it as a follow up to keep this PR isolated.
         if not args.accuracy:
-            raise AssertionError("DDP benchmark is currently only hooked up to --accuracy bench")
+            raise AssertionError(
+                "DDP benchmark is currently only hooked up to --accuracy bench"
+            )
         if not args.training:
             raise AssertionError("DDP benchmark requires --training mode")
     if args.accuracy or args.precision_checker:
@@ -1417,9 +1470,11 @@ def run(runner, args, original_dir=None):
             # some of the models do not support use_deterministic_algorithms
             torch.use_deterministic_algorithms(True)
         else:
-            log.warning("Currently, all models keep deterministic open on npu. "
-                        "But on gpu, this model does not support use_deterministic_algorithms. "
-                        "Please check it to prevent bugs.")
+            log.warning(
+                "Currently, all models keep deterministic open on npu. "
+                "But on gpu, this model does not support use_deterministic_algorithms. "
+                "Please check it to prevent bugs."
+            )
             torch.use_deterministic_algorithms(True)
 
         os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
@@ -1428,7 +1483,7 @@ def run(runner, args, original_dir=None):
         torch.backends.cudnn.benchmark = False
         torch.backends.cuda.matmul.allow_tf32 = False
 
-        # Remove randomeness when torch manual seed is called
+        # Remove randomness when torch manual seed is called
         patch_torch_manual_seed()
 
         # Some models e.g. yolov3 assert batch size on n_gpus
@@ -1499,10 +1554,11 @@ def run(runner, args, original_dir=None):
             output_filename = os.path.join(args.output_directory, output_filename)
         else:
             output_filename = os.path.join(
-                # pytorch use torch._dynamo.config.base_dir originally, 
+                # pytorch use torch._dynamo.config.base_dir originally,
                 # but the generated file will be saved under directory where pytorch was installed,
                 # change the default output saved directory.
-                os.path.dirname(os.path.abspath(__file__)), output_filename
+                os.path.dirname(os.path.abspath(__file__)),
+                output_filename,
             )
 
     if args.export_profiler_trace:
@@ -1567,7 +1623,7 @@ def run(runner, args, original_dir=None):
                     import traceback
 
                     print(traceback.format_exc())
-                    logging.warning("%s failed to load", args.only)
+                    log.warning("%s failed to load", args.only)
                     continue  # bad benchmark implementation
 
             current_name = name
@@ -1591,6 +1647,13 @@ def run(runner, args, original_dir=None):
                         marked = True
                         break
 
+            if args.dynamic_batch_only and batch_size > 1:
+                tree_map_only(torch.Tensor, detect_and_mark_batch, example_inputs)
+                if not marked:
+                    raise AssertionError(
+                        f"nothing in example_inputs had a dim with {batch_size}"
+                    )
+
             model, example_inputs = runner.cast_based_on_args(model, example_inputs)
             runner.run_one_model(
                 name,
@@ -1613,9 +1676,11 @@ def run(runner, args, original_dir=None):
         for i, name in enumerate(model_names):
             current_name = name
             placeholder_batch_size = 0
-            print(f"Running model {i+1}/{nmodels}", flush=True)
+            print(f"Running model {i + 1}/{nmodels}", flush=True)
 
-            def write_csv(status, name=name, placeholder_batch_size=placeholder_batch_size):
+            def write_csv(
+                status, name=name, placeholder_batch_size=placeholder_batch_size
+            ):
                 if args.accuracy:
                     headers = ["dev", "name", "batch_size", "accuracy"]
                     rows = [
@@ -1646,7 +1711,8 @@ def run(runner, args, original_dir=None):
 
             try:
                 subprocess.check_call(
-                    [sys.executable] + sys.argv + [f"--only={name}"], timeout=args.timeout
+                    [sys.executable] + sys.argv + [f"--only={name}"],
+                    timeout=args.timeout,
                 )
             except subprocess.TimeoutExpired:
                 print("TIMEOUT", file=sys.stderr)
@@ -1659,10 +1725,13 @@ def run(runner, args, original_dir=None):
 def get_npu_backend(args):
     if not hasattr(get_npu_backend, "_config_cache"):
         try:
-            with open("./npu_backend_config.json", "r") as f:
+            with open("./npu_backend_config.json") as f:
                 get_npu_backend._config_cache = json.load(f)
         except (FileNotFoundError, json.JSONDecodeError) as e:
-            log.warning(f"Failed to load npu_backend_config.json: {e}, using default backend 'dvm'")
+            log.warning(  # noqa: G200
+                "Failed to load npu_backend_config.json: %s, using default backend 'dvm'",
+                e,
+            )
             get_npu_backend._config_cache = None
 
     if get_npu_backend._config_cache is None:
@@ -1684,7 +1753,7 @@ def configure_compile_options(args):
     npu_backend = args.npu_backend
     # mode Config
     if not args.disable_aclgraph:
-        mode = "max-autotune"
+        mode = args.aclgraph_mode
     else:
         mode = None
     if args.only is not None:
@@ -1711,11 +1780,11 @@ def configure_compile_options(args):
             "dynamic": dynamic,
         }
         compile_kwargs["mode"] = mode
-        if backend == "inductor" and hasattr(args, 'npu_backend'):
+        if backend == "inductor" and hasattr(args, "npu_backend"):
             if npu_backend == "default":
                 npu_backend = get_npu_backend(args)
             if npu_backend in ["mlir", "dvm"]:
-                os.environ['TORCHINDUCTOR_NPU_BACKEND'] = npu_backend
+                os.environ["TORCHINDUCTOR_NPU_BACKEND"] = npu_backend
         optimize_ctx = functools.partial(torch.compile, **compile_kwargs)
     else:
         optimize_ctx = contextlib.nullcontext()
