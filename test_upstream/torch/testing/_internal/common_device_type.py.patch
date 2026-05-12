@@ -1,0 +1,124 @@
+diff --git a/torch/testing/_internal/common_device_type.py b/torch/testing/_internal/common_device_type.py
+index 834e0ed..c05a88e 100644
+--- a/torch/testing/_internal/common_device_type.py
++++ b/torch/testing/_internal/common_device_type.py
+@@ -749,33 +749,58 @@ def filter_desired_device_types(device_type_test_bases, except_for=None, only_fo
+     intersect = set(except_for if except_for else []) & set(
+         only_for if only_for else []
+     )
+-    assert (
+-        not intersect
+-    ), f"device ({intersect}) appeared in both except_for and only_for"
++    # assert (
++    #     not intersect
++    # ), f"device ({intersect}) appeared in both except_for and only_for"
++    if intersect:
++        raise AssertionError(
++            f"device ({intersect}) appeared in both except_for and only_for"
++            )
+ 
+     # Replace your privateuse1 backend name with 'privateuse1'
++    # This handles the case where PrivateUse1TestBase.device_type has been
++    # changed from "privateuse1" to the actual backend name (e.g., "openreg")
++    # by setUpClass being called during previous instantiate_device_type_tests calls
+     if is_privateuse1_backend_available():
+         privateuse1_backend_name = torch._C._get_privateuse1_backend_name()
++
++        def func_replace(x: str) -> str:
++            def _normalize_device_type(item: str) -> str:
++                # When privateuse1 is available, callers may pass concrete device strings
++                # like "npu:0". Normalize these to device *types* like "npu" so filtering
++                # by device base works as expected.
++                prefix = f"{privateuse1_backend_name}:"
++                if item.startswith(prefix) and item[len(prefix):].isdigit():
++                    return privateuse1_backend_name
++                return item
++            x = _normalize_device_type(x)
++            return x.replace(privateuse1_backend_name, "privateuse1")
+         except_for = (
+-            ["privateuse1" if x == privateuse1_backend_name else x for x in except_for]
+-            if except_for is not None
+-            else None
++            ([func_replace(x) for x in except_for] if except_for is not None else None)
++            if not isinstance(except_for, str)
++            else func_replace(except_for)
+         )
+         only_for = (
+-            ["privateuse1" if x == privateuse1_backend_name else x for x in only_for]
+-            if only_for is not None
+-            else None
++            ([func_replace(x) for x in only_for] if only_for is not None else None)
++            if not isinstance(only_for, str)
++            else func_replace(only_for)
+         )
++    else:
+ 
++        def func_replace(x: str) -> str:
++            return x
++        
+     if except_for:
+         device_type_test_bases = filter(
+-            lambda x: x.device_type not in except_for, device_type_test_bases
++            lambda x: func_replace(x.device_type) not in except_for,
++            device_type_test_bases,
+         )
+     if only_for:
+         device_type_test_bases = filter(
+-            lambda x: x.device_type in only_for, device_type_test_bases
++            lambda x: func_replace(x.device_type) in only_for,
++            device_type_test_bases,
+         )
+-
++        
+     return list(device_type_test_bases)
+ 
+ 
+@@ -1301,14 +1326,14 @@ class skipPRIVATEUSE1If(skipIf):
+ 
+ 
+ def _has_sufficient_memory(device, size):
+-    if torch.device(device).type == "cuda":
++    if torch.device(device).type == "npu":
+         if not torch.cuda.is_available():
+             return False
+         gc.collect()
+         torch.cuda.empty_cache()
+         # torch.cuda.mem_get_info, aka cudaMemGetInfo, returns a tuple of (free memory, total memory) of a GPU
+-        if device == "cuda":
+-            device = "cuda:0"
++        if device == "npu":
++            device = "npu:0"
+         return (
+             torch.cuda.memory.mem_get_info(device)[0]
+             * torch.cuda.memory.get_per_process_memory_fraction(device)
+@@ -1367,8 +1392,8 @@ def largeTensorTest(size, device=None, inductor=TEST_WITH_TORCHINDUCTOR):
+             if inductor and torch._inductor.config.cpp_wrapper and _device != "cpu":
+                 size_bytes *= 2
+ 
+-            if not _has_sufficient_memory(_device, size_bytes):
+-                raise unittest.SkipTest(f"Insufficient {_device} memory")
++            # if not _has_sufficient_memory(_device, size_bytes):
++            #     raise unittest.SkipTest(f"Insufficient {_device} memory")
+ 
+             return fn(self, *args, **kwargs)
+ 
+@@ -1598,7 +1623,7 @@ class dtypesIfCPU(dtypes):
+ # Overrides specified dtypes on CUDA.
+ class dtypesIfCUDA(dtypes):
+     def __init__(self, *args):
+-        super().__init__(*args, device_type="cuda")
++        super().__init__(*args, device_type="npu")
+ 
+ 
+ class dtypesIfMPS(dtypes):
+@@ -1624,6 +1649,10 @@ def onlyCUDA(fn):
+     return onlyOn("cuda")(fn)
+ 
+ 
++def onlyNPU(fn):
++    return onlyOn("npu")(fn)
++
++
+ def onlyMPS(fn):
+     return onlyOn("mps")(fn)
+ 

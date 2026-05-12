@@ -120,13 +120,36 @@ jobs:
           PIP=pip${{ inputs.python_version }}
           export PIP_CACHE_DIR=/github/home/.cache/pip
 
-          $PIP install --upgrade pip
+          $PIP install --upgrade pip setuptools wheel
           $PIP install torch==${{ inputs.pytorch_version }} --index-url https://download.pytorch.org/whl/cpu
-          $PIP install pyyaml setuptools wheel
+          $PIP install torchvision==${{ inputs.pytorch_version }} --index-url https://download.pytorch.org/whl/cpu || echo "torchvision not available for this version"
+          $PIP install pyyaml
 
           TORCH_VER=$($PYTHON -c "import torch; print(torch.__version__)")
           echo "torch_version=${TORCH_VER}" >> $GITHUB_OUTPUT
           echo "PyTorch version: ${TORCH_VER}"
+
+      - name: Install test dependencies
+        id: install_test_deps
+        run: |
+          PYTHON=python${{ inputs.python_version }}
+          PIP=pip${{ inputs.python_version }}
+          export PIP_CACHE_DIR=/github/home/.cache/pip
+
+          echo "=== Installing PyTorch requirements.txt ==="
+          # Download PyTorch requirements files for test dependencies
+          curl -sL "https://raw.githubusercontent.com/pytorch/pytorch/v${{ inputs.pytorch_version }}/requirements.txt" -o /tmp/pytorch_requirements.txt
+          $PIP install -r /tmp/pytorch_requirements.txt || echo "Some PyTorch dev dependencies may not be available"
+
+          echo "=== Installing PyTorch CI requirements ==="
+          curl -sL "https://raw.githubusercontent.com/pytorch/pytorch/v${{ inputs.pytorch_version }}/.ci/docker/requirements-ci.txt" -o /tmp/pytorch_ci_requirements.txt
+          $PIP install -r /tmp/pytorch_ci_requirements.txt || echo "Some CI dependencies may not be available on this platform"
+
+          echo "=== Installing ascend_pytorch test requirements ==="
+          $PIP install -r test/requirements.txt || echo "Some torch_npu test dependencies may not be available"
+
+          echo "=== Installed test dependencies ==="
+          $PIP list | head -50
 
       - name: Build torch_npu wheel
         id: build
