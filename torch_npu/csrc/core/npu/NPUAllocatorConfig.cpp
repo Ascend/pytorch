@@ -86,10 +86,10 @@ size_t CachingAllocatorConfig::parseMaxSplitSize(const std::vector<std::string> 
     if (++i < config.size()) {
         TORCH_CHECK(isDigit(config[i]), "CachingAllocator option max_split_size_mb is invalid.");
         size_t val1 = static_cast<size_t>(stoi(config[i]));
-        TORCH_CHECK(val1 > kLargeBuffer / (1024 * 1024),
-            "CachingAllocator option max_split_size_mb too small, must be > ", kLargeBuffer / (1024 * 1024),
+        size_t min_allowed_split_size_mb = large_segment_size_ / kMB;
+        TORCH_CHECK(val1 >= min_allowed_split_size_mb,
+            "CachingAllocator option max_split_size_mb too small, must be >= ", min_allowed_split_size_mb,
             PTA_ERROR(ErrCode::VALUE));
-        val1 = std::max(val1, kLargeBuffer / (1024 * 1024));
         val1 = std::min(val1, (std::numeric_limits<size_t>::max() / (1024 * 1024)));
         m_max_split_size = val1 * 1024 * 1024;
     } else {
@@ -225,6 +225,7 @@ size_t CachingAllocatorConfig::parsePageSize(const std::vector<std::string> &con
 
 size_t CachingAllocatorConfig::parseSegmentSizeMb(const std::vector<std::string> &config, size_t i)
 {
+    TORCH_NPU_WARN_ONCE("`segment_size_mb` is deprecated, please use `large_segment_size_mb` instead.");
     consumeToken(config, ++i, ':');
     if (++i < config.size()) {
         TORCH_CHECK(isDigit(config[i]), "CachingAllocator option segment_size_mb is invalid.");
@@ -236,6 +237,27 @@ size_t CachingAllocatorConfig::parseSegmentSizeMb(const std::vector<std::string>
     } else {
         TORCH_CHECK(false, "Error, expecting segment_size_mb value", OPS_ERROR(ErrCode::VALUE));
     }
+    return i;
+}
+
+size_t CachingAllocatorConfig::parseLargeSegmentSize(const std::vector<std::string> &config, size_t i)
+{
+    consumeToken(config, ++i, ':');
+
+    constexpr size_t min_allowed_segment_size_mb = kMinLargeAlloc / kMB;
+    constexpr size_t max_allowed_segment_size_mb =
+        std::numeric_limits<size_t>::max() / kMB;
+
+    TORCH_CHECK(++i < config.size(), "Error, expecting large_segment_size_mb value", OPS_ERROR(ErrCode::VALUE));
+    TORCH_CHECK(isDigit(config[i]), "CachingAllocator option large_segment_size_mb is invalid.", OPS_ERROR(ErrCode::VALUE));
+    size_t val_env = static_cast<size_t>(stoi(config[i]));
+    TORCH_CHECK(val_env > min_allowed_segment_size_mb,
+                "CachingAllocator option large_segment_size_mb must be > ",
+                min_allowed_segment_size_mb,
+                " MB",
+                OPS_ERROR(ErrCode::VALUE));
+    val_env = std::min(val_env, max_allowed_segment_size_mb);
+    large_segment_size_ = val_env * kMB;
     return i;
 }
 
@@ -355,6 +377,15 @@ void CachingAllocatorConfig::parseArgs(const char *env, std::set<std::string> su
     std::vector<std::string> config;
     lexArgs(env, config);
 
+    // large_segment_size_mb should be read first because
+    // max_non_split_rounding_size_ must be >= large_segment_size_.
+    for (size_t i = 0; i < config.size(); i++) {
+        if (config[i] == "large_segment_size_mb") {
+            parseLargeSegmentSize(config, i);
+            break;
+        }
+    }
+
     for (size_t i = 0; i < config.size(); i++) {
         // If supported_settings is not empty,
         // check if the setting is supported by torch_npu.npu.memory._set_allocator_settings().
@@ -379,6 +410,12 @@ void CachingAllocatorConfig::parseArgs(const char *env, std::set<std::string> su
             i = parsePageSize(config, i);
         } else if (config[i] == "segment_size_mb") {
             i = parseSegmentSizeMb(config, i);
+        } else if (config[i] == "large_segment_size_mb") {
+            // skip, handled in first pass
+            consumeToken(config, ++i, ':');
+            if (++i < config.size()) {
+                (void)stoi(config[i]);
+            }
         } else if (config[i] == "pinned_reserve_segment_size_mb") {
             // note : this is handled in NPUAllocatorConfig.h (cuda)
             consumeToken(config, ++i, ':');
@@ -427,6 +464,18 @@ void CachingAllocatorConfig::parseArgs(const char *env, std::set<std::string> su
             m_pinned_mem_register = false;
             TORCH_NPU_WARN_ONCE("pinned_mem_register setting failure, this feature is not supported when pin_memory_expandable_segments is set to `True`,"
                 " now change to `False`.");
+        }
+    }
+
+    if (large_segment_size_ != kLargeBuffer && m_segment_size_mb != 0) {
+        TORCH_NPU_WARN_ONCE("Both `segment_size_mb` and `large_segment_size_mb` are set. "
+            "`segment_size_mb` is deprecated. It is recommended to use only `large_segment_size_mb`.");
+    }
+
+    if (m_page_size_1g) {
+        if (large_segment_size_ != kLargeBuffer || m_segment_size_mb != 0) {
+            TORCH_NPU_WARN_ONCE("`page_size:1g` is set, which will override `large_segment_size_mb` and `segment_size_mb` "
+                "for large pool allocations (size > 1MB). It is recommended to use only `page_size:1g`.");
         }
     }
 }
