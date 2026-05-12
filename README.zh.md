@@ -26,30 +26,28 @@
 
 ## 版本说明
 
-Ascend Extension for PyTorch的版本说明包含版本配套说明、版本兼容性说明和更新说明等，具体请参见《[Ascend Extension for PyTorch 版本说明](https://gitcode.com/Ascend/pytorch/blob/v2.7.1/docs/zh/release_notes/release_notes.md)》。
-
+Ascend Extension for PyTorch的版本说明包含版本配套说明、版本兼容性说明和更新说明等，具体请参见《[Ascend Extension for PyTorch 版本说明](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.0.0/docs/zh/release_notes/release_notes.md)》。
 
 ## 环境部署
 
-Ascend Extension for PyTorch插件的安装操作，具体请参见《[Ascend Extension for PyTorch 软件安装](https://gitcode.com/Ascend/pytorch/blob/v2.7.1/docs/zh/installation_guide/menu_installation_guide.md)》。
+Ascend Extension for PyTorch插件的安装操作，具体请参见《[Ascend Extension for PyTorch 软件安装](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.0.0/docs/zh/installation_guide/menu_installation_guide.md)》。
 
 ## 快速入门
 
-以CNN模型为例，介绍将其迁移至昇腾NPU上进行训练的方法，具体操作请参见《[Ascend Extension for PyTorch 快速入门](https://gitcode.com/Ascend/pytorch/blob/v2.7.1/docs/zh/quick_start/quick_start.md)》。
+以CNN模型为例，介绍将其迁移至昇腾NPU上进行训练的方法，具体操作请参见《[Ascend Extension for PyTorch 快速入门](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.0.0/docs/zh/quick_start/quick_start.md)》。
 
 ## 特性介绍
 
-Ascend Extension for PyTorch插件从内存资源优化、通信性能优化、计算性能优化、辅助报错定位等方面精心打造了一系列独特的特性，具体特性指导请参见《[PyTorch 框架特性指南](https://gitcode.com/Ascend/pytorch/blob/v2.7.1/docs/zh/framework_feature_guide_pytorch/menu_framework_feature.md)》。
+Ascend Extension for PyTorch插件从内存资源优化、通信性能优化、计算性能优化、辅助报错定位等方面精心打造了一系列独特的特性，具体特性指导请参见《[PyTorch 框架特性指南](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.0.0/docs/zh/framework_feature_guide_pytorch/menu_framework_feature.md)》。
 
 ## API参考
 
-- 原生PyTorch API在昇腾NPU设备上的支持情况请参见《[PyTorch 原生API支持度](https://gitcode.com/Ascend/pytorch/blob/v2.7.1/docs/zh/native_apis/menu_pt_native_apis.md)》。
-- Ascend Extension for PyTorch插件提供了部分自定义API接口，具体使用请参见《[Ascend Extension for PyTorch自定义API](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/menu_Pytorch_API.md)》。
+- 原生PyTorch API在昇腾NPU设备上的支持情况请参见《[PyTorch 原生API支持度](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.0.0/docs/zh/native_apis/menu_pt_native_apis.md)》。
+- Ascend Extension for PyTorch插件提供了部分自定义API接口，具体使用请参见《[Ascend Extension for PyTorch自定义API](https://gitcode.com/Ascend/op-plugin/blob/26.0.0/docs/zh/custom_APIs/menu_Pytorch_API.md)》。
 
 ## 分支维护策略
 
 Ascend Extension for PyTorch版本分支的维护阶段如下：
-
 
 | **状态**            | **时间** | **说明**                                         |
 | ------------------- | -------- | ------------------------------------------------ |
@@ -60,14 +58,15 @@ Ascend Extension for PyTorch版本分支的维护阶段如下：
 
 ## PyTorch版本维护策略
 
-| **PyTorch版本** | **维护策略** | **当前状态** | **发布时间**   | **后续状态**             | **EOL日期** |
-|---------------|----------|----------|------------|----------------------|-----------|
-| 2.9.0         | 常规分支     | 开发       | 2026/01/15| 预计2026/07/15起进入维护状态        | -          | 
-| 2.8.0         | 常规分支     | 开发       | 2025/10/15| 预计2026/03/15起进入维护状态        | -          | 
-| 2.7.1         | 长期分支     | 开发       |  2025/10/15| 预计2026/10/15起进入维护状态       | -          | 
-| 2.6.0         | 常规分支     | 开发       | 2025/07/25 | 预计2026/01/25起进入维护状态       | -          | 
-| 2.5.1         | 常规分支     | 维护       | 2024/11/08 | 预计2026/08/08起进入无维护状态     | -          | 
-| 2.4.0         | 常规分支     | 维护       | 2024/10/15 | 预计2026/06/15起进入无维护状态     | -          | 
+| **PyTorch版本** | **维护策略** | **当前状态** | **发布时间**   | **后续状态**               | **EOL日期** |
+|---------------|-------------|------------|------------|----------------------------------|------------|
+| 2.10.0        | 常规分支     | 开发       | 2026/04/15| 预计2026/10/15起进入维护状态        | -          |
+| 2.9.0         | 常规分支     | 开发       | 2026/01/15 | 预计2026/07/15起进入维护状态       | -          |
+| 2.8.0         | 常规分支     | 开发       | 2025/10/15 | 预计2026/03/15起进入维护状态       | -          |
+| 2.7.1         | 长期分支     | 开发       | 2025/10/15 | 预计2026/10/15起进入维护状态       | -          |
+| 2.6.0         | 常规分支     | 维护       | 2025/07/25 | 预计2026/01/25起进入维护状态       | -          |
+| 2.5.1         | 常规分支     | 维护       | 2024/11/08 | 预计2026/08/08起进入无维护状态     | -          |
+| 2.4.0         | 常规分支     | 维护       | 2024/10/15 | 预计2026/06/15起进入无维护状态     | -          |
 | 2.3.1         | 常规分支     | 维护       | 2024/06/06 | 预计2026/06/07起进入无维护状态     |            |
 | 2.2.0         | 常规分支     | EOL        | 2024/04/01 |                                  | 2025/10/14 |
 | 2.1.0         | 长期支持     | 维护       | 2023/10/15 | 预计2026/12/30起进入无维护状态     |            |
@@ -77,6 +76,7 @@ Ascend Extension for PyTorch版本分支的维护阶段如下：
 | 1.5.0         | 长期支持     | EOL        | 2021/7/29  |                                  | 2022/7/29 |
 
 ## 贡献指导
+
 介绍如何向Ascend Extension for PyTorch插件库贡献代码，具体请参见[Ascend Extension for PyTorch插件 贡献指南](CONTRIBUTING.md)。
 
 ## 联系我们
@@ -84,10 +84,13 @@ Ascend Extension for PyTorch版本分支的维护阶段如下：
 欢迎大家为社区做贡献。如果有任何疑问或建议，请提交[GitCode Issues](https://gitcode.com/Ascend/pytorch/issues)，我们会尽快回复。感谢您的支持。
 
 ## 安全声明
+
 Ascend Extension for PyTorch的系统安全加固、运行用户建议和文件权限控制等内容，请参见[Ascend Extension for PyTorch插件 安全声明](SECURITYNOTE.md)。
 
 ## 免责声明
+
 致Ascend Extension for PyTorch插件使用者
+
 - 本插件仅供调试和开发使用，使用者需自行承担使用风险，并理解以下内容：
     - 数据处理及删除：用户在使用本插件过程中产生的数据属于用户责任范畴。建议用户在使用完毕后及时删除相关数据，以防信息泄露。
     - 数据保密与传播：使用者了解并同意不得将通过本插件产生的数据随意外发或传播。对于由此产生的信息泄露、数据泄露或其他不良后果，本插件及其开发者概不负责。
