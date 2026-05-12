@@ -224,7 +224,6 @@ jobs:
             --disabled-testcases pytorch-test-src/test_upstream/disabled_testcases.json \
             --report-dir ${REPORT_DIR} \
             --timeout 1200 \
-            --quick-test 200 \
             --verbose \
             2>&1 | tee /tmp/test_shard_dist_${{ matrix.shard }}.log
 
