@@ -101,9 +101,11 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /github/home/.cache/pip
-          key: pip-py${{ inputs.python_version }}-torch${{ inputs.pytorch_version }}-${{ github.sha }}
+          # Shared cache key - all workflows use same key to share downloaded packages
+          key: pip-py${{ inputs.python_version }}-torch${{ inputs.pytorch_version }}-shared
           restore-keys: |
             pip-py${{ inputs.python_version }}-torch${{ inputs.pytorch_version }}-
+            pip-py${{ inputs.python_version }}-
 
       - name: Cache ccache
         uses: actions/cache@v4

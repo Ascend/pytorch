@@ -78,12 +78,12 @@ jobs:
           mkdir -p /github/home/.cache/pip
           chmod -R 777 /github/home/.cache
 
-      - name: Cache pip (restore from build)
+      - name: Cache pip (shared with build)
         uses: actions/cache@v4
         with:
           path: /github/home/.cache/pip
-          # Try to restore cache from build job first, then fallback to general cache
-          key: pip-collect-py${{ inputs.python_version }}-torch${{ inputs.pytorch_version }}-${{ github.sha }}
+          # Same key as build - any newly downloaded packages will be saved
+          key: pip-py${{ inputs.python_version }}-torch${{ inputs.pytorch_version }}-shared
           restore-keys: |
             pip-py${{ inputs.python_version }}-torch${{ inputs.pytorch_version }}-
             pip-py${{ inputs.python_version }}-

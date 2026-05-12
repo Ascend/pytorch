@@ -60,15 +60,15 @@ jobs:
           mkdir -p /github/home/.cache/pip
           chmod -R 777 /github/home/.cache
 
-      - name: Cache pip (restore from collect/build)
+      - name: Cache pip (shared with build/collect)
         uses: actions/cache@v4
         with:
           path: /github/home/.cache/pip
-          key: pip-regular-py${{ inputs.python_version }}-torch${{ inputs.pytorch_version }}-${{ matrix.shard }}
+          # Same key as build/collect - reuses cached packages
+          key: pip-py${{ inputs.python_version }}-torch${{ inputs.pytorch_version }}-shared
           restore-keys: |
             pip-py${{ inputs.python_version }}-torch${{ inputs.pytorch_version }}-
             pip-py${{ inputs.python_version }}-
-            pip-arm-regular-py${{ inputs.python_version }}-
 
       - name: Download built torch_npu wheel
         uses: actions/download-artifact@v4
