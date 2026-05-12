@@ -1,17 +1,18 @@
 diff --git a/test/distributed/test_dynamo_distributed.py b/test/distributed/test_dynamo_distributed.py
-index 57a685e..094550f 100644
+index 57a685e..4475c83 100644
 --- a/test/distributed/test_dynamo_distributed.py
 +++ b/test/distributed/test_dynamo_distributed.py
-@@ -1,3 +1,8 @@
+@@ -1,3 +1,9 @@
 +import torch_npu.testing
 +
 +import torch_npu
 +from torch_npu.contrib import transfer_to_npu
++import os
 +
  # Owner(s): ["module: dynamo"]
  import contextlib
  import copy
-@@ -47,7 +52,7 @@ from torch.testing._internal.common_distributed import (
+@@ -47,7 +53,7 @@ from torch.testing._internal.common_distributed import (
  )
  from torch.testing._internal.common_utils import requires_cuda
  from torch.testing._internal.inductor_utils import HAS_GPU
@@ -20,7 +21,42 @@ index 57a685e..094550f 100644
  
  def reset_rng_state():
      torch.manual_seed(1337)
-@@ -1225,7 +1230,7 @@ class TestMultiProc(DynamoDistributedMultiProcTestCase):
+@@ -1118,15 +1124,17 @@ class TestMultiProc(DynamoDistributedMultiProcTestCase):
+             self.assertEqual(f(x), x + 1)
+ 
+     @unittest.skipIf(not HAS_GPU, "Inductor+gpu needs triton and recent GPU arch")
++    @patch.object(torch._dynamo.utils, "has_triton", lambda: False)
+     @patch.object(torch._inductor.config, "fx_graph_cache", False)
+     @patch.object(torch._inductor.config, "fx_graph_remote_cache", False)
+     def test_asymmetric_compilation(self):
+         from torch._dynamo.comptime import comptime
++        os.environ['TORCH_NPU_DEVICE_CAPABILITY'] = '9.0'
+ 
+         with _dynamo_dist_per_rank_init(self.rank, self.world_size):
+             torch._dynamo.utils.clear_compilation_metrics()
+ 
+-            device = f"cuda:{self.rank}"
++            device = f"npu:{self.rank}"
+ 
+             pg = dist.distributed_c10d._get_default_group()
+ 
+@@ -1175,13 +1183,14 @@ class TestMultiProc(DynamoDistributedMultiProcTestCase):
+     def test_asymmetric_compilation_with_fx_cache(self):
+         from torch._dynamo.utils import counters
+         from torch._inductor.utils import fresh_inductor_cache
++        os.environ['TORCH_NPU_DEVICE_CAPABILITY'] = '9.0'
+ 
+         with fresh_inductor_cache(), _dynamo_dist_per_rank_init(
+             self.rank, self.world_size
+         ):
+             torch._dynamo.utils.clear_compilation_metrics()
+ 
+-            device = f"cuda:{self.rank}"
++            device = f"npu:{self.rank}"
+ 
+             pg = dist.distributed_c10d._get_default_group()
+ 
+@@ -1225,7 +1234,7 @@ class TestMultiProc(DynamoDistributedMultiProcTestCase):
  
  
  @requires_nccl()
@@ -29,7 +65,7 @@ index 57a685e..094550f 100644
  class TestSingleProc(DynamoDistributedSingleProcTestCase):
      """
      Test harness initializes dist process group.
-@@ -1603,6 +1608,8 @@ class TestSingleProc(DynamoDistributedSingleProcTestCase):
+@@ -1603,6 +1612,8 @@ class TestSingleProc(DynamoDistributedSingleProcTestCase):
          Explicitly check AotAutograd family of compilers work,
          since they require example inputs propagated between graph splits.
          """

@@ -1,5 +1,5 @@
 diff --git a/torch/testing/_internal/common_utils.py b/torch/testing/_internal/common_utils.py
-index afbd569..377843b 100644
+index afbd569..dfcfa1f 100644
 --- a/torch/testing/_internal/common_utils.py
 +++ b/torch/testing/_internal/common_utils.py
 @@ -37,6 +37,7 @@ import time
@@ -10,7 +10,45 @@ index afbd569..377843b 100644
  from collections.abc import Mapping, Sequence
  from contextlib import closing, contextmanager
  from copy import deepcopy
-@@ -2387,24 +2388,26 @@ class CudaNonDefaultStream:
+@@ -1416,6 +1417,7 @@ MACOS_VERSION = float('.'.join(platform.mac_ver()[0].split('.')[:2]) or -1)
+ TEST_XPU = torch.xpu.is_available()
+ TEST_HPU = True if (hasattr(torch, "hpu") and torch.hpu.is_available()) else False
+ TEST_CUDA = torch.cuda.is_available()
++TEST_NPU = hasattr(torch, 'npu') and torch.npu.is_available()
+ custom_device_mod = getattr(torch, torch._C._get_privateuse1_backend_name(), None)
+ TEST_PRIVATEUSE1 = is_privateuse1_backend_available()
+ TEST_PRIVATEUSE1_DEVICE_TYPE = torch._C._get_privateuse1_backend_name()
+@@ -2311,6 +2313,29 @@ def to_gpu(obj, type_map=None):
+     else:
+         return deepcopy(obj)
+ 
++def to_npu(obj, type_map=None):
++    """Convert tensors and objects to NPU device, similar to to_gpu but for NPU.
++
++    This function uses torch.no_grad() to ensure the device transfer is not tracked
++    in the computation graph, which preserves the leaf tensor property.
++    """
++    if type_map is None:
++        type_map = {}
++    if isinstance(obj, torch.Tensor):
++        assert obj.is_leaf
++        t = type_map.get(obj.dtype, obj.dtype)
++        with torch.no_grad():
++            res = obj.to(dtype=t, device="npu", copy=True)
++            res.requires_grad = obj.requires_grad
++        return res
++    elif torch.is_storage(obj):
++        return obj.new().resize_(obj.size()).copy_(obj)  # type: ignore[attr-defined, union-attr]
++    elif isinstance(obj, list):
++        return [to_npu(o, type_map) for o in obj]
++    elif isinstance(obj, tuple):
++        return tuple(to_npu(o, type_map) for o in obj)
++    else:
++        return deepcopy(obj)
+ 
+ def get_function_arglist(func):
+     return inspect.getfullargspec(func).args
+@@ -2387,24 +2412,26 @@ class CudaNonDefaultStream:
          # to ensure CUDA tests do not use default stream by mistake.
          beforeDevice = torch.cuda.current_device()
          self.beforeStreams = []
@@ -41,7 +79,7 @@ index afbd569..377843b 100644
  
  class CudaMemoryLeakCheck:
      def __init__(self, testcase, name=None):
-@@ -3011,8 +3014,8 @@ class TestCase(expecttest.TestCase):
+@@ -3011,8 +3038,8 @@ class TestCase(expecttest.TestCase):
  
              # Wraps the tested method if we should enforce non default CUDA stream.
              self._do_cuda_non_default_stream &= getattr(test_method, '_do_cuda_non_default_stream', True)
@@ -52,7 +90,7 @@ index afbd569..377843b 100644
  
              if self._ignore_not_implemented_error:
                  self.wrap_with_policy(method_name, lambda: skip_exception_type(NotImplementedError))
-@@ -3949,7 +3952,6 @@ class TestCase(expecttest.TestCase):
+@@ -3949,7 +3976,6 @@ class TestCase(expecttest.TestCase):
  
          actual = torch_fn(t_inp, *t_args, **t_kwargs)
          expected = ref_fn(n_inp, *n_args, **n_kwargs)
@@ -60,7 +98,7 @@ index afbd569..377843b 100644
          self.assertEqual(actual, expected, exact_device=False, **kwargs)
  
      # Compares the given Torch and NumPy functions on the given tensor-like object.
-@@ -4702,7 +4704,10 @@ def random_hermitian_pd_matrix(matrix_size, *batch_dims, dtype, device):
+@@ -4702,7 +4728,10 @@ def random_hermitian_pd_matrix(matrix_size, *batch_dims, dtype, device):
  def make_fullrank_matrices_with_distinct_singular_values(*shape, device, dtype, requires_grad=False):
      with torch.no_grad():
          t = make_tensor(shape, device=device, dtype=dtype)
