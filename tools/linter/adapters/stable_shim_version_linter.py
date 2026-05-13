@@ -245,7 +245,7 @@ def get_added_lines(filename: str) -> set[int]:
 
         # Get merge-base with origin/main to check all PR commits
         result = subprocess.run(
-            ["git", "fetch", "origin", "main"],
+            ["git", "fetch", "origin", "master"],
             capture_output=True,
             text=True,
             timeout=600,
@@ -256,15 +256,15 @@ def get_added_lines(filename: str) -> set[int]:
             )
 
         result = subprocess.run(
-            ["git", "merge-base", "HEAD", "origin/main"],
+            ["git", "merge-base", "HEAD", "origin/master"],
             capture_output=True,
             text=True,
             timeout=5,
         )
         if result.returncode != 0:
             raise RuntimeError(
-                f"Failed to find merge-base with origin/main. "
-                f"Make sure origin/main exists (run 'git fetch origin main'). "
+                f"Failed to find merge-base with origin/master. "
+                f"Make sure origin/master exists (run 'git fetch origin master'). "
                 f"Error: {result.stderr.strip()}"
             )
 
