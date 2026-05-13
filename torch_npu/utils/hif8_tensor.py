@@ -16,9 +16,6 @@ import torch_npu
 from torch_npu.utils._error_code import ErrCode, pta_error
 
 
-# init transformer engine
-torch_npu._C._cd_init()
-
 tex = torch_npu._C._cd
 aten = torch.ops.aten
 

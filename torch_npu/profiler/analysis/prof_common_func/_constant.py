@@ -3,9 +3,8 @@ import os
 import time
 from typing import Union
 
-from torch_npu.utils import _should_print_warning
+from torch_npu._init.common.warning_utils import _should_print_warning
 from torch_npu.utils._error_code import ErrCode, prof_error
-
 
 __all__ = []
 

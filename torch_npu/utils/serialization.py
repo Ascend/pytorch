@@ -30,8 +30,7 @@ from torch.serialization import (  # noqa: F401
 
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, pta_error
-
-from .utils import _should_print_warning
+from torch_npu._init.common.warning_utils import _should_print_warning
 
 
 __all__ = ["load", "save_async"]
