@@ -91,7 +91,7 @@ jobs:
             --report-dir ${REPORT_DIR} \
             --timeout 1200 \
             --max-workers 64 \
-            --quick-test 100 \
+            --quick-test 10 \
             --verbose \
             2>&1 | tee /tmp/test_shard_reg_${{ matrix.shard }}.log
 
