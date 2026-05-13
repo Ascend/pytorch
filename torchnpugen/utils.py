@@ -13,43 +13,49 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import itertools
 import os
-import sys
 import stat
+import sys
 import traceback
 import warnings
-import itertools
-from typing import List, Optional, Set, Dict, Union, Sequence, Iterator, Tuple
 from collections import defaultdict
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
-import yaml
+from typing import Optional
+from typing_extensions import assert_never
 
 import torch
-from torchgen.api.types.signatures import NativeSignature, DispatcherSignature
-from torchgen.context import native_function_manager
-from torchgen.code_template import CodeTemplate
-from torchgen.model import (
-    Arguments,
-    BackendIndex,
-    BackendMetadata,
-    DispatchKey,
-    is_cuda_dispatch_key,
-    NativeFunction,
-    NativeFunctionsGroup,
-    FunctionSchema,
-    OperatorName,
-    TensorOptionsArguments,
-    SchemaKind,
-    DeviceCheckType,
-    Argument,
-)
-from torchgen.native_function_generation import pre_group_native_functions
-from torchgen.utils import concatMap
+import yaml
 from torchgen.api import cpp
 from torchgen.api.translate import translate
 from torchgen.api.types import Binding, CppSignatureGroup, kernel_signature
-from torchgen.utils import Target
+from torchgen.api.types.signatures import (
+    CppSignature,
+    DispatcherSignature,
+    NativeSignature,
+)
+from torchgen.code_template import CodeTemplate
+from torchgen.context import native_function_manager
 from torchgen.dest.register_dispatch_key import RegisterDispatchKey
+from torchgen.model import (
+    Argument,
+    Arguments,
+    BackendIndex,
+    BackendMetadata,
+    DeviceCheckType,
+    DispatchKey,
+    FunctionSchema,
+    NativeFunction,
+    NativeFunctionsGroup,
+    OperatorName,
+    SchemaKind,
+    SelfArgument,
+    TensorOptionsArguments,
+)
+from torchgen.native_function_generation import pre_group_native_functions
+from torchgen.utils import concatMap, Target
+
 
 GLOBAL_STRUCTURED_OP_INFO_CACHE = defaultdict(str)
 GLOBAL_OPAPI_INFO_CACHE = set()
@@ -62,7 +68,6 @@ DEVICE_CHECK_NOTSUPPORT_TYPE = {"Tensor[]?"}
 
 
 class PathManager:
-
     @classmethod
     def check_path_owner_consistent(cls, path: str):
         """
@@ -106,15 +111,16 @@ class PathManager:
             os.remove(path)
 
 
-def parse_npu_yaml(custom_path: str) -> Dict:
+def parse_npu_yaml(custom_path: str) -> dict:
     if not os.path.exists(custom_path):
         return {}
     from io import StringIO
+
     f_str = StringIO()
     PathManager.check_directory_path_readable(custom_path)
-    with open(custom_path, 'r') as f:
+    with open(custom_path) as f:
         for line in f:
-            if ':' not in line:
+            if ":" not in line:
                 continue
             f_str.write(line)
 
@@ -132,6 +138,7 @@ def merge_yaml(base_data, additional_data):
             return map_dict[x]
         else:
             return x
+
     if isinstance(base_data, dict):
         for key, value in additional_data.items():
             if key_map(key) not in base_data:
@@ -147,18 +154,23 @@ def merge_yaml(base_data, additional_data):
 
 def merge_custom_yaml(pta_path, op_plugin_path):
     PathManager.check_directory_path_readable(pta_path)
-    with open(pta_path, 'r') as pta_file:
+    with open(pta_path) as pta_file:
         pta_es = yaml.safe_load(pta_file)
     PathManager.check_directory_path_readable(op_plugin_path)
-    with open(op_plugin_path, 'r') as op_plugin_file:
+    with open(op_plugin_path) as op_plugin_file:
         op_es = yaml.safe_load(op_plugin_file)
 
     merged_yaml = merge_yaml(pta_es, op_es)
     merged_yaml_path = gen_custom_yaml_path(pta_path)
     PathManager.remove_path_safety(merged_yaml_path)
-    with os.fdopen(os.open(merged_yaml_path, os.O_RDWR | os.O_CREAT, stat.S_IWUSR | stat.S_IRUSR), "w") as outfile:
+    with os.fdopen(
+        os.open(merged_yaml_path, os.O_RDWR | os.O_CREAT, stat.S_IWUSR | stat.S_IRUSR),
+        "w",
+    ) as outfile:
         yaml.dump(merged_yaml, outfile, default_flow_style=False, width=float("inf"))
-    os.chmod(merged_yaml_path, stat.S_IRUSR | stat.S_IEXEC | stat.S_IRGRP | stat.S_IXGRP)
+    os.chmod(
+        merged_yaml_path, stat.S_IRUSR | stat.S_IEXEC | stat.S_IRGRP | stat.S_IXGRP
+    )
     return merged_yaml
 
 
@@ -166,47 +178,55 @@ def field_tag(custom_es):
     for i, es in enumerate(custom_es):
         if not isinstance(es, dict):
             continue
-        custom_es[i] = {key: custom_es[i][key] for key in FIELDS_TO_USE if key in custom_es[i]}
+        custom_es[i] = {
+            key: custom_es[i][key] for key in FIELDS_TO_USE if key in custom_es[i]
+        }
     return custom_es
 
 
 def filt_exposed_api(custom_path: str):
     source_es = parse_npu_yaml(custom_path)
-    custom_es = source_es.get('custom', []) + source_es.get('custom_autograd', [])
+    custom_es = source_es.get("custom", []) + source_es.get("custom_autograd", [])
     exposed_set = set()
     for es in custom_es:
-        if es.get('exposed', False):
-            exposed_set.add(es.get('func').split('(')[0].split('.')[0])
+        if es.get("exposed", False):
+            exposed_set.add(es.get("func").split("(")[0].split(".")[0])
     return list(exposed_set)
 
 
-# Different implements of ops from origin torch. 
+# Different implements of ops from origin torch.
 # Native ops with dispatchkey CompositeImplicitAutograd but implemented as a kernel op in pta
 COMPOSITEIMPLICITAUTOGRAD_EXCEPT_LIST = [
-    'isclose',
-    'isfinite',
+    "isclose",
+    "isfinite",
 ]
 
 
-def filt_dispath_key(api_name: str) -> List:
+def filt_dispath_key(api_name: str) -> list:
     dispatch_dump = torch._C._dispatch_dump(f"aten::{api_name}")
-    return [dump.split(":")[0] for dump in dispatch_dump.split('\n')]
+    return [dump.split(":")[0] for dump in dispatch_dump.split("\n")]
 
 
 def filt_compositeimplicitautograd_api(native_yaml_path, npu_supported):
     PathManager.check_directory_path_readable(native_yaml_path)
-    with open(native_yaml_path, 'r') as f:
+    with open(native_yaml_path) as f:
         es = yaml.safe_load(f)
 
     from torchnpugen.autograd.utils import TORCH_AUTOGRAD_FUNCTION
+
     supported_autograd = []
     for e in es:
-        api_name = e['func'].split('(')[0]
+        api_name = e["func"].split("(")[0]
         dispatch_keys = filt_dispath_key(api_name)
-        is_compositekey = "CompositeImplicitAutograd[alias]" in dispatch_keys and \
-                          "Autograd[alias]" not in dispatch_keys and \
-                          api_name not in TORCH_AUTOGRAD_FUNCTION
-        is_npu_api = api_name in npu_supported and api_name not in COMPOSITEIMPLICITAUTOGRAD_EXCEPT_LIST 
+        is_compositekey = (
+            "CompositeImplicitAutograd[alias]" in dispatch_keys
+            and "Autograd[alias]" not in dispatch_keys
+            and api_name not in TORCH_AUTOGRAD_FUNCTION
+        )
+        is_npu_api = (
+            api_name in npu_supported
+            and api_name not in COMPOSITEIMPLICITAUTOGRAD_EXCEPT_LIST
+        )
         if is_npu_api and is_compositekey:
             supported_autograd.append(api_name)
     return supported_autograd
@@ -234,6 +254,7 @@ def get_torchgen_dir():
     # get path of torchgen, then get tags.yaml and native_functions.yaml
     try:
         import torchgen
+
         return os.path.dirname(os.path.realpath(torchgen.__file__))
     except Exception:
         _, _, exc_traceback = sys.exc_info()
@@ -241,34 +262,36 @@ def get_torchgen_dir():
         return os.path.dirname(frame_summary.filename)
 
 
-def gen_op_hook_post_code(sig: Union[NativeSignature, DispatcherSignature]) -> Tuple[str, str]:
+def gen_op_hook_post_code(
+    sig: NativeSignature | DispatcherSignature,
+) -> tuple[str, str]:
     res_code: str = None
     return_code: str = None
 
     if sig.returns_type().cpp_type() == "void":
         res_code = ""
-        return_code = f"""at_npu::native::OpHook::GetInstance().PostHook();
+        return_code = """at_npu::native::OpHook::GetInstance().PostHook();
     return;"""
     else:
         res_code = f"""{sig.returns_type().cpp_type()} res = """
-        return_code = f"""at_npu::native::OpHook::GetInstance().PostHook(res);
+        return_code = """at_npu::native::OpHook::GetInstance().PostHook(res);
     return res;"""
 
     return res_code, return_code
 
 
 OVERWRITE_API_LIST = [
-    'matmul',
-    'matmul.out',
-    'matmul_backward',
-    'matmul_double_backward',
+    "matmul",
+    "matmul.out",
+    "matmul_backward",
+    "matmul_double_backward",
 ]
 
 
 # This function is to add profiler information for each operator, which is later extended in the official
 def gen_unstructured(
-    self, f: NativeFunction, g: Optional[NativeFunctionsGroup] = None
-) -> Optional[str]:
+    self, f: NativeFunction, g: NativeFunctionsGroup | None = None
+) -> str | None:
     with native_function_manager(f):
         inplace_meta = False
         gets_out_inplace_wrapper = False
@@ -291,7 +314,9 @@ def gen_unstructured(
         args_str = ", ".join(a.defn() for a in args)
 
         op_name = str(f.func.name.name)
-        force_aclnn = f"at_npu::native::ForceAclnn::GetInstance().IsForceAclnnOp(\"{op_name}\")"
+        force_aclnn = (
+            f'at_npu::native::ForceAclnn::GetInstance().IsForceAclnnOp("{op_name}")'
+        )
         # See Note [Direct dispatch bindings]
         cpp_sig_group = CppSignatureGroup.from_native_function(
             f, method=False, fallback_binding=False
@@ -307,7 +332,7 @@ def gen_unstructured(
             def generate_defn(cpp_sig: CppSignature) -> str:
                 return f"""
 {cpp_sig.defn()} {{
-return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), sig.arguments()))});
+return {sig.name()}({", ".join(e.expr for e in translate(cpp_sig.arguments(), sig.arguments()))});
 }}
 """
 
@@ -352,7 +377,10 @@ return {self_arg_name};
 
             device_check = "  // No device check\n"
             # Backends that require device guards presumably also require device checks.
-            if self.backend_index.device_guard and str(f.func.name) not in DEVICE_NOCHECK_SET:
+            if (
+                self.backend_index.device_guard
+                and str(f.func.name) not in DEVICE_NOCHECK_SET
+            ):
                 device_check_args = itertools.chain(
                     f.func.arguments.out, f.func.arguments.flat_positional
                 )
@@ -390,27 +418,37 @@ torch_npu::profiler::NPURecordFunction guard;
                 for a in candidate_args:
                     if a.type.is_tensor_like():
                         candidate_tensor_args.append(f"{a.name}")
-
-                candidate_tensor_args = list(set(candidate_tensor_args))
+                # Sort for deterministic output
+                candidate_tensor_args = sorted(set(candidate_tensor_args))
                 unsafe_tensor_check = """// No data check."""
                 if len(candidate_tensor_args) > 0:
                     unsafe_tensor_check = """
 if (c10_npu::get_npu_data_unsafe_flag()) {"""
 
                 if name in ["wrapper_NPU__copy_", "wrapper_NPU___foreach_copy_"]:
-                    tensor_arg = candidate_tensor_args[0] + ", " +\
-                        candidate_tensor_args[1]
-                    unsafe_tensor_check = unsafe_tensor_check + f"""
+                    tensor_arg = (
+                        candidate_tensor_args[0] + ", " + candidate_tensor_args[1]
+                    )
+                    unsafe_tensor_check = (
+                        unsafe_tensor_check
+                        + """
     c10_npu::check_and_update_npu_tensor_for_copy(self, src);"""
+                    )
                 else:
                     for tensor_arg in candidate_tensor_args:
-                        unsafe_tensor_check = unsafe_tensor_check + f"""
+                        unsafe_tensor_check = (
+                            unsafe_tensor_check
+                            + f"""
     c10_npu::check_npu_tensor_is_safe({tensor_arg});"""
-                
+                        )
+
                 if len(candidate_tensor_args) > 0:
-                    unsafe_tensor_check = unsafe_tensor_check + """
+                    unsafe_tensor_check = (
+                        unsafe_tensor_check
+                        + """
 }
 """
+                    )
                 candidate_args = itertools.chain(
                     self_arg,
                     f.func.arguments.out,
@@ -419,11 +457,7 @@ if (c10_npu::get_npu_data_unsafe_flag()) {"""
 
                 # Only tensor like arguments are eligible
                 device_of = next(
-                    (
-                        f"{a.name}"
-                        for a in candidate_args
-                        if a.type.is_tensor_like()
-                    ),
+                    (f"{a.name}" for a in candidate_args if a.type.is_tensor_like()),
                     None,
                 )
                 if has_tensor_options and device_of is not None:
@@ -448,7 +482,9 @@ const DeviceGuard device_guard(device_or_default(device));"""
                     impl_name = f"op_plugin::{GLOBAL_STRUCTURED_OP_INFO_CACHE[op_key]}"
 
             # for op_hook_check
-            res_of_op_hook_post_code, return_of_op_hook_post_code = gen_op_hook_post_code(sig)
+            res_of_op_hook_post_code, return_of_op_hook_post_code = (
+                gen_op_hook_post_code(sig)
+            )
 
             args_exprs_str_list = [
                 e.expr
@@ -462,7 +498,9 @@ const DeviceGuard device_guard(device_or_default(device));"""
                 if any(lvalue_ref in args_expr for lvalue_ref in lvalue_ref_list):
                     auto_lvalue += f"""
     auto {kernel_sig.arguments()[idx].name}_tmp = {args_expr};"""
-                    args_exprs_str_list[idx] = f"""{kernel_sig.arguments()[idx].name}_tmp"""
+                    args_exprs_str_list[idx] = (
+                        f"""{kernel_sig.arguments()[idx].name}_tmp"""
+                    )
 
             args_exprs_str_for_op_hook = ", ".join(e for e in args_exprs_str_list)
 
@@ -475,7 +513,9 @@ const DeviceGuard device_guard(device_or_default(device));"""
                 tensor_check_list = []
                 for a in args:
                     if a.argument.type.is_tensor_like():
-                        tensor_check_list.append(f"at_npu::native::FormatHelper::IsOpInputBaseFormat({a.name})")
+                        tensor_check_list.append(
+                            f"at_npu::native::FormatHelper::IsOpInputBaseFormat({a.name})"
+                        )
                 if tensor_check_list:
                     tensor_check_str = f" && {' && '.join(tensor_check_list)}"
 
@@ -567,16 +607,19 @@ namespace {{
             else:
                 payload = f"TORCH_FN({name})"
                 if f"{f.func.name}" in OVERWRITE_API_LIST:
-                    return f"""if (std::getenv("TORCH_NPU_USE_COMPATIBLE_IMPL") == nullptr || std::string(std::getenv("TORCH_NPU_USE_COMPATIBLE_IMPL")) != "1") {{
-    m.impl("{f.func.name}", {payload});
-}}"""
+                    return (
+                        f'if (std::getenv("TORCH_NPU_USE_COMPATIBLE_IMPL") == nullptr || '
+                        f'std::string(std::getenv("TORCH_NPU_USE_COMPATIBLE_IMPL")) != "1") {{\n'
+                        f'    m.impl("{f.func.name}", {payload});\n'
+                        f"}}"
+                    )
                 return f'm.impl("{f.func.name}",\n{payload});\n'
         else:
             assert_never(self.target)
 
 
 def gen_device_check(
-    type: DeviceCheckType, args: List[Argument], method_name: str
+    type: DeviceCheckType, args: list[Argument], method_name: str
 ) -> str:
     if type == DeviceCheckType.NoCheck:
         return "  // No device check\n"
@@ -585,9 +628,14 @@ def gen_device_check(
     device_check += "(void)common_device; // Suppress unused variable warning\n"
     for arg in args:
         # Only tensor like arguments are eligible
-        if arg.type.is_tensor_like() and str(arg.type) not in DEVICE_CHECK_NOTSUPPORT_TYPE:
-            device_check += \
-f"""c10::impl::check_and_update_common_device(common_device, {arg.name}, "{method_name}", "{arg.name}");\n"""
+        if (
+            arg.type.is_tensor_like()
+            and str(arg.type) not in DEVICE_CHECK_NOTSUPPORT_TYPE
+        ):
+            device_check += (
+                f"c10::impl::check_and_update_common_device("
+                f'common_device, {arg.name}, "{method_name}", "{arg.name}");\n'
+            )
     return device_check
 
 
@@ -597,9 +645,9 @@ def arguments(
     faithful: bool,
     symint: bool = False,
     method: bool,
-    cpp_no_default_args: Set[str],
-) -> List[Binding]:
-    args: List[Union[Argument, TensorOptionsArguments, SelfArgument]] = []
+    cpp_no_default_args: set[str],
+) -> list[Binding]:
+    args: list[Argument | TensorOptionsArguments | SelfArgument] = []
     args.extend(arguments.non_out)
     args.extend(arguments.out)
     result = []
@@ -621,35 +669,41 @@ def arguments(
 
 def add_header_to_template_file():
     torchgen_path = get_torchgen_dir()
-    template_dir = os.path.join(torchgen_path, "packaged/ATen/templates/DispatchKeyNativeFunctions.h")
+    template_dir = os.path.join(
+        torchgen_path, "packaged/ATen/templates/DispatchKeyNativeFunctions.h"
+    )
     PathManager.check_directory_path_readable(template_dir)
-    with open(template_dir, "r") as file:
+    with open(template_dir) as file:
         template_content = file.read()
     if "#include <ATen/ATen.h>" not in template_content:
-        template_content = template_content.replace("#include <ATen/Tensor.h>",
-                                                    "#include <ATen/Tensor.h>\n#include <ATen/ATen.h>")
-        with os.fdopen(os.open(template_dir, os.O_WRONLY, stat.S_IWUSR | stat.S_IRUSR), "w") as file:
+        template_content = template_content.replace(
+            "#include <ATen/Tensor.h>",
+            "#include <ATen/Tensor.h>\n#include <ATen/ATen.h>",
+        )
+        with os.fdopen(
+            os.open(template_dir, os.O_WRONLY, stat.S_IWUSR | stat.S_IRUSR), "w"
+        ) as file:
             file.write(template_content)
 
 
 def enable_opplugin() -> bool:
     # enable op_plugin, if path of third_party/op-plugin is valid.
-    
-    env_aclnn_extension_switch = os.getenv('ACLNN_EXTENSION_SWITCH')
-    env_aclnn_extension_path = os.getenv('ACLNN_EXTENSION_PATH')
+
+    env_aclnn_extension_switch = os.getenv("ACLNN_EXTENSION_SWITCH")
+    env_aclnn_extension_path = os.getenv("ACLNN_EXTENSION_PATH")
     # if apply aclnn extension
     if env_aclnn_extension_switch and os.path.exists(env_aclnn_extension_path):
-        op_plugin_path = os.path.join(env_aclnn_extension_path, 'op_plugin')
+        op_plugin_path = os.path.join(env_aclnn_extension_path, "op_plugin")
     # original code logic
     else:
         base_dir = os.path.dirname(os.path.realpath(__file__))
-        op_plugin_path = os.path.join(base_dir, '../third_party/op-plugin/op_plugin')
-    
+        op_plugin_path = os.path.join(base_dir, "../third_party/op-plugin/op_plugin")
+
     return os.path.exists(op_plugin_path)
 
 
 def is_op_valid(op_key: str) -> bool:
-    return True if op_key in GLOBAL_STRUCTURED_OP_INFO_CACHE else False
+    return op_key in GLOBAL_STRUCTURED_OP_INFO_CACHE
 
 
 def get_opplugin_wrap_name(func) -> str:
@@ -670,7 +724,9 @@ def update_opapi_info(op_info):
         if op_info.get("op_api", False):
             GLOBAL_OPAPI_INFO_CACHE.add(op_info.get("func").split("(")[0])
     else:
-        print(f"Warning: Unsupported parameter types, only str and dict is supported, but input is {type(op_info)}")
+        print(
+            f"Warning: Unsupported parameter types, only str and dict is supported, but input is {type(op_info)}"
+        )
 
 
 def is_opapi(op_key):
@@ -684,9 +740,13 @@ def update_internal_format_opapi_info(op_info):
         return
     elif isinstance(op_info, dict):
         if op_info.get("internal_format_opapi", False):
-            GLOBAL_INTERNAL_FORMAT_OPAPI_INFO_CACHE.add(op_info.get("func").split("(")[0])
+            GLOBAL_INTERNAL_FORMAT_OPAPI_INFO_CACHE.add(
+                op_info.get("func").split("(")[0]
+            )
     else:
-        print(f"Warning: Unsupported parameter types, only str and dict is supported, but input is {type(op_info)}")
+        print(
+            f"Warning: Unsupported parameter types, only str and dict is supported, but input is {type(op_info)}"
+        )
 
 
 def is_opapi_support_internal_format(op_key):
@@ -694,13 +754,13 @@ def is_opapi_support_internal_format(op_key):
     return op_key in GLOBAL_INTERNAL_FORMAT_OPAPI_INFO_CACHE
 
 
-def get_target_functions(yaml_path: str, target_op_type: str = None) -> List:
+def get_target_functions(yaml_path: str, target_op_type: str | None = None) -> list:
     source_es = parse_npu_yaml(yaml_path)
 
-    custom = source_es.pop('custom', [])
+    custom = source_es.pop("custom", [])
     if custom is None:
         custom = []  # Allow an empty list of supported ops
-    official = source_es.pop('official', [])
+    official = source_es.pop("official", [])
     if official is None:
         official = []  # Allow an empty list of supported ops
 
@@ -709,8 +769,8 @@ def get_target_functions(yaml_path: str, target_op_type: str = None) -> List:
     symint = source_es.pop("symint", [])
     if symint is None:
         symint = []
-    symint = [op['func'] if isinstance(op, Dict) else op for op in symint]
-    symint_set = set([str(FunctionSchema.parse(op).name) for op in symint])
+    symint = [op["func"] if isinstance(op, dict) else op for op in symint]
+    symint_set = {str(FunctionSchema.parse(op).name) for op in symint}
 
     global GLOBAL_STRUCTURED_OP_INFO_CACHE
     GLOBAL_STRUCTURED_OP_INFO_CACHE.clear()
@@ -718,20 +778,22 @@ def get_target_functions(yaml_path: str, target_op_type: str = None) -> List:
     for op in support_ops:
         funcs = op.get("func", None)
         if not isinstance(funcs, str):
-            raise TypeError(f'not a str : {funcs}')
+            raise TypeError(f"not a str : {funcs}")
         func = FunctionSchema.parse(funcs)
         wrap_name = cpp.name(func)
         op_key = str(func.name)
         if op_key in symint_set:
             wrap_name += "_symint"
         if target_op_type is not None:
-            if target_op_type not in op.keys():
+            if target_op_type not in op:
                 continue
             wrap_name += "_" + target_op_type
         cur_wrap_name = GLOBAL_STRUCTURED_OP_INFO_CACHE.get(op_key, "")
         if cur_wrap_name and cur_wrap_name != wrap_name:
-            print(f"Find different wrap_name for {cur_wrap_name} and {wrap_name} between pta and opplugin, ",
-                  f"with {wrap_name} being used as the actual wrap_name")
+            print(
+                f"Find different wrap_name for {cur_wrap_name} and {wrap_name} between pta and opplugin, ",
+                f"with {wrap_name} being used as the actual wrap_name",
+            )
         GLOBAL_STRUCTURED_OP_INFO_CACHE[op_key] = wrap_name
         target_funcs.append(func)
 
@@ -740,27 +802,36 @@ def get_target_functions(yaml_path: str, target_op_type: str = None) -> List:
 
 def get_target_native_registration(
     dispatch_key: DispatchKey,
-    backend_indices: Dict[DispatchKey, BackendIndex],
-    metadata: Dict[OperatorName, BackendMetadata],
-    native_functions: List[NativeFunction],
+    backend_indices: dict[DispatchKey, BackendIndex],
+    metadata: dict[OperatorName, BackendMetadata],
+    native_functions: list[NativeFunction],
 ):
     if native_functions is None:
         return ""
-    cpu_dispatch_key = DispatchKey.parse(dispatch_key.name.replace("PrivateUse1", "CPU"))
+    cpu_dispatch_key = DispatchKey.parse(
+        dispatch_key.name.replace("PrivateUse1", "CPU")
+    )
     cpu_backend_indices = backend_indices[cpu_dispatch_key]
-    cuda_dispatch_key = DispatchKey.parse(dispatch_key.name.replace("PrivateUse1", "CUDA"))
+    cuda_dispatch_key = DispatchKey.parse(
+        dispatch_key.name.replace("PrivateUse1", "CUDA")
+    )
     cuda_backend_indices = backend_indices[cuda_dispatch_key]
 
     target_native_functions_kernels = {}
-    for op_name in cpu_backend_indices.index.keys():
-        if op_name not in cuda_backend_indices.index.keys():
+    for op_name in cpu_backend_indices.index:
+        if op_name not in cuda_backend_indices.index:
             continue
-        if cpu_backend_indices.index[op_name].kernel == cuda_backend_indices.index[op_name].kernel \
-                and op_name not in metadata.keys():
-            target_native_functions_kernels[op_name] = cpu_backend_indices.index[op_name].kernel
+        if (
+            cpu_backend_indices.index[op_name].kernel
+            == cuda_backend_indices.index[op_name].kernel
+            and op_name not in metadata
+        ):
+            target_native_functions_kernels[op_name] = cpu_backend_indices.index[
+                op_name
+            ].kernel
     target_native_functions = []
     for f in native_functions:
-        if f.func.name in target_native_functions_kernels.keys():
+        if f.func.name in target_native_functions_kernels:
             target_native_functions.append(f)
 
     native_functions_registration_template = CodeTemplate(
@@ -773,27 +844,36 @@ TORCH_LIBRARY_IMPL(aten, ${dispatch_key}, m) {
 ${native_kernels}
 }
 }
-""")
+"""
+    )
 
     def wrap_native_function(f):
         kernel_name = target_native_functions_kernels[f.func.name]
-        wrap_func_name = f"wrap_{dispatch_key}_{str(f.func.name.name)}_{f.func.name.overload_name}"
+        wrap_func_name = (
+            f"wrap_{dispatch_key}_{str(f.func.name.name)}_{f.func.name.overload_name}"
+        )
         with native_function_manager(f):
-            sig = NativeSignature(f.func, prefix='', symint=kernel_name.endswith('symint'))
-            args_exprs_str = ', '.join(a.name for a in sig.arguments())
+            sig = NativeSignature(
+                f.func, prefix="", symint=kernel_name.endswith("symint")
+            )
+            args_exprs_str = ", ".join(a.name for a in sig.arguments())
             return f"""{sig.decl(name=wrap_func_name)} {{
     return at::native::{kernel_name}({args_exprs_str});
 }}
 """
 
     def register_wrap_native_function(f):
-        wrap_func_name = f"wrap_{dispatch_key}_{str(f.func.name.name)}_{f.func.name.overload_name}"
-        return f"m.impl(\"{f.func.name}\", TORCH_FN({wrap_func_name}));"
+        wrap_func_name = (
+            f"wrap_{dispatch_key}_{str(f.func.name.name)}_{f.func.name.overload_name}"
+        )
+        return f'm.impl("{f.func.name}", TORCH_FN({wrap_func_name}));'
 
     return native_functions_registration_template.substitute(
         dispatch_helpers=[wrap_native_function(f) for f in target_native_functions],
         dispatch_key=dispatch_key.name,
-        native_kernels=[register_wrap_native_function(f) for f in target_native_functions]
+        native_kernels=[
+            register_wrap_native_function(f) for f in target_native_functions
+        ],
     )
 
 
@@ -802,9 +882,9 @@ ${native_kernels}
 @dataclass(frozen=True)
 class NativeFunctionsGroupOptionalOut:
     functional: NativeFunction
-    inplace: Optional[NativeFunction]
-    mutable: Optional[NativeFunction]
-    out: Optional[NativeFunction]
+    inplace: NativeFunction | None
+    mutable: NativeFunction | None
+    out: NativeFunction | None
 
     @property
     def root_name(self) -> str:
@@ -821,10 +901,10 @@ class NativeFunctionsGroupOptionalOut:
 
     @staticmethod
     def from_dict(
-        d: Dict[SchemaKind, NativeFunction]
+        d: dict[SchemaKind, NativeFunction],
     ) -> Optional["NativeFunctionsGroupOptionalOut"]:
         if len(d) == 0:
-            raise RuntimeError('The variable d is empty')
+            raise RuntimeError("The variable d is empty")
         if len(d) == 1:
             return None
         d = dict(d)  # non-destructive updates please
@@ -833,10 +913,10 @@ class NativeFunctionsGroupOptionalOut:
         mutable = d.pop(SchemaKind.mutable, None)
         out = d.pop(SchemaKind.out, None)
         if len(d) != 0:
-            raise RuntimeError('The variable d is not empty after popping keys')
+            raise RuntimeError("The variable d is not empty after popping keys")
 
         if functional is None:
-            raise RuntimeError('The variable functional is None')
+            raise RuntimeError("The variable functional is None")
 
         return NativeFunctionsGroupOptionalOut(
             functional=functional,
@@ -848,17 +928,18 @@ class NativeFunctionsGroupOptionalOut:
 
 def get_grouped_native_functions_optional_out(
     native_functions: Sequence[NativeFunction],
-) -> Sequence[Union[NativeFunction, NativeFunctionsGroupOptionalOut]]:
-
+) -> Sequence[NativeFunction | NativeFunctionsGroupOptionalOut]:
     def flatten_pre_group(
-        d: Dict[SchemaKind, NativeFunction]
-    ) -> Sequence[Union[NativeFunction, NativeFunctionsGroupOptionalOut]]:
+        d: dict[SchemaKind, NativeFunction],
+    ) -> Sequence[NativeFunction | NativeFunctionsGroupOptionalOut]:
         r = NativeFunctionsGroupOptionalOut.from_dict(d)
         if r is None:
             # Invariant: any NativeFunctions that are code-generated
             # should have been grouped into NativeFunctionsGroupOptionalOut objects
             if any("generated" in f.tags for f in d.values()):
-                raise RuntimeError("The variable d contains 'generated' in function tags")
+                raise RuntimeError(
+                    "The variable d contains 'generated' in function tags"
+                )
             return list(d.values())
         else:
             return [r]
