@@ -11,6 +11,7 @@
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
 #include "torch_npu/csrc/core/npu/NPUWorkspaceAllocator.h"
+#include "torch_npu/csrc/core/npu/NPUGraphsUtils.h"
 
 #ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/profiler/npu_profiler.h"
@@ -70,7 +71,7 @@ public:
         // Memory snapshots have deadlock issues in some scenarios, no longer capture python stacks.
         return nullptr;
     }
-    
+
     void* malloc(size_t size, aclrtStream stream)
     {
         auto context = maybeGatherContext(RecordContext::STATE);
@@ -490,7 +491,8 @@ public:
         void* dev_ptr = nullptr;
         void (*delete_func)(void*) = &local_raw_delete;
 
-        if (c10_npu::option::OptionsManager::CheckForceUncached()) {
+        if (c10_npu::option::OptionsManager::CheckForceUncached() &&
+ 	        (c10_npu::currentStreamCaptureStatus() == c10_npu::CaptureStatus::None)) {
             delete_func = &uncached_delete;
             if (size != 0) {
                 size_t alloc_size = size + 32;
@@ -507,11 +509,11 @@ public:
 
     c10::DeleterFnPtr raw_deleter() const override
     {
-        if (c10_npu::option::OptionsManager::CheckForceUncached()) {
+        if (c10_npu::option::OptionsManager::CheckForceUncached() &&
+ 	        (c10_npu::currentStreamCaptureStatus() == c10_npu::CaptureStatus::None)) {
             return &uncached_delete;
-        } else {
-            return &local_raw_delete;
         }
+        return &local_raw_delete;
     }
 
     // Note [COW/lazy_clone is not supported yet]
