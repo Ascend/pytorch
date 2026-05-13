@@ -240,20 +240,3 @@ jobs:
           name: test-reports-dist-${{ matrix.shard }}
           path: test-reports/
           retention-days: 30
-
-      - name: Compress and upload error logs
-        if: failure()
-        run: |
-          # Only upload logs when tests failed
-          mkdir -p error-logs
-          cp /tmp/test_shard_dist_${{ matrix.shard }}.log error-logs/ 2>/dev/null || true
-          tar -czf error-logs-dist-${{ matrix.shard }}.tar.gz error-logs/
-          echo "Error logs compressed: $(ls -lh error-logs-dist-${{ matrix.shard }}.tar.gz)"
-
-      - name: Upload error logs
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: error-logs-dist-${{ matrix.shard }}
-          path: error-logs-dist-${{ matrix.shard }}.tar.gz
-          retention-days: 30
