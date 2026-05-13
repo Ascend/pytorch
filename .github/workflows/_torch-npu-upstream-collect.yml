@@ -130,8 +130,11 @@ jobs:
           echo "Download URL: ${TRITON_ASCEND_URL}"
           curl -sL "${TRITON_ASCEND_URL}" -o /tmp/triton_ascend.whl || echo "triton-ascend wheel download failed"
           if [ -f /tmp/triton_ascend.whl ]; then
-            $PIP install /tmp/triton_ascend.whl || echo "triton-ascend installation failed"
-            echo "triton-ascend installed successfully"
+            if $PIP install /tmp/triton_ascend.whl; then
+              echo "triton-ascend installed successfully"
+            else
+              echo "triton-ascend installation failed"
+            fi
           fi
 
       - name: Download prepared test source
