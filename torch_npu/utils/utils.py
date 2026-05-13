@@ -3,6 +3,7 @@ import sys
 import time
 import warnings
 from warnings import _showwarnmsg_impl
+from torch_npu._init.common.warning_utils import _should_print_warning
 
 __all__ = []
 
@@ -29,16 +30,6 @@ def _print_warn_log(warn_msg: str):
 
 def _print_error_log(error_msg: str):
     _print_log(_LogLevel.ERROR, error_msg)
-
-
-def _should_print_warning():
-    disabled_warning = os.environ.get("TORCH_NPU_DISABLED_WARNING", "0")
-    if disabled_warning == "1":
-        return False
-    rank = os.environ.get("RANK", None)
-    if rank is None or rank == "0":
-        return True
-    return False
 
 
 def _apply_npu_show_warning():
