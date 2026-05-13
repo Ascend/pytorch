@@ -13,7 +13,6 @@ from torch import Tensor
 
 from torch._dynamo.utils import set_current_node, UnsupportedFakeTensorException
 
-from torch.utils import _triton
 
 from typing import (
     Set,
@@ -46,7 +45,7 @@ from torch._decomp import (
 
 from . import npu_patch_deprecated
 
-_triton.has_triton = lambda: False
+
 
 # Fix Error: Exit earlier than child process.
 atexit.register(shutdown_compile_workers)

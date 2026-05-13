@@ -1,32 +1,42 @@
 import os
 
-from .codegen.common import register_device_op_overrides_npu
+# all backends need register npu/cpu/mps device_op_overrides
+from .codecache import patch_cache_base_get_system
 
+# All backends need npu/cpu/mps device_op_overrides.
+from .codegen.common import register_device_op_overrides_npu
+from .graph import patch_codegen_with_cpp_wrapper
+from .utils import patch_has_triton, patch_device_supports_tma, patch_is_gpu, get_current_raw_stream
+from .codegen.cpp_utils import patch_device_to_aten
 
 register_device_op_overrides_npu()
+patch_has_triton()
+patch_is_gpu()
+patch_device_supports_tma()
+patch_cache_base_get_system()
+patch_codegen_with_cpp_wrapper()
+patch_device_to_aten()
 
+def _get_backend() -> str:
+    return os.getenv("TORCHINDUCTOR_NPU_BACKEND", "default")
 
-if os.getenv("TORCHINDUCTOR_NPU_BACKEND", "default") == "mlir":
+if _get_backend() == "mlir":
+    import torch
+    import torch_npu
     try:
         import torch_mlir
         from torch_mlir import ir
     except ImportError as e:
         raise ImportError("torch_mlir is not installed, install it first.") from e
     from .ascend_npu_ir.ascend_npu_ir.npu import npu_inductor_plugin, torch_mlir_patch
-    from .utils import patch_device_supports_tma, patch_has_triton, patch_is_gpu
+    device_id = torch_npu.npu.current_device()
+    torch_npu._C._recovery_all_npu_stream(device_id)
 
-    patch_is_gpu()
-    patch_has_triton()
-    patch_device_supports_tma()
 
-elif os.getenv("TORCHINDUCTOR_NPU_BACKEND", "default") == "dvm":
+elif _get_backend() == "dvm":
     from .ascend_npu_ir.ascend_npu_ir.npu import npu_inductor_plugin
     from .dvm import mlir_fusion
-    from .utils import patch_device_supports_tma, patch_has_triton, patch_is_gpu
 
-    patch_is_gpu()
-    patch_has_triton()
-    patch_device_supports_tma()
 else:
     import torch
     from torch._dynamo.device_interface import (
@@ -46,7 +56,7 @@ else:
     from torch_npu.utils._inductor import NPUDeviceOpOverrides
 
     from . import codegen, config as npu_config
-    from .codecache import patch_aot_code_compiler_compile, patch_cache_base_get_system
+    from .codecache import patch_aot_code_compiler_compile
     from .config import aggresive_autotune, log as npulog, num_vector_core
     from .cpp_builder import patch_get_optimization_cflags
     from .decomposition import _register_npu_inductor_decompositons
@@ -57,12 +67,9 @@ else:
     from .runtime import _load_cached_autotuning
     from .utils import (
         disable_foreach,
-        get_current_raw_stream,
-        patch_device_supports_tma,
         patch_get_first_incompatible_cudagraph_node,
-        patch_has_triton,
         patch_is_cudagraph_unsafe_op,
-        patch_is_gpu,
+
     )
 
     def _inductor_register_backend_for_device():
@@ -148,11 +155,11 @@ else:
     autotune_cache._load_cached_autotuning = _load_cached_autotuning
 
     register_fa_pass()
-    patch_cache_base_get_system()
-    patch_is_gpu()
-    patch_has_triton()
-    patch_device_supports_tma()
     disable_foreach()
     patch_get_first_incompatible_cudagraph_node()
     patch_get_optimization_cflags()
     patch_is_cudagraph_unsafe_op()
+    os.environ["TORCHINDUCTOR_COMPREHENSIVE_PADDING"] = "0"
+    torch._inductor.config.comprehensive_padding = False
+    os.environ["TORCHINDUCTOR_COMPILE_THREADS"] = "1"
+    torch._inductor.config.compile_threads = 1
