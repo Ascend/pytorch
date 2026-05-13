@@ -92,7 +92,6 @@ jobs:
 
           $PIP install --upgrade pip setuptools wheel
           $PIP install torch==${{ inputs.pytorch_version }} --index-url https://download.pytorch.org/whl/cpu
-          $PIP install torchvision==${{ inputs.pytorch_version }} --index-url https://download.pytorch.org/whl/cpu || echo "torchvision not available for this version"
 
           TORCH_NPU_WHL=$(ls torch-npu-wheel-artifact/*.whl | head -1)
           $PIP install "${TORCH_NPU_WHL}"
@@ -161,9 +160,6 @@ jobs:
           echo "=== Installing PyTorch CI requirements ==="
           if [ -f .ci/docker/requirements-ci.txt ]; then
             $PIP install -r .ci/docker/requirements-ci.txt || echo "Some CI dependencies may not be available on this platform"
-          else
-            curl -sL "https://raw.githubusercontent.com/pytorch/pytorch/v${{ inputs.pytorch_version }}/.ci/docker/requirements-ci.txt" -o /tmp/pytorch_ci_requirements.txt
-            $PIP install -r /tmp/pytorch_ci_requirements.txt || echo "Some CI dependencies may not be available on this platform"
           fi
 
           echo "=== Installing ascend_pytorch test requirements ==="

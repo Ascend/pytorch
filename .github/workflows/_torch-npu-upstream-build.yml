@@ -124,7 +124,6 @@ jobs:
 
           $PIP install --upgrade pip setuptools wheel
           $PIP install torch==${{ inputs.pytorch_version }} --index-url https://download.pytorch.org/whl/cpu
-          $PIP install torchvision==${{ inputs.pytorch_version }} --index-url https://download.pytorch.org/whl/cpu || echo "torchvision not available for this version"
           $PIP install pyyaml
 
           TORCH_VER=$($PYTHON -c "import torch; print(torch.__version__)")
