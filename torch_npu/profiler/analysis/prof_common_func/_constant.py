@@ -1,15 +1,16 @@
+# ruff: noqa: UP045,UP007
 import os
 import time
 from typing import Union
-from enum import Enum
 
-from torch_npu.utils._error_code import ErrCode, prof_error
 from torch_npu._init.common.warning_utils import _should_print_warning
+from torch_npu.utils._error_code import ErrCode, prof_error
+
 
 __all__ = []
 
 
-class Constant(object):
+class Constant:
     INVALID_VALUE = -1
     NULL_VALUE = 0
     DEFAULT_PROCESS_NUMBER = os.cpu_count() // 2
@@ -22,6 +23,7 @@ class Constant(object):
     PROFILING_WORK_PATH = "profiling_data"
     PROFILER_META_DATA = "profiler_metadata.json"
     MINDSTUDIO_PROFILER_OUTPUT = "mindstudio_profiler_output"
+    PLATFORM_ANALYSIS_DIR = "PLATFORM"
 
     # file authority
     FILE_AUTHORITY = 0o640
@@ -75,7 +77,10 @@ class Constant(object):
     EXPORT_STACK = "export_stack"
     EXPORT_MEMORY_TIMELINE = "export_memory_timeline"
 
-    ACL_OP_EXE_NAME = ("AscendCL@aclopCompileAndExecute".lower(), "AscendCL@aclopCompileAndExecuteV2".lower())
+    ACL_OP_EXE_NAME = (
+        "AscendCL@aclopCompileAndExecute".lower(),
+        "AscendCL@aclopCompileAndExecuteV2".lower(),
+    )
     AI_CORE = "AI_CORE"
 
     # memory
@@ -86,8 +91,8 @@ class Constant(object):
     WORKSPACE = "WORKSPACE"
     B_TO_KB = 1024.0
     KB_TO_MB = 1024.0
-    B_TO_MB = 1024.0 ** 2
-    B_TO_GB = 1024.0 ** 3
+    B_TO_MB = 1024.0**2
+    B_TO_GB = 1024.0**3
     CANN_OP_MEM_LEN = 10
     PTA_OP_MEM_LEN = 14
     CANN_MEM_RECORD_LEN = 4
@@ -107,15 +112,15 @@ class Constant(object):
     CPU_ACTIVITIES = "ProfilerActivity.CPU"
     NPU_ACTIVITIES = "ProfilerActivity.NPU"
     EXPERIMENTAL_CONFIG = "experimental_config"
-    PROFILER_LEVEL = '_profiler_level'
-    AI_CORE_METRICS = '_aic_metrics'
-    L2_CACHE = '_l2_cache'
-    MSPROF_TX = '_msprof_tx'
+    PROFILER_LEVEL = "_profiler_level"
+    AI_CORE_METRICS = "_aic_metrics"
+    L2_CACHE = "_l2_cache"
+    MSPROF_TX = "_msprof_tx"
     OP_ATTR = "_op_attr"
-    DATA_SIMPLIFICATION = '_data_simplification'
-    SYS_IO = '_sys_io'
-    SYS_INTERCONNECTION = '_sys_interconnection'
-    EXPORT_TYPE = '_export_type'
+    DATA_SIMPLIFICATION = "_data_simplification"
+    SYS_IO = "_sys_io"
+    SYS_INTERCONNECTION = "_sys_interconnection"
+    EXPORT_TYPE = "_export_type"
     LEVEL0 = "Level0"
     LEVEL1 = "Level1"
     LEVEL2 = "Level2"
@@ -136,6 +141,7 @@ class Constant(object):
     DISK = "disk"
     NETWORK = "network"
     OSRT = "osrt"
+    PLATFORM = "platform"
 
     # profiler end info
     END_INFO = "end_info"
@@ -298,7 +304,7 @@ def contact_2num(high_num: int, low_num: int) -> int:
     return high_num << MOVE_BIT | low_num
 
 
-class DbConstant():
+class DbConstant:
     # db invalid value
     DB_INVALID_VALUE = 4294967295
     DB_INVALID_CONNECTION_ID = -1
@@ -335,7 +341,7 @@ class DbConstant():
     TABLE_OPERATOR_MEMORY = "OP_MEMORY"
     TABLE_NPU_OP_MEM = "NPU_OP_MEM"
     TABLE_META_DATA = "META_DATA"
-    
+
     # rank device map table name
     TABLE_RANK_DEVICE_MAP = "RANK_DEVICE_MAP"
     # host info
@@ -358,38 +364,38 @@ class DbConstant():
     START_CONNECTION_ID_FWK_API = 5 << 28
 
 
-class TableColumnsManager():
+class TableColumnsManager:
     TableColumns = {
-        DbConstant.TABLE_CANN_API : [
+        DbConstant.TABLE_CANN_API: [
             ("startNs", Constant.SQL_INTEGER_TYPE),
             ("endNs", Constant.SQL_INTEGER_TYPE),
             ("type", Constant.SQL_INTEGER_TYPE),
             ("globalTid", Constant.SQL_INTEGER_TYPE),
             ("connectionId", Constant.SQL_INTEGER_TYPE),
-            ("name", Constant.SQL_INTEGER_TYPE)
+            ("name", Constant.SQL_INTEGER_TYPE),
         ],
-        DbConstant.TABLE_STRING_IDS : [
+        DbConstant.TABLE_STRING_IDS: [
             ("id", Constant.SQL_INTEGER_TYPE),
-            ("value", Constant.SQL_TEXT_TYPE)
+            ("value", Constant.SQL_TEXT_TYPE),
         ],
-        DbConstant.TABLE_CONNECTION_IDS : [
+        DbConstant.TABLE_CONNECTION_IDS: [
             ("id", Constant.SQL_INTEGER_TYPE),
-            ("connectionId", Constant.SQL_INTEGER_TYPE)
+            ("connectionId", Constant.SQL_INTEGER_TYPE),
         ],
-        DbConstant.TABLE_PYTORCH_CALLCHAINS : [
+        DbConstant.TABLE_PYTORCH_CALLCHAINS: [
             ("id", Constant.SQL_INTEGER_TYPE),
             ("stack", Constant.SQL_INTEGER_TYPE),
-            ("stackDepth", Constant.SQL_INTEGER_TYPE)
+            ("stackDepth", Constant.SQL_INTEGER_TYPE),
         ],
-        DbConstant.TABLE_RANK_DEVICE_MAP : [
+        DbConstant.TABLE_RANK_DEVICE_MAP: [
             ("rankId", Constant.SQL_INTEGER_TYPE),
-            ("deviceId", Constant.SQL_INTEGER_TYPE)
+            ("deviceId", Constant.SQL_INTEGER_TYPE),
         ],
-        DbConstant.TABLE_ENUM_API_TYPE : [
+        DbConstant.TABLE_ENUM_API_TYPE: [
             ("id", Constant.SQL_INTEGER_TYPE),
-            ("name", Constant.SQL_TEXT_TYPE)
+            ("name", Constant.SQL_TEXT_TYPE),
         ],
-        DbConstant.TABLE_PYTORCH_API : [
+        DbConstant.TABLE_PYTORCH_API: [
             ("startNs", Constant.SQL_TEXT_TYPE),
             ("endNs", Constant.SQL_TEXT_TYPE),
             ("globalTid", Constant.SQL_INTEGER_TYPE),
@@ -400,18 +406,18 @@ class TableColumnsManager():
             ("inputDtypes", Constant.SQL_INTEGER_TYPE),
             ("inputShapes", Constant.SQL_INTEGER_TYPE),
             ("callchainId", Constant.SQL_INTEGER_TYPE),
-            ("type", Constant.SQL_INTEGER_TYPE)
+            ("type", Constant.SQL_INTEGER_TYPE),
         ],
-        DbConstant.TABLE_MEMORY_RECORD : [
+        DbConstant.TABLE_MEMORY_RECORD: [
             ("component", Constant.SQL_INTEGER_TYPE),
             ("timestamp", Constant.SQL_INTEGER_TYPE),
             ("totalAllocated", Constant.SQL_INTEGER_TYPE),
             ("totalReserved", Constant.SQL_INTEGER_TYPE),
             ("totalActive", Constant.SQL_INTEGER_TYPE),
             ("streamPtr", Constant.SQL_INTEGER_TYPE),
-            ("deviceId", Constant.SQL_INTEGER_TYPE)
+            ("deviceId", Constant.SQL_INTEGER_TYPE),
         ],
-        DbConstant.TABLE_OPERATOR_MEMORY : [
+        DbConstant.TABLE_OPERATOR_MEMORY: [
             ("name", Constant.SQL_INTEGER_TYPE),
             ("size", Constant.SQL_INTEGER_TYPE),
             ("allocationTime", Constant.SQL_INTEGER_TYPE),
@@ -428,7 +434,7 @@ class TableColumnsManager():
             ("streamPtr", Constant.SQL_INTEGER_TYPE),
             ("deviceId", Constant.SQL_INTEGER_TYPE),
         ],
-        DbConstant.TABLE_ANALYZER_BANDWIDTH : [
+        DbConstant.TABLE_ANALYZER_BANDWIDTH: [
             ("hccl_op_name", Constant.SQL_TEXT_TYPE),
             ("group_name", Constant.SQL_TEXT_TYPE),
             ("transport_type", Constant.SQL_TEXT_TYPE),
@@ -440,9 +446,9 @@ class TableColumnsManager():
             ("count", Constant.SQL_NUMERIC_TYPE),
             ("total_duration", Constant.SQL_NUMERIC_TYPE),
             ("step", Constant.SQL_TEXT_TYPE),
-            ("type", Constant.SQL_TEXT_TYPE)
+            ("type", Constant.SQL_TEXT_TYPE),
         ],
-        DbConstant.TABLE_ANALYZER_MATRIX : [
+        DbConstant.TABLE_ANALYZER_MATRIX: [
             ("hccl_op_name", Constant.SQL_TEXT_TYPE),
             ("group_name", Constant.SQL_TEXT_TYPE),
             ("src_rank", Constant.SQL_TEXT_TYPE),
@@ -453,9 +459,9 @@ class TableColumnsManager():
             ("bandwidth", Constant.SQL_NUMERIC_TYPE),
             ("step", Constant.SQL_TEXT_TYPE),
             ("type", Constant.SQL_TEXT_TYPE),
-            ("op_name", Constant.SQL_TEXT_TYPE)
+            ("op_name", Constant.SQL_TEXT_TYPE),
         ],
-        DbConstant.TABLE_ANALYZER_TIME : [
+        DbConstant.TABLE_ANALYZER_TIME: [
             ("hccl_op_name", Constant.SQL_TEXT_TYPE),
             ("group_name", Constant.SQL_TEXT_TYPE),
             ("start_timestamp", Constant.SQL_NUMERIC_TYPE),
@@ -465,9 +471,9 @@ class TableColumnsManager():
             ("synchronization_time", Constant.SQL_NUMERIC_TYPE),
             ("idle_time", Constant.SQL_NUMERIC_TYPE),
             ("step", Constant.SQL_TEXT_TYPE),
-            ("type", Constant.SQL_TEXT_TYPE)
+            ("type", Constant.SQL_TEXT_TYPE),
         ],
-        DbConstant.TABLE_STEP_TRACE_TIME : [
+        DbConstant.TABLE_STEP_TRACE_TIME: [
             ("deviceId", Constant.SQL_INTEGER_TYPE),
             ("step", Constant.SQL_TEXT_TYPE),
             ("computing", Constant.SQL_NUMERIC_TYPE),
@@ -477,27 +483,30 @@ class TableColumnsManager():
             ("free", Constant.SQL_NUMERIC_TYPE),
             ("stage", Constant.SQL_NUMERIC_TYPE),
             ("bubble", Constant.SQL_NUMERIC_TYPE),
-            ("communication_not_overlapped_and_exclude_receive", Constant.SQL_NUMERIC_TYPE),
-            ("preparing", Constant.SQL_NUMERIC_TYPE)
+            (
+                "communication_not_overlapped_and_exclude_receive",
+                Constant.SQL_NUMERIC_TYPE,
+            ),
+            ("preparing", Constant.SQL_NUMERIC_TYPE),
         ],
-        DbConstant.TABLE_HOST_INFO : [
-            ('hostUid', Constant.SQL_TEXT_TYPE),
-            ('hostName', Constant.SQL_TEXT_TYPE)
+        DbConstant.TABLE_HOST_INFO: [
+            ("hostUid", Constant.SQL_TEXT_TYPE),
+            ("hostName", Constant.SQL_TEXT_TYPE),
         ],
-        DbConstant.TABLE_META_DATA : [
-            ('name', Constant.SQL_TEXT_TYPE),
-            ('value', Constant.SQL_TEXT_TYPE)
+        DbConstant.TABLE_META_DATA: [
+            ("name", Constant.SQL_TEXT_TYPE),
+            ("value", Constant.SQL_TEXT_TYPE),
         ],
-        DbConstant.TABLE_STEP_TIME : [
+        DbConstant.TABLE_STEP_TIME: [
             ("id", Constant.SQL_INTEGER_TYPE),
             ("startNs", Constant.SQL_INTEGER_TYPE),
-            ("endNs", Constant.SQL_INTEGER_TYPE)
+            ("endNs", Constant.SQL_INTEGER_TYPE),
         ],
-        DbConstant.TABLE_GC_RECORD : [
+        DbConstant.TABLE_GC_RECORD: [
             ("startNs", Constant.SQL_INTEGER_TYPE),
             ("endNs", Constant.SQL_INTEGER_TYPE),
-            ("globalTid", Constant.SQL_INTEGER_TYPE)
-        ]
+            ("globalTid", Constant.SQL_INTEGER_TYPE),
+        ],
     }
 
 
