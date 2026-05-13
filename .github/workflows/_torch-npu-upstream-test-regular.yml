@@ -47,148 +47,14 @@ jobs:
       max-parallel: 5
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Setup NPU test environment
+        uses: ./.github/actions/setup-npu-test-env
         with:
-          repository: kerer-ai/pytorch
-          ref: v2.7.1_dev
-          fetch-depth: 1
-          path: ascend_pytorch
-
-      - name: Setup cache directories
-        run: |
-          mkdir -p /github/home/.cache/pip
-          chmod -R 777 /github/home/.cache
-
-      - name: Cache pip (shared with build/collect)
-        uses: actions/cache@v4
-        with:
-          path: /github/home/.cache/pip
-          # Same key as build/collect - reuses cached packages
-          key: pip-py${{ inputs.python_version }}-torch${{ inputs.pytorch_version }}-shared
-          restore-keys: |
-            pip-py${{ inputs.python_version }}-torch${{ inputs.pytorch_version }}-
-            pip-py${{ inputs.python_version }}-
-
-      - name: Download built torch_npu wheel
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ inputs.torch_npu_wheel_artifact }}
-          path: torch-npu-wheel-artifact
-
-      - name: Uninstall pre-installed torch/torchvision
-        run: |
-          pip${{ inputs.python_version }} uninstall -y torch torchvision || true
-          echo "Pre-installed torch/torchvision uninstalled"
-
-      - name: Install PyTorch ${{ inputs.pytorch_version }} and built torch_npu
-        run: |
-          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
-          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
-
-          PIP=pip${{ inputs.python_version }}
-          PYTHON=python${{ inputs.python_version }}
-          export PIP_CACHE_DIR=/github/home/.cache/pip
-
-          $PIP install --upgrade pip setuptools wheel
-          $PIP install torch==${{ inputs.pytorch_version }} --index-url https://download.pytorch.org/whl/cpu
-
-          TORCH_NPU_WHL=$(ls torch-npu-wheel-artifact/*.whl | head -1)
-          $PIP install "${TORCH_NPU_WHL}"
-
-          echo "PyTorch ${{ inputs.pytorch_version }} and torch_npu installed from ${TORCH_NPU_WHL}"
-
-      - name: Install triton-ascend
-        run: |
-          PIP=pip${{ inputs.python_version }}
-          PYTHON=python${{ inputs.python_version }}
-
-          # Map Python version to triton-ascend wheel naming
-          PY_VER=$(echo "${{ inputs.python_version }}" | tr -d '.')
-          TRITON_ASCEND_WHL="triton_ascend-3.2.1-cp${PY_VER}-cp${PY_VER}-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl"
-          TRITON_ASCEND_URL="https://gitcode.com/Ascend/triton-ascend/releases/download/v3.2.1/${TRITON_ASCEND_WHL}"
-
-          echo "=== Installing triton-ascend for Python ${{ inputs.python_version }} ==="
-          echo "Download URL: ${TRITON_ASCEND_URL}"
-          curl -sL "${TRITON_ASCEND_URL}" -o "/tmp/${TRITON_ASCEND_WHL}" || echo "triton-ascend wheel download failed"
-          if [ -f "/tmp/${TRITON_ASCEND_WHL}" ]; then
-            if $PIP install "/tmp/${TRITON_ASCEND_WHL}"; then
-              echo "triton-ascend installed successfully"
-            else
-              echo "triton-ascend installation failed"
-            fi
-          fi
-
-      - name: Download prepared test source
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ inputs.prepared_test_src_artifact }}
-          path: prepared-test-src-artifact
-
-      - name: Extract prepared test source
-        run: |
-          tar -xzf prepared-test-src-artifact/pytorch-test-src.tar.gz
-
-      - name: Verify NPU availability
-        run: |
-          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
-          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
-
-          PYTHON=python${{ inputs.python_version }}
-          $PYTHON -c "
-          import torch
-          print(f'torch: {torch.__version__}')
-          import torch_npu
-          print(f'torch_npu: {torch_npu.__version__}')
-          print(f'NPU available: {torch.npu.is_available()}')
-          print(f'NPU count: {torch.npu.device_count()}')
-          if torch.npu.is_available():
-              print(f'NPU name: {torch.npu.get_device_name(0)}')
-          "
-
-      - name: Install test dependencies
-        run: |
-          PIP=pip${{ inputs.python_version }}
-          export PIP_CACHE_DIR=/github/home/.cache/pip
-
-          echo "=== Installing PyTorch requirements.txt ==="
-          cd pytorch-test-src
-          if [ -f requirements.txt ]; then
-            $PIP install -r requirements.txt || echo "Some PyTorch dev dependencies may not be available"
-          fi
-
-          echo "=== Installing PyTorch CI requirements ==="
-          if [ -f .ci/docker/requirements-ci.txt ]; then
-            $PIP install -r .ci/docker/requirements-ci.txt || echo "Some CI dependencies may not be available on this platform"
-          fi
-
-          echo "=== Installing ascend_pytorch test requirements ==="
-          cd ../ascend_pytorch
-          if [ -f test/requirements.txt ]; then
-            $PIP install -r test/requirements.txt || echo "Some torch_npu test dependencies may not be available"
-          fi
-
-          cd ../pytorch-test-src
-          echo "=== Installed test dependencies ==="
-          $PIP list | grep -E "pytest|onnx|z3|tensorboard|expecttest|hypothesis|torchvision|torch_geometric" | head -30
-
-      - name: Apply torch environment patches
-        run: |
-          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
-          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
-
-          PYTHON=python${{ inputs.python_version }}
-          cd ascend_pytorch/test_upstream
-          chmod +x torch_env_patch.sh
-
-          echo "=== Applying torch environment patches ==="
-          ./torch_env_patch.sh --python=${{ inputs.python_version }} --verbose 2>&1 | tee /tmp/torch_env_patch_reg_${{ matrix.shard }}.log
-          PATCH_STATUS=$?
-
-          if [ ${PATCH_STATUS} -ne 0 ]; then
-            echo "WARNING: Torch environment patch application returned non-zero status: ${PATCH_STATUS}"
-            echo "Tests will continue, but some may fail due to missing patches"
-          fi
+          python_version: ${{ inputs.python_version }}
+          pytorch_version: ${{ inputs.pytorch_version }}
+          torch_npu_wheel_artifact: ${{ inputs.torch_npu_wheel_artifact }}
+          prepared_test_src_artifact: ${{ inputs.prepared_test_src_artifact }}
+          patch_log_suffix: reg_${{ matrix.shard }}
 
       - name: Download cases shard JSONs
         uses: actions/download-artifact@v4
@@ -286,4 +152,4 @@ jobs:
         with:
           name: error-logs-reg-${{ matrix.shard }}
           path: error-logs-reg-${{ matrix.shard }}.tar.gz
-          retention-days: 30
+          retention-days: 7

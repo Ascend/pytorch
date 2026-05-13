@@ -38,68 +38,14 @@ jobs:
       options: --user root
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Setup NPU test environment
+        uses: ./.github/actions/setup-npu-test-env
         with:
-          repository: kerer-ai/pytorch
-          ref: v2.7.1_dev
-          fetch-depth: 1
-          path: ascend_pytorch
-
-      - name: Setup cache directories
-        run: |
-          mkdir -p /github/home/.cache/pip
-
-      - name: Download built torch_npu wheel
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ inputs.torch_npu_wheel_artifact }}
-          path: torch-npu-wheel-artifact
-
-      - name: Install PyTorch and torch_npu
-        run: |
-          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
-          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
-
-          # Uninstall pre-installed torch/torchvision
-          pip${{ inputs.python_version }} uninstall -y torch torchvision || true
-
-          # Install PyTorch
-          pip${{ inputs.python_version }} install torch==${{ inputs.pytorch_version }}
-
-          # Install built torch_npu wheel
-          TORCH_NPU_WHL=$(ls torch-npu-wheel-artifact/*.whl | head -1)
-          pip${{ inputs.python_version }} install "${TORCH_NPU_WHL}"
-
-      - name: Download prepared test source
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ inputs.prepared_test_src_artifact }}
-          path: pytorch-test-src-artifact
-
-      - name: Extract test source
-        run: |
-          tar -xzf pytorch-test-src-artifact/pytorch-test-src.tar.gz
-
-      - name: Verify NPU availability
-        run: |
-          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
-          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
-
-          python${{ inputs.python_version }} - <<'PY'
-          import torch
-          import torch_npu
-          print(f'torch: {torch.__version__}')
-          print(f'torch_npu: {torch_npu.__version__}')
-          print(f'NPU available: {torch.npu.is_available()}')
-          print(f'NPU count: {torch.npu.device_count()}')
-          PY
-
-      - name: Install test dependencies
-        run: |
-          pip${{ inputs.python_version }} install pytest pytest-timeout pytest-xdist hypothesis zstandard pyyaml
-          pip${{ inputs.python_version }} install pytest-rerunfailures pytest-flakefinder pytest-subtests==0.13.1 xdoctest==1.1.0 pulp>=2.9
-          pip${{ inputs.python_version }} install -r pytorch-test-src/requirements.txt || true
+          python_version: ${{ inputs.python_version }}
+          pytorch_version: ${{ inputs.pytorch_version }}
+          torch_npu_wheel_artifact: ${{ inputs.torch_npu_wheel_artifact }}
+          prepared_test_src_artifact: ${{ inputs.prepared_test_src_artifact }}
+          patch_log_suffix: custom
 
       - name: Run custom test files
         id: run_tests
@@ -159,6 +105,7 @@ jobs:
         run: |
           mkdir -p error-logs
           cp /tmp/test_custom.log error-logs/ 2>/dev/null || true
+          cp /tmp/torch_env_patch_custom.log error-logs/ 2>/dev/null || true
           tar -czf error-logs-custom.tar.gz error-logs/
           echo "Error logs compressed"
 
@@ -168,4 +115,4 @@ jobs:
         with:
           name: error-logs-custom
           path: error-logs-custom.tar.gz
-          retention-days: 30
+          retention-days: 7
