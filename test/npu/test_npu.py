@@ -1,24 +1,25 @@
-from itertools import product
 import collections
 import gc
-import numpy as np
+from itertools import product
 
+import numpy as np
 import torch
 from torch.autograd import Variable
-import torch_npu
 
-from torch_npu.testing.testcase import TestCase, run_tests
+import torch_npu
 from torch_npu.testing.common_utils import freeze_rng_state
+from torch_npu.testing.testcase import run_tests, TestCase
 
 
 class TestNpu(TestCase):
-
     FIFTY_MIL_CYCLES = 50000000
 
     def _check_memory_stat_consistency(self):
         snapshot = torch_npu.npu.memory_snapshot()
 
-        expected_each_device = collections.defaultdict(lambda: collections.defaultdict(int))
+        expected_each_device = collections.defaultdict(
+            lambda: collections.defaultdict(int)
+        )
 
         for segment in snapshot:
             expected = expected_each_device[segment["device"]]
@@ -28,7 +29,9 @@ class TestNpu(TestCase):
             expected["segment." + pool_str + ".current"] += 1
 
             expected["allocated_bytes.all.current"] += segment["allocated_size"]
-            expected["allocated_bytes." + pool_str + ".current"] += segment["allocated_size"]
+            expected["allocated_bytes." + pool_str + ".current"] += segment[
+                "allocated_size"
+            ]
 
             expected["reserved_bytes.all.current"] += segment["total_size"]
             expected["reserved_bytes." + pool_str + ".current"] += segment["total_size"]
@@ -50,7 +53,9 @@ class TestNpu(TestCase):
                     expected["inactive_split.all.current"] += 1
                     expected["inactive_split." + pool_str + ".current"] += 1
                     expected["inactive_split_bytes.all.current"] += block["size"]
-                    expected["inactive_split_bytes." + pool_str + ".current"] += block["size"]
+                    expected["inactive_split_bytes." + pool_str + ".current"] += block[
+                        "size"
+                    ]
 
         for device, expected in expected_each_device.items():
             stats = torch_npu.npu.memory_stats(device)
@@ -68,11 +73,17 @@ class TestNpu(TestCase):
 
         expected_head = []
         expected_head.append("=" * 75)
-        expected_head.append(" {_:16} PyTorch NPU memory summary, device ID {device:<18d} ")
+        expected_head.append(
+            " {_:16} PyTorch NPU memory summary, device ID {device:<18d} "
+        )
         expected_head.append("-" * 75)
-        expected_head.append("  {_:9} NPU OOMs: {num_ooms:<13d} | {_:6} npuMalloc retries: {num_alloc_retries:<9d}  ")
+        expected_head.append(
+            "  {_:9} NPU OOMs: {num_ooms:<13d} | {_:6} npuMalloc retries: {num_alloc_retries:<9d}  "
+        )
         expected_head.append("=" * 75)
-        expected_head.append("        Metric         | Cur Usage  | Peak Usage | Tot Alloc  | Tot Freed  ")
+        expected_head.append(
+            "        Metric         | Cur Usage  | Peak Usage | Tot Alloc  | Tot Freed  "
+        )
 
         expected_head_str = "|" + "|\n|".join(expected_head).format(**fmt_dict) + "|\n"
         assert_len = len(expected_head_str)
@@ -137,10 +148,14 @@ class TestNpu(TestCase):
             if reset_peak:
                 torch_npu.npu.reset_peak_memory_stats(device)
                 self.assertEqual(torch_npu.npu.memory_allocated(device), last_m_arr[0])
-                self.assertEqual(torch_npu.npu.max_memory_allocated(device), last_m_arr[0])
+                self.assertEqual(
+                    torch_npu.npu.max_memory_allocated(device), last_m_arr[0]
+                )
                 max_m_arr[0] = last_m_arr[0]
                 self.assertEqual(torch_npu.npu.memory_reserved(device), last_r_arr[0])
-                self.assertEqual(torch_npu.npu.max_memory_reserved(device), last_r_arr[0])
+                self.assertEqual(
+                    torch_npu.npu.max_memory_reserved(device), last_r_arr[0]
+                )
                 max_r_arr[0] = last_r_arr[0]
 
         assert_change(0)
@@ -239,10 +254,12 @@ class TestNpu(TestCase):
                 self.assertEqual(torch_npu.npu.memory_allocated(), prev)
 
     def test_out_of_memory(self):
-        tensor = torch.zeros(1024, device='npu')
+        tensor = torch.zeros(1024, device="npu")
 
-        with self.assertRaisesRegex(RuntimeError, "Tried to allocate more than 1EB memory"):
-            torch.empty(1024 * 1024 * 1024 * 8000000000, dtype=torch.int8, device='npu')
+        with self.assertRaisesRegex(
+            RuntimeError, "Tried to allocate more than 1EB memory"
+        ):
+            torch.empty(1024 * 1024 * 1024 * 8000000000, dtype=torch.int8, device="npu")
 
         # ensure out of memory error doesn't disturb subsequent kernel
         tensor.fill_(1)
@@ -251,27 +268,27 @@ class TestNpu(TestCase):
     def test_set_per_process_memory_fraction(self):
         # test invalid fraction value.
         with self.assertRaisesRegex(TypeError, "Invalid type"):
-            torch_npu.npu.set_per_process_memory_fraction(int(1))
+            torch_npu.npu.set_per_process_memory_fraction(1)
         with self.assertRaisesRegex(ValueError, "Invalid fraction value"):
             torch_npu.npu.set_per_process_memory_fraction(-0.1)
         with self.assertRaisesRegex(ValueError, "Invalid fraction value"):
             torch_npu.npu.set_per_process_memory_fraction(2.0)
 
-        tensor = torch.zeros(1024, device='npu')
+        tensor = torch.zeros(1024, device="npu")
         torch_npu.npu.empty_cache()
         total_memory = torch_npu.npu.get_device_properties(0).total_memory
         torch_npu.npu.set_per_process_memory_fraction(0.5, 0)
 
         # test 0.499 allocation is ok.
         application = int(total_memory * 0.499) - torch_npu.npu.max_memory_reserved()
-        tmp_tensor = torch.empty(application, dtype=torch.int8, device='npu')
+        tmp_tensor = torch.empty(application, dtype=torch.int8, device="npu")
         del tmp_tensor
         torch_npu.npu.empty_cache()
 
         application = int(total_memory * 0.5)
         # it will get OOM when try to allocate more than half memory.
         with self.assertRaisesRegex(RuntimeError, "out of memory"):
-            torch.empty(application, dtype=torch.int8, device='npu')
+            torch.empty(application, dtype=torch.int8, device="npu")
 
         # ensure out of memory error doesn't disturb subsequent kernel
         tensor.fill_(1)
@@ -343,9 +360,14 @@ class TestNpu(TestCase):
 
         for dst, try_non_blocking in product(("npu", "cpu"), (True, False)):
             # Creates source on the opposite device from destination.
-            src = torch.randn(1000, 1000, 2, 100,
-                              device="npu" if dst == "cpu" else "cpu",
-                              pin_memory=True if dst == "npu" else False)
+            src = torch.randn(
+                1000,
+                1000,
+                2,
+                100,
+                device="npu" if dst == "cpu" else "cpu",
+                pin_memory=(dst == "npu"),
+            )
             _test_to_non_blocking(src, try_non_blocking, dst)
 
     def test_to_cpu_blocking_by_default(self):
@@ -404,19 +426,20 @@ class TestNpu(TestCase):
 
     def test_get_device_index(self):
         from torch_npu.npu import _get_device_index
+
         with self.assertRaisesRegex(RuntimeError, "Invalid device string"):
-            _get_device_index('npu0', optional=True)
+            _get_device_index("npu0", optional=True)
 
         with self.assertRaisesRegex(ValueError, "Expected a npu device"):
-            cpu_device = torch.device('cpu')
+            cpu_device = torch.device("cpu")
             _get_device_index(cpu_device, optional=True)
 
     def test_npu_synchronize(self):
         torch_npu.npu.synchronize()
-        torch_npu.npu.synchronize('npu')
-        torch_npu.npu.synchronize('npu:0')
+        torch_npu.npu.synchronize("npu")
+        torch_npu.npu.synchronize("npu:0")
         torch_npu.npu.synchronize(0)
-        torch_npu.npu.synchronize(torch.device('npu:0'))
+        torch_npu.npu.synchronize(torch.device("npu:0"))
 
         with self.assertRaisesRegex(ValueError, "Expected a npu device, but"):
             torch_npu.npu.synchronize(torch.device("cpu"))
@@ -456,7 +479,9 @@ class TestNpu(TestCase):
         t = torch.FloatTensor([1, 2, 3, 4]).pin_memory()
         result = torch_npu.npu.FloatTensor(t.size())
         stream = torch_npu.npu.Stream()  # stream to record tensor copy
-        alrm_stream = torch_npu.npu.Stream()  # alarm stream as npu not support stream._sleep
+        alrm_stream = (
+            torch_npu.npu.Stream()
+        )  # alarm stream as npu not support stream._sleep
         event = torch_npu.npu.Event()  # alarm event
         ptr = [None]
 
@@ -465,14 +490,18 @@ class TestNpu(TestCase):
             tmp = t.npu(non_blocking=True)
             ptr[0] = tmp.data_ptr()
         torch_npu.npu.current_stream().wait_stream(stream)  # wait for copy to complete
-        torch_npu.npu.current_stream().wait_event(event)  # wait for alarm event to be recorded for mocking of cuda delay
+        torch_npu.npu.current_stream().wait_event(
+            event
+        )  # wait for alarm event to be recorded for mocking of cuda delay
         tmp.record_stream(torch_npu.npu.current_stream())
         result.copy_(tmp)
         with torch_npu.npu.stream(stream):
             tmp2 = torch_npu.npu.FloatTensor(t.size())
             tmp2.zero_()
-            # ptr of tmp will not be re-used util alarm event is recorded
-            self.assertNotEqual(tmp2.data_ptr(), ptr[0], message='allocation re-used to soon')
+            # ptr of tmp will not be reused util alarm event is recorded
+            self.assertNotEqual(
+                tmp2.data_ptr(), ptr[0], message="allocation reused to soon"
+            )
         alrm_stream.record_event(event)
 
         self.assertEqual(result.tolist(), [1, 2, 3, 4])
@@ -482,8 +511,8 @@ class TestNpu(TestCase):
         stream2 = torch_npu.npu.Stream()
 
         with torch_npu.npu.stream(stream2):
-            matrix1 = torch.ones(1000, 1000, device='npu')
-            matrix2 = torch.ones(1000, 1000, device='npu')
+            matrix1 = torch.ones(1000, 1000, device="npu")
+            matrix2 = torch.ones(1000, 1000, device="npu")
             tensor1 = torch.matmul(matrix1, matrix2)
             data_ptr1 = tensor1.data_ptr()
 
@@ -491,7 +520,7 @@ class TestNpu(TestCase):
             torch_npu.erase_stream(tensor1, stream1)
             del tensor1
 
-            tensor2 = torch.ones(1000, 1000, device='npu')
+            tensor2 = torch.ones(1000, 1000, device="npu")
             self.assertEqual(tensor2.data_ptr(), data_ptr1)
 
     @staticmethod
@@ -551,7 +580,7 @@ class TestNpu(TestCase):
 
     @staticmethod
     def _test_stream_event_nogil(self, sync_func, p2c, c2p):
-        with torch_npu.npu.device('npu:1'):
+        with torch_npu.npu.device("npu:1"):
             c2p.put(0)
             p2c.get()
             c2p.put(sync_func(self, TestNpu.FIFTY_MIL_CYCLES))
@@ -562,43 +591,42 @@ class TestNpu(TestCase):
         self.assertEqual(x.t(), x.t().pin_memory())
 
     def test_caching_pinned_memory(self):
-
-        # check that allocations are re-used after deletion
+        # check that allocations are reused after deletion
         t = torch.FloatTensor([1]).pin_memory()
         ptr = t.data_ptr()
         del t
         t = torch.FloatTensor([1]).pin_memory()
         self.assertEqual(t.data_ptr(), ptr)
 
-        # check that the allocation is not re-used if it's in-use by a copy
+        # check that the allocation is not reused if it's in-use by a copy
         npu_tensor = torch.npu.FloatTensor([0])
         npu_tensor.copy_(t, non_blocking=True)
         del t
-        t = torch.FloatTensor([1]).pin_memory()
+        t = torch.FloatTensor([1]).pin_memory()  # noqa: F841
         self.assertEqual(list(npu_tensor), [1])
 
     def test_function_torch_empty_and_to(self):
-        x = torch.empty((2, 3), dtype=torch.float16, device='npu')
+        x = torch.empty((2, 3), dtype=torch.float16, device="npu")
         x_int32 = x.to(torch.int32)
-        res = x_int32 + 1
+        res = x_int32 + 1  # noqa: F841
 
     def test_function_npu(self):
-        x = torch.empty((2, 3), dtype=torch.float16, device='cpu')
+        x = torch.empty((2, 3), dtype=torch.float16, device="cpu")
         x_npu = x.npu()
-        res = x_npu + 1
+        res = x_npu + 1  # noqa: F841
 
     def test_function_torch_empty_with_format(self):
-        x = torch_npu.empty_with_format((2, 3), dtype=torch.float32, device='npu')
-        res = x + 1
+        x = torch_npu.empty_with_format((2, 3), dtype=torch.float32, device="npu")
+        res = x + 1  # noqa: F841
 
     def test_function_torch_empty_like(self):
-        x = torch.empty((2, 3), dtype=torch.float32, device='npu')
+        x = torch.empty((2, 3), dtype=torch.float32, device="npu")
         x_like = torch.empty_like(x)
-        res = x_like + 1
+        res = x_like + 1  # noqa: F841
 
     def test_function_torch_empty_like_with_stride(self):
         # if a is contiguous, stride of b should be same as a
-        a = torch.empty([16, 32], device='npu')
+        a = torch.empty([16, 32], device="npu")
         self.assertTrue(a.is_contiguous())
         self.assertEqual(a.stride(), (32, 1))
 
@@ -615,7 +643,7 @@ class TestNpu(TestCase):
         self.assertEqual(b.stride(), (32, 1))
 
         # if a is Not contiguous, stride of b should be same as a when memory_format=torch.preserve_format(default)
-        a = torch.empty([16, 32], device='npu').T
+        a = torch.empty([16, 32], device="npu").T
         self.assertFalse(a.is_contiguous())
         self.assertEqual(a.stride(), (1, 32))
 
@@ -638,20 +666,261 @@ class TestNpu(TestCase):
                 x_like = torch.empty_like(x)
         self.assertEqual(torch_npu.get_npu_format(x_like), 2)
 
+    @classmethod
+    def setUpClass(cls):
+        cls.npu_available = torch.npu.is_available()
+
+    def _compare_with_cpu(self, cpu_tensor, npu_tensor, memory_format=None):
+        cpu_result = torch.empty_like(cpu_tensor, memory_format=memory_format)
+        npu_result = torch.empty_like(npu_tensor, memory_format=memory_format)
+        self.assertEqual(
+            cpu_result.shape,
+            npu_result.shape,
+            f"Shape mismatch: CPU {cpu_result.shape} vs NPU {npu_result.shape}",
+        )
+        self.assertEqual(
+            cpu_result.dtype,
+            npu_result.dtype,
+            f"Dtype mismatch: CPU {cpu_result.dtype} vs NPU {npu_result.dtype}",
+        )
+        self.assertEqual(
+            cpu_result.stride(),
+            npu_result.stride(),
+            f"Stride mismatch: CPU {cpu_result.stride()} vs NPU {npu_result.stride()}",
+        )
+        self.assertEqual(
+            cpu_result.is_contiguous(),
+            npu_result.is_contiguous(),
+            f"Contiguity mismatch: CPU {cpu_result.is_contiguous()} vs NPU {npu_result.is_contiguous()}",
+        )
+
+    # ----------------------------------------------------------------
+    # Scenario 1: Transposed tensor (non-contiguous, strides reversed)
+    # ----------------------------------------------------------------
+    def test_transposed_2d(self):
+        """Transposed 2D tensor: strides should be preserved on both CPU and NPU."""
+        cpu_t = torch.randn(4, 6).t()
+        npu_t = cpu_t.npu()
+        self.assertFalse(cpu_t.is_contiguous())
+        self.assertFalse(npu_t.is_contiguous())
+        self._compare_with_cpu(cpu_t, npu_t, memory_format=torch.preserve_format)
+
+    def test_transposed_3d(self):
+        """Transposed 3D tensor: strides should be preserved."""
+        cpu_t = torch.randn(2, 3, 4).transpose(0, 2)
+        npu_t = cpu_t.npu()
+        self.assertFalse(cpu_t.is_contiguous())
+        self._compare_with_cpu(cpu_t, npu_t, memory_format=torch.preserve_format)
+
+    # ----------------------------------------------------------------
+    # Scenario 2: Sliced tensor (non-contiguous via slicing)
+    # ----------------------------------------------------------------
+    def test_sliced_dim0(self):
+        """Slice along dim 0: every other row, non-contiguous."""
+        cpu_t = torch.randn(8, 5)[::2]
+        npu_t = cpu_t.npu()
+        self.assertFalse(cpu_t.is_contiguous())
+        self._compare_with_cpu(cpu_t, npu_t, memory_format=torch.preserve_format)
+
+    def test_sliced_dim1(self):
+        """Slice along dim 1: every other column, non-contiguous."""
+        cpu_t = torch.randn(4, 8)[:, ::2]
+        npu_t = cpu_t.npu()
+        self.assertFalse(cpu_t.is_contiguous())
+        self._compare_with_cpu(cpu_t, npu_t, memory_format=torch.preserve_format)
+
+    # ----------------------------------------------------------------
+    # Scenario 3: Narrowed tensor
+    # ----------------------------------------------------------------
+    def test_narrowed(self):
+        """Narrowed tensor: non-contiguous via narrow."""
+        cpu_t = torch.randn(6, 8).narrow(1, 1, 5)
+        npu_t = cpu_t.npu()
+        self.assertFalse(cpu_t.is_contiguous())
+        self._compare_with_cpu(cpu_t, npu_t, memory_format=torch.preserve_format)
+
+    # ----------------------------------------------------------------
+    # Scenario 4: Expanded tensor (stride 0 dimension)
+    # ----------------------------------------------------------------
+    def test_expanded(self):
+        """Expanded tensor: has stride=0 dimension, non-contiguous."""
+        cpu_t = torch.randn(1, 5).expand(4, 5)
+        npu_t = cpu_t.npu()
+        self.assertFalse(cpu_t.is_contiguous())
+        self._compare_with_cpu(cpu_t, npu_t, memory_format=torch.preserve_format)
+
+    def test_expanded_3d(self):
+        """Expanded 3D tensor with stride=0."""
+        cpu_t = torch.randn(2, 1, 4).expand(2, 3, 4)
+        npu_t = cpu_t.npu()
+        self.assertFalse(cpu_t.is_contiguous())
+        self._compare_with_cpu(cpu_t, npu_t, memory_format=torch.preserve_format)
+
+    # ----------------------------------------------------------------
+    # Scenario 5: Permuted tensor
+    # ----------------------------------------------------------------
+    def test_permuted(self):
+        """Permuted tensor: dimension order changed."""
+        cpu_t = torch.randn(2, 3, 4, 5).permute(3, 1, 0, 2)
+        npu_t = cpu_t.npu()
+        self.assertFalse(cpu_t.is_contiguous())
+        self._compare_with_cpu(cpu_t, npu_t, memory_format=torch.preserve_format)
+
+    # ----------------------------------------------------------------
+    # Scenario 6: Select on a non-leading dimension
+    # ----------------------------------------------------------------
+    def test_select_dim1(self):
+        """Select along dim 1: produces non-contiguous tensor."""
+        cpu_t = torch.randn(3, 5, 4).select(1, 2)
+        npu_t = cpu_t.npu()
+        self.assertFalse(cpu_t.is_contiguous())
+        self._compare_with_cpu(cpu_t, npu_t, memory_format=torch.preserve_format)
+
+    # ----------------------------------------------------------------
+    # Scenario 7: Diagonal / as_strided
+    # ----------------------------------------------------------------
+    def test_as_strided_non_contiguous(self):
+        """Manually constructed non-contiguous strides via as_strided."""
+        cpu_t = torch.randn(12).as_strided((3, 3), (4, 1))
+        npu_t = cpu_t.npu()
+        self.assertFalse(cpu_t.is_contiguous())
+        self._compare_with_cpu(cpu_t, npu_t, memory_format=torch.preserve_format)
+
+    # ----------------------------------------------------------------
+    # Scenario 8: memory_format=None (default Preserve)
+    # Non-contiguous input but no preserve_format requested
+    # ----------------------------------------------------------------
+    def test_transposed_memory_format_none(self):
+        """Transposed tensor with memory_format=None (default Contiguous).
+        Both CPU and NPU should produce contiguous result."""
+        cpu_t = torch.randn(4, 6).t()
+        npu_t = cpu_t.npu()
+        self.assertFalse(cpu_t.is_contiguous())
+
+        cpu_result = torch.empty_like(cpu_t)
+        npu_result = torch.empty_like(npu_t)
+
+        self.assertFalse(
+            cpu_result.is_contiguous(),
+            "CPU result should be non-ontiguous with default memory_format",
+        )
+        self.assertFalse(
+            npu_result.is_contiguous(),
+            "NPU result should be non-contiguous with default memory_format",
+        )
+        self.assertEqual(cpu_result.shape, npu_result.shape)
+        self.assertEqual(cpu_result.stride(), npu_result.stride())
+
+    # ----------------------------------------------------------------
+    # Scenario 9: memory_format=Contiguous on non-contiguous input
+    # ----------------------------------------------------------------
+    def test_transposed_memory_format_contiguous(self):
+        """Transposed tensor with memory_format=Contiguous.
+        Both should produce contiguous result."""
+        cpu_t = torch.randn(4, 6).t()
+        npu_t = cpu_t.npu()
+
+        cpu_result = torch.empty_like(cpu_t, memory_format=torch.contiguous_format)
+        npu_result = torch.empty_like(npu_t, memory_format=torch.contiguous_format)
+
+        self.assertTrue(cpu_result.is_contiguous())
+        self.assertTrue(npu_result.is_contiguous())
+        self.assertEqual(cpu_result.shape, npu_result.shape)
+
+    # ----------------------------------------------------------------
+    # Scenario 10: Contiguous input with preserve_format (baseline)
+    # ----------------------------------------------------------------
+    def test_contiguous_preserve(self):
+        """Contiguous tensor with preserve_format: should remain contiguous."""
+        cpu_t = torch.randn(4, 6)
+        npu_t = cpu_t.npu()
+        self.assertTrue(cpu_t.is_contiguous())
+        self._compare_with_cpu(cpu_t, npu_t, memory_format=torch.preserve_format)
+
+    # ----------------------------------------------------------------
+    # Scenario 11: 1D non-contiguous (via as_strided)
+    # ----------------------------------------------------------------
+    def test_1d_non_contiguous(self):
+        """1D non-contiguous tensor via as_strided with stride > 1."""
+        cpu_t = torch.randn(10).as_strided((4,), (2,))
+        npu_t = cpu_t.npu()
+        self.assertFalse(cpu_t.is_contiguous())
+        self._compare_with_cpu(cpu_t, npu_t, memory_format=torch.preserve_format)
+
+    # ----------------------------------------------------------------
+    # Scenario 12: Double transposed (back to contiguous but different strides)
+    # ----------------------------------------------------------------
+    def test_double_transpose(self):
+        """Double transpose: logically contiguous but stride order differs from default."""
+        cpu_t = torch.randn(3, 4).t().t()
+        npu_t = cpu_t.npu()
+        self.assertTrue(cpu_t.is_contiguous())
+        self._compare_with_cpu(cpu_t, npu_t, memory_format=torch.preserve_format)
+
+    # ----------------------------------------------------------------
+    # Scenario 13: Non-contiguous with different dtypes
+    # ----------------------------------------------------------------
+    def test_transposed_float16(self):
+        """Non-contiguous float16 tensor."""
+        cpu_t = torch.randn(4, 6, dtype=torch.float16).t()
+        npu_t = cpu_t.npu()
+        self.assertFalse(cpu_t.is_contiguous())
+        self._compare_with_cpu(cpu_t, npu_t, memory_format=torch.preserve_format)
+
+    def test_transposed_int64(self):
+        """Non-contiguous int64 tensor."""
+        cpu_t = torch.randint(0, 10, (4, 6), dtype=torch.int64).t()
+        npu_t = cpu_t.npu()
+        self.assertFalse(cpu_t.is_contiguous())
+        self._compare_with_cpu(cpu_t, npu_t, memory_format=torch.preserve_format)
+
+    # ----------------------------------------------------------------
+    # Scenario 14: Non-contiguous with explicit dtype override
+    # ----------------------------------------------------------------
+    def test_transposed_dtype_override(self):
+        """Non-contiguous tensor with dtype override in empty_like."""
+        cpu_t = torch.randn(4, 6).t()
+        npu_t = cpu_t.npu()
+
+        cpu_result = torch.empty_like(
+            cpu_t, dtype=torch.float32, memory_format=torch.preserve_format
+        )
+        npu_result = torch.empty_like(
+            npu_t, dtype=torch.float32, memory_format=torch.preserve_format
+        )
+
+        self.assertEqual(cpu_result.shape, npu_result.shape)
+        self.assertEqual(
+            cpu_result.stride(),
+            npu_result.stride(),
+            f"Stride mismatch with dtype override: CPU {cpu_result.stride()} vs NPU {npu_result.stride()}",
+        )
+        self.assertEqual(cpu_result.dtype, npu_result.dtype)
+
+    # ----------------------------------------------------------------
+    # Scenario 15: 5D non-contiguous tensor
+    # ----------------------------------------------------------------
+    def test_5d_transposed(self):
+        """5D non-contiguous tensor via transpose."""
+        cpu_t = torch.randn(2, 3, 4, 5, 6).transpose(1, 3)
+        npu_t = cpu_t.npu()
+        self.assertFalse(cpu_t.is_contiguous())
+        self._compare_with_cpu(cpu_t, npu_t, memory_format=torch.preserve_format)
+
     def test_function_torch_empty_strided(self):
-        x = torch.empty_strided((2, 3), (1, 2), dtype=torch.int8, device='npu')
+        x = torch.empty_strided((2, 3), (1, 2), dtype=torch.int8, device="npu")  # noqa: F841
 
     def test_function_tensor_new_empty(self):
         x = torch.ones(()).npu()
-        x_new_empty = x.new_empty((2, 3), dtype=torch.float16, device='npu')
+        x_new_empty = x.new_empty((2, 3), dtype=torch.float16, device="npu")
         res = x_new_empty + 1
-        x_new_empty = x.new_empty(size=(2, 3), dtype=torch.float16, device='npu')
-        res = x_new_empty + 1
+        x_new_empty = x.new_empty(size=(2, 3), dtype=torch.float16, device="npu")
+        res = x_new_empty + 1  # noqa: F841
 
     def test_function_tensor_new_empty_strided(self):
         x = torch.ones(()).npu()
-        x_new = x.new_empty_strided([2, 3], [3, 1], dtype=torch.float32, device='npu')
-        res = x_new + 1
+        x_new = x.new_empty_strided([2, 3], [3, 1], dtype=torch.float32, device="npu")
+        res = x_new + 1  # noqa: F841
 
     def test_function_tensor_data_npu(self):
         x = torch.ones(())
@@ -663,8 +932,8 @@ class TestNpu(TestCase):
 
         x = torch.tensor((), dtype=torch.float32).npu()
         npu_output1 = x.new_full((2, 3), 3.1, device=None, requires_grad=False)
-        npu_output2 = x.new_full((2, 3), 3.1, device='cpu', requires_grad=False)
-        npu_output3 = x.new_full((2, 3), 3.1, device='npu', requires_grad=False)
+        npu_output2 = x.new_full((2, 3), 3.1, device="cpu", requires_grad=False)
+        npu_output3 = x.new_full((2, 3), 3.1, device="npu", requires_grad=False)
         self.assertRtolEqual(cpu_out.numpy(), npu_output1.cpu().numpy())
         self.assertRtolEqual(cpu_out.numpy(), npu_output2.cpu().numpy())
         self.assertRtolEqual(cpu_out.numpy(), npu_output3.cpu().numpy())
@@ -675,9 +944,9 @@ class TestNpu(TestCase):
 
         x = torch.tensor((), dtype=torch.float32).npu()
         npu_output1 = x.new_ones((2, 3), device=None, requires_grad=False)
-        npu_output2 = x.new_ones((2, 3), device='cpu', requires_grad=False)
-        npu_output3 = x.new_ones((2, 3), device='npu', requires_grad=False)
-        npu_output4 = x.new_ones(size=(2, 3), device='npu', requires_grad=False)
+        npu_output2 = x.new_ones((2, 3), device="cpu", requires_grad=False)
+        npu_output3 = x.new_ones((2, 3), device="npu", requires_grad=False)
+        npu_output4 = x.new_ones(size=(2, 3), device="npu", requires_grad=False)
         self.assertRtolEqual(cpu_out.numpy(), npu_output1.cpu().numpy())
         self.assertRtolEqual(cpu_out.numpy(), npu_output2.cpu().numpy())
         self.assertRtolEqual(cpu_out.numpy(), npu_output3.cpu().numpy())
@@ -690,8 +959,8 @@ class TestNpu(TestCase):
         list_input = [[1, 2, 3], [4, 5, 6]]
         cpu_out = x_cpu.new_tensor(list_input)
         npu_output1 = x.new_tensor(list_input, device=None, requires_grad=False)
-        npu_output2 = x.new_tensor(list_input, device='cpu', requires_grad=False)
-        npu_output3 = x.new_tensor(list_input, device='npu', requires_grad=False)
+        npu_output2 = x.new_tensor(list_input, device="cpu", requires_grad=False)
+        npu_output3 = x.new_tensor(list_input, device="npu", requires_grad=False)
         self.assertRtolEqual(cpu_out.numpy(), npu_output1.cpu().numpy())
         self.assertRtolEqual(cpu_out.numpy(), npu_output2.cpu().numpy())
         print(cpu_out.numpy().dtype, npu_output3.cpu().numpy().dtype)
@@ -700,8 +969,8 @@ class TestNpu(TestCase):
         np_input = np.array(list_input)
         cpu_out = x_cpu.new_tensor(np_input)
         npu_output1 = x.new_tensor(np_input, device=None, requires_grad=False)
-        npu_output2 = x.new_tensor(np_input, device='cpu', requires_grad=False)
-        npu_output3 = x.new_tensor(np_input, device='npu', requires_grad=False)
+        npu_output2 = x.new_tensor(np_input, device="cpu", requires_grad=False)
+        npu_output3 = x.new_tensor(np_input, device="npu", requires_grad=False)
         self.assertRtolEqual(cpu_out.numpy(), npu_output1.cpu().numpy())
         self.assertRtolEqual(cpu_out.numpy(), npu_output2.cpu().numpy())
         self.assertRtolEqual(cpu_out.numpy(), npu_output3.cpu().numpy())
@@ -709,8 +978,8 @@ class TestNpu(TestCase):
         tensor_input = torch.tensor(list_input)
         cpu_out = x_cpu.new_tensor(tensor_input)
         npu_output1 = x.new_tensor(tensor_input, device=None, requires_grad=False)
-        npu_output2 = x.new_tensor(tensor_input, device='cpu', requires_grad=False)
-        npu_output3 = x.new_tensor(tensor_input, device='npu', requires_grad=False)
+        npu_output2 = x.new_tensor(tensor_input, device="cpu", requires_grad=False)
+        npu_output3 = x.new_tensor(tensor_input, device="npu", requires_grad=False)
         self.assertRtolEqual(cpu_out.numpy(), npu_output1.cpu().numpy())
         self.assertRtolEqual(cpu_out.numpy(), npu_output2.cpu().numpy())
         self.assertRtolEqual(cpu_out.numpy(), npu_output3.cpu().numpy())
@@ -721,9 +990,9 @@ class TestNpu(TestCase):
 
         x = torch.tensor((), dtype=torch.float32).npu()
         npu_output1 = x.new_zeros((2, 3), device=None, requires_grad=False)
-        npu_output2 = x.new_zeros((2, 3), device='cpu', requires_grad=False)
-        npu_output3 = x.new_zeros((2, 3), device='npu', requires_grad=False)
-        npu_output4 = x.new_zeros(size=(2, 3), device='npu', requires_grad=False)
+        npu_output2 = x.new_zeros((2, 3), device="cpu", requires_grad=False)
+        npu_output3 = x.new_zeros((2, 3), device="npu", requires_grad=False)
+        npu_output4 = x.new_zeros(size=(2, 3), device="npu", requires_grad=False)
         self.assertRtolEqual(cpu_out.numpy(), npu_output1.cpu().numpy())
         self.assertRtolEqual(cpu_out.numpy(), npu_output2.cpu().numpy())
         self.assertRtolEqual(cpu_out.numpy(), npu_output3.cpu().numpy())
@@ -757,7 +1026,12 @@ class TestNpu(TestCase):
             self.assertIsInstance(x.int().npu(), torch.npu.IntTensor)
             self.assertIsInstance(x.int().npu().cpu(), torch.IntTensor)
 
-        tensor_types = [torch.DoubleTensor, torch.FloatTensor, torch.IntTensor, torch.ByteTensor]
+        tensor_types = [
+            torch.DoubleTensor,
+            torch.FloatTensor,
+            torch.IntTensor,
+            torch.ByteTensor,
+        ]
         for t, y_var in product(tensor_types, (True, False)):
             y = torch.randint(5, (5, 5), dtype=t.dtype)
             y = Variable(y) if y_var else y
@@ -811,5 +1085,5 @@ class TestNpu(TestCase):
         self.assertEqual(len(uuid.bytes), 16)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     run_tests()

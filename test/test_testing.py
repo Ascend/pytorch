@@ -4,14 +4,14 @@ import doctest
 import functools
 import importlib
 import inspect
-import itertools
 import math
 import os
 import re
 import subprocess
 import sys
 import unittest.mock
-from typing import Any, Callable, Iterator, List, Tuple
+from typing import Any
+from collections.abc import Callable, Iterator
 import operator
 import torch
 import torch_npu
@@ -22,7 +22,7 @@ from torch.testing._internal.common_utils import \
      parametrize, subtest, instantiate_parametrized_tests, dtype_name, TEST_WITH_ROCM, decorateIf)
 from torch.testing._internal.common_device_type import \
     (PYTORCH_TESTING_DEVICE_EXCEPT_FOR_KEY, PYTORCH_TESTING_DEVICE_ONLY_FOR_KEY, dtypes,
-     get_device_type_test_bases, instantiate_device_type_tests, onlyCPU, onlyCUDA, onlyNativeDeviceTypes,
+     get_device_type_test_bases, instantiate_device_type_tests, onlyCUDA, onlyNativeDeviceTypes,
      deviceCountAtLeast, ops, expectedFailureMeta, OpDTypes)
 from torch.testing._internal.common_methods_invocations import op_db
 from torch.testing._internal import opinfo
@@ -30,8 +30,9 @@ from torch.testing._internal.common_dtype import all_types_and_complex_and, floa
 from torch.testing._internal.common_modules import modules, module_db, ModuleInfo
 from torch.testing._internal.opinfo.core import SampleInput, DecorateInfo, OpInfo
 
+DEVICE_NAME = torch_npu.npu.get_device_name(0)[:10]
 
-# For testing TestCase methods and torch.testing functions  
+# For testing TestCase methods and torch.testing functions
 class TestTesting(TestCase):
     # Ensure that assertEqual handles numpy arrays properly
     @dtypes(*all_types_and_complex_and(torch.bool, torch.half))
@@ -454,7 +455,7 @@ if __name__ == '__main__':
         # Test without setting env var should run everything.
         env = dict(os.environ)
         for k in ['CI', PYTORCH_TESTING_DEVICE_ONLY_FOR_KEY, PYTORCH_TESTING_DEVICE_EXCEPT_FOR_KEY]:
-            if k in env.keys():
+            if k in env:
                 del env[k]
         _, stderr = TestCase.run_process_no_exception(test_filter_file_template, env=env)
         self.assertIn(f'Ran {test_bases_count} test', stderr.decode('ascii'))
@@ -476,7 +477,7 @@ if __name__ == '__main__':
         self.assertNotIn('OK', stderr.decode('ascii'))
 
 
-def make_assert_close_inputs(actual: Any, expected: Any) -> List[Tuple[Any, Any]]:
+def make_assert_close_inputs(actual: Any, expected: Any) -> list[tuple[Any, Any]]:
     """Makes inputs for :func:`torch.testing.assert_close` functions based on two examples.
 
     Args:
@@ -794,7 +795,6 @@ class TestAssertClose(TestCase):
         the test should mock a component to raise this instead of the regular behavior. We avoid using a builtin
         exception here to avoid triggering possible handling of them.
         """
-        pass
 
     @unittest.mock.patch("torch.testing._comparison.TensorLikePair.__init__", side_effect=UnexpectedException)
     def test_unexpected_error_originate(self, _):
@@ -1366,6 +1366,304 @@ class TestAssertCloseQuantized(TestCase):
         for fn in assert_close_with_inputs(actual, expected):
             fn()
 
+    @classmethod
+    def setUpClass(cls):
+        cls.npu_available = torch.npu.is_available()
+
+    @unittest.skipIf(DEVICE_NAME == 'Ascend910A' or DEVICE_NAME == 'Ascend310P',
+                     "Ops clone not support non-contiguous output on A1 device.")
+    def _compare_with_cpu(self, cpu_tensor, npu_tensor, memory_format=None):
+        cpu_result = cpu_tensor.clone(memory_format=memory_format)
+        npu_result = npu_tensor.clone(memory_format=memory_format)
+
+        self.assertEqual(cpu_result.shape, npu_result.shape,
+                         f"Shape mismatch: CPU {cpu_result.shape} vs NPU {npu_result.shape}")
+        self.assertEqual(cpu_result.dtype, npu_result.dtype,
+                         f"Dtype mismatch: CPU {cpu_result.dtype} vs NPU {npu_result.dtype}")
+        self.assertEqual(cpu_result.stride(), npu_result.stride(),
+                         f"Stride mismatch: CPU {cpu_result.stride()} vs NPU {npu_result.stride()}")
+        self.assertEqual(cpu_result.is_contiguous(), npu_result.is_contiguous(),
+                         f"Contiguity mismatch: CPU contiguous={cpu_result.is_contiguous()}"
+                         f" vs NPU contiguous={npu_result.is_contiguous()}")
+
+        cpu_data = cpu_result.cpu()
+        npu_data = npu_result.cpu()
+        self.assertTrue(torch.equal(cpu_data, npu_data),
+                        "Data mismatch: clone result differs between CPU and NPU")
+
+    # ----------------------------------------------------------------
+    # Scenario 1: Transposed 2D tensor
+    # is_non_overlapping_and_dense=True → empty_strided path
+    # ----------------------------------------------------------------
+    def test_transposed_2d(self):
+        """Transposed 2D: non_overlapping_and_dense=True, strides preserved."""
+        cpu_t = torch.randn(4, 6).t()
+        npu_t = cpu_t.npu()
+        self.assertFalse(cpu_t.is_contiguous())
+        self._compare_with_cpu(cpu_t, npu_t, memory_format=torch.preserve_format)
+
+    # ----------------------------------------------------------------
+    # Scenario 2: Transposed 3D tensor
+    # is_non_overlapping_and_dense=True → empty_strided path
+    # ----------------------------------------------------------------
+    def test_transposed_3d(self):
+        """Transposed 3D: non_overlapping_and_dense=True, strides preserved."""
+        cpu_t = torch.randn(2, 3, 4).transpose(0, 2)
+        npu_t = cpu_t.npu()
+        self.assertFalse(cpu_t.is_contiguous())
+        self._compare_with_cpu(cpu_t, npu_t, memory_format=torch.preserve_format)
+
+    # ----------------------------------------------------------------
+    # Scenario 3: Sliced tensor (every other row)
+    # is_non_overlapping_and_dense=True → empty_strided path
+    # ----------------------------------------------------------------
+    def test_sliced_rows(self):
+        """Slice rows [::2]: non_overlapping_and_dense=True, strides preserved."""
+        cpu_t = torch.randn(8, 5)[::2]
+        npu_t = cpu_t.npu()
+        self.assertFalse(cpu_t.is_contiguous())
+        self._compare_with_cpu(cpu_t, npu_t, memory_format=torch.preserve_format)
+
+    # ----------------------------------------------------------------
+    # Scenario 4: Sliced tensor (every other column)
+    # is_non_overlapping_and_dense=True → empty_strided path
+    # ----------------------------------------------------------------
+    def test_sliced_cols(self):
+        """Slice columns [:, ::2]: non_overlapping_and_dense=True, strides preserved."""
+        cpu_t = torch.randn(4, 8)[:, ::2]
+        npu_t = cpu_t.npu()
+        self.assertFalse(cpu_t.is_contiguous())
+        self._compare_with_cpu(cpu_t, npu_t, memory_format=torch.preserve_format)
+
+    # ----------------------------------------------------------------
+    # Scenario 5: Narrowed tensor
+    # is_non_overlapping_and_dense=True → empty_strided path
+    # ----------------------------------------------------------------
+    def test_narrowed(self):
+        """Narrowed tensor: non_overlapping_and_dense=True, strides preserved."""
+        cpu_t = torch.randn(6, 8).narrow(1, 1, 5)
+        npu_t = cpu_t.npu()
+        self.assertFalse(cpu_t.is_contiguous())
+        self._compare_with_cpu(cpu_t, npu_t, memory_format=torch.preserve_format)
+
+    # ----------------------------------------------------------------
+    # Scenario 6: Expanded tensor (stride=0)
+    # is_non_overlapping_and_dense=False → apply_tensor_without_format path
+    # ----------------------------------------------------------------
+    def test_expanded_2d(self):
+        """Expanded 2D (stride=0): non_overlapping_and_dense=False, falls to else path."""
+        cpu_t = torch.randn(1, 5).expand(4, 5)
+        npu_t = cpu_t.npu()
+        self.assertFalse(cpu_t.is_contiguous())
+        self._compare_with_cpu(cpu_t, npu_t, memory_format=torch.preserve_format)
+
+    def test_expanded_3d(self):
+        """Expanded 3D (stride=0): non_overlapping_and_dense=False."""
+        cpu_t = torch.randn(2, 1, 4).expand(2, 3, 4)
+        npu_t = cpu_t.npu()
+        self.assertFalse(cpu_t.is_contiguous())
+        self._compare_with_cpu(cpu_t, npu_t, memory_format=torch.preserve_format)
+
+    # ----------------------------------------------------------------
+    # Scenario 7: Permuted tensor
+    # is_non_overlapping_and_dense=True → empty_strided path
+    # ----------------------------------------------------------------
+    def test_permuted(self):
+        """Permuted 4D tensor: non_overlapping_and_dense=True, strides preserved."""
+        cpu_t = torch.randn(2, 3, 4, 5).permute(3, 1, 0, 2)
+        npu_t = cpu_t.npu()
+        self.assertFalse(cpu_t.is_contiguous())
+        self._compare_with_cpu(cpu_t, npu_t, memory_format=torch.preserve_format)
+
+    # ----------------------------------------------------------------
+    # Scenario 8: Select on non-leading dimension
+    # is_non_overlapping_and_dense=True → empty_strided path
+    # ----------------------------------------------------------------
+    def test_select_dim1(self):
+        """Select dim=1: non_overlapping_and_dense=True, strides preserved."""
+        cpu_t = torch.randn(3, 5, 4).select(1, 2)
+        npu_t = cpu_t.npu()
+        self.assertFalse(cpu_t.is_contiguous())
+        self._compare_with_cpu(cpu_t, npu_t, memory_format=torch.preserve_format)
+
+    # ----------------------------------------------------------------
+    # Scenario 9: as_strided non-contiguous
+    # May or may not be non_overlapping_and_dense depending on strides
+    # ----------------------------------------------------------------
+    def test_as_strided_dense(self):
+        """as_strided with dense strides: non_overlapping_and_dense=True."""
+        cpu_t = torch.randn(24).as_strided((2, 3, 4), (12, 4, 1))
+        npu_t = cpu_t.npu()
+        self._compare_with_cpu(cpu_t, npu_t, memory_format=torch.preserve_format)
+
+    def test_as_strided_non_dense(self):
+        """as_strided with overlapping strides: non_overlapping_and_dense=False."""
+        cpu_t = torch.randn(10).as_strided((3, 3), (3, 1))
+        npu_t = cpu_t.npu()
+        self._compare_with_cpu(cpu_t, npu_t, memory_format=torch.preserve_format)
+
+    # ----------------------------------------------------------------
+    # Scenario 10: 1D non-contiguous via as_strided
+    # is_non_overlapping_and_dense=True → empty_strided path
+    # ----------------------------------------------------------------
+    def test_1d_non_contiguous(self):
+        """1D non-contiguous via as_strided: non_overlapping_and_dense=True."""
+        cpu_t = torch.randn(10).as_strided((4,), (2,))
+        npu_t = cpu_t.npu()
+        self.assertFalse(cpu_t.is_contiguous())
+        self._compare_with_cpu(cpu_t, npu_t, memory_format=torch.preserve_format)
+
+    # ----------------------------------------------------------------
+    # Scenario 11: Contiguous input with preserve_format (baseline)
+    # is_non_overlapping_and_dense=True → empty_strided path
+    # ----------------------------------------------------------------
+    def test_contiguous_preserve(self):
+        """Contiguous tensor with preserve_format: should remain identical."""
+        cpu_t = torch.randn(4, 6)
+        npu_t = cpu_t.npu()
+        self.assertTrue(cpu_t.is_contiguous())
+        self._compare_with_cpu(cpu_t, npu_t, memory_format=torch.preserve_format)
+
+    # ----------------------------------------------------------------
+    # Scenario 12: memory_format=Contiguous on non-contiguous input
+    # → apply_tensor_without_format path (contiguous result)
+    # ----------------------------------------------------------------
+    @unittest.skipIf(DEVICE_NAME == 'Ascend910A' or DEVICE_NAME == 'Ascend310P',
+                     "Ops clone not support non-contiguous output on A1 device.")
+    def test_transposed_contiguous_format(self):
+        """Transposed tensor with contiguous_format: result should be contiguous."""
+        cpu_t = torch.randn(4, 6).t()
+        npu_t = cpu_t.npu()
+        self.assertFalse(cpu_t.is_contiguous())
+
+        cpu_result = cpu_t.clone(memory_format=torch.contiguous_format)
+        npu_result = npu_t.clone(memory_format=torch.contiguous_format)
+
+        self.assertTrue(cpu_result.is_contiguous())
+        self.assertTrue(npu_result.is_contiguous())
+        self.assertEqual(cpu_result.shape, npu_result.shape)
+        self.assertTrue(torch.equal(cpu_result.cpu(), npu_result.cpu()))
+
+    # ----------------------------------------------------------------
+    # Scenario 13: memory_format=None (default Preserve) on non-contiguous
+    # Same as preserve_format
+    # ----------------------------------------------------------------
+    @unittest.skipIf(DEVICE_NAME == 'Ascend910A' or DEVICE_NAME == 'Ascend310P',
+                     "Ops clone not support non-contiguous output on A1 device.")
+    def test_transposed_default_format(self):
+        """Transposed tensor with default memory_format (Preserve)."""
+        cpu_t = torch.randn(4, 6).t()
+        npu_t = cpu_t.npu()
+
+        cpu_result = cpu_t.clone()
+        npu_result = npu_t.clone()
+
+        self.assertEqual(cpu_result.stride(), npu_result.stride(),
+                         f"Stride mismatch: CPU {cpu_result.stride()} vs NPU {npu_result.stride()}")
+        self.assertEqual(cpu_result.is_contiguous(), npu_result.is_contiguous())
+        self.assertTrue(torch.equal(cpu_result.cpu(), npu_result.cpu()))
+
+    # ----------------------------------------------------------------
+    # Scenario 14: Non-contiguous with different dtypes
+    # ----------------------------------------------------------------
+    def test_transposed_float16(self):
+        """Non-contiguous float16 tensor clone."""
+        cpu_t = torch.randn(4, 6, dtype=torch.float16).t()
+        npu_t = cpu_t.npu()
+        self._compare_with_cpu(cpu_t, npu_t, memory_format=torch.preserve_format)
+
+    def test_transposed_bfloat16(self):
+        """Non-contiguous bfloat16 tensor clone."""
+        cpu_t = torch.randn(4, 6, dtype=torch.bfloat16).t()
+        npu_t = cpu_t.npu()
+        self._compare_with_cpu(cpu_t, npu_t, memory_format=torch.preserve_format)
+
+    # ----------------------------------------------------------------
+    # Scenario 15: 5D non-contiguous tensor
+    # is_non_overlapping_and_dense=True → empty_strided path
+    # ----------------------------------------------------------------
+    def test_5d_transposed(self):
+        """5D non-contiguous tensor via transpose."""
+        cpu_t = torch.randn(2, 3, 4, 5, 6).transpose(1, 3)
+        npu_t = cpu_t.npu()
+        self.assertFalse(cpu_t.is_contiguous())
+        self._compare_with_cpu(cpu_t, npu_t, memory_format=torch.preserve_format)
+
+    # ----------------------------------------------------------------
+    # Scenario 16: Double transposed (back to contiguous)
+    # is_non_overlapping_and_dense=True → empty_strided path
+    # ----------------------------------------------------------------
+    def test_double_transpose(self):
+        """Double transpose: logically contiguous, stride order differs from default."""
+        cpu_t = torch.randn(3, 4).t().t()
+        npu_t = cpu_t.npu()
+        self.assertTrue(cpu_t.is_contiguous())
+        self._compare_with_cpu(cpu_t, npu_t, memory_format=torch.preserve_format)
+
+    # ----------------------------------------------------------------
+    # Scenario 17: Verify clone is a true deep copy (data independence)
+    # ----------------------------------------------------------------
+    @unittest.skipIf(DEVICE_NAME == 'Ascend910A' or DEVICE_NAME == 'Ascend310P',
+                     "Ops clone not support non-contiguous output on A1 device.")
+    def test_clone_independence(self):
+        """Cloned tensor should not share storage with original."""
+        cpu_t = torch.randn(4, 6).t()
+        npu_t = cpu_t.npu()
+
+        cpu_clone = cpu_t.clone(memory_format=torch.preserve_format)
+        npu_clone = npu_t.clone(memory_format=torch.preserve_format)
+
+        cpu_clone.fill_(0)
+        npu_clone.fill_(0)
+
+        self.assertFalse(torch.equal(cpu_t, cpu_clone),
+                         "CPU: clone should be independent from original")
+        self.assertFalse(torch.equal(npu_t.cpu(), npu_clone.cpu()),
+                         "NPU: clone should be independent from original")
+
+    # ----------------------------------------------------------------
+    # Scenario 18: Expanded then clone (stride=0 → else path)
+    # Verify data correctness even when strides are not preserved
+    # ----------------------------------------------------------------
+    @unittest.skipIf(DEVICE_NAME == 'Ascend910A' or DEVICE_NAME == 'Ascend310P',
+                     "Ops clone not support non-contiguous output on A1 device.")
+    def test_expanded_data_correctness(self):
+        """Expanded tensor clone: data must be correct even if strides differ."""
+        cpu_t = torch.randn(1, 5).expand(3, 5)
+        npu_t = cpu_t.npu()
+
+        cpu_result = cpu_t.clone(memory_format=torch.preserve_format)
+        npu_result = npu_t.clone(memory_format=torch.preserve_format)
+
+        self.assertTrue(torch.equal(cpu_result.cpu(), npu_result.cpu()),
+                        "Data mismatch for expanded tensor clone")
+
+    # ----------------------------------------------------------------
+    # Scenario 19: Non-contiguous + memory_format=Preserve with
+    #              is_non_overlapping_and_dense=True
+    # Verify strides are exactly preserved (not just "equivalent")
+    # ----------------------------------------------------------------
+    @unittest.skipIf(DEVICE_NAME == 'Ascend910A' or DEVICE_NAME == 'Ascend310P',
+                     "Ops clone not support non-contiguous output on A1 device.")
+    def test_strides_exactly_preserved(self):
+        """Verify clone preserves exact stride values, not just contiguity."""
+        cpu_t = torch.randn(3, 4, 5).transpose(0, 1)
+        npu_t = cpu_t.npu()
+        expected_stride = cpu_t.stride()
+
+        cpu_result = cpu_t.clone(memory_format=torch.preserve_format)
+        npu_result = npu_t.clone(memory_format=torch.preserve_format)
+
+        self.assertEqual(cpu_result.stride(), expected_stride,
+                         f"CPU stride not preserved: got {cpu_result.stride()}, expected {expected_stride}")
+        self.assertEqual(npu_result.stride(), expected_stride,
+                         f"NPU stride not preserved: got {npu_result.stride()}, expected {expected_stride}")
+
+    def test_slice_dense(self):
+        """slice"""
+        cpu_t = torch.randn(24).t()[::2]
+        npu_t = cpu_t.npu()
+        self._compare_with_cpu(cpu_t, npu_t, memory_format=torch.preserve_format)
 
 class TestMakeTensor(TestCase):
     supported_dtypes = dtypes(
@@ -1958,8 +2256,10 @@ class TestTestParametrizationDeviceType(TestCase):
         for op in op_db:
             for dtype in op.supported_dtypes(torch.device(device).type):
                 for flag_part in ('flag_disabled', 'flag_enabled'):
-                    expected_name = '{}.test_op_parametrized_{}_{}_{}_{}'.format(
-                        device_cls.__name__, op.formatted_name, flag_part, device, dtype_name(dtype))
+                    expected_name = (
+                        f'{device_cls.__name__}.test_op_parametrized_'
+                        f'{op.formatted_name}_{flag_part}_{device}_{dtype_name(dtype)}'
+                    )
                     expected_test_names.append(expected_name)
 
         test_names = _get_test_names_for_test_class(device_cls)
@@ -2302,15 +2602,15 @@ class TestOpInfos(TestCase):
 
         # Construction with natural syntax
         s = SampleInput(a, b, c, d=d, e=e)
-        assert s.input is a
-        assert s.args == (b, c)
-        assert s.kwargs == dict(d=d, e=e)
+        self.assertIs(s.input, a)
+        self.assertEqual(s.args, (b, c))
+        self.assertEqual(s.kwargs, dict(d=d, e=e))
 
         # Construction with explicit args and kwargs
         s = SampleInput(a, args=(b,), kwargs=dict(c=c, d=d, e=e))
-        assert s.input is a
-        assert s.args == (b,)
-        assert s.kwargs == dict(c=c, d=d, e=e)
+        self.assertIs(s.input, a)
+        self.assertEqual(s.args, (b,))
+        self.assertEqual(s.kwargs, dict(c=c, d=d, e=e))
 
         # Construction with a mixed form will error
         with self.assertRaises(AssertionError):
@@ -2338,8 +2638,8 @@ class TestOpInfos(TestCase):
         # But when only input is given, metadata is allowed for backward
         # compatibility
         s = SampleInput(a, broadcasts_input=True)
-        assert s.input is a
-        assert s.broadcasts_input
+        self.assertIs(s.input, a)
+        self.assertTrue(s.broadcasts_input)
 
     def test_sample_input_metadata(self) -> None:
         a, b = (object() for _ in range(2))
