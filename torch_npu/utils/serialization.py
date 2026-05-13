@@ -4,7 +4,9 @@ import pickle
 import re
 import sys
 import threading
-from typing import Any, TypeGuard
+from typing import Any, Optional, Union
+
+from typing_extensions import TypeGuard
 
 import torch
 import torch_npu
@@ -148,7 +150,7 @@ def _update_cpu_remap_info(map_location):
         RE_MAP_CPU = True
 
 
-def _is_path(name_or_buffer) -> TypeGuard[str | os.PathLike]:
+def _is_path(name_or_buffer) -> TypeGuard[Union[str, os.PathLike]]:
     return isinstance(name_or_buffer, (str, os.PathLike))
 
 
@@ -157,8 +159,8 @@ def load(
     map_location: MAP_LOCATION = None,
     pickle_module: Any = None,
     *,
-    weights_only: bool | None = None,
-    mmap: bool | None = None,
+    weights_only: Optional[bool] = None,
+    mmap: Optional[bool] = None,
     **pickle_load_args: Any,
 ) -> Any:
     _update_cpu_remap_info(map_location)
