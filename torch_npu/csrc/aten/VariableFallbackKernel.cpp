@@ -8,7 +8,8 @@
 #include <ATen/core/dispatch/Dispatcher.h>
 #include <ATen/core/ivalue.h>
 
-#include "torch_npu/csrc/core/npu/NPUException.h"
+#include <torch_npu/csrc/core/npu/NPUException.h>
+#include <torch_npu/csrc/_compat/autograd.h>
 
 /*
  * This file implements a variable fallback kernel for custom operators.
@@ -132,7 +133,7 @@ static void npuBasicAutogradNotImplementedFallbackImpl(
     // by putting it after the requires_grad checks.
     any_input_requires_grad = any_input_requires_grad && at::GradMode::is_enabled();
 
-    std::shared_ptr<WarnNotImplemented> grad_fn;
+    torch_npu::compat::GradFnPtr<WarnNotImplemented> grad_fn;
     if (any_input_requires_grad) {
         // NB: It is standard to collect edges from all tensors
         // (see generated/VariableTypeEverything.cpp for examples)
@@ -144,9 +145,7 @@ static void npuBasicAutogradNotImplementedFallbackImpl(
             stack,
             stack_start,
             num_arguments);
-        grad_fn = std::shared_ptr<WarnNotImplemented>(
-            new WarnNotImplemented(op_name, all_tensors_on_stack.size()),
-            torch::autograd::deleteNode);
+        grad_fn = torch_npu::compat::make_grad_fn<WarnNotImplemented>(op_name, all_tensors_on_stack.size());
         grad_fn->set_next_edges(torch::autograd::collect_next_edges(all_tensors_on_stack));
     }
 

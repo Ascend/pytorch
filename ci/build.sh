@@ -4,7 +4,7 @@ set -e
 
 CUR_DIR=$(dirname $(readlink -f $0))
 SUPPORTED_PY_VERSION=(3.9 3.10 3.11 3.12 3.13)
-SUPPORTED_TORCH_VERSION=(2.10.0 2.11.0 2.12.0)
+SUPPORTED_TORCH_VERSION=(2.10.0 2.11.0 2.12.0 2.13.0)
 # Default supported python version is 3.9
 PY_VERSION="3.9"
 # Torch version to validate against installed PyTorch (empty = skip check)
@@ -55,7 +55,7 @@ function parse_script_args() {
                 export PGO_MODE=1
                 args_num=$((args_num-1))
                 ;;
-            2)  
+            2)
                 export PGO_MODE=2
                 args_num=$((args_num-1))
                 ;;
@@ -119,8 +119,11 @@ function check_torch_version() {
 
 function check_torch_installed() {
     local installed
-    installed=$(python"${PY_VERSION}" -c "import torch; print(torch.__version__)" 2>/dev/null)
-    if [ -z "${installed}" ]; then
+    # Disable torch_npu autoload so an installed torch_npu doesn't sideload the
+    # in-tree package and confuse the version probe.
+    if ! installed=$(TORCH_DEVICE_BACKEND_AUTOLOAD=0 \
+            python"${PY_VERSION}" -c "import torch; print(torch.__version__)" 2>/dev/null) \
+        || [ -z "${installed}" ]; then
         echo "PyTorch is not installed for python${PY_VERSION}. Please install it before building."
         exit 1
     fi
