@@ -151,7 +151,7 @@ import re
 import torch
 from torch.storage import _LegacyStorage, _warn_typed_storage_removal
 from torch._utils import classproperty
-from torch_npu.utils import _should_print_warning
+from torch_npu._init.common.warning_utils import _should_print_warning
 
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, pta_error, prof_error
@@ -190,9 +190,6 @@ from ._npugraph_handlers import (
     register_npu_graph_handler,
 )
 
-# init profiler
-if not torch_npu._C._profiler_init():
-    raise RuntimeError("proflier initialization failed" + prof_error(ErrCode.UNAVAIL))
 
 config = npu_config._npuConfig()
 
