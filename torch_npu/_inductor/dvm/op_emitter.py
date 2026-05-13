@@ -2,6 +2,7 @@ import torch
 import torch.fx
 import torch.utils._pytree as pytree
 
+
 aten = torch.ops.aten
 prims = torch.ops.prims
 
@@ -154,10 +155,7 @@ def mm_rule(node: torch.fx.Node):
         return False
 
     return (
-        check(lhs)
-        and check(rhs)
-        and check_output(node)
-        and check_k1_fusion(lhs, rhs)
+        check(lhs) and check(rhs) and check_output(node) and check_k1_fusion(lhs, rhs)
     )
 
 
@@ -370,7 +368,7 @@ def reduce_min(x, dim=None, keepdim=False):
     return f"k.min({x}, {dim}, {keepdim})"
 
 
-@register_dvm_op(aten.view.default, aten.reshape.default)
+@register_dvm_op(aten.view.default, aten.reshape.default, aten._unsafe_view.default)
 def reshape(x, shape):
     shape = format_shape(shape)
     return f"k.reshape({x}, {shape})"
