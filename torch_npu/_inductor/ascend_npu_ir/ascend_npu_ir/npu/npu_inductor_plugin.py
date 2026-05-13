@@ -65,9 +65,6 @@ from .. import config as anir_config
 from . import npu_patch_deprecated
 from .npu_meta import npu_patch_meta
 
-_triton.has_triton = lambda: False
-_triton.has_triton_package = lambda: False
-
 # Fix Error: Exit earlier than child process.
 atexit.register(shutdown_compile_workers)
 

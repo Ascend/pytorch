@@ -116,15 +116,18 @@ def TensorVariable_call_method(self, tx, name, args, kwargs):
 
 class _InductorNpuRegistry:
     _disabled_register = False
-    _has_inited = False
+    _loaded_backend: str | None = None
 
     @classmethod
     def register_inductor_npu(cls):
-        if cls.has_initialized() or cls._disabled_register:
+        if cls._disabled_register:
             return
-        import torch_npu._inductor  # noqa:F401
 
-        cls._has_inited = True
+        current = os.getenv("TORCHINDUCTOR_NPU_BACKEND", "default")
+        if cls._loaded_backend != current:
+            import torch_npu._inductor  # noqa:F401
+
+            cls._loaded_backend = current
 
     @classmethod
     def disable_register(cls):
@@ -136,12 +139,7 @@ class _InductorNpuRegistry:
 
     @classmethod
     def has_initialized(cls):
-        if cls._has_inited:
-            return True
-        # Maybe initialized by call `import torch_npu._inductor` manually.
-        if "torch_npu._inductor" in sys.modules:
-            cls._has_inited = True
-        return cls._has_inited
+        return cls._loaded_backend is not None
 
 
 def is_inductor_npu_initialized():
@@ -166,14 +164,10 @@ def patch_inductor_wrapper():
     from torch import _TorchCompileInductorWrapper
     from torch.utils._config_module import _ConfigEntry, Config, ConfigModule
 
-    src_call = _TorchCompileInductorWrapper.__call__
     src_apply_options = _TorchCompileInductorWrapper.apply_options
     src_init = _TorchCompileInductorWrapper.__init__
     src_get_config_copy = ConfigModule.get_config_copy
 
-    def new_call(self, model_, inputs_):
-        register_inductor_npu()
-        return src_call(self, model_, inputs_)
 
     def new_apply_options(self, options: Optional[dict[str, Any]]):
         if options is not None and options.get("enable_shape_handling", False):
@@ -217,66 +211,17 @@ def patch_inductor_wrapper():
             or torch._inductor.config.npu_backend == "mlir"
         ):
             os.environ["TORCHINDUCTOR_NPU_BACKEND"] = "mlir"
-            device_id = torch_npu.npu.current_device()
-            torch_npu._C._recovery_all_npu_stream(device_id)
-            try:
-                import torch_mlir  # noqa:F401
-            except ImportError as e:
-                raise ImportError(
-                    "torch_mlir is not installed, install it first."
-                ) from e
-            importlib.import_module(
-                "torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.npu_inductor_plugin"
-            )
-            importlib.import_module(
-                "torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.torch_mlir_patch"
-            )
+            
 
         elif (
             self.config.get("npu_backend") == "dvm"
             or torch._inductor.config.npu_backend == "dvm"
         ):
             os.environ["TORCHINDUCTOR_NPU_BACKEND"] = "dvm"
-            importlib.import_module(
-                "torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.npu_inductor_plugin"
-            )
-            importlib.import_module("torch_npu._inductor.dvm.mlir_fusion")
-
-        elif (
-            self.config.get("npu_backend") == "default"
-            or torch._inductor.config.npu_backend == "default"
-        ):
-            os.environ["TORCHINDUCTOR_COMPREHENSIVE_PADDING"] = "0"
-            torch._inductor.config.comprehensive_padding = False
-
-            compile_threads = int(
-                os.environ.get("TORCHINDUCTOR_COMPILE_THREADS") or "1"
-            )
-            os.environ["TORCHINDUCTOR_COMPILE_THREADS"] = str(compile_threads)
-            torch._inductor.config.compile_threads = compile_threads
-
-            _fasta_autotune = os.environ.get("FASTAUTOTUNE", "0") == "1"
-            _fasta_autotune_method = os.getenv("AUTOTUNE_METHOD", "Expert")
-            if _fasta_autotune:
-                if os.environ.get("ENABLE_PRINT_UB_BITS", "0") == "0":
-                    log.warnings(
-                        "Please set ENABLE_PRINT_UB_BITS to 1. Fasta autotune need to know real ub usage."
-                    )
-                    os.environ["ENABLE_PRINT_UB_BITS"] = "1"
-
-                if (
-                    _fasta_autotune_method == "SampleStack"
-                    and torch._inductor.config.compile_threads != 1
-                ):
-                    log.warnings(
-                        "fasta SampleStack method is not temporarily compatible with multi-process compile, "
-                        "fasta_autotune set TORCHINDUCTOR_COMPILE_THREADS "
-                        f"from {torch._inductor.config.compile_threads} to 1."
-                    )
-                    os.environ["TORCHINDUCTOR_COMPILE_THREADS"] = "1"
-                    torch._inductor.config.compile_threads = 1
-
-    _TorchCompileInductorWrapper.__call__ = new_call
+        
+        register_inductor_npu()
+            
+        
     _TorchCompileInductorWrapper.apply_options = new_apply_options
     _TorchCompileInductorWrapper.__init__ = new_init
     ConfigModule.get_config_copy = new_get_config_copy
