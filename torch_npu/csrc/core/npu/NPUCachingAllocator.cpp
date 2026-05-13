@@ -1006,13 +1006,12 @@ private:
     // record used memory.
     size_t total_allocated_memory = 0;
 
-    // record maximum allowed memory.
-    size_t allowed_memory_maximum = 0;
+    // maximum amount of memory that device is allowed to
+    // allocate. This is set iff memory fraction is less than 1
+    std::optional<size_t> allowed_memory_maximum{std::nullopt};
 
     // all live expandable segments
     std::vector<ExpandableSegment *> expandable_segments_;
-
-    bool set_fraction = false;
 
     bool record_history = false;
 
@@ -1044,6 +1043,7 @@ private:
 public:
     DeviceCachingAllocator() : large_blocks(false), small_blocks(true), alloc_trace(new std::vector<TraceEntry>())
     {
+        setMemoryFraction(CachingAllocatorConfig::per_process_memory_fraction());
         stats.max_split_size = static_cast<int64_t>(CachingAllocatorConfig::max_split_size());
         context_recorder_.store(nullptr);
     }
@@ -1234,7 +1234,9 @@ public:
         if (!block_found) {
             TORCH_NPU_MEMORY_LOGD("No existing block found on device %d, attempting to allocate new block", device);
             // Do garbage collection if the flag is set.
-            if (C10_UNLIKELY(set_fraction && CachingAllocatorConfig::garbage_collection_threshold() > 0.0)) {
+            if (C10_UNLIKELY(
+                    allowed_memory_maximum.has_value() &&
+                    CachingAllocatorConfig::garbage_collection_threshold() > 0.0)) {
                 TORCH_NPU_MEMORY_LOGD("Triggering garbage collection on device %d", device);
                 garbage_collect_cached_blocks(context, lock);
             }
@@ -1269,8 +1271,8 @@ public:
                 NPU_CHECK_ERROR(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
 
                 std::string allowed_info;
-                if (set_fraction) {
-                    allowed_info = format_size(allowed_memory_maximum) + " allowed; ";
+                if (allowed_memory_maximum.has_value()) {
+                    allowed_info = format_size(allowed_memory_maximum.value()) + " allowed; ";
                 }
                 stats.num_ooms += 1;
 
@@ -1286,7 +1288,7 @@ public:
                 lock.unlock();
 
                 for (const auto &obs : observers_local) {
-                    obs(device, alloc_size, set_fraction ? allowed_memory_maximum : device_total, device_free);
+                    obs(device, alloc_size, allowed_memory_maximum.value_or(device_total), device_free);
                 }
                 // "total capacity": total global memory on NPU
                 // "allowed": memory is allowed to use, which set by fraction.
@@ -1605,25 +1607,33 @@ public:
     /** get memory fraction limiting maximum allocated memory **/
     double getMemoryFraction()
     {
-        if (!set_fraction) {
+        if (!allowed_memory_maximum.has_value()) {
             return 1.0;
         }
 
         size_t device_free = 0;
         size_t device_total = 0;
         NPU_CHECK_ERROR(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
-        return static_cast<double>(allowed_memory_maximum) /
+        return static_cast<double>(allowed_memory_maximum.value()) /
             static_cast<double>(device_total);
     }
 
     /* * set memory fraction to limit maximum allocated memory * */
     void setMemoryFraction(double fraction)
     {
-        size_t device_free;
-        size_t device_total;
-        NPU_CHECK_ERROR(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
-        allowed_memory_maximum = static_cast<size_t>(fraction * device_total);
-        set_fraction = true;
+        TORCH_CHECK(
+            0 <= fraction && fraction <= 1,
+            "invalid fraction:",
+            fraction,
+            ". Please set within [0, 1].");
+        allowed_memory_maximum = std::nullopt;
+        if (fraction < 1.0) {
+            size_t device_free;
+            size_t device_total;
+            NPU_CHECK_ERROR(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
+            allowed_memory_maximum = static_cast<size_t>(
+                fraction * static_cast<double>(device_total));
+        }
     }
 
     /* * returns cached blocks to the system allocator * */
@@ -2504,7 +2514,9 @@ private:
         TORCH_NPU_MEMORY_LOGD("Searching for free block: size=%zu, stream=%p, device=%d", p.size(), p.stream(), p.device());
         BlockPool &pool = *p.pool;
 
-        if (C10_UNLIKELY(set_fraction && CachingAllocatorConfig::garbage_collection_threshold() > 0.0)) {
+        if (C10_UNLIKELY(
+                allowed_memory_maximum.has_value() &&
+                CachingAllocatorConfig::garbage_collection_threshold() > 0.0)) {
             // Track block reuse interval only when garbage collection is enabled.
             for (auto &b : pool.blocks) {
                 ++b->gc_count;
@@ -2584,7 +2596,8 @@ private:
         // therefore should be of less overheads.
 
         size_t gc_threshold =
-            static_cast<size_t>(CachingAllocatorConfig::garbage_collection_threshold() * allowed_memory_maximum);
+            static_cast<size_t>(CachingAllocatorConfig::garbage_collection_threshold() *
+            static_cast<double>(allowed_memory_maximum.value()));
         TORCH_NPU_MEMORY_LOGD("Starting garbage collection: total_allocated=%zu, threshold=%zu", total_allocated_memory, gc_threshold);
         // No need to trigger GC yet
         if (total_allocated_memory <= gc_threshold) {
@@ -2655,7 +2668,8 @@ private:
             stats.num_alloc_retries += 1;
         }
 
-        if (set_fraction && total_allocated_memory + size > allowed_memory_maximum) {
+        if (allowed_memory_maximum.has_value() &&
+            total_allocated_memory + size > allowed_memory_maximum.value()) {
             p.err = ACL_ERROR_RT_MEMORY_ALLOCATION;
             return false;
         } else if (CachingAllocatorConfig::expandable_segments()) {

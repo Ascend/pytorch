@@ -104,6 +104,11 @@ public:
         return instance().m_pinned_use_background_threads;
     }
 
+    static double per_process_memory_fraction()
+    {
+        return instance().m_per_process_memory_fraction;
+    }
+
     static CachingAllocatorConfig &instance()
     {
         static CachingAllocatorConfig *s_instance = ([]() {
@@ -130,6 +135,7 @@ private:
     std::vector<size_t> m_roundup_power2_divisions;
     std::atomic<bool> m_pinned_use_background_threads; // A flag to enable background thread for processing events.
     bool m_multi_stream_lazy_reclaim = false;
+    double m_per_process_memory_fraction = 1.0;
 
     CachingAllocatorConfig()
         : m_max_split_size(std::numeric_limits<size_t>::max()),
@@ -156,6 +162,7 @@ private:
     size_t parseRoundUpPower2Divisions(const std::vector<std::string> &config, size_t i);
     size_t parsePinnedUseBackgroundThreads(const std::vector<std::string> &config, size_t i);
     size_t parseMultiStreamLazyReclaim(const std::vector<std::string> &config, size_t i);
+    size_t parsePerProcessMemoryFraction(const std::vector<std::string> &config, size_t i);
 };
 
 } // namespace NPUCachingAllocator

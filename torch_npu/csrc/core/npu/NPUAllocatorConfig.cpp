@@ -210,6 +210,20 @@ size_t CachingAllocatorConfig::parseMultiStreamLazyReclaim(const std::vector<std
     return i;
 }
 
+size_t CachingAllocatorConfig::parsePerProcessMemoryFraction(const std::vector<std::string> &config, size_t i)
+{
+    consumeToken(config, ++i, ':');
+    if (++i < config.size()) {
+        double val = stod(config[i]);
+        TORCH_CHECK(val >= 0.0 && val <= 1.0,
+            "per_process_memory_fraction is invalid, set it in [0.0, 1.0]", PTA_ERROR(ErrCode::VALUE));
+        m_per_process_memory_fraction = val;
+    } else {
+        TORCH_CHECK(false, "Error, expecting per_process_memory_fraction value", PTA_ERROR(ErrCode::VALUE));
+    }
+    return i;
+}
+
 size_t CachingAllocatorConfig::parsePageSize(const std::vector<std::string> &config, size_t i)
 {
     TORCH_CHECK(i + 2 < config.size(), "page_size requires format 'page_size:1g'", OPS_ERROR(ErrCode::VALUE));
@@ -394,6 +408,8 @@ void CachingAllocatorConfig::parseArgs(const char *env, std::set<std::string> su
             i = parsePinnedUseBackgroundThreads(config, i);
         } else if (config[i] == "multi_stream_lazy_reclaim") {
             i = parseMultiStreamLazyReclaim(config, i);
+        } else if (config[i] == "per_process_memory_fraction") {
+            i = parsePerProcessMemoryFraction(config, i);
         } else {
             TORCH_CHECK(false, "Unrecognized CachingAllocator option: ", config[i], PTA_ERROR(ErrCode::PARAM));
         }
