@@ -390,8 +390,8 @@ torch_npu::profiler::NPURecordFunction guard;
                 for a in candidate_args:
                     if a.type.is_tensor_like():
                         candidate_tensor_args.append(f"{a.name}")
-
-                candidate_tensor_args = list(set(candidate_tensor_args))
+                # Sort for deterministic output
+                candidate_tensor_args = sorted(set(candidate_tensor_args))
                 unsafe_tensor_check = """// No data check."""
                 if len(candidate_tensor_args) > 0:
                     unsafe_tensor_check = """
