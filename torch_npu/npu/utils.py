@@ -9,7 +9,7 @@ from torch._utils import _get_device_index as _torch_get_device_index
 
 import torch_npu
 import torch_npu._C
-from torch_npu.utils._error_code import ErrCode, pta_error, _except_handler
+from torch_npu.utils._error_code import ErrCode, pta_error
 from torch_npu.npu._backends import get_soc_version
 
 

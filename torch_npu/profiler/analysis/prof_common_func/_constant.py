@@ -4,7 +4,7 @@ from typing import Union
 from enum import Enum
 
 from torch_npu.utils._error_code import ErrCode, prof_error
-from torch_npu.utils import _should_print_warning
+from torch_npu._init.common.warning_utils import _should_print_warning
 
 __all__ = []
 
