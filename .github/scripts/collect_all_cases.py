@@ -33,6 +33,21 @@ from typing import Dict, List, Tuple
 import discover_test_files
 
 
+def _normalize_test_file_path(test_file: str) -> str:
+    """
+    Remove 'test/' prefix from test file path if present.
+
+    Args:
+        test_file: Test file path (e.g., "test/distributed/pipelining/test_backward.py")
+
+    Returns:
+        Relative path without 'test/' prefix
+    """
+    if test_file.startswith("test/"):
+        return test_file[5:]
+    return test_file
+
+
 def get_test_file_parent_dir(test_file: str, test_dir: Path) -> Path:
     """
     Get the parent directory of a test file.
@@ -47,16 +62,12 @@ def get_test_file_parent_dir(test_file: str, test_dir: Path) -> Path:
     Returns:
         Path to the test file's parent directory
     """
-    if test_file.startswith("test/"):
-        test_file_rel = test_file[5:]
-    else:
-        test_file_rel = test_file
-
+    test_file_rel = _normalize_test_file_path(test_file)
     test_file_path = Path(test_file_rel)
     return test_dir / test_file_path.parent
 
 
-def collect_cases_for_file(test_file: str, test_dir: Path) -> Tuple[str, List[str], bool, str]:
+def collect_cases_for_file(test_file: str, test_dir: Path) -> Tuple[str, str, List[str], bool, str]:
     """
     Collect test cases from a single file.
 
@@ -64,18 +75,16 @@ def collect_cases_for_file(test_file: str, test_dir: Path) -> Tuple[str, List[st
     imports of sibling modules (e.g., 'from model_registry import MLPModule').
 
     Returns:
-        Tuple of (test_file, nodeids, success, error_message)
+        Tuple of (test_file, display_name, nodeids, success, error_message)
         - test_file: Original test file path
+        - display_name: Short name for logging (remove test/ prefix and .py suffix)
         - nodeids: List of collected test case nodeids
         - success: True if collection succeeded without errors
         - error_message: Error details if collection failed, empty string otherwise
     """
-    if test_file.startswith("test/"):
-        test_file_rel = test_file[5:]
-    else:
-        test_file_rel = test_file
+    test_file_rel = _normalize_test_file_path(test_file)
 
-    # Extract display name (remove test/ prefix and .py suffix)
+    # Extract display name (remove .py suffix)
     display_name = test_file_rel
     if display_name.endswith(".py"):
         display_name = display_name[:-3]
@@ -124,21 +133,21 @@ def collect_cases_for_file(test_file: str, test_dir: Path) -> Tuple[str, List[st
         # returncode 5 means 0 cases collected, which indicates a problem.
         if result.returncode in (0, 3):
             # Normal: passed or skipped
-            return (test_file, nodeids, True, "")
+            return (test_file, display_name, nodeids, True, "")
         else:
             # returncode 2, 4, 5: real collection error
             # returncode 5 specifically means no tests collected - a problem for selected files
             error_msg = result.stdout.strip()
             if result.stderr.strip():
                 error_msg += "\n--- stderr ---\n" + result.stderr.strip()
-            return (test_file, nodeids, False, error_msg)
+            return (test_file, display_name, nodeids, False, error_msg)
 
     except subprocess.TimeoutExpired:
         error_msg = f"TIMEOUT: Collection took >120s for {display_name}"
-        return (test_file, [], False, error_msg)
+        return (test_file, display_name, [], False, error_msg)
     except Exception as e:
         error_msg = f"ERROR: {e}"
-        return (test_file, [], False, error_msg)
+        return (test_file, display_name, [], False, error_msg)
 
 
 def collect_all_cases(
@@ -180,16 +189,8 @@ def collect_all_cases(
         total_cases = 0
 
         for future in as_completed(futures):
-            test_file, nodeids, success, error_msg = future.result()
+            test_file, display_name, nodeids, success, error_msg = future.result()
             completed += 1
-
-            # Extract display name for logging
-            if test_file.startswith("test/"):
-                display_name = test_file[5:]
-            else:
-                display_name = test_file
-            if display_name.endswith(".py"):
-                display_name = display_name[:-3]
 
             if success:
                 successful_count += 1

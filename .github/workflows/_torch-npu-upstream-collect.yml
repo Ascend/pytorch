@@ -65,6 +65,14 @@ jobs:
       total_cases: ${{ steps.collect_and_shard.outputs.total_cases }}
 
     steps:
+      # Checkout fork repo to access local actions (workflow runs in upstream context for PRs from forks)
+      - name: Checkout workflow repository
+        uses: actions/checkout@v4
+        with:
+          repository: kerer-ai/pytorch
+          ref: v2.7.1_dev
+          fetch-depth: 1
+
       - name: Setup NPU test environment
         uses: ./.github/actions/setup-npu-test-env
         with:
