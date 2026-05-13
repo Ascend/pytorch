@@ -52,8 +52,11 @@ inline std::shared_ptr<npu_logging::Logger>& GetLoggerHccl()
 
 namespace c10d_npu {
 // Environment variable which controls whether or not wait() is blocking or
-// non-blocking.
-constexpr const char* HCCL_BLOCKING_WAIT = "HCCL_BLOCKING_WAIT";
+// non-blocking. Prefer TORCH_HCCL_BLOCKING_WAIT and keep
+// HCCL_BLOCKING_WAIT for backward compatibility.
+static std::vector<std::string> TORCH_HCCL_BLOCKING_WAIT = {
+    "TORCH_HCCL_BLOCKING_WAIT",
+    "HCCL_BLOCKING_WAIT"};
 constexpr const char* HCCL_BACKEND_NAME = "hccl";
 
 constexpr const char* EXCEPTION_DUMP = "exception_dump";
