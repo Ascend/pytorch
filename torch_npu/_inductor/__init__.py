@@ -1,22 +1,36 @@
 import os
 
-from .codegen.common import register_device_op_overrides_npu
+# all backends need register npu/cpu/mps device_op_overrides
+from .codecache import patch_cache_base_get_system
 
+# All backends need npu/cpu/mps device_op_overrides.
+from .codegen.common import register_device_op_overrides_npu
+from .graph import patch_codegen_with_cpp_wrapper
+from .utils import patch_has_triton, patch_device_supports_tma, patch_is_gpu, get_current_raw_stream
+from .codegen.cpp_utils import patch_device_to_aten
 
 register_device_op_overrides_npu()
+patch_has_triton()
+patch_is_gpu()
+patch_device_supports_tma()
+patch_cache_base_get_system()
+patch_codegen_with_cpp_wrapper()
+patch_device_to_aten()
 
-if os.getenv("TORCHINDUCTOR_NPU_BACKEND", "default") == "mlir":
+def _get_backend() -> str:
+    return os.getenv("TORCHINDUCTOR_NPU_BACKEND", "default")
+
+if _get_backend() == "mlir":
+    import torch_npu
     try:
         import torch_mlir
         from torch_mlir import ir
     except ImportError as err:
         raise ImportError("torch_mlir is not installed, install it first.") from err
     from .ascend_npu_ir.ascend_npu_ir.npu import npu_inductor_plugin
-    from .utils import patch_device_supports_tma, patch_has_triton, patch_is_gpu
+    device_id = torch_npu.npu.current_device()
+    torch_npu._C._recovery_all_npu_stream(device_id)
 
-    patch_is_gpu()
-    patch_has_triton()
-    patch_device_supports_tma()
 else:
     import torch
     from torch._dynamo.device_interface import (
@@ -47,11 +61,8 @@ else:
     from .runtime import _load_cached_autotuning
     from .utils import (
         disable_foreach,
-        get_current_raw_stream,
-        patch_device_supports_tma,
         patch_fx_node_is_input_dependent_cudagraph_unsafe,
-        patch_has_triton,
-        patch_is_gpu,
+
     )
 
     def _inductor_register_backend_for_device():
@@ -71,19 +82,15 @@ else:
     inductor_lowering.make_fallback = npu_make_fallback
 
     def patch_torch_for_aoti():
-        from .codegen.cpp_utils import patch_device_to_aten
         from .cpp_builder import patch_get_cpp_torch_device_options
         from .fx_passes.joint_graph import patch_constant_fold_uniform_value
-        from .graph import patch_codegen_with_cpp_wrapper
         from .ir import (
             patch_extern_kernel_codegen_size_asserts,
             patch_fallback_kernel_codegen,
         )
         from .utils import patch_is_same_tensor
 
-        patch_codegen_with_cpp_wrapper()
         patch_get_cpp_torch_device_options()
-        patch_device_to_aten()
         patch_is_same_tensor()
         patch_constant_fold_uniform_value()
         patch_fallback_kernel_codegen()
@@ -129,10 +136,11 @@ else:
     autotune_cache._load_cached_autotuning = _load_cached_autotuning
 
     register_fa_pass()
-    patch_cache_base_get_system()
-    patch_is_gpu()
-    patch_has_triton()
-    patch_device_supports_tma()
     disable_foreach()
     patch_get_optimization_cflags()
     patch_fx_node_is_input_dependent_cudagraph_unsafe()
+    os.environ["TORCHINDUCTOR_COMPREHENSIVE_PADDING"] = "0"
+    torch._inductor.config.comprehensive_padding = False
+    os.environ["TORCHINDUCTOR_COMPILE_THREADS"] = "1"
+    torch._inductor.config.compile_threads = 1
+
