@@ -23,6 +23,7 @@
 #include "torch_npu/csrc/core/npu/NPUWorkspaceAllocator.h"
 #include "torch_npu/csrc/core/npu/NPURecovery.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
+#include "torch_npu/csrc/core/npu/NPUGraphsUtils.h"
 #include "NPUBlockHandle.h"
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/core/npu/GetCANNInfo.h"
@@ -1468,7 +1469,7 @@ public:
 
         block->allocated = false;
 
-        // following logic might modifying underlaying Block, causing the size
+        // following logic might modifying underlying Block, causing the size
         // changed. We store ahead for reporting
         auto orig_block_ptr = block->ptr;
         auto orig_block_size = block->size;
@@ -1587,7 +1588,7 @@ public:
         std::lock_guard<std::recursive_mutex> lock(mutex);
         block->stream_uses.erase(stream);
 
-        // free block, lazy destory block related events
+        // free block, lazy destroy block related events
         for (auto it = npu_events[stream].begin(); it != npu_events[stream].end();) {
             if (block != it->second) {
                 it++;
@@ -2003,7 +2004,7 @@ public:
         const auto all_blocks = get_all_blocks();
 
         for (const Block * const head_block : all_blocks) {
-            // For expandable segments, we report one segment for each continguous
+            // For expandable segments, we report one segment for each contiguous
             // mapped range of memory
             if (head_block->prev && head_block->prev->mapped) {
                 continue;
@@ -2170,6 +2171,10 @@ public:
             // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
             bool inserted = graph_pools_freeable.insert({ mempool_id, it->second.get() }).second;
             TORCH_INTERNAL_ASSERT(inserted);
+            if (c10_npu::option::OptionsManager::CheckForceUncached() && captures_underway.empty()) {
+                std::shared_ptr<c10::GatheredContext> context = maybeGatherContext(RecordContext::ALL);
+                release_cached_blocks(true, context, true);
+            }
         }
     }
 
@@ -2391,7 +2396,7 @@ private:
             // cannot be freed when requested, but fully free pages
             // of expandable blocks can always be freed.
             // The logic to track this as statistic is pretty involved,
-            // so we simply just exclude expandable segements from
+            // so we simply just exclude expandable segments from
             // inactive_split
             if (!block->expandable_segment_) {
                 update_stat(stats.inactive_split[stat_type], net_change_inactive_split_blocks);
@@ -3018,7 +3023,7 @@ private:
             npu_events[stream].emplace_back(std::move(event), block);
         }
         if (ret_ctx == ACL_ERROR_NONE) {
-            NPU_CHECK_ERROR(aclrtSetCurrentContext(compiler_ctx)); 
+            NPU_CHECK_ERROR(aclrtSetCurrentContext(compiler_ctx));
             // Setting context will exchange device implicitly, so we need to reset the cached device here to ensure consistency.
             NPU_CHECK_ERROR(c10_npu::SetDevice(pre_device));
         }
@@ -3407,7 +3412,7 @@ public:
 
         if (block->stream != c10_npu::getCurrentNPUStream(block->device).stream(false)) {
             // If the Stream applying for tensor block different from
-            // the stream of submiting event wait task in HCCL synchronize()
+            // the stream of submitting event wait task in HCCL synchronize()
             // method, the recordSteam can not be erased.
             // New tensor creation may use the block before HCCL op is complete.
             return;
@@ -3429,7 +3434,7 @@ public:
 
         if (block->stream != c10_npu::getCurrentNPUStream(block->device).stream(false) || block->hccl_work_ptr != work_ptr) {
             // If the Stream applying for tensor block different from
-            // the stream of submiting event wait task in HCCL synchronize()
+            // the stream of submitting event wait task in HCCL synchronize()
             // method, the recordSteam can not be erased.
             // New tensor creation may use the block before HCCL op is complete.
             return;
@@ -3554,7 +3559,8 @@ public:
         void (*deleteFunc)(void *) = &local_raw_delete;
 
         if (size != 0) {
-            if (c10_npu::option::OptionsManager::CheckForceUncached()) {
+            if (c10_npu::option::OptionsManager::CheckForceUncached() &&
+                (c10_npu::currentStreamCaptureStatus() == c10_npu::CaptureStatus::None)) {
                 deleteFunc = &uncached_delete;
                 size_t alloc_size = size + AddPadSize();
                 NPU_CHECK_ERROR(c10_npu::acl::AclrtMallocAlign32(&devPtr, alloc_size,
@@ -3584,7 +3590,8 @@ public:
 
         size_t aligned = base_addr_aligned_kb * 1024;
         if (size != 0) {
-            if (c10_npu::option::OptionsManager::CheckForceUncached()) {
+            if (c10_npu::option::OptionsManager::CheckForceUncached() &&
+                (c10_npu::currentStreamCaptureStatus() == c10_npu::CaptureStatus::None)) {
                 deleteFunc = &uncached_delete;
                 size_t alloc_size = size + AddPadSize() + aligned;
                 NPU_CHECK_ERROR(c10_npu::acl::AclrtMallocAlign32(&realPtr, alloc_size,
@@ -3601,11 +3608,11 @@ public:
 
     c10::DeleterFnPtr raw_deleter() const override
     {
-        if (c10_npu::option::OptionsManager::CheckForceUncached()) {
+        if (c10_npu::option::OptionsManager::CheckForceUncached() &&
+            (c10_npu::currentStreamCaptureStatus() == c10_npu::CaptureStatus::None)) {
             return &uncached_delete;
-        } else {
-            return &local_raw_delete;
         }
+        return &local_raw_delete;
     }
 
     void cacheInfo(int dev_id, size_t *cachedAndFree, size_t *largestBlock) override
