@@ -6,9 +6,8 @@ import warnings
 from torch._dynamo import register_backend as _register_backend
 from torch._dynamo.backends.registry import _BACKENDS
 
+from torch_npu._init.common.warning_utils import _should_print_warning
 from torch_npu.utils._error_code import ErrCode, pta_error
-from torch_npu.utils.utils import _should_print_warning
-from .trace_rule import _patch_npu_trace_rules
 
 _global_npu_backend = {}
 __all__ = []
@@ -162,15 +161,15 @@ def _get_npugraph_ex_backend():
     return _exec
 
 
-_global_backend = _get_default_backend(name="npu")
-_npugraph_ex_backend = _get_npugraph_ex_backend()
-
-
 def _register_npu_backend(backend, name="npu"):
     if name in _BACKENDS.keys():
         del _BACKENDS[name]
     _register_backend(backend, name)
 
 
-_register_npu_backend(_global_backend)
-_register_npu_backend(_npugraph_ex_backend, NPUGRAPH_EX_BACKEND)
+def _register_backends():
+    global_backend = _get_default_backend(name="npu")
+    npugraph_ex_backend = _get_npugraph_ex_backend()
+
+    _register_npu_backend(global_backend)
+    _register_npu_backend(npugraph_ex_backend, NPUGRAPH_EX_BACKEND)
