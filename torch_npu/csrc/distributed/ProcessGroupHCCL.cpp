@@ -2943,6 +2943,20 @@ int64_t ProcessGroupHCCL::getStreamId(bool p2p, int peer)
     return hcclStreams_[key][0].id();
 }
 
+int64_t ProcessGroupHCCL::getCollNpuStreamId(at::Device device)
+{
+    const auto key = getKeyFromDevice({device});
+    if (hcclStreams_.find(key) == hcclStreams_.end() || hcclStreams_[key].empty()) {
+        bool force_high = c10d::getCvarBool(TORCH_HCCL_HIGH_PRIORITY, false);
+        auto streamVal = c10_npu::getStreamFromPool(
+            options_->is_high_priority_stream || force_high, device.index());
+        hcclStreams_.emplace(key, std::vector<c10_npu::NPUStream>{streamVal});
+        return streamVal.id();
+    }
+    auto hcclStream = hcclStreams_[key][0];
+    return hcclStream.id();
+}
+
 int64_t ProcessGroupHCCL::getP2PStreamId(
     at::Device device,
     int peer,
