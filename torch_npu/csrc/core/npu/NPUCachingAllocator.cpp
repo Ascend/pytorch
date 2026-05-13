@@ -23,6 +23,7 @@
 #include "torch_npu/csrc/core/npu/NPUWorkspaceAllocator.h"
 #include "torch_npu/csrc/core/npu/NPURecovery.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
+#include "torch_npu/csrc/core/npu/NPUGraphsUtils.h"
 #include "NPUBlockHandle.h"
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/core/npu/GetCANNInfo.h"
@@ -2179,6 +2180,10 @@ public:
             // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
             bool inserted = graph_pools_freeable.insert({ mempool_id, it->second.get() }).second;
             TORCH_INTERNAL_ASSERT(inserted);
+            if (c10_npu::option::OptionsManager::CheckForceUncached() && captures_underway.empty()) {
+                std::shared_ptr<c10::GatheredContext> context = maybeGatherContext(RecordContext::ALL);
+                release_cached_blocks(true, context, true);
+ 	        }
         }
     }
 
@@ -3576,7 +3581,8 @@ public:
         void (*deleteFunc)(void *) = &local_raw_delete;
 
         if (size != 0) {
-            if (c10_npu::option::OptionsManager::CheckForceUncached()) {
+            if (c10_npu::option::OptionsManager::CheckForceUncached() &&
+                (c10_npu::currentStreamCaptureStatus() == c10_npu::CaptureStatus::None)) {
                 deleteFunc = &uncached_delete;
                 size_t alloc_size = size + AddPadSize();
                 NPU_CHECK_ERROR(c10_npu::acl::AclrtMallocAlign32(&devPtr, alloc_size,
@@ -3606,7 +3612,8 @@ public:
 
         size_t aligned = base_addr_aligned_kb * 1024;
         if (size != 0) {
-            if (c10_npu::option::OptionsManager::CheckForceUncached()) {
+            if (c10_npu::option::OptionsManager::CheckForceUncached() &&
+                (c10_npu::currentStreamCaptureStatus() == c10_npu::CaptureStatus::None)) {
                 deleteFunc = &uncached_delete;
                 size_t alloc_size = size + AddPadSize() + aligned;
                 NPU_CHECK_ERROR(c10_npu::acl::AclrtMallocAlign32(&realPtr, alloc_size,
@@ -3623,11 +3630,11 @@ public:
 
     c10::DeleterFnPtr raw_deleter() const override
     {
-        if (c10_npu::option::OptionsManager::CheckForceUncached()) {
+        if (c10_npu::option::OptionsManager::CheckForceUncached() &&
+            (c10_npu::currentStreamCaptureStatus() == c10_npu::CaptureStatus::None)) {
             return &uncached_delete;
-        } else {
-            return &local_raw_delete;
         }
+        return &local_raw_delete;
     }
 
     void cacheInfo(int dev_id, size_t *cachedAndFree, size_t *largestBlock) override
