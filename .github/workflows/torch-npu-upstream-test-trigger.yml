@@ -1,4 +1,4 @@
-name: Torch NPU Upstream Test Trigger
+name: Torch NPU Upstream v2.7.1 Trigger
 
 on:
   push:

@@ -29,7 +29,6 @@ Usage:
         --num-shards 50 \
         --test-type distributed \
         --test-dir /path/to/pytorch/test \
-        --case-paths-config /path/to/case_paths_ci.yml \
         --disabled-testcases /path/to/disabled_testcases.json \
         --report-dir test-reports \
         --timeout 1200 \
@@ -431,14 +430,13 @@ def load_discover_module(script_dir: Path):
 def run_discovery(
     test_dir: Path,
     test_type: str,
-    case_paths_config: Optional[str],
     discover_module,
 ) -> DiscoveryResult:
     """Run test discovery and return DiscoveryResult."""
     test_files, metadata = discover_module.discover_test_files(
         test_dir=test_dir,
         test_type=test_type,
-        case_paths_config=case_paths_config,
+        case_paths_config=None,
     )
 
     return DiscoveryResult(
@@ -505,11 +503,10 @@ def plan_shard_tests(
     shard: int,
     num_shards: int,
     test_type: str,
-    case_paths_config: Optional[str],
     discover_module,
 ) -> ShardPlanResult:
     """Complete test planning: discovery + shard assignment."""
-    discovery_result = run_discovery(test_dir, test_type, case_paths_config, discover_module)
+    discovery_result = run_discovery(test_dir, test_type, discover_module)
     shard_assignment_result = assign_shard(discovery_result, shard, num_shards)
 
     return ShardPlanResult(
@@ -1837,7 +1834,6 @@ def parse_args():
     )
     parser.add_argument("--test-dir", type=str, required=True, help="Path to PyTorch test directory")
     parser.add_argument("--disabled-testcases", type=str, help="Path to disabled_testcases.json")
-    parser.add_argument("--case-paths-config", type=str, help="Path to case_paths_ci.yml")
     parser.add_argument("--report-dir", type=str, default="test-reports", help="Directory for reports")
     parser.add_argument("--timeout", type=int, default=1200, help="Per-case timeout in seconds (default: 1200 = 20 minutes)")
     parser.add_argument(
@@ -2177,7 +2173,6 @@ def main():
         shard=args.shard,
         num_shards=args.num_shards,
         test_type=shard_type,
-        case_paths_config=args.case_paths_config,
         discover_module=discover_module,
     )
     planned_tests = plan_result.get_planned_tests()
@@ -2192,9 +2187,6 @@ def main():
     info["selected_test_files"] = plan_result.discovery.metadata.get("rules_selected", 0)
     info["excluded_test_files"] = plan_result.discovery.metadata.get("rules_excluded", 0)
     info["shard_files"] = plan_result.shard_assignment.planned_count
-
-    if args.case_paths_config:
-        info["path_rules_file"] = args.case_paths_config
 
     # Save test plan
     result_module.save_test_plan_file(str(report_dir), args.shard, planned_tests, shard_type)
@@ -2212,8 +2204,6 @@ def main():
         print("Execution mode: SERIAL (per-case subprocess isolation)")
     else:
         print(f"Execution mode: CONCURRENT ({args.max_workers} workers, per-case subprocess isolation)")
-    if args.case_paths_config:
-        print(f"Case path rules: {args.case_paths_config}")
     print(f"Disabled testcase entries: {info['disabled_count']}")
     print(f"\n{'=' * 80}\n")
 
