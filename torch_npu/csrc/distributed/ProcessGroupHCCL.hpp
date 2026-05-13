@@ -112,7 +112,7 @@ static std::vector<std::string> TORCH_HCCL_HIGH_PRIORITY = {
 // A struct to hold the latest status of the process group.
 struct ProcessGroupStatus {
     // the sequential number of the last collective enqueued into workMetaList_
-    // This is useful for indentifying a rank that has not join a collective
+    // This is useful for identifying a rank that has not join a collective
     // initialized to be -1 to indicate no collective has been enqueued
     int64_t lastEnqueuedSeq{-1};
     // the sequential number of the last collective started as the kernel
@@ -796,6 +796,8 @@ public:
 
     int64_t getStreamId(bool p2p, int peer);
 
+    int64_t getCollNpuStreamId(at::Device device);
+
     int64_t getP2PStreamId(at::Device device, int peer, int is_batched);
 
     void windowRegisterAndExchange(int64_t windowSize, std::vector<uint32_t>& peerRanks);
@@ -1018,7 +1020,7 @@ protected:
     std::atomic<bool> collectiveDebugInfoMode_;
 
     // This is the signal from watchdog threads to indicate whether the monitor
-    // thread should dump. Making it static so that it is accessiable from all the
+    // thread should dump. Making it static so that it is accessible from all the
     // PGs. With this flag, monitor thread would dump debug info under any one of
     // the 3 conditions: 1: this flag is set to true by the watchdog thread when
     // it detects a timeout. 2: timeout signal is received from
