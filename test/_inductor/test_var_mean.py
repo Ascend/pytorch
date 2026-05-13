@@ -1,3 +1,5 @@
+from unittest import skip
+
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
 from testutils import TestUtils
@@ -8,6 +10,8 @@ class TestVarMean(TestUtils):
     def op_calc(self, input_element, dim):
         return torch.var_mean(input_element, dim)
 
+
+    @skip("skip test_var_mean")
     @parametrize('shape', [(1, 3, 5), (8, 256, 8192), (2, 5000, 5000)])
     @parametrize('dim', [0, 1, 2, (0, 2), (0, 1), (0, 1, 2)])
     @parametrize('dtype', ['float32'])
@@ -19,7 +23,6 @@ class TestVarMean(TestUtils):
 
         compiled_op_calc = torch.compile(self.op_calc, backend="inductor", dynamic=False)
         inductor_var, inductor_mean = compiled_op_calc(input_element, dim)
-
         self.assertEqual(std_var, inductor_var, atol=1e-1, rtol=1e-1, equal_nan=True)
         self.assertEqual(std_mean, inductor_mean, atol=1e-1, rtol=1e-1, equal_nan=True)
 

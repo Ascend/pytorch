@@ -1,29 +1,42 @@
-import torch
-import torch_npu
-from torch._inductor import config
-from torch._inductor.utils import sympy_product
-from torch._inductor.ir import ExternKernelOut, InputBuffer, ReinterpretView
-import os
-from torch._inductor.virtualized import V
-from torch._inductor.utils import device_need_guard
-from torch.utils._ordered_set import OrderedSet
 import traceback
-from ..config import log
 import typing
-from torch._inductor.scheduler import BaseSchedulerNode, FusedSchedulerNode, SchedulerNode, NopKernelSchedulerNode, ForeachKernelSchedulerNode, ExternKernelSchedulerNode
+from collections import defaultdict
+
+import torch
+import torch._inductor.ir as ir
+from torch._inductor import config
 from torch._inductor.codegen.cuda_combined_scheduling import CUDACombinedScheduling
 from torch._inductor.codegen.simd import SIMDScheduling
-from collections import defaultdict
+from torch._inductor.ir import ExternKernelOut, InputBuffer, ReinterpretView
+from torch._inductor.scheduler import (
+    BaseSchedulerNode,
+    ExternKernelSchedulerNode,
+    ForeachKernelSchedulerNode,
+    FusedSchedulerNode,
+    NopKernelSchedulerNode,
+    SchedulerNode,
+)
+from torch._inductor.utils import device_need_guard, sympy_product
+from torch._inductor.virtualized import V
+from torch.utils._ordered_set import OrderedSet
+
+from ..codegen.catlass.catlass_kernel import CATLASSTemplateBuffer
+from ..config import log
 from .parallelism_strategy_framework import ParallelGroupingStrategy
 from .utils.fx_pass_level import GroupType
-import torch._inductor.ir as ir
-from ..codegen.catlass.catlass_kernel import CATLASSTemplateBuffer
+from .utils.schedule_node_utils import is_multi_stream
 
 
 def parallel_scheduler():
+    """
+    Patch the Scheduler._codegen method to support multi stream parallel scheduling.
+    """
     original_codegen = torch._inductor.scheduler.Scheduler._codegen
-    
+
     def patched_codegen(self, nodes: list[BaseSchedulerNode]) -> None:
+        if not is_multi_stream():
+            original_codegen(self, nodes)
+            return
         parallel_strategy = ParallelGroupingStrategy()
         groups = parallel_strategy.execute_strategy(nodes)
         is_parallel = True
@@ -36,6 +49,7 @@ def parallel_scheduler():
             return
         if config.check_stack_no_cycles_TESTING_ONLY:
             import torch._dynamo.convert_frame
+
             stack = traceback.extract_stack()
             seen = OrderedSet()
             for frame in reversed(stack):
@@ -47,9 +61,11 @@ def parallel_scheduler():
                 key = (frame.filename, frame.lineno)
 
                 if key in seen:
-                    raise AssertionError(f"Duplicate stack frame {frame.filename}:{frame.lineno}; "
-                    "did you add a decorator to one of the functions in this stack "
-                    "trace?  If so, try using a context manager instead.")
+                    raise AssertionError(
+                        f"Duplicate stack frame {frame.filename}:{frame.lineno}; "
+                        "did you add a decorator to one of the functions in this stack "
+                        "trace?  If so, try using a context manager instead."
+                    )
                 seen.add(key)
 
         self.current_device = None
@@ -70,13 +86,9 @@ def parallel_scheduler():
         wrapper.pre_define_buffer = []
 
         stream_vars = {
-            key: f"stream_group_{key.lower()}" 
-            for key in list(groups.keys())
+            key: f"stream_group_{key.lower()}" for key in list(groups.keys())
         }
-        event_vars = {
-            key: f"event_group_{key.lower()}" 
-            for key in list(groups.keys())
-        }
+        event_vars = {key: f"event_group_{key.lower()}" for key in list(groups.keys())}
         stream_codegen(wrapper, groups, stream_vars, event_vars)
 
         node_to_group_id = {}
@@ -92,7 +104,7 @@ def parallel_scheduler():
 
         group_to_buffer = build_buffer_producer_group(nodes, node_to_group_id)
 
-        waited_events = set()
+        waited_events = OrderedSet()
         need_main_stream_event = []
         for node in nodes:
             node_name = node.get_name()
@@ -111,7 +123,9 @@ def parallel_scheduler():
                 ):
                     self.flush()
                 if device != self.current_device:
-                    if self.current_device and device_need_guard(self.current_device.type):
+                    if self.current_device and device_need_guard(
+                        self.current_device.type
+                    ):
                         V.graph.wrapper_code.codegen_device_guard_exit()
                     self.current_device = device
                     if device_need_guard(device.type):
@@ -120,10 +134,12 @@ def parallel_scheduler():
                         V.graph.wrapper_code.codegen_device_guard_enter(device.index)
             self.buffer_names_to_free.update(node.last_usage)
             tab_value = current_indent_level * wrapper.wrapper_call.tabwidth
-            
+
             if target_stream != current_stream:
                 if current_stream and current_stream != "main_stream" and current_event:
-                    wrapper.writeline(" " * (tab_value) + f"{current_event}.record({current_stream})")
+                    wrapper.writeline(
+                        " " * (tab_value) + f"{current_event}.record({current_stream})"
+                    )
                     need_main_stream_event.append(current_event)
 
                     while current_indent_level > 0:
@@ -133,15 +149,18 @@ def parallel_scheduler():
                     add_need_pre_buf_define(group_to_buffer, group_id, wrapper)
                     wrapper.writeline(f"with torch_npu.npu.stream({target_stream}):")
                     current_indent_level += 1
-                    wrapper.writeline(" " * (current_indent_level * wrapper.wrapper_call.tabwidth) + f"{target_stream}.wait_event(main_event)")
+                    wrapper.writeline(
+                        " " * (current_indent_level * wrapper.wrapper_call.tabwidth)
+                        + f"{target_stream}.wait_event(main_event)"
+                    )
 
                 if target_stream == "main_stream":
                     for event_name in need_main_stream_event:
                         if event_name not in waited_events:
                             intent_tab = 0
                             wrapper.writeline(
-                                " " * (intent_tab * wrapper.wrapper_call.tabwidth) +
-                                f"{target_stream}.wait_event({event_name})"
+                                " " * (intent_tab * wrapper.wrapper_call.tabwidth)
+                                + f"{target_stream}.wait_event({event_name})"
                             )
                             waited_events.add(event_name)
 
@@ -152,8 +171,12 @@ def parallel_scheduler():
             build_multi_stream_buf_intent(node, tab_value, wrapper)
 
             if node.is_template():
-                prologue, template_node, epilogue = node.get_prologue_template_epilogue(list(node.get_nodes()))
-                self.get_backend(device).codegen_template(template_node, epilogue, prologue)
+                prologue, template_node, epilogue = node.get_prologue_template_epilogue(
+                    list(node.get_nodes())
+                )
+                self.get_backend(device).codegen_template(
+                    template_node, epilogue, prologue
+                )
             elif node.is_extern():
                 node = typing.cast(ExternKernelSchedulerNode, node)
                 self.codegen_extern_call(node)
@@ -184,12 +207,12 @@ def parallel_scheduler():
                     self.flush()
         if current_stream != "main_stream" and current_event:
             wrapper.writeline(
-                " " * (current_indent_level * wrapper.wrapper_call.tabwidth) +
-                f"{current_event}.record({current_stream})"
+                " " * (current_indent_level * wrapper.wrapper_call.tabwidth)
+                + f"{current_event}.record({current_stream})"
             )
             wrapper.writeline(
-                " " * (current_indent_level * wrapper.wrapper_call.tabwidth) +
-                f"# end last stream {current_stream} context"
+                " " * (current_indent_level * wrapper.wrapper_call.tabwidth)
+                + f"# end last stream {current_stream} context"
             )
 
         while current_indent_level > 0:
@@ -197,8 +220,11 @@ def parallel_scheduler():
 
         wrapper.writeline("\n# Wait for all parallel streams to complete")
         for key, event_name in event_vars.items():
-            if event_name not in waited_events and event_name != event_vars[GroupType.MAIN.name]:
-                wrapper.writeline(f"main_stream.wait_event({event_name})")    
+            if (
+                event_name not in waited_events
+                and event_name != event_vars[GroupType.MAIN.name]
+            ):
+                wrapper.writeline(f"main_stream.wait_event({event_name})")
 
         if self.current_device and device_need_guard(self.current_device.type):
             V.graph.wrapper_code.codegen_device_guard_exit()
@@ -207,22 +233,26 @@ def parallel_scheduler():
     torch._inductor.scheduler.Scheduler._codegen = patched_codegen
 
     original_codegen_assert = torch._inductor.ir.ExternKernel.codegen_size_asserts
+
     def patched_codegen_size_asserts(self, wrapper) -> None:
         if hasattr(wrapper, "buffer_define_multi_stream"):
-            buffer_define_multi_stream = getattr(wrapper, "buffer_define_multi_stream")
+            buffer_define_multi_stream = wrapper.buffer_define_multi_stream
             if config.size_asserts and not V.graph.cpp_wrapper:
                 if sympy_product(self.get_size()) == 0:
                     return
                 size = V.graph.wrapper_code.codegen_shape_tuple(self.get_size())
                 stride = V.graph.wrapper_code.codegen_shape_tuple(self.get_stride())
                 multi_stream_intent = ""
-                if self.get_name() in buffer_define_multi_stream.keys():
-                    multi_stream_intent = " " * buffer_define_multi_stream.get(self.get_name())
+                if self.get_name() in buffer_define_multi_stream:
+                    multi_stream_intent = " " * buffer_define_multi_stream.get(
+                        self.get_name()
+                    )
                 wrapper.writeline(
                     f"{multi_stream_intent}assert_size_stride({self.get_name()}, {size}, {stride})"
                 )
         else:
             original_codegen_assert(self, wrapper)
+
     torch._inductor.ir.ExternKernel.codegen_size_asserts = patched_codegen_size_asserts
 
 
@@ -241,7 +271,19 @@ def stream_codegen(wrapper, groups, stream_vars, event_vars):
 def add_need_pre_buf_define(group_to_buffer, group_id, wrapper):
     need_define_buffers = group_to_buffer[group_id]
     for buf in need_define_buffers:
-        if isinstance(buf, (ir.ComputedBuffer, ir.ExternKernelOut, CATLASSTemplateBuffer)) and hasattr(buf, "name") and buf.name not in V.graph.removed_buffers:
+        if (
+            isinstance(
+                buf,
+                (
+                    ir.ConcatKernel,
+                    ir.ComputedBuffer,
+                    ir.ExternKernelOut,
+                    CATLASSTemplateBuffer,
+                ),
+            )
+            and hasattr(buf, "name")
+            and buf.name not in V.graph.removed_buffers
+        ):
             line = wrapper.make_buffer_allocation(buf)
             wrapper.writeline(line)
             wrapper.pre_define_buffer.append(buf.name)
@@ -249,16 +291,20 @@ def add_need_pre_buf_define(group_to_buffer, group_id, wrapper):
 
 def build_multi_stream_buf_intent(node, tab_value, wrapper):
     if not hasattr(node, "multi_stream_intent"):
-        setattr(node, "multi_stream_intent", tab_value)
-        if hasattr(node, 'get_nodes'):
+        node.multi_stream_intent = tab_value
+        if hasattr(node, "get_nodes"):
             nodes = node.get_nodes()
             for n in nodes:
                 if not hasattr(n, "multi_stream_intent"):
-                    setattr(n, "multi_stream_intent", tab_value)
-    
+                    n.multi_stream_intent = tab_value
+
     if getattr(node, "multi_stream_name", None) not in (None, "main_stream.npu_stream"):
-        if hasattr(node, "node") and isinstance(node.node, ExternKernelOut) and getattr(node.node, "python_kernel_name", None) is not None:
-            args = set()
+        if (
+            hasattr(node, "nodes")
+            and isinstance(node.node, ExternKernelOut)
+            and getattr(node.node, "python_kernel_name", None) is not None
+        ):
+            args = OrderedSet()
             inputs = getattr(node.node, "inputs", None)
             if inputs:
                 for input in inputs:
@@ -267,9 +313,9 @@ def build_multi_stream_buf_intent(node, tab_value, wrapper):
                     elif isinstance(input, ReinterpretView):
                         args.add(input.get_name())
             data = {
-                "python_kernel_name": getattr(node.node, "python_kernel_name"),
+                "python_kernel_name": node.node.python_kernel_name,
                 "args": args,
-                "multi_stream_intent": tab_value
+                "multi_stream_intent": tab_value,
             }
             wrapper.extern_node_intent_multi_stream.append(data)
         if len(node.last_usage) > 0:
@@ -281,7 +327,7 @@ def build_multi_stream_buf_intent(node, tab_value, wrapper):
             for output in node_outputs:
                 wrapper.buffer_define_multi_stream[output.node.name] = tab_value
         elif getattr(node, "node", None) is None and hasattr(node, "snodes"):
-            snodes = getattr(node, "snodes")
+            snodes = node.snodes
             for sn in snodes:
                 sn_outputs = getattr(sn, "outputs", None)
                 if sn_outputs:
@@ -299,19 +345,35 @@ def pre_node_multi_stream_flag(nodes, node_to_group_id, stream_vars):
         else:
             target_stream = stream_vars[group_id]
         if not hasattr(node, "multi_stream_name"):
-            setattr(node, "multi_stream_name", f"{target_stream}.npu_stream")
-            if hasattr(node, 'get_nodes'):
+            node.multi_stream_name = f"{target_stream}.npu_stream"
+            if hasattr(node, "get_nodes"):
                 nodes = node.get_nodes()
                 for n in nodes:
                     if not hasattr(n, "multi_stream_name"):
-                        setattr(n, "multi_stream_name", f"{target_stream}.npu_stream")
+                        n.multi_stream_name = f"{target_stream}.npu_stream"
 
 
 def build_buffer_producer_group(nodes, node_to_group_id):
     buffer_producer_group = {}
+    group_to_buffer_names = defaultdict(list)
     all_buffers = []
+    concat_bufs = defaultdict(list)
     for node in nodes:
         gid = node_to_group_id.get(node.get_name())
+        if (
+            hasattr(node, "node")
+            and hasattr(node.node, "name")
+            and isinstance(node.node, ir.ConcatKernel)
+            and hasattr(node.node, "inputs")
+        ):
+            buf_name = node.node.name
+            inputs = node.node.inputs
+            for input in inputs:
+                if isinstance(
+                    input,
+                    (ir.ComputedBuffer, ir.ExternKernelOut, CATLASSTemplateBuffer),
+                ) and hasattr(input, "name"):
+                    concat_bufs[buf_name].append(input.name)
 
         outputs = getattr(node, "outputs", None)
         if outputs:
@@ -331,4 +393,22 @@ def build_buffer_producer_group(nodes, node_to_group_id):
         for buf in all_buffers:
             if hasattr(buf, "name") and buf.name == buf_name:
                 group_to_buffer[gid].append(buf)
+                group_to_buffer_names[gid].append(buf_name)
+    if len(concat_bufs) > 0:
+        for concat_buf_name, input_buf_names in concat_bufs.items():
+            input_buf_names_set = OrderedSet(input_buf_names)
+            for gid, buf_names in group_to_buffer_names.items():
+                buf_names_set = OrderedSet(buf_names)
+                if gid != GroupType.MAIN.name and (
+                    input_buf_names_set.issubset(buf_names_set)
+                    or buf_names_set.issubset(input_buf_names_set)
+                ):
+                    for buf in all_buffers:
+                        if hasattr(buf, "name") and buf.name == concat_buf_name:
+                            group_to_buffer[gid].append(buf)
+                            group_to_buffer_names[gid].append(concat_buf_name)
+                            origin_gid = buffer_producer_group[concat_buf_name]
+                            group_to_buffer[origin_gid].remove(buf)
+                            group_to_buffer_names[origin_gid].remove(concat_buf_name)
+
     return group_to_buffer

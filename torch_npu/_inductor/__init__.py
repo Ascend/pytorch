@@ -160,7 +160,7 @@ else:
 
     pre_grad_custom_pass_fuc()
     post_grad_custom_pass_fuc()
-    if os.environ.get("PARALLEL_SCHEDULER_OPTIMIZAR", "false").lower() == "true":
+    if os.environ.get("ENABLE_PARALLEL_SCHEDULER", "false").lower() == "true":
         from .fx_passes.parallel_scheduler_pass import parallel_scheduler
 
         parallel_scheduler()
