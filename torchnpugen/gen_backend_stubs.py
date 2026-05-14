@@ -61,6 +61,7 @@ from torchnpugen.gen_functionalization_type import (
     gen_functionalization_definition,
     gen_functionalization_registration,
 )
+from torchnpugen.gen_npu_c_shim import gen_npu_c_shim_files
 from torchnpugen.utils import (
     add_header_to_template_file,
     DEVICE_NOCHECK_SET,
@@ -539,6 +540,12 @@ def main() -> None:
         default=None,
         help="path to the source yaml file containing kernel definitions in op_plugin",
     )
+    parser.add_argument(
+        "--update_aoti_c_shim",
+        action="store_true",
+        help="Update AOTInductor C shim after adding an entry to inductor_fallback_ops in torchgen/aoti/fallback_ops.py. "
+        "WARNING: Do not use this unless you are sure what you are doing!!!",
+    )
     options = parser.parse_args()
 
     run(
@@ -548,6 +555,7 @@ def main() -> None:
         options.impl_path,
         options.op_plugin_impl_path,
         options.op_plugin_yaml_path,
+        options.update_aoti_c_shim,
     )
 
 
@@ -637,7 +645,20 @@ $dispatch_registrations_body
                     "static_init_dispatch_registrations": static_init_dispatch_registrations,
                     "deferred_dispatch_registrations": "",
                     "dispatch_namespace": dispatch_key.lower(),
-                    "dispatch_namespaced_definitions": native_function_registrations,
+                    "dispatch_namespaced_definitions": native_function_registrations if native_function_registrations else list(
+                        concatMap(
+                            register_dispatch_key_func(
+                                backend_index,
+                                Target.NAMESPACED_DEFINITION,
+                                selector,
+                                rocm=False,
+                                symint=True,
+                                class_method_name=f'{class_name}',
+                                skip_dispatcher_op_registration=False,
+                            ),
+                            grouped_native_functions,
+                        )
+                    ),
                     "dispatch_anonymous_definitions": list(
                         concatMap(
                             register_dispatch_key_func(
@@ -948,6 +969,102 @@ def gen_target_registration(
     )
 
 
+def gen_per_operator_headers(
+    fm: FileManager,
+    ops_fm: FileManager,
+    native_functions: Sequence[NativeFunction],
+    grouped_native_functions: Sequence[NativeFunction | NativeFunctionsGroup],
+    backend_indices: dict[DispatchKey, BackendIndex],
+    dispatch_keys: Sequence[DispatchKey],
+    selector: "SelectiveBuilder",
+):
+    """
+    Generate per-operator dispatch header files (*_npu_dispatch.h) for NPU.
+
+    This mirrors upstream's gen_per_operator_headers which generates
+    *_cuda_dispatch.h and *_cpu_dispatch.h in ATen/ops/.
+
+    Uses dest.RegisterDispatchKey with Target.NAMESPACED_DECLARATION to
+    generate TORCH_API function declarations in at::npu namespace,
+    exactly matching upstream's dispatch header format.
+
+    Also generates NPUFunctions.h/NPUFunctions_inl.h which includes all per-operator
+    dispatch headers, mirroring upstream's CUDAFunctions.h/CUDAFunctions_inl.h.
+    """
+
+    functions_by_root_name: dict[str, list[NativeFunction]] = defaultdict(list)
+    for fn in native_functions:
+        functions_by_root_name[fn.root_name].append(fn)
+
+    grouped_functions_by_root_name: dict[
+        str, list[NativeFunction | NativeFunctionsGroup]
+    ] = defaultdict(list)
+    for group in grouped_native_functions:
+        name = group.root_name
+        grouped_functions_by_root_name[name].append(group)
+
+    for dispatch_key in dispatch_keys:
+        if dispatch_key not in backend_indices:
+            continue
+
+        dispatch_namespace = dispatch_key.lower()
+        dispatch_names = []
+
+        for name, functions in functions_by_root_name.items():
+            grouped_functions = grouped_functions_by_root_name.get(name, [])
+            declarations = list(
+                concatMap(
+                    dest.RegisterDispatchKey(
+                        backend_indices[dispatch_key],
+                        Target.NAMESPACED_DECLARATION,
+                        selector,
+                        rocm=False,
+                        symint=True,
+                        class_method_name=None,
+                        skip_dispatcher_op_registration=False,
+                    ),
+                    grouped_functions,
+                )
+            )
+
+            if len(declarations) == 0:
+                continue
+
+            dispatch_names.append(name)
+
+            ops_fm.write_with_template(
+                f"{name}_{dispatch_namespace}_dispatch.h",
+                "DispatchKeyFunction.h",
+                lambda: {
+                    "dispatch_namespace": dispatch_namespace,
+                    "dispatch_namespaced_declarations": declarations,
+                },
+            )
+
+        inl_headers = f"#include <torch_npu/csrc/aten/{dispatch_key}Functions_inl.h>"
+
+        fm.write_with_template(
+            f"{dispatch_key}Functions.h",
+            "DispatchKeyFunctions.h",
+            lambda: {
+                "dispatch_key": str(dispatch_key),
+                "inline_headers": inl_headers,
+            },
+        )
+        fm.write_with_template(
+            f"{dispatch_key}Functions_inl.h",
+            "DispatchKeyFunctions_inl.h",
+            lambda: {
+                "dispatch_namespace": dispatch_namespace,
+                "DispatchKeyFunctions_inl_includes": [
+                    f"#include <torch_npu/csrc/aten/ops/{name}_{dispatch_namespace}_dispatch.h>"
+                    for name in sorted(dispatch_names)
+                ],
+                "dispatch_namespaced_declarations": [],
+            },
+        )
+
+
 def run(
     source_yaml: str,
     output_dir: str,
@@ -955,6 +1072,7 @@ def run(
     impl_path: str | None,
     op_plugin_impl_path: str | None,
     op_plugin_yaml_path: str | None,
+    update_aoti_c_shim: bool,
 ) -> None:
     rename_privateuse1_dispatch_key()
     torchgen_path = get_torchgen_dir()
@@ -967,6 +1085,10 @@ def run(
         )
 
     fm = make_file_manager(output_dir)
+    ops_output_dir = os.path.join(output_dir, "ops")
+    if not os.path.exists(ops_output_dir):
+        os.makedirs(ops_output_dir, exist_ok=True)
+    ops_fm = make_file_manager(ops_output_dir)
     merge_custom_yaml(source_yaml, op_plugin_yaml_path)
     source_yaml = gen_custom_yaml_path(source_yaml)
     tags_yaml_path = os.path.join(torchgen_path, "packaged/ATen/native/tags.yaml")
@@ -1014,6 +1136,8 @@ def run(
             str(backend_key) + "OpApi",
             None,
         )
+
+        gen_per_operator_headers(fm, ops_fm, native_functions, grouped_native_functions, backend_indices, [backend_dispatch_key, autograd_dispatch_key], selector)
 
         for dispatch_key in [backend_dispatch_key, autograd_dispatch_key]:
             if not dispatch_key:
@@ -1115,6 +1239,19 @@ def run(
             fm,
             selector,
             native_functions,
+        )
+
+        aoti_output_dir = os.path.join(output_dir, "../inductor/aoti_torch/generated")
+        if not os.path.exists(aoti_output_dir):
+            os.makedirs(aoti_output_dir, exist_ok=True)
+        aoti_fm = make_file_manager(aoti_output_dir)
+        structured_native_functions = [
+            g for g in grouped_native_functions if isinstance(g, NativeFunctionsGroup)
+        ]
+        gen_npu_c_shim_files(
+            aoti_fm, native_functions, backend_indices,
+            [backend_dispatch_key, autograd_dispatch_key],
+            structured_native_functions, update_aoti_c_shim,
         )
 
 
