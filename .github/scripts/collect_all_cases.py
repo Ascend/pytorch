@@ -121,13 +121,19 @@ def collect_cases_for_file(test_file: str, test_dir: Path) -> Tuple[str, str, Li
         nodeids = []
         for line in result.stdout.splitlines():
             stripped = line.strip()
-            # Filter valid pytest nodeids:
-            # 1. Must contain "::" (pytest nodeid separator)
-            # 2. Must contain ".py::" (indicates a Python test file)
-            # 3. Must not start with "@" (decorators/registrations, not test cases)
-            # 4. Must not start with "<" (pytest collection markers)
-            # 5. Must not contain function call syntax like "(" (non-nodeid symbols)
-            if "::" in stripped and ".py::" in stripped and not stripped.startswith("@") and not stripped.startswith("<") and "(" not in stripped:
+            # pytest --collect-only -q outputs clean nodeids, one per line
+            # Filter rules:
+            # 1. Skip empty lines
+            # 2. Skip summary lines (contain "collected" or "selected")
+            # 3. Skip separator lines (start with "=")
+            # 4. Must contain ".py::" to ensure it's a Python test file nodeid
+            if not stripped:
+                continue
+            if "collected" in stripped or "selected" in stripped:
+                continue
+            if stripped.startswith("="):
+                continue
+            if ".py::" in stripped:
                 nodeids.append(stripped)
 
         # Check for collection errors based on pytest exit codes:
