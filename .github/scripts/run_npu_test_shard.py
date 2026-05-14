@@ -58,6 +58,8 @@ from queue import Queue
 from time import monotonic
 from typing import Dict, List, Tuple
 
+import collect_all_cases
+
 
 # ==============================================================================
 # Import Result Parser Module
@@ -369,112 +371,6 @@ def load_installed_torch_root() -> str:
 
 
 # ==============================================================================
-# Case Collection
-# ==============================================================================
-
-
-def collect_test_cases(test_file: str, test_dir: Path, env: Dict) -> List[str]:
-    """
-    Collect all test cases from a test file via pytest --collect-only.
-
-    Adds test file's parent directory to PYTHONPATH to enable
-    imports of sibling modules (e.g., 'from model_registry import MLPModule').
-
-    Args:
-        test_file: Test file path (e.g., "test/test_autograd.py")
-        test_dir: Path to PyTorch test directory
-        env: Environment dict for subprocess (will be modified for this call)
-
-    Returns:
-        List of case nodeids (e.g., ["test_autograd.py::TestAutograd::test_grad"])
-    """
-    # Strip test/ prefix if present
-    original_test_file = test_file
-    if test_file.startswith("test/"):
-        test_file = test_file[5:]
-
-    # Get test file's parent directory for PYTHONPATH
-    test_file_path = Path(test_file)
-    test_file_dir = test_dir / test_file_path.parent
-
-    # Build per-file environment with test file directory in PYTHONPATH
-    file_env = env.copy()
-    existing_pythonpath = file_env.get("PYTHONPATH", "")
-    file_env["PYTHONPATH"] = str(test_file_dir) + (":" + existing_pythonpath if existing_pythonpath else "")
-
-    command = [
-        sys.executable,
-        "-m",
-        "pytest",
-        "--collect-only",
-        "--quiet",
-        test_file,
-    ]
-
-    try:
-        result = subprocess.run(
-            command,
-            cwd=str(test_dir),
-            env=file_env,  # Use per-file environment with test file directory in PYTHONPATH
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=60,  # Collection timeout
-        )
-
-        # Check for collection errors based on pytest exit codes:
-        #   0: all passed (success)
-        #   2: pytest error (includes collection errors like ImportError)
-        #   3: all skipped (success)
-        #   4: command line error (error)
-        #   5: no tests collected (ERROR - test file should have cases)
-        # Key insight: if a test file is selected for execution, it should have cases.
-        # returncode 5 means 0 cases collected, which indicates a problem.
-        stdout_content = result.stdout.strip()
-
-        if result.returncode not in (0, 3):
-            # returncode 2, 4, 5: real collection error
-            # returncode 5 specifically means no tests collected - a problem for selected files
-            print(f"    WARNING: Collection errors for {test_file}:")
-            # Print relevant lines from stdout (pytest collection errors are in stdout)
-            stdout_lines = stdout_content.splitlines()
-            for line in stdout_lines[-20:]:
-                if line.strip():
-                    print(f"      {line[:200]}")
-            # Also print stderr if relevant
-            if result.stderr:
-                stderr_lines = result.stderr.strip().splitlines()
-                for line in stderr_lines[-10:]:
-                    if line.strip():
-                        print(f"      {line[:200]}")
-
-        # Parse nodeids from output
-        nodeids = []
-        for line in result.stdout.splitlines():
-            # pytest --collect-only outputs nodeids like:
-            # <Function test_grad>
-            # or with verbose:
-            # test_autograd.py::TestAutograd::test_grad
-            if "::" in line:
-                # Extract nodeid (remove leading spaces and markers)
-                nodeid = line.strip()
-                # Remove pytest markers like <Function ...>
-                if nodeid.startswith("<"):
-                    continue
-                nodeids.append(nodeid)
-
-        return nodeids
-
-    except subprocess.TimeoutExpired:
-        print(f"WARNING: Collection timeout for {test_file}")
-        return []
-    except Exception as e:
-        print(f"WARNING: Collection failed for {test_file}: {e}")
-        return []
-
-
-# ==============================================================================
 # Concurrent Case Execution
 # ==============================================================================
 
@@ -745,220 +641,6 @@ def log_writer_thread(log_queue: Queue, log_file: Path, stop_event: threading.Ev
             elif log_entry.get("type") == "summary":
                 log_handle.write(log_entry.get("content", ""))
                 log_handle.flush()
-
-
-def run_tests_with_concurrent_isolation(
-    planned_tests: List[str],
-    shard: int,
-    test_dir: Path,
-    report_dir: Path,
-    env_updates: Dict[str, str],
-    timeout: int,
-    verbose: bool,
-    shard_type: str,
-    max_workers: int,
-    result_module,
-    quick_test: int = None,
-) -> Tuple[int, float, List[Dict]]:
-    """
-    Execute tests with concurrent per-case isolation.
-
-    Each test case runs in its own pytest subprocess for crash isolation.
-    Up to max_workers subprocesses execute concurrently via ThreadPoolExecutor.
-
-    Core dumps in subprocess do NOT affect:
-    - The main Python process
-    - Other concurrent subprocesses
-    - Pending tasks in the queue
-
-    Args:
-        planned_tests: List of test file paths
-        shard: Shard number
-        test_dir: PyTorch test directory
-        report_dir: Report output directory
-        env_updates: Environment variable updates
-        timeout: Per-case timeout in seconds
-        verbose: Verbose output
-        shard_type: "distributed" or "regular"
-        max_workers: Maximum concurrent subprocesses (default: 4)
-        result_module: parse_test_results module
-        quick_test: Maximum number of cases to execute (None = all cases)
-
-    Returns:
-        Tuple of (worst_returncode, duration, cases_list_sorted)
-    """
-    start = monotonic()
-    log_file = result_module.get_shard_log_file(report_dir, shard, shard_type)
-
-    # Create junit_xmls directory for XML reports
-    junit_xml_dir = report_dir / "junit_xmls"
-    junit_xml_dir.mkdir(parents=True, exist_ok=True)
-
-    merged_env = os.environ.copy()
-    merged_env.update(env_updates)
-
-    config = ConcurrentExecutionConfig(
-        max_workers=max_workers,
-        per_case_timeout=timeout,
-        verbose=verbose,
-    )
-
-    # Thread-safe result aggregator
-    result_aggregator = ConcurrentResultAggregator()
-
-    # Log queue and writer thread
-    log_queue = Queue()
-    stop_event = threading.Event()
-    log_thread = threading.Thread(
-        target=log_writer_thread,
-        args=(log_queue, log_file, stop_event),
-        daemon=True,
-    )
-
-    # Write log header
-    log_queue.put({
-        "type": "header",
-        "content": (
-            "=" * 80 + "\n"
-            f"Concurrent per-case isolation pytest execution ({shard_type} shard)\n"
-            "=" * 80 + "\n"
-            f"Total test files: {len(planned_tests)}\n"
-            f"Max concurrent workers: {max_workers}\n"
-            "Execution mode: concurrent subprocess, each case isolated\n"
-            "=" * 80 + "\n\n"
-        ),
-    })
-
-    log_thread.start()
-
-    print(f"\n{'=' * 80}")
-    print(f"Concurrent per-case isolation mode: {len(planned_tests)} files")
-    print(f"Execution mode: {max_workers} workers concurrent, each case in subprocess")
-    print(f"{'=' * 80}\n")
-
-    # Phase 1: Collect all test cases (serial, as parsing test files)
-    all_tasks: List[CaseExecutionTask] = []
-    case_idx = 0
-
-    print("Phase 1: Collecting test cases...")
-    if quick_test:
-        print(f"  Quick test mode: will collect up to {quick_test} cases")
-
-    for file_idx, test_file in enumerate(planned_tests, 1):
-        # Quick test: stop collecting if already have enough cases
-        if quick_test and case_idx >= quick_test:
-            print(f"\n  Quick test limit reached ({quick_test} cases), stopping collection")
-            break
-
-        test_name = strip_test_prefix_and_suffix(test_file)
-        print(f"\n  [File {file_idx}/{len(planned_tests)}] Collecting: {test_name}")
-
-        case_nodeids = collect_test_cases(test_file, test_dir, merged_env)
-
-        if not case_nodeids:
-            print(f"    No cases collected")
-            continue
-
-        print(f"    Collected {len(case_nodeids)} cases")
-
-        for nodeid in case_nodeids:
-            case_idx += 1
-            all_tasks.append(CaseExecutionTask(
-                case_idx=case_idx,
-                nodeid=nodeid,
-                test_file=test_file,
-                file_idx=file_idx,
-            ))
-
-            # Quick test: stop collecting if reached limit
-            if quick_test and case_idx >= quick_test:
-                print(f"    Quick test limit reached ({quick_test} cases)")
-                break
-
-    total_cases = len(all_tasks)
-    print(f"\n{'=' * 80}")
-    print(f"Phase 2: Concurrent execution with {max_workers} workers")
-    print(f"Total cases to execute: {total_cases}")
-    print(f"{'=' * 80}\n")
-
-    # Phase 2: Concurrent execution via ThreadPoolExecutor
-    progress_tracker = ProgressTracker(total_cases)
-
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        # Submit all tasks
-        future_to_task = {
-            executor.submit(
-                run_single_case_concurrent,
-                task,
-                test_dir,
-                merged_env,
-                config,
-                result_aggregator,
-                progress_tracker,
-                log_queue,
-                report_dir,
-                shard,
-                shard_type,
-            ): task
-            for task in all_tasks
-        }
-
-        # Wait for completion (as_completed gives results as they finish)
-        for future in as_completed(future_to_task):
-            task = future_to_task[future]
-            try:
-                # Result already collected in aggregator
-                _ = future.result()
-            except Exception as e:
-                # Should never happen (run_single_case_concurrent catches all)
-                # But as safety, create error result
-                case_result = {
-                    "nodeid": task.nodeid,
-                    "status": "error",
-                    "duration": 0.0,
-                    "returncode": 1,
-                    "message": f"Future error: {str(e)[:200]}",
-                    "file": task.test_file,
-                    "case_idx": task.case_idx,
-                }
-                result_aggregator.add_case_result(case_result)
-                progress_tracker.mark_completed(task.nodeid, "error", 0.0)
-
-    # Stop log thread
-    elapsed = monotonic() - start
-    summary = result_aggregator.get_summary()
-
-    log_queue.put({
-        "type": "summary",
-        "content": (
-            f"\n{'=' * 80}\n"
-            f"Summary: {summary['total_cases']} cases executed\n"
-            f"  Passed: {summary['passed_count']}\n"
-            f"  Failed: {summary['failed_count']}\n"
-            f"  Errors: {summary['error_count']}\n"
-            f"  Timeout: {summary['timeout_count']}\n"
-            f"  Skipped: {summary['skipped_count']}\n"
-            f"  Duration: {elapsed:.2f}s\n"
-            f"  Concurrent workers: {max_workers}\n"
-            f"{'=' * 80}\n"
-        ),
-    })
-
-    stop_event.set()
-    log_thread.join(timeout=5)
-
-    # Print final summary
-    print(f"\n{'=' * 80}", flush=True)
-    print(f"Summary: {summary['total_cases']} cases executed", flush=True)
-    print(f"  Passed: {summary['passed_count']}", flush=True)
-    print(f"  Failed: {summary['failed_count']}", flush=True)
-    print(f"  Errors: {summary['error_count']}", flush=True)
-    print(f"  Timeout: {summary['timeout_count']}", flush=True)
-    print(f"  Skipped: {summary['skipped_count']}", flush=True)
-    print(f"  Duration: {elapsed:.2f}s", flush=True)
-    print(f"{'=' * 80}", flush=True)
-
-    return summary["worst_returncode"], elapsed, result_aggregator.get_sorted_cases()
 
 
 def run_tests_with_tasks_concurrent(
@@ -1351,9 +1033,38 @@ def main():
         # Execute tests (custom mode uses concurrent execution by default)
         cases_list = []
         if planned_tests:
-            # Custom mode: concurrent execution for efficiency
-            returncode, duration, cases_list = run_tests_with_concurrent_isolation(
+            # Phase 1: Collect all test cases using collect_all_cases module
+            print("\nPhase 1: Collecting test cases...")
+            error_log_dir = report_dir / "collection_errors"
+            collected_cases = collect_all_cases.collect_all_cases(
                 planned_tests,
+                test_dir,
+                error_log_dir,
+                parallel=16,
+            )
+
+            # Apply quick_test limit if specified
+            if args.quick_test and len(collected_cases) > args.quick_test:
+                collected_cases = collected_cases[:args.quick_test]
+                print(f"  Quick test mode: using only {args.quick_test} cases")
+
+            total_cases = len(collected_cases)
+            print(f"\nPhase 2: Executing {total_cases} cases with {args.max_workers} workers")
+
+            # Build CaseExecutionTask list
+            tasks = []
+            for i, case in enumerate(collected_cases, 1):
+                tasks.append(CaseExecutionTask(
+                    case_idx=i,
+                    nodeid=case["nodeid"],
+                    test_file=case["file"],
+                    file_idx=0,  # Not needed for pre-collected cases
+                ))
+
+            # Phase 2: Execute cases using run_tests_with_tasks_concurrent
+            # Note: quick_test already applied above, pass None to avoid redundant check
+            returncode, duration, cases_list = run_tests_with_tasks_concurrent(
+                tasks,
                 shard,
                 test_dir,
                 report_dir,
@@ -1363,12 +1074,15 @@ def main():
                 shard_type,
                 args.max_workers,
                 result_module,
-                args.quick_test,
+                None,  # quick_test already applied above
             )
             info["per_case_isolation"] = True
             info["concurrent_workers"] = args.max_workers
             info["returncode"] = returncode
             info["duration"] = duration
+        else:
+            returncode = 0
+            duration = 0.0
 
         # Build cases.json data
         passed_count = sum(1 for c in cases_list if c["status"] == "passed")
