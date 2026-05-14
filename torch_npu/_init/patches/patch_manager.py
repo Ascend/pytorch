@@ -1,6 +1,7 @@
 import pkgutil
 from collections import defaultdict
 from collections.abc import Callable
+from typing import List, Optional
 from importlib import import_module
 
 
@@ -45,7 +46,7 @@ class PatchManager:
 
     _applied_patch_count = defaultdict(int)
     _builtin_patches_registered = False
-    _custom_full_patch_order: list[str] | None = None
+    _custom_full_patch_order: Optional[List[str]] = None
     _patch_groups = defaultdict(list)
     _patch_modules: list[str] = []
 
@@ -207,7 +208,7 @@ class PatchManager:
         cls._applied_patch_count.clear()
 
 
-def _apply_patches():
+def _apply_all_patches():
     PatchManager._register_builtin_patches()
 
     for group in PatchManager._resolve_patch_order():

@@ -340,7 +340,9 @@ def _patch_cuda():
         ['cuda.amp.common', torch_npu.npu.amp.common],
         ['cuda.amp.grad_scaler', torch_npu.npu.amp.grad_scaler]
     ]
-    torch_npu._apply_patches(patchs)
+
+    from torch_npu._init.patches.monkey_patches import _apply_patches
+    _apply_patches(patchs)
 
 
 def _patch_profiler():
@@ -352,7 +354,9 @@ def _patch_profiler():
         ['profiler.ProfilerActivity.CUDA', torch_npu.profiler.ProfilerActivity.NPU],
         ['profiler.ProfilerActivity.CPU', torch_npu.profiler.ProfilerActivity.CPU]
     ]
-    torch_npu._apply_patches(patchs)
+
+    from torch_npu._init.patches.monkey_patches import _apply_patches
+    _apply_patches(patchs)
 
 
 def _warning_fn(msg, rank0=True):
