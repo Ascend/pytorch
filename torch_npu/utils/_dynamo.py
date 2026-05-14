@@ -113,8 +113,7 @@ def TensorVariable_call_method(self, tx, name, args, kwargs):
 
 class _InductorNpuRegistry:
     _disabled_register = False
-    _loaded_backend: str | None = None
-
+    _loaded_backend = None
     @classmethod
     def register_inductor_npu(cls):
         if cls._disabled_register:
