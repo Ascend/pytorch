@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """
 Generate a consolidated markdown/json report for the NPU full test workflow.
+
+Output files:
+- npu-full-test-summary.json: Lightweight summary with aggregated stats only
+- distributed_cases_results_by_file.jsonl: Case-level results grouped by file
+- regular_cases_results_by_file.jsonl: Case-level results grouped by file
 """
 
 import argparse
@@ -18,7 +23,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Generate consolidated NPU full test report")
     parser.add_argument("--reports-root", required=True, help="Root directory containing shard report files")
     parser.add_argument("--output-markdown", required=True, help="Path to write markdown report")
-    parser.add_argument("--output-json", required=True, help="Path to write JSON report")
+    parser.add_argument("--output-json", required=True, help="Path to write JSON summary")
     parser.add_argument("--pytorch-version", required=True, help="PyTorch version string")
     parser.add_argument("--torch-npu-whl", required=True, help="torch_npu wheel URL")
     parser.add_argument("--patch-count", default="N/A", help="Applied patch count")
@@ -28,6 +33,7 @@ def parse_args():
     parser.add_argument("--special-reports-root", help="Root directory containing special test report files")
     parser.add_argument("--expected-special-tests-json", default="[]", help="JSON array of expected special test names")
     parser.add_argument("--cases-summary", help="Path to cases_collection_summary.json for file discovery stats")
+    parser.add_argument("--cases-by-file-dir", help="Directory containing *_cases_by_file.jsonl files")
     return parser.parse_args()
 
 
@@ -319,6 +325,140 @@ def discover_special_test_files(reports_root: Path | None) -> Dict[str, Path]:
     return special_files
 
 
+def load_cases_by_file_jsonl(jsonl_path: Path) -> Tuple[Dict, List[Dict]]:
+    """
+    Load cases_by_file.jsonl file.
+
+    Returns:
+        Tuple of (summary_dict, file_data_list)
+        - summary_dict: {"total_file": xxx, "total_cases": xxx}
+        - file_data_list: [{"file_path": xxx, "case_count": xxx, "cases": [nodeid1, ...]}, ...]
+    """
+    if not jsonl_path or not jsonl_path.exists():
+        return {}, []
+
+    summary_dict = {}
+    file_data_list = []
+
+    try:
+        with open(jsonl_path, 'r', encoding='utf-8') as f:
+            for i, line in enumerate(f):
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    obj = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+
+                if i == 0 and "total_file" in obj:
+                    # First line is summary
+                    summary_dict = obj
+                elif "file_path" in obj:
+                    # File data line
+                    file_data_list.append(obj)
+    except Exception as e:
+        print(f"Warning: Failed to load {jsonl_path}: {e}")
+
+    return summary_dict, file_data_list
+
+
+def build_nodeid_to_case_map(cases_results: Dict) -> Dict[str, Dict]:
+    """
+    Build a mapping from nodeid to case execution result.
+
+    Args:
+        cases_results: Dict from shard_key -> cases_data
+
+    Returns:
+        Dict mapping nodeid -> case result dict
+    """
+    nodeid_to_case = {}
+    for shard_key, cases_data in cases_results.items():
+        cases_list = cases_data.get("cases", [])
+        for case in cases_list:
+            nodeid = case.get("nodeid", "")
+            if nodeid:
+                nodeid_to_case[nodeid] = case
+    return nodeid_to_case
+
+
+def generate_cases_results_jsonl(
+    test_type: str,
+    file_data_list: List[Dict],
+    summary_dict: Dict,
+    nodeid_to_case: Dict,
+    output_dir: Path,
+) -> Path:
+    """
+    Generate JSONL file with case execution results grouped by file.
+
+    Format:
+    Line 1: {"total_file":xxx,"total_cases":xxx}
+    Line 2+: {"file_path":"xxx","case_count":xxx,"cases":[{"nodeid":"xxx","status":"passed",...},...]}
+
+    Args:
+        test_type: "distributed" or "regular"
+        file_data_list: List of file data dicts from *_cases_by_file.jsonl
+        summary_dict: Summary dict from *_cases_by_file.jsonl
+        nodeid_to_case: Mapping from nodeid to case execution result
+        output_dir: Output directory
+
+    Returns:
+        Path to generated JSONL file
+    """
+    output_file = output_dir / f"{test_type}_cases_results_by_file.jsonl"
+
+    with open(output_file, 'w', encoding='utf-8') as f:
+        # Line 1: summary (use compact JSON)
+        summary_line = json.dumps(summary_dict, separators=(',', ':'))
+        f.write(summary_line + '\n')
+
+        # Line 2+: file data with enriched case results
+        for file_data in file_data_list:
+            file_path = file_data.get("file_path", "")
+            nodeids = file_data.get("cases", [])
+
+            # Enrich nodeids with execution results
+            enriched_cases = []
+            for nodeid in nodeids:
+                case_result = nodeid_to_case.get(nodeid, {})
+                if case_result:
+                    # Case has execution result
+                    enriched_cases.append({
+                        "nodeid": case_result.get("nodeid", nodeid),
+                        "status": case_result.get("status", "unknown"),
+                        "duration": case_result.get("duration", 0.0),
+                        "returncode": case_result.get("returncode", 0),
+                        "message": case_result.get("message", ""),
+                        "command": case_result.get("command", ""),
+                        "file": case_result.get("file", file_path),
+                        "case_idx": case_result.get("case_idx", 0),
+                    })
+                else:
+                    # Case not executed (missing from results)
+                    enriched_cases.append({
+                        "nodeid": nodeid,
+                        "status": "not_executed",
+                        "duration": 0.0,
+                        "returncode": 0,
+                        "message": "",
+                        "command": "",
+                        "file": file_path,
+                        "case_idx": 0,
+                    })
+
+            file_line = json.dumps({
+                "file_path": file_path,
+                "case_count": len(enriched_cases),
+                "cases": enriched_cases,
+            }, separators=(',', ':'))
+            f.write(file_line + '\n')
+
+    print(f"Generated {test_type}_cases_results_by_file.jsonl: {len(file_data_list)} files -> {output_file}")
+    return output_file
+
+
 def main():
     args = parse_args()
     reports_root = Path(args.reports_root)
@@ -540,20 +680,81 @@ def main():
             )
         )
 
-        # Add file-level statistics table
+        # Build file-level statistics from jsonl (full file set) + execution results
         file_stats = parse_test_results.aggregate_all_cases_by_file(cases_results)
 
-        if file_stats:
+        # Load all files from jsonl (includes files with 0 cases that weren't executed)
+        all_files_from_jsonl = {}
+        if args.cases_by_file_dir:
+            cases_by_file_dir = Path(args.cases_by_file_dir)
+            dist_jsonl_path = cases_by_file_dir / "distributed_cases_by_file.jsonl"
+            reg_jsonl_path = cases_by_file_dir / "regular_cases_by_file.jsonl"
+
+            if dist_jsonl_path.exists():
+                _, dist_file_data = load_cases_by_file_jsonl(dist_jsonl_path)
+                for fd in dist_file_data:
+                    file_path = fd.get("file_path", "")
+                    all_files_from_jsonl[file_path] = {
+                        "file": file_path,
+                        "case_count": fd.get("case_count", 0),
+                        "test_type": "distributed",
+                    }
+
+            if reg_jsonl_path.exists():
+                _, reg_file_data = load_cases_by_file_jsonl(reg_jsonl_path)
+                for fd in reg_file_data:
+                    file_path = fd.get("file_path", "")
+                    all_files_from_jsonl[file_path] = {
+                        "file": file_path,
+                        "case_count": fd.get("case_count", 0),
+                        "test_type": "regular",
+                    }
+
+        # Merge execution results with full file set
+        merged_file_stats = {}
+        for file_path, file_info in all_files_from_jsonl.items():
+            exec_stats = file_stats.get(file_path, {})
+            merged_file_stats[file_path] = {
+                "file": file_path,
+                "total": exec_stats.get("total", 0),
+                "passed": exec_stats.get("passed", 0),
+                "failed": exec_stats.get("failed", 0),
+                "errors": exec_stats.get("errors", 0),
+                "timeout": exec_stats.get("timeout", 0),
+                "skipped": exec_stats.get("skipped", 0),
+                "duration": exec_stats.get("duration", 0.0),
+                "case_count": file_info.get("case_count", 0),  # 规划用例数（可能 > 执行用例数）
+                "test_type": file_info.get("test_type", "unknown"),
+            }
+
+        # Also add files that were executed but not in jsonl (edge case)
+        for file_path, exec_stats in file_stats.items():
+            if file_path not in merged_file_stats:
+                merged_file_stats[file_path] = {
+                    "file": file_path,
+                    "total": exec_stats.get("total", 0),
+                    "passed": exec_stats.get("passed", 0),
+                    "failed": exec_stats.get("failed", 0),
+                    "errors": exec_stats.get("errors", 0),
+                    "timeout": exec_stats.get("timeout", 0),
+                    "skipped": exec_stats.get("skipped", 0),
+                    "duration": exec_stats.get("duration", 0.0),
+                    "case_count": exec_stats.get("total", 0),
+                    "test_type": "unknown",
+                }
+
+        if merged_file_stats:
             # Sort files by total cases descending
             sorted_files = sorted(
-                file_stats.values(),
-                key=lambda x: (-x["total"], x["file"])
+                merged_file_stats.values(),
+                key=lambda x: (-x["case_count"], x["file"])
             )
 
             markdown_lines.extend(["", "## 测试文件结果汇总"])
 
             file_rows = []
-            for fs in sorted_files:  # Show all files
+            for fs in sorted_files:
+                # Calculate fail rate based on executed cases
                 failed_total = fs["failed"] + fs["errors"] + fs["timeout"]
                 fail_rate = f"{(failed_total / fs['total'] * 100):.1f}%" if fs["total"] > 0 else "0%"
                 # Get shard info for this file
@@ -563,11 +764,12 @@ def main():
                 if lookup_path.startswith("test/"):
                     lookup_path = lookup_path[5:]
                 shards_for_file = file_to_shards_map.get(lookup_path, [])
+                # If case_count is 0, no shard executed this file
                 shard_info = ", ".join(shards_for_file) if shards_for_file else "-"
                 file_rows.append([
                     sanitize_markdown_cell(fs["file"]),
                     shard_info,
-                    str(fs["total"]),
+                    str(fs["case_count"]),  # 规划用例数
                     str(fs["passed"]),
                     str(fs["failed"]),
                     str(fs["errors"]),
@@ -578,7 +780,7 @@ def main():
 
             markdown_lines.extend(
                 render_table(
-                    ["测试文件", "分片", "总用例", "通过", "失败", "错误", "跳过", "超时", "失败率"],
+                    ["测试文件", "分片", "规划用例", "通过", "失败", "错误", "跳过", "超时", "失败率"],
                     file_rows,
                 )
             )
@@ -622,40 +824,54 @@ def main():
         "shards": shard_rows,
     }
 
-    # Add full cases summary if available
+    # Add cases collection summary (lightweight metadata only for md rendering)
     if cases_summary_data:
-        report_json["cases_collection_summary"] = cases_summary_data
-
-    # Add case-level results if available
-    if cases_results:
-        report_json["cases_results"] = {
-            "shards": {
-                f"{shard_type}-{shard_num}": data
-                for (shard_type, shard_num), data in cases_results.items()
+        report_json["cases_collection_summary"] = {
+            "total_cases": cases_summary_data.get("total_cases", 0),
+            "total_files_scanned": cases_summary_data.get("total_files_scanned", 0),
+            "distributed_files": cases_summary_data.get("distributed_files", 0),
+            "regular_files": cases_summary_data.get("regular_files", 0),
+            "distributed": {
+                "total_cases": cases_summary_data.get("distributed", {}).get("cases_summary", {}).get("total_cases", 0),
+            },
+            "regular": {
+                "total_cases": cases_summary_data.get("regular", {}).get("cases_summary", {}).get("total_cases", 0),
             },
         }
 
-        # Add file-level aggregation
-        file_stats = parse_test_results.aggregate_all_cases_by_file(cases_results)
-        # Add shard info to file stats
-        file_stats_with_shards = {}
-        for file_path, stats in file_stats.items():
-            # Normalize file path for lookup
-            lookup_path = file_path
-            if lookup_path.startswith("test/"):
-                lookup_path = lookup_path[5:]
-            shards_for_file = file_to_shards_map.get(lookup_path, [])
-            stats["shards"] = shards_for_file
-            file_stats_with_shards[file_path] = stats
-        report_json["file_level_stats"] = dict(sorted(
-            file_stats_with_shards.items(),
-            key=lambda x: (-x[1]["total"], x[0])
-        ))
+    # Generate JSONL files with case-level results grouped by file
+    if cases_results and args.cases_by_file_dir:
+        cases_by_file_dir = Path(args.cases_by_file_dir)
+        output_dir = output_json.parent
 
-        # Add list of files with failures
-        failed_files = parse_test_results.get_files_with_failures(file_stats)
-        report_json["files_with_failures"] = failed_files
+        # Build nodeid to case result mapping
+        nodeid_to_case = build_nodeid_to_case_map(cases_results)
 
+        # Process distributed cases
+        dist_jsonl_path = cases_by_file_dir / "distributed_cases_by_file.jsonl"
+        if dist_jsonl_path.exists():
+            dist_summary, dist_file_data = load_cases_by_file_jsonl(dist_jsonl_path)
+            generate_cases_results_jsonl(
+                "distributed",
+                dist_file_data,
+                dist_summary,
+                nodeid_to_case,
+                output_dir,
+            )
+
+        # Process regular cases
+        reg_jsonl_path = cases_by_file_dir / "regular_cases_by_file.jsonl"
+        if reg_jsonl_path.exists():
+            reg_summary, reg_file_data = load_cases_by_file_jsonl(reg_jsonl_path)
+            generate_cases_results_jsonl(
+                "regular",
+                reg_file_data,
+                reg_summary,
+                nodeid_to_case,
+                output_dir,
+            )
+
+    # Add special tests if applicable
     if include_special_tests:
         report_json["special_tests"] = {
             "expected": special_test_names,

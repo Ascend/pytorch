@@ -102,7 +102,8 @@ jobs:
             --shard-matrix-json "${COMBINED_MATRIX}" \
             --docker-image "${{ inputs.docker_image }}" \
             --runner "linux-aarch64-a3-16 (distributed, serial), linux-aarch64-a3-16 (regular, 64 workers), linux-aarch64-a3-8 (custom)" \
-            --cases-summary cases-shards/cases_collection_summary.json
+            --cases-summary cases-shards/cases_collection_summary.json \
+            --cases-by-file-dir cases-shards
 
           cat ${REPORT_MD} >> $GITHUB_STEP_SUMMARY
 
@@ -114,4 +115,6 @@ jobs:
           path: |
             npu-full-test-summary.md
             npu-full-test-summary.json
+            distributed_cases_results_by_file.jsonl
+            regular_cases_results_by_file.jsonl
           retention-days: 30

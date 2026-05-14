@@ -141,15 +141,6 @@ jobs:
           path: pytorch-test-src/cases_shards/
           retention-days: 7
 
-      - name: Upload collection error logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: collection-error-logs
-          path: pytorch-test-src/collection_errors.tar.gz
-          if-no-files-found: ignore
-          retention-days: 30
-
       - name: Upload collect logs
         if: always()
         uses: actions/upload-artifact@v4
@@ -158,5 +149,6 @@ jobs:
           path: |
             /tmp/collect_cases.log
             /tmp/torch_env_patch_collect.log
+            pytorch-test-src/collection_errors.tar.gz
           if-no-files-found: warn
-          retention-days: 30
+          retention-days: 7

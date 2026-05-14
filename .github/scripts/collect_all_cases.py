@@ -316,6 +316,57 @@ def split_cases_into_shards(cases: List[Dict], num_shards: int) -> List[List[Dic
     return shards
 
 
+def save_cases_by_file(
+    cases: List[Dict],
+    test_files: List[str],
+    test_type: str,
+    output_dir: Path,
+) -> Dict:
+    """
+    Save cases grouped by file in JSONL format.
+
+    Includes all test files, even those with 0 cases collected.
+
+    Output format (JSONL, one JSON object per line):
+    Line 1: {"total_file":<count>,"total_cases":<count>}
+    Line 2+: {"file_path":"...","case_count":<count>,"cases":["nodeid1","nodeid2",...]}
+    """
+    # Group cases by file
+    file_groups: Dict[str, List[str]] = {}
+    for case in cases:
+        file_path = case["file"]
+        if file_path not in file_groups:
+            file_groups[file_path] = []
+        file_groups[file_path].append(case["nodeid"])
+
+    output_file = output_dir / f"{test_type}_cases_by_file.jsonl"
+    with open(output_file, 'w', encoding='utf-8') as f:
+        # Line 1: summary
+        summary_line = json.dumps({
+            "total_file": len(test_files),
+            "total_cases": len(cases),
+        }, separators=(',', ':'))
+        f.write(summary_line + '\n')
+
+        # Line 2+: file data (sorted by file path)
+        for file_path in sorted(test_files):
+            nodeids = file_groups.get(file_path, [])
+            file_line = json.dumps({
+                "file_path": file_path,
+                "case_count": len(nodeids),
+                "cases": nodeids,
+            }, separators=(',', ':'))
+            f.write(file_line + '\n')
+
+    print(f"  Cases by file (JSONL): {len(test_files)} files -> {output_file}")
+
+    return {
+        "test_type": test_type,
+        "total_files": len(test_files),
+        "total_cases": len(cases),
+    }
+
+
 def save_shards(
     cases: List[Dict],
     num_shards: int,
@@ -378,6 +429,7 @@ def main():
 
     dist_summary = save_shards(dist_cases, args.distributed_shards, "distributed", output_dir)
     summaries.append(dist_summary)
+    save_cases_by_file(dist_cases, dist_files, "distributed", output_dir)
 
     # ========================================
     # Step 2: Collect regular test cases
@@ -398,6 +450,7 @@ def main():
 
     reg_summary = save_shards(reg_cases, args.regular_shards, "regular", output_dir)
     summaries.append(reg_summary)
+    save_cases_by_file(reg_cases, reg_files, "regular", output_dir)
 
     # ========================================
     # Step 3: Save overall summary
