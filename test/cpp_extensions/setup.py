@@ -20,6 +20,9 @@ ext_modules = [
     NpuExtension(
         'torch_test_cpp_extension.npu_from_blob', ['test_from_blob.cpp'],
         extra_compile_args=CXX_FLAGS),
+    NpuExtension(
+        'torch_test_cpp_extension.stable_libtorch', ['test_stable_libtorch.cpp'],
+        extra_compile_args=CXX_FLAGS),
 ]
 
 setup(
