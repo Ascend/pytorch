@@ -99,7 +99,7 @@ class ConcurrentExecutionConfig:
 
 
 # ==============================================================================
-# Failed Case Log Saving Functions
+# Case Log Saving Functions
 # ==============================================================================
 
 
