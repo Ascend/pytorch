@@ -12,15 +12,12 @@ Add validation cases for torch.fx.Tracer/Transformer APIs on NPU:
    - torch.fx.Transformer.call_module
    - torch.fx.Transformer.get_attr
    - torch.fx.Transformer.placeholder
+   - torch.fx.Tracer.getattr
 
 2. This file validates the core functionality of these APIs on NPU environment.
 """
 
 import torch
-import torch_npu
-
-# Disable NPU JIT compilation to reduce CI time
-torch_npu.npu.set_compile_mode(jit_compile=False)
 
 from torch.fx import Tracer, symbolic_trace, Transformer, GraphModule
 from torch.fx.proxy import Proxy, TraceError
@@ -217,6 +214,66 @@ class TestTransformerPlaceholder(TestCase):
         y = torch.randn(4, 4, device="npu")
         result = transformed(x, y)
         self.assertEqual(result.shape, x.shape)
+
+
+class TestTracerGetAttr(TestCase):
+    """Test torch.fx.Tracer.getattr method."""
+
+    def test_getattr_parameter(self):
+        """Verify getattr correctly captures nn.Parameter in graph and computes correctly on NPU."""
+        class MyModule(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.param = torch.nn.Parameter(torch.ones(4, 4, device="npu"))
+
+            def forward(self, x):
+                p = self.param
+                return x + p
+
+        mod = MyModule()
+        tracer = Tracer()
+        graph = tracer.trace(mod)
+        gm = GraphModule(tracer.root, graph)
+
+        # Verify graph structure
+        get_attr_nodes = [n for n in graph.nodes if n.op == 'get_attr']
+        self.assertEqual(len(get_attr_nodes), 1)
+        self.assertEqual(get_attr_nodes[0].target, 'param')
+
+        # Verify computation on NPU
+        input = torch.randn(4, 4, device="npu")
+        expected = mod(input)
+        actual = gm(input)
+        self.assertEqual(actual.shape, expected.shape)
+        self.assertTrue(torch.allclose(actual, expected))
+
+    def test_getattr_buffer(self):
+        """Verify getattr correctly captures buffer in graph and computes correctly on NPU."""
+        class MyModule(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.register_buffer('buf', torch.zeros(4, 4, device="npu"))
+
+            def forward(self, x):
+                b = self.buf
+                return x - b
+
+        mod = MyModule()
+        tracer = Tracer()
+        graph = tracer.trace(mod)
+        gm = GraphModule(tracer.root, graph)
+
+        # Verify graph structure
+        get_attr_nodes = [n for n in graph.nodes if n.op == 'get_attr']
+        self.assertEqual(len(get_attr_nodes), 1)
+        self.assertEqual(get_attr_nodes[0].target, 'buf')
+
+        # Verify computation on NPU
+        input = torch.randn(4, 4, device="npu")
+        expected = mod(input)
+        actual = gm(input)
+        self.assertEqual(actual.shape, expected.shape)
+        self.assertTrue(torch.allclose(actual, expected))
 
 
 if __name__ == "__main__":
