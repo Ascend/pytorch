@@ -48,6 +48,13 @@
 |torch.distributed.checkpoint.planner.WriteItem|是|-|
 |torch.distributed.checkpoint.FileSystemReader|是|-|
 |torch.distributed.checkpoint.FileSystemWriter|是|-|
+|torch.distributed.checkpoint.staging.AsyncStager|是|-|
+|torch.distributed.checkpoint.staging.AsyncStager.should_synchronize_after_execute|是|-|
+|torch.distributed.checkpoint.staging.AsyncStager.stage|是|-|
+|torch.distributed.checkpoint.staging.AsyncStager.synchronize_staging|是|-|
+|torch.distributed.checkpoint.staging.BlockingAsyncStager|是|-|
+|torch.distributed.checkpoint.staging.BlockingAsyncStager.stage|是|-|
+|torch.distributed.checkpoint.staging.BlockingAsyncStager.synchronize_staging|是|-|
 |torch.distributed.checkpoint.DefaultSavePlanner|是|-|
 |torch.distributed.checkpoint.DefaultSavePlanner.lookup_object|是|-|
 |torch.distributed.checkpoint.DefaultSavePlanner.transform_object|是|-|
