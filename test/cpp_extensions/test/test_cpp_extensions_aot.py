@@ -1,3 +1,6 @@
+import ctypes
+import inspect
+from pathlib import Path
 import os
 import stat
 import pathlib
@@ -13,6 +16,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 try:
     import torch_test_cpp_extension.npu as npu_extension
     import torch_test_cpp_extension.npu_from_blob as from_blob_ext
@@ -20,6 +24,7 @@ except ImportError as e:
     raise RuntimeError(
         "test_cpp_extensions_aot.py cannot be invoked directly. Run "
         "`python run_cpp_test.py` instead.") from e
+
 
 class TestCppExtensionAOT(TestCase):
     """Tests ahead-of-time cpp extensions
@@ -191,6 +196,7 @@ class TestCppExtensionAOT(TestCase):
         os.remove(dump_pth)
         os.remove(dump_pth + "_py_traceback")
 
+
 class TestFromBlob(TestCase):
     """Tests for at_npu::native::from_blob interface"""
 
@@ -220,6 +226,27 @@ class TestFromBlob(TestCase):
 
     def test_from_blob_clone(self):
         self.assertTrue(from_blob_ext.test_from_blob_clone())
+
+
+class TestStableLibtorch(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        so_files = list(Path(inspect.getfile(npu_extension)).parent.glob("*libtorch*"))
+        with torch._ops.dl_open_guard():
+            loaded_lib = ctypes.CDLL(str(so_files[0]))
+
+    def test_my_abs(self):
+        t = torch.rand(2).npu()
+
+        res = torch.ops.libtorch_agn_211.my_abs(t)
+        self.assertEqual(res, torch.abs(t))
+
+    def test_my_cummax(self):
+        t = torch.rand(2, 3, 4).npu()
+
+        res = torch.ops.libtorch_agn_211.my_cummax(t, 0)
+        self.assertEqual(res, torch.cummax(t, 0))
+
 
 if __name__ == "__main__":
     run_tests()
