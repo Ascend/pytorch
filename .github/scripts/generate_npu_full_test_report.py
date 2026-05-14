@@ -127,22 +127,6 @@ def parse_expected_special_tests(raw: str) -> List[str]:
     return sorted(set(result))
 
 
-def load_text_lines(path: Path) -> List[str]:
-    with open(path, "r", encoding="utf-8") as f:
-        return [line.strip() for line in f if line.strip()]
-
-
-def get_int_value(payload: Dict, *keys: str) -> int:
-    for key in keys:
-        if key not in payload:
-            continue
-        try:
-            return int(payload.get(key, 0))
-        except (TypeError, ValueError):
-            continue
-    return 0
-
-
 def discover_shard_files(
     reports_root: Path,
 ) -> Tuple[

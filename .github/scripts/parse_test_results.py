@@ -208,24 +208,6 @@ def analyze_pytest_log(log_file: Path, returncode: int) -> Dict:
 # ==============================================================================
 
 
-def create_empty_stats() -> Dict:
-    """Create empty statistics dictionary."""
-    return {
-        "total": 0,
-        "passed": 0,
-        "failed": 0,
-        "skipped": 0,
-        "errors": 0,
-        "duration": 0.0,
-        "junit_generated": False,
-        "junit_xml_files": 0,
-        "zero_item_test_files": 0,
-        "startup_failures": 0,
-        "import_failures": 0,
-        "test_failures": 0,
-    }
-
-
 def create_shard_info(shard: int, num_shards: int, timestamp: str) -> Dict:
     """Create shard info dictionary template."""
     return {
@@ -397,17 +379,6 @@ def save_test_plan_file(report_dir: str, shard: int, planned_tests: List[str], s
     return plan_file
 
 
-def save_excluded_test_files_file(report_dir: str, shard: int, excluded_files: List[str], shard_type: str = "regular") -> str:
-    """Save excluded test files list."""
-    os.makedirs(report_dir, exist_ok=True)
-    prefix = get_shard_type_prefix(shard_type)
-    excluded_file = os.path.join(report_dir, f"shard_{prefix}-{shard}_excluded_test_files.txt")
-    with open(excluded_file, "w", encoding="utf-8") as f:
-        for target in excluded_files:
-            f.write(f"{target}\n")
-    return excluded_file
-
-
 def save_missing_files_file(report_dir: str, shard: int, missing_files: List[str], shard_type: str = "regular") -> str:
     """Save missing files list (crashed files without XML)."""
     os.makedirs(report_dir, exist_ok=True)
@@ -427,20 +398,6 @@ def save_cases_file(report_dir: str, shard: int, cases_data: Dict, shard_type: s
     with open(cases_file, "w", encoding="utf-8") as f:
         json.dump(cases_data, f, indent=2, ensure_ascii=False)
     return cases_file
-
-
-def load_cases_file(report_dir: Path, shard: int, shard_type: str = "regular") -> Dict:
-    """Load case-level results from JSON file."""
-    prefix = get_shard_type_prefix(shard_type)
-    cases_file = report_dir / f"shard_{prefix}-{shard}_cases.json"
-    if not cases_file.exists():
-        return {}
-    try:
-        with open(cases_file, encoding="utf-8") as f:
-            return json.load(f)
-    except Exception as e:
-        print(f"Warning: Failed to load cases file {cases_file}: {e}")
-        return {}
 
 
 # ==============================================================================
@@ -581,25 +538,6 @@ def aggregate_all_cases_by_file(cases_results: Dict) -> Dict[str, Dict]:
     return all_file_stats
 
 
-def get_files_with_failures(file_stats: Dict[str, Dict]) -> List[Dict]:
-    """
-    Get list of test files that have failures/errors/timeout.
-
-    Args:
-        file_stats: Dict from aggregate_all_cases_by_file()
-
-    Returns:
-        List of file stats dicts sorted by file name, only including files with failures
-    """
-    failed_files = []
-    for test_file, stats in file_stats.items():
-        if stats["failed"] > 0 or stats["errors"] > 0 or stats["timeout"] > 0:
-            failed_files.append(stats)
-
-    failed_files.sort(key=lambda x: x["file"])
-    return failed_files
-
-
 # ==============================================================================
 # Summary Printing
 # ==============================================================================
@@ -622,27 +560,6 @@ def print_stats_summary(shard: int, stats: Dict, shard_type: str = "regular") ->
     if stats.get("crashed"):
         print(f"Crash signal: {stats.get('crash_signal', 'unknown')}")
     print(f"{'=' * 60}")
-
-
-def create_result_summary(stats: Dict, shard: int, shard_type: str) -> str:
-    """Create a formatted result summary string."""
-    prefix = get_shard_type_prefix(shard_type)
-    status = get_shard_status(stats, stats.get("junit_generated", False))
-
-    lines = [
-        f"Shard {prefix}-{shard} Results:",
-        f"  Status: {status}",
-        f"  Total: {stats.get('total', 0)}",
-        f"  Passed: {stats.get('passed', 0)}",
-        f"  Failed: {stats.get('failed', 0)}",
-        f"  Errors: {stats.get('errors', 0)}",
-        f"  Duration: {stats.get('duration', 0.0):.2f}s",
-    ]
-
-    if stats.get("missing_files_count"):
-        lines.append(f"  Missing: {stats['missing_files_count']}")
-
-    return "\n".join(lines)
 
 
 # ==============================================================================
@@ -700,43 +617,6 @@ def parse_shard_results(
         stats["returncode"] = 0
 
     return stats, log_metrics
-
-
-def generate_shard_reports(
-    report_dir: str,
-    shard: int,
-    shard_type: str,
-    stats: Dict,
-    info: Dict,
-    missing_files: List[str] = None,
-) -> Dict[str, str]:
-    """
-    Generate all report files for a shard.
-
-    Args:
-        report_dir: Output directory
-        shard: Shard number
-        shard_type: "distributed" or "regular"
-        stats: Statistics dict
-        info: Info dict
-        missing_files: List of missing/crashed files
-
-    Returns:
-        Dict mapping report type to file path
-    """
-    report_files = {}
-
-    # Save stats
-    report_files["stats"] = save_stats_file(report_dir, shard, stats, shard_type)
-
-    # Save info
-    report_files["info"] = save_info_file(report_dir, shard, info, shard_type)
-
-    # Save missing files if any
-    if missing_files:
-        report_files["missing"] = save_missing_files_file(report_dir, shard, missing_files, shard_type)
-
-    return report_files
 
 
 # ==============================================================================
