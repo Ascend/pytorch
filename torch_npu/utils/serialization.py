@@ -424,6 +424,10 @@ def _npu_save(
 
     pickler = PyTorchPickler(data_buf, protocol=pickle_protocol)
     pickler.dump(obj)
+
+    # The class def keeps the persistent_id closure alive, leaking memory.
+    del persistent_id
+
     data_value = data_buf.getvalue()
     zip_file.write_record("data.pkl", data_value, len(data_value))
     # .format_version is used to track
@@ -644,6 +648,10 @@ def _save(obj, pickle_module, pickle_protocol):
         obj._backward_hooks.update(hook_handle)
     else:
         pickler.dump(obj)
+
+    # The class def keeps the persistent_id closure alive, leaking memory.
+    del persistent_id
+
     data_value = data_buf.getvalue()
     return data_value, serialized_storages
 
