@@ -60,9 +60,6 @@ def _initialize_c_extension_children(required_children):
     _create_child_once(_C, "_logging", "_logging_init")
     _create_child_once(_C, "_flops_count", "_flops_count_init")
 
-    # Optional RPC child, only if built.
-    _create_child_once(_C, "_distributed_rpc", "_rpc_npu_init")
-
     _register_c_extension_submodules(_C)
     missing = [name for name in required_children if not hasattr(_C, name)]
     if missing:

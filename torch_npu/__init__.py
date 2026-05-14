@@ -1,14 +1,11 @@
 __all__ = ["HiFloat8Tensor", "erase_stream", "matmul_checksum"]
 
-import atexit
-import ctypes
 import os
 
 
 # Disable autoloading before running 'import torch' to avoid circular dependencies
 ORG_AUTOLOAD = os.getenv("TORCH_DEVICE_BACKEND_AUTOLOAD", "1")
 os.environ["TORCH_DEVICE_BACKEND_AUTOLOAD"] = "0"
-os.environ["TORCH_WARM_POOL"] = "0"
 
 import torch
 
@@ -17,7 +14,7 @@ import torch_npu.utils.patch_getenv
 from torch_npu._init.core.module_loader import _load_core_modules
 from torch_npu._init.core.optional_features import _enable_optional_features
 from torch_npu._init.core.runtime_lifecycle import _initialize_runtime_lifecycle
-from torch_npu._init.patches.patch_manager import _apply_patches
+from torch_npu._init.patches.patch_manager import _apply_all_patches
 from torch_npu._init.registry.registry_manager import _register_components
 from torch_npu.version import __version__ as __version__
 
@@ -54,13 +51,13 @@ def _initialize():
     _register_components()
 
     # 4. apply patches
-    _apply_patches()
+    _apply_all_patches()
 
-    # 5. optional runtime features
-    _enable_optional_features()
-
-    # 6. final extension barrier and shutdown hook
+    # 5. final extension barrier and shutdown hook
     _initialize_runtime_lifecycle()
+
+    # 6. optional runtime features 
+    _enable_optional_features()
 
 
 _initialize()
