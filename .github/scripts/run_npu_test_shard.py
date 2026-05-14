@@ -134,7 +134,7 @@ def sanitize_nodeid_for_filename(nodeid: str) -> str:
     return safe_name or "unknown_case"
 
 
-def save_failed_case_log(
+def save_case_log(
     report_dir: Path,
     shard: int,
     shard_type: str,
@@ -148,7 +148,7 @@ def save_failed_case_log(
     command: str,
 ) -> Path:
     """
-    Save complete execution log for non-passed cases.
+    Save complete execution log for all test cases.
 
     Creates a dedicated log file containing:
     - Case metadata (nodeid, status, duration, returncode)
@@ -158,24 +158,20 @@ def save_failed_case_log(
     Returns:
         Path to the saved log file
     """
-    # Save log for all non-passed cases (failed, error, timeout, skipped)
-    if status == "passed":
-        return None
-
-    # Create failed cases log directory
-    failed_logs_dir = report_dir / "failed_cases_logs"
-    failed_logs_dir.mkdir(parents=True, exist_ok=True)
+    # Create cases log directory
+    cases_logs_dir = report_dir / "cases_logs"
+    cases_logs_dir.mkdir(parents=True, exist_ok=True)
 
     # Generate safe filename
     safe_name = sanitize_nodeid_for_filename(nodeid)
     prefix = "dist" if shard_type == "distributed" else "reg"
     log_filename = f"{prefix}-{shard}_{case_idx}_{safe_name}.log"
-    log_path = failed_logs_dir / log_filename
+    log_path = cases_logs_dir / log_filename
 
     # Write log content
     content_lines = [
         "=" * 80,
-        f"FAILED CASE LOG",
+        f"CASE LOG",
         "=" * 80,
         f"Shard: {prefix}-{shard}",
         f"Case Index: {case_idx}",
@@ -600,13 +596,13 @@ def run_single_case_concurrent(
         returncode = result.returncode
 
         # Parse JUnit XML for status
-        # - Has XML: use XML status, save logs for non-passed cases
-        # - No XML: error, save logs
+        # - Has XML: use XML status
+        # - No XML: error
         xml_result = parse_junit_xml_status(xml_file)
         xml_status = xml_result.get("status")
 
         if xml_status == "no_xml":
-            # No XML → error, save logs
+            # No XML → error
             status = "error"
             message = xml_result.get("message")
         else:
@@ -614,21 +610,20 @@ def run_single_case_concurrent(
             status = xml_status
             message = xml_result.get("message", "")
 
-        # Save logs for all non-passed cases (failed, error, timeout, skipped)
-        if status != "passed":
-            save_failed_case_log(
-                report_dir=report_dir,
-                shard=shard,
-                shard_type=shard_type,
-                nodeid=original_nodeid,
-                case_idx=task.case_idx,
-                status=status,
-                stdout=result.stdout,
-                stderr=result.stderr,
-                duration=duration,
-                returncode=returncode,
-                command=command_str,
-            )
+        # Save logs for all cases
+        save_case_log(
+            report_dir=report_dir,
+            shard=shard,
+            shard_type=shard_type,
+            nodeid=original_nodeid,
+            case_idx=task.case_idx,
+            status=status,
+            stdout=result.stdout,
+            stderr=result.stderr,
+            duration=duration,
+            returncode=returncode,
+            command=command_str,
+        )
 
         case_result = {
             "nodeid": original_nodeid,
@@ -657,7 +652,7 @@ def run_single_case_concurrent(
         }
 
         # Save log for timeout
-        save_failed_case_log(
+        save_case_log(
             report_dir=report_dir,
             shard=shard,
             shard_type=shard_type,
@@ -686,7 +681,7 @@ def run_single_case_concurrent(
         }
 
         # Save error case log
-        save_failed_case_log(
+        save_case_log(
             report_dir=report_dir,
             shard=shard,
             shard_type=shard_type,

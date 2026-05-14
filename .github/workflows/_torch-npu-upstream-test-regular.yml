@@ -113,14 +113,14 @@ jobs:
             echo "JUnit XMLs compressed: $(ls -lh test-reports/junit_xmls.tar.gz)"
           fi
 
-          # Package failed cases logs into compressed archive
-          if [ -d "test-reports/failed_cases_logs" ]; then
-            echo "=== Compressing failed cases logs ==="
-            FAILED_LOGS_COUNT=$(find test-reports/failed_cases_logs -type f | wc -l)
-            echo "Found ${FAILED_LOGS_COUNT} failed case log files"
-            tar -czf test-reports/failed_cases_logs.tar.gz -C test-reports failed_cases_logs
-            rm -rf test-reports/failed_cases_logs
-            echo "Failed cases logs compressed: $(ls -lh test-reports/failed_cases_logs.tar.gz)"
+          # Package cases logs into compressed archive
+          if [ -d "test-reports/cases_logs" ]; then
+            echo "=== Compressing cases logs ==="
+            LOGS_COUNT=$(find test-reports/cases_logs -type f | wc -l)
+            echo "Found ${LOGS_COUNT} case log files"
+            tar -czf test-reports/cases_logs.tar.gz -C test-reports cases_logs
+            rm -rf test-reports/cases_logs
+            echo "Cases logs compressed: $(ls -lh test-reports/cases_logs.tar.gz)"
           fi
 
           # Package shard_cases.json
