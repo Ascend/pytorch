@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 CDIR="$(cd "$(dirname "$0")" ; pwd -P)"
 
 cd $CDIR
