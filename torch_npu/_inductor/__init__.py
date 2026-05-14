@@ -36,6 +36,15 @@ def _get_backend() -> str:
 if _get_backend() == "mlir":
     import torch
     import torch_npu
+
+
+# Prevent RecursionError when formatting LoweringException for huge output tuples (e.g. many permute nodes).
+from .mfusion.safe_inductor_exc import apply_safe_operator_str_patch_if_enabled
+
+
+apply_safe_operator_str_patch_if_enabled()
+
+if os.getenv("TORCHINDUCTOR_NPU_BACKEND", "default") == "mlir":
     try:
         import torch_mlir
         from torch_mlir import ir
@@ -52,8 +61,10 @@ elif _get_backend() == "dvm":
 
 else:
     import os
+
     import logging
     log = logging.getLogger(__name__)
+
     import torch
     from torch._dynamo.device_interface import get_interface_for_device
     from torch._inductor import lowering as inductor_lowering
@@ -289,3 +300,9 @@ else:
             )
             os.environ["TORCHINDUCTOR_COMPILE_THREADS"] = "1"
             torch._inductor.config.compile_threads = 1
+
+# Optional MFusion integration: patch Inductor fallback / post-grad when explicitly enabled.
+if os.getenv("TORCHINDUCTOR_ENABLE_MFUSION", "0") == "1":
+    from .mfusion.graph_fusion import MFusionPatch
+
+    MFusionPatch.enable()

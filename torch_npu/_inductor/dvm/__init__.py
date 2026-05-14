@@ -1,14 +1,14 @@
-from functools import wraps, partial
 import sys
-import torch
+from functools import partial, wraps
 
+import torch
 import torch_npu
 from torch_npu._C.dvm import (
-    NDObject,
     DataType,
+    DynGraphSplitKernel,
     DynKernel,
     GraphSplitKernel,
-    DynGraphSplitKernel,
+    NDObject,
     TorchKernel as Kernel,
 )
 
@@ -29,9 +29,7 @@ KERNEL_FACTORY = {
     ("mix", False): partial(Kernel, Kernel.K_MIX, 0),
     ("split", True): DynGraphSplitKernel,
     ("split", False): GraphSplitKernel,
-    ("spec", True): partial(
-        DynKernel, Kernel.K_VEC, Kernel.F_DYN | Kernel.F_SPEC
-    ),
+    ("spec", True): partial(DynKernel, Kernel.K_VEC, Kernel.F_DYN | Kernel.F_SPEC),
     ("spec", False): partial(Kernel, Kernel.K_VEC, Kernel.F_SPEC),
     ("vector", True): partial(DynKernel, Kernel.K_VEC, Kernel.F_DYN),
     ("vector", False): partial(Kernel, Kernel.K_VEC, 0),
@@ -41,8 +39,9 @@ KERNEL_FACTORY = {
 def kernel(
     ktype: str = "split",
     dyn_shape: bool = False,
+    mfusion: bool = False,
 ):
-    r"""kernel(ktype="split", dyn_shape=False)
+    r"""kernel(ktype="split", dyn_shape=False, mfusion=False)
 
     Return a decorator that builds and executes a DVM kernel.
 
@@ -78,7 +77,7 @@ def kernel(
                     arg_summaries.append(
                         f"Tensor(shape={shape}, dtype={a.dtype}, device={a.device})"
                     )
-                elif isinstance(a, torch.SymInt) or isinstance(a, torch.SymFloat):
+                elif isinstance(a, (torch.SymInt, torch.SymFloat)):
                     sym_name = type(a).__name__
                     dump_parts.append(sym_name)
                     arg_summaries.append(sym_name)
