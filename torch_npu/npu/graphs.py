@@ -61,7 +61,7 @@ from torch_npu._C import (  # noqa: F401
 )
 
 
-log = logging.getLogger("torch_npu.npugraph")
+log = torch._logging.getArtifactLogger("torch_npu.npugraph", "cudagraphs")
 
 
 def is_current_stream_capturing():

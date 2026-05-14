@@ -18,6 +18,8 @@ struct TORCH_API NPUHooksInterface : public at::PrivateUse1HooksInterface {
     bool hasPrimaryContext(c10::DeviceIndex device_index) const override;
     void resizePrivateUse1Bytes(const c10::Storage &storage, size_t new_bytes) const;
     bool isAvailable() const override;
+    bool isPinnedPtr(const void* data) const override;
+    c10::Allocator* getPinnedMemoryAllocator() const override;
 };
 
 struct TORCH_API NPUHooksArgs : public at::PrivateUse1HooksArgs {};

@@ -54,7 +54,7 @@ from torch.multiprocessing.reductions import StorageWeakRef
 import torch_npu.npu.aclnn
 
 
-log = logging.getLogger("torch_npu.aclgraph")
+log = torch._logging.getArtifactLogger("torch_npu.npugraph", "cudagraphs")
 
 
 def npugraph_mark_step_begin():
@@ -67,6 +67,12 @@ def check_multiple_devices_or_any_cpu_nodes(
 ) -> Optional[str]:
     from torch_npu._inductor import config as npu_config
     if npu_config.npugraph_trees.disable_cpu_input_check:
+        device_node_mapping.pop(torch.device("cpu"), None)
+
+    device_node_mapping.pop(torch.device("meta"), None)
+
+    from torch._inductor.utils import is_using_cudagraph_partition
+    if is_using_cudagraph_partition():
         device_node_mapping.pop(torch.device("cpu"), None)
 
     cpu_node = device_node_mapping.get(torch.device("cpu"))
@@ -382,3 +388,14 @@ def _apply_npugraph_tree_methods():
     torch._inductor.compile_fx.cudagraphify = npugraphify
     torch._inductor.cudagraph_utils.check_multiple_devices_or_any_cpu_nodes = check_multiple_devices_or_any_cpu_nodes
     torch.compiler.npugraph_mark_step_begin = npugraph_mark_step_begin
+
+    # Bridge upstream callers of `torch._inductor.cudagraph_trees.get_manager`
+    # to the NPU manager registry. The only upstream call sites are
+    # `_inductor/output_code.py:maybe_handle_backward_generation` (used when
+    # forward was cudagraph'd but backward is not, to drive the cudagraph
+    # generation state machine) and `_dynamo/backends/cudagraphs.py`. NPU
+    # registers its manager under `torch_npu.npu._graph_tree`, so without
+    # this forward those upstream paths raise AttributeError or return None.
+    import torch._inductor.cudagraph_trees as _upstream_cgt  # noqa: F401
+    from torch_npu.npu._graph_tree import get_manager as _npu_get_manager
+    _upstream_cgt.get_manager = _npu_get_manager
