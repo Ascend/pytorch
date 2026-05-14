@@ -8,27 +8,28 @@
 namespace at_npu {
 namespace native {
 
-#undef LOAD_FUNCTION
-#define LOAD_FUNCTION(funcName) \
-  REGISTER_FUNCTION(libms_tools_ext, funcName)
-#undef GET_FUNC
-#define GET_FUNC(funcName)              \
-  GET_FUNCTION(libms_tools_ext, funcName)
+#undef TORCH_NPU_LOAD_FUNC
+#define TORCH_NPU_LOAD_FUNC(funcName) \
+  TORCH_NPU_REGISTER_FUNCTION(libms_tools_ext, funcName)
+
+#undef TORCH_NPU_GET_FUNC
+#define TORCH_NPU_GET_FUNC(funcName)              \
+  TORCH_NPU_GET_FUNCTION(libms_tools_ext, funcName)
 
 
-REGISTER_LIBRARY(libms_tools_ext)
-LOAD_FUNCTION(mstxMarkA)
-LOAD_FUNCTION(mstxRangeStartA)
-LOAD_FUNCTION(mstxRangeEnd)
-LOAD_FUNCTION(mstxDomainCreateA)
-LOAD_FUNCTION(mstxDomainDestroy)
-LOAD_FUNCTION(mstxDomainMarkA)
-LOAD_FUNCTION(mstxDomainRangeStartA)
-LOAD_FUNCTION(mstxDomainRangeEnd)
-LOAD_FUNCTION(mstxMemHeapRegister)
-LOAD_FUNCTION(mstxMemHeapUnregister)
-LOAD_FUNCTION(mstxMemRegionsRegister)
-LOAD_FUNCTION(mstxMemRegionsUnregister)
+TORCH_NPU_REGISTER_LIBRARY(libms_tools_ext)
+TORCH_NPU_LOAD_FUNC(mstxMarkA)
+TORCH_NPU_LOAD_FUNC(mstxRangeStartA)
+TORCH_NPU_LOAD_FUNC(mstxRangeEnd)
+TORCH_NPU_LOAD_FUNC(mstxDomainCreateA)
+TORCH_NPU_LOAD_FUNC(mstxDomainDestroy)
+TORCH_NPU_LOAD_FUNC(mstxDomainMarkA)
+TORCH_NPU_LOAD_FUNC(mstxDomainRangeStartA)
+TORCH_NPU_LOAD_FUNC(mstxDomainRangeEnd)
+TORCH_NPU_LOAD_FUNC(mstxMemHeapRegister)
+TORCH_NPU_LOAD_FUNC(mstxMemHeapUnregister)
+TORCH_NPU_LOAD_FUNC(mstxMemRegionsRegister)
+TORCH_NPU_LOAD_FUNC(mstxMemRegionsUnregister)
 
 // save python range id with cann mstx range id.
 // when mstx.range_end(id) is called, we can check if this id is invalid
@@ -79,7 +80,7 @@ void MstxMarkA(const char* message, aclrtStream stream)
         return;
     }
     if (func == nullptr) {
-        func = (MstxMarkAFunc)GET_FUNC(mstxMarkA);
+        func = (MstxMarkAFunc)TORCH_NPU_GET_FUNC(mstxMarkA);
         if (func == nullptr) {
             ASCEND_LOGW("Failed to get func mstxMarkA");
             noFuncFlag = true;
@@ -98,7 +99,7 @@ int MstxRangeStartA(const char* message, aclrtStream stream, int ptRangeId)
         return 0;
     }
     if (func == nullptr) {
-        func = (MstxRangeStartAFunc)GET_FUNC(mstxRangeStartA);
+        func = (MstxRangeStartAFunc)TORCH_NPU_GET_FUNC(mstxRangeStartA);
         if (func == nullptr) {
             ASCEND_LOGW("Failed to get func mstxRangeStartA");
             noFuncFlag = true;
@@ -120,7 +121,7 @@ void MstxRangeEnd(int ptRangeId)
         return;
     }
     if (func == nullptr) {
-        func = (MstxRangeEndFunc)GET_FUNC(mstxRangeEnd);
+        func = (MstxRangeEndFunc)TORCH_NPU_GET_FUNC(mstxRangeEnd);
         if (func == nullptr) {
             ASCEND_LOGW("Failed to get func mstxRangeEnd");
             noFuncFlag = true;
@@ -146,7 +147,7 @@ mstxDomainHandle_t MstxDomainCreateA(const char* name)
         return nullptr;
     }
     if (func == nullptr) {
-        func = (MstxDomainCreateAFunc)GET_FUNC(mstxDomainCreateA);
+        func = (MstxDomainCreateAFunc)TORCH_NPU_GET_FUNC(mstxDomainCreateA);
         if (func == nullptr) {
             ASCEND_LOGW("Failed to get func mstxDomainCreateA");
             noFuncFlag = true;
@@ -165,7 +166,7 @@ void MstxDomainDestroy(mstxDomainHandle_t handle)
         return;
     }
     if (func == nullptr) {
-        func = (MstxDomainDestroyFunc)GET_FUNC(mstxDomainDestroy);
+        func = (MstxDomainDestroyFunc)TORCH_NPU_GET_FUNC(mstxDomainDestroy);
         if (func == nullptr) {
             ASCEND_LOGW("Failed to get func mstxDomainDestroy");
             noFuncFlag = true;
@@ -184,7 +185,7 @@ void MstxDomainMarkA(mstxDomainHandle_t handle, const char* message, aclrtStream
         return;
     }
     if (func == nullptr) {
-        func = (MstxDomainMarkAFunc)GET_FUNC(mstxDomainMarkA);
+        func = (MstxDomainMarkAFunc)TORCH_NPU_GET_FUNC(mstxDomainMarkA);
         if (func == nullptr) {
             ASCEND_LOGW("Failed to get func mstxDomainMarkA");
             noFuncFlag = true;
@@ -203,7 +204,7 @@ int MstxDomainRangeStartA(mstxDomainHandle_t handle, const char* message, aclrtS
         return 0;
     }
     if (func == nullptr) {
-        func = (MstxDomainRangeStartAFunc)GET_FUNC(mstxDomainRangeStartA);
+        func = (MstxDomainRangeStartAFunc)TORCH_NPU_GET_FUNC(mstxDomainRangeStartA);
         if (func == nullptr) {
             ASCEND_LOGW("Failed to get func mstxDomainRangeStartA");
             noFuncFlag = true;
@@ -225,7 +226,7 @@ void MstxDomainRangeEnd(mstxDomainHandle_t handle, int ptRangeId)
         return;
     }
     if (func == nullptr) {
-        func = (MstxDomainRangeEndFunc)GET_FUNC(mstxDomainRangeEnd);
+        func = (MstxDomainRangeEndFunc)TORCH_NPU_GET_FUNC(mstxDomainRangeEnd);
         if (func == nullptr) {
             ASCEND_LOGW("Failed to get func mstxDomainRangeEnd");
             noFuncFlag = true;
@@ -251,7 +252,7 @@ mstxMemHeapHandle_t MstxMemHeapRegister(mstxDomainHandle_t domain, mstxMemHeapDe
         return nullptr;
     }
     if (func == nullptr) {
-        func = (MstxMemHeapRegisterFunc)GET_FUNC(mstxMemHeapRegister);
+        func = (MstxMemHeapRegisterFunc)TORCH_NPU_GET_FUNC(mstxMemHeapRegister);
         if (func == nullptr) {
             ASCEND_LOGW("Failed to get func mstxMemHeapRegister");
             noFuncFlag = true;
@@ -270,7 +271,7 @@ void MstxMemHeapUnregister(mstxDomainHandle_t domain, mstxMemHeapHandle_t heap)
         return;
     }
     if (func == nullptr) {
-        func = (MstxMemHeapUnregisterFunc)GET_FUNC(mstxMemHeapUnregister);
+        func = (MstxMemHeapUnregisterFunc)TORCH_NPU_GET_FUNC(mstxMemHeapUnregister);
         if (func == nullptr) {
             ASCEND_LOGW("Failed to get func mstxMemHeapUnregister");
             noFuncFlag = true;
@@ -289,7 +290,7 @@ void MstxMemRegionsRegister(mstxDomainHandle_t domain, mstxMemRegionsRegisterBat
         return;
     }
     if (func == nullptr) {
-        func = (MstxMemRegionsRegisterFunc)GET_FUNC(mstxMemRegionsRegister);
+        func = (MstxMemRegionsRegisterFunc)TORCH_NPU_GET_FUNC(mstxMemRegionsRegister);
         if (func == nullptr) {
             ASCEND_LOGW("Failed to get func mstxMemRegionsRegister");
             noFuncFlag = true;
@@ -308,7 +309,7 @@ void MstxMemRegionsUnregister(mstxDomainHandle_t domain, mstxMemRegionsUnregiste
         return;
     }
     if (func == nullptr) {
-        func = (MstxMemRegionsUnregisterFunc)GET_FUNC(mstxMemRegionsUnregister);
+        func = (MstxMemRegionsUnregisterFunc)TORCH_NPU_GET_FUNC(mstxMemRegionsUnregister);
         if (func == nullptr) {
             ASCEND_LOGW("Failed to get func mstxMemRegionsUnregister");
             noFuncFlag = true;

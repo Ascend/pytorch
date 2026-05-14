@@ -5,15 +5,16 @@
 namespace at_npu {
 namespace native {
 namespace hccl {
-#undef LOAD_FUNCTION
-#define LOAD_FUNCTION(funcName) \
-  REGISTER_FUNCTION(libhccl, funcName)
-#undef GET_FUNC
-#define GET_FUNC(funcName) \
-  GET_FUNCTION(libhccl, funcName)
+#undef TORCH_NPU_LOAD_FUNC
+#define TORCH_NPU_LOAD_FUNC(funcName) \
+  TORCH_NPU_REGISTER_FUNCTION(libhccl, funcName)
 
-REGISTER_LIBRARY(libhccl)
-LOAD_FUNCTION(HcclSetConfig)
+#undef TORCH_NPU_GET_FUNC
+#define TORCH_NPU_GET_FUNC(funcName) \
+  TORCH_NPU_GET_FUNCTION(libhccl, funcName)
+
+TORCH_NPU_REGISTER_LIBRARY(libhccl)
+TORCH_NPU_LOAD_FUNC(HcclSetConfig)
 
 
 extern HcclResult HcclSetConfig(HcclConfig config, HcclConfigValue configValue) {
@@ -21,7 +22,7 @@ extern HcclResult HcclSetConfig(HcclConfig config, HcclConfigValue configValue) 
     static HcclSetConfigFunc func = nullptr;
     if (func == nullptr)
     {
-        func = (HcclSetConfigFunc)GET_FUNC(HcclSetConfig);
+        func = (HcclSetConfigFunc)TORCH_NPU_GET_FUNC(HcclSetConfig);
     }
     if (func == nullptr) {
         TORCH_NPU_WARN(
