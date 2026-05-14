@@ -75,6 +75,11 @@ const SocVersion& GetSocVersion()
 
 bool IsSupportInfNan()
 {
+    // Ascend950 only supports INF_NAN mode, saturation mode not available,
+    // env vars INF_NAN_MODE_ENABLE and INF_NAN_MODE_FORCE_DISABLE are ignored.
+    if (GetSocVersion() >= SocVersion::Ascend950) {
+        return true;
+    }
     static bool default_support_inf_nan = ((GetSocVersion() >= SocVersion::Ascend910B1) &&
         (GetSocVersion() < SocVersion::Ascend310B1)) ||
         (GetSocVersion() >= SocVersion::Ascend910_9391);
