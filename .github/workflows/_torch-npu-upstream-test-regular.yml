@@ -80,9 +80,9 @@ jobs:
           echo "=== Regular Shard ${{ matrix.shard }} (Case-level) ==="
           echo "Total cases: ${TOTAL_CASES}"
           echo "Runner: linux-aarch64-a3-16 (16-card NPU)"
-          echo "Execution mode: CONCURRENT (64 workers)"
+          echo "Execution mode: CONCURRENT (16 workers)"
 
-          # Regular tests: pre-collected cases, 64 concurrent workers
+          # Regular tests: pre-collected cases, 16 concurrent workers
           set +e
           $PYTHON ascend_pytorch/.github/scripts/run_npu_test_shard.py \
             --cases-json "${CASES_JSON}" \
@@ -90,7 +90,7 @@ jobs:
             --disabled-testcases pytorch-test-src/test_upstream/disabled_testcases.json \
             --report-dir ${REPORT_DIR} \
             --timeout 1200 \
-            --max-workers 64 \
+            --max-workers 16 \
             --verbose \
             2>&1 | tee /tmp/test_shard_reg_${{ matrix.shard }}.log
 
