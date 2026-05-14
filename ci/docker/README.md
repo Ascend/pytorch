@@ -1,8 +1,8 @@
-## Ascend Pytorch Dockerfile Repository
+# Ascend Pytorch Dockerfile Repository
 
 This folder hosts the `Dockerfile` to build docker images with various platforms.
 
-### Build torch_npu from Docker container
+## Build torch_npu from Docker container
 
 **Clone torch-npu**
 
@@ -16,7 +16,9 @@ git clone https://gitcode.com/ascend/pytorch.git --depth 1
 cd pytorch/ci/docker/{arch} # {arch} for X86 or ARM
 docker build -t manylinux-builder:v1 .
 ```
+
 If you want to configure the environment of LCOV, please build docker image like this:
+
 ```Shell
 cd pytorch/ci/docker/{arch} # {arch} for X86 or ARM
 docker build -t manylinux-builder:v1 --build-arg CONFIG_FOR_LCOV=1 .
@@ -28,15 +30,18 @@ docker build -t manylinux-builder:v1 --build-arg CONFIG_FOR_LCOV=1 .
 docker run -it -v /{code_path}/pytorch:/home/pytorch manylinux-builder:v1 bash
 # {code_path} is the torch_npu source code path
 ```
+
 **Compile torch_npu**
 
-Take Python 3.9 as an example
+Take Python 3.10 as an example
+
 ```Shell
 cd /home/pytorch
-bash ci/build.sh --python=3.9
+bash ci/build.sh --python=3.10
 ```
 
 Use `--torch=<version>` to target a specific PyTorch version (supported: 2.10.0, 2.11.0, 2.12.0). The installed PyTorch must match.
+
 ```Shell
 bash ci/build.sh --python=3.9 --torch=2.11.0
 ```

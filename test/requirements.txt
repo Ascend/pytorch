@@ -1,5 +1,5 @@
---extra-index-url https://download.pytorch.org/whl/test/cpu
--f https://data.pyg.org/whl/torch-2.11.0+cpu.html
+--extra-index-url https://download.pytorch.org/whl/cpu
+-f https://data.pyg.org/whl/torch-2.12.0+cpu.html
 
 coverage
 beartype==0.17.0
