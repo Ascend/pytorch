@@ -87,10 +87,21 @@ jobs:
           REPORT_MD=npu-full-test-summary.md
           REPORT_JSON=npu-full-test-summary.json
 
-          # Combine both shard matrices for reporting
+          # Combine shard matrices for reporting
+          # Include distributed, regular, and custom shards
           DIST_MATRIX='${{ inputs.distributed_matrix }}'
           REG_MATRIX='${{ inputs.regular_matrix }}'
-          COMBINED_MATRIX=$(python3 -c "import sys,json; dist=json.loads('${DIST_MATRIX}'); reg=json.loads('${REG_MATRIX}'); print(json.dumps(['dist-'+str(s) for s in dist]+['reg-'+str(s) for s in reg]))")
+
+          # Check if custom test reports exist (test_files mode)
+          CUSTOM_SHARDS="[]"
+          if [ -d "all-test-reports" ]; then
+            CUSTOM_FILES=$(find all-test-reports -name "shard_custom-*_stats.json" -o -name "shard_custom-*_cases.json" 2>/dev/null | head -1)
+            if [ -n "$CUSTOM_FILES" ]; then
+              CUSTOM_SHARDS='["custom-1"]'
+            fi
+          fi
+
+          COMBINED_MATRIX=$(python3 -c "import sys,json; dist=json.loads('${DIST_MATRIX}'); reg=json.loads('${REG_MATRIX}'); custom=json.loads('${CUSTOM_SHARDS}'); print(json.dumps(['dist-'+str(s) for s in dist]+['reg-'+str(s) for s in reg]+custom))")
 
           $PYTHON .github/scripts/generate_npu_full_test_report.py \
             --reports-root all-test-reports \

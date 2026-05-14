@@ -334,7 +334,12 @@ def get_shard_status(stats: Dict, has_xml: bool) -> str:
 
 def get_shard_type_prefix(shard_type: str) -> str:
     """Convert shard type to short prefix for file naming."""
-    return "dist" if shard_type == "distributed" else "reg"
+    if shard_type == "distributed":
+        return "dist"
+    elif shard_type == "custom":
+        return "custom"
+    else:
+        return "reg"
 
 
 def get_shard_log_file(report_dir: Path, shard: int, shard_type: str = "regular") -> Path:

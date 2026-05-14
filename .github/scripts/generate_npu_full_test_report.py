@@ -68,7 +68,7 @@ def parse_requested_shards(raw: str) -> List[Tuple[str, int]]:
 
     Supports formats:
     - Integers: [1, 2, 3] -> [("regular", 1), ("regular", 2), ("regular", 3)]
-    - Type-prefixed: ["dist-1", "reg-2"] -> [("distributed", 1), ("regular", 2)]
+    - Type-prefixed: ["dist-1", "reg-2", "custom-1"] -> [("distributed", 1), ("regular", 2), ("custom", 1)]
 
     Returns list of (shard_type, shard_number) tuples.
     """
@@ -84,13 +84,15 @@ def parse_requested_shards(raw: str) -> List[Tuple[str, int]]:
     for item in value:
         try:
             if isinstance(item, str):
-                # Parse type-prefixed format: "dist-1", "reg-2"
+                # Parse type-prefixed format: "dist-1", "reg-2", "custom-1"
                 if "-" in item:
                     type_prefix, num_str = item.split("-", 1)
                     if type_prefix == "dist":
                         shard_type = "distributed"
                     elif type_prefix == "reg":
                         shard_type = "regular"
+                    elif type_prefix == "custom":
+                        shard_type = "custom"
                     else:
                         # Unknown prefix, skip
                         continue
@@ -169,10 +171,12 @@ def discover_shard_files(
 
         Filename format: shard_{type}-{number}_{suffix}
         e.g., shard_dist-1_stats.json -> ("distributed", 1)
+              shard_reg-1_stats.json -> ("regular", 1)
+              shard_custom-1_stats.json -> ("custom", 1)
         """
         stem = path.stem  # filename without extension
         # Match pattern: shard_{type}-{number}_{suffix}
-        match = re.match(r"shard_(dist|reg)-(\d+)_" + suffix_pattern, stem)
+        match = re.match(r"shard_(dist|reg|custom)-(\d+)_" + suffix_pattern, stem)
         if match:
             type_prefix = match.group(1)
             shard_num = int(match.group(2))
@@ -180,6 +184,8 @@ def discover_shard_files(
                 return ("distributed", shard_num)
             elif type_prefix == "reg":
                 return ("regular", shard_num)
+            elif type_prefix == "custom":
+                return ("custom", shard_num)
         return None
 
     for path in reports_root.rglob("shard_*_stats.json"):
@@ -544,11 +550,16 @@ def main():
         status = get_shard_status(stats, present)
         status_counts[status] += 1
 
-        # Convert shard_type to display prefix ("distributed" -> "dist", "regular" -> "reg")
-        shard_prefix = "dist" if shard_type == "distributed" else "reg"
+        # Convert shard_type to display prefix ("distributed" -> "dist", "regular" -> "reg", "custom" -> "custom")
+        if shard_type == "distributed":
+            shard_prefix = "dist"
+        elif shard_type == "custom":
+            shard_prefix = "custom"
+        else:
+            shard_prefix = "reg"
         shard_rows.append(
             {
-                "shard": f"{shard_prefix}-{shard_num}",  # "dist-1" or "reg-1"
+                "shard": f"{shard_prefix}-{shard_num}",  # "dist-1", "reg-1", or "custom-1"
                 "shard_type": shard_type,
                 "shard_num": shard_num,
                 "status": status,
