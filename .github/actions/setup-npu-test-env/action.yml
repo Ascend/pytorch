@@ -85,6 +85,16 @@ runs:
 
         echo "PyTorch ${{ inputs.pytorch_version }} and torch_npu installed from ${TORCH_NPU_WHL}"
 
+    - name: Verify NPU device
+      shell: bash
+      run: |
+        source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+        source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+        echo "=== NPU Device Information ==="
+        npu-smi info
+        echo "=== End of NPU Device Information ==="
+
     - name: Install triton-ascend
       shell: bash
       run: |
