@@ -286,13 +286,16 @@ def _npu_tensorpipe_init_backend_handler(
 
 
 def _rpc_backend_registry():
-    if hasattr(torch_npu._C, "_rpc_npu_init"):
-        torch_npu._C._rpc_npu_init()
-        rpc.backend_registry.register_backend(
-            "NPU_TENSORPIPE",
-            _npu_tensorpipe_construct_rpc_backend_options_handler,
-            _npu_tensorpipe_init_backend_handler,
+    if not hasattr(torch_npu._C, "_distributed_rpc"):
+        raise RuntimeError(
+            "torch_npu._C._distributed_rpc must be initialized before RPC backend registration"
         )
+
+    rpc.backend_registry.register_backend(
+        "NPU_TENSORPIPE",
+        _npu_tensorpipe_construct_rpc_backend_options_handler,
+        _npu_tensorpipe_init_backend_handler,
+    )
 
     import torch.distributed.rpc as _rpc_module
     _rpc_module.BackendType = rpc.backend_registry.BackendType

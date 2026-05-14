@@ -31,8 +31,7 @@ from torch.serialization import (  # noqa: F401
     UNSAFE_MESSAGE,
 )
 from torch_npu.utils._error_code import ErrCode, pta_error
-
-from .utils import _should_print_warning
+from torch_npu._init.common.warning_utils import _should_print_warning
 
 
 __all__ = ["load", "save_async"]
@@ -687,3 +686,6 @@ def _add_serialization_methods():
     torch.serialization._legacy_save = _npu_legacy_save
 
     torch.serialization.add_safe_globals([torch_npu.utils.storage._rebuild_npu_tensor])
+
+    from torch_npu.npu._format import Format
+    torch.serialization.add_safe_globals([Format])

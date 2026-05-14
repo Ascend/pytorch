@@ -82,9 +82,3 @@ class NpuInterface(DeviceInterface):
     @staticmethod
     def is_bf16_supported(including_emulation: bool = False):
         return True
-
-
-def _dynamo_register_interface_for_device():
-    register_interface_for_device("npu", NpuInterface)
-    for i in range(32):
-        register_interface_for_device(f"npu:{i}", NpuInterface)

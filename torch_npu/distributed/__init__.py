@@ -5,7 +5,6 @@ __all__ = [
 from torch.distributed import _make_nccl_premul_sum as _make_hccl_premul_sum
 
 import torch_npu
-from torch_npu.utils._error_code import ErrCode, dist_error
 
 
 def is_available():
@@ -20,10 +19,6 @@ def is_available():
     return hasattr(torch_npu._C, "_c10d_npu_init")
 
 
-if is_available() and not torch_npu._C._c10d_npu_init():
-    raise RuntimeError("Failed to initialize torch_npu.distributed" + dist_error(ErrCode.INTERNAL))
-
-
 from torch_npu._C._distributed_c10d import (
     ParallelStore,
     _verify_params_across_processes,
@@ -31,7 +26,5 @@ from torch_npu._C._distributed_c10d import (
 )
 
 
-from torch_npu.distributed import rendezvous, fsdp, tensor, nn
+from torch_npu.distributed import fsdp, tensor, nn
 from .distributed_c10d import is_hccl_available, reinit_process_group, _reduce_scatter_tensor_uneven as reduce_scatter_tensor_uneven, _all_gather_into_tensor_uneven as all_gather_into_tensor_uneven
-
-rendezvous._rendezvous_init()
