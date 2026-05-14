@@ -22,7 +22,81 @@ from torch_npu._inductor import config as npu_config
 from torch_npu._inductor.codegen.triton import NPUIndexTritonKernel
 
 
-class NPUWrapperCodeGen(PythonWrapperCodegen):
+class _NPUKernelCodegenMixin:
+    """
+    NPU-specific cross-cutting overrides that both the main wrapper and the
+    partition subgraph wrapper must apply. The mixin is not meant to be
+    instantiated on its own; it is mixed into NPUWrapperCodeGen and
+    NPUSubgraphWrapperCodegen as a base class.
+
+    Via cooperative multiple inheritance (super()), a single implementation
+    works for both the main graph wrapper and the subgraph wrapper. This
+    avoids code duplication and prevents main-wrapper-only logic
+    (AOT debug / aclnn initialization / whole-graph benchmark harness, etc.)
+    from leaking into subgraphs.
+    """
+
+    # generate numel expr for range_tree_node
+    def generate_node_numel_expr(self, kernel_name: str, node, numel_expr):
+        expr = f"{kernel_name}_{node.name}_numel"
+        if (expr, V.graph) not in self.kernel_numel_expr:
+            # declare expr once in each graph (scope)
+            self.kernel_numel_expr.add((expr, V.graph))
+            self.writeline(
+                f"{self.declare}{expr} = {self.expr_printer(numel_expr)}{self.ending}"
+            )
+        else:
+            self.writeline(f"{expr} = {self.expr_printer(numel_expr)}{self.ending}")
+        # We can get symbolic expressions here, like s0*64
+        # It is fine to have them here, but we need to handle them correctly as their own type
+        # This is tricky to do, so we wrap in a custom type, distinct from scalars, but also from sympy*
+        # scalars as well.
+        # This is handled in `generate_args_decl` which has a correct comment of: TODO: only works for
+        # constant now, need type info. I agree, this needs type info, and while this is not true type info
+        # it suffices as a type hint for the purposes of producing the correct code for this type.
+        return SymbolicCallArg(expr, numel_expr)
+
+    # don't assert
+    def codegen_input_size_asserts(self) -> None:
+        pass
+
+    def get_next_kernel_suffix(self) -> str:
+        iter_val = copy.copy(self._names_iter)
+        return f"{next(iter_val)}"
+
+    def define_kernel(
+        self,
+        kernel_name: str,
+        kernel_body: str,
+        metadata: str | None = None,
+        gpu: bool = True,
+        cpp_definition: str | None = None,
+    ):
+        # Override the parent logic: replace triton_heuristics.user_autotune with
+        # npu_triton_heuristics.user_autotune_npu, and replace PrecomputedGrid with
+        # PrecomputedGridNpu, to adapt to the NPU device and avoid core dump errors.
+        if "user_autotune" in kernel_body and "user_autotune_npu" not in kernel_body:
+            kernel_body = kernel_body.replace(
+                "triton_heuristics.user_autotune(",
+                "npu_triton_heuristics.user_autotune_npu("
+            )
+            kernel_body = kernel_body.replace(
+                "PrecomputedGrid",
+                "PrecomputedGridNpu"
+            )
+            kernel_body = kernel_body.replace(
+                "FixedGrid",
+                "FixedGridNpu"
+            )
+            # import headers related to npu_triton_heuristics
+            kernel_body = kernel_body.replace(
+                "'''\n",
+                "'''\n" + NPUIndexTritonKernel.gen_triton_ext_imports() + "\n"
+            )
+        super().define_kernel(kernel_name, kernel_body, metadata, gpu, cpp_definition)
+
+
+class NPUWrapperCodeGen(_NPUKernelCodegenMixin, PythonWrapperCodegen):
     def __init__(self):
         super().__init__()
 
@@ -34,9 +108,7 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
         partition_signatures: GraphPartitionSignature | None = None,
     ):
         if is_subgraph:
-            return SubgraphPythonWrapperCodegen(
-                subgraph_name, parent_wrapper, partition_signatures
-            )
+            return NPUSubgraphWrapperCodegen(subgraph_name, parent_wrapper, partition_signatures)
         return NPUWrapperCodeGen()
 
     def write_header(self) -> None:
@@ -67,34 +139,6 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
             self.imports.writeline(
                 V.graph.device_ops.import_get_raw_stream_as("get_raw_stream")
             )
-
-    # generate numel expr for range_tree_node
-    def generate_node_numel_expr(self, kernel_name: str, node, numel_expr):
-        expr = f"{kernel_name}_{node.name}_numel"
-        if (expr, V.graph) not in self.kernel_numel_expr:
-            # declare expr once in each graph (scope)
-            self.kernel_numel_expr.add((expr, V.graph))
-            self.writeline(
-                f"{self.declare}{expr} = {self.expr_printer(numel_expr)}{self.ending}"
-            )
-        else:
-            self.writeline(f"{expr} = {self.expr_printer(numel_expr)}{self.ending}")
-        # We can get symbolic expressions here, like s0*64
-        # It is fine to have them here, but we need to handle them correctly as their own type
-        # This is tricky to do, so we wrap in a custom type, distinct from scalars, but also from sympy*
-        # scalars as well.
-        # This is handled in `generate_args_decl` which has a correct comment of: TODO: only works for
-        # constant now, need type info. I agree, this needs type info, and while this is not true type info
-        # it suffices as a type hint for the purposes of producing the correct code for this type.
-        return SymbolicCallArg(expr, numel_expr)
-
-    # don't assert
-    def codegen_input_size_asserts(self) -> None:
-        pass
-
-    def get_next_kernel_suffix(self) -> str:
-        iter_val = copy.copy(self._names_iter)
-        return f"{next(iter_val)}"
 
     def add_benchmark_harness(self, output):
         """
@@ -278,25 +322,23 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
                 )
         super().generate_return(output_refs)
 
-    def define_kernel(
-        self,
-        kernel_name: str,
-        kernel_body: str,
-        metadata: str | None = None,
-        gpu: bool = True,
-        cpp_definition: str | None = None,
-    ):
-        # 重写父类逻辑，将triton_heuristics.user_autotune替换为npu_triton_heuristics.user_autotune_npu，
-        # 将PrecomputedGrid替换为PrecomputedGridNpu，以适配NPU设备，避免core dump错误。
-        if "user_autotune" in kernel_body and "user_autotune_npu" not in kernel_body:
-            kernel_body = kernel_body.replace(
-                "triton_heuristics.user_autotune(",
-                "npu_triton_heuristics.user_autotune_npu(",
-            )
-            kernel_body = kernel_body.replace("PrecomputedGrid", "PrecomputedGridNpu")
-            kernel_body = kernel_body.replace("FixedGrid", "FixedGridNpu")
-            # import npu_triton_heuristicsd相关头文件
-            kernel_body = kernel_body.replace(
-                "'''\n", "'''\n" + NPUIndexTritonKernel.gen_triton_ext_imports() + "\n"
-            )
-        super().define_kernel(kernel_name, kernel_body, metadata, gpu, cpp_definition)
+
+class NPUSubgraphWrapperCodegen(_NPUKernelCodegenMixin, SubgraphPythonWrapperCodegen):
+    """
+    Partition subgraph wrapper for NPU.
+
+    Inherits NPU kernel codegen specializations (define_kernel, numel_expr,
+    codegen_input_size_asserts) via _NPUKernelCodegenMixin,
+    so user Triton kernels inside a partition subgraph get the NPU-flavored
+    user_autotune_npu / FixedGridNpu rewrite instead of the upstream default.
+
+    Also overrides get_next_kernel_suffix to delegate to parent_wrapper,
+    matching the upstream next_kernel_suffix strategy - otherwise the
+    "peek" counter in the subgraph would diverge from the "consume" counter
+    (which upstream already delegates to parent), producing mismatched
+    kernel names between the kernel body placeholders and the real registered
+    function name.
+    """
+
+    def get_next_kernel_suffix(self) -> str:
+        return self.parent_wrapper.get_next_kernel_suffix()
