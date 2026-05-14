@@ -1559,16 +1559,17 @@ class TestReductions(TestCase):
         self.assertEqual(torch.searchsorted(boundaries, values_nan, right=True), expected_result)
         self.assertEqual(torch.searchsorted(boundaries, values_nan, side='right'), expected_result)
 
-        # type promotion and non contiguous tensors
+        # type promotion and non-contiguous inputs.
+        # CPU/CUDA: expect a non-contiguous UserWarning. XLA/NPU: permute().to() can still be contiguous,
+        # so only assertEqual (no warn check).
         values_3d_permute = values_3d.permute(2, 1, 0).to(torch.int32)
         boundaries_permute = values_3d.permute(2, 1, 0).to(torch.float64)
         expected_result = torch.tensor([[[0, 0], [0, 1]], [[2, 0], [0, 1]], [[2, 0], [0, 0]]], device=device)
-        if self.device_type != 'xla':
+        if self.device_type != 'xla' and self.device_type != 'npu':
             self.assertWarnsRegex(
                 UserWarning, "tensor is non-contiguous",
                 lambda: self.assertEqual(torch.searchsorted(boundaries_permute, values_3d_permute), expected_result))
         else:
-            # All tensors in XLA is contiguous even doing permute, no warning msg will be generate in XLA
             self.assertEqual(torch.searchsorted(boundaries_permute, values_3d_permute), expected_result)
 
         # scalar type
