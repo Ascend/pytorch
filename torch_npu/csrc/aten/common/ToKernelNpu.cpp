@@ -6,6 +6,7 @@
 #include <torch_npu/csrc/aten/CustomFunctions.h>
 #include <torch_npu/csrc/aten/NPUNativeFunctions.h>
 #include <torch_npu/csrc/framework/utils/OpAdapter.h>
+#include <torch_npu/csrc/core/npu/NpuVariables.h>
 
 namespace at_npu {
 namespace native {
@@ -31,16 +32,20 @@ at::Tensor NPUNativeFunctions::_to_copy(
     c10::optional<bool> pin_memory,
     bool non_blocking,
     c10::optional<c10::MemoryFormat> optional_memory_format) {
-  if (dtype.has_value() && !layout.has_value() && !device.has_value()) {
-    // _to_copy is used by to(..., copy=True). Same dtype tensors must
-    // still fall through to the existing copy path instead of returning self.
-    if (self.dtype() != dtype) {
-      if (dtype == at::ScalarType::Double) {
-        TORCH_NPU_WARN_ONCE(
-            "Device do not support double dtype now, "
-            "dtype cast replace with float.");
+  auto soc_version = c10_npu::GetSocVersion();
+  // converting double to float type when devices below Ascend950
+  if (soc_version < c10_npu::SocVersion::Ascend950) {
+    if (dtype.has_value() && !layout.has_value() && !device.has_value()) {
+      // _to_copy is used by to(..., copy=True). Same dtype tensors must
+      // still fall through to the existing copy path instead of returning self.
+      if (self.dtype() != dtype) {
+        if (dtype == at::ScalarType::Double) {
+          TORCH_NPU_WARN_ONCE(
+              "Device do not support double dtype now, "
+              "dtype cast replace with float.");
+        }
+        dtype = (dtype == at::ScalarType::Double) ? at::ScalarType::Float : dtype;
       }
-      dtype = (dtype == at::ScalarType::Double) ? at::ScalarType::Float : dtype;
     }
   }
 
