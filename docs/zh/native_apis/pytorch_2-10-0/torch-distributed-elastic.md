@@ -99,6 +99,7 @@
 |torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.wait|否|-|
 |torch.distributed.elastic.rendezvous.etcd_server.EtcdServer|否|-|
 |torch.distributed.elastic.timer.configure|是|-|
+|torch.distributed.elastic.timer.debug_info_logging.log_debug_info_for_expired_timers|是|-|
 |torch.distributed.elastic.timer.expires|是|-|
 |torch.distributed.elastic.timer.LocalTimerServer|是|-|
 |torch.distributed.elastic.timer.LocalTimerClient|是|-|
