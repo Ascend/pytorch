@@ -1303,6 +1303,11 @@ def parse_args(args=None):
         default="default",
         help="Specify NPU backend (only effective when --backend is inductor)",
     )
+    parser.add_argument(
+        "--mfusion",
+        action="store_true",
+        help="Enable mfusion module",
+    )
     mode_group = parser.add_mutually_exclusive_group(required=True)
     mode_group.add_argument(
         "--accuracy",
@@ -1746,10 +1751,15 @@ def get_npu_backend(args):
 
 def configure_compile_options(args):
     try:
-        from torchbench import NPU_DVM_NO_ACLGRAPH, NPU_MLIR_NO_ACLGRAPH
+        from torchbench import (
+            NPU_DVM_NO_ACLGRAPH,
+            NPU_MFUSION_NO_ACLGRAPH,
+            NPU_MLIR_NO_ACLGRAPH,
+        )
     except ImportError:
         NPU_DVM_NO_ACLGRAPH = set()
         NPU_MLIR_NO_ACLGRAPH = set()
+        NPU_MFUSION_NO_ACLGRAPH = set()
     npu_backend = args.npu_backend
     # mode Config
     if not args.disable_aclgraph:
@@ -1760,6 +1770,9 @@ def configure_compile_options(args):
         if npu_backend == "dvm" and args.only in NPU_DVM_NO_ACLGRAPH:
             mode = None
         elif npu_backend == "mlir" and args.only in NPU_MLIR_NO_ACLGRAPH:
+            mode = None
+        # Check if mfusion enabled
+        if args.mfusion and args.only in NPU_MFUSION_NO_ACLGRAPH:
             mode = None
     # Backend Config
     backend = None
@@ -1785,6 +1798,8 @@ def configure_compile_options(args):
                 npu_backend = get_npu_backend(args)
             if npu_backend in ["mlir", "dvm"]:
                 os.environ["TORCHINDUCTOR_NPU_BACKEND"] = npu_backend
+        if backend == "inductor" and args.mfusion:
+            os.environ["TORCHINDUCTOR_ENABLE_MFUSION"] = "1"
         optimize_ctx = functools.partial(torch.compile, **compile_kwargs)
     else:
         optimize_ctx = contextlib.nullcontext()

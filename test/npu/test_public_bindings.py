@@ -1,21 +1,29 @@
 # Owner(s): ["module: autograd"]
 import importlib
-from typing import Callable
 import inspect
 import json
 import os
+import pkgutil
 import unittest
 import warnings
+from collections.abc import Callable
 from importlib import import_module
 from itertools import chain
 from pathlib import Path
 
-import pkgutil
-import torch
-from torch.testing._internal.common_utils import TestCase, run_tests, IS_JETSON, IS_WINDOWS, IS_MACOS, skipIfTorchDynamo
-from torch._utils_internal import get_file_path_2
 import torch_npu
 import torch_npu.testing
+
+import torch
+from torch._utils_internal import get_file_path_2
+from torch.testing._internal.common_utils import (
+    IS_JETSON,
+    IS_MACOS,
+    IS_WINDOWS,
+    run_tests,
+    skipIfTorchDynamo,
+    TestCase,
+)
 
 
 temp_filter = {
@@ -147,8 +155,7 @@ def _find_all_importables(pkg):
     return sorted(
         set(
             chain.from_iterable(
-                _discover_path_importables(Path(p), pkg.__name__)
-                for p in pkg.__path__
+                _discover_path_importables(Path(p), pkg.__name__) for p in pkg.__path__
             ),
         ),
     )
@@ -163,18 +170,19 @@ def _discover_path_importables(pkg_pth, pkg_name):
     for dir_path, _d, file_names in os.walk(pkg_pth):
         pkg_dir_path = Path(dir_path)
 
-        if pkg_dir_path.parts[-1] == '__pycache__':
+        if pkg_dir_path.parts[-1] == "__pycache__":
             continue
 
-        if all(Path(_).suffix != '.py' for _ in file_names):
+        if all(Path(_).suffix != ".py" for _ in file_names):
             continue
 
         rel_pt = pkg_dir_path.relative_to(pkg_pth)
-        pkg_pref = '.'.join((pkg_name, ) + rel_pt.parts)
+        pkg_pref = ".".join((pkg_name,) + rel_pt.parts)
         yield from (
             pkg_path
             for _, pkg_path, _ in pkgutil.walk_packages(
-                (str(pkg_dir_path), ), prefix=f'{pkg_pref}.',
+                (str(pkg_dir_path),),
+                prefix=f"{pkg_pref}.",
             )
         )
 
@@ -369,8 +377,8 @@ class TestPublicBindings(TestCase):
             "UnionType",
             "Use",
             "Value",
-            'set_autocast_gpu_dtype',
-            'get_autocast_gpu_dtype',
+            "set_autocast_gpu_dtype",
+            "get_autocast_gpu_dtype",
             "vitals_enabled",
             "wait",
             "Tag",
@@ -397,13 +405,16 @@ class TestPublicBindings(TestCase):
 
     @staticmethod
     def _is_mod_public(modname):
-        split_strs = modname.split('.')
+        split_strs = modname.split(".")
         for elem in split_strs:
             if elem.startswith("_"):
                 return False
         return True
 
-    @unittest.skipIf(IS_WINDOWS or IS_MACOS, "Inductor/Distributed modules hard fail on windows and macos")
+    @unittest.skipIf(
+        IS_WINDOWS or IS_MACOS,
+        "Inductor/Distributed modules hard fail on windows and macos",
+    )
     @skipIfTorchDynamo("Broken and not relevant for now")
     def test_modules_can_be_imported(self):
         failures = []
@@ -418,9 +429,10 @@ class TestPublicBindings(TestCase):
 
         for modname in _find_all_importables(torch_npu):
             try:
-                if "__main__" in modname or \
-                        modname in ["torch_npu.dynamo.torchair.core._backend",
-                                    "torch_npu.dynamo.torchair.core._torchair"]:
+                if "__main__" in modname or modname in [
+                    "torch_npu.dynamo.torchair.core._backend",
+                    "torch_npu.dynamo.torchair.core._torchair",
+                ]:
                     continue
                 import_module(modname)
             except Exception as e:
@@ -622,6 +634,17 @@ class TestPublicBindings(TestCase):
             "torch_npu._inductor.dvm.graph_fusion",
             "torch_npu._inductor.dvm.mlir_fusion",
             "torch_npu._inductor.dvm.op_emitter",
+            # MFusion FX<->Torch-MLIR: optional torch_mlir + AKG mfusion; gate CI omits them.
+            "torch_npu._inductor.mfusion",
+            "torch_npu._inductor.mfusion._mfusion_log",
+            "torch_npu._inductor.mfusion.decomp",
+            "torch_npu._inductor.mfusion.fx_mlir_converter",
+            "torch_npu._inductor.mfusion.fx_mlir_converter.fx_exporter",
+            "torch_npu._inductor.mfusion.fx_mlir_converter.fx_importer",
+            "torch_npu._inductor.mfusion.graph_fusion",
+            "torch_npu._inductor.mfusion.subgraph_registry",
+            "torch_npu._inductor.fx_passes",
+            "torch_npu._inductor.fx_passes.post_grad",
             "torch_npu._inductor.fx_passes.ascend_custom_passes.ascend_graph_pass",
             "torch_npu._inductor.fx_passes.ascend_custom_passes.register_custom_pass",
             "torch_npu._inductor.fx_passes.graph_match_pass",
@@ -690,56 +713,85 @@ class TestPublicBindings(TestCase):
     @unittest.skipIf(IS_WINDOWS or IS_JETSON or IS_MACOS, "Distributed Attribute Error")
     @skipIfTorchDynamo("Broken and not relevant for now")
     def test_correct_module_names(self):
-        '''
+        """
         An API is considered public, if  its  `__module__` starts with `torch.`
-        and there is no name in `__module__` or the object itself that starts with “_”.
+        and there is no name in `__module__` or the object itself that starts with "_".
         Each public package should either:
         - (preferred) Define `__all__` and all callables and classes in there must have their
          `__module__` start with the current submodule's path. Things not in `__all__` should
           NOT have their `__module__` start with the current submodule.
         - (for simple python-only modules) Not define `__all__` and all the elements in `dir(submod)` must have their
           `__module__` that start with the current submodule.
-        '''
+        """
         failure_list = []
 
         def _get_test_torch_version():
             torch_npu_version = torch_npu.__version__
-            version_list = torch_npu_version.split('.')
+            version_list = torch_npu_version.split(".")
             if len(version_list) > 2:
-                return f'v{version_list[0]}.{version_list[1]}'
+                return f"v{version_list[0]}.{version_list[1]}"
             else:
                 raise RuntimeError("Invalid torch_npu version.")
-        
+
         try:
             file_abspath = os.path.abspath(__file__)
-            air_path = 'third_party/torchair/torchair/tests/st/allowlist_for_publicAPI.json'
+            air_path = (
+                "third_party/torchair/torchair/tests/st/allowlist_for_publicAPI.json"
+            )
             with open(
-                os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(file_abspath))), air_path)) as json_file_torchair:
+                os.path.join(
+                    os.path.dirname(os.path.dirname(os.path.dirname(file_abspath))),
+                    air_path,
+                )
+            ) as json_file_torchair:
                 allow_dict_torchair = json.load(json_file_torchair)
-                update_allow_dict_torchair = {f"torch_npu.dynamo.{key}": value for key, value in allow_dict_torchair.items()}
+                update_allow_dict_torchair = {
+                    f"torch_npu.dynamo.{key}": value
+                    for key, value in allow_dict_torchair.items()
+                }
         except Exception:
             update_allow_dict_torchair = {}
-            warnings.warn("if you are debugging UT file in clone repo, please recursively update the torchair submodule")
-        
+            warnings.warn(
+                "if you are debugging UT file in clone repo, please recursively update the torchair submodule"
+            )
+
         try:
             file_abspath = os.path.abspath(__file__)
-            op_plugin_path = 'third_party/op-plugin/test/allowlist_for_publicAPI.json'
+            op_plugin_path = "third_party/op-plugin/test/allowlist_for_publicAPI.json"
             with open(
-                os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(file_abspath))), op_plugin_path)) as json_file_op_plugin:
+                os.path.join(
+                    os.path.dirname(os.path.dirname(os.path.dirname(file_abspath))),
+                    op_plugin_path,
+                )
+            ) as json_file_op_plugin:
                 version_tag = _get_test_torch_version()
                 allow_dict_info = json.load(json_file_op_plugin)
                 allow_dict_op_plugin = {}
-                if "torch_npu" in allow_dict_info and "all_version" in allow_dict_info["torch_npu"]:
-                    allow_dict_op_plugin["torch_npu"] = allow_dict_info["torch_npu"]["all_version"]
-                    if version_tag in allow_dict_info["torch_npu"] and allow_dict_info["torch_npu"][version_tag]:
-                        allow_dict_op_plugin["torch_npu"].extend(allow_dict_info["torch_npu"][version_tag])
+                if (
+                    "torch_npu" in allow_dict_info
+                    and "all_version" in allow_dict_info["torch_npu"]
+                ):
+                    allow_dict_op_plugin["torch_npu"] = allow_dict_info["torch_npu"][
+                        "all_version"
+                    ]
+                    if (
+                        version_tag in allow_dict_info["torch_npu"]
+                        and allow_dict_info["torch_npu"][version_tag]
+                    ):
+                        allow_dict_op_plugin["torch_npu"].extend(
+                            allow_dict_info["torch_npu"][version_tag]
+                        )
 
         except Exception as e:
             allow_dict_op_plugin = {}
             warnings.warn(f"{e}")
-       
-        with open(get_file_path_2(os.path.dirname(os.path.dirname(__file__)),
-                                  'allowlist_for_publicAPI.json')) as json_file:
+
+        with open(
+            get_file_path_2(
+                os.path.dirname(os.path.dirname(__file__)),
+                "allowlist_for_publicAPI.json",
+            )
+        ) as json_file:
             # no new entries should be added to this allow_dict.
             # New APIs must follow the public API guidelines.
             allow_dict = json.load(json_file)
@@ -748,25 +800,31 @@ class TestPublicBindings(TestCase):
             # locations.
             for modname in allow_dict["being_migrated"]:
                 if modname in allow_dict:
-                    allow_dict[allow_dict["being_migrated"][modname]] = allow_dict[modname]
+                    allow_dict[allow_dict["being_migrated"][modname]] = allow_dict[
+                        modname
+                    ]
         with open(
-                os.path.join(os.path.dirname(os.path.dirname(__file__)), 'deprecated_apis.json')) as json_file:
+            os.path.join(
+                os.path.dirname(os.path.dirname(__file__)), "deprecated_apis.json"
+            )
+        ) as json_file:
             deprecated_dict = json.load(json_file)
-                    
+
         if update_allow_dict_torchair:
             allow_dict.update(update_allow_dict_torchair)
-        
+
         if allow_dict_op_plugin and "torch_npu" in allow_dict_op_plugin:
             if "torch_npu" in allow_dict:
                 allow_dict["torch_npu"].extend(allow_dict_op_plugin["torch_npu"])
             else:
                 allow_dict.update(allow_dict_op_plugin["torch_npu"])
-        
+
         def test_module(modname):
             try:
-                if "__main__" in modname or \
-                        modname in ["torch_npu.dynamo.torchair.core._backend",
-                                    "torch_npu.dynamo.torchair.core._torchair"]:
+                if "__main__" in modname or modname in [
+                    "torch_npu.dynamo.torchair.core._backend",
+                    "torch_npu.dynamo.torchair.core._torchair",
+                ]:
                     return
                 mod = importlib.import_module(modname)
             except Exception:
@@ -780,82 +838,122 @@ class TestPublicBindings(TestCase):
             # verifies that each public API has the correct module name and naming semantics
             def check_one_element(elem, modname, mod, *, is_public, is_all):
                 obj = getattr(mod, elem)
-                if not (isinstance(obj, (Callable, torch.dtype)) or inspect.isclass(obj)):
+                if not (
+                    isinstance(obj, (Callable, torch.dtype)) or inspect.isclass(obj)
+                ):
                     return
-                elem_module = getattr(obj, '__module__', None)
+                elem_module = getattr(obj, "__module__", None)
                 # Only used for nice error message below
                 why_not_looks_public = ""
                 if elem_module is None:
-                    why_not_looks_public = "because it does not have a `__module__` attribute"
+                    why_not_looks_public = (
+                        "because it does not have a `__module__` attribute"
+                    )
                 # If a module is being migrated from foo.a to bar.a (that is entry {"foo": "bar"}),
                 # the module's starting package would be referred to as the new location even
                 # if there is a "from foo import a" inside the "bar.py".
                 modname = allow_dict["being_migrated"].get(modname, modname)
-                elem_modname_starts_with_mod = elem_module is not None and \
-                    elem_module.startswith(modname) and \
-                    '._' not in elem_module
+                elem_modname_starts_with_mod = (
+                    elem_module is not None
+                    and elem_module.startswith(modname)
+                    and "._" not in elem_module
+                )
                 if not why_not_looks_public and not elem_modname_starts_with_mod:
-                    why_not_looks_public = f"because its `__module__` attribute (`{elem_module}`) is not within the " \
+                    why_not_looks_public = (
+                        f"because its `__module__` attribute (`{elem_module}`) is not within the "
                         f"torch library or does not start with the submodule where it is defined (`{modname}`)"
+                    )
                 # elem's name must NOT begin with an `_` and it's module name
                 # SHOULD start with it's current module since it's a public API
-                looks_public = not elem.startswith('_') and elem_modname_starts_with_mod
+                looks_public = not elem.startswith("_") and elem_modname_starts_with_mod
                 if not why_not_looks_public and not looks_public:
                     why_not_looks_public = f"because it starts with `_` (`{elem}`)"
 
                 if is_public != looks_public:
                     # Skip some APIs which don't meet the guidelines for public API until they are fixed.
-                    if f"{modname}.{elem}" in temp_filter or \
-                            modname.startswith("torch_npu.dynamo.torchair.ge_concrete_graph"):
+                    if f"{modname}.{elem}" in temp_filter or modname.startswith(
+                        "torch_npu.dynamo.torchair.ge_concrete_graph"
+                    ):
                         return
 
-                    if ((modname in allow_dict and elem in allow_dict[modname]) or
-                        (modname in deprecated_dict and elem in deprecated_dict[modname])):
+                    if (modname in allow_dict and elem in allow_dict[modname]) or (
+                        modname in deprecated_dict and elem in deprecated_dict[modname]
+                    ):
                         return
 
                     if is_public:
-                        why_is_public = f"it is inside the module's (`{modname}`) `__all__`" if is_all else \
-                            "it is an attribute that does not start with `_` on a module that " \
+                        why_is_public = (
+                            f"it is inside the module's (`{modname}`) `__all__`"
+                            if is_all
+                            else "it is an attribute that does not start with `_` on a module that "
                             "does not have `__all__` defined"
-                        fix_is_public = f"remove it from the modules's (`{modname}`) `__all__`" if is_all else \
-                            f"either define a `__all__` for `{modname}` or add a `_` at the beginning of the name"
+                        )
+                        fix_is_public = (
+                            f"remove it from the module's (`{modname}`) `__all__`"
+                            if is_all
+                            else f"either define a `__all__` for `{modname}` or add a `_` at the beginning of the name"
+                        )
                     else:
-                        assert is_all
-                        why_is_public = f"it is not inside the module's (`{modname}`) `__all__`"
-                        fix_is_public = f"add it from the modules's (`{modname}`) `__all__`"
+                        assert is_all  # noqa: S101
+                        why_is_public = (
+                            f"it is not inside the module's (`{modname}`) `__all__`"
+                        )
+                        fix_is_public = (
+                            f"add it from the module's (`{modname}`) `__all__`"
+                        )
 
                     if looks_public:
-                        why_looks_public = "it does look public because it follows the rules from the doc above " \
+                        why_looks_public = (
+                            "it does look public because it follows the rules from the doc above "
                             "(does not start with `_` and has a proper `__module__`)."
+                        )
                         fix_looks_public = "make its name start with `_`"
                     else:
                         why_looks_public = why_not_looks_public
                         if not elem_modname_starts_with_mod:
-                            fix_looks_public = "make sure the `__module__` is properly set and points to a submodule "\
+                            fix_looks_public = (
+                                "make sure the `__module__` is properly set and points to a submodule "
                                 f"of `{modname}`"
+                            )
                         else:
-                            fix_looks_public = "remove the `_` at the beginning of the name"
+                            fix_looks_public = (
+                                "remove the `_` at the beginning of the name"
+                            )
 
                     failure_list.append(f"# {modname}.{elem}:")
                     is_public_str = "" if is_public else " NOT"
-                    failure_list.append(f"  - Is{is_public_str} public: {why_is_public}")
+                    failure_list.append(
+                        f"  - Is{is_public_str} public: {why_is_public}"
+                    )
                     looks_public_str = "" if looks_public else " NOT"
-                    failure_list.append(f"  - Does{looks_public_str} look public: {why_looks_public}")
+                    failure_list.append(
+                        f"  - Does{looks_public_str} look public: {why_looks_public}"
+                    )
                     # Swap the str below to avoid having to create the NOT again
-                    failure_list.append("  - You can do either of these two things to fix this problem:")
-                    failure_list.append(f"    - To make it{looks_public_str} public: {fix_is_public}")
-                    failure_list.append(f"    - To make it{is_public_str} look public: {fix_looks_public}")
+                    failure_list.append(
+                        "  - You can do either of these two things to fix this problem:"
+                    )
+                    failure_list.append(
+                        f"    - To make it{looks_public_str} public: {fix_is_public}"
+                    )
+                    failure_list.append(
+                        f"    - To make it{is_public_str} look public: {fix_looks_public}"
+                    )
 
-            if hasattr(mod, '__all__'):
+            if hasattr(mod, "__all__"):
                 public_api = mod.__all__
                 all_api = dir(mod)
                 for elem in all_api:
-                    check_one_element(elem, modname, mod, is_public=elem in public_api, is_all=True)
+                    check_one_element(
+                        elem, modname, mod, is_public=elem in public_api, is_all=True
+                    )
             else:
                 all_api = dir(mod)
                 for elem in all_api:
-                    if not elem.startswith('_'):
-                        check_one_element(elem, modname, mod, is_public=True, is_all=False)
+                    if not elem.startswith("_"):
+                        check_one_element(
+                            elem, modname, mod, is_public=True, is_all=False
+                        )
 
         for modname in _find_all_importables(torch):
             test_module(modname)
@@ -863,14 +961,18 @@ class TestPublicBindings(TestCase):
         for modname in _find_all_importables(torch_npu):
             test_module(modname)
 
-        test_module('torch')
-        test_module('torch_npu')
+        test_module("torch")
+        test_module("torch_npu")
 
-        msg = "All the APIs below do not meet our guidelines for public API from " \
-              "pytorch/wiki/Public-API-definition-and-documentation.\n"
-        msg += "Make sure that everything that is public is expected (in particular that the module " \
-            "has a properly populated `__all__` attribute) and that everything that is supposed to be public " \
+        msg = (
+            "All the APIs below do not meet our guidelines for public API from "
+            "pytorch/wiki/Public-API-definition-and-documentation.\n"
+        )
+        msg += (
+            "Make sure that everything that is public is expected (in particular that the module "
+            "has a properly populated `__all__` attribute) and that everything that is supposed to be public "
             "does look public (it does not start with `_` and has a `__module__` that is properly populated)."
+        )
         msg += "\n\nFull list:\n"
         msg += "\n".join(map(str, failure_list))
 
@@ -878,5 +980,5 @@ class TestPublicBindings(TestCase):
         self.assertTrue(not failure_list, msg)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     run_tests()

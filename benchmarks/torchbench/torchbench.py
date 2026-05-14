@@ -39,6 +39,7 @@ from os.path import abspath, exists
 
 import torch
 from common import BenchmarkRunner, main
+
 from torch._dynamo.testing import collect_results, reduce_to_scalar_loss
 from torch._dynamo.utils import clone_inputs
 
@@ -60,10 +61,11 @@ from benchmark.userbenchmark.dynamo.dynamobench.torchbench import (
     VERY_SLOW_BENCHMARKS,
 )
 
-
 # We are primarily interested in tf32 datatype
 torch.backends.cuda.matmul.allow_tf32 = True
 torch.npu.config.allow_internal_format = False
+
+log = logging.getLogger(__name__)
 
 
 def setup_torchbench_cwd():
@@ -178,6 +180,11 @@ NPU_BATCH_SIZE = {
     "dcgan": 64,
     "lennard_jones": 4096,
     "nvidia_deeprecommender": 256,
+}
+
+
+NPU_MFUSION_NO_ACLGRAPH = {
+
 }
 
 
