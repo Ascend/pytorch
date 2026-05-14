@@ -1,4 +1,4 @@
---extra-index-url https://download.pytorch.org/whl/test/cpu
+--extra-index-url https://download.pytorch.org/whl/nightly/cpu
 -f https://data.pyg.org/whl/torch-2.11.0+cpu.html
 
 coverage
@@ -18,6 +18,6 @@ transformers==4.40.0
 pytest==8.1.1
 parameterized==0.9.0
 torch-scatter==2.1.2
-torchvision==0.27.0
+torchvision==0.27.0.dev20260416
 ml-dtypes==0.2.0
 protobuf==6.33.5
