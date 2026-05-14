@@ -876,6 +876,24 @@ def remove_existing_file(path: Path) -> None:
 # ==============================================================================
 
 
+def has_distributed_test_files(test_files: List[str]) -> bool:
+    """
+    Check if any test file is a distributed test.
+
+    Distributed tests are identified by path starting with "test/distributed/".
+
+    Args:
+        test_files: List of test file paths (e.g., ["test/test_meta.py", "test/distributed/test_ddp.py"])
+
+    Returns:
+        True if any file is a distributed test, False otherwise
+    """
+    for f in test_files:
+        if f.startswith("test/distributed/"):
+            return True
+    return False
+
+
 def parse_test_files_input(test_files_str: str, test_dir: Path) -> List[str]:
     """
     Parse comma-separated test file input and return standardized test file paths.
@@ -996,9 +1014,24 @@ def main():
         num_shards = 1
         shard_type = "custom"
 
+        # Detect distributed test files and determine execution mode
+        has_distributed = has_distributed_test_files(planned_tests)
+        if has_distributed:
+            effective_workers = 1
+            execution_mode = "serial"
+            print(f"WARNING: Distributed test files detected, forcing serial execution")
+        else:
+            effective_workers = args.max_workers
+            execution_mode = "concurrent"
+
         print(f"Test files specified: {len(planned_tests)}")
         print(f"Test directory: {test_dir}")
-        print(f"Execution mode: concurrent ({args.max_workers} workers, per-case subprocess isolation)")
+        print(f"Execution mode: {execution_mode} ({effective_workers} workers, per-case subprocess isolation)")
+        if has_distributed:
+            distributed_files = [f for f in planned_tests if f.startswith("test/distributed/")]
+            print(f"  Distributed files: {len(distributed_files)}")
+            for df in distributed_files:
+                print(f"    - {strip_test_prefix_and_suffix(df)}")
         if args.disabled_testcases:
             disabled_count = result_module.load_disabled_testcases_count(args.disabled_testcases)
             print(f"Disabled testcase entries: {disabled_count}")
@@ -1006,7 +1039,9 @@ def main():
 
         for index, target in enumerate(planned_tests, 1):
             display_name = strip_test_prefix_and_suffix(target)
-            print(f"  [{index:03d}] {display_name}")
+            is_dist = target.startswith("test/distributed/")
+            dist_marker = " [distributed]" if is_dist else ""
+            print(f"  [{index:03d}] {display_name}{dist_marker}")
 
         # Create info dict for custom mode
         info = result_module.create_shard_info(shard, num_shards, timestamp)
@@ -1015,6 +1050,8 @@ def main():
         info["shard_files"] = len(planned_tests)
         info["total_files"] = len(planned_tests)
         info["selected_test_files"] = len(planned_tests)
+        info["has_distributed_files"] = has_distributed
+        info["execution_mode"] = execution_mode
         if args.disabled_testcases:
             info["disabled_count"] = result_module.load_disabled_testcases_count(args.disabled_testcases)
 
@@ -1030,7 +1067,7 @@ def main():
             test_dir, script_dir, args.disabled_testcases, shard, shard_type
         )
 
-        # Execute tests (custom mode uses concurrent execution by default)
+        # Execute tests (custom mode: auto-detect distributed files for execution mode)
         cases_list = []
         if planned_tests:
             # Phase 1: Collect all test cases using collect_all_cases module
@@ -1049,7 +1086,7 @@ def main():
                 print(f"  Quick test mode: using only {args.quick_test} cases")
 
             total_cases = len(collected_cases)
-            print(f"\nPhase 2: Executing {total_cases} cases with {args.max_workers} workers")
+            print(f"\nPhase 2: Executing {total_cases} cases with {effective_workers} workers")
 
             # Build CaseExecutionTask list
             tasks = []
@@ -1062,6 +1099,7 @@ def main():
                 ))
 
             # Phase 2: Execute cases using run_tests_with_tasks_concurrent
+            # Use effective_workers (1 for distributed files, args.max_workers otherwise)
             # Note: quick_test already applied above, pass None to avoid redundant check
             returncode, duration, cases_list = run_tests_with_tasks_concurrent(
                 tasks,
@@ -1072,12 +1110,12 @@ def main():
                 args.timeout,
                 args.verbose,
                 shard_type,
-                args.max_workers,
+                effective_workers,
                 result_module,
                 None,  # quick_test already applied above
             )
             info["per_case_isolation"] = True
-            info["concurrent_workers"] = args.max_workers
+            info["concurrent_workers"] = effective_workers
             info["returncode"] = returncode
             info["duration"] = duration
         else:
@@ -1094,8 +1132,9 @@ def main():
         cases_data = {
             "shard": shard,
             "shard_type": shard_type,
-            "execution_mode": "concurrent",
-            "concurrent_workers": args.max_workers,
+            "execution_mode": execution_mode,
+            "concurrent_workers": effective_workers,
+            "has_distributed_files": has_distributed,
             "total_cases": len(cases_list),
             "passed": passed_count,
             "failed": failed_count,
@@ -1122,6 +1161,9 @@ def main():
             "duration": duration,
             "returncode": returncode,
             "per_case_isolation": True,
+            "execution_mode": execution_mode,
+            "concurrent_workers": effective_workers,
+            "has_distributed_files": has_distributed,
         }
 
         result_module.save_stats_file(str(report_dir), shard, stats, shard_type)
