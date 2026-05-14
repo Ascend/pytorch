@@ -148,7 +148,7 @@ def save_failed_case_log(
     command: str,
 ) -> Path:
     """
-    Save complete execution log for a failed case.
+    Save complete execution log for non-passed cases.
 
     Creates a dedicated log file containing:
     - Case metadata (nodeid, status, duration, returncode)
@@ -158,9 +158,8 @@ def save_failed_case_log(
     Returns:
         Path to the saved log file
     """
-    # Save log for error/timeout cases (no XML generated)
-    # Cases with valid XML don't need log saving (XML contains all info)
-    if status not in ("error", "timeout"):
+    # Save log for all non-passed cases (failed, error, timeout, skipped)
+    if status == "passed":
         return None
 
     # Create failed cases log directory
@@ -601,7 +600,7 @@ def run_single_case_concurrent(
         returncode = result.returncode
 
         # Parse JUnit XML for status
-        # - Has XML: use XML status, don't save logs
+        # - Has XML: use XML status, save logs for non-passed cases
         # - No XML: error, save logs
         xml_result = parse_junit_xml_status(xml_file)
         xml_status = xml_result.get("status")
@@ -610,6 +609,13 @@ def run_single_case_concurrent(
             # No XML → error, save logs
             status = "error"
             message = xml_result.get("message")
+        else:
+            # Has XML → use XML status
+            status = xml_status
+            message = xml_result.get("message", "")
+
+        # Save logs for all non-passed cases (failed, error, timeout, skipped)
+        if status != "passed":
             save_failed_case_log(
                 report_dir=report_dir,
                 shard=shard,
@@ -623,10 +629,6 @@ def run_single_case_concurrent(
                 returncode=returncode,
                 command=command_str,
             )
-        else:
-            # Has XML → use XML status, don't save logs
-            status = xml_status
-            message = xml_result.get("message", "")
 
         case_result = {
             "nodeid": original_nodeid,
