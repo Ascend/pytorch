@@ -44,7 +44,7 @@ on:
       test_files:
         description: 'Test files to run directly (comma-separated, e.g., "test_meta.py,test_nn.py"). Skip shard assignment if set.'
         required: false
-        default: ''
+        default: 'test/fx/test_gradual_type.py'
         type: string
 
 jobs:
