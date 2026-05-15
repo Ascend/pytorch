@@ -135,6 +135,49 @@ class NPUSHMEMSymmetricMemoryTest(MultiProcContinuousTest):
         shmem_matmul = torch.matmul(shmem_tensor, shmem_tensor1)
         self.assertEqual(shmem_matmul, matmul)
 
+    @skipIfUnsupportMultiNPU(2)
+    def test_shmem_put(self) -> None:
+        self._init_device()
+
+        group_name = dist.group.WORLD.group_name
+        symm_mem.enable_symm_mem_for_group(group_name)
+
+        dtype = torch.float
+        numel = 1024
+
+        tensor = symm_mem.empty(numel, dtype=dtype, device=self.device).fill_(self.rank)
+        symm_mem.rendezvous(tensor, group=group_name)
+
+        if self.rank == 0:
+            torch.ops.symm_mem.nvshmem_put(tensor, 1)
+            dist.barrier(device_ids=[self.rank])
+        elif self.rank == 1:
+            dist.barrier(device_ids=[self.rank])
+            torch.testing.assert_close(
+                tensor, torch.zeros(numel, dtype=dtype, device=self.device)
+            )
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_shmem_get(self) -> None:
+        self._init_device()
+
+        group_name = dist.group.WORLD.group_name
+        symm_mem.enable_symm_mem_for_group(group_name)
+
+        dtype = torch.float
+        numel = 1024
+
+        tensor = symm_mem.empty(numel, dtype=dtype, device=self.device).fill_(self.rank)
+        symm_mem.rendezvous(tensor, group=group_name)
+
+        if self.rank == 0:
+            torch.ops.symm_mem.nvshmem_get(tensor, 1)
+            dist.barrier(device_ids=[self.rank])
+            torch.testing.assert_close(
+                tensor, torch.ones(numel, dtype=dtype, device=self.device)
+            )
+        elif self.rank == 1:
+            dist.barrier(device_ids=[self.rank])
 
 if __name__ == "__main__":
     run_tests()

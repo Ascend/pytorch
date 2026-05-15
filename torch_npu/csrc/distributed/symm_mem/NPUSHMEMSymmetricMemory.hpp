@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <torch/csrc/distributed/c10d/symm_mem/SymmetricMemory.hpp>
 #include "torch_npu/csrc/distributed/symm_mem/NPUSHMEMInterface.h"
 #include "torch_npu/csrc/logging/LogContext.h"
@@ -100,6 +101,7 @@ public:
     std::string name() override;
 
 private:
+    std::mutex mutex_;
     std::unordered_map<void*, std::shared_ptr<NPUSHMEMAllocation>> allocations_;
     std::map<std::tuple<void*, std::string>, c10::intrusive_ptr<SymmetricMemory>>
         symm_mems_;
