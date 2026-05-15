@@ -9,9 +9,8 @@
 #include <c10/util/irange.h>
 #include <torch/library.h>
 
-#include <torch_npu/csrc/framework/autograd/FunctionsManual.h>
-#include <torch_npu/csrc/core/npu/NPUException.h>
-#include <torch_npu/csrc/_compat/autograd.h>
+#include "torch_npu/csrc/framework/autograd/FunctionsManual.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
 
 using namespace at;
 using namespace at_npu::autograd::generated;
@@ -99,9 +98,9 @@ namespace {
 Tensor _fw_primal(c10::DispatchKeySet ks, const Tensor& self, int64_t level)
 {
     auto& self_ = unpack(self, "self", 0);
-    torch_npu::compat::GradFnPtr<Identity> grad_fn;
+    std::shared_ptr<Identity> grad_fn;
     if (compute_requires_grad(self)) {
-        grad_fn = torch_npu::compat::make_grad_fn<Identity>();
+        grad_fn = std::make_shared<Identity>();
         grad_fn->set_next_edges(collect_next_edges(self));
     }
 

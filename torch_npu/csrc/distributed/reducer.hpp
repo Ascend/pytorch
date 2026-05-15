@@ -25,8 +25,6 @@
 #include <c10d/logger.hpp>
 #include <c10d/debug.h>
 
-#include <torch_npu/csrc/_compat/autograd.h>
-
 namespace c10d_npu {
 
 constexpr int kDefaultFirstBucketBytes = int(1024 * 1024);
@@ -148,8 +146,8 @@ public:
     // a call to this function can simply be omitted.
     void prepare_for_backward(const std::vector<at::Tensor>& outputs);
 
-    // Called at the beginning of forward() inside DistributedDataParallel,
-    // right now it captures the starting time of forward in each iteration.
+    // Called at the begginning of forward() inside DistributedDataParallel,
+    // right now it caputures the starting time of forward in each iteration.
     void prepare_for_forward();
 
     // Returns the relative time in nanoseconds when gradients were ready,
@@ -217,7 +215,7 @@ public:
 
     // An function for users to set sample_rate of collecting
     // runtime stats. The time stats will be recorded for the
-    // first 10 iterations, after 10 iterations time stats will be
+    // first 10 iterations, after 10 iteratons time stats will be
     // recorded once every "sample_rate" training iterations.
     void set_ddp_runtime_logging_sample_rate(int sample_rate);
 
@@ -251,14 +249,11 @@ protected:
     // NOLINTNEXTLINE(cppcoreguidelines-non-private-member-variables-in-classes)
     std::vector<bool> expect_sparse_gradients_;
 
-    // COMPAT(>= 2.13): grad_accumulators_ and hooks_ element type changed from
-    //   std::shared_ptr<Node> to c10::intrusive_ptr<Node> (#181782).
-    // CAN REMOVE the alias indirection when MIN_SUPPORTED >= (2, 13).
-    std::vector<torch_npu::compat::GradFnPtr<torch::autograd::Node>>
+    std::vector<std::shared_ptr<torch::autograd::Node>>
         grad_accumulators_; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes)
     // NOLINTNEXTLINE(cppcoreguidelines-non-private-member-variables-in-classes)
     std::unordered_map<torch::autograd::Node*, size_t> gradAccToVariableMap_;
-    std::vector<std::pair<uintptr_t, torch_npu::compat::GradFnPtr<torch::autograd::Node>>>
+    std::vector<std::pair<uintptr_t, std::shared_ptr<torch::autograd::Node>>>
         hooks_; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes)
 
     // NOLINTNEXTLINE(cppcoreguidelines-non-private-member-variables-in-classes)
@@ -589,7 +584,7 @@ private:
     // Retrieves parameter names that have not been marked as ready as part of
     // previous iteration.
     std::vector<std::string> getUnmarkedParamsForIteration();
-    // Retrieves parameter indices that have not been marked as ready as part of
+    // Retrives parameter indices that have not been marked as ready as part of
     // previous iteration.
     std::vector<size_t> getUnmarkedParamIndicesForIteration();
     // Raises appropriate error if mark_variable_ready is called on the same

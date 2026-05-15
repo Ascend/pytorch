@@ -47,7 +47,7 @@ def gen_autograd_functions_python(
         infos,
         key_fn=lambda info: info.name,
         base_env={
-            "generated_comment":
+            "generated_comment": 
             f"@ generated from {fm.template_dir_for_comments()}/python_functions.cpp",
         },
         env_callable=lambda info: {
