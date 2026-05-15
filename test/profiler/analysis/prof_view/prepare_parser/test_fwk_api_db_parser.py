@@ -1,6 +1,9 @@
 from unittest.mock import patch
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.profiler.analysis.prof_common_func._constant import Constant
+from torch_npu.profiler.analysis.prof_common_func._constant import (
+    Constant,
+    TorchOpDataOri,
+)
 from torch_npu.profiler.analysis.prof_view.prof_db_parse._fwk_api_db_parser import FwkApiDbParser
 
 
@@ -59,6 +62,44 @@ class TestFwkApiDbParser(TestCase):
             mock_conn_manager_instance = mock_conn_manager.return_value
             mock_conn_manager_instance.get_connection_ids_from_id.return_value = [1]
             parser.get_torch_op_connection_ids_with_task_queue(task_enqueues, task_dequeues, torch_op_apis, len(torch_op_apis), node_launch_apis)
+
+    def test_get_torch_op_connection_ids_with_task_queue_not_match_different_tid(self):
+        parser = FwkApiDbParser("test_fwk_api", self.param_dict)
+        torch_op_api = [1000, 2000, 1, [], "torch_op1", 0, 0, "", "", ""]
+        task_enqueue = [1200, 1300, 1, 1, "enqueue"]
+        task_dequeue = [1400, 1600, 1, 1, "dequeue"]
+        node_launch_api = [1450, 1550, 2, 100]
+
+        with patch('torch_npu.profiler.analysis.prof_view.prof_db_parse._fwk_api_db_parser.ConnectionIdManager') as mock_conn_manager:
+            mock_conn_manager_instance = mock_conn_manager.return_value
+            mock_conn_manager_instance.get_connection_ids_from_id.side_effect = lambda source_id: [source_id]
+            parser.get_torch_op_connection_ids_with_task_queue(
+                [task_enqueue],
+                [task_dequeue],
+                [torch_op_api],
+                1,
+                [node_launch_api],
+            )
+
+        self.assertEqual([], torch_op_api[TorchOpDataOri.CONNECTION_ID])
+
+        torch_op_api = [1000, 2000, 1, [], "torch_op1", 0, 0, "", "", ""]
+        task_enqueue = [1200, 1300, 2, 1, "enqueue"]
+        task_dequeue = [1400, 1600, 2, 1, "dequeue"]
+        node_launch_api = [1450, 1550, 2, 200]
+
+        with patch('torch_npu.profiler.analysis.prof_view.prof_db_parse._fwk_api_db_parser.ConnectionIdManager') as mock_conn_manager:
+            mock_conn_manager_instance = mock_conn_manager.return_value
+            mock_conn_manager_instance.get_connection_ids_from_id.side_effect = lambda source_id: [source_id]
+            parser.get_torch_op_connection_ids_with_task_queue(
+                [task_enqueue],
+                [task_dequeue],
+                [torch_op_api],
+                1,
+                [node_launch_api],
+            )
+
+        self.assertEqual([], torch_op_api[TorchOpDataOri.CONNECTION_ID])
 
     def test_get_mstx_mark_op_connection_ids_with_cann_api_no_cann_tx_apis(self):
         parser = FwkApiDbParser("test_fwk_api", self.param_dict)
