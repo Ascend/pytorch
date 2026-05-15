@@ -120,6 +120,17 @@ def _super_kernel_scope_end_impl(scope_name: Optional[str] = None) -> None:
 
 _save_npugraph_tensor_lock = threading.Lock()
 _save_npugraph_tensor_counters = {}
+_save_tensor_streams: Dict[int, "torch_npu.npu.Stream"] = {}
+_save_tensor_stream_lock = threading.Lock()
+
+
+def _get_save_tensor_stream(device_index: int):
+    with _save_tensor_stream_lock:
+        if device_index not in _save_tensor_streams:
+            _save_tensor_streams[device_index] = torch.npu.Stream(
+                device=device_index, priority=-1
+            )
+        return _save_tensor_streams[device_index]
 
 
 def _build_save_npugraph_tensor_path(save_path=None, device_index=None, overwrite=False):
@@ -190,13 +201,30 @@ def _print_npugraph_tensor_impl(input, tensor_name=None):
         _print_callback_pending(tensor_name, input)
         return
 
-    cpu_arg = input.to("cpu", non_blocking=True)
-    current_compute_stream = torch_npu.npu.current_stream()
-    torch_npu.npu._launch_host_func_pending(
-        current_compute_stream,
-        _print_callback_pending,
-        (tensor_name, cpu_arg),
-    )
+    device_index = device.index
+    save_stream = _get_save_tensor_stream(device_index)
+    
+    # Record event on the original compute stream before switching
+    event1 = torch.npu.Event()
+    event2 = torch.npu.Event()
+    event1.record()
+    
+    with torch.npu.stream(save_stream):
+        # Wait for the original stream to complete before D2H
+        event1.wait()
+        cpu_arg = input.to("cpu", non_blocking=True)
+        # Get current stream inside context (which is save_stream)
+        current_stream = torch.npu.current_stream()
+        torch_npu.npu._launch_host_func_pending(
+            current_stream,
+            _print_callback_pending,
+            (tensor_name, cpu_arg),
+        )
+        # Mark save_stream completion
+        event2.record()
+    
+    # Wait for save_stream to complete (back to original stream now)
+    event2.wait()
 
 
 def _save_npugraph_tensor_impl(input, save_path=None, overwrite=False):
@@ -208,10 +236,31 @@ def _save_npugraph_tensor_impl(input, save_path=None, overwrite=False):
         torch.save(input, _build_save_npugraph_tensor_path(save_path, overwrite=overwrite))
         return
 
-    final_path = _build_save_npugraph_tensor_path(save_path, device.index, overwrite)
-    cpu_arg = input.to("cpu", non_blocking=True)
-    current_compute_stream = torch_npu.npu.current_stream()
-    torch_npu.npu._launch_host_func_pending(current_compute_stream, _save_callback_pending, (cpu_arg, final_path))
+    device_index = device.index
+    save_stream = _get_save_tensor_stream(device_index)
+    final_path = _build_save_npugraph_tensor_path(save_path, device_index, overwrite)
+    
+    # Record event on the original compute stream before switching
+    event1 = torch.npu.Event()
+    event2 = torch.npu.Event()
+    event1.record()
+    
+    with torch.npu.stream(save_stream):
+        # Wait for the original stream to complete before D2H
+        event1.wait()
+        cpu_arg = input.to("cpu", non_blocking=True)
+        # Get current stream inside context (which is save_stream)
+        current_stream = torch.npu.current_stream()
+        torch_npu.npu._launch_host_func_pending(
+            current_stream,
+            _save_callback_pending,
+            (cpu_arg, final_path),
+        )
+        # Mark save_stream completion
+        event2.record()
+    
+    # Wait for save_stream to complete (back to original stream now)
+    event2.wait()
 
 
 def _save_npugraph_tensor_tensor_list_impl(input, save_path=None, overwrite=False):
@@ -220,10 +269,31 @@ def _save_npugraph_tensor_tensor_list_impl(input, save_path=None, overwrite=Fals
         torch.save(list(input), _build_save_npugraph_tensor_path(save_path, overwrite=overwrite))
         return
 
-    final_path = _build_save_npugraph_tensor_path(save_path, device.index, overwrite)
-    cpu_args = [tensor.to("cpu", non_blocking=True) for tensor in input]
-    current_compute_stream = torch_npu.npu.current_stream()
-    torch_npu.npu._launch_host_func_pending(current_compute_stream, _save_callback_pending, (cpu_args, final_path))
+    device_index = device.index
+    save_stream = _get_save_tensor_stream(device_index)
+    final_path = _build_save_npugraph_tensor_path(save_path, device_index, overwrite)
+    
+    # Record event on the original compute stream before switching
+    event1 = torch.npu.Event()
+    event2 = torch.npu.Event()
+    event1.record()
+    
+    with torch.npu.stream(save_stream):
+        # Wait for the original stream to complete before D2H
+        event1.wait()
+        cpu_args = [tensor.to("cpu", non_blocking=True) for tensor in input]
+        # Get current stream inside context (which is save_stream)
+        current_stream = torch.npu.current_stream()
+        torch_npu.npu._launch_host_func_pending(
+            current_stream,
+            _save_callback_pending,
+            (cpu_args, final_path),
+        )
+        # Mark save_stream completion
+        event2.record()
+    
+    # Wait for save_stream to complete (back to original stream now)
+    event2.wait()
 
 
 _npu_lib = torch.library.Library("npu", "FRAGMENT")
