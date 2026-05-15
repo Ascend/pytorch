@@ -1,7 +1,12 @@
 import torch
 import torch_npu
 
-from torch_npu.npu._recovery import check_npu_tensor_is_safe, mark_all_npu_tensor_unsafe, set_npu_tensor_unsafe_check_flag
+from torch_npu.npu._recovery import (
+    check_npu_tensor_is_safe,
+    mark_all_npu_tensor_unsafe,
+    set_npu_tensor_unsafe_check_flag,
+    get_npu_tensor_unsafe_check_flag,
+)
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.npu._recovery import restart_device
 
@@ -45,6 +50,30 @@ class TestNpu(TestCase):
     def test_check_npu_tensor_is_safe_invalid_type(self):
         with self.assertRaises(RuntimeError):
             check_npu_tensor_is_safe("invalid_tensor")
+
+    def test_restart_device_with_disable_tensor_unsafe_check(self):
+        torch.npu.set_device(0)
+        tensor = torch.randn(2, 3, device="npu:0")
+
+        set_npu_tensor_unsafe_check_flag(False)
+        self.assertTrue(check_npu_tensor_is_safe(tensor))
+        self.assertFalse(get_npu_tensor_unsafe_check_flag())
+
+        restart_device(0, rebuild_all_resources=True, disable_tensor_unsafe_check=True)
+        self.assertTrue(check_npu_tensor_is_safe(tensor))
+        self.assertFalse(get_npu_tensor_unsafe_check_flag())
+
+        set_npu_tensor_unsafe_check_flag(False)
+        restart_device(0, rebuild_all_resources=True, disable_tensor_unsafe_check=False)
+        self.assertFalse(check_npu_tensor_is_safe(tensor))
+        self.assertTrue(get_npu_tensor_unsafe_check_flag())
+
+        set_npu_tensor_unsafe_check_flag(False)
+        restart_device(0, rebuild_all_resources=True)
+        self.assertFalse(check_npu_tensor_is_safe(tensor))
+        self.assertTrue(get_npu_tensor_unsafe_check_flag())
+
+        set_npu_tensor_unsafe_check_flag(False)
 
 
 if __name__ == '__main__':
