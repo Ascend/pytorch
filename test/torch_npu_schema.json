@@ -1152,7 +1152,7 @@
     "signature": "(device=None)"
   },
   "torch_npu.npu.restart_device": {
-    "signature": "(device_id: int, rebuild_all_resources: int = False)"
+    "signature": "(device_id: int, rebuild_all_resources: bool = False, disable_tensor_unsafe_check: bool = False)"
   },
   "torch_npu.npu.stop_device": {
     "signature": "(device_id)"
