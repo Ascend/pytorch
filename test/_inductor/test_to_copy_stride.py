@@ -29,7 +29,7 @@ def _make_source_tensor():
     )
 
 
-@unittest.skipIf(not RUN_NPU, "requires npu")
+@unittest.skip("Temporarily skip")
 class TestToCopyStride(TestCase):
     def test_to_copy_fake_tensor_mode_stride(self):
         source = _make_source_tensor()

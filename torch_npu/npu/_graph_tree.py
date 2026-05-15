@@ -115,7 +115,7 @@ StorageWeakRefPointer = int
 StorageDataPtr = int
 NBytes = int
 S = TypeVar("S", bound="StorageWeakRefWrapper")
-log = logging.getLogger("torch_npu.npugraph")
+log = torch._logging.getArtifactLogger("torch_npu.npugraph", "cudagraphs")
 
 
 @dataclasses.dataclass(frozen=True)
