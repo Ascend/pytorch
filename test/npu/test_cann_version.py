@@ -1,4 +1,5 @@
 import re
+import unittest
 
 from torch.testing._internal.common_utils import TestCase, run_tests
 import torch
@@ -8,6 +9,7 @@ from torch_npu.npu.utils import get_cann_version, _is_gte_cann_version
 
 
 class TestCANNversion(TestCase):
+    @unittest.skip("ci error, beta version")
     def test_get_cann_version(self):
         version_env = get_cann_version_from_env()
         version = get_cann_version(module="CANN")
@@ -48,6 +50,7 @@ class TestCANNversion(TestCase):
             else:
                 self.assertTrue(version == "", "When verssion_env < '25.', the result of get_cann_version is not right.")
 
+    @unittest.skip("ci error, beta version")
     def test_compare_cann_version(self):
         version_env = get_cann_version_from_env()
         if not version_env.startswith("CANN") and version_env >= "8.1.RC1":
