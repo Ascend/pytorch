@@ -80,7 +80,8 @@ def _load_kernel(
     kernel.init(module=source_code, extra_env=extra_env)
     try:
         kernel.get_best_kernel()
-    except:
+    # [wtd#25] Use except Exception instead of bare except to avoid catching KeyboardInterrupt and system exceptions
+    except Exception:
         kernel.precompile(device_info=device_info, suppress_error=suppress_error)
     return kernel
 
@@ -258,7 +259,8 @@ class CustomAsyncCompile(AsyncCompile):
                 try:
                     kernel.get_best_kernel()
                     return kernel
-                except:
+                # [wtd#26] Use except Exception instead of bare except to avoid catching KeyboardInterrupt and system exceptions
+                except Exception:
                     future = self.process_pool().submit(
                         _worker_compile, kernel, cc, device, logger_level=logger.level, extra_env=extra_env
                     )

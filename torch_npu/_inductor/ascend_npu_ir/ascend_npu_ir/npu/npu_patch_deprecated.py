@@ -33,7 +33,6 @@ def _patch_add_ephemeral_timeout_for_all_pgs(timeout: timedelta) -> None:
     This API adds an ephemeral timeout extension for all PGs locally
     on one rank. The timeout gets reset when the first collective issued
     after API called finished.
-    NOTE: We only support to set timeout for cuda backends for now.
     NOTE: While this feature
     provides flexibility in specific scenarios, it introduces statefulness
     to timeout setting. Therefore, it is advisable to use this API sparingly
