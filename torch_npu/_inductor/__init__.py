@@ -74,11 +74,11 @@ else:
     from .npu_device import NewNPUDeviceOpOverrides
     from .npu_fusion_attention_graph import register_fa_pass
     from .runtime import _load_cached_autotuning
+    from .scheduler import patch_get_graph_partition_signature
     from .utils import (
         disable_foreach,
         patch_get_first_incompatible_cudagraph_node,
         patch_is_cudagraph_unsafe_op,
-
     )
 
     def _inductor_register_backend_for_device():
@@ -168,6 +168,7 @@ else:
     patch_get_first_incompatible_cudagraph_node()
     patch_get_optimization_cflags()
     patch_is_cudagraph_unsafe_op()
+    patch_get_graph_partition_signature()
     os.environ["TORCHINDUCTOR_COMPREHENSIVE_PADDING"] = "0"
     torch._inductor.config.comprehensive_padding = False
     os.environ["TORCHINDUCTOR_COMPILE_THREADS"] = "1"

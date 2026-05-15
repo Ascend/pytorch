@@ -8,6 +8,7 @@ prims = torch.ops.prims
 
 GENERATE_LIST = [
     prims.iota,
+    prims.device_put,
     aten.full,
     aten.mul,
     aten.add,
@@ -74,11 +75,13 @@ GENERATE_LIST = [
     aten.isnan,
     aten.bitwise_and,
     aten.squeeze,
+    aten.unbind,
     aten.copy,
     aten.reciprocal,
     aten._assert_scalar,
     triton_kernel_wrapper_mutation,
     torch.ops.higher_order.invoke_subgraph,
+    torch.ops.higher_order.cond,
     torch.ops._inductor_test.realize,
  	torch.ops._inductor_test.realize.default,
  	 

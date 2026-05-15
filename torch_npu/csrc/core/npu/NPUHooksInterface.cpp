@@ -1,5 +1,6 @@
 #include "torch_npu/csrc/core/npu/NPUHooksInterface.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
+#include "torch_npu/csrc/core/npu/CachingHostAllocator.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/aten/common/ResizeNpu.h"
@@ -61,6 +62,16 @@ void NPUHooksInterface::resizePrivateUse1Bytes(const c10::Storage &storage, size
 bool NPUHooksInterface::isAvailable() const
 {
     return c10_npu::device_count() > 0;
+}
+
+bool NPUHooksInterface::isPinnedPtr(const void* data) const
+{
+    return at_npu::native::CachingHostAllocator_isPinned(const_cast<void*>(data));
+}
+
+c10::Allocator* NPUHooksInterface::getPinnedMemoryAllocator() const
+{
+    return at_npu::native::getPinnedMemoryAllocator();
 }
 
 at::PrivateUse1HooksInterface* get_npu_hooks()

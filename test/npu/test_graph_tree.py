@@ -221,7 +221,7 @@ class TestTreeManagerIntegration(TestCase):
     def test_reset_npugraph_trees(self):
         get_container(0)  # Initialize a container
         reset_npugraph_trees()
-        container_dict = getattr(local, "tree_manager_containers", {})
+        container_dict = getattr(local, "npu_tree_manager_containers", {})
         self.assertEqual(len(container_dict), 0)
 
 
