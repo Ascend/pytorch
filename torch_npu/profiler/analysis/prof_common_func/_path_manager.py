@@ -2,7 +2,9 @@ import os
 import re
 
 from torch_npu.utils._error_code import ErrCode, prof_error
+
 from ._constant import Constant
+
 
 __all__ = []
 
@@ -20,7 +22,9 @@ class ProfilerPathManager:
         sub_dirs = os.listdir(os.path.realpath(profiler_path))
         for sub_dir in sub_dirs:
             sub_path = os.path.join(profiler_path, sub_dir)
-            if os.path.isdir(sub_path) and re.match(r"^PROF_\d+_\d+_[0-9a-zA-Z]+", sub_dir):
+            if os.path.isdir(sub_path) and re.match(
+                r"^PROF_\d+_\d+_[0-9a-zA-Z]+", sub_dir
+            ):
                 return sub_path
         return ""
 
@@ -37,7 +41,7 @@ class ProfilerPathManager:
 
     @classmethod
     def get_info_path(cls, profiler_path: str) -> str:
-        info_path = os.path.join(cls.get_cann_path(profiler_path), 'host/info.json')
+        info_path = os.path.join(cls.get_cann_path(profiler_path), "host/info.json")
         if os.path.exists(info_path):
             return info_path
         else:
@@ -45,7 +49,9 @@ class ProfilerPathManager:
 
     @classmethod
     def get_host_start_log_path(cls, profiler_path: str) -> str:
-        info_path = os.path.join(cls.get_cann_path(profiler_path), 'host/host_start.log')
+        info_path = os.path.join(
+            cls.get_cann_path(profiler_path), "host/host_start.log"
+        )
         if os.path.exists(info_path):
             return info_path
         else:
@@ -53,7 +59,7 @@ class ProfilerPathManager:
 
     @classmethod
     def get_host_path(cls, cann_path: str) -> str:
-        host_path = os.path.join(cann_path, 'host')
+        host_path = os.path.join(cann_path, "host")
         if os.path.exists(host_path):
             return host_path
         else:
@@ -103,6 +109,15 @@ class ProfilerPathManager:
             return start_info_path
         return ""
 
+    @classmethod
+    def get_plt_dir_path(cls, profiler_path: str) -> str:
+        plt_dir_pattern = Constant.PLATFORM_ANALYSIS_DIR + r"_\d{1,20}"
+        sub_dirs = os.listdir(os.path.realpath(profiler_path))
+        for sub_dir in sub_dirs:
+            sub_path = os.path.join(profiler_path, sub_dir)
+            if os.path.isdir(sub_path) and re.match(plt_dir_pattern, sub_dir):
+                return sub_path
+        return ""
 
     @classmethod
     def get_profiler_path_list(cls, input_path: str) -> list:
@@ -121,7 +136,9 @@ class ProfilerPathManager:
         return profiler_path_list
 
     @classmethod
-    def get_output_all_file_list_by_type(cls, profiler_path: str, mindstudio_profiler_output: str) -> list:
+    def get_output_all_file_list_by_type(
+        cls, profiler_path: str, mindstudio_profiler_output: str
+    ) -> list:
         file_list = []
         _path = os.path.join(profiler_path, mindstudio_profiler_output)
         if not os.path.isdir(_path):
@@ -159,10 +176,15 @@ class ProfilerPathManager:
     @classmethod
     def get_realpath(cls, path: str) -> str:
         if not path:
-            raise RuntimeError("Input path is empty, please check. " + "ErrorType: {}".format(ErrCode.UNAVAIL.msg))
+            raise RuntimeError(
+                "Input path is empty, please check. "
+                + f"ErrorType: {ErrCode.UNAVAIL.msg}"
+            )
         path = os.path.expanduser(path)
         if os.path.islink(path):
-            msg = f"Invalid input path is a soft chain: {path}" + prof_error(ErrCode.UNAVAIL)
+            msg = f"Invalid input path is a soft chain: {path}" + prof_error(
+                ErrCode.UNAVAIL
+            )
             raise RuntimeError(msg)
         return os.path.realpath(path)
 
@@ -177,7 +199,9 @@ class ProfilerPathManager:
                     full_path = entry.path
                     paths.append(full_path)
                     # Recursively obtain subdirectories and paths
-                    paths.extend(cls.get_all_subdir(full_path, max_depth, cur_depth + 1))
+                    paths.extend(
+                        cls.get_all_subdir(full_path, max_depth, cur_depth + 1)
+                    )
         return paths
 
     @classmethod
