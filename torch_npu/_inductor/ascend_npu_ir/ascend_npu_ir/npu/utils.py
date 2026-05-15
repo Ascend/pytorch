@@ -40,6 +40,7 @@ except ImportError:
     print("Can NOT find torch_mlir, INSTALL it first.")
 
 from ..build_info import ABI_TAG
+from .. import config as anir_config
 
 MLIR_DTYPE_MAPPING = {
     "f32": torch.float32,
@@ -360,6 +361,41 @@ def npu_optimize_fx_graph(gm: torch.fx.GraphModule):
                 gm.graph.erase_node(node0)
                 
     gm.recompile()
+
+
+def fold_expand(gm: torch.fx.GraphModule) -> None:
+    changed = False
+    graph = gm.graph
+    pointwise_names = {str(op).split('.')[-1] for op in anir_config.POINTWISE_OPS}
+    for node in reversed(graph.nodes):
+        op_name = str(node.target).split('.')[-2] if '.' in str(node.target) else str(node.target)
+        if node.op != 'call_function' or op_name not in pointwise_names:
+            continue
+
+        inp0 = node.args[0] if len(node.args) > 0 else None
+        inp1 = node.args[1] if len(node.args) > 1 else None
+        if (isinstance(inp0, torch.fx.Node) and inp0.op == 'call_function' and 
+            inp0.target == torch.ops.aten.expand.default):
+            if len(inp0.args) > 0:
+                expand_input = inp0.args[0]
+                node.replace_input_with(inp0, expand_input)
+                if len(inp0.users) == 0:
+                    graph.erase_node(inp0)
+                    changed = True
+        elif (isinstance(inp1, torch.fx.Node) and inp1.op == 'call_function' and 
+            inp1.target == torch.ops.aten.expand.default):
+            if len(inp1.args) > 0:
+                expand_input = inp1.args[0]
+                node.replace_input_with(inp1, expand_input)
+                if len(inp1.users) == 0:
+                    graph.erase_node(inp1)
+                    changed = True
+    if changed:
+        graph.lint()
+        graph.eliminate_dead_code()
+    
+    gm.recompile()
+
 
 def get_last_node(gm: torch.fx.GraphModule):
     last_node = None
