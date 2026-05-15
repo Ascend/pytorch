@@ -26,8 +26,9 @@ def _load_cached_autotuning(
     best_config.pop("time_taken_ms", None)
 
     # if inductor_meta.get("coordinate_descent_tuning") :
-    num_warps = best_config.pop("num_warps")
-    num_stages = best_config.pop("num_stages")
+    
+    num_warps = best_config.pop("num_warps", None)
+    num_stages = best_config.pop("num_stages", None)
     triton_config = Config(best_config, num_warps=num_warps, num_stages=num_stages)
     triton_config.found_by_coordesc = True
     return triton_config

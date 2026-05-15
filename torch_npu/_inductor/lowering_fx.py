@@ -3,6 +3,7 @@ import itertools
 import os
 import math
 import textwrap
+from torch_npu.utils._path_manager import PathManager
 from typing import (
     Any,
     Callable,
@@ -742,7 +743,9 @@ def _make_reduction_inner(x, *, axis, keepdims, dtype, override_return_dtype):
     
 def dump_fx_graph_code(code, dump_path, traced_graph_hash):
     py_path = os.path.join(dump_path, traced_graph_hash + '.py')
-    with open(py_path, 'w') as f:
+    PathManager.check_input_file_path(py_path)
+    fd = os.open(py_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, PathManager.DATA_DIR_AUTHORITY)
+    with os.fdopen(fd, 'w') as f:
         f.write(code)
 
 
