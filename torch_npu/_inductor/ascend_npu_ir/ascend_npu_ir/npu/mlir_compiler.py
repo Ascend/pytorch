@@ -1,8 +1,9 @@
 import os
 import sys
 import functools
-from typing import Callable, Dict, Any, Union, List, Tuple, Iterator
+from typing import Callable, Dict, Any, List, Tuple, Iterator, Optional
 from itertools import count
+from pathlib import Path
 import importlib
 import tempfile
 import subprocess
@@ -16,6 +17,7 @@ from torch._inductor.runtime.cache_dir_utils import triton_cache_dir
 
 
 from .utils import (
+    MLIRProcessor,
     _build_npu_ext,
     replace_placeholders,
     do_bench,
@@ -24,47 +26,39 @@ from .utils import (
 from .. import config as anir_config
 from ..cache import get_cache_manager
 from .codegen.cpp_wrapper import cpp_launcher
+from .meta_compiler import MetaCompiler
+
+akg_spec = importlib.util.find_spec("akg")
+if akg_spec is not None:
+    from akg.kernel import Kernel as MlirKernel
 
 
 reinterpret_tensor = torch.ops.inductor._reinterpret_tensor
 global_cache = set()
-_dump_id_iter: Iterator[int] = count()
 
-class NpuMlirCompiler:
+class NpuMlirCompiler(MetaCompiler):
     def __init__(self, 
             kernel_name: str = '', 
             multiprocess_compile=False, 
             no_more_compile=False,
             kernel_meta=None,
             autotune=True):
+        super().__init__(
+            kernel_name=kernel_name,
+            multiprocess_compile=multiprocess_compile,
+            no_more_compile=no_more_compile,
+            kernel_meta=kernel_meta,
+            autotune=autotune,
+        )
         self.function = None
         self.mode = None
         self.launch = None
-        self.dynamic = kernel_meta.get('dynamic')
-        self.mutated_indices = kernel_meta.get('mutated_indices')
-        self.kernel_hash = kernel_meta.get('kernel_hash')
-        self.signature = kernel_meta.get('signature')
-        self.ranks = kernel_meta.get('ranks')
-        self.num_outputs = kernel_meta.get('num_outputs')
-        self.num_call_functions = kernel_meta.get('num_call_functions')
-        self.device_index = kernel_meta.get('device_index', 0)
-        self.traced_graph_hash = kernel_meta.get('traced_graph_hash', 0)
-        self.kernel_meta = kernel_meta
         if self.dynamic:
             self.get_host_func_and_tiling_size = None
-        self.kernel_name = kernel_name
-        self.launchers = []
-        self.kernel_paths = []
-        self.is_fallback_kernels = []
-        self.multiprocess_compile = multiprocess_compile
-        self.no_more_compile = no_more_compile
         self.mlir_processed = False
         self.fx_graph_launcher = None
         self.mlir_text = None
-        self.non_contiguous_inputs = None
-        self.non_contiguous_outputs = None
         self.autotuned = False
-        self.autotune = autotune
 
     def init(self, module, extra_env):
         os.environ.update(extra_env)
@@ -73,34 +67,16 @@ class NpuMlirCompiler:
             os.environ["TRITON_CACHE_DIR"] = triton_cache_dir(
                 self.kernel_meta.get("device_index", 0)
             )
-        self.cache = get_cache_manager(self.kernel_hash)
+        self.cache = get_cache_manager(self.kernel_hash or self.traced_graph_hash)
+        self.mlir_text, self.kernel_info = self._to_named_op_mlir(module)
         self.prepare_launch(need_pickle=self.multiprocess_compile)
         self.get_named_op_path()
 
-    def register_fx_fallback(self, kernel_meta):
-        def fx_graph_call(module: torch.nn.Module, num_outputs):
-            def module_call(*args, **kwargs):
-                actual_args = args[:-num_outputs]
-                actual_outputs = module.forward(*actual_args)
-                for out1, out2 in zip(actual_outputs, args[-num_outputs:]):
-                    if isinstance(out1, torch.Tensor) and not out1.is_contiguous():
-                        out1 = out1.contiguous()
-                    out2.data = out1.data
-            return module_call
-        num_outputs = kernel_meta.get('num_outputs', 0)
-        traced_graph_hash = kernel_meta.get('traced_graph_hash')
-        traced_graph_cache = os.path.join(os.getenv("TORCHINDUCTOR_CACHE_DIR"), kernel_meta.get('traced_graph_cache'))
-        device_index = kernel_meta.get('device_index')
-        dump_path = os.path.join(traced_graph_cache, str(device_index), traced_graph_hash)
-        sys.path.append(dump_path)
-        module = importlib.import_module(traced_graph_hash)
-        sys.path.remove(dump_path)
-        Model = getattr(module, traced_graph_hash)
-        if Model is None:
-            raise RuntimeError('Cannot find valid graph module!')
-        model = Model()
-        module_call = fx_graph_call(model, num_outputs)
-        self.register_launcher(module_call, kernel_path=self.kernel_name + "_fx_fallback", is_fallback_kernel=True)
+    def _to_named_op_mlir(self, module):
+        mlir_processor = MLIRProcessor()
+        return mlir_processor.get_named_op_str(
+            module, self.kernel_name, dynamic=self.dynamic
+        )
 
     def bisheng_compile(self,
                         input_path: str,
@@ -229,9 +205,7 @@ class NpuMlirCompiler:
                           is_fallback_kernel=False):
         if num_outputs:
             self.num_outputs = num_outputs
-        self.launchers.append(launcher)
-        self.kernel_paths.append(kernel_path)
-        self.is_fallback_kernels.append(is_fallback_kernel)
+        super().register_launcher(launcher, kernel_path, is_fallback_kernel)
         self.fx_graph_launcher = launcher
         if kernel_path.endswith('_fx_fallback'):
             if auto_fallback:
@@ -503,111 +477,6 @@ class NpuMlirCompiler:
         else:
             self.cache.put(self.kernel_paths[0].split('/')[-1], "best_kernel", binary=False)
 
-    def data_dump(self, *args, dump_path=None):
-        if not dump_path:
-            dump_path = os.path.join(anir_config.fx_subgraph_dump_path, str(self.device_index), self.kernel_name)
-        data_dump_path = os.path.join(dump_path, 'data.pth')
-        args_cpu = [arg.cpu() if isinstance(arg, torch.Tensor) else arg for arg in args]
-        torch.save(args_cpu, data_dump_path)
-
-    def data_dump_fake(self, *args, dump_path=None):
-        if not dump_path:
-            dump_path = os.path.join(anir_config.fx_subgraph_dump_path, str(self.device_index), self.kernel_name)
-        runable_py_path = os.path.join(dump_path, f'runnable_{self.kernel_name}.py')
-        fake_inputs = [f'rand_strided({arg.shape}, {arg.stride()}, device="{arg.device.type}", dtype={arg.dtype})' \
-                       if isinstance(arg, torch.Tensor) else str(arg) for arg in args[:-self.num_outputs]]
-        fake_outputs = [f'empty_strided({arg.shape}, {arg.stride()}, device="{arg.device.type}", dtype={arg.dtype})' \
-                        if isinstance(arg, torch.Tensor) else str(arg) for arg in args[-self.num_outputs:]]
-        replacements = {"FAKE_ARGS_PLACEHOLDER": f"args = [{', '.join(fake_inputs + fake_outputs)}]"}
-        replace_placeholders(runable_py_path, replacements)
-
-    def fx_subgraph_dump(self, suffix):
-        subgraph_dump_path = os.path.join(anir_config.fx_subgraph_dump_path, str(self.device_index), self.kernel_name)
-        failed_fx_subgraph_dump_path = anir_config.fx_subgraph_dump_path + f'_{suffix}'
-        failed_subgraph_dump_path = os.path.join(failed_fx_subgraph_dump_path, str(self.device_index), f'{next(_dump_id_iter)}_' + self.kernel_name)
-        if os.path.exists(failed_subgraph_dump_path):
-            shutil.rmtree(failed_subgraph_dump_path)
-        shutil.copytree(subgraph_dump_path, failed_subgraph_dump_path)
-        return failed_subgraph_dump_path
-        
-    def acc_compare_and_dump(self, *args, **kwargs):
-        from torch.testing._comparison import _make_mismatch_msg
-        self.register_fx_fallback(self.kernel_meta)
-        launcher_fx = self.launchers[1]
-        launcher = self.launchers[0]
-
-        fx_outputs = [clone_preserve_strides(arg).to(torch.float32) if arg.dtype == torch.bfloat16 \
-                      else clone_preserve_strides(arg) for arg in args[-self.num_outputs:]]
-        fx_inputs = [clone_preserve_strides(arg) if isinstance(arg, torch.Tensor) else arg for arg in args[:-self.num_outputs]]
-        fx_inputs = [inp.float() if isinstance(inp, torch.Tensor) and inp.dtype == torch.bfloat16 else inp for inp in fx_inputs]
-        
-        fx_args = fx_inputs + fx_outputs
-        launcher_fx(*fx_args, **kwargs)
-
-        if self.dynamic:
-            args_new = ()
-            for arg in args:
-                if not torch.is_tensor(arg):
-                    args_new = args_new + (arg, )
-                    continue
-                args_new = args_new + (arg, arg, 0) + arg.size() + arg.stride()
-        else:
-            args_new = args
-        
-        output = launcher(*args_new, **kwargs)
-
-        has_acc_error = False
-        num_inputs = len(args) - self.num_outputs
-        for idx, (actual, expected) in enumerate(zip(args[num_inputs:], fx_outputs)):
-            if actual.dtype != expected.dtype:
-                expected = expected.to(actual.dtype)
-            acc_comp_tol = anir_config.acc_comp_tol.get(actual.dtype, anir_config.acc_comp_tol['default'])
-            rtol = acc_comp_tol['rtol']
-            atol = acc_comp_tol['atol']
-            matches = torch.isclose(
-                actual, expected, rtol=rtol, atol=atol, equal_nan=True
-            )
-            if not matches.all():
-                abs_diff = abs(actual - expected)
-                rel_diff = abs_diff / abs(expected)
-                rel_diff.masked_fill_(matches, 0)
-                number_of_elements = matches.numel()
-                total_mismatches = number_of_elements - int(torch.sum(matches))
-                extra = (
-                    f"Mismatched elements: {total_mismatches} / {number_of_elements} "
-                    f"({total_mismatches / number_of_elements:.1%})"
-                )
-                msg = _make_mismatch_msg(
-                    default_identifier="Tensor-likes",
-                    identifier=None,
-                    extra=extra,
-                    abs_diff=abs_diff.max().item(),
-                    abs_diff_idx=None,
-                    atol=atol,
-                    rel_diff=rel_diff.max().item(),
-                    rel_diff_idx=None,
-                    rtol=rtol,
-                )
-                print(f"Kernel Name: {self.kernel_name}\n{msg}", flush=True)
-                has_acc_error = True
-
-                del abs_diff
-                del rel_diff
-            del matches
-            del expected
-        
-        if anir_config.fx_subgraph_dump_path:
-            data = args
-            if has_acc_error:
-                data_dump_path = self.fx_subgraph_dump('acc_failed')
-                self.data_dump_fake(*data, dump_path=data_dump_path)
-        del fx_inputs
-        torch.npu.synchronize()
-        self.launchers = [self.launchers[0]]
-        self.is_fallback_kernels = [self.is_fallback_kernels[0]]
-        
-        return output
-    
     def mlir_dump(self, *args, **kwargs):
         self.data_dump(*args)
         launcher_fx = self.launchers[-1]
@@ -619,82 +488,58 @@ class NpuMlirCompiler:
         for idx in self.non_contiguous_indices['inputs']:
             args[idx] = args[idx].contiguous()
         return tuple(args)
-        
-    def run(self, *args, **kwargs):
-        args = list(args)
-        
-        if self.non_contiguous_inputs is None:
-            self.non_contiguous_inputs = []
-            if self.num_call_functions > 0:
-                for idx, arg in enumerate(args[:-self.num_outputs]):
-                    if isinstance(arg, torch.Tensor) and not arg.is_contiguous():
-                        args[idx] = args[idx].contiguous()
-                        self.non_contiguous_inputs.append(idx)
-        else:
-            for idx in self.non_contiguous_inputs:
-                args[idx] = args[idx].contiguous()
 
-        contiguous_outputs = []
-        
-        if self.non_contiguous_outputs is None:
-            self.non_contiguous_outputs = []
-            original_outputs = []
-            num_inputs = len(args) - self.num_outputs
-            for idx, arg in enumerate(args[num_inputs:]):
-                if isinstance(arg, torch.Tensor) and not arg.is_contiguous():
-                    contiguous_output = torch.empty(
-                        arg.shape, 
-                        dtype=arg.dtype, 
-                        device=arg.device)
-                    arg_idx = idx - self.num_outputs
-                    original_outputs.append(arg)
-                    args[arg_idx] = contiguous_output
-                    self.non_contiguous_outputs.append(arg_idx)
-                    contiguous_outputs.append(contiguous_output)
-        else:
-            original_outputs = []
-            for idx in self.non_contiguous_outputs:
-                contiguous_output = torch.empty(
-                    args[idx].shape, 
-                    dtype=args[idx].dtype, 
-                    device=args[idx].device)
-                original_outputs.append(args[idx])
-                args[idx] = contiguous_output
-                contiguous_outputs.append(contiguous_output)
-    
-        if not self.autotuned:
-            if self.autotune:
-                self.register_fx_fallback(self.kernel_meta)
-                self.autotune_to_one_config(*args, **kwargs)
-            else:
-                pass
-            self.autotuned = True
 
-        (launcher,) = self.launchers
-        (is_fallback_kernel, ) = self.is_fallback_kernels
+class AkgCompiler(MetaCompiler):
+    def __init__(
+        self,
+        kernel_name: str = "",
+        multiprocess_compile: bool = False,
+        no_more_compile: bool = False,
+        kernel_meta: Optional[Dict[str, Any]] = None,
+        autotune: bool = True,
+    ):
+        super().__init__(
+            kernel_name=kernel_name,
+            multiprocess_compile=multiprocess_compile,
+            no_more_compile=no_more_compile,
+            kernel_meta=kernel_meta,
+            autotune=autotune,
+        )
+        torch_root_dir = Path(torch_npu.__file__).resolve().parent
+        self.kernel = MlirKernel(self.kernel_name, torch_path=str(torch_root_dir), kernel_meta=self.kernel_meta)
 
-        if anir_config.online_acc_comp and \
-            not is_fallback_kernel:
-            output = self.acc_compare_and_dump(*args, **kwargs)
-            if self.non_contiguous_outputs:
-                for i, idx in enumerate(self.non_contiguous_outputs):
-                    original_outputs[i].copy_(args[idx])
-            return output
+    def force_fallback(self, kernel_name: str) -> bool:
+        k = self.kernel_name
+        if not k:
+            return False
+        return k in anir_config.force_fallback_kernel_names
 
-        if self.dynamic and not is_fallback_kernel:
-            args_new = ()
-            for arg in args:
-                if not torch.is_tensor(arg):
-                    args_new = args_new + (arg, )
-                    continue
-                args_new = args_new + (arg, arg, 0) + tuple(arg.size()) + tuple(arg.stride())
-            args = args_new
+    def compile(self, input_mlir: str):
+        if self.force_fallback(self.kernel_name):
+            self.register_fx_fallback(self.kernel_meta)
+            logger.warning(
+                f"AKG compile skipped for {self.kernel_name}, forced fallback to FX."
+            )
+            return
 
-        output = launcher(*args, **kwargs)
+        try:
+            import torch_mlir
+            from torch_mlir import ir
+            from torch_mlir.compiler_utils import run_pipeline_with_repro_report
 
-        if self.non_contiguous_outputs:
-            for i, idx in enumerate(self.non_contiguous_outputs):
-                original_outputs[i].copy_(args[idx])
-
-        del contiguous_outputs
-        return output
+            ctx = ir.Context()
+            torch_mlir.dialects.torch.register_dialect(ctx)
+            mlir_module = ir.Module.parse(input_mlir, context=ctx)
+            run_pipeline_with_repro_report(
+                mlir_module,
+                "builtin.module(torch-backend-to-linalg-on-tensors-backend-pipeline)",
+                "Lowering Torch Backend IR -> Linalg-on-Tensors Backend IR",
+            )
+            self.kernel.compile(str(mlir_module))
+            self.register_launcher(self.kernel.run, kernel_path=self.kernel_name)
+        except Exception as e:
+            self.register_fx_fallback(self.kernel_meta)
+            logger.warning(
+                f"AKG compile failed for {self.kernel_name}, fallback to FX. reason: {e}"
+            )

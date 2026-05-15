@@ -35,7 +35,7 @@ torch_mlir_dump_path = os.environ.get("ANIR_TORCH_MLIR_DUMP", None)
 acc_check_during_tune = os.environ.get("ANIR_ACC_CHECK_DURING_TUNE", "0") == "1"
 runtime_error_dump = os.environ.get("ANIR_RUNTIME_ERROR_DUMP", "0") == "1"
 fallback_dump = os.environ.get("ANIR_FALLBACK_DUMP", "0") == "1"
-fallback_fold_expand = os.environ.get("ANIR_FALLBACK_FOLD_EXPAND", "0") == "1"
+fallback_folder_expand = os.environ.get("ANIR_FALLBACK_FOLD_EXPAND", "0") == "1"
 
 online_acc_comp = os.environ.get("INDUCTOR_ASCEND_CHECK_ACCURACY", "0") == "1"
 rtol_f32 = 1.3e-6

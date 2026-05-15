@@ -33,8 +33,7 @@ from torch._inductor.codecache import (
     ModuleType,
     )
 
-from .npu.mlir_compiler import NpuMlirCompiler
-from .npu.codegen.akg import AkgCompiler
+from .npu.mlir_compiler import NpuMlirCompiler, AkgCompiler
 from . import config as anir_config
 from .npu.utils import logger
 
@@ -273,7 +272,7 @@ class CustomAsyncCompile(AsyncCompile):
     def akg_auto_fallback(
         self, kernel_name: str, source_code: str, kernel_meta: Dict[str, Any]) -> Callable:
         _compile_start()
-        kernel = AkgCompiler(kernel_meta=kernel_meta)
+        kernel = AkgCompiler(kernel_name, kernel_meta=kernel_meta)
         kernel.compile(source_code)
         return kernel
 
