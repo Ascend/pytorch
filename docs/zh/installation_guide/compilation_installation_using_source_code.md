@@ -1,6 +1,6 @@
-# 方式二：源码编译安装
+# 方式二：源码安装
 
-编译安装适用于二次开发场景，如自定义算子适配开发后，用户可以选择需要的分支版本自行编译PyTorch框架和torch\_npu插件。
+源码安装适用于二次开发场景，如自定义算子适配开发后，用户可以选择需要的分支版本自行编译PyTorch框架和torch\_npu插件。
 
 执行安装命令前，请参见[安装前准备](preparing_installation.md)完成环境变量配置及其他环境准备。
 
@@ -40,7 +40,7 @@
 
         _{code_path}_ 表示torch\_npu源代码路径，请根据实际情况进行替换。
 
-    4. 编译生成二进制安装包。
+    4. 编译生成Whl安装包。
 
         ```bash
         cd /home/pytorch
@@ -60,7 +60,7 @@
 - **方式二：物理机及虚拟机场景**
     1. 安装依赖。
 
-        选择编译安装方式安装时需要安装系统依赖，根据不同类型的操作系统，选择对应的命令安装所需依赖。
+        选择源码安装方式时，需要安装系统依赖，根据不同类型的操作系统，选择对应的命令安装所需依赖。
 
         - openEuler、CentOS、Kylin、BCLinux、UOS V20、AntOS、AliOS、CTyunOS、CULinux、Tlinux、MTOS、vesselOS：
             1. 安装依赖（除gcc和cmake以外）。
@@ -100,7 +100,7 @@
         > [!NOTE]<br>
         > 安装指导可参见[安装11.2.0版本gcc](installing_gcc_11-2-0.md)和[安装3.18.4版本cmake](installing_cmake_3-18-4.md)。
 
-    2. 编译生成torch\_npu插件的二进制安装包。
+    2. 编译生成torch\_npu插件的Whl安装包。
         1. 以v2.7.1-26.0.0为例，下载对应的Ascend Extension for PyTorch分支代码并进入插件根目录。
 
             ```bash
@@ -110,7 +110,7 @@
 
             请参见《版本说明》中的“[相关产品版本配套说明](../release_notes/release_notes.md#相关产品版本配套说明)”章节下载Ascend Extension for PyTorch其他版本的分支代码。
 
-        2. 编译生成二进制安装包。
+        2. 编译生成Whl安装包。
 
             ```bash
             bash ci/build.sh --python=3.10
