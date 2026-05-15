@@ -56,9 +56,34 @@ from datetime import datetime
 from pathlib import Path
 from queue import Queue
 from time import monotonic
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import collect_all_cases
+
+
+# ==============================================================================
+# NPU Device Detection
+# ==============================================================================
+
+
+def get_npu_device_count() -> int:
+    """
+    Detect NPU device count via libascend_hal.so.
+
+    Returns the number of available NPU devices. Falls back to 8 if detection fails.
+    """
+    try:
+        from ctypes import byref, c_int, CDLL
+        ascend_hal = CDLL("libascend_hal.so")
+        dev_count = c_int(-1)
+        rc = ascend_hal.drvGetDevNum(byref(dev_count))
+        if rc == 0 and dev_count.value > 0:
+            return dev_count.value
+    except OSError:
+        pass
+    except AttributeError:
+        pass
+    return 8  # Default: typical node has 8 NPU cards
 
 
 # ==============================================================================
@@ -148,6 +173,7 @@ def save_case_log(
     duration: float,
     returncode: int,
     command: str,
+    npu_device_id: Optional[int] = None,
 ) -> Path:
     """
     Save complete execution log for all test cases.
@@ -182,6 +208,10 @@ def save_case_log(
         f"Duration: {duration:.2f}s",
         f"Return Code: {returncode}",
         f"Command: {command}",
+    ]
+    if npu_device_id is not None:
+        content_lines.append(f"NPU Device: {npu_device_id}")
+    content_lines.extend([
         "=" * 80,
         "",
         "STDOUT:",
@@ -193,7 +223,7 @@ def save_case_log(
         stderr or "(empty)",
         "",
         "=" * 80,
-    ]
+    ])
 
     log_path.write_text("\n".join(content_lines), encoding="utf-8")
     return log_path
@@ -386,6 +416,7 @@ def run_single_case_concurrent(
     report_dir: Path,
     shard: int,
     shard_type: str,
+    npu_device_id: Optional[int] = None,
 ) -> Dict:
     """
     Execute a single test case in subprocess (for concurrent execution).
@@ -461,6 +492,11 @@ def run_single_case_concurrent(
     existing_pythonpath = case_env.get("PYTHONPATH", "")
     case_env["PYTHONPATH"] = str(test_file_dir) + (":" + existing_pythonpath if existing_pythonpath else "")
 
+    # Set NPU device for regular tests (round-robin allocation)
+    # distributed tests do not set ASCEND_RT_VISIBLE_DEVICES to allow using all devices
+    if npu_device_id is not None:
+        case_env["ASCEND_RT_VISIBLE_DEVICES"] = str(npu_device_id)
+
     # Print start log to stdout (before execution)
     # Truncate nodeid for display
     display_nodeid = original_nodeid[:70] + "..." if len(original_nodeid) > 70 else original_nodeid
@@ -519,6 +555,7 @@ def run_single_case_concurrent(
             duration=duration,
             returncode=returncode,
             command=command_str,
+            npu_device_id=npu_device_id,
         )
 
         case_result = {
@@ -560,6 +597,7 @@ def run_single_case_concurrent(
             duration=duration,
             returncode=-1,
             command=command_str,
+            npu_device_id=npu_device_id,
         )
 
     except Exception as e:
@@ -589,6 +627,7 @@ def run_single_case_concurrent(
             duration=duration,
             returncode=1,
             command=command_str,
+            npu_device_id=npu_device_id,
         )
 
     # Log finish
@@ -688,6 +727,15 @@ def run_tests_with_tasks_concurrent(
     merged_env = os.environ.copy()
     merged_env.update(env_updates)
 
+    # Detect NPU device count and allocate devices
+    # distributed tests do not set ASCEND_RT_VISIBLE_DEVICES to allow using all devices
+    if shard_type == "distributed":
+        num_npu_devices = None
+        print("NPU device allocation: DISABLED (distributed test uses all devices)")
+    else:
+        num_npu_devices = get_npu_device_count()
+        print(f"NPU device allocation: {num_npu_devices} devices detected (round-robin)")
+
     config = ConcurrentExecutionConfig(
         max_workers=max_workers,
         per_case_timeout=timeout,
@@ -739,9 +787,16 @@ def run_tests_with_tasks_concurrent(
     progress_tracker = ProgressTracker(total_cases)
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        # Submit all tasks
-        future_to_task = {
-            executor.submit(
+        # Submit all tasks with device allocation (round-robin)
+        future_to_task = {}
+        for task in tasks:
+            # Calculate device ID (round-robin allocation)
+            if num_npu_devices is not None:
+                device_id = task.case_idx % num_npu_devices
+            else:
+                device_id = None
+
+            future = executor.submit(
                 run_single_case_concurrent,
                 task,
                 test_dir,
@@ -753,9 +808,9 @@ def run_tests_with_tasks_concurrent(
                 report_dir,
                 shard,
                 shard_type,
-            ): task
-            for task in tasks
-        }
+                device_id,
+            )
+            future_to_task[future] = task
 
         # Wait for completion (as_completed gives results as they finish)
         for future in as_completed(future_to_task):
