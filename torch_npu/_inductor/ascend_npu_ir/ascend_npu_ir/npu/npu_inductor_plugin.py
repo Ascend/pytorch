@@ -468,5 +468,6 @@ def patch_transfer_to_npu():
 
         transfer_to_npu._device_wrapper = new_device_wrapper
         transfer_to_npu._init()
-    except:
+    # [wtd#11] Replace bare except with except Exception to avoid catching KeyboardInterrupt
+    except Exception:
         pass
