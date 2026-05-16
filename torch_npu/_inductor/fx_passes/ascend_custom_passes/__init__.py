@@ -6,7 +6,6 @@ from ..utils.fx_pass_level import FxPassLevel, PassType
 from ...config import log
 from torch._inductor.pattern_matcher import stable_topological_sort
 
-
 for _, module_name, _ in pkgutil.iter_modules(__path__):
     importlib.import_module(f"{__name__}.{module_name}")
 

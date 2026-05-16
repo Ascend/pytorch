@@ -25,7 +25,7 @@ class TestEvent(TestUtils):
         compiled_model = torch.compile(self.op_calc, backend="inductor")
         compile_out, codes = run_and_get_code(compiled_model, x, y)
         self.assertEqual(std_out, compile_out, atol=1e-5, rtol=1e-5)
-        self.assertTrue("triton_unk_fused_add_mul_0.run" in codes[0])
+        self.assertTrue("triton_poi_fused_add_mul_0.run" in codes[0])
 
 
 instantiate_parametrized_tests(TestEvent)

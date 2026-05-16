@@ -1,15 +1,9 @@
-import torch
-from torch._inductor.codegen.common import register_device_op_overrides
-from torch_npu.npu import device_count
-from torch_npu.utils._dynamo_device import NpuInterface, current_device, set_device
-from torch_npu.utils._inductor import NPUDeviceOpOverrides
-from . import config as npu_config
+from torch._inductor.codegen.common import DeviceOpOverrides, register_device_op_overrides
 
 
-## Override original inductor device overrides in torch_npu
-class NewNPUDeviceOpOverrides(NPUDeviceOpOverrides):
+class NewNPUDeviceOpOverrides(DeviceOpOverrides):
     def import_get_raw_stream_as(self, name):
-        return f"from torch_npu._inductor import get_current_raw_stream as {name}"
+        return f"from torch_npu._C import _npu_getCurrentRawStream as {name}"
 
     def set_device(self, device_idx):
         return f"torch.npu.set_device({device_idx})"
@@ -24,10 +18,10 @@ class NewNPUDeviceOpOverrides(NPUDeviceOpOverrides):
         return f"torch.npu.utils.device({device_idx})"
 
     def cpp_aoti_device_guard(self):
-        raise NotImplementedError
+        return "AOTINpuGuard"
 
     def cpp_aoti_stream_guard(self):
-        return "AOTICudaStreamGuard"
+        return "AOTINpuStreamGuard"
 
     def kernel_driver(self):
         source_code = """
@@ -80,29 +74,14 @@ class NewNPUDeviceOpOverrides(NPUDeviceOpOverrides):
             
             static inline void * loadKernel(
                     std::string filePath,
-                    const std::string &&nameFuncMode,
+                    const std::string &&nameFunc,
+                    const std::string &&kernel_mode_str,
                     uint32_t sharedMemBytes,
                     const std::optional<std::string> &cubinDir = std::nullopt) {
                 if (cubinDir) {
                     std::filesystem::path p1{*cubinDir};
                     std::filesystem::path p2{filePath};
                     filePath = (p1 / p2.filename()).string();
-                }
-                std::string funcName;
-                std::string kernel_mode_str;
-                size_t spacePos = nameFuncMode.find(' ');
-                if (spacePos != std::string::npos) {
-                    kernel_mode_str = nameFuncMode.substr(spacePos + 1);
-                    funcName = nameFuncMode.substr(0, spacePos);
-                } else {
-                    size_t underLinePos = nameFuncMode.find_last_of('_');
-                    if (underLinePos != std::string::npos) {
-                        kernel_mode_str = nameFuncMode.substr(underLinePos + 1);
-                        funcName = nameFuncMode.substr(0, underLinePos);
-                    } else {
-                        throw std::runtime_error(std::string("Parse kernel name failed, expect "
-                                    "'kernel_name kernel_mode' or 'kernel_name_kernel_mode', bug got: ") + nameFuncMode);
-                    }
                 }
 
                 std::ifstream file(std::string(filePath), std::ios::binary | std::ios::ate);
@@ -143,7 +122,7 @@ class NewNPUDeviceOpOverrides(NPUDeviceOpOverrides):
                     throw std::runtime_error(std::string("rtDevBinaryRegister failed, 0x") + std::to_string(rtRet));
                 }
 
-                const char* name = funcName.c_str();
+                const char* name = nameFunc.c_str();
 
                 std::string stubName(name);
                 stubName += "_" + std::to_string(registered_names[name]);
@@ -164,12 +143,6 @@ class NewNPUDeviceOpOverrides(NPUDeviceOpOverrides):
         # Could not use OpCommand when debug_kernel, because we want to
         # use torch::save, which will cause dead lock in child thread.
         launch_code = """
-            static inline void launchKernel(
-                    std::function<int()> launch_call,
-                    std::string&& kernel_name) {
-                launch_call();
-            }
-        """ if npu_config.aot_inductor.debug_kernel else """
             static inline void launchKernel(
                     std::function<int()> launch_call,
                     std::string&& kernel_name) {
@@ -206,7 +179,7 @@ class NewNPUDeviceOpOverrides(NPUDeviceOpOverrides):
         return "aclrtStream"
 
     def aoti_get_stream(self):
-        return "aoti_torch_get_current_cuda_stream"
+        return "aoti_torch_get_current_npu_stream"
 
     def cpp_kernel_type(self):
         return "void *"

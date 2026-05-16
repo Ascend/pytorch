@@ -1,29 +1,42 @@
 import os
 
+ORG_AUTOLOAD = os.getenv("TORCH_DEVICE_BACKEND_AUTOLOAD", "1")
+os.environ["TORCH_DEVICE_BACKEND_AUTOLOAD"] = "0"
+from torch._inductor.async_compile import AsyncCompile
+
+
+AsyncCompile.warm_pool()
+os.environ["TORCH_DEVICE_BACKEND_AUTOLOAD"] = ORG_AUTOLOAD
+
 # all backends need register npu/cpu/mps device_op_overrides
 from .codecache import patch_cache_base_get_system
 
 # All backends need npu/cpu/mps device_op_overrides.
 from .codegen.common import register_device_op_overrides_npu
-from .graph import patch_codegen_with_cpp_wrapper
-from .utils import patch_has_triton, patch_device_supports_tma, patch_is_gpu, get_current_raw_stream
+from .graph import patch_codegen_with_cpp_wrapper, patch_count_bytes, patch_run_node
+from .shape_handling import NPUShapeHandling, patch_shape_handling
+from .utils import patch_has_triton, patch_has_triton_tma, patch_is_gpu
+from .autotune_process import patch_tuning_process, patch_tuning_process_pool
 from .codegen.cpp_utils import patch_device_to_aten
-
 register_device_op_overrides_npu()
+
 patch_has_triton()
+patch_has_triton_tma()
 patch_is_gpu()
-patch_device_supports_tma()
 patch_cache_base_get_system()
 patch_codegen_with_cpp_wrapper()
+patch_count_bytes()
+patch_run_node()
+patch_tuning_process()
+patch_tuning_process_pool()
 patch_device_to_aten()
-
 def _get_backend() -> str:
     return os.getenv("TORCHINDUCTOR_NPU_BACKEND", "default")
-
 
 if _get_backend() == "mlir":
     import torch
     import torch_npu
+
 
 # Prevent RecursionError when formatting LoweringException for huge output tuples (e.g. many permute nodes).
 from .mfusion.safe_inductor_exc import apply_safe_operator_str_patch_if_enabled
@@ -41,93 +54,96 @@ if os.getenv("TORCHINDUCTOR_NPU_BACKEND", "default") == "mlir":
     device_id = torch_npu.npu.current_device()
     torch_npu._C._recovery_all_npu_stream(device_id)
 
-
 elif _get_backend() == "dvm":
     from .ascend_npu_ir.ascend_npu_ir.npu import npu_inductor_plugin
     from .dvm import mlir_fusion
 
+
 else:
+    import os
+
+    import logging
+    log = logging.getLogger(__name__)
+
     import torch
-    from torch._dynamo.device_interface import (
-        get_interface_for_device,
-        register_interface_for_device,
-    )
+    from torch._dynamo.device_interface import get_interface_for_device
     from torch._inductor import lowering as inductor_lowering
-    from torch._inductor.choices import InductorChoices
     from torch._inductor.codegen.common import (
         register_backend_for_device,
         register_device_op_overrides,
     )
-    from torch._inductor.lowering import make_fallback as ori_make_fallback
-    from torch._inductor.runtime import autotune_cache
-    from torch_npu.npu import device_count
-    from torch_npu.utils._dynamo_device import current_device, NpuInterface, set_device
-    from torch_npu.utils._inductor import NPUDeviceOpOverrides
+    from torch.nn.attention import flex_attention
 
     from . import codegen, config as npu_config
+    from .async_compile import patch_async_compile
     from .codecache import patch_aot_code_compiler_compile
-    from .config import aggresive_autotune, log as npulog, num_vector_core
-    from .cpp_builder import patch_get_optimization_cflags
-    from .decomposition import _register_npu_inductor_decompositons
-    from .lowering import make_reduction, npu_make_fallback
-    from .npu_choices import should_use_persistent_reduction
-    from .npu_device import NewNPUDeviceOpOverrides
-    from .npu_fusion_attention_graph import register_fa_pass
-    from .runtime import _load_cached_autotuning
-    from .scheduler import patch_get_graph_partition_signature
-    from .utils import (
-        disable_foreach,
-        patch_get_first_incompatible_cudagraph_node,
-        patch_is_cudagraph_unsafe_op,
+    from .codegen._sizevars import patch_simplify
+    from .codegen.ir import patch_indexing, patch_loop_body
+    from .codegen.triton import (
+        patch_gen_common_triton_ext_imports,
+        patch_triton_scheduling,
     )
+    from .config import (
+        aggresive_autotune,
+        log as npulog,
+        max_precompiled_thread_num,
+        num_vector_core,
+    )
+    from .cpp_builder import (
+        patch_get_cpp_torch_device_options,
+        patch_get_optimization_cflags,
+    )
+    from .decomposition import _register_npu_inductor_decompositons
+    from .dependencies import patch_extract_read_writes
+    from .fx_passes import patch_pattern_mm_plus_mm
+    from .fx_passes.graph_match_pass import (
+        post_grad_custom_pass_fuc,
+        pre_grad_custom_pass_fuc,
+    )
+    from .fx_passes.pattern_match.npu_fusion_attention_graph import register_fa_pass
+    from .fx_passes.joint_graph import patch_constant_fold_uniform_value
+    from .ir import patch_fallback_kernel_codegen, patch_num_splits
+    from .kernel import (
+        _register_npu_inductor_addmm,
+        _register_npu_inductor_bmm,
+        _register_npu_inductor_flex_attention,
+        _register_npu_inductor_grouped_mm,
+        _register_npu_inductor_mm,
+        _validate_device,
+    )
+    from .lowering import make_reduction
+    from .runtime import (
+        patch_create_device_properties,
+        patch_load_cached_autotuning,
+        patch_triton_heuristics_cached_autotune,
+    )
+    from .scheduler import patch_scheduler, patch_get_graph_partition_signature
+    from .select_algorithm import patch_algorithm_selector
+    from .shape_handling import NPUShapeHandling, patch_shape_handling
+    from .utils import patch_get_first_incompatible_cudagraph_node
+
+
+    flex_attention._validate_device = _validate_device
 
     def _inductor_register_backend_for_device():
         from .codegen.cpp_wrapper import CppWrapperNpu
-        from .codegen.scheduling import NPUTritonScheduling
+        from .codegen.npu_combined_scheduling import NPUCombinedScheduling
         from .codegen.wrapper import NPUWrapperCodeGen
 
         register_backend_for_device(
-            "npu", NPUTritonScheduling, NPUWrapperCodeGen, CppWrapperNpu
+            "npu", NPUCombinedScheduling, NPUWrapperCodeGen, CppWrapperNpu
         )
 
     _inductor_register_backend_for_device()
 
-    get_interface_for_device("npu")
+    device = get_interface_for_device("npu")
 
     inductor_lowering.make_reduction = make_reduction
-    inductor_lowering.make_fallback = npu_make_fallback
 
-    def patch_torch_for_aoti():
-        from .codegen.cpp_utils import patch_device_to_aten
-        from .cpp_builder import patch_get_cpp_torch_device_options
-        from .fx_passes.joint_graph import patch_constant_fold_uniform_value
-        from .graph import patch_codegen_with_cpp_wrapper
-        from .ir import (
-            patch_extern_kernel_codegen_size_asserts,
-            patch_fallback_kernel_codegen,
-        )
-        from .utils import patch_is_same_tensor
-
-        patch_codegen_with_cpp_wrapper()
-        patch_get_cpp_torch_device_options()
-        patch_device_to_aten()
-        patch_is_same_tensor()
-        patch_constant_fold_uniform_value()
-        patch_fallback_kernel_codegen()
-        patch_extern_kernel_codegen_size_asserts()
-
-        patch_aot_code_compiler_compile()
-        if os.environ.get("PRE_GRAPH_OPTIMIZER") == "1":
-            from .fx_passes.graph_match_pass import pre_grad_custom_pass_fuc
-
-            pre_grad_custom_pass_fuc()
-        if os.environ.get("POST_GRAD_GRAPH_OPTIMIZER") == "1":
-            from .fx_passes.graph_match_pass import post_grad_custom_pass_fuc
-
-            post_grad_custom_pass_fuc()
-
-    if os.environ.get("DISABLE_AOTI_PATCH", "0") != "1":
-        patch_torch_for_aoti()
+    patch_get_cpp_torch_device_options()
+    patch_constant_fold_uniform_value()
+    patch_fallback_kernel_codegen()
+    patch_aot_code_compiler_compile()
 
     if npu_config.dump_fx_graph:
         from .codegen.ir_fx import _patch_npu_inductor_ir
@@ -145,34 +161,146 @@ else:
         _enable_full_lowering_fallback()
     else:
         _register_npu_inductor_fallbacks()
+        _register_npu_inductor_mm()
+        _register_npu_inductor_addmm()
+        _register_npu_inductor_bmm()
+        _register_npu_inductor_grouped_mm()
+
+    _register_npu_inductor_flex_attention()
+
+    patch_pattern_mm_plus_mm()
+    patch_algorithm_selector()
+    patch_async_compile()
+    patch_scheduler()
+    patch_gen_common_triton_ext_imports()
+    patch_simplify()
+    patch_num_splits()
+    patch_loop_body()
+    patch_indexing()
+    patch_triton_scheduling()
+
+    patch_create_device_properties()
+    patch_load_cached_autotuning()
+    patch_triton_heuristics_cached_autotune()
+
+    pre_grad_custom_pass_fuc()
+    post_grad_custom_pass_fuc()
+    if os.environ.get("ENABLE_PARALLEL_SCHEDULER", "false").lower() == "true":
+        from .fx_passes.parallel_scheduler_pass import parallel_scheduler
+
+        parallel_scheduler()
 
     # register fx_pass should be put behind of _register_npu_inductor_decompositons
     def _replace_benchmark_all_configs():
         from torch._inductor.runtime.triton_heuristics import CachingAutotuner
 
-        from .npu_triton_heuristics import benchmark_all_configs
+        from .runtime.triton_heuristics import (
+            _benchmark_all_configs,
+            benchmark_all_configs,
+        )
 
+        CachingAutotuner._benchmark_all_configs = _benchmark_all_configs
         CachingAutotuner.benchmark_all_configs = benchmark_all_configs
+
+    def _replace_precompile():
+        from .runtime.triton_heuristics import NPUCachingAutotuner, precompile_parallel
+
+        NPUCachingAutotuner.precompile = precompile_parallel
 
     if aggresive_autotune:
         _replace_benchmark_all_configs()
-        import os
 
-        os.environ["TRITON_BENCH_METHOD"] = "npu"
-
-    InductorChoices.should_use_persistent_reduction = should_use_persistent_reduction
-    autotune_cache._load_cached_autotuning = _load_cached_autotuning
+    if max_precompiled_thread_num > 1:
+        _replace_precompile()
 
     register_fa_pass()
-    disable_foreach()
     patch_get_first_incompatible_cudagraph_node()
-    patch_get_optimization_cflags()
-    patch_is_cudagraph_unsafe_op()
     patch_get_graph_partition_signature()
-    os.environ["TORCHINDUCTOR_COMPREHENSIVE_PADDING"] = "0"
+    patch_get_optimization_cflags()
+    patch_extract_read_writes()
+
+    def add_additional_op():
+        from torch._inductor.ops_handler import OpsHandler
+        from torch._inductor.utils import register_op_dtype_propagation_rules
+        from torch._prims_common import ELEMENTWISE_TYPE_PROMOTION_KIND
+
+        def index_select(
+            self, name, index, indirect_var, set_indirect, bound, index_select_type
+        ):
+            return self._default(
+                "index_select",
+                (name, index, indirect_var, set_indirect, bound, index_select_type),
+                {},
+            )
+
+        OpsHandler.index_select = index_select
+        register_op_dtype_propagation_rules(
+            "index_select", ELEMENTWISE_TYPE_PROMOTION_KIND.DEFAULT, None
+        )
+
+        def gather_template(
+            self, name, index, indirect_var, set_indirect, index_boundary
+        ):
+            return self._default(
+                "gather_template",
+                (name, index, indirect_var, set_indirect, index_boundary),
+                {},
+            )
+
+        OpsHandler.gather_template = gather_template
+        register_op_dtype_propagation_rules(
+            "gather_template", ELEMENTWISE_TYPE_PROMOTION_KIND.DEFAULT, None
+        )
+
+        def indexput_template(self, name, index, value, indirect_var, boundary):
+            return self._default(
+                "indexput_template", (name, index, value, indirect_var, boundary), {}
+            )
+
+        OpsHandler.indexput_template = indexput_template
+        register_op_dtype_propagation_rules(
+            "indexput_template", ELEMENTWISE_TYPE_PROMOTION_KIND.DEFAULT, None
+        )
+
+        def scatter_template(self, name, index, value, indirect_var, boundary):
+            return self._default(
+                "scatter_template", (name, index, value, indirect_var, boundary), {}
+            )
+
+        OpsHandler.scatter_template = scatter_template
+        register_op_dtype_propagation_rules(
+            "scatter_template", ELEMENTWISE_TYPE_PROMOTION_KIND.DEFAULT, None
+        )
+
+    add_additional_op()
     torch._inductor.config.comprehensive_padding = False
-    os.environ["TORCHINDUCTOR_COMPILE_THREADS"] = "1"
-    torch._inductor.config.compile_threads = 1
+
+    compile_threads = int(
+        os.environ.get("TORCHINDUCTOR_COMPILE_THREADS") or "1"
+    )
+    os.environ["TORCHINDUCTOR_COMPILE_THREADS"] = str(compile_threads)
+    torch._inductor.config.compile_threads = compile_threads
+
+    _fasta_autotune = os.environ.get("FASTAUTOTUNE", "0") == "1"
+    _fasta_autotune_method = os.getenv("AUTOTUNE_METHOD", "Expert")
+    if _fasta_autotune:
+        if os.environ.get("ENABLE_PRINT_UB_BITS", "0") == "0":
+            log.warnings(
+                "Please set ENABLE_PRINT_UB_BITS to 1. Fasta autotune need to know real ub usage."
+            )
+            os.environ["ENABLE_PRINT_UB_BITS"] = "1"
+
+        if (
+            _fasta_autotune_method == "SampleStack"
+            and torch._inductor.config.compile_threads != 1
+        ):
+            log.warnings(
+                "fasta SampleStack method is not temporarily compatible with multi-process compile, "
+                "fasta_autotune set TORCHINDUCTOR_COMPILE_THREADS "
+                f"from {torch._inductor.config.compile_threads} to 1."
+            )
+            os.environ["TORCHINDUCTOR_COMPILE_THREADS"] = "1"
+            torch._inductor.config.compile_threads = 1
 
 # Optional MFusion integration: patch Inductor fallback / post-grad when explicitly enabled.
 if os.getenv("TORCHINDUCTOR_ENABLE_MFUSION", "0") == "1":

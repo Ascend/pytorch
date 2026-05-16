@@ -86,9 +86,7 @@ def _register_inductor():
     Inductor backend loading and heavy global patches lazily when torch.compile
     and Inductor path is actually used.
     """
-    from torch_npu.utils._inductor import _inductor_register_device_op_overrides
-
-    _inductor_register_device_op_overrides()
+    from torch_npu.utils._inductor import _max_unpoolnd_patch
 
 
 def _register_default_gradient_device_type():

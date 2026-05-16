@@ -1,9 +1,54 @@
-from typing import List, Tuple
+from typing import Iterable, List, Tuple
 import sympy
 from torch._inductor import ir
+from torch._inductor.codegen.common import free_symbol_is_type
 from torch._inductor.scheduler import SchedulerNode
 from torch._inductor.utils import sympy_index_symbol
 from torch._inductor.virtualized import V
+from torch.utils._sympy.symbol import SymT
+
+
+def _append_stride_info(index, current_entry, symbol_stride_map):
+    for var, stride in index.as_coefficients_dict().items():
+        if var.is_Symbol and var not in symbol_stride_map and not free_symbol_is_type(var, SymT.INDIRECT):
+            symbol_stride_map[var] = stride
+        if var.is_Symbol and not free_symbol_is_type(var, SymT.INDIRECT):
+            current_entry["var_stride"].append((str(var), str(stride)))
+
+
+def _finalize_stride_collection(symbol_stride_map):
+    sorted_items = sorted(symbol_stride_map.items(), key=lambda x: x[1], reverse=False)
+    sorted_keys = [key for key, _ in sorted_items]
+    return sorted_keys
+
+
+def collect_stride_sorted_vars_from_indexings(indexings: Iterable):
+    symbol_stride_map = {}
+    for index in indexings:
+        current_entry = {
+            "index_expr": str(index),
+            "var_stride": [],
+        }
+        _append_stride_info(index, current_entry, symbol_stride_map)
+    return _finalize_stride_collection(symbol_stride_map)
+
+
+def collect_stride_sorted_vars_from_nodes(node_schedule: Iterable, skipped_nodes: Tuple):
+    symbol_stride_map = {}
+    for node in node_schedule:
+        if node in skipped_nodes:
+            continue
+        body = getattr(node, "_body", None)
+        indexing_list = getattr(body, "indexing", None)
+        if not indexing_list:
+            continue
+        for _, index in indexing_list.items():
+            current_entry = {
+                "index_expr": str(index),
+                "var_stride": [],
+            }
+            _append_stride_info(index, current_entry, symbol_stride_map)
+    return _finalize_stride_collection(symbol_stride_map)
 
 
 class IndexAnalysis:
@@ -16,7 +61,10 @@ class IndexAnalysis:
         self.broadcast_sizes = []  # [RBLOCK, XBLOCK_SUB]
         self.permute_shape = []  # [0,2,1,3]
         self.var_replacements = {}  # r2 ->r2_0, etc
+        self.nddma_var_replacements = {}
         self.var_directions = {}  # r2_0 -> [None,:,None]
+        self.nddma_var_directions = {}
+        self.processed_nddma = False
         self.similar = None  # (r,x,z,y)
         self.need_permute = False
         self.need_broadcast = False
@@ -29,9 +77,11 @@ class IndexAnalysis:
         ]
         # sort by stride 
         self.var_stride.sort(key=lambda x: x[1])
-        # only contains tiing axis var
+        # only contains tiling axis var
         self.var_list = tuple([x[0] for x in self.var_stride if x[0] in self.tiling_axis])
         self.stride_list = tuple([x[1] for x in self.var_stride if x[0] in self.tiling_axis])
+        self.all_var_list = tuple([x[0] for x in self.var_stride])
+        self.all_stride_list = tuple([x[1] for x in self.var_stride])
         self.is_store_index = is_store_index
         self.is_index_expr = is_index_expr
 
@@ -120,7 +170,7 @@ class IndexAnalysis:
             index = similar.index(x)
             self.reshape_sizes[index] = f"{x.name.upper()}BLOCK_SUB"
 
-    def analyze_var_direction(self):
+    def analyze_var_direction(self, nddma=False):
         if self.var_list == self.gold:
             return
         var_list = self.var_list if len(self.var_list) == len(self.gold) else self.similar
@@ -128,32 +178,60 @@ class IndexAnalysis:
             return
         if not var_list:
             return
+
         var_list = list(reversed(var_list))
         gold = list(tuple(reversed(self.gold)))
         if len(var_list) != len(gold):
             raise RuntimeError("assert var_list and gold must have same length")
+
         var_list = [x for x in var_list if x in self.kernel.tiling_axis]
         gold = [x for x in gold if x in self.kernel.tiling_axis]
+
+        processed_nddma = False
+
         for i, x in enumerate(gold):
             index = var_list.index(x)
-            if (index == i):
+            if index == i:
                 continue
-            new_var = sympy_index_symbol(f"{x}") if self.is_index_expr else sympy_index_symbol(f"{x}_{index}")
-            if new_var in self.var_replacements:
-                continue
-            direction = ["None"] * len(gold)
-            direction[index] = ":"
-            direction_str = f"[{','.join(direction)}]"
-            self.var_replacements[x] = new_var
-            self.var_directions[new_var] = direction_str
-            self.kernel.range_tree_nodes[x].var_directions[new_var] = direction_str
 
-    def analyze_index(self):
+            direction = ["None"] * len(gold)
+            use_nddma = nddma and self.need_permute
+            target_idx = self.permute_shape.index(index) if use_nddma else index
+            direction[target_idx] = ":"
+            direction_str = f"[{','.join(direction)}]"
+
+            if use_nddma:
+                processed_nddma = True
+                if target_idx == i:
+                    continue
+                var_name = f"{x}" if self.is_index_expr else f"{x}_{target_idx}_nd"
+                var_obj = sympy_index_symbol(var_name)
+                if var_obj in self.nddma_var_replacements:
+                    continue
+                self.nddma_var_replacements[x] = var_obj
+                self.nddma_var_directions[var_obj] = direction_str
+            else:
+                var_name = f"{x}" if self.is_index_expr else f"{x}_{index}"
+                var_obj = sympy_index_symbol(var_name)
+                if var_obj in self.var_replacements:
+                    continue
+                self.var_replacements[x] = var_obj
+                self.var_directions[var_obj] = direction_str
+            self.kernel.range_tree_nodes[x].var_directions[var_obj] = direction_str
+
+        if processed_nddma:
+            self.processed_nddma = True
+            self.need_permute = False
+
+    def analyze_index(self, nddma=False):
         if isinstance(self.index, sympy.Integer):
             return
         if not self.kernel.golden_var_list:
             self.kernel.select_golden_varlist()
             self.gold = self.kernel.golden_var_list
+            self.tiling_axis = [x.symbol() for x in self.kernel.tiling_axis]
+            self.var_list = tuple([x[0] for x in self.var_stride if x[0] in self.tiling_axis])
+            self.stride_list = tuple([x[1] for x in self.var_stride if x[0] in self.tiling_axis])
 
         if self.gold is None:
             raise RuntimeError("assert gold must not be None")
@@ -162,7 +240,7 @@ class IndexAnalysis:
 
         def all_tiling_in_var_list():
             return all([x in self.var_list for x in self.tiling_axis])
-            # 2 analyze permute shape for full_dim_len index
+        # 2 analyze permute shape for full_dim_len index
 
         if all_tiling_in_var_list():
             self.similar = self.var_list
@@ -174,7 +252,7 @@ class IndexAnalysis:
             pass
 
         # 4 analyze var direction
-        self.analyze_var_direction()
+        self.analyze_var_direction(nddma)
 
     def generate_statement(self):
         statement = ""
@@ -194,16 +272,14 @@ class ReductionAnalysis:
         self.kernel = kernel
         self.reduction = None
         self.reduced_dim = None
+        self.contiguous_reduction = self.kernel.is_contiguous_reduction()
         if self.numof_reduction_axis() > 1:
-            self.kernel.persistent_reduction = True
-            self.reduced_dim = 0
+            self.reduced_dim = self.analyze_reduction_dim()
             return
 
         reduction = self.kernel.find_reduction_node()
         if reduction is None or not isinstance(reduction, ir.Reduction):
             raise RuntimeError("failed to get one reduction node")
-        if not hasattr(reduction, "reduced_idx"):
-            raise RuntimeError("reduction node doesn't have attr reduced_idx")
         self.reduction = reduction
         self.reduced_dim = self.analyze_reduction_dim()
 
@@ -223,20 +299,42 @@ class ReductionAnalysis:
         return shape_str
 
     def dense_size_list(self) -> List[str]:
-        sizes = [f"{x.name.upper()}BLOCK_SUB" for x in self.kernel.tiling_axis]
-        if self.numof_reduction_axis() > 1:
-            return sizes
-
-        reduce_axis = self.kernel.tiling_axis[-1]
-        sizes.pop(-1)
-        sizes.insert(self.reduced_dim, f"{reduce_axis.name.upper()}BLOCK_SUB")
+        sizes = ["1"] * len(self.kernel.golden_var_list)
+        for i, axis in enumerate(self.kernel.golden_var_list):
+            if axis.name[0] != 'r' or self.kernel.inside_reduction:
+                sizes[i] = f"{axis.name.upper()}BLOCK_SUB"
+        sizes = list(reversed(sizes))
         return sizes
+
+    def dense_reduction_list(self) -> List[str]:
+        reduction_sizes = [f"{x.name.upper()}BLOCK_SUB" for x in self.kernel.reduction_axis_list()]
+        reduction_sizes = list(reversed(reduction_sizes))
+        return reduction_sizes
+
+    def dense_post_reduction_list(self) -> List[str]:
+        reduction_list_str = f"{' * '.join(self.dense_reduction_list())}"
+        no_reduction_list = []
+        # ensure order
+        for dense_size in self.dense_size_list():
+            if dense_size not in self.dense_reduction_list():
+                no_reduction_list.append(dense_size)
+        no_reduction_list.append(reduction_list_str)
+        return no_reduction_list
 
     def dense_size_str(self):
         sizes = self.dense_size_list()
-        if self.numof_reduction_axis() > 1:
-            return f"[{'* '.join(sizes)}]"
-        return f"[{', '.join(sizes)}]"
+        num_red = self.numof_reduction_axis()
+        is_contig = self.contiguous_reduction
+        
+        if num_red > 1:
+            if is_contig:
+                result = f"[{', '.join(self.dense_post_reduction_list())}]"
+            else:
+                result = f"[{'* '.join(sizes)}]"
+        else:
+            result = f"[{', '.join(sizes)}]"
+        
+        return result
 
     def numof_reduction_axis(self):
         return self.kernel.numof_reduction_axis()
@@ -245,61 +343,30 @@ class ReductionAnalysis:
         return self.kernel.reduction_axis_list()
 
     def analyze_reduction_dim(self):
-
         if self.numof_reduction_axis() > 1:
-            self.kernel.persistent_reduction = True
-            self.reduced_dim = 0
-            return 0
+            if not self.contiguous_reduction:
+                self.reduced_dim = 0
+                return 0
 
-        if not self.kernel.golden_var_list:
-            self.kernel.select_golden_varlist()
-        if self.kernel.golden_var_list is None:
-            raise RuntimeError("assert self.kernel.golden_var_list is not None")
+        if self.numof_reduction_axis() == 1:
+            if not self.kernel.golden_var_list:
+                self.kernel.select_golden_varlist()
+            reduction_layout_var_list = list(self.kernel.golden_var_list) if self.kernel.golden_var_list else []
+            if not reduction_layout_var_list:
+                reduction_layout_var_list = self.kernel.parse_golden_from_load_store_index()
+        else:
+            reduction_layout_var_list = self.kernel.parse_golden_from_load_store_index()
+            if not reduction_layout_var_list or not any(x.name[0] == 'r' for x in reduction_layout_var_list):
+                if not self.kernel.golden_var_list:
+                    self.kernel.select_golden_varlist()
+                reduction_layout_var_list = list(self.kernel.golden_var_list) if self.kernel.golden_var_list else []
+
+        if not reduction_layout_var_list:
+            raise RuntimeError("assert reduction_layout_var_list is not empty")
 
         dim = -1
-        for i, x in enumerate(reversed(self.kernel.golden_var_list)):
+        for i, x in enumerate(reversed(reduction_layout_var_list)):
             if x.name[0] == 'r':
                 dim = i
                 break
-        return dim
-
-    def analyze_reduction_dim1(self):
-        if self.numof_reduction_axis() > 1:
-            self.kernel.persistent_reduction = True
-            self.reduced_dim = 0
-            return 0
-        reduction = self.reduction
-        # kept = [0,1,3], reduced = [2]
-        for i, x in enumerate(reduction.reduced_idx):
-            if reduction.reduction_ranges[i] <= 1:
-                continue
-            reduced_idx = x
-            break
-            # the index (in reduction.ranges) of low_dims
-        low_dims = [i for i, x in enumerate(reduction.kept_idx) if x > reduced_idx]
-        if not low_dims:
-            return len(self.kernel.tiling_axis) - 1
-        elif len(low_dims) == len(reduction.kept_idx):
-            return 0
-        # reduction dim when low_dims are not meraged
-        dim = len(reduction.kept_idx) - len(low_dims)
-
-        tiling_axis = self.kernel.tiling_axis[:-1]
-        merged = 1
-        j = len(tiling_axis) - 1
-        # remove all low_dims from tiling_axis
-        # all axis before ahead of j are high-orders
-        # then following is reduced dim 
-        ranges = [x for x in reduction.ranges if x > 1]
-        for i in reversed(low_dims):
-            len_axis = tiling_axis[j].length
-            len_reduction = ranges[i] * merged
-            if len_reduction < len_axis:
-                merged = merged * len_reduction
-            elif len_reduction == len_axis:
-                j = j - 1
-                merged = 1
-            else:
-                raise RuntimeError(f"assert should not reach here low_dims({i})={len_reduction}, axis[{j}]=len)")
-        dim = j + 1
         return dim

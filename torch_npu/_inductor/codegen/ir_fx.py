@@ -1,22 +1,30 @@
 import traceback
 import typing
+from collections.abc import Sequence
 from typing import (
     Any,
     Callable,
-    List,
-    Optional,
     Union
 )
 from typing import Optional
 from unittest.mock import patch
+
 import sympy
 import torch
 from sympy import Expr
 from torch._inductor import config
 from torch._inductor import ir
-from torch._inductor.virtualized import ops, V
+from torch._inductor import lowering
+from torch._inductor.ir import (NopKernel, SliceView, IRNode, StorageBox, FlexibleLayout, FixedLayout, NonOwningLayout,
+                                Pointwise, TensorBox, ComputedBuffer, View, log, Layout)
+from torch._inductor.virtualized import ops, OpsValue, V
 from torch.utils._ordered_set import OrderedSet
+from torch.utils._sympy.functions import Identity
 
+import torch_npu
+from torch_npu._inductor import ir as npu_ir
+from torch_npu._inductor.codegen.triton_utils import get_byte_per_numel
+from torch_npu._inductor import config as npu_config
 from ..lowering import (
     fetch_graphs,
     merge_traced_graphs,
@@ -270,17 +278,21 @@ def has_buffer(inp):
     return has_buffer(inp.data)
 
 
-def get_buffer(inp):
+def try_get_buffer(inp):
+    if not hasattr(inp, 'data'):
+        return False
     if isinstance(inp.data, ir.Buffer):
         return inp.data
-    return get_buffer(inp.data)
+    return try_get_buffer(inp.data)
 
 
 def _patch_baseview_realize(self):
     if hasattr(self, 'traced_graph') and self.traced_graph is not None:
         r = self.data.realize()
-        buffer = get_buffer(self)
-        if isinstance(buffer, (ir.MultiOutput, ir.InputBuffer, ir.ConcatKernel)):
+        buffer = try_get_buffer(self)
+        if not buffer:
+            return r
+        if isinstance(buffer, (ir.MultiOutput, ir.InputBuffer, ir.ConcatKernel, ir.ExternKernelOut, ir.MultiTemplateBuffer)):
             return r
         traced_graph = buffer.data.get_traced_graph()
         buf_name = buffer.get_name()
@@ -302,10 +314,10 @@ def _patch_baseview_realize(self):
 def _patch_baseview_realize_hint(self):
     if hasattr(self, 'traced_graph') and self.traced_graph is not None:
         r = self.data.realize_hint()
-        if not has_buffer(self):
+        buffer = try_get_buffer(self)
+        if not buffer:
             return r
-        buffer = get_buffer(self)
-        if isinstance(buffer, (ir.MultiOutput, ir.InputBuffer, ir.ConcatKernel)):
+        if isinstance(buffer, (ir.MultiOutput, ir.InputBuffer, ir.ConcatKernel, ir.ExternKernelOut)):
             return r
         traced_graph = buffer.data.get_traced_graph()
         buf_name = buffer.get_name()
@@ -325,28 +337,26 @@ def _patch_baseview_realize_hint(self):
 
 
 def _patch_mark_reuse(self, users):
-    if isinstance(self.data, ir.StorageBox):
-        if self.data.should_realize_on_reuse(users):
-            if hasattr(self, 'traced_graph') and self.traced_graph is not None:
-                r = self.data.realize()
-                buffer = get_buffer(self)
-                if isinstance(buffer, (ir.MultiOutput, ir.InputBuffer, ir.ConcatKernel)):
-                    return r
-                traced_graph = buffer.data.get_traced_graph()
-                buf_name = buffer.get_name()
-                new_traced_graph, placeholder = subtract_graph(self.traced_graph, traced_graph, node_name=buf_name)
-                if placeholder is not None:
-                    placeholder.name = buf_name
-                    device = buffer.get_device()
-                    dtype = buffer.get_dtype()
-                    size = buffer.get_size()
-                    stride = buffer.get_stride()
-                    fake_input = create_fake_input(size, stride, device, dtype)
-                    placeholder.meta['val'] = fake_input
-                self._post_init_setattr("traced_graph", new_traced_graph)
-                return r
-            else:
-                return self.data.realize()
+    if hasattr(self, 'traced_graph') and self.traced_graph is not None:
+        r = self.data.mark_reuse(users)
+        buffer = try_get_buffer(self)
+        if not buffer:
+            return r
+        if isinstance(buffer, (ir.MultiOutput, ir.InputBuffer, ir.ConcatKernel, ir.ExternKernelOut)):
+            return r
+        traced_graph = buffer.data.get_traced_graph()
+        buf_name = buffer.get_name()
+        new_traced_graph, placeholder = subtract_graph(self.traced_graph, traced_graph, node_name=buf_name)
+        if placeholder is not None:
+            placeholder.name = buf_name
+            device = buffer.get_device()
+            dtype = buffer.get_dtype()
+            size = buffer.get_size()
+            stride = buffer.get_stride()
+            fake_input = create_fake_input(size, stride, device, dtype)
+            placeholder.meta['val'] = fake_input
+        self._post_init_setattr("traced_graph", new_traced_graph)
+        return r
     else:
         return self.data.mark_reuse(users)
 
@@ -548,17 +558,12 @@ def _patch_concatkernel_create(cls, inputs, dim):
             if j == dim:
                 new_size[j] = new_size[j] + input_size[j]
             else:
-                new_size[j] = V.graph.sizevars.check_equals_and_simplify(
+                new_size[j] = V.graph.sizevars.guard_equals(
                     new_size[j], input_size[j]
                 )
         offsets_end.append(new_size[dim])
 
     output_stride = ir.FlexibleLayout.contiguous_strides(new_size)
-    if config.comprehensive_padding:
-        # Ensure the output stride matches the alignment requirements
-        output_stride = ir.Layout._pad_strides(
-            output_stride, new_size, inputs[0].dtype
-        )
     # If any of the inputs is in CL format, use CL format for the output
     for i in range(len(inputs)):
         x = inputs[i]
@@ -587,9 +592,6 @@ def _patch_concatkernel_create(cls, inputs, dim):
     ):
         output_stride = ir.make_channels_last_strides_for(new_size)
 
-    is_pinned = all(
-        ir.is_storage_and_layout(x) and x.get_layout().is_pinned for x in inputs
-    )
     concat_kernel = ir.ConcatKernel(
         name=None,
         layout=ir.FixedLayout(
@@ -597,7 +599,6 @@ def _patch_concatkernel_create(cls, inputs, dim):
             dtype=dtype,
             size=new_size,
             stride=output_stride,
-            is_pinned=is_pinned,
         ),
         inputs=[],
     )
@@ -619,10 +620,8 @@ def _patch_concatkernel_create(cls, inputs, dim):
             input_unwrapped = inputs[i].data
 
         if (
-                isinstance(input_unwrapped, ir.StorageBox)
-                and input_unwrapped.is_input_buffer()
-                and (dev := inputs[i].get_device()) is not None
-                and ir.is_gpu(dev.type)
+                input_unwrapped.is_input_buffer()
+                and ir.is_gpu(inputs[i].get_device().type)
                 and not ir.is_dynamic(input_buffer)
         ):
             op_names.append(input_buffer.get_operation_name())
@@ -845,7 +844,7 @@ def _patch_mutationlayout_realize_into(cls, src, dst, unsafe_alias=False):
             dtype=src.get_dtype(),
             inner_fn=src.make_loader(),
             ranges=[
-                V.graph.sizevars.check_equals(a, b)
+                V.graph.sizevars.guard_equals(a, b)
                 for a, b in zip(src.get_size(), dst.get_size())
             ],
             traced_graph=new_graph,

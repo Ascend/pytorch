@@ -29,15 +29,22 @@ CAST_OPS = {
 }
 
 
+def match(a, b):
+    return a == b if isinstance(b, int) else (len(b) == 1 and a in b)
+
+
 def check_cat_op(node: fx.Node):
     is_cat = check_op(node, torch.ops.aten.cat.default)
-    if is_cat:
-        if len(node.args) == 1:
-            return True, 0
-        else:
-            return True, node.args[1]
-    else:
+    if not is_cat:
         return False, 0
+    # 优先从 kwargs 取
+    if 'dim' in node.kwargs:
+        dim_val = node.kwargs['dim']
+    elif len(node.args) >= 2:
+        dim_val = node.args[1]
+    else:
+        dim_val = 0  # torch 默认值
+    return True, dim_val
 
 
 def check_op(node: fx.Node, target) -> bool:
@@ -53,7 +60,9 @@ def is_zero_like(node: Any) -> bool:
         return node == 0
     elif isinstance(node, fx.Node):
         return node.target in (
+            torch.zeros,
             torch.ops.aten.zeros.default,
+            torch.zeros_like,
             torch.ops.aten.zeros_like.default,
         )
     return False
@@ -64,7 +73,9 @@ def is_one_like(node: Any) -> bool:
         return node == 1
     elif isinstance(node, fx.Node):
         return node.target in (
+            torch.ones,
             torch.ops.aten.ones.default,
+            torch.ones_like,
             torch.ops.aten.ones_like.default,
         )
     return False
@@ -169,12 +180,25 @@ def check_op_by_targets(node: fx.Node, targets) -> bool:
     return False
 
 
-def try_match(lhs, rhs, identity_fn):
-    if identity_fn(lhs):
-        return True, rhs
-    if identity_fn(rhs):
-        return True, lhs
-    return False, None
+def try_match(lhs, rhs, identity_fn, single_side=""):
+    match_left = identity_fn(lhs)
+    match_right = identity_fn(rhs)
+    if single_side == "left":
+        if match_left:
+            return True, rhs
+        return False, None
+
+    elif single_side == "right":
+        if match_right:
+            return True, lhs
+        return False, None
+
+    else:  # 默认 "" 或其他值 → 双边都允许（向后兼容）
+        if match_left:
+            return True, rhs
+        if match_right:
+            return True, lhs
+        return False, None
 
 
 def normalize_dtype(dt):

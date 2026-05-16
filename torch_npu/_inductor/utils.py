@@ -1,46 +1,25 @@
+from __future__ import annotations
+
 import functools
+import logging
 
 import torch
-from torch._inductor.ir import Operation
+import torch_npu
+
+import torch._inductor.config as inductor_config
+log = logging.getLogger("torch._inductor")
+
+NPU_ALIGN_BYTES = 32
 
 
-# Not good implementation, but no other way
 def get_current_raw_stream(device):
     return torch.npu.current_stream(device).npu_stream
-
-
-def patch_is_same_tensor():
-    from torch._subclasses.fake_tensor import FakeTensor
-
-    def is_same_tensor(data: torch.Tensor, value: torch.Tensor):
-        if isinstance(data, FakeTensor) or isinstance(value, FakeTensor):
-            return False
-        return (
-            not data.is_mkldnn
-            and data.size() == value.size()
-            and data.stride() == value.stride()
-            and data.dtype == value.dtype
-            and data.device == value.device
-            and data.untyped_storage().data_ptr() == value.untyped_storage().data_ptr()
-            and data.storage_offset() == value.storage_offset()
-        )
-
-    from torch._inductor import graph, utils
-
-    utils.is_same_tensor = is_same_tensor
-    # We need to do extra-patch because of code like `from xxx import is_same_tensor`
-    graph.is_same_tensor = is_same_tensor
 
 
 def patch_is_gpu():
     from torch._inductor.utils import GPU_TYPES
 
     GPU_TYPES.append("npu")
-
-    def _return_false(device_interface):
-        return False
-
-    torch._inductor.scheduler.device_need_guard = _return_false
 
 
 def patch_has_triton():
@@ -84,68 +63,26 @@ def patch_has_triton():
     torch._inductor.scheduler.has_triton = has_triton
 
 
-def patch_device_supports_tma():
+def patch_has_triton_tma():
+    from torch.utils._triton import has_triton_package
+
     @functools.lru_cache(None)
-    def _device_supports_tma():
-        return torch.npu.is_available() and not torch.version.hip
+    def has_triton_tma():
+        if has_triton_package():
+            if torch_npu.npu.is_available() and not torch.version.hip:
+                try:
+                    from triton.tools.experimental_descriptor import (  # noqa: F401
+                        create_1d_tma_descriptor,
+                        create_2d_tma_descriptor,
+                    )
 
-    torch.utils._triton._device_supports_tma = _device_supports_tma
-
-
-def patch_is_cudagraph_unsafe_op():
-    def is_cudagraph_unsafe_op(node: Operation) -> bool:
-        """
-        Returns True if the node is an op that is not cudagraphable.
-        Usually only custom ops have this tag.
-        """
-        from torch._inductor import ir
-
-        if not isinstance(node, ir.FallbackKernel):
-            return False
-        if (
-            isinstance(node.op_overload, torch._ops.OpOverload)
-            and torch._C.Tag.cudagraph_unsafe in node.op_overload.tags  # type: ignore[attr-defined]
-        ):
-            return True
-        # ---------------------------------------------------------------------
-        # FA v3 specific check: TND + keep_prob fallback / not supported
-        # When keep_prob is in the range [0, 1) (i.e., dropout is enabled),
-        # the operator should not be captured by ACLGraph. According to the spec,
-        # we raise an explicit error if the user invokes the atomic interface
-        # directly, otherwise we treat it as unsafe for the graph partition.
-        # ---------------------------------------------------------------------
-        fx_node = getattr(node, "fx_node", None)
-        if fx_node is None:
-            return False
-        target = fx_node.target
-        if not isinstance(target, torch._ops.OpOverload):
-            return False
-        if target in (
-            torch.ops.npu.npu_fusion_attention_v3.default,
-            torch.ops.npu.npu_fusion_attention_grad_v3.default,
-        ):
-            from torch.fx.operator_schemas import normalize_function
-
-            normalized = normalize_function(
-                target, fx_node.args, fx_node.kwargs, normalize_to_only_use_kwargs=True
-            )
-            if normalized is not None:
-                _, kwargs = normalized
-                keep_prob = kwargs.get("keep_prob")
-                input_layout = kwargs.get("input_layout")
-                if (
-                    keep_prob is not None
-                    and float(keep_prob) < 1
-                    and input_layout is not None
-                    and str(input_layout).upper() == "TND"
-                ):
                     return True
+                except ImportError:
+                    pass
+
         return False
 
-    from torch._inductor import utils as inductor_utils
-
-    inductor_utils.is_cudagraph_unsafe_op = is_cudagraph_unsafe_op
-    torch._inductor.scheduler.is_cudagraph_unsafe_op = is_cudagraph_unsafe_op
+    torch.utils._triton.has_triton_tma = has_triton_tma
 
 
 def _fx_node_is_input_dependent_cudagraph_unsafe(fx_node: torch.fx.Node) -> bool:
@@ -180,6 +117,7 @@ def _fx_node_is_input_dependent_cudagraph_unsafe(fx_node: torch.fx.Node) -> bool
                     torch.uint8,
                 ):
                     return True
+
     return False
 
 
@@ -229,20 +167,8 @@ def patch_get_first_incompatible_cudagraph_node():
                 return node
             if str(node.target) in forbidden_set:
                 return node
-
-            if (
-                not torch._inductor.config.graph_partition
-                and isinstance(node.target, torch._ops.OpOverload)
-                and torch._C.Tag.cudagraph_unsafe in node.target.tags  # type: ignore[attr-defined]
-            ):
-                # skip cudagraph if a cudagraph_unsafe op is detected.
-                # graph_partition helps by splitting on this cudagraph_unsafe
-                # op and cudagraphifying the subgraphs.
-                return node
-
             if (val := node.meta.get("val")) is not None and free_unbacked_symbols(val):
                 return node
-
         return None
 
     from torch._inductor import utils as inductor_utils
@@ -270,10 +196,89 @@ def patch_get_first_incompatible_cudagraph_node():
     )
 
 
-def disable_foreach():
-    from torch._inductor.scheduler import Scheduler
+class classproperty:
+    def __init__(self, func):
+        self.func = func
 
-    def create_foreach_nodes(self):
-        return
+    def __get__(self, instance, owner):
+        return self.func(owner)
 
-    Scheduler.create_foreach_nodes = create_foreach_nodes
+
+def _use_template_for_npu(layout, allowed_layout_dtypes: list[torch.dtype]) -> bool:
+    return layout.device.type == "npu" and layout.dtype in allowed_layout_dtypes
+
+
+def use_triton_template(
+    layout, *, enable_int32: bool = False, enable_float8: bool = False
+) -> bool:
+    from torch._inductor.codegen.common import BackendFeature, has_backend_feature
+    from torch._inductor.utils import _use_autotune_backend, is_gpu
+
+    layout_dtypes = [torch.float16, torch.bfloat16, torch.float32]
+    if enable_int32:
+        layout_dtypes = [torch.float16, torch.bfloat16, torch.float32, torch.int32]
+    if enable_float8:
+        layout_dtypes.extend([torch.float8_e4m3fn, torch.float8_e5m2])
+    return (
+        (
+            (
+                is_gpu(layout.device.type)
+                and _use_template_for_npu(layout, layout_dtypes)
+            )
+            or (layout.device.type == "cpu" and layout.dtype in layout_dtypes)
+        )
+        and inductor_config.max_autotune
+        and _use_autotune_backend("TRITON")
+        and has_backend_feature(layout.device, BackendFeature.TRITON_TEMPLATES)
+    )
+
+
+def use_catlass_template(op_name, layout, m: int, n: int, k: int) -> bool:
+    from torch._inductor.utils import _use_autotune_backend
+    from torch._inductor.virtualized import V
+
+    from .codegen.catlass.catlass_utils import try_import_catlass
+    from .config import catlass as catlass_config
+
+    enabled_ops = catlass_config.catlass_enabled_ops.upper()
+    if enabled_ops == "ALL":
+        pass
+    elif op_name.upper() not in [x.strip() for x in enabled_ops.split(",")]:
+        return False
+
+    gemm_size = V.graph.sizevars.size_hint(m * n * k, fallback=-1)
+    if gemm_size <= 0 or gemm_size < catlass_config.catlass_backend_min_gemm_size:
+        return False
+
+    # Do not use catlass template on ROCm
+    if torch.version.hip:
+        return False
+
+    layout_dtypes = [torch.float16, torch.bfloat16, torch.float32]
+    res = (
+        _use_template_for_npu(layout, layout_dtypes)
+        and inductor_config.max_autotune
+        and _use_autotune_backend("CATLASS")
+    )
+
+    if res:
+        if not try_import_catlass():
+            log.warning(
+                "Failed to import CATLASS lib. Please check whether "
+                "_inductor.config.catlass.catlass_dir is set correctly. "
+                "Skipping CATLASS backend for now"
+            )
+            return False
+
+    return res
+
+
+def triton_support_ffts():
+    from triton.backends.ascend.utils import (
+        force_disable_ffts,
+        get_ascend_arch_from_env,
+        is_ffts_supported,
+    )
+
+    arch = get_ascend_arch_from_env()
+    return is_ffts_supported(arch) and (not force_disable_ffts())

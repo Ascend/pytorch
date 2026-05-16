@@ -2,60 +2,91 @@ import logging
 import os  # noqa: C101
 import re
 
-from triton.runtime.driver import driver
-
 import torch
+import torch._inductor.config as inductor_config
 from torch._inductor import config
+from torch_npu.npu._backends import get_soc_version
+
+from .utils import classproperty
 
 
 log = logging.getLogger(__name__)
 
-enable_npu_indexing = True
 
-config.triton.unique_kernel_names = True
-# avoid test_opensora_cases_model_16_forward reinterpre_tensor issue
-config.allow_buffer_reuse = False
+# By default, native Torch/inductor set 'inplace_buffers = True', while it will disable NPU-IR's multi-buffer.
+# Here, we add this env variable as a switch to decide whether or not to reuse a kernel input as its output.
+enable_inplace_buffers = os.environ.get("ENABLE_INPLACE_BUFFERS", "1").lower() in (
+    "1",
+    "true",
+    "yes",
+)
+if not enable_inplace_buffers:
+    inductor_config.inplace_buffers = False
+
 # inductor debug switch
 config.trace.enabled = True
 
 config.fallback_random = True
 
-# npu hardware params from triton
-target = driver.active.get_current_target()
-device = driver.active.get_current_device()
-prop = driver.active.utils.get_device_properties(device)
+config.graph_partition = False
+ 	  	  	 
+config.triton.coalesce_tiling_analysis = False
 
-num_cube_core = prop["num_aicore"]
-num_vector_core = prop["num_aicore"]
+device = torch.npu.current_device()
+prop = torch.npu.get_device_properties(device)
 
-# unit byte
-npu_block = 32
+num_cube_core = prop.cube_core_num
+num_vector_core = prop.vector_core_num
+
+Ascend910B1 = 220
+Ascend310B1 = 240
+Ascend910_9391 = 250
+Ascend950 = 260
+is_ascend950 = get_soc_version() >= Ascend950
 
 
-# For debug
-class aot_inductor:
-    # If debug_kernel is set, codegen in python wrapper (output_code.py) and cpp wrapper (model.pt2)
-    # will be modified to dump fx graph and weights. Meanwhile, generate repro func in output_code.py.
-    # Then, run aoti and output_code.py will dump tensor args before and after each triton kernel,
-    # which can be used to detect which kernel is incorrect.
-    debug_kernel = os.environ.get("AOTI_ASCEND_DEBUG_KERNEL", False)
+class catlass:
+    # Whether to enable debug info, e.g., line number
+    enable_debug_info: bool = False
 
-    # No need to set debug_kernel_in_run manually. It will be set in output_code.py
-    # by codegen if debug_kernel is set.
-    debug_kernel_in_run = False
+    @classproperty
+    def catlass_dir(self) -> str:
+        return os.environ.get(
+            "TORCHINDUCTOR_NPU_CATLASS_DIR",
+            os.path.abspath(
+                os.path.join(os.path.dirname(torch.__file__), "../third_party/catlass")
+            ),
+        )
 
-    # Path that to be used for dump weights in aoti to reproduce when debug_kernel is set.
-    repro_tensor_path = os.environ.get(
-        "AOTI_ASCEND_REPRO_TENSOR_PATH", "aoti_repro_tensors"
+    # Configures the maximum number of CATLASS configs to profile in max_autotune.
+    # By default it's None, so that all CATLASS configs are tuned.
+    # This is mainly used to reduce test time in CI.
+    catlass_max_profiling_configs: int | None = None
+
+    catlass_backend_min_gemm_size: int = 1
+
+    # Whether to ignore GEMM template for standard matmul
+    catlass_ignore_gemm_in_standard_mm: bool = True
+
+    catlass_epilogue_fusion_enable = (
+        os.environ.get("CATLASS_EPILOGUE_FUSION", "0") == "1"
     )
 
-    # Path that to be used for dump tensor args before and after triton kernel in aoti execute
-    # when debug_kernel is set.
-    dump_path_cpp = os.environ.get("AOTI_ASCEND_DUMP_PATH_CPP", "aoti_dump_cpp")
+    catlass_bench_use_profiling: bool = (
+        os.environ.get("TORCHINDUCTOR_PROFILE_WITH_DO_BENCH_USING_PROFILING", "0")
+        == "1"
+    )
 
-    # Path that to be used for dump tensor args before and after triton kernel in output_code.py
-    # when debug_kernel_in_run is set.
-    dump_path_py = os.environ.get("AOTI_DUMP_PATH_PY", "aoti_dump_py")
+    # Note: This function is not implemented yet.
+    # enable generation of inline standalone runner in CATLASS CPP generated code
+    # which allows to compile the generated code into a standalone executable.
+    generate_test_runner: bool = (
+        os.environ.get("INDUCTOR_NPU_BACKEND_GENERATE_TEST_RUNNER_CODE", "0") == "1"
+    )
+
+    catlass_enabled_ops: str = os.environ.get(
+        "TORCHINDUCTOR_CATLASS_ENABLED_OPS", "mm,addmm,bmm"
+    )
 
 
 class _npugraph_trees:
@@ -77,7 +108,7 @@ class _npugraph_trees:
 
 npugraph_trees = _npugraph_trees()
 
-# NPU_INDUCTOR_FALLBACK_LIST=allfallback forces ops entering the NPU inductor lowering
+# NPU_INDUCTOR_FALLBACK_ALL=1 forces ops entering the NPU inductor lowering
 # path to register fallback lowerings, so optimized/fused lowerings are not
 # used. User-defined Triton kernel wrappers are still allowed to keep
 # handwritten kernels runnable.
@@ -88,25 +119,7 @@ auto_fallback = os.environ.get("INDUCTOR_ASCEND_AUTO_FALLBACK", True)
 fallback_warning = os.environ.get("INDUCTOR_ASCEND_FALLBACK_WARNING", False)
 
 # Trace fx graph when lowering and dump.
-dump_fx_graph = (
-    os.environ.get("INDUCTOR_ASCEND_DUMP_FX_GRAPH", False)
-    or check_accuracy
-    or aot_inductor.debug_kernel
-)
-# Specify kernel ids that to be force fallback to fx graph call.
-# Usage: `torch_npu._inductor.config.force_fallback_kernel_id = 'all' `
-#    or  `torch_npu._inductor.config.force_fallback_kernel_id = [1, 2, 10] `
-# (1) 'all' means try to fallback all kernel to fx graph call.
-# (2) [1, 2, 10] means try to fallback kernel like triton_xxx_1, triton_xxx_2 and triton_xxx_10
-force_fallback_kernel_id = []
-
-# Control whether to skip stride assertions for ops that may change stride
-# at runtime (like _to_copy on NPU forcing Contiguous memory format).
-#
-# Usage:
-#   - Skip specific ops: skip_specific_stride_asserts = [torch.ops.aten._to_copy.default, ...]
-#   - Disable skip: skip_specific_stride_asserts = [] (default)
-skip_specific_stride_asserts = []
+dump_fx_graph = os.environ.get("INDUCTOR_ASCEND_DUMP_FX_GRAPH", False) or check_accuracy
 
 
 def parse_rtol_atol(env_str: str):
@@ -168,8 +181,38 @@ acc_comp_tol = {
     "default": {"rtol": rtol_default, "atol": atol_default},
 }
 
-if "Ascend910B" in target.arch:
+ub_size = 192 * 1024
+if is_ascend950:
+    ub_size = 256 * 1024
+
+if (
+    Ascend910B1 <= get_soc_version() < Ascend310B1
+    or get_soc_version() >= Ascend910_9391
+):
     num_vector_core = num_cube_core * 2
+
+inductor_indirect_memory_mode = None
+if is_ascend950:
+    # A5 INDUCTOR_INDIRECT_MEMORY_MODE: fallback, simt_template, simt_only, simd_simt_mix
+    inductor_indirect_memory_mode = os.environ.get(
+        "INDUCTOR_INDIRECT_MEMORY_MODE", "simd_simt_mix"
+    )
+    if inductor_indirect_memory_mode == "fallback":
+        inductor_indirect_memory_mode = None
+    if inductor_indirect_memory_mode not in [
+        None,
+        "simt_template",
+        "simt_only",
+        "simd_simt_mix",
+    ]:
+        inductor_indirect_memory_mode = "simd_simt_mix"
+
+# simt default stacksize is 256 * 32 Byte
+simt_default_warp_stacksize = 256 * 32
+
+# nddma switch
+default_nddma_switch = "1" if is_ascend950 else "0"
+nddma_switch = os.getenv("TORCHINDUCTOR_NDDMA", default_nddma_switch) == "1"
 
 log_level_env = os.getenv("INDUCTOR_ASCEND_LOG_LEVEL", "WARNING").upper()
 log_level_mapping = {
@@ -193,3 +236,15 @@ inductor_static_mode = os.environ.get("INDUCTOR_STATIC_MODE", "0").lower() in (
     "true",
 )
 profile_path = "./profile_result/"
+
+fasta_autotune = os.environ.get("FASTAUTOTUNE", "0") == "1"
+fasta_autotune_method = os.getenv("AUTOTUNE_METHOD", "Expert")
+
+max_precompiled_thread_num = (
+    os.cpu_count() // 2
+)  # default precompile max thread num is half of the cpu count
+if "TORCHNPU_PRECOMPILE_THREADS" in os.environ:
+    max_precompiled_thread_num = int(os.environ["TORCHNPU_PRECOMPILE_THREADS"])
+
+lowering_axis_count = None
+inductor_ascend_linear_mode = "linear"
