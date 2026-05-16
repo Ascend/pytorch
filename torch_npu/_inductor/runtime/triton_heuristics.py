@@ -643,6 +643,15 @@ class NPUCachingAutotuner(CachingAutotuner):
         self.compile_results = compile_results
         self.configs = None
 
+    def parse_triton_ascend_options(self, tiling_kwargs, options):
+        from triton.backends.ascend.compiler import NPUOptions
+        for k in NPUOptions.__dataclass_fields__.keys():
+            if k not in tiling_kwargs:
+                continue
+            options[k] = tiling_kwargs[k]
+
+        return options
+
     def _precompile_config(self, cfg: Config) -> TritonCompileResultNpu:
         """Ahead of time compile a given autotuner config."""
         compile_meta = copy.deepcopy(self.triton_meta)
@@ -704,10 +713,10 @@ class NPUCachingAutotuner(CachingAutotuner):
             "num_warps": compile_meta["num_warps"],
             "num_stages": compile_meta["num_stages"],
             "debug": compile_meta["debug"],
-            "multibuffer": cfg_kwargs.get('multibuffer', False),
             "compile_mode": compile_meta['compile_mode'],
-            "enable_vf_fusion": cfg_kwargs.get('enable_vf_fusion', False),
         }
+
+        options = self.parse_triton_ascend_options(cfg_kwargs, options)
         # pure simt stack overflow check
         if compile_meta['compile_mode'] == NPUKernelType.SIMT_ONLY.compile_mode():
             options['simt_stack_limit'] = npu_config.simt_default_warp_stacksize
@@ -1109,21 +1118,6 @@ class NPUCachingAutotuner(CachingAutotuner):
         self, *args, stream, benchmark_run=False, **kwargs
     ):  # type:ignore[override]
         xnumel_names = {'x0_numel', 'xnumel', 'r0_numel', 'y0_numel', 'rnumel', 'n_elements'}
-        
-        # 1. 优先检查 kwargs（最快路径）
-        # 2. 只有当 kwargs 里没找到 numel 相关参数时，才检查 args
-        for name, val in kwargs.items():
-            if name in xnumel_names:
-                # 只有当明确的 numel 为 0 时才拦截
-                # 这里的 val 通常是 int，如果是 0-d Tensor，直接比较也会返回 True
-                if val == 0:
-                    return
-                break
-        else:
-            for arg in args:
-                if isinstance(arg, (int, float)) and arg == 0:
-                    return
-
         if self.triton_interpret:
             args, grid = self._interpret_args_grid(args, self.configs[0])
             copied_kwargs = copy.copy(self.configs[0].kwargs)

@@ -1822,7 +1822,7 @@ class NPUIndexTritonKernel(TritonKernel):
                 raw_hint = V.graph.sizevars.shape_env.size_hint(numel_expr)
                 hint_val = int(raw_hint)
             except Exception:
-                hint_val = 32
+                hint_val = 4096
 
             size_hints[node.name] = hint_val
         return size_hints
