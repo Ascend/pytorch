@@ -73,4 +73,3 @@ class BenchmarkTestUtils(TestCase):
                 writer.writeheader()
 
             writer.writerow(perf_info)
-
