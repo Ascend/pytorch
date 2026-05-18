@@ -1,7 +1,11 @@
 set(DVM_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/dvm)
 set(DVM_LIB ${DVM_ROOT}/libdvm.a)
 
-set(DVM_MAKE_ARGS_STR "PRE_ASCEND=1")
+set(ACL_INC_ROOT "${TORCHNPU_THIRD_PARTY_ROOT}/acl/inc")
+set(DVM_MAKE_ARGS
+  PRE_ASCEND=1
+  DVM_CUSTOM_FLAGS=-I${ACL_INC_ROOT}
+)
 
 file(GLOB DVM_DEPENDS
   CONFIGURE_DEPENDS
@@ -12,19 +16,9 @@ file(GLOB DVM_DEPENDS
   "${DVM_ROOT}/include/*.h"
 )
 
-set(ACL_INC_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../acl/inc)
-if (EXISTS "${ACL_INC_ROOT}")
-  file(GLOB ACL_INC_DIRS LIST_DIRECTORIES true "${ACL_INC_ROOT}/*")
-  foreach(acl_inc_dir IN LISTS ACL_INC_DIRS)
-    if (IS_DIRECTORY "${acl_inc_dir}")
-      file(COPY "${acl_inc_dir}" DESTINATION "${DVM_ROOT}/include")
-    endif()
-  endforeach()
-endif()
-
 add_custom_command(
   OUTPUT ${DVM_LIB}
-  COMMAND make -C ${DVM_ROOT} ${DVM_MAKE_ARGS_STR} libdvm.a
+  COMMAND make -C ${DVM_ROOT} ${DVM_MAKE_ARGS} libdvm.a
   WORKING_DIRECTORY ${DVM_ROOT}
   DEPENDS ${DVM_DEPENDS}
   COMMENT "Building DVM static library"

@@ -64,6 +64,7 @@ public:
     py::object Load(py::object shape, DataTypePy type) override;
     py::object ViewLoad(py::object shape, py::object stride, DataTypePy type) override;
     py::object Store(py::object obj, DataTypePy type) override;
+    py::object ViewStore(py::object obj, py::object stride, DataTypePy type) override;
     IntArrayRef* GetShapeRef(py::object shape) override;
 
     void SetKernelInfo(const std::string& op_name, const std::string& op_fullname,
