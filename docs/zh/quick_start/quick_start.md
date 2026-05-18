@@ -4,8 +4,10 @@
 
 本快速入门以在Atlas 800T A2 训练服务器上运行为例。
 
-- 请参考《[CANN 快速安装](https://www.hiascend.com/cann/download)》安装昇腾NPU驱动和CANN软件（包含Toolkit、ops和NNAL包），并配置环境变量。
-- 请参考《[Ascend Extension for PyTorch 软件安装指南](../installation_guide/installation_description.md)》安装PyTorch框架及torch\_npu插件。
+- 安装配套版本的NPU驱动固件、CANN软件（Toolkit、ops和NNAL），具体请参考《[CANN 软件安装](https://www.hiascend.com/document/detail/zh/canncommercial/900/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum)》（商用版）或《[CANN 软件安装](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/900/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum)》（社区版）：
+    - 操作系统：选择可用的操作系统（兼容性请参考[兼容性查询助手](https://www.hiascend.com/hardware/compatibility)）
+    - 安装类型：选择“离线安装”
+- 安装PyTorch框架及torch\_npu插件，具体请参考《[Ascend Extension for PyTorch 软件安装指南](../installation_guide/installation_description.md)》。
 
 ## 模型迁移训练
 
