@@ -365,12 +365,16 @@ def main():
     parser.add_argument("--profiler_save_path", type=str, default="./profile",
                     help="Output directory for trained model")
     parser.add_argument("--npu-backend", type=str, default="mlir")
-    
+    parser.add_argument("--mfusion", action="store_true",
+                       help="Enable MFusion for graph fusion optimization")
+
     args = parser.parse_args()
     torch.manual_seed(args.seed)
 
     args.device_type = detect_device_type()
     os.environ['TORCHINDUCTOR_NPU_BACKEND']=args.npu_backend
+    if args.mfusion:
+        os.environ['TORCHINDUCTOR_NPU_MFUSION']='1'
     print(f"{args.device_type}  train  {model_name}")
 
     trainer = GPT_OSS_20BTrainer(args)

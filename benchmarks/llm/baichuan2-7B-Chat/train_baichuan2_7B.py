@@ -235,6 +235,8 @@ def build_argparser():
     parser = argparse.ArgumentParser(description="Train Baichuan2-7B-Chat (LoRA) on NPU")
 
     parser.add_argument("--npu-backend", type=str, default="mlir")
+    parser.add_argument("--mfusion", action="store_true",
+                        help="Enable MFusion for graph fusion optimization")
     parser.add_argument("--model_path", type=str, required=True)
     parser.add_argument("--data_path", type=str, required=True)
     parser.add_argument("--output_dir", type=str, default="./baichuan2-finetuned")
@@ -279,6 +281,8 @@ def main():
     args = build_argparser().parse_args()
     detect_device_type()
     os.environ['TORCHINDUCTOR_NPU_BACKEND']=args.npu_backend
+    if args.mfusion:
+        os.environ['TORCHINDUCTOR_NPU_MFUSION']='1'
     os.makedirs(args.output_dir, exist_ok=True)
     os.makedirs(os.path.join(args.output_dir, "logs"), exist_ok=True)
 

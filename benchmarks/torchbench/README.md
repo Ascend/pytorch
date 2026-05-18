@@ -120,6 +120,12 @@
     python3 torchbench.py --accuracy --cold-start-latency --train --float32 --backend inductor --npu-backend mlir --only BERT_pytorch --iterations 50
     ```
 
+    当前可通过 `--mfusion` 参数开启 MFusion 图算融合优化功能, 配合不同的NPU图模式后端, 进一步提升模型的性能，使用示例如下
+
+    ```shell
+    python3 torchbench.py --accuracy --cold-start-latency --train --float32 --backend inductor --npu-backend mlir --mfusion --only BERT_pytorch --iterations 50
+    ```
+
 5. Aclgraph使能关闭与模式指定
 
     当前NPU图模式后端在静态shape的条件下默认开启aclgraph，如果需要关闭aclgraph，可添加参数`--disable-aclgraph`。示例如下
