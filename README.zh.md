@@ -1,6 +1,5 @@
 # Ascend Extension for PyTorch插件
 
-
 ## 简介
 
 本项目开发了名为**torch_npu**的**Ascend Extension for PyTorch**插件，使昇腾NPU可以适配PyTorch框架，为使用PyTorch框架的开发者提供昇腾AI处理器的超强算力。
@@ -25,8 +24,6 @@
 | PyTorch2.7.1  | Python3.9.x, Python3.10.x, Python 3.11.x, Python 3.12.x      |
 | PyTorch2.8.0  | Python3.9.x, Python3.10.x, Python 3.11.x, Python 3.12.x      |
 | PyTorch2.9.0  | Python3.10.x, Python 3.11.x, Python 3.12.x                   |
-
-
 
 ### 昇腾辅助软件
 
@@ -77,10 +74,10 @@
 |                       | 1.8.1        | 1.8.1.post1      | v1.8.1-5.0.rc1    | 
 | CANN 6.0.1            | 1.5.0        | 1.5.0.post8      | v1.5.0-3.0.0      |
 |                       | 1.8.1        | 1.8.1            | v1.8.1-3.0.0      |
-|                       | 1.11.0       | 1.11.0.rc2（beta) | v1.11.0-3.0.0     | 
+|                       | 1.11.0       | 1.11.0.rc2（beta） | v1.11.0-3.0.0     | 
 | CANN 6.0.RC1          | 1.5.0        | 1.5.0.post7      | v1.5.0-3.0.rc3    |
 |                       | 1.8.1        | 1.8.1.rc3        | v1.8.1-3.0.rc3    |
-|                       | 1.11.0       | 1.11.0.rc1（beta) | v1.11.0-3.0.rc3   | 
+|                       | 1.11.0       | 1.11.0.rc1（beta） | v1.11.0-3.0.rc3   | 
 | CANN 5.1.RC2          | 1.5.0        | 1.5.0.post6      | v1.5.0-3.0.rc2    |
 |                       | 1.8.1        | 1.8.1.rc2        | v1.8.1-3.0.rc2    |
 | CANN 5.1.RC1          | 1.5.0        | 1.5.0.post5      | v1.5.0-3.0.rc1    |
@@ -88,7 +85,6 @@
 | CANN 5.0.4            | 1.5.0        | 1.5.0.post4      | 2.0.4.tr5         |
 | CANN 5.0.3            | 1.8.1        | 1.5.0.post3      | 2.0.3.tr5         |
 | CANN 5.0.2            | 1.5.0        | 1.5.0.post2      | 2.0.2.tr5         |
-
 
 ## 快速入门
 
@@ -124,7 +120,7 @@
    | x86     | Python3.11 | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.9.0%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl#sha256=add3e93ecc1eeaa6853f6a973ce60ffb3cb14ed2e80f5055e139b09385dce0a7)  |
    | x86     | Python3.12 | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.9.0%2Bcpu-cp312-cp312-manylinux_2_28_x86_64.whl#sha256=28f6eb31b08180a5c5e98d5bc14eef6909c9f5a1dbff9632c3e02a8773449349)  |
    | aarch64 | Python3.10 | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.9.0%2Bcpu-cp310-cp310-manylinux_2_28_aarch64.whl#sha256=b224792ea567b52c7f1ce1d789567f6920e06fd3b339fa1e1b05948845f783ad)  |
-   | aarch64 | Python3.11 | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.9.0%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl#sha256=add3e93ecc1eeaa6853f6a973ce60ffb3cb14ed2e80f5055e139b09385dce0a7)  |
+   | aarch64 | Python3.11 | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.9.0%2Bcpu-cp311-cp311-manylinux_2_28_aarch64.whl#sha256=da77341ccaba31762d9238b0942c165c4582a26818f3045b052b39cebdd7ad9d)  |
    | aarch64 | Python3.12 | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.9.0%2Bcpu-cp312-cp312-manylinux_2_28_aarch64.whl#sha256=3a651434ae1248b0568c12b5f9e3acc8942eb28378d9d04a79302938b68c6f24)  |
 
 2. **安装torch_npu依赖**
@@ -141,6 +137,7 @@
    ```bash
    pip3 install torch-npu==2.9.0
    ```
+
    如需要保存安装日志，可在pip3 install命令后面加上参数 `--log <PATH>`，并对您指定的目录`<PATH>`做好权限管控。
 
 ### 使用源代码进行安装
@@ -154,20 +151,20 @@
 
 1. **克隆torch_npu代码仓**
 
-   ```
+   ```bash
    git clone https://gitcode.com/ascend/pytorch.git -b v2.9.0-7.3.0 --depth 1
    ```
 
 2. **构建镜像**
 
-   ```
+   ```bash
    cd pytorch/ci/docker/{arch} # {arch} for X86 or ARM
    docker build -t manylinux-builder:v1 .
    ```
 
 3. **进入Docker容器**
 
-   ```
+   ```bash
    docker run -it -v /{code_path}/pytorch:/home/pytorch manylinux-builder:v1 bash
    # {code_path} is the torch_npu source code path
    ```
@@ -176,7 +173,7 @@
 
    以**Python 3.10** 为例。
 
-   ```
+   ```bash
    cd /home/pytorch
    bash ci/build.sh --python=3.10
    ```
@@ -185,13 +182,13 @@
  
    如果想使用新的C++ ABI编译，请首先运行如下命令，此时推荐和社区torch包相同的编译环境：glibc 2.28, gcc 13.3。
 
-   ```
+   ```bash
    export _GLIBCXX_USE_CXX11_ABI=1
    ```
 
    同时，我们支持使用如下变量配置-fabi-version，要求和社区torch包ABI版本一致
 
-   ```
+   ```bash
    export _ABI_VERSION=18
    ```
 
@@ -201,9 +198,10 @@
 
 运行以下命令初始化**CANN**环境变量。
 
-```Shell
+```bash
 source /usr/local/Ascend/ascend-toolkit/set_env.sh
 ```
+
 以上命令以root用户安装后的默认路径为例，请用户根据set\_env.sh的实际路径进行替换。
 CANN 8.5.0以下版本，脚本默认路径为/usr/local/Ascend/ascend-toolkit/set_env.sh。
 
@@ -211,9 +209,9 @@ CANN 8.5.0以下版本，脚本默认路径为/usr/local/Ascend/ascend-toolkit/s
 
  可以通过以下样例快速体验**昇腾NPU**。
 
-```diff
+```python
 import torch
-- import torch_npu # torch_npu2.5.1及以后版本可以不用手动导包
+import torch_npu # torch_npu2.5.1及以后版本可以不用手动导包
 
 x = torch.randn(2, 2).npu()
 y = torch.randn(2, 2).npu()
@@ -223,6 +221,7 @@ print(z)
 ```
 
 ## 卸载
+
 Pytorch框架训练环境的卸载可以参考[卸载](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-7.3.0/docs/zh/installation_guide/uninstallation.md)。
 
 torch_npu的卸载只需执行命令：
@@ -233,11 +232,10 @@ torch_npu的卸载只需执行命令：
 
 如需要保存卸载日志，可在pip3 uninstall命令后面加上参数 `--log <PATH>`，并对您指定的目录`<PATH>`做好权限管控。
 
-
-
 ## 硬件配套
 
 昇腾训练设备包含以下型号，都可作为PyTorch模型的训练环境。
+
 | 产品系列               | 产品型号                         |
 |-----------------------|----------------------------------|
 | Atlas 训练系列产品     | Atlas 800 训练服务器（型号：9000） |
@@ -254,6 +252,7 @@ torch_npu的卸载只需执行命令：
 |                       | A200T A3 Box8 超节点服务器       |
 
 昇腾推理设备包含以下型号，都可作为大模型的推理环境。
+
 | 产品系列               | 产品型号                         |
 |-----------------------|----------------------------------|
 | Atlas A2 推理系列产品  | Atlas 800I A2 推理服务器          |
@@ -265,7 +264,6 @@ torch_npu的卸载只需执行命令：
 ## 分支维护策略
 
 Ascend Extension for PyTorch版本分支的维护阶段如下：
-
 
 | **状态**            | **时间** | **说明**                                         |
 | ------------------- | -------- | ------------------------------------------------ |
@@ -310,7 +308,6 @@ Ascend Extension for PyTorch版本分支的维护阶段如下：
 | Ascend Extension for PyTorch自定义API参考      | [参考链接](https://gitcode.com/Ascend/op-plugin/blob/7.3.0/docs/menu_Pytorch_API.md) |
 | 环境变量参考          | [参考链接](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-7.3.0/docs/zh/environment_variable_reference/menu_env_variable_reference.md) |
 | 故障处理          | [参考链接](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-7.3.0/docs/zh/troubleshooting/menu_troubleshooting.md) |
-
 
 ## 许可证
 
