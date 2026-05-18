@@ -437,6 +437,57 @@ NPUStream getCurrentNPUStream(c10::DeviceIndex device_index)
     return NPUStream_fromInternals(current_streams[device_index]);
 }
 
+NPUStream getNPUStreamFromManagedAclrtStream(aclrtStream stream, c10::DeviceIndex device_index)
+{
+    initNPUStreamsOnce();
+    TORCH_CHECK(stream != nullptr, "stream is nullptr", PTA_ERROR(ErrCode::PTR));
+
+    auto find_stream_in_device = [stream](c10::DeviceIndex idx) -> const LeakyStreamInternals* {
+        if (default_streams[idx].stream == stream) {
+            return &default_streams[idx];
+        }
+        if (secondary_streams[idx].stream == stream) {
+            return &secondary_streams[idx];
+        }
+        for (const auto priority : c10::irange(kMaxStreamPriorities)) {
+            for (const auto stream_idx : c10::irange(GetStreamsPerPool())) {
+                if (npu_streams[priority][idx][stream_idx].stream == stream) {
+                    return &npu_streams[priority][idx][stream_idx];
+                }
+            }
+        }
+        for (const auto stream_idx : c10::irange(kSyncLaunchStreamsPerPool)) {
+            if (sync_launch_streams[idx][stream_idx].stream == stream) {
+                return &sync_launch_streams[idx][stream_idx];
+            }
+        }
+        return nullptr;
+    };
+
+    if (device_index != -1) {
+        check_npu(device_index);
+        if (auto ptr = find_stream_in_device(device_index)) {
+            return NPUStream_fromInternals(ptr);
+        }
+    } else {
+        for (const auto idx : c10::irange(num_npus)) {
+            if (auto ptr = find_stream_in_device(idx)) {
+                return NPUStream_fromInternals(ptr);
+            }
+        }
+    }
+
+    if (device_index != -1) {
+        TORCH_CHECK(
+            false,
+            "The aclrtStream is not managed by torch_npu on device ",
+            device_index,
+            PTA_ERROR(ErrCode::VALUE));
+    }
+
+    TORCH_CHECK(false, "The aclrtStream is not managed by torch_npu", PTA_ERROR(ErrCode::VALUE));
+}
+
 NPUStream getCurrentSecondaryStream(c10::DeviceIndex device_index)
 {
     initNPUStreamsOnce();
