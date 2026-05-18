@@ -1,21 +1,24 @@
 #!/usr/bin/env python3
 """
-Run PyTorch NPU tests via per-case isolation pytest execution.
+Run PyTorch NPU tests via pytest.main() batch execution.
 
 This script executes pre-collected test cases or specified test files
-with per-case subprocess isolation for crash safety.
+using pytest.main() within worker subprocesses for efficient batch execution.
 
 Execution modes:
     - Pre-collected cases (--cases-json): Execute cases from JSON file
     - Custom test files (--test-files): Execute specified test files
 
-Each case runs in its own pytest subprocess for isolation:
-    - NPU kernel crashes won't cascade to other cases
+Each worker subprocess runs pytest.main() for multiple same-file cases:
+    - Cases are sorted by test file and grouped into batches (max 100 per batch)
+    - pytest.main() avoids per-case subprocess startup overhead
+    - Worker subprocesses provide crash isolation between batches
+    - Coredump detection and automatic retry for affected cases
     - Results recorded in cases.json file
 
 Test types:
-    - distributed: Serial execution (one case at a time)
-    - regular: Concurrent execution (multiple workers)
+    - distributed: Serial execution (one batch at a time)
+    - regular: Concurrent execution (multiple batch workers)
 
 Usage:
     # Pre-collected cases mode (primary usage):
@@ -43,15 +46,18 @@ Note: Shard discovery mode (--shard/--num-shards/--test-type) has been removed.
 """
 
 import argparse
+import contextlib
 import dataclasses
 import importlib.util
+import io
 import json
 import os
+import signal
 import subprocess
 import sys
 import threading
 import xml.etree.ElementTree as ET
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
 from queue import Queue, Empty
@@ -374,6 +380,43 @@ def parse_junit_xml_status(xml_file: Path) -> Dict:
 
     except Exception:
         return {"status": "no_xml", "message": "XML parse failed"}
+
+
+# ==============================================================================
+# Case Batching Functions
+# ==============================================================================
+
+
+def sort_and_batch_tasks(
+    tasks: List[CaseExecutionTask],
+    max_cases_per_batch: int = 100,
+) -> List[List[CaseExecutionTask]]:
+    """
+    Sort tasks by test_file then nodeid, group into same-file batches <= max_cases_per_batch.
+
+    This ensures:
+    - All cases in a batch share the same test file (required for safe pytest.main() reuse)
+    - No batch exceeds max_cases_per_batch (process restart boundary)
+    - Cases within each file are ordered by nodeid for deterministic execution
+    """
+    if not tasks:
+        return []
+
+    sorted_tasks = sorted(tasks, key=lambda t: (t.test_file, t.nodeid))
+    batches = []
+    i = 0
+    while i < len(sorted_tasks):
+        current_file = sorted_tasks[i].test_file
+        batch = []
+        while (
+            i < len(sorted_tasks)
+            and sorted_tasks[i].test_file == current_file
+            and len(batch) < max_cases_per_batch
+        ):
+            batch.append(sorted_tasks[i])
+            i += 1
+        batches.append(batch)
+    return batches
 
 
 # ==============================================================================
@@ -736,12 +779,6 @@ def run_tests_with_tasks_concurrent(
         num_npu_devices = get_npu_device_count()
         print(f"NPU device allocation: {num_npu_devices} devices detected (round-robin)")
 
-    config = ConcurrentExecutionConfig(
-        max_workers=max_workers,
-        per_case_timeout=timeout,
-        verbose=verbose,
-    )
-
     # Thread-safe result aggregator
     result_aggregator = ConcurrentResultAggregator()
 
@@ -759,11 +796,11 @@ def run_tests_with_tasks_concurrent(
         "type": "header",
         "content": (
             "=" * 80 + "\n"
-            f"Pre-collected cases concurrent execution ({shard_type} shard)\n"
+            f"Pre-collected cases batch execution ({shard_type} shard)\n"
             "=" * 80 + "\n"
             f"Total cases: {len(tasks)}\n"
             f"Max concurrent workers: {max_workers}\n"
-            "Execution mode: concurrent subprocess, each case isolated\n"
+            "Execution mode: pytest.main() per case, batched by file (max 100/batch)\n"
             "=" * 80 + "\n\n"
         ),
     })
@@ -775,63 +812,73 @@ def run_tests_with_tasks_concurrent(
         tasks = tasks[:quick_test]
         print(f"\nQuick test mode: executing only {quick_test} cases", flush=True)
 
+    total_cases = len(tasks)
+
+    # Sort and batch tasks: group same-file cases, max 100 per batch
+    batches = sort_and_batch_tasks(tasks, max_cases_per_batch=100)
+
     print(f"\n{'=' * 80}", flush=True)
-    print(f"Pre-collected cases: {len(tasks)} cases", flush=True)
-    print(f"Execution mode: {max_workers} workers concurrent, each case in subprocess", flush=True)
+    print(f"Pre-collected cases: {total_cases} cases", flush=True)
+    print(f"Execution mode: {max_workers} workers concurrent, "
+          f"{len(batches)} batches (max 100 same-file cases per batch, pytest.main() per case)", flush=True)
     print(f"{'=' * 80}\n", flush=True)
 
-    total_cases = len(tasks)
-    print(f"Phase 1: Executing {total_cases} pre-collected cases...", flush=True)
+    # Print batch summary
+    for bi, b in enumerate(batches):
+        display_file = b[0].test_file
+        if display_file.startswith("test/"):
+            display_file = display_file[5:]
+        print(f"  Batch {bi}: {len(b)} cases from {display_file}")
 
-    # Phase 2: Concurrent execution via ThreadPoolExecutor
+    print(f"\nPhase: Executing {total_cases} pre-collected cases in {len(batches)} batches...", flush=True)
+
     progress_tracker = ProgressTracker(total_cases)
 
+    # Push case_start log entries for all cases (preserves log format)
+    for task in tasks:
+        display_nodeid = task.nodeid[:70] + "..." if len(task.nodeid) > 70 else task.nodeid
+        log_queue.put({
+            "type": "case_start",
+            "case_idx": task.case_idx,
+            "nodeid": task.nodeid,
+            "file": task.test_file,
+            "command": f"pytest.main(['{task.nodeid}', '--junitxml=...'])",
+        })
+
+    # Execute batches via ThreadPoolExecutor
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        # Submit all tasks with device allocation (round-robin)
-        future_to_task = {}
-        for task in tasks:
-            # Calculate device ID (round-robin allocation)
+        futures = []
+        for batch_id, batch in enumerate(batches):
+            # Calculate device ID (round-robin by batch_id)
             if num_npu_devices is not None:
-                device_id = task.case_idx % num_npu_devices
+                device_id = batch_id % num_npu_devices
             else:
                 device_id = None
 
             future = executor.submit(
-                run_single_case_concurrent,
-                task,
+                _execute_worker_batch,
+                batch,
+                batch_id,
                 test_dir,
-                merged_env,
-                config,
-                result_aggregator,
-                progress_tracker,
-                log_queue,
                 report_dir,
+                merged_env,
+                timeout,
+                verbose,
                 shard,
                 shard_type,
                 device_id,
+                result_aggregator,
+                progress_tracker,
+                log_queue,
             )
-            future_to_task[future] = task
+            futures.append((future, batch_id))
 
-        # Wait for completion (as_completed gives results as they finish)
-        for future in as_completed(future_to_task):
-            task = future_to_task[future]
+        # Check for exceptions
+        for future, batch_id in futures:
             try:
-                # Result already collected in aggregator
-                _ = future.result()
+                future.result()
             except Exception as e:
-                # Should never happen (run_single_case_concurrent catches all)
-                # But as safety, create error result
-                case_result = {
-                    "nodeid": task.nodeid,
-                    "status": "error",
-                    "duration": 0.0,
-                    "returncode": 1,
-                    "message": f"Future error: {str(e)[:200]}",
-                    "file": task.test_file,
-                    "case_idx": task.case_idx,
-                }
-                result_aggregator.add_case_result(case_result)
-                progress_tracker.mark_completed(task.nodeid, "error", 0.0)
+                print(f"  ERROR: Batch {batch_id} execution failed: {str(e)[:200]}", flush=True)
 
     # Stop log thread
     elapsed = monotonic() - start
@@ -911,6 +958,459 @@ def build_execution_env(
         updates["DISABLED_TESTS_FILE"] = os.path.abspath(disabled_testcases_file)
 
     return updates
+
+
+# ==============================================================================
+# Worker Process (pytest.main() batch execution)
+# ==============================================================================
+
+
+def _build_batch_input_json(
+    batch: List[CaseExecutionTask],
+    batch_id: int,
+    test_dir: Path,
+    report_dir: Path,
+    env_updates: Dict[str, str],
+    timeout: int,
+    verbose: bool,
+    shard: int,
+    shard_type: str,
+    npu_device_id: Optional[int],
+) -> Dict:
+    """Build the JSON input dict for a worker subprocess."""
+    return {
+        "batch_id": batch_id,
+        "test_dir": str(test_dir),
+        "report_dir": str(report_dir),
+        "env_updates": env_updates,
+        "timeout": timeout,
+        "verbose": verbose,
+        "shard": shard,
+        "shard_type": shard_type,
+        "npu_device_id": npu_device_id,
+        "cases": [
+            {
+                "case_idx": t.case_idx,
+                "nodeid": t.nodeid,
+                "test_file": t.test_file,
+            }
+            for t in batch
+        ],
+    }
+
+
+def _execute_worker_batch(
+    batch: List[CaseExecutionTask],
+    batch_id: int,
+    test_dir: Path,
+    report_dir: Path,
+    merged_env: Dict[str, str],
+    timeout: int,
+    verbose: bool,
+    shard: int,
+    shard_type: str,
+    npu_device_id: Optional[int],
+    result_aggregator: ConcurrentResultAggregator,
+    progress_tracker: ProgressTracker,
+    log_queue: Queue,
+    max_coredump_retries: int = 3,
+) -> None:
+    """
+    Execute one batch in a worker subprocess using pytest.main().
+
+    Spawns a subprocess that calls pytest.main() for each case in the batch.
+    Reads stdout JSON lines for real-time progress updates.
+    On coredump (returncode < 0), retries remaining cases up to max_coredump_retries.
+    Never raises — all errors become case_result entries in the aggregator.
+    """
+    script_path = Path(__file__).resolve()
+    batch_input_file = report_dir / f"batch_input_{batch_id}.json"
+
+    remaining_cases = list(batch)
+    completed_nodeids = set()
+    batch_input = _build_batch_input_json(
+        batch, batch_id, test_dir, report_dir,
+        {},  # env_updates already merged by caller
+        timeout, verbose, shard, shard_type, npu_device_id,
+    )
+
+    for attempt in range(max_coredump_retries + 1):
+        if not remaining_cases:
+            break
+
+        # Update batch input with remaining cases
+        batch_input["cases"] = [
+            {
+                "case_idx": t.case_idx,
+                "nodeid": t.nodeid,
+                "test_file": t.test_file,
+            }
+            for t in remaining_cases
+        ]
+        batch_input_file.write_text(json.dumps(batch_input, indent=2), encoding="utf-8")
+
+        attempt_completed = set()
+
+        try:
+            worker_cmd = [
+                sys.executable, "-u", str(script_path),
+                "--worker", str(batch_input_file),
+                "--test-dir", str(test_dir),
+            ]
+
+            proc = subprocess.Popen(
+                worker_cmd,
+                cwd=str(test_dir),
+                env=merged_env,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+            )
+
+            # Read stdout JSON lines in real-time
+            if proc.stdout:
+                for line in proc.stdout:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        case_result = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue  # skip non-JSON lines (pytest banner, warnings, etc.)
+
+                    nodeid = case_result.get("nodeid", "")
+                    status = case_result.get("status", "error")
+                    duration = case_result.get("duration", 0.0)
+
+                    # Build full case result dict for aggregator
+                    full_result = {
+                        "nodeid": nodeid,
+                        "status": status,
+                        "duration": duration,
+                        "returncode": int(case_result.get("returncode", 1)),
+                        "message": case_result.get("message", ""),
+                        "command": case_result.get("command", ""),
+                        "file": case_result.get("file", ""),
+                        "case_idx": int(case_result.get("case_idx", 0)),
+                    }
+
+                    result_aggregator.add_case_result(full_result)
+                    progress_tracker.mark_completed(nodeid, status, duration)
+                    log_queue.put({
+                        "type": "case_finish",
+                        "case_idx": full_result["case_idx"],
+                        "nodeid": nodeid,
+                        "status": status,
+                        "duration": duration,
+                        "message": case_result.get("message", "")[:200],
+                    })
+                    attempt_completed.add(nodeid)
+
+            returncode = proc.wait()
+
+            # Read any remaining stderr
+            stderr_output = ""
+            if proc.stderr:
+                stderr_output = proc.stderr.read()
+
+            if returncode < 0:
+                # Worker killed by signal → coredump
+                signal_num = -returncode
+                try:
+                    signal_name = signal.Signals(signal_num).name
+                except (ValueError, AttributeError):
+                    signal_name = f"signal {signal_num}"
+                print(
+                    f"  [Batch {batch_id}] Worker coredump ({signal_name}), "
+                    f"attempt {attempt + 1}/{max_coredump_retries + 1}",
+                    flush=True,
+                )
+
+                completed_nodeids.update(attempt_completed)
+                remaining_cases = [
+                    t for t in batch if t.nodeid not in completed_nodeids
+                ]
+
+                if remaining_cases and attempt < max_coredump_retries:
+                    print(
+                        f"  [Batch {batch_id}] Retrying {len(remaining_cases)} "
+                        f"remaining cases...",
+                        flush=True,
+                    )
+                    continue
+                elif remaining_cases:
+                    # Max retries exceeded
+                    for task in remaining_cases:
+                        error_result = {
+                            "nodeid": task.nodeid,
+                            "status": "error",
+                            "duration": 0.0,
+                            "returncode": 1,
+                            "message": f"Coredump: max retries exceeded ({signal_name})",
+                            "command": "",
+                            "file": task.test_file,
+                            "case_idx": task.case_idx,
+                        }
+                        result_aggregator.add_case_result(error_result)
+                        progress_tracker.mark_completed(
+                            task.nodeid, "error", 0.0
+                        )
+                        completed_nodeids.add(task.nodeid)
+                break
+            else:
+                # Normal exit: all cases processed
+                completed_nodeids.update(attempt_completed)
+
+                # Fallback: if stdout was empty, try reading batch_results file
+                if not attempt_completed:
+                    results_file = report_dir / f"batch_results_{batch_id}.json"
+                    if results_file.exists():
+                        try:
+                            fallback_results = json.loads(
+                                results_file.read_text(encoding="utf-8")
+                            )
+                            for cr in fallback_results:
+                                full_result = {
+                                    "nodeid": cr.get("nodeid", ""),
+                                    "status": cr.get("status", "error"),
+                                    "duration": cr.get("duration", 0.0),
+                                    "returncode": int(cr.get("returncode", 1)),
+                                    "message": cr.get("message", ""),
+                                    "command": cr.get("command", ""),
+                                    "file": cr.get("file", ""),
+                                    "case_idx": int(cr.get("case_idx", 0)),
+                                }
+                                result_aggregator.add_case_result(full_result)
+                                progress_tracker.mark_completed(
+                                    full_result["nodeid"],
+                                    full_result["status"],
+                                    full_result["duration"],
+                                )
+                                completed_nodeids.add(full_result["nodeid"])
+                        except (json.JSONDecodeError, OSError):
+                            pass
+
+                # Check for any cases that didn't produce results in normal exit
+                remaining = [
+                    t for t in batch if t.nodeid not in completed_nodeids
+                ]
+                if remaining:
+                    print(
+                        f"  [Batch {batch_id}] {len(remaining)} cases missing "
+                        f"results (normal exit), marking as error",
+                        flush=True,
+                    )
+                    for task in remaining:
+                        error_result = {
+                            "nodeid": task.nodeid,
+                            "status": "error",
+                            "duration": 0.0,
+                            "returncode": 1,
+                            "message": "No result produced (worker exited normally)",
+                            "command": "",
+                            "file": task.test_file,
+                            "case_idx": task.case_idx,
+                        }
+                        result_aggregator.add_case_result(error_result)
+                        progress_tracker.mark_completed(
+                            task.nodeid, "error", 0.0
+                        )
+                break
+
+        except Exception as e:
+            # Subprocess launch failure or other unexpected error
+            print(
+                f"  [Batch {batch_id}] Worker execution failed: {str(e)[:200]}",
+                flush=True,
+            )
+            # Mark all remaining cases as error
+            for task in remaining_cases:
+                if task.nodeid not in completed_nodeids:
+                    error_result = {
+                        "nodeid": task.nodeid,
+                        "status": "error",
+                        "duration": 0.0,
+                        "returncode": 1,
+                        "message": f"Worker failure: {str(e)[:200]}",
+                        "command": "",
+                        "file": task.test_file,
+                        "case_idx": task.case_idx,
+                    }
+                    result_aggregator.add_case_result(error_result)
+                    progress_tracker.mark_completed(task.nodeid, "error", 0.0)
+            break
+
+    # Cleanup temp file
+    batch_input_file.unlink(missing_ok=True)
+    results_file = report_dir / f"batch_results_{batch_id}.json"
+    results_file.unlink(missing_ok=True)
+
+
+def _worker_main(worker_input_file: str) -> None:
+    """
+    Worker entry point. Called via:
+        python run_npu_test_shard.py --worker <batch_input.json>
+
+    Reads batch input, runs each case via pytest.main() sequentially,
+    prints one JSON line per case to stdout, writes batch_results file,
+    then calls os._exit(0). Never returns.
+    """
+    import time as time_mod
+
+    import pytest
+
+    with open(worker_input_file, encoding="utf-8") as f:
+        batch_input = json.load(f)
+
+    cases = batch_input["cases"]
+    test_dir = Path(batch_input["test_dir"])
+    report_dir = Path(batch_input["report_dir"])
+    env_updates = batch_input.get("env_updates", {})
+    timeout = batch_input.get("timeout", 1200)
+    verbose = batch_input.get("verbose", False)
+    shard = batch_input.get("shard", 0)
+    shard_type = batch_input.get("shard_type", "regular")
+    batch_id = batch_input.get("batch_id", 0)
+    npu_device_id = batch_input.get("npu_device_id", None)
+
+    # Apply environment
+    for key, value in env_updates.items():
+        os.environ[key] = value
+    if npu_device_id is not None:
+        os.environ["ASCEND_RT_VISIBLE_DEVICES"] = str(npu_device_id)
+
+    # Change to test directory
+    os.chdir(str(test_dir))
+
+    # Ensure junit_xmls directory exists
+    junit_xml_dir = report_dir / "junit_xmls"
+    junit_xml_dir.mkdir(parents=True, exist_ok=True)
+
+    # Determine PYTHONPATH from first case (all cases in batch are same-file)
+    if cases:
+        first_case = cases[0]
+        test_file_rel = first_case["test_file"]
+        if test_file_rel.startswith("test/"):
+            test_file_rel = test_file_rel[5:]
+        test_file_dir = test_dir / Path(test_file_rel).parent
+        existing = os.environ.get("PYTHONPATH", "")
+        os.environ["PYTHONPATH"] = str(test_file_dir) + (":" + existing if existing else "")
+
+    all_results = []
+
+    for case in cases:
+        original_nodeid = case["nodeid"]
+        case_nodeid = original_nodeid
+        if case_nodeid.startswith("test/"):
+            case_nodeid = case_nodeid[5:]
+
+        # Generate XML filename
+        prefix = "dist" if shard_type == "distributed" else "reg"
+        safe_name = sanitize_nodeid_for_filename(original_nodeid)
+        xml_filename = f"{prefix}-{shard}_{case['case_idx']}_{safe_name}.xml"
+        xml_file = junit_xml_dir / xml_filename
+
+        # Build pytest args
+        pytest_args = [
+            "--color=no",
+            "-ra",
+            "--tb=short",
+            case_nodeid,
+            f"--junitxml={xml_file}",
+        ]
+        if timeout > 0:
+            pytest_args.append(f"--timeout={timeout}")
+        if verbose:
+            pytest_args.append("-vv")
+        else:
+            pytest_args.append("-v")
+
+        command_str = " ".join([sys.executable, "-m", "pytest"] + pytest_args)
+
+        # Log start to stdout (for parent visibility)
+        display_nodeid = (
+            original_nodeid[:70] + "..."
+            if len(original_nodeid) > 70
+            else original_nodeid
+        )
+        print(f"[{case['case_idx']}] Starting: {display_nodeid}", flush=True)
+
+        # Capture stdout/stderr
+        stdout_buf = io.StringIO()
+        stderr_buf = io.StringIO()
+
+        start_time = time_mod.monotonic()
+
+        try:
+            with contextlib.redirect_stdout(stdout_buf), contextlib.redirect_stderr(stderr_buf):
+                try:
+                    returncode = pytest.main(args=pytest_args)
+                    if not isinstance(returncode, int):
+                        returncode = int(returncode) if returncode is not None else 1
+                except SystemExit as e:
+                    returncode = int(e.code) if e.code is not None else 1
+        except BaseException as e:
+            returncode = -1
+            print(f"  Fatal worker error: {type(e).__name__}: {str(e)[:200]}", file=sys.stderr, flush=True)
+
+        duration = time_mod.monotonic() - start_time
+
+        captured_stdout = stdout_buf.getvalue()
+        captured_stderr = stderr_buf.getvalue()
+
+        # Parse JUnit XML for status
+        xml_result = parse_junit_xml_status(xml_file)
+        if xml_result["status"] == "no_xml":
+            status = "error"
+            message = xml_result.get("message", "")
+        else:
+            status = xml_result["status"]
+            message = xml_result.get("message", "")
+
+        # Save case log
+        save_case_log(
+            report_dir=report_dir,
+            shard=shard,
+            shard_type=shard_type,
+            nodeid=original_nodeid,
+            case_idx=case["case_idx"],
+            status=status,
+            stdout=captured_stdout,
+            stderr=captured_stderr,
+            duration=duration,
+            returncode=returncode,
+            command=command_str,
+            npu_device_id=npu_device_id,
+        )
+
+        case_result = {
+            "case_idx": case["case_idx"],
+            "nodeid": original_nodeid,
+            "status": status,
+            "duration": duration,
+            "returncode": returncode,
+            "message": message,
+            "command": command_str,
+            "file": case["test_file"],
+        }
+        all_results.append(case_result)
+
+        # Print JSON line to stdout (parent reads in real-time)
+        print(json.dumps(case_result, ensure_ascii=False), flush=True)
+
+    # Write batch results file as fallback
+    results_file = report_dir / f"batch_results_{batch_id}.json"
+    try:
+        results_file.write_text(json.dumps(all_results, indent=2), encoding="utf-8")
+    except OSError:
+        pass
+
+    # Flush and exit (os._exit avoids pytest atexit handlers)
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(0)
 
 
 def save_results_and_summary(
@@ -1090,14 +1590,16 @@ def parse_args():
         "--max-workers",
         type=int,
         default=4,
-        help="Maximum concurrent workers for regular tests (default: 4). Each worker runs one pytest subprocess.",
+        help="Maximum concurrent workers for regular tests (default: 4). Each worker handles one batch of cases.",
     )
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
     parser.add_argument("--quick-test", type=int, default=None, help="Quick test mode: execute only N cases for fast verification (default: None, run all cases)")
+    parser.add_argument("--worker", type=str, default=None, help=argparse.SUPPRESS)
     args = parser.parse_args()
 
     # Validate required arguments: must specify either --test-files or --cases-json
-    if not args.test_files and not args.cases_json:
+    # Skip validation in --worker mode (worker only needs --test-dir for path setup)
+    if not args.worker and not args.test_files and not args.cases_json:
         parser.error("Either --test-files or --cases-json must be specified")
 
     # Validate max_workers
@@ -1112,6 +1614,11 @@ def parse_args():
 def main():
     """Main entry point."""
     args = parse_args()
+
+    # Worker mode dispatch
+    if args.worker:
+        _worker_main(args.worker)
+        return  # _worker_main calls os._exit(0), unreachable
 
     # Resolve paths
     test_dir = Path(args.test_dir).resolve()
@@ -1156,7 +1663,7 @@ def main():
 
         print(f"Test files specified: {len(planned_tests)}")
         print(f"Test directory: {test_dir}")
-        print(f"Execution mode: {execution_mode} ({effective_workers} workers, per-case subprocess isolation)")
+        print(f"Execution mode: {execution_mode} ({effective_workers} workers, pytest.main() per case, batched by file)")
         if has_distributed:
             distributed_files = [f for f in planned_tests if f.startswith("test/distributed/")]
             print(f"  Distributed files: {len(distributed_files)}")
@@ -1298,9 +1805,9 @@ def main():
 
         # Execution mode based on test_type
         if shard_type == "distributed":
-            print(f"Execution mode: SERIAL (per-case subprocess isolation)")
+            print(f"Execution mode: SERIAL (pytest.main() per case, batched by file)")
         else:
-            print(f"Execution mode: CONCURRENT ({args.max_workers} workers, per-case subprocess isolation)")
+            print(f"Execution mode: CONCURRENT ({args.max_workers} workers, pytest.main() per case, batched by file)")
 
         if args.disabled_testcases:
             disabled_count = result_module.load_disabled_testcases_count(args.disabled_testcases)
