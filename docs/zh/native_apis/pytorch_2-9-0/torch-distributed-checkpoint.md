@@ -46,6 +46,7 @@
 |torch.distributed.checkpoint.SavePlanner.set_up_planner|是|-|
 |torch.distributed.checkpoint.SavePlan|是|-|
 |torch.distributed.checkpoint.planner.WriteItem|是|-|
+|torch.distributed.checkpoint.planner.WriteItem.tensor_storage_size|是|-|
 |torch.distributed.checkpoint.FileSystemReader|是|-|
 |torch.distributed.checkpoint.FileSystemWriter|是|-|
 |torch.distributed.checkpoint.staging.AsyncStager|是|-|
