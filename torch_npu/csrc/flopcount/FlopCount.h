@@ -3,7 +3,7 @@
 
 #include "torch_npu/csrc/flopcount/FlopCountContext.h"
 
-#define FLOP_COUNT(flopcount_func, ...) \
+#define TORCH_NPU_FLOP_COUNT(flopcount_func, ...) \
 do { \
     FlopCountContext& context = FlopCountContext::GetInstance(); \
     if (context.isEnabled()) { \
@@ -14,5 +14,9 @@ do { \
         } \
     } \
 } while (0)
+
+#define FLOP_COUNT(flopcount_func, ...) \
+    _Pragma("GCC warning \"'FLOP_COUNT' is deprecated, use 'TORCH_NPU_FLOP_COUNT' instead\"") \
+    TORCH_NPU_FLOP_COUNT(flopcount_func, ##__VA_ARGS__)
 
 #endif
