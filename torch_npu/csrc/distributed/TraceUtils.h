@@ -26,46 +26,47 @@
 
 namespace c10d_npu {
 
-#define DEFINE_CONSTANT(name, value) \
+#define TORCH_NPU_DEFINE_CONSTANT(name, value) \
     static c10::IValue name = value;   \
     static std::string name##_str = value;
-// Update whenever changing contents or formatting of the dump
-// (minor when adding fields, major when changing existing fields)
-// Also update both JSON and Pickle dumps to make use of the newly defined
-// field(s).
-DEFINE_CONSTANT(version_val, "2.4")
-DEFINE_CONSTANT(entries_key, "entries")
-DEFINE_CONSTANT(hccl_comm_key, "hccl_comm_state")
-DEFINE_CONSTANT(version_key, "version")
-DEFINE_CONSTANT(pg_config_key, "pg_config")
-DEFINE_CONSTANT(pg_status_key, "pg_status")
-DEFINE_CONSTANT(record_id_key, "record_id")
-DEFINE_CONSTANT(pg_id_key, "pg_id")
-DEFINE_CONSTANT(pg_name_key, "process_group")
-DEFINE_CONSTANT(collective_seq_id_key, "collective_seq_id")
-DEFINE_CONSTANT(p2p_seq_id_key, "p2p_seq_id")
-DEFINE_CONSTANT(is_p2p_key, "is_p2p")
-DEFINE_CONSTANT(op_id_key, "op_id")
-DEFINE_CONSTANT(profiling_name_key, "profiling_name")
-DEFINE_CONSTANT(input_sizes_key, "input_sizes")
-DEFINE_CONSTANT(input_dtypes_key, "input_dtypes")
-DEFINE_CONSTANT(output_sizes_key, "output_sizes")
-DEFINE_CONSTANT(output_dtypes_key, "output_dtypes")
-DEFINE_CONSTANT(time_created_key, "time_created_ns")
-DEFINE_CONSTANT(duration_key, "duration_ms")
-DEFINE_CONSTANT(timeout_key, "timeout_ms")
-DEFINE_CONSTANT(frames_key, "frames")
-DEFINE_CONSTANT(state_key, "state")
-DEFINE_CONSTANT(line_key, "line")
-DEFINE_CONSTANT(name_key, "name")
-DEFINE_CONSTANT(filename_key, "filename")
-DEFINE_CONSTANT(retired_key, "retired")
-DEFINE_CONSTANT(time_discovered_started_key, "time_discovered_started_ns")
-DEFINE_CONSTANT(time_discovered_completed_key, "time_discovered_completed_ns")
-DEFINE_CONSTANT(completed_state, "completed")
-DEFINE_CONSTANT(scheduled_state, "scheduled")
-DEFINE_CONSTANT(started_state, "started")
-#undef DEFINE_CONSTANT
+
+#define DEFINE_CONSTANT(name, value) \
+    _Pragma("GCC warning \"'DEFINE_CONSTANT' is deprecated, use 'TORCH_NPU_DEFINE_CONSTANT' instead\"") \
+    TORCH_NPU_DEFINE_CONSTANT(name, value)
+
+TORCH_NPU_DEFINE_CONSTANT(version_val, "2.4")
+TORCH_NPU_DEFINE_CONSTANT(entries_key, "entries")
+TORCH_NPU_DEFINE_CONSTANT(hccl_comm_key, "hccl_comm_state")
+TORCH_NPU_DEFINE_CONSTANT(version_key, "version")
+TORCH_NPU_DEFINE_CONSTANT(pg_config_key, "pg_config")
+TORCH_NPU_DEFINE_CONSTANT(pg_status_key, "pg_status")
+TORCH_NPU_DEFINE_CONSTANT(record_id_key, "record_id")
+TORCH_NPU_DEFINE_CONSTANT(pg_id_key, "pg_id")
+TORCH_NPU_DEFINE_CONSTANT(pg_name_key, "process_group")
+TORCH_NPU_DEFINE_CONSTANT(collective_seq_id_key, "collective_seq_id")
+TORCH_NPU_DEFINE_CONSTANT(p2p_seq_id_key, "p2p_seq_id")
+TORCH_NPU_DEFINE_CONSTANT(is_p2p_key, "is_p2p")
+TORCH_NPU_DEFINE_CONSTANT(op_id_key, "op_id")
+TORCH_NPU_DEFINE_CONSTANT(profiling_name_key, "profiling_name")
+TORCH_NPU_DEFINE_CONSTANT(input_sizes_key, "input_sizes")
+TORCH_NPU_DEFINE_CONSTANT(input_dtypes_key, "input_dtypes")
+TORCH_NPU_DEFINE_CONSTANT(output_sizes_key, "output_sizes")
+TORCH_NPU_DEFINE_CONSTANT(output_dtypes_key, "output_dtypes")
+TORCH_NPU_DEFINE_CONSTANT(time_created_key, "time_created_ns")
+TORCH_NPU_DEFINE_CONSTANT(duration_key, "duration_ms")
+TORCH_NPU_DEFINE_CONSTANT(timeout_key, "timeout_ms")
+TORCH_NPU_DEFINE_CONSTANT(frames_key, "frames")
+TORCH_NPU_DEFINE_CONSTANT(state_key, "state")
+TORCH_NPU_DEFINE_CONSTANT(line_key, "line")
+TORCH_NPU_DEFINE_CONSTANT(name_key, "name")
+TORCH_NPU_DEFINE_CONSTANT(filename_key, "filename")
+TORCH_NPU_DEFINE_CONSTANT(retired_key, "retired")
+TORCH_NPU_DEFINE_CONSTANT(time_discovered_started_key, "time_discovered_started_ns")
+TORCH_NPU_DEFINE_CONSTANT(time_discovered_completed_key, "time_discovered_completed_ns")
+TORCH_NPU_DEFINE_CONSTANT(completed_state, "completed")
+TORCH_NPU_DEFINE_CONSTANT(scheduled_state, "scheduled")
+TORCH_NPU_DEFINE_CONSTANT(started_state, "started")
+#undef TORCH_NPU_DEFINE_CONSTANT
 
     /* Trace Utils Related to TORCH_HCCL_DESYNC_DEBUG */
 
@@ -344,7 +345,7 @@ DEFINE_CONSTANT(started_state, "started")
             std::optional<c10::time_t> time_discovered_started_;
 
             // timestamp when our CPU threads discovered that the kernel completed.
-            // will always be _after_ it actually complated, and can be the same time
+            // will always be _after_ it actually completed, and can be the same time
             // as the discovery of the start if the watchdog thread is stuck on CANN
             // APIs
             std::optional<c10::time_t> time_discovered_completed_;
