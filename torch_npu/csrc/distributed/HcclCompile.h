@@ -6,51 +6,51 @@
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
 
 namespace c10d_npu {
-#undef LOAD_FUNCTION
-#define LOAD_FUNCTION(funcName) \
-  REGISTER_FUNCTION(libhccl, funcName)
-#undef GET_FUNC
-#define GET_FUNC(funcName) \
-  GET_FUNCTION(libhccl, funcName)
+#undef TORCH_NPU_LOAD_FUNCTION
+#define TORCH_NPU_LOAD_FUNCTION(funcName) \
+  TORCH_NPU_REGISTER_FUNCTION(libhccl, funcName)
+#undef TORCH_NPU_GET_FUNC
+#define TORCH_NPU_GET_FUNC(funcName) \
+  TORCH_NPU_GET_FUNCTION(libhccl, funcName)
 
-REGISTER_LIBRARY(libhccl)
-LOAD_FUNCTION(HcclAlltoAllV)
-LOAD_FUNCTION(HcclAllGatherV)
-LOAD_FUNCTION(HcclReduceScatterV)
-LOAD_FUNCTION(HcclReduce)
-LOAD_FUNCTION(HcclGetCommAsyncError)
-LOAD_FUNCTION(HcclScatter)
-LOAD_FUNCTION(HcclBatchSendRecv)
-LOAD_FUNCTION(HcclAlltoAll)
-LOAD_FUNCTION(HcclCommInitRootInfoConfig)
-LOAD_FUNCTION(HcclGetCommConfigCapability)
-LOAD_FUNCTION(HcclCommInitClusterInfoConfig)
-LOAD_FUNCTION(HcclCreateSubCommConfig)
-LOAD_FUNCTION(HcclCommWorkingDevNicSet)
-LOAD_FUNCTION(HcclCommRegister)
-LOAD_FUNCTION(HcclCommDeregister)
-LOAD_FUNCTION(HcclCommExchangeMem)
-LOAD_FUNCTION(HcclGetRootInfo)
-LOAD_FUNCTION(HcclCommDestroy)
-LOAD_FUNCTION(HcclSend)
-LOAD_FUNCTION(HcclRecv)
-LOAD_FUNCTION(HcclAllReduce)
-LOAD_FUNCTION(HcclBroadcast)
-LOAD_FUNCTION(HcclAllGather)
-LOAD_FUNCTION(HcclReduceScatter)
-LOAD_FUNCTION(HcclCommInitAll)
-LOAD_FUNCTION(HcclCommInitRootInfo)
+TORCH_NPU_REGISTER_LIBRARY(libhccl)
+TORCH_NPU_LOAD_FUNCTION(HcclAlltoAllV)
+TORCH_NPU_LOAD_FUNCTION(HcclAllGatherV)
+TORCH_NPU_LOAD_FUNCTION(HcclReduceScatterV)
+TORCH_NPU_LOAD_FUNCTION(HcclReduce)
+TORCH_NPU_LOAD_FUNCTION(HcclGetCommAsyncError)
+TORCH_NPU_LOAD_FUNCTION(HcclScatter)
+TORCH_NPU_LOAD_FUNCTION(HcclBatchSendRecv)
+TORCH_NPU_LOAD_FUNCTION(HcclAlltoAll)
+TORCH_NPU_LOAD_FUNCTION(HcclCommInitRootInfoConfig)
+TORCH_NPU_LOAD_FUNCTION(HcclGetCommConfigCapability)
+TORCH_NPU_LOAD_FUNCTION(HcclCommInitClusterInfoConfig)
+TORCH_NPU_LOAD_FUNCTION(HcclCreateSubCommConfig)
+TORCH_NPU_LOAD_FUNCTION(HcclCommWorkingDevNicSet)
+TORCH_NPU_LOAD_FUNCTION(HcclCommRegister)
+TORCH_NPU_LOAD_FUNCTION(HcclCommDeregister)
+TORCH_NPU_LOAD_FUNCTION(HcclCommExchangeMem)
+TORCH_NPU_LOAD_FUNCTION(HcclGetRootInfo)
+TORCH_NPU_LOAD_FUNCTION(HcclCommDestroy)
+TORCH_NPU_LOAD_FUNCTION(HcclSend)
+TORCH_NPU_LOAD_FUNCTION(HcclRecv)
+TORCH_NPU_LOAD_FUNCTION(HcclAllReduce)
+TORCH_NPU_LOAD_FUNCTION(HcclBroadcast)
+TORCH_NPU_LOAD_FUNCTION(HcclAllGather)
+TORCH_NPU_LOAD_FUNCTION(HcclReduceScatter)
+TORCH_NPU_LOAD_FUNCTION(HcclCommInitAll)
+TORCH_NPU_LOAD_FUNCTION(HcclCommInitRootInfo)
 
-REGISTER_LIBRARY(libhcomm)
-REGISTER_FUNCTION(libhcomm, HcclGroupStart)
-REGISTER_FUNCTION(libhcomm, HcclGroupEnd)
+TORCH_NPU_REGISTER_LIBRARY(libhcomm)
+TORCH_NPU_REGISTER_FUNCTION(libhcomm, HcclGroupStart)
+TORCH_NPU_REGISTER_FUNCTION(libhcomm, HcclGroupEnd)
 
 extern HcclResult hcclGetRootInfo(HcclRootInfo *rootInfo)
 {
     using HcclGetRootInfoFunc = HcclResult(*)(HcclRootInfo *);
     static HcclGetRootInfoFunc func = nullptr;
     if (func == nullptr) {
-        func = (HcclGetRootInfoFunc)GET_FUNC(HcclGetRootInfo)
+        func = (HcclGetRootInfoFunc)TORCH_NPU_GET_FUNC(HcclGetRootInfo)
     }
     TORCH_CHECK(func, "Failed to find function ", "HcclGetRootInfo", DIST_ERROR(ErrCode::NOT_FOUND));
     auto ret = func(rootInfo);
@@ -62,7 +62,7 @@ extern HcclResult hcclCommDestroy(HcclComm comm)
     using HcclCommDestroyFunc = HcclResult(*)(HcclComm);
     static HcclCommDestroyFunc func = nullptr;
     if (func == nullptr) {
-        func = (HcclCommDestroyFunc)GET_FUNC(HcclCommDestroy)
+        func = (HcclCommDestroyFunc)TORCH_NPU_GET_FUNC(HcclCommDestroy)
     }
     TORCH_CHECK(func, "Failed to find function ", "HcclCommDestroy", DIST_ERROR(ErrCode::NOT_FOUND));
     auto ret = func(comm);
@@ -76,7 +76,7 @@ extern HcclResult hcclSend(void *sendBuf, uint64_t count, HcclDataType dataType,
         void *, uint64_t, HcclDataType, uint32_t, HcclComm, aclrtStream);
     static HcclSendFunc func = nullptr;
     if (func == nullptr) {
-        func = (HcclSendFunc)GET_FUNC(HcclSend)
+        func = (HcclSendFunc)TORCH_NPU_GET_FUNC(HcclSend)
     }
     TORCH_CHECK(func, "Failed to find function ", "HcclSend", DIST_ERROR(ErrCode::NOT_FOUND));
     auto ret = func(sendBuf, count, dataType, destRank, comm, stream);
@@ -90,7 +90,7 @@ extern HcclResult hcclRecv(void *recvBuf, uint64_t count, HcclDataType dataType,
         void *, uint64_t, HcclDataType, uint32_t, HcclComm, aclrtStream);
     static HcclRecvFunc func = nullptr;
     if (func == nullptr) {
-        func = (HcclRecvFunc)GET_FUNC(HcclRecv)
+        func = (HcclRecvFunc)TORCH_NPU_GET_FUNC(HcclRecv)
     }
     TORCH_CHECK(func, "Failed to find function ", "HcclRecv", DIST_ERROR(ErrCode::NOT_FOUND));
     auto ret = func(recvBuf, count, dataType, srcRank, comm, stream);
@@ -103,7 +103,7 @@ extern HcclResult hcclCommInitAll(uint32_t ndev, int32_t *devices, HcclComm *com
         uint32_t, int32_t *, HcclComm *);
     static HcclCommInitAllFunc func = nullptr;
     if (func == nullptr) {
-        func = (HcclCommInitAllFunc)GET_FUNC(HcclCommInitAll)
+        func = (HcclCommInitAllFunc)TORCH_NPU_GET_FUNC(HcclCommInitAll)
     }
     TORCH_CHECK(func, "Failed to find function ", "HcclCommInitAll", DIST_ERROR(ErrCode::NOT_FOUND));
     auto ret = func(ndev, devices, comms);
@@ -117,7 +117,7 @@ extern HcclResult hcclAllGather(void *sendBuf, void *recvBuf, uint64_t sendCount
         void *, void *, uint64_t, HcclDataType, HcclComm, aclrtStream);
     static HcclAllGatherFunc func = nullptr;
     if (func == nullptr) {
-        func = (HcclAllGatherFunc)GET_FUNC(HcclAllGather)
+        func = (HcclAllGatherFunc)TORCH_NPU_GET_FUNC(HcclAllGather)
     }
     TORCH_CHECK(func, "Failed to find function ", "HcclAllGather", DIST_ERROR(ErrCode::NOT_FOUND));
     auto ret = func(sendBuf, recvBuf, sendCount, dataType, comm, stream);
@@ -131,7 +131,7 @@ extern HcclResult hcclAllReduce(void *sendBuf, void *recvBuf, uint64_t count, Hc
         void *, void *, uint64_t, HcclDataType, HcclReduceOp, HcclComm, aclrtStream);
     static HcclAllReduceFunc func = nullptr;
     if (func == nullptr) {
-        func = (HcclAllReduceFunc)GET_FUNC(HcclAllReduce)
+        func = (HcclAllReduceFunc)TORCH_NPU_GET_FUNC(HcclAllReduce)
     }
     TORCH_CHECK(func, "Failed to find function ", "HcclAllReduce", DIST_ERROR(ErrCode::NOT_FOUND));
     auto ret = func(sendBuf, recvBuf, count, dataType, op, comm, stream);
@@ -145,7 +145,7 @@ extern HcclResult hcclBroadcast(void *buf, uint64_t count, HcclDataType dataType
         void *, uint64_t, HcclDataType, uint32_t, HcclComm, aclrtStream);
     static HcclBroadcastFunc func = nullptr;
     if (func == nullptr) {
-        func = (HcclBroadcastFunc)GET_FUNC(HcclBroadcast)
+        func = (HcclBroadcastFunc)TORCH_NPU_GET_FUNC(HcclBroadcast)
     }
     TORCH_CHECK(func, "Failed to find function ", "HcclBroadcast", DIST_ERROR(ErrCode::NOT_FOUND));
     auto ret = func(buf, count, dataType, root, comm, stream);
@@ -158,7 +158,7 @@ extern HcclResult hcclCommInitRootInfo(uint32_t nRanks, const HcclRootInfo *root
         uint32_t, const HcclRootInfo *, uint32_t, HcclComm *);
     static HcclCommInitRootInfoFunc func = nullptr;
     if (func == nullptr) {
-        func = (HcclCommInitRootInfoFunc)GET_FUNC(HcclCommInitRootInfo)
+        func = (HcclCommInitRootInfoFunc)TORCH_NPU_GET_FUNC(HcclCommInitRootInfo)
     }
     TORCH_CHECK(func, "Failed to find function ", "HcclCommInitRootInfo", DIST_ERROR(ErrCode::NOT_FOUND));
     auto ret = func(nRanks, rootInfo, rank, comm);
@@ -172,7 +172,7 @@ extern HcclResult hcclReduceScatter(void *sendBuf, void *recvBuf, uint64_t recvC
         void *, void *, uint64_t, HcclDataType, HcclReduceOp, HcclComm, aclrtStream);
     static HcclReduceScatterFunc func = nullptr;
     if (func == nullptr) {
-        func = (HcclReduceScatterFunc)GET_FUNC(HcclReduceScatter);
+        func = (HcclReduceScatterFunc)TORCH_NPU_GET_FUNC(HcclReduceScatter);
     }
     TORCH_CHECK(func, "Failed to find function ", "HcclReduceScatter", DIST_ERROR(ErrCode::NOT_FOUND));
     auto ret = func(sendBuf, recvBuf, recvCount, dataType, op, comm, stream);
@@ -189,7 +189,7 @@ extern HcclResult hcclAlltoAllV(const void *sendBuf, const void *sendCounts, con
         HcclComm, aclrtStream);
     static HcclAlltoAllVFunc func = nullptr;
     if (func == nullptr) {
-        func = (HcclAlltoAllVFunc)GET_FUNC(HcclAlltoAllV);
+        func = (HcclAlltoAllVFunc)TORCH_NPU_GET_FUNC(HcclAlltoAllV);
     }
     TORCH_CHECK(func, "Failed to find function ", "HcclAlltoAllV", DIST_ERROR(ErrCode::NOT_FOUND));
     auto ret = func(sendBuf, sendCounts, sdispls, sendType,
@@ -207,7 +207,7 @@ extern HcclResult hcclAllGatherV(const void *sendBuf, uint64_t sendCount,
         HcclDataType, HcclComm, aclrtStream);
     static HcclAllGatherVFunc func = nullptr;
     if (func == nullptr) {
-        func = (HcclAllGatherVFunc)GET_FUNC(HcclAllGatherV);
+        func = (HcclAllGatherVFunc)TORCH_NPU_GET_FUNC(HcclAllGatherV);
     }
     TORCH_CHECK(func, "Failed to find function ", "HcclAllGatherV", DIST_ERROR(ErrCode::NOT_FOUND));
     auto ret = func(sendBuf, sendCount, recvBuf, recvCounts, rdispls, dataType, comm, stream);
@@ -224,7 +224,7 @@ extern HcclResult hcclReduceScatterV(const void *sendBuf, const void *sendCounts
         HcclDataType, HcclReduceOp, HcclComm, aclrtStream);
     static HcclReduceScatterVFunc func = nullptr;
     if (func == nullptr) {
-        func = (HcclReduceScatterVFunc)GET_FUNC(HcclReduceScatterV);
+        func = (HcclReduceScatterVFunc)TORCH_NPU_GET_FUNC(HcclReduceScatterV);
     }
     TORCH_CHECK(func, "Failed to find function ", "HcclReduceScatterV", DIST_ERROR(ErrCode::NOT_FOUND));
     auto ret = func(sendBuf, sendCounts, sdispls, recvBuf, recvCount, dataType, op, comm, stream);
@@ -238,7 +238,7 @@ extern HcclResult hcclReduce(void *sendBuf, void *recvBuf, uint64_t count, HcclD
         void *, void *, uint64_t, HcclDataType, HcclReduceOp, uint32_t, HcclComm, aclrtStream);
     static HcclReduceVFunc func = nullptr;
     if (func == nullptr) {
-        func = (HcclReduceVFunc)GET_FUNC(HcclReduce);
+        func = (HcclReduceVFunc)TORCH_NPU_GET_FUNC(HcclReduce);
     }
     TORCH_CHECK(func, "Failed to find function ", "HcclReduce", DIST_ERROR(ErrCode::NOT_FOUND));
     auto ret = func(sendBuf, recvBuf, count, sendType, op, root, comm, stream);
@@ -250,7 +250,7 @@ HcclResult hcclGetCommAsyncError(HcclComm comm, HcclResult* asyncError)
     using HcclGetCommAsyncErrorVFunc = HcclResult(*)(HcclComm, HcclResult*);
     static HcclGetCommAsyncErrorVFunc func = nullptr;
     if (func == nullptr) {
-        func = (HcclGetCommAsyncErrorVFunc)GET_FUNC(HcclGetCommAsyncError);
+        func = (HcclGetCommAsyncErrorVFunc)TORCH_NPU_GET_FUNC(HcclGetCommAsyncError);
     }
     TORCH_CHECK(func, "Failed to find function ", "HcclGetCommAsyncError", DIST_ERROR(ErrCode::NOT_FOUND));
     auto ret = func(comm, asyncError);
@@ -263,7 +263,7 @@ HcclResult hcclScatter(void *sendBuf, void *recvBuf, uint64_t count, HcclDataTyp
     using HcclScatterVFunc = HcclResult(*)(void *, void *, uint64_t, HcclDataType, uint32_t, HcclComm, aclrtStream);
     static HcclScatterVFunc func = nullptr;
     if (func == nullptr) {
-        func = (HcclScatterVFunc)GET_FUNC(HcclScatter);
+        func = (HcclScatterVFunc)TORCH_NPU_GET_FUNC(HcclScatter);
     }
     TORCH_CHECK(func, "Failed to find function ", "HcclScatter", DIST_ERROR(ErrCode::NOT_FOUND));
     auto ret = func(sendBuf, recvBuf, count, dataType, root, comm, stream);
@@ -276,7 +276,7 @@ HcclResult hcclBatchIsendIrecv(void* sendRecvInfo, uint32_t itemNum, HcclComm co
         void *, uint32_t, HcclComm, aclrtStream);
     static HcclBatchIsendIrecvVFunc func = nullptr;
     if (func == nullptr) {
-        func = (HcclBatchIsendIrecvVFunc)GET_FUNC(HcclBatchSendRecv);
+        func = (HcclBatchIsendIrecvVFunc)TORCH_NPU_GET_FUNC(HcclBatchSendRecv);
     }
     TORCH_CHECK(func, "Failed to find function ", "HcclBatchSendRecv", DIST_ERROR(ErrCode::NOT_FOUND));
     auto ret = func(sendRecvInfo, itemNum, comm, stream);
@@ -293,7 +293,7 @@ HcclResult hcclAlltoAll(const void *sendBuf, uint64_t sendCount, HcclDataType se
         HcclComm, aclrtStream);
     static HcclAlltoAllFunc func = nullptr;
     if (func == nullptr) {
-        func = (HcclAlltoAllFunc)GET_FUNC(HcclAlltoAll);
+        func = (HcclAlltoAllFunc)TORCH_NPU_GET_FUNC(HcclAlltoAll);
     }
     TORCH_CHECK(func, "Failed to find function ", "HcclAlltoAll", DIST_ERROR(ErrCode::NOT_FOUND));
     auto ret = func(sendBuf, sendCount, sendType,
@@ -306,7 +306,7 @@ bool hcclCommInitRootInfoConfigExist()
     static c10::once_flag flag;
     static bool exist = false;
     c10::call_once(flag, [&]() {
-        auto func = GET_FUNC(HcclCommInitRootInfoConfig)
+        auto func = TORCH_NPU_GET_FUNC(HcclCommInitRootInfoConfig)
         if (func != nullptr) {
             exist = true;
         }
@@ -319,7 +319,7 @@ bool hcclAllGatherVExist()
     static c10::once_flag flag;
     static bool exist = false;
     c10::call_once(flag, [&]() {
-        auto func = GET_FUNC(HcclAllGatherV)
+        auto func = TORCH_NPU_GET_FUNC(HcclAllGatherV)
         if (func != nullptr &&
             c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend310P1 &&
             c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend310B1) {
@@ -334,7 +334,7 @@ bool hcclReduceScatterVExist()
     static c10::once_flag flag;
     static bool exist = false;
     c10::call_once(flag, [&]() {
-        auto func = GET_FUNC(HcclReduceScatterV)
+        auto func = TORCH_NPU_GET_FUNC(HcclReduceScatterV)
         if (func != nullptr &&
             ((c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend310P1 &&
               c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend310B1) ||
@@ -351,7 +351,7 @@ HcclResult hcclCommInitRootInfoConfig(uint32_t nRanks, const HcclRootInfo *rootI
         uint32_t, const HcclRootInfo *, uint32_t, HcclCommConfig*, HcclComm *);
     static HcclCommInitRootInfoConfigFunc func = nullptr;
     if (func == nullptr) {
-        func = (HcclCommInitRootInfoConfigFunc)GET_FUNC(HcclCommInitRootInfoConfig)
+        func = (HcclCommInitRootInfoConfigFunc)TORCH_NPU_GET_FUNC(HcclCommInitRootInfoConfig)
     }
     TORCH_CHECK(func, "Failed to find function ", "HcclCommInitRootInfoConfig", DIST_ERROR(ErrCode::NOT_FOUND));
     auto ret = func(nRanks, rootInfo, rank, config, comm);
@@ -361,7 +361,7 @@ HcclResult hcclCommInitRootInfoConfig(uint32_t nRanks, const HcclRootInfo *rootI
 bool isHcclFeatureSupported(HcclCommConfigCapability configParameter)
 {
     using HcclGetCommConfigCapabilityFunc = uint32_t(*)();
-    static HcclGetCommConfigCapabilityFunc func = (HcclGetCommConfigCapabilityFunc) GET_FUNC(
+    static HcclGetCommConfigCapabilityFunc func = (HcclGetCommConfigCapabilityFunc) TORCH_NPU_GET_FUNC(
             HcclGetCommConfigCapability);
     if (func == nullptr) {
         return false;
@@ -372,7 +372,7 @@ bool isHcclFeatureSupported(HcclCommConfigCapability configParameter)
 bool hcclCommInitClusterInfoConfigExist()
 {
     const static bool isClusterInitExist = []() -> bool {
-        auto func = GET_FUNC(HcclCommInitClusterInfoConfig)
+        auto func = TORCH_NPU_GET_FUNC(HcclCommInitClusterInfoConfig)
         return func != nullptr;
     }();
     return isClusterInitExist;
@@ -383,7 +383,7 @@ HcclResult hcclCommInitClusterInfoConfig(const char *clusterInfo, uint32_t rank,
     using HcclCommInitClusterInfoConfigFunc = HcclResult(*)(const char *, uint32_t, HcclCommConfig *, HcclComm *);
     static HcclCommInitClusterInfoConfigFunc func = nullptr;
     if (func == nullptr) {
-        func = (HcclCommInitClusterInfoConfigFunc)GET_FUNC(HcclCommInitClusterInfoConfig)
+        func = (HcclCommInitClusterInfoConfigFunc)TORCH_NPU_GET_FUNC(HcclCommInitClusterInfoConfig)
     }
     TORCH_CHECK(func, "Failed to find function ", "HcclCommInitClusterInfoConfig", DIST_ERROR(ErrCode::NOT_FOUND));
     auto ret = func(clusterInfo, rank, config, comm);
@@ -393,7 +393,7 @@ HcclResult hcclCommInitClusterInfoConfig(const char *clusterInfo, uint32_t rank,
 bool hcclCreateSubCommConfigExist()
 {
     const static bool isCreateSubCommExist = []() -> bool {
-        auto func = GET_FUNC(HcclCreateSubCommConfig)
+        auto func = TORCH_NPU_GET_FUNC(HcclCreateSubCommConfig)
         return func != nullptr;
     }();
     return isCreateSubCommExist;
@@ -405,7 +405,7 @@ HcclResult hcclCreateSubCommConfig(HcclComm *comm, uint32_t rankNum, uint32_t *r
     using HcclCreateSubCommConfigFunc = HcclResult(*)(HcclComm *, uint32_t, uint32_t *, uint64_t, uint32_t, HcclCommConfig *, HcclComm *);
     static HcclCreateSubCommConfigFunc func = nullptr;
     if (func == nullptr) {
-        func = (HcclCreateSubCommConfigFunc)GET_FUNC(HcclCreateSubCommConfig)
+        func = (HcclCreateSubCommConfigFunc)TORCH_NPU_GET_FUNC(HcclCreateSubCommConfig)
     }
     TORCH_CHECK(func, "Failed to find function ", "HcclCreateSubCommConfig", DIST_ERROR(ErrCode::NOT_FOUND));
     auto ret = func(comm, rankNum, rankIds, subCommId, subCommRankId, config, subComm);
@@ -415,7 +415,7 @@ HcclResult hcclCreateSubCommConfig(HcclComm *comm, uint32_t rankNum, uint32_t *r
 bool hcclCommWorkingDevNicSetExist()
 {
     const static bool isHcclCommWorkingDevNicSetExist = []() -> bool {
-        auto func = GET_FUNC(HcclCommWorkingDevNicSet)
+        auto func = TORCH_NPU_GET_FUNC(HcclCommWorkingDevNicSet)
         return func != nullptr;
     }();
     return isHcclCommWorkingDevNicSetExist;
@@ -426,7 +426,7 @@ HcclResult hcclCommWorkingDevNicSet(HcclComm comm, uint32_t *ranks, bool *useBac
     using HcclCommWorkingDevNicSetFunc = HcclResult(*)(HcclComm, uint32_t *, bool *, uint32_t);
     static HcclCommWorkingDevNicSetFunc func = nullptr;
     if (func == nullptr) {
-        func = (HcclCommWorkingDevNicSetFunc)GET_FUNC(HcclCommWorkingDevNicSet)
+        func = (HcclCommWorkingDevNicSetFunc)TORCH_NPU_GET_FUNC(HcclCommWorkingDevNicSet)
     }
     TORCH_CHECK(func, "Failed to find function ", "HcclCommWorkingDevNicSet", DIST_ERROR(ErrCode::NOT_FOUND));
     auto ret = func(comm, ranks, useBackup, nRanks);
@@ -438,7 +438,7 @@ HcclResult hcclCommRegister(HcclComm comm, void *addr, uint64_t size, void **han
     using HcclCommRegisterFunc = HcclResult(*)(HcclComm, void *, uint64_t, void **, uint32_t);
     static HcclCommRegisterFunc func = nullptr;
     if (func == nullptr) {
-        func = (HcclCommRegisterFunc)GET_FUNC(HcclCommRegister)
+        func = (HcclCommRegisterFunc)TORCH_NPU_GET_FUNC(HcclCommRegister)
     }
     TORCH_CHECK(func, "Failed to find function ", "HcclCommRegister", DIST_ERROR(ErrCode::NOT_FOUND));
     auto ret = func(comm, addr, size, handle, flag);
@@ -450,7 +450,7 @@ HcclResult hcclCommDeregister(HcclComm comm, void *handle)
     using HcclCommDeregisterFunc = HcclResult(*)(HcclComm, void *);
     static HcclCommDeregisterFunc func = nullptr;
     if (func == nullptr) {
-        func = (HcclCommDeregisterFunc)GET_FUNC(HcclCommDeregister)
+        func = (HcclCommDeregisterFunc)TORCH_NPU_GET_FUNC(HcclCommDeregister)
     }
     TORCH_CHECK(func, "Failed to find function ", "HcclCommDeregister", DIST_ERROR(ErrCode::NOT_FOUND));
     auto ret = func(comm, handle);
@@ -462,7 +462,7 @@ HcclResult hcclCommExchangeMem(HcclComm comm, void *windowHandle, uint32_t *peer
     using HcclCommExchangeMemFunc = HcclResult(*)(HcclComm, void *, uint32_t *, uint32_t);
     static HcclCommExchangeMemFunc func = nullptr;
     if (func == nullptr) {
-        func = (HcclCommExchangeMemFunc)GET_FUNC(HcclCommExchangeMem)
+        func = (HcclCommExchangeMemFunc)TORCH_NPU_GET_FUNC(HcclCommExchangeMem)
     }
     TORCH_CHECK(func, "Failed to find function ", "HcclCommExchangeMem", DIST_ERROR(ErrCode::NOT_FOUND));
     auto ret = func(comm, windowHandle, peerRanks, peerRankNum);
@@ -474,7 +474,7 @@ HcclResult hcclGroupStart()
     using hcclGroupStartFunc = HcclResult(*)();
     static hcclGroupStartFunc func = nullptr;
     if (func == nullptr) {
-        func = (hcclGroupStartFunc)GET_FUNCTION(libhcomm, HcclGroupStart)
+        func = (hcclGroupStartFunc)TORCH_NPU_GET_FUNCTION(libhcomm, HcclGroupStart)
     }
     TORCH_CHECK(func, "Failed to find function ", "HcclGroupStart", DIST_ERROR(ErrCode::NOT_FOUND));
     auto ret = func();
@@ -486,7 +486,7 @@ HcclResult hcclGroupEnd()
     using hcclGroupEndFunc = HcclResult(*)();
     static hcclGroupEndFunc func = nullptr;
     if (func == nullptr) {
-        func = (hcclGroupEndFunc)GET_FUNCTION(libhcomm, HcclGroupEnd)
+        func = (hcclGroupEndFunc)TORCH_NPU_GET_FUNCTION(libhcomm, HcclGroupEnd)
     }
     TORCH_CHECK(func, "Failed to find function ", "HcclGroupEnd", DIST_ERROR(ErrCode::NOT_FOUND));
     auto ret = func();

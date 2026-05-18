@@ -83,18 +83,30 @@ public:
 
 } // namespace register_function
 
-#define REGISTER_LIBRARY(soName, ...)                                                \
+#define TORCH_NPU_REGISTER_LIBRARY(soName, ...)                                         \
     auto library_##soName = ::std::unique_ptr<c10_npu::option::FunctionLoader>( \
         new c10_npu::option::FunctionLoader(#soName, ##__VA_ARGS__));  \
     static c10_npu::option::register_function::FunctionRegisterBuilder                             \
         register_library_##soName(#soName, library_##soName);
 
-#define REGISTER_FUNCTION(soName, funcName)                                     \
+#define TORCH_NPU_REGISTER_FUNCTION(soName, funcName)                              \
     static c10_npu::option::register_function::FunctionRegisterBuilder                             \
         register_function_##funcName(#soName, #funcName);
 
-#define GET_FUNCTION(soName, funcName)                                              \
+#define TORCH_NPU_GET_FUNCTION(soName, funcName)                                       \
     c10_npu::option::register_function::FunctionRegister::GetInstance()->Get(#soName, #funcName);
+
+#define REGISTER_LIBRARY(soName, ...)                                           \
+    _Pragma("GCC warning \"REGISTER_LIBRARY is deprecated, use TORCH_NPU_REGISTER_LIBRARY\"") \
+    TORCH_NPU_REGISTER_LIBRARY(soName, ##__VA_ARGS__)
+
+#define REGISTER_FUNCTION(soName, funcName)                                     \
+    _Pragma("GCC warning \"REGISTER_FUNCTION is deprecated, use TORCH_NPU_REGISTER_FUNCTION\"") \
+    TORCH_NPU_REGISTER_FUNCTION(soName, funcName)
+
+#define GET_FUNCTION(soName, funcName)                                          \
+    _Pragma("GCC warning \"GET_FUNCTION is deprecated, use TORCH_NPU_GET_FUNCTION\"") \
+    TORCH_NPU_GET_FUNCTION(soName, funcName)
 
 } // namespace option
 } // namespace c10_npu
