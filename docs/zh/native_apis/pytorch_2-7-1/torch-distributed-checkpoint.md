@@ -77,3 +77,4 @@
 |torch.distributed.checkpoint.format_utils.BroadcastingTorchSaveReader.reset|是|-|
 |torch.distributed.checkpoint.format_utils.BroadcastingTorchSaveReader.set_up_storage_reader|是|-|
 |torch.distributed.checkpoint.format_utils.BroadcastingTorchSaveReader.validate_checkpoint_id|是|-|
+|torch.distributed.checkpoint.format_utils.DynamicMetaLoadPlanner|是|-|
