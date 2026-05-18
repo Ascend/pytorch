@@ -75,7 +75,7 @@ if os.getenv('TORCHINDUCTOR_USE_AKG', '0') == '1':
         import akg
         import torch_mlir
         register_backend_for_device("npu", AkgScheduling, NpuMlirWrapperCodeGen)
-    except:
+    except Exception:
         logger.warning(f"akg not found, fallback to torch-mlir for compilation.")
         register_backend_for_device("npu", NpuMlirScheduling, NpuMlirWrapperCodeGen)
 else:
@@ -83,7 +83,7 @@ else:
 
 try:
     from torch_npu.npu import device_count
-except:
+except Exception:
     from torch_npu.npu.utils import device_count
 from torch._dynamo.device_interface import register_interface_for_device
 
@@ -469,5 +469,5 @@ def patch_transfer_to_npu():
 
         transfer_to_npu._device_wrapper = new_device_wrapper
         transfer_to_npu._init()
-    except:
+    except Exception:
         pass

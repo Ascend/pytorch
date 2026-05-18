@@ -303,7 +303,7 @@ def merge_traced_graphs(input_graphs: List[TracedGraph], origin_fn, node_name, *
             for node in input_graph.graph.nodes:
                 if node.name in exist_nodes:
                     continue
-                new_node = new_graph.graph.node_copy(node, lambda n: exist_nodes[n.name])
+                new_node = new_graph.graph.node_copy(node, lambda n: exist_nodes.get(n.name, n))
                 exist_nodes[node.name] = new_node
                 if node.name in input_graph.sym_nodes:
                     new_graph.sym_nodes.update({node.name: new_node})
@@ -361,7 +361,7 @@ def merge_fx_graphs(traced_graphs: List[TracedGraph]):
             for node in input_graph.graph.nodes:
                 if node.name in exist_nodes:
                     continue
-                new_node = new_graph.graph.node_copy(node, lambda n: exist_nodes[n.name])
+                new_node = new_graph.graph.node_copy(node, lambda n: exist_nodes.get(n.name, n))
                 exist_nodes[node.name] = new_node
             last_nodes.append(exist_nodes[input_graph.last_node.name])
     merge_graph(traced_graphs)
@@ -381,7 +381,7 @@ def subtract_graph(graph1: TracedGraph, graph2: TracedGraph, node_name=None) -> 
     for node in graph1.graph.nodes:
         if node.name in graph2_node_names and node.name not in graph1.sym_nodes:
             continue
-        new_node = new_graph.graph.node_copy(node, lambda n: exist_nodes[n.name])
+        new_node = new_graph.graph.node_copy(node, lambda n: exist_nodes.get(n.name, n))
         exist_nodes[node.name] = new_node
     new_graph.last_node = exist_nodes[graph1.last_node.name]
     new_graph.sym_nodes = graph1.sym_nodes
@@ -3336,7 +3336,7 @@ def tensor(data, *, dtype=None, device=None, layout=None, pin_memory=False):
     node_name = f'tensor_{next(node_id)}'
     new_graph = merge_traced_graphs(input_graphs, torch.tensor, node_name, \
                                     dtype=dtype, 
-                                    device='npu',
+                                    device=device,
                                     pin_memory=False)
     if isinstance(_unwrap(data), int):
         dtype = dtype or torch.int64
@@ -3497,7 +3497,7 @@ def _full(fill_value, device, dtype, size):
     
     node_name = f'full_{next(node_id)}'
     new_graph = merge_traced_graphs([size, fill_value], aten.full.default, node_name, \
-                                    device='npu', dtype=dtype, layout = torch.strided, pin_memory = False)
+                                    device=device, dtype=dtype, layout = torch.strided, pin_memory = False)
 
     return Pointwise.create(
         device=device,

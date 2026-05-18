@@ -280,10 +280,11 @@ AOTIRuntimeError AOTInductorModelCreate(AOTInductorModelHandle* model_handle,
         auto constant_array = std::make_shared<std::vector<torch::aot_inductor::ConstantHandle> >();
         auto input_map = reinterpret_cast<std::unordered_map<std::string, AtenTensorHandle>*>(constant_map_handle);
 
-        auto model = new torch::aot_inductor::AOTInductorModel(
+        // [wtd#7] Use unique_ptr to manage model object, auto-release on exception to prevent memory leak
+        auto model = std::unique_ptr<torch::aot_inductor::AOTInductorModel>(new torch::aot_inductor::AOTInductorModel(
             constant_map, constant_array,
             "cpu", // device_str is hardcoded, as AOTInductorModelCreate is only use for CPU models
-            "");
+            ""));
 
         if (input_map) {
             for (auto const& kv : *input_map) {
@@ -293,7 +294,7 @@ AOTIRuntimeError AOTInductorModelCreate(AOTInductorModelHandle* model_handle,
             model->load_constants();
         }
 
-        *model_handle = reinterpret_cast<AOTInductorModelHandle>(model);
+        *model_handle = reinterpret_cast<AOTInductorModelHandle>(model.release());
     })
 }
 
