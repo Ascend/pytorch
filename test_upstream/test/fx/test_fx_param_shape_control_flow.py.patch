@@ -1,0 +1,85 @@
+diff --git a/test/fx/test_fx_param_shape_control_flow.py b/test/fx/test_fx_param_shape_control_flow.py
+index f3485f9..d82c896 100644
+--- a/test/fx/test_fx_param_shape_control_flow.py
++++ b/test/fx/test_fx_param_shape_control_flow.py
+@@ -2,6 +2,8 @@
+ 
+ import torch
+ import torch.fx
++import torch_npu
++
+ from torch.testing._internal.common_utils import raise_on_run_directly, TestCase
+ 
+ 
+@@ -23,7 +25,7 @@ class MyModuleBase(torch.nn.Module):
+ class MyModuleParamShape(MyModuleBase):
+     def __init__(self, in_channels):
+         super().__init__()
+-        self.param = torch.nn.Parameter(torch.randn(in_channels, 3))
++        self.param = torch.nn.Parameter(torch.randn(in_channels, 3).npu())
+ 
+     def no_relu(self):
+         return self.param.shape[0] < 10
+@@ -32,7 +34,7 @@ class MyModuleParamShape(MyModuleBase):
+ class MyModuleParamSize(MyModuleBase):
+     def __init__(self, in_channels):
+         super().__init__()
+-        self.param = torch.nn.Parameter(torch.randn(in_channels, 3))
++        self.param = torch.nn.Parameter(torch.randn(in_channels, 3).npu())
+ 
+     def no_relu(self):
+         return self.param.size()[0] < 10
+@@ -65,7 +67,7 @@ class MyModuleParamNDim(MyModuleBase):
+ class MyModuleParamNumEl(MyModuleBase):
+     def __init__(self, in_channels):
+         super().__init__()
+-        self.param = torch.nn.Parameter(torch.randn(in_channels, 3))
++        self.param = torch.nn.Parameter(torch.randn(in_channels, 3).npu())
+ 
+     def no_relu(self):
+         return self.param.numel() < 10 * 3
+@@ -74,7 +76,7 @@ class MyModuleParamNumEl(MyModuleBase):
+ class MyModuleParamNElement(MyModuleBase):
+     def __init__(self, in_channels):
+         super().__init__()
+-        self.param = torch.nn.Parameter(torch.randn(in_channels, 3))
++        self.param = torch.nn.Parameter(torch.randn(in_channels, 3).npu())
+ 
+     def no_relu(self):
+         return self.param.nelement() < 10 * 3
+@@ -86,7 +88,7 @@ class TestConstParamShapeInControlFlow(TestCase):
+         Verify one module only does a mm op while the other
+         performs both mm and relu ops in cascade
+         """
+-        x = torch.randn(10, 5)
++        x = torch.randn(10, 5).npu()
+         torch.testing.assert_close(
+             mm_only_mod(x), torch.mm(x, mm_only_mod.get_mul_matrix())
+         )
+@@ -101,7 +103,7 @@ class TestConstParamShapeInControlFlow(TestCase):
+ 
+         # Make a new module with different parameter shape to go down the different
+         # code path
+-        x = torch.randn(10, 15)
++        x = torch.randn(10, 15).npu()
+         torch.testing.assert_close(
+             relu_mod(x), torch.relu(torch.mm(x, relu_mod.get_mul_matrix()))
+         )
+@@ -135,13 +137,13 @@ class TestConstParamShapeInControlFlow(TestCase):
+         self.verify_mm_relu_mods(mymod, mymod2)
+ 
+     def test_param_dim_const(self):
+-        mymod = MyModuleParamDim(torch.nn.Parameter(torch.randn(2, 5, 3)))
+-        mymod2 = MyModuleParamDim(torch.nn.Parameter(torch.randn(15, 3)))
++        mymod = MyModuleParamDim(torch.nn.Parameter(torch.randn(2, 5, 3).npu()))
++        mymod2 = MyModuleParamDim(torch.nn.Parameter(torch.randn(15, 3).npu()))
+         self.verify_mm_relu_mods(mymod, mymod2)
+ 
+     def test_param_ndim_const(self):
+-        mymod = MyModuleParamNDim(torch.nn.Parameter(torch.randn(2, 5, 3)))
+-        mymod2 = MyModuleParamNDim(torch.nn.Parameter(torch.randn(15, 3)))
++        mymod = MyModuleParamNDim(torch.nn.Parameter(torch.randn(2, 5, 3).npu()))
++        mymod2 = MyModuleParamNDim(torch.nn.Parameter(torch.randn(15, 3).npu()))
+         self.verify_mm_relu_mods(mymod, mymod2)
+ 
+     def test_param_numel_const(self):
