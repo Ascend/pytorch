@@ -641,7 +641,7 @@ def mfusion_graph_fusion(graph: Graph) -> None:
     # Restore metadata using FakeTensorProp. MLIR roundtrip can emit aten.mm + dvm_trans_* (fused
     # transpose semantics with storage shapes); use fake_tensor_propagate_mfusion_subgraph so mm is
     # patched during propagation (see fx_exporter.patch_dvm_mm_targets_for_fake_eval).
-    if example_inputs and all(x is not None for x in example_inputs):
+    if all(x is not None for x in example_inputs):
         mode = None
         for x in example_inputs:
             if hasattr(x, "fake_mode"):
@@ -662,12 +662,11 @@ def mfusion_graph_fusion(graph: Graph) -> None:
         if expand_dvm_mm_to_explicit_transpose_for_inductor(gm):
             from torch.fx.passes.fake_tensor_prop import FakeTensorProp
 
-            if example_inputs and all(x is not None for x in example_inputs):
-                if mode is not None:
-                    with mode:
-                        FakeTensorProp(gm, mode=mode).propagate(*example_inputs)
-                else:
-                    FakeTensorProp(gm).propagate(*example_inputs)
+            if mode is not None:
+                with mode:
+                    FakeTensorProp(gm, mode=mode).propagate(*example_inputs)
+            else:
+                FakeTensorProp(gm).propagate(*example_inputs)
     _propagate_subgraph_meta_from_main(gm)
     gm.recompile()
     _mfusion_print_fx_graph(gm, "# After restore meta, FX Graph:")

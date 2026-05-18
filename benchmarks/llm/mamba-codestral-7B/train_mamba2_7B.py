@@ -79,6 +79,8 @@ def parse_args():
     parser.add_argument("--profiler_end_step", type=int, default=6,
                     help="End step for profiling")
     parser.add_argument("--npu-backend", type=str, default="mlir")
+    parser.add_argument("--mfusion", action="store_true",
+                        help="Enable MFusion for graph fusion optimization")
 
     return parser.parse_args()
 
@@ -86,6 +88,8 @@ def main():
     args = parse_args()
     device = detect_device_type()
     os.environ['TORCHINDUCTOR_NPU_BACKEND']=args.npu_backend
+    if args.mfusion:
+        os.environ['TORCHINDUCTOR_NPU_MFUSION']='1'
     patch_remove_ops_from_generate_list(["aten.permute"])
     seed = 2
     torch.manual_seed(seed)

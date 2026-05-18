@@ -69,12 +69,14 @@ bash run_sdxl.sh
 当在 GPU 上训练时，默认后端使用triton；当在 NPU 上训练时，可进一步指定后端为 mlir 或 dvm，默认使用 mlir。
 
 **默认后端（mlir，可不写 --npu-backend）：**
+
 ```bash
 bash run_sdxl.sh \
   --enable_compile
 ```
 
 **显式指定后端为 mlir：**
+
 ```bash
 bash run_sdxl.sh \
   --enable_compile \
@@ -82,10 +84,20 @@ bash run_sdxl.sh \
 ```
 
 **切换后端为 dvm：**
+
 ```bash
 bash run_sdxl.sh \
   --enable_compile \
   --npu-backend dvm
+```
+
+当在 NPU 上训练时，可通过 `--mfusion` 参数开启 MFusion 图算融合优化功能, 配合不同的NPU图模式后端, 进一步提升模型的性能，使用示例如下
+
+```bash
+bash run_sdxl.sh \
+  --enable_compile \
+  --npu-backend dvm \
+  --mfusion
 ```
 
 ### 3.3 采集profile文件（可选）
@@ -98,4 +110,5 @@ bash run_sdxl.sh \
   --profiler_start_step 5 \
   --profiler_end_step 6 \
 ```
-可以通过 `--profiler_start_step ` 和 `--profiler_end_step` 分别设置profile开始和结束步数。
+
+可以通过 `--profiler_start_step` 和 `--profiler_end_step` 分别设置profile开始和结束步数。
