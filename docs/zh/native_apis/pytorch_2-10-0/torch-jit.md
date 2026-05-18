@@ -47,10 +47,12 @@
 |torch.jit.ScriptModule.register_forward_pre_hook|是|支持fp32|
 |torch.jit.ScriptModule.register_full_backward_hook|是|支持fp32|
 |torch.jit.ScriptModule.register_full_backward_pre_hook|是|支持fp32|
+|torch.jit.ScriptModule.register_load_state_dict_pre_hook|是|支持fp32|
 |torch.jit.ScriptModule.register_load_state_dict_post_hook|是|支持fp32|
 |torch.jit.ScriptModule.register_module|否|-|
 |torch.jit.ScriptModule.register_parameter|否|-|
 |torch.jit.ScriptModule.register_state_dict_pre_hook|是|支持fp32|
+|torch.jit.ScriptModule.register_state_dict_post_hook|是|支持fp32|
 |torch.jit.ScriptModule.requires_grad_|是|支持fp32|
 |torch.jit.ScriptModule.save|是|支持fp32|
 |torch.jit.ScriptModule.set_extra_state|否|-|
