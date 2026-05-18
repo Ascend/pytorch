@@ -570,6 +570,7 @@ def gen_dispatcher_registrations(
     dispatch_key_name: str,
     register_dispatch_key_func: Callable,
     native_function_registrations: str = "",
+    custom_op_names: set[str] = None,
 ):
     backend_index = backend_indices[backend_dispatch_key]
     ns_helper = NamespaceHelper(namespace_str="at")
@@ -645,7 +646,9 @@ $dispatch_registrations_body
                     "static_init_dispatch_registrations": static_init_dispatch_registrations,
                     "deferred_dispatch_registrations": "",
                     "dispatch_namespace": dispatch_key.lower(),
-                    "dispatch_namespaced_definitions": native_function_registrations if native_function_registrations else list(
+                    "dispatch_namespaced_definitions": native_function_registrations
+                    if native_function_registrations or dispatch_key.lower() != "npu"
+                    else list(
                         concatMap(
                             register_dispatch_key_func(
                                 backend_index,
@@ -656,7 +659,12 @@ $dispatch_registrations_body
                                 class_method_name=f'{class_name}',
                                 skip_dispatcher_op_registration=False,
                             ),
-                            grouped_native_functions,
+                            [   g
+                                for g in grouped_native_functions
+                                if g.root_name not in custom_op_names
+                            ]
+                            if custom_op_names
+                            else grouped_native_functions,
                         )
                     ),
                     "dispatch_anonymous_definitions": list(
@@ -977,6 +985,7 @@ def gen_per_operator_headers(
     backend_indices: dict[DispatchKey, BackendIndex],
     dispatch_keys: Sequence[DispatchKey],
     selector: "SelectiveBuilder",
+    custom_op_names: set[str] = None,
 ):
     """
     Generate per-operator dispatch header files (*_npu_dispatch.h) for NPU.
@@ -994,6 +1003,8 @@ def gen_per_operator_headers(
 
     functions_by_root_name: dict[str, list[NativeFunction]] = defaultdict(list)
     for fn in native_functions:
+        if custom_op_names and fn.root_name in custom_op_names:
+            continue
         functions_by_root_name[fn.root_name].append(fn)
 
     grouped_functions_by_root_name: dict[
@@ -1091,6 +1102,14 @@ def run(
     ops_fm = make_file_manager(ops_output_dir)
     merge_custom_yaml(source_yaml, op_plugin_yaml_path)
     source_yaml = gen_custom_yaml_path(source_yaml)
+    source_es = parse_npu_yaml(source_yaml)
+    custom_entries = source_es.get("custom", []) + source_es.get("custom_autograd", [])
+    custom_op_names = set()
+    for entry in custom_entries:
+        if isinstance(entry, dict) and "func" in entry:
+            op_name = entry["func"].split("(")[0].strip()
+            parsed = OperatorName.parse(op_name)
+            custom_op_names.add(parsed.name.base)
     tags_yaml_path = os.path.join(torchgen_path, "packaged/ATen/native/tags.yaml")
     native_yaml_path = os.path.join(
         torchgen_path, "packaged/ATen/native/native_functions.yaml"
@@ -1137,7 +1156,16 @@ def run(
             None,
         )
 
-        gen_per_operator_headers(fm, ops_fm, native_functions, grouped_native_functions, backend_indices, [backend_dispatch_key, autograd_dispatch_key], selector)
+        gen_per_operator_headers(
+            fm,
+            ops_fm,
+            native_functions,
+            grouped_native_functions,
+            backend_indices,
+            [backend_dispatch_key],
+            selector,
+            custom_op_names,
+        )
 
         for dispatch_key in [backend_dispatch_key, autograd_dispatch_key]:
             if not dispatch_key:
@@ -1154,6 +1182,7 @@ def run(
                 selector,
                 dispatch_key_name=dispatch_key.name.replace("NPU", true_backend),
                 register_dispatch_key_func=dest.RegisterDispatchKey,
+                custom_op_names=custom_op_names,
             )
 
         gen_quantize_register(fm, backend_indices)
@@ -1249,9 +1278,12 @@ def run(
             g for g in grouped_native_functions if isinstance(g, NativeFunctionsGroup)
         ]
         gen_npu_c_shim_files(
-            aoti_fm, native_functions, backend_indices,
-            [backend_dispatch_key, autograd_dispatch_key],
-            structured_native_functions, update_aoti_c_shim,
+            aoti_fm,
+            native_functions,
+            backend_indices,
+            [backend_dispatch_key],
+            structured_native_functions,
+            update_aoti_c_shim,
         )
 
 
