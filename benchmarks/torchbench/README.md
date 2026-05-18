@@ -114,7 +114,7 @@
 
 4. NPU图模式后端指定
 
-    当前NPU图模式后端通过`--npu-backend`参数指定，支持`mlir`、`dvm`、`triton`（triton-ascend）三种模式，不显示指定会默认选择三种模式中端到端时间加速比最大的图模式后端，使用示例如下
+    当前NPU图模式后端通过`--npu-backend`参数指定，支持`mlir`、`dvm`、`akg`、`triton`（triton-ascend）三种模式，不显示指定会默认选择三种模式中端到端时间加速比最大的图模式后端，使用示例如下
 
     ```shell
     python3 torchbench.py --accuracy --cold-start-latency --train --float32 --backend inductor --npu-backend mlir --only BERT_pytorch --iterations 50
