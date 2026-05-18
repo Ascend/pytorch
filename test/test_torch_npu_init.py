@@ -443,6 +443,38 @@ class TestTorchNpuBootstrap(TestCase):
             assert FSDPParamGroup.finalize_backward is _patched_finalize_backward
             """
         )
+    
+    def test_08_top_level_unsupported_dtype_compatibility(self):
+        self._run_python(
+            """
+            import torch
+            import torch_npu
+
+            # Regression test for external packages such as MindSpeed.
+            # They access torch_npu.unsupported_dtype directly after importing torch_npu.
+            expected_unsupported_dtype = [
+                torch.quint8,
+                torch.quint4x2,
+                torch.quint2x4,
+                torch.qint32,
+                torch.qint8,
+            ]
+
+            unsupported_dtype = torch_npu.unsupported_dtype
+
+            assert unsupported_dtype == expected_unsupported_dtype
+            assert "unsupported_dtype" in dir(torch_npu)
+            assert "unsupported_dtype" in torch_npu.__dict__
+
+            # Simulate MindSpeed-style dtype filtering.
+            valid_dtype_names = []
+            for name, attr in torch.__dict__.items():
+                if isinstance(attr, torch.dtype) and attr not in torch_npu.unsupported_dtype:
+                    valid_dtype_names.append(name)
+
+            assert valid_dtype_names, "no valid torch dtype found"
+            """
+        )
 
 
 if __name__ == "__main__":
