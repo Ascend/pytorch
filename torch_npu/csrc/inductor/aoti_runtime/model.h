@@ -45,6 +45,12 @@ using RAIIDataPtr = std::unique_ptr<void, std::function<void(void*)> >;
 
 RAIIDataPtr RAII_npuMalloc(size_t num_bytes)
 {
+#ifdef AOT_INDUCTOR_USE_CACHING_ALLOCATOR
+    void* data_ptr = nullptr;
+    AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_npu_caching_allocator_raw_alloc(num_bytes, &data_ptr));
+    auto deleter = [](void* ptr) { AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_npu_caching_allocator_raw_delete(ptr)); };
+    return RAIIDataPtr(data_ptr, deleter);
+#else
     void* data_ptr;
     // aclrtMalloc doesn't support allocate 0-bytes. In this case,
     // e.g, model has no weight, we should do padding.
@@ -54,6 +60,7 @@ RAIIDataPtr RAII_npuMalloc(size_t num_bytes)
     AOTI_RUNTIME_DEVICE_CHECK(aclrtMalloc((void**)&data_ptr, num_bytes, ACL_MEM_MALLOC_HUGE_FIRST));
     auto deleter = [](void* ptr) { AOTI_RUNTIME_DEVICE_CHECK(aclrtFree(ptr)); };
     return RAIIDataPtr(data_ptr, deleter);
+#endif
 }
 
 #endif // USE_NPU
@@ -149,6 +156,20 @@ public:
     AOTInductorModelBase(const AOTInductorModelBase&) = delete;
     AOTInductorModelBase& operator=(const AOTInductorModelBase&) = delete;
 
+#if defined(USE_NPU)
+    DeviceStreamType normalize_run_stream(DeviceStreamType stream) const
+    {
+        if (stream != nullptr) {
+            return stream;
+        }
+
+        DeviceStreamType current_stream = nullptr;
+        AOTI_TORCH_ERROR_CODE_CHECK(
+            aoti_torch_get_current_npu_stream(device_idx_, reinterpret_cast<void**>(&current_stream)));
+        return current_stream;
+    }
+#endif
+
     void run(AtenTensorHandle* input_handles,  // array of input AtenTensorHandle; handles
                                                // are stolen; the array itself is borrowed
              AtenTensorHandle* output_handles, // array for writing output AtenTensorHandle; handles
@@ -157,20 +178,22 @@ public:
              DeviceStreamType stream, AOTIProxyExecutorHandle proxy_executor)
     {
 #if defined(USE_NPU)
+        auto run_stream = normalize_run_stream(stream);
         if (!run_finished_) {
             aclrtEvent run_finished;
             AOTI_RUNTIME_DEVICE_CHECK(aclrtCreateEvent(&run_finished));
             run_finished_.emplace(run_finished);
         }
 #else
+        auto run_stream = stream;
         run_finished_ = false;
 #endif
 
         auto* model = static_cast<Model*>(this);
-        model->run_impl(input_handles, output_handles, stream, proxy_executor);
+        model->run_impl(input_handles, output_handles, run_stream, proxy_executor);
 
 #if defined(USE_NPU)
-        AOTI_RUNTIME_DEVICE_CHECK(aclrtRecordEvent(*run_finished_, stream));
+        AOTI_RUNTIME_DEVICE_CHECK(aclrtRecordEvent(*run_finished_, run_stream));
 #else
         run_finished_ = true;
 #endif
@@ -185,30 +208,37 @@ public:
                                                                // borrowed
                              DeviceStreamType stream, AOTIProxyExecutorHandle proxy_executor)
     {
+#if defined(USE_NPU)
+        auto run_stream = normalize_run_stream(stream);
+#else
+        auto run_stream = stream;
+#endif
         // don't bother with any of the run_finished stuff; this is unsafe to call
         // in a threaded context
         auto* model = static_cast<Model*>(this);
-        model->run_impl(input_handles, output_handles, stream, proxy_executor);
+        model->run_impl(input_handles, output_handles, run_stream, proxy_executor);
     }
 
     std::unordered_map<std::string, AtenTensorHandle>
     run_const_fold(DeviceStreamType stream, AOTIProxyExecutorHandle proxy_executor, bool initialization = false)
     {
 #if defined(USE_NPU)
+        auto run_stream = normalize_run_stream(stream);
         if (!run_finished_) {
             aclrtEvent run_finished;
             AOTI_RUNTIME_DEVICE_CHECK(aclrtCreateEvent(&run_finished));
             run_finished_.emplace(run_finished);
         }
 #else
+        auto run_stream = stream;
         run_finished_ = false;
 #endif
 
         auto* model = static_cast<Model*>(this);
-        auto folded_constants = model->const_run_impl(stream, proxy_executor, initialization);
+        auto folded_constants = model->const_run_impl(run_stream, proxy_executor, initialization);
 
 #if defined(USE_NPU)
-        AOTI_RUNTIME_DEVICE_CHECK(aclrtRecordEvent(*run_finished_, stream));
+        AOTI_RUNTIME_DEVICE_CHECK(aclrtRecordEvent(*run_finished_, run_stream));
 #else
         run_finished_ = true;
 #endif

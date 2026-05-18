@@ -56,16 +56,19 @@ std::vector<at::Tensor> AOTIModelContainerRunnerNpu::run_impl(std::vector<AtenTe
                                                               void* stream_handle)
 {
     init_proxy_executor();
-    c10_npu::NPUStream npu_stream = c10_npu::getCurrentNPUStream();
-    return AOTIModelContainerRunner::run_impl(input_handles, reinterpret_cast<void*>(npu_stream.stream()));
+    void* effective_stream_handle = stream_handle;
+    if (effective_stream_handle == nullptr) {
+        c10_npu::NPUStream npu_stream = c10_npu::getCurrentNPUStream();
+        effective_stream_handle = reinterpret_cast<void*>(npu_stream.stream());
+    }
+    return AOTIModelContainerRunner::run_impl(input_handles, effective_stream_handle);
 }
 
 std::vector<at::Tensor> AOTIModelContainerRunnerNpu::run_with_npu_stream(const std::vector<at::Tensor>& inputs,
                                                                          const c10_npu::NPUStream& npu_stream)
 {
     init_proxy_executor();
-    c10_npu::NPUStream cur_npu_stream = c10_npu::getCurrentNPUStream();
-    return run(inputs, reinterpret_cast<void*>(cur_npu_stream.stream()));
+    return run(inputs, reinterpret_cast<void*>(npu_stream.stream()));
 }
 
 namespace {

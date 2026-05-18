@@ -264,6 +264,37 @@ AOTI_TORCH_EXPORT AOTITorchError aoti_torch_create_tensor_from_blob_npu_v2(
     AtenTensorHandle* ret, // returns new reference
     int32_t layout, const uint8_t* opaque_metadata, int64_t opaque_metadata_size);
 
+struct NPUGuardOpaque;
+using NPUGuardHandle = NPUGuardOpaque*;
+
+AOTI_TORCH_EXPORT AOTITorchError aoti_torch_create_npu_guard(
+    int32_t device_index,
+    NPUGuardHandle* ret_guard // returns new reference
+);
+
+AOTI_TORCH_EXPORT AOTITorchError aoti_torch_delete_npu_guard(NPUGuardHandle guard);
+
+AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu_guard_set_index(NPUGuardHandle guard, int32_t device_index);
+
+struct NPUStreamGuardOpaque;
+using NPUStreamGuardHandle = NPUStreamGuardOpaque*;
+
+AOTI_TORCH_EXPORT AOTITorchError aoti_torch_create_npu_stream_guard(
+    void* stream, int32_t device_index,
+    NPUStreamGuardHandle* ret_guard // returns new reference
+);
+
+AOTI_TORCH_EXPORT AOTITorchError aoti_torch_delete_npu_stream_guard(NPUStreamGuardHandle guard);
+
+AOTI_TORCH_EXPORT AOTITorchError aoti_torch_get_current_npu_stream(int32_t device_index, void** ret_stream);
+
+AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu_caching_allocator_raw_alloc(
+    uint64_t nbytes,
+    void** ret_ptr // returns raw NPU memory pointer
+);
+
+AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu_caching_allocator_raw_delete(void* ptr);
+
 AOTI_TORCH_EXPORT AOTITorchError aoti_torch__embedding_bag(AtenTensorHandle weight, AtenTensorHandle indices,
                                                            AtenTensorHandle offsets, int32_t scale_grad_by_freq,
                                                            int32_t mode, int32_t sparse,
