@@ -243,6 +243,7 @@ class CppWrapperNpu(CppWrapperGpu):
         self.header.splice("#include <unistd.h>")
         self.header.splice("#include <filesystem>")
         self.header.splice(self.device_codegen.abi_compatible_header())
+        self.header.splice("#include <torch_npu/csrc/inductor/aoti_runtime/utils_npu.h>")
         self.header.splice(
             maybe_hipify_code_wrapper(self.device_codegen.kernel_driver())
         )
