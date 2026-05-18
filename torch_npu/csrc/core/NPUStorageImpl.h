@@ -67,4 +67,3 @@ c10::intrusive_ptr<c10::StorageImpl> make_npu_storage_impl(
     bool resizable);
 
 } // namespace torch_npu
-

@@ -45,4 +45,3 @@ bool IsBF16Supported();
 bool IsAclnnOnly();
 }  // namespace c10_npu
 #endif
-
