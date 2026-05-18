@@ -3,6 +3,7 @@
 #include <torch/csrc/profiler/api.h>
 #include <torch/csrc/jit/frontend/tracer.h>
 #include <torch/csrc/jit/runtime/interpreter.h>
+#include <torch/csrc/utils/pybind.h>
 
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
@@ -307,6 +308,7 @@ static void registerCallback(const std::unordered_set<at::RecordScope> &scopes)
 void warmupNpuProfiler(const NpuProfilerConfig &config,
     const std::set<NpuActivityType> &activities)
 {
+    pybind11::gil_scoped_release no_gil;
     bool cpu_trace = activities.count(NpuActivityType::CPU);
     ExperimentalConfig experimental_config = config.experimental_config;
     NpuTraceConfig npu_config = {experimental_config.trace_level, experimental_config.metrics,
@@ -335,6 +337,7 @@ void startNpuProfiler(const NpuProfilerConfig &config,
     const std::set<NpuActivityType> &activities,
     const std::unordered_set<at::RecordScope> &scopes)
 {
+    pybind11::gil_scoped_release no_gil;
     auto state = std::make_shared<NpuProfilerThreadLocalState>(config, activities);
     if (c10::ThreadLocalDebugInfo::get(c10::DebugInfoKind::PROFILER_STATE) != nullptr) {
         ASCEND_LOGE("Profiler is already enabled.");
@@ -371,6 +374,7 @@ void disableProfilerInChildThread()
 
 void stopNpuProfiler()
 {
+    pybind11::gil_scoped_release no_gil;
     if (!torch::autograd::profiler::profilerEnabled()) {
         ASCEND_LOGE("Can't stop Ascend Pytorch Profiler when it's not started.");
         return;
@@ -393,6 +397,7 @@ void stopNpuProfiler()
 
 void finalizeNpuProfiler()
 {
+    pybind11::gil_scoped_release no_gil;
     ProfilerMgr::GetInstance()->Finalize();
 }
 
