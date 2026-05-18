@@ -13,10 +13,23 @@ import json
 import re
 from collections import Counter
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Optional, Tuple
 
 # Import aggregation function from parse_test_results.py
 import parse_test_results
+
+
+# ==============================================================================
+# Status Constants
+# ==============================================================================
+
+STATUS_MISSING = "MISSING"
+STATUS_TIMEOUT = "TIMEOUT"
+STATUS_INCOMPLETE = "INCOMPLETE"
+STATUS_ERROR = "ERROR"
+STATUS_FAILED = "FAILED"
+STATUS_PASSED = "PASSED"
+STATUS_NO_TESTS = "NO TESTS"
 
 
 def parse_args():
@@ -40,22 +53,16 @@ def parse_args():
 def load_json_file(path: Path) -> Dict:
     """Load JSON file with error handling for malformed/truncated files."""
     try:
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
+        content = path.read_text(encoding="utf-8")
+        return json.loads(content)
     except json.JSONDecodeError as e:
         print(f"Warning: Invalid JSON in {path}: {e}")
-        # Read file content to diagnose truncation
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                content = f.read()
-            print(f"  File size: {len(content)} bytes")
-            # Show context around error position
-            error_pos = e.pos if hasattr(e, 'pos') else 0
-            start = max(0, error_pos - 100)
-            end = min(len(content), error_pos + 100)
-            print(f"  Context around error (pos {error_pos}): ...{content[start:end]}...")
-        except Exception:
-            pass
+        print(f"  File size: {len(content)} bytes")
+        # Show context around error position
+        error_pos = e.pos if hasattr(e, 'pos') else 0
+        start = max(0, error_pos - 100)
+        end = min(len(content), error_pos + 100)
+        print(f"  Context around error (pos {error_pos}): ...{content[start:end]}...")
         return {}
     except Exception as e:
         print(f"Warning: Failed to load {path}: {e}")
@@ -149,7 +156,7 @@ def discover_shard_files(
     info_files = {}
     cases_files = {}
 
-    def parse_shard_filename(path: Path, suffix_pattern: str) -> Tuple[str, int]:
+    def parse_shard_filename(path: Path, suffix_pattern: str) -> Optional[Tuple[str, int]]:
         """
         Parse shard type and number from filename.
 
@@ -249,28 +256,28 @@ def build_file_to_shards_map(cases_shards_dir: Path) -> Dict[str, List[str]]:
 
 def get_shard_status(stats: Dict, present: bool) -> str:
     if not present:
-        return "MISSING"
+        return STATUS_MISSING
     if stats.get("timed_out"):
-        return "TIMEOUT"
+        return STATUS_TIMEOUT
     if stats.get("incomplete"):
-        return "INCOMPLETE"
+        return STATUS_INCOMPLETE
     if stats.get("errors", 0) > 0:
-        return "ERROR"
+        return STATUS_ERROR
     if stats.get("failed", 0) > 0:
-        return "FAILED"
+        return STATUS_FAILED
     if stats.get("total", 0) == 0:
-        return "NO TESTS"
-    return "PASSED"
+        return STATUS_NO_TESTS
+    return STATUS_PASSED
 
 
 def get_overall_status(status_counts: Counter) -> str:
-    if status_counts["MISSING"] > 0:
-        return "FAILED"
-    if any(status_counts[key] > 0 for key in ("TIMEOUT", "INCOMPLETE", "ERROR", "FAILED")):
-        return "FAILED"
-    if status_counts["PASSED"] > 0:
-        return "PASSED"
-    return "NO TESTS"
+    if status_counts[STATUS_MISSING] > 0:
+        return STATUS_FAILED
+    if any(status_counts[key] > 0 for key in (STATUS_TIMEOUT, STATUS_INCOMPLETE, STATUS_ERROR, STATUS_FAILED)):
+        return STATUS_FAILED
+    if status_counts[STATUS_PASSED] > 0:
+        return STATUS_PASSED
+    return STATUS_NO_TESTS
 
 
 def format_duration(seconds: float) -> str:
@@ -584,8 +591,8 @@ def main():
             }
         )
 
-    if any(row["status"] != "PASSED" for row in special_test_rows):
-        overall_status = "FAILED"
+    if any(row["status"] != STATUS_PASSED for row in special_test_rows):
+        overall_status = STATUS_FAILED
 
     include_special_tests = bool(special_test_names or special_test_rows)
 
