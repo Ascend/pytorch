@@ -54,7 +54,7 @@ import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
-from queue import Queue
+from queue import Queue, Empty
 from time import monotonic
 from typing import Dict, List, Optional, Tuple
 
@@ -80,9 +80,9 @@ def get_npu_device_count() -> int:
         if rc == 0 and dev_count.value > 0:
             return dev_count.value
     except OSError:
-        pass
+        print("Warning: Failed to load libascend_hal.so, using default 8 NPU devices")
     except AttributeError:
-        pass
+        print("Warning: drvGetDevNum not found in libascend_hal.so, using default 8 NPU devices")
     return 8  # Default: typical node has 8 NPU cards
 
 
@@ -114,7 +114,6 @@ class CaseExecutionTask:
     case_idx: int
     nodeid: str
     test_file: str
-    file_idx: int
 
 
 @dataclasses.dataclass
@@ -154,7 +153,7 @@ def sanitize_nodeid_for_filename(nodeid: str) -> str:
     while "__" in safe_name:
         safe_name = safe_name.replace("__", "_")
 
-    # Truncate if too long (max 200 chars)
+    # Truncate if too long (max 200 chars for filesystem compatibility)
     if len(safe_name) > 200:
         safe_name = safe_name[:200]
 
@@ -262,11 +261,13 @@ class ConcurrentResultAggregator:
                 # error
                 self._error_count += 1
 
-            # Track worst returncode (ignore skipped)
+            # Track worst returncode (largest non-zero value)
+            # Negative returncodes (signal crashes) have larger absolute values
             rc = case_result.get("returncode", 1)
             if rc != 0:
-                if self._worst_returncode == 0:
-                    self._worst_returncode = rc
+                # Keep the "worst" returncode: max of current worst and new rc
+                # This captures both high positive codes and severe crashes (negative)
+                self._worst_returncode = max(self._worst_returncode, rc)
 
     def get_sorted_cases(self) -> List[Dict]:
         """Get cases sorted by case_idx."""
@@ -464,7 +465,6 @@ def run_single_case_concurrent(
         "--tb=short",
         case_nodeid,
         f"--junitxml={xml_file}",
-        "--junit-prefix=",
     ]
 
     if config.per_case_timeout > 0:
@@ -521,7 +521,7 @@ def run_single_case_concurrent(
             text=True,
             encoding="utf-8",
             errors="replace",
-            timeout=config.per_case_timeout + 30,  # Extra buffer
+            timeout=config.per_case_timeout + 30,  # Extra 30s buffer for pytest startup overhead
         )
 
         duration = monotonic() - start_time
@@ -659,7 +659,7 @@ def log_writer_thread(log_queue: Queue, log_file: Path, stop_event: threading.Ev
         while not stop_event.is_set() or not log_queue.empty():
             try:
                 log_entry = log_queue.get(timeout=0.5)
-            except:
+            except Empty:
                 continue
 
             if log_entry.get("type") == "header":
@@ -913,17 +913,92 @@ def build_execution_env(
     return updates
 
 
+def save_results_and_summary(
+    result_module,
+    report_dir: Path,
+    shard: int,
+    shard_type: str,
+    cases_list: List[Dict],
+    duration: float,
+    returncode: int,
+    info: Dict,
+    execution_mode: Optional[str] = None,
+    concurrent_workers: Optional[int] = None,
+    has_distributed_files: Optional[bool] = None,
+) -> None:
+    """
+    Save results and print summary.
+
+    This function handles the common result processing logic:
+    - Calculate statistics (passed, failed, errors, etc.)
+    - Build cases_data and stats dicts
+    - Save cases.json, info, stats files
+    - Print summary
+    """
+    # Calculate statistics
+    passed_count = sum(1 for c in cases_list if c["status"] == "passed")
+    failed_count = sum(1 for c in cases_list if c["status"] == "failed")
+    error_count = sum(1 for c in cases_list if c["status"] == "error")
+    timeout_count = sum(1 for c in cases_list if c["status"] == "timeout")
+    skipped_count = sum(1 for c in cases_list if c["status"] == "skipped")
+
+    # Build cases.json data
+    cases_data = {
+        "shard": shard,
+        "shard_type": shard_type,
+        "execution_mode": execution_mode or info.get("execution_mode", "unknown"),
+        "concurrent_workers": concurrent_workers or info.get("concurrent_workers", 1),
+        "total_cases": len(cases_list),
+        "passed": passed_count,
+        "failed": failed_count,
+        "errors": error_count,
+        "timeout": timeout_count,
+        "skipped": skipped_count,
+        "duration": duration,
+        "cases": cases_list,
+    }
+    if has_distributed_files is not None:
+        cases_data["has_distributed_files"] = has_distributed_files
+
+    # Save cases.json
+    result_module.save_cases_file(str(report_dir), shard, cases_data, shard_type)
+
+    # Save info file
+    info["returncode"] = returncode
+    info["duration"] = duration
+    result_module.save_info_file(str(report_dir), shard, info, shard_type)
+
+    # Build and save stats
+    stats = {
+        "total": len(cases_list),
+        "passed": passed_count,
+        "failed": failed_count,
+        "skipped": skipped_count,
+        "errors": error_count,
+        "timeout": timeout_count,
+        "duration": duration,
+        "returncode": returncode,
+        "per_case_isolation": True,
+    }
+    if execution_mode:
+        stats["execution_mode"] = execution_mode
+    if concurrent_workers:
+        stats["concurrent_workers"] = concurrent_workers
+    if has_distributed_files is not None:
+        stats["has_distributed_files"] = has_distributed_files
+
+    result_module.save_stats_file(str(report_dir), shard, stats, shard_type)
+
+    # Print summary
+    result_module.print_stats_summary(shard, stats, shard_type)
+
+
 def clean_existing_junit_xml(report_dir: Path) -> None:
     """Clean existing JUnit XML files."""
     if not report_dir.exists():
         return
     for xml_file in report_dir.rglob("*.xml"):
         xml_file.unlink(missing_ok=True)
-
-
-def remove_existing_file(path: Path) -> None:
-    """Remove existing file."""
-    path.unlink(missing_ok=True)
 
 
 # ==============================================================================
@@ -1115,7 +1190,7 @@ def main():
 
         # Clean old files
         clean_existing_junit_xml(report_dir)
-        remove_existing_file(result_module.get_shard_log_file(report_dir, shard, shard_type))
+        result_module.get_shard_log_file(report_dir, shard, shard_type).unlink(missing_ok=True)
 
         # Build execution env
         env_updates = build_execution_env(
@@ -1132,7 +1207,7 @@ def main():
                 planned_tests,
                 test_dir,
                 error_log_dir,
-                parallel=16,
+                parallel=16,  # 16 parallel collectors balance speed vs resource usage
             )
 
             # Apply quick_test limit if specified
@@ -1150,7 +1225,6 @@ def main():
                     case_idx=i,
                     nodeid=case["nodeid"],
                     test_file=case["file"],
-                    file_idx=0,  # Not needed for pre-collected cases
                 ))
 
             # Phase 2: Execute cases using run_tests_with_tasks_concurrent
@@ -1177,54 +1251,20 @@ def main():
             returncode = 0
             duration = 0.0
 
-        # Build cases.json data
-        passed_count = sum(1 for c in cases_list if c["status"] == "passed")
-        failed_count = sum(1 for c in cases_list if c["status"] == "failed")
-        error_count = sum(1 for c in cases_list if c["status"] == "error")
-        timeout_count = sum(1 for c in cases_list if c["status"] == "timeout")
-        skipped_count = sum(1 for c in cases_list if c["status"] == "skipped")
-
-        cases_data = {
-            "shard": shard,
-            "shard_type": shard_type,
-            "execution_mode": execution_mode,
-            "concurrent_workers": effective_workers,
-            "has_distributed_files": has_distributed,
-            "total_cases": len(cases_list),
-            "passed": passed_count,
-            "failed": failed_count,
-            "errors": error_count,
-            "timeout": timeout_count,
-            "skipped": skipped_count,
-            "duration": duration,
-            "cases": cases_list,
-        }
-
-        # Save cases.json
-        result_module.save_cases_file(str(report_dir), shard, cases_data, shard_type)
-
-        # Save info and stats
-        result_module.save_info_file(str(report_dir), shard, info, shard_type)
-
-        stats = {
-            "total": len(cases_list),
-            "passed": passed_count,
-            "failed": failed_count,
-            "skipped": skipped_count,
-            "errors": error_count,
-            "timeout": timeout_count,
-            "duration": duration,
-            "returncode": returncode,
-            "per_case_isolation": True,
-            "execution_mode": execution_mode,
-            "concurrent_workers": effective_workers,
-            "has_distributed_files": has_distributed,
-        }
-
-        result_module.save_stats_file(str(report_dir), shard, stats, shard_type)
-
-        # Print summary
-        result_module.print_stats_summary(shard, stats, shard_type)
+        # Save results and print summary
+        save_results_and_summary(
+            result_module=result_module,
+            report_dir=report_dir,
+            shard=shard,
+            shard_type=shard_type,
+            cases_list=cases_list,
+            duration=duration,
+            returncode=returncode,
+            info=info,
+            execution_mode=execution_mode,
+            concurrent_workers=effective_workers,
+            has_distributed_files=has_distributed,
+        )
 
         # Exit with 0 to allow step to succeed and report generation to proceed
         # The actual test results are recorded in cases.json
@@ -1280,7 +1320,7 @@ def main():
 
         # Clean old files
         clean_existing_junit_xml(report_dir)
-        remove_existing_file(result_module.get_shard_log_file(report_dir, shard, shard_type))
+        result_module.get_shard_log_file(report_dir, shard, shard_type).unlink(missing_ok=True)
 
         # Build execution env
         env_updates = build_execution_env(
@@ -1294,7 +1334,6 @@ def main():
                 case_idx=i,
                 nodeid=case["nodeid"],
                 test_file=case.get("file", ""),
-                file_idx=0,
             ))
 
         # Execute tests based on shard_type
@@ -1327,57 +1366,22 @@ def main():
             info["execution_mode"] = "serial" if effective_workers == 1 else "concurrent"
             info["concurrent_workers"] = effective_workers
 
-            info["returncode"] = returncode
-            info["duration"] = duration
         else:
             print("No cases to execute.")
             returncode = 0
             duration = 0.0
 
-        # Build cases.json data
-        passed_count = sum(1 for c in cases_list if c["status"] == "passed")
-        failed_count = sum(1 for c in cases_list if c["status"] == "failed")
-        error_count = sum(1 for c in cases_list if c["status"] == "error")
-        timeout_count = sum(1 for c in cases_list if c["status"] == "timeout")
-        skipped_count = sum(1 for c in cases_list if c["status"] == "skipped")
-
-        output_cases_data = {
-            "shard": shard,
-            "shard_type": shard_type,
-            "execution_mode": info.get("execution_mode", "unknown"),
-            "concurrent_workers": info.get("concurrent_workers", 1),
-            "total_cases": len(cases_list),
-            "passed": passed_count,
-            "failed": failed_count,
-            "errors": error_count,
-            "timeout": timeout_count,
-            "skipped": skipped_count,
-            "duration": duration,
-            "cases": cases_list,
-        }
-
-        # Save cases.json
-        result_module.save_cases_file(str(report_dir), shard, output_cases_data, shard_type)
-
-        # Save info and stats
-        result_module.save_info_file(str(report_dir), shard, info, shard_type)
-
-        stats = {
-            "total": len(cases_list),
-            "passed": passed_count,
-            "failed": failed_count,
-            "skipped": skipped_count,
-            "errors": error_count,
-            "timeout": timeout_count,
-            "duration": duration,
-            "returncode": returncode,
-            "per_case_isolation": True,
-        }
-
-        result_module.save_stats_file(str(report_dir), shard, stats, shard_type)
-
-        # Print summary
-        result_module.print_stats_summary(shard, stats, shard_type)
+        # Save results and print summary
+        save_results_and_summary(
+            result_module=result_module,
+            report_dir=report_dir,
+            shard=shard,
+            shard_type=shard_type,
+            cases_list=cases_list,
+            duration=duration,
+            returncode=returncode,
+            info=info,
+        )
 
         # Exit with 0 to allow step to succeed and report generation to proceed
         # The actual test results are recorded in cases.json
