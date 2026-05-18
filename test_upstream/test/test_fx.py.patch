@@ -1,0 +1,469 @@
+diff --git a/test/test_fx.py b/test/test_fx.py
+index ba80f69..e4ad881 100644
+--- a/test/test_fx.py
++++ b/test/test_fx.py
+@@ -38,6 +38,7 @@ from collections import namedtuple
+ from typing import Any, Callable, NamedTuple, Optional, Union
+ 
+ import torch
++import torch_npu
+ 
+ from functorch.experimental import control_flow
+ 
+@@ -210,7 +211,8 @@ class TestFX(JitTestCase):
+ 
+         if not (IS_FBCODE or IS_WINDOWS or IS_MACOS):
+             lib_file_path = find_library_location("libtorchbind_test.so")
+-            torch.ops.load_library(str(lib_file_path))
++            if lib_file_path.exists():
++                torch.ops.load_library(str(lib_file_path))
+ 
+     def tearDown(self):
+         super().tearDown()
+@@ -233,7 +235,7 @@ class TestFX(JitTestCase):
+         class MySub(torch.nn.Module):
+             def __init__(self) -> None:
+                 super().__init__()
+-                self.w = torch.nn.Parameter(torch.rand(4, 3))
++                self.w = torch.nn.Parameter(torch.rand(4, 3, device="npu"))
+ 
+             def forward(self, x):
+                 return self.w + x
+@@ -241,9 +243,9 @@ class TestFX(JitTestCase):
+         class MyModule(torch.nn.Module):
+             def __init__(self) -> None:
+                 super().__init__()
+-                self.lin = torch.nn.Linear(4, 3)
++                self.lin = torch.nn.Linear(4, 3).npu()
+                 self.sub_mod = MySub()
+-                self.w = torch.nn.Parameter(torch.rand(3))
++                self.w = torch.nn.Parameter(torch.rand(3, device="npu"))
+ 
+             def forward(self, A, B, c):
+                 t = torch.sigmoid(A) + self.lin(c)
+@@ -251,7 +253,7 @@ class TestFX(JitTestCase):
+                     t.data + self.w + t + 1 - A + B // A + -A + A.add(B, alpha=3)
+                 )
+ 
+-        m = MyModule()
++        m = MyModule().npu()
+         gm = symbolic_trace(m)
+ 
+         ms = torch.jit.script(gm)
+@@ -282,7 +284,7 @@ class TestFX(JitTestCase):
+         new_instance = gm3.__new__(type(gm3))
+         new_instance.__init__(gm3, gm3.graph)
+ 
+-        x = torch.randn(5, 3)
++        x = torch.randn(5, 3, device="npu")
+         torch.testing.assert_close(new_instance(x), torch.relu(x))
+ 
+     def test_informative_co_filename(self):
+@@ -301,7 +303,7 @@ class TestFX(JitTestCase):
+         d = graph.call_function(torch.sin, (c,))
+         graph.output(d)
+         gm = GraphModule(torch.nn.Module(), graph)
+-        x, y = torch.rand(1), torch.rand(1)
++        x, y = torch.rand(1, device="npu"), torch.rand(1, device="npu")
+         self.assertEqual(torch.sin(x + y), gm(x, y))
+ 
+     def test_args_kwargs(self):
+@@ -311,7 +313,7 @@ class TestFX(JitTestCase):
+                 return x
+ 
+         t = T()
+-        self.checkGraphModule(t, (torch.rand(1), torch.rand(1)), {"foo": torch.rand(1)})
++        self.checkGraphModule(t, (torch.rand(1, device="npu"), torch.rand(1, device="npu")), {"foo": torch.rand(1, device="npu")})
+ 
+     def test_varargs_concrete(self):
+         class T(torch.nn.Module):
+@@ -319,7 +321,7 @@ class TestFX(JitTestCase):
+                 x = args[0] + args[1]
+                 return x
+ 
+-        args = (torch.rand(1), torch.rand(1))
++        args = (torch.rand(1, device="npu"), torch.rand(1, device="npu"))
+ 
+         t = T()
+         ref_outs = t(*args)
+@@ -347,7 +349,7 @@ class TestFX(JitTestCase):
+             def forward(self, x):
+                 return x << 3, x >> 3
+ 
+-        input = torch.LongTensor(10).random_(0, 1024)
++        input = torch.randint(0, 1024, (10,), device="npu", dtype=torch.long)
+ 
+         m = MyModule()
+         self.checkGraphModule(m, (input,))
+@@ -357,7 +359,7 @@ class TestFX(JitTestCase):
+             def forward(self, x):
+                 return x & x, x | x
+ 
+-        input = torch.LongTensor(10).random_(0, 1024)
++        input = torch.randint(0, 1024, (10,), device="npu", dtype=torch.long)
+ 
+         m = MyModule()
+         self.checkGraphModule(m, (input,))
+@@ -367,26 +369,26 @@ class TestFX(JitTestCase):
+             def forward(self, d):
+                 return d["3"].relu(), {"4": d["3"].neg()}
+ 
+-        input_dict = {"3": torch.rand(3, 4)}
++        input_dict = {"3": torch.rand(3, 4, device="npu")}
+         m = MyDictMod()
+ 
+         self.checkGraphModule(m, (input_dict,))
+ 
+     def test_matmul_tracing(self):
+-        const = torch.randn(3)
++        const = torch.randn(3, device="npu")
+ 
+         def matmul_f(x):
+             return x @ const
+ 
+         mod = symbolic_trace(matmul_f)
+-        inp = torch.randn(3)
++        inp = torch.randn(3, device="npu")
+         self.assertEqual(mod(inp), matmul_f(inp))
+ 
+         def rmatmul_f(x):
+             return const @ x
+ 
+         mod = symbolic_trace(rmatmul_f)
+-        inp = torch.randn(3)
++        inp = torch.randn(3, device="npu")
+         self.assertEqual(mod(inp), rmatmul_f(inp))
+ 
+     @skipIfNoDynamoSupport
+@@ -544,12 +546,12 @@ class TestFX(JitTestCase):
+             def forward(self, x: torch.Tensor):
+                 return wrapped_with_submodule(x, self.batchnorm1d)
+ 
+-        m = symbolic_trace(M())
++        m = symbolic_trace(M().npu())
+ 
+         self.assertIn("wrapped_with_submodule", m.code)
+ 
+-        input = torch.rand(3, 2)
+-        ref_batchnorm1d = torch.nn.BatchNorm1d(2, affine=False)
++        input = torch.rand(3, 2, device="npu")
++        ref_batchnorm1d = torch.nn.BatchNorm1d(2, affine=False).npu()
+         self.assertEqual(ref_batchnorm1d(input), m(input))
+ 
+     def test_wrapped_retrace(self):
+@@ -1033,14 +1035,14 @@ class TestFX(JitTestCase):
+         class TensorAttribute(torch.nn.Module):
+             def __init__(self) -> None:
+                 super().__init__()
+-                self.tensor = torch.rand(3, 4)
++                self.tensor = torch.rand(3, 4, device="npu")
+ 
+             def forward(self, x):
+                 return torch.nn.functional.linear(x, self.tensor)
+ 
+         ta = TensorAttribute()
+         traced = symbolic_trace(ta)
+-        traced(torch.rand(4, 4))
++        traced(torch.rand(4, 4, device="npu"))
+ 
+         class WrapperForQualname(torch.nn.Module):
+             def __init__(self) -> None:
+@@ -1053,7 +1055,7 @@ class TestFX(JitTestCase):
+         wfq = WrapperForQualname()
+         traced2 = symbolic_trace(wfq)
+         traced2.graph.lint()
+-        traced2(torch.rand(4, 4))
++        traced2(torch.rand(4, 4, device="npu"))
+ 
+     def test_tensor_attribute_coalseced(self):
+         def count_attrs(fx_module):
+@@ -1063,7 +1065,7 @@ class TestFX(JitTestCase):
+                     targets.add(node.target)
+             return len(targets)
+ 
+-        val = torch.tensor(5)
++        val = torch.tensor(5, device="npu")
+ 
+         def f(x):
+             return x + val + val
+@@ -1072,10 +1074,10 @@ class TestFX(JitTestCase):
+         traced.graph.lint()
+         self.assertEqual(count_attrs(traced), 1)
+ 
+-        val2 = torch.tensor(5)
++        val2 = torch.tensor(5, device="npu")
+ 
+         def f(x):
+-            val = torch.tensor(5)
++            val = torch.tensor(5, device="npu")
+             return x + val + val2
+ 
+         traced = symbolic_trace(f)
+@@ -1090,18 +1092,18 @@ class TestFX(JitTestCase):
+         seq = torch.nn.Sequential(Simple(), Simple(), Simple())
+         traced = symbolic_trace(seq)
+         traced.graph.lint()
+-        x = torch.rand(3, 4)
++        x = torch.rand(3, 4, device="npu")
+         self.assertEqual(traced(x), seq(x))
+ 
+     def test_tensor_constant(self):
+         class ConstTensor(torch.nn.Module):
+             def forward(self, x):
+-                return torch.nn.functional.linear(x, torch.zeros(3, 4))
++                return torch.nn.functional.linear(x, torch.zeros(3, 4, device="npu"))
+ 
+         ct = ConstTensor()
+         traced = symbolic_trace(ct)
+         traced.graph.lint()
+-        traced(torch.rand(4, 4))
++        traced(torch.rand(4, 4, device="npu"))
+ 
+     def test_pickle_graphmodule(self):
+         class Nested(torch.nn.Module):
+@@ -1112,13 +1114,14 @@ class TestFX(JitTestCase):
+             def forward(self, x):
+                 return self.st(x)
+ 
+-        n = Nested()
++        n = Nested().npu()
+         traced = symbolic_trace(n)
+         traced.graph.lint()
+         pickled = pickle.dumps(traced)
+         loaded = pickle.loads(pickled)
++        loaded.npu()
+         loaded.graph.lint()
+-        x = torch.rand(3, 4)
++        x = torch.rand(3, 4, device="npu")
+         self.assertEqual(loaded(x), traced(x))
+ 
+     def test_pickle_custom_import(self):
+@@ -1132,7 +1135,7 @@ class TestFX(JitTestCase):
+         pickled = pickle.dumps(gm)
+         loaded = pickle.loads(pickled)
+         loaded.graph.lint()
+-        x, y = torch.rand(1), torch.rand(1)
++        x, y = torch.rand(1, device="npu"), torch.rand(1, device="npu")
+         self.assertEqual(loaded(x, y), gm(x, y))
+ 
+     def test_all_input_nodes(self):
+@@ -1169,7 +1172,7 @@ class TestFX(JitTestCase):
+         transformed.graph.lint()
+         copied = copy.deepcopy(transformed)
+         self.assertNotEqual(id(type(transformed)), id(type(copied)))
+-        x = torch.randn(3, 4)
++        x = torch.randn(3, 4, device="npu")
+         self.assertEqual(copied(x), transformed(x))
+ 
+     def test_deepcopy_with_submods_params(self):
+@@ -1190,7 +1193,7 @@ class TestFX(JitTestCase):
+             def forward(self, x):
+                 return self.bar(x) - self.param
+ 
+-        baz = Baz()
++        baz = Baz().npu()
+         traced = symbolic_trace(baz)
+         traced.graph.lint()
+         copied = copy.deepcopy(traced)
+@@ -1741,14 +1744,14 @@ class TestFX(JitTestCase):
+         assert "CustomArgObject(" in gm.code
+ 
+     def test_trace_fn_constant(self):
+-        some_constant = torch.rand(3, 4)
++        some_constant = torch.rand(3, 4, device="npu")
+ 
+         def add_const(x):
+             return some_constant + x
+ 
+         traced = symbolic_trace(add_const)
+ 
+-        input = torch.rand(3, 4)
++        input = torch.rand(3, 4, device="npu")
+         self.assertEqual(traced(input), add_const(input))
+ 
+     def test_copy_no_remap(self):
+@@ -1790,16 +1793,16 @@ class TestFX(JitTestCase):
+         class TestCase(torch.nn.Module):
+             def __init__(self) -> None:
+                 super().__init__()
+-                self.attr = torch.randn(3, 4)
++                self.attr = torch.randn(3, 4, device="npu")
+                 self.submod = torch.nn.Linear(4, 4)
+ 
+             def forward(self, x):
+                 return torch.neg(self.submod(x.relu() + self.attr))
+ 
+-        tc = TestCase()
++        tc = TestCase().npu()
+         tc_traced = symbolic_trace(tc)
+-        ref_out = tc_traced(torch.rand(3, 4))
+-        shape_prop.ShapeProp(tc_traced).propagate(torch.rand(3, 4))
++        ref_out = tc_traced(torch.rand(3, 4, device="npu"))
++        shape_prop.ShapeProp(tc_traced).propagate(torch.rand(3, 4, device="npu"))
+ 
+         # Make sure we're testing all opcodes
+         opcodes = set()
+@@ -1880,7 +1883,7 @@ class TestFX(JitTestCase):
+         graph = RTTracer().trace(ut)
+         mod = torch.fx.GraphModule(ut, graph)
+ 
+-        shape_prop.ShapeProp(mod).propagate(torch.rand(3, 4))
++        shape_prop.ShapeProp(mod).propagate(torch.rand(3, 4, device="npu"))
+ 
+         for node in mod.graph.nodes:
+             if node.op == "call_module":
+@@ -2002,11 +2005,11 @@ class TestFX(JitTestCase):
+             def forward(self, x):
+                 return self.linear(x + self.param).clamp(min=0.0, max=1.0)
+ 
+-        m = MyModule()
++        m = MyModule().npu()
+         gm = torch.fx.symbolic_trace(m)
+ 
+         interpreter = Interpreter(gm)
+-        input = torch.randn(3, 4)
++        input = torch.randn(3, 4, device="npu")
+         self.assertEqual(interpreter.run(input), gm(input))
+         self.assertEqual(interpreter.run(input), m(input))
+ 
+@@ -2020,11 +2023,11 @@ class TestFX(JitTestCase):
+             def forward(self, x):
+                 return self.linear(x + self.param).clamp(min=0.0, max=1.0)
+ 
+-        m = MyModule()
++        m = MyModule().npu()
+         gm = torch.fx.symbolic_trace(m)
+ 
+         interpreter = Interpreter(gm, graph=gm.graph)
+-        input = torch.randn(3, 4)
++        input = torch.randn(3, 4, device="npu")
+         self.assertEqual(interpreter.run(input), gm(input))
+         self.assertEqual(interpreter.run(input), m(input))
+ 
+@@ -2038,7 +2041,7 @@ class TestFX(JitTestCase):
+             def forward(self, x):
+                 return self.linear(x + self.param).clamp(min=0.0, max=1.0)
+ 
+-        m = MyModule()
++        m = MyModule().npu()
+         gm = torch.fx.symbolic_trace(m)
+ 
+         class RunNodeInterpreter(Interpreter):
+@@ -2050,7 +2053,7 @@ class TestFX(JitTestCase):
+                 n.cached_value = result
+                 return result
+ 
+-        input = torch.randn(3, 4)
++        input = torch.randn(3, 4, device="npu")
+         RunNodeInterpreter(gm).run(input)
+         for node in gm.graph.nodes:
+             assert hasattr(node, "cached_value")
+@@ -2073,7 +2076,7 @@ class TestFX(JitTestCase):
+                     return call_self.sigmoid(*args_tail, **kwargs)
+                 return super().call_method(n)  # noqa: F821
+ 
+-        input = torch.randn(3, 4)
++        input = torch.randn(3, 4, device="npu")
+         result = NegSigmSwapInterpreter(gm).run(input)
+         self.assertEqual(result, torch.neg(input).sigmoid())
+ 
+@@ -2087,18 +2090,18 @@ class TestFX(JitTestCase):
+             def forward(self, x):
+                 return self.linear(x + self.param).clamp(min=0.0, max=1.0)
+ 
+-        gm = torch.fx.symbolic_trace(MyModule())
++        gm = torch.fx.symbolic_trace(MyModule().npu())
+         interp = Interpreter(gm)
+         env = {}
+         for node in gm.graph.nodes:
+             if node.op == "call_module" and node.target == "linear":
+-                env[node] = torch.arange(0, 12, 1).reshape(3, 4) - 6.0
++                env[node] = torch.arange(0, 12, 1, device="npu").reshape(3, 4) - 6.0
+                 break
+         assert len(env) == 1
+-        x = torch.randn(3, 4)
++        x = torch.randn(3, 4, device="npu")
+         result = interp.run(x, initial_env=env)
+         self.assertEqual(
+-            result, (torch.arange(0, 12, 1).reshape(3, 4) - 6.0).clamp(0.0, 1.0)
++            result, (torch.arange(0, 12, 1, device="npu").reshape(3, 4) - 6.0).clamp(0.0, 1.0)
+         )
+ 
+     def test_interpreter_star_args(self):
+@@ -2107,8 +2110,8 @@ class TestFX(JitTestCase):
+ 
+         gm = torch.fx.symbolic_trace(with_star_args)
+         interp = Interpreter(gm)
+-        result = interp.run(torch.ones(3, 4), torch.ones(3, 4), torch.rand(3, 4))
+-        self.assertEqual(result, torch.ones(3, 4) * 2.0)
++        result = interp.run(torch.ones(3, 4, device="npu"), torch.ones(3, 4, device="npu"), torch.rand(3, 4, device="npu"))
++        self.assertEqual(result, torch.ones(3, 4, device="npu") * 2.0)
+ 
+     @skipIfNoTorchVision
+     def test_interpreter_noop_resnet18(self):
+@@ -2135,7 +2138,7 @@ class TestFX(JitTestCase):
+         gm = torch.fx.symbolic_trace(model)
+ 
+         interp = Interpreter(gm)
+-        x = torch.randn(5, 3)
++        x = torch.randn(5, 3, device="npu")
+         out = interp.run(x)
+         torch.testing.assert_close(out, x + 3.14159)
+ 
+@@ -2148,7 +2151,7 @@ class TestFX(JitTestCase):
+         gm = torch.fx.symbolic_trace(model)
+ 
+         interp = Interpreter(gm)
+-        x = torch.randn(5, 3)
++        x = torch.randn(5, 3, device="npu")
+         with self.assertRaisesRegex(
+             RuntimeError,
+             "Expected positional argument for parameter y, but one was not passed in",
+@@ -2165,12 +2168,12 @@ class TestFX(JitTestCase):
+             def forward(self, x):
+                 return self.linear(x + self.param).clamp(min=0.0, max=1.0)
+ 
+-        m = MyModule()
++        m = MyModule().npu()
+         gm = torch.fx.symbolic_trace(m)
+ 
+         new_gm = Transformer(gm).transform()
+ 
+-        input = torch.randn(3, 4)
++        input = torch.randn(3, 4, device="npu")
+         self.assertEqual(new_gm(input), gm(input))
+ 
+     def test_transformer_op_swap(self):
+@@ -2192,7 +2195,7 @@ class TestFX(JitTestCase):
+                 return super().call_method(n)  # noqa: F821
+ 
+         transformed = NegSigmSwapXformer(gm).transform()
+-        input = torch.randn(3, 4)
++        input = torch.randn(3, 4, device="npu")
+         self.assertEqual(transformed(input), torch.neg(input).sigmoid())
+ 
+     def test_transformer_multi_outputs(self):
+@@ -2207,12 +2210,12 @@ class TestFX(JitTestCase):
+                 out = self.linear(x)
+                 return x, out
+ 
+-        m = MyModule()
++        m = MyModule().npu()
+         gm = torch.fx.symbolic_trace(m)
+ 
+         new_gm = Transformer(gm).transform()
+ 
+-        input = torch.randn(3, 4)
++        input = torch.randn(3, 4, device="npu")
+         self.assertEqual(new_gm(input), gm(input))
+ 
+     def test_fn_type_annotations(self):
+@@ -2223,7 +2226,7 @@ class TestFX(JitTestCase):
+                 return {"a": p.x + p.y + z + i}
+ 
+         foo_scripted = torch.jit.script(Foo())
+-        foo_scripted(Pair(torch.rand(5), torch.rand(5)), torch.rand(5), 3)
++        foo_scripted(Pair(torch.rand(5, device="npu"), torch.rand(5, device="npu")), torch.rand(5, device="npu"), 3)
+ 
+         fixed = symbolic_trace(Foo())
+         fxed_scripted = torch.jit.script(fixed)
