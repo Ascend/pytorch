@@ -256,4 +256,3 @@ def register_fa_pass(input_device: Optional[torch.device] = None):
         register_replacement(
             **register_replacement_kwargs,
         )
-

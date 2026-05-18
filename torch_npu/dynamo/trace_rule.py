@@ -40,11 +40,11 @@ torch_non_c_binding_in_graph_functions_npu = dict.fromkeys(
         "torch.npu.random.seed",
         "torch.npu.set_sync_debug_mode",
         "torch.npu._set_rng_state_offset",
-        "torch.npu._get_generator",
-        "torch.npu._memory_viz._frames_fmt",
-        "torch.npu._memory_viz._frame_fmt",
-        "torch.npu.amp.autocast_mode.custom_bwd",
-        "torch.npu.amp.autocast_mode.custom_fwd",
+        "torch.npu._get_generator", 
+        "torch.npu._memory_viz._frames_fmt", 
+        "torch.npu._memory_viz._frame_fmt", 
+        "torch.npu.amp.autocast_mode.custom_bwd", 
+        "torch.npu.amp.autocast_mode.custom_fwd", 
         "torch.npu.is_initialized",
         "torch.npu._get_current_allocator",
         "torch.npu.is_bf16_supported",
@@ -79,7 +79,6 @@ torch_c_binding_in_graph_functions_npu = dict.fromkeys(
     TorchInGraphFunctionVariable,
 )
 
-
 skip_functions_npu = dict.fromkeys(
     [
         "torch.npu.set_device",
@@ -98,4 +97,3 @@ def _patch_npu_trace_rules():
     torch_module.constant_fold_functions_need_guards[torch.npu.current_device] = True
     torch_module.constant_fold_functions[torch.npu.is_available] = True
     common_constant_types.add(torch_npu._C._NPUDeviceProperties)
-
