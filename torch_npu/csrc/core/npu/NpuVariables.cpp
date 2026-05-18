@@ -114,4 +114,3 @@ bool IsAclnnOnly()
     return GetSocVersion() >= SocVersion::Ascend950;
 }
 }  // namespace c10_npu
-

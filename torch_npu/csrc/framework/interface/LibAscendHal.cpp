@@ -67,4 +67,3 @@ bool isSyscntEnable()
 
 } // namespace native
 } // namespace at_npu
-

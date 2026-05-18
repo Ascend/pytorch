@@ -45,4 +45,3 @@ at::Tensor NPUNativeOpApiFunctions::clone(const at::Tensor &src, c10::optional<c
 
 }  // namespace native
 }  // namespace at_npu
-

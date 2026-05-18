@@ -133,6 +133,7 @@ class HcclAlltoAllSingleTest(TestCase):
             HcclAlltoAllSingleTest._test_alltoall_single_2p,
             HcclAlltoAllSingleTest._init_dist_hccl)
 
+    @unittest.skip("Disabled during A1 to A2 chip transition")
     @skipIfUnsupportMultiNPU(2)
     def test_alltoall_single_2p_size_dist(self):
         self._test_multiprocess_2p(
