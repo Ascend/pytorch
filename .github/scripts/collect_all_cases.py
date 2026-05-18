@@ -408,8 +408,6 @@ def main():
     error_log_dir = Path(args.error_log_dir).resolve() if args.error_log_dir else output_dir / "collection_errors"
     error_log_dir.mkdir(parents=True, exist_ok=True)
 
-    summaries = []
-
     # ========================================
     # Step 1: Collect distributed test cases
     # ========================================
@@ -428,7 +426,6 @@ def main():
     print(f"Total distributed cases: {len(dist_cases)}")
 
     dist_summary = save_shards(dist_cases, args.distributed_shards, "distributed", output_dir)
-    summaries.append(dist_summary)
     save_cases_by_file(dist_cases, dist_files, "distributed", output_dir)
 
     # ========================================
@@ -449,19 +446,16 @@ def main():
     print(f"Total regular cases: {len(reg_cases)}")
 
     reg_summary = save_shards(reg_cases, args.regular_shards, "regular", output_dir)
-    summaries.append(reg_summary)
     save_cases_by_file(reg_cases, reg_files, "regular", output_dir)
 
     # ========================================
     # Step 3: Save overall summary
     # ========================================
     # Calculate file counts (distributed + regular = total_files, no overlap)
-    dist_total = dist_meta.get("total_files", 0)
     dist_selected = dist_meta.get("type_selected", 0)
-    reg_total = reg_meta.get("total_files", 0)
     reg_selected = reg_meta.get("type_selected", 0)
-    # total_files is same for both (all test_*.py files), use one value
-    total_files = dist_total
+    # total_files is same for both (all test_*.py files), use dist_meta
+    total_files = dist_meta.get("total_files", 0)
 
     overall_summary = {
         "distributed": {
