@@ -72,6 +72,7 @@
 |torch.fx.Tracer.to_bool|是|支持fp32|
 |torch.fx.Tracer.trace|是|-|
 |torch.fx.Proxy|是|-|
+|torch.fx.proxy.ParameterProxy|是|-|
 |torch.fx.Interpreter|是|-|
 |torch.fx.Interpreter.call_function|是|支持fp32|
 |torch.fx.Interpreter.call_method|是|支持fp32|
