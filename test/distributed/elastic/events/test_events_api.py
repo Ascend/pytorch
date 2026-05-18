@@ -12,6 +12,7 @@ Add validation cases for torch.distributed.elastic.events.record API:
 
 import json
 import time
+import types
 from typing import Union, Optional, get_args, get_origin
 from unittest.mock import patch, MagicMock
 
@@ -184,7 +185,8 @@ class TestEventMetadataValue(TestCase):
     def test_event_metadata_value_is_defined(self):
         """Verify that EventMetadataValue is exported and defined."""
         self.assertIsNotNone(EventMetadataValue)
-        self.assertIs(get_origin(EventMetadataValue), Union)
+        origin = get_origin(EventMetadataValue)
+        self.assertIn(origin, (Union, types.UnionType))
 
     def test_event_metadata_value_type_structure(self):
         """
@@ -194,7 +196,7 @@ class TestEventMetadataValue(TestCase):
         origin = get_origin(EventMetadataValue)
         args = get_args(EventMetadataValue)
 
-        self.assertIs(origin, Union)
+        self.assertIn(origin, (Union, types.UnionType))
         self.assertIn(str, args)
         self.assertIn(int, args)
         self.assertIn(float, args)

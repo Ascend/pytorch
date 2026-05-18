@@ -58,4 +58,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
     failed_ut = get_error_or_fail_ut(args.file)
     write_to_json(ut_list=failed_ut)
-
