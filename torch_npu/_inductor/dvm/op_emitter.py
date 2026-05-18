@@ -2,6 +2,8 @@ import torch
 import torch.fx
 import torch.utils._pytree as pytree
 
+from . import is_ascend950
+
 
 aten = torch.ops.aten
 prims = torch.ops.prims
@@ -43,7 +45,7 @@ def to_dvm_dtype(dtype):
     return dtype
 
 
-def _check_dtype(inputs, supported_dtypes):
+def _check_dtype(inputs, supported_dtypes, allow_cpu=False):
     for inp in inputs:
         if not isinstance(inp, torch.fx.Node):
             continue
@@ -55,7 +57,7 @@ def _check_dtype(inputs, supported_dtypes):
                 continue
             if meta.dtype not in supported_dtypes:
                 return False
-            if meta.is_cpu:
+            if meta.is_cpu and not allow_cpu:
                 return False
     return True
 
@@ -67,7 +69,7 @@ def common_rule(node: torch.fx.Node):
 
 
 def full_rule(node: torch.fx.Node):
-    return _check_dtype([node], supported_dtypes=DVM_SUPPORT_TYPE)
+    return _check_dtype([node], supported_dtypes=DVM_SUPPORT_TYPE, allow_cpu=True)
 
 
 def cast_rule(node: torch.fx.Node):
@@ -114,11 +116,14 @@ def mm_rule(node: torch.fx.Node):
 
     def check(input_node):
         t = input_node.meta["val"]
+        if t.dim() > 4 or t.dim() < 2:
+            return False
         inner_axis = inner_axis_length(t)
-        if isinstance(inner_axis, torch.SymInt):
-            return False
-        if t.dim() > 4 or t.dim() < 2 or inner_axis > MAX_INNER:
-            return False
+        if not is_ascend950:
+            if isinstance(inner_axis, torch.SymInt):
+                return False
+            if inner_axis > MAX_INNER:
+                return False
         return True
 
     def check_output(output_node):

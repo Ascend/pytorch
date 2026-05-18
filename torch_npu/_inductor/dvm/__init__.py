@@ -11,6 +11,7 @@ from torch_npu._C.dvm import (
     NDObject,
     TorchKernel as Kernel,
 )
+from torch_npu.npu._backends import get_soc_version
 
 from .fx_test import _accuracy_check_run
 
@@ -23,6 +24,12 @@ bfloat16 = DataType.bfloat16
 float32 = DataType.float32
 int32 = DataType.int32
 int64 = DataType.int64
+
+Ascend910B1 = 220
+Ascend310B1 = 240
+Ascend910_9391 = 250
+Ascend950 = 260
+is_ascend950 = get_soc_version() >= Ascend950
 
 KERNEL_FACTORY = {
     ("mix", True): partial(DynKernel, Kernel.K_MIX, Kernel.F_DYN),
@@ -39,9 +46,8 @@ KERNEL_FACTORY = {
 def kernel(
     ktype: str = "split",
     dyn_shape: bool = False,
-    mfusion: bool = False,
 ):
-    r"""kernel(ktype="split", dyn_shape=False, mfusion=False)
+    r"""kernel(ktype="split", dyn_shape=False)
 
     Return a decorator that builds and executes a DVM kernel.
 
@@ -188,4 +194,5 @@ def _install_bf16_promote():
             setattr(Kernel, name, _promote_bf16(op_fn))
 
 
-_install_bf16_promote()
+if not is_ascend950:
+    _install_bf16_promote()

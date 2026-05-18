@@ -105,10 +105,10 @@ with MFusionPatch():
 
 启用 MFusion 后，`torch.compile` 会生成融合后的 kernel 代码。如需查看融合算子的详细信息，可通过设置环境变量 export TORCH_COMPILE_DEBUG=1 开启调试模式，相关信息会输出到torch_compile_debug目录下的output_code.py 文件中。
 
-融合 kernel 通过 `@dvm.kernel(..., mfusion=True)` 装饰器标识：
+kernel 会生成 `mfusion_dvm_*` 命名的 DVM kernel：
 
 ```Python
-@dvm.kernel(ktype='vector', dyn_shape=False, mfusion=True)
+@dvm.kernel(ktype='vector', dyn_shape=False)
 def mfusion_dvm_0(k):
     arg0 = k.load([32], dvm.float32)
     arg1 = k.load([32], dvm.float32)

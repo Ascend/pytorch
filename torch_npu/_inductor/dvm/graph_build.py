@@ -33,7 +33,6 @@ class DvmCodegenInterpreter(torch.fx.Interpreter):
     ):
         super().__init__(gm)
         self.gm = gm
-        self.is_mfusion = bool(getattr(gm, "_mfusion", False))
         self.ktype = ktype
         self.is_mix_kernel = annotate_mm_transpose_flags(gm)
         if is_dynamic is None:
@@ -53,8 +52,7 @@ class DvmCodegenInterpreter(torch.fx.Interpreter):
             self.ktype = "spec"
         self.code.splice(f'\n"""\n{self.gm.print_readable(print_output=False)}\n"""')
         decorator = (
-            f"{chr(64)}dvm.kernel(ktype={self.ktype!r}, dyn_shape={self.is_dynamic}, "
-            f"mfusion={self.is_mfusion!r})"
+            f"{chr(64)}dvm.kernel(ktype={self.ktype!r}, dyn_shape={self.is_dynamic})"
         )
         self.code.splice(decorator)
         self.code.splice(f"def {self.KERNEL_NAME_PLACEHOLDER}(k):")
