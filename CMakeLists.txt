@@ -388,4 +388,3 @@ if (DEFINED BUILD_LIBTORCH)
     ${PROJECT_SOURCE_DIR}/build/Torch_npuConfig.cmake
     @ONLY)
 endif()
-

@@ -8,4 +8,3 @@ bool isSyscntEnable();
 } // namespace native
 } // namespace torchat_npu_npu
 #endif
-
