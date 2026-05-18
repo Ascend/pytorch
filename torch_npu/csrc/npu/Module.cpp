@@ -22,6 +22,7 @@
 
 #include <op_plugin/utils/custom_functions/opapi/FFTCommonOpApi.h>
 #include <third_party/acl/inc/acl/acl.h>
+#include <third_party/dvm/dvm/include/dvm.h>
 #include <third_party/fmt/include/fmt/format.h>
 #include <torch_npu/csrc/aten/NPUGeneratorImpl.h>
 #include <torch_npu/csrc/aten/NPUNativeFunctions.h>
@@ -88,6 +89,15 @@ namespace {
 c10::DeviceIndex num_npus = -1;
 std::deque<c10::once_flag> device_flags;
 std::vector<NPUDeviceProp> device_properties;
+
+void SetDvmDeterministic(bool enable) {
+  auto& conf = dvm::Config::Instance();
+  if (enable) {
+    conf.SetDeterm();
+  } else {
+    conf.UnsetDeterm();
+  }
+}
 
 void initNPUContextVectors() {
   static bool init_flag [[maybe_unused]] = []() {
@@ -2423,6 +2433,7 @@ PyObject* THNPModule_set_deterministic_level(PyObject* self, PyObject* arg) {
   HANDLE_TH_ERRORS
   uint32_t level = THPUtils_unpackUInt32(arg);
   c10_npu::SetDeterministicLevel(level);
+  SetDvmDeterministic(level >= 1);
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
 }

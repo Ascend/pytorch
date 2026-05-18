@@ -44,7 +44,7 @@ from torch._decomp import (
     decomposition_table,
 )
 
-from . import npu_patch_deprecated, torch_mlir_patch
+from . import npu_patch_deprecated
 from .npu_meta import npu_patch_meta
 
 # Fix Error: Exit earlier than child process.

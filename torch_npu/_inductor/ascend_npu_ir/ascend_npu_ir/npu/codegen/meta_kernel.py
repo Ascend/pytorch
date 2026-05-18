@@ -116,10 +116,10 @@ def refresh_input_meta_with_buffer_layout(node):
         return val
 
     size, stride = tuple(layout.size), tuple(layout.stride)
-    if any(not isinstance(x, int) for x in (*size, *stride)):
+    if any(not isinstance(x, (int, sympy.Integer)) for x in (*size, *stride)):
         return val
 
-    if val.size() != size or val.stride() != stride:
+    if tuple(val.size()) != size or tuple(val.stride()) != stride:
         with V.graph.fake_mode:
             val = torch.empty_strided(
                 size,

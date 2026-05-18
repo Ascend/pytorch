@@ -3,6 +3,7 @@ FILE(GLOB _INDUCTOR_SRCS
          aoti_runner/*.cpp
          aoti_torch/*.cpp
          aoti_torch/generated/*.cpp
+         dvm/*.cpp
          mlir/*.cpp)
 
 LIST(APPEND INDUCTOR_SRCS ${_INDUCTOR_SRCS})

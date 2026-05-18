@@ -618,6 +618,14 @@ class TestPublicBindings(TestCase):
             "torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.inductor_patch.ir",
             "torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.inductor_patch.lowering",
             "torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.inductor_patch.scheduler",
+            "torch_npu._inductor.dvm",
+            "torch_npu._inductor.dvm.decomp",
+            "torch_npu._inductor.dvm.fx_pass",
+            "torch_npu._inductor.dvm.fx_test",
+            "torch_npu._inductor.dvm.graph_build",
+            "torch_npu._inductor.dvm.graph_fusion",
+            "torch_npu._inductor.dvm.mlir_fusion",
+            "torch_npu._inductor.dvm.op_emitter",
         }
 
         # No new entries should be added to this list.

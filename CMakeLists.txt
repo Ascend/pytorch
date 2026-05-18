@@ -321,6 +321,10 @@ endif()
 
 add_subdirectory(${TORCHNPU_THIRD_PARTY_ROOT}/fmt EXCLUDE_FROM_ALL)
 
+add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/dvm)
+add_dependencies(${PLUGIN_NAME} dvm_build)
+target_link_libraries(${PLUGIN_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/third_party/dvm/dvm/libdvm.a)
+
 link_directories(${PYTORCH_INSTALL_DIR}/lib)
 link_directories(${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs)
 
@@ -384,4 +388,3 @@ if (DEFINED BUILD_LIBTORCH)
     ${PROJECT_SOURCE_DIR}/build/Torch_npuConfig.cmake
     @ONLY)
 endif()
-

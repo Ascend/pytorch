@@ -28,9 +28,12 @@ if _get_backend() == "mlir":
     except ImportError as e:
         raise ImportError("torch_mlir is not installed, install it first.") from e
     from .ascend_npu_ir.ascend_npu_ir.npu import npu_inductor_plugin
+    from .ascend_npu_ir.ascend_npu_ir.npu import torch_mlir_patch
     device_id = torch_npu.npu.current_device()
     torch_npu._C._recovery_all_npu_stream(device_id)
-    
+elif _get_backend() == "dvm":
+    from .ascend_npu_ir.ascend_npu_ir.npu import npu_inductor_plugin
+    from .dvm import mlir_fusion
 else:
     import torch
     from torch._dynamo.device_interface import (

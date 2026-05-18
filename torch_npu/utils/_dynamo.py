@@ -185,9 +185,12 @@ def patch_inductor_wrapper():
             or torch._inductor.config.npu_backend == "mlir"
         ):
             os.environ["TORCHINDUCTOR_NPU_BACKEND"] = "mlir"
-
+        elif (
+            self.config.get("npu_backend") == "dvm"
+            or torch._inductor.config.npu_backend == "dvm"
+        ):
+            os.environ["TORCHINDUCTOR_NPU_BACKEND"] = "dvm"
         register_inductor_npu()
-
 
     _TorchCompileInductorWrapper.__init__ = new_init
     ConfigModule.get_config_copy = new_get_config_copy
