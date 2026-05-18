@@ -1,0 +1,439 @@
+diff --git a/test/nn/test_parametrization.py b/test/nn/test_parametrization.py
+index eb1f7c9..7d257ce 100644
+--- a/test/nn/test_parametrization.py
++++ b/test/nn/test_parametrization.py
+@@ -4,6 +4,7 @@ from copy import deepcopy
+ from itertools import product
+ 
+ import torch
++import torch_npu
+ import torch.nn as nn
+ import torch.nn.functional as F
+ import torch.nn.init as init
+@@ -76,7 +77,7 @@ class TestNNParametrization(NNTestCase):
+             def forward(self, x):
+                 return torch.cat([x[:-1], x.new_zeros(1)])
+ 
+-        model = nn.Linear(8, 8)
++        model = nn.Linear(8, 8).npu()
+         initial_weight_id = id(model.weight)
+         initial_bias_id = id(model.bias)
+         initial_model = deepcopy(model)
+@@ -89,7 +90,7 @@ class TestNNParametrization(NNTestCase):
+             parametrize.register_parametrization(
+                 model, "weight", Resize()
+             )  # default unsafe = False
+-            model(torch.ones(8, 8))
++            model(torch.ones(8, 8).npu())
+ 
+         # One parametrization with unsafe=True
+         parametrize.register_parametrization(model, "weight", Resize(), unsafe=True)
+@@ -300,7 +301,7 @@ class TestNNParametrization(NNTestCase):
+                 X = X.tril(-1)
+                 return X - X.T
+ 
+-        model = nn.Linear(8, 8)
++        model = nn.Linear(8, 8).npu()
+         # Add top level parametrization
+         parametrize.register_parametrization(model, "weight", Skew())
+         self.assertTrue(hasattr(model, "parametrizations"))
+@@ -356,18 +357,18 @@ class TestNNParametrization(NNTestCase):
+             def forward(self, x):
+                 return torch.cat([x[:-1], x.new_zeros(1)])
+ 
+-        model = nn.Linear(8, 8)
++        model = nn.Linear(8, 8).npu()
+ 
+         # Instantiate parametrizations on buffers. It should work as expected
+         delattr(model, "bias")
+-        model.bias = Buffer(torch.ones(8))
++        model.bias = Buffer(torch.ones(8).npu())
+         parametrize.register_parametrization(model, "bias", FirstZero())
+         parametrize.register_parametrization(model, "bias", LastZero())
+         self.assertTrue(parametrize.is_parametrized(model))
+         self.assertTrue(parametrize.is_parametrized(model, "bias"))
+         self.assertEqual(model.bias[0].item(), 0.0)
+         self.assertEqual(model.bias[-1].item(), 0.0)
+-        self.assertTrue((model.bias[1:-1] == torch.ones(6)).all())
++        self.assertTrue((model.bias[1:-1] == torch.ones(6).npu()).all())
+         self.assertEqual(len(list(model.parameters())), 1)
+ 
+         # Remove parametrizations on buffers. It should work as expected
+@@ -376,7 +377,7 @@ class TestNNParametrization(NNTestCase):
+         self.assertFalse(parametrize.is_parametrized(model, "bias"))
+         self.assertEqual(model.bias[0].item(), 0.0)
+         self.assertEqual(model.bias[-1].item(), 0.0)
+-        self.assertTrue((model.bias[1:-1] == torch.ones(6)).all())
++        self.assertTrue((model.bias[1:-1] == torch.ones(6).npu()).all())
+         self.assertEqual(len(list(model.parameters())), 1)
+ 
+     # FIXME: Rewrite this test using functions not depending on LAPACK
+@@ -393,8 +394,8 @@ class TestNNParametrization(NNTestCase):
+         class Orthogonal(nn.Module):
+             def __init__(self, n):
+                 super().__init__()
+-                self.id = Buffer(torch.eye(n))
+-                self.B = Buffer(torch.empty(n, n))
++                self.id = Buffer(torch.eye(n).npu())
++                self.B = Buffer(torch.empty(n, n).npu())
+                 init.orthogonal_(self.B)
+ 
+             def forward(self, X):
+@@ -404,10 +405,10 @@ class TestNNParametrization(NNTestCase):
+ 
+         def get_model():
+             model = torch.nn.Sequential(
+-                torch.nn.Linear(5, 5),
++                torch.nn.Linear(5, 5).npu(),
+                 torch.nn.ReLU(),
+-                torch.nn.Linear(5, 1),
+-            )
++                torch.nn.Linear(5, 1).npu(),
++            ).npu()
+ 
+             parametrize.register_parametrization(model[0], "weight", Orthogonal(5))
+             return model
+@@ -458,14 +459,14 @@ class TestNNParametrization(NNTestCase):
+         class Orthogonal(nn.Module):
+             def __init__(self, n):
+                 super().__init__()
+-                self.B = Buffer(torch.eye(n))
++                self.B = Buffer(torch.eye(n).npu())
+ 
+             def forward(self, X):
+-                Id = torch.eye(X.size(0))
++                Id = torch.eye(X.size(0)).npu()
+                 return self.B @ torch.linalg.solve(Id + X, Id - X)
+ 
+             def is_orthogonal(self, X):
+-                Id = torch.eye(X.size(0))
++                Id = torch.eye(X.size(0)).npu()
+                 return torch.allclose(X.T @ X, Id, atol=1e-4)
+ 
+             def right_inverse(self, X):
+@@ -473,17 +474,17 @@ class TestNNParametrization(NNTestCase):
+                     raise ValueError("The input is not orthogonal.")
+                 # cayley(0) == Id, so B @ cayley(0) == B
+                 self.B = X
+-                return torch.zeros_like(X)
++                return torch.zeros_like(X).npu()
+ 
+         N = 5
+-        model = nn.Linear(N, N)
++        model = nn.Linear(N, N).npu()
+         # Register the skew-symmetric constraint. The result is now skew-symmetric
+         skew = Skew()
+         # Make the weight skew-symmetric before registering the parametrization
+         with torch.no_grad():
+             model.weight.set_(skew(model.weight))
+         parametrize.register_parametrization(model, "weight", skew)
+-        X = torch.rand(N, N)
++        X = torch.rand(N, N).npu()
+         # X is not skew-symmetric, so it throws an error
+         with self.assertRaises(ValueError):
+             model.weight = X
+@@ -496,19 +497,19 @@ class TestNNParametrization(NNTestCase):
+         # Having several parametrizations registered should work in the same way
+         parametrize.register_parametrization(model, "weight", Orthogonal(N))
+         # Register now the Cayley map. The result is now orthogonal
+-        X = torch.rand(N, N)
++        X = torch.rand(N, N).npu()
+         # X is not orthogonal, so it throws an error
+         with self.assertRaises(ValueError):
+             model.weight = X
+         init.orthogonal_(X)
+         model.weight = X
+         self.assertEqual(model.weight, X)
+-        self.assertEqual(model.parametrizations.weight.original, torch.zeros_like(X))
++        self.assertEqual(model.parametrizations.weight.original, torch.zeros_like(X).npu())
+ 
+     @swap([True, False])
+     def test_errors_unparametrized_tensor_parametrization(self):
+         # Test errors when registering a parametrization on an unparametrized tensor
+-        module = nn.Linear(3, 4)
++        module = nn.Linear(3, 4).npu()
+         weight_init = module.weight.clone()
+ 
+         class Identity(nn.Module):
+@@ -531,7 +532,7 @@ class TestNNParametrization(NNTestCase):
+                 return x + y
+ 
+             def right_inverse(self, z):
+-                return z, torch.zeros_like(z)
++                return z, torch.zeros_like(z).npu()
+ 
+         parametrize.register_parametrization(module, "weight", Sum())
+         # Cannot remove a parametrization with several outputs with `leave_parametrized=False`
+@@ -547,7 +548,7 @@ class TestNNParametrization(NNTestCase):
+                 return x + y + z
+ 
+             def right_inverse(self, w):
+-                return w, torch.zeros_like(w)
++                return w, torch.zeros_like(w).npu()
+ 
+         # Makes param(*param.right_inverse(X)) fail
+         with self.assertRaisesRegex(TypeError, "positional argument"):
+@@ -663,7 +664,7 @@ class TestNNParametrization(NNTestCase):
+             def forward(self, x):
+                 return x
+ 
+-        module = nn.Linear(3, 4)
++        module = nn.Linear(3, 4).npu()
+         parametrize.register_parametrization(module, "weight", Identity())
+ 
+         # Has to return a tensor
+@@ -854,7 +855,7 @@ class TestNNParametrization(NNTestCase):
+                 Id = torch.eye(X.size(0), device=X.device)
+                 return torch.linalg.solve(Id + X, Id - X)
+ 
+-        model = nn.Linear(5, 5)
++        model = nn.Linear(5, 5).npu()
+         parametrize.register_parametrization(model, "weight", Skew())
+         parametrize.register_parametrization(model, "weight", Orthogonal())
+ 
+@@ -881,11 +882,11 @@ class TestNNParametrization(NNTestCase):
+                 Id = torch.eye(X.size(0), device=X.device)
+                 return torch.linalg.solve(Id + X, Id - X)
+ 
+-        model = nn.Linear(5, 5)
++        model = nn.Linear(5, 5).npu()
+         parametrize.register_parametrization(model, "weight", Skew())
+         parametrize.register_parametrization(model, "weight", Orthogonal())
+ 
+-        to_model = nn.Linear(5, 5)
++        to_model = nn.Linear(5, 5).npu()
+         parametrize.transfer_parametrizations_and_params(model, to_model)
+ 
+         with parametrize.cached():
+@@ -908,7 +909,7 @@ class TestNNParametrization(NNTestCase):
+             def forward(self, X):
+                 return X
+ 
+-        module = nn.Linear(4, 4)
++        module = nn.Linear(4, 4).npu()
+         module.eval()
+         parametrize.register_parametrization(module, "weight", Identity())
+         self.assertFalse(module.parametrizations.weight[0].training)
+@@ -925,7 +926,7 @@ class TestNNParametrization(NNTestCase):
+             def forward(self, X):
+                 return X
+ 
+-        model = nn.Linear(5, 5)
++        model = nn.Linear(5, 5).npu()
+         original_type = type(model)
+         self.assertTrue(
+             parametrize.type_before_parametrizations(model) == original_type
+@@ -950,10 +951,10 @@ class TestNNParametrization(NNTestCase):
+             def __init__(self) -> None:
+                 super().__init__()
+                 self.weight = nn.Parameter(
+-                    torch.tensor([1.0, 1.0, 1.0, 1.0]), requires_grad=True
++                    torch.tensor([1.0, 1.0, 1.0, 1.0]).npu(), requires_grad=True
+                 )
+                 self.bias = nn.Parameter(
+-                    torch.tensor([0.0, 0.0, 0.0, 0.0]), requires_grad=True
++                    torch.tensor([0.0, 0.0, 0.0, 0.0]).npu(), requires_grad=True
+                 )
+                 self.attr = [1.0, 2.0, 3.0, 4.0]
+ 
+@@ -1018,7 +1019,7 @@ class TestNNParametrization(NNTestCase):
+             def forward(self, x):
+                 return x - 1.0
+ 
+-        model = nn.Linear(5, 5)
++        model = nn.Linear(5, 5).npu()
+         parametrize.register_parametrization(model, "weight", AddOne())
+         parametrize.register_parametrization(model, "weight", Double())
+         parametrize.register_parametrization(model, "weight", MinusOne())
+@@ -1026,7 +1027,7 @@ class TestNNParametrization(NNTestCase):
+ 
+         to_model = torch.ao.nn.qat.Linear(
+             5, 5, qconfig=torch.ao.quantization.get_default_qconfig()
+-        )
++        ).npu()
+         parametrize.transfer_parametrizations_and_params(model, to_model)
+ 
+         # checks that final and original value are correct and the to_model is parametrized
+@@ -1050,7 +1051,7 @@ class TestNNParametrization(NNTestCase):
+         self.assertTrue(torch.nn.utils.parametrize.is_parametrized(model, "weight"))
+ 
+         # also test that parameters that don't exist in to_model get transferred
+-        model.test_param = Parameter(torch.randn(5, 5))
++        model.test_param = Parameter(torch.randn(5, 5).npu())
+ 
+         self.assertTrue(not hasattr(to_model, "test_param"))
+         parametrize.register_parametrization(model, "test_param", Double())
+@@ -1078,13 +1079,13 @@ class TestNNParametrization(NNTestCase):
+             def right_inverse(self, x):
+                 return 0.5 * x
+ 
+-        model = nn.Linear(5, 5)
++        model = nn.Linear(5, 5).npu()
+         parametrize.register_parametrization(model, "weight", Double())
+         hold_weight = model.weight
+ 
+         to_model = torch.ao.nn.qat.Linear(
+             5, 5, qconfig=torch.ao.quantization.get_default_qconfig()
+-        )
++        ).npu()
+         parametrize.transfer_parametrizations_and_params(model, to_model)
+ 
+         # check that transfer occurs successfully
+@@ -1113,7 +1114,7 @@ class TestNNParametrization(NNTestCase):
+             def forward(self, x):
+                 return x - 1.0
+ 
+-        model = nn.Linear(5, 5, bias=True)
++        model = nn.Linear(5, 5, bias=True).npu()
+         parametrize.register_parametrization(model, "weight", AddOne())
+         parametrize.register_parametrization(model, "weight", Double())
+         parametrize.register_parametrization(model, "weight", MinusOne())
+@@ -1123,7 +1124,7 @@ class TestNNParametrization(NNTestCase):
+ 
+         to_model = torch.ao.nn.qat.Linear(
+             5, 5, bias=True, qconfig=torch.ao.quantization.get_default_qconfig()
+-        )
++        ).npu()
+         parametrize.transfer_parametrizations_and_params(model, to_model, "weight")
+ 
+         # check that weight and only weight was transferred
+@@ -1156,14 +1157,14 @@ class TestNNParametrization(NNTestCase):
+             def forward(self, x):
+                 return 2.0 * x
+ 
+-        model = nn.Linear(3, 3)
++        model = nn.Linear(3, 3).npu()
+         parametrize.register_parametrization(model, "weight", RankOne())
+         parametrize.register_parametrization(model, "weight", Double())
+         hold_weight = model.weight
+ 
+         to_model = torch.ao.nn.qat.Linear(
+             3, 3, qconfig=torch.ao.quantization.get_default_qconfig()
+-        )
++        ).npu()
+ 
+         parametrize.transfer_parametrizations_and_params(model, to_model)
+ 
+@@ -1183,7 +1184,7 @@ class TestNNParametrization(NNTestCase):
+         self.assertEqual(hold_weight, model.weight)
+ 
+         # testing that changes to one set of parametrizations do not affect the other
+-        model.test_param = Parameter(torch.randn(3, 3))
++        model.test_param = Parameter(torch.randn(3, 3).npu())
+ 
+         self.assertTrue(not hasattr(to_model, "test_param"))
+         parametrize.register_parametrization(model, "test_param", RankOne())
+@@ -1430,7 +1431,7 @@ class TestNNParametrization(NNTestCase):
+             def forward(self, x0, x1):
+                 return torch.cat([x0, x1])
+ 
+-        model = nn.Linear(8, 8)
++        model = nn.Linear(8, 8).npu()
+ 
+         model.weight.requires_grad = False
+         parametrize.register_parametrization(model, "weight", SplitAndCat())
+@@ -1442,8 +1443,8 @@ class TestNNParametrization(NNTestCase):
+     @swap([True, False])
+     def test_new_spectral_norm_load_state_dict(self):
+         for activate_times in (0, 3):
+-            inp = torch.randn(2, 3)
+-            m = nn.Linear(3, 5)
++            inp = torch.randn(2, 3).npu()
++            m = nn.Linear(3, 5).npu()
+             snm = torch.nn.utils.parametrizations.spectral_norm(m)
+             snm.train()
+ 
+@@ -1521,8 +1522,8 @@ class TestNNParametrization(NNTestCase):
+ 
+     @swap([True, False])
+     def test_new_spectral_norm_dim(self):
+-        inp = torch.randn(2, 3, 10, 12)
+-        m = nn.ConvTranspose2d(3, 4, (5, 6))
++        inp = torch.randn(2, 3, 10, 12).npu()
++        m = nn.ConvTranspose2d(3, 4, (5, 6)).npu()
+         m = torch.nn.utils.parametrizations.spectral_norm(m)
+         snm = m.parametrizations.weight[0]
+         # this should not run into incompatible shapes
+@@ -1534,8 +1535,8 @@ class TestNNParametrization(NNTestCase):
+ 
+     @swap([True, False])
+     def test_new_spectral_norm_forward(self):
+-        input = torch.randn(3, 5)
+-        m = nn.Linear(5, 7)
++        input = torch.randn(3, 5).npu()
++        m = nn.Linear(5, 7).npu()
+         m = torch.nn.utils.parametrizations.spectral_norm(m)
+         snm = m.parametrizations.weight[0]
+         # naive forward
+@@ -1705,7 +1706,7 @@ class TestNNParametrization(NNTestCase):
+     @skipIfNoLapack
+     @swap([True, False])
+     def test_orthogonal_errors(self):
+-        m = nn.Linear(3, 4)
++        m = nn.Linear(3, 4).npu()
+         with self.assertRaisesRegex(ValueError, "has to be one of"):
+             torch.nn.utils.parametrizations.orthogonal(m, "weight", "foo")
+ 
+@@ -1714,35 +1715,35 @@ class TestNNParametrization(NNTestCase):
+ 
+         torch.nn.utils.parametrizations.orthogonal(m, "weight")
+         with self.assertRaisesRegex(ValueError, "matrices of shape"):
+-            m.weight = torch.randn(5, 5)
++            m.weight = torch.randn(5, 5).npu()
+         torch.nn.utils.parametrize.remove_parametrizations(m, "weight")
+ 
+     @swap([True, False])
+     def test_weight_norm_state_dict_compat(self):
+-        m = nn.Linear(4, 5)
++        m = nn.Linear(4, 5).npu()
+         m = torch.nn.utils.weight_norm(m)
+         old_dict = m.state_dict()
+ 
+-        m2 = nn.Linear(4, 5)
++        m2 = nn.Linear(4, 5).npu()
+         m2 = torch.nn.utils.parametrizations.weight_norm(m2)
+         m2.load_state_dict(old_dict)
+ 
+-        input = torch.randn(3, 4)
++        input = torch.randn(3, 4).npu()
+         self.assertEqual(m(input), m2(input))
+ 
+     @swap([True, False])
+     def test_weight_norm_pickle(self):
+-        m = nn.Linear(4, 5)
++        m = nn.Linear(4, 5).npu()
+         m = torch.nn.utils.parametrizations.weight_norm(m)
+         with self.assertRaisesRegex(RuntimeError, "state_dict"):
+             pickle.dumps(m)
+ 
+     @swap([True, False])
+     def test_weight_norm_deepcopy(self):
+-        m = nn.Linear(4, 5)
++        m = nn.Linear(4, 5).npu()
+         m = torch.nn.utils.parametrizations.weight_norm(m)
+         m2 = deepcopy(m)
+-        input = torch.randn(3, 4)
++        input = torch.randn(3, 4).npu()
+         self.assertEqual(m(input), m2(input))
+ 
+     @swap([True])
+@@ -1769,8 +1770,8 @@ class TestNNParametrization(NNTestCase):
+             leave_parametrized=False,
+             type_after_right_inverse=None,
+         ):
+-            model = nn.Linear(2, 2)
+-            buf = torch.randn(2, 2)
++            model = nn.Linear(2, 2).npu()
++            buf = torch.randn(2, 2).npu()
+             model.buf = torch.nn.Buffer(buf)
+             if (
+                 type_before_registration == TwoTensor
+@@ -1903,7 +1904,7 @@ class TestNNParametrizationDevice(NNTestCase):
+             self.assertEqual(m(input), expected_output)
+ 
+ 
+-only_for = ("cpu", "cuda")
++only_for = ("cpu", "npu")
+ instantiate_device_type_tests(TestNNParametrizationDevice, globals(), only_for=only_for)
+ instantiate_parametrized_tests(TestNNParametrization)
+ 
