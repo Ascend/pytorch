@@ -1014,13 +1014,10 @@ def _fallback_ops_with_meta():
         if not (has_meta or has_comp):
             continue
 
-        try:
-            namespace, name_with_overload = op_name.split(".", 1)
-        except ValueError:
-            continue
+        namespace, name_with_overload = op_name.split("::", 1)
 
         if "." in name_with_overload:
-            name, overload = name_with_overload.split(".", 1)
+            name, overload = name_with_overload.rsplit(".", 1)
         else:
             name, overload = name_with_overload, "default"
 
