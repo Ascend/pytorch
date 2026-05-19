@@ -253,7 +253,6 @@ def _patch_model_10():
         from torch._inductor import decomposition as inductor_decomp
 
         import torch_npu._inductor  # noqa: F401
-        from torch_npu.contrib import transfer_to_npu  # noqa: F401
     except ImportError:
         log.warning("NPU_FlAG is False!")
         return
@@ -273,6 +272,14 @@ def _patch_model_10():
         self, device="cpu", jit=False, batch_size=256, process_command_line=False
     ):
         self.TrainInit("cuda", jit, batch_size, process_command_line)
+        if hasattr(self, "args"):
+            self.args.use_cuda = True
+
+        if hasattr(self, "rencoder"):
+            self.rencoder = self.rencoder.npu()
+
+        if hasattr(self, "toyinputs"):
+            self.toyinputs = self.toyinputs.to("npu")
 
     DeepRecommenderTrainBenchmark.__init__ = new_init
 

@@ -1299,7 +1299,7 @@ def parse_args(args=None):
     )
     parser.add_argument(
         "--npu-backend",
-        choices=["mlir", "dvm", "triton", "default"],
+        choices=["mlir", "dvm", "akg", "triton", "default"],
         default="default",
         help="Specify NPU backend (only effective when --backend is inductor)",
     )
@@ -1798,6 +1798,9 @@ def configure_compile_options(args):
                 npu_backend = get_npu_backend(args)
             if npu_backend in ["mlir", "dvm"]:
                 os.environ["TORCHINDUCTOR_NPU_BACKEND"] = npu_backend
+            if npu_backend == "akg":
+                os.environ["TORCHINDUCTOR_NPU_BACKEND"] = "mlir"
+                os.environ["TORCHINDUCTOR_USE_AKG"] = "1"
         if backend == "inductor" and args.mfusion:
             os.environ["TORCHINDUCTOR_ENABLE_MFUSION"] = "1"
         optimize_ctx = functools.partial(torch.compile, **compile_kwargs)
