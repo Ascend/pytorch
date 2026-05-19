@@ -43,7 +43,8 @@ jobs:
     env:
       DOCKER_IMAGE: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/manylinux2_28_aarch64-builder:npu-20241225
       PYTHON_VERSION: ${{ inputs.python_version }}
-      UV_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
+      UV_INDEX_URL: http://cache-service.nginx-pypi-cache.svc.cluster.local/pypi/simple
+      UV_EXTRA_INDEX_URL: https://mirrors.huaweicloud.com/ascend/repos/pypi
 
     steps:
       - name: Checkout repository
