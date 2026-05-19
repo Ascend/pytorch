@@ -136,53 +136,6 @@ Tensor my__pdist_forward(Tensor self, double p)
     return Tensor(ret0);
 }
 
-std::tuple<Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor> my__scaled_dot_product_fused_attention_overrideable(Tensor query, Tensor key, Tensor value, std::optional<Tensor> attn_bias, double dropout_p, bool is_causal, bool return_debug_mask, std::optional<double> scale)
-{
-    AtenTensorHandle ret0;
-    AtenTensorHandle ret1;
-    AtenTensorHandle ret2;
-    AtenTensorHandle ret3;
-    int64_t ret4;
-    int64_t ret5;
-    AtenTensorHandle ret6;
-    AtenTensorHandle ret7;
-    AtenTensorHandle ret8;
-    if (attn_bias.has_value() && scale.has_value()) {
-        AtenTensorHandle attn_bias_handle = attn_bias.value().get();
-        double scale_val = scale.value();
-        aoti_torch_npu__scaled_dot_product_fused_attention_overrideable(query.get(), key.get(), value.get(), &attn_bias_handle, dropout_p, static_cast<int32_t>(is_causal), static_cast<int32_t>(return_debug_mask), &scale_val, &ret0, &ret1, &ret2, &ret3, &ret4, &ret5, &ret6, &ret7, &ret8);
-    } else if (attn_bias.has_value()) {
-        AtenTensorHandle attn_bias_handle = attn_bias.value().get();
-        aoti_torch_npu__scaled_dot_product_fused_attention_overrideable(query.get(), key.get(), value.get(), &attn_bias_handle, dropout_p, static_cast<int32_t>(is_causal), static_cast<int32_t>(return_debug_mask), nullptr, &ret0, &ret1, &ret2, &ret3, &ret4, &ret5, &ret6, &ret7, &ret8);
-    } else if (scale.has_value()) {
-        double scale_val = scale.value();
-        aoti_torch_npu__scaled_dot_product_fused_attention_overrideable(query.get(), key.get(), value.get(), nullptr, dropout_p, static_cast<int32_t>(is_causal), static_cast<int32_t>(return_debug_mask), &scale_val, &ret0, &ret1, &ret2, &ret3, &ret4, &ret5, &ret6, &ret7, &ret8);
-    } else {
-        aoti_torch_npu__scaled_dot_product_fused_attention_overrideable(query.get(), key.get(), value.get(), nullptr, dropout_p, static_cast<int32_t>(is_causal), static_cast<int32_t>(return_debug_mask), nullptr, &ret0, &ret1, &ret2, &ret3, &ret4, &ret5, &ret6, &ret7, &ret8);
-    }
-    AtenTensorHandle ret4_tensor;
-    AtenTensorHandle ret5_tensor;
-    aoti_torch_scalar_to_tensor_int64(ret4, &ret4_tensor);
-    aoti_torch_scalar_to_tensor_int64(ret5, &ret5_tensor);
-    return std::make_tuple(Tensor(ret0), Tensor(ret1), Tensor(ret2), Tensor(ret3), Tensor(ret4_tensor), Tensor(ret5_tensor), Tensor(ret6), Tensor(ret7), Tensor(ret8));
-}
-
-std::tuple<Tensor, Tensor, Tensor, Tensor> my__scaled_dot_product_fused_attention_overrideable_backward(Tensor grad_out, Tensor query, Tensor key, Tensor value, Tensor attn_bias, std::vector<int32_t> grad_input_mask, Tensor out, Tensor logsumexp, Tensor cum_seq_q, Tensor cum_seq_k, int64_t max_q, int64_t max_k, double dropout_p, bool is_causal, Tensor philox_seed, Tensor philox_offset, std::optional<double> scale)
-{
-    AtenTensorHandle ret0;
-    AtenTensorHandle ret1;
-    AtenTensorHandle ret2;
-    AtenTensorHandle ret3;
-    std::vector<int32_t> grad_input_mask_vec(grad_input_mask.begin(), grad_input_mask.end());
-    if (scale.has_value()) {
-        double scale_val = scale.value();
-        aoti_torch_npu__scaled_dot_product_fused_attention_overrideable_backward(grad_out.get(), query.get(), key.get(), value.get(), attn_bias.get(), grad_input_mask_vec.data(), grad_input_mask.size(), out.get(), logsumexp.get(), cum_seq_q.get(), cum_seq_k.get(), max_q, max_k, dropout_p, static_cast<int32_t>(is_causal), philox_seed.get(), philox_offset.get(), &scale_val, &ret0, &ret1, &ret2, &ret3);
-    } else {
-        aoti_torch_npu__scaled_dot_product_fused_attention_overrideable_backward(grad_out.get(), query.get(), key.get(), value.get(), attn_bias.get(), grad_input_mask_vec.data(), grad_input_mask.size(), out.get(), logsumexp.get(), cum_seq_q.get(), cum_seq_k.get(), max_q, max_k, dropout_p, static_cast<int32_t>(is_causal), philox_seed.get(), philox_offset.get(), nullptr, &ret0, &ret1, &ret2, &ret3);
-    }
-    return std::make_tuple(Tensor(ret0), Tensor(ret1), Tensor(ret2), Tensor(ret3));
-}
-
 std::tuple<Tensor, Tensor, Tensor> my__thnn_fused_lstm_cell(Tensor input_gates, Tensor hidden_gates, Tensor cx, std::optional<Tensor> input_bias, std::optional<Tensor> hidden_bias)
 {
     AtenTensorHandle ret0;
@@ -999,8 +952,6 @@ STABLE_TORCH_LIBRARY_FRAGMENT(libtorch_agn_211, m) {
   m.def("my__fused_moving_avg_obs_fq_helper_functional(Tensor self, Tensor observer_on, Tensor fake_quant_on, Tensor running_min, Tensor running_max, Tensor scale, Tensor zero_point, float averaging_const, int quant_min, int quant_max, int ch_axis, bool per_row_fake_quant, bool symmetric_quant) -> (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor)");
   m.def("my__fused_rms_norm(Tensor input, int[] normalized_shape, Tensor? weight, float? eps) -> (Tensor, Tensor)");
   m.def("my__pdist_forward(Tensor self, float p) -> Tensor");
-  m.def("my__scaled_dot_product_fused_attention_overrideable(Tensor query, Tensor key, Tensor value, Tensor? attn_bias, float dropout_p, bool is_causal, bool return_debug_mask, float? scale) -> (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor)");
-  m.def("my__scaled_dot_product_fused_attention_overrideable_backward(Tensor grad_out, Tensor query, Tensor key, Tensor value, Tensor attn_bias, int[] grad_input_mask, Tensor out, Tensor logsumexp, Tensor cum_seq_q, Tensor cum_seq_k, int max_q, int max_k, float dropout_p, bool is_causal, Tensor philox_seed, Tensor philox_offset, float? scale) -> (Tensor, Tensor, Tensor, Tensor)");
   m.def("my__thnn_fused_lstm_cell(Tensor input_gates, Tensor hidden_gates, Tensor cx, Tensor? input_bias, Tensor? hidden_bias) -> (Tensor, Tensor, Tensor)");
   m.def("my__trilinear(Tensor i1, Tensor i2, Tensor i3, int[] expand1, int[] expand2, int[] expand3, int[] sumdim, int unroll_dim) -> Tensor");
   m.def("my_abs(Tensor self) -> Tensor");
@@ -1121,8 +1072,6 @@ STABLE_TORCH_LIBRARY_IMPL(libtorch_agn_211, CompositeExplicitAutograd, m) {
     m.impl("my__fused_moving_avg_obs_fq_helper_functional", TORCH_BOX(&my__fused_moving_avg_obs_fq_helper_functional));
     m.impl("my__fused_rms_norm", TORCH_BOX(&my__fused_rms_norm));
     m.impl("my__pdist_forward", TORCH_BOX(&my__pdist_forward));
-    m.impl("my__scaled_dot_product_fused_attention_overrideable", TORCH_BOX(&my__scaled_dot_product_fused_attention_overrideable));
-    m.impl("my__scaled_dot_product_fused_attention_overrideable_backward", TORCH_BOX(&my__scaled_dot_product_fused_attention_overrideable_backward));
     m.impl("my__thnn_fused_lstm_cell", TORCH_BOX(&my__thnn_fused_lstm_cell));
     m.impl("my__trilinear", TORCH_BOX(&my__trilinear));
     m.impl("my_abs", TORCH_BOX(&my_abs));
