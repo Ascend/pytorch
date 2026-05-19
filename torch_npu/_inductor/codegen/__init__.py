@@ -2,8 +2,10 @@
 # -*- coding: utf-8 -*-
 #  Copyright (c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
 import importlib.util
+import os
 triton_spec = importlib.util.find_spec("triton")
-if triton_spec is not None:
+mod = os.getenv("TORCHINDUCTOR_NPU_BACKEND", "default")
+if triton_spec is not None and mod == "default":
     from torch._inductor import sizevars
     from torch._inductor.codegen.simd import SIMDKernel
     from torch._inductor.codegen.triton import TritonKernel
