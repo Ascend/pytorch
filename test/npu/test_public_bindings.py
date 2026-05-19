@@ -563,6 +563,7 @@ class TestPublicBindings(TestCase):
             "torch_npu._inductor.lowering",
             "torch_npu._inductor.lowering_fx",
             "torch_npu._inductor.npu_choices",
+            "torch_npu._inductor.npu_compare",
             "torch_npu._inductor.npu_device",
             "torch_npu._inductor.npu_fusion_attention_graph",
             "torch_npu._inductor.npu_triton_helpers",

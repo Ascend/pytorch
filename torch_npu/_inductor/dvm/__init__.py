@@ -11,6 +11,7 @@ from torch_npu._C.dvm import (
     DynGraphSplitKernel,
     TorchKernel as Kernel,
 )
+from torch_npu._inductor.npu_compare import check_accuracy_dvm
 
 
 debug_mode = False
@@ -112,12 +113,16 @@ def kernel(
             return outputs
 
         def run(*args, **kwargs):
-            kobj.run(*args)
+            if fn._acc_meta is not None:
+                check_accuracy_dvm(kobj, fn._acc_meta, kernel_name, args)
+            else:
+                kobj.run(*args)
             if debug_mode:
                 _post_run(args)
 
         fn.run = run
         fn.kobj = kobj
+        fn._acc_meta = None
 
         return fn
 
