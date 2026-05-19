@@ -1028,17 +1028,17 @@ def _execute_worker_batch(
 
     remaining_cases = list(batch)
     completed_nodeids = set()
+    coredump_retries = 0  # consecutive coredumps on same remaining_cases
     batch_input = _build_batch_input_json(
         batch, batch_id, test_dir, report_dir,
         {},  # env_updates already merged by caller
         timeout, verbose, shard, shard_type, npu_device_id,
     )
 
-    for attempt in range(max_coredump_retries + 1):
-        if not remaining_cases:
-            break
-
-        # Update batch input with remaining cases
+    # Outer loop: unlimited restarts for idle timeouts.
+    # Each restart spawns a new worker for the remaining cases.
+    while remaining_cases:
+        # Update batch input with current remaining cases
         batch_input["cases"] = [
             {
                 "case_idx": t.case_idx,
@@ -1058,9 +1058,6 @@ def _execute_worker_batch(
                 "--test-dir", str(test_dir),
             ]
 
-            # Merge stderr into stdout to avoid pipe buffer deadlock.
-            # Worker outputs JSON lines on stdout; stderr (pytest warnings,
-            # C-extension logs, etc.) is merged and skipped by JSON parse.
             proc = subprocess.Popen(
                 worker_cmd,
                 cwd=str(test_dir),
@@ -1072,9 +1069,6 @@ def _execute_worker_batch(
                 errors="replace",
             )
 
-            # Read stdout in a daemon thread. The main thread polls proc
-            # with an idle timeout: if no new stdout line appears for
-            # (timeout + 30) seconds, the current case is considered hung.
             stdout_lines = []
             last_output_time = monotonic()
 
@@ -1088,14 +1082,9 @@ def _execute_worker_batch(
             reader_thread = threading.Thread(target=_read_stdout, daemon=True)
             reader_thread.start()
 
-            # Idle timeout: per-case timeout + 30s buffer.
-            # Per-case timeouts are handled by pytest's --timeout. This is
-            # the backup for when pytest-timeout can't kill a hung case
-            # (NPU driver hang, kernel deadlock, etc.).
             idle_timeout = timeout + 30
             timeout_occurred = False
 
-            # Polling loop: check if worker exited or idle timeout triggered
             while True:
                 returncode = proc.poll()
                 if returncode is not None:
@@ -1114,13 +1103,13 @@ def _execute_worker_batch(
                     try:
                         returncode = proc.wait(timeout=30)
                     except subprocess.TimeoutExpired:
-                        returncode = -9  # SIGKILL
+                        returncode = -9
                     reader_thread.join(timeout=10)
                     break
 
                 sleep(0.5)
 
-            # Process all stdout lines (both timeout and normal paths)
+            # Process stdout lines (both timeout and normal paths)
             for line in stdout_lines:
                 if not line:
                     continue
@@ -1157,9 +1146,10 @@ def _execute_worker_batch(
                 attempt_completed.add(nodeid)
 
             if timeout_occurred:
-                # Only the currently-executing case (first unreported) is
-                # marked as timeout.  Remaining cases get retried in a new
-                # worker — they were never attempted.
+                # Idle timeout: mark the hung case, restart worker for the
+                # rest.  Unlimited restarts — worst case every case times
+                # out individually, same overhead as per-case subprocess.
+                coredump_retries = 0
                 not_reported = [
                     t for t in remaining_cases
                     if t.nodeid not in attempt_completed
@@ -1181,9 +1171,7 @@ def _execute_worker_batch(
                         hung_case.nodeid, "timeout", hung_duration
                     )
                     completed_nodeids.add(hung_case.nodeid)
-
-                    # Remaining cases (after the hung one) → retry
-                    remaining_cases = not_reported[1:]  # skip the hung case
+                    remaining_cases = not_reported[1:]
                 else:
                     remaining_cases = []
 
@@ -1193,11 +1181,11 @@ def _execute_worker_batch(
                         f"{len(remaining_cases)} remaining cases...",
                         flush=True,
                     )
-                    continue  # back to top of retry loop
-                break
+                continue  # back to while loop
 
             if returncode < 0:
                 # Worker killed by signal → coredump
+                coredump_retries += 1
                 signal_num = -returncode
                 try:
                     signal_name = signal.Signals(signal_num).name
@@ -1205,7 +1193,7 @@ def _execute_worker_batch(
                     signal_name = f"signal {signal_num}"
                 print(
                     f"  [Batch {batch_id}] Worker coredump ({signal_name}), "
-                    f"attempt {attempt + 1}/{max_coredump_retries + 1}",
+                    f"attempt {coredump_retries}/{max_coredump_retries}",
                     flush=True,
                 )
 
@@ -1214,15 +1202,7 @@ def _execute_worker_batch(
                     t for t in batch if t.nodeid not in completed_nodeids
                 ]
 
-                if remaining_cases and attempt < max_coredump_retries:
-                    print(
-                        f"  [Batch {batch_id}] Retrying {len(remaining_cases)} "
-                        f"remaining cases...",
-                        flush=True,
-                    )
-                    continue
-                elif remaining_cases:
-                    # Max retries exceeded
+                if coredump_retries > max_coredump_retries:
                     for task in remaining_cases:
                         error_result = {
                             "nodeid": task.nodeid,
@@ -1239,74 +1219,71 @@ def _execute_worker_batch(
                             task.nodeid, "error", 0.0
                         )
                         completed_nodeids.add(task.nodeid)
-                break
-            else:
-                # Normal exit: all cases processed
-                completed_nodeids.update(attempt_completed)
+                    break
+                continue  # back to while loop
 
-                # Fallback: if stdout was empty, try reading batch_results file
-                if not attempt_completed:
-                    results_file = report_dir / f"batch_results_{batch_id}.json"
-                    if results_file.exists():
-                        try:
-                            fallback_results = json.loads(
-                                results_file.read_text(encoding="utf-8")
-                            )
-                            for cr in fallback_results:
-                                full_result = {
-                                    "nodeid": cr.get("nodeid", ""),
-                                    "status": cr.get("status", "error"),
-                                    "duration": cr.get("duration", 0.0),
-                                    "returncode": int(cr.get("returncode", 1)),
-                                    "message": cr.get("message", ""),
-                                    "command": cr.get("command", ""),
-                                    "file": cr.get("file", ""),
-                                    "case_idx": int(cr.get("case_idx", 0)),
-                                }
-                                result_aggregator.add_case_result(full_result)
-                                progress_tracker.mark_completed(
-                                    full_result["nodeid"],
-                                    full_result["status"],
-                                    full_result["duration"],
-                                )
-                                completed_nodeids.add(full_result["nodeid"])
-                        except (json.JSONDecodeError, OSError):
-                            pass
+            # Normal exit: all cases processed
+            completed_nodeids.update(attempt_completed)
 
-                # Check for any cases that didn't produce results in normal exit
-                remaining = [
-                    t for t in batch if t.nodeid not in completed_nodeids
-                ]
-                if remaining:
-                    print(
-                        f"  [Batch {batch_id}] {len(remaining)} cases missing "
-                        f"results (normal exit), marking as error",
-                        flush=True,
-                    )
-                    for task in remaining:
-                        error_result = {
-                            "nodeid": task.nodeid,
-                            "status": "error",
-                            "duration": 0.0,
-                            "returncode": 1,
-                            "message": "No result produced (worker exited normally)",
-                            "command": "",
-                            "file": task.test_file,
-                            "case_idx": task.case_idx,
-                        }
-                        result_aggregator.add_case_result(error_result)
-                        progress_tracker.mark_completed(
-                            task.nodeid, "error", 0.0
+            if not attempt_completed:
+                results_file = report_dir / f"batch_results_{batch_id}.json"
+                if results_file.exists():
+                    try:
+                        fallback_results = json.loads(
+                            results_file.read_text(encoding="utf-8")
                         )
-                break
+                        for cr in fallback_results:
+                            full_result = {
+                                "nodeid": cr.get("nodeid", ""),
+                                "status": cr.get("status", "error"),
+                                "duration": cr.get("duration", 0.0),
+                                "returncode": int(cr.get("returncode", 1)),
+                                "message": cr.get("message", ""),
+                                "command": cr.get("command", ""),
+                                "file": cr.get("file", ""),
+                                "case_idx": int(cr.get("case_idx", 0)),
+                            }
+                            result_aggregator.add_case_result(full_result)
+                            progress_tracker.mark_completed(
+                                full_result["nodeid"],
+                                full_result["status"],
+                                full_result["duration"],
+                            )
+                            completed_nodeids.add(full_result["nodeid"])
+                    except (json.JSONDecodeError, OSError):
+                        pass
+
+            remaining = [
+                t for t in batch if t.nodeid not in completed_nodeids
+            ]
+            if remaining:
+                print(
+                    f"  [Batch {batch_id}] {len(remaining)} cases missing "
+                    f"results (normal exit), marking as error",
+                    flush=True,
+                )
+                for task in remaining:
+                    error_result = {
+                        "nodeid": task.nodeid,
+                        "status": "error",
+                        "duration": 0.0,
+                        "returncode": 1,
+                        "message": "No result produced (worker exited normally)",
+                        "command": "",
+                        "file": task.test_file,
+                        "case_idx": task.case_idx,
+                    }
+                    result_aggregator.add_case_result(error_result)
+                    progress_tracker.mark_completed(
+                        task.nodeid, "error", 0.0
+                    )
+            break
 
         except Exception as e:
-            # Subprocess launch failure or other unexpected error
             print(
                 f"  [Batch {batch_id}] Worker execution failed: {str(e)[:200]}",
                 flush=True,
             )
-            # Mark all remaining cases as error
             for task in remaining_cases:
                 if task.nodeid not in completed_nodeids:
                     error_result = {
@@ -1322,23 +1299,6 @@ def _execute_worker_batch(
                     result_aggregator.add_case_result(error_result)
                     progress_tracker.mark_completed(task.nodeid, "error", 0.0)
             break
-
-    # Safety net: mark any cases still not completed after all retry
-    # attempts as error (prevents silent data loss when retry loop exhausts).
-    for task in remaining_cases:
-        if task.nodeid not in completed_nodeids:
-            error_result = {
-                "nodeid": task.nodeid,
-                "status": "error",
-                "duration": 0.0,
-                "returncode": 1,
-                "message": "Retry attempts exhausted",
-                "command": "",
-                "file": task.test_file,
-                "case_idx": task.case_idx,
-            }
-            result_aggregator.add_case_result(error_result)
-            progress_tracker.mark_completed(task.nodeid, "error", 0.0)
 
     # Cleanup temp file
     batch_input_file.unlink(missing_ok=True)
