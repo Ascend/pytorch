@@ -61,7 +61,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
 from queue import Queue, Empty
-from time import monotonic
+from time import monotonic, sleep
 from typing import Dict, List, Optional, Tuple
 
 import collect_all_cases
@@ -1072,44 +1072,52 @@ def _execute_worker_batch(
                 errors="replace",
             )
 
-            # Read stdout in a daemon thread so we can enforce a batch-level
-            # timeout on proc.wait().  Without this, a hung pytest.main() call
-            # inside the worker (NPU driver hang, etc.) blocks the parent
-            # forever on either the stdout loop or proc.wait().
+            # Read stdout in a daemon thread. The main thread polls proc
+            # with an idle timeout: if no new stdout line appears for
+            # (timeout + 30) seconds, the current case is considered hung.
             stdout_lines = []
+            last_output_time = monotonic()
 
             def _read_stdout():
+                nonlocal last_output_time
                 if proc.stdout:
                     for line in proc.stdout:
+                        last_output_time = monotonic()
                         stdout_lines.append(line.strip())
 
             reader_thread = threading.Thread(target=_read_stdout, daemon=True)
             reader_thread.start()
 
-            # Batch timeout: per-case timeout + 30s buffer (matches original
-            # subprocess.run(timeout=per_case_timeout + 30) semantics).
-            # pytest-timeout handles normal per-case timeouts; this is the
-            # backup for when pytest-timeout can't kill a hung case (NPU
-            # driver hang, kernel deadlock, etc.).
-            batch_timeout = timeout + 30
-
+            # Idle timeout: per-case timeout + 30s buffer.
+            # Per-case timeouts are handled by pytest's --timeout. This is
+            # the backup for when pytest-timeout can't kill a hung case
+            # (NPU driver hang, kernel deadlock, etc.).
+            idle_timeout = timeout + 30
             timeout_occurred = False
-            try:
-                returncode = proc.wait(timeout=batch_timeout)
-                reader_thread.join(timeout=10)
-            except subprocess.TimeoutExpired:
-                timeout_occurred = True
-                print(
-                    f"  [Batch {batch_id}] Batch timeout after {batch_timeout}s, "
-                    f"killing worker...",
-                    flush=True,
-                )
-                proc.kill()
-                try:
-                    returncode = proc.wait(timeout=30)
-                except subprocess.TimeoutExpired:
-                    returncode = -9  # SIGKILL
-                reader_thread.join(timeout=10)
+
+            # Polling loop: check if worker exited or idle timeout triggered
+            while True:
+                returncode = proc.poll()
+                if returncode is not None:
+                    reader_thread.join(timeout=10)
+                    break
+
+                if monotonic() - last_output_time > idle_timeout:
+                    timeout_occurred = True
+                    print(
+                        f"  [Batch {batch_id}] Idle timeout ({idle_timeout}s "
+                        f"without output), killing worker...",
+                        flush=True,
+                    )
+                    proc.kill()
+                    try:
+                        returncode = proc.wait(timeout=30)
+                    except subprocess.TimeoutExpired:
+                        returncode = -9  # SIGKILL
+                    reader_thread.join(timeout=10)
+                    break
+
+                sleep(0.5)
 
             # Process all stdout lines (both timeout and normal paths)
             for line in stdout_lines:
@@ -1148,28 +1156,44 @@ def _execute_worker_batch(
                 attempt_completed.add(nodeid)
 
             if timeout_occurred:
-                # Mark cases that didn't produce any stdout as timeout
-                remaining_not_reported = [
+                # Only the currently-executing case (first unreported) is
+                # marked as timeout.  Remaining cases get retried in a new
+                # worker — they were never attempted.
+                not_reported = [
                     t for t in remaining_cases
                     if t.nodeid not in attempt_completed
                 ]
-                for task in remaining_not_reported:
+                if not_reported:
+                    hung_case = not_reported[0]
                     timeout_result = {
-                        "nodeid": task.nodeid,
+                        "nodeid": hung_case.nodeid,
                         "status": "timeout",
                         "duration": 0.0,
                         "returncode": -1,
-                        "message": f"Batch timeout after {batch_timeout}s",
+                        "message": f"Case hung (no output for {idle_timeout}s)",
                         "command": "",
-                        "file": task.test_file,
-                        "case_idx": task.case_idx,
+                        "file": hung_case.test_file,
+                        "case_idx": hung_case.case_idx,
                     }
                     result_aggregator.add_case_result(timeout_result)
                     progress_tracker.mark_completed(
-                        task.nodeid, "timeout", 0.0
+                        hung_case.nodeid, "timeout", 0.0
                     )
-                    completed_nodeids.add(task.nodeid)
-                break  # Don't retry on timeout
+                    completed_nodeids.add(hung_case.nodeid)
+
+                    # Remaining cases (after the hung one) → retry
+                    remaining_cases = not_reported[1:]  # skip the hung case
+                else:
+                    remaining_cases = []
+
+                if remaining_cases:
+                    print(
+                        f"  [Batch {batch_id}] Restarting worker for "
+                        f"{len(remaining_cases)} remaining cases...",
+                        flush=True,
+                    )
+                    continue  # back to top of retry loop
+                break
 
             if returncode < 0:
                 # Worker killed by signal → coredump
