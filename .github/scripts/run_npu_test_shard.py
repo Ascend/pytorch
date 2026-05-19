@@ -1323,6 +1323,23 @@ def _execute_worker_batch(
                     progress_tracker.mark_completed(task.nodeid, "error", 0.0)
             break
 
+    # Safety net: mark any cases still not completed after all retry
+    # attempts as error (prevents silent data loss when retry loop exhausts).
+    for task in remaining_cases:
+        if task.nodeid not in completed_nodeids:
+            error_result = {
+                "nodeid": task.nodeid,
+                "status": "error",
+                "duration": 0.0,
+                "returncode": 1,
+                "message": "Retry attempts exhausted",
+                "command": "",
+                "file": task.test_file,
+                "case_idx": task.case_idx,
+            }
+            result_aggregator.add_case_result(error_result)
+            progress_tracker.mark_completed(task.nodeid, "error", 0.0)
+
     # Cleanup temp file
     batch_input_file.unlink(missing_ok=True)
     results_file = report_dir / f"batch_results_{batch_id}.json"
