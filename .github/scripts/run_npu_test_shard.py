@@ -1072,46 +1072,103 @@ def _execute_worker_batch(
                 errors="replace",
             )
 
-            # Read stdout JSON lines in real-time (stderr merged, non-JSON skipped)
-            if proc.stdout:
-                for line in proc.stdout:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    try:
-                        case_result = json.loads(line)
-                    except json.JSONDecodeError:
-                        continue  # skip non-JSON lines (pytest banner, warnings, stderr, etc.)
+            # Read stdout in a daemon thread so we can enforce a batch-level
+            # timeout on proc.wait().  Without this, a hung pytest.main() call
+            # inside the worker (NPU driver hang, etc.) blocks the parent
+            # forever on either the stdout loop or proc.wait().
+            stdout_lines = []
 
-                    nodeid = case_result.get("nodeid", "")
-                    status = case_result.get("status", "error")
-                    duration = case_result.get("duration", 0.0)
+            def _read_stdout():
+                if proc.stdout:
+                    for line in proc.stdout:
+                        stdout_lines.append(line.strip())
 
-                    # Build full case result dict for aggregator
-                    full_result = {
-                        "nodeid": nodeid,
-                        "status": status,
-                        "duration": duration,
-                        "returncode": int(case_result.get("returncode", 1)),
-                        "message": case_result.get("message", ""),
-                        "command": case_result.get("command", ""),
-                        "file": case_result.get("file", ""),
-                        "case_idx": int(case_result.get("case_idx", 0)),
+            reader_thread = threading.Thread(target=_read_stdout, daemon=True)
+            reader_thread.start()
+
+            # Batch timeout: per-case timeout × number of cases + 5 min buffer
+            batch_timeout = max(
+                len(remaining_cases) * timeout + 300,
+                timeout + 300,  # at least enough for one case
+            )
+
+            timeout_occurred = False
+            try:
+                returncode = proc.wait(timeout=batch_timeout)
+                reader_thread.join(timeout=10)
+            except subprocess.TimeoutExpired:
+                timeout_occurred = True
+                print(
+                    f"  [Batch {batch_id}] Batch timeout after {batch_timeout}s, "
+                    f"killing worker...",
+                    flush=True,
+                )
+                proc.kill()
+                try:
+                    returncode = proc.wait(timeout=30)
+                except subprocess.TimeoutExpired:
+                    returncode = -9  # SIGKILL
+                reader_thread.join(timeout=10)
+
+            # Process all stdout lines (both timeout and normal paths)
+            for line in stdout_lines:
+                if not line:
+                    continue
+                try:
+                    case_result = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+
+                nodeid = case_result.get("nodeid", "")
+                status = case_result.get("status", "error")
+                duration = case_result.get("duration", 0.0)
+
+                full_result = {
+                    "nodeid": nodeid,
+                    "status": status,
+                    "duration": duration,
+                    "returncode": int(case_result.get("returncode", 1)),
+                    "message": case_result.get("message", ""),
+                    "command": case_result.get("command", ""),
+                    "file": case_result.get("file", ""),
+                    "case_idx": int(case_result.get("case_idx", 0)),
+                }
+
+                result_aggregator.add_case_result(full_result)
+                progress_tracker.mark_completed(nodeid, status, duration)
+                log_queue.put({
+                    "type": "case_finish",
+                    "case_idx": full_result["case_idx"],
+                    "nodeid": nodeid,
+                    "status": status,
+                    "duration": duration,
+                    "message": case_result.get("message", "")[:200],
+                })
+                attempt_completed.add(nodeid)
+
+            if timeout_occurred:
+                # Mark cases that didn't produce any stdout as timeout
+                remaining_not_reported = [
+                    t for t in remaining_cases
+                    if t.nodeid not in attempt_completed
+                ]
+                for task in remaining_not_reported:
+                    timeout_result = {
+                        "nodeid": task.nodeid,
+                        "status": "timeout",
+                        "duration": 0.0,
+                        "returncode": -1,
+                        "message": f"Batch timeout after {batch_timeout}s",
+                        "command": "",
+                        "file": task.test_file,
+                        "case_idx": task.case_idx,
                     }
-
-                    result_aggregator.add_case_result(full_result)
-                    progress_tracker.mark_completed(nodeid, status, duration)
-                    log_queue.put({
-                        "type": "case_finish",
-                        "case_idx": full_result["case_idx"],
-                        "nodeid": nodeid,
-                        "status": status,
-                        "duration": duration,
-                        "message": case_result.get("message", "")[:200],
-                    })
-                    attempt_completed.add(nodeid)
-
-            returncode = proc.wait()
+                    result_aggregator.add_case_result(timeout_result)
+                    progress_tracker.mark_completed(
+                        task.nodeid, "timeout", 0.0
+                    )
+                    completed_nodeids.add(task.nodeid)
+                break  # Don't retry on timeout
 
             if returncode < 0:
                 # Worker killed by signal → coredump
