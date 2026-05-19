@@ -1104,8 +1104,9 @@ def _execute_worker_batch(
 
                 if monotonic() - last_output_time > idle_timeout:
                     timeout_occurred = True
+                    hung_duration = monotonic() - last_output_time
                     print(
-                        f"  [Batch {batch_id}] Idle timeout ({idle_timeout}s "
+                        f"  [Batch {batch_id}] Idle timeout ({hung_duration:.0f}s "
                         f"without output), killing worker...",
                         flush=True,
                     )
@@ -1168,9 +1169,9 @@ def _execute_worker_batch(
                     timeout_result = {
                         "nodeid": hung_case.nodeid,
                         "status": "timeout",
-                        "duration": 0.0,
+                        "duration": hung_duration,
                         "returncode": -1,
-                        "message": f"Case hung (no output for {idle_timeout}s)",
+                        "message": f"Case hung (no output for {hung_duration:.0f}s)",
                         "command": "",
                         "file": hung_case.test_file,
                         "case_idx": hung_case.case_idx,
