@@ -26,7 +26,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: kerer-ai/pytorch
-          ref: v2.7.1_dev
+          ref: v2.7.1_dev_fast
           fetch-depth: 1
 
       - name: Clone PyTorch v${{ inputs.pytorch_version }} (for test source)
