@@ -138,32 +138,34 @@ runs:
         # Internal cluster PyPI cache (primary) + Huawei Ascend mirror (fallback)
         export UV_INDEX_URL=http://cache-service.nginx-pypi-cache.svc.cluster.local/pypi/simple
         export UV_EXTRA_INDEX_URL=https://mirrors.huaweicloud.com/ascend/repos/pypi
+        # Retry on transient network errors (3 attempts, 10s backoff)
+        export UV_RETRIES=3
 
         echo "=== Installing PyTorch requirements.txt ==="
         cd pytorch-test-src
         if [ -f requirements.txt ]; then
           uv pip install --system --python python${{ inputs.python_version }} \
-            -r requirements.txt || echo "Some PyTorch dev dependencies may not be available"
+            -r requirements.txt
         fi
 
         echo "=== Installing PyTorch CI requirements ==="
         if [ -f .ci/docker/requirements-ci.txt ]; then
           uv pip install --system --python python${{ inputs.python_version }} \
-            -r .ci/docker/requirements-ci.txt || echo "Some CI dependencies may not be available on this platform"
+            -r .ci/docker/requirements-ci.txt
         fi
 
         echo "=== Installing ascend_pytorch test requirements ==="
         cd ../ascend_pytorch
         if [ -f test/requirements.txt ]; then
           uv pip install --system --python python${{ inputs.python_version }} \
-            -r test/requirements.txt || echo "Some torch_npu test dependencies may not be available"
+            -r test/requirements.txt
         fi
 
         cd ../pytorch-test-src
 
         echo "=== Upgrading ml-dtypes to 0.5.4 ==="
         uv pip install --system --python python${{ inputs.python_version }} \
-          ml-dtypes==0.5.4 || echo "ml-dtypes upgrade failed"
+          ml-dtypes==0.5.4
 
         echo "=== Installed test dependencies ==="
         pip${{ inputs.python_version }} list | grep -E "pytest|onnx|z3|tensorboard|expecttest|hypothesis|torchvision|torch_geometric|ml-dtypes" | head -30
