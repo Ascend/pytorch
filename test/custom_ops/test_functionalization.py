@@ -99,7 +99,6 @@ class TestFunctionalization(TestCase):
             self.assertEqual(out_ref_, out_functional_)
             self.assertEqual(out_ref_, out_reinplace_)
 
-    @unittest.skip("Temporarily skipping")
     def test_scatter_update(self):
         def f(iself, indices, updates):
             return torch.ops.npu.scatter_update_(iself, indices, updates, -2)
@@ -114,14 +113,13 @@ class TestFunctionalization(TestCase):
 
 def forward(self, arg0_1, arg1_1, arg2_1):
     scatter_update = torch.ops.npu.scatter_update.default(arg0_1, arg1_1, arg2_1, -2);  arg1_1 = arg2_1 = None
-    copy_ = torch.ops.aten.copy_.default(arg0_1, scatter_update);  arg0_1 = None
+    copy_ = torch.ops.aten.copy_.default(arg0_1, scatter_update);  arg0_1 = copy_ = None
     return scatter_update
     """)
 
         self.assert_functionalization(f, in_self, in_indices, in_updates)
 
     @SupportedDevices(['Ascend910B'])
-    @unittest.skip("Temporarily skipping")
     def test_npu_quant_scatter(self):
         def f(fake_var, fake_indices, fake_updates, fake_quant_scales):
             return torch.ops.npu.npu_quant_scatter_(fake_var, fake_indices, fake_updates, fake_quant_scales,
@@ -142,14 +140,13 @@ def forward(self, arg0_1, arg1_1, arg2_1):
 
 
 def forward(self, arg0_1, arg1_1, arg2_1, arg3_1):
-    npu_quant_scatter = torch.ops.npu.npu_quant_scatter.default(arg0_1, arg1_1, arg2_1, arg3_1, None, -2, -1);  arg1_1 = arg2_1 = arg3_1 = None
-    copy_ = torch.ops.aten.copy_.default(arg0_1, npu_quant_scatter);  arg0_1 = None
+    npu_quant_scatter = torch.ops.npu.npu_quant_scatter.default(arg0_1, arg1_1, arg2_1, arg3_1);  arg1_1 = arg2_1 = arg3_1 = None
+    copy_ = torch.ops.aten.copy_.default(arg0_1, npu_quant_scatter);  arg0_1 = copy_ = None
     return npu_quant_scatter
     """)
 
         self.assert_functionalization(f, in_var, in_indices, in_updates, in_quant_scales)
 
-    @unittest.skip("Temporarily skipping")
     def test_npu_scatter_nd_update(self):
         def f(var, indices, updates):
             return torch_npu.npu_scatter_nd_update_(var, indices, updates)
@@ -168,18 +165,13 @@ def forward(self, arg0_1, arg1_1, arg2_1, arg3_1):
 
 def forward(self, arg0_1, arg1_1, arg2_1):
     npu_scatter_nd_update = torch.ops.npu.npu_scatter_nd_update.default(arg0_1, arg1_1, arg2_1);  arg1_1 = arg2_1 = None
-    copy_ = torch.ops.aten.copy_.default(arg0_1, npu_scatter_nd_update);  arg0_1 = None
+    copy_ = torch.ops.aten.copy_.default(arg0_1, npu_scatter_nd_update);  arg0_1 = copy_ = None
     return npu_scatter_nd_update
     """)
 
         self.assert_functionalization(f, var, indices, updates)
 
-    @unittest.skip("Temporarily skipping")
     def test_npu_silu_functionalize(self):
-        @impl(m, "npu_silu")
-        def npu_silu(self_):
-            return torch.empty_like(self_)
-
         @impl(m, "npu_silu_")
         def npu_silu_(self_):
             return self_
@@ -195,7 +187,7 @@ def forward(self, arg0_1, arg1_1, arg2_1):
 
 def forward(self, arg0_1):
     npu_silu = torch.ops.npu.npu_silu.default(arg0_1)
-    copy_ = torch.ops.aten.copy_.default(arg0_1, npu_silu);  arg0_1 = None
+    copy_ = torch.ops.aten.copy_.default(arg0_1, npu_silu);  arg0_1 = copy_ = None
     return npu_silu
     """)
         self.assert_functionalization(f, a)
