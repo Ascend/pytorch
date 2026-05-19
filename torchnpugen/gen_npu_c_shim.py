@@ -42,6 +42,11 @@ NPU_DEVICE = "npu"
 
 NPU_DISPATCH_KEYS: Sequence[DispatchKey] = ()
 
+NPU_UNSUPPORTED_OPS = [
+    "aten._scaled_dot_product_fused_attention_overrideable_backward.default",
+    "aten._scaled_dot_product_fused_attention_overrideable.default"
+]
+
 
 def _get_backend_index_for_npu(
     func: NativeFunction,
@@ -111,9 +116,14 @@ def _get_dispatch_header_path(
     if backend_index is None:
         return None
     dispatch_ns = backend_index.dispatch_key.lower()
-    return (
-        f"#include <torch_npu/csrc/aten/ops/{func.root_name}_{dispatch_ns}_dispatch.h>"
-    )
+    if dispatch_ns == "npu":
+        return (
+            f"#include <torch_npu/csrc/aten/ops/{func.root_name}_{dispatch_ns}_dispatch.h>"
+        )
+    else:
+        return (
+            f"#include <ATen/ops/{func.root_name}_{dispatch_ns}_dispatch.h>"
+        )
 
 
 @dataclass(frozen=True)
@@ -228,7 +238,11 @@ def gen_npu_c_shim_files(
                 structured_func_group_dict[func.structured_delegate] = func_group
                 break
 
-    fallback_ops_dict = inductor_fallback_ops
+    fallback_ops_dict = {
+        op: info
+        for op, info in inductor_fallback_ops.items()
+        if op not in NPU_UNSUPPORTED_OPS
+    }
     fallbacks = {}
     for func in native_functions:
         op_name = get_fallback_op_name(func)

@@ -458,59 +458,6 @@ class TestStableLibtorch(TestCase):
         expected = torch.ops.aten._pdist_forward(self_, p)
         self.assertEqual(res, expected)
 
-    # not implemented
-    def notest_my__scaled_dot_product_fused_attention_overrideable(self):
-        query = torch.randn(2, 4, 8, 16).npu()
-        key = torch.randn(2, 4, 8, 16).npu()
-        value = torch.randn(2, 4, 8, 16).npu()
-        attn_bias = torch.zeros(2, 4, 8, 8).npu()
-        dropout_p = 0.0
-        is_causal = False
-        return_debug_mask = False
-        scale = 1.0
-        res = torch.ops.libtorch_agn_211.my__scaled_dot_product_fused_attention_overrideable(
-            query, key, value, attn_bias, dropout_p, is_causal, return_debug_mask, scale
-        )
-
-    # not implemented
-    def notest_my__scaled_dot_product_fused_attention_overrideable_backward(self):
-        grad_out = torch.randn(2, 4, 8, 16).npu()
-        query = torch.randn(2, 4, 8, 16).npu()
-        key = torch.randn(2, 4, 8, 16).npu()
-        value = torch.randn(2, 4, 8, 16).npu()
-        attn_bias = torch.zeros(2, 4, 8, 8).npu()
-        grad_input_mask = [True, True, True]
-        out = torch.randn(2, 4, 8, 16).npu()
-        logsumexp = torch.randn(2, 4, 8).npu()
-        cum_seq_q = torch.zeros(1, dtype=torch.int32).npu()
-        cum_seq_k = torch.zeros(1, dtype=torch.int32).npu()
-        max_q = 8
-        max_k = 8
-        dropout_p = 0.0
-        is_causal = False
-        philox_seed = torch.tensor(0, dtype=torch.int64).npu()
-        philox_offset = torch.tensor(0, dtype=torch.int64).npu()
-        scale = None
-        res = torch.ops.libtorch_agn_211.my__scaled_dot_product_fused_attention_overrideable_backward(
-            grad_out,
-            query,
-            key,
-            value,
-            attn_bias,
-            grad_input_mask,
-            out,
-            logsumexp,
-            cum_seq_q,
-            cum_seq_k,
-            max_q,
-            max_k,
-            dropout_p,
-            is_causal,
-            philox_seed,
-            philox_offset,
-            scale,
-        )
-
     @SkipIfNotGteCANNVersion("9.0.0")
     @SupportedDevices(["Ascend910B", "Ascend910C"])
     def test_my__thnn_fused_lstm_cell(self):
