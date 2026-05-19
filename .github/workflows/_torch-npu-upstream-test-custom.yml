@@ -1,0 +1,117 @@
+name: Torch NPU Upstream Test Custom
+
+on:
+  workflow_call:
+    inputs:
+      python_version:
+        required: true
+        type: string
+        description: Python version to use
+      pytorch_version:
+        required: true
+        type: string
+        description: PyTorch version to install
+      prepared_test_src_artifact:
+        required: true
+        type: string
+        description: Name of the prepared test source artifact
+      torch_npu_wheel_artifact:
+        required: true
+        type: string
+        description: Name of the torch_npu wheel artifact
+      docker_image:
+        required: true
+        type: string
+        description: Docker image to use
+      test_files:
+        required: true
+        type: string
+        description: Test files to run (comma-separated)
+
+jobs:
+  run_tests:
+    name: test_custom
+    runs-on: linux-aarch64-a3-8
+    timeout-minutes: 1200
+    container:
+      image: ${{ inputs.docker_image }}
+      options: --user root
+
+    steps:
+      - name: Setup NPU test environment
+        uses: Ascend/pytorch/.github/actions/setup-npu-test-env@v2.7.1
+        with:
+          python_version: ${{ inputs.python_version }}
+          pytorch_version: ${{ inputs.pytorch_version }}
+          torch_npu_wheel_artifact: ${{ inputs.torch_npu_wheel_artifact }}
+          prepared_test_src_artifact: ${{ inputs.prepared_test_src_artifact }}
+          patch_log_suffix: custom
+
+      - name: Run custom test files
+        id: run_tests
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          REPORT_DIR=test-reports
+          mkdir -p ${REPORT_DIR}
+          set +e
+          # Custom test files: per-case isolation execution
+          python${{ inputs.python_version }} ascend_pytorch/.github/scripts/run_npu_test_shard.py \
+            --test-files "${{ inputs.test_files }}" \
+            --test-dir pytorch-test-src/test \
+            --disabled-testcases pytorch-test-src/test_upstream/disabled_testcases.json \
+            --report-dir ${REPORT_DIR} \
+            --timeout 1200 \
+            --verbose \
+            2>&1 | tee /tmp/test_custom.log
+
+          TEST_STATUS=${PIPESTATUS[0]}
+          echo "status=${TEST_STATUS}" >> $GITHUB_OUTPUT
+          # Don't exit with test status - let step succeed to allow report generation
+
+      - name: Package and upload test reports
+        if: always()
+        run: |
+          # Package junit XMLs into compressed archive
+          if [ -d "test-reports/junit_xmls" ]; then
+            echo "=== Compressing junit XMLs ==="
+            XML_COUNT=$(find test-reports/junit_xmls -type f -name "*.xml" | wc -l)
+            echo "Found ${XML_COUNT} XML files"
+            tar -czf test-reports/junit_xmls.tar.gz -C test-reports junit_xmls
+            rm -rf test-reports/junit_xmls
+            echo "JUnit XMLs compressed"
+          fi
+
+          # Package failed cases logs into compressed archive
+          if [ -d "test-reports/failed_cases_logs" ]; then
+            echo "=== Compressing failed cases logs ==="
+            tar -czf test-reports/failed_cases_logs.tar.gz -C test-reports failed_cases_logs
+            rm -rf test-reports/failed_cases_logs
+            echo "Failed cases logs compressed"
+          fi
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-custom
+          path: test-reports/
+          retention-days: 60
+
+      - name: Compress and upload error logs
+        if: failure()
+        run: |
+          mkdir -p error-logs
+          cp /tmp/test_custom.log error-logs/ 2>/dev/null || true
+          cp /tmp/torch_env_patch_custom.log error-logs/ 2>/dev/null || true
+          tar -czf error-logs-custom.tar.gz error-logs/
+          echo "Error logs compressed"
+
+      - name: Upload error logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: error-logs-custom
+          path: error-logs-custom.tar.gz
+          retention-days: 60

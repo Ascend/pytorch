@@ -1,0 +1,149 @@
+name: Torch NPU Upstream Test
+
+on:
+  workflow_call:
+    inputs:
+      python_version:
+        required: true
+        type: string
+        description: Python version to use
+      pytorch_version:
+        required: true
+        type: string
+        description: PyTorch version to use
+      distributed_shards:
+        required: false
+        type: string
+        default: '2'
+        description: Number of shards for distributed tests
+      regular_shards:
+        required: false
+        type: string
+        default: '5'
+        description: Number of shards for regular tests
+      test_files:
+        required: false
+        type: string
+        default: ''
+        description: Test files to run directly (comma-separated)
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  # ============================================================================
+  # 1. Prepare Test Environment
+  # ============================================================================
+  prepare:
+    uses: ./.github/workflows/_torch-npu-upstream-prepare.yml
+    with:
+      pytorch_version: ${{ inputs.pytorch_version }}
+      prepared_test_src_artifact: pytorch-test-src-${{ inputs.pytorch_version }}-patched
+
+  # ============================================================================
+  # 2. Build torch_npu Wheel
+  # ============================================================================
+  build_torch_npu:
+    needs: prepare
+    uses: ./.github/workflows/_torch-npu-upstream-build.yml
+    with:
+      python_version: ${{ inputs.python_version }}
+      pytorch_version: ${{ inputs.pytorch_version }}
+      torch_npu_wheel_artifact: torch-npu-wheel-${{ inputs.pytorch_version }}-source
+      max_jobs: '40'
+
+  # ============================================================================
+  # 3. Collect Test Cases (only when test_files is empty)
+  # ============================================================================
+  collect_cases:
+    needs:
+      - prepare
+      - build_torch_npu
+    if: ${{ inputs.test_files == '' }}
+    uses: ./.github/workflows/_torch-npu-upstream-collect.yml
+    with:
+      python_version: ${{ inputs.python_version }}
+      pytorch_version: ${{ inputs.pytorch_version }}
+      prepared_test_src_artifact: pytorch-test-src-${{ inputs.pytorch_version }}-patched
+      torch_npu_wheel_artifact: torch-npu-wheel-${{ inputs.pytorch_version }}-source
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.7.1_a3_aarch64_builder:20260424
+      distributed_shards: ${{ inputs.distributed_shards }}
+      regular_shards: ${{ inputs.regular_shards }}
+
+  # ============================================================================
+  # 4. Run Distributed Tests (only when test_files is empty)
+  # ============================================================================
+  test_distributed:
+    needs:
+      - prepare
+      - collect_cases
+      - build_torch_npu
+    if: ${{ inputs.test_files == '' }}
+    uses: ./.github/workflows/_torch-npu-upstream-test-dist.yml
+    with:
+      python_version: ${{ inputs.python_version }}
+      pytorch_version: ${{ inputs.pytorch_version }}
+      prepared_test_src_artifact: pytorch-test-src-${{ inputs.pytorch_version }}-patched
+      torch_npu_wheel_artifact: torch-npu-wheel-${{ inputs.pytorch_version }}-source
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.7.1_a3_aarch64_builder:20260424
+      distributed_matrix: ${{ needs.collect_cases.outputs.distributed_matrix }}
+      distributed_shards: ${{ needs.collect_cases.outputs.distributed_shards }}
+
+  # ============================================================================
+  # 5. Run Regular Tests (only when test_files is empty)
+  # ============================================================================
+  test_regular:
+    needs:
+      - prepare
+      - collect_cases
+      - build_torch_npu
+    if: ${{ inputs.test_files == '' }}
+    uses: ./.github/workflows/_torch-npu-upstream-test-regular.yml
+    with:
+      python_version: ${{ inputs.python_version }}
+      pytorch_version: ${{ inputs.pytorch_version }}
+      prepared_test_src_artifact: pytorch-test-src-${{ inputs.pytorch_version }}-patched
+      torch_npu_wheel_artifact: torch-npu-wheel-${{ inputs.pytorch_version }}-source
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.7.1_a3_aarch64_builder:20260424
+      regular_matrix: ${{ needs.collect_cases.outputs.regular_matrix }}
+      regular_shards: ${{ needs.collect_cases.outputs.regular_shards }}
+
+  # ============================================================================
+  # 6. Run Custom Tests (only when test_files is provided)
+  # ============================================================================
+  test_custom:
+    needs:
+      - prepare
+      - build_torch_npu
+    if: ${{ inputs.test_files != '' }}
+    uses: ./.github/workflows/_torch-npu-upstream-test-custom.yml
+    with:
+      python_version: ${{ inputs.python_version }}
+      pytorch_version: ${{ inputs.pytorch_version }}
+      prepared_test_src_artifact: pytorch-test-src-${{ inputs.pytorch_version }}-patched
+      torch_npu_wheel_artifact: torch-npu-wheel-${{ inputs.pytorch_version }}-source
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.7.1_a3_aarch64_builder:20260424
+      test_files: ${{ inputs.test_files }}
+
+  # ============================================================================
+  # 7. Generate Test Report
+  # ============================================================================
+  report:
+    needs:
+      - prepare
+      - build_torch_npu
+      - collect_cases
+      - test_distributed
+      - test_regular
+      - test_custom
+    if: always() && needs.prepare.result == 'success' && needs.build_torch_npu.result == 'success'
+    uses: ./.github/workflows/_torch-npu-upstream-report.yml
+    with:
+      python_version: ${{ inputs.python_version }}
+      pytorch_version: ${{ inputs.pytorch_version }}
+      torch_npu_wheel_name: ${{ needs.build_torch_npu.outputs.wheel_name || 'source-build.whl' }}
+      patch_count: ${{ needs.prepare.outputs.patch_count || 'N/A' }}
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.7.1_a3_aarch64_builder:20260424
+      distributed_matrix: ${{ needs.collect_cases.outputs.distributed_matrix || '[]' }}
+      regular_matrix: ${{ needs.collect_cases.outputs.regular_matrix || '[]' }}

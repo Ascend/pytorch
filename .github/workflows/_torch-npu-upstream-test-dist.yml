@@ -1,0 +1,151 @@
+name: Torch NPU Upstream Test Distributed
+
+on:
+  workflow_call:
+    inputs:
+      python_version:
+        required: true
+        type: string
+        description: Python version to use
+      pytorch_version:
+        required: true
+        type: string
+        description: PyTorch version to install
+      prepared_test_src_artifact:
+        required: true
+        type: string
+        description: Name of the prepared test source artifact
+      torch_npu_wheel_artifact:
+        required: true
+        type: string
+        description: Name of the torch_npu wheel artifact
+      docker_image:
+        required: true
+        type: string
+        description: Docker image to use
+      distributed_matrix:
+        required: true
+        type: string
+        description: Distributed shard matrix JSON
+      distributed_shards:
+        required: true
+        type: string
+        description: Number of distributed shards
+
+jobs:
+  run_tests:
+    name: test_distributed (${{ matrix.shard }}/${{ inputs.distributed_shards }})
+    runs-on: linux-aarch64-a3-16
+    timeout-minutes: 1200
+    container:
+      image: ${{ inputs.docker_image }}
+      options: --user root
+    strategy:
+      matrix:
+        shard: ${{ fromJson(inputs.distributed_matrix) }}
+      fail-fast: false
+      max-parallel: 2
+
+    steps:
+      - name: Setup NPU test environment
+        uses: Ascend/pytorch/.github/actions/setup-npu-test-env@v2.7.1
+        with:
+          python_version: ${{ inputs.python_version }}
+          pytorch_version: ${{ inputs.pytorch_version }}
+          torch_npu_wheel_artifact: ${{ inputs.torch_npu_wheel_artifact }}
+          prepared_test_src_artifact: ${{ inputs.prepared_test_src_artifact }}
+          patch_log_suffix: dist_${{ matrix.shard }}
+
+      - name: Download cases shard JSONs
+        uses: actions/download-artifact@v4
+        with:
+          name: cases-shards
+          path: cases-shards
+
+      - name: Run distributed shard ${{ matrix.shard }}/${{ inputs.distributed_shards }}
+        id: run_test
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          PYTHON=python${{ inputs.python_version }}
+          REPORT_DIR=test-reports
+          CASES_JSON="cases-shards/distributed_cases_shard_${{ matrix.shard }}.json"
+
+          mkdir -p ${REPORT_DIR}
+
+          # Get case count from JSON
+          TOTAL_CASES=$(python3 -c "import json; d=json.load(open('${CASES_JSON}')); print(d['total_cases'])")
+
+          echo "=== Distributed Shard ${{ matrix.shard }} (Case-level) ==="
+          echo "Total cases: ${TOTAL_CASES}"
+          echo "Runner: linux-aarch64-a3-16 (16-card NPU)"
+          echo "Execution mode: SERIAL"
+
+          # Distributed tests: pre-collected cases, serial execution
+          set +e
+          $PYTHON ascend_pytorch/.github/scripts/run_npu_test_shard.py \
+            --cases-json "${CASES_JSON}" \
+            --test-dir pytorch-test-src/test \
+            --disabled-testcases pytorch-test-src/test_upstream/disabled_testcases.json \
+            --report-dir ${REPORT_DIR} \
+            --timeout 1200 \
+            --verbose \
+            2>&1 | tee /tmp/test_shard_dist_${{ matrix.shard }}.log
+
+          TEST_STATUS=${PIPESTATUS[0]}
+          set -e
+          echo "status=${TEST_STATUS}" >> $GITHUB_OUTPUT
+          # Don't exit with test status - let step succeed to allow report generation
+
+      - name: Package and upload test reports
+        if: always()
+        run: |
+          # Package junit XMLs into compressed archive
+          if [ -d "test-reports/junit_xmls" ]; then
+            echo "=== Compressing junit XMLs ==="
+            XML_COUNT=$(find test-reports/junit_xmls -type f -name "*.xml" | wc -l)
+            echo "Found ${XML_COUNT} XML files"
+            tar -czf test-reports/junit_xmls.tar.gz -C test-reports junit_xmls
+            rm -rf test-reports/junit_xmls
+            echo "JUnit XMLs compressed: $(ls -lh test-reports/junit_xmls.tar.gz)"
+          fi
+
+          # Package cases logs into compressed archive
+          if [ -d "test-reports/cases_logs" ]; then
+            echo "=== Compressing cases logs ==="
+            tar -czf test-reports/cases_logs.tar.gz -C test-reports cases_logs
+            rm -rf test-reports/cases_logs
+            echo "Cases logs compressed: $(ls -lh test-reports/cases_logs.tar.gz)"
+          fi
+
+          # Package shard_cases.json
+          if [ -f "test-reports/shard_dist-${{ matrix.shard }}_cases.json" ]; then
+            echo "Cases JSON exists: $(ls -lh test-reports/shard_dist-${{ matrix.shard }}_cases.json)"
+          fi
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-dist-${{ matrix.shard }}
+          path: test-reports/
+          retention-days: 60
+
+      - name: Compress and upload error logs
+        if: failure()
+        run: |
+          # Only upload logs when tests failed
+          mkdir -p error-logs
+          cp /tmp/test_shard_dist_${{ matrix.shard }}.log error-logs/ 2>/dev/null || true
+          cp /tmp/torch_env_patch_dist_${{ matrix.shard }}.log error-logs/ 2>/dev/null || true
+          tar -czf error-logs-dist-${{ matrix.shard }}.tar.gz error-logs/
+          echo "Error logs compressed: $(ls -lh error-logs-dist-${{ matrix.shard }}.tar.gz)"
+
+      - name: Upload error logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: error-logs-dist-${{ matrix.shard }}
+          path: error-logs-dist-${{ matrix.shard }}.tar.gz
+          retention-days: 60
