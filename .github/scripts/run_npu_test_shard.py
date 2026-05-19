@@ -1730,20 +1730,23 @@ def main():
         # Use fixed shard number for custom mode
         shard = 1
         num_shards = 1
-        shard_type = "custom"
 
-        # Detect distributed test files and determine execution mode
+        # Check for distributed test files: if any exist, run ALL cases as
+        # distributed (serial, no NPU binding). Otherwise run as regular
+        # (concurrent, NPU round-robin binding).
         has_distributed = has_distributed_test_files(planned_tests)
         if has_distributed:
+            shard_type = "distributed"
             effective_workers = 1
             execution_mode = "serial"
-            print(f"WARNING: Distributed test files detected, forcing serial execution")
         else:
+            shard_type = "regular"
             effective_workers = args.max_workers
             execution_mode = "concurrent"
 
         print(f"Test files specified: {len(planned_tests)}")
         print(f"Test directory: {test_dir}")
+        print(f"Test type: {shard_type}")
         print(f"Execution mode: {execution_mode} ({effective_workers} workers, pytest.main() per case, batched by file)")
         if has_distributed:
             distributed_files = [f for f in planned_tests if f.startswith("test/distributed/")]
