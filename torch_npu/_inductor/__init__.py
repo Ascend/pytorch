@@ -8,60 +8,53 @@ from torch._inductor.async_compile import AsyncCompile
 AsyncCompile.warm_pool()
 os.environ["TORCH_DEVICE_BACKEND_AUTOLOAD"] = ORG_AUTOLOAD
 
+import os
+
 # all backends need register npu/cpu/mps device_op_overrides
-from .codecache import patch_cache_base_get_system
-
+from .graph import patch_codegen_with_cpp_wrapper
+from .utils import patch_has_triton, patch_has_triton_tma, patch_is_gpu, get_current_raw_stream
 # All backends need npu/cpu/mps device_op_overrides.
-from .codegen.common import register_device_op_overrides_npu
-from .graph import patch_codegen_with_cpp_wrapper, patch_count_bytes, patch_run_node
+from .codegen.common import register_device_op_overrides_npu, patch_cache_base_get_system
+from torch._inductor.lowering import make_fallback as _ori_make_fallback
 from .shape_handling import NPUShapeHandling, patch_shape_handling
-from .utils import patch_has_triton, patch_has_triton_tma, patch_is_gpu
-from .autotune_process import patch_tuning_process, patch_tuning_process_pool
-from .codegen.cpp_utils import patch_device_to_aten
 register_device_op_overrides_npu()
-
 patch_has_triton()
-patch_has_triton_tma()
 patch_is_gpu()
-patch_cache_base_get_system()
+patch_has_triton_tma()
 patch_codegen_with_cpp_wrapper()
-patch_count_bytes()
-patch_run_node()
-patch_tuning_process()
-patch_tuning_process_pool()
-patch_device_to_aten()
-def _get_backend() -> str:
-    return os.getenv("TORCHINDUCTOR_NPU_BACKEND", "default")
-
-if _get_backend() == "mlir":
-    import torch
-    import torch_npu
-
-
+patch_cache_base_get_system()
 # Prevent RecursionError when formatting LoweringException for huge output tuples (e.g. many permute nodes).
 from .mfusion.safe_inductor_exc import apply_safe_operator_str_patch_if_enabled
 
 
 apply_safe_operator_str_patch_if_enabled()
+def _get_backend() -> str:
+    return os.getenv("TORCHINDUCTOR_NPU_BACKEND", "default")
 
-if os.getenv("TORCHINDUCTOR_NPU_BACKEND", "default") == "mlir":
+
+def _load_mlir_backend():
+    import torch
     try:
         import torch_mlir
         from torch_mlir import ir
     except ImportError as e:
         raise ImportError("torch_mlir is not installed, install it first.") from e
+    global _ori_make_fallback
+    torch._inductor.lowering.make_fallback = _ori_make_fallback
     from .ascend_npu_ir.ascend_npu_ir.npu import npu_inductor_plugin, torch_mlir_patch
-    device_id = torch_npu.npu.current_device()
-    torch_npu._C._recovery_all_npu_stream(device_id)
 
-elif _get_backend() == "dvm":
+
+def _load_dvm_backend():
     from .ascend_npu_ir.ascend_npu_ir.npu import npu_inductor_plugin
     from .dvm import mlir_fusion
 
 
-else:
+def _load_triton_backend():
     import os
-
+    import torch
+    has_triton = torch.utils._triton.has_triton()
+    if not has_triton:
+        return
     import logging
     log = logging.getLogger(__name__)
 
@@ -93,6 +86,7 @@ else:
         patch_get_cpp_torch_device_options,
         patch_get_optimization_cflags,
     )
+    from .codegen.cpp_utils import patch_device_to_aten
     from .decomposition import _register_npu_inductor_decompositons
     from .dependencies import patch_extract_read_writes
     from .fx_passes import patch_pattern_mm_plus_mm
@@ -122,7 +116,8 @@ else:
     from .shape_handling import NPUShapeHandling, patch_shape_handling
     from .utils import patch_get_first_incompatible_cudagraph_node
 
-
+    from .graph import patch_count_bytes, patch_run_node	 
+    from .autotune_process import patch_tuning_process, patch_tuning_process_pool 
     flex_attention._validate_device = _validate_device
 
     def _inductor_register_backend_for_device():
@@ -144,6 +139,7 @@ else:
     patch_constant_fold_uniform_value()
     patch_fallback_kernel_codegen()
     patch_aot_code_compiler_compile()
+    patch_device_to_aten()
 
     if npu_config.dump_fx_graph:
         from .codegen.ir_fx import _patch_npu_inductor_ir
@@ -218,6 +214,10 @@ else:
     patch_get_graph_partition_signature()
     patch_get_optimization_cflags()
     patch_extract_read_writes()
+    patch_count_bytes()	 
+    patch_run_node() 
+    patch_tuning_process() 
+    patch_tuning_process_pool() 
 
     def add_additional_op():
         from torch._inductor.ops_handler import OpsHandler
@@ -301,6 +301,22 @@ else:
             )
             os.environ["TORCHINDUCTOR_COMPILE_THREADS"] = "1"
             torch._inductor.config.compile_threads = 1
+
+_BACKEND_LOADERS = {
+    "mlir": _load_mlir_backend,
+    "dvm": _load_dvm_backend,
+    "default": _load_triton_backend,
+}
+
+
+def _load_backend():
+    backend = _get_backend()
+    loader = _BACKEND_LOADERS.get(backend, _load_triton_backend)
+    loader()
+    from ..utils._dynamo import _InductorNpuRegistry
+    _InductorNpuRegistry._loaded_backend = backend
+
+_load_backend()
 
 # Optional MFusion integration: patch Inductor fallback / post-grad when explicitly enabled.
 if os.getenv("TORCHINDUCTOR_ENABLE_MFUSION", "0") == "1":

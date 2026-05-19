@@ -25,7 +25,7 @@ from .decomp import patch_decomp
 from .fx_test import generate_dvm_fx_case
 from .graph_build import DvmCodegenInterpreter
 from .op_emitter import common_rule, DVM_OP_REGISTRY, DVM_SUPPORT_TYPE
-
+from torch._higher_order_ops.triton_kernel_wrap import triton_kernel_wrapper_mutation
 
 dump_fx_test = False
 uncont_policy = "fuse"
@@ -77,6 +77,9 @@ anir_config.GENERATE_LIST = [
     aten.squeeze,
     # aten.reshape,
     # aten.clone,
+    aten.lift_fresh_copy,
+ 	aten.lift_fresh_copy.default,
+ 	triton_kernel_wrapper_mutation,
 ]
 
 
@@ -274,7 +277,12 @@ def _patch_lowering_type_checks():
     ):
         if fallback_node_due_to_unsupported_type(node, allow_cpu_inputs):
             return True
-
+        if node.target is torch.ops.higher_order.triton_kernel_wrapper_functional:
+            return False
+        if node.target is torch.ops.higher_order.triton_kernel_wrapper_mutation:
+            return False
+        if node.target is aten.lift_fresh_copy.default:
+            return False
         if "val" in node.meta:
             for meta in pytree.tree_leaves(node.meta["val"]):
                 if not isinstance(meta, torch._subclasses.FakeTensor):
