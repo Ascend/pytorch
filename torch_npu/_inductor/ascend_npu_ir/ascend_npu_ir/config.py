@@ -237,6 +237,7 @@ FALLBACK_LIST = [
     aten.empty,
     aten.index,
     aten.copy_,
+    aten.native_layer_norm,
 ]
 
 

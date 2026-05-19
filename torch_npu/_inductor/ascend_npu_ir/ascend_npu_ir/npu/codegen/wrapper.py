@@ -140,13 +140,14 @@ class NpuMlirWrapperCodeGen(PythonWrapperCodegen):
         grid=None,
         device_index=None,
         gpu=True,
-        triton=True,
+        triton=False,
         arg_types=None,
         raw_args=None,
         grid_fn: str = "grid",
         triton_meta=None,
         autotune_configs=None,
         grid_extra_kwargs="",
+        device=None,
     ):
         """
         Generates kernel call code.
@@ -157,6 +158,17 @@ class NpuMlirWrapperCodeGen(PythonWrapperCodegen):
                 Otherwise it uses the CUDA language for codegen.
                 Only valid when cuda == True.
         """
+        if triton:
+            super().generate_kernel_call(
+            kernel_name,
+            call_args,
+            device=device,
+            triton=triton,
+            arg_types=arg_types,
+            raw_args=raw_args,
+            triton_meta=triton_meta
+            )
+            return
         if gpu:
             call_args_str = ", ".join(pexpr(item) for item in call_args)
             stream_name = self.write_get_raw_stream(
