@@ -81,6 +81,7 @@ except ImportError:
 
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, pta_error
+from torch_npu._inductor.npu_compare import check_accuracy_triton
 
 from ..codegen.tile_generator import TileGenerator
 from ..codegen.triton_utils import NPUKernelType
@@ -450,40 +451,6 @@ class NPUCachingAutotuner(CachingAutotuner):
 
         self.exceptions = []
         self.fn_name = None
-
-    @staticmethod
-    def api_accuracy_checker(expected, actual, kernel_name, dump_path):
-        from msprobe.core.common.const import CompareConst
-        from msprobe.pytorch.api_accuracy_checker.compare.compare_utils import BENCHMARK_COMPARE_SUPPORT_LIST
-        from msprobe.pytorch.api_accuracy_checker.triton_adapter.get_compare_result import get_compare_result
-        from msprobe.pytorch.api_accuracy_checker.triton_adapter.precision_compare import precision_compare
-        from msprobe.pytorch.api_accuracy_checker.triton_adapter.common.compare_utils import \
-            convert_compare_column_to_row, print_check_details
-        from msprobe.pytorch.api_accuracy_checker.triton_adapter.precision_standard.triton_standard_register import \
-            exist_in_precision_standard
-
-        dtype = actual.dtype
-
-        # only float use precision standard
-        if exist_in_precision_standard(kernel_name):
-            if str(dtype) in BENCHMARK_COMPARE_SUPPORT_LIST:
-                compare_column = precision_compare(kernel_name, expected, actual, dtype)  # calc metrics
-                compare_row = convert_compare_column_to_row(compare_column, kernel_name)
-                status = get_compare_result(compare_row, kernel_name)  # get compare results
-                if status == CompareConst.ERROR:
-                    log.warning(f'CHECK ACCURACY FAILED! kernel: {kernel_name}, Dump Path: {dump_path}')
-                    print_check_details(compare_column, kernel_name)
-                    actual.copy_(expected)
-                checked_by_msprobe = True
-            else:
-                log.warning(f'The data type {dtype} is not supported for new precision standard. '
-                            f'Check accuracy by tolerance method.')
-                checked_by_msprobe = False
-        else:
-            log.warning(f'kernel_name {kernel_name} does not in new precision standard. '
-                        f'Check accuracy by tolerance method.')
-            checked_by_msprobe = False
-        return checked_by_msprobe
 
     def precompile(
         self,
@@ -968,47 +935,6 @@ class NPUCachingAutotuner(CachingAutotuner):
             return None
         return dump_path
 
-    def get_fx_graph_call(self, auto_fallback=False):
-        kernel_name = self.inductor_meta.get("kernel_name", "triton_")
-        traced_graph_hash = self.inductor_meta.get("traced_graph_hash")
-        dump_dir = self.inductor_meta.get("traced_graph_dir", "")
-        dump_path = os.path.join(dump_dir, traced_graph_hash)
-        if dump_dir == "" or not os.path.exists(dump_path):
-            return None, None, None, None
-        sys.path.append(dump_path)
-        fx_module = importlib.import_module(traced_graph_hash)
-        sys.path.remove(dump_path)
-
-        model = fx_module.model
-        num_inputs = fx_module.num_inputs
-        num_outputs = fx_module.num_outputs
-        non_contiguous_indices = fx_module.non_contiguous_indices
-        mismatch_indices_shapes = fx_module.mismatch_indices_shapes
-
-        def fx_graph_call(*fx_args):
-            fx_inputs = [fx_args[idx].contiguous() if idx in non_contiguous_indices['inputs'] else \
-                             fx_args[idx] for idx in range(num_inputs)]
-            if len(mismatch_indices_shapes):
-                for ind, shape in mismatch_indices_shapes.items():
-                    if ind >= num_inputs:
-                        break
-                    fx_inputs[ind] = fx_inputs[ind].reshape(shape)
-            model_outputs = model.forward(*fx_inputs)
-            for idx, (out1, out2) in enumerate(zip(model_outputs, fx_args[num_inputs:(num_inputs + num_outputs)])):
-                out1 = out1.reshape(out2.shape)
-                if idx in non_contiguous_indices['outputs']:
-                    out2.copy_(out1)
-                else:
-                    out2.data = out1.data
-
-        def fallback_call(*args):
-            fx_args = [args[idx] for idx in fx_module.call_args_mapping]
-            return fx_graph_call(*fx_args)
-
-        if auto_fallback:
-            return fallback_call, kernel_name, None, None
-        return fx_graph_call, kernel_name, dump_path, fx_module
-
     def data_dump(self, *args, dump_path=None):
         dump_path = self.get_fx_graph_dump_path() if dump_path is None else dump_path
         if dump_path is None:
@@ -1029,61 +955,6 @@ class NPUCachingAutotuner(CachingAutotuner):
                 self.fn_name = self.kernel_name
         return self.fn_name
 
-    def check_accuracy(self, *args, launcher, grid, stream, **kwargs):
-        fx_graph_call, kernel_name, dump_path, fx_module = self.get_fx_graph_call()
-        if not fx_graph_call:
-            return None
-        call_outputs_indices = fx_module.call_args_mapping[fx_module.num_inputs:]
-
-        fx_args = []
-        for idx in fx_module.call_args_mapping:
-            arg = args[idx]
-            if isinstance(arg, torch.Tensor):
-                fx_arg = clone_preserve_strides(arg).float() if arg.dtype == torch.bfloat16 else clone_preserve_strides(
-                    arg)
-                fx_args.append(fx_arg)
-
-        fx_graph_call(*fx_args)
-
-        launcher(
-            *args,
-            **kwargs,
-            stream=stream,
-        )
-
-        try:
-            import msprobe
-            has_msprobe = True
-        except ImportError:
-            has_msprobe = False
-            warning_once(log, "msprobe import failed, please check. "
-                              "It may be due to missing dependencies or other factors. "
-                              "Check accuracy by tolerance method.")
-        for actual, expected in zip([args[i] for i in call_outputs_indices], fx_args[fx_module.num_inputs:]):
-            if actual.dtype != expected.dtype:
-                expected = expected.to(actual.dtype)
-            checked_by_msprobe = False
-            if has_msprobe:
-                checked_by_msprobe = self.api_accuracy_checker(expected, actual, kernel_name, dump_path)
-            if not has_msprobe or not checked_by_msprobe:
-                acc_comp_tol = npu_config.acc_comp_tol.get(actual.dtype, npu_config.acc_comp_tol['default'])
-                rtol = acc_comp_tol['rtol']
-                atol = acc_comp_tol['atol']
-
-                matches = torch.isclose(
-                    actual, expected, rtol=rtol, atol=atol, equal_nan=True
-                )
-                if not matches.all():
-                    abs_diff = torch.abs(actual - expected)
-                    rel_diff = abs_diff / torch.abs(expected)
-                    rel_diff.masked_fill_(matches, 0)
-                    log.warning(f"CHECK ACCURACY FAILED! Greatest Relative Difference: {rel_diff.max().item()}, "
-                                f"Kernel Name: {kernel_name}, Dump Path: {dump_path}")
-                del matches
-        for arg in fx_args:
-            del arg
-        return True
-
     @functools.lru_cache(None)
     def is_run_debug(self):
         return npu_config.dump_fx_graph or npu_config.check_accuracy
@@ -1100,7 +971,14 @@ class NPUCachingAutotuner(CachingAutotuner):
             _ = self.data_dump(*args)
 
         if npu_config.check_accuracy:
-            if self.check_accuracy(*args, launcher=launcher, grid=grid_, stream=stream, **kwargs):
+            if check_accuracy_triton(
+                *args,
+                launcher=launcher,
+                grid=grid_,
+                stream=stream,
+                inductor_meta=self.inductor_meta,
+                **kwargs
+            ):
                 return "check_accuracy"
 
         log.info(f"No debug mode is activated for kernel {kernel_name}.")

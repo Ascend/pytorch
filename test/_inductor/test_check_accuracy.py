@@ -1,6 +1,8 @@
 import os
 from unittest.mock import patch
 
+os.environ["INDUCTOR_ASCEND_CHECK_ACCURACY"] = "1"
+
 import torch
 import torch.nn.functional as F
 from torch.testing._internal.common_utils import run_tests
@@ -8,7 +10,6 @@ from testutils import TestUtils
 import torch_npu
 
 torch._inductor.config.fx_graph_cache = False
-os.environ["INDUCTOR_ASCEND_CHECK_ACCURACY"] = "1"
 
 
 class TestCheckAccuracy(TestUtils):
@@ -28,11 +29,11 @@ class TestCheckAccuracy(TestUtils):
                 nonlocal count_data_dump
                 count_data_dump += 1
             return status
-        
-        src_check_accuracy = NPUCachingAutotuner.check_accuracy
 
-        def wrap_check_accuracy(self, *args, **kwargs):
-            status = src_check_accuracy(self, *args, **kwargs)
+        src_check_accuracy = torch_npu._inductor.npu_compare.check_accuracy_triton
+
+        def wrap_check_accuracy(*args, **kwargs):
+            status = src_check_accuracy(*args, **kwargs)
             if status:
                 nonlocal count_check_accuracy
                 count_check_accuracy += 1
@@ -47,7 +48,7 @@ class TestCheckAccuracy(TestUtils):
         _ = run(x, y)
 
         with patch.object(NPUCachingAutotuner, "data_dump", wrap_data_dump), \
-            patch.object(NPUCachingAutotuner, "check_accuracy", wrap_check_accuracy):
+            patch.object(torch_npu._inductor.runtime.triton_heuristics, "check_accuracy_triton", wrap_check_accuracy):
             self.assertTrue(torch_npu._inductor.config.dump_fx_graph)
             self.assertTrue(torch_npu._inductor.config.check_accuracy)
             
