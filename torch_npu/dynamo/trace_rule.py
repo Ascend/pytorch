@@ -98,4 +98,3 @@ def _patch_npu_trace_rules():
     torch_module.constant_fold_functions_need_guards[torch.npu.current_device] = True
     torch_module.constant_fold_functions[torch.npu.is_available] = True
     common_constant_types.add(torch_npu._C._NPUDeviceProperties)
-
