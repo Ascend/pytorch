@@ -296,7 +296,7 @@ def main():
     if args.enable_compile:
         headers, values = torch._dynamo.utils.compile_times("csv")
         for header, value in zip(headers, values):
-            if header == "async_compile.wait":
+            if header == "PyCodeCache.load_by_key_path":
                 numbers = [float(num.strip()) for num in value.split(',') if num.strip()]
                 op_compile_time = sum(numbers)
         print(f"op_compile_time:{op_compile_time * 1e3} ms", )

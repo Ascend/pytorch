@@ -56,7 +56,7 @@ class TimingCallback(TrainerCallback):
         if self.profiler is not None:
             self.profiler.stop()
         if self.step_times:
-            valid_steps = self.step_times[100:] if len(self.step_times) > 100 else self.step_times
+            valid_steps = self.step_times[100:] if len(self.step_times) > 100 else self.step_times[10:]
             avg_time = sum(valid_steps) / len(valid_steps)
             total_time = sum(valid_steps)
            
@@ -75,8 +75,6 @@ def detect_device_type():
             return "cuda"
         try:
             if torch.npu.is_available():
-                import os
-                os.environ['TORCH_NPU_USE_COMPATIBLE_IMPL'] = '1'
                 return "npu"
         except ImportError:
             pass
