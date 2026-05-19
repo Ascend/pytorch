@@ -1178,7 +1178,7 @@ def _execute_worker_batch(
                     }
                     result_aggregator.add_case_result(timeout_result)
                     progress_tracker.mark_completed(
-                        hung_case.nodeid, "timeout", 0.0
+                        hung_case.nodeid, "timeout", hung_duration
                     )
                     completed_nodeids.add(hung_case.nodeid)
 
