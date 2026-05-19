@@ -68,10 +68,10 @@ runs:
         PIP=pip${{ inputs.python_version }}
 
         $PIP install --upgrade pip setuptools wheel
-        uv pip install torch==${{ inputs.pytorch_version }} --index-url https://download.pytorch.org/whl/cpu
+        uv pip install --system torch==${{ inputs.pytorch_version }} --index-url https://download.pytorch.org/whl/cpu
 
         TORCH_NPU_WHL=$(ls torch-npu-wheel-artifact/*.whl | head -1)
-        uv pip install "${TORCH_NPU_WHL}"
+        uv pip install --system "${TORCH_NPU_WHL}"
 
         echo "PyTorch ${{ inputs.pytorch_version }} and torch_npu installed from ${TORCH_NPU_WHL}"
 
@@ -97,7 +97,7 @@ runs:
         echo "Download URL: ${TRITON_ASCEND_URL}"
         curl -sL "${TRITON_ASCEND_URL}" -o "/tmp/${TRITON_ASCEND_WHL}" || echo "triton-ascend wheel download failed"
         if [ -f "/tmp/${TRITON_ASCEND_WHL}" ]; then
-          if uv pip install "/tmp/${TRITON_ASCEND_WHL}"; then
+          if uv pip install --system "/tmp/${TRITON_ASCEND_WHL}"; then
             echo "triton-ascend installed successfully"
           else
             echo "triton-ascend installation failed"
@@ -140,24 +140,24 @@ runs:
         echo "=== Installing PyTorch requirements.txt ==="
         cd pytorch-test-src
         if [ -f requirements.txt ]; then
-          uv pip install -r requirements.txt || echo "Some PyTorch dev dependencies may not be available"
+          uv pip install --system -r requirements.txt || echo "Some PyTorch dev dependencies may not be available"
         fi
 
         echo "=== Installing PyTorch CI requirements ==="
         if [ -f .ci/docker/requirements-ci.txt ]; then
-          uv pip install -r .ci/docker/requirements-ci.txt || echo "Some CI dependencies may not be available on this platform"
+          uv pip install --system -r .ci/docker/requirements-ci.txt || echo "Some CI dependencies may not be available on this platform"
         fi
 
         echo "=== Installing ascend_pytorch test requirements ==="
         cd ../ascend_pytorch
         if [ -f test/requirements.txt ]; then
-          uv pip install -r test/requirements.txt || echo "Some torch_npu test dependencies may not be available"
+          uv pip install --system -r test/requirements.txt || echo "Some torch_npu test dependencies may not be available"
         fi
 
         cd ../pytorch-test-src
 
         echo "=== Upgrading ml-dtypes to 0.5.4 ==="
-        uv pip install ml-dtypes==0.5.4 || echo "ml-dtypes upgrade failed"
+        uv pip install --system ml-dtypes==0.5.4 || echo "ml-dtypes upgrade failed"
 
         echo "=== Installed test dependencies ==="
         pip${{ inputs.python_version }} list | grep -E "pytest|onnx|z3|tensorboard|expecttest|hypothesis|torchvision|torch_geometric|ml-dtypes" | head -30
