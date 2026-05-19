@@ -39,8 +39,7 @@ GENERATE_LIST = [
     aten.min,
     aten.max,
     aten.erf,
-    aten.argmax,
-    aten.argmin,
+
     aten.clamp_min,
     aten.slice,
     aten.neg,
@@ -101,8 +100,7 @@ LOWERING_OVERLOAD_OP = [
     aten.min,
     aten.amin,
     aten.amax,
-    aten.argmax,
-    aten.argmin,
+
 
     aten.var_mean,
     aten.var,
