@@ -117,8 +117,9 @@ jobs:
           PIP=pip${{ inputs.python_version }}
 
           $PIP install --upgrade pip setuptools wheel
-          uv pip install --system torch==${{ inputs.pytorch_version }} --index-url https://download.pytorch.org/whl/cpu
-          uv pip install --system pyyaml
+          uv pip install --system --python python${{ inputs.python_version }} \
+            torch==${{ inputs.pytorch_version }} --index-url https://download.pytorch.org/whl/cpu
+          uv pip install --system --python python${{ inputs.python_version }} pyyaml
 
           TORCH_VER=$($PYTHON -c "import torch; print(torch.__version__)")
           echo "torch_version=${TORCH_VER}" >> $GITHUB_OUTPUT
