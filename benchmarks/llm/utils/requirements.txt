@@ -12,3 +12,4 @@ numpy==1.26.4
 protobuf==7.34.1
 huggingface-hub==0.36.2
 diffusers==0.37.0
+packaging==26.2

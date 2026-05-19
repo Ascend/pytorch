@@ -218,7 +218,7 @@ class GPT_OSS_20BTrainer:
             fp16=self.args.use_fp16,
             bf16=self.args.use_bf16,
             gradient_checkpointing=self.args.gradient_checkpointing,
-            report_to="tensorboard",
+            report_to="none",
             ddp_find_unused_parameters=False if torch.cuda.device_count() > 1 else None,
             remove_unused_columns=False,
         )
@@ -275,7 +275,7 @@ class GPT_OSS_20BTrainer:
         if self.args.enable_compile:
             headers, values = torch._dynamo.utils.compile_times("csv")
             for header, value in zip(headers, values):
-                if header == "async_compile.wait":
+                if header == "PyCodeCache.load_by_key_path":
                     numbers = [float(num.strip()) for num in value.split(',') if num.strip()]
                     op_compile_time = sum(numbers)
             print(f"op_compile_time:{op_compile_time * 1e3} ms", )
