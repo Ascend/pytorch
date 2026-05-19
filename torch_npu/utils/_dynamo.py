@@ -2,6 +2,7 @@ import inspect
 import os
 import sys
 from typing import Any, Optional, TYPE_CHECKING
+import importlib
 
 import torch
 import torch_npu
@@ -114,16 +115,20 @@ def TensorVariable_call_method(self, tx, name, args, kwargs):
 
 class _InductorNpuRegistry:
     _disabled_register = False
-    _has_inited = False
+    _loaded_backend = None
 
     @classmethod
     def register_inductor_npu(cls):
-        if cls.has_initialized() or cls._disabled_register:
+        if cls._disabled_register:
             return
-        from torch_npu import _inductor  # noqa: F401
 
-        cls._has_inited = True
-
+        current = os.getenv("TORCHINDUCTOR_NPU_BACKEND", "default")
+        if cls._loaded_backend != current:
+            if "torch_npu._inductor" not in sys.modules:
+                importlib.import_module("torch_npu._inductor")
+            else:
+                sys.modules["torch_npu._inductor"]._load_backend()
+            cls._loaded_backend = current
     @classmethod
     def disable_register(cls):
         cls._disabled_register = True
@@ -134,12 +139,7 @@ class _InductorNpuRegistry:
 
     @classmethod
     def has_initialized(cls):
-        if cls._has_inited:
-            return True
-        # Maybe initialized by call `import torch_npu._inductor` manually.
-        if "torch_npu._inductor" in sys.modules:
-            cls._has_inited = True
-        return cls._has_inited
+        return cls._loaded_backend is not None
 
 
 def is_inductor_npu_initialized():
@@ -196,28 +196,8 @@ def patch_inductor_wrapper():
             os.environ["TORCHINDUCTOR_NPU_BACKEND"] = "mlir"
             device_id = torch_npu.npu.current_device()
             torch_npu._C._recovery_all_npu_stream(device_id)
-            try:
-                import torch_mlir  # noqa: F401
-                from torch_mlir import ir  # noqa: F401
-            except ImportError as e:
-                raise ImportError(
-                    "torch_mlir is not installed, install it first."
-                ) from e
-            from torch._inductor.lowering import make_fallback as ori_make_fallback
 
-            torch._inductor.lowering.make_fallback = ori_make_fallback
-            from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu import (  # noqa: F401
-                npu_inductor_plugin,
-            )
-
-        elif (
-            self.config.get("npu_backend") == "default"
-            or torch._inductor.config.npu_backend == "default"
-        ):
-            os.environ["TORCHINDUCTOR_COMPREHENSIVE_PADDING"] = "0"
-            torch._inductor.config.comprehensive_padding = False
-            os.environ["TORCHINDUCTOR_COMPILE_THREADS"] = "1"
-            torch._inductor.config.compile_threads = 1
+        register_inductor_npu()
 
     _TorchCompileInductorWrapper.__call__ = new_call
     _TorchCompileInductorWrapper.__init__ = new_init

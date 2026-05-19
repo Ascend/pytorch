@@ -10,7 +10,6 @@ from torch.testing._internal.common_utils import (
 )
 from testutils import TestUtils
 import torch_npu
-import torch_npu._inductor
 
 
 class TestWrapTriton(TestUtils):

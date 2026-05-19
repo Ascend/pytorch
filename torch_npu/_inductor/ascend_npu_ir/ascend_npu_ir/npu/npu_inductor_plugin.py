@@ -13,9 +13,6 @@ from torch import Tensor
 
 from torch._dynamo.utils import set_current_node, UnsupportedFakeTensorException
 
-from torch.utils import  _triton
-_triton.has_triton = lambda: False
-
 from typing import (
     Set,
     Dict,

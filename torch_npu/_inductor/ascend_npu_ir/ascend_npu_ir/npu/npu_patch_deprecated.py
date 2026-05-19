@@ -25,17 +25,6 @@ def embedding_backward(grad, indices, num_weights, padding_idx, scale_grad_by_fr
 def py_contiguous(x, memory_format=torch.contiguous_format):
     return x.clone(memory_format=memory_format)
 
-
-@staticmethod
-@functools.lru_cache(None)
-def _patch_get_system() -> Dict[str, Any]:
-    system = {}
-    system["hash"] = hashlib.sha256(
-        json.dumps(system, sort_keys=True).encode("utf-8")
-    ).hexdigest()
-
-    return system
-
 def _patch_add_ephemeral_timeout_for_all_pgs(timeout: timedelta) -> None:
     """
     This API adds an ephemeral timeout extension for all PGs locally
@@ -60,7 +49,6 @@ def _patch_add_ephemeral_timeout_for_all_pgs(timeout: timedelta) -> None:
         if torch.device("npu") in devices:
             backend = pg._get_backend(torch.device("npu"))
                 
-CacheBase.get_system = _patch_get_system
 distributed_c10d._add_ephemeral_timeout_for_all_pgs = _patch_add_ephemeral_timeout_for_all_pgs
 
 if get_anir_mode() == 'O0':
