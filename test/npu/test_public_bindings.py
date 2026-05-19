@@ -576,6 +576,7 @@ class TestPublicBindings(TestCase):
             "torch_npu._inductor.dependencies",
             "torch_npu._inductor.npu_device",
             "torch_npu._inductor.npu_static_kernel",
+            "torch_npu._inductor.npu_compare",
             "torch_npu._inductor.utils",
             "torch_npu._inductor.codegen._sizevars",
             "torch_npu._inductor.codegen.common",
