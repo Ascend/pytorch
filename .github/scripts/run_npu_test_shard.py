@@ -1058,18 +1058,21 @@ def _execute_worker_batch(
                 "--test-dir", str(test_dir),
             ]
 
+            # Merge stderr into stdout to avoid pipe buffer deadlock.
+            # Worker outputs JSON lines on stdout; stderr (pytest warnings,
+            # C-extension logs, etc.) is merged and skipped by JSON parse.
             proc = subprocess.Popen(
                 worker_cmd,
                 cwd=str(test_dir),
                 env=merged_env,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
                 text=True,
                 encoding="utf-8",
                 errors="replace",
             )
 
-            # Read stdout JSON lines in real-time
+            # Read stdout JSON lines in real-time (stderr merged, non-JSON skipped)
             if proc.stdout:
                 for line in proc.stdout:
                     line = line.strip()
@@ -1078,7 +1081,7 @@ def _execute_worker_batch(
                     try:
                         case_result = json.loads(line)
                     except json.JSONDecodeError:
-                        continue  # skip non-JSON lines (pytest banner, warnings, etc.)
+                        continue  # skip non-JSON lines (pytest banner, warnings, stderr, etc.)
 
                     nodeid = case_result.get("nodeid", "")
                     status = case_result.get("status", "error")
@@ -1109,11 +1112,6 @@ def _execute_worker_batch(
                     attempt_completed.add(nodeid)
 
             returncode = proc.wait()
-
-            # Read any remaining stderr
-            stderr_output = ""
-            if proc.stderr:
-                stderr_output = proc.stderr.read()
 
             if returncode < 0:
                 # Worker killed by signal → coredump
