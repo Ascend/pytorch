@@ -7,6 +7,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Iterator
 
 import torch
 from torch._inductor.compile_fx import clone_preserve_strides
+from torch_npu._inductor.npu_compare import check_accuracy_mlir
 
 from .. import config as anir_config
 from .utils import replace_placeholders
@@ -101,74 +102,23 @@ class MetaCompiler:
         return failed_subgraph_dump_path
         
     def acc_compare_and_dump(self, *args, **kwargs):
-        from torch.testing._comparison import _make_mismatch_msg
         self.register_fx_fallback(self.kernel_meta)
-        launcher_fx = self.launchers[1]
-        launcher = self.launchers[0]
-
-        fx_outputs = [clone_preserve_strides(arg).to(torch.float32) if arg.dtype == torch.bfloat16 \
-                      else clone_preserve_strides(arg) for arg in args[-self.num_outputs:]]
-        fx_inputs = [clone_preserve_strides(arg) if isinstance(arg, torch.Tensor) else arg for arg in args[:-self.num_outputs]]
-        fx_inputs = [inp.float() if isinstance(inp, torch.Tensor) and inp.dtype == torch.bfloat16 else inp for inp in fx_inputs]
         
-        fx_args = fx_inputs + fx_outputs
-        launcher_fx(*fx_args, **kwargs)
-
-        if self.dynamic:
-            args_new = self.prepare_runtime_args(
-                list(args),
-            )
-        else:
-            args_new = args
-        
-        output = launcher(*args_new, **kwargs)
-
-        has_acc_error = False
-        num_inputs = len(args) - self.num_outputs
-        for idx, (actual, expected) in enumerate(zip(args[num_inputs:], fx_outputs)):
-            if actual.dtype != expected.dtype:
-                expected = expected.to(actual.dtype)
-            acc_comp_tol = anir_config.acc_comp_tol.get(actual.dtype, anir_config.acc_comp_tol['default'])
-            rtol = acc_comp_tol['rtol']
-            atol = acc_comp_tol['atol']
-            matches = torch.isclose(
-                actual, expected, rtol=rtol, atol=atol, equal_nan=True
-            )
-            if not matches.all():
-                abs_diff = abs(actual - expected)
-                rel_diff = abs_diff / abs(expected)
-                rel_diff.masked_fill_(matches, 0)
-                number_of_elements = matches.numel()
-                total_mismatches = number_of_elements - int(torch.sum(matches))
-                extra = (
-                    f"Mismatched elements: {total_mismatches} / {number_of_elements} "
-                    f"({total_mismatches / number_of_elements:.1%})"
-                )
-                msg = _make_mismatch_msg(
-                    default_identifier="Tensor-likes",
-                    identifier=None,
-                    extra=extra,
-                    abs_diff=abs_diff.max().item(),
-                    abs_diff_idx=None,
-                    atol=atol,
-                    rel_diff=rel_diff.max().item(),
-                    rel_diff_idx=None,
-                    rtol=rtol,
-                )
-                print(f"Kernel Name: {self.kernel_name}\n{msg}", flush=True)
-                has_acc_error = True
-
-                del abs_diff
-                del rel_diff
-            del matches
-            del expected
+        output, has_acc_error = check_accuracy_mlir(
+            *args,
+            kernel_name=self.kernel_name,
+            launchers=self.launchers,
+            num_outputs=self.num_outputs,
+            dynamic=self.dynamic,
+            **kwargs
+        )
         
         if anir_config.fx_subgraph_dump_path:
             data = args
             if has_acc_error:
                 data_dump_path = self.fx_subgraph_dump('acc_failed')
                 self.data_dump_fake(*data, dump_path=data_dump_path)
-        del fx_inputs
+
         torch.npu.synchronize()
         self.launchers = [self.launchers[0]]
         self.is_fallback_kernels = [self.is_fallback_kernels[0]]
