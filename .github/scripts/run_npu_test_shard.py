@@ -1086,11 +1086,12 @@ def _execute_worker_batch(
             reader_thread = threading.Thread(target=_read_stdout, daemon=True)
             reader_thread.start()
 
-            # Batch timeout: per-case timeout × number of cases + 5 min buffer
-            batch_timeout = max(
-                len(remaining_cases) * timeout + 300,
-                timeout + 300,  # at least enough for one case
-            )
+            # Batch timeout: per-case timeout + 30s buffer (matches original
+            # subprocess.run(timeout=per_case_timeout + 30) semantics).
+            # pytest-timeout handles normal per-case timeouts; this is the
+            # backup for when pytest-timeout can't kill a hung case (NPU
+            # driver hang, kernel deadlock, etc.).
+            batch_timeout = timeout + 30
 
             timeout_occurred = False
             try:
