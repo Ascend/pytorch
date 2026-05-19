@@ -1,3 +1,4 @@
+
 # 框架特性指南
 
 -   [概述](overview.md)
@@ -16,6 +17,13 @@
 -   [计算性能优化](./computing_performance_optimization.md)
     -   [自动绑核](./automatic_core_binding.md)
     -   [Stream级TaskQueue并行下发](./stream_taskqueue_parallel_delivery.md)
+    -   [编译优化](comp_opt.md)
+        -   [编译优化技术介绍](comp_opt_intro.md)
+        -   [安装毕昇编译器](install_bisheng_comp.md)
+        -   [编译优化（Python）](comp_opt_py.md)
+        -   [编译优化（PyTorch）](pytorch_comp_opt.md)
+        -   [编译优化（torch\_npu）](torch_npu_comp_opt.md)
+        -   [编译优化常见问题](comp_opt_faq.md)
 
 -   [辅助报错定位](./assisted_error_locating.md)
     -   [特征值检测](./feature_value_detection.md)
