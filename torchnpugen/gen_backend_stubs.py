@@ -37,7 +37,6 @@ from torchgen.gen import (
     parse_native_yaml,
     parse_tags_yaml,
 )
-from torchgen.gen_backend_stubs import gen_dispatchkey_nativefunc_headers
 from torchgen.model import (
     BackendIndex,
     BackendMetadata,
@@ -63,7 +62,6 @@ from torchnpugen.gen_functionalization_type import (
 )
 from torchnpugen.gen_npu_c_shim import gen_npu_c_shim_files
 from torchnpugen.utils import (
-    add_header_to_template_file,
     DEVICE_NOCHECK_SET,
     field_tag,
     filt_compositeimplicitautograd_api,
@@ -84,6 +82,7 @@ from torchnpugen.utils import (
     rename_privateuse1_dispatch_key,
     update_internal_format_opapi_info,
     update_opapi_info,
+    gen_dispatchkey_nativefunc_headers,
 )
 
 
@@ -1292,7 +1291,6 @@ def apply_torchgen_patch():
     dest.RegisterDispatchKey.gen_device_check = gen_device_check
     # generate default arguments
     JIT_TO_CPP_DEFAULT["contiguous_format"] = "c10::MemoryFormat::Contiguous"
-    add_header_to_template_file()
     dispatcher.arguments = native.arguments
 
 
