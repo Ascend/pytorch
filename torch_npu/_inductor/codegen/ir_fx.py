@@ -140,8 +140,7 @@ def _patch_reduction_create(
 
     if (
             isinstance(reduction_numel, ir.Integer)
-            and V.graph.sizevars.size_hint(reduction_numel)
-            < config.unroll_reductions_threshold
+            and int(reduction_numel) < config.unroll_reductions_threshold
             and (ir.sympy_product(ranges) != 1 or ir.is_gpu(device.type))
     ):
         # NB: This works around pytorch issues 140457

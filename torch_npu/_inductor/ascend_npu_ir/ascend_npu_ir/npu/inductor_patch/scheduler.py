@@ -56,7 +56,7 @@ def _npu_get_read_write_buffers_sizes(self) -> int:
         return 0
 
     def try_size_hint(s: sympy.Expr) -> int:
-        return V.graph.sizevars.size_hint(s, fallback=0)
+        return V.graph.sizevars.optimization_hint(s, fallback=0)
 
     if isinstance(self, SchedulerNode):
         node_numel = try_size_hint(

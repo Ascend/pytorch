@@ -1669,8 +1669,8 @@ class NPUIndexTritonKernel(TritonKernel):
 
         def size_hints(group):
             if isinstance(group, (list, tuple)):
-                return sv.size_hint(NumelList(group).numels())
-            return sv.size_hint(group)
+                return sv.optimization_hint(NumelList(group).numels())
+            return sv.optimization_hint(group)
 
         def add_multiple_range(size, return_getters):
             # need to break size in multiple
@@ -1704,13 +1704,11 @@ class NPUIndexTritonKernel(TritonKernel):
                     return_getters.append(lambda _: sympy.Integer(0))
                     continue
 
-                while (
-                        current_group < len(remaining)
-                        and size_hints(remaining[current_group]) == 1
+                while current_group < len(remaining) and sv.statically_known_equals(
+                    remaining[current_group], 1
                 ):
-                    # scroll to next group with remaining elements
                     current_group += 1
-                size_hint = sv.size_hint(size)
+                size_hint = sv.optimization_hint(size)
                 if size_hint > size_hints(remaining[current_group]):
                     # add multiple ranges (two or more) to the list, as well as the getter funcs
                     add_multiple_range(size_hint, return_getters)
@@ -1720,8 +1718,8 @@ class NPUIndexTritonKernel(TritonKernel):
                     )
             return_getters_groups.append(return_getters)
 
-        if not (all(V.graph.sizevars.size_hint(s) == 1 for s in remaining)):
-            raise RuntimeError("assert all(V.graph.sizevars.size_hint(s) == 1 for s in remaining)")
+        if not all(sv.guarding_hint_or_throw(s) == 1 for s in remaining):
+            raise RuntimeError(f"failed to set ranges {remaining} {lengths}")
 
         return new_ranges, return_getters_groups
 

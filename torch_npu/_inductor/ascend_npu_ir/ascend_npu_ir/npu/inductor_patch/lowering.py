@@ -1394,16 +1394,14 @@ def expand(x, sizes):
         return x
 
     if not free_unbacked_symbols(x.get_size()):
-        x_size_product = V.graph.sizevars.size_hint(sympy_product(x.get_size()))
+        x_size_product = V.graph.sizevars.guarding_hint_or_throw(sympy_product(x.get_size()))
         # TODO: It would be better to realize the input if any of its sizes
         # are unbacked, because typically the size will be non-zero.  However,
         # this cannot be done directly as below as we'll choke on the size_hint
         # here
         if x_size_product > 0 and not free_unbacked_symbols(sizes):
             # maybe realize input before broadcasting it
-            x.mark_reuse(
-                V.graph.sizevars.size_hint(sympy_product(sizes)) // x_size_product
-            )
+            x.mark_reuse(V.graph.sizevars.guarding_hint_or_throw(sympy_product(sizes)) // x_size_product)
     input_graphs = fetch_graphs([x.data, tuple(sizes)])
     node_name = f'expand_{next(node_id)}'
     new_graph = merge_traced_graphs(input_graphs, aten.expand, node_name)
@@ -1468,12 +1466,10 @@ def repeat(x, repeats):
                     index[i] = ModularIndexing(index[i], 1, old_size[i])
         return x_loader(index)
 
-    old_size_product = V.graph.sizevars.size_hint(sympy_product(old_size))
-    if old_size_product > 0:
-        # maybe realize the input
-        x.mark_reuse(
-            V.graph.sizevars.size_hint(sympy_product(new_size)) // old_size_product
-        )
+    if not free_unbacked_symbols(old_size) and not free_unbacked_symbols(new_size):
+        old_size_product = V.graph.sizevars.guarding_hint_or_throw(sympy_product(old_size))
+        if old_size_product > 0:
+            x.mark_reuse(V.graph.sizevars.guarding_hint_or_throw(sympy_product(new_size)) // old_size_product)
 
     x_loader = x.make_loader()
     return Pointwise.create(
@@ -2161,8 +2157,8 @@ def unfold(x, dimension, size, step):
     sizevars.guard_lt(0, step)  # type: ignore[arg-type]
 
     new_dim_size = FloorDiv(dim_size - size, step) + 1
-    if sizevars.size_hint(dim_size) > 0:
-        x.mark_reuse(sizevars.size_hint(CeilDiv(new_dim_size * size, dim_size)))
+    if sizevars.guarding_hint_or_throw(dim_size) > 0:
+        x.mark_reuse(sizevars.guarding_hint_or_throw(CeilDiv(new_dim_size * size, dim_size)))
 
     out_size = [*sizes[:dim], new_dim_size, *sizes[dim + 1 :], size]
 
@@ -2310,8 +2306,9 @@ def fallback_node_due_to_unsupported_type(node: torch.fx.Node, allow_cpu_inputs=
     return check_skip_condition(node, node, is_output=True)
 
 
-def make_fallback(op, layout_constraint=None, warn=True, override_decomp=False):
-    assert op not in decompositions or override_decomp, (
+def make_fallback(op, layout_constraint=None, warn=True, override_decomp=False, get_decomp_fn=None):
+    check_decomps = get_decomp_fn() if get_decomp_fn is not None else decompositions
+    assert op not in check_decomps or override_decomp, (
         f"both a fallback and a decomp for same op: {op}"
     )
     if (
@@ -2908,7 +2905,9 @@ def sdpa_constraint(fx_node, *args, **kwargs):
             )
 
         def is_aligned(x):
-            return (V.graph.sizevars.size_hint(x.get_size()[-1]) % ALIGNMENT) == 0
+            return V.graph.sizevars.guard_or_false(
+                sympy.Eq(Mod(x.get_size()[-1], ALIGNMENT), 0)
+            )
 
         if isinstance(arg.data, ir.BaseView):
             if not is_aligned(arg):
@@ -3678,7 +3677,7 @@ def new_empty_strided(
 
 @register_lowering(prims.copy_strided.default)
 def copy_strided(x, stride):
-    stride = [V.graph.sizevars.size_hint(s) for s in stride]
+    stride = V.graph.sizevars.guarding_hints_or_throw(stride)
     stride_order = sorted(range(len(stride)), key=stride.__getitem__)
     return ir.ExternKernel.require_stride_order(x, stride_order)
 
@@ -4690,13 +4689,13 @@ def pooling_size(x, i, kernel_size, stride, padding, ceil_mode):
         x_alt = FloorDiv(
             x + 2 * padding[i] - (kernel_size[i] - 1) + 2 * (stride[i] - 1), stride[i]
         )
-        if V.graph.sizevars.size_hint((x_alt - 1) * stride[i] - x - padding[i]) >= 0:
+        if V.graph.sizevars.guard_or_false(
+            sympy.Ge((x_alt - 1) * stride[i] - x - padding[i], 0)
+        ):
             # Sliding windows must start within the input or left padding
             x_alt -= 1  # type: ignore[assignment]
-            V.graph.sizevars.guard_leq(0, x_alt * stride[i] - x - padding[i])  # type: ignore[arg-type]
-        if V.graph.sizevars.size_hint(x_out - x_alt) == 0:
+        if V.graph.sizevars.guard_or_false(sympy.Eq(x_out, x_alt)):
             # ceil mode is actually a no-op, lets guard on that
-            V.graph.sizevars.check_equals(x_out, x_alt)
             ceil_mode = False
         else:
             x_out = x_alt
@@ -7379,10 +7378,7 @@ def prepare_softmax_online(x, dim):
         reduction_numel=rnumel,
     )
 
-    if (
-        num_split == 1
-        and V.graph.sizevars.size_hint(rnumel) >= config.unroll_reductions_threshold
-    ):
+    if num_split == 1 and V.graph.sizevars.statically_known_geq(rnumel, config.unroll_reductions_threshold):
         max_tensor, sum_tensor = OnlineSoftmaxReduction.create(
             input_node=x, num_output=2, reduction_hint=hint, **kwargs
         )
