@@ -37,7 +37,6 @@ RUN if [ "$CONFIG_FOR_LCOV" = "1" ]; then \
     yum install -y perl-CPAN*; \
     fi
 
-RUN yum install -y vim-common
 
 # Install pip package(build)
 RUN pip3.9 install pyyaml  \
