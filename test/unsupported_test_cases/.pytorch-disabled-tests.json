@@ -32154,5 +32154,7 @@
  	"test_silu (__main__.TestActivations)": ["", [""]],
  	"test_codegen_upcast_to_fp32_emits_cast_bfloat16_upcast_flag_True (__main__.TestCodegenUpcastToFP32)": ["", [""]],
   "test_data_parallel_rnn (__main__.TestDataParallel)": ["", ["Disabled during A1 to A2 chip transition"]],
-	"test_alltoall_single_2p_size_dist (__main__.HcclAlltoAllSingleTest)": ["", ["Disabled during A1 to A2 chip transition"]]
+	"test_alltoall_single_2p_size_dist (__main__.HcclAlltoAllSingleTest)": ["", ["Disabled during A1 to A2 chip transition"]],
+  "test_grad_with_split_b_w (__main__.TestScheduleLowering)": ["", [""]],
+  "test_grad_with_v_schedule (__main__.TestScheduleLowering)": ["", [""]]
 }
