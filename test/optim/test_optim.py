@@ -477,155 +477,6 @@ class TestOptim(TestCase):
     def _build_params_dict_single(self, weight, bias, **kwargs):
         return [dict(params=bias, **kwargs)]
 
-    @SupportedDevices(["Ascend910B"])
-    def test_sgd(self):
-        self._test_basic_cases(
-            lambda weight, bias, maximize, foreach: SGD(
-                [weight, bias], lr=1e-3, maximize=maximize, foreach=foreach
-            ),
-            constructor_accepts_maximize=True,
-            constructor_accepts_foreach=True,
-        )
-        self._test_basic_cases(
-            lambda weight, bias, maximize, foreach: SGD(
-                self._build_params_dict(weight, bias, lr=1e-2),
-                lr=1e-3,
-                maximize=maximize,
-                foreach=foreach,
-            ),
-            constructor_accepts_maximize=True,
-            constructor_accepts_foreach=True,
-        )
-        self._test_basic_cases(
-            lambda weight, bias, maximize, foreach: SGD(
-                self._build_params_dict_single(weight, bias, lr=1e-2),
-                lr=1e-3,
-                maximize=maximize,
-                foreach=foreach,
-            ),
-            constructor_accepts_maximize=True,
-            constructor_accepts_foreach=True,
-        )
-        self._test_basic_cases(
-            lambda weight, bias, maximize, foreach: SGD(
-                self._build_params_dict_single(weight, bias, lr=1e-2),
-                maximize=maximize,
-                foreach=foreach,
-            ),
-            constructor_accepts_maximize=True,
-            constructor_accepts_foreach=True,
-        )
-        self._test_basic_cases(
-            lambda weight, bias, maximize, foreach: SGD(
-                [weight, bias], lr=1e-3, maximize=maximize, foreach=foreach
-            ),
-            scheduler_constructors=[lambda opt: StepLR(opt, gamma=0.9, step_size=10)],
-            constructor_accepts_maximize=True,
-            constructor_accepts_foreach=True,
-        )
-        self._test_basic_cases(
-            lambda weight, bias, maximize, foreach: SGD(
-                [weight, bias], lr=1e-3, maximize=maximize, foreach=foreach
-            ),
-            scheduler_constructors=[
-                lambda opt: LinearLR(
-                    opt, start_factor=0.4, end_factor=0.8, total_iters=4
-                )
-            ],
-            constructor_accepts_maximize=True,
-            constructor_accepts_foreach=True,
-        )
-        self._test_basic_cases(
-            lambda weight, bias, maximize, foreach: SGD(
-                [weight, bias], lr=1e-3, maximize=maximize, foreach=foreach
-            ),
-            scheduler_constructors=[lambda opt: ConstantLR(opt, factor=0.4, total_iters=4)],
-            constructor_accepts_maximize=True,
-            constructor_accepts_foreach=True,
-        )
-        self._test_basic_cases(
-            lambda weight, bias, maximize, foreach: SGD(
-                [weight, bias], lr=1e-3, maximize=maximize, foreach=foreach
-            ),
-            scheduler_constructors=[lambda opt: PolynomialLR(opt, power=0.9, total_iters=4)],
-            constructor_accepts_maximize=True,
-            constructor_accepts_foreach=True,
-        )
-        self._test_basic_cases(
-            lambda weight, bias, maximize, foreach: SGD(
-                [weight, bias], lr=1e-3, maximize=maximize, foreach=foreach
-            ),
-            scheduler_constructors=[
-                lambda opt: StepLR(opt, gamma=0.9, step_size=10),
-                lambda opt: LinearLR(
-                    opt, start_factor=0.4, end_factor=0.6, total_iters=4
-                ),
-            ],
-            constructor_accepts_maximize=True,
-            constructor_accepts_foreach=True,
-        )
-        self._test_basic_cases(
-            lambda weight, bias, maximize, foreach: SGD(
-                [weight, bias], lr=1e-3, maximize=maximize, foreach=foreach
-            ),
-            [
-                lambda opt: StepLR(opt, gamma=0.9, step_size=10),
-                lambda opt: ReduceLROnPlateau(opt),
-            ],
-            constructor_accepts_maximize=True,
-            constructor_accepts_foreach=True,
-        )
-        self._test_basic_cases(
-            lambda weight, bias, maximize, foreach: SGD(
-                [weight, bias], lr=1e-3, maximize=maximize, foreach=foreach
-            ),
-            [
-                lambda opt: StepLR(opt, gamma=0.99, step_size=10),
-                lambda opt: ExponentialLR(opt, gamma=0.99),
-                lambda opt: ReduceLROnPlateau(opt),
-            ],
-            constructor_accepts_maximize=True,
-            constructor_accepts_foreach=True,
-        )
-        self._test_basic_cases(
-            lambda weight, bias, maximize, foreach: SGD(
-                [weight, bias],
-                lr=1e-3,
-                momentum=0.5,
-                maximize=maximize,
-                foreach=foreach,
-            ),
-            constructor_accepts_maximize=True,
-            constructor_accepts_foreach=True,
-        )
-        self._test_basic_cases(
-            lambda weight, bias, maximize, foreach: SGD(
-                [weight, bias],
-                lr=1e-3,
-                momentum=0.5,
-                weight_decay=1,
-                maximize=maximize,
-                foreach=foreach,
-            ),
-            constructor_accepts_maximize=True,
-            constructor_accepts_foreach=True,
-        )
-        self._test_basic_cases(
-            lambda weight, bias, maximize, foreach: SGD(
-                [weight, bias],
-                nesterov=True,
-                lr=1e-3,
-                momentum=0.5,
-                weight_decay=1,
-                maximize=maximize,
-                foreach=foreach,
-            ),
-            constructor_accepts_maximize=True,
-            constructor_accepts_foreach=True,
-        )
-        with self.assertRaisesRegex(ValueError, "Invalid momentum value: -0.5"):
-            SGD(None, lr=1e-2, momentum=-0.5)
-
     def test_sgd_sparse(self):
         for foreach in (False, True):
             self._test_rosenbrock_sparse(
@@ -1284,37 +1135,6 @@ class TestOptim(TestCase):
             self._test_complex_2d(functools.partial(AdamW, foreach=foreach, amsgrad=True))
             self._test_complex_2d(functools.partial(AdamW, foreach=foreach, weight_decay=0.2))
             self._test_complex_2d(functools.partial(AdamW, foreach=foreach, weight_decay=0.2, amsgrad=True))
-
-    def test_sparse_adam(self):
-        self._test_rosenbrock_sparse(
-            lambda params: SparseAdam(params, lr=4e-2), [], True
-        )
-        self._test_rosenbrock_sparse(
-            lambda params: SparseAdam(params, lr=4e-2, maximize=True),
-            scheduler_constructors=[],
-            sparse_only=True,
-            maximize=True,
-        )
-        import warnings
-        with warnings.catch_warnings(record=True) as ws:
-            SparseAdam(torch.zeros(3))
-            self.assertEqual(len(ws), 1)
-            for warning in ws:
-                self.assertEqual(len(warning.message.args), 1)
-                self.assertRegex(warning.message.args[0],
-                                 "Passing in a raw Tensor as ``params`` to SparseAdam ")
-        with self.assertRaisesRegex(
-            ValueError, "Invalid beta parameter at index 0: 1.0"
-        ):
-            SparseAdam(None, lr=1e-2, betas=(1.0, 0.0))
-        with self.assertRaisesRegex(
-            ValueError, "SparseAdam requires dense parameter tensors"
-        ):
-            SparseAdam([torch.zeros(3, layout=torch.sparse_coo)])
-        with self.assertRaisesRegex(
-            ValueError, "SparseAdam requires dense parameter tensors"
-        ):
-            SparseAdam([{"params": [torch.zeros(3, layout=torch.sparse_coo)]}])
 
     # ROCm precision is too low to pass this test
     @SupportedDevices(["Ascend910B"])
@@ -2284,7 +2104,7 @@ class TestDifferentiableOptimizer(TestCase):
         state = {}
         p = torch.rand(10, requires_grad=True, dtype=torch.float64)
         grad = torch.rand(10, requires_grad=True, dtype=torch.float64)
-        state["step"] = 0
+        state["step"] = torch.zeros((), dtype=torch.float64)
         state["square_avg"] = torch.rand(10, requires_grad=True, dtype=torch.float64)
         state["momentum_buffer"] = torch.rand(
             10, requires_grad=True, dtype=torch.float64

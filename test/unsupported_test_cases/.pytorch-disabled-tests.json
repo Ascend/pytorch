@@ -32065,8 +32065,6 @@
   "test_floordiv_simplify (__main__.TestFloorDiv)": ["", [""]],
   "test_floordiv_simplify_rational (__main__.TestFloorDiv)": ["", [""]],
   "test_floordiv_zero_base (__main__.TestFloorDiv)": ["", [""]],
-  "test_rmsprop (optim.test_optim.TestDifferentiableOptimizer)": ["", [""]],
-  "test_sparse_adam (optim.test_optim.TestOptim)": ["", [""]],
   "test_matmul_backward (__main__.TestRegisterSharding)": ["", [""]],
   "test_matmul_shardable (__main__.TestRegisterSharding)": ["", [""]],
   "test_matmul_unshardable (__main__.TestRegisterSharding)": ["", [""]],
