@@ -53,6 +53,6 @@ jobs:
     with:
       python_version: ${{ github.event.inputs.python_version || '3.11' }}
       pytorch_version: ${{ github.event.inputs.pytorch_version || '2.7.1' }}
-      distributed_shards: ${{ github.event.inputs.distributed_shards || '2' }}
+      distributed_shards: ${{ github.event.inputs.distributed_shards || '5' }}
       regular_shards: ${{ github.event.inputs.regular_shards || '5' }}
       test_files: ${{ github.event.inputs.test_files || '' }}
