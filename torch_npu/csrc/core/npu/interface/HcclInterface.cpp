@@ -4,27 +4,28 @@
 
 namespace at_npu {
 namespace hccl {
-#undef LOAD_FUNCTION
-#define LOAD_FUNCTION(funcName) \
-    REGISTER_FUNCTION(libhccl, funcName)
-#undef GET_FUNC
-#define GET_FUNC(funcName) \
-    GET_FUNCTION(libhccl, funcName)
+#undef TORCH_NPU_LOAD_FUNC
+#define TORCH_NPU_LOAD_FUNC(funcName) \
+    TORCH_NPU_REGISTER_FUNCTION(libhccl, funcName)
 
-REGISTER_LIBRARY(libhccl)
-LOAD_FUNCTION(HcclGetCommName)
-LOAD_FUNCTION(HcclCommResume)
-LOAD_FUNCTION(HcclCommSetMemoryRange)
-LOAD_FUNCTION(HcclCommUnsetMemoryRange)
-LOAD_FUNCTION(HcclCommActivateCommMemory)
-LOAD_FUNCTION(HcclCommDeactivateCommMemory)
+#undef TORCH_NPU_GET_FUNC
+#define TORCH_NPU_GET_FUNC(funcName) \
+    TORCH_NPU_GET_FUNCTION(libhccl, funcName)
+
+TORCH_NPU_REGISTER_LIBRARY(libhccl)
+TORCH_NPU_LOAD_FUNC(HcclGetCommName)
+TORCH_NPU_LOAD_FUNC(HcclCommResume)
+TORCH_NPU_LOAD_FUNC(HcclCommSetMemoryRange)
+TORCH_NPU_LOAD_FUNC(HcclCommUnsetMemoryRange)
+TORCH_NPU_LOAD_FUNC(HcclCommActivateCommMemory)
+TORCH_NPU_LOAD_FUNC(HcclCommDeactivateCommMemory)
 
 extern HcclResult HcclGetCommNameFace(HcclComm commHandle, char* commName) {
     typedef HcclResult (*HcclGetCommNameFace)(HcclComm commHandle, char* commName);
     static HcclGetCommNameFace func = nullptr;
     if (func == nullptr)
     {
-        func = (HcclGetCommNameFace)GET_FUNC(HcclGetCommName);
+        func = (HcclGetCommNameFace)TORCH_NPU_GET_FUNC(HcclGetCommName);
     }
     TORCH_CHECK(func, "Failed to find function HcclGetCommName,"
                 " maybe you cann version is too low, please upgrade it",
@@ -37,7 +38,7 @@ extern HcclResult HcclCommResumeFace(HcclComm comm)
     typedef HcclResult (*HcclCommResumeFace)(HcclComm comm);
     static HcclCommResumeFace func = nullptr;
     if (func == nullptr) {
-        func = (HcclCommResumeFace)GET_FUNC(HcclCommResume);
+        func = (HcclCommResumeFace)TORCH_NPU_GET_FUNC(HcclCommResume);
     }
     TORCH_CHECK(func, "Failed to find function HcclCommResume,"
                 " maybe you cann version is too low, please upgrade it", DIST_ERROR(ErrCode::NOT_FOUND));
@@ -47,7 +48,7 @@ extern HcclResult HcclCommResumeFace(HcclComm comm)
 extern bool isHcclFeatureSupported(HcclCommConfigCapability configParameter)
 {
     typedef uint32_t(*HcclGetCommConfigCapabilityFunc)();
-    static HcclGetCommConfigCapabilityFunc func = (HcclGetCommConfigCapabilityFunc) GET_FUNC(
+    static HcclGetCommConfigCapabilityFunc func = (HcclGetCommConfigCapabilityFunc) TORCH_NPU_GET_FUNC(
             HcclGetCommConfigCapability);
     if (func == nullptr) {
         return false;
@@ -61,7 +62,7 @@ HcclResult HcclCommSetMemoryRangeFace(HcclComm comm, void *virPtr, size_t size, 
             uint64_t flags);
     static HcclCommSetMemoryRangeFace func = nullptr;
     if (func == nullptr) {
-        func = (HcclCommSetMemoryRangeFace)GET_FUNC(HcclCommSetMemoryRange);
+        func = (HcclCommSetMemoryRangeFace)TORCH_NPU_GET_FUNC(HcclCommSetMemoryRange);
     }
     TORCH_CHECK(func, "Failed to find function HcclCommSetMemoryRange,"
                       " maybe you cann version is too low, please upgrade it", DIST_ERROR(ErrCode::NOT_FOUND));
@@ -73,7 +74,7 @@ HcclResult HcclCommUnsetMemoryRangeFace(HcclComm comm, void *virPtr)
     typedef HcclResult (*HcclCommUnsetMemoryRangeFace)(HcclComm comm, void *virPtr);
     static HcclCommUnsetMemoryRangeFace func = nullptr;
     if (func == nullptr) {
-        func = (HcclCommUnsetMemoryRangeFace)GET_FUNC(HcclCommUnsetMemoryRange);
+        func = (HcclCommUnsetMemoryRangeFace)TORCH_NPU_GET_FUNC(HcclCommUnsetMemoryRange);
     }
     TORCH_CHECK(func, "Failed to find function HcclCommUnsetMemoryRange,"
                       " maybe you cann version is too low, please upgrade it", DIST_ERROR(ErrCode::NOT_FOUND));
@@ -87,7 +88,7 @@ HcclResult HcclCommActivateCommMemoryFace(HcclComm comm, void *virPtr, size_t si
             aclrtDrvMemHandle handle, uint64_t flags);
     static HcclCommActivateCommMemoryFace func = nullptr;
     if (func == nullptr) {
-        func = (HcclCommActivateCommMemoryFace)GET_FUNC(HcclCommActivateCommMemory);
+        func = (HcclCommActivateCommMemoryFace)TORCH_NPU_GET_FUNC(HcclCommActivateCommMemory);
     }
     TORCH_CHECK(func, "Failed to find function HcclCommActivateCommMemory,"
                       " maybe you cann version is too low, please upgrade it", DIST_ERROR(ErrCode::NOT_FOUND));
@@ -99,7 +100,7 @@ HcclResult HcclCommDeactivateCommMemoryFace(HcclComm comm, void *virPtr)
     typedef HcclResult (*HcclCommDeactivateCommMemoryFace)(HcclComm comm, void *virPtr);
     static HcclCommDeactivateCommMemoryFace func = nullptr;
     if (func == nullptr) {
-        func = (HcclCommDeactivateCommMemoryFace)GET_FUNC(HcclCommDeactivateCommMemory);
+        func = (HcclCommDeactivateCommMemoryFace)TORCH_NPU_GET_FUNC(HcclCommDeactivateCommMemory);
     }
     TORCH_CHECK(func, "Failed to find function HcclCommDeactivateCommMemory,"
                       " maybe you cann version is too low, please upgrade it", DIST_ERROR(ErrCode::NOT_FOUND));

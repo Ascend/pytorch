@@ -13,6 +13,7 @@
   - [4.1 eager mode（默认）](#41-eager-mode默认)
   - [4.2 启用 torchcompile（可选）](#42-启用-torchcompile可选)
   - [4.3 采集profile文件（可选）](#43-采集profile文件可选)
+
 ---
 
 ### 环境配置
@@ -42,6 +43,7 @@ python ../utils/download_hf.py --model openai/gpt-oss-20b --save_path ./gpt-oss-
   https://github.com/hiyouga/LlamaFactory/blob/main/data/c4_demo.jsonl
 
 或直接下载 raw 文件到本地：
+
 ```bash
 wget -O c4_demo.json \
 https://github.com/hiyouga/LlamaFactory/blob/main/data/c4_demo.jsonl
@@ -50,7 +52,6 @@ https://github.com/hiyouga/LlamaFactory/blob/main/data/c4_demo.jsonl
 ## 3. 数据预处理
 
 在`train_gpt-oss_4B.py`中已经对数据进行了处理
-
 
 ## 4. 模型训练
 
@@ -73,12 +74,14 @@ bash run_gpt-oss.sh
 当在 GPU 上训练时，默认后端使用triton；当在 NPU 上训练时，可进一步指定后端为 mlir 或 dvm，默认使用 mlir。
 
 **默认后端（mlir，可不写 --npu-backend）：**
+
 ```bash
 bash run_gpt-oss.sh \
   --enable_compile
 ```
 
 **显式指定后端为 mlir：**
+
 ```bash
 bash run_gpt-oss.sh \
   --enable_compile \
@@ -86,10 +89,20 @@ bash run_gpt-oss.sh \
 ```
 
 **切换后端为 dvm：**
+
 ```bash
 bash run_gpt-oss.sh \
   --enable_compile \
   --npu-backend dvm
+```
+
+当在 NPU 上训练时，可通过 `--mfusion` 参数开启 MFusion 图算融合优化功能, 配合不同的NPU图模式后端, 进一步提升模型的性能，使用示例如下
+
+```bash
+bash run_gpt-oss.sh \
+  --enable_compile \
+  --npu-backend dvm \
+  --mfusion
 ```
 
 ### 4.3 采集profile文件（可选）
@@ -102,4 +115,5 @@ bash run_gpt-oss.sh \
   --profiler_start_step 5 \
   --profiler_end_step 6 \
 ```
-可以通过 `--profiler_start_step ` 和 `--profiler_end_step` 分别设置profile开始和结束步数。
+
+可以通过 `--profiler_start_step` 和 `--profiler_end_step` 分别设置profile开始和结束步数。

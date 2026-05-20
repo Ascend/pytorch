@@ -10,11 +10,12 @@ index 871b643..b13da9b 100644
  import re
  import unittest
  import warnings
-@@ -22,6 +23,9 @@ from torch._subclasses.fake_utils import outputs_alias_inputs
+@@ -22,6 +23,10 @@ from torch._subclasses.fake_utils import outputs_alias_inputs
  from torch.testing import make_tensor
  from torch.testing._internal import composite_compliance, opinfo
  from torch.testing._internal.common_cuda import with_tf32_off
 +import torch_npu
++import torch_npu.testing
 +torch_npu.npu.config.allow_internal_format = False
 +
  from torch.testing._internal.common_device_type import (

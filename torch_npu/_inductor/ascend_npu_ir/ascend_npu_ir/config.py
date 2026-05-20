@@ -275,7 +275,8 @@ FALLBACK_LIST = [
     npu._npu_dropout,
     aten.empty,
     aten.index,
-    aten.copy_
+    aten.copy_,
+    aten.native_layer_norm,
 ]
 
 

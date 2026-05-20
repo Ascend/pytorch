@@ -60,7 +60,7 @@ from torch._functorch.aot_autograd import set_model_name
 from torch._inductor import config as inductor_config
 from torch.utils._pytree import tree_map, tree_map_only
 from tqdm.auto import tqdm, trange
-
+from torch._inductor.utils import fresh_inductor_cache
 
 try:
     import torch_npu
@@ -74,20 +74,175 @@ except ImportError:
     is_npu_available = False
     from profiler import CUDAProfiler
 
-from benchmark.userbenchmark.dynamo.dynamobench.common import (
-    cast_to_bf16,
-    cast_to_fp16,
-    cast_to_fp32,
-    cast_to_fp64,
-    DummyGradScaler,
-    load_model_from_path,
-    maybe_fresh_cache,
-    maybe_init_distributed,
-    null_experiment,
-    randomize_input,
-    Stats,
-)
 
+def cast_to(dtype, model, inputs):
+    # cast model and inputs to fp16
+    if dtype == torch.float16:
+        model = model.half()
+    else:
+        model = model.to(dtype)
+
+    inputs = tree_map(
+        lambda x: x.to(dtype)
+        if isinstance(x, torch.Tensor) and x.is_floating_point()
+        else x,
+        inputs,
+    )
+    return model, inputs
+
+def cast_to_bf16(model, inputs):
+    return cast_to(torch.bfloat16, model, inputs)
+
+
+def cast_to_fp16(model, inputs):
+    return cast_to(torch.float16, model, inputs)
+
+
+def cast_to_fp64(model, inputs):
+    return cast_to(torch.float64, model, inputs)
+
+
+def cast_to_fp32(model, inputs):
+    return cast_to(torch.float32, model, inputs)
+
+
+class DummyGradScaler:
+    def scale(self, loss):
+        return loss
+
+def load_model_from_path(path_and_class_str):
+    configs = {}
+    for kvstr in path_and_class_str.split(","):
+        k, v = kvstr.split(":")
+        configs[k] = v
+
+    for name in ["path", "class"]:
+        if name not in configs:
+            raise RuntimeError(
+                "Invalid --only arguments. Check help message for the correct format"
+            )
+
+    path = configs["path"]
+    class_name = configs["class"]
+
+    if path[:1] != "/":
+        raise RuntimeError(
+            "Use absolute path since dynamo may change the current working directory which makes using relative path tricky"
+        )
+
+    spec = importlib.util.spec_from_file_location("module_name", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    model_class = getattr(module, class_name)
+    if not isinstance(model_class, type) or not issubclass(model_class, torch.nn.Module):
+        raise TypeError(
+            f"Loaded object '{class_name}' from '{path}' must be a torch.nn.Module subclass, got: {model_class!r}"
+        )
+    model = model_class()
+    get_example_inputs = getattr(model, "get_example_inputs", None)
+    if get_example_inputs is None or not callable(get_example_inputs):
+        raise AttributeError(
+            f"Loaded model '{class_name}' from '{path}' must define a callable get_example_inputs() method"
+        )
+    inputs = get_example_inputs()
+    return model, inputs
+
+
+def maybe_fresh_cache(fn, is_cold_start):
+    def inner(*args, **kwargs):
+        cache_minder = contextlib.nullcontext()
+        if is_cold_start:
+            cache_entries = {}
+            cache_minder = fresh_inductor_cache(cache_entries)
+
+        try:
+            with cache_minder:
+                return fn(*args, **kwargs)
+        finally:
+            dump_cache = False
+            if dump_cache and is_cold_start:
+                output_csv(
+                    output_filename[:-4] + "_triton_cache.csv",
+                    ["dev", "name", "batch_size", "triton_cache"],
+                    [
+                        current_device,
+                        current_name,
+                        current_batch_size,
+                        cache_entries,
+                    ],
+                )
+
+    return inner
+
+
+@contextlib.contextmanager
+def maybe_init_distributed(should_init_distributed, rank, world_size, port="6789"):
+    try:
+        if should_init_distributed:
+            torch.cuda.set_device(rank)
+            os.environ["MASTER_ADDR"] = "localhost"
+            os.environ["MASTER_PORT"] = port
+            torch.distributed.init_process_group(
+                "nccl", rank=rank, world_size=world_size
+            )
+        yield
+    finally:
+        if should_init_distributed:
+            torch.distributed.destroy_process_group()
+
+
+def null_experiment(args, model_iter_fn, model, example_inputs):
+    """
+    A no-op experiment useful for making sure TorchBenchark alone works properly.
+    """
+
+    return []
+
+def randomize_input(inputs):
+    if isinstance(inputs, (list, tuple)):
+        return type(inputs)([randomize_input(x) for x in inputs])
+    elif isinstance(inputs, torch.Tensor):
+        if inputs.dtype in (torch.float32, torch.float64):
+            torch._dynamo.utils.counters["randomize_input"]["times"] += 1
+            return torch.randn_like(inputs)
+        elif inputs.dtype == torch.int64:
+            # Note: we can not simply tune integer tensors as follows
+            #   `return torch.randint_like(inputs, high=inputs.max().item())`
+            # This may break some invariants between tensors.
+            # E.g. in embedding lookup case, one tensor is the length
+            # and another is an indices tensor.
+            return inputs
+        else:
+            raise RuntimeError(
+                f"randomize_input need support tensor of type {inputs.dtype}"
+            )
+    else:
+        raise RuntimeError(
+            f"randomize_input can not handle input of type {type(inputs)}"
+        )
+
+class Stats:
+    totals = collections.defaultdict(collections.Counter)
+
+    @classmethod
+    def reset_counters(cls):
+        for k, v in torch._dynamo.utils.counters.items():
+            cls.totals[k].update(v)
+        ok = torch._dynamo.utils.counters["frames"]["ok"]
+        total = torch._dynamo.utils.counters["frames"]["total"]
+        torch._dynamo.utils.counters.clear()
+        return ok, total
+
+    @classmethod
+    def print_summary(cls):
+        for k, v in sorted(cls.totals.items()):
+            lines = "\n  ".join(map(str, v.most_common(50)))
+            print(f"STATS {k}\n  {lines}")
+
+    @classmethod
+    def aot_summary(cls):
+        return [cls.totals["aot_autograd"]["total"], cls.totals["aot_autograd"]["ok"]]
 
 log = logging.getLogger(__name__)
 # We are primarily interested in TF32
@@ -1299,9 +1454,14 @@ def parse_args(args=None):
     )
     parser.add_argument(
         "--npu-backend",
-        choices=["mlir", "dvm", "triton", "default"],
+        choices=["mlir", "dvm", "akg", "triton", "default"],
         default="default",
         help="Specify NPU backend (only effective when --backend is inductor)",
+    )
+    parser.add_argument(
+        "--mfusion",
+        action="store_true",
+        help="Enable mfusion module",
     )
     mode_group = parser.add_mutually_exclusive_group(required=True)
     mode_group.add_argument(
@@ -1746,10 +1906,15 @@ def get_npu_backend(args):
 
 def configure_compile_options(args):
     try:
-        from torchbench import NPU_DVM_NO_ACLGRAPH, NPU_MLIR_NO_ACLGRAPH
+        from torchbench import (
+            NPU_DVM_NO_ACLGRAPH,
+            NPU_MFUSION_NO_ACLGRAPH,
+            NPU_MLIR_NO_ACLGRAPH,
+        )
     except ImportError:
         NPU_DVM_NO_ACLGRAPH = set()
         NPU_MLIR_NO_ACLGRAPH = set()
+        NPU_MFUSION_NO_ACLGRAPH = set()
     npu_backend = args.npu_backend
     # mode Config
     if not args.disable_aclgraph:
@@ -1760,6 +1925,9 @@ def configure_compile_options(args):
         if npu_backend == "dvm" and args.only in NPU_DVM_NO_ACLGRAPH:
             mode = None
         elif npu_backend == "mlir" and args.only in NPU_MLIR_NO_ACLGRAPH:
+            mode = None
+        # Check if mfusion enabled
+        if args.mfusion and args.only in NPU_MFUSION_NO_ACLGRAPH:
             mode = None
     # Backend Config
     backend = None
@@ -1785,6 +1953,11 @@ def configure_compile_options(args):
                 npu_backend = get_npu_backend(args)
             if npu_backend in ["mlir", "dvm"]:
                 os.environ["TORCHINDUCTOR_NPU_BACKEND"] = npu_backend
+            if npu_backend == "akg":
+                os.environ["TORCHINDUCTOR_NPU_BACKEND"] = "mlir"
+                os.environ["TORCHINDUCTOR_USE_AKG"] = "1"
+        if backend == "inductor" and args.mfusion:
+            os.environ["TORCHINDUCTOR_ENABLE_MFUSION"] = "1"
         optimize_ctx = functools.partial(torch.compile, **compile_kwargs)
     else:
         optimize_ctx = contextlib.nullcontext()

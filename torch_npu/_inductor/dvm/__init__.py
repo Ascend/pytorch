@@ -1,18 +1,19 @@
-from functools import wraps, partial
 import sys
-import torch
+from functools import partial, wraps
 
+import torch
 import torch_npu
 from torch_npu._C.dvm import (
-    NDObject,
     DataType,
+    DynGraphSplitKernel,
     DynKernel,
     GraphSplitKernel,
-    DynGraphSplitKernel,
+    NDObject,
     TorchKernel as Kernel,
 )
+from torch_npu.npu._backends import get_soc_version
 
-from .fx_test import _accuracy_check_run
+from torch_npu._inductor.npu_compare import check_accuracy_dvm
 
 
 debug_mode = False
@@ -24,14 +25,18 @@ float32 = DataType.float32
 int32 = DataType.int32
 int64 = DataType.int64
 
+Ascend910B1 = 220
+Ascend310B1 = 240
+Ascend910_9391 = 250
+Ascend950 = 260
+is_ascend950 = get_soc_version() >= Ascend950
+
 KERNEL_FACTORY = {
     ("mix", True): partial(DynKernel, Kernel.K_MIX, Kernel.F_DYN),
     ("mix", False): partial(Kernel, Kernel.K_MIX, 0),
     ("split", True): DynGraphSplitKernel,
     ("split", False): GraphSplitKernel,
-    ("spec", True): partial(
-        DynKernel, Kernel.K_VEC, Kernel.F_DYN | Kernel.F_SPEC
-    ),
+    ("spec", True): partial(DynKernel, Kernel.K_VEC, Kernel.F_DYN | Kernel.F_SPEC),
     ("spec", False): partial(Kernel, Kernel.K_VEC, Kernel.F_SPEC),
     ("vector", True): partial(DynKernel, Kernel.K_VEC, Kernel.F_DYN),
     ("vector", False): partial(Kernel, Kernel.K_VEC, 0),
@@ -78,7 +83,7 @@ def kernel(
                     arg_summaries.append(
                         f"Tensor(shape={shape}, dtype={a.dtype}, device={a.device})"
                     )
-                elif isinstance(a, torch.SymInt) or isinstance(a, torch.SymFloat):
+                elif isinstance(a, (torch.SymInt, torch.SymFloat)):
                     sym_name = type(a).__name__
                     dump_parts.append(sym_name)
                     arg_summaries.append(sym_name)
@@ -115,7 +120,7 @@ def kernel(
 
         def run(*args, **kwargs):
             if fn._acc_meta is not None:
-                _accuracy_check_run(kobj, fn._acc_meta, kernel_name, args)
+                check_accuracy_dvm(kobj, fn._acc_meta, kernel_name, args)
             else:
                 kobj.run(*args)
             if debug_mode:
@@ -189,4 +194,5 @@ def _install_bf16_promote():
             setattr(Kernel, name, _promote_bf16(op_fn))
 
 
-_install_bf16_promote()
+if not is_ascend950:
+    _install_bf16_promote()

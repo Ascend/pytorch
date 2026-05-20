@@ -87,4 +87,3 @@ bool CanUseMemcpyForOtherFormat(const at::Tensor &tensor)
 
 } // namespace native
 } // namespace at_npu
-

@@ -10,7 +10,7 @@ aarch64环境下进行libtorch推理测试，编译时依赖torch.libs/\*.so库�
 
 - 报错文本
 
-    ```ColdFusion
+    ```text
     [100%] Linking CXX executable libtorch_resnet
     /usr/bin/ld: warning: libgfortran-b6d57c85.so.5.0.0, needed by /usr/local/python3.8.5/lib/python3.8/site-packages/torch/lib/../../torch.libs/libopenblasp-r0-56e95da7.3.24.so, not found (try using     -rpath or -rpath-link)
     /usr/bin/ld: /usr/local/python3.8.5/lib/python3.8/site-packages/torch/lib/../../torch.libs/libopenblasp-r0-56e95da7.3.24.so: undefined reference to `_gfortran_concat_string@GFORTRAN_8'

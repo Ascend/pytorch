@@ -34,6 +34,7 @@
 |torch.fx.Graph.nodes|否|-|
 |torch.fx.Graph.on_generate_code|是|支持fp32|
 |torch.fx.Graph.output|是|-|
+|torch.fx.Graph.output_node|是|-|
 |torch.fx.Graph.placeholder|是|-|
 |torch.fx.Graph.print_tabular|是|支持fp32|
 |torch.fx.Graph.process_inputs|是|-|
@@ -71,6 +72,7 @@
 |torch.fx.Tracer.to_bool|是|支持fp32|
 |torch.fx.Tracer.trace|是|-|
 |torch.fx.Proxy|是|-|
+|torch.fx.proxy.ParameterProxy|是|-|
 |torch.fx.Interpreter|是|-|
 |torch.fx.Interpreter.call_function|是|支持fp32|
 |torch.fx.Interpreter.call_method|是|支持fp32|

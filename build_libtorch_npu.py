@@ -284,11 +284,14 @@ def copy_hpp():
             "third_party/acl/inc/*/*/*.h",
             "third_party/hccl/inc/*/*.h",
         ]
-        glob_header_files = []
+        glob_header_files_old = []
         for regex_pattern in header_files:
-            glob_header_files += glob.glob(
+            glob_header_files_old += glob.glob(
                 os.path.join(BASE_DIR, regex_pattern), recursive=True
             )
+        
+        suffixes = ("/torch_npu/csrc/inductor/aoti_package/pybind.h", "/torch_npu/csrc/inductor/aoti_runner/pybind.h")
+        glob_header_files = [path for path in glob_header_files_old if not path.endswith(suffixes)]
 
         for src in glob_header_files:
             dst = os.path.join(

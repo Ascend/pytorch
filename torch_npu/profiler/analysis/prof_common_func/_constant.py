@@ -3,7 +3,7 @@ import os
 import time
 from typing import Union
 
-from torch_npu.utils import _should_print_warning
+from torch_npu._init.common.warning_utils import _should_print_warning
 from torch_npu.utils._error_code import ErrCode, prof_error
 
 
@@ -23,6 +23,7 @@ class Constant:
     PROFILING_WORK_PATH = "profiling_data"
     PROFILER_META_DATA = "profiler_metadata.json"
     MINDSTUDIO_PROFILER_OUTPUT = "mindstudio_profiler_output"
+    PLATFORM_ANALYSIS_DIR = "PLATFORM"
 
     # file authority
     FILE_AUTHORITY = 0o640
@@ -140,6 +141,7 @@ class Constant:
     DISK = "disk"
     NETWORK = "network"
     OSRT = "osrt"
+    PLATFORM = "platform"
 
     # profiler end info
     END_INFO = "end_info"

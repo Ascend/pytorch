@@ -3,8 +3,8 @@
 - [安装说明](installation_description.md)
 - [安装前准备](preparing_installation.md)
 - [安装PyTorch](installing_PyTorch.md)
-  - [方式一：二进制软件包安装](installation_via_binary_package.md)
-  - [方式二：源码编译安装](compilation_installation_using_source_code.md)
+  - [方式一：离线安装（Whl）](installation_via_binary_package.md)
+  - [方式二：源码安装](compilation_installation_using_source_code.md)
 
 - [（可选）安装扩展模块](Optional_installing_extension_modules.md)
   - [编译libtorch\_npu](building_libtorch_npu.md)

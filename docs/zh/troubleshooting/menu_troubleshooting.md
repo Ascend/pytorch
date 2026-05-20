@@ -27,6 +27,8 @@
     - [plog日志信息](plog_log.md)
 
   - [报错信息分析](error_information_analysis.md)
+    - [报错信息分析流程](error_information_analysis_process.md)
+    - [主要进程与线程说明](process_thread_reference.md)
   - [coredump问题定位](locating_coredump_faults.md)
 
 - [故障案例集](troubleshooting_cases.md)

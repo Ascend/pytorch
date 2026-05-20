@@ -93,8 +93,12 @@ void SetOption(const std::string& key, const std::string& val);
   */
 c10::optional<std::string> GetOption(const std::string& key);
 
-#define REGISTER_OPTION(name)                                       \
+#define TORCH_NPU_REGISTER_OPTION(name)                             \
     REGISTER_OPTION_UNIQ(name, name, cli)
+
+#define REGISTER_OPTION(name)                                       \
+    _Pragma("GCC warning \"'REGISTER_OPTION' is deprecated, use 'TORCH_NPU_REGISTER_OPTION' instead\"") \
+    TORCH_NPU_REGISTER_OPTION(name)
 
 #define REGISTER_OPTION_INIT_BY_ENV(name)                           \
     REGISTER_OPTION_UNIQ(name, name, env)

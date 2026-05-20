@@ -58,7 +58,9 @@ class TestStorage(TestCase):
             def _test_untyped(cpu_storage, npu_storage):
                 cpu_res = cpu_storage.untyped()
                 npu_res = npu_storage.untyped()
-                if dtype == torch.float64:
+                npu_device_name = torch_npu.npu.get_device_name()
+                # Devices below Ascend950 do not support double; the NPU silently downcasts
+                if dtype == torch.float64 and npu_device_name < "Ascend950":
                     self.assertEqual(cpu_storage.float().untyped(), npu_res)
                 else:
                     self.assertEqual(cpu_res, npu_res.cpu())
@@ -72,7 +74,9 @@ class TestStorage(TestCase):
             def _test_element_size(cpu_storage, npu_storage):
                 cpu_res = cpu_storage.element_size()
                 npu_res = npu_storage.element_size()
-                if dtype == torch.float64:
+                npu_device_name = torch_npu.npu.get_device_name()
+                # Devices below Ascend950 do not support double; the NPU silently downcasts
+                if dtype == torch.float64 and npu_device_name < "Ascend950":
                     self.assertEqual(cpu_res, npu_res * 2)
                 else:
                     self.assertEqual(cpu_res, npu_res)
@@ -108,7 +112,9 @@ class TestStorage(TestCase):
             def _test_nbytes(cpu_storage, npu_storage):
                 cpu_res = cpu_storage.nbytes()
                 npu_res = npu_storage.nbytes()
-                if dtype == torch.float64:
+                npu_device_name = torch_npu.npu.get_device_name()
+                # Devices below Ascend950 do not support double; the NPU silently downcasts
+                if dtype == torch.float64 and npu_device_name < "Ascend950":
                     self.assertEqual(cpu_res, npu_res * 2)
                 else:
                     self.assertEqual(cpu_res, npu_res)
@@ -116,7 +122,9 @@ class TestStorage(TestCase):
             def _test_pickle_storage_type(cpu_storage, npu_storage):
                 cpu_res = cpu_storage.pickle_storage_type()
                 npu_res = npu_storage.pickle_storage_type()
-                if dtype == torch.float64:
+                npu_device_name = torch_npu.npu.get_device_name()
+                # Devices below Ascend950 do not support double; the NPU silently downcasts
+                if dtype == torch.float64 and npu_device_name < "Ascend950":
                     self.assertEqual(npu_res, "FloatStorage")
                 else:
                     self.assertEqual(cpu_res, npu_res)
@@ -175,7 +183,9 @@ class TestStorage(TestCase):
             def _test_dtype(cpu_storage, npu_storage):
                 cpu_res = cpu_storage.dtype
                 npu_res = npu_storage.dtype
-                if cpu_res == torch.float64:
+                npu_device_name = torch_npu.npu.get_device_name()
+                # Devices below Ascend950 do not support double; the NPU silently downcasts
+                if cpu_res == torch.float64 and npu_device_name < "Ascend950":
                     self.assertEqual(npu_res, torch.float32)
                 else:
                     self.assertEqual(npu_res, cpu_res)

@@ -42,4 +42,3 @@ instantiate_parametrized_tests(TestEmpty)
 
 if __name__ == "__main__":
     run_tests()
-

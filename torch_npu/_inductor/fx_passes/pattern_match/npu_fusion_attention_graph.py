@@ -254,4 +254,3 @@ def register_fa_pass():
         register_replacement(
             **register_replacement_kwargs,
         )
-

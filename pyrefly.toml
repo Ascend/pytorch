@@ -3,7 +3,9 @@
 python-version = "3.12"
 
 project-includes = [
-    "torch",
+    "torch_npu",
+    "torchnpugen",
+    "test",
     "caffe2",
     "test/test_bundled_images.py",
     "test/test_bundled_inputs.py",
@@ -21,45 +23,45 @@ project-includes = [
 ]
 project-excludes = [
   "tools/**",
-  "torch/_inductor/runtime/triton_heuristics.py",
-  "torch/_inductor/runtime/triton_helpers.py",
-  "torch/_inductor/runtime/halide_helpers.py",
-  "torch/utils/data/typing.ipynb",
-  "torch/utils/data/dataframes_pipes.ipynb",
-  "torch/utils/data/standard_pipes.ipynb",
-  "torch/onnx/_internal/exporter/_torchlib/ops/nn.py",
-  "torch/include/**",
-  "torch/csrc/**",
-  "torch/distributed/elastic/agent/server/api.py",
-  "torch/testing/_internal/**",
-  "torch/distributed/fsdp/fully_sharded_data_parallel.py",
-  "torch/ao/quantization/pt2e/_affine_quantization.py",
-  "torch/nn/modules/pooling.py",
-  "torch/nn/parallel/_functions.py",
-  "torch/_appdirs.py",
-  "torch/multiprocessing/pool.py",
-  "torch/overrides.py",
+  "torch_npu/_inductor/runtime/triton_heuristics.py",
+  "torch_npu/_inductor/runtime/triton_helpers.py",
+  "torch_npu/_inductor/runtime/halide_helpers.py",
+  "torch_npu/utils/data/typing.ipynb",
+  "torch_npu/utils/data/dataframes_pipes.ipynb",
+  "torch_npu/utils/data/standard_pipes.ipynb",
+  "torch_npu/onnx/_internal/exporter/_torchlib/ops/nn.py",
+  "torch_npu/include/**",
+  "torch_npu/csrc/**",
+  "torch_npu/distributed/elastic/agent/server/api.py",
+  "torch_npu/testing/_internal/**",
+  "torch_npu/distributed/fsdp/fully_sharded_data_parallel.py",
+  "torch_npu/ao/quantization/pt2e/_affine_quantization.py",
+  "torch_npu/nn/modules/pooling.py",
+  "torch_npu/nn/parallel/_functions.py",
+  "torch_npu/_appdirs.py",
+  "torch_npu/multiprocessing/pool.py",
+  "torch_npu/overrides.py",
   "*/__pycache__/**",
   "*/.*",
-  "torch/_inductor/kernel/vendored_templates/cutedsl/kernels/**",
-  "torch/_inductor/kernel/vendored_templates/cutedsl/dense_blockscaled_gemm_persistent.py",
+  "torch_npu/_inductor/kernel/vendored_templates/cutedsl/kernels/**",
+  "torch_npu/_inductor/kernel/vendored_templates/cutedsl/dense_blockscaled_gemm_persistent.py",
 ]
 ignore-missing-imports = [
     # XPU memory symbols not present for builds without XPU support
-    "torch._C._xpu_beginAllocateCurrentThreadToPool",
-    "torch._C._xpu_endAllocateToPool",
-    "torch._C._xpu_releasePool",
-    "torch._C._xpu_XPUAllocator",
-    "torch._C._XPUMemPool",
-    "torch._C._StaticXpuLauncher",
-    "torch._C._jit_tree_views.*",
-    "torch.for_onnx.onnx.*",
-    "torch.ao.quantization.experimental.apot_utils.*",
-    "torch.ao.quantization.experimental.quantizer.*",
-    "torch.ao.quantization.experimental.observer.*",
-    "torch.ao.quantization.experimental.APoT_tensor.*",
-    "torch.ao.quantization.experimental.fake_quantize_function.*",
-    "torch.ao.quantization.experimental.fake_quantize.*",
+    "torch_npu._C._xpu_beginAllocateCurrentThreadToPool",
+    "torch_npu._C._xpu_endAllocateToPool",
+    "torch_npu._C._xpu_releasePool",
+    "torch_npu._C._xpu_XPUAllocator",
+    "torch_npu._C._XPUMemPool",
+    "torch_npu._C._StaticXpuLauncher",
+    "torch_npu._C._jit_tree_views.*",
+    "torch_npu.for_onnx.onnx.*",
+    "torch_npu.ao.quantization.experimental.apot_utils.*",
+    "torch_npu.ao.quantization.experimental.quantizer.*",
+    "torch_npu.ao.quantization.experimental.observer.*",
+    "torch_npu.ao.quantization.experimental.APoT_tensor.*",
+    "torch_npu.ao.quantization.experimental.fake_quantize_function.*",
+    "torch_npu.ao.quantization.experimental.fake_quantize.*",
     "triton.*",
     "tensorflow.*",
     "tensorboard.*",
@@ -103,8 +105,8 @@ ignore-missing-imports = [
     "deeplearning.*",
     "einops.*",
     "libfb.*",
-    "torch.fb.*",
-    "torch.*.fb.*",
+    "torch_npu.fb.*",
+    "torch_npu.*.fb.*",
     "torch_xla.*",
     "onnx.*",
     "onnxruntime.*",
@@ -133,7 +135,7 @@ search-path = ["tools/experimental"]
 
 # Dynamo sub-config - note, we experiment with stricter typing here
 [[sub-config]]
-matches = "torch/_dynamo/**"
+matches = "torch_npu/_dynamo/**"
 [sub-config.errors]
 implicit-import = false
 implicit-any = true
@@ -143,19 +145,19 @@ implicit-any = true
 # unannotated-return=true
 
 [[sub-config]]
-matches = "torch/_dispatch/**"
+matches = "torch_npu/_dispatch/**"
 [sub-config.errors]
 implicit-import = false
 implicit-any = true
 
 [[sub-config]]
-matches = "torch/_subclasses/**"
+matches = "torch_npu/_subclasses/**"
 [sub-config.errors]
 implicit-import = false
 implicit-any = true
 
 [[sub-config]]
-matches = "torch/_functorch/**"
+matches = "torch_npu/_functorch/**"
 [sub-config.errors]
 implicit-import = false
 implicit-any = true

@@ -38,4 +38,3 @@ class FlopsCounter(_FlopsCounter):
         super().__init__()
         warnings.warn("torch_npu.utils.flops_count.FlopsCounter() will be deprecated. "
                       "If necessary, please use torch_npu.utils.FlopsCounter().", FutureWarning)
-

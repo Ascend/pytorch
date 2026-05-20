@@ -26,7 +26,7 @@ from .decomp import patch_decomp
 from .fx_test import generate_dvm_fx_case
 from .graph_build import DvmCodegenInterpreter
 from .op_emitter import common_rule, DVM_OP_REGISTRY, DVM_SUPPORT_TYPE
-
+from torch._higher_order_ops.triton_kernel_wrap import triton_kernel_wrapper_mutation
 
 dump_fx_test = False
 uncont_policy = "fuse"
@@ -76,7 +76,11 @@ anir_config.GENERATE_LIST = [
     aten.scalar_tensor,
     aten.unsqueeze,
     aten.squeeze,
-    aten.clone,
+    # aten.reshape,
+    # aten.clone,
+    aten.lift_fresh_copy,
+    aten.lift_fresh_copy.default,
+    triton_kernel_wrapper_mutation,
 ]
 
 
@@ -262,7 +266,6 @@ def _dvm_can_fuse_horizontal(self, node1, node2):
 def _patch_lowering_type_checks():
     import torch._inductor.graph as inductor_graph
     import torch._inductor.lowering as inductor_lowering
-    import torch._inductor.pattern_matcher as pattern_matcher
 
     import torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.inductor_patch.lowering as npu_lowering_mod
 
@@ -276,12 +279,19 @@ def _patch_lowering_type_checks():
         if fallback_node_due_to_unsupported_type(node, allow_cpu_inputs):
             return True
 
+        if node.target is torch.ops.higher_order.triton_kernel_wrapper_functional:
+            return False
+        if node.target is torch.ops.higher_order.triton_kernel_wrapper_mutation:
+            return False
+        if node.target is aten.lift_fresh_copy.default:
+            return False
+            
         if "val" in node.meta:
             for meta in pytree.tree_leaves(node.meta["val"]):
                 if not isinstance(meta, torch._subclasses.FakeTensor):
                     continue
 
-                if meta.is_cpu:
+                if meta.is_cpu and config.disable_cpp_codegen:
                     return True
 
         if node.target in DVM_OP_REGISTRY:
@@ -290,9 +300,6 @@ def _patch_lowering_type_checks():
         return not common_rule(node)
 
     inductor_lowering.fallback_node_due_to_unsupported_type = (
-        _fallback_node_due_to_unsupported_type
-    )
-    pattern_matcher.fallback_node_due_to_unsupported_type = (
         _fallback_node_due_to_unsupported_type
     )
     npu_lowering_mod.fallback_node_due_to_unsupported_type = (

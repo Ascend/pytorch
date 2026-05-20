@@ -1,18 +1,381 @@
 diff --git a/test/test_jit.py b/test/test_jit.py
-index 0a49ab3..ec7c14f 100644
+index 0a49ab3..ef57161 100644
 --- a/test/test_jit.py
 +++ b/test/test_jit.py
-@@ -1,8 +1,12 @@
+@@ -1,8 +1,18 @@
  # Owner(s): ["oncall: jit"]
  # ruff: noqa: F841
+-
+ import torch
+-
 +import torch_npu
 +from torch_npu.utils import _dynamo
 +_dynamo.use_jit_script = True
++if not hasattr(torch._C, "_cuda_getCompiledVersion"):
++    torch._C._cuda_getCompiledVersion = lambda: 0
++_original_jit_script = torch.jit.script
++_original_jit_script_method = torch.jit.script_method
 +from torch_npu.contrib import transfer_to_npu
- 
- import torch
--
-+torch.cuda.get_device_capability = lambda :(10, 0)
++torch.jit.script = _original_jit_script
++torch.jit.script_method = _original_jit_script_method
++
++torch.cuda.get_device_capability = lambda *args, **kwargs: (10, 0)
  # This is how we include tests located in test/jit/...
  # They are included here so that they are invoked when you call `test_jit.py`,
  # do not run these test files directly.
+@@ -482,7 +492,7 @@ class TestJit(JitTestCase):
+         self.assertFalse(m2.p0.is_cuda)
+         self.assertFalse(m2.b0.is_cuda)
+ 
+-    @unittest.skipIf(not RUN_CUDA, "restore device requires CUDA")
++    # Run the CUDA restore-device coverage on NPU.
+     def test_restore_device_cuda(self):
+         class MyModule(torch.jit.ScriptModule):
+             def __init__(self) -> None:
+@@ -495,18 +505,18 @@ class TestJit(JitTestCase):
+                 return x + self.b0 + self.p0
+ 
+         m = MyModule()
+-        m.cuda(torch.cuda.device_count() - 1)
+-        cuda_device_str = 'cuda:' + str(torch.cuda.device_count() - 1)
++        m.npu(0)
++        npu_device_str = 'npu:0'
+ 
+-        self.assertTrue(m.p0.is_cuda)
+-        self.assertTrue(m.b0.is_cuda)
++        self.assertEqual(m.p0.device.type, "npu")
++        self.assertEqual(m.b0.device.type, "npu")
+ 
+         # restore to the saved devices
+         m2 = self.getExportImportCopy(m)
+         self.assertEqual(tuple(m.parameters()), tuple(m2.parameters()))
+         self.assertEqual(tuple(m.buffers()), tuple(m2.buffers()))
+-        self.assertEqual(str(m2.p0.device), cuda_device_str)
+-        self.assertEqual(str(m2.b0.device), cuda_device_str)
++        self.assertEqual(str(m2.p0.device), npu_device_str)
++        self.assertEqual(str(m2.b0.device), npu_device_str)
+ 
+         # restore all to cpu using string
+         cpu_device_str = 'cpu'
+@@ -516,16 +526,16 @@ class TestJit(JitTestCase):
+ 
+         # restore all to first gpu using device
+         m4 = self.getExportImportCopy(
+-            m3, map_location=torch.device('cuda:0'))
+-        self.assertEqual(str(m4.p0.device), 'cuda:0')
+-        self.assertEqual(str(m4.b0.device), 'cuda:0')
++            m3, map_location=torch.device('npu:0'))
++        self.assertEqual(str(m4.p0.device), 'npu:0')
++        self.assertEqual(str(m4.b0.device), 'npu:0')
+ 
+         # compute and compare the results
+-        input = torch.rand(2, 3).cuda(torch.cuda.device_count() - 1)
++        input = torch.rand(2, 3, device="npu")
+         origin_result = m(input)
+         self.assertEqual(origin_result, m2(input))
+-        self.assertEqual(origin_result, m3(input.cpu()))
+-        self.assertEqual(origin_result, m4(input.cuda(0)))
++        self.assertEqual(origin_result.cpu(), m3(input.cpu()))
++        self.assertEqual(origin_result, m4(input.npu(0)))
+ 
+     def test_trace_retains_train(self):
+         class M(torch.nn.Module):
+@@ -533,7 +543,7 @@ class TestJit(JitTestCase):
+                 return x
+         m = M()
+         m.eval()
+-        tm = torch.jit.trace(m, (torch.rand(3)))
++        tm = torch.jit.trace(m, (torch.rand(3, device="npu")))
+         self.assertEqual(tm.training, m.training)
+ 
+     @unittest.skipIf(not RUN_CUDA, "restore device requires CUDA")
+@@ -566,11 +576,11 @@ class TestJit(JitTestCase):
+                 x = self.relu_op(tmp)
+                 d = torch.add(a, c)
+                 return x + d
+-        a = torch.rand((7, 11))
++        a = torch.rand((7, 11), device="npu")
+         a = a * -10
+         a = a + 5
+-        b = torch.rand((7, 11))
+-        c = torch.rand((7, 11))
++        b = torch.rand((7, 11), device="npu")
++        c = torch.rand((7, 11), device="npu")
+         m = torch.jit.script(M(torch.relu))
+         orig_res = m(a, b, c)
+         torch._C._jit_pass_fuse_add_relu(m.graph)
+@@ -681,8 +691,8 @@ class TestJit(JitTestCase):
+             return output
+         fn_scripted = torch.jit.script(fn)
+ 
+-        input = torch.tensor([5, 7], dtype=torch.int64)
+-        repeats = torch.tensor([3, 6], dtype=torch.int64)
++        input = torch.tensor([5, 7], dtype=torch.int64, device="npu")
++        repeats = torch.tensor([3, 6], dtype=torch.int64, device="npu")
+ 
+         output = fn(input, repeats)
+         output_scripted = fn_scripted(input, repeats)
+@@ -809,8 +819,8 @@ class TestJit(JitTestCase):
+         def check(x, y):
+             return x.layout == y.layout
+ 
+-        x = torch.rand(3, 4)
+-        y = torch.rand(3, 4)
++        x = torch.rand(3, 4, device="npu")
++        y = torch.rand(3, 4, device="npu")
+ 
+         self.assertTrue(check(x, y))
+ 
+@@ -819,7 +829,7 @@ class TestJit(JitTestCase):
+         def check(x):
+             return torch.equal(x.mT, x.transpose(-2, -1))
+ 
+-        x = torch.rand(3, 4)
++        x = torch.rand(3, 4, device="npu")
+         self.assertTrue(check(x))
+ 
+     def test_transpose(self):
+@@ -827,7 +837,7 @@ class TestJit(JitTestCase):
+         def check(x):
+             return torch.equal(x.T, x.t())
+ 
+-        x = torch.rand(3, 4)
++        x = torch.rand(3, 4, device="npu")
+         self.assertTrue(check(x))
+ 
+     def test_matrix_conj_transpose(self):
+@@ -835,7 +845,7 @@ class TestJit(JitTestCase):
+         def check(x):
+             return torch.equal(x.mH, x.transpose(-2, -1).conj())
+ 
+-        x = torch.rand(3, 4)
++        x = torch.rand(3, 4, device="npu")
+         self.assertTrue(check(x))
+ 
+         x = make_tensor((3, 4), device="cpu", dtype=torch.complex64)
+@@ -846,7 +856,7 @@ class TestJit(JitTestCase):
+         def check(x):
+             return torch.equal(x.H, x.t().conj())
+ 
+-        x = torch.rand(3, 4)
++        x = torch.rand(3, 4, device="npu")
+         self.assertTrue(check(x))
+ 
+         x = make_tensor((3, 4), device="cpu", dtype=torch.complex64)
+@@ -865,7 +875,7 @@ class TestJit(JitTestCase):
+         def mH(x):
+             return x.mH
+ 
+-        x = torch.rand(3, 4)
++        x = torch.rand(3, 4, device="npu")
+         y = make_tensor((3, 4), device="cpu", dtype=torch.complex64)
+ 
+         self.checkScript(T, (x, ))
+@@ -888,13 +898,13 @@ class TestJit(JitTestCase):
+ 
+         inputs = [
+             # Conv
+-            (Mod(nn.Conv1d(16, 33, 3, stride=2)), torch.randn(20, 16, 5)),
+-            (Mod(nn.Conv2d(16, 33, 3, stride=2)), torch.randn(20, 16, 5, 10)),
+-            (Mod(nn.Conv3d(16, 33, 3, stride=2)), torch.randn(20, 16, 3, 5, 4)),
++            (Mod(nn.Conv1d(16, 33, 3, stride=2)).npu(), torch.randn(20, 16, 5, device="npu")),
++            (Mod(nn.Conv2d(16, 33, 3, stride=2)).npu(), torch.randn(20, 16, 5, 10, device="npu")),
++            (Mod(nn.Conv3d(16, 33, 3, stride=2)).npu(), torch.randn(20, 16, 3, 5, 4, device="npu")),
+             # ConvTransposed
+-            (Mod(nn.ConvTranspose1d(16, 33, 3, stride=2)), torch.randn(20, 16, 5)),
+-            (Mod(nn.ConvTranspose2d(16, 33, 3, stride=2)), torch.randn(20, 16, 5, 10)),
+-            (Mod(nn.ConvTranspose3d(16, 33, 3, stride=2)), torch.randn(20, 16, 3, 5, 4)),
++            (Mod(nn.ConvTranspose1d(16, 33, 3, stride=2)).npu(), torch.randn(20, 16, 5, device="npu")),
++            (Mod(nn.ConvTranspose2d(16, 33, 3, stride=2)).npu(), torch.randn(20, 16, 5, 10, device="npu")),
++            (Mod(nn.ConvTranspose3d(16, 33, 3, stride=2)).npu(), torch.randn(20, 16, 3, 5, 4, device="npu")),
+         ]
+ 
+         for m, inp in inputs:
+@@ -941,7 +951,7 @@ class TestJit(JitTestCase):
+         def get_numel_script(x):
+             return x.numel()
+ 
+-        x = torch.rand(3, 4)
++        x = torch.rand(3, 4, device="npu")
+         numel = get_numel_script(x)
+         self.assertEqual(numel, x.numel())
+ 
+@@ -950,7 +960,7 @@ class TestJit(JitTestCase):
+         def get_element_size_script(x):
+             return x.element_size()
+ 
+-        x = torch.rand(3, 4)
++        x = torch.rand(3, 4, device="npu")
+         element_size = get_element_size_script(x)
+         self.assertEqual(element_size, x.element_size())
+ 
+@@ -1025,24 +1035,24 @@ class TestJit(JitTestCase):
+             def forward(self, input):
+                 return self.module(input) + 1
+ 
+-        m = MyModule(Sub())
+-        input = torch.rand(3, 4)
++        m = MyModule(Sub()).npu()
++        input = torch.rand(3, 4, device="npu")
+         self.assertEqual(input + 1, m(input))
+         m.eval()
+         self.assertEqual(-input + 1, m(input))
+ 
+         # test batchnorm and dropout train/eval
+-        input = torch.randn(6, 10)
+-        batchnorm = nn.BatchNorm1d(10)
+-        dropout = nn.Dropout(p=0.2)
++        input = torch.randn(6, 10, device="npu")
++        batchnorm = nn.BatchNorm1d(10).npu()
++        dropout = nn.Dropout(p=0.2).npu()
+ 
+-        m_batchnorm = MyModule(batchnorm)
++        m_batchnorm = MyModule(batchnorm).npu()
+         self.assertEqual(batchnorm(input) + 1, m_batchnorm(input))
+         batchnorm.eval()
+         m_batchnorm.eval()
+         self.assertEqual(batchnorm(input) + 1, m_batchnorm(input))
+ 
+-        m_dropout = MyModule(dropout)
++        m_dropout = MyModule(dropout).npu()
+         dropout.eval()
+         m_dropout.eval()
+         self.assertEqual(dropout(input) + 1, m_dropout(input))
+@@ -1061,7 +1071,7 @@ class TestJit(JitTestCase):
+                         torch.nn.functional.lp_pool2d(x, 2, 3),
+                         torch.nn.functional.lp_pool2d(x, float(2), (7, 1)))
+ 
+-        self.checkModule(Mod(), (torch.rand(1, 3, 7, 7),))
++        self.checkModule(Mod().npu(), (torch.rand(1, 3, 7, 7, device="npu"),))
+ 
+     def test_nn_lp_pool1d(self):
+         class Mod(torch.nn.Module):
+@@ -1077,7 +1087,7 @@ class TestJit(JitTestCase):
+                         torch.nn.functional.lp_pool1d(x, 2, 3),
+                         torch.nn.functional.lp_pool1d(x, float(2), 7))
+ 
+-        self.checkModule(Mod(), (torch.rand(1, 3, 7),))
++        self.checkModule(Mod().npu(), (torch.rand(1, 3, 7, device="npu"),))
+ 
+     def test_nn_padding_functional(self):
+         class Mod(nn.Module):
+@@ -1089,9 +1099,9 @@ class TestJit(JitTestCase):
+                 return F.pad(x, self.pad, mode='constant', value=3.5)
+ 
+         inputs = [
+-            (Mod(1, 2), torch.randn(1, 3, 4)),  # 1D
+-            (Mod(1, 2, 3, 4), torch.randn(1, 3, 4)),  # 2D
+-            (Mod(1, 2, 3, 4, 5, 6), torch.randn(1, 3, 4)),  # 3D
++            (Mod(1, 2).npu(), torch.randn(1, 3, 4, device="npu")),  # 1D
++            (Mod(1, 2, 3, 4).npu(), torch.randn(1, 3, 4, device="npu")),  # 2D
++            (Mod(1, 2, 3, 4, 5, 6).npu(), torch.randn(1, 3, 4, device="npu")),  # 3D
+         ]
+ 
+         for m, inp in inputs:
+@@ -1107,16 +1117,16 @@ class TestJit(JitTestCase):
+                 return self.padding(input)
+ 
+         inputs = [
+-            (Mod(nn.ConstantPad1d(2, 3.5)), torch.randn(1, 2, 4)),
+-            (Mod(nn.ConstantPad2d(2, 3.5)), torch.randn(1, 2, 2)),
+-            (Mod(nn.ConstantPad3d(3, 3.5)), torch.randn(16, 3, 10, 20, 30)),
+-            (Mod(nn.ReflectionPad1d(2)), torch.arange(8, dtype=torch.float).reshape(1, 2, 4)),
+-            (Mod(nn.ReflectionPad2d(2)), torch.arange(9, dtype=torch.float).reshape(1, 1, 3, 3)),
+-            (Mod(nn.ReflectionPad3d(3)), torch.randn(16, 3, 8, 32, 48)),
+-            (Mod(nn.ReplicationPad1d(2)), torch.arange(8, dtype=torch.float).reshape(1, 2, 4)),
+-            (Mod(nn.ReplicationPad2d(2)), torch.arange(9, dtype=torch.float).reshape(1, 1, 3, 3)),
+-            (Mod(nn.ReplicationPad3d(3)), torch.randn(16, 3, 8, 32, 48)),
+-            (Mod(nn.ZeroPad2d(2)), torch.randn(1, 1, 3, 3))
++            (Mod(nn.ConstantPad1d(2, 3.5)).npu(), torch.randn(1, 2, 4, device="npu")),
++            (Mod(nn.ConstantPad2d(2, 3.5)).npu(), torch.randn(1, 2, 2, device="npu")),
++            (Mod(nn.ConstantPad3d(3, 3.5)).npu(), torch.randn(16, 3, 10, 20, 30, device="npu")),
++            (Mod(nn.ReflectionPad1d(2)).npu(), torch.arange(8, dtype=torch.float, device="npu").reshape(1, 2, 4)),
++            (Mod(nn.ReflectionPad2d(2)).npu(), torch.arange(9, dtype=torch.float, device="npu").reshape(1, 1, 3, 3)),
++            (Mod(nn.ReflectionPad3d(3)).npu(), torch.randn(16, 3, 8, 32, 48, device="npu")),
++            (Mod(nn.ReplicationPad1d(2)).npu(), torch.arange(8, dtype=torch.float, device="npu").reshape(1, 2, 4)),
++            (Mod(nn.ReplicationPad2d(2)).npu(), torch.arange(9, dtype=torch.float, device="npu").reshape(1, 1, 3, 3)),
++            (Mod(nn.ReplicationPad3d(3)).npu(), torch.randn(16, 3, 8, 32, 48, device="npu")),
++            (Mod(nn.ZeroPad2d(2)).npu(), torch.randn(1, 1, 3, 3, device="npu"))
+         ]
+ 
+         for m, inp in inputs:
+@@ -1293,14 +1303,14 @@ class TestJit(JitTestCase):
+         def fn1(x, dim: int):
+             return torch.sum(x, dim)
+ 
+-        x = torch.randn(3, 4)
++        x = torch.randn(3, 4, device="npu")
+         self.checkScript(fn, (x, ))
+         self.checkScript(fn1, (x, 1, ))
+         self.checkScript(fn1, (x, 0, ))
+ 
+     def test_cse(self):
+-        x = torch.tensor([0.4, 0.3], requires_grad=True)
+-        y = torch.tensor([0.7, 0.5], requires_grad=True)
++        x = torch.tensor([0.4, 0.3], device="npu", requires_grad=True)
++        y = torch.tensor([0.7, 0.5], device="npu", requires_grad=True)
+ 
+         def fn(x, y):
+             w = (x + y) * (x + y) * (x + y)
+@@ -2455,7 +2465,7 @@ graph(%Ra, %Rb):
+             self.run_pass('cse', f_script.graph)
+             FileCheck().check_count("prim::Constant", num_constants, exactly=True).run(f_script.graph)
+ 
+-    @unittest.skipIf(not RUN_CUDA, "requires CUDA")
++    # Exercise the CUDA export/restore path with NPU tensors.
+     def test_cuda_export_restore(self):
+         class Sub(torch.jit.ScriptModule):
+             def __init__(self) -> None:
+@@ -2475,10 +2485,10 @@ graph(%Ra, %Rb):
+             def forward(self, v):
+                 return self.mod(v)
+         m = M()
+-        m.cuda()
++        m.npu()
+         m2 = self.getExportImportCopy(m)
+-        m2.cuda()
+-        input = torch.rand(3, 4).cuda()
++        m2.npu()
++        input = torch.rand(3, 4, device="npu")
+         self.assertEqual(m(input), m2(input))
+ 
+     @slowTest
+@@ -4681,10 +4691,10 @@ def foo(xyz):
+         self.assertFalse(float32(x_long))
+         self.assertTrue(float32(x_float32))
+ 
+-    @unittest.skipIf(not RUN_CUDA, "device tests require CUDA")
++    # Validate scripted device comparisons with NPU tensors.
+     def test_tensor_device(self):
+         cpu = torch.empty(34, 56, 78, device='cpu')
+-        gpu = torch.empty(34, 56, 78, device='cuda')
++        gpu = torch.empty(34, 56, 78, device='npu')
+ 
+         @torch.jit.script
+         def same_device(x, y):
+@@ -4694,10 +4704,10 @@ def foo(xyz):
+         self.assertTrue(same_device(gpu, gpu))
+         self.assertFalse(same_device(cpu, gpu))
+ 
+-    @unittest.skipIf(not RUN_CUDA, "device tests require CUDA")
++    # Validate scripted device conversion through NPU.
+     def test_tensor_to_device(self):
+         def to_device(x):
+-            return x.to(device="cuda").to(device=torch.device("cpu"))
++            return x.to(device="npu").to(device=torch.device("cpu"))
+ 
+         self.checkScript(to_device, (torch.ones(3, 4),))
+ 
+@@ -4710,10 +4720,10 @@ def foo(xyz):
+         self.assertEqual(to_cpu(x).device, script_fn(x).device)
+         self.checkScript(to_cpu, (x,))
+ 
+-    @unittest.skipIf(not RUN_CUDA, "device tests require CUDA")
++    # Validate scripted conversion to NPU.
+     def test_tensor_to_cuda(self):
+         def to_cuda(x):
+-            return x.cuda()
++            return x.to(device="npu")
+ 
+         x = torch.ones(3, 4)
+         script_fn = torch.jit.script(to_cuda)
