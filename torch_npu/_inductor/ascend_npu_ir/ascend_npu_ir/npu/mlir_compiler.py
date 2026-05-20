@@ -508,12 +508,37 @@ class AkgCompiler(MetaCompiler):
         )
         torch_root_dir = Path(torch_npu.__file__).resolve().parent
         self.kernel = MlirKernel(self.kernel_name, torch_path=str(torch_root_dir), kernel_meta=self.kernel_meta)
+        self.cache = get_cache_manager(self.kernel_hash or self.traced_graph_hash)
 
     def force_fallback(self, kernel_name: str) -> bool:
         k = self.kernel_name
         if not k:
             return False
         return k in anir_config.force_fallback_kernel_names
+
+    def autotune_to_one_config(self, *args, **kwargs):
+        if not self.launchers:
+            return
+
+        launcher_idx = self.get_primary_launcher_index()
+        if self.is_fallback_kernels[launcher_idx]:
+            return
+
+        cloned_args = [
+            clone_preserve_strides(arg) if isinstance(arg, torch.Tensor) else arg
+            for arg in args
+        ]
+        _, accuracy_passed = self.acc_compare_and_dump(*cloned_args, dump_data=False, **kwargs)
+        if accuracy_passed:
+            return
+
+        logger.warning(
+            f"AKG accuracy compare failed for {self.kernel_name}: kernel_compile_failed"
+        )
+        self.launchers.clear()
+        self.kernel_paths.clear()
+        self.is_fallback_kernels.clear()
+        self.register_fx_fallback(self.kernel_meta)
 
     def compile(self, input_mlir: str):
         if self.force_fallback(self.kernel_name):
@@ -536,8 +561,47 @@ class AkgCompiler(MetaCompiler):
                 "builtin.module(torch-backend-to-linalg-on-tensors-backend-pipeline)",
                 "Lowering Torch Backend IR -> Linalg-on-Tensors Backend IR",
             )
-            self.kernel.compile(str(mlir_module))
-            self.register_launcher(self.kernel.run, kernel_path=self.kernel_name)
+
+            kernel_file_name = f"lib{self.kernel_name}.so" if self.dynamic else f"{self.kernel_name}.o"
+            kernel_meta_file_name = f"{self.kernel_name}.json"
+            kernel_log_file_name = f"{self.kernel_name}.log"
+            cache_kernel_path = self.cache.get_file(kernel_file_name)
+            cache_kernel_meta_path = self.cache.get_file(kernel_meta_file_name)
+            if (cache_kernel_path is None or cache_kernel_meta_path is None) and self.no_more_compile:
+                raise RuntimeError("Skip compile.")
+            if (
+                cache_kernel_path is None
+                or cache_kernel_meta_path is None
+                or (anir_config.always_compile and cache_kernel_path not in global_cache)
+            ):
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    try:
+                        self.kernel.compile(
+                            str(mlir_module),
+                            work_dir=tmpdir,
+                            need_compile=True,
+                            debug=anir_config.debug,
+                        )
+                    except Exception as e:
+                        logger.warning(f"compile {self.kernel_name} fail, err msg: {e}")
+
+                    binary_output_path = os.path.join(tmpdir, kernel_file_name)
+                    meta_output_path = os.path.join(tmpdir, kernel_meta_file_name)
+                    with open(binary_output_path, "rb") as f:
+                        cache_kernel_path = self.cache.put(f.read(), kernel_file_name, binary=True)
+                    with open(meta_output_path, "rb") as f:
+                        cache_kernel_meta_path = self.cache.put(f.read(), kernel_meta_file_name, binary=True)
+                    global_cache.add(cache_kernel_path)
+                    if anir_config.debug:
+                        log_output_path = os.path.join(tmpdir, kernel_log_file_name)
+                        shutil.copy(log_output_path, os.path.join(anir_config.debug_dir, kernel_log_file_name))
+            else:
+                self.kernel.compile(
+                    str(mlir_module),
+                    work_dir=os.path.dirname(cache_kernel_path),
+                    need_compile=False,
+                )
+            self.register_launcher(self.kernel.run, kernel_path=cache_kernel_path)
         except Exception as e:
             self.register_fx_fallback(self.kernel_meta)
             logger.warning(
