@@ -65,6 +65,19 @@ def _worker_compile(
     except:
         kernel.precompile(device_info=device_info, logger_level=logger_level)
 
+
+def _akg_worker_compile(
+    kernel_name: str,
+    source_code: str,
+    kernel_meta: Dict[str, Any],
+    extra_env=None,
+) -> None:
+    if extra_env:
+        os.environ.update(extra_env)
+    kernel = AkgCompiler(kernel_name, no_more_compile=False, kernel_meta=kernel_meta)
+    kernel.compile(source_code)
+
+
 def _load_kernel(
         kernel_name: str, 
         source_code: str, 
@@ -72,6 +85,13 @@ def _load_kernel(
         suppress_error=False, 
         kernel_meta=None,
         extra_env=None) -> ModuleType:
+    if os.getenv("TORCHINDUCTOR_USE_AKG", "0") == "1":
+        if extra_env:
+            os.environ.update(extra_env)
+        kernel = AkgCompiler(kernel_name, no_more_compile=no_more_compile, kernel_meta=kernel_meta)
+        kernel.compile(source_code)
+        return kernel
+
     device_str = kernel_meta.get('device_str')
     device_interface = get_interface_for_device(device_str)
     device = torch.device(device_str, device_interface.current_device())
@@ -274,9 +294,25 @@ class CustomAsyncCompile(AsyncCompile):
     def akg_auto_fallback(
         self, kernel_name: str, source_code: str, kernel_meta: Dict[str, Any]) -> Callable:
         _compile_start()
-        kernel = AkgCompiler(kernel_name, kernel_meta=kernel_meta)
-        kernel.compile(source_code)
-        return kernel
+        env_vars = ["TORCHINDUCTOR_CACHE_DIR", "TRITON_CACHE_DIR"]
+        extra_env = {v: os.environ[v] for v in env_vars if v in os.environ}
+        if config.compile_threads > 1:
+            future = self.process_pool().submit(
+                _akg_worker_compile,
+                kernel_name,
+                source_code,
+                kernel_meta=kernel_meta,
+                extra_env=extra_env,
+            )
+            return NPUTritonFuture(
+                kernel_name, source_code, future, kernel_meta, extra_env
+            )
+        else:
+            kernel = _load_kernel(kernel_name, source_code, kernel_meta=kernel_meta, extra_env=extra_env)
+            if len(kernel.launchers) == 0:
+                logger.info(f"fallback to fx graph call")
+                return _load_fx_graph(kernel_name, source_code=source_code, extra_env=extra_env, kernel_meta=kernel_meta)
+            return kernel
 
     def import_fx(
         self, module_name: str, kernel_meta: Dict[str, Any]) -> Callable:
