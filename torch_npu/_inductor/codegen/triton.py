@@ -674,8 +674,11 @@ class NPUTritonKernel(TritonKernel):
 
         # NPU tiling inductor meta
         from ..config import inductor_ascend_linear_mode
-
-        inductor_meta["inductor_ascend_linear_mode"] = inductor_ascend_linear_mode
+        if inductor_ascend_linear_mode == "linear":
+            # Linear fallback to no_linear_loop
+            inductor_meta["inductor_ascend_linear_mode"] = "no_linear_loop"            
+        else:
+            inductor_meta["inductor_ascend_linear_mode"] = inductor_ascend_linear_mode
         inductor_meta["npu_kernel_type"] = "simt_only"
         inductor_meta["split_axis"] = split_axis
         inductor_meta["tiling_axis"] = tiling_axis
