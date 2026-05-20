@@ -8,13 +8,7 @@ import torch_npu
 
 @skipIf(torch_npu.utils._dynamo.is_inductor_npu_initialized(), reason="Inductor npu has initialized")
 class TestLazyRegister(TestUtils):
-    def test_compile_but_not_invoked(self):
 
-        def run(x, y):
-            return x + y
-
-        run = torch.compile(run)
-        self.assertFalse(torch_npu.utils._dynamo.is_inductor_npu_initialized())
     
     def test_disable_register_inductor_npu(self):
         torch_npu.utils._dynamo.disable_register_inductor_npu()

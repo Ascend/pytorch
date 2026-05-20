@@ -206,6 +206,16 @@ py::object TorchKernelPy::Store(py::object obj, DataTypePy type)
     return ObjToPy(stores_.emplace_back(op));
 }
 
+py::object TorchKernelPy::ViewStore(py::object obj, py::object stride, DataTypePy type)
+{
+    auto in_obj = PyToObj(obj);
+    if (type != kDataTypeEnd) {
+        in_obj = kernel_.Cast(in_obj, type);
+    }
+    auto op = kernel_.Store(nullptr, in_obj, GetShapeRef(stride));
+    return ObjToPy(stores_.emplace_back(op));
+}
+
 void TorchKernelPy::Setup()
 {
     SetupRelocs();

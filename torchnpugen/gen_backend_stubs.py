@@ -599,9 +599,10 @@ m.impl("${schema}", TORCH_FN(at::native::${kernel}));"""
         """\
 #include <ATen/ops/${function}_native.h>"""
     )
+    # Sort for deterministic output
     fm.write_with_template(f'ForeachRegister.cpp', 'ForeachRegister.cpp', lambda: {
-        'include_headers': [header_template.substitute(function=h) for h in header_set if h.startswith("_foreach")],
-        'foreach_kernel': [kernel_template.substitute(schema=kv[0], kernel=kv[1]) for kv in foreach_dict.items()]
+        'include_headers': [header_template.substitute(function=h) for h in sorted(header_set) if h.startswith("_foreach")],
+        'foreach_kernel': [kernel_template.substitute(schema=kv[0], kernel=kv[1]) for kv in sorted(foreach_dict.items())]
     })
 
 
@@ -621,10 +622,10 @@ def _gen_special_registration_body(
     backend_indices: BackendIndex,
     config: SpecialRegisterConfig,
 ) -> str:
-    """生成特殊注册的主体内容"""
+    """生成特殊注册的主体内容,生成内容需保证确定性"""
     kernel_regs = [
         KERNEL_TEMPLATE.substitute(schema=op_name, kernel=metadata.kernel)
-        for op_name, metadata in backend_indices.index.items()
+        for op_name, metadata in sorted(backend_indices.index.items(), key=lambda x: str(x[0]))
     ]
     
     template = CodeTemplate("""\

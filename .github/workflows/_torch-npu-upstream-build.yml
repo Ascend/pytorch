@@ -48,8 +48,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          repository: kerer-ai/pytorch
-          ref: v2.7.1_dev
+          repository: Ascend/pytorch
+          ref: v2.7.1
           fetch-depth: 1
           submodules: recursive
 
@@ -196,7 +196,7 @@ jobs:
           name: ${{ inputs.torch_npu_wheel_artifact }}
           path: dist/*.whl
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 60
 
       - name: Build summary
         if: always()

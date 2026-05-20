@@ -6,16 +6,17 @@
 
 namespace at_npu {
 namespace native {
-#undef LOAD_FUNCTION
-#define LOAD_FUNCTION(funcName) \
-  REGISTER_FUNCTION(libascend_hal, funcName)
-#undef GET_FUNC
-#define GET_FUNC(funcName)              \
-  GET_FUNCTION(libascend_hal, funcName)
+#undef TORCH_NPU_LOAD_FUNC
+#define TORCH_NPU_LOAD_FUNC(funcName) \
+  TORCH_NPU_REGISTER_FUNCTION(libascend_hal, funcName)
 
-REGISTER_LIBRARY(libascend_hal)
-LOAD_FUNCTION(halGetDeviceInfo)
-LOAD_FUNCTION(halGetAPIVersion)
+#undef TORCH_NPU_GET_FUNC
+#define TORCH_NPU_GET_FUNC(funcName)              \
+  TORCH_NPU_GET_FUNCTION(libascend_hal, funcName)
+
+TORCH_NPU_REGISTER_LIBRARY(libascend_hal)
+TORCH_NPU_LOAD_FUNC(halGetDeviceInfo)
+TORCH_NPU_LOAD_FUNC(halGetAPIVersion)
 constexpr uint32_t KHZTOMHZ = 1000U;
 constexpr uint32_t DRV_ERROR_NONE = 0;
 constexpr uint32_t ERR_FREQ = 0;
@@ -27,7 +28,7 @@ int64_t getFreq()
     using getReqFun = int32_t (*)(uint32_t, int32_t, int32_t, int64_t*);
     static getReqFun getFreqInfo = nullptr;
     if (getFreqInfo == nullptr) {
-        getFreqInfo = (getReqFun)GET_FUNC(halGetDeviceInfo);
+        getFreqInfo = (getReqFun)TORCH_NPU_GET_FUNC(halGetDeviceInfo);
         if (getFreqInfo == nullptr) {
             TORCH_NPU_WARN("Failed to find function halGetDeviceInfo.");
             return ERR_FREQ;
@@ -45,7 +46,7 @@ int64_t getVer()
     using getReqFun = int32_t (*)(int32_t*);
     static getReqFun getVerInfo = nullptr;
     if (getVerInfo == nullptr) {
-        getVerInfo = (getReqFun)GET_FUNC(halGetAPIVersion);
+        getVerInfo = (getReqFun)TORCH_NPU_GET_FUNC(halGetAPIVersion);
         if (getVerInfo == nullptr) {
             TORCH_NPU_WARN("Failed to find function halGetAPIVersion.");
             return ERR_VER;
@@ -67,4 +68,3 @@ bool isSyscntEnable()
 
 } // namespace native
 } // namespace at_npu
-

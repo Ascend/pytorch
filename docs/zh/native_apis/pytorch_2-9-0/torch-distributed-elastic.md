@@ -86,12 +86,12 @@
 |torch.distributed.elastic.rendezvous.c10d_rendezvous_backend.C10dRendezvousBackend.get_state|是|-|
 |torch.distributed.elastic.rendezvous.c10d_rendezvous_backend.C10dRendezvousBackend.name|是|-|
 |torch.distributed.elastic.rendezvous.c10d_rendezvous_backend.C10dRendezvousBackend.set_state|是|-|
-|torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.create_backend|否|-|
-|torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend|否|-|
-|torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend.get_state|否|-|
-|torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend.name|否|-|
-|torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend.set_state|否|-|
-|torch.distributed.elastic.rendezvous.etcd_rendezvous.EtcdRendezvousHandler|否|-|
+|torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.create_backend|是|-|
+|torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend|是|-|
+|torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend.get_state|是|-|
+|torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend.name|是|-|
+|torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend.set_state|是|-|
+|torch.distributed.elastic.rendezvous.etcd_rendezvous.EtcdRendezvousHandler|是|-|
 |torch.distributed.elastic.rendezvous.etcd_store.EtcdStore|否|-|
 |torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.add|否|-|
 |torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.check|否|-|
@@ -100,6 +100,7 @@
 |torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.wait|否|-|
 |torch.distributed.elastic.rendezvous.etcd_server.EtcdServer|否|-|
 |torch.distributed.elastic.timer.configure|是|-|
+|torch.distributed.elastic.timer.debug_info_logging.log_debug_info_for_expired_timers|是|-|
 |torch.distributed.elastic.timer.expires|是|-|
 |torch.distributed.elastic.timer.LocalTimerServer|是|-|
 |torch.distributed.elastic.timer.LocalTimerClient|是|-|

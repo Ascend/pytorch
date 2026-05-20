@@ -87,25 +87,46 @@ using ConstantMap = std::unordered_map<std::string, RAIIAtenTensorHandle>;
 // Update the list here if more devices are supported in the future
 inline void parse_device_str(const std::string& device_str, int32_t& device_type, int32_t& device_idx)
 {
-    std::regex re("(cpu|npu)(:([0-9]+))?");
-    std::smatch sm;
-    bool matched = std::regex_match(device_str, sm, re);
-    AOTI_RUNTIME_CHECK(matched, "Invalid device: " + device_str);
+    if (device_str.empty()) {
+        AOTI_RUNTIME_CHECK(false, "Invalid device: " + device_str);
+    }
 
-    if (sm[1].str() == "cpu") {
+    size_t colon_pos = device_str.find(':');
+    std::string device_type_str;
+    if (colon_pos == std::string::npos) {
+        device_type_str = device_str;
+    } else {
+        device_type_str = device_str.substr(0, colon_pos);
+    }
+
+    if (device_type_str == "cpu") {
         device_type = aoti_torch_device_type_cpu();
 #ifdef USE_NPU
-    } else if (sm[1].str() == "npu") {
+    } else if (device_type_str == "npu") {
         device_type = aoti_torch_device_type_npu();
 #endif
     } else {
         AOTI_RUNTIME_CHECK(false, "Invalid device: " + device_str);
     }
-    const size_t default_sm = 3;
-    if (sm[default_sm].matched) {
-        device_idx = stoi(sm[default_sm].str());
-    } else {
-        device_idx = -1;
+
+    device_idx = -1;
+    if (colon_pos != std::string::npos) {
+        std::string index_str = device_str.substr(colon_pos + 1);
+        if (index_str.empty()) {
+            AOTI_RUNTIME_CHECK(false, "Invalid device: " + device_str);
+        }
+        for (char c : index_str) {
+            if (!std::isdigit(c)) {
+                AOTI_RUNTIME_CHECK(false, "Invalid device: " + device_str);
+            }
+        }
+        try {
+            device_idx = std::stoi(index_str);
+        } catch (const std::out_of_range& e) {
+            AOTI_RUNTIME_CHECK(false, "Invalid device: " + device_str);
+        } catch (const std::invalid_argument& e) {
+            AOTI_RUNTIME_CHECK(false, "Invalid device: " + device_str);
+        }
     }
 }
 

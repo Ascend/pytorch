@@ -23,6 +23,7 @@ LOWERING_OVERRIDE_OP = [
     aten.var,
 
     aten.pow,
+    prims.convert_element_type,
     aten.mm,
     aten.bmm,
     aten.addmm,

@@ -79,6 +79,8 @@ def parse_args():
     parser.add_argument("--profiler_end_step", type=int, default=6,
                     help="End step for profiling")
     parser.add_argument("--npu-backend", type=str, default="mlir")
+    parser.add_argument("--mfusion", action="store_true",
+                        help="Enable MFusion for graph fusion optimization")
 
     return parser.parse_args()
 
@@ -86,6 +88,8 @@ def main():
     args = parse_args()
     device = detect_device_type()
     os.environ['TORCHINDUCTOR_NPU_BACKEND']=args.npu_backend
+    if args.mfusion:
+        os.environ['TORCHINDUCTOR_NPU_MFUSION']='1'
     patch_remove_ops_from_generate_list(["aten.permute"])
     seed = 2
     torch.manual_seed(seed)
@@ -202,7 +206,7 @@ def main():
     if args.enable_compile:
         headers, values = torch._dynamo.utils.compile_times("csv")
         for header, value in zip(headers, values):
-            if header == "async_compile.wait":
+            if header == "PyCodeCache.load_by_key_path":
                 numbers = [float(num.strip()) for num in value.split(',') if num.strip()]
                 op_compile_time = sum(numbers)
         print(f"op_compile_time:{op_compile_time * 1e3} ms", )

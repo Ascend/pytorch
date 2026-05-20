@@ -235,6 +235,8 @@ def build_argparser():
     parser = argparse.ArgumentParser(description="Train Baichuan2-7B-Chat (LoRA) on NPU")
     
     parser.add_argument("--npu-backend", type=str, default="mlir")
+    parser.add_argument("--mfusion", action="store_true",
+                        help="Enable MFusion for graph fusion optimization")
     parser.add_argument("--model_path", type=str, required=True)
     parser.add_argument("--data_path", type=str, required=True)
     parser.add_argument("--output_dir", type=str, default="./baichuan2-finetuned")
@@ -279,6 +281,8 @@ def main():
     args = build_argparser().parse_args()
     detect_device_type()
     os.environ['TORCHINDUCTOR_NPU_BACKEND']=args.npu_backend
+    if args.mfusion:
+        os.environ['TORCHINDUCTOR_NPU_MFUSION']='1'
     os.makedirs(args.output_dir, exist_ok=True)
     os.makedirs(os.path.join(args.output_dir, "logs"), exist_ok=True)
 
@@ -292,7 +296,7 @@ def main():
     if args.enable_compile:
         headers, values = torch._dynamo.utils.compile_times("csv")
         for header, value in zip(headers, values):
-            if header == "async_compile.wait":
+            if header == "PyCodeCache.load_by_key_path":
                 numbers = [float(num.strip()) for num in value.split(',') if num.strip()]
                 op_compile_time = sum(numbers)
         print(f"op_compile_time:{op_compile_time * 1e3} ms", )

@@ -55,6 +55,8 @@ struct NPUStorageImpl : public c10::StorageImpl {
     }
 
     std::mutex unique_id_mutex_;
+
+    void *lazy_fusion_data_{nullptr};
 };
 
 c10::intrusive_ptr<c10::StorageImpl> make_npu_storage_impl(
@@ -65,4 +67,3 @@ c10::intrusive_ptr<c10::StorageImpl> make_npu_storage_impl(
     bool resizable);
 
 } // namespace torch_npu
-

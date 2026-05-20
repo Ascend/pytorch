@@ -1,35 +1,14 @@
 name: Torch NPU Upstream v2.7.1 Trigger
 
 on:
-  push:
-    branches:
-      - main
-      - master
-      - 'release/**'
-    paths:
-      - '.github/workflows/torch-npu-upstream-test-trigger.yml'
-      - '.github/workflows/_torch-npu-upstream*.yml'
-      - '.github/scripts/*.py'
-      - 'test_upstream/**'
-  pull_request:
-    paths:
-      - '.github/workflows/torch-npu-upstream-test-trigger.yml'
-      - '.github/workflows/_torch-npu-upstream*.yml'
-      - '.github/scripts/*.py'
-      - 'test_upstream/**'
   schedule:
-    - cron: '0 22 * * 1'  # UTC 22:00 (Beijing time next day 06:00), every Monday
+    - cron: '0 11 * * *'  # UTC 11:00 (Beijing time 19:00), every day
   workflow_dispatch:
     inputs:
       python_version:
         description: 'Python version (default 3.11)'
         required: false
         default: '3.11'
-        type: string
-      pytorch_version:
-        description: 'PyTorch version (default 2.7.1)'
-        required: false
-        default: '2.7.1'
         type: string
       distributed_shards:
         description: 'Number of shards for distributed tests (default 2)'
@@ -52,7 +31,7 @@ jobs:
     uses: ./.github/workflows/_torch-npu-upstream-test.yml
     with:
       python_version: ${{ github.event.inputs.python_version || '3.11' }}
-      pytorch_version: ${{ github.event.inputs.pytorch_version || '2.7.1' }}
+      pytorch_version: '2.7.1'
       distributed_shards: ${{ github.event.inputs.distributed_shards || '2' }}
       regular_shards: ${{ github.event.inputs.regular_shards || '5' }}
       test_files: ${{ github.event.inputs.test_files || '' }}

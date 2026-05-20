@@ -43,8 +43,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          repository: kerer-ai/pytorch
-          ref: v2.7.1_dev
+          repository: Ascend/pytorch
+          ref: v2.7.1
           fetch-depth: 1
 
       - name: Setup Python ${{ inputs.python_version }}
@@ -128,4 +128,4 @@ jobs:
             npu-full-test-summary.json
             distributed_cases_results_by_file.jsonl
             regular_cases_results_by_file.jsonl
-          retention-days: 30
+          retention-days: 60

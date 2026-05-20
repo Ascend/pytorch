@@ -39,7 +39,7 @@ jobs:
 
     steps:
       - name: Setup NPU test environment
-        uses: kerer-ai/pytorch/.github/actions/setup-npu-test-env@v2.7.1_dev
+        uses: Ascend/pytorch/.github/actions/setup-npu-test-env@v2.7.1
         with:
           python_version: ${{ inputs.python_version }}
           pytorch_version: ${{ inputs.pytorch_version }}
@@ -55,7 +55,7 @@ jobs:
 
           REPORT_DIR=test-reports
           mkdir -p ${REPORT_DIR}
-
+          set +e
           # Custom test files: per-case isolation execution
           python${{ inputs.python_version }} ascend_pytorch/.github/scripts/run_npu_test_shard.py \
             --test-files "${{ inputs.test_files }}" \
@@ -97,7 +97,7 @@ jobs:
         with:
           name: test-reports-custom
           path: test-reports/
-          retention-days: 30
+          retention-days: 60
 
       - name: Compress and upload error logs
         if: failure()
@@ -114,4 +114,4 @@ jobs:
         with:
           name: error-logs-custom
           path: error-logs-custom.tar.gz
-          retention-days: 7
+          retention-days: 60

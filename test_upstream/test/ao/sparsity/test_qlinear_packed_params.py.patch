@@ -1,10 +1,10 @@
 diff --git a/test/ao/sparsity/test_qlinear_packed_params.py b/test/ao/sparsity/test_qlinear_packed_params.py
-index 1c4c58a..5752a09 100644
+index 7968e57eb37..a3f981deff0 100644
 --- a/test/ao/sparsity/test_qlinear_packed_params.py
 +++ b/test/ao/sparsity/test_qlinear_packed_params.py
-@@ -4,6 +4,15 @@
+@@ -4,7 +4,17 @@
  import tempfile
- 
+
  import torch
 +import torch_npu
 +# from torch_npu.contrib import transfer_to_npu
@@ -16,5 +16,27 @@ index 1c4c58a..5752a09 100644
 +CUDA_VERSION = 11080
 +
  from torch.ao.nn.sparse.quantized.dynamic.linear import Linear
++from torch.ao.nn.sparse.quantized.linear import LinearPackedParams
  from torch.testing._internal.common_quantization import skipIfNoFBGEMM, skipIfNoQNNPACK
  from torch.testing._internal.common_quantized import (
+     override_cpu_allocator_for_qnnpack,
+@@ -159,7 +169,8 @@ class TestQlinearPackedParams(TestCase):
+             with tempfile.TemporaryFile() as file_buff:
+                 torch.save(lin, file_buff)
+                 file_buff.seek(0)
+-                lin2 = torch.load(file_buff)
++                with torch.serialization.safe_globals([Linear, LinearPackedParams, torch.ScriptObject]):
++                    lin2 = torch.load(file_buff)
+                 self.assertEqual(lin._weight_bias(), lin2._weight_bias())
+                 # Serialize -> Deserialize -> Serialize should match Serialize
+                 self.assertEqual(
+@@ -233,7 +244,8 @@ class TestQlinearPackedParams(TestCase):
+             return ((state, weight_bias), file_buff)
+
+         def load_get_state_weight_bias(f_b):
+-            lin2 = torch.load(f_b)
++            with torch.serialization.safe_globals([Linear, LinearPackedParams, torch.ScriptObject]):
++                lin2 = torch.load(f_b)
+             state = lin2._packed_params._packed_params.__getstate__()
+             weight_bias = lin2._weight_bias()
+             f_b.close()

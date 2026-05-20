@@ -6,28 +6,29 @@
 namespace at_npu {
 namespace native {
 
-#undef LOAD_FUNCTION
-#define LOAD_FUNCTION(funcName) \
-  REGISTER_FUNCTION(libmsprofiler, funcName)
-#undef GET_FUNC
-#define GET_FUNC(funcName)              \
-  GET_FUNCTION(libmsprofiler, funcName)
+#undef TORCH_NPU_LOAD_FUNC
+#define TORCH_NPU_LOAD_FUNC(funcName) \
+  TORCH_NPU_REGISTER_FUNCTION(libmsprofiler, funcName)
+
+#undef TORCH_NPU_GET_FUNC
+#define TORCH_NPU_GET_FUNC(funcName)              \
+  TORCH_NPU_GET_FUNCTION(libmsprofiler, funcName)
 
 
-REGISTER_LIBRARY(libmsprofiler, RTLD_LAZY | RTLD_GLOBAL)
-LOAD_FUNCTION(aclprofWarmup)
-LOAD_FUNCTION(aclprofSetConfig)
-LOAD_FUNCTION(aclprofGetSupportedFeatures)
-LOAD_FUNCTION(aclprofGetSupportedFeaturesV2)
-LOAD_FUNCTION(aclprofRegisterDeviceCallback)
-LOAD_FUNCTION(aclprofMarkEx)
+TORCH_NPU_REGISTER_LIBRARY(libmsprofiler, RTLD_LAZY | RTLD_GLOBAL)
+TORCH_NPU_LOAD_FUNC(aclprofWarmup)
+TORCH_NPU_LOAD_FUNC(aclprofSetConfig)
+TORCH_NPU_LOAD_FUNC(aclprofGetSupportedFeatures)
+TORCH_NPU_LOAD_FUNC(aclprofGetSupportedFeaturesV2)
+TORCH_NPU_LOAD_FUNC(aclprofRegisterDeviceCallback)
+TORCH_NPU_LOAD_FUNC(aclprofMarkEx)
 
 aclError AclProfilingRegisterDeviceCallback()
 {
     typedef aclError (*AclProfRegisterDeviceCallbackFunc)();
     static AclProfRegisterDeviceCallbackFunc func = nullptr;
     if (func == nullptr) {
-        func = (AclProfRegisterDeviceCallbackFunc)GET_FUNC(aclprofRegisterDeviceCallback);
+        func = (AclProfRegisterDeviceCallbackFunc)TORCH_NPU_GET_FUNC(aclprofRegisterDeviceCallback);
         if (func == nullptr) {
             return ACL_ERROR_PROF_MODULES_UNSUPPORTED;
         }
@@ -40,7 +41,7 @@ aclError AclProfilingWarmup(const aclprofConfig *profilerConfig)
     typedef aclError (*AclProfWarmupFunc)(const aclprofConfig *);
     static AclProfWarmupFunc func = nullptr;
     if (func == nullptr) {
-        func = (AclProfWarmupFunc)GET_FUNC(aclprofWarmup);
+        func = (AclProfWarmupFunc)TORCH_NPU_GET_FUNC(aclprofWarmup);
         if (func == nullptr) {
             return ACL_ERROR_PROF_MODULES_UNSUPPORTED;
         }
@@ -53,7 +54,7 @@ aclError AclprofSetConfig(aclprofConfigType configType, const char* config, size
     typedef aclError(*AclprofSetConfigFunc)(aclprofConfigType, const char *, size_t);
     static AclprofSetConfigFunc func = nullptr;
     if (func == nullptr) {
-        func = (AclprofSetConfigFunc)GET_FUNC(aclprofSetConfig);
+        func = (AclprofSetConfigFunc)TORCH_NPU_GET_FUNC(aclprofSetConfig);
         if (func == nullptr) {
             return ACL_ERROR_PROF_MODULES_UNSUPPORTED;
         }
@@ -67,12 +68,12 @@ aclError AclprofGetSupportedFeatures(size_t* featuresSize, void** featuresData)
     typedef aclError(*AclprofGetSupportedFeaturesFunc)(size_t*, void**);
     static AclprofGetSupportedFeaturesFunc func = nullptr;
     if (func == nullptr) {
-        func = (AclprofGetSupportedFeaturesFunc)GET_FUNC(aclprofGetSupportedFeaturesV2);
+        func = (AclprofGetSupportedFeaturesFunc)TORCH_NPU_GET_FUNC(aclprofGetSupportedFeaturesV2);
         if (func == nullptr) {
-            func = (AclprofGetSupportedFeaturesFunc)GET_FUNC(aclprofGetSupportedFeatures);
+            func = (AclprofGetSupportedFeaturesFunc)TORCH_NPU_GET_FUNC(aclprofGetSupportedFeatures);
         }
     }
-    
+
     if (func != nullptr) {
         return func(featuresSize, featuresData);
     }
@@ -84,7 +85,7 @@ aclError AclProfilingMarkEx(const char *msg, size_t msgLen, aclrtStream stream)
     typedef aclError (*aclprofMarkExFunc) (const char *, size_t, aclrtStream);
     static aclprofMarkExFunc func = nullptr;
     if (func == nullptr) {
-        func = (aclprofMarkExFunc)GET_FUNC(aclprofMarkEx);
+        func = (aclprofMarkExFunc)TORCH_NPU_GET_FUNC(aclprofMarkEx);
         if (func == nullptr) {
             return ACL_ERROR_PROF_MODULES_UNSUPPORTED;
         }

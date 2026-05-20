@@ -46,8 +46,16 @@
 |torch.distributed.checkpoint.SavePlanner.set_up_planner|是|-|
 |torch.distributed.checkpoint.SavePlan|是|-|
 |torch.distributed.checkpoint.planner.WriteItem|是|-|
+|torch.distributed.checkpoint.planner.WriteItem.tensor_storage_size|是|-|
 |torch.distributed.checkpoint.FileSystemReader|是|-|
 |torch.distributed.checkpoint.FileSystemWriter|是|-|
+|torch.distributed.checkpoint.staging.AsyncStager|是|-|
+|torch.distributed.checkpoint.staging.AsyncStager.should_synchronize_after_execute|是|-|
+|torch.distributed.checkpoint.staging.AsyncStager.stage|是|-|
+|torch.distributed.checkpoint.staging.AsyncStager.synchronize_staging|是|-|
+|torch.distributed.checkpoint.staging.BlockingAsyncStager|是|-|
+|torch.distributed.checkpoint.staging.BlockingAsyncStager.stage|是|-|
+|torch.distributed.checkpoint.staging.BlockingAsyncStager.synchronize_staging|是|-|
 |torch.distributed.checkpoint.DefaultSavePlanner|是|-|
 |torch.distributed.checkpoint.DefaultSavePlanner.lookup_object|是|-|
 |torch.distributed.checkpoint.DefaultSavePlanner.transform_object|是|-|
@@ -69,3 +77,4 @@
 |torch.distributed.checkpoint.format_utils.BroadcastingTorchSaveReader.reset|是|-|
 |torch.distributed.checkpoint.format_utils.BroadcastingTorchSaveReader.set_up_storage_reader|是|-|
 |torch.distributed.checkpoint.format_utils.BroadcastingTorchSaveReader.validate_checkpoint_id|是|-|
+|torch.distributed.checkpoint.format_utils.DynamicMetaLoadPlanner|是|-|

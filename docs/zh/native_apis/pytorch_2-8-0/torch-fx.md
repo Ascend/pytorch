@@ -34,6 +34,7 @@
 |torch.fx.Graph.nodes|否|-|
 |torch.fx.Graph.on_generate_code|是|支持fp32|
 |torch.fx.Graph.output|是|-|
+|torch.fx.Graph.output_node|是|-|
 |torch.fx.Graph.placeholder|是|-|
 |torch.fx.Graph.print_tabular|是|支持fp32|
 |torch.fx.Graph.process_inputs|是|-|

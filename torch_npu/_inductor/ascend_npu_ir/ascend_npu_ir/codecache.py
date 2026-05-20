@@ -33,8 +33,7 @@ from torch._inductor.codecache import (
     ModuleType,
     )
 
-from .npu.mlir_compiler import NpuMlirCompiler
-from .npu.codegen.akg import AkgCompiler
+from .npu.mlir_compiler import NpuMlirCompiler, AkgCompiler
 from . import config as anir_config
 from .npu.utils import logger
 
@@ -81,7 +80,8 @@ def _load_kernel(
     kernel.init(module=source_code, extra_env=extra_env)
     try:
         kernel.get_best_kernel()
-    except:
+    # [wtd#25] Replace bare except with except Exception to avoid catching KeyboardInterrupt
+    except Exception:
         kernel.precompile(device_info=device_info, suppress_error=suppress_error)
     return kernel
 
@@ -240,7 +240,8 @@ class CustomAsyncCompile(AsyncCompile):
                 try:
                     kernel.get_best_kernel()
                     return kernel
-                except:
+                # [wtd#26] Replace bare except with except Exception to avoid catching KeyboardInterrupt
+                except Exception:
                     if kernel._should_disable_autotune_for_determinism():
                         compile_args = [(None, True, True)]
                     else:
@@ -258,7 +259,8 @@ class CustomAsyncCompile(AsyncCompile):
                 try:
                     kernel.get_best_kernel()
                     return kernel
-                except:
+                # [wtd#26] Replace bare except with except Exception to avoid catching KeyboardInterrupt
+                except Exception:
                     future = self.process_pool().submit(
                         _worker_compile, kernel, cc, device, logger_level=logger.level, extra_env=extra_env
                     )
@@ -273,7 +275,7 @@ class CustomAsyncCompile(AsyncCompile):
     def akg_auto_fallback(
         self, kernel_name: str, source_code: str, kernel_meta: Dict[str, Any]) -> Callable:
         _compile_start()
-        kernel = AkgCompiler(kernel_meta=kernel_meta)
+        kernel = AkgCompiler(kernel_name, kernel_meta=kernel_meta)
         kernel.compile(source_code)
         return kernel
 

@@ -219,7 +219,7 @@ class SDXLLoRAFineTuner:
             try:
                 headers, values = torch._dynamo.utils.compile_times("csv")
                 for header, value in zip(headers, values):
-                    if header == "async_compile.wait":
+                    if header == "PyCodeCache.load_by_key_path":
                         numbers = [float(num.strip()) for num in value.split(',') if num.strip()]
                         op_compile_time = sum(numbers)
                 print(f"op_compile_time: {op_compile_time * 1e3} ms")
@@ -254,19 +254,23 @@ def main():
     parser.add_argument("--enable_profiler", action="store_true", help="Enable PyTorch profiler")
     parser.add_argument("--profiler_start_step", type=int, default=10, help="Step to start profiler")
     parser.add_argument("--profiler_end_step", type=int, default=15, help="Step to end profiler")
-    parser.add_argument("--profiler_save_path", type=str, default="./log", help="Path to save profiler logs")
+    parser.add_argument("--profiler_save_path", type=str, default="./profile", help="Path to save profiler logs")
     parser.add_argument("--report_to_tensorboard", action="store_true", help="Report to TensorBoard")
     parser.add_argument("--npu-backend", type=str, default="mlir")
+    parser.add_argument("--mfusion", action="store_true",
+                        help="Enable MFusion for graph fusion optimization")
     
     args = parser.parse_args()
     device_type = detect_device_type()
     os.environ['TORCHINDUCTOR_NPU_BACKEND'] = args.npu_backend
+    if args.mfusion:
+        os.environ['TORCHINDUCTOR_NPU_MFUSION']='1'
     finer_tuner = SDXLLoRAFineTuner(args)
     metrics = finer_tuner.train()
     if args.enable_compile:
         headers, values = torch._dynamo.utils.compile_times("csv")
         for header, value in zip(headers, values):
-            if header == "async_compile.wait":
+            if header == "PyCodeCache.load_by_key_path":
                 numbers = [float(num.strip()) for num in value.split(',') if num.strip()]
                 op_compile_time = sum(numbers)
         print(f"op_compile_time:{op_compile_time * 1e3} ms", )

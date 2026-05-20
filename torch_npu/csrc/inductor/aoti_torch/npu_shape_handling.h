@@ -21,10 +21,19 @@ namespace torch::aot_inductor {
 #define INDEX_SHIFT_AMOUNT 4
 #define SIZE_SHIFT_AMOUNT 20
 #define DIM_SHIFT_AMOUNT 56
-#define OP_MASK 0xF
-#define INDEX_MASK 0xFFFF
-#define SIZE_MASK 0xFFFFFFFFF
-#define DIM_MASK 0xFF
+#define TORCH_NPU_OP_MASK 0xF
+#define TORCH_NPU_INDEX_MASK 0xFFFF
+#define TORCH_NPU_SIZE_MASK 0xFFFFFFFFF
+#define TORCH_NPU_DIM_MASK 0xFF
+
+#pragma GCC warning "OP_MASK is deprecated, use TORCH_NPU_OP_MASK instead"
+#define OP_MASK TORCH_NPU_OP_MASK
+#pragma GCC warning "INDEX_MASK is deprecated, use TORCH_NPU_INDEX_MASK instead"
+#define INDEX_MASK TORCH_NPU_INDEX_MASK
+#pragma GCC warning "SIZE_MASK is deprecated, use TORCH_NPU_SIZE_MASK instead"
+#define SIZE_MASK TORCH_NPU_SIZE_MASK
+#pragma GCC warning "DIM_MASK is deprecated, use TORCH_NPU_DIM_MASK instead"
+#define DIM_MASK TORCH_NPU_DIM_MASK
 
 #define POLICY_TIMES_FACTOR 2
 

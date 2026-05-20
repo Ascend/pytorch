@@ -40,29 +40,29 @@ uint64_t ShapeOpStrategyBase::EncodeTransformStep(int op, int index, int64_t ori
      ◦ dimension: the dimension being operated on
      ◦ The composition is: dimension(highest 8 bits) | original_size(next 36 bits) | index(next 16 bits) | op(lowest 4 bits)
      */
-    TORCH_CHECK(op >= 0 && op <= OP_MASK,
-        "op should be in range [0, ", OP_MASK, "]");
-    TORCH_CHECK(index >= 0 && index <= INDEX_MASK,
-        "tensor index should be in range [0, ", INDEX_MASK, "]");
-    TORCH_CHECK(original_size >= 0 && original_size <= SIZE_MASK,
-        "tensor size should be in range [0, ", SIZE_MASK, "]");
-    TORCH_CHECK(dimension >= 0 && dimension <= DIM_MASK,
-        "dimension should be in range [0, ", DIM_MASK, "]");
+    TORCH_CHECK(op >= 0 && op <= TORCH_NPU_OP_MASK,
+        "op should be in range [0, ", TORCH_NPU_OP_MASK, "]");
+    TORCH_CHECK(index >= 0 && index <= TORCH_NPU_INDEX_MASK,
+        "tensor index should be in range [0, ", TORCH_NPU_INDEX_MASK, "]");
+    TORCH_CHECK(original_size >= 0 && original_size <= TORCH_NPU_SIZE_MASK,
+        "tensor size should be in range [0, ", TORCH_NPU_SIZE_MASK, "]");
+    TORCH_CHECK(dimension >= 0 && dimension <= TORCH_NPU_DIM_MASK,
+        "dimension should be in range [0, ", TORCH_NPU_DIM_MASK, "]");
     uint64_t operation = 0;
-    operation |= static_cast<uint64_t>(op) & OP_MASK;
-    operation |= (static_cast<uint64_t>(index) & INDEX_MASK) << INDEX_SHIFT_AMOUNT;
-    operation |= (static_cast<uint64_t>(original_size) & SIZE_MASK) << SIZE_SHIFT_AMOUNT;
-    operation |= (static_cast<uint64_t>(dimension) & DIM_MASK) << DIM_SHIFT_AMOUNT;
+    operation |= static_cast<uint64_t>(op) & TORCH_NPU_OP_MASK;
+    operation |= (static_cast<uint64_t>(index) & TORCH_NPU_INDEX_MASK) << INDEX_SHIFT_AMOUNT;
+    operation |= (static_cast<uint64_t>(original_size) & TORCH_NPU_SIZE_MASK) << SIZE_SHIFT_AMOUNT;
+    operation |= (static_cast<uint64_t>(dimension) & TORCH_NPU_DIM_MASK) << DIM_SHIFT_AMOUNT;
     return operation;
 }
 
 void ShapeOpStrategyBase::DecodeTransformStep(uint64_t operation, int& op, int& index,
     int64_t& original_size, int& dimension)
 {
-    op = static_cast<int>(operation & OP_MASK);
-    index = static_cast<int>((operation >> INDEX_SHIFT_AMOUNT) & INDEX_MASK);
-    original_size = static_cast<int64_t>((operation >> SIZE_SHIFT_AMOUNT) & SIZE_MASK);
-    dimension = static_cast<int>((operation >> DIM_SHIFT_AMOUNT) & DIM_MASK);
+    op = static_cast<int>(operation & TORCH_NPU_OP_MASK);
+    index = static_cast<int>((operation >> INDEX_SHIFT_AMOUNT) & TORCH_NPU_INDEX_MASK);
+    original_size = static_cast<int64_t>((operation >> SIZE_SHIFT_AMOUNT) & TORCH_NPU_SIZE_MASK);
+    dimension = static_cast<int>((operation >> DIM_SHIFT_AMOUNT) & TORCH_NPU_DIM_MASK);
 }
 
 void BSShapeOpStrategy::InitializeCore(std::vector<int64_t>& gears, int dimension,
@@ -79,11 +79,11 @@ void BSShapeOpStrategy::InitializeCore(std::vector<int64_t>& gears, int dimensio
         "Maximum batch size (", gears.back(), ") must be <= ", MAX_BS_GEAR, ".");
     TORCH_CHECK(std::adjacent_find(gears.begin(), gears.end()) == gears.end(),
         "Batch size gears must be unique.")
-    
+
     TORCH_CHECK(dimension >= 0, "Dimension must be non-negative (got ", dimension, ").");
-    
+
     TORCH_CHECK(indices.size() > 0, "At least one tensor index must be provided for transformation.");
-    
+
     std::sort(indices.begin(), indices.end());
     TORCH_CHECK(indices.front() >= 0,
         "Tensor index must be non-negative (found negative index: ", indices.front(), ").");
@@ -104,7 +104,7 @@ void SeqShapeOpStrategy::InitializeCore(std::vector<int64_t>& gears, std::vector
     TORCH_CHECK(!gears.empty(), "At least one sequence gear must be provided.");
     TORCH_CHECK(gears.size() <= MAX_GEARS_NUM,
         "Number of sequence length gears (", gears.size(), ") exceeds maximum supported (", MAX_GEARS_NUM, ").");
-    
+
     std::sort(gears.begin(), gears.end());
     TORCH_CHECK(gears.front() >= MIN_SEQ_GEAR,
         "Minimum sequence length (", gears.front(), ") must be >= ", MIN_SEQ_GEAR, ".");
@@ -136,7 +136,7 @@ void SeqShapeOpStrategy::InitializeCore(std::vector<int64_t>& gears, std::vector
         m_indices.push_back(indices[i]);
         m_dimensions.push_back(dimensions[i]);
     }
-    
+
     m_value = value;
     m_gears = gears;
     m_min_gear = gears.front();
@@ -383,7 +383,7 @@ void NPUShapeHandling::Initialize(ShapeType type, int64_t min_size, int64_t max_
     std::vector<int>& dimensions, std::vector<int>& indices, double value)
 {
     m_policy = policy;
-    
+
     std::vector<int64_t> gears;
     GenerateGears(min_size, max_size, policy, gears);
 
@@ -430,7 +430,7 @@ void NPUShapeHandling::GenerateGears(int64_t min_size, int64_t max_size,
     TORCH_CHECK(min_size <= max_size, "The min_size cannot be greater than the max_size.");
     TORCH_CHECK(min_size >= COMMON_MIN_SIZE, "The min_size should be a positive number.");
     TORCH_CHECK(policy == ShapePolicy::TIMES,
-        "Currently, only the TIMES policy supports passing min_size and max_size paramters.");
+        "Currently, only the TIMES policy supports passing min_size and max_size parameters.");
     gears.push_back(min_size);
 
     if (min_size == max_size) {

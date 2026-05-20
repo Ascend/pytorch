@@ -1562,7 +1562,9 @@ except RuntimeError as e:
         dl_common_args = dict(num_workers=3, batch_size=3, pin_memory=(not TEST_NPU))
         for ctx in supported_multiprocessing_contexts:
             # windows and jetson devices don't support sharing npu tensor; ROCm does not yet fully support IPC
-            if ctx in ['spawn', 'forkserver'] and TEST_NPU and not IS_WINDOWS and not IS_JETSON:
+            if (ctx in ['spawn', 'forkserver'] and TEST_NPU and not IS_WINDOWS and not IS_JETSON and
+                    any(conf.strip() == "expandable_segments:True"
+                        for conf in os.environ.get("PYTORCH_NPU_ALLOC_CONF", "").split(","))):
                 ds_cls = NPUCountingDataset
             else:
                 ds_cls = CountingDataset

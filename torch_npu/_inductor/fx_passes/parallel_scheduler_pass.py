@@ -300,7 +300,7 @@ def build_multi_stream_buf_intent(node, tab_value, wrapper):
 
     if getattr(node, "multi_stream_name", None) not in (None, "main_stream.npu_stream"):
         if (
-            hasattr(node, "nodes")
+            hasattr(node, "node")
             and isinstance(node.node, ExternKernelOut)
             and getattr(node.node, "python_kernel_name", None) is not None
         ):

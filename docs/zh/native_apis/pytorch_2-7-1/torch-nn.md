@@ -306,6 +306,7 @@
 |torch.nn.utils.prune.random_structured|是|-|
 |torch.nn.utils.prune.ln_structured|是|-|
 |torch.nn.utils.prune.global_unstructured|是|-|
+|torch.nn.utils.prune.identity|是|-|
 |torch.nn.utils.prune.custom_from_mask|是|支持int64|
 |torch.nn.utils.prune.remove|是|-|
 |torch.nn.utils.prune.is_pruned|是|-|
