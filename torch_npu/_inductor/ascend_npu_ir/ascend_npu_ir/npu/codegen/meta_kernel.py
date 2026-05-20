@@ -42,6 +42,7 @@ from torch._dynamo.device_interface import get_interface_for_device
 from ..torch_mlir_patch import stateless_fx_import
 from ...npu.inductor_patch.lowering import map_strings_to_operators
 from ...npu.utils import (
+    MLIRProcessor,
     parse_fx_example_inputs,
     npu_cast_to_prim_cast,
     get_fx_graph_code,
@@ -286,7 +287,11 @@ class NpuMetaScheduling(SIMDScheduling):
         self.orig_fnode_name_to_fnode = {}
 
     def _postprocess_src_code(self, src_code, mlir_kernel, kernel_name):
-        return src_code, {}
+        mlir_processor = MLIRProcessor()
+        _, kernel_info = mlir_processor.process_mlir(
+            src_code, get_sig=True, dynamic=mlir_kernel._is_dynamic
+        )
+        return src_code, {"kernel_hash": kernel_info["kernel_hash"]}
 
     def define_kernel(self, src_code, mlir_kernel, traced_graph, mode=None):
         if mode is None:
