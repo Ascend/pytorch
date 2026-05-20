@@ -1,8 +1,7 @@
 import pkgutil
 from collections import defaultdict
-from collections.abc import Callable
-from typing import List, Optional
 from importlib import import_module
+from typing import Callable, List, Optional
 
 
 PatchFn = Callable[[], None]
@@ -48,7 +47,7 @@ class PatchManager:
     _builtin_patches_registered = False
     _custom_full_patch_order: Optional[List[str]] = None
     _patch_groups = defaultdict(list)
-    _patch_modules: list[str] = []
+    _patch_modules: List[str] = []
 
     @classmethod
     def _add_patch(cls, group: str, fn: PatchFn):
@@ -56,7 +55,7 @@ class PatchManager:
             cls._patch_groups[group].append(fn)
 
     @classmethod
-    def register_patch(cls, group: str, fn: PatchFn | None = None):
+    def register_patch(cls, group: str, fn: Optional[PatchFn] = None):
         """
         Register a patch function into a patch group.
 
@@ -83,7 +82,7 @@ class PatchManager:
         return decorator
 
     @classmethod
-    def _resolve_patch_order(cls) -> list[str]:
+    def _resolve_patch_order(cls) -> List[str]:
         """
         Resolve final patch execution order.
 
@@ -186,11 +185,11 @@ class PatchManager:
             cls._patch_modules.append(module_name)
 
     @classmethod
-    def set_patch_order(cls, order: list[str]):
+    def set_patch_order(cls, order: List[str]):
         """
         Override base patch group order.
 
-        Must be called before PatchManager.run().
+        Must be called before _apply_all_patches.
         Registered groups not listed in this order will still be appended after
         the base order by _resolve_patch_order().
         """
