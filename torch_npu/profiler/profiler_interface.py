@@ -160,6 +160,8 @@ class _ProfInterface:
     def stop_trace(self):
         if not self._is_env_valid:
             return
+        if ProfilerActivity.NPU in self.activities:
+            torch.npu.synchronize()
         _stop_profiler()
         self.stop_gc_detect()
         _disable_event_record()
