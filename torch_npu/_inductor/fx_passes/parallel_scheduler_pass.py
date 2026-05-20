@@ -132,6 +132,7 @@ def parallel_scheduler():
                         if device.index is None:
                             raise AssertionError("device.index is None")
                         V.graph.wrapper_code.codegen_device_guard_enter(device.index)
+            self.current_node = node
             self.buffer_names_to_free.update(node.last_usage)
             tab_value = current_indent_level * wrapper.wrapper_call.tabwidth
 

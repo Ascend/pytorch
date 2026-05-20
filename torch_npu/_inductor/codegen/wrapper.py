@@ -1,9 +1,11 @@
 import os
 import copy
+import dataclasses
 from typing import Optional, Union
 import contextlib
 from torch._inductor import config
 from torch._inductor.codegen.wrapper import (
+    MultiOutputLine,
     PythonWrapperCodegen,
     SymbolicCallArg,
     pexpr,
@@ -19,6 +21,36 @@ from torch._inductor.codegen.wrapper import BufferLike, WrapperLine
 from torch._inductor import ir
 import torch_npu.npu.aclnn
 from ..fx_passes.utils.schedule_node_utils import is_multi_stream
+
+
+@dataclasses.dataclass
+class NPUMultiOutputLine(MultiOutputLine):
+    
+    multi_stream_intent: str = ""
+    
+    def codegen(self, code: IndentedBuffer) -> None:
+        def codegen_list_tuple_access(basename, indices):  # type: ignore[no-untyped-def]
+            if len(indices) > 0:
+                itype, i = indices[0]
+                if issubclass(itype, list):
+                    return codegen_list_tuple_access(f"{basename}[{i}]", indices[1:])
+                elif issubclass(itype, tuple):
+                    # cpp wrapper code needs to use std::get<> to access a tuple
+                    tuple_access = self.wrapper.codegen_tuple_access(
+                        basename, self.result_name, str(i)
+                    )
+                    return codegen_list_tuple_access(tuple_access, indices[1:])
+                elif issubclass(itype, dict):
+                    return codegen_list_tuple_access(f"{basename}['{i}']", indices[1:])
+                else:
+                    raise AssertionError("non supported index type: ", itype)
+            else:
+                return basename
+
+        value = codegen_list_tuple_access(self.arg_name, self.indices)
+        code.writeline(
+            f"{self.multi_stream_intent}{self.wrapper.declare}{self.result_name} = {value}{self.wrapper.ending}"
+        )
 
 
 class NPUWrapperCodeGen(PythonWrapperCodegen):
@@ -135,6 +167,37 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
                 multi_stream_intent_str = self.get_buffer_define_multi_stream_by_name(name)
                 out = f"{multi_stream_intent_str}{out}"
         return out
+
+
+    def _generate_extern_kernel_out_helper(
+        self,
+        kernel: str,
+        out: str,
+        out_view: Optional[str],
+        args: list[str],
+        device: str,
+        debug_handle: Optional[int] = None,
+    ) -> None:
+        # add debug printer code for triton kernel calls at (jit) inductor level
+        if is_multi_stream():
+            multi_stream_intent = ""
+            if self.extern_node_intent_multi_stream is not None and len(self.extern_node_intent_multi_stream) > 0:
+                for node_intent in self.extern_node_intent_multi_stream:
+                    python_kernel_name = node_intent.get("python_kernel_name")
+                    kernel_args = list(node_intent.get("args"))
+                    stream_intent = node_intent.get("multi_stream_intent")
+                    args_str = str(args)
+                    is_sub_args = all(arg in args_str for arg in kernel_args)
+                    if is_sub_args and python_kernel_name == kernel:
+                        multi_stream_intent = " " * stream_intent
+            debug_printer_manager = V.graph.wrapper_code.debug_printer
+            debug_printer_manager.set_printer_args(args, kernel, None, None, "extern")
+            args.append(f"out={out_view if out_view else out}")
+            self.write_provenance_debug_handle(kernel, debug_handle)
+            with debug_printer_manager:
+                self.writeline(f"{multi_stream_intent}{kernel}({', '.join(args)})")
+        else:
+            super()._generate_extern_kernel_out_helper(kernel, out, out_view, args, device, debug_handle)
 
 
     def generate_extern_kernel_alloc(self, extern_kernel, args):
@@ -273,6 +336,18 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
             super().generate_kernel_call(kernel_name, call_args, device=device, triton=triton, arg_types=arg_types, raw_args=raw_args, triton_meta=triton_meta)
 
 
+    def codegen_multi_output(self, node: ir.MultiOutput):
+        if is_multi_stream():
+            result_name = node.get_name()
+            arg_name = node.input_name(0)
+            multi_stream_intent = ""
+            if self.buffer_define_multi_stream is not None and result_name in self.buffer_define_multi_stream.keys():
+                multi_stream_intent = " " * self.buffer_define_multi_stream.get(result_name)
+            self.writeline(NPUMultiOutputLine(self, result_name, arg_name, node.indices, multi_stream_intent))
+        else:
+            super().codegen_multi_output(node)
+
+
     def make_buffer_reuse(self, old: BufferLike, new: BufferLike, delete_old: bool):
         if is_multi_stream():
             if not (old.get_dtype() == new.get_dtype()):
@@ -348,18 +423,6 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
         if is_multi_stream():
             if config.profile_bandwidth:
                 self.write_triton_header_once()
-            result = IndentedBuffer()
-            result.splice(self.imports)
-            result.writeline("")
-            result.splice(self.header)
-            # We do not want the cpp header for intermediate const graph. Headers would be
-            # rendered by the main module instead.
-            if V.graph.aot_mode and V.graph.cpp_wrapper and V.graph.is_const_graph:
-                result = IndentedBuffer()
-
-            # Add subgraph definitions to the result
-            result.splice(self.subgraph_definitions)
-
             with contextlib.ExitStack() as stack:
                 stack.enter_context(self.wrapper_call.indent())
                 if config.profiler_mark_wrapper_call:
@@ -367,11 +430,7 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
                 if config.profile_bandwidth:
                     self.generate_start_graph()
 
-                # We disable planning during training because it presently increases peak memory consumption.
-                if is_inference and config.memory_planning:
-                    self.memory_plan()
-                else:
-                    self.memory_plan_reuse()
+                self.run_wrapper_ir_passes(is_inference)
 
                 if config.triton.store_cubin and not config.triton.autotune_at_compile_time:
                     self.generate_reset_kernel_saved_flags()
@@ -380,25 +439,29 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
                     if isinstance(line, str) and "main_stream = " in line:
                         stream_line = idx
                         break
-                
-                if stream_line == -1:
-                    for line in self.lines:
-                        if isinstance(line, WrapperLine):
-                            line.codegen(self.wrapper_call)
-                        else:
-                            self.wrapper_call.writeline(line)
-                else:
-                    self.handle_cross_stream_del_buf()
-                    buffer_define_multi_stream = self.buffer_define_multi_stream
-                    for idx, line in enumerate(self.lines):
-                        if idx < stream_line:
-                            self.buffer_define_multi_stream = {}
-                        else:
-                            self.buffer_define_multi_stream = buffer_define_multi_stream
-                        if isinstance(line, WrapperLine):
-                            line.codegen(self.wrapper_call)
-                        else:
-                            self.wrapper_call.writeline(line)
+                # At this point, we shouldn't generate any new memory planning lines.
+                # Override writeline to point at the wrapper call, in case it gets called.
+                with self.set_writeline(self.wrapper_call.writeline):
+                    if stream_line == -1:
+                        for line in self.lines:
+                            if isinstance(line, WrapperLine):
+                                line.codegen(self.wrapper_call)
+                            else:
+                                self.wrapper_call.writeline(line)
+                    else:
+                        self.handle_cross_stream_del_buf()
+                        buffer_define_multi_stream = self.buffer_define_multi_stream
+                        for idx, line in enumerate(self.lines):
+                            if idx < stream_line:
+                                self.buffer_define_multi_stream = {}
+                            else:
+                                self.buffer_define_multi_stream = buffer_define_multi_stream
+                            if isinstance(line, WrapperLine):
+                                line.codegen(self.wrapper_call)
+                            else:
+                                self.wrapper_call.writeline(line)
+
+                self._write_multi_kernel_defs()
 
                 output_refs = self.get_output_refs()
                 self.mark_output_type()
@@ -421,6 +484,18 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
                     )
                 self.generate_return(output_refs)
 
+            # Assemble the final code from sections.
+            result = IndentedBuffer()
+            result.splice(self.imports)
+            result.writeline("")
+            result.splice(self.header)
+            # We do not want the cpp header for intermediate const graph. Headers would be
+            # rendered by the main module instead.
+            if V.graph.aot_mode and V.graph.cpp_wrapper and V.graph.is_const_graph:
+                result = IndentedBuffer()
+
+            # Add subgraph definitions to the result
+            result.splice(self.subgraph_definitions)
             self.finalize_prefix()
             result.splice(self.prefix)
 
