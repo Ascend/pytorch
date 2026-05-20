@@ -921,14 +921,14 @@ class TestStableLibtorch(TestCase):
 
     def test_my_hann_window(self):
         window_length = 5
-        dtype = None
+        dtype = torch.float32
         layout = None
-        device = None
+        device = torch.device("npu")
         pin_memory = None
         res = torch.ops.libtorch_agn_211.my_hann_window(
             window_length, dtype, layout, device, pin_memory
         )
-        expected = torch.hann_window(window_length)
+        expected = torch.hann_window(window_length, dtype=torch.float32, device="npu")
         self.assertEqual(res, expected)
 
     def test_my_histc(self):
@@ -1257,20 +1257,20 @@ class TestStableLibtorch(TestCase):
         size = [2, 3]
         seed = 42
         torch.manual_seed(seed)
-        res = torch.ops.libtorch_agn_211.my_rand(size, None, None, None, None)
+        res = torch.ops.libtorch_agn_211.my_rand(size, None, None, torch.device("npu"), None)
         torch.manual_seed(seed)
-        expected = torch.rand(size)
-        self.assertEqual(res.cpu(), expected)
+        expected = torch.rand(size, device="npu")
+        self.assertEqual(res.cpu(), expected.cpu())
 
     def test_my_rand_generator(self):
         size = [2, 3]
         seed = 42
         torch.manual_seed(seed)
         res = torch.ops.libtorch_agn_211.my_rand_generator(
-            size, None, None, None, None, None
+            size, None, None, None, torch.device("npu"), None
         )
         torch.manual_seed(seed)
-        expected = torch.rand(size)
+        expected = torch.rand(size, device="npu")
         self.assertEqual(res, expected)
 
     def test_my_randint(self):
@@ -1278,10 +1278,10 @@ class TestStableLibtorch(TestCase):
         size = [2, 3]
         seed = 42
         torch.manual_seed(seed)
-        res = torch.ops.libtorch_agn_211.my_randint(high, size, None, None, None, None)
+        res = torch.ops.libtorch_agn_211.my_randint(high, size, None, None, torch.device("npu"), None)
         torch.manual_seed(seed)
-        expected = torch.randint(high, size)
-        self.assertEqual(res.cpu(), expected)
+        expected = torch.randint(high, size, device="npu")
+        self.assertEqual(res.cpu(), expected.cpu())
 
     def test_my_randint_generator(self):
         high = 10
@@ -1289,10 +1289,10 @@ class TestStableLibtorch(TestCase):
         seed = 42
         torch.manual_seed(seed)
         res = torch.ops.libtorch_agn_211.my_randint_generator(
-            high, size, None, None, None, None, None
+            high, size, None, None, None, torch.device("npu"), None
         )
         torch.manual_seed(seed)
-        expected = torch.randint(high, size)
+        expected = torch.randint(high, size, device="npu")
         self.assertEqual(res, expected)
 
     def test_my_randint_low(self):
@@ -1302,11 +1302,11 @@ class TestStableLibtorch(TestCase):
         seed = 42
         torch.manual_seed(seed)
         res = torch.ops.libtorch_agn_211.my_randint_low(
-            low, high, size, None, None, None, None
+            low, high, size, None, None, torch.device("npu"), None
         )
         torch.manual_seed(seed)
-        expected = torch.randint(low, high, size)
-        self.assertEqual(res.cpu(), expected)
+        expected = torch.randint(low, high, size, device="npu")
+        self.assertEqual(res.cpu(), expected.cpu())
 
     def test_my_randint_low_out(self):
         out = torch.empty(2, 3, dtype=torch.long).npu()
@@ -1324,27 +1324,27 @@ class TestStableLibtorch(TestCase):
         size = [2, 3]
         seed = 42
         torch.manual_seed(seed)
-        res = torch.ops.libtorch_agn_211.my_randn(size, None, None, None, None)
+        res = torch.ops.libtorch_agn_211.my_randn(size, None, None, torch.device("npu"), None)
         torch.manual_seed(seed)
-        expected = torch.randn(size)
-        self.assertEqual(res.cpu(), expected)
+        expected = torch.randn(size, device="npu")
+        self.assertEqual(res.cpu(), expected.cpu())
 
     def test_my_randn_generator(self):
         size = [2, 3]
         seed = 42
         torch.manual_seed(seed)
         res = torch.ops.libtorch_agn_211.my_randn_generator(
-            size, None, None, None, None, None
+            size, None, None, None, torch.device("npu"), None
         )
         torch.manual_seed(seed)
-        expected = torch.randn(size)
+        expected = torch.randn(size, device="npu")
         self.assertEqual(res, expected)
 
     def test_my_randperm(self):
         n = 5
         seed = 42
         torch.npu.manual_seed(seed)
-        res = torch.ops.libtorch_agn_211.my_randperm(n, None, None, None, None)
+        res = torch.ops.libtorch_agn_211.my_randperm(n, None, None, torch.device("npu"), None)
         torch.npu.manual_seed(seed)
         expected = torch.randperm(n, device="npu")
         self.assertEqual(res.cpu(), expected.cpu())
@@ -1625,54 +1625,54 @@ class TestStableLibtorch(TestCase):
         self_ = torch.randn(2, 3).npu()
         seed = 42
         torch.manual_seed(seed)
-        res = torch.ops.libtorch_agn_211.my_rand_like(self_, None, None, None, None, None)
+        res = torch.ops.libtorch_agn_211.my_rand_like(self_, None, None, torch.device("npu"), None, None)
         torch.manual_seed(seed)
-        expected = torch.rand_like(self_)
+        expected = torch.rand_like(self_, device="npu")
         self.assertEqual(res, expected)
 
     def test_my_randn_like(self):
         self_ = torch.randn(2, 3).npu()
         seed = 42
         torch.manual_seed(seed)
-        res = torch.ops.libtorch_agn_211.my_randn_like(self_, None, None, None, None, None)
+        res = torch.ops.libtorch_agn_211.my_randn_like(self_, None, None, torch.device("npu"), None, None)
         torch.manual_seed(seed)
-        expected = torch.randn_like(self_)
+        expected = torch.randn_like(self_, device="npu")
         self.assertEqual(res, expected)
 
     def test_my_randint_like(self):
         self_ = torch.randn(2, 3).npu()
         seed = 42
         torch.manual_seed(seed)
-        res = torch.ops.libtorch_agn_211.my_randint_like(self_, 10, None, None, None, None, None)
+        res = torch.ops.libtorch_agn_211.my_randint_like(self_, 10, None, None, torch.device("npu"), None, None)
         torch.manual_seed(seed)
-        expected = torch.randint_like(self_, 10)
+        expected = torch.randint_like(self_, 10, device="npu")
         self.assertEqual(res, expected)
 
     def test_my_randint_like_low_dtype(self):
         self_ = torch.randn(2, 3).npu()
         seed = 42
         torch.manual_seed(seed)
-        res = torch.ops.libtorch_agn_211.my_randint_like_low_dtype(self_, 0, 10, None, None, None, None, None)
+        res = torch.ops.libtorch_agn_211.my_randint_like_low_dtype(self_, 0, 10, None, None, torch.device("npu"), None, None)
         torch.manual_seed(seed)
-        expected = torch.randint_like(self_, 0, 10)
+        expected = torch.randint_like(self_, 0, 10, device="npu")
         self.assertEqual(res, expected)
 
     def test_my_rand_like_generator(self):
         self_ = torch.randn(2, 3).npu()
         seed = 42
         torch.manual_seed(seed)
-        res = torch.ops.libtorch_agn_211.my_rand_like_generator(self_, None, None, None, None, None, None)
+        res = torch.ops.libtorch_agn_211.my_rand_like_generator(self_, None, None, None, torch.device("npu"), None, None)
         torch.manual_seed(seed)
-        expected = torch.rand_like(self_)
+        expected = torch.rand_like(self_, device="npu")
         self.assertEqual(res, expected)
 
     def test_my_randn_like_generator(self):
         self_ = torch.randn(2, 3).npu()
         seed = 42
         torch.manual_seed(seed)
-        res = torch.ops.libtorch_agn_211.my_randn_like_generator(self_, None, None, None, None, None, None)
+        res = torch.ops.libtorch_agn_211.my_randn_like_generator(self_, None, None, None, torch.device("npu"), None, None)
         torch.manual_seed(seed)
-        expected = torch.randn_like(self_)
+        expected = torch.randn_like(self_, device="npu")
         self.assertEqual(res, expected)
 
 
