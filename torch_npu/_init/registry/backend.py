@@ -14,6 +14,7 @@ def register_privateuse1_backend():
         torch.qint32,
         torch.qint8,
     ]
+    torch_npu.unsupported_dtype = unsupported_dtype
     torch.utils.generate_methods_for_privateuse1_backend(
         for_tensor=True,
         for_module=True,
