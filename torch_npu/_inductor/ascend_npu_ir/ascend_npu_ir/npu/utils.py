@@ -678,7 +678,7 @@ class {module_name}(torch.nn.Module):
             module_repr = module.__repr__().replace("\r", " ").replace("\n", " ")
             # weights_only=False as this is legacy code that saves the model
             module_str = (
-                f"torch.load(r'{module_file}', weights_only=False) # {module_repr}"
+                f"torch.load(r'{module_file}', weights_only=True) # {module_repr}"
             )
         model_str += f"{tab * 2}self.{module_name} = {module_str}\n"
 
