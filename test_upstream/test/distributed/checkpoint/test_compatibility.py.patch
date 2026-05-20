@@ -1,0 +1,62 @@
+﻿diff --git a/test/distributed/checkpoint/test_compatibility.py b/test/distributed/checkpoint/test_compatibility.py
+index c7bbe1a006c..b4b38da14c3 100644
+--- a/test/distributed/checkpoint/test_compatibility.py
++++ b/test/distributed/checkpoint/test_compatibility.py
+@@ -3,6 +3,7 @@
+ from unittest.mock import patch
+ 
+ import torch
++import torch_npu
+ import torch.distributed.checkpoint as dcp
+ from torch.distributed.checkpoint.metadata import (
+     BytesStorageMetadata,
+@@ -21,7 +22,7 @@ class TestDCPCompatbility(TestCase):
+         # Ensure that all the new fields of all the metadata have the default
+         # values so that we can always deserialize from a legacy metadata.
+         try:
+-            tensor = torch.zeros(4, 4)
++            tensor = torch.zeros(4, 4).npu()
+             chunk_meta = ChunkStorageMetadata(
+                 torch.Size((1, 1)),
+                 torch.Size((1, 1)),
+@@ -49,19 +50,19 @@ class TestDCPCompatbility(TestCase):
+ 
+         with patch("torch.distributed.checkpoint.metadata.TensorProperties", stp):
+             dcp.save(
+-                {"a": torch.zeros(4, 4)},
++                {"a": torch.zeros(4, 4).npu()},
+                 dcp.FileSystemWriter("/tmp/dcp_testing"),
+             )
+ 
+         dcp.load(
+-            {"a": torch.zeros(4, 4)},
++            {"a": torch.zeros(4, 4).npu()},
+             dcp.FileSystemReader("/tmp/dcp_testing"),
+         )
+ 
+     @with_temp_dir
+     def test_storage_meta(self) -> None:
+         writer = dcp.FileSystemWriter(self.temp_dir)
+-        dcp.save({"a": torch.zeros(4, 4)}, storage_writer=writer)
++        dcp.save({"a": torch.zeros(4, 4).npu()}, storage_writer=writer)
+ 
+         reader = dcp.FileSystemReader(self.temp_dir)
+         storage_meta = reader.read_metadata().storage_meta
+@@ -73,7 +74,7 @@ class TestDCPCompatbility(TestCase):
+     @with_temp_dir
+     def test_with_v_2_3(self) -> None:
+         sd = {
+-            "a": torch.zeros(4, 4),
++            "a": torch.zeros(4, 4).npu(),
+             "dict": {
+                 "dict_a": {"dict_a_1": 1, "dict_a_2": 2},
+                 "dict_b": {"dict_b_1": 1, "dict_b_2": 2},
+@@ -81,7 +82,7 @@ class TestDCPCompatbility(TestCase):
+             "list": [0, 1, 2, 3, 4, 5],
+         }
+         load_sd = {
+-            "a": torch.ones(4, 4),
++            "a": torch.ones(4, 4).npu(),
+             "dict": {
+                 "dict_a": {"dict_a_1": 2, "dict_a_2": 4},
+                 "dict_b": {"dict_b_1": 2, "dict_b_2": 4},

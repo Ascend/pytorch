@@ -1,0 +1,13 @@
+﻿diff --git a/test/distributed/checkpoint/test_hf_safetensor_e2e.py b/test/distributed/checkpoint/test_hf_safetensor_e2e.py
+index b9979da8a97..bc6b48c6737 100644
+--- a/test/distributed/checkpoint/test_hf_safetensor_e2e.py
++++ b/test/distributed/checkpoint/test_hf_safetensor_e2e.py
+@@ -5,6 +5,8 @@ import json
+ import os
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch.distributed.checkpoint as dist_cp
+ from torch import distributed as dist
+ from torch.distributed.checkpoint.quantized_hf_storage import (

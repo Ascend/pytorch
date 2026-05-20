@@ -1,0 +1,13 @@
+﻿diff --git a/test/distributed/checkpoint/_experimental/test_types.py b/test/distributed/checkpoint/_experimental/test_types.py
+index 6f67f619b76..5748b9d481d 100644
+--- a/test/distributed/checkpoint/_experimental/test_types.py
++++ b/test/distributed/checkpoint/_experimental/test_types.py
+@@ -3,6 +3,8 @@
+ 
+ from torch.distributed.checkpoint._experimental.types import RankInfo, STATE_DICT
+ from torch.testing._internal.common_utils import run_tests, TestCase
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ 
+ 
+ class TestRankInfo(TestCase):

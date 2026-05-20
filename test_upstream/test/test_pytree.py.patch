@@ -1,0 +1,12 @@
+﻿diff --git a/test/test_pytree.py b/test/test_pytree.py
+index 1b7902c020f..fc931b355d5 100644
+--- a/test/test_pytree.py
++++ b/test/test_pytree.py
+@@ -32,6 +32,7 @@ from torch.testing._internal.common_utils import (
+ pytree_modules = {
+     "python": python_pytree,
+ }
++from torch_npu.contrib import transfer_to_npu
+ if not IS_FBCODE:
+     import torch.utils._cxx_pytree as cxx_pytree
+ 

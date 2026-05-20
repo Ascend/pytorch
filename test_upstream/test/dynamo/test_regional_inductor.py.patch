@@ -1,0 +1,55 @@
+﻿diff --git a/test/dynamo/test_regional_inductor.py b/test/dynamo/test_regional_inductor.py
+index 70d24836f35..809a6e21dd7 100644
+--- a/test/dynamo/test_regional_inductor.py
++++ b/test/dynamo/test_regional_inductor.py
+@@ -7,6 +7,8 @@ import warnings
+ from typing import Any, TYPE_CHECKING
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch._inductor.test_case
+ import torch.fx.traceback as fx_traceback
+ import torch.utils.checkpoint
+@@ -268,7 +270,7 @@ class RegionalInductorTests(torch._inductor.test_case.TestCase):
+             a * b,
+             b,
+             dtype=torch.bfloat16,
+-            device="cuda",
++            device="npu",
+             requires_grad=True,
+         )
+ 
+@@ -517,9 +519,9 @@ class RegionalInductorTests(torch._inductor.test_case.TestCase):
+                 return output
+ 
+         flex_module = SacModule(hidden_size=512, num_heads=8, context_fn=context_fn).to(
+-            "cuda", dtype=torch.bfloat16
++            "npu", dtype=torch.bfloat16
+         )
+-        x = torch.ones(8, 1024, 512, device="cuda", dtype=torch.bfloat16)
++        x = torch.ones(8, 1024, 512, device="npu", dtype=torch.bfloat16)
+         compiled_module = torch.compile(
+             flex_module, backend=aot_eager_regional_inductor(), fullgraph=True
+         )
+@@ -959,7 +961,7 @@ def forward(self, arg0_1, arg1_1):
+             a * b,
+             b,
+             dtype=torch.bfloat16,
+-            device="cuda",
++            device="npu",
+             requires_grad=True,
+         )
+ 
+@@ -1198,9 +1200,9 @@ def forward(self, primals_0, primals_1, primals_2, primals_3, primals_4, primals
+                 return output
+ 
+         flex_module = SacModule(hidden_size=512, num_heads=8, context_fn=context_fn).to(
+-            "cuda", dtype=torch.bfloat16
++            "npu", dtype=torch.bfloat16
+         )
+-        x = torch.ones(8, 1024, 512, device="cuda", dtype=torch.bfloat16)
++        x = torch.ones(8, 1024, 512, device="npu", dtype=torch.bfloat16)
+         compiled_module = torch.compile(
+             flex_module,
+             backend=aot_eager_regional_inductor(serialize, on_invoke_subgraph=True),

@@ -1,0 +1,168 @@
+﻿diff --git a/test/nn/test_embedding.py b/test/nn/test_embedding.py
+index 8f6847f18f5..6d4b1d76ec6 100644
+--- a/test/nn/test_embedding.py
++++ b/test/nn/test_embedding.py
+@@ -5,11 +5,13 @@ import unittest
+ from itertools import product
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch.nn as nn
+ import torch.nn.functional as F
+ from torch.testing._internal.common_device_type import (
+     dtypes,
+-    dtypesIfCUDA,
++    dtypesIfPRIVATEUSE1,
+     dtypesIfXPU,
+     instantiate_device_type_tests,
+     largeTensorTest,
+@@ -323,7 +325,7 @@ class TestEmbeddingNNDeviceType(NNTestCase):
+             with self.assertRaisesRegex(RuntimeError, "'weight' must be 2-D"):
+                 torch.nn.functional.embedding(indices, weight)
+ 
+-    @dtypesIfCUDA(torch.float16, torch.float64)
++    @dtypesIfPRIVATEUSE1(torch.float16, torch.float64)
+     @dtypesIfXPU(torch.float16, torch.float64)
+     @dtypes(torch.float64)
+     def test_embedding_backward(self, device, dtype):
+@@ -358,7 +360,7 @@ class TestEmbeddingNNDeviceType(NNTestCase):
+         self.assertEqual(embedding.weight.grad._indices(), tensorTwice)
+         self.assertEqual(embedding.weight.grad._values(), onesTwice)
+ 
+-    @dtypesIfCUDA(
++    @dtypesIfPRIVATEUSE1(
+         *(
+             (torch.float, torch.double, torch.bfloat16, torch.half)
+             if TEST_WITH_ROCM
+@@ -383,7 +385,7 @@ class TestEmbeddingNNDeviceType(NNTestCase):
+         )
+         self.assertEqual(weight.grad, expected_grad)
+ 
+-    @dtypesIfCUDA(
++    @dtypesIfPRIVATEUSE1(
+         *(
+             (torch.float, torch.double, torch.bfloat16, torch.half)
+             if TEST_WITH_ROCM
+@@ -408,7 +410,7 @@ class TestEmbeddingNNDeviceType(NNTestCase):
+         expected_grad = torch.ones((2, 2, 4), device=device, dtype=dtype)
+         self.assertEqual(jvp, expected_grad)
+ 
+-    @dtypesIfCUDA(
++    @dtypesIfPRIVATEUSE1(
+         *(
+             (torch.float, torch.double, torch.bfloat16, torch.half)
+             if TEST_WITH_ROCM
+@@ -507,7 +509,7 @@ class TestEmbeddingNNDeviceType(NNTestCase):
+     @skipIfTorchDynamo("see https://github.com/pytorch/pytorch/pull/95621")
+     @onlyNativeDeviceTypes
+     @dtypes(torch.float32, torch.float64)
+-    @dtypesIfCUDA(torch.half, torch.bfloat16)
++    @dtypesIfPRIVATEUSE1(torch.half, torch.bfloat16)
+     @dtypesIfXPU(torch.half, torch.bfloat16)
+     def test_embedding_bag_1D_padding_idx(self, device, dtype):
+         num_features = 3
+@@ -655,7 +657,7 @@ class TestEmbeddingNNDeviceType(NNTestCase):
+                     weights.grad, weights_check.grad, msg=msg, atol=atol, rtol=rtol
+                 )
+ 
+-    @onlyOn(["cuda", "xpu"])
++    @onlyOn(["npu", "xpu"])
+     @dtypes(
+         *(
+             (torch.float, torch.double, torch.bfloat16, torch.half)
+@@ -742,7 +744,7 @@ class TestEmbeddingNNDeviceType(NNTestCase):
+             embedding.weight.grad, expected_grad, atol=atol, rtol=rtol
+         )
+ 
+-    @onlyOn(["cuda", "xpu"])
++    @onlyOn(["npu", "xpu"])
+     @dtypes(
+         *(
+             (torch.float, torch.double, torch.bfloat16, torch.half)
+@@ -793,11 +795,11 @@ class TestEmbeddingNNDeviceType(NNTestCase):
+                 f"Expected non-zero gradient for index {idx}",
+             )
+ 
+-    @onlyOn(["cuda", "xpu"])
++    @onlyOn(["npu", "xpu"])
+     @dtypes(
+         torch.bfloat16,
+     )
+-    @largeTensorTest("80GB", device="cuda")
++    @largeTensorTest("80GB", device="npu")
+     @largeTensorTest("80GB", device="xpu")
+     def test_embedding_backward_large_batch_overflow(self, device, dtype):
+         """
+@@ -880,7 +882,7 @@ class TestEmbeddingNNDeviceType(NNTestCase):
+     # against torch.nn.functional.embedding followed by a reduction.
+     @onlyNativeDeviceTypes
+     @dtypes(torch.float32, torch.float64)
+-    @dtypesIfCUDA(torch.half, torch.bfloat16)
++    @dtypesIfPRIVATEUSE1(torch.half, torch.bfloat16)
+     @dtypesIfXPU(torch.half, torch.bfloat16)
+     def test_embedding_bag_2D_padding_idx(self, device, dtype):
+         # Use a Python implementation of embedding_bag with padding_idx support
+@@ -993,7 +995,7 @@ class TestEmbeddingNNDeviceType(NNTestCase):
+                     rtol = None
+                 self.assertEqual(grad, grad_check, msg=msg, atol=atol, rtol=rtol)
+ 
+-    @onlyOn(["cuda", "xpu"])
++    @onlyOn(["npu", "xpu"])
+     @dtypes(
+         *(
+             (torch.float, torch.double, torch.bfloat16, torch.half)
+@@ -1248,7 +1250,7 @@ class TestEmbeddingNNDeviceType(NNTestCase):
+             (torch.half, torch.bfloat16, torch.float, torch.double),
+         )
+     )
+-    @dtypesIfCUDA(
++    @dtypesIfPRIVATEUSE1(
+         *itertools.product(
+             (torch.int, torch.long),
+             (torch.int, torch.long),
+@@ -1321,7 +1323,7 @@ class TestEmbeddingNNDeviceType(NNTestCase):
+             (torch.float, torch.double, torch.half, torch.bfloat16),
+         )
+     )
+-    @dtypesIfCUDA(
++    @dtypesIfPRIVATEUSE1(
+         *itertools.product(
+             (torch.int, torch.long),
+             (torch.int, torch.long),
+@@ -1389,7 +1391,7 @@ class TestEmbeddingNNDeviceType(NNTestCase):
+             (torch.float, torch.double, torch.half, torch.bfloat16),
+         )
+     )
+-    @dtypesIfCUDA(
++    @dtypesIfPRIVATEUSE1(
+         *itertools.product(
+             (torch.int, torch.long),
+             (torch.int, torch.long),
+@@ -1568,7 +1570,7 @@ class TestEmbeddingNNDeviceType(NNTestCase):
+                 rtol=0,
+             )
+ 
+-    @dtypesIfCUDA(
++    @dtypesIfPRIVATEUSE1(
+         *itertools.product(
+             (torch.int, torch.long), (torch.half, torch.float, torch.double)
+         )
+@@ -1766,7 +1768,7 @@ class TestEmbeddingNNDeviceType(NNTestCase):
+             (torch.float, torch.double, torch.half, torch.bfloat16),
+         )
+     )
+-    @dtypesIfCUDA(
++    @dtypesIfPRIVATEUSE1(
+         *itertools.product(
+             (torch.int, torch.long),
+             (torch.int, torch.long),
+@@ -1849,7 +1851,7 @@ class TestEmbeddingNNDeviceType(NNTestCase):
+             (torch.float, torch.double, torch.half, torch.bfloat16),
+         )
+     )
+-    @dtypesIfCUDA(
++    @dtypesIfPRIVATEUSE1(
+         *itertools.product(
+             (torch.int, torch.long),
+             (torch.int, torch.long),

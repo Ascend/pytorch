@@ -1,0 +1,13 @@
+﻿diff --git a/test/distributed/checkpoint/test_async_process_executor.py b/test/distributed/checkpoint/test_async_process_executor.py
+index 424369514c5..cb6f84c3461 100644
+--- a/test/distributed/checkpoint/test_async_process_executor.py
++++ b/test/distributed/checkpoint/test_async_process_executor.py
+@@ -5,6 +5,8 @@ import sys
+ from unittest.mock import patch
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch.testing._internal.common_utils as common
+ from torch import distributed as dist
+ from torch.distributed.checkpoint._async_process_executor import (

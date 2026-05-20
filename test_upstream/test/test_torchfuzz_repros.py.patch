@@ -1,0 +1,12 @@
+﻿diff --git a/test/test_torchfuzz_repros.py b/test/test_torchfuzz_repros.py
+index cf9e43b3425..1cfccdfea81 100644
+--- a/test/test_torchfuzz_repros.py
++++ b/test/test_torchfuzz_repros.py
+@@ -13,6 +13,7 @@ import pytest
+ 
+ import torch
+ from torch.testing._internal.common_utils import run_tests, TestCase
++from torch_npu.contrib import transfer_to_npu
+ 
+ 
+ class TestFuzzerCompileIssues(TestCase):

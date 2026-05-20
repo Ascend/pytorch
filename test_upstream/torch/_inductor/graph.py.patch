@@ -1,0 +1,33 @@
+﻿diff --git a/torch/_inductor/graph.py b/torch/_inductor/graph.py
+index c7747724945..2bba0dc8761 100644
+--- a/torch/_inductor/graph.py
++++ b/torch/_inductor/graph.py
+@@ -1244,17 +1244,17 @@ class GraphLowering(torch.fx.Interpreter):
+             self.graph_input_names.append(target)
+             return None
+         # See note: Note: [Generator arguments in AOTDispatcher]
+-        elif isinstance(example, torch.Generator):
+-            assert len(V.graph.current_node.users) == 1 and next(
+-                iter(V.graph.current_node.users)
+-            ).target in (
+-                torch._prims.rng_prims.graphsafe_run_with_rng_state,
+-                torch.ops.higher_order.invoke_subgraph,
+-            )
+-            gen = ir.GeneratorState(name=target, device=example.device)
+-            self.graph_inputs[target] = gen  # type: ignore[assignment]
+-            self.graph_input_names.append(target)
+-            return gen
++        #elif isinstance(example, torch.Generator):
++        #    assert len(V.graph.current_node.users) == 1 and next(
++        #        iter(V.graph.current_node.users)
++        #    ).target in (
++        #        torch._prims.rng_prims.graphsafe_run_with_rng_state,
++        #       torch.ops.higher_order.invoke_subgraph,
++        #    )
++        #    gen = ir.GeneratorState(name=target, device=example.device)
++        #   self.graph_inputs[target] = gen  # type: ignore[assignment]
++        #    self.graph_input_names.append(target)
++        #    return gen
+         elif is_opaque_reference_type(type(example)):
+             opaque_obj = ir.OpaqueObjectState(name=target, value=example)
+             self.graph_inputs[target] = opaque_obj  # type: ignore[assignment]

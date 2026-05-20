@@ -1,0 +1,13 @@
+﻿diff --git a/test/dynamo/test_install_free_tensors.py b/test/dynamo/test_install_free_tensors.py
+index 438ad5c58e2..228f1a62280 100644
+--- a/test/dynamo/test_install_free_tensors.py
++++ b/test/dynamo/test_install_free_tensors.py
+@@ -4,6 +4,8 @@ from collections.abc import Callable, Sequence
+ from typing import Any
+ 
+ import torch
++from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ import torch._dynamo
+ import torch._dynamo.test_case
+ import torch._dynamo.testing

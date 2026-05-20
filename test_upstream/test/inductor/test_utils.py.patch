@@ -1,0 +1,13 @@
+﻿diff --git a/test/inductor/test_utils.py b/test/inductor/test_utils.py
+index 24f52580b73..ecb12a40f5d 100644
+--- a/test/inductor/test_utils.py
++++ b/test/inductor/test_utils.py
+@@ -6,6 +6,8 @@ import unittest
+ from sympy import I, Max, Min, Symbol, sympify
+ 
+ import torch
++from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ from torch._inductor.fx_utils import count_flops_fx, countable_fx
+ from torch._inductor.utils import get_device_tflops, sympy_str, sympy_subs
+ from torch._inductor.virtualized import V

@@ -1,0 +1,32 @@
+﻿diff --git a/test/inductor/test_indexing.py b/test/inductor/test_indexing.py
+index 373596d7102..8e7113bafef 100644
+--- a/test/inductor/test_indexing.py
++++ b/test/inductor/test_indexing.py
+@@ -1,3 +1,11 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ import os
+ import sys
+@@ -30,7 +38,7 @@ from torch.utils._sympy.functions import (
+     RoundDecimal,
+     RoundToInt,
+ )
+-
++import torch_npu._inductor
+ 
+ # int64_t is long long on MacOS, but long on 64-bit Linux
+ LONG_SUFFIX = "LL" if IS_MACOS or IS_WINDOWS else "L"
+@@ -753,5 +761,4 @@ class TestOptimizationHintIdentityExpansion(InductorTestCase):
+ if __name__ == "__main__":
+     from torch._inductor.test_case import run_tests
+ 
+-    if HAS_CPU or HAS_GPU:
+-        run_tests("sympy")
++    run_tests("sympy")

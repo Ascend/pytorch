@@ -1,0 +1,145 @@
+﻿diff --git a/test/distributed/elastic/timer/file_based_local_timer_test.py b/test/distributed/elastic/timer/file_based_local_timer_test.py
+index 0125ce5cd25..ed29d347d85 100644
+--- a/test/distributed/elastic/timer/file_based_local_timer_test.py
++++ b/test/distributed/elastic/timer/file_based_local_timer_test.py
+@@ -15,7 +15,6 @@ import uuid
+ 
+ import torch.distributed.elastic.timer as timer
+ from torch.testing._internal.common_utils import (
+-    IS_ARM64,
+     IS_MACOS,
+     IS_WINDOWS,
+     run_tests,
+@@ -25,7 +24,7 @@ from torch.testing._internal.common_utils import (
+ 
+ 
+ # timer is not supported on these platforms
+-if not (IS_WINDOWS or IS_MACOS or IS_ARM64):
++if not (IS_WINDOWS or IS_MACOS):
+     # func2 should time out
+     def func2(n, file_path):
+         if file_path is not None:
+@@ -49,7 +48,15 @@ if not (IS_WINDOWS or IS_MACOS or IS_ARM64):
+             super().tearDown()
+             self.server.stop()
+ 
++        @staticmethod
++        def _reap_worker_without_killing_server(worker_pid, sig):
++            if worker_pid == os.getpid():
++                return True
++            os.kill(worker_pid, sig)
++            return True
++
+         def test_exception_propagation(self):
++            timer.configure(timer.FileTimerClient(self.file_path))
+             with self.assertRaises(RuntimeError, msg="foobar"):
+                 with timer.expires(after=1):
+                     raise RuntimeError("foobar")
+@@ -96,9 +103,13 @@ if not (IS_WINDOWS or IS_MACOS or IS_ARM64):
+ 
+             func(4)
+ 
+-            p = mp.Process(target=func2, args=(2, self.file_path))
+-            p.start()
+-            p.join()
++            with mock.patch(
++                "torch.distributed.elastic.timer.FileTimerServer._reap_worker",
++                side_effect=self._reap_worker_without_killing_server,
++            ):
++                p = mp.Process(target=func2, args=(2, self.file_path))
++                p.start()
++                p.join()
+             self.assertEqual(-signal.SIGKILL, p.exitcode)
+ 
+         def test_multiple_clients_interaction(self):
+@@ -179,9 +190,15 @@ if not (IS_WINDOWS or IS_MACOS or IS_ARM64):
+         def test_timer(self):
+             timeout = 0.1
+             duration = 1
+-            p = mp.Process(target=self._run, args=(self.file_path, timeout, duration))
+-            p.start()
+-            p.join()
++            with mock.patch(
++                "torch.distributed.elastic.timer.FileTimerServer._reap_worker",
++                side_effect=self._reap_worker_without_killing_server,
++            ):
++                p = mp.Process(
++                    target=self._run, args=(self.file_path, timeout, duration)
++                )
++                p.start()
++                p.join()
+             self.assertEqual(-signal.SIGKILL, p.exitcode)
+ 
+     def _request_on_interval(file_path, n, interval, sem):
+@@ -265,6 +282,11 @@ if not (IS_WINDOWS or IS_MACOS or IS_ARM64):
+                 worker_pid=pid, scope_id=scope, expiration_time=-1
+             )
+ 
++        def _send_requests(self, *requests):
++            with open(self.file_path, "w") as file:
++                for request in requests:
++                    file.write(request.to_json() + "\n")
++
+         @mock.patch("os.kill")
+         @mock.patch(
+             "torch.distributed.elastic.timer.file_based_local_timer.log_debug_info_for_expired_timers"
+@@ -277,13 +299,18 @@ if not (IS_WINDOWS or IS_MACOS or IS_ARM64):
+             self.server.start()
+ 
+             test_pid = -3
+-            client = timer.FileTimerClient(self.file_path)
+-            client._send_request(self._expired_timer(pid=test_pid, scope="test1"))
+-            client._send_request(self._valid_timer(pid=test_pid, scope="test2"))
++            self._send_requests(
++                self._expired_timer(pid=test_pid, scope="test1"),
++                self._valid_timer(pid=test_pid, scope="test2"),
++            )
+ 
+             self.server.run_once()  # Allows the server to process all requests
+             self.assertEqual(0, len(self.server._timers))
+-            mock_os_kill.assert_called_once_with(test_pid, signal.SIGKILL)
++            mock_os_kill.assert_has_calls([
++                mock.call(test_pid, signal.SIGKILL),
++                mock.call(os.getpid(), signal.SIGKILL),
++            ])
++            self.assertEqual(2, mock_os_kill.call_count)
+             mock_debug_info.assert_called()
+ 
+         @mock.patch("os.kill")
+@@ -295,12 +322,14 @@ if not (IS_WINDOWS or IS_MACOS or IS_ARM64):
+             """
+             self.server.start()
+ 
+-            client = timer.FileTimerClient(self.file_path)
+             test_pid = -3
+-            client._send_request(self._valid_timer(pid=test_pid, scope="test1"))
+-            client._send_request(self._release_timer(pid=test_pid, scope="test1"))
+-            client._send_request(self._release_timer(pid=test_pid, scope="test2"))
++            self._send_requests(
++                self._valid_timer(pid=test_pid, scope="test1"),
++                self._release_timer(pid=test_pid, scope="test1"),
++                self._release_timer(pid=test_pid, scope="test2"),
++            )
+ 
++            self.server.run_once()  # Allows the server to process all requests
+             self.assertEqual(0, len(self.server._timers))
+             mock_os_kill.assert_not_called()
+ 
+@@ -315,11 +344,12 @@ if not (IS_WINDOWS or IS_MACOS or IS_ARM64):
+             self.server.start()
+             mock_pid_exists.return_value = True
+ 
+-            client = timer.FileTimerClient(self.file_path)
+-            client._send_request(self._valid_timer(pid=-3, scope="test1"))
+-            client._send_request(self._valid_timer(pid=-3, scope="test2"))
+-            client._send_request(self._valid_timer(pid=-2, scope="test1"))
+-            client._send_request(self._valid_timer(pid=-2, scope="test2"))
++            self._send_requests(
++                self._valid_timer(pid=-3, scope="test1"),
++                self._valid_timer(pid=-3, scope="test2"),
++                self._valid_timer(pid=-2, scope="test1"),
++                self._valid_timer(pid=-2, scope="test2"),
++            )
+ 
+             self.server.run_once()  # Allows the server to process all requests
+             self.assertEqual(4, len(self.server._timers))

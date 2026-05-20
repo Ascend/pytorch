@@ -1,0 +1,88 @@
+﻿diff --git a/test/quantization/core/experimental/test_floatx.py b/test/quantization/core/experimental/test_floatx.py
+index 75b542a78d0..4945286e02f 100644
+--- a/test/quantization/core/experimental/test_floatx.py
++++ b/test/quantization/core/experimental/test_floatx.py
+@@ -5,9 +5,11 @@ import struct
+ import unittest
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ from torch.testing._internal.common_device_type import (
+     dtypes,
+-    dtypesIfCUDA,
++    dtypesIfPRIVATEUSE1,
+     instantiate_device_type_tests,
+ )
+ from torch.testing._internal.common_utils import (
+@@ -237,7 +239,7 @@ ROUND_TRIP_TEST_CASES = (
+ 
+ class TestFloat8Dtype(TestCase):
+     @dtypes(*FLOAT8_DTYPES)
+-    @dtypesIfCUDA(*CUDA_FLOAT8_DTYPES)
++    @dtypesIfPRIVATEUSE1(*CUDA_FLOAT8_DTYPES)
+     def test_creation_with_zeros(self, dtype, device):
+         """Sanity test, round-trip casting of zeros."""
+         x8 = torch.zeros(8, dtype=dtype, device=device)
+@@ -251,7 +253,7 @@ class TestFloat8Dtype(TestCase):
+             self.assertEqual(x, x8.float(), atol=0, rtol=0)
+ 
+     @dtypes(*FLOAT8_DTYPES)
+-    @dtypesIfCUDA(*CUDA_FLOAT8_DTYPES)
++    @dtypesIfPRIVATEUSE1(*CUDA_FLOAT8_DTYPES)
+     @parametrize("get_input", ROUND_TRIP_TEST_CASES)
+     def test_cast_round_trip(self, dtype, get_input, device):
+         """Numerical test of float8 conversion, by performing a round-trip cast
+@@ -321,7 +323,7 @@ class TestFloat8Dtype(TestCase):
+                 )
+ 
+     @dtypes(*FLOAT8_DTYPES)
+-    @dtypesIfCUDA(*CUDA_FLOAT8_DTYPES)
++    @dtypesIfPRIVATEUSE1(*CUDA_FLOAT8_DTYPES)
+     def test_special_numbers(self, dtype, device):
+         """Test special numbers."""
+ 
+@@ -345,7 +347,7 @@ class TestFloat8Dtype(TestCase):
+             compare_binary_with_decimal(*number, dtype, device)
+ 
+     @dtypes(*FLOAT8_DTYPES)
+-    @dtypesIfCUDA(*CUDA_FLOAT8_DTYPES)
++    @dtypesIfPRIVATEUSE1(*CUDA_FLOAT8_DTYPES)
+     def test_type_promotion_fails(self, dtype, device):
+         """Test that float8 is not promoted to higher precision Float Type."""
+         for other_dtype in [
+@@ -362,7 +364,7 @@ class TestFloat8Dtype(TestCase):
+                 x + y
+ 
+     @dtypes(*FLOAT8_DTYPES)
+-    @dtypesIfCUDA(*CUDA_FLOAT8_DTYPES)
++    @dtypesIfPRIVATEUSE1(*CUDA_FLOAT8_DTYPES)
+     def test_empty(self, dtype, device):
+         with DeterministicGuard(torch.are_deterministic_algorithms_enabled()):
+             for use_deterministic in (True, False):
+@@ -370,7 +372,7 @@ class TestFloat8Dtype(TestCase):
+                 torch.empty(4, 4, device=device, dtype=dtype)
+ 
+     @dtypes(*FLOAT8_DTYPES)
+-    @dtypesIfCUDA(*CUDA_FLOAT8_DTYPES)
++    @dtypesIfPRIVATEUSE1(*CUDA_FLOAT8_DTYPES)
+     def test_to_string(self, dtype, device):
+         x = torch.empty(4, 4, device=device, dtype=dtype)
+         str(x)
+@@ -380,14 +382,14 @@ class TestFloat8Dtype(TestCase):
+         torch.finfo(dtype)
+ 
+     @dtypes(*FLOAT8_DTYPES)
+-    @dtypesIfCUDA(*CUDA_FLOAT8_DTYPES)
++    @dtypesIfPRIVATEUSE1(*CUDA_FLOAT8_DTYPES)
+     def test_cat(self, dtype, device):
+         x1 = torch.empty(4, 4, device=device, dtype=dtype)
+         x2 = torch.empty(4, 4, device=device, dtype=dtype)
+         torch.cat([x1, x2])
+ 
+     @dtypes(*FLOAT8_DTYPES)
+-    @dtypesIfCUDA(*CUDA_FLOAT8_DTYPES)
++    @dtypesIfPRIVATEUSE1(*CUDA_FLOAT8_DTYPES)
+     def test_save_load(self, dtype, device):
+         x1 = torch.randint(0, 10, (4, 4), device=device, dtype=torch.uint8).view(dtype)
+         with TemporaryFileName() as fname:

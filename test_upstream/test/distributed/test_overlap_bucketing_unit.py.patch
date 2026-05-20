@@ -1,0 +1,71 @@
+﻿diff --git a/test/distributed/test_overlap_bucketing_unit.py b/test/distributed/test_overlap_bucketing_unit.py
+index 71bb8cf6c63..d2fe75816b7 100644
+--- a/test/distributed/test_overlap_bucketing_unit.py
++++ b/test/distributed/test_overlap_bucketing_unit.py
+@@ -2,6 +2,8 @@
+ import unittest
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch._dynamo
+ import torch._dynamo.logging
+ import torch._dynamo.test_case
+@@ -109,7 +111,7 @@ class TestOverlapPreservingBucketing(InductorTestCase):
+ 
+         store = FakeStore()
+         dist.init_process_group(backend="fake", rank=0, world_size=2, store=store)
+-        cls.device = "cuda"
++        cls.device = "npu"
+ 
+     @classmethod
+     def tearDownClass(cls):
+@@ -1065,7 +1067,7 @@ class TestCrossPGOverlap(InductorTestCase):
+ 
+         store = FakeStore()
+         dist.init_process_group(backend="fake", rank=0, world_size=2, store=store)
+-        cls.device = "cuda"
++        cls.device = "npu"
+ 
+         # Create two separate process groups for cross-PG testing
+         cls.pg1 = dist.new_group(ranks=[0, 1])
+@@ -1239,7 +1241,7 @@ class TestFusibleNodeOverlap(InductorTestCase):
+ 
+         store = FakeStore()
+         dist.init_process_group(backend="fake", rank=0, world_size=2, store=store)
+-        cls.device = "cuda"
++        cls.device = "npu"
+ 
+     @classmethod
+     def tearDownClass(cls):
+@@ -1412,7 +1414,7 @@ class TestOverlapSchedulingFixes(InductorTestCase):
+ 
+         store = FakeStore()
+         dist.init_process_group(backend="fake", rank=0, world_size=16, store=store)
+-        cls.device = "cuda"
++        cls.device = "npu"
+ 
+     @classmethod
+     def tearDownClass(cls):
+@@ -1676,9 +1678,9 @@ class TestForeachGroupsUnit(InductorTestCase):
+             _pre_bucket_all_gather,
+         )
+ 
+-        t1 = torch.randn(10, device="cuda")
+-        t2 = torch.randn(20, device="cuda", dtype=torch.float16)
+-        t3 = torch.randn(10, device="cuda")
++        t1 = torch.randn(10, device="npu")
++        t2 = torch.randn(20, device="npu", dtype=torch.float16)
++        t3 = torch.randn(10, device="npu")
+         ag_ins = [t1, t2, t3]
+         out_dtypes = [torch.float32, torch.float16, torch.float32]
+         out_dtype_ints = [_ALL_DTYPES.index(d) for d in out_dtypes]
+@@ -1717,7 +1719,7 @@ class TestCoalescedCollectiveOverlap(InductorTestCase):
+ 
+         store = FakeStore()
+         dist.init_process_group(backend="fake", rank=0, world_size=8, store=store)
+-        cls.device = "cuda"
++        cls.device = "npu"
+ 
+     @classmethod
+     def tearDownClass(cls):

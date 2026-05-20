@@ -1,0 +1,13 @@
+﻿diff --git a/test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_memory.py b/test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_memory.py
+index 146597869f7..1018ec6ce28 100644
+--- a/test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_memory.py
++++ b/test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_memory.py
+@@ -150,7 +150,7 @@ class TestDeviceAllocator(TestCase):
+ 
+         # Note: OpenRegDeviceAllocator.emptyCache is currently a no-op
+         # This test ensures it doesn't crash
+-        torch.cuda.empty_cache() if torch.cuda.is_available() else None
++        torch.npu.empty_cache() if torch.npu.is_available() else None
+ 
+     def test_memory_format_allocation(self):
+         """Test allocation with different memory formats."""

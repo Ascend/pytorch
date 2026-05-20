@@ -1,0 +1,57 @@
+﻿diff --git a/test/test_modules.py b/test/test_modules.py
+index 910286264aa..a4c7eab2f92 100644
+--- a/test/test_modules.py
++++ b/test/test_modules.py
+@@ -7,6 +7,8 @@ import tempfile
+ from operator import methodcaller
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ 
+ from torch._subclasses.meta_utils import assert_metadata_eq
+ from torch.testing._internal.common_cuda import with_tf32_off
+@@ -18,6 +20,7 @@ from torch.testing._internal.common_utils import (
+     gradgradcheck, parametrize, wrapSwapTensorsTest, TEST_WITH_ROCM)
+ from unittest.mock import patch, call
+ 
++torch.npu.config.allow_internal_format = False
+ 
+ if TEST_WITH_ROCM:
+     import os
+@@ -148,7 +151,7 @@ class TestModule(TestCase):
+                 m.train(training)
+                 self._assert_module_parameters_and_buffer_are(m, device, dtype)
+ 
+-    @onlyOn(["cuda", "xpu"])
++    @onlyOn(["npu", "xpu"])
+     @modules(module_db)
+     def test_multiple_device_transfer(self, device, dtype, module_info, training):
+         module_cls = module_info.module_cls
+@@ -539,7 +542,7 @@ class TestModule(TestCase):
+     def test_gradgrad(self, device, dtype, module_info, training):
+         self._test_gradients_helper(device, dtype, module_info, training, gradgradcheck)
+ 
+-    @onlyOn(["cuda", "xpu"])
++    @onlyOn(["npu", "xpu"])
+     @with_tf32_off  # Turn off TF32 to compute at full precision https://github.com/pytorch/pytorch/issues/86798
+     @toleranceOverride({torch.float32: tol(5e-2, 0),
+                         torch.float64: tol(4e-4, 0)})
+@@ -636,7 +639,7 @@ class TestModule(TestCase):
+     @with_tf32_off
+     @modules(module_db)
+     def test_memory_format(self, device, dtype, module_info, training):
+-        is_sm86or80 = device.startswith("cuda") and (torch.cuda.get_device_capability(0) == (8, 6)
++        is_sm86or80 = device.startswith("npu") and (torch.cuda.get_device_capability(0) == (8, 6)
+                                                      or torch.cuda.get_device_capability(0) == (8, 0))
+         # TODO tighten it to a specific module
+         atol, rtol = (3e-3, 7e-3) if is_sm86or80 else (None, None)
+@@ -1012,7 +1015,7 @@ class TestModule(TestCase):
+                 self.assertTrue(all(a != b for a, b in zip(p_cdatas_before, p_cdatas_after)))
+ 
+ 
+-instantiate_device_type_tests(TestModule, globals(), allow_mps=True, allow_xpu=True)
++instantiate_device_type_tests(TestModule, globals(), allow_mps=True, allow_xpu=True, only_for=['cpu', 'privateuse1'])
+ 
+ if __name__ == '__main__':
+     run_tests()

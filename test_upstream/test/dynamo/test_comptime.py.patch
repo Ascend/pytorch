@@ -1,0 +1,11 @@
+﻿diff --git a/test/dynamo/test_comptime.py b/test/dynamo/test_comptime.py
+index 882ae2d18d2..90692643ab0 100644
+--- a/test/dynamo/test_comptime.py
++++ b/test/dynamo/test_comptime.py
+@@ -1,3 +1,6 @@
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["module: dynamo"]
+ 
+ import collections

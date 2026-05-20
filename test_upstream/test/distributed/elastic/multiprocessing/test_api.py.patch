@@ -1,0 +1,13 @@
+﻿diff --git a/test/distributed/elastic/multiprocessing/test_api.py b/test/distributed/elastic/multiprocessing/test_api.py
+index 109dc5b557d..a34fe772288 100644
+--- a/test/distributed/elastic/multiprocessing/test_api.py
++++ b/test/distributed/elastic/multiprocessing/test_api.py
+@@ -17,6 +17,8 @@ from torch.distributed.elastic.multiprocessing.api import (
+     SignalException,
+ )
+ from torch.testing._internal.common_utils import run_tests, TestCase
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ 
+ 
+ class SignalHandlingTest(TestCase):

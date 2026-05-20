@@ -1,0 +1,13 @@
+﻿diff --git a/test/dynamo/test_enum.py b/test/dynamo/test_enum.py
+index d94c1ab97b8..4dfb1f75238 100644
+--- a/test/dynamo/test_enum.py
++++ b/test/dynamo/test_enum.py
+@@ -4,6 +4,8 @@ import enum
+ import unittest
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch._dynamo.test_case
+ import torch._dynamo.testing
+ from torch._dynamo.testing import same, skipIfNotPy312

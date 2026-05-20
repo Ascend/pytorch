@@ -1,0 +1,13 @@
+﻿diff --git a/test/distributed/checkpoint/fsdp/test_fsdp_dsd.py b/test/distributed/checkpoint/fsdp/test_fsdp_dsd.py
+index 5f5ab1ebd39..c4331987764 100644
+--- a/test/distributed/checkpoint/fsdp/test_fsdp_dsd.py
++++ b/test/distributed/checkpoint/fsdp/test_fsdp_dsd.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["oncall: distributed"]
+ 
+ import contextlib

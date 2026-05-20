@@ -1,0 +1,15 @@
+﻿diff --git a/test/export/test_nativert.py b/test/export/test_nativert.py
+index d0aa0024089..fa964b4f1b6 100644
+--- a/test/export/test_nativert.py
++++ b/test/export/test_nativert.py
+@@ -259,8 +259,8 @@ class TestNativeRT(TestCase):
+         return M()
+ 
+     parameters = []
+-    for device in ["cpu", "cuda"]:
+-        if device == "cuda" and not HAS_CUDA_AND_TRITON:
++    for device in ["cpu", "npu"]:
++        if device == "npu" and not True:
+             continue
+         for module, sample_inputs in [
+             (get_module.__func__().to(device), (torch.randn(4, 4).to(device),)),

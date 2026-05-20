@@ -1,0 +1,13 @@
+﻿diff --git a/test/test_xpu.py b/test/test_xpu.py
+index 6d9f772655e..abf455af204 100644
+--- a/test/test_xpu.py
++++ b/test/test_xpu.py
+@@ -697,7 +697,7 @@ print(torch.xpu.is_initialized())
+         self.assertEqual(torch.accelerator.max_memory_reserved(), prev_max_reserved)
+ 
+     @unittest.skipIf(
+-        int(torch.version.xpu) < 20250000,
++        torch.version.xpu is None or int(torch.version.xpu) < 20250000,
+         "Test requires SYCL compiler version 2025.0.0 or newer.",
+     )
+     def test_mem_get_info(self):

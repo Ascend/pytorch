@@ -1,0 +1,13 @@
+﻿diff --git a/test/dynamo/test_python_autograd.py b/test/dynamo/test_python_autograd.py
+index c9b88e488e7..8deafc7f0b9 100644
+--- a/test/dynamo/test_python_autograd.py
++++ b/test/dynamo/test_python_autograd.py
+@@ -2,6 +2,8 @@
+ from typing import NamedTuple, TYPE_CHECKING
+ 
+ import torch
++from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ import torch._dynamo
+ from torch._dynamo.test_case import run_tests, TestCase
+ from torch._dynamo.testing import CompileCounter, same

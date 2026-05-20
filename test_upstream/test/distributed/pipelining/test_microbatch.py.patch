@@ -1,0 +1,13 @@
+﻿diff --git a/test/distributed/pipelining/test_microbatch.py b/test/distributed/pipelining/test_microbatch.py
+index 063e732a404..7f955943f0a 100644
+--- a/test/distributed/pipelining/test_microbatch.py
++++ b/test/distributed/pipelining/test_microbatch.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Copyright (c) Meta Platforms, Inc. and affiliates
+ # Owner(s): ["oncall: distributed"]
+ from model_registry import ModelWithKwargs

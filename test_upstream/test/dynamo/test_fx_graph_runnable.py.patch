@@ -1,0 +1,13 @@
+﻿diff --git a/test/dynamo/test_fx_graph_runnable.py b/test/dynamo/test_fx_graph_runnable.py
+index 5da16806e1d..14245142c2f 100644
+--- a/test/dynamo/test_fx_graph_runnable.py
++++ b/test/dynamo/test_fx_graph_runnable.py
+@@ -8,6 +8,8 @@ import unittest
+ from unittest import mock
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch._logging.structured
+ import torch.distributed as dist
+ from torch._inductor.codecache import WritableTempFile

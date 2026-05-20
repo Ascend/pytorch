@@ -1,0 +1,13 @@
+﻿diff --git a/test/test_ops_unbacked.py b/test/test_ops_unbacked.py
+index 3718b83a62a..1e70195b775 100644
+--- a/test/test_ops_unbacked.py
++++ b/test/test_ops_unbacked.py
+@@ -11,6 +11,8 @@ import copy
+ import unittest
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch._dynamo
+ from torch.testing._internal.common_device_type import (
+     instantiate_device_type_tests,

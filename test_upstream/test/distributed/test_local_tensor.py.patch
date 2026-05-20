@@ -1,0 +1,13 @@
+﻿diff --git a/test/distributed/test_local_tensor.py b/test/distributed/test_local_tensor.py
+index d3bfbc4050b..e47579e41cc 100644
+--- a/test/distributed/test_local_tensor.py
++++ b/test/distributed/test_local_tensor.py
+@@ -4,6 +4,8 @@
+ from contextlib import nullcontext
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch.distributed as dist
+ from torch.distributed._local_tensor import (
+     local_tensor_mode,

@@ -1,0 +1,22 @@
+﻿diff --git a/test/inductor/test_smoke.py b/test/inductor/test_smoke.py
+index 2a247fddbe7..33bd44b7747 100644
+--- a/test/inductor/test_smoke.py
++++ b/test/inductor/test_smoke.py
+@@ -30,7 +30,7 @@ def _test_f(x):
+ 
+ 
+ class SmokeTest(TestCase):
+-    @unittest.skipIf(not HAS_GPU, "Triton is not available")
++    # @unittest.skipIf(not HAS_GPU, "Triton is not available")
+     def test_mlp(self):
+         torch._logging.set_logs(
+             dynamo=logging.DEBUG, inductor=logging.DEBUG, aot=logging.DEBUG
+@@ -43,7 +43,7 @@ class SmokeTest(TestCase):
+         # set back to defaults
+         torch._logging.set_logs()
+ 
+-    @unittest.skipIf(not HAS_GPU, "Triton is not available")
++    # @unittest.skipIf(not HAS_GPU, "Triton is not available")
+     def test_compile_decorator(self):
+         @torch.compile
+         def foo(x):

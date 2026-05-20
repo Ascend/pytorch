@@ -1,0 +1,14 @@
+﻿diff --git a/test/cpp_extensions/libtorch_agn_2_10_extension/test_version_compatibility.py b/test/cpp_extensions/libtorch_agn_2_10_extension/test_version_compatibility.py
+index 9724610d038..37d70671df3 100644
+--- a/test/cpp_extensions/libtorch_agn_2_10_extension/test_version_compatibility.py
++++ b/test/cpp_extensions/libtorch_agn_2_10_extension/test_version_compatibility.py
+@@ -20,7 +20,8 @@ import os
+ import subprocess
+ import tempfile
+ from pathlib import Path
+-
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ from torch.testing._internal.common_utils import IS_WINDOWS, run_tests, TestCase
+ from torch.utils.cpp_extension import (
+     CUDA_HOME,

@@ -1,0 +1,12 @@
+﻿diff --git a/test/test_extension_utils.py b/test/test_extension_utils.py
+index d114a06dcef..1d81bec20f5 100644
+--- a/test/test_extension_utils.py
++++ b/test/test_extension_utils.py
+@@ -2,6 +2,7 @@
+ import sys
+ 
+ import torch
++from torch_npu.contrib import transfer_to_npu
+ from torch.testing._internal.common_utils import run_tests, skipIfTorchDynamo, TestCase
+ 
+ 

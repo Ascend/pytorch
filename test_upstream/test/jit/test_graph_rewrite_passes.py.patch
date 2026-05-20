@@ -1,0 +1,11 @@
+﻿diff --git a/test/jit/test_graph_rewrite_passes.py b/test/jit/test_graph_rewrite_passes.py
+index f9b30704fd9..cf545385fbc 100644
+--- a/test/jit/test_graph_rewrite_passes.py
++++ b/test/jit/test_graph_rewrite_passes.py
+@@ -1,3 +1,6 @@
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["oncall: jit"]
+ 
+ import torch

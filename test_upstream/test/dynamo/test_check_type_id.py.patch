@@ -1,0 +1,13 @@
+﻿diff --git a/test/dynamo/test_check_type_id.py b/test/dynamo/test_check_type_id.py
+index 317f799caf9..d3d95aabf65 100644
+--- a/test/dynamo/test_check_type_id.py
++++ b/test/dynamo/test_check_type_id.py
+@@ -11,6 +11,8 @@ exact type (using type identity, not just type equality).
+ import re
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch._dynamo
+ import torch._dynamo.test_case
+ from torch._dynamo.eval_frame import _debug_get_cache_entry_list

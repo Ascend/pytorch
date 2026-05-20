@@ -1,0 +1,11 @@
+﻿diff --git a/test/inductor/test_triton_wrapper.py b/test/inductor/test_triton_wrapper.py
+index b5e822fe4b3..78d1108b8e7 100644
+--- a/test/inductor/test_triton_wrapper.py
++++ b/test/inductor/test_triton_wrapper.py
+@@ -92,5 +92,4 @@ class TestTritonWrapper(TestCase):
+ 
+ 
+ if __name__ == "__main__":
+-    if HAS_GPU:
+-        run_tests()
++    run_tests()

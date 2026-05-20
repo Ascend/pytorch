@@ -1,0 +1,13 @@
+﻿diff --git a/test/distributed/tensor/test_common_rules.py b/test/distributed/tensor/test_common_rules.py
+index 900f285d6bc..469648875f2 100644
+--- a/test/distributed/tensor/test_common_rules.py
++++ b/test/distributed/tensor/test_common_rules.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Copyright (c) Meta Platforms, Inc. and affiliates
+ # Owner(s): ["oncall: distributed"]
+ 

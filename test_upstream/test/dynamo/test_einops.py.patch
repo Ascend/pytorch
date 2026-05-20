@@ -1,0 +1,11 @@
+﻿diff --git a/test/dynamo/test_einops.py b/test/dynamo/test_einops.py
+index 5e8a77098c1..f06d267b33c 100644
+--- a/test/dynamo/test_einops.py
++++ b/test/dynamo/test_einops.py
+@@ -1,4 +1,6 @@
+ # Owner(s): ["module: dynamo"]
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import importlib
+ import os
+ import subprocess

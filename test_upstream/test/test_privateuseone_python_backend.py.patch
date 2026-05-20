@@ -1,0 +1,13 @@
+﻿diff --git a/test/test_privateuseone_python_backend.py b/test/test_privateuseone_python_backend.py
+index b767933f0c5..3c2a7ef7877 100644
+--- a/test/test_privateuseone_python_backend.py
++++ b/test/test_privateuseone_python_backend.py
+@@ -2,6 +2,8 @@
+ import numpy as np
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch._C
+ from torch.testing._internal.common_utils import run_tests, TestCase
+ from torch.utils.backend_registration import _setup_privateuseone_for_python_backend

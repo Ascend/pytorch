@@ -1,0 +1,13 @@
+﻿diff --git a/test/jit/test_concrete_module_type.py b/test/jit/test_concrete_module_type.py
+index 7a7503f5721..6cbeb16324a 100644
+--- a/test/jit/test_concrete_module_type.py
++++ b/test/jit/test_concrete_module_type.py
+@@ -3,6 +3,8 @@
+ import unittest
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ from torch.testing._internal.common_utils import raise_on_run_directly
+ 
+ 

@@ -1,0 +1,19 @@
+﻿diff --git a/test/inductor/test_triton_heuristics.py b/test/inductor/test_triton_heuristics.py
+index 5910b68b064..afd488a5350 100644
+--- a/test/inductor/test_triton_heuristics.py
++++ b/test/inductor/test_triton_heuristics.py
+@@ -51,6 +51,7 @@ from torch._inductor.runtime.triton_heuristics import (
+     triton_config,
+ )
+ from torch._inductor.test_case import run_tests, TestCase
++import torch_npu._inductor
+ 
+ 
+ @triton.jit
+@@ -760,5 +761,4 @@ class TestGrid2DWithYZOverflowZeroYnumel(TestCase):
+ 
+ 
+ if __name__ == "__main__":
+-    if IS_LINUX and HAS_GPU:
+-        run_tests()
++    run_tests()

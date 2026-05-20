@@ -1,0 +1,14 @@
+﻿diff --git a/test/distributed/_pycute/test_coalesce.py b/test/distributed/_pycute/test_coalesce.py
+index 81dd2295f40..9c15e580156 100644
+--- a/test/distributed/_pycute/test_coalesce.py
++++ b/test/distributed/_pycute/test_coalesce.py
+@@ -38,7 +38,8 @@ Unit tests for _pycute.coalesce
+ """
+ 
+ import logging
+-
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ from torch.distributed._pycute import *
+ from torch.testing._internal.common_utils import run_tests, TestCase
+ 

@@ -1,0 +1,19 @@
+﻿diff --git a/torch/distributions/von_mises.py b/torch/distributions/von_mises.py
+index 552b5c5f666..a40bcecf9d0 100644
+--- a/torch/distributions/von_mises.py
++++ b/torch/distributions/von_mises.py
+@@ -91,10 +91,12 @@ def _log_modified_bessel_fn(x, order=0):
+ 
+ @torch.jit.script_if_tracing
+ def _rejection_sample(loc, concentration, proposal_r, x):
+-    done = torch.zeros(x.shape, dtype=torch.bool, device=loc.device)
++    #done = torch.zeros(x.shape, dtype=torch.bool, device=loc.device)
++    done = torch.zeros(x.shape).to(loc.device).to(torch.bool)
+     # pyrefly: ignore [bad-assignment, missing-attribute]
+     while not done.all():
+-        u = torch.rand((3,) + x.shape, dtype=loc.dtype, device=loc.device)
++        #u = torch.rand((3,) + x.shape, dtype=loc.dtype, device=loc.device)
++        u = torch.rand((3,) + x.shape).to(loc.device).to(loc.dtype)
+         u1, u2, u3 = u.unbind()
+         z = torch.cos(math.pi * u1)
+         f = (1 + proposal_r * z) / (proposal_r + z)

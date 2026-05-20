@@ -1,0 +1,23 @@
+﻿diff --git a/test/cpp_extensions/python_agnostic_extension/test/test_python_agnostic.py b/test/cpp_extensions/python_agnostic_extension/test/test_python_agnostic.py
+index 95ca8638ab9..ca98b526eac 100644
+--- a/test/cpp_extensions/python_agnostic_extension/test/test_python_agnostic.py
++++ b/test/cpp_extensions/python_agnostic_extension/test/test_python_agnostic.py
+@@ -6,7 +6,8 @@ import subprocess
+ import sys
+ import unittest
+ from pathlib import Path
+-
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ from torch.testing._internal.common_cuda import TEST_CUDA
+ from torch.testing._internal.common_device_type import instantiate_device_type_tests
+ from torch.testing._internal.common_utils import (
+@@ -66,7 +67,7 @@ class TestPythonAgnostic(TestCase):
+         self.assertFalse("Py" in missing_symbols)
+ 
+ 
+-devices = ("cuda", "xpu")
++devices = ("npu", "xpu")
+ instantiate_device_type_tests(
+     TestPythonAgnostic, globals(), only_for=devices, allow_xpu=True
+ )

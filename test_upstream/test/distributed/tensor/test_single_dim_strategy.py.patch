@@ -1,0 +1,13 @@
+﻿diff --git a/test/distributed/tensor/test_single_dim_strategy.py b/test/distributed/tensor/test_single_dim_strategy.py
+index 472bf39f37a..0dbd397b0d2 100644
+--- a/test/distributed/tensor/test_single_dim_strategy.py
++++ b/test/distributed/tensor/test_single_dim_strategy.py
+@@ -5,6 +5,8 @@ from itertools import chain, permutations, product
+ from unittest.mock import patch
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch.distributed as dist
+ from torch.distributed.tensor import (
+     DeviceMesh,

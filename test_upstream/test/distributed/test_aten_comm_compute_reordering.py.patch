@@ -1,0 +1,13 @@
+﻿diff --git a/test/distributed/test_aten_comm_compute_reordering.py b/test/distributed/test_aten_comm_compute_reordering.py
+index 4a667281389..0bd5fca3938 100644
+--- a/test/distributed/test_aten_comm_compute_reordering.py
++++ b/test/distributed/test_aten_comm_compute_reordering.py
+@@ -4,6 +4,8 @@ import unittest
+ from unittest.mock import patch
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch._dynamo
+ import torch._dynamo.logging
+ import torch._dynamo.test_case

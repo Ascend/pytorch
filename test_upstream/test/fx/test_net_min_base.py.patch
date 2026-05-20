@@ -1,0 +1,13 @@
+﻿diff --git a/test/fx/test_net_min_base.py b/test/fx/test_net_min_base.py
+index 7e164e72629..d0f9e80dc9d 100644
+--- a/test/fx/test_net_min_base.py
++++ b/test/fx/test_net_min_base.py
+@@ -3,6 +3,8 @@
+ from unittest import mock
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ from torch.fx.passes.net_min_base import (
+     _MinimizerBase,
+     _MinimizerSettingBase,

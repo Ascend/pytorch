@@ -1,0 +1,14 @@
+﻿diff --git a/torch/_inductor/codegen/common.py b/torch/_inductor/codegen/common.py
+index 16b7b03ecc6..66a576834f1 100644
+--- a/torch/_inductor/codegen/common.py
++++ b/torch/_inductor/codegen/common.py
+@@ -650,7 +650,8 @@ def _initialize_device_op_overrides():
+ def get_device_op_overrides(device: str) -> DeviceOpOverrides:
+     assert isinstance(device, str), type(device)
+     _initialize_device_op_overrides()
+-    return device_op_overrides_dict[device]
++    # return device_op_overrides_dict[device]
++    return device_op_overrides_dict["npu"]
+ 
+ 
+ DTYPE_TO_COMPUTATION_DTYPE: dict[torch.dtype, torch.dtype] = {

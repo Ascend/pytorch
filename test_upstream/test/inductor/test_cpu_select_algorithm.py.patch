@@ -1,0 +1,24 @@
+﻿diff --git a/test/inductor/test_cpu_select_algorithm.py b/test/inductor/test_cpu_select_algorithm.py
+index befadb7a331..7fdfd94553d 100644
+--- a/test/inductor/test_cpu_select_algorithm.py
++++ b/test/inductor/test_cpu_select_algorithm.py
+@@ -1,3 +1,11 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["oncall: cpu inductor"]
+ import contextlib
+ import functools
+@@ -52,6 +60,7 @@ set_num_threads = test_cpu_repro.set_num_threads
+ run_and_get_cpp_code = test_torchinductor.run_and_get_cpp_code
+ 
+ aten = torch.ops.aten
++import torch_npu._inductor
+ 
+ 
+ def patches(fn):

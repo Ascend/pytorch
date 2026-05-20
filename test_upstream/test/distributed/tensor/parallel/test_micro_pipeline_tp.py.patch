@@ -1,0 +1,21 @@
+﻿diff --git a/test/distributed/tensor/parallel/test_micro_pipeline_tp.py b/test/distributed/tensor/parallel/test_micro_pipeline_tp.py
+index 1a9baebe7f0..2976ec88af5 100644
+--- a/test/distributed/tensor/parallel/test_micro_pipeline_tp.py
++++ b/test/distributed/tensor/parallel/test_micro_pipeline_tp.py
+@@ -2,6 +2,8 @@
+ import unittest
+ 
+ import torch
++from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ import torch.distributed as dist
+ from functorch import make_fx
+ from torch._inductor.decomposition import decompositions
+@@ -37,6 +39,7 @@ from torch.testing._internal.common_utils import (  # type: ignore[attr-defined]
+ from torch.testing._internal.distributed._tensor.common_dtensor import MLPModule
+ from torch.testing._internal.distributed.fake_pg import FakeStore
+ from torch.testing._internal.inductor_utils import HAS_GPU
++HAS_GPU=True
+ 
+ 
+ def _make_post_grad_fx(f, *inps):

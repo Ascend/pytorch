@@ -1,0 +1,13 @@
+﻿diff --git a/test/dynamo/test_polyfills.py b/test/dynamo/test_polyfills.py
+index 26d7353a8ad..7a0ed862a6f 100644
+--- a/test/dynamo/test_polyfills.py
++++ b/test/dynamo/test_polyfills.py
+@@ -1,6 +1,8 @@
+ # Owner(s): ["module: dynamo"]
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch._dynamo.test_case
+ import torch._dynamo.testing
+ from torch.testing._internal.common_utils import run_tests, skipIfTorchDynamo

@@ -1,0 +1,14 @@
+﻿diff --git a/test/distributed/tensor/test_dtensor_testbase.py b/test/distributed/tensor/test_dtensor_testbase.py
+index b5a2de69a56..5701ea92932 100644
+--- a/test/distributed/tensor/test_dtensor_testbase.py
++++ b/test/distributed/tensor/test_dtensor_testbase.py
+@@ -2,7 +2,8 @@
+ # Owner(s): ["oncall: distributed"]
+ 
+ import numpy as np
+-
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ from torch.distributed.device_mesh import DeviceMesh, init_device_mesh
+ from torch.testing._internal.common_utils import run_tests
+ from torch.testing._internal.distributed._tensor.common_dtensor import (

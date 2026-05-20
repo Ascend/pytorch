@@ -1,0 +1,22 @@
+﻿diff --git a/test/test_varlen_attention.py b/test/test_varlen_attention.py
+index dd382aea0bf..e3c5246212c 100644
+--- a/test/test_varlen_attention.py
++++ b/test/test_varlen_attention.py
+@@ -4,6 +4,8 @@ from collections import namedtuple
+ from contextlib import contextmanager, nullcontext
+ 
+ import torch
++from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ import torch.nn as nn
+ import torch.nn.functional as F
+ from torch.nn.attention import (
+@@ -1160,7 +1162,7 @@ class TestVarlenAttention(NNTestCase):
+             self.assertEqual(out_buf, out)
+ 
+ 
+-device_types = ("cuda",)
++device_types = ("npu",)
+ 
+ instantiate_device_type_tests(TestVarlenAttention, globals(), only_for=device_types)
+ 

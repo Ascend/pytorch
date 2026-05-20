@@ -1,0 +1,15 @@
+﻿diff --git a/test/distributed/_tools/test_sac_ilp.py b/test/distributed/_tools/test_sac_ilp.py
+index 0bba3c67506..7facabff99c 100644
+--- a/test/distributed/_tools/test_sac_ilp.py
++++ b/test/distributed/_tools/test_sac_ilp.py
+@@ -1,7 +1,10 @@
+ # Owner(s): ["oncall: distributed"]
+ import copy
+ import unittest
++import torch_npu.testing
+ 
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch
+ from torch._subclasses.fake_tensor import FakeTensorMode
+ from torch.distributed._tools.ilp_utils import (

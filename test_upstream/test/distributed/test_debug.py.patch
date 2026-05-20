@@ -1,0 +1,13 @@
+﻿diff --git a/test/distributed/test_debug.py b/test/distributed/test_debug.py
+index 1533b278067..6b7a9aaa668 100644
+--- a/test/distributed/test_debug.py
++++ b/test/distributed/test_debug.py
+@@ -15,6 +15,8 @@ from requests.adapters import HTTPAdapter
+ from urllib3.util.retry import Retry
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch.distributed as dist
+ import torch.distributed.debug as debug_module
+ from torch.distributed.debug import start_debug_server, stop_debug_server

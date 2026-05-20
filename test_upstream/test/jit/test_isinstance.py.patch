@@ -1,0 +1,27 @@
+﻿diff --git a/test/jit/test_isinstance.py b/test/jit/test_isinstance.py
+index ba07910aad7..b31d913175d 100644
+--- a/test/jit/test_isinstance.py
++++ b/test/jit/test_isinstance.py
+@@ -6,7 +6,7 @@ import warnings
+ from typing import Any, Dict, List, Optional, Tuple
+ 
+ import torch
+-
++import torch_npu
+ 
+ # Make the helper files in test/ importable
+ pytorch_test_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+@@ -342,11 +342,11 @@ class TestIsinstance(JitTestCase):
+     def test_empty_container_special_cases(self):
+         # Should not throw "Boolean value of Tensor with no values is
+         # ambiguous" error
+-        torch._jit_internal.check_empty_containers(torch.Tensor([]))
++        torch._jit_internal.check_empty_containers(torch.Tensor([]).npu())
+ 
+         # Should not throw "Boolean value of Tensor with more than
+         # one value is ambiguous" error
+-        torch._jit_internal.check_empty_containers(torch.rand(2, 3))
++        torch._jit_internal.check_empty_containers(torch.rand(2, 3).npu())
+ 
+ 
+ if __name__ == "__main__":

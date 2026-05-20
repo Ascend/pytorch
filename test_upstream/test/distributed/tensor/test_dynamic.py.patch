@@ -1,0 +1,13 @@
+﻿diff --git a/test/distributed/tensor/test_dynamic.py b/test/distributed/tensor/test_dynamic.py
+index ac1432e7a1c..6779317324b 100644
+--- a/test/distributed/tensor/test_dynamic.py
++++ b/test/distributed/tensor/test_dynamic.py
+@@ -4,6 +4,8 @@
+ from unittest.mock import patch
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ from torch.distributed.tensor import distribute_tensor, DTensor
+ from torch.distributed.tensor.placement_types import Replicate
+ from torch.testing._internal.common_utils import (

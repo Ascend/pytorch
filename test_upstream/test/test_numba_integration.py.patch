@@ -1,0 +1,11 @@
+﻿diff --git a/test/test_numba_integration.py b/test/test_numba_integration.py
+index addd547bb48..1032575485e 100644
+--- a/test/test_numba_integration.py
++++ b/test/test_numba_integration.py
+@@ -1,5 +1,6 @@
+ # Owner(s): ["module: cuda"]
+ 
++from torch_npu.contrib import transfer_to_npu
+ import unittest
+ 
+ import torch

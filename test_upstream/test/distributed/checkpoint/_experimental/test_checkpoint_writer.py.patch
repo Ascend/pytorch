@@ -1,0 +1,13 @@
+﻿diff --git a/test/distributed/checkpoint/_experimental/test_checkpoint_writer.py b/test/distributed/checkpoint/_experimental/test_checkpoint_writer.py
+index b6262291872..dae580a39c9 100644
+--- a/test/distributed/checkpoint/_experimental/test_checkpoint_writer.py
++++ b/test/distributed/checkpoint/_experimental/test_checkpoint_writer.py
+@@ -7,6 +7,8 @@ from typing import Any
+ from unittest.mock import MagicMock
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ from torch.distributed.checkpoint._experimental.checkpoint_writer import (
+     CheckpointWriter,
+     CheckpointWriterConfig,

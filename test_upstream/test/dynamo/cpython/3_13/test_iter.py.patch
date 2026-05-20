@@ -1,0 +1,13 @@
+﻿diff --git a/test/dynamo/cpython/3_13/test_iter.py b/test/dynamo/cpython/3_13/test_iter.py
+index 8e6240d99ce..57c6589578b 100644
+--- a/test/dynamo/cpython/3_13/test_iter.py
++++ b/test/dynamo/cpython/3_13/test_iter.py
+@@ -9,6 +9,8 @@
+ 
+ import sys
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch._dynamo.test_case
+ import unittest
+ from torch._dynamo.test_case import CPythonTestCase

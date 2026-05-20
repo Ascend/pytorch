@@ -1,0 +1,13 @@
+﻿diff --git a/test/typing/test_python_operators.py b/test/typing/test_python_operators.py
+index d7146b7e580..ad9f8fee851 100644
+--- a/test/typing/test_python_operators.py
++++ b/test/typing/test_python_operators.py
+@@ -5,6 +5,8 @@ from itertools import product
+ from pathlib import Path
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ from torch.testing._internal.common_utils import (
+     instantiate_parametrized_tests,
+     parametrize,

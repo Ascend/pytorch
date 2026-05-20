@@ -1,0 +1,13 @@
+﻿diff --git a/test/dynamo/test_guard_serialization.py b/test/dynamo/test_guard_serialization.py
+index 55d83764f99..861d112821c 100644
+--- a/test/dynamo/test_guard_serialization.py
++++ b/test/dynamo/test_guard_serialization.py
+@@ -12,6 +12,8 @@ from collections.abc import Iterator
+ from typing import NamedTuple
+ 
+ import torch
++from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ import torch._dynamo.testing
+ import torch._inductor.config
+ import torch._inductor.test_case

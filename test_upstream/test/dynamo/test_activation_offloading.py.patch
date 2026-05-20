@@ -1,0 +1,13 @@
+﻿diff --git a/test/dynamo/test_activation_offloading.py b/test/dynamo/test_activation_offloading.py
+index 7d969431823..00ffe2803b4 100644
+--- a/test/dynamo/test_activation_offloading.py
++++ b/test/dynamo/test_activation_offloading.py
+@@ -7,6 +7,8 @@ from functools import partial
+ import pytest
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch._functorch.config
+ from functorch.compile import (
+     aot_function,

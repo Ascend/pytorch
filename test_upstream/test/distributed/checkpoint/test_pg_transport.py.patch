@@ -1,0 +1,22 @@
+﻿diff --git a/test/distributed/checkpoint/test_pg_transport.py b/test/distributed/checkpoint/test_pg_transport.py
+index 0a9787a5ba6..4ad5a55425c 100644
+--- a/test/distributed/checkpoint/test_pg_transport.py
++++ b/test/distributed/checkpoint/test_pg_transport.py
+@@ -6,6 +6,8 @@ from datetime import timedelta
+ from unittest.mock import MagicMock, patch
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch.distributed as dist
+ import torch.nn as nn
+ from torch.distributed._shard.sharded_tensor import (
+@@ -165,7 +167,7 @@ def _test_pg_transport_with_mixed_content(self, device) -> None:
+ 
+ def _test_pg_transport_with_sharded_tensor(self, device) -> None:
+     # Set current accelerator device for NCCL/XCCL
+-    if device.type == "cuda" or device.type == "xpu":
++    if device.type == "npu" or device.type == "xpu":
+         torch.accelerator.set_device_index(device)
+ 
+     state_dict = _create_sharded_tensor_state_dict(self.rank, self.world_size, device)

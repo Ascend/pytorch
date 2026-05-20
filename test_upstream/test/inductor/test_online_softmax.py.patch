@@ -1,0 +1,22 @@
+﻿diff --git a/test/inductor/test_online_softmax.py b/test/inductor/test_online_softmax.py
+index cccfa156242..8946c609ba0 100644
+--- a/test/inductor/test_online_softmax.py
++++ b/test/inductor/test_online_softmax.py
+@@ -1,9 +1,16 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ 
+ import math
+ import os
+ 
+-import torch
+ import torch._inductor.config as inductor_config
+ import torch.nn.functional as F
+ from torch._dynamo.utils import rmse, same

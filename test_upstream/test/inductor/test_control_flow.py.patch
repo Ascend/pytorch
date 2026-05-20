@@ -1,0 +1,301 @@
+﻿diff --git a/test/inductor/test_control_flow.py b/test/inductor/test_control_flow.py
+index 680b503e3f8..b1b1a569acc 100644
+--- a/test/inductor/test_control_flow.py
++++ b/test/inductor/test_control_flow.py
+@@ -1,9 +1,16 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ 
+ import itertools
+ import unittest
+ 
+-import torch
+ import torch._dynamo.testing
+ import torch.utils._pytree as pytree
+ from torch._higher_order_ops.associative_scan import associative_scan
+@@ -17,6 +24,7 @@ from torch.testing._internal.common_utils import (
+ )
+ from torch.testing._internal.inductor_utils import GPU_TYPE, HAS_CPU, HAS_GPU
+ from torch.testing._internal.triton_utils import requires_gpu
++import torch_npu._inductor
+ 
+ 
+ def _prepend_product_of_values(inputs, possible_values, num_to_prepend=1, device=None):
+@@ -332,7 +340,6 @@ class CondTests(TestCase):
+ 
+         self.assertEqual(cnt.frame_count, 1, "only one compilation expected")
+ 
+-    @requires_gpu
+     @parametrize("device", ["cpu", GPU_TYPE])
+     @parametrize("dynamic", [False, True])
+     def test_cond_simple_control_flow(self, device, dynamic):
+@@ -356,7 +363,6 @@ class CondTests(TestCase):
+             device=GPU_TYPE,
+         )
+ 
+-    @requires_gpu
+     @parametrize("device", ["cpu", GPU_TYPE])
+     def test_cond_simple_with_int_closure(self, device):
+         self._run_test(
+@@ -368,7 +374,6 @@ class CondTests(TestCase):
+             device=device,
+         )
+ 
+-    @requires_gpu
+     @parametrize("device", ["cpu", GPU_TYPE])
+     @parametrize("dynamic", [False, True])
+     @torch._dynamo.config.patch("capture_scalar_outputs", True)
+@@ -420,7 +425,6 @@ class CondTests(TestCase):
+         opt_out2 = opt_model(x2, 30)
+         self.assertTrue(torch.allclose(out2, opt_out2, atol=1e-5))
+ 
+-    @requires_gpu
+     @parametrize("device", ["cpu", GPU_TYPE])
+     @parametrize("dynamic", [False, True])
+     def test_cond_nested_control_flow(self, device, dynamic):
+@@ -437,7 +441,6 @@ class CondTests(TestCase):
+             num_predicates=3,
+         )
+ 
+-    @requires_gpu
+     @parametrize("device", ["cpu", GPU_TYPE])
+     @parametrize("dynamic", [False, True])
+     def test_cond_outer_code_before_after(self, device, dynamic):
+@@ -452,7 +455,6 @@ class CondTests(TestCase):
+             dynamic=dynamic,
+         )
+ 
+-    @requires_gpu
+     @parametrize("device", ["cpu", GPU_TYPE])
+     @parametrize("dynamic", [False, True])
+     def test_cond_multiple_outputs(self, device, dynamic):
+@@ -468,7 +470,6 @@ class CondTests(TestCase):
+             dynamic=dynamic,
+         )
+ 
+-    @requires_gpu
+     @parametrize("device", ["cpu", GPU_TYPE])
+     def test_cond_advanced_dynamic_shapes(self, device):
+         # subgraphs input shapes include symbolic expressions
+@@ -496,7 +497,6 @@ class CondTests(TestCase):
+             dynamic=True,
+         )
+ 
+-    @requires_gpu
+     @parametrize("device", ["cpu", GPU_TYPE])
+     def test_cond_unbacked_symint_outer_to_inner(self, device):
+         class Model(torch.nn.Module):
+@@ -524,7 +524,6 @@ class CondTests(TestCase):
+                 dynamic=True,
+             )
+ 
+-    @requires_gpu
+     @parametrize("device", ["cpu", GPU_TYPE])
+     @torch._inductor.config.patch(size_asserts=False)
+     # TODO: graph partition does not support creating tensor
+@@ -559,7 +558,6 @@ class CondTests(TestCase):
+                 dynamic=True,
+             )
+ 
+-    @requires_gpu
+     @parametrize("device", ["cpu", GPU_TYPE])
+     def test_cond_unbacked_symint_inner_to_outer(self, device):
+         class Model(torch.nn.Module):
+@@ -591,7 +589,6 @@ class CondTests(TestCase):
+                 dynamic=True,
+             )
+ 
+-    @requires_gpu
+     def test_cond_use_buffers_from_outer_scope(self):
+         # subgraphs input shapes include symbolic expressions
+         self._run_test(
+@@ -605,7 +602,6 @@ class CondTests(TestCase):
+             dynamic=False,
+         )
+ 
+-    @requires_gpu
+     def test_cond_reintepret_view_inputs_outputs(self):
+         # ReinterpretView in inputs and outputs of the subgraphs
+         self._run_test(
+@@ -618,7 +614,6 @@ class CondTests(TestCase):
+             dynamic=True,
+         )
+ 
+-    @requires_gpu
+     @parametrize("device", ["cpu", GPU_TYPE])
+     @parametrize("dynamic", [False, True])
+     def test_cond_subgraphs_with_parameters(self, device, dynamic):
+@@ -630,7 +625,6 @@ class CondTests(TestCase):
+             dynamic=dynamic,
+         )
+ 
+-    @requires_gpu
+     @parametrize("device", ["cpu", GPU_TYPE])
+     @parametrize("dynamic", [False, True])
+     def test_cond_non_tensor_predicates(self, device, dynamic):
+@@ -648,7 +642,6 @@ class CondTests(TestCase):
+                 num_predicates=0,
+             )
+ 
+-    @requires_gpu
+     def test_cond_aliasing_outputs(self):
+         # output aliasing in subgraphs: not supported
+         class Model(torch.nn.Module):
+@@ -671,7 +664,6 @@ class CondTests(TestCase):
+                 torch.randn(10, 20),
+             )
+ 
+-    @requires_gpu
+     @parametrize("device", ["cpu", GPU_TYPE])
+     def test_cond_decompose_ops_in_subgraph(self, device):
+         class Model(torch.nn.Module):
+@@ -692,7 +684,6 @@ class CondTests(TestCase):
+             device=device,
+         )
+ 
+-    @requires_gpu
+     @parametrize("device", ["cpu", GPU_TYPE])
+     def test_cond_decompose_ops_in_subgraph_recursive(self, device):
+         def inner_fn1(x):
+@@ -719,7 +710,6 @@ class CondTests(TestCase):
+             device=device,
+         )
+ 
+-    @requires_gpu
+     def test_cond_inductor_fx_passes_recursively_applied(self):
+         counters = {"pre_grad": 0, "post_grad": 0}
+ 
+@@ -752,7 +742,6 @@ class CondTests(TestCase):
+         self.assertEqual(counters["pre_grad"], 11)
+         self.assertEqual(counters["post_grad"], 11)
+ 
+-    @requires_gpu
+     @parametrize("device", ["cpu", GPU_TYPE])
+     @parametrize("dynamic", [True, False])
+     def test_cond_mismatched_branch_output_size(self, device, dynamic):
+@@ -1262,7 +1251,6 @@ class WhileLoopTests(TestCase):
+ 
+         self.assertEqual(cnt.frame_count, 1, "only one compilation expected")
+ 
+-    @requires_gpu
+     @parametrize("device", ["cpu", GPU_TYPE])
+     @parametrize("dynamic", [False, True])
+     @parametrize("autograd", [False, True])
+@@ -1280,7 +1268,6 @@ class WhileLoopTests(TestCase):
+             autograd=autograd,
+         )
+ 
+-    @requires_gpu
+     @parametrize("device", ["cpu", GPU_TYPE])
+     @parametrize("dynamic", [False, True])
+     @parametrize("autograd", [False, True])
+@@ -1299,7 +1286,6 @@ class WhileLoopTests(TestCase):
+             autograd=autograd,
+         )
+ 
+-    @requires_gpu
+     @parametrize("device", ["cpu", GPU_TYPE])
+     @parametrize("dynamic", [False, True])
+     @parametrize("autograd", [False, True])
+@@ -1317,7 +1303,6 @@ class WhileLoopTests(TestCase):
+             autograd=autograd,
+         )
+ 
+-    @requires_gpu
+     @parametrize("device", ["cpu", GPU_TYPE])
+     @parametrize("dynamic", [False, True])
+     @parametrize("autograd", [False, True])
+@@ -1332,7 +1317,6 @@ class WhileLoopTests(TestCase):
+             autograd=autograd,
+         )
+ 
+-    @requires_gpu
+     @parametrize("device", ["cpu", GPU_TYPE])
+     # dynamic=True doesn't work now due to
+     # https://github.com/pytorch/pytorch/issues/123596
+@@ -1352,7 +1336,6 @@ class WhileLoopTests(TestCase):
+             autograd=autograd,
+         )
+ 
+-    @requires_gpu
+     @parametrize("device", ["cpu", GPU_TYPE])
+     @parametrize("dynamic", [True, False])
+     @parametrize("autograd", [False, True])
+@@ -1371,7 +1354,6 @@ class WhileLoopTests(TestCase):
+             autograd=autograd,
+         )
+ 
+-    @requires_gpu
+     @parametrize("device", ["cpu", GPU_TYPE])
+     @parametrize("dynamic", [True, False])
+     @parametrize("autograd", [False, True])
+@@ -1395,7 +1377,6 @@ class WhileLoopTests(TestCase):
+                 autograd=autograd,
+             )
+ 
+-    @requires_gpu
+     @parametrize("device", ["cpu", GPU_TYPE])
+     @parametrize("dynamic", [True, False])
+     @parametrize("autograd", [False, True])
+@@ -1455,7 +1436,6 @@ class WhileLoopTests(TestCase):
+                 dynamic=False,
+             )
+ 
+-    @requires_gpu
+     @parametrize("device", ["cpu", GPU_TYPE])
+     @parametrize("dynamic", [True, False])
+     def test_while_loop_zero_loop(self, device, dynamic):
+@@ -1472,7 +1452,6 @@ class WhileLoopTests(TestCase):
+                 dynamic=dynamic,
+             )
+ 
+-    @requires_gpu
+     @parametrize("device", ["cpu", GPU_TYPE])
+     @parametrize("dynamic", [True, False])
+     @torch._dynamo.config.patch(
+@@ -1491,7 +1470,6 @@ class WhileLoopTests(TestCase):
+             autograd=autograd,
+         )
+ 
+-    @requires_gpu
+     @parametrize("device", [GPU_TYPE])
+     def test_while_loop_models_with_mixed_device(self, device):
+         self._run_test(
+@@ -1520,7 +1498,6 @@ class WhileLoopTests(TestCase):
+                 dynamic=True,
+             )
+ 
+-    @requires_gpu
+     @parametrize("device", ["cpu", GPU_TYPE])
+     @parametrize("dynamic", [True, False])
+     @parametrize("autograd", [False, True])
+@@ -1539,7 +1516,6 @@ class WhileLoopTests(TestCase):
+             autograd=autograd,
+         )
+ 
+-    @requires_gpu
+     @parametrize("device", ["cpu", GPU_TYPE])
+     @parametrize("dynamic", [True, False])
+     @parametrize("autograd", [False, True])
+@@ -1567,7 +1543,6 @@ class WhileLoopTests(TestCase):
+ 
+ 
+ class AssociativeScanTests(TestCase):
+-    @requires_gpu
+     @parametrize("combine_mode", ["pointwise", "generic"])
+     @parametrize("backend", ["inductor"])
+     @parametrize("device", [torch.device("cpu"), GPU_TYPE])
+@@ -2356,5 +2331,4 @@ instantiate_parametrized_tests(MapTests)
+ if __name__ == "__main__":
+     from torch._inductor.test_case import run_tests
+ 
+-    if HAS_CPU or HAS_GPU:
+-        run_tests(needs="filelock")
++    run_tests(needs="filelock")

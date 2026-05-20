@@ -1,0 +1,13 @@
+﻿diff --git a/test/functorch/dim/test_split.py b/test/functorch/dim/test_split.py
+index 12b47c5ab4d..022943549ad 100644
+--- a/test/functorch/dim/test_split.py
++++ b/test/functorch/dim/test_split.py
+@@ -2,6 +2,8 @@
+ import unittest
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ from functorch.dim import Dim, dims, Tensor
+ from torch.testing._internal.common_utils import (
+     run_tests,

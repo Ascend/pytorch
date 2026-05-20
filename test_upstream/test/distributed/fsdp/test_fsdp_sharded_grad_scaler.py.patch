@@ -1,0 +1,40 @@
+﻿diff --git a/test/distributed/fsdp/test_fsdp_sharded_grad_scaler.py b/test/distributed/fsdp/test_fsdp_sharded_grad_scaler.py
+index 4c3425f22a9..36f7898d207 100644
+--- a/test/distributed/fsdp/test_fsdp_sharded_grad_scaler.py
++++ b/test/distributed/fsdp/test_fsdp_sharded_grad_scaler.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["oncall: distributed"]
+ 
+ import copy
+@@ -79,7 +84,7 @@ subtest_name = functools.partial(subtest_name, test_name_mapping)
+ class TestShardGradScaler(TestCase):
+     @unittest.skipIf(
+         amp_definitely_not_available() and not TEST_XPU,
+-        "no supported device (cuda, xla, xpu) found",
++        "no supported device (npu, xla, xpu) found",
+     )
+     def test_grad_scaling(self):
+         pg = DummyProcessGroup(0, 1)
+@@ -98,7 +103,7 @@ class TestShardGradScaler(TestCase):
+ 
+     @unittest.skipIf(
+         amp_definitely_not_available() and not TEST_XPU,
+-        "no supported device (cuda, xla, xpu) found",
++        "no supported device (npu, xla, xpu) found",
+     )
+     def test_scaling_unscaling_sparse(self):
+         pg = DummyProcessGroup(0, 1)
+@@ -146,7 +151,7 @@ class TestShardGradScaler(TestCase):
+ 
+     @unittest.skipIf(
+         amp_definitely_not_available() and not TEST_XPU,
+-        "no supported device (cuda, xla, xpu) found",
++        "no supported device (npu, xla, xpu) found",
+     )
+     def test_inf_gradients_skip_optim_step(self):
+         pg = DummyProcessGroup(0, 1)

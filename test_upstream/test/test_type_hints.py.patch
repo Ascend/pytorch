@@ -1,0 +1,12 @@
+﻿diff --git a/test/test_type_hints.py b/test/test_type_hints.py
+index 4cdfb0d1493..068d1825539 100644
+--- a/test/test_type_hints.py
++++ b/test/test_type_hints.py
+@@ -9,6 +9,7 @@ import unittest
+ from pathlib import Path
+ 
+ import torch
++from torch_npu.contrib import transfer_to_npu
+ from torch.testing._internal.common_utils import (
+     run_tests,
+     set_cwd,

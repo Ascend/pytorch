@@ -1,0 +1,13 @@
+﻿diff --git a/test/dynamo/test_unittest.py b/test/dynamo/test_unittest.py
+index df1d1d7419b..660224e2133 100644
+--- a/test/dynamo/test_unittest.py
++++ b/test/dynamo/test_unittest.py
+@@ -2,6 +2,8 @@
+ import unittest
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch._dynamo.test_case
+ from torch.testing._internal.common_utils import make_dynamo_test
+ 

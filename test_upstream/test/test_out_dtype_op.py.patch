@@ -1,0 +1,47 @@
+﻿diff --git a/test/test_out_dtype_op.py b/test/test_out_dtype_op.py
+index 258e3234c2d..e2f83182a7b 100644
+--- a/test/test_out_dtype_op.py
++++ b/test/test_out_dtype_op.py
+@@ -13,6 +13,10 @@ from torch.testing._internal.common_utils import (
+ from torch.testing._internal.common_quantization import skipIfNoDynamoSupport
+ from torch.testing import FileCheck
+ from torch.testing._internal.common_cuda import SM80OrLater, _get_torch_cuda_version
++from torch_npu.contrib import transfer_to_npu
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++TEST_CUDA = True
+ 
+ 
+ @unittest.skipIf(not torch._dynamo.is_dynamo_supported(), "dynamo isn't support")
+@@ -163,10 +167,10 @@ class TestOutDtypeOp(TestCase):
+             loss.backward()
+ 
+     @unittest.skipIf(IS_WINDOWS, "_int_mm unavailable")
+-    @unittest.skipIf(not SM80OrLater, "_int_mm unavailable")
++    # @unittest.skipIf(not SM80OrLater, "_int_mm unavailable")
+     @unittest.skipIf(IS_FBCODE and IS_REMOTE_GPU, "cublas runtime error")
+-    @unittest.skipIf(_get_torch_cuda_version() >= (11, 7), "_int_mm unavailable")
+-    @unittest.skipIf(not TEST_CUDA, "_int_mm unavailable")
++    # @unittest.skipIf(_get_torch_cuda_version() >= (11, 7), "_int_mm unavailable")
++    # @unittest.skipIf(not TEST_CUDA, "_int_mm unavailable")
+     @skipIfNoDynamoSupport
+     def test_out_dtype_inductor_decomp(self) -> None:
+         def func(x, w):
+@@ -182,7 +186,7 @@ class TestOutDtypeOp(TestCase):
+         self.assertTrue(torch.allclose(ref, test_out))
+         self.assertTrue(torch.allclose(ref, test_out_c))
+ 
+-    @unittest.skipIf(not TEST_CUDA, "cuda only")
++    # @unittest.skipIf(not TEST_CUDA, "cuda only")
+     def test_out_dtype_inductor_decomp_trace(self) -> None:
+         def func(x, w):
+             return out_dtype(torch.ops.aten.mm.default, torch.int32, x, w)
+@@ -198,7 +202,7 @@ def forward(self, x_1, w_1):
+     _int_mm = torch.ops.aten._int_mm.default(x_1, w_1);  x_1 = w_1 = None
+     return _int_mm""")
+ 
+-    @unittest.skipIf(not TEST_CUDA, "cuda only")
++    # @unittest.skipIf(not TEST_CUDA, "cuda only")
+     def test_out_dtype_int_mm_default_trace(self) -> None:
+         def func(x, w):
+             return out_dtype(torch.ops.aten.mm.default, torch.int32, x, w)

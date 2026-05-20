@@ -1,0 +1,14 @@
+﻿diff --git a/test/test_bundled_inputs.py b/test/test_bundled_inputs.py
+index bf9d24f0b8b..3158787ec5d 100644
+--- a/test/test_bundled_inputs.py
++++ b/test/test_bundled_inputs.py
+@@ -9,6 +9,9 @@ import torch
+ import torch.utils.bundled_inputs
+ from torch.testing._internal.common_utils import run_tests, TestCase
+ 
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ 
+ def model_size(sm):
+     buffer = io.BytesIO()

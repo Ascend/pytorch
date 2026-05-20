@@ -1,0 +1,14 @@
+﻿diff --git a/test/profiler/test_record_function.py b/test/profiler/test_record_function.py
+index 58e7a05b1a2..d1d3d826f1b 100644
+--- a/test/profiler/test_record_function.py
++++ b/test/profiler/test_record_function.py
+@@ -33,6 +33,9 @@ except ImportError:
+ 
+ Json = dict[str, Any]
+ 
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ 
+ class TestRecordFunction(TestCase):
+     def _record_function_with_param(self):

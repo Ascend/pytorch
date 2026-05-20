@@ -1,0 +1,35 @@
+﻿diff --git a/test/test_type_promotion.py b/test/test_type_promotion.py
+index abb32d525bf..2024742758f 100644
+--- a/test/test_type_promotion.py
++++ b/test/test_type_promotion.py
+@@ -5,7 +5,7 @@ import itertools
+ import unittest
+ 
+ import torch
+-
++import torch_npu
+ from torch.testing._internal.common_utils import (TestCase, run_tests, load_tests, make_tensor,
+                                                   TEST_NUMPY, set_default_dtype, torch_to_numpy_dtype_dict,
+                                                   numpy_to_torch_dtype_dict, skipIfTorchDynamo)
+@@ -423,8 +423,8 @@ class TestTypePromotion(TestCase):
+     def test_booleans(self, device):
+         onedim = torch.tensor([True], device=device)
+ 
+-        self.assertEqual(onedim + onedim, onedim)
+-        self.assertEqual(onedim + True, onedim)
++        self.assertEqual((onedim + onedim).cpu(), onedim)
++        self.assertEqual((onedim + True).cpu(), onedim)
+         self.assertEqual(torch.add(True, True), True)
+         self.assertEqual(torch.add(False, False), False)
+         self.assertEqual(torch.add(False, True), True)
+@@ -432,8 +432,8 @@ class TestTypePromotion(TestCase):
+         self.assertRaisesRegex(RuntimeError, "Boolean alpha only supported",
+                                lambda: torch.add(1, 1, alpha=True))
+         self.assertEqual(torch.add(torch.tensor(True, device=device),
+-                         torch.tensor(True, device=device), True),
+-                         torch.tensor(True, device=device))
++                         torch.tensor(True, device=device), True).cpu(),
++                         torch.tensor(True, device=device).cpu())
+ 
+     @skipIfTorchDynamo("Not a TorchDynamo suitable test")
+     @float_double_default_dtype

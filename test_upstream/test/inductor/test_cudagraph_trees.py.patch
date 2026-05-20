@@ -1,0 +1,36 @@
+﻿diff --git a/test/inductor/test_cudagraph_trees.py b/test/inductor/test_cudagraph_trees.py
+index 8c040da1188..f66725e81ae 100644
+--- a/test/inductor/test_cudagraph_trees.py
++++ b/test/inductor/test_cudagraph_trees.py
+@@ -1,3 +1,11 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ # ruff: noqa: F841
+ import contextlib
+@@ -12,7 +20,6 @@ import warnings
+ from collections import defaultdict
+ from collections.abc import Mapping, Sequence
+ 
+-import torch
+ import torch._dynamo.config as dynamo_config
+ import torch.nn as nn
+ from torch._dynamo.backends.debugging import aot_eager_decomp_partition_with_mode
+@@ -5805,10 +5812,4 @@ if HAS_CUDA_AND_TRITON:
+ if __name__ == "__main__":
+     from torch._inductor.test_case import run_tests
+ 
+-    if not TEST_CUDA_GRAPH:
+-        if __name__ == "__main__":
+-            sys.exit(0)
+-        raise unittest.SkipTest("cuda graph test is skipped")
+-
+-    if HAS_CUDA_AND_TRITON:
+-        run_tests(needs="filelock")
++    run_tests(needs="filelock")

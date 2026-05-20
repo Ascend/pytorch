@@ -1,0 +1,13 @@
+﻿diff --git a/test/test_torch_config_hash_determinism.py b/test/test_torch_config_hash_determinism.py
+index 0f81ea386b5..5c955beaa2c 100644
+--- a/test/test_torch_config_hash_determinism.py
++++ b/test/test_torch_config_hash_determinism.py
+@@ -88,7 +88,7 @@ class TestConfigModule(TestCase):
+             self.check_deterministic(key, value)
+ 
+     def test_inductor_config_hash_portable_without_ignore(self):
+-        for cutlass_key in ("cuda", "xpu", "cutlass"):
++        for cutlass_key in ("npu", "xpu", "cutlass"):
+             cutlass_dir_key = f"{cutlass_key}.cutlass_dir"
+             idx = inductor_config._cache_config_ignore_prefix.index(cutlass_dir_key)
+             inductor_config._cache_config_ignore_prefix.remove(cutlass_dir_key)

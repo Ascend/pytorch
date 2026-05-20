@@ -1,0 +1,11 @@
+﻿diff --git a/test/dynamo/test_subclasses.py b/test/dynamo/test_subclasses.py
+index 039b4be9dc6..77dc658c93b 100644
+--- a/test/dynamo/test_subclasses.py
++++ b/test/dynamo/test_subclasses.py
+@@ -1,3 +1,6 @@
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["module: dynamo"]
+ import functools
+ import itertools

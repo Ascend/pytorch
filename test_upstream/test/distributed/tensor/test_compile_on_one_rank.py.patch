@@ -1,0 +1,13 @@
+﻿diff --git a/test/distributed/tensor/test_compile_on_one_rank.py b/test/distributed/tensor/test_compile_on_one_rank.py
+index 166de302ee7..33180504062 100644
+--- a/test/distributed/tensor/test_compile_on_one_rank.py
++++ b/test/distributed/tensor/test_compile_on_one_rank.py
+@@ -5,6 +5,8 @@ import functools
+ import sys
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch.distributed as dist
+ import torch.distributed.config as dist_config
+ import torch.nn as nn

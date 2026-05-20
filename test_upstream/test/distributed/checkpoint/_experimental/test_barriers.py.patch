@@ -1,0 +1,13 @@
+﻿diff --git a/test/distributed/checkpoint/_experimental/test_barriers.py b/test/distributed/checkpoint/_experimental/test_barriers.py
+index b483659ba00..2b49898dcb7 100644
+--- a/test/distributed/checkpoint/_experimental/test_barriers.py
++++ b/test/distributed/checkpoint/_experimental/test_barriers.py
+@@ -5,6 +5,8 @@ import unittest.mock as mock
+ from torch.distributed.checkpoint._experimental.barriers import TCPStoreBarrier
+ from torch.distributed.checkpoint._experimental.types import RankInfo
+ from torch.testing._internal.common_utils import run_tests, TestCase
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ 
+ 
+ class TestBarriers(TestCase):

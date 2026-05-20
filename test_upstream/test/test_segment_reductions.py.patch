@@ -1,0 +1,14 @@
+﻿diff --git a/test/test_segment_reductions.py b/test/test_segment_reductions.py
+index 18159044407..46b257afed5 100644
+--- a/test/test_segment_reductions.py
++++ b/test/test_segment_reductions.py
+@@ -16,6 +16,9 @@ from torch.testing._internal.common_utils import (
+     parametrize,
+ )
+ 
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ 
+ reductions = ["max", "mean", "min", "sum", "prod"]
+ 

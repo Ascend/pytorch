@@ -1,0 +1,13 @@
+﻿diff --git a/test/test_tensor_creation_ops.py b/test/test_tensor_creation_ops.py
+index 87e7db57318..ec688559334 100644
+--- a/test/test_tensor_creation_ops.py
++++ b/test/test_tensor_creation_ops.py
+@@ -47,7 +47,7 @@ from torch.testing._internal.common_dtype import (
+ )
+ 
+ from torch.utils.dlpack import to_dlpack
+-
++from torch_npu.contrib import transfer_to_npu
+ # TODO: replace with make_tensor
+ def _generate_input(shape, dtype, device, with_extremal):
+     if shape == ():

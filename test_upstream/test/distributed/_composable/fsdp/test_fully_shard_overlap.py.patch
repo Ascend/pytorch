@@ -1,0 +1,13 @@
+﻿diff --git a/test/distributed/_composable/fsdp/test_fully_shard_overlap.py b/test/distributed/_composable/fsdp/test_fully_shard_overlap.py
+index d6c8d238c4d..b54dceb286a 100644
+--- a/test/distributed/_composable/fsdp/test_fully_shard_overlap.py
++++ b/test/distributed/_composable/fsdp/test_fully_shard_overlap.py
+@@ -7,6 +7,8 @@ import unittest
+ from collections.abc import Callable
+ 
+ import torch
++from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ import torch.distributed as dist
+ import torch.nn as nn
+ from torch.distributed.fsdp import fully_shard

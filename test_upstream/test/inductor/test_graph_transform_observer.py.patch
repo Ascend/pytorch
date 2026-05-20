@@ -1,0 +1,32 @@
+﻿diff --git a/test/inductor/test_graph_transform_observer.py b/test/inductor/test_graph_transform_observer.py
+index e30f2189cd4..0a9fc4fb77f 100644
+--- a/test/inductor/test_graph_transform_observer.py
++++ b/test/inductor/test_graph_transform_observer.py
+@@ -1,3 +1,11 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ import glob
+ import math
+@@ -12,6 +20,7 @@ from torch._inductor.test_case import run_tests, TestCase
+ from torch.testing._internal.common_cuda import PLATFORM_SUPPORTS_FUSED_ATTENTION
+ from torch.testing._internal.common_utils import IS_LINUX
+ from torch.testing._internal.inductor_utils import HAS_CUDA_AND_TRITON
++import torch_npu._inductor
+ 
+ 
+ try:
+@@ -25,6 +34,7 @@ except ImportError:
+ HAS_DOT = shutil.which("dot") is not None
+ 
+ 
++
+ class TestGraphTransformObserver(TestCase):
+     def test_sdpa_rewriter(self):
+         if not (

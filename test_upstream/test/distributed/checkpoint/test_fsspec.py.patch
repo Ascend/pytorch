@@ -1,0 +1,44 @@
+﻿diff --git a/test/distributed/checkpoint/test_fsspec.py b/test/distributed/checkpoint/test_fsspec.py
+index ca191bf8bb9..ecdef59be5d 100644
+--- a/test/distributed/checkpoint/test_fsspec.py
++++ b/test/distributed/checkpoint/test_fsspec.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["oncall: distributed"]
+ 
+ import shutil
+@@ -26,8 +31,9 @@ from torch.testing._internal.common_distributed import (
+ from torch.testing._internal.common_utils import run_tests, TestCase
+ from torch.testing._internal.distributed._shard.sharded_tensor import (
+     ShardedTensorTestBase,
+-    with_comms,
++    # with_comms,
+ )
++from torch_npu.testing.common_distributed import with_comms
+ 
+ 
+ device_type = acc.type if (acc := torch.accelerator.current_accelerator()) else "cpu"
+@@ -84,7 +90,8 @@ class TestFSSpec(ShardedTensorTestBase):
+     def world_size(self) -> int:
+         return 2
+ 
+-    @with_comms(backend=BACKEND, init_rpc=False)
++    # @with_comms(backend=BACKEND, init_rpc=False)
++    @with_comms
+     @requires_accelerator_dist_backend()
+     @skip_if_lt_x_gpu(2)
+     @with_temp_dir
+@@ -158,7 +165,8 @@ class TestFSSpec(ShardedTensorTestBase):
+             opt_at(optim, 0)["exp_avg_sq"], opt_at(optim_2, 0)["exp_avg_sq"]
+         )
+ 
+-    @with_comms(backend=BACKEND, init_rpc=False)
++    # @with_comms(backend=BACKEND, init_rpc=False)
++    @with_comms
+     @requires_accelerator_dist_backend()
+     @skip_if_lt_x_gpu(2)
+     @with_temp_dir

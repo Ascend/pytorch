@@ -1,0 +1,14 @@
+﻿diff --git a/test/test_utils.py b/test/test_utils.py
+index b02011e53e6..7688620b891 100644
+--- a/test/test_utils.py
++++ b/test/test_utils.py
+@@ -15,6 +15,9 @@ import warnings
+ from typing import Any
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++torch.cuda.get_device_capability = lambda :(10, 0)
+ import torch.cuda
+ import torch.nn as nn
+ import torch.utils.cpp_extension

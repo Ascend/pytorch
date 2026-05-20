@@ -1,0 +1,13 @@
+﻿diff --git a/test/inductor/test_config.py b/test/inductor/test_config.py
+index e78723e2df1..c695d16afaf 100644
+--- a/test/inductor/test_config.py
++++ b/test/inductor/test_config.py
+@@ -3,6 +3,8 @@ import math
+ import unittest
+ 
+ import torch
++from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ from torch._dynamo.utils import counters
+ from torch._inductor import config
+ from torch._inductor.pattern_matcher import PatternMatcherPass

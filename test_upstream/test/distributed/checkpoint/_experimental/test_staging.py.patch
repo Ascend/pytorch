@@ -1,0 +1,22 @@
+﻿diff --git a/test/distributed/checkpoint/_experimental/test_staging.py b/test/distributed/checkpoint/_experimental/test_staging.py
+index 739d098a899..c9f04c3e259 100644
+--- a/test/distributed/checkpoint/_experimental/test_staging.py
++++ b/test/distributed/checkpoint/_experimental/test_staging.py
+@@ -3,6 +3,8 @@
+ from concurrent.futures import Future
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ from torch.distributed.checkpoint._experimental.staging import (
+     CheckpointStagerConfig,
+     DefaultStager,
+@@ -147,7 +149,7 @@ class TestDefaultStager(TestCase):
+         """Test staging with CUDA tensors."""
+         # Create state dict with CUDA tensors
+         cuda_state_dict = {
+-            "cuda_tensor": torch.randn(3, 4).cuda(),
++            "npu_tensor": torch.randn(3, 4).cuda(),
+             "cpu_tensor": torch.randn(2, 3),
+             "mixed_model": {
+                 "weight": torch.randn(5, 5).cuda(),

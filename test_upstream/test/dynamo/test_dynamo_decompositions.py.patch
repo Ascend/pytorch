@@ -1,0 +1,13 @@
+﻿diff --git a/test/dynamo/test_dynamo_decompositions.py b/test/dynamo/test_dynamo_decompositions.py
+index 16f40c7a3bc..09ba2ee2f0e 100644
+--- a/test/dynamo/test_dynamo_decompositions.py
++++ b/test/dynamo/test_dynamo_decompositions.py
+@@ -3,6 +3,8 @@
+ import unittest
+ 
+ import torch
++from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ import torch._dynamo.config
+ import torch._dynamo.test_case
+ from torch._dynamo.testing import EagerAndRecordGraphs, normalize_gm

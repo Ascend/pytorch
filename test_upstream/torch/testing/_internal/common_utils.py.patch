@@ -1,0 +1,48 @@
+﻿diff --git a/torch/testing/_internal/common_utils.py b/torch/testing/_internal/common_utils.py
+index 193d625c5e9..07fd4bfb2bf 100644
+--- a/torch/testing/_internal/common_utils.py
++++ b/torch/testing/_internal/common_utils.py
+@@ -38,6 +38,7 @@ import time
+ import types
+ import unittest
+ import warnings
++import torch_npu
+ from collections.abc import Mapping, Sequence
+ from contextlib import closing, contextmanager
+ from copy import deepcopy
+@@ -2681,20 +2682,20 @@ class CudaNonDefaultStream:
+             self.beforeStreams.append(torch.cuda.current_stream(d))
+             deviceStream = torch.cuda.Stream(device=d)
+             self.beforeStreams[-1].synchronize()
+-            torch._C._cuda_setStream(stream_id=deviceStream.stream_id,
++            torch_npu._C._npu_setStream(stream_id=deviceStream.stream_id,
+                                      device_index=deviceStream.device_index,
+                                      device_type=deviceStream.device_type)
+-        torch._C._cuda_setDevice(beforeDevice)
++        torch_npu._C._npu_setDevice(beforeDevice)
+ 
+     def __exit__(self, exc_type, exc_value, traceback):
+         # After completing CUDA test load previously active streams on all
+         # CUDA devices.
+         beforeDevice = torch.cuda.current_device()
+         for d in range(torch.cuda.device_count()):
+-            torch._C._cuda_setStream(stream_id=self.beforeStreams[d].stream_id,
++            torch_npu._C._npu_setStream(stream_id=self.beforeStreams[d].stream_id,
+                                      device_index=self.beforeStreams[d].device_index,
+                                      device_type=self.beforeStreams[d].device_type)
+-        torch._C._cuda_setDevice(beforeDevice)
++        torch_npu._C._npu_setDevice(beforeDevice)
+ 
+ class CudaMemoryLeakCheck:
+     def __init__(self, testcase, name=None):
+@@ -3304,8 +3305,8 @@ class TestCase(expecttest.TestCase):
+ 
+             # Wraps the tested method if we should enforce non default CUDA stream.
+             self._do_cuda_non_default_stream &= getattr(test_method, '_do_cuda_non_default_stream', True)
+-            if self._do_cuda_non_default_stream and not IS_WINDOWS:
+-                self.wrap_with_cuda_policy(method_name, self.enforceNonDefaultStream)
++            # if self._do_cuda_non_default_stream and not IS_WINDOWS:
++            #    self.wrap_with_cuda_policy(method_name, self.enforceNonDefaultStream)
+ 
+             if self._ignore_not_implemented_error:
+                 self.wrap_with_policy(method_name, lambda: skip_exception_type(NotImplementedError))

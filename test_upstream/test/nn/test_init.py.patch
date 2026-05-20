@@ -1,0 +1,22 @@
+﻿diff --git a/test/nn/test_init.py b/test/nn/test_init.py
+index 7741cce27a3..4f3c74cb99a 100644
+--- a/test/nn/test_init.py
++++ b/test/nn/test_init.py
+@@ -7,6 +7,8 @@ from functools import reduce
+ from operator import mul
+ 
+ import torch
++from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ import torch.nn.functional as F
+ import torch.nn.init as init
+ from torch.testing._internal.common_device_type import instantiate_device_type_tests
+@@ -357,7 +359,7 @@ class TestNNInit(TestCase):
+                 init.xavier_normal_(tensor)
+ 
+     @unittest.skipIf(not TEST_SCIPY, "Scipy not found.")
+-    @slowTest
++    # @slowTest
+     def test_xavier_uniform(self):
+         for use_gain in [True, False]:
+             for dims in [2, 4]:

@@ -1,0 +1,13 @@
+﻿diff --git a/test/distributed/_composable/test_replicate_mixed_precision.py b/test/distributed/_composable/test_replicate_mixed_precision.py
+index 0d2cbbd14e2..53785af748a 100644
+--- a/test/distributed/_composable/test_replicate_mixed_precision.py
++++ b/test/distributed/_composable/test_replicate_mixed_precision.py
+@@ -5,6 +5,8 @@ import dataclasses
+ import functools
+ 
+ import torch
++from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ import torch.distributed as dist
+ import torch.distributed._functional_collectives as funcol
+ import torch.nn as nn

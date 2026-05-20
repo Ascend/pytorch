@@ -1,0 +1,13 @@
+﻿diff --git a/test/distributed/local_tensor_tutorial_examples/test_local_tensor_tutorial_examples.py b/test/distributed/local_tensor_tutorial_examples/test_local_tensor_tutorial_examples.py
+index 1f21541b319..6a63523e1a3 100644
+--- a/test/distributed/local_tensor_tutorial_examples/test_local_tensor_tutorial_examples.py
++++ b/test/distributed/local_tensor_tutorial_examples/test_local_tensor_tutorial_examples.py
+@@ -50,6 +50,8 @@ from example_05_rank_specific import (
+ from example_06_multidim_mesh import create_2d_mesh, create_3d_mesh, hybrid_parallelism
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch.distributed as dist
+ from torch.distributed._local_tensor import LocalTensor
+ from torch.testing._internal.common_utils import run_tests, TestCase

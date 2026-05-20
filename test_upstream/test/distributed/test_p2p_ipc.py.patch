@@ -1,0 +1,22 @@
+﻿diff --git a/test/distributed/test_p2p_ipc.py b/test/distributed/test_p2p_ipc.py
+index 8f964ebc9be..acd3057492d 100644
+--- a/test/distributed/test_p2p_ipc.py
++++ b/test/distributed/test_p2p_ipc.py
+@@ -2,6 +2,8 @@
+ 
+ # To run:
+ # python test/distributed/test_p2p_ipc.py
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ 
+ import os
+ import unittest
+@@ -17,7 +19,7 @@ from torch.testing._internal.common_utils import (
+ 
+ 
+ # So that tests are written in device-agnostic way
+-device_type = "cuda"
++device_type = "npu"
+ device_module = torch.get_device_module(device_type)
+ 
+ 

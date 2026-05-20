@@ -1,0 +1,14 @@
+﻿diff --git a/test/profiler/test_execution_trace.py b/test/profiler/test_execution_trace.py
+index a2e80c2d26e..b6a750042f3 100644
+--- a/test/profiler/test_execution_trace.py
++++ b/test/profiler/test_execution_trace.py
+@@ -56,6 +56,9 @@ except ImportError:
+ 
+ Json = dict[str, Any]
+ 
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ 
+ class TestExecutionTrace(TestCase):
+     def payload(self, device, use_device=False):

@@ -1,0 +1,12 @@
+﻿diff --git a/test/functorch/dim/test_getsetitem.py b/test/functorch/dim/test_getsetitem.py
+index d91078deafd..6bffa62b8b9 100644
+--- a/test/functorch/dim/test_getsetitem.py
++++ b/test/functorch/dim/test_getsetitem.py
+@@ -1,5 +1,7 @@
+ # Owner(s): ["module: functorch"]
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ from functorch.dim import Dim, DimList, dims, Tensor
+ from torch.testing._internal.common_utils import run_tests, TestCase
+ 

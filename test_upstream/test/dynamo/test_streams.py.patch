@@ -1,0 +1,535 @@
+﻿diff --git a/test/dynamo/test_streams.py b/test/dynamo/test_streams.py
+index 490ce1d1d05..6375a4526f8 100644
+--- a/test/dynamo/test_streams.py
++++ b/test/dynamo/test_streams.py
+@@ -117,7 +117,7 @@ class <lambda>(torch.nn.Module):
+             y = z + 2
+             return y, s
+ 
+-        inp = (torch.ones(2, 2) + 1, torch.ones(2, 2), torch.Stream(device="cuda"))
++        inp = (torch.ones(2, 2) + 1, torch.ones(2, 2), torch.Stream(device="npu"))
+         expected = fn(*inp)
+         fn_opt = torch.compile(fn, fullgraph=True)
+         actual = fn_opt(*inp)
+@@ -148,7 +148,7 @@ class <lambda>(torch.nn.Module):
+                 s0 = torch.accelerator.current_stream()
+             return x, s0
+ 
+-        s_inp = torch.Stream(device="cuda")
++        s_inp = torch.Stream(device="npu")
+         inp = (torch.ones(2, 2) + 1, s_inp)
+         fn_opt = torch.compile(fn, fullgraph=True)
+         _, s0 = fn_opt(*inp)
+@@ -164,7 +164,7 @@ class <lambda>(torch.nn.Module):
+         def fn_cuda_stream(x):
+             return torch.cuda.current_stream().cuda_stream
+ 
+-        x = torch.zeros(1, device="cuda")
++        x = torch.zeros(1, device="npu")
+         compiled = torch.compile(fn_cuda_stream, backend="eager", fullgraph=True)
+         self.assertEqual(compiled(x), fn_cuda_stream(x))
+ 
+@@ -178,7 +178,7 @@ class <lambda>(torch.nn.Module):
+                 return torch.cuda.current_stream().cuda_stream
+ 
+         s = torch.cuda.Stream()
+-        x = torch.zeros(1, device="cuda")
++        x = torch.zeros(1, device="npu")
+         compiled = torch.compile(fn, backend="eager", fullgraph=True)
+         self.assertEqual(compiled(x, s), fn(x, s))
+ 
+@@ -343,7 +343,7 @@ class <lambda>(torch.nn.Module):
+         def fn(x):
+             return x + 1
+ 
+-        fn(torch.ones(2, 2, device="cuda:0"))
++        fn(torch.ones(2, 2, device="npu:0"))
+ 
+     @requires_cuda
+     def test_current_stream_api(self) -> None:
+@@ -355,7 +355,7 @@ class <lambda>(torch.nn.Module):
+ 
+         def stream_generation_backend(gm, *args, **kwargs):  # type: ignore[no-untyped-def]
+             nonlocal s0
+-            s0_ind = get_current_stream(torch.device("cuda:0"))
++            s0_ind = get_current_stream(torch.device("npu:0"))
+             self.assertEqual(get_external_object_by_index(s0_ind), cur_stream)
+             with gm.graph.inserting_after(next(iter(gm.graph.nodes))):
+                 gm.graph.call_function(
+@@ -374,7 +374,7 @@ class <lambda>(torch.nn.Module):
+         def fn(x):
+             return x + 1
+ 
+-        fn(torch.ones(2, 2, device="cuda:0"))
++        fn(torch.ones(2, 2, device="npu:0"))
+ 
+     @requires_cuda
+     def test_stream_with_mutation(self):
+@@ -519,8 +519,8 @@ class GraphModule(torch.nn.Module):
+             return y0, z
+ 
+         inp = (
+-            torch.ones(2, 2, device="cuda:0", requires_grad=True) + 1,
+-            torch.ones(2, 2, device="cuda:0", requires_grad=True),
++            torch.ones(2, 2, device="npu:0", requires_grad=True) + 1,
++            torch.ones(2, 2, device="npu:0", requires_grad=True),
+         )
+         expected = fn(*inp)
+         (
+@@ -620,7 +620,7 @@ class GraphModule(torch.nn.Module):
+             x.add_(1)
+             return x
+ 
+-        inp = (torch.ones(2, 2, device="cuda"),)
++        inp = (torch.ones(2, 2, device="npu"),)
+         (
+             _,
+             _,
+@@ -717,18 +717,18 @@ class <lambda>(torch.nn.Module):
+         # synchronizing the first stream w/ the second stream after the second stream is finished
+         def fn(x):
+             e = torch.Event()
+-            with torch.Stream(device="cuda:0"):
+-                y = torch.ones(2, 2, device="cuda:0")
++            with torch.Stream(device="npu:0"):
++                y = torch.ones(2, 2, device="npu:0")
+                 e.record()
+                 z = y * x
+ 
+-            with torch.Stream(device="cuda:0"):
++            with torch.Stream(device="npu:0"):
+                 e.wait()
+                 z0 = y * 2 * x
+ 
+             return z0, z
+ 
+-        inp = (torch.ones(2, 2, device="cuda", requires_grad=True),)
++        inp = (torch.ones(2, 2, device="npu", requires_grad=True),)
+         (
+             actual,
+             _,
+@@ -806,22 +806,22 @@ class GraphModule(torch.nn.Module):
+         # used on the first stream again then finally used on the last stream
+         def fn(x):
+             e = torch.Event()
+-            with torch.Stream(device="cuda:0"):
+-                y = torch.ones(2, 2, device="cuda:0")
++            with torch.Stream(device="npu:0"):
++                y = torch.ones(2, 2, device="npu:0")
+                 z = y * x
+                 e.record()
+ 
+-            with torch.Stream(device="cuda:0"):
++            with torch.Stream(device="npu:0"):
+                 e.wait()
+                 z0 = y * 2 * z
+                 e.record()
+ 
+-            with torch.Stream(device="cuda:0"):
++            with torch.Stream(device="npu:0"):
+                 e.wait()
+                 z1 = y * x * z0
+                 e.record()
+ 
+-            with torch.Stream(device="cuda:0"):
++            with torch.Stream(device="npu:0"):
+                 e.wait()
+                 z2 = y * 4 * z1
+                 e.record()
+@@ -829,7 +829,7 @@ class GraphModule(torch.nn.Module):
+             e.wait()
+             return z, z1, z2
+ 
+-        inp = (torch.ones(2, 2, device="cuda", requires_grad=True),)
++        inp = (torch.ones(2, 2, device="npu", requires_grad=True),)
+         (
+             actual,
+             _,
+@@ -1011,13 +1011,13 @@ class GraphModule(torch.nn.Module):
+     @requires_cuda
+     def test_epilogue_copy_streams_inference(self):
+         def fn(x):
+-            with torch.Stream(device="cuda:0"):
++            with torch.Stream(device="npu:0"):
+                 with torch.no_grad():
+                     x.add_(2)
+ 
+             return x
+ 
+-        x = torch.ones(2, 2, requires_grad=True, device="cuda:0")
++        x = torch.ones(2, 2, requires_grad=True, device="npu:0")
+ 
+         inp = (x,)
+         (
+@@ -1044,11 +1044,11 @@ class <lambda>(torch.nn.Module):
+     def test_epilogue_copy_streams_external(self):
+         @torch.compile(backend="eager")
+         def fn(x):
+-            with torch.Stream(device="cuda:0"):
++            with torch.Stream(device="npu:0"):
+                 x.mul_(3)
+             return x.sin()
+ 
+-        x = torch.ones(2, 2, requires_grad=True, device="cuda:0")
++        x = torch.ones(2, 2, requires_grad=True, device="npu:0")
+         inp = (x.clone(),)
+         with self.assertRaisesRegex(
+             RuntimeError,
+@@ -1065,8 +1065,8 @@ class <lambda>(torch.nn.Module):
+         """
+ 
+         def fn(x) -> torch.Tensor:
+-            s1 = torch.Stream(device="cuda")
+-            s2 = torch.Stream(device="cuda")
++            s1 = torch.Stream(device="npu")
++            s2 = torch.Stream(device="npu")
+             e = torch.Event()
+ 
+             with s1:
+@@ -1080,7 +1080,7 @@ class <lambda>(torch.nn.Module):
+ 
+             return w
+ 
+-        inp = (torch.ones(2, 2, device="cuda"),)
++        inp = (torch.ones(2, 2, device="npu"),)
+         (
+             _,
+             _,
+@@ -1131,8 +1131,8 @@ class <lambda>(torch.nn.Module):
+         """
+ 
+         def fn(x) -> torch.Tensor:
+-            s1 = torch.Stream(device="cuda")
+-            s2 = torch.Stream(device="cuda")
++            s1 = torch.Stream(device="npu")
++            s2 = torch.Stream(device="npu")
+             e = torch.Event()
+ 
+             with s1:
+@@ -1146,7 +1146,7 @@ class <lambda>(torch.nn.Module):
+ 
+             return z
+ 
+-        inp = (torch.ones(2, 2, device="cuda"),)
++        inp = (torch.ones(2, 2, device="npu"),)
+         (
+             _,
+             _,
+@@ -1183,8 +1183,8 @@ class <lambda>(torch.nn.Module):
+         """
+ 
+         def fn(x) -> torch.Tensor:
+-            s1 = torch.Stream(device="cuda")
+-            s2 = torch.Stream(device="cuda")
++            s1 = torch.Stream(device="npu")
++            s2 = torch.Stream(device="npu")
+             e = torch.Event()
+ 
+             with s1:
+@@ -1198,7 +1198,7 @@ class <lambda>(torch.nn.Module):
+ 
+             return w
+ 
+-        inp = (torch.ones(2, 2, device="cuda"),)
++        inp = (torch.ones(2, 2, device="npu"),)
+         (
+             _,
+             _,
+@@ -1263,9 +1263,9 @@ class <lambda>(torch.nn.Module):
+         """
+ 
+         def fn(x) -> torch.Tensor:
+-            s1 = torch.Stream(device="cuda")
+-            s2 = torch.Stream(device="cuda")
+-            s3 = torch.Stream(device="cuda")
++            s1 = torch.Stream(device="npu")
++            s2 = torch.Stream(device="npu")
++            s3 = torch.Stream(device="npu")
+             e1 = torch.Event()
+             e2 = torch.Event()
+ 
+@@ -1285,7 +1285,7 @@ class <lambda>(torch.nn.Module):
+ 
+             return a + b + y + z
+ 
+-        inp = (torch.ones(2, 2, device="cuda"),)
++        inp = (torch.ones(2, 2, device="npu"),)
+         # Patch out wrapping so we get the raw graph to manually wrap below.
+         with patch(
+             "torch._functorch._aot_autograd.graph_capture.wrap_all_sync_nodes_with_control_deps"
+@@ -1356,8 +1356,8 @@ class <lambda>(torch.nn.Module):
+         """
+ 
+         def fn(x) -> torch.Tensor:
+-            s1 = torch.Stream(device="cuda")
+-            s2 = torch.Stream(device="cuda")
++            s1 = torch.Stream(device="npu")
++            s2 = torch.Stream(device="npu")
+             e = torch.Event()
+ 
+             with s1:
+@@ -1372,7 +1372,7 @@ class <lambda>(torch.nn.Module):
+ 
+             return w + z
+ 
+-        inp = (torch.ones(2, 2, device="cuda"),)
++        inp = (torch.ones(2, 2, device="npu"),)
+         (
+             _,
+             _,
+@@ -1418,8 +1418,8 @@ class <lambda>(torch.nn.Module):
+             @staticmethod
+             def forward(ctx, x, y):
+                 ctx.save_for_backward(x)
+-                ctx.s1 = torch.Stream(device="cuda:0")
+-                ctx.s2 = torch.Stream(device="cuda:0")
++                ctx.s1 = torch.Stream(device="npu:0")
++                ctx.s2 = torch.Stream(device="npu:0")
+                 # Do computation on stream s2
+                 with ctx.s2:
+                     result = x * 2 + y
+@@ -1441,8 +1441,8 @@ class <lambda>(torch.nn.Module):
+             result = BwMutationWithStream.apply(x, y)
+             return result
+ 
+-        x = torch.ones(2, 2, requires_grad=True, device="cuda:0")
+-        y = torch.ones(2, 2, requires_grad=True, device="cuda:0")
++        x = torch.ones(2, 2, requires_grad=True, device="npu:0")
++        y = torch.ones(2, 2, requires_grad=True, device="npu:0")
+         (
+             actual,
+             _,
+@@ -1496,7 +1496,7 @@ class GraphModule(torch.nn.Module):
+                 e.record()
+                 return x
+ 
+-            inp = (torch.ones(2, 2, device="cuda"),)
++            inp = (torch.ones(2, 2, device="npu"),)
+             fn(*inp)
+ 
+     def test_is_marked_side_effectful(self):
+@@ -1541,8 +1541,8 @@ class GraphModule(torch.nn.Module):
+             return z0, z1
+ 
+         inp = (
+-            torch.ones(2, 2, device="cuda:0", requires_grad=True) + 1,
+-            torch.ones(2, 2, device="cuda:0", requires_grad=True),
++            torch.ones(2, 2, device="npu:0", requires_grad=True) + 1,
++            torch.ones(2, 2, device="npu:0", requires_grad=True),
+         )
+ 
+         (
+@@ -1602,7 +1602,7 @@ class GraphModule(torch.nn.Module):
+             return x
+ 
+         compiled = torch.compile(fn, backend=backend, fullgraph=True)
+-        compiled(torch.randn(4, device="cuda"))
++        compiled(torch.randn(4, device="npu"))
+ 
+         self.assertEqual(len(backend.graphs), 1)
+         found = any(
+@@ -1623,7 +1623,7 @@ class GraphModule(torch.nn.Module):
+ 
+         with self.assertRaisesRegex(RuntimeError, "An event was recorded on a stream"):
+             torch.compile(fn, backend="eager", fullgraph=True)(
+-                torch.ones(2, 2, device="cuda")
++                torch.ones(2, 2, device="npu")
+             )
+ 
+     @requires_cuda
+@@ -1638,7 +1638,7 @@ class GraphModule(torch.nn.Module):
+ 
+         try:
+             torch.compile(fn, backend="eager", fullgraph=True)(
+-                torch.ones(2, 2, device="cuda")
++                torch.ones(2, 2, device="npu")
+             )
+             self.fail("Expected RuntimeError")
+         except RuntimeError as e:
+@@ -1659,7 +1659,7 @@ class GraphModule(torch.nn.Module):
+ 
+         with self.assertRaisesRegex(RuntimeError, "An event was recorded on a stream"):
+             torch.compile(fn, backend="eager", fullgraph=True)(
+-                torch.ones(2, 2, device="cuda")
++                torch.ones(2, 2, device="npu")
+             )
+ 
+     @requires_cuda
+@@ -1675,7 +1675,7 @@ class GraphModule(torch.nn.Module):
+ 
+         with self.assertRaisesRegex(RuntimeError, "An event was recorded on a stream"):
+             torch.compile(fn, backend="eager", fullgraph=True)(
+-                torch.ones(2, 2, device="cuda")
++                torch.ones(2, 2, device="npu")
+             )
+ 
+     @requires_cuda
+@@ -1689,7 +1689,7 @@ class GraphModule(torch.nn.Module):
+ 
+         with self.assertRaisesRegex(RuntimeError, "An event was recorded on a stream"):
+             torch.compile(fn, backend="eager", fullgraph=True)(
+-                torch.ones(2, 2, device="cuda"),
++                torch.ones(2, 2, device="npu"),
+                 torch.Event(),
+             )
+ 
+@@ -1704,7 +1704,7 @@ class GraphModule(torch.nn.Module):
+             return e
+ 
+         torch.compile(fn, backend="eager", fullgraph=True)(
+-            torch.ones(2, 2, device="cuda")
++            torch.ones(2, 2, device="npu")
+         )
+ 
+     @requires_cuda
+@@ -1720,7 +1720,7 @@ class GraphModule(torch.nn.Module):
+             return e
+ 
+         torch.compile(fn, backend="eager", fullgraph=True)(
+-            torch.ones(2, 2, device="cuda")
++            torch.ones(2, 2, device="npu")
+         )
+ 
+     @requires_cuda
+@@ -1735,14 +1735,14 @@ class GraphModule(torch.nn.Module):
+ 
+         with self.assertRaisesRegex(RuntimeError, "An event was recorded on a stream"):
+             torch.compile(fn, backend="eager", fullgraph=True)(
+-                torch.ones(2, 2, device="cuda")
++                torch.ones(2, 2, device="npu")
+             )
+ 
+     @requires_cuda
+     @unittest.skip("https://github.com/pytorch/pytorch/issues/177771")
+     def test_cuda_event_record_on_stream(self):
+         """torch.cuda.Event should be accepted by torch.Stream.record_event (C++ type check)."""
+-        s = torch.Stream(device="cuda")
++        s = torch.Stream(device="npu")
+         e = torch.cuda.Event()
+         # This hits THPStream_record_event in Stream.cpp which does a type check
+         s.record_event(e)
+@@ -1756,7 +1756,7 @@ class GraphModule(torch.nn.Module):
+             e.synchronize()
+             return x
+ 
+-        inp = (torch.ones(2, 2, device="cuda"),)
++        inp = (torch.ones(2, 2, device="npu"),)
+         (
+             _,
+             _,
+@@ -1800,7 +1800,7 @@ class <lambda>(torch.nn.Module):
+                 e.synchronize()
+                 return x
+ 
+-            inp = (torch.ones(2, 2, device="cuda"),)
++            inp = (torch.ones(2, 2, device="npu"),)
+             fn(*inp)
+ 
+     @requires_cuda
+@@ -1822,7 +1822,7 @@ class <lambda>(torch.nn.Module):
+             z = y * 2
+             return z
+ 
+-        inp = (torch.ones(2, 2, device="cuda"),)
++        inp = (torch.ones(2, 2, device="npu"),)
+         # Patch out wrapping so we get the raw graph to manually wrap below.
+         with patch(
+             "torch._functorch._aot_autograd.graph_capture.wrap_all_sync_nodes_with_control_deps"
+@@ -1933,7 +1933,7 @@ class <lambda>(torch.nn.Module):
+             z = y * 2
+             return z
+ 
+-        inp = (torch.ones(2, 2, device="cuda"),)
++        inp = (torch.ones(2, 2, device="npu"),)
+         # Patch out wrapping so we get the raw graph to manually wrap below.
+         with patch(
+             "torch._functorch._aot_autograd.graph_capture.wrap_all_sync_nodes_with_control_deps"
+@@ -2014,7 +2014,7 @@ class <lambda>(torch.nn.Module):
+             z = y * 2
+             return z
+ 
+-        inp = torch.ones(2, 2, device="cuda")
++        inp = torch.ones(2, 2, device="npu")
+         eager_result = f(inp)
+         compiled_result = torch.compile(f)(inp)
+         self.assertEqual(eager_result, compiled_result)
+@@ -2038,7 +2038,7 @@ class <lambda>(torch.nn.Module):
+ 
+         f_compiled = torch.compile(f)
+         inputs = [
+-            torch.rand(100, dtype=torch.float16, device="cuda") for _ in range(10)
++            torch.rand(100, dtype=torch.float16, device="npu") for _ in range(10)
+         ]
+         eager_result = f(inputs)
+         compiled_result = f_compiled(inputs)
+@@ -2055,7 +2055,7 @@ class <lambda>(torch.nn.Module):
+             return y + 1
+ 
+         f_compiled = torch.compile(f)
+-        x = torch.randn(10, device="cuda")
++        x = torch.randn(10, device="npu")
+         eager_result = f(x)
+         compiled_result = f_compiled(x)
+         self.assertEqual(eager_result, compiled_result)
+@@ -2068,14 +2068,14 @@ class <lambda>(torch.nn.Module):
+         from torch.testing import FileCheck
+ 
+         def fn(x):
+-            s = torch.Stream(device="cuda")
++            s = torch.Stream(device="npu")
+             y = x + 1
+             y.record_stream(s)
+             z = y * 2
+             return z
+ 
+         compiled = torch.compile(fn, backend="inductor", fullgraph=True)
+-        x = torch.randn(1024, device="cuda")
++        x = torch.randn(1024, device="npu")
+         result, (code,) = run_and_get_code(compiled, x)
+         self.assertEqual(result, (x + 1) * 2)
+ 
+@@ -2098,7 +2098,7 @@ class <lambda>(torch.nn.Module):
+             del x
+             return z0, z
+ 
+-        inp = (torch.ones(2, 2, device="cuda"), torch.ones(2, 2, device="cuda"))
++        inp = (torch.ones(2, 2, device="npu"), torch.ones(2, 2, device="npu"))
+         expected = fn(*inp)
+         (
+             actual,
+@@ -2124,7 +2124,7 @@ class <lambda>(torch.nn.Module):
+             e.wait()
+             return z
+ 
+-        inp = (torch.ones(2, 2, device="cuda"), torch.ones(2, 2, device="cuda"))
++        inp = (torch.ones(2, 2, device="npu"), torch.ones(2, 2, device="npu"))
+         expected = fn(*inp)
+         (
+             actual,
+@@ -2144,7 +2144,7 @@ class <lambda>(torch.nn.Module):
+             del x
+             return z
+ 
+-        inp = (torch.ones(2, 2, device="cuda"), torch.ones(2, 2, device="cuda"))
++        inp = (torch.ones(2, 2, device="npu"), torch.ones(2, 2, device="npu"))
+         expected = fn(*inp)
+         (
+             actual,
+@@ -2175,7 +2175,7 @@ class <lambda>(torch.nn.Module):
+             del h.tensor
+             return z0, z
+ 
+-        inp = (torch.ones(2, 2, device="cuda"), torch.ones(2, 2, device="cuda"))
++        inp = (torch.ones(2, 2, device="npu"), torch.ones(2, 2, device="npu"))
+         expected = fn(*inp)
+         (
+             actual,
+@@ -2203,7 +2203,7 @@ class <lambda>(torch.nn.Module):
+             del d["t"]
+             return z0, z
+ 
+-        inp = (torch.ones(2, 2, device="cuda"), torch.ones(2, 2, device="cuda"))
++        inp = (torch.ones(2, 2, device="npu"), torch.ones(2, 2, device="npu"))
+         expected = fn(*inp)
+         (
+             actual,

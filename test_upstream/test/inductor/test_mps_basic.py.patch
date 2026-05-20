@@ -1,0 +1,19 @@
+﻿diff --git a/test/inductor/test_mps_basic.py b/test/inductor/test_mps_basic.py
+index 5d1d68d391a..59b3f9f762a 100644
+--- a/test/inductor/test_mps_basic.py
++++ b/test/inductor/test_mps_basic.py
+@@ -30,6 +30,7 @@ from inductor.test_torchinductor import (  # @manual=fbcode//caffe2/test/inducto
+     CommonTemplate,
+     TestCase,
+ )
++import torch_npu._inductor
+ 
+ 
+ # TODO: Remove this file.
+@@ -393,5 +394,4 @@ class MPSBasicTestsAOTI(TestCase):
+ if __name__ == "__main__":
+     from torch._dynamo.test_case import run_tests
+ 
+-    if torch.backends.mps.is_available():
+-        run_tests(needs="filelock")
++    run_tests(needs="filelock")

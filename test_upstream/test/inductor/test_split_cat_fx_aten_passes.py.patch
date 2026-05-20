@@ -1,0 +1,12 @@
+﻿diff --git a/test/inductor/test_split_cat_fx_aten_passes.py b/test/inductor/test_split_cat_fx_aten_passes.py
+index 80a2df9f080..cae79b00d27 100644
+--- a/test/inductor/test_split_cat_fx_aten_passes.py
++++ b/test/inductor/test_split_cat_fx_aten_passes.py
+@@ -15,6 +15,7 @@ try:
+     has_fbgemm = True
+ except Exception:
+     has_fbgemm = False
++import torch_npu._inductor
+ 
+ 
+ class TestSplitCat(torch.nn.Module):

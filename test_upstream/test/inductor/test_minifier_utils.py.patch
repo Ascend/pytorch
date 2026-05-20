@@ -1,0 +1,13 @@
+﻿diff --git a/test/inductor/test_minifier_utils.py b/test/inductor/test_minifier_utils.py
+index 2ac067a9e67..a3d94c68276 100644
+--- a/test/inductor/test_minifier_utils.py
++++ b/test/inductor/test_minifier_utils.py
+@@ -2,6 +2,8 @@
+ from unittest.mock import patch
+ 
+ import torch
++from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ from torch._dynamo.exc import UserError, UserErrorType
+ from torch._dynamo.repro.aoti import (
+     AOTIMinifierError,

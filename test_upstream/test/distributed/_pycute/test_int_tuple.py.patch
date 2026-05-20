@@ -1,0 +1,14 @@
+﻿diff --git a/test/distributed/_pycute/test_int_tuple.py b/test/distributed/_pycute/test_int_tuple.py
+index b6fb10394c5..87d2b52f4ef 100644
+--- a/test/distributed/_pycute/test_int_tuple.py
++++ b/test/distributed/_pycute/test_int_tuple.py
+@@ -36,7 +36,8 @@
+ """
+ Unit tests for _pycute.int_tuple
+ """
+-
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ from torch.distributed._pycute import *
+ from torch.testing._internal.common_utils import run_tests, TestCase
+ 

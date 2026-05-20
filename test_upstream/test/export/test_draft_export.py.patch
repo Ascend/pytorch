@@ -1,0 +1,24 @@
+﻿diff --git a/test/export/test_draft_export.py b/test/export/test_draft_export.py
+index fefd35ad99e..757beb5aee8 100644
+--- a/test/export/test_draft_export.py
++++ b/test/export/test_draft_export.py
+@@ -235,7 +235,7 @@ class TestDraftExport(TestCase):
+                 ):
+                     torch.ops.mylib.foo8(*inp)
+ 
+-    @unittest.skipIf(not torch.cuda.is_available(), "Requires cuda")
++    @unittest.skipIf(not torch.npu.is_available(), "Requires npu")
+     def test_missing_meta_kernel_guard(self):
+         with torch.library._scoped_library("mylib", "FRAGMENT"):
+ 
+@@ -267,8 +267,8 @@ class TestDraftExport(TestCase):
+             m = ep.module()
+             with self.assertRaisesRegex(RuntimeError, "Tensor device mismatch!"):
+                 bad_device_inps = (
+-                    torch.randn(2, 3, device=torch.device("cuda")),
+-                    torch.randn(2, 3, device=torch.device("cuda")),
++                    torch.randn(2, 3, device=torch.device("npu")),
++                    torch.randn(2, 3, device=torch.device("npu")),
+                 )
+                 m(*bad_device_inps)
+ 

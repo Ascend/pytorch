@@ -1,0 +1,21 @@
+﻿diff --git a/test/distributed/test_dynamo_distributed.py b/test/distributed/test_dynamo_distributed.py
+index fc4bb687e7d..eb396657000 100644
+--- a/test/distributed/test_dynamo_distributed.py
++++ b/test/distributed/test_dynamo_distributed.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["module: dynamo"]
+ import contextlib
+ import copy
+@@ -2116,6 +2121,7 @@ class TestSingleProc(DynamoDistributedSingleProcTestCase):
+         Explicitly check AotAutograd family of compilers work,
+         since they require example inputs propagated between graph splits.
+         """
++
+         m, inputs, correct_outputs = self.get_model()
+         ddp_m = DDP(m, device_ids=self.device_ids, bucket_cap_mb=25)
+ 

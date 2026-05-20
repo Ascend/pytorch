@@ -1,0 +1,36 @@
+﻿diff --git a/test/inductor/test_memory.py b/test/inductor/test_memory.py
+index eb362b6535a..b3111e0b33a 100644
+--- a/test/inductor/test_memory.py
++++ b/test/inductor/test_memory.py
+@@ -1,8 +1,15 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ import unittest
+ from unittest import mock
+ 
+-import torch
+ from torch._C import FileCheck
+ from torch._dynamo.utils import same
+ from torch._inductor import config, memory
+@@ -10,6 +17,7 @@ from torch._inductor.test_case import TestCase
+ from torch._inductor.utils import run_and_get_triton_code
+ from torch.testing._internal.common_utils import serialTest, skipIfXpu
+ from torch.testing._internal.inductor_utils import GPU_TYPE, HAS_GPU
++import torch_npu._inductor
+ 
+ 
+ try:
+@@ -557,5 +565,4 @@ class TestOperatorReorderForPeakMemory(TestCase):
+ if __name__ == "__main__":
+     from torch._inductor.test_case import run_tests
+ 
+-    if HAS_GPU:
+-        run_tests()
++    run_tests()

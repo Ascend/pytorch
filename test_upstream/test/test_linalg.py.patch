@@ -1,0 +1,12 @@
+﻿diff --git a/test/test_linalg.py b/test/test_linalg.py
+index 82c5ee64b51..4e2ab473940 100644
+--- a/test/test_linalg.py
++++ b/test/test_linalg.py
+@@ -1,5 +1,7 @@
+ # Owner(s): ["module: linear algebra"]
+ # ruff: noqa: F841
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ 
+ import torch
+ import torch.nn.functional as F

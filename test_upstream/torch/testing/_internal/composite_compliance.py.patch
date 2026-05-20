@@ -1,0 +1,22 @@
+﻿diff --git a/torch/testing/_internal/composite_compliance.py b/torch/testing/_internal/composite_compliance.py
+index 3a0d33887bb..e99a84e3a27 100644
+--- a/torch/testing/_internal/composite_compliance.py
++++ b/torch/testing/_internal/composite_compliance.py
+@@ -607,10 +607,12 @@ def check_forward_ad_formula(op: Callable, args, kwargs, gradcheck_wrapper=None,
+                     actual,
+                     is_leaf=lambda x: type(x) is fwAD.UnpackedDualTensor,
+                 )
+-                actual_tangents = tree_map(
+-                    lambda x: unwrap(x.tangent),
+-                    actual,
+-                    is_leaf=lambda x: type(x) is fwAD.UnpackedDualTensor,
+-                )
++                with torch.autograd.profiler.profile(record_shapes=True) as prof:
++                    actual_tangents = tree_map(
++                        lambda x: unwrap(x.tangent),
++                        actual,
++                        is_leaf=lambda x: type(x) is fwAD.UnpackedDualTensor,
++                    )
++                print(prof.key_averages(group_by_input_shape=True))
+                 assert_equal_fn(actual_primals, expected_primals, equal_nan=True)
+                 assert_equal_fn(actual_tangents, expected_tangents, equal_nan=True)

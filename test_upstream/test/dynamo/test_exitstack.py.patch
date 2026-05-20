@@ -1,0 +1,13 @@
+﻿diff --git a/test/dynamo/test_exitstack.py b/test/dynamo/test_exitstack.py
+index 8fef8a822d5..43746ef61bc 100644
+--- a/test/dynamo/test_exitstack.py
++++ b/test/dynamo/test_exitstack.py
+@@ -3,6 +3,8 @@ import contextlib
+ import sys
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch._dynamo.test_case
+ from torch.testing._internal.common_utils import make_dynamo_test
+ 

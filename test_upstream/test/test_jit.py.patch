@@ -1,0 +1,17 @@
+﻿diff --git a/test/test_jit.py b/test/test_jit.py
+index 9519ed82f29..3f24196b612 100644
+--- a/test/test_jit.py
++++ b/test/test_jit.py
+@@ -1,7 +1,12 @@
+ # Owner(s): ["oncall: jit"]
+ # ruff: noqa: F841
++import torch_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++from torch_npu.contrib import transfer_to_npu
+ 
+ import torch
++torch.cuda.get_device_capability = lambda :(10, 0)
+ 
+ if __name__ == '__main__':
+     from torch.testing._internal.common_utils import parse_cmd_line_args
