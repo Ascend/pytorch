@@ -1,6 +1,11 @@
 #include <deque>
+#include <cstdint>
+#include <cstring>
 #include <thread>
+#include <utility>
 #include <vector>
+
+#include <ATen/ATen.h>
 
 #include "torch_npu/csrc/npu/Graph.h"
 
@@ -19,7 +24,8 @@ constexpr auto pendingCallRetryInterval = std::chrono::milliseconds(1);
 static ThreadArgs* threadArgs = nullptr;
 static uint64_t threadId = -1;
 static std::mutex pendingCallbacksMutex;
-static std::deque<PyFuncStruct*> pendingCallbacksQueue;
+using PendingCallbackEntry = std::pair<PendingCallPayload*, std::vector<at::Tensor>>;
+static std::deque<PendingCallbackEntry> pendingCallbacksQueue;
 static std::atomic<bool> pendingCallScheduled{false};
 
 void *process_callback(void *arg)
@@ -60,6 +66,9 @@ void LaunchCallFunc(void *userData)
 
 namespace {
 
+constexpr const char* kNpuGraphTensorPtrSpecMarker = "host_tensor_ptr";
+constexpr const char* kNpuGraphTensorBufferSpecMarker = "host_tensor_buffer";
+
 int PendingCallHandler(void *arg);
 
 bool TrySchedulePendingCall()
@@ -82,25 +91,215 @@ void StartPendingCallRetryThread()
     }).detach();
 }
 
+bool IsNpuGraphTensorPtrSpec(PyObject* obj)
+{
+    if (!PyTuple_Check(obj) || PyTuple_GET_SIZE(obj) != 5) {
+        return false;
+    }
+    PyObject* marker = PyTuple_GET_ITEM(obj, 0);
+    return PyUnicode_Check(marker) &&
+        PyUnicode_CompareWithASCIIString(marker, kNpuGraphTensorPtrSpecMarker) == 0;
+}
+
+bool CollectNpuGraphTensorPtrSpec(PyObject* obj, PendingCallPayload* payload)
+{
+    PyObject* ptrObj = PyTuple_GET_ITEM(obj, 1);
+    PyObject* nbytesObj = PyTuple_GET_ITEM(obj, 2);
+    PyObject* shapeObj = PyTuple_GET_ITEM(obj, 3);
+    PyObject* dtypeObj = PyTuple_GET_ITEM(obj, 4);
+
+    auto dataPtr = static_cast<uintptr_t>(PyLong_AsUnsignedLongLong(ptrObj));
+    if (PyErr_Occurred()) {
+        return false;
+    }
+    auto nbytes = static_cast<Py_ssize_t>(PyLong_AsSsize_t(nbytesObj));
+    if (PyErr_Occurred()) {
+        return false;
+    }
+    if (nbytes < 0) {
+        PyErr_SetString(PyExc_ValueError, "npugraph tensor buffer size must be non-negative");
+        return false;
+    }
+    payload->pendingTensorData.emplace_back(dataPtr, nbytes, shapeObj, dtypeObj);
+    return true;
+}
+
+bool CollectPendingTensorData(PyObject* obj, PendingCallPayload* payload)
+{
+    if (IsNpuGraphTensorPtrSpec(obj)) {
+        return CollectNpuGraphTensorPtrSpec(obj, payload);
+    }
+
+    if (PyTuple_Check(obj)) {
+        Py_ssize_t size = PyTuple_GET_SIZE(obj);
+        for (Py_ssize_t i = 0; i < size; ++i) {
+            if (!CollectPendingTensorData(PyTuple_GET_ITEM(obj, i), payload)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    if (PyList_Check(obj)) {
+        Py_ssize_t size = PyList_GET_SIZE(obj);
+        for (Py_ssize_t i = 0; i < size; ++i) {
+            if (!CollectPendingTensorData(PyList_GET_ITEM(obj, i), payload)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    return true;
+}
+
+void CopyPendingTensorData(PendingCallPayload* payload, std::vector<at::Tensor>& copiedTensors)
+{
+    try {
+        copiedTensors.clear();
+        copiedTensors.reserve(payload->pendingTensorData.size());
+        for (const auto& tensorData : payload->pendingTensorData) {
+            at::Tensor copiedTensor = at::empty(
+                {static_cast<int64_t>(tensorData.nbytes)},
+                at::TensorOptions().dtype(at::kByte).device(at::kCPU));
+            if (tensorData.nbytes > 0) {
+                std::memcpy(
+                    copiedTensor.data_ptr(),
+                    reinterpret_cast<void*>(tensorData.dataPtr),
+                    static_cast<size_t>(tensorData.nbytes));
+            }
+            copiedTensors.emplace_back(std::move(copiedTensor));
+        }
+    } catch (...) {
+        copiedTensors.clear();
+    }
+}
+
+PyObject* MaterializeNpuGraphTensorBufferSpec(
+    PendingCallPayload* payload,
+    const std::vector<at::Tensor>& copiedTensors,
+    size_t& tensorDataIndex)
+{
+    if (tensorDataIndex >= payload->pendingTensorData.size() ||
+        tensorDataIndex >= copiedTensors.size()) {
+        PyErr_SetString(PyExc_RuntimeError, "npugraph tensor buffer index is out of range");
+        return nullptr;
+    }
+    auto& tensorData = payload->pendingTensorData[tensorDataIndex];
+    const auto& copiedTensor = copiedTensors[tensorDataIndex++];
+    if (!copiedTensor.defined()) {
+        PyErr_NoMemory();
+        return nullptr;
+    }
+
+    PyObject* buffer = PyMemoryView_FromMemory(
+        static_cast<char*>(copiedTensor.data_ptr()),
+        tensorData.nbytes,
+        PyBUF_WRITE);
+    if (buffer == nullptr) {
+        return nullptr;
+    }
+
+    PyObject* marker = PyUnicode_FromString(kNpuGraphTensorBufferSpecMarker);
+    if (marker == nullptr) {
+        Py_DECREF(buffer);
+        return nullptr;
+    }
+    PyObject* bufferSpec = PyTuple_Pack(4, marker, buffer, tensorData.shape, tensorData.dtype);
+    Py_DECREF(marker);
+    Py_DECREF(buffer);
+    return bufferSpec;
+}
+
+PyObject* MaterializePendingArg(
+    PyObject* obj,
+    PendingCallPayload* payload,
+    const std::vector<at::Tensor>& copiedTensors,
+    size_t& tensorDataIndex)
+{
+    if (IsNpuGraphTensorPtrSpec(obj)) {
+        return MaterializeNpuGraphTensorBufferSpec(payload, copiedTensors, tensorDataIndex);
+    }
+
+    if (PyTuple_Check(obj)) {
+        Py_ssize_t size = PyTuple_GET_SIZE(obj);
+        PyObject* tuple = PyTuple_New(size);
+        if (tuple == nullptr) {
+            return nullptr;
+        }
+        for (Py_ssize_t i = 0; i < size; ++i) {
+            PyObject* item = MaterializePendingArg(PyTuple_GET_ITEM(obj, i), payload, copiedTensors, tensorDataIndex);
+            if (item == nullptr) {
+                Py_DECREF(tuple);
+                return nullptr;
+            }
+            PyTuple_SET_ITEM(tuple, i, item);
+        }
+        return tuple;
+    }
+
+    if (PyList_Check(obj)) {
+        Py_ssize_t size = PyList_GET_SIZE(obj);
+        PyObject* list = PyList_New(size);
+        if (list == nullptr) {
+            return nullptr;
+        }
+        for (Py_ssize_t i = 0; i < size; ++i) {
+            PyObject* item = MaterializePendingArg(PyList_GET_ITEM(obj, i), payload, copiedTensors, tensorDataIndex);
+            if (item == nullptr) {
+                Py_DECREF(list);
+                return nullptr;
+            }
+            PyList_SET_ITEM(list, i, item);
+        }
+        return list;
+    }
+
+    Py_INCREF(obj);
+    return obj;
+}
+
+PyObject* MaterializePendingArgs(PendingCallPayload* payload, const std::vector<at::Tensor>& copiedTensors)
+{
+    size_t tensorDataIndex = 0;
+    PyObject* materializedArgs = MaterializePendingArg(
+        payload->pyFuncData.pyFuncArgs, payload, copiedTensors, tensorDataIndex);
+    if (materializedArgs == nullptr) {
+        PyErr_WriteUnraisable(payload->pyFuncData.pyFunc);
+        PyErr_Clear();
+        return nullptr;
+    }
+    return materializedArgs;
+}
+
 int PendingCallHandler(void *arg)
 {
-    std::deque<PyFuncStruct*> readyCallbacks;
+    std::deque<PendingCallbackEntry> readyCallbacks;
     {
         std::lock_guard<std::mutex> lock(pendingCallbacksMutex);
         pendingCallScheduled.store(false, std::memory_order_release);
         readyCallbacks.swap(pendingCallbacksQueue);
     }
 
-    for (auto* data : readyCallbacks) {
-        if (data == nullptr) {
+    for (auto& callback : readyCallbacks) {
+        auto* payload = callback.first;
+        auto& copiedTensors = callback.second;
+        if (payload == nullptr) {
             continue;
         }
-        PyObject* result = PyObject_CallObject(data->pyFunc, data->pyFuncArgs);
+        PyObject* materializedArgs = MaterializePendingArgs(payload, copiedTensors);
+        if (materializedArgs == nullptr) {
+            copiedTensors.clear();
+            continue;
+        }
+        PyObject* result = PyObject_CallObject(payload->pyFuncData.pyFunc, materializedArgs);
         if (result != nullptr) {
             Py_XDECREF(result);
         } else {
-            PyErr_WriteUnraisable(data->pyFunc);
+            PyErr_WriteUnraisable(payload->pyFuncData.pyFunc);
         }
+        Py_DECREF(materializedArgs);
+        copiedTensors.clear();
     }
 
     bool shouldScheduleAgain = false;
@@ -121,15 +320,18 @@ int PendingCallHandler(void *arg)
 
 void LaunchCallbackViaPendingCall(void *userData)
 {
-    auto* data = static_cast<PyFuncStruct*>(userData);
-    if (data == nullptr) {
+    auto* payload = static_cast<PendingCallPayload*>(userData);
+    if (payload == nullptr) {
         return;
     }
+
+    std::vector<at::Tensor> copiedTensors;
+    CopyPendingTensorData(payload, copiedTensors);
 
     bool shouldSchedule = false;
     {
         std::lock_guard<std::mutex> lock(pendingCallbacksMutex);
-        pendingCallbacksQueue.emplace_back(data);
+        pendingCallbacksQueue.emplace_back(payload, std::move(copiedTensors));
         if (!pendingCallScheduled.exchange(true, std::memory_order_acq_rel)) {
             shouldSchedule = true;
         }
@@ -340,9 +542,12 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
             auto func = (*py_func).ptr();
             auto userDataList = (*py_data).ptr();
             auto stream = THNPUtils_PyObject_to_NPUStream((*py_stream).ptr());
-            auto data = std::make_unique<PyFuncStruct>(func, userDataList);
-            c10_npu::launch_host_func(stream, LaunchCallbackViaPendingCall, data.get());
-            (void)data.release();
+            auto payload = std::make_unique<PendingCallPayload>(func, userDataList);
+            if (!CollectPendingTensorData(userDataList, payload.get())) {
+                throw py::error_already_set();
+            }
+            c10_npu::launch_host_func(stream, LaunchCallbackViaPendingCall, payload.get());
+            (void)payload.release();
         })
         .def("_subscribe_report", [](py::object py_stream) {
             auto stream = (*py_stream).ptr();
