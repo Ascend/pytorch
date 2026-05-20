@@ -1,22 +1,18 @@
-from typing import (
-     Any,
-     List,
-     Tuple,
-     Union,
- )
 import itertools
 import operator
+from typing import Any
 
 import sympy
+
 import torch
-from torch.fx.node import Node
-from torch.fx.experimental.symbolic_shapes import free_unbacked_symbols
-from torch.utils._sympy.numbers import int_oo
-from torch._inductor import config, metrics
-from torch._inductor import graph as inductor_graph
-from torch._subclasses.fake_tensor import FakeTensor
-from torch._dynamo.utils import defake, dynamo_timed
+from torch._dynamo.utils import defake
+from torch._inductor import config, graph as inductor_graph, metrics
+from torch._inductor.utils import clone_preserve_strides
 from torch._inductor.virtualized import NullHandler, V
+from torch._subclasses.fake_tensor import FakeTensor
+from torch.fx.experimental.symbolic_shapes import free_unbacked_symbols
+from torch.fx.node import Node
+from torch.utils._sympy.numbers import int_oo
 
 
 LazyString = inductor_graph.LazyString
@@ -28,7 +24,9 @@ TensorBox = inductor_graph.TensorBox
 constrain_to_fake_tensors = inductor_graph.constrain_to_fake_tensors
 constrain_to_fx_strides = inductor_graph.constrain_to_fx_strides
 fallback_handler = inductor_graph.fallback_handler
-fallback_node_due_to_unsupported_type = inductor_graph.fallback_node_due_to_unsupported_type
+fallback_node_due_to_unsupported_type = (
+    inductor_graph.fallback_node_due_to_unsupported_type
+)
 gather_origins = inductor_graph.gather_origins
 ir = inductor_graph.ir
 is_magic_method = inductor_graph.is_magic_method
@@ -40,7 +38,11 @@ GraphLowering = inductor_graph.GraphLowering
 
 
 def patch_codegen_with_cpp_wrapper():
-    def npu_codegen_with_cpp_wrapper(self) -> Tuple[str, List[Tuple[int, Node]]]:
+    """
+    patch codegen for cpp wrapper, add npu for codegen_with_cpp_wrapper function
+
+    """
+    def npu_codegen_with_cpp_wrapper(self) -> tuple[str, list[tuple[int, Node]]]:
         # add "npu" support
         if any(device in self.device_types for device in ["cuda", "xpu", "npu"]):
             if config.triton.autotune_at_compile_time:
@@ -52,8 +54,8 @@ def patch_codegen_with_cpp_wrapper():
                 compiled = self.compile_to_module().call
 
                 def materialize(
-                    x: Union[torch.SymInt, torch.SymFloat, torch.Tensor]
-                ) -> Union[int, float, torch.Tensor]:
+                    x: torch.SymInt | torch.SymFloat | torch.Tensor,
+                ) -> int | float | torch.Tensor:
                     if x is None:
                         return None
                     elif isinstance(x, (torch.SymInt, torch.SymFloat)):
@@ -63,7 +65,9 @@ def patch_codegen_with_cpp_wrapper():
                         return defake(x)
                     else:
                         if not isinstance(x, torch.Tensor):
-                            raise AssertionError("Unknown type when creating real inputs" + str(type(x)))
+                            raise AssertionError(
+                                "Unknown type when creating real inputs" + str(type(x))
+                            )
                         return x
 
                 tracing_context = torch._guards.TracingContext.try_get()
@@ -96,8 +100,6 @@ def patch_codegen_with_cpp_wrapper():
                     ]
 
                 if self.mutated_inputs:
-                    from .compile_fx import clone_preserve_strides
-
                     mutated_input_idxs = [
                         idx
                         for idx, name in enumerate(self.graph_inputs)
@@ -135,7 +137,9 @@ def patch_codegen_with_cpp_wrapper():
         else:
             # cpu
             return self.codegen()
+
     from torch._inductor.graph import GraphLowering
+
     GraphLowering.codegen_with_cpp_wrapper = npu_codegen_with_cpp_wrapper
 
 
@@ -154,9 +158,15 @@ def patch_count_bytes():
             node_runtimes.append((node, node.get_estimated_runtime()))
 
         return total_bytes, node_counts, node_runtimes
+
     torch._inductor.graph.GraphLowering.count_bytes = count_bytes
 
+
 def patch_run_node():
+    """
+    patch run node
+
+    """
     def run_node_npu(self, n: torch.fx.Node) -> object:
         def debug(msg: str) -> None:
             log.debug("lowering %s %s", LazyString(n.format_node), msg)
@@ -404,8 +414,9 @@ def patch_run_node():
                     # Use inner fn as a rough proxy. Good enough.
                     if curr.has_large_inner_fn(threshold=100):
                         result.realize()
-                    
+
                     from .config import lowering_axis_count
+
                     if lowering_axis_count and len(curr.ranges) >= lowering_axis_count:
                         result.realize()
 

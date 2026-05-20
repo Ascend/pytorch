@@ -48,7 +48,7 @@ from torch._inductor.lowering import (
     sqrt as sqrt_pt,
     clone as clone_pt,
     pow_recursive,
-    exp2 as exp2_pt, make_pointwise
+    exp2 as exp2_pt, make_pointwise, pointwise_cat
 )
 from torch._inductor.ops_handler import ReductionType
 from torch._inductor.utils import sympy_product
@@ -935,6 +935,29 @@ def _register_npu_inductor_fallbacks():
             return lowering_index_select(x, select_dim, valid_indices[0], 'index_select', new_graph, node_name)
 
         return lowering.index(x, indices)
+
+    @register_lowering(aten.cat)
+    def cat(inputs, dim=0):
+        cpu_device = inputs[0].get_device().type == "cpu"
+        if cpu_device and all(
+            input.get_dtype() in [torch.int8, torch.uint8] for input in inputs
+        ):
+            return lowering.cat(inputs)
+
+        if len(inputs) == 1:
+            return clone(inputs[0])
+
+        dim = _validate_dim(inputs[0], dim, 0)
+        dtype = get_promoted_dtype(
+            *inputs, type_promotion_kind=ELEMENTWISE_TYPE_PROMOTION_KIND.DEFAULT
+        )
+        inputs = [to_dtype(inp, dtype) for inp in inputs]
+
+        # for NPU, we never cat tensor with mask+where, except config.force_pointwise_cat = True
+        if torch._inductor.config.force_pointwise_cat:
+            return pointwise_cat(inputs, dim)
+
+        return TensorBox(ir.ConcatKernel.create(inputs, dim))
 
     @register_lowering(aten.native_layer_norm)
     def native_layer_norm(

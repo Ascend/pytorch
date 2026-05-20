@@ -22,7 +22,6 @@
     -   [离散访存](./feature/non_contiguous_accesses/non_contiguous_accesses.md)
         - [快速入门](./feature/non_contiguous_accesses/overview.md)
         - [INDUCTOR_INDIRECT_MEMORY_MODE](./feature/non_contiguous_accesses/INDUCTOR_INDIRECT_MEMORY_MODE.md)
-        - [USE_STORE_IN_CAT](./feature/non_contiguous_accesses/USE_STORE_IN_CAT.md)
     -   [自动Tiling优化](./feature/tiling/tiling.md)
         - [快速入门](./feature/tiling/overview.md)
         - [FASTAUTOTUNE](./feature/tiling/FASTAUTOTUNE.md)

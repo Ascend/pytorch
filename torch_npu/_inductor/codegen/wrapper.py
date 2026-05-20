@@ -8,6 +8,7 @@ from torch._inductor.codegen.wrapper import (
     SymbolicCallArg,
     pexpr,
 )
+from torch._inductor.runtime import triton_heuristics
 from torch._inductor.utils import (
     cache_on_self,
 )
@@ -71,6 +72,22 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
         # constant now, need type info. I agree, this needs type info, and while this is not true type info
         # it suffices as a type hint for the purposes of producing the correct code for this type.
         return SymbolicCallArg(expr, numel_expr)
+
+    def generate_save_uncompiled_kernels(self):
+        # remove incorrect grid=(0,0,0) param
+        self.wrapper_call.splice(
+            f"""
+            for kernel in globals().values():
+                if isinstance(kernel, {triton_heuristics.__name__}.CachingAutotuner):
+                    if not kernel.cuda_kernel_saved:
+                        if len(kernel.launchers) == 0:
+                            kernel.precompile()
+                        kernel.save_gpu_kernel(
+                            stream="stream",  # use dummy stream
+                            launcher=kernel.launchers[0],
+                        )
+            """
+        )
 
     # don't assert
     def codegen_input_size_asserts(self) -> None:
