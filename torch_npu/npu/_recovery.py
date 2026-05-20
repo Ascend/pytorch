@@ -56,12 +56,23 @@ def _recovery_all_npu_stream(device: int) -> None:
     return torch_npu._C._recovery_all_npu_stream(device)
 
 
-def restart_device(device_id: int, rebuild_all_resources: int = False):
-    logger.info(f"restart device start, device_id={device_id}, rebuild_all_resources={rebuild_all_resources}")
+def restart_device(
+        device_id: int,
+        rebuild_all_resources: bool = False,
+        disable_tensor_unsafe_check: bool = False,
+    ):
+    logger.info(
+        "restart device start, device_id=%s, rebuild_all_resources=%s, "
+        "disable_tensor_unsafe_check=%s",
+        device_id,
+        rebuild_all_resources,
+        disable_tensor_unsafe_check,
+    )
     torch_npu.npu._lazy_init()
     if rebuild_all_resources:
-        mark_all_npu_tensor_unsafe(device_id)
-        set_npu_tensor_unsafe_check_flag(True)
+        if not disable_tensor_unsafe_check:
+            mark_all_npu_tensor_unsafe(device_id)
+            set_npu_tensor_unsafe_check_flag(True)
         _recovery_all_npu_stream(device_id)
     torch_npu._C._npu_restart_device(device_id)
     _except_handler.set_force_stop_exception(False)
