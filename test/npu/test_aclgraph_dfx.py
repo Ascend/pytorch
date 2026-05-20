@@ -1,11 +1,12 @@
 import os
 import tempfile
 import time
+import unittest
 from unittest.mock import patch
 
 import torch
-
 import torch_npu
+import torch_npu.npu.graphs as npu_graphs
 from torch_npu.testing.common_utils import SkipIfNotGteCANNVersion
 from torch_npu.testing.testcase import run_tests, TestCase
 
@@ -27,11 +28,57 @@ def _resolved_npu_device_index(tensor):
 
 
 class TestAclgraphDfx(TestCase):
+
+    def test_npugraph_tensor_ptr_spec_uses_raw_pointer_metadata(self):
+        x = torch.arange(6, dtype=torch.float32).reshape(2, 3)
+
+        spec = npu_graphs._make_npugraph_tensor_ptr_spec(x)
+
+        self.assertEqual(spec[0], npu_graphs._NPUGRAPH_TENSOR_PTR_SPEC_MARKER)
+        self.assertEqual(spec[1], x.data_ptr())
+        self.assertEqual(spec[2], x.numel() * x.element_size())
+        self.assertEqual(spec[3], tuple(x.shape))
+        self.assertEqual(spec[4], x.dtype)
+
+    def test_materialize_npugraph_tensor_buffer_spec(self):
+        expected = torch.arange(6, dtype=torch.float32).reshape(2, 3)
+        buffer_spec = (
+            npu_graphs._NPUGRAPH_TENSOR_BUFFER_SPEC_MARKER,
+            bytearray(expected.numpy().tobytes()),
+            tuple(expected.shape),
+            expected.dtype,
+        )
+
+        actual = npu_graphs._materialize_npugraph_tensor_arg(buffer_spec)
+
+        self.assertEqual(actual, expected)
+
+    def test_materialize_npugraph_tensor_buffer_spec_list(self):
+        expected = [
+            torch.arange(6, dtype=torch.float32).reshape(2, 3),
+            torch.arange(4, dtype=torch.int32).reshape(2, 2),
+        ]
+        buffer_specs = [
+            (
+                npu_graphs._NPUGRAPH_TENSOR_BUFFER_SPEC_MARKER,
+                bytearray(tensor.numpy().tobytes()),
+                tuple(tensor.shape),
+                tensor.dtype,
+            )
+            for tensor in expected
+        ]
+
+        actual = npu_graphs._materialize_npugraph_tensor_arg(buffer_specs)
+
+        self.assertEqual(len(actual), len(expected))
+        self.assertEqual(actual[0], expected[0])
+        self.assertEqual(actual[1], expected[1])
+
     @SkipIfNotGteCANNVersion("8.5.0")
     def test_print_npugraph_tensor(self):
         torch.npu.set_device(0)
         g = torch.npu.NPUGraph()
-        x = torch.arange(6, dtype=torch.float32, device="npu").reshape(2, 3)
+        x = torch.arange(6, dtype=torch.float32, device='npu').reshape(2, 3)
 
         with patch("builtins.print") as mock_print:
             with torch.npu.graph(g):
@@ -40,9 +87,7 @@ class TestAclgraphDfx(TestCase):
             torch.npu.synchronize()
             self.assertTrue(wait_until(lambda: mock_print.call_count > 0))
 
-        printed_messages = [
-            call.args[0] for call in mock_print.call_args_list if call.args
-        ]
+        printed_messages = [call.args[0] for call in mock_print.call_args_list if call.args]
         self.assertTrue(any("tensor=tensor(" in msg for msg in printed_messages))
         self.assertTrue(any("shape=(2, 3)" in msg for msg in printed_messages))
         self.assertTrue(any("dtype=torch.float32" in msg for msg in printed_messages))
@@ -51,7 +96,7 @@ class TestAclgraphDfx(TestCase):
     def test_print_npugraph_tensor_with_default_message(self):
         torch.npu.set_device(0)
         g = torch.npu.NPUGraph()
-        x = torch.arange(6, dtype=torch.float32, device="npu").reshape(2, 3)
+        x = torch.arange(6, dtype=torch.float32, device='npu').reshape(2, 3)
 
         with patch("builtins.print") as mock_print:
             with torch.npu.graph(g):
@@ -60,16 +105,14 @@ class TestAclgraphDfx(TestCase):
             torch.npu.synchronize()
             self.assertTrue(wait_until(lambda: mock_print.call_count > 0))
 
-        printed_messages = [
-            call.args[0] for call in mock_print.call_args_list if call.args
-        ]
+        printed_messages = [call.args[0] for call in mock_print.call_args_list if call.args]
         self.assertTrue(any(msg.startswith("tensor(") for msg in printed_messages))
 
     @SkipIfNotGteCANNVersion("8.5.0")
     def test_print_npugraph_tensor_with_args(self):
         torch.npu.set_device(0)
         g = torch.npu.NPUGraph()
-        x = torch.arange(6, dtype=torch.float32, device="npu").reshape(2, 3)
+        x = torch.arange(6, dtype=torch.float32, device='npu').reshape(2, 3)
 
         with patch("builtins.print") as mock_print:
             with torch.npu.graph(g):
@@ -78,9 +121,7 @@ class TestAclgraphDfx(TestCase):
             torch.npu.synchronize()
             self.assertTrue(wait_until(lambda: mock_print.call_count > 0))
 
-        printed_messages = [
-            call.args[0] for call in mock_print.call_args_list if call.args
-        ]
+        printed_messages = [call.args[0] for call in mock_print.call_args_list if call.args]
         self.assertTrue(any("x=tensor(" in msg for msg in printed_messages))
         self.assertTrue(any("shape=(2, 3)" in msg for msg in printed_messages))
         self.assertTrue(any("dtype=torch.float32" in msg for msg in printed_messages))
@@ -90,17 +131,13 @@ class TestAclgraphDfx(TestCase):
         torch.npu.set_device(0)
         first_graph = torch.npu.NPUGraph()
         second_graph = torch.npu.NPUGraph()
-        x = torch.arange(6, dtype=torch.float32, device="npu").reshape(2, 3)
+        x = torch.arange(6, dtype=torch.float32, device='npu').reshape(2, 3)
         device_index = _resolved_npu_device_index(x)
 
         with tempfile.TemporaryDirectory() as tmpdir:
             save_path = os.path.join(tmpdir, "tensor.pt")
-            expected_counter_path = os.path.join(
-                tmpdir, f"tensor_device_{device_index}_0.pt"
-            )
-            expected_second_counter_path = os.path.join(
-                tmpdir, f"tensor_device_{device_index}_1.pt"
-            )
+            expected_counter_path = os.path.join(tmpdir, f"tensor_device_{device_index}_0.pt")
+            expected_second_counter_path = os.path.join(tmpdir, f"tensor_device_{device_index}_1.pt")
 
             with torch.npu.graph(first_graph):
                 torch.ops.npu.save_npugraph_tensor(x, save_path=save_path)
@@ -113,9 +150,7 @@ class TestAclgraphDfx(TestCase):
                 torch.ops.npu.save_npugraph_tensor(x, save_path=save_path)
             second_graph.replay()
             torch.npu.synchronize()
-            self.assertTrue(
-                wait_until(lambda: os.path.exists(expected_second_counter_path))
-            )
+            self.assertTrue(wait_until(lambda: os.path.exists(expected_second_counter_path)))
             self.assertEqual(torch.load(expected_second_counter_path), x.cpu())
 
     @SkipIfNotGteCANNVersion("8.5.0")
@@ -123,23 +158,17 @@ class TestAclgraphDfx(TestCase):
         torch.npu.set_device(0)
         first_graph = torch.npu.NPUGraph()
         second_graph = torch.npu.NPUGraph()
-        x = torch.arange(6, dtype=torch.float32, device="npu").reshape(2, 3)
-        y = torch.arange(6, dtype=torch.float32, device="npu").reshape(2, 3) + 1
+        x = torch.arange(6, dtype=torch.float32, device='npu').reshape(2, 3)
+        y = torch.arange(6, dtype=torch.float32, device='npu').reshape(2, 3) + 1
         device_index = _resolved_npu_device_index(x)
 
         with tempfile.TemporaryDirectory() as tmpdir:
             save_path = os.path.join(tmpdir, "tensor.pt")
-            expected_overwrite_path = os.path.join(
-                tmpdir, f"tensor_device_{device_index}.pt"
-            )
-            unexpected_counter_path = os.path.join(
-                tmpdir, f"tensor_device_{device_index}_0.pt"
-            )
+            expected_overwrite_path = os.path.join(tmpdir, f"tensor_device_{device_index}.pt")
+            unexpected_counter_path = os.path.join(tmpdir, f"tensor_device_{device_index}_0.pt")
 
             with torch.npu.graph(first_graph):
-                torch.ops.npu.save_npugraph_tensor(
-                    x, save_path=save_path, overwrite=True
-                )
+                torch.ops.npu.save_npugraph_tensor(x, save_path=save_path, overwrite=True)
             first_graph.replay()
             torch.npu.synchronize()
             self.assertTrue(wait_until(lambda: os.path.exists(expected_overwrite_path)))
@@ -147,9 +176,7 @@ class TestAclgraphDfx(TestCase):
             self.assertEqual(torch.load(expected_overwrite_path), x.cpu())
 
             with torch.npu.graph(second_graph):
-                torch.ops.npu.save_npugraph_tensor(
-                    y, save_path=save_path, overwrite=True
-                )
+                torch.ops.npu.save_npugraph_tensor(y, save_path=save_path, overwrite=True)
             second_graph.replay()
             torch.npu.synchronize()
             self.assertEqual(torch.load(expected_overwrite_path), y.cpu())
@@ -158,7 +185,7 @@ class TestAclgraphDfx(TestCase):
     def test_save_npugraph_tensor_with_default_save_path(self):
         torch.npu.set_device(0)
         g = torch.npu.NPUGraph()
-        x = torch.arange(6, dtype=torch.float32, device="npu").reshape(2, 3)
+        x = torch.arange(6, dtype=torch.float32, device='npu').reshape(2, 3)
         device_index = _resolved_npu_device_index(x)
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -172,8 +199,7 @@ class TestAclgraphDfx(TestCase):
 
                 def default_saved_files():
                     return [
-                        file_name
-                        for file_name in os.listdir(tmpdir)
+                        file_name for file_name in os.listdir(tmpdir)
                         if file_name.startswith("tensor_") and file_name.endswith(".pt")
                     ]
 
@@ -188,20 +214,16 @@ class TestAclgraphDfx(TestCase):
     def test_save_npugraph_tensor_tensor_list(self):
         torch.npu.set_device(0)
         g = torch.npu.NPUGraph()
-        x = torch.arange(6, dtype=torch.float32, device="npu").reshape(2, 3)
-        y = torch.arange(4, dtype=torch.float16, device="npu").reshape(2, 2)
+        x = torch.arange(6, dtype=torch.float32, device='npu').reshape(2, 3)
+        y = torch.arange(4, dtype=torch.float16, device='npu').reshape(2, 2)
         device_index = _resolved_npu_device_index(x)
 
         with tempfile.TemporaryDirectory() as tmpdir:
             save_path = os.path.join(tmpdir, "tensor_list.pt")
-            expected_path = os.path.join(
-                tmpdir, f"tensor_list_device_{device_index}_0.pt"
-            )
+            expected_path = os.path.join(tmpdir, f"tensor_list_device_{device_index}_0.pt")
 
             with torch.npu.graph(g):
-                torch.ops.npu.save_npugraph_tensor.tensor_list(
-                    [x, y], save_path=save_path
-                )
+                torch.ops.npu.save_npugraph_tensor.tensor_list([x, y], save_path=save_path)
             g.replay()
             torch.npu.synchronize()
             self.assertTrue(wait_until(lambda: os.path.exists(expected_path)))
@@ -212,5 +234,5 @@ class TestAclgraphDfx(TestCase):
             self.assertEqual(saved[1], y.cpu())
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     run_tests()
