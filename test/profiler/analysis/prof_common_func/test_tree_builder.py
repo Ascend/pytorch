@@ -58,6 +58,36 @@ class TestTreeBuilder(TestCase):
         self.assertEqual(1, len(level1_node2.child_node_list))
         self.assertEqual(level2_node, level1_node2.child_node_list[0])
 
+    def test_build_tree_update_corr_id_only_for_same_tid(self):
+        torch_op_event = MagicMock()
+        torch_op_event.pid = 999
+        torch_op_event.tid = 1
+        torch_op_event.name = "MatMul"
+        torch_op_event.args = {Constant.INPUT_SHAPES: "[2, 2048]", Constant.CALL_STACK: "call stack string1"}
+        torch_op_event.ts = 20
+        torch_op_event.end_ns = 80
+        torch_op_event.dur = 60
+        torch_op_event.is_torch_op = True
+
+        same_tid_enqueue_event = MagicMock()
+        same_tid_enqueue_event.tid = 1
+        same_tid_enqueue_event.ts = 30
+        same_tid_enqueue_event.corr_id = 100
+        same_tid_enqueue_event.is_torch_op = False
+
+        other_tid_enqueue_event = MagicMock()
+        other_tid_enqueue_event.tid = 2
+        other_tid_enqueue_event.ts = 40
+        other_tid_enqueue_event.corr_id = 200
+        other_tid_enqueue_event.is_torch_op = False
+
+        nodes = TreeBuilder.build_tree([torch_op_event], [same_tid_enqueue_event, other_tid_enqueue_event])
+
+        self.assertEqual([100], nodes[1].corr_id_self)
+        self.assertEqual([100], nodes[1].corr_id_total)
+        self.assertNotIn(200, nodes[1].corr_id_self)
+        self.assertNotIn(200, nodes[1].corr_id_total)
+
     def test_update_tree_node_info(self):
         nodes = TreeBuilder.build_tree(self.event_list, [])
         root_node = nodes[0]

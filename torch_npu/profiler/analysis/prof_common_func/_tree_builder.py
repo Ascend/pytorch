@@ -1,7 +1,7 @@
 from queue import Queue
 
-from ..prof_bean._op_mark_bean import OpMarkBean
 from ..prof_bean._torch_op_node import TorchOpNode
+
 
 __all__ = []
 
@@ -28,7 +28,8 @@ class TreeBuilder:
                     index += 1
                     all_node_list[index] = tree_node
                 else:
-                    last_node.update_corr_id(event.corr_id)
+                    if last_node.event and last_node.event.tid == event.tid:
+                        last_node.update_corr_id(event.corr_id)
                 break
         return all_node_list
 
