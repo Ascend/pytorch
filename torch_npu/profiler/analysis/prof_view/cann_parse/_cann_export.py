@@ -22,12 +22,18 @@ import time
 from datetime import datetime, timezone
 
 from torch_npu.utils._error_code import ErrCode, prof_error
-from ...prof_common_func._constant import Constant, print_warn_msg, print_error_msg, print_info_msg
-from ...prof_common_func._path_manager import ProfilerPathManager
-from ...prof_common_func._file_manager import FileManager
-from .._base_parser import BaseParser
+
 from ..._profiler_config import ProfilerConfig
+from ...prof_common_func._constant import (
+    Constant,
+    print_error_msg,
+    print_info_msg,
+    print_warn_msg,
+)
+from ...prof_common_func._file_manager import FileManager
 from ...prof_common_func._log import ProfilerLogger
+from ...prof_common_func._path_manager import ProfilerPathManager
+from .._base_parser import BaseParser
 
 
 __all__ = []
@@ -35,9 +41,11 @@ __all__ = []
 
 class CANNExportParser(BaseParser):
     COMMAND_SUCCESS = 0
-    error_msg = f"Export CANN Profiling data failed, please verify that the ascend-toolkit is installed and " \
-                f"set-env.sh is sourced. or you can execute the command to confirm the CANN Profiling " \
-                f"export result: msprof --export=on"
+    error_msg = (
+        "Export CANN Profiling data failed, please verify that the ascend-toolkit is installed and "
+        "set_env.sh is sourced. or you can execute the command to confirm the CANN Profiling "
+        "export result: msprof --export=on"
+    )
     _MSPROF_PY_PATH = "tools/profiler/profiler_tool/analysis/msprof/msprof.py"
 
     def __init__(self, name: str, param_dict: dict):
@@ -58,24 +66,45 @@ class CANNExportParser(BaseParser):
             start_time = datetime.now(tz=timezone.utc).astimezone()
 
             if Constant.Db in self._export_type:
-                analyze_cmd_list = [self.msprof_path, "--export=on", "--type=db", f"--output={self._cann_path}"]
-                completed_analysis = subprocess.run(analyze_cmd_list, capture_output=True, shell=False)
+                analyze_cmd_list = [
+                    self.msprof_path,
+                    "--export=on",
+                    "--type=db",
+                    f"--output={self._cann_path}",
+                ]
+                completed_analysis = subprocess.run(
+                    analyze_cmd_list, capture_output=True, shell=False
+                )
                 if completed_analysis.returncode != self.COMMAND_SUCCESS:
-                    raise RuntimeError("Failed to export CANN DB Profiling data." + prof_error(ErrCode.INTERNAL))
+                    raise RuntimeError(
+                        "Failed to export CANN DB Profiling data."
+                        + prof_error(ErrCode.INTERNAL)
+                    )
 
             if Constant.Text in self._export_type:
                 # 避免老CANN包无type参数报错
-                analyze_cmd_list = [self.msprof_path, "--export=on", f"--output={self._cann_path}"]
-                completed_analysis = subprocess.run(analyze_cmd_list, capture_output=True, shell=False)
+                analyze_cmd_list = [
+                    self.msprof_path,
+                    "--export=on",
+                    f"--output={self._cann_path}",
+                ]
+                completed_analysis = subprocess.run(
+                    analyze_cmd_list, capture_output=True, shell=False
+                )
                 if completed_analysis.returncode != self.COMMAND_SUCCESS:
-                    raise RuntimeError("Failed to export CANN TEXT Profiling data." + prof_error(ErrCode.INTERNAL))
+                    raise RuntimeError(
+                        "Failed to export CANN TEXT Profiling data."
+                        + prof_error(ErrCode.INTERNAL)
+                    )
 
         except Exception as err:
             print_error_msg(f"Failed to export CANN Profiling data. Error msg: {err}")
-            self.logger.error("Failed to export CANN Profiling data, error: %s", str(err), exc_info=True)
+            self.logger.exception("Failed to export CANN Profiling data")
             return Constant.FAIL, None
         end_time = datetime.now(tz=timezone.utc).astimezone()
-        print_info_msg(f"CANN profiling data parsed in a total time of {end_time - start_time}")
+        print_info_msg(
+            f"CANN profiling data parsed in a total time of {end_time - start_time}"
+        )
         self.logger.info("CANNExportParser finish.")
         return Constant.SUCCESS, None
 
@@ -84,43 +113,66 @@ class CANNExportParser(BaseParser):
         self._check_msprof_path()
 
     def _check_msprof_profile_path_is_valid(self):
-        self._check_profiler_path_parent_dir_invalid(ProfilerPathManager.get_all_subdir(self._cann_path))
+        self._check_profiler_path_parent_dir_invalid(
+            ProfilerPathManager.get_all_subdir(self._cann_path)
+        )
 
     def _check_profiler_path_parent_dir_invalid(self, paths: list):
         for path in paths:
             if not FileManager.check_file_owner(path):
-                raise RuntimeError(f"Path '{self._cann_path}' owner is neither root nor the current user. "
-                                   f"Please execute 'chown -R $(id -un) '{self._cann_path}' '.")
+                raise RuntimeError(
+                    f"Path '{self._cann_path}' owner is neither root nor the current user. "
+                    f"Please execute 'chown -R $(id -un) '{self._cann_path}' '."
+                )
             if ProfilerPathManager.path_is_other_writable(path):
-                raise RuntimeError(f"Path '{self._cann_path}' permission allow others users to write. "
-                                   f"Please execute 'chmod -R 755 '{self._cann_path}' '.")
+                raise RuntimeError(
+                    f"Path '{self._cann_path}' permission allow others users to write. "
+                    f"Please execute 'chmod -R 755 '{self._cann_path}' '."
+                )
         return False
 
     def _check_msprof_path(self):
         error_message = ""
         if not self.msprof_path:
-            error_message += "Export CANN Profiling data failed! 'msprof' command not found!" \
-                             + prof_error(ErrCode.NOT_FOUND) + "\n"
+            error_message += (
+                "Export CANN Profiling data failed! 'msprof' command not found!"
+                "Please re-source the CANN package to fix this error. "
+                + prof_error(ErrCode.NOT_FOUND)
+                + "\n"
+            )
+            raise RuntimeError(error_message)
         if not ProfilerPathManager.check_path_permission(self.msprof_path):
-            error_message += f"The '{self.msprof_path}' path and current owner have inconsistent permissions." \
-                             f"please execute 'chown -R {pwd.getpwuid(os.getuid()).pw_name} " \
-                             f"{os.path.normpath(os.path.join(self.msprof_path, '../../..'))}'" \
-                             + prof_error(ErrCode.PERMISSION) + "\n"
+            error_message += (
+                f"The '{self.msprof_path}' path and current owner have inconsistent permissions."
+                f"please execute 'chown -R {pwd.getpwuid(os.getuid()).pw_name} "
+                f"{os.path.normpath(os.path.join(self.msprof_path, '../../..'))}'"
+                + prof_error(ErrCode.PERMISSION)
+                + "\n"
+            )
         msprof_script_path = self._get_msprof_script_path(self._MSPROF_PY_PATH)
         if not msprof_script_path:
-            error_message += f"Failed to find msprof.py path in {self.msprof_path}. Please check the CANN environment." \
-                             + prof_error(ErrCode.NOT_FOUND) + "\n"
-        # The path "os.path.join(msprof_script_path, '../../../../../../..')"  represents the layer of "ascend-toolkit",
-        # such as "xxx/ascend-toolkit"
+            error_message += (
+                f"Failed to find msprof.py path in {self.msprof_path}. Please check the CANN environment."
+                + prof_error(ErrCode.NOT_FOUND)
+                + "\n"
+            )
+            raise RuntimeError(error_message)
+            # The path "os.path.join(msprof_script_path, '../../../../../../..')"  represents the layer of "ascend-toolkit",
+            # such as "xxx/ascend-toolkit"
         if not ProfilerPathManager.check_path_permission(msprof_script_path):
-            error_message += f"The '{msprof_script_path}' path and current owner have inconsistent permissions." \
-                             f"please execute 'chown -R {pwd.getpwuid(os.getuid()).pw_name} " \
-                             f"{os.path.normpath(os.path.join(msprof_script_path, '../../../../../../..'))}'" \
-                             + prof_error(ErrCode.PERMISSION) + "\n"
+            error_message += (
+                f"The '{msprof_script_path}' path and current owner have inconsistent permissions."
+                f"please execute 'chown -R {pwd.getpwuid(os.getuid()).pw_name} "
+                f"{os.path.normpath(os.path.join(msprof_script_path, '../../../../../../..'))}'"
+                + prof_error(ErrCode.PERMISSION)
+                + "\n"
+            )
         if ProfilerPathManager.path_is_other_writable(msprof_script_path):
-            error_message += f"Path '{msprof_script_path}' permission allow others users to write. " \
-                             f"Please execute 'chmod -R 755 '{msprof_script_path}' '" \
-                             + prof_error(ErrCode.PERMISSION)
+            error_message += (
+                f"Path '{msprof_script_path}' permission allow others users to write. "
+                f"Please execute 'chmod -R 755 '{msprof_script_path}' '"
+                + prof_error(ErrCode.PERMISSION)
+            )
         if error_message:
             raise RuntimeError(error_message)
 
@@ -137,21 +189,26 @@ class CANNExportParser(BaseParser):
         prof_data_size = 0
         host_data_path = os.path.join(self._cann_path, "host", "data")
         for root, _, files in ProfilerPathManager.walk_with_depth(host_data_path):
-            prof_data_size += sum([os.path.getsize(os.path.join(root, name)) for name in files])
+            prof_data_size += sum(
+                [os.path.getsize(os.path.join(root, name)) for name in files]
+            )
         if not device_paths and prof_data_size < Constant.PROF_WARN_SIZE:
             return
         for device_path in device_paths:
             device_data_path = os.path.join(device_path, "data")
             for root, _, files in ProfilerPathManager.walk_with_depth(device_data_path):
-                prof_data_size += sum([os.path.getsize(os.path.join(root, name)) for name in files])
+                prof_data_size += sum(
+                    [os.path.getsize(os.path.join(root, name)) for name in files]
+                )
             if prof_data_size >= Constant.PROF_WARN_SIZE:
-                print_warn_msg("The parsing time is expected to exceed 30 minutes, "
-                               "and you can choose to stop the process and use offline parsing.")
+                print_warn_msg(
+                    "The parsing time is expected to exceed 30 minutes, "
+                    "and you can choose to stop the process and use offline parsing."
+                )
                 return
 
 
 class CANNTimelineParser(BaseParser):
-
     def __init__(self, name: str, param_dict: dict):
         super().__init__(name, param_dict)
         self._cann_path = ProfilerPathManager.get_cann_path(self._profiler_path)
@@ -168,7 +225,7 @@ class CANNTimelineParser(BaseParser):
             while True:
                 if os.path.exists(output_path):
                     for file_name in os.listdir(output_path):
-                        if file_name.endswith('.csv'):
+                        if file_name.endswith(".csv"):
                             self.logger.info("CANNTimelineParser finish.")
                             return Constant.SUCCESS, None
                 try:
@@ -176,10 +233,12 @@ class CANNTimelineParser(BaseParser):
                 except InterruptedError:
                     return Constant.FAIL, None
         else:
-            patten = r'^msprof_\d+\.db$'
+            pattern = r"^msprof_\d+\.db$"
             while True:
                 for file in os.listdir(self._cann_path):
-                    if re.match(patten, file) and os.path.isfile(os.path.join(self._cann_path, file)):
+                    if re.match(pattern, file) and os.path.isfile(
+                        os.path.join(self._cann_path, file)
+                    ):
                         self.logger.info("CANNTimelineParser finish.")
                         return Constant.SUCCESS, None
                 try:
