@@ -10,6 +10,7 @@
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
+#include "third_party/op-plugin/op_plugin/ops/dvm/lazy_fusion_kernel.h"
 
 namespace at_npu {
 namespace native {
@@ -31,6 +32,12 @@ static void storage_resize_npu(
     if (!FormatHelper::IsBaseFormatType(storage_desc.npu_format_)) {
         TORCH_CHECK(false, "Cannot resize storage without base format", OPS_ERROR(ErrCode::NOT_SUPPORT));
         return;
+    }
+
+    // Flush pending DVM ops before reallocating — their Store nodes
+    // hold the current data_ptr which is about to become invalid.
+    if (lazy_fusion::IsEnabled() && storage.lazy_fusion_data_ != nullptr) {
+        lazy_fusion::LazyFusionFlush();
     }
 
     at::DataPtr new_data = storage.allocator()->allocate(size);
