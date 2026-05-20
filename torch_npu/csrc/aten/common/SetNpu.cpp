@@ -11,6 +11,15 @@ void set_storage_nd_npu(
     c10::IntArrayRef size,
     c10::IntArrayRef stride)
 {
+    // Flush pending DVM ops on self's current storage before replacing it —
+    // if self holds the last reference, the old storage will be freed.
+    auto *old_impl = self.storage().unsafeGetStorageImpl();
+    if (old_impl != nullptr && old_impl != storage.unsafeGetStorageImpl()) {
+        auto *old_storage = static_cast<torch_npu::NPUStorageImpl *>(old_impl);
+        if (lazy_fusion::IsEnabled() && old_storage->lazy_fusion_data_ != nullptr) {
+            lazy_fusion::LazyFusionFlush();
+        }
+    }
     at::native::checkSetStorage(self, storage, storage_offset, size, stride);
     self.unsafeGetTensorImpl()->set_storage_offset(storage_offset);
     resize_nd_npu(self.unsafeGetTensorImpl(), nDimension, size.data(), stride.data());

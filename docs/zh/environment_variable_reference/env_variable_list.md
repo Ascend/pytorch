@@ -40,6 +40,7 @@
 |性能优化|[CPU_AFFINITY_CONF](CPU_AFFINITY_CONF.md)|Ascend Extension for PyTorch可以通过设置环境变量CPU_AFFINITY_CONF来开启粗/细粒度绑核。该配置能够避免线程间抢占，提高缓存命中，避免跨NUMA（非统一内存访问架构）节点的内存访问，减少任务调度开销，优化任务执行效率。|
 |性能优化|[PROF_CONFIG_PATH](PROF_CONFIG_PATH.md)|在PyTorch训练场景中，通过此环境变量可指定Ascend PyTorch Profiler接口的dynamic_profile采集功能的profiler_config.json配置文件路径。|
 |性能优化|[KINETO_USE_DAEMON](KINETO_USE_DAEMON.md)|PyTorch训练场景用于设置是否通过msMonitor nputrace方式开启dynamic_profile采集功能。|
+|性能优化|[TORCH_NPU_LAZY_FUSION](TORCH_NPU_LAZY_FUSION.md)|通过此环境变量可开启DVM算子融合，对elementwise、激活函数等算子做跨算子融合，减少kernel launch和HBM搬运，加速训练和推理。|
 |设备管理|[STREAMS_PER_DEVICE](STREAMS_PER_DEVICE.md)|通过此环境变量可配置stream pool的最大流数。|
 |设备管理|[TORCH_NPU_DEVICE_CAPABILITY](TORCH_NPU_DEVICE_CAPABILITY.md)|通过此环境变量可配置`torch_npu.npu.get_device_capability()`的返回值。|
 |设备管理|[TORCH_TRANSFER_TO_NPU](TORCH_TRANSFER_TO_NPU.md)|通过此环境变量可配置是否自动启用transfer_to_npu功能，将PyTorch的CUDA相关API自动替换为NPU对应API。|
