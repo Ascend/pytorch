@@ -2,7 +2,7 @@ import inspect
 import os
 import sys
 from typing import Any, Optional, TYPE_CHECKING
-
+import importlib
 
 if TYPE_CHECKING:
     from torch._dynamo.symbolic_convert import InstructionTranslator
@@ -124,8 +124,10 @@ class _InductorNpuRegistry:
 
         current = os.getenv("TORCHINDUCTOR_NPU_BACKEND", "default")
         if cls._loaded_backend != current:
-            import torch_npu._inductor  # noqa:F401
-
+            if "torch_npu._inductor" not in sys.modules:
+                importlib.import_module("torch_npu._inductor")
+            else:
+                sys.modules["torch_npu._inductor"]._load_backend()
             cls._loaded_backend = current
 
     @classmethod
@@ -185,6 +187,9 @@ def patch_inductor_wrapper():
             or torch._inductor.config.npu_backend == "mlir"
         ):
             os.environ["TORCHINDUCTOR_NPU_BACKEND"] = "mlir"
+            device_id = torch_npu.npu.current_device()	 
+            torch_npu._C._recovery_all_npu_stream(device_id)
+
         elif (
             self.config.get("npu_backend") == "dvm"
             or torch._inductor.config.npu_backend == "dvm"

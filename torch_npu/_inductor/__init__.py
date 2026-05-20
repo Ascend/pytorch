@@ -1,41 +1,43 @@
 import os
 
 # all backends need register npu/cpu/mps device_op_overrides
-from .codecache import patch_cache_base_get_system
 
+from torch._inductor.lowering import make_fallback as _ori_make_fallback
 # All backends need npu/cpu/mps device_op_overrides.
-from .codegen.common import register_device_op_overrides_npu
+from .codegen.common import register_device_op_overrides_npu, patch_cache_base_get_system
 from .graph import patch_codegen_with_cpp_wrapper
 from .utils import patch_has_triton, patch_device_supports_tma, patch_is_gpu, get_current_raw_stream
-from .codegen.cpp_utils import patch_device_to_aten
+
 register_device_op_overrides_npu()
 
 patch_has_triton()
 patch_device_supports_tma()
 patch_is_gpu()
-patch_cache_base_get_system()
 patch_codegen_with_cpp_wrapper()
-patch_device_to_aten()
+patch_cache_base_get_system()
 
 def _get_backend() -> str:
     return os.getenv("TORCHINDUCTOR_NPU_BACKEND", "default")
 
-if _get_backend() == "mlir":
-    import torch_npu
+def _load_mlir_backend():
+    import torch
     try:
         import torch_mlir
         from torch_mlir import ir
     except ImportError as e:
         raise ImportError("torch_mlir is not installed, install it first.") from e
+    global _ori_make_fallback
+    torch._inductor.lowering.make_fallback = _ori_make_fallback
     from .ascend_npu_ir.ascend_npu_ir.npu import npu_inductor_plugin
     from .ascend_npu_ir.ascend_npu_ir.npu import torch_mlir_patch
-    device_id = torch_npu.npu.current_device()
-    torch_npu._C._recovery_all_npu_stream(device_id)
-elif _get_backend() == "dvm":
+
+def _load_dvm_backend():
     from .ascend_npu_ir.ascend_npu_ir.npu import npu_inductor_plugin
     from .dvm import mlir_fusion
-else:
+    
+def _load_triton_backend():
     import torch
+    import os
     from torch._dynamo.device_interface import (
         get_interface_for_device,
         register_interface_for_device,
@@ -46,14 +48,13 @@ else:
         register_backend_for_device,
         register_device_op_overrides,
     )
-    from torch._inductor.lowering import make_fallback as ori_make_fallback
     from torch._inductor.runtime import autotune_cache
     from torch_npu.npu import device_count
     from torch_npu.utils._dynamo_device import current_device, NpuInterface, set_device
     from torch_npu.utils._inductor import NPUDeviceOpOverrides
 
     from . import codegen, config as npu_config
-    from .codecache import patch_aot_code_compiler_compile, patch_cache_base_get_system
+    from .codecache import patch_aot_code_compiler_compile
     from .config import aggresive_autotune, log as npulog, num_vector_core
     from .cpp_builder import patch_get_optimization_cflags
     from .decomposition import _register_npu_inductor_decompositons
@@ -93,13 +94,13 @@ else:
             patch_fallback_kernel_codegen,
         )
         from .utils import patch_is_same_tensor
-
+        from .codegen.cpp_utils import patch_device_to_aten
         patch_get_cpp_torch_device_options()
         patch_is_same_tensor()
         patch_constant_fold_uniform_value()
         patch_fallback_kernel_codegen()
         patch_extern_kernel_codegen_size_asserts()
-
+        patch_device_to_aten()
         patch_aot_code_compiler_compile()
 
     if os.environ.get("DISABLE_AOTI_PATCH", "0") != "1":
@@ -143,7 +144,24 @@ else:
     disable_foreach()
     patch_get_optimization_cflags()
     patch_fx_node_is_input_dependent_cudagraph_unsafe()
+
     os.environ["TORCHINDUCTOR_COMPREHENSIVE_PADDING"] = "0"
     torch._inductor.config.comprehensive_padding = False
     os.environ["TORCHINDUCTOR_COMPILE_THREADS"] = "1"
     torch._inductor.config.compile_threads = 1
+_BACKEND_LOADERS = {
+    "mlir": _load_mlir_backend,
+    "dvm": _load_dvm_backend,
+    "default": _load_triton_backend,
+}
+ 	 
+ 	  	 
+def _load_backend():
+
+    backend = _get_backend()
+    loader = _BACKEND_LOADERS.get(backend, _load_triton_backend)
+    loader()
+    from ..utils._dynamo import _InductorNpuRegistry
+    _InductorNpuRegistry._loaded_backend = backend
+
+_load_backend()

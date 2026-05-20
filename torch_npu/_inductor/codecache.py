@@ -37,52 +37,6 @@ def lock_context(key):
         yield
 
 
-
-def patch_cache_base_get_system():
-    # patch function CacheBase.get_system with get_system_npu, add logic to support CANN
-    @staticmethod
-    def get_system():
-        try:
-            from triton.compiler.compiler import triton_key
-
-            # Use triton_key instead of triton.__version__ as the version
-            # is not updated with each code change
-            triton_version = triton_key()
-        except ModuleNotFoundError:
-            triton_version = None
-
-        try:
-            system: Dict[str, Any] = {
-                "device": {"name": None},
-                "version": {
-                    "triton": triton_version,
-                },
-            }
-            device_properties = torch_npu.npu.get_device_properties(
-                torch_npu.npu.current_device()
-            )
-            if torch.version.cann is not None:
-                system["device"]["name"] = device_properties.name
-                system["version"]["cann"] = torch.version.cann
-            elif torch.version.cuda is not None:
-                system["device"]["name"] = device_properties.name
-                system["version"]["cuda"] = torch.version.cuda
-            else:
-                system["device"]["name"] = device_properties.gcnArchName
-                system["version"]["hip"] = torch.version.hip
-        except (AssertionError, RuntimeError):
-            # If deivce is not installed, none of the above config is relevant.
-            system = {}
-
-        system["hash"] = hashlib.sha256(
-            json.dumps(system, sort_keys=True).encode("utf-8")
-        ).hexdigest()
-
-        return system
-
-    CacheBase.get_system = get_system
-
-
 def patch_aot_code_compiler_compile():
     # In v2.6.0, aoti has bug when init oss_proxy_executor with default op_json,
     # which could not be skipped, so here we try to create a new npu op_json,
