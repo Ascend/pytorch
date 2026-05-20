@@ -1,8 +1,10 @@
 #include <torch/csrc/stable/library.h>
 #include <torch/csrc/stable/tensor.h>
+#include <torch/csrc/stable/device.h>
 #include "torch_npu/csrc/inductor/aoti_torch/generated/c_shim_npu.h"
 
 using torch::stable::Tensor;
+using torch::stable::Device;
 
 Tensor my__adaptive_avg_pool2d(Tensor self, std::vector<int64_t> output_size)
 {
@@ -390,10 +392,18 @@ std::tuple<Tensor, Tensor> my_grid_sampler_2d_backward(Tensor grad_output, Tenso
     return std::make_tuple(Tensor(ret0), Tensor(ret1));
 }
 
-Tensor my_hann_window(int64_t window_length, int32_t* dtype, int32_t* layout, int32_t* device, int32_t* pin_memory)
+Tensor my_hann_window(int64_t window_length, int32_t* dtype, int32_t* layout, std::optional<Device> device, int32_t* pin_memory)
 {
     AtenTensorHandle ret0;
-    aoti_torch_npu_hann_window(window_length, dtype, layout, device, 0, pin_memory, &ret0);
+    int32_t device_val = 0;
+    int32_t* device_ptr = nullptr;
+    int32_t device_index = 0;
+    if (device.has_value()) {
+        device_val = static_cast<int32_t>(device.value().type());
+        device_ptr = &device_val;
+        device_index = device.value().index();
+    }
+    aoti_torch_npu_hann_window(window_length, dtype, layout, device_ptr, device_index, pin_memory, &ret0);
     return Tensor(ret0);
 }
 
@@ -616,40 +626,80 @@ Tensor my_pow_Tensor_Tensor(Tensor self, Tensor exponent)
     return Tensor(ret0);
 }
 
-Tensor my_rand(std::vector<int64_t> size, int32_t* dtype, int32_t* layout, int32_t* device, int32_t* pin_memory)
+Tensor my_rand(std::vector<int64_t> size, int32_t* dtype, int32_t* layout, std::optional<Device> device, int32_t* pin_memory)
 {
     AtenTensorHandle ret0;
-    aoti_torch_npu_rand(size.data(), size.size(), dtype, layout, device, 0, pin_memory, &ret0);
+    int32_t device_val = 0;
+    int32_t* device_ptr = nullptr;
+    int32_t device_index = 0;
+    if (device.has_value()) {
+        device_val = static_cast<int32_t>(device.value().type());
+        device_ptr = &device_val;
+        device_index = device.value().index();
+    }
+    aoti_torch_npu_rand(size.data(), size.size(), dtype, layout, device_ptr, device_index, pin_memory, &ret0);
     return Tensor(ret0);
 }
 
-Tensor my_rand_generator(std::vector<int64_t> size, std::optional<AtenGeneratorHandle> generator, int32_t* dtype, int32_t* layout, int32_t* device, int32_t* pin_memory)
+Tensor my_rand_generator(std::vector<int64_t> size, std::optional<AtenGeneratorHandle> generator, int32_t* dtype, int32_t* layout, std::optional<Device> device, int32_t* pin_memory)
 {
     AtenTensorHandle ret0;
     AtenGeneratorHandle generator_handle = generator.value_or(nullptr);
-    aoti_torch_npu_rand_generator(size.data(), size.size(), generator_handle ? &generator_handle : nullptr, dtype, layout, device, 0, pin_memory, &ret0);
+    int32_t device_val = 0;
+    int32_t* device_ptr = nullptr;
+    int32_t device_index = 0;
+    if (device.has_value()) {
+        device_val = static_cast<int32_t>(device.value().type());
+        device_ptr = &device_val;
+        device_index = device.value().index();
+    }
+    aoti_torch_npu_rand_generator(size.data(), size.size(), generator_handle ? &generator_handle : nullptr, dtype, layout, device_ptr, device_index, pin_memory, &ret0);
     return Tensor(ret0);
 }
 
-Tensor my_randint(int64_t high, std::vector<int64_t> size, int32_t* dtype, int32_t* layout, int32_t* device, int32_t* pin_memory)
+Tensor my_randint(int64_t high, std::vector<int64_t> size, int32_t* dtype, int32_t* layout, std::optional<Device> device, int32_t* pin_memory)
 {
     AtenTensorHandle ret0;
-    aoti_torch_npu_randint(high, size.data(), size.size(), dtype, layout, device, 0, pin_memory, &ret0);
+    int32_t device_val = 0;
+    int32_t* device_ptr = nullptr;
+    int32_t device_index = 0;
+    if (device.has_value()) {
+        device_val = static_cast<int32_t>(device.value().type());
+        device_ptr = &device_val;
+        device_index = device.value().index();
+    }
+    aoti_torch_npu_randint(high, size.data(), size.size(), dtype, layout, device_ptr, device_index, pin_memory, &ret0);
     return Tensor(ret0);
 }
 
-Tensor my_randint_generator(int64_t high, std::vector<int64_t> size, std::optional<AtenGeneratorHandle> generator, int32_t* dtype, int32_t* layout, int32_t* device, int32_t* pin_memory)
+Tensor my_randint_generator(int64_t high, std::vector<int64_t> size, std::optional<AtenGeneratorHandle> generator, int32_t* dtype, int32_t* layout, std::optional<Device> device, int32_t* pin_memory)
 {
     AtenTensorHandle ret0;
     AtenGeneratorHandle generator_handle = generator.value_or(nullptr);
-    aoti_torch_npu_randint_generator(high, size.data(), size.size(), generator_handle ? &generator_handle : nullptr, dtype, layout, device, 0, pin_memory, &ret0);
+    int32_t device_val = 0;
+    int32_t* device_ptr = nullptr;
+    int32_t device_index = 0;
+    if (device.has_value()) {
+        device_val = static_cast<int32_t>(device.value().type());
+        device_ptr = &device_val;
+        device_index = device.value().index();
+    }
+    aoti_torch_npu_randint_generator(high, size.data(), size.size(), generator_handle ? &generator_handle : nullptr, dtype, layout, device_ptr, device_index, pin_memory, &ret0);
     return Tensor(ret0);
 }
 
-Tensor my_randint_low(int64_t low, int64_t high, std::vector<int64_t> size, int32_t* dtype, int32_t* layout, int32_t* device, int32_t* pin_memory)
+Tensor my_randint_low(int64_t low, int64_t high, std::vector<int64_t> size, int32_t* dtype, int32_t* layout, std::optional<Device> device, int32_t* pin_memory)
 {
     AtenTensorHandle ret0;
-    aoti_torch_npu_randint_low(low, high, size.data(), size.size(), dtype, layout, device, 0, pin_memory, &ret0);
+    int32_t device_val = 0;
+    int32_t* device_ptr = nullptr;
+    int32_t device_index = 0;
+    if (device.has_value()) {
+        device_val = static_cast<int32_t>(device.value().type());
+        device_ptr = &device_val;
+        device_index = device.value().index();
+    }
+    aoti_torch_npu_randint_low(low, high, size.data(), size.size(), dtype, layout, device_ptr, device_index, pin_memory, &ret0);
     return Tensor(ret0);
 }
 
@@ -658,25 +708,49 @@ void my_randint_low_out(Tensor out, int64_t low, int64_t high, std::vector<int64
     aoti_torch_npu_randint_low_out(out.get(), low, high, size.data(), size.size());
 }
 
-Tensor my_randn(std::vector<int64_t> size, int32_t* dtype, int32_t* layout, int32_t* device, int32_t* pin_memory)
+Tensor my_randn(std::vector<int64_t> size, int32_t* dtype, int32_t* layout, std::optional<Device> device, int32_t* pin_memory)
 {
     AtenTensorHandle ret0;
-    aoti_torch_npu_randn(size.data(), size.size(), dtype, layout, device, 0, pin_memory, &ret0);
+    int32_t device_val = 0;
+    int32_t* device_ptr = nullptr;
+    int32_t device_index = 0;
+    if (device.has_value()) {
+        device_val = static_cast<int32_t>(device.value().type());
+        device_ptr = &device_val;
+        device_index = device.value().index();
+    }
+    aoti_torch_npu_randn(size.data(), size.size(), dtype, layout, device_ptr, device_index, pin_memory, &ret0);
     return Tensor(ret0);
 }
 
-Tensor my_randn_generator(std::vector<int64_t> size, std::optional<AtenGeneratorHandle> generator, int32_t* dtype, int32_t* layout, int32_t* device, int32_t* pin_memory)
+Tensor my_randn_generator(std::vector<int64_t> size, std::optional<AtenGeneratorHandle> generator, int32_t* dtype, int32_t* layout, std::optional<Device> device, int32_t* pin_memory)
 {
     AtenTensorHandle ret0;
     AtenGeneratorHandle generator_handle = generator.value_or(nullptr);
-    aoti_torch_npu_randn_generator(size.data(), size.size(), generator_handle ? &generator_handle : nullptr, dtype, layout, device, 0, pin_memory, &ret0);
+    int32_t device_val = 0;
+    int32_t* device_ptr = nullptr;
+    int32_t device_index = 0;
+    if (device.has_value()) {
+        device_val = static_cast<int32_t>(device.value().type());
+        device_ptr = &device_val;
+        device_index = device.value().index();
+    }
+    aoti_torch_npu_randn_generator(size.data(), size.size(), generator_handle ? &generator_handle : nullptr, dtype, layout, device_ptr, device_index, pin_memory, &ret0);
     return Tensor(ret0);
 }
 
-Tensor my_randperm(int64_t n, int32_t* dtype, int32_t* layout, int32_t* device, int32_t* pin_memory)
+Tensor my_randperm(int64_t n, int32_t* dtype, int32_t* layout, std::optional<Device> device, int32_t* pin_memory)
 {
     AtenTensorHandle ret0;
-    aoti_torch_npu_randperm(n, dtype, layout, device, 0, pin_memory, &ret0);
+    int32_t device_val = 0;
+    int32_t* device_ptr = nullptr;
+    int32_t device_index = 0;
+    if (device.has_value()) {
+        device_val = static_cast<int32_t>(device.value().type());
+        device_ptr = &device_val;
+        device_index = device.value().index();
+    }
+    aoti_torch_npu_randperm(n, dtype, layout, device_ptr, device_index, pin_memory, &ret0);
     return Tensor(ret0);
 }
 
