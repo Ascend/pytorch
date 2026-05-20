@@ -38,10 +38,9 @@ import torchgen.dest as dest
 import torchgen.api.dispatcher as dispatcher
 import torchgen.api.native as native
 from torchgen.api.cpp import JIT_TO_CPP_DEFAULT
-from torchgen.gen_backend_stubs import gen_dispatchkey_nativefunc_headers
 from torchnpugen.gen_functionalization_type import gen_functionalization_definition, gen_functionalization_registration
 
-from torchnpugen.utils import (get_torchgen_dir, rename_privateuse1_dispatch_key, gen_unstructured, add_header_to_template_file,
+from torchnpugen.utils import (get_torchgen_dir, rename_privateuse1_dispatch_key, gen_unstructured, gen_dispatchkey_nativefunc_headers,
                            get_grouped_native_functions_optional_out, parse_npu_yaml, get_opplugin_wrap_name,
                            get_target_functions, merge_custom_yaml, field_tag, gen_custom_yaml_path,
                            update_opapi_info, is_opapi, update_internal_format_opapi_info, PathManager, filt_exposed_api, get_target_native_registration,
@@ -941,7 +940,6 @@ def apply_torchgen_patch():
     dest.RegisterDispatchKey.gen_device_check = gen_device_check
     # generate default arguments
     JIT_TO_CPP_DEFAULT["contiguous_format"] = "c10::MemoryFormat::Contiguous"
-    add_header_to_template_file()
     dispatcher.arguments = native.arguments
 
 
