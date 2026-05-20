@@ -122,6 +122,8 @@ _save_npugraph_tensor_lock = threading.Lock()
 _save_npugraph_tensor_counters = {}
 _save_tensor_streams: Dict[int, "torch_npu.npu.Stream"] = {}
 _save_tensor_stream_lock = threading.Lock()
+_NPUGRAPH_TENSOR_PTR_SPEC_MARKER = "host_tensor_ptr"
+_NPUGRAPH_TENSOR_BUFFER_SPEC_MARKER = "host_tensor_buffer"
 
 
 def _get_save_tensor_stream(device_index: int):
@@ -167,6 +169,7 @@ def _build_save_npugraph_tensor_path(save_path=None, device_index=None, overwrit
 
 
 def _print_callback_pending(tensor_name, tensor_arg):
+    tensor_arg = _materialize_npugraph_tensor_arg(tensor_arg)
     output = str(tensor_arg)
     if tensor_name is not None:
         output = f"{tensor_name}={output}"
@@ -175,7 +178,33 @@ def _print_callback_pending(tensor_name, tensor_arg):
 
 
 def _save_callback_pending(tensor_arg, str_arg):
+    tensor_arg = _materialize_npugraph_tensor_arg(tensor_arg)
     torch.save(tensor_arg, str_arg)
+
+
+def _make_npugraph_tensor_ptr_spec(tensor):
+    return (
+        _NPUGRAPH_TENSOR_PTR_SPEC_MARKER,
+        tensor.data_ptr(),
+        tensor.numel() * tensor.element_size(),
+        tuple(tensor.shape),
+        tensor.dtype,
+    )
+
+
+def _materialize_npugraph_tensor_arg(tensor_arg):
+    if (
+        isinstance(tensor_arg, tuple)
+        and len(tensor_arg) == 4
+        and tensor_arg[0] == _NPUGRAPH_TENSOR_BUFFER_SPEC_MARKER
+    ):
+        _, buffer, shape, dtype = tensor_arg
+        if len(buffer) == 0:
+            return torch.empty(shape, dtype=dtype)
+        return torch.frombuffer(buffer, dtype=dtype).reshape(shape)
+    if isinstance(tensor_arg, list):
+        return [_materialize_npugraph_tensor_arg(arg) for arg in tensor_arg]
+    return tensor_arg
 
 
 def _validate_tensor_list(inputs):
@@ -197,8 +226,11 @@ def _print_npugraph_tensor_impl(input, tensor_name=None):
         return
 
     device = input.device
-    if device.type != "npu":
+    if device.type == "cpu":
         _print_callback_pending(tensor_name, input)
+        return
+    
+    if device.type != "npu":
         return
 
     device_index = device.index
@@ -212,7 +244,8 @@ def _print_npugraph_tensor_impl(input, tensor_name=None):
     with torch.npu.stream(save_stream):
         # Wait for the original stream to complete before D2H
         event1.wait()
-        cpu_arg = input.to("cpu", non_blocking=True)
+        cpu_tensor = input.to("cpu", non_blocking=True)
+        cpu_arg = _make_npugraph_tensor_ptr_spec(cpu_tensor)
         # Get current stream inside context (which is save_stream)
         current_stream = torch.npu.current_stream()
         torch_npu.npu._launch_host_func_pending(
@@ -232,8 +265,11 @@ def _save_npugraph_tensor_impl(input, save_path=None, overwrite=False):
         return
 
     device = input.device
-    if device.type != "npu":
+    if device.type == "cpu":
         torch.save(input, _build_save_npugraph_tensor_path(save_path, overwrite=overwrite))
+        return
+    
+    if device.type != "npu":
         return
 
     device_index = device.index
@@ -248,7 +284,8 @@ def _save_npugraph_tensor_impl(input, save_path=None, overwrite=False):
     with torch.npu.stream(save_stream):
         # Wait for the original stream to complete before D2H
         event1.wait()
-        cpu_arg = input.to("cpu", non_blocking=True)
+        cpu_tensor = input.to("cpu", non_blocking=True)
+        cpu_arg = _make_npugraph_tensor_ptr_spec(cpu_tensor)
         # Get current stream inside context (which is save_stream)
         current_stream = torch.npu.current_stream()
         torch_npu.npu._launch_host_func_pending(
@@ -265,8 +302,11 @@ def _save_npugraph_tensor_impl(input, save_path=None, overwrite=False):
 
 def _save_npugraph_tensor_tensor_list_impl(input, save_path=None, overwrite=False):
     device = _validate_tensor_list(input)
-    if device.type != "npu":
+    if device.type == "cpu":
         torch.save(list(input), _build_save_npugraph_tensor_path(save_path, overwrite=overwrite))
+        return
+    
+    if device.type != "npu":
         return
 
     device_index = device.index
@@ -281,7 +321,8 @@ def _save_npugraph_tensor_tensor_list_impl(input, save_path=None, overwrite=Fals
     with torch.npu.stream(save_stream):
         # Wait for the original stream to complete before D2H
         event1.wait()
-        cpu_args = [tensor.to("cpu", non_blocking=True) for tensor in input]
+        cpu_tensors = [tensor.to("cpu", non_blocking=True) for tensor in input]
+        cpu_args = [_make_npugraph_tensor_ptr_spec(tensor) for tensor in cpu_tensors]
         # Get current stream inside context (which is save_stream)
         current_stream = torch.npu.current_stream()
         torch_npu.npu._launch_host_func_pending(
@@ -329,7 +370,7 @@ if not hasattr(torch.ops.npu, "print_npugraph_tensor"):
     _npu_lib.define("print_npugraph_tensor(Tensor input, *, str? tensor_name=None) -> ()")
 
     _npu_lib.impl("print_npugraph_tensor", _print_npugraph_tensor_impl, "PrivateUse1")
-    _npu_lib.impl("print_npugraph_tensor", lambda input, *, tensor_name=None: None, "CPU")
+    _npu_lib.impl("print_npugraph_tensor", _print_npugraph_tensor_impl, "CPU")
 
     has_side_effect(torch.ops.npu.print_npugraph_tensor.default)
 
@@ -343,9 +384,9 @@ if not hasattr(torch.ops.npu, "save_npugraph_tensor"):
     _npu_lib.define("save_npugraph_tensor.tensor_list(Tensor[] input, *, str? save_path=None, bool overwrite=False) -> ()")
 
     _npu_lib.impl("save_npugraph_tensor", _save_npugraph_tensor_impl, "PrivateUse1")
-    _npu_lib.impl("save_npugraph_tensor", lambda input, *, save_path=None, overwrite=False: None, "CPU")
+    _npu_lib.impl("save_npugraph_tensor", _save_npugraph_tensor_impl, "CPU")
     _npu_lib.impl("save_npugraph_tensor.tensor_list", _save_npugraph_tensor_tensor_list_impl, "PrivateUse1")
-    _npu_lib.impl("save_npugraph_tensor.tensor_list", lambda input, *, save_path=None, overwrite=False: None, "CPU")
+    _npu_lib.impl("save_npugraph_tensor.tensor_list", _save_npugraph_tensor_tensor_list_impl, "CPU")
 
     has_side_effect(torch.ops.npu.save_npugraph_tensor.default)
     has_side_effect(torch.ops.npu.save_npugraph_tensor.tensor_list)
