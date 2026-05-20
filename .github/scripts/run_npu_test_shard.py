@@ -1069,7 +1069,6 @@ def _execute_worker_batch(
                 errors="replace",
             )
 
-            stdout_lines = []
             last_output_time = monotonic()
 
             def _read_stdout():
@@ -1077,7 +1076,40 @@ def _execute_worker_batch(
                 if proc.stdout:
                     for line in proc.stdout:
                         last_output_time = monotonic()
-                        stdout_lines.append(line.strip())
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            case_result = json.loads(line)
+                        except json.JSONDecodeError:
+                            continue
+
+                        nodeid = case_result.get("nodeid", "")
+                        status = case_result.get("status", "error")
+                        duration = case_result.get("duration", 0.0)
+
+                        full_result = {
+                            "nodeid": nodeid,
+                            "status": status,
+                            "duration": duration,
+                            "returncode": int(case_result.get("returncode", 1)),
+                            "message": case_result.get("message", ""),
+                            "command": case_result.get("command", ""),
+                            "file": case_result.get("file", ""),
+                            "case_idx": int(case_result.get("case_idx", 0)),
+                        }
+
+                        result_aggregator.add_case_result(full_result)
+                        progress_tracker.mark_completed(nodeid, status, duration)
+                        log_queue.put({
+                            "type": "case_finish",
+                            "case_idx": full_result["case_idx"],
+                            "nodeid": nodeid,
+                            "status": status,
+                            "duration": duration,
+                            "message": case_result.get("message", "")[:200],
+                        })
+                        attempt_completed.add(nodeid)
 
             reader_thread = threading.Thread(target=_read_stdout, daemon=True)
             reader_thread.start()
@@ -1108,42 +1140,6 @@ def _execute_worker_batch(
                     break
 
                 sleep(0.5)
-
-            # Process stdout lines (both timeout and normal paths)
-            for line in stdout_lines:
-                if not line:
-                    continue
-                try:
-                    case_result = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
-
-                nodeid = case_result.get("nodeid", "")
-                status = case_result.get("status", "error")
-                duration = case_result.get("duration", 0.0)
-
-                full_result = {
-                    "nodeid": nodeid,
-                    "status": status,
-                    "duration": duration,
-                    "returncode": int(case_result.get("returncode", 1)),
-                    "message": case_result.get("message", ""),
-                    "command": case_result.get("command", ""),
-                    "file": case_result.get("file", ""),
-                    "case_idx": int(case_result.get("case_idx", 0)),
-                }
-
-                result_aggregator.add_case_result(full_result)
-                progress_tracker.mark_completed(nodeid, status, duration)
-                log_queue.put({
-                    "type": "case_finish",
-                    "case_idx": full_result["case_idx"],
-                    "nodeid": nodeid,
-                    "status": status,
-                    "duration": duration,
-                    "message": case_result.get("message", "")[:200],
-                })
-                attempt_completed.add(nodeid)
 
             if timeout_occurred:
                 # Idle timeout: mark the hung case, restart worker for the
