@@ -1,8 +1,6 @@
 from itertools import count
 from torch._inductor.scheduler import Scheduler
 from torch._inductor.virtualized import V
-from torch_mlir.compiler_utils import OutputType
-from torch_mlir.fx import stateless_fx_import
 
 from ...npu.codegen.meta_kernel import NpuMetaKernel, NpuMetaScheduling
 
