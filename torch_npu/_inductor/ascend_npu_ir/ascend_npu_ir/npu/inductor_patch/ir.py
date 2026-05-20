@@ -161,8 +161,7 @@ def _patch_reduction_create(  # type: ignore[override]
 
     if (
         isinstance(reduction_numel, sympy.Integer)
-        and V.graph.sizevars.size_hint(reduction_numel)
-        < config.unroll_reductions_threshold
+        and int(reduction_numel) < config.unroll_reductions_threshold
         and ir.sympy_product(ranges) != 1
     ):
         return ir.Pointwise.create(

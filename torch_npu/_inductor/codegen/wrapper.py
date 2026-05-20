@@ -270,16 +270,14 @@ class NPUWrapperCodeGen(_NPUKernelCodegenMixin, PythonWrapperCodegen):
                 ):
                     continue
                 if isinstance(value, sympy.Expr):  # Don't need to add symbolic
-                    add_expr_input(name, V.graph.sizevars.size_hint(value, fallback=42))
+                    add_expr_input(name, V.graph.sizevars.optimization_hint(value, fallback=42))
                 else:
-                    shape = [
-                        V.graph.sizevars.size_hint(x, fallback=42)
-                        for x in value.get_size()
-                    ]
-                    stride = [
-                        V.graph.sizevars.size_hint(x, fallback=42)
-                        for x in value.get_stride()
-                    ]
+                    shape = V.graph.sizevars.optimization_hints(
+                        value.get_size(), fallback=42
+                    )
+                    stride = V.graph.sizevars.optimization_hints(
+                        value.get_stride(), fallback=42
+                    )
                     add_fake_input(
                         name,
                         shape,

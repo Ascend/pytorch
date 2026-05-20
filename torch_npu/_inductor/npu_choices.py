@@ -24,7 +24,7 @@ def should_use_persistent_reduction(
     if cooperative_reduction:
         # The RSPLIT of cooperative reductions means each thread block is operating on fewer elements
         try:
-            threshold *= 32 // min(V.graph.sizevars.size_hint(features.numel), 32)
+            threshold *= 32 // min(V.graph.sizevars.optimization_hint(features.numel), 32)
         except ValueError:
             pass  # unbacked symint
 

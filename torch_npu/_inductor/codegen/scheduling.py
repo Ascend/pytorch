@@ -533,7 +533,7 @@ class NPUTritonScheduling(TritonScheduling):
                 )
 
                 # score by number of elements
-                score = V.graph.sizevars.size_hint(
+                score = V.graph.sizevars.optimization_hint(
                     sympy_product(
                         size for size, stride in zip(ranges, strides) if stride != 0
                     )
@@ -547,7 +547,7 @@ class NPUTritonScheduling(TritonScheduling):
                     score *= 2
 
                 if (
-                    V.graph.sizevars.size_hint(
+                    V.graph.sizevars.optimization_hint(
                         score - sympy_product(itertools.chain(ranges, reduction_ranges))
                     )
                     >= 0

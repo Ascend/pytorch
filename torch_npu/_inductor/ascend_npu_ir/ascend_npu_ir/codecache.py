@@ -3,11 +3,13 @@ import sys
 import functools
 import importlib
 
+from types import ModuleType
 from typing import (
-    Callable,
-    List,
     Any,
-    Dict
+    Callable,
+    Dict,
+    List,
+    Union,
 )
 
 import torch
@@ -26,12 +28,7 @@ from torch._inductor.async_compile import (
 
 from torch._dynamo.device_interface import get_interface_for_device
 
-from torch._inductor.codecache import (
-    config,
-    Union,
-    CodeCacheFuture,
-    ModuleType,
-    )
+from torch._inductor.codecache import CodeCacheFuture, config
 
 from .npu.mlir_compiler import NpuMlirCompiler, AkgCompiler
 from . import config as anir_config

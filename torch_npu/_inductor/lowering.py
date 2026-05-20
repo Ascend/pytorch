@@ -56,8 +56,9 @@ from .lowering_fx import (
     )
 
 
-def npu_make_fallback(op, layout_constraint=None, warn=True, override_decomp=False):
-    if op in decompositions and not override_decomp:
+def npu_make_fallback(op, layout_constraint=None, warn=True, override_decomp=False, get_decomp_fn=None):
+    check_decomps = get_decomp_fn() if get_decomp_fn is not None else decompositions
+    if op in check_decomps and not override_decomp:
         raise RuntimeError(f"both a fallback and a decomp for same op: {op}")
 
     def register_fallback(op_overload):

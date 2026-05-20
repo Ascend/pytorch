@@ -1166,16 +1166,14 @@ def _register_npu_inductor_fallbacks_fx(make_reduction):
             return x
 
         if not free_unbacked_symbols(x.get_size()):
-            x_size_product = V.graph.sizevars.size_hint(sympy_product(x.get_size()))
+            x_size_product = V.graph.sizevars.guarding_hint_or_throw(sympy_product(x.get_size()))
             # It would be better to realize the input if any of its sizes
             # are unbacked, because typically the size will be non-zero.  However,
             # this cannot be done directly as below as we'll choke on the size_hint
             # here
             if x_size_product > 0 and not free_unbacked_symbols(sizes):
                 # maybe realize input before broadcasting it
-                x.mark_reuse(
-                    V.graph.sizevars.size_hint(sympy_product(sizes)) // x_size_product
-                )
+                x.mark_reuse(V.graph.sizevars.guarding_hint_or_throw(sympy_product(sizes)) // x_size_product)
         input_graphs = fetch_graphs([x.data, tuple(sizes)])
         node_name = f'expand_{next(node_id)}'
         new_graph = merge_traced_graphs(input_graphs, aten.expand, node_name)
@@ -1187,6 +1185,8 @@ def _register_npu_inductor_fallbacks_fx(make_reduction):
 
     @register_lowering(aten.repeat)
     def repeat(x, repeats):
+        from torch.fx.experimental.symbolic_shapes import free_unbacked_symbols
+
         input_graphs = fetch_graphs([x, repeats])
         node_name = f'repeat_{next(node_id)}'
         new_graph = merge_traced_graphs(input_graphs, aten.repeat, node_name)
@@ -1224,12 +1224,10 @@ def _register_npu_inductor_fallbacks_fx(make_reduction):
                         index[i] = ModularIndexing(index[i], 1, old_size[i])
             return x_loader(index)
 
-        old_size_product = V.graph.sizevars.size_hint(sympy_product(old_size))
-        if old_size_product > 0:
-            # maybe realize the input
-            x.mark_reuse(
-                V.graph.sizevars.size_hint(sympy_product(new_size)) // old_size_product
-            )
+        if not free_unbacked_symbols(old_size) and not free_unbacked_symbols(new_size):
+            old_size_product = V.graph.sizevars.guarding_hint_or_throw(sympy_product(old_size))
+            if old_size_product > 0:
+                x.mark_reuse(V.graph.sizevars.guarding_hint_or_throw(sympy_product(new_size)) // old_size_product)
 
         x_loader = x.make_loader()
         return Pointwise.create(
