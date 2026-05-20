@@ -75,7 +75,8 @@ anir_config.GENERATE_LIST = [
     aten.scalar_tensor,
     aten.unsqueeze,
     aten.squeeze,
-    aten.clone,
+    # aten.reshape,
+    # aten.clone,
 ]
 
 
@@ -279,7 +280,7 @@ def _patch_lowering_type_checks():
                 if not isinstance(meta, torch._subclasses.FakeTensor):
                     continue
 
-                if meta.is_cpu:
+                if meta.is_cpu and config.disable_cpp_codegen:
                     return True
 
         if node.target in DVM_OP_REGISTRY:
@@ -288,9 +289,6 @@ def _patch_lowering_type_checks():
         return not common_rule(node)
 
     inductor_lowering.fallback_node_due_to_unsupported_type = (
-        _fallback_node_due_to_unsupported_type
-    )
-    pattern_matcher.fallback_node_due_to_unsupported_type = (
         _fallback_node_due_to_unsupported_type
     )
     npu_lowering_mod.fallback_node_due_to_unsupported_type = (
