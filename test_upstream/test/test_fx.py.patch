@@ -1,5 +1,5 @@
 diff --git a/test/test_fx.py b/test/test_fx.py
-index a9bbf8c..c221b26 100644
+index a9bbf8c..63dde41 100644
 --- a/test/test_fx.py
 +++ b/test/test_fx.py
 @@ -41,6 +41,7 @@ from typing import Any, NamedTuple, Optional, Union
@@ -76,6 +76,15 @@ index a9bbf8c..c221b26 100644
  
          t = T()
          ref_outs = t(*args)
+@@ -379,7 +380,7 @@ class TestFX(JitTestCase):
+             RuntimeError, r"cannot be part of \*args expansion"
+         ):
+             self.checkGraphModule(
+-                t, (torch.rand(1), torch.rand(1)), {"foo": torch.rand(1)}
++                t, (torch.rand(1, device="npu"), torch.rand(1, device="npu")), {"foo": torch.rand(1, device="npu")}
+             )
+ 
+     def test_fx_shifts(self):
 @@ -387,7 +388,7 @@ class TestFX(JitTestCase):
              def forward(self, x):
                  return x << 3, x >> 3
@@ -141,6 +150,38 @@ index a9bbf8c..c221b26 100644
          self.assertEqual(ref_batchnorm1d(input), m(input))
  
      def test_wrapped_retrace(self):
+@@ -689,9 +690,9 @@ class TestFX(JitTestCase):
+         with self.assertRaisesRegex(
+             AssertionError, "val has been specialized to have value None"
+         ):
+-            traced(torch.randn(5), torch.randn(5))
++            traced(torch.randn(5, device="npu"), torch.randn(5, device="npu"))
+ 
+-        x = torch.randn(5)
++        x = torch.randn(5, device="npu")
+         torch.testing.assert_close(traced(x), f(x))
+ 
+     def test_trace_multiple_funcs(self):
+@@ -706,7 +707,7 @@ class TestFX(JitTestCase):
+                 return x * y
+ 
+         f = Foo()
+-        x, y = torch.randn(5), torch.randn(5)
++        x, y = torch.randn(5, device="npu"), torch.randn(5, device="npu")
+ 
+         print(torch.__version__)
+ 
+@@ -863,8 +864,8 @@ class TestFX(JitTestCase):
+                 c, d = a
+                 return c + d + b
+ 
+-        a = (torch.rand(1), torch.rand(1))
+-        b = torch.rand(1)
++        a = (torch.rand(1, device="npu"), torch.rand(1, device="npu"))
++        b = torch.rand(1, device="npu")
+         m = M()
+         self.checkGraphModule(m, (a, b))
+ 
 @@ -1101,14 +1102,14 @@ class TestFX(JitTestCase):
          class TensorAttribute(torch.nn.Module):
              def __init__(self) -> None:
@@ -255,6 +296,186 @@ index a9bbf8c..c221b26 100644
          traced = symbolic_trace(baz)
          traced.graph.lint()
          copied = copy.deepcopy(traced)
+@@ -1445,14 +1447,14 @@ class TestFX(JitTestCase):
+ 
+         # Test scriptability
+         traced_scripted = torch.jit.script(traced)
+-        self.assertEqual(traced_scripted(torch.rand(4)), 2)
++        self.assertEqual(traced_scripted(torch.rand(4, device="npu")), 2)
+ 
+     def test_tuple_no_subscript(self):
+         def foo(x: tuple):
+             return x[0]
+ 
+         traced = torch.fx.symbolic_trace(foo)
+-        x = (torch.randn(5, 3),)
++        x = (torch.randn(5, 3, device="npu"),)
+         torch.testing.assert_close(traced(x), x[0])
+ 
+         bio = io.BytesIO()
+@@ -1473,14 +1475,14 @@ class TestFX(JitTestCase):
+                 return len(x)
+ 
+         traced = symbolic_trace(FXLenTest())
+-        self.assertEqual(traced(torch.rand(3, 4)), 3)
++        self.assertEqual(traced(torch.rand(3, 4, device="npu")), 3)
+ 
+         # Test scriptability
+         scripted = torch.jit.script(FXLenTest())
+-        self.assertEqual(scripted(torch.rand(3)), 3)
++        self.assertEqual(scripted(torch.rand(3, device="npu")), 3)
+ 
+         traced_scripted = torch.jit.script(traced)
+-        self.assertEqual(traced_scripted(torch.rand(3)), 3)
++        self.assertEqual(traced_scripted(torch.rand(3, device="npu")), 3)
+ 
+         # Test non-proxy len
+         class FXLenTest2(torch.nn.Module):
+@@ -1492,7 +1494,7 @@ class TestFX(JitTestCase):
+                 return x + len(self.l)
+ 
+         traced2 = symbolic_trace(FXLenTest2())
+-        inp = torch.rand(3, 4)
++        inp = torch.rand(3, 4, device="npu")
+         self.assertEqual(traced2(inp), inp + 3.0)
+         self.assertIs(len, builtins.len)
+ 
+@@ -1517,9 +1519,9 @@ class TestFX(JitTestCase):
+             def forward(self, x):
+                 return x + math.sqrt(2) + sqrt(2)
+ 
+-        self.checkGraphModule(Sqrt1(), [torch.zeros(8)])
+-        self.checkGraphModule(Sqrt2(), [torch.zeros(8)])
+-        self.checkGraphModule(Sqrt3(), [torch.zeros(8)])
++        self.checkGraphModule(Sqrt1(), [torch.zeros(8, device="npu")])
++        self.checkGraphModule(Sqrt2(), [torch.zeros(8, device="npu")])
++        self.checkGraphModule(Sqrt3(), [torch.zeros(8, device="npu")])
+         self.assertIs(sqrt, _sqrt)
+         self.assertIs(math.sqrt, _sqrt)
+ 
+@@ -1531,7 +1533,7 @@ class TestFX(JitTestCase):
+                 return torch.ops.aten.cat((c, c))
+ 
+         m = M()
+-        input = torch.randn(3)
++        input = torch.randn(3, device="npu")
+         ref_out = m(input)
+         gm = symbolic_trace(m)
+         gm.graph.lint()
+@@ -1545,7 +1547,7 @@ class TestFX(JitTestCase):
+                 return b
+ 
+         m = M()
+-        input = torch.randn(3)
++        input = torch.randn(3, device="npu")
+         ref_out = m(input)
+         gm = symbolic_trace(m)
+         gm.graph.lint()
+@@ -1572,7 +1574,7 @@ class TestFX(JitTestCase):
+                 return torch.ops.aten.cat((c, c))
+ 
+         m = M()
+-        input = torch.randn(3)
++        input = torch.randn(3, device="npu")
+         ref_out = m(input)
+         gm = symbolic_trace(m)
+         gm.graph.lint()
+@@ -1622,8 +1624,8 @@ class TestFX(JitTestCase):
+             s = x.add(y)
+             return s.mul(x)
+ 
+-        x = TensorPair(torch.randn(5, 3), torch.randn(5, 3))
+-        y = TensorPair(torch.randn(5, 3), torch.randn(5, 3))
++        x = TensorPair(torch.randn(5, 3, device="npu"), torch.randn(5, 3, device="npu"))
++        y = TensorPair(torch.randn(5, 3, device="npu"), torch.randn(5, 3, device="npu"))
+ 
+         ref_out = use_tensor_pair(x, y)
+ 
+@@ -1649,10 +1651,10 @@ class TestFX(JitTestCase):
+                 return TensorPair(l, r)
+ 
+         def use_tensor_pair_literal(x: TensorPair):
+-            s = x.add(TensorPair(torch.zeros(5, 3), torch.zeros(5, 3)))
++            s = x.add(TensorPair(torch.zeros(5, 3, device="npu"), torch.zeros(5, 3, device="npu")))
+             return s.mul(x)
+ 
+-        x = TensorPair(torch.randn(5, 3), torch.randn(5, 3))
++        x = TensorPair(torch.randn(5, 3, device="npu"), torch.randn(5, 3, device="npu"))
+ 
+         ref_out = use_tensor_pair_literal(x)
+ 
+@@ -1681,8 +1683,8 @@ class TestFX(JitTestCase):
+             s = x.add(TensorPair(y, y))
+             return s.mul(x)
+ 
+-        x = TensorPair(torch.randn(5, 3), torch.randn(5, 3))
+-        y = torch.randn(5, 3)
++        x = TensorPair(torch.randn(5, 3, device="npu"), torch.randn(5, 3, device="npu"))
++        y = torch.randn(5, 3, device="npu")
+         ref_out = use_tensor_pair_ctor(x, y)
+ 
+         traced = symbolic_trace(use_tensor_pair_ctor)
+@@ -1730,11 +1732,11 @@ class TestFX(JitTestCase):
+         e = g.call_function(torch.sin, (d,))
+         g.output(e)
+         mod = torch.nn.Module()
+-        mod.linear = torch.nn.Linear(3, 4)
+-        mod.bias = torch.rand(4)
++        mod.linear = torch.nn.Linear(3, 4).npu()
++        mod.bias = torch.rand(4, device="npu")
+         gm = GraphModule(mod, g)
+         gm.graph.lint()
+-        input = torch.rand(3)
++        input = torch.rand(3, device="npu")
+         r = gm(input)
+         ref = torch.sin(mod.linear(input) + mod.bias)
+         self.assertEqual(r, ref)
+@@ -1802,7 +1804,7 @@ class TestFX(JitTestCase):
+ 
+         original = M()
+         traced = symbolic_trace(original)
+-        self.assertEqual(traced(torch.ones(1)), original.forward(torch.ones(1)))
++        self.assertEqual(traced(torch.ones(1, device="npu")), original.forward(torch.ones(1, device="npu")))
+ 
+     def test_construct_root_dict(self):
+         graph: torch.fx.Graph = torch.fx.Graph()
+@@ -1812,8 +1814,8 @@ class TestFX(JitTestCase):
+         d: torch.fx.Node = graph.create_node("call_function", operator.add, args=(b, c))
+         graph.output(d)
+ 
+-        linear_mod: torch.nn.Module = torch.nn.Linear(3, 4)
+-        add_param: torch.Tensor = torch.rand(3, 4)
++        linear_mod: torch.nn.Module = torch.nn.Linear(3, 4).npu()
++        add_param: torch.Tensor = torch.rand(3, 4, device="npu")
+         gm: torch.fx.GraphModule = torch.fx.GraphModule(
+             {"foo.bar.baz": linear_mod, "zip.zap.zam": add_param}, graph
+         )
+@@ -1824,7 +1826,7 @@ class TestFX(JitTestCase):
+                 f"Expected 'self.foo.bar.baz' in gm.code, got {gm.code}"
+             )
+ 
+-        x: torch.Tensor = torch.rand(3, 3)
++        x: torch.Tensor = torch.rand(3, 3, device="npu")
+         out: torch.Tensor = gm(x)
+         ref_out: torch.Tensor = linear_mod(x) + add_param
+         self.assertEqual(out, ref_out)
+@@ -1839,13 +1841,13 @@ class TestFX(JitTestCase):
+         # verify traceability
+         traced = symbolic_trace(m)
+         # verify assertion on traced model works correctly at runtime
+-        traced(torch.rand(4, 5))
++        traced(torch.rand(4, 5, device="npu"))
+         with self.assertRaisesRegex(AssertionError, "assert_foobar"):
+-            traced(torch.rand(4, 3))
++            traced(torch.rand(4, 3, device="npu"))
+         # verify the symbolically traced module is scriptable
+         ms = torch.jit.script(m)
+         with self.assertRaisesRegex(torch.jit.Error, "assert_foobar"):
+-            ms(torch.rand(4, 3))
++            ms(torch.rand(4, 3, device="npu"))
+ 
+     def test_fx_create_arg(self):
+         class CustomArgObject:
 @@ -1894,14 +1896,14 @@ class TestFX(JitTestCase):
              )
  
@@ -302,6 +523,15 @@ index a9bbf8c..c221b26 100644
  
          for node in mod.graph.nodes:
              if node.op == "call_module":
+@@ -2139,7 +2141,7 @@ class TestFX(JitTestCase):
+         class M(torch.nn.Module):
+             def __init__(self) -> None:
+                 super().__init__()
+-                self.weight = torch.nn.Parameter(torch.ones(1, 1))
++                self.weight = torch.nn.Parameter(torch.ones(1, 1, device="npu"))
+ 
+             def forward(self, x):
+                 return self.weight + x
 @@ -2169,11 +2171,11 @@ class TestFX(JitTestCase):
              def forward(self, x):
                  return self.linear(x + self.param).clamp(min=0.0, max=1.0)
@@ -467,7 +697,7 @@ index a9bbf8c..c221b26 100644
          self.assertEqual(new_gm(input), gm(input))
  
      def test_fn_type_annotations(self):
-@@ -2419,7 +2421,7 @@ class TestFX(JitTestCase):
+@@ -2419,11 +2421,11 @@ class TestFX(JitTestCase):
                  return {"a": p.x + p.y + z + i}
  
          foo_scripted = torch.jit.script(Foo())
@@ -476,3 +706,459 @@ index a9bbf8c..c221b26 100644
  
          fixed = symbolic_trace(Foo())
          fxed_scripted = torch.jit.script(fixed)
+-        fxed_scripted(Pair(torch.rand(5), torch.rand(5)), torch.rand(5), 3)
++        fxed_scripted(Pair(torch.rand(5, device="npu"), torch.rand(5, device="npu")), torch.rand(5, device="npu"), 3)
+ 
+     def test_fn_type_annotation_empty(self):
+         def forward(a: list[torch.Tensor]):
+@@ -2446,7 +2448,7 @@ class TestFX(JitTestCase):
+ 
+         f = Foo()
+         traced = symbolic_trace(f)
+-        x, w = torch.rand(3, 4), torch.rand(4, 4)
++        x, w = torch.rand(3, 4, device="npu"), torch.rand(4, 4, device="npu")
+         self.assertTrue(any(n.target == torch.relu for n in traced.graph.nodes))
+ 
+     def test_empty_graph_codegen(self):
+@@ -2455,7 +2457,7 @@ class TestFX(JitTestCase):
+         self.assertEqual(gm(), None)
+ 
+     def test_sequential(self):
+-        m = torch.nn.Sequential(torch.nn.Conv2d(1, 1, 1))
++        m = torch.nn.Sequential(torch.nn.Conv2d(1, 1, 1)).npu()
+         gm = torch.fx.symbolic_trace(m)
+         gm_copy = copy.deepcopy(gm)
+ 
+@@ -2470,7 +2472,7 @@ class TestFX(JitTestCase):
+                 return torch.relu(x)
+ 
+         m = M()
+-        self.checkGraphModule(m, (torch.rand(3, 4),))
++        self.checkGraphModule(m, (torch.rand(3, 4, device="npu"),))
+ 
+     def test_typename_print(self):
+         graph: torch.fx.Graph = torch.fx.Graph()
+@@ -2509,7 +2511,7 @@ class TestFX(JitTestCase):
+                 ).fill_(0)
+ 
+         traced = symbolic_trace(M())
+-        x = torch.rand(5, 9, 3, 4)
++        x = torch.rand(5, 9, 3, 4, device="npu")
+         self.assertEqual(traced(x), torch.zeros_like(x))
+ 
+     def test_ellipsis(self):
+@@ -2518,7 +2520,7 @@ class TestFX(JitTestCase):
+                 return x + y[:, 1:10, ...]
+ 
+         traced = symbolic_trace(M())
+-        x, y = torch.rand(5, 9, 3, 4), torch.rand(5, 15, 3, 4)
++        x, y = torch.rand(5, 9, 3, 4, device="npu"), torch.rand(5, 15, 3, 4, device="npu")
+         self.assertEqual(traced(x, y), x + y[:, 1:10, ...])
+ 
+     def test_inf_nan(self):
+@@ -2527,7 +2529,7 @@ class TestFX(JitTestCase):
+                 return x + float("inf"), x + float("-inf"), x + float("nan")
+ 
+         fm = FooMod()
+-        self.checkGraphModule(fm, (torch.rand(3, 4),))
++        self.checkGraphModule(fm, (torch.rand(3, 4, device="npu"),))
+ 
+     def test_inf_nan_kwds(self):
+         graph: torch.fx.Graph = torch.fx.Graph()
+@@ -2541,7 +2543,7 @@ class TestFX(JitTestCase):
+         graph.output((b, c))
+ 
+         gm = torch.fx.GraphModule(torch.nn.Module(), graph)
+-        x = torch.rand(3, 4)
++        x = torch.rand(3, 4, device="npu")
+         self.assertEqual(gm(x), (x + float("inf"), x + float("nan")))
+ 
+     def test_deepcopy_recursion_depth(self):
+@@ -2607,8 +2609,8 @@ class TestFX(JitTestCase):
+ 
+         gm = torch.fx.GraphModule(torch.nn.Module(), graph)
+ 
+-        input_x = torch.randn(33, 44)
+-        input_y = torch.randn(11, 22)
++        input_x = torch.randn(33, 44, device="npu")
++        input_y = torch.randn(11, 22, device="npu")
+         self.assertEqual(gm(input_x, input_y), torch.relu(input_y))
+ 
+     def test_insertion_point(self):
+@@ -2626,7 +2628,7 @@ class TestFX(JitTestCase):
+ 
+         gm = torch.fx.GraphModule(torch.nn.Module(), graph)
+ 
+-        input = torch.randn(33, 44)
++        input = torch.randn(33, 44, device="npu")
+         self.assertEqual(gm(input), torch.relu(torch.neg(input)))
+ 
+     def test_update_args_api(self):
+@@ -2639,7 +2641,7 @@ class TestFX(JitTestCase):
+         output: torch.fx.Node = graph.output(b)
+ 
+         orig_gm = torch.fx.GraphModule(torch.nn.Module(), graph)
+-        inp_x, inp_y = torch.randn(5, 3), torch.randn(3, 5)
++        inp_x, inp_y = torch.randn(5, 3, device="npu"), torch.randn(3, 5, device="npu")
+         self.assertEqual(orig_gm(inp_x, inp_y), torch.relu(inp_x))
+ 
+         b.update_arg(0, y)
+@@ -2656,7 +2658,7 @@ class TestFX(JitTestCase):
+         output: torch.fx.Node = graph.output(b)
+ 
+         orig_gm = torch.fx.GraphModule(torch.nn.Module(), graph)
+-        inp_x, inp_y = torch.randn(5, 3), torch.randn(3, 5)
++        inp_x, inp_y = torch.randn(5, 3, device="npu"), torch.randn(3, 5, device="npu")
+         self.assertEqual(orig_gm(inp_x, inp_y), torch.relu(inp_x))
+ 
+         b.update_kwarg("input", y)
+@@ -2664,7 +2666,7 @@ class TestFX(JitTestCase):
+         self.assertEqual(new_gm(inp_x, inp_y), torch.relu(inp_y))
+ 
+     def test_immutable_list_pytree_ops(self):
+-        rand_tensor = torch.randn(5, 3)
++        rand_tensor = torch.randn(5, 3, device="npu")
+         l = immutable_list([3, [rand_tensor, 42]])
+ 
+         flattened, spec = pytree.tree_flatten(l)
+@@ -2682,7 +2684,7 @@ class TestFX(JitTestCase):
+             )
+ 
+     def test_immutable_dict_pytree_ops(self):
+-        rand_tensor = torch.randn(5, 3)
++        rand_tensor = torch.randn(5, 3, device="npu")
+         d = immutable_dict({"a": 3, "b": [rand_tensor, 42]})
+ 
+         flattened, spec = pytree.tree_flatten(d)
+@@ -2712,7 +2714,7 @@ class TestFX(JitTestCase):
+ 
+         gm = torch.fx.GraphModule(torch.nn.Module(), graph)
+ 
+-        input = torch.randn(33, 44)
++        input = torch.randn(33, 44, device="npu")
+         self.assertEqual(gm(input), torch.relu(torch.neg(input)))
+ 
+     def test_prepend_self(self):
+@@ -2800,7 +2802,7 @@ class TestFX(JitTestCase):
+ 
+         combined_module = torch.fx.GraphModule(torch.nn.Module(), combined_graph)
+ 
+-        input = torch.rand(3, 4)
++        input = torch.rand(3, 4, device="npu")
+         self.assertEqual(combined_module(input), input.relu().neg())
+ 
+     def test_multi_insert_point(self):
+@@ -2842,7 +2844,7 @@ class TestFX(JitTestCase):
+         def foo(x, y):
+             return torch.relu(x) + y
+ 
+-        x, y = torch.randn(3, 4), torch.randn(3, 4)
++        x, y = torch.randn(3, 4, device="npu"), torch.randn(3, 4, device="npu")
+         self.checkGraphModule(foo, (x, y))
+ 
+     def test_trace_return_dataclass(self):
+@@ -2865,7 +2867,7 @@ class TestFX(JitTestCase):
+         print(traced_graph)
+ 
+         gm = GraphModule(module, traced_graph)
+-        x = torch.rand(1)
++        x = torch.rand(1, device="npu")
+ 
+         self.assertEqual(module(x), gm(x))
+ 
+@@ -2898,7 +2900,7 @@ class TestFX(JitTestCase):
+         print(traced_graph)
+ 
+         gm = GraphModule(module, traced_graph)
+-        x = torch.rand(1)
++        x = torch.rand(1, device="npu")
+ 
+         self.assertEqual(module(x), gm(x))
+ 
+@@ -2921,7 +2923,7 @@ class TestFX(JitTestCase):
+         print(traced_graph)
+ 
+         gm = GraphModule(module, traced_graph)
+-        x = torch.rand(1)
++        x = torch.rand(1, device="npu")
+ 
+         self.assertEqual(module(x), gm(x))
+ 
+@@ -2983,7 +2985,7 @@ class TestFX(JitTestCase):
+         copied.recompile()
+         traced1.recompile()
+ 
+-        x = torch.randn(15, 15)
++        x = torch.randn(15, 15, device="npu")
+         torch.testing.assert_close(traced1(x), torch.relu(x))
+         torch.testing.assert_close(copied(x), torch.neg(x))
+ 
+@@ -2991,7 +2993,7 @@ class TestFX(JitTestCase):
+         class TransposeTest(torch.nn.Module):
+             def __init__(self) -> None:
+                 super().__init__()
+-                self.b = torch.nn.Parameter(torch.rand(4, 3))
++                self.b = torch.nn.Parameter(torch.rand(4, 3, device="npu"))
+ 
+             def forward(self, x):
+                 return self.b
+@@ -3052,7 +3054,7 @@ class TestFX(JitTestCase):
+                 return MyNamedTup(x, x)
+ 
+         traced = symbolic_trace(NamedTupReturn())
+-        input = torch.rand(3, 4)
++        input = torch.rand(3, 4, device="npu")
+         self.assertEqual(traced(input), MyNamedTup(input, input))
+ 
+     def test_update_args_kwargs_yells_at_you(self):
+@@ -3115,7 +3117,7 @@ class TestFX(JitTestCase):
+ 
+         h = Holder()
+         traced = symbolic_trace(h)
+-        input = torch.randn(3, 4)
++        input = torch.randn(3, 4, device="npu")
+         self.assertEqual(traced(input), h(input))
+ 
+         self.assertTrue(any(n.op == "call_method" for n in traced.graph.nodes))
+@@ -3126,7 +3128,7 @@ class TestFX(JitTestCase):
+                 return Pair(x, x)
+ 
+         traced = symbolic_trace(NamedTupReturn())
+-        input = torch.rand(3, 4)
++        input = torch.rand(3, 4, device="npu")
+         self.assertEqual(traced(input), Pair(input, input))
+ 
+     def test_named_tuple_inlined(self):
+@@ -3135,7 +3137,7 @@ class TestFX(JitTestCase):
+                 return wrapped_named_tup(Pair(inp, 1.2), p2=Pair(3.4, inp))
+ 
+         m = NamedTupMod()
+-        input = torch.rand(3, 4)
++        input = torch.rand(3, 4, device="npu")
+         ref = m(input)
+         traced = symbolic_trace(m)
+ 
+@@ -3385,7 +3387,7 @@ class TestFX(JitTestCase):
+ 
+         gm = torch.fx.symbolic_trace(Foo())
+ 
+-        x = torch.randn(5, 3)
++        x = torch.randn(5, 3, device="npu")
+         out = gm(x)
+ 
+         replica = gm._replicate_for_data_parallel()
+@@ -3561,13 +3563,13 @@ class TestFX(JitTestCase):
+                 return wrapped_with_submodule(x, self.batchnorm1d)
+ 
+         ast_rewriter = RewritingTracer()
+-        graph = ast_rewriter.trace(M())
++        graph = ast_rewriter.trace(M().npu())
+         traced = GraphModule(ast_rewriter.root, graph, "gm")
+ 
+         self.assertIn("wrapped_with_submodule", traced.code)
+ 
+-        input = torch.rand(3, 2)
+-        ref_batchnorm1d = torch.nn.BatchNorm1d(2, affine=False)
++        input = torch.rand(3, 2, device="npu")
++        ref_batchnorm1d = torch.nn.BatchNorm1d(2, affine=False).npu()
+         self.assertEqual(ref_batchnorm1d(input), traced(input))
+ 
+     def test_submodule_manipulation_API(self):
+@@ -3599,7 +3601,7 @@ class TestFX(JitTestCase):
+             def forward(self, x):
+                 return self.net_b(x) + self.param
+ 
+-        a = symbolic_trace(A())
++        a = symbolic_trace(A().npu())
+ 
+         a.add_submodule("net_b.net_c.dropout", torch.nn.Dropout(p=0.2))
+ 
+@@ -3699,7 +3701,7 @@ class TestFX(JitTestCase):
+         a.add_submodule("net_b.embedding", torch.nn.Embedding(10, 3))
+         a.add_submodule("net_b.net_c.embedding", torch.nn.Embedding(10, 3))
+         a.add_submodule("net_b.net_c.rnn", torch.nn.RNN(10, 20, 2))
+-        a.add_submodule("batch_norm_2d", torch.nn.BatchNorm2d(100))
++        a.add_submodule("batch_norm_2d", torch.nn.BatchNorm2d(100).npu())
+ 
+         # Garbage collection
+         a.delete_all_unused_submodules()
+@@ -3737,7 +3739,7 @@ class TestFX(JitTestCase):
+                 x = self.submod(x)
+                 return x
+ 
+-        model = Model()
++        model = Model().npu()
+ 
+         class MyCustomTracer(torch.fx.Tracer):
+             def is_leaf_module(
+@@ -3745,7 +3747,7 @@ class TestFX(JitTestCase):
+             ) -> bool:
+                 return module_qualified_name == "submod"
+ 
+-        inputs = torch.randn(1, 10)
++        inputs = torch.randn(1, 10, device="npu")
+         traced_graph = MyCustomTracer().trace(model)
+         gm2 = torch.fx.GraphModule(model, traced_graph)
+         gm2.delete_all_unused_submodules()
+@@ -3761,11 +3763,11 @@ class TestFX(JitTestCase):
+             def forward(self, x):
+                 return self.l1(x) + self.buffer
+ 
+-        module = MockModule()
+-        x = torch.rand((1, 1))
+-        weight = torch.tensor([[1.0]], requires_grad=True)
+-        bias = torch.tensor([0.0], requires_grad=True)
+-        buffer = torch.tensor([0.0])
++        module = MockModule().npu()
++        x = torch.rand((1, 1), device="npu")
++        weight = torch.tensor([[1.0]], device="npu", requires_grad=True)
++        bias = torch.tensor([0.0], device="npu", requires_grad=True)
++        buffer = torch.tensor([0.0], device="npu")
+         parameters = {"l1.weight": weight, "l1.bias": bias, "buffer": buffer}
+         fx_module = torch.fx.symbolic_trace(module)
+         res = torch.func.functional_call(fx_module, parameters, x)
+@@ -3826,7 +3828,7 @@ class TestFX(JitTestCase):
+         #
+         # Test: B as a regular, non-leaf module
+         #
+-        a = symbolic_trace(A())
++        a = symbolic_trace(A().npu())
+         a.recompile()
+         m = M(a, B())
+         graph = LeafTracerNotB().trace(m)
+@@ -3854,7 +3856,7 @@ class TestFX(JitTestCase):
+         # symbolic_trace should only patch torch.nn.Module.__call__,
+         # which means B.__call__ should still execute
+         #
+-        a = symbolic_trace(A())
++        a = symbolic_trace(A().npu())
+         a.recompile()
+         b = B()
+         m = M(a, b)
+@@ -3880,7 +3882,7 @@ class TestFX(JitTestCase):
+         # Test: B as GraphModule leaf
+         # __call__ not honored since symbolic_trace directly invokes forward()
+         #
+-        a = symbolic_trace(A())
++        a = symbolic_trace(A().npu())
+         a.recompile()
+         b = symbolic_trace(B())
+         b.recompile()
+@@ -3901,15 +3903,15 @@ class TestFX(JitTestCase):
+         class MyModule(torch.nn.Module):
+             def __init__(self) -> None:
+                 super().__init__()
+-                self.my_buff = torch.nn.Buffer(torch.rand(3, 4))
++                self.my_buff = torch.nn.Buffer(torch.rand(3, 4, device="npu"))
+                 self.register_parameter(
+-                    "my_param", torch.nn.Parameter(torch.rand(3, 4))
++                    "my_param", torch.nn.Parameter(torch.rand(3, 4, device="npu"))
+                 )
+ 
+             def forward(self, x):
+                 return x + self.my_buff + self.my_param
+ 
+-        mod = MyModule()
++        mod = MyModule().npu()
+         mod_traced = symbolic_trace(mod)
+ 
+         # Create new GraphModule based on original, either w/ dict or root module.
+@@ -3933,7 +3935,7 @@ class TestFX(JitTestCase):
+             self.fail("Did not find my_param")
+         self.assertEqual(orig_param, new_param)
+ 
+-        x = torch.rand(3, 4)
++        x = torch.rand(3, 4, device="npu")
+         orig_out = mod_traced(x)
+         submodules_out = mod_traced_new(x)
+ 
+@@ -3954,7 +3956,7 @@ class TestFX(JitTestCase):
+             def forward(self, x: torch.Tensor, a: A) -> torch.Tensor:
+                 return a(x)
+ 
+-        self.checkGraphModule(M(), (torch.rand(2, 3), A()), kwargs=None)
++        self.checkGraphModule(M(), (torch.rand(2, 3, device="npu"), A()), kwargs=None)
+ 
+     def test_annotations_with_forward_references(self):
+         class A:
+@@ -3965,7 +3967,7 @@ class TestFX(JitTestCase):
+             def forward(self, x: "torch.Tensor", a: "A") -> "torch.Tensor":
+                 return a(x)
+ 
+-        self.checkGraphModule(M(), (torch.rand(2, 3), A()), kwargs=None)
++        self.checkGraphModule(M(), (torch.rand(2, 3, device="npu"), A()), kwargs=None)
+ 
+     def test_annotations_with_non_torch_reference_and_no_internal_forward_references(
+         self,
+@@ -3978,7 +3980,7 @@ class TestFX(JitTestCase):
+             def forward(self, x: list[torch.Tensor], a: A) -> torch.Tensor:
+                 return a(x[0])
+ 
+-        self.checkGraphModule(M(), (torch.rand(2, 3), A()), kwargs=None)
++        self.checkGraphModule(M(), (torch.rand(2, 3, device="npu"), A()), kwargs=None)
+ 
+     def test_annotations_with_non_torch_reference_and_internal_forward_references(self):
+         class A:
+@@ -3989,7 +3991,7 @@ class TestFX(JitTestCase):
+             def forward(self, x: list["torch.Tensor"], a: A) -> "torch.Tensor":
+                 return a(x)[0]
+ 
+-        self.checkGraphModule(M(), (torch.rand(2, 3), A()), kwargs=None)
++        self.checkGraphModule(M(), (torch.rand(2, 3, device="npu"), A()), kwargs=None)
+ 
+     def test_annotation_with_future(self):
+         try:
+@@ -4080,7 +4082,7 @@ class TestFX(JitTestCase):
+ 
+         def verify_pytree(f, inp):
+             val = pytree.tree_map(
+-                lambda x: torch.randn(3) if isinstance(x, PHBase) else x, inp
++                lambda x: torch.randn(3, device="npu") if isinstance(x, PHBase) else x, inp
+             )
+             num_flat_args = len(pytree.tree_leaves(inp))
+             orig_out = f(val)
+@@ -4143,7 +4145,7 @@ class TestFX(JitTestCase):
+ 
+         inp = {"a": {"a": PH, "z": PH}, "b": True}
+         nf = symbolic_trace(f, concrete_args=inp)
+-        val = pytree.tree_map(lambda x: torch.randn(3) if x == PH else x, inp)
++        val = pytree.tree_map(lambda x: torch.randn(3, device="npu") if x == PH else x, inp)
+         self.assertEqual(nf(**val), f(**val))
+ 
+         nf = symbolic_trace(nf)
+@@ -4239,7 +4241,7 @@ def forward(self, args_list: List[torch.Tensor]){maybe_return_annotation}:
+             return a + b
+ 
+         nf = symbolic_trace(f)
+-        vals = [torch.randn(3), torch.randn(3)]
++        vals = [torch.randn(3, device="npu"), torch.randn(3, device="npu")]
+         self.assertEqual(nf(*vals), f(*vals))
+ 
+         nf.graph.set_codegen(ListCodeGen())
+@@ -4279,7 +4281,7 @@ def forward(self, args_list: List[torch.Tensor]){maybe_return_annotation}:
+             return a + b
+ 
+         nf = symbolic_trace(f)
+-        vals = [torch.randn(3), torch.randn(3)]
++        vals = [torch.randn(3, device="npu"), torch.randn(3, device="npu")]
+         self.assertEqual(nf(*vals), f(*vals))
+ 
+         nf.graph.set_codegen(ListCodeGen())
+@@ -4319,7 +4321,7 @@ def forward(self, args_list: List[torch.Tensor]){maybe_return_annotation}:
+             return a, b
+ 
+         nf = symbolic_trace(f)
+-        vals = [torch.randn(3), torch.randn(3)]
++        vals = [torch.randn(3, device="npu"), torch.randn(3, device="npu")]
+         nf.graph.set_codegen(ListCodeGen())
+         nf.recompile()
+         self.assertEqual(Interpreter(nf).run(vals), nf(vals))
+@@ -4383,7 +4385,7 @@ def forward(self, args_list: List[torch.Tensor]){maybe_return_annotation}:
+ 
+     def test_insert_arg(self):
+         m = symbolic_trace(SimpleTest())
+-        m.buf = torch.nn.Buffer(torch.tensor(0))
++        m.buf = torch.nn.Buffer(torch.tensor(0, device="npu"))
+         output_node = next(iter(reversed(m.graph.nodes)))
+         with m.graph.inserting_before(output_node):
+             a = m.graph.get_attr("buf")
