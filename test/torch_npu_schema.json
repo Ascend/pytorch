@@ -1080,7 +1080,7 @@
     "signature": "()"
   },
   "torch_npu.npu.is_bf16_supported": {
-    "signature": "()"
+    "signature": "(including_emulation: bool = False)"
   },
   "torch_npu.npu.is_initialized": {
     "signature": "()"
@@ -1593,7 +1593,7 @@
     "signature": "()"
   },
   "torch_npu.npu.utils.is_bf16_supported": {
-    "signature": "()"
+    "signature": "(including_emulation: bool = False)"
   },
   "torch_npu.npu.utils.is_support_inf_nan": {
     "signature": "()"
