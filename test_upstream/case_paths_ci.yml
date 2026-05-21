@@ -8,6 +8,7 @@ whitelist:
   - test/test_utils.py
   - test/torch_np
   - test/distributed
+  - test/inductor
   - test/distributions
   - test/functorch
   - test/nn
@@ -190,3 +191,9 @@ blacklist:
   - test/xpu/test_gemm.py
   - test/xpu/test_conv.py
   - test/test_mps.py
+  - test/inductor/test_torchinductor_opinfo.py
+  - test/inductor/test_compile_subprocess.py
+  - test/inductor/test_torchinductor_codegen_dynamic_shapes.py
+  - test/inductor/test_fused_attention.py
+  - test/inductor/test_aot_inductor_utils.py
+  - test/inductor/test_cpu_cpp_wrapper.py
