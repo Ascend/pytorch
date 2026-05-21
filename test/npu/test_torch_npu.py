@@ -112,6 +112,7 @@ class TorchNPUDeviceTestCase(TestCase):
             else:
                 os.environ["TORCH_NPU_DEVICE_CAPABILITY"] = old_value
 
+    @unittest.skip("CANN doesn't support now.")
     def test_npu_mem_get_info(self):
         before_free_memory, before_total_memory = torch_npu.npu.mem_get_info(0)
         torch.randn(1024 * 1024 * 1024, device='npu:0')
