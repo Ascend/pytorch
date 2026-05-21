@@ -356,7 +356,7 @@ def is_support_inf_nan():
     return torch_npu._C._npu_is_support_inf_nan()
 
 
-def is_bf16_supported():
+def is_bf16_supported(including_emulation: bool = False):
     torch_npu.npu._lazy_init()
     return torch_npu._C._npu_is_bf16_supported()
 
