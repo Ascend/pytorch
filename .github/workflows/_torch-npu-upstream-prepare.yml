@@ -25,8 +25,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          repository: Ascend/pytorch
-          ref: v2.7.1
+          repository: kerer-ai/pytorch
+          ref: v2.7.1_image
           fetch-depth: 1
 
       - name: Clone PyTorch v${{ inputs.pytorch_version }} (for test source)

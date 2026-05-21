@@ -66,7 +66,7 @@ jobs:
       pytorch_version: ${{ inputs.pytorch_version }}
       prepared_test_src_artifact: pytorch-test-src-${{ inputs.pytorch_version }}-patched
       torch_npu_wheel_artifact: torch-npu-wheel-${{ inputs.pytorch_version }}-source
-      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.7.1_a3_aarch64_builder:20260424
+      docker_image: quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py2.7.1-202605211409
       distributed_shards: ${{ inputs.distributed_shards }}
       regular_shards: ${{ inputs.regular_shards }}
 
@@ -85,7 +85,7 @@ jobs:
       pytorch_version: ${{ inputs.pytorch_version }}
       prepared_test_src_artifact: pytorch-test-src-${{ inputs.pytorch_version }}-patched
       torch_npu_wheel_artifact: torch-npu-wheel-${{ inputs.pytorch_version }}-source
-      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.7.1_a3_aarch64_builder:20260424
+      docker_image: quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py2.7.1-202605211409
       distributed_matrix: ${{ needs.collect_cases.outputs.distributed_matrix }}
       distributed_shards: ${{ needs.collect_cases.outputs.distributed_shards }}
 
@@ -104,7 +104,7 @@ jobs:
       pytorch_version: ${{ inputs.pytorch_version }}
       prepared_test_src_artifact: pytorch-test-src-${{ inputs.pytorch_version }}-patched
       torch_npu_wheel_artifact: torch-npu-wheel-${{ inputs.pytorch_version }}-source
-      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.7.1_a3_aarch64_builder:20260424
+      docker_image: quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py2.7.1-202605211409
       regular_matrix: ${{ needs.collect_cases.outputs.regular_matrix }}
       regular_shards: ${{ needs.collect_cases.outputs.regular_shards }}
 
@@ -122,7 +122,7 @@ jobs:
       pytorch_version: ${{ inputs.pytorch_version }}
       prepared_test_src_artifact: pytorch-test-src-${{ inputs.pytorch_version }}-patched
       torch_npu_wheel_artifact: torch-npu-wheel-${{ inputs.pytorch_version }}-source
-      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.7.1_a3_aarch64_builder:20260424
+      docker_image: quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py2.7.1-202605211409
       test_files: ${{ inputs.test_files }}
 
   # ============================================================================
@@ -143,6 +143,6 @@ jobs:
       pytorch_version: ${{ inputs.pytorch_version }}
       torch_npu_wheel_name: ${{ needs.build_torch_npu.outputs.wheel_name || 'source-build.whl' }}
       patch_count: ${{ needs.prepare.outputs.patch_count || 'N/A' }}
-      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.7.1_a3_aarch64_builder:20260424
+      docker_image: quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py2.7.1-202605211409
       distributed_matrix: ${{ needs.collect_cases.outputs.distributed_matrix || '[]' }}
       regular_matrix: ${{ needs.collect_cases.outputs.regular_matrix || '[]' }}

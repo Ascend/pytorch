@@ -69,7 +69,6 @@ jobs:
         uses: Ascend/pytorch/.github/actions/setup-npu-test-env@v2.7.1
         with:
           python_version: ${{ inputs.python_version }}
-          pytorch_version: ${{ inputs.pytorch_version }}
           torch_npu_wheel_artifact: ${{ inputs.torch_npu_wheel_artifact }}
           prepared_test_src_artifact: ${{ inputs.prepared_test_src_artifact }}
           patch_log_suffix: collect
