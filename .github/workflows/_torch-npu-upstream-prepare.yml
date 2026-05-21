@@ -3,10 +3,6 @@ name: Torch NPU Upstream Prepare
 on:
   workflow_call:
     inputs:
-      pytorch_version:
-        required: true
-        type: string
-        description: PyTorch version to clone for test source
       prepared_test_src_artifact:
         required: true
         type: string
@@ -29,9 +25,9 @@ jobs:
           ref: v2.7.1_image
           fetch-depth: 1
 
-      - name: Clone PyTorch v${{ inputs.pytorch_version }} (for test source)
+      - name: Clone PyTorch v2.7.1 (for test source)
         run: |
-          git clone --depth=1 --branch v${{ inputs.pytorch_version }} \
+          git clone --depth=1 --branch v2.7.1 \
             https://github.com/pytorch/pytorch.git pytorch-test-src
 
       - name: Copy test_upstream patches

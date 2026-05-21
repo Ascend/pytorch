@@ -7,10 +7,6 @@ on:
         required: true
         type: string
         description: Python version to use
-      pytorch_version:
-        required: true
-        type: string
-        description: PyTorch version to install
       prepared_test_src_artifact:
         required: true
         type: string

@@ -7,6 +7,10 @@ on:
         required: true
         type: string
         description: Python version to use for building
+      docker_image:
+        required: true
+        type: string
+        description: Docker image to use for building
       torch_npu_wheel_artifact:
         required: true
         type: string
@@ -31,13 +35,13 @@ jobs:
   build_torch_npu:
     runs-on: linux-aarch64-a3-2
     container:
-      image: quay.io/kerer/pytorch:torch-npu-builder-aarch64-py2.7.1-202605211244
+      image: ${{ inputs.docker_image }}
       options: --user root
     outputs:
       wheel: ${{ steps.build.outputs.wheel }}
       status: ${{ steps.build.outputs.status }}
     env:
-      DOCKER_IMAGE: quay.io/kerer/pytorch:torch-npu-builder-aarch64-py2.7.1-202605211244
+      DOCKER_IMAGE: ${{ inputs.docker_image }}
       PYTHON_VERSION: ${{ inputs.python_version }}
 
     steps:
