@@ -1,3 +1,4 @@
+import os
 import sys
 import threading
 import warnings
@@ -369,6 +370,10 @@ def _ddp_init_helper(
 
 
 def _mpdl_iter_init(self, *args, **kwargs):
+    if os.getenv("ASCEND_RT_VISIBLE_DEVICES") == "":
+        origin_mpdl_iter_init(self, *args, **kwargs)
+        return
+
     try:
         torch_npu.npu.synchronize()
     except Exception as e:
