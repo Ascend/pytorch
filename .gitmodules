@@ -25,3 +25,12 @@
 	path = third_party/dvm/dvm
 	url = https://gitcode.com/mindspore/dvm.git
 	branch = r2.10
+[submodule "third_party/acl_src/runtime"]
+	path = third_party/acl_src/runtime
+	url = https://gitcode.com/cann/runtime.git
+[submodule "third_party/acl_src/ge"]
+	path = third_party/acl_src/ge
+	url = https://gitcode.com/cann/ge.git
+[submodule "third_party/acl_src/graph-autofusion"]
+	path = third_party/acl_src/graph-autofusion
+	url = https://gitcode.com/cann/graph-autofusion.git

@@ -28,7 +28,7 @@ void apply_cache_op_info(aclrtStream stream, bool enabled)
     }
     aclrtStreamAttrValue val;
     val.cacheOpInfoSwitch = static_cast<uint32_t>(enabled ? 1u : 0u);
-    int32_t ret = c10_npu::acl::AclrtSetStreamAttribute(stream, aclrtStreamAttr::ACL_STREAM_ATTR_CACHE_OP_IFNO,
+    int32_t ret = c10_npu::acl::AclrtSetStreamAttribute(stream, aclrtStreamAttr::ACL_STREAM_ATTR_CACHE_OP_INFO,
         &val);
     if (ret == ACL_ERROR_RT_PARAM_INVALID) {
         ASCEND_LOGW("Report shape function is disabled due to incompatible CANN version.");

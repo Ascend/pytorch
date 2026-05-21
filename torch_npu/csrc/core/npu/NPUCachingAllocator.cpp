@@ -34,6 +34,8 @@
 #include "torch_npu/csrc/sanitizer/NPUTrace.h"
 #endif
 
+static constexpr size_t kMaxModuleNum = 128;
+
 std::string format_size(uint64_t size)
 {
     std::ostringstream os;
@@ -905,11 +907,11 @@ void setAllocatorSettings(const std::string& settings)
 
 bool saveDevMemUsageInfo(const int& device)
 {
-    aclrtMemUsageInfo memUsageInfo[MAX_MODULE_NUM] = {0};
+    aclrtMemUsageInfo memUsageInfo[kMaxModuleNum] = {0};
     size_t moduleCount = 0;
 
     // Get the memory usage information
-    aclError ret = c10_npu::acl::AclrtGetMemUsageInfo(device, memUsageInfo, MAX_MODULE_NUM, &moduleCount);
+    aclError ret = c10_npu::acl::AclrtGetMemUsageInfo(device, memUsageInfo, kMaxModuleNum, &moduleCount);
     if (ret != ACL_ERROR_NONE) {
         TORCH_NPU_MEMORY_LOGE("AclrtGetMemUsageInfo failed, ret:%d", ret);
         return false;
@@ -932,13 +934,13 @@ bool saveDevMemUsageInfo(const int& device)
 
     csv_file << "moduleName,curMemSize(MB),memPeakSize(MB)\n" << std::fixed << std::setprecision(kPrecision);
 
-    // moduleCount is unreliable, so limit i to MAX_MODULE_NUM
-    for (size_t i = 0; i < moduleCount && i < MAX_MODULE_NUM; ++i) {
+    // moduleCount is unreliable, so limit i to kMaxModuleNum
+    for (size_t i = 0; i < moduleCount && i < kMaxModuleNum; ++i) {
         csv_file << memUsageInfo[i].name << "," << static_cast<double>(memUsageInfo[i].curMemSize) / kMB << ","
                  << static_cast<double>(memUsageInfo[i].memPeakSize) / kMB << "\n";
     }
-    if (moduleCount > MAX_MODULE_NUM) {
-        TORCH_NPU_MEMORY_LOGW("The number of modules exceeds the maximum limit: %zu > %zu", moduleCount, MAX_MODULE_NUM);
+    if (moduleCount > kMaxModuleNum) {
+        TORCH_NPU_MEMORY_LOGW("The number of modules exceeds the maximum limit: %zu > %zu", moduleCount, kMaxModuleNum);
     }
     csv_file.close();
 
@@ -969,7 +971,7 @@ private:
 };
 
 struct handle_str {
-    char data[ACL_IPC_HANDLE_SIZE];
+    char data[kAclIpcHandleSize];
 };
 
 // handle for ptr
@@ -1558,12 +1560,12 @@ public:
             auto it = ipc_handle_map.find(base_ptr);
             if (it == ipc_handle_map.end()) {
                 NPU_CHECK_ERROR(c10_npu::acl::AclrtIpcMemGetExportKey(
-                    base_ptr, base_size, handle.data, ACL_IPC_HANDLE_SIZE, ACL_RT_IPC_MEM_EXPORT_FLAG_DISABLE_PID_VALIDATION));
+                    base_ptr, base_size, handle.data, kAclIpcHandleSize, ACL_RT_IPC_MEM_EXPORT_FLAG_DISABLE_PID_VALIDATION));
                 ipc_handle_map[base_ptr] = handle;
             } else {
                 handle = it->second;
             }
-            ss.write((char*)&handle, ACL_IPC_HANDLE_SIZE);
+            ss.write((char*)&handle, kAclIpcHandleSize);
         } else {
             ss.put(SHAREABLE_NPU_EXPANDABLE_SEGMENT);
             auto full_range = block->expandable_segment_->share(
@@ -3708,7 +3710,7 @@ public:
         {
             int type = SHAREABLE_NPU_MALLOC;
             std::istringstream ss(handle);
-            if (handle.size() != ACL_IPC_HANDLE_SIZE) {
+            if (handle.size() != kAclIpcHandleSize) {
                 auto version = ss.get();
                 TORCH_CHECK(
                     version <= SHAREABLE_HANDLE_VERSION,
@@ -3720,10 +3722,10 @@ public:
             // SHAREABLE_NPU_MALLOC
             if (type == SHAREABLE_NPU_MALLOC) {
                 handle_str handle_r;
-                ss.read(handle_r.data, ACL_IPC_HANDLE_SIZE);
+                ss.read(handle_r.data, kAclIpcHandleSize);
                 NPU_CHECK_ERROR(c10_npu::acl::AclrtIpcMemImportByKey(
                     &npu_ipc_ptr_, handle_r.data, ACL_RT_IPC_MEM_IMPORT_FLAG_ENABLE_PEER_ACCESS));
-                handle_s.assign(handle_r.data, ACL_IPC_HANDLE_SIZE);
+                handle_s.assign(handle_r.data, kAclIpcHandleSize);
             } else if (type == SHAREABLE_NPU_EXPANDABLE_SEGMENT) {
                 expandable_segment_ =
                     ExpandableSegment::fromShared(device, ss)
