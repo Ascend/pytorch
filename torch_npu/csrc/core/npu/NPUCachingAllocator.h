@@ -46,6 +46,7 @@ inline std::shared_ptr<npu_logging::Logger>& GetLoggerMem()
 std::string format_size(uint64_t size);
 
 namespace c10_npu {
+constexpr size_t kAclIpcHandleSize = 65;
 namespace NPUCachingAllocator {
 
 C10_NPU_API std::mutex* getFreeMutex();
