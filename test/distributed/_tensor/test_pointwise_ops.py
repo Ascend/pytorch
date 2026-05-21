@@ -18,6 +18,12 @@ from torch.distributed._tensor.placement_types import (
     Replicate,
     Shard,
 )
+from torch.distributed.tensor.debug import CommDebugMode
+from torch.testing._internal.common_utils import (
+    instantiate_parametrized_tests,
+    parametrize,
+    run_tests,
+)
 from torch.distributed.distributed_c10d import ReduceOp
 from torch.testing._internal.common_utils import run_tests
 from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTestBase
@@ -297,6 +303,30 @@ class DistElementwiseOpsTest(DTensorTestBase):
         )
         self.assertEqual(dist_res.to_local().dtype, dst_dtype)
         self.assertEqual(dist_res.to_local(), local_result)
+
+    @with_comms
+    @parametrize("op,reduce_op", [(torch.maximum, "max"), (torch.minimum, "min")])
+    def test_partial_propagation(self, op, reduce_op):
+        # Test that torch.maximum/minimum preserves Partial("max"/"min") placements
+        # since max(max(a), max(b)) == max(a, b) and min(min(a), min(b)) == min(a, b)
+        device_mesh = self.build_device_mesh()
+        comm_mode = CommDebugMode()
+
+        input1 = torch.rand(8, 8) * self.rank
+        input2 = torch.rand(8, 8) * (self.world_size - self.rank)
+
+        d_input1 = DTensor.from_local(input1, device_mesh, [Partial(reduce_op)])
+        d_input2 = DTensor.from_local(input2, device_mesh, [Partial(reduce_op)])
+
+        with comm_mode:
+            result = op(d_input1, d_input2)
+
+        # Should not require any communication
+        self.assertEqual(comm_mode.get_total_counts(), 0)
+        # Result should still be Partial with the same reduce_op
+        self.assertEqual(result.placements, (Partial(reduce_op),))
+
+instantiate_parametrized_tests(DistElementwiseOpsTest)
 
 
 if __name__ == "__main__":
