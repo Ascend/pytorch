@@ -1,0 +1,51 @@
+name: Build Docker Images
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .ci/docker/**
+      - .github/workflows/build-docker-images.yml
+
+env:
+  REGISTRY: quay.io
+  QUAY_ORG: kerer
+  IMAGE_NAME: pytorch
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        tag:
+          - torch-npu-builder-x86_64-py2.7.1
+          - torch-npu-builder-aarch64-py2.7.1
+          - torch-npu-test-x86_64-cannA1-py2.7.1
+          - torch-npu-test-x86_64-cannA2-py2.7.1
+          - torch-npu-test-x86_64-cannA3-py2.7.1
+          - torch-npu-test-aarch64-cannA1-py2.7.1
+          - torch-npu-test-aarch64-cannA2-py2.7.1
+          - torch-npu-test-aarch64-cannA3-py2.7.1
+    runs-on: ${{ contains(matrix.tag, 'x86_64') && 'ubuntu-latest' || 'ubuntu-22.04-arm' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to Quay.io
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_PASSWORD }}
+
+      - name: Build and push image
+        run: |
+          TIMESTAMP=$(date -u +%Y%m%d%H%M)
+          cd .ci/docker
+          TIMESTAMP=${TIMESTAMP} ./docker_build.sh ${{ matrix.tag }}
+
+          IMAGE_TAG="${{ matrix.tag }}-${TIMESTAMP}"
+          REMOTE_IMAGE="${{ env.REGISTRY }}/${{ env.QUAY_ORG }}/${{ env.IMAGE_NAME }}:${IMAGE_TAG}"
+          docker tag "${IMAGE_TAG}" "${REMOTE_IMAGE}"
+          docker push "${REMOTE_IMAGE}"
+          echo "Pushed ${REMOTE_IMAGE}"

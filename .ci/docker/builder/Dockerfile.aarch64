@@ -1,0 +1,73 @@
+FROM pytorch/manylinux2_28_aarch64-builder:cpu-aarch64-2.7
+
+ARG PYTORCH_VERSION=2.7.1
+
+ENV PATH=/usr/local/bin:$PATH
+ENV AUDITWHEEL_PLAT=manylinux_2_28_aarch64
+ENV ETCD_UNSUPPORTED_ARCH=arm64
+ENV PYTORCH_VERSION=${PYTORCH_VERSION}
+ENV TORCH_PACKAGE_SUFFIX=
+
+COPY common/ /opt/buildtools/
+
+# Set pip & python symlinks
+RUN cd /usr/local/bin \
+    && ln -sf /opt/_internal/cpython-3.9.21/bin/pip3.9 pip3.9 \
+    && ln -sf /opt/_internal/cpython-3.10.16/bin/pip3.10 pip3.10 \
+    && ln -sf /opt/_internal/cpython-3.11.11/bin/pip3.11 pip3.11 \
+    && ln -sf /opt/_internal/cpython-3.12.9/bin/pip3.12 pip3.12 \
+    && ln -sf /opt/_internal/cpython-3.13.2/bin/pip3.13 pip3.13 \
+    && ln -sf /opt/_internal/cpython-3.10.16/bin/pip3.10 pip3 \
+    && ln -sf /opt/_internal/cpython-3.9.21/bin/python3.9 python3.9 \
+    && ln -sf /opt/_internal/cpython-3.10.16/bin/python3.10 python3.10 \
+    && ln -sf /opt/_internal/cpython-3.11.11/bin/python3.11 python3.11 \
+    && ln -sf /opt/_internal/cpython-3.12.9/bin/python3.12 python3.12 \
+    && ln -sf /opt/_internal/cpython-3.13.2/bin/python3.13 python3.13 \
+    && ln -sf /opt/_internal/cpython-3.10.16/bin/python3.10 python3
+
+# Set pip source
+RUN mkdir /root/.pip \
+    && echo "[global]" > /root/.pip/pip.conf \
+    && echo "index-url=https://mirrors.huaweicloud.com/repository/pypi/simple" >> /root/.pip/pip.conf \
+    && echo "trusted-host=mirrors.huaweicloud.com" >> /root/.pip/pip.conf \
+    && echo "timeout=120" >> /root/.pip/pip.conf
+
+# Install PyTorch, build deps, and requirements for each python version
+RUN pip3.9 install --no-cache-dir -r /opt/buildtools/requirements-builder.txt \
+    && pip3.10 install --no-cache-dir -r /opt/buildtools/requirements-builder.txt \
+    && pip3.11 install --no-cache-dir -r /opt/buildtools/requirements-builder.txt \
+    && pip3.12 install --no-cache-dir -r /opt/buildtools/requirements-builder.txt \
+    && pip3.13 install --no-cache-dir auditwheel==5.4.0 -r /opt/buildtools/requirements-builder.txt \
+    && ln -sf /opt/_internal/cpython-3.13.2/bin/auditwheel /usr/local/bin/auditwheel
+
+# Install system build tools
+RUN echo "alias ll='ls -l --color=auto'" >> /root/.bashrc \
+    && yum install -y vim-common --disablerepo=ius \
+    && yum install -y ninja-build binutils lld mold dos2unix gcc gcc-c++ make cmake3 wget tar unzip elfutils java-1.8.0-openjdk-devel \
+    && cd /tmp \
+    && wget https://github.com/ccache/ccache/releases/download/v4.10/ccache-4.10.tar.gz \
+    && tar -xzf ccache-4.10.tar.gz \
+    && cd ccache-4.10 \
+    && mkdir build \
+    && cd build \
+    && cmake3 .. \
+    && make -j$(nproc) \
+    && make install \
+    && cd /tmp \
+    && rm -rf ccache-4.10* \
+    && ccache --version \
+    && wget https://github.com/etcd-io/etcd/releases/download/v3.4.3/etcd-v3.4.3-linux-arm64.tar.gz \
+    && tar -zxf etcd-v3.4.3-linux-arm64.tar.gz \
+    && mv etcd-v3.4.3-linux-arm64/etcd /usr/local/bin/ \
+    && pip3.10 install python-etcd \
+    && etcd --version \
+    && yum update -y \
+    && yum clean all
+
+# Set timezone
+RUN rm -f /etc/localtime \
+    && cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
+    && echo 'Asia/Shanghai' >/etc/timezone \
+    && echo "export TZ='Asia/Shanghai'" >>/etc/profile
+
+WORKDIR /home
