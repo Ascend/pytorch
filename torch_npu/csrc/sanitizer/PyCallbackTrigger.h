@@ -125,6 +125,17 @@ struct PyCallbackTrigger {
             CONCRETE_TRACE_NPU("traceNpuExternalEventWaitCallbacks", event, stream);
         }
     }
+    void traceNpuRecordStream(uintptr_t data_ptr, uintptr_t stream) const
+    {
+        if (sanitizer_mode == SanitizerMode::STREAM) {
+            CONCRETE_TRACE_NPU("NPURecordStreamCallbacks", data_ptr, stream);
+        }
+    }
+    void traceNpuEraseStream(uintptr_t data_ptr, uintptr_t stream) const {
+        if (sanitizer_mode == SanitizerMode::STREAM) {
+            CONCRETE_TRACE_NPU("NPUEraseStreamCallbacks", data_ptr, stream);
+        }
+    }
 };
 
 PyCallbackTrigger* getPyCallbackTrigger(const int mode);
