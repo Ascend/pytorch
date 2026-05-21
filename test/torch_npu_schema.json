@@ -1127,6 +1127,12 @@
   "torch_npu.npu.mstx.mark": {
     "signature": "(message: str, stream=None, domain: str = 'default')"
   },
+  "torch_npu.npu.mstx.range_push": {
+    "signature": "(message: str, stream=None, domain: str = 'default') -> int"
+  },
+  "torch_npu.npu.mstx.range_pop": {
+    "signature": "(domain: str = 'default') -> int"
+  },
   "torch_npu.npu.mstx.range_start": {
     "signature": "(message: str, stream=None, domain: str = 'default') -> int"
   },
@@ -1135,6 +1141,9 @@
   },
   "torch_npu.npu.mstx.mstx_range": {
     "signature": "(message: str, stream=None, domain: str = 'default')"
+  },
+  "torch_npu.npu.mstx.annotate": {
+    "signature": "(message: str = '', stream=None, domain: str = 'default')"
   },
   "torch_npu.npu.reset_accumulated_memory_stats": {
     "signature": "(device=None)"
@@ -1423,6 +1432,15 @@
   },
   "torch_npu.npu.mstx.mstx.mstx_range": {
     "signature": "(message: str, stream=None, domain: str = 'default')"
+  },
+  "torch_npu.npu.mstx.mstx.range_push": {
+    "signature": "(message: str, stream=None, domain: str = 'default') -> int"
+  },
+  "torch_npu.npu.mstx.mstx.range_pop": {
+    "signature": "(domain: str = 'default') -> int"
+  },
+  "torch_npu.npu.mstx.mstx.annotate": {
+    "signature": "(message: str = '', stream=None, domain: str = 'default')"
   },
   "torch_npu.npu.npu_config.finalize_dump": {
     "signature": "()"

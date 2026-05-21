@@ -149,6 +149,16 @@ inline void mstxMark(const char* message, const aclrtStream stream, const char* 
     }
 }
 
+inline int mstxRangePush(const char* message, const aclrtStream stream, const char* domain)
+{
+    return MstxMgr::GetInstance()->rangePush(message, stream, domain);
+}
+
+inline int mstxRangePop(const char* domain)
+{
+    return MstxMgr::GetInstance()->rangePop(domain);
+}
+
 inline int mstxRangeStart(const char* message, const aclrtStream stream, const char* domain)
 {
     return MstxMgr::GetInstance()->rangeStart(message, stream, domain);
