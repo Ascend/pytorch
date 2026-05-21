@@ -2,6 +2,12 @@ name: Build Docker Images
 
 on:
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Single image tag to build (without timestamp). Leave empty to build all.'
+        required: false
+        type: string
+        default: ''
   push:
     paths:
       - .ci/docker/**
@@ -13,22 +19,38 @@ env:
   IMAGE_NAME: pytorch
 
 jobs:
+  matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      tags: ${{ steps.set.outputs.tags }}
+    steps:
+      - id: set
+        run: |
+          if [ -n "${{ inputs.tag }}" ]; then
+            TAGS='["${{ inputs.tag }}"]'
+          else
+            TAGS='[
+              "torch-npu-builder-x86_64-py2.7.1",
+              "torch-npu-builder-aarch64-py2.7.1",
+              "torch-npu-test-x86_64-cann-a1-py2.7.1",
+              "torch-npu-test-x86_64-cann-a2-py2.7.1",
+              "torch-npu-test-x86_64-cann-a3-py2.7.1",
+              "torch-npu-test-aarch64-cann-a1-py2.7.1",
+              "torch-npu-test-aarch64-cann-a2-py2.7.1",
+              "torch-npu-test-aarch64-cann-a3-py2.7.1"
+            ]'
+          fi
+          echo "tags=${TAGS}" >> $GITHUB_OUTPUT
+
   build:
+    needs: matrix
     environment: QUAY_USERNAME
     permissions:
       contents: read
     strategy:
       fail-fast: false
       matrix:
-        tag:
-          - torch-npu-builder-x86_64-py2.7.1
-          - torch-npu-builder-aarch64-py2.7.1
-          - torch-npu-test-x86_64-cann-a1-py2.7.1
-          - torch-npu-test-x86_64-cann-a2-py2.7.1
-          - torch-npu-test-x86_64-cann-a3-py2.7.1
-          - torch-npu-test-aarch64-cann-a1-py2.7.1
-          - torch-npu-test-aarch64-cann-a2-py2.7.1
-          - torch-npu-test-aarch64-cann-a3-py2.7.1
+        tag: ${{ fromJSON(needs.matrix.outputs.tags) }}
     runs-on: ${{ contains(matrix.tag, 'x86_64') && 'ubuntu-latest' || 'ubuntu-22.04-arm' }}
     steps:
       - name: Checkout repository
@@ -51,4 +73,48 @@ jobs:
           REMOTE_IMAGE="${{ env.REGISTRY }}/${{ env.QUAY_ORG }}/${{ env.IMAGE_NAME }}:${IMAGE_TAG}"
           docker tag "${IMAGE_TAG}" "${REMOTE_IMAGE}"
           docker push "${REMOTE_IMAGE}"
+
+          mkdir -p /tmp/result
+          echo "${REMOTE_IMAGE}" > "/tmp/result/${{ matrix.tag }}.txt"
           echo "Pushed ${REMOTE_IMAGE}"
+
+      - name: Upload result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: result-${{ matrix.tag }}
+          path: /tmp/result/${{ matrix.tag }}.txt
+          retention-days: 1
+
+  summary:
+    needs: [matrix, build]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Download results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: result-*
+          path: /tmp/results
+          merge-multiple: true
+
+      - name: Generate summary
+        run: |
+          echo "## Docker Image Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| # | Image | Pull Command |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|-------|-------------|" >> $GITHUB_STEP_SUMMARY
+
+          if [ -d /tmp/results ] && [ "$(ls -A /tmp/results 2>/dev/null)" ]; then
+            COUNT=1
+            for f in /tmp/results/*.txt; do
+              IMAGE=$(cat "$f")
+              echo "| ${COUNT} | \`${IMAGE##*:}\` | \`docker pull ${IMAGE}\` |" >> $GITHUB_STEP_SUMMARY
+              COUNT=$((COUNT + 1))
+            done
+          else
+            echo "| - | No images built | - |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Registry:** \`${{ env.REGISTRY }}/${{ env.QUAY_ORG }}/${{ env.IMAGE_NAME }}\`" >> $GITHUB_STEP_SUMMARY
