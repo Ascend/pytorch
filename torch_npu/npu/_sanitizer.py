@@ -1,13 +1,11 @@
 import os
 import atexit
 
-import torch.cuda._sanitizer as csan
 import torch_npu
 import torch_npu.utils._npu_trace as npu_trace
 import torch_npu.npu._stream_check as stream_check
 import torch_npu.npu._kernel_check as kernel_check
 from torch_npu.utils.utils import _print_warn_log
-from torch_npu.npu._stream_check import apply_sanitizer_patch
 
 
 class SanitizerMode:
@@ -25,6 +23,8 @@ class NPUSanitizer:
         self.opp_debug_path = os.path.join(os.getcwd(), "opp_debug_path")
         self.opp_debug_kernel_path = os.getenv('ASCEND_OPP_DEBUG_PATH')
         self.enabled = False
+        # record_stream detection is enabled by TORCH_NPU_SANITIZER=1
+        self.check_record_stream = os.getenv('TORCH_NPU_SANITIZER', '0') == '1'
 
     def enable(self):
         if self.opp_debug_kernel_path:
@@ -56,7 +56,8 @@ class NPUSanitizer:
         return True
 
     def enable_stream_check(self) -> bool:
-        self.event_handler = csan.EventHandler()
+        # Use our extended NPURecordStreamHandler which inherits from PyTorch's EventHandler
+        self.event_handler = stream_check.NPURecordStreamHandler()
         self.dispatch = stream_check.NPUSanitizerDispatchMode(self.event_handler)
         self.dispatch.__enter__()
         npu_trace.register_callback_for_npu_event_creation(
@@ -99,11 +100,20 @@ class NPUSanitizer:
             self.event_handler._handle_event_synchronization,
             "handle_event_synchronization"
         )
+        npu_trace.register_callback_for_npu_record_stream(
+            self.event_handler._handle_record_stream, "handle_record_stream"
+        )
+        npu_trace.register_callback_for_npu_erase_stream(
+            self.event_handler._handle_erase_stream, "handle_erase_stream"
+        )
         return True
 
     def __del__(self):
-        if self.dispatch:
-            self.dispatch.__exit__(None, None, None)
+        try:
+            if self.dispatch:
+                self.dispatch.__exit__(None, None, None)
+        except Exception:
+            pass
 
     def clear_debug_env(self):
         if self.kernel_path_manager:
@@ -111,7 +121,6 @@ class NPUSanitizer:
 
 
 def enable_npu_sanitizer():
-    apply_sanitizer_patch()
     npu_sanitizer.enable()
 
 
