@@ -1,3 +1,6 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates
+# Owner(s): ["oncall: distributed"]
+
 import unittest
 
 import torch
@@ -6,14 +9,15 @@ import torch.nn.functional as F
 from numpy.testing import assert_array_equal
 from torch.distributed._functional_collectives import AsyncCollectiveTensor
 import torch.distributed._functional_collectives as funcol
-
-from torch.distributed._tensor import (
+from torch.distributed.device_mesh import init_device_mesh
+from torch.distributed.tensor import (
     DeviceMesh,
     distribute_tensor,
     DTensor,
-    init_device_mesh,
+    Partial,
+    Replicate,
+    Shard,
 )
-from torch.distributed._tensor.placement_types import _Partial, Replicate, Shard
 from torch.distributed.tensor.parallel import (
     ColwiseParallel,
     parallelize_module,
@@ -177,7 +181,7 @@ class DTensorTest(DTensorTestBase):
         ddp_tensor = DTensor.from_local(local_tensor, device_mesh, replica_spec)
         self.assertEqual(ddp_tensor.size(), local_tensor.size())
 
-        partial_spec = [_Partial()]
+        partial_spec = [Partial()]
         partial_tensor = DTensor.from_local(local_tensor, device_mesh, partial_spec)
         self.assertEqual(partial_tensor.size(), local_tensor.size())
 
@@ -336,7 +340,7 @@ class DTensorTest(DTensorTestBase):
 
         sharded_dtensor = distribute_tensor(global_tensor, device_mesh, placements)
         local_out = sharded_dtensor.redistribute(placements=[Replicate()]).to_local(
-            grad_placements=[_Partial()]
+            grad_placements=[Partial()]
         )
         local_out.sum().backward()
 
@@ -363,11 +367,50 @@ class DTensorTest(DTensorTestBase):
         global_tensor = torch.ones(8, 3, requires_grad=True)
 
         sharded_dtensor = distribute_tensor(global_tensor, device_mesh, placements)
-        local_out = sharded_dtensor.full_tensor(grad_placements=[_Partial()])
+        local_out = sharded_dtensor.full_tensor(grad_placements=[Partial()])
         local_out.sum().backward()
 
         replica_grad = sharded_dtensor.grad.full_tensor()
         self.assertEqual(replica_grad, global_tensor * self.world_size)
+
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms
+    def test_to_local_from_local_backward(self):
+        """
+        Test that to_local() followed by from_local() with Partial placement
+        produces correct gradients. This validates the gradient placement mapping:
+        Partial forward → Replicate gradient (see DTensor.from_local docstring).
+        """
+        device_mesh = self.build_device_mesh()
+
+        # Create a sharded tensor [1., 2., ...] across ranks
+        # rank 0 gets [1.], rank 1 gets [2.], etc.
+        global_tensor = torch.arange(
+            1.0, self.world_size + 1, device=self.device_type, requires_grad=True
+        )
+        sharded_tensor = distribute_tensor(global_tensor, device_mesh, [Shard(0)])
+
+        # sum() produces a Partial DTensor
+        out = sharded_tensor.sum()
+
+        # to_local() + from_local() round-trip with same Partial placement
+        out = DTensor.from_local(
+            out.to_local(),
+            out.device_mesh,
+            out.placements,
+            run_check=False,
+        )
+
+        # full_tensor() reduces the Partial, then compute loss
+        loss = out.full_tensor().sum()
+        loss.backward()
+
+        # Expected: each element contributes equally to the sum, so gradient is 1.0
+        # The full gradient should be [1., 1., ...] (world_size elements)
+        expected_grad = torch.ones(self.world_size, device=self.device_type)
+        actual_grad = sharded_tensor.grad.full_tensor()
+
+        self.assertEqual(actual_grad, expected_grad)
 
     @skipIfUnsupportMultiNPU(4)
     @with_comms
