@@ -49,7 +49,6 @@ jobs:
     uses: ./.github/workflows/_torch-npu-upstream-build.yml
     with:
       python_version: ${{ inputs.python_version }}
-      pytorch_version: ${{ inputs.pytorch_version }}
       torch_npu_wheel_artifact: torch-npu-wheel-${{ inputs.pytorch_version }}-source
       max_jobs: '40'
 

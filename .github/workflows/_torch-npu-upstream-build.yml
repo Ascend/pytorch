@@ -7,10 +7,6 @@ on:
         required: true
         type: string
         description: Python version to use for building
-      pytorch_version:
-        required: true
-        type: string
-        description: PyTorch version to install
       torch_npu_wheel_artifact:
         required: true
         type: string
@@ -28,20 +24,20 @@ on:
         description: Build status (0 for success, non-zero for failure)
         value: ${{ jobs.build_torch_npu.outputs.status }}
 
+env:
+  PYTORCH_VERSION: '2.7.1'
+
 jobs:
   build_torch_npu:
     runs-on: linux-aarch64-a3-2
-    # NOTE: container.image cannot reference env variables in GitHub Actions.
-    # The DOCKER_IMAGE env below is used for Build Summary display.
-    # When updating the image, update BOTH container.image AND env.DOCKER_IMAGE.
     container:
-      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/manylinux2_28_aarch64-builder:npu-20241225
+      image: quay.io/kerer/pytorch:torch-npu-builder-aarch64-py2.7.1-202605211244
       options: --user root
     outputs:
       wheel: ${{ steps.build.outputs.wheel }}
       status: ${{ steps.build.outputs.status }}
     env:
-      DOCKER_IMAGE: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/manylinux2_28_aarch64-builder:npu-20241225
+      DOCKER_IMAGE: quay.io/kerer/pytorch:torch-npu-builder-aarch64-py2.7.1-202605211244
       PYTHON_VERSION: ${{ inputs.python_version }}
 
     steps:
@@ -49,7 +45,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Ascend/pytorch
-          ref: v2.7.1
+          ref: v${{ env.PYTORCH_VERSION }}
           fetch-depth: 1
           submodules: recursive
 
@@ -60,16 +56,19 @@ jobs:
           pip${{ inputs.python_version }} --version
 
           echo "=== CMake Version ==="
-          cmake --version | head -1
+          cmake3 --version | head -1
 
           echo "=== GCC Version ==="
           gcc --version | head -1
 
           echo "=== ccache Version ==="
-          ccache --version | head -1 || echo "ccache not found"
+          ccache --version | head -1
 
           echo "=== nproc ==="
           nproc
+
+          echo "=== PyTorch Version ==="
+          python${{ inputs.python_version }} -c "import torch; print(torch.__version__)"
 
       - name: Collect repository metadata
         id: repo_meta
@@ -85,90 +84,53 @@ jobs:
       - name: Collect toolchain metadata
         id: toolchain_meta
         run: |
-          CMAKE_VERSION=$(cmake --version | head -1)
+          CMAKE_VERSION=$(cmake3 --version | head -1)
           GCC_VERSION=$(gcc --version | head -1)
+          TORCH_VERSION=$(python${{ inputs.python_version }} -c "import torch; print(torch.__version__)")
 
           echo "cmake_version=${CMAKE_VERSION}" >> $GITHUB_OUTPUT
           echo "gcc_version=${GCC_VERSION}" >> $GITHUB_OUTPUT
+          echo "torch_version=${TORCH_VERSION}" >> $GITHUB_OUTPUT
 
-      - name: Setup cache directories
+      - name: Setup ccache directory
         run: |
-          mkdir -p /github/home/.cache/pip
           mkdir -p /github/home/.cache/ccache
           chmod -R 777 /github/home/.cache
-
-      - name: Cache pip
-        uses: actions/cache@v4
-        with:
-          path: /github/home/.cache/pip
-          # Shared cache key - all workflows use same key to share downloaded packages
-          key: pip-py${{ inputs.python_version }}-torch${{ inputs.pytorch_version }}-shared
-          restore-keys: |
-            pip-py${{ inputs.python_version }}-torch${{ inputs.pytorch_version }}-
-            pip-py${{ inputs.python_version }}-
 
       - name: Cache ccache
         uses: actions/cache@v4
         with:
           path: /github/home/.cache/ccache
-          key: ccache-py${{ inputs.python_version }}-torch${{ inputs.pytorch_version }}-${{ github.sha }}
+          key: ccache-py${{ inputs.python_version }}-${{ github.sha }}
           restore-keys: |
-            ccache-py${{ inputs.python_version }}-torch${{ inputs.pytorch_version }}-
-
-      - name: Install PyTorch ${{ inputs.pytorch_version }} and build dependencies
-        id: install_torch
-        run: |
-          PYTHON=python${{ inputs.python_version }}
-          PIP=pip${{ inputs.python_version }}
-          export PIP_CACHE_DIR=/github/home/.cache/pip
-
-          $PIP install --upgrade pip setuptools wheel
-          $PIP install torch==${{ inputs.pytorch_version }} --index-url https://download.pytorch.org/whl/cpu
-          $PIP install pyyaml
-
-          TORCH_VER=$($PYTHON -c "import torch; print(torch.__version__)")
-          echo "torch_version=${TORCH_VER}" >> $GITHUB_OUTPUT
-          echo "PyTorch version: ${TORCH_VER}"
+            ccache-py${{ inputs.python_version }}-
 
       - name: Build torch_npu wheel
         id: build
         run: |
           PYTHON=python${{ inputs.python_version }}
 
-          # 配置 ccache
-          if command -v ccache &> /dev/null; then
-            echo "ccache found, enabling ccache"
-            ccache -M 10G
-            ccache -z || true
-            export CC="ccache gcc"
-            export CXX="ccache g++"
-            export CCACHE_DIR=/github/home/.cache/ccache
-            export CCACHE_COMPRESS=1
-            export CCACHE_MAXSIZE=10G
-            export CCACHE_BASEDIR="${PWD}"
-            USE_CCACHE=1
-          else
-            echo "ccache not found, building without cache"
-            USE_CCACHE=0
-          fi
+          ccache -M 10G
+          ccache -z || true
+          export CC="ccache gcc"
+          export CXX="ccache g++"
+          export CCACHE_DIR=/github/home/.cache/ccache
+          export CCACHE_COMPRESS=1
+          export CCACHE_MAXSIZE=10G
+          export CCACHE_BASEDIR="${PWD}"
 
-          # 构建参数
           echo "nproc value: $(nproc)"
           echo "MAX_JOBS: ${{ inputs.max_jobs }}"
           export MAX_JOBS=${{ inputs.max_jobs }}
           export DISABLE_INSTALL_TORCHAIR=FALSE
           export BUILD_WITHOUT_SHA=1
 
-          # 使用 ci/build.sh 脚本
           bash ci/build.sh --python=${{ inputs.python_version }} 2>&1 | tee /tmp/build_torch_npu.log
           BUILD_STATUS=${PIPESTATUS[0]}
 
-          # ccache 统计
-          if [ "${USE_CCACHE}" = "1" ]; then
-            CCACHE_STATS=$(ccache -s | grep -E "cache hit|cache miss|cache size|hit rate" | tr '\n' ' ')
-            echo "ccache_stats=${CCACHE_STATS}" >> $GITHUB_OUTPUT
-            ccache -s
-          fi
+          CCACHE_STATS=$(ccache -s | grep -E "cache hit|cache miss|cache size|hit rate" | tr '\n' ' ')
+          echo "ccache_stats=${CCACHE_STATS}" >> $GITHUB_OUTPUT
+          ccache -s
 
           echo "status=${BUILD_STATUS}" >> $GITHUB_OUTPUT
 
@@ -219,7 +181,7 @@ jobs:
           | GCC | \`${{ steps.toolchain_meta.outputs.gcc_version }}\` |
           | Source commit | [\`${{ steps.repo_meta.outputs.commit_short }}\`](${{ github.server_url }}/${{ github.repository }}/commit/${{ steps.repo_meta.outputs.commit }}) |
           | Commit time | ${{ steps.repo_meta.outputs.commit_date }} |
-          | PyTorch | \`${{ steps.install_torch.outputs.torch_version }}\` |
+          | PyTorch | \`${{ steps.toolchain_meta.outputs.torch_version }}\` |
           | ccache | ${{ steps.build.outputs.ccache_stats || 'N/A' }} |
           | Build result | ${BUILD_RESULT} |
 
