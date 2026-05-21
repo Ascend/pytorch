@@ -42,6 +42,9 @@ RUN mkdir -p /root/.pip \
     && echo "trusted-host=mirrors.huaweicloud.com" >> /root/.pip/pip.conf \
     && echo "timeout=120" >> /root/.pip/pip.conf
 
+# Upgrade pip/setuptools/wheel before installing any Python packages
+RUN python3 -m pip install --no-cache-dir --upgrade pip setuptools wheel
+
 # Install CANN and OBS
 RUN chmod -R 755 /opt/buildtools/* \
     && dos2unix /opt/buildtools/* \
