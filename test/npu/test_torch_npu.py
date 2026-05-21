@@ -141,6 +141,31 @@ class TorchNPUDeviceTestCase(TestCase):
         torch.npu.reset_stream_limit(stream1)
         self.assertEqual(ans_dict_3, torch.npu.get_stream_limit(stream1))
 
+    def test_set_device_limit_device_type_check(self):
+        invalid_devices = ["0", 0.0, None, True, False]
+        origin_called = getattr(torch_npu.npu.set_device_limit, "called", None)
+
+        try:
+            for device in invalid_devices:
+                with self.subTest(device=device):
+                    if hasattr(torch_npu.npu.set_device_limit, "called"):
+                        torch_npu.npu.set_device_limit.called = False
+
+                    with self.assertRaisesRegex(TypeError, "device must be an int"):
+                        torch_npu.npu.set_device_limit(device)
+        finally:
+            if origin_called is not None:
+                torch_npu.npu.set_device_limit.called = origin_called
+
+    def test_get_device_limit_device_type_check(self):
+        invalid_devices = ["0", 0.0, None, True, False]
+
+        for device in invalid_devices:
+            with self.subTest(device=device):
+                with self.assertRaisesRegex(TypeError, "device must be an int"):
+                    torch_npu.npu.get_device_limit(device)
+
+
 class TorchNPUMemoryApiTestCase(TestCase):
     def test_npu_memory_stats(self):
         res = torch_npu.npu.memory_stats()
