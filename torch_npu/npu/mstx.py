@@ -17,7 +17,7 @@ import functools
 import torch_npu._C
 from torch_npu.utils.utils import _print_error_log
 
-__all__ = ["mstx"]
+__all__ = ["mstx", "annotate"]
 
 
 def _no_exception_func(default_ret=None):
@@ -56,6 +56,36 @@ class mstx:
                 return
         else:
             torch_npu._C._mstx._mark_on_host(message, domain)
+
+    @staticmethod
+    @_no_exception_func()
+    def range_push(message: str, stream=None, domain: str = 'default') -> int:
+        if not message or not isinstance(message, str):
+            warnings.warn("Invalid message for mstx.range_push func. Please input valid message string.")
+            return -1
+        if not domain or not isinstance(domain, str):
+            warnings.warn("Invalid domain for mstx.range_push func. Please input valid domain string.")
+            return -1
+        if stream:
+            if isinstance(stream, torch_npu.npu.streams.Stream):
+                return torch_npu._C._mstx._range_push(message,
+                                                      stream.stream_id,
+                                                      stream.device_index,
+                                                      stream.device_type,
+                                                      domain)
+            else:
+                warnings.warn("Invalid stream for mstx.range_push func. Please input valid stream.")
+                return -1
+        else:
+            return torch_npu._C._mstx._range_push_on_host(message, domain)
+
+    @staticmethod
+    @_no_exception_func()
+    def range_pop(domain: str = 'default') -> int:
+        if not domain or not isinstance(domain, str):
+            warnings.warn("Invalid domain for mstx.range_pop func. Please input valid domain string.")
+            return -1
+        return torch_npu._C._mstx._range_pop(domain)
 
     @staticmethod
     @_no_exception_func()
@@ -101,3 +131,37 @@ class mstx:
                 return ret
             return inner
         return wrapper
+
+
+class annotate:
+    def __init__(self, message: str = '', stream=None, domain: str = 'default'):
+        self.message = message
+        self.stream = stream
+        self.domain = domain
+        self.range_id = None
+
+    def __enter__(self):
+        self.range_id = mstx.range_start(self.message, self.stream, self.domain)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.range_id is not None:
+            mstx.range_end(self.range_id, self.domain)
+            self.range_id = None
+
+    def __call__(self, func):
+        if not self.message:
+            self.message = func.__name__
+
+        @functools.wraps(func)
+        def inner(*args, **kwargs):
+            range_id = mstx.range_start(self.message, self.stream, self.domain)
+            try:
+                result = func(*args, **kwargs)
+            finally:
+                mstx.range_end(range_id, self.domain)
+            return result
+
+        return inner
+
+mstx.annotate = annotate
