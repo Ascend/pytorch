@@ -1,6 +1,7 @@
 #include <torch/csrc/distributed/c10d/symm_mem/SymmetricMemory.hpp>
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
+#include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/logging/LogContext.h"
 #include "torch_npu/csrc/distributed/symm_mem/NPUSymmetricMemoryUtils.hpp"
@@ -89,15 +90,31 @@ void nvshmem_put(at::Tensor& tensor, int64_t peer)
     auto rank = hdl->get_rank();
     void* buffer_ptr = hdl->get_buffer_ptrs()[rank];
     auto buffer_size = tensor.numel() * tensor.element_size();
-
+    TORCH_CHECK(peer < hdl->get_world_size(), "peer must be smaller than world size", DIST_ERROR(ErrCode::PARAM));
     at::DeviceGuard device_guard(tensor.device());
-    // to be done for putmem
-    throw std::runtime_error("NPUSHMEMSymmetricMemory does not support nvshmem_put" + DIST_ERROR(ErrCode::NOT_SUPPORT));
+    auto stream = c10_npu::getCurrentNPUStream();
+    c10d::symmetric_memory::Shmem_putmem_on_stream(buffer_ptr, tensor.data_ptr(), buffer_size, peer, stream);
+}
+
+void nvshmem_get(at::Tensor& tensor, int64_t peer)
+{
+    // to be done: support non-contiguous tensors
+    TORCH_CHECK(tensor.is_contiguous(),
+        "put op currently supports contiguous tensors only", DIST_ERROR(ErrCode::PARAM));
+    // to be done: rendezvous should remember the group name
+    auto hdl = c10d::symmetric_memory::rendezvous(tensor, "0");
+    auto rank = hdl->get_rank();
+    void* buffer_ptr = hdl->get_buffer_ptrs()[rank];
+    auto buffer_size = tensor.numel() * tensor.element_size();
+    TORCH_CHECK(peer < hdl->get_world_size(), "peer must be smaller than world size", DIST_ERROR(ErrCode::PARAM));
+    at::DeviceGuard device_guard(tensor.device());
+    auto stream = c10_npu::getCurrentNPUStream();
+    c10d::symmetric_memory::Shmem_getmem_on_stream(tensor.mutable_data_ptr(), buffer_ptr, buffer_size, peer, stream);
 }
 
 } // namespace c10d::npushmem_extension
 
-
 TORCH_LIBRARY_IMPL(symm_mem, PrivateUse1, m) {
     m.impl("nvshmem_put", c10d::npushmem_extension::nvshmem_put);
+    m.impl("nvshmem_get", c10d::npushmem_extension::nvshmem_get);
 }

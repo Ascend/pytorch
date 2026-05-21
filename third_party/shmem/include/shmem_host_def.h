@@ -74,7 +74,9 @@ constexpr int DEFAULT_TIMEOUT = 120;
 
 typedef struct {
     int32_t version;
-    char internal[SHMEM_UNIQUE_ID_INNER_LEN];
+    int my_pe;
+    int n_pes;
+    char internal[ACLSHMEM_UNIQUE_ID_INNER_LEN];
 } shmem_uniqueid_t;
 
 constexpr int32_t SHMEM_UNIQUEID_VERSION = (1 << 16) + sizeof(shmem_uniqueid_t);
@@ -144,25 +146,8 @@ typedef struct {
     uint32_t shm_init_timeout;
     uint32_t shm_create_timeout;
     uint32_t control_operation_timeout;
+    int32_t sockFd;
 } shmem_init_optional_attr_t;
-
-/**
- * @struct shmem_init_attr_t
- * @brief Mandatory parameter for attributes used for initialization.
- *
- * - int my_rank: The rank of the current process.
- * - int n_ranks: The total rank number of all processes.
- * - const char* ip_port: The ip and port of the communication server. The port must not conflict with other modules and processes.
- * - uint64_t local_mem_size: The size of shared memory currently occupied by current rank.
- * - shmem_init_optional_attr_t option_attr: Optional Parameters.
-*/
-typedef struct {
-    int my_rank;
-    int n_ranks;
-    const char* ip_port;
-    uint64_t local_mem_size;
-    shmem_init_optional_attr_t option_attr;
-} shmem_init_attr_t;
 
 /**
  * @struct aclshmem_init_optional_attr_t
@@ -194,14 +179,16 @@ typedef struct {
  * - uint64_t local_mem_size: The size of shared memory currently occupied by current pe.
  * - aclshmem_init_optional_attr_t option_attr: Optional Parameters.
 */
-typedef struct {
+typedef struct aclshmemx_init_attr_t {
     int my_pe;
     int n_pes;
-    char ip_port[ACLSHMEM_MAX_IP_PORT_LEN];
+    char ip_port[ACLSHMEM_MAX_IP_PORT_LEN] = {};
     uint64_t local_mem_size;
     aclshmem_init_optional_attr_t option_attr = {(1 << 16) + sizeof(aclshmem_init_optional_attr_t), ACLSHMEM_DATA_OP_MTE, DEFAULT_TIMEOUT, DEFAULT_TIMEOUT, DEFAULT_TIMEOUT};
-    void *comm_args;
+    void *comm_args = nullptr;
+    uint64_t instance_id = 0;
 } aclshmemx_init_attr_t;
+#define shmem_init_attr_t aclshmemx_init_attr_t
 
 /**
  * @brief Callback function of private key password decryptor, see shmem_register_decrypt_handler
