@@ -38,6 +38,9 @@ void rangeEndImpl(int ptRangeId, mstxDomainHandle_t domain)
     }
 }
 
+thread_local std::unordered_map<std::string, std::stack<int>> MstxMgr::domainPushDepthStacks_ = {};
+thread_local bool MstxMgr::pushWithStream_ = false;
+
 MstxMgr::MstxMgr()
 {
 }
@@ -61,6 +64,65 @@ void MstxMgr::mark(const char* message, const aclrtStream stream, const char* do
         return 0;
     };
     at_npu::native::OpCommand::RunOpApiV2("mstx_mark_op", mark_call);
+}
+
+int MstxMgr::rangePush(const char* message, const aclrtStream stream, const char* domain)
+{
+    if (!isMstxEnable()) {
+        return -1;
+    }
+    std::string domainStr(domain);
+    if (!isMstxTxDomainEnable(domainStr)) {
+        return -1;
+    }
+    // depth before push to return
+    int ret = domainPushDepthStacks_[domainStr].size();
+    int id = ptRangeId_++;
+    domainPushDepthStacks_[domainStr].push(id);
+    mstxDomainHandle_t domainHandle = createProfDomain(domainStr);
+    // currently use rangeStartImpl to implement rangePushImpl.
+    if (stream == nullptr) {
+        pushWithStream_ = false;
+        rangeStartImpl(message, nullptr, id, domainHandle);
+        return ret;
+    }
+    pushWithStream_ = true;
+    auto range_push_call = [msg_ptr = std::make_shared<std::string>(message), stream, id, domainHandle]() -> int {
+        rangeStartImpl(msg_ptr->c_str(), stream, id, domainHandle);
+        return 0;
+    };
+    at_npu::native::OpCommand::RunOpApiV2("mstx_range_push_op", range_push_call);
+    return ret;
+}
+
+int MstxMgr::rangePop(const char* domain)
+{
+    if (!isMstxEnable()) {
+        return -1;
+    }
+    std::string domainStr(domain);
+    if (domainPushDepthStacks_[domainStr].empty()) {
+        return -1;
+    }
+    if (!isMstxTxDomainEnable(domainStr)) {
+        return -1;
+    }
+    int id = domainPushDepthStacks_[domainStr].top();
+    domainPushDepthStacks_[domainStr].pop();
+    // depth after pop to return
+    int ret = domainPushDepthStacks_[domainStr].size();
+    mstxDomainHandle_t domainHandle = createProfDomain(domainStr);
+    // currently use rangeEndImpl to implement rangePopImpl.
+    if (!pushWithStream_) {
+        rangeEndImpl(id, domainHandle);
+        return ret;
+    }
+    auto range_pop_call = [domainHandle, id]() -> int {
+        rangeEndImpl(id, domainHandle);
+        return 0;
+    };
+    at_npu::native::OpCommand::RunOpApiV2("mstx_range_pop_op", range_pop_call);
+    return ret;
 }
 
 int MstxMgr::rangeStart(const char* message, const aclrtStream stream, const char* domain)
