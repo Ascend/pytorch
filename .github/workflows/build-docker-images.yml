@@ -29,16 +29,7 @@ jobs:
           if [ -n "${{ inputs.tag }}" ]; then
             TAGS='["${{ inputs.tag }}"]'
           else
-            TAGS='[
-              "torch-npu-builder-x86_64-py2.7.1",
-              "torch-npu-builder-aarch64-py2.7.1",
-              "torch-npu-test-x86_64-cann-a1-py2.7.1",
-              "torch-npu-test-x86_64-cann-a2-py2.7.1",
-              "torch-npu-test-x86_64-cann-a3-py2.7.1",
-              "torch-npu-test-aarch64-cann-a1-py2.7.1",
-              "torch-npu-test-aarch64-cann-a2-py2.7.1",
-              "torch-npu-test-aarch64-cann-a3-py2.7.1"
-            ]'
+            TAGS='["torch-npu-builder-x86_64-py2.7.1","torch-npu-builder-aarch64-py2.7.1","torch-npu-test-x86_64-cann-a1-py2.7.1","torch-npu-test-x86_64-cann-a2-py2.7.1","torch-npu-test-x86_64-cann-a3-py2.7.1","torch-npu-test-aarch64-cann-a1-py2.7.1","torch-npu-test-aarch64-cann-a2-py2.7.1","torch-npu-test-aarch64-cann-a3-py2.7.1"]'
           fi
           echo "tags=${TAGS}" >> $GITHUB_OUTPUT
 
