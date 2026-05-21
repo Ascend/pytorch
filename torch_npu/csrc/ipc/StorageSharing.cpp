@@ -212,7 +212,7 @@ static PyObject* THNPStorage_newSharedNpu(PyObject* _unused, PyObject* args)
         npu_event.block(c10_npu::getCurrentNPUStream(device));
     }
 
-    std::string s_handle = THNPStorage_bytesAsHandleString(_handle, ACL_IPC_HANDLE_SIZE);
+    std::string s_handle = THNPStorage_bytesAsHandleString(_handle, c10_npu::kAclIpcHandleSize);
     if (s_handle.empty()) {
         return nullptr;
     }
