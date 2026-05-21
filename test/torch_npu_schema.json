@@ -575,6 +575,9 @@
   "torch_npu.distributed.reinit_process_group": {
     "signature": "(group=None, rebuild_link=True)"
   },
+  "torch_npu.distributed.tensor.experimental.context_parallel": {
+ 	  "signature": "(mesh: torch.distributed.device_mesh.DeviceMesh, *, buffers: Optional[list[torch.Tensor]] = None, buffer_seq_dims: Optional[list[int]] = None, no_restore_buffers: Optional[set[torch.Tensor]] = None) -> collections.abc.Generator[None, None, None]"
+ 	},
   "torch_npu.distributed.rpc.options.NPUTensorPipeRpcBackendOptions": {
     "signature": "(*, num_worker_threads: int = 16, rpc_timeout: float = 60.0, init_method: str = 'env://', device_maps: Optional[Dict[str, Dict[Union[int, str, torch.device], Union[int, str, torch.device]]]] = None, devices: Optional[List[Union[int, str, torch.device]]] = None, _transports: Optional[List] = None, _channels: Optional[List] = None)"
   },
