@@ -61,6 +61,8 @@
 #include <torch_npu/csrc/profiler/python/combined_traceback.h>
 #include <torch_npu/csrc/utils/LazyInit.h>
 
+constexpr int32_t kDeviceUtilizationNotSupport = -1;
+
 struct NPUDeviceProp {
   std::string name;
   size_t totalGlobalMem = 0;
@@ -1004,16 +1006,16 @@ PyObject* THNPModule_getDeviceUtilizationRate_wrap(
   int32_t vector = util_info.vectorUtilization;
   int32_t util_rate = 0;
   // 如果vector和cube谁支持,就返回谁的使用率，如果都支持计算(vector*1+cube*1)/2
-  if (cube == DEVICE_UTILIZATION_NOT_SUPPORT &&
-      vector != DEVICE_UTILIZATION_NOT_SUPPORT) {
+  if (cube == kDeviceUtilizationNotSupport &&
+      vector != kDeviceUtilizationNotSupport) {
     util_rate = vector;
   } else if (
-      cube != DEVICE_UTILIZATION_NOT_SUPPORT &&
-      vector == DEVICE_UTILIZATION_NOT_SUPPORT) {
+      cube != kDeviceUtilizationNotSupport &&
+      vector == kDeviceUtilizationNotSupport) {
     util_rate = cube;
   } else if (
-      cube != DEVICE_UTILIZATION_NOT_SUPPORT &&
-      vector != DEVICE_UTILIZATION_NOT_SUPPORT) {
+      cube != kDeviceUtilizationNotSupport &&
+      vector != kDeviceUtilizationNotSupport) {
     util_rate = (cube + vector) / 2;
   }
   TORCH_CHECK(

@@ -273,7 +273,7 @@ aclError AclrtValueWait(void* event, aclrtStream stream)
         func = (AclrtValueWaitFunc)TORCH_NPU_GET_FUNC(aclrtValueWait);
     }
     TORCH_CHECK(func, "Failed to find function aclrtValueWait", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(event, 1, ACL_VALUE_WAIT_EQ, stream);
+    return func(event, 1, ACL_STREAM_WAIT_VALUE_EQ, stream);
 }
 
 aclError AclrtValueWrite(void* event, uint64_t value, aclrtStream stream)
