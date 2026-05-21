@@ -143,11 +143,13 @@ class NpuMlirWrapperCodeGen(PythonWrapperCodegen):
         triton=False,
         arg_types=None,
         raw_args=None,
+        raw_keys=None,
         grid_fn: str = "grid",
         triton_meta=None,
         autotune_configs=None,
         grid_extra_kwargs="",
-        device=None
+        device=None,
+        original_fxnode_name=None,
     ):
         """
         Generates kernel call code.

@@ -45,8 +45,16 @@ def _load_mlir_backend():
 
 
 def _load_dvm_backend():
+    import torch
     from .ascend_npu_ir.ascend_npu_ir.npu import npu_inductor_plugin
     from .dvm import mlir_fusion
+    has_triton = torch.utils._triton.has_triton()
+    if has_triton:
+        from .codegen.triton import patch_gen_common_triton_ext_imports, patch_triton_scheduling
+        from .runtime import patch_triton_heuristics_cached_autotune
+        patch_gen_common_triton_ext_imports()
+        patch_triton_scheduling()
+        patch_triton_heuristics_cached_autotune()
 
 
 def _load_triton_backend():
