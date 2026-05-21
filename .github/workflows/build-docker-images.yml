@@ -2,7 +2,7 @@ name: Build Docker Images
 
 on:
   workflow_dispatch:
-  pull_request:
+  push:
     paths:
       - .ci/docker/**
       - .github/workflows/build-docker-images.yml
