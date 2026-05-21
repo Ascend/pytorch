@@ -428,7 +428,7 @@ def add_decorate_info(
             # Skip does not apply to this opset
             continue
         opinfo = ops_mapping.get((decorate_meta.op_name, decorate_meta.variant_name))
-        assert opinfo is not None, (     
+        assert opinfo is not None, (
             f"Couldn't find OpInfo for {decorate_meta}. Did you need to specify variant_name?")
         assert decorate_meta.model_type is None, (
             f"Tested op: {decorate_meta.op_name} in wrong position! "

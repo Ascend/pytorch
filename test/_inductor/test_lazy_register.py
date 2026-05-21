@@ -12,7 +12,7 @@ class TestLazyRegister(TestUtils):
 
         run = torch.compile(run)
         self.assertFalse(torch_npu.utils._dynamo.is_inductor_npu_initialized())
-    
+
     def test_disale_register_inductor_npu(self):
         torch_npu.utils._dynamo.disable_register_inductor_npu()
 

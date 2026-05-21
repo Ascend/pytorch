@@ -117,7 +117,7 @@ class MemoryUseBean(CommonBean):
     @property
     def data_type(self) -> int:
         return self._data_type
-    
+
     @property
     def allocator_type(self) -> int:
         return self._allocator_type

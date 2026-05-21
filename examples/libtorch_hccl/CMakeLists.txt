@@ -68,9 +68,9 @@ endif()
 add_executable(example_allreduce_hccl allreduce_hccl.cpp)
 
 # 链接库
-target_link_libraries(example_allreduce_hccl 
-  -ltorch 
-  -ltorch_cpu 
-  -lc10 
+target_link_libraries(example_allreduce_hccl
+  -ltorch
+  -ltorch_cpu
+  -lc10
   -ltorch_npu
 )

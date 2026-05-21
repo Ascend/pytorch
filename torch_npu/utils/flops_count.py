@@ -7,10 +7,10 @@ __all__ = []
 class _FlopsCounter:
     def __init__(self, ):
         self.flop_count_instance = torch_npu._C._flops_count._FlopCountContext.GetInstance()
-     
+
     def __enter__(self):
         self.count_enable()
-    
+
     def __exit__(self):
         self.count_disable()
 
@@ -20,7 +20,7 @@ class _FlopsCounter:
     def stop(self):
         self.flop_count_instance.disable()
         self.flop_count_instance.reset()
-    
+
     def pause(self):
         self.flop_count_instance.pause()
 

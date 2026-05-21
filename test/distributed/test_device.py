@@ -15,7 +15,7 @@ class TestDevice(MultiProcessTestCase):
     @property
     def world_size(self):
         return 1
-    
+
     def test_event_create(self):
         a = torch.full((3, 4), float(0), device='npu:0')
         e = torch.npu.Event()
@@ -31,7 +31,7 @@ class TestDevice(MultiProcessTestCase):
         t.start()
         t.join()
         self.assertEqual(result[0], 1)
-    
+
     def test_event_isinstance(self):
         npu_event = torch.npu.Event()
         self.assertIsInstance(npu_event, torch.npu.Event)

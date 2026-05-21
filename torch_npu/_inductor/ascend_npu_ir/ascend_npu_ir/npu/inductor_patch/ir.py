@@ -449,7 +449,7 @@ ir.View.create = _patch_view_create
 @classmethod
 def _patch_sliceview_create(
     cls, x, dim, start, end, step=1, clamp=True, traced_graph=None, node_name=None
-): 
+):
     step = sympy.expand(step)
     assert isinstance(step, sympy.Expr) or step > 0
     try:

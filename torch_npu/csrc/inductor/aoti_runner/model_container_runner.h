@@ -70,7 +70,7 @@ protected:
     decltype(&AOTInductorModelContainerGetCallSpec) get_call_spec_func_ { nullptr };
     decltype(&AOTInductorModelContainerGetConstantsBlobSize) get_constants_blob_size_func_{nullptr};
     decltype(&AOTInductorModelUpdateConstantsFromBlob) update_constants_from_blob_func_{nullptr};
-    
+
     AOTInductorModelContainerHandle container_handle_ = nullptr;
 
     AOTIProxyExecutorHandle proxy_executor_handle_;

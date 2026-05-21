@@ -18,10 +18,10 @@ class TestForceFallback(TestUtils):
         def opoverload_call(self, /, *args, **kwargs):
             op_list.append(str(self))
             return self._op(*args, **kwargs)
-        
+
         def run(x, y):
             return F.relu(x) + y
-        
+
         x = torch.randn(10).npu()
         y = torch.randn(10).npu()
         g = run(x, y)
@@ -49,7 +49,7 @@ class TestForceFallback(TestUtils):
             self.assertTrue("aten.relu.default" in op_list)
             self.assertTrue("aten.add.Tensor" in op_list)
             self.assertEqual(z, g)
-        
+
         # reset
         torch_npu._inductor.config.force_fallback_kernel_id = []
 

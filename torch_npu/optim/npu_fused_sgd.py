@@ -117,12 +117,12 @@ class NpuFusedSGD(NpuFusedOptimizerBase):
     def _maybe_init_combined_states(self):
         if self.is_states_combined:
             return
-        
+
         self.combined_param_states_indexed_by_group = len(self.param_groups) * [None]
 
         for i, _ in enumerate(self.param_groups):
             self._combine_group_param_states(i)
-        
+
         if not all(value is None for value in self.combined_param_states_indexed_by_group):
             self.is_states_combined = True
 
@@ -163,7 +163,7 @@ class NpuFusedSGD(NpuFusedOptimizerBase):
 
             combined_param_one_dtype.add_(combined_grad_one_dtype,
                                           alpha=-group['lr'])
-    
+
     def step(self, closure=None):
         ret = super().step(closure)
         self._momentum_buffer_already_in_state = True

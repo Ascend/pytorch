@@ -44,7 +44,7 @@ def parse_rtol_atol(env_str: str):
     rtol, atol = None, None
     if not env_str.strip():
         return rtol, atol
-    
+
     parts = [p.strip() for p in env_str.split(",") if p.strip()]
     for part in parts:
         match = re.match(r"^(rtol|atol)\s*=s\*([0-9.eE+-]+)$", part, re.IGNORECASE)
@@ -54,7 +54,7 @@ def parse_rtol_atol(env_str: str):
                 f"It should be like 'rtol=1e-6,atol=1e-5'. "
             )
             continue
-        
+
         key, value_str = match.groups()
         try:
             value = float(value_str)

@@ -1604,7 +1604,7 @@ class TestBinaryUfuncs(TestCase):
             for tensor in tensors:
                 self._test_pow(base, tensor)
 
-    
+
     def test_cuda_tensor_pow_scalar_tensor(self, device):
         cuda_tensors = [
             torch.randn((3, 3), device=device),
@@ -1618,7 +1618,7 @@ class TestBinaryUfuncs(TestCase):
         for base, exp in product(cuda_tensors, scalar_tensors):
             self._test_pow(base, exp)
 
-    
+
     def test_cpu_tensor_pow_cuda_scalar_tensor(self, device):
         cuda_tensors = [
             torch.tensor(5.0, device="privatuse1"),
@@ -1633,7 +1633,7 @@ class TestBinaryUfuncs(TestCase):
             base = torch.tensor(3.0, device="cpu")
             self._test_pow(base, exp)
 
-    
+
     @dtypes(torch.complex64, torch.complex128)
     def test_pow_cuda_complex_extremal_failing(self, device, dtype):
         t = torch.tensor(complex(-1.0, float("inf")), dtype=dtype, device=device)
@@ -1642,7 +1642,7 @@ class TestBinaryUfuncs(TestCase):
             cpu_out = t.cpu().pow(2)
             self.assertEqual(cpu_out, cuda_out)
 
-    
+
     @skipIfTorchDynamo()
     @dtypes(*all_types_and_complex_and(torch.half))
     def test_complex_scalar_pow_tensor(self, device, dtype):
@@ -1669,7 +1669,7 @@ class TestBinaryUfuncs(TestCase):
                 self._test_pow(base, first_exp)
                 self._test_pow(base, second_exp)
 
-    
+
     @skipMeta
     def test_pow_scalar_type_promotion(self, device):
         # Test against a scalar and non-scalar input
@@ -1837,7 +1837,7 @@ class TestBinaryUfuncs(TestCase):
         _scalar_helper(lambda a, b: math.floor(a / b), operator.floordiv)
         _scalar_helper(lambda a, b: math.floor(a / b), torch.floor_divide)
 
-    
+
     @skipIfTorchDynamo("Not a suitable test for TorchDynamo")
     def test_div_and_floordiv_script_vs_python(self, device):
         # Creates jitted functions of two tensors
@@ -1908,7 +1908,7 @@ class TestBinaryUfuncs(TestCase):
                     # See issue gh-52387
                     self.assertEqual(5 // a, scripted_rfloordiv_scalar(a_t))
 
-    
+
     @skipIfTorchDynamo("Not a suitable test for TorchDynamo")
     def test_idiv_and_ifloordiv_vs_python(self, device):
         def _wrapped_idiv_tensor(a, b):
@@ -2239,7 +2239,7 @@ class TestBinaryUfuncs(TestCase):
                     torch.ones(1, device=device, dtype=dtypes[0]),
                 )
 
-    
+
     def test_maximum_minimum_cross_device(self, device):
         a = torch.tensor((1, 2, -1))
         b = torch.tensor((3, 0, 4), device=device)
@@ -2822,7 +2822,7 @@ class TestBinaryUfuncs(TestCase):
                 expected = np.hypot(input[0].cpu().numpy(), input[1].cpu().numpy())
             self.assertEqual(actual, expected, exact_dtype=False)
 
-    
+
     @dtypes(torch.uint8, torch.int8, torch.int16, torch.int32, torch.int64)
     def test_gcd(self, device, dtype):
         # Tests gcd(0, 0), gcd(0, a) cases
@@ -2847,7 +2847,7 @@ class TestBinaryUfuncs(TestCase):
             expected = np.gcd(a.cpu().numpy(), b.cpu().numpy())
             self.assertEqual(actual, expected)
 
-    
+
     @dtypes(torch.int16, torch.int32, torch.int64)
     def test_lcm(self, device, dtype):
         # Tests lcm(0, 0), lcm(0, a) cases
@@ -2864,7 +2864,7 @@ class TestBinaryUfuncs(TestCase):
         expected = np.lcm(a.cpu().numpy(), b.cpu().numpy())
         self.assertEqual(actual, expected, exact_dtype=False)
 
-    
+
     @dtypes(torch.float32, torch.float64)
     def test_nextafter(self, device, dtype):
         # Test special cases
@@ -2888,7 +2888,7 @@ class TestBinaryUfuncs(TestCase):
         expected = np.nextafter(a.cpu().numpy(), b.cpu().numpy())
         self.assertEqual(actual, expected, atol=0, rtol=0)
 
-    
+
     @dtypes(torch.bfloat16)
     def test_nextafter_bfloat16(self, device, dtype):
         nan = float("nan")
@@ -3108,7 +3108,7 @@ class TestBinaryUfuncs(TestCase):
                     )  # all casts to complex128 are safe
                     compare_with_numpy_bin_op(torch_op, numpy_op, a, b, out=out)
 
-    
+
     @dtypes(torch.int8, torch.int16, torch.int32, torch.int64)
     def test_signed_shift(self, device, dtype):
         "Ensure that signed integer bit shifting works as expected."
@@ -3124,7 +3124,7 @@ class TestBinaryUfuncs(TestCase):
         self.assertEqual(a >> 1, expected_r)
         self.compare_with_numpy(lambda x: x >> 1, lambda x: np.right_shift(x, 1), a)
 
-    
+
     @dtypes(*get_all_int_dtypes())
     def test_shift_limits(self, device, dtype):
         "Ensure that integer bit shifting works as expected with out-of-limits shift values."
@@ -3167,7 +3167,7 @@ class TestBinaryUfuncs(TestCase):
                     exact_dtype=exact_dtype, msg=f">> {shift}"
                 )
 
-    
+
     @dtypes(
         *list(
             product(
@@ -3236,7 +3236,7 @@ class TestBinaryUfuncs(TestCase):
             ):
                 input.heaviside_(values)
 
-    
+
     def test_heaviside_cross_device(self, device):
         x = torch.tensor([-9, 5, 0, 6, -2, 2], device=device)
         y = torch.tensor(0)
@@ -3405,7 +3405,7 @@ class TestBinaryUfuncs(TestCase):
                 expected = start + weight * (end - start)
                 self.assertEqual(expected, actual)
 
-    
+
     @dtypes(torch.half, torch.bfloat16)
     def test_lerp_lowp(self, device, dtype):
         xvals = (0.0, -30000.0)
@@ -3646,7 +3646,7 @@ class TestBinaryUfuncs(TestCase):
             lambda: torch.add(m1, m1, out=m2),
         )
 
-    
+
     def test_addsub_half_tensor(self, device):
         x = torch.tensor([60000.0], dtype=torch.half, device=device)
         for op, y, alpha in (
@@ -3879,7 +3879,7 @@ class TestBinaryUfuncs(TestCase):
     def test_cumulative_trapezoid(self, device):
 
         import scipy.integrate
-        
+
         if hasattr(scipy.integrate, "cumulative_trapezoid"):
             _scipy_cumulative_trapezoid = scipy.integrate.cumulative_trapezoid
         else:  # Older version of SciPy uses a different name
@@ -4352,7 +4352,7 @@ class TestBinaryUfuncs(TestCase):
             x = make_tensor((2, 3, 4), dtype=x_dtype, device=device)
             test_helper(x, q)
 
-    
+
     @dtypes(
         torch.chalf,
     )

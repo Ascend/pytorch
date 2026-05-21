@@ -7,11 +7,11 @@ from .analysis.prof_common_func._constant import Constant, print_warn_msg, print
 from .analysis.prof_common_func._cann_package_manager import CannPackageManager
 
 __all__ = [
-    "_ExperimentalConfig", 
-    "supported_profiler_level", 
+    "_ExperimentalConfig",
+    "supported_profiler_level",
     "supported_ai_core_metrics",
     "supported_export_type",
-    "ProfilerLevel", 
+    "ProfilerLevel",
     "AiCMetrics",
     "ExportType",
     "HostSystem"

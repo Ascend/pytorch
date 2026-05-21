@@ -73,7 +73,7 @@ class HcclAllGatherTestBase(TestCase):
         gather_tensor = list()
         for input_tensor in inputlist:
             gather_tensor.append(torch.empty_like(input_tensor, device="cpu"))
-        
+
         for i in range(world_size):
             p = ctx.Process(
                 target=f,
@@ -184,7 +184,7 @@ class HcclAllGatherTest(HcclAllGatherTestBase):
             for _ in range(dim):
                 shape_list.append(randint(1, max_value))
             return create_common_tensor([np.float32, format_list[randint(0, 3)], shape_list], -10, 10)
-        
+
         for world_size in ranks:
             cpu_excepted_result = list()
             npu_excepted_result = list()

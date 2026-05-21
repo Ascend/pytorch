@@ -102,7 +102,7 @@ class TestOp(TestCase):
         output = torch.abs(input1)
         output = output.cpu().numpy()
         return output
-    
+
     def _test_abs(self, device="npu:1"):
         torch.npu.set_device(0)
         cpu_input = torch.Tensor([1, -2, -10])
@@ -161,7 +161,7 @@ class TestOp(TestCase):
         scale = 1 / 0.0078125
         return torch_npu.npu_prompt_flash_attention(
             query, key, value, num_heads=32, input_layout="BNSD", scale_value=scale, pre_tokens=65535, next_tokens=65535, sparse_mode=0)
-    
+
     @SupportedDevices(['Ascend910B'])
     def _test_npu_prompt_flash_attention(self, device="npu:1"):
         torch.npu.set_device(0)

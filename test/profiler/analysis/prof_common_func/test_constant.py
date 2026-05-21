@@ -18,7 +18,7 @@ class TestConstant(TestCase):
         with self.assertRaises((RuntimeError, TypeError)):
             convert_ns2us_float(18789.89)
         self.assertEqual(str(convert_ns2us_float(1459635878536856678)), str(1459635878536856678 / 1000))
-    
+
     def test_convert_ns2us_str(self):
         self.assertEqual(convert_ns2us_str(float("inf")), "inf")
         with self.assertRaises((RuntimeError, TypeError)):

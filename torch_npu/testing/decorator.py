@@ -81,7 +81,7 @@ def gen_ops_testcase(cls, func, name, keys, value, op_info):
 
 def gen_op_input(testcase, func, op_info):
     data = {
-        'dtype': func.dtypes if hasattr(func, "dtypes") else op_info.dtypesIfNPU, 
+        'dtype': func.dtypes if hasattr(func, "dtypes") else op_info.dtypesIfNPU,
         'npu_format': func.formats if hasattr(func, "formats") else op_info.formats
     }
 
@@ -98,7 +98,7 @@ def instantiate_ops_tests(op_db):
 
     def wrapper(cls):
         testcases = [x for x in dir(cls) if x.startswith('test_')]
-        for testcase in testcases: 
+        for testcase in testcases:
             if hasattr(cls, testcase):
                 func = getattr(cls, testcase)
                 for op_info in op_db:
@@ -112,7 +112,7 @@ def instantiate_ops_tests(op_db):
                 delattr(cls, testcase)
 
         return cls
-        
+
     return wrapper
 
 

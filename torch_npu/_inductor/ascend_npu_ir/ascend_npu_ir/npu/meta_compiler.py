@@ -100,10 +100,10 @@ class MetaCompiler:
             shutil.rmtree(failed_subgraph_dump_path)
         shutil.copytree(subgraph_dump_path, failed_subgraph_dump_path)
         return failed_subgraph_dump_path
-        
+
     def acc_compare_and_dump(self, *args, dump_data=True, **kwargs) -> Tuple[Any, bool]:
         self.register_fx_fallback(self.kernel_meta)
-        
+
         output, has_acc_error = check_accuracy_mlir(
             *args,
             kernel_name=self.kernel_name,
@@ -112,7 +112,7 @@ class MetaCompiler:
             dynamic=self.dynamic,
             **kwargs
         )
-        
+
         if anir_config.fx_subgraph_dump_path:
             data = args
             if dump_data and has_acc_error:
@@ -122,7 +122,7 @@ class MetaCompiler:
         torch.npu.synchronize()
         self.launchers = [self.launchers[0]]
         self.is_fallback_kernels = [self.is_fallback_kernels[0]]
-        
+
         return output, not has_acc_error
 
     def compile(self, *args, **kwargs):

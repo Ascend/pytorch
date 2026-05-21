@@ -264,7 +264,7 @@ def reset_peak_host_memory_stats():
     """
     return torch_npu._C._npu_resetPeakHostMemoryStats()
 
-    
+
 def empty_virt_addr_cache():
     r"""Light-weight version of empty_cache(). It only unmaps virtual address,
     and store the free physical handles for later malloc.

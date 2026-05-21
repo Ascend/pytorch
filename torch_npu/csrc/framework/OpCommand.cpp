@@ -243,7 +243,7 @@ void OpCommand::RunOpApiV2(const string &op_name, const PROC_FUNC &func, bool sy
         execParams.customHandler = const_cast<PROC_FUNC*>(&func);
 
         c10_npu::queue::QueueParas params(c10_npu::queue::EXECUTE_OPAPI_V2, sizeof(ExecuteParasOpApiV2), &execParams);
-        
+
         auto start = std::chrono::steady_clock::now();
 
         c10_npu::enCurrentNPUStream(&params);

@@ -993,7 +993,7 @@ class TestReductions(TestCase):
         # Check whether the returned values are the mode
         self.assertTrue((values == v).all().item())
 
-    
+
     @dtypes(*all_types_and(torch.half, torch.bfloat16))
     def test_mode_large(self, device, dtype):
         # i should be less than (d - 2) / 2
@@ -1063,7 +1063,7 @@ class TestReductions(TestCase):
         test_for_dtypes(torch.int32, torch.int32, torch.float32, indices_err)
         test_for_dtypes(torch.float32, torch.float32, torch.float64, indices_err)
 
-    
+
     def test_mode_wrong_device(self, device):
         # CPU Input Tensor
         x = torch.ones(2)
@@ -1212,7 +1212,7 @@ class TestReductions(TestCase):
     @dtypes(torch.float, torch.double)
     def test_amax(self, device, dtype):
         self._test_minmax_helper(torch.amax, np.amax, device, dtype)
-    
+
     @dtypes(torch.float, torch.double)
     @dtypesIfPRIVATEUSE1(torch.half, torch.float, torch.bfloat16)
     def test_aminmax(self, device, dtype):
@@ -1463,7 +1463,7 @@ class TestReductions(TestCase):
         torch.sum(x, (2, 1), out=res2)
         self.assertEqual(res1, res2)
 
-    
+
     @dtypes(torch.float16, torch.float32)
     def test_prod_gpu(self, device, dtype):
         x = torch.tensor([2, 3, 6, 9, 8], dtype=dtype, device=device)
@@ -1729,7 +1729,7 @@ class TestReductions(TestCase):
         # So we must skip this as well.
         if dtype == torch.uint8:
             exact_dtype = False
-            
+
         # Investigate why the output is not close to numpy.
         atol, rtol = self._get_relaxed_tolerances_for(dtype)
 
@@ -1743,7 +1743,7 @@ class TestReductions(TestCase):
         self._test_sum_reduction_vs_numpy(torch.sum, np.sum, device, dtype, with_extremal=True)
         self._test_sum_reduction_vs_numpy(torch.sum, np.sum, device, dtype, with_keepdim=True)
 
-    
+
     @dtypes(*set(all_types_and(torch.half)) - {torch.uint8})
     def test_nansum_vs_numpy(self, device, dtype):
         self._test_sum_reduction_vs_numpy(torch.nansum, np.nansum, device, dtype)
@@ -1977,7 +1977,7 @@ class TestReductions(TestCase):
                     op(x, dim=dim)
 
     # update this test to comapre against NumPy
-    
+
     def test_var(self, device):
         cpu_tensor = torch.randn(2, 3, 3)
         device_tensor = cpu_tensor.to(device)
@@ -1992,7 +1992,7 @@ class TestReductions(TestCase):
         device_tensor = cpu_tensor.to(device)
         self.assertEqual(device_tensor.var(), cpu_tensor.var())
 
-    # update this test to compare against NumPy 
+    # update this test to compare against NumPy
     def test_var_large_input(self, device):
         # Large, not-nice input
         cpu_tensor = torch.randn(2 * 32 * 1024 + 1, 2, 67)
@@ -2001,7 +2001,7 @@ class TestReductions(TestCase):
         self.assertEqual(cpu_tensor.var(2), device_tensor.var(2))
 
     # update this to compare against NumPy instead of CPU
-    
+
     @dtypes(torch.double)
     def test_sum_noncontig(self, device, dtype):
         x = torch.randn(1, 75, 57, 20, dtype=dtype, device=device).permute(0, 3, 1, 2)
@@ -2046,7 +2046,7 @@ class TestReductions(TestCase):
                 torch.sum(x, dim=[0], dtype=torch.float32, out=y)
 
     # Assert for illegal dtype would not be raised on XLA
-    
+
     def test_minmax_illegal_dtype(self, device):
         x = torch.randn(5, 5, dtype=torch.float32, device=device)
         valid_values = torch.empty(5, dtype=torch.float32, device=device)
@@ -2266,7 +2266,7 @@ class TestReductions(TestCase):
             expected = fn(y, 1, keepdim=False)
             self.assertEqual(x[:, 1], expected, msg=f'{fn_name} with out= kwarg')
 
-    
+
     @largeTensorTest('10GB')
     def test_reduction_split(self, device):
         # Test reduction when there is a 32bit-indexing split
@@ -2275,7 +2275,7 @@ class TestReductions(TestCase):
         expect = input_[0] + input_[1] + input_[2] + input_[3] + input_[4]
         self.assertEqual(result, expect)
 
-    
+
     @dtypes(torch.half, torch.float, torch.double, torch.bfloat16)
     def test_reduction_vectorize_along_input_corner(self, device, dtype):
         # 1D case: sum
@@ -2373,7 +2373,7 @@ class TestReductions(TestCase):
                 self.assertEqual(xs1[j].item(), size[1] - i)
                 self.assertEqual(xs2[j].item(), size[1] - i)
 
-    
+
     @dtypes(torch.half, torch.float, torch.double, torch.bfloat16)
     def test_reduction_vectorize_along_output(self, device, dtype):
         def run_test(input_):
@@ -2397,7 +2397,7 @@ class TestReductions(TestCase):
         run_test(torch.zeros(64, 61, dtype=dtype, device=device))
         run_test(torch.zeros(64, 1, dtype=dtype, device=device))
 
-    
+
     def test_argminmax_large_axis(self, device):
         # Regression test for gh-32863
         x = torch.zeros(2**31, device=device, dtype=torch.int8)
@@ -2541,7 +2541,7 @@ class TestReductions(TestCase):
         self.assertEqual(a[:, ::2, :].nanmedian(-1)[0], torch.tensor([[0, 4], [6, 10]], device=device))
 
 
-    
+
     @dtypes(torch.float, torch.double)
     def test_quantile(self, device, dtype):
         # Generate some random test cases
@@ -3571,7 +3571,7 @@ as the input tensor excluding its innermost dimension'):
 
             self.assertEqual(actual, expected, msg, exact_dtype=exact_dtype)
 
-    
+
     @largeTensorTest("8GB")
     @dtypes(torch.half, torch.chalf, torch.bfloat16)
     def test_reductions_large_half_tensors(self, device, dtype):

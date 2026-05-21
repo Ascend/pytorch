@@ -17,7 +17,7 @@ from ..config import num_vector_core, log
 class SplitTiling:
     def __init__(self, kernel: TritonKernel):
         self.kernel = kernel
-        self.indexing = []  # load and store indexing  among all scheduler nodes 
+        self.indexing = []  # load and store indexing  among all scheduler nodes
         kernel.sorted_axis = [x for x in kernel.range_tree_nodes.values()]
         kernel.sorted_axis.sort(reverse=True, key=self.key)
         for i, dim in enumerate(kernel.sorted_axis):
@@ -115,7 +115,7 @@ class SplitTiling:
         for i, x in enumerate(self.kernel.split_axis):
             x.split_order = i
 
-    # Tiling 原则1：load / store 中索引表达式的中的低维轴都要成为tiling 轴. 
+    # Tiling 原则1：load / store 中索引表达式的中的低维轴都要成为tiling 轴.
     # Tiling 原则2：对于规约算子，规约轴要成为tiling轴。
     # Tiling 原则3: 多维规约， 只有规约轴可以被选择为tiling轴
     # Tiling 原则4: tiling轴 要覆盖 total numel 的 80%

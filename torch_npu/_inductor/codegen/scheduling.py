@@ -448,7 +448,7 @@ class NPUTritonScheduling(TritonScheduling):
             split_tiling = SplitTiling(kernel)
             split_tiling.select_split_tiling_axis()
             kernel.load_store_indexing = split_tiling.indexing
-            # ReductionAnalysis depends on kernel.load_store_indexing 
+            # ReductionAnalysis depends on kernel.load_store_indexing
             if kernel.inside_reduction:
                 kernel.reduce_analysis = ReductionAnalysis(kernel)
 

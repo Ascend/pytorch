@@ -112,7 +112,7 @@ if os.getenv("TORCH_NPU_USE_COMPATIBLE_IMPL") != "1":
             diff = abs(len1 - len2)
             is_shape1_longer = len1 > len2
 
-            for i in range(min(len1, len2) - 3, -1, -1):  
+            for i in range(min(len1, len2) - 3, -1, -1):
                 shape1_shardable = shape1[i + diff] % tensor1.mesh.size(0) == 0 if is_shape1_longer else shape1[i] % tensor1.mesh.size(0) == 0
                 shape2_shardable = shape2[i] % tensor2.mesh.size(0) == 0 if is_shape1_longer else shape2[i + diff] % tensor2.mesh.size(0) == 0
 
@@ -158,7 +158,7 @@ if os.getenv("TORCH_NPU_USE_COMPATIBLE_IMPL") != "1":
         acceptable_shardings = []
 
         replicate_strategy = (
-            [Replicate(), Replicate()], 
+            [Replicate(), Replicate()],
             [Replicate(), Replicate(), Replicate(), None]
         )
         acceptable_shardings.append(replicate_strategy)
@@ -168,20 +168,20 @@ if os.getenv("TORCH_NPU_USE_COMPATIBLE_IMPL") != "1":
         elif tensor1_dim >= 2 and (tensor2_dim == 1 or tensor2_dim == 2):
             if tensor2.shape[0] % tensor2.mesh.size(0) == 0:
                 strategy_1 = (
-                    [Shard(tensor1_dim - 1), Shard(0)], 
+                    [Shard(tensor1_dim - 1), Shard(0)],
                     [Replicate(), Shard(tensor1_dim - 1), Shard(0), None]
                 )
                 acceptable_shardings.append(strategy_1)
             for i in range(tensor1_dim - 1):
                 if tensor1.shape[i] % tensor1.mesh.size(0) == 0:
                     strategy_2 = (
-                        [Shard(i), Partial()], 
+                        [Shard(i), Partial()],
                         [Shard(i), Shard(i), Replicate(), None]
                     )
                     acceptable_shardings.append(strategy_2)
             if tensor2_dim == 2 and tensor2.shape[1] % tensor2.mesh.size(0) == 0:
                 strategy_3 = (
-                    [Partial(), Shard(1)], 
+                    [Partial(), Shard(1)],
                     [Shard(grad_dim - 1), Replicate(), Shard(1), None]
                 )
                 acceptable_shardings.append(strategy_3)
@@ -190,26 +190,26 @@ if os.getenv("TORCH_NPU_USE_COMPATIBLE_IMPL") != "1":
             is_special = tensor2_dim == 2 and tensor1_dim == 1
             if tensor1.shape[-1] % tensor1.mesh.size(0) == 0:
                 strategy_1 = (
-                    [Shard(tensor1_dim if is_special else tensor1_dim - 1), Shard(tensor2_dim - 2)], 
+                    [Shard(tensor1_dim if is_special else tensor1_dim - 1), Shard(tensor2_dim - 2)],
                     [Replicate(), Shard(tensor1_dim - 1), Shard(tensor2_dim - 2), None]
                 )
                 acceptable_shardings.append(strategy_1)
             if tensor2.shape[-1] % tensor2.mesh.size(0) == 0:
                 strategy_2 = (
-                    [Partial(), Shard(tensor2_dim - 1)], 
+                    [Partial(), Shard(tensor2_dim - 1)],
                     [Shard(grad_dim - 1), Replicate(), Shard(tensor2_dim - 1), None]
                 )
                 acceptable_shardings.append(strategy_2)
             for i in range(tensor2_dim - 2):
                 if tensor2.shape[i] % tensor2.mesh.size(0) == 0:
                     strategy_3 = (
-                        [Partial(), Shard(i)], 
+                        [Partial(), Shard(i)],
                         [Shard(i), Replicate(), Shard(i)]
                     )
                     acceptable_shardings.append(strategy_3)
             if tensor1_dim == 2 and tensor1.shape[0] % tensor1.mesh.size(0) == 0:
                 strategy_4 = (
-                    [Shard(0), Partial()], 
+                    [Shard(0), Partial()],
                     [Shard(grad_dim - 2), Shard(0), Replicate(), None]
                 )
                 acceptable_shardings.append(strategy_4)
@@ -217,19 +217,19 @@ if os.getenv("TORCH_NPU_USE_COMPATIBLE_IMPL") != "1":
         else:
             if grad.shape[-1] % grad.mesh.size(0) == 0:
                 strategy_1 = (
-                    [Partial(), Shard(grad_dim - 1)], 
+                    [Partial(), Shard(grad_dim - 1)],
                     [Shard(grad_dim - 1), Replicate(), Shard(tensor2_dim - 1), None]
                 )
                 acceptable_shardings.append(strategy_1)
             if grad.shape[-2] % grad.mesh.size(0) == 0:
                 strategy_2 = (
-                    [Shard(grad_dim - 2), Partial()], 
+                    [Shard(grad_dim - 2), Partial()],
                     [Shard(grad_dim - 2), Shard(tensor1_dim - 2), Replicate(), None]
                 )
                 acceptable_shardings.append(strategy_2)
             if tensor1.shape[-1] % tensor1.mesh.size(0) == 0:
                 strategy_3 = (
-                    [Shard(grad_dim - 1), Shard(grad_dim - 2)], 
+                    [Shard(grad_dim - 1), Shard(grad_dim - 2)],
                     [Replicate(), Shard(tensor1_dim - 1), Shard(tensor2_dim - 2), None]
                 )
                 acceptable_shardings.append(strategy_3)
@@ -237,35 +237,35 @@ if os.getenv("TORCH_NPU_USE_COMPATIBLE_IMPL") != "1":
             diff = abs(tensor1_dim - tensor2_dim)
             is_shape1_longer = tensor1_dim > tensor2_dim
 
-            for i in range(min(tensor1_dim, tensor2_dim) - 3, -1, -1):  
+            for i in range(min(tensor1_dim, tensor2_dim) - 3, -1, -1):
                 shape1_shardable = tensor1.shape[i + diff] % tensor1.mesh.size(0) == 0 if is_shape1_longer \
                     else tensor1.shape[i] % tensor1.mesh.size(0) == 0
                 shape2_shardable = tensor2.shape[i] % tensor2.mesh.size(0) == 0 if is_shape1_longer \
                     else tensor2.shape[i + diff] % tensor2.mesh.size(0) == 0
                 if shape1_shardable and shape2_shardable:
                     strategy_batch = (
-                        [Shard(i + diff), Shard(i + diff)], 
+                        [Shard(i + diff), Shard(i + diff)],
                         [Shard(i + diff), Shard(i + diff), Shard(i), None]
                     ) if is_shape1_longer else (
-                        [Shard(i + diff), Shard(i + diff)], 
+                        [Shard(i + diff), Shard(i + diff)],
                         [Shard(i + diff), Shard(i), Shard(i + diff), None]
                     )
                     acceptable_shardings.append(strategy_batch)
-            
+
             for i in range(diff - 1, -1, -1):
                 if is_shape1_longer and tensor1.shape[i] % tensor1.mesh.size(0) == 0:
                     strategy_batch = (
-                        [Shard(i), Partial()], 
+                        [Shard(i), Partial()],
                         [Shard(i), Shard(i), Replicate(), None]
                     )
                     acceptable_shardings.append(strategy_batch)
                 elif not is_shape1_longer and tensor2.shape[i] % tensor2.mesh.size(0) == 0:
                     strategy_batch = (
-                        [Partial(), Shard(i)], 
+                        [Partial(), Shard(i)],
                         [Shard(i), Replicate(), Shard(i), None]
                     )
                     acceptable_shardings.append(strategy_batch)
-        
+
         return acceptable_shardings
 
 

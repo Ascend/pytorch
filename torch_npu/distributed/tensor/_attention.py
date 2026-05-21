@@ -426,7 +426,7 @@ def npu_fusion_attention_grad_v3_strategy(query, key, value, dy, head_num, input
             None, None, None, None, None, # others
             None if seed is None else Replicate(),        # seed
             None if offset is None else Replicate(),      # offset
-            None, 
+            None,
             None if actual_seq_qlen is None else Replicate(),  # actual_seq_qlen
             None if actual_seq_kvlen is None else Replicate(), # actual_seq_kvlen
             None, None, None, None, # others
@@ -477,7 +477,7 @@ def npu_fusion_attention_grad_v3_strategy(query, key, value, dy, head_num, input
                 None, None, None, None, None, # others
                 None if seed is None else Replicate(),        # seed
                 None if offset is None else Replicate(),      # offset
-                None, 
+                None,
                 None if actual_seq_qlen is None else Replicate(),  # actual_seq_qlen
                 None if actual_seq_kvlen is None else Replicate(), # actual_seq_kvlen
                 None, None, None, None, # others
@@ -520,7 +520,7 @@ def npu_fusion_attention_grad_v3_strategy(query, key, value, dy, head_num, input
                 None, None, None, None, None, # others
                 None if seed is None else Replicate(),        # seed
                 None if offset is None else Replicate(),      # offset
-                None, 
+                None,
                 None if actual_seq_qlen is None else Replicate(),  # actual_seq_qlen
                 None if actual_seq_kvlen is None else Replicate(), # actual_seq_kvlen
                 None, None, None, None, # others

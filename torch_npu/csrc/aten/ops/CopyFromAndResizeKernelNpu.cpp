@@ -8,7 +8,7 @@ at::Tensor NPUNativeFunctions::_copy_from_and_resize(const at::Tensor& self, con
 {
     TORCH_CHECK(dst.defined(), "dst is undefined", OPS_ERROR(ErrCode::NOT_SUPPORT));
     TORCH_CHECK(self.defined(), "self is undefined", OPS_ERROR(ErrCode::NOT_SUPPORT));
-    
+
     if (dst.numel() == 0) {
         dst.resize_as_(self);
     }

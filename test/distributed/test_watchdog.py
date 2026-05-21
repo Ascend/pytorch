@@ -40,13 +40,13 @@ class ElasticLaunchTest(TestCase):
             )
         except Exception:
             print("Program fail and exit")
-            
+
         end_time = time.time()
         excution_time = end_time - start_time
         if excution_time > 120:
             print(f"Excution time using time.time(): {excution_time} seconds")
             raise RuntimeError("Test case fail")
-            
+
 
 if __name__ == "__main__":
     run_tests()

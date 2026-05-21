@@ -13,7 +13,7 @@ class TestEmbeddingDense(TestUtils):
     # UT skip, reason: precision fail
     # Added to pytorch-disable-tests.json
     def test_pointwise_cases(self):
-        
+
         arg0 = torch.tensor([[14, 1, 2, 10, 0, 10, 0],
                         [9, 13, 13, 4, 7, 15, 14],
                         [8, 0, 3, 15, 4, 2, 6],

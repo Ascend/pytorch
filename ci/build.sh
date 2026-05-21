@@ -55,7 +55,7 @@ function parse_script_args() {
                 export PGO_MODE=1
                 args_num=$((args_num-1))
                 ;;
-            2)  
+            2)
                 export PGO_MODE=2
                 args_num=$((args_num-1))
                 ;;

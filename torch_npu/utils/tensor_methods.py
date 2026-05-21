@@ -70,7 +70,7 @@ class _NPUTensortypeCache(object):
 def _npu_type(self, dtype=None, non_blocking=False, **kwargs):
     if dtype is None:
         return self.type_raw(dtype, non_blocking, **kwargs)
-    
+
     _NPUTensortypeCache.tensortype_list_dict_init()
     if isinstance(dtype, str) and dtype in _NPUTensortypeCache.get_tensortype_dict():
         tensortype_class = _NPUTensortypeCache.get_tensortype_dict()[dtype]

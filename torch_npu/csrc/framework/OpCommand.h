@@ -72,7 +72,7 @@ public:
                                                 toType);
         return AddHostTensorInput(cpuTensor, compileType, realDtype, descName);
     }
-    
+
     // IntArrayRef/SmallVector Input, usually hostmemory input, we will do h2d in launch kernel
     OpCommand& Input(const c10::IntArrayRef &dimListRef,
                     at::ScalarType toType = at::kLong,
@@ -133,7 +133,7 @@ private:
     OpCommand& AddTensorInput(at::Tensor &tensor,
                             at::ScalarType forceScaleType = at::ScalarType::Undefined,
                             const string &descName = "", const string &realData = "");
-    
+
     OpCommand& AddTensorInput(const string &str);
 
     OpCommand& AddHostTensorInput(

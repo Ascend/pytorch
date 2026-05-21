@@ -1,9 +1,9 @@
 FROM pytorch/manylinux2_28-builder:cpu-v2.12.0-rc9
 
 ENV PATH /usr/local/bin:$PATH
- 	 
+
 RUN echo "alias ll='ls -l --color=auto'" >> /root/.bashrc
- 	 
+
 # Set pip&python
 RUN cd /usr/local/bin \
     && ln -sf /opt/_internal/cpython-3.10.20/bin/pip3.10 pip3.10 \

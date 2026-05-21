@@ -210,7 +210,7 @@ PyObject* c10d_npu_init(PyObject* _unused, PyObject* noargs)
         throw python_error();
     }
     auto torch_npu_C_m = py::handle(torch_npu_C_module).cast<py::module>();
-    
+
     auto m =
         torch_npu_C_m.def_submodule("_distributed_c10d", "distributed c10d bindings");
     auto module = py::handle(m).cast<py::module>();
@@ -473,7 +473,7 @@ PyObject* c10d_npu_init(PyObject* _unused, PyObject* noargs)
         .def_readwrite("hccl_config", &::c10d_npu::ProcessGroupHCCL::Options::hccl_config)
         .def_readwrite("group_id",
                        &::c10d_npu::ProcessGroupHCCL::Options::group_id);
-    
+
     // bind for ProcessGroupLCCL
     auto processGroupLCCL = intrusive_ptr_no_gil_destructor_class_<::c10d_npu::ProcessGroupLCCL>(
         module, "ProcessGroupLCCL", dist.attr("Backend"))

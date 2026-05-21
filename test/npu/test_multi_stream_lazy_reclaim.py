@@ -25,7 +25,7 @@ def extract_aclrtQueryEventStatus_count(prof_dir):
 
     Args:
         prof_dir: str, path to the profiling result directory
-        
+
     Returns:
         count: int, call count of aclrtQueryEventStatus, 0 if not found
     """
@@ -166,12 +166,12 @@ class TestMultiStreamLazyReclaim(TestCase):
     - lazy reclaim mode: Only queries in the following cases:
       1. No available memory block found (!block_found)
       2. Event queue exceeds threshold kLazyQuerySize (512)
-    
+
     Test Method:
     Use multiprocessing to test in two separate processes:
     - Process 1: Enable multi_stream_lazy_reclaim
     - Process 2: Disable multi_stream_lazy_reclaim
-    
+
     Each process sets environment variables independently to ensure configuration takes effect.
     """
 
@@ -197,7 +197,7 @@ class TestMultiStreamLazyReclaim(TestCase):
             )
 
             process.start()
-            process.join(timeout=300) # 
+            process.join(timeout=300) #
 
             if process.is_alive():
                 process.terminate()
@@ -214,7 +214,7 @@ class TestMultiStreamLazyReclaim(TestCase):
 
         eager_counts = results["eager"]
         lazy_counts = results["lazy"]
- 
+
         # Output comparison results
         print(f"\n========== Event Query Count Comparison ==========")
         print(f"Eager reclaim (multi_stream_lazy_reclaim:False): {eager_counts}")
@@ -223,8 +223,8 @@ class TestMultiStreamLazyReclaim(TestCase):
         # Core validation: aclrtQueryEventStatus call count in lazy mode must be less than eager mode
         # This is direct evidence that multi_stream_lazy_reclaim feature is working
         self.assertLessEqual(
-            lazy_counts, 
-            eager_counts, 
+            lazy_counts,
+            eager_counts,
             f"Lazy reclaim mode should reduce event queries. "
             f"Eager: {eager_counts}, Lazy: {lazy_counts}. "
             f"If lazy >= eager, the optimization may not be working."
