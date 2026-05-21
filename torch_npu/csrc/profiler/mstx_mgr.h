@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <mutex>
+#include <stack>
 #include <unordered_map>
 #include <unordered_set>
 #include "torch_npu/csrc/framework/interface/MstxInterface.h"
@@ -20,6 +21,8 @@ class MstxMgr : public torch_npu::toolkit::profiler::Singleton<MstxMgr> {
 friend class torch_npu::toolkit::profiler::Singleton<MstxMgr>;
 public:
     void mark(const char* message, const aclrtStream stream, const char* domain);
+    int rangePush(const char* message, const aclrtStream stream, const char* domain);
+    int rangePop(const char* domain);
     int rangeStart(const char* message, const aclrtStream stream, const char* domain);
     void rangeEnd(int ptRangeId, const char* domain);
 
@@ -48,6 +51,8 @@ private:
     bool isMsptiTxEnableImpl();
 
 private:
+    static thread_local std::unordered_map<std::string, std::stack<int>> domainPushDepthStacks_;
+    static thread_local bool pushWithStream_;
     std::atomic<int> ptRangeId_{1};
     std::unordered_set<int> ptRangeIdsWithStream_;
     std::mutex mtx_;
