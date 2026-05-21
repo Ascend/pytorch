@@ -14,6 +14,7 @@
 #include "torch_npu/csrc/inductor/dvm/pybind_api.h"
 
 #include <algorithm>
+#include <ATen/Context.h>
 #include <c10/core/SymFloat.h>
 #include <torch/csrc/THP.h>
 #include <fstream>
@@ -128,6 +129,7 @@ inline std::pair<at::Tensor, void*> AllocWorkspaceV2(size_t size, aclrtStream st
 TorchKernelPy::TorchKernelPy(int kernel_type, uint32_t flags)
     : ws_size_(0), kernel_type_(kernel_type), kernel_flags_(flags)
 {
+    SetDeterm(at::globalContext().deterministicAlgorithms());
     kernel_.Reset(static_cast<KernelType>(kernel_type), flags);
 }
 

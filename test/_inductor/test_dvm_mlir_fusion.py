@@ -49,6 +49,14 @@ class ReduceCaseModel(torch.nn.Module):
         return (div, add, rsqrt, add_2)
 
 
+class DeterministicReduceModel(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, arg0):
+        return torch.ops.aten.sum.default(arg0)
+
+
 class TestDvmByMlir(TestCase):
     @parametrize("dtype", [torch.float16, torch.float32, torch.bfloat16])
     @parametrize("is_dynamic", [True, False])
@@ -114,6 +122,29 @@ class TestDvmByMlir(TestCase):
             result = dvm_compiled_model(arg0, arg1, arg2)
             self.assertEqual(expect, result, atol=1e-3, rtol=1e-3)
         del os.environ["TORCHINDUCTOR_NPU_BACKEND"]
+
+    def test_deterministic_reduce_case(self):
+        os.environ["TORCHINDUCTOR_NPU_BACKEND"] = "dvm"
+        deterministic_state = torch.are_deterministic_algorithms_enabled()
+        deterministic_warn_only = torch.is_deterministic_algorithms_warn_only_enabled()
+        arg0 = torch.normal(
+            0, 0.1, size=(16, 128, 64, 64), dtype=torch.float32, device="npu"
+        )
+        model = DeterministicReduceModel()
+        try:
+            torch.use_deterministic_algorithms(True)
+            dvm_compiled_model = torch.compile(
+                model, backend="inductor", dynamic=False
+            )
+            with torch.no_grad():
+                first_result = dvm_compiled_model(arg0)
+                second_result = dvm_compiled_model(arg0)
+                self.assertEqual(first_result, second_result, atol=0, rtol=0)
+        finally:
+            torch.use_deterministic_algorithms(
+                deterministic_state, warn_only=deterministic_warn_only
+            )
+            del os.environ["TORCHINDUCTOR_NPU_BACKEND"]
 
 
 instantiate_parametrized_tests(TestDvmByMlir)
