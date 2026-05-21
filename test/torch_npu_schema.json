@@ -2309,6 +2309,9 @@
   "torch_npu.distributed.run.parse_args": {
     "signature": "(args)"
   },
+  "torch_npu.distributed.pipelining.pipeline": {
+    "signature": "(module: 'torch.nn.Module', mb_args: 'tuple[Any, ...]', mb_kwargs: 'Optional[dict[str, Any]]' = None, split_spec=None, split_policy=None, mode: 'Optional[str]' = None, atomic_units: 'Optional[list[str]]' = None)"
+  },
   "torch_npu.distributed.reduce_scatter_tensor_uneven": {
     "signature": "(output, input, input_split_sizes=None, op=<RedOpType.SUM: 0>, group=None, async_op=False)"
   },
