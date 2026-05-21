@@ -59,6 +59,9 @@ from torch_npu._inductor.mfusion import MFusionPatch
 def op_calc(x, y):
     return x * y + x
 
+x = torch.randn((3,), requires_grad=False, dtype=torch.float32, device="npu")
+y = torch.randn((3,), requires_grad=False, dtype=torch.float32, device="npu")
+
 with MFusionPatch():
     compile_func = torch.compile(op_calc, backend="inductor")
     compile_out = compile_func(x, y)
