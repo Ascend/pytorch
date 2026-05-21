@@ -188,7 +188,7 @@ class Baichuan2Trainer:
             profiling_save_path = self.args.profiler_save_path + '/' + MODEL_NAME + '/' + mode
             prof = get_profile(self.args.profiler_start_step, self.args.profiler_end_step, profiling_save_path)
 
-        timing_callback = TimingCallback(prof, mode) 
+        timing_callback = TimingCallback(prof, mode)
 
         trainer = BaichuanTrainer(
             model=self.model,

@@ -472,7 +472,7 @@ class CATLASSTemplateKernel(Kernel):
         Mock load function for memory planning to optimize allocations properly.
         """
         return self.create_cse_var(name, bounds=ValueRanges.unknown())
-    
+
     def store(self, name: str, index: Expr, value: Any, mode: Any = None) -> None:
         """
         Mock store function for memory planning to optimize allocations properly.

@@ -22,9 +22,9 @@ torch.manual_seed(2024)
 random.seed(2024)
 
 MODEL_NAME = "ETA"
-STD_DEV = (2 / 512) ** 0.5 
-EMBEDDING_FEATURE_NUM = 27 
-TARGET_FIELDS = ["206", "207", "216", "210"] 
+STD_DEV = (2 / 512) ** 0.5
+EMBEDDING_FEATURE_NUM = 27
+TARGET_FIELDS = ["206", "207", "216", "210"]
 
 def detect_device_type():
     try:
@@ -103,7 +103,7 @@ def parse_arguments():
     parser.add_argument("--clear_existing_model", action="store_true", help="")
     parser.add_argument("--task_type", type=str, default="train",
                         choices=["train", "eval", "predict"], help="task type")
-    parser.add_argument("--max_steps", type=int, default=100,  
+    parser.add_argument("--max_steps", type=int, default=100,
                        help="Total training steps (优先级高于num_epochs，-1表示使用num_epochs控制)")
     parser.add_argument('--epoch_num', type=int, default=1, help="Number of epochs")
     parser.add_argument('--train_batch_num', type=int, default=2000, help="Number of train batchs")
@@ -455,7 +455,7 @@ def evaluate_op(model: ETA, dataloader, device, args):
         model = torch.compile(model, dynamic=False)
     model.eval()
     with torch.no_grad():
-        model(features) 
+        model(features)
         device_synchronize()
 
     prof = None
@@ -480,7 +480,7 @@ def evaluate_op(model: ETA, dataloader, device, args):
             if args.enable_profiler:
                 prof.step()
     if args.enable_profiler:
-        prof.stop()   
+        prof.stop()
     if exec_times:
         avg_time = sum(exec_times) / len(exec_times)
         print("Step time consumption statistics (excluding the first 10 steps)")

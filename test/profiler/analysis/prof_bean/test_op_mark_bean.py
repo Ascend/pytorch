@@ -12,7 +12,7 @@ class TestOpMarkBean(TestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.samples = cls.generate_samples()
-        
+
 
     @classmethod
     def generate_samples(cls):

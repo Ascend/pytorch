@@ -904,7 +904,7 @@ class TestNestedTensor(torch._dynamo.test_case.TestCase):
     @unittest.skipIf(not torch.cuda.is_available(), "requires cuda")
     def test_basic_autograd_inductor(self):
         self._test_autograd("inductor")
-    
+
     @unittest.skipIf(not torch.npu.is_available(), "requires npu")
     def test_basic_autograd_npu_backend(self):
         npu_backend = torchair.get_npu_backend()

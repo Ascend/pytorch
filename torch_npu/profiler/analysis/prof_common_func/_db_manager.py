@@ -33,7 +33,7 @@ class DbManager:
     def create_connect_db(cls, db_path: str) -> tuple:
         """
         create and connect database
-        """      
+        """
         if os.path.exists(db_path):
             FileManager.check_db_file_vaild(db_path)
         try:
@@ -41,7 +41,7 @@ class DbManager:
             conn = sqlite3.connect(db_path, timeout=2147483, check_same_thread=False)
         except sqlite3.Error as err:
             return EmptyClass("emoty conn"), EmptyClass("empty curs")
-        
+
         try:
             curs = conn.cursor()
             os.chmod(db_path, Constant.FILE_AUTHORITY)
@@ -60,7 +60,7 @@ class DbManager:
             cur.close()
         except sqlite3.Error as err:
             raise RuntimeError(f"Falied to close db connection cursor") from err
-        
+
         try:
             conn.close()
         except sqlite3.Error as err:
@@ -162,7 +162,7 @@ class DbManager:
         except sqlite3.Error as err:
             print_error_msg("SQLite Error: %s" % " ".join(err.args))
             return []
-        
+
     @classmethod
     def fetch_one_data(cls, cur: sqlite3.Cursor, sql: str) -> list:
         """

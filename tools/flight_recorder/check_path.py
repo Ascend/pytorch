@@ -24,7 +24,7 @@ def type_to_str(value_type):
 def check_type(value, value_type, param_name="value"):
     if not isinstance(value, value_type):
         raise TypeError('{} must be {}, not {}.'.format(param_name, type_to_str(value_type), type(value).__name__))
-    
+
 
 def get_valid_path(path):
     check_type(path, str, "path")

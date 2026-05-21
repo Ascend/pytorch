@@ -22,10 +22,10 @@ from typing import Dict, List, Optional
 import argparse
 import logging
 
-sys.path.append(str(Path(__file__).parent.parent))   
+sys.path.append(str(Path(__file__).parent.parent))
 from utils.utils import (
-    TimingCallback, 
-    get_profile, 
+    TimingCallback,
+    get_profile,
     detect_device_type
 )
 
@@ -38,10 +38,10 @@ class GPT_OSS_20BTrainer:
     def __init__(self, args):
         self.args = args
         self.setup_training()
-        
+
     def setup_training(self):
         logger.info(f"Loading model from {self.args.model_path}")
-        
+
         self.model = AutoModelForCausalLM.from_pretrained(
             self.args.model_path,
             torch_dtype=torch.bfloat16 if self.args.use_bf16 else torch.float16,
@@ -50,30 +50,30 @@ class GPT_OSS_20BTrainer:
 
         logger.info(f"Moving model to {self.args.device_type}...")
         self.model = self.model.to(self.args.device_type)
-        
+
         self.tokenizer = AutoTokenizer.from_pretrained(
             self.args.model_path,
             trust_remote_code=True
         )
-        
+
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
             self.model.config.pad_token_id = self.tokenizer.eos_token_id
-            
+
         if self.args.gradient_checkpointing:
             self.model.gradient_checkpointing_enable()
             self.model.config.use_cache = False
 
-            
+
     def apply_lora(self):
         if not self.args.use_lora:
             return
-            
+
         logger.info("Applying LoRA configuration...")
-        
+
         if self.args.use_4bit:
             self.model = prepare_model_for_kbit_training(self.model)
-        
+
         lora_config = LoraConfig(
             task_type=TaskType.CAUSAL_LM,
             r=self.args.lora_r,
@@ -82,38 +82,38 @@ class GPT_OSS_20BTrainer:
             target_modules=self.get_lora_target_modules(),
             bias="none",
         )
-        
+
         self.model = get_peft_model(self.model, lora_config)
         self.model.print_trainable_parameters()
-        
+
         if self.args.enable_compile:
             self.model = torch.compile(self.model, dynamic=False)
-        
+
     def get_lora_target_modules(self):
         target_modules = [
             "q_proj", "k_proj", "v_proj", "o_proj",
             "gate_proj", "up_proj", "down_proj",
         ]
-        
+
         model_modules = set([name for name, _ in self.model.named_modules()])
         available_modules = [m for m in target_modules if any(m in name for name in model_modules)]
-        
+
         if not available_modules:
             available_modules = ["qkv_proj", "dense", "fc1", "fc2"]
-            
+
         logger.info(f"Using LoRA target modules: {available_modules}")
         return available_modules
-        
+
     def load_and_preprocess_data(self) -> Dataset:
         logger.info(f"Loading dataset from {self.args.data_path}")
-        
+
         if self.args.data_path.endswith('.json') or self.args.data_path.endswith('.jsonl'):
             with open(self.args.data_path, 'r', encoding='utf-8') as f:
                 if self.args.data_path.endswith('.jsonl'):
                     data = [json.loads(line) for line in f]
                 else:
                     data = json.load(f)
-                    
+
             formatted_data = []
             for item in data:
                 if "conversations" in item:
@@ -128,11 +128,11 @@ class GPT_OSS_20BTrainer:
                     )
                 else:
                     text = item.get("text", "")
-                    
+
                 formatted_data.append({"text": text})
-                
+
             dataset = Dataset.from_list(formatted_data)
-            
+
         else:
             try:
                 dataset = load_dataset(
@@ -145,7 +145,7 @@ class GPT_OSS_20BTrainer:
                     data_files=self.args.data_path,
                     split="train"
                 )
-        
+
         def preprocess_function(examples, tokenizer=self.tokenizer, max_length=self.args.max_length):
             tokenized = tokenizer(
                 examples["text"],
@@ -155,45 +155,45 @@ class GPT_OSS_20BTrainer:
                 return_tensors=None,
                 return_attention_mask=True,
             )
-            
+
             import copy
             tokenized["labels"] = copy.deepcopy(tokenized["input_ids"])
-            
+
             return tokenized
-        
+
         num_proc = self.args.num_proc if self.args.num_proc > 0 else None
         processed_dataset = dataset.map(
             preprocess_function,
             batched=True,
             remove_columns=dataset.column_names,
-            num_proc=num_proc, 
+            num_proc=num_proc,
             load_from_cache_file=not self.args.overwrite_cache
         )
-        
+
         logger.info(f"Dataset size: {len(processed_dataset)}")
         return processed_dataset
-        
+
     def format_conversation(self, conversations: List[Dict]) -> str:
         formatted_text = ""
-        
+
         for turn in conversations:
             role = turn.get("from", "").lower()
             content = turn.get("value", "")
-            
+
             if role == "human" or role == "user":
                 formatted_text += f"<|im_start|>user\n{content}<|im_end|>\n"
             elif role == "gpt" or role == "assistant":
                 formatted_text += f"<|im_start|>assistant\n{content}<|im_end|>\n"
             elif role == "system":
                 formatted_text += f"<|im_start|>system\n{content}<|im_end|>\n"
-                
+
         return formatted_text
-        
+
     def create_trainer(self, train_dataset, eval_dataset=None):
         has_eval = eval_dataset is not None
         eval_strategy = "steps" if has_eval else "no"
-        save_strategy = "steps" if has_eval else "steps"  
-        
+        save_strategy = "steps" if has_eval else "steps"
+
         training_args = TrainingArguments(
             output_dir=self.args.output_dir,
             overwrite_output_dir=True,
@@ -207,10 +207,10 @@ class GPT_OSS_20BTrainer:
             logging_steps=self.args.logging_steps,
             save_steps=self.args.save_steps,
             save_total_limit=self.args.save_total_limit,
-            eval_strategy=eval_strategy,  
+            eval_strategy=eval_strategy,
             eval_steps=self.args.eval_steps if has_eval else None,
-            save_strategy=save_strategy, 
-            load_best_model_at_end=has_eval, 
+            save_strategy=save_strategy,
+            load_best_model_at_end=has_eval,
             metric_for_best_model="eval_loss",
             greater_is_better=False,
             learning_rate=self.args.learning_rate,
@@ -222,7 +222,7 @@ class GPT_OSS_20BTrainer:
             ddp_find_unused_parameters=False if torch.cuda.device_count() > 1 else None,
             remove_unused_columns=False,
         )
-        
+
         data_collator = DataCollatorForLanguageModeling(
             tokenizer=self.tokenizer,
             mlm=False,
@@ -235,8 +235,8 @@ class GPT_OSS_20BTrainer:
             profiling_save_path = self.args.profiler_save_path + '/' + model_name + '/' + mod
             prof = get_profile(self.args.profiler_start_step, self.args.profiler_end_step, profiling_save_path)
 
-        timing_callback = TimingCallback(prof, mod) 
-        
+        timing_callback = TimingCallback(prof, mod)
+
         trainer = Trainer(
             model=self.model,
             args=training_args,
@@ -246,17 +246,17 @@ class GPT_OSS_20BTrainer:
             data_collator=data_collator,
             callbacks=[timing_callback],
         )
-        
+
         return trainer
-        
+
     def train(self):
         logger.info("Starting training...")
-        
+
         if self.args.use_lora:
             self.apply_lora()
-        
+
         dataset = self.load_and_preprocess_data()
-        
+
         if self.args.validation_split > 0:
             split_dataset = dataset.train_test_split(
                 test_size=self.args.validation_split,
@@ -267,11 +267,11 @@ class GPT_OSS_20BTrainer:
         else:
             train_dataset = dataset
             eval_dataset = None
-            
+
         trainer = self.create_trainer(train_dataset, eval_dataset)
-        
+
         train_result = trainer.train()
-        
+
         if self.args.enable_compile:
             headers, values = torch._dynamo.utils.compile_times("csv")
             for header, value in zip(headers, values):
@@ -282,14 +282,14 @@ class GPT_OSS_20BTrainer:
 
         trainer.save_model()
         self.tokenizer.save_pretrained(self.args.output_dir)
-        
+
         metrics = train_result.metrics
         trainer.log_metrics("train", metrics)
         trainer.save_metrics("train", metrics)
         trainer.save_state()
-        
+
         logger.info(f"Training completed! Model saved to {self.args.output_dir}")
-        
+
         return metrics
 
 def main():
@@ -310,7 +310,7 @@ def main():
                        help="Learning rate")
     parser.add_argument("--warmup_steps", type=int, default=5,
                        help="Warmup steps")
-    parser.add_argument("--max_steps", type=int, default=1, 
+    parser.add_argument("--max_steps", type=int, default=1,
                        help="Total training steps")
     parser.add_argument("--weight_decay", type=float, default=0.01,
                        help="Weight decay")
@@ -379,7 +379,7 @@ def main():
 
     trainer = GPT_OSS_20BTrainer(args)
     metrics = trainer.train()
-    
+
     print("\n" + "="*50)
     print("Training completed successfully!")
     print(f"Model saved to: {args.output_dir}")

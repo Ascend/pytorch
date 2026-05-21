@@ -7,4 +7,3 @@ class Singleton(object):
         if self._cls not in self._instance:
             self._instance[self._cls] = self._cls()
         return self._instance[self._cls]
-    

@@ -694,15 +694,15 @@ class TestNPUGraphNodeRun(TestCase):
 
 
 class TestGetNpugraphSegments(TestCase):
-    @patch('torch.npu.memory_snapshot')  
-    def test_get_npugraph_segments(self, mock_snapshot):            
+    @patch('torch.npu.memory_snapshot')
+    def test_get_npugraph_segments(self, mock_snapshot):
         mock_snapshot.return_value = [
                     {"segment_pool_id": (0, 1), "address": 1000, "blocks": []},
                     {"segment_pool_id": (0, 0), "address": 2000, "blocks": []},
                     {"segment_pool_id": (0, 1), "address": 3000, "blocks": []},
-                ]                      
-        result = get_npugraph_segments((0, 1))                      
-        self.assertEqual(len(result), 2)      
+                ]
+        result = get_npugraph_segments((0, 1))
+        self.assertEqual(len(result), 2)
         mock_snapshot.assert_called_once_with()
 
 
@@ -919,15 +919,15 @@ class TestNPUGraphTreeManager:
         manager.npu_graphs_thread_pool = "pool_handle"
         manager.device_index = 0
         manager.stream = MagicMock()
-        
+
         # 设置模拟返回值
         mock_node_instance = MagicMock()
         mock_node.return_value = mock_node_instance
         mock_node_instance.run_first_inputs.return_value = [torch.tensor([1.0])]
-        
+
         # 执行测试
         result = manager.record_function([torch.tensor([1.0])], FunctionID(1))
-        
+
         # 验证调用
         mock_synchronize.assert_any_call()
         mock_node.assert_called_once_with(
@@ -950,10 +950,10 @@ class TestNPUGraphTreeManager:
         manager = NPUGraphTreeManager(0)
         mock_node = MagicMock()
         mock_node.run.return_value = [torch.tensor([1.0])]
-        
+
         # 执行测试
         result = manager.execute_node(mock_node, [torch.tensor([1.0])])
-        
+
         # 验证调用
         mock_update_gen.assert_called_once_with()
         assert manager.current_node == mock_node
@@ -970,15 +970,15 @@ class TestNPUGraphTreeManager:
         manager.graph = MagicMock()
         manager.device_index = 0
         manager.stream = MagicMock()
-        
+
         # 设置模拟返回值
         mock_node_instance = MagicMock()
         mock_warmup_node.return_value = mock_node_instance
         mock_node_instance.run.return_value = [torch.tensor([1.0])]
-        
+
         # 执行测试
         result = manager.run_eager([torch.tensor([1.0])], FunctionID(1))
-        
+
         # 验证调用
         mock_update_gen.assert_called_once_with()
         mock_warmup_node.assert_called_once_with(
@@ -1163,7 +1163,7 @@ class TestNPUGraphTreeManager:
     ):
         manager = NPUGraphTreeManager(0)
         mock_in_new_invocation.return_value = True
-        
+
         mock_node = MagicMock()
         mock_node._path_from_root = [MagicMock()]
         mock_node._path_from_root[0].wrapped_function.id = FunctionID(2)
@@ -1179,22 +1179,22 @@ class TestNPUGraphTreeManager:
     ):
         manager = NPUGraphTreeManager(0)
         mock_in_new_invocation.return_value = True
-        
+
         mock_node1 = MagicMock()
         mock_node1.wrapped_function.id = FunctionID(1)
         mock_node1.parent = MagicMock()
         mock_node1.parent.wrapped_function.id = FunctionID(0)
-        
+
         mock_node2 = MagicMock()
         mock_node2.wrapped_function.id = FunctionID(1)
         mock_node2.parent = MagicMock()
         mock_node2.parent.wrapped_function.id = FunctionID(0)
-        
+
         mock_current_node = MagicMock()
         mock_current_node.wrapped_function.id = FunctionID(1)
         mock_current_node.parent = MagicMock()
         mock_current_node.parent.wrapped_function.id = FunctionID(0)
-        
+
         mock_current_node._path_from_root = [mock_node1, mock_node2]
         manager.current_node = mock_current_node
         manager.check_warn_on_unable_to_start_executing(FunctionID(1))

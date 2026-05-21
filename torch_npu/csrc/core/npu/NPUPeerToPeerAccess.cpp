@@ -50,7 +50,7 @@ bool NpuP2pCtrl::get_p2p_access(int32_t source_dev, int32_t dest_dev, bool& flag
     // get access source_dev -> dest_dev
     auto &cache_s2d = p2p_access_enabled_cache_[source_dev * num_devices_ + dest_dev];
     auto &cache_d2s = p2p_access_enabled_cache_[dest_dev * num_devices_ + source_dev];
-    
+
     if (cache_s2d != P2pStatus::UNKONWN) {
         return static_cast<bool>(cache_s2d);
     }

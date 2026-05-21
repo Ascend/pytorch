@@ -14,7 +14,7 @@ class TestNpuBackend(TestCase):
         eager_result = func(x)
         dynamo_result = dynamo_func(x)
         self.assertEqual(eager_result, dynamo_result)
-        
+
 
 if __name__ == "__main__":
     from torch._dynamo.test_case import run_tests

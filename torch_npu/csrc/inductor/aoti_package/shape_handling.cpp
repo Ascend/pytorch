@@ -69,7 +69,7 @@ void THNPShapeHandling_init(PyObject *module)
         .value("BATCHSIZE", torch::aot_inductor::ShapeType::BATCHSIZE)
         .value("SEQLEN", torch::aot_inductor::ShapeType::SEQLEN)
         .export_values();
-    
+
     py::enum_<torch::aot_inductor::ShapePolicy>(torch_N_m, "ShapePolicy")
         .value("TIMES", torch::aot_inductor::ShapePolicy::TIMES)
         .value("CUSTOM", torch::aot_inductor::ShapePolicy::CUSTOM)
@@ -129,7 +129,7 @@ void THNPShapeHandling_init(PyObject *module)
              py::arg("outputs")
         )
         .def_readwrite("dimension", &torch::aot_inductor::BSShapeOpStrategy::m_dimension);
-    
+
     py::class_<torch::aot_inductor::SeqShapeOpStrategy, PySeqShapeOpStrategy,
         torch::aot_inductor::ShapeOpStrategyBase,
         std::shared_ptr<torch::aot_inductor::SeqShapeOpStrategy>>(torch_N_m, "_SeqShapeOpStrategy")

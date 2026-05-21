@@ -51,7 +51,7 @@ class DefaultParallelStrategy(ParallelStrategyBase):
         sorted_preds = sorted(preds, key=lambda x: node_to_idx.get(x, -1))
         groups = []
         assigned = set()
-        
+
         def get_ancestors_node(start):
             ancestors = set()
             stack = [start]

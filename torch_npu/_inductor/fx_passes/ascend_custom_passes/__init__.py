@@ -23,7 +23,7 @@ def run_register_pre_custom_passes(gm):
                 fn(gm)
 
     log.debug(f"after pre_grad graph optimizer pass, graph is: {gm}")
-        
+
 
 def run_register_post_custom_passes(gm):
     log.debug(f"before post_grad graph optimizer pass, graph is: {gm}")

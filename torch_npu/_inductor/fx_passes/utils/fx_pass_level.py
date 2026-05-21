@@ -17,7 +17,7 @@ class FxPassLevel(Enum):
         if isinstance(other, FxPassLevel):
             return self.value == other.value
         return NotImplemented
-    
+
     def __hash__(self):
         return hash(self.value)
 
@@ -36,7 +36,7 @@ class PassType(Enum):
         if isinstance(other, PassType):
             return self.value == other.value
         return NotImplemented
-    
+
     def __hash__(self):
         return hash(self.value)
 
@@ -60,7 +60,7 @@ class ComputeType(Enum):
         if isinstance(other, ComputeType):
             return self.value == other.value
         return NotImplemented
-    
+
     def __hash__(self):
         return hash(self.value)
 
@@ -82,6 +82,6 @@ class GroupType(Enum):
         if isinstance(other, ComputeType):
             return self.value == other.value
         return NotImplemented
-    
+
     def __hash__(self):
         return hash(self.value)

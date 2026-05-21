@@ -75,7 +75,7 @@ class IndexAnalysis:
             for key, coeff in self.index.as_coefficients_dict().items()
             if not isinstance(key, sympy.Integer)
         ]
-        # sort by stride 
+        # sort by stride
         self.var_stride.sort(key=lambda x: x[1])
         # only contains tiling axis var
         self.var_list = tuple([x[0] for x in self.var_stride if x[0] in self.tiling_axis])
@@ -325,7 +325,7 @@ class ReductionAnalysis:
         sizes = self.dense_size_list()
         num_red = self.numof_reduction_axis()
         is_contig = self.contiguous_reduction
-        
+
         if num_red > 1:
             if is_contig:
                 result = f"[{', '.join(self.dense_post_reduction_list())}]"
@@ -333,7 +333,7 @@ class ReductionAnalysis:
                 result = f"[{'* '.join(sizes)}]"
         else:
             result = f"[{', '.join(sizes)}]"
-        
+
         return result
 
     def numof_reduction_axis(self):

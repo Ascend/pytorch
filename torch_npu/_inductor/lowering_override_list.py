@@ -7,7 +7,7 @@ prims = torch.ops.prims
 npu = torch.ops.npu
 
 
-# in lowering.py, we will remove the following op's default lowering function, 
+# in lowering.py, we will remove the following op's default lowering function,
 # and register its new override-lowering-function.
 LOWERING_OVERRIDE_OP = [
     aten.cumsum,

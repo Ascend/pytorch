@@ -117,7 +117,7 @@ def eval_op_prof(model: nn.Module, device, mod, args):
 
     model.eval()
     with torch.no_grad():
-        res = model(x) 
+        res = model(x)
         torch.save(res, pt_path)
         device_synchronize()
 
@@ -136,13 +136,13 @@ def eval_op_prof(model: nn.Module, device, mod, args):
             end_time = time.time()
             step_time_ms = (end_time - start_time) * 1000
             print(f"[{mod}]: Step {i}: {step_time_ms:.4f} ms")
-            
+
             if i >= 10:
                 execution_times.append(step_time_ms)
 
             if args.enable_profiler:
                 prof.step()
-            
+
         if args.enable_profiler:
             prof.stop()
         if execution_times:
@@ -150,7 +150,7 @@ def eval_op_prof(model: nn.Module, device, mod, args):
             print(f"[{mod}]:: Avg over {len(execution_times)} steps: {avg_ms:.4f} ms")
 
 parser = argparse.ArgumentParser(description=MODEL_NAME + " infernece")
-parser.add_argument("--max_steps", type=int, default=200,  
+parser.add_argument("--max_steps", type=int, default=200,
                     help="Total training steps")
 parser.add_argument("--enable_compile", action="store_true",
                         help="Enable torch.compile and Inductor backend")

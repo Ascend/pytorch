@@ -65,7 +65,7 @@ class TileGenerator:
                 continue
             if self.axis_name[tiling_axis][0] == "r" and self.persistent_reduction:
                 continue
-            self.real_tiling_axis.append(tiling_axis)   
+            self.real_tiling_axis.append(tiling_axis)
         self.split_axis_num = len(self.split_axis)
 
     def reset_configs(self):
@@ -83,7 +83,7 @@ class TileGenerator:
                 continue
             if self.axis_name[tiling_axis][0] == "r" and self.persistent_reduction:
                 continue
-            self.real_tiling_axis.append(tiling_axis)   
+            self.real_tiling_axis.append(tiling_axis)
         self.split_axis_num = len(self.split_axis)
 
     def calcu_last_split_blocks(self, axis):
@@ -407,7 +407,7 @@ class TileGenerator:
             self.tune_multibuffer()
         if self.npu_kernel_type == NPUKernelType.SIMT_ONLY:
             self.tune_simt_num_warps()
-    
+
     def set_kernel_type(self, npu_kernel_type):
         self.npu_kernel_type = npu_kernel_type
 

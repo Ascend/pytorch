@@ -182,8 +182,8 @@ class TestAscendGraphPass(TestUtils):
         cast_1 = torch.ops.npu._npu_dtype_cast.default(first_element, torch.int64)
         output = torch.ops.aten.relu.default(cast_1)
         return output
-    
-    
+
+
     @parametrize('shape', [(256, 5)])
     @parametrize('dtype', ['int64'])
     def test_cast_standard_compile_cases(self, shape, dtype):
@@ -192,7 +192,7 @@ class TestAscendGraphPass(TestUtils):
         compiled_op_calc = torch.compile(self.cast_standard_op_calc, backend="inductor")
         inductor_result = compiled_op_calc(first_element)
         self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
-        
+
 
     @parametrize('shape', [(256, 5)])
     @parametrize('dtype', ['int64'])
@@ -243,8 +243,8 @@ class TestAscendGraphPass(TestUtils):
         compiled_op_calc = torch.compile(self.cat_slice_cat_op_calc, backend="inductor")
         inductor_result = compiled_op_calc(first_element)
         self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
-        
-    
+
+
     @parametrize('shape', [(1, 3, 64, 1024)])
     @parametrize('dtype', ['float32'])
     def test_cat_slice_cat_ut_cases(self, shape, dtype):
@@ -276,8 +276,8 @@ class TestAscendGraphPass(TestUtils):
         compiled_op_calc = torch.compile(self.fold_add_op_calc, backend="inductor")
         inductor_result = compiled_op_calc(first_element)
         self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
-        
-    
+
+
     @parametrize('shape', [(1, 2, 3)])
     @parametrize('dtype', ['float32'])
     def test_fold_add_ut_cases(self, shape, dtype):
@@ -316,8 +316,8 @@ class TestAscendGraphPass(TestUtils):
         compiled_op_calc = torch.compile(self.fold_cat_op_calc, backend="inductor")
         inductor_result = compiled_op_calc(t1, t2, t3, t4, t5)
         self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
-        
-    
+
+
     @parametrize('shape', [(2, 4)])
     @parametrize('dtype', ['float32'])
     def test_fold_cat_ut_cases(self, shape, dtype):
@@ -347,14 +347,14 @@ class TestAscendGraphPass(TestUtils):
     @parametrize('dtype', ['float32'])
     def test_fold_clone_compile_cases(self, shape, dtype):
         t1 = self._generate_tensor(shape, dtype)
-        
+
         std_result = self.fold_clone_op_calc(t1)
 
         compiled_op_calc = torch.compile(self.fold_clone_op_calc, backend="inductor")
         inductor_result = compiled_op_calc(t1)
         self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
-        
-    
+
+
     @parametrize('shape', [(1, 2, 3)])
     @parametrize('dtype', ['float32'])
     def test_fold_clone_ut_cases(self, shape, dtype):
@@ -385,8 +385,8 @@ class TestAscendGraphPass(TestUtils):
         compiled_op_calc = torch.compile(self.fold_detach_op_calc, backend="inductor")
         inductor_result = compiled_op_calc(t1)
         self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
-        
-    
+
+
     @parametrize('shape', [(3, 3)])
     @parametrize('dtype', ['float32'])
     def test_fold_detach_ut_cases(self, shape, dtype):
@@ -417,8 +417,8 @@ class TestAscendGraphPass(TestUtils):
         compiled_op_calc = torch.compile(self.fold_div_op_calc, backend="inductor")
         inductor_result = compiled_op_calc(t1)
         self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
-        
-    
+
+
     @parametrize('shape', [(2, 4, 8)])
     @parametrize('dtype', ['float32'])
     def test_fold_div_ut_cases(self, shape, dtype):
@@ -446,14 +446,14 @@ class TestAscendGraphPass(TestUtils):
     @parametrize('dtype', ['float32'])
     def test_fold_expand_compile_cases(self, shape, dtype):
         t1 = self._generate_tensor(shape, dtype)
-        
+
         std_result = self.fold_expand_op_calc(t1)
 
         compiled_op_calc = torch.compile(self.fold_expand_op_calc, backend="inductor")
         inductor_result = compiled_op_calc(t1)
         self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
-        
-    
+
+
     @parametrize('shape', [(256, 128, 1)])
     @parametrize('dtype', ['float32'])
     def test_fold_expand_ut_cases(self, shape, dtype):
@@ -484,8 +484,8 @@ class TestAscendGraphPass(TestUtils):
         compiled_op_calc = torch.compile(self.fold_mul_op_calc, backend="inductor")
         inductor_result = compiled_op_calc(t1)
         self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
-        
-    
+
+
     @parametrize('shape', [(1, 2, 3)])
     @parametrize('dtype', ['float32'])
     def test_fold_mul_ut_cases(self, shape, dtype):
@@ -514,8 +514,8 @@ class TestAscendGraphPass(TestUtils):
         compiled_op_calc = torch.compile(self.fold_reduce_op_calc, backend="inductor")
         inductor_result = compiled_op_calc(t1)
         self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
-        
-    
+
+
     @parametrize('shape', [(128, 1, 64, 1)])
     @parametrize('dtype', ['float32'])
     def test_fold_reduce_ut_cases(self, shape, dtype):
@@ -564,8 +564,8 @@ class TestAscendGraphPass(TestUtils):
         compiled_op_calc = torch.compile(self.fold_redundant_op_calc, backend="inductor")
         inductor_result = compiled_op_calc(arg0_1, arg1_1, arg2_1, arg3_1, arg4_1, arg5_1, arg6_1, arg7_1, arg8_1)
         self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
-        
-        
+
+
     def test_fold_redundant_ut_cases(self):
         arg0_1 = torch.randn(289094, 64, dtype=torch.float32)
         arg1_1 = torch.randint(0, 289094, (128,), dtype=torch.int64)
@@ -600,8 +600,8 @@ class TestAscendGraphPass(TestUtils):
         compiled_op_calc = torch.compile(self.fold_sink_view_op_calc, backend="inductor")
         inductor_result = compiled_op_calc(t1)
         self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
-        
-    
+
+
     @parametrize('shape', [(2, 3, 4)])
     @parametrize('dtype', ['float32'])
     def test_fold_sink_viewut_cases(self, shape, dtype):
@@ -637,8 +637,8 @@ class TestAscendGraphPass(TestUtils):
         compiled_op_calc = torch.compile(self.fold_slice_op_calc, backend="inductor")
         inductor_result = compiled_op_calc(base, view, t1, t2, t3)
         self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
-        
-        
+
+
     def test_fold_slice_ut_cases(self):
         base = torch.randn(8, 16, 32)
         view = torch.ones(8, 16, 32)
@@ -671,8 +671,8 @@ class TestAscendGraphPass(TestUtils):
         compiled_op_calc = torch.compile(self.fold_squeeze_op_calc, backend="inductor")
         inductor_result = compiled_op_calc(t1, t2)
         self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
-        
-        
+
+
     def test_fold_squeeze_ut_cases(self):
         t1 = torch.randn(2, 4)
         t2 = torch.randn(2, 1, 1, 4)
@@ -703,8 +703,8 @@ class TestAscendGraphPass(TestUtils):
         compiled_op_calc = torch.compile(self.fold_sub_op_calc, backend="inductor")
         inductor_result = compiled_op_calc(t1)
         self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
-        
-    
+
+
     @parametrize('shape', [(1, 2, 3)])
     @parametrize('dtype', ['float32'])
     def test_fold_sub_ut_cases(self, shape, dtype):
@@ -734,8 +734,8 @@ class TestAscendGraphPass(TestUtils):
         compiled_op_calc = torch.compile(self.fold_to_copy_op_calc, backend="inductor")
         inductor_result = compiled_op_calc(t1)
         self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
-        
-    
+
+
     @parametrize('shape', [(2, 4)])
     @parametrize('dtype', ['float32'])
     def test_fold_to_copy_ut_cases(self, shape, dtype):
@@ -766,8 +766,8 @@ class TestAscendGraphPass(TestUtils):
         compiled_op_calc = torch.compile(self.fold_view_op_calc, backend="inductor")
         inductor_result = compiled_op_calc(t1, t2)
         self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
-        
-        
+
+
     def test_fold_view_ut_cases(self):
         t1 = torch.randn(1, 3, 1, 5)
         t2 = torch.randn(128, 64)
@@ -795,8 +795,8 @@ class TestAscendGraphPass(TestUtils):
         compiled_op_calc = torch.compile(self.fold_where_op_calc, backend="inductor")
         inductor_result = compiled_op_calc(t1)
         self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
-        
-    
+
+
     @parametrize('shape', [(3, 4)])
     @parametrize('dtype', ['float32'])
     def test_fold_where_ut_cases(self, shape, dtype):
@@ -827,8 +827,8 @@ class TestAscendGraphPass(TestUtils):
         compiled_op_calc = torch.compile(self.pad_slice_op_calc, backend="inductor")
         inductor_result = compiled_op_calc(t1)
         self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
-        
-    
+
+
     @parametrize('shape', [(128, 50, 128)])
     @parametrize('dtype', ['float32'])
     def test_pad_slice_ut_cases(self, shape, dtype):

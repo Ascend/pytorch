@@ -404,7 +404,7 @@ def patch_run_node():
                     # Use inner fn as a rough proxy. Good enough.
                     if curr.has_large_inner_fn(threshold=100):
                         result.realize()
-                    
+
                     from .config import lowering_axis_count
                     if lowering_axis_count and len(curr.ranges) >= lowering_axis_count:
                         result.realize()

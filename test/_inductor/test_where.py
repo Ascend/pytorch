@@ -11,7 +11,7 @@ class TestWhere(TestUtils):
 
     @unittest.skip("it takes too long, not supported yet")
     @parametrize('shape', TestUtils._pointwise_demo_shapes)
-    @parametrize('dtype', ['float16', 'float32', 'bfloat16', 'int32'])   
+    @parametrize('dtype', ['float16', 'float32', 'bfloat16', 'int32'])
     def test_pointwise_cases(self, shape, dtype):
         first_element = self._generate_tensor(shape, dtype)
         second_element = self._generate_tensor(shape, dtype)

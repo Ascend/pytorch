@@ -128,7 +128,7 @@ class TestIndexing(TestCase):
 
         self.assertRaises(TypeError, delitem)
 
-    
+
     @dtypes(torch.half, torch.double)
     def test_advancedindex(self, device, dtype):
         # Tests for Integer Array Indexing, Part I - Purely integer array
@@ -876,7 +876,7 @@ class TestIndexing(TestCase):
 
             self.assertEqual(output, input_list)
 
-    
+
     def test_index_ind_dtype(self, device):
         x = torch.randn(4, 4, device=device)
         ind_long = torch.randint(4, (4,), dtype=torch.long, device=device)

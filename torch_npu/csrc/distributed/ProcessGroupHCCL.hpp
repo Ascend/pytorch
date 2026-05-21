@@ -400,7 +400,7 @@ public:
         // for tests.
         virtual std::exception_ptr checkForHCCLErrors(
             const std::vector<std::shared_ptr<HCCLComm>>& hcclComms) const;
-        
+
         friend std::ostream& operator<<(
         std::ostream& output,
         const WorkHCCL& workHCCL);
@@ -452,11 +452,11 @@ public:
         std::vector<std::pair<c10::weak_intrusive_ptr<c10::StorageImpl>, c10_npu::NPUStream>> recorded_outputs_;
 
         std::vector<at::Tensor> lazy_destroy_tensors_;
-		
+
         // unique id used to tell the trace buffer that this
         // work has completed
         c10::optional<uint64_t> trace_id_;
-        
+
         mutable std::once_flag print_flag;
 
         friend class ProcessGroupHCCL;
@@ -598,7 +598,7 @@ public:
     {
         return std::string(HCCL_BACKEND_NAME);
     }
-    
+
     bool supportsCoalescing() const override
     {
         return true;
@@ -869,7 +869,7 @@ protected:
     {
         return pg_desc_;
     }
-    
+
     void setP2pPeer(int newPeer)
     {
         peer_ = newPeer;
@@ -879,7 +879,7 @@ protected:
     {
         return peer_;
     }
-    
+
     // In the timeout case and we will dump debug info such as the NCCL flight
     // recorder to storage. Down the road, if we have more complicated or blocking
     // operations, we might need to use a side thread to do it.
@@ -895,7 +895,7 @@ protected:
     // we can dump the debugging information and abort the process.
     virtual void heartbeatMonitor();
 #endif
-    
+
     // Instance of the watchdog thread.
     std::unique_ptr<Watchdog> watchdog_;
     // Function that directly trigger std::abort so that the whole process
@@ -982,7 +982,7 @@ protected:
     std::unordered_map<std::string, std::vector<std::shared_ptr<HCCLComm>>> devHCCLCommMap_;
 
     std::unordered_set<std::string> reportedErrorComms_;
-    
+
     std::unordered_map<int, std::vector<std::string>> p2pSendRecvKeys_;
 
     std::unordered_map<std::string, std::string> devHCCLCommNameMap_;
@@ -1075,7 +1075,7 @@ protected:
     // The NPU events used to control task rate to protect streams
     std::unordered_map<std::string, std::vector<c10_npu::NPUEvent>>
         rateCtrlEvents_;
-    
+
     std::unordered_map<std::string, std::vector<uint64_t>> collectiveCnts_;
 
     // Device Indexes used for all collectives in this group
@@ -1232,7 +1232,7 @@ private:
         Fn fn,
         c10d::OpType opType,
         bool asyncOp = false);
-    
+
     template <typename Fn, typename PreProcess, typename PostProcess>
     c10::intrusive_ptr<c10d::Work> collective(
         std::vector<at::Tensor>& input,
@@ -1355,7 +1355,7 @@ private:
     // Util function to assign timeout to each work.
     void assignTimeoutToWork(const c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work,
         const c10::intrusive_ptr<Options>& option);
-    
+
     void silenceCheck(at::Tensor &input, c10d::OpType opType);
 
     HcclCommConfig createHcclCommConfigWithOptions();
@@ -1382,7 +1382,7 @@ private:
     c10::optional<at::Tensor> windowMem_;
 
     uint32_t cached_aic_num;
-    
+
     uint32_t cached_aiv_num;
 
 };

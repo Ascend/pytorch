@@ -50,7 +50,7 @@ class TestIFAAclgraphUpdateSupportBlocking(TestCase):
                 query, key, value, num_heads=32, input_layout="BNSD", scale=scale, pre_tokens=65535, workspace=workspace,
                 next_tokens=65535, softmax_lse_flag=False, actual_seq_lengths=length, out=[output, softmax_lse])
             handle = torch.npu.graph_task_group_end(stream)
-        
+
         with torch.npu.stream(update_stream):
             torch.npu.graph_task_update_begin(update_stream, handle)
             torch_npu.npu_fused_infer_attention_score.out(
@@ -91,7 +91,7 @@ class TestIFAAclgraphUpdateSupportBlocking(TestCase):
             torch_npu.npu_fused_infer_attention_score.out(
                 query, key, value, num_heads=32, input_layout="BNSD", scale=scale, pre_tokens=65535, workspace=workspace,
                 next_tokens=65535, softmax_lse_flag=False, actual_seq_lengths=length, out=[output, softmax_lse])
-        
+
         g.update(cpu_update_input=[{"actual_seq_lengths": length_new}])
         g.replay()
         self.assertEqual(output.cpu(), res_src[0].cpu())
@@ -121,7 +121,7 @@ class TestIFAAclgraphUpdateSupportBlocking(TestCase):
             output, softmax_lse = torch_npu.npu_fused_infer_attention_score(
                 query, key, value, num_heads=32, input_layout="BNSD", scale=scale, pre_tokens=65535,
                 next_tokens=65535, softmax_lse_flag=False, actual_seq_lengths=length)
-        
+
         g.update(cpu_update_input=[{"actual_seq_lengths": length_new}])
         g.replay()
         self.assertEqual(output.cpu(), res_src[0].cpu())

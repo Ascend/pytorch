@@ -29,7 +29,7 @@ class CVParallelismStrategy(ParallelStrategyBase):
             return ComputeType.VECTOR
 
         node_class = node_obj.__class__.__name__.lower()
-        
+
         if "multioutput" in node_class:
             inputs = getattr(node_obj, 'inputs', [])
             if inputs and len(inputs) > 0:
@@ -55,7 +55,7 @@ class CVParallelismStrategy(ParallelStrategyBase):
             'convolution', 'conv', 'mm', 'addmm', 'bmm', 'matmul', 'linear', 'einsum'
         ]):
             return ComputeType.CUBE
-        
+
         if isinstance(node_data, (Pointwise, Reduction)) and hasattr(node_obj, "origins"):
             origin_ops = [str(o) for o in node_obj.origins]
             complex_ops = ['softmax', 'norm', 'layer_norm']
@@ -69,7 +69,7 @@ class CVParallelismStrategy(ParallelStrategyBase):
             'add', 'relu', 'gelu', 'mul', 'bias', 'sigmoid', 'silu'
         ]):
             return ComputeType.MLP_VECTOR
-        
+
         if 'pointwise' in data_class.lower():
             return ComputeType.VECTOR
         return ComputeType.UNKNOWN
@@ -126,11 +126,11 @@ class CVParallelismStrategy(ParallelStrategyBase):
         sorted_candidates = sorted(candidates, key=lambda x: pos_map.get(x, float('inf')))
         max_segment = []
         current_segment = [sorted_candidates[0]]
-        
+
         for i in range(1, len(sorted_candidates)):
             prev_node = sorted_candidates[i-1]
             curr_node = sorted_candidates[i]
-            
+
             if pos_map[curr_node] == pos_map[prev_node] + 1:
                 current_segment.append(curr_node)
             else:
@@ -185,7 +185,7 @@ class CVParallelismStrategy(ParallelStrategyBase):
         # 计算每个分组中node节点数量，如果小于最小值则不分组
         vector_group_len = self.calculate_group_len(final_vec)
         cube_group_len = self.calculate_group_len(final_cube)
-        
+
         sub_nodes_min = os.environ.get("PARALLEL_SCHEDULER_NODES_MIN", 20) // 5
         if cube_group_len < sub_nodes_min or vector_group_len < sub_nodes_min:
             invalidate_all = True

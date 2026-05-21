@@ -79,11 +79,11 @@ void BSShapeOpStrategy::InitializeCore(std::vector<int64_t>& gears, int dimensio
         "Maximum batch size (", gears.back(), ") must be <= ", MAX_BS_GEAR, ".");
     TORCH_CHECK(std::adjacent_find(gears.begin(), gears.end()) == gears.end(),
         "Batch size gears must be unique.")
-    
+
     TORCH_CHECK(dimension >= 0, "Dimension must be non-negative (got ", dimension, ").");
-    
+
     TORCH_CHECK(indices.size() > 0, "At least one tensor index must be provided for transformation.");
-    
+
     std::sort(indices.begin(), indices.end());
     TORCH_CHECK(indices.front() >= 0,
         "Tensor index must be non-negative (found negative index: ", indices.front(), ").");
@@ -104,7 +104,7 @@ void SeqShapeOpStrategy::InitializeCore(std::vector<int64_t>& gears, std::vector
     TORCH_CHECK(!gears.empty(), "At least one sequence gear must be provided.");
     TORCH_CHECK(gears.size() <= MAX_GEARS_NUM,
         "Number of sequence length gears (", gears.size(), ") exceeds maximum supported (", MAX_GEARS_NUM, ").");
-    
+
     std::sort(gears.begin(), gears.end());
     TORCH_CHECK(gears.front() >= MIN_SEQ_GEAR,
         "Minimum sequence length (", gears.front(), ") must be >= ", MIN_SEQ_GEAR, ".");
@@ -136,7 +136,7 @@ void SeqShapeOpStrategy::InitializeCore(std::vector<int64_t>& gears, std::vector
         m_indices.push_back(indices[i]);
         m_dimensions.push_back(dimensions[i]);
     }
-    
+
     m_value = value;
     m_gears = gears;
     m_min_gear = gears.front();
@@ -383,7 +383,7 @@ void NPUShapeHandling::Initialize(ShapeType type, int64_t min_size, int64_t max_
     std::vector<int>& dimensions, std::vector<int>& indices, double value)
 {
     m_policy = policy;
-    
+
     std::vector<int64_t> gears;
     GenerateGears(min_size, max_size, policy, gears);
 

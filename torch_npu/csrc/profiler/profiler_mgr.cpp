@@ -95,7 +95,7 @@ void ProfilerMgr::EnableMsProfiler(uint32_t *deviceIdList, uint32_t deviceNum, a
     if (profConfig_ == nullptr) {
         profConfig_ = at_npu::native::AclProfilingCreateConfig(deviceIdList, deviceNum, aicMetrics, nullptr, dataTypeConfig);
     }
-  
+
     if (profConfig_ == nullptr) {
         ASCEND_LOGE("Create Prof Config failed.");
         return;
@@ -275,7 +275,7 @@ void ProfilerMgr::Stop()
         StopDataReceiver();
         profile_memory_.store(false);
     }
-    
+
     if (npu_trace_.load()) {
         at_npu::native::AclProfilingStop(profConfig_);
         auto ret = at_npu::native::AclProfilingDestroyConfig(profConfig_);

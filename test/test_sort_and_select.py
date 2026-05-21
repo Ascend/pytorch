@@ -6,7 +6,7 @@ import numpy as np
 import torch
 from torch import nan
 from torch.testing import make_tensor
-from torch.testing._internal.common_dtype import (all_types, all_types_and, floating_types_and, 
+from torch.testing._internal.common_dtype import (all_types, all_types_and, floating_types_and,
                                                   integral_types, _dispatch_dtypes)
 from torch.testing._internal.common_utils import (TestCase, run_tests, slowTest, skipIfTorchDynamo)
 from torch.testing._internal.common_device_type import \
@@ -17,7 +17,7 @@ import torch_npu
 import torch_npu.testing
 
 SIZE = 100
-all_types_without_double = _dispatch_dtypes((torch.half, torch.float32, torch.uint8, 
+all_types_without_double = _dispatch_dtypes((torch.half, torch.float32, torch.uint8,
                                              torch.int8, torch.int16, torch.int32, torch.int64))
 
 

@@ -9,7 +9,7 @@ class ParallelStrategyBase(ABC):
 
     def __init__(self):
         self.name: str
-        
+
     @abstractmethod
     def assign_parallel_groups(self, nodes: List[BaseSchedulerNode]) -> Dict[str, List[BaseSchedulerNode]]:
         pass

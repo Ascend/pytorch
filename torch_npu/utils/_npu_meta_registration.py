@@ -87,7 +87,7 @@ def patch_torch_inductor_decompositions():
  	don't accidentally overwrite unrelated inductor decompositions.
  	'''
  	import torch._inductor.decomposition as inductor_decomposition
- 	 
+
  	for op_overload in inductor_decomp_table:
  	    if op_overload in npu_meta_table:
  	        inductor_decomposition.decompositions[op_overload] = npu_meta_table[op_overload]

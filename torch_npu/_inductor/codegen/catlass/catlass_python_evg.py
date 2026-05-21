@@ -51,7 +51,7 @@ class CatlassEVGOpsMixIn:
     @staticmethod
     def constant(value: Any, dtype: Any) -> str:
         from catlass_cppgen.common.data_type import DataType
-        
+
         element = DataType.from_dtype(dtype).value
         return CatlassEVGOpsMixIn._prefix_bin_op("constant", value, element)
 

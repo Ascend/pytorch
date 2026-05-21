@@ -4,31 +4,31 @@ import time
 from transformers import TrainerCallback
 
 class TimingCallback(TrainerCallback):
-    
+
     def __init__(self, profiler=None, mod='eager'):
         self.step_start_time = None
         self.step_times = []
         self.epoch_start_time = None
         self.profiler = profiler
         self.mod = mod
-    
+
     def on_epoch_begin(self, args, state, control, **kwargs):
         self.epoch_start_time = time.time()
         print(f"\n{'='*60}")
         print(f"Epoch {state.epoch + 1 if state.epoch else 1} begin")
         print(f"{'='*60}")
-    
+
     def on_epoch_end(self, args, state, control, **kwargs):
         epoch_time = time.time() - self.epoch_start_time
         print(f"\n{'='*60}")
         print(f"Epoch {int(state.epoch)} ended, time taken:  {epoch_time:.2f}s")
         print(f"{'='*60}\n")
-    
+
     def on_step_begin(self, args, state, control, **kwargs):
         self.step_start_time = time.time()
-    
+
     def on_step_end(self, args, state, control, **kwargs):
-        step_time = (time.time() - self.step_start_time) * 1000 
+        step_time = (time.time() - self.step_start_time) * 1000
         self.step_times.append(step_time)
 
         if self.profiler is not None:
@@ -37,7 +37,7 @@ class TimingCallback(TrainerCallback):
             except (AssertionError, StopIteration):
                 self.profiler = None
                 print("Profiler done.")
-        
+
         if torch.cuda.is_available():
             torch.cuda.synchronize()
         elif torch.npu.is_available():
@@ -46,7 +46,7 @@ class TimingCallback(TrainerCallback):
         print(f"[{self.mod}] step {state.global_step:4d}  "
               f"step_time: {step_time:.3f}ms  "
               f"loss: {state.log_history[-1].get('loss', 'N/A') if state.log_history else 'N/A'}")
-    
+
     def on_train_begin(self, args, state, control, **kwargs):
         print("============= training begin =============")
         if self.profiler is not None:
@@ -59,7 +59,7 @@ class TimingCallback(TrainerCallback):
             valid_steps = self.step_times[100:] if len(self.step_times) > 100 else self.step_times[10:]
             avg_time = sum(valid_steps) / len(valid_steps)
             total_time = sum(valid_steps)
-           
+
             print(f"\n{'='*60}")
             print("Step time consumption statistics (keeping only the last 100 steps)")
             print(f"[{self.mod}] total step:{len(valid_steps)}"

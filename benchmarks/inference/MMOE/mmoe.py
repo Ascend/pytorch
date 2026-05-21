@@ -23,8 +23,8 @@ torch.manual_seed(2024)
 random.seed(2024)
 
 MODEL_NAME = "MMOE"
-EMBEDDING_FEATURE_NUM = 23 
-STD_DEV = (2 / 512) ** 0.5 
+EMBEDDING_FEATURE_NUM = 23
+STD_DEV = (2 / 512) ** 0.5
 
 def detect_device_type():
     try:
@@ -529,7 +529,7 @@ def evaluate_op(model: TorchMmoeModel, te_files, device, args):
 
     model.eval()
     with torch.no_grad():
-        model(input_sample) 
+        model(input_sample)
         device_synchronize()
 
     prof = None
@@ -554,7 +554,7 @@ def evaluate_op(model: TorchMmoeModel, te_files, device, args):
             if args.enable_profiler:
                 prof.step()
     if args.enable_profiler:
-        prof.stop()   
+        prof.stop()
     if exec_times:
         avg_time = sum(exec_times) / len(exec_times)
         print("Step time consumption statistics (excluding the first 10 steps)")

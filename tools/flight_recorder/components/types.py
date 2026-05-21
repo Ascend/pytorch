@@ -338,7 +338,7 @@ class Op:
     def __init__(self, event: dict[Any, Any], memberships: dict[str, set[Any]], pg_name: str):
 
         frames = event.get("frames")
-        if not frames: 
+        if not frames:
             raise ValueError(self.MISSING_FRAMES_ERR)
         first_frame = frames[0] if len(frames) > 0 else None
         if not first_frame:

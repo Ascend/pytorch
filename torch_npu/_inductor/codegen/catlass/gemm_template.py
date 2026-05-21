@@ -54,7 +54,7 @@ PT_EXPORT {{kernel_call_signature}} {
     {% endif %}
 
     {{op.gen_input_template()}}
-    
+
     {{evg_ptr}}
 
     {{evg_template}}
@@ -299,7 +299,7 @@ class CATLASSGemmTemplate(CATLASSTemplate, ABC):
                         return layout::RowMajor(layout.shape(0), layout.shape(1), RoundUp(layout.shape(1), align));
                     }
 
-                    
+
                     layout::ColumnMajor GetWorkspaceLayout(layout::ColumnMajor layout, uint32_t align)
                     {
                         if (align == 0) {
@@ -308,13 +308,13 @@ class CATLASSGemmTemplate(CATLASSTemplate, ABC):
                         return layout::ColumnMajor(layout.shape(0), layout.shape(1), RoundUp(layout.shape(0), align));
                     }
 
-                    
+
                     size_t GetWorkspaceLen(layout::RowMajor layout)
                     {
                         return layout.shape(0) * layout.stride(0);
                     }
 
-                    
+
                     size_t GetWorkspaceLen(layout::ColumnMajor layout)
                     {
                         return layout.shape(1) * layout.stride(1);
@@ -383,7 +383,7 @@ class CATLASSGemmTemplate(CATLASSTemplate, ABC):
         """
         import catlass_cppgen.catlass.layout as catlass_lib_layout
 
-        # bias stride could be (0, 1), which indicates (n,) bias 
+        # bias stride could be (0, 1), which indicates (n,) bias
         if len(torch_layout.stride) == 1 or torch_layout.stride[0] == 0:
             return catlass_lib_layout.VectorLayout
 
@@ -744,7 +744,7 @@ class CATLASS1xGemmTemplate(CATLASSGemmTemplate):
     @staticmethod
     def is_mixed_template(op: "GemmKernelBase") -> bool:
         return getattr(op, "is_mix", False)
-    
+
     @staticmethod
     def epilogue_fusion_type(op: "GemmKernelBase") -> int:
         fusion_type = 0

@@ -26,7 +26,7 @@ autotune_fx_fallback = False
 cache_named_op = False
 
 # NPU_INDUCTOR_FALLBACK_LIST=allfallback forces ops entering the NPU inductor lowering
-# path to register fallback lowerings, so optimized/fused lowerings are not used. 
+# path to register fallback lowerings, so optimized/fused lowerings are not used.
 enable_full_lowering_fallback = os.environ.get("NPU_INDUCTOR_FALLBACK_LIST", "")
 
 traced_graph_cache = os.environ.get("ANIR_TRACED_GRAPH_CACHE", None)
@@ -49,7 +49,7 @@ def parse_rtol_atol(env_str: str):
     rtol, atol = None, None
     if not env_str.strip():
         return rtol, atol
-    
+
     parts = [p.strip() for p in env_str.split(",") if p.strip()]
     for part in parts:
         match = re.match(r"^(rtol|atol)\s*=s\*([0-9.eE+-]+)$", part, re.IGNORECASE)
@@ -59,7 +59,7 @@ def parse_rtol_atol(env_str: str):
                 f"It should be like 'rtol=1e-6,atol=1e-5'. "
             )
             continue
-        
+
         key, value_str = match.groups()
         try:
             value = float(value_str)
@@ -138,7 +138,7 @@ fx_subgraph_dump_path: str = os.environ.get("FX_SUBGRAPH_DUMP_PATH", None)
 compile_mode introductions:
 "default" refers to the mode of fully compiling with MLIR. Currently, it is not fully supported, but it will be set as the default once the capability matures.
 "complete_fallback" refers to completely falling back to the eager execution mode of the FX graph, without performing any MLIR compilation. It is primarily used for debugging.
-"auto_fallback" refers to automatically falling back to the fx_graph_backend when compilation fails. 
+"auto_fallback" refers to automatically falling back to the fx_graph_backend when compilation fails.
 auto_fallback mechanism is designed to provide a fallback strategy when the primary compilation process encounters an issue. It works in conjunction with the fx_graph_backend configuration, allowing for the fallback approach:
 Fallback to fx_graph_backend: If the first fallback attempt fails, the system falls back to the fx_graph_backend.
 If you need further clarification or have other questions, please let me know!
@@ -158,7 +158,7 @@ def _get_compile_mode():
 block_dim = 48
 
 """
-support {"off", "include", "exclude"}, to 
+support {"off", "include", "exclude"}, to
 "off": No fallback at all.
 "include": At compile-time, Aten IR included in FALLBACK_LIST will fall back to aten.
 "exclude": At compile-time, Aten IR excluded from GENERATE_LIST will fall back to aten.
@@ -169,7 +169,7 @@ if enable_full_lowering_fallback.strip()=='allfallback':
     fallback_to_aten_mode = "all"
 
 REDUCTION_OPS = [
-    aten.sum, 
+    aten.sum,
     prims.sum,
     aten.prod,
     aten.any,
@@ -181,12 +181,12 @@ REDUCTION_OPS = [
     aten.argmax,
     aten.argmin,
     aten.mean,
-    aten.var, 
+    aten.var,
     prims.var,
     aten.var_mean,
 ]
 
-# fall back to aten exclude GENERATE_LIST, all aten IR except 
+# fall back to aten exclude GENERATE_LIST, all aten IR except
 POINTWISE_OPS = [
     aten.mul,
     aten.add,

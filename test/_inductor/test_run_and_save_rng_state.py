@@ -40,7 +40,7 @@ class TestRunAndSaveRngState(TestUtils):
             self.op_calc(like, device, dtype)
 
         self.assertEqual(res1_eager, res2_eager)
-        self.assertTrue(torch.equal(rng_state1_eager, rng_state2_eager))                    
+        self.assertTrue(torch.equal(rng_state1_eager, rng_state2_eager))
 
 instantiate_parametrized_tests(TestRunAndSaveRngState)
 

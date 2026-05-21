@@ -640,7 +640,7 @@ class NPUWarmupNode:
             s = storage()
             if s is not None:
                 non_npugraph_inps_storage_ptrs.add(s._cdata)
-    
+
         if not len(new_inputs) == 0:
             raise RuntimeError("check len(new_inputs) == 0 fail")
 
@@ -842,7 +842,7 @@ class NPUGraphNode:
         )
 
         self.non_static_input_idx: LevelList[int] = [
-            i 
+            i
             for i in range(len(inputs))
             if i not in self.static_input_idxs
         ]

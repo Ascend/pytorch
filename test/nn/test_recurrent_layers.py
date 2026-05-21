@@ -30,7 +30,7 @@ class TestRecurrentLayers(TestCase):
         rnn = nn.GRU(10, 20, 2).npu()
         output, hn = rnn(input1, h0)
         self.assertEqual(output is not None, True)
-    
+
     @unittest.skip("Temporarily skipping")
     def test_RNNCell(self):
         input1 = torch.randn(6, 3, 10).npu()

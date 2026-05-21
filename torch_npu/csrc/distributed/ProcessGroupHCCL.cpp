@@ -154,7 +154,7 @@ HcclReduceOp getHcclReduceOp(const c10d::ReduceOp reduceOp, at::Tensor& input)
         // represent a bool (see hcclDataType mapping).
         return HCCL_REDUCE_MAX;
     }
-    
+
     if (unsupportedOp.find(reduceOp) != unsupportedOp.end()) {
         TORCH_CHECK(false,
             "Cannot use ReduceOp." + unsupportedOp[reduceOp] + " with HCCL",
@@ -1289,7 +1289,7 @@ void ProcessGroupHCCL::waitForFutureOrTimeout(
 void ProcessGroupHCCL::shutdown()
 {
     LOG(INFO) << logPrefix() << "Starting to destroy process group, flushing operations.";
-    
+
     if (terminateProcessGroup_.exchange(true)) {
         return;
     }
@@ -1377,7 +1377,7 @@ void ProcessGroupHCCL::deleteTCPStoreKey()
     }
 
     TORCH_NPU_HCCL_LOGI("Delete TCP store key success.");
-    
+
     TCPStoreKeyList_.clear();
 }
 
@@ -1951,7 +1951,7 @@ void ProcessGroupHCCL::logWorkEnd(WorkHCCL& work)
 
     storeError_ = !c10d::traceUpdate(store_, traceKeyEnd_, work.seq_, opTypeToString(work.opType_));
 }
-  
+
 std::string ProcessGroupHCCL::createLogPrefix() const
 {
     if (!pg_desc_.empty() && pg_desc_ != "undefined") {
@@ -2040,7 +2040,7 @@ void ProcessGroupHCCL::Watchdog::runLoop()
     auto timenow = std::chrono::steady_clock::now();
     bool recordflag = false;
     int kThousandMillis = 1000;
-    
+
     while (!pg_->terminateProcessGroup_.load()) {
         if (status_save_enable) {
             checkAndMakePath(status_save_path.c_str(), "Open shared directory failed. Please check whether input path is valid.");
@@ -2085,7 +2085,7 @@ void ProcessGroupHCCL::Watchdog::runLoop()
                     TORCH_NPU_HCCL_LOGI("Find FORCE STOP when runloop setDevice.");
                 }
             }
-            
+
             // check NCCL errors first
             if (!pg_->terminateProcessGroup_.load()) {
                 work.checkAndSetException();
@@ -3960,7 +3960,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
 
                 const std::vector<uint32_t>& ranks = groupRanks();
                 outfile << "[GLOBAL RANKID]:" << ranks[rank_] << "\n";
-                
+
                 outfile.close();
             }
         } else {
@@ -4064,7 +4064,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     } else {
         c10_npu::NPUGraph::dec_pending_event_queries();
     }
-    
+
     return work;
 }
 
@@ -4196,7 +4196,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collectiveCoalesced(
 
                 const std::vector<uint32_t>& ranks = groupRanks();
                 outfile << "[GLOBAL RANKID]:" << ranks[rank_] << "\n";
-                
+
                 outfile.close();
             }
         } else {
@@ -4281,7 +4281,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collectiveCoalesced(
     } else {
         c10_npu::NPUGraph::dec_pending_event_queries();
     }
-    
+
     return work;
 }
 
@@ -4352,7 +4352,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::pointToPoint(
                     "Got device ", device.index(), " but expected ", coalescedDevice_.index());
             }
         }
-        
+
         // Verify communicator consistency
         if (coalescedComm_ == nullptr) {
             coalescedComm_ = hcclComms[0];
@@ -4452,7 +4452,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::pointToPoint(
 
                 const std::vector<uint32_t>& ranks = groupRanks();
                 outfile << "[GLOBAL RANKID]:" << ranks[rank_] << "\n";
-                
+
                 outfile.close();
             }
         } else {
@@ -4532,7 +4532,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::pointToPoint(
             // as multi-device per process is deprecated
             work->numelIn_ = work->numelOut_ = static_cast<size_t>(tensors[i].numel());
         }
-    
+
         c10_npu::NPUGraph::inc_pending_event_queries();
         if (asyncErrorHandling_ != NoHandling && capture_status == c10_npu::CaptureStatus::None) {
             workEnqueue(work);

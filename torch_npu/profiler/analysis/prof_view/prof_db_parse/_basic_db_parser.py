@@ -66,7 +66,7 @@ class BasicDbParser(BaseParser):
                         continue
                     return file_path
         return ""
-    
+
     def create_ascend_db(self):
         if not TorchDb().create_connect_db():
             raise RuntimeError(f"Failed to connect to db file: {TorchDb().get_db_path()}")
@@ -89,7 +89,7 @@ class BasicDbParser(BaseParser):
                 rank_device_pairs.append([rank_id, device_id])
             TorchDb().insert_data_into_table(DbConstant.TABLE_RANK_DEVICE_MAP,
                                              rank_device_pairs)
-    
+
     def save_host_info_to_db(self):
         if TorchDb().judge_table_exist(DbConstant.TABLE_HOST_INFO):
             return

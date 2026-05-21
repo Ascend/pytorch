@@ -620,7 +620,7 @@ void Repository::Enqueue(void *cur_paras)
 #ifndef BUILD_LIBTORCH
                 // double check the current thread hold a Gil lock
                 // and release the GIL to TE op compiler in case the acl thread deadlock.
-                // However, this operator could produce another form of deadlock. 
+                // However, this operator could produce another form of deadlock.
                 // When thread A deconstract a tensor, it will hold the mutex of deviceCachingAllocator and insert an event into the taskqueue.
                 // If the taskqueue is full, thead A will run into here and release the GIL.
                 // Once another thread B get GIL and trigger GC, it may deconstract another tensor

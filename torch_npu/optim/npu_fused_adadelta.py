@@ -71,13 +71,13 @@ class NpuFusedAdadelta(NpuFusedOptimizerBase):
                 if grad.is_sparse:
                     raise RuntimeError('NpuFusedAdadelta does not support sparse gradients' +
                                        pta_error(ErrCode.NOT_SUPPORT))
-                
+
                 self._init_param_state(p)
                 state = self.state[p]
                 step_list.append(state['step'])
                 square_avg_list.append(state['square_avg'])
                 acc_delta_list.append(state['acc_delta'])
-            
+
             combined_step = 0
             combined_square_avg = None
             combined_acc_delta = None
@@ -86,7 +86,7 @@ class NpuFusedAdadelta(NpuFusedOptimizerBase):
                 combined_step = step_list[0]
                 combined_square_avg = npu_combine_tensors(square_avg_list)
                 combined_acc_delta = npu_combine_tensors(acc_delta_list)
-            
+
             combined_state = defaultdict(dict)
             combined_state['step'] = combined_step
             combined_state['square_avg'] = combined_square_avg
@@ -97,12 +97,12 @@ class NpuFusedAdadelta(NpuFusedOptimizerBase):
     def _maybe_init_combined_states(self):
         if self.is_states_combined:
             return
-        
+
         self.combined_param_states_indexed_by_group = len(self.param_groups) * [None]
 
         for i, _ in enumerate(self.param_groups):
             self._combine_group_param_states(i)
-        
+
         if not all(value is None for value in self.combined_param_states_indexed_by_group):
             self.is_states_combined = True
 
@@ -124,8 +124,8 @@ class NpuFusedAdadelta(NpuFusedOptimizerBase):
         combined_group_grads = self.combined_grads_indexed_by_group[group_index]
         combined_group_param_states = self.combined_param_states_indexed_by_group[group_index]
 
-        for combined_param, combined_grad, combined_param_state in zip(combined_group_params, 
-                                                                       combined_group_grads, 
+        for combined_param, combined_grad, combined_param_state in zip(combined_group_params,
+                                                                       combined_group_grads,
                                                                        combined_group_param_states):
             if combined_param is None or combined_grad is None:
                 continue

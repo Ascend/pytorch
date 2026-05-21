@@ -16,7 +16,7 @@ class TestCheckAccuracy(TestUtils):
     def test_check_accuracy_1(self):
         count_data_dump = 0
         count_check_accuracy = 0
-        
+
         def run(x, y):
             return F.relu(x) - y
 
@@ -51,7 +51,7 @@ class TestCheckAccuracy(TestUtils):
             patch.object(torch_npu._inductor.runtime.triton_heuristics, "check_accuracy_triton", wrap_check_accuracy):
             self.assertTrue(torch_npu._inductor.config.dump_fx_graph)
             self.assertTrue(torch_npu._inductor.config.check_accuracy)
-            
+
             # Try run custom path and make sure no data_dump and check_accuracy is invoked.
             torch_npu._inductor.config.dump_fx_graph = False
             torch_npu._inductor.config.check_accuracy = False
@@ -66,7 +66,7 @@ class TestCheckAccuracy(TestUtils):
             self.assertEqual(count_data_dump, 1)
             self.assertEqual(count_check_accuracy, 1)
             self.assertEqual(z, g)
-        
+
 
 if __name__ == "__main__":
     run_tests()

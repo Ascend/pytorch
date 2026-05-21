@@ -50,7 +50,7 @@ void SetSocVersion(const char* const socVersion)
     SocVersion curSocVersion = SocVersion::UnsupportedSocVersion;
     std::string inputVersion = socVersion;
     std::string ascend950 = "Ascend950";
-    
+
     auto const& iter = socVersionMap.find(socVersion);
     if (iter != socVersionMap.end()) {
         curSocVersion = iter->second;

@@ -41,7 +41,7 @@ class TestDtypeCast(TestCase):
         y = torch_npu.npu_dtype_cast(x, torch.complex128)
         grad_fn = str(y.grad_fn)
         self.assertTrue("NpuDtypeCastBackward" in grad_fn)
-        
+
         with self.assertRaisesRegex(RuntimeError, r'grad can be implicitly created'):
             y.sum().backward()
 

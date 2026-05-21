@@ -97,7 +97,7 @@ class CommunicationDbParser(CommunicationParser):
 
     def generate_view(self) -> None:
         self.generate_communication_db()
-    
+
     def generate_communication_db(self):
         db_files = CANNFileParser(self._profiler_path).get_file_list_by_type(CANNDataEnum.ANALYSIS_DB)
         if not db_files:
@@ -186,7 +186,7 @@ class CommunicationDbParser(CommunicationParser):
                         op_info.get(self.BANDWIDTH_GB_S), step, op_type, hccl_op_name
                     ])
             return res_data
-    
+
         step_op_dict = {}
         for data in matrix_data:
             op_name = \

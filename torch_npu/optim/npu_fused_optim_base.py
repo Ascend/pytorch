@@ -29,7 +29,7 @@ class NpuFusedOptimizerBase(Optimizer):
             return
 
         self.combined_params_indexed_by_group = len(self.param_groups) * [[]]
-        self.combined_grads_indexed_by_group = len(self.param_groups) * [[]]        
+        self.combined_grads_indexed_by_group = len(self.param_groups) * [[]]
 
         params_list_each_group = []
         params_size_each_group = []
@@ -103,9 +103,9 @@ class NpuFusedOptimizerBase(Optimizer):
 
             self.combined_params_indexed_by_group[group_index] = group_combined_params
             self.combined_grads_indexed_by_group[group_index] = group_combined_grads
-        
+
         if not all(value is None for value in self.params_all_group_combined):
-            self.is_params_grads_combined = True        
+            self.is_params_grads_combined = True
 
     @torch.no_grad()
     def step(self, closure=None):
@@ -115,7 +115,7 @@ class NpuFusedOptimizerBase(Optimizer):
 
         if not self.is_params_grads_combined:
             self._maybe_init_combined_params_and_grads()
-        
+
         if not self.is_states_combined:
             self._maybe_init_combined_states()
 
@@ -135,7 +135,7 @@ class NpuFusedOptimizerBase(Optimizer):
             if not self.is_params_grads_combined:
                 super().zero_grad(set_to_none)
                 return
-                
+
         for grads_combined_one_dtype in self.grads_all_group_combined:
             if grads_combined_one_dtype is None:
                 continue

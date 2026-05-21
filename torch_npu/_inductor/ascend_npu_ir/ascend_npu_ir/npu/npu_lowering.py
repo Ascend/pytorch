@@ -21,7 +21,7 @@ def _register_npu_inductor_fallbacks():
     fallback_set = set()
     fallback_set_exclude = set()
     env_fallback_list = config.enable_full_lowering_fallback
-    
+
     def _resolve_op_from_name(op_name: str):
         try:
             obj = torch.ops
@@ -31,7 +31,7 @@ def _register_npu_inductor_fallbacks():
         except AttributeError:
             log.warning(f"[npu|inductor|lowering|fallback] invalid identifier name: {op_name}")
             return None
-    
+
     if env_fallback_list:
         for op_name in env_fallback_list.split(','):
             op_name = op_name.strip()
@@ -56,7 +56,7 @@ def _register_npu_inductor_fallbacks():
             for overload in fn.overloads():
                 other_fn = getattr(fn, overload)
                 fallback_set.add(other_fn)
-    
+
     def fallback_except_gen_set(gen_set):
         for op in lowering.lowerings:
             if op not in decomposition.decompositions and op not in gen_set:
@@ -70,7 +70,7 @@ def _register_npu_inductor_fallbacks():
                 if isinstance(op, torch._ops.OpOverloadPacket) or \
                     isinstance(op, (torch._ops.OpOverload, torch._ops.HigherOrderOperator)):
                     make_fallback(op)
-    
+
     def enable_full_lowering_fallback():
         ops_to_fallback = list(filter(
             lambda op: op not in decomposition.decompositions and
@@ -81,15 +81,15 @@ def _register_npu_inductor_fallbacks():
             make_fallback(op)
 
         _fallback_ops_with_meta()
-    
+
     if config.fallback_to_aten_mode not in {"off", "include", "exclude"}:
         raise AssertionError(f"Error! Unsupported fallback_to_aten_mode: {config.fallback_to_aten_mode} was set!")
-    
+
     if get_anir_mode() == 'O0':
         fallback_except_gen_set(gen_set=[])
         decomposition.decompositions.clear()
-        return 
-    
+        return
+
     if config.fallback_to_aten_mode == 'include':
         fallback_via_fallback_set(fallback_set=fallback_set)
     elif config.fallback_to_aten_mode == 'exclude':
@@ -104,7 +104,7 @@ def get_nested_attr(obj, attr_path, default=None):
         return reduce(getattr, attr_path.split('.'), obj)
     except AttributeError:
         return default
-    
+
 
 def _fallback_ops_with_meta():
     """

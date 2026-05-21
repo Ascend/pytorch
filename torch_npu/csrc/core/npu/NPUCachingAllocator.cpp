@@ -3577,7 +3577,7 @@ public:
             TORCH_NPU_MEMORY_LOGE("%s", retmsg.c_str());
             TORCH_CHECK_WITH(OutOfMemoryError, false, retmsg.c_str());
         }
-        
+
         int device = 0;
         NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
         LazySetDevice(device);

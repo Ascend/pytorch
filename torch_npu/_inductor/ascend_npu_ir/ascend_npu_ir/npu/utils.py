@@ -68,7 +68,7 @@ def get_device_info(example_inputs) -> Union[Tuple[str, int], None]:
     for inp in example_inputs:
         if isinstance(inp, torch.Tensor):
             return inp.device, inp.device.index
-        
+
 @functools.lru_cache(None)
 def _get_ascend_path() -> str:
     path = os.getenv("ASCEND_HOME_PATH", "")
@@ -102,11 +102,11 @@ def _build_npu_ext(obj_name: str, src_path, src_dir) -> str:
 
     cc_cmd += [f"-I{py_include_dir}"]
     torch_npu_root = Path(torch_npu.__file__).resolve().parent
-    
+
     cpp_common_dir = (
         torch_npu_root / "include" / "torch_npu" / "csrc" / "inductor" / "mlir"
     )
-    
+
     torch_npu_dir = torch_npu_root / "include"
     torch_npu_lib_dir = torch_npu_root / "lib"
 
@@ -158,7 +158,7 @@ import torch._inductor.inductor_prims
     return model_str
 
 
-def get_fx_graph_code(code, num_args, method=2, runnable=False, kernel_code='', kernel_name=None):      
+def get_fx_graph_code(code, num_args, method=2, runnable=False, kernel_code='', kernel_name=None):
     kernel_header = ''
     kernel_wrapper = ''
     kernel_runner_and_acc_comp = ''
@@ -214,7 +214,7 @@ def get_args():
 """
     run_code_template = f"""
 
-try: 
+try:
     args = torch.load(os.path.join(dir_path, "data.pth"))
 except Exception as e:
     {{{{FAKE_ARGS_PLACEHOLDER}}}}
@@ -229,16 +229,16 @@ with torch.no_grad():
     output2 = model(*fx_inputs)
 """
     code_template = f"""
-import os    
+import os
 import torch
 from torch._inductor.compile_fx import clone_preserve_strides
 from torch._dynamo.testing import rand_strided
 from torch import device
 
 import torch_npu
-from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir import config as npu_config 
+from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir import config as npu_config
 {kernel_header}
-file_path = os.path.abspath(__file__) 
+file_path = os.path.abspath(__file__)
 dir_path = os.path.dirname(file_path)
 
 {kernel_code}
@@ -250,7 +250,7 @@ class GraphModule(torch.nn.Module):
 {code}
 model = GraphModule().npu()
 
-{run_code_template if runnable else transformed_code_template}    
+{run_code_template if runnable else transformed_code_template}
 {fx_runner if runnable else ''}
 {kernel_runner_and_acc_comp if runnable else ''}
 """
@@ -270,28 +270,28 @@ def view_to_reshape(gm: torch.fx.GraphModule):
         op="call_function", target=torch.ops.aten.view.default
     ):
         nd.target = torch.ops.aten.reshape.default
-    
+
     for nd in gm.graph.find_nodes(
         op="call_function", target=torch.ops.aten.div.Tensor
     ):
         if not (isinstance(nd.args[1], torch.fx.node.Node) and \
                 isinstance(nd.args[1].meta['val'], torch.Tensor)):
             nd.target = torch.ops.aten.div.Scalar
-    
+
     for nd in gm.graph.find_nodes(
         op="call_function", target=torch.ops.aten.add.Tensor
     ):
         if not (isinstance(nd.args[1], torch.fx.node.Node) and \
                 isinstance(nd.args[1].meta['val'], torch.Tensor)):
             nd.target = torch.ops.aten.add.Scalar
-    
+
     for nd in gm.graph.find_nodes(
         op="call_function", target=torch.ops.aten.sub.Tensor
-    ):  
+    ):
         if not (isinstance(nd.args[1], torch.fx.node.Node) and \
                 isinstance(nd.args[1].meta['val'], torch.Tensor)):
             nd.target = torch.ops.aten.sub.Scalar
-    
+
     for nd in gm.graph.find_nodes(
         op="call_function", target=torch.ops.aten.mul.Tensor
     ):
@@ -303,7 +303,7 @@ def view_to_reshape(gm: torch.fx.GraphModule):
         op="call_function", target=torch.ops.prims.convert_element_type.default
     ):
         nd.target = torch.ops.npu.npu_dtype_cast.default
-    
+
 def npu_cast_to_prim_cast(gm: torch.fx.GraphModule):
     """
     Replace npu.npu_dtype_cast ops in the GraphModule to prims.convert_element_type ops.
@@ -359,7 +359,7 @@ def npu_optimize_fx_graph(gm: torch.fx.GraphModule):
                 gm.graph.erase_node(nd)
                 aten_empty_nodes.remove(node0)
                 gm.graph.erase_node(node0)
-                
+
     gm.recompile()
 
 
@@ -374,7 +374,7 @@ def fold_expand(gm: torch.fx.GraphModule) -> None:
 
         inp0 = node.args[0] if len(node.args) > 0 else None
         inp1 = node.args[1] if len(node.args) > 1 else None
-        if (isinstance(inp0, torch.fx.Node) and inp0.op == 'call_function' and 
+        if (isinstance(inp0, torch.fx.Node) and inp0.op == 'call_function' and
             inp0.target == torch.ops.aten.expand.default):
             if len(inp0.args) > 0:
                 expand_input = inp0.args[0]
@@ -382,7 +382,7 @@ def fold_expand(gm: torch.fx.GraphModule) -> None:
                 if len(inp0.users) == 0:
                     graph.erase_node(inp0)
                     changed = True
-        elif (isinstance(inp1, torch.fx.Node) and inp1.op == 'call_function' and 
+        elif (isinstance(inp1, torch.fx.Node) and inp1.op == 'call_function' and
             inp1.target == torch.ops.aten.expand.default):
             if len(inp1.args) > 0:
                 expand_input = inp1.args[0]
@@ -393,7 +393,7 @@ def fold_expand(gm: torch.fx.GraphModule) -> None:
     if changed:
         graph.lint()
         graph.eliminate_dead_code()
-    
+
     gm.recompile()
 
 
@@ -466,12 +466,12 @@ class MLIRProcessor:
     def __init__(self, bisheng_install_path: str = None):
         """
         初始化MLIR处理器
-        
+
         :param bisheng_install_path: Bisheng安装路径，默认从环境变量获取
         """
         bisheng_install_path = os.getenv('BISHENG_INSTALL_PATH', '')
         self.bisheng_torch_mlir_path = os.path.join(bisheng_install_path, "bishengir-opt")
-        
+
     def extract_function(self, module: Any) -> Any:
         """从MLIR模块中提取主函数并添加标记属性"""
         with module.context:
@@ -480,20 +480,20 @@ class MLIRProcessor:
                     func.attributes["hacc.placeholder"] = ir.UnitAttr.get(func.context)
                     return func
         raise ValueError("No valid FuncOp found in module")
-    
+
     def rebuild_mlir_module(self, module_str: str) -> Any:
         """从字符串重新构建MLIR模块"""
         with ir.Context() as ctx:
             ctx.allow_unregistered_dialects = True
             torch_mlir.dialects.torch.register_dialect(ctx)
             return ir.Module.parse(module_str)
-    
+
     def get_signature(self, func: Any) -> tuple:
         """获取函数的签名信息：类型签名、输出数量和张量维度"""
         func_type = func.type
         signature = {}
         ranks = []
-        
+
         # 处理输入+输出类型
         for i, tensor_type in enumerate(func_type.inputs + func_type.results):
             try:  # RankedTensorType
@@ -507,17 +507,17 @@ class MLIRProcessor:
                 dim_end = type_str.find(']', dim_start)
                 dim_str = type_str[dim_start:dim_end]
                 ranks.append(dim_str.count(',') + 1 if dim_str else 0)
-        
+
         num_outputs = len(func_type.results)
         return signature, num_outputs, ranks
-    
-    def process_mlir(self, 
-                    module: Union[str, Any], 
-                    get_sig: bool = True, 
+
+    def process_mlir(self,
+                    module: Union[str, Any],
+                    get_sig: bool = True,
                     dynamic: bool = False) -> tuple:
         """
         处理MLIR模块的核心方法
-        
+
         :param module: MLIR模块字符串或对象
         :param get_sig: 是否获取函数签名
         :param dynamic: 是否为动态执行模式
@@ -525,7 +525,7 @@ class MLIRProcessor:
         """
         if isinstance(module, str):
             module = self.rebuild_mlir_module(module)
-        
+
         func = self.extract_function(module)
         kernel_info = None
         func_str = str(func)
@@ -540,29 +540,29 @@ class MLIRProcessor:
                 "ranks": ranks,
                 'kernel_hash': module_hash,
             }
-        
+
         return func_str, kernel_info
-    
+
     def get_named_op_str(self,
                         module: Union[str, Any],
                         kernel_name: str,
                         dynamic: bool = False) -> Dict[str, Any]:
         """
         获取命名操作格式的MLIR字符串
-        
+
         :param module: MLIR模块字符串或对象
         :param kernel_name: 内核名称（用于临时文件）
         :param dynamic: 是否为动态执行模式
         :return: 包含处理结果和签名字典
         """
         func_str, sig_dict = self.process_mlir(module, get_sig=True, dynamic=dynamic)
-        
+
         cleaned_func = func_str.replace(
-            '"#hfusion.fusion_kind<PURE_ELEMWISE>"', 
+            '"#hfusion.fusion_kind<PURE_ELEMWISE>"',
             '#hfusion.fusion_kind<PURE_ELEMWISE>'
         )
         logger.debug(f"原始Linalg方言MLIR:\n{cleaned_func}")
-        
+
         # 执行转换命令
         with tempfile.TemporaryDirectory() as tmpdir:
             torch_mlir_path = os.path.join(tmpdir, f"{kernel_name}.mlir")
@@ -573,33 +573,33 @@ class MLIRProcessor:
                     "--torch-backend-to-named-op-backend-pipeline="
                     "\"ensure-no-implicit-broadcast=true\" "
                     f"{torch_mlir_path}")
-        
+
             try:
                 result = subprocess.check_output(
                     cmd, text=True, shell=True
                 )
                 # 过滤全局定义并更新函数属性
                 processed_mlir = "\n".join(
-                    line for line in result.splitlines() 
+                    line for line in result.splitlines()
                     if "ml_program.global" not in line
                 )
-                
+
                 # 根据模式设置函数属性
-                func_attr = ("hacc.entry, hacc.function_kind = #hacc.function_kind<HOST>" 
-                            if dynamic else 
+                func_attr = ("hacc.entry, hacc.function_kind = #hacc.function_kind<HOST>"
+                            if dynamic else
                             "hacc.entry, hacc.function_kind = #hacc.function_kind<DEVICE>")
                 processed_mlir = processed_mlir.replace("hacc.placeholder", func_attr)
-                
+
                 # 应用额外的数据类型处理（需实现mlir_match_and_replace_unsupported_dtypes）
                 final_mlir = self._replace_unsupported_dtypes(processed_mlir)
                 logger.debug(f"转换后的NamedOp方言MLIR:\n{final_mlir}")
-                
+
                 return final_mlir, sig_dict
-            
+
             except subprocess.CalledProcessError as e:
                 logger.error(f"命令执行失败: {cmd}\n错误: {e.output}")
                 raise RuntimeError(f"MLIR转换失败: {e.stderr}") from e
-    
+
     def _replace_unsupported_dtypes(self, mlir_text: str) -> str:
         """替换不支持的MLIR数据类型"""
         pattern1 = r"%(\d+) = arith\.truncf %(\w+) : f64 to bf16"
@@ -625,8 +625,8 @@ def mlir_match_and_replace_unsupported_dtypes(mlir_text: str) -> str:
 
 
 def to_folder(
-        gm: torch.fx.GraphModule, 
-        folder: Union[str, os.PathLike], 
+        gm: torch.fx.GraphModule,
+        folder: Union[str, os.PathLike],
         graph_hash: str,
         module_name: str = "FxModule"):
     """Dumps out module to ``folder`` with ``module_name`` so that it can be
@@ -727,27 +727,27 @@ def is_fx_dynamic(graph):
 def replace_placeholders(file_path: str, replacements: dict, placeholder_format: str = r'\{\{(\w+)\}\}') -> None:
     """
     替换文件中的占位符
-    
+
     :param file_path: 文件路径
     :param replacements: 替换字典，如 {'function_body': 'your _code'}
     :param placeholder_format: 占位符正则表达式（默认匹配{{xxx}}）
     """
     with open(file_path, 'r', encoding='utf-8') as f:
         content = f.read()
-    
+
     pattern = re.compile(placeholder_format)
-    
+
     def replacer(match: re.Match) -> str:
         placeholder = match.group(1)
         replacement = replacements.get(placeholder, match.group(0))
-        
+
         line_start = content.rfind('\n', 0, match.start()) + 1
         indent = re.match(r'^\s*', content[line_start:match.start()]).group(0)
-        
+
         return '\n'.join([indent + line for line in replacement.split('\n')])
-    
+
     new_content = pattern.sub(replacer, content)
-    
+
     with open(file_path, 'w', encoding='utf-8') as f:
         f.write(new_content)
 

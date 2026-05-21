@@ -45,7 +45,7 @@ class TestHostCachingAllocator(TestCase):
     def setUpClass(cls):
         os.environ['PYTORCH_NPU_ALLOC_CONF'] = 'pin_memory_expandable_segments:True'
 
-    
+
     def test_allocate_with_block_cut(self):
         # 申请一个64M的tensor, 会预选绑定80M物理内存
         memory_64m = torch.ones([1024, 1024, 16]).pin_memory()
@@ -130,7 +130,7 @@ class TestHostCachingAllocator(TestCase):
         npu_output = npu_copy_op_exec(npu_input1, cpu_out2)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    
+
     def test_event_free(self):
         tensor = torch.ones([1024, 1024, 16]).npu()
         tensor_cpu = torch.ones([1024, 1024, 16]).pin_memory()

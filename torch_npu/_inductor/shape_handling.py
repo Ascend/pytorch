@@ -17,7 +17,7 @@ class NPUShapeHandling(torch_npu._C._NPUShapeHandling):
         transform_post_fn: Post-processing function to convert tensor lists to structured outputs for transformation (optional).
         recover_pre_fn: Pre-processing function to convert inputs to tensor lists for recovery (optional).
         recover_post_fn: Post-processing function tp convert tensor lists to structured outputs for recovery (optional).
-    
+
     Each config dictionary in configs supports the following keys:
         - type (str):
             Logical dimension type. Supported values:
@@ -41,7 +41,7 @@ class NPUShapeHandling(torch_npu._C._NPUShapeHandling):
         - policy (str):
             Gear generation strategy. Supported values:
             "TIMES" | "CUSTOM"
-    
+
     If no configs are provided at construction, a default configuration handling batch size on dimension 0 is created.
     """
     def __init__(
@@ -63,7 +63,7 @@ class NPUShapeHandling(torch_npu._C._NPUShapeHandling):
             "TIMES": torch_npu._C.ShapePolicy.TIMES,
             "CUSTOM": torch_npu._C.ShapePolicy.CUSTOM
         }
-        
+
         # Register processing functions
         self.transform_pre_fn = transform_pre_fn
         self.transform_post_fn = transform_post_fn
@@ -91,7 +91,7 @@ class NPUShapeHandling(torch_npu._C._NPUShapeHandling):
             return
         if len(configs) > 2:
             raise ValueError("NPUShapeHandling currently supports only two dimensions.")
-        
+
         required_fields = ["type"]
         int_list_fields = ["dimensions", "indices", "gears"]
         int_fields = ["min_size", "max_size"]
@@ -107,11 +107,11 @@ class NPUShapeHandling(torch_npu._C._NPUShapeHandling):
                     f"Invalid 'type' in config[{i}]: {config['type']}. "
                     f"Must be one of: {', '.join(repr(k) for k in self.shape_type_map.keys())}."
                 )
-            
+
             for field in int_list_fields:
                 if field not in config:
                     continue
-                
+
                 if field == "dimensions":
                     if isinstance(config[field], int):
                         config[field] = [config[field]]
@@ -121,20 +121,20 @@ class NPUShapeHandling(torch_npu._C._NPUShapeHandling):
 
                 if not isinstance(config[field], (list, tuple)):
                     raise ValueError(f"Config {i} {field} must be a list, got {type(config[field])}.")
-                
+
                 for item in config[field]:
                     if not isinstance(item, int):
                         raise ValueError(f"Config {i} {field} must contain integers, got {type(item)}.")
-            
+
             for field in int_fields:
                 if field not in config:
                     continue
                 if not isinstance(config[field], int):
                     raise ValueError(f"Config {i} {field} must be an integer, got {type(config[field])}.")
-            
+
             if "value" in config and not isinstance(config["value"], (int, float)):
                 raise ValueError(f"Config {i} 'value' must be a number, got {type(config['value'])}.")
-            
+
             if "policy" in config:
                 if not isinstance(config["policy"], str):
                     raise ValueError(f"Config {i} 'policy' must be a str, got {type(config['policy'])}.")
@@ -143,7 +143,7 @@ class NPUShapeHandling(torch_npu._C._NPUShapeHandling):
                         f"Invalid 'policy' in config[{i}]: {config['policy']}. "
                         f"Must be one of: {', '.join(repr(k) for k in self.policy_map.keys())}."
                     )
-                
+
         if len(configs) == 2 and configs[0]["type"] == configs[1]["type"]:
             raise ValueError("Cannot initialize the same type repeatedly.")
 
@@ -164,8 +164,8 @@ class NPUShapeHandling(torch_npu._C._NPUShapeHandling):
                     dimensions = [dimensions[0] for _ in range(len(indices))]
                 if not dimensions:
                     dimensions = [1 for _ in range(len(indices))]
-                
-            
+
+
             if len(dimensions) == 0 or len(indices) == 0:
                 self.delay_init = True
                 continue
@@ -183,22 +183,22 @@ class NPUShapeHandling(torch_npu._C._NPUShapeHandling):
             if not dimensions:
                 dimensions = [0]
             dimensions = [dimensions[0] for _ in range(len(tensors))]
-        
+
         if dimension_type == "SEQLEN":
             if not dimensions:
                 dimensions = [1]
             if len(dimensions) == 1:
                 dimensions = [dimensions[0] for _ in range(len(tensors))]
-        
+
         index = 0
         indices = []
         for dimension, tensor in zip(dimensions, tensors):
             if tensor.ndim > dimension:
                 indices.append(index)
             index += 1
-        
+
         return indices
-        
+
     def delay_initialize(self, tensors: List[torch.Tensor]):
         delay_init_configs = []
         for config in self.configs:
@@ -206,7 +206,7 @@ class NPUShapeHandling(torch_npu._C._NPUShapeHandling):
             if "indices" not in config or len(config["indices"]) == 0:
                 init_flag = True
                 config["indices"] = self._construct_indices(tensors, config.get("dimensions", []), config["type"])
-            
+
             if init_flag:
                 delay_init_configs.append(config)
         if len(delay_init_configs) > 0:
@@ -244,7 +244,7 @@ class NPUShapeHandling(torch_npu._C._NPUShapeHandling):
             inputs = self.transform_pre_fn(*args, **kwargs)
         else:
             inputs, indices, leaves, spec = self._process_inputs(args, kwargs)
-        
+
         # 提取转换前的形状 (inputs 通常是 Tensor 列表)
         if logger.isEnabledFor(logging.INFO):
             pre_shapes = [self.get_shape_safe(t) for t in inputs]
@@ -257,16 +257,16 @@ class NPUShapeHandling(torch_npu._C._NPUShapeHandling):
         if logger.isEnabledFor(logging.INFO):
             post_shapes = [self.get_shape_safe(t) for t in trans_outputs]
             logger.info(f"> Post-transform content: {post_shapes}")
-        
+
         # 后处理阶段优化：避免嵌套循环
         if self.transform_post_fn:
             outputs = self.transform_post_fn(trans_outputs)
         else:
             outputs = self._recover_inputs(trans_outputs, indices, leaves, spec)
-            
+
         if not outputs:
             logger.error(f"CRITICAL: _recover_inputs returned NULL")
-        
+
         return outputs
 
     def flatten_to_tensors(self, structure: Any) -> Tuple[List[torch.Tensor], List[int], List[Any], TreeSpec]:
@@ -277,7 +277,7 @@ class NPUShapeHandling(torch_npu._C._NPUShapeHandling):
         if indexed_tensors is not None and len(indexed_tensors) > 0:
             indices, tensors = zip(*indexed_tensors)
         return tensors, indices, leaves, spec
-    
+
     def unflatten_from_tensors(
         self,
         tensors: List[torch.Tensor],
@@ -291,7 +291,7 @@ class NPUShapeHandling(torch_npu._C._NPUShapeHandling):
 
     def _process_inputs(self, args: Tuple, kwargs: dict) -> List[torch.Tensor]:
         return self.flatten_to_tensors((args, kwargs))
-    
+
     def _recover_inputs(
         self,
         transform_res: List[List[torch.Tensor]],
@@ -303,7 +303,7 @@ class NPUShapeHandling(torch_npu._C._NPUShapeHandling):
         for processd_tensors in transform_res:
             res.append(self.unflatten_from_tensors(processd_tensors, indices, list(leaves), spec))
         return zip(*res)
-    
+
     def _process_outputs(
         self,
         outputs_list: List[Any]
@@ -332,10 +332,10 @@ class NPUShapeHandling(torch_npu._C._NPUShapeHandling):
     ) -> Any:
         """
         Process input groups through recovery pipeline.
-        
+
         Args:
             groups: List of input data to be processed.
-        
+
         Returns:
             Processed outputs after recovery and postprocessing.
         """
@@ -344,16 +344,16 @@ class NPUShapeHandling(torch_npu._C._NPUShapeHandling):
             inputs = self.recover_pre_fn(groups)
         else:
             inputs, indices, leaves, spec = self._process_outputs(groups)
-        
+
         # 执行恢复操作
         re_outputs = self.recover(tensor_groups=inputs)
-        
+
         # 后处理：使用自定义函数或默认方法
         if self.recover_post_fn:
             outputs = self.recover_post_fn(re_outputs)
         else:
             outputs = self._recover_outputs(re_outputs, indices, leaves, spec)
-        
+
         return outputs
 
 
@@ -361,28 +361,28 @@ def unified_copy(data: Any) -> Any:
     """
     对输入数据进行安全且统一的深拷贝。
     支持PyTorch Tensor、字典、列表等常见数据类型。
-    
+
     Args:
         data: 输入数据，可以是Tensor、dict、list等
-        
+
     Returns:
         数据的独立副本
     """
     if data is None:
         return None
-    
+
     # 处理PyTorch Tensor
     if isinstance(data, torch.Tensor):
         return data.clone().detach()
-    
+
     # 处理字典类型
     elif isinstance(data, dict):
         return {key: unified_copy(value) for key, value in data.items()}
-    
+
     # 处理列表类型
     elif isinstance(data, list):
         return [unified_copy(item) for item in data]
-    
+
     # 处理元组类型
     elif isinstance(data, tuple):
         return tuple(unified_copy(item) for item in data)
@@ -411,21 +411,21 @@ def patch_dynamo_context():
         """
         if compiler_config is None or not compiler_config.get("enable_shape_handling", False):
             return False
-        
+
         if not isinstance(callback, CatchErrorsWrapper):
             return False
-        
+
         orig_callable = callback._torchdynamo_orig_callable
         if not isinstance(orig_callable, ConvertFrame):
             return False
-        
+
         deep_callable = orig_callable._torchdynamo_orig_callable
         if not isinstance(deep_callable, WrapBackendDebug):
             return False
-        
+
         if getattr(deep_callable, "_compiler_name", None) != "inductor":
             return False
-        
+
         return True
 
     def nothing():
@@ -464,7 +464,7 @@ def patch_dynamo_context():
                 trans_post_fn = function_dict.get("trans_post_fn", None)
                 re_pre_fn = function_dict.get("re_pre_fn", None)
                 re_post_fn = function_dict.get("re_post_fn", None)
-            
+
             self.shape_handling = NPUShapeHandling(
                 configs=compiler_config.get("shape_handling_configs"),
                 transform_pre_fn=trans_pre_fn,
@@ -477,7 +477,7 @@ def patch_dynamo_context():
         src_fn = src_call(self, fn)
         if isinstance(fn, torch.nn.Module) or inspect.isclass(fn):
             return src_fn
-        
+
         def new_fn(*args, **kwargs):
             if (is_enable_shape_handling(self.callback, compiler_config=self.compiler_config)):
                 new_args, new_kwargs = self.shape_handling.transform_hook(*args, **kwargs)

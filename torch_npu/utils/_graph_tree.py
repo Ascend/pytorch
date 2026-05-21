@@ -228,7 +228,7 @@ def npugraphify_impl(
 
     else:
         copy_indices = [
-            idx 
+            idx
             for idx in range(len(static_inputs))
             if idx not in static_input_idxs
         ]

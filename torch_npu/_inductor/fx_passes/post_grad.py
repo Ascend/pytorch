@@ -14,9 +14,9 @@ def patch_pattern_mm_plus_mm():
         return False
 
     pattern = CallFunction(
-        aten.add, 
+        aten.add,
         CallFunction(aten.mm, KeywordArg("mat1"), KeywordArg("mat2")),
-        CallFunction(aten.mm, KeywordArg("mat3"), KeywordArg("mat4")), 
+        CallFunction(aten.mm, KeywordArg("mat3"), KeywordArg("mat4")),
         extra_check=is_valid_mm_plus_mm
     )
 

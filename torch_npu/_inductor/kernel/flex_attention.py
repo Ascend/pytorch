@@ -75,52 +75,52 @@ class Mode(Enum):
 def _get_flex_attention_additional_lowerings():
     """
     Get additional lowerings for flex_attention subgraph.
-    
+
     These lowerings are used to allow index and bitwise operations to be lowered
     as pointwise ops instead of fallback in the mask_mod subgraph.
     """
     from torch._inductor.lowering import make_pointwise, index_impl
     from torch._inductor.subgraph_lowering import PointwiseSubgraphLowering
-    
+
     additional_lowerings = {}
-    
+
     def index_pointwise(x, indices):
         return index_impl(x, indices, check=True)
-    
+
     additional_lowerings[aten.index] = index_pointwise
     additional_lowerings[aten.index.Tensor] = index_pointwise
-    
+
     bitwise_and_fn = make_pointwise(ops.bitwise_and)
-    
+
     def bitwise_and_tensor(a, b):
         return bitwise_and_fn(a, b)
-    
+
     bitwise_or_fn = make_pointwise(ops.bitwise_or)
-    
+
     def bitwise_or_tensor(a, b):
         return bitwise_or_fn(a, b)
-    
+
     bitwise_not_fn = make_pointwise(ops.bitwise_not)
-    
+
     def bitwise_not_default(a):
         return bitwise_not_fn(a)
-    
+
     additional_lowerings[aten.bitwise_and.Tensor] = bitwise_and_tensor
     additional_lowerings[aten.bitwise_or.Tensor] = bitwise_or_tensor
     additional_lowerings[aten.bitwise_not.default] = bitwise_not_default
-    
+
     return additional_lowerings
 
 
 def _build_subgraph_buffer_with_additional_lowerings(args, subgraph):
     """
     Build subgraph buffer with additional lowerings for flex_attention.
-    
+
     This function creates a PointwiseSubgraphLowering with additional_lowerings
     to handle index and bitwise operations as pointwise ops.
     """
     from torch._inductor.subgraph_lowering import PointwiseSubgraphLowering
-    
+
     additional_lowerings = _get_flex_attention_additional_lowerings()
     pw_subgraph = PointwiseSubgraphLowering(
         subgraph.graph_module,
@@ -129,7 +129,7 @@ def _build_subgraph_buffer_with_additional_lowerings(args, subgraph):
     )
     with V.set_graph_handler(pw_subgraph):
         pw_subgraph.run(*args)
-    
+
     def convert_output_node_to_buffer(output_buffer):
         from torch._inductor.ir import ComputedBuffer, FlexibleLayout, StorageBox
         if output_buffer is None:
@@ -154,7 +154,7 @@ def _build_subgraph_buffer_with_additional_lowerings(args, subgraph):
             data=output_buffer.data.data,
         )
         return subgraph_buffer
-    
+
     return tree_map(convert_output_node_to_buffer, pw_subgraph.graph_outputs)
 
 

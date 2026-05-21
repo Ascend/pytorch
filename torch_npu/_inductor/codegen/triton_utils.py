@@ -54,7 +54,7 @@ def get_aligned_numel(dtype):
 def get_indirect_var(node_name):
     match = re.compile(r"indirect").search(node_name)
     if match is None:
-        return None 
+        return None
     return node_name[match.start():]
 
 
@@ -62,5 +62,5 @@ def get_indirect_mem_var(node_name):
     indirect_mem_pattern = r'index_select|gather_template|indexput_template|scatter_template'
     match = re.compile(indirect_mem_pattern).search(node_name)
     if match is None:
-        return None 
+        return None
     return node_name[match.start():]

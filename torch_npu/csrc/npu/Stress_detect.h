@@ -20,17 +20,17 @@ private:
     static void worker_thread();
 
     static int transfer_result(int detectResult);
-    
+
     // Thread for handling the stress detection task
     static std::thread stress_detect_thread;
 
     // Condition variable and mutex to control the thread
     static std::condition_variable cv;
     static std::mutex mtx;
-    
+
     // Flag to indicate if a task is in progress
     static std::atomic<bool> task_in_progress;
-    
+
     // Flag to signal the thread to stop
     static std::atomic<bool> stop_thread;
 

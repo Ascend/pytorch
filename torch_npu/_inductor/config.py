@@ -29,7 +29,7 @@ config.trace.enabled = True
 config.fallback_random = True
 
 config.graph_partition = False
- 	  	  	 
+
 config.triton.coalesce_tiling_analysis = False
 
 device = torch.npu.current_device()

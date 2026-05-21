@@ -155,7 +155,7 @@ from torch_npu._init.common.warning_utils import _should_print_warning
 
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, pta_error, prof_error
-from .utils import (obfuscation_initialize, obfuscation_calculate, obfuscation_finalize, 
+from .utils import (obfuscation_initialize, obfuscation_calculate, obfuscation_finalize,
                     synchronize, set_device, current_device, _get_device_index,
                     device, device_of, StreamContext, stream, set_stream, current_stream, default_stream, set_sync_debug_mode,
                     get_sync_debug_mode, init_dump, current_blas_handle, is_bf16_supported,
@@ -510,7 +510,7 @@ _cached_device_capability_env = None
 def get_device_capability(device=None):
     r"""Query the minor and major data of device.
 
-    This function can be configured via the TORCH_NPU_DEVICE_CAPABILITY environment variable. 
+    This function can be configured via the TORCH_NPU_DEVICE_CAPABILITY environment variable.
     The format should be "major.minor", e.g., "9.0" or "8.0".
 
     .. note::
@@ -520,7 +520,7 @@ def get_device_capability(device=None):
         device (torch.device or int, optional): The device parameter has no practical meaning.
 
     Returns:
-        tuple(int, int): the device capability of the device. Returns the tuple(major, minor) configured via 
+        tuple(int, int): the device capability of the device. Returns the tuple(major, minor) configured via
         TORCH_NPU_DEVICE_CAPABILITY, or None if TORCH_NPU_DEVICE_CAPABILITY not configured.
 
     Example:
@@ -619,7 +619,7 @@ def _get_deterministic_level():
         torch_npu.npu.set_deterministic_level(level)
         return level
     if level >= 1 and not torch.are_deterministic_algorithms_enabled():
-        level = 0     
+        level = 0
         torch_npu.npu.set_deterministic_level(level)
         return level
     return level

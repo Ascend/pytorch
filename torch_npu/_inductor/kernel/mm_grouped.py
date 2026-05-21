@@ -125,7 +125,7 @@ def check_catlass_support(
 
     if len(mat_a[0].get_size()) != 2 or len(mat_b[0].get_size()) != 3:
         return False
-    
+
     # Catlass currently not support group mm with bias
     if bias:
         return False
@@ -134,14 +134,14 @@ def check_catlass_support(
         return False
 
     if offset:
-        return False 
+        return False
 
     if group_list is None or not isinstance(group_list, TensorBox):
         return False
 
     if group_list.get_size()[0] != mat_b[0].get_size()[0]:
         return False
-    
+
     # Catlass only support splitting in m axis
     if group_type is not None and group_type != 0:
         return False
@@ -181,7 +181,7 @@ def _tuned_grouped_mm_common(
     output_dtype: Optional[torch.dtype] = None,
     **kwargs,
 ) -> List[TensorBox]:
-    catlass_compatible = check_catlass_support(mat_a, mat_b, bias, scale, offset, 
+    catlass_compatible = check_catlass_support(mat_a, mat_b, bias, scale, offset,
         group_list, group_type, group_list_type, act_type, output_dtype
     )
     # not support lowering grouped-mm for cpp_wrapper yet
@@ -237,8 +237,8 @@ def _tuned_grouped_mm_common(
 
     if is_contiguous_input and is_nonzero and use_catlass_template("grouped_mm", layout, m, n, k):
         CATLASS1xGemmTemplate.add_catlass_gemm_choices(
-            choices, 
-            layout, 
+            choices,
+            layout,
             [mat_a, mat_b, bias, offs], # currently catlass does not support grouped mm with bias
         )
         # debug log

@@ -16,7 +16,7 @@ class TorchNpuRunStoreSample:
         self._init_method = f'parallel://{ip}:{port}'
         self._timeout = timedelta(minutes=1)
         self._key = 'sample_torch_npu_run_store:test_case_001'
-        
+
         rendezvous_iterator = rendezvous(
             self._init_method, self._current_rank, self._world_size, timeout=self._timeout
         )
@@ -41,7 +41,7 @@ class TorchNpuRunStoreSample:
             if timedelta(seconds=(time.time() - start_time)) > self._timeout:
                 timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
                 raise RuntimeError(f'[{timestamp}]rank: {self._current_rank} wait all workers ready timeout')
-            
+
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
         print(f'[{timestamp}] Rank: {self._current_rank} complete store-based barrier for worker count: {alive_count}')
 

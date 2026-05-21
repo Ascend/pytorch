@@ -45,8 +45,8 @@ class TestFusionAttentionUnchangePass(TestUtils):
         self.assertIsInstance(inductor_result["getitem_4"], torch.Tensor, "The output parameter 'seed' of the npu_fusion_attention_v3 should be Tensor")
         self.assertIsInstance(inductor_result["getitem_5"], torch.Tensor, "The output parameter 'offset' of the npu_fusion_attention_v3 should be Tensor")
         self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
-        
-        
+
+
     def test_ut_cases(self):
         primals_1 = torch.randn(2, 8, 16, 64, dtype=torch.float32, device="npu")
         primals_2 = torch.randn(2, 8, 16, 64, dtype=torch.float32, device="npu")
@@ -54,7 +54,7 @@ class TestFusionAttentionUnchangePass(TestUtils):
         model = FusionAttentionUnchangeModel()
         graph_module = fx.symbolic_trace(model)
         ShapeProp(graph_module).propagate(primals_1, primals_2, primals_3)
-        
+
         # 应用优化 Pass
         from torch_npu._inductor.fx_passes.ascend_custom_passes.ascend_graph_pass import fusion_attention_v3_pass
         fusion_attention_v3_pass(graph_module.graph)

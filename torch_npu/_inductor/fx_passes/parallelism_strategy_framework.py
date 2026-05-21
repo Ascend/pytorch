@@ -20,11 +20,11 @@ def register_custom_parallel_strategy(strategy_name: str, strategy: ParallelStra
 
 
 class ParallelGroupingStrategy:
-    
+
     def __init__(self):
         register_custom_parallel_strategy("default", CVParallelismStrategy)
-    
-    
+
+
     def execute_strategy(self, nodes: List[BaseSchedulerNode]) -> Dict[str, List[BaseSchedulerNode]]:
         parallel_scheduler_nodes_min = os.environ.get("PARALLEL_SCHEDULER_NODES_MIN", 20)
         if len(nodes) <= parallel_scheduler_nodes_min:

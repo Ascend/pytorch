@@ -29,7 +29,7 @@ def include_paths(npu: bool = False) -> List[str]:
 
     Args:
         npu: If 'True', includes NPU-specific include paths.
-    
+
     Returns:
         A list if include path strings.
     """
@@ -88,7 +88,7 @@ def get_cpp_torch_device_options(
     aot_mode: bool = False,
     compile_only: bool = False,
 ) -> Tuple[List[str], List[str], List[str], List[str], List[str], List[str], List[str]]:
-    
+
     npu = "npu" == device_type
 
     definations: List[str] = []
@@ -145,14 +145,14 @@ def _get_optimization_cflags(
         cflags.append(f"ffp-contract={config.cpp.enable_floating_point_contract_flag}")
 
         if sys.platform != "darwin":
-            # on macos, unknown argument: '-fno-tree-loop-vectorize' 
+            # on macos, unknown argument: '-fno-tree-loop-vectorize'
             if _is_gcc(cpp_compiler):
                 cflags.append("fno-tree-loop-vectorize")
             # -march=native is unrecognized option on M1
             if not config.is_fbcode():
                 if platform.machine() == "ppc64le":
                     cflags.append("mcpu=native")
-                             
+
         return cflags, ldflags
 
 

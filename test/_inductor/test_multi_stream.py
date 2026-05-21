@@ -80,7 +80,7 @@ class FakeNode:
 
     def mark_run(self):
         pass
-    
+
     def get_nodes(self):
         return []
 
@@ -369,7 +369,7 @@ class TestMultiStreamPass(TestUtils):
         """
         fake_graph = FakeGraph(cpp_wrapper=False)
         node = FakeNode(workspace_size=2048, name="test_02")
-        with V.set_graph_handler(fake_graph):   
+        with V.set_graph_handler(fake_graph):
             kernel = self.define_catlass_template_kernel()
             kernel.call_kernel(
                 name="test_kernel",
@@ -407,7 +407,7 @@ class TestMultiStreamPass(TestUtils):
             def render():
                 return "fake_src"
             return kernel, render
-        
+
         template_node.node.make_kernel_render = fake_make_kernel_render
         with V.set_graph_handler(fake_graph):
             scheduler = self.define_catlass_scheduling()
@@ -480,7 +480,7 @@ class TestMultiStreamPass(TestUtils):
         assert kwargs["name"] == "k0"
         assert kwargs["origin_node"] is origin_node
 
-    
+
     @patch("torch_npu._inductor.codegen.scheduling.is_multi_stream", return_value=False)
     @patch("torch_npu._inductor.codegen.scheduling.V")
     def test_codegen_node_schedule_single_stream(self, mock_V, mock_multi_stream):

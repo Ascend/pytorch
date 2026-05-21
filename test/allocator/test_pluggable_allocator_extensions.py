@@ -57,7 +57,7 @@ class TestPluggableAllocator(TestCase):
             build_directory=cls.build_directory,
             verbose=True,
         )
-    
+
     def test_pluggable_allocator(self):
         os_path = os.path.join(TestPluggableAllocator.build_directory, 'pluggable_allocator_extensions.so')
         # Load the allocator

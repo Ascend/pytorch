@@ -71,16 +71,16 @@ class NPUCompileError(CppCompileError):
 
 class NPUTritonTemplate(TritonTemplate):
     """NPU-specific Triton template for kernel generation.
-    
+
     This class extends TritonTemplate to provide NPU-specific optimizations
     and configurations for Triton kernel generation.
     """
-    
+
     index_counter = itertools.count()
 
     def __init__(self, name: str, grid: Any, source: str, debug: bool = False) -> None:
         """Initialize NPU Triton template.
-        
+
         Args:
             name: Template name for identification
             grid: Grid function for kernel launch configuration
@@ -274,11 +274,11 @@ class NPUTritonTemplate(TritonTemplate):
 
 class NPUTritonTemplateKernel(TritonTemplateKernel):
     """NPU-specific Triton template kernel for code generation.
-    
+
     This class extends TritonTemplateKernel to provide NPU-specific
     kernel generation and compilation functionality.
     """
-    
+
     def __init__(
         self,
         kernel_name: str,
@@ -298,7 +298,7 @@ class NPUTritonTemplateKernel(TritonTemplateKernel):
         workspace_arg: Optional[Any] = None,
     ) -> None:
         """Initialize NPU Triton template kernel.
-        
+
         Args:
             kernel_name: Name of the kernel
             input_nodes: List of input IR nodes
@@ -336,10 +336,10 @@ class NPUTritonTemplateKernel(TritonTemplateKernel):
 
     def def_kernel(self, *argnames: str) -> str:
         """Hook called from template code to generate function def and needed args.
-        
+
         Args:
             *argnames: Variable number of argument names
-            
+
         Returns:
             Render hook key string
         """
@@ -360,13 +360,13 @@ class NPUTritonTemplateKernel(TritonTemplateKernel):
         # Unified processing of all input nodes
         for idx, input_node in enumerate(self.input_nodes):
             node_name = input_node.get_name()
-            
+
             # Skip removed or fused buffers
             if node_name in V.graph.removed_buffers:
                 continue
             if node_name in self.prologue_fused_inputs:
                 continue
-            
+
             # Process prefix args
             if idx < self.prefix_args:
                 self.args.input(node_name)
@@ -415,7 +415,7 @@ class NPUTritonTemplateKernel(TritonTemplateKernel):
 
 def patch_algorithm_selector() -> None:
     """Patch AlgorithmSelectorCache with NPU-specific implementations.
-    
+
     This function replaces the default AlgorithmSelectorCache methods with
     NPU-optimized versions that include profiling and benchmarking capabilities
     specific to NPU hardware.
@@ -709,13 +709,13 @@ def patch_algorithm_selector() -> None:
         input_gen_fns: Optional[Dict[int, Callable[[ir.Buffer], torch.Tensor]]] = None,
     ) -> Callable:
         """Create a benchmark function for the given choices.
-        
+
         Args:
             choices: List of choice callers to benchmark
             input_nodes: List of input IR nodes
             layout: Output layout
             input_gen_fns: Optional dict mapping arg indices to input generation functions
-            
+
         Returns:
             Benchmark function that can be called with choices
         """

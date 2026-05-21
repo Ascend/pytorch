@@ -226,7 +226,7 @@ class CATLASSTemplate(KernelTemplate):
             return ptr
         else:
             return f"(uint8_t*)({ptr})"
-    
+
 
     def render(self, **kwargs) -> str:
         raise NotImplementedError

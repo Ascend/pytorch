@@ -12,6 +12,6 @@ def get_npu_fallback_list():
     return npu_fallback_list
 
 
-if __name__ == "__main__": 
+if __name__ == "__main__":
     npu_fallback_list = get_npu_fallback_list()
     write_to_file(sorted(npu_fallback_list), f"npu_fallback_list_{len(npu_fallback_list)}.txt")

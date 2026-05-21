@@ -39,7 +39,7 @@ class SplitTiling:
                 if not self.kernel.golden_var_list:
                     self.kernel.select_golden_varlist()
                 stride_sorted_var_list = list(self.kernel.golden_var_list) if self.kernel.golden_var_list else []
-            reduction_dim_list = [] 
+            reduction_dim_list = []
             for i, x in enumerate(reversed(stride_sorted_var_list)):
                 if x.name[0] == 'r':
                     reduction_dim_list.append(i)
@@ -79,7 +79,7 @@ class SplitTiling:
         self.kernel.split_axis.clear()
 
         # total numel exceed aicore or total split axis exceed 3
-        def meet_stop_condition(): 
+        def meet_stop_condition():
             sv = V.graph.sizevars
             current_numels = self.total_split_numels(self.kernel.split_axis)
             try:
@@ -160,7 +160,7 @@ class SplitTiling:
                     self.kernel.range_tree_nodes[var].is_tiling_axis
                     for var in self.kernel.reduction_axis_list()
                 ) and not self.contiguous_reduction
-                    
+
             if can_stop():
                 return True
             return False

@@ -156,9 +156,9 @@ def _catlass_tensor_from_node_for_bias(node):
 
     # bias node is different to A B input tensors. Even (n,) bias, the shape of this bias at this step,
     # should already be the broadcasted shape (m, n); the difference between the (n,) bias and (m, n) bias
-    # is the stride. (n,) bias stride should be (0, 1), but (m, n) bias stride should not contain any zero. 
+    # is the stride. (n,) bias stride should be (0, 1), but (m, n) bias stride should not contain any zero.
 
-    if len(node.get_size()) == 1 and len(node.get_stride()) == 1:   
+    if len(node.get_size()) == 1 and len(node.get_stride()) == 1:
         shape = tuple(node.get_layout().size)
         stride = tuple(node.get_layout().stride)
     elif node.get_stride()[0] == 0:
@@ -200,10 +200,10 @@ def _gen_ops_cached(arch: str, op_tensors=None, is_group_mm=False) -> List[Any]:
         gemm_plan = Gemm(atlas_arch=arch, element_C=element_C, A=op_tensors[0], B=op_tensors[1], Bias=op_tensors[2])
         kernels = gemm_plan.get_kernels()
     else: # group mm
-        gemm_plan = GroupGemm(atlas_arch=arch, element_C=element_C, A=op_tensors[0], B=op_tensors[1], 
+        gemm_plan = GroupGemm(atlas_arch=arch, element_C=element_C, A=op_tensors[0], B=op_tensors[1],
                               groupList=op_tensors[2])
         kernels = gemm_plan.get_kernels()
-    
+
     for kernel in kernels:
         tilings = generate_configs(arch, kernel)
         if tilings:

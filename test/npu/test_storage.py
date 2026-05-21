@@ -203,7 +203,7 @@ class TestStorage(TestCase):
                     self.assertEqual(cpu_res.size(), npu_res.size())
                     self.assertEqual(cpu_res, npu_res.cpu())
                     self.assertEqual(cpu_res.tolist(), npu_res.cpu().tolist())
-            
+
             @SupportedDevices(['Ascend910B'])
             def _test_datatype_cast_complex(cpu_storage, npu_storage):
                 dtypes = [

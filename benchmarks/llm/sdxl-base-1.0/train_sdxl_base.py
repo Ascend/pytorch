@@ -12,9 +12,9 @@ import numpy as np
 import argparse
 import logging
 from transformers import Trainer, TrainingArguments
-sys.path.append(str(Path(__file__).parent.parent)) 
+sys.path.append(str(Path(__file__).parent.parent))
 from utils.utils import (
-    TimingCallback, 
+    TimingCallback,
     get_profile,
     detect_device_type
 )
@@ -37,7 +37,7 @@ activations.GEGLU.forward = patched_geglu_forward
 
 def set_seed(seed=42):
     torch.manual_seed(seed)
-    
+
 def custom_collate_fn(examples):
     pixel_values = torch.stack([example["pixel_values"] for example in examples])
     texts = [example["text"] for example in examples]
@@ -52,11 +52,11 @@ class SDXLTrainer(Trainer):
 
     def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None, **kwargs):
         device = model.device
-        model_dtype = model.dtype     
+        model_dtype = model.dtype
         pixel_values = inputs["pixel_values"].to(device, dtype=model_dtype)
         prompts = inputs["text"]
         bsz = pixel_values.shape[0]
-        
+
         with torch.no_grad():
             prompt_embeds, _, pooled_prompt_embeds, _ = self.pipe.encode_prompt(
                 prompt=prompts,
@@ -73,7 +73,7 @@ class SDXLTrainer(Trainer):
         timesteps = torch.randint(
             0, self.noise_scheduler.config.num_train_timesteps, (bsz,), device=device
         ).long()
-        
+
         noisy_latents = self.noise_scheduler.add_noise(latents, noise, timesteps)
 
         add_time_ids = torch.tensor(
@@ -105,7 +105,7 @@ class SDXLLoRAFineTuner:
         self.setup_model()
 
     def setup_model(self):
-        logger.info(f"Loading SDXL model from {self.args.model_path}")   
+        logger.info(f"Loading SDXL model from {self.args.model_path}")
         self.pipe = DiffusionPipeline.from_pretrained(
             self.args.model_path,
             torch_dtype=self.dtype,
@@ -118,7 +118,7 @@ class SDXLLoRAFineTuner:
         self.vae = self.pipe.vae
         self.text_encoder = self.pipe.text_encoder
         self.text_encoder_2 = self.pipe.text_encoder_2
-        
+
         self.noise_scheduler = DDPMScheduler.from_config(self.pipe.scheduler.config)
 
         self.vae.requires_grad_(False)
@@ -131,7 +131,7 @@ class SDXLLoRAFineTuner:
             r=self.args.lora_rank,
             lora_alpha=self.args.lora_rank,
             init_lora_weights="gaussian",
-            target_modules=["to_k", "to_q", "to_v", "to_out.0"], 
+            target_modules=["to_k", "to_q", "to_v", "to_out.0"],
         )
 
         self.unet.add_adapter(unet_lora_config)
@@ -159,7 +159,7 @@ class SDXLLoRAFineTuner:
                 if image.mode != "RGB":
                     image = image.convert("RGB")
                 pixel_values.append(transform(image))
-            
+
             examples["pixel_values"] = pixel_values
             return examples
 
@@ -176,12 +176,12 @@ class SDXLLoRAFineTuner:
         if self.args.enable_profiler:
             if not os.path.exists(self.args.profiler_save_path):
                 os.makedirs(self.args.profiler_save_path)
-                
+
             profiling_save_path = os.path.join(self.args.profiler_save_path, 'sdxl', mod)
-            
+
             prof = get_profile(
-                profiler_start_step=self.args.profiler_start_step, 
-                profiler_end_step=self.args.profiler_end_step, 
+                profiler_start_step=self.args.profiler_start_step,
+                profiler_end_step=self.args.profiler_end_step,
                 profiling_save_path=profiling_save_path
             )
 
@@ -233,11 +233,11 @@ class SDXLLoRAFineTuner:
             unet_lora_layers=unet_lora_state_dict,
             safe_serialization=True
         )
-        
+
         return train_result.metrics
 
 def main():
-    parser = argparse.ArgumentParser(description="Train Stable Diffusion XL LoRA")   
+    parser = argparse.ArgumentParser(description="Train Stable Diffusion XL LoRA")
     parser.add_argument("--model_path", type=str, required=True, help="Path to the pretrained SDXL model")
     parser.add_argument("--data_path", type=str, required=True, help="Path to training data (parquet file)")
     parser.add_argument("--output_dir", type=str, default="./sdxl_lora_weights", help="Output directory for LoRA weights")
@@ -259,7 +259,7 @@ def main():
     parser.add_argument("--npu-backend", type=str, default="mlir")
     parser.add_argument("--mfusion", action="store_true",
                         help="Enable MFusion for graph fusion optimization")
-    
+
     args = parser.parse_args()
     device_type = detect_device_type()
     os.environ['TORCHINDUCTOR_NPU_BACKEND'] = args.npu_backend

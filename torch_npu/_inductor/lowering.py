@@ -208,7 +208,7 @@ def _register_npu_inductor_fallbacks():
     log.info(f"[npu|inductor|lowering|fallback] with FALLBACK_LIST, len(lowerings): {len(lowerings)}, "
                 f"len(FALLBACK_LIST): {len(FALLBACK_LIST)}, make_fallback finished.")
     log.info(f"[npu|inductor|lowering|fallback] len(NPU_EXTRA_FALLBACK_LIST): {len(NPU_EXTRA_FALLBACK_LIST)}")
-            
+
     # 把需要overload的op在lowering里删除
     overload_op_set = set()
     _add_overload(LOWERING_OVERRIDE_OP, overload_op_set)
@@ -484,7 +484,7 @@ def _register_npu_inductor_fallbacks():
                 idx = [gather_idx]
             else:
                 idx[dim] = gather_idx
-            
+
             return ops.gather_template(loader_name, x_loader(idx), index_value, gather_idx, int(index_boundary))
 
         return Pointwise.create(
@@ -494,7 +494,7 @@ def _register_npu_inductor_fallbacks():
             ranges=index.get_size(),
         )
 
-    
+
     def index_put_impl_(self, indices, values, accumulate, check, may_realize=False):
         if may_realize:
 
@@ -652,7 +652,7 @@ def _register_npu_inductor_fallbacks():
         if x_ndim == 0:
             self = view(self, [])
         return self
-    
+
     # All the indexing decompositions are written in terms of index, index_put, and index_put_
     # We cannot have this lowering as a decomposition as it introduces
     # mutation in the graph, which is bad for Aot Autograd. Aot Autograd runs dead
@@ -951,13 +951,13 @@ def _register_npu_inductor_fallbacks():
         # Validate input
         if not isinstance(normalized_shape, (list, tuple)):
             normalized_shape = (normalized_shape,)
-        
+
         normalized_ndim = len(normalized_shape)
         input_shape = x.get_size()
-        
+
         # Calculate reduction dimension indices
         reduce_dims = list(range(len(input_shape) - normalized_ndim, len(input_shape)))
-        
+
         # Compute mean and variance
         var, mean = var_mean_helper_(
             x=x,
@@ -966,30 +966,30 @@ def _register_npu_inductor_fallbacks():
             keepdim=True,  # Keep dimensions for broadcasting
             return_mean=True
         )
-        
+
         # Calculate normalized result (x - mean) / sqrt(var + eps)
         x_normalized = sub(x, mean)
-        
+
         # Add eps to variance
         eps_tensor = ir.IndexingConstant(index=eps, dtype=var.get_dtype(), device=var.get_device())
         eps_tensor = ExpandView.create(eps_tensor, var.get_size())
         var_eps = add(var, eps_tensor)
-        
+
         # Calculate reciprocal of sqrt(var + eps)
         inv_std = rsqrt(var_eps)  # 1 / sqrt(var + eps)
-        
+
         # Normalization
         normalized = mul(x_normalized, inv_std)
-        
+
         # Apply optional affine transformation (gamma * normalized + beta)
         if weight is not None:
             # weight will be broadcast automatically, mul function in lowering supports broadcasting
             normalized = mul(normalized, weight)
-        
+
         if bias is not None:
             # add will be broadcast automatically
             normalized = add(normalized, bias)
-        
+
         # native_layer_norm returns three values: output, mean, reciprocal of standard deviation
         return normalized, mean, inv_std
 

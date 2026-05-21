@@ -95,7 +95,7 @@ class TorchOpBean:
         if self._call_stack is None:
             self._call_stack = self._origin_data.get(self.TLV_TYPE_DICT.get(Constant.CALL_STACK), "").replace(";", ";\r\n")
         return self._call_stack
-    
+
     @property
     def inputs(self):
         if self._inputs is None:
@@ -121,7 +121,7 @@ class TorchOpBean:
     @property
     def is_torch_op(self):
         return True
-    
+
     def _init_timestamps(self):
         profiler_config = ProfilerConfig()
         start_syscnt = self._constant_data[TorchOpEnum.START_NS.value]

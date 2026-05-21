@@ -25,9 +25,9 @@ from ..fx_passes.utils.schedule_node_utils import is_multi_stream
 
 @dataclasses.dataclass
 class NPUMultiOutputLine(MultiOutputLine):
-    
+
     multi_stream_intent: str = ""
-    
+
     def codegen(self, code: IndentedBuffer) -> None:
         def codegen_list_tuple_access(basename, indices):  # type: ignore[no-untyped-def]
             if len(indices) > 0:
@@ -373,8 +373,8 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
             multi_stream_intent_str = self.get_buffer_define_multi_stream_by_name(new_name)
             return f"{multi_stream_intent_str}{self.declare_maybe_reference}{new_name} = {old_name}{del_line}{self.ending}  {self.comment} reuse"
         return super().codegen_exact_buffer_reuse(old_name, new_name, del_line)
-    
-    
+
+
     def codegen_deferred_allocation(self, name: str, view: ir.ReinterpretView) -> None:
         if is_multi_stream():
             multi_stream_intent_str = self.get_buffer_define_multi_stream_by_name(name)
@@ -517,8 +517,8 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
                 self.kernel_declarations.getvaluewithlinemap(),
             )
         return super()._generate(is_inference)
-    
-    
+
+
     def handle_cross_stream_del_buf(self):
         total_lines = len(self.lines)
         sub_streams_line_no = self.get_sub_streams_line_no()
@@ -530,12 +530,12 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
                 tab_value = self.buffer_args_multi_stream_intent[keys[0]]
                 if idx > sub_stream_line[0] and idx < sub_stream_line[1] and isinstance(line, WrapperLine) and hasattr(line, "node") and line.node.get_name() not in self.buffer_args_multi_stream_intent.keys():
                     self.buffer_args_multi_stream_intent[line.node.get_name()] = tab_value
-            
+
             n = len(sub_streams_line_no)
             for i in range(1, n):
                 prev_end = sub_streams_line_no[i-1][1]
                 curr_start = sub_streams_line_no[i][0]
-                
+
                 if prev_end < idx < curr_start and isinstance(line, WrapperLine) and hasattr(line, "node") and line.node.get_name() in self.buffer_args_multi_stream_intent.keys():
                     self.buffer_args_multi_stream_intent.pop(line.node.get_name(), None)
 
@@ -543,8 +543,8 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
                 last_end = sub_streams_line_no[-1][1]
                 if last_end < idx < total_lines and isinstance(line, WrapperLine) and hasattr(line, "node") and line.node.get_name() in self.buffer_args_multi_stream_intent.keys():
                     self.buffer_args_multi_stream_intent.pop(line.node.get_name(), None)
-    
-    
+
+
     def get_sub_streams_line_no(self):
         sub_streams_line_no = []
         i = 0

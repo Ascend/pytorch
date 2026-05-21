@@ -15,7 +15,7 @@ def parse_args(args):
         action=env,
         type=str,
         default="false",
-        help="Turn parallel tcpstore tiered optimization, if true, The agent adds a proxy role," 
+        help="Turn parallel tcpstore tiered optimization, if true, The agent adds a proxy role,"
         "the worker on this node will connect to the server through the proxy.",
     )
     return parser.parse_args(args)

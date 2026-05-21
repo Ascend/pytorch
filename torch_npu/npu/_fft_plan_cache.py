@@ -11,7 +11,7 @@ class NPUFFTPlanCache:
         if name == "max_size":
             return torch_npu._C._npu_get_fft_plan_cache_max_size()
         raise AttributeError("Unknown attribute " + name)
-        
+
     def __setattr__(self, name, value):
         if name == "size":
             raise RuntimeError(".size is a read-only property showing the number of plans currently in the cache.")

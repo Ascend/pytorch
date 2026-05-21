@@ -2,7 +2,7 @@
 Add validation cases for torch.distributed.elastic.agent.server.health_check_server APIs.
 
 1. PyTorch community tests do not cover HealthCheckServer APIs, so this file is added.
-2. This file validates : 
+2. This file validates :
 torch.distributed.elastic.agent.server.health_check_server.HealthCheckServer
 torch.distributed.elastic.agent.server.health_check_server.HealthCheckServer.start
 torch.distributed.elastic.agent.server.health_check_server.HealthCheckServer.stop

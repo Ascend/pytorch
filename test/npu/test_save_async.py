@@ -22,7 +22,7 @@ class TestAsyncSave(TestCase):
     @classmethod
     def tearDownClass(cls):
         PathManager.remove_path_safety(TestAsyncSave.test_save_path)
-    
+
     def wait_for_save_completion(self, file_path, timeout_sec=60, poll_interval_sec=0.5):
         start_time = time.time()
 
@@ -43,13 +43,13 @@ class TestAsyncSave(TestCase):
         save_tensor = torch.rand(1024, dtype=torch.float32).npu()
         async_save_path = os.path.join(TestAsyncSave.test_save_path, "async_save_tensor.pt")
         torch_npu.utils.save_async(save_tensor, async_save_path)
-     
+
         if self.wait_for_save_completion(async_save_path):
             tensor_async = torch.load(async_save_path, weights_only=False)
             self.assertEqual(tensor_async, save_tensor)
         else:
             self.assertTrue(False, f"{async_save_path} is not exist!")
-    
+
     def test_save_async(self):
         loss1 = [1.6099495, 1.6099086, 1.6098710]
         loss2 = []
@@ -78,7 +78,7 @@ class TestAsyncSave(TestCase):
             loss.backward()
 
             optimerizer.step()
-            
+
             loss2.append(loss)
             checkpoint = {
                 "model": model.state_dict(),
