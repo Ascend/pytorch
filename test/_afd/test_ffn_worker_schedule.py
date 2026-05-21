@@ -1,8 +1,12 @@
 import unittest
 import torch
 import torch.nn as nn
-import torchair
-from torchair.configs.compiler_config import CompilerConfig
+try:
+    import torchair
+    from torchair.configs.compiler_config import CompilerConfig
+    HAS_TORCHAIR = True
+except ImportError:
+    HAS_TORCHAIR = False
 
 import torch_npu
 from torch_npu.testing.common_utils import SupportedDevices
@@ -44,6 +48,7 @@ class TestModel(nn.Module):
         return torch_npu._afd.ffn_worker_scheduler(schedule_context, sync_group_size=1)
 
 
+@unittest.skipUnless(HAS_TORCHAIR, "torchair is not available")
 class TestFfnWorkerScheduler(TestCase):
     def setUp(self):
         self.context_holder = torch_npu._afd.create_schedule_context_holder(schedule_mode=0, session_num=attn_workers,
