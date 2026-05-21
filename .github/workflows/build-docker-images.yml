@@ -14,6 +14,9 @@ env:
 
 jobs:
   build:
+    environment: QUAY_USERNAME
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
