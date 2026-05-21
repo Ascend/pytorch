@@ -3409,6 +3409,14 @@ public:
         // block must not be null reaching here
         TORCH_INTERNAL_ASSERT(block != nullptr, "No allocated block can be found", PTA_ERROR(ErrCode::NOT_FOUND));
         device_allocator[block->device]->recordStream(block, stream);
+#ifndef BUILD_LIBTORCH
+        const c10_npu::impl::PyCallbackTrigger *trigger = c10_npu::impl::NPUTrace::getTrace();
+        if (C10_UNLIKELY(trigger)) {
+            trigger->traceNpuRecordStream(
+                reinterpret_cast<uintptr_t>(ptr.get()),
+                reinterpret_cast<uintptr_t>(stream.stream(false)));
+        }
+#endif
     }
 
     void eraseStream(const c10::DataPtr &ptr, c10_npu::NPUStream stream)
@@ -3441,6 +3449,14 @@ public:
         }
 
         device_allocator[block->device]->eraseStream(block, stream);
+#ifndef BUILD_LIBTORCH
+        const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
+        if (C10_UNLIKELY(trigger)) {
+            trigger->traceNpuEraseStream(
+                reinterpret_cast<uintptr_t>(ptr.get()),
+                reinterpret_cast<uintptr_t>(stream.stream(false)));
+        }
+#endif
     }
 
     void eraseStreamWithBlockPtr(void* block_ptr, c10_npu::NPUStream stream, void* work_ptr) override
@@ -3463,6 +3479,14 @@ public:
         }
 
         device_allocator[block->device]->eraseStream(block, stream);
+#ifndef BUILD_LIBTORCH
+        const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
+        if (C10_UNLIKELY(trigger)) {
+            trigger->traceNpuEraseStream(
+                reinterpret_cast<uintptr_t>(block->ptr),
+                reinterpret_cast<uintptr_t>(stream.stream(false)));
+        }
+#endif
     }
 
     void* getBlockPtr(const c10::DataPtr& ptr) override
