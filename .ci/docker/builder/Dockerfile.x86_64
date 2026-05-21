@@ -7,7 +7,6 @@ ENV AUDITWHEEL_PLAT=manylinux_2_28_x86_64
 ENV PYTORCH_VERSION=${PYTORCH_VERSION}
 ENV TORCH_PACKAGE_SUFFIX=+cpu
 
-COPY common/ /opt/buildtools/
 COPY requirements-builder.txt /opt/buildtools/
 
 # Set pip & python symlinks
