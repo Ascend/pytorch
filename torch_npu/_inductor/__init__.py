@@ -140,19 +140,19 @@ def _load_triton_backend():
     disable_foreach()
     patch_fx_node_is_input_dependent_cudagraph_unsafe()
     register_device_op_overrides_npu()
-    
- 
+
+
 _BACKEND_LOADERS = {
     "mlir": _load_mlir_backend,
     "default": _load_triton_backend,
 }
 
- 	 
+
 def _load_backend():
     backend = _get_backend()
     loader = _BACKEND_LOADERS.get(backend, _load_triton_backend)
     loader()
     from ..utils._dynamo import _InductorNpuRegistry
     _InductorNpuRegistry._loaded_backend = backend
-    
+
 _load_backend()

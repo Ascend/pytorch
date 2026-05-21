@@ -26,7 +26,7 @@ def include_paths(npu: bool = False) -> List[str]:
 
     Args:
         npu: If 'True', includes NPU-specific include paths.
-    
+
     Returns:
         A list if include path strings.
     """
@@ -85,7 +85,7 @@ def get_cpp_torch_device_options(
     aot_mode: bool = False,
     compile_only: bool = False,
 ) -> Tuple[List[str], List[str], List[str], List[str], List[str], List[str], List[str]]:
-    
+
     npu = "npu" == device_type
 
     definations: List[str] = []

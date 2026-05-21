@@ -366,12 +366,12 @@ class CPPLibBuild(build_clib, object):
         if DISABLE_RPC == 'FALSE':
             if check_tensorpipe_valid(BASE_DIR):
                 cmake_args.append('-DBUILD_TENSORPIPE=on')
-        
+
         if ENABLE_LTO == "TRUE":
             cmake_args.append('-DENABLE_LTO=on')
         if PGO_MODE != 0:
             cmake_args.append('-DPGO_MODE=' + str(PGO_MODE))
-        
+
         if USE_CXX11_ABI:
             cmake_args.append('-DGLIBCXX_USE_CXX11_ABI=1')
 
@@ -437,12 +437,12 @@ def add_ops_python_files(ret_list):
     opplugin_path = os.path.join(BASE_DIR, 'third_party/op-plugin/op_plugin/python')
 
     if os.path.exists(opplugin_path):
-        ops_python_files = glob.glob(os.path.join(opplugin_path, '**/*.py'), recursive=True)  
+        ops_python_files = glob.glob(os.path.join(opplugin_path, '**/*.py'), recursive=True)
         for src in ops_python_files:
             dst = os.path.join(
                 os.path.join(BASE_DIR, "build/packages/torch_npu/op_plugin"),
                 os.path.relpath(src, opplugin_path))
-            os.makedirs(os.path.dirname(dst), exist_ok=True) 
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
             ret_list.append((src, dst))
     return
 
@@ -555,11 +555,11 @@ def get_src_py_and_dst():
         # 按原目录结构复制到目标路径
         for src in codegen_files:
             # 仅过滤指定目录下的根级__init__.py
-            if (exclude_root_init is not None and 
-                os.path.basename(src) == '__init__.py' and 
+            if (exclude_root_init is not None and
+                os.path.basename(src) == '__init__.py' and
                 os.path.dirname(src) == exclude_root_init):
                 continue  # 跳过op-plugin/codegen根目录的__init__.py
-            
+
             # 计算目标路径（保留原目录层级）
             dst = os.path.join(
                 codegen_dst_dir,

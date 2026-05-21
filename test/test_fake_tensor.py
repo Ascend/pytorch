@@ -1903,7 +1903,7 @@ class TestQuantMatmul(TestCase):
             expect_ret_fp16 = torch.randint(-1, 1, (1, 1, 100), dtype=torch.float16).npu()
             bias_fp32 = torch.randint(-1, 1, (1, 1, 100), dtype=torch.float32).npu()
             pertoken_scale = torch.randn(1, dtype=torch.float32).npu()
-            res_fp16 = torch_npu.npu_quant_matmul(x1, x2, scale, offset=None, pertoken_scale=pertoken_scale, 
+            res_fp16 = torch_npu.npu_quant_matmul(x1, x2, scale, offset=None, pertoken_scale=pertoken_scale,
                                                   bias=bias_fp32, output_dtype=torch.float16)
             self.assertTrue(expect_ret_fp16.shape == res_fp16.shape)
             self.assertTrue(expect_ret_fp16.dtype == res_fp16.dtype)

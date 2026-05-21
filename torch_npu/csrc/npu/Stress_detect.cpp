@@ -130,7 +130,7 @@ int StressDetector::perform_stress_detect(int deviceid, int mode, int64_t comm)
 
     // Set task parameters
     task_in_progress.store(true);
-    
+
     // Allocate workspace memory
     workspaceAddr = nullptr;
     uint64_t size = 10;

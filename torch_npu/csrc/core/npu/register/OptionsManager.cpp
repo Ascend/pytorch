@@ -520,7 +520,7 @@ uint32_t OptionsManager::GetAclOpInitMode()
         } else {
             acl_op_init_mode_ = (buf_val != nullptr) ? strtol(buf_val, nullptr, 10) : 0;
         }
-        
+
         std::unordered_map<int32_t, std::string> aclOpInitMode = getAclOpInitMode();
         if (aclOpInitMode.find(acl_op_init_mode_) == aclOpInitMode.end()) {
             if (default_value_acl_mode && isCannVersionGteBase) {

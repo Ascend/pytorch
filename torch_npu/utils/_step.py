@@ -37,7 +37,7 @@ class PerfDumpState:
             if sub_module != module:
                 module_list.append(sub_module)
         self.module_dict[module] = module_list
-    
+
     def is_child_module(self, module):
         for item in self.module_dict.items():
             if module in item[1]:
@@ -72,7 +72,7 @@ def _validate_path(path):
         return True
     else:
         return False
-    
+
 
 def _get_perf_dump_path():
     perf_dump_path = os.environ.get("PERF_DUMP_PATH")
@@ -85,7 +85,7 @@ def _get_perf_dump_path():
 def delete_pref_pt_logs(perf_dump_path, device_id):
     log_pattern = os.path.join(perf_dump_path, f"perf_pt_*_{device_id}.log*")
     log_files = glob.glob(log_pattern)
-    
+
     for log_file in log_files:
         if os.path.islink(log_file):
             continue
@@ -101,9 +101,9 @@ def _get_uuid():
 
     if master_addr is None or master_port is None:
         return "127.0.0.1_8888"
-    
+
     return master_addr + "_" + master_port
-    
+
 
 def _setup_logger(name, path):
     logger = logging.getLogger(name)

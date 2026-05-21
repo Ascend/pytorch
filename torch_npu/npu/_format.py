@@ -33,11 +33,11 @@ class Format(IntEnum):
 
 def _apply_npu_format_patch():
     orig_get_format = torch_npu.get_npu_format
-    
+
     def patched_get_format(tensor):
         """get the Format type of tensor"""
         format_int = orig_get_format(tensor)
         return Format(format_int)
-    
+
     torch_npu.get_npu_format = patched_get_format
     torch_npu.Format = Format

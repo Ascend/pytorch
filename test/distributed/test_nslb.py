@@ -31,7 +31,7 @@ class HcclNslbTest(TestCase):
             dist_group.all_reduce(input1)
 
     def _test_multiprocess(self, f, init_pg, input1, world_size, nslb_dir):
-        
+
         ctx = mp.get_context('spawn')
 
         ps = []

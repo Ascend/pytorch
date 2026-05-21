@@ -38,4 +38,4 @@ class TestPinnedMemoryBackgroundThreads(TestCase):
         self.copy_tensor(ITERS)
 
 if __name__ == '__main__':
-    run_tests() 
+    run_tests()

@@ -28,7 +28,7 @@ class IndexAnalysis:
             for key, coeff in self.index.as_coefficients_dict().items()
             if not isinstance(key, sympy.Integer)
         ]
-        # sort by stride 
+        # sort by stride
         self.var_stride.sort(key=lambda x: x[1])
         # only contains tiing axis var
         self.var_list = tuple([x[0] for x in self.var_stride if x[0] in self.tiling_axis])
@@ -290,7 +290,7 @@ class ReductionAnalysis:
         j = len(tiling_axis) - 1
         # remove all low_dims from tiling_axis
         # all axis before ahead of j are high-orders
-        # then following is reduced dim 
+        # then following is reduced dim
         ranges = [x for x in reduction.ranges if x > 1]
         for i in reversed(low_dims):
             len_axis = tiling_axis[j].length

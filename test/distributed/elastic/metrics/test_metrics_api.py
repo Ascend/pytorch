@@ -5,7 +5,7 @@ Add validation cases for torch.distributed.elastic.metrics APIs:
 2. This file validates the following apis:
 torch.distributed.elastic.metrics.api.ConsoleMetricHandler
 torch.distributed.elastic.metrics.api.NullMetricHandler
-torch.distributed.elastic.metrics.configure 
+torch.distributed.elastic.metrics.configure
 (extendable)
 """
 

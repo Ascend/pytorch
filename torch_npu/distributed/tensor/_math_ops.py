@@ -402,7 +402,7 @@ def custom_npu_conv2d_strategy(x, weight, bias, stride, padding, dilation, group
         ]
     )
     acceptable_shardings.append(replicate_strategy)
-    
+
     # x layout: (N, Ci, Hi, Wi)
     # weight layout: (Co, Ci/groups, Hk, Wk)
     # bias layout: (Co)
@@ -500,7 +500,7 @@ def custom_grouped_matmul_add__strategy(y, x, weight, group_list, transpose_x=Tr
 
 def is_tensor_evenly_shardable(shape, spec):
     """Check if the shape is evenly shardable according to the spec."""
-    # verify parameter validity    
+    # verify parameter validity
     if not isinstance(spec, DTensorSpec):
         raise TypeError(
             f"Expected 'spec' to be DTensorSpec instance, got {type(spec).__name__} instead."
@@ -529,14 +529,14 @@ def custom_cross_entropy_loss_sharding(op_schema: OpSchema):
     single_mesh_dim_strategies = []
 
     args_schema = op_schema.args_schema
-    
+
     input_strategy = args_schema[0] if len(args_schema) > 0 else None
     target_strategy = args_schema[1] if len(args_schema) > 1 else None
     weight_strategy = args_schema[2] if len(args_schema) > 2 else None
     reduction = args_schema[3] if len(args_schema) > 3 else 'mean'
 
     mesh = input_strategy.mesh
-    
+
     all_replicate: PlacementList = [
         Replicate(), # loss
         Replicate(), # log_prob

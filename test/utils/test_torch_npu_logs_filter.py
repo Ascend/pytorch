@@ -19,7 +19,7 @@ class TestTorchNpuLogs(TestCase):
             os.environ['TORCH_NPU_LOGS'] = self.original_torch_npu_logs
         else:
             del os.environ['TORCH_NPU_LOGS']
-            
+
         if self.original_torch_npu_logs_filter is not None:
             os.environ['TORCH_NPU_LOGS_FILTER'] = self.original_torch_npu_logs_filter
         else:

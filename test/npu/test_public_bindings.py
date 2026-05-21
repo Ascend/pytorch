@@ -752,7 +752,7 @@ class TestPublicBindings(TestCase):
                 return f'v{version_list[0]}.{version_list[1]}'
             else:
                 raise RuntimeError("Invalid torch_npu version.")
-        
+
         try:
             file_abspath = os.path.abspath(__file__)
             air_path = 'third_party/torchair/torchair/tests/st/allowlist_for_publicAPI.json'
@@ -763,7 +763,7 @@ class TestPublicBindings(TestCase):
         except Exception:
             update_allow_dict_torchair = {}
             warnings.warn("if you are debugging UT file in clone repo, please recursively update the torchair submodule")
-        
+
         try:
             file_abspath = os.path.abspath(__file__)
             op_plugin_path = 'third_party/op-plugin/test/allowlist_for_publicAPI.json'
@@ -780,7 +780,7 @@ class TestPublicBindings(TestCase):
         except Exception as e:
             allow_dict_op_plugin = {}
             warnings.warn(f"{e}")
-       
+
         with open(get_file_path_2(os.path.dirname(os.path.dirname(__file__)),
                                   'allowlist_for_publicAPI.json')) as json_file:
             # no new entries should be added to this allow_dict.
@@ -795,10 +795,10 @@ class TestPublicBindings(TestCase):
         with open(
                 os.path.join(os.path.dirname(os.path.dirname(__file__)), 'deprecated_apis.json')) as json_file:
             deprecated_dict = json.load(json_file)
-                    
+
         if update_allow_dict_torchair:
             allow_dict.update(update_allow_dict_torchair)
-        
+
         if allow_dict_op_plugin and "torch_npu" in allow_dict_op_plugin:
             if "torch_npu" in allow_dict:
                 allow_dict["torch_npu"].extend(allow_dict_op_plugin["torch_npu"])

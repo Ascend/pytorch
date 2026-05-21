@@ -459,7 +459,7 @@ class TestTorchNpuBootstrap(TestCase):
             )
             """
         )
-    
+
     def test_08_top_level_unsupported_dtype_compatibility(self):
         self._run_python(
             """

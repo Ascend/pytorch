@@ -67,7 +67,7 @@ class TestVisionFunctions(TestCase):
 
     def test_affine_grid(self):
         '''
-        Because of the limitation of NPU op, the NPU op will automatically convert the input 
+        Because of the limitation of NPU op, the NPU op will automatically convert the input
         fp32 to fp16 for calculation, so the input must be passed data within the representable
         range of fp16.
         '''

@@ -22,6 +22,6 @@ def _write_if_changed_security(self, filename: str, contents: str) -> None:
 
 def apply_codegen_patches():
     torchgen.gen.FileManager._write_if_changed = _write_if_changed_security
-    
+
 
 apply_codegen_patches()

@@ -183,7 +183,7 @@ typedef struct tagRtArgsEx {
     uint16_t tilingDataOffset;      // size to tiling data
     uint16_t hostInputInfoNum;      // 0
     uint8_t hasTiling;              // has tiling
-    uint8_t isNoNeedH2DCopy;        // not need rtKernelLaunchWithFlag copy tiling from host to device 
+    uint8_t isNoNeedH2DCopy;        // not need rtKernelLaunchWithFlag copy tiling from host to device
     uint8_t reserved[4];
 } rtArgsEx_t;
 

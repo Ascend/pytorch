@@ -280,7 +280,7 @@ class _ShardedGradScaler(GradScaler):
         # Synchronize the detected inf across the ranks
         optimizer_state = self._per_optimizer_states[id(optimizer)]
         works = []
-        
+
         for found_inf in optimizer_state["found_inf_per_device"].values():
             if found_inf.device.type == "cpu":
                 found_inf_npu = found_inf.to(self._scale.device)
@@ -288,7 +288,7 @@ class _ShardedGradScaler(GradScaler):
                 works.append((work, found_inf, found_inf_npu))
             else:
                 works.append((dist.all_reduce(found_inf, async_op=True, group=self.process_group), None, None))
-        
+
         for item in works:
             if item[1] is not None:
                 work, found_inf_cpu, found_inf_npu = item

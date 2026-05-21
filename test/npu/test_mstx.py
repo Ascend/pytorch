@@ -56,7 +56,7 @@ class TestMstx(TestCase):
         self.assertEqual("", self.mark_domain)
         torch_npu.npu.mstx.mark("test", stream=1, domain="test")
         self.assertEqual("", self.mark_msg)
-        self.assertEqual("", self.mark_domain) 
+        self.assertEqual("", self.mark_domain)
 
         # valid inputs
         torch_npu.npu.mstx.mark("test1")

@@ -163,10 +163,10 @@ class TestTensor(TestCase):
         scalar_input = torch.randn(1).npu()
         bool_scalar = scalar_input.to(torch.bool)
         self.assertTrue(isinstance(bool_scalar.item(), bool))
-        
+
         half_scalar = scalar_input.to(torch.float16)
         self.assertTrue(isinstance(half_scalar.item(), float))
-        
+
         bf16_scalar = scalar_input.to(torch.bfloat16)
         self.assertTrue(isinstance(bf16_scalar.item(), float))
 

@@ -11,5 +11,5 @@ def patch_constant_fold_uniform_value():
         src_func(gm)
         if isinstance(gm, torch.fx.GraphModule):
             gm.graph.eliminate_dead_code()
-    
+
     joint_graph.constant_fold_uniform_value = new_constant_fold_uniform_value

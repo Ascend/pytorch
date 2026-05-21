@@ -5,7 +5,7 @@ from torch.testing._internal.common_methods_invocations import op_db, python_ref
 from torch.testing._internal.opinfo.core import DecorateInfo
 
 """
-strategy: Due to the restriction of NPU operators. 
+strategy: Due to the restriction of NPU operators.
 patch the data classes to avoid unsupported cases.
 """
 

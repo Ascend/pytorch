@@ -15,7 +15,7 @@ class TestRNGPrims(TestUtils):
     def test_default(self):
         register_run_and_save_rng_state_op()
         x = torch.randn(4, 4).to("npu")
-        args = (x,) 
+        args = (x,)
         kwargs = {}
         expected_rng_state = torch_npu.npu.get_rng_state()
         rng_state, out = run_and_save_rng_state(lambda x: x, *args, **kwargs)

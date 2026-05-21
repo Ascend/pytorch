@@ -22,7 +22,7 @@ __all__ = ["obfuscation_initialize", "obfuscation_finalize", "obfuscation_calcul
 
 
 def obfuscation_initialize(hidden_size, tp_rank, cmd, *, data_type=None, model_obf_seed_id=0, data_obf_seed_id=0, thread_num=4, obf_coefficient=1.0):
-    return torch_npu.obfuscation_initialize(hidden_size, tp_rank, cmd, data_type=data_type, model_obf_seed_id=model_obf_seed_id, 
+    return torch_npu.obfuscation_initialize(hidden_size, tp_rank, cmd, data_type=data_type, model_obf_seed_id=model_obf_seed_id,
                                             data_obf_seed_id=data_obf_seed_id, thread_num=thread_num, obf_coefficient=obf_coefficient)
 
 

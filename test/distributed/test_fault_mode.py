@@ -32,7 +32,7 @@ class TestMode(TestCase):
         p = subprocess.Popen(["torchrun", f"--master_port=29600", "--nproc-per-node=2", f"{path}"], shell=False, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, text=True)
         processes.append(p)
-        
+
         p = subprocess.Popen(["torchrun", f"--master_port=29600", "--nproc-per-node=2", f"{path}"], shell=False, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, text=True)
         processes.append(p)

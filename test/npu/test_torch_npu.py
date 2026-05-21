@@ -95,14 +95,14 @@ class TorchNPUDeviceTestCase(TestCase):
             os.environ["TORCH_NPU_DEVICE_CAPABILITY"] = "9.0"
             res = torch_npu.npu.get_device_capability()
             self.assertEqual(res, (9, 0))
-            
+
             os.environ["TORCH_NPU_DEVICE_CAPABILITY"] = "8.0"
             res = torch_npu.npu.get_device_capability(0)
             self.assertEqual(res, (8, 0))
             device = torch_npu.npu.device("npu")
             res = torch_npu.npu.get_device_capability(device)
             self.assertEqual(res, (8, 0))
-            
+
             os.environ["TORCH_NPU_DEVICE_CAPABILITY"] = "8.a"
             res = torch_npu.npu.get_device_capability()
             self.assertEqual(res, None)
@@ -118,7 +118,7 @@ class TorchNPUDeviceTestCase(TestCase):
         torch_npu.npu.synchronize()
         after_free_memory, after_total_memory = torch_npu.npu.mem_get_info(0)
         self.assertEqual(before_total_memory, after_total_memory)
-    
+
     @unittest.skip("CANN doesn't support now.")
     def test_set_device_res_limit(self):
         ans_dict = {'cube_core_num': 12, 'vector_core_num': 24}
@@ -301,7 +301,7 @@ class TorchNPUApiTestCase(TestCase):
         end_event.record()
         res = start_event.elapsed_time(end_event)
         self.assertIsInstance(res, float)
-    
+
     def test_npu_event_recorded_time(self):
         event_1 = torch_npu.npu.Event(enable_timing=True)
         event_1.record()
@@ -426,7 +426,7 @@ print(f"{{r1}}, {{r2}}")
             self.fail("Expected exception not raised for negative timeout value")
         except Exception as e:
             self.assertIn("can't convert negative value to unsigned int", str(e), f"{e}")
-        
+
         try:
             torch_npu.npu.set_op_timeout_ms(2**32)
             self.fail("Expected exception not raised for large timeout value")

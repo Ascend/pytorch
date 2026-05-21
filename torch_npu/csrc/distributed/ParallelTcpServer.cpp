@@ -232,7 +232,7 @@ int ParallelTcpServer::CreateSocket(const std::string host, uint16_t port) noexc
     if (sockFd >= 0) {
         return sockFd;
     }
-    
+
     sockFd = CreateSocketWithFamily(host, port, AF_INET6);
     if (sockFd >= 0) {
         return sockFd;
@@ -298,7 +298,7 @@ int ParallelTcpServer::CreateLocalSocket(const std::string &localSocketPath) noe
         LOG(ERROR) << "local socket path invalid." << errno << " : " << strerror(errno);
         return -1;
     }
-    
+
     struct sockaddr_un servAddr {};
     servAddr.sun_family = AF_UNIX;
     servAddr.sun_path[0] = '\0';
@@ -386,7 +386,7 @@ int ParallelTcpServer::SetBlockSocketTimeout(int fd) noexcept
         LOG(ERROR) << "set block accept timeout failed " << errno << " : " << strerror(errno);
         return -1;
     }
-    
+
     return 0;
 }
 

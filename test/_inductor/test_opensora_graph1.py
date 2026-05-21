@@ -194,7 +194,7 @@ class TestModel(TestUtils):
             mul_1: "i64[]" = torch.ops.aten.mul.Tensor(primals_3, 2)
             mul_2: "i64[]" = torch.ops.aten.mul.Tensor(primals_4, 2)
             return [permute, mul, mul_1, mul_2]
-    
+
         primals_1 = torch.randn((1, 8, 30, 40, 1, 2, 2, 8), device=device_npu, dtype=torch.float32)
         primals_2 = torch.tensor((1), device=device_npu, dtype=torch.int64)
         primals_3 = torch.tensor((1), device=device_npu, dtype=torch.int64)

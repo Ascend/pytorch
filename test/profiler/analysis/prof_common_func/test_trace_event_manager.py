@@ -87,7 +87,7 @@ class TestTraceEventManager(TestCase):
              "tid": 444, "ts": "4.000", "cat": "fwdbwd"}
         ]
         self.assertEqual(expect, TraceEventManager.create_fwd_flow(events))
-    
+
     def test_python_event(self):
         process_id = random.randint(1, 2**64 - 1)
         thread_id = random.randint(1, 2**64 - 1)

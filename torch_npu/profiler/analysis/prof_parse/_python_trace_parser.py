@@ -10,10 +10,10 @@ __all__ = []
 MODULE_NAME_DELIMITER = "######"
 
 
-class TraceTag(Enum): 
+class TraceTag(Enum):
     kPy_Call = 0
     kPy_Return = 1
-    kC_Call = 2 
+    kC_Call = 2
     kC_Return = 3
 
 
@@ -59,7 +59,7 @@ class PyTraceEvent:
     @property
     def parent_id(self):
         return self._parent_id
-    
+
     @parent_id.setter
     def parent_id(self, parent_id):
         self._parent_id = parent_id
@@ -96,7 +96,7 @@ class PyTraceEvent:
     @property
     def dur(self):
         return self._end_time - self._start_time
-    
+
     @property
     def params(self):
         return self._params
@@ -152,7 +152,7 @@ class PythonTraceParser:
             trace_api_data[i] = [event.ts, event.ts + event.dur, contact_2num(event.pid, event.tid), None,
                                  str2id_manager.get_id_from_str(event.name), None, None, None, None, None, ApiType.PYTHON_TRACE]
         return trace_api_data
-    
+
     def get_pycall_data(self) -> list:
         self._gen_param_map()
         return self._gen_python_trace_event_data()
@@ -225,11 +225,11 @@ class PythonTraceParser:
 
     def _gen_hash_map(self):
         self._hash_map = {hash_bean.key: hash_bean.value for hash_bean in self._hash_data}
-    
+
     def _gen_param_map(self):
         if self._param_data is not None:
             self._param_map = {param_bean.key: param_bean.params for param_bean in self._param_data}
-    
+
     @staticmethod
     def get_module_info_from_value(name: str, module_name_counter: dict, module_uid_map: dict):
         module_name, module_uid = name.split(MODULE_NAME_DELIMITER)

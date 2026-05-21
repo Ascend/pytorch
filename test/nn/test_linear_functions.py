@@ -20,7 +20,7 @@ class TestLinearFunctions(TestCase):
         npu_output = F.linear(npu_input, npu_weight)
 
         self.assertRtolEqual(cpu_output.numpy(), npu_output.cpu().numpy())
-    
+
     @unittest.skip("skip test_bilinear now")
     def test_bilinear(self):
         input1 = torch.randn(10, 30)

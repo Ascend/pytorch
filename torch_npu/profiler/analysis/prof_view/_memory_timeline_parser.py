@@ -82,7 +82,7 @@ class DeviceKey:
 
     def __eq__(self, other: "DeviceKey") -> bool:
         return (self.device_type, self.device_index) == (other.device_type, other.device_index)
-    
+
     def __lt__(self, other: "DeviceKey") -> bool:
         return (self.device_type, self.device_index) < (other.device_type, other.device_index)
 
@@ -101,7 +101,7 @@ class Storage:
 
     def __eq__(self, other: object) -> bool:
         return isinstance(other, Storage) and self.allocation_id == other.allocation_id
-    
+
     def __hash__(self) -> int:
         return hash(self.allocation_id)
 
@@ -119,24 +119,24 @@ class TensorKey(DeviceKey):
 
     def __lt__(self, other: "TensorKey") -> bool:
         return self._as_sortable < other._as_sortable
-    
+
     @staticmethod
     def _make(tensor_id: Optional[int], allocation_id: Optional[int], storage_ptr: Optional[int],
               device_type: int, device_index: int) -> Optional["TensorKey"]:
         if tensor_id is None or storage_ptr is None or allocation_id is None:
             return None
         return TensorKey(device_type, device_index, tensor_id, Storage(allocation_id, storage_ptr))
-    
+
     @classmethod
     def from_allocation(cls, alloc: _ExtraFields_Allocation) -> Optional["TensorKey"]:
         return cls._make(alloc.tensor_id, alloc.allocation_id, alloc.ptr, alloc.device_type, alloc.device_index)
-    
+
     @classmethod
     def from_tensor(cls, t: Optional[_TensorMetadata]) -> Optional["TensorKey"]:
         if t is not None:
             return cls._make(t.tensor_id, t.allocation_id, t.ptr, t.device_type, t.device_index)
         return None
-    
+
     @property
     def _as_sortable(self) -> Tuple[int, int, DeviceKey]:
         return self.id, self.storage.allocation_id, DeviceKey(self.device_type, self.device_index)
@@ -231,7 +231,7 @@ class StorageSizeDict:
                     self._process_module_parameters(ev.extra_fields.module_parameters)
                 elif ev.extra_fields.optimizer_parameters is not None:
                     self._process_optimizer_parameters(ev.extra_fields.optimizer_parameters)
-        
+
         allocations: Dict[TensorKey, int] = {}
         for ev in sorted_events:
             if ev.tag == _EventType.Allocation:
@@ -255,7 +255,7 @@ class StorageSizeDict:
             self._update_size_dict(p.grad)
             for _, t in p.state:
                 self._update_size_dict(t)
-            
+
     def _update_size_dict(self, t: Optional[_TensorMetadata]) -> None:
         key = TensorKey.from_tensor(t)
         if key is not None and t is not None:
@@ -263,7 +263,7 @@ class StorageSizeDict:
             for size in t.sizes:
                 num_bytes *= size
             self._size_dict[key] = max(self._size_dict.get(key, 0), num_bytes)
-    
+
     @staticmethod
     def _flat_tensor_inputs(op: _ExtraFields_TorchOp) -> List[_TensorMetadata]:
         flat_inputs: List[_TensorMetadata] = []
@@ -273,7 +273,7 @@ class StorageSizeDict:
             elif isinstance(item, list):
                 flat_inputs.extend(t for t in item)
         return flat_inputs
-    
+
     def __getitem__(self, key: TensorKey):
         return self._size_dict.get(key, 0)
 
@@ -300,7 +300,7 @@ class SchemaMatcher:
             for i, arg in enumerate(schema.arguments):
                 mutable[i] = mutable[i] or getattr(arg.alias_info, "is_write", False)
         return tuple(mutable or (None for _ in t.inputs))
-    
+
     @classmethod
     def match_schemas(cls, op: _ExtraFields_TorchOp) -> Tuple[FunctionSchema, ...]:
         signature = tuple(TensorKey.from_tensor(input) if isinstance(input, _TensorMetadata)
@@ -310,11 +310,11 @@ class SchemaMatcher:
 
         schemas_with_same_name = cls.lookup_schemas(op.name)
         schemas_with_same_pattern: List[FunctionSchema] = []
-        
+
         # This op name can't match a register operation schema.
         if schemas_with_same_name is None:
             return []
-        
+
         for schema in schemas_with_same_name:
             # Match the numbers of arguments
             if len(schema.arguments) != len(signature):
@@ -326,9 +326,9 @@ class SchemaMatcher:
                 matched = matched and cls._types_match(observed, schema_arg.type)
             if matched:
                 schemas_with_same_pattern.append(schema)
-        
+
         return tuple(schemas_with_same_pattern)
-    
+
     @classmethod
     def _types_match(cls, observed, schema_type) -> bool:
         if isinstance(schema_type, torch._C.OptionalType):
@@ -342,9 +342,9 @@ class SchemaMatcher:
             return isinstance(observed, list) and all(
                 isinstance(t, TensorKey) for t in observed
             )
-        
+
         return not (isinstance(observed, TensorKey) or isinstance(observed, list))
-    
+
     @staticmethod
     def lookup_schemas(name: str) -> Optional[Tuple[FunctionSchema, ...]]:
         # Operator names are always namespaced and must include "::".
@@ -371,7 +371,7 @@ class DataFlowEdge:
     @property
     def is_allocation(self) -> bool:
         return self.input_version is None
-    
+
     @property
     def is_deletion(self) -> bool:
         return self.mutated is None
@@ -386,7 +386,7 @@ class DataFlowNode:
         for key, edge in self._edges.items():
             if edge.mutated and not edge.is_allocation:
                 self._graph.increase_version(key)
-    
+
     def _determine_edges(self) -> Optional[Dict[TensorKey, DataFlowEdge]]:
         subtree = tuple(traverse_dfs([self._event]))
 
@@ -397,12 +397,12 @@ class DataFlowNode:
                 if isinstance(op_input, _TensorMetadata):
                     key = TensorKey.from_tensor(op_input)
                     mutable_by_key.setdefault(key, set()).add(mutable)
-                
+
                 if isinstance(op_input, list):
                     for op_input_i in op_input:
                         key = TensorKey.from_tensor(op_input_i)
                         mutable_by_key.setdefault(key, set()).add(mutable)
-        
+
         edges: DefaultDict[Optional[TensorKey], DataFlowEdge] = defaultdict(DataFlowEdge)
         for key, mutable_set in mutable_by_key.items():
             if key is not None:
@@ -413,7 +413,7 @@ class DataFlowNode:
                 # If a tensor is mutable, assume it is mutated by the operator.
                 mutated = (True in mutable_set) or (tuple(mutable_set) == (None,))
                 edges[key].mutated = mutated
-        
+
         # Then handle deletions. Note that deleting a Tensor implicitly adds it as an input edge.
         for event in subtree:
             if event.tag == _EventType.Allocation and event.extra_fields.alloc_size < 0:
@@ -421,15 +421,15 @@ class DataFlowNode:
                 edge = edges[key]
                 edge.mutated = None
                 edge.input_version = self._graph.lookup(key) if key else -1
-        
+
         # Finally handle allocations. This must be handled last because the previous two steps add
         # as many input edges as possible, including tensors generated and released by the operator.
         for event in subtree:
             if event.tag == _EventType.Allocation and event.extra_fields.alloc_size > 0:
                 edges[TensorKey.from_allocation(event.extra_fields)].input_version = None
-        
+
         return dict(sorted((key, edge) for key, edge in edges.items() if key is not None))
-    
+
     @property
     def inputs(self) -> Dict[TensorKey, Tuple[bool, int]]:
         """
@@ -439,7 +439,7 @@ class DataFlowNode:
         return {key: (bool(edge.mutated), edge.input_version)
                 for key, edge in self._edges.items()
                 if not edge.is_allocation}
-    
+
     @property
     def outputs(self) -> Dict[TensorKey, int]:
         """
@@ -449,11 +449,11 @@ class DataFlowNode:
         return {key: 0 if edge.input_version is None else edge.input_version + 1
                 for key, edge in self._edges.items()
                 if (edge.is_allocation and not edge.is_deletion) or edge.mutated}
-    
+
     @property
     def intermediates(self) -> Tuple[TensorKey, ...]:
         return tuple(k for k, v in self._edges.items() if v.is_allocation and v.is_deletion)
-    
+
     @property
     def start_time(self) -> int:
         return self._event.start_time_ns
@@ -471,11 +471,11 @@ class DataFlowGraph:
         self._flow_nodes = [DataFlowNode(event, self) for event in self.leaf_events]
         self._flow_nodes.sort(key=lambda x: x.start_time)
         self.validate()
-    
+
     @property
     def flow_nodes(self) -> Tuple[DataFlowNode, ...]:
         return tuple(self._flow_nodes)
-    
+
     def validate(self) -> None:
         # Check that each (TensorKey, version) pair has a unique creation node.
         outputs: Set[Tuple[TensorKey, int]] = set()
@@ -490,13 +490,13 @@ class DataFlowGraph:
     @property
     def leaf_events(self) -> Tuple[_ProfilerEvent, ...]:
         return self._leaf_events
-    
+
     @staticmethod
     def _leaf_op(event: _ProfilerEvent) -> bool:
         return event.tag == _EventType.TorchOp and (
             event.extra_fields.scope == _RecordScope.BACKWARD_FUNCTION.value
             or bool(SchemaMatcher.match_schemas(event.extra_fields)))
-    
+
     def _get_children(self, event: _ProfilerEvent) -> List[_ProfilerEvent]:
         if self._leaf_op(event) or event.tag == _EventType.Allocation:
             return []
@@ -532,11 +532,11 @@ class DataFlowGraph:
             if self._leaf_op(event) or event.tag == _EventType.Allocation:
                 leaf_events.append(event)
         return tuple(sorted(leaf_events, key=lambda x: x.start_time_ns))
-    
+
     def lookup(self, key: TensorKey) -> int:
         version = self._active_version.setdefault(key, 0)
         return version
-    
+
     def increase_version(self, key: TensorKey):
         prior_version = self._active_version.get(key)
         self._active_version[key] = prior_version + 1
@@ -546,7 +546,7 @@ class DataFlowGraph:
 class CategoryElement:
     """
     Set category by tensor id or TensorKey or (TensorKey, version).
-    Note the PARAMETER, GRADIENT, OPTIMIZER_STATE are set by tensor id. 
+    Note the PARAMETER, GRADIENT, OPTIMIZER_STATE are set by tensor id.
     The TEMPORARY is set by TensorKey. The INPUT, ACTIVATION, AUTOGRAD_DETAIL
     are set by (TensorKey, version).
     """
@@ -663,7 +663,7 @@ class MemoryProfile:
                     for time, action, (key, version) in events)
         output.sort(key=lambda x: (x[0], x[1].value))
         return tuple(output)
-    
+
     @property
     def memory_history(self) -> List[Tuple[DeviceKey, int, int, int]]:
         """
@@ -681,7 +681,7 @@ class MemoryProfile:
 
     def _is_gradient(self, *args, **kwargs) -> bool:
         return self._categories.get(*args, **kwargs) == Category.GRADIENT
-    
+
     @staticmethod
     def _is_backward(event: _ProfilerEvent) -> bool:
         if _RecordScope.BACKWARD_FUNCTION.value in get_scopes(event):
@@ -697,10 +697,10 @@ class MemoryProfile:
             all_tensor_versions.update(((key, version) for key, (_, version) in node.inputs.items()))
             all_tensor_versions.update((key, 0) for key in node.intermediates)
             all_tensor_versions.update(node.outputs.items())
-        
+
         for category_element in self._categories._category_dict.values():
             all_tensor_versions.update((key, 0) for key in category_element.by_id_keyset)
-        
+
         return {(key, version): self._categories.get(key, version)
                 for key, version in sorted(all_tensor_versions)}
 
@@ -754,7 +754,7 @@ class MemoryProfile:
         Mark inputs based on which Tensors are updated using gradients.
         """
 
-        # Only annotate Tensors which actually contribute to the model calculation. 
+        # Only annotate Tensors which actually contribute to the model calculation.
         # Contributing to the model calculation means that the tensor is involved
         # in operators that include GRADIENT or PARAMETER tensors as well.
         model_relevant = {Category.GRADIENT, Category.PARAMETER}
@@ -846,7 +846,7 @@ class MemoryProfile:
         for event in traverse_dfs(self._root_nodes):
             if event.tag != _EventType.PyCall or event.extra_fields.optimizer_parameters is None:
                 continue
-            
+
             # Directly set OPTIMIZER_STATE in optimizer parameters.
             parameters = event.extra_fields.optimizer_parameters
             for _, tensor in it.chain(*[param.state for param in parameters]):
@@ -859,7 +859,7 @@ class MemoryProfile:
         for node in self._data_flow_graph.flow_nodes:
             if not self._is_backward(node._event):
                 continue
-            
+
             # Directly set AUTOGRAD_DETAIL in the backward propagation.
             for key, version in node.outputs.items():
                 if version == 0 or self._categories.get(key, version - 1) in prior:
@@ -878,24 +878,24 @@ class MemoryProfileTimeline:
         self.timeline = memory_profile.timeline
         self.categories = memory_profile._categories
         self.memory_history = memory_profile.memory_history
-    
+
     @staticmethod
     def _parse_device_info(device_str: str) -> Optional[DeviceKey]:
         # If the device is "cpu".
         if device_str == "cpu":
             return DeviceKey(_DEVICE_DICT.get(device_str), -1)
-        
+
         # If the device is "npu:0".
         device_str_list = device_str.strip().split(":")
         if len(device_str_list) != 2:
             print_error_msg(f"{device_str} is not in a valid format.")
             return None
-        
+
         device_type = _DEVICE_DICT.get(device_str_list[0])
         if device_type is None:
             print_error_msg(f"{device_str} is not in a valid format.")
             return None
-        
+
         try:
             device_index = int(device_str_list[1])
             return DeviceKey(device_type, device_index)
@@ -910,7 +910,7 @@ class MemoryProfileTimeline:
     def _get_category_index(self, key, version) -> int:
         category = self.categories.get(key, version) if isinstance(key, TensorKey) else None
         return _CATEGORY_TO_INDEX[category]
-    
+
     def _construct_timeline(self, device_str: str) -> Tuple[List[int], List[List[int]]]:
         """
         For each timestamp in the `timesstamps`, compute the storage size for each category
@@ -932,11 +932,11 @@ class MemoryProfileTimeline:
             # Convert timestamps from ns to us.
             if ts != -1:
                 ts = int(ts / Constant.NS_TO_US)
-            
+
             # Save the smallest timestamp as the timestemp of pre-existing allocations.
             if ts_min == -1 or (ts < ts_min and ts > 0):
                 ts_min = ts
-            
+
             # Initialize the memory usage of the first timestamp.
             if len(timestamps) == 0:
                 timestamps.append(ts)
@@ -958,9 +958,9 @@ class MemoryProfileTimeline:
 
         timestamps = [ts_min if t < 0 else t for t in timestamps]
         return timestamps, sizes_by_category
-    
+
     @staticmethod
-    def _draw_memory_timeline(timestamps: List[int], stacked: List[List[int]], 
+    def _draw_memory_timeline(timestamps: List[int], stacked: List[List[int]],
                              max_memory_allocated: int, max_memory_reserved: int) -> Optional[str]:
         # Import matplotlib.
         module_name = "matplotlib.pyplot"
@@ -969,7 +969,7 @@ class MemoryProfileTimeline:
         except ModuleNotFoundError:
             print_error_msg(f"{module_name} was not found.")
             return None
-        
+
         # Plot memory timeline as stacked data
         fig = plt.figure(figsize=(20, 12), dpi=80)
         axes = fig.gca()
@@ -1008,13 +1008,13 @@ class MemoryProfileTimeline:
         if not timestamps:
             print_error_msg("No memory timeline data.")
             return
-        
+
         realpath = ProfilerPathManager.get_realpath(output_path)
         if output_path.endswith(".gz"):
             FileManager.create_json_gz_file_by_path(realpath, [timestamps, sizes_by_category])
         else:
             FileManager.create_json_file_by_path(realpath, [timestamps, sizes_by_category])
-    
+
     def export_memory_timeline_json_raw(self, output_path: str, device_str: str) -> None:
         """
         Saves raw memory events in a compressed json file. Each event consists of
@@ -1023,7 +1023,7 @@ class MemoryProfileTimeline:
         device = self._parse_device_info(device_str)
         if device is None:
             return
-        
+
         raw_events: List[Tuple[int, int, int, int]] = []
         for ts, action, (key, version), numbytes in self.timeline:
             if key.device_type != device.device_type or key.device_index != device.device_index:
@@ -1036,11 +1036,11 @@ class MemoryProfileTimeline:
                 raw_events.append((ts, _ACTION_TO_INDEX[action], numbytes, self._get_category_index(key, version + 1)))
             elif action == Action.DESTROY:
                 raw_events.append((ts, _ACTION_TO_INDEX[action], -numbytes, self._get_category_index(key, version)))
-        
+
         if not raw_events:
             print_error_msg("No memory timeline data.")
             return
-        
+
         realpath = ProfilerPathManager.get_realpath(output_path)
         FileManager.create_json_gz_file_by_path(realpath, raw_events)
 
@@ -1053,14 +1053,14 @@ class MemoryProfileTimeline:
         if not timestamps:
             print_error_msg("No memory timeline data.")
             return
-        
+
         timestamps = np.array(timestamps)
         sizes_by_category = np.array(sizes_by_category)
-        
+
         ts_min = min(timestamps)
         timestamps -= ts_min                                                # For this timeline, start at 0.
         stacked = np.cumsum(sizes_by_category, axis=1) / Constant.B_TO_GB   # Convert from B to GB.
-        
+
         # Find max allocated size and max reserved size from memory history.
         device = self._parse_device_info(device_str)
         max_memory_allocated = max((allocated for key, _, allocated, _ in self.memory_history

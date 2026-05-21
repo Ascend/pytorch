@@ -158,10 +158,10 @@ def check_size_alltoall(alltoall_cases: list[dict[str, Any]]) -> tuple[bool, int
     for e in alltoall_cases:
         input_sizes = e.get("input_sizes", [])
         output_sizes = e.get("output_sizes", [])
-        
+
         if input_sizes and len(input_sizes) > 0:
             input_numel += math.prod(input_sizes[0])
-        
+
         if output_sizes and len(output_sizes) > 0:
             output_numel += math.prod(output_sizes[0])
     return input_numel != output_numel, input_numel, output_numel
@@ -330,7 +330,7 @@ def just_print_entries(
                 entry = all_entries[rank].pop(0)
                 process_group = entry.get("process_group", [None, None])
                 pg_name = _pg_guids.get((process_group[0], rank))
-                
+
                 if (
                     args.pg_filters is None
                     or process_group[1] in args.pg_filters
@@ -356,7 +356,7 @@ def check_no_missing_dump_files(entries: dict[int, Any], memberships: list[Membe
         dumps_ranks = {int(key) for key in entries.keys()}
     except (ValueError, TypeError) as e:
         raise ValueError(f"Cannot extract rank from entries keys. Invalid key value encountered: {e}") from e
-    
+
     missing_ranks = all_ranks - dumps_ranks
     if missing_ranks:
         raise ValueError(

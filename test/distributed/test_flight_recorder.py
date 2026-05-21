@@ -907,7 +907,7 @@ class HcclHeartbeatDumpTest(HCCLTraceTestBase):
             if self.rank == 0:
                 # sleep for heartbeat dump
                 time.sleep(30)
-            
+
             pg.allreduce(a).wait()
 
             torch.npu.synchronize(device=device)

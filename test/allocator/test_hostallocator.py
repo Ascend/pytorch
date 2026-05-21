@@ -26,20 +26,20 @@ def _collect():
 
 
 class TestHostCachingAllocatorBasic(TestCase):
-    def test_pin_memory_on_non_blocking_copy(self): 
+    def test_pin_memory_on_non_blocking_copy(self):
         t_acc = torch.randn(100).to(torch.accelerator.current_accelerator())
         t_host = t_acc.to("cpu", non_blocking=True)
         torch.accelerator.synchronize()
         self.assertTrue(t_host.is_pinned())
         self.assertEqual(t_acc.cpu(), t_host)
-    
+
     def test_pin_memory_reuse(self):
         t = torch.FloatTensor([1]).pin_memory()
         ptr = t.data_ptr()
         del t
         t_new = torch.FloatTensor([1]).pin_memory()
         self.assertEqual(t_new.data_ptr(), ptr)
-    
+
     def test_to_non_blocking(self):
         stream = torch_npu.npu.current_stream()
 
@@ -61,7 +61,7 @@ class TestHostCachingAllocatorBasic(TestCase):
                               device="npu" if dst == "cpu" else "cpu",
                               pin_memory=True if dst == "npu" else False)
             _test_to_non_blocking(src, try_non_blocking, dst)
-    
+
     def test_pin_memory_basic(self):
         a = torch.Tensor([1])
         b = a.pin_memory()
@@ -70,7 +70,7 @@ class TestHostCachingAllocatorBasic(TestCase):
         self.assertTrue(a.data_ptr() != b.data_ptr())
         self.assertTrue(b.data_ptr() != c.data_ptr())
         self.assertTrue(b.data_ptr() == d.data_ptr())
-    
+
     def test_malloc_copykernel(self):
         a = torch.Tensor([1])
         b = torch.Tensor([1])
@@ -119,7 +119,7 @@ class TestHostCachingAllocatorBasic(TestCase):
 
         torch.npu.synchronize()
         self.assertTrue(not errs)
-        
+
     def test_pin_memory_on_views_and_clones(self):
         base = torch.randn(1024, 1024)
         view = base[:512, :].pin_memory()
@@ -157,7 +157,7 @@ class CountingDataset(Dataset):
 
     def __getitem__(self, i):
         return i
-    
+
     def __len__(self):
         return self.n
 
@@ -165,7 +165,7 @@ class CountingDataset(Dataset):
 class DictDataset(Dataset):
     def __len__(self):
         return 4
-    
+
     def __getitem__(self, ndx):
         return {
             'a_tensor': torch.empty(4, 2).fill_(ndx),
@@ -181,7 +181,7 @@ class StringDataset(Dataset):
 
     def __len__(self):
         return len(self.s)
-    
+
     def __getitem__(self, ndx):
         return (self.s[ndx], ndx)
 
@@ -196,7 +196,7 @@ class SimpleCustomBatch:
         self.inp = self.inp.pin_memory()
         self.tgt = self.tgt.pin_memory()
         return self
-    
+
     def is_pinned(self):
         return self.inp.is_pinned() and self.tgt.is_pinned()
 

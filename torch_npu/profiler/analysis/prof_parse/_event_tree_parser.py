@@ -111,11 +111,11 @@ class _TensorMetadata:
         self.device_type = device_type
         self.device_index = device_index
         self.id = _IDReference(None, None)
-    
+
     @property
     def tensor_id(self) -> Optional[int]:
         return self.id.tensor_id
-    
+
     @property
     def allocation_id(self) -> Optional[int]:
         return self.id.allocation_id
@@ -125,7 +125,7 @@ def parse_tensor_metadata(tensor_str: str) -> Optional[_TensorMetadata]:
     parts = tensor_str.split(';')
     if len(parts) != TensorEnum.NUM_FIELDS.value:
         return None
-    
+
     impl = int(parts[TensorEnum.TENSOR_IMPL.value], BASE_16)
     ptr = int(parts[TensorEnum.STORAGE_PTR.value], BASE_16) if parts[TensorEnum.STORAGE_PTR.value] else None
     dtype = parts[TensorEnum.DTYPE.value]
@@ -193,7 +193,7 @@ class _ExtraFields_TorchOp:
         self.scope = bean.scope
         self.forward_tid = bean.args.get(Constant.FORWARD_THREAD_ID, -1)
         self.sequence_num = bean.args.get(Constant.SEQUENCE_NUMBER, -1)
-        
+
         types_string = bean.args.get(Constant.INPUT_DTYPES, None)
         tensors_string = bean.inputs.get(Constant.INPUT_TENSORS, None)
         tensorlists_string = bean.inputs.get(Constant.INPUT_TENSORLISTS, None)
@@ -211,11 +211,11 @@ class _ExtraFields_Allocation:
         self.device_type = bean.device_type
         self.device_index = bean.device_index
         self.id = _IDReference(None, None)
-    
+
     @property
     def tensor_id(self) -> Optional[int]:
         return self.id.tensor_id
-    
+
     @property
     def allocation_id(self) -> Optional[int]:
         return self.id.allocation_id
@@ -242,7 +242,7 @@ def parse_module_param(param_str: str) -> Optional[_ModuleParam]:
     param_list = param_str.strip().split(')')
     if len(param_list) != ModuleParamEnum.NUM_FIELDS.value:
         return None
-    
+
     name = param_list[ModuleParamEnum.NAME.value]
     tensor = parse_tensor_metadata(param_list[ModuleParamEnum.METADATA.value])
     grad = (parse_tensor_metadata(param_list[ModuleParamEnum.GRAD.value])
@@ -261,7 +261,7 @@ def parse_state_param(state_str: str) -> Optional[List[Tuple[str, _TensorMetadat
             return None
         state_pairs.append(tuple([state_pair[StateParamEnum.NAME.value],
                                 parse_tensor_metadata(state_pair[StateParamEnum.METADATA.value])]))
-    
+
     return state_pairs
 
 
@@ -269,7 +269,7 @@ def parse_optimizer_param(param_str: str) -> Optional[_OptimizerParam]:
     param_list = param_str.strip().split(')')
     if len(param_list) != OptimizerParamEnum.NUM_FIELDS.value:
         return None
-    
+
     tensor = parse_tensor_metadata(param_list[OptimizerParamEnum.METADATA.value])
     grad = (parse_tensor_metadata(param_list[OptimizerParamEnum.GRAD.value])
             if param_list[OptimizerParamEnum.GRAD.value] else None)
@@ -316,7 +316,7 @@ class _ProfilerEvent:
             self.tid = bean.tid
             self.start_time_ns = bean.ts
             self.extra_fields = _ExtraFields_PyCall(bean)
-    
+
     @property
     def name(self) -> str:
         if self.tag == _EventType.TorchOp:
@@ -326,7 +326,7 @@ class _ProfilerEvent:
         elif self.tag == _EventType.PyCall:
             return self.extra_fields.name
         return ""
-    
+
     @property
     def end_time_ns(self) -> int:
         if self.tag == _EventType.TorchOp:
@@ -336,7 +336,7 @@ class _ProfilerEvent:
         elif self.tag == _EventType.PyCall:
             return self.extra_fields.end_time_ns
         return -1
-    
+
     def __lt__(self, other: '_ProfilerEvent') -> bool:
         return self.end_time_ns < other.end_time_ns
 
@@ -362,17 +362,17 @@ def push_event(event: _ProfilerEvent,
     if event.finished:
         print_error_msg("Error when building tree: the event finished.")
         return False
-    
+
     parent = thread_event.get(event.tid)
     if parent is None:
         fwd_tid = event.extra_fields.forward_tid if event.tag == _EventType.TorchOp else 0
         if fwd_tid:
             parent = thread_event.get(fwd_tid)
-    
+
     if parent is not None:
         event.parent = parent
         parent.children.append(event)
-    
+
     if event.end_time_ns > event.start_time_ns:
         thread_event[event.tid] = event
         unfinished_events.put((event.end_time_ns, event))
@@ -380,20 +380,20 @@ def push_event(event: _ProfilerEvent,
     else:
         if not mark_finished(event):
             return False
-    
+
     return True
 
 
 def pop_event(event: _ProfilerEvent, thread_event: Dict[int, _ProfilerEvent]) -> bool:
     if event.finished:
         return True
-    
+
     tid = event.tid
     cur_event = thread_event.get(tid)
     if cur_event is None:
         print_error_msg("Error when building tree: current event is none.")
         return False
-    
+
     while cur_event != event:
         if not mark_finished(cur_event):
             return False
@@ -401,13 +401,13 @@ def pop_event(event: _ProfilerEvent, thread_event: Dict[int, _ProfilerEvent]) ->
             print_error_msg("Error when building tree: current event's parent is None.")
             return False
         cur_event = cur_event.parent
-    
+
     if not mark_finished(event):
         return False
     thread_event.pop(tid, None)
     if event.parent:
         thread_event[tid] = event.parent
-    
+
     return True
 
 
@@ -423,7 +423,7 @@ def build_event_tree(sorted_events: List[_ProfilerEvent]) -> None:
                 return
         if not push_event(ev, thread_event, unfinished_events):
             return
-    
+
     # Cleanup remaining exit events.
     while not unfinished_events.empty():
         _, top_event = unfinished_events.get()
@@ -453,7 +453,7 @@ def get_tensor_info(sorted_events: List[_ProfilerEvent]) -> List[_RawTensorInfo]
         elif ev.tag == _EventType.PyCall:
             if ev.extra_fields.key is None or ev.extra_fields.key in seen_pycalls:
                 continue
-            
+
             seen_pycalls.add(ev.extra_fields.key)
             if ev.extra_fields.module_parameters is not None:
                 for p in ev.extra_fields.module_parameters:
@@ -477,17 +477,17 @@ def get_tensor_info(sorted_events: List[_ProfilerEvent]) -> List[_RawTensorInfo]
                         _RawTensorInfo(t.impl, t.ptr, t.device_type, t.device_index, False, t.id)
                         for _, t in p.state
                     )
-    
+
     return tensors
 
 
 # Assign Allocation ID for each Storage, and ID for each tensor.
-# A tensor has a unique id, but it can have multiple allocation IDs, 
-# because the tensor might use memory multiple times. 
+# A tensor has a unique id, but it can have multiple allocation IDs,
+# because the tensor might use memory multiple times.
 def calculate_unique_id(sorted_events: List[_ProfilerEvent]):
     # Step 1: Flatten events to a uniform representation
     tensors = get_tensor_info(sorted_events)
-    
+
     # Step 2: Assign Allocation IDs for Storage
     counter: int = 0
     storage_map: Dict[Tuple[int, int, int], int] = {}
@@ -499,11 +499,11 @@ def calculate_unique_id(sorted_events: List[_ProfilerEvent]):
         t.id_ref.allocation_id = storage_map[key]
         if t.is_free:
             storage_map.pop(key, None)
-    
+
     # Step 3: Handle allocation events which we cannot prove are for Tensor storage
     tensor_set = {t.id_ref.allocation_id for t in tensors if t.impl is not None}
     tensors = [t for t in tensors if t.id_ref.allocation_id in tensor_set]
-    
+
     # Step 4: Assign tensor IDs using allocation IDs
     id_map: Dict[int, int] = {}
     counter = 0
@@ -511,7 +511,7 @@ def calculate_unique_id(sorted_events: List[_ProfilerEvent]):
         if t.id_ref.allocation_id not in id_map:
             id_map[t.id_ref.allocation_id] = counter
             counter += 1
-        
+
     # Step 5: Write back to Tensor IDs
     for t in tensors:
         if t.id_ref.allocation_id not in id_map:
@@ -523,7 +523,7 @@ def calculate_unique_id(sorted_events: List[_ProfilerEvent]):
 class EventTree:
     def __init__(self, profiler_path: str):
         self.profiler_path = profiler_path
-        
+
         self.events: List[_ProfilerEvent] = []
         self.fetch_op_events(FwkFileParser(self.profiler_path))
         self.fetch_allocation_events(FwkFileParser(self.profiler_path))
@@ -538,7 +538,7 @@ class EventTree:
         op_bean_list: List[TorchOpBean] = fwk_file_parser.get_file_data_by_tag(FileTag.TORCH_OP)
         if not op_bean_list:
             return
-        
+
         op_events = [_ProfilerEvent(op_bean) for op_bean in op_bean_list]
 
         # Connected Autograd info to the top level annotation
@@ -548,22 +548,22 @@ class EventTree:
                 and op_events[i].extra_fields.name.startswith("autograd::engine::evaluate_function: ")):
                 op_events[i].extra_fields.sequence_num = op_events[i + 1].extra_fields.sequence_num
                 op_events[i].extra_fields.forward_tid = op_events[i + 1].extra_fields.forward_tid
-        
+
         self.events.extend(op_events)
-    
+
     def fetch_allocation_events(self, fwk_file_parser: FwkFileParser) -> None:
         mem_bean_list: List[MemoryUseBean] = fwk_file_parser.get_file_data_by_tag(FileTag.MEMORY)
         if not mem_bean_list:
             return
-        
+
         mem_events = [
             _ProfilerEvent(mem_bean)
             for mem_bean in mem_bean_list
             if mem_bean.data_type != _AllocEventType.BLOCK_FREE.value
         ]
-        
+
         self.events.extend(mem_events)
-    
+
     def fetch_pycall_events(self, fwk_file_parser: FwkFileParser) -> None:
         trace_hash_data = fwk_file_parser.get_file_data_by_tag(FileTag.PYTHON_TRACER_HASH)
         func_call_data = fwk_file_parser.get_file_data_by_tag(FileTag.PYTHON_TRACER_FUNC)
@@ -573,18 +573,18 @@ class EventTree:
         pycall_bean_list = python_trace_parser.get_pycall_data()
         if not pycall_bean_list:
             return
-        
+
         pycall_events = [_ProfilerEvent(pycall_bean) for pycall_bean in pycall_bean_list]
 
         self.events.extend(pycall_events)
-    
+
     def validate_events(self) -> None:
         for ev in self.sorted_events:
             # Check the time of events is right
             if ev.start_time_ns > ev.end_time_ns:
                 print_error_msg(f"Error in {ev.name}: {ev.start_time_ns} > {ev.end_time_ns}.")
                 return
-            
+
             # Check the inputs in TorchOp
             if ev.tag == _EventType.TorchOp:
                 for i in ev.extra_fields.inputs:

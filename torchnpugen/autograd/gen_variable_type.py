@@ -56,7 +56,7 @@ def gen_variable_type(
     template_path: str,
 ) -> None:
     """Generate VariableType.cpp body
-    
+
     Generate variable type definition for torch and npu method here.
     """
     fm = FileManager(install_dir=out, template_dir=template_path, dry_run=False)
@@ -80,7 +80,7 @@ def gen_variable_type_head(
     fns_with_diff_infos: List[NativeFunctionWithDifferentiabilityInfo],
     template_path: str,
 ) -> None:
-    
+
     """Generate VariableType.h body
     """
     fm = FileManager(install_dir=out, template_dir=template_path, dry_run=False)

@@ -15,7 +15,7 @@ from torchnpugen.utils import PathManager
 project_path = Path(os.path.dirname(__file__)).parent
 op_plugin_info_path = os.path.realpath(os.path.join(
     project_path,
-    f'third_party/op-plugin/test/test_v{VERSION_PART[0]}r{VERSION_PART[1]}_ops', 
+    f'third_party/op-plugin/test/test_v{VERSION_PART[0]}r{VERSION_PART[1]}_ops',
     "unsupported_ops_info.yaml"))
 torch_npu_info_path = os.path.realpath(os.path.join(project_path, "test", "unsupported_ops_info.yaml"))
 
