@@ -8,7 +8,7 @@ PyTorch 是基于 Ascend NPU 的深度学习框架发行版，针对华为昇腾
 
 ### 项目架构
 
-```
+```text
 pytorch
 ├── docs/                           # 项目文档
 ├── ci/                             # CI 构建脚本
@@ -35,17 +35,17 @@ pytorch
 
 ### 核心模块说明
 
-| 模块 | 说明 |
-|------|------|
-| `torch_npu/csrc/core/npu` | NPU 核心组件：事件管理(NPUEvent)、流管理(NPUStream)、图执行(NPUGraph)、设备守卫(NPUGuard)、内存管理 |
-| `torch_npu/csrc/aten` | ATen 算子 NPU 后端：算子注册、调度、实现适配 |
-| `torch_npu/csrc/framework` | 算子命令框架：OpCommand、Kernel 调度、算子构建器 |
-| `torch_npu/npu/aclnn` | ACLNN 算子 Python 接口：AscendCL NPU 算子库封装 |
-| `torch_npu/npu/amp` | 自动混合精度：GradScaler、FP16/BF16 支持 |
-| `torchnpugen` | 代码生成工具：自动微分代码生成、代码模板 |
-| `examples` | 示例代码：分布式通信、模型推理、ResNet 示例 |
-| `third_party/op-plugin` | 算子插件：自定义算子实现、PyTorch 算子覆盖 |
-| `test/npu` | NPU 功能测试：设备管理、内存分配、算子测试 |
+| 模块                         | 说明                                                                       |
+|----------------------------|--------------------------------------------------------------------------|
+| `torch_npu/csrc/core/npu`  | NPU 核心组件：事件管理(NPUEvent)、流管理(NPUStream)、图执行(NPUGraph)、设备守卫(NPUGuard)、内存管理 |
+| `torch_npu/csrc/aten`      | ATen 算子 NPU 后端：算子注册、调度、实现适配                                              |
+| `torch_npu/csrc/framework` | 算子命令框架：OpCommand、Kernel 调度、算子构建器                                         |
+| `torch_npu/npu/aclnn`      | ACLNN 算子 Python 接口：AscendCL NPU 算子库封装                                    |
+| `torch_npu/npu/amp`        | 自动混合精度：GradScaler、FP16/BF16 支持                                           |
+| `torchnpugen`              | 代码生成工具：自动微分代码生成、代码模板                                                     |
+| `examples`                 | 示例代码：分布式通信、模型推理、ResNet 示例                                                |
+| `third_party/op-plugin`    | 算子插件：自定义算子实现、PyTorch 算子覆盖                                                |
+| `test/npu`                 | NPU 功能测试：设备管理、内存分配、算子测试                                                  |
 
 ## 贡献方式
 
@@ -68,6 +68,7 @@ pytorch
 **Issue 类型**：需求/功能建议
 
 **需要包含的内容**：
+
 - **功能背景**：该功能解决什么问题、能为用户带来什么价值
 - **功能描述**：详细描述建议的功能
 - **设计方案**：技术思路、关键模块设计、上下游组件关系
@@ -78,6 +79,7 @@ pytorch
 如果您发现 Bug 或文档问题，我们真诚欢迎您的反馈和修复建议。
 
 **Bug Report 格式**：
+
 - **环境信息**：PyTorch 版本、OS、Python 版本、CANN 版本等
 - **问题描述**：添加标签以便在问题仪表板上突出显示
 - **复现步骤**：尽可能详细地描述如何重现问题
@@ -85,6 +87,7 @@ pytorch
 - **给审稿人的特别说明**：如有任何特殊情况
 
 **修复流程**：
+
 1. 在 Issue 中找到对应的 Bug 描述
 2. 评论 `/assign` 认领该任务
 3. 创建分支进行修复
@@ -108,16 +111,16 @@ pytorch
 
 2. **克隆到本地**：
 
-```bash
-git clone https://gitcode.com/<your-username>/pytorch.git
-cd pytorch
-```
+   ```bash
+   git clone https://gitcode.com/<your-username>/pytorch.git
+   cd pytorch
+   ```
 
 3. **创建开发分支**：
 
-```bash
-git checkout -b {new_branch_name} origin/master
-```
+   ```bash
+   git checkout -b {new_branch_name} origin/master
+   ```
 
 4. **代码开发**：请遵循 **[代码规范](#代码规范)**
 
@@ -165,6 +168,7 @@ git checkout -b {new_branch_name} origin/master
 ### 环境搭建与编译
 
 **编译构建**：
+
 ```bash
 # 安装依赖并编译
 bash ci/build.sh --python=3.10
@@ -179,10 +183,72 @@ cmake ..
 make -j$(nproc)
 ```
 
+### 编译加速技巧
+
+#### 使用 Ninja 构建
+
+默认情况下，CMake 使用 Makefile 生成器。安装 Ninja 构建系统可以显著加快编译速度。
+
+本项目 `setup.py` 会自动检测系统中是否安装了 Ninja：如果环境变量 `CMAKE_GENERATOR` 设置为 `ninja`，或者 `ninja` 命令在 `PATH` 中可用，将自动使用 Ninja 作为构建系统。
+
+```bash
+pip install ninja
+```
+
+安装 Ninja 后，编译即可自动生效，无需额外配置。如果之前已经编译过，安装 Ninja 后需要先执行一次清理：
+
+```bash
+python setup.py clean
+```
+
+#### 使用 Mold 链接器
+
+在频繁修改单个文件并重新编译的开发循环中，链接时间会占据主导。大多数 Linux 发行版自带的系统链接器（GNU `ld`）速度较慢，使用更快的链接器可以显著改善构建体验。
+
+本项目的 `CMakeLists.txt` 已内置链接器自动检测逻辑：优先检测 mold 链接器，若存在则自动启用（`-fuse-ld=mold`）。
+
+```bash
+sudo apt install mold
+# 或从源码安装：https://github.com/rui314/mold
+```
+
+安装后重新编译即可自动生效。若需确认链接器是否正确启用，可检查编译输出中的链接选项是否包含 `-fuse-ld=mold`。
+
+#### 使用 CCache
+
+即使依赖跟踪基于文件修改时间，仍有许多场景下文件会被重复编译。使用 ccache 可以有效避免重复编译，节省大量时间。
+
+本项目的 `CMakeLists.txt` 已内置 ccache 自动检测逻辑，安装 ccache 后即可自动启用。但建议根据自身环境调整 ccache 配置（如缓存目录、缓存大小、压缩等）以获得最佳效果：
+
+```bash
+sudo apt install ccache
+# 或
+sudo yum install ccache
+```
+
+验证 ccache 是否生效：连续执行两次完整编译，第二次应明显快于第一次。如果未生效，可检查 `build/CMakeCache.txt` 中的 `CMAKE_C_COMPILER_LAUNCHER` 和 `CMAKE_CXX_COMPILER_LAUNCHER` 变量是否包含 ccache：
+
+```cmake
+//C compiler launcher
+CMAKE_C_COMPILER_LAUNCHER:PATH=/usr/bin/ccache
+
+//CXX compiler launcher
+CMAKE_CXX_COMPILER_LAUNCHER:PATH=/usr/bin/ccache
+```
+
+#### 仅编译所需目标
+
+如果只需重新构建 `torch_npu.so`，可以在 build 目录下直接指定目标，避免全量构建：
+
+```bash
+cd build && ninja torch_npu
+```
+
+如果未安装 Ninja，将 `ninja` 替换为 `make` 即可。
+
 ### 本地静态检查
 
-项目使用 [lintrunner](https://github.com/suo/lintrunner) 进行静态检查，支持在本地运行与 CI 完全一致的检查项，
-包括 Python 代码风格（Flake8、Ruff、PYFMT）、C++ 格式（ClangFormat、ClangTidy）、拼写检查（Codespell）等。
+项目使用 [lintrunner](https://github.com/suo/lintrunner) 进行静态检查，支持在本地运行与 CI 完全一致的检查项，包括 Python 代码风格（Flake8、Ruff、PYFMT）、C++ 格式（ClangFormat、ClangTidy）、拼写检查（Codespell）等。
 
 #### 安装依赖
 
@@ -217,23 +283,24 @@ git diff --name-only HEAD | xargs lintrunner
 
 > **提示**：`--take` 参数可指定只运行部分检查项，常用项如下：
 >
-> | 代码 | 说明 |
-> |------|------|
-> | `FLAKE8` | Python 语法与风格检查 |
-> | `RUFF` | Python 快速 lint 与 import 排序 |
-> | `PYFMT` | Python 代码格式化（usort + ruff-format） |
-> | `CLANGFORMAT` | C++ 代码格式化 |
-> | `CLANGTIDY` | C++ 静态分析 |
-> | `SPACES` | 行尾空格检查 |
-> | `TABS` | Tab 字符检查 |
-> | `NEWLINE` | 文件末尾换行检查 |
-> | `CODESPELL` | 拼写检查, 如果是误报可以将误报词按照字典序添加至 `tools/linter/dictionary.txt` 后再重新检查 |
+> | 代码            | 说明                                                             |
+> |---------------|----------------------------------------------------------------|
+> | `FLAKE8`      | Python 语法与风格检查                                                 |
+> | `RUFF`        | Python 快速 lint 与 import 排序                                     |
+> | `PYFMT`       | Python 代码格式化（usort + ruff-format）                              |
+> | `CLANGFORMAT` | C++ 代码格式化                                                      |
+> | `CLANGTIDY`   | C++ 静态分析                                                       |
+> | `SPACES`      | 行尾空格检查                                                         |
+> | `TABS`        | Tab 字符检查                                                       |
+> | `NEWLINE`     | 文件末尾换行检查                                                       |
+> | `CODESPELL`   | 拼写检查, 如果是误报可以将误报词按照字典序添加至 `tools/linter/dictionary.txt` 后再重新检查 |
 
 更多执行命令可参照[lintrunner wiki](https://github.com/pytorch/pytorch/wiki/lintrunner)。
 
 ### PR 合入要求
 
 **合入检查清单**（详细要求参考 [PR 模板](./.gitcode/PULL_REQUEST_TEMPLATE.md)）：
+
 - [ ] 代码编译通过
 - [ ] 静态检查通过（CppLint、CppCheck 等）
 - [ ] UT 测试用例通过
@@ -246,12 +313,14 @@ git diff --name-only HEAD | xargs lintrunner
 ### 功能验证指导
 
 **测试用例位置**：
+
 - `test/npu/` - NPU 功能测试
 - `test/nn/` - 网络层测试
 - `test/distributed/` - 分布式测试
 - `test/dynamo/` - 编译器测试
 
 **运行测试**（详细说明参考 [测试文档](./test/README.md)）：
+
 ```bash
 # 安装测试依赖
 pip3 install -r test/requirements.txt
@@ -282,21 +351,76 @@ python ci/access_control_test.py --all
 - **静态检查异常**：请依照提示查找代码中的问题并解决（如代码风格、潜在 Bug 等）
 - **UT 测试未通过**：请根据提示查找测试用例不通过项并检查原因
 
+### AI辅助研发
+
+PyTorch NPU 项目鼓励使用 AI 辅助研发与文档开发，以提升贡献效率。我们提供了昇腾官方的 agent-skills 仓库，其中包含一系列适用于昇腾生态的 AI Agent Skill 配置，可帮助您在开发中更好地利用 AI 编码助手。
+
+- **agent-skills 仓库**：[https://gitcode.com/Ascend/agent-skills](https://gitcode.com/Ascend/agent-skills)
+- 该仓库提供了昇腾芯片场景下常用的 Skill 模板和工具，可用于代码生成、问题诊断、性能分析等场景。
+- 仓库中的 skills 持续更新中，同时欢迎贡献新的 Skill 或对现有 Skill 提出改进建议。
+
+使用 AI 辅助研发时请注意：
+
+- AI 生成的代码仍需人工审查，确保代码质量、安全性和正确性。
+- 遵循项目的[代码规范](#代码规范)和[单元测试指南](#单元测试指南)。
+- 提交的代码需通过门禁检查（编译、静态检查、UT 测试等）。
+
+### 文档开发说明
+
+#### 文档承载方式
+
+本项目的文档采用 Markdown 格式，存放于仓库的 `docs/zh/` 目录下，随代码一同托管在 GitCode 平台。
+
+> **注意**：文档承载在长稳版本的分支中，如 `v2.7.1`。如果您需要查看或修改文档，请切换到对应的长稳版本分支进行操作。
+
+文档主要包含以下类目：
+
+- **安装指南**（`installation_guide/`）：环境准备、源码编译、pip 安装等说明。
+- **快速入门**（`quick_start/`）：快速上手教程。
+- **原生 API 文档**（`native_apis/`）：各版本 PyTorch 原生 API 支持情况。
+- **框架特性指南**（`framework_feature_guide_pytorch/`）：NPU 图模式、Inductor、内存优化等特性说明。
+- **环境变量参考**（`environment_variable_reference/`）：NPU 相关环境变量说明。
+- **故障排除**（`troubleshooting/`）：常见问题及错误码分析。
+- **安全声明**（`SECURITYNOTE.md`）：安全相关说明。
+- **贡献指南**（`CONTRIBUTING.md`）：本文档。
+
+#### 如何提交文档
+
+文档的提交流程与代码提交一致，请参考[贡献流程](#贡献流程)：
+
+1. Fork 仓库并在本地创建分支。
+2. 在 `docs/zh/` 目录下新增或修改对应的 Markdown 文件。
+3. 编写文档时注意：
+   - 使用清晰、准确的中文表述。
+   - 代码示例需确保可运行。
+   - 遵循现有文档的格式和风格。
+4. 提交 Pull Request，并在 PR 描述中说明文档变更内容。
+
+#### CI 文档检查
+
+提交文档的 Pull Request 后，CI 门禁会自动对变更的 Markdown 文件进行以下检查：
+
+- **换行符检查（NEWLINE）**：确保文件末尾有且仅有一个换行符，且文件不包含多余的空行。
+- **尾随空格检查（SPACES）**：确保每行末尾没有多余的空格。
+- **制表符检查（TABS）**：确保文件中使用空格缩进而非制表符（Tab）。
+- **拼写检查（CODESPELL）**：通过 codespell 工具检查英文拼写错误。
+
 ## 提交 Pull Request
 
 1. **推送代码到远程仓库**：
 
-```bash
-git add .
-git status
-git commit -m "Your commit title"
-git commit -s --amend  # 添加详细描述
-git push origin {new_branch_name}
-```
+   ```bash
+   git add .
+   git status
+   git commit -m "Your commit title"
+   git commit -s --amend  # 添加详细描述
+   git push origin {new_branch_name}
+   ```
 
 2. **创建 Pull Request**
 
 在 GitCode 上创建 Pull Request，根据 [PR 模板](./.gitcode/PULL_REQUEST_TEMPLATE.md) 完整填写：
+
 - 合入来源
 - 修改方案
 - 资料变更
