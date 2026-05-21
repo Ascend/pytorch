@@ -35,11 +35,9 @@ from torch._inductor.utils import (
     get_kernel_metadata,
 )
 from torch._inductor.scheduler import Scheduler
-from torch_mlir.compiler_utils import OutputType
 
 from torch.fx.experimental.proxy_tensor import make_fx
 from torch._dynamo.device_interface import get_interface_for_device
-from ..torch_mlir_patch import stateless_fx_import
 from ...npu.inductor_patch.lowering import map_strings_to_operators
 from ...npu.utils import (
     MLIRProcessor,
@@ -205,6 +203,7 @@ class NpuMetaKernel(Kernel):
         self.mutated_indices = mutated_indices
 
     def get_mlir_output_type(self):
+        from torch_mlir.compiler_utils import OutputType
         return OutputType.RAW
 
     def imports_for_benchmark_kernel(self):
@@ -230,6 +229,7 @@ class NpuMetaKernel(Kernel):
         *_, model_name, nth_graph = get_aot_compilation_context()
 
         import torch_mlir
+        from ..torch_mlir_patch import stateless_fx_import
 
         mlir_module = stateless_fx_import(
             self._gm_with_prim_cast,
