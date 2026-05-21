@@ -249,7 +249,7 @@ class FwkFileParser:
                    None if not torch_op.args.get(Constant.INPUT_SHAPES) else str2id_manager.get_id_from_str(torch_op.args.get(Constant.INPUT_SHAPES)),
                    None if not torch_op.args.get(Constant.CALL_STACK) else call_chain_id_manager.get_callchain_id_from_callstack(torch_op.args.get(Constant.CALL_STACK)),
                    ApiType.TORCH_OP]
-            if torch_op.name == "mstx_mark_op":
+            if torch_op.name.startswith("mstx_"):
                 mstx_mark_apis.append(api)
             else:
                 torch_op_apis.append(api)
