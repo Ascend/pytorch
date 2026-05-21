@@ -32,6 +32,8 @@ PyTorch Ascend Adapter named torch_npu is committed to maintaining compatibility
 
 - **[torch.distributed.optim](#torchdistributedoptim)**
 
+- **[torch.distributed.tensor.experimental](#torchdistributedtensorexperimental)**
+
 - **[torch.distributed.tensor.parallel](#torchdistributedtensorparallel)**
 
 - **[torch.distributed.checkpoint](#torchdistributedcheckpoint)**
@@ -122,9 +124,10 @@ PyTorch Ascend Adapter named torch_npu is committed to maintaining compatibility
 
 - **[Understanding CUDA Memory Usage](#understanding-cuda-memory-usage)**
 
->![](../../figures/icon-note.gif) **NOTE:**
->1. Marked as compatible, please note if there are any limitations.
->2. Not indicating whether it is compatible means that the compatibility of this API has not been tested and will be improved in the future.
+> ![](../../figures/icon-note.gif) **NOTE:**
+>
+> 1. Marked as compatible, please note if there are any limitations.
+> 2. Not indicating whether it is compatible means that the compatibility of this API has not been tested and will be improved in the future.
 
 ## torch
 
@@ -11887,6 +11890,27 @@ Just like torch.cuda above, you only need to replace ``torch.cuda.amp.xxx`` with
 </td>
 <td class="cellrowborder" valign="top" width="27.58%" headers="mcps1.1.4.1.2 ">&nbsp;&nbsp;</td>
 <td class="cellrowborder" valign="top" width="27.58%" headers="mcps1.1.4.1.3 ">&nbsp;&nbsp;</td>
+</tr>
+</tbody>
+</table>
+
+## torch.distributed.tensor.experimental
+
+<a name="table-context-parallel-experimental"></a>
+<table><thead align="left"><tr id="row-context-parallel-experimental-head"><th class="cellrowborder" valign="top" width="44.84%" id="mcps-context-parallel-experimental-api"><p id="p-context-parallel-experimental-api"><a name="p-context-parallel-experimental-api"></a><a name="p-context-parallel-experimental-api"></a>PyTorch API</p>
+</th>
+<th class="cellrowborder" valign="top" width="27.58%" id="mcps-context-parallel-experimental-compat"><p id="p-context-parallel-experimental-compat"><a name="p-context-parallel-experimental-compat"></a><a name="p-context-parallel-experimental-compat"></a>Compatibility</p>
+</th>
+<th class="cellrowborder" valign="top" width="27.58%" id="mcps-context-parallel-experimental-limit"><p id="p-context-parallel-experimental-limit"><a name="p-context-parallel-experimental-limit"></a><a name="p-context-parallel-experimental-limit"></a>Limitations</p>
+</th>
+</tr>
+</thead>
+<tbody><tr id="row-context-parallel-experimental-context-parallel"><td class="cellrowborder" valign="top" width="44.84%" headers="mcps-context-parallel-experimental-api "><p id="p-context-parallel-experimental-context-parallel"><a name="p-context-parallel-experimental-context-parallel"></a><a name="p-context-parallel-experimental-context-parallel"></a>torch.distributed.tensor.experimental.context_parallel</p>
+</td>
+<td class="cellrowborder" valign="top" width="27.58%" headers="mcps-context-parallel-experimental-compat "><p id="p-context-parallel-experimental-context-parallel-compat"><a name="p-context-parallel-experimental-context-parallel-compat"></a><a name="p-context-parallel-experimental-context-parallel-compat"></a>Y</p>
+</td>
+<td class="cellrowborder" valign="top" width="27.58%" headers="mcps-context-parallel-experimental-limit "><p id="p-context-parallel-experimental-context-parallel-limit"><a name="p-context-parallel-experimental-context-parallel-limit"></a><a name="p-context-parallel-experimental-context-parallel-limit"></a>Only supports the NPU fused SDPA path. The q/k/v tensors must use BNSD layout. pse, padding_mask, prefix, actual_seq_qlen, actual_seq_kvlen, sink, and arbitrary non-causal attention masks are not supported. Load balancing requires causal attention.</p>
+</td>
 </tr>
 </tbody>
 </table>
