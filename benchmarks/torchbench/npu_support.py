@@ -182,6 +182,68 @@ def _hf_t5_mt5_conditionalgeneration_forward_new(
     return outputs
 
 
+def _hf_distilbert_multiheadselfattention_forward_new(
+    self,
+    query: torch.Tensor,
+    key: torch.Tensor,
+    value: torch.Tensor,
+    mask: torch.Tensor,
+    head_mask=None,
+    output_attentions: bool = False,
+):
+    """
+    Parameters:
+        query: torch.tensor(bs, seq_length, dim)
+        key: torch.tensor(bs, seq_length, dim)
+        value: torch.tensor(bs, seq_length, dim)
+        mask: torch.tensor(bs, seq_length)
+
+    Returns:
+        weights: torch.tensor(bs, n_heads, seq_length, seq_length) Attention weights context: torch.tensor(bs,
+        seq_length, dim) Contextualized layer. Optional: only if `output_attentions=True`
+    """
+    import math
+
+    bs, q_length, dim = query.size()
+    k_length = key.size(1)
+
+    dim_per_head = self.dim // self.n_heads
+
+    mask_reshp = (bs, 1, 1, k_length)
+
+    def shape(x: torch.Tensor) -> torch.Tensor:
+        return x.view(bs, -1, self.n_heads, dim_per_head).transpose(1, 2)
+
+    def unshape(x: torch.Tensor) -> torch.Tensor:
+        return x.transpose(1, 2).contiguous().view(bs, -1, self.n_heads * dim_per_head)
+
+    q = shape(self.q_lin(query))
+    k = shape(self.k_lin(key))
+    v = shape(self.v_lin(value))
+
+    q = q / math.sqrt(dim_per_head)
+    scores = torch.matmul(q, k.transpose(2, 3))
+    mask = (mask == 0).view(mask_reshp).expand_as(scores)
+    scores = scores.masked_fill(
+        mask, torch.tensor(torch.finfo(scores.dtype).min, device="npu")
+    )
+
+    weights = nn.functional.softmax(scores, dim=-1)
+    weights = self.dropout(weights)
+
+    if head_mask is not None:
+        weights = weights * head_mask
+
+    context = torch.matmul(weights, v)
+    context = unshape(context)
+    context = self.out_lin(context)
+
+    if output_attentions:
+        return (context, weights)
+    else:
+        return (context,)
+
+
 @register_patch("LearningToPaint")
 def _patch_model_1():
     # For model LearningToPaint.
@@ -521,6 +583,62 @@ def _patch_squeezenet1_1():
     fallbackdiv
     """
     patch_remove_ops_from_generate_list(["aten.div"])
+
+
+@register_patch("T5ForConditionalGeneration")
+def _patch_model_24():
+    try:
+        from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir import (
+            config as anir_config,
+        )
+
+        anir_config.force_fallback_kernel_names["mlir_fused_add_lt_neg_where_13"] = True
+        anir_config.force_fallback_kernel_names["mlir_fused__softmax__to_copy_add_le_mul_repeat_rsub_unsqueeze_15"] = True
+        patch_remove_ops_from_generate_list(["aten.reshape", "aten.permute"])
+    except ImportError:
+        log.warning("import config failed for T5ForConditionalGeneration patch")
+
+
+@register_patch("BartForCausalLM")
+def _patch_model_25():
+    try:
+        import torch
+        from torch._decomp import remove_decompositions
+        from torch._inductor import decomposition as inductor_decomp
+
+        from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir import (
+            config as anir_config,
+        )
+
+        aten = torch.ops.aten
+        ops_to_add = [
+            aten.native_layer_norm,
+            aten.native_layer_norm_backward,
+        ]
+
+        if hasattr(anir_config, "decomps_to_exclude_npu") and isinstance(
+            anir_config.decomps_to_exclude_npu, list
+        ):
+            for op in ops_to_add:
+                if op not in anir_config.decomps_to_exclude_npu:
+                    anir_config.decomps_to_exclude_npu.append(op)
+            remove_decompositions(inductor_decomp.decompositions, ops_to_add)
+    except Exception as e:
+        log.warning("import config failed for BartForCausalLM patch: %s", e)
+
+
+@register_patch("DistilBertForMaskedLM")
+def _patch_model_26():
+    try:
+        from transformers.models.distilbert.modeling_distilbert import MultiHeadSelfAttention
+    except ImportError:
+        log.warning(
+            "Import transformers failed or could not get MultiHeadSelfAttention "
+            "from module transformers.models.distilbert.modeling_distilbert"
+        )
+        return
+
+    MultiHeadSelfAttention.forward = _hf_distilbert_multiheadselfattention_forward_new
 
 
 def patch_model(model_name):
