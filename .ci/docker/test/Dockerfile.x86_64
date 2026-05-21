@@ -12,6 +12,7 @@ ENV CANN_CHIP=${CANN_CHIP}
 ENV TORCH_PACKAGE_SUFFIX=+cpu
 
 COPY common/ /opt/buildtools/
+COPY requirements-test.txt /opt/buildtools/
 
 # Install system base dependencies
 RUN apt-get update \
