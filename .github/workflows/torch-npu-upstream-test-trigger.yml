@@ -2,8 +2,8 @@ name: Torch NPU Upstream v2.7.1 Trigger
 
 on:
   pull_request:
-    branches:
-      - v2.7.1_image
+    paths:
+      - '.github/**'
   workflow_dispatch:
     inputs:
       python_version:
