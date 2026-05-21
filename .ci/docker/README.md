@@ -37,8 +37,8 @@
 ./docker_build.sh torch-npu-builder-aarch64-py2.7.1
 
 # Test 镜像 (含 CANN)
-./docker_build.sh torch-npu-test-x86_64-cannA1-py2.7.1
-./docker_build.sh torch-npu-test-aarch64-cannA2-py2.7.1
+./docker_build.sh torch-npu-test-x86_64-cann-a1-py2.7.1
+./docker_build.sh torch-npu-test-aarch64-cann-a2-py2.7.1
 ```
 
 ## Tag 命名规范
@@ -63,7 +63,7 @@ torch-npu-builder-<ARCH>-py<PYTORCH_VERSION>
 torch-npu-test-<ARCH>-cann<CHIP>-py<PYTORCH_VERSION>
 ```
 ```
-./docker_build.sh torch-npu-test-x86_64-cannA1-py2.7.1
+./docker_build.sh torch-npu-test-x86_64-cann-a1-py2.7.1
 #                   ^         ^       ^    ^ ^    ^
 #                   |         |       |    | |    └── PyTorch 版本
 #                   |         |       |    | └── py 前缀

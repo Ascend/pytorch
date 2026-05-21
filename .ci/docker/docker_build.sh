@@ -9,7 +9,7 @@
 #
 # Examples:
 #   ./docker_build.sh torch-npu-builder-x86_64-py2.7.1
-#   ./docker_build.sh torch-npu-test-aarch64-cannA2-py2.7.1
+#   ./docker_build.sh torch-npu-test-aarch64-cann-a2-py2.7.1
 #
 # Reference: pytorch/pytorch .ci/docker/build.sh
 
@@ -29,37 +29,37 @@ case "$tag" in
     ARCH=aarch64
     PYTORCH_VERSION=2.7.1
     ;;
-  torch-npu-test-x86_64-cannA1-py2.7.1)
+  torch-npu-test-x86_64-cann-a1-py2.7.1)
     IMAGE_TYPE=test
     ARCH=x86_64
     CANN_CHIP=A1
     PYTORCH_VERSION=2.7.1
     ;;
-  torch-npu-test-x86_64-cannA2-py2.7.1)
+  torch-npu-test-x86_64-cann-a2-py2.7.1)
     IMAGE_TYPE=test
     ARCH=x86_64
     CANN_CHIP=A2
     PYTORCH_VERSION=2.7.1
     ;;
-  torch-npu-test-x86_64-cannA3-py2.7.1)
+  torch-npu-test-x86_64-cann-a3-py2.7.1)
     IMAGE_TYPE=test
     ARCH=x86_64
     CANN_CHIP=A3
     PYTORCH_VERSION=2.7.1
     ;;
-  torch-npu-test-aarch64-cannA1-py2.7.1)
+  torch-npu-test-aarch64-cann-a1-py2.7.1)
     IMAGE_TYPE=test
     ARCH=aarch64
     CANN_CHIP=A1
     PYTORCH_VERSION=2.7.1
     ;;
-  torch-npu-test-aarch64-cannA2-py2.7.1)
+  torch-npu-test-aarch64-cann-a2-py2.7.1)
     IMAGE_TYPE=test
     ARCH=aarch64
     CANN_CHIP=A2
     PYTORCH_VERSION=2.7.1
     ;;
-  torch-npu-test-aarch64-cannA3-py2.7.1)
+  torch-npu-test-aarch64-cann-a3-py2.7.1)
     IMAGE_TYPE=test
     ARCH=aarch64
     CANN_CHIP=A3
