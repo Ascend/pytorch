@@ -62,6 +62,12 @@ NPUStreamSynchronizationCallbacks: "CallbackRegistry" = CallbackRegistry(
 NPUEventSynchronizationCallbacks: "CallbackRegistry" = CallbackRegistry(
     "[stream check] NPU event synchronization"
 )
+NPURecordStreamCallbacks: "CallbackRegistry" = CallbackRegistry(
+    "[stream check] NPU record_stream"
+)
+NPUEraseStreamCallbacks: "CallbackRegistry" = CallbackRegistry(
+        "[stream check] NPU erase_stream"
+)
 
 
 def register_callback_for_acl_start_execution(cb: Callable[[str], None], cb_name: str) -> None:
@@ -110,3 +116,20 @@ def register_callback_for_npu_stream_synchronization(cb: Callable[[int], None], 
 
 def register_callback_for_npu_event_synchronization(cb: Callable[[int], None], cb_name: str) -> None:
     NPUEventSynchronizationCallbacks.add_callback(cb, cb_name)
+
+
+def register_callback_for_npu_record_stream(cb: Callable[[int, int], None], cb_name: str) -> None:
+    """Register callback for record_stream calls.
+
+    Args:
+        cb: Callback function taking (data_ptr, stream_id) as arguments
+        cb_name: Name of the callback for debugging
+    """
+    NPURecordStreamCallbacks.add_callback(cb, cb_name)
+
+
+def register_callback_for_npu_erase_stream(
+        cb: Callable[[int, int], None], cb_name: str
+) -> None:
+    """Register callback for eraseStream calls."""
+    NPUEraseStreamCallbacks.add_callback(cb, cb_name)
