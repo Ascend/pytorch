@@ -1,8 +1,5 @@
---extra-index-url https://download.pytorch.org/whl/cpu
-
 numpy==1.26.4
 pybind11==2.13.1
 pyyaml
 setuptools==75.3.2
-torch==${PYTORCH_VERSION}${TORCH_PACKAGE_SUFFIX}
 wheel

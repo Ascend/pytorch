@@ -1,9 +1,6 @@
 # Python dependencies required for CI unit tests
 
---extra-index-url https://download.pytorch.org/whl/cpu
 -f https://data.pyg.org/whl/torch-2.7.1+cpu.html
-
-torch==${PYTORCH_VERSION}${TORCH_PACKAGE_SUFFIX}
 
 # Test frameworks
 pytest==8.1.1

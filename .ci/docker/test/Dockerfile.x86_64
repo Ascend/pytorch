@@ -9,7 +9,6 @@ ENV TZ=Asia/Shanghai
 ENV PATH=/usr/local/bin:$PATH
 ENV PYTORCH_VERSION=${PYTORCH_VERSION}
 ENV CANN_CHIP=${CANN_CHIP}
-ENV TORCH_PACKAGE_SUFFIX=+cpu
 
 COPY common/ /opt/buildtools/
 COPY requirements-test.txt /opt/buildtools/
@@ -52,7 +51,8 @@ RUN chmod -R 755 /opt/buildtools/* \
 # Install triton-ascend
 RUN /opt/buildtools/install_triton.sh 3.10
 
-# Install test requirements
-RUN python3 -m pip install --no-cache-dir -r /opt/buildtools/requirements-test.txt
+# Install PyTorch and test requirements
+RUN python3 -m pip install --no-cache-dir torch==${PYTORCH_VERSION}+cpu --extra-index-url https://download.pytorch.org/whl/cpu \
+    && python3 -m pip install --no-cache-dir -r /opt/buildtools/requirements-test.txt
 
 WORKDIR /home

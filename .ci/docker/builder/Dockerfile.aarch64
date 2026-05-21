@@ -6,7 +6,6 @@ ENV PATH=/usr/local/bin:$PATH
 ENV AUDITWHEEL_PLAT=manylinux_2_28_aarch64
 ENV ETCD_UNSUPPORTED_ARCH=arm64
 ENV PYTORCH_VERSION=${PYTORCH_VERSION}
-ENV TORCH_PACKAGE_SUFFIX=
 
 COPY requirements-builder.txt /opt/buildtools/
 
@@ -33,11 +32,16 @@ RUN mkdir /root/.pip \
     && echo "timeout=120" >> /root/.pip/pip.conf
 
 # Install PyTorch, build deps, and requirements for each python version
-RUN pip3.9 install --no-cache-dir -r /opt/buildtools/requirements-builder.txt \
-    && pip3.10 install --no-cache-dir -r /opt/buildtools/requirements-builder.txt \
-    && pip3.11 install --no-cache-dir -r /opt/buildtools/requirements-builder.txt \
-    && pip3.12 install --no-cache-dir -r /opt/buildtools/requirements-builder.txt \
-    && pip3.13 install --no-cache-dir auditwheel==5.4.0 -r /opt/buildtools/requirements-builder.txt \
+RUN pip3.9 install --no-cache-dir torch==${PYTORCH_VERSION} --extra-index-url https://download.pytorch.org/whl/cpu \
+        -r /opt/buildtools/requirements-builder.txt \
+    && pip3.10 install --no-cache-dir torch==${PYTORCH_VERSION} --extra-index-url https://download.pytorch.org/whl/cpu \
+        -r /opt/buildtools/requirements-builder.txt \
+    && pip3.11 install --no-cache-dir torch==${PYTORCH_VERSION} --extra-index-url https://download.pytorch.org/whl/cpu \
+        -r /opt/buildtools/requirements-builder.txt \
+    && pip3.12 install --no-cache-dir torch==${PYTORCH_VERSION} --extra-index-url https://download.pytorch.org/whl/cpu \
+        -r /opt/buildtools/requirements-builder.txt \
+    && pip3.13 install --no-cache-dir torch==${PYTORCH_VERSION} auditwheel==5.4.0 --extra-index-url https://download.pytorch.org/whl/cpu \
+        -r /opt/buildtools/requirements-builder.txt \
     && ln -sf /opt/_internal/cpython-3.13.2/bin/auditwheel /usr/local/bin/auditwheel
 
 # Install system build tools
