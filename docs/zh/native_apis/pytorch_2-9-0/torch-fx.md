@@ -54,7 +54,7 @@
 |torch.fx.Node.prev|否|-|
 |torch.fx.Node.replace_all_uses_with|是|-|
 |torch.fx.Node.replace_input_with|是|支持fp32|
-|torch.fx.Node.stack_trace|否|-|
+|torch.fx.Node.stack_trace|是|-|
 |torch.fx.Node.update_arg|是|支持fp32|
 |torch.fx.Node.update_kwarg|是|支持fp32|
 |torch.fx.Tracer|是|-|
