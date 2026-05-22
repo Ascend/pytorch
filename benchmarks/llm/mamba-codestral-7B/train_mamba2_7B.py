@@ -89,7 +89,7 @@ def main():
     device = detect_device_type()
     os.environ['TORCHINDUCTOR_NPU_BACKEND']=args.npu_backend
     if args.mfusion:
-        os.environ['TORCHINDUCTOR_NPU_MFUSION']='1'
+        os.environ['TORCHINDUCTOR_ENABLE_MFUSION']='1'
     patch_remove_ops_from_generate_list(["aten.permute"])
     seed = 2
     torch.manual_seed(seed)
