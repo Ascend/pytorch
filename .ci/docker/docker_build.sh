@@ -5,11 +5,11 @@
 #   ./docker_build.sh <TAG>
 #
 # Builder: torch-npu-builder-<ARCH>-py<PYTORCH_VERSION>
-# Test:    torch-npu-test-<ARCH>-cann<CHIP>-py<PYTORCH_VERSION>
+# Test:    torch-npu-test-<ARCH>-cann<CHIP>-py<PYTHON_VERSION>-torch<PYTORCH_VERSION>
 #
 # Examples:
 #   ./docker_build.sh torch-npu-builder-x86_64-py2.7.1
-#   ./docker_build.sh torch-npu-test-aarch64-cann-a2-py2.7.1
+#   ./docker_build.sh torch-npu-test-aarch64-cann-a2-py3.9-torch2.7.1
 #
 # Reference: pytorch/pytorch .ci/docker/build.sh
 
@@ -29,46 +29,52 @@ case "$tag" in
     ARCH=aarch64
     PYTORCH_VERSION=2.7.1
     ;;
-  torch-npu-test-x86_64-cann-a1-py2.7.1)
+  torch-npu-test-x86_64-cann-a1-py3.9-torch2.7.1)
     IMAGE_TYPE=test
     ARCH=x86_64
     CANN_CHIP=A1
+    PYTHON_VERSION=3.9
     PYTORCH_VERSION=2.7.1
     ;;
-  torch-npu-test-x86_64-cann-a2-py2.7.1)
+  torch-npu-test-x86_64-cann-a2-py3.9-torch2.7.1)
     IMAGE_TYPE=test
     ARCH=x86_64
     CANN_CHIP=A2
+    PYTHON_VERSION=3.9
     PYTORCH_VERSION=2.7.1
     ;;
-  torch-npu-test-x86_64-cann-a3-py2.7.1)
+  torch-npu-test-x86_64-cann-a3-py3.9-torch2.7.1)
     IMAGE_TYPE=test
     ARCH=x86_64
     CANN_CHIP=A3
+    PYTHON_VERSION=3.9
     PYTORCH_VERSION=2.7.1
     ;;
-  torch-npu-test-aarch64-cann-a1-py2.7.1)
+  torch-npu-test-aarch64-cann-a1-py3.9-torch2.7.1)
     IMAGE_TYPE=test
     ARCH=aarch64
     CANN_CHIP=A1
+    PYTHON_VERSION=3.9
     PYTORCH_VERSION=2.7.1
     ;;
-  torch-npu-test-aarch64-cann-a2-py2.7.1)
+  torch-npu-test-aarch64-cann-a2-py3.9-torch2.7.1)
     IMAGE_TYPE=test
     ARCH=aarch64
     CANN_CHIP=A2
+    PYTHON_VERSION=3.9
     PYTORCH_VERSION=2.7.1
     ;;
-  torch-npu-test-aarch64-cann-a3-py2.7.1)
+  torch-npu-test-aarch64-cann-a3-py3.9-torch2.7.1)
     IMAGE_TYPE=test
     ARCH=aarch64
     CANN_CHIP=A3
+    PYTHON_VERSION=3.9
     PYTORCH_VERSION=2.7.1
     ;;
   *)
     echo "Unknown tag: ${tag}"
     echo "  Builder: torch-npu-builder-<x86_64|aarch64>-py2.7.1"
-    echo "  Test:    torch-npu-test-<x86_64|aarch64>-cann<A1|A2|A3>-py2.7.1"
+    echo "  Test:    torch-npu-test-<x86_64|aarch64>-cann<A1|A2|A3>-py3.9-torch2.7.1"
     exit 1
     ;;
 esac
@@ -87,6 +93,9 @@ BUILD_ARGS=(
 if [[ -n "${CANN_CHIP:-}" ]]; then
   BUILD_ARGS+=(--build-arg CANN_CHIP="${CANN_CHIP}")
 fi
+if [[ -n "${PYTHON_VERSION:-}" ]]; then
+  BUILD_ARGS+=(--build-arg PYTHON_VERSION="${PYTHON_VERSION}")
+fi
 
 TIMESTAMP="${TIMESTAMP:-$(date -u +%Y%m%d%H%M)}"
 IMAGE_TAG="${tag}-${TIMESTAMP}"
@@ -94,6 +103,7 @@ IMAGE_TAG="${tag}-${TIMESTAMP}"
 echo "Building ${IMAGE_TAG} ..."
 echo "  Dockerfile: ${DOCKERFILE}"
 echo "  PyTorch:    ${PYTORCH_VERSION}"
+[[ -n "${PYTHON_VERSION:-}" ]] && echo "  Python:     ${PYTHON_VERSION}"
 [[ -n "${CANN_CHIP:-}" ]] && echo "  CANN chip:  ${CANN_CHIP}"
 
 docker build \

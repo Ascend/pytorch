@@ -11,7 +11,7 @@ on:
       docker_image_test:
         required: false
         type: string
-        default: 'quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py2.7.1-202605211409'
+        default: 'quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.9-torch2.7.1-202605211409'
         description: Docker image for running tests
       pytorch_version:
         required: false
