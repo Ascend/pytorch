@@ -68,7 +68,7 @@ class TestClamp(TestUtils):
         self.assertEqual(std_result, inductor_result)
 
     @parametrize('shape', TestUtils._pointwise_demo_shapes)
-    @parametrize('dtype', ['float16', 'float32', 'bfloat16', 'int32', 'int64'])  
+    @parametrize('dtype', ['float16', 'float32', 'bfloat16', 'int32', 'int64'])
     def test_pointwise_cases_min_only(self, shape, dtype):
         min_numel = 0
 

@@ -167,7 +167,7 @@ def train(model, criterion, optimizer, epoch):
             num += 1
             yield (torch.randn([128, 3, 224, 224]).npu() + torch.randint(-2, 2, [128, 3, 224, 224]).npu()).cpu(), \
                     torch.randint(1, 1000, [128])
-    
+
     # switch to train mode
     model.train()
 
@@ -217,7 +217,7 @@ def validate(model, criterion):
         1,
         [batch_time, losses, top1, top5],
         prefix='Test: ')
-    
+
     def fake_val_data(num):
         while num < 5:
             num += 1

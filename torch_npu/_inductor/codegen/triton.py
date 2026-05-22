@@ -193,7 +193,7 @@ def patch_TritonCSEVariable__init__(
     super(TritonCSEVariable, self).__init__(name, bounds, dtype, shape=shape)
     self.mask_vars: OrderedSet[str] = OrderedSet()
     assert dtype is not None, "TritonCSEVariable must have dtype"
-    
+
 
 @staticmethod
 def select_index_dtype(node_schedule, numel, reduction_numel):
@@ -262,7 +262,7 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
             line = f"{var.name} = {self.codegen_index(dir_index)}"
             self.writeline(line)
 
-        # reduction axis 
+        # reduction axis
         if self.prefix == 'r':
             if V.kernel.inside_reduction and V.kernel.current_node \
                     and isinstance(V.kernel.current_node, SchedulerNode) \
@@ -596,7 +596,7 @@ class NPUIndexTritonKernel(TritonKernel):
                             break
                     if dim is None:
                         continue
-                    
+
                     if dim.parent == axis.parent:
                         dtype = V.graph.get_dtype(node.node.name)
                         should_break_all = True
@@ -1110,7 +1110,7 @@ class NPUIndexTritonKernel(TritonKernel):
 
         return None
 
-    # select the golden varlist, from to which to deduce permute, broadcast shape 
+    # select the golden varlist, from to which to deduce permute, broadcast shape
     def select_golden_varlist(self):
         longest = None
         maximum_length = 0
@@ -1416,7 +1416,7 @@ class NPUIndexTritonKernel(TritonKernel):
                 index_str = indexing.index_str
                 mask_str = indexing.mask_str
                 line = f"tl.load({var} + ({index_str}), {mask_str}{ep}{other})"
-        
+
         if (
             dtype in (torch.float16, torch.bfloat16)
             and config.triton.codegen_upcast_to_fp32

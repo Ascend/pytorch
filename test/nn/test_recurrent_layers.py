@@ -14,7 +14,7 @@ class TestRecurrentLayers(TestCase):
         rnn = nn.RNN(10, 20, 2).npu()
         output, hn = rnn(input1, h0)
         self.assertEqual(output is not None, True)
-    
+
     @unittest.skip("Temporarily skipping")
     def test_LSTM(self):
         input1 = torch.randn(5, 3, 10).npu()

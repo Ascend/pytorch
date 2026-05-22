@@ -81,7 +81,7 @@ def npu_convolution_backward(
         [output_mask[0], output_mask[1], False],
     )
     return (grad_inp, grad_weight, grad_bias)
- 
+
 def npu__softmax_backward_data(
     grad_output: torch.Tensor,
     output: torch.Tensor,
@@ -112,9 +112,9 @@ def npu_rms_norm(
     output = (x * rsqrt * weight).to(dtype)
     return output, rsqrt
 
-def npu_rms_norm_backward(grad_output: torch.Tensor, 
-                      x: torch.Tensor, 
-                      weight: torch.Tensor, 
+def npu_rms_norm_backward(grad_output: torch.Tensor,
+                      x: torch.Tensor,
+                      weight: torch.Tensor,
                       rsqrt: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
     dx = (grad_output * weight - x * rsqrt * (grad_output * weight * x * rsqrt).mean(-1, keepdim=True)) * rsqrt
     dgamma = (grad_output * x * rsqrt).sum(0, keepdim=False)
@@ -140,7 +140,7 @@ def npu_swiglu_backward(grad_output, x, dim=-1):
 def _rotate_half(x: Tensor) -> Tensor:
     x1, x2 = torch.chunk(x, 2, dim=-1)
     return torch.cat((-x2, x1), dim=-1)
-    
+
 def npu_rotary_mul(t, cos_, sin_):
     t = (t * cos_) + (_rotate_half(t) * sin_)
     return t

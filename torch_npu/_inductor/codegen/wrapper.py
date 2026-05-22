@@ -146,7 +146,7 @@ class NPUWrapperCodeGen(_NPUKernelCodegenMixin, PythonWrapperCodegen):
         """
         if not config.benchmark_harness:
             return None
-        
+
         if npu_config.aot_inductor.debug_kernel:
             return self.add_npu_repro(output)
 
@@ -169,7 +169,7 @@ class NPUWrapperCodeGen(_NPUKernelCodegenMixin, PythonWrapperCodegen):
                     "print(result)",
                 ]
             )
-    
+
     def add_repro_func(self, output):
         seen_constants = set()
 
@@ -186,7 +186,7 @@ class NPUWrapperCodeGen(_NPUKernelCodegenMixin, PythonWrapperCodegen):
             sha1 = hashlib.sha1()
             sha1.update(byte)
             return sha1.hexdigest()
-        
+
         def save_tensor(tensor, path):
             dirname = os.path.dirname(path)
             if not os.path.exists(dirname):
@@ -235,11 +235,11 @@ class NPUWrapperCodeGen(_NPUKernelCodegenMixin, PythonWrapperCodegen):
                     # these 'global var_name' lines
                     output.writeline(f"global {name}")
                     add_torchbind_input(name, torchbind_obj)
-            
+
             call_str = f"call([{', '.join(V.graph.graph_inputs.keys())}])"
             output.writeline(f"fn = lambda: {call_str}")
             output.writeline("return fn()")
-    
+
     def add_benchmark_func(self, output):
         def add_fake_input(name, shape, stride, device, dtype):
             output.writeline(
@@ -286,7 +286,7 @@ class NPUWrapperCodeGen(_NPUKernelCodegenMixin, PythonWrapperCodegen):
                         value.get_device(),
                         value.get_dtype(),
                     )
-            
+
             call_str = f"repro_run({', '.join(V.graph.graph_inputs.keys())})"
             output.writeline(f"fn = lambda: {call_str}")
             output.writeline("return fn()")
@@ -294,7 +294,7 @@ class NPUWrapperCodeGen(_NPUKernelCodegenMixin, PythonWrapperCodegen):
     def write_prefix(self) -> None:
         super().write_prefix()
         if torch_npu.npu.aclnn._use_static_aclnn_kernel:
-            self.prefix.do_indent()       
+            self.prefix.do_indent()
             with self.prefix.indent():
                 self.prefix.writeline('global has_initialized')
                 self.prefix.writeline('if not has_initialized:')

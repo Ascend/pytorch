@@ -325,7 +325,7 @@ class TestConv2d(NPUDTensorTestBase):
         output_tensor = torch_npu.npu_conv2d(input_tensor, weight_tensor, bias, stride, padding, dilation, groups)
         output_dtensor = torch_npu.npu_conv2d(input_dtensor, weight_dtensor, bias, stride, padding, dilation, groups)
         self.assertEqual(output_dtensor.full_tensor(), output_tensor)
-    
+
     @SupportedDevices(['Ascend910B'])
     @skipIfUnsupportMultiNPU(2)
     @with_comms
@@ -431,7 +431,7 @@ class TestConv2d(NPUDTensorTestBase):
         input_dgrad, weight_dgrad, bias_dgrad = torch_npu.npu_conv2d_backward(input_dtensor, grad_output_dtensor, weight_dtensor, stride, padding, dilation, groups, output_mask)
         self.assertEqual(input_dgrad.full_tensor(), input_grad)
         self.assertEqual(weight_dgrad.full_tensor(), weight_grad)
-  
+
     @SupportedDevices(['Ascend910B'])
     @skipIfUnsupportMultiNPU(2)
     @with_comms
@@ -461,7 +461,7 @@ class TestConv2d(NPUDTensorTestBase):
         self.assertEqual(input_dgrad.full_tensor(), input_grad)
         self.assertEqual(weight_dgrad.full_tensor(), weight_grad)
         self.assertEqual(bias_dgrad.full_tensor(), bias_grad)
-  
+
     @SupportedDevices(['Ascend910B'])
     @skipIfUnsupportMultiNPU(2)
     @with_comms
@@ -490,7 +490,7 @@ class TestConv2d(NPUDTensorTestBase):
         input_dgrad, weight_dgrad, bias_dgrad = torch_npu.npu_conv2d_backward(input_dtensor, grad_output_dtensor, weight_dtensor, stride, padding, dilation, groups, output_mask)
         self.assertEqual(input_dgrad.full_tensor(), input_grad)
         self.assertEqual(weight_dgrad.full_tensor(), weight_grad)
-    
+
     @SupportedDevices(['Ascend910B'])
     @skipIfUnsupportMultiNPU(2)
     @with_comms
@@ -572,7 +572,7 @@ class TestGroupedMatmulAdd(NPUDTensorTestBase):
         torch_npu.npu_grouped_matmul_add_(y, x, weight, group_list, transpose_x=transpose_x, transpose_weight=transpose_weight, group_type=group_type)
         torch_npu.npu_grouped_matmul_add_(y_dtensor, x_dtensor, weight_dtensor, group_list_dtensor, transpose_x=transpose_x, transpose_weight=transpose_weight, group_type=group_type)
         self.assertEqual(y_dtensor.full_tensor(), y)
-    
+
     @SupportedDevices(['Ascend910B'])
     @skipIfUnsupportMultiNPU(2)
     @with_comms
@@ -614,7 +614,7 @@ class TestCrossEntropyLoss(NPUDTensorTestBase):
             return input_tuple
         else:
             input_tuple = (x, target, input_dtensor, target_dtensor, mesh)
-            
+
             return input_tuple
 
 
@@ -630,7 +630,7 @@ class TestCrossEntropyLoss(NPUDTensorTestBase):
         self.assertEqual(loss_dtensor.full_tensor(), loss)
         self.assertEqual(log_prob_dtensor.full_tensor(), log_prob)
 
-    
+
     @SupportedDevices(['Ascend910B'])
     @skipIfUnsupportMultiNPU(2)
     @with_comms
@@ -643,7 +643,7 @@ class TestCrossEntropyLoss(NPUDTensorTestBase):
         self.assertEqual(loss_dtensor.full_tensor(), loss)
         self.assertEqual(log_prob_dtensor.full_tensor(), log_prob)
 
-    
+
     @SupportedDevices(['Ascend910B'])
     @skipIfUnsupportMultiNPU(2)
     @with_comms
@@ -671,7 +671,7 @@ class TestCrossEntropyLoss(NPUDTensorTestBase):
             self.assertEqual(loss_dtensor.full_tensor(), loss)
             self.assertEqual(log_prob_dtensor.full_tensor(), log_prob)
 
-    
+
     @SupportedDevices(['Ascend910B'])
     @skipIfUnsupportMultiNPU(2)
     @with_comms
@@ -685,14 +685,14 @@ class TestCrossEntropyLoss(NPUDTensorTestBase):
         loss_dtensor.backward()
         self.assertEqual(input_dtensor.grad.full_tensor(), x.grad)
 
-    
+
     @SupportedDevices(['Ascend910B'])
     @skipIfUnsupportMultiNPU(2)
     @with_comms
     def test_torch_npu_npu_cross_entropy_loss_backward_input_shard0_reduction_is_none(self):
         reductions = ["none", "sum", "mean"]
         x, target, input_dtensor, target_dtensor, mesh = self.generate_data_cross_entropy_loss(8, 8, [Shard(0)], [Shard(0)])
-        
+
         for re in reductions:
             loss, log_prob, _, _ = torch_npu.npu_cross_entropy_loss(x, target, reduction=re)
             loss_dtensor, log_prob_dtensor, _, _ = torch_npu.npu_cross_entropy_loss(input_dtensor, target_dtensor, reduction=re)
@@ -707,7 +707,7 @@ class TestCrossEntropyLoss(NPUDTensorTestBase):
                 loss.backward()
                 loss_dtensor.backward()
                 self.assertEqual(input_dtensor.grad.full_tensor(), x.grad)
-    
+
     @SupportedDevices(['Ascend910B'])
     @skipIfUnsupportMultiNPU(2)
     @with_comms
@@ -716,7 +716,7 @@ class TestCrossEntropyLoss(NPUDTensorTestBase):
 
         loss, log_prob, _, _ = torch_npu.npu_cross_entropy_loss(x, target, reduction="sum")
         loss_dtensor, log_prob_dtensor, _, _ = torch_npu.npu_cross_entropy_loss(input_dtensor, target_dtensor, reduction="sum")
-        
+
         loss.backward()
         loss_dtensor.backward()
         self.assertEqual(input_dtensor.grad.full_tensor(), x.grad)
@@ -741,7 +741,7 @@ class TestRepeatInterleaveSelfInt(NPUDTensorTestBase):
 
         output_dtensor = torch.repeat_interleave(input_dtensor, repeats_value, dim=1)
         output = torch.repeat_interleave(input_tensor, repeats_value, dim=1)
-        
+
         self.assertEqual(output_dtensor.full_tensor(), output)
 
     @SupportedDevices(['Ascend910B'])
@@ -752,7 +752,7 @@ class TestRepeatInterleaveSelfInt(NPUDTensorTestBase):
 
         output_dtensor = torch.repeat_interleave(input_dtensor, repeats_value, dim=1)
         output = torch.repeat_interleave(input_tensor, repeats_value, dim=1)
-        
+
         self.assertEqual(output_dtensor.full_tensor(), output)
 
     @SupportedDevices(['Ascend910B'])
@@ -763,7 +763,7 @@ class TestRepeatInterleaveSelfInt(NPUDTensorTestBase):
 
         output_dtensor = torch.repeat_interleave(input_dtensor, repeats_value, dim=1)
         output = torch.repeat_interleave(input_tensor, repeats_value, dim=1)
-        
+
         self.assertEqual(output_dtensor.full_tensor(), output)
 
     @SupportedDevices(['Ascend910B'])
@@ -774,7 +774,7 @@ class TestRepeatInterleaveSelfInt(NPUDTensorTestBase):
 
         output_dtensor = torch.repeat_interleave(input_dtensor, repeats_value)
         output = torch.repeat_interleave(input_tensor, repeats_value)
-        
+
         self.assertEqual(output_dtensor.full_tensor(), output)
 
     @SupportedDevices(['Ascend910B'])
@@ -785,7 +785,7 @@ class TestRepeatInterleaveSelfInt(NPUDTensorTestBase):
 
         output_dtensor = torch.repeat_interleave(input_dtensor, repeats_value, dim=1)
         output = torch.repeat_interleave(input_tensor, repeats_value, dim=1)
-        
+
         self.assertEqual(output_dtensor.full_tensor(), output)
 
     @SupportedDevices(['Ascend910B'])
@@ -796,7 +796,7 @@ class TestRepeatInterleaveSelfInt(NPUDTensorTestBase):
 
         output_dtensor = torch.repeat_interleave(input_dtensor, repeats_value, dim=1)
         output = torch.repeat_interleave(input_tensor, repeats_value, dim=1)
-        
+
         self.assertEqual(output_dtensor.full_tensor(), output)
 
     @SupportedDevices(['Ascend910B'])
@@ -983,7 +983,7 @@ class TestKLDivLoss(NPUDTensorTestBase):
 
         pred = torch.randn(4, 4, 4, device="npu", requires_grad=True)
         target = torch.randn(4, 4, 4, device="npu")
-        
+
         # def test_placement_comb(placements1, placements2):
         pred_dt = distribute_tensor(pred, mesh, [pred_placement])
         # pred_dt = pred_dt

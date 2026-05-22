@@ -12,7 +12,7 @@ class RandomDataset(Dataset):
 
     def __len__(self):
         return self.len
-    
+
     def __getitem__(self, index):
         return self.data[index].clone()
 

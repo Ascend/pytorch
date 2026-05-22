@@ -26,7 +26,7 @@ def compare_outputs(
             continue
         if actual.dtype != expected.dtype:
             expected = expected.to(actual.dtype)
-        
+
         tol = tolerances.get(actual.dtype, tolerances["default"])
         rtol, atol = tol["rtol"], tol["atol"]
         matches = torch.isclose(actual, expected, rtol=rtol, atol=atol, equal_nan=True)
@@ -34,7 +34,7 @@ def compare_outputs(
             _report_mismatch(idx, actual, expected, matches, rtol, atol, kernel_name)
             failed_indices.append(idx)
         del matches
-    
+
     return not failed_indices
 
 
@@ -117,7 +117,7 @@ def check_accuracy_triton(*args, launcher, grid, stream, inductor_meta, **kwargs
         arg = args[idx]
         if isinstance(arg, torch.Tensor):
             fx_args.append(clone_for_accuracy(arg))
-    
+
     fx_graph_call(*fx_args)
 
     launcher(*args, **kwargs, stream=stream)
@@ -155,7 +155,7 @@ def check_accuracy_mlir(*args, kernel_name, launchers, num_outputs, dynamic, **k
             args_new = args_new + (arg, arg, 0) + arg.size() + arg.stride()
     else:
         args_new = args
-    
+
     output = launcher(*args_new, **kwargs)
     result = compare_outputs(
         args[num_inputs:],
@@ -186,8 +186,8 @@ def _load_fx_model(acc_meta):
     model = Model()
     acc_meta['_fx_model'] = model
     return model
- 
- 
+
+
 def check_accuracy_dvm(kobj, acc_meta, kernel_name, args):
     """Run DVM kernel then compare outputs against FX graph reference."""
     from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir import config as anir_config

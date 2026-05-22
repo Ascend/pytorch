@@ -428,44 +428,35 @@ command = [
 ]
 is_formatter = true
 
-# [[linter]]
-# code = 'SPACES'
-# include_patterns = ['**']
-# exclude_patterns = [
-#     'test_upstream/**',
-#     '**/contrib/**',
-#     '**/*.diff',
-#     '**/*.patch',
-#     'third_party/**',
-#     'aten/src/ATen/native/vulkan/api/vk_mem_alloc.h',
-#     'fb/**',
-#     '**/fb/**',
-#     'test/cpp/jit/upgrader_models/*.ptl',
-#     'test/cpp/jit/upgrader_models/*.ptl.ff',
-#     # NPUGraph logs files
-#     'torch_npu/_logging/_internal.py',
-#     'torch_npu/csrc/core/npu/NPUGraph.cpp',
-#     'torch_npu/csrc/core/npu/NPUGraph.h',
-#     'torch_npu/csrc/npu/Graph.cpp',
-#     'torch_npu/csrc/core/npu/NPUCachingAllocator.cpp',
-#  	'torch_npu/csrc/core/npu/NPUWorkspaceAllocator.cpp',
-#     'torch_npu/npu/_graph_tree.py',
-#     'torch_npu/npu/graphs.py',
-#     'torch_npu/utils/_graph_tree.py',
-# ]
-# command = [
-#     'python3',
-#     'tools/linter/adapters/grep_linter.py',
-#     '--pattern=[[:blank:]]$',
-#     '--linter-name=SPACES',
-#     '--error-name=trailing spaces',
-#     '--replace-pattern=s/[[:blank:]]+$//',
-#     """--error-description=\
-#         This line has trailing spaces; please remove them.\
-#     """,
-#     '--',
-#     '@{{PATHSFILE}}'
-# ]
+[[linter]]
+code = 'SPACES'
+include_patterns = ['**']
+exclude_patterns = [
+    'test_upstream/**',
+    '**/contrib/**',
+    '**/*.diff',
+    '**/*.patch',
+    'third_party/**',
+    'aten/src/ATen/native/vulkan/api/vk_mem_alloc.h',
+    'fb/**',
+    '**/fb/**',
+    'test/cpp/jit/upgrader_models/*.ptl',
+    'test/cpp/jit/upgrader_models/*.ptl.ff',
+    '**/*.md',
+]
+command = [
+    'python3',
+    'tools/linter/adapters/grep_linter.py',
+    '--pattern=[[:blank:]]$',
+    '--linter-name=SPACES',
+    '--error-name=trailing spaces',
+    '--replace-pattern=s/[[:blank:]]+$//',
+    """--error-description=\
+        This line has trailing spaces; please remove them.\
+    """,
+    '--',
+    '@{{PATHSFILE}}'
+]
 
 # [[linter]]
 # code = 'TABS'

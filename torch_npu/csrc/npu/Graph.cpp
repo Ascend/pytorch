@@ -789,7 +789,7 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
                             helper.processStringArrayOption(key, item.second.cast<std::vector<std::string>>());
                         } else if (py::isinstance<py::int_>(item.second)) {
                             helper.processInitOption(key, item.second.cast<int>());
-                        } 
+                        }
                     }
                 }
 

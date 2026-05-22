@@ -512,7 +512,7 @@ public:
         if (c10_npu::option::OptionsManager::CheckForceUncached() &&
             (c10_npu::currentStreamCaptureStatus() == c10_npu::CaptureStatus::None)) {
             return &uncached_delete;
-        } 
+        }
         return &local_raw_delete;
     }
 

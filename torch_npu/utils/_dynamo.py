@@ -187,7 +187,7 @@ def patch_inductor_wrapper():
             or torch._inductor.config.npu_backend == "mlir"
         ):
             os.environ["TORCHINDUCTOR_NPU_BACKEND"] = "mlir"
-            device_id = torch_npu.npu.current_device()	 
+            device_id = torch_npu.npu.current_device()
             torch_npu._C._recovery_all_npu_stream(device_id)
 
         elif (

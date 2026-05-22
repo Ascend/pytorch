@@ -455,7 +455,7 @@ def create_compile_kwargs(final_kernel, fx_call_args, fx_args):
 def generate_fx_graph_code(code, kernel_code, kernel_name, compile_kwargs):
     code = textwrap.indent(code, '    ')
     code_template = f"""
-import os    
+import os
 import torch
 from torch._inductor.compile_fx import clone_preserve_strides
 from torch._dynamo.testing import rand_strided
@@ -514,7 +514,7 @@ del async_compile
 def run():
     stream0 = get_raw_stream(0)
 
-    
+
     args = torch.load(os.path.join(dir_path, "data.pth"))
 
     call_inputs_indices = call_args_mapping[:num_inputs]
@@ -522,7 +522,7 @@ def run():
 
     args = [arg.npu() if isinstance(arg, torch.Tensor) else arg for arg in args]
 
-    fx_args = [] 
+    fx_args = []
     for idx in call_args_mapping:
         arg = args[idx]
         if isinstance(arg, torch.Tensor):
@@ -540,7 +540,7 @@ def run():
         out1 = out1.reshape(out2.shape)
         if idx in non_contiguous_indices['outputs']:
             out2.copy_(out1)
-        else: 
+        else:
             out2.data = out1.data
 
     {kernel_name}.run(*args, stream=stream0)
@@ -728,7 +728,7 @@ def _make_reduction_inner(x, *, axis, keepdims, dtype, override_return_dtype):
         reduction_ranges=reduced_sizes,
     )
 
-    
+
 def dump_fx_graph_code(code, dump_path, traced_graph_hash):
     py_path = os.path.join(dump_path, traced_graph_hash + '.py')
     PathManager.check_input_file_path(py_path)

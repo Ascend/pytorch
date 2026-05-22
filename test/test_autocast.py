@@ -289,7 +289,7 @@ class TestAutocastNPUfp32(TestCase):
         with torch.autocast(device_type=device, dtype=torch.float32):
             b = torch.mm(a, a)
         self.assertEqual(b.dtype, torch.float32)
-    
+
     def test_autocast_fp32_when_origin_dtype_is_bfloat16(self):
         device = "npu"
         a = torch.rand((8, 8), device=device, dtype=torch.bfloat16)
@@ -303,7 +303,7 @@ class TestAutocastNPUfp32(TestCase):
         with torch.autocast(device_type=device, dtype=torch.float32):
             b = torch.mm(a, a)
         self.assertEqual(b.dtype, torch.float32)
-    
+
     def test_autocast_fp32_when_disabled(self):
         device = "npu"
         a = torch.rand((8, 8), device=device, dtype=torch.bfloat16)

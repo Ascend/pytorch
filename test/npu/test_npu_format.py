@@ -5,7 +5,7 @@ from torch_npu._C import _weak_ref_tensor
 
 
 class TestNPUFormat(TestCase):
-    
+
     def test_enum_values(self):
         """test the enumeration value"""
         self.assertEqual(torch_npu.Format.NCHW.value, 0)
@@ -24,7 +24,7 @@ class TestNPUFormat(TestCase):
         self.assertEqual(fmt2, torch_npu.Format.NHWC)
 
         torch_npu.npu.config.allow_internal_format = True
-        
+
         out3 = torch_npu.npu_format_cast(tensor, torch_npu.Format.FRACTAL_NZ)
         fmt3 = torch_npu.get_npu_format(out3)
         self.assertEqual(fmt3, torch_npu.Format.FRACTAL_NZ)

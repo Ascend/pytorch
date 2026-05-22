@@ -34,7 +34,7 @@ def _load_mlir_backend():
 def _load_dvm_backend():
     from .ascend_npu_ir.ascend_npu_ir.npu import npu_inductor_plugin
     from .dvm import mlir_fusion
-    
+
 def _load_triton_backend():
     import torch
     import os
@@ -154,8 +154,8 @@ _BACKEND_LOADERS = {
     "dvm": _load_dvm_backend,
     "default": _load_triton_backend,
 }
- 	 
- 	  	 
+
+
 def _load_backend():
 
     backend = _get_backend()

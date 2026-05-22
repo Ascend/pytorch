@@ -14,7 +14,7 @@ REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 PYTORCH_INSTALL_PATH = os.path.dirname(os.path.realpath(torch.__file__))
 PYTORCH_NPU_INSTALL_PATH = os.path.dirname(os.path.realpath(torch_npu.__file__))
 
-   
+
 class TestSanitizer(TestCase):
     def tearDown(self):
         if sanitizer.npu_sanitizer.dispatch is not None:

@@ -5,7 +5,7 @@ from ..prof_common_func._constant import convert_us2ns
 
 __all__ = []
 
- 
+
 class GeMemoryRecordBean(CommonBean):
 
     def __init__(self, data: dict):

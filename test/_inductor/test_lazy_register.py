@@ -6,7 +6,7 @@ import torch_npu
 
 class TestLazyRegister(TestUtils):
 
-    
+
     def test_disale_register_inductor_npu(self):
         torch_npu.utils._dynamo.disable_register_inductor_npu()
 

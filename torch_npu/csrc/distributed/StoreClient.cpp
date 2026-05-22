@@ -30,7 +30,7 @@
 
 namespace c10d {
 namespace torch_npu {
-    
+
 Client::Client(const std::string host, uint16_t port, const std::chrono::milliseconds timeout) noexcept
     : host_{ host }, port_{ port }, socketFd_(-1), timeout_{ timeout }
 {}
@@ -111,7 +111,7 @@ int Client::Connect() noexcept
     if (ret >= 0) {
         return 0;
     }
-    
+
     ret = TryConnect(AF_INET6);
     if (ret >= 0) {
         return 0;
@@ -221,7 +221,7 @@ int Client::SyncCall(const StoreMessage &request, StoreMessage &response) noexce
                 if (errno == EINTR) { // interrupted by signal
                     continue;
                 }
-                
+
                 LOG(ERROR) << "read data from server(" << host_ << ":" << port_ << ") failed " << errno << " : " <<
                     strerror(errno);
                 return -1;

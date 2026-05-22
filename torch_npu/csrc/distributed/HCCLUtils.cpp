@@ -112,7 +112,7 @@ bool isSupportHcclCommName()
 
 HCCLComm::HCCLComm(HcclComm hcclComm) : hcclComm_(hcclComm), hcclAsyncErr_(HCCL_SUCCESS),
     hcclCommType(0), p2pPeer(0) {}
-    
+
 HCCLComm::~HCCLComm()
 {
     destroyHcclComm();

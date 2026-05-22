@@ -35,7 +35,7 @@ import os
 import torch
 import torch.cuda._sanitizer as csan
 import torch.distributed as dist
-   
+
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 

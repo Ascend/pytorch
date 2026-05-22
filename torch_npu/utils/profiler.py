@@ -26,7 +26,7 @@ class Profile(object):
                  save_path: str = "./npu_profiling",
                  profile_type: str = None,
                  use_npu=True,
-                 record_shape: bool = True, 
+                 record_shape: bool = True,
                  experimental_config: Optional[_ExperimentalConfig] = torch_npu.profiler._ExperimentalConfig(
                         profiler_level=torch_npu.profiler.ProfilerLevel.Level2
                     ),
@@ -72,9 +72,9 @@ class Profile(object):
                     raise ValueError("Args '%s' invaild, expect args '%s' ." % (kwargs.keys(), ascend_profiler_args_set) +
                                      prof_error(ErrCode.VALUE))
                 self.prof = torch_npu.profiler.profile(
-                    on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(self.save_path), 
-                    experimental_config=self.experimental_config, 
-                    record_shapes=self.record_shape, 
+                    on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(self.save_path),
+                    experimental_config=self.experimental_config,
+                    record_shapes=self.record_shape,
                     **kwargs
                 )
 

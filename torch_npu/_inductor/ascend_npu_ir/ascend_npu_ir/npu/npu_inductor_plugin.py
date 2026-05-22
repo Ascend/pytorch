@@ -131,7 +131,7 @@ def disable_implicit_decomposition():
                 op_override.py_kernels.pop(DispatchKey.Autograd)
             if DispatchKey.CompositeImplicitAutograd in op_override.py_kernels:
                 op_override.py_kernels.pop(DispatchKey.CompositeImplicitAutograd)
-                
+
 
 def _patch_run_node(tracer, node, args, kwargs, nnmodule):
     op = node.op
@@ -143,7 +143,7 @@ def _patch_run_node(tracer, node, args, kwargs, nnmodule):
 
         try:
             if op == "call_function":
-                # patch start 
+                # patch start
                 if 'npu.npu_fusion_attention' in str(node.target):
                     if 'actual_seq_qlen' in kwargs:
                         kwargs['actual_seq_qlen'] = list(kwargs['actual_seq_qlen'])
@@ -190,7 +190,7 @@ disable_implicit_decomposition()
 torch._dynamo.utils.run_node = _patch_run_node
 
 
-from torch._dynamo.backends import common 
+from torch._dynamo.backends import common
 from torch._dynamo.backends.common import AotAutograd
 
 def wrap_compiler(fn):
@@ -215,13 +215,13 @@ def wrap_aot_autograd(fn):
 
 AotAutograd.__call__ = wrap_aot_autograd(AotAutograd.__call__)
 
-# recompute last usage for inductor scheduler 
+# recompute last usage for inductor scheduler
 from torch._inductor import scheduler
 from torch._inductor.scheduler import (
     Dep,
     WeakDep,
-    Scheduler, 
-    SchedulerNode, 
+    Scheduler,
+    SchedulerNode,
     SchedulerBuffer,
     FusedSchedulerNode,
     BaseSchedulerNode,
@@ -432,7 +432,7 @@ def patch_transfer_to_npu():
             _replace_cuda_to_npu_in_kwargs,
         )
 
-        def new_wrapper_cuda(module, method):    
+        def new_wrapper_cuda(module, method):
             src_method = f"_src_{method}"
             if hasattr(getattr(module, method), '__wrapped__'):
                 src_func = getattr(module, method).__wrapped__
@@ -441,7 +441,7 @@ def patch_transfer_to_npu():
 
             setattr(module, src_method, src_func)
             fn = getattr(module, src_method)
-            
+
             def decorated(*args, **kwargs):
                 replace_int = fn.__name__ in ['to', 'to_empty']
                 if args:

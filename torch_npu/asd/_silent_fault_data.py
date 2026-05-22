@@ -11,7 +11,7 @@ def parse_thresh(env_var_name, default_value, min_value):
     thresh = [max(int(value), min_value) for value in thresh]
     if thresh[0] <= thresh[1]:
         thresh = [int(value) for value in default_value.split(",")]
-        
+
     return thresh
 
 

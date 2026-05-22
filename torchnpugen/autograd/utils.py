@@ -46,7 +46,7 @@ def parse_derivatives(
         # original code logic
         derivatives_path = str(Path(autograd_dir).parents[1].joinpath(
             f'third_party/op-plugin/op_plugin/config/v{VERSION_PART[0]}r{VERSION_PART[1]}/derivatives.yaml'
-            ))    
+            ))
 
     differentiability_infos, _ = load_derivatives(
         derivatives_path, native_functions_path, tags_path)

@@ -14,7 +14,7 @@ class TestWithDevice(TestCase):
         # -int -> ignore, return -1
         # future exchangeDevice:
         #     if < std::numeric_limits<c10::DeviceIndex>::min(), raise error
-        #     else, ignore, return -1 
+        #     else, ignore, return -1
         for i in [-258, -200.8, -128, -128.8, -127.99, -7, -7.88, -1, -0.2]:
             s = torch.npu.Stream(i)
             self.assertEqual(s.device_index, 1)

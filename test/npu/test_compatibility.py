@@ -12,7 +12,7 @@ import pkgutil
 import torch
 from torch.testing._internal.common_utils import TestCase, run_tests
 from torch._utils_internal import get_file_path_2
-import torch_npu  
+import torch_npu
 
 
 NOT_IMPORT_LIST = [
@@ -101,7 +101,7 @@ def is_not_compatibility(base_str, new_str, api_str=None):
     # case: delete/different default value/different parameter name/different parameter dtype
     if base_diff_params:
         return True
-    
+
     # case: add params
     new_diff_params = set(new_params) - set(base_params)
     # special case
@@ -260,7 +260,7 @@ class TestPublicApiCompatibility(TestCase):
             for key, value in base_schema0.items():
                 if not key.startswith("torch_c_func:") and not key.startswith("torch_npu_public_env:"):
                     base_schema[key] = value
-        
+
         # load torchair torch_npu_schema.json
         torchair_schema = {}
         try:
@@ -270,7 +270,7 @@ class TestPublicApiCompatibility(TestCase):
         except Exception:
             warnings.warn(
                 "if you are debugging UT file in clone repo, please recursively update the torchair submodule")
-        
+
         if torchair_schema:
             base_schema.update(torchair_schema)
 
@@ -350,7 +350,7 @@ class TestPublicApiCompatibility(TestCase):
         for func in deleted_apis:
             failure_list.append(f"# {func}:")
             failure_list.append(f"  - {func} has been deleted.")
-        
+
         newly_apis = set(now_funcs) - set(base_funcs)
         for func in newly_apis:
             failure_list.append(f"# {func}:")

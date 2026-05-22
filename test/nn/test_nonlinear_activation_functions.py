@@ -122,7 +122,7 @@ class TestNonLiACFunctions(TestCase):
         npu_output = F.glu(npu_input)
 
         self.assertRtolEqual(cpu_output.numpy(), npu_output.cpu().numpy())
-    
+
     @unittest.skip("skip test_gelu now")
     def test_gelu(self):
         input1 = torch.randn(2)

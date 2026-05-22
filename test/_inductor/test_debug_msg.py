@@ -14,7 +14,7 @@ os.environ["INDUCTOR_ASCEND_DUMP_FX_GRAPH"] = "1"
 os.environ["TORCH_COMPILE_DEBUG"] = "1"
 
 
-class TestDebugMsg(TestUtils):    
+class TestDebugMsg(TestUtils):
     @parametrize('shape_x', [(32, 512, 64)])
     @parametrize('shape_y', [(32, 1, 64)])
     @parametrize('dtype', ['float32'])

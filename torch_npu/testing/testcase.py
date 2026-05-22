@@ -154,7 +154,7 @@ class TestCase(expecttest.TestCase):
             self.assertEqual(tc._values(), t._values())
 
         return tg
-    
+
     def assertRtolEqual(self, x, y, prec=1.e-4, prec16=1.e-3, auto_trans_dtype=False, message=None):
 
         def _assertRtolEqual(x, y, prec, prec16, message):
@@ -198,7 +198,7 @@ class TestCase(expecttest.TestCase):
                         self.fail("result error!")
                     return
                 x = x.detach().cpu().numpy()
-                y = y.detach().cpu().numpy()  
+                y = y.detach().cpu().numpy()
             elif isinstance(x, Number) and isinstance(y, Number):
                 x = np.array(x)
                 y = np.array(y)
@@ -208,7 +208,7 @@ class TestCase(expecttest.TestCase):
                 self.fail("shape error")
             if (x.dtype != y.dtype):
                 self.fail("dtype error")
-            dtype_list = [np.bool_, np.uint16, np.int16, np.int32, np.float16, 
+            dtype_list = [np.bool_, np.uint16, np.int16, np.int32, np.float16,
                         np.float32, np.int8, np.uint8, np.int64, np.float64]
             if x.dtype not in dtype_list:
                 self.fail("required dtype in [np.bool_, np.uint16, np.int16, " +
@@ -502,7 +502,7 @@ class TestCase(expecttest.TestCase):
     def run(self, result=None):
         # run test to precompile operators
         super(TestCase, self).run(result)
-        
+
         if PERF_TEST_ENABLE:
             performanceResult = TestResult()
             startTime = time.perf_counter()

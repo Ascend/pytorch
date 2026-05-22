@@ -15,7 +15,7 @@ class AkgKernel(NpuMetaKernel):
     def call_kernel(self, name: str, node=None):
         wrapper = V.graph.wrapper_code
         call_args = self.get_call_args()
-        
+
         if len(call_args) > 0:
             wrapper.generate_kernel_call(
                 name,

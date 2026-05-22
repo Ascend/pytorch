@@ -41,7 +41,7 @@ class ProfPathCreator:
             PathManager.check_input_directory_path(dir_path)
             self._dir_path = dir_path
         elif dir_name is None:
-            self._dir_path = dir_name  
+            self._dir_path = dir_name
         else:
             print_warn_msg("Invalid parameter dir_name, reset it to default.")
             self._dir_path = None
