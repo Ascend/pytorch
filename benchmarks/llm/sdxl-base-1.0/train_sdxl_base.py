@@ -215,17 +215,6 @@ class SDXLLoRAFineTuner:
 
         train_result = trainer.train()
 
-        if self.args.enable_compile:
-            try:
-                headers, values = torch._dynamo.utils.compile_times("csv")
-                for header, value in zip(headers, values):
-                    if header == "PyCodeCache.load_by_key_path":
-                        numbers = [float(num.strip()) for num in value.split(',') if num.strip()]
-                        op_compile_time = sum(numbers)
-                print(f"op_compile_time: {op_compile_time * 1e3} ms")
-            except Exception as e:
-                logger.warning(f"Failed to fetch compile times: {e}")
-
         logger.info(f"Saving LoRA weights to {self.args.output_dir}")
         unet_lora_state_dict = get_peft_model_state_dict(self.unet)
         self.pipe.save_lora_weights(
@@ -264,7 +253,7 @@ def main():
     device_type = detect_device_type()
     os.environ['TORCHINDUCTOR_NPU_BACKEND'] = args.npu_backend
     if args.mfusion:
-        os.environ['TORCHINDUCTOR_NPU_MFUSION']='1'
+        os.environ['TORCHINDUCTOR_ENABLE_MFUSION']='1'
     finer_tuner = SDXLLoRAFineTuner(args)
     metrics = finer_tuner.train()
     if args.enable_compile:

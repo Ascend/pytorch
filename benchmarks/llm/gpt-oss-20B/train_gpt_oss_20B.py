@@ -374,7 +374,7 @@ def main():
     args.device_type = detect_device_type()
     os.environ['TORCHINDUCTOR_NPU_BACKEND']=args.npu_backend
     if args.mfusion:
-        os.environ['TORCHINDUCTOR_NPU_MFUSION']='1'
+        os.environ['TORCHINDUCTOR_ENABLE_MFUSION']='1'
     print(f"{args.device_type}  train  {model_name}")
 
     trainer = GPT_OSS_20BTrainer(args)
