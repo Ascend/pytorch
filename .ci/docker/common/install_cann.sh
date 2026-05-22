@@ -64,16 +64,19 @@ if [[ $? -ne 0 ]]; then
 fi
 
 chmod +x Ascend-cann*.run
-./Ascend-cann-toolkit*.run --full --quiet --install-path=/usr/local/Ascend \
-  && source "/usr/local/Ascend/${SET_ENV_PATH}" \
-  && echo "toolkit install success"
+echo "=== Installing CANN toolkit ==="
+./Ascend-cann-toolkit*.run --full --install-path=/usr/local/Ascend
+source "/usr/local/Ascend/${SET_ENV_PATH}"
+echo "toolkit install success"
 
-./Ascend-cann-${OPS_SUFFIX}*.run --install --quiet --install-path=/usr/local/Ascend \
-  && echo "ops install success"
+echo "=== Installing CANN ops ==="
+./Ascend-cann-${OPS_SUFFIX}*.run --install --install-path=/usr/local/Ascend
+echo "ops install success"
 
-./Ascend-cann-nnal*.run --install --quiet --install-path=/usr/local/Ascend \
-  && source /usr/local/Ascend/nnal/atb/set_env.sh \
-  && echo "nnal install success"
+echo "=== Installing CANN nnal ==="
+./Ascend-cann-nnal*.run --install --install-path=/usr/local/Ascend
+source /usr/local/Ascend/nnal/atb/set_env.sh
+echo "nnal install success"
 
 # Some CANN versions install to versioned paths (e.g. cann-9.0.0-beta.2)
 # instead of /usr/local/Ascend/cann/. Fix broken symlinks so runtime
