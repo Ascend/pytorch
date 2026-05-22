@@ -1,8 +1,8 @@
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 
 ARG PYTORCH_VERSION=2.7.1
 ARG CANN_CHIP=A2
-ARG PYTHON_VERSION=3.9
+ARG PYTHON_VERSION=3.10
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Asia/Shanghai
@@ -13,7 +13,6 @@ ENV CANN_CHIP=${CANN_CHIP}
 COPY common/ /opt/buildtools/
 COPY requirements-test.txt /opt/buildtools/
 
-# Install system base dependencies (Python 3.9 is default on Ubuntu 20.04)
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         build-essential \
@@ -53,7 +52,7 @@ RUN chmod -R 755 /opt/buildtools/* \
     && /opt/buildtools/install_obs.sh
 
 # Install triton-ascend
-RUN /opt/buildtools/install_triton.sh 3.9
+RUN /opt/buildtools/install_triton.sh 3.10
 
 # Install PyTorch and test requirements
 RUN python3 -m pip install --no-cache-dir torch==${PYTORCH_VERSION} --extra-index-url https://download.pytorch.org/whl/cpu \

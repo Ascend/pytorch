@@ -9,7 +9,7 @@
 #
 # Examples:
 #   ./docker_build.sh torch-npu-builder-x86_64-py2.7.1
-#   ./docker_build.sh torch-npu-test-aarch64-cann-a2-py3.9-torch2.7.1
+#   ./docker_build.sh torch-npu-test-aarch64-cann-a2-py3.10-torch2.7.1
 #
 # Reference: pytorch/pytorch .ci/docker/build.sh
 
@@ -29,52 +29,52 @@ case "$tag" in
     ARCH=aarch64
     PYTORCH_VERSION=2.7.1
     ;;
-  torch-npu-test-x86_64-cann-a1-py3.9-torch2.7.1)
+  torch-npu-test-x86_64-cann-a1-py3.10-torch2.7.1)
     IMAGE_TYPE=test
     ARCH=x86_64
     CANN_CHIP=A1
-    PYTHON_VERSION=3.9
+    PYTHON_VERSION=3.10
     PYTORCH_VERSION=2.7.1
     ;;
-  torch-npu-test-x86_64-cann-a2-py3.9-torch2.7.1)
+  torch-npu-test-x86_64-cann-a2-py3.10-torch2.7.1)
     IMAGE_TYPE=test
     ARCH=x86_64
     CANN_CHIP=A2
-    PYTHON_VERSION=3.9
+    PYTHON_VERSION=3.10
     PYTORCH_VERSION=2.7.1
     ;;
-  torch-npu-test-x86_64-cann-a3-py3.9-torch2.7.1)
+  torch-npu-test-x86_64-cann-a3-py3.10-torch2.7.1)
     IMAGE_TYPE=test
     ARCH=x86_64
     CANN_CHIP=A3
-    PYTHON_VERSION=3.9
+    PYTHON_VERSION=3.10
     PYTORCH_VERSION=2.7.1
     ;;
-  torch-npu-test-aarch64-cann-a1-py3.9-torch2.7.1)
+  torch-npu-test-aarch64-cann-a1-py3.10-torch2.7.1)
     IMAGE_TYPE=test
     ARCH=aarch64
     CANN_CHIP=A1
-    PYTHON_VERSION=3.9
+    PYTHON_VERSION=3.10
     PYTORCH_VERSION=2.7.1
     ;;
-  torch-npu-test-aarch64-cann-a2-py3.9-torch2.7.1)
+  torch-npu-test-aarch64-cann-a2-py3.10-torch2.7.1)
     IMAGE_TYPE=test
     ARCH=aarch64
     CANN_CHIP=A2
-    PYTHON_VERSION=3.9
+    PYTHON_VERSION=3.10
     PYTORCH_VERSION=2.7.1
     ;;
-  torch-npu-test-aarch64-cann-a3-py3.9-torch2.7.1)
+  torch-npu-test-aarch64-cann-a3-py3.10-torch2.7.1)
     IMAGE_TYPE=test
     ARCH=aarch64
     CANN_CHIP=A3
-    PYTHON_VERSION=3.9
+    PYTHON_VERSION=3.10
     PYTORCH_VERSION=2.7.1
     ;;
   *)
     echo "Unknown tag: ${tag}"
     echo "  Builder: torch-npu-builder-<x86_64|aarch64>-py2.7.1"
-    echo "  Test:    torch-npu-test-<x86_64|aarch64>-cann<A1|A2|A3>-py3.9-torch2.7.1"
+    echo "  Test:    torch-npu-test-<x86_64|aarch64>-cann<A1|A2|A3>-py3.10-torch2.7.1"
     exit 1
     ;;
 esac
