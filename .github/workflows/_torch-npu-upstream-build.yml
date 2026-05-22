@@ -107,10 +107,6 @@ jobs:
           restore-keys: |
             ccache-py${{ inputs.python_version }}-
 
-      - name: Install pyyaml
-        run: |
-          pip${{ inputs.python_version }} install pyyaml
-
       - name: Build torch_npu wheel
         id: build
         run: |

@@ -6,7 +6,7 @@ on:
       docker_image_build:
         required: false
         type: string
-        default: 'quay.io/kerer/pytorch:torch-npu-builder-aarch64-py2.7.1-202605220956'
+        default: 'quay.io/kerer/pytorch:torch-npu-builder-aarch64-torch2.7.1-202605221529'
         description: Docker image for building torch_npu
       docker_image_test:
         required: false
