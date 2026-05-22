@@ -937,6 +937,8 @@ class NPUCachingAutotuner(CachingAutotuner):
     @lru_cache(None)
     def get_fx_graph_dump_path(self):
         traced_graph_hash = self.inductor_meta.get("traced_graph_hash")
+        if not traced_graph_hash:
+            return None
         dump_dir = self.inductor_meta.get("traced_graph_dir", "")
         dump_path = os.path.join(dump_dir, traced_graph_hash)
         if dump_dir == "" or not os.path.exists(dump_path):
@@ -1032,7 +1034,7 @@ class NPUCachingAutotuner(CachingAutotuner):
         if self.dump_launch_params:
             _dump_launch_params(args, kwargs, launcher, self.fn.__name__)
 
-        if self.is_run_debug():
+        if self.is_run_debug() and not self.heuristic_type == HeuristicType.USER_AUTOTUNE:
             _, grid = self._interpret_args_grid(args, launcher.config)
             debug_mode = self.maybe_run_debug(*args, grid_=grid, stream=stream, launcher=launcher, **kwargs)
             if debug_mode:

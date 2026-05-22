@@ -1,5 +1,6 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # Copyright (c) 2026, Huawei Technologies Co., Ltd
+# Copyright (c) 2013 the respective contributors
 #
 # Licensed under the Apache-2.0 License (the "License");
 # you may not use this file except in compliance with the License.
@@ -123,7 +124,7 @@ if npu_config.dump_fx_graph:
         to_dtype,
         DUMP_FX_GRAPH_LOWERING_OPS
     )
-    LOWERING_OVERRIDE_OP = list(set(LOWERING_OVERRIDE_OP) | set(DUMP_FX_GRAPH_LOWERING_OPS))
+    LOWERING_OVERRIDE_OP = list((set(LOWERING_OVERRIDE_OP) | set(DUMP_FX_GRAPH_LOWERING_OPS)) - set(FALLBACK_LIST))
 
     Scheduler.compute_ancestors = npu_compute_ancestors
     scheduler._prune_redundant_deps = _npu_prune_redundant_deps
@@ -200,15 +201,7 @@ def _register_npu_inductor_fallbacks():
                 log.info(f"[npu|inductor|lowering|fallback] User specified fallback: {op_name}")
             else:
                 log.warning(f"[npu|inductor|lowering|fallback] Cannot resolve operator: {op_name}")
-    # fallback
-    for op in lowering.lowerings:
-        if op in FALLBACK_LIST and op not in decompositions \
-            and isinstance(op, (torch._ops.OpOverloadPacket, torch._ops.OpOverload, torch._ops.HigherOrderOperator)):
-            make_fallback(op)
-    log.info(f"[npu|inductor|lowering|fallback] with FALLBACK_LIST, len(lowerings): {len(lowerings)}, "
-                f"len(FALLBACK_LIST): {len(FALLBACK_LIST)}, make_fallback finished.")
-    log.info(f"[npu|inductor|lowering|fallback] len(NPU_EXTRA_FALLBACK_LIST): {len(NPU_EXTRA_FALLBACK_LIST)}")
-            
+    
     # 把需要overload的op在lowering里删除
     overload_op_set = set()
     _add_overload(LOWERING_OVERRIDE_OP, overload_op_set)
@@ -223,6 +216,15 @@ def _register_npu_inductor_fallbacks():
     else:
         (squeeze, expand, view, unsqueeze, _validate_dim, full_like, mul, div, rsqrt, add, square, sub) = (squeeze_pt, expand_pt, view_pt, unsqueeze_pt, _validate_dim_pt, full_like_pt, mul_pt, div_pt, rsqrt_pt, add_pt, square_pt, sub_pt)
 
+    # fallback
+    for op in lowering.lowerings:
+        if op in FALLBACK_LIST and op not in decompositions \
+            and isinstance(op, (torch._ops.OpOverloadPacket, torch._ops.OpOverload, torch._ops.HigherOrderOperator)):
+            make_fallback(op)
+    log.info(f"[npu|inductor|lowering|fallback] with FALLBACK_LIST, len(lowerings): {len(lowerings)}, "
+                f"len(FALLBACK_LIST): {len(FALLBACK_LIST)}, make_fallback finished.")
+    log.info(f"[npu|inductor|lowering|fallback] len(NPU_EXTRA_FALLBACK_LIST): {len(NPU_EXTRA_FALLBACK_LIST)}")
+            
     # register the reductions useing custom make_reduction
     reduce_amax = register_lowering(aten.amax)(make_reduction("max"))
     reduce_amin = register_lowering(aten.amin)(make_reduction("min"))
