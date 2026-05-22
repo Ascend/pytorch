@@ -24,6 +24,7 @@ acc_comp_mode = True
 disable_any_pbr = True
 autotune_fx_fallback = False
 cache_named_op = False
+config.allow_buffer_reuse = False
 
 # NPU_INDUCTOR_FALLBACK_LIST=allfallback forces ops entering the NPU inductor lowering
 # path to register fallback lowerings, so optimized/fused lowerings are not used.
