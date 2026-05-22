@@ -12,6 +12,7 @@ from torch.multiprocessing.reductions import (
     rebuild_tensor,
     storage_from_cache,
     rebuild_meta_tensor,
+    reduce_nested_tensor,
 )
 
 import torch_npu
@@ -95,6 +96,11 @@ def rebuild_npu_tensor(
 
 
 def _npu_reduce_tensor(tensor):
+    from torch.nested._internal.nested_tensor import NestedTensor
+
+    if tensor.is_nested and not isinstance(tensor, NestedTensor):
+        return reduce_nested_tensor(tensor)
+
     storage = tensor._typed_storage()
 
     if tensor.requires_grad and not tensor.is_leaf:
