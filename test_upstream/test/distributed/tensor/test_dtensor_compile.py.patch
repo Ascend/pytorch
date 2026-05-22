@@ -11,7 +11,7 @@ index 06e728c..569947e 100644
  # Copyright (c) Meta Platforms, Inc. and affiliates
  # Owner(s): ["oncall: distributed"]
  
-@@ -47,12 +52,13 @@ from torch.testing._internal.common_utils import (
+@@ -47,13 +52,16 @@ from torch.testing._internal.common_utils import (
  from torch.testing._internal.distributed._tensor.common_dtensor import (
      DTensorTestBase,
      MLPModule,
@@ -24,5 +24,7 @@ index 06e728c..569947e 100644
  from torch.utils.checkpoint import checkpoint
 +from torch_npu.testing.common_distributed import with_comms
  
++import os
++os.environ['TORCH_NPU_DEVICE_CAPABILITY']='9.0'
  
  dev_type = torch.device(get_devtype())
