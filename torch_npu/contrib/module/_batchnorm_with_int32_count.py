@@ -324,6 +324,9 @@ class FastSyncBatchNorm(_BatchNorm):
             and torch.distributed.is_initialized()
         )
         if need_sync:
+            # currently NPU or GPU input1 is supported
+            if not input1.is_cuda and not input1.is_npu:
+                raise ValueError("SyncBatchNorm expected input1 tensor to be on NPU or GPU" + ops_error(ErrCode.VALUE))
             process_group = torch.distributed.group.WORLD
             if self.process_group:
                 process_group = self.process_group
