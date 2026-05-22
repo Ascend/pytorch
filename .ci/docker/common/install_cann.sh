@@ -76,16 +76,16 @@ echo "Download complete."
 chmod +x Ascend-cann*.run
 
 echo "=== Installing CANN toolkit ==="
-./Ascend-cann-toolkit*.run --full --install-path=/usr/local/Ascend
+./Ascend-cann-toolkit*.run --full --quiet --install-path=/usr/local/Ascend
 source "${SET_ENV_PATH}"
 echo "toolkit install success"
 
 echo "=== Installing CANN ops ==="
-./${OPS_GLOB}.run --install --install-path=/usr/local/Ascend
+./${OPS_GLOB}.run --install --quiet --install-path=/usr/local/Ascend
 echo "ops install success"
 
 echo "=== Installing CANN nnal ==="
-./Ascend-cann-nnal*.run --install --install-path=/usr/local/Ascend
+./Ascend-cann-nnal*.run --install --quiet --install-path=/usr/local/Ascend
 source /usr/local/Ascend/nnal/atb/set_env.sh
 echo "nnal install success"
 
