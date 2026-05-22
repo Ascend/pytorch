@@ -175,7 +175,7 @@ def _do_wrapper_libraries_func(json_dict):
 
 def _wrapper_cuda(fn):
     @wraps(fn)
-    def decorated(*args, **kwargs):
+    def decorated(*args, **kwargs):      
         replace_int = fn.__name__ in ['to', 'to_empty']
         if args:
             args_new = list(args)
