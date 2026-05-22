@@ -73,13 +73,43 @@ jobs:
         id: collect_and_shard
         run: |
           echo "=== CANN Environment Diagnostics ==="
-          echo "--- set_env.sh files ---"
-          ls -la /usr/local/Ascend/cann/set_env.sh 2>&1 || echo "MISSING: /usr/local/Ascend/cann/set_env.sh"
-          ls -la /usr/local/Ascend/nnal/atb/set_env.sh 2>&1 || echo "MISSING: /usr/local/Ascend/nnal/atb/set_env.sh"
+          echo "--- set_env.sh files (find all) ---"
+          find /usr/local/Ascend -name "set_env.sh" -type f 2>/dev/null || echo "NO set_env.sh found"
+
+          echo "--- Ascend directory tree (top 2 levels) ---"
+          find /usr/local/Ascend -maxdepth 2 -type d 2>/dev/null | sort
 
           echo "--- Sourcing CANN env ---"
-          source /usr/local/Ascend/cann/set_env.sh 2>&1 || echo "FAILED: source /usr/local/Ascend/cann/set_env.sh"
-          source /usr/local/Ascend/nnal/atb/set_env.sh 2>&1 || echo "FAILED: source /usr/local/Ascend/nnal/atb/set_env.sh"
+          # Try known paths for A3 CANN (versioned install)
+          CANN_SET_ENV=""
+          for candidate in \
+            /usr/local/Ascend/cann/set_env.sh \
+            /usr/local/Ascend/cann-9.0.0-beta.2/set_env.sh \
+            /usr/local/Ascend/cann-9.0.0-beta.2/cann/set_env.sh \
+            /usr/local/Ascend/ascend-toolkit/set_env.sh; do
+            if [ -f "$candidate" ]; then
+              echo "Found: $candidate"
+              source "$candidate" 2>&1 || echo "FAILED: source $candidate"
+              CANN_SET_ENV="$candidate"
+              break
+            fi
+          done
+          [ -z "$CANN_SET_ENV" ] && echo "ALL set_env.sh candidates MISSING"
+
+          # Try NNAL
+          NNAL_SET_ENV=""
+          for candidate in \
+            /usr/local/Ascend/nnal/atb/set_env.sh \
+            /usr/local/Ascend/nnal-*/atb/set_env.sh; do
+            c=$(ls $candidate 2>/dev/null | head -1)
+            if [ -n "$c" ] && [ -f "$c" ]; then
+              echo "Found NNAL: $c"
+              source "$c" 2>&1 || echo "FAILED: source $c"
+              NNAL_SET_ENV="$c"
+              break
+            fi
+          done
+          [ -z "$NNAL_SET_ENV" ] && echo "ALL NNAL candidates MISSING"
 
           echo "--- LD_LIBRARY_PATH ---"
           echo "${LD_LIBRARY_PATH:-NOT SET}"
