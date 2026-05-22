@@ -2,7 +2,7 @@ FROM ubuntu:22.04
 
 ARG PYTORCH_VERSION=2.7.1
 ARG CANN_CHIP=A2
-ARG PYTHON_VERSION=3.10
+ARG PYTHON_VERSION=3.9
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Asia/Shanghai
@@ -13,7 +13,7 @@ ENV CANN_CHIP=${CANN_CHIP}
 COPY common/ /opt/buildtools/
 COPY requirements-test.txt /opt/buildtools/
 
-# Install system base dependencies
+# Install system base dependencies + Python 3.9
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         build-essential \
@@ -24,16 +24,20 @@ RUN apt-get update \
         g++ \
         git \
         make \
-        python3 \
-        python3-dev \
-        python3-pip \
+        python3.9 \
+        python3.9-dev \
+        python3.9-distutils \
         tar \
         tzdata \
         unzip \
         vim \
         wget \
-    && ln -sf /usr/bin/python3 /usr/bin/python \
+    && ln -sf /usr/bin/python3.9 /usr/bin/python3 \
+    && ln -sf /usr/bin/python3.9 /usr/bin/python \
     && rm -rf /var/lib/apt/lists/*
+
+# Install pip for Python 3.9
+RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.9
 
 # Set pip source
 RUN mkdir -p /root/.pip \
@@ -43,7 +47,7 @@ RUN mkdir -p /root/.pip \
     && echo "timeout=120" >> /root/.pip/pip.conf
 
 # Upgrade pip/setuptools/wheel before installing any Python packages
-RUN python3 -m pip install --no-cache-dir --upgrade pip setuptools wheel
+RUN python3.9 -m pip install --no-cache-dir --upgrade pip setuptools wheel
 
 # Install CANN and OBS
 RUN chmod -R 755 /opt/buildtools/* \
@@ -52,10 +56,10 @@ RUN chmod -R 755 /opt/buildtools/* \
     && /opt/buildtools/install_obs.sh
 
 # Install triton-ascend
-RUN /opt/buildtools/install_triton.sh 3.10
+RUN /opt/buildtools/install_triton.sh 3.9
 
 # Install PyTorch and test requirements
-RUN python3 -m pip install --no-cache-dir torch==${PYTORCH_VERSION} --extra-index-url https://download.pytorch.org/whl/cpu \
-    && python3 -m pip install --no-cache-dir -r /opt/buildtools/requirements-test.txt
+RUN python3.9 -m pip install --no-cache-dir torch==${PYTORCH_VERSION} --extra-index-url https://download.pytorch.org/whl/cpu \
+    && python3.9 -m pip install --no-cache-dir -r /opt/buildtools/requirements-test.txt
 
 WORKDIR /home
