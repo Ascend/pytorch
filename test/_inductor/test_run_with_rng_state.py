@@ -9,6 +9,7 @@ import torch_npu
 import torch_npu._inductor
 
 
+
 class TestRunWithRngState(TestUtils):
     def op_calc(self, current_state, like, device, dtype):
         res1 = torch._prims.rng_prims.run_with_rng_state(
