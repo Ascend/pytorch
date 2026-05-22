@@ -12,7 +12,6 @@ parameterized==0.9.0
 expecttest==0.1.3
 unittest-xml-reporting
 
-beartype==0.17.0
 mypy==1.14.0
 
 ml-dtypes==0.5.1
@@ -33,8 +32,6 @@ torchvision==0.22.1
 transformers==4.40.0
 
 tabulate==0.9.0
-attrs
-decorator
 importlib_metadata
 optree
 packaging

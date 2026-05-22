@@ -62,7 +62,7 @@ jobs:
 
     steps:
       - name: Setup NPU test environment
-        uses: ./.github/actions/setup-npu-test-env
+        uses: kerer-ai/pytorch/.github/actions/setup-npu-test-env@v2.7.1_image
         with:
           python_version: ${{ inputs.python_version }}
           torch_npu_wheel_artifact: ${{ inputs.torch_npu_wheel_artifact }}
