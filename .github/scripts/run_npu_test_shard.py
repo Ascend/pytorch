@@ -762,14 +762,15 @@ def _execute_worker_batch(
     result_aggregator: ConcurrentResultAggregator,
     progress_tracker: ProgressTracker,
     log_queue: Queue,
-    max_coredump_retries: int = 3,
 ) -> None:
     """
     Execute one batch in a worker subprocess using pytest.main().
 
     Spawns a subprocess that calls pytest.main() for each case in the batch.
     Reads stdout JSON lines for real-time progress updates.
-    On coredump (returncode < 0), retries remaining cases up to max_coredump_retries.
+    No retries: on coredump or idle timeout, the first unreported case is
+    marked as error/timeout and a new worker is started for the remaining
+    cases. Every case gets exactly one execution chance.
     Never raises — all errors become case_result entries in the aggregator.
     """
     script_path = Path(__file__).resolve()
@@ -777,17 +778,13 @@ def _execute_worker_batch(
 
     remaining_cases = list(batch)
     completed_nodeids = set()
-    coredump_retries = 0  # consecutive coredumps on same remaining_cases
     batch_input = _build_batch_input_json(
         batch, batch_id, test_dir, report_dir,
         {},  # env_updates already merged by caller
         timeout, verbose, shard, shard_type, npu_device_id,
     )
 
-    # Outer loop: unlimited restarts for idle timeouts.
-    # Each restart spawns a new worker for the remaining cases.
     while remaining_cases:
-        # Update batch input with current remaining cases
         batch_input["cases"] = [
             {
                 "case_idx": t.case_idx,
@@ -890,15 +887,13 @@ def _execute_worker_batch(
 
                 sleep(0.5)
 
+            completed_nodeids.update(attempt_completed)
+            not_reported = [
+                t for t in remaining_cases
+                if t.nodeid not in attempt_completed
+            ]
+
             if timeout_occurred:
-                # Idle timeout: mark the hung case, restart worker for the
-                # rest.  Unlimited restarts — worst case every case times
-                # out individually, same overhead as per-case subprocess.
-                coredump_retries = 0
-                not_reported = [
-                    t for t in remaining_cases
-                    if t.nodeid not in attempt_completed
-                ]
                 if not_reported:
                     hung_case = not_reported[0]
                     timeout_result = {
@@ -922,54 +917,53 @@ def _execute_worker_batch(
 
                 if remaining_cases:
                     print(
-                        f"  [Batch {batch_id}] Restarting worker for "
+                        f"  [Batch {batch_id}] Continuing with "
                         f"{len(remaining_cases)} remaining cases...",
                         flush=True,
                     )
-                continue  # back to while loop
+                continue
 
             if returncode < 0:
-                # Worker killed by signal → coredump
-                coredump_retries += 1
                 signal_num = -returncode
                 try:
                     signal_name = signal.Signals(signal_num).name
                 except (ValueError, AttributeError):
                     signal_name = f"signal {signal_num}"
                 print(
-                    f"  [Batch {batch_id}] Worker coredump ({signal_name}), "
-                    f"attempt {coredump_retries}/{max_coredump_retries}",
+                    f"  [Batch {batch_id}] Worker coredump ({signal_name})",
                     flush=True,
                 )
 
-                completed_nodeids.update(attempt_completed)
-                remaining_cases = [
-                    t for t in batch if t.nodeid not in completed_nodeids
-                ]
+                if not_reported:
+                    crashed_case = not_reported[0]
+                    error_result = {
+                        "nodeid": crashed_case.nodeid,
+                        "status": "error",
+                        "duration": 0.0,
+                        "returncode": returncode,
+                        "message": f"Worker killed by signal ({signal_name})",
+                        "command": "",
+                        "file": crashed_case.test_file,
+                        "case_idx": crashed_case.case_idx,
+                    }
+                    result_aggregator.add_case_result(error_result)
+                    progress_tracker.mark_completed(
+                        crashed_case.nodeid, "error", 0.0
+                    )
+                    completed_nodeids.add(crashed_case.nodeid)
+                    remaining_cases = not_reported[1:]
+                else:
+                    remaining_cases = []
 
-                if coredump_retries > max_coredump_retries:
-                    for task in remaining_cases:
-                        error_result = {
-                            "nodeid": task.nodeid,
-                            "status": "error",
-                            "duration": 0.0,
-                            "returncode": 1,
-                            "message": f"Coredump: max retries exceeded ({signal_name})",
-                            "command": "",
-                            "file": task.test_file,
-                            "case_idx": task.case_idx,
-                        }
-                        result_aggregator.add_case_result(error_result)
-                        progress_tracker.mark_completed(
-                            task.nodeid, "error", 0.0
-                        )
-                        completed_nodeids.add(task.nodeid)
-                    break
-                continue  # back to while loop
+                if remaining_cases:
+                    print(
+                        f"  [Batch {batch_id}] Continuing with "
+                        f"{len(remaining_cases)} remaining cases...",
+                        flush=True,
+                    )
+                continue
 
             # Normal exit: all cases processed
-            completed_nodeids.update(attempt_completed)
-
             if not attempt_completed:
                 results_file = report_dir / f"batch_results_{batch_id}.json"
                 if results_file.exists():
