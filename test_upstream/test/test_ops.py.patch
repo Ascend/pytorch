@@ -21,7 +21,7 @@ index 871b643..b13da9b 100644
  from torch.testing._internal.common_device_type import (
      deviceCountAtLeast,
      instantiate_device_type_tests,
-@@ -244,11 +248,13 @@ class TestCommon(TestCase):
+@@ -244,11 +248,16 @@ class TestCommon(TestCase):
              assert len(filtered_ops) == 0, err_msg
  
      # Validates that each OpInfo works correctly on different CUDA devices
@@ -29,6 +29,9 @@ index 871b643..b13da9b 100644
 +    # @onlyCUDA
      @deviceCountAtLeast(2)
      @ops(op_db, allowed_dtypes=(torch.float32, torch.long))
++    @skipOps("TestCommon", "test_multiple_devices", {
++        skip("sparse.sampled_addmm", "", device_type="privateuse1", dtypes=(torch.float32,)),
++    })
      def test_multiple_devices(self, devices, dtype, op):
          for cuda_device_str in devices:
 +            if cuda_device_str.startswith('cpu'):
@@ -71,6 +74,21 @@ index 871b643..b13da9b 100644
          if (
              TEST_WITH_ROCM
              and (op.name == "_refs.fft.ihfftn" or op.name == "_refs.fft.ihfft2")
+@@ -1146,1 +1162,4 @@ class TestCommon(TestCase):
++    @skipOps("TestCommon", "test_out_requires_grad_error", {
++        skip("sparse.sampled_addmm", "", device_type="privateuse1", dtypes=(torch.float32,)),
++    })
+     def test_out_requires_grad_error(self, device, dtype, op):
+@@ -1816,1 +1835,4 @@ class TestCompositeCompliance(TestCase):
++    @skipOps("TestCompositeCompliance", "test_cow_input", {
++        skip("sparse.sampled_addmm", "", device_type="privateuse1", dtypes=(torch.float32,)),
++    })
+     def test_cow_input(self, device, dtype, op):
+@@ -1975,1 +1997,4 @@ class TestCompositeCompliance(TestCase):
++    @skipOps("TestCompositeCompliance", "test_view_replay", {
++        skip("sparse.sampled_addmm", "", device_type="privateuse1", dtypes=(torch.float32,)),
++    })
+     def test_view_replay(self, device, dtype, op):
 @@ -2113,7 +2125,7 @@ class TestMathBits(TestCase):
                      cloned1_tensor = (
                          cloned1 if isinstance(cloned1, torch.Tensor) else cloned1[0]
