@@ -75,5 +75,16 @@ chmod +x Ascend-cann*.run
   && source /usr/local/Ascend/nnal/atb/set_env.sh \
   && echo "nnal install success"
 
+# Some CANN versions install to versioned paths (e.g. cann-9.0.0-beta.2)
+# instead of /usr/local/Ascend/cann/. Fix broken symlinks so runtime
+# sourcing of set_env.sh works.
+if [ ! -f /usr/local/Ascend/cann/set_env.sh ]; then
+  CANN_REAL_DIR=$(ls -d /usr/local/Ascend/cann-* 2>/dev/null | head -1)
+  if [ -n "${CANN_REAL_DIR}" ]; then
+    ln -sf "${CANN_REAL_DIR}" /usr/local/Ascend/cann
+    echo "Fixed: linked ${CANN_REAL_DIR} -> /usr/local/Ascend/cann"
+  fi
+fi
+
 rm -rf *
 echo "CANN ${CANN_CHIP} installation complete."
