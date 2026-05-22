@@ -28,8 +28,6 @@ on:
         description: Build status (0 for success, non-zero for failure)
         value: ${{ jobs.build_torch_npu.outputs.status }}
 
-env:
-  PYTORCH_VERSION: '2.7.1'
 
 jobs:
   build_torch_npu:
