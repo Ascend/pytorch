@@ -72,8 +72,30 @@ jobs:
       - name: Collect all test cases and shard
         id: collect_and_shard
         run: |
-          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
-          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+          echo "=== CANN Environment Diagnostics ==="
+          echo "--- set_env.sh files ---"
+          ls -la /usr/local/Ascend/cann/set_env.sh 2>&1 || echo "MISSING: /usr/local/Ascend/cann/set_env.sh"
+          ls -la /usr/local/Ascend/nnal/atb/set_env.sh 2>&1 || echo "MISSING: /usr/local/Ascend/nnal/atb/set_env.sh"
+
+          echo "--- Sourcing CANN env ---"
+          source /usr/local/Ascend/cann/set_env.sh 2>&1 || echo "FAILED: source /usr/local/Ascend/cann/set_env.sh"
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>&1 || echo "FAILED: source /usr/local/Ascend/nnal/atb/set_env.sh"
+
+          echo "--- LD_LIBRARY_PATH ---"
+          echo "${LD_LIBRARY_PATH:-NOT SET}"
+
+          echo "--- libhccl.so search ---"
+          find /usr/local/Ascend -name "libhccl.so" 2>/dev/null || echo "NOT FOUND: libhccl.so"
+
+          echo "--- HCCL lib directory ---"
+          for d in $(echo "${LD_LIBRARY_PATH:-}" | tr ':' ' '); do
+            if [ -d "$d" ]; then ls "$d"/libhccl* 2>/dev/null || true; fi
+          done
+
+          echo "--- CANN version ---"
+          cat /usr/local/Ascend/cann/version.cfg 2>/dev/null || echo "MISSING: version.cfg"
+
+          echo "=== End Diagnostics ==="
 
           PYTHON=python${{ inputs.python_version }}
           cd pytorch-test-src

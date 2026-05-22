@@ -153,6 +153,24 @@ def collect_cases_for_file(test_file: str, test_dir: Path) -> Tuple[str, str, Li
             error_msg = result.stdout.strip()
             if result.stderr.strip():
                 error_msg += "\n--- stderr ---\n" + result.stderr.strip()
+
+            # Diagnostic info for first failure: capture env state
+            diag_lines = []
+            try:
+                import subprocess as sp
+                diag_lines.append("--- Diagnostics ---")
+                diag_lines.append("LD_LIBRARY_PATH: " + os.environ.get("LD_LIBRARY_PATH", "NOT SET"))
+                diag_lines.append("PATH: " + os.environ.get("PATH", "NOT SET"))
+                r = sp.run(["find", "/usr/local/Ascend", "-name", "libhccl.so"], capture_output=True, text=True, timeout=10)
+                diag_lines.append("find libhccl.so: " + (r.stdout.strip() or "NOT FOUND"))
+                r2 = sp.run(["cat", "/usr/local/Ascend/cann/version.cfg"], capture_output=True, text=True, timeout=5)
+                diag_lines.append("CANN version: " + (r2.stdout.strip() or "MISSING"))
+                r3 = sp.run(["python3", "-c", "import torch; print('torch:', torch.__version__)"], capture_output=True, text=True, timeout=10, env=os.environ)
+                diag_lines.append("torch version: " + (r3.stdout.strip() or r3.stderr.strip()))
+            except Exception:
+                diag_lines.append("--- Diagnostics FAILED ---")
+            error_msg += "\n" + "\n".join(diag_lines)
+
             return (test_file, display_name, nodeids, False, error_msg)
 
     except subprocess.TimeoutExpired:
