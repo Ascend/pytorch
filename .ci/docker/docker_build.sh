@@ -4,11 +4,11 @@
 # Usage:
 #   ./docker_build.sh <TAG>
 #
-# Builder: torch-npu-builder-<ARCH>-py<PYTORCH_VERSION>
+# Builder: torch-npu-builder-<ARCH>-torch<PYTORCH_VERSION>
 # Test:    torch-npu-test-<ARCH>-cann<CHIP>-py<PYTHON_VERSION>-torch<PYTORCH_VERSION>
 #
 # Examples:
-#   ./docker_build.sh torch-npu-builder-x86_64-py2.7.1
+#   ./docker_build.sh torch-npu-builder-x86_64-torch2.7.1
 #   ./docker_build.sh torch-npu-test-aarch64-cann-a2-py3.10-torch2.7.1
 #
 # Reference: pytorch/pytorch .ci/docker/build.sh
@@ -19,12 +19,12 @@ tag="${1:?Usage: $0 <TAG>}"
 shift
 
 case "$tag" in
-  torch-npu-builder-x86_64-py2.7.1)
+  torch-npu-builder-x86_64-torch2.7.1)
     IMAGE_TYPE=builder
     ARCH=x86_64
     PYTORCH_VERSION=2.7.1
     ;;
-  torch-npu-builder-aarch64-py2.7.1)
+  torch-npu-builder-aarch64-torch2.7.1)
     IMAGE_TYPE=builder
     ARCH=aarch64
     PYTORCH_VERSION=2.7.1
@@ -73,7 +73,7 @@ case "$tag" in
     ;;
   *)
     echo "Unknown tag: ${tag}"
-    echo "  Builder: torch-npu-builder-<x86_64|aarch64>-py2.7.1"
+    echo "  Builder: torch-npu-builder-<x86_64|aarch64>-torch2.7.1"
     echo "  Test:    torch-npu-test-<x86_64|aarch64>-cann<A1|A2|A3>-py3.10-torch2.7.1"
     exit 1
     ;;

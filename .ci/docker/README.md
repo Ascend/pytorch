@@ -33,12 +33,12 @@
 
 ```bash
 # Builder 镜像 (不含 CANN)
-./docker_build.sh torch-npu-builder-x86_64-py2.7.1
-./docker_build.sh torch-npu-builder-aarch64-py2.7.1
+./docker_build.sh torch-npu-builder-x86_64-torch2.7.1
+./docker_build.sh torch-npu-builder-aarch64-torch2.7.1
 
 # Test 镜像 (含 CANN)
-./docker_build.sh torch-npu-test-x86_64-cann-a1-py2.7.1
-./docker_build.sh torch-npu-test-aarch64-cann-a2-py2.7.1
+./docker_build.sh torch-npu-test-x86_64-cann-a1-py3.10-torch2.7.1
+./docker_build.sh torch-npu-test-aarch64-cann-a2-py3.10-torch2.7.1
 ```
 
 ## Tag 命名规范
@@ -47,12 +47,12 @@
 
 **Builder**（不含 CANN）：
 ```
-torch-npu-builder-<ARCH>-py<PYTORCH_VERSION>
+torch-npu-builder-<ARCH>-torch<PYTORCH_VERSION>
 ```
 ```
-./docker_build.sh torch-npu-builder-x86_64-py2.7.1
-#                   ^          ^       ^    ^
-#                   |          |       |    └── PyTorch 版本 (py2.7.1)
+./docker_build.sh torch-npu-builder-x86_64-torch2.7.1
+#                   ^          ^       ^     ^
+#                   |          |       |     └── PyTorch 版本 (torch2.7.1)
 #                   |          |       └── 架构
 #                   |          └── 镜像类型
 #                   └── 固定前缀
@@ -60,15 +60,16 @@ torch-npu-builder-<ARCH>-py<PYTORCH_VERSION>
 
 **Test**（含 CANN runtime）：
 ```
-torch-npu-test-<ARCH>-cann<CHIP>-py<PYTORCH_VERSION>
+torch-npu-test-<ARCH>-cann<CHIP>-py<PYTHON_VERSION>-torch<PYTORCH_VERSION>
 ```
 ```
-./docker_build.sh torch-npu-test-x86_64-cann-a1-py2.7.1
-#                   ^         ^       ^    ^ ^    ^
-#                   |         |       |    | |    └── PyTorch 版本
-#                   |         |       |    | └── py 前缀
-#                   |         |       |    └── CANN 芯片 (A1/A2/A3)
-#                   |         |       └── cann 前缀
+./docker_build.sh torch-npu-test-x86_64-cann-a1-py3.10-torch2.7.1
+#                   ^         ^       ^    ^  ^     ^     ^
+#                   |         |       |    |  |     |     └── PyTorch 版本
+#                   |         |       |    |  |     └── torch 前缀
+#                   |         |       |    |  └── Python 版本
+#                   |         |       |    └── py 前缀
+#                   |         |       └── CANN 芯片 (A1/A2/A3)
 #                   |         └── 架构
 #                   └── 镜像类型
 ```
@@ -78,6 +79,7 @@ torch-npu-test-<ARCH>-cann<CHIP>-py<PYTORCH_VERSION>
 | IMAGE_TYPE | builder, test |
 | ARCH | x86_64, aarch64 |
 | CHIP | A1 (Ascend 910), A2 (Ascend 910b), A3 (仅 test) |
+| PYTHON_VERSION | 3.10 (仅 test) |
 | PYTORCH_VERSION | 2.7.1 |
 
 ## CANN 芯片映射
