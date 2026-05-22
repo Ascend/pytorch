@@ -144,7 +144,7 @@ class MetaCompiler:
             if not torch.is_tensor(arg):
                 args_new = args_new + (arg,)
                 continue
-            args_new = args_new + (arg, arg, 0) + arg.size() + arg.stride()
+            args_new = args_new + (arg, arg, 0) + tuple(arg.size()) + tuple(arg.stride())
         args_list = list(args_new)
         return args_list
 
