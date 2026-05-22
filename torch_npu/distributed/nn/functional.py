@@ -8,7 +8,7 @@ from torch.distributed import ReduceOp
 def _allgather_base_backward_hccl(ctx, grad_output):
     """
     Backward function for _AllGatherBase that supports HCCL backend.
-    
+
     Original PyTorch implementation only supports NCCL backend.
     This version adds HCCL support for NPU devices.
     """

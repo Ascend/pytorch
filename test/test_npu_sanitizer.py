@@ -160,7 +160,7 @@ class TestArgumentHandler(TestCase):
 
         self.assertEqual({out.data_ptr()}, argument_handler.dataptrs_written)
         self.assertEqual({out.data_ptr()}, argument_handler.outputs)
- 	 
+
         def test_equal_reads_inputs_but_no_tensor_output_written(self):
             """Data-reading op with non-tensor output should not record tensor writes."""
             equal_func = torch.ops.aten.equal.default
@@ -177,7 +177,7 @@ class TestArgumentHandler(TestCase):
             self.assertEqual(set(), argument_handler.outputs)
             self.assertTrue(isinstance(out, bool))
 
- 	 
+
 class TestRecordStreamHandler(TestCase):
     def test_erase_stream_removes_recorded_stream(self):
         """Communication eraseStream should clear the matching recorded stream."""

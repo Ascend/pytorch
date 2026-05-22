@@ -212,7 +212,7 @@ class TestLossFunctions(TestCase):
         npu_output = F.binary_cross_entropy(npu_input, npu_target)
 
         self.assertRtolEqual(cpu_output.detach().numpy(), npu_output.detach().cpu().numpy())
-    
+
     @unittest.skip("Temporarily skipping")
     def test_binary_cross_entropy_with_logits(self):
         input1 = torch.rand(2, 3)
@@ -279,7 +279,7 @@ class TestLossFunctions(TestCase):
         npu_output = F.hinge_embedding_loss(npu_input, npu_targets)
 
         self.assertRtolEqual(cpu_output.detach().numpy(), npu_output.detach().cpu().numpy())
-    
+
     @unittest.skip("skip test_kl_div now")
     def test_kl_div(self):
         input1 = torch.randn(5, 3)
@@ -318,7 +318,7 @@ class TestLossFunctions(TestCase):
         npu_output = F.mse_loss(npu_input, npu_targets)
 
         self.assertRtolEqual(cpu_output.detach().numpy(), npu_output.detach().cpu().numpy())
-    
+
     @unittest.skip("Temporarily skipping")
     def test_margin_ranking_loss(self):
         input1 = torch.randn(3)

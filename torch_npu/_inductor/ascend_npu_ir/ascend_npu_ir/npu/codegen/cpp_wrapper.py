@@ -104,18 +104,18 @@ static void _launch(void* func, void* tiling_func, int64_t tiling_size, void* ar
   // only 1D parallelization is supported for NPU
   // Pointer type becomes flattend 1-D Memref tuple: base_ptr, data_ptr, offset, shape, stride
   // base_ptr offset shape and stride are not used, arbitrarily set for now
-  
+
   if (tiling_size == 0) {{
     auto launch_call = [func, tiling_func, tiling_size, arg_tiling_host, arg_tiling_device, gridX, stream, {', '.join(f"arg{i}" + ("" if "torch." in ty else f", arg_allocate{i}, offset{i}" +(', ' if ranks[i] > 0 else '') + ', '.join(f"sizes{i}_{rank}" for rank in range(ranks[i])) + (', ' if ranks[i] > 0 else '') + ', '.join(f"strides{i}_{rank}" for rank in range(ranks[i]))) for i, ty in signature.items())}]() {{
       struct __attribute__((packed)) {{
-      
+
       {' '.join(f'{_ty_to_cpp(ty)} arg{i} __attribute__((aligned({4 if ty[0] != "*" and ty[-2:] != "64" else 8}))); ' + ('' if "torch." in ty else f'{_ty_to_cpp(ty)} arg_allocate{i} __attribute__((aligned({4 if ty[0] != "*" and ty[-2:] != "64" else 8}))); {_ty_to_cpp(ty)} offset{i} __attribute__((aligned(8))); ' + ' '.join(f'{_ty_to_cpp(ty)} sizes{i}_{rank} __attribute__((aligned(8)));' for rank in range(ranks[i])) + ' ' + ' '.join(f'{_ty_to_cpp(ty)} strides{i}_{rank} __attribute__((aligned(8)));' for rank in range(ranks[i]))) for i, ty in signature.items())}
 
       }} args = {{
       {', '.join(f"static_cast<{_ty_to_cpp(ty)}>(arg{i})" + ("" if "torch." in ty else f", static_cast<{_ty_to_cpp(ty)}>(arg_allocate{i}), static_cast<{_ty_to_cpp(ty)}>(offset{i})"+ (', ' if ranks[i] > 0 else '') + ', '.join(f"static_cast<{_ty_to_cpp(ty)}>(sizes{i}_{rank})" for rank in range(ranks[i])) + (', ' if ranks[i] > 0 else '') + ', '.join(f"static_cast<{_ty_to_cpp(ty)}>(strides{i}_{rank})" for rank in range(ranks[i]))) for i, ty in signature.items())}
 
       }};
-      
+
       rtError_t ret = common_launch_dyn(const_cast<char*>("{kernel_name}"), func, tiling_func, tiling_size, arg_tiling_host, arg_tiling_device, gridX, static_cast<void *>(&args), sizeof(args), stream);
       return ret;
     }};
@@ -128,7 +128,7 @@ static void _launch(void* func, void* tiling_func, int64_t tiling_size, void* ar
     void* strides_tiling = (void*)1;
     auto launch_call = [func, tiling_func, tiling_size, arg_tiling_host, arg_tiling_device, gridX, stream, {', '.join(f"arg{i}" + ("" if "torch." in ty else f", arg_allocate{i}, offset{i}" + (', ' if ranks[i] > 0 else '') + ', '.join(f"sizes{i}_{rank}" for rank in range(ranks[i])) + (', ' if ranks[i] > 0 else '') + ', '.join(f"strides{i}_{rank}" for rank in range(ranks[i]))) for i, ty in signature.items())}, key_tiling, offset_tiling, sizes_tiling, strides_tiling]() {{
       struct __attribute__((packed)) {{
-      
+
       {' '.join(f'{_ty_to_cpp(ty)} arg{i} __attribute__((aligned({4 if ty[0] != "*" and ty[-2:] != "64" else 8}))); ' + ('' if "torch." in ty else f'{_ty_to_cpp(ty)} arg_allocate{i} __attribute__((aligned({4 if ty[0] != "*" and ty[-2:] != "64" else 8}))); {_ty_to_cpp(ty)} offset{i} __attribute__((aligned(8))); ' + ' '.join(f'{_ty_to_cpp(ty)} sizes{i}_{rank} __attribute__((aligned(8)));' for rank in range(ranks[i])) + ' ' + ' '.join(f'{_ty_to_cpp(ty)} strides{i}_{rank} __attribute__((aligned(8)));' for rank in range(ranks[i]))) for i, ty in signature.items())}
 
       void* key_tiling __attribute__((aligned(8)));
@@ -143,7 +143,7 @@ static void _launch(void* func, void* tiling_func, int64_t tiling_size, void* ar
 
       (void*)(&key_tiling), arg_tiling_host, arg_tiling_device, static_cast<void*>(offset_tiling), static_cast<void*>(sizes_tiling), static_cast<void*>(strides_tiling)
       }};
-      
+
       rtError_t ret = common_launch_dyn(const_cast<char*>("{kernel_name}"), func, tiling_func, tiling_size, arg_tiling_host, arg_tiling_device, gridX, static_cast<void *>(&args), sizeof(args), stream);
       return ret;
     }};

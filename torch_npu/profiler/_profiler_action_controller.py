@@ -13,7 +13,7 @@ class ProfActionController:
         self,
         prof,
         prof_inst: _ProfInterface,
-        on_trace_ready: Optional[Callable[..., Any]] = None,        
+        on_trace_ready: Optional[Callable[..., Any]] = None,
     ) -> None:
         self.prof = prof
         self.prof_inst = prof_inst

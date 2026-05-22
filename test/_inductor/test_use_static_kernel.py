@@ -48,4 +48,3 @@ instantiate_parametrized_tests(TestInductorStaticKernel)
 if __name__ == "__main__":
     torch.npu.config.allow_internal_format = False
     run_tests()
-    

@@ -10,7 +10,7 @@ from torch_npu.testing.common_utils import SupportedDevices
 class TestMaskedSoftmaxWithRelPosBias(TestCase):
 
     def supported_op_exec(self, x, relative_pos_bias, atten_mask):
-        # add + add + softmax 
+        # add + add + softmax
         y = torch.add(x, atten_mask)
         y = torch.add(y, relative_pos_bias)
         softmax_out = torch.nn.functional.softmax(y, dim=-1)

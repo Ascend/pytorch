@@ -66,7 +66,7 @@ def _patch_import_stateless_graph(
         range_constraints = {}
         for nd in graph.find_nodes(
             op="placeholder"
-        ):  
+        ):
             if isinstance(nd.meta['val'], torch.Tensor):
                 for s in nd.meta['val'].size():
                     if isinstance(s, torch.SymInt):

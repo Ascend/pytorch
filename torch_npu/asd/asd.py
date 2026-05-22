@@ -55,7 +55,7 @@ class _SilentFaultDetector:
             self.high_step = torch.tensor(self.min_step, dtype=torch.int32).npu()
         if grad.dtype == torch.float16:
             if not self.set_loss_scale_flag:
-                return 
+                return
             else:
                 grad = grad.float() / self.loss_scale
 
@@ -66,7 +66,7 @@ class _SilentFaultDetector:
             self.silent_data_dict[idx] = SilentFaultData()
 
         sfda = self.silent_data_dict[idx]
-        
+
         if self.global_step <= self.min_step:
             self.step += 1
             self.global_step = self.step // (len(self.silent_data_dict) + 1)
@@ -427,13 +427,13 @@ class _MatmulSilentCheck:
     def parameter_filtering(self):
         self.filter_index = (self.filter_index + 1) % self.filter_interval
         return self.filter_index == 0
-    
+
     def register_module_hook(self, module, name):
         self.check_stat[name + "_backward"] = {'avg': 0, 'pre_val': 0, 'step': 0, 'none_zero_step': 0}
         hook = partial(self.module_hook, name=name + "_backward")
         self.hook_dict[name + "_backward"] = module.register_full_backward_hook(hook)
         self.registered_modules.append(name)
-    
+
     def module_hook(self, module, grad_input, grad_output, name):
         for _, param in module.named_parameters():
             if param.dim() >= 2:
@@ -706,7 +706,7 @@ class _MatmulSilentCheck:
 
             while int(self.store.get('counter2').decode()) < world_size and self.checksum_state_thread_running:
                 time.sleep(0.1)
-            
+
             if self.rank == 0:
                 self.store.add('checksum_state', 0 - global_state)
                 self.store.add('counter', 0 - world_size)
@@ -719,12 +719,12 @@ class _MatmulSilentCheck:
         state['_lock'] = None
         state['store'] = None
         return state
-    
+
     def __setstate(self, state):
         self.__dict__.update(state)
         self.store = None
 
-    def _startup(self):        
+    def _startup(self):
         if not self.check_thread_running:
             self.check_thread_running = True
             self.check_thread = threading.Thread(
@@ -826,7 +826,7 @@ def _matmul_silent_check_decorator(func):
                 matmul_check.init_marks[matmul_check.first_module_id] = True
 
         tmp = func(self, *args, **kwargs)
-        
+
         if matmul_check.get_matmul_hook_enable():
             if hasattr(self, "matmul_check_outer") and self.matmul_check_outer:
                 matmul_check.init_param()

@@ -17,13 +17,13 @@ from collections.abc import Iterable, Sequence
 from typing import Any, Callable, cast, Optional, TYPE_CHECKING, TypeVar, Union
 from typing_extensions import ParamSpec
 from typing import (
-    Any, 
-    Callable, 
-    Dict, 
-    List, 
-    Optional, 
-    Set, 
-    Tuple, 
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Set,
+    Tuple,
     Union,
     )
 from unittest.mock import patch
@@ -230,7 +230,7 @@ def create_sym_inputs(traced_graph: TracedGraph, size: List[Expr]):
             traced_graph.sym_nodes.update({s_name: new_node})
 
 
-def process_ir_constant(inp: ExpandView) -> Union[TracedGraph, int, float]: 
+def process_ir_constant(inp: ExpandView) -> Union[TracedGraph, int, float]:
     skip = False
     if isinstance(inp.data, IndexingConstant):
         dtype = inp.data.dtype
@@ -268,13 +268,13 @@ def fetch_graphs(inputs: Optional[List[TensorBox]]):
             input_graphs.append(inp)
             continue
         if isinstance(inp, ExpandView):
-            inp, skip = process_ir_constant(inp)                    
+            inp, skip = process_ir_constant(inp)
             if not skip:
                 input_graphs.append(inp)
                 continue
         name = inp.get_name()
         traced_graph = inp.get_traced_graph()
-        if traced_graph is not None: 
+        if traced_graph is not None:
             input_graphs.append(traced_graph)
             continue
         traced_graph = TracedGraph()
@@ -308,7 +308,7 @@ def merge_traced_graphs(input_graphs: List[TracedGraph], origin_fn, node_name, *
                 exist_nodes[node.name] = new_node
                 if node.name in input_graph.sym_nodes:
                     new_graph.sym_nodes.update({node.name: new_node})
-                    
+
     def parse_args(input_graphs, exist_nodes):
         args = []
         for input_graph in input_graphs:
@@ -324,7 +324,7 @@ def merge_traced_graphs(input_graphs: List[TracedGraph], origin_fn, node_name, *
                 else:
                     args.append(input_graph)
         return args
-    
+
     num_args = len(input_graphs)
 
     for k, v in kwargs.items():
@@ -1054,8 +1054,8 @@ def _foreach_map(subgraph, *args, **kwargs):
 
     assert all(x is not None for x in outputs)
     return outputs
-    
-    
+
+
 @register_lowering(torch.ops.npu.npu_dtype_cast_backward, type_promotion_kind=None)
 @register_lowering(torch.ops.npu.npu_dtype_cast, type_promotion_kind=None)
 @register_lowering(torch.ops.npu._npu_dtype_cast_backward, type_promotion_kind=None)
@@ -1110,7 +1110,7 @@ def to_device(x: TensorBox, device: torch.device, *, copy=False, non_blocking=Fa
     device = decode_device(device)
     if x.get_device() == device:
         return clone(x) if copy else x
-    
+
     input_graphs = fetch_graphs([x, device])
     node_name = f'to_device_{next(node_id)}'
     new_graph = merge_traced_graphs(input_graphs, aten.to.device, node_name, dtype=src_dtype, copy=copy)
@@ -1150,7 +1150,7 @@ def register_pointwise(
     if override_fn_when_input_bool is not None:
         override_fn_when_input_bool = ops_wrapper(override_fn_when_input_bool)
 
-    fn = register_fn_to_aten_fn(fn, aten_fn) 
+    fn = register_fn_to_aten_fn(fn, aten_fn)
 
     fn = make_pointwise(
         fn,
@@ -1435,7 +1435,7 @@ def repeat(x, repeats):
     input_graphs = fetch_graphs([x, repeats])
     node_name = f'repeat_{next(node_id)}'
     new_graph = merge_traced_graphs(input_graphs, aten.repeat, node_name)
-    
+
     old_size = list(x.get_size())
     if len(repeats) > len(old_size):
         old_size = [sympy.S.One] * (len(repeats) - len(old_size)) + old_size
@@ -1516,7 +1516,7 @@ def slice_(x, dim=0, start=0, end=2**63, step=1, clamp=True):
     input_graphs = fetch_graphs([x.data])
     node_name = f'slice_{next(node_id)}'
     new_graph = merge_traced_graphs(input_graphs, aten.slice, node_name, dim=dim, start=start, end=end, step=step)
-    
+
     return TensorBox(ir.SliceView.create(x.data, dim, start, end, step, clamp=clamp, traced_graph=new_graph, node_name=node_name))
 
 
@@ -3253,8 +3253,8 @@ def slice_scatter(x, src, dim=0, start=None, end=None, step=1):
     input_graphs = fetch_graphs([x, src])
     node_name = f'slice_scatter_{next(node_id)}'
     new_graph = merge_traced_graphs(input_graphs, aten.slice_scatter, node_name, \
-                                    dim=dim, 
-                                    start=start, 
+                                    dim=dim,
+                                    start=start,
                                     end=end,
                                     step=step)
     x_loader = x.make_loader()
@@ -3337,7 +3337,7 @@ def tensor(data, *, dtype=None, device=None, layout=None, pin_memory=False):
     input_graphs = fetch_graphs([data])
     node_name = f'tensor_{next(node_id)}'
     new_graph = merge_traced_graphs(input_graphs, torch.tensor, node_name, \
-                                    dtype=dtype, 
+                                    dtype=dtype,
                                     device='npu',
                                     pin_memory=False)
     if isinstance(_unwrap(data), int):
@@ -3496,7 +3496,7 @@ def _full(fill_value, device, dtype, size):
 
         def inner_fn(index):
             return value_loader([])
-    
+
     node_name = f'full_{next(node_id)}'
     # [wtd#18] Use the passed device parameter instead of hardcoded 'npu' to avoid device mismatch
     new_graph = merge_traced_graphs([size, fill_value], aten.full.default, node_name, \
@@ -3751,8 +3751,8 @@ def embedding(weight, indices, padding_idx=-1, scale_grad_by_freq=False, sparse=
     input_graphs = fetch_graphs([weight, indices])
     node_name = f'embedding_{next(node_id)}'
     new_graph = merge_traced_graphs(input_graphs, aten.embedding, node_name, \
-                                    padding_idx=padding_idx, 
-                                    scale_grad_by_freq=scale_grad_by_freq, 
+                                    padding_idx=padding_idx,
+                                    scale_grad_by_freq=scale_grad_by_freq,
                                     sparse=sparse)
 
     return Pointwise.create(
@@ -3933,7 +3933,7 @@ def _unsafe_index(x, indices):
 # We cannot have this lowering as a decomposition as it introduces
 # mutation in the graph, which is bad for Aot Autograd. Aot Autograd runs dead
 # code elimination and common subexpression elimination optimizations, which
-# assume graphs to be side-effect free. 
+# assume graphs to be side-effect free.
 @register_lowering(aten.index_put)
 def index_put(x, indices, values, accumulate=False):
     return index_put_impl_(
@@ -6059,7 +6059,7 @@ def should_not_sum(a, b, keepdims):
     if not keepdims:
         for i in unique_indices:
             del a[i]
-        return a 
+        return a
     return a
 
 def make_reduction(reduction_type: ReductionType, override_return_dtype=None):
@@ -6082,15 +6082,15 @@ def make_reduction(reduction_type: ReductionType, override_return_dtype=None):
             node_name = f'reshape_{next(node_id)}'
             input_graphs = fetch_graphs([x, new_size])
             new_graph = merge_traced_graphs(input_graphs, aten.reshape, node_name)
-        else: 
+        else:
             node_name = f'reduction_{next(node_id)}'
             input_graphs = fetch_graphs([x, axis if axis is not None else list(range(len(x.get_size())))])
-            new_graph = merge_traced_graphs(input_graphs, reduction_type_to_aten_fn[reduction_type], 
+            new_graph = merge_traced_graphs(input_graphs, reduction_type_to_aten_fn[reduction_type],
                                             node_name, keepdim=keepdims)
-        result = Reduction.create(reduction_type=reduction_type, 
-                                  input_node=x, 
-                                  node_name=node_name, 
-                                  traced_graph=new_graph, 
+        result = Reduction.create(reduction_type=reduction_type,
+                                  input_node=x,
+                                  node_name=node_name,
+                                  traced_graph=new_graph,
                                   **kwargs)
         if isinstance(
             result.data.data,  # type: ignore[attr-defined]
@@ -6304,7 +6304,7 @@ def pow(a, b):
 
         def fn(idx):
             return pow_recursive(loader(idx), b, a.get_dtype())
-    
+
         input_graphs = fetch_graphs([a, b])
         node_name = f'pointwise_{next(node_id)}'
         new_graph = merge_traced_graphs(input_graphs, aten.pow, node_name)
@@ -6426,7 +6426,7 @@ def mul(a, b):
         return logical_and(a, b)
     else:
         fn = ops_wrapper(aten.mul.__name__)
-        fn = register_fn_to_aten_fn(fn, aten.mul) 
+        fn = register_fn_to_aten_fn(fn, aten.mul)
         return make_pointwise(fn)(a, b)
 
 
@@ -6534,13 +6534,13 @@ def split_last_continuous(lst):
     n = len(lst)
     if n == 1:
         return lst, []
-    
+
     i = n - 2
     while i >= 0:
         if lst[i] + 1 != lst[i + 1]:
             break
         i -= 1
-    
+
     start = i + 1
     last_part = lst[start:]
     remaining = lst[:start]
@@ -6564,7 +6564,7 @@ def sum_(x, axis=None, keepdims=False, *, dtype=None):
         fn = make_reduction("sum", override_return_dtype=dtype)
     r = fn(x, axis, keepdims, dtype=dtype)
     return r
-    
+
 
 fallback_cumsum = fallback_handler(aten.cumsum.default)
 fallback_cumprod = fallback_handler(aten.cumprod.default)
@@ -6799,7 +6799,7 @@ def register_pointwise_numeric_ldf64(op):
         type_promotion_kind=ELEMENTWISE_TYPE_PROMOTION_KIND.INT_TO_FLOAT,
         use_libdevice_for_f64=True,
     )
-    
+
 @register_lowering([aten.neg])
 def neg(a):
     if a.get_dtype() in (torch.int32, torch.int64):

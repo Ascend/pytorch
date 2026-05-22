@@ -26,7 +26,7 @@ def _load_mlir_backend():
     global _ori_make_fallback
     torch._inductor.lowering.make_fallback = _ori_make_fallback
     from .ascend_npu_ir.ascend_npu_ir.npu import npu_inductor_plugin
-   
+
 
 def _load_triton_backend():
     import os
@@ -152,8 +152,8 @@ _BACKEND_LOADERS = {
     "mlir": _load_mlir_backend,
     "default": _load_triton_backend,
 }
- 	 
- 	 
+
+
 def _load_backend():
 
     backend = _get_backend()
@@ -161,5 +161,5 @@ def _load_backend():
     loader()
     from ..utils._dynamo import _InductorNpuRegistry
     _InductorNpuRegistry._loaded_backend = backend
-    
+
 _load_backend()

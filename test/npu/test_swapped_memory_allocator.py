@@ -39,13 +39,13 @@ class TestNPUSwappedMemoryAllocator(unittest.TestCase):
             tensors = []
             for i in range(5):
                 tensor = torch_npu.empty_with_swapped_memory(
-                    [256 * (i + 1)], 
-                    dtype=torch.float32, 
+                    [256 * (i + 1)],
+                    dtype=torch.float32,
                     device='npu:0'
                 )
                 tensor.fill_(float(i))
                 tensors.append(tensor)
-            
+
             for t in tensors:
                 del t
             del tensors
@@ -57,34 +57,34 @@ class TestNPUSwappedMemoryAllocator(unittest.TestCase):
     def test_02_async_operations_and_release(self):
         """Test 2: Async operations followed by release (verify stream sync works)"""
         tensor = torch_npu.empty_with_swapped_memory(
-            [512, 512], 
-            dtype=torch.float32, 
+            [512, 512],
+            dtype=torch.float32,
             device='npu:0'
         )
-        
+
         tensor.fill_(1.0)
-        
+
         for i in range(10):
             tensor = tensor * 1.1
             tensor = tensor + i * 0.1
-        
+
         tensor.sqrt_()
-        
+
         expected_tensor = torch.empty([512, 512], dtype=torch.float32, device='npu:0')
         expected_tensor.fill_(1.0)
         for i in range(10):
             expected_tensor = expected_tensor * 1.1
             expected_tensor = expected_tensor + i * 0.1
         expected_tensor = expected_tensor.sqrt()
-        
+
         self.assertTrue(torch.allclose(tensor, expected_tensor, rtol=1e-5, atol=1e-5))
-        
+
         weak_ref = weakref.ref(tensor)
         del tensor
         gc.collect()
-        
+
         self.assertIsNone(weak_ref())
-        
+
         torch.npu.empty_cache()
 
 

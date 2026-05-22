@@ -51,7 +51,7 @@ inner(torch.randn(20, 20).to("{device}"))
         self._test_after_dynamo(
             "cuda", "relu_compile_error_TESTING_ONLY", "ReluCompileError"
         )
-    
+
     @requires_npu()
     def test_after_dynamo_npu_compile_error(self):
         self._test_after_dynamo(
@@ -63,7 +63,7 @@ inner(torch.randn(20, 20).to("{device}"))
         self._test_after_dynamo(
             "cuda", "relu_runtime_error_TESTING_ONLY", "ReluRuntimeError"
         )
-    
+
     @requires_npu()
     def test_after_dynamo_npu_runtime_error(self):
         self._test_after_dynamo(
@@ -75,7 +75,7 @@ inner(torch.randn(20, 20).to("{device}"))
         self._test_after_dynamo(
             "cuda", "relu_accuracy_error_TESTING_ONLY", "AccuracyError"
         )
-    
+
     @requires_npu()
     def test_after_dynamo_npu_accuracy_error(self):
         self._test_after_dynamo(
@@ -134,7 +134,7 @@ inner(torch.randn(20, 20, requires_grad=True) + 1)
         self._test_after_dynamo_backend_passes(
             "cuda", "relu_runtime_error_TESTING_ONLY"
         )
-    
+
     @requires_npu()
     def test_after_dynamo_npu_runtime_backend_passes(self):
         self._test_after_dynamo_backend_passes(
@@ -146,7 +146,7 @@ inner(torch.randn(20, 20, requires_grad=True) + 1)
         self._test_after_dynamo_backend_passes(
             "cuda", "relu_accuracy_error_TESTING_ONLY"
         )
-    
+
     @requires_npu()
     def test_after_dynamo_npu_accuracy_backend_passes(self):
         self._test_after_dynamo_backend_passes(

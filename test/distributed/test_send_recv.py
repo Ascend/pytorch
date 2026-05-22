@@ -228,7 +228,7 @@ class HcclSendRecvDistTest(TestCase):
             HcclSendRecvDistTest._test_send_recv_dist_with_internal_format_and_offset,
             torch.randn(31, 31),
             HcclSendRecvDistTest._init_dist_hccl)
-        
+
     @skipIfUnsupportMultiNPU(4)
     @unittest.skip("Temporarily disabled")
     def test_send_recv_hccl_dist_with_p2p(self):

@@ -29,7 +29,7 @@ def include_paths(npu: bool = False) -> List[str]:
 
     Args:
         npu: If 'True', includes NPU-specific include paths.
-    
+
     Returns:
         A list if include path strings.
     """
@@ -88,7 +88,7 @@ def get_cpp_torch_device_options(
     aot_mode: bool = False,
     compile_only: bool = False,
 ) -> Tuple[List[str], List[str], List[str], List[str], List[str], List[str], List[str]]:
-    
+
     npu = "npu" == device_type
 
     definations: List[str] = []
@@ -157,14 +157,14 @@ def _get_optimization_cflags(
         debug_cflags, debug_ldflags = _get_inductor_debug_symbol_cflags()
         cflags += debug_cflags
         ldflags += debug_ldflags
-        
+
     cflags += _get_ffast_math_flags()
-    
+
     if _IS_WINDOWS:
         pass
     else:
         if sys.platform != "darwin":
-            # on macos, unknown argument: '-fno-tree-loop-vectorize' 
+            # on macos, unknown argument: '-fno-tree-loop-vectorize'
             if _is_gcc(cpp_compiler):
                 cflags.append("fno-tree-loop-vectorize")
             # https://stackoverflow.com/questions/65966969/why-does-march-native-not-work-on-apple-m1
@@ -176,10 +176,10 @@ def _get_optimization_cflags(
                     cflags.append("march=rv64gc")
                 elif platform.machine() == "riscv32":
                     cflags.append("march=rv32gc")
-                    
-        if config.aot_inductor.enable_lto and _is_clang(cpp_compiler): 
+
+        if config.aot_inductor.enable_lto and _is_clang(cpp_compiler):
             cflags.append("flto=thin")
-            
+
     return cflags, ldflags
 
 

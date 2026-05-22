@@ -55,7 +55,7 @@ def codegen_subgraph_dump(inds, shapes, strides, dtypes, inds2):
     codes.append(f'args = new_args')
     return '\n'.join(codes)
 
-    
+
 def _worker_compile(
     kernel, cc: int, device: torch.device, logger_level=None, extra_env=None
 ) -> None:
@@ -79,10 +79,10 @@ def _akg_worker_compile(
 
 
 def _load_kernel(
-        kernel_name: str, 
-        source_code: str, 
-        no_more_compile=False, 
-        suppress_error=False, 
+        kernel_name: str,
+        source_code: str,
+        no_more_compile=False,
+        suppress_error=False,
         kernel_meta=None,
         extra_env=None) -> ModuleType:
     if os.getenv("TORCHINDUCTOR_USE_AKG", "0") == "1":
@@ -144,7 +144,7 @@ class MulitprocessCompileFuture(CodeCacheFuture):
                 errors.append(e)
 
         if len(errors) < len(self.futures):
-            kernel = self.kernel = _load_kernel(self.kernel_name, self.source_code, 
+            kernel = self.kernel = _load_kernel(self.kernel_name, self.source_code,
                                                 no_more_compile=True, suppress_error=True,
                                                 kernel_meta=self.kernel_meta, extra_env=self.extra_env)
         elif self.kernel_meta.get('num_outputs', 0): # All compiles fail and auto fallback
@@ -224,7 +224,7 @@ class CustomAsyncCompile(AsyncCompile):
         pool.ready_future = pool.submit(AsyncCompile._get_ready)  # type: ignore[attr-defined]
         _pool_set.add(pool)
         return pool
-    
+
     def mlir(
         self, kernel_name: str, source_code: str, device_str: str = "npu"
     ) -> Union[NPUTritonFuture, ModuleType]:
@@ -242,7 +242,7 @@ class CustomAsyncCompile(AsyncCompile):
             return NPUTritonFuture(kernel_name, source_code, future)
         else:
             return _load_kernel(kernel_name, source_code)
-        
+
     def mlir_auto_fallback(
         self, kernel_name: str, source_code: str, kernel_meta: Dict[str, Any]) -> Callable:
         _compile_start()

@@ -77,7 +77,7 @@ class NewNPUDeviceOpOverrides(NPUDeviceOpOverrides):
         load_code = """
             static std::unordered_map<std::string, size_t> registered_names;
             static std::unordered_map<std::string, std::unique_ptr<size_t>> func_stubs;
-            
+
             static inline void * loadKernel(
                     std::string filePath,
                     const std::string &&nameFuncMode,

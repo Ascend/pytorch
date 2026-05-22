@@ -38,7 +38,7 @@ class TestAclgraphLaunchHostFunc(TestCase):
 
         self.capture_stream = torch_npu.npu.Stream()
         self.graph = torch_npu.npu.NPUGraph()
-        
+
         torch_npu.npu._subscribe_report(self.capture_stream)
         a = torch.randn([5, 5]).npu()
         b = torch.randn([5, 5]).npu()

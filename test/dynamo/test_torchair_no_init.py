@@ -38,7 +38,7 @@ class TestTorchairNoInit(TestCase):
         for m in sys.modules:
             if hasattr(sys.modules[m], '_attr_test_hasattr'):
                 setattr(sys.modules[m], '_attr_test_hasattr', 1)
-        
+
         torchair = sys.modules.get('torchair', None)
         self.assertTrue(torchair is not None)
         self.assertTrue(not hasattr(torchair, '_attr_test_hasattr'))
@@ -48,13 +48,13 @@ class TestTorchairNoInit(TestCase):
         for m in sys.modules.values():
             if getattr(m, '__warningregistry__', None):
                 m.__warningregistry__ = {}
-        
+
         self._check_torchair_no_init()
-        
+
     def test_attribute_error(self):
         torchair = sys.modules.get('torchair', None)
         self.assertTrue(torchair is not None)
-        with self.assertRaisesRegex(AttributeError, 
+        with self.assertRaisesRegex(AttributeError,
                 "Try to get torchair's attr `get_npu_backend` before torchair is initialized."):
             torchair.get_npu_backend()
         self._check_torchair_no_init()

@@ -58,7 +58,7 @@ def _initialize():
     # 5. final extension barrier and shutdown hook
     _initialize_runtime_lifecycle()
 
-    # 6. optional runtime features 
+    # 6. optional runtime features
     _enable_optional_features()
 
 

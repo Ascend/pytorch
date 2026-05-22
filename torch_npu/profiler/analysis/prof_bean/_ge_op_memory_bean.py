@@ -15,7 +15,7 @@ class GeOpMemoryBean(CommonBean):
 
     @property
     def row(self) -> list:
-        return [self.name, self.size, self.allocation_time, self.release_time, None, 
+        return [self.name, self.size, self.allocation_time, self.release_time, None,
                 self.dur, None, self.allocation_total_allocated, self.allocation_total_reserved, None,
                 self.release_total_allocated, self.release_total_reserved, None, None, self.device]
 

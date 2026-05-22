@@ -77,7 +77,7 @@ class MemoryDbParser(BaseParser):
             pta_ge_record_list[MemoryRecordTableRow.STREAM_PTR.value] = cur_record[MemoryRecordTableRow.STREAM_PTR.value] if cur_record[MemoryRecordTableRow.STREAM_PTR.value] \
                 else last_record_data[MemoryRecordTableRow.STREAM_PTR.value]
         return [cur_record, pta_ge_record_list]
-    
+
     def run(self, deps_data: dict):
         self.logger.info("MemoryDbParser start.")
         try:
@@ -94,7 +94,7 @@ class MemoryDbParser(BaseParser):
             return Constant.FAIL, None
         self.logger.info("MemoryDbParser finish.")
         return Constant.SUCCESS, None
-    
+
     def init_db_connect(self):
         if not TorchDb().create_connect_db():
             raise RuntimeError(f"Failed to connect to db file: {TorchDb().get_db_path()}")
@@ -197,7 +197,7 @@ class MemoryDbParser(BaseParser):
                                               memory_bean.total_allocated_for_db, memory_bean.total_reserved_for_db,
                                               memory_bean.total_active_for_db, memory_bean.stream_ptr,
                                               self.device_index if self.device_index != -1 else memory_bean.device_index])
-    
+
     def get_pta_ge_record_list(self):
         """
         ge records are to be sorted firstly and pta records are already sorted,
@@ -245,7 +245,7 @@ class MemoryDbParser(BaseParser):
     def save_strings_id(self):
         TorchDb().create_table_with_headers(DbConstant.TABLE_STRING_IDS, TableColumnsManager.TableColumns.get(DbConstant.TABLE_STRING_IDS))
         TorchDb().insert_data_into_table(DbConstant.TABLE_STRING_IDS, Str2IdManager().get_all_string_2_id_data())
-    
+
     def save_memory_data_to_db(self):
         self.get_ge_memory_data()
         self.save_memory_record_data_to_db()

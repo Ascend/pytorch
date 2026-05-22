@@ -194,7 +194,7 @@ class TestOnnxOps(TestCase):
         class Model(torch.nn.Module):
             def __init__(self):
                 super(Model, self).__init__()
-            
+
             def forward(self, x):
                 return torch_npu.npu_geglu(x)
 
@@ -203,7 +203,7 @@ class TestOnnxOps(TestCase):
             model = Model().to("npu")
             model(x)
             self.onnx_export(model, x, onnx_model_name, ["input"], ["output1", "output2"])
-        
+
         onnx_model_name = "model_npu_geglu.onnx"
         export_onnx(onnx_model_name)
         assert(os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
@@ -1155,7 +1155,7 @@ class TestOnnxOps(TestCase):
 
             def forward(self, sorted_experts):
                 return torch_npu.npu_moe_compute_expert_tokens(sorted_experts=5)
-            
+
         def export_onnx(onnx_model_name):
             data = list(range(20))
             experts = torch.tensor(data, dtype=torch.int32).npu()
@@ -1166,7 +1166,7 @@ class TestOnnxOps(TestCase):
         onnx_model_name = "model_moe_compute_expert_tokens.onnx"
         export_onnx(onnx_model_name)
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
-                                            onnx_model_name)))  
+                                            onnx_model_name)))
 
     @unittest.skip("skip now")
     def test_wrapper_npu_mish(self):
@@ -1225,7 +1225,7 @@ class TestOnnxOps(TestCase):
                 epsilon = 1e-6
                 x = torch_npu.npu_rms_norm(x, gamma, epsilon)
                 return x
-            
+
         def export_onnx(onnx_model_name):
             x = torch.rand(10, 1024).uniform_(-3, 3).npu().half()
             gamma = torch.rand(1024).uniform_(-3, 3).npu().half()
@@ -1248,7 +1248,7 @@ class TestOnnxOps(TestCase):
                 epsilon = 1e-6
                 x = torch_npu.npu_add_rms_norm(x1, x2, gamma, epsilon)
                 return x
-            
+
         def export_onnx(onnx_model_name):
             x1 = torch.rand(10, 1024).uniform_(-3, 3).npu().half()
             x2 = torch.rand(10, 1024).uniform_(-3, 3).npu().half()
@@ -1317,7 +1317,7 @@ class TestOnnxOps(TestCase):
             def forward(self, input_dummy, smooth_scales_dummy):
                 output, scale = torch_npu.npu_dynamic_quant(input_dummy, smooth_scales=smooth_scales_dummy)
                 return output, scale
-            
+
         def export_onnx(onnx_model_name):
             input_dummy = torch.rand(4, 1024, 512).uniform_(-3, 3).npu().to(torch.float16)
             smooth_scales_dummy = torch.rand(512).uniform_(-3, 3).npu().to(torch.float16)
@@ -1339,7 +1339,7 @@ class TestOnnxOps(TestCase):
             def forward(self, input_dummy, smooth_scales_dummy, group_index_dummy):
                 output, scale = torch_npu.npu_dynamic_quant(input_dummy, smooth_scales=smooth_scales_dummy, group_index=group_index_dummy)
                 return output, scale
-            
+
         def export_onnx(onnx_model_name):
             input_dummy = torch.rand(4, 1024, 512).uniform_(-3, 3).npu().to(torch.float16)
             group_num = 10
@@ -1369,7 +1369,7 @@ class TestOnnxOps(TestCase):
             def forward(self, input_dummy, smooth_scales_dummy, group_index_dummy):
                 output, scale, offset = torch_npu.npu_dynamic_quant_asymmetric(input_dummy, smooth_scales=smooth_scales_dummy, group_index=group_index_dummy)
                 return output, scale, offset
-            
+
         def export_onnx(onnx_model_name):
             input_dummy = torch.rand(4, 1024, 512).uniform_(-3, 3).npu().to(torch.float16)
             group_num = 10
@@ -1435,7 +1435,7 @@ class TestOnnxOps(TestCase):
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path, onnx_model_name)))
 
     @unittest.skip("skip now")
-    def test_wrapper_npu_quantize(self):            
+    def test_wrapper_npu_quantize(self):
         class Model(torch.nn.Module):
             def __init__(self):
                 super().__init__()
@@ -1460,7 +1460,7 @@ class TestOnnxOps(TestCase):
 
     @unittest.skip("skip now")
     @SupportedDevices(['Ascend910B'])
-    def test_wrapper_npu_group_quant(self):            
+    def test_wrapper_npu_group_quant(self):
         class Model(torch.nn.Module):
             def __init__(self):
                 super().__init__()
@@ -1487,7 +1487,7 @@ class TestOnnxOps(TestCase):
 
     @unittest.skip("skip now")
     @SupportedDevices(['Ascend910B'])
-    def test_wrapper_npu_moe_finalize_routing(self):            
+    def test_wrapper_npu_moe_finalize_routing(self):
         class Model(torch.nn.Module):
             def __init__(self):
                 super().__init__()
@@ -1520,7 +1520,7 @@ class TestOnnxOps(TestCase):
 
     @unittest.skip("skip now")
     @SupportedDevices(['Ascend910B'])
-    def test_wrapper_npu_moe_finalize_routing_v2(self):            
+    def test_wrapper_npu_moe_finalize_routing_v2(self):
         class Model(torch.nn.Module):
             def __init__(self):
                 super().__init__()
@@ -1528,7 +1528,7 @@ class TestOnnxOps(TestCase):
             def forward(self, expanded_permuted_rows, skip1, skip2_optional, bias, scales,
                         expanded_src_to_dst_row, expert_for_source_row):
                 return torch_npu.npu_moe_finalize_routing(expanded_permuted_rows, skip1, skip2_optional,
-                                                          bias, scales, expanded_src_to_dst_row, 
+                                                          bias, scales, expanded_src_to_dst_row,
                                                           expert_for_source_row, drop_pad_mode=1)
 
         def export_onnx(onnx_model_name):
@@ -1565,7 +1565,7 @@ class TestOnnxOps(TestCase):
                 return y
 
         def export_onnx(onnx_model_name):
-            x = torch.tensor([[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]], 
+            x = torch.tensor([[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]],
                              dtype=torch.float16).npu()
             model = Model().to("npu")
             model(x)

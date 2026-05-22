@@ -44,7 +44,7 @@ class TestCat(TestUtils):
             output_tensor = torch.cat(slices, self.dim)
 
             return output_tensor
-    
+
     @parametrize('shape', [(128, 50, 128)])
     @parametrize('dim', [2])
     @parametrize('dtype', ['float32', 'bfloat16'])

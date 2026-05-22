@@ -68,7 +68,7 @@ class FwkCANNRelationParser:
         if not step_node_list:
             self.logger.warning("Get step range failed, the step node list is empty.")
             return []
-        
+
         # Gather flow events start time in each step node
         if not FwkFileParser(self._profiler_path).has_task_queue_data():
             acl_start_time_list = sorted(list(kernel_dict.keys()))

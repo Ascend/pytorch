@@ -84,8 +84,8 @@ class TestPAAclgraphUpdate(TestCase):
 
             # 执行注意力计算
             out = self.ref_masked_attention(
-                params_np.query[i:i + 1], 
-                np.stack(keys), 
+                params_np.query[i:i + 1],
+                np.stack(keys),
                 np.stack(values)
             )
             output[i] = out.reshape(self.num_heads, -1)

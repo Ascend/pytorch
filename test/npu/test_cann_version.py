@@ -24,10 +24,10 @@ class TestCANNversion(TestCase):
                 self.assertTrue(is_match, f"The env version is {version_env}. The format of cann version {version} is invalid.")
             else:
                 self.assertTrue(version == "", "When verssion_env < '8.1.RC1', the result of get_cann_version is not right.")
-        
+
         version = get_cann_version(module="CAN")
         self.assertTrue(version == "", "When module is invalid, the result of get_cann_version is not right.")
-    
+
     def test_get_driver_version(self):
         try:
             version = get_cann_version(module="DRIVER")

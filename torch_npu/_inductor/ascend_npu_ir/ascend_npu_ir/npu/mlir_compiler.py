@@ -39,9 +39,9 @@ reinterpret_tensor = torch.ops.inductor._reinterpret_tensor
 global_cache = set()
 
 class NpuMlirCompiler(MetaCompiler):
-    def __init__(self, 
-            kernel_name: str = '', 
-            multiprocess_compile=False, 
+    def __init__(self,
+            kernel_name: str = '',
+            multiprocess_compile=False,
             no_more_compile=False,
             kernel_meta=None,
             autotune=True):
@@ -129,7 +129,7 @@ class NpuMlirCompiler(MetaCompiler):
             logger.info(f"[bisheng-compile failed]")
             logger.warning(f"Compile error msg: {e.stderr.decode('utf-8')}")
             raise e
-        
+
     def prepare_launch(self, need_pickle=False):
         def get_launch_mod(so_path):
             spec = importlib.util.spec_from_file_location("__launcher", so_path)
@@ -171,7 +171,7 @@ class NpuMlirCompiler(MetaCompiler):
             shutil.copy(cache_mlir_path, os.path.join(anir_config.fx_subgraph_dump_path, \
                                                       str(self.device_index), self.kernel_name))
         return cache_mlir_path
-    
+
     def get_launch_dynamic(self, function, tiling_func, tiling_size):
         block_dim = anir_config.block_dim
         arg_tiling_device = torch.empty((tiling_size // 8), device='npu', dtype=torch.int64)
@@ -179,30 +179,30 @@ class NpuMlirCompiler(MetaCompiler):
         def kernel_call(*args, stream=None):
             self.launch(block_dim, stream, function, tiling_func, tiling_size, arg_tiling_host, arg_tiling_device, None, None, None, *args)
         return kernel_call
-    
+
     def get_launch(self, function):
         block_dim = anir_config.block_dim
         def kernel_call(*args, function, stream=None):
             self.launch(block_dim, stream, function, None, None, None, *args)
 
         return functools.partial(kernel_call, function=function)
-    
+
     def get_launch_func(self, cache_kernel_path):
         if self.dynamic:
-            function, tiling_func, tiling_size = self.get_host_func_and_tiling_size(self.kernel_name, 
-                                                                                    self.kernel_name + '_tiling_function', 
-                                                                                    self.kernel_name + '_get_tiling_struct_size_function', 
+            function, tiling_func, tiling_size = self.get_host_func_and_tiling_size(self.kernel_name,
+                                                                                    self.kernel_name + '_tiling_function',
+                                                                                    self.kernel_name + '_get_tiling_struct_size_function',
                                                                                     cache_kernel_path)
             return self.get_launch_dynamic(function, tiling_func, tiling_size)
         else:
             function = load_kernel_binary(self.kernel_name, cache_kernel_path)
             return self.get_launch(function)
-    
-    def register_launcher(self, 
-                          launcher, 
-                          kernel_path=None, 
-                          num_outputs=None, 
-                          disable_dump=False, 
+
+    def register_launcher(self,
+                          launcher,
+                          kernel_path=None,
+                          num_outputs=None,
+                          disable_dump=False,
                           auto_fallback=False,
                           is_fallback_kernel=False):
         if num_outputs:
@@ -218,7 +218,7 @@ class NpuMlirCompiler(MetaCompiler):
                     self.fx_subgraph_dump('fallback')
         logger.info(f"register launcher {launcher} {kernel_path} success")
 
-    def compile_mlir(self, 
+    def compile_mlir(self,
                      device_info: Tuple[Any],
                      compile_args: List[Any],
                      logger_level = None) -> Callable[..., None]:
@@ -239,7 +239,7 @@ class NpuMlirCompiler(MetaCompiler):
 
         logger.info("Start to get cached kernel. Tiling info: " +
                     f"tiling_size {tiling_size} ops_reorder {ops_reorder} auto_db {auto_db}")
-        
+
         if cache_kernel_path is None and self.no_more_compile:
             raise RuntimeError("Skip compile.")
 
@@ -250,8 +250,8 @@ class NpuMlirCompiler(MetaCompiler):
                 self.bisheng_compile(named_op_mlir_path, kernel_path, tiling_size=tiling_size,
                                     ops_reorder=ops_reorder, auto_db=auto_db,
                                     extra_command=anir_config.extra_command)
-                
-                
+
+
                 if self.dynamic:
                     kernel_path = os.path.join(tmpdir, f"lib{tiling_kernel_name}.so")
                     with open(kernel_path, "rb") as f:
@@ -305,7 +305,7 @@ class NpuMlirCompiler(MetaCompiler):
         self.launch = getattr(mod, "launch")
         if self.dynamic:
             self.get_host_func_and_tiling_size = getattr(mod, "get_host_func_and_tiling_size")
-        
+
         launch_func = self.get_launch_func(kernel_path)
         self.register_launcher(launch_func, kernel_path)
         return True
@@ -326,7 +326,7 @@ class NpuMlirCompiler(MetaCompiler):
             and self.kernel_meta.get('is_reduction', False)
         )
 
-    def precompile(self, 
+    def precompile(self,
                     device_info: Tuple[Any],
                     suppress_error=False,
                     logger_level=None):
@@ -405,7 +405,7 @@ class NpuMlirCompiler(MetaCompiler):
                         else clone_preserve_strides(arg) for arg in args[-self.num_outputs:]]
             fx_inputs = [clone_preserve_strides(arg) if isinstance(arg, torch.Tensor) else arg for arg in args[:-self.num_outputs]]
             fx_inputs = [inp.float() if isinstance(inp, torch.Tensor) and inp.dtype == torch.bfloat16 else inp for inp in fx_inputs]
-            
+
             fx_args = fx_inputs + fx_outputs
             launcher_fx(*fx_args, **kwargs)
 
@@ -457,7 +457,7 @@ class NpuMlirCompiler(MetaCompiler):
             print(f"{self.kernel_name}: Tuning accuracy failed, no valid kernels found, using fallback")
             timings.append([float(1.0), len(self.launchers) - 1])
         return timings
-    
+
     def autotune_to_one_config(self, *args, **kwargs):
         if any([isinstance(arg, torch.Tensor) and not arg.is_contiguous() for arg in args]):
             print(f'Non contiguous args exists! Kernel name is {self.kernel_name}')

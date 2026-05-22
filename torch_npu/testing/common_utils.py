@@ -214,7 +214,7 @@ class SkipIfNotGteCANNVersion:
     def __init__(self, base_version, module="CANN"):
         self.base_version = base_version
         self.module = module
-    
+
     def __call__(self, fn):
         @wraps(fn)
         def func(slf, *args, **kwargs):

@@ -172,7 +172,7 @@ AOTIRuntimeError AOTInductorModelContainerGetConstantsBlobSize(AOTInductorModelC
 
 AOTIRuntimeError AOTInductorModelUpdateConstantsFromBlob(AOTInductorModelContainerHandle container_handle,
                                                          const uint8_t* weight_blob_ptr);
-                                                         
+
 // Delete an AOTInductorModel created by AOTInductorModelCreate.
 AOTIRuntimeError AOTInductorModelDelete(AOTInductorModelHandle model_handle);
 

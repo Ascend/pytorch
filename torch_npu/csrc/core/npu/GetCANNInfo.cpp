@@ -253,7 +253,7 @@ int64_t VersionV2ToNum(std::string versionStr) {
         parsed = true;
     }
 
-    if (!parsed && tokens.size() == tokenNum4) {  // ([0-9]+).([0-9]+).([0-9]+)-alpha, ([0-9]+).([0-9]+).([0-9]+)-beta, ([0-9]+).([0-9]+).([0-9]+)-rc, 
+    if (!parsed && tokens.size() == tokenNum4) {  // ([0-9]+).([0-9]+).([0-9]+)-alpha, ([0-9]+).([0-9]+).([0-9]+)-beta, ([0-9]+).([0-9]+).([0-9]+)-rc,
                                                    // ([0-9]+).([0-9]+).([0-9]+).alpha([0-9]+),  ([0-9]+).([0-9]+).([0-9]+).beta([0-9]+), ([0-9]+).([0-9]+).([0-9]+).rc([0-9]+)
         parsed = true;
         if (tokens[index3] == "alpha") {
@@ -469,7 +469,7 @@ std::string GetCANNVersion(const std::string& module)
         module_version = version.version;
         CANNVersionCache[module] = module_version;
     }
-    
+
     if (find_module_v2 != pkgNameV2Map.end()) {
         char versionStr[ACL_PKG_VERSION_MAX_SIZE] = {0};
         aclError retV2 = c10_npu::acl::AclsysGetVersionStr(const_cast<char*>(module.c_str()), versionStr);
@@ -481,7 +481,7 @@ std::string GetCANNVersion(const std::string& module)
         module_version = versionStr;
         CANNVersionCache[module] = module_version;
     }
-    
+
     return module_version;
 }
 
@@ -492,7 +492,7 @@ bool IsGteCANNVersion(const std::string version, const std::string module)
     if (module.compare(unsupportedModule) == 0) {
         TORCH_CHECK(false, "When the module is DRIVER, IsGteCANNVersion is not supported. ", PTA_ERROR(ErrCode::VALUE));
     }
-    
+
     std::vector<std::string> tokensVersion = SplitVersionStr(version);
     std::vector<std::string> tokensBaseVersion = SplitVersionStr(baseVersion);
     if (tokensVersion.size() < tokenNum2 || !isDigits(tokensVersion[index0])) {
@@ -507,7 +507,7 @@ bool IsGteCANNVersion(const std::string version, const std::string module)
 
     std::string currentVersion = GetCANNVersion(module);
     std::vector<std::string> tokensCurrentVersion = SplitVersionStr(currentVersion);
-    
+
     int64_t current_num = 0;
     int64_t boundary_num = 0;
     bool isInvalid = false;

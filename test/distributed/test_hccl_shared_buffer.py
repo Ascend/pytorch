@@ -71,12 +71,12 @@ class HcclSharedBufferTest(TestCase):
             self.assertEqual(output, expected,
                                 "rank {} world_size {} dtype {} shape {} Expect receive tensor {} but got {}.".format(
                                     rank, world_size, expected.dtype, expected.shape, expected, output))
-            
+
             # For case where we want to examine the memory usage of ccl buffer
             if mem_diff:
                 for pg in mem_diff:
                     used_mem, expected_mem = mem_diff[pg]
-                    self.assertLess(used_mem, expected_mem, 
+                    self.assertLess(used_mem, expected_mem,
                                     f"Expected memory used to be less than {expected_mem} for {pg}, but got {used_mem}")
 
         for _ in range(world_size):
@@ -90,7 +90,7 @@ class HcclSharedBufferTest(TestCase):
         op1_expected = 0
         for _ in range(world_size):
             op1_expected += inputs
-        
+
         #dist.ReduceOp.AVG
         expected = 0
         for _ in range(world_size):
@@ -222,7 +222,7 @@ class HcclSharedBufferTest(TestCase):
         del pg1
         del pg2
 
-        hccl_config3 = {"hccl_buffer_name": "subSharedBuffer"} # 
+        hccl_config3 = {"hccl_buffer_name": "subSharedBuffer"} #
         options.hccl_config = hccl_config3
         pg3 = dist.new_group(backend='hccl', ranks=ranks, pg_options=options)
         dist.all_reduce(input1, group=pg3, async_op=True)
@@ -348,7 +348,7 @@ class HcclSharedBufferTest(TestCase):
         p2c.get()
 
         return True
-    
+
     @classmethod
     # pylint:disable=huawei-too-many-arguments
     def _test_buffer_memory_with_deleted_pg(cls, rank, input1, world_size, init_pg, c2p, p2c, seq):

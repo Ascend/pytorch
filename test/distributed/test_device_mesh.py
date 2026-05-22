@@ -229,7 +229,7 @@ class DeviceMeshTestF(NPUDTensorTestBase):
         mesh = torch.arange(self.world_size).to(self.rank)
         with self.assertRaises(ValueError):
             device_mesh = DeviceMesh(self.device_type, mesh)
-    
+
     @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_get_local_rank(self):

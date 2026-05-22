@@ -60,7 +60,7 @@ class StreamResgistrator:
         NPU_EVENTS[tag] = event
 
 def npu_set_stream(
-    dependency: Sequence[torch.Tensor], 
+    dependency: Sequence[torch.Tensor],
     stream_tag: str,
     ) -> List[torch.Tensor]:
     stream = NPU_STREAMS[stream_tag]
@@ -68,7 +68,7 @@ def npu_set_stream(
     return dependency
 
 def npu_set_stream_fake(
-    dependency: Sequence[torch.Tensor], 
+    dependency: Sequence[torch.Tensor],
     stream_tag: str,
     ) -> List[torch.Tensor]:
     return dependency
@@ -82,7 +82,7 @@ direct_register_custom_op(
 )
 
 def npu_event_record(
-    dependency: Sequence[torch.Tensor], 
+    dependency: Sequence[torch.Tensor],
     event_tag: str,
     stream_tag: str
     ) -> List[torch.Tensor]:
@@ -92,7 +92,7 @@ def npu_event_record(
     return dependency
 
 def npu_event_record_fake(
-    dependency: Sequence[torch.Tensor], 
+    dependency: Sequence[torch.Tensor],
     event_tag: str,
     stream_tag: str
     ) -> List[torch.Tensor]:
@@ -107,7 +107,7 @@ direct_register_custom_op(
 )
 
 def npu_event_wait(
-    dependency: Sequence[torch.Tensor], 
+    dependency: Sequence[torch.Tensor],
     event_tag: str,
     ) -> List[torch.Tensor]:
     event = NPU_EVENTS[event_tag]
@@ -115,7 +115,7 @@ def npu_event_wait(
     return dependency
 
 def npu_event_wait_fake(
-    dependency: Sequence[torch.Tensor], 
+    dependency: Sequence[torch.Tensor],
     event_tag: str,
     ) -> List[torch.Tensor]:
     return dependency
@@ -129,12 +129,12 @@ direct_register_custom_op(
 )
 
 def graph_break(
-    dependency: Sequence[torch.Tensor], 
+    dependency: Sequence[torch.Tensor],
     ) -> List[torch.Tensor]:
     return dependency
 
 def graph_break_fake(
-    dependency: Sequence[torch.Tensor], 
+    dependency: Sequence[torch.Tensor],
     ) -> List[torch.Tensor]:
     return dependency
 
@@ -150,7 +150,7 @@ direct_register_custom_op(
 )
 
 def npu_wait_stream(
-    dependency: Sequence[torch.Tensor], 
+    dependency: Sequence[torch.Tensor],
     stream1_tag: str,
     stream2_tag: str,
     ) -> List[torch.Tensor]:
@@ -160,7 +160,7 @@ def npu_wait_stream(
     return dependency
 
 def npu_wait_stream_fake(
-    dependency: Sequence[torch.Tensor], 
+    dependency: Sequence[torch.Tensor],
     stream1_tag: str,
     stream2_tag: str,
     ) -> List[torch.Tensor]:
@@ -186,48 +186,48 @@ def graph_break(
 inductor_npu_lib = Library("inductor_npu", "FRAGMENT")  # noqa
 
 def npu_fusion_attention(
-    query: torch.Tensor, 
-    key: torch.Tensor, 
-    value: torch.Tensor, 
-    head_num: int, 
-    input_layout: str, 
+    query: torch.Tensor,
+    key: torch.Tensor,
+    value: torch.Tensor,
+    head_num: int,
+    input_layout: str,
     pse: Optional[torch.Tensor] = None,
     padding_mask: Optional[torch.Tensor] = None,
     atten_mask: Optional[torch.Tensor] = None,
-    scale: float = 1.0, 
-    keep_prob: float = 1.0, 
-    pre_tockens: int = 2147483647, 
+    scale: float = 1.0,
+    keep_prob: float = 1.0,
+    pre_tockens: int = 2147483647,
     next_tockens: int = 2147483647,
-    inner_precise: int = 0, 
-    prefix: Optional[torch.Tensor] = None, 
-    actual_seq_qlen: Optional[torch.Tensor] = None, 
-    actual_seq_kvlen: Optional[torch.Tensor] = None, 
+    inner_precise: int = 0,
+    prefix: Optional[torch.Tensor] = None,
+    actual_seq_qlen: Optional[torch.Tensor] = None,
+    actual_seq_kvlen: Optional[torch.Tensor] = None,
     sparse_mode: int = 0,
-    gen_mask_parallel: bool = True, 
+    gen_mask_parallel: bool = True,
     sync: bool = False
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     prefix = prefix.tolist() if prefix is not None else prefix
     actual_seq_qlen = actual_seq_qlen.tolist() if actual_seq_qlen is not None else actual_seq_qlen
     actual_seq_kvlen = actual_seq_kvlen.tolist() if actual_seq_kvlen is not None else actual_seq_kvlen
     attention_score, softmax_max, softmax_sum, softmax_out, seed, offset, numels = torch.ops.npu.npu_fusion_attention(
-        query, 
-        key, 
-        value, 
-        head_num, 
-        input_layout, 
+        query,
+        key,
+        value,
+        head_num,
+        input_layout,
         pse=pse,
         padding_mask=padding_mask,
         atten_mask=atten_mask,
-        scale=scale, 
-        keep_prob=keep_prob, 
-        pre_tockens=pre_tockens, 
+        scale=scale,
+        keep_prob=keep_prob,
+        pre_tockens=pre_tockens,
         next_tockens=next_tockens,
-        inner_precise=inner_precise, 
-        prefix=prefix, 
-        actual_seq_qlen=actual_seq_qlen, 
-        actual_seq_kvlen=actual_seq_kvlen, 
+        inner_precise=inner_precise,
+        prefix=prefix,
+        actual_seq_qlen=actual_seq_qlen,
+        actual_seq_kvlen=actual_seq_kvlen,
         sparse_mode=sparse_mode,
-        gen_mask_parallel=gen_mask_parallel, 
+        gen_mask_parallel=gen_mask_parallel,
         sync=sync
     )
 
@@ -238,24 +238,24 @@ def npu_fusion_attention(
     return attention_score, softmax_max, softmax_sum, softmax_out, seed, offset, numels
 
 def npu_fusion_attention_fake(
-    query: torch.Tensor, 
-    key: torch.Tensor, 
-    value: torch.Tensor, 
-    head_num: int, 
-    input_layout: str, 
+    query: torch.Tensor,
+    key: torch.Tensor,
+    value: torch.Tensor,
+    head_num: int,
+    input_layout: str,
     pse: Optional[torch.Tensor] = None,
     padding_mask: Optional[torch.Tensor] = None,
     atten_mask: Optional[torch.Tensor] = None,
-    scale: float = 1.0, 
-    keep_prob: float = 1.0, 
-    pre_tockens: int = 2147483647, 
+    scale: float = 1.0,
+    keep_prob: float = 1.0,
+    pre_tockens: int = 2147483647,
     next_tockens: int = 2147483647,
-    inner_precise: int = 0, 
-    prefix: Optional[torch.Tensor] = None, 
-    actual_seq_qlen: Optional[torch.Tensor] = None, 
-    actual_seq_kvlen: Optional[torch.Tensor] = None, 
+    inner_precise: int = 0,
+    prefix: Optional[torch.Tensor] = None,
+    actual_seq_qlen: Optional[torch.Tensor] = None,
+    actual_seq_kvlen: Optional[torch.Tensor] = None,
     sparse_mode: int = 0,
-    gen_mask_parallel: bool = True, 
+    gen_mask_parallel: bool = True,
     sync: bool = False
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     B = query.size(0)
@@ -301,32 +301,32 @@ direct_register_custom_op(
 
 def npu_fusion_attention_grad(
     query: torch.Tensor,
-    key: torch.Tensor, 
+    key: torch.Tensor,
     value: torch.Tensor,
-    dy: torch.Tensor, 
-    head_num: int, 
-    input_layout: str, 
-    *, 
-    pse: Optional[torch.Tensor] = None, 
-    padding_mask: Optional[torch.Tensor] = None, 
+    dy: torch.Tensor,
+    head_num: int,
+    input_layout: str,
+    *,
+    pse: Optional[torch.Tensor] = None,
+    padding_mask: Optional[torch.Tensor] = None,
     atten_mask: Optional[torch.Tensor] = None,
-    softmax_max: Optional[torch.Tensor] = None, 
-    softmax_sum: Optional[torch.Tensor] = None, 
-    softmax_in: Optional[torch.Tensor] = None, 
-    attention_in: Optional[torch.Tensor] = None, 
+    softmax_max: Optional[torch.Tensor] = None,
+    softmax_sum: Optional[torch.Tensor] = None,
+    softmax_in: Optional[torch.Tensor] = None,
+    attention_in: Optional[torch.Tensor] = None,
     scale_value: float = 1.0,
-    keep_prob: float = 1.0, 
-    pre_tockens: int = 2147483647, 
-    next_tockens: int = 2147483647, 
-    inner_precise: int = 0, 
-    seed: Optional[torch.Tensor] = None, 
+    keep_prob: float = 1.0,
+    pre_tockens: int = 2147483647,
+    next_tockens: int = 2147483647,
+    inner_precise: int = 0,
+    seed: Optional[torch.Tensor] = None,
     offset: Optional[torch.Tensor] = None,
-    numels: Optional[torch.Tensor] = None, 
-    prefix: Optional[torch.Tensor] = None, 
+    numels: Optional[torch.Tensor] = None,
+    prefix: Optional[torch.Tensor] = None,
     actual_seq_qlen: Optional[torch.Tensor] = None,
-    actual_seq_kvlen: Optional[torch.Tensor] = None, 
+    actual_seq_kvlen: Optional[torch.Tensor] = None,
     sparse_mode: int = 0,
-    gen_mask_parallel: bool = True, 
+    gen_mask_parallel: bool = True,
     sync: bool = False
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     prefix = prefix.tolist() if prefix is not None else prefix
@@ -349,32 +349,32 @@ def npu_fusion_attention_grad(
 
 def npu_fusion_attention_grad_fake(
     query: torch.Tensor,
-    key: torch.Tensor, 
+    key: torch.Tensor,
     value: torch.Tensor,
-    dy: torch.Tensor, 
-    head_num: int, 
-    input_layout: str, 
-    *, 
-    pse: Optional[torch.Tensor] = None, 
-    padding_mask: Optional[torch.Tensor] = None, 
+    dy: torch.Tensor,
+    head_num: int,
+    input_layout: str,
+    *,
+    pse: Optional[torch.Tensor] = None,
+    padding_mask: Optional[torch.Tensor] = None,
     atten_mask: Optional[torch.Tensor] = None,
-    softmax_max: Optional[torch.Tensor] = None, 
-    softmax_sum: Optional[torch.Tensor] = None, 
-    softmax_in: Optional[torch.Tensor] = None, 
-    attention_in: Optional[torch.Tensor] = None, 
+    softmax_max: Optional[torch.Tensor] = None,
+    softmax_sum: Optional[torch.Tensor] = None,
+    softmax_in: Optional[torch.Tensor] = None,
+    attention_in: Optional[torch.Tensor] = None,
     scale_value: float = 1.0,
-    keep_prob: float = 1.0, 
-    pre_tockens: int = 2147483647, 
-    next_tockens: int = 2147483647, 
-    inner_precise: int = 0, 
-    seed: Optional[torch.Tensor] = None, 
+    keep_prob: float = 1.0,
+    pre_tockens: int = 2147483647,
+    next_tockens: int = 2147483647,
+    inner_precise: int = 0,
+    seed: Optional[torch.Tensor] = None,
     offset: Optional[torch.Tensor] = None,
-    numels: Optional[torch.Tensor] = None, 
+    numels: Optional[torch.Tensor] = None,
     prefix: Optional[torch.Tensor] = None,
     actual_seq_qlen: Optional[torch.Tensor] = None,
-    actual_seq_kvlen: Optional[torch.Tensor] = None, 
+    actual_seq_kvlen: Optional[torch.Tensor] = None,
     sparse_mode: int = 0,
-    gen_mask_parallel: bool = True, 
+    gen_mask_parallel: bool = True,
     sync: bool = False
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     dq = torch.empty_like(query, dtype=query.dtype, device=query.device).contiguous()
@@ -436,7 +436,7 @@ class InductorNpuAttentionFunction(torch.autograd.Function):
         return (
         grad_query, grad_key, grad_value, None, None, grad_pse, None, None, None, None, None, None, None, None, None,
         None, None, None, None, None, None, None, None, None, None, None)
-    
+
 def inductor_npu_fusion_attention(query, key, value, head_num, input_layout, pse=None, padding_mask=None,
                                atten_mask=None, scale=1.0, keep_prob=1.0, pre_tockens=2147483647,
                                next_tockens=2147483647,

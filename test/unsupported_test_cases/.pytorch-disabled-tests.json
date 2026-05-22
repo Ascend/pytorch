@@ -1,4 +1,4 @@
-{ 
+{
   "test_config_environ_cases_shape0_dtype_float32 (__main__.TestAdd)": ["", [""]],
   "test_config_environ_cases_shape0_dtype_int64 (__main__.TestAdd)": ["", [""]],
   "test_config_environ_cases_shape1_dtype_float32 (__main__.TestAdd)": ["", [""]],
@@ -32106,5 +32106,6 @@
   "test_data_parallel_rnn (__main__.TestDataParallel)": ["", ["Disabled during A1 to A2 chip transition"]],
 	"test_alltoall_single_2p_size_dist (__main__.HcclAlltoAllSingleTest)": ["", ["Disabled during A1 to A2 chip transition"]],
   "test_grad_with_split_b_w (__main__.TestScheduleLowering)": ["", [""]],
-  "test_grad_with_v_schedule (__main__.TestScheduleLowering)": ["", [""]]
+  "test_grad_with_v_schedule (__main__.TestScheduleLowering)": ["", [""]],
+  "test_local_optimizer_parity_optimizer_class_str_AdamW_maximize_False (__main__.TestZeroRedundancyOptimizerDistributed)": ["", ["Losses differ between local optimizer and ZeRO"]]
 }

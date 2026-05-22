@@ -40,7 +40,7 @@ class TestRecurrentLayers(TestCase):
         for i in range(6):
             hx = rnn(input1[i], hx)
             output.append(hx)
-    
+
     @unittest.skip("Temporarily skipping")
     def test_LSTMCell(self):
         input1 = torch.randn(2, 3, 10).npu()
