@@ -30,6 +30,16 @@ index 1cb84a8..55b2226 100644
  
      # TODO: can't switch `to.device` overload to use positional arguments
      # https://github.com/pytorch/pytorch/issues/84265
+@@ -15977,4 +15977,8 @@ op_db: list[OpInfo] = [
+           assert_jit_shape_analysis=False,
+           dtypes=floating_types_and(torch.float16, torch.bfloat16),
+-           sample_inputs_func=sample_inputs_max_unpool_grad),
++           sample_inputs_func=sample_inputs_max_unpool_grad,
++           skips=(
++               DecorateInfo(unittest.skip("Skipped!"), 'TestJit', 'test_variant_consistency_jit',
++                            dtypes=(torch.float32,), device_type='npu'),
++           )),
+    OpInfo('nn.functional.max_unpool3d',
 @@ -16656,7 +16659,7 @@ op_db: list[OpInfo] = [
             supports_fwgrad_bwgrad=True,
             allow_cow_input_materialize_forward=[1, 2],
