@@ -9,68 +9,79 @@ set -e
 CANN_CHIP="${CANN_CHIP:-A1}"
 ARCH=$(uname -m)
 
-# CANN package definitions: date, version, ops_suffix, toolkit_set_env
-# Format: "date|version|ops_suffix|set_env_path"
-declare -A CANN_MAP
+BASE_URL="https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/cann-package"
 
-case "${ARCH}" in
-  x86_64)
-    ARCH_SUFFIX="x86_64"
-    CANN_MAP=(
-      [A1]="20260513|9.1.0|910|cann/set_env.sh"
-      [A2]="20260116|8.5.0|910b|ascend-toolkit/set_env.sh"
-      [A3]="20260302|9.0.0-beta.1|A3|cann/set_env.sh"
-    )
+case "${ARCH}_${CANN_CHIP}" in
+  # x86_64
+  x86_64_A1)
+    TOOLKIT_URL="${BASE_URL}/20260513/Ascend-cann-toolkit_9.1.0_linux-x86_64.run"
+    OPS_URL="${BASE_URL}/20260513/Ascend-cann-910-ops_9.1.0_linux-x86_64.run"
+    NNAL_URL="${BASE_URL}/20260513/Ascend-cann-nnal_9.1.0_linux-x86_64.run"
+    OPS_GLOB="Ascend-cann-910*"
+    SET_ENV_PATH="/usr/local/Ascend/cann/set_env.sh"
     ;;
-  aarch64)
-    ARCH_SUFFIX="aarch64"
-    CANN_MAP=(
-      [A1]="20260302|9.0.0-beta.1|910b|cann/set_env.sh"
-      [A2]="20260513|9.1.0|910b|ascend-toolkit/set_env.sh"
-      [A3]="20260330|9.0.0-beta.2|A3|cann/set_env.sh"
-    )
+  x86_64_A2)
+    TOOLKIT_URL="${BASE_URL}/20260116/Ascend-cann-toolkit_8.5.0_linux-x86_64.run"
+    OPS_URL="${BASE_URL}/20260116/Ascend-cann-910b-ops_8.5.0_linux-x86_64.run"
+    NNAL_URL="${BASE_URL}/20260116/Ascend-cann-nnal_8.5.0_linux-x86_64.run"
+    OPS_GLOB="Ascend-cann-910b*"
+    SET_ENV_PATH="/usr/local/Ascend/ascend-toolkit/set_env.sh"
+    ;;
+  x86_64_A3)
+    TOOLKIT_URL="${BASE_URL}/20260302/Ascend-cann-toolkit_9.0.0-beta.1_linux-x86_64.run"
+    OPS_URL="${BASE_URL}/20260302/Ascend-cann-A3-ops_9.0.0-beta.1_linux-x86_64.run"
+    NNAL_URL="${BASE_URL}/20260302/Ascend-cann-nnal_9.0.0-beta.1_linux-x86_64.run"
+    OPS_GLOB="Ascend-cann-A3*"
+    SET_ENV_PATH="/usr/local/Ascend/cann/set_env.sh"
+    ;;
+  # aarch64
+  aarch64_A1)
+    TOOLKIT_URL="${BASE_URL}/20260302/Ascend-cann-toolkit_9.0.0-beta.1_linux-aarch64.run"
+    OPS_URL="${BASE_URL}/20260302/Ascend-cann-910b-ops_9.0.0-beta.1_linux-aarch64.run"
+    NNAL_URL="${BASE_URL}/20260302/Ascend-cann-nnal_9.0.0-beta.1_linux-aarch64.run"
+    OPS_GLOB="Ascend-cann-910b*"
+    SET_ENV_PATH="/usr/local/Ascend/cann/set_env.sh"
+    ;;
+  aarch64_A2)
+    TOOLKIT_URL="${BASE_URL}/20260513/Ascend-cann-toolkit_9.1.0_linux-aarch64.run"
+    OPS_URL="${BASE_URL}/20260513/Ascend-cann-910b-ops_9.1.0_linux-aarch64.run"
+    NNAL_URL="${BASE_URL}/20260513/Ascend-cann-nnal_9.1.0_linux-aarch64.run"
+    OPS_GLOB="Ascend-cann-910b*"
+    SET_ENV_PATH="/usr/local/Ascend/ascend-toolkit/set_env.sh"
+    ;;
+  aarch64_A3)
+    TOOLKIT_URL="${BASE_URL}/20260330/Ascend-cann-toolkit_9.0.0-beta.2_linux-aarch64.run"
+    OPS_URL="${BASE_URL}/20260330/Ascend-cann-A3-ops_9.0.0-beta.2_linux-aarch64.run"
+    NNAL_URL="${BASE_URL}/20260330/Ascend-cann-nnal_9.0.0-beta.2_linux-aarch64.run"
+    OPS_GLOB="Ascend-cann-A3*"
+    SET_ENV_PATH="/usr/local/Ascend/cann/set_env.sh"
     ;;
   *)
-    echo "Unsupported architecture: ${ARCH}"
+    echo "Unsupported combination: ${ARCH} + ${CANN_CHIP}"
     exit 1
     ;;
 esac
 
-if [[ -z "${CANN_MAP[$CANN_CHIP]}" ]]; then
-  echo "Unknown CANN_CHIP: ${CANN_CHIP}. Supported: A1, A2, A3"
-  exit 1
-fi
-
-IFS='|' read -r CANN_DATE CANN_VERSION OPS_SUFFIX SET_ENV_PATH <<< "${CANN_MAP[$CANN_CHIP]}"
-
-CANN_BASE="https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/cann-package/${CANN_DATE}"
-
-TOOLKIT_PKG="Ascend-cann-toolkit_${CANN_VERSION}_linux-${ARCH_SUFFIX}.run"
-OPS_PKG="Ascend-cann-${OPS_SUFFIX}-ops_${CANN_VERSION}_linux-${ARCH_SUFFIX}.run"
-NNAL_PKG="Ascend-cann-nnal_${CANN_VERSION}_linux-${ARCH_SUFFIX}.run"
-
-echo "Installing CANN ${CANN_CHIP} (${CANN_VERSION}) for ${ARCH}..."
+echo "Installing CANN ${CANN_CHIP} for ${ARCH}..."
 
 rm -rf cann
 mkdir -p cann && cd cann
 
-curl -O "${CANN_BASE}/${TOOLKIT_PKG}"
-curl -O "${CANN_BASE}/${OPS_PKG}"
-curl -O "${CANN_BASE}/${NNAL_PKG}"
-
-if [[ $? -ne 0 ]]; then
-  echo "Failed to download CANN packages"
-  exit 1
-fi
+echo "=== Downloading CANN packages ==="
+curl -O "${TOOLKIT_URL}"
+curl -O "${OPS_URL}"
+curl -O "${NNAL_URL}"
+echo "Download complete."
 
 chmod +x Ascend-cann*.run
+
 echo "=== Installing CANN toolkit ==="
 ./Ascend-cann-toolkit*.run --full --install-path=/usr/local/Ascend
-source "/usr/local/Ascend/${SET_ENV_PATH}"
+source "${SET_ENV_PATH}"
 echo "toolkit install success"
 
 echo "=== Installing CANN ops ==="
-./Ascend-cann-${OPS_SUFFIX}*.run --install --install-path=/usr/local/Ascend
+./${OPS_GLOB}.run --install --install-path=/usr/local/Ascend
 echo "ops install success"
 
 echo "=== Installing CANN nnal ==="
