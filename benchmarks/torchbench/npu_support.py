@@ -641,6 +641,16 @@ def _patch_model_26():
     MultiHeadSelfAttention.forward = _hf_distilbert_multiheadselfattention_forward_new
 
 
+@register_patch("timm_resnest")
+def _patch_model_27():
+    patch_remove_decomposition(
+        [
+            "aten.threshold_backward",
+            "aten.native_batch_norm_backward",
+        ]
+    )
+
+
 def patch_model(model_name):
     if model_name not in _patch_table:
         return
