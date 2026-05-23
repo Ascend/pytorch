@@ -27,10 +27,15 @@ case "${ARCH}_${CANN_CHIP}" in
     INSTALL_METHOD="apt"
     ;;
   x86_64_A3)
-    CANN_VERSION="9.1.0-beta.1"
-    OPS_PACKAGE="ascend-cann-a3-ops"
+    CANN_BASE_URL="https://ascend-repo.obs.cn-east-2.myhuaweicloud.com/CANN/CANN%209.1.T1"
+    TOOLKIT_URL="${CANN_BASE_URL}/Ascend-cann_9.1.0-beta.1_linux-x86_64.run"
+    OPS_URL="${CANN_BASE_URL}/Ascend-cann-A3-ops_9.1.0-beta.1_linux-x86_64.run"
+    NNAL_URL="${CANN_BASE_URL}/Ascend-cann-nnal_9.1.0-beta.1_linux-x86_64.run"
+    TOOLKIT_GLOB="Ascend-cann_9.1*"
+    OPS_GLOB="Ascend-cann-A3-ops*"
+    NNAL_GLOB="Ascend-cann-nnal*"
     SET_ENV_PATH="/usr/local/Ascend/cann/set_env.sh"
-    INSTALL_METHOD="apt"
+    INSTALL_METHOD="run_combined"
     ;;
   aarch64_A1)
     TOOLKIT_URL="${BASE_URL}/20260302/Ascend-cann-toolkit_9.0.0-beta.1_linux-aarch64.run"
@@ -47,10 +52,15 @@ case "${ARCH}_${CANN_CHIP}" in
     INSTALL_METHOD="apt"
     ;;
   aarch64_A3)
-    CANN_VERSION="9.1.0-beta.1"
-    OPS_PACKAGE="ascend-cann-a3-ops"
+    CANN_BASE_URL="https://ascend-repo.obs.cn-east-2.myhuaweicloud.com/CANN/CANN%209.1.T1"
+    TOOLKIT_URL="${CANN_BASE_URL}/Ascend-cann_9.1.0-beta.1_linux-aarch64.run"
+    OPS_URL="${CANN_BASE_URL}/Ascend-cann-A3-ops_9.1.0-beta.1_linux-aarch64.run"
+    NNAL_URL="${CANN_BASE_URL}/Ascend-cann-nnal_9.1.0-beta.1_linux-aarch64.run"
+    TOOLKIT_GLOB="Ascend-cann_9.1*"
+    OPS_GLOB="Ascend-cann-A3-ops*"
+    NNAL_GLOB="Ascend-cann-nnal*"
     SET_ENV_PATH="/usr/local/Ascend/cann/set_env.sh"
-    INSTALL_METHOD="apt"
+    INSTALL_METHOD="run_combined"
     ;;
   *)
     echo "Unsupported combination: ${ARCH} + ${CANN_CHIP}"
@@ -82,6 +92,43 @@ if [ "${INSTALL_METHOD}" = "apt" ]; then
 
   rm -f cann-keyring_1.0.0_all.deb
   rm -rf /var/lib/apt/lists/*
+  echo "CANN ${CANN_CHIP} installation complete."
+elif [ "${INSTALL_METHOD}" = "run_combined" ]; then
+  echo "=== Creating HwHiAiUser user and group ==="
+  groupadd -f HwHiAiUser
+  id -u HwHiAiUser >/dev/null 2>&1 || useradd -g HwHiAiUser -d /home/HwHiAiUser -m HwHiAiUser -s /bin/bash
+
+  echo "=== Installing dependencies ==="
+  apt-get update
+  apt-get install -y make dkms gcc "linux-headers-$(uname -r)" python3 python3-pip
+  rm -rf /var/lib/apt/lists/*
+
+  rm -rf cann
+  mkdir -p cann && cd cann
+
+  echo "=== Downloading CANN packages ==="
+  wget -q "${TOOLKIT_URL}"
+  wget -q "${OPS_URL}"
+  wget -q "${NNAL_URL}"
+  echo "Download complete."
+
+  chmod +x Ascend-cann*.run
+
+  echo "=== Installing CANN driver & toolkit (combined package) ==="
+  bash ./${TOOLKIT_GLOB}.run --install
+  source "${SET_ENV_PATH}"
+  echo "toolkit install success"
+
+  echo "=== Installing CANN ops ==="
+  bash ./${OPS_GLOB}.run --install
+  echo "ops install success"
+
+  echo "=== Installing CANN nnal ==="
+  bash ./${NNAL_GLOB}.run --install
+  source /usr/local/Ascend/nnal/atb/set_env.sh
+  echo "nnal install success"
+
+  rm -rf *
   echo "CANN ${CANN_CHIP} installation complete."
 else
   rm -rf cann
