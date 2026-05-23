@@ -34,8 +34,12 @@
 
 - segment\_size\_mb:<value\>，虚拟内存特性下，设置物理内存的申请粒度。
 
-    取值范围20\~512，设置值需为整数，单位MB，不配置时默认为20。仅在expandable\_segments设置为True的时候生效，该配置项只作用于缓存分配器的大块内存池。与page\_size同时配置时，仅page\_size生效。
+    取值范围20\~512，设置值需为整数，单位MB，不配置时默认为20。仅在expandable\_segments设置为True的时候生效，该配置项只作用于缓存分配器的大块内存池。与page\_size同时配置时，仅page\_size生效。与large\_segment\_size\_mb同时配置时，仅large\_segment\_size\_mb生效。
     增大segment\_size\_mb可以减少内存申请及内存映射接口的调用次数，从而提升内存申请效率，但也可能带来更多的内存碎片。因此，在内存使用极限的场景下，请谨慎调大此值。
+
+    > [!NOTE]
+    >
+    > segment\_size\_mb已废弃，建议迁移至large\_segment\_size\_mb。large\_segment\_size\_mb同时支持虚拟内存特性和非虚拟内存特性场景，功能更全面。
 
 - roundup\_power2\_divisions:<value\> 或 roundup\_power2\_divisions:\[<size1\>:<value1\>,<size2\>:<value2\>,...\]，将请求的分配大小向上舍入到最近的2的幂次分段，从而更高效地复用内存块。
 
@@ -61,6 +65,20 @@
 - pinned\_mem\_register:<value\>，设置pin_memory内存是否启用host register功能。
 
     默认为False。如果设置为True，此设置将指示pin_memory内存启用host register功能，将pin_memory内存映射注册为Device可访问的内存地址。如果设置为False，关闭host register功能。
+
+- large\_segment\_size\_mb:<value\>，设置大块内存池的段分配粒度。
+
+    取值需大于10，设置值需为整数，单位MB，不配置时默认为20。该配置项同时作用于虚拟内存特性和非虚拟内存特性场景。在虚拟内存特性下，控制物理内存的申请粒度；在非虚拟内存特性下，控制1~10MB区间内存申请的段大小。
+
+    增大large\_segment\_size\_mb可以减少内存申请及内存映射接口的调用次数，从而提升内存申请效率，但也可能带来更多的内存碎片。因此，在内存使用极限的场景下，请谨慎调大此值。
+
+    与segment\_size\_mb同时配置时，large\_segment\_size\_mb优先生效。与page\_size同时配置时，page\_size优先生效。该配置项不支持与max\_split\_size\_mb同时配置时max\_split\_size\_mb的值小于large\_segment\_size\_mb的值。
+
+- per\_process\_memory\_fraction:<value\>，限制当前进程可使用的NPU显存比例。
+
+    取值范围为\[0.0,1.0\]，默认值为1.0，即不限制进程显存使用。配置后，缓存分配器在初始化时会根据设备总显存和配置的比例计算当前进程可使用的最大显存，超出限制的内存申请将触发OOM（Out of Memory，内存不足）错误。
+
+    该配置项适用于多进程共享同一NPU设备的场景，通过限制每个进程的显存使用比例，避免单个进程占用过多显存导致其他进程OOM。该配置项与garbage\_collection\_threshold配合使用时，垃圾回收阈值基于进程可用显存计算。
 
 > [!NOTE]  
 >
@@ -130,6 +148,24 @@ export PYTORCH_NPU_ALLOC_CONF=pin_memory_expandable_segments:True
 export PYTORCH_NPU_ALLOC_CONF=pinned_mem_register:True
 ```
 
+示例十：
+
+```bash
+export PYTORCH_NPU_ALLOC_CONF=large_segment_size_mb:50
+```
+
+示例十一：
+
+```bash
+export PYTORCH_NPU_ALLOC_CONF=per_process_memory_fraction:0.5
+```
+
+示例十二：
+
+```bash
+export PYTORCH_NPU_ALLOC_CONF=expandable_segments:True,large_segment_size_mb:100,per_process_memory_fraction:0.8
+```
+
 ## 使用约束
 
 - expandable\_segments特性需在Ascend HDK 23.0.0及以上版本上使用。
@@ -152,6 +188,15 @@ export PYTORCH_NPU_ALLOC_CONF=pinned_mem_register:True
 - multi_stream_lazy_reclaim使用注意事项：
     - 特性要求在Ascend Extension for PyTorch 7.3.0以上版本上使用。
     - 该特性主要解决多流场景下，Host侧存在下发性能瓶颈时的系统效率问题。单流、少流场景或者非Host性能瓶颈时，该功能收益不大。
+- large_segment_size_mb使用注意事项：
+    - 配置值必须大于10（单位MB），否则会校验失败。
+    - 与max\_split\_size\_mb同时配置时，max\_split\_size\_mb的值必须大于等于large\_segment\_size\_mb的值，否则会校验失败。
+    - 与segment\_size\_mb同时配置时，large\_segment\_size\_mb优先生效。
+    - 与page\_size同时配置时，page\_size优先生效。
+- per_process_memory_fraction使用注意事项：
+    - 配置值范围为\[0.0,1.0\]，超出范围会校验失败。
+    - 配置后，缓存分配器在初始化时即生效，运行期间不可动态修改。
+    - 与garbage\_collection\_threshold配合使用时，垃圾回收阈值基于进程可用显存（即总显存乘以per\_process\_memory\_fraction）计算。
 
 ## 支持的型号
 
