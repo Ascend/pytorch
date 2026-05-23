@@ -28,6 +28,10 @@ on:
         type: string
         description: Number of distributed shards
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   run_tests:
     name: test_distributed (${{ matrix.shard }}/${{ inputs.distributed_shards }})

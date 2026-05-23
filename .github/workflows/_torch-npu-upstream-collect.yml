@@ -46,6 +46,10 @@ on:
         description: Total number of test cases
         value: ${{ jobs.collect.outputs.total_cases }}
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   collect:
     runs-on: linux-aarch64-a3-8

@@ -24,6 +24,10 @@ on:
         type: string
         description: Test files to run (comma-separated)
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   run_tests:
     name: test_custom

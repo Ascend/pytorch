@@ -28,6 +28,10 @@ on:
         type: string
         description: Number of regular shards
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   run_tests:
     name: test_regular (${{ matrix.shard }}/${{ inputs.regular_shards }})
