@@ -138,6 +138,9 @@ jobs:
           echo "Distributed shards: ${DISTRIBUTED_SHARDS}"
           echo "Regular shards: ${REGULAR_SHARDS}"
 
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
           $PYTHON ../ascend_pytorch/.github/scripts/collect_all_cases.py \
             --test-dir test \
             --case-paths-config test_upstream/case_paths_ci.yml \
