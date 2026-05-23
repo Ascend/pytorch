@@ -100,7 +100,8 @@ elif [ "${INSTALL_METHOD}" = "run_combined" ]; then
 
   echo "=== Installing dependencies ==="
   apt-get update
-  apt-get install -y make dkms gcc "linux-headers-$(uname -r)" python3 python3-pip
+  apt-get install -y make gcc python3 python3-pip
+  apt-get install -y dkms "linux-headers-$(uname -r)" || echo "Warning: dkms/linux-headers not available, skipping"
   rm -rf /var/lib/apt/lists/*
 
   rm -rf cann
