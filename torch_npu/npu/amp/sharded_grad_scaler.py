@@ -72,6 +72,8 @@ class _ShardedGradScaler(GradScaler):
     See :class:`GradScaler` for explanation of scaling/unscaling and more use cases.
 
     Args:
+        device (str, optional, default="npu"): target device used to synchronize CPU offloaded
+            inf/nan checks across ranks.
         init_scale (float, optional, default=2.**16):  Initial scale factor.
         growth_factor (float, optional, default=2.0):  Factor by which the scale is multiplied during
             :meth:`update` if no inf/NaN gradients occur for ``growth_interval`` consecutive iterations.
@@ -88,6 +90,7 @@ class _ShardedGradScaler(GradScaler):
 
     def __init__(
             self,
+            device: str = "npu",
             init_scale: float = 2.0 ** 16,
             backoff_factor: float = 0.5,
             growth_factor: float = 2.0,
@@ -102,6 +105,7 @@ class _ShardedGradScaler(GradScaler):
             growth_interval=growth_interval,
             enabled=enabled,
         )
+        self._device = device
         if self._enabled:
             self.process_group = process_group
             self._per_optimizer_states = defaultdict(_refresh_per_optimizer_state)
@@ -280,22 +284,28 @@ class _ShardedGradScaler(GradScaler):
         # Synchronize the detected inf across the ranks
         optimizer_state = self._per_optimizer_states[id(optimizer)]
         works = []
+        found_inf_on_cpus = []
+        found_inf_on_devices = []
 
         for found_inf in optimizer_state["found_inf_per_device"].values():
-            if found_inf.device.type == "cpu":
-                found_inf_npu = found_inf.to(self._scale.device)
-                work = dist.all_reduce(found_inf_npu, async_op=True, group=self.process_group)
-                works.append((work, found_inf, found_inf_npu))
+            if self._device != "cpu" and found_inf.device.type == "cpu":
+                found_inf_on_cpus.append(found_inf)
+                found_inf_on_device = found_inf.to(self._device)
+                found_inf_on_devices.append(found_inf_on_device)
+                works.append(
+                    dist.all_reduce(
+                        found_inf_on_device, async_op=True, group=self.process_group
+                    )
+                )
             else:
-                works.append((dist.all_reduce(found_inf, async_op=True, group=self.process_group), None, None))
-
-        for item in works:
-            if item[1] is not None:
-                work, found_inf_cpu, found_inf_npu = item
-                work.wait()
-                found_inf_cpu.copy_(found_inf_npu)
-            else:
-                item[0].wait()
+                works.append(
+                    dist.all_reduce(found_inf, async_op=True, group=self.process_group)
+                )
+        for work in works:
+            work.wait()
+        if found_inf_on_cpus:
+            for cpu_t, dev_t in zip(found_inf_on_cpus, found_inf_on_devices):
+                cpu_t.copy_(dev_t)
 
     def step(self, optimizer: SGD, *args, **kwargs) -> Optional[float]:
         return super().step(optimizer, *args, **kwargs)
