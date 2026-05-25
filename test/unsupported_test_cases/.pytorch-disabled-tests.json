@@ -32101,10 +32101,8 @@
   "test_split_with_sizes (__main__.TestFunctionalization)": ["", [""]],
   "test_view_clone_view_inplace (__main__.TestFunctionalization)": ["", [""]],
   "test_view_inplace (__main__.TestFunctionalization)": ["", [""]],
- 	"test_npu_roi_align_1 (__main__.TestPsRoiPooling)": ["", [""]],
- 	"test_silu (__main__.TestActivations)": ["", [""]],
   "test_data_parallel_rnn (__main__.TestDataParallel)": ["", ["Disabled during A1 to A2 chip transition"]],
-	"test_alltoall_single_2p_size_dist (__main__.HcclAlltoAllSingleTest)": ["", ["Disabled during A1 to A2 chip transition"]],
+  "test_alltoall_single_2p_size_dist (__main__.HcclAlltoAllSingleTest)": ["", ["Disabled during A1 to A2 chip transition"]],
   "test_grad_with_split_b_w (__main__.TestScheduleLowering)": ["", [""]],
   "test_grad_with_v_schedule (__main__.TestScheduleLowering)": ["", [""]],
   "test_local_optimizer_parity_optimizer_class_str_AdamW_maximize_False (__main__.TestZeroRedundancyOptimizerDistributed)": ["", ["Losses differ between local optimizer and ZeRO"]]
