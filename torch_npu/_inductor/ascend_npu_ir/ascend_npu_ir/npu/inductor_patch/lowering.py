@@ -1400,9 +1400,13 @@ def expand(x, sizes):
             # maybe realize input before broadcasting it
             x.mark_reuse(V.graph.sizevars.guarding_hint_or_throw(sympy_product(sizes)) // x_size_product)
     input_graphs = fetch_graphs([x.data, tuple(sizes)])
-    node_name = f'expand_{next(node_id)}'
-    new_graph = merge_traced_graphs(input_graphs, aten.expand, node_name)
-    return TensorBox(ExpandView.create(x.data, tuple(sizes), traced_graph=new_graph, node_name=node_name))
+    if x.get_device().type == "cpu":
+        new_graph = input_graphs[0]
+        return TensorBox(ExpandView.create(x.data, tuple(sizes), traced_graph=new_graph))
+    else:
+        node_name = f'expand_{next(node_id)}'
+        new_graph = merge_traced_graphs(input_graphs, aten.expand, node_name)
+        return TensorBox(ExpandView.create(x.data, tuple(sizes), traced_graph=new_graph, node_name=node_name))
 
 
 @register_lowering(prims.broadcast_in_dim, type_promotion_kind=None)
