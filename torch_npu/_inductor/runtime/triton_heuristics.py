@@ -457,6 +457,7 @@ class NPUCachingAutotuner(CachingAutotuner):
         warm_cache_only=False,
         reload_kernel: Optional[Callable[[], CachingAutotuner]] = None,
     ):
+        self._apply_costmodel_topk_to_configs()
         if warm_cache_only:
             self.kernel_name = self.get_fn_name()
             self._precompile_worker()
@@ -576,6 +577,37 @@ class NPUCachingAutotuner(CachingAutotuner):
                 f"Failed to compile config {test_config} for make ttir {self.fn.__name__}: {exc} \nStack trace:{exc_stack}"
             )
         self.compile_results = compile_results
+
+    def _apply_costmodel_topk_to_configs(self, *args, **kwargs):
+        """Use triton-ascend costmodel path to prefilter configs before full compile."""
+        if not self.configs or len(self.configs) <= 1:
+            return
+
+        if not bool(npu_config.enable_costmodel_backend):
+            return
+
+        costmodel_topk = int(npu_config.costmodel_topk)
+        if costmodel_topk <= 0 or costmodel_topk >= len(self.configs):
+            return
+
+        try:
+            from triton.backends.ascend.runtime.costmodel_runtime import costmodel_bench
+            key = ("npu_costmodel_prefilter", self.get_fn_name(), len(self.configs), costmodel_topk)
+            costmodel_bench(self, *args, candidate_configs=self.configs, key=key, **kwargs)
+            costmodel_map = getattr(self, "configs_timings", None)
+        except Exception as exc:
+            log.warning("Skip costmodel prefilter because costmodel path is unavailable: %s", exc)
+            return
+
+        if not isinstance(costmodel_map, dict):
+            return
+
+        ranked_cfgs = [
+            cfg for cfg, t in sorted(costmodel_map.items(), key=lambda kv: kv[1])
+            if t != float("inf")
+        ]
+        if ranked_cfgs:
+            self.configs = ranked_cfgs[:min(costmodel_topk, len(ranked_cfgs))]
 
     def _precompile_worker(self):
         if self.compile_results:
@@ -1620,6 +1652,8 @@ def precompile_parallel(
     if hasattr(self, "skip_precompile"):
         if self.skip_precompile:
             return
+
+    self._apply_costmodel_topk_to_configs()
 
     if warm_cache_only:
         self.kernel_name = self.get_fn_name()
