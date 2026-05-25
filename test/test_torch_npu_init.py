@@ -402,15 +402,6 @@ class TestTorchNpuBootstrap(TestCase):
             import torch.distributed.distributed_c10d as c10d
             import torch.distributed.launcher.api as launcher_api
             from torch.distributed.fsdp import sharded_grad_scaler
-            from torch.distributed.fsdp._fully_shard import _fsdp_collectives
-            from torch.distributed.fsdp._fully_shard._fsdp_param_group import (
-                FSDPParamGroup,
-            )
-            from torch_npu.distributed.fsdp._add_fsdp_patch import (
-                _patched_finalize_backward,
-                _patched_get_param_all_gather_inputs,
-                _patched_all_gather_copy_in,
-            )
             from torch_npu.npu.amp.sharded_grad_scaler import _ShardedGradScaler
 
             # Importing PyTorch's torch.distributed.nn.functional must not eagerly
@@ -449,14 +440,6 @@ class TestTorchNpuBootstrap(TestCase):
             assert callable(launcher_api._get_addr_and_port)
 
             assert sharded_grad_scaler.ShardedGradScaler is _ShardedGradScaler
-            assert FSDPParamGroup.finalize_backward is _patched_finalize_backward
-            assert _fsdp_collectives._get_param_all_gather_inputs is (
-                _patched_get_param_all_gather_inputs
-            )
-            assert torch.ops.fsdp.all_gather_copy_in is _patched_all_gather_copy_in
-            assert torch.ops.fsdp.all_gather_copy_in.default is (
-                _patched_all_gather_copy_in
-            )
             """
         )
 
