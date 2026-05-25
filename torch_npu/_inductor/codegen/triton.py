@@ -2233,12 +2233,13 @@ class NPUIndexTritonKernel(TritonKernel):
 
             reduction_1d = is_1d_reduction()
             do_indent = False
+            
+            have_load_store = self.find_axis_in_load_store(range_val)
+            if not have_load_store:
+                indexing_code = None
+
             # tiling axis and last tiling
             if range_val.is_tiling_axis and last_tiling:
-                do_indent = False
-                have_load_store = self.find_axis_in_load_store(range_val)
-                if not have_load_store:
-                    indexing_code = None
                 need_axis_loop = have_load_store and (not range_val.is_no_loop_axis)
                 if (
                     range_val.prefix != "r" or not self.persistent_reduction
@@ -2256,11 +2257,6 @@ class NPUIndexTritonKernel(TritonKernel):
 
             # tiling axis and but not last tiling
             elif range_val.is_tiling_axis:
-                do_indent = False
-                have_load_store = self.find_axis_in_load_store(range_val)
-                if not have_load_store:
-                    do_indent = False
-                    indexing_code = None
                 if not range_val.is_no_loop_axis:
                     do_indent = True
                     self.body.writeline(

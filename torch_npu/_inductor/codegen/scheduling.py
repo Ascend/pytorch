@@ -237,20 +237,28 @@ class NPUTritonScheduling(TritonScheduling):
                 for node in [template_node, *epilogue_nodes]:
                     node.mark_run()
             partial_code = render()
-            with kernel.set_subgraph_body("<STORE_OUTPUT>"):
-                for node in epilogue_nodes:
-                    node.codegen(kernel.split_and_set_ranges(node.get_ranges()))
+            if "<STORE_OUTPUT>" in kernel.subgraph_bodies:
+                with kernel.set_subgraph_body("<STORE_OUTPUT>"):
+                    for node in epilogue_nodes:
+                        node.codegen(kernel.split_and_set_ranges(node.get_ranges()))
 
         if not isinstance(partial_code, str):
             partial_code.finalize_hook("<DEF_KERNEL>")
             partial_code.finalize_hook("<ARGDEFS>", strict=False)
         # finalize must be called after adding epilogue above
         with V.set_kernel_handler(kernel):
-            with kernel.set_subgraph_body("<STORE_OUTPUT>"):
+            has_store_output = "<STORE_OUTPUT>" in kernel.subgraph_bodies
+            if has_store_output:
+                with kernel.set_subgraph_body("<STORE_OUTPUT>"):
+                    if isinstance(partial_code, str):
+                        src_code = partial_code
+                    else:
+                        partial_code.finalize_hook("<STORE_OUTPUT>")
+                        src_code = partial_code.code
+            else:
                 if isinstance(partial_code, str):
                     src_code = partial_code
                 else:
-                    partial_code.finalize_hook("<STORE_OUTPUT>")
                     src_code = partial_code.code
             node_schedule = [template_node, *epilogue_nodes]
 
@@ -272,7 +280,7 @@ class NPUTritonScheduling(TritonScheduling):
             kernel_name, src_code = self.define_kernel(src_code, node_schedule, kernel, traced_graph_hash)
 
         self.codegen_comment(node_schedule)
-        kernel.call_kernel(kernel_name, template_node.node, template_node)
+        kernel.call_kernel(kernel_name, template_node.node)
 
         V.graph.removed_buffers |= kernel.removed_buffers
         V.graph.inplaced_to_remove |= kernel.inplaced_to_remove

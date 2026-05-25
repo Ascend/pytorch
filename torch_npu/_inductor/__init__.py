@@ -123,6 +123,27 @@ def _load_triton_backend():
     from .runtime import patch_triton_heuristics_cached_autotune
     flex_attention._validate_device = _validate_device
 
+    def _patch_flex_attention_singleton_sort():
+        original = getattr(flex_attention, "_dense_to_ordered", None)
+        if original is None or getattr(original, "_torch_npu_singleton_sort_patch", False):
+            return
+
+        def _dense_to_ordered_npu_safe(dense_mask):
+            if dense_mask.ndim > 0 and dense_mask.size(-1) == 1:
+                dense_mask = dense_mask.to(dtype=torch.int32)
+                num_blocks_in_row = dense_mask.sum(dim=-1)
+                col_indices = torch.zeros_like(dense_mask, dtype=torch.int32)
+                return (
+                    num_blocks_in_row.to(torch.int32, memory_format=torch.contiguous_format),
+                    col_indices.to(torch.int32, memory_format=torch.contiguous_format),
+                )
+            return original(dense_mask)
+
+        _dense_to_ordered_npu_safe._torch_npu_singleton_sort_patch = True
+        flex_attention._dense_to_ordered = _dense_to_ordered_npu_safe
+
+    _patch_flex_attention_singleton_sort()
+
     def _inductor_register_backend_for_device():
         from .codegen.cpp_wrapper import CppWrapperNpu
         from .codegen.npu_combined_scheduling import NPUCombinedScheduling
