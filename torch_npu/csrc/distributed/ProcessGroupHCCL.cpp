@@ -24,6 +24,7 @@
 #include <c10d/TCPStore.hpp>
 #include <c10d/PrefixStore.hpp>
 #include <torch/csrc/distributed/c10d/PrefixStore.hpp>
+#include "torch_npu/csrc/distributed/control_plane/Handlers.hpp"
 
 #include <arpa/inet.h>
 
@@ -469,6 +470,97 @@ std::string dump_hccl_trace_json(bool includeCollectives, bool onlyActive)
     return HCCLTraceBuffer::get()->dump_json(
         c10::nullopt, includeCollectives, onlyActive);
 }
+
+static c10d::control_plane::RegisterHandler dumpHcclHandler{
+    "dump_hccl_trace_pickle",
+    [](const c10d::control_plane::Request& req, c10d::control_plane::Response& res) {
+      const auto& params = req.params();
+      size_t validParamCount = 0;
+
+      const std::string includeCollectivesStr = "includecollectives";
+      const std::string includeStackTracesStr = "includestacktraces";
+      const std::string onlyActiveStr = "onlyactive";
+
+      std::unordered_map<std::string, bool> processedParams = {
+          {includeCollectivesStr, true},
+          {includeStackTracesStr, true},
+          {onlyActiveStr, false}};
+
+      for (const auto& [paramName, paramValue] : params) {
+        auto it = processedParams.find(paramName);
+        if (it != processedParams.end()) {
+          validParamCount++;
+          if (paramValue == "true") {
+            it->second = true;
+          } else if (paramValue == "false") {
+            it->second = false;
+          } else {
+            res.setStatus(400);
+            res.setContent(
+                "Invalid value for " + paramName +
+                    " valid values are true or false",
+                "text/plain");
+            return;
+          }
+        }
+      }
+      if (validParamCount < params.size()) {
+        res.setStatus(400);
+        res.setContent(
+            "Invalid parameters - unexpected param passed in", "text/plain");
+        return;
+      }
+      res.setContent(
+          dump_hccl_trace(
+              processedParams[includeCollectivesStr],
+              processedParams[includeStackTracesStr],
+              processedParams[onlyActiveStr]),
+          "application/octet-stream");
+    }};
+
+static c10d::control_plane::RegisterHandler jsonDumpHcclHandler{
+    "dump_hccl_trace_json",
+    [](const c10d::control_plane::Request& req, c10d::control_plane::Response& res) {
+      const auto& params = req.params();
+      size_t validParamCount = 0;
+
+      const std::string includeCollectivesStr = "includecollectives";
+      const std::string onlyActiveStr = "onlyactive";
+
+      std::unordered_map<std::string, bool> processedParams = {
+          {includeCollectivesStr, true}, {onlyActiveStr, false}};
+
+      for (const auto& [paramName, paramValue] : params) {
+        auto it = processedParams.find(paramName);
+        if (it != processedParams.end()) {
+          validParamCount++;
+          if (paramValue == "true") {
+            it->second = true;
+          } else if (paramValue == "false") {
+            it->second = false;
+          } else {
+            res.setStatus(400);
+            res.setContent(
+                "Invalid value for " + paramName +
+                    " valid values are true or false",
+                "text/plain");
+            return;
+          }
+        }
+      }
+      if (validParamCount < params.size()) {
+        res.setStatus(400);
+        res.setContent(
+            "Invalid parameters - unexpected param passed in", "text/plain");
+        return;
+      }
+      res.setStatus(200);
+      res.setContent(
+          dump_hccl_trace_json(
+              processedParams[includeCollectivesStr],
+              processedParams[onlyActiveStr]),
+          "application/json");
+    }};
 
 c10::optional<std::function<void(std::function<void(const std::string &)>)>> &get_cpp_trace_dumper()
 {
