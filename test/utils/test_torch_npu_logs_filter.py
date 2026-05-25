@@ -18,12 +18,14 @@ class TestTorchNpuLogs(TestCase):
         if self.original_torch_npu_logs is not None:
             os.environ['TORCH_NPU_LOGS'] = self.original_torch_npu_logs
         else:
-            del os.environ['TORCH_NPU_LOGS']
+            if 'TORCH_NPU_LOGS' in os.environ:
+                del os.environ['TORCH_NPU_LOGS']
             
         if self.original_torch_npu_logs_filter is not None:
             os.environ['TORCH_NPU_LOGS_FILTER'] = self.original_torch_npu_logs_filter
         else:
-            del os.environ['TORCH_NPU_LOGS_FILTER']
+            if 'TORCH_NPU_LOGS_FILTER' in os.environ:
+                del os.environ['TORCH_NPU_LOGS_FILTER']
 
     def _run_test(self, logs, logs_filter):
         os.environ['TORCH_NPU_LOGS'] = logs
@@ -52,26 +54,24 @@ result_matmul = torch.matmul(matrix1, matrix2)
 result_add = torch.add(matrix1, matrix2)
 """
 
-    @unittest.skip("Temporarily skipping")
     def test_no_filter(self):
         # 不设置过滤器，所有日志输出
         output = self._run_test('op_plugin', '')
-        self.assertIn('mm', output)
+        self.assertIn('matmul', output)
         self.assertIn('add', output)
 
-    @unittest.skip("Temporarily skipping")
     def test_white_list(self):
-        # 白名单过滤，只输出 matmul
-        output = self._run_test('op_plugin', '+mm')
-        self.assertIn('mm', output)
-        self.assertNotIn('add', output)
+        # 白名单过滤，只输出 matmul 算子日志
+        output = self._run_test('op_plugin', '+matmul')
+        self.assertIn('matmul', output)
+        self.assertNotIn('add exec aten', output)  
 
-    @unittest.skip("Temporarily skipping")
     def test_black_list(self):
-        # 黑名单过滤，排除 add
+        # 黑名单过滤，排除 add 算子日志
         output = self._run_test('op_plugin', '-add')
-        self.assertIn('mm', output)
-        self.assertNotIn('add', output)
+        self.assertIn('matmul', output)
+        self.assertNotIn('add exec aten', output)  
+ 
 
 if __name__ == '__main__':
     run_tests()
