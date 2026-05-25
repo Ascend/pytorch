@@ -165,7 +165,7 @@ def collect_cases_for_file(test_file: str, test_dir: Path) -> Tuple[str, str, Li
                 diag_lines.append("find libhccl.so: " + (r.stdout.strip() or "NOT FOUND"))
                 r2 = sp.run(["cat", "/usr/local/Ascend/cann/version.cfg"], capture_output=True, text=True, timeout=5)
                 diag_lines.append("CANN version: " + (r2.stdout.strip() or "MISSING"))
-                r3 = sp.run(["python3", "-c", "import torch; print('torch:', torch.__version__)"], capture_output=True, text=True, timeout=10, env=os.environ)
+                r3 = sp.run(["python3", "-c", "import torch; print('torch:', torch.__version__)"], capture_output=True, text=True, timeout=10, env=os.environ, cwd="/tmp")
                 diag_lines.append("torch version: " + (r3.stdout.strip() or r3.stderr.strip()))
             except Exception:
                 diag_lines.append("--- Diagnostics FAILED ---")
