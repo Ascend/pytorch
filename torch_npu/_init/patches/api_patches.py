@@ -3,7 +3,6 @@ from torch_npu._init.patches.patch_manager import PatchManager
 
 @PatchManager.register_patch("api")
 def apply_torch_api_patches():
-    from torch_npu.distributed.fsdp._add_fsdp_patch import _apply_fsdp_patch
     from torch_npu.multiprocessing.reductions import _add_reductions_methods
     from torch_npu.utils._module import _apply_module_patch
     from torch_npu.utils._optim import add_optim_method
@@ -21,4 +20,3 @@ def apply_torch_api_patches():
     _add_collect_env_methods()
     add_optim_method()
     _add_reductions_methods()
-    _apply_fsdp_patch()
