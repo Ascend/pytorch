@@ -38,3 +38,4 @@ packaging
 psutil
 scipy
 z3-solver==4.13.0.0
+zstandard==0.25.0
