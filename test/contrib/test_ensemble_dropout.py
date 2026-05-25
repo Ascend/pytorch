@@ -32,10 +32,9 @@ class NpuMNIST(nn.Module):
 
 
 class TestEnsembleDropout(unittest.TestCase):
-    @unittest.skip("test_EnsembleDropout is not supported yet")
     def test_EnsembleDropout(self):
         model = NpuMNIST().to("npu")
-        x = torch.randn(2, 10, 16, 16).to("npu")
+        x = torch.randn(2, 1, 16, 16).to("npu")
         NpuFairseqDropout.enable_dropout_ensemble(model)
         dropout = NpuFairseqDropout(p=0.5)
         output = model(x, dropout)
