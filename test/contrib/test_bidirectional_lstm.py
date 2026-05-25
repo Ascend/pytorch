@@ -20,7 +20,6 @@ class TestBidirectionalLstm(TestCase):
         input_grad = input1.grad.cpu()
         return output.detach().cpu(), input_grad.cpu()
 
-    @unittest.skip("Temporarily skipping")
     def test_bidirectional_lstm(self):
         np.random.seed(123)
         data1 = np.random.randn(2, 2, 8)
