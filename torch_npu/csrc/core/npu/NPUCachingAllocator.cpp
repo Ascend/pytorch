@@ -2183,6 +2183,7 @@ public:
             bool inserted = graph_pools_freeable.insert({ mempool_id, it->second.get() }).second;
             TORCH_INTERNAL_ASSERT(inserted);
             if (c10_npu::option::OptionsManager::CheckForceUncached() && captures_underway.empty()) {
+                c10_npu::npuSynchronizeDevice(true);
                 std::shared_ptr<c10::GatheredContext> context = maybeGatherContext(RecordContext::ALL);
                 release_cached_blocks(true, context, true);
             }
