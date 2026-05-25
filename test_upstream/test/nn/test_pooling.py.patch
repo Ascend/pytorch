@@ -1,5 +1,5 @@
 diff --git a/test/nn/test_pooling.py b/test/nn/test_pooling.py
-index 82f6ca2..a71a15a 100644
+index 82f6ca2..c53e0a0 100644
 --- a/test/nn/test_pooling.py
 +++ b/test/nn/test_pooling.py
 @@ -11,6 +11,8 @@ from functools import partial, reduce
@@ -11,6 +11,24 @@ index 82f6ca2..a71a15a 100644
  import torch.nn as nn
  import torch.nn.functional as F
  from torch import inf, nan
+@@ -312,7 +314,7 @@ class TestPoolingNN(NNTestCase):
+                 )
+ 
+     @unittest.skipIf(not TEST_CUDA, "CUDA unavailable")
+-    @largeTensorTest("12GB", device="cuda")
++    @largeTensorTest("12GB", device="npu")
+     def test_adaptive_pooling_avg_nhwc_launch_config_backward(self):
+         input = torch.randint(
+             1, 10, (1, 32, 2**17 + 1, 32), dtype=torch.float32, device="cuda"
+@@ -337,7 +339,7 @@ class TestPoolingNN(NNTestCase):
+         self.assertEqual(input.grad, ref_input.grad)
+ 
+     @unittest.skipIf(not TEST_CUDA, "CUDA unavailable")
+-    @largeTensorTest("12GB", device="cuda")
++    @largeTensorTest("12GB", device="npu")
+     def test_adaptive_pooling_avg_nhwc_launch_config_forward(self):
+         input = torch.randint(
+             1, 10, (1, 32, 16, 16), dtype=torch.float32, device="cuda"
 @@ -691,7 +693,7 @@ class TestPoolingNNDeviceType(NNTestCase):
          self.assertEqual(inp.grad, torch.zeros_like(inp))
          self.assertEqual(unpool_out, torch.zeros_like(unpool_out))
