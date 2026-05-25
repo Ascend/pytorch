@@ -441,6 +441,7 @@ def gen_dispatcher_registrations(
     
     native_func_header += """#include "torch_npu/csrc/framework/utils/ForceAclnnList.h"
 #include "torch_npu/csrc/framework/OpHook.h"
+#include "torch_npu/csrc/aten/mirror/NPUMemoryOverlap.h"
 #include "op_plugin/OpInterface.h"
 """
     #过滤aten类中的npu自定义接口
