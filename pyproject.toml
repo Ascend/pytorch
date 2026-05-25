@@ -182,6 +182,10 @@ select = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
+"torch_npu/distributed/fsdp/_add_fsdp_patch.py" = [
+    "UP007",
+    "UP045",
+]
 "__init__.py" = [
     "F401",
 ]
