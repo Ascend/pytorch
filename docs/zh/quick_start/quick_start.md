@@ -91,10 +91,11 @@
 
 2. 在train.py中添加以下代码。
 
-    - 若用户使用<term>Atlas 训练系列产品</term>，则在迁移完成、训练开始之前，由于其架构特性需要，用户需要开启混合精度。
+    - 若用户使用<term>Atlas 训练系列产品</term>，则在迁移完成、训练开始之前，由于其架构特性，用户需要开启混合精度。
     - 若用户使用<term>Atlas A2 训练系列产品</term>或<term>Atlas A3 训练系列产品</term>，则可以自行选择是否开启混合精度。
 
-    > [!NOTE]  
+    > [!NOTE]
+    >
     > 具体介绍可参见《PyTorch 训练模型迁移调优指南》中的“[混合精度适配](https://gitcode.com/Ascend/docs/blob/master/FrameworkPTAdapter/26.0.0/zh/pytorch_model_migration_fine_tuning/adaptation_introduction.md)”章节。
 
     ```diff

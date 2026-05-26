@@ -1,4 +1,4 @@
-# torch.libs/libopenblasp-r0-56e95da7.3.24.so不存在
+# torch.libs/libopenblasp-r0-56e95da7.3.24.so链接报错或libgfortran缺失
 
 ## 问题描述
 
@@ -10,7 +10,7 @@ aarch64环境下进行libtorch推理测试，编译时依赖torch.libs/\*.so库�
 
 - 报错文本
 
-    ```ColdFusion
+    ```text
     [100%] Linking CXX executable libtorch_resnet
     /usr/bin/ld: warning: libgfortran-b6d57c85.so.5.0.0, needed by /usr/local/python3.8.5/lib/python3.8/site-packages/torch/lib/../../torch.libs/libopenblasp-r0-56e95da7.3.24.so, not found (try using     -rpath or -rpath-link)
     /usr/bin/ld: /usr/local/python3.8.5/lib/python3.8/site-packages/torch/lib/../../torch.libs/libopenblasp-r0-56e95da7.3.24.so: undefined reference to `_gfortran_concat_string@GFORTRAN_8'
@@ -28,7 +28,7 @@ aarch64环境下进行libtorch推理测试，编译时依赖torch.libs/\*.so库�
 ```cmake
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 
-# 在执行模型代码前增加torch.libs/*.so库的链接，请根据实际情况替换以下命令行中的该库的路径
+# 在执行模型代码前增加torch.libs/*.so库的搜索路径，请根据实际情况替换以下命令行中的该库的路径
 link_directories(/usr/local/python3.8.5/lib/python3.8/site-packages/torch.libs)  
 
 add_executable(libtorch_resnet libtorch_resnet.cpp)
