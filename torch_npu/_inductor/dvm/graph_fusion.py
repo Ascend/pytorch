@@ -1,4 +1,3 @@
-import copy
 from collections import defaultdict
 from types import SimpleNamespace
 
@@ -8,6 +7,7 @@ from torch.library import Library
 from torch.utils._pytree import tree_map
 from torch._inductor import config as inductor_config
 from torch._inductor.codegen.wrapper import PythonWrapperCodegen
+from torch._inductor.virtualized import V
 from torch._subclasses import FakeTensor
 
 from torch.fx.passes.infra.partitioner import CapabilityBasedPartitioner
@@ -311,17 +311,30 @@ class GraphFusionPartitioner(CapabilityBasedPartitioner):
                 custom._opoverload, tuple(args), None
             )
 
+            new_meta_vals = []
+            with V.fake_mode:
+                for orig_output in orig_outputs:
+                    meta_val = orig_output.meta["val"]
+                    new_meta_vals.append(
+                        torch.empty(
+                            meta_val.size(),
+                            dtype=meta_val.dtype,
+                            device=meta_val.device,
+                            requires_grad=meta_val.requires_grad,
+                        )
+                    )
+
             if output_len == 1:
                 orig_outputs[0].replace_all_uses_with(new_node)
-                new_node.meta["val"] = orig_outputs[0].meta.get("val", None)
+                new_node.meta["val"] = new_meta_vals[0]
             else:
-                for i, orig_output in enumerate(orig_outputs):
+                for i, (orig_output, meta_val) in enumerate(
+                    zip(orig_outputs, new_meta_vals)
+                ):
                     proxy_out = torch.fx.Proxy(new_node)[i].node
-                    proxy_out.meta["val"] = copy.copy(orig_output.meta["val"])
+                    proxy_out.meta["val"] = meta_val
                     orig_output.replace_all_uses_with(proxy_out)
-                new_node.meta["val"] = tuple(
-                    copy.copy(out.meta["val"]) for out in orig_outputs
-                )
+                new_node.meta["val"] = tuple(new_meta_vals)
 
             # erase old nodes
             erase_nodes(self.graph_module, sorted_nodes)
