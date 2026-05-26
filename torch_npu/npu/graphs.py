@@ -745,6 +745,13 @@ class NPUGraph(torch_npu._C._NPUGraph):
                         'value_breaker_bypass': {'value_type': int},
                         'task_breaker_bypass': {'value_type': int}
                     }
+                },
+                'ubuf_lock_ignore_kernel': {
+                    'value_type': list,
+                    'element_type': str
+                },
+                'early_start': {
+                    'value_type': int
                 }
             },
             'debug_options': {
@@ -759,6 +766,9 @@ class NPUGraph(torch_npu._C._NPUGraph):
                 },
                 'debug_extend': {
                     'value_type': str
+                },
+                'debug_per_op_max_core_num': {
+                    'value_type': int
                 }
             }
         }
