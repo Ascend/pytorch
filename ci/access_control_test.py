@@ -8,6 +8,7 @@ import queue
 import argparse
 from pathlib import Path
 import random
+import time
 import psutil
 from access_control import (
     TestMgr,
@@ -97,12 +98,15 @@ def exec_ut(files):
                     ut_info = "test_ops " + ut_info
                 else:
                     cmd = cmd if 'op-plugin' in str(Path(ut_file)) else cmd + ["--init_method={}".format(init_method)]
+                t_start = time.time()
                 ret = run_cmd_with_timeout(cmd)
+                elapsed = time.time() - t_start
+                duration = "{:.1f}s".format(elapsed)
                 if ret:
                     has_failed = ret
-                    test_infos.append("exec ut {} failed.".format(ut_info))
+                    test_infos.append("exec ut {} failed. [{}]".format(ut_info, duration))
                 else:
-                    test_infos.append("exec ut {} success.".format(ut_info))
+                    test_infos.append("exec ut {} success. [{}]".format(ut_info, duration))
                 init_method = 2 if init_method == 1 else 1
         return has_failed, test_infos
 
@@ -122,6 +126,7 @@ if __name__ == "__main__":
     parser.add_argument('--inductor_a5', action="store_true", help='Run inductor A5 testcases')
     parser.add_argument('--rank', default=0, type=int, help='Index of current ut nodes')
     parser.add_argument('--world_size', default=0, type=int, help='Number of ut nodes')
+    parser.add_argument('--npu_core', help='Run core testcases in npu')
     parser.add_argument('--network_ops', action="store_true", help='Run network_ops testcases in the op-plugin repo')
     options = parser.parse_args()
     print(f"options: {options}")
@@ -148,6 +153,16 @@ if __name__ == "__main__":
     if options.rank > 0 and options.world_size > 0:
         test_mgr.split_test_files(options.rank, options.world_size)
     cur_test_files = test_mgr.get_test_files()
+
+    if options.npu_core in ("yes", "no"):
+        npu_dir = str(TEST_DIR / "npu")
+        for ut_type in list(cur_test_files.keys()):
+            if options.npu_core == "yes":
+                cur_test_files[ut_type] = [f for f in cur_test_files[ut_type]
+                                            if str(Path(f)).startswith(npu_dir)]
+            else:
+                cur_test_files[ut_type] = [f for f in cur_test_files[ut_type]
+                                            if not str(Path(f)).startswith(npu_dir)]
 
     test_mgr.print_modify_files()
     test_mgr.print_ut_files()
