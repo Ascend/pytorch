@@ -1,5 +1,5 @@
 diff --git a/test/quantization/core/test_quantized_tensor.py b/test/quantization/core/test_quantized_tensor.py
-index 5517b9d..2441e65 100644
+index 5517b9d..c4361d2 100644
 --- a/test/quantization/core/test_quantized_tensor.py
 +++ b/test/quantization/core/test_quantized_tensor.py
 @@ -5,17 +5,27 @@ import numpy as np
@@ -152,17 +152,24 @@ index 5517b9d..2441e65 100644
          for dtype in dtypes:
              r = torch.rand(2, 2) * 10
              r[0, 0] = 2.5
-@@ -574,7 +584,7 @@ class TestQuantizedTensor(TestCase):
+@@ -574,18 +584,16 @@ class TestQuantizedTensor(TestCase):
              self.assertEqual(qtr.int_repr(), qtr_cuda.int_repr())
              self.assertTrue(np.allclose(dqtr, dqtr_cuda.cpu()))
  
 -    @unittest.skipIf(not torch.cuda.is_available(), 'CUDA is not available')
-+    # @unittest.skipIf(not torch.cuda.is_available(), 'CUDA is not available')
      def test_compare_per_channel_device_numerics(self):
          dtype_and_zero_types = [
-             (torch.quint8, torch.float),
-@@ -585,7 +595,7 @@ class TestQuantizedTensor(TestCase):
-             (torch.qint32, torch.long),
+-            (torch.quint8, torch.float),
+-            (torch.qint8, torch.float),
+-            #  (torch.qint32, torch.float) not supported for quantize_per_channel
+-            (torch.quint8, torch.long),
+-            (torch.qint8, torch.long),
+-            (torch.qint32, torch.long),
++            (torch.quint8, torch.int32),
++            (torch.qint8, torch.int32),
++            (torch.quint8, torch.int32),
++            (torch.qint8, torch.int32),
++            (torch.qint32, torch.int32),
          ]
          axis = 1
 -        device = torch.device('cuda')
@@ -170,7 +177,7 @@ index 5517b9d..2441e65 100644
          for i in range(20):
              for dtype, zero_type in dtype_and_zero_types:
                  r = torch.rand(2, 2) * 10
-@@ -1019,9 +1029,9 @@ class TestQuantizedTensor(TestCase):
+@@ -1019,9 +1027,9 @@ class TestQuantizedTensor(TestCase):
      def test_qtensor_masked_fill_cpu(self):
          self._test_qtensor_masked_fill('cpu')
  
@@ -183,7 +190,7 @@ index 5517b9d..2441e65 100644
  
      # adapted from test_qtensor_fill_per_tensor
      def _test_qtensor_masked_fill(self, device):
-@@ -1081,10 +1091,10 @@ class TestQuantizedTensor(TestCase):
+@@ -1081,10 +1089,10 @@ class TestQuantizedTensor(TestCase):
          self._test_qtensor_index_put('cpu')
          self._test_qtensor_index_put_non_accumulate_deterministic('cpu')
  
@@ -198,7 +205,7 @@ index 5517b9d..2441e65 100644
  
      def _test_qtensor_index_put(self, device):
          n = 10
-@@ -1162,9 +1172,9 @@ class TestQuantizedTensor(TestCase):
+@@ -1162,9 +1170,9 @@ class TestQuantizedTensor(TestCase):
              self.assertEqual(q_filled.q_per_channel_scales(), scales)
              self.assertEqual(q_filled.q_per_channel_zero_points(), zero_points)
  
@@ -211,7 +218,7 @@ index 5517b9d..2441e65 100644
  
      def test_qtensor_index_select_cpu(self):
          self._test_qtensor_index_select('cpu')
-@@ -1369,20 +1379,20 @@ class TestQuantizedTensor(TestCase):
+@@ -1369,20 +1377,20 @@ class TestQuantizedTensor(TestCase):
          np.testing.assert_array_almost_equal(X_scale, qparams[0], decimal=3)
          self.assertEqual(X_zp, qparams[1])
  
