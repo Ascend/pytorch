@@ -160,6 +160,8 @@ whitelist:
   - test/test_overrides.py
   - test/test_proxy_tensor.py
   - test/test_public_bindings.py
+  - test/test_ops_jit.py
+  - test/test_jit.py
 blacklist:
   - test/export/test_export_legacy.py
   - test/distributed/launcher
