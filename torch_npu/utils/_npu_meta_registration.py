@@ -19,7 +19,6 @@ npu = torch.ops.npu
 META_BLACKLIST = {
     "aten::empty_strided",  # causing infinite recursion, test_meta.py
     "aten::clone",  # causing infinite recursion
-    "aten::_to_copy",  # causing infinite recursion, test_serialization.py -k test_tensor_subclass_getstate_overwrite  # noqa: B950
     "aten::copy_",  # Exception not raised, test_torch.py -k test_storage_meta_errors_cpu_int64  # noqa: B950
     "aten::constant_pad_nd",  # requires_grad mismatch, test_ops.py -k test_fake_crossref_backward_amp_istft_cuda_float32  # noqa: B950
     "aten::rot90",  # requires_grad mismatch! test_ops.py -k test_fake_crossref_backward_amp_rot90_cuda_float32  # noqa: B950
@@ -187,54 +186,3 @@ def meta_native_dropout_backward_patch(grad_output: Tensor, mask: Tensor, scale:
         from torch._decomp.decompositions import native_dropout_backward
 
         return native_dropout_backward(grad_output, mask, scale)
-
-
-@register_meta_npu(aten._to_copy.default, inductor_decomp=True)
-def meta_to_copy_default(
-    x,
-    *,
-    dtype: torch.dtype | None = None,
-    layout=None,
-    device: torch.device | None = None,
-    pin_memory: bool = False,
-    non_blocking: bool = False,
-    memory_format: torch.memory_format | None = None,
-):
-    if layout and layout != torch.strided:
-        raise AssertionError(f"Only strided layout is supported, got {layout}")
-    if pin_memory:
-        raise AssertionError("pin_memory is not supported")
-    if not isinstance(x, (torch.Tensor, int, float, bool, complex)):
-        raise AssertionError(f"x must be Tensor or scalar type, got {type(x)}")
-
-    out_memory_format = (
-        memory_format if memory_format is not None else torch.contiguous_format
-    )
-
-    if device is None and dtype is None and memory_format is None:
-        if isinstance(x, torch.Tensor):
-            return x.clone(memory_format=out_memory_format)
-        else:
-            return x
-    dtype_converted = False
-
-    if isinstance(x, torch.Tensor):
-        x_tensor = x
-    else:
-        x_tensor = torch.scalar_tensor(x)
-
-    if device is not None and device != x_tensor.device:
-        # avoid conversions on cpu
-        if dtype is not None and device.type == "cpu":
-            x_tensor = torch._prims.convert_element_type(x_tensor, dtype)
-            dtype_converted = True
-        x_tensor = torch._prims.device_put(x_tensor, device, non_blocking)
-
-    if dtype is not None and not dtype_converted:
-        x_tensor = torch._prims.convert_element_type(x_tensor, dtype)
-        dtype_converted = True
-
-    if memory_format is not None:  # no ref/prim for memory format
-        return torch.clone(x_tensor, memory_format=memory_format)
-    else:
-        return torch.clone(x_tensor, memory_format=out_memory_format)
