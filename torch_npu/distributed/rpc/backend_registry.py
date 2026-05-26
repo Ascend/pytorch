@@ -285,13 +285,71 @@ def _npu_tensorpipe_init_backend_handler(
             return agent
 
 
+def _faulty_tensorpipe_construct_rpc_backend_options_handler(
+    rpc_timeout,
+    init_method,
+    num_worker_threads,
+    messages_to_fail,
+    messages_to_delay,
+    num_fail_sends=0,
+    **kwargs,
+):
+    from torch_npu._C._distributed_rpc import FaultyTensorPipeRpcBackendOptions
+
+    return FaultyTensorPipeRpcBackendOptions(
+        num_worker_threads=num_worker_threads,
+        rpc_timeout=rpc_timeout,
+        init_method=init_method,
+        messages_to_fail=messages_to_fail,
+        messages_to_delay=messages_to_delay,
+        num_fail_sends=num_fail_sends,
+    )
+
+
+def _faulty_tensorpipe_init_backend_handler(
+    store, name, rank, world_size, rpc_backend_options
+):
+    from torch_npu._C._distributed_rpc import FaultyTensorPipeAgent, FaultyTensorPipeRpcBackendOptions
+
+    if not isinstance(store, dist.Store):
+        raise TypeError(f"`store` must be a c10d::Store. {store}" + dist_error(ErrCode.TYPE))
+
+    if not isinstance(rpc_backend_options, FaultyTensorPipeRpcBackendOptions):
+        raise TypeError(
+            f"`rpc_backend_options` must be a `FaultyTensorPipeRpcBackendOptions`. {rpc_backend_options}" +
+            dist_error(ErrCode.TYPE)
+        )
+
+    _init_device_state(_get_privateuse1_backend_name())
+
+    agent = FaultyTensorPipeAgent(
+        store,
+        name,
+        rank,
+        world_size,
+        rpc_backend_options,
+        {},
+        [],
+    )
+    api._init_rpc_states(agent)
+
+    return agent
+
+
 def _rpc_backend_registry():
     if hasattr(torch_npu._C, "_rpc_npu_init"):
         torch_npu._C._rpc_npu_init()
+
         rpc.backend_registry.register_backend(
             "NPU_TENSORPIPE",
             _npu_tensorpipe_construct_rpc_backend_options_handler,
             _npu_tensorpipe_init_backend_handler,
+        )
+
+        rpc.backend_registry.register_backend(
+            "NPU_FAULTY_TENSORPIPE",
+            _faulty_tensorpipe_construct_rpc_backend_options_handler,
+            _faulty_tensorpipe_init_backend_handler,
         )
 
     import torch.distributed.rpc as _rpc_module
