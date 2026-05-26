@@ -44,6 +44,7 @@ using torch::distributed::rpc::collectNames;
 using torch::distributed::rpc::createExceptionResponse;
 using torch::distributed::rpc::DeviceMap;
 using torch::distributed::rpc::JitFuture;
+using torch::distributed::rpc::kRpcTimeoutErrorStr;
 using torch::distributed::rpc::kSecToMsConversion;
 using torch::distributed::rpc::kUnsetRpcTimeout;
 using torch::distributed::rpc::makeRPCError;
