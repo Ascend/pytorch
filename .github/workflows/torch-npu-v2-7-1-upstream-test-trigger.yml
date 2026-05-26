@@ -2,7 +2,7 @@ name: Torch NPU Upstream v2.7.1 Trigger
 
 on:
   schedule:
-    - cron: '0 11 * * *'  # UTC 11:00 (Beijing time 19:00), every day
+    - cron: '0 11 */2 * *'  # UTC 11:00 (Beijing time 19:00), every 2 days
   workflow_dispatch:
     inputs:
       python_version:
