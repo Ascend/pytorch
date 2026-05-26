@@ -18,7 +18,7 @@ mypy==1.16.0
 lintrunner==0.12.11
 
 # Core dependencies
-numpy==1.26.2
+numpy==1.23.2
 ml-dtypes==0.5.4
 optree==0.13.0
 packaging==24.0
@@ -47,8 +47,7 @@ protobuf==6.33.5
 requests==2.32.0
 dill==0.3.7
 
-# Torch ecosystem (torch_geometric/torch-scatter installed separately with --no-build-isolation)
-torchvision==0.27.1
+# Torch ecosystem (torch_geometric/torch-scatter/torchvision installed separately)
 transformers==4.40.0
 
 # Utilities

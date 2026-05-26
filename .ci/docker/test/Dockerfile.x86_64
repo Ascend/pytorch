@@ -56,8 +56,10 @@ RUN /opt/buildtools/install_triton.sh ${PYTHON_VERSION}
 
 # Install PyTorch first, then torch_geometric/torch-scatter with --no-build-isolation
 # (they need torch at build time; pre-built wheels for torch 2.12 are not yet on data.pyg.org)
+# Use --extra-index-url for torchvision to pull CPU builds instead of CUDA from PyPI.
 RUN python3 -m pip install --no-cache-dir torch==${PYTORCH_VERSION} --extra-index-url https://download.pytorch.org/whl/cpu \
     && python3 -m pip install --no-cache-dir --no-build-isolation torch_geometric torch-scatter \
+    && python3 -m pip install --no-cache-dir torchvision==0.27.0 --extra-index-url https://download.pytorch.org/whl/cpu \
     && python3 -m pip install --no-cache-dir -r /opt/buildtools/requirements-test.txt
 
 WORKDIR /home
