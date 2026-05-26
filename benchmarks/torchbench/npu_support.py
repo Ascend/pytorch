@@ -345,12 +345,6 @@ def _patch_model_10():
 
     DeepRecommenderTrainBenchmark.__init__ = new_init
 
-    def expm1(x):
-        tensor = torch.exp(x) - torch.ones_like(x)
-        return tensor
-
-    inductor_decomp.register_decomposition(torch.ops.aten.expm1)(expm1)
-
 
 @register_patch("resnet50", "resnet152", "resnext50_32x4d", "densenet121")
 def _patch_model_18():
