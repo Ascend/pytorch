@@ -383,6 +383,14 @@ public:
             {"debug_cross_core_sync_check", [](aclskOption& opt, int val) {
                 opt.optionType = aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK;
                 opt.debugCrossCoreSyncCheck.enableCrossCoreSyncCheck = static_cast<uint32_t>(val);
+            }},
+            {"early_start", [](aclskOption& opt, int val) {
+                opt.optionType = aclskOptionType::EARLY_START;
+                opt.earlyStart.enableEarlyStart = static_cast<uint32_t>(val);
+            }},
+            {"debug_per_op_max_core_num", [](aclskOption& opt, int val) {
+                opt.optionType = aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM;
+                opt.debugPerOpMaxCoreNum.enableDebugPerOpMaxCoreNum = static_cast<uint32_t>(val);
             }}
         };
 
@@ -402,6 +410,8 @@ public:
             processDcciBeforeKernelStart(values);
         } else if (key == "dcci_after_kernel_end") {
             processDcciAfterKernelEnd(values);
+        } else if (key == "ubuf_lock_ignore_kernel") {
+            processUbufLockIgnoreKernel(values);
         }
     }
 
@@ -478,6 +488,15 @@ private:
         opt.optionType = aclskOptionType::DCCI_AFTER_KERNEL_END;
         opt.dcciAfterKernelEnd.kernelCnt = static_cast<int>(values.size());
         opt.dcciAfterKernelEnd.kernelNames = convertStringArray(values);
+        optionsVec.push_back(opt);
+    }
+
+    void processUbufLockIgnoreKernel(const std::vector<std::string>& values)
+    {
+        aclskOption opt = {};
+        opt.optionType = aclskOptionType::UBUF_LOCK_IGNORE_KERNEL;
+        opt.ubufLockIgnoreKernel.ubufLockIgnoreKernelCnt = static_cast<int>(values.size());
+        opt.ubufLockIgnoreKernel.ubufLockIgnoreKernel = convertStringArray(values);
         optionsVec.push_back(opt);
     }
 
