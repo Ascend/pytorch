@@ -33,8 +33,14 @@ RUN mkdir /root/.pip \
     && echo "trusted-host=mirrors.huaweicloud.com" >> /root/.pip/pip.conf \
     && echo "timeout=120" >> /root/.pip/pip.conf
 
-# Install PyTorch, build deps, and requirements for each python version
+# Install PyTorch, build deps, and requirements for each python version.
+# Only install on Python 3.10-3.13; skip 3.14+ (torch 2.12 has no wheels for 3.14).
 RUN for pp in $(ls /usr/local/bin/pip3.* 2>/dev/null | grep -oP 'pip\d+\.\d+' | sort -V); do \
+        pyver=${pp#pip}; \
+        case "$pyver" in \
+            3.9|3.10|3.11|3.12|3.13) ;; \
+            *) echo "=== Skipping ${pp} (Python ${pyver} not supported by torch 2.12) ==="; continue ;; \
+        esac; \
         echo "=== Installing PyTorch ${PYTORCH_VERSION} for ${pp} ==="; \
         $pp install --no-cache-dir torch==${PYTORCH_VERSION} --extra-index-url https://download.pytorch.org/whl/cpu \
             -r /opt/buildtools/requirements-builder.txt; \
