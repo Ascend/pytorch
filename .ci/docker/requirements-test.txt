@@ -47,7 +47,7 @@ protobuf==6.33.5
 requests==2.32.0
 dill==0.3.7
 
-# Torch ecosystem (torch_geometric/torch-scatter/torchvision installed separately)
+# Torch ecosystem (torch_geometric/torch-scatter/torchvision installed separately in Dockerfile)
 transformers==4.40.0
 
 # Utilities
