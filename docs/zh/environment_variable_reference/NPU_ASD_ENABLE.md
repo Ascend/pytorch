@@ -21,7 +21,7 @@ export NPU_ASD_ENABLE=2
 
 - 特征值检测需要计算激活值梯度的统计值，会产生额外的显存占用，用户显存紧张情况下可能导致OOM。
 
-- 此环境变量适用于Ascend Extension for PyTorch 7.0.0及之前版本。
+- 此环境变量适用于Ascend Extension for PyTorch 7.0.0及以下版本。
 
 ## 支持的型号
 

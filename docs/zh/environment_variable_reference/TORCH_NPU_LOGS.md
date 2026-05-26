@@ -2,7 +2,7 @@
 
 ## 功能描述
 
-此环境变量用于配置Ascend Extension for PyTorch新增模块的日志打印功能，为开发者在Debugging场景下提供精准的调试定位能力。
+此环境变量用于配置Ascend Extension for PyTorch新增模块的日志打印功能，为开发者在debugging场景下提供精准的调试定位能力。
 
 Ascend Extension for PyTorch新增的模块不支持通过原生`TORCH_LOGS`进行设置，如需设置新增模块的日志信息，需要使用`TORCH_NPU_LOGS`，新增模块列表如下：
 

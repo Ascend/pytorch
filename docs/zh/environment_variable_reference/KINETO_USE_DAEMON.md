@@ -2,7 +2,7 @@
 
 ## 功能描述
 
-PyTorch训练场景用于设置是否通过msMonitor nputrace方式开启dynamic\_profile采集功能。
+该环境变量用于在训练场景中设置是否通过msMonitor nputrace方式开启dynamic\_profile采集功能。
 
 ## 配置示例
 
