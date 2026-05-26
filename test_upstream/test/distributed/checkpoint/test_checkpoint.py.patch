@@ -1,32 +1,39 @@
-﻿diff --git a/test/distributed/checkpoint/test_checkpoint.py b/test/distributed/checkpoint/test_checkpoint.py
-index c196ee43381..25155297d32 100644
+diff --git a/test/distributed/checkpoint/test_checkpoint.py b/test/distributed/checkpoint/test_checkpoint.py
+index c196ee4..e47de6f 100644
 --- a/test/distributed/checkpoint/test_checkpoint.py
 +++ b/test/distributed/checkpoint/test_checkpoint.py
-@@ -33,19 +33,19 @@ from torch.distributed.checkpoint.planner import (
+@@ -32,15 +32,12 @@ from torch.distributed.checkpoint.planner import (
+ )
  from torch.distributed.checkpoint.storage import WriteResult
  from torch.futures import Future
- from torch.testing._internal.common_distributed import (
+-from torch.testing._internal.common_distributed import (
 -    requires_accelerator_dist_backend,
-     skip_if_lt_x_gpu,
- )
+-    skip_if_lt_x_gpu,
+-)
 -from torch.testing._internal.common_utils import run_tests, TEST_WITH_DEV_DBG_ASAN
-+from torch.testing._internal.common_utils import TEST_WITH_DEV_DBG_ASAN
- from torch.testing._internal.distributed._shard.sharded_tensor import (
-     ShardedTensorTestBase,
+-from torch.testing._internal.distributed._shard.sharded_tensor import (
+-    ShardedTensorTestBase,
 -    with_comms,
- )
- 
+-)
++from torch.testing._internal.common_utils import TEST_WITH_DEV_DBG_ASAN
++from torch.testing._internal.distributed._shard.sharded_tensor import ShardedTensorTestBase
++
 +import torch_npu
-+from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
++from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU, with_comms
 +from torch_npu.testing.testcase import run_tests
  
- device_type = acc.type if (acc := torch.accelerator.current_accelerator()) else "cpu"
  
--
- if TEST_WITH_DEV_DBG_ASAN:
-     print(
-         "Skip dev-asan as torch + multiprocessing spawn have known issues",
-@@ -75,13 +75,16 @@ class TestModule(torch.nn.Module):
+ device_type = acc.type if (acc := torch.accelerator.current_accelerator()) else "cpu"
+@@ -58,7 +55,7 @@ class TestModule(torch.nn.Module):
+     def __init__(self) -> None:
+         super().__init__()
+         self.sharded: ShardedTensor = sharded_tensor.zeros(self.spec(), 4, 4)
+-        self.regular = torch.nn.Parameter(torch.ones(4, 4))
++        self.regular = torch.nn.Parameter(torch.ones(4, 4).to(device_type))
+         self.extra_sharded: ShardedTensor | None = None
+         self.extra_param: torch.nn.Parameter | None = None
+         self._register_state_dict_hook(state_dict_hook)
+@@ -75,13 +72,16 @@ class TestModule(torch.nn.Module):
  
  
  class TestDistributedCheckpointing(ShardedTensorTestBase):
@@ -46,13 +53,7 @@ index c196ee43381..25155297d32 100644
      def test_tensor_metadata_with_missing_rank_spec(self) -> None:
          spec = ChunkShardingSpec(
              dim=0,
-@@ -91,14 +94,14 @@ class TestDistributedCheckpointing(ShardedTensorTestBase):
-         )
- 
-         st = sharded_tensor.zeros(spec, 4, 4, dtype=torch.float64)
-+        mapping = {}
-         md = _create_default_local_metadata({"st": st})
-         st_md = md.state_dict_metadata["st"]
+@@ -96,9 +96,8 @@ class TestDistributedCheckpointing(ShardedTensorTestBase):
  
          self.assertEqual(1, len(st_md.chunks))
  
@@ -64,7 +65,7 @@ index c196ee43381..25155297d32 100644
      def test_default_metadata(self) -> None:
          device = f"{device_type}:{dist.get_rank()}"
          spec = ChunkShardingSpec(
-@@ -152,7 +155,7 @@ class TestStorageBase:
+@@ -152,7 +151,7 @@ class TestStorageBase:
          self.rank = 0 if not dist.is_initialized() else dist.get_rank()
  
      def _get_ranks(self, name):
@@ -73,16 +74,7 @@ index c196ee43381..25155297d32 100644
  
      def _fail_rank(self, name):
          ranks = self._get_ranks(name)
-@@ -218,7 +221,7 @@ class FaultyStorageReader(TestStorageBase, StorageReader):
-         self._fail_rank("fail_prepare_local_plan")
-         return plan
- 
--    def prepare_global_plan(self, plans: list[LoadPlan]) -> list[LoadPlan]:
-+    def prepare_global_plan(self, plans: List[LoadPlan]) -> List[LoadPlan]:
-         self._fail_rank("fail_prepare_global_plan")
-         return plans
- 
-@@ -236,6 +239,10 @@ class FaultyStorageReader(TestStorageBase, StorageReader):
+@@ -236,6 +235,10 @@ class FaultyStorageReader(TestStorageBase, StorageReader):
  
  
  class TestDistributedFailure(ShardedTensorTestBase):
@@ -93,7 +85,7 @@ index c196ee43381..25155297d32 100644
      def get_spec(self):
          return ChunkShardingSpec(
              dim=0,
-@@ -244,25 +251,23 @@ class TestDistributedFailure(ShardedTensorTestBase):
+@@ -244,25 +247,23 @@ class TestDistributedFailure(ShardedTensorTestBase):
              ],
          )
  
@@ -125,7 +117,7 @@ index c196ee43381..25155297d32 100644
              "bytes": [1, 2, 3, 4],
          }
          metadata = _create_default_local_metadata(state_dict)
-@@ -319,13 +324,12 @@ class TestDistributedFailure(ShardedTensorTestBase):
+@@ -319,13 +320,12 @@ class TestDistributedFailure(ShardedTensorTestBase):
  
          self._test_dist_failure(_load, kwargs)
  
@@ -142,7 +134,7 @@ index c196ee43381..25155297d32 100644
              "bytes": [1, 2, 3, 4],
          }
  
-@@ -341,7 +345,7 @@ class TestDistributedFailure(ShardedTensorTestBase):
+@@ -341,7 +341,7 @@ class TestDistributedFailure(ShardedTensorTestBase):
          self._test_save(state_dict, coordinator=1, fail_finish=[1])
  
      def test_save_error_handling_no_dist(self) -> None:
@@ -151,7 +143,7 @@ index c196ee43381..25155297d32 100644
  
          self.assertFalse(dist.is_initialized())
  
-@@ -353,13 +357,12 @@ class TestDistributedFailure(ShardedTensorTestBase):
+@@ -353,13 +353,12 @@ class TestDistributedFailure(ShardedTensorTestBase):
          self._test_save(state_dict, fail_write_data=[0])
          self._test_save(state_dict, fail_write_data_async=[0])
  
@@ -168,7 +160,7 @@ index c196ee43381..25155297d32 100644
              "bytes": [1, 2, 3, 4],
          }
  
-@@ -383,7 +386,7 @@ class TestDistributedFailure(ShardedTensorTestBase):
+@@ -383,7 +382,7 @@ class TestDistributedFailure(ShardedTensorTestBase):
          self._test_load(state_dict, coordinator=1, fail_prepare_global_plan=[1])
  
      def test_load_error_handling_no_dist(self) -> None:

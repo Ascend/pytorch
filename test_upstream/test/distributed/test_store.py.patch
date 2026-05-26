@@ -1,5 +1,5 @@
-﻿diff --git a/test/distributed/test_store.py b/test/distributed/test_store.py
-index 8975aa2439a..ed34b662449 100644
+diff --git a/test/distributed/test_store.py b/test/distributed/test_store.py
+index 8975aa2..ed34b66 100644
 --- a/test/distributed/test_store.py
 +++ b/test/distributed/test_store.py
 @@ -16,9 +16,11 @@ import torch

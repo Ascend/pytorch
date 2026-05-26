@@ -1,17 +1,16 @@
-﻿diff --git a/test/distributed/checkpoint/test_planner.py b/test/distributed/checkpoint/test_planner.py
-index b6b6aa2c6f9..b603b09ccf8 100644
+diff --git a/test/distributed/checkpoint/test_planner.py b/test/distributed/checkpoint/test_planner.py
+index b6b6aa2..22f672d 100644
 --- a/test/distributed/checkpoint/test_planner.py
 +++ b/test/distributed/checkpoint/test_planner.py
-@@ -4,6 +4,8 @@ import sys
+@@ -4,6 +4,7 @@ import sys
  from unittest.mock import patch
  
  import torch
-+from torch_npu.contrib import transfer_to_npu
 +import torch_npu
  import torch.distributed.checkpoint as dcp
  import torch.nn as nn
  from torch.distributed._shard.sharded_tensor import (
-@@ -74,12 +76,12 @@ def create_sharded_tensor(rank, world_size, shards_per_rank, shard_size=8):
+@@ -74,12 +75,12 @@ def create_sharded_tensor(rank, world_size, shards_per_rank, shard_size=8):
          shard_md = ShardMetadata(
              shard_offsets=[idx * shard_size],
              shard_sizes=[shard_size],
@@ -26,7 +25,7 @@ index b6b6aa2c6f9..b603b09ccf8 100644
                  shard_offsets=shard_md.shard_offsets,
                  rank=rank,
              )
-@@ -88,7 +90,9 @@ def create_sharded_tensor(rank, world_size, shards_per_rank, shard_size=8):
+@@ -88,7 +89,9 @@ def create_sharded_tensor(rank, world_size, shards_per_rank, shard_size=8):
      sharded_tensor_md = ShardedTensorMetadata(
          shards_metadata=shards_metadata,
          size=torch.Size([shard_size * len(shards_metadata)]),
@@ -37,7 +36,7 @@ index b6b6aa2c6f9..b603b09ccf8 100644
      )
  
      return ShardedTensor._init_from_local_shards_and_global_metadata(
-@@ -99,7 +103,7 @@ def create_sharded_tensor(rank, world_size, shards_per_rank, shard_size=8):
+@@ -99,7 +102,7 @@ def create_sharded_tensor(rank, world_size, shards_per_rank, shard_size=8):
  class TestSavePlan(TestCase):
      @with_fake_comms(rank=1, world_size=4)
      def test_local_plan(self):
@@ -46,7 +45,7 @@ index b6b6aa2c6f9..b603b09ccf8 100644
          val = [1, 2, 3]
          st = create_sharded_tensor(rank=1, world_size=4, shards_per_rank=1)
          state_dict = {"tensor": tensor, "value": val, "st": st}
-@@ -111,7 +115,7 @@ class TestSavePlan(TestCase):
+@@ -111,7 +114,7 @@ class TestSavePlan(TestCase):
          self.assertEqual(wi.tensor_data.size, tensor.size())
          self.assertEqual(
              wi.tensor_data.properties,
@@ -55,7 +54,7 @@ index b6b6aa2c6f9..b603b09ccf8 100644
          )
          self.assertEqual(wi.tensor_data.chunk.offsets, torch.Size([0]))
          self.assertEqual(wi.tensor_data.chunk.sizes, torch.Size([10]))
-@@ -122,7 +126,7 @@ class TestSavePlan(TestCase):
+@@ -122,7 +125,7 @@ class TestSavePlan(TestCase):
          self.assertEqual(st_wi.tensor_data.size, st.size())
          self.assertEqual(
              st_wi.tensor_data.properties,
@@ -64,7 +63,7 @@ index b6b6aa2c6f9..b603b09ccf8 100644
          )
          self.assertEqual(st_wi.tensor_data.chunk.offsets, torch.Size([8]))
          self.assertEqual(st_wi.tensor_data.chunk.sizes, torch.Size([8]))
-@@ -147,7 +151,7 @@ class TestSavePlan(TestCase):
+@@ -147,7 +150,7 @@ class TestSavePlan(TestCase):
  
      @with_fake_comms(rank=1, world_size=4)
      def test_local_plan_with_caching(self):
@@ -73,7 +72,7 @@ index b6b6aa2c6f9..b603b09ccf8 100644
          val = [1, 2, 3]
          st = create_sharded_tensor(rank=1, world_size=4, shards_per_rank=1)
          state_dict = {"tensor": tensor, "value": val, "st": st}
-@@ -181,7 +185,7 @@ class TestSavePlan(TestCase):
+@@ -181,7 +184,7 @@ class TestSavePlan(TestCase):
      def test_global_plan(self):
          def create_data(rank):
              with with_dist(rank=rank, world_size=4):
@@ -82,7 +81,7 @@ index b6b6aa2c6f9..b603b09ccf8 100644
                  val = [1, 2, 3]
                  st = create_sharded_tensor(rank=rank, world_size=4, shards_per_rank=1)
                  state_dict = {"tensor": tensor, "value": val, "st": st}
-@@ -218,7 +222,7 @@ class TestSavePlan(TestCase):
+@@ -218,7 +221,7 @@ class TestSavePlan(TestCase):
      def test_dedup_plans(self):
          def create_data(rank):
              with with_dist(rank=rank, world_size=4):
@@ -91,7 +90,7 @@ index b6b6aa2c6f9..b603b09ccf8 100644
                  val = [1, 2, 3]
                  st = create_sharded_tensor(rank=rank, world_size=4, shards_per_rank=1)
                  state_dict = {"tensor": tensor, "value": val, "st": st}
-@@ -239,7 +243,7 @@ class TestSavePlan(TestCase):
+@@ -239,7 +242,7 @@ class TestSavePlan(TestCase):
          def create_data(rank):
              with with_dist(rank=rank, world_size=4):
                  planner = DefaultSavePlanner(enable_plan_caching=True)
@@ -100,7 +99,7 @@ index b6b6aa2c6f9..b603b09ccf8 100644
                  val = [1, 2, 3]
                  st = create_sharded_tensor(rank=rank, world_size=4, shards_per_rank=1)
                  state_dict = {"tensor": tensor, "value": val, "st": st}
-@@ -283,7 +287,7 @@ class TestSavePlan(TestCase):
+@@ -283,7 +286,7 @@ class TestSavePlan(TestCase):
          def create_data_v2(rank):
              with with_dist(rank=rank, world_size=4):
                  planner = DefaultSavePlanner(enable_plan_caching=True)
@@ -109,7 +108,7 @@ index b6b6aa2c6f9..b603b09ccf8 100644
                  val = [1, 2, 3]
                  st = create_sharded_tensor(rank=rank, world_size=4, shards_per_rank=1)
                  state_dict = {"tensor": tensor, "value": val, "st": st}
-@@ -335,7 +339,7 @@ class TestSavePlan(TestCase):
+@@ -335,7 +338,7 @@ class TestSavePlan(TestCase):
  
      def test_finish_plan_with_caching(self):
          planner = DefaultSavePlanner(enable_plan_caching=True)
@@ -118,7 +117,7 @@ index b6b6aa2c6f9..b603b09ccf8 100644
          val = [1, 2, 3]
          state_dict = {"tensor": tensor, "value": val}
          planner.set_up_planner(state_dict, is_coordinator=True)
-@@ -363,7 +367,7 @@ class TestSavePlan(TestCase):
+@@ -363,7 +366,7 @@ class TestSavePlan(TestCase):
          def create_data(rank):
              with with_dist(rank=rank, world_size=4):
                  planner = DefaultSavePlanner(enable_plan_caching=True)
@@ -127,7 +126,16 @@ index b6b6aa2c6f9..b603b09ccf8 100644
                  val = [1, 2, 3]
                  st = create_sharded_tensor(rank=rank, world_size=4, shards_per_rank=1)
                  state_dict = {"tensor": tensor, "value": val, "st": st}
-@@ -418,7 +422,7 @@ class TestSavePlan(TestCase):
+@@ -373,7 +376,7 @@ class TestSavePlan(TestCase):
+         planner = DefaultSavePlanner(enable_plan_caching=True)
+         key = planner._cached_plans_key
+ 
+-        tensor = torch.rand(10)
++        tensor = torch.rand(10).npu()
+         val = [1, 2, 3]
+         state_dict = {"tensor": tensor, "value": val}
+         planner.set_up_planner(state_dict, is_coordinator=True)
+@@ -418,7 +421,7 @@ class TestSavePlan(TestCase):
      def test_local_load_plan(self):
          def create_state_dict(rank):
              with with_dist(rank=rank, world_size=4):
@@ -136,7 +144,7 @@ index b6b6aa2c6f9..b603b09ccf8 100644
                  val = [1, 2, 3]
                  st = create_sharded_tensor(rank=rank, world_size=4, shards_per_rank=1)
                  return {"tensor": tensor, "value": val, "st": st}
-@@ -553,7 +557,7 @@ class TestSavePlan(TestCase):
+@@ -553,7 +556,7 @@ class TestSavePlan(TestCase):
  class TestPlannerHelpers(TestCase):
      def test_create_read_item_from_chunks(self):
          tensor_md = TensorStorageMetadata(
@@ -145,7 +153,7 @@ index b6b6aa2c6f9..b603b09ccf8 100644
              size=torch.Size([16]),
              chunks=[
                  ChunkStorageMetadata(offsets=torch.Size([0]), sizes=torch.Size([8])),
-@@ -584,7 +588,7 @@ class TestPlannerHelpers(TestCase):
+@@ -584,7 +587,7 @@ class TestPlannerHelpers(TestCase):
      def test_merge_delta_local_plans(self):
          def create_data(rank):
              with with_dist(rank=rank, world_size=4):
@@ -154,7 +162,7 @@ index b6b6aa2c6f9..b603b09ccf8 100644
                  val = [1, 2, 3]
                  st = create_sharded_tensor(rank=rank, world_size=4, shards_per_rank=1)
                  state_dict = {"tensor": tensor, "value": val, "st": st}
-@@ -630,7 +634,7 @@ class TestPlannerHelpers(TestCase):
+@@ -630,7 +633,7 @@ class TestPlannerHelpers(TestCase):
      def test_compare_save_plans(self):
          def create_data(rank):
              with with_dist(rank=rank, world_size=4):
@@ -163,7 +171,7 @@ index b6b6aa2c6f9..b603b09ccf8 100644
                  val = [1, 2, 3]
                  st = create_sharded_tensor(rank=rank, world_size=4, shards_per_rank=1)
                  state_dict = {"tensor": tensor, "value": val, "st": st}
-@@ -672,11 +676,11 @@ class TestValidateGlobalPlan(TestCase):
+@@ -672,11 +675,11 @@ class TestValidateGlobalPlan(TestCase):
  class TestLoadPlanner(TestCase):
      @with_temp_dir
      def test_strict(self):
@@ -178,7 +186,7 @@ index b6b6aa2c6f9..b603b09ccf8 100644
          dcp.load(
              state_dict={"module": new_module},
              checkpoint_id=self.temp_dir,
-@@ -692,10 +696,10 @@ class TestLoadPlanner(TestCase):
+@@ -692,10 +695,10 @@ class TestLoadPlanner(TestCase):
  
      @with_temp_dir
      def test_load_different_sizes_throws(self):
@@ -191,7 +199,7 @@ index b6b6aa2c6f9..b603b09ccf8 100644
          with self.assertRaisesRegex(CheckpointException, "Size mismatch"):
              dcp.load(
                  state_dict={"module": new_module},
-@@ -705,11 +709,11 @@ class TestLoadPlanner(TestCase):
+@@ -705,11 +708,11 @@ class TestLoadPlanner(TestCase):
  
      @with_temp_dir
      def test_version_key_in_planner_data(self):

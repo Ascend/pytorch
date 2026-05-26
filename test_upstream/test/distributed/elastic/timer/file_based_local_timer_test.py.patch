@@ -1,5 +1,5 @@
-﻿diff --git a/test/distributed/elastic/timer/file_based_local_timer_test.py b/test/distributed/elastic/timer/file_based_local_timer_test.py
-index 0125ce5cd25..ed29d347d85 100644
+diff --git a/test/distributed/elastic/timer/file_based_local_timer_test.py b/test/distributed/elastic/timer/file_based_local_timer_test.py
+index 0125ce5..ed29d34 100644
 --- a/test/distributed/elastic/timer/file_based_local_timer_test.py
 +++ b/test/distributed/elastic/timer/file_based_local_timer_test.py
 @@ -15,7 +15,6 @@ import uuid

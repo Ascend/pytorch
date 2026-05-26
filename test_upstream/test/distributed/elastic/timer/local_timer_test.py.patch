@@ -1,5 +1,5 @@
-﻿diff --git a/test/distributed/elastic/timer/local_timer_test.py b/test/distributed/elastic/timer/local_timer_test.py
-index 8818b1788c6..7441eb547e9 100644
+diff --git a/test/distributed/elastic/timer/local_timer_test.py b/test/distributed/elastic/timer/local_timer_test.py
+index 8818b17..7441eb5 100644
 --- a/test/distributed/elastic/timer/local_timer_test.py
 +++ b/test/distributed/elastic/timer/local_timer_test.py
 @@ -15,7 +15,6 @@ import torch.distributed.elastic.timer as timer

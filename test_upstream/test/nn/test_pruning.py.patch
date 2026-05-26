@@ -1,13 +1,569 @@
-﻿diff --git a/test/nn/test_pruning.py b/test/nn/test_pruning.py
-index dbe288464ef..6c9291b3cc0 100644
+diff --git a/test/nn/test_pruning.py b/test/nn/test_pruning.py
+index dbe2884..4055276 100644
 --- a/test/nn/test_pruning.py
 +++ b/test/nn/test_pruning.py
-@@ -4,6 +4,8 @@ import unittest
+@@ -4,6 +4,7 @@ import unittest
  import unittest.mock as mock
  
  import torch
 +import torch_npu
-+from torch_npu.contrib import transfer_to_npu
  import torch.nn as nn
  import torch.nn.utils.prune as prune
  from torch.testing._internal.common_nn import NNTestCase
+@@ -97,7 +98,7 @@ class TestPruningNN(NNTestCase):
+         """
+         # fixturize test
+         # TODO: add other modules
+-        modules = [nn.Linear(5, 7), nn.Conv3d(2, 2, 2)]
++        modules = [nn.Linear(5, 7).npu(), nn.Conv3d(2, 2, 2).npu()]
+         names = ["weight", "bias"]
+ 
+         for m in modules:
+@@ -124,7 +125,7 @@ class TestPruningNN(NNTestCase):
+         """
+         # fixturize test
+         # TODO: add other modules
+-        modules = [nn.Linear(5, 7), nn.Conv3d(2, 2, 2)]
++        modules = [nn.Linear(5, 7).npu(), nn.Conv3d(2, 2, 2).npu()]
+         names = ["weight", "bias"]
+ 
+         for m in modules:
+@@ -141,7 +142,7 @@ class TestPruningNN(NNTestCase):
+         """
+         # fixturize test
+         # TODO: add other modules
+-        modules = [nn.Linear(5, 7), nn.Conv3d(2, 2, 2)]
++        modules = [nn.Linear(5, 7).npu(), nn.Conv3d(2, 2, 2).npu()]
+         names = ["weight", "bias"]
+ 
+         for m in modules:
+@@ -159,16 +160,16 @@ class TestPruningNN(NNTestCase):
+ 
+     def test_identity_pruning(self):
+         r"""Test that a mask of 1s does not change forward or backward."""
+-        input_ = torch.ones(1, 5)
+-        m = nn.Linear(5, 2)
++        input_ = torch.ones(1, 5).npu()
++        m = nn.Linear(5, 2).npu()
+         y_prepruning = m(input_)  # output prior to pruning
+ 
+         # compute grad pre-pruning and check it's equal to all ones
+         y_prepruning.sum().backward()
+         old_grad_weight = m.weight.grad.clone()  # don't grab pointer!
+-        self.assertEqual(old_grad_weight, torch.ones_like(m.weight))
++        self.assertEqual(old_grad_weight, torch.ones_like(m.weight).npu())
+         old_grad_bias = m.bias.grad.clone()
+-        self.assertEqual(old_grad_bias, torch.ones_like(m.bias))
++        self.assertEqual(old_grad_bias, torch.ones_like(m.bias).npu())
+ 
+         # remove grads
+         m.zero_grad()
+@@ -192,16 +193,16 @@ class TestPruningNN(NNTestCase):
+ 
+     def test_random_pruning_0perc(self):
+         r"""Test that a mask of 1s does not change forward or backward."""
+-        input_ = torch.ones(1, 5)
+-        m = nn.Linear(5, 2)
++        input_ = torch.ones(1, 5).npu()
++        m = nn.Linear(5, 2).npu()
+         y_prepruning = m(input_)  # output prior to pruning
+ 
+         # compute grad pre-pruning and check it's equal to all ones
+         y_prepruning.sum().backward()
+         old_grad_weight = m.weight.grad.clone()  # don't grab pointer!
+-        self.assertEqual(old_grad_weight, torch.ones_like(m.weight))
++        self.assertEqual(old_grad_weight, torch.ones_like(m.weight).npu())
+         old_grad_bias = m.bias.grad.clone()
+-        self.assertEqual(old_grad_bias, torch.ones_like(m.bias))
++        self.assertEqual(old_grad_bias, torch.ones_like(m.bias).npu())
+ 
+         # remove grads
+         m.zero_grad()
+@@ -210,7 +211,7 @@ class TestPruningNN(NNTestCase):
+         with mock.patch(
+             "torch.nn.utils.prune.RandomUnstructured.compute_mask"
+         ) as compute_mask:
+-            compute_mask.return_value = torch.ones_like(m.weight)
++            compute_mask.return_value = torch.ones_like(m.weight).npu()
+             prune.random_unstructured(
+                 m, name="weight", amount=0.9
+             )  # amount won't count
+@@ -230,11 +231,11 @@ class TestPruningNN(NNTestCase):
+         self.assertEqual(y1, y2)
+ 
+     def test_random_pruning(self):
+-        input_ = torch.ones(1, 5)
+-        m = nn.Linear(5, 2)
++        input_ = torch.ones(1, 5).npu()
++        m = nn.Linear(5, 2).npu()
+ 
+         # define custom mask to assign with mock
+-        mask = torch.ones_like(m.weight)
++        mask = torch.ones_like(m.weight).npu()
+         mask[1, 0] = 0
+         mask[0, 3] = 0
+ 
+@@ -249,7 +250,7 @@ class TestPruningNN(NNTestCase):
+         y_postpruning.sum().backward()
+         # weight_orig is the parameter, so it's the tensor that will accumulate the grad
+         self.assertEqual(m.weight_orig.grad, mask)  # all 1s, except for masked units
+-        self.assertEqual(m.bias.grad, torch.ones_like(m.bias))
++        self.assertEqual(m.bias.grad, torch.ones_like(m.bias).npu())
+ 
+         # make sure that weight_orig update doesn't modify [1, 0] and [0, 3]
+         old_weight_orig = m.weight_orig.clone()
+@@ -263,11 +264,11 @@ class TestPruningNN(NNTestCase):
+ 
+     def test_random_pruning_forward(self):
+         r"""check forward with mask (by hand)."""
+-        input_ = torch.ones(1, 5)
+-        m = nn.Linear(5, 2)
++        input_ = torch.ones(1, 5).npu()
++        m = nn.Linear(5, 2).npu()
+ 
+         # define custom mask to assign with mock
+-        mask = torch.zeros_like(m.weight)
++        mask = torch.zeros_like(m.weight).npu()
+         mask[1, 0] = 1
+         mask[0, 3] = 1
+ 
+@@ -285,11 +286,11 @@ class TestPruningNN(NNTestCase):
+         r"""Remove pruning and check forward is unchanged from previous
+         pruned state.
+         """
+-        input_ = torch.ones(1, 5)
+-        m = nn.Linear(5, 2)
++        input_ = torch.ones(1, 5).npu()
++        m = nn.Linear(5, 2).npu()
+ 
+         # define custom mask to assign with mock
+-        mask = torch.ones_like(m.weight)
++        mask = torch.ones_like(m.weight).npu()
+         mask[1, 0] = 0
+         mask[0, 3] = 0
+ 
+@@ -312,7 +313,7 @@ class TestPruningNN(NNTestCase):
+         would otherwise introduce issues with pre-existing optimizers that
+         point to old parameters.
+         """
+-        m = nn.Linear(5, 2, bias=False)
++        m = nn.Linear(5, 2, bias=False).npu()
+ 
+         tensor_id = id(next(iter(m.parameters())))
+ 
+@@ -323,7 +324,7 @@ class TestPruningNN(NNTestCase):
+         self.assertEqual(tensor_id, id(next(iter(m.parameters()))))
+ 
+     def test_random_pruning_pickle(self):
+-        modules = [nn.Linear(5, 7), nn.Conv3d(2, 2, 2)]
++        modules = [nn.Linear(5, 7).npu(), nn.Conv3d(2, 2, 2).npu()]
+         names = ["weight", "bias"]
+ 
+         for m in modules:
+@@ -335,7 +336,7 @@ class TestPruningNN(NNTestCase):
+ 
+     def test_multiple_pruning_calls(self):
+         # if you call pruning twice, the hook becomes a PruningContainer
+-        m = nn.Conv3d(2, 2, 2)
++        m = nn.Conv3d(2, 2, 2).npu()
+         prune.l1_unstructured(m, name="weight", amount=0.1)
+         weight_mask0 = m.weight_mask  # save it for later sanity check
+ 
+@@ -409,12 +410,12 @@ class TestPruningNN(NNTestCase):
+         container.add_pruning_method(p)
+ 
+         # create tensor to be pruned
+-        t = torch.tensor([[1, 2, 3, 4], [5, 6, 7, 8]]).to(dtype=torch.float32)
++        t = torch.tensor([[1, 2, 3, 4], [5, 6, 7, 8]]).npu().to(dtype=torch.float32)
+         # create prior mask by hand
+-        default_mask = torch.tensor([[1, 1, 1, 0], [1, 1, 0, 1]])
++        default_mask = torch.tensor([[1, 1, 1, 0], [1, 1, 0, 1]]).npu()
+         # since we are pruning the two lowest magnitude units, the outcome of
+         # the calculation should be this:
+-        expected_mask = torch.tensor([[0, 0, 1, 0], [1, 1, 0, 1]], dtype=torch.float32)
++        expected_mask = torch.tensor([[0, 0, 1, 0], [1, 1, 0, 1]], dtype=torch.float32).npu()
+         computed_mask = container.compute_mask(t, default_mask)
+         self.assertEqual(expected_mask, computed_mask)
+ 
+@@ -424,7 +425,7 @@ class TestPruningNN(NNTestCase):
+         container.add_pruning_method(q)
+         # since we are pruning the lowest magnitude one of the two rows, the
+         # outcome of the calculation should be this:
+-        expected_mask = torch.tensor([[0, 0, 0, 0], [1, 1, 0, 1]], dtype=torch.float32)
++        expected_mask = torch.tensor([[0, 0, 0, 0], [1, 1, 0, 1]], dtype=torch.float32).npu()
+         computed_mask = container.compute_mask(t, default_mask)
+         self.assertEqual(expected_mask, computed_mask)
+ 
+@@ -434,7 +435,7 @@ class TestPruningNN(NNTestCase):
+         container.add_pruning_method(r)
+         # since we are pruning the lowest magnitude of the four columns, the
+         # outcome of the calculation should be this:
+-        expected_mask = torch.tensor([[0, 1, 1, 0], [0, 1, 0, 1]], dtype=torch.float32)
++        expected_mask = torch.tensor([[0, 1, 1, 0], [0, 1, 0, 1]], dtype=torch.float32).npu()
+         computed_mask = container.compute_mask(t, default_mask)
+         self.assertEqual(expected_mask, computed_mask)
+ 
+@@ -443,23 +444,23 @@ class TestPruningNN(NNTestCase):
+         entries by l1 norm (by hand). It also checks that applying l1
+         unstructured pruning more than once respects the previous mask.
+         """
+-        m = nn.Linear(4, 2)
++        m = nn.Linear(4, 2).npu()
+         # modify its weight matrix by hand
+         m.weight = torch.nn.Parameter(
+-            torch.tensor([[1, 2, 3, 4], [-4, -3, -2, -1]], dtype=torch.float32)
++            torch.tensor([[1, 2, 3, 4], [-4, -3, -2, -1]], dtype=torch.float32).npu()
+         )
+ 
+         prune.l1_unstructured(m, "weight", amount=2)
+         expected_weight = torch.tensor(
+             [[0, 2, 3, 4], [-4, -3, -2, 0]], dtype=m.weight.dtype
+-        )
++        ).npu()
+         self.assertEqual(expected_weight, m.weight)
+ 
+         # check that pruning again removes the next two smallest entries
+         prune.l1_unstructured(m, "weight", amount=2)
+         expected_weight = torch.tensor(
+             [[0, 0, 3, 4], [-4, -3, 0, 0]], dtype=m.weight.dtype
+-        )
++        ).npu()
+         self.assertEqual(expected_weight, m.weight)
+ 
+     def test_l1_unstructured_pruning_with_importance_scores(self):
+@@ -468,21 +469,21 @@ class TestPruningNN(NNTestCase):
+         It also checks that applying l1 unstructured pruning more than once
+         respects the previous mask.
+         """
+-        m = nn.Linear(4, 2)
++        m = nn.Linear(4, 2).npu()
+         # modify its weight matrix by hand
+         m.weight = torch.nn.Parameter(
+-            torch.tensor([[1, 2, 3, 4], [-4, -3, -2, -1]], dtype=torch.float32)
++            torch.tensor([[1, 2, 3, 4], [-4, -3, -2, -1]], dtype=torch.float32).npu()
+         )
+         importance_scores = torch.tensor(
+             [[4, 2, 1, 3], [-3, -1, -2, -4]], dtype=torch.float32
+-        )
++        ).npu()
+ 
+         prune.l1_unstructured(
+             m, "weight", amount=2, importance_scores=importance_scores
+         )
+         expected_weight = torch.tensor(
+             [[1, 2, 0, 4], [-4, 0, -2, -1]], dtype=m.weight.dtype
+-        )
++        ).npu()
+         self.assertEqual(expected_weight, m.weight)
+ 
+         # check that pruning again removes two entries of m.weight that are colocated with
+@@ -492,7 +493,7 @@ class TestPruningNN(NNTestCase):
+         )
+         expected_weight = torch.tensor(
+             [[1, 0, 0, 4], [-4, 0, 0, -1]], dtype=m.weight.dtype
+-        )
++        ).npu()
+         self.assertEqual(expected_weight, m.weight)
+ 
+     def test_unstructured_pruning_same_magnitude(self):
+@@ -504,10 +505,10 @@ class TestPruningNN(NNTestCase):
+         AMOUNT = 0.2
+         p = prune.L1Unstructured(amount=AMOUNT)
+         # create a random tensors with entries in {-2, 0, 2}
+-        t = 2 * torch.randint(low=-1, high=2, size=(10, 7))
++        t = 2 * torch.randint(low=-1, high=2, size=(10, 7)).npu()
+         nparams_toprune = prune._compute_nparams_toprune(AMOUNT, t.nelement())
+ 
+-        computed_mask = p.compute_mask(t, default_mask=torch.ones_like(t))
++        computed_mask = p.compute_mask(t, default_mask=torch.ones_like(t).npu())
+         nparams_pruned = torch.sum(computed_mask == 0)
+         self.assertEqual(nparams_toprune, nparams_pruned)
+ 
+@@ -515,10 +516,10 @@ class TestPruningNN(NNTestCase):
+         AMOUNT = 0.6
+         AXIS = 2
+         p = prune.RandomStructured(amount=AMOUNT, dim=AXIS)
+-        t = 2 * torch.randint(low=-1, high=2, size=(5, 4, 2)).to(dtype=torch.float32)
++        t = 2 * torch.randint(low=-1, high=2, size=(5, 4, 2)).npu().to(dtype=torch.float32)
+         prune._compute_nparams_toprune(AMOUNT, t.shape[AXIS])
+ 
+-        computed_mask = p.compute_mask(t, default_mask=torch.ones_like(t))
++        computed_mask = p.compute_mask(t, default_mask=torch.ones_like(t).npu())
+         # check that 1 column is fully prune, the others are left untouched
+         remaining_axes = [_ for _ in range(len(t.shape)) if _ != AXIS]
+         per_column_sums = sorted(torch.sum(computed_mask == 0, axis=remaining_axes))
+@@ -529,7 +530,7 @@ class TestPruningNN(NNTestCase):
+ 
+     def test_ln_structured_pruning(self):
+         r"""Check Ln structured pruning by hand."""
+-        m = nn.Conv2d(3, 1, 2)
++        m = nn.Conv2d(3, 1, 2).npu()
+         m.weight.data = torch.tensor(
+             [
+                 [
+@@ -538,9 +539,9 @@ class TestPruningNN(NNTestCase):
+                     [[-3.0, -5.0], [0.1, -1.0]],
+                 ]
+             ]
+-        )
++        ).npu()
+         # expected effect of pruning 1 of the 3 channels by L2-norm
+-        expected_mask_axis1 = torch.ones_like(m.weight)
++        expected_mask_axis1 = torch.ones_like(m.weight).npu()
+         expected_mask_axis1[:, 1] = 0.0
+ 
+         prune.ln_structured(m, "weight", amount=1, n=2, dim=1)
+@@ -555,7 +556,7 @@ class TestPruningNN(NNTestCase):
+ 
+     def test_ln_structured_pruning_importance_scores(self):
+         r"""Check Ln structured pruning by hand."""
+-        m = nn.Conv2d(3, 1, 2)
++        m = nn.Conv2d(3, 1, 2).npu()
+         m.weight.data = torch.tensor(
+             [
+                 [
+@@ -564,7 +565,7 @@ class TestPruningNN(NNTestCase):
+                     [[-3.0, -5.0], [0.1, -1.0]],
+                 ]
+             ]
+-        )
++        ).npu()
+         importance_scores = torch.tensor(
+             [
+                 [
+@@ -573,9 +574,9 @@ class TestPruningNN(NNTestCase):
+                     [[-20.0, -2.0], [-20.0, -2.0]],
+                 ]
+             ]
+-        )
++        ).npu()
+         # expected effect of pruning 1 of the 3 channels by L2-norm
+-        expected_mask_axis1 = torch.ones_like(m.weight)
++        expected_mask_axis1 = torch.ones_like(m.weight).npu()
+         expected_mask_axis1[:, 0] = 0.0
+ 
+         prune.ln_structured(
+@@ -596,7 +597,7 @@ class TestPruningNN(NNTestCase):
+         r"""`prune.remove` removes the hook and the reparametrization
+         and makes the pruning final in the original parameter.
+         """
+-        modules = [nn.Linear(5, 7), nn.Conv3d(2, 2, 2)]
++        modules = [nn.Linear(5, 7).npu(), nn.Conv3d(2, 2, 2).npu()]
+         names = ["weight", "bias"]
+ 
+         for m in modules:
+@@ -621,7 +622,7 @@ class TestPruningNN(NNTestCase):
+ 
+     def test_remove_pruning_exception(self):
+         r"""Removing from an unpruned tensor throws an assertion error"""
+-        modules = [nn.Linear(5, 7), nn.Conv3d(2, 2, 2)]
++        modules = [nn.Linear(5, 7).npu(), nn.Conv3d(2, 2, 2).npu()]
+         names = ["weight", "bias"]
+ 
+         for m in modules:
+@@ -637,14 +638,14 @@ class TestPruningNN(NNTestCase):
+         r"""Test that global l1 unstructured pruning over 2 parameters removes
+         the `amount=4` smallest global weights across the 2 parameters.
+         """
+-        m = nn.Linear(4, 2)
+-        n = nn.Linear(3, 1)
++        m = nn.Linear(4, 2).npu()
++        n = nn.Linear(3, 1).npu()
+         # modify the weight matrices by hand
+         m.weight = torch.nn.Parameter(
+-            torch.tensor([[1, 2, 3, 4], [-4, -3, -2, -1]]).to(dtype=torch.float32)
++            torch.tensor([[1, 2, 3, 4], [-4, -3, -2, -1]]).npu().to(dtype=torch.float32)
+         )
+         n.weight = torch.nn.Parameter(
+-            torch.tensor([[0, 0.1, -2]]).to(dtype=torch.float32)
++            torch.tensor([[0, 0.1, -2]]).npu().to(dtype=torch.float32)
+         )
+ 
+         params_to_prune = (
+@@ -659,29 +660,29 @@ class TestPruningNN(NNTestCase):
+ 
+         expected_mweight = torch.tensor(
+             [[0, 2, 3, 4], [-4, -3, -2, 0]], dtype=m.weight.dtype
+-        )
++        ).npu()
+         self.assertEqual(expected_mweight, m.weight)
+ 
+-        expected_nweight = torch.tensor([[0, 0, -2]]).to(dtype=n.weight.dtype)
++        expected_nweight = torch.tensor([[0, 0, -2]]).npu().to(dtype=n.weight.dtype)
+         self.assertEqual(expected_nweight, n.weight)
+ 
+     def test_global_pruning_importance_scores(self):
+         r"""Test that global l1 unstructured pruning over 2 parameters removes
+         the `amount=4` smallest global weights across the 2 parameters.
+         """
+-        m = nn.Linear(4, 2)
+-        n = nn.Linear(3, 1)
++        m = nn.Linear(4, 2).npu()
++        n = nn.Linear(3, 1).npu()
+         # modify the weight matrices by hand
+         m.weight = torch.nn.Parameter(
+-            torch.tensor([[1, 2, 3, 4], [-4, -3, -2, -1]]).to(dtype=torch.float32)
++            torch.tensor([[1, 2, 3, 4], [-4, -3, -2, -1]]).npu().to(dtype=torch.float32)
+         )
+         m_importance_scores = torch.tensor(
+             [[4, 2, 1, 3], [-3, -1, -2, -4]], dtype=torch.float32
+-        )
++        ).npu()
+         n.weight = torch.nn.Parameter(
+-            torch.tensor([[0, 0.1, -2]]).to(dtype=torch.float32)
++            torch.tensor([[0, 0.1, -2]]).npu().to(dtype=torch.float32)
+         )
+-        n_importance_scores = torch.tensor([[0, 10.0, -0.2]]).to(dtype=torch.float32)
++        n_importance_scores = torch.tensor([[0, 10.0, -0.2]]).npu().to(dtype=torch.float32)
+ 
+         params_to_prune = (
+             (m, "weight"),
+@@ -702,10 +703,10 @@ class TestPruningNN(NNTestCase):
+ 
+         expected_m_weight = torch.tensor(
+             [[1, 2, 0, 4], [-4, 0, -2, -1]], dtype=m.weight.dtype
+-        )
++        ).npu()
+         self.assertEqual(expected_m_weight, m.weight)
+ 
+-        expected_n_weight = torch.tensor([[0, 0.1, 0]]).to(dtype=n.weight.dtype)
++        expected_n_weight = torch.tensor([[0, 0.1, 0]]).npu().to(dtype=n.weight.dtype)
+         self.assertEqual(expected_n_weight, n.weight)
+ 
+     def test_custom_from_mask_pruning(self):
+@@ -714,19 +715,19 @@ class TestPruningNN(NNTestCase):
+         the previous default mask to generate the correct final mask.
+         """
+         # new mask
+-        mask = torch.tensor([[0, 1, 1, 0], [0, 0, 1, 1]])
++        mask = torch.tensor([[0, 1, 1, 0], [0, 0, 1, 1]]).npu()
+         # old mask
+-        default_mask = torch.tensor([[0, 0, 0, 0], [1, 1, 1, 1]])
++        default_mask = torch.tensor([[0, 0, 0, 0], [1, 1, 1, 1]]).npu()
+ 
+         # some tensor (not actually used)
+-        t = torch.rand_like(mask.to(dtype=torch.float32))
++        t = torch.rand_like(mask.to(dtype=torch.float32)).npu()
+ 
+         p = prune.CustomFromMask(mask=mask)
+ 
+         computed_mask = p.compute_mask(t, default_mask)
+         expected_mask = torch.tensor(
+             [[0, 0, 0, 0], [0, 0, 1, 1]], dtype=computed_mask.dtype
+-        )
++        ).npu()
+ 
+         self.assertEqual(computed_mask, expected_mask)
+ 
+@@ -736,7 +737,7 @@ class TestPruningNN(NNTestCase):
+         The try/except statement in `apply` should handle rolling back
+         to the previous state before pruning began.
+         """
+-        modules = [nn.Linear(5, 7), nn.Conv3d(2, 2, 2)]
++        modules = [nn.Linear(5, 7).npu(), nn.Conv3d(2, 2, 2).npu()]
+         names = ["weight", "bias"]
+ 
+         for m in modules:
+@@ -756,10 +757,10 @@ class TestPruningNN(NNTestCase):
+     def test_pruning_serialization_model(self):
+         # create a model
+         model = torch.nn.Sequential(
+-            torch.nn.Linear(10, 10),
++            torch.nn.Linear(10, 10).npu(),
+             torch.nn.ReLU(),
+-            torch.nn.Linear(10, 1),
+-        )
++            torch.nn.Linear(10, 1).npu(),
++        ).npu()
+         # check that everything looks normal before pruning
+         self.assertNotIn("0.weight_orig", model.state_dict())
+         self.assertNotIn("0.weight_mask", model.state_dict())
+@@ -792,10 +793,10 @@ class TestPruningNN(NNTestCase):
+     def test_pruning_serialization_state_dict(self):
+         # create a model
+         model = torch.nn.Sequential(
+-            torch.nn.Linear(10, 10),
++            torch.nn.Linear(10, 10).npu(),
+             torch.nn.ReLU(),
+-            torch.nn.Linear(10, 1),
+-        )
++            torch.nn.Linear(10, 1).npu(),
++        ).npu()
+         # check that everything looks normal before pruning
+         self.assertNotIn("0.weight_orig", model.state_dict())
+         self.assertNotIn("0.weight_mask", model.state_dict())
+@@ -823,10 +824,10 @@ class TestPruningNN(NNTestCase):
+ 
+         # save the state dict of model and reload it into new_model
+         new_model = torch.nn.Sequential(
+-            torch.nn.Linear(10, 10),
++            torch.nn.Linear(10, 10).npu(),
+             torch.nn.ReLU(),
+-            torch.nn.Linear(10, 1),
+-        )
++            torch.nn.Linear(10, 1).npu(),
++        ).npu()
+         with TemporaryFileName() as fname:
+             torch.save(model.state_dict(), fname)
+             new_model.load_state_dict(torch.load(fname))
+@@ -843,12 +844,12 @@ class TestPruningNN(NNTestCase):
+         # create a new pruning method
+         p = prune.L1Unstructured(amount=2)
+         # create tensor to be pruned
+-        t = torch.tensor([[1, 2, 3, 4], [5, 6, 7, 8]]).to(dtype=torch.float32)
++        t = torch.tensor([[1, 2, 3, 4], [5, 6, 7, 8]]).npu().to(dtype=torch.float32)
+         # create prior mask by hand
+-        default_mask = torch.tensor([[1, 1, 1, 0], [1, 1, 0, 1]])
++        default_mask = torch.tensor([[1, 1, 1, 0], [1, 1, 0, 1]]).npu()
+         # since we are pruning the two lowest magnitude units, the outcome of
+         # the calculation should be this:
+-        expected_mask = torch.tensor([[0, 0, 1, 0], [1, 1, 0, 1]])
++        expected_mask = torch.tensor([[0, 0, 1, 0], [1, 1, 0, 1]]).npu()
+         pruned_tensor = p.prune(t, default_mask)
+         self.assertEqual(t * expected_mask, pruned_tensor)
+ 
+@@ -856,15 +857,15 @@ class TestPruningNN(NNTestCase):
+         # create a new pruning method
+         p = prune.L1Unstructured(amount=2)
+         # create tensor to be pruned
+-        t = torch.tensor([[1, 2, 3, 4], [5, 6, 7, 8]]).to(dtype=torch.float32)
+-        importance_scores = torch.tensor([[1, 2, 3, 4], [1.5, 1.6, 1.7, 1.8]]).to(
++        t = torch.tensor([[1, 2, 3, 4], [5, 6, 7, 8]]).npu().to(dtype=torch.float32)
++        importance_scores = torch.tensor([[1, 2, 3, 4], [1.5, 1.6, 1.7, 1.8]]).npu().to(
+             dtype=torch.float32
+         )
+         # create prior mask by hand
+-        default_mask = torch.tensor([[1, 1, 1, 0], [1, 1, 0, 1]])
++        default_mask = torch.tensor([[1, 1, 1, 0], [1, 1, 0, 1]]).npu()
+         # since we are pruning the two lowest magnitude units, the outcome of
+         # the calculation should be this:
+-        expected_mask = torch.tensor([[0, 1, 1, 0], [0, 1, 0, 1]])
++        expected_mask = torch.tensor([[0, 1, 1, 0], [0, 1, 0, 1]]).npu()
+         pruned_tensor = p.prune(t, default_mask, importance_scores=importance_scores)
+         self.assertEqual(t * expected_mask, pruned_tensor)
+ 
+@@ -872,12 +873,12 @@ class TestPruningNN(NNTestCase):
+         # create a new pruning method
+         p = prune.L1Unstructured(amount=2)
+         # create tensor to be pruned
+-        t = torch.tensor([[1, 2, 3, 4], [5, 6, 7, 8]]).to(dtype=torch.float32)
++        t = torch.tensor([[1, 2, 3, 4], [5, 6, 7, 8]]).npu().to(dtype=torch.float32)
+         # create prior mask by hand
+-        default_mask = torch.tensor([[1, 1, 1, 0], [1, 1, 0, 1]])
++        default_mask = torch.tensor([[1, 1, 1, 0], [1, 1, 0, 1]]).npu()
+         # since we are pruning the two lowest magnitude units, the outcome of
+         # the calculation should be this:
+-        expected_mask = torch.tensor([[0, 0, 1, 0], [1, 1, 0, 1]])
++        expected_mask = torch.tensor([[0, 0, 1, 0], [1, 1, 0, 1]]).npu()
+         pruned_tensor_without_importance_scores = p.prune(t, default_mask)
+         pruned_tensor_with_importance_scores = p.prune(
+             t, default_mask, importance_scores=t
+@@ -889,7 +890,7 @@ class TestPruningNN(NNTestCase):
+         self.assertEqual(t * expected_mask, pruned_tensor_without_importance_scores)
+ 
+     def test_rnn_pruning(self):
+-        l = torch.nn.LSTM(32, 32)
++        l = torch.nn.LSTM(32, 32).npu()
+         # This Module has 4 parameters called:
+         # 'weight_ih_l0', 'weight_hh_l0', 'bias_ih_l0', 'bias_hh_l0'
+ 

@@ -1,5 +1,5 @@
-﻿diff --git a/test/test_futures.py b/test/test_futures.py
-index 4cef4c4c923..d27cf938d42 100644
+diff --git a/test/test_futures.py b/test/test_futures.py
+index 4cef4c4..d27cf93 100644
 --- a/test/test_futures.py
 +++ b/test/test_futures.py
 @@ -8,6 +8,7 @@ import unittest

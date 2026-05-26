@@ -1,5 +1,5 @@
-﻿diff --git a/test/distributed/checkpoint/test_compatibility.py b/test/distributed/checkpoint/test_compatibility.py
-index c7bbe1a006c..b4b38da14c3 100644
+diff --git a/test/distributed/checkpoint/test_compatibility.py b/test/distributed/checkpoint/test_compatibility.py
+index c7bbe1a..b4b38da 100644
 --- a/test/distributed/checkpoint/test_compatibility.py
 +++ b/test/distributed/checkpoint/test_compatibility.py
 @@ -3,6 +3,7 @@
