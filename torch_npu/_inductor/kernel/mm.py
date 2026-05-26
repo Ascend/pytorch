@@ -77,9 +77,6 @@ def is_contiguous_striding(size, stride) -> bool:
 def _register_npu_inductor_mm():
     @register_lowering(aten.mm, type_promotion_kind=None)
     def tuned_mm(mat1, mat2, *, layout=None):
-        # not support lowering mm for cpp_wrapper yet
-        if V.graph.cpp_wrapper:
-            return fallback_handler(aten.mm.default)(mat1, mat2)
 
         m, n, k, layout, mat1, mat2 = mm_args(mat1, mat2, layout=layout)
         name = "mm"
@@ -148,9 +145,6 @@ def _register_npu_inductor_mm():
 def _register_npu_inductor_addmm():
     @register_lowering(aten.addmm, type_promotion_kind=None)
     def tuned_addmm(inp, mat1, mat2, *, alpha=1, beta=1, layout=None):
-        # not support lowering addmm for cpp_wrapper yet
-        if V.graph.cpp_wrapper:
-            return fallback_handler(aten.addmm.default)(inp, mat1, mat2, alpha=alpha, beta=beta)
 
         ordered_kwargs_for_cpp_kernel = ("beta", "alpha")
         m, n, k, layout, mat1, mat2, inp_expanded = mm_args(

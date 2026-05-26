@@ -11,38 +11,6 @@ from torch._inductor.ir import log, Reduction, ReductionHint, Scatter, sympy_pro
 from torch._inductor.utils import ir_dataclass
 from torch._inductor.virtualized import ops, V
 
-
-def patch_fallback_kernel_codegen():
-    from torch._inductor.ir import FallbackKernel
-
-    origin_fallback_codegen = FallbackKernel.codegen
-
-    # todo:
-    # 1. merge fallback_ops in fallback_ops.py and lowering_fallback_list.py
-    # 2. let torchnpugen support update-aoti-c-shim
-    # 3. register external kernel to c-shim kernel
-    def codegen_npu(self, wrapper) -> None:  # type: ignore[no-untyped-def]
-        kernel = self.op_overload
-        if kernel.namespace == "aten":  # type: ignore[union-attr]
-            if not isinstance(kernel, torch._ops.OpOverload):
-                raise AssertionError(
-                    f"kernel should be OpOverload, but got {type(kernel)}"
-                )
-            if V.graph.cpp_wrapper:
-                # Fallback all npu op to proxy executor and warn when gpu do not.
-                from torchgen.aoti.fallback_ops import inductor_fallback_ops
-
-                self.use_runtime_dispatch = True
-                if str(kernel) in inductor_fallback_ops:
-                    log.warning(
-                        "%s is using proxy executor as fallback instead of aoti shim.",
-                        kernel,
-                    )
-        origin_fallback_codegen(self, wrapper)
-
-    FallbackKernel.codegen = codegen_npu
-
-
 @ir_dataclass
 class IndexputTemplate(Scatter):
     boundary: int | None = None

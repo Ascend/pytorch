@@ -1,6 +1,6 @@
 #pragma once
 
-#include <torch_npu/csrc/inductor/aoti_runtime/arrayref_tensor.h>
+#include <torch/csrc/inductor/aoti_runtime/arrayref_tensor.h>
 
 namespace torch::aot_inductor {
 

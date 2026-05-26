@@ -73,7 +73,6 @@ def _load_triton_backend():
 
     from . import codegen, config as npu_config
     from .async_compile import patch_async_compile
-    from .codecache import patch_aot_code_compiler_compile
     from .codegen._sizevars import patch_simplify
     from .codegen.ir import patch_indexing, patch_loop_body
 
@@ -96,7 +95,7 @@ def _load_triton_backend():
     )
     from .fx_passes.pattern_match.npu_fusion_attention_graph import register_fa_pass
     from .fx_passes.joint_graph import patch_constant_fold_uniform_value
-    from .ir import patch_fallback_kernel_codegen, patch_num_splits
+    from .ir import patch_num_splits
     from .kernel import (
         _register_npu_inductor_addmm,
         _register_npu_inductor_bmm,
@@ -161,8 +160,6 @@ def _load_triton_backend():
 
     patch_get_cpp_torch_device_options()
     patch_constant_fold_uniform_value()
-    patch_fallback_kernel_codegen()
-    patch_aot_code_compiler_compile()
     patch_gen_common_triton_ext_imports()
     patch_triton_scheduling()
     patch_triton_heuristics_cached_autotune()

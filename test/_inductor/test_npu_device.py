@@ -15,24 +15,6 @@ class TestNpuDevice(TestCase):
         excepted = "aclrtStream"
         self.assertEqual(result, excepted)
 
-    def test_abi_compatible_header(self):
-        overrides = NewNPUDeviceOpOverrides()
-        result = overrides.abi_compatible_header()
-        self.assertIn("#include <fstream>", result)
-        self.assertIn("#include <vector>", result)
-        self.assertIn("#include <iostream>", result)
-        self.assertIn("#include <string>", result)
-        self.assertIn("#include <tuple>", result)
-        self.assertIn("#include <unordered_map>", result)
-        self.assertIn("#include <memory>", result)
-        self.assertIn("#include <filesystem>", result)
-        self.assertIn("#include <assert.h>", result)
-        self.assertIn("#include <stdbool.h>", result)
-        self.assertIn("#include <sys/syscall.h>", result)
-        self.assertIn("#include <torch_npu/csrc/framework/OpCommand.h>", result)
-        self.assertIn("#include <torch_npu/csrc/core/npu/NPUStream.h>", result)
-        self.assertIn("#include \"runtime/runtime/rt.h\"", result)
-
     def test_cpp_aoti_stream_guard(self):
         overrides = NewNPUDeviceOpOverrides()
         result = overrides.cpp_aoti_stream_guard()

@@ -1031,7 +1031,6 @@ class NPUCachingAutotuner(CachingAutotuner):
     def run(
         self, *args, stream, benchmark_run=False, **kwargs
     ):  # type:ignore[override]
-        xnumel_names = {'x0_numel', 'xnumel', 'r0_numel', 'y0_numel', 'rnumel', 'n_elements'}
         if self.triton_interpret:
             args, grid = self._interpret_args_grid(args, self.configs[0])
             copied_kwargs = copy.copy(self.configs[0].kwargs)
@@ -1475,7 +1474,12 @@ def persistent_reduction(
         heuristic_type=HeuristicType.PERSISTENT_REDUCTION,
     )
 
-def foreach(size_hints, triton_meta, num_warps, filename=None, inductor_meta=None):
+def foreach(
+    size_hints = None,
+    triton_meta = None,
+    num_warps = 1,
+    filename=None, inductor_meta=None
+):
     """
     Compile a triton foreach kernel
     """
