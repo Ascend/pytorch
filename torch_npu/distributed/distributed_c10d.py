@@ -12,6 +12,7 @@ import torch.distributed.distributed_c10d as dist_c10d
 from torch._C._distributed_c10d import (
     _DistributedBackendOptions,
     _register_process_group,
+    FakeProcessGroup,
     PrefixStore,
 )
 from torch.distributed.distributed_c10d import (
@@ -107,10 +108,11 @@ def _batch_isend_irecv(p2p_op_list):
         ) or (
             npu_device_name >= "Ascend910_9362" and npu_device_name <= "Ascend910_9391"
         )
+        is_fake_backend = isinstance(_group, FakeProcessGroup)
         if (
-            isinstance(group, ProcessGroup)
+            (isinstance(group, ProcessGroup)
             and cann_version >= "9.0.0"
-            and is_supported_device_name
+            and is_supported_device_name) or is_fake_backend
         ):
             # coalescing manager
             _check_p2p_op_list(p2p_op_list)
