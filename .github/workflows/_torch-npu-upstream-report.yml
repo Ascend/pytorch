@@ -36,12 +36,16 @@ jobs:
   generate_report:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Download ascend_pytorch github scripts
+        uses: actions/download-artifact@v4
         with:
-          repository: kerer-ai/pytorch
-          ref: v2.7.1_image
-          fetch-depth: 1
+          name: ascend-pytorch-github
+          path: ascend-pytorch-github-artifact
+
+      - name: Extract ascend_pytorch github scripts
+        run: |
+          mkdir -p ascend_pytorch
+          tar -xzf ascend-pytorch-github-artifact/ascend-pytorch-github.tar.gz -C ascend_pytorch/
 
       - name: Setup Python ${{ inputs.python_version }}
         uses: actions/setup-python@v5
@@ -99,7 +103,7 @@ jobs:
 
           COMBINED_MATRIX=$(python3 -c "import sys,json; dist=json.loads('${DIST_MATRIX}'); reg=json.loads('${REG_MATRIX}'); custom=json.loads('${CUSTOM_SHARDS}'); print(json.dumps(['dist-'+str(s) for s in dist]+['reg-'+str(s) for s in reg]+custom))")
 
-          $PYTHON .github/scripts/generate_npu_full_test_report.py \
+          $PYTHON ascend_pytorch/.github/scripts/generate_npu_full_test_report.py \
             --reports-root all-test-reports \
             --output-markdown ${REPORT_MD} \
             --output-json ${REPORT_JSON} \

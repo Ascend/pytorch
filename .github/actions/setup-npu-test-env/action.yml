@@ -23,14 +23,6 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        repository: kerer-ai/pytorch
-        ref: v2.7.1_image
-        fetch-depth: 1
-        path: ascend_pytorch
-
     - name: Download built torch_npu wheel
       uses: actions/download-artifact@v4
       with:
@@ -70,6 +62,18 @@ runs:
       run: |
         tar -xzf prepared-test-src-artifact/pytorch-test-src.tar.gz
 
+    - name: Download ascend_pytorch github scripts
+      uses: actions/download-artifact@v4
+      with:
+        name: ascend-pytorch-github
+        path: ascend-pytorch-github-artifact
+
+    - name: Extract ascend_pytorch github scripts
+      shell: bash
+      run: |
+        mkdir -p ascend_pytorch
+        tar -xzf ascend-pytorch-github-artifact/ascend-pytorch-github.tar.gz -C ascend_pytorch/
+
     - name: Verify NPU availability
       shell: bash
       run: |
@@ -92,7 +96,7 @@ runs:
         source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
         source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
 
-        cd ascend_pytorch/test_upstream
+        cd pytorch-test-src/test_upstream
         chmod +x torch_env_patch.sh
 
         echo "=== Applying torch environment patches ==="

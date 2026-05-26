@@ -72,3 +72,14 @@ jobs:
           path: /tmp/patch.log
           if-no-files-found: warn
           retention-days: 60
+
+      - name: Package ascend_pytorch github scripts
+        run: |
+          tar -czf ascend-pytorch-github.tar.gz .github/
+
+      - name: Upload ascend_pytorch github scripts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ascend-pytorch-github
+          path: ascend-pytorch-github.tar.gz
+          retention-days: 60
