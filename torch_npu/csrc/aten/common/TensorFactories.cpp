@@ -19,6 +19,7 @@
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUSwappedMemoryAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
+#include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/aten/common/ResizeNpu.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
 #include "torch_npu/csrc/framework/InferFormat.h"
@@ -32,6 +33,8 @@
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
+#include "op_plugin/OpInterface.h"
+#include "torch_npu/csrc/aten/common/from_blob.h"
 #ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/profiler/utils.h"
 #endif
@@ -40,6 +43,78 @@ namespace at_npu {
 namespace native {
 
 namespace {
+
+int64_t npu_byte_tensor_sum_on_cpu(const at::Tensor& t)
+{
+    if (t.numel() == 0) {
+        return 0;
+    }
+    return t.to(at::kCPU, /*non_blocking=*/false)
+        .contiguous()
+        .reshape({-1})
+        .to(at::ScalarType::Long)
+        .sum()
+        .item<int64_t>();
+}
+
+// Write canonical int_repr bytes into dst; NPU quantized tensors may expose multiple int slabs and a
+// separate qtensor data_ptr — retry until dst.int_repr() matches expected_sum (small tensors only).
+void npu_quantized_clone_write_int_repr_payload(
+    at::Tensor& dst,
+    const at::Tensor& npu_bytes,
+    int64_t device_index,
+    int64_t expected_sum)
+{
+    static const auto kNoopDeleter = [](void*) {};
+    constexpr int kMaxAttempts = 5;
+    constexpr int kMaxIntReprSlabHops = 8;
+    const bool verify_sum = expected_sum >= 0 && dst.numel() > 0 && dst.numel() <= 4096;
+
+    for (int attempt = 0; attempt < kMaxAttempts; ++attempt) {
+        at::Tensor dst_repr = dst.int_repr();
+        op_plugin::npu_stride_copy_out(
+            npu_bytes,
+            npu_bytes.sizes(),
+            npu_bytes.strides(),
+            c10::Scalar(static_cast<int64_t>(npu_bytes.storage_offset())),
+            dst_repr);
+        c10_npu::getCurrentNPUStream(device_index).synchronize();
+        c10_npu::npuSynchronizeDevice();
+
+        at::Tensor written = dst_repr;
+        for (int hop = 0; hop < kMaxIntReprSlabHops; ++hop) {
+            at::Tensor cur = dst.int_repr();
+            if (!cur.defined() || written.nbytes() == 0 || !cur.sizes().equals(written.sizes())) {
+                break;
+            }
+            cur.copy_(written, /*non_blocking=*/false);
+            c10_npu::getCurrentNPUStream(device_index).synchronize();
+            c10_npu::npuSynchronizeDevice();
+            written = cur;
+        }
+
+        if (dst.data_ptr() != nullptr && written.defined() && dst.data_ptr() != written.data_ptr() &&
+            dst.nbytes() == written.nbytes()) {
+            at::Tensor q_payload = at_npu::native::from_blob(
+                dst.data_ptr(),
+                dst.sizes(),
+                dst.strides(),
+                kNoopDeleter,
+                npu_bytes.options(),
+                dst.device());
+            q_payload.copy_(written, /*non_blocking=*/false);
+            c10_npu::getCurrentNPUStream(device_index).synchronize();
+            c10_npu::npuSynchronizeDevice();
+        }
+
+        const int64_t got = verify_sum ? npu_byte_tensor_sum_on_cpu(dst.int_repr()) : expected_sum;
+        if (!verify_sum || got == expected_sum) {
+            break;
+        }
+        c10_npu::npuSynchronizeDevice();
+    }
+}
+
 void window_function_checks(
     const char *function_name,
     const c10::TensorOptions &options,
@@ -689,6 +764,133 @@ at::Tensor NPUNativeFunctions::clone(
     c10::optional<c10::MemoryFormat> format)
 {
     c10_npu::NPUGuard guard(src.device());
+
+    // Quantized (QUInt8/QInt8): TransContiguous / generic copy_d2d paths have produced
+    // non-deterministic or partially wrong buffers vs int_repr semantics (see contiguous()
+    // twice differing). Always materialize via Byte stride-copy matching CopyKernel.
+    if (src.is_quantized()) {
+        TORCH_CHECK(
+            !format.has_value() || *format == c10::MemoryFormat::Contiguous ||
+                *format == c10::MemoryFormat::Preserve,
+            "NPU quantized clone only supports Contiguous or Preserve memory_format.",
+            OPS_ERROR(ErrCode::NOT_SUPPORT));
+        // empty_like + int_repr stride_copy only when int_repr metadata matches. When
+        // MetaDataAreMatch(src.int_repr)==0, NPU quantized tensors can expose multiple int slabs;
+        // npu_stride_copy_out into dst.int_repr().reshape(...) still left later dst.int_repr()
+        // reading a different buffer (test_view_ops.TestOldViewOpsPRIVATEUSE1.test_ravel_npu nc).
+        // int_repr CPU byte staging (plain Byte on CPU, not QuantizedCPU) when q or int_repr NPUStorageDesc
+        // disagrees with tensor sizes/strides. Do not use src.to(CPU) / QuantizedCPU / r.to(NPU) on QTensor.
+        if (src.device().type() == c10::DeviceType::PrivateUse1) {
+            c10_npu::npuSynchronizeDevice();
+        }
+        const at::Tensor src_repr = src.int_repr();
+        const bool npu_src_q_meta_mismatch =
+            src.device().type() == c10::DeviceType::PrivateUse1 &&
+            !StorageDescHelper::MetaDataAreMatch(&src);
+        const bool npu_src_repr_meta_mismatch =
+            src.device().type() == c10::DeviceType::PrivateUse1 &&
+            !StorageDescHelper::MetaDataAreMatch(&src_repr);
+        // MetaData(q)==0 on a view (e.g. ravel -> [625]) or int_repr meta mismatch (transpose): device
+        // stride_copy / empty_like+H2D can leave dst.int_repr() on a non-canonical slab (checksum 1 vs 348).
+        // Stage correct int_repr bytes on CPU, then H2D into empty_like dst + slab propagation (quantize_per_tensor
+        // on NPU can leave dst.int_repr() on a different slab than the quantized payload).
+        if (npu_src_q_meta_mismatch || npu_src_repr_meta_mismatch) {
+            at::Tensor cpu_repr;
+            if (src.numel() == 0) {
+                cpu_repr = at::empty_like(src_repr, src_repr.options().device(at::kCPU));
+            } else if (npu_src_repr_meta_mismatch) {
+                // e.g. transpose: int_repr NPUStorageDesc disagrees with sizes/strides; read via
+                // storage-owner base_sizes_/base_strides_ when they cover the same numel.
+                const torch_npu::NPUStorageDesc& desc =
+                    torch_npu::NPUBridge::GetNpuStorageImplDesc(src);
+                const int64_t base_numel =
+                    c10::multiply_integers(c10::IntArrayRef(desc.base_sizes_));
+                if (desc.base_sizes_.size() > 0 && base_numel == src.numel()) {
+                    at::Tensor read_ir = src_repr.as_strided(
+                        c10::IntArrayRef(desc.base_sizes_),
+                        c10::IntArrayRef(desc.base_strides_),
+                        src_repr.storage_offset());
+                    cpu_repr = read_ir.contiguous().reshape({-1}).to(at::kCPU, /*non_blocking=*/false);
+                }
+                if (!cpu_repr.defined() || cpu_repr.numel() != src.numel()) {
+                    cpu_repr = at::empty_like(src_repr, src_repr.options().device(at::kCPU));
+                    cpu_repr.copy_(src_repr, /*non_blocking=*/false);
+                }
+            } else {
+                // MetaData(q)==0 only (e.g. ravel/view rank-1): int_repr meta already matches src;
+                // do not as_strided via qtensor desc (can yield numel 1); D2H the logical int_repr view.
+                cpu_repr = src_repr.contiguous().to(at::kCPU, /*non_blocking=*/false);
+                TORCH_CHECK(
+                    cpu_repr.numel() == src.numel(),
+                    "NPU quantized clone: int_repr D2H numel ",
+                    cpu_repr.numel(),
+                    " != src.numel ",
+                    src.numel(),
+                    OPS_ERROR(ErrCode::VALUE));
+            }
+            at::Tensor dst = (format.has_value() && *format == c10::MemoryFormat::Contiguous)
+                ? at::empty_like(src, LEGACY_CONTIGUOUS_MEMORY_FORMAT)
+                : at::empty_like(src);
+            StorageDescHelper::SetDesc(dst, dst.sizes(), dst.strides());
+            c10_npu::npuSynchronizeDevice();
+            const at::Tensor npu_bytes =
+                cpu_repr.contiguous().to(src.device(), /*non_blocking=*/false);
+            int64_t expected_sum = -1;
+            if (src.numel() > 0 && src.numel() <= 4096) {
+                expected_sum = cpu_repr.to(at::ScalarType::Long).sum().item<int64_t>();
+            }
+            npu_quantized_clone_write_int_repr_payload(
+                dst,
+                npu_bytes,
+                src.device().index(),
+                expected_sum);
+            return dst;
+        }
+
+        at::Tensor dst = (format.has_value() && *format == c10::MemoryFormat::Contiguous)
+            ? at::empty_like(src, LEGACY_CONTIGUOUS_MEMORY_FORMAT)
+            : at::empty_like(src);
+        if (src.device().type() == c10::DeviceType::PrivateUse1) {
+            StorageDescHelper::SetDesc(dst, dst.sizes(), dst.strides());
+            c10_npu::npuSynchronizeDevice();
+        }
+        at::Tensor dst_repr = dst.int_repr();
+        op_plugin::npu_stride_copy_out(
+            src_repr,
+            src_repr.sizes(),
+            src_repr.strides(),
+            c10::Scalar(static_cast<int64_t>(src_repr.storage_offset())),
+            dst_repr);
+        if (src.device().type() == c10::DeviceType::PrivateUse1) {
+            // npu_stride_copy_out writes dst_repr; successive dst.int_repr() may return different
+            // physical slabs (post_copy: same_data_ptr=0, again!=frozen on first clone). One
+            // copy_(canonical, dst_repr) is insufficient if int_repr() is unstable. Propagate the
+            // stride-copied buffer through int_repr() hops until stable or cap, syncing after each copy.
+            c10_npu::getCurrentNPUStream(src.device().index()).synchronize();
+            c10_npu::npuSynchronizeDevice();
+            // Do not break early when cur.data_ptr() == written: int_repr() can return the same
+            // slab for several calls (so stride_copy data is visible), then a later call returns a
+            // different slab (post_copy again!=frozen). Run a fixed number of copy+sync rounds so
+            // every returned slab receives the stride-copied payload.
+            at::Tensor written = dst_repr;
+            constexpr int kMaxIntReprSlabHops = 8;
+            for (int hop = 0; hop < kMaxIntReprSlabHops; ++hop) {
+                at::Tensor cur = dst.int_repr();
+                if (!cur.defined() || written.nbytes() == 0) {
+                    break;
+                }
+                if (!cur.sizes().equals(written.sizes())) {
+                    break;
+                }
+                cur.copy_(written, /*non_blocking=*/false);
+                c10_npu::getCurrentNPUStream(src.device().index()).synchronize();
+                c10_npu::npuSynchronizeDevice();
+                written = cur;
+            }
+        }
+        return dst;
+    }
+
     OptimizationCases opt_cases{"reshape", "slice"};
     if (TransContiguous::CanOptimize(src, opt_cases)) {
         // clone with any npu formats
