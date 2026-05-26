@@ -53,7 +53,7 @@ defaults:
 jobs:
   collect:
     runs-on: linux-aarch64-a3-8
-    timeout-minutes: 60
+    timeout-minutes: 120
     container:
       image: ${{ inputs.docker_image }}
       options: --user root
