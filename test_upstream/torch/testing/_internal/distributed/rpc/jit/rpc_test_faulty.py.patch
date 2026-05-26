@@ -1,0 +1,12 @@
+diff --git a/torch/testing/_internal/distributed/rpc/jit/rpc_test_faulty.py b/torch/testing/_internal/distributed/rpc/jit/rpc_test_faulty.py
+index 9bedaad..1111111 100644
+--- a/torch/testing/_internal/distributed/rpc/jit/rpc_test_faulty.py
++++ b/torch/testing/_internal/distributed/rpc/jit/rpc_test_faulty.py
+@@ -123,6 +123,6 @@ class JitFaultyAgentRpcTest(RpcAgentTestFixture):
+-    @dist_init(faulty_messages=[], messages_to_delay={"SCRIPT_CALL": 1.5})
++    @dist_init(faulty_messages=[], messages_to_delay={"PYTHON_CALL": 1.5})
+     def test_timeout_in_python(self):
+         # Ensures timeouts are raised if we call rpc_async from within a
+         # torchscript function, but wait on the future in python.
+         if self.rank != 0:
+             return
