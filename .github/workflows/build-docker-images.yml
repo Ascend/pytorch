@@ -1,4 +1,4 @@
-name: Build Docker Images
+name: Build v2.12.0 Docker Images
 
 on:
   workflow_dispatch:
