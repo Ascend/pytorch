@@ -675,8 +675,11 @@ class NPUTritonKernel(TritonKernel):
 
         # NPU tiling inductor meta
         from ..config import inductor_ascend_linear_mode
-
-        inductor_meta["inductor_ascend_linear_mode"] = inductor_ascend_linear_mode
+        if inductor_ascend_linear_mode == "linear":
+            # Linear fallback to no_linear_loop
+            inductor_meta["inductor_ascend_linear_mode"] = "no_linear_loop"            
+        else:
+            inductor_meta["inductor_ascend_linear_mode"] = inductor_ascend_linear_mode
         inductor_meta["npu_kernel_type"] = "simt_only"
         inductor_meta["split_axis"] = split_axis
         inductor_meta["tiling_axis"] = tiling_axis
@@ -1823,7 +1826,7 @@ class NPUIndexTritonKernel(TritonKernel):
                 raw_hint = V.graph.sizevars.shape_env.size_hint(numel_expr)
                 hint_val = int(raw_hint)
             except Exception:
-                hint_val = 32
+                hint_val = 4096
 
             size_hints[node.name] = hint_val
         return size_hints

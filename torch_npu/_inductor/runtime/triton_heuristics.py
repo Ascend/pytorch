@@ -611,6 +611,15 @@ class NPUCachingAutotuner(CachingAutotuner):
         self.compile_results = compile_results
         self.configs = None
 
+    def parse_triton_ascend_options(self, tiling_kwargs, options):
+        from triton.backends.ascend.compiler import NPUOptions
+        for k in NPUOptions.__dataclass_fields__.keys():
+            if k not in tiling_kwargs:
+                continue
+            options[k] = tiling_kwargs[k]
+
+        return options
+
     def _precompile_config(self, cfg: Config) -> TritonCompileResultNpu:
         """Ahead of time compile a given autotuner config."""
         compile_meta = copy.deepcopy(self.triton_meta)
@@ -672,10 +681,10 @@ class NPUCachingAutotuner(CachingAutotuner):
             "num_warps": compile_meta["num_warps"],
             "num_stages": compile_meta["num_stages"],
             "debug": compile_meta["debug"],
-            "multibuffer": cfg_kwargs.get('multibuffer', False),
             "compile_mode": compile_meta['compile_mode'],
-            "enable_vf_fusion": cfg_kwargs.get('enable_vf_fusion', False),
         }
+
+        options = self.parse_triton_ascend_options(cfg_kwargs, options)
         # pure simt stack overflow check
         if compile_meta['compile_mode'] == NPUKernelType.SIMT_ONLY.compile_mode():
             options['simt_stack_limit'] = npu_config.simt_default_warp_stacksize
