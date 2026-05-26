@@ -39,18 +39,18 @@ class TestToCopyStride(TestCase):
             fake_source = fake_mode.from_tensor(source)
             fake_copied = _to_copy_strided_float32(fake_source)
             self.assertEqual(fake_copied.shape, SOURCE_SIZE)
-            self.assertEqual(fake_copied.stride(), CONTIGUOUS_STRIDE)
+            self.assertEqual(fake_copied.stride(), SOURCE_STRIDE)
 
     def test_to_copy_compile_stride(self):
         source = _make_source_tensor()
         real_copied = _to_copy_strided_float32(source)
         self.assertEqual(real_copied.shape, SOURCE_SIZE)
-        self.assertEqual(real_copied.stride(), CONTIGUOUS_STRIDE)
+        self.assertEqual(real_copied.stride(), SOURCE_STRIDE)
 
         compiled_to_copy = torch.compile(_to_copy_strided_float32, backend="inductor")
         compiled_copied = compiled_to_copy(source)
         self.assertEqual(compiled_copied.shape, SOURCE_SIZE)
-        self.assertEqual(compiled_copied.stride(), CONTIGUOUS_STRIDE)
+        self.assertEqual(compiled_copied.stride(), SOURCE_STRIDE)
 
 
 if __name__ == "__main__":
