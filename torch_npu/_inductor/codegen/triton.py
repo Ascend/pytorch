@@ -861,8 +861,12 @@ class NPUTritonKernelWithLoop(NPUTritonKernel):
             tree for tree in self.range_trees if tree.is_loop and tree.is_reduction
         ]
 
-        self.body.splice(self.body_header)
-        if len(normal_loop_trees) > 0:
+        #self.body.splice(self.body_header)
+        if (not self.inside_reduction or (len(reduction_loop_trees) == 0)):
+            self.body.splice(self.body_header)
+            self.body_header.clear()
+
+        if (not self.inside_reduction or (len(reduction_loop_trees) == 0)) and len(normal_loop_trees) > 0:
             # Write the loop headers.
             for level, tree in enumerate(normal_loop_trees):
                 with self.body.indent(offset=level):
@@ -965,7 +969,6 @@ class NPUTritonKernelWithLoop(NPUTritonKernel):
             self.body.splice(self.post_loop_store)
 
         self.loop_header.clear()
-        self.body_header.clear()
         self.indexing_code.clear()
         self.loads.clear()
         self.compute.clear()
