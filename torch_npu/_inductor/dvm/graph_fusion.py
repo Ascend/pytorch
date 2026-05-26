@@ -5,10 +5,11 @@ from types import SimpleNamespace
 import torch
 from torch.fx import Graph, GraphModule, Node
 from torch.library import Library
-from torch.utils._pytree import tree_map
+from torch.utils._pytree import tree_leaves, tree_map
 from torch._inductor import config as inductor_config
 from torch._inductor.codegen.wrapper import PythonWrapperCodegen
 from torch._subclasses import FakeTensor
+from torch._subclasses.fake_tensor import unset_fake_temporarily
 
 from torch.fx.passes.infra.partitioner import CapabilityBasedPartitioner
 from torch.fx.passes.operator_support import OperatorSupportBase
@@ -181,6 +182,35 @@ def _fused_run_stub(*args, **kwargs):
     raise AssertionError("This op should never run at eager runtime.")
 
 
+def _to_meta_tensor(t):
+    if not isinstance(t, torch.Tensor):
+        return t
+    if t.device.type == "meta" and not isinstance(t, FakeTensor):
+        return t
+    return torch.empty_strided(
+        t.size(),
+        t.stride(),
+        dtype=t.dtype,
+        device="meta",
+        requires_grad=t.requires_grad,
+    )
+
+
+def _get_fake_mode_and_device(args):
+    for arg in tree_leaves(args):
+        if isinstance(arg, FakeTensor):
+            return arg.fake_mode, arg.device
+    return None, None
+
+
+def _wrap_meta_tensor(t, fake_mode, device):
+    if not isinstance(t, torch.Tensor) or fake_mode is None or device is None:
+        return t
+    if isinstance(t, FakeTensor) or t.device.type != "meta":
+        return t
+    return fake_mode.fake_tensor_converter.from_meta_and_device(fake_mode, t, device)
+
+
 def _fused_run_fake(*args, **kwargs):
     """
     Fake implementation for custom_op. The last arg is fused_id.
@@ -188,8 +218,12 @@ def _fused_run_fake(*args, **kwargs):
     """
     fused_id = int(args[-1])
     meta = _fused_metas[fused_id]
-    out = meta.gm.forward(*args[:-1])
-    return tree_map(lambda t: t if t.is_contiguous() else t.contiguous(), out)
+    fake_mode, device = _get_fake_mode_and_device(args[:-1])
+    with unset_fake_temporarily():
+        meta_args = tree_map(_to_meta_tensor, args[:-1])
+        out = meta.gm.forward(*meta_args)
+        out = tree_map(lambda t: t if t.is_contiguous() else t.contiguous(), out)
+    return tree_map(lambda t: _wrap_meta_tensor(t, fake_mode, device), out)
 
 
 class GraphFusionPartitioner(CapabilityBasedPartitioner):

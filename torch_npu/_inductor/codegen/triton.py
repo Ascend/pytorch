@@ -859,9 +859,12 @@ class NPUTritonKernelWithLoop(NPUTritonKernel):
         reduction_loop_trees = [
             tree for tree in self.range_trees if tree.is_loop and tree.is_reduction
         ]
-
-        self.body.splice(self.body_header)
-        if len(normal_loop_trees) > 0:
+        #self.body.splice(self.body_header)
+        if (not self.inside_reduction or (len(reduction_loop_trees) == 0)):
+            self.body.splice(self.body_header)
+            self.body_header.clear()
+        
+        if (not self.inside_reduction or (len(reduction_loop_trees) == 0)) and len(normal_loop_trees) > 0:
             # Write the loop headers.
             for level, tree in enumerate(normal_loop_trees):
                 with self.body.indent(offset=level):
@@ -964,7 +967,6 @@ class NPUTritonKernelWithLoop(NPUTritonKernel):
             self.body.splice(self.post_loop_store)
 
         self.loop_header.clear()
-        self.body_header.clear()
         self.indexing_code.clear()
         self.loads.clear()
         self.compute.clear()
@@ -2231,12 +2233,13 @@ class NPUIndexTritonKernel(TritonKernel):
 
             reduction_1d = is_1d_reduction()
             do_indent = False
+            
+            have_load_store = self.find_axis_in_load_store(range_val)
+            if not have_load_store:
+                indexing_code = None
+
             # tiling axis and last tiling
             if range_val.is_tiling_axis and last_tiling:
-                do_indent = False
-                have_load_store = self.find_axis_in_load_store(range_val)
-                if not have_load_store:
-                    indexing_code = None
                 need_axis_loop = have_load_store and (not range_val.is_no_loop_axis)
                 if (
                     range_val.prefix != "r" or not self.persistent_reduction
@@ -2254,11 +2257,6 @@ class NPUIndexTritonKernel(TritonKernel):
 
             # tiling axis and but not last tiling
             elif range_val.is_tiling_axis:
-                do_indent = False
-                have_load_store = self.find_axis_in_load_store(range_val)
-                if not have_load_store:
-                    do_indent = False
-                    indexing_code = None
                 if not range_val.is_no_loop_axis:
                     do_indent = True
                     self.body.writeline(

@@ -13,6 +13,38 @@ IFS='.' read -ra version_parts <<< "$pytorch_version"
 
 pytorch_dir="v${version_parts[0]}r${version_parts[1]}"
 
+# Fetch ACL headers from submodule paths
+ACL_DEST="$CDIR/third_party/acl/inc/acl"
+echo " --- Fetching ACL headers from submodules..."
+
+ACL_SRC="$CDIR/third_party/acl_src"
+
+# Copy runtime headers (lower priority, copied first)
+if [ -d "$ACL_SRC/runtime/include/external/acl" ]; then
+    mkdir -p "$ACL_DEST"
+    cp -r "$ACL_SRC/runtime/include/external/acl/"* "$ACL_DEST/"
+    echo " --- Copied runtime acl headers"
+fi
+
+# Copy ge headers (higher priority, overwrites runtime)
+if [ -d "$ACL_SRC/ge/inc/external/acl" ]; then
+    mkdir -p "$ACL_DEST"
+    cp -r "$ACL_SRC/ge/inc/external/acl/"* "$ACL_DEST/"
+    echo " --- Copied ge acl headers"
+fi
+
+# Copy super_kernel.h from graph-autofusion
+SUPER_KERNEL_SRC="$ACL_SRC/graph-autofusion/super_kernel/include/super_kernel/super_kernel.h"
+if [ -f "$SUPER_KERNEL_SRC" ]; then
+    cp "$SUPER_KERNEL_SRC" "$ACL_DEST/super_kernel.h"
+    echo " --- Copied super_kernel.h"
+fi
+
+# Clean up submodule working directories
+rm -rf "$ACL_SRC"
+echo " --- Cleaned up acl_src submodule directories"
+echo " --- ACL headers fetched successfully"
+
 file=$CDIR/third_party/op-plugin/gencode.sh
 
 if [ -f "${file}" ]; then

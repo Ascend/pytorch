@@ -282,7 +282,7 @@ def main():
     detect_device_type()
     os.environ['TORCHINDUCTOR_NPU_BACKEND']=args.npu_backend
     if args.mfusion:
-        os.environ['TORCHINDUCTOR_NPU_MFUSION']='1'
+        os.environ['TORCHINDUCTOR_ENABLE_MFUSION']='1'
     os.makedirs(args.output_dir, exist_ok=True)
     os.makedirs(os.path.join(args.output_dir, "logs"), exist_ok=True)
 

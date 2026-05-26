@@ -356,7 +356,7 @@ def is_support_inf_nan():
     return torch_npu._C._npu_is_support_inf_nan()
 
 
-def is_bf16_supported():
+def is_bf16_supported(including_emulation: bool = False):
     torch_npu.npu._lazy_init()
     return torch_npu._C._npu_is_bf16_supported()
 
@@ -490,6 +490,22 @@ def _erase_stream(tensor, stream):
                                 device_type=stream.device_type)
 
 
+def _set_op_timeout_ms_impl(timeout):
+        torch_npu.npu._lazy_init()
+        torch_npu._C._npu_set_op_timeout_ms(timeout)
+    
+_npu_lib = torch.library.Library("npu", "FRAGMENT")
+if not hasattr(torch.ops.npu, "set_op_timeout_ms"):
+    _npu_lib.define("set_op_timeout_ms(int timeout) -> None")
+    _npu_lib.impl("set_op_timeout_ms", _set_op_timeout_ms_impl, "PrivateUse1")
+    _npu_lib.impl("set_op_timeout_ms", _set_op_timeout_ms_impl, "BackendSelect")
+    _npu_lib.impl("set_op_timeout_ms", _set_op_timeout_ms_impl, "CPU")
+
+    torch.fx.node.has_side_effect(torch.ops.npu.set_op_timeout_ms.default)
+
+    @torch.library.register_fake("npu::set_op_timeout_ms")
+    def _set_op_timeout_ms_meta(timeout):
+        pass
+
 def set_op_timeout_ms(timeout):
-    torch_npu.npu._lazy_init()
-    torch_npu._C._npu_set_op_timeout_ms(timeout)
+    torch.ops.npu.set_op_timeout_ms(timeout)

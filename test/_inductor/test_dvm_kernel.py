@@ -1,39 +1,51 @@
-from unittest import skip
 import torch
-
-from torch.testing._internal.common_utils import TestCase
-from torch.testing._internal.common_utils import run_tests
-
-from torch_npu._inductor import dvm
-
-
-def fused_add_sum(k: dvm.Kernel):
-    x = k.load([-1, -1, -1], dvm.float32)
-    y = k.load([-1, -1, -1], dvm.float32)
-    scalar = k.scalar(dvm.float32)
-    a = k.add(x, y)
-    b = k.add(a, scalar)
-    c = k.sum(b, [0, 1], True)
-    k.store(c)
+import triton
+import triton.language as tl
+from triton.language.extra.cann import libdevice
+from torch.testing._internal.common_utils import (
+    instantiate_parametrized_tests,
+    parametrize,
+    run_tests,
+    TestCase,
+)
+from torch._inductor.utils import run_and_get_code
 
 
-class TestDvmKernelOp(TestCase):
-    def test_dvm_kernel_op(self):
-        a = torch.normal(0, 0.1, size=(512, 128, 256), dtype=torch.float32).npu()
-        b = torch.normal(0, 0.1, size=(512, 1, 256), dtype=torch.float32).npu()
-        scalar = 1.22
-        expect = torch.sum((a + b + 1.22), dim=[0, 1], keepdim=True)
-        result = torch.empty((1, 1, 256), device="npu")
-        kernel1 = dvm.kernel(ktype="vector", dyn_shape=True)(fused_add_sum)
-        kernel1.run(a, b, scalar, result)
-        kernel1.run(a, b, scalar, result)
-        kernel1.run(a, b, scalar, result)
-        self.assertEqual(expect, result, atol=1e-3, rtol=1e-3)
-        kernel2 = dvm.kernel(ktype="split", dyn_shape=True)(fused_add_sum)
-        result = kernel2(a, b, scalar)
-        result = kernel2(a, b, scalar)
-        result = kernel2(a, b, scalar)
-        self.assertEqual(expect, result, atol=1e-3, rtol=1e-3)
+@triton.jit
+def softcap_fwd_kernel(x_ptr, y_ptr, n_elements, softcap, BLOCK_SIZE: tl.constexpr):
+    pid = tl.program_id(axis=0)
+    block_start = pid * BLOCK_SIZE
+    offsets = block_start + tl.arange(0, BLOCK_SIZE)
+    mask = offsets < n_elements
+    x = tl.load(x_ptr + offsets, mask=mask)
+    x_f32 = x.to(tl.float32)
+    y = softcap * libdevice.tanh(x_f32 / softcap)
+    y = y.to(x.dtype)
+    tl.store(y_ptr + offsets, y, mask=mask)
+
+
+def softcap_forward(x, softcap):
+    numel = x.numel()
+    y = torch.empty_like(x)
+    grid = lambda META: (triton.cdiv(numel, META["BLOCK_SIZE"]),)
+    softcap_fwd_kernel[grid](x, y, numel, softcap, BLOCK_SIZE=2048)
+    return y + x
+
+
+class TestDvmWrap(TestCase):
+    def test_softcap_dvm(self):
+        dtype = torch.float16
+        softcap = 50.0
+        x = torch.randn((1024, 1024), dtype=dtype, device="npu")
+        std_out = softcap_forward(x, softcap)
+        fn = torch.compile(softcap_forward, options={"npu_backend": "dvm"})
+        compile_out, codes = run_and_get_code(fn, x, softcap)
+        self.assertEqual(std_out, compile_out, atol=1e-3, rtol=1e-3)
+        self.assertIn("softcap_fwd_kernel", codes[0])
+        self.assertIn("dvm", codes[0])
+
+
+instantiate_parametrized_tests(TestDvmWrap)
 
 
 if __name__ == "__main__":

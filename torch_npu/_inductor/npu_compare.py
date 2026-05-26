@@ -66,6 +66,8 @@ def _report_mismatch(idx, actual, expected, matches, rtol, atol, kernel_name):
 def get_triton_fx_graph_call(inductor_meta, auto_fallback=False):
         kernel_name = inductor_meta.get("kernel_name", "triton_")
         traced_graph_hash = inductor_meta.get("traced_graph_hash")
+        if not traced_graph_hash:
+            return None, None, None, None
         dump_dir = inductor_meta.get("traced_graph_dir", "")
         dump_path = os.path.join(dump_dir, traced_graph_hash)
         if dump_dir == "" or not os.path.exists(dump_path):
@@ -115,8 +117,11 @@ def check_accuracy_triton(*args, launcher, grid, stream, inductor_meta, **kwargs
     fx_args = []
     for idx in fx_module.call_args_mapping:
         arg = args[idx]
-        if isinstance(arg, torch.Tensor):
-            fx_args.append(clone_for_accuracy(arg))
+        if not isinstance(arg, torch.Tensor):
+            arg = torch.Tensor(arg).npu()
+        fx_arg = clone_preserve_strides(arg).float() if arg.dtype == torch.bfloat16 else clone_preserve_strides(
+                arg)
+        fx_args.append(fx_arg)
     
     fx_graph_call(*fx_args)
 

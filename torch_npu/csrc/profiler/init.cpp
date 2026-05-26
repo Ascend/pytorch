@@ -130,7 +130,10 @@ PyObject* THNPModule_markOnHost(PyObject* _unused, PyObject* args)
     if (!PyArg_ParseTuple(args, "ss", &message, &domain)) {
         return nullptr;
     }
-    mstxMark(message, nullptr, domain);
+    {
+        pybind11::gil_scoped_release no_gil;
+        mstxMark(message, nullptr, domain);
+    }
     Py_RETURN_NONE;
     END_HANDLE_TH_ERRORS
 }
@@ -140,17 +143,72 @@ PyObject* THNPModule_mark(PyObject* _unused, PyObject* args)
     HANDLE_TH_ERRORS
     const char* message;
     const char* domain;
-    PyObject* stream_o = nullptr;
     int64_t stream_id = 0;
     int64_t device_index = 0;
     int64_t device_type = 0;
     if (!PyArg_ParseTuple(args, "sLLLs", &message, &stream_id, &device_index, &device_type, &domain)) {
         return nullptr;
     }
-    auto stream = c10_npu::NPUStream::unpack3(
-        stream_id, device_index, static_cast<c10::DeviceType>(device_type));
-    mstxMark(message, stream.stream(false), domain);
+    {
+        pybind11::gil_scoped_release no_gil;
+        auto stream = c10_npu::NPUStream::unpack3(stream_id, device_index, static_cast<c10::DeviceType>(device_type));
+        mstxMark(message, stream.stream(false), domain);
+    }
     Py_RETURN_NONE;
+    END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_rangePushOnHost(PyObject* _unused, PyObject* args)
+{
+    HANDLE_TH_ERRORS
+    const char* message = nullptr;
+    const char* domain = nullptr;
+    if (!PyArg_ParseTuple(args, "ss", &message, &domain)) {
+        return nullptr;
+    }
+    int id;
+    {
+        pybind11::gil_scoped_release no_gil;
+        id = mstxRangePush(message, nullptr, domain);
+    }
+    return PyLong_FromLong(static_cast<long>(id));
+    END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_rangePush(PyObject* _unused, PyObject* args)
+{
+    HANDLE_TH_ERRORS
+    const char* message = nullptr;
+    const char* domain = nullptr;
+    int64_t stream_id = 0;
+    int64_t device_index = 0;
+    int64_t device_type = 0;
+    if (!PyArg_ParseTuple(args, "sLLLs", &message, &stream_id, &device_index, &device_type, &domain)) {
+        return nullptr;
+    }
+    int id;
+    {
+        pybind11::gil_scoped_release no_gil;
+        auto stream = c10_npu::NPUStream::unpack3(stream_id, device_index, static_cast<c10::DeviceType>(device_type));
+        id = mstxRangePush(message, stream.stream(false), domain);
+    }
+    return PyLong_FromLong(static_cast<long>(id));
+    END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_rangePop(PyObject* _unused, PyObject* args)
+{
+    HANDLE_TH_ERRORS
+    const char* domain = nullptr;
+    if (!PyArg_ParseTuple(args, "s", &domain)) {
+        return nullptr;
+    }
+    int id;
+    {
+        pybind11::gil_scoped_release no_gil;
+        id = mstxRangePop(domain);
+    }
+    return PyLong_FromLong(static_cast<long>(id));
     END_HANDLE_TH_ERRORS
 }
 
@@ -166,10 +224,13 @@ PyObject* THNPModule_rangeStart(PyObject* _unused, PyObject* args)
     if (!PyArg_ParseTuple(args, "sLLLs", &message, &stream_id, &device_index, &device_type, &domain)) {
         return nullptr;
     }
-    auto stream = c10_npu::NPUStream::unpack3(
-        stream_id, device_index, static_cast<c10::DeviceType>(device_type));
-    int id = mstxRangeStart(message, stream.stream(false), domain);
-    return PyLong_FromLong(id);
+    int id;
+    {
+        pybind11::gil_scoped_release no_gil;
+        auto stream = c10_npu::NPUStream::unpack3(stream_id, device_index, static_cast<c10::DeviceType>(device_type));
+        id = mstxRangeStart(message, stream.stream(false), domain);
+    }
+    return PyLong_FromLong(static_cast<long>(id));
     END_HANDLE_TH_ERRORS
 }
 
@@ -181,8 +242,12 @@ PyObject* THNPModule_rangeStartOnHost(PyObject* _unused, PyObject* args)
     if (!PyArg_ParseTuple(args, "ss", &message, &domain)) {
         return nullptr;
     }
-    int id = mstxRangeStart(message, nullptr, domain);
-    return PyLong_FromLong(id);
+    int id;
+    {
+        pybind11::gil_scoped_release no_gil;
+        id = mstxRangeStart(message, nullptr, domain);
+    }
+    return PyLong_FromLong(static_cast<long>(id));
     END_HANDLE_TH_ERRORS
 }
 
@@ -194,7 +259,10 @@ PyObject* THNPModule_rangeEnd(PyObject* self, PyObject* args)
     if (!PyArg_ParseTuple(args, "is", &rangeId, &domain)) {
         return nullptr;
     }
-    mstxRangeEnd(rangeId, domain);
+    {
+        pybind11::gil_scoped_release no_gil;
+        mstxRangeEnd(rangeId, domain);
+    }
     Py_RETURN_NONE;
     END_HANDLE_TH_ERRORS
 }
@@ -202,6 +270,9 @@ PyObject* THNPModule_rangeEnd(PyObject* self, PyObject* args)
 static std::vector<PyMethodDef> mstxMethods = {
     {"_mark_on_host", (PyCFunction)THNPModule_markOnHost, METH_VARARGS, nullptr},
     {"_mark", (PyCFunction)THNPModule_mark, METH_VARARGS, nullptr},
+    {"_range_push_on_host", (PyCFunction)THNPModule_rangePushOnHost, METH_VARARGS, nullptr},
+    {"_range_push", (PyCFunction)THNPModule_rangePush, METH_VARARGS, nullptr},
+    {"_range_pop", (PyCFunction)THNPModule_rangePop, METH_VARARGS, nullptr},
     {"_range_start_on_host", (PyCFunction)THNPModule_rangeStartOnHost, METH_VARARGS, nullptr},
     {"_range_start", (PyCFunction)THNPModule_rangeStart, METH_VARARGS, nullptr},
     {"_range_end", (PyCFunction)THNPModule_rangeEnd, METH_VARARGS, nullptr},

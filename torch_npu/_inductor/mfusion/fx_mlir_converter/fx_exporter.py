@@ -31,6 +31,7 @@ from torch_mlir.extras.fx_importer import (
 
 import torch
 import torch.fx
+import torch.utils._pytree as pytree
 from torch._subclasses.fake_tensor import FakeTensorMode
 from torch_npu._inductor.mfusion import subgraph_registry
 
@@ -712,7 +713,13 @@ class FxExporter:
             gm = payload.fx_gm
             patches = patch_dvm_mm_targets_for_fake_eval(gm)
             try:
-                return gm(*args[:-1])
+                out = gm(*args[:-1])
+                return pytree.tree_map(
+                    lambda t: t.contiguous()
+                    if isinstance(t, torch.Tensor) and not t.is_contiguous()
+                    else t,
+                    out,
+                )
             finally:
                 restore_dvm_mm_patches(gm, patches)
 

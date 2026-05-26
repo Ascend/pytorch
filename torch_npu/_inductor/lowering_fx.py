@@ -468,7 +468,7 @@ def fetch_graphs(inputs: Optional[List[TensorBox]]):
         stride = inp.get_stride()
         new_node = traced_graph.graph.placeholder(name)
         fake_input = create_fake_input(size, stride, device, dtype)
-        new_node.meta['val'] = fake_input
+        new_node.meta['val'] = fake_input.npu()
         traced_graph.last_node = new_node
         input_graphs.append(traced_graph)
     return input_graphs
@@ -675,18 +675,52 @@ def create_compile_kwargs(final_kernel, fx_call_args, fx_args):
     for idx, call_arg in enumerate(fx_call_args):
         if call_arg in final_kernel.args.inplace_buffers:
             fx_call_args[idx] = final_kernel.args.inplace_buffers[call_arg].other_names[-1]
-    fx_arg_shapes = [fx_arg.shape for fx_arg in fx_args if isinstance(fx_arg, torch.Tensor)]
+    fx_arg_shapes = [fx_arg.shape if isinstance(fx_arg, torch.Tensor) else ['ushape'] for fx_arg in fx_args]
 
-    if set(kernel_call_args) != set(fx_call_args):
+    fx_call_args_no_dy = [arg for arg in fx_call_args if not (arg.startswith(("_", "u")))]
+
+    if set(kernel_call_args) != set(fx_call_args_no_dy):
+        # Handle NonOwningLayout alias
+        kernel_call_args_set = set(kernel_call_args)
+        for idx, call_arg in enumerate(fx_call_args):
+            if call_arg in kernel_call_args_set:
+                continue
+            buf = V.graph.try_get_buffer(call_arg)
+            if buf is None:
+                continue
+            for alias_target in buf.get_inputs_that_alias_output():
+                if alias_target in kernel_call_args_set:
+                    fx_call_args[idx] = alias_target
+                    break
+
+    fx_call_args_no_dy = [arg for arg in fx_call_args if not (arg.startswith(("_", "u")))]
+    if set(kernel_call_args) != set(fx_call_args_no_dy):
         return None
     final_kernel.add_numel_to_call_args(final_kernel.kernel_name, kernel_call_args, arg_types)
 
-    index_map = {element: idx for idx, element in enumerate(kernel_call_args)}
-    call_args_mapping = [index_map[element] for element in fx_call_args]
-
+    kernel_call_args = [
+        map_operators_to_strings(str(item.inner_expr)) if isinstance(item, torch._inductor.codegen.wrapper.SymbolicCallArg)
+        else item
+        for item in kernel_call_args
+    ]
+    index_map = {str(element): idx for idx, element in enumerate(kernel_call_args)}
+    call_args_mapping = [index_map[str(element)] for element in fx_call_args if str(element) in index_map]
     mismatch_indices_shapes = {}
 
+    def is_dynamic_shape_dim(d):
+        if str(type(d)).find("torch.fx.expermental.symbolic_shapes") != -1:
+            return True
+        s = str(d).strip()
+        if s.startswith("u") or s.startswith("i") or s in ("-1", "?"):
+            return True
+        try:
+            return int(d) < 0
+        except:
+            return True
+
     for i in range(len(fx_call_args)):
+        if any(is_dynamic_shape_dim(dim) for dim in fx_arg_shapes[i]):
+            continue
         mismatch_indices_shapes[i] = fx_arg_shapes[i]
 
     return {
@@ -770,9 +804,10 @@ def run():
     fx_args = [] 
     for idx in call_args_mapping:
         arg = args[idx]
-        if isinstance(arg, torch.Tensor):
-            fx_arg = clone_preserve_strides(arg).float() if arg.dtype == torch.bfloat16 else clone_preserve_strides(arg)
-            fx_args.append(fx_arg)
+        if not isinstance(arg, torch.Tensor):
+            arg = torch.Tensor(arg).npu()
+        fx_arg = clone_preserve_strides(arg).float() if arg.dtype == torch.bfloat16 else clone_preserve_strides(arg)
+        fx_args.append(fx_arg)
 
     fx_inputs = [fx_args[idx].contiguous() if idx in non_contiguous_indices['inputs'] else fx_args[idx] for idx in range(num_inputs)]
     if len(mismatch_indices_shapes):
@@ -2092,9 +2127,6 @@ def _register_npu_inductor_fallbacks_fx(make_reduction):
             fn = register_fn_to_aten_fn(fn, aten.mul)
             return make_pointwise(fn)(a, b)
 
-    @register_lowering([aten.reciprocal], broadcast=True, )
-    def reciprocal(a):
-        return div(1.0, a)
 
     @register_lowering([prims.div], broadcast=True)
     def div_prim(a, b):
@@ -2274,6 +2306,7 @@ def _register_npu_inductor_fallbacks_fx(make_reduction):
     register_pointwise_numeric(aten.log10)
     register_pointwise_numeric(aten.log2)
     register_pointwise_numeric(aten.nextafter)
+    register_pointwise_numeric(aten.reciprocal)
 
     register_inplace(aten.add_, add)
     register_inplace(aten.bitwise_and_, bitwise_and)

@@ -1,6 +1,6 @@
 # torch.fx
 
-> [!NOTE]  
+> [!NOTE]
 > 若API“是否支持”为“是”，“限制与说明”为“-”，说明此API和原生API支持度保持一致。
 
 |API名称|是否支持|限制与说明|
@@ -91,3 +91,8 @@
 |torch.fx.Transformer.placeholder|是|支持fp32|
 |torch.fx.Transformer.transform|是|-|
 |torch.fx.replace_pattern|是|-|
+|torch.fx.experimental.symbolic_shapes.compute_unbacked_bindings|是|-|
+|torch.fx.experimental.symbolic_shapes.constrain_range|是|需通过torch.compile获取SymInt|
+|torch.fx.experimental.symbolic_shapes.constrain_unify|是|需通过torch.compile获取SymInt|
+|torch.fx.experimental.symbolic_shapes.ConvertIntKey|是|-|
+|torch.fx.experimental.symbolic_shapes.ConvertIntKey.get|是|-|

@@ -1023,5 +1023,6 @@
     "test_fused_sdp_choice_type_nested_npu (__main__.TestSDPACudaOnlyPRIVATEUSE1)": ["CUDA-only SDP backend selection logic does not apply to PrivateUse1 backend; NPU should use test_fused_sdp_choice_xpu series in TestSDPAXpuOnly", [""]],
     "test_dispatch_meta_inplace_trunc_cuda_float64 (__main__.TestMetaCUDA)": ["", [""]],
     "test_dispatch_symbolic_meta_inplace_trunc_cuda_float64 (__main__.TestMetaCUDA)": ["", [""]],
-    "test_meta_inplace_trunc_cuda_float64 (__main__.TestMetaCUDA)": ["", [""]]
+    "test_meta_inplace_trunc_cuda_float64 (__main__.TestMetaCUDA)": ["", [""]],
+    "test_gds_fails_in_ci (__main__.TestCuda)": ["CUDA also fails", [""]]
 }

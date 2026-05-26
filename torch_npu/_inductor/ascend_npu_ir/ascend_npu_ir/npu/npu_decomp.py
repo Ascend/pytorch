@@ -192,6 +192,12 @@ def gelu_backward(grad: Tensor, self: Tensor, approximate: str = "none"):
 
     return grad * (left_derivative + right_derivative)
 
+
+def expm1(x):
+    tensor = torch.exp(x) - torch.ones_like(x)
+    return tensor
+
+inductor_decomp.register_decomposition(torch.ops.aten.expm1)(expm1)
 inductor_decomp.register_decomposition(torch.ops.aten.convolution_backward)(npu_convolution_backward)
 inductor_decomp.register_decomposition(torch.ops.aten._softmax_backward_data.default)(npu__softmax_backward_data)
 inductor_decomp.register_decomposition(torch.ops.aten.gelu.default)(gelu)

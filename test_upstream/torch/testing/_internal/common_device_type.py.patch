@@ -1,5 +1,5 @@
 diff --git a/torch/testing/_internal/common_device_type.py b/torch/testing/_internal/common_device_type.py
-index 834e0ed..c05a88e 100644
+index 834e0ed..1970b4d 100644
 --- a/torch/testing/_internal/common_device_type.py
 +++ b/torch/testing/_internal/common_device_type.py
 @@ -749,33 +749,58 @@ def filter_desired_device_types(device_type_test_bases, except_for=None, only_fo
@@ -73,24 +73,31 @@ index 834e0ed..c05a88e 100644
      return list(device_type_test_bases)
  
  
-@@ -1301,14 +1326,14 @@ class skipPRIVATEUSE1If(skipIf):
+@@ -1301,17 +1326,17 @@ class skipPRIVATEUSE1If(skipIf):
  
  
  def _has_sufficient_memory(device, size):
 -    if torch.device(device).type == "cuda":
+-        if not torch.cuda.is_available():
 +    if torch.device(device).type == "npu":
-         if not torch.cuda.is_available():
++        if not torch.npu.is_available():
              return False
          gc.collect()
-         torch.cuda.empty_cache()
+-        torch.cuda.empty_cache()
++        torch.npu.empty_cache()
          # torch.cuda.mem_get_info, aka cudaMemGetInfo, returns a tuple of (free memory, total memory) of a GPU
 -        if device == "cuda":
 -            device = "cuda:0"
 +        if device == "npu":
 +            device = "npu:0"
          return (
-             torch.cuda.memory.mem_get_info(device)[0]
-             * torch.cuda.memory.get_per_process_memory_fraction(device)
+-            torch.cuda.memory.mem_get_info(device)[0]
+-            * torch.cuda.memory.get_per_process_memory_fraction(device)
++            torch.npu.mem_get_info(device)[0]
++            * torch.npu.get_per_process_memory_fraction(device)
+         ) >= size
+ 
+     if device == "xla":
 @@ -1367,8 +1392,8 @@ def largeTensorTest(size, device=None, inductor=TEST_WITH_TORCHINDUCTOR):
              if inductor and torch._inductor.config.cpp_wrapper and _device != "cpu":
                  size_bytes *= 2
@@ -122,3 +129,12 @@ index 834e0ed..c05a88e 100644
  def onlyMPS(fn):
      return onlyOn("mps")(fn)
  
+@@ -1973,7 +2002,7 @@ def skipPRIVATEUSE1(fn):
+ # TODO: the "all" in the name isn't true anymore for quite some time as we have also have for example XLA and MPS now.
+ #  This should probably enumerate all available device type test base classes.
+ def get_all_device_types() -> list[str]:
+-    return ["cpu"] if not torch.cuda.is_available() else ["cpu", "cuda"]
++    return ["cpu"] if not torch.cuda.is_available() else ["cpu", "cuda", "npu"]
+ 
+ 
+ flex_attention_supported_platform = unittest.skipUnless(

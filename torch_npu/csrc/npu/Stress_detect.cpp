@@ -22,6 +22,10 @@ void* StressDetector::localHcclComm = nullptr;
 constexpr int kDetectSucceeded = 0;
 constexpr int kDetectFailed = 1;
 constexpr int kDetectFailedWithHardwareFailure = 2;
+constexpr int kAclnnStressBitFail = 574006;
+constexpr int kAclnnClearDeviceStateFail = 574007;
+constexpr int kAclnnStressLowBitFail = 574008;
+constexpr int kAclnnStressHighBitFail = 574009;
 
 // Persistent worker thread implementation
 void StressDetector::worker_thread()
@@ -96,14 +100,14 @@ int StressDetector::transfer_result(int detectResult)
             ret = kDetectSucceeded;
             ASCEND_LOGI("Stress detect test case execution succeeded, device id is %d.", device_id);
             break;
-        case ACLNN_STRESS_BIT_FAIL:
-        case ACLNN_STRESS_LOW_BIT_FAIL:
-        case ACLNN_STRESS_HIGH_BIT_FAIL:
+        case kAclnnStressBitFail:
+        case kAclnnStressLowBitFail:
+        case kAclnnStressHighBitFail:
             ret = kDetectFailedWithHardwareFailure;
             ASCEND_LOGW("Stress detect failed due to hardware malfunction, device id is %d, error code is %d.", device_id, detectResult);
             TORCH_NPU_WARN("Stress detect failed due to hardware malfunction, device id is ", device_id, ", error code is ", detectResult);
             break;
-        case ACLNN_CLEAR_DEVICE_STATE_FAIL:
+        case kAclnnClearDeviceStateFail:
             ASCEND_LOGW("Stress detect error. Error code is 574007. Error message is Voltage recovery failed, device id is %d.", device_id);
             TORCH_CHECK(false, "Stress detect error. Error code is 574007. Error message is Voltage recovery failed.", PTA_ERROR(ErrCode::ACL));
             break;

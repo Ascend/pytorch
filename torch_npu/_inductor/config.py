@@ -236,6 +236,35 @@ profile_path = "./profile_result/"
 fasta_autotune = os.environ.get("FASTAUTOTUNE", "0") == "1"
 fasta_autotune_method = os.getenv("AUTOTUNE_METHOD", "Expert")
 
+
+def _parse_bool_env(name: str, default: bool = False) -> bool:
+    val = os.environ.get(name)
+    if val is None:
+        return default
+    return str(val).strip().lower() in ("1", "true", "yes", "on", "y")
+
+
+def _parse_int_env(name: str, default: int = 150, min_value: int = 1) -> int:
+    val = os.environ.get(name)
+    if val is None:
+        return default
+    try:
+        parsed = int(val)
+    except (TypeError, ValueError):
+        log.warning("Invalid %s=%r, fallback to %s", name, val, default)
+        return default
+    if parsed < min_value:
+        log.warning("Invalid %s=%r (must >= %s), fallback to %s", name, val, min_value, default)
+        return default
+    return parsed
+
+
+# Frontend -> inductor controls (env-driven)
+# - INDUCTOR_ASCEND_ENABLE_COSTMODEL: whether to forward costmodel backend signal to triton-ascend
+# - INDUCTOR_ASCEND_COSTMODEL_TOPK: top-k hint forwarded to triton-ascend (for upstream policy use)
+enable_costmodel_backend = _parse_bool_env("INDUCTOR_ASCEND_ENABLE_COSTMODEL", False)
+costmodel_topk = _parse_int_env("INDUCTOR_ASCEND_COSTMODEL_TOPK", 150, 1)
+
 max_precompiled_thread_num = (
     os.cpu_count() // 2
 )  # default precompile max thread num is half of the cpu count

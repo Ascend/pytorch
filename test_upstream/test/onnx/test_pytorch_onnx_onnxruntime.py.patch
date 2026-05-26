@@ -1,10 +1,21 @@
 diff --git a/test/onnx/test_pytorch_onnx_onnxruntime.py b/test/onnx/test_pytorch_onnx_onnxruntime.py
-index f993808..82c6bcf 100644
+index f9938084067..13f474258de 100644
 --- a/test/onnx/test_pytorch_onnx_onnxruntime.py
 +++ b/test/onnx/test_pytorch_onnx_onnxruntime.py
-@@ -39,6 +39,15 @@ from pytorch_test_common import (
+@@ -30,15 +30,26 @@ from pytorch_test_common import (
+     RNN_SEQUENCE_LENGTH,
+     skipDtypeChecking,
+     skipIfQuantizationBackendQNNPack,
++    skipIfOneDnnVersionLessThan,
+     skipIfUnsupportedMaxOpsetVersion,
+     skipIfUnsupportedMinOpsetVersion,
+     skipIfUnsupportedOpsetVersion,
+     skipScriptTest,
+     skipShapeChecking,
+     skipTraceTest,
++    useBackendOnednnOnArm
  )
- 
+
  import torch
 +import torch_npu
 +# from torch_npu.contrib import transfer_to_npu
@@ -18,3 +29,21 @@ index f993808..82c6bcf 100644
  from torch import Tensor
  from torch.nn.utils import rnn as rnn_utils
  from torch.onnx import errors, verification
+@@ -12809,6 +12820,8 @@ class TestONNXRuntime(onnx_test_common._TestONNXRuntime):
+
+     @skipIfUnsupportedMinOpsetVersion(10)
+     @skipIfQuantizationBackendQNNPack
++    @skipIfOneDnnVersionLessThan(3, 9, 0)
++    @useBackendOnednnOnArm
+     def test_quantized_conv3d(self):
+         model = torch.ao.nn.quantized.Conv3d(16, 33, [2, 3, 4], stride=[3, 1, 2])
+         # Manually initialize model weight and bias to random numbers.
+@@ -12859,6 +12872,8 @@ class TestONNXRuntime(onnx_test_common._TestONNXRuntime):
+
+     @skipIfUnsupportedMinOpsetVersion(10)
+     @skipIfQuantizationBackendQNNPack
++    @skipIfOneDnnVersionLessThan(3, 9, 0)
++    @useBackendOnednnOnArm
+     def test_quantized_conv3d_relu(self):
+         model = torch.ao.nn.intrinsic.quantized.ConvReLU3d(
+             16, 33, [2, 3, 4], stride=[3, 1, 2]

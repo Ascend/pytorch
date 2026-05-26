@@ -121,7 +121,7 @@ class NpuMlirCompiler(MetaCompiler):
         ]
         logger.info(f"Start to compile, command is: [{' '.join(command)}]")
         try:
-            subprocess.run(command, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=600)
+            subprocess.run(command, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=30)
             logger.info(f"[bisheng-compile success]")
         except subprocess.CalledProcessError as e:
             logger.info(f"[bisheng-compile failed]")

@@ -64,6 +64,8 @@ def _reduce_ex(self, proto):
         torch.utils.hooks.warn_if_has_hooks(self)
         backward_hooks: Dict[Any, Any] = OrderedDict()
         if self.device.type == "npu":
+            if self.layout != torch.strided:
+                return self._reduce_ex_internal(proto)
             npu_storage_format = torch_npu.get_npu_format(self)
             tmp_tensor = self.cpu()
             arg_npu = (

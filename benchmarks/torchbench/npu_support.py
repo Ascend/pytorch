@@ -345,12 +345,6 @@ def _patch_model_10():
 
     DeepRecommenderTrainBenchmark.__init__ = new_init
 
-    def expm1(x):
-        tensor = torch.exp(x) - torch.ones_like(x)
-        return tensor
-
-    inductor_decomp.register_decomposition(torch.ops.aten.expm1)(expm1)
-
 
 @register_patch("resnet50", "resnet152", "resnext50_32x4d", "densenet121")
 def _patch_model_18():
@@ -637,6 +631,16 @@ def _patch_model_26():
         return
 
     MultiHeadSelfAttention.forward = _hf_distilbert_multiheadselfattention_forward_new
+
+
+@register_patch("timm_resnest")
+def _patch_model_27():
+    patch_remove_decomposition(
+        [
+            "aten.threshold_backward",
+            "aten.native_batch_norm_backward",
+        ]
+    )
 
 
 def patch_model(model_name):

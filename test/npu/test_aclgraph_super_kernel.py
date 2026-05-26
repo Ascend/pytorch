@@ -194,6 +194,13 @@ class TestAclgraphSuperKernelOptimize(TestCase):
                 debug_options={'debug_extend': 123}
             )
 
+        # debug_per_op_max_core_num expects int, not str
+        with self.assertRaises(RuntimeError):
+            g.super_kernel_optimize(
+                optimize_options=None,
+                debug_options={'debug_per_op_max_core_num': 'invalid'}
+            )
+
         # dcci_before_kernel_start expects list, not int
         with self.assertRaises(RuntimeError):
             g.super_kernel_optimize(
@@ -205,6 +212,20 @@ class TestAclgraphSuperKernelOptimize(TestCase):
         with self.assertRaises(RuntimeError):
             g.super_kernel_optimize(
                 optimize_options={'aggressive_opt_strategies': 123},
+                debug_options=None
+            )
+
+        # early_start expects int, not str
+        with self.assertRaises(RuntimeError):
+            g.super_kernel_optimize(
+                optimize_options={'early_start': 'invalid'},
+                debug_options=None
+            )
+
+        # ubuf_lock_ignore_kernel expects list, not int
+        with self.assertRaises(RuntimeError):
+            g.super_kernel_optimize(
+                optimize_options={'ubuf_lock_ignore_kernel': 1},
                 debug_options=None
             )
 
@@ -267,6 +288,26 @@ class TestAclgraphSuperKernelOptimize(TestCase):
                 debug_options=None
             )
 
+    def test_ubuf_lock_ignore_kernel_element_type_validation(self):
+        """Test ubuf_lock_ignore_kernel list element type validation"""
+        torch.npu.set_device(0)
+
+        g = torch.npu.NPUGraph()
+
+        # ubuf_lock_ignore_kernel list element expects str, not int
+        with self.assertRaises(RuntimeError):
+            g.super_kernel_optimize(
+                optimize_options={'ubuf_lock_ignore_kernel': [123, 'valid']},
+                debug_options=None
+            )
+
+        # ubuf_lock_ignore_kernel list element expects str, not None
+        with self.assertRaises(RuntimeError):
+            g.super_kernel_optimize(
+                optimize_options={'ubuf_lock_ignore_kernel': ['valid', None]},
+                debug_options=None
+            )
+
 
 class TestAclgraphSuperKernelIntegration(TestCase):
 
@@ -299,12 +340,15 @@ class TestAclgraphSuperKernelIntegration(TestCase):
                 'event_breaker_bypass': 1,
                 'value_breaker_bypass': 1,
                 'task_breaker_bypass': 1
-            }
+            },
+            'ubuf_lock_ignore_kernel': [],
+            'early_start': 1
         }
         debug_options = {
             'debug_sync_all': 1,
             'debug_op_exec_trace': 1,
-            'debug_cross_core_sync_check': 1
+            'debug_cross_core_sync_check': 1,
+            'debug_per_op_max_core_num': 1
         }
 
         g.super_kernel_optimize(optimize_options=optimize_options, debug_options=debug_options)

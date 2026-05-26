@@ -1,63 +1,97 @@
-# 概述
+# 图模式概述
 
-本文档介绍 Ascend NPU 的静态图优化能力，涵盖 NPUGraph 图捕获技术和 PyTorch `torch.compile()` 编译接口两大模块。两者都旨在通过静态图优化减少运行时开销、提升训练和推理性能，但作用层级和使用方式不同。
+Ascend NPU 平台的静态图优化能力通过两种方式向用户暴露：
 
-## NPUGraph vs Inductor：两种优化路径
+1. **NPUGraph 底层 API** — 手动控制图捕获、重放、更新，精细但需理解底层机制
+2. **torch.compile()** — 全自动编译入口，一行代码完成图捕获和优化，内部可选不同后端
 
-| 维度 | NPUGraph | Inductor |
-|------|----------|----------|
-| **核心机制** | 图捕获与重放（Capture-Replay） | 算子融合与代码生成 |
-| **对标** | CUDA Graphs | PyTorch Inductor（原生） |
-| **优化目标** | 消除 CPU 端 kernel 启动开销 | 减少内存访问、提升 NPU 利用率 |
-| **工作方式** | 将已有的 NPU kernel 序列打包为静态图，一次捕获、多次复跑 | 将多个算子融合为更大的 kernel，减少 kernel 数量和内存读写 |
-| **输入形状** | 必须固定 | 支持动态（但会触发重新编译） |
-| **算子要求** | 仅支持 aclnn 算子 | 支持更广泛的算子，不支持的会 fallback |
-| **适用场景** | kernel 调用频繁、CPU 瓶颈、高迭代次数 | 单步计算量大、可通过算子融合获益 |
+**核心关系一句话：** `torch.compile(backend="npugraphs")` 本质是把 NPUGraph 底层 API 的捕获-重放流程自动化了。两者是"手动挡"和"自动挡"的关系，不是竞争关系。
 
-**简单理解：**
+## 全景架构
 
-- NPUGraph 不改变已有的 kernel，只是把它们"打包"成一批次提交，减少 CPU 逐个启动的间隙
-- Inductor 通过算子融合把多个小 kernel 合并为一个大 kernel，从根源上减少 kernel 数量和内存访问
+[<img src="../figures/npugraph_concept_map.png" width="1000" alt="全景架构图">](../figures/npugraph_concept_map.png)
 
-## NPUGraph vs torch.compile：API 层级不同
+图中关键信息：NPUGraph API 和 npugraphs/npugraph_ex 后端都通过 ACLGraph 硬件层实现图捕获重放；inductor 和 aot_eager 是独立后端，不走 ACLGraph。
 
-| 维度 | NPUGraph 底层 API | torch.compile() |
-|------|-------------------|-----------------|
-| **层级** | 手动图捕获（L4 API） | 自动图编译（JIT 编译器） |
-| **使用方式** | 手动调用 `capture_begin()` / `capture_end()` 或使用 `graph()` 上下文管理器 | 一行 `torch.compile(model, backend=...)` 自动完成 |
-| **控制粒度** | 精细，可手动管理 Stream、分区域捕获 | 自动化，由 Dynamo 前端决定图断裂点 |
-| **学习成本** | 较高，需理解捕获-重放-更新机制 | 较低，与原生训练代码完全兼容 |
+## 概念辨析
 
-`torch.compile()` 是一个更上层的编译接口，其 `backend="npugraphs"` 后端本质上就是自动化的 NPUGraph 图捕获。
+NPUGraph 相关概念容易混淆，因为它们共享"NPUGraph"这个词、都涉及"图"这个东西，但各处于不同抽象层级。
 
-## 我该用什么？
+### 一张表说清五个概念
 
-**使用 NPUGraph 底层 API（`NPUGraph` / `graph()` / `make_graphed_callables`）当：**
+| 概念 | 所处层级 | 一句话定义 | 典型代码 |
+|------|---------|-----------|---------|
+| **ACLGraph** | L1 硬件运行时 | NPU 驱动层的图捕获/重放机制，是全部上层能力的硬件底座 | `aclmdlRICaptureBegin/End` |
+| **NPUGraph 类** | L4 Python API | 手动挡方向盘——开发者显式调用 capture/replay 的 Python 对象 | `graph = NPUGraph(); graph.capture_begin()` |
+| **make_graphed_callables()** | L4 Python API | 手动挡的巡航模式——自动处理数据更新，适合含动态控制流的模型 | `module = make_graphed_callables(module, args)` |
+| **backend="npugraphs"** | torch.compile 后端 | 自动挡——把整段计算自动下沉为 ACLGraph，无需手动管理 | `torch.compile(model, backend="npugraphs")` |
+| **mode="reduce-overhead"** | torch.compile 优化模式 | 自动挡的运动模式——在 inductor 融合算子基础上，用 NPUGraph Tree 消除调度开销 | `torch.compile(model, mode="reduce-overhead")` |
 
-- 你需要精细控制哪些代码被图化、哪些保持 eager 执行
-- 模型中包含动态控制流（if/for 依赖张量值），需要手动划分安全子图
-- 需要多 Stream 管理、分区域捕获等底层操作
+### Inductor 与 NPUGraph 不是竞争关系
 
-**使用 `torch.compile(backend="inductor")` 当：**
+这是最常见的困惑点。两者的区别：
 
-- 模型计算量较大，可通过算子融合获益
-- 输入形状可能有变化（支持动态形状）
-- 不确定该用什么后端时，优先尝试 Inductor（默认后端）
+| 维度 | Inductor（算子融合） | NPUGraph / ACLGraph（图捕获） |
+|------|---------------------|------------------------------|
+| **优化手段** | 改变计算方式——把多个小 kernel 合并成一个大 kernel | 不改变计算方式——把现有 kernel 打包批量提交 |
+| **消除的开销** | kernel 数量多、内存读写冗余（计算层） | CPU 逐个启动 kernel 的间隙（调度层） |
+| **形状要求** | 支持动态形状（触发重编译） | 静态内存模型（形状变化触发重录制，有开销但可用） |
+| **类比** | 把多道独立工序合并为一条流水线 | 把多批货统一调度、一次发车 |
 
-**使用 `torch.compile(backend="npugraphs")` 当：**
+两者可以叠加使用：
 
-- 输入形状完全固定
-- kernel 调用频繁，存在 CPU 瓶颈
-- 高迭代次数的训练或推理任务，需要彻底消除启动开销
+```python
+# Inductor 先融合算子减少 kernel 数量
+# NPUGraph Tree 再消除 kernel 启动间隙
+compiled_model = torch.compile(model, backend="inductor", mode="reduce-overhead")
+```
 
-**使用 `torch.compile(mode="reduce-overhead")` 当：**
+## 两条使用路径
 
-- 需要 NPUGraph 的优化收益，但同时希望支持一定程度的动态形状
-- 内部会管理多个 NPUGraph 子图，根据输入形状自动路由
+### 路径一：NPUGraph 底层 API — 手动精细控制
 
-## 文档结构
+适用于需要精确控制哪些代码入图的场景。你决定捕获边界、管理 Stream、分区域处理。
 
-本模块包含以下文档：
+[<img src="../figures/npugraph_manual_path.png" width="900" alt="手动捕获流程">](../figures/npugraph_manual_path.png)
 
-- **[NPUGraph](./pytorch_npugraph_desc.md)** — NPUGraph 图捕获技术详解（Capture-Replay-Update 机制、底层 API 使用）
-- **[PyTorch 图模式（torch.compile）](./pytorch_graph_mode.md)** — torch.compile 编译接口概述和各后端说明
+| API | 控制力 | 适用场景 |
+|-----|--------|---------|
+| `NPUGraph` 类 + `capture_begin/end` | 最高，需手动管理 Stream | 多 Stream 协同、分区域捕获 |
+| `graph()` 上下文管理器 | 中等，自动 Stream 同步 | 快速上手，单流场景 |
+| `make_graphed_callables()` | 高级封装，自动数据更新 | 含动态控制流的安全子图捕获 |
+
+详见 [NPUGraph](./pytorch_npugraph_desc.md)。
+
+### 路径二：torch.compile() — 全自动编译
+
+适用于大多数场景。一行代码，自动完成前端捕获和后端优化。
+
+[<img src="../figures/npugraph_torch_compile_path.png" width="900" alt="torch.compile 后端选择流程">](../figures/npugraph_torch_compile_path.png)
+
+核心流程：**Dynamo 前端**将 eager 代码转为 FX Graph 中间表示 → **后端**接收 FX Graph 并执行优化策略。
+
+详见 [PyTorch 图模式（torch.compile）](./pytorch_graph_mode.md)。
+
+## 后端选型指南
+
+### 后端能力对比
+
+四个后端通过 `torch.compile(backend=...)` 指定，同一层级、互斥选择：
+
+| 后端 | 核心机制 | 适用场景 | 一句话建议 |
+|------|---------|---------|-----------|
+| **inductor** | 算子融合 + 代码生成 | 大多数场景 | 不确定时默认选它 |
+| **npugraphs** | ACLGraph 图捕获重放 | kernel 调用频繁、CPU 调度瓶颈 | kernel 启动是瓶颈时选它 |
+| **npugraph_ex** | 图下沉 + FX 优化 + 缓存 | 大模型推理部署 | 对接服务化框架时选它 |
+| **aot_eager** | 不做优化，仅验证正确性 | 调试/基线对照 | 怀疑其他后端有问题时用 |
+
+详见 [后端文档](./pytorch_graph_mode.md) 中各后端详细说明。
+
+### 选型决策树
+
+[<img src="../figures/npugraph_decision_tree.png" width="1000" alt="技术选型决策树">](../figures/npugraph_decision_tree.png)
+
+## 文档索引
+
+- **[NPUGraph](./pytorch_npugraph_desc.md)** — 底层 API 详解：Capture-Replay-Update 机制、`make_graphed_callables` 高级用法
+- **[PyTorch 图模式](./pytorch_graph_mode.md)** — `torch.compile()` 编译入口及各后端文档

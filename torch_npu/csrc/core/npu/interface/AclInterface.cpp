@@ -273,7 +273,7 @@ aclError AclrtValueWait(void* event, aclrtStream stream)
         func = (AclrtValueWaitFunc)TORCH_NPU_GET_FUNC(aclrtValueWait);
     }
     TORCH_CHECK(func, "Failed to find function aclrtValueWait", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(event, 1, ACL_VALUE_WAIT_EQ, stream);
+    return func(event, 1, ACL_STREAM_WAIT_VALUE_EQ, stream);
 }
 
 aclError AclrtValueWrite(void* event, uint64_t value, aclrtStream stream)
@@ -1538,7 +1538,7 @@ aclError AclrtSubscribeReport(uint64_t threadId, aclrtStream stream)
 
 aclError AclrtUnSubscribeReport(uint64_t theadId, aclrtStream stream)
 {
-    ACL_CALL_LOG("aclrtUnSubscribeReport", "theadId=" << theadId << ", stream=" << stream);
+    ACL_CALL_LOG("aclrtUnSubscribeReport", "threadId=" << theadId << ", stream=" << stream);
     typedef aclError (*AclrtUnSubscribeReport)(uint64_t, aclrtStream);
     static AclrtUnSubscribeReport func = nullptr;
     if (func == nullptr) {

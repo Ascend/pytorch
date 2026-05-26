@@ -11,7 +11,7 @@ index cfa2211..9b9f18b 100644
  #!/usr/bin/env python3
  # Owner(s): ["oncall: distributed"]
  
-@@ -74,7 +79,7 @@ class WorkerServerTest(TestCase):
+@@ -74,80 +79,80 @@ class WorkerServerTest(TestCase):
              self.assertEqual(resp.status, 404)
              self.assertIn(b"Handler nonexistant not found:", resp.data)
  
@@ -19,8 +19,10 @@ index cfa2211..9b9f18b 100644
 +    # @requires_cuda
      def test_dump_nccl_trace_pickle(self) -> None:
          with local_worker_server() as pool:
-             resp = pool.request("POST", "/handler/dump_nccl_trace_pickle")
-@@ -83,7 +88,7 @@ class WorkerServerTest(TestCase):
+-            resp = pool.request("POST", "/handler/dump_nccl_trace_pickle")
++            resp = pool.request("POST", "/handler/dump_hccl_trace_pickle")
+             self.assertEqual(resp.status, 200)
+             out = pickle.loads(resp.data)
              self.assertIsInstance(out, dict)
              self.assertIn("version", out)
  
@@ -29,7 +31,40 @@ index cfa2211..9b9f18b 100644
      def test_dump_nccl_trace_pickle_with_params(self) -> None:
          with local_worker_server() as pool:
              # bad key - not lower case
-@@ -118,7 +123,7 @@ class WorkerServerTest(TestCase):
+             resp = pool.request(
+-                "POST", "/handler/dump_nccl_trace_pickle?includeCollectives=true"
++                "POST", "/handler/dump_hccl_trace_pickle?includeCollectives=true"
+             )
+             self.assertEqual(resp.status, 400)
+             # unknown key
+             resp = pool.request(
+-                "POST", "/handler/dump_nccl_trace_pickle?unknownkey=true"
++                "POST", "/handler/dump_hccl_trace_pickle?unknownkey=true"
+             )
+             self.assertEqual(resp.status, 400)
+             # bad value - not a bool
+             resp = pool.request(
+-                "POST", "/handler/dump_nccl_trace_pickle?includecollectives=notabool"
++                "POST", "/handler/dump_hccl_trace_pickle?includecollectives=notabool"
+             )
+             self.assertEqual(resp.status, 400)
+             # bad value - value not lowercase
+             resp = pool.request(
+-                "POST", "/handler/dump_nccl_trace_pickle?includecollectives=True"
++                "POST", "/handler/dump_hccl_trace_pickle?includecollectives=True"
+             )
+             self.assertEqual(resp.status, 400)
+             # good key and value
+             resp = pool.request(
+-                "POST", "/handler/dump_nccl_trace_pickle?includecollectives=true"
++                "POST", "/handler/dump_hccl_trace_pickle?includecollectives=true"
+             )
+             self.assertEqual(resp.status, 200)
+             # multiple good keys and values
+             resp = pool.request(
+                 "POST",
+-                "/handler/dump_nccl_trace_pickle?includecollectives=true&includestacktraces=false&onlyactive=true",
++                "/handler/dump_hccl_trace_pickle?includecollectives=true&includestacktraces=false&onlyactive=true",
              )
              self.assertEqual(resp.status, 200)
  
@@ -38,3 +73,38 @@ index cfa2211..9b9f18b 100644
      def test_dump_nccl_trace_pickle_with_json(self) -> None:
          with local_worker_server() as pool:
              # bad key - not lower case
+             resp = pool.request(
+-                "POST", "/handler/dump_nccl_trace_json?includeCollectives=true"
++                "POST", "/handler/dump_hccl_trace_json?includeCollectives=true"
+             )
+             self.assertEqual(resp.status, 400)
+             # unknown key
+-            resp = pool.request("POST", "/handler/dump_nccl_trace_json?unknownkey=true")
++            resp = pool.request("POST", "/handler/dump_hccl_trace_json?unknownkey=true")
+             self.assertEqual(resp.status, 400)
+             # bad value - not a bool
+             resp = pool.request(
+-                "POST", "/handler/dump_nccl_trace_json?includecollectives=notabool"
++                "POST", "/handler/dump_hccl_trace_json?includecollectives=notabool"
+             )
+             self.assertEqual(resp.status, 400)
+             # bad value - value not lowercase
+             resp = pool.request(
+-                "POST", "/handler/dump_nccl_trace_json?includecollectives=True"
++                "POST", "/handler/dump_hccl_trace_json?includecollectives=True"
+             )
+             self.assertEqual(resp.status, 400)
+             # good key and value
+             resp = pool.request(
+-                "POST", "/handler/dump_nccl_trace_json?includecollectives=true"
++                "POST", "/handler/dump_hccl_trace_json?includecollectives=true"
+             )
+             self.assertEqual(resp.status, 200)
+             # multiple good keys and values
+             resp = pool.request(
+                 "POST",
+-                "/handler/dump_nccl_trace_json?includecollectives=true&onlyactive=true",
++                "/handler/dump_hccl_trace_json?includecollectives=true&onlyactive=true",
+             )
+             self.assertEqual(resp.status, 200)
+ 
