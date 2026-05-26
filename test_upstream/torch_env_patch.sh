@@ -201,7 +201,8 @@ get_target_file_from_patch() {
     if [ -n "$target_line" ]; then
         # Strip "--- a/" prefix and get the path
         # For -p1 from site-packages/, the path stays as torch/file.py
-        local target_path=$(echo "$target_line" | sed 's/^--- a\///' | sed 's/^--- //')
+        # tr -d '\r' handles Windows CRLF line endings in patch files
+        local target_path=$(echo "$target_line" | tr -d '\r' | sed 's/^--- a\///' | sed 's/^--- //')
         echo "$target_path"
     fi
 }
