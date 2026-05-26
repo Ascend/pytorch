@@ -142,6 +142,8 @@ DUMP_FX_GRAPH_LOWERING_OPS = [
     aten.expm1,
     aten.relu,
     aten.sigmoid,
+    aten.split,
+    aten.split_with_sizes,
     aten.sqrt,
     aten.square,
     aten.sub,
@@ -2446,6 +2448,31 @@ def _register_npu_inductor_fallbacks_fx(make_reduction):
             traced_graph=new_graph,
             node_name=node_name
         )
+
+    @register_lowering(aten.split, type_promotion_kind=None)
+    def split(x, sizes, dim=0):
+        dim = _validate_dim(x, dim, 0)
+        sizes_ = sizes
+
+        if not isinstance(sizes, (list, tuple)):
+            x_size = x.get_size()[dim]
+            chunks = V.graph.sizevars.evaluate_static_shape(
+                FloorDiv(x_size + sizes - 1, sizes)
+            )
+            sizes_ = [sizes] * chunks
+            sizes_[-1] = x_size - (chunks - 1) * sizes
+
+        result = []
+        start = 0
+        for size in sizes_:
+            end = start + size
+            result.append(slice_(x, dim, start, end, clamp=False))
+            start = end
+        return result
+
+    @register_lowering(aten.split_with_sizes, type_promotion_kind=None)
+    def split_with_sizes(x, sizes, dim=0):
+        return split(x, sizes, dim)
 
     lowering.index_impl=inductor_index_impl
     lowering.embedding=inductor_embedding

@@ -1005,10 +1005,12 @@ class NPUCachingAutotuner(CachingAutotuner):
         kernel_name = self.get_fn_name()
         log.info(f"Try to run debug mode for kernel {kernel_name}.")
         if npu_config.dump_fx_graph:
-            if config.triton.cudagraphs:
+            if torch_npu.npu.is_current_stream_capturing():
                 raise RuntimeError(
-                    "Accuracy checking tool (INDUCTOR_ASCEND_CHECK_ACCURACY=1) is not compatible with aclgraph.\n"
-                   "Please set torch._inductor.config.triton.cudagraphs = False before using accuracy checking tool."
+                    "INDUCTOR_ASCEND_CHECK_ACCURACY / INDUCTOR_ASCEND_DUMP_FX_GRAPH "
+                    "is not compatible with aclgraph.\n"
+                    "Please disable aclgraph before enabling INDUCTOR_ASCEND_CHECK_ACCURACY "
+                    "/ INDUCTOR_ASCEND_DUMP_FX_GRAPH, or unset these environment variables."
                 )
             _ = self.data_dump(*args)
 
