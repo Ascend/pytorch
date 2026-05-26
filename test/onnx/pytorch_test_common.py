@@ -3,9 +3,12 @@ from __future__ import annotations
 
 import functools
 import os
+import platform
 import random
+import re
 import sys
 import unittest
+from contextlib import contextmanager
 from enum import auto, Enum
 from typing import Optional
 
@@ -63,6 +66,96 @@ skipIfQuantizationBackendQNNPack = _skipper(
     "Not compatible with QNNPack quantization backend",
 )
 
+
+def skipIfOneDnnVersionLessThan(major, minor, patch):
+    """Skips test if oneDNN is not enabled OR version is less than specified.
+
+    Usage:
+        @skipIfOneDnnVersionLessThan(3, 9, 0)
+        def test_xxx(self): ...
+    """
+
+    @functools.lru_cache(maxsize=10)
+    def get_mkl_dnn_info():
+        """Extracts oneDNN enablement status and version from torch config.
+
+        Returns:
+            A tuple: (is_enabled: bool, version: tuple)
+        """
+        config_str = torch.__config__.show()
+        is_enabled = False
+        version = (0, 0, 0)
+
+        # 1. Check if oneDNN is enabled in build settings (Strict match for USE_MKLDNN=1)
+        # Looking for "USE_MKLDNN=1" in the Build settings line
+        build_settings_match = re.search(r"USE_MKLDNN=1", config_str)
+        if build_settings_match:
+            is_enabled = True
+
+            # 2. If enabled, extract the version (Strict match for the version string)
+            # Pattern: Intel(R) MKL-DNN vX.Y.Z ...
+            version_pattern = r"Intel\(R\)\s+MKL-DNN\s+v(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)"
+
+            for line in config_str.splitlines():
+                version_match = re.search(version_pattern, line)
+                if version_match:
+                    major = int(version_match.group('major'))
+                    minor = int(version_match.group('minor'))
+                    patch = int(version_match.group('patch'))
+                    version = (major, minor, patch)
+                    break
+
+        return is_enabled, version
+
+    def condition_fn():
+        is_enabled, current_version = get_mkl_dnn_info()
+
+        # Condition to skip:
+        # 1. If oneDNN is not enabled, skip.
+        # 2. If enabled but version is too low, skip.
+        if not is_enabled:
+            return True
+        return current_version < (major, minor, patch)
+
+    reason = f"Requires oneDNN enabled and version >= {major}.{minor}.{patch}"
+    return _skipper(condition_fn, reason)
+
+def useBackendOnednnOnArm(func=None, *, force=False):
+    @contextmanager
+    def switch_to_onednn_if_needed():
+        is_arm = platform.machine().lower() in ("aarch64", "arm64", "armv7l", "arm")
+
+        if not is_arm:
+            yield
+            return
+
+        supported = torch.backends.quantized.supported_engines
+        if "onednn" not in supported:
+            yield
+            return
+
+        old_engine = torch.backends.quantized.engine
+        if old_engine == "onednn":
+            yield
+            return
+
+        try:
+            torch.backends.quantized.engine = "onednn"
+            yield
+        finally:
+            torch.backends.quantized.engine = old_engine
+
+    def decorator(fn):
+        @functools.wraps(fn)
+        def wrapper(*args, **kwargs):
+            with switch_to_onednn_if_needed():
+                return fn(*args, **kwargs)
+        return wrapper
+
+    if func is None:
+        return decorator
+    else:
+        return decorator(func)
 
 # skips tests for all versions below min_opset_version.
 # add this wrapper to prevent running the test for opset_versions
