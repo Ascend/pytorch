@@ -255,7 +255,7 @@ static void initNPUStreamsOnce()
 {
     // Inits default and secondary streams (once, globally)
     c10::DeviceIndex device_index = current_device();
-    // makesure on real devcie
+    // makesure on real device
     SetTargetDevice();
     LazySetDevice(device_index);
     c10_npu::NpuSysCtrl::GetInstance().LazyInitialize();
