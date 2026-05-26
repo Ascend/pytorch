@@ -8,20 +8,22 @@ ENV PYTORCH_VERSION=${PYTORCH_VERSION}
 
 COPY requirements-builder.txt /opt/buildtools/
 
-# Set pip & python symlinks
+# Dynamically discover available cpython versions and create pip/python symlinks.
+# The base manylinux image provides /opt/_internal/cpython-X.Y.Z/ for each Python.
 RUN cd /usr/local/bin \
-    && ln -sf /opt/_internal/cpython-3.9.21/bin/pip3.9 pip3.9 \
-    && ln -sf /opt/_internal/cpython-3.10.16/bin/pip3.10 pip3.10 \
-    && ln -sf /opt/_internal/cpython-3.11.11/bin/pip3.11 pip3.11 \
-    && ln -sf /opt/_internal/cpython-3.12.9/bin/pip3.12 pip3.12 \
-    && ln -sf /opt/_internal/cpython-3.13.2/bin/pip3.13 pip3.13 \
-    && ln -sf /opt/_internal/cpython-3.10.16/bin/pip3.10 pip3 \
-    && ln -sf /opt/_internal/cpython-3.9.21/bin/python3.9 python3.9 \
-    && ln -sf /opt/_internal/cpython-3.10.16/bin/python3.10 python3.10 \
-    && ln -sf /opt/_internal/cpython-3.11.11/bin/python3.11 python3.11 \
-    && ln -sf /opt/_internal/cpython-3.12.9/bin/python3.12 python3.12 \
-    && ln -sf /opt/_internal/cpython-3.13.2/bin/python3.13 python3.13 \
-    && ln -sf /opt/_internal/cpython-3.10.16/bin/python3.10 python3
+    && for cpython_dir in /opt/_internal/cpython-3.*/; do \
+        py_ver=$(basename "$cpython_dir" | sed 's/cpython-//') \
+        major_minor=$(echo "$py_ver" | grep -oP '^\d+\.\d+') \
+        pybin="${cpython_dir}bin/python${major_minor}" \
+        pipbin="${cpython_dir}bin/pip${major_minor}" \
+        [ -f "$pybin" ] && ln -sf "$pybin" "python${major_minor}" \
+        [ -f "$pipbin" ] && ln -sf "$pipbin" "pip${major_minor}" \
+        echo "Registered Python ${major_minor} (${py_ver})" \
+    done \
+    && ln -sf python3.10 python3 \
+    && ln -sf pip3.10 pip3 \
+    && echo "Default python: $(python3 --version)" \
+    && echo "Default pip: $(pip3 --version)"
 
 # Set pip source
 RUN mkdir /root/.pip \
@@ -30,18 +32,19 @@ RUN mkdir /root/.pip \
     && echo "trusted-host=mirrors.huaweicloud.com" >> /root/.pip/pip.conf \
     && echo "timeout=120" >> /root/.pip/pip.conf
 
-# Install PyTorch, build deps, and requirements for each python version
-RUN pip3.9 install --no-cache-dir torch==${PYTORCH_VERSION}+cpu --extra-index-url https://download.pytorch.org/whl/cpu \
-        -r /opt/buildtools/requirements-builder.txt \
-    && pip3.10 install --no-cache-dir torch==${PYTORCH_VERSION}+cpu --extra-index-url https://download.pytorch.org/whl/cpu \
-        -r /opt/buildtools/requirements-builder.txt \
-    && pip3.11 install --no-cache-dir torch==${PYTORCH_VERSION}+cpu --extra-index-url https://download.pytorch.org/whl/cpu \
-        -r /opt/buildtools/requirements-builder.txt \
-    && pip3.12 install --no-cache-dir torch==${PYTORCH_VERSION}+cpu --extra-index-url https://download.pytorch.org/whl/cpu \
-        -r /opt/buildtools/requirements-builder.txt \
-    && pip3.13 install --no-cache-dir torch==${PYTORCH_VERSION}+cpu auditwheel==5.4.0 --extra-index-url https://download.pytorch.org/whl/cpu \
-        -r /opt/buildtools/requirements-builder.txt \
-    && ln -sf /opt/_internal/cpython-3.13.2/bin/auditwheel /usr/local/bin/auditwheel
+# Install PyTorch, build deps, and requirements for each python version.
+# x86_64 uses +cpu suffix to avoid pulling CUDA builds from PyPI.
+RUN for pp in $(ls /usr/local/bin/pip3.* 2>/dev/null | grep -oP 'pip\d+\.\d+' | sort -V); do \
+        echo "=== Installing PyTorch ${PYTORCH_VERSION}+cpu for ${pp} ==="; \
+        $pp install --no-cache-dir torch==${PYTORCH_VERSION}+cpu --extra-index-url https://download.pytorch.org/whl/cpu \
+            -r /opt/buildtools/requirements-builder.txt; \
+    done \
+    && echo "=== PyTorch installation complete ===" \
+    && auditwheel_bin=$(find /opt/_internal/cpython-3.1*/bin/auditwheel 2>/dev/null | tail -1) \
+    && if [ -n "$auditwheel_bin" ]; then \
+        ln -sf "$auditwheel_bin" /usr/local/bin/auditwheel; \
+        echo "auditwheel linked from ${auditwheel_bin}"; \
+    fi
 
 # Install system build tools
 RUN yum remove -y ius-release epel-release 2>/dev/null || true \
