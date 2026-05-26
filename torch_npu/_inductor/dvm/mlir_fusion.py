@@ -69,6 +69,8 @@ anir_config.GENERATE_LIST = [
     aten.var_mean,
     aten.sum,
     aten.mean,
+    aten.amax,
+    aten.amin,
     aten.full,
     aten.relu,
     aten.where,
