@@ -1,8 +1,20 @@
-﻿diff --git a/torch/distributed/distributed_c10d.py b/torch/distributed/distributed_c10d.py
-index 05986c191a2..ed9c3f192f5 100644
 --- a/torch/distributed/distributed_c10d.py
 +++ b/torch/distributed/distributed_c10d.py
-@@ -301,18 +301,20 @@ class Backend(str):  # noqa: SLOT000
+@@ -287,6 +287,7 @@
+     UNDEFINED = "undefined"
+     GLOO = "gloo"
+     NCCL = "nccl"
++    HCCL = "hcc_l"
+     UCC = "ucc"
+     MPI = "mpi"
+     XCCL = "xccl"
+@@ -296,23 +297,25 @@
+ 
+     _plugins: dict[str, _BackendPlugin] = {}
+ 
+-    backend_list = [UNDEFINED, GLOO, NCCL, XCCL, UCC, MPI, FAKE]
++    backend_list = [UNDEFINED, GLOO, NCCL, HCCL, XCCL, UCC, MPI, FAKE]
+ 
      # 3rd-party devices can register the default backend support here
      default_device_backend_map: dict[str, str] = {
          "cpu": GLOO,
@@ -29,7 +41,7 @@ index 05986c191a2..ed9c3f192f5 100644
      }
  
      backend_type_map: dict[str, ProcessGroup.BackendType] = {
-@@ -361,8 +363,8 @@ class Backend(str):  # noqa: SLOT000
+@@ -361,8 +364,8 @@
                                             will get an instance of ``c10d::DistributedBackendOptions``, and
                                             a process group options object as defined by the backend implementation.
              device (str or list of str, optional): device type this backend
@@ -40,7 +52,7 @@ index 05986c191a2..ed9c3f192f5 100644
  
          .. note:: This support of 3rd party backend is experimental and subject to change.
  
-@@ -386,7 +388,7 @@ class Backend(str):  # noqa: SLOT000
+@@ -386,7 +389,7 @@
          # Update device capability matrix in Backend class
          if devices is None:
              # This is more of a backward support for groups like `threaded`:
@@ -49,7 +61,7 @@ index 05986c191a2..ed9c3f192f5 100644
              warnings.warn(
                  f"Device capability of {name} unspecified, assuming `cpu` and "
                  "`cuda` or `xpu`. Please specify it via the `devices` argument of "
-@@ -394,7 +396,7 @@ class Backend(str):  # noqa: SLOT000
+@@ -394,7 +397,7 @@
                  stacklevel=2,
              )
              Backend.backend_capability[name.lower()] = (
@@ -58,7 +70,7 @@ index 05986c191a2..ed9c3f192f5 100644
              )
          elif isinstance(devices, str):
              # Single device string specified. Simply convert to list.
-@@ -472,7 +474,7 @@ class BackendConfig:
+@@ -472,7 +475,7 @@
              backend_val = Backend(backend)
              self.device_backend_map = {
                  "cpu": backend_val,
@@ -67,7 +79,7 @@ index 05986c191a2..ed9c3f192f5 100644
                  "xpu": backend_val,
              }
  
-@@ -861,7 +863,7 @@ def _get_object_coll_device(group: ProcessGroup | None = None) -> str:
+@@ -861,7 +864,7 @@
  
      """
      ``group._device_types`` is a property pybind that returns the devices
@@ -76,7 +88,7 @@ index 05986c191a2..ed9c3f192f5 100644
      ``group`` supports multiple devices.
      """
      devices = group._device_types
-@@ -898,7 +900,7 @@ def _get_pg_default_device(group: ProcessGroup | None = None) -> torch.device:
+@@ -898,7 +901,7 @@
      Return the device type registered with ``group``.
  
      For example, if `init_process_group("nccl", ...)` was called, the returned
@@ -85,7 +97,7 @@ index 05986c191a2..ed9c3f192f5 100644
  
      Errors out if no device has been registered.
  
-@@ -936,7 +938,7 @@ def _get_pg_default_device(group: ProcessGroup | None = None) -> torch.device:
+@@ -936,7 +939,7 @@
  
      """
      ``group._device_types`` is a property pybind that returns the devices
@@ -94,7 +106,7 @@ index 05986c191a2..ed9c3f192f5 100644
      ``group`` supports multiple devices.
      """
      devices = group._device_types
-@@ -1476,7 +1478,7 @@ def get_default_backend_for_device(device: str | torch.device) -> str:
+@@ -1476,7 +1479,7 @@
  def _get_process_group_uid(pg: ProcessGroup) -> int:
      backend = None
      try:
@@ -103,7 +115,7 @@ index 05986c191a2..ed9c3f192f5 100644
      except RuntimeError:
          pass
      if is_nccl_available() and isinstance(backend, ProcessGroupNCCL):
-@@ -1563,8 +1565,8 @@ def _add_ephemeral_timeout_for_all_pgs(timeout: timedelta) -> None:
+@@ -1563,8 +1566,8 @@
      """
      for pg in _world.pg_map:
          devices = pg._device_types
@@ -114,7 +126,7 @@ index 05986c191a2..ed9c3f192f5 100644
              if is_nccl_available() and isinstance(backend, ProcessGroupNCCL):
                  backend._add_ephemeral_timeout(timeout)
  
-@@ -1601,8 +1603,8 @@ def _set_pg_timeout(timeout: timedelta, group: ProcessGroup | None = None) -> No
+@@ -1601,8 +1604,8 @@
          backend = group._get_backend(torch.device("cpu"))
          if isinstance(backend, ProcessGroupGloo):
              backends.add(backend)
@@ -125,7 +137,7 @@ index 05986c191a2..ed9c3f192f5 100644
          if is_nccl_available() and isinstance(backend, ProcessGroupNCCL):
              backends.add(backend)  # type: ignore[arg-type]
          elif is_gloo_available() and isinstance(backend, ProcessGroupGloo):
-@@ -1921,7 +1923,7 @@ def _get_split_source(pg: ProcessGroup):
+@@ -1921,7 +1924,7 @@
          split_from = pg._get_backend(pg.bound_device_id)
      elif pg is _world.default_pg:
          try:
@@ -134,7 +146,7 @@ index 05986c191a2..ed9c3f192f5 100644
          except RuntimeError:
              # no cuda device associated with this backend
              pass
-@@ -2420,7 +2422,7 @@ def _abort_process_group(group: ProcessGroup | None = None):
+@@ -2420,7 +2423,7 @@
          raise ValueError("Invalid process group specified or has been destroyed.")
  
      try:
@@ -143,7 +155,7 @@ index 05986c191a2..ed9c3f192f5 100644
      except RuntimeError:
          backend = None
  
-@@ -6204,7 +6206,7 @@ def _validate_shrink_backend_requirements(group_info: dict) -> Any:
+@@ -6204,7 +6207,7 @@
          else:
              # Try CUDA first if available, else CPU
              try:
@@ -152,7 +164,7 @@ index 05986c191a2..ed9c3f192f5 100644
              except Exception:
                  backend_impl = target_pg._get_backend(torch.device("cpu"))
      except RuntimeError as e:
-@@ -6390,7 +6392,7 @@ def _create_shrunk_process_group(
+@@ -6390,7 +6393,7 @@
          backend_device = torch.device("cpu")
  
      # Choose backend enum based on device type
