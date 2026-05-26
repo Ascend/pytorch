@@ -9,6 +9,7 @@
 
 #include <c10/core/StreamGuard.h>
 #include <c10/util/irange.h>
+#include <fmt/format.h>
 #include <torch/csrc/distributed/rpc/agent_utils.h>
 #include <torch/csrc/distributed/rpc/utils.h>
 #include <unistd.h>
@@ -925,7 +926,8 @@ void TensorPipeAgent::pollTimeoutRpcs()
         // outside the lock to prevent potential lock-order-inversions by callbacks
         // triggered by the setError call.
         for (auto &timeoutMetadata : timedOutFutures) {
-            std::string errorMsg = "";
+            std::string errorMsg =
+                fmt::format(kRpcTimeoutErrorStr, timeoutMetadata.timeout.count());
             auto err = makeRPCError(errorMsg, RPCErrorType::TIMEOUT);
             markFutureWithError(std::move(timeoutMetadata.responseFuture), std::move(err));
         }

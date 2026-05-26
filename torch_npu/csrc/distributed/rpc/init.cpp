@@ -18,6 +18,7 @@
 #include <torch/types.h>
 
 #include "torch_npu/csrc/distributed/rpc/tensorpipe_agent.h"
+#include "torch_npu/csrc/distributed/rpc/testing/faulty_tensorpipe_agent.h"
 
 namespace torch_npu {
 namespace distributed {
@@ -83,6 +84,96 @@ PyObject *rpc_npu_init(PyObject *_unused, PyObject *noargs)
              py::call_guard<py::gil_scoped_release>())
         .def_readonly("is_static_group", &TensorPipeAgent::isStaticGroup_)
         .def_property_readonly("store", &TensorPipeAgent::getStore);
+
+    shared_ptr_class_<FaultyTensorPipeRpcBackendOptions>(
+        module,
+        "FaultyTensorPipeRpcBackendOptions",
+        rpc_module.attr("_TensorPipeRpcBackendOptionsBase"))
+        .def(
+            py::init<
+                int,
+                float,
+                std::string,
+                std::vector<std::string>,
+                std::unordered_map<std::string, float>,
+                int>(),
+            py::arg("num_worker_threads"),
+            py::arg("rpc_timeout"),
+            py::arg("init_method"),
+            py::arg("messages_to_fail"),
+            py::arg("messages_to_delay"),
+            py::arg("num_fail_sends"))
+        .def_readwrite(
+            "num_worker_threads", &TensorPipeRpcBackendOptions::numWorkerThreads)
+        .def_readwrite(
+            "messages_to_fail",
+            &FaultyTensorPipeRpcBackendOptions::messagesToFail)
+        .def_readwrite(
+            "messages_to_delay",
+            &FaultyTensorPipeRpcBackendOptions::messagesToDelay)
+        .def_readwrite(
+            "num_fail_sends", &FaultyTensorPipeRpcBackendOptions::numFailSends);
+
+    shared_ptr_class_<FaultyTensorPipeAgent>(
+        module, "FaultyTensorPipeAgent", module.attr("TensorPipeAgent"))
+        .def(
+            py::init(
+                [](const c10::intrusive_ptr<::c10d::Store> &store,
+                   std::string name,
+                   worker_id_t rank,
+                   c10::optional<int> world_size,
+                   FaultyTensorPipeRpcBackendOptions opts,
+                   std::unordered_map<std::string, DeviceMap> reverse_device_maps,
+                   std::vector<c10::Device> devices) {
+                    return std::shared_ptr<FaultyTensorPipeAgent>(
+                        new FaultyTensorPipeAgent(
+                            store,
+                            std::move(name),
+                            rank,
+                            world_size,
+                            std::move(opts),
+                            std::move(reverse_device_maps),
+                            std::move(devices),
+                            std::make_unique<RequestCallbackImpl>()),
+                        torch::impl::destroy_without_gil<FaultyTensorPipeAgent>);
+                }),
+            py::arg("store"),
+            py::arg("name"),
+            py::arg("rank"),
+            py::arg("world_size"),
+            py::arg("opts"),
+            py::arg("reverse_device_maps"),
+            py::arg("devices"))
+        .def(
+            "join",
+            &TensorPipeAgent::join,
+            py::call_guard<py::gil_scoped_release>(),
+            py::arg("shutdown") = false,
+            py::arg("timeout") = 0)
+        .def(
+            "shutdown",
+            &TensorPipeAgent::shutdown,
+            py::call_guard<py::gil_scoped_release>())
+        .def(
+            "get_worker_info",
+            (const WorkerInfo &(TensorPipeAgent::*)(void) const) &
+                RpcAgent::getWorkerInfo,
+            py::call_guard<py::gil_scoped_release>())
+        .def(
+            "get_worker_info",
+            (const WorkerInfo &(TensorPipeAgent::*)(const std::string &) const) &
+                TensorPipeAgent::getWorkerInfo,
+            py::call_guard<py::gil_scoped_release>())
+        .def(
+            "get_worker_info",
+            (const WorkerInfo &(TensorPipeAgent::*)(worker_id_t id) const) &
+                TensorPipeAgent::getWorkerInfo,
+            py::call_guard<py::gil_scoped_release>())
+        .def(
+            "get_worker_infos",
+            (std::vector<WorkerInfo>(TensorPipeAgent::*)() const) &
+                TensorPipeAgent::getWorkerInfos,
+            py::call_guard<py::gil_scoped_release>());
 
     Py_RETURN_TRUE;
 }
