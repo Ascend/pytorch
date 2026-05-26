@@ -168,6 +168,17 @@ if [ ! -d "$TORCH_PATH/testing/_internal" ]; then
     echo ""
 fi
 
+# Debug: show torch/_inductor/ directory contents before patching
+echo ""
+echo "=== Debug: torch/_inductor/ directory contents ==="
+if [ -d "$TORCH_PATH/_inductor" ]; then
+    ls -l "$TORCH_PATH/_inductor/"
+else
+    echo "WARNING: $TORCH_PATH/_inductor/ directory NOT FOUND"
+fi
+echo "=== End of torch/_inductor/ debug ==="
+echo ""
+
 # Apply patches
 echo ""
 echo "========================================"
