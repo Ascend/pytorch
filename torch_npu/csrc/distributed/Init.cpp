@@ -418,7 +418,7 @@ PyObject* c10d_npu_init(PyObject* _unused, PyObject* noargs)
         .def("_get_stream_id", &::c10d_npu::ProcessGroupHCCL::getStreamId,
              py::arg("p2p") = false,
              py::arg("peer") = -1)
-        .def("get_coll_stream_id", &::c10d_npu::ProcessGroupHCCL::getCollNpuStreamId,
+        .def("get_coll_stream_id", &::c10d_npu::ProcessGroupHCCL::getCollStreamId,
              py::arg("device"))
         .def("get_p2p_stream_id", &::c10d_npu::ProcessGroupHCCL::getP2PStreamId,
              py::arg("device"),
