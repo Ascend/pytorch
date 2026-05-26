@@ -1538,7 +1538,7 @@ aclError AclrtSubscribeReport(uint64_t threadId, aclrtStream stream)
 
 aclError AclrtUnSubscribeReport(uint64_t theadId, aclrtStream stream)
 {
-    ACL_CALL_LOG("aclrtUnSubscribeReport", "theadId=" << theadId << ", stream=" << stream);
+    ACL_CALL_LOG("aclrtUnSubscribeReport", "threadId=" << theadId << ", stream=" << stream);
     typedef aclError (*AclrtUnSubscribeReport)(uint64_t, aclrtStream);
     static AclrtUnSubscribeReport func = nullptr;
     if (func == nullptr) {

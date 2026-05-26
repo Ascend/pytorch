@@ -318,7 +318,7 @@ struct SegmentRange {
 Note [Expandable Segments]
 Rationale
 For large (>2MB) allocations, the allocator calls aclrtMalloc to get allocations
-that are the same size as whataclrtMalloc the user requests. In the future, parts of these
+that are the same size as what aclrtMalloc the user requests. In the future, parts of these
 allocations can be reused for other requests if they are free. This works well
 when the program makes many requests of exactly the same size or of sizes that
 even multiples of that size. Many deep learning models follow this behavior.
@@ -499,7 +499,7 @@ struct ExpandableSegment {
     // Setup IPC sharing for range.
     // Returns the (larger) range that was actually shared.
     // Serializes data to std::ostream that can be passed to the
-    // other process, and then restored as an exapandable segment
+    // other process, and then restored as an expandable segment
     // via ExpandableSegment::fromShared(istream);
     SegmentRange share(SegmentRange range, std::ostream& buf)
     {
@@ -954,7 +954,7 @@ bool saveDevMemUsageInfo(const int& device)
 //
 // 2. Sub-thread:
 //    - Python function (tbe op compile) called in CANN may trigger GC that introduces a resource release operation.
-//    - The release operation (`free`) cannot acquire the same lock holded in main thread.
+//    - The release operation (`free`) cannot acquire the same lock held in main thread.
 //    - Unable to send a signal to the main thread.
 class UnlockGuard {
 public:

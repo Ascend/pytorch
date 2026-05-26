@@ -8,8 +8,8 @@ namespace c10_npu {
         constexpr size_t kAlignRoundLarge = 16384;            // round up large allocs to 16 KB
         constexpr size_t minMaxSplitSizeMb = 20971520;        // minimum value of max_split_size
         constexpr size_t kMB = 1024 * 1024;                   // 1 MB
-        constexpr size_t k20MB = 20;                          // 20 MB for segmemt_size
-        constexpr size_t k512MB = 512;                        // 512 MB for segmemt_size
+        constexpr size_t k20MB = 20;                          // 20 MB for segment_size
+        constexpr size_t k512MB = 512;                        // 512 MB for segment_size
         constexpr size_t kRoundUpPowerOfTwoStart = 1ULL << 20; // 1 MB
         constexpr size_t kRoundUpPowerOfTwoEnd = 1ULL << 36;   // 64 GB
         constexpr size_t kRoundUpPowerOfTwoIntervals = 16;

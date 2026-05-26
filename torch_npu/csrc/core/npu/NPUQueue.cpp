@@ -621,9 +621,9 @@ void Repository::Enqueue(void *cur_paras)
                 // double check the current thread hold a Gil lock
                 // and release the GIL to TE op compiler in case the acl thread deadlock.
                 // However, this operator could produce another form of deadlock. 
-                // When thread A deconstract a tensor, it will hold the mutex of deviceCachingAllocator and insert an event into the taskqueue.
-                // If the taskqueue is full, thead A will run into here and release the GIL.
-                // Once another thread B get GIL and trigger GC, it may deconstract another tensor
+                // When thread A deconstruct a tensor, it will hold the mutex of deviceCachingAllocator and insert an event into the taskqueue.
+                // If the taskqueue is full, thread A will run into here and release the GIL.
+                // Once another thread B get GIL and trigger GC, it may deconstruct another tensor
                 // and try to get deviceCachingAllocator's mutex, which would cause another form of deadlock.
                 // Since the aclop will be deprecated soon, we just add a using-aclop check here to aviod the second case of deadlock.
                 if (PyGILState_Check() != 0 && g_used_aclop) {
