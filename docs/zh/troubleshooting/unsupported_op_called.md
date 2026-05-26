@@ -15,7 +15,7 @@ RuntimeError: _copy_from_and_resize now only support copy with same size!
 
 ## 原因分析
 
-当模型运行时，屏显信息会打印该错误码“ERR01007”。
+当模型运行时，系统会打印该错误码“ERR01007”。
 
 调用了在NPU上还不支持的算子。
 
