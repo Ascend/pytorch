@@ -456,6 +456,7 @@ def _init():
     # torch.*
     _device_wrapper(torch, torch_fn_white_list)
     torch.UntypedStorage.__new__ = _wrapper_cuda(torch.UntypedStorage.__new__)
+    torch.storage.TypedStorage.is_cuda = torch.storage.TypedStorage.is_npu
     torch.Generator = _GeneratorProxy
     torch.Event = _EventProxy
     torch.amp.autocast_mode.autocast.__init__ = _wrapper_cuda(torch.amp.autocast_mode.autocast.__init__)
