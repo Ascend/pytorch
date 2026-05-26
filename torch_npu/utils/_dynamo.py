@@ -354,34 +354,6 @@ def patch_npu_stream_context():
     ] = _handle_npu_device_interface_stream
 
 
-def fake_record_stream(self, s):
-    """
-    let dynamo trace Tensor.record_stream as this empty function,
-    and you can replace it later in your compile backend to an actual function
-    """
-    if isinstance(self, torch._subclasses.fake_tensor.FakeTensor):
-        return
-    raise RuntimeError(
-        "tensor.record_stream is not supported on torch.compile! "
-        "You should write a pass to replace torch.npu.fake_record_stream to an actual function in FX graph "
-        "before aot_autograd."
-    )
-
-
-def patch_record_stream():
-    torch.npu.fake_record_stream = fake_record_stream
-
-    def method_record_stream(self, s):
-        tx = torch._dynamo.symbolic_convert.InstructionTranslator.current_tx()
-        return torch._dynamo.variables.TorchInGraphFunctionVariable(
-            torch.npu.fake_record_stream
-        ).call_function(tx, [self, s], {})
-
-    torch._dynamo.variables.tensor.TensorVariable.method_record_stream = (
-        method_record_stream
-    )
-
-
 def patch_user_defined_class_variable():
     import functools
 
@@ -411,5 +383,4 @@ def add_dynamo_methods():
     patch_event_variable_python_type()
     patch_builtin_variable()
     patch_npu_stream_context()
-    patch_record_stream()
     patch_user_defined_class_variable()
