@@ -3,10 +3,6 @@ name: Torch NPU Upstream Prepare
 on:
   workflow_call:
     inputs:
-      pytorch_version:
-        required: true
-        type: string
-        description: PyTorch version to clone for test source
       prepared_test_src_artifact:
         required: true
         type: string
@@ -29,9 +25,9 @@ jobs:
           ref: v2.12.0_dev
           fetch-depth: 1
 
-      - name: Clone PyTorch v${{ inputs.pytorch_version }} (for test source)
+      - name: Clone PyTorch v2.12.0 (for test source)
         run: |
-          git clone --depth=1 --branch v${{ inputs.pytorch_version }} \
+          git clone --depth=1 --branch v2.12.0 \
             https://github.com/pytorch/pytorch.git pytorch-test-src
 
       - name: Copy test_upstream patches
@@ -66,7 +62,7 @@ jobs:
         with:
           name: ${{ inputs.prepared_test_src_artifact }}
           path: pytorch-test-src.tar.gz
-          retention-days: 7
+          retention-days: 60
 
       - name: Upload prepare logs
         if: always()
@@ -75,4 +71,15 @@ jobs:
           name: prepare-logs
           path: /tmp/patch.log
           if-no-files-found: warn
-          retention-days: 30
+          retention-days: 60
+
+      - name: Package ascend_pytorch github scripts
+        run: |
+          tar -czf ascend-pytorch-github.tar.gz .github/
+
+      - name: Upload ascend_pytorch github scripts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ascend-pytorch-github
+          path: ascend-pytorch-github.tar.gz
+          retention-days: 60

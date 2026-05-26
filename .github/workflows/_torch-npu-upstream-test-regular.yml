@@ -7,10 +7,6 @@ on:
         required: true
         type: string
         description: Python version to use
-      pytorch_version:
-        required: true
-        type: string
-        description: PyTorch version to install
       prepared_test_src_artifact:
         required: true
         type: string
@@ -32,6 +28,10 @@ on:
         type: string
         description: Number of regular shards
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   run_tests:
     name: test_regular (${{ matrix.shard }}/${{ inputs.regular_shards }})
@@ -51,7 +51,6 @@ jobs:
         uses: kerer-ai/pytorch/.github/actions/setup-npu-test-env@v2.12.0_dev
         with:
           python_version: ${{ inputs.python_version }}
-          pytorch_version: ${{ inputs.pytorch_version }}
           torch_npu_wheel_artifact: ${{ inputs.torch_npu_wheel_artifact }}
           prepared_test_src_artifact: ${{ inputs.prepared_test_src_artifact }}
           patch_log_suffix: reg_${{ matrix.shard }}
@@ -89,8 +88,8 @@ jobs:
             --test-dir pytorch-test-src/test \
             --disabled-testcases pytorch-test-src/test_upstream/disabled_testcases.json \
             --report-dir ${REPORT_DIR} \
-            --timeout 180 \
-            --max-workers 32 \
+            --timeout 1200 \
+            --max-workers 64 \
             --verbose \
             2>&1 | tee /tmp/test_shard_reg_${{ matrix.shard }}.log
 
@@ -133,7 +132,7 @@ jobs:
         with:
           name: test-reports-reg-${{ matrix.shard }}
           path: test-reports/
-          retention-days: 30
+          retention-days: 60
 
       - name: Compress and upload error logs
         if: failure()
@@ -151,4 +150,4 @@ jobs:
         with:
           name: error-logs-reg-${{ matrix.shard }}
           path: error-logs-reg-${{ matrix.shard }}.tar.gz
-          retention-days: 7
+          retention-days: 60
