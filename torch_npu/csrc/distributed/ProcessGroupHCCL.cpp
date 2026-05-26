@@ -6837,6 +6837,12 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
             "Tensors are not equal in size or data type",
             DIST_ERROR(ErrCode::PARAM));
         TORCH_CHECK(
+            inputTensor.dim() >= 1 && outputTensor.dim() >= 1,
+            "Scalar tensors (0-dim tensors) are not supported in alltoall. "
+            "inputTensor.dim()=", inputTensor.dim(), ", outputTensor.dim()=", outputTensor.dim(),
+            ". Please reshape tensors to at least 1-D before calling alltoall.",
+            DIST_ERROR(ErrCode::NOT_SUPPORT));
+        TORCH_CHECK(
             outputTensor.size(0) % ranks == 0,
             "Tensor's dim 0 does not divide equally across group size",
             DIST_ERROR(ErrCode::PARAM));
