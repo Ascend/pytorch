@@ -1,0 +1,77 @@
+diff --git a/test/distributed/test_store.py b/test/distributed/test_store.py
+index 8975aa2..ed34b66 100644
+--- a/test/distributed/test_store.py
++++ b/test/distributed/test_store.py
+@@ -16,9 +16,11 @@ import torch
+ import torch.distributed as dist
+ import torch.distributed.distributed_c10d as c10d
+ import torch.distributed.rpc as rpc
++import torch_npu
+ from torch.distributed import DistError, DistNetworkError, DistStoreError
+ from torch.testing._internal.common_distributed import MultiThreadedTestCase
+ from torch.testing._internal.common_utils import instantiate_parametrized_tests
++from torch_npu.distributed.rpc.options import NPUTensorPipeRpcBackendOptions
+ 
+ 
+ if not dist.is_available():
+@@ -291,11 +293,12 @@ class FileStoreTest(TestCase, StoreTestBase):
+     def test_init_pg_and_rpc_with_same_file(self):
+         with tempfile.NamedTemporaryFile(delete=False) as file:
+             # Init RPC using file
+-            rpc_backend_options = rpc.TensorPipeRpcBackendOptions()
++            torch.npu.set_device(0)
++            rpc_backend_options = NPUTensorPipeRpcBackendOptions()
+             rpc_backend_options.init_method = f"file://{file.name}"
+             rpc_backend_options._transports = tp_transports()
+             rpc.init_rpc(
+-                "worker", rank=0, world_size=1, rpc_backend_options=rpc_backend_options
++                "worker", rank=0, world_size=1, backend=rpc.backend_registry.BackendType.NPU_TENSORPIPE, rpc_backend_options=rpc_backend_options
+             )
+ 
+             # Init PG using file
+@@ -424,7 +427,7 @@ class TCPStoreTest(TestCase, StoreTestBase):
+         self.assertRegex(
+             repr(store1),
+             r"TCPStore\("
+-            r"client=TCPClient\(SocketImpl\(fd=\d+, addr=\[?localhost\]?:\d+, remote=\[?localhost\]?:\d+\)\), "
++            r"client=TCPClient\(SocketImpl\(fd=\d+, addr=\[?(?:localhost|::ffff:127\.0\.0\.1)\]?:\d+, remote=\[?(?:localhost|::ffff:127\.0\.0\.1)\]?:\d+\)\), "
+             r"server=TCPServer\(port=\d+\)\)",
+         )
+ 
+@@ -438,7 +441,7 @@ class TCPStoreTest(TestCase, StoreTestBase):
+         self.assertRegex(
+             repr(store2),
+             r"TCPStore\("
+-            r"client=TCPClient\(SocketImpl\(fd=\d+, addr=\[?localhost\]?:\d+, remote=\[?localhost\]?:\d+\)\), "
++            r"client=TCPClient\(SocketImpl\(fd=\d+, addr=\[?(?:localhost|::ffff:127\.0\.0\.1)\]?:\d+, remote=\[?(?:localhost|::ffff:127\.0\.0\.1)\]?:\d+\)\), "
+             r"server=<nullptr>\)",
+         )
+ 
+@@ -462,13 +465,15 @@ class TCPStoreTest(TestCase, StoreTestBase):
+             world_size=1,
+         )
+ 
+-        backend_opts = rpc.TensorPipeRpcBackendOptions(
++        torch.npu.set_device(0)
++        backend_opts = NPUTensorPipeRpcBackendOptions(
+             init_method=f"tcp://{addr}:{port}", _transports=tp_transports()
+         )
+         rpc.init_rpc(
+             name="worker0",
+             rank=0,
+             world_size=1,
++            backend=rpc.backend_registry.BackendType.NPU_TENSORPIPE,
+             rpc_backend_options=backend_opts,
+         )
+ 
+@@ -1158,6 +1163,10 @@ class InitPgWithNonUvStore(TestCase):
+     the default backend.
+     """
+ 
++    def setUp(self):
++        super().setUp()
++        c10d._world.pg_names.clear()
++
+     def tearDown(self):
+         super().tearDown()
+         os.environ.pop("USE_LIBUV", None)
