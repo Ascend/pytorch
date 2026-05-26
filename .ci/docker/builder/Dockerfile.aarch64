@@ -1,4 +1,4 @@
-FROM pytorch/manylinux2_28_aarch64-builder:cpu-aarch64-2.12
+FROM pytorch/manylinux2_28_aarch64-builder:cpu-aarch64-v2.12.0-rc9
 
 ARG PYTORCH_VERSION=2.12.0
 
