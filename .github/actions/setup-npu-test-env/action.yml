@@ -100,8 +100,10 @@ runs:
         chmod +x torch_env_patch.sh
 
         echo "=== Applying torch environment patches ==="
-        ./torch_env_patch.sh --python=${{ inputs.python_version }} --verbose 2>&1 | tee /tmp/torch_env_patch_${{ inputs.patch_log_suffix }}.log
-        PATCH_STATUS=$?
+        set +e
+        ./torch_env_patch.sh --python=${{ inputs.python_version }} 2>&1 | tee /tmp/torch_env_patch_${{ inputs.patch_log_suffix }}.log
+        PATCH_STATUS=${PIPESTATUS[0]}
+        set -e
 
         if [ ${PATCH_STATUS} -ne 0 ]; then
           echo "WARNING: Torch environment patch application returned non-zero status: ${PATCH_STATUS}"
