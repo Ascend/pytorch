@@ -99,8 +99,8 @@ constexpr size_t kRoundLarge = 2097152;               // round up large allocs t
 constexpr size_t kAlignRoundLarge = 16384;            // round up large allocs to 16 KB
 constexpr size_t kSmallPoolVirAddrSize = 2147483648;  // 2 GB
 constexpr size_t kLargePoolVirAddrSize = 10737418240; // 10 GB
-constexpr size_t k20MB = 20;                          // 20 MB for segmemt_size
-constexpr size_t k512MB = 512;                        // 512 MB for segmemt_size
+constexpr size_t k20MB = 20;                          // 20 MB for segment_size
+constexpr size_t k512MB = 512;                        // 512 MB for segment_size
 constexpr size_t kRoundUpPowerOfTwoStart = 1ULL << 20; // 1 MB
 constexpr size_t kRoundUpPowerOfTwoEnd = 1ULL << 36;   // 64 GB
 constexpr size_t kRoundUpPowerOfTwoIntervals = 16;
@@ -321,7 +321,7 @@ struct SegmentRange {
 Note [Expandable Segments]
 Rationale
 For large (>2MB) allocations, the allocator calls aclrtMalloc to get allocations
-that are the same size as whataclrtMalloc the user requests. In the future, parts of these
+that are the same size as what aclrtMalloc the user requests. In the future, parts of these
 allocations can be reused for other requests if they are free. This works well
 when the program makes many requests of exactly the same size or of sizes that
 even multiples of that size. Many deep learning models follow this behavior.
@@ -502,7 +502,7 @@ struct ExpandableSegment {
     // Setup IPC sharing for range.
     // Returns the (larger) range that was actually shared.
     // Serializes data to std::ostream that can be passed to the
-    // other process, and then restored as an exapandable segment
+    // other process, and then restored as an expandable segment
     // via ExpandableSegment::fromShared(istream);
     SegmentRange share(SegmentRange range, std::ostream& buf)
     {
@@ -957,7 +957,7 @@ bool saveDevMemUsageInfo(const int& device)
 //
 // 2. Sub-thread:
 //    - Python function (the op compile) called in CANN may trigger GC that introduces a resource release operation.
-//    - The release operation (`free`) cannot acquire the same lock holded in main thread.
+//    - The release operation (`free`) cannot acquire the same lock held in main thread.
 //    - Unable to send a signal to the main thread.
 class UnlockGuard {
 public:

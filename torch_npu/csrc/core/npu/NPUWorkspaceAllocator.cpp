@@ -34,7 +34,7 @@ namespace c10_npu {
 namespace NPUWorkspaceAllocator {
 
 namespace {
-constexpr size_t kRoundLarge = 2097152; // Alloceted memory is aligned to 2 MiB.
+constexpr size_t kRoundLarge = 2097152; // Allocated memory is aligned to 2 MiB.
 } // namespace
 
 struct WorkspaceBlock {

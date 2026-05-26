@@ -160,7 +160,7 @@ NpuSysCtrl::SysStatus NpuSysCtrl::Initialize(int device_id)
     // ACL_ERROR_REPEAT_INITIALIZE means that aclInit is not called by PTA, so we save the flag variable to control aclFinalize.
     if (init_ret == ACL_ERROR_REPEAT_INITIALIZE) {
         repeat_init_acl_flag_ = false;
-        ASCEND_LOGI("acl has allready init by other component.");
+        ASCEND_LOGI("acl has already init by other component.");
     } else if (init_ret != ACL_ERROR_NONE) {
         NPU_CHECK_ERROR(init_ret, "aclInit");
     }
