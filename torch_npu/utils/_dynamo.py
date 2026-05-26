@@ -174,6 +174,8 @@ def patch_inductor_wrapper():
 
     def new_get_config_copy(self) -> dict[str, Any]:
         ori_dict = src_get_config_copy(self)
+        if self is not torch._inductor.config:
+            return ori_dict
         if "npu_backend" not in ori_dict:
             ori_dict["npu_backend"] = "default"
             cfg = Config(default="default", value_type=str)
