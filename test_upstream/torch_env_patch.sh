@@ -201,8 +201,7 @@ get_target_file_from_patch() {
     if [ -n "$target_line" ]; then
         # Strip "--- a/" prefix and get the path
         # For -p1 from site-packages/, the path stays as torch/file.py
-        # tr -d '\r' handles Windows CRLF line endings in patch files
-        local target_path=$(echo "$target_line" | tr -d '\r' | sed 's/^--- a\///' | sed 's/^--- //')
+        local target_path=$(echo "$target_line" | sed 's/^--- a\///' | sed 's/^--- //')
         echo "$target_path"
     fi
 }
@@ -216,8 +215,13 @@ for patch_file in $PATCH_FILES; do
         echo "Processing: $patch_rel"
     fi
 
-    # Extract and check target file
-    target_file=$(get_target_file_from_patch "$patch_file")
+    # Normalize line endings: convert CRLF to LF into a temp file
+    # This ensures grep/sed/patch all work with consistent Unix line endings
+    TMP_PATCH=$(mktemp /tmp/torch_patch_XXXXXX)
+    tr -d '\r' < "$patch_file" > "$TMP_PATCH"
+
+    # Extract and check target file (from normalized temp file)
+    target_file=$(get_target_file_from_patch "$TMP_PATCH")
     if [ -n "$target_file" ] && [ ! -f "$target_file" ]; then
         echo "[MISSING] $patch_rel - Target file not found: $target_file"
         MISSING_COUNT=$((MISSING_COUNT + 1))
@@ -225,17 +229,18 @@ for patch_file in $PATCH_FILES; do
             echo "  Expected at: $TORCH_PARENT_DIR/$target_file"
             echo "  Check if the file exists in torch package"
         fi
+        rm -f "$TMP_PATCH"
         continue
     fi
 
     if $DRY_RUN; then
         # Dry run: check if patch can be applied
-        if patch -p1 --dry-run --no-backup-if-mismatch -f < "$patch_file" > /dev/null 2>&1; then
+        if patch -p1 --dry-run --no-backup-if-mismatch -f < "$TMP_PATCH" > /dev/null 2>&1; then
             echo "[OK] $patch_rel (dry-run: can apply)"
             SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
         else
             # Check if already applied
-            if patch -p1 --dry-run --reverse --no-backup-if-mismatch -f < "$patch_file" > /dev/null 2>&1; then
+            if patch -p1 --dry-run --reverse --no-backup-if-mismatch -f < "$TMP_PATCH" > /dev/null 2>&1; then
                 echo "[SKIP] $patch_rel (already applied)"
                 SKIP_COUNT=$((SKIP_COUNT + 1))
             else
@@ -249,14 +254,15 @@ for patch_file in $PATCH_FILES; do
         # Use -f to force apply without prompts
 
         # First check if already applied (reverse test)
-        if patch -p1 --dry-run --reverse --no-backup-if-mismatch -f < "$patch_file" > /dev/null 2>&1; then
+        if patch -p1 --dry-run --reverse --no-backup-if-mismatch -f < "$TMP_PATCH" > /dev/null 2>&1; then
             echo "[SKIP] $patch_rel (already applied)"
             SKIP_COUNT=$((SKIP_COUNT + 1))
+            rm -f "$TMP_PATCH"
             continue
         fi
 
         # Try to apply
-        if patch -p1 --no-backup-if-mismatch -f < "$patch_file" > /tmp/torch_patch_output.log 2>&1; then
+        if patch -p1 --no-backup-if-mismatch -f < "$TMP_PATCH" > /tmp/torch_patch_output.log 2>&1; then
             echo "[OK] $patch_rel"
             SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
 
@@ -277,6 +283,7 @@ for patch_file in $PATCH_FILES; do
             # This allows partial application which may be useful for debugging
         fi
     fi
+    rm -f "$TMP_PATCH"
 done
 
 # Summary
