@@ -34,7 +34,7 @@
 
 - segment\_size\_mb:<value\>，虚拟内存特性下，设置物理内存的申请粒度。
 
-    取值范围20\~512，设置值需为整数，单位MB，不配置时默认为20。仅在expandable\_segments设置为True的时候生效，该配置项只作用于缓存分配器的大块内存池。与page\_size同时配置时，page\_size优先生效。
+    取值范围20\~512，设置值需为整数，单位MB，不配置时默认为20。仅在expandable\_segments设置为True的时候生效，该配置项只作用于缓存分配器的大块内存池。与page\_size同时配置时，仅page\_size生效。
     增大segment\_size\_mb可以减少内存申请及内存映射接口的调用次数，从而提升内存申请效率，但也可能带来更多的内存碎片。因此，在内存使用极限的场景下，请谨慎调大此值。
 
 - roundup\_power2\_divisions:<value\> 或 roundup\_power2\_divisions:\[<size1\>:<value1\>,<size2\>:<value2\>,...\]，将请求的分配大小向上舍入到最近的2的幂次分段，从而更高效地复用内存块。
@@ -43,8 +43,8 @@
 
     支持两种配置方式：
 
-    - **单一值**：为每个内存设置相同的分段数量，例如配置为“4“。
-    - **键值对数组**：为每个2的幂区间单独设置分段数量。例如配置为“\[256:1,512:2,1024:4,\>:8\]“时，表示为256MB以下的所有分配设置1个分段，256MB到512MB之间的分配设置2个分段，512MB到1GB之间的分配设置4个分段，以及更大的分配设置8个分段。
+    - **单一值**：为每个内存设置相同的分段数量，例如配置为“4”。
+    - **键值对数组**：为每个2的幂区间单独设置分段数量。例如配置为“\[256:1,512:2,1024:4,\>:8\]”时，表示为256MB以下的所有分配设置1个分段，256MB到512MB之间的分配设置2个分段，512MB到1GB之间的分配设置4个分段，以及更大的分配设置8个分段。
 
 - multi\_stream\_lazy\_reclaim:<value\>，多流场景下，内存申请时延迟查询Events。
 
@@ -64,7 +64,7 @@
 
 > [!NOTE]  
 >
-> 用户使用Ascend Extension for PyTorch 6.0.RC3及之后版本配套的驱动（Ascend HDK 24.1.RC3及之后），开启虚拟内存特性时，可以使用单进程多卡特性；用户使用Ascend Extension for PyTorch 6.0.RC3之前版本配套的驱动（Ascend HDK 24.1.RC3之前版本），开启虚拟内存特性时，不能使用单进程多卡特性。
+> 用户使用Ascend Extension for PyTorch 6.0.RC3及以上版本配套的驱动（Ascend HDK 24.1.RC3及以上），开启虚拟内存特性时，可以使用单进程多卡特性；用户使用Ascend Extension for PyTorch 6.0.RC3以下版本配套的驱动（Ascend HDK 24.1.RC3以下版本），开启虚拟内存特性时，不能使用单进程多卡特性。
 
 ## 配置示例<a id="配置示例"></a> 
 
@@ -144,8 +144,8 @@ export PYTORCH_NPU_ALLOC_CONF=pinned_mem_register:True
         - 若未配置page\_size，内存申请粒度为2MB。
 
     - 当申请内存小于等于1MB时：配置page\_size也不生效，内存申请粒度为2MB。
-- pin_memory_expandable_segments特性要求最低Ascend Extension for PyTorch 7.3.0之后版本、Ascend HDK 25.5.0及以上版本、CANN商用8.5.0及以上版本使用。
-- pinned_use_background_threads特性要求在Ascend Extension for PyTorch 26.0.0及之后版本且PyTorch 2.8.0及以上版本使用。
+- pin_memory_expandable_segments特性要求最低Ascend Extension for PyTorch 7.3.0以上版本、Ascend HDK 25.5.0及以上版本、CANN商用8.5.0及以上版本使用。
+- pinned_use_background_threads特性要求在Ascend Extension for PyTorch 26.0.0及以上版本且PyTorch 2.8.0及以上版本使用。
 - pinned_mem_register使用注意事项如下：
     - 特性要求Ascend Extension for PyTorch 26.0.0及以上版本、Ascend HDK 26.0.rc1及以上版本、CANN商用8.5.0及以上版本使用。
     - 与pin_memory_expandable_segments特性不支持同时配置。

@@ -12,19 +12,19 @@
 
     冷却抑制：由于当前方案不做故障抑制，激活值上的异常梯度会影响多个参数，从而导致单张卡短时间内多次异常。因此，需要增加冷却机制，在第一次异常后一段时间内，新的异常均被视为同一次异常，不计入“三振出局”校验。单次异常会打印“A grad-norm spike may happen”的Event日志，日志等级为INFO，默认不开启，可以通过设置“export TORCH\_NPU\_LOGS=silent”开启。
 
-    “冷却抑制时间窗“通过配置项cooldown来控制，默认为5min。
+    “冷却抑制时间窗”通过配置项cooldown来控制，默认为5min。
 
 4. 通过“**三振出局**”判断是否产生一次特征值异常，产生则打印一次“feature detection detects abnormal results”。
 
     三振出局：经过冷却抑制后，若确认为一次新的异常，则需要进一步进行“三振出局”检验，以判断当前三振出局时间窗内的异常总数是否达到了次数限制。如果判断达到了次数限制，则判定产生了特征值异常，打印“feature detection detects abnormal results”的Warning日志。
 
-    “三振出局时间窗“通过配置项strikes\_window来控制，默认为480min。“三振出局异常次数“限制通过配置项strikes\_num配置，默认为3次。
+    “三振出局时间窗”通过配置项strikes\_window来控制，默认为480min。“三振出局异常次数”限制通过配置项strikes\_num配置，默认为3次。
 
 5. 产生特征值异常时，在with\_checksum配置为true时，通知所有卡，同步启用“**checksum联动**”。
 
     checksum联动：当三振出局产生特征值异常时，如果配置开启了checksum联动功能，会同步在所有卡启用checksum联动检测。检测期间会存在额外的性能开销。具体原理是对torch.matmul和torch.Tensor.matmul的输入和输出进行checksum API的校验。在开启时间窗内如果存在校验为True的情况，则打印“The result of Matmul checksum is abnormal”的Warning日志。
 
-    “单次checksum联动开启时间窗“复用“冷却抑制时间窗“，默认为5min。checksum在“checksum联动冷却时间窗“内仅允许开启一次，“checksum联动冷却时间窗“通过checksum\_cooldown来控制，默认为180min。
+    “单次checksum联动开启时间窗”复用“冷却抑制时间窗”，默认为5min。checksum在“checksum联动冷却时间窗”内仅允许开启一次，“checksum联动冷却时间窗”通过checksum\_cooldown来控制，默认为180min。
 
 ## 使用场景
 
