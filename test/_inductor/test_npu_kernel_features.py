@@ -10,7 +10,7 @@ class TestNumeList(TestCase):
     def test_numels(self):
         numel_list = NumelList([2, 3, 4])
         self.assertEqual(numel_list.numels(), 24)
-    
+
     def test_equality(self):
         numel_list1 = NumelList([2, 3, 4])
         numel_list2 = NumelList([2, 3, 4])
@@ -45,11 +45,11 @@ class TestNumeList(TestCase):
         numel_list1 = NumelList([2, 3, 5])
         numel_list2 = NumelList([2, 3, 4])
         self.assertTrue(numel_list1 >= numel_list2)
-    
+
     def test_modulo(self):
         numel_list = NumelList([2, 3, 4])
         self.assertEqual(numel_list % 5, 4)
-    
+
     def test_division(self):
         numel_list = NumelList([2, 3, 4])
         self.assertEqual(numel_list / 2, 12.0)
@@ -63,8 +63,8 @@ class TestNumeList(TestCase):
     def test_addition(self):
         numel_list = NumelList([2, 3, 4])
         self.assertEqual(numel_list + 2, 26)
-        self.assertEqual(2 + numel_list, 26)               
-    
+        self.assertEqual(2 + numel_list, 26)
+
     def test_hash(self):
         # 测试相同内容的hash值相同
         numel_list1 = NumelList([2, 3, 4])

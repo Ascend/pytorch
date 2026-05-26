@@ -30,5 +30,5 @@ def register_replacement(search_fn: SearchFn, replace_fn: ReplaceFn, example_inp
     return npugraph_ex.patterns.pattern_pass_manager.register_replacement(search_fn, replace_fn, example_inputs,
                                                                        trace_fn=trace_fn, extra_check=extra_check,
                                                                        search_fn_pattern=search_fn_pattern,
-                                                                       scalar_workaround=scalar_workaround, 
+                                                                       scalar_workaround=scalar_workaround,
                                                                        skip_duplicates=skip_duplicates)

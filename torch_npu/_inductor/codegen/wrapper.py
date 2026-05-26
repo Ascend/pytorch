@@ -2,7 +2,6 @@ import copy
 import hashlib
 import os
 
-import sympy
 
 import torch
 import torch_npu.npu.aclnn
@@ -35,7 +34,7 @@ class _NPUKernelCodegenMixin:
     (AOT debug / aclnn initialization / whole-graph benchmark harness, etc.)
     from leaking into subgraphs.
     """
-
+    
     # generate numel expr for range_tree_node
     def generate_node_numel_expr(self, kernel_name: str, node, numel_expr):
         expr = f"{kernel_name}_{node.name}_numel"

@@ -9,13 +9,13 @@ torch_npu.npu.set_compile_mode(jit_compile=False)
 # 修复：将自定义属性设为类属性（确保实例化后必存在）
 class CustomParameter(torch.nn.Parameter):
     custom_attr = "custom_param"  # 类属性，所有实例共享，无需__init__赋值
-    
+
     def __init__(self, data=None, requires_grad=True):
         super().__init__(data, requires_grad)
 
 
 class TestUninitializedParameterClsToBecome(TestCase):
-    
+
     def test_core_functionality_npu(self):
         """极简验证NPU环境下cls_to_become+materialize核心功能"""
         # 1. 创建NPU未初始化参数

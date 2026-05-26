@@ -679,7 +679,7 @@ class CppWrapperNpu(CppWrapperCpu):
             static_cast<int32_t>(grid_1),
             static_cast<int32_t>(grid_2)
         }};
-        
+
         uint32_t block_num = grid_0 * grid_1 * grid_2;
         auto arg_ptr = static_cast<void*>(&kernel_args);
         auto arg_size = sizeof(kernel_args);

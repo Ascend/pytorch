@@ -35,13 +35,12 @@ from torch._inductor.utils import (
     get_kernel_metadata,
 )
 from torch._inductor.scheduler import Scheduler
-from torch_mlir.compiler_utils import OutputType
 
 from torch.fx.experimental.proxy_tensor import make_fx
 from torch._dynamo.device_interface import get_interface_for_device
-from ..torch_mlir_patch import stateless_fx_import
 from ...npu.inductor_patch.lowering import map_strings_to_operators
 from ...npu.utils import (
+    MLIRProcessor,
     parse_fx_example_inputs,
     npu_cast_to_prim_cast,
     get_fx_graph_code,
@@ -60,7 +59,7 @@ id_iter = count()
 
 
 class NpuTritonKernel(TritonKernel):
-    def __init__(self, 
+    def __init__(self,
             tiling: Dict[str, sympy.Expr],
             min_elem_per_thread=0,
             optimize_mask=True,
@@ -78,7 +77,7 @@ class NpuTritonKernel(TritonKernel):
     @staticmethod
     def inductor_meta_common():
         return {}
-    
+
     def call_kernel(self, call_args, name: str):
         wrapper = V.graph.wrapper_code
         for call_arg in call_args:
@@ -171,14 +170,14 @@ def create_fx_from_snodes_by_traced_graph(snodes: List[scheduler.SchedulerNode],
 
     def runnable_gm(*args):
         return torch.fx.Interpreter(gm).run(*args)
-    with V.graph.fake_mode: 
+    with V.graph.fake_mode:
         gm = make_fx(runnable_gm)(*inputs)
     view_to_reshape(gm)
-    non_contiguous_indices["outputs"] = [i + num_inputs 
+    non_contiguous_indices["outputs"] = [i + num_inputs
                                          for i, call_output in enumerate(call_outputs)
                                          if not V.graph.try_get_buffer(call_output).layout.is_contiguous()]
-    return (gm, call_args, {"num_outputs": num_outputs, 
-                            "non_contiguous_indices": non_contiguous_indices, 
+    return (gm, call_args, {"num_outputs": num_outputs,
+                            "non_contiguous_indices": non_contiguous_indices,
                             "mutated_indices": mutated_indices, })
 
 
@@ -193,10 +192,10 @@ class NpuMetaKernel(Kernel):
             self._gm = gm
             self._gm_with_prim_cast = self.build_gm_with_prim_cast(gm)
             self._is_dynamic = is_fx_dynamic(self._gm)
-        
+
         if anir_config.online_acc_comp:
             modify_gm_for_acc_comp(self._gm)
-            
+
         self._snodes = snodes
         self._call_args = call_args
         self.non_contiguous_indices = non_contiguous_indices
@@ -204,6 +203,7 @@ class NpuMetaKernel(Kernel):
         self.mutated_indices = mutated_indices
 
     def get_mlir_output_type(self):
+        from torch_mlir.compiler_utils import OutputType
         return OutputType.RAW
 
     def imports_for_benchmark_kernel(self):
@@ -216,7 +216,7 @@ class NpuMetaKernel(Kernel):
                 V.graph.device_ops.import_get_raw_stream_as("get_raw_stream")
             )
         )
-    
+
     def build_gm_with_prim_cast(self, gm):
         return npu_cast_to_prim_cast(gm)
 
@@ -229,6 +229,7 @@ class NpuMetaKernel(Kernel):
         *_, model_name, nth_graph = get_aot_compilation_context()
 
         import torch_mlir
+        from ..torch_mlir_patch import stateless_fx_import
 
         mlir_module = stateless_fx_import(
             self._gm_with_prim_cast,
@@ -253,12 +254,12 @@ class NpuMetaKernel(Kernel):
     def call_kernel(self, name: str, node=None):
         wrapper = V.graph.wrapper_code
         call_args = self.get_call_args()
-        
+
         for call_arg in call_args:
             if call_arg.startswith('_uwu'):
                 expression = map_strings_to_operators(call_arg)
                 wrapper.writeline(f'{call_arg} = {expression}')
-                
+
         if len(call_args) > 0:
             wrapper.generate_kernel_call(name, call_args)
 
@@ -286,12 +287,16 @@ class NpuMetaScheduling(SIMDScheduling):
         self.orig_fnode_name_to_fnode = {}
 
     def _postprocess_src_code(self, src_code, mlir_kernel, kernel_name):
-        return src_code, {}
+        mlir_processor = MLIRProcessor()
+        _, kernel_info = mlir_processor.process_mlir(
+            src_code, get_sig=True, dynamic=mlir_kernel._is_dynamic
+        )
+        return src_code, {"kernel_hash": kernel_info["kernel_hash"]}
 
     def define_kernel(self, src_code, mlir_kernel, traced_graph, mode=None):
         if mode is None:
             mode = anir_config._get_compile_mode()
-        
+
         wrapper = V.graph.wrapper_code
 
         kernel_key = (src_code, tuple(mlir_kernel.non_contiguous_indices))
@@ -333,9 +338,9 @@ class NpuMetaScheduling(SIMDScheduling):
         kernel_meta.update(extra_kernel_meta)
 
         wrapper.src_to_kernel[kernel_key] = kernel_name
-        
+
         subs_name = kernel_name if config.triton.unique_kernel_names else f"{self._get_kernel_prefix()}_"
-        
+
         compile_wrapper = IndentedBuffer()
         metadata_comment = ""
 
@@ -385,7 +390,7 @@ class NpuMetaScheduling(SIMDScheduling):
 
     def _handle_auto_fallback_mode(self, compile_wrapper, src_code, name, subs_name, meta, wrapper, metadata_comment, mlir_kernel=None):
         _basename, _, kernel_path = get_path(code_hash(src_code.strip()), "py")
-        
+
         compile_wrapper.writeline(f"async_compile.{self._get_compile_api()}({subs_name!r}, '''")
         compile_wrapper.splice(src_code, strip=True)
         compile_wrapper.writeline(f"''', kernel_meta={meta})")
@@ -394,7 +399,7 @@ class NpuMetaScheduling(SIMDScheduling):
 
         origins, detailed_origins = get_kernel_metadata(mlir_kernel._snodes, wrapper)
         metadata_comment += "\n" + origins + "\n" + detailed_origins
-        
+
         wrapper.define_kernel(name, compile_wrapper.getvalue(), metadata_comment)
 
         if metrics.is_metric_table_enabled("kernel_metadata"):
@@ -412,15 +417,15 @@ class NpuMetaScheduling(SIMDScheduling):
         return "auto_fallback"
 
     def _dump_fx_graph_for_fallback(self, mlir_kernel, device, graph_hash, kernel_name, compile_code):
-        
+
         cache_root = os.getenv("TORCHINDUCTOR_CACHE_DIR")
         dump_path = os.path.join(
-            cache_root, 
-            anir_config.traced_graph_cache or "traced_graph_cache", 
-            str(device.index), 
+            cache_root,
+            anir_config.traced_graph_cache or "traced_graph_cache",
+            str(device.index),
             graph_hash
         )
-        
+
         if not os.path.exists(dump_path):
             os.makedirs(dump_path, exist_ok=True)
             to_folder(mlir_kernel._gm, dump_path, graph_hash=graph_hash, module_name=graph_hash)
@@ -428,11 +433,11 @@ class NpuMetaScheduling(SIMDScheduling):
         if anir_config.fx_subgraph_dump_path is not None:
             subgraph_dump_path = os.path.join(anir_config.fx_subgraph_dump_path, str(device.index), kernel_name)
             os.makedirs(subgraph_dump_path, exist_ok=True)
-                    
+
             num_args = len(mlir_kernel._gm.code.split('forward(', )[1].split(')')[0].split(', ')) - 1
             fx_graph_code = get_fx_graph_code(mlir_kernel._gm.code, num_args, runnable=False, kernel_code=compile_code, kernel_name=kernel_name)
             runnable_fx_graph_code = get_fx_graph_code(mlir_kernel._gm.code, num_args, runnable=True, kernel_code=compile_code, kernel_name=kernel_name)
-            
+
             with open(os.path.join(subgraph_dump_path, f'{kernel_name}.py'), 'w') as f:
                 f.write(fx_graph_code)
             with open(os.path.join(subgraph_dump_path, f'runnable_{kernel_name}.py'), 'w') as f:
@@ -514,10 +519,10 @@ class NpuMetaScheduling(SIMDScheduling):
 
     def codegen_node(self, node: Union[scheduler.SchedulerNode, object]):
         nodes: List[scheduler.SchedulerNode] = node.get_nodes()
-        
+
         _, (numel, rnumel) = max(nodes, key=lambda x: int(x.is_reduction())).group
 
         node_schedule = self.generate_node_schedule(nodes, numel, rnumel)
         kernel_features = SIMDKernelFeatures(node_schedule, numel, rnumel)
-        
+
         return self.codegen_node_schedule(kernel_features, nodes)

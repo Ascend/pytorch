@@ -21,7 +21,7 @@ class TestResize(TestCase):
         out_tensor_npu = torch.masked_select(input_data_npu, mask_npu, out=out_tensor_npu)
         out_tensor = torch.masked_select(input_data, mask, out=out_tensor)
         self.assertRtolEqual(out_tensor_npu, out_tensor)
-    
+
     def test_resize_ncdhw(self):
         out_tensor = torch.empty((1, 1, 1, 1, 1), dtype=torch.float16).npu()
         shape = [25]

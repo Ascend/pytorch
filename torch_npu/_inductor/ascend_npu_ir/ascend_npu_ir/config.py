@@ -4,7 +4,7 @@ import re
 import logging
 
 import torch
-from torch._inductor import inductor_prims
+from torch._inductor import config, inductor_prims
 from torch._inductor.fx_passes.control_dependencies import control_deps
 
 
@@ -19,6 +19,7 @@ acc_comp_mode = True
 disable_any_pbr = True
 autotune_fx_fallback = False
 cache_named_op = False
+config.allow_buffer_reuse = False
 
 # NPU_INDUCTOR_FALLBACK_LIST=allfallback forces ops entering the NPU inductor lowering
 # path to register fallback lowerings, so optimized/fused lowerings are not used.
@@ -44,7 +45,7 @@ def parse_rtol_atol(env_str: str):
     rtol, atol = None, None
     if not env_str.strip():
         return rtol, atol
-    
+
     parts = [p.strip() for p in env_str.split(",") if p.strip()]
     for part in parts:
         match = re.match(r"^(rtol|atol)\s*=s\*([0-9.eE+-]+)$", part, re.IGNORECASE)
@@ -54,7 +55,7 @@ def parse_rtol_atol(env_str: str):
                 f"It should be like 'rtol=1e-6,atol=1e-5'. "
             )
             continue
-        
+
         key, value_str = match.groups()
         try:
             value = float(value_str)

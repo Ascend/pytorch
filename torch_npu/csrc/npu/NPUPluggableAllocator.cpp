@@ -5,6 +5,9 @@
 #include "torch_npu/csrc/npu/NPUPluggableAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
+#ifndef BUILD_LIBTORCH
+#include "torch_npu/csrc/sanitizer/NPUTrace.h"
+#endif
 
 namespace torch::npu::NPUPluggableAllocator {
 
@@ -119,6 +122,14 @@ void* NPUPluggableAllocator::malloc(
         const std::lock_guard<std::mutex> lock(allocator_mutex_);
         allocation_metadata_.emplace(r, _AllocationMetadata(size, device, stream));
     }
+#ifndef BUILD_LIBTORCH
+    if (r) {
+        const c10_npu::impl::PyCallbackTrigger *trigger = c10_npu::impl::NPUTrace::getTrace();
+        if (C10_UNLIKELY(trigger)) {
+            trigger->traceNpuMemoryAllocation(reinterpret_cast<uintptr_t>(r));
+        }
+    }
+#endif
     return r;
 }
 
@@ -182,6 +193,12 @@ void NPUPluggableAllocator::raw_delete(void* ptr)
         stream = metadata.stream;
         allocation_metadata_.erase(ptr);
     }
+#ifndef BUILD_LIBTORCH
+    const c10_npu::impl::PyCallbackTrigger *trigger = c10_npu::impl::NPUTrace::getTrace();
+    if (C10_UNLIKELY(trigger)) {
+        trigger->traceNpuMemoryDeallocation(reinterpret_cast<uintptr_t>(ptr));
+    }
+#endif
     free_fn_(ptr, size, device_idx, stream);
 }
 
@@ -251,6 +268,16 @@ void NPUPluggableAllocator::recordStream(
     const c10::DataPtr& ptr,
     streamType stream)
 {
+#ifndef BUILD_LIBTORCH
+    if (ptr.get()) {
+        const c10_npu::impl::PyCallbackTrigger *trigger = c10_npu::impl::NPUTrace::getTrace();
+        if (C10_UNLIKELY(trigger)) {
+            trigger->traceNpuRecordStream(
+                reinterpret_cast<uintptr_t>(ptr.get()),
+                reinterpret_cast<uintptr_t>(stream.stream(false)));
+        }
+    }
+#endif
     if (record_stream_fn_) {
         record_stream_fn_(ptr.get(), stream);
     }
@@ -263,6 +290,16 @@ void NPUPluggableAllocator::eraseStream(
     if (erase_stream_fn_) {
         erase_stream_fn_(ptr.get(), stream);
     }
+#ifndef BUILD_LIBTORCH
+    if (ptr.get()) {
+        const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
+        if (C10_UNLIKELY(trigger)) {
+            trigger->traceNpuEraseStream(
+                reinterpret_cast<uintptr_t>(ptr.get()),
+                reinterpret_cast<uintptr_t>(stream.stream(false)));
+        }
+    }
+#endif
 }
 
 void NPUPluggableAllocator::eraseStreamWithBlockPtr(void* block_ptr, c10_npu::NPUStream stream, void* work_ptr)

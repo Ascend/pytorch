@@ -212,7 +212,7 @@ class GridExprNpu(GridExpr):
 class PrecomputedGridNpu(GridNpu):
     def __init__(self, *, inductor_meta, mode="python", **kwargs):
         super().__init__(inductor_meta=inductor_meta, mode=mode, numels=kwargs.get("numels"))
-    
+
     def generate(self, meta: dict[str, int]) -> None:
         for candidate in self.inductor_meta["precomputed_grids"]:
             if all(meta.get(k) == v for k, v in candidate["config"].items()):
@@ -227,7 +227,7 @@ class PrecomputedGridNpu(GridNpu):
 class FixedGridNpu(GridNpu):
     def __init__(self, *, inductor_meta, mode="python", **kwargs):
         super().__init__(inductor_meta=inductor_meta, mode=mode, numels=kwargs.get("numels"))
-    
+
     @staticmethod
     def setup_grid_as_args() -> dict[str, Any]:
         """Inductor meta so the launcher takes three extra grid arguments"""
@@ -413,7 +413,7 @@ class TritonCompileResultNpu(TritonCompileResult):
 class NPUCachingAutotuner(CachingAutotuner):
     def __init__(
             self,
-            fn, 
+            fn,
             triton_meta,  # passed directly to triton
             configs,
             save_cache_hook,
@@ -500,7 +500,7 @@ class NPUCachingAutotuner(CachingAutotuner):
         compile_meta["num_warps"] = cfg.num_warps
         compile_meta["num_stages"] = cfg.num_stages
         compile_meta["debug"] = (
-            os.getenv("INDUCTOR_ASCEND_DEBUG", 'false').lower() in ('true', '1') 
+            os.getenv("INDUCTOR_ASCEND_DEBUG", 'false').lower() in ('true', '1')
             and self.inductor_meta.get("assert_indirect_indexing", True)
             and not self.inductor_meta.get("is_hip", False)
         )
@@ -717,11 +717,11 @@ class NPUCachingAutotuner(CachingAutotuner):
                     kernel_id = -1
                 if kernel_id not in fallback_id:
                     return False
-            return True        
+            return True
 
         if not should_fallback():
             return None
-        
+
         fx_graph_call, _, _, fx_module = get_triton_fx_graph_call(self.inductor_meta)
         if not fx_graph_call:
             return None
@@ -1283,7 +1283,7 @@ def user_autotune_npu(
         inductor_meta=None,
         custom_kernel=False,
 ):
-   
+
     if len(configs) == 0:
         configs = [triton.Config({})]
     else:

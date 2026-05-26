@@ -18,13 +18,13 @@ class TestDLPack(TestCase):
             original = torch.randint(-10, 10, (2, 3, 4), dtype=dtype, device=device)
         else:
             original = torch.randn(2, 3, 4, dtype=dtype, device=device)
-        
+
         # Convert to dlpack
         dlpack_tensor = to_dlpack(original)
-        
+
         # Convert back to torch_npu tensor
         restored = from_dlpack(dlpack_tensor)
-        
+
         # Verify the roundtrip
         self.assertEqual(original, restored)
         self.assertEqual(original.dtype, restored.dtype)
@@ -42,13 +42,13 @@ class TestDLPack(TestCase):
             (2, 2, 2, 2),   # 4D tensor
             (1, 1, 1, 1, 1) # 5D tensor
         ]
-        
+
         for shape in shapes:
             with self.subTest(shape=shape):
                 original = torch.randn(shape, dtype=dtype, device=device)
                 dlpack_tensor = to_dlpack(original)
                 restored = from_dlpack(dlpack_tensor)
-                
+
                 self.assertEqual(original, restored)
                 self.assertEqual(original.shape, restored.shape)
 
@@ -58,20 +58,20 @@ class TestDLPack(TestCase):
         # Test contiguous tensor
         original_contiguous = torch.randn(4, 4, dtype=dtype, device=device)
         self.assertTrue(original_contiguous.is_contiguous())
-        
+
         dlpack_tensor = to_dlpack(original_contiguous)
         restored = from_dlpack(dlpack_tensor)
-        
+
         self.assertEqual(original_contiguous, restored)
         self.assertTrue(restored.is_contiguous())
-        
+
         # Test non-contiguous tensor (transpose)
         original_non_contiguous = original_contiguous.t()
         self.assertFalse(original_non_contiguous.is_contiguous())
-        
+
         dlpack_tensor = to_dlpack(original_non_contiguous)
         restored = from_dlpack(dlpack_tensor)
-        
+
         self.assertEqual(original_non_contiguous, restored)
         self.assertEqual(original_non_contiguous.stride(), restored.stride())
 
@@ -80,14 +80,14 @@ class TestDLPack(TestCase):
         """Test that dlpack shares memory with original tensor"""
         original = torch.randn(3, 3, dtype=dtype, device=device)
         original_data_ptr = original.data_ptr()
-        
+
         # Convert to dlpack and back
         dlpack_tensor = to_dlpack(original)
         restored = from_dlpack(dlpack_tensor)
-        
+
         # Check if memory is shared (data_ptr should be the same)
         self.assertEqual(original_data_ptr, restored.data_ptr())
-        
+
         # Modify original tensor and check if restored tensor is also modified
         original.fill_(42.0)
         self.assertEqual(original, restored)
@@ -98,20 +98,20 @@ class TestDLPack(TestCase):
         original = torch.randn(3, 4, dtype=dtype, device=device)
         dlpack_tensor = to_dlpack(original)
         restored = from_dlpack(dlpack_tensor)
-        
+
         self.assertEqual(original, restored)
         self.assertEqual(original.dtype, restored.dtype)
-    
+
     @Dtypes(torch.float)
     def test_dlpack_cpu(self, dtype, device="cpu"):
         """Test that dlpack shares memory with original cpu tensor"""
         original = torch.randn(3, 3, dtype=dtype, device=device)
         original_data_ptr = original.data_ptr()
-        
+
         # Convert to dlpack and back
         dlpack_tensor = to_dlpack(original)
         restored = from_dlpack(dlpack_tensor)
-        
+
         # Check if memory is shared (data_ptr should be the same)
         self.assertEqual(original_data_ptr, restored.data_ptr())
 

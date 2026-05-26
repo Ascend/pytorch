@@ -27,7 +27,7 @@ from ..prof_view._memory_view_parser import MemoryViewParser
 from ..prof_view._integrate_parser import IntegrateParser
 from ..prof_view._communication_parser import CommunicationParser
 from ..prof_view._memory_timeline_parser import MemoryTimelineParser
-from ..prof_view.prof_db_parse._db_parser import DbParser 
+from ..prof_view.prof_db_parse._db_parser import DbParser
 from ..prof_view.prepare_parse._fwk_pre_parser import (
     TracePreParser,
     TreeBuildParser,

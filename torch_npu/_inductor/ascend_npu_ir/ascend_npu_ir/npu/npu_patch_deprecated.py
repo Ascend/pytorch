@@ -48,7 +48,7 @@ def _patch_add_ephemeral_timeout_for_all_pgs(timeout: timedelta) -> None:
         devices = pg._device_types
         if torch.device("npu") in devices:
             backend = pg._get_backend(torch.device("npu"))
-                
+
 distributed_c10d._add_ephemeral_timeout_for_all_pgs = _patch_add_ephemeral_timeout_for_all_pgs
 
 if get_anir_mode() == 'O0':
@@ -56,4 +56,3 @@ if get_anir_mode() == 'O0':
     def my_silu_backward(grad_out, self):
         # use with some caution: this is only really valid to run in the context of proxy tensor tracing
         return NotImplemented
-    

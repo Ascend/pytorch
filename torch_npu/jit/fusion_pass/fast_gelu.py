@@ -14,5 +14,5 @@ def fast_gelu_pass(jit_mod):
             %out = npu::fast_gelu(%x)
             return (%out)
     """
-    
+
     torch._C._jit_pass_custom_pattern_based_rewrite_graph(pattern, replacement, jit_mod.graph)

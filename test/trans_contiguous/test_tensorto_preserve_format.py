@@ -70,7 +70,7 @@ class  TestTensorToPreserveFormat(TestCase):
         """H2D: transpose 2D non-contiguous -> preserve_format preserves stride"""
         cpu_t = torch.randn(4, 6).t()
         self.assertFalse(cpu_t.is_contiguous())
-        
+
 
         npu_t = cpu_t.to("npu", memory_format=torch.preserve_format)
         self._verify_preserve_format_result(cpu_t, npu_t, "H2D-transpose_2d")
@@ -96,7 +96,7 @@ class  TestTensorToPreserveFormat(TestCase):
         """H2D: slice dim0 non-contiguous -> preserve_format preserves stride"""
         cpu_t = torch.randn(8, 5)[::2]
         self.assertFalse(cpu_t.is_contiguous())
-        
+
 
         npu_t = cpu_t.to("npu", memory_format=torch.preserve_format)
         expec_strides = self._get_dense_strides(cpu_t)
@@ -107,7 +107,7 @@ class  TestTensorToPreserveFormat(TestCase):
         """H2D: slice dim1 non-contiguous -> preserve_format preserves stride"""
         cpu_t = torch.randn(4, 8)[:, ::2]
         self.assertFalse(cpu_t.is_contiguous())
-        
+
 
         npu_t = cpu_t.to("npu", memory_format=torch.preserve_format)
         self._verify_preserve_format_result(cpu_t, npu_t, "H2D-slice_dim1")
@@ -119,14 +119,14 @@ class  TestTensorToPreserveFormat(TestCase):
         """H2D: narrow non-contiguous -> preserve_format preserves stride"""
         cpu_t = torch.randn(6, 8).narrow(1, 1, 5)
         self.assertFalse(cpu_t.is_contiguous())
-        
+
 
         npu_t = cpu_t.to("npu", memory_format=torch.preserve_format)
         self._verify_preserve_format_result(cpu_t, npu_t, "H2D-narrow")
         expec_strides = self._get_dense_strides(cpu_t)
         self.assertEqual(expec_strides, npu_t.stride(),
                          "H2D-narrow: stride not preserved")
-        
+
     def test_h2d_select(self):
         """H2D: select (reduces dim) non-contiguous -> preserve_format preserves stride"""
         cpu_t = torch.randn(3, 5, 4).select(1, 2)
@@ -164,7 +164,7 @@ class  TestTensorToPreserveFormat(TestCase):
         """H2D: expand 3D (stride=0) -> preserve_format falls back to suggest_memory_format"""
         cpu_t = torch.randn(2, 1, 4).expand(2, 3, 4)
         self.assertFalse(cpu_t.is_contiguous())
-        
+
 
         npu_t = cpu_t.to("npu", memory_format=torch.preserve_format)
         self._verify_preserve_format_result(cpu_t, npu_t, "H2D-expand_3d")
@@ -174,7 +174,7 @@ class  TestTensorToPreserveFormat(TestCase):
     def test_h2d_as_strided_overlap(self):
         """H2D: as_strided with overlap -> preserve_format falls back to suggest_memory_format"""
         cpu_t = torch.randn(12).as_strided((3, 3), (4, 1))
-        
+
 
         npu_t = cpu_t.to("npu", memory_format=torch.preserve_format)
         self._verify_preserve_format_result(cpu_t, npu_t, "H2D-as_strided_overlap")

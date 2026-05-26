@@ -1,9 +1,9 @@
 FROM pytorch/manylinux2_28_aarch64-builder:cpu-aarch64-v2.12.0-rc9
- 	 
+
 ENV PATH /usr/local/bin:$PATH
- 	 
+
 RUN echo "alias ll='ls -l --color=auto'" >> /root/.bashrc
- 	 
+
 # Set pip&python
 RUN cd /usr/local/bin && ln -sf /opt/_internal/cpython-3.10.20/bin/pip3.10 pip3.10 \
  	&& ln -sf /opt/_internal/cpython-3.11.15/bin/pip3.11 pip3.11 \
@@ -13,7 +13,7 @@ RUN cd /usr/local/bin && ln -sf /opt/_internal/cpython-3.10.20/bin/pip3.10 pip3.
  	&& ln -sf /opt/_internal/cpython-3.11.15/bin/python3.11 python3.11 \
  	&& ln -sf /opt/_internal/cpython-3.12.13/bin/python3.12 python3.12 \
  	&& ln -sf /opt/_internal/cpython-3.10.20/bin/python3.10 python3
- 	 
+
 # Set pip source
 RUN mkdir /root/.pip \
     && echo "[global]" > /root/.pip/pip.conf \
@@ -42,13 +42,13 @@ RUN if [ "$CONFIG_FOR_LCOV" = "1" ]; then \
 RUN pip3.10 install pyyaml  \
  	&& pip3.10 install torch==2.12.0 --index-url https://download.pytorch.org/whl/cpu \
  	&& pip3.10 install numpy==1.23.2
- 	 
+
 RUN pip3.11 install pyyaml  \
  	&& pip3.11 install torch==2.12.0 --index-url https://download.pytorch.org/whl/cpu \
  	&& pip3.11 install numpy==1.26.2
- 	 
+
 RUN pip3.12 install pyyaml  \
  	&& pip3.12 install torch==2.12.0 --index-url https://download.pytorch.org/whl/cpu \
  	&& pip3.12 install numpy==1.26.2
- 	 
+
 WORKDIR /home

@@ -9,10 +9,10 @@ class Str2IdManager:
     def __init__(self) -> None:
         self._str_id_map = {}
         self._curr_id = 0
-    
+
     def set_start_id(self, start_id: int):
         self._curr_id = start_id
-    
+
     def get_id_from_str(self, string: str) -> int:
         # 先查询；有性能影响的话直接+1，不查询了
         if not string:

@@ -206,7 +206,7 @@ class SupportedDevices:
                 reason = f"Only run on {repr(self.supported_devices)}, current device is {device_name}."
                 raise unittest.SkipTest(reason)
             return fn(slf, *args, **kwargs)
-        
+
         return dep_fn
 
 
@@ -214,7 +214,7 @@ class SkipIfNotGteCANNVersion:
     def __init__(self, base_version, module="CANN"):
         self.base_version = base_version
         self.module = module
-    
+
     def __call__(self, fn):
         @wraps(fn)
         def func(slf, *args, **kwargs):

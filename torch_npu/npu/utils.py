@@ -22,7 +22,7 @@ __all__ = ["obfuscation_initialize", "obfuscation_finalize", "obfuscation_calcul
 
 
 def obfuscation_initialize(hidden_size, tp_rank, cmd, *, data_type=None, model_obf_seed_id=0, data_obf_seed_id=0, thread_num=4, obf_coefficient=1.0):
-    return torch_npu.obfuscation_initialize(hidden_size, tp_rank, cmd, data_type=data_type, model_obf_seed_id=model_obf_seed_id, 
+    return torch_npu.obfuscation_initialize(hidden_size, tp_rank, cmd, data_type=data_type, model_obf_seed_id=model_obf_seed_id,
                                             data_obf_seed_id=data_obf_seed_id, thread_num=thread_num, obf_coefficient=obf_coefficient)
 
 
@@ -356,7 +356,7 @@ def is_support_inf_nan():
     return torch_npu._C._npu_is_support_inf_nan()
 
 
-def is_bf16_supported():
+def is_bf16_supported(including_emulation: bool = False):
     torch_npu.npu._lazy_init()
     return torch_npu._C._npu_is_bf16_supported()
 
@@ -490,6 +490,22 @@ def _erase_stream(tensor, stream):
                                 device_type=stream.device_type)
 
 
-def set_op_timeout_ms(timeout):
+def _set_op_timeout_ms_impl(timeout):
     torch_npu.npu._lazy_init()
     torch_npu._C._npu_set_op_timeout_ms(timeout)
+
+_npu_lib = torch.library.Library("npu", "FRAGMENT")
+if not hasattr(torch.ops.npu, "set_op_timeout_ms"):
+    _npu_lib.define("set_op_timeout_ms(int timeout) -> None")
+    _npu_lib.impl("set_op_timeout_ms", _set_op_timeout_ms_impl, "PrivateUse1")
+    _npu_lib.impl("set_op_timeout_ms", _set_op_timeout_ms_impl, "BackendSelect")
+    _npu_lib.impl("set_op_timeout_ms", _set_op_timeout_ms_impl, "CPU")
+
+    torch.fx.node.has_side_effect(torch.ops.npu.set_op_timeout_ms.default)
+
+    @torch.library.register_fake("npu::set_op_timeout_ms")
+    def _set_op_timeout_ms_meta(timeout):
+        pass
+
+def set_op_timeout_ms(timeout):
+    torch.ops.npu.set_op_timeout_ms(timeout)

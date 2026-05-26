@@ -100,10 +100,10 @@ class MetaCompiler:
             shutil.rmtree(failed_subgraph_dump_path)
         shutil.copytree(subgraph_dump_path, failed_subgraph_dump_path)
         return failed_subgraph_dump_path
-        
-    def acc_compare_and_dump(self, *args, **kwargs):
+
+    def acc_compare_and_dump(self, *args, dump_data=True, **kwargs) -> Tuple[Any, bool]:
         self.register_fx_fallback(self.kernel_meta)
-        
+
         output, has_acc_error = check_accuracy_mlir(
             *args,
             kernel_name=self.kernel_name,
@@ -112,18 +112,18 @@ class MetaCompiler:
             dynamic=self.dynamic,
             **kwargs
         )
-        
+
         if anir_config.fx_subgraph_dump_path:
             data = args
-            if has_acc_error:
+            if dump_data and has_acc_error:
                 data_dump_path = self.fx_subgraph_dump('acc_failed')
                 self.data_dump_fake(*data, dump_path=data_dump_path)
 
         torch.npu.synchronize()
         self.launchers = [self.launchers[0]]
         self.is_fallback_kernels = [self.is_fallback_kernels[0]]
-        
-        return output
+
+        return output, not has_acc_error
 
     def compile(self, *args, **kwargs):
         raise NotImplementedError
@@ -144,7 +144,7 @@ class MetaCompiler:
             if not torch.is_tensor(arg):
                 args_new = args_new + (arg,)
                 continue
-            args_new = args_new + (arg, arg, 0) + arg.size() + arg.stride()
+            args_new = args_new + (arg, arg, 0) + tuple(arg.size()) + tuple(arg.stride())
         args_list = list(args_new)
         return args_list
 
@@ -268,7 +268,7 @@ class MetaCompiler:
         launcher = self.launchers[launcher_idx]
         is_fallback_kernel = self.is_fallback_kernels[launcher_idx]
         if anir_config.online_acc_comp and not is_fallback_kernel:
-            output = self.acc_compare_and_dump(*args_list, **kwargs)
+            output, _ = self.acc_compare_and_dump(*args_list, **kwargs)
             self._copy_back_non_contiguous_outputs(args_list, original_outputs)
             return output
         if self.dynamic and not is_fallback_kernel:

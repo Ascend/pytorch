@@ -575,6 +575,9 @@
   "torch_npu.distributed.reinit_process_group": {
     "signature": "(group=None, rebuild_link=True)"
   },
+  "torch_npu.distributed.tensor.experimental.context_parallel": {
+    "signature": "(mesh: torch.distributed.device_mesh.DeviceMesh, *, buffers: list[torch.Tensor] | None = None, buffer_seq_dims: list[int] | None = None, no_restore_buffers: set[torch.Tensor] | None = None) -> collections.abc.Generator[None, None, None]"
+  },
   "torch_npu.distributed.rpc.options.NPUTensorPipeRpcBackendOptions": {
     "signature": "(*, num_worker_threads: int = 16, rpc_timeout: float = 60.0, init_method: str = 'env://', device_maps: Optional[Dict[str, Dict[Union[int, str, torch.device], Union[int, str, torch.device]]]] = None, devices: Optional[List[Union[int, str, torch.device]]] = None, _transports: Optional[List] = None, _channels: Optional[List] = None)"
   },
@@ -1077,7 +1080,7 @@
     "signature": "()"
   },
   "torch_npu.npu.is_bf16_supported": {
-    "signature": "()"
+    "signature": "(including_emulation: bool = False)"
   },
   "torch_npu.npu.is_initialized": {
     "signature": "()"
@@ -1130,6 +1133,12 @@
   "torch_npu.npu.mstx.mark": {
     "signature": "(message: str, stream=None, domain: str = 'default')"
   },
+  "torch_npu.npu.mstx.range_push": {
+    "signature": "(message: str, stream=None, domain: str = 'default') -> int"
+  },
+  "torch_npu.npu.mstx.range_pop": {
+    "signature": "(domain: str = 'default') -> int"
+  },
   "torch_npu.npu.mstx.range_start": {
     "signature": "(message: str, stream=None, domain: str = 'default') -> int"
   },
@@ -1138,6 +1147,9 @@
   },
   "torch_npu.npu.mstx.mstx_range": {
     "signature": "(message: str, stream=None, domain: str = 'default')"
+  },
+  "torch_npu.npu.mstx.annotate": {
+    "signature": "(message: str = '', stream=None, domain: str = 'default')"
   },
   "torch_npu.npu.reset_accumulated_memory_stats": {
     "signature": "(device=None)"
@@ -1427,6 +1439,15 @@
   "torch_npu.npu.mstx.mstx.mstx_range": {
     "signature": "(message: str, stream=None, domain: str = 'default')"
   },
+  "torch_npu.npu.mstx.mstx.range_push": {
+    "signature": "(message: str, stream=None, domain: str = 'default') -> int"
+  },
+  "torch_npu.npu.mstx.mstx.range_pop": {
+    "signature": "(domain: str = 'default') -> int"
+  },
+  "torch_npu.npu.mstx.mstx.annotate": {
+    "signature": "(message: str = '', stream=None, domain: str = 'default')"
+  },
   "torch_npu.npu.npu_config.finalize_dump": {
     "signature": "()"
   },
@@ -1590,7 +1611,7 @@
     "signature": "()"
   },
   "torch_npu.npu.utils.is_bf16_supported": {
-    "signature": "()"
+    "signature": "(including_emulation: bool = False)"
   },
   "torch_npu.npu.utils.is_support_inf_nan": {
     "signature": "()"
@@ -2311,6 +2332,9 @@
   },
   "torch_npu.distributed.run.parse_args": {
     "signature": "(args)"
+  },
+  "torch_npu.distributed.pipelining.pipeline": {
+    "signature": "(module: 'torch.nn.Module', mb_args: 'tuple[Any, ...]', mb_kwargs: 'Optional[dict[str, Any]]' = None, split_spec=None, split_policy=None, mode: 'Optional[str]' = None, atomic_units: 'Optional[list[str]]' = None)"
   },
   "torch_npu.distributed.reduce_scatter_tensor_uneven": {
     "signature": "(output, input, input_split_sizes=None, op=<RedOpType.SUM: 0>, group=None, async_op=False)"

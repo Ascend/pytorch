@@ -184,7 +184,7 @@ def _register_npu_inductor_fallbacks():
         if op in FALLBACK_LIST and op not in decompositions \
             and isinstance(op, (torch._ops.OpOverloadPacket, torch._ops.OpOverload, torch._ops.HigherOrderOperator)):
             make_fallback(op)
-            
+
     # 把不在白名单的op fallback
     for op in lowerings:
         if op not in decompositions and op not in gen_set:
@@ -203,7 +203,7 @@ def _register_npu_inductor_fallbacks():
     for op in overload_op_set:
         if op in lowerings:
             del lowerings[op]
-            
+
     if npu_config.dump_fx_graph:
         from .lowering_fx import _register_npu_inductor_fallbacks_fx
         (squeeze, _validate_dim, div, square, sub, sum_) = _register_npu_inductor_fallbacks_fx(make_reduction)
@@ -358,7 +358,7 @@ def get_nested_attr(obj, attr_path, default=None):
         return reduce(getattr, attr_path.split('.'), obj)
     except AttributeError:
         return default
-    
+
 
 def _fallback_ops_with_meta():
     """
@@ -379,7 +379,7 @@ def _fallback_ops_with_meta():
             name, overload = name_with_overload.rsplit(".", 1)
         else:
             name, overload = name_with_overload, "default"
-            
+
         normalized_path = f"{namespace}.{name}.{overload}"
         op_overload = get_nested_attr(torch.ops, normalized_path)
         if not isinstance(op_overload, torch._ops.OpOverload):

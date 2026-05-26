@@ -17,7 +17,7 @@ class TestNpuStrideCopy(TestCase):
         output = torch_npu.npu_stride_copy(input1, size, stride, storage_offset)
         output = output.cpu().numpy()
         return output
-    
+
     @unittest.skip("skip test_npu_stride_copy now")
     def test_npu_stride_copy(self):
         shape_format = [

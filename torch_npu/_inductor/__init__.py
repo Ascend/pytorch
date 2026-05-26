@@ -149,12 +149,12 @@ _BACKEND_LOADERS = {
     "default": _load_triton_backend,
 }
 
- 	 
+
 def _load_backend():
     backend = _get_backend()
     loader = _BACKEND_LOADERS.get(backend, _load_triton_backend)
     loader()
     from ..utils._dynamo import _InductorNpuRegistry
     _InductorNpuRegistry._loaded_backend = backend
-    
+
 _load_backend()

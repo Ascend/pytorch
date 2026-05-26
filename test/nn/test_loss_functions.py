@@ -279,7 +279,7 @@ class TestLossFunctions(TestCase):
         npu_output = F.hinge_embedding_loss(npu_input, npu_targets)
 
         self.assertRtolEqual(cpu_output.detach().numpy(), npu_output.detach().cpu().numpy())
-    
+
     @unittest.skip("skip test_kl_div now")
     def test_kl_div(self):
         input1 = torch.randn(5, 3)

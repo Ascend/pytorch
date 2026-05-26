@@ -27,19 +27,19 @@ class ParamTensorBean:
         self._key = self._constant_data[0]
         self._module_params = None
         self._optimizer_params = None
-        
+
         module_params = self._origin_data.get(self.TLV_TYPE_DICT.get(Constant.MODULE_PARAM))
         if module_params is not None:
             self._module_params = [param for param in module_params.split('}')]
-        
+
         optimizer_params = self._origin_data.get(self.TLV_TYPE_DICT.get(Constant.OPTIMIZER_PARAM))
         if optimizer_params is not None:
             self._optimizer_params = [param for param in optimizer_params.split('}')]
-    
+
     @property
     def key(self) -> int:
         return self._key
-    
+
     @property
     def params(self) -> KeyAndParam:
         return KeyAndParam(self._key, self._module_params, self._optimizer_params)

@@ -140,7 +140,7 @@ class TraceStepTimeDbParser(BaseParser):
             return
         if TorchDb().judge_table_exist(DbConstant.TABLE_COMPUTE_TASK_INFO):
             sql = """
-            SELECT 
+            SELECT
                 STRING_IDS.value,
                 task.startNs,
                 task.endNs,
@@ -163,14 +163,14 @@ class TraceStepTimeDbParser(BaseParser):
                     connectionId
                 FROM COMMUNICATION_OP c
             )
-            SELECT 
+            SELECT
                 comm.opName,
                 comm.startNs,
                 comm.endNs,
                 t.deviceId
             FROM comm_info comm
             JOIN (
-                SELECT 
+                SELECT
                     connectionId,
                     deviceId
                 FROM TASK

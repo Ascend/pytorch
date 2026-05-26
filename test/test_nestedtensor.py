@@ -84,13 +84,13 @@ class TestNestedTensor(TestCase):
         self.assertEqual(len(nt_as_list), len(nt_list))
         self.assertEqual(nt_as_list[0], nt_list[0])
         self.assertEqual(nt_as_list[1], nt_list[1])
-    
+
     def test_unbind_and_asnested_int64(self):
         a = torch.tensor([[1, 2, 3], [4, 5, 6]])
         b = torch.tensor([[7, 8], [10, 11]])
         self._test_unbind_case(a, b)
         self._test_asnested_case(a, b)
-        
+
     def test_unbind_and_asnested_float32(self):
         a = torch.tensor([[1, 2, 3], [4, 5, 6]], dtype=torch.float32)
         b = torch.tensor([[7, 8], [10, 11]], dtype=torch.float32)
@@ -101,7 +101,7 @@ class TestNestedTensor(TestCase):
         a = torch.tensor([[], []])
         b = torch.tensor([[], [], []])
         self._test_unbind_case(a, b)
-        self._test_asnested_case(a, b) 
+        self._test_asnested_case(a, b)
 
     def test_default_options_nested_tensor(self):
         default_nested_tensor = torch.nested.nested_tensor([], device="npu:0")
@@ -111,12 +111,12 @@ class TestNestedTensor(TestCase):
         self.assertEqual(default_nested_tensor.layout, default_tensor.layout)
         self.assertEqual(default_nested_tensor.dim(), default_tensor.dim())
         self.assertEqual(default_nested_tensor.requires_grad, default_tensor.requires_grad)
-    
+
     def test_nested_tensor_errsize(self):
         nt = torch.nested.nested_tensor([torch.tensor([[1, 2, 3], [4, 5, 6]]).npu(), torch.tensor([[7, 8], [10, 11], [12, 13]]).npu()])
         self.assertEqual(nt.size(0), 2)
         self.assertRaisesRegex(RuntimeError,
-        "Given dimension 1 is irregular and does not have a size", 
+        "Given dimension 1 is irregular and does not have a size",
         lambda: nt.size(1),
         )
 

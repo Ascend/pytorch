@@ -390,7 +390,7 @@ at::ScalarType CalcuOpUtil::ConvertToScalarType(const aclDataType data_type)
             std::string("aclDataType:") + std::to_string(data_type) + " has not been supported",
             OPS_ERROR(ErrCode::NOT_SUPPORT))
     }
-    
+
     return iter->second;
 }
 
