@@ -6,17 +6,9 @@ import os
 # Disable autoloading before running 'import torch' to avoid circular dependencies
 ORG_AUTOLOAD = os.getenv("TORCH_DEVICE_BACKEND_AUTOLOAD", "1")
 os.environ["TORCH_DEVICE_BACKEND_AUTOLOAD"] = "0"
+os.environ["TORCH_WARM_POOL"] = "0"
 
 import torch
-
-# Import-time env access logging patch. Keep early to capture initialization-time getenv.
-import torch_npu.utils.patch_getenv
-from torch_npu._init.core.module_loader import _load_core_modules
-from torch_npu._init.core.optional_features import _enable_optional_features
-from torch_npu._init.core.runtime_lifecycle import _initialize_runtime_lifecycle
-from torch_npu._init.patches.patch_manager import _apply_all_patches
-from torch_npu._init.registry.registry_manager import _register_components
-from torch_npu.version import __version__ as __version__
 
 
 def _check_device_conflict():
@@ -40,23 +32,33 @@ def _check_device_conflict():
         )
 
 
-def _initialize():
-    # 1. pre-init checks
-    _check_device_conflict()
+_check_device_conflict()
 
-    # 2. core modules, registration side effects and public API export
+
+# Import-time env access logging patch. Keep early to capture initialization-time getenv.
+import torch_npu.utils.patch_getenv
+from torch_npu._init.core.module_loader import _load_core_modules
+from torch_npu._init.core.optional_features import _enable_optional_features
+from torch_npu._init.core.runtime_lifecycle import _initialize_runtime_lifecycle
+from torch_npu._init.patches.patch_manager import _apply_all_patches
+from torch_npu._init.registry.registry_manager import _register_components
+from torch_npu.version import __version__ as __version__
+
+
+def _initialize():
+    # 1. core modules, registration side effects and public API export
     _load_core_modules()
 
-    # 3. backend and framework integration registration
+    # 2. backend and framework integration registration
     _register_components()
 
-    # 4. apply patches
+    # 3. apply patches
     _apply_all_patches()
 
-    # 5. final extension barrier and shutdown hook
+    # 4. final extension barrier and shutdown hook
     _initialize_runtime_lifecycle()
 
-    # 6. optional runtime features 
+    # 5. optional runtime features 
     _enable_optional_features()
 
 
