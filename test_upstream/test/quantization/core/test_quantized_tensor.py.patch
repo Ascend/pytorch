@@ -1,22 +1,29 @@
 diff --git a/test/quantization/core/test_quantized_tensor.py b/test/quantization/core/test_quantized_tensor.py
-index 5517b9d8e..d1022a11f 100644
+index 4dc56e0..1cf9343 100644
 --- a/test/quantization/core/test_quantized_tensor.py
 +++ b/test/quantization/core/test_quantized_tensor.py
-@@ -577,12 +577,12 @@ class TestQuantizedTensor(TestCase):
-     @unittest.skipIf(not torch.cuda.is_available(), 'CUDA is not available')
+@@ -574,18 +574,16 @@ class TestQuantizedTensor(TestCase):
+             self.assertEqual(qtr.int_repr(), qtr_cuda.int_repr())
+             self.assertTrue(np.allclose(dqtr, dqtr_cuda.cpu()))
+ 
+-    @unittest.skipIf(not torch.cuda.is_available(), 'CUDA is not available')
      def test_compare_per_channel_device_numerics(self):
          dtype_and_zero_types = [
 -            (torch.quint8, torch.float),
 -            (torch.qint8, torch.float),
-+            (torch.quint8, torch.int32),
-+            (torch.qint8, torch.int32),
-             #  (torch.qint32, torch.float) not supported for quantize_per_channel
+-            #  (torch.qint32, torch.float) not supported for quantize_per_channel
 -            (torch.quint8, torch.long),
 -            (torch.qint8, torch.long),
 -            (torch.qint32, torch.long),
 +            (torch.quint8, torch.int32),
 +            (torch.qint8, torch.int32),
++            (torch.quint8, torch.int32),
++            (torch.qint8, torch.int32),
 +            (torch.qint32, torch.int32),
          ]
          axis = 1
-         device = torch.device('cuda')
+-        device = torch.device('cuda')
++        device = torch.device('npu')
+         for _ in range(20):
+             for dtype, zero_type in dtype_and_zero_types:
+                 r = torch.rand(2, 2) * 10
