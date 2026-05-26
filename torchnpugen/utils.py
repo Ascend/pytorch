@@ -507,6 +507,13 @@ const DeviceGuard device_guard(device_or_default(device));"""
 
             op_hook_blacklist = ["is_pinned", "_pin_memory"]
             op_hook_check = ""
+            memory_overlap_check = ""
+            if op_key == "index_copy_":
+                memory_overlap_check = (
+                    "    at_npu::native::assert_no_internal_overlap(self);\n"
+                    "    at_npu::native::assert_no_overlap(self, index);\n"
+                    "    at_npu::native::assert_no_overlap(self, source);\n"
+                )
 
             if is_opapi(op_key) and not is_op_valid(op_key):
                 op_api_impl_name = f"{metadata.cpp_namespace}::NPUNativeOpApiFunctions::{metadata.kernel}"
@@ -594,6 +601,7 @@ namespace {{
 {device_check}
 {unsafe_tensor_check}
 {device_guard}
+{memory_overlap_check}
 {record_func_def}
 {op_hook_check}
 {return_code}
