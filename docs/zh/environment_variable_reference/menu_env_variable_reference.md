@@ -62,6 +62,7 @@
   - [（beta）INDUCTOR\_ASCEND\_CHECK\_ACCURACY](INDUCTOR_ASCEND_CHECK_ACCURACY.md)
   - [NPU\_INDUCTOR\_FALLBACK\_LIST](NPU_INDUCTOR_FALLBACK_LIST.md)
   - [（beta）TORCHINDUCTOR\_ENABLE\_MFUSION](TORCHINDUCTOR_ENABLE_MFUSION.md)
+  - [TORCHINDUCTOR\_USE\_AKG](TORCHINDUCTOR_USE_AKG.md)
 
 - [附录](appendix.md)
   - [在进行模型分布式训练时遇到报错“RuntimeError: The Inner Error ...”](runtimeerror_Inner_Error.md)
