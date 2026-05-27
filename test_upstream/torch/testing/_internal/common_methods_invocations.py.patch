@@ -84,10 +84,11 @@ index 9b1665c67d0..d7b4afe17f7 100644
          ),
      ),
      ElementwiseUnaryPythonRefInfo(
-@@ -24212,6 +24226,22 @@ python_ref_db = [
+@@ -24212,7 +24226,23 @@ python_ref_db = [
              DecorateInfo(unittest.skip("Skipped!"), 'TestUnaryUfuncs',
                           'test_reference_numerics_large',
-                          dtypes=[torch.chalf, torch.complex64, torch.cdouble], device_type='cuda')
+-                         dtypes=[torch.chalf, torch.complex64, torch.cdouble], device_type='cuda')
++                         dtypes=[torch.chalf, torch.complex64, torch.cdouble], device_type='cuda'),
 +
 +            # cuda implementation is off-by-one on some inputs due to precision issues
 +            # https://github.com/pytorch/pytorch/issues/82230
