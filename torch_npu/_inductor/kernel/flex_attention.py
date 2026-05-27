@@ -622,7 +622,7 @@ flex_attention_template = NPUTritonTemplate(
 
 def _get_npu_config(query, mode: Mode) -> tuple[int, int, int, int]:
     dtype = query.get_dtype()
-    head_dim = V.graph.sizevars.evaluate_static_shape(query.get_size()[-1])
+    head_dim = V.graph.sizevars.guard_int(query.get_size()[-1])
     fwd_config = None
 
     if mode == Mode.fwd:
@@ -1420,7 +1420,7 @@ def _register_npu_inductor_flex_attention():
         kernel_options = dict(kernel_options)
         # Mark symbols in custom kernel options as static shapes and add guards.
         kernel_options = {
-            k: V.graph.sizevars.evaluate_static_shape(v)
+            k: V.graph.sizevars.guard_int(v)
             if isinstance(v, sympy.Symbol)
             else v
             for k, v in kernel_options.items()
@@ -1541,8 +1541,8 @@ def _register_npu_inductor_flex_attention():
                 configs = [(c[0], c[1], c[2], 1) for c in configs]
 
         # Mark SPARSE_KV_BLOCK_SIZE & SPARSE_Q_BLOCK_SIZE as static shapes and add guards.
-        SPARSE_KV_BLOCK_SIZE = V.graph.sizevars.evaluate_static_shape(SPARSE_KV_BLOCK_SIZE)
-        SPARSE_Q_BLOCK_SIZE = V.graph.sizevars.evaluate_static_shape(SPARSE_Q_BLOCK_SIZE)
+        SPARSE_KV_BLOCK_SIZE = V.graph.sizevars.guard_int(SPARSE_KV_BLOCK_SIZE)
+        SPARSE_Q_BLOCK_SIZE = V.graph.sizevars.guard_int(SPARSE_Q_BLOCK_SIZE)
 
         # Note, we don't need to pass in the captured buffers explicitly
         # because they're implicitly added by the score_mod function
@@ -1708,7 +1708,7 @@ def _register_npu_inductor_flex_attention():
         kernel_options = dict(kernel_options)
         # Mark symbols in custom kernel options as static shapes and add guards.
         kernel_options = {
-            k: V.graph.sizevars.evaluate_static_shape(v)
+            k: V.graph.sizevars.guard_int(v)
             if isinstance(v, sympy.Symbol)
             else v
             for k, v in kernel_options.items()
@@ -1825,8 +1825,8 @@ def _register_npu_inductor_flex_attention():
 
         set_head_dim_values(kernel_options, qk_head_dim, v_head_dim, V.graph.sizevars)
 
-        SPARSE_Q_BLOCK_SIZE = V.graph.sizevars.evaluate_static_shape(SPARSE_Q_BLOCK_SIZE)
-        SPARSE_KV_BLOCK_SIZE = V.graph.sizevars.evaluate_static_shape(SPARSE_KV_BLOCK_SIZE)
+        SPARSE_Q_BLOCK_SIZE = V.graph.sizevars.guard_int(SPARSE_Q_BLOCK_SIZE)
+        SPARSE_KV_BLOCK_SIZE = V.graph.sizevars.guard_int(SPARSE_KV_BLOCK_SIZE)
 
         choices: list[Any] = []
         configs: list[tuple[int, int, int, int]] = []

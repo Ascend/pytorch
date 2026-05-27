@@ -240,7 +240,6 @@ class NPUTritonTemplate(TritonTemplate):
             kpack=kwargs.get("kpack", 2),
             input_tensor_meta=TensorMeta.from_irnodes(full_input_nodes),  # type: ignore[arg-type]
             output_tensor_meta=TensorMeta.from_irnodes(layout),
-            workspace_arg=workspace_arg,
         )
 
         return TritonTemplateCaller(
@@ -290,12 +289,16 @@ class NPUTritonTemplateKernel(TritonTemplateKernel):
         grid_fn: Callable,
         meta: dict[str, Any],
         call_sizes: list[sympy.Expr],
+        num_consumer_groups: int = 0,
+        num_buffers_warp_spec: int = 0,
         use_jit: bool = False,
         prefix_args: int = 0,
         suffix_args: int = 0,
         epilogue_fn: Callable = identity,
         subgraphs: Optional[list[ir.ComputedBuffer]] = None,
         workspace_arg: Optional[Any] = None,
+        prologue_loads_all_inputs: bool = False,
+        hint_override: Optional[int] = None,
     ) -> None:
         """Initialize NPU Triton template kernel.
 
@@ -317,21 +320,25 @@ class NPUTritonTemplateKernel(TritonTemplateKernel):
             workspace_arg: Workspace argument
         """
         super().__init__(
-            kernel_name,
-            input_nodes,
-            output_node,
-            defines,
-            num_stages,
-            num_warps,
-            grid_fn,
-            meta,
-            call_sizes,
-            use_jit,
-            prefix_args,
-            suffix_args,
-            epilogue_fn,
-            subgraphs,
-            workspace_arg,
+            kernel_name=kernel_name,
+            input_nodes=input_nodes,
+            output_node=output_node,
+            defines=defines,
+            num_stages=num_stages,
+            num_warps=num_warps,
+            grid_fn=grid_fn,
+            meta=meta,
+            call_sizes=call_sizes,
+            num_consumer_groups=num_consumer_groups,
+            num_buffers_warp_spec=num_buffers_warp_spec,
+            use_jit=use_jit,
+            prefix_args=prefix_args,
+            suffix_args=suffix_args,
+            epilogue_fn=epilogue_fn,
+            subgraphs=subgraphs,
+            workspace_arg=workspace_arg,
+            prologue_loads_all_inputs=prologue_loads_all_inputs,
+            hint_override=hint_override,
         )
 
     def def_kernel(self, *argnames: str) -> str:

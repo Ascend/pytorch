@@ -273,7 +273,7 @@ class NPUTritonScheduling(TritonScheduling):
             kernel_name, src_code = self.define_kernel(src_code, node_schedule, kernel, traced_graph_hash)
 
         self.codegen_comment(node_schedule)
-        kernel.call_kernel(kernel_name, template_node.node, template_node)
+        kernel.call_kernel(kernel_name, template_node.node)
 
         V.graph.removed_buffers |= kernel.removed_buffers
         V.graph.inplaced_to_remove |= kernel.inplaced_to_remove
