@@ -159,6 +159,40 @@ def register_inductor_npu():
     _InductorNpuRegistry.register_inductor_npu()
 
 
+def _resolve_npu_backend_from_wrapper(wrapper) -> str:
+    """Resolve npu backend with priority: wrapper options > global config > env."""
+    wrapper_backend = wrapper.config.get("npu_backend")
+    if wrapper_backend not in (None, "", "default"):
+        return wrapper_backend
+
+    global_backend = getattr(torch._inductor.config, "npu_backend", None)
+    if global_backend not in (None, "", "default"):
+        return global_backend
+
+    return os.getenv("TORCHINDUCTOR_NPU_BACKEND", "default")
+
+
+class _NpuBackendScope:
+    """Apply resolved npu backend for one compile invocation and restore env."""
+
+    def __init__(self, backend: str):
+        self.backend = backend
+        self._old_env = None
+
+    def __enter__(self):
+        self._old_env = os.environ.get("TORCHINDUCTOR_NPU_BACKEND")
+        os.environ["TORCHINDUCTOR_NPU_BACKEND"] = self.backend
+        register_inductor_npu()
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        if self._old_env is None:
+            os.environ.pop("TORCHINDUCTOR_NPU_BACKEND", None)
+        else:
+            os.environ["TORCHINDUCTOR_NPU_BACKEND"] = self._old_env
+        return False
+
+
 def patch_inductor_wrapper():
     from typing import Any
 
@@ -168,7 +202,7 @@ def patch_inductor_wrapper():
 
     src_init = _TorchCompileInductorWrapper.__init__
     src_get_config_copy = ConfigModule.get_config_copy
-
+    src_call = _TorchCompileInductorWrapper.__call__
 
     def new_get_config_copy(self) -> dict[str, Any]:
         ori_dict = src_get_config_copy(self)
@@ -189,15 +223,18 @@ def patch_inductor_wrapper():
             src_init(self, mode, options, dynamic, name)
         else:
             src_init(self, mode, options, dynamic)
-        if (
-            self.config.get("npu_backend") == "mlir"
-            or torch._inductor.config.npu_backend == "mlir"
-        ):
-            os.environ["TORCHINDUCTOR_NPU_BACKEND"] = "mlir"
-            device_id = torch_npu.npu.current_device()
-            torch_npu._C._recovery_all_npu_stream(device_id)
-        register_inductor_npu()
+        backend = _resolve_npu_backend_from_wrapper(self)
+        if backend == "mlir" or backend == "dvm":
+            with _NpuBackendScope(backend):
+                device_id = torch_npu.npu.current_device()
+                torch_npu._C._recovery_all_npu_stream(device_id)
 
+    def new_call(self, model_, inputs_):
+        backend = _resolve_npu_backend_from_wrapper(self)
+        with _NpuBackendScope(backend):
+            return src_call(self, model_, inputs_)
+
+    _TorchCompileInductorWrapper.__call__ = new_call
     _TorchCompileInductorWrapper.__init__ = new_init
     ConfigModule.get_config_copy = new_get_config_copy
     torch._inductor.config.get_config_copy()
