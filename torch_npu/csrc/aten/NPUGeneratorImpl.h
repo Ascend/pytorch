@@ -102,7 +102,7 @@ struct PhiloxNpuState {
         offset_.val = offset;
     }
     // Called if graph capture is underway
-    PhiloxNpuState(at::Tensor* seed, at::Tensor* offset_extragraph, uint32_t offset_intragraph, bool secondary_stream_capture_state = false)
+    PhiloxNpuState(at::Tensor* seed, at::Tensor* offset_extragraph, uint64_t offset_intragraph, bool secondary_stream_capture_state = false)
     {
         seed_.ptr = seed;
         offset_.ptr = offset_extragraph;
@@ -121,7 +121,7 @@ struct PhiloxNpuState {
 
     Payload seed_{};
     Payload offset_{};
-    uint32_t offset_intragraph_{0};
+    uint64_t offset_intragraph_{0};
     bool captured_ = false;
     bool secondary_stream_capture_state_ = false;
 };
@@ -130,7 +130,7 @@ struct PhiloxNpuState {
 struct NPUGeneratorState : public c10::intrusive_ptr_target {
     uint64_t seed_;
     uint64_t philox_offset_per_thread_;
-    uint32_t offset_intragraph_;
+    uint64_t offset_intragraph_;
     bool capturing_{};
     bool secondary_stream_capture_state_{};
     std::unordered_set<c10_npu::NPUGraph*> registered_graphs_;
@@ -140,7 +140,7 @@ struct NPUGeneratorState : public c10::intrusive_ptr_target {
     NPUGeneratorState(
         uint64_t seed = c10::default_rng_seed_val,
         uint64_t philox_offset_per_thread = 0,
-        uint32_t offset_intragraph = 0)
+        uint64_t offset_intragraph = 0)
         : seed_(seed),
         philox_offset_per_thread_(philox_offset_per_thread),
         offset_intragraph_(offset_intragraph) {}
