@@ -14,6 +14,8 @@ DECOMPOSITION_OVERLOAD_OP = [
     aten.addmm,
     aten.gelu,
     aten.native_layer_norm,
+    aten.expm1,
+    aten.erfc,
 ]
 
 if is_ascend950:
