@@ -15,8 +15,8 @@ index 8fc9f2cd968..88c92a1655b 100644
              f"device ({intersect}) appeared in both except_for and only_for"
          )
  
-+    if except_for is not None and isinstance(except_for, str):
 +    privateuse1_backend_name = ""
++    if except_for is not None and isinstance(except_for, str):
 +        except_for = [except_for]
 +    if only_for is not None and isinstance(only_for, str):
 +        only_for = [only_for]
