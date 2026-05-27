@@ -39,7 +39,7 @@
 
     > [!NOTE]
     >
-    > segment\_size\_mb已废弃，建议迁移至large\_segment\_size\_mb。large\_segment\_size\_mb同时支持虚拟内存特性和非虚拟内存特性场景，功能更全面。
+    > segment\_size\_mb已废弃，建议使用large\_segment\_size\_mb。large\_segment\_size\_mb同时支持虚拟内存特性和非虚拟内存特性场景，功能更全面。
 
 - roundup\_power2\_divisions:<value\> 或 roundup\_power2\_divisions:\[<size1\>:<value1\>,<size2\>:<value2\>,...\]，将请求的分配大小向上舍入到最近的2的幂次分段，从而更高效地复用内存块。
 
@@ -72,13 +72,13 @@
 
     增大large\_segment\_size\_mb可以减少内存申请及内存映射接口的调用次数，从而提升内存申请效率，但也可能带来更多的内存碎片。因此，在内存使用极限的场景下，请谨慎调大此值。
 
-    与segment\_size\_mb同时配置时，large\_segment\_size\_mb优先生效。与page\_size同时配置时，page\_size优先生效。该配置项不支持与max\_split\_size\_mb同时配置时max\_split\_size\_mb的值小于large\_segment\_size\_mb的值。
+    与segment\_size\_mb同时配置时，仅large\_segment\_size\_mb生效。与page\_size同时配置时，仅page\_size生效。与max\_split\_size\_mb同时配置时，要求max\_split\_size\_mb >= large\_segment\_size\_mb。
 
 - per\_process\_memory\_fraction:<value\>，限制当前进程可使用的NPU显存比例。
 
-    取值范围为\[0.0,1.0\]，默认值为1.0，即不限制进程显存使用。配置后，缓存分配器在初始化时会根据设备总显存和配置的比例计算当前进程可使用的最大显存，超出限制的内存申请将触发OOM（Out of Memory，内存不足）错误。
+    取值范围为\[0.0,1.0\]，表示可用的设备显存比例，默认值为1.0，即不限制进程显存使用。配置后，框架在初始化时会根据设备总显存和配置的比例计算当前进程可使用的最大显存，超出限制的内存申请将触发OOM（Out of Memory，内存不足）错误。
 
-    该配置项适用于多进程共享同一NPU设备的场景，通过限制每个进程的显存使用比例，避免单个进程占用过多显存导致其他进程OOM。该配置项与garbage\_collection\_threshold配合使用时，垃圾回收阈值基于进程可用显存计算。
+    该配置项适用于多进程共享同一NPU设备的场景，通过限制进程的可用显存的比例，避免单个进程占用过多显存导致其他进程OOM。
 
 > [!NOTE]  
 >
@@ -189,14 +189,9 @@ export PYTORCH_NPU_ALLOC_CONF=expandable_segments:True,large_segment_size_mb:100
     - 特性要求在Ascend Extension for PyTorch 7.3.0以上版本上使用。
     - 该特性主要解决多流场景下，Host侧存在下发性能瓶颈时的系统效率问题。单流、少流场景或者非Host性能瓶颈时，该功能收益不大。
 - large_segment_size_mb使用注意事项：
-    - 配置值必须大于10（单位MB），否则会校验失败。
-    - 与max\_split\_size\_mb同时配置时，max\_split\_size\_mb的值必须大于等于large\_segment\_size\_mb的值，否则会校验失败。
-    - 与segment\_size\_mb同时配置时，large\_segment\_size\_mb优先生效。
-    - 与page\_size同时配置时，page\_size优先生效。
+    - 特性要求在Ascend Extension for PyTorch 26.1.0及以上版本、pytorch >= 2.11.0 上使用。
 - per_process_memory_fraction使用注意事项：
-    - 配置值范围为\[0.0,1.0\]，超出范围会校验失败。
-    - 配置后，缓存分配器在初始化时即生效，运行期间不可动态修改。
-    - 与garbage\_collection\_threshold配合使用时，垃圾回收阈值基于进程可用显存（即总显存乘以per\_process\_memory\_fraction）计算。
+    - 特性要求在Ascend Extension for PyTorch 26.1.0及以上版本、pytorch >= 2.10.0 上使用。
 
 ## 支持的型号
 
