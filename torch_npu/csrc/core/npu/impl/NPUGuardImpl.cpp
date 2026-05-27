@@ -122,9 +122,18 @@ void NPUGuardImpl::destroyEvent(void *event, const c10::DeviceIndex device_index
         return;
     }
     auto acl_event = static_cast<aclrtEvent>(event);
-    NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::queue::LaunchLazyDestroyEventTask(acl_event, device_index));
-    if (!c10_npu::acl::IsExistCreateEventExWithFlag() || c10_npu::option::OptionsManager::GetPerStreamQueue()) {
-        c10_npu::NPUEventManager::GetInstance().QueryAndDestroyEvent();
+    // This function is called in ~WorkHCCL(), can not throw exception here, otherwise it will cause coredump.
+    try {
+        NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::queue::LaunchLazyDestroyEventTask(acl_event, device_index));
+        if (!c10_npu::acl::IsExistCreateEventExWithFlag() || c10_npu::option::OptionsManager::GetPerStreamQueue()) {
+            c10_npu::NPUEventManager::GetInstance().QueryAndDestroyEvent();
+        }
+    } catch (const std::exception& e) {
+        ASCEND_LOGE("destroyEvent failed: %s, event=%p", e.what(), acl_event);
+        (void)aclrtDestroyEvent(acl_event);
+    } catch (...) {
+        ASCEND_LOGE("destroyEvent unknown error, event=%p", acl_event);
+        (void)aclrtDestroyEvent(acl_event);
     }
     ASCEND_LOGI("Event: aclrtDestroyEvent is successfully executed, event=%p", acl_event);
 }
