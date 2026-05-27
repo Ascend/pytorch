@@ -3,6 +3,25 @@ __all__ = ["HiFloat8Tensor", "erase_stream", "matmul_checksum"]
 import os
 
 
+def _is_ascend950():
+    try:
+        import ctypes
+        lib = ctypes.CDLL("libascendcl.so")
+        lib.aclrtGetSocName.restype = ctypes.c_char_p
+        soc_name = lib.aclrtGetSocName()
+        if soc_name and soc_name.decode().startswith("Ascend950"):
+            return True
+    except Exception as e:
+        import logging
+        logging.getLogger("torch_npu").debug(
+            f"Failed to detect SoC version via aclrtGetSocName: {e}")
+    return False
+
+
+# Set TORCH_NPU_USE_COMPATIBLE_IMPL default based on SoC version before C++ init
+if "TORCH_NPU_USE_COMPATIBLE_IMPL" not in os.environ:
+    os.environ["TORCH_NPU_USE_COMPATIBLE_IMPL"] = "1" if _is_ascend950() else "0"
+
 # Disable autoloading before running 'import torch' to avoid circular dependencies
 ORG_AUTOLOAD = os.getenv("TORCH_DEVICE_BACKEND_AUTOLOAD", "1")
 os.environ["TORCH_DEVICE_BACKEND_AUTOLOAD"] = "0"
