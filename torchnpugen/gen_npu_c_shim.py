@@ -17,6 +17,7 @@ from __future__ import annotations
 import difflib
 import os
 import textwrap
+from typing import Optional
 from collections.abc import Sequence
 from dataclasses import dataclass
 
@@ -105,7 +106,7 @@ def _gen_npu_c_shim(
 
 def _get_dispatch_header_path(
     func: NativeFunction,
-    backend_index: BackendIndex | None,
+    backend_index: Optional[BackendIndex],
 ) -> str | None:
     if backend_index is None:
         return None

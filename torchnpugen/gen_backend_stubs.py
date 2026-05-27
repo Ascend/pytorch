@@ -842,7 +842,7 @@ def gen_per_operator_headers(
     fm: FileManager,
     ops_fm: FileManager,
     native_functions: Sequence[NativeFunction],
-    grouped_native_functions: Sequence[NativeFunction | NativeFunctionsGroup],
+    grouped_native_functions: Sequence[Union[NativeFunction, NativeFunctionsGroup]],
     backend_indices: dict[DispatchKey, BackendIndex],
     dispatch_keys: Sequence[DispatchKey],
     selector: "SelectiveBuilder",
@@ -941,9 +941,9 @@ def run(
     source_yaml: str,
     output_dir: str,
     dry_run: bool,
-    impl_path: str | None,
-    op_plugin_impl_path: str | None,
-    op_plugin_yaml_path: str | None,
+    impl_path: Optional[str],
+    op_plugin_impl_path: Optional[str],
+    op_plugin_yaml_path: Optional[str],
     update_aoti_c_shim: bool,
 ) -> None:
     rename_privateuse1_dispatch_key()
