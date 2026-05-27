@@ -1,6 +1,7 @@
 #include <ATen/Functions.h>
 #include <ATen/Tensor.h>
 #include <ATen/Utils.h>
+#include <c10/core/InferenceMode.h>
 #include <c10/core/StreamGuard.h>
 #include <ATen/core/GeneratorForPrivateuseone.h>
 
@@ -113,7 +114,7 @@ void NPUGeneratorState::increase(uint64_t increment)
             offset_intragraph_ % 4 == 0, "RNG offset must be a multiple of 4.");
         // Ensures the increment does not cause overflow.
         TORCH_INTERNAL_ASSERT(
-            offset_intragraph_ <= std::numeric_limits<uint32_t>::max() - increment,
+            offset_intragraph_ <= std::numeric_limits<uint64_t>::max() - increment,
             "Increment causes overflow in the offset value.");
         offset_intragraph_ += increment;
     } else {
@@ -142,6 +143,9 @@ void NPUGeneratorState::register_graph(c10_npu::NPUGraph* graph)
     // and offset on the GPU.
     if (registered_graphs_.empty()) {
         auto options = at::TensorOptions().device(at::kPrivateUse1).dtype(at::kLong);
+        // Keep these tensors mutable outside inference mode. Replay prologue
+        // updates them in-place with fill_().
+        c10::InferenceMode guard(false);
         seed_extragraph_ = at::empty({1}, options);
         offset_extragraph_ = at::empty({1}, options);
     }
@@ -461,7 +465,7 @@ void NPUGeneratorImpl::set_secondary_stream_capture_state(bool secondary_stream_
 PhiloxNpuState NPUGeneratorImpl::philox_npu_state(uint64_t increment)
 {
     if (c10_npu::currentStreamCaptureStatus() != c10_npu::CaptureStatus::None) {
-        uint32_t offset = state_->offset_intragraph_;
+        uint64_t offset = state_->offset_intragraph_;
         state_->increase(increment);
         return PhiloxNpuState(
             &state_->seed_extragraph_,
