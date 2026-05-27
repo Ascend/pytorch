@@ -35,13 +35,6 @@ RUN apt-get update \
     && ln -sf /usr/bin/python3 /usr/bin/python \
     && rm -rf /var/lib/apt/lists/*
 
-# Set pip source
-RUN mkdir -p /root/.pip \
-    && echo "[global]" > /root/.pip/pip.conf \
-    && echo "index-url=https://mirrors.huaweicloud.com/repository/pypi/simple" >> /root/.pip/pip.conf \
-    && echo "trusted-host=mirrors.huaweicloud.com" >> /root/.pip/pip.conf \
-    && echo "timeout=120" >> /root/.pip/pip.conf
-
 # Upgrade pip/setuptools/wheel
 RUN python3 -m pip install --no-cache-dir --upgrade pip setuptools wheel
 
@@ -54,8 +47,8 @@ RUN chmod -R 755 /opt/buildtools/* \
 # Install triton-ascend
 RUN /opt/buildtools/install_triton.sh 3.10
 
-# Install PyTorch and test requirements
-RUN python3 -m pip install --no-cache-dir torch==${PYTORCH_VERSION} --extra-index-url https://download.pytorch.org/whl/cpu \
-    && python3 -m pip install --no-cache-dir -r /opt/buildtools/requirements-test.txt
+# Install PyTorch from official source, then test requirements from PyPI
+RUN python3 -m pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==${PYTORCH_VERSION} \
+    && python3 -m pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu -r /opt/buildtools/requirements-test.txt
 
 WORKDIR /home
