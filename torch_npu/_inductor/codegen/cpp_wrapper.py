@@ -132,98 +132,27 @@ class CppWrapperNpu(CppWrapperGpu):
         # comment at CppWrapperCpu `codegen_subgraph` function.
         return CppWrapperNpu()
 
-    def super_write_header_rewrite(self):
-        """Copied from CppWrapperCpu to:
-        (1) change __file__ path for cpython, so that we can use aoti_runtime in current path.
-        (2) rewrite include path of aoti header file.
-        """
+    def write_header(self):
         if V.graph.is_const_graph:
             # We do not write header for constant graph, it will be written by main module.
             return
 
+        self.header.splice("#include <torch_npu/csrc/inductor/aoti_runtime/model.h>")
+        self.header.splice("#include <torch_npu/csrc/inductor/aoti_runtime/device_utils.h>")
+        self.header.splice("#include <torch_npu/csrc/inductor/aoti_runtime/utils_npu.h>")
+        self.header.splice(f"#include <torch_npu/csrc/inductor/aoti_torch/generated/c_shim_{self.device}.h>")
+
+        if not V.graph.aot_mode:
+            return super().write_header()
+
+        self.add_device_include(self.device)
+
         if V.graph.aot_mode:
-            self.header.splice(
-                """
-                #include <torch_npu/csrc/inductor/aoti_runtime/interface.h>
-                #include <torch_npu/csrc/inductor/aoti_runtime/model.h>
-                #include <torch_npu/csrc/inductor/aoti_runtime/utils_npu.h>
-                """
-            )
             with open(
                 os.path.join(os.path.dirname(__file__), "aoti_runtime", "interface.cpp")
             ) as f:
                 self.header.splice(f.read())
-        else:
-            self.header.splice(
-                """
-                import torch
-                from torch._inductor.codecache import CppWrapperCodeCache
-
-                cpp_wrapper_src = (
-                '''
-                #include <pybind11/pybind11.h>
-                namespace py = pybind11;
-
-                class RAIIPyObject {
-                public:
-                    RAIIPyObject() : obj_(nullptr) {}
-                    RAIIPyObject(PyObject* obj) : obj_(obj) {}
-                    ~RAIIPyObject() {
-                        Py_XDECREF(obj_);
-                    }
-                    RAIIPyObject& operator=(const RAIIPyObject& other) {
-                        if (this != &other) {
-                            Py_XDECREF(obj_);
-                            obj_ = other.obj_;
-                            Py_XINCREF(obj_);
-                        }
-                        return *this;
-                    }
-                    operator PyObject*() {
-                        return obj_;
-                    }
-                    PyObject* get() {
-                        return obj_;
-                    }
-                private:
-                    PyObject* obj_;
-                };
-
-                #include <torch_npu/csrc/inductor/aoti_runtime/device_utils.h>
-                #include <torch_npu/csrc/inductor/aoti_runtime/utils.h>
-                #include <torch_npu/csrc/inductor/aoti_runtime/utils_npu.h>
-                using namespace torch::aot_inductor;
-                """
-            )
-
-        self.header.splice(
-            f"""
-            #include <torch_npu/csrc/inductor/aoti_runtime/arrayref_tensor.h>
-            #include <torch_npu/csrc/inductor/aoti_runtime/thread_local.h>
-            #include <torch_npu/csrc/inductor/aoti_runtime/scalar_to_tensor.h>
-            // Here comment c_shim_npu.h because npu doesn't implement it.
-            // #include <torch_npu/csrc/inductor/aoti_torch/generated/c_shim_{self.device}.h>
-
-            #include <c10/util/generic_math.h>
-            typedef at::Half half;
-            typedef at::BFloat16 bfloat16;
-
-            // Round up to the nearest multiple of {ALIGN_BYTES}
-            [[maybe_unused]] static int64_t align(int64_t nbytes) {{
-              return (nbytes + {ALIGN_BYTES} - 1) & -{ALIGN_BYTES};
-            }}
-            """
-        )
-        extend_aoti_c_shim_include = (
-            f"torch/csrc/inductor/aoti_torch/generated/extend/c_shim_{self.device}.h"
-        )
-        extend_aoti_c_shim_path = os.path.join(
-            os.path.dirname(torch.__file__),
-            "include",
-            extend_aoti_c_shim_include,
-        )
-        if os.path.exists(extend_aoti_c_shim_path):
-            self.header.splice(f"#include <{extend_aoti_c_shim_include}>")
+            self.header.splice("\n")
 
         enable_kernel_profile = config.cpp.enable_kernel_profile and sys.platform in [
             "linux",
@@ -234,20 +163,9 @@ class CppWrapperNpu(CppWrapperGpu):
             # does not provide any ABI compatibility promise.
             self.header.splice("#include <ATen/record_function.h>")
 
-    def write_header(self):
-        if V.graph.is_const_graph:
-            # We do not write header for constant graph, it will be written by main module.
-            return
-
-        self.super_write_header_rewrite()
-        self.header.splice("#include <unistd.h>")
-        self.header.splice("#include <filesystem>")
-        self.header.splice(self.device_codegen.abi_compatible_header())
         self.header.splice(
             maybe_hipify_code_wrapper(self.device_codegen.kernel_driver())
         )
-        self.header.splice("#include <torch_npu/csrc/framework/OpCommand.h>")
-        self.header.splice("#include <runtime/runtime/rt.h>")
 
     def generate_node_numel_expr(self, kernel_name: str, node, numel_expr):
         expr = f"{kernel_name}_{node.name}_numel"
@@ -316,13 +234,44 @@ class CppWrapperNpu(CppWrapperGpu):
             )
             self._triton_call_wrappers[wrapper_name] = npu_wrapper
 
+    @staticmethod
+    def get_device_include_path(device: str) -> str:
+        common_include = f"""
+        #include <fstream>
+        #include <runtime/runtime/rt.h>
+        #include <torch_npu/csrc/core/npu/NPUStream.h>
+        #include <torch_npu/csrc/framework/OpCommand.h>
+        """
+        if V.graph.aot_mode:
+            return f"""
+        {common_include}
+        #include <torch_npu/csrc/inductor/aoti_runtime/model_container.h>
+        #include <torch_npu/csrc/inductor/aoti_include/{device}.h>
+        """
+        return f"""
+        {common_include}
+        #include <torch_npu/csrc/inductor/cpp_wrapper/{device}.h>
+        """
+
     def add_device_include(self, device: str) -> None:
         if device in self.included_devices:
             return
 
         self.included_devices.add(device)
 
-        # todo: add aoti_include, cpp_wrapper, aoti_torch/c implement in csrc/inductor to support extern kernel
+        # Add the default header for this device, plus any C-shim extensions that are
+        # present.
+        self.header.splice(self.get_device_include_path(device))
+        extend_aoti_c_shim_include = (
+            f"torch_npu/csrc/inductor/aoti_torch/generated/extend/c_shim_{self.device}.h"
+        )
+        extend_aoti_c_shim_path = os.path.join(
+            os.path.dirname(torch.__file__),
+            "include",
+            extend_aoti_c_shim_include,
+        )
+        if os.path.exists(extend_aoti_c_shim_path):
+            self.header.splice(f"#include <{extend_aoti_c_shim_include}>")
 
     def generate(self, is_inference):
         with dynamo_timed("CppWrapperNpu.generate", log_pt2_compile_event=True):

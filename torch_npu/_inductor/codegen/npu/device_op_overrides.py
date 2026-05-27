@@ -145,9 +145,9 @@ class NewNPUDeviceOpOverrides(DeviceOpOverrides):
         launch_code = """
             static inline void launchKernel(
                     std::function<int()> launch_call,
-                    std::string&& kernel_name) {
+                    const char* kernel_name) {
                 at_npu::native::OpCommand cmd;
-                cmd.Name(kernel_name.c_str())
+                cmd.Name(kernel_name)
                     .SetCustomHandler(launch_call)
                     .Run();
             }
@@ -155,25 +155,6 @@ class NewNPUDeviceOpOverrides(DeviceOpOverrides):
         extra_code = ""
         source_codes = source_code + load_code + launch_code + extra_code
         return source_codes
-
-    def abi_compatible_header(self):
-        return """
-            #include <fstream>
-            #include <vector>
-            #include <iostream>
-            #include <string>
-            #include <tuple>
-            #include <unordered_map>
-            #include <memory>
-            #include <filesystem>
-
-            #include <assert.h>
-            #include <stdbool.h>
-            #include <sys/syscall.h>
-            #include <torch_npu/csrc/framework/OpCommand.h>
-            #include <torch_npu/csrc/core/npu/NPUStream.h>
-            #include "runtime/runtime/rt.h"
-        """
 
     def cpp_stream_type(self):
         return "aclrtStream"

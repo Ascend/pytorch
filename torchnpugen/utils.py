@@ -25,7 +25,7 @@ from dataclasses import dataclass
 import yaml
 
 import torch
-from torchgen.api.types.signatures import NativeSignature, DispatcherSignature
+from torchgen.api.types.signatures import NativeSignature, DispatcherSignature, CppSignature
 from torchgen.context import native_function_manager
 from torchgen.code_template import CodeTemplate
 from torchgen.model import (
@@ -33,7 +33,6 @@ from torchgen.model import (
     BackendIndex,
     BackendMetadata,
     DispatchKey,
-    is_cuda_dispatch_key,
     NativeFunction,
     NativeFunctionsGroup,
     FunctionSchema,
@@ -41,10 +40,10 @@ from torchgen.model import (
     TensorOptionsArguments,
     SchemaKind,
     DeviceCheckType,
-    Argument,
+    Argument, SelfArgument,
 )
 from torchgen.native_function_generation import pre_group_native_functions
-from torchgen.utils import concatMap
+from torchgen.utils import concatMap, assert_never
 from torchgen.api import cpp
 from torchgen.api.translate import translate
 from torchgen.api.types import Binding, CppSignatureGroup, kernel_signature

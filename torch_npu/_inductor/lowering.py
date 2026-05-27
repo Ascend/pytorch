@@ -1058,6 +1058,11 @@ def _fallback_ops_with_meta():
         FALLBACK_LIST.append(op_overload)
 
 
+def _add_fallback_ops_for_torchgen():
+    from torchgen.aoti.fallback_ops import inductor_fallback_ops
+    from torchnpugen.aoti.fallback_ops import inductor_fallback_ops_npu, inductor_fallback_ops_npu_not_support
+    inductor_fallback_ops = (inductor_fallback_ops | inductor_fallback_ops_npu) - inductor_fallback_ops_npu_not_support
+
 def _enable_full_lowering_fallback():
     ops_to_fallback = list(filter(
         lambda op: op not in decompositions and
@@ -1070,3 +1075,4 @@ def _enable_full_lowering_fallback():
         make_fallback(op)
         FALLBACK_LIST.append(op)
     _fallback_ops_with_meta()
+    _add_fallback_ops_for_torchgen()

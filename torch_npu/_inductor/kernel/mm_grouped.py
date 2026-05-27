@@ -185,7 +185,7 @@ def _tuned_grouped_mm_common(
         group_list, group_type, group_list_type, act_type, output_dtype
     )
     # not support lowering grouped-mm for cpp_wrapper yet
-    if V.graph.cpp_wrapper or not catlass_compatible:
+    if not catlass_compatible:
         return fallback_handler(torch.ops.npu.npu_grouped_matmul.default)(
             mat_a,
             mat_b,

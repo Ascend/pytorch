@@ -13,7 +13,7 @@ Ascend Extension for PyTorch可以通过设置环境变量CPU\_AFFINITY\_CONF来
     >
     > NPU业务绑核区间：当开启绑核特性时，每张NPU卡业务的默认绑核区间为CPU核总数按照NPU卡总数平分后的对应区间，例如，假设环境有160个CPU核和8张NPU卡，则开启绑核时，NPU卡的0业务的绑核区间为\[0,19\]，即第一个八等分后的区间，NPU卡1的业务的绑核区间为\[20,39\]，以此类推；此外，用户也可以通过在环境变量内增加参数来指定某张卡业务的绑核区间，详情见以下的参数设置内容。
 
-参数配置格式CPU\_AFFINITY\_CONF=<mode\>,force:<value0\>,npu<value1\>:<value2\>-<value3\>,npu\_affine:<value4\>。
+参数配置格式：CPU\_AFFINITY\_CONF=<mode\>,force:<value0\>,npu<value1\>:<value2\>-<value3\>,npu\_affine:<value4\>
 
 参数设置：
 

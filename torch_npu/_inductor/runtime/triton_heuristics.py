@@ -1005,10 +1005,12 @@ class NPUCachingAutotuner(CachingAutotuner):
         kernel_name = self.get_fn_name()
         log.info(f"Try to run debug mode for kernel {kernel_name}.")
         if npu_config.dump_fx_graph:
-            if config.triton.cudagraphs:
+            if torch_npu.npu.is_current_stream_capturing():
                 raise RuntimeError(
-                    "Accuracy checking tool (INDUCTOR_ASCEND_CHECK_ACCURACY=1) is not compatible with aclgraph.\n"
-                   "Please set torch._inductor.config.triton.cudagraphs = False before using accuracy checking tool."
+                    "INDUCTOR_ASCEND_CHECK_ACCURACY / INDUCTOR_ASCEND_DUMP_FX_GRAPH "
+                    "is not compatible with aclgraph.\n"
+                    "Please disable aclgraph before enabling INDUCTOR_ASCEND_CHECK_ACCURACY "
+                    "/ INDUCTOR_ASCEND_DUMP_FX_GRAPH, or unset these environment variables."
                 )
             _ = self.data_dump(*args)
 
@@ -1029,7 +1031,6 @@ class NPUCachingAutotuner(CachingAutotuner):
     def run(
         self, *args, stream, benchmark_run=False, **kwargs
     ):  # type:ignore[override]
-        xnumel_names = {'x0_numel', 'xnumel', 'r0_numel', 'y0_numel', 'rnumel', 'n_elements'}
         if self.triton_interpret:
             args, grid = self._interpret_args_grid(args, self.configs[0])
             copied_kwargs = copy.copy(self.configs[0].kwargs)
@@ -1473,7 +1474,12 @@ def persistent_reduction(
         heuristic_type=HeuristicType.PERSISTENT_REDUCTION,
     )
 
-def foreach(size_hints, triton_meta, num_warps, filename=None, inductor_meta=None):
+def foreach(
+    size_hints = None,
+    triton_meta = None,
+    num_warps = 1,
+    filename=None, inductor_meta=None
+):
     """
     Compile a triton foreach kernel
     """

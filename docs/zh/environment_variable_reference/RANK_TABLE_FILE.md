@@ -2,7 +2,7 @@
 
 ## 功能描述
 
-通过此环境变量可配置是否通过RANK\_TABLE\_FILE进行集合通信域建链。
+通过此环境变量可配置RANK_TABLE_FILE文件的路径，用于集合通信域建链。
 
 - 未配置时，通过默认的协商流程进行集合通信域建链。
 - 配置且文件全路径有效时，通过RANK\_TABLE\_FILE进行集合通信域建链。
@@ -24,8 +24,6 @@ export RANK_TABLE_FILE=/home/ranktable.json
 >
 > - 配置的文件路径不存在时，会通过默认的协商流程进行集合通信域建链。
 > - 配置的文件路径存在，但配置信息有误时，不会通过默认的协商流程进行集合通信域建链，而是在实际通信时会进行相应的报错。
-> - 配置的文件路径不能为软链接，且具有读取权限。
-> - 配置的文件需要为json格式，具体可参考《[CANN HCCL集合通信库](https://www.hiascend.com/document/detail/zh/canncommercial/900/API/hcclug/hcclug_000001.html)》中对应的“rank table配置资源信息”章节。
 
 关闭ranktable文件方式建链示例：
 
@@ -35,7 +33,8 @@ unset RANK_TABLE_FILE
 
 ## 使用约束
 
-无
+- 配置的文件路径不能为软链接，且具有读取权限。
+- 配置的文件需要为json格式，具体可参考《[CANN HCCL集合通信库](https://www.hiascend.com/document/detail/zh/canncommercial/900/API/hcclug/hcclug_000001.html)》中对应的“rank table配置资源信息”章节。
 
 ## 支持的型号
 

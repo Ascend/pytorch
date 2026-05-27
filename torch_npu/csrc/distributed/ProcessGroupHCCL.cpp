@@ -2643,7 +2643,7 @@ c10_npu::NPUStream ProcessGroupHCCL::getHcclNPUStream(const at::Device &device)
 
     auto stream = getHcclStreamByBufferName(bufferName, device.index());
     if (stream) {
-        TORCH_NPU_HCCL_LOGD("HCCL use the same steam with bufferName = %s, device_index = %d, stream id = %lu", bufferName.c_str(), device.index(), stream->id());
+        TORCH_NPU_HCCL_LOGD("HCCL use the same stream with bufferName = %s, device_index = %d, stream id = %lu", bufferName.c_str(), device.index(), stream->id());
         return stream.value();
     }
 
@@ -3022,7 +3022,7 @@ int64_t ProcessGroupHCCL::getStreamId(bool p2p, int peer)
     return hcclStreams_[key][0].id();
 }
 
-int64_t ProcessGroupHCCL::getCollNpuStreamId(at::Device device)
+int64_t ProcessGroupHCCL::getCollStreamId(at::Device device)
 {
     const auto key = getKeyFromDevice({device});
     if (hcclStreams_.find(key) == hcclStreams_.end() || hcclStreams_[key].empty()) {

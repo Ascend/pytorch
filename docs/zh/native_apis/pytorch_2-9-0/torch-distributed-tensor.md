@@ -12,3 +12,4 @@
 |torch.distributed.tensor.DTensor.redistribute|是|支持bf16，fp16，fp32，fp64，uint8，int8，int32，int64，bool|
 |torch.distributed.tensor.placement_types.Shard|是|支持bf16，fp16，fp32，fp64，uint8，int8，int32，int64，bool，complex64，complex128|
 |torch.distributed.tensor.placement_types._StridedShard|是|支持bf16，fp16，fp32，fp64，uint8，int8，int32，int64，bool|
+|torch.distributed.tensor.experimental.context_parallel|是|仅支持NPU fused SDPA路径；q/k/v仅支持BNSD布局；暂不支持pse、padding_mask、prefix、actual_seq_qlen、actual_seq_kvlen、sink以及任意非causal attention mask；load balance要求causal attention|
