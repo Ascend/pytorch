@@ -99,16 +99,6 @@ class NewNpuInterface(NpuInterface):
 
 register_interface_for_device("npu", NewNpuInterface)
 
-# recover from torch_npu._inductor patches to source code
-def src_call(self, model_, inputs_):
-    from torch._inductor.compile_fx import compile_fx
-
-    return compile_fx(model_, inputs_, config_patches=self.config)
-
-from torch import _TorchCompileInductorWrapper
-
-_TorchCompileInductorWrapper.__call__ = src_call
-
 ## npu patch
 from ..npu import npu_decomp
 from torch._C import DispatchKey
@@ -468,6 +458,6 @@ def patch_transfer_to_npu():
 
         transfer_to_npu._device_wrapper = new_device_wrapper
         transfer_to_npu._init()
-    # [wtd#11] Use except Exception instead of bare except to avoid catching KeyboardInterrupt and system exceptions
+    # [wtd#11] Replace bare except with except Exception to avoid catching KeyboardInterrupt
     except Exception:
         pass
