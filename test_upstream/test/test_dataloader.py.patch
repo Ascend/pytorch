@@ -11,3 +11,12 @@ index 5c07088..1e43dcb 100644
  import torch.utils.data.datapipes as dp
  from torch import multiprocessing as mp
  from torch._utils import ExceptionWrapper
+@@ -1846,4 +1848,8 @@ class TestDataLoader(TestCase):
+     @unittest.skipIf(not TEST_CUDA_IPC, "CUDA IPC not available")
++    @unittest.skipIf(
++        torch.npu.is_available() and not any(conf.strip() == "expandable_segments:True" for conf in os.environ.get("PYTORCH_NPU_ALLOC_CONF", "").split(",")),
++        "NPU IPC tensor sharing from DataLoader workers requires expandable_segments:True",
++    )
+     @skipIfRocm  # https://github.com/pytorch/pytorch/issues/90940
+     def test_multiprocessing_contexts(self):
+         reference = [
