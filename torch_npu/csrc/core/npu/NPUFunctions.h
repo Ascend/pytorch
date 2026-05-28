@@ -9,6 +9,7 @@
 
 #include <c10/core/Device.h>
 #include <c10/macros/Macros.h>
+#include <optional>
 
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
@@ -181,6 +182,8 @@ C10_NPU_API inline ModelState& model_state()
 bool IsContextInitialized();
 
 bool hasPrimaryContext(c10::DeviceIndex device_index);
+
+std::optional<c10::DeviceIndex> getDeviceIndexWithPrimaryContext();
 
 C10_NPU_API void stream_synchronize(aclrtStream stream);
 
