@@ -938,6 +938,8 @@ class NPUCachingAutotuner(CachingAutotuner):
     @lru_cache(None)
     def get_fx_graph_dump_path(self):
         traced_graph_hash = self.inductor_meta.get("traced_graph_hash")
+        if not traced_graph_hash:
+            return None
         dump_dir = self.inductor_meta.get("traced_graph_dir", "")
         dump_path = os.path.join(dump_dir, traced_graph_hash)
         if dump_dir == "" or not os.path.exists(dump_path):
@@ -972,10 +974,12 @@ class NPUCachingAutotuner(CachingAutotuner):
         kernel_name = self.get_fn_name()
         log.info(f"Try to run debug mode for kernel {kernel_name}.")
         if npu_config.dump_fx_graph:
-            if config.triton.cudagraphs:
+            if torch_npu.npu.is_current_stream_capturing():
                 raise RuntimeError(
-                    "Accuracy checking tool (INDUCTOR_ASCEND_CHECK_ACCURACY=1) is not compatible with aclgraph.\n"
-                   "Please set torch._inductor.config.triton.cudagraphs = False before using accuracy checking tool."
+                    "INDUCTOR_ASCEND_CHECK_ACCURACY / INDUCTOR_ASCEND_DUMP_FX_GRAPH "
+                    "is not compatible with aclgraph.\n"
+                    "Please disable aclgraph before enabling INDUCTOR_ASCEND_CHECK_ACCURACY "
+                    "/ INDUCTOR_ASCEND_DUMP_FX_GRAPH, or unset these environment variables."
                 )
             _ = self.data_dump(*args)
 
@@ -1033,7 +1037,7 @@ class NPUCachingAutotuner(CachingAutotuner):
         if self.dump_launch_params:
             _dump_launch_params(args, kwargs, launcher, self.fn.__name__)
 
-        if self.is_run_debug():
+        if self.is_run_debug() and not self.heuristic_type == HeuristicType.USER_AUTOTUNE:
             _, grid = self._interpret_args_grid(args, launcher.config)
             debug_mode = self.maybe_run_debug(*args, grid_=grid, stream=stream, launcher=launcher, **kwargs)
             if debug_mode:

@@ -221,6 +221,8 @@ def _patch_reduction_create(
             reduction_type,
             split,
             reduction_hint,
+            traced_graph=traced_graph,
+            node_name=node_name,
         )
         r._post_init_setattr("traced_graph", traced_graph)
         r._post_init_setattr("node_name", node_name)
@@ -558,12 +560,17 @@ def _patch_concatkernel_create(cls, inputs, dim):
             if j == dim:
                 new_size[j] = new_size[j] + input_size[j]
             else:
-                new_size[j] = V.graph.sizevars.guard_equals(
+                new_size[j] = V.graph.sizevars.check_equals_and_simplify(
                     new_size[j], input_size[j]
                 )
         offsets_end.append(new_size[dim])
 
     output_stride = ir.FlexibleLayout.contiguous_strides(new_size)
+    if config.comprehensive_padding:
+        # Ensure the output stride matches the alignment requirements
+        output_stride = ir.Layout._pad_strides(
+            output_stride, new_size, inputs[0].dtype
+        )
     # If any of the inputs is in CL format, use CL format for the output
     for i in range(len(inputs)):
         x = inputs[i]
@@ -592,6 +599,9 @@ def _patch_concatkernel_create(cls, inputs, dim):
     ):
         output_stride = ir.make_channels_last_strides_for(new_size)
 
+    is_pinned = all(
+        ir.is_storage_and_layout(x) and x.get_layout().is_pinned for x in inputs
+    )
     concat_kernel = ir.ConcatKernel(
         name=None,
         layout=ir.FixedLayout(
@@ -599,6 +609,7 @@ def _patch_concatkernel_create(cls, inputs, dim):
             dtype=dtype,
             size=new_size,
             stride=output_stride,
+            is_pinned=is_pinned,
         ),
         inputs=[],
     )
@@ -620,8 +631,10 @@ def _patch_concatkernel_create(cls, inputs, dim):
             input_unwrapped = inputs[i].data
 
         if (
-                input_unwrapped.is_input_buffer()
-                and ir.is_gpu(inputs[i].get_device().type)
+                isinstance(input_unwrapped, ir.StorageBox)
+                and input_unwrapped.is_input_buffer()
+                and (dev := inputs[i].get_device()) is not None
+                and ir.is_gpu(dev.type)
                 and not ir.is_dynamic(input_buffer)
         ):
             op_names.append(input_buffer.get_operation_name())
@@ -844,7 +857,7 @@ def _patch_mutationlayout_realize_into(cls, src, dst, unsafe_alias=False):
             dtype=src.get_dtype(),
             inner_fn=src.make_loader(),
             ranges=[
-                V.graph.sizevars.guard_equals(a, b)
+                V.graph.sizevars.check_equals_and_simplify(a, b)
                 for a, b in zip(src.get_size(), dst.get_size())
             ],
             traced_graph=new_graph,
@@ -856,6 +869,119 @@ def _patch_mutationlayout_realize_into(cls, src, dst, unsafe_alias=False):
         raise RuntimeError("assert src.data.layout should be isinstance if ir.FlexibleLayout")
     src.data.layout = ir.MutationLayoutSHOULDREMOVE(dst)
     return src.data
+
+
+@classmethod
+def _patch_Reduction_create_multilayer_helper(
+    cls,
+    device: torch.device,
+    dst_dtype: torch.dtype,
+    src_dtype: torch.dtype,
+    wrapper_fn: Callable[..., Any],
+    original_ranges: Sequence[Expr],
+    original_reduction_ranges: Sequence[Expr],
+    new_ranges: list[Expr],
+    new_reduction_ranges: list[ir.Integer],
+    reduction_type: ir.ReductionType,
+    split: ir._IntLike,
+    reduction_hint: ir.ReductionHint,
+    traced_graph=None,
+    node_name=None,
+) -> ir.TensorBox:
+    """
+    Break a large reduction up into multiple smaller reductions
+    recursively
+    """
+    intermediate_dtype = (
+        dst_dtype
+        if dst_dtype not in (torch.float16, torch.bfloat16)
+        else torch.float
+    )
+    intermediate = ir.Reduction.create(
+        device,
+        intermediate_dtype,
+        src_dtype,
+        wrapper_fn,
+        new_ranges,
+        new_reduction_ranges,
+        reduction_type,
+        reduction_hint,
+        traced_graph=traced_graph,
+        node_name=node_name,
+    )
+    intermediate.realize()
+    intermediate_loader = intermediate.make_loader()
+
+    def intermediate_fn(
+        index: Sequence[ir._IntLike], reduction_index: Sequence[ir._IntLike]
+    ) -> OpsValue:
+        return intermediate_loader([*index, *reduction_index])
+
+    numel_hint = V.graph.sizevars.size_hint(ir.sympy_product(original_ranges))
+    reduction_hint = cls._multilayer_second_step_hint(
+        split, numel_hint, reduction_hint
+    )
+
+    if not (len(new_ranges) >= len(original_ranges) and
+        all(a == b for a, b in zip(original_ranges, new_ranges))):
+        raise ValueError(
+            f"Ranges prefix mismatch: expected {original_ranges}, "
+            f"got {new_ranges[:len(original_ranges)]}"
+        )
+    return TensorBox.create(
+        ir.Reduction(
+            device=device,
+            dtype=dst_dtype,
+            inner_fn=intermediate_fn,
+            ranges=original_ranges,
+            reduction_ranges=new_ranges[len(original_ranges) :],
+            reduction_type=reduction_type,
+            src_dtype=src_dtype,
+            reduction_hint=reduction_hint,
+        )
+    )
+
+@classmethod
+def _patch_Reduction_create_multilayer(
+    cls,
+    device: torch.device,
+    dst_dtype: torch.dtype,
+    src_dtype: torch.dtype,
+    inner_fn: Callable[..., Any],
+    ranges: Sequence[Expr],
+    reduction_ranges: Sequence[Expr],
+    reduction_type: ir.ReductionType,
+    split: ir._IntLike,
+    reduction_hint: ir.ReductionHint,
+    traced_graph=None,
+    node_name=None,
+) -> ir.TensorBox:
+    """
+    Break a large reduction up into multiple smaller reductions
+    recursively
+    """
+    reduction_numel = ir.sympy_product(reduction_ranges)
+    block_size = ir.FloorDiv(reduction_numel  (split - 1), split)
+    default = cls.default_value(reduction_type, dst_dtype)
+    wrapper_fn = cls._multilayer_wrap_loader(
+        inner_fn, reduction_ranges, reduction_numel, split, block_size, default
+    )
+
+    return cls.create_multilayer_helper(
+        device,
+        dst_dtype,
+        src_dtype,
+        wrapper_fn,
+        ranges,
+        reduction_ranges,
+        [*ranges, split],
+        [block_size],
+        reduction_type,
+        split,
+        reduction_hint,
+        traced_graph=traced_graph,
+        node_name=node_name,
+    )
 
 
 def _patch_npu_inductor_ir():
@@ -885,3 +1011,5 @@ def _patch_npu_inductor_ir():
     ir.Loops.create = _patch_loops_create
     ir.Pointwise.constant_to_device = _patch_pointwise_constant_to_device
     ir.MutationLayoutSHOULDREMOVE.realize_into = _patch_mutationlayout_realize_into
+    ir.Reduction.create_multilayer_helper = _patch_Reduction_create_multilayer_helper
+    ir.Reduction.create_multilayer = _patch_Reduction_create_multilayer
