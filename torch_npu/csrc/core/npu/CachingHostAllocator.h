@@ -18,6 +18,7 @@
 
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
+#include "torch_npu/csrc/framework/interface/EnvVariables.h"
 
 namespace at_npu::native {
 
@@ -53,8 +54,10 @@ inline TORCH_NPU_API bool CachingHostAllocator_isPinned(void* ptr) {
         if (!c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
             return false;
         }
-        if (c10_npu::GetLocalDevice() < 0) {
-            c10_npu::SetCurrentDevice();
+        at::OptionalDeviceGuard device_guard;
+        auto primary_ctx_device_index = c10_npu::getDeviceIndexWithPrimaryContext();
+        if (primary_ctx_device_index.has_value()) {
+            device_guard.reset_device(at::Device(at::DeviceType::PrivateUse1, *primary_ctx_device_index));
         }
         aclrtPtrAttributes attributes;
         NPU_CHECK_ERROR(c10_npu::acl::AclrtPointerGetAttributes(ptr, &attributes), "aclrtPointerGetAttributes");
