@@ -491,8 +491,7 @@ public:
         void* dev_ptr = nullptr;
         void (*delete_func)(void*) = &local_raw_delete;
 
-        if (c10_npu::option::OptionsManager::CheckForceUncached() &&
- 	        (c10_npu::currentStreamCaptureStatus() == c10_npu::CaptureStatus::None)) {
+        if (c10_npu::option::OptionsManager::CheckForceUncached()) {
             delete_func = &uncached_delete;
             if (size != 0) {
                 size_t alloc_size = size + 32;
@@ -509,8 +508,7 @@ public:
 
     c10::DeleterFnPtr raw_deleter() const override
     {
-        if (c10_npu::option::OptionsManager::CheckForceUncached() &&
- 	        (c10_npu::currentStreamCaptureStatus() == c10_npu::CaptureStatus::None)) {
+        if (c10_npu::option::OptionsManager::CheckForceUncached()) {
             return &uncached_delete;
         }
         return &local_raw_delete;
