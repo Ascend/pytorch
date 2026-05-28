@@ -44,7 +44,9 @@ NPU_DISPATCH_KEYS: Sequence[DispatchKey] = ()
 
 NPU_UNSUPPORTED_OPS = [
     "aten._scaled_dot_product_fused_attention_overrideable_backward.default",
-    "aten._scaled_dot_product_fused_attention_overrideable.default"
+    "aten._scaled_dot_product_fused_attention_overrideable.default",
+    "aten._scaled_mm.default",
+    "aten._scaled_grouped_mm.default"
 ]
 
 
