@@ -17,6 +17,7 @@ from __future__ import annotations
 import difflib
 import os
 import textwrap
+from typing import Optional
 from collections.abc import Sequence
 from dataclasses import dataclass
 
@@ -50,13 +51,7 @@ def _get_backend_index_for_npu(
 ) -> BackendIndex | None:
     for dk in NPU_DISPATCH_KEYS:
         if dk in backend_indices:
-            if backend_indices[dk].has_kernel(func) or (
-                func.structured_delegate is not None
-                and func.structured_delegate in structured_func_group_dict
-                and backend_indices[dk].has_kernel(
-                    structured_func_group_dict[func.structured_delegate]
-                )
-            ):
+            if backend_indices[dk].has_kernel(func):
                 return backend_indices[dk]
     if DispatchKey.CompositeExplicitAutograd in backend_indices:
         if backend_indices[DispatchKey.CompositeExplicitAutograd].has_kernel(func):
@@ -105,7 +100,7 @@ def _gen_npu_c_shim(
 
 def _get_dispatch_header_path(
     func: NativeFunction,
-    backend_index: BackendIndex | None,
+    backend_index: Optional[BackendIndex],
 ) -> str | None:
     if backend_index is None:
         return None

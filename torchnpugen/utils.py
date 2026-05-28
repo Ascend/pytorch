@@ -56,7 +56,16 @@ GLOBAL_OPAPI_INFO_CACHE = set()
 GLOBAL_INTERNAL_FORMAT_OPAPI_INFO_CACHE = set()
 
 CUSTOM_YAML_NAME = "npu_native_functions_by_codegen.yaml"
-FIELDS_TO_USE = ["func", "tags", "dispatch", "device_check"]
+FIELDS_TO_USE = [
+    "func",
+    "tags",
+    "dispatch",
+    "device_check",
+    "structured",
+    "structured_delegate",
+    "structured_inherits",
+    "precomputed",
+]
 DEVICE_NOCHECK_SET = set()
 DEVICE_CHECK_NOTSUPPORT_TYPE = {"Tensor[]?"}
 

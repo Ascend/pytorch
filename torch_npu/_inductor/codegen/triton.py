@@ -1,4 +1,5 @@
 import contextlib
+import dataclasses
 import functools
 import itertools
 import math
@@ -18,6 +19,8 @@ from torch._inductor.codegen.common import (
     free_symbol_is_type,
     IndentedBuffer,
     SizeArg,
+    TensorArg,
+    WorkspaceArg,
 )
 from torch._inductor.codegen.simd import CantSplit, DisableReduction, EnableReduction
 from torch._inductor.codegen.triton import (
@@ -72,6 +75,11 @@ from .. import config as npu_config
 from ..config import log
 from ..fx_passes.utils.schedule_node_utils import is_multi_stream
 from ..runtime import triton_heuristics as npu_triton_heuristics
+from ..runtime.symbolic_grouping import (
+    GroupedKernelMeta,
+    UnsupportedGroupedPlan,
+    build_group_representatives,
+)
 from .kernel_analysis import (
     collect_stride_sorted_vars_from_indexings,
     collect_stride_sorted_vars_from_nodes,
@@ -1779,6 +1787,11 @@ class NPUIndexTritonKernel(TritonKernel):
         no_loop_axis = [x.sorted_order for x in self.tiling_axis if x.is_no_loop_axis]
         split_axis = [x.sorted_order for x in self.split_axis]
         axis_names = [x.name for x in self.sorted_axis]
+        axis_static_values = []
+        for axis in self.sorted_axis:
+            length = axis.length
+            if isinstance(length, (int, sympy.Integer)):
+                axis_static_values.append((axis.name, int(length)))
         split_axis_dtype = (
             self.get_axis_dtype(self.split_axis[0]) if self.split_axis else None
         )
@@ -1796,6 +1809,7 @@ class NPUIndexTritonKernel(TritonKernel):
             "tiling_axis": tiling_axis,
             "no_loop_axis": no_loop_axis,
             "axis_names": axis_names,
+            "axis_static_values": tuple(axis_static_values),
             "low_dims": self.low_dims,
             "numof_reduction_axis": self.numof_reduction_axis(),
             "split_axis_dtype": split_axis_dtype,
@@ -1807,6 +1821,33 @@ class NPUIndexTritonKernel(TritonKernel):
             "inductor_ascend_linear_mode": inductor_ascend_linear_mode,
             **TritonKernel.inductor_meta_common(),
         }
+        grouped_meta = getattr(self, "grouped_autotune_meta", None)
+        if grouped_meta is not None:
+            inductor_meta.update(
+                {
+                    "group_enabled": bool(grouped_meta.enabled),
+                    "group_template": grouped_meta.template,
+                    "primary_group_axis": grouped_meta.primary_group_axis,
+                    "static_split_axes": grouped_meta.static_split_axes,
+                    "secondary_runtime_symbolic_axes": grouped_meta.secondary_runtime_symbolic_axes,
+                    "group_features": tuple(
+                        dataclasses.asdict(spec) for spec in grouped_meta.group_features
+                    ),
+                    "runtime_block_arg_names": grouped_meta.runtime_block_arg_names,
+                }
+            )
+        else:
+            inductor_meta.update(
+                {
+                    "group_enabled": False,
+                    "group_template": None,
+                    "primary_group_axis": None,
+                    "static_split_axes": (),
+                    "secondary_runtime_symbolic_axes": (),
+                    "group_features": (),
+                    "runtime_block_arg_names": (),
+                }
+            )
         return inductor_meta
 
     # numels sent to autotune configs
@@ -1865,9 +1906,19 @@ class NPUIndexTritonKernel(TritonKernel):
                 triton_meta["constants"][arg_name] = node.length
 
     # BLOCK and SUB_BLOCK definitions
-    def add_autotune_args(self, argdefs):
+    def add_autotune_args(self, argdefs, signature, triton_meta_signature):
+        group_enabled = bool(getattr(self, "inductor_meta", {}).get("group_enabled"))
         for axis in self.split_axis:
-            argdefs.append(ArgName(f"{axis.name.upper()}BLOCK", is_constexpr=True))
+            arg_name = f"{axis.name.upper()}BLOCK"
+            if group_enabled:
+                sizearg = SizeArg(arg_name, axis.length)
+                signature.append(sizearg)
+                triton_meta_signature[arg_name] = signature_of(
+                    sizearg, size_dtype=self.index_dtype
+                )
+                argdefs.append(ArgName(arg_name))
+            else:
+                argdefs.append(ArgName(arg_name, is_constexpr=True))
 
         for axis in self.tiling_axis:
             # Skip persistent_reduction reduction axis only if length is static (handled in codegen_static_numels)
@@ -1882,6 +1933,208 @@ class NPUIndexTritonKernel(TritonKernel):
                     continue  # Static length: handled by codegen_static_numels
                 # Dynamic length: need to pass as parameter
             argdefs.append(ArgName(f"{axis.name.upper()}BLOCK_SUB", is_constexpr=True))
+
+    def _disable_grouped_autotune(self, inductor_meta, reason: str):
+        log.debug(
+            "Disable grouped autotune for %s: %s",
+            inductor_meta.get("kernel_name"),
+            reason,
+        )
+        inductor_meta["group_enabled"] = False
+        inductor_meta["group_template"] = None
+        inductor_meta["primary_group_axis"] = None
+        inductor_meta["static_split_axes"] = ()
+        inductor_meta["secondary_runtime_symbolic_axes"] = ()
+        inductor_meta["group_features"] = ()
+        inductor_meta["runtime_block_arg_names"] = ()
+
+    def _disable_grouped_autotune_if_unsupported(self, inductor_meta):
+        if not inductor_meta.get("group_enabled", False):
+            return
+        try:
+            build_group_representatives(
+                inductor_meta.get("group_features", ()),
+                inductor_meta.get("axis_names", ()),
+                inductor_meta.get("axis_static_values", ()),
+            )
+        except UnsupportedGroupedPlan as exc:
+            self._disable_grouped_autotune(inductor_meta, str(exc))
+
+    def _same_grouped_benchmark_expr(self, left, right) -> bool:
+        return V.graph.sizevars.simplify(left - right) == 0
+
+    def _grouped_benchmark_expr_spec(
+        self, expr, runtime_arg_name_to_index=None, context=None
+    ):
+        runtime_arg_name_to_index = runtime_arg_name_to_index or {}
+        expr = V.graph.sizevars.simplify(expr)
+        for node in self.sorted_axis:
+            if self._same_grouped_benchmark_expr(expr, node.length):
+                return {"axis_name": node.name}
+        if isinstance(expr, (int, sympy.Integer)):
+            return {"const": int(expr)}
+        if isinstance(expr, sympy.Symbol):
+            symbol_name = str(expr)
+            for node in self.sorted_axis:
+                if symbol_name in (node.name, f"{node.name}_numel"):
+                    return {"axis_name": node.name}
+            if symbol_name in runtime_arg_name_to_index:
+                return {"runtime_arg_index": runtime_arg_name_to_index[symbol_name]}
+        if isinstance(expr, sympy.Mul):
+            return {
+                "mul": tuple(
+                    self._grouped_benchmark_expr_spec(
+                        arg, runtime_arg_name_to_index, context
+                    )
+                    for arg in expr.args
+                )
+            }
+        if isinstance(expr, sympy.Add):
+            return {
+                "add": tuple(
+                    self._grouped_benchmark_expr_spec(
+                        arg, runtime_arg_name_to_index, context
+                    )
+                    for arg in expr.args
+                )
+            }
+        if isinstance(expr, FloorDiv):
+            return {
+                "floordiv": tuple(
+                    self._grouped_benchmark_expr_spec(
+                        arg, runtime_arg_name_to_index, context
+                    )
+                    for arg in expr.args
+                )
+            }
+        raise RuntimeError(
+            f"grouped benchmark arg expr is not supported by V1: {expr}"
+        )
+
+    def _grouped_benchmark_tensor_spec(
+        self,
+        arg_name: str,
+        source: str,
+        size,
+        stride,
+        device,
+        dtype,
+        runtime_arg_name_to_index=None,
+    ):
+        return {
+            "kind": "tensor",
+            "source": source,
+            "name": arg_name,
+                    "dtype": str(dtype),
+                    "device": str(device),
+                    "size_exprs": tuple(
+                self._grouped_benchmark_expr_spec(
+                    expr,
+                    runtime_arg_name_to_index,
+                    context=f"tensor:{arg_name}:size[{idx}]",
+                )
+                for idx, expr in enumerate(size)
+                    ),
+                    "stride_exprs": tuple(
+                self._grouped_benchmark_expr_spec(
+                    expr,
+                    runtime_arg_name_to_index,
+                    context=f"tensor:{arg_name}:stride[{idx}]",
+                )
+                for idx, expr in enumerate(stride)
+                    ),
+        }
+
+    def build_grouped_benchmark_arg_specs(self, argdefs, signature):
+        ordered_arg_specs = []
+        tensor_arg_specs = []
+        size_arg_specs = []
+        workspace_arg_specs = []
+        runtime_arg_name_to_index = {
+            arg.name: idx for idx, arg in enumerate(argdefs)
+        }
+
+        for arg_index, (arg_name, arg_sig) in enumerate(
+            zip((arg.name for arg in argdefs), signature)
+        ):
+            if isinstance(arg_sig, TensorArg):
+                buf = V.graph.try_get_buffer(arg_sig.buffer)
+                if buf is not None:
+                    spec = self._grouped_benchmark_tensor_spec(
+                        arg_name,
+                        "buffer",
+                        buf.get_size(),
+                        buf.get_stride(),
+                        buf.get_device(),
+                        buf.get_dtype(),
+                        runtime_arg_name_to_index,
+                    )
+                elif arg_sig.buffer in V.graph.constants:
+                    const_tensor = V.graph.constants[arg_sig.buffer]
+                    spec = self._grouped_benchmark_tensor_spec(
+                        arg_name,
+                        "constant",
+                        const_tensor.size(),
+                        const_tensor.stride(),
+                        const_tensor.device,
+                        const_tensor.dtype,
+                        runtime_arg_name_to_index,
+                    )
+                else:
+                    raise RuntimeError(
+                        f"grouped benchmark tensor arg {arg_name} is missing buffer metadata"
+                    )
+                ordered_arg_specs.append(spec)
+                tensor_arg_specs.append(spec)
+                continue
+
+            if isinstance(arg_sig, SizeArg):
+                expr_spec = self._grouped_benchmark_expr_spec(
+                    arg_sig.expr,
+                    runtime_arg_name_to_index,
+                    context=f"size:{arg_name}",
+                )
+                if expr_spec == {"runtime_arg_index": arg_index}:
+                    spec = {
+                        "kind": "size",
+                        "source": "runtime_arg",
+                        "name": arg_name,
+                        "index": arg_index,
+                    }
+                else:
+                    spec = {
+                        "kind": "size",
+                        "source": "axis_expr",
+                        "name": arg_name,
+                        "expr": expr_spec,
+                    }
+                ordered_arg_specs.append(spec)
+                size_arg_specs.append(spec)
+                continue
+
+            if isinstance(arg_sig, WorkspaceArg):
+                spec = {
+                    "kind": "workspace",
+                    "source": "workspace",
+                    "name": arg_name,
+                    "count_expr": self._grouped_benchmark_expr_spec(
+                        arg_sig.count,
+                        runtime_arg_name_to_index,
+                        context=f"workspace:{arg_name}:count",
+                    ),
+                    "dtype": str(arg_sig.dtype),
+                    "device": str(arg_sig.device),
+                    "zero_mode": arg_sig.zero_mode.name,
+                }
+                ordered_arg_specs.append(spec)
+                workspace_arg_specs.append(spec)
+
+        return {
+            "ordered_arg_specs": tuple(ordered_arg_specs),
+            "tensor_arg_specs": tuple(tensor_arg_specs),
+            "size_arg_specs": tuple(size_arg_specs),
+            "workspace_arg_specs": tuple(workspace_arg_specs),
+        }
 
     def _get_heuristic(self):
         # not support fixed config and cooperative_reduction yet
@@ -1931,6 +2184,8 @@ class NPUIndexTritonKernel(TritonKernel):
         }
 
         inductor_meta = self.create_inductor_meta()
+        self.inductor_meta = inductor_meta
+        self._disable_grouped_autotune_if_unsupported(inductor_meta)
         num_gb = None
         if config.benchmark_kernel or config.profile_bandwidth:
             num_gb = self.estimate_kernel_num_bytes() / 1e9
@@ -1940,8 +2195,17 @@ class NPUIndexTritonKernel(TritonKernel):
         if self.is_unified_simt_kernel():
             triton_meta["configs"] = [config_of(signature)]
 
+        if inductor_meta.get("group_enabled", False):
+            try:
+                inductor_meta.update(
+                    self.build_grouped_benchmark_arg_specs(argdefs, signature)
+                )
+                inductor_meta.setdefault("extra_launcher_arg_specs", ())
+            except RuntimeError as exc:
+                self._disable_grouped_autotune(inductor_meta, str(exc))
+
         # add in tiling args
-        self.add_autotune_args(argdefs)
+        self.add_autotune_args(argdefs, signature, triton_meta_signature)
         # for scalar codegen
         if len(self.range_tree_nodes) == 0:
             self.write_scalar()

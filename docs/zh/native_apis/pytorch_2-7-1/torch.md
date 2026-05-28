@@ -233,6 +233,7 @@
 |torch.dist|是|支持bf16，fp16，fp32|
 |torch.logsumexp|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |torch.mean|是|支持bf16，fp16，fp32，fp64，complex64，complex128|
+|torch.nanmean|是|支持bf16，fp16，fp32|
 |torch.median|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64|
 |torch.norm|是|支持bf16，fp16，fp32，fp64<br>参数p为负数时，计算结果可能存在精度误差<br>参数dim指定为输入tensor中shape维度值为1的轴时，计算结果可能存在精度误差|
 |torch.nansum|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|

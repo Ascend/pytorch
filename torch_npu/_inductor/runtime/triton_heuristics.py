@@ -21,6 +21,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import torch
 from torch._logging import warning_once
 import triton
+from torch._dynamo.testing import rand_strided
 from torch._dynamo.utils import dynamo_timed
 from torch._inductor import config
 from torch._inductor.compile_fx import clone_preserve_strides
@@ -58,6 +59,13 @@ from torch._inductor.runtime.triton_heuristics import (
     Grid2D,
     Grid2DWithYZOverflow,
     Grid3D
+)
+from .symbolic_grouping import (
+    UnsupportedGroupedPlan,
+    bucketize,
+    build_group_representatives,
+    find_primary_feature_index,
+    is_open_bucket_group,
 )
 # used for wrapper codegen, do not remove this
 from torch._inductor.runtime.triton_heuristics import ( # noqa: F401
@@ -256,6 +264,47 @@ class GridExprNpu(GridExpr):
         grid.generate(cfg)
         return grid
 
+    @staticmethod
+    def from_grouped_meta_and_numel(
+        inductor_meta: dict[str, Any],
+        cfg: Union[Config, dict[str, int]],
+        numels: List[str],
+        runtime_block_names: tuple[str, ...],
+        mode: Literal["python", "cpp"] = "python",
+    ) -> GridExpr:
+        grid_type = inductor_meta["grid_type"]
+        grid_cls = globals().get(grid_type)
+        if not issubclass(grid_cls, GridNpu):
+            raise RuntimeError(
+                f"grouped grid path expects GridNpu-compatible grid, got {grid_type}"
+            )
+        grid = grid_cls(inductor_meta=inductor_meta, mode=mode, numels=numels)
+        axis_names = tuple(inductor_meta.get("axis_names", ()))
+        runtime_axes = []
+        for block_name in runtime_block_names:
+            axis_name = block_name.removesuffix("BLOCK").lower()
+            if axis_name not in axis_names:
+                raise RuntimeError(
+                    f"grouped grid path could not resolve runtime block axis {axis_name}"
+                )
+            runtime_axes.append(axis_names.index(axis_name))
+
+        def grouped_grid_fn(i):
+            if i >= len(runtime_axes):
+                return "1"
+            axis = runtime_axes[i]
+            block = runtime_block_names[i]
+            if block is None or block == 1:
+                return numels[axis]
+            if mode == "python":
+                return f"({numels[axis]} + {block} - 1) // {block}"
+            return f"(({numels[axis]} + ({block} - 1)) / ({block}))"
+
+        grid.x_grid = grouped_grid_fn(0)
+        grid.y_grid = grouped_grid_fn(1)
+        grid.z_grid = grouped_grid_fn(2)
+        return grid
+
 
 class TritonCompileResultNpu(TritonCompileResult):
     def make_launcher(self):
@@ -306,6 +355,21 @@ class TritonCompileResultNpu(TritonCompileResult):
                 for name in fn.arg_names
                 if name not in cfg_dict and name not in none_args
             ]
+
+        if self.inductor_meta.get("group_enabled", False):
+            runtime_block_names = tuple(
+                self.inductor_meta.get("runtime_block_append_order", ())
+            )
+            missing_runtime_block_names = [
+                name
+                for name in runtime_block_names
+                if name not in def_args or name not in call_args
+            ]
+            if missing_runtime_block_names:
+                raise RuntimeError(
+                    "Grouped launcher is missing runtime block args: "
+                    f"{missing_runtime_block_names}"
+                )
 
         binary_shared = (
             binary.shared if hasattr(binary, "shared") else binary.metadata.shared
@@ -391,6 +455,16 @@ class TritonCompileResultNpu(TritonCompileResult):
         grid = None
         if linear_mode == 'no_linear':
             grid = GridExpr.from_meta(self.inductor_meta, cfg)
+        elif self.inductor_meta.get("group_enabled", False):
+            runtime_block_names = tuple(
+                self.inductor_meta.get("runtime_block_arg_names", ())
+            )
+            grid = GridExprNpu.from_grouped_meta_and_numel(
+                self.inductor_meta,
+                cfg,
+                numels,
+                runtime_block_names=runtime_block_names,
+            )
         else:
             grid = GridExprNpu.from_meta_and_set_numel(self.inductor_meta, cfg, numels)
         # grid.prefix is usually empty, grid.x_grid is something like `-(xnumel//-1024)`
@@ -480,8 +554,9 @@ class NPUCachingAutotuner(CachingAutotuner):
             """Ahead of time compile a given autotuner config."""
             compile_meta = copy.deepcopy(self.triton_meta)
             cfg_kwargs = cfg.kwargs
+            constexpr_arg_names = {self.fn.arg_names[i] for i in self.fn.constexprs}
             for k, v in cfg_kwargs.items():
-                if k not in self.fn.arg_names:
+                if k not in constexpr_arg_names:
                     continue
                 compile_meta["constants"][k] = v
 
@@ -655,8 +730,9 @@ class NPUCachingAutotuner(CachingAutotuner):
         """Ahead of time compile a given autotuner config."""
         compile_meta = copy.deepcopy(self.triton_meta)
         cfg_kwargs = cfg.kwargs
+        constexpr_arg_names = {self.fn.arg_names[i] for i in self.fn.constexprs}
         for k, v in cfg_kwargs.items():
-            if k not in self.fn.arg_names:
+            if k not in constexpr_arg_names:
                 continue
             compile_meta["constants"][k] = v
 
@@ -1116,7 +1192,7 @@ class NPUCachingAutotuner(CachingAutotuner):
             log.info(f"{self.get_fn_name()} benchmark elapsed time {time.perf_counter() - autotune_start_time}s")
 
     def _interpret_args_grid(
-            self, args: tuple[Any, ...], cfg: Config
+            self, args: tuple[Any, ...], cfg: Config, runtime_blocks=None
     ) -> tuple[tuple[Any, ...], tuple[int, int, int]]:
 
         numels = [
@@ -1124,20 +1200,613 @@ class NPUCachingAutotuner(CachingAutotuner):
             for arg in self.fn.arg_names
             if "_numel" in arg
         ]
-        grid = GridExprNpu.from_meta_and_set_numel(self.inductor_meta, cfg, numels).eval_slow(
-            dict(
-                zip(
-                    [
-                        *self.fn.arg_names,
-                        *self.inductor_meta.get("extra_launcher_args", ()),
-                    ],
-                    args,
+        runtime_blocks = runtime_blocks or ()
+        if self.inductor_meta.get("group_enabled", False):
+            runtime_block_names = tuple(
+                self.inductor_meta.get("runtime_block_arg_names", ())
+            )
+            grid = GridExprNpu.from_grouped_meta_and_numel(
+                self.inductor_meta,
+                cfg,
+                numels,
+                runtime_block_names=runtime_block_names,
+            ).eval_slow(
+                dict(
+                    zip(
+                        [
+                            *self.fn.arg_names,
+                            *self.inductor_meta.get("extra_launcher_args", ()),
+                            *runtime_block_names,
+                        ],
+                        (*args, *runtime_blocks),
+                    )
                 )
             )
-        )
+        else:
+            grid = GridExprNpu.from_meta_and_set_numel(self.inductor_meta, cfg, numels).eval_slow(
+                dict(
+                    zip(
+                        [
+                            *self.fn.arg_names,
+                            *self.inductor_meta.get("extra_launcher_args", ()),
+                        ],
+                        args,
+                    )
+                )
+            )
         if self.inductor_meta.get("extra_launcher_args"):
             args = args[: -len(self.inductor_meta["extra_launcher_args"])]
         return args, grid
+
+
+class NPUSymbolicGroupedAutotuner(NPUCachingAutotuner):
+    def __init__(
+            self,
+            fn,
+            triton_meta,
+            configs,
+            save_cache_hook,
+            mutated_arg_names: List[str],
+            optimize_mem,
+            heuristic_type,
+            size_hints=None,
+            inductor_meta=None,
+            custom_kernel=False,
+            filename: Optional[str] = None,
+            reset_to_zero_arg_names: Optional[List[str]] = None,
+    ):
+        super().__init__(
+            fn,
+            triton_meta,
+            configs,
+            save_cache_hook,
+            mutated_arg_names,
+            optimize_mem,
+            heuristic_type,
+            size_hints,
+            inductor_meta,
+            custom_kernel,
+            filename,
+            reset_to_zero_arg_names,
+        )
+        self.grouped_plan = self.inductor_meta["grouped_candidate_plan"]
+        self.variant_order = self.grouped_plan["variant_order"]
+        self.variant_id_to_index = {
+            variant_id: idx for idx, variant_id in enumerate(self.variant_order)
+        }
+        self.variant_launchers = [None] * len(self.variant_order)
+        self.group_best = [None] * self.grouped_plan["group_id_count"]
+        self.reachable_group_ids = tuple(
+            self.grouped_plan.get(
+                "reachable_group_ids",
+                range(self.grouped_plan["group_id_count"]),
+            )
+        )
+        self._grouped_runtime_args_snapshot = ()
+        self._grouped_variant_launchers_initialized = False
+
+    def _precompile_variants(self):
+        if self._grouped_variant_launchers_initialized:
+            return
+        if len(self.launchers) == 0:
+            start_time = time.time_ns()
+            self.kernel_name = self.get_fn_name()
+            if getattr(self, "_precompile_worker_parallel", None) is not None:
+                self._precompile_worker_parallel()
+            else:
+                self._precompile_worker()
+            self._make_launchers()
+            self.precompile_time_taken_ns = time.time_ns() - start_time
+        for idx, variant_id in enumerate(self.variant_order):
+            variant_config = self.grouped_plan["variants"][variant_id]["config"]
+            launcher = next(
+                (
+                    launcher
+                    for launcher in self.launchers
+                    if config_to_dict(launcher.config) == variant_config
+                ),
+                None,
+            )
+            self.variant_launchers[idx] = launcher
+        self._grouped_variant_launchers_initialized = True
+
+    def _runtime_feature_inputs(self, args) -> tuple[int, ...]:
+        if "feature_arg_indices" not in self.grouped_plan:
+            raise RuntimeError("grouped plan is missing feature_arg_indices")
+        feature_arg_indices = tuple(self.grouped_plan["feature_arg_indices"])
+        feature_sources = tuple(self.grouped_plan.get("feature_sources", ()))
+        if feature_sources and len(feature_sources) != len(feature_arg_indices):
+            raise RuntimeError("feature_sources and feature_arg_indices must match")
+        runtime_feature_inputs = []
+        for idxs, feature_source in zip(
+            feature_arg_indices,
+            feature_sources or ({},) * len(feature_arg_indices),
+        ):
+            values = tuple(int(args[idx]) for idx in idxs)
+            source = feature_source.get("source")
+            if source in ("outer_product", "reduction_product"):
+                product = 1
+                for value in values:
+                    product *= value
+                runtime_feature_inputs.append(product)
+            else:
+                if len(values) != 1:
+                    raise RuntimeError(
+                        f"feature source {source} expects one axis, got {values}"
+                    )
+                runtime_feature_inputs.append(values[0])
+        return tuple(runtime_feature_inputs)
+
+    def _resolve_group_id(self, runtime_feature_inputs: tuple[int, ...]) -> int:
+        feature_specs = tuple(self.grouped_plan.get("group_features", ()))
+        if len(runtime_feature_inputs) != len(feature_specs):
+            raise RuntimeError(
+                "runtime_feature_inputs and group_features must have the same length"
+            )
+        group_id = 0
+        stride = 1
+        for value, spec in zip(runtime_feature_inputs, feature_specs):
+            buckets = tuple(spec["buckets"])
+            group_id += bucketize(value, buckets) * stride
+            stride *= len(buckets) + 1
+        group_id_count = self.grouped_plan.get("group_id_count")
+        if group_id_count is not None and group_id >= group_id_count:
+            raise RuntimeError(
+                f"group_id {group_id} is out of range for group_id_count {group_id_count}"
+            )
+        return group_id
+
+    def _materialize_runtime_blocks(self, candidate, args) -> tuple[int, ...]:
+        runtime_block_names = tuple(self.grouped_plan.get("runtime_block_append_order", ()))
+        policy = self.grouped_plan["policies"][candidate["policy_id"]]
+        runtime_block_rules = tuple(policy.get("runtime_block_rules", ()))
+        primary_group_axis = self.inductor_meta.get("primary_group_axis")
+        if primary_group_axis is not None:
+            primary_block_name = f"{primary_group_axis.upper()}BLOCK"
+            if len(runtime_block_rules) > 1:
+                raise RuntimeError(
+                    "grouped autotune V1 only supports one runtime block rule"
+                )
+            if runtime_block_rules and runtime_block_rules[0][0] != primary_block_name:
+                raise RuntimeError(
+                    "grouped autotune V1 runtime block rule must target primary block "
+                    f"{primary_block_name}"
+                )
+        static_blocks = dict(policy.get("static_blocks", ()))
+        resolved_blocks = dict(static_blocks)
+        axis_arg_indices = dict(self.grouped_plan.get("axis_arg_indices", {}))
+        grid_target = int(policy["grid_target"])
+        for block_name, rule_items in runtime_block_rules:
+            rule = dict(rule_items)
+            if rule.get("op") != "ceildiv":
+                raise RuntimeError(
+                    f"runtime block rule op {rule.get('op')} is not supported"
+                )
+            axis_name = rule["axis_name"]
+            if axis_name not in axis_arg_indices:
+                raise RuntimeError(f"axis_arg_indices is missing axis {axis_name}")
+            axis_numel = int(args[axis_arg_indices[axis_name]])
+            resolved_blocks[block_name] = (axis_numel + grid_target - 1) // grid_target
+        missing_runtime_block_names = [
+            name for name in runtime_block_names if name not in resolved_blocks
+        ]
+        if missing_runtime_block_names:
+            raise RuntimeError(
+                "runtime blocks are missing values for "
+                f"{missing_runtime_block_names}"
+            )
+        return tuple(resolved_blocks[name] for name in runtime_block_names)
+
+    def _build_runtime_launch_args(self, args, runtime_blocks: tuple[int, ...]):
+        return (*args, *runtime_blocks)
+
+    def _benchmark_feature_inputs_for_group(self, group_id: int) -> tuple[int, ...]:
+        if "benchmark_feature_inputs_by_group" not in self.grouped_plan:
+            raise RuntimeError(
+                "grouped plan is missing benchmark_feature_inputs_by_group"
+            )
+        benchmark_inputs = self.grouped_plan["benchmark_feature_inputs_by_group"]
+        if group_id >= len(benchmark_inputs):
+            raise RuntimeError(
+                f"group_id {group_id} is out of range for benchmark_feature_inputs_by_group"
+            )
+        return tuple(benchmark_inputs[group_id])
+
+    def _materialize_benchmark_args(self, group_id: int):
+        if "benchmark_axis_values_by_group" not in self.grouped_plan:
+            raise RuntimeError(
+                "grouped plan is missing benchmark_axis_values_by_group"
+            )
+
+        benchmark_axis_values = self.grouped_plan["benchmark_axis_values_by_group"]
+        if group_id >= len(benchmark_axis_values):
+            raise RuntimeError(
+                f"group_id {group_id} is out of range for benchmark_axis_values_by_group"
+            )
+
+        axis_env = {
+            axis_name: int(axis_value)
+            for axis_name, axis_value in benchmark_axis_values[group_id]
+        }
+
+        def eval_expr(expr):
+            if isinstance(expr, int):
+                return expr
+            if not isinstance(expr, dict):
+                raise RuntimeError(f"unsupported benchmark expr payload: {expr}")
+            if "const" in expr:
+                return int(expr["const"])
+            if "runtime_arg_index" in expr:
+                runtime_arg_index = int(expr["runtime_arg_index"])
+                if runtime_arg_index >= len(self._grouped_runtime_args_snapshot):
+                    raise RuntimeError(
+                        "benchmark expr runtime_arg_index is out of range: "
+                        f"{runtime_arg_index}"
+                    )
+                return self._grouped_runtime_args_snapshot[runtime_arg_index]
+            if "axis_name" in expr:
+                axis_name = expr["axis_name"]
+                if axis_name not in axis_env:
+                    raise RuntimeError(
+                        f"benchmark axis env is missing axis {axis_name}"
+                    )
+                return axis_env[axis_name]
+            if "mul" in expr:
+                product = 1
+                for operand in expr["mul"]:
+                    product *= eval_expr(operand)
+                return product
+            if "add" in expr:
+                total = 0
+                for operand in expr["add"]:
+                    total += eval_expr(operand)
+                return total
+            if "floordiv" in expr:
+                operands = tuple(eval_expr(operand) for operand in expr["floordiv"])
+                if len(operands) != 2:
+                    raise RuntimeError(
+                        f"floordiv benchmark expr expects 2 operands: {expr}"
+                    )
+                return operands[0] // operands[1]
+            raise RuntimeError(f"unsupported benchmark expr payload: {expr}")
+
+        def materialize_dtype(dtype):
+            if isinstance(dtype, str):
+                dtype_name = dtype.removeprefix("torch.")
+                return getattr(torch, dtype_name)
+            return dtype
+
+        def workspace_factory(count, device, dtype, zero_mode):
+            if hasattr(self, "_benchmark_workspace_factory"):
+                return self._benchmark_workspace_factory(count, device, dtype, zero_mode)
+            if zero_mode == "ZERO_ON_CALL":
+                return torch.zeros(count, device=device, dtype=dtype)
+            return torch.empty(count, device=device, dtype=dtype)
+
+        def materialize_spec(spec, kind):
+            spec_kind = spec.get("kind")
+            source = spec.get("source")
+            if source == "runtime_arg":
+                runtime_arg_index = int(spec["index"])
+                if runtime_arg_index >= len(self._grouped_runtime_args_snapshot):
+                    raise RuntimeError(
+                        f"{kind} runtime_arg index {runtime_arg_index} is out of range"
+                    )
+                return self._grouped_runtime_args_snapshot[runtime_arg_index]
+            if source == "axis_expr":
+                return eval_expr(spec["expr"])
+            if spec_kind == "tensor" and source in ("buffer", "constant"):
+                size = tuple(eval_expr(expr) for expr in spec["size_exprs"])
+                stride = tuple(eval_expr(expr) for expr in spec["stride_exprs"])
+                dtype = materialize_dtype(spec["dtype"])
+                tensor_factory = getattr(self, "_benchmark_tensor_factory", None)
+                if tensor_factory is None:
+                    tensor_factory = rand_strided
+                return tensor_factory(size, stride, dtype, spec["device"])
+            if spec_kind == "workspace" and source == "workspace":
+                count = eval_expr(spec["count_expr"])
+                return workspace_factory(
+                    count,
+                    spec["device"],
+                    materialize_dtype(spec["dtype"]),
+                    spec["zero_mode"],
+                )
+            raise RuntimeError(f"{kind} spec source {source} is not supported")
+
+        return tuple(
+            materialize_spec(spec, f"{spec.get('kind', 'unknown')} arg")
+            for spec in self.grouped_plan.get("ordered_arg_specs", ())
+        )
+
+    def _build_grouped_benchmark_entries(self):
+        entries = []
+        for group_id, candidates in enumerate(self.grouped_plan["group_to_candidates"]):
+            if not candidates:
+                continue
+            benchmark_args = self._materialize_benchmark_args(group_id)
+            for candidate in candidates:
+                variant_index = self.variant_id_to_index[candidate["variant_id"]]
+                launcher = self.variant_launchers[variant_index]
+                if launcher is None or not launcher.runnable:
+                    continue
+                runtime_blocks = self._materialize_runtime_blocks(candidate, benchmark_args)
+                launch_args = self._build_runtime_launch_args(
+                    benchmark_args, runtime_blocks
+                )
+                entries.append(
+                    {
+                        "group_id": group_id,
+                        "candidate": candidate,
+                        "launcher": launcher,
+                        "runtime_blocks": runtime_blocks,
+                        "launch_args": launch_args,
+                    }
+                )
+        return tuple(entries)
+
+    def _grouped_kernel_args_prefix(self, launch_args):
+        return launch_args[: len(self.fn.arg_names)]
+
+    def _grouped_mspti_batch_benchmark(self, kernel_funcs):
+        return mspti_batch_benchmark(kernel_funcs, filter_list=["triton"])
+
+    def _grouped_profile_batch_benchmark(self, kernel_funcs):
+        def delete_file(base_path):
+            if os.path.exists(base_path):
+                shutil.rmtree(base_path)
+
+        stream = torch.npu.current_stream()
+        random_uuid = uuid.uuid4().hex
+        md5_hash = hashlib.md5(random_uuid.encode()).hexdigest()
+
+        kernel_count = len(kernel_funcs)
+        autotune_path = os.path.join(os.getcwd(), "profile_result", f"triton_{md5_hash}")
+        WAIT = 1
+        WARMUP = 1
+        ACTIVE = 10
+        REPEAT = 1
+        SKIP_FIRST = 1
+        TOTAL_STEP = (WAIT + WARMUP + ACTIVE + SKIP_FIRST) * REPEAT
+        with create_profiler(autotune_path, WAIT, WARMUP, ACTIVE, REPEAT, SKIP_FIRST) as prof:
+            stream.synchronize()
+            for _ in range(TOTAL_STEP):
+                for fn in kernel_funcs:
+                    fn()
+                torch.npu.synchronize()
+                prof.step()
+            stream.synchronize()
+
+        import pandas as pd
+        for root, _, files in os.walk(autotune_path):
+            for file in files:
+                if file != 'kernel_details.csv':
+                    continue
+                target_file = os.path.join(root, file)
+                df = pd.read_csv(target_file)
+                triton_rows = df[df['Name'].str.startswith('triton', na=False)]
+                if len(triton_rows) != kernel_count * ACTIVE:
+                    raise RuntimeError(
+                        f"Expected {kernel_count * ACTIVE} rows for triton kernels, "
+                        f"but got {len(triton_rows)}. This may be due to profiling "
+                        f"errors. Please check the profiling result at {target_file} "
+                        "for more details."
+                    )
+
+                time_cost = [0] * kernel_count
+                for kernel_index in range(kernel_count):
+                    for active_index in range(ACTIVE):
+                        row_index = kernel_index + kernel_count * active_index
+                        time_cost[kernel_index] += triton_rows.iloc[row_index]['Duration(us)']
+                delete_file(autotune_path)
+                return [cost / ACTIVE for cost in time_cost]
+
+        delete_file(autotune_path)
+        return []
+
+    def _bench_grouped_entry(self, entry, **kwargs):
+        launcher = entry["launcher"]
+        launch_args = entry["launch_args"]
+        if not self.custom_kernel and launcher.n_spills is not None and launcher.n_spills > self.inductor_meta.get(
+            "spill_threshold", 16
+        ):
+            return float("inf")
+
+        device_interface = self.get_device_interface()
+        stream = device_interface.get_raw_stream(device_interface.current_device())
+        kernel_args_prefix = self._grouped_kernel_args_prefix(launch_args)
+
+        def kernel_call():
+            cloned_args, cloned_kwargs = self.clone_args(*launch_args, **kwargs)
+            self.reset_to_zero_args(*kernel_args_prefix, **kwargs)
+            launcher(
+                *cloned_args,
+                **cloned_kwargs,
+                stream=stream,
+            )
+
+        if self.inductor_meta.get("profile_bandwidth_with_do_bench_using_profiling", False):
+            return do_bench_using_profiling_npu(kernel_call, rep=1)
+
+        return benchmarker.benchmark_gpu(kernel_call, rep=1)
+
+    def _benchmark_grouped_entries(self, entries, **kwargs):
+        if not entries:
+            return ()
+        device_interface = self.get_device_interface()
+        stream = device_interface.get_raw_stream(device_interface.current_device())
+        kernel_funcs = []
+        kernel_entry_indices = []
+        timings = [None] * len(entries)
+
+        def kernel_call(entry):
+            launcher = entry["launcher"]
+            launch_args = entry["launch_args"]
+            kernel_args_prefix = self._grouped_kernel_args_prefix(launch_args)
+
+            def call_kernel():
+                if not launcher.runnable:
+                    return
+                if launcher.config.pre_hook is not None:
+                    pre_hook_args = {
+                        **dict(zip(self.arg_names, launch_args)),
+                        **launcher.config.kwargs,
+                    }
+                    launcher.config.pre_hook(
+                        pre_hook_args
+                    )
+                cloned_args, cloned_kwargs = self.clone_args(*launch_args, **kwargs)
+                self.reset_to_zero_args(*kernel_args_prefix, **kwargs)
+                launcher(
+                    *cloned_args,
+                    **cloned_kwargs,
+                    stream=stream,
+                )
+
+            return call_kernel
+
+        for entry_idx, entry in enumerate(entries):
+            launcher = entry["launcher"]
+            n_spills = launcher.n_spills
+            if not self.custom_kernel and n_spills is not None and n_spills > self.inductor_meta.get(
+                "spill_threshold", 16
+            ):
+                timings[entry_idx] = float("inf")
+                continue
+            kernel_funcs.append(kernel_call(entry))
+            kernel_entry_indices.append(entry_idx)
+
+        if not kernel_funcs:
+            return tuple(timings)
+
+        if not npu_config.aggresive_autotune:
+            return tuple(
+                timing
+                if timing is not None
+                else self._bench_grouped_entry(entry, **kwargs)
+                for entry, timing in zip(entries, timings)
+            )
+
+        def apply_batch_timings(batch_timings):
+            batch_timings = tuple(batch_timings)
+            if len(batch_timings) != len(kernel_funcs):
+                raise RuntimeError(
+                    "grouped batch benchmark timing count does not match kernel funcs"
+                )
+            for entry_idx, timing in zip(kernel_entry_indices, batch_timings):
+                timings[entry_idx] = timing
+            return tuple(timings)
+
+        try:
+            return apply_batch_timings(self._grouped_mspti_batch_benchmark(kernel_funcs))
+        except Exception as mspti_exc:
+            log.warning(
+                "grouped mspti batch benchmark failed, switched to profiler batch: %s",
+                mspti_exc,
+            )
+
+        try:
+            return apply_batch_timings(
+                self._grouped_profile_batch_benchmark(kernel_funcs)
+            )
+        except Exception as profile_exc:
+            log.warning(
+                "grouped profiler batch benchmark failed, switched to single bench: %s",
+                profile_exc,
+            )
+
+            return tuple(
+                timing
+                if timing is not None
+                else self._bench_grouped_entry(entry, **kwargs)
+                for entry, timing in zip(entries, timings)
+            )
+
+    def _autotune_all_groups(self, *args, **kwargs):
+        self._grouped_runtime_args_snapshot = args
+        entries = self._build_grouped_benchmark_entries()
+        entry_group_ids = {entry["group_id"] for entry in entries}
+        missing_entry_groups = tuple(
+            group_id
+            for group_id in self.reachable_group_ids
+            if group_id not in entry_group_ids
+        )
+        if missing_entry_groups:
+            raise RuntimeError(
+                "reachable grouped autotune groups have no benchmark entries after "
+                "precompile/make_launcher filtering: "
+                f"{missing_entry_groups}"
+            )
+        timings = self._benchmark_grouped_entries(entries, **kwargs)
+        if len(timings) != len(entries):
+            raise RuntimeError(
+                "grouped benchmark timing count does not match benchmark entries"
+            )
+        best_by_group = {}
+        for entry, timing in zip(entries, timings):
+            group_id = entry["group_id"]
+            if group_id not in best_by_group or timing < best_by_group[group_id][0]:
+                candidate = entry["candidate"]
+                best_by_group[group_id] = (
+                    timing,
+                    (
+                        entry["launcher"],
+                        candidate["policy_id"],
+                        candidate["variant_id"],
+                    ),
+                )
+        missing_best_groups = tuple(
+            group_id
+            for group_id in self.reachable_group_ids
+            if group_id not in best_by_group
+        )
+        if missing_best_groups:
+            raise RuntimeError(
+                "reachable grouped autotune groups failed to select a best candidate: "
+                f"{missing_best_groups}"
+            )
+        for group_id, (_, best_entry) in best_by_group.items():
+            self.group_best[group_id] = best_entry
+
+    def _all_reachable_groups_tuned(self):
+        return all(self.group_best[group_id] is not None for group_id in self.reachable_group_ids)
+
+    def ensure_grouped_autotune_ready(self, *args, **kwargs):
+        with self.lock:
+            if self._all_reachable_groups_tuned():
+                return
+            self._precompile_variants()
+            self._autotune_all_groups(*args, **kwargs)
+
+    def run(
+        self, *args, stream, benchmark_run=False, **kwargs
+    ):  # type:ignore[override]
+        self.ensure_grouped_autotune_ready(*args, **kwargs)
+        runtime_feature_inputs = self._runtime_feature_inputs(args)
+        group_id = self._resolve_group_id(runtime_feature_inputs)
+        launcher_entry = self.group_best[group_id]
+        if launcher_entry is None:
+            raise RuntimeError(
+                f"runtime inputs resolved to unreachable grouped autotune group {group_id}"
+            )
+        launcher, policy_id, variant_id = launcher_entry
+        runtime_blocks = self._materialize_runtime_blocks(
+            {"policy_id": policy_id},
+            args,
+        )
+        selected_config = self.grouped_plan["variants"][variant_id]["config"]
+        log.info(
+            "grouped dispatch group: kernel=%s feature_inputs=%s group_id=%s selected_config=%s runtime_blocks=%s",
+            self.inductor_meta.get("kernel_name", self.fn.__name__),
+            runtime_feature_inputs,
+            group_id,
+            selected_config,
+            runtime_blocks,
+        )
+        return launcher(
+            *self._build_runtime_launch_args(args, runtime_blocks),
+            stream=stream,
+            **kwargs,
+        )
 
 
 class NPUDebugAutotuner(NPUCachingAutotuner):
@@ -1263,6 +1932,22 @@ def cached_autotune(
                 filename=filename,
             )
 
+        if inductor_meta.get("group_enabled", False):
+            return NPUSymbolicGroupedAutotuner(
+                fn,
+                triton_meta=triton_meta,
+                inductor_meta=inductor_meta,
+                configs=configs,
+                save_cache_hook=autotune_cache and autotune_cache.save,
+                mutated_arg_names=mutated_arg_names,
+                reset_to_zero_arg_names=reset_to_zero_arg_names,
+                optimize_mem=optimize_mem,
+                heuristic_type=heuristic_type,
+                size_hints=size_hints,
+                custom_kernel=custom_kernel,
+                filename=filename,
+            )
+
         return NPUCachingAutotuner(
             fn,
             triton_meta=triton_meta,
@@ -1309,6 +1994,317 @@ def triton_config_npu_index(
         is_reduction=False,
         is_persistent_reduction=False,
 
+) -> List[Config]:
+    if inductor_meta.get("group_enabled", False):
+        if inductor_meta.get("extra_launcher_args"):
+            raise RuntimeError(
+                "grouped autotune reached runtime config with extra_launcher_args; "
+                "this path is not supported for the current autogenerated Triton grouped autotune flow"
+            )
+        return _triton_config_npu_index_grouped(
+            size_hints,
+            inductor_meta,
+            triton_meta=triton_meta,
+            is_reduction=is_reduction,
+            is_persistent_reduction=is_persistent_reduction,
+        )
+    return _triton_config_npu_index_legacy(
+        size_hints,
+        inductor_meta,
+        triton_meta=triton_meta,
+        is_reduction=is_reduction,
+        is_persistent_reduction=is_persistent_reduction,
+    )
+
+
+def _triton_config_npu_index_grouped(
+        size_hints,
+        inductor_meta,
+        triton_meta=None,
+        is_reduction=False,
+        is_persistent_reduction=False,
+) -> List[Config]:
+    group_features = tuple(inductor_meta.get("group_features", ()))
+    signature_names = tuple((triton_meta or {}).get("signature", {}).keys())
+    axis_names = tuple(inductor_meta.get("axis_names", ()))
+    axis_static_values = tuple(inductor_meta.get("axis_static_values", ()))
+
+    axis_arg_indices = {}
+    for axis_name in axis_names:
+        arg_name = f"{axis_name}_numel"
+        if arg_name in signature_names:
+            axis_arg_indices[axis_name] = signature_names.index(arg_name)
+
+    def resolve_feature_arg_indices(feature_spec) -> tuple[int, ...]:
+        source = feature_spec["source"]
+        axis_names = tuple(feature_spec["axis_names"])
+        if source in ("primary_axis", "axis") and len(axis_names) != 1:
+            raise RuntimeError(
+                f"group feature {feature_spec['name']} expects exactly one axis, got {axis_names}"
+            )
+        if source not in ("primary_axis", "axis", "outer_product", "reduction_product"):
+            raise RuntimeError(
+                f"group feature source {source} is not supported by feature_arg_indices v1"
+            )
+        indices = []
+        for axis_name in axis_names:
+            arg_name = f"{axis_name}_numel"
+            if arg_name not in signature_names:
+                raise RuntimeError(
+                    f"group feature {feature_spec['name']} arg {arg_name} is missing from signature"
+                )
+            indices.append(signature_names.index(arg_name))
+        return tuple(indices)
+
+    feature_arg_indices = tuple(
+        resolve_feature_arg_indices(feature_spec) for feature_spec in group_features
+    )
+
+    try:
+        group_representatives = build_group_representatives(
+            group_features,
+            axis_names,
+            axis_static_values,
+        )
+    except UnsupportedGroupedPlan as exc:
+        raise RuntimeError(
+            "invalid grouped autotune plan reached runtime config; "
+            "the current grouped codegen guard should have rejected this plan earlier"
+        ) from exc
+    group_id_count = group_representatives["group_id_count"]
+    reachable_group_ids = set(group_representatives["reachable_group_ids"])
+    runtime_block_arg_names = tuple(inductor_meta.get("runtime_block_arg_names", ()))
+    primary_group_axis = inductor_meta.get("primary_group_axis")
+    if primary_group_axis is None:
+        raise RuntimeError("grouped autotune plan is missing primary_group_axis")
+    primary_block_name = f"{primary_group_axis.upper()}BLOCK"
+    if runtime_block_arg_names and primary_block_name not in runtime_block_arg_names:
+        raise RuntimeError(
+            f"runtime_block_arg_names is missing primary block {primary_block_name}"
+        )
+
+    def benchmark_axis_env(group_id: int) -> dict[str, int]:
+        axis_values = group_representatives["benchmark_axis_values_by_group"][group_id]
+        return {axis_name: int(axis_value) for axis_name, axis_value in axis_values}
+
+    primary_feature_index = find_primary_feature_index(
+        group_features, primary_group_axis
+    )
+    base_size_hints = {
+        axis_name: int(size_hints.get(axis_name, 1))
+        for axis_name in axis_names
+    }
+
+    def representative_size_hints(group_id: int) -> dict[str, int]:
+        representative = dict(base_size_hints)
+        representative.update(benchmark_axis_env(group_id))
+        return representative
+
+    variant_configs = []
+    variant_key_to_id = {}
+    policies = {}
+    group_to_candidates = []
+    for group_id in range(group_id_count):
+        if group_id not in reachable_group_ids:
+            group_to_candidates.append(())
+            continue
+        legacy_configs = _triton_config_npu_index_legacy(
+            representative_size_hints(group_id),
+            inductor_meta,
+            triton_meta=triton_meta,
+            is_reduction=is_reduction,
+            is_persistent_reduction=is_persistent_reduction,
+        )
+        group_candidates = []
+        group_candidate_keys = set()
+        for variant_idx, legacy_cfg in enumerate(legacy_configs):
+            variant_cfg = strip_runtime_blocks_from_cfg(
+                legacy_cfg, runtime_block_arg_names
+            )
+            variant_key = repr(config_to_dict(variant_cfg))
+            variant_id = variant_key_to_id.get(variant_key)
+            if variant_id is None:
+                variant_id = f"v{len(variant_configs)}"
+                variant_key_to_id[variant_key] = variant_id
+                variant_configs.append(variant_cfg)
+            policy_id = f"p{group_id}_{variant_id}"
+            if len(legacy_configs) > 1:
+                policy_id = f"{policy_id}_{variant_idx}"
+            policy = build_grouped_launch_policy(
+                group_id=group_id,
+                cfg=legacy_cfg,
+                runtime_block_arg_names=runtime_block_arg_names,
+                group_features=group_features,
+                primary_group_axis=primary_group_axis,
+                primary_feature_index=primary_feature_index,
+                axis_env=benchmark_axis_env(group_id),
+                npu_num_vector_core=npu_config.num_vector_core,
+            )
+            candidate_key = (
+                variant_id,
+                tuple(policy.get("static_blocks", ())),
+                tuple(policy.get("runtime_block_rules", ())),
+                int(policy.get("grid_target", 1)),
+            )
+            if candidate_key in group_candidate_keys:
+                continue
+            group_candidate_keys.add(candidate_key)
+            policies[policy_id] = policy
+            group_candidates.append(
+                {
+                    "variant_id": variant_id,
+                    "policy_id": policy_id,
+                }
+            )
+        group_to_candidates.append(tuple(group_candidates))
+    variant_order = tuple(f"v{idx}" for idx in range(len(variant_configs)))
+    ordered_arg_specs = tuple(inductor_meta.get("ordered_arg_specs", ()))
+    tensor_arg_specs = tuple(inductor_meta.get("tensor_arg_specs", ()))
+    size_arg_specs = tuple(inductor_meta.get("size_arg_specs", ()))
+    workspace_arg_specs = tuple(inductor_meta.get("workspace_arg_specs", ()))
+    extra_launcher_arg_specs = tuple(inductor_meta.get("extra_launcher_arg_specs", ()))
+    grouped_candidate_plan = {
+        "variants": {
+            f"v{idx}": {"config": config_to_dict(cfg)}
+            for idx, cfg in enumerate(variant_configs)
+        },
+        "variant_order": variant_order,
+        "group_to_candidates": tuple(group_to_candidates),
+        "policies": policies,
+        "runtime_block_arg_count": len(runtime_block_arg_names),
+        "runtime_block_append_order": runtime_block_arg_names,
+        "group_id_count": group_id_count,
+        "reachable_group_ids": tuple(group_representatives["reachable_group_ids"]),
+        "unreachable_group_ids": tuple(group_representatives["unreachable_group_ids"]),
+        "group_features": tuple(group_features),
+        "axis_arg_indices": axis_arg_indices,
+        "feature_arg_indices": feature_arg_indices,
+        "feature_sources": tuple(
+            {
+                "name": feature_spec["name"],
+                "source": feature_spec["source"],
+                "axis_names": tuple(feature_spec["axis_names"]),
+            }
+            for feature_spec in group_features
+        ),
+        "benchmark_feature_inputs_by_group": tuple(
+            group_representatives["benchmark_feature_inputs_by_group"]
+        ),
+        "benchmark_axis_values_by_group": tuple(
+            group_representatives["benchmark_axis_values_by_group"]
+        ),
+        "ordered_arg_specs": ordered_arg_specs,
+        "tensor_arg_specs": tensor_arg_specs,
+        "size_arg_specs": size_arg_specs,
+        "workspace_arg_specs": workspace_arg_specs,
+        "extra_launcher_arg_specs": extra_launcher_arg_specs,
+    }
+    inductor_meta["grouped_candidate_plan"] = grouped_candidate_plan
+    candidate_count_by_group = tuple(
+        (group_id, len(candidates))
+        for group_id, candidates in enumerate(grouped_candidate_plan["group_to_candidates"])
+        if candidates
+    )
+    log.info(
+        "grouped codegen groups: kernel=%s group_id_count=%s reachable_group_count=%s total_candidate_count=%s candidate_count_by_group=%s",
+        inductor_meta.get("kernel_name", "triton_"),
+        group_id_count,
+        len(grouped_candidate_plan["reachable_group_ids"]),
+        sum(len(candidates) for candidates in grouped_candidate_plan["group_to_candidates"]),
+        candidate_count_by_group,
+    )
+    return variant_configs
+
+
+def extract_runtime_blocks_from_cfg(
+        cfg,
+        runtime_block_arg_names: tuple[str, ...],
+) -> dict[str, int]:
+    cfg_dict = config_to_dict(cfg)
+    if isinstance(cfg_dict, dict) and "kwargs" in cfg_dict:
+        kwargs = dict(cfg_dict["kwargs"])
+    else:
+        kwargs = dict(cfg_dict)
+    return {
+        block_name: int(kwargs[block_name])
+        for block_name in runtime_block_arg_names
+        if block_name in kwargs
+    }
+
+
+def build_grouped_launch_policy(
+        group_id: int,
+        cfg,
+        runtime_block_arg_names: tuple[str, ...],
+        group_features,
+        primary_group_axis: str,
+        primary_feature_index: int,
+        axis_env: dict[str, int],
+        npu_num_vector_core: int,
+) -> dict[str, object]:
+    primary_block_name = f"{primary_group_axis.upper()}BLOCK"
+    runtime_blocks = extract_runtime_blocks_from_cfg(cfg, runtime_block_arg_names)
+    if primary_block_name not in runtime_blocks:
+        if runtime_block_arg_names:
+            raise RuntimeError(
+                f"legacy grouped config is missing primary block {primary_block_name}"
+            )
+        return {
+            "group_id": group_id,
+            "static_blocks": (),
+            "runtime_block_rules": (),
+            "grid_target": 1,
+        }
+    tail_group = is_open_bucket_group(
+        group_features, primary_feature_index, group_id
+    )
+    if not tail_group:
+        return {
+            "group_id": group_id,
+            "static_blocks": tuple(
+                (block_name, runtime_blocks[block_name])
+                for block_name in runtime_block_arg_names
+                if block_name in runtime_blocks
+            ),
+            "runtime_block_rules": (),
+            "grid_target": 1,
+        }
+
+    static_blocks = []
+    prior_programs = 1
+    for block_name in runtime_block_arg_names:
+        if block_name not in runtime_blocks:
+            continue
+        axis_name = block_name.removesuffix("BLOCK").lower()
+        if axis_name == primary_group_axis:
+            continue
+        static_block = int(runtime_blocks[block_name])
+        static_blocks.append((block_name, static_block))
+        if axis_name not in axis_env:
+            raise RuntimeError(
+                f"benchmark axis env is missing split axis {axis_name}"
+            )
+        prior_programs *= (int(axis_env[axis_name]) + static_block - 1) // static_block
+
+    return {
+        "group_id": group_id,
+        "static_blocks": tuple(static_blocks),
+        "runtime_block_rules": (
+            (
+                primary_block_name,
+                (("op", "ceildiv"), ("axis_name", primary_group_axis)),
+            ),
+        ),
+        "grid_target": max(1, npu_num_vector_core // prior_programs),
+    }
+
+
+def _triton_config_npu_index_legacy(
+        size_hints,
+        inductor_meta,
+        triton_meta=None,
+        is_reduction=False,
+        is_persistent_reduction=False,
 ) -> List[Config]:
     num_warps = 1
     num_stages = 1
@@ -1393,6 +2389,23 @@ def triton_config_npu_index(
     # if fast run, we prune the configs to the last max_num configs
     configs = brutal_prune_tiling_configs_if_fast_run(configs, inductor_meta)
     return configs
+
+
+def strip_runtime_blocks_from_cfg(
+        cfg: Config,
+        runtime_block_arg_names: tuple[str, ...],
+) -> Config:
+    cfg_dict = config_to_dict(cfg)
+    if isinstance(cfg_dict, dict) and "kwargs" in cfg_dict:
+        normalized = copy.deepcopy(cfg_dict["kwargs"])
+        for key in ("num_warps", "num_stages", "num_ctas", "maxnreg"):
+            if key in cfg_dict:
+                normalized[key] = cfg_dict[key]
+    else:
+        normalized = copy.deepcopy(cfg_dict)
+    for name in runtime_block_arg_names:
+        normalized.pop(name, None)
+    return config_from_dict(normalized)
 
 def pointwise(
     size_hints,
