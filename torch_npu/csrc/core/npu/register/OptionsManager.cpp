@@ -504,34 +504,42 @@ uint32_t OptionsManager::GetP2PBufferSize()
 uint32_t OptionsManager::GetAclOpInitMode()
 {
     const static uint32_t acl_op_init_mode = []() -> uint32_t {
-        char* buf_val = get_and_log_env("ACL_OP_INIT_MODE");
-        // Default 1 for A2/A3; Default 0 for others
-        static bool default_value_acl_mode = ((c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1) &&
-            (c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend310B1)) ||
-            ((c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910_9391));
-        static const bool isCannVersionGteBase = []() {
-            const std::string baseCannversion = "8.3.RC1";
-            const std::string baseCannModule = "CANN";
-            return IsGteCANNVersion(baseCannversion, baseCannModule);
-        }();
-        int64_t acl_op_init_mode_;
-        if (default_value_acl_mode && isCannVersionGteBase) {
-            acl_op_init_mode_ = (buf_val != nullptr) ? strtol(buf_val, nullptr, 10) : 1;
+        const auto soc_version = c10_npu::GetSocVersion();
+        const bool is_default_mode_1_soc =
+            ((soc_version >= c10_npu::SocVersion::Ascend910B1) &&
+             (soc_version < c10_npu::SocVersion::Ascend310B1)) ||
+            (soc_version >= c10_npu::SocVersion::Ascend910_9391);
+        const bool is_cann_version_gte_base = IsGteCANNVersion("8.3.RC1", "CANN");
+        const bool is_aclnn_only = c10_npu::IsAclnnOnly();
+
+        uint32_t default_mode;
+        if (is_aclnn_only) {
+            default_mode = 2;
+        } else if (is_default_mode_1_soc && is_cann_version_gte_base) {
+            default_mode = 1;
         } else {
-            acl_op_init_mode_ = (buf_val != nullptr) ? strtol(buf_val, nullptr, 10) : 0;
+            default_mode = 0;
         }
-        
-        std::unordered_map<int32_t, std::string> aclOpInitMode = getAclOpInitMode();
-        if (aclOpInitMode.find(acl_op_init_mode_) == aclOpInitMode.end()) {
-            if (default_value_acl_mode && isCannVersionGteBase) {
-                acl_op_init_mode_ = 1;
-                TORCH_NPU_WARN_ONCE("Get env ACL_OP_INIT_MODE not in [0, 1, 2], so reset it to the default value 1.");
-            } else {
-                acl_op_init_mode_ = 0;
-                TORCH_NPU_WARN_ONCE("Get env ACL_OP_INIT_MODE not in [0, 1, 2], so reset it to the default value 0.");
-            }
+
+        char* env_val = get_and_log_env("ACL_OP_INIT_MODE");
+        if (env_val == nullptr) {
+            return default_mode;
         }
-        return static_cast<uint32_t>(acl_op_init_mode_);
+
+        uint32_t env_mode = static_cast<uint32_t>(strtol(env_val, nullptr, 10));
+        if (is_aclnn_only && env_mode != 2) {
+            TORCH_NPU_WARN_ONCE("This device only supports ACL_OP_INIT_MODE=2 (aclops disabled), but got ", env_mode,
+                                ", automatically switched to 2.");
+            return default_mode;
+        }
+        auto acl_op_init_mode_map = getAclOpInitMode();
+        if (acl_op_init_mode_map.find(static_cast<int32_t>(env_mode)) == acl_op_init_mode_map.end()) {
+            TORCH_NPU_WARN_ONCE("Get env ACL_OP_INIT_MODE not in [0, 1, 2], so reset it to the default value ",
+                                default_mode, ".");
+            return default_mode;
+        }
+
+        return env_mode;
     }();
     return acl_op_init_mode;
 }
