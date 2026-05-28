@@ -107,7 +107,9 @@ from torch import _TorchCompileInductorWrapper
 _TorchCompileInductorWrapper.__call__ = src_call
 
 ## npu patch
-from ..npu import npu_decomp
+from torch_npu._inductor.decomposition import _register_npu_inductor_decompositions
+_register_npu_inductor_decompositions(backend="mlir_dvm")
+
 from torch._C import DispatchKey
 from torch._prims_common.wrappers import out_wrapper
 
