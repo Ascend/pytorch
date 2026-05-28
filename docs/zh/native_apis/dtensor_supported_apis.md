@@ -2,12 +2,10 @@
 
 昇腾支持DTensor的API列表请参见[表1](#昇腾支持DTensor的API列表)。
 
-
 > [!NOTE]  
 >
 > - **DTensor**（Distributed Tensor）是PyTorch提供的分布式张量抽象，是`torch.Tensor`的子类。DTensor遵循SPMD（Single Program, Multiple Data）编程模型，通过`DeviceMesh`和`Placement`（包括`Shard`、`Replicate`、`Partial`）描述张量在多设备上的分片布局，透明地处理分片存储、算子计算和跨设备集合通信，使用户能够像编写单设备程序一样编写分布式程序。详细信息请参见[PyTorch DTensor官方文档](https://pytorch.org/docs/stable/distributed.tensor.html)。
 > - 本文档展示的列表为已验证过支持DTensor的API。部分未验证的API可能也具备支持DTensor的能力，在昇腾NPU环境中请谨慎使用。我们将持续验证更多API并定期更新本文档。
-
 
 **表 1**  昇腾支持DTensor的API列表<a id="昇腾支持DTensor的API列表"></a>
 
