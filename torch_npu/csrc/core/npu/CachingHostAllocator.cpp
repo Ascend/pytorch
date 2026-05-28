@@ -216,9 +216,12 @@ public:
 private:
     void allocate_host_memory(size_t size, void** ptr) override
     {
-        // alloc needs set device first when using dataloader with pin_memory=True
-        if (c10_npu::GetLocalDevice() < 0) {
-            c10_npu::SetCurrentDevice();
+        // Pinned memory allocated by any device can be used by any other device.
+        // Device guard must outlive the allocation calls below.
+        at::OptionalDeviceGuard device_guard;
+        auto primary_ctx_device_index = c10_npu::getDeviceIndexWithPrimaryContext();
+        if (primary_ctx_device_index.has_value()) {
+            device_guard.reset_device(at::Device(at::DeviceType::PrivateUse1, *primary_ctx_device_index));
         }
 
         if (get_reserve_segment().initialized()) {

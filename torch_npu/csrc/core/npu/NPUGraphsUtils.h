@@ -7,6 +7,7 @@
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
+#include "torch_npu/csrc/framework/interface/EnvVariables.h"
 
 namespace c10_npu {
 
@@ -71,11 +72,10 @@ C10_NPU_API CaptureStatus currentStreamCaptureStatusMayInitCtx();
 inline CaptureStatus currentStreamCaptureStatus()
 {
     // don't create a context if we don't have to
-    if (c10_npu::IsContextInitialized()) {
+    if (c10_npu::isDeviceCtxActive(c10_npu::current_device())) {
         return currentStreamCaptureStatusMayInitCtx();
-    } else {
-        return CaptureStatus::None;
     }
+    return CaptureStatus::None;
 }
 
 inline void assertNotCapturing(const std::string &attempt)
