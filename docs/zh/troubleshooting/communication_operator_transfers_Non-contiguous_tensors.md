@@ -25,4 +25,4 @@ RuntimeError: Tensors must be contiguous
 ## 解决措施
 
 代码脚本可能存在问题。
-根据日志信息找到报错的代码行，检查输入数据的连续性，通过`.contiguous()`将非连续tensor转换为连续tensor，保证通信算子传入的tensor是连续的。
+根据日志信息找到报错的代码行，检查输入数据的连续性。建议在调用通信算子前添加`.contiguous()`方法（例如：`input_tensor = input_tensor.contiguous()`），以保证通信算子传入的tensor是连续的。
