@@ -3,7 +3,6 @@ import sys
 import shutil
 import subprocess
 import ctypes
-import unittest
 import torch
 import torch.utils.cpp_extension
 
@@ -27,10 +26,6 @@ def build_stub(base_dir):
         raise RuntimeError('Failed to build stub: {}'.format(build_stub_cmd))
 
 
-@unittest.skip(
-    "Skip: pre-existing CI environment issue, "
-    "acl/acl_base_rt.h header missing on ARM CI"
-)
 class TestPluggableAllocator(TestCase):
     module = None
     new_alloc = None
@@ -39,7 +34,9 @@ class TestPluggableAllocator(TestCase):
     @classmethod
     def setUpClass(cls):
         # Build Extension
-        BASE_DIR = os.path.abspath("./../")
+        TEST_FILE_DIR = os.path.dirname(os.path.abspath(__file__))
+        TEST_DIR = os.path.dirname(TEST_FILE_DIR)
+        BASE_DIR = os.path.dirname(TEST_DIR)
         build_stub(BASE_DIR)
         create_build_path(cls.build_directory)
         CANN_LIB_PATH = os.path.join(BASE_DIR, 'third_party/acl/libs')
@@ -48,13 +45,14 @@ class TestPluggableAllocator(TestCase):
         extra_ldflags.append(f"-L{CANN_LIB_PATH}")
         extra_ldflags.append("-lc10")
         extra_ldflags.append(f"-L{PYTORCH_INSTALL_PATH}")
-        extra_include_paths = ["cpp_extensions"]
+        extra_include_paths = [os.path.join(TEST_DIR, "cpp_extensions")]
         extra_include_paths.append(os.path.join(PYTORCH_NPU_INSTALL_PATH, 'include'))
+        extra_include_paths.append(os.path.join(PYTORCH_NPU_INSTALL_PATH, 'include', 'third_party', 'acl', 'inc'))
 
         cls.module = torch.utils.cpp_extension.load(
             name="pluggable_allocator_extensions",
             sources=[
-                "cpp_extensions/pluggable_allocator_extensions.cpp"
+                os.path.join(TEST_DIR, "cpp_extensions", "pluggable_allocator_extensions.cpp")
             ],
             extra_include_paths=extra_include_paths,
             extra_cflags=["-g"],
