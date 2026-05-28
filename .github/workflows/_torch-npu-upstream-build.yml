@@ -43,13 +43,15 @@ jobs:
     env:
       DOCKER_IMAGE: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/manylinux2_28_aarch64-builder:npu-20241225
       PYTHON_VERSION: ${{ inputs.python_version }}
+      UV_INDEX_URL: http://cache-service.nginx-pypi-cache.svc.cluster.local/pypi/simple
+      UV_EXTRA_INDEX_URL: https://mirrors.huaweicloud.com/ascend/repos/pypi
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          repository: Ascend/pytorch
-          ref: v2.7.1
+          repository: kerer-ai/pytorch
+          ref: v2.7.1_dev_fast
           fetch-depth: 1
           submodules: recursive
 
@@ -93,19 +95,13 @@ jobs:
 
       - name: Setup cache directories
         run: |
-          mkdir -p /github/home/.cache/pip
           mkdir -p /github/home/.cache/ccache
           chmod -R 777 /github/home/.cache
 
-      - name: Cache pip
-        uses: actions/cache@v4
-        with:
-          path: /github/home/.cache/pip
-          # Shared cache key - all workflows use same key to share downloaded packages
-          key: pip-py${{ inputs.python_version }}-torch${{ inputs.pytorch_version }}-shared
-          restore-keys: |
-            pip-py${{ inputs.python_version }}-torch${{ inputs.pytorch_version }}-
-            pip-py${{ inputs.python_version }}-
+      - name: Install uv (fast pip replacement)
+        run: |
+          pip${{ inputs.python_version }} install uv
+          uv --version
 
       - name: Cache ccache
         uses: actions/cache@v4
@@ -120,11 +116,11 @@ jobs:
         run: |
           PYTHON=python${{ inputs.python_version }}
           PIP=pip${{ inputs.python_version }}
-          export PIP_CACHE_DIR=/github/home/.cache/pip
 
           $PIP install --upgrade pip setuptools wheel
-          $PIP install torch==${{ inputs.pytorch_version }} --index-url https://download.pytorch.org/whl/cpu
-          $PIP install pyyaml
+          uv pip install --system --python python${{ inputs.python_version }} \
+            torch==${{ inputs.pytorch_version }} --index-url https://download.pytorch.org/whl/cpu
+          uv pip install --system --python python${{ inputs.python_version }} pyyaml
 
           TORCH_VER=$($PYTHON -c "import torch; print(torch.__version__)")
           echo "torch_version=${TORCH_VER}" >> $GITHUB_OUTPUT
@@ -196,7 +192,7 @@ jobs:
           name: ${{ inputs.torch_npu_wheel_artifact }}
           path: dist/*.whl
           if-no-files-found: error
-          retention-days: 60
+          retention-days: 7
 
       - name: Build summary
         if: always()

@@ -30,9 +30,9 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 try:
-    import yaml
+    import yaml  # type: ignore
 except ImportError:
-    yaml = None
+    yaml = None  # type: ignore
 
 
 # ==============================================================================
