@@ -2,7 +2,7 @@ from typing import Iterable, Union
 import torch
 
 import torch_npu
-from . import _lazy_init, _lazy_call, device_count, current_device
+from . import _lazy_init, _lazy_call, device_count, current_device, is_initialized
 
 __all__ = ['get_rng_state', 'set_rng_state',
            'get_rng_state_all', 'set_rng_state_all',
@@ -49,8 +49,12 @@ def set_rng_state(new_state: torch.Tensor, device: Union[int, str, torch.device]
         device (torch.device or int, optional): The device to set the RNG state.
             Default: ``'npu'`` (i.e., ``torch.device('npu')``, the current NPU device).
     """
-    with torch._C._DisableFuncTorch():
-        new_state_copy = new_state.clone(memory_format=torch.contiguous_format)
+    if not is_initialized():
+        with torch._C._DisableFuncTorch():
+            # Clone the state because the callback will be triggered
+            # later when NPU is lazy initialized.
+            new_state = new_state.clone(memory_format=torch.contiguous_format)
+
     if isinstance(device, str):
         device = torch.device(device)
     elif isinstance(device, int):
@@ -61,7 +65,7 @@ def set_rng_state(new_state: torch.Tensor, device: Union[int, str, torch.device]
         if idx is None:
             idx = current_device()
         default_generator = torch_npu.npu.default_generators[idx]
-        default_generator.set_state(new_state_copy)
+        default_generator.set_state(new_state)
 
     _lazy_call(cb)
 
