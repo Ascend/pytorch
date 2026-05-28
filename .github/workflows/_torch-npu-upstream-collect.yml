@@ -22,7 +22,7 @@ on:
       distributed_shards:
         required: false
         type: string
-        default: '2'
+        default: '5'
         description: Number of shards for distributed tests
       regular_shards:
         required: false
