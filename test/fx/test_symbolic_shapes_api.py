@@ -9,14 +9,23 @@ Add validation cases for torch.fx symbolic_shapes related APIs on NPU:
 3. Current covered APIs / behaviors include:
    - symbolic_shapes.DimConstraints.add
    - symbolic_shapes.DimConstraints.add_equality
+   - symbolic_shapes._lru_cache
+   - symbolic_shapes.CallMethodKey
+   - symbolic_shapes.CallMethodKey.get
+   - symbolic_shapes.canonicalize_bool_expr
+   - symbolic_shapes.check_consistent
 """
 
 import sympy
+import torch
 
 import torch_npu
 from torch._dynamo.source import ConstantSource
 from torch.fx.experimental import symbolic_shapes
 from torch.testing._internal.common_utils import TestCase, run_tests
+
+
+device_type = acc.type if (acc := torch.accelerator.current_accelerator()) else "cpu"
 
 
 class TestSymbolicShapesAPI(TestCase):
@@ -74,6 +83,153 @@ class TestSymbolicShapesAPI(TestCase):
         symbolic_expr = symbol + 1
         constraints.add_equality(source, symbolic_expr)
         self.assertEqual(constraints._symbolic_equivalences, [(source, symbolic_expr)])
+
+
+class TestSymbolicShapesTargetApiNPU(TestCase):
+    def test_lru_cache_handles_hits_clears_and_maxsize(self):
+        class DummyShapeEnv:
+            def __init__(self):
+                self._version_counter = 0
+
+            def _get_key(self):
+                return ("dummy", self._version_counter)
+
+        calls = {"count": 0}
+
+        @symbolic_shapes._lru_cache
+        def cached(self, value):
+            calls["count"] += 1
+            return self._version_counter, value, calls["count"]
+
+        env = DummyShapeEnv()
+        first = cached(env, 7)
+        self.assertEqual(first, (0, 7, 1))
+        self.assertEqual(cached.cache_info().misses, 1)
+
+        # Same ShapeEnv version and same arguments should hit the cache.
+        self.assertEqual(cached(env, 7), first)
+        self.assertEqual(calls["count"], 1)
+        cache_info = cached.cache_info()
+        self.assertEqual(cache_info.hits, 1)
+        self.assertEqual(cache_info.currsize, 1)
+
+        # A ShapeEnv version update must invalidate old cached values.
+        env._version_counter += 1
+        self.assertEqual(cached(env, 7), (1, 7, 2))
+        self.assertEqual(calls["count"], 2)
+
+        # cache_clear is exposed by the wrapper and removes current entries.
+        cached.cache_clear()
+        self.assertEqual(cached.cache_info().currsize, 0)
+        self.assertEqual(cached(env, 7), (1, 7, 3))
+        self.assertEqual(calls["count"], 3)
+
+        limited_calls = {"count": 0}
+
+        def limited_cached(self, value):
+            limited_calls["count"] += 1
+            return value, limited_calls["count"]
+
+        limited = symbolic_shapes._lru_cache(limited_cached, maxsize=1)
+        limited(env, 1)
+        limited(env, 2)
+        limited(env, 1)
+
+        # maxsize=1 should evict the older argument entry.
+        self.assertEqual(limited.cache_info().maxsize, 1)
+        self.assertEqual(limited_calls["count"], 3)
+
+    def test_call_method_key_get_on_npu_tensor(self):
+        tensor = torch.arange(12, dtype=torch.float32).reshape(3, 4).to(device_type)
+        size_key = symbolic_shapes.CallMethodKey("size")
+        same_size_key = symbolic_shapes.CallMethodKey("size")
+        stride_key = symbolic_shapes.CallMethodKey("stride")
+        storage_offset_key = symbolic_shapes.CallMethodKey("storage_offset")
+        dim_key = symbolic_shapes.CallMethodKey("dim")
+
+        # CallMethodKey is a frozen dataclass with a stable path string.
+        self.assertEqual(size_key, same_size_key)
+        self.assertEqual(hash(size_key), hash(same_size_key))
+        self.assertEqual(str(size_key), ".size()")
+
+        # Validate zero-argument Tensor method calls on the current accelerator.
+        self.assertEqual(tuple(size_key.get(tensor)), (3, 4))
+        self.assertEqual(tuple(stride_key.get(tensor)), (4, 1))
+        self.assertEqual(storage_offset_key.get(tensor), 0)
+        self.assertEqual(dim_key.get(tensor), 2)
+
+    def test_canonicalize_bool_expr(self):
+        a, b = sympy.symbols("a b", integer=True)
+
+        # Ge and Gt are rewritten into Le and Lt with non-constant terms on rhs.
+        self.assertEqual(
+            symbolic_shapes.canonicalize_bool_expr(sympy.Ge(a + 3, b)),
+            sympy.Le(b, a + 3),
+        )
+        self.assertEqual(
+            symbolic_shapes.canonicalize_bool_expr(sympy.Gt(2 * a + 4, 2 * b)),
+            sympy.Lt(b, a + 2),
+        )
+
+        # Eq and Ne keep their relation type while reducing integer factors.
+        self.assertEqual(
+            symbolic_shapes.canonicalize_bool_expr(sympy.Eq(2 * a + 4, 2 * b + 2)),
+            sympy.Eq(a + 1, b),
+        )
+        self.assertEqual(
+            symbolic_shapes.canonicalize_bool_expr(sympy.Ne(2 * a, 2 * b)),
+            sympy.Ne(a, b),
+        )
+
+        canonical_and = symbolic_shapes.canonicalize_bool_expr(
+            sympy.And(sympy.Ge(a + 3, b), sympy.Ne(a, b))
+        )
+        self.assertIsInstance(canonical_and, sympy.And)
+        self.assertIn(sympy.Le(b, a + 3), canonical_and.args)
+        self.assertIn(sympy.Ne(a, b), canonical_and.args)
+
+        canonical_or = symbolic_shapes.canonicalize_bool_expr(
+            sympy.Or(sympy.Gt(a, b), sympy.Eq(2 * a + 4, 2 * b + 2))
+        )
+        self.assertIsInstance(canonical_or, sympy.Or)
+        self.assertIn(sympy.Lt(b, a), canonical_or.args)
+        self.assertIn(sympy.Eq(a + 1, b), canonical_or.args)
+
+        canonical_not = symbolic_shapes.canonicalize_bool_expr(
+            sympy.Not(sympy.And(sympy.Ge(a, b), sympy.Ne(a, b)))
+        )
+        self.assertIsInstance(canonical_not, sympy.Or)
+        self.assertIn(sympy.Lt(a, b), canonical_not.args)
+        self.assertIn(sympy.Eq(a, b), canonical_not.args)
+
+        plain_expr = sympy.Integer(5)
+        self.assertEqual(symbolic_shapes.canonicalize_bool_expr(plain_expr), plain_expr)
+
+    def test_check_consistent_on_npu_tensor_and_scalars(self):
+        old_tensor = torch.zeros(2, 3, device=device_type)
+        new_tensor = torch.ones(2, 3, device=device_type)
+
+        # Equal tensor metadata and equal scalar values should pass.
+        symbolic_shapes.check_consistent(new_tensor, old_tensor)
+        symbolic_shapes.check_consistent(4, 4)
+        symbolic_shapes.check_consistent(2.5, 2.5)
+
+        with self.assertRaisesRegex(RuntimeError, "old != new"):
+            symbolic_shapes.check_consistent(
+                torch.zeros(2, 4, device=device_type), old_tensor
+            )
+        with self.assertRaisesRegex(RuntimeError, "old != new"):
+            symbolic_shapes.check_consistent(
+                torch.zeros(6, device=device_type), old_tensor
+            )
+        with self.assertRaisesRegex(RuntimeError, "old != new"):
+            symbolic_shapes.check_consistent(4, 5)
+        with self.assertRaisesRegex(RuntimeError, "old != new"):
+            symbolic_shapes.check_consistent(2.5, 3.5)
+
+        # Bool and unknown types are intentionally skipped by check_consistent.
+        symbolic_shapes.check_consistent(True, False)
+        symbolic_shapes.check_consistent({"shape": (2,)}, {"shape": (3,)})
 
 
 if __name__ == "__main__":
