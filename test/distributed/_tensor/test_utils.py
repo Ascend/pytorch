@@ -1,14 +1,24 @@
 import itertools
+from contextlib import nullcontext
+
 import torch
+import torch.distributed as dist
+from torch.distributed._local_tensor import (
+    local_tensor_mode,
+    LocalTensor,
+    LocalTensorMode,
+)
 from torch.distributed._tensor import distribute_tensor
-from torch.distributed._tensor._utils import (
-    compute_local_shape,
+from torch.distributed.tensor._utils import (
     compute_local_shape_and_global_offset,
 )
-from torch.distributed._tensor.device_mesh import DeviceMesh
-from torch.distributed._tensor.placement_types import Replicate, Shard
+from torch.distributed.device_mesh import init_device_mesh
+from torch.distributed.tensor import DeviceMesh
+from torch.distributed.tensor._utils import ExplicitRedistributionContext
+from torch.distributed.tensor.debug import CommDebugMode
+from torch.distributed.tensor.placement_types import Replicate, Shard
 
-from torch.testing._internal.common_utils import run_tests
+from torch.testing._internal.common_utils import run_tests, TestCase
 from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTestBase
 
 import torch_npu
@@ -19,37 +29,6 @@ class UtilTest(DTensorTestBase):
     @property
     def world_size(self):
         return 8
-
-    @skipIfUnsupportMultiNPU(4)
-    @with_comms
-    def test_compute_local_shape_2d_uneven(self):
-        # mesh: 4 * 2
-        mesh_tensor = torch.arange(self.world_size).reshape(4, 2)
-        mesh = DeviceMesh(self.device_type, mesh_tensor)
-        size = torch.Size([7, 7])
-        rank_coordinates = mesh.get_coordinate()
-
-        # replicate, shard
-        placements2 = [Replicate(), Shard(0)]
-        local_size2 = compute_local_shape(size, mesh, placements2)
-        if rank_coordinates[1] < 1:
-            self.assertEqual(local_size2, torch.Size([4, 7]))
-        else:
-            self.assertEqual(local_size2, torch.Size([3, 7]))
-
-        # shard, shard
-        placements3 = [Shard(0), Shard(1)]
-        local_size3 = compute_local_shape(size, mesh, placements3)
-        # first dim
-        if rank_coordinates[0] < 3:
-            self.assertEqual(local_size3[0], 2)
-        else:
-            self.assertEqual(local_size3[0], 1)
-        # second dim
-        if rank_coordinates[1] < 1:
-            self.assertEqual(local_size3[1], 4)
-        else:
-            self.assertEqual(local_size3[1], 3)
 
     @skipIfUnsupportMultiNPU(4)
     @with_comms
@@ -109,6 +88,122 @@ class UtilTest(DTensorTestBase):
                 dtensor.to_local(),
                 global_tensor[dim0_start:dim0_end, dim1_start:dim1_end],
             )
+
+
+class LocalTensorTestBase(TestCase):
+    def assertEqual(self, lhs, rhs, **kwargs):
+        mode = local_tensor_mode()
+        with nullcontext() if mode is None else mode.disable():
+            if isinstance(lhs, LocalTensor) and isinstance(rhs, LocalTensor):
+                assert isinstance(lhs, LocalTensor) and isinstance(rhs, LocalTensor)
+                super().assertEqual(lhs._ranks, rhs._ranks)
+                for r in lhs._ranks:
+                    super().assertEqual(
+                        lhs._local_tensors[r],
+                        rhs._local_tensors[r],
+                        lambda m: f"rank {r}: {m}",
+                    )
+            elif isinstance(lhs, LocalTensor) or isinstance(rhs, LocalTensor):
+                lhs, rhs = (lhs, rhs) if isinstance(lhs, LocalTensor) else (rhs, lhs)
+                for r in lhs._ranks:
+                    super().assertEqual(
+                        lhs._local_tensors[r], rhs, lambda m: f"rank {r}: {m}"
+                    )
+            else:
+                return super().assertEqual(lhs, rhs, **kwargs)
+
+    @property
+    def world_size(self):
+        raise NotImplementedError("override world-size in your subclass")
+
+    def build_device_mesh(self) -> DeviceMesh:
+        return init_device_mesh("cpu", (self.world_size,))
+
+    def setUp(self):
+        super().setUp()
+        torch.distributed.init_process_group(
+            # TODO: test other ranks too
+            "fake",
+            rank=0,
+            world_size=self.world_size,
+        )
+
+    def tearDown(self):
+        super().tearDown()
+        try:
+            dist.destroy_process_group()
+        except AssertionError:
+            pass
+
+
+class TestExplicitRedistribute(LocalTensorTestBase):
+    @property
+    def world_size(self):
+        return 4
+
+    def test_explicit_matmul(self):
+        with LocalTensorMode(self.world_size):
+            device_mesh = self.build_device_mesh()
+            dim = 128
+            x = torch.randn(8, dim, requires_grad=True)
+            A = torch.randn(dim, dim, requires_grad=True)
+
+            # Prepare DTensors
+            dx = distribute_tensor(x, device_mesh, [Shard(0)])
+            dA = distribute_tensor(A, device_mesh, [Shard(0)])
+
+            # implicit redistribute works as usual by default
+            with CommDebugMode() as comm_mode:
+                torch.matmul(dx, dA)
+            self.assertEqual(comm_mode.get_total_counts(), 1)
+
+            # explicit redistribute works too
+            with ExplicitRedistributionContext():
+                with self.assertRaisesRegex(RuntimeError, "Implicit redistribution"):
+                    torch.matmul(dx, dA)
+            with ExplicitRedistributionContext(mode="warn"):
+                with self.assertLogs(
+                    torch.distributed.tensor._utils.logger, level="WARN"
+                ) as captured:
+                    torch.matmul(dx, dA)
+                    self.assertEqual(len(captured.output), 1)
+                    self.assertRegex(
+                        captured.output[0],
+                        r"WARNING:.*Implicit redistribution occurred",
+                    )
+                    # TODO enable this once fixing the issue that op_info.schema is None in some calls to
+                    # redistribute_local_tensor
+                    # self.assertRegex(
+                    #     captured.output[0],
+                    #     r".*aten\.mm\.default.*",
+                    # )
+
+            # explicit redistribute allows manual redistribute
+            with ExplicitRedistributionContext():
+                dA_repl = dA.redistribute(device_mesh, [Replicate()])
+                torch.matmul(dx, dA_repl)
+
+            dx = distribute_tensor(x, device_mesh, [Shard(0)])
+            dA = distribute_tensor(A, device_mesh, [Replicate()])
+            with ExplicitRedistributionContext(strict=True):
+                dY = torch.matmul(dx, dA_repl)
+                loss = dY.sum()
+
+                # we now see the error during backwards
+                with self.assertRaisesRegex(RuntimeError, "Implicit redistribution"):
+                    loss.backward(retain_graph=True)
+
+                with ExplicitRedistributionContext(strict=False):
+                    # but since it's a 'free' redistribute, we can still do it under non-strict mode
+                    loss.backward(retain_graph=True)
+
+                with ExplicitRedistributionContext(enable=False):
+                    # and we can disable
+                    loss.backward(retain_graph=True)
+
+                # and re-enable
+                with self.assertRaisesRegex(RuntimeError, "Implicit redistribution"):
+                    loss.backward(retain_graph=True)
 
 
 if __name__ == "__main__":
