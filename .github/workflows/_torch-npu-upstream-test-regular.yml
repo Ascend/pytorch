@@ -44,7 +44,6 @@ jobs:
       matrix:
         shard: ${{ fromJson(inputs.regular_matrix) }}
       fail-fast: false
-      max-parallel: 5
 
     steps:
       - name: Setup NPU test environment
