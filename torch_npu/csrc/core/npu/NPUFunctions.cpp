@@ -6,6 +6,7 @@
 #include "torch_npu/csrc/core/npu/NPUAffinityController.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/core/npu/GetCANNInfo.h"
+#include "torch_npu/csrc/framework/interface/EnvVariables.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
 #ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/sanitizer/NPUTrace.h"
@@ -238,11 +239,34 @@ aclrtContext GetDeviceContext(int32_t device)
 
 bool isDeviceCtxActive(int32_t device)
 {
+    if (at_npu::native::env::CheckCompatibleImpl()) {
+        return hasPrimaryContext(device);
+    }
     std::lock_guard<std::recursive_mutex> lock(mtx);
     if (used_devices.find(device) == used_devices.end()) {
         return false;
     }
     return used_devices[device] != nullptr;
+}
+
+std::optional<c10::DeviceIndex> getDeviceIndexWithPrimaryContext()
+{
+    // check current device first
+    auto cur_device = current_device();
+    if (cur_device >= 0) {
+        if (isDeviceCtxActive(cur_device)) {
+            return cur_device;
+        }
+    }
+    for (const auto device_index : c10::irange(device_count())) {
+        if (device_index == cur_device) {
+            continue;
+        }
+        if (isDeviceCtxActive(device_index)) {
+            return device_index;
+        }
+    }
+    return std::nullopt;
 }
 
 c10::DeviceIndex current_device()
