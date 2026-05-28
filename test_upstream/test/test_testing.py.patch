@@ -2,12 +2,13 @@
 index f7032a7dea6..0b94317ea5c 100644
 --- a/test/test_testing.py
 +++ b/test/test_testing.py
-@@ -17,6 +17,8 @@ from collections.abc import Callable
+@@ -17,6 +17,9 @@ from collections.abc import Callable
  from collections.abc import Iterator
  
  import torch
 +from torch_npu.contrib import transfer_to_npu
 +import torch_npu
++from torch.testing._internal.common_device_type import onlyPRIVATEUSE1
  
  from torch.testing import make_tensor
  from torch.testing._internal.common_utils import (
