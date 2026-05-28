@@ -1,8 +1,17 @@
-# NPUGraph
+# torch_npu.npu.NPUGraph
 
 ## 简介
 
-NPUGraph是一种静态图捕获技术，核心思想与[CUDAGraphs](https://pytorch.org/blog/accelerating-pytorch-with-cuda-graphs/)一致——将一系列NPU内核定义并封装为一个单元（即操作图），通过单一CPU操作启动多个NPU操作，从而减少启动开销。其工作流程分为**捕获（Capture）、重放（Replay）、更新（Update）**三个阶段，详见[核心机制](#核心机制捕获重放与更新)章节。
+NPUGraph是一种在Eager Mode（单算子执行模式）下使用的静态图捕获技术，将一系列NPU内核定义并封装为一个单元（即操作图），通过单一CPU操作启动多个NPU操作，从而减少启动开销。更多核心原理可参见[CUDAGraphs](https://pytorch.org/blog/accelerating-pytorch-with-cuda-graphs/)。
+
+### 工作流程
+
+1. **捕获（Capture）**：将NPU流置于捕获模式后，内核调用被记录为计算图结构。
+2. **重放（Replay）**：捕获完成后，通过`g.replay()`多次重放相同计算逻辑。每次重放的kernel序列、执行顺序与捕获时完全一致，无需重复的图构建和kernel启动准备。
+
+    重放时的内存管理是核心要点：捕获阶段分配的张量内存地址在重放时保持不变。若需要在不同step之间使用新数据，必须通过`copy_()`将新数据写入捕获时占用的内存地址，而不能直接对张量重新赋值（如`tensor = new_data`），否则变量将指向新内存地址，重放仍在旧地址上操作导致数据失效。该机制在`make_graphed_callables`内部实现中自动处理。对于前向和反向传播，当检测到输入张量的`data_ptr()`与捕获时不同时，自动执行`copy_()`更新。
+
+3. **更新（Update）**：对于需要动态参数（如序列长度）的算子（如FlashAttention），NPUGraph通过专用的update机制在重放前刷新参数值，无需重新捕获整张图。该机制由`_npugraph_handlers`中的算子Handler自动管理，用户通过`auto_dispatch_capture=True`启用。
 
 ### 核心优势
 
@@ -36,11 +45,23 @@ NPUGraph的优势可以通过下图展示：
 - 动态控制流（条件分支、循环结构可变）
 - 需要频繁CPU-NPU同步的操作
 
-## 核心机制：捕获、重放与更新
+## 接口说明
 
-### 捕获（Capture）
+NPUGraph提供了三种方式：
 
-将NPU流置于捕获模式后，内核调用被记录为计算图结构。NPUGraph提供两种捕获方式：
+- NPUGraph类（`torch_npu.npu.NPUGraph`）：底层控制，手动管理，捕获整段连续计算图。
+- graph上下文管理器（`torch_npu.npu.graph`）：简化版捕获。简单通用的上下文管理器，可在其作用域内捕获NPU操作。
+- make_graphed_callables（ `torch_npu.npu.make_graphed_callables` ）：高级封装，自动处理细节。若网络部分不适合捕获（例如，由于动态控制流、动态网络拓扑、CPU同步或关键的CPU端逻辑），可使用该高级API。与CUDA Graphs社区一致，自动处理图捕获细节和输入数据的`copy_()`更新。
+
+三种方式的适用场景和操作方式对比请参见下表。
+
+| API | 手动操作 | 自动处理 | 适用场景 |
+|-----|--------|---------|---------|
+| NPUGraph类（`capture_begin/end`）| 手动创建Stream、调用`capture_begin/end`、管理内存池、处理同步 | ACLGraph捕获和重放 | 多Stream协同、分区域捕获 |
+| graph()上下文管理器 | 决定捕获边界 | 自动创建Stream，同步与缓存处理 | 快速上手，单流场景 | 
+| `make_graphed_callables()` |传入callables和样例输入| 自动完成warmup、捕获前后向图、处理数据copy_更新 | 含动态控制流的安全子图捕获 | 
+
+## 使用示例
 
 **方式一：使用NPUGraph类（底层API）**
 
@@ -73,7 +94,7 @@ graph_capture_simple()
 
 **方式二：使用graph上下文管理器**
 
-`torch_npu.npu.graph`是简单通用的上下文管理器，可在其作用域内捕获NPU操作。相比手动调用`capture_begin()`和`capture_end()`，该方式更加简洁，自动处理Stream同步和缓存清理。
+相比手动调用`capture_begin()`和`capture_end()`，该方式更加简洁，自动处理Stream同步和缓存清理。
 
 ```python
 import torch
@@ -94,19 +115,9 @@ def graph_simple():
 graph_simple()
 ```
 
-### 重放（Replay）
+**方式三：make_graphed_callables：安全子图捕获**
 
-捕获完成后，通过`g.replay()`多次重放相同计算逻辑。每次重放的kernel序列、执行顺序与捕获时完全一致，无需重复的图构建和kernel启动准备。
-
-重放时的内存管理是核心要点：捕获阶段分配的张量内存地址在重放时保持不变。若需要在不同step之间使用新数据，必须通过`copy_()`将新数据写入捕获时占用的内存地址，而不能直接对张量重新赋值（如`tensor = new_data`），否则变量将指向新内存地址，重放仍在旧地址上操作导致数据失效。该机制在`make_graphed_callables`内部实现中自动处理——对于前向和反向传播，当检测到输入张量的`data_ptr()`与捕获时不同时，自动执行`copy_()`更新。
-
-### 更新（Update）
-
-对于需要动态参数（如序列长度）的算子（如FlashAttention），NPUGraph通过专用的update机制在重放前刷新参数值，无需重新捕获整张图。该机制由`_npugraph_handlers`中的算子Handler自动管理，用户通过`auto_dispatch_capture=True`启用。
-
-## make_graphed_callables：安全子图捕获
-
-以上`NPUGraph`类和`graph()`上下文管理器属于底层API，适用于捕获整段连续计算图。当网络中存在不可捕获部分（如动态控制流、动态网络拓扑、CPU同步或关键的CPU端逻辑）时，可使用`torch_npu.npu.make_graphed_callables`高级API——与CUDA Graphs社区一致，自动处理图捕获细节和输入数据的`copy_()`更新。该API将安全部分封装为图化可调用对象，其余部分保持eager执行。
+该API将安全部分封装为图化可调用对象，其余部分保持eager执行。
 
 ```python
 import torch

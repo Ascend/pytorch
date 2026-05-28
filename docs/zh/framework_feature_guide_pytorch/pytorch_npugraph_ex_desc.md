@@ -15,21 +15,15 @@ NPUGraph_EX后端的核心优势：
 
 NPUGraph_EX后端适用于大模型推理场景，通过图优化和缓存复用进一步加速编译运行，并与主流服务化框架快速对接。
 
-使能方式：`torch.compile(backend="npugraph_ex")`
-
-## 使用指导
-
-接口原型：
+## 开启方法
 
 ```python
-def compile(model, *, fullgraph=False, dynamic=None, backend="npugraph_ex", mode=None, options=None, disable=False)
+compiled_model = torch.compile(model, backend="npugraph_ex")
 ```
 
 NPUGraph_EX支持的编译选项（`options`参数）和详细使用指导请参考《PyTorch图模式使用(TorchAir)》中的 [npugraph_ex后端](https://gitcode.com/Ascend/torchair/blob/master/docs/zh/npugraph_ex/npugraph_ex.md)。
 
-该接口详情可参考原生 [torch.compile](https://docs.pytorch.org/docs/stable/generated/torch.compile.html)。
-
-## 使用样例
+## 调用样例
 
 ```Python
 import torch

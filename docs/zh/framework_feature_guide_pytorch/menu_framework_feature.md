@@ -32,16 +32,15 @@
 -   [参数配置](./parameter_setting.md)
     -   [通过pg\_options配置HCCL通信域参数](./setting_HCCL_communicator_parameter.md)
 
--   图模式
-    -   [概述](./pytorch_graph_desc.md)
-    -   [NPUGraph](./pytorch_npugraph_desc.md)
-    -   [PyTorch图模式（torch.compile）](./pytorch_graph_mode.md)
-        -   [概述](./pytorch_compilation_mode.md)
-        -   后端（backend）
-            -   [Inductor](./pytorch_inductor_desc.md)
-            -   [NPUGraphs](./pytorch_compile_npugraph_desc.md)
-            -   [NPUGraph\_EX](./pytorch_npugraph_ex_desc.md)
-            -   [AOT\_Eager](./pytorch_aoteager_desc.md)
+-   [torch_npu.npu.NPUGraph](./pytorch_npugraph_desc.md)
+
+-   [torch.compile](./pytorch_graph_mode.md)
+    -   [概述](./pytorch_compilation_mode.md)
+    -   [后端](./backend.md)
+        -   [Inductor](./pytorch_inductor_desc.md)
+        -   [NPUGraphs](./pytorch_compile_npugraph_desc.md)
+        -   [NPUGraph\_EX](./pytorch_npugraph_ex_desc.md)
+        -   [AOT\_Eager](./pytorch_aoteager_desc.md)
 
 -   [自定义算子适配开发](./custom_operator_adaptation.md)
     -   [基于OpPlugin算子适配开发](./opplugin_operator_adaptation.md)
