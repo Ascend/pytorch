@@ -3,7 +3,7 @@ import os
 # Some ops (e.g. aten.matmul_backward) only get their NPU meta registration when
 # compatible impl mode is enabled. This env var is read at torch_npu import time,
 # so it must be set before importing torch_npu.
-os.environ.setdefault("TORCH_NPU_USE_COMPATIBLE_IMPL", "1")
+os.environ["TORCH_NPU_USE_COMPATIBLE_IMPL"] = "1"
 
 import contextlib
 import gc
