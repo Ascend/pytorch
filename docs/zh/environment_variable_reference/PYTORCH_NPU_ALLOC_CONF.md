@@ -189,9 +189,9 @@ export PYTORCH_NPU_ALLOC_CONF=expandable_segments:True,large_segment_size_mb:100
     - 特性要求在Ascend Extension for PyTorch 7.3.0以上版本上使用。
     - 该特性主要解决多流场景下，Host侧存在下发性能瓶颈时的系统效率问题。单流、少流场景或者非Host性能瓶颈时，该功能收益不大。
 - large_segment_size_mb使用注意事项：
-    - 特性要求在Ascend Extension for PyTorch 26.1.0及以上版本、pytorch >= 2.11.0 上使用。
+    - 特性要求在Ascend Extension for PyTorch 26.1.0及以上版本、PyTorch 2.11.0 及以版本上使用。
 - per_process_memory_fraction使用注意事项：
-    - 特性要求在Ascend Extension for PyTorch 26.1.0及以上版本、pytorch >= 2.10.0 上使用。
+    - 特性要求在Ascend Extension for PyTorch 26.1.0及以上版本、PyTorch 2.10.0 及以上版本使用。
 
 ## 支持的型号
 
