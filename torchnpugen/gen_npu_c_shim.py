@@ -55,13 +55,7 @@ def _get_backend_index_for_npu(
 ) -> BackendIndex | None:
     for dk in NPU_DISPATCH_KEYS:
         if dk in backend_indices:
-            if backend_indices[dk].has_kernel(func) or (
-                func.structured_delegate is not None
-                and func.structured_delegate in structured_func_group_dict
-                and backend_indices[dk].has_kernel(
-                    structured_func_group_dict[func.structured_delegate]
-                )
-            ):
+            if backend_indices[dk].has_kernel(func):
                 return backend_indices[dk]
     if DispatchKey.CompositeExplicitAutograd in backend_indices:
         if backend_indices[DispatchKey.CompositeExplicitAutograd].has_kernel(func):
