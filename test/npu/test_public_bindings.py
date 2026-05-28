@@ -621,6 +621,7 @@ class TestPublicBindings(TestCase):
             "torch_npu._inductor.runtime",
             "torch_npu._inductor.runtime.autotune_cache",
             "torch_npu._inductor.runtime.hints",
+            "torch_npu._inductor.runtime.symbolic_grouping",
             "torch_npu._inductor.runtime.triton_helpers",
             "torch_npu._inductor.runtime.triton_heuristics",
             "torch_npu._inductor.tools",
