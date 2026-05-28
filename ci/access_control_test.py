@@ -6,13 +6,65 @@ import subprocess
 import threading
 import queue
 import argparse
+import shutil
 from pathlib import Path
 import random
+import time
 import psutil
 from access_control import (
     TestMgr,
     BASE_DIR, TEST_DIR, SLOW_TEST_BLOCKLIST, NOT_RUN_DIRECTLY, EXEC_TIMEOUT, NETWORK_OPS_DIR
 )
+
+
+def fetch_acl_headers():
+    acl_dest = BASE_DIR / 'third_party' / 'acl' / 'inc' / 'acl'
+    acl_src = BASE_DIR / 'third_party' / 'acl_src'
+
+    print(" --- Fetching ACL headers...")
+
+    copied_from_submodule = False
+
+    # 1. Try submodule source
+    runtime_acl = acl_src / 'runtime' / 'include' / 'external' / 'acl'
+    if runtime_acl.is_dir():
+        acl_dest.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(str(runtime_acl), str(acl_dest), dirs_exist_ok=True)
+        print(" --- Copied runtime acl headers")
+        copied_from_submodule = True
+
+    ge_acl = acl_src / 'ge' / 'inc' / 'external' / 'acl'
+    if ge_acl.is_dir():
+        acl_dest.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(str(ge_acl), str(acl_dest), dirs_exist_ok=True)
+        print(" --- Copied ge acl headers")
+        copied_from_submodule = True
+
+    super_kernel_src = acl_src / 'graph-autofusion' / 'super_kernel' / 'include' / 'super_kernel' / 'super_kernel.h'
+    if super_kernel_src.is_file():
+        acl_dest.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(str(super_kernel_src), str(acl_dest / 'super_kernel.h'))
+        print(" --- Copied super_kernel.h")
+        copied_from_submodule = True
+
+    if copied_from_submodule:
+        if acl_src.is_dir():
+            shutil.rmtree(str(acl_src))
+            print(" --- Cleaned up acl_src submodule directories")
+    else:
+        # 2. Fallback: copy from installed torch_npu
+        try:
+            import torch_npu
+            installed_acl = Path(
+                torch_npu.__file__).resolve().parent / 'include' / 'third_party' / 'acl' / 'inc' / 'acl'
+            if installed_acl.is_dir():
+                acl_dest.mkdir(parents=True, exist_ok=True)
+                shutil.copytree(str(installed_acl), str(acl_dest), dirs_exist_ok=True)
+                print(" --- Fallback: copied acl headers from installed torch_npu")
+        except Exception as e:
+            print(f" --- Fallback failed: {e}")
+
+    print(" --- ACL headers fetched successfully")
 
 
 def exec_ut(files):
@@ -97,12 +149,15 @@ def exec_ut(files):
                     ut_info = "test_ops " + ut_info
                 else:
                     cmd = cmd if 'op-plugin' in str(Path(ut_file)) else cmd + ["--init_method={}".format(init_method)]
+                t_start = time.time()
                 ret = run_cmd_with_timeout(cmd)
+                elapsed = time.time() - t_start
+                duration = "{:.1f}s".format(elapsed)
                 if ret:
                     has_failed = ret
-                    test_infos.append("exec ut {} failed.".format(ut_info))
+                    test_infos.append("exec ut {} failed. [{}]".format(ut_info, duration))
                 else:
-                    test_infos.append("exec ut {} success.".format(ut_info))
+                    test_infos.append("exec ut {} success. [{}]".format(ut_info, duration))
                 init_method = 2 if init_method == 1 else 1
         return has_failed, test_infos
 
@@ -121,9 +176,11 @@ if __name__ == "__main__":
     parser.add_argument('--inductor', action="store_true", help='Run inductor testcases')
     parser.add_argument('--rank', default=0, type=int, help='Index of current ut nodes')
     parser.add_argument('--world_size', default=0, type=int, help='Number of ut nodes')
+    parser.add_argument('--npu_core', help='Run core testcases in npu')
     parser.add_argument('--network_ops', action="store_true", help='Run network_ops testcases in the op-plugin repo')
     options = parser.parse_args()
     print(f"options: {options}")
+    fetch_acl_headers()
     cur_modify_files = str(BASE_DIR / 'modify_files.txt')
     test_mgr = TestMgr()
 
@@ -145,6 +202,16 @@ if __name__ == "__main__":
     if options.rank > 0 and options.world_size > 0:
         test_mgr.split_test_files(options.rank, options.world_size)
     cur_test_files = test_mgr.get_test_files()
+
+    if options.npu_core in ("yes", "no"):
+        npu_dir = str(TEST_DIR / "npu")
+        for ut_type in list(cur_test_files.keys()):
+            if options.npu_core == "yes":
+                cur_test_files[ut_type] = [f for f in cur_test_files[ut_type]
+                                            if str(Path(f)).startswith(npu_dir)]
+            else:
+                cur_test_files[ut_type] = [f for f in cur_test_files[ut_type]
+                                            if not str(Path(f)).startswith(npu_dir)]
 
     test_mgr.print_modify_files()
     test_mgr.print_ut_files()

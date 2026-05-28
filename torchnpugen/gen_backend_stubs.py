@@ -22,6 +22,7 @@ import stat
 from collections import Counter, defaultdict, namedtuple
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from typing import Optional, List, Set, Union
 
 import torchgen
 import torchgen.api.dispatcher as dispatcher
@@ -30,6 +31,11 @@ import torchgen.dest as dest
 import yaml
 from torchgen.api.cpp import JIT_TO_CPP_DEFAULT
 from torchgen.code_template import CodeTemplate
+from torchgen.model import (
+    BackendIndex,
+    SchemaKind,
+    TensorOptionsArguments,
+)
 from torchgen.gen import (
     error_check_native_functions,
     FileManager,
@@ -49,6 +55,22 @@ from torchgen.model import (
 from torchgen.native_function_generation import add_generated_native_functions
 from torchgen.selective_build.selector import SelectiveBuilder
 from torchgen.utils import concatMap, context, NamespaceHelper, Target
+from torchgen.context import native_function_manager
+from torchgen.api.translate import translate
+from torchgen.api.types import (
+    BaseCType,
+    ConstRefCType,
+    CppSignatureGroup,
+    Expr,
+    MutRefCType,
+    NamedCType,
+    NativeSignature,
+    tensorT
+)
+from torchgen.dest.register_dispatch_key import StructuredRegisterDispatchKey
+from torchgen.gen_backend_stubs import gen_dispatchkey_nativefunc_headers
+import torchgen.api.meta as meta
+import torchgen.api.structured as structured
 
 from torchnpugen.custom_functions import (
     gen_custom_functions_dispatch,
@@ -88,6 +110,9 @@ from torchnpugen.utils import (
 
 torchgen.model.dispatch_keys.append(torchgen.model.DispatchKey.AutogradPrivateUse1)
 
+NPU_STRUCTURED_INPLACE_OPS: set[str] = set()
+NPU_STRUCTURED_PRECOMPUTED_OPS: set[str] = set()
+
 
 # Create backend_indices map for func retrieval with the key of each func we supported.
 def create_backend_index(
@@ -96,23 +121,28 @@ def create_backend_index(
     dispatch_key: DispatchKey,
     native_funcs_map: dict[OperatorName, NativeFunction],
     cpp_namespace: str,
+    structured_ops: Optional[set[str]] = None,
 ) -> BackendIndex:
     metadata: dict[OperatorName, BackendMetadata] = {}
     for op in backend_ops:
         op_name = OperatorName.parse(op)
         if op_name not in native_funcs_map:
             raise KeyError(f"Found an invalid operator name: {op_name}")
+        is_structured = structured_ops is not None and op in structured_ops
+        if is_structured and not native_funcs_map[op_name].structured:
+            raise ValueError(
+                f"{op} is marked structured in op_plugin yaml, but the upstream "
+                "native function is not a structured out variant."
+            )
         # See Note [External Backends Follow Dispatcher API]
         kernel_name = dispatcher.name(native_funcs_map[op_name].func)
-        if op in symint_ops:
+        if op in symint_ops and not is_structured:
             kernel_name += "_symint"
-        m = BackendMetadata(
-            kernel=kernel_name, structured=False, cpp_namespace=cpp_namespace
-        )
+        m = BackendMetadata(kernel=kernel_name, structured=is_structured, cpp_namespace=cpp_namespace)
         metadata[op_name] = m
     return BackendIndex(
         dispatch_key=dispatch_key,
-        use_out_as_primary=False,
+        use_out_as_primary=True,
         external=True,
         device_guard=True,
         index=metadata,
@@ -259,6 +289,80 @@ ParsedExternalYaml = namedtuple(
 )
 
 
+def _get_backend_yaml_op_name(op: object) -> str:
+    if isinstance(op, dict):
+        func = op.get("func")
+        if not isinstance(func, str):
+            raise TypeError(f'expected "func" to be a string, but got: {func}')
+        return func.split("(", 1)[0].strip()
+    if isinstance(op, str):
+        return op
+    raise TypeError(f"expected an operator name or a dict, but got: {op}")
+
+
+def _check_structured_delegate(
+    op_name: OperatorName,
+    op: dict[str, object],
+    group: NativeFunctionsGroup,
+) -> None:
+    expected_delegate = group.out.func.name
+    delegate = op.get("structured_delegate")
+    if delegate is None:
+        raise ValueError(
+            f"{op_name} belongs to a structured group whose out variant is "
+            f"{expected_delegate}, but it does not specify structured_delegate: "
+            f"{expected_delegate}."
+        )
+    if not isinstance(delegate, str):
+        raise TypeError(
+            f'expected "structured_delegate" for {op_name} to be a string, '
+            f"but got: {delegate}"
+        )
+    delegate_name = OperatorName.parse(delegate)
+    if delegate_name != expected_delegate:
+        raise ValueError(
+            f"{op_name} specifies structured_delegate: {delegate_name}, "
+            f"but its structured out variant is {expected_delegate}."
+        )
+
+
+def check_structured_group_consistency(
+    supported_by_name: dict[OperatorName, dict[str, object]],
+    structured_groups: dict[OperatorName, NativeFunctionsGroup],
+    structured_group_members: dict[OperatorName, NativeFunctionsGroup],
+) -> None:
+    for out_name, group in sorted(structured_groups.items(), key=lambda item: str(item[0])):
+        functional_name = group.functional.func.name
+        functional_op = supported_by_name.get(functional_name)
+        if functional_op is None:
+            raise ValueError(
+                f"{out_name} is marked structured in op_plugin yaml, "
+                f"but its functional variant {functional_name} is not listed in supported."
+            )
+        _check_structured_delegate(functional_name, functional_op, group)
+
+        if group.inplace is None:
+            continue
+        inplace_name = group.inplace.func.name
+        inplace_op = supported_by_name.get(inplace_name)
+        if inplace_op is None:
+            continue
+        if bool(inplace_op.get("structured", False)):
+            continue
+        _check_structured_delegate(inplace_name, inplace_op, group)
+
+    for op_name, group in sorted(structured_group_members.items(), key=lambda item: str(item[0])):
+        if group.out.func.name in structured_groups:
+            continue
+        out_name = group.out.func.name
+        out_op = supported_by_name.get(out_name)
+        if out_op is None or not bool(out_op.get("structured", False)):
+            raise ValueError(
+                f"{op_name} is annotated as part of a structured group, "
+                f"but its out variant {out_name} is not marked structured in op_plugin yaml."
+            )
+
+
 def parse_backend_yaml(
     native_yaml_path: str,
     backend_yaml_path: str,
@@ -266,12 +370,14 @@ def parse_backend_yaml(
     backend_indices: dict[DispatchKey, BackendIndex],
 ) -> ParsedExternalYaml:
     native_functions_map = {}
+    native_function_groups = {}
     for f in grouped_native_functions:
         if isinstance(f, NativeFunction):
             native_functions_map[f.func.name] = f
         else:
             for func in f.functions():
                 native_functions_map[func.func.name] = func
+                native_function_groups[func.func.name] = f
 
     PathManager.check_directory_path_readable(backend_yaml_path)
     with open(backend_yaml_path) as f:
@@ -327,15 +433,67 @@ def parse_backend_yaml(
         )
 
     supported_list = []
+    structured_ops: Set[str] = set()
+    structured_groups: dict[OperatorName, NativeFunctionsGroup] = {}
+    structured_group_members: dict[OperatorName, NativeFunctionsGroup] = {}
+    supported_by_name: dict[OperatorName, dict[str, object]] = {}
     for op in supported:
-        if isinstance(op, dict) and op.get("device_check", None) == "NoCheck":
-            DEVICE_NOCHECK_SET.add(op["func"].split("(")[0])
-        if isinstance(op, dict) and (
-            {"impl_ns", "op_api", "device_check"} & set(op.keys())
-        ):
-            supported_list.append(op["func"].split("(")[0])
+        op_name = _get_backend_yaml_op_name(op)
+        op_schema_name = OperatorName.parse(op_name)
+        op_info = op if isinstance(op, dict) else {}
+        supported_by_name[op_schema_name] = op_info
+        if isinstance(op, dict):
+            native_func = native_functions_map.get(op_schema_name)
+            is_structured = bool(op.get('structured', False))
+            has_structured_delegate = op.get('structured_delegate') is not None
+            if is_structured or has_structured_delegate:
+                if native_func is None:
+                    raise KeyError(f"Found an invalid structured operator name: {op_schema_name}")
+                schema_kind = native_func.func.kind()
+                group = native_function_groups.get(op_schema_name)
+            if is_structured:
+                if group is None:
+                    raise ValueError(
+                        f"{op_name} is marked structured in op_plugin yaml, "
+                        "but it is not part of a structured native function group."
+                    )
+                if native_func.func.kind() == SchemaKind.out:
+                    structured_ops.add(op_name)
+                    structured_groups[op_schema_name] = group
+                    if op.get('precomputed') is not None:
+                        NPU_STRUCTURED_PRECOMPUTED_OPS.add(op_name)
+                elif native_func.func.kind() == SchemaKind.inplace:
+                    structured_group_members[op_schema_name] = group
+                    NPU_STRUCTURED_INPLACE_OPS.add(op_name)
+                else:
+                    raise ValueError(
+                        f"{op_name} is marked structured in op_plugin yaml, "
+                        "but only out and inplace variants are supported."
+                    )
+            if has_structured_delegate:
+                if schema_kind not in (SchemaKind.functional, SchemaKind.inplace):
+                    raise ValueError(
+                        f"{op_name} specifies structured_delegate in op_plugin yaml, "
+                        "but only functional and inplace variants can delegate to a structured out variant."
+                    )
+                if group is None:
+                    raise ValueError(
+                        f"{op_name} specifies structured_delegate in op_plugin yaml, "
+                        "but it is not part of a structured native function group."
+                    )
+                _check_structured_delegate(op_schema_name, op, group)
+                structured_group_members[op_schema_name] = group
+        if isinstance(op, dict) and op.get('device_check', None) == 'NoCheck':
+            DEVICE_NOCHECK_SET.add(op['func'].split("(")[0])
+        if isinstance(op, dict) and ({"impl_ns", "op_api", "device_check"} & set(op.keys())):
+            supported_list.append(op['func'].split("(")[0])
         elif not isinstance(op, dict):
             supported_list.append(op)
+    check_structured_group_consistency(
+        supported_by_name,
+        structured_groups,
+        structured_group_members,
+    )
     supported = supported_list
 
     supported_autograd = [
@@ -393,14 +551,14 @@ def parse_backend_yaml(
             backend_key = DispatchKey.parse(backend)
 
         backend_idx = create_backend_index(
-            supported, symint_set, backend_key, native_functions_map, cpp_namespace
+            supported, symint_set, backend_key, native_functions_map, cpp_namespace, structured_ops
         )
         opapi_backend_idx = create_backend_index(
             [op for op in supported if is_opapi(op)],
-            symint_set,
-            backend_key,
+            symint_set, backend_key,
             native_functions_map,
             cpp_namespace,
+            structured_ops,
         )
         if backend_key in backend_indices:
             raise KeyError("backend_key should not be in backend_indices.")
@@ -558,6 +716,35 @@ def main() -> None:
     )
 
 
+def gen_npu_structured_registration_helpers(backend_index: BackendIndex) -> List[str]:
+    helpers = dest.gen_registration_helpers(backend_index)
+    if backend_index.dispatch_key.name not in ("NPU", "PrivateUse1"):
+        return helpers
+    if not any(metadata.structured for metadata in backend_index.index.values()):
+        return helpers
+    if any("create_out(" in helper for helper in helpers):
+        return helpers
+    return [
+        """
+Tensor create_out(IntArrayRef sizes, IntArrayRef strides, const TensorOptions &options) {
+  if (strides.empty()) {
+    return at::empty(sizes, options);
+  }
+  return at::empty_strided(sizes, strides, options);
+}
+""",
+        *helpers,
+        """
+std::optional<Tensor> maybe_create_proxy(const Tensor &out, IntArrayRef sizes, IntArrayRef strides, const TensorOptions &options) {
+  if (!strides.empty() && out.strides() != strides) {
+    return at::empty_strided(sizes, strides, options);
+  }
+  return std::nullopt;
+}
+""",
+    ]
+
+
 def gen_dispatcher_registrations(
     fm: FileManager,
     class_name: str,
@@ -588,6 +775,7 @@ def gen_dispatcher_registrations(
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/framework/interface/EnvVariables.h"
 #include "torch_npu/csrc/aten/NPUOpApiNativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUStructuredNativeFunctions.h"
 """
 
     # 根据环境变量决定是否包含FormatHelper.h
@@ -599,6 +787,7 @@ def gen_dispatcher_registrations(
 
     native_func_header += """#include "torch_npu/csrc/framework/utils/ForceAclnnList.h"
 #include "torch_npu/csrc/framework/OpHook.h"
+#include "torch_npu/csrc/aten/mirror/NPUMemoryOverlap.h"
 #include "op_plugin/OpInterface.h"
 """
     static_template = CodeTemplate(
@@ -636,7 +825,7 @@ $dispatch_registrations_body
                 backend_index, per_operator_headers=False, rocm=False
             ),
             "ops_headers": "",
-            "dispatch_helpers": dest.gen_registration_helpers(backend_index),
+            "dispatch_helpers": gen_npu_structured_registration_helpers(backend_index),
             "dispatch_definitions": fm.substitute_with_template(
                 "RegisterDispatchDefinitions.ini",
                 lambda: {
@@ -684,6 +873,309 @@ $dispatch_registrations_body
             ).split("\n"),
         },
     )
+
+
+def get_supported_structured_groups(
+        grouped_native_functions: Sequence[Union[NativeFunction, NativeFunctionsGroup]],
+        backend_index: BackendIndex,
+) -> List[NativeFunctionsGroup]:
+    structured_groups: List[NativeFunctionsGroup] = []
+    for funcs in grouped_native_functions:
+        if not isinstance(funcs, NativeFunctionsGroup):
+            continue
+        metadata = backend_index.get_kernel(funcs)
+        if metadata is not None and metadata.structured:
+            structured_groups.append(funcs)
+    return structured_groups
+
+
+def npu_structured_uses_precompute(g: NativeFunctionsGroup) -> bool:
+    return str(g.out.func.name) in NPU_STRUCTURED_PRECOMPUTED_OPS
+
+
+def npu_structured_impl_arguments(g: NativeFunctionsGroup):
+    if npu_structured_uses_precompute(g):
+        return structured.impl_arguments(g)
+    return [*structured.meta_arguments(g), *structured.out_arguments(g)]
+
+
+def npu_structured_call_args(g: NativeFunctionsGroup) -> str:
+    impl_arg_names = {arg.name for arg in npu_structured_impl_arguments(g)}
+    call_args: List[str] = []
+
+    for arg in g.out.func.arguments.non_out:
+        if isinstance(arg, TensorOptionsArguments):
+            raise RuntimeError(f"{g.out.func.name} has TensorOptions, which structured kernels do not support")
+        if hasattr(arg, "argument"):
+            arg_name = arg.argument.name
+        else:
+            arg_name = arg.name
+        if arg_name not in impl_arg_names:
+            raise RuntimeError(
+                f"Cannot call op_plugin::{dispatcher.name(g.out.func)} from structured impl for "
+                f"{g.out.func.name}: original argument '{arg_name}' is not available after precompute."
+            )
+        call_args.append(arg_name)
+
+    for arg in g.out.func.arguments.out:
+        call_args.append(f"const_cast<at::Tensor&>({arg.name})")
+
+    return ", ".join(call_args)
+
+
+def npu_structured_inplace_arguments(f: NativeFunction):
+    with native_function_manager(f):
+        return dispatcher.arguments(f.func, symint=True)
+
+
+def npu_structured_inplace_call_args(f: NativeFunction) -> str:
+    return ", ".join(arg.name for arg in npu_structured_inplace_arguments(f))
+
+
+def npu_structured_return_expr(f: NativeFunction, k: SchemaKind) -> str:
+    if k is SchemaKind.functional:
+        if len(f.func.returns) == 1:
+            return "std::move(op.outputs_[0])"
+        moved = ", ".join(f"std::move(op.outputs_[{i}])" for i in range(len(f.func.returns)))
+        return f"std::make_tuple({moved})"
+    if k is SchemaKind.inplace:
+        return "self"
+    if k is SchemaKind.out:
+        if len(f.func.returns) == 1:
+            return f.func.arguments.out[0].name
+        refs = ", ".join(a.name for a in f.func.arguments.out)
+        return f"std::forward_as_tuple({refs})"
+    raise AssertionError(f"{k} structured operators are currently not supported")
+
+
+def gen_npu_structured_return_with_op_hook(f: NativeFunction, sig: NativeSignature, ret_expr: str) -> str:
+    returns_type = sig.returns_type()
+    if isinstance(returns_type, MutRefCType):
+        return f"""\
+auto& op_hook_result = {ret_expr};
+if (op_hook_enabled) {{
+  at_npu::native::OpHook::GetInstance().PostHook(op_hook_result);
+}}
+return op_hook_result;"""
+    return f"""\
+auto op_hook_result = {ret_expr};
+if (op_hook_enabled) {{
+  at_npu::native::OpHook::GetInstance().PostHook(op_hook_result);
+}}
+return op_hook_result;"""
+
+
+def gen_npu_structured_one(self, f: NativeFunction) -> Optional[str]:
+    if f.manual_kernel_registration:
+        raise AssertionError(f"Function {f.func.name} has manual_kernel_registration=True")
+
+    if self.target is Target.REGISTRATION and not self.selector.is_native_function_selected(f):
+        return None
+
+    if not self.backend_index.has_kernel(f):
+        return None
+
+    metadata = self.backend_index.get_kernel(self.g)
+    if metadata is None:
+        raise AssertionError(f"No kernel metadata found for {self.g.functional.func.name}")
+
+    kern = self.backend_index.get_kernel(f)
+    sig = NativeSignature(
+        f.func,
+        prefix=f"wrapper_{self.backend_index.dispatch_key}_",
+        symint=kern is not None and kern.supports_symint(),
+    )
+
+    cpp_sig_group = CppSignatureGroup.from_native_function(
+        f, method=False, fallback_binding=False
+    )
+
+    if self.target is Target.NAMESPACED_DECLARATION:
+        result = ""
+        for cpp_sig in cpp_sig_group.signatures(symint=self.symint):
+            result += f"TORCH_API {cpp_sig.decl()};\n"
+        return result
+
+    if self.target is Target.NAMESPACED_DEFINITION:
+        def generate_defn(cpp_sig) -> str:
+            return f"""
+{cpp_sig.defn()} {{
+return {sig.name()}({", ".join(e.expr for e in translate(cpp_sig.arguments(), sig.arguments()))});
+}}
+"""
+
+        result = ""
+        for cpp_sig in cpp_sig_group.signatures(symint=self.symint):
+            result += generate_defn(cpp_sig)
+        return result
+
+    if self.target is Target.REGISTRATION:
+        return f'm.impl("{f.func.name}", TORCH_FN({sig.name()}));'
+    if self.target is not Target.ANONYMOUS_DEFINITION:
+        return None
+
+    k = f.func.kind()
+    class_name = f"structured_{metadata.kernel}_{k.name}"
+    parent_kernel = metadata.kernel
+    if k is SchemaKind.inplace and str(f.func.name) in NPU_STRUCTURED_INPLACE_OPS:
+        parent_kernel = dispatcher.name(f.func)
+    parent_class = f"{metadata.cpp_namespace}::structured_{parent_kernel}"
+
+    sig_body: List[str] = []
+    context_args = list(sig.arguments())
+    context_exprs = list(context_args)
+
+    if self.backend_index.device_guard:
+        device_check_args = [*f.func.arguments.out, *f.func.arguments.flat_positional]
+        sig_body.append(
+            dest.RegisterDispatchKey.gen_device_check(
+                f.device_check, list(device_check_args), sig.name()
+            )
+        )
+
+    pre_hook_args = ", ".join(arg.name for arg in context_args)
+    pre_hook_args = f", {pre_hook_args}" if pre_hook_args else ""
+    sig_body.append("const bool op_hook_enabled = C10_UNLIKELY(at_npu::native::env::CheckOpHookEnable());")
+    sig_body.append("if (op_hook_enabled) {")
+    sig_body.append(f'  at_npu::native::OpHook::GetInstance().PreHook("{f.func.name}"{pre_hook_args});')
+    sig_body.append("}")
+
+    if k is SchemaKind.functional:
+        sig_body.append(f"{class_name} op;")
+    elif k is SchemaKind.inplace:
+        sig_body.append(f"{class_name} op(self);")
+    elif k is SchemaKind.out:
+        out_args_str = ", ".join(a.name for a in f.func.arguments.out)
+        sig_body.append(f"{class_name} op({out_args_str});")
+    else:
+        raise AssertionError(f"{k} structured operators are currently not supported")
+
+    meta_exprs = ", ".join(
+        e.expr for e in translate(context_exprs, structured.meta_arguments(self.g), method=False)
+    )
+    if npu_structured_uses_precompute(self.g) and self.g.out.precomputed:
+        sig_body.append(f"auto precompute = op.meta({meta_exprs});")
+        precomputed_values = [
+            *self.g.out.precomputed.replace.values(),
+            self.g.out.precomputed.add,
+        ]
+        for precomputed_elems in precomputed_values:
+            context_exprs.extend(
+                Expr(
+                    expr=f"precompute.{arg.name}",
+                    type=structured.argument_type(arg, binds=arg.name),
+                )
+                for arg in precomputed_elems
+            )
+        sig_body.append("(void)precompute;")
+    else:
+        sig_body.append(f"op.meta({meta_exprs});")
+
+    out_args = structured.out_arguments(self.g)
+    for i, out_arg in enumerate(out_args):
+        if ConstRefCType(BaseCType(tensorT)) != out_arg.nctype.type:
+            raise AssertionError(
+                f"Expected out_arg type to be ConstRefCType(BaseCType(tensorT)), got {out_arg.nctype.type}"
+            )
+        expr = f"op.maybe_get_output({i})" if k is SchemaKind.out else f"op.outputs_[{i}]"
+        context_exprs.append(
+            Expr(
+                expr=expr,
+                type=NamedCType(out_arg.nctype.name, MutRefCType(BaseCType(tensorT))),
+            )
+        )
+
+    if k is SchemaKind.inplace and str(f.func.name) in NPU_STRUCTURED_INPLACE_OPS:
+        impl_exprs = npu_structured_inplace_call_args(f)
+    else:
+        impl_exprs = ", ".join(
+            e.expr for e in translate(context_exprs, npu_structured_impl_arguments(self.g), method=False)
+        )
+    sig_body.append(f"op.impl({impl_exprs});")
+
+    if k is SchemaKind.out or k is SchemaKind.inplace:
+        for i in range(len(f.func.returns)):
+            sig_body.append(
+                f"if (op.proxy_outputs_[{i}].has_value()) op.outputs_[{i}].get().copy_(*op.proxy_outputs_[{i}]);"
+            )
+
+    sig_body.append(gen_npu_structured_return_with_op_hook(f, sig, npu_structured_return_expr(f, k)))
+    sig_body_str = "\n".join(sig_body)
+
+    return f"""\
+{self.gen_class(
+    f,
+    k,
+    class_name=class_name,
+    parent_class=parent_class,
+    generate_super=self.g.out.structured_inherits is not None,
+)}
+
+{sig.defn()} {{
+{sig_body_str}
+}}
+"""
+
+
+def gen_npu_structured_native_functions(
+    fm: FileManager,
+    grouped_native_functions: Sequence[Union[NativeFunction, NativeFunctionsGroup]],
+    backend_index: BackendIndex,
+) -> None:
+    structured_groups = get_supported_structured_groups(grouped_native_functions, backend_index)
+    includes = sorted({
+        f"#include <ATen/ops/{meta.name(g)}_meta.h>"
+        for g in structured_groups
+    })
+
+    declarations: List[str] = []
+    definitions: List[str] = []
+    for g in structured_groups:
+        metadata = backend_index.get_kernel(g)
+        if metadata is None:
+            continue
+        impl_args = ", ".join(arg.decl() for arg in npu_structured_impl_arguments(g))
+        meta_name = meta.name(g)
+        declarations.append(f"""\
+struct structured_{metadata.kernel} : public at::meta::structured_{meta_name} {{
+  void impl({impl_args});
+}};
+""")
+        definitions.append(f"""\
+void structured_{metadata.kernel}::impl({impl_args})
+{{
+  op_plugin::{metadata.kernel}({npu_structured_call_args(g)});
+}}
+""")
+        for f in g.functions():
+            if f.func.kind() != SchemaKind.inplace or str(f.func.name) not in NPU_STRUCTURED_INPLACE_OPS:
+                continue
+            inplace_kernel = dispatcher.name(f.func)
+            inplace_impl_args = ", ".join(arg.decl() for arg in npu_structured_inplace_arguments(f))
+            declarations.append(f"""\
+struct structured_{inplace_kernel} : public at::meta::structured_{meta_name} {{
+  void impl({inplace_impl_args});
+}};
+""")
+            definitions.append(f"""\
+void structured_{inplace_kernel}::impl({inplace_impl_args})
+{{
+  op_plugin::{inplace_kernel}({npu_structured_inplace_call_args(f)});
+}}
+""")
+
+    generated_comment = "Autogenerated file by gen_backend_stubs.py. Do not edit directly!"
+    template_dir = os.path.join(pathlib.Path(__file__).parent.absolute(), "templates")
+    structured_fm = FileManager(install_dir=fm.install_dir, template_dir=template_dir, dry_run=fm.dry_run)
+    structured_fm.write_with_template("NPUStructuredNativeFunctions.h", "NPUStructuredNativeFunctions.h", lambda: {
+        "generated_comment": generated_comment,
+        "meta_includes": includes,
+        "structured_declarations": declarations,
+    })
+    structured_fm.write_with_template("NPUStructuredNativeFunctions.cpp", "NPUStructuredNativeFunctions.cpp", lambda: {
+        "generated_comment": generated_comment,
+        "structured_definitions": definitions,
+    })
 
 
 def get_supported_grouped_native_functions(
@@ -1155,6 +1647,12 @@ def run(
             None,
         )
 
+        gen_npu_structured_native_functions(
+            fm,
+            grouped_native_functions,
+            backend_indices[backend_dispatch_key],
+        )
+
         gen_per_operator_headers(
             fm,
             ops_fm,
@@ -1289,6 +1787,51 @@ def run(
 def apply_torchgen_patch():
     dest.RegisterDispatchKey.gen_unstructured = gen_unstructured
     dest.RegisterDispatchKey.gen_device_check = gen_device_check
+    original_compute_native_function_declaration = dest.compute_native_function_declaration
+    original_gen_class_set_output_body = StructuredRegisterDispatchKey.gen_class_set_output_body
+    original_gen_one = StructuredRegisterDispatchKey.gen_one
+
+    def compute_native_function_declaration(g, backend_index):
+        metadata = backend_index.get_kernel(g)
+        if isinstance(g, NativeFunctionsGroup) and metadata is not None and metadata.structured and backend_index.external:
+            return []
+        return original_compute_native_function_declaration(g, backend_index)
+
+    def gen_class_set_output_body(self, k, maybe_create_proxy):
+        if self.backend_index.dispatch_key.name not in ("NPU", "PrivateUse1"):
+            return original_gen_class_set_output_body(self, k, maybe_create_proxy)
+
+        if maybe_create_proxy:
+            create_proxy = """
+auto maybe_proxy = maybe_create_proxy(out, sizes, strides, options);
+if (C10_UNLIKELY(maybe_proxy.has_value())) {
+    proxy_outputs_[output_idx] = std::move(maybe_proxy).value();
+}
+"""
+        else:
+            create_proxy = ""
+
+        if k is SchemaKind.functional:
+            return "outputs_[output_idx] = create_out(sizes, strides, options);"
+        elif k is SchemaKind.inplace:
+            return f"""const auto& out = outputs_[output_idx].get();
+check_inplace(out, sizes, options);
+{create_proxy}"""
+        elif k is SchemaKind.out:
+            return f"""const auto& out = outputs_[output_idx].get();
+resize_out(out, sizes, strides, options);
+{create_proxy}"""
+        else:
+            raise AssertionError(f"{k} structured operators are currently not supported")
+
+    def gen_one(self, f):
+        if self.backend_index.dispatch_key.name in ("NPU", "PrivateUse1"):
+            return gen_npu_structured_one(self, f)
+        return original_gen_one(self, f)
+
+    dest.compute_native_function_declaration = compute_native_function_declaration
+    StructuredRegisterDispatchKey.gen_class_set_output_body = gen_class_set_output_body
+    StructuredRegisterDispatchKey.gen_one = gen_one
     # generate default arguments
     JIT_TO_CPP_DEFAULT["contiguous_format"] = "c10::MemoryFormat::Contiguous"
     dispatcher.arguments = native.arguments

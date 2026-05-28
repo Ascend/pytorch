@@ -1457,10 +1457,6 @@ class TestModuleHookNN(NNTestCase):
         out, _ = mod(True, inp)
         out.sum().backward()
 
-    @unittest.skip(
-        "Skip: pre-existing error message mismatch "
-        "(BackwardHookFunctionBackward vs BackwardHookFunction) on ARM CI"
-    )
     def test_hook_inplace(self):
         class MyModule(nn.Module):
             def forward(self, inp, do_inplace):
@@ -1488,7 +1484,7 @@ class TestModuleHookNN(NNTestCase):
                 self.assertEqual(hook_called[0], 1)
 
                 # Input inplace error should throw an error
-                with self.assertRaisesRegex(RuntimeError, "Output 0 of BackwardHookFunctionBackward is "
+                with self.assertRaisesRegex(RuntimeError, "Output 0 of BackwardHookFunction(Backward)? is "
                                             "a view and is being modified inplace."):
                     mod(inp.clone(), True)
 
@@ -1497,14 +1493,14 @@ class TestModuleHookNN(NNTestCase):
                 local_inp = inp.clone()
                 out = mod(local_inp, False)
                 local_inp[0] *= 1
-                with self.assertRaisesRegex(RuntimeError, "Output 0 of BackwardHookFunctionBackward is "
+                with self.assertRaisesRegex(RuntimeError, "Output 0 of BackwardHookFunction(Backward)? is "
                                             "a view and its base or another view"):
                     # Any operation involving the view will fail here
                     mod.inp + 2
 
                 # Output inplace error should throw an error
                 out = mod(inp, False)
-                with self.assertRaisesRegex(RuntimeError, "BackwardHookFunctionBackward is a view "
+                with self.assertRaisesRegex(RuntimeError, "BackwardHookFunction(Backward)? is a view "
                                             "and is being modified inplace."):
                     out += 1
 

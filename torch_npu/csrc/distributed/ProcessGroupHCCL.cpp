@@ -2656,7 +2656,7 @@ c10_npu::NPUStream ProcessGroupHCCL::getHcclNPUStream(const at::Device &device)
 
     auto stream = getHcclStreamByBufferName(bufferName, device.index());
     if (stream) {
-        TORCH_NPU_HCCL_LOGD("HCCL use the same steam with bufferName = %s, device_index = %d, stream id = %lu", bufferName.c_str(), device.index(), stream->id());
+        TORCH_NPU_HCCL_LOGD("HCCL use the same stream with bufferName = %s, device_index = %d, stream id = %lu", bufferName.c_str(), device.index(), stream->id());
         return stream.value();
     }
 
@@ -2948,6 +2948,8 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::createHCCLComm(
     hcclComms.resize(devices.size());
     std::vector<c10_npu::NPUStream> streamVal;
     streamVal.reserve(devices.size());
+    c10_npu::OptionalNPUGuard npuGuard;
+    npuGuard.set_index(getDeviceForRank(getRank()).index());
 
     TORCH_NPU_HCCL_LOGI("Create HCCL comm, devicesKey %s, commType %d, p2pRank %d.", devicesKey.c_str(), commType, p2pRank);
 
@@ -2974,6 +2976,7 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::createHCCLComm(
     if (!created) {
         createHCCLCommOrigin(devicesKey, devices, commType, commConfig, hcclComms, streamVal, p2pRank);
     }
+    npuGuard.set_index(getDeviceForRank(getRank()).index());
     // restart the HcclGroupStart
     for (const auto i : c10::irange(hcclActiveGroupCounter_)) {
         (void)i;
@@ -3035,7 +3038,7 @@ int64_t ProcessGroupHCCL::getStreamId(bool p2p, int peer)
     return hcclStreams_[key][0].id();
 }
 
-int64_t ProcessGroupHCCL::getCollNpuStreamId(at::Device device)
+int64_t ProcessGroupHCCL::getCollStreamId(at::Device device)
 {
     const auto key = getKeyFromDevice({device});
     if (hcclStreams_.find(key) == hcclStreams_.end() || hcclStreams_[key].empty()) {
@@ -6222,6 +6225,8 @@ void ProcessGroupHCCL::startCoalescing()
     coalescedComm_ = nullptr;
     coalescedTensors_.clear();
     coalescing_state_ |= CoalActive;
+    c10_npu::OptionalNPUGuard npuGuard;
+    npuGuard.set_index(getDeviceForRank(getRank()).index());
     groupStart();
 }
 
@@ -6831,6 +6836,12 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
             outputTensor.type() == inputTensor.type(),
             "Tensors are not equal in size or data type",
             DIST_ERROR(ErrCode::PARAM));
+        TORCH_CHECK(
+            inputTensor.dim() >= 1 && outputTensor.dim() >= 1,
+            "Scalar tensors (0-dim tensors) are not supported in alltoall. "
+            "inputTensor.dim()=", inputTensor.dim(), ", outputTensor.dim()=", outputTensor.dim(),
+            ". Please reshape tensors to at least 1-D before calling alltoall.",
+            DIST_ERROR(ErrCode::NOT_SUPPORT));
         TORCH_CHECK(
             outputTensor.size(0) % ranks == 0,
             "Tensor's dim 0 does not divide equally across group size",

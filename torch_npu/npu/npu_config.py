@@ -161,6 +161,12 @@ class _allowHF32Matmul:
     @classmethod
     def __setattr__(cls, name, value):
         if name == "allow_hf32":
+            if not isinstance(value, bool):
+                raise TypeError(
+                    "allow_hf32 must be a bool, but got {}{}".format(
+                        type(value).__name__, pta_error(ErrCode.TYPE)
+                    )
+                )
             option = {"ALLOW_MATMUL_HF32": "enable" if value else "disable"}
             torch_npu._C._npu_setOption(option)
         elif name == "cube_math_type":
@@ -185,6 +191,12 @@ class _allowHF32Conv:
     @classmethod
     def __setattr__(cls, name, value):
         if name == "allow_hf32":
+            if not isinstance(value, bool):
+                raise TypeError(
+                    "allow_hf32 must be a bool, but got {}{}".format(
+                        type(value).__name__, pta_error(ErrCode.TYPE)
+                    )
+                )
             option = {"ALLOW_CONV_HF32": "enable" if value else "disable"}
             torch_npu._C._npu_setOption(option)
 
@@ -214,24 +226,34 @@ class _call_once_class:
 @_call_once_class
 def set_device_limit(device, cube_num=-1, vector_num=-1):
     from torch_npu.npu import device_count
-    device_id = _get_device_index(device, optional=True)
-    if device_id < 0 or device_id >= device_count():
+    if isinstance(device, bool) or not isinstance(device, int):
+        raise TypeError(
+            "device must be an int, but got {}{}".format(
+                type(device).__name__, pta_error(ErrCode.TYPE)
+            )
+        )
+    if device < 0 or device >= device_count():
         raise AssertionError("Invalid device id" + pta_error(ErrCode.VALUE))
     torch_npu.npu._lazy_init()
     if cube_num != -1:
-        torch_npu._C._npu_set_device_res_limit(device_id, 0, cube_num)
+        torch_npu._C._npu_set_device_res_limit(device, 0, cube_num)
     if vector_num != -1:
-        torch_npu._C._npu_set_device_res_limit(device_id, 1, vector_num)
+        torch_npu._C._npu_set_device_res_limit(device, 1, vector_num)
 
 
 def get_device_limit(device):
     from torch_npu.npu import device_count
-    device_id = _get_device_index(device, optional=True)
-    if device_id < 0 or device_id >= device_count():
+    if isinstance(device, bool) or not isinstance(device, int):
+        raise TypeError(
+            "device must be an int, but got {}{}".format(
+                type(device).__name__, pta_error(ErrCode.TYPE)
+            )
+        )
+    if device < 0 or device >= device_count():
         raise AssertionError("Invalid device id" + pta_error(ErrCode.VALUE))
     torch_npu.npu._lazy_init()
-    return {"cube_core_num": torch_npu._C._npu_get_device_res_limit(device_id, 0), \
-           "vector_core_num": torch_npu._C._npu_get_device_res_limit(device_id, 1)}
+    return {"cube_core_num": torch_npu._C._npu_get_device_res_limit(device, 0), \
+           "vector_core_num": torch_npu._C._npu_get_device_res_limit(device, 1)}
 
 
 def set_stream_limit(stream, cube_num=-1, vector_num=-1):

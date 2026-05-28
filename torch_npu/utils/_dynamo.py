@@ -158,6 +158,40 @@ def register_inductor_npu():
     _InductorNpuRegistry.register_inductor_npu()
 
 
+def _resolve_npu_backend_from_wrapper(wrapper) -> str:
+    """Resolve npu backend with priority: wrapper options > global config > env."""
+    wrapper_backend = wrapper.config.get("npu_backend")
+    if wrapper_backend not in (None, "", "default"):
+        return wrapper_backend
+
+    global_backend = getattr(torch._inductor.config, "npu_backend", None)
+    if global_backend not in (None, "", "default"):
+        return global_backend
+
+    return os.getenv("TORCHINDUCTOR_NPU_BACKEND", "default")
+
+
+class _NpuBackendScope:
+    """Apply resolved npu backend for one compile invocation and restore env."""
+
+    def __init__(self, backend: str):
+        self.backend = backend
+        self._old_env = None
+
+    def __enter__(self):
+        self._old_env = os.environ.get("TORCHINDUCTOR_NPU_BACKEND")
+        os.environ["TORCHINDUCTOR_NPU_BACKEND"] = self.backend
+        register_inductor_npu()
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        if self._old_env is None:
+            os.environ.pop("TORCHINDUCTOR_NPU_BACKEND", None)
+        else:
+            os.environ["TORCHINDUCTOR_NPU_BACKEND"] = self._old_env
+        return False
+
+
 def patch_inductor_wrapper():
     from typing import Any
 
@@ -169,11 +203,14 @@ def patch_inductor_wrapper():
     src_get_config_copy = ConfigModule.get_config_copy
 
     def new_call(self, model_, inputs_):
-        register_inductor_npu()
-        return src_call(self, model_, inputs_)
+        backend = _resolve_npu_backend_from_wrapper(self)
+        with _NpuBackendScope(backend):
+            return src_call(self, model_, inputs_)
 
     def new_get_config_copy(self) -> dict[str, Any]:
         ori_dict = src_get_config_copy(self)
+        if self is not torch._inductor.config:
+            return ori_dict
         if "npu_backend" not in ori_dict:
             ori_dict["npu_backend"] = "default"
             cfg = Config(default="default", value_type=str)
@@ -189,15 +226,11 @@ def patch_inductor_wrapper():
             src_init(self, mode, options, dynamic, name)
         else:
             src_init(self, mode, options, dynamic)
-        if (
-            self.config.get("npu_backend") == "mlir"
-            or torch._inductor.config.npu_backend == "mlir"
-        ):
-            os.environ["TORCHINDUCTOR_NPU_BACKEND"] = "mlir"
-            device_id = torch_npu.npu.current_device()
-            torch_npu._C._recovery_all_npu_stream(device_id)
-
-        register_inductor_npu()
+        backend = _resolve_npu_backend_from_wrapper(self)
+        if backend == "mlir" or backend == "dvm":
+            with _NpuBackendScope(backend):
+                device_id = torch_npu.npu.current_device()
+                torch_npu._C._recovery_all_npu_stream(device_id)
 
     _TorchCompileInductorWrapper.__call__ = new_call
     _TorchCompileInductorWrapper.__init__ = new_init
@@ -356,34 +389,6 @@ def patch_npu_stream_context():
     ] = _handle_npu_device_interface_stream
 
 
-def fake_record_stream(self, s):
-    """
-    let dynamo trace Tensor.record_stream as this empty function,
-    and you can replace it later in your compile backend to an actual function
-    """
-    if isinstance(self, torch._subclasses.fake_tensor.FakeTensor):
-        return
-    raise RuntimeError(
-        "tensor.record_stream is not supported on torch.compile! "
-        "You should write a pass to replace torch.npu.fake_record_stream to an actual function in FX graph "
-        "before aot_autograd."
-    )
-
-
-def patch_record_stream():
-    torch.npu.fake_record_stream = fake_record_stream
-
-    def method_record_stream(self, s):
-        tx = torch._dynamo.symbolic_convert.InstructionTranslator.current_tx()
-        return torch._dynamo.variables.TorchInGraphFunctionVariable(
-            torch.npu.fake_record_stream
-        ).call_function(tx, [self, s], {})
-
-    torch._dynamo.variables.tensor.TensorVariable.method_record_stream = (
-        method_record_stream
-    )
-
-
 def patch_user_defined_class_variable():
     import functools
 
@@ -413,5 +418,4 @@ def add_dynamo_methods():
     patch_event_variable_python_type()
     patch_builtin_variable()
     patch_npu_stream_context()
-    patch_record_stream()
     patch_user_defined_class_variable()

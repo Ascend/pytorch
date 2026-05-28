@@ -63,7 +63,16 @@ GLOBAL_OPAPI_INFO_CACHE = set()
 GLOBAL_INTERNAL_FORMAT_OPAPI_INFO_CACHE = set()
 
 CUSTOM_YAML_NAME = "npu_native_functions_by_codegen.yaml"
-FIELDS_TO_USE = ["func", "tags", "dispatch", "device_check"]
+FIELDS_TO_USE = [
+    "func",
+    "tags",
+    "dispatch",
+    "device_check",
+    "structured",
+    "structured_delegate",
+    "structured_inherits",
+    "precomputed",
+]
 DEVICE_NOCHECK_SET = set()
 DEVICE_CHECK_NOTSUPPORT_TYPE = {"Tensor[]?"}
 
@@ -507,6 +516,13 @@ const DeviceGuard device_guard(device_or_default(device));"""
 
             op_hook_blacklist = ["is_pinned", "_pin_memory"]
             op_hook_check = ""
+            memory_overlap_check = ""
+            if op_key == "index_copy_":
+                memory_overlap_check = (
+                    "    at_npu::native::assert_no_internal_overlap(self);\n"
+                    "    at_npu::native::assert_no_overlap(self, index);\n"
+                    "    at_npu::native::assert_no_overlap(self, source);\n"
+                )
 
             if is_opapi(op_key) and not is_op_valid(op_key):
                 op_api_impl_name = f"{metadata.cpp_namespace}::NPUNativeOpApiFunctions::{metadata.kernel}"
@@ -594,6 +610,7 @@ namespace {{
 {device_check}
 {unsafe_tensor_check}
 {device_guard}
+{memory_overlap_check}
 {record_func_def}
 {op_hook_check}
 {return_code}
