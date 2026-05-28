@@ -830,6 +830,9 @@ def _execute_worker_batch(
                         except json.JSONDecodeError:
                             continue
 
+                        if not isinstance(case_result, dict):
+                            continue
+
                         nodeid = case_result.get("nodeid", "")
                         status = case_result.get("status", "error")
                         duration = case_result.get("duration", 0.0)
@@ -1065,7 +1068,7 @@ def _worker_main(worker_input_file: str) -> None:
     test_dir = Path(batch_input["test_dir"])
     report_dir = Path(batch_input["report_dir"])
     env_updates = batch_input.get("env_updates", {})
-    timeout = batch_input.get("timeout", 1200)
+    timeout = batch_input.get("timeout", 600)
     verbose = batch_input.get("verbose", False)
     shard = batch_input.get("shard", 0)
     shard_type = batch_input.get("shard_type", "regular")
