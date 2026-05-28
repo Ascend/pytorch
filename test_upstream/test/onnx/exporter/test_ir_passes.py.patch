@@ -13,7 +13,7 @@ index 51a3f1cfd4c..acb6a765c9a 100644
 +torch._C._cuda_setDevice = torch_npu._C._npu_setDevice
 +torch._C._cuda_getCompiledVersion = lambda:11080
 +torch.version.cuda = '11.8'
-++CUDA_VERSION = 11080
++CUDA_VERSION = 11080
  from torch.onnx._internal.exporter import _ir_passes
  from torch.testing._internal import common_utils
  
