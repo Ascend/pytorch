@@ -2,12 +2,13 @@
 index 9b1665c67d0..d7b4afe17f7 100644
 --- a/torch/testing/_internal/common_methods_invocations.py
 +++ b/torch/testing/_internal/common_methods_invocations.py
-@@ -12,6 +12,8 @@ import math
+@@ -12,6 +12,9 @@ import math
  import enum
  
  import torch
 +from torch_npu.contrib import transfer_to_npu
 +import torch_npu
++from torch.testing._internal.common_device_type import onlyPRIVATEUSE1
  import numpy as np
  import numpy.typing as npt
  from torch import inf, nan
@@ -84,7 +85,7 @@ index 9b1665c67d0..d7b4afe17f7 100644
          ),
      ),
      ElementwiseUnaryPythonRefInfo(
-@@ -24212,7 +24226,23 @@ python_ref_db = [
+@@ -24212,6 +24226,22 @@ python_ref_db = [
              DecorateInfo(unittest.skip("Skipped!"), 'TestUnaryUfuncs',
                           'test_reference_numerics_large',
 -                         dtypes=[torch.chalf, torch.complex64, torch.cdouble], device_type='cuda')
