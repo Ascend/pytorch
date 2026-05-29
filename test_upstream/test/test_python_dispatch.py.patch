@@ -1,0 +1,12 @@
+diff --git a/test/test_python_dispatch.py b/test/test_python_dispatch.py
+index 07a9224..5a8c462 100644
+--- a/test/test_python_dispatch.py
++++ b/test/test_python_dispatch.py
+@@ -2207,0 +2208 @@ $0: f32[] = torch._ops.aten.empty.memory_format([], device=device(type='cpu'), p
++                    tensor = torch.ones(123).npu()
+@@ -2211 +2212 @@ $0: f32[] = torch._ops.aten.empty.memory_format([], device=device(type='cpu'), p
+-                            123,
++                            tensor.size(0),
+@@ -2216 +2217 @@ $0: f32[] = torch._ops.aten.empty.memory_format([], device=device(type='cpu'), p
+-                        hint=123,
++                        hint=tensor.size(0),
