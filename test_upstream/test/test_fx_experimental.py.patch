@@ -1,0 +1,173 @@
+diff --git a/test/test_fx_experimental.py b/test/test_fx_experimental.py
+index c732c58..efebeaa 100644
+--- a/test/test_fx_experimental.py
++++ b/test/test_fx_experimental.py
+@@ -16,6 +16,7 @@ from typing import NamedTuple, Optional, Union
+ from collections.abc import Callable
+ 
+ import torch
++import torch_npu
+ import torch.fx.experimental.meta_tracer
+ import torch.fx.experimental.optimization as optimization
+ from torch.fx._symbolic_trace import symbolic_trace
+@@ -758,7 +759,7 @@ terrible spacing
+         class MyModule(torch.nn.Module):
+             def __init__(self) -> None:
+                 super().__init__()
+-                self.param = torch.nn.Parameter(torch.rand(3, 4))
++                self.param = torch.nn.Parameter(torch.rand(3, 4).npu())
+                 self.linear = torch.nn.Linear(4, 5)
+ 
+             def forward(self, x, y):
+@@ -767,7 +768,7 @@ terrible spacing
+                 return z + w
+ 
+         # symbolically trace model
+-        my_module = MyModule()
++        my_module = MyModule().npu()
+         my_module_traced = symbolic_trace(my_module)
+ 
+         # random mod partitioning
+@@ -788,7 +789,7 @@ terrible spacing
+         # split module in module with submodules
+         module_with_submodules = split_module(
+             my_module_traced, my_module, mod_partition
+-        )
++        ).npu()
+ 
+         # Check that test_meta_info was still on all nodes.
+         submodules = dict(module_with_submodules.named_modules())
+@@ -801,8 +802,8 @@ terrible spacing
+                         stored_op = submod_node.meta.get("test_meta_info")
+                         self.assertTrue(stored_op is not None and stored_op)
+ 
+-        x = torch.rand(3, 4)
+-        y = torch.rand(3, 4)
++        x = torch.rand(3, 4).npu()
++        y = torch.rand(3, 4).npu()
+ 
+         orig_out = my_module_traced(x, y)
+         submodules_out = module_with_submodules(x, y)
+@@ -831,7 +832,7 @@ terrible spacing
+         split = split_module(traced, mod, split, keep_original_input_name=False)
+ 
+         # All the submodules should take in the inputs in the same order.
+-        args = [torch.tensor(2.), torch.tensor(3.), torch.tensor(4.)]
++        args = [torch.tensor(2.).npu(), torch.tensor(3.).npu(), torch.tensor(4.).npu()]
+         output0 = split.submod_0(*args)
+         output1 = split.submod_1(*args)
+         output2 = split.submod_2(*args)
+@@ -875,7 +876,7 @@ terrible spacing
+ 
+         split = split_module(traced, mod, split_callback)
+ 
+-        x = torch.randn((5,))
++        x = torch.randn((5,)).npu()
+         torch.testing.assert_close(
+             split(x), traced(x)
+         )
+@@ -884,7 +885,7 @@ terrible spacing
+         def foo(x):
+             x.add_(1)
+ 
+-        gm = make_fx(foo, tracing_mode="fake")(torch.randn(3,))
++        gm = make_fx(foo, tracing_mode="fake")(torch.randn(3,).npu())
+ 
+         def cb(_):
+             return 1
+@@ -917,8 +918,8 @@ terrible spacing
+ 
+         split = split_module(traced, mod, split_callback)
+ 
+-        x = torch.randn(5, 3)
+-        foo = torch.randn(5, 3)
++        x = torch.randn(5, 3).npu()
++        foo = torch.randn(5, 3).npu()
+         torch.testing.assert_close(split(x, foo=foo), traced(x, foo=foo))
+ 
+     @skipIfNoTorchVision
+@@ -927,7 +928,7 @@ terrible spacing
+         # There was an issue before causing submodule names to be aliased
+         m = resnet18()
+         traced = symbolic_trace(m)
+-        a = torch.rand(64, 3, 7, 7)
++        a = torch.rand(64, 3, 7, 7).npu()
+         module_with_submodules = split_module(traced, m, lambda node: 0)
+         module_with_submodules(a)
+ 
+@@ -945,12 +946,12 @@ terrible spacing
+ 
+                 return x
+ 
+-        mtt = ModelToTrace()
++        mtt = ModelToTrace().npu()
+         traced = torch.fx.symbolic_trace(mtt, concrete_args={'targets': None})
+ 
+-        split = split_module(traced, mtt, lambda node: 0)
++        split = split_module(traced, mtt, lambda node: 0).npu()
+ 
+-        x = torch.randn(50, 512)
++        x = torch.randn(50, 512).npu()
+         torch.testing.assert_close(split(x), traced(x))
+ 
+     def test_split_module_keep_original_order_and_noop_graph(self):
+@@ -959,7 +960,7 @@ terrible spacing
+         def fn(x):
+             return (x,)
+ 
+-        g = make_fx(fn, tracing_mode="fake")(torch.randn(3, 3))
++        g = make_fx(fn, tracing_mode="fake")(torch.randn(3, 3).npu())
+ 
+         # g.graph.print_tabular()
+         # opcode       name    target    args       kwargs
+@@ -1003,7 +1004,7 @@ terrible spacing
+                 # compute number of input given to each expert
+                 zeros = torch.zeros(
+                     [top_k_gates.size(0), self.num_experts], dtype=top_k_gates.dtype, device=top_k_gates.device
+-                )  # [num_tokens, num_experts]
++                ).npu()  # [num_tokens, num_experts]
+                 gates = zeros.scatter(1, top_k_indices, 1)  # [num_tokens, num_experts]
+                 expert_size = gates.long().sum(0)  # [num_experts,]
+                 expert_size = expert_size.tolist()
+@@ -1038,8 +1039,8 @@ terrible spacing
+                 expert_inputs = layer_input[batch_index]
+                 return expert_inputs.split(expert_size, dim=0)
+ 
+-        moe = GraniteMoeMoE()
+-        inp = torch.randn([32, 32])
++        moe = GraniteMoeMoE().npu()
++        inp = torch.randn([32, 32]).npu()
+ 
+         expected = moe(inp)
+ 
+@@ -1404,8 +1405,8 @@ class {test_classname}(torch.nn.Module):
+                 add_5 = add_3 + add_4
+                 return add_5
+ 
+-        a, b, c, d = torch.ones(4), torch.ones(4), torch.ones(4), torch.ones(4)
+-        mm = MyModule()
++        a, b, c, d = torch.ones(4).npu(), torch.ones(4).npu(), torch.ones(4).npu(), torch.ones(4).npu()
++        mm = MyModule().npu()
+         traced = symbolic_trace(mm)
+ 
+         def split_cb(node: torch.fx.Node):
+@@ -1423,8 +1424,8 @@ class {test_classname}(torch.nn.Module):
+         class ExampleCode(torch.nn.Module):
+             def __init__(self) -> None:
+                 super().__init__()
+-                self.mm_param = torch.nn.Parameter(torch.randn(d_hid, d_hid))
+-                self.mm_param2 = torch.nn.Parameter(torch.randn(d_hid, d_hid))
++                self.mm_param = torch.nn.Parameter(torch.randn(d_hid, d_hid).npu())
++                self.mm_param2 = torch.nn.Parameter(torch.randn(d_hid, d_hid).npu())
+                 self.lin = torch.nn.Linear(d_hid, d_hid)
+ 
+             def forward(self, x):
+@@ -1437,7 +1438,7 @@ class {test_classname}(torch.nn.Module):
+                 x = self.lin(x)
+                 return x
+ 
+-        my_module = ExampleCode()
++        my_module = ExampleCode().npu()
+         my_module_traced = symbolic_trace(my_module)
+ 
+         part_idx = 0
