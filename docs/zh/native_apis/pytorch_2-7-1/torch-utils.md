@@ -5,6 +5,6 @@
 
 |API名称|是否支持|限制与说明|
 |--|--|--|
-|torch.utils.rename_privateuse1_backend|是|-|
-|torch.utils.generate_methods_for_privateuse1_backend|否|-|
-|torch.utils.get_cpp_backtrace|否|-|
+|[torch.utils.rename_privateuse1_backend](https://pytorch.org/docs/2.7/generated/torch.utils.rename_privateuse1_backend.html)|是|-|
+|[torch.utils.generate_methods_for_privateuse1_backend](https://pytorch.org/docs/2.7/generated/torch.utils.generate_methods_for_privateuse1_backend.html)|否|-|
+|[torch.utils.get_cpp_backtrace](https://pytorch.org/docs/2.7/generated/torch.utils.get_cpp_backtrace.html)|否|-|

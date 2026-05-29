@@ -6,5 +6,5 @@
 
 |API名称|是否支持|限制与说明|
 |--|--|--|
-|torch.finfo|是|-|
-|torch.iinfo|是|-|
+|[torch.finfo](https://pytorch.org/docs/2.12/type_info.html#torch.torch.finfo)|是|-|
+|[torch.iinfo](https://pytorch.org/docs/2.12/type_info.html#torch.torch.iinfo)|是|-|

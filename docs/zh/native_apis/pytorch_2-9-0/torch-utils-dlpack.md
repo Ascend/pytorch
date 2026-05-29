@@ -5,5 +5,5 @@
 
 |API名称|是否支持|限制与说明|
 |--|--|--|
-|torch.utils.dlpack.from_dlpack|否|-|
-|torch.utils.dlpack.to_dlpack|否|-|
+|[torch.utils.dlpack.from_dlpack](https://pytorch.org/docs/2.9/dlpack.html#torch.utils.dlpack.from_dlpack)|否|-|
+|[torch.utils.dlpack.to_dlpack](https://pytorch.org/docs/2.9/dlpack.html#torch.utils.dlpack.to_dlpack)|否|-|

@@ -5,5 +5,5 @@
 
 |API名称|是否支持|限制与说明|
 |--|--|--|
-|torch.utils.checkpoint.checkpoint|是|-|
-|torch.utils.checkpoint.checkpoint_sequential|是|支持fp32|
+|[torch.utils.checkpoint.checkpoint](https://pytorch.org/docs/2.7/checkpoint.html#torch.utils.checkpoint.checkpoint)|是|-|
+|[torch.utils.checkpoint.checkpoint_sequential](https://pytorch.org/docs/2.7/checkpoint.html#torch.utils.checkpoint.checkpoint_sequential)|是|支持fp32|

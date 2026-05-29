@@ -5,7 +5,7 @@
 
 |API名称|是否支持|限制与说明|
 |--|--|--|
-|torch.library.Library|是|-|
-|torch.library.Library.define|是|-|
-|torch.library.Library.impl|是|-|
-|torch.library.fallthrough_kernel|是|-|
+|[torch.library.Library](https://pytorch.org/docs/2.11/library.html#torch.library.Library)|是|-|
+|[torch.library.Library.define](https://pytorch.org/docs/2.11/library.html#torch.library.Library.define)|是|-|
+|[torch.library.Library.impl](https://pytorch.org/docs/2.11/library.html#torch.library.Library.impl)|是|-|
+|[torch.library.fallthrough_kernel](https://pytorch.org/docs/2.11/library.html#torch.library.fallthrough_kernel)|是|-|
