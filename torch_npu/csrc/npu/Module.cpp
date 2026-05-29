@@ -573,6 +573,13 @@ void RegisterNpuPluggableAllocator(PyObject* module) {
             ptr_set.insert(ptr);
           }
         }
+        if (c10_npu::option::OptionsManager::CheckForceUncached()) {
+ 	          TORCH_CHECK(
+ 	              false,
+ 	              "checkpoint do not support enabling PYTORCH_NO_NPU_MEMORY_CACHING, "
+ 	              "Use torch_npu._C._npu_setCheckpointPoolState, ensure PYTORCH_NO_NPU_MEMORY_CACHING is disabled",
+ 	              PTA_ERROR(ErrCode::PARAM));
+ 	      }
         auto delta = c10_npu::NPUCachingAllocator::setCheckpointPoolState(
             device, std::move(pps));
         auto& freed_pointers = delta.ptrs_freed;
