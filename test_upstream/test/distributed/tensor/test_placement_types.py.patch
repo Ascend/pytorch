@@ -1,0 +1,11 @@
+﻿diff --git a/test/distributed/tensor/test_placement_types.py b/test/distributed/tensor/test_placement_types.py
+index 49998e4be83..57e539805eb 100644
+--- a/test/distributed/tensor/test_placement_types.py
++++ b/test/distributed/tensor/test_placement_types.py
+@@ -1,4 +1,6 @@
+ # Owner(s): ["oncall: distributed"]
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import copy
+ import itertools
+ 

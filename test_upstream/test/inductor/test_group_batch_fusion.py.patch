@@ -1,0 +1,128 @@
+﻿diff --git a/test/inductor/test_group_batch_fusion.py b/test/inductor/test_group_batch_fusion.py
+index 670258df001..5f2b1108348 100644
+--- a/test/inductor/test_group_batch_fusion.py
++++ b/test/inductor/test_group_batch_fusion.py
+@@ -1,9 +1,16 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ 
+ import collections
+ import unittest
+ 
+-import torch
+ import torch._inductor
+ import torch._inductor.fx_passes.group_batch_fusion
+ from torch._dynamo.utils import counters
+@@ -18,6 +25,7 @@ try:
+     has_fbgemm = True
+ except Exception:
+     has_fbgemm = False
++import torch_npu._inductor
+ 
+ 
+ class TestHighwaySelfGating(torch.nn.Module):
+@@ -347,7 +355,7 @@ class TestGroupBatchFusion(TestCase):
+             self.compare_dict_tensors(ref_grad, res_grad, rtol=rtol, atol=atol)
+         )
+ 
+-    @requires_gpu()
++    
+     @unittest.skipIf(not has_fbgemm, "requires fbgemm")
+     @torch._inductor.config.patch(
+         pre_grad_fusion_options={},
+@@ -379,7 +387,7 @@ class TestGroupBatchFusion(TestCase):
+             )
+             counters.clear()
+ 
+-    @requires_gpu()
++    
+     @unittest.skipIf(not has_fbgemm, "requires fbgemm")
+     @torch._inductor.config.patch(
+         pre_grad_fusion_options={},
+@@ -413,7 +421,7 @@ class TestGroupBatchFusion(TestCase):
+         )
+         counters.clear()
+ 
+-    @requires_gpu()
++    
+     @unittest.skipIf(GPU_TYPE == "mps", "welford_reduce is yet not implemented for MPS")
+     @torch._inductor.config.patch(
+         pre_grad_fusion_options={"batch_layernorm": {}},
+@@ -436,7 +444,7 @@ class TestGroupBatchFusion(TestCase):
+                 self.compare_gradients(module, traced, rtol=1e-8, atol=1e-8)
+                 counters.clear()
+ 
+-    @requires_gpu()
++    
+     @torch._inductor.config.patch(
+         pre_grad_fusion_options={"batch_linear_lhs": {}},
+         post_grad_fusion_options={},
+@@ -458,7 +466,7 @@ class TestGroupBatchFusion(TestCase):
+             self.compare_gradients(module, traced, rtol=1e-8, atol=1e-8)
+             counters.clear()
+ 
+-    @requires_gpu()
++    
+     @torch._inductor.config.patch(
+         pre_grad_fusion_options={"batch_linear": {}},
+         post_grad_fusion_options={},
+@@ -479,7 +487,7 @@ class TestGroupBatchFusion(TestCase):
+             self.compare_gradients(module, traced, rtol=1e-8, atol=1e-8)
+             counters.clear()
+ 
+-    @requires_gpu()
++    
+     @torch._inductor.config.patch(
+         pre_grad_fusion_options={
+             "batch_relu": {},
+@@ -512,7 +520,7 @@ class TestGroupBatchFusion(TestCase):
+         self.compare_gradients(module, traced, rtol=1e-8, atol=1e-8)
+         counters.clear()
+ 
+-    @requires_gpu()
++    
+     @torch._inductor.config.patch(
+         pre_grad_fusion_options={},
+         post_grad_fusion_options={
+@@ -540,7 +548,7 @@ class TestGroupBatchFusion(TestCase):
+         self.compare_gradients(module, traced, rtol=1e-8, atol=1e-8)
+         counters.clear()
+ 
+-    @requires_gpu()
++    
+     @torch._inductor.config.patch(
+         pre_grad_fusion_options={},
+         post_grad_fusion_options={
+@@ -581,7 +589,7 @@ class TestGroupBatchFusion(TestCase):
+         self.compare_gradients(module, traced, rtol=1e-8, atol=1e-8)
+         counters.clear()
+ 
+-    @requires_gpu()
++    
+     @torch._inductor.config.patch(
+         pre_grad_fusion_options={
+             "normalization_pass": {},
+@@ -614,7 +622,7 @@ class TestGroupBatchFusion(TestCase):
+         self.assertTrue(torch.allclose(ref, res))
+         counters.clear()
+ 
+-    @requires_gpu()
++    
+     @torch._inductor.config.patch(
+         pre_grad_fusion_options={
+             "normalization_pass": {},
+@@ -650,7 +658,6 @@ class TestBMMFusionModule(torch.nn.Module):
+         return output
+ 
+ 
+-@requires_gpu()
+ @torch._inductor.config.patch(
+     post_grad_fusion_options={"batch_linear_post_grad": {"require_fbgemm": False}}
+ )

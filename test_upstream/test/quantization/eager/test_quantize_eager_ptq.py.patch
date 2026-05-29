@@ -1,0 +1,33 @@
+﻿diff --git a/test/quantization/eager/test_quantize_eager_ptq.py b/test/quantization/eager/test_quantize_eager_ptq.py
+index c15f0d33abd..4c800c66f07 100644
+--- a/test/quantization/eager/test_quantize_eager_ptq.py
++++ b/test/quantization/eager/test_quantize_eager_ptq.py
+@@ -1,9 +1,17 @@
+ # Owner(s): ["oncall: quantization"]
+ # ruff: noqa: F841
+ 
+-from hypothesis import given, strategies as st
++from hypothesis import given, strategies as st, settings
+ 
+ import torch
++import torch_npu
++# from torch_npu.contrib import transfer_to_npu
++torch._C._cuda_setStream = torch_npu._C._npu_setStream
++torch.cuda.get_device_capability = lambda *args, **kwargs:(10,0)
++torch._C._cuda_setDevice = torch_npu._C._npu_setDevice
++torch._C._cuda_getCompiledVersion = lambda:11080
++torch.version.cuda = '11.8'
++CUDA_VERSION = 11080
+ import torch.ao.nn.quantized as nnq
+ import torch.nn as nn
+ import torch.testing._internal.hypothesis_utils as hu
+@@ -64,7 +72,8 @@ from torch.testing._internal.common_quantized import (
+     supported_qengines,
+ )
+ 
+-
++settings.register_profile("disable_deadline", deadline=None)
++settings.load_profile("disable_deadline")
+ hu.assert_deadline_disabled()
+ 
+ # Standard library

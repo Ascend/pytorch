@@ -1,0 +1,13 @@
+﻿diff --git a/test/dynamo/test_global.py b/test/dynamo/test_global.py
+index 119d56d674e..1ecce6b6cd8 100644
+--- a/test/dynamo/test_global.py
++++ b/test/dynamo/test_global.py
+@@ -1,6 +1,8 @@
+ # Owner(s): ["module: dynamo"]
+ 
+ import torch
++from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ import torch._dynamo.test_case
+ import torch._dynamo.testing
+ from torch._dynamo.testing import same

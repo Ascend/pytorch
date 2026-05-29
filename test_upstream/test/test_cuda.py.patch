@@ -1,0 +1,13 @@
+﻿diff --git a/test/test_cuda.py b/test/test_cuda.py
+index b33f21e6dfc..a4f99e42d20 100644
+--- a/test/test_cuda.py
++++ b/test/test_cuda.py
+@@ -24,6 +24,8 @@ from random import randint
+ import psutil
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch.cuda
+ import torch.nn as nn
+ from torch import inf, nan

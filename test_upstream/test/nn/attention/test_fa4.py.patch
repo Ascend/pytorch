@@ -1,0 +1,22 @@
+﻿diff --git a/test/nn/attention/test_fa4.py b/test/nn/attention/test_fa4.py
+index 8abd4beefde..25c72b78a47 100644
+--- a/test/nn/attention/test_fa4.py
++++ b/test/nn/attention/test_fa4.py
+@@ -7,6 +7,8 @@ from unittest.mock import patch
+ from _fa_test_common import FlashAttentionTestMixin, SdpaShape
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch.nn.functional as F
+ from torch.backends.cuda import SDPBackend
+ from torch.nn.attention import activate_flash_attention_impl, sdpa_kernel
+@@ -167,7 +169,7 @@ class TestFlashAttentionFA4(FlashAttentionTestMixin, TestCase):
+             _fa4._fa4_import_module.cache_clear()
+ 
+ 
+-instantiate_device_type_tests(TestFlashAttentionFA4, globals(), only_for="cuda")
++instantiate_device_type_tests(TestFlashAttentionFA4, globals(), only_for="npu")
+ 
+ if __name__ == "__main__":
+     run_tests()

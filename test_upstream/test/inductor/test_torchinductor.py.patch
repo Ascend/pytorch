@@ -1,0 +1,199 @@
+﻿diff --git a/test/inductor/test_torchinductor.py b/test/inductor/test_torchinductor.py
+index 2475036c438..d9349b07ef5 100644
+--- a/test/inductor/test_torchinductor.py
++++ b/test/inductor/test_torchinductor.py
+@@ -1,3 +1,11 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ # ruff: noqa: F841
+ import contextlib
+@@ -28,7 +36,6 @@ from unittest.mock import patch
+ 
+ import numpy as np
+ 
+-import torch
+ import torch._dynamo.config as dynamo_config
+ import torch._inductor.aoti_eager
+ import torch.fx.traceback as fx_traceback
+@@ -156,6 +163,7 @@ from torch.testing._internal.triton_utils import (
+     requires_cuda_and_triton,
+     requires_gpu_and_triton,
+ )
++import torch_npu._inductor
+ 
+ 
+ _T = TypeVar("_T")
+@@ -5004,7 +5012,6 @@ class CommonTemplate:
+             ),
+         )
+ 
+-    @requires_gpu()
+     def test_to_device(self):
+         def fn(a):
+             if a.device.type == "cpu":
+@@ -5035,7 +5042,6 @@ class CommonTemplate:
+             ),
+         )
+ 
+-    @requires_gpu()
+     def test_to_device_constant(self):
+         def fn(a):
+             d1 = a.device.type
+@@ -5056,7 +5062,6 @@ class CommonTemplate:
+             (torch.randn([10]),),
+         )
+ 
+-    @requires_gpu()
+     @xfail_if_triton_cpu
+     def test_multi_device(self):
+         def fn(x):
+@@ -8580,7 +8585,6 @@ def forward(self, arg0_1: "Sym(s77)", arg1_1: "Sym(s27)", arg2_1: "Sym(s53)", ar
+ 
+     # The following 2 tests are meant to check the logic that drops
+     # xmask from triton load/store if xnumel = 1
+-    @requires_gpu()
+     def test_single_elem(self):
+         def fn(a):
+             b = a + 1
+@@ -8588,7 +8592,6 @@ def forward(self, arg0_1: "Sym(s77)", arg1_1: "Sym(s27)", arg2_1: "Sym(s53)", ar
+ 
+         self.common(fn, (torch.randn(1),))
+ 
+-    @requires_gpu()
+     def test_single_elem_indirect(self):
+         def fn(a, b):
+             c = a[b] + 1
+@@ -8602,7 +8605,6 @@ def forward(self, arg0_1: "Sym(s77)", arg1_1: "Sym(s27)", arg2_1: "Sym(s53)", ar
+     # This test is meant to check for issues from the logic
+     # that drops xmask from trito load/store if XBLOCK divides xnumel
+ 
+-    @requires_gpu()
+     def test_xblock_divides_xnumel(self):
+         def fn(a):
+             b = a + 1
+@@ -10539,7 +10541,6 @@ def forward(self, arg0_1: "Sym(s77)", arg1_1: "Sym(s27)", arg2_1: "Sym(s53)", ar
+         self.assertEqual(a0.shape, a1.shape)
+         self.assertEqual(a0.stride(), a1.stride())
+ 
+-    @requires_gpu()
+     @skip_if_triton_cpu("Flaky on Triton CPU")
+     def test_like_rands3(self):
+         # rand_like with `device` which is different from `x.device`
+@@ -11781,7 +11782,6 @@ def forward(self, arg0_1: "Sym(s77)", arg1_1: "Sym(s27)", arg2_1: "Sym(s53)", ar
+     # Shape padding causes the inputs to all get specialized, so the codegen
+     # test fails
+     @expectedFailureCodegenDynamic
+-    @requires_gpu()
+     @torch._inductor.config.patch("shape_padding", True)
+     def test_shape_padding(self):
+         dtypes = [
+@@ -11810,7 +11810,6 @@ def forward(self, arg0_1: "Sym(s77)", arg1_1: "Sym(s27)", arg2_1: "Sym(s53)", ar
+             self.common(lambda x, y: torch.matmul(x, y), (x, y))
+             self.common(lambda x, y, z: torch.baddbmm(z, x, y), (x, y, z))
+ 
+-    @requires_gpu()
+     @torch._inductor.config.patch("layout_optimization", True)
+     @tf32_on_and_off(0.005)
+     def test_inductor_layout_optimization_input_mutations(self):
+@@ -11981,7 +11980,6 @@ def forward(self, arg0_1: "Sym(s77)", arg1_1: "Sym(s27)", arg2_1: "Sym(s53)", ar
+             f"second compilation has hint {HINT_A}; stale cache hit",
+         )
+ 
+-    @requires_gpu()
+     def test_stride_preservation_with_stride_modifying_fx_pass(self):
+         def f(x):
+             return x + 1
+@@ -12337,7 +12335,6 @@ def forward(self, arg0_1: "Sym(s77)", arg1_1: "Sym(s27)", arg2_1: "Sym(s53)", ar
+         # expanded dim should not cause copy in require_stride_order
+         assertGeneratedKernelCountEqual(self, 0)
+ 
+-    @requires_gpu()
+     @parametrize("prefer_nd_tiling", (False, True))
+     @parametrize("use_block_ptr", (False, True))
+     @unittest.skipIf(
+@@ -12418,7 +12415,6 @@ def forward(self, arg0_1: "Sym(s77)", arg1_1: "Sym(s27)", arg2_1: "Sym(s53)", ar
+             if not is_halide_backend(self.device):
+                 self.assertEqual(have_block_ptr, use_block_ptr)
+ 
+-    @requires_gpu()
+     @unittest.skipIf(
+         not PLATFORM_SUPPORTS_MEM_EFF_ATTENTION,
+         "Does not support mem_eff_attention",
+@@ -12463,7 +12459,6 @@ def forward(self, arg0_1: "Sym(s77)", arg1_1: "Sym(s27)", arg2_1: "Sym(s53)", ar
+             rtol=1e4,
+         )
+ 
+-    @requires_gpu()
+     @unittest.skipIf(
+         not PLATFORM_SUPPORTS_MEM_EFF_ATTENTION,
+         "Does not support mem_eff_attention",
+@@ -13294,7 +13289,6 @@ def forward(self, arg0_1: "Sym(s77)", arg1_1: "Sym(s27)", arg2_1: "Sym(s53)", ar
+                 res2 = fn_c(inp2)
+                 self.assertEqual(ref2, res2, atol=1e-5, rtol=1e-5)
+ 
+-    @requires_gpu()
+     @config.patch(assume_aligned_inputs=False)
+     def test_config_option_dont_assume_alignment_recompiles(self):
+         # Inputs:
+@@ -13341,7 +13335,6 @@ def forward(self, arg0_1: "Sym(s77)", arg1_1: "Sym(s27)", arg2_1: "Sym(s53)", ar
+         # see Note: [Input Alignment handling in Inductor]
+         self.assertLessEqual(len(failed_guards), failed_guard_count_iteration_2)
+ 
+-    @requires_gpu()
+     @config.patch(assume_aligned_inputs=False)
+     def test_config_option_dont_assume_alignment_cudagraphs(self):
+         def fn(x):
+@@ -13660,7 +13653,6 @@ def forward(self, arg0_1: "Sym(s77)", arg1_1: "Sym(s27)", arg2_1: "Sym(s53)", ar
+         # No error
+         f(x)
+ 
+-    @requires_gpu()
+     @torch._inductor.config.patch("layout_optimization", True)
+     @torch._inductor.config.patch("keep_output_stride", False)
+     @config.patch(implicit_fallbacks=True)
+@@ -13784,7 +13776,6 @@ def forward(self, arg0_1: "Sym(s77)", arg1_1: "Sym(s27)", arg2_1: "Sym(s53)", ar
+             compiled_inductor_out = compiled_inductor_f(x)
+             self.assertEqual(compiled_inductor_out, eager_out)
+ 
+-    @requires_gpu()
+     @config.patch(implicit_fallbacks=True)
+     def test_custom_op_fixed_layout_channels_last(self):
+         class Block(nn.Module):
+@@ -14122,7 +14113,6 @@ def forward(self, arg0_1: "Sym(s77)", arg1_1: "Sym(s27)", arg2_1: "Sym(s53)", ar
+             FileCheck().check("aten.view.dtype(reinterpret_tensor").run(code[0])
+ 
+     @xfail_if_triton_cpu
+-    @requires_gpu()
+     def test_scalar_cpu_tensor_arg(self):
+         def fn(x, y):
+             return x + y.sum()
+@@ -14714,7 +14704,6 @@ def forward(self, arg0_1: "Sym(s77)", arg1_1: "Sym(s27)", arg2_1: "Sym(s53)", ar
+         self.assertEqual(compiled_out.shape, torch.Size([1, 1, 0, 0]))
+         self.assertEqual(eager_out, compiled_out)
+ 
+-    @requires_gpu()
+     @config.patch(fallback_random=True)
+     @unittest.skipIf(
+         config.cpp_wrapper,
+@@ -16695,7 +16684,6 @@ if RUN_GPU:
+             out[0].sum().backward()
+             self.assertEqual(inp.grad, inp_ref.grad)
+ 
+-        @requires_gpu()
+         @unittest.skipIf(
+             not PLATFORM_SUPPORTS_MEM_EFF_ATTENTION,
+             "Does not support mem_eff_attention",
+@@ -18234,5 +18222,4 @@ def _run_and_get_stripped_kernels(
+ if __name__ == "__main__":
+     from torch._inductor.test_case import run_tests
+ 
+-    if RUN_CPU or RUN_GPU or HAS_MPS:
+-        run_tests(needs="filelock")
++    run_tests(needs="filelock")

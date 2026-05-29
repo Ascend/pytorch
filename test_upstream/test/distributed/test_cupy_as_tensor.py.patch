@@ -1,0 +1,22 @@
+﻿diff --git a/test/distributed/test_cupy_as_tensor.py b/test/distributed/test_cupy_as_tensor.py
+index 63b290e2e8e..91bae068680 100644
+--- a/test/distributed/test_cupy_as_tensor.py
++++ b/test/distributed/test_cupy_as_tensor.py
+@@ -6,6 +6,8 @@
+ from dataclasses import dataclass
+ 
+ import torch
++from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ from torch.multiprocessing.reductions import reduce_tensor
+ from torch.testing._internal.common_cuda import SM100OrLater
+ from torch.testing._internal.common_distributed import (
+@@ -20,7 +22,7 @@ from torch.testing._internal.common_utils import (
+ 
+ 
+ # So that tests are written in device-agnostic way
+-device_type = "cuda"
++device_type = "npu"
+ device_module = torch.get_device_module(device_type)
+ 
+ 

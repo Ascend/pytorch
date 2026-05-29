@@ -1,0 +1,27 @@
+﻿diff --git a/test/distributed/tensor/test_attention.py b/test/distributed/tensor/test_attention.py
+index 8417af81759..44ad4fcb7b0 100644
+--- a/test/distributed/tensor/test_attention.py
++++ b/test/distributed/tensor/test_attention.py
+@@ -9,6 +9,8 @@ from collections.abc import Callable
+ from typing import Any, ClassVar
+ 
+ import torch
++from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ import torch.distributed as dist
+ import torch.distributed.distributed_c10d as c10d
+ import torch.nn.functional as F
+@@ -62,8 +64,12 @@ from torch.testing._internal.distributed._tensor.common_dtensor import (
+     create_local_tensor_test_class,
+     DTensorTestBase,
+     map_local_tensor_for_rank,
+-    with_comms,
++    # with_comms,
+ )
++from torch_npu.testing.common_distributed import with_comms
++ 
++PLATFORM_SUPPORTS_FLASH_ATTENTION = True
++PLATFORM_SUPPORTS_FUSED_ATTENTION = True
+ 
+ 
+ c10d_functional = torch.ops.c10d_functional

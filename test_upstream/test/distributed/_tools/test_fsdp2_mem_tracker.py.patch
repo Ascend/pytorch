@@ -1,0 +1,13 @@
+﻿diff --git a/test/distributed/_tools/test_fsdp2_mem_tracker.py b/test/distributed/_tools/test_fsdp2_mem_tracker.py
+index 7e513ef186a..54edd9d744a 100644
+--- a/test/distributed/_tools/test_fsdp2_mem_tracker.py
++++ b/test/distributed/_tools/test_fsdp2_mem_tracker.py
+@@ -3,6 +3,8 @@ import functools
+ import gc
+ 
+ import torch
++from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ import torch.nn as nn
+ from torch.distributed._composable import checkpoint
+ from torch.distributed._tools.fsdp2_mem_tracker import FSDPMemTracker

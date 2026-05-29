@@ -1,0 +1,14 @@
+﻿diff --git a/test/nn/attention/test_open_registry.py b/test/nn/attention/test_open_registry.py
+index 2bfb30fa886..f6a7bdafa7a 100644
+--- a/test/nn/attention/test_open_registry.py
++++ b/test/nn/attention/test_open_registry.py
+@@ -3,7 +3,8 @@
+ import torch.nn.attention as attention
+ from torch.nn.attention import _registry
+ from torch.testing._internal.common_utils import run_tests, TestCase
+-
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ 
+ class FakeHandle:
+     def remove(self):

@@ -1,0 +1,29 @@
+﻿diff --git a/test/test_numa_binding.py b/test/test_numa_binding.py
+index 53cdaa0248b..12859282774 100644
+--- a/test/test_numa_binding.py
++++ b/test/test_numa_binding.py
+@@ -10,6 +10,8 @@ from unittest import skipUnless
+ from unittest.mock import mock_open, patch
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ from torch._utils_internal import signpost_event
+ from torch.distributed.elastic.multiprocessing import DefaultLogsSpecs, start_processes
+ from torch.distributed.elastic.multiprocessing.api import _wrap
+@@ -55,11 +57,11 @@ class NumaBindingTest(TestCase):
+         self._mock_num_sockets = 0
+ 
+         self._context_managers_to_apply_to_all_tests = [
+-            patch("torch.cuda.device_count", self._mock_device_count),
+-            patch("torch.cuda.get_device_properties", self._mock_get_device_properties),
+-            patch("torch.cuda.is_available", self._mock_is_available),
++            patch("torch.npu.device_count", self._mock_device_count),
++            patch("torch.npu.get_device_properties", self._mock_get_device_properties),
++            patch("torch.npu.is_available", self._mock_is_available),
+             # Implicitly used by dynamo
+-            patch("torch.cuda.get_rng_state"),
++            patch("torch.npu.get_rng_state"),
+             patch("builtins.open", new=self._mock_open),
+             patch("os.listdir", new=self._mock_listdir),
+             patch("os.sched_getaffinity", new=self._mock_sched_getaffinity),

@@ -1,0 +1,11 @@
+﻿diff --git a/test/dynamo/test_graph_region_tracker.py b/test/dynamo/test_graph_region_tracker.py
+index ce456596fd5..acce36a470e 100644
+--- a/test/dynamo/test_graph_region_tracker.py
++++ b/test/dynamo/test_graph_region_tracker.py
+@@ -1,3 +1,6 @@
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["module: dynamo"]
+ import contextlib
+ 

@@ -1,0 +1,49 @@
+﻿diff --git a/test/test_view_ops.py b/test/test_view_ops.py
+index 58a397fde59..248f118b366 100644
+--- a/test/test_view_ops.py
++++ b/test/test_view_ops.py
+@@ -131,7 +131,7 @@ class TestViewOps(TestCase):
+             return False
+         # Note: only validates storage on native device types
+         # because some accelerators, like XLA, do not expose storage
+-        if base.device.type in ["cpu", "cuda", "xpu"]:
++        if base.device.type in ["cpu", "npu", "xpu"]:
+             if base.untyped_storage().data_ptr() != other.untyped_storage().data_ptr():
+                 return False
+ 
+@@ -1368,7 +1368,7 @@ class TestOldViewOps(TestCase):
+             ):
+                 src.flatten(2, 0)
+ 
+-    # TODO: update to work on CUDA, too
++    # TODO: update to work on NPU, too
+     @onlyCPU
+     def test_narrow(self, device):
+         x = torch.tensor([[0, 1, 2], [3, 4, 5], [6, 7, 8]])
+@@ -1383,7 +1383,7 @@ class TestOldViewOps(TestCase):
+         self.assertEqual(x.narrow(-1, -1, 1), torch.tensor([[2], [5], [8]]))
+         self.assertEqual(x.narrow(-2, -1, 1), torch.tensor([[6, 7, 8]]))
+ 
+-    # TODO: update to work on CUDA, too
++    # TODO: update to work on NPU, too
+     @onlyCPU
+     def test_narrow_tensor(self, device):
+         x = torch.tensor([[0, 1, 2], [3, 4, 5], [6, 7, 8]])
+@@ -1395,7 +1395,7 @@ class TestOldViewOps(TestCase):
+         with self.assertRaises(Exception):
+             x.narrow(0, torch.tensor([0, 1]), 1)
+ 
+-    # TODO: make work on CUDA, too
++    # TODO: make work on NPU, too
+     @onlyCPU
+     def test_t(self, device):
+         # Test 0D tensors
+@@ -1491,7 +1491,7 @@ class TestOldViewOps(TestCase):
+         with self.assertRaisesRegex(RuntimeError, error_regex):
+             tensor.chunk(-2)
+ 
+-    # TODO: make work on CUDA, too
++    # TODO: make work on NPU, too
+     @skipIfTorchDynamo("TorchDynamo fails with unknown reason")
+     @onlyCPU
+     def test_unsqueeze(self, device) -> None:

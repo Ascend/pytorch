@@ -1,0 +1,13 @@
+﻿diff --git a/test/test_native_functions.py b/test/test_native_functions.py
+index 198bdf89891..d1d34ed4af7 100644
+--- a/test/test_native_functions.py
++++ b/test/test_native_functions.py
+@@ -1,6 +1,8 @@
+ # Owner(s): ["module: unknown"]
+ 
+ import torch
++from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ from torch.testing._internal.common_utils import TestCase, run_tests, skipIfTorchDynamo
+ 
+ # End-to-end tests of features in native_functions.yaml

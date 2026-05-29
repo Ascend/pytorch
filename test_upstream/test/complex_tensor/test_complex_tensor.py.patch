@@ -1,0 +1,13 @@
+﻿diff --git a/test/complex_tensor/test_complex_tensor.py b/test/complex_tensor/test_complex_tensor.py
+index 1e897e05c67..07e78ab0ee4 100644
+--- a/test/complex_tensor/test_complex_tensor.py
++++ b/test/complex_tensor/test_complex_tensor.py
+@@ -4,6 +4,8 @@ from __future__ import annotations
+ from typing import TYPE_CHECKING
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch.distributed as dist
+ 
+ 

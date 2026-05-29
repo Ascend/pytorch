@@ -1,0 +1,13 @@
+﻿diff --git a/test/dynamo/test_unspec.py b/test/dynamo/test_unspec.py
+index c27fe14a0e9..89cc2bec9cd 100644
+--- a/test/dynamo/test_unspec.py
++++ b/test/dynamo/test_unspec.py
+@@ -7,6 +7,8 @@ import unittest
+ import numpy as np
+ 
+ import torch
++from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ import torch._dynamo.test_case
+ import torch._dynamo.testing
+ import torch.nn.functional as F

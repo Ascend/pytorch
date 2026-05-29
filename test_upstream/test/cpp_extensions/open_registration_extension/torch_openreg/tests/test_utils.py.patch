@@ -1,0 +1,13 @@
+﻿diff --git a/test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_utils.py b/test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_utils.py
+index c0b587ae761..b39f0e339a7 100644
+--- a/test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_utils.py
++++ b/test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_utils.py
+@@ -3,6 +3,8 @@
+ import unittest
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ from torch.testing._internal.common_utils import run_tests, TestCase
+ 
+ 

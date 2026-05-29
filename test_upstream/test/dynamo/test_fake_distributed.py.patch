@@ -1,0 +1,13 @@
+﻿diff --git a/test/dynamo/test_fake_distributed.py b/test/dynamo/test_fake_distributed.py
+index 7e5607e08aa..3ff152d5f16 100644
+--- a/test/dynamo/test_fake_distributed.py
++++ b/test/dynamo/test_fake_distributed.py
+@@ -2,6 +2,8 @@
+ from unittest import skipIf
+ 
+ import torch
++from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ import torch.distributed as dist
+ from torch._dynamo.test_case import TestCase as DynamoTestCase
+ from torch._dynamo.testing import (

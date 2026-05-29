@@ -1,0 +1,11 @@
+﻿diff --git a/test/test_indexing.py b/test/test_indexing.py
+index 87c3ddbc56e..a19a7a63085 100644
+--- a/test/test_indexing.py
++++ b/test/test_indexing.py
+@@ -1,4 +1,6 @@
+ # Owner(s): ["module: tests"]
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ 
+ import operator
+ import random

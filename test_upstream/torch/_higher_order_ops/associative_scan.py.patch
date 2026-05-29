@@ -1,0 +1,16 @@
+﻿diff --git a/torch/_higher_order_ops/associative_scan.py b/torch/_higher_order_ops/associative_scan.py
+index 5876525ce43..508b152f602 100644
+--- a/torch/_higher_order_ops/associative_scan.py
++++ b/torch/_higher_order_ops/associative_scan.py
+@@ -212,9 +212,9 @@ def associative_scan(
+             raise ValueError(
+                 f"Combine_mode must either 'pointwise' or 'generic', but got {cm}"
+             )
+-        if cm == "pointwise" and not all(l.device.type in ("cuda", "xpu") for l in lxs):
++        if cm == "pointwise" and not all(l.device.type in ("npu", "xpu") for l in lxs):
+             raise ValueError(
+-                "For combine_mode='pointwise', all input tensors need to be on CUDA or XPU"
++                "For combine_mode='pointwise', all input tensors need to be on NPU or XPU"
+             )
+ 
+         # Checks for xs

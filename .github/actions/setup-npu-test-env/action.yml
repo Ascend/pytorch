@@ -1,0 +1,110 @@
+name: 'Setup NPU Test Environment'
+description: 'Common environment setup for NPU upstream tests - checkout, install torch_npu, download test source, apply patches'
+
+inputs:
+  python_version:
+    required: true
+    type: string
+    description: Python version to use
+  torch_npu_wheel_artifact:
+    required: true
+    type: string
+    description: Name of the torch_npu wheel artifact
+  prepared_test_src_artifact:
+    required: true
+    type: string
+    description: Name of the prepared test source artifact
+  patch_log_suffix:
+    required: false
+    type: string
+    default: 'setup'
+    description: Suffix for torch_env_patch log filename
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Download built torch_npu wheel
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ inputs.torch_npu_wheel_artifact }}
+        path: torch-npu-wheel-artifact
+
+    - name: Install built torch_npu
+      shell: bash
+      run: |
+        source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+        source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+        PIP=pip${{ inputs.python_version }}
+        TORCH_NPU_WHL=$(ls torch-npu-wheel-artifact/*.whl | head -1)
+        $PIP install "${TORCH_NPU_WHL}"
+
+        echo "torch_npu installed from ${TORCH_NPU_WHL}"
+
+    - name: Verify NPU device
+      shell: bash
+      run: |
+        source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+        source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+        echo "=== NPU Device Information ==="
+        npu-smi info
+        echo "=== End of NPU Device Information ==="
+
+    - name: Download prepared test source
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ inputs.prepared_test_src_artifact }}
+        path: prepared-test-src-artifact
+
+    - name: Extract prepared test source
+      shell: bash
+      run: |
+        tar -xzf prepared-test-src-artifact/pytorch-test-src.tar.gz
+
+    - name: Download ascend_pytorch github scripts
+      uses: actions/download-artifact@v4
+      with:
+        name: ascend-pytorch-github
+        path: ascend-pytorch-github-artifact
+
+    - name: Extract ascend_pytorch github scripts
+      shell: bash
+      run: |
+        mkdir -p ascend_pytorch
+        tar -xzf ascend-pytorch-github-artifact/ascend-pytorch-github.tar.gz -C ascend_pytorch/
+
+    - name: Verify NPU availability
+      shell: bash
+      run: |
+        source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+        source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+        PYTHON=python${{ inputs.python_version }}
+        $PYTHON -c "
+        import torch
+        print(f'torch: {torch.__version__}')
+        import torch_npu
+        print(f'torch_npu: {torch_npu.__version__}')
+        print(f'NPU available: {torch.npu.is_available()}')
+        print(f'NPU count: {torch.npu.device_count()}')
+        "
+
+    - name: Apply torch environment patches
+      shell: bash
+      run: |
+        source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+        source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+        cd pytorch-test-src/test_upstream
+        chmod +x torch_env_patch.sh
+
+        echo "=== Applying torch environment patches ==="
+        set -o pipefail
+        ./torch_env_patch.sh --python=${{ inputs.python_version }} --verbose 2>&1 | tee /tmp/torch_env_patch_${{ inputs.patch_log_suffix }}.log
+        PATCH_STATUS=$?
+
+        if [ ${PATCH_STATUS} -ne 0 ]; then
+          echo "WARNING: Torch environment patch application returned non-zero status: ${PATCH_STATUS}"
+          echo "Tests will continue, but some may fail due to missing patches"
+        fi

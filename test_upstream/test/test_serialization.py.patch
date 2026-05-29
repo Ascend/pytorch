@@ -1,0 +1,23 @@
+﻿diff --git a/test/test_serialization.py b/test/test_serialization.py
+index 51ff9182fa9..fbf7e529ffb 100644
+--- a/test/test_serialization.py
++++ b/test/test_serialization.py
+@@ -64,6 +64,9 @@ from torch.testing._internal.two_tensor import TwoTensor  # noqa: F401
+ from torch.utils._import_utils import import_dill
+ from pickle import UnpicklingError
+ 
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ 
+ if not IS_WINDOWS:
+     from mmap import MAP_PRIVATE, MAP_SHARED
+@@ -526,7 +529,7 @@ class SerializationMixin:
+             with self.assertRaisesRegex(
+                     RuntimeError,
+                     f"`{compressed_indices_name}[[]..., 0[]] == 0` is not satisfied."):
+-                y = torch.load(f)
++                y = torch.load(f, weights_only=False)
+ 
+     @unittest.skipIf(True, "Temporary skip due to gh-153143")
+     def test_serialization_sparse_csr_invalid(self):

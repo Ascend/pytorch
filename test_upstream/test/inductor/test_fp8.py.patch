@@ -1,0 +1,20 @@
+﻿diff --git a/test/inductor/test_fp8.py b/test/inductor/test_fp8.py
+index cf87d75e5be..52429fdc289 100644
+--- a/test/inductor/test_fp8.py
++++ b/test/inductor/test_fp8.py
+@@ -38,7 +38,7 @@ from torch.testing._internal.inductor_utils import (
+     is_big_gpu,
+ )
+ from torch.utils._triton import has_triton_tma_device
+-
++import torch_npu._inductor
+ 
+ torch.set_float32_matmul_precision("high")
+ 
+@@ -1557,5 +1557,4 @@ instantiate_device_type_tests(TestFP8Lowering, globals(), allow_xpu=True)
+ 
+ 
+ if __name__ == "__main__":
+-    if HAS_CUDA_AND_TRITON or HAS_CPU:
+-        run_tests()
++    run_tests()

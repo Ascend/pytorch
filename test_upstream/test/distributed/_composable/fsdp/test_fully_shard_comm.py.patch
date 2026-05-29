@@ -1,0 +1,55 @@
+﻿diff --git a/test/distributed/_composable/fsdp/test_fully_shard_comm.py b/test/distributed/_composable/fsdp/test_fully_shard_comm.py
+index 0d9daab6be7..c60eb3b0932 100644
+--- a/test/distributed/_composable/fsdp/test_fully_shard_comm.py
++++ b/test/distributed/_composable/fsdp/test_fully_shard_comm.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["oncall: distributed"]
+ 
+ import copy
+@@ -1665,7 +1670,7 @@ class TestFullyShardAllocFromPG(FSDPTest):
+         fully_shard(model)
+ 
+         torch.manual_seed(42 + self.rank)
+-        inp = torch.randint(0, model_args.vocab_size, (2, 16), device="cuda")
++        inp = torch.randint(0, model_args.vocab_size, (2, 16), device="npu")
+ 
+         loss = model(inp)
+         loss.sum().backward()
+@@ -1730,12 +1735,12 @@ class TestFullyShardSymmMem(MultiProcContinuousTest):
+ 
+     @property
+     def device(self) -> torch.device:
+-        return torch.device("cuda", self.rank)
++        return torch.device("npu", self.rank)
+ 
+     @parametrize("sum_reduction", [True, False])
+     def test_fully_shard_symm_mem(self, sum_reduction: bool):
+         torch.manual_seed(42 + self.rank)
+-        device = torch.device("cuda", self.rank)
++        device = torch.device("npu", self.rank)
+         torch.cuda.set_device(device)
+         seq_len = 64
+         model_args = ModelArgs()
+@@ -1817,7 +1822,7 @@ class TestFullyShardForceSumReduction(FSDPTest):
+         )
+ 
+         torch.manual_seed(42 + self.rank)
+-        inp = torch.randint(0, model_args.vocab_size, (2, 16), device="cuda")
++        inp = torch.randint(0, model_args.vocab_size, (2, 16), device="npu")
+ 
+         loss = model(inp)
+         loss.sum().backward()
+@@ -1882,7 +1887,7 @@ class TestFullyShardForceSumReduction(FSDPTest):
+         )
+ 
+         torch.manual_seed(42 + self.rank)
+-        inp = torch.randint(0, model_args.vocab_size, (2, 16), device="cuda")
++        inp = torch.randint(0, model_args.vocab_size, (2, 16), device="npu")
+ 
+         loss = model(inp)
+         loss.sum().backward()

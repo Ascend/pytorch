@@ -1,0 +1,25 @@
+﻿diff --git a/test/distributed/tensor/test_random_ops.py b/test/distributed/tensor/test_random_ops.py
+index 0e3e7c7d53a..19d672dbb31 100644
+--- a/test/distributed/tensor/test_random_ops.py
++++ b/test/distributed/tensor/test_random_ops.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Copyright (c) Meta Platforms, Inc. and affiliates
+ # Owner(s): ["oncall: distributed"]
+ 
+@@ -30,9 +35,10 @@ from torch.testing._internal.distributed._tensor.common_dtensor import (
+     DTensorTestBase,
+     skip_if_lt_x_gpu,
+     skip_unless_torch_gpu,
+-    with_comms,
++    # with_comms,
+ )
+ from torch.utils._typing_utils import not_none
++from torch_npu.testing.common_distributed import with_comms
+ 
+ 
+ def get_generator_seed_for_device_type(device_type: str):

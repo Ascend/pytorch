@@ -1,0 +1,13 @@
+﻿diff --git a/test/test_hub.py b/test/test_hub.py
+index 23bb395a373..09eb4aa3337 100644
+--- a/test/test_hub.py
++++ b/test/test_hub.py
+@@ -15,6 +15,8 @@ from torch.testing._internal.common_utils import (
+     run_tests,
+     TestCase,
+ )
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ 
+ 
+ def sum_of_state_dict(state_dict):
