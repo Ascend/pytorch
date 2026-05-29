@@ -2477,7 +2477,7 @@ def _register_npu_inductor_fallbacks_fx(make_reduction):
 
         if not isinstance(sizes, (list, tuple)):
             x_size = x.get_size()[dim]
-            chunks = V.graph.sizevars.evaluate_static_shape(
+            chunks = V.graph.sizevars.guard_int(
                 FloorDiv(x_size + sizes - 1, sizes)
             )
             sizes_ = [sizes] * chunks
