@@ -2,7 +2,7 @@ diff --git a/torch/testing/_internal/common_cuda.py b/torch/testing/_internal/co
 index 51c2f1fb7e2..de1c8c9fc4c 100644
 --- a/torch/testing/_internal/common_cuda.py
 +++ b/torch/testing/_internal/common_cuda.py
-@@ -26,12 +26,13 @@ else:
+@@ -26,6 +26,7 @@ else:
  TEST_CUDNN_VERSION = LazyVal(lambda: torch.backends.cudnn.version() if TEST_CUDNN else 0)
  ROCM_VERSION = LazyVal(lambda : tuple(int(v) for v in torch.version.hip.split('.')[:2]) if torch.version.hip else (0, 0))
 
@@ -10,18 +10,6 @@ index 51c2f1fb7e2..de1c8c9fc4c 100644
 -SM53OrLater = LazyVal(lambda: torch.cuda.is_available() and torch.cuda.get_device_capability() >= (5, 3))
 -SM60OrLater = LazyVal(lambda: torch.cuda.is_available() and torch.cuda.get_device_capability() >= (6, 0))
 -SM70OrLater = LazyVal(lambda: torch.cuda.is_available() and torch.cuda.get_device_capability() >= (7, 0))
--SM75OrLater = LazyVal(lambda: torch.cuda.is_available() and torch.cuda.get_device_capability() >= (7, 5))
--SM80OrLater = LazyVal(lambda: torch.cuda.is_available() and torch.cuda.get_device_capability() >= (8, 0))
--SM89OrLater = LazyVal(lambda: torch.cuda.is_available() and torch.cuda.get_device_capability() >= (8, 9))
--SM90OrLater = LazyVal(lambda: torch.cuda.is_available() and torch.cuda.get_device_capability() >= (9, 0))
--SM100OrLater = LazyVal(lambda: torch.cuda.is_available() and torch.cuda.get_device_capability() >= (10, 0))
--SM120OrLater = LazyVal(lambda: torch.cuda.is_available() and torch.cuda.get_device_capability() >= (12, 0))
 +SM53OrLater = LazyVal(lambda: torch.cuda.is_available() and torch.cuda.get_device_capability() is not None and torch.cuda.get_device_capability() >= (5, 3))
 +SM60OrLater = LazyVal(lambda: torch.cuda.is_available() and torch.cuda.get_device_capability() is not None and torch.cuda.get_device_capability() >= (6, 0))
 +SM70OrLater = LazyVal(lambda: torch.cuda.is_available() and torch.cuda.get_device_capability() is not None and torch.cuda.get_device_capability() >= (7, 0))
-+SM75OrLater = LazyVal(lambda: torch.cuda.is_available() and torch.cuda.get_device_capability() is not None and torch.cuda.get_device_capability() >= (7, 5))
-+SM80OrLater = LazyVal(lambda: torch.cuda.is_available() and torch.cuda.get_device_capability() is not None and torch.cuda.get_device_capability() >= (8, 0))
-+SM89OrLater = LazyVal(lambda: torch.cuda.is_available() and torch.cuda.get_device_capability() is not None and torch.cuda.get_device_capability() >= (8, 9))
-+SM90OrLater = LazyVal(lambda: torch.cuda.is_available() and torch.cuda.get_device_capability() is not None and torch.cuda.get_device_capability() >= (9, 0))
-+SM100OrLater = LazyVal(lambda: torch.cuda.is_available() and torch.cuda.get_device_capability() is not None and torch.cuda.get_device_capability() >= (10, 0))
-+SM120OrLater = LazyVal(lambda: torch.cuda.is_available() and torch.cuda.get_device_capability() is not None and torch.cuda.get_device_capability() >= (12, 0))
