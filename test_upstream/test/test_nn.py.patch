@@ -1,5 +1,5 @@
 diff --git a/test/test_nn.py b/test/test_nn.py
-index 45df16c..477df5a 100644
+index 45df16c..283bc0a 100644
 --- a/test/test_nn.py
 +++ b/test/test_nn.py
 @@ -22,6 +22,8 @@ from torch import inf, nan
@@ -1290,6 +1290,15 @@ index 45df16c..477df5a 100644
          l.buf = buf
          self.assertIs(l.buf, buf)
          l.buf = None
+@@ -7380,7 +7392,7 @@ tensor(..., device='meta', size=(1,), requires_grad=True)""")
+         self.assertEqual(tensor_output.size(), torch.Size([2, 6]))
+ 
+     def test_unflatten(self):
+-        tensor_input = torch.randn(2, 50)
++        tensor_input = torch.randn(2, 50, device="npu")
+ 
+         # Unflatten Tensor (unflattened_size as a tuple of ints and list of ints)
+ 
 @@ -8685,7 +8697,6 @@ class TestNNDeviceType(NNTestCase):
              self.assertEqual(scipy_ary, gridsample_ary.reshape_as(scipy_ary))
  
