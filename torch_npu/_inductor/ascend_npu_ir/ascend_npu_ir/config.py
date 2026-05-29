@@ -53,7 +53,7 @@ def parse_rtol_atol(env_str: str):
 
     parts = [p.strip() for p in env_str.split(",") if p.strip()]
     for part in parts:
-        match = re.match(r"^(rtol|atol)\s*=s\*([0-9.eE+-]+)$", part, re.IGNORECASE)
+        match = re.match(r"^(rtol|atol)\s*=\s*([0-9.eE+-]+)$", part, re.IGNORECASE)
         if not match:
             logging.warning(
                 f"INDUCTOR_ASCEND_CHECK_ACCURACY_RTOL_ATOL environment variable has invalid format: {part}. "
