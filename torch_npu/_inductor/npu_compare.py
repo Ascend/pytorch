@@ -19,6 +19,7 @@ def compare_outputs(
     expected_outputs: Iterable[Any],
     kernel_name: str,
     tolerances: Mapping[Any, Mapping[str, float]],
+    dump_path: str = "",
 ):
     failed_indices = []
     for idx, (actual, expected) in enumerate(zip(actual_outputs, expected_outputs)):
@@ -26,19 +27,19 @@ def compare_outputs(
             continue
         if actual.dtype != expected.dtype:
             expected = expected.to(actual.dtype)
-        
+
         tol = tolerances.get(actual.dtype, tolerances["default"])
         rtol, atol = tol["rtol"], tol["atol"]
         matches = torch.isclose(actual, expected, rtol=rtol, atol=atol, equal_nan=True)
         if not matches.all():
-            _report_mismatch(idx, actual, expected, matches, rtol, atol, kernel_name)
+            _report_mismatch(idx, actual, expected, matches, rtol, atol, kernel_name, dump_path)
             failed_indices.append(idx)
         del matches
-    
+
     return not failed_indices
 
 
-def _report_mismatch(idx, actual, expected, matches, rtol, atol, kernel_name):
+def _report_mismatch(idx, actual, expected, matches, rtol, atol, kernel_name, dump_path=""):
     try:
         abs_diff = torch.abs(actual - expected)
     except RuntimeError:
@@ -59,6 +60,8 @@ def _report_mismatch(idx, actual, expected, matches, rtol, atol, kernel_name):
         f"Greatest Abs Diff: {abs_diff.max().item()}, "
         f"rtol: {rtol}, atol: {atol}"
     )
+    if dump_path:
+        msg += f", dump_path: {dump_path}"
     print(msg, flush=True)
     del abs_diff, rel_diff
 
@@ -132,6 +135,7 @@ def check_accuracy_triton(*args, launcher, grid, stream, inductor_meta, **kwargs
         fx_args[fx_module.num_inputs:],
         kernel_name=kernel_name,
         tolerances=npu_config.acc_comp_tol,
+        dump_path=dump_path,
     )
 
     for arg in fx_args:
