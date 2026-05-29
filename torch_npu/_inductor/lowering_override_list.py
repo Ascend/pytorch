@@ -19,6 +19,8 @@ LOWERING_OVERRIDE_OP = [
     aten.argmax,
     aten.argmin,
 
+    aten.cat,
+
     aten.var_mean,
     aten.var,
 

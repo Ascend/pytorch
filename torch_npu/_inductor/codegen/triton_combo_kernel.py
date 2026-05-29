@@ -15,10 +15,17 @@ from torch._inductor.runtime.triton_heuristics import SequentialComboKernelGrid
 from torch._inductor.utils import IndentedBuffer, Placeholder
 from torch._inductor.virtualized import V
 
-from torch_npu._inductor.codegen.triton import NPUIndexTritonKernel
+from ..codegen.triton import NPUIndexTritonKernel
 
 
 class NPUComboKernel(ComboKernel):
+
+    def __init__(
+        self, enable_autotune: bool = False, mixed_sizes: bool = False
+    ) -> None:
+        super().__init__(enable_autotune, mixed_sizes)
+        self.block_size_1d = 4096
+
     @staticmethod
     def create_triton_kernel(
         tiling: dict[str, sympy.Expr],
@@ -163,38 +170,43 @@ class NPUComboKernel(ComboKernel):
             cls, kernel: "ComboKernel", num: int, code: IndentedBuffer
         ) -> None:
             if num == 0:
-                cls._calculate_xblocks(kernel, code)
-                code.splice(f"if pid < num_xblocks_{num}:")
+                cls._calculate_split_blocks(kernel, code)
+                code.splice(f"if pid < num_blocks_{num}:")
                 with code.indent():
                     code.splice("pid_offset = pid")
             else:
-                code.splice(f"elif pid < num_xblocks_{num}:")
+                code.splice(f"elif pid < num_blocks_{num}:")
                 with code.indent():
-                    code.splice(f"pid_offset = pid - num_xblocks_{num - 1}")
+                    code.splice(f"pid_offset = pid - num_blocks_{num - 1}")
 
         @classmethod
-        def _calculate_xblocks(
+        def _calculate_split_blocks(
                 cls, kernel: "ComboKernel", code: IndentedBuffer
         ) -> None:
-            x_numels_list = kernel.x_numels_list
-            for i in range(len(x_numels_list)):
-                xnumels, no_x_dim = (
-                    (x_numels_list[i], False)
-                    if isinstance(x_numels_list[i], str)
-                       and cast(str, x_numels_list[i])[0] != "-"
-                       or (
-                               isinstance(x_numels_list[i], int)
-                               and cast(int, x_numels_list[i]) > 0
-                       )
-                    else (kernel.min_x_blocks_list[i], True)
-                )
-                xblock_str = (
-                    f"tl.cdiv({xnumels}, {kernel.block_args[0]})" if not no_x_dim else f"{xnumels}"
-                )
-                if i == 0:
-                    code.splice(f"num_xblocks_{i} = {xblock_str}")
+            split_numels_list = []
+            for i, sub_kernel in enumerate(kernel.sub_kernels):
+                if len(sub_kernel.split_axis) == 0:
+                    split_numels_list.append(0)
+                    continue
+                tree = sub_kernel.split_axis[0].parent
+                simplified_tree_numel = V.graph.sizevars.simplify(tree.numel)
+                if isinstance(simplified_tree_numel, (Integer, int)):
+                    split_numel = int(simplified_tree_numel)
                 else:
-                    code.splice(f"num_xblocks_{i} = num_xblocks_{i - 1} + {xblock_str}")
+                    split_numel = f"{tree.prefix}numel_{i}"
+                split_numels_list.append(split_numel)
+
+            for i in range(len(split_numels_list)):
+                if split_numels_list[i] == 0:
+                    block_str = "1"
+                else:
+                    block_str = (
+                        f"tl.cdiv({split_numels_list[i]}, {kernel.block_args[0]})"
+                    )
+                if i == 0:
+                    code.splice(f"num_blocks_{i} = {block_str}")
+                else:
+                    code.splice(f"num_blocks_{i} = num_blocks_{i - 1} + {block_str}")
 
     # BLOCK and SUB_BLOCK definitions
     def add_autotune_args(self, kernel, argdefs):
@@ -211,7 +223,10 @@ class NPUComboKernel(ComboKernel):
 
     def codegen_blocks(self, code: IndentedBuffer) -> None:
         for block in self.block_args:
-            code.splice(f"{block}: tl.constexpr = 4096")
+            if block.startswith("X"):
+                code.splice(f"{block}: tl.constexpr = {self.block_size_1d}")
+            if block.startswith("Y"):
+                code.splice(f"{block}: tl.constexpr = {self.block_size_1d}")
 
     def get_block_args(self) -> list[ConstexprArg]:
         block_names = {}
@@ -284,7 +299,10 @@ class NPUComboKernel(ComboKernel):
                     uniquify = self.codegen_static_numels_sub_kernel(
                         code, sub_kernel, num
                     )
-                    sub_kernel.codegen_body()
+                    if len(sub_kernel.range_tree_nodes) == 0:
+                        sub_kernel.write_scalar()
+                    else:
+                        sub_kernel.codegen_body()
                     uniquified_body = self.uniquify_block_sizes(
                         sub_kernel.body, num, uniquify
                     )
@@ -298,3 +316,34 @@ class NPUComboKernel(ComboKernel):
             code.splice(self.codegen_kernel_benchmark(num_gb=0))
 
         return code.getvalue()
+
+    def combo_grid_meta(self) -> dict[str, Any]:
+        dynamic_shape = bool(self.dynamic_shape_args)
+        num_kernels = len(self.sub_kernels)
+        min_blocks = (
+            max(self.min_x_blocks_list) * num_kernels if not dynamic_shape else None
+        )
+
+        if not self.enable_autotune:
+            block_prim_args = {f"{block_arg[0]}BLOCK" for block_arg in self.block_args}
+            default_config = {block_arg: self.block_size_1d for block_arg in block_prim_args}
+        else:
+            default_config = None
+
+        meta = {
+            "num_kernels": num_kernels,
+            "min_blocks": min_blocks,
+            "default_config": default_config,
+        }
+
+        for num, sub_kernel in enumerate(self.sub_kernels):
+            meta[f"no_x_dim_{num}"] = sub_kernel.no_x_dim
+            for i, tree in enumerate(sub_kernel.range_trees):
+                if not tree.is_reduction:
+                    numel_name = f"{tree.prefix}numel_{num}"
+                    if numel_name in self.dynamic_shape_args:
+                        meta[numel_name] = None
+                    else:
+                        meta[numel_name] = int(V.graph.sizevars.simplify(tree.numel))
+
+        return meta
