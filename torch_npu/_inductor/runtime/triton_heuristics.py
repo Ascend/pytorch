@@ -5,6 +5,7 @@ from functools import lru_cache
 import importlib
 import logging
 import dataclasses
+import math
 import os
 import re
 import sys
@@ -525,13 +526,16 @@ class NPUCachingAutotuner(CachingAutotuner):
 
         self.exceptions = []
         self.fn_name = None
+        self._costmodel_runtime_args = ()
+        self._costmodel_runtime_kwargs = {}
 
     def precompile(
         self,
         warm_cache_only=False,
         reload_kernel: Optional[Callable[[], CachingAutotuner]] = None,
     ):
-        self._apply_costmodel_topk_to_configs()
+        runtime_args, runtime_kwargs = self._resolve_costmodel_runtime_inputs()
+        self._apply_costmodel_to_configs(*runtime_args, **runtime_kwargs)
         if warm_cache_only:
             self.kernel_name = self.get_fn_name()
             self._precompile_worker()
@@ -546,80 +550,229 @@ class NPUCachingAutotuner(CachingAutotuner):
             self._precompile_worker()
             self._make_launchers()
 
+    def _make_ttir_module_from_cfg(self, cfg):
+        """Compile one config to TTIR module only (no backend lowering/launch)."""
+        compile_meta = copy.deepcopy(self.triton_meta)
+        cfg_kwargs = cfg.kwargs
+        constexpr_arg_names = {self.fn.arg_names[i] for i in self.fn.constexprs}
+        for k, v in cfg_kwargs.items():
+            if k not in constexpr_arg_names:
+                continue
+            compile_meta["constants"][k] = v
+
+        for i in self.fn.constexprs:
+            arg_name = self.fn.arg_names[i]
+            if arg_name not in compile_meta["constants"] and (
+                arg_name == "num_warps" or arg_name == "num_stages"
+            ):
+                compile_meta["constants"][arg_name] = getattr(cfg, arg_name)
+        compile_meta["num_warps"] = cfg.num_warps
+        compile_meta["num_stages"] = cfg.num_stages
+        compile_meta["debug"] = (
+            os.getenv("INDUCTOR_ASCEND_DEBUG", 'false').lower() in ('true', '1')
+            and self.inductor_meta.get("assert_indirect_indexing", True)
+            and not self.inductor_meta.get("is_hip", False)
+        )
+
+        compile_meta['compile_mode'] = cfg_kwargs.get('compile_mode')
+
+        # device type will be "hip" rather than "cuda" here
+        compile_meta["device_type"] = self.device_props.type
+        compile_meta["cc"] = self.device_props.cc
+
+        if not ASTSource:
+            raise RuntimeError(
+                "Installed triton version too old, please upgrade")
+
+        src_attrs = compile_meta["configs"][0] if compile_meta.get(
+            "configs", None) else None
+        src = ASTSource(self.fn, compile_meta["signature"],
+                        compile_meta["constants"], src_attrs)
+        cc_warp_size = 32
+        target = GPUTarget(
+            compile_meta["device_type"],
+            compile_meta["cc"],
+            cc_warp_size,
+        )
+        options = {
+            "num_warps": compile_meta["num_warps"],
+            "num_stages": compile_meta["num_stages"],
+            "debug": compile_meta["debug"],
+            "multibuffer": cfg_kwargs.get('multibuffer', False),
+            "compile_mode": compile_meta['compile_mode'],
+            "enable_vf_fusion": cfg_kwargs.get('enable_vf_fusion', False),
+        }
+        # pure simt stack overflow check
+        if compile_meta['compile_mode'] == NPUKernelType.SIMT_ONLY.compile_mode():
+            options['simt_stack_limit'] = npu_config.simt_default_warp_stacksize
+
+        from triton.compiler.code_generator import ast_to_ttir
+        from triton.compiler.compiler import make_backend
+        from triton._C.libtriton import ir
+        from triton._C.libtriton.ascend import ir as ascend_ir
+
+        backend = make_backend(target)
+        extra_options = src.parse_options()
+        options = backend.parse_options(dict(options or dict(), **extra_options))
+        context = ir.context()
+        ir.load_dialects(context)
+        ascend_ir.load_dialects(context)
+        return ast_to_ttir(self.fn, src, context, options, {}, {})
+
+    def _build_costmodel_runtime_args_from_size_hints(self):
+        """Best-effort fallback runtime args when precompile is called without run()."""
+        size_hints = getattr(self, "size_hints", None)
+        if size_hints is None:
+            return ()
+
+        hint_map = {}
+        if isinstance(size_hints, dict):
+            hint_map.update(size_hints)
+        elif isinstance(size_hints, (list, tuple)):
+            axis_names = []
+            if isinstance(getattr(self, "inductor_meta", None), dict):
+                axis_names = list(self.inductor_meta.get("axis_names", []) or [])
+            if axis_names and len(axis_names) == len(size_hints):
+                for axis, val in zip(axis_names, size_hints):
+                    hint_map[axis] = val
+                    hint_map[f"{axis}_numel"] = val
+
+        signature_names = list(self.triton_meta.get("signature", {}).keys())
+        if not signature_names:
+            return ()
+
+        runtime_args = []
+        for name in signature_names:
+            key = str(name)
+            if key.endswith("_numel"):
+                val = hint_map.get(key)
+                if val is None:
+                    val = hint_map.get(key[:-6])
+                int_val = self._try_parse_int_like(val)
+                runtime_args.append(int_val if int_val is not None else 1)
+            else:
+                runtime_args.append(object())
+        return tuple(runtime_args)
+
+    def _resolve_costmodel_runtime_inputs(self):
+        runtime_args = getattr(self, "_costmodel_runtime_args", ())
+        runtime_kwargs = getattr(self, "_costmodel_runtime_kwargs", {})
+        if runtime_args or runtime_kwargs:
+            return runtime_args, runtime_kwargs
+
+        fallback_args = self._build_costmodel_runtime_args_from_size_hints()
+        if fallback_args:
+            return fallback_args, {}
+        return (), {}
+
+    def _try_parse_int_like(self, value):
+        if isinstance(value, bool):
+            return int(value)
+        if isinstance(value, int):
+            return value
+        try:
+            return int(value)
+        except Exception:
+            return None
+
+    def _build_ttir_arg_value_map(self, ttir_text, runtime_args, runtime_kwargs=None):
+        """Map TTIR arg id -> runtime value.
+
+        Primary mapping uses frontend signature names (positional + kwargs) so callers
+        can pass named args without relying on positional order only.
+        """
+        if runtime_kwargs is None:
+            runtime_kwargs = {}
+
+        m = re.search(r"tt\.func\s+public\s+@\w+\((.*?)\)\s+attributes", ttir_text, re.S)
+        if m is None:
+            return {}
+
+        ttir_arg_ids = [int(x) for x in re.findall(r"%arg(\d+)\s*:", m.group(1))]
+        if not ttir_arg_ids:
+            return {}
+
+        signature_names = list(self.triton_meta.get("signature", {}).keys())
+        name_to_value = {}
+        for idx, name in enumerate(signature_names):
+            if idx < len(runtime_args):
+                name_to_value[name] = runtime_args[idx]
+        for name, value in runtime_kwargs.items():
+            if name in name_to_value or name in signature_names:
+                name_to_value[name] = value
+
+        arg_value_map = {}
+        for pos, arg_id in enumerate(ttir_arg_ids):
+            if pos < len(signature_names):
+                name = signature_names[pos]
+                if name in name_to_value:
+                    arg_value_map[arg_id] = name_to_value[name]
+                    continue
+            if pos < len(runtime_args):
+                arg_value_map[arg_id] = runtime_args[pos]
+        return arg_value_map
+
+    def _build_costmodel_arg_bindings(self, ttir_text, runtime_args, runtime_kwargs=None):
+        """Build costmodel arg-bindings string from TTIR arg ids and runtime values."""
+        try:
+            arg_value_map = self._build_ttir_arg_value_map(ttir_text, runtime_args, runtime_kwargs)
+            if not arg_value_map:
+                return ""
+
+            bindings = []
+            for arg_id in sorted(arg_value_map.keys()):
+                int_value = self._try_parse_int_like(arg_value_map[arg_id])
+                if int_value is None:
+                    continue
+                bindings.append(f"arg{arg_id}={int_value}")
+
+            # Use a stable default program-id binding for static estimation.
+            bindings.append("pid_x=0")
+
+            # Bind tt.get_num_programs when present in TTIR.
+            if "tt.get_num_programs x" in ttir_text:
+                num_programs_x = None
+                if runtime_kwargs:
+                    if "num_programs_x" in runtime_kwargs:
+                        num_programs_x = self._try_parse_int_like(runtime_kwargs.get("num_programs_x"))
+                    elif "grid" in runtime_kwargs:
+                        grid = runtime_kwargs.get("grid")
+                        if isinstance(grid, (tuple, list)) and len(grid) > 0:
+                            num_programs_x = self._try_parse_int_like(grid[0])
+                if num_programs_x is None:
+                    num_programs_x = 1
+                bindings.append(f"num_programs_x={num_programs_x}")
+
+            return ",".join(bindings)
+        except Exception:
+            return ""
+    
+    def _build_costmodel_items(self, runtime_args, runtime_kwargs=None):
+        """Build config->TTIR payloads for costmodel evaluation."""
+        items = []
+        for cfg in self.configs:
+            try:
+                ttir_module = self._make_ttir_module_from_cfg(cfg)
+                ttir_text = str(ttir_module)
+                arg_bindings = self._build_costmodel_arg_bindings(ttir_text, runtime_args, runtime_kwargs)
+                items.append({
+                    "config": cfg,
+                    "ttir": ttir_text,
+                    "arg_bindings": arg_bindings,
+                })
+            except Exception:
+                # Keep going: failed configs will be treated as inf by costmodel.
+                items.append({"config": cfg, "ttir": "", "arg_bindings": ""})
+        return items
+
     def _triton_make_ttir(self):
         if not self.configs:
             raise NoTritonConfigsError("No triton configs are available")
 
         def make_ttir_from_cfg(cfg):
             """Ahead of time compile a given autotuner config."""
-            compile_meta = copy.deepcopy(self.triton_meta)
-            cfg_kwargs = cfg.kwargs
-            constexpr_arg_names = {self.fn.arg_names[i] for i in self.fn.constexprs}
-            for k, v in cfg_kwargs.items():
-                if k not in constexpr_arg_names:
-                    continue
-                compile_meta["constants"][k] = v
-
-            for i in self.fn.constexprs:
-                arg_name = self.fn.arg_names[i]
-                if arg_name not in compile_meta["constants"] and (
-                    arg_name == "num_warps" or arg_name == "num_stages"
-                ):
-                    compile_meta["constants"][arg_name] = getattr(cfg, arg_name)
-            compile_meta["num_warps"] = cfg.num_warps
-            compile_meta["num_stages"] = cfg.num_stages
-            compile_meta["debug"] = (
-                os.getenv("INDUCTOR_ASCEND_DEBUG", 'false').lower() in ('true', '1')
-                and self.inductor_meta.get("assert_indirect_indexing", True)
-                and not self.inductor_meta.get("is_hip", False)
-            )
-
-            compile_meta['compile_mode'] = cfg_kwargs.get('compile_mode')
-
-            # device type will be "hip" rather than "cuda" here
-            compile_meta["device_type"] = self.device_props.type
-            compile_meta["cc"] = self.device_props.cc
-
-            if not ASTSource:
-                raise RuntimeError(
-                    "Installed triton version too old, please upgrade")
-
-            src_attrs = compile_meta["configs"][0] if compile_meta.get(
-                "configs", None) else None
-            src = ASTSource(self.fn, compile_meta["signature"],
-                            compile_meta["constants"], src_attrs)
-            cc_warp_size = 32
-            target = GPUTarget(
-                compile_meta["device_type"],
-                compile_meta["cc"],
-                cc_warp_size,
-            )
-            options = {
-                "num_warps": compile_meta["num_warps"],
-                "num_stages": compile_meta["num_stages"],
-                "debug": compile_meta["debug"],
-                "multibuffer": cfg_kwargs.get('multibuffer', False),
-                "compile_mode": compile_meta['compile_mode'],
-                "enable_vf_fusion": cfg_kwargs.get('enable_vf_fusion', False),
-            }
-            # pure simt stack overflow check
-            if compile_meta['compile_mode'] == NPUKernelType.SIMT_ONLY.compile_mode():
-                options['simt_stack_limit'] = npu_config.simt_default_warp_stacksize
-
             try:
-                from triton.compiler.code_generator import ast_to_ttir
-                from triton.compiler.compiler import make_backend
-                from triton._C.libtriton import ir
-                from triton._C.libtriton.ascend import ir as ascend_ir
-
-                backend = make_backend(target)
-                extra_options = src.parse_options()
-                options = backend.parse_options(dict(options or dict(), **extra_options))
-                context = ir.context()
-                ir.load_dialects(context)
-                ascend_ir.load_dialects(context)
-                ttir_module = ast_to_ttir(self.fn, src, context, options, {},
-                                          {})
+                ttir_module = self._make_ttir_module_from_cfg(cfg)
                 log.debug(
                     "Triton precompile success: %s\n%s\nmodule: %s",
                     self.inductor_meta.get("kernel_name", "triton_"),
@@ -628,10 +781,9 @@ class NPUCachingAutotuner(CachingAutotuner):
                 )
             except Exception as e:
                 log.debug(
-                    "Triton precompile failed: %s\n%s\nmetadata: %s",
+                    "Triton precompile failed: %s\n%s",
                     self.inductor_meta.get("kernel_name", "triton_"),
                     self.fn.src,
-                    compile_meta,
                 )
                 raise e
 
@@ -653,7 +805,7 @@ class NPUCachingAutotuner(CachingAutotuner):
             )
         self.compile_results = compile_results
 
-    def _apply_costmodel_topk_to_configs(self, *args, **kwargs):
+    def _apply_costmodel_to_configs(self, *args, **kwargs):
         """Use triton-ascend costmodel path to prefilter configs before full compile."""
         if not self.configs or len(self.configs) <= 1:
             return
@@ -661,15 +813,18 @@ class NPUCachingAutotuner(CachingAutotuner):
         if not bool(npu_config.enable_costmodel_backend):
             return
 
-        costmodel_topk = int(npu_config.costmodel_topk)
-        if costmodel_topk <= 0 or costmodel_topk >= len(self.configs):
+        costmodel_ratio = float(getattr(npu_config, "costmodel_ratio", 0.25))
+        if costmodel_ratio <= 0.0 or costmodel_ratio >= 1.0:
             return
 
         try:
             from triton.backends.ascend.runtime.costmodel_runtime import costmodel_bench
-            key = ("npu_costmodel_prefilter", self.get_fn_name(), len(self.configs), costmodel_topk)
-            costmodel_bench(self, *args, candidate_configs=self.configs, key=key, **kwargs)
-            costmodel_map = getattr(self, "configs_timings", None)
+            costmodel_items = self._build_costmodel_items(args, kwargs)
+            costmodel_start_time = time.perf_counter()
+            costmodel_map = costmodel_bench(costmodel_items)
+            costmodel_elapsed = time.perf_counter() - costmodel_start_time
+            log.debug("costmodel_bench elapsed time: %.6fs", costmodel_elapsed)
+            log.debug("costmodel_bench result: %s", costmodel_map)
         except Exception as exc:
             log.warning("Skip costmodel prefilter because costmodel path is unavailable: %s", exc)
             return
@@ -681,8 +836,11 @@ class NPUCachingAutotuner(CachingAutotuner):
             cfg for cfg, t in sorted(costmodel_map.items(), key=lambda kv: kv[1])
             if t != float("inf")
         ]
+        target_count = max(1, math.ceil(len(self.configs) * costmodel_ratio))
+        if len(ranked_cfgs) < target_count:
+            log.warning("Config count filtered by costmodel is less than target count")
         if ranked_cfgs:
-            self.configs = ranked_cfgs[:min(costmodel_topk, len(ranked_cfgs))]
+            self.configs = ranked_cfgs[:min(target_count, len(ranked_cfgs))]
 
     def _precompile_worker(self):
         if self.compile_results:
@@ -1179,6 +1337,8 @@ class NPUCachingAutotuner(CachingAutotuner):
         if len(self.launchers) != 1:
             autotune_start_time = time.perf_counter()
             if len(self.launchers) == 0:
+                self._costmodel_runtime_args = args
+                self._costmodel_runtime_kwargs = kwargs
                 start_time = time.time_ns()
                 self.precompile()
                 self.precompile_time_taken_ns = time.time_ns() - start_time
@@ -2672,7 +2832,8 @@ def precompile_parallel(
         if self.skip_precompile:
             return
 
-    self._apply_costmodel_topk_to_configs()
+    runtime_args, runtime_kwargs = self._resolve_costmodel_runtime_inputs()
+    self._apply_costmodel_to_configs(*runtime_args, **runtime_kwargs)
 
     if warm_cache_only:
         self.kernel_name = self.get_fn_name()
