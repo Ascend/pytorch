@@ -1,0 +1,28 @@
+diff --git a/test/dynamo/test_misc.py b/test/dynamo/test_misc.py
+index 893fe24..fca0602 100644
+--- a/test/dynamo/test_misc.py
++++ b/test/dynamo/test_misc.py
+@@ -12572 +12572 @@ def ___make_guard_fn():
+-            torch.randn(3, 2), ConstantSource("x")
++            torch.randn(3, 2).npu(), ConstantSource("x")
+@@ -12626 +12626 @@ ShapeEnv not equal: field values don't match:
+-            torch.randn(3, 2), ConstantSource("x")
++            torch.randn(3, 2).npu(), ConstantSource("x")
+@@ -12696 +12696 @@ ShapeEnv not equal: field values don't match:
+-            torch.randn(3, 2), ConstantSource("x")
++            torch.randn(3, 2).npu(), ConstantSource("x")
+@@ -12699 +12699 @@ ShapeEnv not equal: field values don't match:
+-            torch.randn(3, 2), ConstantSource("x")
++            torch.randn(3, 2).npu(), ConstantSource("x")
+@@ -12736 +12736 @@ ShapeEnv not equal: field values don't match:
+-            torch.randn(3, 2), ConstantSource("x")
++            torch.randn(3, 2).npu(), ConstantSource("x")
+@@ -12739 +12739 @@ ShapeEnv not equal: field values don't match:
+-            torch.randn(3, 2), ConstantSource("x")
++            torch.randn(3, 2).npu(), ConstantSource("x")
+@@ -12779 +12779 @@ ShapeEnv not equal: field values don't match:
+-            torch.randn(3, 2), ConstantSource("x")
++            torch.randn(3, 2).npu(), ConstantSource("x")
+@@ -12782 +12782 @@ ShapeEnv not equal: field values don't match:
+-            torch.randn(3, 2), ConstantSource("x")
++            torch.randn(3, 2).npu(), ConstantSource("x")
