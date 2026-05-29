@@ -100,6 +100,7 @@ runs:
         chmod +x torch_env_patch.sh
 
         echo "=== Applying torch environment patches ==="
+        set -o pipefail
         ./torch_env_patch.sh --python=${{ inputs.python_version }} --verbose 2>&1 | tee /tmp/torch_env_patch_${{ inputs.patch_log_suffix }}.log
         PATCH_STATUS=$?
 

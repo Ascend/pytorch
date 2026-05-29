@@ -42,6 +42,7 @@ jobs:
           # Count patch files before applying
           PATCH_COUNT=$(find . -name "*.patch" -o -name "*.diff" | wc -l)
           echo "Found ${PATCH_COUNT} patch files"
+          set -o pipefail
           ./apply_patch.sh 2>&1 | tee /tmp/patch.log
           APPLY_STATUS=$?
           # Use patch file count as the metric (more reliable than grep Chinese output)

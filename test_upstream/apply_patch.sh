@@ -45,7 +45,7 @@ for patch in $PATCH_FILES; do
     count=$((count+1))
     echo -e "\n[$count] 应用：$patch"
 
-    patch -p1 --no-backup-if-mismatch -f < "$patch"
+    patch -p1 --no-backup-if-mismatch -f --fuzz=5 < "$patch"
 
     if [ $? -eq 0 ]; then
         echo "成功"
