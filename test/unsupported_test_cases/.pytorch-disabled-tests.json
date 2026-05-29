@@ -32089,5 +32089,8 @@
   "test_alltoall_single_2p_size_dist (__main__.HcclAlltoAllSingleTest)": ["", ["Disabled during A1 to A2 chip transition"]],
   "test_stream (__main__.StreamintoDynamoTests)": ["", ["Dynamo Stream support incomplete: wait_stream() not properly handled. Introduced by commit d3be6fdfa"]],
   "test_grad_with_split_b_w (__main__.TestScheduleLowering)": ["", [""]],
-  "test_grad_with_v_schedule (__main__.TestScheduleLowering)": ["", [""]]
+  "test_grad_with_v_schedule (__main__.TestScheduleLowering)": ["", [""]],
+  "test_compare_cpu__chunk_cat_npu_float32": ["", [""]],
+  "test_variant_consistency_eager__chunk_cat_npu_float32 (__main__.TestCommonPRIVATEUSE1)": ["", [""]],
+  "test_operator__chunk_cat_npu_float32 (__main__.TestCompositeComplianceNPU)": ["", [""]]
 }
