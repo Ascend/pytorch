@@ -7,6 +7,7 @@ from typing import Sequence, List, Any, Union, Iterable
 import sympy
 
 import torch
+from torch._inductor.codegen.common import BackendFeature
 from torch.fx.immutable_collections import immutable_dict
 from torch._dynamo.utils import counters, preserve_rng_state
 from torch._inductor import metrics
@@ -59,9 +60,18 @@ class NPUNoLinearTritonScheduling(TritonScheduling):
             self.kernel_type = NPUTritonKernel
 
 class NPUTritonScheduling(TritonScheduling):
-    def __init__(self, input_scheduler):
-        super().__init__(input_scheduler)
-        self.kernel_type = NPUIndexTritonKernel
+    kernel_type = NPUIndexTritonKernel
+    backend_features = OrderedSet(
+        [
+            BackendFeature.BUCKETIZE,
+            BackendFeature.INPLACE_BUFFERS,
+            BackendFeature.MASKED_SCATTER_WITH_INDEX,
+            BackendFeature.SCAN,
+            BackendFeature.SORT,
+            BackendFeature.TRITON_TEMPLATES,
+            BackendFeature.TUPLE_REDUCTION,
+        ]
+    )
 
     def group_fn(self, sizes):
         groups = list()

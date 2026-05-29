@@ -48,4 +48,4 @@
 |图模式|[（beta）INDUCTOR_ASCEND_CHECK_ACCURACY](INDUCTOR_ASCEND_CHECK_ACCURACY.md)|INDUCTOR_ASCEND_CHECK_ACCURACY是Ascend Extension for PyTorch提供的精度校验工具，仅在torch.compile图编译后端为"Inductor"且模式为"Triton"时自动检测融合算子的数值精度。|
 |图模式|[NPU_INDUCTOR_FALLBACK_LIST](NPU_INDUCTOR_FALLBACK_LIST.md)|通过此环境变量可指定需要回退到PyTorch原生的算子列表。|
 |图模式|[（beta）TORCHINDUCTOR_ENABLE_MFUSION](TORCHINDUCTOR_ENABLE_MFUSION.md)|通过此环境变量可控制是否启用MFusion融合优化功能，仅在torch.compile图编译后端为"Inductor"生效。|
-|图模式|[TORCHINDUCTOR_USE_AKG](TORCHINDUCTOR_USE_AKG.md)|通过此环境变量可配置torch.compile图模式（Inductor）下MLIR（Multi-Level Intermediate Representation）模式启用AKG（Auto Kernel Generator）后端优化。
+|图模式|[TORCHINDUCTOR_USE_AKG](TORCHINDUCTOR_USE_AKG.md)|通过此环境变量可配置torch.compile图模式（Inductor）下MLIR（Multi-Level Intermediate Representation）模式启用AKG（Auto Kernel Generator）后端优化。|

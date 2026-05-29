@@ -1,4 +1,4 @@
-# PyTorch图模式（torch.compile）
+# torch.compile
 
 - **[概述](./pytorch_compilation_mode.md)**
 - **后端（backend）**

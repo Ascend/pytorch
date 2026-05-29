@@ -461,17 +461,17 @@ class CppWrapperNpu(CppWrapperGpu):
         if enable_simt:
             shared_mem_dynamic_size = params["shared_mem_dynamic_size"]
             cpp_kernel_launch = f"""
-                rtArgsEx_t argsInfo = {{}};
-                argsInfo.args = static_cast<void*>(&kernel_args);
-                argsInfo.argsSize = sizeof(kernel_args);
-                rtTaskCfgInfo_t cfgInfo = {{}};
-                cfgInfo.localMemorySize = {shared_mem_dynamic_size};
-                ret = rtKernelLaunchWithFlagV2({kernel_var_name}, block_num, &argsInfo, NULL, stream_, 0, &cfgInfo);"""
+            rtArgsEx_t argsInfo = {{}};
+            argsInfo.args = static_cast<void*>(&kernel_args);
+            argsInfo.argsSize = sizeof(kernel_args);
+            rtTaskCfgInfo_t cfgInfo = {{}};
+            cfgInfo.localMemorySize = {shared_mem_dynamic_size};
+            ret = rtKernelLaunchWithFlagV2({kernel_var_name}, block_num, &argsInfo, NULL, stream_, 0, &cfgInfo);"""
         else:
             cpp_kernel_launch = f"""
-                void* args = static_cast<void*>(&kernel_args);
-                auto args_size = sizeof(kernel_args);
-                ret = rtKernelLaunch({kernel_var_name}, block_num, args, args_size, NULL, stream_);"""
+            void* args = static_cast<void*>(&kernel_args);
+            auto args_size = sizeof(kernel_args);
+            ret = rtKernelLaunch({kernel_var_name}, block_num, args, args_size, NULL, stream_);"""
 
         launch_str = f"""
             uint32_t block_num = grid_0 * grid_1 * grid_2;

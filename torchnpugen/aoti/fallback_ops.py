@@ -489,6 +489,8 @@ inductor_fallback_ops_npu = {
 
 # inductor_fallback_ops_npu is kernel which not support at NPU device now
 inductor_fallback_ops_npu_not_support = {
+    "aten._scaled_mm.default",
+    "aten._scaled_grouped_mm.default",
     "aten._flash_attention_backward.default",
     "aten._flash_attention_forward.default",
     "aten._padded_dense_to_jagged_forward",

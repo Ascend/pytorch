@@ -189,6 +189,11 @@ def _resolve_op_from_name(op_name: str):
         log.warning(f"[npu|inductor|lowering|fallback] invalid identifier name: {op_name}")
         return None
 
+def _add_fallback_ops_for_torchgen():
+    import torchgen.aoti.fallback_ops as fallback_ops
+    from torchnpugen.aoti.fallback_ops import inductor_fallback_ops_npu, inductor_fallback_ops_npu_not_support
+    fallback_ops.inductor_fallback_ops = (fallback_ops.inductor_fallback_ops | inductor_fallback_ops_npu) - inductor_fallback_ops_npu_not_support
+
 def _register_npu_inductor_fallbacks():
 
     env_fallback_list = enable_full_lowering_fallback
@@ -198,6 +203,8 @@ def _register_npu_inductor_fallbacks():
             op = _resolve_op_from_name(op_name)
             if isinstance(op, (torch._ops.OpOverloadPacket, torch._ops.OpOverload, torch._ops.HigherOrderOperator)):
                 FALLBACK_LIST.append(op)
+                if op in LOWERING_OVERRIDE_OP:
+                    LOWERING_OVERRIDE_OP.remove(op)
                 log.info(f"[npu|inductor|lowering|fallback] User specified fallback: {op_name}")
             else:
                 log.warning(f"[npu|inductor|lowering|fallback] Cannot resolve operator: {op_name}")
@@ -224,7 +231,8 @@ def _register_npu_inductor_fallbacks():
     log.info(f"[npu|inductor|lowering|fallback] with FALLBACK_LIST, len(lowerings): {len(lowerings)}, "
                 f"len(FALLBACK_LIST): {len(FALLBACK_LIST)}, make_fallback finished.")
     log.info(f"[npu|inductor|lowering|fallback] len(NPU_EXTRA_FALLBACK_LIST): {len(NPU_EXTRA_FALLBACK_LIST)}")
-            
+
+    _add_fallback_ops_for_torchgen()
     # register the reductions useing custom make_reduction
     reduce_amax = register_lowering(aten.amax)(make_reduction("max"))
     reduce_amin = register_lowering(aten.amin)(make_reduction("min"))
@@ -1058,11 +1066,6 @@ def _fallback_ops_with_meta():
         FALLBACK_LIST.append(op_overload)
 
 
-def _add_fallback_ops_for_torchgen():
-    from torchgen.aoti.fallback_ops import inductor_fallback_ops
-    from torchnpugen.aoti.fallback_ops import inductor_fallback_ops_npu, inductor_fallback_ops_npu_not_support
-    inductor_fallback_ops = (inductor_fallback_ops | inductor_fallback_ops_npu) - inductor_fallback_ops_npu_not_support
-
 def _enable_full_lowering_fallback():
     ops_to_fallback = list(filter(
         lambda op: op not in decompositions and
@@ -1075,4 +1078,3 @@ def _enable_full_lowering_fallback():
         make_fallback(op)
         FALLBACK_LIST.append(op)
     _fallback_ops_with_meta()
-    _add_fallback_ops_for_torchgen()

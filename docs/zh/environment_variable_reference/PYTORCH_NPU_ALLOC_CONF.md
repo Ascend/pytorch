@@ -43,7 +43,7 @@
 
     支持两种配置方式：
 
-    - **单一值**：为每个内存设置相同的分段数量，例如配置为“4”。
+    - **单一值**：为每个内存块设置相同的分段数量，例如配置为“4”。
     - **键值对数组**：为每个2的幂区间单独设置分段数量。例如配置为“\[256:1,512:2,1024:4,\>:8\]”时，表示为256MB以下的所有分配设置1个分段，256MB到512MB之间的分配设置2个分段，512MB到1GB之间的分配设置4个分段，以及更大的分配设置8个分段。
 
 - multi\_stream\_lazy\_reclaim:<value\>，多流场景下，内存申请时延迟查询Events。
@@ -138,13 +138,13 @@ export PYTORCH_NPU_ALLOC_CONF=pinned_mem_register:True
     - <term>Atlas A2 训练系列产品</term>
     - <term>Atlas A3 训练系列产品</term>
 
-- page\_size特性与其他特性不支持同时配置，且申请内存注意事项如下：
+- page\_size特性与其他特性同时配置时，仅page\_size配置生效，且申请内存注意事项如下：
     - 当申请内存大于1M时：
         - 若配置page\_size，内存申请粒度为1GB。
         - 若未配置page\_size，内存申请粒度为2MB。
 
     - 当申请内存小于等于1MB时：配置page\_size也不生效，内存申请粒度为2MB。
-- pin_memory_expandable_segments特性要求最低Ascend Extension for PyTorch 7.3.0以上版本、Ascend HDK 25.5.0及以上版本、CANN商发8.5.0及以上版本使用。
+- pin_memory_expandable_segments特性要求Ascend Extension for PyTorch 7.3.0及以上版本、Ascend HDK 25.5.0及以上版本、CANN商发8.5.0及以上版本使用。
 - pinned_use_background_threads特性要求在Ascend Extension for PyTorch 26.0.0及以上版本且PyTorch 2.8.0及以上版本使用。
 - pinned_mem_register使用注意事项如下：
     - 特性要求Ascend Extension for PyTorch 26.0.0及以上版本、Ascend HDK 26.0.rc1及以上版本、CANN商用8.5.0及以上版本使用。
