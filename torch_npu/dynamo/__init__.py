@@ -30,14 +30,19 @@ class _ImportError(Exception):
 
 class _LazyException:
     def __init__(self, e, pkg_name):
-        self._info = _ImportError(pkg_name)
+        info = str(_ImportError(pkg_name))
         self._e = e
 
+        if e.args:
+            e.args = (f"{e.args[0]}{info}", *e.args[1:])
+        else:
+            e.args = (info,)
+
     def __getattr__(self, name):
-        raise self._info from self._e
+        raise self._e
 
     def __call__(self, *args, **kwargs):
-        raise self._info from self._e
+        raise self._e
 
 
 def _eager_npu_backend(gm, *args, **kwargs):
