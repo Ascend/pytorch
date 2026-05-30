@@ -290,6 +290,51 @@ def gen_op_hook_post_code(
     return res_code, return_code
 
 
+def gen_npu_record_function_guard() -> str:
+    return """
+#ifndef BUILD_LIBTORCH
+torch_npu::profiler::NPURecordFunction guard;
+#endif
+"""
+
+
+def gen_unsafe_tensor_check(f: NativeFunction, wrapper_name: str) -> str:
+    self_arg = (
+        [f.func.arguments.self_arg.argument]
+        if f.func.arguments.self_arg is not None
+        else []
+    )
+    candidate_args = itertools.chain(
+        self_arg,
+        f.func.arguments.out,
+        f.func.arguments.flat_positional,
+    )
+
+    candidate_tensor_args = []
+    for arg in candidate_args:
+        if arg.type.is_tensor_like():
+            candidate_tensor_args.append(f"{arg.name}")
+    candidate_tensor_args = sorted(set(candidate_tensor_args))
+
+    if not candidate_tensor_args:
+        return "// No data check."
+
+    unsafe_tensor_check = """
+if (c10_npu::get_npu_data_unsafe_flag()) {"""
+    if wrapper_name in ["wrapper_NPU__copy_", "wrapper_NPU___foreach_copy_"]:
+        unsafe_tensor_check += """
+    c10_npu::check_and_update_npu_tensor_for_copy(self, src);"""
+    else:
+        for tensor_arg in candidate_tensor_args:
+            unsafe_tensor_check += f"""
+    c10_npu::check_npu_tensor_is_safe({tensor_arg});"""
+
+    unsafe_tensor_check += """
+}
+"""
+    return unsafe_tensor_check
+
+
 OVERWRITE_API_LIST = [
     "matmul",
     "matmul.out",
@@ -399,11 +444,7 @@ return {self_arg_name};
                 )
 
             device_guard = "// DeviceGuard omitted"  # default
-            record_func_def = """
-#ifndef BUILD_LIBTORCH
-torch_npu::profiler::NPURecordFunction guard;
-#endif
-"""
+            record_func_def = gen_npu_record_function_guard()
             unsafe_tensor_check = """  // No data check"""
             if self.backend_index.device_guard:
                 has_tensor_options = any(
@@ -424,41 +465,7 @@ torch_npu::profiler::NPURecordFunction guard;
                     f.func.arguments.flat_positional,
                 )
 
-                candidate_tensor_args = []
-                for a in candidate_args:
-                    if a.type.is_tensor_like():
-                        candidate_tensor_args.append(f"{a.name}")
-                # Sort for deterministic output
-                candidate_tensor_args = sorted(set(candidate_tensor_args))
-                unsafe_tensor_check = """// No data check."""
-                if len(candidate_tensor_args) > 0:
-                    unsafe_tensor_check = """
-if (c10_npu::get_npu_data_unsafe_flag()) {"""
-
-                if name in ["wrapper_NPU__copy_", "wrapper_NPU___foreach_copy_"]:
-                    tensor_arg = (
-                        candidate_tensor_args[0] + ", " + candidate_tensor_args[1]
-                    )
-                    unsafe_tensor_check = (
-                        unsafe_tensor_check
-                        + """
-    c10_npu::check_and_update_npu_tensor_for_copy(self, src);"""
-                    )
-                else:
-                    for tensor_arg in candidate_tensor_args:
-                        unsafe_tensor_check = (
-                            unsafe_tensor_check
-                            + f"""
-    c10_npu::check_npu_tensor_is_safe({tensor_arg});"""
-                        )
-
-                if len(candidate_tensor_args) > 0:
-                    unsafe_tensor_check = (
-                        unsafe_tensor_check
-                        + """
-}
-"""
-                    )
+                unsafe_tensor_check = gen_unsafe_tensor_check(f, name)
                 candidate_args = itertools.chain(
                     self_arg,
                     f.func.arguments.out,
