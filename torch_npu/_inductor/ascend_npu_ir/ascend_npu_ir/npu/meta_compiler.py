@@ -103,8 +103,7 @@ class MetaCompiler:
 
     def acc_compare_and_dump(self, *args, dump_data=True, **kwargs) -> Tuple[Any, bool]:
         self.register_fx_fallback(self.kernel_meta)
-
-        output, has_acc_error = check_accuracy_mlir(
+        output, accuracy_passed = check_accuracy_mlir(
             *args,
             kernel_name=self.kernel_name,
             launchers=self.launchers,
@@ -115,15 +114,14 @@ class MetaCompiler:
 
         if anir_config.fx_subgraph_dump_path:
             data = args
-            if dump_data and has_acc_error:
+            if dump_data and not accuracy_passed:
                 data_dump_path = self.fx_subgraph_dump('acc_failed')
                 self.data_dump_fake(*data, dump_path=data_dump_path)
 
         torch.npu.synchronize()
         self.launchers = [self.launchers[0]]
         self.is_fallback_kernels = [self.is_fallback_kernels[0]]
-
-        return output, not has_acc_error
+        return output, accuracy_passed
 
     def compile(self, *args, **kwargs):
         raise NotImplementedError
@@ -220,7 +218,7 @@ class MetaCompiler:
             for out1, out2 in zip(actual_outputs, args[-num_outputs:]):
                 if isinstance(out1, torch.Tensor) and not out1.is_contiguous():
                     out1 = out1.contiguous()
-                out2.data = out1.data
+                out2.copy_(out1)
         return module_call
 
     def _load_traced_graph_model(self) -> torch.nn.Module:
