@@ -19,6 +19,7 @@ import os
 import pathlib
 import re
 import stat
+import textwrap
 from collections import Counter, defaultdict, namedtuple
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
@@ -90,7 +91,9 @@ from torchnpugen.utils import (
     filt_exposed_api,
     gen_custom_yaml_path,
     gen_device_check,
+    gen_npu_record_function_guard,
     gen_unstructured,
+    gen_unsafe_tensor_check,
     get_grouped_native_functions_optional_out,
     get_opplugin_wrap_name,
     get_target_functions,
@@ -766,6 +769,7 @@ def gen_dispatcher_registrations(
 
     native_func_header = """\
 #include "torch_npu/csrc/core/npu/NPURecovery.h"
+#include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #ifndef BUILD_LIBTORCH
@@ -1032,6 +1036,9 @@ return {sig.name()}({", ".join(e.expr for e in translate(cpp_sig.arguments(), si
                 f.device_check, list(device_check_args), sig.name()
             )
         )
+        sig_body.append(gen_unsafe_tensor_check(f, sig.name()))
+
+    sig_body.append(gen_npu_record_function_guard())
 
     pre_hook_args = ", ".join(arg.name for arg in context_args)
     pre_hook_args = f", {pre_hook_args}" if pre_hook_args else ""
@@ -1788,6 +1795,7 @@ def apply_torchgen_patch():
     dest.RegisterDispatchKey.gen_unstructured = gen_unstructured
     dest.RegisterDispatchKey.gen_device_check = gen_device_check
     original_compute_native_function_declaration = dest.compute_native_function_declaration
+    original_gen_class = StructuredRegisterDispatchKey.gen_class
     original_gen_class_set_output_body = StructuredRegisterDispatchKey.gen_class_set_output_body
     original_gen_one = StructuredRegisterDispatchKey.gen_one
 
@@ -1801,6 +1809,16 @@ def apply_torchgen_patch():
         if self.backend_index.dispatch_key.name not in ("NPU", "PrivateUse1"):
             return original_gen_class_set_output_body(self, k, maybe_create_proxy)
 
+        maybe_set_guard = """
+auto current_device = guard_.current_device();
+if (C10_UNLIKELY(current_device.has_value())) {
+  TORCH_INTERNAL_ASSERT(*current_device == options.device(),
+    "structured kernels don't support multi-device outputs");
+} else {
+  guard_.reset_device(options.device());
+}
+"""
+
         if maybe_create_proxy:
             create_proxy = """
 auto maybe_proxy = maybe_create_proxy(out, sizes, strides, options);
@@ -1812,17 +1830,62 @@ if (C10_UNLIKELY(maybe_proxy.has_value())) {
             create_proxy = ""
 
         if k is SchemaKind.functional:
-            return "outputs_[output_idx] = create_out(sizes, strides, options);"
+            return f"""{maybe_set_guard}
+outputs_[output_idx] = create_out(sizes, strides, options);"""
         elif k is SchemaKind.inplace:
-            return f"""const auto& out = outputs_[output_idx].get();
+            return f"""{maybe_set_guard}
+const auto& out = outputs_[output_idx].get();
 check_inplace(out, sizes, options);
 {create_proxy}"""
         elif k is SchemaKind.out:
-            return f"""const auto& out = outputs_[output_idx].get();
+            return f"""{maybe_set_guard}
+const auto& out = outputs_[output_idx].get();
 resize_out(out, sizes, strides, options);
 {create_proxy}"""
         else:
             raise AssertionError(f"{k} structured operators are currently not supported")
+
+    def gen_class(self, f, k, *, class_name, parent_class, generate_super):
+        if self.backend_index.dispatch_key.name not in ("NPU", "PrivateUse1"):
+            return original_gen_class(
+                self,
+                f,
+                k,
+                class_name=class_name,
+                parent_class=parent_class,
+                generate_super=generate_super,
+            )
+
+        if k is SchemaKind.functional:
+            output_type = "Tensor"
+            output_value = "outputs_[output_idx]"
+            proxy_field = ""
+        elif k is SchemaKind.inplace:
+            output_type = "std::reference_wrapper<Tensor>"
+            output_value = "proxy_outputs_[output_idx].has_value() ? *proxy_outputs_[output_idx] : outputs_[output_idx].get()"
+            proxy_field = f"std::array<::std::optional<Tensor>, {len(f.func.returns)}> proxy_outputs_;"
+        elif k is SchemaKind.out:
+            output_type = "std::reference_wrapper<Tensor>"
+            output_value = "proxy_outputs_[output_idx].has_value() ? *proxy_outputs_[output_idx] : outputs_[output_idx].get()"
+            proxy_field = f"std::array<::std::optional<Tensor>, {len(f.func.returns)}> proxy_outputs_;"
+        else:
+            raise RuntimeError(f"Unsupported SchemaKind {k}")
+
+        indent = " " * 4
+        class_ctor_str = self.gen_class_ctor(k, class_name, len(f.func.returns))
+        lines = (
+            f"struct {class_name} final : public {parent_class} {{",
+            f"{textwrap.indent(class_ctor_str, indent)}",
+            f"{textwrap.indent(self.gen_class_set_output_functions(k, parent_class, generate_super), indent)}",
+            "    const Tensor& maybe_get_output(int64_t output_idx) override {",
+            f"      return {output_value};\n",
+            "    }",
+            f"    std::array<{output_type}, {len(f.func.returns)}> outputs_;",
+            f"{textwrap.indent(proxy_field, indent)}",
+            "    c10_npu::OptionalNPUGuard guard_;",
+            "};",
+        )
+        return "\n".join(line for line in lines if line)
 
     def gen_one(self, f):
         if self.backend_index.dispatch_key.name in ("NPU", "PrivateUse1"):
@@ -1830,6 +1893,7 @@ resize_out(out, sizes, strides, options);
         return original_gen_one(self, f)
 
     dest.compute_native_function_declaration = compute_native_function_declaration
+    StructuredRegisterDispatchKey.gen_class = gen_class
     StructuredRegisterDispatchKey.gen_class_set_output_body = gen_class_set_output_body
     StructuredRegisterDispatchKey.gen_one = gen_one
     # generate default arguments
