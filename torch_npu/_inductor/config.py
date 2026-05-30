@@ -26,6 +26,8 @@ if not enable_inplace_buffers:
 # inductor debug switch
 config.trace.enabled = True
 
+config.fallback_random = True
+
 device = torch.npu.current_device()
 prop = torch.npu.get_device_properties(device)
 
