@@ -8,7 +8,7 @@ index 222140d..b52891e 100644
 +
  # Owner(s): ["oncall: jit"]
  
-+import npu
++from torch_npu import npu
 +
  import torch
  from torch._C import parse_ir

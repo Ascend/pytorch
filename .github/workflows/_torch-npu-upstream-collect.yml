@@ -7,10 +7,6 @@ on:
         required: true
         type: string
         description: Python version to use
-      pytorch_version:
-        required: true
-        type: string
-        description: PyTorch version to install
       prepared_test_src_artifact:
         required: true
         type: string
@@ -50,10 +46,14 @@ on:
         description: Total number of test cases
         value: ${{ jobs.collect.outputs.total_cases }}
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   collect:
     runs-on: linux-aarch64-a3-8
-    timeout-minutes: 60
+    timeout-minutes: 120
     container:
       image: ${{ inputs.docker_image }}
       options: --user root
@@ -69,7 +69,6 @@ jobs:
         uses: Ascend/pytorch/.github/actions/setup-npu-test-env@v2.7.1
         with:
           python_version: ${{ inputs.python_version }}
-          pytorch_version: ${{ inputs.pytorch_version }}
           torch_npu_wheel_artifact: ${{ inputs.torch_npu_wheel_artifact }}
           prepared_test_src_artifact: ${{ inputs.prepared_test_src_artifact }}
           patch_log_suffix: collect
@@ -77,9 +76,6 @@ jobs:
       - name: Collect all test cases and shard
         id: collect_and_shard
         run: |
-          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
-          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
-
           PYTHON=python${{ inputs.python_version }}
           cd pytorch-test-src
 
@@ -90,6 +86,9 @@ jobs:
           echo "=== Collecting all test cases ==="
           echo "Distributed shards: ${DISTRIBUTED_SHARDS}"
           echo "Regular shards: ${REGULAR_SHARDS}"
+
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
 
           $PYTHON ../ascend_pytorch/.github/scripts/collect_all_cases.py \
             --test-dir test \
@@ -126,12 +125,20 @@ jobs:
           echo "Regular tests: ${REGULAR_SHARDS} shards (case-level, 64 workers, linux-aarch64-a3-16)"
           echo "Total cases: ${TOTAL_CASES}"
 
-          # Package error logs if any
+          # Package error logs if any (place at workspace root for flat artifact layout)
           if [ -d "collection_errors" ] && [ "$(ls -A collection_errors 2>/dev/null)" ]; then
             echo "=== Packaging collection error logs ==="
-            tar -czf collection_errors.tar.gz collection_errors/
-            echo "Error logs packaged: collection_errors.tar.gz"
-            ls -la collection_errors.tar.gz
+            tar -czf ../collection_errors.tar.gz collection_errors/
+            echo "Error logs packaged: ../collection_errors.tar.gz"
+            ls -la ../collection_errors.tar.gz
+          fi
+
+          # Stage logs to a flat directory for clean artifact layout
+          mkdir -p ../collect-logs-staging
+          cp /tmp/collect_cases.log ../collect-logs-staging/ 2>/dev/null || true
+          cp /tmp/torch_env_patch_collect.log ../collect-logs-staging/ 2>/dev/null || true
+          if [ -f ../collection_errors.tar.gz ]; then
+            cp ../collection_errors.tar.gz ../collect-logs-staging/
           fi
 
       - name: Upload cases shard JSONs
@@ -146,9 +153,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: collect-cases-logs
-          path: |
-            /tmp/collect_cases.log
-            /tmp/torch_env_patch_collect.log
-            pytorch-test-src/collection_errors.tar.gz
+          path: collect-logs-staging/
           if-no-files-found: warn
           retention-days: 60
