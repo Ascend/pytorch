@@ -95,6 +95,20 @@ def _export_lazy_python_apis(globals_dict, all_list):
     _append_unique(all_list, _LAZY_PYTHON_SYMBOLS.keys())
 
 
+def _export_legacy_distributed_apis(globals_dict):
+    """
+    Export legacy distributed-related top-level APIs.
+    Rule:
+        - torch_npu._C._distributed_c10d.ParallelStore -> torch_npu.ParallelStore
+        - torch_npu.npu.amp.sharded_grad_scaler._ShardedGradScaler -> torch_npu._ShardedGradScaler
+    """
+    from torch_npu._C._distributed_c10d import ParallelStore
+    from torch_npu.npu.amp.sharded_grad_scaler import _ShardedGradScaler
+
+    globals_dict["ParallelStore"] = ParallelStore
+    globals_dict["_ShardedGradScaler"] = _ShardedGradScaler
+
+
 def _export_public_apis():
     """
     Export torch_npu public APIs.
@@ -109,6 +123,10 @@ def _export_public_apis():
 
     3. DType symbols:
         - torch_npu._C._cd.DType.<dtype_name> -> torch_npu.<dtype_name>
+
+    4. legacy distributed APIs:
+        - torch_npu._C._distributed_c10d.ParallelStore -> torch_npu.ParallelStore
+        - torch_npu.npu.amp.sharded_grad_scaler._ShardedGradScaler -> torch_npu._ShardedGradScaler
     """
 
     _export_dtype_symbols()
@@ -120,3 +138,4 @@ def _export_public_apis():
     _export_lazy_python_apis(globals_dict, all_list)
     _export_npu_ops(globals_dict, all_list)
     _export_dtype_symbols()
+    _export_legacy_distributed_apis(globals_dict)
