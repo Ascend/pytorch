@@ -32157,5 +32157,5 @@
   "test_grad_with_v_schedule (__main__.TestScheduleLowering)": ["", [""]],
   "test_compare_cpu__chunk_cat_npu_float32 (__main__.TestCommonPRIVATEUSE1)": ["", [""]],
   "test_variant_consistency_eager__chunk_cat_npu_float32 (__main__.TestCommonPRIVATEUSE1)": ["", [""]],
-  "test_operator__chunk_cat_npu_float32 (__main__.TestCompositeComplianceNPU)": ["", [""]]
+  "test_operator__chunk_cat_npu_float32 (__main__.TestCompositeCompliancePRIVATEUSE1)": ["", [""]]
 }
