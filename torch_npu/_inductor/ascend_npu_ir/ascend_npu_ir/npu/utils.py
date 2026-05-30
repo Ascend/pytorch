@@ -109,11 +109,13 @@ def _build_npu_ext(obj_name: str, src_path, src_dir) -> str:
 
     torch_npu_dir = torch_npu_root / "include"
     torch_npu_lib_dir = torch_npu_root / "lib"
+    acl_inc_dir = torch_npu_dir / "third_party" / "acl" / "inc"
 
     cc_cmd += [
         f"-I{torch_npu_dir}",
         f"-I{cpp_common_dir}",
         f"-L{torch_npu_lib_dir}",
+        f"-I{acl_inc_dir}",
         "-ltorch_npu",
         f"-Wl,-rpath",
         "-std=c++17",
