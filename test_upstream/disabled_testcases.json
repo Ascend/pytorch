@@ -1134,5 +1134,7 @@
     "test_register_fake_class_from_real_not_classmethod (__main__.TestRegisterFakeClass)": ["", [""]],
     "test_register_fake_class_no_from_real (__main__.TestRegisterFakeClass)": ["", [""]],
     "test_register_fake_class_no_torch_bind_class (__main__.TestRegisterFakeClass)": ["", [""]],
-    "test_register_fake_class_valid (__main__.TestRegisterFakeClass)": ["", [""]]
+    "test_register_fake_class_valid (__main__.TestRegisterFakeClass)": ["", [""]],
+    "test_pinned_memory_with_cudaregister (__main__.TestCuda)": ["hardware difference, not supported yet", [""]],
+    "test_pinned_memory_empty_cache (__main__.TestCuda)": ["hardware difference, not supported yet", [""]]
 }
