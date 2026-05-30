@@ -24,8 +24,8 @@ namespace {
 void apply_cache_op_info(aclrtStream stream, bool enabled)
 {
     if (!IsGteCANNVersion("8.5.0", "CANN")) {
-        return;
-    }
+		return;
+	}
     aclrtStreamAttrValue val;
     val.cacheOpInfoSwitch = static_cast<uint32_t>(enabled ? 1u : 0u);
     int32_t ret = c10_npu::acl::AclrtSetStreamAttribute(stream, aclrtStreamAttr::ACL_STREAM_ATTR_CACHE_OP_INFO,
