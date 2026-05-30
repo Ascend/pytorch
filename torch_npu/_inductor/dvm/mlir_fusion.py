@@ -2,6 +2,7 @@ import os
 
 import torch
 from torch._inductor import config
+from torch._inductor.fx_passes.control_dependencies import control_deps
 from torch._inductor.codegen.common import IndentedBuffer
 from torch._inductor.codegen.simd import code_hash, SIMDKernel
 from torch._inductor.scheduler import WhyNoFuse
@@ -36,6 +37,7 @@ _quantized = torch.ops._quantized
 
 
 anir_config.GENERATE_LIST = [
+    control_deps,
     aten.mul,
     aten.add,
     aten.sub,
