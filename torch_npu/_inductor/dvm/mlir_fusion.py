@@ -1,7 +1,6 @@
 import os
 
 import torch
-import torch.utils._pytree as pytree
 from torch._inductor import config
 from torch._inductor.codegen.common import IndentedBuffer
 from torch._inductor.codegen.simd import code_hash, SIMDKernel
@@ -77,7 +76,7 @@ anir_config.GENERATE_LIST = [
     aten.scalar_tensor,
     aten.unsqueeze,
     aten.squeeze,
-    # aten.reshape,
+    aten.reshape,
     # aten.clone,
 ]
 
@@ -266,6 +265,7 @@ def _patch_lowering_type_checks():
     import torch._inductor.lowering as inductor_lowering
     import torch._inductor.pattern_matcher as pattern_matcher
     import torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.inductor_patch.lowering as npu_lowering_mod
+    import torch_npu._inductor.graph as npu_graph_mod
 
     fallback_node_due_to_unsupported_type = (
         inductor_lowering.fallback_node_due_to_unsupported_type
@@ -277,13 +277,12 @@ def _patch_lowering_type_checks():
         if fallback_node_due_to_unsupported_type(node, allow_cpu_inputs):
             return True
 
-        if "val" in node.meta:
-            for meta in pytree.tree_leaves(node.meta["val"]):
-                if not isinstance(meta, torch._subclasses.FakeTensor):
-                    continue
-
-                if meta.is_cpu and config.disable_cpp_codegen:
-                    return True
+        if node.target is torch.ops.higher_order.triton_kernel_wrapper_functional:
+            return False
+        if node.target is torch.ops.higher_order.triton_kernel_wrapper_mutation:
+            return False
+        if node.target is aten.lift_fresh_copy.default:
+            return False
 
         if node.target in DVM_OP_REGISTRY:
             _, rule = DVM_OP_REGISTRY.get(node.target)
@@ -297,6 +296,9 @@ def _patch_lowering_type_checks():
         _fallback_node_due_to_unsupported_type
     )
     inductor_graph.fallback_node_due_to_unsupported_type = (
+        _fallback_node_due_to_unsupported_type
+    )
+    npu_graph_mod.fallback_node_due_to_unsupported_type = (
         _fallback_node_due_to_unsupported_type
     )
 
