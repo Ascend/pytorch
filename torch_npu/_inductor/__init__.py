@@ -86,7 +86,7 @@ def _load_triton_backend():
         patch_get_cpp_torch_device_options,
         patch_get_optimization_cflags,
     )
-    from .decomposition import _register_npu_inductor_decompositons
+    from .decomposition import _register_npu_inductor_decompositions
     from .dependencies import patch_extract_read_writes
     from .fx_passes import patch_pattern_mm_plus_mm
     from .fx_passes.graph_match_pass import (
@@ -173,7 +173,7 @@ def _load_triton_backend():
         _register_npu_inductor_fallbacks,
     )
 
-    _register_npu_inductor_decompositons()
+    _register_npu_inductor_decompositions(backend="triton")
 
     if npu_config.enable_full_lowering_fallback.strip() == "allfallback":
         _enable_full_lowering_fallback()
@@ -204,7 +204,7 @@ def _load_triton_backend():
 
         parallel_scheduler()
 
-    # register fx_pass should be put behind of _register_npu_inductor_decompositons
+    # register fx_pass should be put behind of _register_npu_inductor_decompositions
     def _replace_benchmark_all_configs():
         from torch._inductor.runtime.triton_heuristics import CachingAutotuner
 
@@ -331,6 +331,8 @@ def _load_backend():
     backend = _get_backend()
     loader = _BACKEND_LOADERS.get(backend, _load_triton_backend)
     loader()
+    from .decomposition import _register_shared_decompositions
+    _register_shared_decompositions()
     from ..utils._dynamo import _InductorNpuRegistry
     _InductorNpuRegistry._loaded_backend = backend
 
