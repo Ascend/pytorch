@@ -356,9 +356,9 @@ def npugraphify_impl(
             return fn(inputs)
 
         if int_key is None:
-            log.debug("[NPUGRAPH-TREE][Compile] recording, key=None")
+            log.debug("NPUGRAPH-TREE Compile recording, key=None")
         else:
-            log.debug("[NPUGRAPH-TREE][Compile] recording, key=%s", int_key)
+            log.debug("NPUGRAPH-TREE Compile recording, key=%s", int_key)
 
         if not has_warn:
             has_warn = maybe_warning_due_to_dynamic_shape(fn_cache, int_key)
@@ -1069,7 +1069,7 @@ class NPUGraphNode:
         return outputs
 
     def run(self, new_inputs: List[InputType]) -> OutputType:
-        log.debug("[NPUGRAPH-TREE][Node][Run] node=%s", self.id)
+        log.debug("NPUGRAPH-TREE Node Run node=%s", self.id)
         self.check_static_inputs_are_stable(new_inputs)
         for item in new_inputs:
             if isinstance(item, torch.Tensor) and item.dtype == torch.int32 and item.device.type == "cpu":
@@ -1268,6 +1268,11 @@ class NPUGraphNode:
             static_outputs = (static_outputs,)
 
         self._add_first_outputs(static_outputs, static_input_persistent_storage_ptrs)
+
+        log.debug("NPUGRAPH-TREE Node Record node=%s recorded: outputs=%d, "
+                  "non_static_inputs=%d, static_input_idxs=%d",
+                  self.id, len(static_outputs),
+                  len(self.non_static_input_idx), len(self.static_input_idxs))
 
         return static_outputs
 
@@ -1713,6 +1718,11 @@ class NPUGraphNode:
             self.npugraph_managed_idxs,
         ):
             status = CheckInvariantStatus.CudagraphManagedIdxMismatch
+            log.debug("NPUGRAPH-TREE Invariant node=%s mismatch: CudagraphManagedIdx, "
+                      "expected_ptrs=%s",
+                      self.id,
+                      [self.static_input_data_ptrs[i] for i in self.npugraph_managed_idxs
+                       if i < len(self.static_input_data_ptrs)])
             _logger = functools.partial(
                 _logger,
                 self.npugraph_managed_idxs,
@@ -1724,6 +1734,9 @@ class NPUGraphNode:
             self.expected_dead_indices_before_graph, self.path_weakrefs
         ):
             status = CheckInvariantStatus.ExpectedDeadIndicesBeforeGraphMismatch
+            log.debug("NPUGRAPH-TREE Invariant node=%s mismatch: ExpectedDeadIndicesBeforeGraph, "
+                      "expected_dead=%s",
+                      self.id, self.expected_dead_indices_before_graph)
             return status, lambda: f"{status}"
 
         # static input data pointers should remain stable
@@ -1739,6 +1752,11 @@ class NPUGraphNode:
             )
         ):
             status = CheckInvariantStatus.StaticInputIdxMismatch
+            log.debug("NPUGRAPH-TREE Invariant node=%s mismatch: StaticInputIdx, "
+                      "expected_ptrs_at_static=%s",
+                      self.id,
+                      [self.static_input_data_ptrs[i] for i in self.static_input_idxs
+                       if i < len(self.static_input_data_ptrs)])
             _logger = functools.partial(
                 _logger,
                 self.static_input_idxs,
@@ -1942,6 +1960,11 @@ class NPUGraphTreeManager:
 
         self.graph_counter = itertools.count(0)
         self.func_counter = itertools.count(0)
+
+        log.debug("NPUGRAPH-TREE Manager init, device=%s, pool=(%s,%s), stream=%s",
+                  device_index,
+                  self.npu_graphs_thread_pool[0], self.npu_graphs_thread_pool[1],
+                  self.stream)
 
         # mapping from graph_id to (function id to mutation type hint) since we are
         # specializing on a particular combination of Parent Node -> Function ID.
@@ -2190,6 +2213,7 @@ class NPUGraphTreeManager:
         might reference a backward which invokes a NPU Graph Node, we have to manually clear them on shutdown
         to avoid a reference cycle.
         """
+        log.debug("NPUGRAPH-TREE Manager shutdown begin, device=%s", self.device_index)
         nodes = []
         for roots in self.roots.values():
             nodes.extend(roots)
@@ -2205,13 +2229,15 @@ class NPUGraphTreeManager:
         self.roots = None  # type: ignore[assignment]
         self.current_node = None
 
+        log.debug("NPUGRAPH-TREE Manager shutdown done, device=%s", self.device_index)
+
     def record_function(
         self, new_inputs: List[InputType], function_id: FunctionID
     ) -> OutputType:
         if isinstance(self.current_node, NPUWarmupNode):
             raise RuntimeError("self.current_node is NPUWarmupNode object")
         graph_id = self.new_graph_id()
-        log.debug("[NPUGRAPH-TREE][Node][Record] function=%s, graph=%s", function_id.id, graph_id.id)
+        log.debug("NPUGRAPH-TREE Node Record function=%s, graph=%s", function_id.id, graph_id.id)
         torch.npu.synchronize()
         node = NPUGraphNode(
             self.ids_to_funcs[function_id],
@@ -2230,6 +2256,8 @@ class NPUGraphTreeManager:
         self.current_node = node
         self.path_state = ExecutionState.RECORDING
         self.update_generation()
+        log.debug("NPUGRAPH-TREE State state=RECORDING, node=%s, gen=%d",
+                  graph_id.id, self.current_gen)
         torch.npu.synchronize()
         return node.run_first_inputs(new_inputs)
 
@@ -2239,7 +2267,9 @@ class NPUGraphTreeManager:
         self.current_node = node
         self.path_state = ExecutionState.EXECUTION
         self.update_generation()
-        log.debug("[NPUGRAPH-TREE][Execute] node=%s", self.current_node.id)
+        log.debug("NPUGRAPH-TREE State state=EXECUTION, node=%s, gen=%d",
+                  node.id, self.current_gen)
+        log.debug("NPUGRAPH-TREE Execute node=%s", self.current_node.id)
         return node.run(new_inputs)
 
     def run_eager(
@@ -2249,9 +2279,9 @@ class NPUGraphTreeManager:
         # we will deallocate it
         already_warm = function_id in self.warmed_up_functions
         if not already_warm:
-            log.debug("[NPUGRAPH-TREE][Warmup] Running warmup, function=%s", function_id)
+            log.debug("NPUGRAPH-TREE Warmup Running warmup, function=%s", function_id)
         else:
-            log.debug("[NPUGRAPH-TREE][Eager] Running eager (ancestor warmup), function=%s", function_id)
+            log.debug("NPUGRAPH-TREE Eager Running eager (ancestor warmup), function=%s", function_id)
         self.warmed_up_functions.add(function_id)
         node = NPUWarmupNode(
             self.ids_to_funcs[function_id],
@@ -2267,6 +2297,8 @@ class NPUGraphTreeManager:
         self.current_node = node
         self.path_state = ExecutionState.WARMUP
         self.update_generation()
+        log.debug("NPUGRAPH-TREE State state=WARMUP, node=%s, already_warm=%s, gen=%d",
+                  node.id, already_warm, self.current_gen)
         return node.run(new_inputs)
 
     def new_graph_id(self) -> GraphID:
@@ -2541,6 +2573,12 @@ class NPUGraphTreeManager:
         # path_live_weakrefs guarantees that t() will not be None
         live_storages_weak_refs: list[int] = [t() for t in live_storages_wrappers]
         ptrs_to_deallocate = self.current_node.data_ptrs_dead_since_invocation()
+
+        log.debug("NPUGRAPH-TREE Checkpoint detail: device=%s, pool=(%s,%s), "
+                  "live_storages=%d, dead_ptrs_count=%d",
+                  device,
+                  self.npu_graphs_thread_pool[0], self.npu_graphs_thread_pool[1],
+                  len(live_storages_weak_refs), len(ptrs_to_deallocate))
         torch_npu._C._npu_setCheckpointPoolState(
             device, state, stale_storages, live_storages_weak_refs
         )
