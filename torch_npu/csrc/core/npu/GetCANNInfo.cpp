@@ -484,6 +484,41 @@ std::string GetCANNVersion(const std::string& module)
 
     return module_version;
 }
+// Returns: 1 if currentVersion >= targetVersion, 0 if currentVersion < targetVersion, -1 if invalid
+int CompareVersionsByDispatch(const std::string& currentVersion, const std::string& targetVersion)
+{
+    std::vector<std::string> tokensCurrent = SplitVersionStr(currentVersion);
+    std::vector<std::string> tokensTarget = SplitVersionStr(targetVersion);
+
+    if (tokensCurrent.size() <= tokenNum2 || tokensTarget.size() <= tokenNum2) {
+        return -1;
+    }
+
+    if (!isDigits(tokensCurrent[index0]) || !isDigits(tokensCurrent[index1]) ||
+        !isDigits(tokensTarget[index0]) || !isDigits(tokensTarget[index1])) {
+        return -1;
+    }
+
+    int64_t major1 = ExtractNumFromStr(tokensCurrent[index0]);
+    int64_t minor1 = ExtractNumFromStr(tokensCurrent[index1]);
+    int64_t major2 = ExtractNumFromStr(tokensTarget[index0]);
+    int64_t minor2 = ExtractNumFromStr(tokensTarget[index1]);
+
+    if (major1 == 8 && minor1 < 5 && major2 == 8 && minor2 < 5) {
+        int64_t current_num = VersionToNum(currentVersion);
+        int64_t target_num = VersionToNum(targetVersion);
+        return current_num >= target_num ? 1 : 0;
+    } else if ((major1 == 8 && minor1 == 5 && major2 == 8 && minor2 == 5) ||
+               (major1 > 8 && major2 > 8)) {
+        int64_t current_num = VersionV2ToNum(currentVersion);
+        int64_t target_num = VersionV2ToNum(targetVersion);
+        return current_num >= target_num ? 1 : 0;
+    } else {
+        if (major1 < major2) return 0;
+        if (major1 > major2) return 1;
+        return minor1 >= minor2 ? 1 : 0;
+    }
+}
 
 bool IsGteCANNVersion(const std::string version, const std::string module)
 {
@@ -506,53 +541,12 @@ bool IsGteCANNVersion(const std::string version, const std::string module)
     }
 
     std::string currentVersion = GetCANNVersion(module);
-    std::vector<std::string> tokensCurrentVersion = SplitVersionStr(currentVersion);
-
-    int64_t current_num = 0;
-    int64_t boundary_num = 0;
-    bool isInvalid = false;
-    if (tokensCurrentVersion.size() > tokenNum2 && tokensVersion.size() > tokenNum2) {
-        if (isDigits(tokensCurrentVersion[index0]) && isDigits(tokensCurrentVersion[index1]) && isDigits(tokensVersion[index0]) && isDigits(tokensVersion[index1])) {
-            int64_t major1 = ExtractNumFromStr(tokensCurrentVersion[index0]);
-            int64_t minor1 = ExtractNumFromStr(tokensCurrentVersion[index1]);
-            int64_t major2 = ExtractNumFromStr(tokensVersion[index0]);
-            int64_t minor2 = ExtractNumFromStr(tokensVersion[index1]);
-            if (major1 == 8 && minor1 < 5 && major2 == 8 && minor2 < 5) {
-                current_num = VersionToNum(currentVersion);
-                boundary_num = VersionToNum(version);
-            } else if ((major1 == 8 && minor1 == 5 && major2 == 8 && minor2 == 5) or (major1 > 8 && major2 > 8)) {
-                current_num = VersionV2ToNum(currentVersion);
-                boundary_num = VersionV2ToNum(version);
-            } else {
-                if (major1 < major2) {
-                    return false;
-                } else if (major1 > major2) {
-                    return true;
-                } else {
-                    if (minor1 < minor2) {
-                        return false;
-                    } else {
-                        return true;
-                    }
-                }
-            }
-        } else {
-            isInvalid = true;
-        }
-    } else {
-        isInvalid = true;
-    }
-
-    if (isInvalid) {
+    int result = CompareVersionsByDispatch(currentVersion, version);
+    if (result == -1) {
         ASCEND_LOGW("The version: %s is invalid or not supported yet.", currentVersion.c_str());
         return false;
     }
-
-    if (current_num >= boundary_num) {
-        return true;
-    } else {
-        return false;
-    }
+    return result == 1;
 }
 
 bool IsGteDriverVersion(const std::string driverVersion)
@@ -561,12 +555,13 @@ bool IsGteDriverVersion(const std::string driverVersion)
     // The result of this function will be false, even if current driver version meets the requirement.
     const static std::string baseCANNVersion = "8.1.RC1";
     std::string currentCANNVersion = GetCANNVersion("CANN");
-    int64_t currentCannNum = VersionToNum(currentCANNVersion);
-    int64_t boundaryCannNum = VersionToNum(baseCANNVersion);
-    if (currentCannNum < boundaryCannNum) {
+
+    int cannResult = CompareVersionsByDispatch(currentCANNVersion, baseCANNVersion);
+    if (cannResult != 1) {
         ASCEND_LOGW("When the cann version is less than \"8.1.RC1\", GetCANNVersion is not supported.");
         return false;
     }
+
     // check driver version
     std::string currentDriverVersion = GetCANNVersion("DRIVER");
     double currentDriverNum = DriverVersionToNum(currentDriverVersion);
