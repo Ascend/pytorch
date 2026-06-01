@@ -1,24 +1,21 @@
 #!/usr/bin/env python3
 """
-Run PyTorch NPU tests via pytest.main() batch execution.
+Run PyTorch NPU tests via per-case isolation pytest execution.
 
 This script executes pre-collected test cases or specified test files
-using pytest.main() within worker subprocesses for efficient batch execution.
+with per-case isolation for accurate result tracking.
 
 Execution modes:
     - Pre-collected cases (--cases-json): Execute cases from JSON file
     - Custom test files (--test-files): Execute specified test files
 
-Each worker subprocess runs pytest.main() for multiple same-file cases:
-    - Cases are sorted by test file and grouped into batches (max 100 per batch)
-    - pytest.main() avoids per-case subprocess startup overhead
-    - Worker subprocesses provide crash isolation between batches
-    - Coredump detection and automatic retry for affected cases
-    - Results recorded in cases.json file
-
 Test types:
-    - distributed: Serial execution (one batch at a time)
-    - regular: Concurrent execution (multiple batch workers)
+    - distributed: Serial execution — each case runs in an independent
+      subprocess (python -m pytest <case>) to avoid in-process state
+      pollution from distributed communication primitives.
+    - regular: Concurrent execution — cases are batched by file and
+      run via pytest.main() in worker subprocesses for efficiency.
+      Worker subprocesses provide crash isolation between batches.
 
 Usage:
     # Pre-collected cases mode (primary usage):
@@ -563,24 +560,6 @@ def run_tests_with_tasks_concurrent(
 
     total_cases = len(tasks)
 
-    # Sort and batch tasks: group same-file cases, max 100 per batch
-    batches = sort_and_batch_tasks(tasks, max_cases_per_batch=100)
-
-    print(f"\n{'=' * 80}", flush=True)
-    print(f"Pre-collected cases: {total_cases} cases", flush=True)
-    print(f"Execution mode: {max_workers} workers concurrent, "
-          f"{len(batches)} batches (max 100 same-file cases per batch, pytest.main() per case)", flush=True)
-    print(f"{'=' * 80}\n", flush=True)
-
-    # Print batch summary
-    for bi, b in enumerate(batches):
-        display_file = b[0].test_file
-        if display_file.startswith("test/"):
-            display_file = display_file[5:]
-        print(f"  Batch {bi}: {len(b)} cases from {display_file}")
-
-    print(f"\nPhase: Executing {total_cases} pre-collected cases in {len(batches)} batches...", flush=True)
-
     progress_tracker = ProgressTracker(total_cases)
 
     # Push case_start log entries for all cases (preserves log format)
@@ -594,40 +573,70 @@ def run_tests_with_tasks_concurrent(
             "command": f"pytest.main(['{task.nodeid}', '--junitxml=...'])",
         })
 
-    # Execute batches via ThreadPoolExecutor
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = []
-        for batch_id, batch in enumerate(batches):
-            # Calculate device ID (round-robin by batch_id)
-            if num_npu_devices is not None:
-                device_id = batch_id % num_npu_devices
-            else:
-                device_id = None
+    if shard_type == "distributed":
+        print(f"\n{'=' * 80}", flush=True)
+        print(f"Pre-collected cases: {total_cases} cases", flush=True)
+        print(f"Execution mode: SERIAL (independent subprocess per case)", flush=True)
+        print(f"{'=' * 80}\n", flush=True)
 
-            future = executor.submit(
-                _execute_worker_batch,
-                batch,
-                batch_id,
-                test_dir,
-                report_dir,
-                merged_env,
-                timeout,
-                verbose,
-                shard,
-                shard_type,
-                device_id,
-                result_aggregator,
-                progress_tracker,
-                log_queue,
-            )
-            futures.append((future, batch_id))
+        print(f"Phase: Executing {total_cases} distributed cases serially...\n", flush=True)
+        _execute_distributed_serial(
+            tasks, shard, test_dir, report_dir, merged_env, timeout, verbose,
+            result_aggregator, progress_tracker, log_queue,
+        )
+    else:
+        # Sort and batch tasks: group same-file cases, max 100 per batch
+        batches = sort_and_batch_tasks(tasks, max_cases_per_batch=100)
 
-        # Check for exceptions
-        for future, batch_id in futures:
-            try:
-                future.result()
-            except Exception as e:
-                print(f"  ERROR: Batch {batch_id} execution failed: {str(e)[:200]}", flush=True)
+        print(f"\n{'=' * 80}", flush=True)
+        print(f"Pre-collected cases: {total_cases} cases", flush=True)
+        print(f"Execution mode: {max_workers} workers concurrent, "
+              f"{len(batches)} batches (max 100 same-file cases per batch, pytest.main() per case)", flush=True)
+        print(f"{'=' * 80}\n", flush=True)
+
+        # Print batch summary
+        for bi, b in enumerate(batches):
+            display_file = b[0].test_file
+            if display_file.startswith("test/"):
+                display_file = display_file[5:]
+            print(f"  Batch {bi}: {len(b)} cases from {display_file}")
+
+        print(f"\nPhase: Executing {total_cases} pre-collected cases in {len(batches)} batches...", flush=True)
+
+        # Execute batches via ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = []
+            for batch_id, batch in enumerate(batches):
+                # Calculate device ID (round-robin by batch_id)
+                if num_npu_devices is not None:
+                    device_id = batch_id % num_npu_devices
+                else:
+                    device_id = None
+
+                future = executor.submit(
+                    _execute_worker_batch,
+                    batch,
+                    batch_id,
+                    test_dir,
+                    report_dir,
+                    merged_env,
+                    timeout,
+                    verbose,
+                    shard,
+                    shard_type,
+                    device_id,
+                    result_aggregator,
+                    progress_tracker,
+                    log_queue,
+                )
+                futures.append((future, batch_id))
+
+            # Check for exceptions
+            for future, batch_id in futures:
+                try:
+                    future.result()
+                except Exception as e:
+                    print(f"  ERROR: Batch {batch_id} execution failed: {str(e)[:200]}", flush=True)
 
     # Stop log thread
     elapsed = monotonic() - start
@@ -705,6 +714,10 @@ def build_execution_env(
         # The disabled_testcases.json format is similar to .pytorch-disabled-tests.json
         # Set DISABLED_TESTS_FILE to use PyTorch's built-in skip mechanism
         updates["DISABLED_TESTS_FILE"] = os.path.abspath(disabled_testcases_file)
+
+    # Distributed tests default timeout is 300s, override to 1200s
+    if shard_type == "distributed":
+        updates["DISTRIBUTED_TESTS_DEFAULT_TIMEOUT"] = "1200"
 
     return updates
 
@@ -828,6 +841,9 @@ def _execute_worker_batch(
                         try:
                             case_result = json.loads(line)
                         except json.JSONDecodeError:
+                            continue
+
+                        if not isinstance(case_result, dict):
                             continue
 
                         nodeid = case_result.get("nodeid", "")
@@ -1065,7 +1081,7 @@ def _worker_main(worker_input_file: str) -> None:
     test_dir = Path(batch_input["test_dir"])
     report_dir = Path(batch_input["report_dir"])
     env_updates = batch_input.get("env_updates", {})
-    timeout = batch_input.get("timeout", 1200)
+    timeout = batch_input.get("timeout", 600)
     verbose = batch_input.get("verbose", False)
     shard = batch_input.get("shard", 0)
     shard_type = batch_input.get("shard_type", "regular")
@@ -1208,6 +1224,129 @@ def _worker_main(worker_input_file: str) -> None:
     sys.stdout.flush()
     sys.stderr.flush()
     os._exit(0)
+
+
+def _execute_distributed_serial(
+    tasks: List[CaseExecutionTask],
+    shard: int,
+    test_dir: Path,
+    report_dir: Path,
+    merged_env: Dict[str, str],
+    timeout: int,
+    verbose: bool,
+    result_aggregator: ConcurrentResultAggregator,
+    progress_tracker: ProgressTracker,
+    log_queue: Queue,
+) -> None:
+    """
+    Execute distributed test cases serially, each in an independent subprocess.
+
+    Unlike regular tests that use pytest.main() in a batch worker, distributed
+    tests run each case as a standalone ``python -m pytest <case>`` subprocess.
+    This avoids in-process state pollution from distributed communication
+    primitives (e.g. torch.distributed.init_process_group).
+    """
+    junit_xml_dir = report_dir / "junit_xmls"
+    total = len(tasks)
+
+    for i, task in enumerate(tasks):
+        nodeid = task.nodeid
+        case_nodeid = nodeid[5:] if nodeid.startswith("test/") else nodeid
+
+        safe_name = sanitize_nodeid_for_filename(nodeid)
+        xml_filename = f"dist-{shard}_{task.case_idx}_{safe_name}.xml"
+        xml_file = junit_xml_dir / xml_filename
+
+        pytest_cmd = [
+            sys.executable, "-u", "-m", "pytest",
+            "--color=no", "-ra", "--tb=short",
+            case_nodeid,
+            f"--junitxml={xml_file}",
+        ]
+        if timeout > 0:
+            pytest_cmd.append(f"--timeout={timeout}")
+        if verbose:
+            pytest_cmd.append("-vv")
+        else:
+            pytest_cmd.append("-v")
+
+        command_str = " ".join(pytest_cmd)
+        display_nodeid = nodeid[:70] + "..." if len(nodeid) > 70 else nodeid
+
+        print(f"[{i + 1}/{total}] Running: {display_nodeid}", flush=True)
+
+        start_time = monotonic()
+
+        try:
+            proc = subprocess.run(
+                pytest_cmd,
+                cwd=str(test_dir),
+                env=merged_env,
+                capture_output=True,
+                text=True,
+                timeout=timeout + 30,
+            )
+            returncode = proc.returncode
+            stdout = proc.stdout
+            stderr = proc.stderr
+        except subprocess.TimeoutExpired:
+            returncode = -1
+            stdout = ""
+            stderr = "Subprocess timeout exceeded"
+
+        duration = monotonic() - start_time
+
+        xml_result = parse_junit_xml_status(xml_file)
+        if xml_result["status"] == "no_xml":
+            status = "error"
+            message = xml_result.get("message", "")
+        else:
+            status = xml_result["status"]
+            message = xml_result.get("message", "")
+
+        save_case_log(
+            report_dir=report_dir,
+            shard=shard,
+            shard_type="distributed",
+            nodeid=nodeid,
+            case_idx=task.case_idx,
+            status=status,
+            stdout=stdout,
+            stderr=stderr,
+            duration=duration,
+            returncode=returncode,
+            command=command_str,
+            npu_device_id=None,
+        )
+
+        case_result = {
+            "case_idx": task.case_idx,
+            "nodeid": nodeid,
+            "status": status,
+            "duration": duration,
+            "returncode": returncode,
+            "message": message,
+            "command": command_str,
+            "file": task.test_file,
+        }
+
+        result_aggregator.add_case_result(case_result)
+        progress_tracker.mark_completed(nodeid, status, duration)
+
+        log_queue.put({
+            "type": "case_finish",
+            "case_idx": task.case_idx,
+            "nodeid": nodeid,
+            "status": status,
+            "duration": duration,
+            "message": message[:200],
+        })
+
+        status_marker = {
+            "passed": "PASS", "failed": "FAIL", "error": "ERROR",
+            "skipped": "SKIP", "timeout": "TIME",
+        }.get(status, status.upper())
+        print(f"  [{status_marker}] {display_nodeid} ({duration:.1f}s)", flush=True)
 
 
 def save_results_and_summary(
@@ -1463,7 +1602,10 @@ def main():
         print(f"Test files specified: {len(planned_tests)}")
         print(f"Test directory: {test_dir}")
         print(f"Test type: {shard_type}")
-        print(f"Execution mode: {execution_mode} ({effective_workers} workers, pytest.main() per case, batched by file)")
+        if has_distributed:
+            print(f"Execution mode: SERIAL (independent subprocess per case)")
+        else:
+            print(f"Execution mode: CONCURRENT ({effective_workers} workers, pytest.main() per case, batched by file)")
         if has_distributed:
             distributed_files = [f for f in planned_tests if f.startswith("test/distributed/")]
             print(f"  Distributed files: {len(distributed_files)}")
@@ -1605,7 +1747,7 @@ def main():
 
         # Execution mode based on test_type
         if shard_type == "distributed":
-            print(f"Execution mode: SERIAL (pytest.main() per case, batched by file)")
+            print(f"Execution mode: SERIAL (independent subprocess per case)")
         else:
             print(f"Execution mode: CONCURRENT ({args.max_workers} workers, pytest.main() per case, batched by file)")
 
@@ -1648,9 +1790,9 @@ def main():
         if tasks:
             # Determine execution mode and worker count
             if shard_type == "distributed":
-                # Distributed: serial execution (1 worker)
+                # Distributed: serial execution with independent subprocess per case
                 effective_workers = 1
-                print(f"\nExecution mode: SERIAL (distributed tests require sequential execution)")
+                print(f"\nExecution mode: SERIAL (independent subprocess per case)")
             else:
                 # Regular: concurrent execution
                 effective_workers = args.max_workers
