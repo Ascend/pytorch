@@ -4,7 +4,8 @@ from torch._inductor.utils import IndentedBuffer
 from torch.fx.node import Argument, Target
 
 from .fx_pass import annotate_mm_transpose_flags
-from .op_emitter import DVM_OP_REGISTRY, load, store, view_load
+from .load_codegen import choose_load_codegen
+from .op_emitter import DVM_OP_REGISTRY, load, store
 
 
 aten = torch.ops.aten
@@ -13,10 +14,13 @@ aten = torch.ops.aten
 def is_fx_dynamic(graph):
     for node in graph.graph.nodes:
         if node.op == "placeholder" or node.op == "call_function":
-            if isinstance(node.meta["val"], torch.Tensor):
-                if any(isinstance(dim, torch.SymInt) for dim in node.meta["val"].shape):
+            val = node.meta.get("val")
+            if val is None:
+                continue
+            if isinstance(val, torch.Tensor):
+                if any(isinstance(dim, torch.SymInt) for dim in val.shape):
                     return True
-            elif isinstance(node.meta["val"], (torch.SymInt, torch.SymFloat)):
+            elif isinstance(val, (torch.SymInt, torch.SymFloat)):
                 return True
     return False
 
@@ -97,38 +101,28 @@ class DvmCodegenInterpreter(torch.fx.Interpreter):
             self.cont_flag_input.append(True)
             return "k.scalar(dvm.float32)"
 
-        is_contiguous = val.is_contiguous()
         shape, stride, dtype = val.shape, val.stride(), val.dtype
         is_symbolic = any(
             isinstance(s, torch.SymInt) and s.node.is_symbolic() for s in shape
         )
-        shape = [-1 if isinstance(s, torch.SymInt) else s for s in shape]
-        stride = [-1 if isinstance(s, torch.SymInt) else s for s in stride]
         self.need_trans_input.append(meta.get("trans", False))
-        if self.is_mix_kernel:
-            if meta.get("trans", False):
-                self.cont_flag_input.append(True)
-                shape = val.mT.shape
-                shape = [-1 if isinstance(s, torch.SymInt) else s for s in shape]
-                return load(shape, dtype)
-            else:
-                self.cont_flag_input.append(is_contiguous)
-                return load(shape, dtype)
-        else:
-            if is_contiguous:
-                self.cont_flag_input.append(True)
-                return load(shape, dtype)
-            else:
-                if is_symbolic or not self.use_view:
-                    self.cont_flag_input.append(False)
-                    return load(shape, dtype)
-                else:
-                    if stride[-1] == 1 and shape[-1] != 1:
-                        self.cont_flag_input.append(True)
-                        return view_load(shape, stride, dtype)
-                    else:
-                        self.cont_flag_input.append(False)
-                        return load(shape, dtype)
+        if self.is_mix_kernel and meta.get("trans", False):
+            self.cont_flag_input.append(True)
+            trans_shape = val.mT.shape
+            trans_shape = [
+                -1 if isinstance(s, torch.SymInt) else s for s in trans_shape
+            ]
+            return load(trans_shape, dtype)
+
+        expr, cont_flag = choose_load_codegen(
+            shape,
+            stride,
+            dtype,
+            use_view=self.use_view,
+            is_symbolic=is_symbolic,
+        )
+        self.cont_flag_input.append(cont_flag)
+        return expr
 
     def call_function(
         self, target: "Target", args: tuple[Argument, ...], kwargs: dict[str, Argument]

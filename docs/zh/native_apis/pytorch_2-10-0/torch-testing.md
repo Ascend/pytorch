@@ -6,6 +6,6 @@
 
 |API名称|是否支持|限制与说明|
 |--|--|--|
-|torch.testing.assert_close|是|支持fp32|
-|torch.testing.make_tensor|是|支持fp32，bool|
-|torch.testing.assert_allclose|是|支持fp32|
+|[torch.testing.assert_close](https://pytorch.org/docs/2.10/testing.html#torch.testing.assert_close)|是|支持fp32|
+|[torch.testing.make_tensor](https://pytorch.org/docs/2.10/testing.html#torch.testing.make_tensor)|是|支持fp32，bool|
+|[torch.testing.assert_allclose](https://pytorch.org/docs/2.10/testing.html#torch.testing.assert_allclose)|是|支持fp32|

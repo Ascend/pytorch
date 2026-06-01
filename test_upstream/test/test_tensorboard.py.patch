@@ -1,21 +1,210 @@
 diff --git a/test/test_tensorboard.py b/test/test_tensorboard.py
-index c5a2e97..bfe1bf4 100644
+index c5a2e9702b2..78428e6f01a 100644
 --- a/test/test_tensorboard.py
 +++ b/test/test_tensorboard.py
-@@ -24,6 +24,7 @@ try:
-     import torchvision
- except ImportError:
-     HAS_TORCHVISION = False
-+
- skipIfNoTorchVision = unittest.skipIf(not HAS_TORCHVISION, "no torchvision")
+@@ -11,6 +11,9 @@ from pathlib import Path
+ import expecttest
+ import numpy as np
  
- TEST_MATPLOTLIB = True
-@@ -50,7 +51,7 @@ from torch.testing._internal.common_utils import (
-     xfailIfS390X,
- )
- 
--
++import torch
++import torch_npu
 +from torch_npu.contrib import transfer_to_npu
- def tensor_N(shape, dtype=float):
-     numel = np.prod(shape)
-     x = (np.arange(numel, dtype=dtype)).reshape(shape)
+ 
+ TEST_TENSORBOARD = True
+ try:
+@@ -37,7 +40,6 @@ except ImportError:
+     TEST_MATPLOTLIB = False
+ skipIfNoMatplotlib = unittest.skipIf(not TEST_MATPLOTLIB, "no matplotlib")
+ 
+-import torch
+ from torch.testing._internal.common_utils import (
+     instantiate_parametrized_tests,
+     IS_MACOS,
+@@ -98,7 +100,7 @@ if TEST_TENSORBOARD:
+ 
+ class TestTensorBoardPyTorchNumpy(BaseTestCase):
+     def test_pytorch_np(self):
+-        tensors = [torch.rand(3, 10, 10), torch.rand(1), torch.rand(1, 2, 3, 4, 5)]
++        tensors = [torch.rand(3, 10, 10).to("npu"), torch.rand(1).to("npu"), torch.rand(1, 2, 3, 4, 5).to("npu")]
+         for tensor in tensors:
+             # regular tensor
+             self.assertIsInstance(make_np(tensor), np.ndarray)
+@@ -121,23 +123,23 @@ class TestTensorBoardPyTorchNumpy(BaseTestCase):
+         self.assertIsInstance(make_np(0.1), np.ndarray)
+ 
+     def test_pytorch_autograd_np(self):
+-        x = torch.autograd.Variable(torch.empty(1))
++        x = torch.autograd.Variable(torch.empty(1).to("npu"))
+         self.assertIsInstance(make_np(x), np.ndarray)
+ 
+     def test_pytorch_write(self):
+         with self.createSummaryWriter() as w:
+-            w.add_scalar("scalar", torch.autograd.Variable(torch.rand(1)), 0)
++            w.add_scalar("scalar", torch.autograd.Variable(torch.rand(1).to("npu")), 0)
+ 
+     def test_pytorch_histogram(self):
+         with self.createSummaryWriter() as w:
+-            w.add_histogram("float histogram", torch.rand((50,)))
+-            w.add_histogram("int histogram", torch.randint(0, 100, (50,)))
+-            w.add_histogram("bfloat16 histogram", torch.rand(50, dtype=torch.bfloat16))
++            w.add_histogram("float histogram", torch.rand((50,)).to("npu"))
++            w.add_histogram("int histogram", torch.randint(0, 100, (50,)).to("npu"))
++            w.add_histogram("bfloat16 histogram", torch.rand(50, dtype=torch.bfloat16).to("npu"))
+ 
+     def test_pytorch_histogram_raw(self):
+         with self.createSummaryWriter() as w:
+             num = 50
+-            floats = make_np(torch.rand((num,)))
++            floats = make_np(torch.rand((num,)).to("npu"))
+             bins = [0.0, 0.25, 0.5, 0.75, 1.0]
+             counts, limits = np.histogram(floats, bins)
+             sum_sq = floats.dot(floats).item()
+@@ -152,7 +154,7 @@ class TestTensorBoardPyTorchNumpy(BaseTestCase):
+                 bucket_counts=counts.tolist(),
+             )
+ 
+-            ints = make_np(torch.randint(0, 100, (num,)))
++            ints = make_np(torch.randint(0, 100, (num,)).to("npu"))
+             bins = [0, 25, 50, 75, 100]
+             counts, limits = np.histogram(ints, bins)
+             sum_sq = ints.dot(ints).item()
+@@ -167,10 +169,10 @@ class TestTensorBoardPyTorchNumpy(BaseTestCase):
+                 bucket_counts=counts.tolist(),
+             )
+ 
+-            ints = torch.tensor(range(0, 100)).float()
++            ints = torch.tensor(range(0, 100)).float().to("npu")
+             nbins = 100
+             counts = torch.histc(ints, bins=nbins, min=0, max=99)
+-            limits = torch.tensor(range(nbins))
++            limits = torch.tensor(range(nbins)).to("npu")
+             sum_sq = ints.dot(ints).item()
+             w.add_histogram_raw(
+                 "int histogram raw",
+@@ -344,9 +346,9 @@ class TestTensorBoardSummaryWriter(BaseTestCase):
+ class TestTensorBoardEmbedding(BaseTestCase):
+     def test_embedding(self):
+         w = self.createSummaryWriter()
+-        all_features = torch.tensor([[1.0, 2.0, 3.0], [5.0, 4.0, 1.0], [3.0, 7.0, 7.0]])
+-        all_labels = torch.tensor([33.0, 44.0, 55.0])
+-        all_images = torch.zeros(3, 3, 5, 5)
++        all_features = torch.tensor([[1.0, 2.0, 3.0], [5.0, 4.0, 1.0], [3.0, 7.0, 7.0]]).to("npu")
++        all_labels = torch.tensor([33.0, 44.0, 55.0]).to("npu")
++        all_images = torch.zeros(3, 3, 5, 5).to("npu")
+ 
+         w.add_embedding(
+             all_features, metadata=all_labels, label_img=all_images, global_step=2
+@@ -365,9 +367,9 @@ class TestTensorBoardEmbedding(BaseTestCase):
+ 
+     def test_embedding_64(self):
+         w = self.createSummaryWriter()
+-        all_features = torch.tensor([[1.0, 2.0, 3.0], [5.0, 4.0, 1.0], [3.0, 7.0, 7.0]])
+-        all_labels = torch.tensor([33.0, 44.0, 55.0])
+-        all_images = torch.zeros((3, 3, 5, 5), dtype=torch.float64)
++        all_features = torch.tensor([[1.0, 2.0, 3.0], [5.0, 4.0, 1.0], [3.0, 7.0, 7.0]]).to("npu")
++        all_labels = torch.tensor([33.0, 44.0, 55.0]).to("npu")
++        all_images = torch.zeros((3, 3, 5, 5), dtype=torch.float64).to("npu")
+ 
+         w.add_embedding(
+             all_features, metadata=all_labels, label_img=all_images, global_step=2
+@@ -625,12 +627,12 @@ def write_proto(str_to_compare, function_ptr):
+ 
+ class TestTensorBoardPytorchGraph(BaseTestCase):
+     def test_pytorch_graph(self):
+-        dummy_input = (torch.zeros(1, 3),)
++        dummy_input = (torch.zeros(1, 3).to("npu"),)
+ 
+         class myLinear(torch.nn.Module):
+             def __init__(self) -> None:
+                 super().__init__()
+-                self.l = torch.nn.Linear(3, 5)
++                self.l = torch.nn.Linear(3, 5).to("npu")
+ 
+             def forward(self, x):
+                 return self.l(x)
+@@ -658,14 +660,14 @@ class TestTensorBoardPytorchGraph(BaseTestCase):
+ 
+     def test_nested_nn_squential(self):
+ 
+-        dummy_input = torch.randn(2, 3)
++        dummy_input = torch.randn(2, 3).to("npu")
+ 
+         class InnerNNSquential(torch.nn.Module):
+             def __init__(self, dim1, dim2):
+                 super().__init__()
+                 self.inner_nn_squential = torch.nn.Sequential(
+-                    torch.nn.Linear(dim1, dim2),
+-                    torch.nn.Linear(dim2, dim1),
++                    torch.nn.Linear(dim1, dim2).to("npu"),
++                    torch.nn.Linear(dim2, dim1).to("npu"),
+                 )
+ 
+             def forward(self, x):
+@@ -709,7 +711,7 @@ class TestTensorBoardPytorchGraph(BaseTestCase):
+         class Model(torch.nn.Module):
+             def __init__(self) -> None:
+                 super().__init__()
+-                self.l = torch.nn.Linear(3, 5)
++                self.l = torch.nn.Linear(3, 5).to("npu")
+ 
+             def forward(self, x):
+                 return self.l(x)
+@@ -717,12 +719,12 @@ class TestTensorBoardPytorchGraph(BaseTestCase):
+         class ModelDict(torch.nn.Module):
+             def __init__(self) -> None:
+                 super().__init__()
+-                self.l = torch.nn.Linear(3, 5)
++                self.l = torch.nn.Linear(3, 5).to("npu")
+ 
+             def forward(self, x):
+                 return {"out": self.l(x)}
+ 
+-        dummy_input = torch.zeros(1, 3)
++        dummy_input = torch.zeros(1, 3).to("npu")
+ 
+         with self.createSummaryWriter() as w:
+             w.add_graph(Model(), dummy_input)
+@@ -739,7 +741,7 @@ class TestTensorBoardPytorchGraph(BaseTestCase):
+             w.add_graph(ModelDict(), dummy_input, use_strict_trace=False)
+ 
+     def test_mlp_graph(self):
+-        dummy_input = (torch.zeros(2, 1, 28, 28),)
++        dummy_input = (torch.zeros(2, 1, 28, 28).to("npu"),)
+ 
+         # This MLP class with the above input is expected
+         # to fail JIT optimizations as seen at
+@@ -751,9 +753,9 @@ class TestTensorBoardPytorchGraph(BaseTestCase):
+             def __init__(self) -> None:
+                 super().__init__()
+                 self.input_len = 1 * 28 * 28
+-                self.fc1 = torch.nn.Linear(self.input_len, 1200)
+-                self.fc2 = torch.nn.Linear(1200, 1200)
+-                self.fc3 = torch.nn.Linear(1200, 10)
++                self.fc1 = torch.nn.Linear(self.input_len, 1200).to("npu")
++                self.fc2 = torch.nn.Linear(1200, 1200).to("npu")
++                self.fc3 = torch.nn.Linear(1200, 10).to("npu")
+ 
+             def forward(self, x, update_batch_stats=True):
+                 h = torch.nn.functional.relu(self.fc1(x.view(-1, self.input_len)))
+@@ -767,8 +769,8 @@ class TestTensorBoardPytorchGraph(BaseTestCase):
+ 
+     def test_wrong_input_size(self):
+         with self.assertRaises(RuntimeError):
+-            dummy_input = torch.rand(1, 9)
+-            model = torch.nn.Linear(3, 5)
++            dummy_input = torch.rand(1, 9).to("npu")
++            model = torch.nn.Linear(3, 5).to("npu")
+             with self.createSummaryWriter() as w:
+                 w.add_graph(model, dummy_input)  # error
+ 
+@@ -787,8 +789,8 @@ class TestTensorBoardPytorchGraph(BaseTestCase):
+         }
+         for model_name, input_shape in model_input_shapes.items():
+             with self.createSummaryWriter() as w:
+-                model = getattr(torchvision.models, model_name)()
+-                w.add_graph(model, torch.zeros(input_shape))
++                model = getattr(torchvision.models, model_name)().to("npu")
++                w.add_graph(model, torch.zeros(input_shape).to("npu"))
+ 
+ 
+ class TestTensorBoardFigure(BaseTestCase):

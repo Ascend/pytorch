@@ -37,7 +37,7 @@ export INDUCTOR_ASCEND_CHECK_ACCURACY_RTOL_ATOL="rtol=1e-6,atol=1e-7"
 
 ## 使用约束
 
-- 此环境变量仅可在PyTorch2.7.1，PyTorch2.9.0和PyTorch2.10版本使用。
+- 此环境变量仅可在PyTorch2.7.1和PyTorch2.9.0版本使用。
 
 - 在torch.compile图编译后端为“Inductor”时可使用此环境变量。
 

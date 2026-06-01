@@ -45,7 +45,7 @@ def to_dvm_dtype(dtype):
     return dtype
 
 
-def _check_dtype(inputs, supported_dtypes, allow_cpu=False):
+def _check_dtype(inputs, supported_dtypes):
     for inp in inputs:
         if not isinstance(inp, torch.fx.Node):
             continue
@@ -57,31 +57,11 @@ def _check_dtype(inputs, supported_dtypes, allow_cpu=False):
                 continue
             if meta.dtype not in supported_dtypes:
                 return False
-            if meta.is_cpu and not allow_cpu:
-                return False
     return True
 
 
-def common_rule(node: torch.fx.Node):
-    return _check_dtype(
-        pytree.arg_tree_leaves(*node.args, **node.kwargs), DVM_SUPPORT_FLOAT_TYPE
-    ) and _check_dtype([node], supported_dtypes=DVM_SUPPORT_TYPE)
-
-
-def full_rule(node: torch.fx.Node):
-    return _check_dtype([node], supported_dtypes=DVM_SUPPORT_TYPE, allow_cpu=True)
-
-
-def cast_rule(node: torch.fx.Node):
-    return _check_dtype(node.args, supported_dtypes=DVM_SUPPORT_TYPE) and _check_dtype(
-        [node], supported_dtypes=DVM_SUPPORT_TYPE
-    )
-
-
 def where_rule(node: torch.fx.Node):
-    return _check_dtype(node.args[1:], DVM_SUPPORT_FLOAT_TYPE) and _check_dtype(
-        [node], supported_dtypes=DVM_SUPPORT_TYPE
-    )
+    return _check_dtype(node.args[1:], DVM_SUPPORT_FLOAT_TYPE)
 
 
 def _is_last2_transpose_tensor(t: torch._subclasses.FakeTensor) -> bool:
@@ -164,13 +144,63 @@ def mm_rule(node: torch.fx.Node):
     )
 
 
-def register_dvm_op(*ops, rule=common_rule):
+class DvmOpInfo:
+    def __init__(
+        self,
+        func,
+        input_dtypes=DVM_SUPPORT_FLOAT_TYPE,
+        output_dtypes=DVM_SUPPORT_FLOAT_TYPE,
+        rule=None,
+    ):
+        self.func = func
+        self.input_dtypes = input_dtypes
+        self.output_dtypes = output_dtypes
+        self.rule = rule
+
+    def is_supported(self, node: torch.fx.Node):
+        inputs = pytree.arg_tree_leaves(*node.args, **node.kwargs)
+        return (
+            (
+                self.input_dtypes is None
+                or _check_dtype(inputs, self.input_dtypes)
+            )
+            and (
+                self.output_dtypes is None
+                or _check_dtype([node], self.output_dtypes)
+            )
+            and (self.rule is None or self.rule(node))
+        )
+
+    def __iter__(self):
+        yield self.func
+        yield self.is_supported
+
+
+def register_dvm_op(
+    *ops,
+    input_dtypes=DVM_SUPPORT_FLOAT_TYPE,
+    output_dtypes=DVM_SUPPORT_FLOAT_TYPE,
+    rule=None,
+):
     def decorator(func):
+        info = DvmOpInfo(
+            func,
+            input_dtypes=input_dtypes,
+            output_dtypes=output_dtypes,
+            rule=rule,
+        )
         for op in ops:
-            DVM_OP_REGISTRY[op] = (func, rule)
+            DVM_OP_REGISTRY[op] = info
         return func
 
     return decorator
+
+
+_DEFAULT_OP_INFO = DvmOpInfo(None)
+
+
+def common_rule(node: torch.fx.Node):
+    return _DEFAULT_OP_INFO.is_supported(node)
 
 
 def format_shape(shape):
@@ -179,17 +209,32 @@ def format_shape(shape):
     return "[" + ", ".join(map(str, shape)) + "]"
 
 
-@register_dvm_op(aten.add.Tensor, aten.add.Scalar)
+@register_dvm_op(
+    aten.add.Tensor,
+    aten.add.Scalar,
+    input_dtypes=[*DVM_SUPPORT_FLOAT_TYPE, torch.int32],
+    output_dtypes=[*DVM_SUPPORT_FLOAT_TYPE, torch.int32],
+)
 def add(x, y):
     return f"k.add({x}, {y})"
 
 
-@register_dvm_op(aten.sub.Tensor, aten.sub.Scalar)
+@register_dvm_op(
+    aten.sub.Tensor,
+    aten.sub.Scalar,
+    input_dtypes=[*DVM_SUPPORT_FLOAT_TYPE, torch.int32],
+    output_dtypes=[*DVM_SUPPORT_FLOAT_TYPE, torch.int32],
+)
 def sub(x, y):
     return f"k.sub({x}, {y})"
 
 
-@register_dvm_op(aten.mul.Tensor, aten.mul.Scalar)
+@register_dvm_op(
+    aten.mul.Tensor,
+    aten.mul.Scalar,
+    input_dtypes=[*DVM_SUPPORT_FLOAT_TYPE, torch.int32],
+    output_dtypes=[*DVM_SUPPORT_FLOAT_TYPE, torch.int32],
+)
 def mul(x, y):
     return f"k.mul({x}, {y})"
 
@@ -204,22 +249,42 @@ def pow_op(x, y):
     return f"k.pow({x}, {y})"
 
 
-@register_dvm_op(aten.lt.Tensor, aten.lt.Scalar)
+@register_dvm_op(
+    aten.lt.Tensor,
+    aten.lt.Scalar,
+    input_dtypes=[*DVM_SUPPORT_FLOAT_TYPE, torch.int32],
+    output_dtypes=[torch.bool],
+)
 def less(x, y):
     return f"k.less({x}, {y})"
 
 
-@register_dvm_op(aten.le.Tensor, aten.le.Scalar)
+@register_dvm_op(
+    aten.le.Tensor,
+    aten.le.Scalar,
+    input_dtypes=[*DVM_SUPPORT_FLOAT_TYPE, torch.int32],
+    output_dtypes=[torch.bool],
+)
 def less_equal(x, y):
     return f"k.less_equal({x}, {y})"
 
 
-@register_dvm_op(aten.gt.Tensor, aten.gt.Scalar)
+@register_dvm_op(
+    aten.gt.Tensor,
+    aten.gt.Scalar,
+    input_dtypes=[*DVM_SUPPORT_FLOAT_TYPE, torch.int32],
+    output_dtypes=[torch.bool],
+)
 def greater(x, y):
     return f"k.greater({x}, {y})"
 
 
-@register_dvm_op(aten.ge.Tensor, aten.ge.Scalar)
+@register_dvm_op(
+    aten.ge.Tensor,
+    aten.ge.Scalar,
+    input_dtypes=[*DVM_SUPPORT_FLOAT_TYPE, torch.int32],
+    output_dtypes=[torch.bool],
+)
 def greater_equal(x, y):
     return f"k.greater_equal({x}, {y})"
 
@@ -244,22 +309,40 @@ def clamp_max(x, max_value):
     return minimum(x, max_value)
 
 
-@register_dvm_op(aten.logical_and.default)
+@register_dvm_op(
+    aten.logical_and.default,
+    input_dtypes=[torch.bool],
+    output_dtypes=[torch.bool],
+)
 def logical_and(x, y):
     return f"k.logical_and({x}, {y})"
 
 
-@register_dvm_op(aten.logical_or.default)
+@register_dvm_op(
+    aten.logical_or.default,
+    input_dtypes=[torch.bool],
+    output_dtypes=[torch.bool],
+)
 def logical_or(x, y):
     return f"k.logical_or({x}, {y})"
 
 
-@register_dvm_op(aten.eq.Tensor, aten.eq.Scalar)
+@register_dvm_op(
+    aten.eq.Tensor,
+    aten.eq.Scalar,
+    input_dtypes=[*DVM_SUPPORT_FLOAT_TYPE, torch.int32],
+    output_dtypes=[torch.bool],
+)
 def equal(x, y):
     return f"k.equal({x}, {y})"
 
 
-@register_dvm_op(aten.ne.Tensor, aten.ne.Scalar)
+@register_dvm_op(
+    aten.ne.Tensor,
+    aten.ne.Scalar,
+    input_dtypes=[*DVM_SUPPORT_FLOAT_TYPE, torch.int32],
+    output_dtypes=[torch.bool],
+)
 def not_equal(x, y):
     return f"k.not_equal({x}, {y})"
 
@@ -294,12 +377,16 @@ def reciprocal(x):
     return f"k.reciprocal({x})"
 
 
-@register_dvm_op(aten.isfinite.default)
+@register_dvm_op(aten.isfinite.default, output_dtypes=[torch.bool])
 def is_finite(x):
     return f"k.is_finite({x})"
 
 
-@register_dvm_op(aten.logical_not.default)
+@register_dvm_op(
+    aten.logical_not.default,
+    input_dtypes=[torch.bool],
+    output_dtypes=[torch.bool],
+)
 def logical_not(x):
     return f"k.logical_not({x})"
 
@@ -331,20 +418,31 @@ def trunc(x):
     torch.ops.npu.npu_dtype_cast_backward.default,
     torch.ops.npu._npu_dtype_cast.default,
     torch.ops.npu._npu_dtype_cast_backward.default,
-    rule=cast_rule,
+    input_dtypes=DVM_SUPPORT_TYPE,
+    output_dtypes=DVM_SUPPORT_TYPE,
 )
 def cast(x, dtype):
     dtype = to_dvm_dtype(dtype)
     return f"k.cast({x}, {dtype})"
 
 
-@register_dvm_op(aten.expand.default)
+@register_dvm_op(
+    aten.expand.default,
+    input_dtypes=DVM_SUPPORT_TYPE,
+    output_dtypes=DVM_SUPPORT_TYPE,
+)
 def broadcast(x, shape):
     shape = format_shape(shape)
     return f"k.broadcast({x}, {shape})"
 
 
-@register_dvm_op(aten.where.default, aten.where.self, rule=where_rule)
+@register_dvm_op(
+    aten.where.default,
+    aten.where.self,
+    input_dtypes=None,
+    output_dtypes=DVM_SUPPORT_TYPE,
+    rule=where_rule,
+)
 def select(x, y, z):
     return f"k.select({x}, {y}, {z})"
 
@@ -373,7 +471,13 @@ def reduce_min(x, dim=None, keepdim=False):
     return f"k.min({x}, {dim}, {keepdim})"
 
 
-@register_dvm_op(aten.view.default, aten.reshape.default, aten._unsafe_view.default)
+@register_dvm_op(
+    aten.view.default,
+    aten.reshape.default,
+    aten._unsafe_view.default,
+    input_dtypes=DVM_SUPPORT_TYPE,
+    output_dtypes=DVM_SUPPORT_TYPE,
+)
 def reshape(x, shape):
     shape = format_shape(shape)
     return f"k.reshape({x}, {shape})"
@@ -398,7 +502,10 @@ def clone(x, memory_format=None):
     return copy(x)
 
 
-@register_dvm_op(aten.full.default, rule=full_rule)
+@register_dvm_op(
+    aten.full.default,
+    output_dtypes=DVM_SUPPORT_TYPE,
+)
 def full(
     size,
     fill_value,

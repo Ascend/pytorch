@@ -43,6 +43,7 @@
 #include "torch_npu/csrc/core/npu/NPUGraphsUtils.h"
 #include "torch_npu/csrc/core/npu/NPUAffinityController.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
+#include "torch_npu/csrc/core/npu/NPUStreamUtils.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/interface/OpInterface.h"
@@ -3935,6 +3936,9 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     op_id_++;
 
     const auto devices = getDeviceList(inputs);
+    for (const auto& device : devices) {
+        c10_npu::detail::checkCurrentStreamNotExternal(device.index(), "ProcessGroupHCCL::collective");
+    }
     auto key = getKeyFromDevices(devices);
     HcclCommConfig config = createHcclCommConfigWithOptions();
     std::vector<std::shared_ptr<HCCLComm>> hcclComms = getHCCLComm(key, devices, HcclCommType::DEFAULT, &config);
@@ -6784,6 +6788,12 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
             outputTensor.type() == inputTensor.type(),
             "Tensors are not equal in size or data type",
             DIST_ERROR(ErrCode::PARAM));
+        TORCH_CHECK(
+            inputTensor.dim() >= 1 && outputTensor.dim() >= 1,
+            "Scalar tensors (0-dim tensors) are not supported in alltoall. "
+            "inputTensor.dim()=", inputTensor.dim(), ", outputTensor.dim()=", outputTensor.dim(),
+            ". Please reshape tensors to at least 1-D before calling alltoall.",
+            DIST_ERROR(ErrCode::NOT_SUPPORT));
         TORCH_CHECK(
             outputTensor.size(0) % ranks == 0,
             "Tensor's dim 0 does not divide equally across group size",

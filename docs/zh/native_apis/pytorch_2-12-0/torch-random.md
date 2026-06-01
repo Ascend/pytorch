@@ -6,9 +6,9 @@
 
 |API名称|是否支持|限制与说明|
 |--|--|--|
-|torch.random.fork_rng|是|-|
-|torch.random.get_rng_state|是|-|
-|torch.random.initial_seed|是|-|
-|torch.random.manual_seed|是|-|
-|torch.random.seed|是|-|
-|torch.random.set_rng_state|是|-|
+|[torch.random.fork_rng](https://pytorch.org/docs/2.12/random.html#torch.random.fork_rng)|是|-|
+|[torch.random.get_rng_state](https://pytorch.org/docs/2.12/random.html#torch.random.get_rng_state)|是|-|
+|[torch.random.initial_seed](https://pytorch.org/docs/2.12/random.html#torch.random.initial_seed)|是|-|
+|[torch.random.manual_seed](https://pytorch.org/docs/2.12/random.html#torch.random.manual_seed)|是|-|
+|[torch.random.seed](https://pytorch.org/docs/2.12/random.html#torch.random.seed)|是|-|
+|[torch.random.set_rng_state](https://pytorch.org/docs/2.12/random.html#torch.random.set_rng_state)|是|-|

@@ -15,6 +15,7 @@ from torch_npu._inductor.dvm.fx_pass import (
     expand_dvm_mm_to_explicit_transpose_for_inductor,
 )
 from torch_npu._inductor.dvm.graph_build import DvmCodegenInterpreter
+from torch_npu._inductor.dvm.load_codegen import patch_gm_placeholder_strides_from_codegen_args
 from torch_npu._inductor.mfusion import subgraph_registry
 from torch_npu._inductor.mfusion.decomp import patch_decomp as patch_mfusion_decomp
 
@@ -677,8 +678,14 @@ def _emit_mfusion_dvm_codegen(
 ) -> None:
     # payload is already passed in from caller
     sub_gm._mfusion = True
+    args_list = list(args[:-1])
+    patch_gm_placeholder_strides_from_codegen_args(sub_gm, args_list)
     ktype = "mix" if _mfusion_has_matmul(sub_gm) else "vector"
-    cg = DvmCodegenInterpreter(sub_gm, ktype=ktype, is_dynamic=payload.is_dynamic)
+    cg = DvmCodegenInterpreter(
+        sub_gm,
+        ktype=ktype,
+        is_dynamic=payload.is_dynamic,
+    )
     cg.run()
     kernel_name = f"mfusion_dvm_{self.next_kernel_suffix()}"
     cg.append_mfusion_kernel_profiling_metadata(
@@ -690,7 +697,6 @@ def _emit_mfusion_dvm_codegen(
     logger.debug("dvm codegen: %s", code)
 
     buf_name = fallback_kernel.get_name()
-    args_list = list(args[:-1])
     if len(args_list) != len(cg.cont_flag_input):
         raise RuntimeError(
             "mfusion dvm codegen arg mismatch: "

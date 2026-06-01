@@ -321,9 +321,13 @@ bool hcclAllGatherVExist()
     static bool exist = false;
     c10::call_once(flag, [&]() {
         auto func = TORCH_NPU_GET_FUNC(HcclAllGatherV)
+        const auto soc_version = c10_npu::GetSocVersion();
+        const bool is_atlas_a3 = (soc_version >= c10_npu::SocVersion::Ascend910_9391) &&
+            (soc_version <= c10_npu::SocVersion::Ascend910_9362);
         if (func != nullptr &&
-            c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend310P1 &&
-            c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend310B1) {
+            (((soc_version >= c10_npu::SocVersion::Ascend310P1) &&
+              (soc_version < c10_npu::SocVersion::Ascend310B1)) ||
+             is_atlas_a3)) {
             exist = true;
         }
     });
@@ -336,10 +340,14 @@ bool hcclReduceScatterVExist()
     static bool exist = false;
     c10::call_once(flag, [&]() {
         auto func = TORCH_NPU_GET_FUNC(HcclReduceScatterV)
+        const auto soc_version = c10_npu::GetSocVersion();
+        const bool is_atlas_a3 = (soc_version >= c10_npu::SocVersion::Ascend910_9391) &&
+            (soc_version <= c10_npu::SocVersion::Ascend910_9362);
         if (func != nullptr &&
-            ((c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend310P1 &&
-              c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend310B1) ||
-              c10_npu::GetSocVersion() == c10_npu::SocVersion::Ascend950)) {
+            (((soc_version >= c10_npu::SocVersion::Ascend310P1) &&
+              (soc_version < c10_npu::SocVersion::Ascend310B1)) ||
+             is_atlas_a3 ||
+             (soc_version == c10_npu::SocVersion::Ascend950))) {
             exist = true;
         }
     });

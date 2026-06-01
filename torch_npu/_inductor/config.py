@@ -257,26 +257,26 @@ def _parse_bool_env(name: str, default: bool = False) -> bool:
     return str(val).strip().lower() in ("1", "true", "yes", "on", "y")
 
 
-def _parse_int_env(name: str, default: int = 150, min_value: int = 1) -> int:
+def _parse_float_env(name: str, default: float = 0.25, min_value: float = 0.0, max_value: float = 1.0) -> float:
     val = os.environ.get(name)
     if val is None:
         return default
     try:
-        parsed = int(val)
+        parsed = float(val)
     except (TypeError, ValueError):
         log.warning("Invalid %s=%r, fallback to %s", name, val, default)
         return default
-    if parsed < min_value:
-        log.warning("Invalid %s=%r (must >= %s), fallback to %s", name, val, min_value, default)
+    if parsed <= min_value or parsed > max_value:
+        log.warning("Invalid %s=%r (must be in (%s, %s]), fallback to %s", name, val, min_value, max_value, default)
         return default
     return parsed
 
 
 # Frontend -> inductor controls (env-driven)
 # - INDUCTOR_ASCEND_ENABLE_COSTMODEL: whether to forward costmodel backend signal to triton-ascend
-# - INDUCTOR_ASCEND_COSTMODEL_TOPK: top-k hint forwarded to triton-ascend (for upstream policy use)
+# - INDUCTOR_ASCEND_COSTMODEL_RATIO: select the shortest-latency top ratio of configs
 enable_costmodel_backend = _parse_bool_env("INDUCTOR_ASCEND_ENABLE_COSTMODEL", False)
-costmodel_topk = _parse_int_env("INDUCTOR_ASCEND_COSTMODEL_TOPK", 150, 1)
+costmodel_ratio = _parse_float_env("INDUCTOR_ASCEND_COSTMODEL_RATIO", 0.25, 0.0, 1.0)
 
 max_precompiled_thread_num = (
     os.cpu_count() // 2

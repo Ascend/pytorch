@@ -49,6 +49,18 @@ index 1cb84a8..55b2226 100644
             skips=(
                 DecorateInfo(toleranceOverride({torch.float32: tol(atol=1e-03, rtol=1e-04)}),
                              'TestJit', 'test_variant_consistency_jit'),
+@@ -19999,10 +20006,11 @@ op_db: list[OpInfo] = [
+     OpInfo('to_sparse',
+            op=lambda x, *args: x.to_sparse(*args),
+            sample_inputs_func=sample_inputs_to_sparse,
+            dtypes=all_types_and_complex_and(torch.bool, torch.float16, torch.bfloat16),
+            backward_dtypes=floating_types(),
+            backward_dtypesIfCUDA=floating_types_and(torch.float16, torch.bfloat16),
++           gradcheck_fast_mode=False,
+            supports_out=False,
+            supports_sparse_csr=True,
+            supports_sparse_csc=True,
+            check_batched_grad=False,
 @@ -20297,7 +20300,7 @@ op_db: list[OpInfo] = [
          supports_out=False,
          supports_autograd=False,  # jiterator ops doesn't have backward defined

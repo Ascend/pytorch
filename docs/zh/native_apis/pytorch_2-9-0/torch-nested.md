@@ -5,9 +5,9 @@
 
 |API名称|是否支持|限制与说明|
 |--|--|--|
-|torch.nested.nested_tensor|是|目前嵌套张量只支持创建，不支持其他操作|
-|torch.nested.as_nested_tensor|是|目前嵌套张量只支持创建，不支持其他操作|
-|torch.nested.to_padded_tensor|否|-|
-|torch.nested.nested_tensor_from_jagged|否|-|
-|torch.nested.masked_select|否|-|
-|torch.nested.narrow|否|-|
+|[torch.nested.nested_tensor](https://pytorch.org/docs/2.9/nested.html#torch.nested.nested_tensor)|是|目前嵌套张量只支持创建，不支持其他操作|
+|[torch.nested.as_nested_tensor](https://pytorch.org/docs/2.9/nested.html#torch.nested.as_nested_tensor)|是|目前嵌套张量只支持创建，不支持其他操作|
+|[torch.nested.to_padded_tensor](https://pytorch.org/docs/2.9/nested.html#torch.nested.to_padded_tensor)|否|-|
+|[torch.nested.nested_tensor_from_jagged](https://pytorch.org/docs/2.9/nested.html#torch.nested.nested_tensor_from_jagged)|否|-|
+|[torch.nested.masked_select](https://pytorch.org/docs/2.9/nested.html#torch.nested.masked_select)|否|-|
+|[torch.nested.narrow](https://pytorch.org/docs/2.9/nested.html#torch.nested.narrow)|否|-|

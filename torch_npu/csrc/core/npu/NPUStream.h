@@ -120,6 +120,8 @@ C10_NPU_API NPUStream getNPUStreamFromPool(c10::DeviceIndex device = -1);
 
 C10_NPU_API NPUStream getDefaultNPUStream(c10::DeviceIndex device_index = -1);
 
+C10_NPU_API NPUStream getStreamFromExternal(aclrtStream stream, c10::DeviceIndex device_index);
+
 C10_NPU_API NPUStream getStreamFromPool(const bool isHighPriority, c10::DeviceIndex device_index);
 
 C10_NPU_API NPUStream getCurrentNPUStream(c10::DeviceIndex device_index = -1);
