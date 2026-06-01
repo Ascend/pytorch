@@ -1,5 +1,6 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates
 # Owner(s): ["oncall: distributed"]
+import contextlib
 import copy
 import csv
 import logging
@@ -666,6 +667,7 @@ class TestScheduleLowering(TestCase):
         This test runs on a single rank and just tests the 'stage1, stage2' portion for both F and B, comparing
         gradients to a reference model with 2 layers.
         """
+        torch.random.fork_rng = lambda *args, **kwargs: contextlib.nullcontext()
         store = FakeStore()
         torch.distributed.init_process_group(
             backend="fake", rank=0, world_size=1, store=store
@@ -778,6 +780,7 @@ class TestScheduleLowering(TestCase):
         Ensure that separate dInput and dWeight computations are correctly executed.
         This test runs on a single rank and just tests a single stage with 2 microbatches with separate B, W operations.
         """
+        torch.random.fork_rng = lambda *args, **kwargs: contextlib.nullcontext()
         store = FakeStore()
         torch.distributed.init_process_group(
             backend="fake", rank=0, world_size=1, store=store
