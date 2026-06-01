@@ -7,7 +7,7 @@ from typing import Any
 from itertools import groupby
 import base64
 import warnings
-import yaml
+# import yaml
 from torch.cuda._memory_viz import format_flamegraph
 import torch_npu
 
