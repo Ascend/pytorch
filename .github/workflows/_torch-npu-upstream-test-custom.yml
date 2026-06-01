@@ -31,7 +31,7 @@ defaults:
 jobs:
   run_tests:
     name: test_custom
-    runs-on: linux-aarch64-a3-8
+    runs-on: linux-aarch64-a3-16
     timeout-minutes: 1800
     container:
       image: ${{ inputs.docker_image }}
