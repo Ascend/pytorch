@@ -87,14 +87,21 @@ jobs:
           export BUILD_MODE="${{ inputs.build-mode }}"
           bash torch_npu/.ci/pytorch/build_torch_npu.sh
 
-      # Step 6: Integration verification
+      # Step 6: Install post-build dependencies (require torch pre-installed)
+      - name: Install post-build dependencies
+        run: |
+          source /opt/conda/etc/profile.d/conda.sh
+          conda activate py_3.10
+          pip install --progress-bar off -r torch_npu/.ci/docker/requirements-post.txt
+
+      # Step 7: Integration verification
       - name: Integration verification
         run: |
           source /opt/conda/etc/profile.d/conda.sh
           conda activate py_3.10
           bash torch_npu/.ci/pytorch/integration_verify.sh
 
-      # Step 7: Build summary
+      # Step 8: Build summary
       - name: Build summary
         run: |
           echo "============================================"

@@ -1,7 +1,7 @@
 # Python dependencies required for CI unit tests
 # Aligned with PyTorch upstream .ci/docker/requirements-ci.txt (CUDA 13.0 / py3.10 / jammy)
-
--f https://data.pyg.org/whl/torch-2.13.0+cpu.html
+# Note: torch-dependent packages (torchvision, torch_geometric, torch-scatter)
+#       are in requirements-post.txt, installed after PyTorch is built.
 
 # Core test frameworks
 pytest==7.3.2
@@ -44,9 +44,6 @@ jinja2==3.1.6
 filelock==3.20.3
 optree==0.13.0
 ml-dtypes==0.5.1
-torch_geometric==2.5.3
-torch-scatter==2.1.2
-torchvision==0.27.0.dev20260416
 transformers==4.40.0
 
 # Image / audio / ML

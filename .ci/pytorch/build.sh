@@ -54,11 +54,21 @@ case "${PYTORCH_BUILD_MODE}" in
 esac
 
 # Step 2: Build torch_npu
-echo ">>> Step 2/3: Building torch_npu..."
+echo ">>> Step 2/4: Building torch_npu..."
 TORCH_NPU_SRC="${TORCH_NPU_SRC}" BUILD_MODE="${BUILD_MODE}" bash "${SCRIPT_DIR}/build_torch_npu.sh"
 
-# Step 3: Integration verification
-echo ">>> Step 3/3: Verifying integration..."
+# Step 3: Install post-build dependencies (packages that require PyTorch)
+echo ">>> Step 3/4: Installing post-build dependencies..."
+REQUIREMENTS_POST="${TORCH_NPU_SRC}/.ci/docker/requirements-post.txt"
+if [ -f "${REQUIREMENTS_POST}" ]; then
+  pip_install -r "${REQUIREMENTS_POST}"
+  echo "Post-build dependencies installed."
+else
+  echo "WARNING: requirements-post.txt not found at ${REQUIREMENTS_POST}, skipping."
+fi
+
+# Step 4: Integration verification
+echo ">>> Step 4/4: Verifying integration..."
 bash "${SCRIPT_DIR}/integration_verify.sh"
 
 echo "============================================"

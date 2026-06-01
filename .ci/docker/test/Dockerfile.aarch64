@@ -74,8 +74,7 @@ RUN chmod -R 755 /opt/buildtools/* \
 # Install triton-ascend
 RUN /opt/buildtools/install_triton.sh ${PYTHON_VERSION}
 
-# Install PyTorch nightly and test requirements (via conda env, aligned with upstream pip_install pattern)
-RUN conda run -n py_${PYTHON_VERSION} pip install --no-cache-dir --index-url https://download.pytorch.org/whl/nightly/cpu --pre torch \
-    && conda run -n py_${PYTHON_VERSION} pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/nightly/cpu -r /opt/buildtools/requirements-test.txt
+# Install base test requirements (no PyTorch-dependent packages; torch is built separately)
+RUN conda run -n py_${PYTHON_VERSION} pip install --no-cache-dir -r /opt/buildtools/requirements-test.txt
 
 WORKDIR /home
