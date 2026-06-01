@@ -610,6 +610,28 @@ class TestSparseCoo(TestCase):
         self.assertEqual(res_npu.indices(), res_cpu.indices())
         self.assertEqual(res_npu.values(), res_cpu.values())
 
+    @unittest.skipIf(torch.npu.device_count() < 2, "only one NPU detected")
+    @SupportedDevices(['Ascend910B'])
+    def test_sparse_to_sparse_non_default_npu_device(self):
+        original_device = torch.npu.current_device()
+        try:
+            torch.npu.set_device(0)
+            tensor_npu = torch.tensor(
+                [[0.0, 1.0, 0.0], [2.0, 0.0, 3.0]], device="npu:1")
+
+            for sparse_dim in (None, 2):
+                res_npu = (
+                    tensor_npu.to_sparse()
+                    if sparse_dim is None
+                    else tensor_npu.to_sparse(sparse_dim)
+                )
+                self.assertEqual(res_npu.device, torch.device("npu:1"))
+                self.assertEqual(res_npu._indices().device, torch.device("npu:1"))
+                self.assertEqual(res_npu._values().device, torch.device("npu:1"))
+                self.assertRtolEqual(res_npu.to_dense(), tensor_npu)
+        finally:
+            torch.npu.set_device(original_device)
+
     @SupportedDevices(['Ascend910B'])
     def test_sparse_any(self):
         sparse_coo_npu, sparse_coo_cpu = self._create_sparse_coo_coalesced_tensor(torch.float)
