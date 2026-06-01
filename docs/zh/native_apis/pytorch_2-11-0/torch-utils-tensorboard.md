@@ -5,6 +5,7 @@
 
 |API名称|是否支持|限制与说明|
 |--|--|--|
+|[torch.utils.tensorboard.SummaryWriter](https://pytorch.org/docs/2.11/tensorboard.html#torch.utils.tensorboard.writer.SummaryWriter)|是|-|
 |[torch.utils.tensorboard.writer.SummaryWriter](https://pytorch.org/docs/2.11/tensorboard.html#torch.utils.tensorboard.writer.SummaryWriter)|是|-|
 |[torch.utils.tensorboard.writer.SummaryWriter.\_\_init_\_](https://pytorch.org/docs/2.11/tensorboard.html#torch.utils.tensorboard.writer.SummaryWriter.__init__)|是|-|
 |[torch.utils.tensorboard.writer.SummaryWriter.add_scalar](https://pytorch.org/docs/2.11/tensorboard.html#torch.utils.tensorboard.writer.SummaryWriter.add_scalar)|是|-|
