@@ -1,0 +1,32 @@
+name: Test Build Trigger
+
+on:
+  push:
+    branches:
+      - ci-test
+
+concurrency:
+  group: test-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.resolve.outputs.sha }}
+    steps:
+      - name: Resolve upstream PyTorch main HEAD
+        id: resolve
+        run: |
+          SHA=$(git ls-remote https://github.com/pytorch/pytorch.git refs/heads/main | awk '{print $1}')
+          echo "Upstream PyTorch main HEAD: ${SHA}"
+          echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: resolve
+    uses: ./.github/workflows/_build.yml
+    with:
+      upstream_repo: pytorch/pytorch
+      upstream_sha: ${{ needs.resolve.outputs.sha }}
+      upstream_fork_repo: ''
+      downstream_repo: ${{ github.repository }}

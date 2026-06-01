@@ -23,10 +23,112 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: linux-aarch64-a3-16
+    container:
+      image: ubuntu:22.04
+    env:
+      MAX_JOBS: 128
+      USE_CUDA: 0
+      USE_XNNPACK: 0
+      _GLIBCXX_USE_CXX11_ABI: 1
+      PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
     steps:
-      # Step 1: Checkout upstream PyTorch PR code
-      # Use fork repo if available (PR from fork), otherwise use upstream repo (push or PR from same repo)
+      # Step 1: Install system build dependencies
+      # Reference: upstream PyTorch .ci/docker/common/install_base.sh (Ubuntu 22.04 section)
+      - name: Install system dependencies
+        run: |
+          apt-get update -y
+          apt-get install -y --no-install-recommends \
+            build-essential \
+            cmake \
+            ninja-build \
+            autoconf \
+            automake \
+            libtool \
+            git \
+            curl \
+            wget \
+            ca-certificates \
+            libopenblas-dev \
+            libomp-dev \
+            libyaml-dev \
+            libffi-dev \
+            libbz2-dev \
+            libreadline-dev \
+            libncurses5-dev \
+            libncursesw5-dev \
+            libgdbm-dev \
+            libsqlite3-dev \
+            uuid-dev \
+            tk-dev \
+            gfortran \
+            unzip \
+            sudo \
+            vim \
+            jq \
+            gdb \
+            bc \
+            software-properties-common \
+            libjemalloc2 \
+            libjpeg-dev \
+            libsndfile-dev \
+            libatlas-base-dev \
+            libc6-dbg \
+            libz-dev
+          apt-get autoclean && apt-get clean
+          rm -rf /var/lib/apt/lists/*
+
+      # Step 2: Install GCC 11
+      # Reference: upstream PyTorch .ci/docker/common/install_gcc.sh
+      - name: Install GCC 11
+        run: |
+          add-apt-repository ppa:ubuntu-toolchain-r/test -y
+          apt-get update -y
+          apt-get install -y g++-11 gfortran-11
+          update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 50
+          update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-11 50
+          update-alternatives --install /usr/bin/gfortran gfortran /usr/bin/gfortran-11 50
+          gcc --version
+
+      # Step 3: Install Miniforge3 and create Python 3.10 conda environment
+      # Reference: upstream PyTorch .ci/docker/common/install_conda.sh (aarch64 path)
+      - name: Setup Miniforge3 and Python 3.10
+        run: |
+          MINIFORGE_URL="https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-$(uname -m).sh"
+          curl -L -o /tmp/miniforge.sh "${MINIFORGE_URL}"
+          bash /tmp/miniforge.sh -b -p /opt/conda
+          rm /tmp/miniforge.sh
+          export PATH="/opt/conda/bin:$PATH"
+          conda create -n py_3.10 -y \
+            python=3.10 \
+            sysroot_linux-aarch64=2.17 \
+            "icu<78"
+          # Install llvm-8 and libpython-static (matching upstream)
+          conda install -n py_3.10 -y llvmdev=8.0.0 "libpython-static=3.10"
+          # Install cmake via conda (matching upstream)
+          conda install -n py_3.10 -y cmake=3.31.6
+          # Install build deps via pip
+          conda run -n py_3.10 pip install --progress-bar off \
+            ninja \
+            numpy \
+            pyyaml \
+            setuptools \
+            packaging \
+            requests \
+            typing-extensions \
+            wheel \
+            sympy \
+            filelock \
+            fsspec \
+            jinja2 \
+            networkx \
+            optree \
+            psutil
+          # Persist PATH for subsequent steps
+          echo "PATH=/opt/conda/envs/py_3.10/bin:/opt/conda/bin:$PATH" >> "$GITHUB_ENV"
+
+      # Step 4: Checkout upstream PyTorch PR code
+      # Use fork repo if available (PR from fork), otherwise use upstream repo
       - name: Checkout upstream PyTorch PR
         uses: actions/checkout@v6
         with:
@@ -35,8 +137,10 @@ jobs:
           submodules: recursive
           path: pytorch
 
-      # Step 2: Build PyTorch
-      - name: Build PyTorch
+      # Step 5: Build and install PyTorch
+      # setup.py develop = build + editable install in one step
+      - name: Build and install PyTorch
+        working-directory: pytorch
         run: |
           echo "============================================"
           echo "Building PyTorch from upstream PR..."
@@ -46,26 +150,13 @@ jobs:
             echo "Repository: ${{ inputs.upstream_repo }}"
           fi
           echo "Commit SHA: ${{ inputs.upstream_sha }}"
+          echo "MAX_JOBS: ${MAX_JOBS}"
           echo "============================================"
-          # TODO: Add actual PyTorch build commands
-          # Example:
-          # cd pytorch
-          # pip install -r requirements.txt
-          # python setup.py develop
-          echo "[SIMULATED] PyTorch build completed successfully!"
+          pip install -r requirements.txt
+          python setup.py develop
+          python -c "import torch; print(f'PyTorch version: {torch.__version__}')"
 
-      # Step 3: Install PyTorch wheel
-      - name: Install PyTorch wheel
-        run: |
-          echo "============================================"
-          echo "Installing PyTorch wheel..."
-          echo "============================================"
-          # TODO: Add actual install commands
-          # Example:
-          # pip install pytorch/dist/torch*.whl
-          echo "[SIMULATED] PyTorch wheel installed successfully!"
-
-      # Step 4: Checkout downstream repo (torch_npu) master
+      # Step 6: Checkout downstream torch_npu master
       - name: Checkout downstream repo (torch_npu)
         uses: actions/checkout@v6
         with:
@@ -74,21 +165,34 @@ jobs:
           submodules: recursive
           path: torch_npu
 
-      # Step 5: Build torch_npu
-      - name: Build torch_npu
+      # Step 7: Build and install torch_npu
+      # NOTE: Intentionally do NOT use 'pip install -r requirements.txt' from torch_npu,
+      # because that file pins a specific torch version which would overwrite the
+      # source-built PyTorch from the upstream PR.
+      - name: Build and install torch_npu
+        working-directory: torch_npu
         run: |
           echo "============================================"
           echo "Building torch_npu from downstream master..."
           echo "Repository: ${{ inputs.downstream_repo }}"
           echo "Branch: master"
           echo "============================================"
-          # TODO: Add actual torch_npu build commands
-          # Example:
-          # cd torch_npu
-          # pip install -r requirements.txt
-          # bash ci/build.sh
-          echo "[SIMULATED] torch_npu build completed successfully!"
+          pip install pyyaml setuptools wheel
+          bash ci/build.sh --python=3.10 --disable_torchair --disable_rpc
+          pip install dist/torch_npu*.whl
 
+      # Step 8: Verify both packages import successfully
+      - name: Verify installation
+        run: |
+          echo "============================================"
+          echo "Verifying PyTorch and torch_npu imports..."
+          echo "============================================"
+          python -c "import torch; print(f'PyTorch version: {torch.__version__}'); print(f'PyTorch path: {torch.__file__}')"
+          python -c "import torch_npu; print(f'torch_npu version: {torch_npu.__version__}'); print(f'torch_npu path: {torch_npu.__file__}')"
+          echo ""
+          echo "Both PyTorch and torch_npu imported successfully."
+
+      # Step 9: Summary
       - name: Summary
         run: |
           echo "============================================"
@@ -99,8 +203,8 @@ jobs:
           else
             echo "1. PyTorch upstream: ${{ inputs.upstream_repo }}@${{ inputs.upstream_sha }}"
           fi
-          echo "2. PyTorch build: SUCCESS (simulated)"
-          echo "3. PyTorch install: SUCCESS (simulated)"
-          echo "4. torch_npu master: ${{ inputs.downstream_repo }}"
-          echo "5. torch_npu build: SUCCESS (simulated)"
+          echo "2. PyTorch build + install: SUCCESS"
+          echo "3. torch_npu master: ${{ inputs.downstream_repo }}"
+          echo "4. torch_npu build + install: SUCCESS"
+          echo "5. Import verification: SUCCESS"
           echo "============================================"
