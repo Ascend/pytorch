@@ -177,7 +177,7 @@ void NPUGraph::register_generator_state(const at::Generator& generator)
 
 void NPUGraph::capture_begin(MempoolId_t pool, aclmdlRICaptureMode capture_mode, bool report_shape)
 {
-    NPUGRAPH_LOGD("[NPUGRAPH][Capture] begin");
+    NPUGRAPH_LOGD("NPUGRAPH Capture begin");
     static const auto _task_queue_enable = c10_npu::option::OptionsManager::GetTaskQueueEnable();
     TORCH_CHECK(_task_queue_enable != 2,
         "Do not support TASK_QUEUE_ENABLE = 2 during NPU graph capture, please "
@@ -240,7 +240,7 @@ void NPUGraph::capture_begin(MempoolId_t pool, aclmdlRICaptureMode capture_mode,
         aclmdlRICaptureStatus status;
         aclmdlRI model_ri;
         NPU_CHECK_ERROR(c10_npu::acl::AclmdlRICaptureGetInfo(stream, &status, &model_ri));
-        NPUGRAPH_LOGD("[NPUGRAPH][Capture] beginAllocateToPool: stream=%p, status=%d, mempool_id=(%lu,%lu)",
+        NPUGRAPH_LOGD("NPUGRAPH Capture beginAllocateToPool: stream=%p, status=%d, mempool_id=(%lu,%lu)",
                       static_cast<void*>(stream), static_cast<int>(status), mempool_id_.first, mempool_id_.second);
         return status == aclmdlRICaptureStatus::ACL_MODEL_RI_CAPTURE_STATUS_ACTIVE
             && model_ri == model_ri_;
@@ -276,11 +276,17 @@ void NPUGraph::capture_begin(MempoolId_t pool, aclmdlRICaptureMode capture_mode,
     aclmdlRICaptureStatus status;
     NPU_CHECK_ERROR(c10_npu::acl::AclmdlRICaptureGetInfo(stream, &status, &model_ri_));
     TORCH_INTERNAL_ASSERT(status == aclmdlRICaptureStatus::ACL_MODEL_RI_CAPTURE_STATUS_ACTIVE);
+
+    NPUGRAPH_LOGD("NPUGRAPH Capture begin done: model_ri=%p, capture_dev=%d, "
+                  "mempool_id=(%lu,%lu), stream=%p, capture_mode=%d",
+                  static_cast<void*>(model_ri_), capture_dev_,
+                  mempool_id_.first, mempool_id_.second,
+                  static_cast<void*>(capture_stream_.stream(false)), static_cast<int>(capture_mode));
 }
 
 void NPUGraph::capture_end()
 {
-    NPUGRAPH_LOGD("[NPUGRAPH][Capture] end");
+    NPUGRAPH_LOGD("NPUGRAPH Capture end");
     auto stream = c10_npu::getCurrentNPUStream();
 
     c10_npu::detail::checkNotExternalStream(stream, "NPUGraph::capture_end");
@@ -314,11 +320,14 @@ void NPUGraph::capture_end()
     }
 
     uint32_t num_graph_nodes = 0;
+
+    NPUGRAPH_LOGD("NPUGRAPH Capture end done: model_ri=%p, has_graph_exec=%d",
+                  static_cast<void*>(model_ri_), static_cast<int>(has_graph_exec_));
 }
 
 void NPUGraph::replay()
 {
-    NPUGRAPH_LOGD("[NPUGRAPH][Replay] model_ri=%p, device=%d", static_cast<void*>(model_ri_), capture_dev_);
+    NPUGRAPH_LOGD("NPUGRAPH Replay model_ri=%p, device=%d", static_cast<void*>(model_ri_), capture_dev_);
     TORCH_CHECK(has_graph_exec_,
                 "Called NPUGraph::replay without a preceding successful capture.");
 
@@ -344,7 +353,7 @@ void NPUGraph::enable_debug_mode()
 
 void NPUGraph::debug_dump(const std::string& debug_path)
 {
-    NPUGRAPH_LOGD("[NPUGRAPH][Debug] dump to %s", debug_path.c_str());
+    NPUGRAPH_LOGD("NPUGRAPH Debug dump to %s", debug_path.c_str());
     if (has_graph_exec_) {
         TORCH_WARN("calling NPUGraph::debug_dump() for model id ", model_ri_);
         NPU_CHECK_ERROR(c10_npu::acl::AclmdlRIDebugJsonPrint(model_ri_, debug_path.c_str(), 1));
@@ -382,6 +391,10 @@ void NPUGraph::reset()
     // If the user catches the failure exception in a script, or is running in REPL or (god forbid)
     // a Jupyter notebook, I don't see an easy way for reset() to gracefully fix all such possible error states.
     if (has_graph_exec_) {
+        NPUGRAPH_LOGD("NPUGRAPH Reset releasing graph: model_ri=%p, capture_dev=%d, "
+                      "mempool_id=(%lu,%lu)",
+                      static_cast<void*>(model_ri_), capture_dev_,
+                      mempool_id_.first, mempool_id_.second);
         // notifyCaptureDestroy may throw. How should we handle this?
         c10_npu::NPUCachingAllocator::releasePool(capture_dev_, mempool_id_);
         at::getHostAllocator(at::kPrivateUse1)->release_pool(mempool_id_);
