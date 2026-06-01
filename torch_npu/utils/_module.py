@@ -10,7 +10,6 @@ import torch
 import torch.distributed as pytorch_dist
 from torch._utils import (
     _get_all_device_indices,
-    _get_available_device_type,
     _get_device_index,
     ExceptionWrapper,
 )
@@ -45,7 +44,10 @@ def npu(self, device=None):
     Returns:
         Module: self
     """
-    device = torch.device("npu")
+    if device is not None:
+        device = torch.device("npu", device)
+    else:
+        device = torch.device("npu")
     if torch_npu.npu.is_available():
         with torch.no_grad():
             self.cast_weight(device)
@@ -501,7 +503,7 @@ def npu_data_parallel(
     if not isinstance(inputs, tuple):
         inputs = (inputs,) if inputs is not None else ()
 
-    device_type = _get_available_device_type()
+    device_type = torch._utils._get_available_device_type()
 
     if device_type is None:
         raise RuntimeError(
