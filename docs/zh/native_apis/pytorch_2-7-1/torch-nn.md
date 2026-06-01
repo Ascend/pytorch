@@ -337,6 +337,7 @@
 |[torch.nn.utils.rnn.unpad_sequence](https://pytorch.org/docs/2.7/generated/torch.nn.utils.rnn.unpad_sequence.html)|否|-|
 |[torch.nn.Flatten](https://pytorch.org/docs/2.7/generated/torch.nn.Flatten.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[torch.nn.Unflatten](https://pytorch.org/docs/2.7/generated/torch.nn.Unflatten.html)|是|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
+|[torch.nn.Unflatten.NamedShape](https://docs.pytorch.org/docs/2.7/generated/torch.nn.Unflatten.html#torch.nn.Unflatten.NamedShape)|是|-|
 |[torch.nn.modules.lazy.LazyModuleMixin](https://pytorch.org/docs/2.7/generated/torch.nn.modules.lazy.LazyModuleMixin.html)|是|支持fp32|
 |[torch.nn.modules.lazy.LazyModuleMixin.has_uninitialized_params](https://pytorch.org/docs/2.7/generated/torch.nn.modules.lazy.LazyModuleMixin.html#torch.nn.modules.lazy.LazyModuleMixin.has_uninitialized_params)|是|支持fp32|
 |[torch.nn.modules.lazy.LazyModuleMixin.initialize_parameters](https://pytorch.org/docs/2.7/generated/torch.nn.modules.lazy.LazyModuleMixin.html#torch.nn.modules.lazy.LazyModuleMixin.initialize_parameters)|是|支持fp32|

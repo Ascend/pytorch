@@ -340,3 +340,4 @@
 |[torch.nn.modules.lazy.LazyModuleMixin](https://pytorch.org/docs/2.9/generated/torch.nn.modules.lazy.LazyModuleMixin.html)|是|支持fp32|
 |[torch.nn.modules.lazy.LazyModuleMixin.has_uninitialized_params](https://pytorch.org/docs/2.9/generated/torch.nn.modules.lazy.LazyModuleMixin.html#torch.nn.modules.lazy.LazyModuleMixin.has_uninitialized_params)|是|支持fp32|
 |[torch.nn.modules.lazy.LazyModuleMixin.initialize_parameters](https://pytorch.org/docs/2.9/generated/torch.nn.modules.lazy.LazyModuleMixin.html#torch.nn.modules.lazy.LazyModuleMixin.initialize_parameters)|是|支持fp32|
+|[torch.nn.Unflatten.NamedShape](https://docs.pytorch.org/docs/2.7/generated/torch.nn.Unflatten.html#torch.nn.Unflatten.NamedShape)|是|-|
