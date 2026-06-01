@@ -1,0 +1,149 @@
+name: Build Docker Images
+
+on:
+  push:
+    paths:
+      - '.ci/docker/**'
+      - '.github/workflows/build-docker-images.yml'
+  pull_request:
+    paths:
+      - '.ci/docker/**'
+      - '.github/workflows/build-docker-images.yml'
+  workflow_dispatch:
+    inputs:
+      images:
+        description: 'Images to build (short name, comma-separated. test-x86_64-a1, test-x86_64-a2, test-x86_64-a3, test-aarch64-a1, test-aarch64-a2, test-aarch64-a3, builder-x86_64, builder-aarch64)'
+        required: false
+        type: string
+        default: 'test-x86_64-a1'
+      push:
+        description: 'Push images to registry'
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  matrix-prep:
+    runs-on: ubuntu-latest
+    outputs:
+      images: ${{ steps.select.outputs.images }}
+      do_push: ${{ steps.select.outputs.do_push }}
+    steps:
+      - name: Select images to build
+        id: select
+        run: |
+          ALL_IMAGES="test-x86_64-a1,test-x86_64-a2,test-x86_64-a3,test-aarch64-a1,test-aarch64-a2,test-aarch64-a3,builder-x86_64,builder-aarch64"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "images=${{ github.event.inputs.images }}" >> "$GITHUB_OUTPUT"
+            echo "do_push=${{ github.event.inputs.push }}" >> "$GITHUB_OUTPUT"
+          else
+            # PR or push: build all images and push
+            echo "images=${ALL_IMAGES}" >> "$GITHUB_OUTPUT"
+            echo "do_push=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    needs: matrix-prep
+    runs-on: ${{ contains(matrix.image, 'aarch64') && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ${{ fromJSON(format('[{0}]', join(split(needs.matrix-prep.outputs.images, ','), '","'))) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Login to container registry
+        if: needs.matrix-prep.outputs.do_push == 'true'
+        run: |
+          if [ -n "${DOCKER_REGISTRY:-}" ] && [ -n "${DOCKER_USERNAME:-}" ] && [ -n "${DOCKER_PASSWORD:-}" ]; then
+            echo "${DOCKER_PASSWORD}" | docker login "${DOCKER_REGISTRY}" -u "${DOCKER_USERNAME}" --password-stdin
+            echo "Logged into ${DOCKER_REGISTRY}"
+          else
+            echo "WARNING: DOCKER_REGISTRY/USERNAME/PASSWORD not set, skipping registry login"
+          fi
+
+      - name: Build and push image
+        run: |
+          case "${{ matrix.image }}" in
+            test-x86_64-a1)
+              TAG="torch-npu-test-x86_64-cann-a1-py3.10-torch-nightly"
+              DOCKERFILE=".ci/docker/test/Dockerfile.x86_64"
+              ARGS="--build-arg CANN_CHIP=A1 --build-arg PYTHON_VERSION=3.10"
+              ;;
+            test-x86_64-a2)
+              TAG="torch-npu-test-x86_64-cann-a2-py3.10-torch-nightly"
+              DOCKERFILE=".ci/docker/test/Dockerfile.x86_64"
+              ARGS="--build-arg CANN_CHIP=A2 --build-arg PYTHON_VERSION=3.10"
+              ;;
+            test-x86_64-a3)
+              TAG="torch-npu-test-x86_64-cann-a3-py3.10-torch-nightly"
+              DOCKERFILE=".ci/docker/test/Dockerfile.x86_64"
+              ARGS="--build-arg CANN_CHIP=A3 --build-arg PYTHON_VERSION=3.10"
+              ;;
+            test-aarch64-a1)
+              TAG="torch-npu-test-aarch64-cann-a1-py3.10-torch-nightly"
+              DOCKERFILE=".ci/docker/test/Dockerfile.aarch64"
+              ARGS="--build-arg CANN_CHIP=A1 --build-arg PYTHON_VERSION=3.10"
+              ;;
+            test-aarch64-a2)
+              TAG="torch-npu-test-aarch64-cann-a2-py3.10-torch-nightly"
+              DOCKERFILE=".ci/docker/test/Dockerfile.aarch64"
+              ARGS="--build-arg CANN_CHIP=A2 --build-arg PYTHON_VERSION=3.10"
+              ;;
+            test-aarch64-a3)
+              TAG="torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly"
+              DOCKERFILE=".ci/docker/test/Dockerfile.aarch64"
+              ARGS="--build-arg CANN_CHIP=A3 --build-arg PYTHON_VERSION=3.10"
+              ;;
+            builder-x86_64)
+              TAG="torch-npu-builder-x86_64-torch-nightly"
+              DOCKERFILE=".ci/docker/builder/Dockerfile.x86_64"
+              ARGS=""
+              ;;
+            builder-aarch64)
+              TAG="torch-npu-builder-aarch64-torch-nightly"
+              DOCKERFILE=".ci/docker/builder/Dockerfile.aarch64"
+              ARGS=""
+              ;;
+            *)
+              echo "ERROR: Unknown image: ${{ matrix.image }}"
+              exit 1
+              ;;
+          esac
+
+          echo "=== Building: ${TAG} ==="
+          set -x
+          docker build \
+            --tag "${TAG}" \
+            --file "${DOCKERFILE}" \
+            ${ARGS} \
+            .ci/docker
+          set +x
+
+          echo "=== Built: ${TAG} ==="
+          docker image inspect "${TAG}" --format '  Size: {{ .Size }}'
+
+          if [ "${{ needs.matrix-prep.outputs.do_push }}" = "true" ]; then
+            REGISTRY="${DOCKER_REGISTRY:-}"
+            if [ -n "${REGISTRY}" ]; then
+              REMOTE_TAG="${REGISTRY}/${TAG}"
+              docker tag "${TAG}" "${REMOTE_TAG}"
+              docker push "${REMOTE_TAG}"
+              echo "=== Pushed: ${REMOTE_TAG} ==="
+            else
+              echo "WARNING: DOCKER_REGISTRY not set, skipping push"
+            fi
+          fi
+
+  # Smoke test runs only for PR on x86_64-a1 (matrix jobs don't share Docker images across runners)
+  smoke-test:
+    needs: build
+    if: false  # Disabled: smoke test needs image registry push to work across jobs
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Smoke test requires image push to registry first"
