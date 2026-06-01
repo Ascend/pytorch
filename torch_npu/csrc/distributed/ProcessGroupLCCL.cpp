@@ -3,6 +3,7 @@
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/npu/DeviceUtils.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
+#include "torch_npu/csrc/core/npu/NPUStreamUtils.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/framework/OpCommand.h"
 
@@ -214,6 +215,9 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupLCCL::collective(std::vector<at::Tens
                                                             PostProcess post, c10d::OpType opType)
 {
     const auto devices = getDeviceList(inputs);
+    for (const auto& device : devices) {
+        c10_npu::detail::checkCurrentStreamNotExternal(device.index(), "ProcessGroupLCCL::collective");
+    }
     auto key = getKeyFromDevices(devices);
     std::vector<at_npu::lccl::LcclComm> lcclComms;
     lcclComms = getLCCLComm(key, devices);
