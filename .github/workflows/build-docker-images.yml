@@ -12,10 +12,10 @@ on:
   workflow_dispatch:
     inputs:
       images:
-        description: 'Images to build (short name, comma-separated. test-x86_64-a1, test-x86_64-a2, test-x86_64-a3, test-aarch64-a1, test-aarch64-a2, test-aarch64-a3, builder-x86_64, builder-aarch64)'
+        description: 'Images to build (comma-separated: test-aarch64-a2, test-aarch64-a3)'
         required: false
         type: string
-        default: 'test-x86_64-a1'
+        default: 'test-aarch64-a2'
       push:
         description: 'Push images to registry'
         required: false
@@ -36,22 +36,20 @@ jobs:
       - name: Select images to build
         id: select
         run: |
-          ALL_IMAGES='["test-x86_64-a1","test-x86_64-a2","test-x86_64-a3","test-aarch64-a1","test-aarch64-a2","test-aarch64-a3","builder-x86_64","builder-aarch64"]'
+          ALL_IMAGES='["test-aarch64-a2","test-aarch64-a3"]'
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            # Convert comma-separated string to JSON array: "a,b, c" → ["a","b","c"]
             INPUT="${{ github.event.inputs.images }}"
             JSON=$(echo "${INPUT}" | sed 's/ *, */","/g' | sed 's/^/["/' | sed 's/$/"]/')
             echo "images=${JSON}" >> "$GITHUB_OUTPUT"
             echo "do_push=${{ github.event.inputs.push }}" >> "$GITHUB_OUTPUT"
           else
-            # PR or push: build all images and push
             echo "images=${ALL_IMAGES}" >> "$GITHUB_OUTPUT"
             echo "do_push=true" >> "$GITHUB_OUTPUT"
           fi
 
   build:
     needs: matrix-prep
-    runs-on: ${{ contains(matrix.image, 'aarch64') && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
+    runs-on: ubuntu-24.04-arm
     strategy:
       fail-fast: false
       matrix:
@@ -73,45 +71,13 @@ jobs:
       - name: Build and push image
         run: |
           case "${{ matrix.image }}" in
-            test-x86_64-a1)
-              TAG="torch-npu-test-x86_64-cann-a1-py3.10-torch-nightly"
-              DOCKERFILE=".ci/docker/test/Dockerfile.x86_64"
-              ARGS="--build-arg CANN_CHIP=A1 --build-arg PYTHON_VERSION=3.10"
-              ;;
-            test-x86_64-a2)
-              TAG="torch-npu-test-x86_64-cann-a2-py3.10-torch-nightly"
-              DOCKERFILE=".ci/docker/test/Dockerfile.x86_64"
-              ARGS="--build-arg CANN_CHIP=A2 --build-arg PYTHON_VERSION=3.10"
-              ;;
-            test-x86_64-a3)
-              TAG="torch-npu-test-x86_64-cann-a3-py3.10-torch-nightly"
-              DOCKERFILE=".ci/docker/test/Dockerfile.x86_64"
-              ARGS="--build-arg CANN_CHIP=A3 --build-arg PYTHON_VERSION=3.10"
-              ;;
-            test-aarch64-a1)
-              TAG="torch-npu-test-aarch64-cann-a1-py3.10-torch-nightly"
-              DOCKERFILE=".ci/docker/test/Dockerfile.aarch64"
-              ARGS="--build-arg CANN_CHIP=A1 --build-arg PYTHON_VERSION=3.10"
-              ;;
             test-aarch64-a2)
               TAG="torch-npu-test-aarch64-cann-a2-py3.10-torch-nightly"
-              DOCKERFILE=".ci/docker/test/Dockerfile.aarch64"
               ARGS="--build-arg CANN_CHIP=A2 --build-arg PYTHON_VERSION=3.10"
               ;;
             test-aarch64-a3)
               TAG="torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly"
-              DOCKERFILE=".ci/docker/test/Dockerfile.aarch64"
               ARGS="--build-arg CANN_CHIP=A3 --build-arg PYTHON_VERSION=3.10"
-              ;;
-            builder-x86_64)
-              TAG="torch-npu-builder-x86_64-torch-nightly"
-              DOCKERFILE=".ci/docker/builder/Dockerfile.x86_64"
-              ARGS=""
-              ;;
-            builder-aarch64)
-              TAG="torch-npu-builder-aarch64-torch-nightly"
-              DOCKERFILE=".ci/docker/builder/Dockerfile.aarch64"
-              ARGS=""
               ;;
             *)
               echo "ERROR: Unknown image: ${{ matrix.image }}"
@@ -123,7 +89,7 @@ jobs:
           set -x
           docker build \
             --tag "${TAG}" \
-            --file "${DOCKERFILE}" \
+            --file .ci/docker/test/Dockerfile.aarch64 \
             ${ARGS} \
             .ci/docker
           set +x
@@ -142,11 +108,3 @@ jobs:
               echo "WARNING: DOCKER_REGISTRY not set, skipping push"
             fi
           fi
-
-  # Smoke test runs only for PR on x86_64-a1 (matrix jobs don't share Docker images across runners)
-  smoke-test:
-    needs: build
-    if: false  # Disabled: smoke test needs image registry push to work across jobs
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "Smoke test requires image push to registry first"
