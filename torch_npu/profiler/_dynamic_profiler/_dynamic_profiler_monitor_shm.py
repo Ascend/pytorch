@@ -21,6 +21,7 @@ class DynamicProfilerShareMemory:
         "activities": ["CPU", "NPU"],
         "prof_dir": "./",
         "analyse": False,
+        "async_mode": False,
         "record_shapes": False,
         "profile_memory": False,
         "with_stack": False,
