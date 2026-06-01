@@ -1747,6 +1747,9 @@ public:
         auto pool = graph_pools.find(id);
         if (pool != graph_pools.end()) {
             auto private_pool_head_blocks = get_private_pool_head_blocks(pool->second.get());
+            TORCH_NPU_MEMORY_LOGD("NPUCachingAllocator getCheckpointState: mempool_id=(%lu,%lu), "
+                                  "head_blocks=%zu",
+                                  id.first, id.second, private_pool_head_blocks.size());
             return std::make_unique<PrivatePoolState>(id, private_pool_head_blocks);
         } else if (graph_pools_freeable.count(id)) {
             TORCH_CHECK(false, "Not expected to checkpoint freeable graph", PTA_ERROR(ErrCode::VALUE));
@@ -1984,6 +1987,10 @@ public:
 
             setSegmentStateToCheckpoint(block, segment, context, rr);
         }
+        TORCH_NPU_MEMORY_LOGD("NPUCachingAllocator setCheckpointPoolState: mempool_id=(%lu,%lu), "
+                              "segments_restored=%zu, allocations_freed=%zu",
+                              pps.owner_id.first, pps.owner_id.second,
+                              pps.segments.size(), rr.allocations_freed.size());
         return rr;
     }
 
@@ -2118,12 +2125,17 @@ public:
             // mempool_id does not reference an existing pool. Make a new pool for
             // this capture.
             graph_pools.emplace(mempool_id, std::make_unique<PrivatePool>());
+            TORCH_NPU_MEMORY_LOGD("NPUCachingAllocator beginAllocateToPool: new pool, "
+                                  "mempool_id=(%lu,%lu)", mempool_id.first, mempool_id.second);
         } else {
             // mempool_id references an existing pool, which the current capture will
             // share. Check this pool is live (at least one other capture already
             // references it).
             TORCH_INTERNAL_ASSERT(it->second->use_count > 0);
             it->second->use_count++;
+            TORCH_NPU_MEMORY_LOGD("NPUCachingAllocator beginAllocateToPool: reuse pool, "
+                                  "mempool_id=(%lu,%lu), use_count=%d",
+                                  mempool_id.first, mempool_id.second, it->second->use_count);
         }
         for (auto it2 = captures_underway.begin(); it2 != captures_underway.end(); ++it2) {
             TORCH_CHECK(it2->first != mempool_id, "beginAllocateToPool: already recording to mempool_id");
@@ -2138,6 +2150,8 @@ public:
         for (auto it = captures_underway.begin(); it != captures_underway.end(); ++it) {
             if (it->first == mempool_id) {
                 captures_underway.erase(it);
+                TORCH_NPU_MEMORY_LOGD("NPUCachingAllocator endAllocateToPool: mempool_id=(%lu,%lu)",
+                                      mempool_id.first, mempool_id.second);
                 return;
             }
         }
@@ -2173,6 +2187,9 @@ public:
             // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
             bool inserted = graph_pools_freeable.insert({ mempool_id, it->second.get() }).second;
             TORCH_INTERNAL_ASSERT(inserted);
+            TORCH_NPU_MEMORY_LOGD("NPUCachingAllocator releasePool: mempool_id=(%lu,%lu), "
+                                  "use_count reached 0, pool marked freeable",
+                                  mempool_id.first, mempool_id.second);
             if (c10_npu::option::OptionsManager::CheckForceUncached() && captures_underway.empty()) {
                 c10_npu::npuSynchronizeDevice(true);
                 std::shared_ptr<c10::GatheredContext> context = maybeGatherContext(RecordContext::ALL);

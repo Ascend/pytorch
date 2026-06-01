@@ -525,28 +525,32 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
         .def("_graph_task_group_begin", [](py::object py_stream) {
             auto stream = (*py_stream).ptr();
             c10_npu::graph_task_group_begin(THNPUtils_PyObject_to_NPUStream(stream));
-            NPUGRAPH_LOGD("[NPUGRAPH][TaskGroup] begin, stream=%p", static_cast<void*>(stream));
+            NPUGRAPH_LOGD("NPUGRAPH TaskGroup begin, stream=%p", static_cast<void*>(stream));
         })
         .def("_graph_task_group_end", [](py::object py_stream) {
             auto stream = (*py_stream).ptr();
             auto handle = c10_npu::graph_task_group_end(THNPUtils_PyObject_to_NPUStream(stream));
-            NPUGRAPH_LOGD("[NPUGRAPH][TaskGroup] end, handle=%p", static_cast<void*>(handle.task_group));
+            NPUGRAPH_LOGD("NPUGRAPH TaskGroup end, handle=%p", static_cast<void*>(handle.task_group));
             return handle;
         })
         .def("_graph_task_update_begin", [](py::object py_stream, c10_npu::NPUTaskGroupHandle handle) {
             auto stream = (*py_stream).ptr();
             c10_npu::graph_task_update_begin(THNPUtils_PyObject_to_NPUStream(stream), handle);
-            NPUGRAPH_LOGD("[NPUGRAPH][TaskGroup] update begin, handle=%p", static_cast<void*>(handle.task_group));
+            NPUGRAPH_LOGD("NPUGRAPH TaskGroup update begin, handle=%p", static_cast<void*>(handle.task_group));
         })
         .def("_graph_task_update_end", [](py::object py_stream) {
             auto stream = (*py_stream).ptr();
             c10_npu::graph_task_update_end(THNPUtils_PyObject_to_NPUStream(stream));
-            NPUGRAPH_LOGD("[NPUGRAPH][TaskGroup] update end");
+            NPUGRAPH_LOGD("NPUGRAPH TaskGroup update end");
         })
         .def("_super_kernel_scope_begin", [](const char* scope_name) {
+            NPUGRAPH_LOGD("NPUGRAPH SuperKernel scope begin, name=%s",
+                          scope_name ? scope_name : "(null)");
             c10_npu::super_kernel_scope_begin(scope_name);
         })
         .def("_super_kernel_scope_end", [](const char* scope_name) {
+            NPUGRAPH_LOGD("NPUGRAPH SuperKernel scope end, name=%s",
+                          scope_name ? scope_name : "(null)");
             c10_npu::super_kernel_scope_end(scope_name);
         })
         .def("_launch_host_func", [](py::object py_stream, py::object py_func, py::object py_data) {
