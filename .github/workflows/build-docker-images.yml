@@ -36,9 +36,12 @@ jobs:
       - name: Select images to build
         id: select
         run: |
-          ALL_IMAGES="test-x86_64-a1,test-x86_64-a2,test-x86_64-a3,test-aarch64-a1,test-aarch64-a2,test-aarch64-a3,builder-x86_64,builder-aarch64"
+          ALL_IMAGES='["test-x86_64-a1","test-x86_64-a2","test-x86_64-a3","test-aarch64-a1","test-aarch64-a2","test-aarch64-a3","builder-x86_64","builder-aarch64"]'
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "images=${{ github.event.inputs.images }}" >> "$GITHUB_OUTPUT"
+            # Convert comma-separated string to JSON array: "a,b, c" → ["a","b","c"]
+            INPUT="${{ github.event.inputs.images }}"
+            JSON=$(echo "${INPUT}" | sed 's/ *, */","/g' | sed 's/^/["/' | sed 's/$/"]/')
+            echo "images=${JSON}" >> "$GITHUB_OUTPUT"
             echo "do_push=${{ github.event.inputs.push }}" >> "$GITHUB_OUTPUT"
           else
             # PR or push: build all images and push
@@ -52,7 +55,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: ${{ fromJSON(format('[{0}]', join(split(needs.matrix-prep.outputs.images, ','), '","'))) }}
+        image: ${{ fromJSON(needs.matrix-prep.outputs.images) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
