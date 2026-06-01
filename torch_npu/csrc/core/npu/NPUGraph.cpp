@@ -2,6 +2,7 @@
 #include "torch_npu/csrc/core/npu/NPUAllocatorConfig.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
+#include "torch_npu/csrc/core/npu/NPUStreamUtils.h"
 #include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
 #include "torch_npu/csrc/core/npu/GetCANNInfo.h"
@@ -50,11 +51,13 @@ MempoolId_t graph_pool_handle()
 
 void graph_task_group_begin(c10_npu::NPUStream stream)
 {
+    c10_npu::detail::checkNotExternalStream(stream, "graph_task_group_begin");
     NPU_CHECK_ERROR(c10_npu::acl::AclmdlRICaptureTaskGrpBegin(stream));
 }
 
 NPUTaskGroupHandle graph_task_group_end(c10_npu::NPUStream stream)
 {
+    c10_npu::detail::checkNotExternalStream(stream, "graph_task_group_end");
     aclrtTaskGrp group;
     NPU_CHECK_ERROR(c10_npu::acl::AclmdlRICaptureTaskGrpEnd(stream, &group));
     NPUTaskGroupHandle handle;
@@ -64,28 +67,33 @@ NPUTaskGroupHandle graph_task_group_end(c10_npu::NPUStream stream)
 
 void graph_task_update_begin(c10_npu::NPUStream stream, NPUTaskGroupHandle handle)
 {
+    c10_npu::detail::checkNotExternalStream(stream, "graph_task_update_begin");
     NPU_CHECK_ERROR(c10_npu::acl::AclmdlRICaptureTaskUpdateBegin(stream, handle.task_group));
 }
 
 void graph_task_update_end(c10_npu::NPUStream stream)
 {
+    c10_npu::detail::checkNotExternalStream(stream, "graph_task_update_end");
     NPU_CHECK_ERROR(c10_npu::acl::AclmdlRICaptureTaskUpdateEnd(stream));
 }
 
 void super_kernel_scope_begin(const char* scope_name)
 {
     auto stream = c10_npu::getCurrentNPUStream();
+    c10_npu::detail::checkNotExternalStream(stream, "super_kernel_scope_begin");
     NPU_CHECK_ERROR(c10_npu::skapi::AclskScopeBegin(scope_name, stream));
 }
 
 void super_kernel_scope_end(const char* scope_name)
 {
     auto stream = c10_npu::getCurrentNPUStream();
+    c10_npu::detail::checkNotExternalStream(stream, "super_kernel_scope_end");
     NPU_CHECK_ERROR(c10_npu::skapi::AclskScopeEnd(scope_name, stream));
 }
 
 void launch_callback(c10_npu::NPUStream stream, NPUCallbackFunc func, void *fnData)
 {
+    c10_npu::detail::checkNotExternalStream(stream, "launch_callback");
     aclrtCallbackBlockType type = aclrtCallbackBlockType::ACL_CALLBACK_BLOCK;
     NPU_CHECK_ERROR(c10_npu::acl::AclrtLaunchCallback(func, fnData, type, stream));
 }
@@ -97,11 +105,13 @@ void launch_host_func(c10_npu::NPUStream stream, NPUCallbackFunc func, void *fnD
 
 void subscribe_report(uint64_t threadId, c10_npu::NPUStream stream)
 {
+    c10_npu::detail::checkNotExternalStream(stream, "subscribe_report");
     NPU_CHECK_ERROR(c10_npu::acl::AclrtSubscribeReport(threadId, stream));
 }
 
 void unsubscribe_report(uint64_t threadId, c10_npu::NPUStream stream)
 {
+    c10_npu::detail::checkNotExternalStream(stream, "unsubscribe_report");
     NPU_CHECK_ERROR(c10_npu::acl::AclrtUnSubscribeReport(threadId, stream));
 }
 
@@ -190,6 +200,7 @@ void NPUGraph::capture_begin(MempoolId_t pool, aclmdlRICaptureMode capture_mode,
                 "To capture a new graph, create a new instance.");
 
     auto stream = c10_npu::getCurrentNPUStream();
+    c10_npu::detail::checkNotExternalStream(stream, "NPUGraph::capture_begin");
 
     TORCH_CHECK(stream != c10_npu::getDefaultNPUStream(),
                 "NPU graphs must be captured on a non-default stream. "
@@ -272,6 +283,8 @@ void NPUGraph::capture_end()
     NPUGRAPH_LOGD("NPUGraph: capture completed");
     auto stream = c10_npu::getCurrentNPUStream();
 
+    c10_npu::detail::checkNotExternalStream(stream, "NPUGraph::capture_end");
+
     TORCH_CHECK(stream == capture_stream_,
                 "Capture must end on the same stream it began on.");
 
@@ -318,9 +331,8 @@ void NPUGraph::replay()
     // model_ri_ may be replayed in any stream.
     auto stream = c10_npu::getCurrentNPUStream();
     NPU_CHECK_ERROR(c10_npu::acl::AclmdlRIExecuteAsync(model_ri_, stream));
-    // With ASCEND_LAUNCH_BLOCKING enabled, after an aclgraph replay completes,
-    // we need to add an explicit synchronization step.
-    if (c10_npu::option::OptionsManager::CheckBlockingEnable()) {
+    if (c10_npu::option::OptionsManager::CheckBlockingEnable() &&
+        !c10_npu::detail::isExternalStream(stream)) {
         NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream));
     }
 }
