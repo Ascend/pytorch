@@ -3,24 +3,24 @@
 > [!NOTE]  
 > 若API“是否支持”为“是”，“限制与说明”为“-”，说明此API和原生API支持度保持一致。
 
-|API名称|是否支持|限制与说明|
-|--|--|--|
-|torch.profiler._KinetoProfile|是|-|
-|torch.profiler._KinetoProfile.add_metadata|是|-|
-|torch.profiler._KinetoProfile.add_metadata_json|是|-|
-|torch.profiler._KinetoProfile.events|否|-|
-|torch.profiler._KinetoProfile.export_chrome_trace|是|-|
-|torch.profiler._KinetoProfile.export_memory_timeline|是|-|
-|torch.profiler._KinetoProfile.export_stacks|是|-|
-|torch.profiler._KinetoProfile.key_averages|否|-|
-|torch.profiler.profile|是|-|
-|torch.profiler.profile.step|是|-|
-|torch.profiler.ProfilerAction|是|-|
-|torch.profiler.ProfilerActivity|是|-|
-|torch.profiler.ProfilerActivity.name|是|-|
-|torch.profiler.schedule|是|-|
-|torch.profiler.tensorboard_trace_handler|是|-|
-|torch.profiler.itt.is_available|否|-|
-|torch.profiler.itt.mark|否|-|
-|torch.profiler.itt.range_push|否|-|
-|torch.profiler.itt.range_pop|否|-|
+|API名称|NPU形式名称|是否支持|限制与说明|
+|--|--|--|--|
+|torch.profiler._KinetoProfile|torch_npu.profiler._KinetoProfile|是|-|
+|torch.profiler._KinetoProfile.add_metadata|torch_npu.profiler.profile.add_metadata|是|-|
+|torch.profiler._KinetoProfile.add_metadata_json|torch_npu.profiler.profile.add_metadata_json|是|-|
+|torch.profiler._KinetoProfile.events|-|否|-|
+|torch.profiler._KinetoProfile.export_chrome_trace|torch_npu.profiler.profile.export_chrome_trace|是|-|
+|torch.profiler._KinetoProfile.export_memory_timeline|torch_npu.profiler.profile.export_memory_timeline|是|-|
+|torch.profiler._KinetoProfile.export_stacks|torch_npu.profiler.profile.export_stacks|是|-|
+|torch.profiler._KinetoProfile.key_averages|-|否|-|
+|torch.profiler.profile|torch_npu.profiler.profile|是|-|
+|torch.profiler.profile.step|torch_npu.profiler.profile.step|是|-|
+|torch.profiler.ProfilerAction|torch_npu.profiler.ProfilerAction|是|-|
+|torch.profiler.ProfilerActivity|torch_npu.profiler.ProfilerActivity|是|-|
+|torch.profiler.ProfilerActivity.name|-|否|-|
+|torch.profiler.schedule|torch_npu.profiler.schedule|是|-|
+|torch.profiler.tensorboard_trace_handler|torch_npu.profiler.tensorboard_trace_handler|是|-|
+|torch.profiler.itt.is_available|-|否|-|
+|torch.profiler.itt.mark|-|否|-|
+|torch.profiler.itt.range_push|-|否|-|
+|torch.profiler.itt.range_pop|-|否|-|
