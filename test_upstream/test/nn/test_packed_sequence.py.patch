@@ -1,0 +1,121 @@
+diff --git a/test/nn/test_packed_sequence.py b/test/nn/test_packed_sequence.py
+index 0d6de01..967e8b3 100644
+--- a/test/nn/test_packed_sequence.py
++++ b/test/nn/test_packed_sequence.py
+@@ -7,6 +7,9 @@ import torch
+ import torch.nn.utils.rnn as rnn_utils
+ from torch.testing._internal.common_utils import run_tests, TestCase
+ 
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ 
+ class PackedSequenceTest(TestCase):
+     _type_by_name = {
+@@ -72,10 +75,10 @@ class PackedSequenceTest(TestCase):
+ 
+     def test_pad_sequence_with_tensor_sequences(self):
+         seq_tuple_input = torch.nn.utils.rnn.pad_sequence(
+-            (torch.tensor([[7, 6]]), torch.tensor([[-7, -1]]))
++            (torch.tensor([[7, 6]]).npu(), torch.tensor([[-7, -1]]).npu())
+         )
+         seq_tensor_input = torch.nn.utils.rnn.pad_sequence(
+-            torch.tensor([[[7, 6]], [[-7, -1]]])
++            torch.tensor([[[7, 6]], [[-7, -1]]]).npu()
+         )
+         self.assertEqual(seq_tuple_input, seq_tensor_input)
+         self.assertEqual(seq_tuple_input.shape, torch.Size([1, 2, 2]))
+@@ -175,12 +178,12 @@ class PackedSequenceTest(TestCase):
+             )
+ 
+         # single dimensional
+-        a = torch.tensor([1, 2, 3])
+-        b = torch.tensor([4, 5])
+-        c = torch.tensor([6])
++        a = torch.tensor([1, 2, 3]).npu()
++        b = torch.tensor([4, 5]).npu()
++        c = torch.tensor([6]).npu()
+ 
+         # batch_first = true
+-        expected = torch.tensor([[4, 5, 0], [1, 2, 3], [6, 0, 0]])
++        expected = torch.tensor([[4, 5, 0], [1, 2, 3], [6, 0, 0]]).npu()
+         padded = rnn_utils.pad_sequence([b, a, c], True)
+         self.assertEqual(padded, expected)
+ 
+@@ -189,7 +192,7 @@ class PackedSequenceTest(TestCase):
+         self.assertEqual(padded, expected.transpose(0, 1))
+ 
+         # padding_side = "left", batch_first=True
+-        expected = torch.tensor([[0, 4, 5], [1, 2, 3], [0, 0, 6]])
++        expected = torch.tensor([[0, 4, 5], [1, 2, 3], [0, 0, 6]]).npu()
+         padded = rnn_utils.pad_sequence(
+             [b, a, c],
+             batch_first=True,
+@@ -206,12 +209,12 @@ class PackedSequenceTest(TestCase):
+         self.assertEqual(padded, expected.transpose(0, 1))
+ 
+         # pad with non-zero value
+-        expected = torch.tensor([[4, 5, 1], [1, 2, 3], [6, 1, 1]])
++        expected = torch.tensor([[4, 5, 1], [1, 2, 3], [6, 1, 1]]).npu()
+         padded = rnn_utils.pad_sequence([b, a, c], True, 1)
+         self.assertEqual(padded, expected)
+ 
+         # Test pad sorted sequence
+-        expected = torch.tensor([[1, 2, 3], [4, 5, 0], [6, 0, 0]])
++        expected = torch.tensor([[1, 2, 3], [4, 5, 0], [6, 0, 0]]).npu()
+         padded = rnn_utils.pad_sequence([a, b, c], True)
+         self.assertEqual(padded, expected)
+ 
+@@ -222,7 +225,7 @@ class PackedSequenceTest(TestCase):
+             trailing_dims = [4] * num_dim
+             for i in range(1, maxlen + 1):
+                 seq_len = i * i
+-                sequences.append(torch.rand(seq_len, 5, *trailing_dims))
++                sequences.append(torch.rand(seq_len, 5, *trailing_dims).npu())
+             random.shuffle(sequences)
+             # batch first = true
+             expected = torch.stack([pad(seq, maxlen * maxlen) for seq in sequences])
+@@ -254,9 +257,9 @@ class PackedSequenceTest(TestCase):
+ 
+     def test_unpad_sequence(self):
+         # single dimensional
+-        a = torch.tensor([1, 2, 3])
+-        b = torch.tensor([4, 5])
+-        c = torch.tensor([6])
++        a = torch.tensor([1, 2, 3]).npu()
++        b = torch.tensor([4, 5]).npu()
++        c = torch.tensor([6]).npu()
+         sequences = [a, b, c]
+ 
+         lengths = torch.as_tensor([v.size(0) for v in sequences])
+@@ -276,7 +279,7 @@ class PackedSequenceTest(TestCase):
+             trailing_dims = [4] * num_dim
+             for i in range(1, maxlen + 1):
+                 seq_len = i * i
+-                sequences.append(torch.rand(seq_len, 5, *trailing_dims))
++                sequences.append(torch.rand(seq_len, 5, *trailing_dims).npu())
+             random.shuffle(sequences)
+ 
+             lengths = torch.as_tensor([v.size(0) for v in sequences])
+@@ -355,9 +358,9 @@ class PackedSequenceTest(TestCase):
+ 
+     def test_unpack_sequence(self):
+         # single dimensional
+-        a = torch.tensor([1, 2, 3])
+-        b = torch.tensor([4, 5])
+-        c = torch.tensor([6])
++        a = torch.tensor([1, 2, 3]).npu()
++        b = torch.tensor([4, 5]).npu()
++        c = torch.tensor([6]).npu()
+         sequences = [a, b, c]
+ 
+         packed_sequences = rnn_utils.pack_sequence(sequences, enforce_sorted=False)
+@@ -371,7 +374,7 @@ class PackedSequenceTest(TestCase):
+             trailing_dims = [4] * num_dim
+             for i in range(1, maxlen + 1):
+                 seq_len = i * i
+-                sequences.append(torch.rand(seq_len, 5, *trailing_dims))
++                sequences.append(torch.rand(seq_len, 5, *trailing_dims).npu())
+             random.shuffle(sequences)
+ 
+             packed_sequences = rnn_utils.pack_sequence(sequences, enforce_sorted=False)
