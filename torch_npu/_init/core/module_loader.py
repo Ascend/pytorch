@@ -197,9 +197,15 @@ def _load_registration_modules():
     import torch_npu.npu.aclnn  # noqa: F401
     import torch_npu.op_plugin
     import torch_npu.optim  # noqa: F401
+
     from torch_npu.op_plugin.meta import _meta_registrations  # noqa: F401
     from torch_npu.utils import custom_ops  # noqa: F401
     from torch_npu.utils._afd_ops import initialize_afd_bindings
+
+    # export for submodule
+    import torch_npu.asd.checksum  # noqa: F401
+    import torch_npu.distributed._symmetric_memory  # noqa: F401
+    import torch_npu.utils.syncbatchnorm  # noqa: F401
 
     importlib.import_module("torch_npu._op_plugin_docs")
     if hasattr(torch_npu, "_op_plugin_docs"):
