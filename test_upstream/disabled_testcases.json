@@ -1136,5 +1136,9 @@
     "test_register_fake_class_no_torch_bind_class (__main__.TestRegisterFakeClass)": ["", [""]],
     "test_register_fake_class_valid (__main__.TestRegisterFakeClass)": ["", [""]],
     "test_pinned_memory_with_cudaregister (__main__.TestCuda)": ["hardware difference, not supported yet", [""]],
-    "test_pinned_memory_empty_cache (__main__.TestCuda)": ["hardware difference, not supported yet", [""]]
+    "test_pinned_memory_empty_cache (__main__.TestCuda)": ["hardware difference, not supported yet", [""]],
+    "test_collectives_op_mismatch_debug_mode (__main__.ProcessGroupNCCLWrapperTest)": ["", [""]],
+    "test_collectives_op_mismatch (__main__.ProcessGroupNCCLWrapperTest)": ["", [""]],
+    "test_collectives_op_mismatch_cuda_debug_mode (__main__.ProcessGroupGlooWrapperTest)": ["", [""]],
+    "test_collectives_op_mismatch_cuda (__main__.ProcessGroupGlooWrapperTest)": ["", [""]]
 }
