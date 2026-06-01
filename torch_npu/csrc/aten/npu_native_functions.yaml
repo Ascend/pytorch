@@ -46,6 +46,8 @@ supported:
   - squeeze
   - squeeze.dim
   - _to_copy
+  - _to_sparse
+  - _to_sparse.sparse_dim
   - tril_indices
   - triu_indices
   - unfold
