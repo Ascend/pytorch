@@ -49,6 +49,7 @@
 |[torch.nn.Module.register_state_dict_pre_hook](https://pytorch.org/docs/2.10/generated/torch.nn.Module.html#torch.nn.Module.register_state_dict_pre_hook)|是|-|
 |[torch.nn.Module.requires_grad_](https://pytorch.org/docs/2.10/generated/torch.nn.Module.html#torch.nn.Module.requires_grad_)|是|-|
 |[torch.nn.Module.set_extra_state](https://pytorch.org/docs/2.10/generated/torch.nn.Module.html#torch.nn.Module.set_extra_state)|是|-|
+|[torch.nn.Module.set_submodule](https://pytorch.org/docs/2.10/generated/torch.nn.Module.html#torch.nn.Module.set_submodule)|是|-|
 |[torch.nn.Module.share_memory](https://pytorch.org/docs/2.10/generated/torch.nn.Module.html#torch.nn.Module.share_memory)|否|-|
 |[torch.nn.Module.state_dict](https://pytorch.org/docs/2.10/generated/torch.nn.Module.html#torch.nn.Module.state_dict)|是|支持fp32|
 |[torch.nn.Module.to](https://pytorch.org/docs/2.10/generated/torch.nn.Module.html#torch.nn.Module.to)|是|支持fp32|
