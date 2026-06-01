@@ -155,12 +155,12 @@ void set_device_error_info(const c10_npu::DeviceErrorInfo& info) {
   c10_npu::deviceErrorInfo = info;
 }
 
+} // namespace
+
 c10_npu::DeviceErrorInfo get_device_error_info() {
   std::lock_guard<std::mutex> lock(c10_npu::deviceErrorInfoMutex);
   return c10_npu::deviceErrorInfo;
 }
-
-} // namespace
 
 void clear_device_error_info() {
   std::lock_guard<std::mutex> lock(deviceErrorInfoMutex);

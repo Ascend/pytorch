@@ -338,6 +338,8 @@ bool isCannOOM(const std::string &errMsg);
 
 bool ShouldAppendDeviceErrorVerbose();
 
+DeviceErrorInfo get_device_error_info();
+
 void clear_device_error_info();
 
 bool repair_device_error();
