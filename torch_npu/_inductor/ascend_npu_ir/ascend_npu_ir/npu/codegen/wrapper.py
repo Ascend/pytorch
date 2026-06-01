@@ -147,6 +147,7 @@ class NpuMlirWrapperCodeGen(PythonWrapperCodegen):
         triton_meta=None,
         autotune_configs=None,
         grid_extra_kwargs="",
+        debug_handle: Optional[int] = None,
         device=None
     ):
         """
