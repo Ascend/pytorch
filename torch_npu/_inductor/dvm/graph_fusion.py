@@ -20,6 +20,7 @@ from torch.fx.passes.utils.fuser_utils import (
 )
 
 from .graph_build import DvmCodegenInterpreter
+from .load_codegen import patch_gm_placeholder_strides_from_codegen_args
 from .fx_test import generate_dvm_fx_case
 from .op_emitter import DVM_OP_REGISTRY
 from .fx_pass import (
@@ -366,12 +367,13 @@ def _dvm_generate_fallback_kernel(self, fallback_kernel, args):
     fused_id = int(args[-1])
     meta = _fused_metas.pop(fused_id)
 
+    args_list = list(args[:-1])
+    patch_gm_placeholder_strides_from_codegen_args(meta.gm, args_list)
     cg, code = meta.codegen()
     self.header.splice(code)
 
     buf_name = fallback_kernel.get_name()
 
-    args_list = list(args[:-1])
     # cont/trans handling based on codegen interpreter
     for i, no_trans in enumerate(cg.cont_flag_input):
         if not no_trans:
