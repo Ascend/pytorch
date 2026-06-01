@@ -7,6 +7,7 @@ from torch._inductor import config
 from torch._inductor.codegen.wrapper import (
     MultiOutputLine,
     PythonWrapperCodegen,
+    SubgraphPythonWrapperCodegen,
     SymbolicCallArg,
     pexpr,
 )
@@ -54,6 +55,13 @@ class NPUMultiOutputLine(MultiOutputLine):
         )
 
 
+class NPUSubgraphPythonWrapperCodegen(SubgraphPythonWrapperCodegen):
+    def generate_node_numel_expr(self, kernel_name: str, node, numel_expr):
+        expr = f"{kernel_name}_{node.name}_numel"
+        self.writeline(f"{expr} = {pexpr(numel_expr)}")
+        return SymbolicCallArg(expr, numel_expr)
+
+
 class NPUWrapperCodeGen(PythonWrapperCodegen):
     def __init__(self):
         super().__init__()
@@ -71,7 +79,7 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
         partition_signatures: Optional[GraphPartitionSignature] = None,
     ):
         if is_subgraph:
-            return PythonWrapperCodegen.create(is_subgraph, subgraph_name, parent_wrapper, partition_signatures)
+            return NPUSubgraphPythonWrapperCodegen(subgraph_name, parent_wrapper, partition_signatures)
         return NPUWrapperCodeGen()
 
     @cache_on_self
