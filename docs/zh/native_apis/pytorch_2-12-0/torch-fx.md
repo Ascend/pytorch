@@ -73,6 +73,7 @@
 |[torch.fx.Tracer.trace](https://pytorch.org/docs/2.12/fx.html#torch.fx.Tracer.trace)|是|-|
 |[torch.fx.Proxy](https://pytorch.org/docs/2.12/fx.html#torch.fx.Proxy)|是|-|
 |[torch.fx.proxy.ParameterProxy](https://pytorch.org/docs/2.12/fx.html#torch.fx.proxy.ParameterProxy)|是|-|
+|[torch.fx.passes.split_module.split_module](https://pytorch.org/docs/2.7/fx.html#torch.fx.passes.split_module)|是|-|
 |[torch.fx.Interpreter](https://pytorch.org/docs/2.12/fx.html#torch.fx.Interpreter)|是|-|
 |[torch.fx.Interpreter.call_function](https://pytorch.org/docs/2.12/fx.html#torch.fx.Interpreter.call_function)|是|支持fp32|
 |[torch.fx.Interpreter.call_method](https://pytorch.org/docs/2.12/fx.html#torch.fx.Interpreter.call_method)|是|支持fp32|
