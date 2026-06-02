@@ -24,8 +24,12 @@ on:
 jobs:
   build:
     runs-on: linux-aarch64-a3-16
+    defaults:
+      run:
+        shell: bash
     container:
-      image: ubuntu:22.04
+      image: quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly
+      options: --network host
     env:
       MAX_JOBS: 128
       USE_CUDA: 0
@@ -33,101 +37,7 @@ jobs:
       _GLIBCXX_USE_CXX11_ABI: 1
       PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
     steps:
-      # Step 1: Install system build dependencies
-      # Reference: upstream PyTorch .ci/docker/common/install_base.sh (Ubuntu 22.04 section)
-      - name: Install system dependencies
-        run: |
-          apt-get update -y
-          apt-get install -y --no-install-recommends \
-            build-essential \
-            cmake \
-            ninja-build \
-            autoconf \
-            automake \
-            libtool \
-            git \
-            curl \
-            wget \
-            ca-certificates \
-            libopenblas-dev \
-            libomp-dev \
-            libyaml-dev \
-            libffi-dev \
-            libbz2-dev \
-            libreadline-dev \
-            libncurses5-dev \
-            libncursesw5-dev \
-            libgdbm-dev \
-            libsqlite3-dev \
-            uuid-dev \
-            tk-dev \
-            gfortran \
-            unzip \
-            sudo \
-            vim \
-            jq \
-            gdb \
-            bc \
-            software-properties-common \
-            libjemalloc2 \
-            libjpeg-dev \
-            libsndfile-dev \
-            libatlas-base-dev \
-            libc6-dbg \
-            libz-dev
-          apt-get autoclean && apt-get clean
-          rm -rf /var/lib/apt/lists/*
-
-      # Step 2: Install GCC 11
-      # Reference: upstream PyTorch .ci/docker/common/install_gcc.sh
-      - name: Install GCC 11
-        run: |
-          add-apt-repository ppa:ubuntu-toolchain-r/test -y
-          apt-get update -y
-          apt-get install -y g++-11 gfortran-11
-          update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 50
-          update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-11 50
-          update-alternatives --install /usr/bin/gfortran gfortran /usr/bin/gfortran-11 50
-          gcc --version
-
-      # Step 3: Install Miniforge3 and create Python 3.10 conda environment
-      # Reference: upstream PyTorch .ci/docker/common/install_conda.sh (aarch64 path)
-      - name: Setup Miniforge3 and Python 3.10
-        run: |
-          MINIFORGE_URL="https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-$(uname -m).sh"
-          curl -L -o /tmp/miniforge.sh "${MINIFORGE_URL}"
-          bash /tmp/miniforge.sh -b -p /opt/conda
-          rm /tmp/miniforge.sh
-          export PATH="/opt/conda/bin:$PATH"
-          conda create -n py_3.10 -y \
-            python=3.10 \
-            sysroot_linux-aarch64=2.17 \
-            "icu<78"
-          # Install llvm-8 and libpython-static (matching upstream)
-          conda install -n py_3.10 -y llvmdev=8.0.0 "libpython-static=3.10"
-          # Install cmake via conda (matching upstream)
-          conda install -n py_3.10 -y cmake=3.31.6
-          # Install build deps via pip
-          conda run -n py_3.10 pip install --progress-bar off \
-            ninja \
-            numpy \
-            pyyaml \
-            setuptools \
-            packaging \
-            requests \
-            typing-extensions \
-            wheel \
-            sympy \
-            filelock \
-            fsspec \
-            jinja2 \
-            networkx \
-            optree \
-            psutil
-          # Persist PATH for subsequent steps
-          echo "PATH=/opt/conda/envs/py_3.10/bin:/opt/conda/bin:$PATH" >> "$GITHUB_ENV"
-
-      # Step 4: Checkout upstream PyTorch PR code
+      # Step 1: Checkout upstream PyTorch PR code
       # Use fork repo if available (PR from fork), otherwise use upstream repo
       - name: Checkout upstream PyTorch PR
         uses: actions/checkout@v6
@@ -137,7 +47,7 @@ jobs:
           submodules: recursive
           path: pytorch
 
-      # Step 5: Build and install PyTorch
+      # Step 2: Build and install PyTorch
       # setup.py develop = build + editable install in one step
       - name: Build and install PyTorch
         working-directory: pytorch
@@ -156,7 +66,7 @@ jobs:
           python setup.py develop
           python -c "import torch; print(f'PyTorch version: {torch.__version__}')"
 
-      # Step 6: Checkout downstream torch_npu master
+      # Step 3: Checkout downstream torch_npu master
       - name: Checkout downstream repo (torch_npu)
         uses: actions/checkout@v6
         with:
@@ -165,7 +75,7 @@ jobs:
           submodules: recursive
           path: torch_npu
 
-      # Step 7: Build and install torch_npu
+      # Step 4: Build and install torch_npu
       # NOTE: Intentionally do NOT use 'pip install -r requirements.txt' from torch_npu,
       # because that file pins a specific torch version which would overwrite the
       # source-built PyTorch from the upstream PR.
@@ -177,11 +87,10 @@ jobs:
           echo "Repository: ${{ inputs.downstream_repo }}"
           echo "Branch: master"
           echo "============================================"
-          pip install pyyaml setuptools wheel
           bash ci/build.sh --python=3.10 --disable_torchair --disable_rpc
           pip install dist/torch_npu*.whl
 
-      # Step 8: Verify both packages import successfully
+      # Step 5: Verify both packages import successfully
       - name: Verify installation
         run: |
           echo "============================================"
@@ -192,7 +101,7 @@ jobs:
           echo ""
           echo "Both PyTorch and torch_npu imported successfully."
 
-      # Step 9: Summary
+      # Step 6: Summary
       - name: Summary
         run: |
           echo "============================================"

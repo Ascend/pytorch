@@ -1,0 +1,80 @@
+FROM ubuntu:22.04
+
+ARG CANN_CHIP=A2
+ARG PYTHON_VERSION=3.10
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Asia/Shanghai
+ENV PATH=/usr/local/bin:$PATH
+ENV CANN_CHIP=${CANN_CHIP}
+
+# Conda environment (aligned with upstream install_conda.sh)
+ENV ANACONDA_PYTHON_VERSION=${PYTHON_VERSION}
+ENV PATH=/opt/conda/envs/py_${PYTHON_VERSION}/bin:/opt/conda/bin:$PATH
+
+COPY common/ /opt/buildtools/
+COPY requirements-test.txt /opt/buildtools/
+
+# System dependencies (aligned with upstream install_base.sh for jammy)
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        autoconf \
+        automake \
+        build-essential \
+        ca-certificates \
+        cmake=3.22* \
+        curl \
+        dos2unix \
+        gcc \
+        g++ \
+        gdb \
+        gfortran \
+        git \
+        jq \
+        libasound2-dev \
+        libffi-dev \
+        libbz2-dev \
+        libgl1 \
+        libjemalloc2 \
+        libjpeg-dev \
+        libreadline-dev \
+        libsndfile-dev \
+        libsqlite3-dev \
+        libssl-dev \
+        libtool \
+        libyaml-dev \
+        libz-dev \
+        make \
+        sudo \
+        tar \
+        tzdata \
+        unzip \
+        valgrind \
+        vim \
+        wget \
+        zip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Miniforge3 and create conda env (aligned with upstream install_conda.sh)
+RUN curl -fsSL https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-$(uname -m).sh -o /tmp/miniforge.sh \
+    && bash /tmp/miniforge.sh -b -p /opt/conda \
+    && rm /tmp/miniforge.sh \
+    && conda create -n py_${PYTHON_VERSION} -y \
+        python=${PYTHON_VERSION} \
+        pip \
+        cmake=3.31.6 \
+    && conda clean -ya
+
+# Install CANN and OBS
+RUN chmod -R 755 /opt/buildtools/* \
+    && dos2unix /opt/buildtools/* \
+    && /opt/buildtools/install_cann.sh \
+    && /opt/buildtools/install_obs.sh
+
+# Install triton-ascend
+RUN /opt/buildtools/install_triton.sh ${PYTHON_VERSION}
+
+# Install base test requirements (no PyTorch-dependent packages; torch is built separately)
+RUN conda run -n py_${PYTHON_VERSION} pip install --no-cache-dir -r /opt/buildtools/requirements-test.txt
+
+WORKDIR /home
