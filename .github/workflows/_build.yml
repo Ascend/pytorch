@@ -20,37 +20,26 @@ on:
         required: true
         type: string
         description: The downstream repository full name (owner/repo)
-      image:
-        required: false
-        type: string
-        default: 'torch-npu-test-aarch64-cann-a2-py3.10-torch-nightly'
-        description: Docker image for the build environment
-      build-mode:
-        required: false
-        type: string
-        default: 'develop'
-        description: Build mode - "develop" for PR, "wheel" for nightly
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: linux-aarch64-a3-16
+    defaults:
+      run:
+        shell: bash
     container:
-      image: ${{ inputs.image }}
-      env:
-        HOME: /root
-        ANACONDA_PYTHON_VERSION: '3.10'
-        BUILD_MODE: ${{ inputs.build-mode }}
+      image: quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly
+      options: --network host
+    env:
+      MAX_JOBS: 128
+      USE_CUDA: 0
+      USE_XNNPACK: 0
+      _GLIBCXX_USE_CXX11_ABI: 1
+      PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
     steps:
-      # Step 1: Initialize conda environment
-      - name: Initialize conda environment
-        run: |
-          source /opt/conda/etc/profile.d/conda.sh
-          conda activate py_3.10
-          echo "Python: $(python --version)"
-          echo "Python path: $(which python)"
-
-      # Step 2: Checkout upstream PyTorch PR code
-      - name: Checkout upstream PyTorch
+      # Step 1: Checkout upstream PyTorch PR code
+      # Use fork repo if available (PR from fork), otherwise use upstream repo
+      - name: Checkout upstream PyTorch PR
         uses: actions/checkout@v6
         with:
           repository: ${{ inputs.upstream_fork_repo != '' && inputs.upstream_fork_repo || inputs.upstream_repo }}
@@ -58,8 +47,27 @@ jobs:
           submodules: recursive
           path: pytorch
 
-      # Step 3: Checkout downstream torch_npu code
-      - name: Checkout torch_npu
+      # Step 2: Build and install PyTorch
+      # setup.py develop = build + editable install in one step
+      - name: Build and install PyTorch
+        working-directory: pytorch
+        run: |
+          echo "============================================"
+          echo "Building PyTorch from upstream PR..."
+          if [ -n "${{ inputs.upstream_fork_repo }}" ]; then
+            echo "Fork Repository: ${{ inputs.upstream_fork_repo }}"
+          else
+            echo "Repository: ${{ inputs.upstream_repo }}"
+          fi
+          echo "Commit SHA: ${{ inputs.upstream_sha }}"
+          echo "MAX_JOBS: ${MAX_JOBS}"
+          echo "============================================"
+          pip install -r requirements.txt
+          python setup.py develop
+          python -c "import torch; print(f'PyTorch version: {torch.__version__}')"
+
+      # Step 3: Checkout downstream torch_npu master
+      - name: Checkout downstream repo (torch_npu)
         uses: actions/checkout@v6
         with:
           repository: ${{ inputs.downstream_repo }}
@@ -67,49 +75,45 @@ jobs:
           submodules: recursive
           path: torch_npu
 
-      # Step 4: Build PyTorch from source
-      - name: Build PyTorch from source
-        run: |
-          echo "=== Building PyTorch from upstream ${{ inputs.upstream_sha }} ==="
-          source /opt/conda/etc/profile.d/conda.sh
-          conda activate py_3.10
-          export PYTORCH_SRC="${GITHUB_WORKSPACE}/pytorch"
-          export BUILD_MODE="${{ inputs.build-mode }}"
-          bash torch_npu/.ci/pytorch/build_pytorch.sh
-
-      # Step 5: Build torch_npu
-      - name: Build torch_npu
-        run: |
-          echo "=== Building torch_npu from master ==="
-          source /opt/conda/etc/profile.d/conda.sh
-          conda activate py_3.10
-          export TORCH_NPU_SRC="${GITHUB_WORKSPACE}/torch_npu"
-          export BUILD_MODE="${{ inputs.build-mode }}"
-          bash torch_npu/.ci/pytorch/build_torch_npu.sh
-
-      # Step 6: Install post-build dependencies (require torch pre-installed)
-      - name: Install post-build dependencies
-        run: |
-          source /opt/conda/etc/profile.d/conda.sh
-          conda activate py_3.10
-          pip install --progress-bar off -r torch_npu/.ci/docker/requirements-post.txt
-
-      # Step 7: Integration verification
-      - name: Integration verification
-        run: |
-          source /opt/conda/etc/profile.d/conda.sh
-          conda activate py_3.10
-          bash torch_npu/.ci/pytorch/integration_verify.sh
-
-      # Step 8: Build summary
-      - name: Build summary
+      # Step 4: Build and install torch_npu
+      # NOTE: Intentionally do NOT use 'pip install -r requirements.txt' from torch_npu,
+      # because that file pins a specific torch version which would overwrite the
+      # source-built PyTorch from the upstream PR.
+      - name: Build and install torch_npu
+        working-directory: torch_npu
         run: |
           echo "============================================"
-          echo "  Build Summary"
+          echo "Building torch_npu from downstream master..."
+          echo "Repository: ${{ inputs.downstream_repo }}"
+          echo "Branch: master"
           echo "============================================"
-          echo "  Upstream repo:  ${{ inputs.upstream_repo }}"
-          echo "  Upstream SHA:   ${{ inputs.upstream_sha }}"
-          echo "  torch_npu repo: ${{ inputs.downstream_repo }}"
-          echo "  Build mode:     ${{ inputs.build-mode }}"
-          echo "  Status:         SUCCESS"
+          bash ci/build.sh --python=3.10 --disable_torchair --disable_rpc
+          pip install dist/torch_npu*.whl
+
+      # Step 5: Verify both packages import successfully
+      - name: Verify installation
+        run: |
+          echo "============================================"
+          echo "Verifying PyTorch and torch_npu imports..."
+          echo "============================================"
+          python -c "import torch; print(f'PyTorch version: {torch.__version__}'); print(f'PyTorch path: {torch.__file__}')"
+          python -c "import torch_npu; print(f'torch_npu version: {torch_npu.__version__}'); print(f'torch_npu path: {torch_npu.__file__}')"
+          echo ""
+          echo "Both PyTorch and torch_npu imported successfully."
+
+      # Step 6: Summary
+      - name: Summary
+        run: |
+          echo "============================================"
+          echo "Build Summary"
+          echo "============================================"
+          if [ -n "${{ inputs.upstream_fork_repo }}" ]; then
+            echo "1. PyTorch fork PR: ${{ inputs.upstream_fork_repo }}@${{ inputs.upstream_sha }}"
+          else
+            echo "1. PyTorch upstream: ${{ inputs.upstream_repo }}@${{ inputs.upstream_sha }}"
+          fi
+          echo "2. PyTorch build + install: SUCCESS"
+          echo "3. torch_npu master: ${{ inputs.downstream_repo }}"
+          echo "4. torch_npu build + install: SUCCESS"
+          echo "5. Import verification: SUCCESS"
           echo "============================================"
