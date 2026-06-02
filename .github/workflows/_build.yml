@@ -35,6 +35,7 @@ jobs:
       USE_CUDA: 0
       USE_XNNPACK: 0
       _GLIBCXX_USE_CXX11_ABI: 1
+      BUILD_IGNORE_SVE_UNAVAILABLE: 1
       PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
     steps:
       # Step 1: Checkout upstream PyTorch PR code
