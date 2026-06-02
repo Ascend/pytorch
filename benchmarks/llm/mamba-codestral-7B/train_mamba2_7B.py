@@ -88,6 +88,9 @@ def main():
     args = parse_args()
     device = detect_device_type()
     os.environ['TORCHINDUCTOR_NPU_BACKEND']=args.npu_backend
+    if args.npu_backend == "akg":
+        os.environ['TORCHINDUCTOR_NPU_BACKEND'] = 'mlir'
+        os.environ['TORCHINDUCTOR_USE_AKG'] = '1'
     if args.mfusion:
         os.environ['TORCHINDUCTOR_ENABLE_MFUSION']='1'
     patch_remove_ops_from_generate_list(["aten.permute"])
