@@ -174,6 +174,26 @@ jobs:
             USE_CCACHE=0
           fi
 
+          # Pre-update AOTInductor C shim headers for version skew.
+          # When the source-built PyTorch version (e.g. 2.13.0a0) is newer
+          # than what torch_npu master's committed headers expect, the
+          # code generator adds TORCH_FEATURE_VERSION guards that differ
+          # from the checked-in files, causing a hard failure.  Run the
+          # codegen with --update_aoti_c_shim first to bring headers in
+          # sync before the full build re-runs codegen for verification.
+          TORCH_VER=$(python -c "import torch; print(torch.__version__)")
+          TORCH_MAJOR=$(echo "${TORCH_VER}" | cut -d. -f1)
+          TORCH_MINOR=$(echo "${TORCH_VER}" | cut -d. -f2)
+          PYTORCH_DIR="v${TORCH_MAJOR}r${TORCH_MINOR}"
+          echo "Pre-updating AOTInductor C shim headers (PyTorch ${TORCH_VER}, dir ${PYTORCH_DIR})"
+          python -m torchnpugen.gen_backend_stubs \
+            --output_dir=torch_npu/csrc/aten \
+            --source_yaml=torch_npu/csrc/aten/npu_native_functions.yaml \
+            --impl_path=torch_npu/csrc/aten \
+            --op_plugin_impl_path=third_party/op-plugin/op_plugin/ops \
+            --op_plugin_yaml_path="third_party/op-plugin/op_plugin/config/${PYTORCH_DIR}/op_plugin_functions.yaml" \
+            --update_aoti_c_shim
+
           bash ci/build.sh --python=3.10 --disable_torchair --disable_rpc 2>&1 | tee /tmp/build-torchnpu.log
           BUILD_STATUS=${PIPESTATUS[0]}
 
