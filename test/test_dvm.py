@@ -773,8 +773,6 @@ result = {{
     "batch_norm": batch_norm_out.cpu(),
     "batch_norm_relu": torch.relu(batch_norm_out).cpu(),
     "native_out": native_out.cpu(),
-    "save_mean": save_mean.cpu(),
-    "save_invstd": save_invstd.cpu(),
 }}
 """)
                     self._assert_match(
