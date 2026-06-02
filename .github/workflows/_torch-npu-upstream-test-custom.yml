@@ -62,6 +62,7 @@ jobs:
             --disabled-testcases pytorch-test-src/test_upstream/disabled_testcases.json \
             --report-dir ${REPORT_DIR} \
             --timeout 1200 \
+            --max-workers 16 \
             --verbose \
             2>&1 | tee /tmp/test_custom.log
 
