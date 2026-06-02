@@ -150,6 +150,7 @@ class NpuMlirWrapperCodeGen(PythonWrapperCodegen):
         grid_extra_kwargs="",
         device=None,
         original_fxnode_name=None,
+        debug_handle: Optional[int] = None,
     ):
         """
         Generates kernel call code.
