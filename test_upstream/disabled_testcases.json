@@ -6,6 +6,7 @@
     "test_binary_op_list_error_cases__foreach_clamp_max_npu_bool (__main__.TestForeachPRIVATEUSE1)": ["", [""]],
     "test_binary_op_list_error_cases__foreach_clamp_max_npu_complex128 (__main__.TestForeachPRIVATEUSE1)": ["", [""]],
     "test_binary_op_list_error_cases__foreach_clamp_max_npu_complex64 (__main__.TestForeachPRIVATEUSE1)": ["", [""]],
+    "test_compare_cpu_sparse_sampled_addmm_npu_float32 (__main__.TestCommonPRIVATEUSE1)": ["", [""]],
     "test_binary_op_list_error_cases__foreach_clamp_max_npu_float16 (__main__.TestForeachPRIVATEUSE1)": ["", [""]],
     "test_binary_op_list_error_cases__foreach_clamp_max_npu_float32 (__main__.TestForeachPRIVATEUSE1)": ["", [""]],
     "test_binary_op_list_error_cases__foreach_clamp_max_npu_float64 (__main__.TestForeachPRIVATEUSE1)": ["", [""]],
