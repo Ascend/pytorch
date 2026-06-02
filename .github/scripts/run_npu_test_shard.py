@@ -345,21 +345,27 @@ def parse_junit_xml_status(xml_file: Path) -> Dict:
             skipped_elem = testcase.find("skipped")
             if skipped_elem is not None:
                 result["status"] = "skipped"
-                result["message"] = skipped_elem.get("message", "")
+                attr_msg = skipped_elem.get("message", "")
+                text_msg = (skipped_elem.text or "").strip()
+                result["message"] = attr_msg + ("\n" + text_msg if text_msg else "")
                 return result
 
             # Check <failure>
             failure_elem = testcase.find("failure")
             if failure_elem is not None:
                 result["status"] = "failed"
-                result["message"] = failure_elem.get("message", "")
+                attr_msg = failure_elem.get("message", "")
+                text_msg = (failure_elem.text or "").strip()
+                result["message"] = attr_msg + ("\n" + text_msg if text_msg else "")
                 return result
 
             # Check <error>
             error_elem = testcase.find("error")
             if error_elem is not None:
                 result["status"] = "error"
-                result["message"] = error_elem.get("message", "")
+                attr_msg = error_elem.get("message", "")
+                text_msg = (error_elem.text or "").strip()
+                result["message"] = attr_msg + ("\n" + text_msg if text_msg else "")
                 return result
 
             # No failure/error/skipped = passed
