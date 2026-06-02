@@ -175,47 +175,12 @@ jobs:
           fi
 
           # Pre-update AOTInductor C shim headers for version skew.
-          # When the source-built PyTorch version is newer than what
-          # torch_npu master's committed headers expect, the codegen's
-          # built-in "compare generated vs committed → fail if mismatch"
-          # guard rejects the build.  Run codegen with
-          # --update_aoti_c_shim to accept the regenerated headers before
-          # ci/build.sh re-runs codegen (which will then pass the check).
-          TORCH_VER=$(python -c "import torch; print(torch.__version__)")
-          TORCH_MAJOR=$(echo "${TORCH_VER}" | cut -d. -f1)
-          TORCH_MINOR=$(echo "${TORCH_VER}" | cut -d. -f2)
-          CONFIG_BASE="third_party/op-plugin/op_plugin/config"
-          PYTORCH_DIR="v${TORCH_MAJOR}r${TORCH_MINOR}"
-
-          # If the matched config dir is missing (e.g. PyTorch 2.13 is
-          # newer than what the submodule ships), fall back to the latest
-          # available one.  The AOTInductor shim headers are generated
-          # from PyTorch's own inductor_fallback_ops dict, so the exact
-          # op-plugin config version is not critical for this pre-update.
-          if [ ! -f "${CONFIG_BASE}/${PYTORCH_DIR}/op_plugin_functions.yaml" ]; then
-            FALLBACK_DIR=$(ls -1 "${CONFIG_BASE}" 2>/dev/null | grep '^v[0-9]' | sort -V | tail -1)
-            if [ -n "${FALLBACK_DIR}" ]; then
-              echo "Config ${PYTORCH_DIR} not found, falling back to ${FALLBACK_DIR}"
-              PYTORCH_DIR="${FALLBACK_DIR}"
-            fi
-          fi
-          echo "Pre-updating AOTInductor C shim headers (PyTorch ${TORCH_VER}, config ${PYTORCH_DIR})"
-          python -m torchnpugen.gen_backend_stubs \
-            --output_dir=torch_npu/csrc/aten \
-            --source_yaml=torch_npu/csrc/aten/npu_native_functions.yaml \
-            --impl_path=torch_npu/csrc/aten \
-            --op_plugin_impl_path=third_party/op-plugin/op_plugin/ops \
-            --op_plugin_yaml_path="${CONFIG_BASE}/${PYTORCH_DIR}/op_plugin_functions.yaml" \
-            --update_aoti_c_shim
-
-          # If the version-matched config dir did not exist (we fell back),
-          # ci/build.sh → generate_code.sh will also look for v2r13 and
-          # fail the same way.  Create a symlink so the path resolves.
-          NEEDED_DIR="v${TORCH_MAJOR}r${TORCH_MINOR}"
-          if [ ! -d "${CONFIG_BASE}/${NEEDED_DIR}" ] && [ -d "${CONFIG_BASE}/${PYTORCH_DIR}" ]; then
-            echo "Linking ${CONFIG_BASE}/${NEEDED_DIR} → ${PYTORCH_DIR}"
-            ln -s "${PYTORCH_DIR}" "${CONFIG_BASE}/${NEEDED_DIR}"
-          fi
+          # The codegen's built-in guard compares generated headers against
+          # checked-in files and refuses to proceed on mismatch.  Inject
+          # --update_aoti_c_shim into generate_code.sh so that the C shim
+          # header update happens as part of the normal ci/build.sh codegen
+          # pipeline, which handles all version-to-path mapping correctly.
+          sed -i 's/\(gen_backend_stubs[[:space:]]*\\\)/--update_aoti_c_shim \1/' generate_code.sh
 
           bash ci/build.sh --python=3.10 --disable_torchair --disable_rpc 2>&1 | tee /tmp/build-torchnpu.log
           BUILD_STATUS=${PIPESTATUS[0]}
