@@ -1,7 +1,9 @@
 import math
+
 import torch
-from torch._inductor import decomposition as inductor_decomp
 from torch._decomp import remove_decompositions
+from torch._inductor import decomposition as inductor_decomp
+
 
 aten = torch.ops.aten
 prims = torch.ops.prims
@@ -135,9 +137,41 @@ def sigmoid(a: torch.Tensor) -> torch.Tensor:
     return out
 
 
+_dvm_inductor_decomp_patched = False
+
+
+def _register_inductor_decomposition_safe(overloads, fn):
+    """Register a custom Inductor decomposition; ignore duplicate registration."""
+    try:
+        inductor_decomp.register_decomposition(overloads)(fn)
+    except (RuntimeError, ValueError) as e:
+        msg = str(e).lower()
+        if any(
+            s in msg
+            for s in (
+                "duplicate",
+                "already",
+                "exists",
+                "re-register",
+                "re_register",
+            )
+        ):
+            return
+        raise
+
+
 def patch_decomp():
+    """Patch Inductor decomposition for DVM paths (idempotent).
+
+    mfusion_graph_fusion invokes this on every post-grad graph; duplicate
+    register_decomposition calls raise at runtime.
+    """
+    global _dvm_inductor_decomp_patched
+    if _dvm_inductor_decomp_patched:
+        return
     remove_decompositions(inductor_decomp.decompositions, decomps_to_exclude_npu)
-    inductor_decomp.register_decomposition([aten.sigmoid.default])(sigmoid)
-    inductor_decomp.register_decomposition([aten.gelu_backward.default])(gelu_backward)
-    inductor_decomp.register_decomposition([aten.gelu.default])(gelu)
-    inductor_decomp.register_decomposition([aten.tanh.default])(tanh)
+    _register_inductor_decomposition_safe([aten.sigmoid.default], sigmoid)
+    _register_inductor_decomposition_safe([aten.gelu_backward.default], gelu_backward)
+    _register_inductor_decomposition_safe([aten.gelu.default], gelu)
+    _register_inductor_decomposition_safe([aten.tanh.default], tanh)
+    _dvm_inductor_decomp_patched = True

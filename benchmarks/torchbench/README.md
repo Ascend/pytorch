@@ -204,6 +204,12 @@
     python3 huggingface.py --accuracy --cold-start-latency --train --float32 --backend inductor --npu-backend mlir --only AlbertForMaskedLM --iterations 50
     ```
 
+   当前可通过 `--mfusion` 参数开启 MFusion 图算融合优化功能, 配合不同的NPU图模式后端, 进一步提升模型的性能，使用示例如下
+
+        ```shell
+        python3 huggingface.py --accuracy --cold-start-latency --train --float32 --backend inductor --npu-backend mlir --mfusion --only AlbertForMaskedLM --iterations 50
+        ```
+
 2. 精度和端到端总时间验证
 
     ```shell

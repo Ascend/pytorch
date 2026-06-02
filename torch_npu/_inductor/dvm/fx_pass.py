@@ -1,9 +1,10 @@
 from dataclasses import dataclass
 
 import torch
-from torch.fx import GraphModule, Node
-from torch._subclasses import FakeTensor
 from torch._prims_common import elementwise_dtypes, ELEMENTWISE_TYPE_PROMOTION_KIND
+from torch._subclasses import FakeTensor
+from torch.fx import GraphModule, Node
+
 from .op_emitter import _is_last2_transpose_tensor
 
 
@@ -21,6 +22,56 @@ def need_fallback_gm(gm: torch.fx.GraphModule) -> bool:
         ):
             return False
     return True
+
+
+def expand_dvm_mm_to_explicit_transpose_for_inductor(gm: torch.fx.GraphModule) -> bool:
+    """Rewrite ``aten.mm`` + ``dvm_trans_*`` into explicit 2D ``permute(1,0)`` + ``mm``.
+
+    MFusion IR roundtrip can emit a single ``torch.aten.mm`` with ``dvm_trans_a`` / ``dvm_trans_b``
+    (fused ``aclnn.mm`` transpose flags). FakeTensor propagation uses a stub so ``meta`` is
+    consistent, but Inductor lowering calls ``mm_args`` on **storage** shapes and fails
+    ``guard_equals`` on the inner dimension. Inserting ``aten.permute`` (last-two dims swap for 2D)
+    restores layouts Inductor expects. We use ``permute`` rather than ``transpose.int`` because
+    some NPU Inductor builds register both a fallback and a decomposition for ``transpose.int``,
+    which triggers ``AssertionError: both a fallback and a decomp for same op``.
+    """
+    g = gm.graph
+    changed = False
+    swap_2d = (1, 0)
+    for n in list(g.nodes):
+        if n.op != "call_function" or n.target != aten.mm.default:
+            continue
+        ta = bool(n.meta.get("dvm_trans_a", False))
+        tb = bool(n.meta.get("dvm_trans_b", False))
+        if not (ta or tb):
+            continue
+        if len(n.args) < 2:
+            continue
+        lhs, rhs = n.args[0], n.args[1]
+        if not isinstance(lhs, Node) or not isinstance(rhs, Node):
+            continue
+        lv = lhs.meta.get("val")
+        rv = rhs.meta.get("val")
+        if not isinstance(lv, torch.Tensor) or not isinstance(rv, torch.Tensor):
+            continue
+        if lv.dim() != 2 or rv.dim() != 2:
+            continue
+
+        new_lhs, new_rhs = lhs, rhs
+        with g.inserting_before(n):
+            if ta:
+                new_lhs = g.call_function(aten.permute.default, (lhs, list(swap_2d)))
+            if tb:
+                new_rhs = g.call_function(aten.permute.default, (rhs, list(swap_2d)))
+        n.args = (new_lhs, new_rhs)
+        n.meta.pop("dvm_trans_a", None)
+        n.meta.pop("dvm_trans_b", None)
+        changed = True
+
+    if changed:
+        g.lint()
+        gm.recompile()
+    return changed
 
 
 def annotate_mm_transpose_flags(gm: torch.fx.GraphModule):
@@ -50,9 +101,24 @@ def annotate_mm_transpose_flags(gm: torch.fx.GraphModule):
         if lhs.op == "placeholder" and _is_last2_transpose_tensor(lhs.meta["val"]):
             node.meta["trans_a"] = True
             lhs.meta["trans"] = True
+        elif getattr(lhs, "meta", None) and lhs.meta.get("trans"):
+            node.meta["trans_a"] = True
         if rhs.op == "placeholder" and _is_last2_transpose_tensor(rhs.meta["val"]):
             node.meta["trans_b"] = True
             rhs.meta["trans"] = True
+        elif getattr(rhs, "meta", None) and rhs.meta.get("trans"):
+            node.meta["trans_b"] = True
+
+        # Flags from MLIR (mfuse.aclnn.mm trans_x1/trans_x2), exported as dvm_trans_* on torch.aten.mm.
+        # Only set trans_a/trans_b on the mm node for k.matmul(...). Do NOT set lhs/rhs placeholder
+        # meta["trans"]: that path means "stride is a transposed view" and mix-kernel load() uses
+        # val.mT.shape — but dvm_trans_* means storage layout is unchanged; transpose is applied
+        # inside matmul only. Marking placeholder trans would double-apply (wrong load + .mT) and
+        # can crash the CANN/DVM backend.
+        if node.meta.get("dvm_trans_a"):
+            node.meta["trans_a"] = True
+        if node.meta.get("dvm_trans_b"):
+            node.meta["trans_b"] = True
 
     return flag
 

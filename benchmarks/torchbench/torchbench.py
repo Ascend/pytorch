@@ -61,7 +61,6 @@ from benchmark.userbenchmark.dynamo.dynamobench.torchbench import (
     VERY_SLOW_BENCHMARKS,
 )
 
-
 # We are primarily interested in tf32 datatype
 torch.backends.cuda.matmul.allow_tf32 = True
 torch.npu.config.allow_internal_format = False

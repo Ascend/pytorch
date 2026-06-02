@@ -19,8 +19,13 @@ patch_cache_base_get_system()
 def _get_backend() -> str:
     return os.getenv("TORCHINDUCTOR_NPU_BACKEND", "default")
 
+
 def _load_mlir_backend():
     import torch
+
+    # Prevent RecursionError when formatting LoweringException for huge output tuples (e.g. many permute nodes).
+    from .mfusion.safe_inductor_exc import apply_safe_operator_str_patch_if_enabled
+    apply_safe_operator_str_patch_if_enabled()
     try:
         import torch_mlir
         from torch_mlir import ir
@@ -80,7 +85,7 @@ def _load_triton_backend():
 
     _inductor_register_backend_for_device()
 
-    device = get_interface_for_device("npu")
+    get_interface_for_device("npu")
 
     inductor_lowering.make_reduction = make_reduction
     inductor_lowering.make_fallback = npu_make_fallback
@@ -163,3 +168,9 @@ def _load_backend():
     _InductorNpuRegistry._loaded_backend = backend
 
 _load_backend()
+
+# Optional MFusion integration: patch Inductor fallback / post-grad when explicitly enabled.
+if os.getenv("TORCHINDUCTOR_ENABLE_MFUSION", "0") == "1":
+    from .mfusion.graph_fusion import MFusionPatch
+
+    MFusionPatch.enable()
