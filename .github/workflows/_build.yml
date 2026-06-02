@@ -78,6 +78,7 @@ jobs:
         with:
           repository: ${{ inputs.upstream_fork_repo != '' && inputs.upstream_fork_repo || inputs.upstream_repo }}
           ref: ${{ inputs.upstream_sha }}
+          fetch-depth: 0
           submodules: recursive
           path: pytorch
 

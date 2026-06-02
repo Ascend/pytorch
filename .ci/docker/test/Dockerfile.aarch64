@@ -44,6 +44,7 @@ RUN apt-get update \
         libtool \
         libyaml-dev \
         libz-dev \
+        ccache \
         make \
         sudo \
         tar \
