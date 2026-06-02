@@ -5,10 +5,6 @@ on:
     paths:
       - '.ci/docker/**'
       - '.github/workflows/build-docker-images.yml'
-  pull_request:
-    paths:
-      - '.ci/docker/**'
-      - '.github/workflows/build-docker-images.yml'
   workflow_dispatch:
     inputs:
       images:
