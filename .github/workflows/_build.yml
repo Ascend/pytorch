@@ -82,7 +82,7 @@ jobs:
           path: pytorch
 
       # Step 2: Build and install PyTorch
-      # setup.py develop = build + editable install in one step
+      # pip install -e . = cmake configure + build + editable install
       - name: Build and install PyTorch
         id: build_pytorch
         working-directory: pytorch
@@ -116,7 +116,7 @@ jobs:
           fi
 
           pip install -r requirements.txt
-          python setup.py develop 2>&1 | tee /tmp/build-pytorch.log
+          python -m pip install --no-build-isolation -v -e . 2>&1 | tee /tmp/build-pytorch.log
           BUILD_STATUS=${PIPESTATUS[0]}
 
           if [ "${USE_CCACHE}" = "1" ]; then
