@@ -174,14 +174,6 @@ jobs:
             USE_CCACHE=0
           fi
 
-          # Pre-update AOTInductor C shim headers for version skew.
-          # The codegen's built-in guard compares generated headers against
-          # checked-in files and refuses to proceed on mismatch.  Inject
-          # --update_aoti_c_shim into generate_code.sh so that the C shim
-          # header update happens as part of the normal ci/build.sh codegen
-          # pipeline, which handles all version-to-path mapping correctly.
-          sed -i 's/\(gen_backend_stubs[[:space:]]*\\\)/--update_aoti_c_shim \1/' generate_code.sh
-
           bash ci/build.sh --python=3.10 --disable_torchair --disable_rpc 2>&1 | tee /tmp/build-torchnpu.log
           BUILD_STATUS=${PIPESTATUS[0]}
 
