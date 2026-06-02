@@ -1,4 +1,3 @@
-import functools
 from typing import Optional, Tuple
 import torch
 import torch._ops
@@ -11,12 +10,15 @@ from torch._prims_common.wrappers import out_wrapper
 import torch.nn.functional as F
 from .config import is_ascend950
 from .lowering import _add_overload
+from .ascend_npu_ir.ascend_npu_ir.npu.utils import run_once
 from .ascend_npu_ir.ascend_npu_ir import config as anir_config
 
 
 aten = torch.ops.aten
 npu = torch.ops.npu
 
+
+@run_once
 def _register_shared_decompositions():
     @register_decomposition([aten.expm1])
     def expm1(x):
@@ -32,6 +34,8 @@ def _register_triton_decompositions():
         aten.addmm,
         aten.gelu,
         aten.native_layer_norm,
+        aten.expm1,
+        aten.erfc,
     ]
 
     if is_ascend950:

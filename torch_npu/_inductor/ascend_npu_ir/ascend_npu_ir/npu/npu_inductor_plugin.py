@@ -96,16 +96,6 @@ class NewNpuInterface(NpuInterface):
 
 register_interface_for_device("npu", NewNpuInterface)
 
-# recover from torch_npu._inductor patches to source code
-def src_call(self, model_, inputs_):
-    from torch._inductor.compile_fx import compile_fx
-
-    return compile_fx(model_, inputs_, config_patches=self.config)
-
-from torch import _TorchCompileInductorWrapper
-
-_TorchCompileInductorWrapper.__call__ = src_call
-
 ## npu patch
 from torch_npu._inductor.decomposition import _register_npu_inductor_decompositions
 _register_npu_inductor_decompositions(backend="mlir_dvm")
