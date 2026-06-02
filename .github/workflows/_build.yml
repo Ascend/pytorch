@@ -99,13 +99,15 @@ jobs:
           echo "MAX_JOBS: ${MAX_JOBS}"
           echo "============================================"
 
-          # Configure ccache
+          # Configure ccache via CMake launcher vars (NOT CC/CXX wrapper).
+          # CC="ccache gcc" breaks .S assembly compilation (qnnpack confu
+          # loses the "gcc" part and passes -D flags directly to ccache).
           if command -v ccache &> /dev/null; then
             echo "ccache found, enabling compiler cache"
             ccache -M 10G
             ccache -z || true
-            export CC="ccache gcc"
-            export CXX="ccache g++"
+            export CMAKE_C_COMPILER_LAUNCHER=ccache
+            export CMAKE_CXX_COMPILER_LAUNCHER=ccache
             export CCACHE_DIR=~/.cache/ccache
             export CCACHE_COMPRESS=1
             export CCACHE_MAXSIZE=10G
@@ -155,13 +157,13 @@ jobs:
           echo "Branch: master"
           echo "============================================"
 
-          # Configure ccache
+          # Configure ccache via CMake launcher vars (NOT CC/CXX wrapper).
           if command -v ccache &> /dev/null; then
             echo "ccache found, enabling compiler cache"
             ccache -M 10G
             ccache -z || true
-            export CC="ccache gcc"
-            export CXX="ccache g++"
+            export CMAKE_C_COMPILER_LAUNCHER=ccache
+            export CMAKE_CXX_COMPILER_LAUNCHER=ccache
             export CCACHE_DIR=~/.cache/ccache
             export CCACHE_COMPRESS=1
             export CCACHE_MAXSIZE=10G
