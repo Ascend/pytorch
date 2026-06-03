@@ -2,6 +2,7 @@
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/framework/interface/MstxInterface.h"
+#include "torch_npu/csrc/framework/interface/MsptiInterface.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/framework/OpCommand.h"
 #include "torch_npu/csrc/profiler/profiler_mgr.h"
@@ -297,28 +298,31 @@ bool MstxMgr::isProfTxEnable()
 
 bool MstxMgr::isMsptiTxEnableImpl()
 {
-    bool ret = false;
-    const char* envVal = std::getenv("LD_PRELOAD");
-    if (envVal == nullptr) {
-        return ret;
-    }
-    static const std::string soName = "libmspti.so";
-    std::stringstream ss(envVal);
-    std::string path;
-    while (std::getline(ss, path, ':')) {
-        path = torch_npu::toolkit::profiler::Utils::RealPath(path);
-        if ((path.size() > soName.size()) && (path.substr(path.size() - soName.size()) == soName)) {
-            ret = true;
-            break;
+    static bool isMsptiSoInLdPreload = []() -> bool {
+        const char* envVal = std::getenv("LD_PRELOAD");
+        if (envVal == nullptr) {
+            return false;
         }
+        static const std::string soName = "libmspti.so";
+        std::stringstream ss(envVal);
+        std::string path;
+        while (std::getline(ss, path, ':')) {
+            path = torch_npu::toolkit::profiler::Utils::RealPath(path);
+            if ((path.size() > soName.size()) && (path.substr(path.size() - soName.size()) == soName)) {
+                return true;
+            }
+        }
+        return false;
+    }();
+    if (isMsptiSoInLdPreload) {
+        return true;
     }
-    return ret;
+    return at_npu::native::IsSupportMsptiFunc() && at_npu::native::MsptiActivityIsEnabled(MSPTI_ACTIVITY_KIND_MARKER);
 }
 
 bool MstxMgr::isMsptiTxEnable()
 {
-    static bool isEnable = isMsptiTxEnableImpl();
-    return isEnable;
+    return isMsptiTxEnableImpl();
 }
 
 bool MstxMgr::isMstxEnable()
