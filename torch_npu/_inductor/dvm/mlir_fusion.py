@@ -61,6 +61,9 @@ anir_config.GENERATE_LIST = [
     aten.ge,
     aten.eq,
     aten.ne,
+    aten.bitwise_and,
+    aten.bitwise_or,
+    aten.bitwise_not,
     aten.where,
     prims.convert_element_type,
     torch.ops.npu.npu_dtype_cast,
@@ -85,12 +88,21 @@ anir_config.GENERATE_LIST = [
 ]
 
 
+def _is_node_supported_by_dvm_rule(node, allow_common_rule=False):
+    if node.target in DVM_OP_REGISTRY:
+        _, rule = DVM_OP_REGISTRY.get(node.target)
+        return rule(node)
+    return allow_common_rule and common_rule(node)
+
+
 def _codegen_dvm_kernel(self, Name=None):
     def is_node_dvm_supported(node):
-        if node.op in ("call_function", "placeholder"):
+        if node.op == "placeholder":
             meta = node.meta["val"]
             if isinstance(meta, torch._subclasses.FakeTensor):
                 return meta.dtype in DVM_SUPPORT_TYPE
+        if node.op == "call_function":
+            return _is_node_supported_by_dvm_rule(node)
         return True
 
     if all(is_node_dvm_supported(node) for node in self._gm.graph.nodes):
@@ -289,11 +301,8 @@ def _patch_lowering_type_checks():
             return False
         if node.target is aten.lift_fresh_copy.default:
             return False
-            
-        if node.target in DVM_OP_REGISTRY:
-            _, rule = DVM_OP_REGISTRY.get(node.target)
-            return not rule(node)
-        return not common_rule(node)
+
+        return not _is_node_supported_by_dvm_rule(node, allow_common_rule=True)
 
     inductor_lowering.fallback_node_due_to_unsupported_type = (
         _fallback_node_due_to_unsupported_type

@@ -311,6 +311,7 @@ def clamp_max(x, max_value):
 
 @register_dvm_op(
     aten.logical_and.default,
+    aten.bitwise_and.Tensor,
     input_dtypes=[torch.bool],
     output_dtypes=[torch.bool],
 )
@@ -320,6 +321,7 @@ def logical_and(x, y):
 
 @register_dvm_op(
     aten.logical_or.default,
+    aten.bitwise_or.Tensor,
     input_dtypes=[torch.bool],
     output_dtypes=[torch.bool],
 )
@@ -384,6 +386,7 @@ def is_finite(x):
 
 @register_dvm_op(
     aten.logical_not.default,
+    aten.bitwise_not.default,
     input_dtypes=[torch.bool],
     output_dtypes=[torch.bool],
 )
