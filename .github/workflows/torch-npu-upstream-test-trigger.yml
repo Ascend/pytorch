@@ -28,4 +28,4 @@ jobs:
     with:
       distributed_shards: ${{ github.event.inputs.distributed_shards || '5' }}
       regular_shards: ${{ github.event.inputs.regular_shards || '5' }}
-      test_files: test/functorch/test_vmap.py
+      test_files: ${{ github.event.inputs.test_files || '' }}
