@@ -965,8 +965,6 @@ def make_graphed_callables(
         The automatic mixed precision is supported in :func:`~torch.cuda.make_graphed_callables` only with disabled
         caching. The context manager `torch.cuda.amp.autocast()` must have `cache_enabled=False`.
     """
-    log.debug("NPUGraph: make_graphed_callables (callables=%s, warmup=%s)...",
-              len(callables), num_warmup_iters)
     if torch_npu.npu.is_autocast_enabled() and torch.is_autocast_cache_enabled():
         log.error("NPUGraph: ERROR — autocast caching not supported")
         log.warning("NPUGRAPH DFX Fix: set cache_enabled=False in torch.autocast()")
