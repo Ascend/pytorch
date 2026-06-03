@@ -1,0 +1,34 @@
+#ifndef INC_EXTERNAL_MSPTI_ACTIVITY_H_
+#define INC_EXTERNAL_MSPTI_ACTIVITY_H_
+
+#include "acl/acl_base.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef enum msptiActivityKind {
+    MSPTI_ACTIVITY_KIND_INVALID = 0,
+    MSPTI_ACTIVITY_KIND_MARKER = 1,
+    MSPTI_ACTIVITY_KIND_KERNEL = 2,
+    MSPTI_ACTIVITY_KIND_API = 3,
+    MSPTI_ACTIVITY_KIND_HCCL = 4,
+    MSPTI_ACTIVITY_KIND_MEMORY = 5,
+    MSPTI_ACTIVITY_KIND_MEMSET = 6,
+    MSPTI_ACTIVITY_KIND_MEMCPY = 7,
+    MSPTI_ACTIVITY_KIND_EXTERNAL_CORRELATION = 8,
+    MSPTI_ACTIVITY_KIND_COMMUNICATION = 9,
+    MSPTI_ACTIVITY_KIND_ACL_API = 10,
+    MSPTI_ACTIVITY_KIND_NODE_API = 11,
+    MSPTI_ACTIVITY_KIND_RUNTIME_API = 12,
+    MSPTI_ACTIVITY_KIND_COUNT,
+    MSPTI_ACTIVITY_KIND_FORCE_INT = 0x7fffffff
+} msptiActivityKind;
+
+ACL_FUNC_VISIBILITY bool msptiActivityIsEnabled(msptiActivityKind kind);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
