@@ -8,6 +8,7 @@ cd $CDIR
 
 python_execute="$1"
 pytorch_version="$2"
+update_aoti_c_shim="${3:-${UPDATE_AOTI_C_SHIM:-}}"
 
 IFS='.' read -ra version_parts <<< "$pytorch_version"
 
@@ -57,12 +58,22 @@ testing_source_yaml="$CDIR/test/ops_unsupport_list.yaml"
 
 op_plugin_functions_yaml_path="$op_plugin_config_path/npu_native_functions.yaml"
 
-${python_execute} -m torchnpugen.gen_backend_stubs  \
-  --output_dir="torch_npu/csrc/aten" \
-  --source_yaml="$source_yaml" \
-  --impl_path="$CDIR/torch_npu/csrc/aten" \
-  --op_plugin_impl_path="$CDIR/third_party/op-plugin/op_plugin/ops" \
-  --op_plugin_yaml_path="$op_plugin_config_path/op_plugin_functions.yaml"
+if [ "${update_aoti_c_shim}" = "--update_aoti_c_shim" ]; then
+  ${python_execute} -m torchnpugen.gen_backend_stubs  \
+    --output_dir="torch_npu/csrc/aten" \
+    --source_yaml="$source_yaml" \
+    --impl_path="$CDIR/torch_npu/csrc/aten" \
+    --op_plugin_impl_path="$CDIR/third_party/op-plugin/op_plugin/ops" \
+    --op_plugin_yaml_path="$op_plugin_config_path/op_plugin_functions.yaml" \
+    --update_aoti_c_shim
+else
+  ${python_execute} -m torchnpugen.gen_backend_stubs  \
+    --output_dir="torch_npu/csrc/aten" \
+    --source_yaml="$source_yaml" \
+    --impl_path="$CDIR/torch_npu/csrc/aten" \
+    --op_plugin_impl_path="$CDIR/third_party/op-plugin/op_plugin/ops" \
+    --op_plugin_yaml_path="$op_plugin_config_path/op_plugin_functions.yaml"
+fi
 
 ${python_execute} -m torchnpugen.autograd.gen_autograd \
   --out_dir="$CDIR/torch_npu/csrc/aten" \

@@ -174,7 +174,7 @@ jobs:
             USE_CCACHE=0
           fi
 
-          bash ci/build.sh --python=3.10 --disable_torchair --disable_rpc 2>&1 | tee /tmp/build-torchnpu.log
+          bash ci/build.sh --python=3.10 --disable_torchair --disable_rpc --update_aoti_c_shim 2>&1 | tee /tmp/build-torchnpu.log
           BUILD_STATUS=${PIPESTATUS[0]}
 
           if [ "${USE_CCACHE}" = "1" ]; then
