@@ -6,15 +6,18 @@ import tempfile
 
 from model_registry import ExampleCode, ModelWithKwargs, MultiMLP
 
+import functools
+
 import torch
 import torch.distributed as dist
+import torch_npu
 from torch.distributed.pipelining import (
     build_stage,
     pipeline,
     PipelineStage,
     ScheduleGPipe,
 )
-from torch.distributed.pipelining._utils import PipeliningShapeError
+from torch.distributed.pipelining._utils import PipeliningMetadataError
 from torch.testing._internal.common_distributed import (
     MultiProcContinuousTest,
     requires_nccl,
@@ -26,6 +29,19 @@ from torch.testing._internal.common_utils import (
     skip_but_pass_in_sandcastle_if,
 )
 from torch.utils._pytree import tree_map_only
+
+
+# NPU fork_rng patch: installed torch may call fork_rng without device_type,
+# causing CUDA to be checked and failing on NPU-only systems.
+_original_fork_rng = torch.random.fork_rng
+
+@functools.wraps(_original_fork_rng)
+def _patched_fork_rng(*args, **kwargs):
+    if kwargs.get("device_type", "cuda") in ("cuda", None):
+        kwargs["device_type"] = "npu"
+    return _original_fork_rng(*args, **kwargs)
+
+torch.random.fork_rng = _patched_fork_rng
 
 
 d_hid = 512
@@ -127,17 +143,17 @@ class StageTest(MultiProcContinuousTest):
             # intended to run this code on all ranks, but the problem is if rank0 throws,
             # it won't perform the send that unblocks rank 1.
 
-            with self.assertRaisesRegex(PipeliningShapeError, "dtype mismatch"):
+            with self.assertRaisesRegex(PipeliningMetadataError, "dtype mismatch"):
                 _run_step(x.to(torch.int32))
 
             # output of stage's mlp layer will be flattened by this hook, the stage should err
             handle = stage.submod.register_forward_hook(get_flatten_hook())
-            with self.assertRaisesRegex(PipeliningShapeError, "shape mismatch"):
+            with self.assertRaisesRegex(PipeliningMetadataError, "shape mismatch"):
                 _run_step(x)
             handle.remove()
 
             stage.submod.register_forward_hook(get_dtype_change_hook(torch.bfloat16))
-            with self.assertRaisesRegex(PipeliningShapeError, "dtype mismatch"):
+            with self.assertRaisesRegex(PipeliningMetadataError, "dtype mismatch"):
                 _run_step(x)
 
     @parametrize("ModelClass", [ModelWithKwargs])
@@ -218,20 +234,20 @@ class StageTest(MultiProcContinuousTest):
             torch.testing.assert_close(out, ref_out)
 
         if self.rank == 0:
-            with self.assertRaisesRegex(PipeliningShapeError, "shape mismatch"):
+            with self.assertRaisesRegex(PipeliningMetadataError, "shape mismatch"):
                 _run_step(torch.randn(batch_size + 1, d_hid, device=self.device))
 
-            with self.assertRaisesRegex(PipeliningShapeError, "dtype mismatch"):
+            with self.assertRaisesRegex(PipeliningMetadataError, "dtype mismatch"):
                 _run_step(x.to(torch.int32))
 
             # output of stage's mlp layer will be flattened by this hook, the stage should err
             handle = stage_mod.register_forward_hook(get_flatten_hook())
-            with self.assertRaisesRegex(PipeliningShapeError, "shape mismatch"):
+            with self.assertRaisesRegex(PipeliningMetadataError, "shape mismatch"):
                 _run_step(x)
             handle.remove()
 
             stage_mod.register_forward_hook(get_dtype_change_hook(torch.bfloat16))
-            with self.assertRaisesRegex(PipeliningShapeError, "dtype mismatch"):
+            with self.assertRaisesRegex(PipeliningMetadataError, "dtype mismatch"):
                 _run_step(x)
 
     def test_custom_dw_with_fb_schedule(self):
@@ -293,7 +309,7 @@ class StageTest(MultiProcContinuousTest):
             torch.testing.assert_close(out, ref_out)
 
         if self.rank == 0:
-            with self.assertRaisesRegex(PipeliningShapeError, "shape mismatch"):
+            with self.assertRaisesRegex(PipeliningMetadataError, "shape mismatch"):
                 _run_step(torch.randn(batch_size + 1, d_hid, device=self.device))
 
     def test_custom_dw_errors(self):
