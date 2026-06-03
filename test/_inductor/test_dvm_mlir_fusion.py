@@ -2,6 +2,7 @@
 import os
 
 import torch
+from torch._inductor.utils import run_and_get_code
 from torch.testing._internal.common_utils import (
     instantiate_parametrized_tests,
     parametrize,
@@ -57,7 +58,31 @@ class DeterministicReduceModel(torch.nn.Module):
         return torch.ops.aten.sum.default(arg0)
 
 
+class BitwiseBoolModel(torch.nn.Module):
+    def forward(self, arg0, arg1):
+        bitwise_and = torch.ops.aten.bitwise_and.Tensor(arg0, arg1)
+        bitwise_not = torch.ops.aten.bitwise_not.default(arg0)
+        return torch.ops.aten.bitwise_or.Tensor(bitwise_and, bitwise_not)
+
+
+class BitwiseIntModel(torch.nn.Module):
+    def forward(self, arg0):
+        return torch.ops.aten.bitwise_not.default(arg0)
+
+
 class TestDvmByMlir(TestCase):
+    def _run_and_get_code_with_dvm(self, model, *args):
+        original_backend = os.environ.get("TORCHINDUCTOR_NPU_BACKEND")
+        os.environ["TORCHINDUCTOR_NPU_BACKEND"] = "dvm"
+        try:
+            compiled_model = torch.compile(model, backend="inductor", dynamic=False)
+            return run_and_get_code(compiled_model, *args)
+        finally:
+            if original_backend is None:
+                os.environ.pop("TORCHINDUCTOR_NPU_BACKEND", None)
+            else:
+                os.environ["TORCHINDUCTOR_NPU_BACKEND"] = original_backend
+
     @parametrize("dtype", [torch.float16, torch.float32, torch.bfloat16])
     @parametrize("is_dynamic", [True, False])
     def test_basic_partitioning(self, dtype, is_dynamic):
@@ -145,6 +170,33 @@ class TestDvmByMlir(TestCase):
                 deterministic_state, warn_only=deterministic_warn_only
             )
             del os.environ["TORCHINDUCTOR_NPU_BACKEND"]
+
+    def test_bitwise_bool_ops_codegen(self):
+        arg0 = torch.randint(0, 2, (32, 32), dtype=torch.bool, device="npu")
+        arg1 = torch.randint(0, 2, (32, 32), dtype=torch.bool, device="npu")
+        model = BitwiseBoolModel()
+
+        with torch.no_grad():
+            expect = model(arg0, arg1)
+            result, codes = self._run_and_get_code_with_dvm(model, arg0, arg1)
+
+        code = "\n".join(codes)
+        self.assertEqual(expect, result)
+        self.assertIn("k.logical_and", code)
+        self.assertIn("k.logical_or", code)
+        self.assertIn("k.logical_not", code)
+
+    def test_bitwise_int_rule_fallback(self):
+        arg0 = torch.randint(-8, 8, (32, 32), dtype=torch.int32, device="npu")
+        model = BitwiseIntModel()
+
+        with torch.no_grad():
+            expect = model(arg0)
+            result, codes = self._run_and_get_code_with_dvm(model, arg0)
+
+        code = "\n".join(codes)
+        self.assertEqual(expect, result)
+        self.assertNotIn("k.logical_not", code)
 
 
 instantiate_parametrized_tests(TestDvmByMlir)
