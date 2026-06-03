@@ -21,7 +21,8 @@ from ._dynamic_profiler._dynamic_monitor_proxy import PyDynamicMonitorProxySingl
 __all__ = [
     'init',
     'step',
-    'start'
+    'start',
+    'set_state'
 ]
 
 
@@ -71,6 +72,18 @@ class _DynamicProfile:
         prof_cfg_ctx = self._dynamic_monitor.shm_to_prof_conf_context()
         return prof_cfg_ctx
 
+    def set_state(self, state_step: dict):
+        if not isinstance(state_step, dict):
+            DynamicProfilerUtils.stdout_log("Dynamic profiler state_step must be dict.",
+                                            DynamicProfilerUtils.LoggerLevelEnum.ERROR)
+            return
+        cur_step = state_step.get("cur_step", 0)
+        if not isinstance(cur_step, int) or cur_step < 0:
+            DynamicProfilerUtils.stdout_log("Dynamic profiler cur_step must be a non-negative integer.",
+                                            DynamicProfilerUtils.LoggerLevelEnum.ERROR)
+            return
+        self.cur_step = cur_step
+
     def step(self):
         self.cur_step += 1
         cfg_ctx = self._dynamic_profiler_valid()
@@ -78,7 +91,7 @@ class _DynamicProfile:
             self.cfg_ctx = cfg_ctx
         if self.cur_step == self.RECORD_TIME_STEP:
             self._step_record_time = time.time()
-        elif self.cur_step - self.RECORD_TIME_STEP == 1:
+        elif self.cur_step - self.RECORD_TIME_STEP == 1 and self._step_record_time is not None:
             self._step_time = min(self._max_poll_interval,
                 max(self._min_poll_interval, int(time.time() - self._step_record_time)))
             self._dynamic_monitor.modify_step_time(self._step_time)
@@ -201,3 +214,8 @@ def step():
 @no_exception_func()
 def start(config_path: str = None):
     _DynamicProfile().start(config_path)
+
+
+@no_exception_func()
+def set_state(state_step: dict):
+    _DynamicProfile().set_state(state_step)
