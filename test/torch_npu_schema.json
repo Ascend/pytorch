@@ -1826,6 +1826,9 @@
   "torch_npu.profiler.dynamic_profile.start": {
     "signature": "(config_path: str = None)"
   },
+  "torch_npu.profiler.dynamic_profile.set_state": {
+    "signature": "(state_step: dict)"
+  },
   "torch_npu.profiler.experimental_config.AiCMetrics": {
     "signature": "()"
   },
