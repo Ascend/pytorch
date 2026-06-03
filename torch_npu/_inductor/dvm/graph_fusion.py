@@ -1,3 +1,4 @@
+import os
 from collections import defaultdict
 from types import SimpleNamespace
 
@@ -20,7 +21,7 @@ from torch.fx.passes.utils.fuser_utils import (
 )
 
 from .graph_build import DvmCodegenInterpreter
-from .load_codegen import patch_gm_placeholder_strides_from_codegen_args
+from .util import patch_gm_placeholder_strides_from_codegen_args
 from .fx_test import generate_dvm_fx_case
 from .op_emitter import DVM_OP_REGISTRY
 from .fx_pass import (
@@ -31,9 +32,9 @@ from .fx_pass import (
     need_fallback_gm,
 )
 
-dump_fx_test = False
+dump_fx_test = os.environ.get("INDUCTOR_DVM_DUMP_FX_TEST", "0") == "1"
 
-uncont_policy = "fuse"
+view_fusion_level = int(os.environ.get("INDUCTOR_DVM_VIEW_FUSION_LEVEL", "1"))
 
 aten = torch.ops.aten
 prims = torch.ops.prims
@@ -167,7 +168,9 @@ class _FusedMeta:
         """
         if dump_fx_test:
             generate_dvm_fx_case(self.gm, fusion_type="graph")
-        cg = DvmCodegenInterpreter(self.gm, ktype="split")
+        cg = DvmCodegenInterpreter(
+            self.gm, ktype="split", view_fusion_level=view_fusion_level
+        )
         cg.run()
         code = cg.code.getvalue().replace(cg.KERNEL_NAME_PLACEHOLDER, self.name)
         return cg, code
@@ -378,8 +381,8 @@ def _dvm_generate_fallback_kernel(self, fallback_kernel):
     buf_name = fallback_kernel.get_name()
 
     # cont/trans handling based on codegen interpreter
-    for i, no_trans in enumerate(cg.cont_flag_input):
-        if not no_trans:
+    for i, skip_cont in enumerate(cg.cont_flag_input):
+        if not skip_cont:
             args_list[i] += ".contiguous()"
     for i, trans in enumerate(cg.need_trans_input):
         if trans:
