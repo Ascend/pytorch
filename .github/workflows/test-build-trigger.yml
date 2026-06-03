@@ -26,3 +26,4 @@ jobs:
       upstream_sha: ${{ needs.resolve.outputs.sha }}
       upstream_fork_repo: ''
       downstream_repo: ${{ github.repository }}
+      downstream_ref: ${{ github.head_ref }}

@@ -20,6 +20,11 @@ on:
         required: true
         type: string
         description: The downstream repository full name (owner/repo)
+      downstream_ref:
+        required: false
+        type: string
+        default: 'master'
+        description: The downstream repository branch, tag, or SHA to build
 
 jobs:
   build:
@@ -134,12 +139,12 @@ jobs:
 
           python -c "import torch; print(f'PyTorch version: {torch.__version__}')"
 
-      # Step 3: Checkout downstream torch_npu master
+      # Step 3: Checkout downstream torch_npu
       - name: Checkout downstream repo (torch_npu)
         uses: actions/checkout@v6
         with:
           repository: ${{ inputs.downstream_repo }}
-          ref: master
+          ref: ${{ inputs.downstream_ref }}
           submodules: recursive
           path: torch_npu
 
@@ -152,9 +157,9 @@ jobs:
         working-directory: torch_npu
         run: |
           echo "============================================"
-          echo "Building torch_npu from downstream master..."
+          echo "Building torch_npu..."
           echo "Repository: ${{ inputs.downstream_repo }}"
-          echo "Branch: master"
+          echo "Ref: ${{ inputs.downstream_ref }}"
           echo "============================================"
 
           # Configure ccache via CMake launcher vars (NOT CC/CXX wrapper).
