@@ -15,7 +15,7 @@ from torch_npu._inductor.dvm.fx_pass import (
     expand_dvm_mm_to_explicit_transpose_for_inductor,
 )
 from torch_npu._inductor.dvm.graph_build import DvmCodegenInterpreter
-from torch_npu._inductor.dvm.load_codegen import patch_gm_placeholder_strides_from_codegen_args
+from torch_npu._inductor.dvm.util import patch_gm_placeholder_strides_from_codegen_args
 from torch_npu._inductor.mfusion import subgraph_registry
 from torch_npu._inductor.mfusion.decomp import patch_decomp as patch_mfusion_decomp
 
@@ -702,8 +702,8 @@ def _emit_mfusion_dvm_codegen(
             "mfusion dvm codegen arg mismatch: "
             f"{len(args_list)} vs {len(cg.cont_flag_input)}"
         )
-    for i, no_trans in enumerate(cg.cont_flag_input):
-        if not no_trans:
+    for i, skip_cont in enumerate(cg.cont_flag_input):
+        if not skip_cont:
             args_list[i] += ".contiguous()"
     for i, trans in enumerate(cg.need_trans_input):
         if trans:
