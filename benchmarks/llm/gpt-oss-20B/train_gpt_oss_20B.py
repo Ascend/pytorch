@@ -373,6 +373,9 @@ def main():
 
     args.device_type = detect_device_type()
     os.environ['TORCHINDUCTOR_NPU_BACKEND']=args.npu_backend
+    if args.npu_backend == "akg":
+        os.environ['TORCHINDUCTOR_NPU_BACKEND'] = 'mlir'
+        os.environ['TORCHINDUCTOR_USE_AKG'] = '1'
     if args.mfusion:
         os.environ['TORCHINDUCTOR_ENABLE_MFUSION']='1'
     print(f"{args.device_type}  train  {model_name}")

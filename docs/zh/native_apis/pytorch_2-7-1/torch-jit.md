@@ -7,7 +7,7 @@
 |--|--|--|
 |[torch.jit.export](https://pytorch.org/docs/2.7/jit.html#torch.jit.export)|是|-|
 |[torch.jit.is_scripting](https://docs.pytorch.org/docs/2.7/jit_language_reference.html#torch.jit.is_scripting)|是|-|
-|[torch.jit.is_tracing](https://docs.pytorch.org/docs/2.7/jit_language_reference.html#torch.jit.is_tracing)|是|支持fp32|
+|[torch.jit.is_tracing](https://docs.pytorch.org/docs/2.7/jit_language_reference.html#torch.jit.is_tracing)|是|-|
 |[torch.jit.script](https://pytorch.org/docs/2.7/generated/torch.jit.script.html)|是|-|
 |[torch.jit.trace](https://pytorch.org/docs/2.7/generated/torch.jit.trace.html)|是|支持fp32|
 |[torch.jit.script_if_tracing](https://pytorch.org/docs/2.7/generated/torch.jit.script_if_tracing.html)|是|支持fp32|

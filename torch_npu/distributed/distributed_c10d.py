@@ -483,16 +483,27 @@ def _trigger_rendezvous_decorator(func):
 
 
 def _destructor_process_group():
+    world = dist_c10d._world
+    for pg_to_shutdown in sorted(
+        world.pg_names, key=lambda x: world.pg_names[x], reverse=True
+    ):
+        try:
+            pg_to_shutdown.shutdown()
+        except Exception:
+            logger.warning(
+                "Failed to shutdown process group during NPU exit.", exc_info=True
+            )
+
     _update_default_pg(None)
-    dist_c10d._world.pg_map.clear()
-    dist_c10d._world.pg_names.clear()
-    dist_c10d._world.pg_group_ranks.clear()
-    dist_c10d._world.pg_backend_config.clear()
-    dist_c10d._world.pg_to_tag.clear()
-    dist_c10d._world.tags_to_pg.clear()
-    dist_c10d._world.pg_coalesce_state.clear()
+    world.pg_map.clear()
+    world.pg_names.clear()
+    world.pg_group_ranks.clear()
+    world.pg_backend_config.clear()
+    world.pg_to_tag.clear()
+    world.tags_to_pg.clear()
+    world.pg_coalesce_state.clear()
     _unregister_all_process_groups()
-    dist_c10d._world.group_count = 0
+    world.group_count = 0
 
 
 def _hccl_get_sequence_number_for_group(self):

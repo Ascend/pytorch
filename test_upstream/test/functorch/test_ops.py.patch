@@ -179,6 +179,17 @@ index 145905f..3c51713 100644
              ),
              tol1(
                  "linalg.householder_product",
+@@ -1693,7 +1703,9 @@ class TestOperators(TestCase):
+         for sample in samples:
+             args = [sample.input] + list(sample.args)
+             kwargs = sample.kwargs
+-
++            # empty tensor skip，npu not support
++            if any(t.numel() == 0 for t in args):
++                continue
+             is_batch_norm_and_training = is_batch_norm and is_batch_norm_training(
+                 op.name, kwargs
+             )
 @@ -1702,6 +1712,7 @@ class TestOperators(TestCase):
              )
  

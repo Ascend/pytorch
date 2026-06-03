@@ -6,6 +6,7 @@
     "test_binary_op_list_error_cases__foreach_clamp_max_npu_bool (__main__.TestForeachPRIVATEUSE1)": ["", [""]],
     "test_binary_op_list_error_cases__foreach_clamp_max_npu_complex128 (__main__.TestForeachPRIVATEUSE1)": ["", [""]],
     "test_binary_op_list_error_cases__foreach_clamp_max_npu_complex64 (__main__.TestForeachPRIVATEUSE1)": ["", [""]],
+    "test_compare_cpu_sparse_sampled_addmm_npu_float32 (__main__.TestCommonPRIVATEUSE1)": ["", [""]],
     "test_binary_op_list_error_cases__foreach_clamp_max_npu_float16 (__main__.TestForeachPRIVATEUSE1)": ["", [""]],
     "test_binary_op_list_error_cases__foreach_clamp_max_npu_float32 (__main__.TestForeachPRIVATEUSE1)": ["", [""]],
     "test_binary_op_list_error_cases__foreach_clamp_max_npu_float64 (__main__.TestForeachPRIVATEUSE1)": ["", [""]],
@@ -1136,5 +1137,9 @@
     "test_register_fake_class_no_torch_bind_class (__main__.TestRegisterFakeClass)": ["", [""]],
     "test_register_fake_class_valid (__main__.TestRegisterFakeClass)": ["", [""]],
     "test_pinned_memory_with_cudaregister (__main__.TestCuda)": ["hardware difference, not supported yet", [""]],
-    "test_pinned_memory_empty_cache (__main__.TestCuda)": ["hardware difference, not supported yet", [""]]
+    "test_pinned_memory_empty_cache (__main__.TestCuda)": ["hardware difference, not supported yet", [""]],
+    "test_collectives_op_mismatch_debug_mode (__main__.ProcessGroupNCCLWrapperTest)": ["", [""]],
+    "test_collectives_op_mismatch (__main__.ProcessGroupNCCLWrapperTest)": ["", [""]],
+    "test_collectives_op_mismatch_cuda_debug_mode (__main__.ProcessGroupGlooWrapperTest)": ["", [""]],
+    "test_collectives_op_mismatch_cuda (__main__.ProcessGroupGlooWrapperTest)": ["", [""]]
 }

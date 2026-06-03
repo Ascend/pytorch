@@ -5,6 +5,7 @@
 ShapeHandling 是 PyTorch Ascend 扩展(针对华为 Ascend 加速卡的PyTorch 适配层)中的一个特性，用于优化动态形状输入下的模型编译和执行性能。它通过对输入张量的形状进行分档处理，减少编译次数，在结合aclgraph的场景减少图捕获次数，提高模型推理效率。
 
 主要功能包括：
+
 - 对张量的 batchsize 和 sequence length 维度进行分档处理。
 - 自动 padding（填充）和 splitting（分割）操作。
 - 支持自定义分档策略。
@@ -63,18 +64,18 @@ B = torch.randn(32, 128, device="npu")
 out = compiled_fn(A, B)
 ```
 
-
 ## 配置参数说明
 
+### `torch.compile(..., options=...)` 新增字段
 
-###  `torch.compile(..., options=...)` 新增字段
 | 字段 | 类型 | 是否必填 | 默认值 | 说明 |
 |---|---|---|---|---|
 | `enable_shape_handling` | `bool` | 开启时必填 | `False` | 是否开启 shape handling。 |
 | `shape_handling_configs` | `list[dict]` | 开启时必填 | `None` | shape 规则列表。最多支持两个维度类型（`BATCHSIZE`、`SEQLEN`）。 |
 | `shape_handling_dict` | `dict` | 否 | `None` | 自定义预处理/后处理函数集合。 |
 
-#### `shape_handling_configs` 
+#### `shape_handling_configs`
+
 | 字段 | 类型 | 是否必填 | 默认值 | 说明                                        |
 |---|---|---|---|-------------------------------------------|
 | `type` | `str` | 是 | 无 | 维度类型：`BATCHSIZE` 或 `SEQLEN`。              |
@@ -86,7 +87,8 @@ out = compiled_fn(A, B)
 | `max_size` | `int` | 否 | `1024` | 自动生成 gear 的最大值。                           |
 | `policy` | `str` | 否 | `TIMES` | gear 生成策略。当前 `min/max` 路径仅支持 `TIMES`。     |
 
-#### `shape_handling_dict` 
+#### `shape_handling_dict`
+
 | 字段 | 推荐签名 | 说明 |
 |---|---|---|
 | `trans_pre_fn` | `(*args, **kwargs) -> list[torch.Tensor]` | transform 前，将调用输入转换成 Tensor 列表。 |
