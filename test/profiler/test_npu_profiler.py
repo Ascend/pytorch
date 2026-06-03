@@ -221,10 +221,15 @@ class TestNpuProfiler(TestCase):
         worker_name = self.worker_name
         with torch_npu.profiler.profile(
             activities=[torch_npu.profiler.ProfilerActivity.NPU],
+            schedule=torch_npu.profiler.schedule(
+                wait=0, warmup=0, active=1, repeat=1, skip_first=0
+            ),
             on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(
                 self.results_path, worker_name=worker_name
             ),
-            experimental_config=torch_npu.profiler._ExperimentalConfig(l2_cache=True),
+            experimental_config=torch_npu.profiler._ExperimentalConfig(
+                mstx=True, l2_cache=True
+            ),
         ) as prof:
             for step in range(self.small_steps):
                 self.model_train.train_one_step()
@@ -246,7 +251,12 @@ class TestNpuProfiler(TestCase):
             True,
             self._has_view_result(self.results_path, worker_name, self.SOC_PMU),
         )
-        # self.assertEqual(False, self._check_trace_view_keywords(worker_name, ["async_npu"]))
+        self.assertEqual(
+            True,
+            self._check_trace_view_keywords(
+                self.results_path, worker_name, ["ProfilerStep#0"]
+            ),
+        )
 
     def test_record_shapes(self):
         worker_name = self.worker_name
