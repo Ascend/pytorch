@@ -4,7 +4,7 @@ from torch._inductor.utils import IndentedBuffer
 from torch.fx.node import Argument, Target
 
 from .fx_pass import annotate_mm_transpose_flags
-from .load_codegen import choose_load_codegen
+from .util import codegen_maybe_view_load
 from .op_emitter import DVM_OP_REGISTRY, load, store
 
 
@@ -32,7 +32,7 @@ class DvmCodegenInterpreter(torch.fx.Interpreter):
         self,
         gm: torch.fx.GraphModule,
         ktype: str,
-        uncont_policy="fuse",
+        view_fusion_level=1,
         is_dynamic: bool | None = None,
     ):
         super().__init__(gm)
@@ -48,7 +48,7 @@ class DvmCodegenInterpreter(torch.fx.Interpreter):
         self.current_node = None
         self.cont_flag_input = []
         self.need_trans_input = []
-        self.use_view = uncont_policy == "fuse"
+        self.view_fusion_level = view_fusion_level
         self.code = IndentedBuffer()
 
         self.spec_nodes = set()
@@ -105,23 +105,30 @@ class DvmCodegenInterpreter(torch.fx.Interpreter):
         is_symbolic = any(
             isinstance(s, torch.SymInt) and s.node.is_symbolic() for s in shape
         )
-        self.need_trans_input.append(meta.get("trans", False))
-        if self.is_mix_kernel and meta.get("trans", False):
-            self.cont_flag_input.append(True)
-            trans_shape = val.mT.shape
-            trans_shape = [
-                -1 if isinstance(s, torch.SymInt) else s for s in trans_shape
-            ]
-            return load(trans_shape, dtype)
+        is_contiguous = val.is_contiguous()
 
-        expr, cont_flag = choose_load_codegen(
-            shape,
-            stride,
-            dtype,
-            use_view=self.use_view,
-            is_symbolic=is_symbolic,
-        )
-        self.cont_flag_input.append(cont_flag)
+        if self.is_mix_kernel:
+            trans = meta.get("trans", False)
+            self.need_trans_input.append(trans)
+            self.cont_flag_input.append(trans or is_contiguous)
+            if trans:
+                shape = val.mT.shape
+            shape = [-1 if isinstance(s, torch.SymInt) else s for s in shape]
+            return load(shape, dtype)
+
+        shape = [-1 if isinstance(s, torch.SymInt) else s for s in shape]
+        stride = [-1 if isinstance(s, torch.SymInt) else s for s in stride]
+        if is_contiguous:
+            expr, skip_cont = load(shape, dtype), True
+        else:
+            expr, skip_cont = codegen_maybe_view_load(
+                shape,
+                stride,
+                dtype,
+                view_fusion_level=self.view_fusion_level,
+                is_symbolic=is_symbolic,
+            )
+        self.cont_flag_input.append(skip_cont)
         return expr
 
     def call_function(

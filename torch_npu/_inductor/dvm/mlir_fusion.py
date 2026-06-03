@@ -26,9 +26,11 @@ from .graph_build import DvmCodegenInterpreter
 from .op_emitter import common_rule, DVM_OP_REGISTRY, DVM_SUPPORT_TYPE
 from torch._higher_order_ops.triton_kernel_wrap import triton_kernel_wrapper_mutation
 
-dump_fx_test = False
-uncont_policy = "fuse"
-disable_post_reduce_fusion = False
+dump_fx_test = os.environ.get("INDUCTOR_DVM_DUMP_FX_TEST", "0") == "1"
+view_fusion_level = int(os.environ.get("INDUCTOR_DVM_VIEW_FUSION_LEVEL", "1"))
+disable_post_reduce_fusion = (
+    os.environ.get("INDUCTOR_DVM_DISABLE_POST_REDUCE_FUSION", "0") == "1"
+)
 aten = torch.ops.aten
 prims = torch.ops.prims
 quantized = torch.ops.quantized
@@ -93,7 +95,9 @@ def _codegen_dvm_kernel(self, Name=None):
         return True
 
     if all(is_node_dvm_supported(node) for node in self._gm.graph.nodes):
-        self.dvm_codegen = DvmCodegenInterpreter(self._gm, ktype="vector")
+        self.dvm_codegen = DvmCodegenInterpreter(
+            self._gm, ktype="vector", view_fusion_level=view_fusion_level
+        )
         self.dvm_codegen.run()
         return self.dvm_codegen.code.getvalue()
     else:
