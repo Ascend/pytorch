@@ -172,15 +172,16 @@ jobs:
           print(f'NPU count: {torch.npu.device_count()}')
           "
 
-      # Step 7: Upload build logs (always, for debugging failures)
-      - name: Upload build logs
+      # Step 7: Upload build artifacts (always, for debugging failures)
+      - name: Upload build artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: build-logs-${{ github.run_number }}
+          name: build-artifacts-${{ github.run_number }}
           path: |
             /tmp/build-pytorch.log
             /tmp/build-torchnpu.log
+            torch_npu/torch_npu/csrc/inductor/aoti_torch/generated/c_shim_npu.h
           if-no-files-found: warn
 
       # Step 8: Summary
