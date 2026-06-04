@@ -77,15 +77,21 @@ jobs:
             ccache-arm-py3.10-
 
       # Step 1: Checkout upstream PyTorch PR code
-      # Use fork repo if available (PR from fork), otherwise use upstream repo
+      # Submodules init is deferred to a separate step with --depth=1
+      # to avoid cloning full submodule histories.
       - name: Checkout upstream PyTorch PR
         uses: actions/checkout@v6
         with:
           repository: ${{ inputs.upstream_fork_repo != '' && inputs.upstream_fork_repo || inputs.upstream_repo }}
           ref: ${{ inputs.upstream_sha }}
           fetch-depth: 0
-          submodules: recursive
+          submodules: false
           path: pytorch
+
+      - name: Init submodules (shallow)
+        working-directory: pytorch
+        run: |
+          git submodule update --init --recursive --depth=1 --jobs=$(nproc)
 
       # Step 2: Build and install PyTorch
       # pip install -e . = cmake configure + build + editable install
@@ -124,7 +130,11 @@ jobs:
           fi
 
           pip install -r requirements.txt
-          python -m pip install --no-build-isolation -v -e . 2>&1 | tee /tmp/build-pytorch.log
+
+          # Build wheel first, then install from it.
+          # This produces an artifact we can upload for downstream use.
+          mkdir -p /tmp/wheels
+          python -m pip wheel --no-build-isolation -w /tmp/wheels/ . 2>&1 | tee /tmp/build-pytorch.log
           BUILD_STATUS=${PIPESTATUS[0]}
 
           if [ "${USE_CCACHE}" = "1" ]; then
@@ -137,6 +147,7 @@ jobs:
             exit ${BUILD_STATUS}
           fi
 
+          pip install /tmp/wheels/torch*.whl
           python -c "import torch; print(f'PyTorch version: {torch.__version__}')"
 
       # Step 3: Checkout downstream torch_npu
@@ -193,8 +204,18 @@ jobs:
           fi
 
           pip install dist/torch_npu*.whl
+          cp dist/torch_npu*.whl /tmp/wheels/
 
-      # Step 5: Verify NPU environment and imports
+      # Step 5: Upload wheel artifacts
+      - name: Upload wheel artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ github.run_number }}
+          path: /tmp/wheels/*.whl
+          retention-days: 7
+
+      # Step 6: Verify NPU environment and imports
       - name: Verify NPU device
         run: |
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
@@ -218,7 +239,7 @@ jobs:
           print(f'NPU count: {torch.npu.device_count()}')
           "
 
-      # Step 6: Upload build logs (always, for debugging failures)
+      # Step 7: Upload build logs (always, for debugging failures)
       - name: Upload build logs
         if: always()
         uses: actions/upload-artifact@v4
@@ -229,7 +250,7 @@ jobs:
             /tmp/build-torchnpu.log
           if-no-files-found: warn
 
-      # Step 7: Summary
+      # Step 8: Summary
       - name: Summary
         if: always()
         run: |
