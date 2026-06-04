@@ -44,11 +44,10 @@ jobs:
       matrix:
         shard: ${{ fromJson(inputs.regular_matrix) }}
       fail-fast: false
-      max-parallel: 5
 
     steps:
       - name: Setup NPU test environment
-        uses: Ascend/pytorch/.github/actions/setup-npu-test-env@v2.7.1
+        uses: kerer-ai/pytorch/.github/actions/setup-npu-test-env@v2.7.1_image
         with:
           python_version: ${{ inputs.python_version }}
           torch_npu_wheel_artifact: ${{ inputs.torch_npu_wheel_artifact }}
@@ -79,9 +78,9 @@ jobs:
           echo "=== Regular Shard ${{ matrix.shard }} (Case-level) ==="
           echo "Total cases: ${TOTAL_CASES}"
           echo "Runner: linux-aarch64-a3-16 (16-card NPU)"
-          echo "Execution mode: CONCURRENT (16 workers)"
+          echo "Execution mode: CONCURRENT (64 workers)"
 
-          # Regular tests: pre-collected cases, 16 concurrent workers
+          # Regular tests: pre-collected cases, 64 concurrent workers (one per NPU device)
           set +e
           $PYTHON ascend_pytorch/.github/scripts/run_npu_test_shard.py \
             --cases-json "${CASES_JSON}" \

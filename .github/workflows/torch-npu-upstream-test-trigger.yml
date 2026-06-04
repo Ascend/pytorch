@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       distributed_shards:
-        description: 'Number of shards for distributed tests (default 2)'
+        description: 'Number of shards for distributed tests (default 5)'
         required: false
-        default: '2'
+        default: '5'
         type: string
       regular_shards:
         description: 'Number of shards for regular tests (default 5)'
@@ -26,6 +26,6 @@ jobs:
   trigger_test:
     uses: ./.github/workflows/_torch-npu-upstream-test.yml
     with:
-      distributed_shards: ${{ github.event.inputs.distributed_shards || '2' }}
+      distributed_shards: ${{ github.event.inputs.distributed_shards || '5' }}
       regular_shards: ${{ github.event.inputs.regular_shards || '5' }}
       test_files: ${{ github.event.inputs.test_files || '' }}

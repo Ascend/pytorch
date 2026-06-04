@@ -31,7 +31,7 @@ defaults:
 jobs:
   run_tests:
     name: test_custom
-    runs-on: linux-aarch64-a3-8
+    runs-on: linux-aarch64-a3-16
     timeout-minutes: 1800
     container:
       image: ${{ inputs.docker_image }}
@@ -39,7 +39,7 @@ jobs:
 
     steps:
       - name: Setup NPU test environment
-        uses: Ascend/pytorch/.github/actions/setup-npu-test-env@v2.7.1
+        uses: kerer-ai/pytorch/.github/actions/setup-npu-test-env@v2.7.1_image
         with:
           python_version: ${{ inputs.python_version }}
           torch_npu_wheel_artifact: ${{ inputs.torch_npu_wheel_artifact }}
@@ -62,6 +62,7 @@ jobs:
             --disabled-testcases pytorch-test-src/test_upstream/disabled_testcases.json \
             --report-dir ${REPORT_DIR} \
             --timeout 1200 \
+            --max-workers 16 \
             --verbose \
             2>&1 | tee /tmp/test_custom.log
 
