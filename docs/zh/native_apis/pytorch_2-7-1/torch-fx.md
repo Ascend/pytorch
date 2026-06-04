@@ -5,6 +5,11 @@
 
 |API名称|是否支持|限制与说明|
 |--|--|--|
+|[torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symbolic_sizes_strides_storage_offset](https://pytorch.org/docs/2.7/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symbolic_sizes_strides_storage_offset.html)|是|-|
+|[torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symboolnode](https://pytorch.org/docs/2.7/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symboolnode.html)|是|-|
+|[torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symfloatnode](https://pytorch.org/docs/2.7/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symfloatnode.html)|是|-|
+|[torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symintnode](https://pytorch.org/docs/2.7/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symintnode.html)|是|-|
+|[torch.fx.experimental.symbolic_shapes.ShapeEnv.create_unbacked_symbool](https://pytorch.org/docs/2.7/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.create_unbacked_symbool.html)|是|-|
 |[torch.fx.symbolic_trace](https://pytorch.org/docs/2.7/fx.html#torch.fx.symbolic_trace)|是|支持fp32|
 |[torch.fx.wrap](https://pytorch.org/docs/2.7/fx.html#torch.fx.wrap)|是|支持fp32|
 |[torch.fx.GraphModule](https://pytorch.org/docs/2.7/fx.html#torch.fx.GraphModule)|是|支持fp32|
