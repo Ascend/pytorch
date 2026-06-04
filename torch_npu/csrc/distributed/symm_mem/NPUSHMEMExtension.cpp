@@ -90,7 +90,8 @@ void nvshmem_put(at::Tensor& tensor, int64_t peer)
     auto rank = hdl->get_rank();
     void* buffer_ptr = hdl->get_buffer_ptrs()[rank];
     auto buffer_size = tensor.numel() * tensor.element_size();
-    TORCH_CHECK(peer < hdl->get_world_size(), "peer must be smaller than world size", DIST_ERROR(ErrCode::PARAM));
+    TORCH_CHECK(peer >= 0 && peer < hdl->get_world_size(),
+        "peer must be in range [0, world size)", DIST_ERROR(ErrCode::PARAM));
     at::DeviceGuard device_guard(tensor.device());
     auto stream = c10_npu::getCurrentNPUStream();
     c10d::symmetric_memory::Shmem_putmem_on_stream(buffer_ptr, tensor.data_ptr(), buffer_size, peer, stream);
@@ -106,7 +107,8 @@ void nvshmem_get(at::Tensor& tensor, int64_t peer)
     auto rank = hdl->get_rank();
     void* buffer_ptr = hdl->get_buffer_ptrs()[rank];
     auto buffer_size = tensor.numel() * tensor.element_size();
-    TORCH_CHECK(peer < hdl->get_world_size(), "peer must be smaller than world size", DIST_ERROR(ErrCode::PARAM));
+    TORCH_CHECK(peer >= 0 && peer < hdl->get_world_size(),
+        "peer must be in range [0, world size)", DIST_ERROR(ErrCode::PARAM));
     at::DeviceGuard device_guard(tensor.device());
     auto stream = c10_npu::getCurrentNPUStream();
     c10d::symmetric_memory::Shmem_getmem_on_stream(tensor.mutable_data_ptr(), buffer_ptr, buffer_size, peer, stream);
