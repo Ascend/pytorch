@@ -315,6 +315,7 @@ def _patch_model_10():
         from torch._inductor import decomposition as inductor_decomp
 
         import torch_npu._inductor  # noqa: F401
+        # from torch_npu.contrib import transfer_to_npu  # noqa: F401
     except ImportError:
         log.warning("NPU_FlAG is False!")
         return
@@ -323,6 +324,7 @@ def _patch_model_10():
         from torchbenchmark.models.nvidia_deeprecommender.nvtrain import (
             DeepRecommenderTrainBenchmark,
         )
+        from torchbenchmark.models.nvidia_deeprecommender.reco_encoder.model import model
     except ImportError:
         log.warning(
             "Import nvidia_deeprecommender failed or could not get DeepRecommenderTrainBenchmark"
@@ -334,6 +336,16 @@ def _patch_model_10():
         self, device="cpu", jit=False, batch_size=256, process_command_line=False
     ):
         self.TrainInit("cuda", jit, batch_size, process_command_line)
+
+        self.toyvocab = 197952
+        self.toyinputs = torch.randn(self.toybatch, self.toyvocab)
+        if self.toytest:
+            self.rencoder = model.AutoEncoder(layer_sizes=[self.toyvocab] + [int(l) for l in self.args.hidden_layers.split(',')],
+                                                nl_type=self.args.non_linearity_type,
+                                                is_constrained=self.args.constrained,
+                                                dp_drop_prob=self.args.drop_prob,
+                                                last_layer_activations=not self.args.skip_last_layer_nl)
+
         if hasattr(self, "args"):
             self.args.use_cuda = True
 
@@ -577,6 +589,14 @@ def _patch_squeezenet1_1():
     fallbackdiv
     """
     patch_remove_ops_from_generate_list(["aten.div"])
+    try:
+        from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir import (
+            config as anir_config,
+        )
+
+        anir_config.force_fallback_kernel_names["mlir_fused_relu_threshold_backward_2"] = True
+    except ImportError:
+        log.warning("import config failed for squeezenet1_1 patch")
 
 
 @register_patch("T5ForConditionalGeneration")
@@ -631,6 +651,16 @@ def _patch_model_26():
         return
 
     MultiHeadSelfAttention.forward = _hf_distilbert_multiheadselfattention_forward_new
+
+
+@register_patch("timm_resnest")
+def _patch_model_27():
+    patch_remove_decomposition(
+        [
+            "aten.threshold_backward",
+            "aten.native_batch_norm_backward",
+        ]
+    )
 
 
 def patch_model(model_name):
