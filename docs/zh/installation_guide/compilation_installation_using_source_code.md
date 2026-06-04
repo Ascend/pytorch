@@ -13,10 +13,11 @@
 以下操作步骤以安装PyTorch 2.7.1版本为例。
 
 - **方式一（推荐）：容器场景**
+
     1. 下载torch\_npu源码。
 
         ```bash
-        git clone https://gitcode.com/Ascend/pytorch.git -b v2.7.1-26.0.0 --depth 1  
+        git clone https://gitcode.com/Ascend/pytorch.git -b v2.7.1-26.0.0 --depth 1
         ```
 
         以v2.7.1-26.0.0为例，下载对应的Ascend Extension for PyTorch分支代码。请参见《版本说明》中的“[相关产品版本配套说明](../release_notes/release_notes.md#相关产品版本配套说明)”章节下载Ascend Extension for PyTorch其他版本的分支代码。
@@ -24,7 +25,7 @@
     2. 构建镜像。
 
         ```bash
-        cd pytorch/ci/docker/{arch} 
+        cd pytorch/docker/builder/{arch} 
         docker build -t manylinux-builder:v1 .
         ```
 
@@ -58,47 +59,60 @@
         请用户根据实际情况更改命令中的torch\_npu包名。
 
 - **方式二：物理机及虚拟机场景**
-    1. 安装依赖。
 
-        选择源码安装方式时，需要安装系统依赖，根据不同类型的操作系统，选择对应的命令安装所需依赖。
+    1. 安装系统依赖
 
-        - openEuler、CentOS、Kylin、BCLinux、UOS V20、AntOS、AliOS、CTyunOS、CULinux、Tlinux、MTOS、vesselOS：
-            1. 安装依赖（除gcc和cmake以外）。
+        1. 根据不同类型的操作系统，选择对应的命令安装所需依赖。
 
-                ```bash
-                yum install -y patch libjpeg-turbo-devel dos2unix openblas git
-                ```
+            - openEuler、CentOS、Kylin、BCLinux、UOS V20、AntOS、AliOS、CTyunOS、CULinux、Tlinux、MTOS、vesselOS：
 
-            2. 安装gcc和cmake。
+                1. 安装依赖（除gcc和cmake以外）。
 
-                根据实际情况，安装对应gcc和cmake版本，版本信息及安装指导请参见[表1](#gcc_cmake)。
+                    ```bash
+                    yum install -y patch libjpeg-turbo-devel dos2unix openblas git
+                    ```
 
-        - Debian、Ubuntu、veLinux：
-            1. 安装依赖（除gcc和cmake以外）。
+                2. 安装gcc和cmake。
 
-                ```bash
-                apt-get install -y patch build-essential libbz2-dev libreadline-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev liblzma-dev m4 dos2unix libopenblas-dev git
-                ```
+                    根据实际情况，安装对应gcc和cmake版本，版本信息及安装指导请参见[表1](#gcc_cmake)。
 
-            2. 安装gcc和cmake。
+            - Debian、Ubuntu、veLinux：
 
-                根据实际情况，安装对应gcc和cmake版本，版本信息及安装指导请参见[表1](#gcc_cmake)。
+                1. 安装依赖（除gcc和cmake以外）。
 
-        **表 1**  gcc和cmake版本要求<a id="gcc_cmake"></a>
+                    ```bash
+                    apt-get install -y patch build-essential libbz2-dev libreadline-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev liblzma-dev m4 dos2unix libopenblas-dev git
+                    ```
 
-        |PyTorch版本|系统架构|gcc版本|cmake版本|
-        |--|--|--|--|
-        |2.7.1|X86_64|11.2.0|3.18.4|
-        |2.7.1|AArch64|11.2.0|3.31.1|
-        |2.8.0|X86_64|13.3.0|3.18.4|
-        |2.8.0|AArch64|13.3.0|4.0.3|
-        |2.9.0|X86_64|13.3.0|3.18.4|
-        |2.9.0|AArch64|13.3.0|4.0.3|
-        |2.10.0|X86_64|13.3.0|3.18.4|
-        |2.10.0|AArch64|13.3.0|4.0.3|
+                2. 安装gcc和cmake。
 
-        > [!NOTE]<br>
-        > 安装指导可参见[安装11.2.0版本gcc](installing_gcc_11-2-0.md)和[安装3.18.4版本cmake](installing_cmake_3-18-4.md)。
+                    根据实际情况，安装对应gcc和cmake版本，版本信息及安装指导请参见[表1](#gcc_cmake)。
+
+            **表 1**  gcc和cmake版本要求<a id="gcc_cmake"></a>
+
+            |PyTorch版本|系统架构|gcc版本|cmake版本|
+            |--|--|--|--|
+            |2.7.1|X86_64|11.2.0|3.18.4|
+            |2.7.1|AArch64|11.2.0|3.31.1|
+            |2.8.0|X86_64|13.3.0|3.18.4|
+            |2.8.0|AArch64|13.3.0|4.0.3|
+            |2.9.0|X86_64|13.3.0|3.18.4|
+            |2.9.0|AArch64|13.3.0|4.0.3|
+            |2.10.0|X86_64|13.3.0|3.18.4|
+            |2.10.0|AArch64|13.3.0|4.0.3|
+
+            > [!NOTE]<br>
+            > 安装指导可参见[安装11.2.0版本gcc](installing_gcc_11-2-0.md)和[安装3.18.4版本cmake](installing_cmake_3-18-4.md)。
+
+        2. 安装环境依赖。
+    
+            ```bash
+            pip install pyyaml
+            pip install setuptools
+            pip install auditwheel
+            ```
+
+            如果使用非root用户安装，需要在命令后加`--user`，例如：**pip3 install pyyaml --user**
 
     2. 编译生成torch\_npu插件的Whl安装包。
         1. 以v2.7.1-26.0.0为例，下载对应的Ascend Extension for PyTorch分支代码并进入插件根目录。
