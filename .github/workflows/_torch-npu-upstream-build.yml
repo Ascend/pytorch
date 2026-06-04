@@ -130,7 +130,7 @@ jobs:
           bash ci/build.sh --python=${{ inputs.python_version }} 2>&1 | tee /tmp/build_torch_npu.log
           BUILD_STATUS=${PIPESTATUS[0]}
 
-          CCACHE_STATS=$(ccache -s 2>&1 | grep -E "cache hit|cache miss|cache size|hit rate" | tr '\n' ' ')
+          CCACHE_STATS=$(ccache -s 2>&1 | grep -iE "cacheable calls|hits:|misses:|cache size" | tr '\n' ' ')
           echo "ccache_stats=${CCACHE_STATS}" >> $GITHUB_OUTPUT
           ccache -s 2>&1
 
