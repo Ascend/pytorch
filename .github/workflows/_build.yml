@@ -78,12 +78,16 @@ jobs:
       # Step 1: Checkout upstream PyTorch PR code
       # Submodules init is deferred to a separate step with --depth=1
       # to avoid cloning full submodule histories.
+      # Step 1: Checkout upstream PyTorch PR code (shallow)
+      # fetch-depth: 1 = single commit only, no branches/tags/history.
+      # PyTorch repo has thousands of branches; full clone takes ~3min.
+      # Submodules init deferred to separate step with --depth=1.
       - name: Checkout upstream PyTorch PR
         uses: actions/checkout@v6
         with:
           repository: ${{ inputs.upstream_fork_repo != '' && inputs.upstream_fork_repo || inputs.upstream_repo }}
           ref: ${{ inputs.upstream_sha }}
-          fetch-depth: 0
+          fetch-depth: 1
           submodules: false
           path: pytorch
 
@@ -156,8 +160,14 @@ jobs:
         with:
           repository: ${{ inputs.downstream_repo }}
           ref: ${{ inputs.downstream_ref }}
-          submodules: recursive
+          fetch-depth: 1
+          submodules: false
           path: torch_npu
+
+      - name: Init submodules (shallow)
+        working-directory: torch_npu
+        run: |
+          git submodule update --init --recursive --depth=1 --jobs=$(nproc)
 
       # Step 4: Build and install torch_npu
       # NOTE: Intentionally do NOT use 'pip install -r requirements.txt' from torch_npu,
