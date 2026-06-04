@@ -54,15 +54,7 @@ class NPUMultiOutputLine(MultiOutputLine):
             f"{self.multi_stream_intent}{self.wrapper.declare}{self.result_name} = {value}{self.wrapper.ending}"
         )
 
-
-class NPUSubgraphPythonWrapperCodegen(SubgraphPythonWrapperCodegen):
-    def generate_node_numel_expr(self, kernel_name: str, node, numel_expr):
-        expr = f"{kernel_name}_{node.name}_numel"
-        self.writeline(f"{expr} = {pexpr(numel_expr)}")
-        return SymbolicCallArg(expr, numel_expr)
-
-
-class NPUWrapperCodeGen(PythonWrapperCodegen):
+class NPUPythonWrapperCodeGen(PythonWrapperCodegen):
     def __init__(self):
         super().__init__()
         self.buffer_args_multi_stream_intent = {}
@@ -80,7 +72,7 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
     ):
         if is_subgraph:
             return NPUSubgraphPythonWrapperCodegen(subgraph_name, parent_wrapper, partition_signatures)
-        return NPUWrapperCodeGen()
+        return NPUPythonWrapperCodeGen()
 
     @cache_on_self
     def write_triton_header_once(self) -> None:
@@ -133,13 +125,10 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
     def codegen_input_size_asserts(self) -> None:
         pass
 
-    def get_next_kernel_suffix(self) -> str:
-        iter_val = copy.copy(self._names_iter)
-        return f"{next(iter_val)}"
-
     def write_prefix(self) -> None:
         super().write_prefix()
         if torch_npu.npu.aclnn._use_static_aclnn_kernel:
+            self.prefix.do_indent()
             with self.prefix.indent():
                 self.prefix.writeline('global has_initialized')
                 self.prefix.writeline('if not has_initialized:')
@@ -149,7 +138,7 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
                 self.prefix.writeline('static_kernel_complier = StaticKernelCompiler()')
                 self.prefix.writeline('static_kernel_complier.__enter__()')
                 self.prefix.writeline('has_initialized = True')
-            self.prefix.do_unindent()
+            self.prefix.do_indent()
 
     def generate_return(self, output_refs: list[str]) -> None:
         if torch_npu.npu.aclnn._use_static_aclnn_kernel:
@@ -184,7 +173,7 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
     def make_allocation(
         self, name, device, dtype, shape, stride, allocation_shape=None, is_pinned=False
     ):
-        out = super().make_allocation(name, device, dtype, shape, stride, allocation_shape, is_pinned=False)
+        out = super().make_allocation(name, device, dtype, shape, stride, allocation_shape, is_pinned)
         if is_multi_stream():
             if name in self.pre_define_buffer:
                 return ""
@@ -599,3 +588,9 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
                     continue
             i += 1
         return sub_streams_line_no
+
+class NPUSubgraphPythonWrapperCodegen(SubgraphPythonWrapperCodegen):
+    def generate_node_numel_expr(self, kernel_name: str, node, numel_expr):
+        expr = f"{kernel_name}_{node.name}_numel"
+        self.writeline(f"{expr} = {pexpr(numel_expr)}")
+        return SymbolicCallArg(expr, numel_expr)

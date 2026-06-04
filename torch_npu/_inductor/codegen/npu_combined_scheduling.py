@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from torch._inductor.codegen.cuda_combined_scheduling import CUDACombinedScheduling
+from torch._inductor.codegen.triton import TritonScheduling
 from torch._inductor.scheduler import (
     BaseSchedulerNode,
     BaseScheduling,
@@ -21,7 +22,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
 
-class NPUCombinedScheduling(CUDACombinedScheduling):
+class NPUCombinedScheduling(CUDACombinedScheduling, TritonScheduling):
     """
     Scheduler for NPU Kernels, which delegates calls as appropriate
     to the CATLASS and Triton Schedulers, which both work for NPU devices
@@ -29,6 +30,8 @@ class NPUCombinedScheduling(CUDACombinedScheduling):
 
     If Scheduling code needs to be specialized for the case of mixed Triton / CATLASS code,
     this would also be the place to do it.
+
+    instead of patch is_triton() function, we make NPUCombinedScheduling extends TritonScheduling
     """
 
     def __init__(self, scheduler: Scheduler | None) -> None:
