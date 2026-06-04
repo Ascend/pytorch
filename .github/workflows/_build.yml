@@ -152,7 +152,12 @@ jobs:
           fi
 
           pip install /tmp/wheels/torch*.whl
+
+          # Must NOT run from pytorch/ source dir: Python would find
+          # the local torch/ source tree instead of the installed package.
+          cd /tmp
           python -c "import torch; print(f'PyTorch version: {torch.__version__}')"
+          cd "${GITHUB_WORKSPACE}"
 
       # Step 3: Checkout downstream torch_npu
       - name: Checkout downstream repo (torch_npu)
