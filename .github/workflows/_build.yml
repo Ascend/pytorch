@@ -47,9 +47,8 @@ jobs:
       # Step 0: Setup cache directories and ccache
       - name: Setup cache directories
         run: |
-          mkdir -p ~/.cache/pip
-          mkdir -p ~/.cache/ccache
-          chmod -R 777 ~/.cache
+          mkdir -p ~/.cache/pip ~/.cache/ccache
+          chmod 777 ~/.cache ~/.cache/pip ~/.cache/ccache
 
       - name: Install ccache
         run: |
