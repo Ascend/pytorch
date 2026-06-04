@@ -99,3 +99,7 @@
 |[torch.fx.experimental.symbolic_shapes.constrain_unify](https://pytorch.org/docs/2.11/generated/torch.fx.experimental.symbolic_shapes.constrain_unify.html)|是|需通过torch.compile获取SymInt|
 |[torch.fx.experimental.symbolic_shapes.ConvertIntKey](https://pytorch.org/docs/2.11/generated/torch.fx.experimental.symbolic_shapes.ConvertIntKey.html)|是|-|
 |[torch.fx.experimental.symbolic_shapes.ConvertIntKey.get](https://pytorch.org/docs/2.11/generated/torch.fx.experimental.symbolic_shapes.ConvertIntKey.html#torch.fx.experimental.symbolic_shapes.ConvertIntKey.get)|是|-|
+|[torch.fx.experimental.symbolic_shapes.CallMethodKey](https://pytorch.org/docs/2.11/generated/torch.fx.experimental.symbolic_shapes.CallMethodKey.html)|是|-|
+|[torch.fx.experimental.symbolic_shapes.CallMethodKey.get](https://pytorch.org/docs/2.11/generated/torch.fx.experimental.symbolic_shapes.CallMethodKey.html#torch.fx.experimental.symbolic_shapes.CallMethodKey.get)|是|-|
+|[torch.fx.experimental.symbolic_shapes.canonicalize_bool_expr](https://pytorch.org/docs/2.11/generated/torch.fx.experimental.symbolic_shapes.canonicalize_bool_expr.html)|是|-|
+|[torch.fx.experimental.symbolic_shapes.check_consistent](https://pytorch.org/docs/2.11/generated/torch.fx.experimental.symbolic_shapes.check_consistent.html)|是|-|
