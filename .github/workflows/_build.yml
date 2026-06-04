@@ -194,16 +194,29 @@ jobs:
 
           pip install dist/torch_npu*.whl
 
-      # Step 5: Verify both packages import successfully
-      - name: Verify installation
+      # Step 5: Verify NPU environment and imports
+      - name: Verify NPU device
         run: |
-          echo "============================================"
-          echo "Verifying PyTorch and torch_npu imports..."
-          echo "============================================"
-          python -c "import torch; print(f'PyTorch version: {torch.__version__}'); print(f'PyTorch path: {torch.__file__}')"
-          python -c "import torch_npu; print(f'torch_npu version: {torch_npu.__version__}'); print(f'torch_npu path: {torch_npu.__file__}')"
-          echo ""
-          echo "Both PyTorch and torch_npu imported successfully."
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          echo "=== NPU Device Information ==="
+          npu-smi info
+          echo "=== End of NPU Device Information ==="
+
+      - name: Verify NPU availability
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          python -c "
+          import torch
+          print(f'torch: {torch.__version__}')
+          import torch_npu
+          print(f'torch_npu: {torch_npu.__version__}')
+          print(f'NPU available: {torch.npu.is_available()}')
+          print(f'NPU count: {torch.npu.device_count()}')
+          "
 
       # Step 6: Upload build logs (always, for debugging failures)
       - name: Upload build logs
