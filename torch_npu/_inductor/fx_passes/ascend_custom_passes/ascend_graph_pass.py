@@ -1444,7 +1444,19 @@ def fold_iota_arithmetic_pass(graph: torch.fx.Graph) -> None:
             continue
 
         a, b = sub.args[0], sub.args[1]
-        new_target = cmp_scalar_to_tensor[cmp.target]
+        # cmp(a - b, 0) == cmp(a, b) 这一恒等式与 b 是张量还是标量无关，
+        # 但 aten 比较算子的重载必须匹配：b 为张量时用 .Tensor，
+        # b 为标量(int/float)时保留 .Scalar，否则会触发
+        # "Expected a value of type 'Tensor' ... but instead found type 'float'"。
+        b_is_tensor = isinstance(b, torch.fx.Node) and isinstance(
+            b.meta.get("val"), torch.Tensor
+        )
+        if b_is_tensor:
+            new_target = cmp_scalar_to_tensor[cmp.target]
+        elif isinstance(b, (int, float, bool)):
+            new_target = cmp.target
+        else:
+            continue
         with graph.inserting_before(cmp):
             new_cmp = graph.call_function(new_target, args=(a, b))
         if "val" in cmp.meta:
@@ -1945,6 +1957,12 @@ def sign_diff_hamming_fuse_pass(graph: torch.fx.Graph) -> None:
         x_src = _peel_single_user_relu_sign(a)
         y_src = _peel_single_user_relu_sign(b)
         if x_src is None or y_src is None:
+            continue
+        # gt.Scalar 要求 self 为张量；relu(sign(·)) 的输入恒为张量节点，
+        # 但仍显式守卫，避免极端情况下把标量喂给 gt.Scalar(self, 0)。
+        if not (
+            isinstance(x_src, torch.fx.Node) and isinstance(y_src, torch.fx.Node)
+        ):
             continue
 
         out_dtype = get_node_dtype(sum_node)
