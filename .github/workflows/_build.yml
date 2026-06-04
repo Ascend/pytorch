@@ -128,7 +128,7 @@ jobs:
           echo "Ref: ${{ inputs.downstream_ref }}"
           echo "============================================"
 
-          bash ci/build.sh --python=3.10 --disable_torchair --disable_rpc --update_aoti_c_shim 2>&1 | tee /tmp/build-torchnpu.log
+          bash ci/build.sh --python=3.10 --disable_torchair --disable_rpc 2>&1 | tee /tmp/build-torchnpu.log
           BUILD_STATUS=${PIPESTATUS[0]}
 
           if [ ${BUILD_STATUS} -ne 0 ]; then
