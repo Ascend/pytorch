@@ -58,6 +58,12 @@
 
         请用户根据实际情况更改命令中的torch\_npu包名。
 
+    6. 在运行环境中安装pytorch目录下的依赖文件requirements.txt。
+
+        ```bash
+        pip3 install -r requirements.txt
+        ```
+
 - **方式二：物理机及虚拟机场景**
 
     1. 安装系统依赖
@@ -139,6 +145,12 @@
         ```
 
         请用户根据实际情况更改命令中的torch\_npu包名。
+
+    4. 安装pytorch目录下的依赖文件requirements.txt。
+
+        ```bash
+        pip3 install -r requirements.txt
+        ```
 
 ## 安装后验证
 
