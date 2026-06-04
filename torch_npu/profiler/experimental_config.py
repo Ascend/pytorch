@@ -80,7 +80,7 @@ class HostSystem:
     DISK = Constant.DISK
     NETWORK = Constant.NETWORK
     OSRT = Constant.OSRT
-    PLATFORM = Constant.PLATFORM
+    NUMA = Constant.NUMA
 
 
 class _ExperimentalConfig:
@@ -345,7 +345,7 @@ class _ExperimentalConfig:
                 HostSystem.DISK,
                 HostSystem.NETWORK,
                 HostSystem.OSRT,
-                HostSystem.PLATFORM,
+                HostSystem.NUMA,
             ]
             for host_sys in self._host_sys
         ):
