@@ -159,7 +159,7 @@ class TestFusedOptim(TestCase):
             for p in m.parameters():
                 if p.grad is not None:
                     self.assertEqual(grads_before_unscale[p] / 128, p.grad)
-    
+
     def test_simple_model_train_dynamic(self):
         model = self._create_simple_model()
         optim_cases = self._create_optimizer_cases()
@@ -189,7 +189,7 @@ class TestFusedOptim(TestCase):
                 scaler_fused.step(opt_fused)
                 scaler_fused.update()
                 self.assertRtolEqual(loss, loss_fused)
-    
+
     def test_simple_model_train_static(self):
         model = self._create_simple_model()
         optim_cases = self._create_optimizer_cases()
