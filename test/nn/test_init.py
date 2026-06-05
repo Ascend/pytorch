@@ -441,7 +441,11 @@ class TestNNInit(TestCase):
         def fn():
             init.normal(x)
 
-        with self.assertWarnsRegex(UserWarning, 'deprecated', msg='methods not suffixed with underscore should be deprecated'):
+        with self.assertWarnsRegex(
+            FutureWarning,
+            "deprecated",
+            msg="methods not suffixed with underscore should be deprecated",
+        ):
             fn()
 
 
