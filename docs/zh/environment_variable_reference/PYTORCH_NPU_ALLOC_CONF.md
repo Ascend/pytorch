@@ -160,12 +160,6 @@ export PYTORCH_NPU_ALLOC_CONF=large_segment_size_mb:50
 export PYTORCH_NPU_ALLOC_CONF=per_process_memory_fraction:0.5
 ```
 
-示例十二：
-
-```bash
-export PYTORCH_NPU_ALLOC_CONF=expandable_segments:True,large_segment_size_mb:100,per_process_memory_fraction:0.8
-```
-
 ## 使用约束
 
 - expandable\_segments特性需在Ascend HDK 23.0.0及以上版本上使用。
