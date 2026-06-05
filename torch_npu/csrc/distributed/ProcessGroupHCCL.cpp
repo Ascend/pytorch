@@ -1,6 +1,7 @@
 #include <ATen/record_function.h>
 #include <algorithm>
 #include <map>
+#include <mutex>
 #include <tuple>
 #include <unordered_set>
 #include <unistd.h>
@@ -43,6 +44,7 @@
 #include "torch_npu/csrc/core/npu/NPUGraphsUtils.h"
 #include "torch_npu/csrc/core/npu/NPUAffinityController.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
+#include "torch_npu/csrc/core/npu/NPUStreamUtils.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/interface/OpInterface.h"
@@ -68,6 +70,7 @@ namespace c10d_npu {
 namespace {
 static constexpr uint32_t kOpWaitTimeoutOffset = 30U; // second
 static uint32_t kOpWaitTimeout = 1868U; // second
+static std::once_flag kOpWaitTimeoutInitFlag;
 static int32_t defaultExecTimeout = 1836;
 constexpr const char* P2P_DEVICE_KEY = "_p2p";
 
@@ -1134,27 +1137,29 @@ ProcessGroupHCCL::ProcessGroupHCCL(
         hccl_exec_timeout = defaultExecTimeout;
     }
 
-    if (hccl_event_timeout > 0) {
-        kOpWaitTimeout = static_cast<uint32_t>(hccl_event_timeout);
-        if (hccl_event_timeout <= hccl_exec_timeout) {
-            TORCH_NPU_WARN_ONCE("The value of HCCL_EVENT_TIMEOUT:", hccl_event_timeout, " is less than or equal to the value of HCCL_EXEC_TIMEOUT:", hccl_exec_timeout, ".");
-        } else if (hccl_exec_timeout == 0) {
-            TORCH_NPU_WARN_ONCE("The value of HCCL_EXEC_TIMEOUT was set to 0(never timeout), so it is bigger than the value of HCCL_EVENT_TIMEOUT:", hccl_event_timeout, ".");
-        }
-    } else if (hccl_event_timeout == 0) {
-        kOpWaitTimeout = 0;
-    } else {
-        if (hccl_exec_timeout == 0) {
+    std::call_once(kOpWaitTimeoutInitFlag, [&]() {
+        if (hccl_event_timeout > 0) {
+            kOpWaitTimeout = static_cast<uint32_t>(hccl_event_timeout);
+            if (hccl_event_timeout <= hccl_exec_timeout) {
+                TORCH_NPU_WARN_ONCE("The value of HCCL_EVENT_TIMEOUT:", hccl_event_timeout, " is less than or equal to the value of HCCL_EXEC_TIMEOUT:", hccl_exec_timeout, ".");
+            } else if (hccl_exec_timeout == 0) {
+                TORCH_NPU_WARN_ONCE("The value of HCCL_EXEC_TIMEOUT was set to 0(never timeout), so it is bigger than the value of HCCL_EVENT_TIMEOUT:", hccl_event_timeout, ".");
+            }
+        } else if (hccl_event_timeout == 0) {
             kOpWaitTimeout = 0;
         } else {
-            kOpWaitTimeout = static_cast<uint32_t>(hccl_exec_timeout) + kOpWaitTimeoutOffset;
-            if (kOpWaitTimeout <= static_cast<uint32_t>(hccl_exec_timeout)) {
-                kOpWaitTimeout = UINT_MAX;
+            if (hccl_exec_timeout == 0) {
+                kOpWaitTimeout = 0;
+            } else {
+                kOpWaitTimeout = static_cast<uint32_t>(hccl_exec_timeout) + kOpWaitTimeoutOffset;
+                if (kOpWaitTimeout <= static_cast<uint32_t>(hccl_exec_timeout)) {
+                    kOpWaitTimeout = UINT_MAX;
+                }
             }
         }
-    }
-    TORCH_NPU_HCCL_LOGI("Set op wait timeout to %u.", kOpWaitTimeout);
-    NPU_CHECK_ERROR(c10_npu::acl::AclrtSetOpWaitTimeout(kOpWaitTimeout));
+        TORCH_NPU_HCCL_LOGI("Set op wait timeout to %u.", kOpWaitTimeout);
+        NPU_CHECK_ERROR(c10_npu::acl::AclrtSetOpWaitTimeout(kOpWaitTimeout));
+    });
     blockingWait_ = c10d::getCvarBool(TORCH_HCCL_BLOCKING_WAIT, false);
 
     logPrefix_ = createLogPrefix();
@@ -3964,6 +3969,9 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     op_id_++;
 
     const auto devices = getDeviceList(inputs);
+    for (const auto& device : devices) {
+        c10_npu::detail::checkCurrentStreamNotExternal(device.index(), "ProcessGroupHCCL::collective");
+    }
     auto key = getKeyFromDevices(devices);
     HcclCommConfig config = createHcclCommConfigWithOptions();
     std::vector<std::shared_ptr<HCCLComm>> hcclComms = getHCCLComm(key, devices, HcclCommType::DEFAULT, &config);

@@ -148,6 +148,7 @@ class NpuMlirWrapperCodeGen(PythonWrapperCodegen):
         autotune_configs=None,
         grid_extra_kwargs="",
         device=None,
+        debug_handle: Optional[int] = None,
     ):
         """
         Generates kernel call code.
