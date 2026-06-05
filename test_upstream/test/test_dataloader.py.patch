@@ -1,8 +1,8 @@
 diff --git a/test/test_dataloader.py b/test/test_dataloader.py
-index 5c07088..1e43dcb 100644
+index 5c07088..23351ef 100644
 --- a/test/test_dataloader.py
 +++ b/test/test_dataloader.py
-@@ -18,6 +18,8 @@ import unittest
+@@ -18,6 +18,8 @@
  import warnings
  
  import torch
@@ -11,7 +11,33 @@ index 5c07088..1e43dcb 100644
  import torch.utils.data.datapipes as dp
  from torch import multiprocessing as mp
  from torch._utils import ExceptionWrapper
-@@ -1846,4 +1848,8 @@ class TestDataLoader(TestCase):
+@@ -1178,6 +1180,11 @@
+         self.dataset = TensorDataset(self.data, self.labels)
+         self.persistent_workers = False
+ 
++    def _move_dataset_to_npu(self):
++        self.data = self.data.npu()
++        self.labels = self.labels.npu()
++        self.dataset = TensorDataset(self.data, self.labels)
++
+     def _get_data_loader(self, dataset, **kwargs):
+         persistent_workers = kwargs.get("persistent_workers", self.persistent_workers)
+         if persistent_workers and kwargs.get("num_workers", 0) == 0:
+@@ -1321,9 +1328,11 @@
+             self.assertRaises(ValueError, fn)
+ 
+     def test_sequential_nonbatch(self):
++        self._move_dataset_to_npu()
+         self._test_sequential(self._get_data_loader(self.dataset, batch_size=None))
+ 
+     def test_sequential_batch(self):
++        self._move_dataset_to_npu()
+         self._test_sequential(self._get_data_loader(self.dataset))
+         self._test_sequential(self._get_data_loader(self.dataset, batch_size=2))
+ 
+@@ -1844,6 +1853,10 @@
+             list(iter(ChainDataset([dataset1, self.dataset])))
+ 
      @unittest.skipIf(not TEST_CUDA_IPC, "CUDA IPC not available")
 +    @unittest.skipIf(
 +        torch.npu.is_available() and not any(conf.strip() == "expandable_segments:True" for conf in os.environ.get("PYTORCH_NPU_ALLOC_CONF", "").split(",")),
@@ -20,3 +46,20 @@ index 5c07088..1e43dcb 100644
      @skipIfRocm  # https://github.com/pytorch/pytorch/issues/90940
      def test_multiprocessing_contexts(self):
          reference = [
+@@ -2782,6 +2795,16 @@
+         self.assertEqual(collated, torch.tensor(arr))
+         self.assertEqual(collated.dtype, torch.bool)
+ 
++        npu_batch = [
++            torch.tensor([1, 2], device="npu"),
++            torch.tensor([3, 4], device="npu"),
++        ]
++        npu_collated = dataloader.default_collate(npu_batch)
++        self.assertEqual(npu_collated.device.type, "npu")
++        self.assertEqual(
++            npu_collated, torch.tensor([[1, 2], [3, 4]], device="npu")
++        )
++
+         # Should be a no-op
+         arr = ["a", "b", "c"]
+         self.assertEqual(arr, dataloader.default_collate(arr))
