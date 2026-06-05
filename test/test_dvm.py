@@ -191,6 +191,107 @@ result = {
 """)
         self._assert_match(r_off, r_on)
 
+
+class TestDvmBf16ScalarRounding(_DvmTestBase):
+    """Op-by-op aclnn alignment for the scalar paths on low-precision inputs.
+
+    aclnn rounds the scalar argument of add_scalar/sub_scalar to the input
+    dtype (bf16/fp16) but keeps mul_scalar/div_scalar in fp32. DVM lazy
+    fusion mirrors this op-by-op in lazy_fusion_ops.cpp::BinaryScalar +
+    RoundScalarToInputDtype so that DVM ON is bit-exact with DVM OFF.
+
+    Each chain stitches several scalar ops together so DVM lazy fusion
+    actually triggers (single-op eager would fall through to aclnn and
+    hide the scalar handling we want to exercise).
+    """
+
+    def test_mul_scalar_cascade_bf16(self):
+        # 3 successive mul-scalar with gelu_new constants — original DVM rounded
+        # the scalar to bf16 here which deviates from aclnn (fp32 scalar).
+        r_off, r_on = compare_dvm_on_off("""
+x = torch.randn(4, 1024, dtype=torch.bfloat16).npu()
+y = x * 0.5
+y = y * 0.79788
+y = y * 0.04471
+result = y.cpu()
+""")
+        self._assert_match(r_off, r_on)
+
+    def test_div_scalar_cascade_bf16(self):
+        r_off, r_on = compare_dvm_on_off("""
+x = torch.randn(4, 1024, dtype=torch.bfloat16).npu()
+y = x / 2.0
+y = y / 0.79788
+result = y.cpu()
+""")
+        self._assert_match(r_off, r_on)
+
+    def test_add_scalar_cascade_bf16(self):
+        # aclnn add_scalar rounds the scalar to bf16; DVM must do the same.
+        r_off, r_on = compare_dvm_on_off("""
+x = torch.randn(4, 1024, dtype=torch.bfloat16).npu()
+y = x + 0.79788
+y = y + 0.04471
+y = y + 0.5
+result = y.cpu()
+""")
+        self._assert_match(r_off, r_on)
+
+    def test_sub_scalar_cascade_bf16(self):
+        r_off, r_on = compare_dvm_on_off("""
+x = torch.randn(4, 1024, dtype=torch.bfloat16).npu()
+y = x - 0.79788
+y = y - 0.04471
+result = y.cpu()
+""")
+        self._assert_match(r_off, r_on)
+
+    def test_gelu_new_like_chain_bf16(self):
+        # Polynomial approximation of the gelu_new activation. Mixes mul-scalar
+        # (fp32 scalar) and add-scalar (bf16-rounded scalar) in one fused chain
+        # — the gelu_new shape was the original wan2.2 5B TI2V failure mode.
+        r_off, r_on = compare_dvm_on_off("""
+x = torch.randn(4, 1024, dtype=torch.bfloat16).npu()
+cube = x * x * x
+inner = x * 0.79788 + cube * 0.04471
+y = (x * 0.5) * (1.0 + inner)
+result = y.cpu()
+""")
+        self._assert_match(r_off, r_on)
+
+    def test_mul_add_sub_mixed_chain_bf16(self):
+        # Stitches mul/add/sub scalar in one fused chain — exercises the
+        # per-op routing: mul keeps fp32, add/sub round to bf16.
+        r_off, r_on = compare_dvm_on_off("""
+x = torch.randn(4, 1024, dtype=torch.bfloat16).npu()
+y = x * 0.79788
+y = y + 0.04471
+y = y * 0.5
+y = y - 0.022355
+result = y.cpu()
+""")
+        self._assert_match(r_off, r_on)
+
+    def test_mul_scalar_cascade_fp16(self):
+        # Same logic on fp16 — RoundScalarToInputDtype also covers fp16 inputs.
+        r_off, r_on = compare_dvm_on_off("""
+x = torch.randn(4, 1024, dtype=torch.float16).npu()
+y = x * 0.5
+y = y * 0.79788
+result = y.cpu()
+""")
+        self._assert_match(r_off, r_on)
+
+    def test_add_scalar_cascade_fp16(self):
+        r_off, r_on = compare_dvm_on_off("""
+x = torch.randn(4, 1024, dtype=torch.float16).npu()
+y = x + 0.79788
+y = y + 0.04471
+result = y.cpu()
+""")
+        self._assert_match(r_off, r_on)
+
+
 class TestDvmSelectOps(_DvmTestBase):
     """Select ops: where (GPT2-style causal masking pattern)."""
 
