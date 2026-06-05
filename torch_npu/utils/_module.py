@@ -184,41 +184,83 @@ def cast_weight(self, device):
 
 def _lstm_forward(self, input1, hx=None):
     self._update_flat_weights()
+
     orig_input = input1
+    batch_sizes = None
+    num_directions = 2 if self.bidirectional else 1
+    real_hidden_size = self.proj_size if self.proj_size > 0 else self.hidden_size
     if isinstance(orig_input, torch.nn.utils.rnn.PackedSequence):
         input1, batch_sizes, sorted_indices, unsorted_indices = input1
         max_batch_size = batch_sizes[0]
         max_batch_size = int(max_batch_size)
+        if hx is None:
+            h_zeros = torch.zeros(
+                self.num_layers * num_directions,
+                max_batch_size,
+                real_hidden_size,
+                dtype=input1.dtype,
+                device=input1.device,
+            )
+            c_zeros = torch.zeros(
+                self.num_layers * num_directions,
+                max_batch_size,
+                self.hidden_size,
+                dtype=input1.dtype,
+                device=input1.device,
+            )
+            hx = (h_zeros, c_zeros)
+        else:
+            hx = self.permute_hidden(hx, sorted_indices)
     else:
-        batch_sizes = None
+        if input1.dim() not in (2, 3):
+            raise ValueError(
+                f"LSTM: Expected input to be 2D or 3D, got {input1.dim()}D instead"
+            )
+        is_batched = input1.dim() == 3
+        batch_dim = 0 if self.batch_first else 1
+        if not is_batched:
+            input1 = input1.unsqueeze(batch_dim)
         max_batch_size = input1.size(0) if self.batch_first else input1.size(1)
         sorted_indices = None
         unsorted_indices = None
+        if hx is None:
+            h_zeros = torch.zeros(
+                self.num_layers * num_directions,
+                max_batch_size,
+                real_hidden_size,
+                dtype=input1.dtype,
+                device=input1.device,
+            )
+            c_zeros = torch.zeros(
+                self.num_layers * num_directions,
+                max_batch_size,
+                self.hidden_size,
+                dtype=input1.dtype,
+                device=input1.device,
+            )
+            hx = (h_zeros, c_zeros)
+            self.check_forward_args(input1, hx, batch_sizes)
+        else:
+            if is_batched:
+                if hx[0].dim() != 3 or hx[1].dim() != 3:
+                    msg = (
+                        "For batched 3-D input, hx and cx should "
+                        f"also be 3-D but got ({hx[0].dim()}-D, {hx[1].dim()}-D) tensors"
+                    )
+                    raise RuntimeError(msg)
+            else:
+                if hx[0].dim() != 2 or hx[1].dim() != 2:
+                    msg = (
+                        "For unbatched 2-D input, hx and cx should "
+                        f"also be 2-D but got ({hx[0].dim()}-D, {hx[1].dim()}-D) tensors"
+                    )
+                    raise RuntimeError(msg)
+                hx = (hx[0].unsqueeze(1), hx[1].unsqueeze(1))
+            self.check_forward_args(input1, hx, batch_sizes)
+            hx = self.permute_hidden(hx, sorted_indices)
 
-    if hx is None:
-        num_directions = 2 if self.bidirectional else 1
-        real_hidden_size = self.proj_size if self.proj_size > 0 else self.hidden_size
-        h_zeros = torch.zeros(
-            self.num_layers * num_directions,
-            max_batch_size,
-            real_hidden_size,
-            dtype=input1.dtype,
-            device=input1.device,
-        )
-        c_zeros = torch.zeros(
-            self.num_layers * num_directions,
-            max_batch_size,
-            self.hidden_size,
-            dtype=input1.dtype,
-            device=input1.device,
-        )
-        hx = (h_zeros, c_zeros)
-    else:
-        # Each batch of the hidden state should match the input sequence that
-        # the user believes he/she is passing in.
-        hx = self.permute_hidden(hx, sorted_indices)
-
-    self.check_forward_args(input1, hx, batch_sizes)
+    if isinstance(orig_input, torch.nn.utils.rnn.PackedSequence):
+        self.check_forward_args(input1, hx, batch_sizes)
     if batch_sizes is None:
         result = torch._VF.lstm(
             input1,
@@ -272,6 +314,9 @@ def _lstm_forward(self, input1, hx=None):
         )
         return output_packed, self.permute_hidden(hidden, unsorted_indices)
     else:
+        if not is_batched:
+            output = output.squeeze(batch_dim)
+            hidden = (hidden[0].squeeze(1), hidden[1].squeeze(1))
         return output, self.permute_hidden(hidden, unsorted_indices)
 
 
