@@ -22,6 +22,7 @@ class Constant(object):
     PROFILING_WORK_PATH = "profiling_data"
     PROFILER_META_DATA = "profiler_metadata.json"
     MINDSTUDIO_PROFILER_OUTPUT = "mindstudio_profiler_output"
+    PLATFORM_ANALYSIS_DIR = "PLATFORM"
 
     # file authority
     FILE_AUTHORITY = 0o640
@@ -136,6 +137,7 @@ class Constant(object):
     DISK = "disk"
     NETWORK = "network"
     OSRT = "osrt"
+    NUMA = "numa"
 
     # profiler end info
     END_INFO = "end_info"

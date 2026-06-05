@@ -62,6 +62,7 @@ class HostSystem:
     DISK = Constant.DISK
     NETWORK = Constant.NETWORK
     OSRT = Constant.OSRT
+    NUMA = Constant.NUMA
 
 
 class _ExperimentalConfig:
@@ -242,7 +243,7 @@ class _ExperimentalConfig:
         if not isinstance(self._host_sys, list):
             print_warn_msg("Invalid parameter host_sys, which must be of list type, reset it to empty.")
             self._host_sys = []
-        if not all(host_sys in [HostSystem.CPU, HostSystem.MEM, HostSystem.DISK, HostSystem.NETWORK, HostSystem.OSRT]
+        if not all(host_sys in [HostSystem.CPU, HostSystem.MEM, HostSystem.DISK, HostSystem.NETWORK, HostSystem.OSRT, HostSystem.NUMA]
                    for host_sys in self._host_sys):
             print_warn_msg("Invalid parameter host_sys, reset it to empty.")
             self._host_sys = []
