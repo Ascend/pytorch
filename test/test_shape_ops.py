@@ -51,6 +51,11 @@ def _generate_input(shape, dtype, device, with_extremal):
 
 
 class TestShapeOps(TestCase):
+    def _skip_npu_complex_jit_compile(self, device, dtype):
+        if (str(device).startswith(torch._C._get_privateuse1_backend_name())
+                and dtype.is_complex
+                and not torch_npu.npu.is_jit_compile_false()):
+            self.skipTest("NPU does not support creating complex tensors when jit_compile=True")
 
     @onlyCPU
     def test_unbind(self, device):
@@ -343,6 +348,7 @@ class TestShapeOps(TestCase):
 
     @dtypes(*all_types_and_complex_and(torch.half, torch.bool, torch.bfloat16))
     def test_flip(self, device, dtype):
+        self._skip_npu_complex_jit_compile(device, dtype)
         make_from_data = partial(torch.tensor, device=device, dtype=dtype)
         make_from_size = partial(make_tensor, device=device, dtype=dtype)
 
@@ -470,6 +476,7 @@ class TestShapeOps(TestCase):
 
     @dtypes(*all_types_and_complex_and(torch.half, torch.bool, torch.bfloat16))
     def test_flip_errors(self, device, dtype):
+        self._skip_npu_complex_jit_compile(device, dtype)
         make_arg = partial(make_tensor, dtype=dtype, device=device)
         data = make_arg((2, 2, 2))
 
@@ -482,12 +489,25 @@ class TestShapeOps(TestCase):
         self.assertRaises(IndexError, lambda: data.flip(0, 1, 2, 3))
         self.assertRaises(IndexError, lambda: data.flip(3))
 
+    def test_flip_per_channel_quantized_error(self, device):
+        data = torch.randn(2, 3, device=device)
+        scales = torch.ones(3, dtype=torch.float, device=device) * 0.1
+        zero_points = torch.zeros(3, dtype=torch.long, device=device)
+        qdata = torch.quantize_per_channel(
+            data, scales, zero_points, axis=1, dtype=torch.qint8
+        )
+
+        error_msg = "Setting strides is possible only on uniformly quantized tensor"
+        with self.assertRaisesRegex(RuntimeError, error_msg):
+            qdata.flip((0,))
+
 
     def _rand_shape(self, dim, min_size, max_size):
         return tuple(torch.randint(min_size, max_size + 1, (dim,)))
 
     @dtypes(*all_types_and_complex_and(torch.half, torch.bool, torch.bfloat16))
     def test_flip_numpy(self, device, dtype):
+        self._skip_npu_complex_jit_compile(device, dtype)
         make_arg = partial(make_tensor, dtype=dtype, device=device)
 
         for ndim in [3, 4]:
@@ -525,10 +545,12 @@ class TestShapeOps(TestCase):
 
     @dtypes(torch.int64, torch.double, torch.cdouble)
     def test_fliplr(self, device, dtype):
+        self._skip_npu_complex_jit_compile(device, dtype)
         self._test_fliplr_flipud(torch.fliplr, np.fliplr, 2, 4, device, dtype)
 
     @dtypes(torch.int64, torch.double, torch.cdouble)
     def test_fliplr_invalid(self, device, dtype):
+        self._skip_npu_complex_jit_compile(device, dtype)
         x = torch.randn(42).to(dtype)
         with self.assertRaisesRegex(RuntimeError, "Input must be >= 2-d."):
             torch.fliplr(x)
@@ -537,10 +559,12 @@ class TestShapeOps(TestCase):
 
     @dtypes(torch.int64, torch.double, torch.cdouble)
     def test_flipud(self, device, dtype):
+        self._skip_npu_complex_jit_compile(device, dtype)
         self._test_fliplr_flipud(torch.flipud, np.flipud, 1, 4, device, dtype)
 
     @dtypes(torch.int64, torch.double, torch.cdouble)
     def test_flipud_invalid(self, device, dtype):
+        self._skip_npu_complex_jit_compile(device, dtype)
         with self.assertRaisesRegex(RuntimeError, "Input must be >= 1-d."):
             torch.flipud(torch.tensor(42, device=device, dtype=dtype))
 
