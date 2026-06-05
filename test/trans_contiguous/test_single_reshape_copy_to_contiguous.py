@@ -11,6 +11,12 @@ os.environ["COMBINED_ENABLE"] = "1"  # Open combined-view cases optimization
 
 # Optimized view Ops contains Transpose, permute, narrow, strideslice, select, unfold
 
+# The test case is a continuous optimization test case for aclop
+# By default, we will use aclnn in the following steps. To ensure the test case passes, we have added the path to aclnn
+# If the primary function is to maintain the original functionality, you can configure jit_compile and internal formats
+# torch_npu.npu.set_compile_mode(jit_compile=True)
+# torch.npu.config.allow_internal_format = True
+
 
 class SingleViewCopyToContiguous(TestCase):
     def test_view_copy(self, device="npu"):
@@ -173,7 +179,6 @@ class SingleViewCopyToContiguous(TestCase):
             cpu_out2 = cpu_input[1:10, :, :].clone()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
 
-    @unittest.skip("Temporarily skipping")
     def test_select_at_first_axis_to_single_element_tensor_copy(self, device="npu"):
         dtype_list5 = [torch.float32]
         format_list5 = [2, 3, 29]
@@ -203,15 +208,13 @@ class SingleViewCopyToContiguous(TestCase):
                 npu_out2 = npu_input[0] + 1
             if match_case:
                 self.assertEqual(check_operators_in_prof(['contiguous_h_memRepoint'], prof) or
-                                 check_operators_in_prof(['aclnnInplaceCopy'], prof) or
                                  check_operators_in_prof(['aclnnAdds'], prof),
-                                 True, message="contiguous_h_memRepoint or aclnnInplaceCopy or aclnnAdds is not called!")
+                                 True, message="contiguous_h_memRepoint or aclnnAdds is not called!")
             else:
                 # refresh storage desc after transdata
                 self.assertEqual(check_operators_in_prof(['Identity'], prof) or
-                                 check_operators_in_prof(['aclnnInplaceCopy'], prof) or
                                  check_operators_in_prof(['aclnnAdds'], prof),
-                                 True, message="Identity or aclnnInplaceCopy or aclnnAdds is not called!")
+                                 True, message="Identity or aclnnAdds is not called!")
             cpu_out2 = cpu_input[0] + 1
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
 
