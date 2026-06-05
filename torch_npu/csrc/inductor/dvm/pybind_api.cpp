@@ -248,6 +248,9 @@ TorchKernelPy::ParsedCallInputs TorchKernelPy::ParseTensorCallInputs(py::args in
 
     for (size_t i = 0; i < loads_.size(); ++i) {
         auto tensor = inputs[i].cast<at::Tensor>();
+        if (tensor.device().type() == c10::DeviceType::CPU) {
+            tensor = at_npu::native::OpPreparation::copy_tensor_host_to_device(tensor);
+        }
         (*addr)[i] = tensor.data_ptr();
         options = tensor.options();
         tensor_refs.emplace_back(tensor);
@@ -267,7 +270,9 @@ py::object TorchKernelPy::Run(py::args args)
     addr->resize(num_inputs + num_outputs);
     for (size_t i = 0; i < args.size(); i++) {
         auto tensor = args[i].cast<at::Tensor>();
-        if (!contiguity_flags_.empty() && !contiguity_flags_[i]) {
+        if (i < num_inputs && tensor.device().type() == c10::DeviceType::CPU) {
+            tensor = at_npu::native::OpPreparation::copy_tensor_host_to_device(tensor);
+        } else if (!contiguity_flags_.empty() && !contiguity_flags_[i]) {
             if (i < num_inputs) {
                 tensor = tensor.contiguous();
             } else if (!tensor.is_contiguous()) {
@@ -621,6 +626,9 @@ TorchKernelPy::ParsedCallInputs DynKernelPy::ParseDynCallInputs(py::args inputs,
     for (size_t i = 0; i < inputs.size(); ++i) {
         if (THPVariable_Check(inputs[i].ptr())) {
             auto tensor = inputs[i].cast<at::Tensor>();
+            if (tensor.device().type() == c10::DeviceType::CPU) {
+                tensor = at_npu::native::OpPreparation::copy_tensor_host_to_device(tensor);
+            }
             (*addr)[input_index] = tensor.data_ptr();
             auto ref = dyn_load_shapes_[input_index++];
             if (ref->stride.data) {
@@ -678,7 +686,9 @@ py::object DynKernelPy::Run(py::args args)
     for (size_t i = 0; i < args.size(); i++) {
         if (THPVariable_Check(args[i].ptr())) {
             auto tensor = args[i].cast<at::Tensor>();
-            if (!contiguity_flags_.empty() && !contiguity_flags_[i]) {
+            if (i < num_inputs + num_sym && tensor.device().type() == c10::DeviceType::CPU) {
+                tensor = at_npu::native::OpPreparation::copy_tensor_host_to_device(tensor);
+            } else if (!contiguity_flags_.empty() && !contiguity_flags_[i]) {
                 if (i < num_inputs + num_sym) {
                     tensor = tensor.contiguous();
                 } else if (!tensor.is_contiguous()) {

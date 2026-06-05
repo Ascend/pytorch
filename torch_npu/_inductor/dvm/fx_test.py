@@ -93,12 +93,16 @@ def generate_dvm_fx_case(
     compile_code = "\n    ".join(compile_lines)
     env_lines = fusion_env
 
-    test_code = f"""import torch
-import torch_npu
-from torch import device
-from torch.utils._pytree import tree_flatten
-import os
+    test_code = f"""import os
+
+os.environ["INDUCTOR_DVM_DUMP_FX_TEST"] = "0"
 {env_lines}
+
+import torch
+import torch_npu
+from torch import device, tensor
+from math import inf, nan
+from torch.utils._pytree import tree_flatten
 
 
 class {class_name}(torch.nn.Module):

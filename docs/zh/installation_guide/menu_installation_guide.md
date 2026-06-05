@@ -18,5 +18,4 @@
   - [安装11.2.0版本gcc](installing_gcc_11-2-0.md)
   - [安装3.18.4版本cmake](installing_cmake_3-18-4.md)
 
-- [附录](appendixes.md)
-  - [torch.libs/libopenblasp-r0-56e95da7.3.24.so不存在](torch-libs-libopenblasp-r0-56e95da7-3-24-so_not_exist.md)
+- [FAQ](FAQ.md)

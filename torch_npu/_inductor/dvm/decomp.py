@@ -15,8 +15,6 @@ decomps_to_exclude_npu = [
     aten._batch_norm_with_update_functional,
     aten._log_softmax,
     aten._log_softmax_backward_data,
-    aten._softmax,
-    aten._softmax_backward_data,
     aten.batch_norm_backward,
     aten.convolution_backward,
     aten.embedding,

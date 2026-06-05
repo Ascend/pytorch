@@ -293,7 +293,7 @@
 |[torch.distributions.multinomial.Multinomial.variance](https://pytorch.org/docs/2.11/distributions.html#torch.distributions.multinomial.Multinomial.variance)|是|-|
 |[torch.distributions.multivariate_normal.MultivariateNormal](https://pytorch.org/docs/2.11/distributions.html#torch.distributions.multivariate_normal.MultivariateNormal)|是|-|
 |[torch.distributions.multivariate_normal.MultivariateNormal.arg_constraints](https://pytorch.org/docs/2.11/distributions.html#torch.distributions.multivariate_normal.MultivariateNormal.arg_constraints)|是|-|
-|[torch.distributions.multivariate_normal.MultivariateNormal.covariance_matrix](https://pytorch.org/docs/2.11/distributions.html#torch.distributions.multivariate_normal.MultivariateNormal.covariance_matrix)|是|-|
+|[torch.distributions.multivariate_normal.MultivariateNormal.covariance_matrix](https://pytorch.org/docs/2.11/distributions.html#torch.distributions.multivariate_normal.MultivariateNormal.covariance_matrix)|是|dim需小于等于8192|
 |[torch.distributions.multivariate_normal.MultivariateNormal.entropy](https://pytorch.org/docs/2.11/distributions.html#torch.distributions.multivariate_normal.MultivariateNormal.entropy)|是|-|
 |[torch.distributions.multivariate_normal.MultivariateNormal.expand](https://pytorch.org/docs/2.11/distributions.html#torch.distributions.multivariate_normal.MultivariateNormal.expand)|是|-|
 |[torch.distributions.multivariate_normal.MultivariateNormal.has_rsample](https://pytorch.org/docs/2.11/distributions.html#torch.distributions.multivariate_normal.MultivariateNormal.has_rsample)|是|-|

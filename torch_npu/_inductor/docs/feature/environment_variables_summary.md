@@ -1,4 +1,5 @@
 # 环境变量列表
+
 本手册描述开发者在使用inductor-ascend过程中可使用的环境变量。
 Ascend Extension for PyTorch环境变量请参考《[Ascend Extension for PyTorch环境变量参考](https://www.hiascend.com/document/detail/zh/Pytorch/730/comref/Envvariables/docs/zh/environment_variable_reference/env_variable_list.md)》。
 基于CANN构建AI应用和业务过程中使用的环境变量请参考《[CANN 环境变量参考](https://www.hiascend.com/document/detail/zh/canncommercial/850/maintenref/envvar/envref_07_0001.html)》。
@@ -20,6 +21,8 @@ Ascend Extension for PyTorch环境变量请参考《[Ascend Extension for PyTorc
 | 自动Tiling优化 |INDUCTOR_ASCEND_AGGRESSIVE_AUTOTUNE| 控制是否启用batch profiler，默认值为0                                                                                                      |
 | 自动Tiling优化 |TORCHINDUCTOR_COMPILE_THREADS| 多进程编译进程数量，与社区保持一致，默认值为32                                                                                                                |
 | 自动Tiling优化 |TORCHNPU_PRECOMPILE_THREADS| 控制多线程编译线程数量，默认为最大核数的一半（max_precompiled_thread_num = os.cpu_count() // 2），大于1时，使用并发编译                                            |
+| CostModel |INDUCTOR_ASCEND_ENABLE_COSTMODEL| 控制是否启用CostModel预筛选，默认值为0                                                                                                      |
+| CostModel |INDUCTOR_ASCEND_COSTMODEL_RATIO| 控制CostModel预筛选后保留的config比例，默认值为0.25                                                                                         |
 | 其他         |INDUCTOR_ASCEND_CHECK_ACCURACY| 开启triton后端精度对比工具，dump单算子用例。当启用时，会自动启用INDUCTOR_ASCEND_DUMP_FX_GRAPH功能，默认值为空。                                                     |
 | 其他         |INDUCTOR_ASCEND_DUMP_FX_GRAPH| dump可执行的单算子用例，用于调试和问题排查。当INDUCTOR_ASCEND_CHECK_ACCURACY或AOTI_ASCEND_DEBUG_KERNEL启用时，会自动启用此功能，默认值为空。                             |
 | 其他         |INDUCTOR_ASCEND_LOG_LEVEL| 设置Inductor-Ascend日志等级，控制日志输出的详细程度，默认值为WARNING。                                                                                  |

@@ -78,12 +78,13 @@ class FwkApiDbParser(BaseParser):
 
         # update connection id for mstx mark op
         for mstx_mark_api in mstx_mark_apis:
-            if mstx_mark_api[TorchOpDataOri.CONNECTION_ID]:
-                mstx_mark_api[TorchOpDataOri.CONNECTION_ID] = (
-                    connectionId_manager.get_id_from_connection_ids(
-                        mstx_mark_api[TorchOpDataOri.CONNECTION_ID]
-                    )
+            mstx_mark_api[TorchOpDataOri.CONNECTION_ID] = (
+                connectionId_manager.get_id_from_connection_ids(
+                    mstx_mark_api[TorchOpDataOri.CONNECTION_ID]
                 )
+                if mstx_mark_api[TorchOpDataOri.CONNECTION_ID]
+                else None
+            )
         self._fwk_apis.extend(mstx_mark_apis)
 
     def get_mstx_mark_op_connection_ids_with_cann_api(

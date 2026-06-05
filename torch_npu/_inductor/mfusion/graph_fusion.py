@@ -15,7 +15,7 @@ from torch_npu._inductor.dvm.fx_pass import (
     expand_dvm_mm_to_explicit_transpose_for_inductor,
 )
 from torch_npu._inductor.dvm.graph_build import DvmCodegenInterpreter
-from torch_npu._inductor.dvm.load_codegen import patch_gm_placeholder_strides_from_codegen_args
+from torch_npu._inductor.dvm.util import patch_gm_placeholder_strides_from_codegen_args
 from torch_npu._inductor.mfusion import subgraph_registry
 from torch_npu._inductor.mfusion.decomp import patch_decomp as patch_mfusion_decomp
 
@@ -661,13 +661,8 @@ def mfusion_graph_fusion(graph: Graph) -> None:
         # dvm_trans_* keeps storage shapes for fused aclnn semantics; Inductor mm lowering needs
         # explicit transpose + mm so mm_args inner dims match. Re-propagate FakeTensor after expand.
         if expand_dvm_mm_to_explicit_transpose_for_inductor(gm):
-            from torch.fx.passes.fake_tensor_prop import FakeTensorProp
+             fake_tensor_propagate_mfusion_subgraph(gm, example_inputs, fake_mode=mode)
 
-            if mode is not None:
-                with mode:
-                    FakeTensorProp(gm, mode=mode).propagate(*example_inputs)
-            else:
-                FakeTensorProp(gm).propagate(*example_inputs)
     _propagate_subgraph_meta_from_main(gm)
     gm.recompile()
     _mfusion_print_fx_graph(gm, "# After restore meta, FX Graph:")
@@ -702,8 +697,8 @@ def _emit_mfusion_dvm_codegen(
             "mfusion dvm codegen arg mismatch: "
             f"{len(args_list)} vs {len(cg.cont_flag_input)}"
         )
-    for i, no_trans in enumerate(cg.cont_flag_input):
-        if not no_trans:
+    for i, skip_cont in enumerate(cg.cont_flag_input):
+        if not skip_cont:
             args_list[i] += ".contiguous()"
     for i, trans in enumerate(cg.need_trans_input):
         if trans:

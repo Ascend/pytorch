@@ -27,9 +27,11 @@ from .graph_build import DvmCodegenInterpreter
 from .op_emitter import common_rule, DVM_OP_REGISTRY, DVM_SUPPORT_TYPE
 from torch._higher_order_ops.triton_kernel_wrap import triton_kernel_wrapper_mutation
 
-dump_fx_test = False
-uncont_policy = "fuse"
-disable_post_reduce_fusion = False
+dump_fx_test = os.environ.get("INDUCTOR_DVM_DUMP_FX_TEST", "0") == "1"
+view_fusion_level = int(os.environ.get("INDUCTOR_DVM_VIEW_FUSION_LEVEL", "1"))
+disable_post_reduce_fusion = (
+    os.environ.get("INDUCTOR_DVM_DISABLE_POST_REDUCE_FUSION", "0") == "1"
+)
 aten = torch.ops.aten
 prims = torch.ops.prims
 quantized = torch.ops.quantized
@@ -59,6 +61,9 @@ anir_config.GENERATE_LIST = [
     aten.ge,
     aten.eq,
     aten.ne,
+    aten.bitwise_and,
+    aten.bitwise_or,
+    aten.bitwise_not,
     aten.where,
     prims.convert_element_type,
     torch.ops.npu.npu_dtype_cast,
@@ -83,16 +88,27 @@ anir_config.GENERATE_LIST = [
 ]
 
 
+def _is_node_supported_by_dvm_rule(node, allow_common_rule=False):
+    if node.target in DVM_OP_REGISTRY:
+        _, rule = DVM_OP_REGISTRY.get(node.target)
+        return rule(node)
+    return allow_common_rule and common_rule(node)
+
+
 def _codegen_dvm_kernel(self, Name=None):
     def is_node_dvm_supported(node):
-        if node.op in ("call_function", "placeholder"):
+        if node.op == "placeholder":
             meta = node.meta["val"]
             if isinstance(meta, torch._subclasses.FakeTensor):
                 return meta.dtype in DVM_SUPPORT_TYPE
+        if node.op == "call_function":
+            return _is_node_supported_by_dvm_rule(node)
         return True
 
     if all(is_node_dvm_supported(node) for node in self._gm.graph.nodes):
-        self.dvm_codegen = DvmCodegenInterpreter(self._gm, ktype="vector")
+        self.dvm_codegen = DvmCodegenInterpreter(
+            self._gm, ktype="vector", view_fusion_level=view_fusion_level
+        )
         self.dvm_codegen.run()
         return self.dvm_codegen.code.getvalue()
     else:
@@ -285,11 +301,8 @@ def _patch_lowering_type_checks():
             return False
         if node.target is aten.lift_fresh_copy.default:
             return False
-            
-        if node.target in DVM_OP_REGISTRY:
-            _, rule = DVM_OP_REGISTRY.get(node.target)
-            return not rule(node)
-        return not common_rule(node)
+
+        return not _is_node_supported_by_dvm_rule(node, allow_common_rule=True)
 
     inductor_lowering.fallback_node_due_to_unsupported_type = (
         _fallback_node_due_to_unsupported_type
@@ -358,7 +371,15 @@ class DvmMlirFusionPatch:
     def enable() -> None:
         if DvmMlirFusionPatch._enabled:
             return
-        config.allow_buffer_reuse = False
+        from torch._dynamo import config as dynamo_config
+        from torch._inductor import config as inductor_config
+
+        dynamo_config.specialize_float = True  # enable float specialization until launch with scalar supported
+        inductor_config.unroll_reductions_threshold = 1  # disable unroll reductions
+        inductor_config.size_asserts = (
+            False  # npu ops always return contiguous tensors which maybe different from meta outputs
+        )
+        inductor_config.allow_buffer_reuse = False
         patch_decomp()
         _patch_lowering_type_checks()
         _patch_sum_lowering()

@@ -21,10 +21,27 @@ import torch
 import torch.multiprocessing as mp
 from torch.testing._internal.common_utils import TestCase, run_tests
 import torch_npu
+from torch_npu.npu.utils import get_cann_version
+
+
+def _check_driver_version():
+    try:
+        return get_cann_version(module="DRIVER") >= "25.3.rc1"
+    except Exception:
+        return False
 
 def _worker(queue):
     # Get the current startup method in the child process and put it into the queue
     queue.put(mp.get_start_method())
+
+
+def _npu_tensor_worker(tensor_queue, result_queue):
+    try:
+        rebuild_fn, args = tensor_queue.get()
+        reconstructed = rebuild_fn(*args)
+        result_queue.put(reconstructed.cpu().tolist())
+    except Exception as e:
+        result_queue.put(str(e))
 
 
 class TestMultiprocessingAPIs(TestCase):
@@ -176,42 +193,56 @@ class TestMultiprocessingAPIs(TestCase):
             self.assertEqual(shared_namespace.x, 1)
             self.assertEqual(shared_namespace.y, 'test')
 
-    @unittest.skip(
-        "Skip: pre-existing issue, npu_tensor.cpu() != reconstructed_npu.cpu() "
-        "after reduce_tensor on ARM CI"
+    @unittest.skipUnless(
+        _check_driver_version(),
+        "NPU IPC reduce/rebuild requires driver version >= 25.3.rc1"
     )
     def test_reductions(self):
         """Test torch.multiprocessing.reductions.init_reductions and reduce_tensor APIs"""
         # Test init_reductions - verify it doesn't raise any exception
         mp.reductions.init_reductions()
-        
+
         # Test reduce_tensor directly for CPU tensor
         # Create a simple CPU tensor
         tensor = torch.tensor([1, 2, 3, 4])
         reduced = mp.reductions.reduce_tensor(tensor)
-        
+
         # Verify the reduced form is a tuple with expected structure
         self.assertIsInstance(reduced, tuple)
         self.assertEqual(len(reduced), 2)
-        
+
         # Try to reconstruct the tensor
         constructor, args = reduced
         reconstructed = constructor(*args)
-        
+
         # Verify reconstruction worked
         self.assertTrue(torch.equal(tensor, reconstructed))
         self.assertEqual(tensor.device, reconstructed.device)
         self.assertEqual(tensor.dtype, reconstructed.dtype)
-        
+
         # Test with NPU tensor if available
         if torch.npu.is_available():
-            # Create a simple NPU tensor
-            npu_tensor = torch.tensor([1, 2, 3, 4], device='npu:0')
-            
-            # Test reduce_tensor for NPU tensor
+            mp.set_start_method('spawn', force=True)
+
+            # Verify reduce_tensor returns correct structure
+            npu_tensor = torch.tensor([1, 2, 3, 4], dtype=torch.float32, device='npu:0')
             reduced_npu = mp.reductions.reduce_tensor(npu_tensor)
             self.assertIsInstance(reduced_npu, tuple)
             self.assertEqual(len(reduced_npu), 2)
+
+            # Verify NPU tensor cross-process rebuild via reduce_tensor handle
+            tensor_queue = mp.Queue()
+            result_queue = mp.Queue()
+            p = mp.Process(target=_npu_tensor_worker, args=(tensor_queue, result_queue))
+            p.start()
+
+            torch.npu.synchronize()
+            tensor_queue.put(reduced_npu)
+
+            result = result_queue.get()
+            p.join()
+            self.assertIsInstance(result, list, str(result) if isinstance(result, str) else "")
+            self.assertTrue(torch.equal(npu_tensor.cpu(), torch.tensor(result, dtype=torch.float32)))
     
     def test_reductions_invalid_input(self):
         """Test reduction APIs with invalid inputs"""

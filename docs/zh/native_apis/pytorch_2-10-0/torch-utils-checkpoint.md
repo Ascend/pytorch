@@ -7,4 +7,8 @@
 |API名称|是否支持|限制与说明|
 |--|--|--|
 |[torch.utils.checkpoint.checkpoint](https://pytorch.org/docs/2.10/checkpoint.html#torch.utils.checkpoint.checkpoint)|是|-|
+|[torch.utils.checkpoint.CheckpointPolicy](https://pytorch.org/docs/2.10/checkpoint.html#torch.utils.checkpoint.CheckpointPolicy)|是|-|
+|[torch.utils.checkpoint.SelectiveCheckpointContext](https://pytorch.org/docs/2.10/checkpoint.html#torch.utils.checkpoint.SelectiveCheckpointContext)|是|-|
+|[torch.utils.checkpoint.create_selective_checkpoint_contexts](https://pytorch.org/docs/2.10/checkpoint.html#torch.utils.checkpoint.create_selective_checkpoint_contexts)|是|-|
+|[torch.utils.checkpoint.set_checkpoint_debug_enabled](https://pytorch.org/docs/2.10/checkpoint.html#torch.utils.checkpoint.set_checkpoint_debug_enabled)|是|-|
 |[torch.utils.checkpoint.checkpoint_sequential](https://pytorch.org/docs/2.10/checkpoint.html#torch.utils.checkpoint.checkpoint_sequential)|是|支持fp32|

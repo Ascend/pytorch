@@ -5,6 +5,11 @@
 
 |API名称|是否支持|限制与说明|
 |--|--|--|
+|[torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symbolic_sizes_strides_storage_offset](https://pytorch.org/docs/2.9/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symbolic_sizes_strides_storage_offset.html)|是|-|
+|[torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symboolnode](https://pytorch.org/docs/2.9/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symboolnode.html)|是|-|
+|[torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symfloatnode](https://pytorch.org/docs/2.9/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symfloatnode.html)|是|-|
+|[torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symintnode](https://pytorch.org/docs/2.9/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symintnode.html)|是|-|
+|[torch.fx.experimental.symbolic_shapes.ShapeEnv.create_unbacked_symbool](https://pytorch.org/docs/2.9/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.create_unbacked_symbool.html)|是|-|
 |[torch.fx.symbolic_trace](https://pytorch.org/docs/2.9/fx.html#torch.fx.symbolic_trace)|是|支持fp32|
 |[torch.fx.wrap](https://pytorch.org/docs/2.9/fx.html#torch.fx.wrap)|是|支持fp32|
 |[torch.fx.GraphModule](https://pytorch.org/docs/2.9/fx.html#torch.fx.GraphModule)|是|支持fp32|
@@ -98,3 +103,7 @@
 |[torch.fx.experimental.symbolic_shapes.constrain_unify](https://pytorch.org/docs/2.9/generated/torch.fx.experimental.symbolic_shapes.constrain_unify.html)|是|需通过torch.compile获取SymInt|
 |[torch.fx.experimental.symbolic_shapes.ConvertIntKey](https://pytorch.org/docs/2.9/generated/torch.fx.experimental.symbolic_shapes.ConvertIntKey.html)|是|-|
 |[torch.fx.experimental.symbolic_shapes.ConvertIntKey.get](https://pytorch.org/docs/2.9/generated/torch.fx.experimental.symbolic_shapes.ConvertIntKey.html#torch.fx.experimental.symbolic_shapes.ConvertIntKey.get)|是|-|
+|[torch.fx.experimental.symbolic_shapes.CallMethodKey](https://pytorch.org/docs/2.9/generated/torch.fx.experimental.symbolic_shapes.CallMethodKey.html)|是|-|
+|[torch.fx.experimental.symbolic_shapes.CallMethodKey.get](https://pytorch.org/docs/2.9/generated/torch.fx.experimental.symbolic_shapes.CallMethodKey.html#torch.fx.experimental.symbolic_shapes.CallMethodKey.get)|是|-|
+|[torch.fx.experimental.symbolic_shapes.canonicalize_bool_expr](https://pytorch.org/docs/2.9/generated/torch.fx.experimental.symbolic_shapes.canonicalize_bool_expr.html)|是|-|
+|[torch.fx.experimental.symbolic_shapes.check_consistent](https://pytorch.org/docs/2.9/generated/torch.fx.experimental.symbolic_shapes.check_consistent.html)|是|-|

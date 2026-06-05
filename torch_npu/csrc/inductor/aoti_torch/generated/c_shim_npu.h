@@ -165,7 +165,6 @@ AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu_grid_sampler_2d_backward(AtenTen
 AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu_histc(AtenTensorHandle self, int64_t bins, double min, double max, AtenTensorHandle* ret0);
 AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu_index_Tensor(AtenTensorHandle self, const AtenTensorHandle** indices, int64_t indices_len_, AtenTensorHandle* ret0);
 AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu_index_put(AtenTensorHandle self, const AtenTensorHandle** indices, int64_t indices_len_, AtenTensorHandle values, int32_t accumulate, AtenTensorHandle* ret0);
-AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu_index_put_(AtenTensorHandle self, const AtenTensorHandle** indices, int64_t indices_len_, AtenTensorHandle values, int32_t accumulate);
 AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu_isinf_out(AtenTensorHandle out, AtenTensorHandle self);
 AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu_kthvalue(AtenTensorHandle self, int64_t k, int64_t dim, int32_t keepdim, AtenTensorHandle* ret0, AtenTensorHandle* ret1);
 AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu_lift_fresh(AtenTensorHandle self, AtenTensorHandle* ret0);
@@ -234,8 +233,6 @@ AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu_resize_(AtenTensorHandle self, c
 AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu_resize_as_(AtenTensorHandle self, AtenTensorHandle the_template, int32_t* memory_format);
 AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu_scatter_src_out(AtenTensorHandle out, AtenTensorHandle self, int64_t dim, AtenTensorHandle index, AtenTensorHandle src);
 AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu_scatter_value_out(AtenTensorHandle out, AtenTensorHandle self, int64_t dim, AtenTensorHandle index, double value);
-AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu_scatter__src(AtenTensorHandle self, int64_t dim, AtenTensorHandle index, AtenTensorHandle src);
-AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu_scatter__value(AtenTensorHandle self, int64_t dim, AtenTensorHandle index, double value);
 AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu_scatter_add(AtenTensorHandle self, int64_t dim, AtenTensorHandle index, AtenTensorHandle src, AtenTensorHandle* ret0);
 AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu_scatter_add_(AtenTensorHandle self, int64_t dim, AtenTensorHandle index, AtenTensorHandle src);
 AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu_searchsorted_Scalar(AtenTensorHandle sorted_sequence, double self, int32_t out_int32, int32_t right, const char** side, AtenTensorHandle* sorter, AtenTensorHandle* ret0);

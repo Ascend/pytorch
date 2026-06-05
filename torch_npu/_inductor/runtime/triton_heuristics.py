@@ -528,6 +528,7 @@ class NPUCachingAutotuner(CachingAutotuner):
         self.fn_name = None
         self._costmodel_runtime_args = ()
         self._costmodel_runtime_kwargs = {}
+        self._costmodel_fallback_configs = None
 
     def precompile(
         self,
@@ -807,6 +808,7 @@ class NPUCachingAutotuner(CachingAutotuner):
 
     def _apply_costmodel_to_configs(self, *args, **kwargs):
         """Use triton-ascend costmodel path to prefilter configs before full compile."""
+        self._costmodel_fallback_configs = None
         if not self.configs or len(self.configs) <= 1:
             return
 
@@ -840,7 +842,57 @@ class NPUCachingAutotuner(CachingAutotuner):
         if len(ranked_cfgs) < target_count:
             log.warning("Config count filtered by costmodel is less than target count")
         if ranked_cfgs:
-            self.configs = ranked_cfgs[:min(target_count, len(ranked_cfgs))]
+            selected_count = min(target_count, len(ranked_cfgs))
+            self.configs = ranked_cfgs[:selected_count]
+            self._costmodel_fallback_configs = ranked_cfgs[selected_count:] or None
+
+    def _precompile_configs(self, configs):
+        if not configs:
+            raise NoTritonConfigsError("No triton configs are available")
+
+        compile_results = []
+        exc = None
+        exc_stack = ""
+        compile_start_time = time.perf_counter()
+        for c in configs:
+            try:
+                compile_results.append(self._precompile_config(c))
+            except Exception as e:
+                import traceback
+                exc_stack = traceback.format_exc()
+                exc = e
+        if len(compile_results) == 0:
+            raise NoTritonConfigsError(
+                f"No valid triton configs. {type(exc).__name__}: {exc} \nStack trace:{exc_stack}"
+            )
+        log.info(f"kernel: {self.get_fn_name()} compile cost time: {time.perf_counter() - compile_start_time}s")
+        return compile_results
+
+    def _precompile_with_costmodel_fallback(self, compile_fn):
+        primary_configs = self.configs
+        try:
+            compile_results = compile_fn(primary_configs)
+        except NoTritonConfigsError as primary_exc:
+            fallback_configs = getattr(self, "_costmodel_fallback_configs", None)
+            if not fallback_configs:
+                raise
+            log.warning(
+                "No valid triton configs from costmodel-selected configs for kernel %s; "
+                "retrying %d costmodel-filtered configs.",
+                self.get_fn_name(),
+                len(fallback_configs),
+            )
+            self.configs = fallback_configs
+            try:
+                compile_results = compile_fn(fallback_configs)
+            except NoTritonConfigsError as fallback_exc:
+                raise NoTritonConfigsError(
+                    f"No valid triton configs from costmodel-selected or fallback configs. "
+                    f"Primary error: {primary_exc}. Fallback error: {fallback_exc}"
+                ) from fallback_exc
+        self.compile_results = compile_results
+        self.configs = None
+        self._costmodel_fallback_configs = None
 
     def _precompile_worker(self):
         if self.compile_results:
@@ -853,27 +905,7 @@ class NPUCachingAutotuner(CachingAutotuner):
         if self.launchers:
             raise AssertionError("Before _precompile_worker, launchers must bt empty")
 
-        if not self.configs:
-            raise NoTritonConfigsError("No triton configs are available")
-
-        compile_results = []
-        exc = None
-        exc_stack = ""
-        compile_start_time = time.perf_counter()
-        for c in self.configs:
-            try:
-                compile_results.append(self._precompile_config(c))
-            except Exception as e:
-                import traceback
-                exc_stack = traceback.format_exc()
-                exc = e
-        if len(compile_results) == 0:
-            raise NoTritonConfigsError(
-                f"No valid triton configs. {type(exc).__name__}: {exc} \nStack trace:{exc_stack}"
-            )
-        log.info(f"kernel: {self.get_fn_name()} compile cost time: {time.perf_counter() - compile_start_time}s")
-        self.compile_results = compile_results
-        self.configs = None
+        self._precompile_with_costmodel_fallback(self._precompile_configs)
 
     def parse_triton_ascend_options(self, tiling_kwargs, options):
         from triton.backends.ascend.compiler import NPUOptions
@@ -1070,22 +1102,11 @@ class NPUCachingAutotuner(CachingAutotuner):
 
         self.cuda_kernel_saved = True
 
-    def _precompile_worker_parallel(self):
-        if self.compile_results:
-            for result in self.compile_results:
-                TritonBundler.put(
-                    triton_hash_to_path_key(result.kernel.hash),
-                    self.triton_meta.get("device", 0),
-                )
-            return
-
-        if self.launchers:
-            raise AssertionError("Before _precompile_worker, launchers must bt empty")
-
-        if not self.configs:
+    def _precompile_configs_parallel(self, configs):
+        if not configs:
             raise NoTritonConfigsError("No triton configs are available")
 
-        config_len = len(self.configs)
+        config_len = len(configs)
         compile_exc_results = [None for _ in range(config_len)]
         compile_exc_stack_results = ["" for _ in range(config_len)]
 
@@ -1099,7 +1120,7 @@ class NPUCachingAutotuner(CachingAutotuner):
                 return None
 
         tasks = []
-        for i, c in enumerate(self.configs):
+        for i, c in enumerate(configs):
             task_handler = compile_thread_pool.submit(worker, i, c)
             tasks.append(task_handler)
 
@@ -1120,12 +1141,12 @@ class NPUCachingAutotuner(CachingAutotuner):
         # so we try tuning more options
         if len(compile_results) == 0:
             # set up new configs
-            for i in range(len(self.configs)):
+            for i in range(len(configs)):
                 # in future, adjust more options
-                self.configs[i].kwargs["enable_vf_fusion"] = True
+                configs[i].kwargs["enable_vf_fusion"] = True
             # start compilation tasks
             tasks = []
-            for i, c in enumerate(self.configs):
+            for i, c in enumerate(configs):
                 task_handler = compile_thread_pool.submit(worker, i, c)
                 tasks.append(task_handler)
             # collect compiled results
@@ -1142,8 +1163,21 @@ class NPUCachingAutotuner(CachingAutotuner):
             raise NoTritonConfigsError(
                 f"No valid triton configs for kernel {self.get_fn_name()}. {type(compile_exc_results[0]).__name__}: {compile_exc_results[0]} \nStack trace:{compile_exc_stack_results[0]}"
             )
-        self.compile_results = compile_results
-        self.configs = None
+        return compile_results
+
+    def _precompile_worker_parallel(self):
+        if self.compile_results:
+            for result in self.compile_results:
+                TritonBundler.put(
+                    triton_hash_to_path_key(result.kernel.hash),
+                    self.triton_meta.get("device", 0),
+                )
+            return
+
+        if self.launchers:
+            raise AssertionError("Before _precompile_worker, launchers must bt empty")
+
+        self._precompile_with_costmodel_fallback(self._precompile_configs_parallel)
 
     # bench method is called by torch, grid can not be modified
     def bench(self, launcher, *args, with_profiler=False, **kwargs):
