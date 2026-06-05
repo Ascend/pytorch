@@ -11,7 +11,7 @@ RUN cd /usr/local/bin \
     && ln -sf /opt/python/cp310-cp310/bin/pip3.10 pip3 \
     && ln -sf /opt/python/cp310-cp310/bin/python3.10 python3.10 \
     && ln -sf /opt/python/cp311-cp311/bin/python3.11 python3.11 \
-    && ln -sf /opt/python/cp310-cp10/bin/python3.10 python3 \
+    && ln -sf /opt/python/cp310-cp310/bin/python3.10 python3 \
     && ln -sf /opt/python/cp310-cp310/bin/python3.10 python
 
 # Set pip source
