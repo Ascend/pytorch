@@ -13,14 +13,14 @@ git clone https://gitcode.com/ascend/pytorch.git --depth 1
 **Build docker image**
 
 ```Shell
-cd pytorch/ci/docker/{arch} # {arch} for X86 or ARM
+cd pytorch/docker/builder/{arch} # {arch} for X86 or ARM
 docker build -t manylinux-builder:v1 .
 ```
 
 If you want to configure the environment of LCOV, please build docker image like this:
 
 ```Shell
-cd pytorch/ci/docker/{arch} # {arch} for X86 or ARM
+cd pytorch/docker/builder/{arch} # {arch} for X86 or ARM
 docker build -t manylinux-builder:v1 --build-arg CONFIG_FOR_LCOV=1 .
 ```
 

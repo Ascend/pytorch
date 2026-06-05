@@ -1,4 +1,5 @@
 #pragma once
+#include <algorithm>
 #include <c10/core/Device.h>
 #include <torch_npu/csrc/core/npu/GetAffinityCPUInfo.h>
 #include <set>
