@@ -32,6 +32,7 @@
 |[torch.fx.Graph.erase_node](https://pytorch.org/docs/2.12/fx.html#torch.fx.Graph.erase_node)|是|-|
 |[torch.fx.Graph.get_attr](https://pytorch.org/docs/2.12/fx.html#torch.fx.Graph.get_attr)|是|-|
 |[torch.fx.Graph.graph_copy](https://pytorch.org/docs/2.12/fx.html#torch.fx.Graph.graph_copy)|是|-|
+|[torch.fx.Graph.find_nodes](https://pytorch.org/docs/2.12/fx.html#torch.fx.Graph.find_nodes)|是|-|
 |[torch.fx.Graph.inserting_after](https://pytorch.org/docs/2.12/fx.html#torch.fx.Graph.inserting_after)|是|-|
 |[torch.fx.Graph.inserting_before](https://pytorch.org/docs/2.12/fx.html#torch.fx.Graph.inserting_before)|是|-|
 |[torch.fx.Graph.lint](https://pytorch.org/docs/2.12/fx.html#torch.fx.Graph.lint)|是|支持fp32|
