@@ -214,7 +214,7 @@ class NPUPythonWrapperCodeGen(PythonWrapperCodegen):
             super()._generate_extern_kernel_out_helper(kernel, out, out_view, args, device, debug_handle)
 
 
-    def generate_extern_kernel_alloc(self, extern_kernel, args):
+    def _generate_extern_kernel_alloc_helper(self, extern_kernel, args):
         if is_multi_stream():
             no_return = isinstance(extern_kernel.layout, NoneLayout)
             output_name = extern_kernel.get_name()
@@ -240,7 +240,7 @@ class NPUPythonWrapperCodeGen(PythonWrapperCodegen):
                         f"{multi_stream_intent_str}run_intermediate_hooks({origin_node.name!r}, {output_name})"
                     )
         else:
-            super().generate_extern_kernel_alloc(extern_kernel, args)
+            super()._generate_extern_kernel_alloc_helper(extern_kernel, args)
 
 
     def generate_kernel_call(
