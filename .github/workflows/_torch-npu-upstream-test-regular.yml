@@ -60,6 +60,14 @@ jobs:
           name: cases-shards
           path: cases-shards
 
+      - name: Debug all environment variables
+        run: |
+          echo "=== All Environment Variables (secrets filtered) ==="
+          env | sort | grep -ivE \
+            'PASSWORD|PASSWD|SECRET|TOKEN|KEY|CREDENTIAL|PRIVATE|ACCESS|SIGNING|AUTH|CERT|ENC(ODE|RYPT)|SALT|NONCE|ACCOUNT|IDENTITY|LICENSE' \
+            || true
+          echo "=== End ==="
+
       - name: Run regular shard ${{ matrix.shard }}/${{ inputs.regular_shards }}
         id: run_test
         run: |
