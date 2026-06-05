@@ -13,7 +13,7 @@
 |torch._foreach_tanh|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |torch.\_foreach\_tanh\_|是|支持bf16，fp16，fp32|
 |torch.\_foreach\_copy\_|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|torch._foreach_addcdiv|是|支持bf16，fp16，p32|
+|torch._foreach_addcdiv|是|支持bf16，fp16，fp32|
 |torch._foreach_div|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |torch._foreach_norm|是|支持bf16，fp16，fp32|
 |torch._chunk_cat|是|支持bf16，fp16，fp32|

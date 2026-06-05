@@ -96,7 +96,7 @@
 |[torch.nn.modules.module.register_module_module_registration_hook](https://pytorch.org/docs/2.9/generated/torch.nn.modules.module.register_module_module_registration_hook.html)|否|-|
 |[torch.nn.modules.module.register_module_parameter_registration_hook](https://pytorch.org/docs/2.9/generated/torch.nn.modules.module.register_module_parameter_registration_hook.html)|否|-|
 |[torch.nn.Conv1d](https://pytorch.org/docs/2.9/generated/torch.nn.Conv1d.html)|是|支持fp16，fp32|
-|[torch.nn.Conv2d](https://pytorch.org/docs/2.9/generated/torch.nn.Conv2d.html)|是|支持bf16，fp16，fp32<br><term>Atlas A2 训练系列产品</term>默认场景下，如果频繁触发编译，建议手动设置torch.npu.config.allow_internal_format为False，控制入参不使能内部格式，避免在线编译|
+|[torch.nn.Conv2d](https://pytorch.org/docs/2.9/generated/torch.nn.Conv2d.html)|是|支持bf16，fp16，fp32<br><term>Atlas A2 训练系列产品</term>，默认场景下，如果频繁触发编译，建议手动设置torch.npu.config.allow_internal_format为False，控制入参不使能内部格式，避免在线编译|
 |[torch.nn.Conv3d](https://pytorch.org/docs/2.9/generated/torch.nn.Conv3d.html)|是|支持bf16，fp16，fp32|
 |[torch.nn.ConvTranspose1d](https://pytorch.org/docs/2.9/generated/torch.nn.ConvTranspose1d.html)|是|支持fp32|
 |[torch.nn.ConvTranspose2d](https://pytorch.org/docs/2.9/generated/torch.nn.ConvTranspose2d.html)|是|支持fp16，fp32<br><term>Atlas 训练系列产品</term>/<term>Atlas A2 训练系列产品</term>，需手动设置torch.npu.config.allow_internal_format为False，才可支持3维输入|
@@ -181,7 +181,7 @@
 |[torch.nn.LazyBatchNorm1d.cls_to_become](https://pytorch.org/docs/2.9/generated/torch.nn.LazyBatchNorm1d.html#torch.nn.LazyBatchNorm1d.cls_to_become)|是|-|
 |[torch.nn.LazyBatchNorm2d.cls_to_become](https://pytorch.org/docs/2.9/generated/torch.nn.LazyBatchNorm2d.html#torch.nn.LazyBatchNorm2d.cls_to_become)|是|-|
 |[torch.nn.LazyBatchNorm3d.cls_to_become](https://pytorch.org/docs/2.9/generated/torch.nn.LazyBatchNorm3d.html#torch.nn.LazyBatchNorm3d.cls_to_become)|是|-|
-|[torch.nn.GroupNorm](https://pytorch.org/docs/2.9/generated/torch.nn.GroupNorm.html)|是|支持fp32<br>eps参数需大于0<br>不支持jit_compile=True的场景<br>该API仅支持2维及以上的输入input。该API反向不支持输入input不为4维，或输入num_groups非32整除，或C轴维度非(10 * num_groups)整除的场景|
+|[torch.nn.GroupNorm](https://pytorch.org/docs/2.9/generated/torch.nn.GroupNorm.html)|是|支持fp32<br>eps参数需大于0<br>不支持jit_compile=True的场景<br>该API仅支持2维及以上的输入input。该API反向传播时，不支持输入维度不为4维，或输入num_groups非32整除，或C轴维度非(10 * num_groups)整除的场景|
 |[torch.nn.SyncBatchNorm](https://pytorch.org/docs/2.9/generated/torch.nn.SyncBatchNorm.html)|是|支持fp16，fp32|
 |[torch.nn.SyncBatchNorm.convert_sync_batchnorm](https://pytorch.org/docs/2.9/generated/torch.nn.SyncBatchNorm.html#torch.nn.SyncBatchNorm.convert_sync_batchnorm)|是|-|
 |[torch.nn.LazyInstanceNorm1d.cls_to_become](https://pytorch.org/docs/2.9/generated/torch.nn.LazyInstanceNorm1d.html#torch.nn.LazyInstanceNorm1d.cls_to_become)|是|-|
@@ -222,7 +222,7 @@
 |[torch.nn.MSELoss](https://pytorch.org/docs/2.9/generated/torch.nn.MSELoss.html)|是|支持fp16，fp32|
 |[torch.nn.CrossEntropyLoss](https://pytorch.org/docs/2.9/generated/torch.nn.CrossEntropyLoss.html)|是|支持fp16，fp32|
 |[torch.nn.CTCLoss](https://pytorch.org/docs/2.9/generated/torch.nn.CTCLoss.html)|是|支持fp32，fp64<br>不支持log_probs 2D输入|
-|[torch.nn.NLLLoss](https://pytorch.org/docs/2.9/generated/torch.nn.NLLLoss.html)|是|支持fp16，fp32<br>target每一维的维度应该大于等于0且小于input的类别数|
+|[torch.nn.NLLLoss](https://pytorch.org/docs/2.9/generated/torch.nn.NLLLoss.html)|是|支持fp16，fp32<br>target中的每个元素值应大于等于0且小于input的类别数|
 |[torch.nn.PoissonNLLLoss](https://pytorch.org/docs/2.9/generated/torch.nn.PoissonNLLLoss.html)|是|支持bf16，fp16，fp32，int64|
 |[torch.nn.GaussianNLLLoss](https://pytorch.org/docs/2.9/generated/torch.nn.GaussianNLLLoss.html)|是|支持bf16，fp16，fp32，int16，int32，int64|
 |[torch.nn.KLDivLoss](https://pytorch.org/docs/2.9/generated/torch.nn.KLDivLoss.html)|是|支持bf16，fp16，fp32<br>当前log_target参数仅支持False|
