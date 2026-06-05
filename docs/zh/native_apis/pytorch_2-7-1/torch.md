@@ -63,7 +63,7 @@
 |torch.chunk|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |torch.dsplit|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |torch.dstack|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64|
-|torch.gather|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool<br>index维度需与input维度一致|
+|torch.gather|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool<br>index的维度数需与input的维度数一致|
 |torch.hsplit|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |torch.hstack|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64|
 |torch.index_add|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
@@ -142,8 +142,8 @@
 |torch.acosh|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>可能回退至CPU执行|
 |torch.arccosh|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |torch.add|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
-|torch.addcdiv|是|支持fp16，fp32，int64<br>在int64类型不支持三个tensor同时广播|
-|torch.addcmul|是|支持bf16，fp16，fp32，fp64，uint8，int8，int32，int64<br>在fp64，uint8，int8，int64类型不支持三个tensor同时广播|
+|torch.addcdiv|是|支持fp16，fp32，int64<br>在int64类型下不支持三个tensor同时广播|
+|torch.addcmul|是|支持bf16，fp16，fp32，fp64，uint8，int8，int32，int64<br>在fp64，uint8，int8，int64类型下不支持三个tensor同时广播|
 |torch.angle|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64|
 |torch.asin|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |torch.arcsin|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
@@ -273,7 +273,7 @@
 |torch.sort|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64|
 |torch.topk|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64<br>不支持sorted=False场景|
 |torch.msort|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64|
-|torch.stft|是|支持fp32，fp64，complex64，complex128<br>若算子超时，需要用官方接口set_op_execute_time_out进行设置，调高超时阈值判断时间|
+|torch.stft|是|支持fp32，fp64，complex64，complex128<br>若算子超时，需要用官方接口set_op_execute_time_out进行设置，调高超时阈值以延长判断时间|
 |torch.hann_window|是|支持bf16，fp16，fp32<br>数据类型为fp32时，参数window_length在大于10000的情况下，计算结果可能存在误差|
 |torch.atleast_1d|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |torch.atleast_2d|是|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
@@ -337,7 +337,7 @@
 |torch.result_type|是|支持fp32|
 |torch.can_cast|是|-|
 |torch.promote_types|是|-|
-|torch.use_deterministic_algorithms|是|同时设置HCCL_DETERMINISTIC和torch.use_deterministic_algorithms时，若HCCL_DETERMINISTIC开启确定性则hccl接口启用确定性，否则hccl确定性由torch.use_deterministic_algorithms接口控制|
+|torch.use_deterministic_algorithms|是|同时设置HCCL_DETERMINISTIC和torch.use_deterministic_algorithms时，若HCCL_DETERMINISTIC开启确定性则HCCL接口启用确定性，否则HCCL确定性由torch.use_deterministic_algorithms接口控制|
 |torch.are_deterministic_algorithms_enabled|是|-|
 |torch.is_deterministic_algorithms_warn_only_enabled|否|-|
 |torch.set_deterministic_debug_mode|是|-|

@@ -93,7 +93,7 @@
 |torch.nn.modules.module.register_module_module_registration_hook|否|-|
 |torch.nn.modules.module.register_module_parameter_registration_hook|否|-|
 |torch.nn.Conv1d|是|支持fp16，fp32|
-|torch.nn.Conv2d|是|支持bf16，fp16，fp32<br><term>Atlas A2 训练系列产品</term>默认场景下，如果频繁触发编译，建议手动设置torch.npu.config.allow_internal_format为False，控制入参不使能内部格式，避免在线编译|
+|torch.nn.Conv2d|是|支持bf16，fp16，fp32<br><term>Atlas A2 训练系列产品</term>，默认场景下，如果频繁触发编译，建议手动设置torch.npu.config.allow_internal_format为False，控制入参不使能内部格式，避免在线编译|
 |torch.nn.Conv3d|是|支持bf16，fp16，fp32|
 |torch.nn.ConvTranspose1d|是|支持fp32|
 |torch.nn.ConvTranspose2d|是|支持fp16，fp32<br><term>Atlas 训练系列产品</term>/<term>Atlas A2 训练系列产品</term>，需手动设置torch.npu.config.allow_internal_format为False，才可支持3维输入|
@@ -134,7 +134,7 @@
 |torch.nn.ReplicationPad2d|是|支持fp16，fp32，complex64，complex128|
 |torch.nn.ReplicationPad3d|否|-|
 |torch.nn.ZeroPad1d|是|支持bf16，fp16，fp32，fp64，complex64，complex128<br>支持2-3维|
-|torch.nn.ZeroPad2d|是|可能回退至CPU执行|a
+|torch.nn.ZeroPad2d|是|可能回退至CPU执行|
 |torch.nn.ZeroPad3d|是|支持bf16，fp16，fp32，fp64，complex64，complex128<br>支持5-6维|
 |torch.nn.ConstantPad1d|是|支持int8，bool<br>在输入x为六维以上时可能会出现性能下降问题|
 |torch.nn.ConstantPad2d|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>在输入x为六维以上时可能会出现性能下降问题|
@@ -178,7 +178,7 @@
 |torch.nn.LazyBatchNorm1d.cls_to_become|是|-|
 |torch.nn.LazyBatchNorm2d.cls_to_become|是|-|
 |torch.nn.LazyBatchNorm3d.cls_to_become|是|-|
-|torch.nn.GroupNorm|是|支持fp32<br>eps参数需大于0<br>不支持jit_compile=True的场景<br>该API仅支持2维及以上的输入input。该API反向不支持输入input不为4维，或输入num_groups非32整除，或C轴维度非(10 * num_groups)整除的场景|
+|torch.nn.GroupNorm|是|支持fp32<br>eps参数需大于0<br>不支持jit_compile=True的场景<br>该API仅支持2维及以上的输入input。该API反向传播时，不支持输入维度不为4维，或输入num_groups非32整除，或C轴维度非(10 * num_groups)整除的场景|
 |torch.nn.SyncBatchNorm|是|支持fp16，fp32|
 |torch.nn.SyncBatchNorm.convert_sync_batchnorm|是|-|
 |torch.nn.LazyInstanceNorm1d.cls_to_become|是|-|
@@ -219,7 +219,7 @@
 |torch.nn.MSELoss|是|支持fp16，fp32|
 |torch.nn.CrossEntropyLoss|是|支持fp16，fp32|
 |torch.nn.CTCLoss|是|支持fp32，fp64<br>不支持log_probs 2D输入|
-|torch.nn.NLLLoss|是|支持fp16，fp32<br>target每一维的维度应该大于等于0且小于input的类别数|
+|torch.nn.NLLLoss|是|支持fp16，fp32<br>target中的每个元素值应大于等于0且小于input的类别数|
 |torch.nn.PoissonNLLLoss|是|支持bf16，fp16，fp32，int64|
 |torch.nn.GaussianNLLLoss|是|支持bf16，fp16，fp32，int16，int32，int64|
 |torch.nn.KLDivLoss|是|支持bf16，fp16，fp32<br>当前log_target参数仅支持False|
