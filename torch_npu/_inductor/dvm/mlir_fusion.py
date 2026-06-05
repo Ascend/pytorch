@@ -371,7 +371,15 @@ class DvmMlirFusionPatch:
     def enable() -> None:
         if DvmMlirFusionPatch._enabled:
             return
-        config.allow_buffer_reuse = False
+        from torch._dynamo import config as dynamo_config
+        from torch._inductor import config as inductor_config
+
+        dynamo_config.specialize_float = True  # enable float specialization until launch with scalar supported
+        inductor_config.unroll_reductions_threshold = 1  # disable unroll reductions
+        inductor_config.size_asserts = (
+            False  # npu ops always return contiguous tensors which maybe different from meta outputs
+        )
+        inductor_config.allow_buffer_reuse = False
         patch_decomp()
         _patch_lowering_type_checks()
         _patch_sum_lowering()
