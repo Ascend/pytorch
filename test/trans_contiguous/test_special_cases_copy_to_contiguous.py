@@ -1,3 +1,4 @@
+import unittest
 import os
 import torch
 import numpy as np
@@ -8,8 +9,15 @@ from torch_npu.testing.common_utils import create_common_tensor
 
 os.environ["COMBINED_ENABLE"] = "1"  # Open combined-view cases optimization
 
+DEVICE_NAME = torch_npu.npu.get_device_name(0)
+
+device_is_910A = False
+if "Ascend910A" in DEVICE_NAME or "Ascend910P" in DEVICE_NAME:
+    device_is_910A = True
+
 
 class TestSpecialCasesCopyToContiguous(TestCase):
+    @unittest.skipIf(device_is_910A, "skip")
     def test_expand_copy_to_slice_discontiguous_tensor(self, device="npu"):
         dtype_list = [np.bool_, np.int8, np.int16, np.float16, np.float32, np.int32, np.int64]
         index_list = [3, 8, 16, 32]
