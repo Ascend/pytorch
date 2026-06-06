@@ -118,7 +118,7 @@
             pip install auditwheel
             ```
 
-            如果使用非root用户安装，需要在命令后加`--user`，例如：**pip3 install pyyaml --user**
+            如果使用非root用户安装，需要在命令后加`--user`，例如：**pip3 install pyyaml --user**。
 
     2. 编译生成torch\_npu插件的Whl安装包。
         1. 以v2.7.1-26.0.0为例，下载对应的Ascend Extension for PyTorch分支代码并进入插件根目录。
