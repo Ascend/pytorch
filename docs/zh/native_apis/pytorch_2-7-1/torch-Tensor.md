@@ -382,7 +382,7 @@
 |Tensor.size|是|支持fp32|
 |Tensor.slogdet|是|支持fp32，complex64，complex128|
 |Tensor.slice_scatter|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
-|Tensor.softmax||支持fp16，fp16，fp32，fp64|
+|Tensor.softmax|是|支持fp16，fp32，fp64|
 |Tensor.sort|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64|
 |Tensor.split|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.sparse_mask|否|-|

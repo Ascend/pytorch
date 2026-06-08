@@ -15,9 +15,9 @@
 |torch.distributed.rpc.functions.async_execution|是|-|
 |torch.distributed.rpc.BackendType|是|-|
 |torch.distributed.rpc.RpcBackendOptions|是|-|
-|torch.distributed.rpc.TensorPipeRpcBackendOptions|是|建议使用已适配的torch.distributed.rpc.NPUTensorPipeRpcBackendOptions|
-|torch.distributed.rpc.TensorPipeRpcBackendOptions.set_device_map|是|建议使用已适配的torch.distributed.rpc.NPUTensorPipeRpcBackendOptions.set_device_map|
-|torch.distributed.rpc.TensorPipeRpcBackendOptions.set_devices|是|建议使用已适配的torch.distributed.rpc.NPUTensorPipeRpcBackendOptions.set_devices|
+|torch.distributed.rpc.TensorPipeRpcBackendOptions|是|建议使用已适配的torch_npu.distributed.rpc.options.NPUTensorPipeRpcBackendOptions|
+|torch.distributed.rpc.TensorPipeRpcBackendOptions.set_device_map|是|建议使用已适配的torch_npu.distributed.rpc.options.NPUTensorPipeRpcBackendOptions.set_device_map|
+|torch.distributed.rpc.TensorPipeRpcBackendOptions.set_devices|是|建议使用已适配的torch_npu.distributed.rpc.options.NPUTensorPipeRpcBackendOptions.set_devices|
 |torch.distributed.rpc.PyRRef|是|-|
 |torch.distributed.nn.api.remote_module.RemoteModule|是|-|
 |torch.distributed.nn.api.remote_module.RemoteModule.get_module_rref|是|-|

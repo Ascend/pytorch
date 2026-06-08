@@ -99,7 +99,7 @@
 |torch.nn.functional.pixel_shuffle|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |torch.nn.functional.pixel_unshuffle|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |torch.nn.functional.pad|是|属性mode为constant时，支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool<br>属性mode非constant时，支持fp16，fp32，fp64<br>在输入x为六维以上时可能会出现性能下降问题|
-|torch.nn.functional.interpolate|是|支持bf16，fp16，fp32，fp64<br>支持nearest，linear，bilinear，bicubic，trilinear，area<br>不支持scale_factors|
+|torch.nn.functional.interpolate|是|支持bf16，fp16，fp32，fp64<br>支持nearest，linear，bilinear，bicubic，trilinear，area<br>不支持scale_factor|
 |torch.nn.functional.upsample|是|支持fp16，fp32，fp64<br>只支持mode = nearest|
 |torch.nn.functional.upsample_nearest|是|支持fp16，fp32，fp64<br>只支持3-5维|
 |torch.nn.functional.upsample_bilinear|是|支持fp16，fp32|
