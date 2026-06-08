@@ -338,14 +338,13 @@ class TestFlopCounter(TestCase):
         model = torch.nn.Linear(100, 100)
         x = torch.randn(3, 100)
 
-        flop_counter = FlopCounterMode(model)
-        with flop_counter:
-            self.assertEqual(len(model._forward_pre_hooks), 1)
-            self.assertEqual(len(model._forward_hooks), 1)
+        with FlopCounterMode() as mode:
+            self.assertEqual(len(torch.nn.modules.module._global_forward_pre_hooks), 1)
+            self.assertEqual(len(torch.nn.modules.module._global_forward_hooks), 1)
             model(x).sum().backward()
 
-        self.assertEqual(len(model._forward_pre_hooks), 0)
-        self.assertEqual(len(model._forward_hooks), 0)
+        self.assertEqual(len(torch.nn.modules.module._global_forward_pre_hooks), 0)
+        self.assertEqual(len(torch.nn.modules.module._global_forward_hooks), 0)
 
     def test_pytrees(self):
         class Foo(torch.nn.Module):
