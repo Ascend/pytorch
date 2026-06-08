@@ -34,6 +34,7 @@ import torch.fx
 import torch.utils._pytree as pytree
 from torch._subclasses.fake_tensor import FakeTensorMode
 from torch_npu._inductor.mfusion import subgraph_registry
+from torch_npu._inductor.mfusion.fx_mlir_converter import opaque_registry
 
 
 __all__ = [
@@ -131,6 +132,29 @@ def restore_dvm_mm_patches(
         gm.recompile()
 
 
+def _make_opaque_fake_forward(output_meta: Any):
+    def _fn(*args, **kwargs):
+        return output_meta
+
+    return _fn
+
+
+def patch_opaque_roundtrip_targets_for_fake_eval(
+    gm: torch.fx.GraphModule,
+) -> list[tuple[torch.fx.Node, Any]]:
+    patches: list[tuple[torch.fx.Node, Any]] = []
+    for node in gm.graph.nodes:
+        if node.op != "call_function":
+            continue
+        if not node.meta.get("mfusion_opaque_roundtrip"):
+            continue
+        patches.append((node, node.target))
+        node.target = _make_opaque_fake_forward(node.meta.get("val"))
+    if patches:
+        gm.recompile()
+    return patches
+
+
 def fake_tensor_propagate_mfusion_subgraph(
     sub_gm: torch.fx.GraphModule,
     fake_inputs: list,
@@ -146,6 +170,7 @@ def fake_tensor_propagate_mfusion_subgraph(
     from torch.fx.passes.fake_tensor_prop import FakeTensorProp
 
     patches = patch_dvm_mm_targets_for_fake_eval(sub_gm)
+    opaque_patches = patch_opaque_roundtrip_targets_for_fake_eval(sub_gm)
     try:
         if fake_mode is not None:
             with fake_mode:
@@ -153,6 +178,7 @@ def fake_tensor_propagate_mfusion_subgraph(
         else:
             FakeTensorProp(sub_gm).propagate(*fake_inputs)
     finally:
+        restore_dvm_mm_patches(sub_gm, opaque_patches)
         restore_dvm_mm_patches(sub_gm, patches)
 
 
@@ -502,6 +528,9 @@ class FxExporter:
 
     def _process_operator(self, op: ir.Operation):
         target_name = op.attributes["name"].value
+        if target_name.startswith("torch.mfusion_opaque."):
+            self._process_opaque_operator(op, target_name)
+            return
         has_mlir_attr = "mfusion.subgraph_mlir" in op.attributes
         has_dynamic_attr = "mfusion.is_dynamic" in op.attributes
         has_subgraph_symbol = "subgraph" in op.attributes
@@ -523,6 +552,40 @@ class FxExporter:
 
         target = _get_op_target(target_name)
         self._process_aten_op_with_target(op, target)
+
+    def _decode_opaque_arg_tree(self, spec: Any, operands: list[Any]) -> Any:
+        kind = spec[0]
+        payload = spec[1]
+        if kind == "node":
+            return operands[payload]
+        if kind == "const":
+            return payload
+        if kind == "tuple":
+            return tuple(self._decode_opaque_arg_tree(x, operands) for x in payload)
+        if kind == "list":
+            return [self._decode_opaque_arg_tree(x, operands) for x in payload]
+        if kind == "dict":
+            return {
+                k: self._decode_opaque_arg_tree(v, operands)
+                for k, v in payload
+            }
+        raise ValueError(f"unknown opaque arg tree kind: {kind}")
+
+    def _process_opaque_operator(self, op: ir.Operation, target_name: str) -> None:
+        payload = opaque_registry.pop(target_name)
+        mapped_operands = [self.value_map[arg] for arg in op.operands]
+        args = self._decode_opaque_arg_tree(payload.args_spec, mapped_operands)
+        kwargs = self._decode_opaque_arg_tree(payload.kwargs_spec, mapped_operands)
+        node = self.graph.call_function(payload.target, args, kwargs)
+        node.meta = dict(payload.meta)
+        node.meta["mfusion_opaque_roundtrip"] = True
+
+        if len(op.results) == 1:
+            self.value_map[op.results[0]] = node
+        elif len(op.results) > 1:
+            for i, res in enumerate(op.results):
+                getitem_node = self.graph.call_function(operator.getitem, (node, i))
+                self.value_map[res] = getitem_node
 
     def _register_symbol_subgraph_operator(
         self, op: ir.Operation, target_name: str
