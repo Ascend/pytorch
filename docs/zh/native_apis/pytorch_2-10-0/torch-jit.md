@@ -56,6 +56,7 @@
 |[torch.jit.ScriptModule.requires_grad_](https://pytorch.org/docs/2.10/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.requires_grad_)|是|支持fp32|
 |[torch.jit.ScriptModule.save](https://pytorch.org/docs/2.10/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.save)|是|支持fp32|
 |[torch.jit.ScriptModule.set_extra_state](https://pytorch.org/docs/2.10/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.set_extra_state)|否|-|
+|[torch.jit.ScriptModule.set_submodule](https://pytorch.org/docs/2.10/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.set_submodule)|否|-|
 |[torch.jit.ScriptModule.share_memory](https://pytorch.org/docs/2.10/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.share_memory)|否|-|
 |[torch.jit.ScriptModule.state_dict](https://pytorch.org/docs/2.10/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.state_dict)|是|支持fp32|
 |[torch.jit.ScriptModule.to](https://pytorch.org/docs/2.10/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.to)|是|支持fp32|
