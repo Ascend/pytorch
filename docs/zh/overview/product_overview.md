@@ -48,25 +48,25 @@ C++层位于`torch_npu/csrc/`，编译为`torch_npu._C`扩展模块（入口为`
 
 Ascend Extension for PyTorch的启动遵循严格的6阶段初始化顺序，确保各模块按依赖关系正确就位：
 
-![](../figures/initialization_flow.svg)
+![](../figures/initialization_flow.png)
 
 ## 数据流
 
 **图 2** Eager Mode（动态图模式）端到端数据流
 
-![](../figures/eager_mode_flow.svg)
+![](../figures/eager_mode_flow.png)
 
 Eager Mode下每个算子独立下发执行，保留了PyTorch动态图的灵活性和即时反馈能力。NPU上支持多Stream并发，通过Stream级TaskQueue实现二级流水并行下发，减少Host与Device之间的调度延迟。
 
 **图 3** Graph Mode（图编译模式）端到端数据流
 
-![](../figures/graph_mode_flow.svg)
+![](../figures/graph_mode_flow.png)
 
 Graph Mode通过`torch.compile()`一键开启，Dynamo前端将Eager代码即时编译为FX Graph，编译后端负责算子融合、内存优化和代码生成。NPUGraphs将捕获的图下沉至NPU侧，支持一次捕获多次重放，消除重复的kernel启动开销；Inductor后端则通过算子融合与代码生成实现计算图级别的深度优化。
 
 **图 4** 张量数据流
 
-![](../figures/tensor_flow.svg)
+![](../figures/tensor_flow.png)
 
 模型参数和输入数据从CPU Host内存拷贝至NPU Device内存（HBM），计算过程中张量数据驻留在NPU Device侧，各算子通过Device内存直接传递中间结果，最终根据需求将输出结果回传至Host侧。
 
