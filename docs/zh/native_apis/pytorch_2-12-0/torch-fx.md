@@ -12,6 +12,7 @@
 |[torch.fx.experimental.symbolic_shapes.ShapeEnv.create_unbacked_symbool](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.create_unbacked_symbool.html)|是|-|
 |[torch.fx.symbolic_trace](https://pytorch.org/docs/2.12/fx.html#torch.fx.symbolic_trace)|是|支持fp32|
 |[torch.fx.wrap](https://pytorch.org/docs/2.12/fx.html#torch.fx.wrap)|是|支持fp32|
+|[torch.fx.graph.map_arg](https://pytorch.org/docs/2.12/fx.html#torch.fx.graph.map_arg)|是|支持fp32|
 |[torch.fx.GraphModule](https://pytorch.org/docs/2.12/fx.html#torch.fx.GraphModule)|是|支持fp32|
 |[torch.fx.GraphModule.__init__](https://pytorch.org/docs/2.12/fx.html#torch.fx.GraphModule.__init__)|是|支持fp32|
 |[torch.fx.GraphModule.add_submodule](https://pytorch.org/docs/2.12/fx.html#torch.fx.GraphModule.add_submodule)|是|支持fp32|
@@ -37,7 +38,7 @@
 |[torch.fx.Graph.inserting_before](https://pytorch.org/docs/2.12/fx.html#torch.fx.Graph.inserting_before)|是|-|
 |[torch.fx.Graph.lint](https://pytorch.org/docs/2.12/fx.html#torch.fx.Graph.lint)|是|支持fp32|
 |[torch.fx.Graph.node_copy](https://pytorch.org/docs/2.12/fx.html#torch.fx.Graph.node_copy)|是|支持fp32|
-|[torch.fx.Graph.nodes](https://pytorch.org/docs/2.12/fx.html#torch.fx.Graph.nodes)|否|-|
+|[torch.fx.Graph.nodes](https://pytorch.org/docs/2.12/fx.html#torch.fx.Graph.nodes)|是|支持fp32|
 |[torch.fx.Graph.on_generate_code](https://pytorch.org/docs/2.12/fx.html#torch.fx.Graph.on_generate_code)|是|支持fp32|
 |[torch.fx.Graph.output](https://pytorch.org/docs/2.12/fx.html#torch.fx.Graph.output)|是|-|
 |[torch.fx.Graph.output_node](https://pytorch.org/docs/2.12/fx.html#torch.fx.Graph.output_node)|是|-|
