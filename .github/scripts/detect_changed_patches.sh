@@ -31,10 +31,11 @@ if [ "${EVENT_NAME}" = "pull_request" ]; then
 
     # HEAD is the PR merge commit (checked out by actions/checkout).
     # HEAD^1 = base branch, HEAD^2 = PR head branch.
-    # This works for fork PRs because the merge commit includes both parents.
+    # Use three-dot (...) to show only PR-side changes relative to merge-base,
+    # excluding upstream changes that happened after the fork point.
     if git cat-file -e HEAD^2 2>/dev/null; then
-        echo "Using merge commit parents: HEAD^1 (base) .. HEAD^2 (PR head)"
-        CHANGED_FILES=$(git diff --name-only HEAD^1..HEAD^2 -- 'test_upstream/' 2>/dev/null || true)
+        echo "Using merge commit parents: HEAD^1...HEAD^2 (PR-side changes only)"
+        CHANGED_FILES=$(git diff --name-only HEAD^1...HEAD^2 -- 'test_upstream/' 2>/dev/null || true)
     else
         echo "Merge parents not available, falling back to base/head diff"
         git fetch --no-tags origin "${BASE_REF}" 2>/dev/null || true
