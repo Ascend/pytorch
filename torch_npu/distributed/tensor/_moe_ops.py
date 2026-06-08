@@ -51,6 +51,29 @@ def npu_moe_token_permute_grad_strategy(tokens, grad_permuted_tokens, indices, s
     return strategies
 
 
+@register_sharding(npu.npu_moe_token_permute_grad_v2.default)
+def npu_moe_token_permute_grad_v2_strategy(grad_permuted_tokens, sorted_indices, tokens_size_0, tokens_dtype, num_topK, padded_mode=False):
+    # func: npu_moe_token_permute_grad_v2(Tensor grad_permuted_tokens, Tensor sorted_indices,
+    #                                      int tokens_size_0, ScalarType tokens_dtype, int num_topK, bool padded_mode=False) -> Tensor
+    strategies = []
+
+    # all replicate strategy
+    replicate_strategy = (
+        [Replicate()], # output
+        [Replicate(), Replicate(), None, None, None, None] # input
+    )
+    strategies.append(replicate_strategy)
+
+    # hidden_size dim sharding strategy
+    hidden_size_sharding_strategy = (
+        [Shard(1)],
+        [Shard(1), Replicate(), None, None, None, None]
+    )
+    strategies.append(hidden_size_sharding_strategy)
+
+    return strategies
+
+
 @register_sharding(npu.npu_moe_token_unpermute.default)
 def npu_moe_token_unpermute_strategy(permuted_tokens, sorted_indices, probs=None, padded_mode=False,
                                      restore_shape=None):
