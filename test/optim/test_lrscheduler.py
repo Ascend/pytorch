@@ -10,7 +10,7 @@ import torch_npu
 import torch_npu.testing
 import torch.nn.functional as F
 from torch.nn import Parameter
-from torch.optim import Adam, SGD
+from torch.optim import Adam, Rprop, SGD
 from torch.optim.lr_scheduler import (
     LambdaLR,
     MultiplicativeLR,
@@ -1503,9 +1503,9 @@ class TestLRScheduler(TestCase):
         self.opt = old_opt  # set optimizer back to SGD
 
     def test_cycle_lr_cycle_momentum_fail_with_momentumless_optimizer(self):
-        with self.assertRaises(ValueError):
-            adam_opt = Adam(self.net.parameters())
-            scheduler = CyclicLR(adam_opt, base_lr=1, max_lr=5, cycle_momentum=True)
+            with self.assertRaises(ValueError):
+                rprop_opt = Rprop(self.net.parameters())
+                scheduler = CyclicLR(rprop_opt, base_lr=1, max_lr=5, cycle_momentum=True)
 
     def test_cycle_lr_removed_after_out_of_scope(self):
         import gc
