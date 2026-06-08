@@ -17,10 +17,19 @@ FX Importer that converts a torch.fx.GraphModule into a torch-mlir Module (torch
 """
 
 from collections import namedtuple
+import operator
+from typing import Any
 
 from torch_mlir import ir
 from torch_mlir.dialects import torch as torch_d
-from torch_mlir.extras.fx_importer import FxImporter
+from torch_mlir.extras.fx_importer import (
+    FxImporter,
+    HigherOrderOperator,
+    SYMBOLIC_TORCH_OPS,
+    TorchOpOverload,
+    is_builtin_function_or_method,
+    is_symbolic,
+)
 
 import torch
 import torch.fx
@@ -35,6 +44,7 @@ from torch.export.graph_signature import (
 )
 from torch.utils._sympy.numbers import int_oo
 from torch.utils._sympy.value_ranges import ValueRanges
+from torch_npu._inductor.mfusion.fx_mlir_converter import opaque_registry
 
 
 __all__ = ["import_mlir_module_from_fx"]
@@ -55,6 +65,133 @@ def _normalize_var_to_range(var_to_range):
     return normalized
 
 
+def _is_supported_call_function_target(node: torch.fx.Node) -> bool:
+    target = node.target
+    if target == operator.getitem:
+        return True
+    if target in SYMBOLIC_TORCH_OPS or (
+        is_symbolic(node.meta.get("val")) and is_builtin_function_or_method(target)
+    ):
+        return True
+    if isinstance(target, TorchOpOverload):
+        return True
+    if isinstance(target, HigherOrderOperator):
+        return True
+    return False
+
+
+def _validate_call_function_targets(gm: torch.fx.GraphModule) -> None:
+    unsupported_nodes = [
+        node
+        for node in gm.graph.nodes
+        if node.op == "call_function" and not _is_supported_call_function_target(node)
+    ]
+    if not unsupported_nodes:
+        return
+
+    node = unsupported_nodes[0]
+    raise RuntimeError(
+        "unsupported call_function target for torch-mlir import: "
+        f"name={node.name}, target={node.target!r}, "
+        f"count={len(unsupported_nodes)}"
+    )
+
+
+def _schema_type_from_meta_value(val: Any) -> str:
+    if isinstance(val, torch.Tensor):
+        return "Tensor"
+    if isinstance(val, torch.SymInt):
+        return "SymInt"
+    if isinstance(val, torch.SymFloat):
+        return "SymFloat"
+    if isinstance(val, torch.SymBool):
+        return "SymBool"
+    if isinstance(val, bool):
+        return "bool"
+    if isinstance(val, int):
+        return "int"
+    if isinstance(val, float):
+        return "float"
+    if isinstance(val, str):
+        return "str"
+    if isinstance(val, tuple):
+        return f"({', '.join(_schema_type_from_meta_value(x) for x in val)})"
+    if isinstance(val, list):
+        return f"List[{_schema_type_from_meta_value(val[0])}]" if val else "Any[]"
+    raise RuntimeError(f"unsupported opaque schema value type: {type(val).__name__}")
+
+
+def _encode_fx_arg_tree(arg: Any, flat_nodes: list[torch.fx.Node]) -> Any:
+    if isinstance(arg, torch.fx.Node):
+        index = len(flat_nodes)
+        flat_nodes.append(arg)
+        return ("node", index)
+    if isinstance(arg, tuple):
+        return ("tuple", tuple(_encode_fx_arg_tree(x, flat_nodes) for x in arg))
+    if isinstance(arg, list):
+        return ("list", [_encode_fx_arg_tree(x, flat_nodes) for x in arg])
+    if isinstance(arg, dict):
+        return (
+            "dict",
+            tuple((k, _encode_fx_arg_tree(v, flat_nodes)) for k, v in arg.items()),
+        )
+    return ("const", arg)
+
+
+def _register_opaque_custom_op(
+    node: torch.fx.Node, flat_nodes: list[torch.fx.Node]
+) -> Any:
+    target_name = opaque_registry.new_target_name()
+    _, lib_name, op_name = target_name.split(".", 2)
+    full_op_name = f"{lib_name}::{op_name.replace('.', '_')}"
+
+    shared_flat_nodes: list[torch.fx.Node] = []
+    args_spec = _encode_fx_arg_tree(node.args, shared_flat_nodes)
+    kwargs_spec = _encode_fx_arg_tree(node.kwargs, shared_flat_nodes)
+    flat_nodes[:] = shared_flat_nodes
+
+    arg_schema = ", ".join(
+        f"{_schema_type_from_meta_value(arg.meta['val'])} arg{i}"
+        for i, arg in enumerate(flat_nodes)
+    )
+    ret_schema = _schema_type_from_meta_value(node.meta["val"])
+    schema = f"({arg_schema}) -> {ret_schema}"
+
+    @torch.library.custom_op(full_op_name, mutates_args=(), schema=schema)
+    def _opaque_impl(*args):
+        raise RuntimeError("mfusion opaque passthrough op should not execute")
+
+    opaque_registry.register(
+        target_name,
+        opaque_registry.Payload(
+            target=node.target,
+            args_spec=args_spec,
+            kwargs_spec=kwargs_spec,
+            meta=dict(node.meta),
+        ),
+    )
+    return getattr(getattr(torch.ops, lib_name), op_name).default
+
+
+def _wrap_unsupported_call_function_targets(gm: torch.fx.GraphModule) -> None:
+    changed = False
+    for node in list(gm.graph.nodes):
+        if node.op != "call_function" or _is_supported_call_function_target(node):
+            continue
+        flat_nodes: list[torch.fx.Node] = []
+        opaque_target = _register_opaque_custom_op(node, flat_nodes)
+        with gm.graph.inserting_before(node):
+            replacement = gm.graph.call_function(opaque_target, tuple(flat_nodes))
+        replacement.meta = dict(node.meta)
+        node.replace_all_uses_with(replacement)
+        gm.graph.erase_node(node)
+        changed = True
+
+    if changed:
+        gm.graph.lint()
+        gm.recompile()
+
+
 def import_mlir_module_from_fx(gm: torch.fx.GraphModule) -> ir.Module:
     """
     Imports a torch.fx.GraphModule into a torch-mlir Module (torch dialect).
@@ -68,6 +205,8 @@ def import_mlir_module_from_fx(gm: torch.fx.GraphModule) -> ir.Module:
     output_val = new_graph.graph_copy(gm.graph, val_map)
     new_graph.output(output_val)
     gm = torch.fx.GraphModule(gm, new_graph)
+    _wrap_unsupported_call_function_targets(gm)
+    _validate_call_function_targets(gm)
 
     torch_mlir_context = ir.Context()
     torch_d.register_dialect(torch_mlir_context)
