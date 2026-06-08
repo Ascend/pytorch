@@ -189,9 +189,10 @@ class TestAscendGraphPass(TestUtils):
     def test_cast_standard_compile_cases(self, shape, dtype):
         first_element = self._generate_tensor(shape, dtype)
         std_result = self.cast_standard_op_calc(first_element)
-        compiled_op_calc = torch.compile(self.cast_standard_op_calc, backend="inductor")
-        inductor_result = compiled_op_calc(first_element)
-        self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
+        with torch.no_grad():
+            compiled_op_calc = torch.compile(self.cast_standard_op_calc, backend="inductor")
+            inductor_result = compiled_op_calc(first_element)
+            self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
 
 
     @parametrize('shape', [(256, 5)])
@@ -239,10 +240,10 @@ class TestAscendGraphPass(TestUtils):
         first_element = self._generate_tensor(shape, dtype)
 
         std_result = self.cat_slice_cat_op_calc(first_element)
-
-        compiled_op_calc = torch.compile(self.cat_slice_cat_op_calc, backend="inductor")
-        inductor_result = compiled_op_calc(first_element)
-        self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
+        with torch.no_grad():
+            compiled_op_calc = torch.compile(self.cat_slice_cat_op_calc, backend="inductor")
+            inductor_result = compiled_op_calc(first_element)
+            self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
 
 
     @parametrize('shape', [(1, 3, 64, 1024)])
@@ -272,10 +273,10 @@ class TestAscendGraphPass(TestUtils):
         first_element = self._generate_tensor(shape, dtype)
 
         std_result = self.fold_add_op_calc(first_element)
-
-        compiled_op_calc = torch.compile(self.fold_add_op_calc, backend="inductor")
-        inductor_result = compiled_op_calc(first_element)
-        self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
+        with torch.no_grad():
+            compiled_op_calc = torch.compile(self.fold_add_op_calc, backend="inductor")
+            inductor_result = compiled_op_calc(first_element)
+            self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
 
 
     @parametrize('shape', [(1, 2, 3)])
@@ -312,10 +313,10 @@ class TestAscendGraphPass(TestUtils):
         t5 = self._generate_tensor(shape, dtype)
 
         std_result = self.fold_cat_op_calc(t1, t2, t3, t4, t5)
-
-        compiled_op_calc = torch.compile(self.fold_cat_op_calc, backend="inductor")
-        inductor_result = compiled_op_calc(t1, t2, t3, t4, t5)
-        self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
+        with torch.no_grad():
+            compiled_op_calc = torch.compile(self.fold_cat_op_calc, backend="inductor")
+            inductor_result = compiled_op_calc(t1, t2, t3, t4, t5)
+            self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
 
 
     @parametrize('shape', [(2, 4)])
@@ -349,10 +350,10 @@ class TestAscendGraphPass(TestUtils):
         t1 = self._generate_tensor(shape, dtype)
 
         std_result = self.fold_clone_op_calc(t1)
-
-        compiled_op_calc = torch.compile(self.fold_clone_op_calc, backend="inductor")
-        inductor_result = compiled_op_calc(t1)
-        self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
+        with torch.no_grad():
+            compiled_op_calc = torch.compile(self.fold_clone_op_calc, backend="inductor")
+            inductor_result = compiled_op_calc(t1)
+            self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
 
 
     @parametrize('shape', [(1, 2, 3)])
@@ -382,9 +383,10 @@ class TestAscendGraphPass(TestUtils):
     def test_fold_detach_compile_cases(self, shape, dtype):
         t1 = self._generate_tensor(shape, dtype)
         std_result = self.fold_detach_op_calc(t1)
-        compiled_op_calc = torch.compile(self.fold_detach_op_calc, backend="inductor")
-        inductor_result = compiled_op_calc(t1)
-        self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
+        with torch.no_grad():
+            compiled_op_calc = torch.compile(self.fold_detach_op_calc, backend="inductor")
+            inductor_result = compiled_op_calc(t1)
+            self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
 
 
     @parametrize('shape', [(3, 3)])
@@ -414,9 +416,10 @@ class TestAscendGraphPass(TestUtils):
     def test_fold_div_compile_cases(self, shape, dtype):
         t1 = self._generate_tensor(shape, dtype)
         std_result = self.fold_div_op_calc(t1)
-        compiled_op_calc = torch.compile(self.fold_div_op_calc, backend="inductor")
-        inductor_result = compiled_op_calc(t1)
-        self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
+        with torch.no_grad():
+            compiled_op_calc = torch.compile(self.fold_div_op_calc, backend="inductor")
+            inductor_result = compiled_op_calc(t1)
+            self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
 
 
     @parametrize('shape', [(2, 4, 8)])
@@ -448,10 +451,10 @@ class TestAscendGraphPass(TestUtils):
         t1 = self._generate_tensor(shape, dtype)
 
         std_result = self.fold_expand_op_calc(t1)
-
-        compiled_op_calc = torch.compile(self.fold_expand_op_calc, backend="inductor")
-        inductor_result = compiled_op_calc(t1)
-        self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
+        with torch.no_grad():
+            compiled_op_calc = torch.compile(self.fold_expand_op_calc, backend="inductor")
+            inductor_result = compiled_op_calc(t1)
+            self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
 
 
     @parametrize('shape', [(256, 128, 1)])
@@ -481,9 +484,10 @@ class TestAscendGraphPass(TestUtils):
     def test_fold_mul_compile_cases(self, shape, dtype):
         t1 = self._generate_tensor(shape, dtype)
         std_result = self.fold_mul_op_calc(t1)
-        compiled_op_calc = torch.compile(self.fold_mul_op_calc, backend="inductor")
-        inductor_result = compiled_op_calc(t1)
-        self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
+        with torch.no_grad():
+            compiled_op_calc = torch.compile(self.fold_mul_op_calc, backend="inductor")
+            inductor_result = compiled_op_calc(t1)
+            self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
 
 
     @parametrize('shape', [(1, 2, 3)])
@@ -511,9 +515,10 @@ class TestAscendGraphPass(TestUtils):
     def test_fold_reduce_compile_cases(self, shape, dtype):
         t1 = self._generate_tensor(shape, dtype)
         std_result = self.fold_reduce_op_calc(t1)
-        compiled_op_calc = torch.compile(self.fold_reduce_op_calc, backend="inductor")
-        inductor_result = compiled_op_calc(t1)
-        self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
+        with torch.no_grad():
+            compiled_op_calc = torch.compile(self.fold_reduce_op_calc, backend="inductor")
+            inductor_result = compiled_op_calc(t1)
+            self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
 
 
     @parametrize('shape', [(128, 1, 64, 1)])
@@ -560,10 +565,10 @@ class TestAscendGraphPass(TestUtils):
         arg7_1 = torch.randn(128, 6144, dtype=torch.float32)
         arg8_1 = torch.randn(6144, dtype=torch.float32)
         std_result = self.fold_redundant_op_calc(arg0_1, arg1_1, arg2_1, arg3_1, arg4_1, arg5_1, arg6_1, arg7_1, arg8_1)
-
-        compiled_op_calc = torch.compile(self.fold_redundant_op_calc, backend="inductor")
-        inductor_result = compiled_op_calc(arg0_1, arg1_1, arg2_1, arg3_1, arg4_1, arg5_1, arg6_1, arg7_1, arg8_1)
-        self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
+        with torch.no_grad():
+            compiled_op_calc = torch.compile(self.fold_redundant_op_calc, backend="inductor")
+            inductor_result = compiled_op_calc(arg0_1, arg1_1, arg2_1, arg3_1, arg4_1, arg5_1, arg6_1, arg7_1, arg8_1)
+            self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
 
 
     def test_fold_redundant_ut_cases(self):
@@ -597,9 +602,10 @@ class TestAscendGraphPass(TestUtils):
     def test_fold_sink_viewcompile_cases(self, shape, dtype):
         t1 = self._generate_tensor(shape, dtype)
         std_result = self.fold_sink_view_op_calc(t1)
-        compiled_op_calc = torch.compile(self.fold_sink_view_op_calc, backend="inductor")
-        inductor_result = compiled_op_calc(t1)
-        self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
+        with torch.no_grad():
+            compiled_op_calc = torch.compile(self.fold_sink_view_op_calc, backend="inductor")
+            inductor_result = compiled_op_calc(t1)
+            self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
 
 
     @parametrize('shape', [(2, 3, 4)])
@@ -634,9 +640,10 @@ class TestAscendGraphPass(TestUtils):
         t2 = torch.tensor([[9, 9, 9], [8, 8, 8]])
         t3 = torch.randn(4, 16, 32, 64)
         std_result = self.fold_slice_op_calc(base, view, t1, t2, t3)
-        compiled_op_calc = torch.compile(self.fold_slice_op_calc, backend="inductor")
-        inductor_result = compiled_op_calc(base, view, t1, t2, t3)
-        self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
+        with torch.no_grad():
+            compiled_op_calc = torch.compile(self.fold_slice_op_calc, backend="inductor")
+            inductor_result = compiled_op_calc(base, view, t1, t2, t3)
+            self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
 
 
     def test_fold_slice_ut_cases(self):
@@ -668,9 +675,10 @@ class TestAscendGraphPass(TestUtils):
         t1 = torch.randn(2, 4)
         t2 = torch.randn(2, 1, 1, 4)
         std_result = self.fold_squeeze_op_calc(t1, t2)
-        compiled_op_calc = torch.compile(self.fold_squeeze_op_calc, backend="inductor")
-        inductor_result = compiled_op_calc(t1, t2)
-        self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
+        with torch.no_grad():
+            compiled_op_calc = torch.compile(self.fold_squeeze_op_calc, backend="inductor")
+            inductor_result = compiled_op_calc(t1, t2)
+            self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
 
 
     def test_fold_squeeze_ut_cases(self):
@@ -700,9 +708,10 @@ class TestAscendGraphPass(TestUtils):
     def test_fold_sub_compile_cases(self, shape, dtype):
         t1 = self._generate_tensor(shape, dtype)
         std_result = self.fold_sub_op_calc(t1)
-        compiled_op_calc = torch.compile(self.fold_sub_op_calc, backend="inductor")
-        inductor_result = compiled_op_calc(t1)
-        self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
+        with torch.no_grad():
+            compiled_op_calc = torch.compile(self.fold_sub_op_calc, backend="inductor")
+            inductor_result = compiled_op_calc(t1)
+            self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
 
 
     @parametrize('shape', [(1, 2, 3)])
@@ -731,9 +740,10 @@ class TestAscendGraphPass(TestUtils):
     def test_fold_to_copy_compile_cases(self, shape, dtype):
         t1 = self._generate_tensor(shape, dtype)
         std_result = self.fold_to_copy_op_calc(t1)
-        compiled_op_calc = torch.compile(self.fold_to_copy_op_calc, backend="inductor")
-        inductor_result = compiled_op_calc(t1)
-        self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
+        with torch.no_grad():
+            compiled_op_calc = torch.compile(self.fold_to_copy_op_calc, backend="inductor")
+            inductor_result = compiled_op_calc(t1)
+            self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
 
 
     @parametrize('shape', [(2, 4)])
@@ -763,9 +773,10 @@ class TestAscendGraphPass(TestUtils):
         t1 = torch.randn(1, 3, 1, 5)
         t2 = torch.randn(128, 64)
         std_result = self.fold_view_op_calc(t1, t2)
-        compiled_op_calc = torch.compile(self.fold_view_op_calc, backend="inductor")
-        inductor_result = compiled_op_calc(t1, t2)
-        self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
+        with torch.no_grad():
+            compiled_op_calc = torch.compile(self.fold_view_op_calc, backend="inductor")
+            inductor_result = compiled_op_calc(t1, t2)
+            self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
 
 
     def test_fold_view_ut_cases(self):
@@ -792,9 +803,10 @@ class TestAscendGraphPass(TestUtils):
     def test_fold_where_compile_cases(self, shape, dtype):
         t1 = self._generate_tensor(shape, dtype)
         std_result = self.fold_where_op_calc(t1)
-        compiled_op_calc = torch.compile(self.fold_where_op_calc, backend="inductor")
-        inductor_result = compiled_op_calc(t1)
-        self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
+        with torch.no_grad():
+            compiled_op_calc = torch.compile(self.fold_where_op_calc, backend="inductor")
+            inductor_result = compiled_op_calc(t1)
+            self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
 
 
     @parametrize('shape', [(3, 4)])
@@ -824,9 +836,10 @@ class TestAscendGraphPass(TestUtils):
     def test_pad_slice_compile_cases(self, shape, dtype):
         t1 = self._generate_tensor(shape, dtype)
         std_result = self.pad_slice_op_calc(t1)
-        compiled_op_calc = torch.compile(self.pad_slice_op_calc, backend="inductor")
-        inductor_result = compiled_op_calc(t1)
-        self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
+        with torch.no_grad():
+            compiled_op_calc = torch.compile(self.pad_slice_op_calc, backend="inductor")
+            inductor_result = compiled_op_calc(t1)
+            self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
 
 
     @parametrize('shape', [(128, 50, 128)])

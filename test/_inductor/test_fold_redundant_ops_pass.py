@@ -59,8 +59,8 @@ class TestFoldMultiShapeUnchangePass(TestUtils):
         std_result = self.op_calc(arg0_1, arg1_1, arg2_1, arg3_1, arg4_1, arg5_1, arg6_1, arg7_1, arg8_1)
         with torch.no_grad():
             compiled_op_calc = torch.compile(self.op_calc, backend="inductor")
-        inductor_result = compiled_op_calc(arg0_1, arg1_1, arg2_1, arg3_1, arg4_1, arg5_1, arg6_1, arg7_1, arg8_1)
-        self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
+            inductor_result = compiled_op_calc(arg0_1, arg1_1, arg2_1, arg3_1, arg4_1, arg5_1, arg6_1, arg7_1, arg8_1)
+            self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
 
 
     def test_ut_cases(self):

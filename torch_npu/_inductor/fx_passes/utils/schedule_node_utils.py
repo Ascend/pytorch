@@ -1,21 +1,18 @@
 import os
 
-from torch._inductor.codegen.cpp_wrapper_cpu import CppWrapperCpu
-from torch._inductor.codegen.cpp_wrapper_gpu import CppWrapperGpu
 from torch._inductor.scheduler import BaseSchedulerNode
 from torch._inductor.virtualized import V
 from torch.utils._ordered_set import OrderedSet
 
-from ...codegen.cpp_wrapper import CppWrapperNpu
-
 
 def is_multi_stream():
     wrapper = V.graph.wrapper_code
-    is_cpp_wrapper = isinstance(wrapper, (CppWrapperNpu, CppWrapperCpu, CppWrapperGpu))
+    from ...codegen.wrapper import NPUPythonWrapperCodeGen
+    is_npu_wrapper = isinstance(wrapper, NPUPythonWrapperCodeGen)
     env_parallel = (
         os.environ.get("ENABLE_PARALLEL_SCHEDULER", "false").lower() == "true"
     )
-    return env_parallel and not is_cpp_wrapper
+    return env_parallel and is_npu_wrapper
 
 
 def find_first_overlap(pre_nodes, first_group_nodes):
