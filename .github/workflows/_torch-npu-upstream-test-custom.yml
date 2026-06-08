@@ -38,6 +38,12 @@ jobs:
       options: --user root
 
     steps:
+      - name: Checkout repository (for local action)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+
       - name: Setup NPU test environment
         uses: ./.github/actions/setup-npu-test-env
         with:
