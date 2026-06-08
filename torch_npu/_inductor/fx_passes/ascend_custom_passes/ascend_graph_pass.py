@@ -476,7 +476,7 @@ def fold_sink_view(graph: torch.fx.Graph) -> None:
                     name=node.name + "_replacement",
                 )
                 propagate_fake_tensor(
-                    new_act_view, new_act, lambda fake: node.target(fake, node.args[1])
+                    new_act_view, new_act, lambda fake: node.target(fake, view_shape)
                 )
             user.replace_all_uses_with(new_act_view)
             graph.erase_node(user)
@@ -540,7 +540,7 @@ def fold_sink_view(graph: torch.fx.Graph) -> None:
                         propagate_fake_tensor(
                             new_add_view,
                             new_add,
-                            lambda fake: node.target(fake, node.args[1]),
+                            lambda fake: node.target(fake, view_shape),
                         )
                     user.replace_all_uses_with(new_add_view)
                     graph.erase_node(user)
