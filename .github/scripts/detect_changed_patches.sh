@@ -68,10 +68,11 @@ while IFS= read -r f; do
 
     case "$f" in
         test_upstream/test/*.patch|test_upstream/test/*.diff)
-            # Derive test file from patch name:
+            # Derive test file by stripping prefix + suffix:
             #   test_upstream/test/test_autograd.py.patch → test_autograd.py
-            #   test_upstream/test/ao/test_foo.py.patch    → ao/test_foo.py
-            TEST_FILE=$(echo "$f" | sed 's|^test_upstream/test/||; s|\.patch$|.py|; s|\.diff$|.py|')
+            #   test_upstream/test/ao/test_foo.py.patch  → ao/test_foo.py
+            #   test_upstream/test/inductor/test_minifer.diff → inductor/test_minifer.py
+            TEST_FILE=$(echo "$f" | sed 's|^test_upstream/test/||; s|\.patch$||; s|\.diff$||')
             TEST_PATCHES="${TEST_PATCHES}${f},"
             TEST_FILES="${TEST_FILES}${TEST_FILE},"
             echo "  → test patch: $f → test file: ${TEST_FILE}"
