@@ -238,6 +238,35 @@ profile_path = "./profile_result/"
 fasta_autotune = os.environ.get("FASTAUTOTUNE", "0") == "1"
 fasta_autotune_method = os.getenv("AUTOTUNE_METHOD", "Expert")
 
+
+def _parse_bool_env(name: str, default: bool = False) -> bool:
+    val = os.environ.get(name)
+    if val is None:
+        return default
+    return str(val).strip().lower() in ("1", "true", "yes", "on", "y")
+
+
+def _parse_float_env(name: str, default: float = 0.25, min_value: float = 0.0, max_value: float = 1.0) -> float:
+    val = os.environ.get(name)
+    if val is None:
+        return default
+    try:
+        parsed = float(val)
+    except (TypeError, ValueError):
+        log.warning("Invalid %s=%r, fallback to %s", name, val, default)
+        return default
+    if parsed <= min_value or parsed > max_value:
+        log.warning("Invalid %s=%r (must be in (%s, %s]), fallback to %s", name, val, min_value, max_value, default)
+        return default
+    return parsed
+
+
+# Frontend -> inductor controls (env-driven)
+# - INDUCTOR_ASCEND_ENABLE_COSTMODEL: whether to forward costmodel backend signal to triton-ascend
+# - INDUCTOR_ASCEND_COSTMODEL_RATIO: select the shortest-latency top ratio of configs
+enable_costmodel_backend = _parse_bool_env("INDUCTOR_ASCEND_ENABLE_COSTMODEL", False)
+costmodel_ratio = _parse_float_env("INDUCTOR_ASCEND_COSTMODEL_RATIO", 0.25, 0.0, 1.0)
+
 max_precompiled_thread_num = (
     os.cpu_count() // 2
 )  # default precompile max thread num is half of the cpu count
