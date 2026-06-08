@@ -99,7 +99,7 @@
 |[torch.nn.functional.pixel_shuffle](https://pytorch.org/docs/2.7/generated/torch.nn.functional.pixel_shuffle.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[torch.nn.functional.pixel_unshuffle](https://pytorch.org/docs/2.7/generated/torch.nn.functional.pixel_unshuffle.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |[torch.nn.functional.pad](https://pytorch.org/docs/2.7/generated/torch.nn.functional.pad.html)|是|属性mode为constant时，支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool<br>属性mode非constant时，支持fp16，fp32，fp64<br>在输入x为六维以上时可能会出现性能下降问题|
-|[torch.nn.functional.interpolate](https://pytorch.org/docs/2.7/generated/torch.nn.functional.interpolate.html)|是|支持bf16，fp16，fp32，fp64<br>支持nearest，linear，bilinear，bicubic，trilinear，area<br>不支持scale_factors|
+|[torch.nn.functional.interpolate](https://pytorch.org/docs/2.7/generated/torch.nn.functional.interpolate.html)|是|支持bf16，fp16，fp32，fp64<br>支持nearest，linear，bilinear，bicubic，trilinear，area<br>不支持scale_factor|
 |[torch.nn.functional.upsample](https://pytorch.org/docs/2.7/generated/torch.nn.functional.upsample.html)|是|支持fp16，fp32，fp64<br>只支持mode = nearest|
 |[torch.nn.functional.upsample_nearest](https://pytorch.org/docs/2.7/generated/torch.nn.functional.upsample_nearest.html)|是|支持fp16，fp32，fp64<br>只支持3-5维|
 |[torch.nn.functional.upsample_bilinear](https://pytorch.org/docs/2.7/generated/torch.nn.functional.upsample_bilinear.html)|是|支持fp16，fp32|

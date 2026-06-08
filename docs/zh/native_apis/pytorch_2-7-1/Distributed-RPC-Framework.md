@@ -15,9 +15,9 @@
 |[torch.distributed.rpc.functions.async_execution](https://pytorch.org/docs/2.7/rpc.html#torch.distributed.rpc.functions.async_execution)|是|-|
 |[torch.distributed.rpc.BackendType](https://pytorch.org/docs/2.7/rpc.html#torch.distributed.rpc.BackendType)|是|-|
 |[torch.distributed.rpc.RpcBackendOptions](https://pytorch.org/docs/2.7/rpc.html#torch.distributed.rpc.RpcBackendOptions)|是|-|
-|[torch.distributed.rpc.TensorPipeRpcBackendOptions](https://pytorch.org/docs/2.7/rpc.html#torch.distributed.rpc.TensorPipeRpcBackendOptions)|是|建议使用已适配的torch.distributed.rpc.NPUTensorPipeRpcBackendOptions|
-|[torch.distributed.rpc.TensorPipeRpcBackendOptions.set_device_map](https://pytorch.org/docs/2.7/rpc.html#torch.distributed.rpc.TensorPipeRpcBackendOptions.set_device_map)|是|建议使用已适配的torch.distributed.rpc.NPUTensorPipeRpcBackendOptions.set_device_map|
-|[torch.distributed.rpc.TensorPipeRpcBackendOptions.set_devices](https://pytorch.org/docs/2.7/rpc.html#torch.distributed.rpc.TensorPipeRpcBackendOptions.set_devices)|是|建议使用已适配的torch.distributed.rpc.NPUTensorPipeRpcBackendOptions.set_devices|
+|[torch.distributed.rpc.TensorPipeRpcBackendOptions](https://pytorch.org/docs/2.7/rpc.html#torch.distributed.rpc.TensorPipeRpcBackendOptions)|是|建议使用已适配的torch_npu.distributed.rpc.options.NPUTensorPipeRpcBackendOptions|
+|[torch.distributed.rpc.TensorPipeRpcBackendOptions.set_device_map](https://pytorch.org/docs/2.7/rpc.html#torch.distributed.rpc.TensorPipeRpcBackendOptions.set_device_map)|是|建议使用已适配的torch_npu.distributed.rpc.options.NPUTensorPipeRpcBackendOptions.set_device_map|
+|[torch.distributed.rpc.TensorPipeRpcBackendOptions.set_devices](https://pytorch.org/docs/2.7/rpc.html#torch.distributed.rpc.TensorPipeRpcBackendOptions.set_devices)|是|建议使用已适配的torch_npu.distributed.rpc.options.NPUTensorPipeRpcBackendOptions.set_devices|
 |[torch.distributed.rpc.PyRRef](https://pytorch.org/docs/2.7/rpc.html#torch.distributed.rpc.PyRRef)|是|-|
 |[torch.distributed.nn.api.remote_module.RemoteModule](https://pytorch.org/docs/2.7/rpc.html#torch.distributed.nn.api.remote_module.RemoteModule)|是|-|
 |[torch.distributed.nn.api.remote_module.RemoteModule.get_module_rref](https://pytorch.org/docs/2.7/rpc.html#torch.distributed.nn.api.remote_module.RemoteModule.get_module_rref)|是|-|
