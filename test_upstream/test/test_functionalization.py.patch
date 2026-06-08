@@ -1,0 +1,13 @@
+diff --git a/test/test_functionalization.py b/test/test_functionalization.py
+index 65e7429..7f3ab89 100644
+--- a/test/test_functionalization.py
++++ b/test/test_functionalization.py
+@@ -236,7 +236,7 @@ class TestFunctionalization(TestCase):
+             return x.grad
+ 
+         with torch.autograd.detect_anomaly(check_nan=False):
+-            logs = self.get_logs(g, torch.ones(16, 64, 128, 128, requires_grad=True))
++            logs = self.get_logs(g, torch.ones(16, 64, 128, 128, requires_grad=True, device='npu'))
+         self.assertExpectedInline(
+             logs,
+             """\
