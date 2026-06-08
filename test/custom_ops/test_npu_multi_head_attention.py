@@ -1,6 +1,5 @@
 import torch
 import torch.nn.functional as F
-import unittest
 
 import torch_npu
 from torch_npu.testing.common_utils import create_common_tensor
@@ -58,8 +57,14 @@ class TestMultiHeadAttention(TestCase):
             query_bias, key_bias, value_bias, out_proj_bias, drop_mask,
             attn_head_num, attn_dim_per_head, src_len, tgt_len, dropout_prob, softmax_use_float)
 
-    @unittest.skip("Skip: pre-existing assertRtolEqual precision issue on ARM CI")
     def test_npu_multi_head_attention(self):
+        try:
+            torch.npu.config.allow_internal_format = True
+            self._test_npu_multi_head_attention()
+        finally:
+            torch.npu.config.allow_internal_format = False
+
+    def _test_npu_multi_head_attention(self):
         batch = 8
         attn_head_num = 16
         attn_dim_per_head = 64
