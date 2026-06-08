@@ -109,6 +109,11 @@
 |[torch.fx.experimental.symbolic_shapes.CallMethodKey.get](https://pytorch.org/docs/2.9/generated/torch.fx.experimental.symbolic_shapes.CallMethodKey.html#torch.fx.experimental.symbolic_shapes.CallMethodKey.get)|是|-|
 |[torch.fx.experimental.symbolic_shapes.canonicalize_bool_expr](https://pytorch.org/docs/2.9/generated/torch.fx.experimental.symbolic_shapes.canonicalize_bool_expr.html)|是|-|
 |[torch.fx.experimental.symbolic_shapes.check_consistent](https://pytorch.org/docs/2.9/generated/torch.fx.experimental.symbolic_shapes.check_consistent.html)|是|-|
+|[torch.fx.experimental.symbolic_shapes.is_accessor_node](https://pytorch.org/docs/2.9/generated/torch.fx.experimental.symbolic_shapes.is_accessor_node.html)|是|-|
+|[torch.fx.experimental.symbolic_shapes.is_concrete_bool](https://pytorch.org/docs/2.9/generated/torch.fx.experimental.symbolic_shapes.is_concrete_bool.html)|是|-|
+|[torch.fx.experimental.symbolic_shapes.is_concrete_float](https://pytorch.org/docs/2.9/generated/torch.fx.experimental.symbolic_shapes.is_concrete_float.html)|是|-|
+|[torch.fx.experimental.symbolic_shapes.is_concrete_int](https://pytorch.org/docs/2.9/generated/torch.fx.experimental.symbolic_shapes.is_concrete_int.html)|是|-|
+|[torch.fx.experimental.symbolic_shapes.is_symbolic](https://pytorch.org/docs/2.9/generated/torch.fx.experimental.symbolic_shapes.is_symbolic.html)|是|-|
 |[torch.fx.experimental.symbolic_shapes.ShapeEnv](https://pytorch.org/docs/2.9/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html)|是|-|
 |[torch.fx.experimental.symbolic_shapes.ShapeEnv.produce_guards_expression](https://pytorch.org/docs/2.9/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.produce_guards_expression)|是|支持fp32|
 |[torch.fx.experimental.symbolic_shapes.ShapeEnv.produce_guards_verbose](https://pytorch.org/docs/2.9/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.produce_guards_verbose)|否|-|
