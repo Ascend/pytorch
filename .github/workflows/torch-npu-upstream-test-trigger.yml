@@ -46,4 +46,3 @@ jobs:
       distributed_shards: '5'
       regular_shards: '5'
       test_files: ${{ needs.detect.outputs.test_files || '' }}
-      ref: ${{ github.ref }}

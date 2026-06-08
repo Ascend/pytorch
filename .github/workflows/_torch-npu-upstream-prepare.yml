@@ -7,11 +7,6 @@ on:
         required: true
         type: string
         description: Name of the artifact for prepared test source
-      ref:
-        required: false
-        type: string
-        default: 'v2.7.1'
-        description: Git ref to checkout (use PR merge ref for patch verify)
     outputs:
       patch_count:
         description: Number of patches applied
@@ -26,7 +21,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.ref }}
+          ref: ${{ github.sha }}
           fetch-depth: 1
 
       - name: Clone PyTorch v2.7.1 (for test source)

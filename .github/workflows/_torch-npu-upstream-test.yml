@@ -38,11 +38,6 @@ on:
         type: string
         default: ''
         description: Test files to run directly (comma-separated)
-      ref:
-        required: false
-        type: string
-        default: 'v2.7.1'
-        description: Git ref to checkout (use PR merge ref when verifying patch changes)
 
 defaults:
   run:
@@ -56,7 +51,6 @@ jobs:
     uses: ./.github/workflows/_torch-npu-upstream-prepare.yml
     with:
       prepared_test_src_artifact: pytorch-test-src-${{ inputs.pytorch_version }}-patched
-      ref: ${{ inputs.ref }}
 
   # ============================================================================
   # 2. Build torch_npu Wheel
@@ -69,7 +63,6 @@ jobs:
       docker_image: ${{ inputs.docker_image_build }}
       torch_npu_wheel_artifact: torch-npu-wheel-${{ inputs.pytorch_version }}-source
       max_jobs: '40'
-      ref: ${{ inputs.ref }}
 
   # ============================================================================
   # 3. Collect Test Cases (only when test_files is empty)

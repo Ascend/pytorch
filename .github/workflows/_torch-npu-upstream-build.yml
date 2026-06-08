@@ -20,11 +20,6 @@ on:
         type: string
         default: '40'
         description: Maximum number of parallel build jobs
-      ref:
-        required: false
-        type: string
-        default: 'v2.7.1'
-        description: Git ref to checkout for building torch_npu source
     outputs:
       wheel_name:
         description: Name of the built wheel file
@@ -51,7 +46,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.ref }}
+          ref: ${{ github.sha }}
           fetch-depth: 1
           submodules: recursive
 
