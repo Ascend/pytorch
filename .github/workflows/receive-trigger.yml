@@ -1,0 +1,22 @@
+name: Receive Trigger
+
+on:
+  workflow_call:
+    inputs:
+      event_type:
+        required: true
+        type: string
+      payload:
+        required: true
+        type: string
+
+jobs:
+  receive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print received event
+        run: |
+          echo "=== event_type: ${{ inputs.event_type }} ==="
+          cat <<'ENDOFPAYLOAD' | jq .
+          ${{ fromJSON(inputs.payload) }}
+          ENDOFPAYLOAD
