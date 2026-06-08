@@ -136,7 +136,7 @@ aclError SetDevice(c10::DeviceIndex device)
         return ACL_ERROR_NONE;
     }
 
-    if (c10_npu::NeedMainThreadBind()) {
+    if (!c10_npu::IsThreadBound()) {
         c10_npu::SetThreadAffinity(device);
     }
 
