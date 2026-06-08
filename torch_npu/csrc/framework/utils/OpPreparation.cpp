@@ -1,4 +1,5 @@
 #include <ATen/record_function.h>
+#include <ATen/native/Resize.h>
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
 #include "torch_npu/csrc/aten/CustomFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
@@ -163,7 +164,9 @@ static void check_tensor_size(const std::initializer_list<at::Tensor> &src_list,
                     " doesn't match the broadcast shape ",
                     expect_size,
                     OPS_ERROR(ErrCode::PARAM));
-        dst.resize_(expect_size);
+        if (at::native::resize_output_check(dst, expect_size)) {
+            dst.resize_(expect_size);
+        }
     }
     return;
 }
@@ -356,7 +359,9 @@ void OpPreparation::CheckOut(const std::initializer_list<at::Tensor> &input,
                     " doesn't match the broadcast shape ",
                     shape,
                     OPS_ERROR(ErrCode::PARAM));
-        output.resize_(shape);
+        if (at::native::resize_output_check(output, shape)) {
+            output.resize_(shape);
+        }
     }
 
     if (CalcuOpUtil::GetTensorNpuFormat(output) != format) {
