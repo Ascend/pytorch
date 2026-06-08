@@ -2120,7 +2120,16 @@ PyObject* THNPModule_npu_reset_thread_affinity(
     PyObject* self,
     PyObject* noargs) {
   HANDLE_TH_ERRORS
-  c10_npu::SetThreadAffinity(c10_npu::ThreadType::MAIN_THREAD);
+  c10_npu::ResetThreadAffinity();
+  Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_npu_set_thread_main_type(
+    PyObject* self,
+    PyObject* noargs) {
+  HANDLE_TH_ERRORS
+  c10_npu::SetThreadType(c10_npu::ThreadType::MAIN_THREAD);
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
 }
@@ -2707,6 +2716,10 @@ static struct PyMethodDef THNPModule_methods[] = {
      nullptr},
     {"_npu_reset_thread_affinity",
      (PyCFunction)THNPModule_npu_reset_thread_affinity,
+     METH_NOARGS,
+     nullptr},
+    {"_npu_set_thread_main_type",
+     (PyCFunction)THNPModule_npu_set_thread_main_type,
      METH_NOARGS,
      nullptr},
     {"_npu_set_fft_plan_cache_max_size",
