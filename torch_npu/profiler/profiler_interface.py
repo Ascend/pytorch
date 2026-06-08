@@ -37,6 +37,7 @@ from .analysis.prof_common_func._utils import (
     no_exception_func,
 )
 from .experimental_config import _ExperimentalConfig
+from ._flops_hook import FlopsHookManager
 from .scheduler import ProfilerAction
 
 
@@ -155,6 +156,8 @@ class _ProfInterface:
         self.start_monotonic = _get_monotonic()
         _enable_event_record()
         _start_profiler(npu_prof_config, self.activities)
+        if self.with_flops and self.experimental_config._msprof_tx:
+            FlopsHookManager.install()
         self.start_gc_detect()
 
     def stop_trace(self):
@@ -162,6 +165,8 @@ class _ProfInterface:
             return
         if ProfilerActivity.NPU in self.activities:
             torch.npu.synchronize()
+        if self.with_flops and self.experimental_config._msprof_tx:
+            FlopsHookManager.uninstall()
         _stop_profiler()
         self.stop_gc_detect()
         _disable_event_record()
