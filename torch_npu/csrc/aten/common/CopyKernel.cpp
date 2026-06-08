@@ -439,12 +439,6 @@ at::Tensor& NPUNativeFunctions::copy_(at::Tensor& self, const at::Tensor& src, b
     if (src._is_zerotensor()) {
         return self.zero_();
     }
-    // save tensor dim name
-    c10::optional<at::DimnameList> names = src.opt_names();
-    if (names.has_value()) {
-        internal_set_names_inplace(self, names);
-    }
-
     if (torch_npu::utils::is_npu(self)) {
         if (torch_npu::utils::is_npu(src)) {
             copy_d2d(self, src, non_blocking);

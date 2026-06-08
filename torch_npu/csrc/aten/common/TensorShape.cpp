@@ -1,7 +1,6 @@
 #include <ATen/ATen.h>
 #include <ATen/ExpandUtils.h>
 #include <ATen/InferSize.h>
-#include <ATen/NamedTensorUtils.h>
 #include <ATen/NativeFunctions.h>
 #include <torch/library.h>
 #include <ATen/native/SparseTensorUtils.h>
@@ -105,7 +104,6 @@ at::Tensor alias_with_sizes_and_strides_npu(
         self_tmp_->set_storage_offset(self.storage_offset());
         self_tmp_->set_sizes_and_strides(sizes, strides);
     }
-    at::namedinference::propagate_names(self_, self);
     return self_;
 }
 
@@ -193,8 +191,6 @@ at::Tensor NPUNativeFunctions::squeeze(const at::Tensor& self)
 {
     auto g = inferSqueezeGeometry(self);
     at::Tensor result = self.as_strided(std::get<0>(g), std::get<1>(g));
-    auto maybe_outnames = at::namedinference::compute_squeeze_outnames(self);
-    at::namedinference::propagate_names_if_nonempty(result, maybe_outnames);
     return result;
 }
 
@@ -207,7 +203,6 @@ at::Tensor NPUNativeFunctions::squeeze(const at::Tensor& self, int64_t dim)
     }
     auto g = inferSqueezeGeometry(self, dim);
     auto result = self.as_strided(std::get<0>(g), std::get<1>(g));
-    at::namedinference::propagate_names_except(result, self, {dim});
     return result;
 }
 

@@ -39,7 +39,6 @@ at::Tensor NPUNativeOpApiFunctions::clone(const at::Tensor &src, c10::optional<c
     }
 
     self.copy_(src);
-    at::namedinference::propagate_names(self, src);
     return self;
 }
 
