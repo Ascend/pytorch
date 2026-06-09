@@ -136,3 +136,8 @@
 |[torch.fx.experimental.symbolic_shapes.ShapeEnv.add_backed_var_to_val](https://pytorch.org/docs/2.11/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.add_backed_var_to_val)|是|-|
 |[torch.fx.experimental.symbolic_shapes.ShapeEnv.set_unbacked_var_to_val](https://pytorch.org/docs/2.11/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.set_unbacked_var_to_val)|是|-|
 |[torch.fx.experimental.symbolic_shapes.ShapeEnv.simplify](https://pytorch.org/docs/2.11/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.simplify)|是|-|
+|[torch.fx.experimental.symbolic_shapes.StrictMinMaxConstraint](https://pytorch.org/docs/2.11/generated/torch.fx.experimental.symbolic_shapes.StrictMinMaxConstraint.html)|是|-|
+|[torch.fx.experimental.symbolic_shapes.StrictMinMaxConstraint.render](https://pytorch.org/docs/2.11/generated/torch.fx.experimental.symbolic_shapes.StrictMinMaxConstraint.html#torch.fx.experimental.symbolic_shapes.StrictMinMaxConstraint.render)|是|-|
+|[torch.fx.experimental.symbolic_shapes.SubclassSymbolicContext](https://pytorch.org/docs/2.11/generated/torch.fx.experimental.symbolic_shapes.SubclassSymbolicContext.html)|是|-|
+|[torch.fx.experimental.symbolic_shapes.sym_eq](https://pytorch.org/docs/2.11/generated/torch.fx.experimental.symbolic_shapes.sym_eq.html)|是|-|
+|[torch.fx.experimental.symbolic_shapes.statically_known_true](https://pytorch.org/docs/2.11/generated/torch.fx.experimental.symbolic_shapes.statically_known_true.html)|是|-|
