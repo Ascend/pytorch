@@ -219,6 +219,31 @@ class TestFoldIotaArithmeticPass(TestCase):
         self.assertEqual(count_target(gm.graph, _GE_S), 1)
         self.assertEqual(count_target(gm.graph, _GE_T), 0)
 
+    def _build_cmp_sub_scalar_zero(self, cmp_target, sub_rhs=0.5):
+        """构造 cmp(sub(a, 标量), 0)：减数是 Python 标量而非张量。"""
+        fm = new_fake_mode()
+        gb = GraphBuilder(fm)
+        with fm:
+            a_fake = torch.empty((4,), dtype=torch.float32)
+        a = gb.placeholder("a", a_fake)
+        sub = gb.call(_SUB, args=(a, sub_rhs))
+        cmp = gb.call(cmp_target, args=(sub, 0))
+        gb.output(cmp)
+        return gb.to_module()
+
+    def test_cmp_sub_scalar_zero_keeps_scalar_overload(self):
+        """减数为标量时应保留 .Scalar 重载，避免 lt.Tensor 拒绝 float。"""
+        gm = self._build_cmp_sub_scalar_zero(_LT_S, sub_rhs=0.5)
+        fold_iota_arithmetic_pass(gm.graph)
+        # 折叠为 lt.Scalar(a, 0.5)，不能变成需要张量的 lt.Tensor。
+        self.assertEqual(count_target(gm.graph, _LT_S), 1)
+        self.assertEqual(count_target(gm.graph, torch.ops.aten.lt.Tensor), 0)
+        new_cmp = next(
+            n for n in gm.graph.nodes
+            if n.op == "call_function" and n.target is _LT_S
+        )
+        self.assertEqual(new_cmp.args[1], 0.5)
+
     def test_cmp_lhs_not_sub_skipped(self):
         fm = new_fake_mode()
         gb = GraphBuilder(fm)
