@@ -37,8 +37,8 @@ class TestFoldCatPass(TestUtils):
         std_result = self.op_calc(t1, t2, t3, t4, t5)
         with torch.no_grad():
             compiled_op_calc = torch.compile(self.op_calc, backend="inductor")
-        inductor_result = compiled_op_calc(t1, t2, t3, t4, t5)
-        self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
+            inductor_result = compiled_op_calc(t1, t2, t3, t4, t5)
+            self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
 
 
     @parametrize('shape', [(2, 4)])
