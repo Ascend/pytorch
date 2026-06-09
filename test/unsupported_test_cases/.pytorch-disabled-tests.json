@@ -31684,5 +31684,6 @@
   "test_CTCLoss_empty_target_npu (__main__.TestNNDeviceTypePRIVATEUSE1)": ["", [""]],
   "test_to_complex_npu (__main__.TestNNDeviceTypePRIVATEUSE1)": ["", [""]],
  	"test_npu_roi_align_1 (__main__.TestPsRoiPooling)": ["", [""]],
- 	"test_silu (__main__.TestActivations)": ["", [""]]
+ 	"test_silu (__main__.TestActivations)": ["", [""]],
+  "test_data_parallel_rnn (__main__.TestDataParallel)": ["", [""]]
 }
