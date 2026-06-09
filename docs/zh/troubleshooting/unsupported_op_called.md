@@ -4,7 +4,7 @@
 
 关键字"Warning: CAUTION: The operator 'xxx' is not currently supported on the NPU backend and will fall back to run on the CPU. This may have performance implications. \(function npu\_cpu\_fallback\)"
 
-```ColdFusion
+```text
 [W compiler_depend.ts:51] Warning: CAUTION: The operator 'aten::linalg_lstsq.out' is not currently supported on the NPU backend and will fall back to run on the CPU. This may have performance implications. (function npu_cpu_fallback)
 Traceback (most recent call last):
   File "temp_1.py", line 4, in <module>

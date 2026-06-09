@@ -27,11 +27,13 @@ RuntimeError: Expected all tensors to be on the same device. Expected NPU tensor
 比如将：
 
 ```python
+import torch
 torch.add(torch.rand(2), torch.rand(2).npu())
 ```
 
 改为：
 
 ```python
+import torch
 torch.add(torch.rand(2).npu(), torch.rand(2).npu())
 ```
