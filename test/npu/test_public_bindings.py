@@ -770,7 +770,7 @@ class TestPublicBindings(TestCase):
             if mod in private_allowlist:
                 continue
 
-            if mod.startswitch("torch_npu.dynamo.torchair"):
+            if mod.startswith("torch_npu.dynamo.torchair._inductor_npu_ext"):
                 continue
 
             errors.append(f"{mod} failed to import with error {excep_type}")
