@@ -12,3 +12,4 @@ index 80a21bc..1e69fb7 100644
  
  if TEST_NUMPY:
      import numpy as np
+

@@ -67,5 +67,3 @@ index 702ade2..7a761cd 100644
      @skipIfXpu(msg="AOTI for XPU not enabled yet")
      @inductor_config.patch("triton.inject_relu_bug_TESTING_ONLY", "accuracy")
      def test_aoti_gpu_accuracy_error(self):
-
-# NOOP: trigger patch verification
