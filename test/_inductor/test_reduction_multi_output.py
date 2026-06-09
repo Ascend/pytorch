@@ -176,7 +176,7 @@ class TestReductionMultiOutput(TestUtils):
 
     def _reduction_var_mean_dual(self, x, dim):
         """Var_mean reduction with dual output on both results."""
-        var, mean = x.var_mean(dim)
+        var, mean = torch.var_mean(x, dim)
         return var, mean, var, mean
 
     @parametrize("shape", [(64, 48), (32, 32, 20)])
