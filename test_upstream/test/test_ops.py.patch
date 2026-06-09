@@ -2,11 +2,12 @@ diff --git a/test/test_ops.py b/test/test_ops.py
 index 871b643..b13da9b 100644
 --- a/test/test_ops.py
 +++ b/test/test_ops.py
-@@ -4,6 +4,7 @@ import copy
+@@ -4,6 +4,8 @@ import copy
  import inspect
  import itertools
  import os
 +os.environ['TORCH_NPU_USE_COMPATIBLE_IMPL'] = "1"
++
  import re
  import unittest
  import warnings
@@ -142,6 +143,6 @@ index 871b643..b13da9b 100644
 +        if device.startswith('cpu'):
 +            raise unittest.SkipTest("onlyCUDA skip cpu")
 +        self._test_fake_crossref_helper(device, dtype, op, torch_npu.npu.amp.autocast)
- 
+
      @ops([op for op in ops_and_refs if op.is_factory_function])
      def test_strided_layout(self, device, dtype, op):
