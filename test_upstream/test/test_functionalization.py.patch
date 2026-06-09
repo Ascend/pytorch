@@ -1,5 +1,5 @@
 diff --git a/test/test_functionalization.py b/test/test_functionalization.py
-index ed74465..3a57378 100644
+index ed74465..b271d11 100644
 --- a/test/test_functionalization.py
 +++ b/test/test_functionalization.py
 @@ -17,6 +17,7 @@ from torch._subclasses.functional_tensor import (
@@ -10,3 +10,12 @@ index ed74465..3a57378 100644
  from torch.testing._internal.common_utils import (
      IS_WINDOWS,
      run_tests,
+@@ -236,7 +237,7 @@ class TestFunctionalization(TestCase):
+             return x.grad
+ 
+         with torch.autograd.detect_anomaly(check_nan=False):
+-            logs = self.get_logs(g, torch.ones(16, 64, 128, 128, requires_grad=True))
++            logs = self.get_logs(g, torch.ones(16, 64, 128, 128, requires_grad=True, device='npu'))
+         self.assertExpectedInline(
+             logs,
+             """\
