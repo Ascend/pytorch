@@ -49,6 +49,8 @@ jobs:
 
       - name: Run custom test files
         id: run_tests
+        env:
+          CI: ''
         run: |
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
           source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
