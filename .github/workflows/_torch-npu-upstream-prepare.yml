@@ -37,16 +37,16 @@ jobs:
         id: apply_patches
         run: |
           cd pytorch-test-src/test_upstream
-          chmod +x apply_patch.sh
+          chmod +x apply_test_patch.sh
           # Count patch files before applying
           PATCH_COUNT=$(find . -name "*.patch" -o -name "*.diff" | wc -l)
           echo "Found ${PATCH_COUNT} patch files"
-          ./apply_patch.sh 2>&1 | tee /tmp/patch.log
+          ./apply_test_patch.sh 2>&1 | tee /tmp/patch.log
           APPLY_STATUS=${PIPESTATUS[0]}
           # Use patch file count as the metric (more reliable than grep Chinese output)
           echo "patch_count=${PATCH_COUNT}" >> $GITHUB_OUTPUT
           echo "apply_status=${APPLY_STATUS}" >> $GITHUB_OUTPUT
-          # Fail if apply_patch.sh returned non-zero
+          # Fail if apply_test_patch.sh returned non-zero
           if [ ${APPLY_STATUS} -ne 0 ]; then
             echo "Patch application failed!"
             exit 1
