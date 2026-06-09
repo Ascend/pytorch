@@ -62,8 +62,8 @@ class TestCatSliceCatPass(TestUtils):
         std_result = self.op_calc(first_element)
         with torch.no_grad():
             compiled_op_calc = torch.compile(self.op_calc, backend="inductor")
-        inductor_result = compiled_op_calc(first_element)
-        self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
+            inductor_result = compiled_op_calc(first_element)
+            self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
         
     
     @parametrize('shape', [(1, 3, 64, 1024)])

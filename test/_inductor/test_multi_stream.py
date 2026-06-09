@@ -696,6 +696,7 @@ class TestMultiStreamPass(TestUtils):
         )
         return out
 
+
     @patch("torch_npu._inductor.fx_passes.parallel_scheduler_pass.is_multi_stream", return_value=True)
     def test_multi_stream_compile_case(self, mock_multi_stream):
         arg0_1  = torch.randint(0, 99, (64, 199), dtype=torch.int64, device="npu")
@@ -742,8 +743,9 @@ class TestMultiStreamPass(TestUtils):
         std_result = self.multi_stream_test(arg0_1, arg1_1, arg2_1, arg3_1, arg4_1, arg5_1, arg6_1, arg7_1, arg8_1, arg9_1, arg10_1, arg11_1, arg12_1, arg13_1, arg14_1, arg15_1, arg16_1, arg17_1, arg18_1, arg19_1, arg20_1, arg21_1, arg22_1, arg23_1, arg24_1, arg25_1, arg26_1, arg27_1, arg28_1, arg29_1, arg30_1, arg31_1, arg32_1, arg33_1, arg34_1, arg35_1, arg36_1, arg37_1, arg38_1, arg39_1)
         with torch.no_grad():
             compiled_op_calc = torch.compile(self.multi_stream_test, backend="inductor")
-        inductor_result = compiled_op_calc(arg0_1, arg1_1, arg2_1, arg3_1, arg4_1, arg5_1, arg6_1, arg7_1, arg8_1, arg9_1, arg10_1, arg11_1, arg12_1, arg13_1, arg14_1, arg15_1, arg16_1, arg17_1, arg18_1, arg19_1, arg20_1, arg21_1, arg22_1, arg23_1, arg24_1, arg25_1, arg26_1, arg27_1, arg28_1, arg29_1, arg30_1, arg31_1, arg32_1, arg33_1, arg34_1, arg35_1, arg36_1, arg37_1, arg38_1, arg39_1)
-        self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
+            inductor_result = compiled_op_calc(arg0_1, arg1_1, arg2_1, arg3_1, arg4_1, arg5_1, arg6_1, arg7_1, arg8_1, arg9_1, arg10_1, arg11_1, arg12_1, arg13_1, arg14_1, arg15_1, arg16_1, arg17_1, arg18_1, arg19_1, arg20_1, arg21_1, arg22_1, arg23_1, arg24_1, arg25_1, arg26_1, arg27_1, arg28_1, arg29_1, arg30_1, arg31_1, arg32_1, arg33_1, arg34_1, arg35_1, arg36_1, arg37_1, arg38_1, arg39_1)
+            self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
+
 
     def op_calc(self, arg0_1, arg1_1, arg2_1, arg3_1, arg4_1, arg5_1):
         relu_1 = torch.ops.aten.relu.default(arg0_1)
@@ -770,6 +772,7 @@ class TestMultiStreamPass(TestUtils):
         relu_10 = torch.ops.aten.relu.default(mm_3)
         return relu_10
 
+
     @patch("torch_npu._inductor.fx_passes.parallel_scheduler_pass.is_multi_stream", return_value=False)
     def test_single_stream_compile_case(self, mock_multi_stream):
         arg0_1 = torch.randn(128, 128)
@@ -781,8 +784,8 @@ class TestMultiStreamPass(TestUtils):
         std_result = self.op_calc(arg0_1, arg1_1, arg2_1, arg3_1, arg4_1, arg5_1)
         with torch.no_grad():
             compiled_op_calc = torch.compile(self.op_calc, backend="inductor")
-        inductor_result = compiled_op_calc(arg0_1, arg1_1, arg2_1, arg3_1, arg4_1, arg5_1)
-        self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
+            inductor_result = compiled_op_calc(arg0_1, arg1_1, arg2_1, arg3_1, arg4_1, arg5_1)
+            self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
 
 
 instantiate_parametrized_tests(TestMultiStreamPass)
