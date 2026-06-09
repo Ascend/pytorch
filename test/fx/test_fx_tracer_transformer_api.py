@@ -3,6 +3,8 @@ Add validation cases for torch.fx.Tracer/Transformer APIs on NPU:
 
 1. test/test_fx.py from PyTorch community lacks direct test cases for these APIs:
    - torch.fx.Tracer.trace
+   - torch.fx.Tracer.create_proxy
+   - torch.fx.Tracer.get_fresh_qualname
    - torch.fx.Tracer.path_of_module
    - torch.fx.Tracer.iter
    - torch.fx.Tracer.keys
@@ -18,6 +20,7 @@ Add validation cases for torch.fx.Tracer/Transformer APIs on NPU:
 """
 
 import torch
+import torch_npu
 
 from torch.fx import Tracer, symbolic_trace, Transformer, GraphModule
 from torch.fx.proxy import Proxy, TraceError
@@ -274,6 +277,90 @@ class TestTracerGetAttr(TestCase):
         actual = gm(input)
         self.assertEqual(actual.shape, expected.shape)
         self.assertTrue(torch.allclose(actual, expected))
+
+
+class TestTracerCreateProxy(TestCase):
+    """Test torch.fx.Tracer.create_proxy method."""
+
+    def test_create_proxy_basic(self):
+        """Verify create_proxy returns Proxy wrapping a valid Node with correct op."""
+        class MyModule(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.linear = torch.nn.Linear(4, 3).npu()
+
+            def forward(self, x):
+                return self.linear(x)
+
+        proxy_records = []
+
+        class MyTracer(Tracer):
+            def create_proxy(self, kind, target, args, kwargs, name=None,
+                             type_expr=None, proxy_factory_fn=None):
+                proxy = super().create_proxy(
+                    kind, target, args, kwargs, name, type_expr,
+                    proxy_factory_fn)
+                proxy_records.append((kind, proxy))
+                return proxy
+
+        tracer = MyTracer()
+        tracer.trace(MyModule())
+
+        self.assertTrue(len(proxy_records) > 0)
+        for kind, proxy in proxy_records:
+            self.assertIsInstance(proxy, Proxy)
+            self.assertIsNotNone(proxy.node)
+            self.assertEqual(proxy.node.op, kind)
+
+    def test_create_proxy_graph_correctness(self):
+        """Verify the traced graph produces correct results on NPU."""
+        class MyModule(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.linear = torch.nn.Linear(4, 3).npu()
+
+            def forward(self, x):
+                return torch.relu(self.linear(x))
+
+        mod = MyModule()
+        gm = symbolic_trace(mod)
+        input_tensor = torch.randn(2, 4, device="npu")
+        expected = mod(input_tensor)
+        actual = gm(input_tensor)
+        self.assertTrue(torch.allclose(actual, expected))
+
+
+class TestTracerGetFreshQualname(TestCase):
+    """Test torch.fx.Tracer.get_fresh_qualname method."""
+
+    def test_get_fresh_qualname_skip_existing(self):
+        """When module has 'param0', get_fresh_qualname('param') returns 'param1'."""
+        class TestModule(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.param0 = torch.nn.Parameter(
+                    torch.randn(3, device="npu"))
+
+            def forward(self, x):
+                return x + self.param0
+
+        tracer = Tracer()
+        tracer.root = TestModule()
+        self.assertEqual(tracer.get_fresh_qualname("param"), "param1")
+
+    def test_get_fresh_qualname_fresh_prefix(self):
+        """A brand-new prefix returns '{prefix}0'."""
+        class TestModule(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.linear = torch.nn.Linear(3, 4).npu()
+
+            def forward(self, x):
+                return self.linear(x)
+
+        tracer = Tracer()
+        tracer.root = TestModule()
+        self.assertEqual(tracer.get_fresh_qualname("new_attr"), "new_attr0")
 
 
 if __name__ == "__main__":
