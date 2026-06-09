@@ -276,6 +276,7 @@ def copy_hpp():
             "torch_npu/csrc/framework/*/*.h",
             "torch_npu/csrc/framework/*/*/*.h",
             "torch_npu/csrc/libs/*.h",
+            "torch_npu/csrc/logging/*.h",
             "torch_npu/csrc/inductor/**/*.h",
             "torch_npu/csrc/distributed/*.h",
             "torch_npu/csrc/distributed/*.hpp",
