@@ -19,7 +19,7 @@
 
 用户界面实际报错示例如下所示，报错信息由五部分组成，具体可参考[表1](#报错信息详细说明)。
 
-```ColdFusion
+```text
 [ERROR] 2024-03-07-01:31:48 (PID:116072, Device:0, RankID:-1) ERR00002 PTA invalid type
 ```
 

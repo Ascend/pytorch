@@ -19,7 +19,7 @@ RuntimeError: one of the variables needed for gradient computation has been modi
 
 ## 原因分析
 
-调用`torch.autograd.backward`的过程中失败。
+调用`torch.autograd.backward`或`torch.autograd.grad`等自动微分计算的过程中失败。
 
 原地操作是指直接在原有张量上进行修改，而不创建新的副本。这样做会导致梯度无法正确计算，从而引发上述错误。
 
