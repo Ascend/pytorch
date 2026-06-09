@@ -5,6 +5,11 @@
 
 |API名称|是否支持|限制与说明|
 |--|--|--|
+|[torch.fx.experimental.proxy_tensor.get_proxy_mode](https://pytorch.org/docs/2.9/generated/torch.fx.experimental.proxy_tensor.get_proxy_mode.html)|是|-|
+|[torch.fx.experimental.proxy_tensor.handle_sym_dispatch](https://pytorch.org/docs/2.9/generated/torch.fx.experimental.proxy_tensor.handle_sym_dispatch.html)|是|-|
+|[torch.fx.experimental.proxy_tensor.make_fx](https://pytorch.org/docs/2.9/generated/torch.fx.experimental.proxy_tensor.make_fx.html)|是|-|
+|[torch.fx.experimental.proxy_tensor.maybe_disable_thunkify](https://pytorch.org/docs/2.9/generated/torch.fx.experimental.proxy_tensor.maybe_disable_thunkify.html)|是|-|
+|[torch.fx.experimental.proxy_tensor.maybe_enable_thunkify](https://pytorch.org/docs/2.9/generated/torch.fx.experimental.proxy_tensor.maybe_enable_thunkify.html)|是|-|
 |[torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symbolic_sizes_strides_storage_offset](https://pytorch.org/docs/2.9/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symbolic_sizes_strides_storage_offset.html)|是|-|
 |[torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symboolnode](https://pytorch.org/docs/2.9/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symboolnode.html)|是|-|
 |[torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symfloatnode](https://pytorch.org/docs/2.9/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symfloatnode.html)|是|-|
