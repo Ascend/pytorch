@@ -4,6 +4,7 @@
 #include <sys/prctl.h>
 #include <sys/syscall.h>
 #include <unistd.h>
+#include <cstring>
 #include <mutex>
 #include <regex>
 #include <set>
@@ -20,11 +21,10 @@ namespace {
 
 thread_local ThreadType local_thread = ThreadType::MAIN_THREAD;
 
-pthread_t main_thread;
-bool start_main_thread_bind = false;
 std::mutex core_map_mutex;
 bool lazy_bind = true;
 bool force_bind = false;
+thread_local bool this_thread_bound = false;
 
 using ThreadCoreMap = std::unordered_map<ThreadType, CoreIdList>;
 
@@ -410,7 +410,11 @@ bool setThreadAffinityImpl(pthread_t thread, CoreIdList core_list) {
   for (auto core : core_list) {
     CPU_SET(core, &mask);
   }
-  return pthread_setaffinity_np(thread, sizeof(mask), &mask) == 0;
+  if (pthread_setaffinity_np(thread, sizeof(mask), &mask) == 0) {
+    this_thread_bound = true;
+    return true;
+  }
+  return false;
 }
 
 inline bool needToSetThreadAffinity() {
@@ -436,7 +440,9 @@ void SetThreadType(ThreadType type) {
 }
 
 void SetThreadAffinity(c10::DeviceIndex device_id) {
-  if (!needToSetThreadAffinity() || local_thread == ThreadType::USER_THREAD) {
+  static thread_local pid_t pid = getpid();
+  static thread_local pid_t tid = syscall(SYS_gettid);
+  if (!needToSetThreadAffinity() || local_thread == ThreadType::USER_THREAD || (tid == pid && local_thread == ThreadType::MAIN_THREAD) || this_thread_bound) {
     return;
   }
 
@@ -465,9 +471,6 @@ void SetThreadAffinity(ThreadType type) {
   NPU_CHECK_ERROR_WITHOUT_UCE(GetDevice(&device_index));
   c10::DeviceIndex device = static_cast<c10::DeviceIndex>(device_index);
   local_thread = type;
-  if (local_thread == ThreadType::MAIN_THREAD) {
-    start_main_thread_bind = true;
-  }
   SetThreadAffinity(device);
 }
 
@@ -508,12 +511,24 @@ void SetThreadAffinity(int core_start, int core_end) {
   SetThreadAffinity(core_list);
 }
 
-void SetMainThread() {
-  main_thread = pthread_self();
+void ResetThreadAffinity() {
+  local_thread = ThreadType::MAIN_THREAD;
+  if (!needToSetThreadAffinity()) {
+    return;
+  }
+  int device_index;
+  NPU_CHECK_ERROR_WITHOUT_UCE(GetDevice(&device_index));
+  c10::DeviceIndex device = static_cast<c10::DeviceIndex>(device_index);
+  CoreIdList core_list = getCoreList(device, local_thread);
+  if (setThreadAffinityImpl(pthread_self(), core_list)) {
+    ASCEND_LOGD("Reset %s affinity to default range %s success.", threadTypeToNameMap.at(local_thread).c_str(), formatCoreRange(core_list).c_str());
+  } else {
+    ASCEND_LOGE("Reset %s affinity to default range %s failed.", threadTypeToNameMap.at(local_thread).c_str(), formatCoreRange(core_list).c_str());
+  }
 }
 
-bool NeedMainThreadBind() {
-  return start_main_thread_bind && (local_thread == ThreadType::MAIN_THREAD);
+bool IsThreadBound() {
+  return this_thread_bound;
 }
 
 bool SetThreadAffinityInInitialize() {
@@ -527,29 +542,45 @@ void StartMainThreadBind(c10::DeviceIndex device_id) {
   if (!needToSetThreadAffinity() || local_thread == ThreadType::USER_THREAD) {
     return;
   }
+  SetThreadAffinity(device_id);
 
-  static thread_local bool seted = false;
-  if (seted) {
+  static thread_local bool main_thread_bound = false;
+  if (main_thread_bound) {
     return;
   }
-  seted = true;
-  if (syscall(SYS_gettid) != getpid()) {
-    start_main_thread_bind = true;
-    SetThreadAffinity(device_id);
-    CoreIdList core_list = getCoreList(device_id, ThreadType::MAIN_THREAD);
-    if (setThreadAffinityImpl(main_thread, core_list)) {
-      ASCEND_LOGD(
-          "Device %d set %s affinity to %s success.",
-          device_id,
-          threadTypeToNameMap.at(ThreadType::MAIN_THREAD).c_str(),
-          formatCoreRange(core_list).c_str());
-    } else {
-      ASCEND_LOGE(
-          "Device %d set %s affinity to %s failed.",
-          device_id,
-          threadTypeToNameMap.at(ThreadType::MAIN_THREAD).c_str(),
-          formatCoreRange(core_list).c_str());
-    }
+  // Use 16 bytes to store thread name.
+  char thread_name[16] = {0};
+  int ret = pthread_getname_np(pthread_self(), thread_name, sizeof(thread_name));
+  if (ret != 0) {
+    ASCEND_LOGE("Failed to get thread name, ret: %d", ret);
+    return;
+  }
+  if (!std::regex_match(thread_name, std::regex("pt_autograd_[0-9]+"))) {
+    return;
+  }
+  CoreIdList core_list = getCoreList(device_id, ThreadType::MAIN_THREAD);
+  cpu_set_t mask;
+  CPU_ZERO(&mask);
+  for (auto core : core_list) {
+    CPU_SET(core, &mask);
+  }
+  pid_t main_thread_tid = getpid();
+  ret = sched_setaffinity(main_thread_tid, sizeof(mask), &mask);
+  if (ret == 0) {
+    main_thread_bound = true;
+    ASCEND_LOGD(
+        "Device %d set %s affinity to %s success, thread name: %s.",
+        device_id,
+        threadTypeToNameMap.at(ThreadType::MAIN_THREAD).c_str(),
+        formatCoreRange(core_list).c_str(),
+        thread_name);
+  } else {
+    ASCEND_LOGE(
+        "Device %d set %s affinity to %s failed, thread name: %s.",
+        device_id,
+        threadTypeToNameMap.at(ThreadType::MAIN_THREAD).c_str(),
+        formatCoreRange(core_list).c_str(),
+        thread_name);
   }
 }
 
