@@ -14,10 +14,10 @@
 |[torch.jit.ScriptModule](https://pytorch.org/docs/2.11/jit.html#torch.jit.ScriptModule)|是|支持fp32|
 |[torch.jit.ScriptModule.add_module](https://pytorch.org/docs/2.11/jit.html#torch.jit.ScriptModule#torch.jit.ScriptModule.add_module)|否|-|
 |[torch.jit.ScriptModule.apply](https://pytorch.org/docs/2.11/jit.html#torch.jit.ScriptModule#torch.jit.ScriptModule.apply)|是|支持fp32|
-|[torch.jit.ScriptModule.bfloat16](https://pytorch.org/docs/2.11/jit.html#torch.jit.ScriptModule#torch.jit.ScriptModule.bfloat16)|否|-|
+|[torch.jit.ScriptModule.bfloat16](https://pytorch.org/docs/2.11/jit.html#torch.jit.ScriptModule#torch.jit.ScriptModule.bfloat16)|是|-|
 |[torch.jit.ScriptModule.buffers](https://pytorch.org/docs/2.11/jit.html#torch.jit.ScriptModule#torch.jit.ScriptModule.buffers)|是|支持fp32|
 |[torch.jit.ScriptModule.children](https://pytorch.org/docs/2.11/jit.html#torch.jit.ScriptModule#torch.jit.ScriptModule.children)|是|-|
-|[torch.jit.ScriptModule.code](https://pytorch.org/docs/2.11/jit.html#torch.jit.ScriptModule#torch.jit.ScriptModule.code)|否|-|
+|[torch.jit.ScriptModule.code](https://pytorch.org/docs/2.11/jit.html#torch.jit.ScriptModule#torch.jit.ScriptModule.code)|是|-|
 |[torch.jit.ScriptModule.code_with_constants](https://pytorch.org/docs/2.11/jit.html#torch.jit.ScriptModule#torch.jit.ScriptModule.code_with_constants)|否|-|
 |[torch.jit.ScriptModule.compile](https://pytorch.org/docs/2.11/jit.html#torch.jit.ScriptModule#torch.jit.ScriptModule.compile)|否|-|
 |[torch.jit.ScriptModule.cpu](https://pytorch.org/docs/2.11/jit.html#torch.jit.ScriptModule#torch.jit.ScriptModule.cpu)|是|支持fp32|
