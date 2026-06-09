@@ -98,9 +98,9 @@ namespace {
 Tensor _fw_primal(c10::DispatchKeySet ks, const Tensor& self, int64_t level)
 {
     auto& self_ = unpack(self, "self", 0);
-    std::shared_ptr<Identity> grad_fn;
+    c10::intrusive_ptr<Identity> grad_fn;
     if (compute_requires_grad(self)) {
-        grad_fn = std::make_shared<Identity>();
+        grad_fn = c10::make_intrusive<Identity>();
         grad_fn->set_next_edges(collect_next_edges(self));
     }
 

@@ -176,8 +176,6 @@ at::Tensor& NPUNativeOpApiFunctions::copy_(at::Tensor& self, const at::Tensor& s
         return self.zero_();
     }
 
-    auto maybe_outnames = at::namedinference::compute_broadcast_outnames(self, src);
-
     if (torch_npu::utils::is_npu(self)) {
         if (torch_npu::utils::is_npu(src)) {
             copy_d2d_baseformat_opapi(self, src, non_blocking);
@@ -200,7 +198,6 @@ at::Tensor& NPUNativeOpApiFunctions::copy_(at::Tensor& self, const at::Tensor& s
             }
         }
     }
-    at::namedinference::propagate_names_if_nonempty(self, maybe_outnames);
     return self;
 }
 

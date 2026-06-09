@@ -227,7 +227,6 @@ at::Tensor TransContiguous::view_tensor(const at::Tensor& self,
     auto* self_tmp_ = self_.unsafeGetTensorImpl();
     self_tmp_->set_storage_offset(offset);
     self_tmp_->set_sizes_and_strides(sizes, strides);
-    at::namedinference::propagate_names(self_, self);
     return self_;
 }
 

@@ -21,9 +21,7 @@ supported:
   - empty_like
   - empty_strided
   - empty_with_format
-  - empty_with_format.names
   - full
-  - full.names
   - full.out
   - hamming_window
   - hamming_window.periodic
@@ -74,9 +72,6 @@ custom:
     dispatch:
       CompositeExplicitAutograd: empty_with_format
   - func: unsafe_empty_with_format(int[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, int acl_format=2, bool keep_format=False) -> Tensor
-    dispatch:
-      CompositeExplicitAutograd: empty_with_format
-  - func: empty_with_format.names(int[] size, Dimname[]? names, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, int acl_format=2) -> Tensor
     dispatch:
       CompositeExplicitAutograd: empty_with_format
   - func: copy_memory_(Tensor(a!) self, Tensor src, bool non_blocking=False) -> Tensor(a!)

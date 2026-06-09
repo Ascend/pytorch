@@ -1,0 +1,11 @@
+# Python dependencies that require PyTorch to be pre-installed.
+# Install AFTER PyTorch is built, before running tests.
+# Uses PyTorch nightly index to resolve torch-dependent packages.
+
+--index-url https://download.pytorch.org/whl/nightly/cpu
+--extra-index-url https://pypi.org/simple
+-f https://data.pyg.org/whl/torch-2.13.0+cpu.html
+
+torchvision
+torch_geometric==2.5.3
+torch-scatter==2.1.2

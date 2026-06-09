@@ -43,6 +43,11 @@ function parse_script_args() {
             args_num=$((args_num-1))
             shift
             ;;
+        --update_aoti_c_shim)
+            export UPDATE_AOTI_C_SHIM="--update_aoti_c_shim"
+            args_num=$((args_num-1))
+            shift
+            ;;
         --enable_lto)
             export ENABLE_LTO=TRUE
             args_num=$((args_num-1))
