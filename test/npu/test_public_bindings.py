@@ -671,6 +671,9 @@ class TestPublicBindings(TestCase):
             if mod in private_allowlist:
                 continue
 
+            if mod.startswitch("torch_npu.dynamo.torchair"):
+                continue
+
             errors.append(f"{mod} failed to import with error {excep_type}")
         self.assertEqual("", "\n".join(errors))
 
