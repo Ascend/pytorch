@@ -383,6 +383,7 @@
 |[Tensor.size](https://pytorch.org/docs/2.12/generated/torch.Tensor.size.html)|是|支持fp32|
 |[Tensor.slogdet](https://pytorch.org/docs/2.12/generated/torch.Tensor.slogdet.html)|是|支持fp32，complex64，complex128|
 |[Tensor.slice_scatter](https://pytorch.org/docs/2.12/generated/torch.Tensor.slice_scatter.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
+|[Tensor.softmax](https://pytorch.org/docs/2.12/generated/torch.Tensor.softmax.html)|是|支持fp16，fp32，fp64|
 |[Tensor.sort](https://pytorch.org/docs/2.12/generated/torch.Tensor.sort.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64|
 |[Tensor.split](https://pytorch.org/docs/2.12/generated/torch.Tensor.split.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.sparse_mask](https://pytorch.org/docs/2.12/generated/torch.Tensor.sparse_mask.html)|否|-|

@@ -14,10 +14,10 @@
 |[torch.jit.ScriptModule](https://pytorch.org/docs/2.10/generated/torch.jit.ScriptModule.html)|是|支持fp32|
 |[torch.jit.ScriptModule.add_module](https://pytorch.org/docs/2.10/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.add_module)|否|-|
 |[torch.jit.ScriptModule.apply](https://pytorch.org/docs/2.10/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.apply)|是|支持fp32|
-|[torch.jit.ScriptModule.bfloat16](https://pytorch.org/docs/2.10/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.bfloat16)|否|-|
+|[torch.jit.ScriptModule.bfloat16](https://pytorch.org/docs/2.10/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.bfloat16)|是|-|
 |[torch.jit.ScriptModule.buffers](https://pytorch.org/docs/2.10/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.buffers)|是|支持fp32|
 |[torch.jit.ScriptModule.children](https://pytorch.org/docs/2.10/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.children)|是|-|
-|[torch.jit.ScriptModule.code](https://pytorch.org/docs/2.10/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.code)|否|-|
+|[torch.jit.ScriptModule.code](https://pytorch.org/docs/2.10/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.code)|是|-|
 |[torch.jit.ScriptModule.code_with_constants](https://pytorch.org/docs/2.10/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.code_with_constants)|否|-|
 |[torch.jit.ScriptModule.compile](https://pytorch.org/docs/2.10/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.compile)|否|-|
 |[torch.jit.ScriptModule.cpu](https://pytorch.org/docs/2.10/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.cpu)|是|支持fp32|
@@ -56,6 +56,7 @@
 |[torch.jit.ScriptModule.requires_grad_](https://pytorch.org/docs/2.10/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.requires_grad_)|是|支持fp32|
 |[torch.jit.ScriptModule.save](https://pytorch.org/docs/2.10/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.save)|是|支持fp32|
 |[torch.jit.ScriptModule.set_extra_state](https://pytorch.org/docs/2.10/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.set_extra_state)|否|-|
+|[torch.jit.ScriptModule.set_submodule](https://pytorch.org/docs/2.10/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.set_submodule)|否|-|
 |[torch.jit.ScriptModule.share_memory](https://pytorch.org/docs/2.10/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.share_memory)|否|-|
 |[torch.jit.ScriptModule.state_dict](https://pytorch.org/docs/2.10/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.state_dict)|是|支持fp32|
 |[torch.jit.ScriptModule.to](https://pytorch.org/docs/2.10/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.to)|是|支持fp32|

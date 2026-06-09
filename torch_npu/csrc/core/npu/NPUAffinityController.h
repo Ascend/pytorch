@@ -23,9 +23,9 @@ void SetThreadAffinity(c10::DeviceIndex device);
 void SetThreadAffinity(ThreadType type);
 void SetThreadAffinity(const CoreIdList core_ids);
 void SetThreadAffinity(int core_start, int core_end);
+void ResetThreadAffinity();
 
-void SetMainThread();
-bool NeedMainThreadBind();
+bool IsThreadBound();
 bool SetThreadAffinityInInitialize();
 void StartMainThreadBind(c10::DeviceIndex device_id);
 

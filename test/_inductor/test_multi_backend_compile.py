@@ -24,8 +24,8 @@ class TestMultiBackendMixedCompile(TestCase):
 
         a = torch.randn(2, 2, dtype=dtype, device="npu")
         b = torch.randn(2, 2, dtype=dtype, device="npu")
-        x = torch.randn(3, 4, dtype=dtype, device="npu")
-        y = torch.randn(3, 4, dtype=dtype, device="npu")
+        x = torch.randn(3, 3, dtype=dtype, device="npu")
+        y = torch.randn(3, 3, dtype=dtype, device="npu")
 
         sub_out, sub_codes = run_and_get_code(op_sub, a, b)
         self.assertEqual(a - b, sub_out, atol=1e-3, rtol=1e-3)

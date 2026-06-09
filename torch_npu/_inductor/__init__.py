@@ -93,7 +93,6 @@ def _load_triton_backend():
         post_grad_custom_pass_fuc,
         pre_grad_custom_pass_fuc,
     )
-    from .fx_passes.pattern_match.npu_fusion_attention_graph import register_fa_pass
     from .fx_passes.joint_graph import patch_constant_fold_uniform_value
     from .ir import patch_num_splits
     from .kernel import (
@@ -227,7 +226,6 @@ def _load_triton_backend():
     if max_precompiled_thread_num > 1:
         _replace_precompile()
 
-    register_fa_pass()
     patch_get_first_incompatible_cudagraph_node()
     patch_get_optimization_cflags()
     patch_extract_read_writes()
@@ -292,12 +290,6 @@ def _load_triton_backend():
 
     add_additional_op()
     torch._inductor.config.comprehensive_padding = False
-
-    compile_threads = int(
-        os.environ.get("TORCHINDUCTOR_COMPILE_THREADS") or "1"
-    )
-    os.environ["TORCHINDUCTOR_COMPILE_THREADS"] = str(compile_threads)
-    torch._inductor.config.compile_threads = compile_threads
 
     _fasta_autotune = os.environ.get("FASTAUTOTUNE", "0") == "1"
     _fasta_autotune_method = os.getenv("AUTOTUNE_METHOD", "Expert")

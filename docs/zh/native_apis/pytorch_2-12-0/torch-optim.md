@@ -11,7 +11,7 @@
 |[Optimizer.state_dict](https://pytorch.org/docs/2.12/generated/torch.optim.Optimizer.state_dict.html)|是|-|
 |[Optimizer.step](https://pytorch.org/docs/2.12/generated/torch.optim.Optimizer.step.html)|是|-|
 |[Optimizer.zero_grad](https://pytorch.org/docs/2.12/generated/torch.optim.Optimizer.zero_grad.html)|是|-|
-|[torch.optim.Adadelta](https://pytorch.org/docs/2.12/generated/torch.optim.Adadelta.html)|是|支持bf16，fp16，fp32<br>优化器在启动foreach的情况下（默认情况foreach=None或foreach=True），当被优化的参数分组过多时由于foreach算子的特性会导致性能下降。这种情况建议设置为foreach=False|
+|[torch.optim.Adadelta](https://pytorch.org/docs/2.12/generated/torch.optim.Adadelta.html)|是|支持bf16，fp16，fp32<br>优化器在启动foreach的情况下（foreach=None或foreach=True），当被优化的参数分组过多时由于foreach算子的特性会导致性能下降。这种情况建议设置为foreach=False|
 |[torch.optim.Adadelta.add_param_group](https://pytorch.org/docs/2.12/generated/torch.optim.Adadelta.html#torch.optim.Adadelta.add_param_group)|是|-|
 |[torch.optim.Adadelta.load_state_dict](https://pytorch.org/docs/2.12/generated/torch.optim.Adadelta.html#torch.optim.Adadelta.load_state_dict)|是|-|
 |[torch.optim.Adadelta.register_load_state_dict_post_hook](https://pytorch.org/docs/2.12/generated/torch.optim.Adadelta.html#torch.optim.Adadelta.register_load_state_dict_post_hook)|是|-|
@@ -23,7 +23,7 @@
 |[torch.optim.Adadelta.state_dict](https://pytorch.org/docs/2.12/generated/torch.optim.Adadelta.html#torch.optim.Adadelta.state_dict)|是|-|
 |[torch.optim.Adadelta.step](https://pytorch.org/docs/2.12/generated/torch.optim.Adadelta.html#torch.optim.Adadelta.step)|否|-|
 |[torch.optim.Adadelta.zero_grad](https://pytorch.org/docs/2.12/generated/torch.optim.Adadelta.html#torch.optim.Adadelta.zero_grad)|是|-|
-|[torch.optim.Adagrad](https://pytorch.org/docs/2.12/generated/torch.optim.Adagrad.html)|是|支持bf16，fp16，fp32<br>优化器在启动foreach的情况下（默认情况foreach=None或foreach=True），当被优化的参数分组过多时由于foreach算子的特性会导致性能下降。这种情况建议设置为foreach=False|
+|[torch.optim.Adagrad](https://pytorch.org/docs/2.12/generated/torch.optim.Adagrad.html)|是|支持bf16，fp16，fp32<br>优化器在启动foreach的情况下（foreach=None或foreach=True），当被优化的参数分组过多时由于foreach算子的特性会导致性能下降。这种情况建议设置为foreach=False|
 |[torch.optim.Adagrad.add_param_group](https://pytorch.org/docs/2.12/generated/torch.optim.Adagrad.html#torch.optim.Adagrad.add_param_group)|是|-|
 |[torch.optim.Adagrad.load_state_dict](https://pytorch.org/docs/2.12/generated/torch.optim.Adagrad.html#torch.optim.Adagrad.load_state_dict)|是|-|
 |[torch.optim.Adagrad.register_load_state_dict_post_hook](https://pytorch.org/docs/2.12/generated/torch.optim.Adagrad.html#torch.optim.Adagrad.register_load_state_dict_post_hook)|是|-|
@@ -35,7 +35,7 @@
 |[torch.optim.Adagrad.state_dict](https://pytorch.org/docs/2.12/generated/torch.optim.Adagrad.html#torch.optim.Adagrad.state_dict)|是|-|
 |[torch.optim.Adagrad.step](https://pytorch.org/docs/2.12/generated/torch.optim.Adagrad.html#torch.optim.Adagrad.step)|是|-|
 |[torch.optim.Adagrad.zero_grad](https://pytorch.org/docs/2.12/generated/torch.optim.Adagrad.html#torch.optim.Adagrad.zero_grad)|是|-|
-|[torch.optim.Adam](https://pytorch.org/docs/2.12/generated/torch.optim.Adam.html)|是|支持bf16，fp16，fp32<br>优化器在启动foreach的情况下（默认情况foreach=None或foreach=True），当被优化的参数分组过多时由于foreach算子的特性会导致性能下降。这种情况建议设置为foreach=False<br>在某些情况下可能回退至CPU执行|
+|[torch.optim.Adam](https://pytorch.org/docs/2.12/generated/torch.optim.Adam.html)|是|支持bf16，fp16，fp32<br>优化器在启动foreach的情况下（foreach=None或foreach=True），当被优化的参数分组过多时由于foreach算子的特性会导致性能下降。这种情况建议设置为foreach=False<br>在某些情况下可能回退至CPU执行|
 |[torch.optim.Adam.add_param_group](https://pytorch.org/docs/2.12/generated/torch.optim.Adam.html#torch.optim.Adam.add_param_group)|是|-|
 |[torch.optim.Adam.load_state_dict](https://pytorch.org/docs/2.12/generated/torch.optim.Adam.html#torch.optim.Adam.load_state_dict)|是|-|
 |[torch.optim.Adam.register_load_state_dict_post_hook](https://pytorch.org/docs/2.12/generated/torch.optim.Adam.html#torch.optim.Adam.register_load_state_dict_post_hook)|是|-|
@@ -47,7 +47,7 @@
 |[torch.optim.Adam.state_dict](https://pytorch.org/docs/2.12/generated/torch.optim.Adam.html#torch.optim.Adam.state_dict)|是|-|
 |[torch.optim.Adam.step](https://pytorch.org/docs/2.12/generated/torch.optim.Adam.html#torch.optim.Adam.step)|否|-|
 |[torch.optim.Adam.zero_grad](https://pytorch.org/docs/2.12/generated/torch.optim.Adam.html#torch.optim.Adam.zero_grad)|是|-|
-|[torch.optim.AdamW](https://pytorch.org/docs/2.12/generated/torch.optim.AdamW.html)|是|支持bf16，fp16，fp32，complex64<br>优化器在启动foreach的情况下（默认情况foreach=None或foreach=True），当被优化的参数分组过多时由于foreach算子的特性会导致性能下降。这种情况建议设置为foreach=False<br>优化器在启动fused的情况下（fused=True），暂不支持grad_scale和found_inf参数。对标_single_tensor_adamw实现，fp32与cpu/cuda一致，fp16和bf16采用升精度实现，与cpu/cuda不一致|
+|[torch.optim.AdamW](https://pytorch.org/docs/2.12/generated/torch.optim.AdamW.html)|是|支持bf16，fp16，fp32，complex64<br>优化器在启动foreach的情况下（foreach=None或foreach=True），当被优化的参数分组过多时由于foreach算子的特性会导致性能下降。这种情况建议设置为foreach=False<br>优化器在启动fused的情况下（fused=True），暂不支持grad_scale和found_inf参数。对标_single_tensor_adamw实现，fp32与cpu/cuda一致，fp16和bf16采用升精度实现，与cpu/cuda不一致|
 |[torch.optim.AdamW.add_param_group](https://pytorch.org/docs/2.12/generated/torch.optim.AdamW.html#torch.optim.AdamW.add_param_group)|是|-|
 |[torch.optim.AdamW.load_state_dict](https://pytorch.org/docs/2.12/generated/torch.optim.AdamW.html#torch.optim.AdamW.load_state_dict)|是|-|
 |[torch.optim.AdamW.register_load_state_dict_post_hook](https://pytorch.org/docs/2.12/generated/torch.optim.AdamW.html#torch.optim.AdamW.register_load_state_dict_post_hook)|是|-|
@@ -69,7 +69,7 @@
 |[torch.optim.SparseAdam.register_step_pre_hook](https://pytorch.org/docs/2.12/generated/torch.optim.SparseAdam.html#torch.optim.SparseAdam.register_step_pre_hook)|是|-|
 |[torch.optim.SparseAdam.step](https://pytorch.org/docs/2.12/generated/torch.optim.SparseAdam.html#torch.optim.SparseAdam.step)|-|-|
 |[torch.optim.SparseAdam.zero_grad](https://pytorch.org/docs/2.12/generated/torch.optim.SparseAdam.html#torch.optim.SparseAdam.zero_grad)|-|-|
-|[torch.optim.Adamax](https://pytorch.org/docs/2.12/generated/torch.optim.Adamax.html)|是|支持bf16，fp16，fp32<br>优化器在启动foreach的情况下（默认情况foreach=None或foreach=True），当被优化的参数分组过多时由于foreach算子的特性会导致性能下降。这种情况建议设置为foreach=False|
+|[torch.optim.Adamax](https://pytorch.org/docs/2.12/generated/torch.optim.Adamax.html)|是|支持bf16，fp16，fp32<br>优化器在启动foreach的情况下（foreach=None或foreach=True），当被优化的参数分组过多时由于foreach算子的特性会导致性能下降。这种情况建议设置为foreach=False|
 |[torch.optim.Adamax.add_param_group](https://pytorch.org/docs/2.12/generated/torch.optim.Adamax.html#torch.optim.Adamax.add_param_group)|是|支持fp16，fp32|
 |[torch.optim.Adamax.load_state_dict](https://pytorch.org/docs/2.12/generated/torch.optim.Adamax.html#torch.optim.Adamax.load_state_dict)|是|支持fp16，fp32|
 |[torch.optim.Adamax.register_load_state_dict_post_hook](https://pytorch.org/docs/2.12/generated/torch.optim.Adamax.html#torch.optim.Adamax.register_load_state_dict_post_hook)|是|-|
@@ -105,7 +105,7 @@
 |[torch.optim.LBFGS.state_dict](https://pytorch.org/docs/2.12/generated/torch.optim.LBFGS.html#torch.optim.LBFGS.state_dict)|是|-|
 |[torch.optim.LBFGS.step](https://pytorch.org/docs/2.12/generated/torch.optim.LBFGS.html#torch.optim.LBFGS.step)|否|-|
 |[torch.optim.LBFGS.zero_grad](https://pytorch.org/docs/2.12/generated/torch.optim.LBFGS.html#torch.optim.LBFGS.zero_grad)|是|-|
-|[torch.optim.NAdam](https://pytorch.org/docs/2.12/generated/torch.optim.NAdam.html)|是|支持bf16，fp16，fp32<br>优化器在启动foreach的情况下（默认情况foreach=None或foreach=True），当被优化的参数分组过多时由于foreach算子的特性会导致性能下降。这种情况建议设置为foreach=False|
+|[torch.optim.NAdam](https://pytorch.org/docs/2.12/generated/torch.optim.NAdam.html)|是|支持bf16，fp16，fp32<br>优化器在启动foreach的情况下（foreach=None或foreach=True），当被优化的参数分组过多时由于foreach算子的特性会导致性能下降。这种情况建议设置为foreach=False|
 |[torch.optim.NAdam.add_param_group](https://pytorch.org/docs/2.12/generated/torch.optim.NAdam.html#torch.optim.NAdam.add_param_group)|是|支持fp16，fp32|
 |[torch.optim.NAdam.load_state_dict](https://pytorch.org/docs/2.12/generated/torch.optim.NAdam.html#torch.optim.NAdam.load_state_dict)|是|支持fp16，fp32|
 |[torch.optim.NAdam.register_load_state_dict_post_hook](https://pytorch.org/docs/2.12/generated/torch.optim.NAdam.html#torch.optim.NAdam.register_load_state_dict_post_hook)|是|-|
@@ -117,7 +117,7 @@
 |[torch.optim.NAdam.state_dict](https://pytorch.org/docs/2.12/generated/torch.optim.NAdam.html#torch.optim.NAdam.state_dict)|是|支持fp16，fp32|
 |[torch.optim.NAdam.step](https://pytorch.org/docs/2.12/generated/torch.optim.NAdam.html#torch.optim.NAdam.step)|是|支持fp16，fp32|
 |[torch.optim.NAdam.zero_grad](https://pytorch.org/docs/2.12/generated/torch.optim.NAdam.html#torch.optim.NAdam.zero_grad)|是|支持fp16，fp32|
-|[torch.optim.RAdam](https://pytorch.org/docs/2.12/generated/torch.optim.RAdam.html)|是|支持bf16，fp16，fp32<br>优化器在启动foreach的情况下（默认情况foreach=None或foreach=True），当被优化的参数分组过多时由于foreach算子的特性会导致性能下降。这种情况建议设置为foreach=False|
+|[torch.optim.RAdam](https://pytorch.org/docs/2.12/generated/torch.optim.RAdam.html)|是|支持bf16，fp16，fp32<br>优化器在启动foreach的情况下（foreach=None或foreach=True），当被优化的参数分组过多时由于foreach算子的特性会导致性能下降。这种情况建议设置为foreach=False|
 |[torch.optim.RAdam.add_param_group](https://pytorch.org/docs/2.12/generated/torch.optim.RAdam.html#torch.optim.RAdam.add_param_group)|是|支持fp16，fp32|
 |[torch.optim.RAdam.load_state_dict](https://pytorch.org/docs/2.12/generated/torch.optim.RAdam.html#torch.optim.RAdam.load_state_dict)|是|支持fp16，fp32|
 |[torch.optim.RAdam.register_load_state_dict_post_hook](https://pytorch.org/docs/2.12/generated/torch.optim.RAdam.html#torch.optim.RAdam.register_load_state_dict_post_hook)|是|-|
@@ -129,7 +129,7 @@
 |[torch.optim.RAdam.state_dict](https://pytorch.org/docs/2.12/generated/torch.optim.RAdam.html#torch.optim.RAdam.state_dict)|是|支持fp16，fp32|
 |[torch.optim.RAdam.step](https://pytorch.org/docs/2.12/generated/torch.optim.RAdam.html#torch.optim.RAdam.step)|是|支持fp16，fp32|
 |[torch.optim.RAdam.zero_grad](https://pytorch.org/docs/2.12/generated/torch.optim.RAdam.html#torch.optim.RAdam.zero_grad)|是|支持fp16，fp32|
-|[torch.optim.RMSprop](https://pytorch.org/docs/2.12/generated/torch.optim.RMSprop.html)|是|支持bf16，fp16，fp32<br>优化器在启动foreach的情况下（默认情况foreach=None或foreach=True），当被优化的参数分组过多时由于foreach算子的特性会导致性能下降。这种情况建议设置为foreach=False|
+|[torch.optim.RMSprop](https://pytorch.org/docs/2.12/generated/torch.optim.RMSprop.html)|是|支持bf16，fp16，fp32<br>优化器在启动foreach的情况下（foreach=None或foreach=True），当被优化的参数分组过多时由于foreach算子的特性会导致性能下降。这种情况建议设置为foreach=False|
 |[torch.optim.RMSprop.add_param_group](https://pytorch.org/docs/2.12/generated/torch.optim.RMSprop.html#torch.optim.RMSprop.add_param_group)|是|-|
 |[torch.optim.RMSprop.load_state_dict](https://pytorch.org/docs/2.12/generated/torch.optim.RMSprop.html#torch.optim.RMSprop.load_state_dict)|是|-|
 |[torch.optim.RMSprop.register_load_state_dict_post_hook](https://pytorch.org/docs/2.12/generated/torch.optim.RMSprop.html#torch.optim.RMSprop.register_load_state_dict_post_hook)|是|-|
@@ -153,7 +153,7 @@
 |[torch.optim.Rprop.state_dict](https://pytorch.org/docs/2.12/generated/torch.optim.Rprop.html#torch.optim.Rprop.state_dict)|是|支持fp16，fp32|
 |[torch.optim.Rprop.step](https://pytorch.org/docs/2.12/generated/torch.optim.Rprop.html#torch.optim.Rprop.step)|是|支持fp16，fp32|
 |[torch.optim.Rprop.zero_grad](https://pytorch.org/docs/2.12/generated/torch.optim.Rprop.html#torch.optim.Rprop.zero_grad)|是|支持fp16，fp32|
-|[torch.optim.SGD](https://pytorch.org/docs/2.12/generated/torch.optim.SGD.html)|是|支持bf16，fp16，fp32<br>优化器在启动foreach的情况下（默认情况foreach=None或foreach=True），当被优化的参数分组过多时由于foreach算子的特性会导致性能下降。这种情况建议设置为foreach=False|
+|[torch.optim.SGD](https://pytorch.org/docs/2.12/generated/torch.optim.SGD.html)|是|支持bf16，fp16，fp32<br>优化器在启动foreach的情况下（foreach=None或foreach=True），当被优化的参数分组过多时由于foreach算子的特性会导致性能下降。这种情况建议设置为foreach=False|
 |[torch.optim.SGD.add_param_group](https://pytorch.org/docs/2.12/generated/torch.optim.SGD.html#torch.optim.SGD.add_param_group)|是|支持fp16，fp32|
 |[torch.optim.SGD.load_state_dict](https://pytorch.org/docs/2.12/generated/torch.optim.SGD.html#torch.optim.SGD.load_state_dict)|是|支持fp16，fp32|
 |[torch.optim.SGD.register_load_state_dict_post_hook](https://pytorch.org/docs/2.12/generated/torch.optim.SGD.html#torch.optim.SGD.register_load_state_dict_post_hook)|是|-|

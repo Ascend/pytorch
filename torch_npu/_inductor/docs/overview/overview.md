@@ -1,5 +1,7 @@
 # 概述
+
 ## 简介
+
 Inductor-Ascend在继承Pytorch社区Inductor能力的基础上，针对昇腾Ascend硬件，进行了亲和性改进和优化。其目标是：提供昇腾亲和的torch.compile图模式后端；生成昇腾亲和的Triton DSL，支持基于triton的算子自动融合；支持动态shape。
 
 如图1（推荐场景-图模式-软件栈）所示，Inductor-Ascend和社区Inductor的执行流程类似，其内嵌于PyTorch-Adapter（torch-npu）中，当用户开启图模式后端torch.compile(backend="inductor")时，Inductor-Ascend承接Dynamo抓取的FX Graph，进行编译、融合，生成昇腾亲和融合算子Triton DSL；最后由Triton-Ascend、AscendNPU-IR编译优化，生成昇腾指令机器码（二进制）。
@@ -19,7 +21,8 @@ Inductor-Ascend在继承Pytorch社区Inductor能力的基础上，针对昇腾As
 </div>
 
 ## 使用约束
--   <term>Atlas A5 系列产品</term>
+
+- <term>Atlas A5 系列产品</term>
 
 ## 常用概念
 
@@ -40,9 +43,10 @@ Inductor-Ascend在继承Pytorch社区Inductor能力的基础上，针对昇腾As
 | SIMD | Single Instruction Multiple Data，详细介绍可点击[link1](https://www.glick.cloud/blog/simt-vs-simd-parallelism-in-modern-processors) [link2](https://docs.nvidia.com/cuda/cuda-programming-guide/02-basics/writing-cuda-kernels.html)
 | FlexAttention | FlexAttentin是Pytorch-2.5+推出的灵活、高性能注意力编程模型，核心是：用几行Pytorch代码自定义任意注意力变体，同时获得极致性能，详细介绍可点击[link1](https://pytorch.org/blog/flexattention/) [link2](https://arxiv.org/abs/2412.05496)
 | 动态Shape | 是指算子输入Tensor的shape不固定，一般常见于变化的BatchSize和SeqLen。详细介绍可点击[link1](https://ianbarber.blog/2025/04/04/dynamic-shapes-in-pytorch/) [link2](http://docs.pytorch.org/docs/main/user_guide/torch_compiler/torch.compiler_dynamic_shapes.html)
-
+| AOTInductor | 旨在处理导出的PyTorch模型，对其进行优化，并生成动态链接库及其他相关产物。这些编译产物广泛应用于服务端推理部署场景，支持非Python环境下的推理执行。详细介绍可点击[link](https://docs.pytorch.org/docs/2.11/user_guide/torch_compiler/torch.compiler_aot_inductor.html)
 
 ## 使用说明
+
 首次阅读本文档时，建议先阅读下表，以帮助您快速获取Inductor-Ascend安装方法、快速上手示例、特性与调优配置、性能分析与优化等。
 
 | 使用场景 | 操作索引                                                                            |

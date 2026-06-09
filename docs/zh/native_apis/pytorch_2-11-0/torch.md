@@ -63,7 +63,7 @@
 |[torch.chunk](https://pytorch.org/docs/2.11/generated/torch.chunk.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[torch.dsplit](https://pytorch.org/docs/2.11/generated/torch.dsplit.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[torch.dstack](https://pytorch.org/docs/2.11/generated/torch.dstack.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64|
-|[torch.gather](https://pytorch.org/docs/2.11/generated/torch.gather.html)|是|支持fp16，fp32，int16，int32，int64，bool<br>index维度需与input维度一致|
+|[torch.gather](https://pytorch.org/docs/2.11/generated/torch.gather.html)|是|支持fp16，fp32，int16，int32，int64，bool<br>index的维度数需与input的维度数一致|
 |[torch.hsplit](https://pytorch.org/docs/2.11/generated/torch.hsplit.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[torch.hstack](https://pytorch.org/docs/2.11/generated/torch.hstack.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64|
 |[torch.index_add](https://pytorch.org/docs/2.11/generated/torch.index_add.html)|是|支持fp16，fp32，int64，bool|
@@ -141,8 +141,8 @@
 |[torch.acosh](https://pytorch.org/docs/2.11/generated/torch.acosh.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>可能回退至CPU执行|
 |[torch.arccosh](https://pytorch.org/docs/2.11/generated/torch.arccosh.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[torch.add](https://pytorch.org/docs/2.11/generated/torch.add.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
-|[torch.addcdiv](https://pytorch.org/docs/2.11/generated/torch.addcdiv.html)|是|支持fp16，fp32，int64<br>在int64类型不支持三个tensor同时广播|
-|[torch.addcmul](https://pytorch.org/docs/2.11/generated/torch.addcmul.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int32，int64<br>在fp64，uint8，int8，int64类型不支持三个tensor同时广播|
+|[torch.addcdiv](https://pytorch.org/docs/2.11/generated/torch.addcdiv.html)|是|支持fp16，fp32，int64<br>在int64类型下不支持三个tensor同时广播|
+|[torch.addcmul](https://pytorch.org/docs/2.11/generated/torch.addcmul.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int32，int64<br>在fp64，uint8，int8，int64类型下不支持三个tensor同时广播|
 |[torch.angle](https://pytorch.org/docs/2.11/generated/torch.angle.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64|
 |[torch.asin](https://pytorch.org/docs/2.11/generated/torch.asin.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |[torch.arcsin](https://pytorch.org/docs/2.11/generated/torch.arcsin.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
@@ -273,7 +273,7 @@
 |[torch.sort](https://pytorch.org/docs/2.11/generated/torch.sort.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64|
 |[torch.topk](https://pytorch.org/docs/2.11/generated/torch.topk.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64<br>不支持sorted=False场景|
 |[torch.msort](https://pytorch.org/docs/2.11/generated/torch.msort.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64|
-|[torch.stft](https://pytorch.org/docs/2.11/generated/torch.stft.html)|是|支持fp32，fp64，complex64，complex128<br>若算子超时，需要用官方接口set_op_execute_time_out进行设置，调高超时阈值判断时间|
+|[torch.stft](https://pytorch.org/docs/2.11/generated/torch.stft.html)|是|支持fp32，fp64，complex64，complex128<br>若算子超时，需要用官方接口set_op_execute_time_out进行设置，调高超时阈值以延长判断时间|
 |[torch.hann_window](https://pytorch.org/docs/2.11/generated/torch.hann_window.html)|是|支持bf16，fp16，fp32<br>数据类型为fp32时，参数window_length在大于10000的情况下，计算结果可能存在误差|
 |[torch.atleast_1d](https://pytorch.org/docs/2.11/generated/torch.atleast_1d.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[torch.atleast_2d](https://pytorch.org/docs/2.11/generated/torch.atleast_2d.html)|是|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
@@ -337,7 +337,7 @@
 |[torch.result_type](https://pytorch.org/docs/2.11/generated/torch.result_type.html)|是|支持fp32|
 |[torch.can_cast](https://pytorch.org/docs/2.11/generated/torch.can_cast.html)|是|-|
 |[torch.promote_types](https://pytorch.org/docs/2.11/generated/torch.promote_types.html)|是|-|
-|[torch.use_deterministic_algorithms](https://pytorch.org/docs/2.11/generated/torch.use_deterministic_algorithms.html)|是|同时设置HCCL_DETERMINISTIC和torch.use_deterministic_algorithms时，若HCCL_DETERMINISTIC开启确定性则hccl接口启用确定性，否则hccl确定性由torch.use_deterministic_algorithms接口控制|
+|[torch.use_deterministic_algorithms](https://pytorch.org/docs/2.11/generated/torch.use_deterministic_algorithms.html)|是|同时设置HCCL_DETERMINISTIC和torch.use_deterministic_algorithms时，若HCCL_DETERMINISTIC开启确定性则HCCL接口启用确定性，否则HCCL确定性由torch.use_deterministic_algorithms接口控制|
 |[torch.are_deterministic_algorithms_enabled](https://pytorch.org/docs/2.11/generated/torch.are_deterministic_algorithms_enabled.html)|是|-|
 |[torch.is_deterministic_algorithms_warn_only_enabled](https://pytorch.org/docs/2.11/generated/torch.is_deterministic_algorithms_warn_only_enabled.html)|否|-|
 |[torch.set_deterministic_debug_mode](https://pytorch.org/docs/2.11/generated/torch.set_deterministic_debug_mode.html)|是|-|

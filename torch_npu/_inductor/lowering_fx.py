@@ -460,6 +460,16 @@ def fetch_graphs(inputs: Optional[List[TensorBox]]):
         traced_graph = inp.get_traced_graph()
         if (
             traced_graph is not None
+            and not isinstance(inp, (ir.ConcatKernel))
+            and not (
+                hasattr(inp, 'data')
+                and isinstance(inp.data, (ir.ConcatKernel))
+            )
+            and not (
+                hasattr(inp, 'data')
+                and hasattr(inp.data, 'data')
+                and isinstance(inp.data.data, (ir.ConcatKernel))
+            )
         ):
             input_graphs.append(traced_graph)
             continue
@@ -1861,7 +1871,7 @@ def _register_npu_inductor_fallbacks_fx(make_reduction):
     ):
         if not isinstance(size, (list, tuple)):
             raise RuntimeError(f"assert Expected list or tuple")
-        if not isinstance(stride, (list, tuple)):
+        if stride is not None and not isinstance(stride, (list, tuple)):
             raise RuntimeError(f"assert Expected list or tuple or None")
         lowering.assert_nyi(not pin_memory, "pin_memory")
         lowering.assert_nyi(layout in (None, torch.strided), f"layout={layout}")

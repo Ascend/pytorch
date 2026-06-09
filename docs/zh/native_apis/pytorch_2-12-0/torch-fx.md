@@ -5,6 +5,11 @@
 
 |API名称|是否支持|限制与说明|
 |--|--|--|
+|[torch.fx.experimental.proxy_tensor.get_proxy_mode](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.proxy_tensor.get_proxy_mode.html)|是|-|
+|[torch.fx.experimental.proxy_tensor.handle_sym_dispatch](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.proxy_tensor.handle_sym_dispatch.html)|是|-|
+|[torch.fx.experimental.proxy_tensor.make_fx](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.proxy_tensor.make_fx.html)|是|-|
+|[torch.fx.experimental.proxy_tensor.maybe_disable_thunkify](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.proxy_tensor.maybe_disable_thunkify.html)|是|-|
+|[torch.fx.experimental.proxy_tensor.maybe_enable_thunkify](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.proxy_tensor.maybe_enable_thunkify.html)|是|-|
 |[torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symbolic_sizes_strides_storage_offset](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symbolic_sizes_strides_storage_offset.html)|是|-|
 |[torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symboolnode](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symboolnode.html)|是|-|
 |[torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symfloatnode](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symfloatnode.html)|是|-|
@@ -12,6 +17,7 @@
 |[torch.fx.experimental.symbolic_shapes.ShapeEnv.create_unbacked_symbool](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.create_unbacked_symbool.html)|是|-|
 |[torch.fx.symbolic_trace](https://pytorch.org/docs/2.12/fx.html#torch.fx.symbolic_trace)|是|支持fp32|
 |[torch.fx.wrap](https://pytorch.org/docs/2.12/fx.html#torch.fx.wrap)|是|支持fp32|
+|[torch.fx.graph.map_arg](https://pytorch.org/docs/2.12/fx.html#torch.fx.graph.map_arg)|是|支持fp32|
 |[torch.fx.GraphModule](https://pytorch.org/docs/2.12/fx.html#torch.fx.GraphModule)|是|支持fp32|
 |[torch.fx.GraphModule.__init__](https://pytorch.org/docs/2.12/fx.html#torch.fx.GraphModule.__init__)|是|支持fp32|
 |[torch.fx.GraphModule.add_submodule](https://pytorch.org/docs/2.12/fx.html#torch.fx.GraphModule.add_submodule)|是|支持fp32|
@@ -32,11 +38,12 @@
 |[torch.fx.Graph.erase_node](https://pytorch.org/docs/2.12/fx.html#torch.fx.Graph.erase_node)|是|-|
 |[torch.fx.Graph.get_attr](https://pytorch.org/docs/2.12/fx.html#torch.fx.Graph.get_attr)|是|-|
 |[torch.fx.Graph.graph_copy](https://pytorch.org/docs/2.12/fx.html#torch.fx.Graph.graph_copy)|是|-|
+|[torch.fx.Graph.find_nodes](https://pytorch.org/docs/2.12/fx.html#torch.fx.Graph.find_nodes)|是|-|
 |[torch.fx.Graph.inserting_after](https://pytorch.org/docs/2.12/fx.html#torch.fx.Graph.inserting_after)|是|-|
 |[torch.fx.Graph.inserting_before](https://pytorch.org/docs/2.12/fx.html#torch.fx.Graph.inserting_before)|是|-|
 |[torch.fx.Graph.lint](https://pytorch.org/docs/2.12/fx.html#torch.fx.Graph.lint)|是|支持fp32|
 |[torch.fx.Graph.node_copy](https://pytorch.org/docs/2.12/fx.html#torch.fx.Graph.node_copy)|是|支持fp32|
-|[torch.fx.Graph.nodes](https://pytorch.org/docs/2.12/fx.html#torch.fx.Graph.nodes)|否|-|
+|[torch.fx.Graph.nodes](https://pytorch.org/docs/2.12/fx.html#torch.fx.Graph.nodes)|是|支持fp32|
 |[torch.fx.Graph.on_generate_code](https://pytorch.org/docs/2.12/fx.html#torch.fx.Graph.on_generate_code)|是|支持fp32|
 |[torch.fx.Graph.output](https://pytorch.org/docs/2.12/fx.html#torch.fx.Graph.output)|是|-|
 |[torch.fx.Graph.output_node](https://pytorch.org/docs/2.12/fx.html#torch.fx.Graph.output_node)|是|-|
@@ -91,6 +98,11 @@
 |[torch.fx.Interpreter.placeholder](https://pytorch.org/docs/2.12/fx.html#torch.fx.Interpreter.placeholder)|是|支持fp32|
 |[torch.fx.Interpreter.run](https://pytorch.org/docs/2.12/fx.html#torch.fx.Interpreter.run)|是|-|
 |[torch.fx.Interpreter.run_node](https://pytorch.org/docs/2.12/fx.html#torch.fx.Interpreter.run_node)|是|支持fp32|
+|[torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.call_module](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.html#torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.call_module)|是|-|
+|[torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.fetch_args_kwargs_from_env](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.html#torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.fetch_args_kwargs_from_env)|是|-|
+|[torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.fetch_attr](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.html#torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.fetch_attr)|是|-|
+|[torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.get_attr](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.html#torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.get_attr)|是|-|
+|[torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.map_nodes_to_values](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.html#torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.map_nodes_to_values)|是|-|
 |[torch.fx.Transformer](https://pytorch.org/docs/2.12/fx.html#torch.fx.Transformer)|是|-|
 |[torch.fx.Transformer.call_function](https://pytorch.org/docs/2.12/fx.html#torch.fx.Transformer.call_function)|是|支持fp32|
 |[torch.fx.Transformer.call_module](https://pytorch.org/docs/2.12/fx.html#torch.fx.Transformer.call_module)|是|支持fp32|
@@ -108,3 +120,15 @@
 |[torch.fx.experimental.symbolic_shapes.CallMethodKey.get](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.CallMethodKey.html#torch.fx.experimental.symbolic_shapes.CallMethodKey.get)|是|-|
 |[torch.fx.experimental.symbolic_shapes.canonicalize_bool_expr](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.canonicalize_bool_expr.html)|是|-|
 |[torch.fx.experimental.symbolic_shapes.check_consistent](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.check_consistent.html)|是|-|
+|[torch.fx.experimental.symbolic_shapes.is_accessor_node](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.is_accessor_node.html)|是|-|
+|[torch.fx.experimental.symbolic_shapes.is_concrete_bool](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.is_concrete_bool.html)|是|-|
+|[torch.fx.experimental.symbolic_shapes.is_concrete_float](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.is_concrete_float.html)|是|-|
+|[torch.fx.experimental.symbolic_shapes.is_concrete_int](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.is_concrete_int.html)|是|-|
+|[torch.fx.experimental.symbolic_shapes.is_symbolic](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.is_symbolic.html)|是|-|
+|[torch.fx.experimental.symbolic_shapes.ShapeEnv](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html)|是|-|
+|[torch.fx.experimental.symbolic_shapes.ShapeEnv.produce_guards_expression](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.produce_guards_expression)|是|支持fp32|
+|[torch.fx.experimental.symbolic_shapes.ShapeEnv.produce_guards_verbose](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.produce_guards_verbose)|否|-|
+|[torch.fx.experimental.symbolic_shapes.ShapeEnv.replace](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.replace)|是|-|
+|[torch.fx.experimental.symbolic_shapes.ShapeEnv.add_backed_var_to_val](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.add_backed_var_to_val)|是|-|
+|[torch.fx.experimental.symbolic_shapes.ShapeEnv.set_unbacked_var_to_val](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.set_unbacked_var_to_val)|是|-|
+|[torch.fx.experimental.symbolic_shapes.ShapeEnv.simplify](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.simplify)|是|-|

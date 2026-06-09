@@ -10,11 +10,12 @@ from torch._decomp import remove_decompositions
 from torch._prims_common.wrappers import out_wrapper
 import torch.nn.functional as F
 from .ascend_npu_ir.ascend_npu_ir import config as anir_config
-
+from .ascend_npu_ir.ascend_npu_ir.npu.utils import run_once
 
 aten = torch.ops.aten
 npu = torch.ops.npu
 
+@run_once
 def _register_shared_decompositions():
     @register_decomposition([aten.expm1])
     def expm1(x):

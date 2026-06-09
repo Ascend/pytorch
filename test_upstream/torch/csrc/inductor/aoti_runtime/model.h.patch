@@ -1,0 +1,49 @@
+diff --git a/torch/csrc/inductor/aoti_runtime/model.h b/torch/csrc/inductor/aoti_runtime/model.h
+index 1111111..2222222 100644
+--- a/torch/csrc/inductor/aoti_runtime/model.h
++++ b/torch/csrc/inductor/aoti_runtime/model.h
+@@ -105,25 +105,34 @@ inline void parse_device_str(
+     const std::string& device_str,
+     int32_t& device_type,
+     int32_t& device_idx) {
+-  std::regex re("(cpu|cuda|xpu)(:([0-9]+))?");
+-  std::smatch sm;
+-  bool matched = std::regex_match(device_str, sm, re);
+-  AOTI_RUNTIME_CHECK(matched, "Invalid device: " + device_str);
+-
+-  if (sm[1].str() == "cpu") {
++  std::string device_type_str;
++  std::string device_idx_str;
++  const auto colon_pos = device_str.find(':');
++  if (colon_pos == std::string::npos) {
++    device_type_str = device_str;
++  } else {
++    device_type_str = device_str.substr(0, colon_pos);
++    device_idx_str = device_str.substr(colon_pos + 1);
++    AOTI_RUNTIME_CHECK(!device_idx_str.empty(), "Invalid device: " + device_str);
++    for (const char c : device_idx_str) {
++      AOTI_RUNTIME_CHECK(c >= '0' && c <= '9', "Invalid device: " + device_str);
++    }
++  }
++
++  if (device_type_str == "cpu") {
+     device_type = aoti_torch_device_type_cpu();
+-  } else if (sm[1].str() == "cuda") {
++  } else if (device_type_str == "cuda") {
+     device_type = aoti_torch_device_type_cuda();
+ #ifdef USE_XPU
+-  } else if (sm[1].str() == "xpu") {
++  } else if (device_type_str == "xpu") {
+     device_type = aoti_torch_device_type_xpu();
+ #endif
+   } else {
+     AOTI_RUNTIME_CHECK(false, "Invalid device: " + device_str);
+   }
+ 
+-  if (sm[3].matched) {
+-    device_idx = stoi(sm[3].str());
++  if (!device_idx_str.empty()) {
++    device_idx = stoi(device_idx_str);
+   } else {
+     device_idx = -1;
+   }
