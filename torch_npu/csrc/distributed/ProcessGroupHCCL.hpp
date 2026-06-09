@@ -1089,6 +1089,12 @@ protected:
 
     TensorShelf coalescedTensors_;
 
+    // Recv tensors of internal (non-base) format coalesced in the current group,
+    // paired as {user_tensor, base_format_buffer}. The format cast back into the
+    // user tensor must be deferred until endCoalescing(), after the grouped HCCL
+    // recv ops are actually submitted by hcclGroupEnd().
+    std::vector<std::pair<at::Tensor, at::Tensor>> coalescedP2PFormatCasts_;
+
     // map from the key: "group name + pg counter (ID)" to the
     // HCCL Master ID count. This needs to be group and pg specific
 
