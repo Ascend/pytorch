@@ -73,7 +73,7 @@ while IFS= read -r f; do
             #   test_upstream/test/test_autograd.py.patch → test_autograd.py
             #   test_upstream/test/ao/test_foo.py.patch  → ao/test_foo.py
             #   test_upstream/test/inductor/test_minifer.diff → inductor/test_minifer.py
-            TEST_FILE=$(echo "$f" | sed 's|^test_upstream/test/||; s|\.patch$||; s|\.diff$||')
+            TEST_FILE=$(echo "$f" | sed 's|^test_upstream/test/||; s|\.patch$||; s|\.diff$|.py|')
             TEST_PATCHES="${TEST_PATCHES}${f},"
             TEST_FILES="${TEST_FILES}${TEST_FILE},"
             echo "  → test patch: $f → test file: ${TEST_FILE}"
