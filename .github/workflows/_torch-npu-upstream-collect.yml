@@ -22,7 +22,7 @@ on:
       distributed_shards:
         required: false
         type: string
-        default: '2'
+        default: '5'
         description: Number of shards for distributed tests
       regular_shards:
         required: false
@@ -65,6 +65,7 @@ jobs:
       total_cases: ${{ steps.collect_and_shard.outputs.total_cases }}
 
     steps:
+
       - name: Setup NPU test environment
         uses: Ascend/pytorch/.github/actions/setup-npu-test-env@v2.7.1
         with:

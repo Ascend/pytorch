@@ -505,7 +505,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Collect and shard test cases")
     parser.add_argument("--test-dir", required=True, help="PyTorch test directory")
     parser.add_argument("--case-paths-config", help="case_paths_ci.yml path")
-    parser.add_argument("--distributed-shards", type=int, default=2, help="Distributed test shards")
+    parser.add_argument("--distributed-shards", type=int, default=5, help="Distributed test shards")
     parser.add_argument("--regular-shards", type=int, default=5, help="Regular test shards")
     parser.add_argument("--output-dir", required=True, help="Output directory for shard JSONs")
     parser.add_argument("--error-log-dir", help="Output directory for collection error logs (default: output-dir/collection_errors)")

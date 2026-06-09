@@ -46,6 +46,7 @@ jobs:
       fail-fast: false
 
     steps:
+
       - name: Setup NPU test environment
         uses: Ascend/pytorch/.github/actions/setup-npu-test-env@v2.7.1
         with:
