@@ -31606,5 +31606,6 @@
   "test_softmax_forward_64bit_indexing_npu (__main__.TestNNDeviceTypePRIVATEUSE1)": ["", [""]],
   "test_grad_with_v_schedule (__main__.TestScheduleLowering)": ["", [""]],
  	"test_npu_roi_align_1 (__main__.TestPsRoiPooling)": ["", [""]],
- 	"test_silu (__main__.TestActivations)": ["", [""]]
+ 	"test_silu (__main__.TestActivations)": ["", [""]],
+  "test_data_parallel_rnn (__main__.TestDataParallel)": ["", [""]]
 }
