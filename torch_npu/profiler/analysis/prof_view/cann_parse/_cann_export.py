@@ -120,14 +120,9 @@ class CANNExportParser(BaseParser):
     def _check_profiler_path_parent_dir_invalid(self, paths: list):
         for path in paths:
             if not FileManager.check_file_owner(path):
-                raise RuntimeError(
+                self.logger.warning(
                     f"Path '{self._cann_path}' owner is neither root nor the current user. "
                     f"Please execute 'chown -R $(id -un) '{self._cann_path}' '."
-                )
-            if ProfilerPathManager.path_is_other_writable(path):
-                raise RuntimeError(
-                    f"Path '{self._cann_path}' permission allow others users to write. "
-                    f"Please execute 'chmod -R 755 '{self._cann_path}' '."
                 )
         return False
 
@@ -167,14 +162,8 @@ class CANNExportParser(BaseParser):
                 + prof_error(ErrCode.PERMISSION)
                 + "\n"
             )
-        if ProfilerPathManager.path_is_other_writable(msprof_script_path):
-            error_message += (
-                f"Path '{msprof_script_path}' permission allow others users to write. "
-                f"Please execute 'chmod -R 755 '{msprof_script_path}' '"
-                + prof_error(ErrCode.PERMISSION)
-            )
         if error_message:
-            raise RuntimeError(error_message)
+            self.logger.warning(error_message)
 
     def _get_msprof_script_path(self, script_path: str) -> str:
         msprof_path = os.path.realpath(self.msprof_path.strip())
