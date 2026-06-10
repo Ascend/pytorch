@@ -79,12 +79,6 @@ class _KinetoProfile:
     def export_chrome_trace(self, output_path: str):
         output_path = ProfilerPathManager.get_realpath(output_path)
         PathManager.check_input_file_path(output_path)
-        file_name = os.path.basename(output_path)
-        if not file_name.endswith(".json"):
-            raise RuntimeError(
-                "Invalid parameter output_path, which must be a json file."
-                + prof_error(ErrCode.VALUE)
-            )
         if not self.prof_if.prof_path:
             print_warn_msg("Invalid profiling path.")
             return
