@@ -68,7 +68,7 @@ def _batch_isend_irecv(p2p_op_list):
             is_multi_pg = False
         _group = group._get_backend(device)
         is_supported_device_name = (npu_device_name >= "Ascend910B1" and npu_device_name <= "Ascend910B4_1") or \
-            (npu_device_name >= "Ascend910_9362" and npu_device_name <= "Ascend910_9391")
+            (npu_device_name >= "Ascend910_9362" and npu_device_name <= "Ascend910_9392")
         if isinstance(group, ProcessGroup) and cann_version >= "9.0.0" and is_supported_device_name:
             # coalescing manager
             _check_p2p_op_list(p2p_op_list)
