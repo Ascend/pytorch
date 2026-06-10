@@ -185,7 +185,7 @@ void NPUGraph::capture_begin(MempoolId_t pool, aclmdlRICaptureMode capture_mode,
         PTA_ERROR(ErrCode::NOT_SUPPORT));
 
     TORCH_CHECK(
-        !c10_npu::NPUCachingAllocator::CachingAllocatorConfig::pin_memory_expandable_segments(),
+        !c10_npu::NPUCachingAllocator::NPUAllocatorConfig::pin_memory_expandable_segments(),
         "ACLGraph capture is not supported when pin_memory_expandable_segments=True. "
         "NPUExpandableHostAllocatorImpl overrides allocate/free/empty_cache/record_event "
         "and does not integrate with the base CachingHostAllocator's private pool mechanism, "
