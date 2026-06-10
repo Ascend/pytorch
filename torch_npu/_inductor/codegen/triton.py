@@ -677,7 +677,7 @@ class NPUTritonKernel(TritonKernel):
         from ..config import inductor_ascend_linear_mode
         if inductor_ascend_linear_mode == "linear":
             # Linear fallback to no_linear_loop
-            inductor_meta["inductor_ascend_linear_mode"] = "no_linear_loop"            
+            inductor_meta["inductor_ascend_linear_mode"] = "no_linear_loop"
         else:
             inductor_meta["inductor_ascend_linear_mode"] = inductor_ascend_linear_mode
         inductor_meta["npu_kernel_type"] = "simt_only"
@@ -723,6 +723,8 @@ class NPUTritonKernelWithLoop(NPUTritonKernel):
     ):
         self.loop_header = IndentedBuffer()  # reduction loops prefix info
         self.body_header = IndentedBuffer()  # all index prefix info
+        self.normal_loop_body = IndentedBuffer()
+        self.normal_loop_body_rendered = False
         super().__init__(
             tiling=tiling,
             min_elem_per_thread=min_elem_per_thread,
@@ -847,8 +849,6 @@ class NPUTritonKernelWithLoop(NPUTritonKernel):
             or self.post_loop_store
         ):
             return
-        self.loop_header.splice(self.body)
-        self.body.clear()
 
         # loop not scalar entry
         normal_loop_trees = [
@@ -860,13 +860,17 @@ class NPUTritonKernelWithLoop(NPUTritonKernel):
         reduction_loop_trees = [
             tree for tree in self.range_trees if tree.is_loop and tree.is_reduction
         ]
+        body_chunk = IndentedBuffer()
 
-        #self.body.splice(self.body_header)
-        if (not self.inside_reduction or (len(reduction_loop_trees) == 0)):
-            self.body.splice(self.body_header)
-            self.body_header.clear()
+        # self.body is the rendered kernel body. codegen_body() can be called
+        # multiple times by disable_reduction(), so rebuild it from accumulated
+        # loop-inner chunks instead of wrapping the previous render again.
+        if self.body and not self.normal_loop_body_rendered:
+            self.normal_loop_body.splice(self.body)
+        self.body.clear()
 
-        if (not self.inside_reduction or (len(reduction_loop_trees) == 0)) and len(normal_loop_trees) > 0:
+        self.body.splice(self.body_header)
+        if len(normal_loop_trees) > 0:
             # Write the loop headers.
             for level, tree in enumerate(normal_loop_trees):
                 with self.body.indent(offset=level):
@@ -883,47 +887,42 @@ class NPUTritonKernelWithLoop(NPUTritonKernel):
                     self.iteration_ranges_codegen_header(tree, self.body)
                     self.body.splice(tree.indexing_code)
 
-        with self.body.indent(offset=normal_axis_base):
-            self.body.splice(self.loop_header)
-
         if self.inside_reduction and len(reduction_loop_trees) > 0:
             # Write the loop headers.
             for level, tree in enumerate(reduction_loop_trees):
-                with self.body.indent(offset=level + normal_axis_base):
+                with body_chunk.indent(offset=level):
                     prefix = tree.prefix
                     loop_start = "rsplit_start" if self.cooperative_reduction else "0"
                     loop_end = (
                         "rsplit_end" if self.cooperative_reduction else f"{prefix}numel"
                     )
-                    self.body.writeline(
+                    body_chunk.writeline(
                         f"for {prefix}offset in range({loop_start}, {loop_end}, {prefix.upper()}BLOCK):"
                     )
-                with self.body.indent(offset=level + normal_axis_base + 1):
-                    self.iteration_ranges_codegen_header(tree, self.body)
+                with body_chunk.indent(offset=level + 1):
+                    self.iteration_ranges_codegen_header(tree, body_chunk)
 
             # The innermost loop performs the reduction_loop_trees.
-            with self.body.indent(offset=len(reduction_loop_trees) + normal_axis_base):
-                self.codegen_reduction_indices(self.body)
-                self.body.splice(self.indexing_code)
-                self.body.splice(self.loads)
-                self.body.splice(self.compute)
-                self.body.splice(self.stores)
+            with body_chunk.indent(offset=len(reduction_loop_trees)):
+                self.codegen_reduction_indices(body_chunk)
+                body_chunk.splice(self.indexing_code)
+                body_chunk.splice(self.loads)
+                body_chunk.splice(self.compute)
+                body_chunk.splice(self.stores)
 
             # Write loop suffixes.
             for level, tree in reversed([*enumerate(reduction_loop_trees)]):
                 # persistent reduction doesn't need split loop
                 if not tree.is_reduction:
                     continue
-                with self.body.indent(offset=normal_axis_base + level + 1):
+                with body_chunk.indent(offset=level + 1):
                     # Advance pointers at the end of each loop.
                     for block_ptr, advancement in self.pointer_advancements[
                         tree.symt
                     ].items():
                         # Subtract any advancements made in the previous loop level.
                         if level < len(reduction_loop_trees) - 1:
-                            prev_tree = reduction_loop_trees[
-                                normal_axis_base + level + 1
-                            ]
+                            prev_tree = reduction_loop_trees[level + 1]
                             prev_advancement = self.pointer_advancements[
                                 prev_tree.symt
                             ][block_ptr]
@@ -934,7 +933,7 @@ class NPUTritonKernelWithLoop(NPUTritonKernel):
                                 for cur, prev in zip(advancement, prev_advancement)
                             ]
 
-                        self.body.writeline(
+                        body_chunk.writeline(
                             DeferredLine(
                                 self.block_ptr_to_buffer[block_ptr],
                                 f"{block_ptr} = tl.advance({block_ptr}, {V.kernel.index_to_str(advancement)})",
@@ -945,18 +944,16 @@ class NPUTritonKernelWithLoop(NPUTritonKernel):
                 self.cse.invalidate(self.outside_loop_vars)
                 tree.cache_clear()
         else:
-            with self.body.indent(offset=normal_axis_base):
-                self.body.splice(self.indexing_code)
-                self.body.splice(self.loads)
-                self.body.splice(self.compute)
-                self.body.splice(self.stores)
-        with self.body.indent(offset=normal_axis_base):
-            self.body.splice(self.post_loop_combine)
+            body_chunk.splice(self.indexing_code)
+            body_chunk.splice(self.loads)
+            body_chunk.splice(self.compute)
+            body_chunk.splice(self.stores)
+        body_chunk.splice(self.post_loop_combine)
         if self.cooperative_reduction and (
             self.post_loop_combine or self.post_loop_store
         ):
             sem_ptr = f"{self.semaphores_name} + tl.program_id(1)"
-            self.body.splice(
+            body_chunk.splice(
                 f"""
                 if HAS_RSPLIT:
                     triton_helpers.x_grid_barrier({sem_ptr})
@@ -965,8 +962,12 @@ class NPUTritonKernelWithLoop(NPUTritonKernel):
             )
             self.cooperative_reduction_workspace_cache.on_loop_end()
 
+        body_chunk.splice(self.post_loop_store)
+
+        self.normal_loop_body.splice(body_chunk)
         with self.body.indent(offset=normal_axis_base):
-            self.body.splice(self.post_loop_store)
+            self.body.splice(self.normal_loop_body)
+        self.normal_loop_body_rendered = True
 
         self.loop_header.clear()
         self.indexing_code.clear()
