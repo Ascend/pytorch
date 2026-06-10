@@ -145,12 +145,12 @@ class CANNFileParser:
         if not self._cann_path:
             raise RuntimeError("CANN Profiling data does not exist.")
         if not FileManager.check_file_readable(self._cann_path):
-            raise PermissionError(
+            self.logger.warning(
                 f"Path '{self._cann_path}' owner is not readable. "
                 f"Please execute 'chmod -R 755 '{self._cann_path}' '."
             )
         if not FileManager.check_file_writable(self._cann_path):
-            raise PermissionError(
+            self.logger.warning(
                 f"Path '{self._cann_path}' owner is not writable. "
                 f"Please execute 'chmod -R 755 '{self._cann_path}' '."
             )
