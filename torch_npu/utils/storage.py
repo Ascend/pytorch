@@ -20,7 +20,6 @@ def _rebuild_npu_tensor(storage, storage_offset, size, stride, requires_grad, ba
         (0,),
         dtype=storage.dtype,
         device=storage._untyped_storage.device,
-        requires_grad=requires_grad,
     )
     tensor.set_(storage, storage_offset, size, stride)
     tensor.requires_grad = requires_grad
