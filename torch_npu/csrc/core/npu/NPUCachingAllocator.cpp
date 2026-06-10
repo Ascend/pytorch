@@ -886,12 +886,12 @@ struct MempoolIdHash {
 
 bool checkConfigExpandableSegments()
 {
-    return CachingAllocatorConfig::expandable_segments();
+    return NPUAllocatorConfig::expandable_segments();
 }
 
 bool isConfig1GPageSizeEnable()
 {
-    return CachingAllocatorConfig::page_size_1g_enable();
+    return NPUAllocatorConfig::page_size_1g_enable();
 }
 
 void setAllocatorSettings(const std::string& settings)
@@ -900,8 +900,7 @@ void setAllocatorSettings(const std::string& settings)
     // Empty NPU task queue before changing the allocator settings.
     NPUStatus ret = c10_npu::emptyAllNPUStream();
     TORCH_CHECK(ret == NPU_STATUS_SUCCESS, "Failed to empty NPU task queue, ret:", ret, PTA_ERROR(ErrCode::INTERNAL));
-    // Only support expandable_segments setting.
-    CachingAllocatorConfig::instance().parseArgs(settings.c_str(), {"expandable_segments"});
+    NPUAllocatorConfig::instance().parseArgs(settings, {"expandable_segments"});
 }
 
 bool saveDevMemUsageInfo(const int& device)
@@ -1045,8 +1044,8 @@ private:
 public:
     DeviceCachingAllocator() : large_blocks(false), small_blocks(true), alloc_trace(new std::vector<TraceEntry>())
     {
-        setMemoryFraction(CachingAllocatorConfig::per_process_memory_fraction());
-        stats.max_split_size = static_cast<int64_t>(CachingAllocatorConfig::max_split_size());
+        setMemoryFraction(NPUAllocatorConfig::per_process_memory_fraction());
+        stats.max_split_size = static_cast<int64_t>(NPUAllocatorConfig::max_split_size());
         context_recorder_.store(nullptr);
     }
 
@@ -1187,7 +1186,7 @@ public:
             TORCH_NPU_MEMORY_LOGD("Using device: %d", device);
         }
 
-        if (!CachingAllocatorConfig::multi_stream_lazy_reclaim() && C10_LIKELY(captures_underway.empty())) {
+        if (!NPUAllocatorConfig::multi_stream_lazy_reclaim() && C10_LIKELY(captures_underway.empty())) {
             // Processes end-of-life events for outstanding allocations used on
             // multiple streams (checks if their NPU-side uses are complete and
             // recycles their memory if so)
@@ -1219,7 +1218,7 @@ public:
             get_free_block(params) ||
             // Trigger callbacks and retry search
             (trigger_free_memory_callbacks(params) && get_free_block(params));
-        if (CachingAllocatorConfig::multi_stream_lazy_reclaim() && C10_LIKELY(captures_underway.empty())) {
+        if (NPUAllocatorConfig::multi_stream_lazy_reclaim() && C10_LIKELY(captures_underway.empty())) {
             // Lazy process events and free memory
             size_t sum = 0;
             for (auto it = npu_events.begin(); it != npu_events.end(); ++it) {
@@ -1238,7 +1237,7 @@ public:
             // Do garbage collection if the flag is set.
             if (C10_UNLIKELY(
                     allowed_memory_maximum.has_value() &&
-                    CachingAllocatorConfig::garbage_collection_threshold() > 0.0)) {
+                    NPUAllocatorConfig::garbage_collection_threshold() > 0.0)) {
                 TORCH_NPU_MEMORY_LOGD("Triggering garbage collection on device %d", device);
                 garbage_collect_cached_blocks(context, lock);
             }
@@ -1330,8 +1329,8 @@ public:
         TORCH_NPU_MEMORY_LOGD("Block found: ptr=%p, size=%zu, device=%d", params.block->ptr, params.block->size, params.device());
 
         int64_t ori_block_ptr = int64_t(params.block->ptr);
-        size_t align_round = CachingAllocatorConfig::base_addr_aligned_size();
-        if (params.size() >= kRoundLarge && CachingAllocatorConfig::expandable_segments() && align_round != 0 &&
+        size_t align_round = NPUAllocatorConfig::base_addr_aligned_size();
+        if (params.size() >= kRoundLarge && NPUAllocatorConfig::expandable_segments() && align_round != 0 &&
             ori_block_ptr % align_round != 0) {
             char *align_ptr = reinterpret_cast<char *>((ori_block_ptr + align_round) - (ori_block_ptr % align_round));
             size_t offset_size = align_ptr - (char *)params.block->ptr;
@@ -1433,7 +1432,7 @@ public:
             update_stat(stats.requested_bytes[stat_type], static_cast<std::int64_t>(block->requested_size));
         });
 
-        if (block->size >= CachingAllocatorConfig::max_split_size()) {
+        if (block->size >= NPUAllocatorConfig::max_split_size()) {
             update_stat(stats.oversize_allocations, 1);
         }
 
@@ -1486,7 +1485,7 @@ public:
         record_trace(TraceEntry::FREE_REQUESTED, int64_t(block->ptr), block->requested_size, block->stream,
             block->device, context ? context : block->context_when_allocated);
 
-        if (block->size >= CachingAllocatorConfig::max_split_size()) {
+        if (block->size >= NPUAllocatorConfig::max_split_size()) {
             update_stat(stats.oversize_allocations, -1);
         }
 
@@ -2114,7 +2113,7 @@ public:
         if (size < kMinBlockSize) {
             return kMinBlockSize;
         } else {
-            auto divisions = CachingAllocatorConfig::roundup_power2_divisions(size);
+            auto divisions = NPUAllocatorConfig::roundup_power2_divisions(size);
             if (divisions > 1 && size > (kMinBlockSize * divisions)) {
                 return roundup_power2_next_division(size, divisions);
             } else {
@@ -2514,20 +2513,20 @@ private:
     bool should_split(const Block *block, size_t size)
     {
         size_t remaining = block->size - size;
-        if (block->pool->is_small || CachingAllocatorConfig::expandable_segments()) {
+        if (block->pool->is_small || NPUAllocatorConfig::expandable_segments()) {
             return remaining >= kMinBlockSize;
         } else {
-            return (size < CachingAllocatorConfig::max_split_size()) && (remaining > kSmallSize);
+            return (size < NPUAllocatorConfig::max_split_size()) && (remaining > kSmallSize);
         }
     }
 
     static size_t get_custom_expandable_segment_size(bool is_small_pool)
     {
-        auto large_segment_size = CachingAllocatorConfig::large_segment_size();
+        auto large_segment_size = NPUAllocatorConfig::large_segment_size();
         if (large_segment_size != kLargeBuffer) {  // if large_segment_size_mb is set
             return large_segment_size;
         }
-        auto custom_segment_size = CachingAllocatorConfig::segment_size_mb();  // if segment_size_mb is set
+        auto custom_segment_size = NPUAllocatorConfig::segment_size_mb();  // if segment_size_mb is set
         return custom_segment_size > 0 ? custom_segment_size : kLargeBuffer;
     }
 
@@ -2536,7 +2535,7 @@ private:
         if (size <= kSmallSize) {
             return kSmallBuffer;
         } else if (size < kMinLargeAlloc) {
-            return CachingAllocatorConfig::large_segment_size();
+            return NPUAllocatorConfig::large_segment_size();
         } else {
             return kRoundLarge * ((size + kRoundLarge - 1) / kRoundLarge);
         }
@@ -2549,7 +2548,7 @@ private:
 
         if (C10_UNLIKELY(
                 allowed_memory_maximum.has_value() &&
-                CachingAllocatorConfig::garbage_collection_threshold() > 0.0)) {
+                NPUAllocatorConfig::garbage_collection_threshold() > 0.0)) {
             // Track block reuse interval only when garbage collection is enabled.
             for (auto &b : pool.blocks) {
                 ++b->gc_count;
@@ -2562,7 +2561,7 @@ private:
         }
 
         if ((*it)->expandable_segment_) {
-            if (CachingAllocatorConfig::expandable_segments()) {
+            if (NPUAllocatorConfig::expandable_segments()) {
                 // if we are allocated to the part of the block that is expandable
                 // for the purposes of "best fit" we consider its size to be the size it
                 // can expand to, not the size it currently is. This means that we
@@ -2593,12 +2592,12 @@ private:
         }
 
         // Do not return an oversized block for a large request
-        if ((p.size() < CachingAllocatorConfig::max_split_size()) &&
-            ((*it)->size >= CachingAllocatorConfig::max_split_size())) {
+        if ((p.size() < NPUAllocatorConfig::max_split_size()) &&
+            ((*it)->size >= NPUAllocatorConfig::max_split_size())) {
             return false;
         }
         // Allow oversized block size to be rounded up but within a limit
-        if ((p.size() >= CachingAllocatorConfig::max_split_size()) && ((*it)->size >= p.size() + kLargeBuffer)) {
+        if ((p.size() >= NPUAllocatorConfig::max_split_size()) && ((*it)->size >= p.size() + kLargeBuffer)) {
             return false;
         }
         p.block = *it;
@@ -2629,7 +2628,7 @@ private:
         // therefore should be of less overheads.
 
         size_t gc_threshold =
-            static_cast<size_t>(CachingAllocatorConfig::garbage_collection_threshold() *
+            static_cast<size_t>(NPUAllocatorConfig::garbage_collection_threshold() *
             static_cast<double>(allowed_memory_maximum.value()));
         TORCH_NPU_MEMORY_LOGD("Starting garbage collection: total_allocated=%zu, threshold=%zu", total_allocated_memory, gc_threshold);
         // No need to trigger GC yet
@@ -2705,7 +2704,7 @@ private:
             total_allocated_memory + size > allowed_memory_maximum.value()) {
             p.err = ACL_ERROR_RT_MEMORY_ALLOCATION;
             return false;
-        } else if (CachingAllocatorConfig::expandable_segments()) {
+        } else if (NPUAllocatorConfig::expandable_segments()) {
             p.block = try_allocate_expandable_block(p.device(), p.stream(), p.pool, p.size(), ctx);
             if (p.block) {
                 p.err = ACL_ERROR_NONE;
@@ -2747,7 +2746,7 @@ private:
             update_stat(stats.segment[stat_type], 1);
             update_stat(stats.reserved_bytes[stat_type], size);
         });
-        if (size >= CachingAllocatorConfig::max_split_size()) {
+        if (size >= NPUAllocatorConfig::max_split_size()) {
             update_stat(stats.oversize_segments, 1);
         }
         TORCH_NPU_MEMORY_LOGD("pta_memory acl_malloc: malloc = %zu, ret = %d", size, p.err);
@@ -2765,13 +2764,13 @@ private:
                                          std::unique_lock<std::recursive_mutex>& lock)
     {
         TORCH_NPU_MEMORY_LOGD("Releasing available cached blocks: size=%zu, device=%d", p.size(), p.device());
-        if (CachingAllocatorConfig::max_split_size() == std::numeric_limits<size_t>::max()) {
+        if (NPUAllocatorConfig::max_split_size() == std::numeric_limits<size_t>::max()) {
             return false;
         }
         BlockPool &pool = *p.pool;
         Block key = p.search_key;
         key.size =
-            (key.size < CachingAllocatorConfig::max_split_size()) ? CachingAllocatorConfig::max_split_size() : key.size;
+            (key.size < NPUAllocatorConfig::max_split_size()) ? NPUAllocatorConfig::max_split_size() : key.size;
         auto it = pool.blocks.lower_bound(&key);
 
         {
@@ -2787,7 +2786,7 @@ private:
             size_t totalReleased = 0;
             // Back up one item.  Now on the largest block for the correct stream
             --it;
-            while ((totalReleased < key.size) && ((*it)->size >= CachingAllocatorConfig::max_split_size()) &&
+            while ((totalReleased < key.size) && ((*it)->size >= NPUAllocatorConfig::max_split_size()) &&
                 ((*it)->stream == p.stream())) {
                 auto cur = it;
                 totalReleased += (*it)->size;
@@ -2886,7 +2885,7 @@ private:
             update_stat(stats.reserved_bytes[stat_type], -block->size);
         });
 
-        if (block->size >= CachingAllocatorConfig::max_split_size()) {
+        if (block->size >= NPUAllocatorConfig::max_split_size()) {
             update_stat(stats.oversize_segments, -1);
         }
         TORCH_NPU_MEMORY_LOGD("pta_memory acl_free: free_size = %zu", block->size);
@@ -3384,7 +3383,7 @@ public:
 
     void emptyVirtAddrCache(bool check_error) override
     {
-        if (!CachingAllocatorConfig::expandable_segments()) {
+        if (!NPUAllocatorConfig::expandable_segments()) {
             AT_ERROR("Unsupported config for empty_virt_addr_cache, please enable expandable_segments.");
         }
         emptyCacheImpl(check_error, false);
