@@ -1,6 +1,6 @@
-# glm4-9B-chat 微调训练
+# qwen3-4B-Base 微调训练
 
-本 README 说明如何使用 **glm4-9B-chat** 模型权重，结合 **LlamaFactory** 提供的 `c4_demo.jsonl` 示例数据，完成数据下载、预处理与训练启动（含 eager / torch.compile 两种模式）。
+本 README 说明如何使用 **qwen3-4B-Base** 模型权重，结合 **LlamaFactory** 提供的 `c4_demo.jsonl` 示例数据，完成数据下载、预处理与训练启动（含 eager / torch.compile 两种模式）。
 
 ---
 
@@ -11,17 +11,21 @@
 - [3. 数据预处理](#3-数据预处理)
 - [4. 模型训练](#4-模型训练)
   - [4.1 eager mode（默认）](#41-eager-mode默认)
-  - [4.2 启用 torchcompile（可选）](#42-启用-torchcompile可选)
+  - [4.2 启用 torchcompile（可选）](#42-启用-torch compile可选)
   - [4.3 采集profile文件（可选）](#43-采集profile文件可选)
 
 ---
 
 ## 1. 模型权重
 
-- Hugging Face 模型：**glm4-9B-chat**  
-  https://huggingface.co/zai-org/glm-4-9b-chat
+- Hugging Face 模型地址：**qwen3-4B-Base**  
+  https://huggingface.co/Qwen/Qwen3-4B-Base
 
-可在链接页面中 `Files and versions` 一栏直接下载。
+- 可使用如下的自定义脚本下载
+
+```bash
+python ../utils/download_hf.py --model Qwen/Qwen3-4B-Base --save_path ./Qwen3-4B-Base
+```
 
 ### 环境提示
 
@@ -38,7 +42,7 @@ pip install -r ../utils/requirements.txt
 - `c4_demo.json`  
   https://github.com/hiyouga/LlamaFactory/blob/main/data/c4_demo.jsonl
 
-或直接下载 raw 文件到本地：：
+或直接下载 raw 文件到本地：
 
 ```bash
 wget -O c4_demo.json \
@@ -47,21 +51,21 @@ https://github.com/hiyouga/LlamaFactory/blob/main/data/c4_demo.jsonl
 
 ## 3. 数据预处理
 
-在`train_glm4_9B.py`中已经对数据进行了处理
+在`train_qwen3_4B.py`中已经对数据进行了处理
 
 ## 4. 模型训练
 
-训练脚本：`train_glm4_9B.sh`，脚本支持在 GPU 和 NPU 训练
+训练脚本：`run_qwen3.sh`
 
 开始训练前，请修改脚本中的路径参数：
 
-- 模型权重路径（本地目录）
-- 训练数据路径（本地`c4_demo.json`）
+- 模型权重路径
+- 训练数据路径
 
 ### 4.1 eager mode（默认）
 
 ```bash
-bash train_glm4_9B.sh
+bash run_qwen3.sh
 ```
 
 ### 4.2 启用 `torch.compile`（可选）
@@ -72,14 +76,14 @@ bash train_glm4_9B.sh
 **默认后端（mlir，可不写 --npu-backend）：**
 
 ```bash
-bash train_glm4_9B.sh \
+bash run_qwen3.sh \
   --enable_compile
 ```
 
 **显式指定后端为 mlir：**
 
 ```bash
-bash train_glm4_9B.sh \
+bash run_qwen3.sh \
   --enable_compile \
   --npu-backend mlir
 ```
@@ -87,7 +91,7 @@ bash train_glm4_9B.sh \
 **切换后端为 dvm：：**
 
 ```bash
-bash train_glm4_9B.sh \
+bash run_qwen3.sh \
   --enable_compile \
   --npu-backend dvm
 ```
@@ -97,7 +101,7 @@ bash train_glm4_9B.sh \
 脚本已支持 `--enable_profiler` 这样的开关，开启方式为：
 
 ```bash
-bash train_glm4_9B.sh \
+bash run_qwen3.sh \
   --enable_profiler \
   --profiler_start_step 5 \
   --profiler_end_step 6 \
