@@ -9,6 +9,8 @@ from torch._C import DispatchKey
 from torch._decomp import remove_decompositions
 from torch._prims_common.wrappers import out_wrapper
 import torch.nn.functional as F
+from .config import is_ascend950
+from .lowering_common import add_overload
 from .ascend_npu_ir.ascend_npu_ir import config as anir_config
 from .ascend_npu_ir.ascend_npu_ir.npu.utils import run_once
 
@@ -41,7 +43,7 @@ def _register_triton_decompositions():
 
     def _register_npu_triton_decompositions():
         overload_op_set = set()
-        _add_overload(DECOMPOSITION_OVERLOAD_OP, overload_op_set)
+        add_overload(DECOMPOSITION_OVERLOAD_OP, overload_op_set)
 
         for op in overload_op_set:
             if (op in decompositions):

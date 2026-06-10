@@ -10,7 +10,13 @@ from torch._inductor import config
 from torch._inductor.virtualized import V
 
 from ... import config as anir_config
-from ...npu.inductor_patch.lowering import map_strings_to_operators
+from torch_npu._inductor.lowering_common import (
+    MLIR_OPERATOR_MAPPING,
+    map_strings_to_operators as _map_strings_to_operators,
+)
+
+def map_strings_to_operators(expr_str: str):
+    return _map_strings_to_operators(expr_str, MLIR_OPERATOR_MAPPING)
 from ...npu.utils import (
     MLIRProcessor,
     fold_expand,

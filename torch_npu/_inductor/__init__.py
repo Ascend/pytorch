@@ -30,6 +30,7 @@ apply_safe_operator_str_patch_if_enabled()
 def _get_backend() -> str: 
      return os.getenv("TORCHINDUCTOR_NPU_BACKEND", "default")
 
+
 def _load_mlir_backend():
     import torch
     import torch_npu
@@ -39,10 +40,23 @@ def _load_mlir_backend():
     except ImportError as e:
         raise ImportError("torch_mlir is not installed, install it first.") from e
     from .ascend_npu_ir.ascend_npu_ir.npu import npu_inductor_plugin, torch_mlir_patch
+    from .lowering_patch import apply_mlir_inductor_patch
+    from .ascend_npu_ir.ascend_npu_ir.npu.npu_inductor_plugin import (
+        register_mlir_codegen_backend,
+    )
+
+    apply_mlir_inductor_patch()
+    register_mlir_codegen_backend()
 
 
 def _load_dvm_backend():
     from .ascend_npu_ir.ascend_npu_ir.npu import npu_inductor_plugin
+    from .lowering_patch import apply_mlir_inductor_patch
+    from .ascend_npu_ir.ascend_npu_ir.npu.npu_inductor_plugin import (
+        register_mlir_codegen_backend,
+    )
+    apply_mlir_inductor_patch()
+    register_mlir_codegen_backend()
     from .dvm import mlir_fusion
     has_triton = torch.utils._triton.has_triton()
     if has_triton:
@@ -51,6 +65,8 @@ def _load_dvm_backend():
         patch_gen_common_triton_ext_imports()
         patch_triton_scheduling()
         patch_triton_heuristics_cached_autotune()
+
+    
 
 
 def _load_triton_backend():
@@ -320,6 +336,11 @@ _BACKEND_LOADERS = {
 
 
 def _load_backend():
+    from .lowering_patch import restore_lowering_baseline
+
+    # Reset lowering before each backend switch (mlir <-> triton in one process).
+    restore_lowering_baseline()
+
     backend = _get_backend()
     loader = _BACKEND_LOADERS.get(backend, _load_triton_backend)
     loader()
