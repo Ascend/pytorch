@@ -13,6 +13,8 @@ from torch import Tensor
 
 from torch._dynamo.utils import set_current_node, UnsupportedFakeTensorException
 
+
+
 from typing import (
     Set,
     Dict,
@@ -42,7 +44,7 @@ from torch._decomp import (
     decomposition_table,
 )
 
-from . import npu_patch_deprecated, torch_mlir_patch
+from . import npu_patch_deprecated
 from .npu_meta import npu_patch_meta
 
 # Fix Error: Exit earlier than child process.
@@ -66,23 +68,27 @@ if anir_config.online_acc_comp:
 aten = torch.ops.aten
 
 ## Override original dynamo device interface in torch_npu
-from torch_npu.utils._dynamo_device import NpuInterface
-if os.getenv('TORCHINDUCTOR_USE_AKG', '0') == '1':
-    try:
-        import akg
-        import torch_mlir
-        register_backend_for_device("npu", AkgScheduling, NpuMlirWrapperCodeGen)
-    except Exception:
-        logger.warning(f"akg not found, fallback to torch-mlir for compilation.")
+
+
+def register_mlir_codegen_backend() -> None:
+    """Register MLIR scheduling/wrapper; call on each mlir/dvm backend switch."""
+    if os.getenv('TORCHINDUCTOR_USE_AKG', '0') == '1':
+        try:
+            import akg
+            import torch_mlir
+            register_backend_for_device("npu", AkgScheduling, NpuMlirWrapperCodeGen)
+        except ImportError:
+            logger.warning("akg not found, fallback to torch-mlir for compilation.")
+            register_backend_for_device("npu", NpuMlirScheduling, NpuMlirWrapperCodeGen)
+    else:
         register_backend_for_device("npu", NpuMlirScheduling, NpuMlirWrapperCodeGen)
-else:
-    register_backend_for_device("npu", NpuMlirScheduling, NpuMlirWrapperCodeGen)
 
 try:
     from torch_npu.npu import device_count
-except Exception:
+except:
     from torch_npu.npu.utils import device_count
 from torch._dynamo.device_interface import register_interface_for_device
+from torch_npu.utils._dynamo_device import NpuInterface
 
 class NewNpuInterface(NpuInterface):
 
@@ -169,11 +175,6 @@ def _patch_run_node(tracer, node, args, kwargs, nnmodule):
     raise AssertionError(op)
 
 
-def _register_npu_inductor_fallbacks_operation():
-    from ..npu import inductor_patch
-
-
-_register_npu_inductor_fallbacks_operation()
 disable_implicit_decomposition()
 torch._dynamo.utils.run_node = _patch_run_node
 
@@ -456,5 +457,6 @@ def patch_transfer_to_npu():
 
         transfer_to_npu._device_wrapper = new_device_wrapper
         transfer_to_npu._init()
+    # [wtd#11] Use except Exception instead of bare except to avoid catching KeyboardInterrupt and system exceptions
     except Exception:
         pass

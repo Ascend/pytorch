@@ -60,6 +60,22 @@ from torch.utils._sympy.functions import (
     ModularIndexing,
 )
 from .config import log
+from .lowering_common import (
+    TracedGraph,
+    TRITON_OPERATOR_MAPPING,
+    create_fake_input,
+    create_sym_inputs as _create_sym_inputs,
+    fetch_graphs as _fetch_graphs,
+    get_reduction_type_to_aten_fn,
+    map_operators_to_strings as _map_operators_to_strings,
+    map_strings_to_operators as _map_strings_to_operators,
+    merge_fx_graphs,
+    merge_traced_graphs as _merge_traced_graphs,
+    process_ir_constant as _process_ir_constant,
+    register_fn_to_aten_fn as _register_fn_to_aten_fn,
+    register_to_aten as _register_to_aten,
+    subtract_graph,
+)
 from .lowering_op_list import GENERATE_LIST, GENERATE_LIST2, FALLBACK_LIST, LOWERING_OVERLOAD_OP
 
 aten = torch.ops.aten
@@ -74,264 +90,43 @@ snodes_to_fx = {}
 
 
 def register_fn_to_aten_fn(fn, aten_fn=None):
-    if fn not in fn_to_aten_fn:
-        fn_to_aten_fn[fn] = aten_fn
-    return fn
+    return _register_fn_to_aten_fn(fn_to_aten_fn, fn, aten_fn)
 
 
 def register_to_aten(aten_fn=None):
-    def decorator(fn):
-        if fn not in fn_to_aten_fn:
-            fn_to_aten_fn[fn] = aten_fn
-        return fn
-
-    return decorator
+    return _register_to_aten(fn_to_aten_fn, aten_fn)
 
 
-reduction_type_to_aten_fn = {
-    "sum": aten.sum,
-    "prod": aten.prod,
-    "xor_sum": prims.xor_sum,
-    "any": aten.any,
-    "max": aten.amax,
-    "min": aten.amin,
-    "argmax": aten.argmax,
-    "argmin": aten.argmin
-}
+reduction_type_to_aten_fn = get_reduction_type_to_aten_fn()
 
-operator_to_string = {
-    '+': 'a',
-    '-': 'sub',
-    '*': 'm',
-    '/': 'd',
-    '(': 'l',
-    ')': 'r',
-    '.': 'p',
-}
-
-string_to_operator = {v: k for k, v in operator_to_string.items()}
+operator_to_string = TRITON_OPERATOR_MAPPING.operator_to_string
+string_to_operator = TRITON_OPERATOR_MAPPING.string_to_operator
 
 
 def map_operators_to_strings(expr_str: str):
-    expr_str = expr_str.replace(' ', '')
-    for op, string in operator_to_string.items():
-        expr_str = expr_str.replace(op, string)
-    return '_' + expr_str
+    return _map_operators_to_strings(expr_str, TRITON_OPERATOR_MAPPING)
 
 
 def map_strings_to_operators(expr_str: str):
-    for op, string in string_to_operator.items():
-        expr_str = expr_str.replace(op, string)
-    return expr_str[1:]
-
-
-class TracedGraph:
-    def __init__(self):
-        self.graph = torch.fx.Graph()
-        self.last_node: Optional[torch.fx.Node] = None
-        self.sym_nodes: Dict[str, torch.fx.Node] = {}
-
-    def __str__(self):
-        return str(self.graph)
-
-    def get_placeholder_names(self):
-        placeholder_names = set()
-        for node in self.graph.nodes:
-            if node.op == 'placeholder' and node.name not in self.sym_nodes:
-                placeholder_names.add(node.name)
-        return placeholder_names
-
-    __repr__ = __str__
-
-
-def create_fake_input(size, stride, device, dtype):
-    size = [V.graph.sizevars.shape_env.create_symintnode(s, hint=None) \
-                if isinstance(s, Expr) and not isinstance(s, Integer) else s for s in size]
-    stride = [V.graph.sizevars.shape_env.create_symintnode(s, hint=None) \
-                  if isinstance(s, Expr) and not isinstance(s, Integer) else s for s in stride]
-    with V.graph.fake_mode:
-        fake_input = torch.empty_strided(size, stride, device=device, dtype=dtype)
-    return fake_input
+    return _map_strings_to_operators(expr_str, TRITON_OPERATOR_MAPPING)
 
 
 def create_sym_inputs(traced_graph: TracedGraph, size: List[Expr]):
-    for s in size:
-        if isinstance(s, (List, Tuple)):
-            create_sym_inputs(traced_graph, s)
-            continue
-        if isinstance(s, Expr) and not isinstance(s, Integer):
-            s_name = str(s)
-            if not isinstance(s, Symbol):
-                s_name = map_operators_to_strings(s_name)
-            if s_name in traced_graph.sym_nodes:
-                continue
-            new_node = traced_graph.graph.placeholder(s_name)
-            new_node.meta['val'] = V.graph.sizevars.shape_env.create_symintnode(s, hint=None)
-            traced_graph.sym_nodes.update({s_name: new_node})
+    return _create_sym_inputs(traced_graph, size, TRITON_OPERATOR_MAPPING)
 
 
 def process_ir_constant(inp: ExpandView) -> Union[TracedGraph, int, float]:
-    skip = False
-    if isinstance(inp.data, IndexingConstant):
-        dtype = inp.data.dtype
-        inp = inp.data.index
-        # convert to original dtype.
-        if dtype in [torch.float32, torch.float16, torch.bfloat16]:
-            # sympy inputs
-            if isinstance(inp, Expr) and not isinstance(inp, sympy.core.numbers.Number):
-                traced_graph = TracedGraph()
-                create_sym_inputs(traced_graph, [inp])
-                s_name = str(inp)
-                if not isinstance(inp, Symbol):
-                    s_name = map_operators_to_strings(str(inp))
-                traced_graph.last_node = traced_graph.sym_nodes[s_name]
-                inp = traced_graph
-            else:
-                inp = float(inp)
-    elif isinstance(inp.data, ir.Constant):
-        dtype = inp.data.dtype
-        inp = inp.data.value
-    else:
-        skip = True
-    return inp, skip
+    return _process_ir_constant(inp, TRITON_OPERATOR_MAPPING)
 
 
 def fetch_graphs(inputs: Optional[List[TensorBox]]):
-    if isinstance(inputs, (TensorBox, ir.StorageBox, ir.View, sympy.Symbol, ir.Constant)):
-        inputs = [inputs]
-    input_graphs = []
-    for inp in inputs:
-        if isinstance(inp, List):
-            input_graphs.append(fetch_graphs(inp))
-            continue
-        if not isinstance(inp, (
-        TensorBox, ir.StorageBox, ir.View, ir.ReinterpretView, ir.PermuteView, ir.SliceView, ir.ExpandView)):
-            input_graphs.append(inp)
-            continue
-        if isinstance(inp, ExpandView):
-            inp, skip = process_ir_constant(inp)
-            if not skip:
-                input_graphs.append(inp)
-                continue
-        name = inp.get_name()
-        traced_graph = inp.get_traced_graph()
-        if traced_graph is not None:
-            input_graphs.append(traced_graph)
-            continue
-        traced_graph = TracedGraph()
-        device = inp.get_device()
-        dtype = inp.get_dtype()
-        size = inp.get_size()
-        stride = inp.get_stride()
-        new_node = traced_graph.graph.placeholder(name)
-        fake_input = create_fake_input(size, stride, device, dtype)
-        new_node.meta['val'] = fake_input
-        traced_graph.last_node = new_node
-        input_graphs.append(traced_graph)
-    return input_graphs
+    return _fetch_graphs(inputs, TRITON_OPERATOR_MAPPING, use_npu_meta=True)
 
 
 def merge_traced_graphs(input_graphs: List[TracedGraph], origin_fn, node_name, **kwargs):
-    new_graph = TracedGraph()
-    exist_nodes: Dict[str, torch.fx.Node] = {}
-
-    def merge_graph(input_graphs: List[TracedGraph]):
-        for input_graph in input_graphs:
-            if isinstance(input_graph, List):
-                merge_graph(input_graph)
-                continue
-            if not isinstance(input_graph, TracedGraph):
-                continue
-            for node in input_graph.graph.nodes:
-                if node.name in exist_nodes:
-                    continue
-                new_node = new_graph.graph.node_copy(node, lambda n: exist_nodes[n.name])
-                exist_nodes[node.name] = new_node
-                if node.name in input_graph.sym_nodes:
-                    new_graph.sym_nodes.update({node.name: new_node})
-
-    def parse_args(input_graphs, exist_nodes):
-        args = []
-        for input_graph in input_graphs:
-            if isinstance(input_graph, TracedGraph):
-                args.append(exist_nodes[input_graph.last_node.name])
-            elif isinstance(input_graph, (List, Tuple)):
-                args.append(parse_args(input_graph, exist_nodes))
-            else:
-                if isinstance(input_graph, Expr) and not isinstance(input_graph, Integer):
-                    if not isinstance(input_graph, Symbol):
-                        input_graph = map_operators_to_strings(str(input_graph))
-                    args.append(new_graph.sym_nodes[str(input_graph)])
-                else:
-                    args.append(input_graph)
-        return args
-
-    num_args = len(input_graphs)
-
-    for k, v in kwargs.items():
-        if isinstance(v, Expr) and not isinstance(v, Integer):
-            traced_graph = TracedGraph()
-            create_sym_inputs(traced_graph, [v])
-            s_name = str(v)
-            if not isinstance(v, Symbol):
-                s_name = map_operators_to_strings(str(v))
-            traced_graph.last_node = traced_graph.sym_nodes[s_name]
-            kwargs[k] = traced_graph.sym_nodes[s_name]
-            input_graphs.append(traced_graph)
-    merge_graph(input_graphs)
-    input_graphs = input_graphs[:num_args]
-    # if inputs do not have any valid graphs, like full/iota
-    create_sym_inputs(new_graph, input_graphs)
-    args = parse_args(input_graphs, exist_nodes)
-    with new_graph.graph.inserting_after(new_graph.last_node):
-        new_node = new_graph.graph.call_function(origin_fn, args=tuple(args), kwargs=kwargs)
-    new_node.name = node_name
-    new_graph.last_node = new_node
-    return new_graph
-
-
-def merge_fx_graphs(traced_graphs: List[TracedGraph]):
-    new_graph = TracedGraph()
-    exist_nodes: Dict[str, torch.fx.Node] = {}
-    last_nodes = []
-
-    def merge_graph(input_graphs: List[TracedGraph]):
-        for input_graph in input_graphs:
-            if isinstance(input_graph, List):
-                merge_graph(input_graph)
-                continue
-            if not isinstance(input_graph, TracedGraph):
-                continue
-            for node in input_graph.graph.nodes:
-                if node.name in exist_nodes:
-                    continue
-                new_node = new_graph.graph.node_copy(node, lambda n: exist_nodes[n.name])
-                exist_nodes[node.name] = new_node
-            last_nodes.append(exist_nodes[input_graph.last_node.name])
-
-    merge_graph(traced_graphs)
-    new_graph.last_node = last_nodes
-    return new_graph
-
-
-def subtract_graph(graph1: TracedGraph, graph2: TracedGraph, node_name=None) -> Tuple[TracedGraph, torch.fx.Node]:
-    new_graph = TracedGraph()
-    last_node2 = graph2.last_node
-    graph1_node_names = {node.name for node in graph1.graph.nodes}
-    graph2_node_names = {node.name for node in graph2.graph.nodes}
-    placeholder = None
-    exist_nodes: Dict[str, torch.fx.Node] = {}
-    if node_name not in graph1_node_names:
-        placeholder = new_graph.graph.placeholder(last_node2.name if node_name is None else node_name)
-        exist_nodes[last_node2.name] = placeholder
-    for node in graph1.graph.nodes:
-        if node.name in graph2_node_names and node.name not in graph1.sym_nodes:
-            continue
-        new_node = new_graph.graph.node_copy(node, lambda n: exist_nodes[n.name])
-        exist_nodes[node.name] = new_node
-    new_graph.last_node = exist_nodes[graph1.last_node.name]
-    new_graph.sym_nodes = graph1.sym_nodes
-    return new_graph, placeholder
+    return _merge_traced_graphs(
+        input_graphs, origin_fn, node_name, TRITON_OPERATOR_MAPPING, **kwargs
+    )
 
 
 def get_last_node(gm: torch.fx.GraphModule):
@@ -754,6 +549,49 @@ def clone(x, *, memory_format=None):
 
 def _register_npu_inductor_fallbacks_fx(make_reduction):
 
+    def make_reduction(reduction_type: str, override_return_dtype=None):
+        def inner(x, axis=None, keepdims=False, *, dtype=None):
+            kwargs = _make_reduction_inner(
+                x,
+                axis=axis,
+                keepdims=keepdims,
+                dtype=dtype,
+                override_return_dtype=override_return_dtype,
+            )
+            node_name = f'reduction_{next(node_id)}'
+            input_graphs = fetch_graphs([x, axis if axis is not None else list(range(len(x.get_size())))])
+            new_graph = merge_traced_graphs(input_graphs, reduction_type_to_aten_fn[reduction_type],
+                                            node_name, keepdim=keepdims)
+
+            result = Reduction.create(reduction_type=reduction_type,
+                                      input_node=x,
+                                      node_name=node_name,
+                                      traced_graph=new_graph,
+                                      **kwargs)
+            if isinstance(
+                    result.data.data, Reduction
+            ):
+                # Only realize if reduction isn't unrolled
+                size = x.get_size()
+                axis = set(lowering._validate_reduction_axis(x, axis))
+                kept_idx = []
+                reduced_idx = []
+                for i in range(len(size)):
+                    if i in axis:
+                        reduced_idx.append(i)
+                    else:
+                        kept_idx.append(i)
+
+                object.__setattr__(result.data.data, "kept_idx", kept_idx)
+                object.__setattr__(result.data.data, "reduced_idx", reduced_idx)
+
+                result.realize()
+            return result
+
+        return inner
+
+    lowering.make_reduction = make_reduction
+
     def transform_args(
             args: List[Any],
             kwargs: Dict[str, Any],
@@ -890,50 +728,6 @@ def _register_npu_inductor_fallbacks_fx(make_reduction):
             type_promotion_kind=type_promotion_kind,
             convert_input_to_bool=convert_input_to_bool,
         )
-
-
-    def make_reduction(reduction_type: str, override_return_dtype=None):
-        def inner(x, axis=None, keepdims=False, *, dtype=None):
-            kwargs = _make_reduction_inner(
-                x,
-                axis=axis,
-                keepdims=keepdims,
-                dtype=dtype,
-                override_return_dtype=override_return_dtype,
-            )
-            node_name = f'reduction_{next(node_id)}'
-            input_graphs = fetch_graphs([x, axis if axis is not None else list(range(len(x.get_size())))])
-            new_graph = merge_traced_graphs(input_graphs, reduction_type_to_aten_fn[reduction_type],
-                                            node_name, keepdim=keepdims)
-
-            result = Reduction.create(reduction_type=reduction_type,
-                                      input_node=x,
-                                      node_name=node_name,
-                                      traced_graph=new_graph,
-                                      **kwargs)
-            if isinstance(
-                    result.data.data, Reduction
-            ):
-                # Only realize if reduction isn't unrolled
-                size = x.get_size()
-                axis = set(lowering._validate_reduction_axis(x, axis))
-                kept_idx = []
-                reduced_idx = []
-                for i in range(len(size)):
-                    if i in axis:
-                        reduced_idx.append(i)
-                    else:
-                        kept_idx.append(i)
-
-                object.__setattr__(result.data.data, "kept_idx", kept_idx)
-                object.__setattr__(result.data.data, "reduced_idx", reduced_idx)
-
-                result.realize()
-            return result
-
-        return inner
-
-    lowering.make_reduction = make_reduction
 
 
     @register_lowering(prims.convert_element_type, type_promotion_kind=None)
@@ -1074,9 +868,9 @@ def _register_npu_inductor_fallbacks_fx(make_reduction):
             return TensorBox(SqueezeView.create(x.data))
 
         dim = (
-            V.graph.sizevars.evaluate_static_shape(dim)
+            V.graph.sizevars.guard_int(dim)
             if isinstance(dim, (int, sympy.Expr))
-            else tuple(V.graph.sizevars.evaluate_static_shape(d) for d in dim)
+            else tuple(V.graph.sizevars.guard_int(d) for d in dim)
         )
         dim = canonicalize_dims(len(x.get_size()), dim)  # type: ignore[call-overload]
         dims = set((dim,) if not isinstance(dim, tuple) else dim)
@@ -2145,7 +1939,6 @@ def _register_npu_inductor_fallbacks_fx(make_reduction):
     register_inplace(aten.__ixor__, aten.__xor__)
 
     ##########################################################################
-
     @register_lowering([aten.sum, prims.sum])
     def sum_(x, axis=None, keepdims=False, *, dtype=None):
         if (

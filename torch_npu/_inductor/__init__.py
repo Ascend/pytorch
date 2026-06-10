@@ -4,14 +4,13 @@ import os
 from .codegen.common import register_device_op_overrides_npu, patch_cache_base_get_system
 from .graph import patch_codegen_with_cpp_wrapper
 from .utils import patch_has_triton, patch_device_supports_tma, patch_is_gpu, get_current_raw_stream
-from torch._inductor.lowering import make_fallback as _ori_make_fallback
+
 register_device_op_overrides_npu()
 patch_has_triton()
 patch_is_gpu()
 patch_device_supports_tma()
 patch_codegen_with_cpp_wrapper()
 patch_cache_base_get_system()
-
 
 def _get_backend() -> str:
     return os.getenv("TORCHINDUCTOR_NPU_BACKEND", "default")
@@ -23,9 +22,15 @@ def _load_mlir_backend():
         from torch_mlir import ir
     except ImportError as err:
         raise ImportError("torch_mlir is not installed, install it first.") from err
-    global _ori_make_fallback
-    torch._inductor.lowering.make_fallback = _ori_make_fallback
-    from .ascend_npu_ir.ascend_npu_ir.npu import npu_inductor_plugin
+    from .ascend_npu_ir.ascend_npu_ir.npu import npu_inductor_plugin, torch_mlir_patch
+    from .lowering_patch import apply_mlir_inductor_patch
+    from .ascend_npu_ir.ascend_npu_ir.npu.npu_inductor_plugin import (
+        register_mlir_codegen_backend,
+    )
+
+    apply_mlir_inductor_patch()
+    register_mlir_codegen_backend()
+
 def _load_triton_backend():
     import os
     import torch
@@ -82,7 +87,10 @@ def _load_triton_backend():
         from .cpp_builder import patch_get_cpp_torch_device_options
         from .fx_passes.joint_graph import patch_constant_fold_uniform_value
         from .graph import patch_codegen_with_cpp_wrapper
-        from .ir import patch_fallback_kernel_codegen
+        from .ir import (
+            patch_extern_kernel_codegen_size_asserts,
+            patch_fallback_kernel_codegen,
+        )
         from .utils import patch_is_same_tensor
 
         patch_codegen_with_cpp_wrapper()
@@ -91,9 +99,6 @@ def _load_triton_backend():
         patch_is_same_tensor()
         patch_constant_fold_uniform_value()
         patch_fallback_kernel_codegen()
-
-        from .ir import patch_extern_kernel_codegen_size_asserts
-
         patch_extern_kernel_codegen_size_asserts()
 
         patch_aot_code_compiler_compile()
@@ -136,6 +141,7 @@ def _load_triton_backend():
     InductorChoices.should_use_persistent_reduction = should_use_persistent_reduction
     autotune_cache._load_cached_autotuning = _load_cached_autotuning
 
+
     register_fa_pass()
     disable_foreach()
     patch_fx_node_is_input_dependent_cudagraph_unsafe()
@@ -151,6 +157,11 @@ _BACKEND_LOADERS = {
 
 
 def _load_backend():
+    from .lowering_patch import restore_inductor_baseline
+
+    # Reset Inductor globals before each backend switch (mlir <-> triton in one process).
+    restore_inductor_baseline()
+
     backend = _get_backend()
     loader = _BACKEND_LOADERS.get(backend, _load_triton_backend)
     loader()
