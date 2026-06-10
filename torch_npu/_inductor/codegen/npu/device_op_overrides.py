@@ -1,8 +1,13 @@
 from torch._inductor.codegen.common import DeviceOpOverrides, register_device_op_overrides
+import torch_npu
+from torch_npu._inductor.codegen.catlass.catlass_utils import try_import_catlass
 
 
 class NewNPUDeviceOpOverrides(DeviceOpOverrides):
     def import_get_raw_stream_as(self, name):
+        enabled_catlass = try_import_catlass()
+        if not enabled_catlass and hasattr(torch_npu._C, "_npu_getCurrentRawStreamNoWait"):
+            return f"from torch_npu._C import _npu_getCurrentRawStreamNoWait as {name}"
         return f"from torch_npu._C import _npu_getCurrentRawStream as {name}"
 
     def set_device(self, device_idx):
