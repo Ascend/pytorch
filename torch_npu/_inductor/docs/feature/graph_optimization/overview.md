@@ -3,16 +3,18 @@
 ## 图优化特性简介
 
 在CANN（华为计算加速网络）异构计算架构中支持多种AI框架。该架构基于开源的PyTorch，并通过torch_npu适配昇腾AI处理器。torch_npu 利用 PyTorch 中的 Inductor 编译器能力，实现模型的加速编译。由于开源 PyTorch 对昇腾的适配性较弱，且对不同模型的图优化能力不足，需要通过自定义的优化 pass（优化步骤）来增强图优化能力，从而进一步提升模型性能。
+
 ![Alt text](image.png)
+
 当前pass主要应用在模型推理过程中，pre/post两个图优化阶段，包含pass如下所示
 
-```plaintext
+```text
 # pre
 cat_slice_cat_fold_pass
 pad_slice_fold
 ```
 
-```plaintext
+```text
 # post
 fold_four_op_pass
 fold_cast
@@ -29,6 +31,14 @@ view_fold_pass
 fold_where
 fold_redundant_ops
 dtype_optimal_pass
+cat_to_view_pass
+repeat_to_expand_pass
+fold_iota_arithmetic_pass
+broadcast_const_mask_compress
+masked_add_compose_pass
+bool_cast_mul_to_where_pass
+sign_diff_hamming_fuse_pass
+batch_embedding_fusion_pass
 ```
 
 ## 图优化特性使用示例
@@ -39,7 +49,7 @@ dtype_optimal_pass
 - 机器配备 Ascend NPU 并已正确安装驱动和运行时环境。
 - 确认 PyTorch 版本 >= 2.0，以支持 `torch.compile`。
 
-```plaintext
+```python
 import torch
 from torch._dynamo.testing import rand_strided
 import torch_npu
@@ -67,15 +77,23 @@ with torch.no_grad():
 
 在编译执行的过程中，将inductor日志级别设置为DEBUG(export INDUCTOR_ASCEND_LOG_LEVEL=DEBUG)，出现如下打印即为pass生效：
 
-```plaintext
+```python
 # 设置 inductor 日志级别以便观察 pass 生效情况
 import os
 os.environ["INDUCTOR_ASCEND_LOG_LEVEL"] = "INFO"
 import torch
 ```
 
-```plaintext
+```text
 # 编译器pass生效日志
+DEBUG - Registering function cat_to_view_pass from module torch_npu._inductor.fx_passes.ascend_custom_passes.ascend_graph_pass with pass_type=PassType.POST, fx_pass_level=FxPassLevel.LEVEL1
+DEBUG - Registering function repeat_to_expand_pass from module torch_npu._inductor.fx_passes.ascend_custom_passes.ascend_graph_pass with pass_type=PassType.POST, fx_pass_level=FxPassLevel.LEVEL1
+DEBUG - Registering function fold_iota_arithmetic_pass from module torch_npu._inductor.fx_passes.ascend_custom_passes.ascend_graph_pass with pass_type=PassType.POST, fx_pass_level=FxPassLevel.LEVEL1
+DEBUG - Registering function broadcast_const_mask_compress from module torch_npu._inductor.fx_passes.ascend_custom_passes.ascend_graph_pass with pass_type=PassType.POST, fx_pass_level=FxPassLevel.LEVEL1
+DEBUG - Registering function masked_add_compose_pass from module torch_npu._inductor.fx_passes.ascend_custom_passes.ascend_graph_pass with pass_type=PassType.POST, fx_pass_level=FxPassLevel.LEVEL1
+DEBUG - Registering function bool_cast_mul_to_where_pass from module torch_npu._inductor.fx_passes.ascend_custom_passes.ascend_graph_pass with pass_type=PassType.POST, fx_pass_level=FxPassLevel.LEVEL1
+DEBUG - Registering function sign_diff_hamming_fuse_pass from module torch_npu._inductor.fx_passes.ascend_custom_passes.ascend_graph_pass with pass_type=PassType.POST, fx_pass_level=FxPassLevel.LEVEL1
+DEBUG - Registering function batch_embedding_fusion_pass from module torch_npu._inductor.fx_passes.ascend_custom_passes.ascend_graph_pass with pass_type=PassType.POST, fx_pass_level=FxPassLevel.LEVEL1
 DEBUG - Registering function cat_slice_cat_fold_pass from module torch_npu._inductor.fx_passes.ascend_custom_passes.ascend_graph_pass with pass_type=PassType.PRE, fx_pass_level=FxPassLevel.LEVEL1
 DEBUG - Registering function pad_slice_fold from module torch_npu._inductor.fx_passes.ascend_custom_passes.ascend_graph_pass with pass_type=PassType.PRE, fx_pass_level=FxPassLevel.LEVEL1
 DEBUG - Registering function fold_four_op_pass from module torch_npu._inductor.fx_passes.ascend_custom_passes.ascend_graph_pass with pass_type=PassType.POST, fx_pass_level=FxPassLevel.LEVEL1
@@ -99,7 +117,7 @@ DEBUG - Registering function dtype_optimal_pass from module torch_npu._inductor.
 
 当前图优化特性提供了多个图优化pass，经过优化的图，以 pad_slice_fold pass为例， 在优化前和优化后的代码如下所示：
 
-```plaintext
+```python
 # 优化前
 def op_calc(self, t1):
     inputPad = torch._C._nn.pad(t1, [0, 0, 0, 50], "constant", 0.0)
@@ -108,7 +126,7 @@ def op_calc(self, t1):
     return output
 ```
 
-```plaintext
+```python
 # 优化后
 def op_calc(self, t1):
     inputSlice = t1[:50, :]
