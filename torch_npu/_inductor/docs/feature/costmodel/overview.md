@@ -2,7 +2,7 @@
 
 ## 概述
 
-面向A5+PyTorch-v2.7.1，Inductor-Ascend在Triton后端precompile阶段提供CostModel预筛选能力。该能力通过Triton-Ascend CostModel后端对候选config进行静态性能预测，并将预测耗时较短的config优先送入后续编译和实测profiling流程，从而降低候选config数量较多时的首次编译开销。
+面向A5+PyTorch-v2.9.0，Inductor-Ascend在Triton后端precompile阶段提供CostModel预筛选能力。该能力通过Triton-Ascend CostModel后端对候选config进行静态性能预测，并将预测耗时较短的config优先送入后续编译和实测profiling流程，从而降低候选config数量较多时的首次编译开销。
 
 CostModel适用于自动Tiling产生大量候选config的融合算子。它不改变算子计算语义，也不直接决定最终运行时使用的kernel。最终可用config仍会经过precompile校验，后续autotune流程会继续基于实际编译和profiling结果完成选择。
 
