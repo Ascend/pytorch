@@ -78,10 +78,10 @@ class PathManager:
         cls.check_path_owner_consistent(path)
         if os.path.islink(path):
             msg = f"Invalid path is a soft chain: {path}"
-            raise RuntimeError(msg + pta_error(ErrCode.UNAVAIL))
+            warnings.warn(msg)
         if not os.access(path, os.W_OK):
             msg = f"The path permission check failed: {path}"
-            raise RuntimeError(msg + pta_error(ErrCode.PERMISSION))
+            warnings.warn(msg)
 
     @classmethod
     def check_directory_path_readable(cls, path):
@@ -96,16 +96,16 @@ class PathManager:
         cls.check_path_owner_consistent(path)
         if os.path.islink(path):
             msg = f"Invalid path is a soft chain: {path}"
-            raise RuntimeError(msg + pta_error(ErrCode.UNAVAIL))
+            warnings.warn(msg)
         if not os.access(path, os.R_OK):
             msg = f"The path permission check failed: {path}"
-            raise RuntimeError(msg + pta_error(ErrCode.PERMISSION))
+            warnings.warn(msg)
 
     @classmethod
     def remove_path_safety(cls, path: str):
         msg = f"Failed to remove path: {path}"
         if os.path.islink(path):
-            raise RuntimeError(msg + pta_error(ErrCode.UNAVAIL))
+            warnings.warn(msg)
         if not os.path.exists(path):
             return
         try:
@@ -119,7 +119,7 @@ class PathManager:
     def remove_file_safety(cls, file: str):
         msg = f"Failed to remove file: {file}"
         if os.path.islink(file):
-            raise RuntimeError(msg)
+            warnings.warn(msg)
         if not os.path.exists(file):
             return
         try:
@@ -133,7 +133,7 @@ class PathManager:
     def make_dir_safety(cls, path: str):
         msg = f"Failed to make directory: {path}"
         if os.path.islink(path):
-            raise RuntimeError(msg + pta_error(ErrCode.UNAVAIL))
+            warnings.warn(msg)
         if os.path.exists(path):
             return
         try:
@@ -145,7 +145,7 @@ class PathManager:
     def create_file_safety(cls, path: str):
         msg = f"Failed to create file: {path}"
         if os.path.islink(path):
-            raise RuntimeError(msg + pta_error(ErrCode.UNAVAIL))
+            warnings.warn(msg)
         if os.path.exists(path):
             return
         try:
@@ -156,21 +156,21 @@ class PathManager:
     @classmethod
     def _input_path_common_check(cls, path: str):
         if len(path) > cls.MAX_PATH_LENGTH:
-            raise RuntimeError("Length of input path exceeds the limit." + pta_error(ErrCode.PARAM))
+            warnings.warn("Length of input path exceeds the limit.")
 
         if os.path.islink(path):
             msg = f"Invalid input path is a soft chain: {path}"
-            raise RuntimeError(msg + pta_error(ErrCode.UNAVAIL))
+            warnings.warn(msg)
 
         pattern = r'(\.|/|_|-|\s|[~0-9a-zA-Z]|[\u4e00-\u9fa5])+'
         if not re.fullmatch(pattern, path):
             msg = f"Invalid input path: {path}"
-            raise RuntimeError(msg + pta_error(ErrCode.PARAM))
+            warnings.warn(msg)
 
         path_split_list = path.split("/")
         for name in path_split_list:
             if len(name) > cls.MAX_FILE_NAME_LENGTH:
-                raise RuntimeError("Length of input path exceeds the limit." + pta_error(ErrCode.PARAM))
+                warnings.warn("Length of input path exceeds the limit.")
 
     @classmethod
     def check_path_is_readable(cls, path: str):
