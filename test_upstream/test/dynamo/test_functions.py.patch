@@ -1,0 +1,24 @@
+diff --git a/test/dynamo/test_functions.py b/test/dynamo/test_functions.py
+index 8ad4d2f..4dc258b 100644
+--- a/test/dynamo/test_functions.py
++++ b/test/dynamo/test_functions.py
+@@ -4989,7 +4989,7 @@ class DefaultsTests(torch._dynamo.test_case.TestCaseWithNestedGraphBreaks):
+ 
+         opt_fn = torch.compile(fn, backend="eager", fullgraph=True)
+ 
+-        x = [torch.randn(4), [torch.randn(4), torch.randn(4)]]
++        x = [torch.randn(4).npu(), [torch.randn(4).npu(), torch.randn(4).npu()]]
+ 
+         def f(y):
+             return y * 2
+@@ -5001,8 +5001,8 @@ class DefaultsTests(torch._dynamo.test_case.TestCaseWithNestedGraphBreaks):
+         self.assertTrue(type(ref) is type(res))
+ 
+         x = {
+-            "a": torch.randn(4),
+-            "b": [torch.randn(4), torch.randn(4)],
++            "a": torch.randn(4).npu(),
++            "b": [torch.randn(4).npu(), torch.randn(4).npu()],
+         }
+         ref = fn(x, f)
+         res = opt_fn(x, f)
