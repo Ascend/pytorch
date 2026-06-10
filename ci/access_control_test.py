@@ -198,6 +198,9 @@ if __name__ == "__main__":
     else:
         test_mgr.load_core_ut()
     test_mgr.exclude_test_files(not_run_files=NOT_RUN_DIRECTLY, mode="not_run_directly")
+    common_files = str(BASE_DIR / 'common_files.txt')
+    if os.path.exists(common_files):
+        test_mgr.exclude_files_from_list(common_files)
 
     if options.rank > 0 and options.world_size > 0:
         test_mgr.split_test_files(options.rank, options.world_size)
