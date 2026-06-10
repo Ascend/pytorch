@@ -1,5 +1,6 @@
 import torch
 from torch._higher_order_ops.triton_kernel_wrap import triton_kernel_wrapper_mutation
+from torch._inductor.fx_passes.control_dependencies import control_deps
 from torch_npu import npu_dtype_cast, _npu_dtype_cast
 
 aten = torch.ops.aten
@@ -7,6 +8,7 @@ tr_c10d = torch.ops.tr_c10d
 prims = torch.ops.prims
 
 GENERATE_LIST = [
+    control_deps,
     prims.iota,
     prims.device_put,
     aten.full,
