@@ -961,7 +961,7 @@ def _patch_Reduction_create_multilayer(
     recursively
     """
     reduction_numel = ir.sympy_product(reduction_ranges)
-    block_size = ir.FloorDiv(reduction_numel  (split - 1), split)
+    block_size = ir.FloorDiv(reduction_numel + (split - 1), split)
     default = cls.default_value(reduction_type, dst_dtype)
     wrapper_fn = cls._multilayer_wrap_loader(
         inner_fn, reduction_ranges, reduction_numel, split, block_size, default
