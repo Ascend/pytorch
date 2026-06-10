@@ -1,5 +1,6 @@
 import logging
 import os
+from functools import cache
 from typing import Any
 
 import torch
@@ -43,6 +44,14 @@ def _ensure_mfusion_inductor_decomp_patches() -> None:
         logger.exception("Failed to apply MFusion Inductor decomposition patches.")
         raise
     _mfusion_inductor_decomp_patches_applied = True
+
+
+@cache
+def _warn_mfusion_akg_fallback_once() -> None:
+    logger.warning(
+        "MFusion AKG codegen is not supported currently; "
+        "falling back to DVM codegen for fused subgraphs."
+    )
 
 
 def _configure_mfusion_logger() -> None:
@@ -487,11 +496,14 @@ def _define_mfusion_akg_kernel(self, mlir: str, num_outputs: int, is_dynamic: bo
 def _emit_mfusion_akg_codegen(
     self, fallback_kernel, args, sub_gm: GraphModule, payload
 ) -> None:
-    # payload is already passed in from caller
-    mlir = payload.mlir
-    if not mlir:
-        raise RuntimeError("mfusion custom_op has no mlir string input")
+    raise RuntimeError(
+        "mfusion AKG codegen through the legacy MLIR attribute path has been disabled. "
+        "AKG should be re-enabled after it is migrated to FX graph codegen."
+    )
 
+    # Legacy MLIR attribute AKG path is kept here but intentionally unreachable.
+    # The fused subgraph is now carried through Payload.fx_gm only.
+    mlir = ""
     # Ref: torch._inductor.codegen.wrapper generate_extern_kernel_alloc
     # outputs are inferred from fallback kernel layout
     output_layouts = _normalize_output_layouts(fallback_kernel.layout)
@@ -649,9 +661,8 @@ def _mfusion_generate_fallback_kernel(self, fallback_kernel) -> None:
 
         use_akg = os.getenv("TORCHINDUCTOR_USE_AKG", "0") == "1"
         if use_akg:
-            _emit_mfusion_akg_codegen(self, fallback_kernel, args, sub_gm, payload)
-        else:
-            _emit_mfusion_dvm_codegen(self, fallback_kernel, args, sub_gm, payload)
+            _warn_mfusion_akg_fallback_once()
+        _emit_mfusion_dvm_codegen(self, fallback_kernel, args, sub_gm, payload)
     finally:
         try:
             subgraph_registry.pop(subgraph_name)

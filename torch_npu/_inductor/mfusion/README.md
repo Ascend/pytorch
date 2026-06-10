@@ -8,7 +8,7 @@ MFusion 包含如下核心组件：
 | ----------------- | -------------- | ------------------------------------------------------------------------------ |
 | graph_fusion      | 核心融合引擎   | 负责 FX Graph 的子图提取、MLIR 转换与融合算子生成，支持动态 shape 和静态图场景 |
 | fx_mlir_converter | FX-MLIR 转换器 | 将 FX Graph 转换为 MLIR 中间表示，保留算子语义并生成融合算子                   |
-| subgraph_registry | 子图注册表     | 管理融合子图的元数据，包括 FX GraphModule、MLIR 代码和动态/静态标记            |
+| subgraph_registry | 子图注册表     | 管理融合子图的元数据，包括 FX GraphModule 和动态/静态标记                      |
 | decomp            | 算子分解       | 提供 Inductor 融合前的算子预处理，确保融合路径的正确性                         |
 
 # 使用指导

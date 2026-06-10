@@ -457,14 +457,9 @@ class FxExporter:
         if target_name.startswith("torch.mfusion_opaque."):
             self._process_opaque_operator(op, target_name)
             return
-        has_mlir_attr = "mfusion.subgraph_mlir" in op.attributes
         has_dynamic_attr = "mfusion.is_dynamic" in op.attributes
         has_subgraph_symbol = "subgraph" in op.attributes
-        if has_mlir_attr or has_dynamic_attr:
-            if not (has_mlir_attr and has_dynamic_attr):
-                raise ValueError(
-                    f"Operator {target_name} missing required mfusion attributes"
-                )
+        if has_dynamic_attr:
             mapped_operands = [self.value_map[arg] for arg in op.operands]
             if not mapped_operands:
                 raise ValueError(f"Operator {target_name} missing operands")
@@ -519,7 +514,7 @@ class FxExporter:
         """Register torch.operator target from a plain `subgraph = @sym` reference.
 
         This path is intentionally lightweight and used when operator carries only
-        a symbol reference (without mfusion.subgraph_mlir / mfusion.is_dynamic).
+        a symbol reference (without mfusion.is_dynamic).
         It keeps fx_mlir_converter roundtrip tests runnable in eager backends.
         """
         if self.module is None:
@@ -610,20 +605,6 @@ class FxExporter:
                 f"Operator {target_name} missing non-empty subgraph_name operand"
             )
 
-        if "mfusion.subgraph_mlir" in op.attributes:
-            subgraph_mlir_attr = op.attributes["mfusion.subgraph_mlir"]
-        else:
-            subgraph_mlir_attr = None
-        if subgraph_mlir_attr is None:
-            raise ValueError(
-                f"Operator {target_name} missing 'subgraph_mlir' attribute"
-            )
-        subgraph_mlir = subgraph_mlir_attr.value
-        if not isinstance(subgraph_mlir, str) or not subgraph_mlir.strip():
-            raise ValueError(
-                f"Operator {target_name} has empty 'subgraph_mlir' attribute"
-            )
-
         if "mfusion.is_dynamic" in op.attributes:
             is_dynamic_attr = op.attributes["mfusion.is_dynamic"]
         else:
@@ -668,7 +649,6 @@ class FxExporter:
 
         payload = subgraph_registry.Payload(
             fx_gm=sub_gm,
-            mlir=subgraph_mlir,
             is_dynamic=is_dynamic,
             torch_name=target_name,
             full_op_name=full_op_name,
