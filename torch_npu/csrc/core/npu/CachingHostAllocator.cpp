@@ -180,7 +180,7 @@ public:
 
     bool pinned_use_background_threads() override
     {
-        return c10_npu::NPUCachingAllocator::CachingAllocatorConfig::pinned_use_background_threads();
+        return c10_npu::NPUCachingAllocator::NPUAllocatorConfig::pinned_use_background_threads();
     }
 
     virtual void resetHostAccumulatedStats()
@@ -234,7 +234,7 @@ private:
             cfg.attrs = attributes;
 
             aclError mallocError = c10_npu::acl::AclrtMallocHostWithCfg(ptr, size, &cfg);
-            bool pinned_mem_register = c10_npu::NPUCachingAllocator::CachingAllocatorConfig::pinned_mem_register();
+            bool pinned_mem_register = c10_npu::NPUCachingAllocator::NPUAllocatorConfig::pinned_mem_register();
             // if feature not support, then fall back to the old logic
             if (ACL_ERROR_RT_FEATURE_NOT_SUPPORT == mallocError) {
                 va_feature_support = false;
@@ -1246,7 +1246,7 @@ struct NPUCachingHostAllocator final
     void setAllocator()
     {
         std::call_once(init_config, [this] {
-            if (c10_npu::NPUCachingAllocator::CachingAllocatorConfig::pin_memory_expandable_segments()) {
+            if (c10_npu::NPUCachingAllocator::NPUAllocatorConfig::pin_memory_expandable_segments()) {
                 impl_ = std::unique_ptr(std::move(expandableHostAllocatorImpl));
             } else {
                 impl_ = std::unique_ptr(std::move(cachingHostAllocatorImpl));

@@ -1,13 +1,16 @@
+#include <mutex>
 #include <set>
 #include <string>
 
 #include <c10/core/AllocatorConfig.h>
 #include <c10/util/Deprecated.h>
+#include <c10/util/env.h>
 
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "torch_npu/csrc/core/npu/GetCANNInfo.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/NPUAllocatorConfig.h"
+#include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 
 namespace c10_npu {
 namespace NPUCachingAllocator {
@@ -25,124 +28,92 @@ bool isDigit(std::string str)
     });
 }
 
-void NPUAllocatorConfig::parseArgs(const std::string& env)
+NPUAllocatorConfig& NPUAllocatorConfig::instance()
 {
-    c10::CachingAllocator::ConfigTokenizer tokenizer(env);
-    for (size_t i = 0; i < tokenizer.size(); ++i) {
-        const auto& key = tokenizer[i];
-        if (key == "pinned_reserve_segment_size_mb") {
-            i = parsePinnedReserveSegmentSize(tokenizer, i);
+    static NPUAllocatorConfig s_instance;
+    static std::once_flag s_init_flag;
+
+    std::call_once(s_init_flag, []() {
+        auto env = c10::utils::get_env("PYTORCH_NPU_ALLOC_CONF");
+        if (!env.has_value()) {
+            env = c10::utils::get_env("PYTORCH_ALLOC_CONF");
         } else {
-            // unrecognized token, we currently do not warn here until all NPUCachingAllocaotr config move here
-            i = tokenizer.skipKey(i);
+            // If PYTORCH_NPU_ALLOC_CONF is set, assign its value to PYTORCH_ALLOC_CONF,
+            // because the AcceleratorAllocatorConfig parses PYTORCH_ALLOC_CONF.
+            TORCH_NPU_MEMORY_LOGI("Set PYTORCH_ALLOC_CONF to PYTORCH_NPU_ALLOC_CONF value.");
+            c10::utils::set_env("PYTORCH_ALLOC_CONF", env.value().c_str(), true);
         }
-
-        if (i+1 < tokenizer.size()) {
-            tokenizer.checkToken(++i, ",");
+        if (!env.has_value()) {
+            TORCH_NPU_MEMORY_LOGI("PYTORCH_NPU_ALLOC_CONF and PYTORCH_ALLOC_CONF not setted, use default configuration.");
+            return;
         }
-    }
-}
-
-size_t NPUAllocatorConfig::parsePinnedReserveSegmentSize(
-    const c10::CachingAllocator::ConfigTokenizer& tokenizer,
-    size_t i)
-{
-    tokenizer.checkToken(++i, ":");
-    size_t val = tokenizer.toSizeT(++i);
-    m_pinned_reserve_segment_size_mb = val;
-    return i;
-}
-
-void CachingAllocatorConfig::lexArgs(const char *env, std::vector<std::string> &config)
-{
-    std::vector<char> buf;
-
-    size_t env_length = strlen(env);
-    for (size_t i = 0; i < env_length; i++) {
-        if (env[i] == ',' || env[i] == ':' || env[i] == '[' || env[i] == ']') {
-            if (!buf.empty()) {
-                config.emplace_back(buf.begin(), buf.end());
-                buf.clear();
-            }
-            config.emplace_back(1, env[i]);
-        } else if (env[i] != ' ') {
-            buf.emplace_back(static_cast<char>(env[i]));
-        }
-    }
-    if (!buf.empty()) {
-        config.emplace_back(buf.begin(), buf.end());
-    }
-}
-
-void CachingAllocatorConfig::consumeToken(const std::vector<std::string> &config, size_t i, const char c)
-{
-    TORCH_CHECK(i < config.size() && config[i].compare(std::string(1, c)) == 0,
-        "Error parsing CachingAllocator settings, expected ", c, PTA_ERROR(ErrCode::PARAM));
-}
-
-size_t CachingAllocatorConfig::parseMaxSplitSize(const std::vector<std::string> &config, size_t i)
-{
-    consumeToken(config, ++i, ':');
-    if (++i < config.size()) {
-        TORCH_CHECK(isDigit(config[i]), "CachingAllocator option max_split_size_mb is invalid.");
-        size_t val1 = static_cast<size_t>(stoi(config[i]));
-        TORCH_CHECK(val1 > kLargeBuffer / (1024 * 1024),
-            "CachingAllocator option max_split_size_mb too small, must be > ", kLargeBuffer / (1024 * 1024),
-            PTA_ERROR(ErrCode::VALUE));
-        val1 = std::max(val1, kLargeBuffer / (1024 * 1024));
-        val1 = std::min(val1, (std::numeric_limits<size_t>::max() / (1024 * 1024)));
-        m_max_split_size = val1 * 1024 * 1024;
-    } else {
-        TORCH_CHECK(false, "Error, expecting max_split_size_mb value", PTA_ERROR(ErrCode::PARAM));
-    }
-    return i;
-}
-
-size_t CachingAllocatorConfig::parseGarbageCollectionThreshold(const std::vector<std::string> &config, size_t i)
-{
-    consumeToken(config, ++i, ':');
-    if (++i < config.size()) {
-        double val1 = stod(config[i]);
-        TORCH_CHECK(val1 > 0, "garbage_collect_threshold too small, set it 0.0~1.0", PTA_ERROR(ErrCode::VALUE));
-        TORCH_CHECK(val1 < 1.0, "garbage_collect_threshold too big, set it 0.0~1.0", PTA_ERROR(ErrCode::VALUE));
-        m_garbage_collection_threshold = val1;
-    } else {
-        TORCH_CHECK(false, "Error, expecting garbage_collection_threshold value", PTA_ERROR(ErrCode::VALUE));
-    }
-    return i;
-}
-
-size_t CachingAllocatorConfig::parseExpandableSegments(const std::vector<std::string> &config, size_t i)
-{
-    consumeToken(config, ++i, ':');
-    if (++i < config.size()) {
-        TORCH_CHECK(i < config.size() && (config[i] == "True" || config[i] == "False"),
-            "Expected a single True/False argument for expandable_segments", PTA_ERROR(ErrCode::PARAM));
-        m_expandable_segments = (config[i] == "True");
-        if (m_expandable_segments) {
+        TORCH_NPU_MEMORY_LOGI("Get alloc conf env: %s", env.value().c_str());
+        auto& accAllocConfIns = c10::CachingAllocator::AcceleratorAllocatorConfig::instance();
+        // Updating status of the AcceleratorAllocatorConfig instance is very important
+        accAllocConfIns.parseArgs(env.value());
+        // Check if the environment variable is valid
+        if (accAllocConfIns.use_expandable_segments()) {
+            TORCH_CHECK(accAllocConfIns.max_split_size() == std::numeric_limits<size_t>::max() &&
+                accAllocConfIns.garbage_collection_threshold() == 0,
+                "`max_split_size_mb` or `garbage_collection_threshold`, cannot be enabled with "
+                "`expandable_segments`, please set `expandable_segments` to `False`.", OPS_ERROR(ErrCode::PARAM));
             void *ptr = nullptr;
             auto status = c10_npu::acl::AclrtReserveMemAddress(&ptr, 512, 0, nullptr, 1);
             if (status == ACL_ERROR_NONE && ptr != nullptr) {
-                NPU_CHECK_ERROR(c10_npu::acl::AclrtReleaseMemAddress(ptr));
+                NPU_CHECK_ERROR(c10_npu::acl::AclrtReleaseMemAddress(ptr), "aclrtReleaseMemAddress failed.");
             } else {
-                NPU_CHECK_ERROR(status, "aclrtReserveMemAddress");
-                TORCH_NPU_WARN_ONCE("expandable_segments setting failure, now change to `False`.");
-                m_expandable_segments = false;
+                NPU_CHECK_ERROR(status, "aclrtReserveMemAddress failed.");
+                const char* const report_msg = "expandable_segments setting failure, now change to `False`.";
+                TORCH_NPU_WARN_ONCE(report_msg);
+                TORCH_NPU_MEMORY_LOGW("%s", report_msg);
+                accAllocConfIns.parseArgs("expandable_segments:False");
             }
         }
-    } else {
-        TORCH_CHECK(false, "Error, expecting expandable_segments value", PTA_ERROR(ErrCode::PARAM));
-    }
-    return i;
+        s_instance.parseArgs(env.value());
+        // log all the configuration
+        TORCH_NPU_MEMORY_LOGI(
+            "[npu alloc config] "
+            "pin_memory_expandable_segments: %d, "
+            "pinned_mem_register: %d, "
+            "base_addr_aligned_kb: %zu, "
+            "page_size_1g: %d, "
+            "segment_size_mb: %zu, "
+            "multi_stream_lazy_reclaim: %d, "
+            "pinned_reserve_segment_size_mb: %zu, "
+            "per_process_memory_fraction: %f.",
+            s_instance.m_pin_memory_expandable_segments,
+            s_instance.m_pinned_mem_register,
+            s_instance.m_base_addr_aligned_size,
+            s_instance.m_page_size_1g,
+            s_instance.m_segment_size_mb,
+            s_instance.m_multi_stream_lazy_reclaim,
+            s_instance.m_pinned_reserve_segment_size_mb,
+            s_instance.m_per_process_memory_fraction);
+        TORCH_NPU_MEMORY_LOGI(
+            "[common alloc config] "
+            "max_split_size_mb: %zu, "
+            "garbage_collection_threshold: %f, "
+            "roundup_power2_divisions: %zu, "
+            "expandable_segments: %d, "
+            "pinned_use_background_threads: %d, "
+            "large_segment_size: %zu.",
+            accAllocConfIns.max_split_size(),
+            accAllocConfIns.garbage_collection_threshold(),
+            accAllocConfIns.roundup_power2_divisions(),
+            accAllocConfIns.use_expandable_segments(),
+            accAllocConfIns.pinned_use_background_threads());
+    });
+
+    return s_instance;
 }
 
-size_t CachingAllocatorConfig::parsePinMemoryExpandableSegments(const std::vector<std::string> &config, size_t i)
+size_t NPUAllocatorConfig::parsePinMemoryExpandableSegments(const c10::CachingAllocator::ConfigTokenizer& tokenizer, size_t i)
 {
-    consumeToken(config, ++i, ':');
-    if (++i < config.size()) {
-        TORCH_CHECK(i < config.size() && (config[i] == "True" || config[i] == "False"),
+    tokenizer.checkToken(++i, ":");
+    if (++i < tokenizer.size()) {
+        TORCH_CHECK(i < tokenizer.size() && (tokenizer[i] == "True" || tokenizer[i] == "False"),
             "Expected a single True/False argument for pin_memory_expandable_segments", OPS_ERROR(ErrCode::PARAM));
-        m_pin_memory_expandable_segments = (config[i] == "True");
+        m_pin_memory_expandable_segments = (tokenizer[i] == "True");
         if (m_pin_memory_expandable_segments) {
             if (!IsGteCANNVersion(pinMemoryExpandableMinCannVersion, cannModule)) {
                 TORCH_NPU_WARN_ONCE("m_pin_memory_expandable_segments setting failure, the current cann version does not support this feature, now change to `False`."
@@ -163,26 +134,26 @@ size_t CachingAllocatorConfig::parsePinMemoryExpandableSegments(const std::vecto
     return i;
 }
 
-size_t CachingAllocatorConfig::parsePinnedMemRegister(const std::vector<std::string> &config, size_t i)
+size_t NPUAllocatorConfig::parsePinnedMemRegister(const c10::CachingAllocator::ConfigTokenizer& tokenizer, size_t i)
 {
-    consumeToken(config, ++i, ':');
-    if (++i < config.size()) {
-        TORCH_CHECK(i < config.size() && (config[i] == "True" || config[i] == "False"),
+    tokenizer.checkToken(++i, ":");
+    if (++i < tokenizer.size()) {
+        TORCH_CHECK(i < tokenizer.size() && (tokenizer[i] == "True" || tokenizer[i] == "False"),
                     "Expected a single True/False argument for pinned_mem_register", OPS_ERROR(ErrCode::PARAM));
-        m_pinned_mem_register = (config[i] == "True");
+        m_pinned_mem_register = (tokenizer[i] == "True");
     } else {
         TORCH_CHECK(false, "Error, expecting m_pinned_mem_register value", OPS_ERROR(ErrCode::VALUE));
     }
     return i;
 }
 
-size_t CachingAllocatorConfig::parseAddrAlignSize(const std::vector<std::string> &config, size_t i)
+size_t NPUAllocatorConfig::parseAddrAlignSize(const c10::CachingAllocator::ConfigTokenizer& tokenizer, size_t i)
 {
-    consumeToken(config, ++i, ':');
-    if (++i < config.size()) {
-        TORCH_CHECK(isDigit(config[i]), "CachingAllocator option base_addr_aligned_kb is invalid.");
-        size_t val = static_cast<size_t>(stoi(config[i]));
-        TORCH_CHECK(config[i].length() == std::to_string(val).length(),
+    tokenizer.checkToken(++i, ":");
+    if (++i < tokenizer.size()) {
+        TORCH_CHECK(isDigit(tokenizer[i]), "CachingAllocator option base_addr_aligned_kb is invalid.");
+        size_t val = static_cast<size_t>(stoi(tokenizer[i]));
+        TORCH_CHECK(tokenizer[i].length() == std::to_string(val).length(),
             "CachingAllocator option base_addr_aligned_kb error, must be [0~16], dtype is int",
             OPS_ERROR(ErrCode::VALUE));
         TORCH_CHECK(val >= 0, "CachingAllocator option base_addr_aligned_kb error, must be [0~16], dtype is int",
@@ -197,24 +168,24 @@ size_t CachingAllocatorConfig::parseAddrAlignSize(const std::vector<std::string>
     return i;
 }
 
-size_t CachingAllocatorConfig::parseMultiStreamLazyReclaim(const std::vector<std::string> &config, size_t i)
+size_t NPUAllocatorConfig::parseMultiStreamLazyReclaim(const c10::CachingAllocator::ConfigTokenizer& tokenizer, size_t i)
 {
-    consumeToken(config, ++i, ':');
-    if (++i < config.size()) {
-        TORCH_CHECK(i < config.size() && (config[i] == "True" || config[i] == "False"),
+    tokenizer.checkToken(++i, ":");
+    if (++i < tokenizer.size()) {
+        TORCH_CHECK(i < tokenizer.size() && (tokenizer[i] == "True" || tokenizer[i] == "False"),
             "Expected a single True/False argument for multi_stream_lazy_reclaim", PTA_ERROR(ErrCode::PARAM));
-        m_multi_stream_lazy_reclaim = (config[i] == "True");
+        m_multi_stream_lazy_reclaim = (tokenizer[i] == "True");
     } else {
         TORCH_CHECK(false, "Error, expecting multi_stream_lazy_reclaim value", PTA_ERROR(ErrCode::PARAM));
     }
     return i;
 }
 
-size_t CachingAllocatorConfig::parsePerProcessMemoryFraction(const std::vector<std::string> &config, size_t i)
+size_t NPUAllocatorConfig::parsePerProcessMemoryFraction(const c10::CachingAllocator::ConfigTokenizer& tokenizer, size_t i)
 {
-    consumeToken(config, ++i, ':');
-    if (++i < config.size()) {
-        double val = stod(config[i]);
+    tokenizer.checkToken(++i, ":");
+    if (++i < tokenizer.size()) {
+        double val = stod(tokenizer[i]);
         TORCH_CHECK(val >= 0.0 && val <= 1.0,
             "per_process_memory_fraction is invalid, set it in [0.0, 1.0]", PTA_ERROR(ErrCode::VALUE));
         m_per_process_memory_fraction = val;
@@ -224,25 +195,26 @@ size_t CachingAllocatorConfig::parsePerProcessMemoryFraction(const std::vector<s
     return i;
 }
 
-size_t CachingAllocatorConfig::parsePageSize(const std::vector<std::string> &config, size_t i)
+size_t NPUAllocatorConfig::parsePageSize(const c10::CachingAllocator::ConfigTokenizer& tokenizer, size_t i)
 {
-    TORCH_CHECK(i + 2 < config.size(), "page_size requires format 'page_size:1g'", OPS_ERROR(ErrCode::VALUE));
-    TORCH_CHECK(config[i + 1] == ":", "Expected ':' after page_size", OPS_ERROR(ErrCode::VALUE));
+    TORCH_CHECK(i + 2 < tokenizer.size(), "page_size requires format 'page_size:1g'", OPS_ERROR(ErrCode::VALUE));
+    tokenizer.checkToken(++i, ":");
 
-    if (config[i + 2] == "1g") {
+    if (tokenizer[++i] == "1g") {
         m_page_size_1g = true;
     } else {
-        TORCH_CHECK(false, "Unsupported page_size value: ", config[i + 2], OPS_ERROR(ErrCode::VALUE));
+        TORCH_CHECK(false, "Unsupported page_size value: ", tokenizer[i], OPS_ERROR(ErrCode::VALUE));
     }
-    return i + 2; // 返回最后处理的索引位置
+    return i;
 }
 
-size_t CachingAllocatorConfig::parseSegmentSizeMb(const std::vector<std::string> &config, size_t i)
+size_t NPUAllocatorConfig::parseSegmentSizeMb(const c10::CachingAllocator::ConfigTokenizer& tokenizer, size_t i)
 {
-    consumeToken(config, ++i, ':');
-    if (++i < config.size()) {
-        TORCH_CHECK(isDigit(config[i]), "CachingAllocator option segment_size_mb is invalid.");
-        size_t val = static_cast<size_t>(stoi(config[i]));
+    TORCH_NPU_WARN_ONCE("`segment_size_mb` is deprecated, please use `large_segment_size_mb` instead.");
+    tokenizer.checkToken(++i, ":");
+    if (++i < tokenizer.size()) {
+        TORCH_CHECK(isDigit(tokenizer[i]), "CachingAllocator option segment_size_mb is invalid.");
+        size_t val = static_cast<size_t>(stoi(tokenizer[i]));
         TORCH_CHECK(val >= k20MB && val <= k512MB,
                     "CachingAllocator option segment_size_mb error, must be [20, 512], dtype is int",
                     OPS_ERROR(ErrCode::VALUE));
@@ -253,185 +225,57 @@ size_t CachingAllocatorConfig::parseSegmentSizeMb(const std::vector<std::string>
     return i;
 }
 
-size_t CachingAllocatorConfig::parseRoundUpPower2Divisions(const std::vector<std::string> &config, size_t i)
+void NPUAllocatorConfig::parseArgs(const std::string& env, std::set<std::string> supported_settings)
 {
-    consumeToken(config, ++i, ':');
-    TORCH_CHECK(i + 1 < config.size(), "Error, expecting roundup_power2_divisions value",
-        OPS_ERROR(ErrCode::VALUE));
-    if (config[++i] == "[") {
-        bool first_value = true;
-        size_t last_index = 0;
-        // NOLINTNEXTLINE(bugprone-inc-dec-in-conditions)
-        while (++i < config.size()) {
-            if (config[i] == "]") {
-                break;
-            }
-
-            size_t value_index = i;
-            consumeToken(config, ++i, ':');
-            TORCH_CHECK(++i < config.size(), "Expected a value for roundup_power2_divisions entry",
-                OPS_ERROR(ErrCode::VALUE));
-            size_t value = static_cast<size_t>(stoull(config[i]));
-            TORCH_CHECK(value == 0 || c10::llvm::isPowerOf2_64(value),
-                "For roundups, the divisions has to be power of 2 or 0 to disable roundup ",
-                OPS_ERROR(ErrCode::VALUE));
-            if (config[value_index] == ">") {
-                std::fill(
-                    m_roundup_power2_divisions.begin() +
-                        static_cast<std::vector<size_t>::difference_type>(last_index + 1),
-                    m_roundup_power2_divisions.end(),
-                    value);
-            } else {
-                size_t boundary = static_cast<size_t>(stoull(config[value_index]));
-                TORCH_CHECK(c10::llvm::isPowerOf2_64(boundary),
-                    "For roundups, the intervals have to be power of 2 ",
-                    OPS_ERROR(ErrCode::VALUE));
-                size_t index = 63 - c10::llvm::countLeadingZeros(boundary);
-                index = std::clamp(index, size_t{0}, m_roundup_power2_divisions.size() - 1);
-
-                if (first_value) {
-                    std::fill(
-                        m_roundup_power2_divisions.begin(),
-                        m_roundup_power2_divisions.begin() +
-                            static_cast<std::vector<size_t>::difference_type>(index),
-                        value);
-                    first_value = false;
-                }
-                m_roundup_power2_divisions[index] = value;
-                last_index = index;
-            }
-
-            if (i + 1 < config.size() && config[i + 1] != "]") {
-                consumeToken(config, ++i, ',');
-            }
-        }
-        TORCH_INTERNAL_ASSERT(
-            i < config.size(),
-            "Expected closing bracket ']' while parsing roundup_power2_divisions");
-    } else {
-        size_t value = static_cast<size_t>(stoull(config[i]));
-        TORCH_CHECK(value == 0 || c10::llvm::isPowerOf2_64(value),
-            "For roundups, the divisions has to be power of 2 or 0 to disable roundup ",
-            OPS_ERROR(ErrCode::VALUE));
-        std::fill(
-            m_roundup_power2_divisions.begin(),
-            m_roundup_power2_divisions.end(),
-            value);
-    }
-    return i;
-}
-
-size_t CachingAllocatorConfig::roundup_power2_divisions(size_t size)
-{
-    if (size == 0 || instance().m_roundup_power2_divisions.empty()) {
-        return 0;
-    }
-
-    size_t log_size = 63 - c10::llvm::countLeadingZeros(size);
-
-    // Our intervals start at 1MB and end at 64GB
-    const size_t interval_start = 63 - c10::llvm::countLeadingZeros(kRoundUpPowerOfTwoStart);
-    const size_t interval_end = 63 - c10::llvm::countLeadingZeros(kRoundUpPowerOfTwoEnd);
-
-    TORCH_INTERNAL_ASSERT(
-        interval_end - interval_start == kRoundUpPowerOfTwoIntervals,
-        "kRoundUpPowerOfTwoIntervals mismatch");
-
-    size_t index = (log_size > interval_start) ? (log_size - interval_start) : 0ul;
-    index = std::min(index, kRoundUpPowerOfTwoIntervals - 1);
-    return instance().m_roundup_power2_divisions[index];
-}
-
-size_t CachingAllocatorConfig::parsePinnedUseBackgroundThreads(const std::vector<std::string> &config, size_t i)
-{
-    consumeToken(config, ++i, ':');
-    if (++i < config.size()) {
-        TORCH_CHECK(i < config.size() && (config[i] == "True" || config[i] == "False"),
-            "Expected a single True/False argument for pinned_use_background_threads", PTA_ERROR(ErrCode::PARAM));
-        m_pinned_use_background_threads = (config[i] == "True");
-    } else {
-        TORCH_CHECK(false, "Error, expecting pinned_use_background_threads value", PTA_ERROR(ErrCode::PARAM));
-    }
-    return i;
-}
-
-void CachingAllocatorConfig::parseArgs(const char *env, std::set<std::string> supported_settings)
-{
-    // If empty, set the default values
-    m_max_split_size = std::numeric_limits<size_t>::max();
-    m_garbage_collection_threshold = 0;
-    m_roundup_power2_divisions.assign(kRoundUpPowerOfTwoIntervals, 0);
-
-    if (env == nullptr) {
+    if (env.empty()) {
         return;
     }
-
-    std::vector<std::string> config;
-    lexArgs(env, config);
-
-    for (size_t i = 0; i < config.size(); i++) {
-        // If supported_settings is not empty,
-        // check if the setting is supported by torch_npu.npu.memory._set_allocator_settings().
-        if (!supported_settings.empty() && supported_settings.count(config[i]) == 0) {
-            TORCH_CHECK(false, "torch_npu.npu.memory._set_allocator_settings() unsupported setting: ", config[i],
-                OPS_ERROR(ErrCode::VALUE));
-        }
-        if (config[i].compare("max_split_size_mb") == 0) {
-            i = parseMaxSplitSize(config, i);
-        } else if (config[i].compare("garbage_collection_threshold") == 0) {
-            i = parseGarbageCollectionThreshold(config, i);
-        } else if (config[i] == "expandable_segments") {
-            set_expandable_segments_flag = true;
-            i = parseExpandableSegments(config, i);
-        } else if (config[i] == "pin_memory_expandable_segments") {
-            i = parsePinMemoryExpandableSegments(config, i);
-        } else if (config[i] == "pinned_mem_register") {
-            i = parsePinnedMemRegister(config, i);
-        } else if (config[i] == "base_addr_aligned_kb") {
-            i = parseAddrAlignSize(config, i);
-        } else if (config[i] == "page_size") {
-            i = parsePageSize(config, i);
-        } else if (config[i] == "segment_size_mb") {
-            i = parseSegmentSizeMb(config, i);
-        } else if (config[i] == "pinned_reserve_segment_size_mb") {
-            // note : this is handled in NPUAllocatorConfig.h (cuda)
-            consumeToken(config, ++i, ':');
-            if (++i < config.size()) {
-                (void)stoi(config[i]);
-                // we just skip this here
-            } else {
-                TORCH_CHECK(false, "Error, expecting host reserve_segment_size_mb value", OPS_ERROR(ErrCode::VALUE));
-            }
-        } else if (config[i] == "roundup_power2_divisions") {
-            i = parseRoundUpPower2Divisions(config, i);
-        } else if (config[i] == "pinned_use_background_threads") {
-            i = parsePinnedUseBackgroundThreads(config, i);
-        } else if (config[i] == "multi_stream_lazy_reclaim") {
-            i = parseMultiStreamLazyReclaim(config, i);
-        } else if (config[i] == "per_process_memory_fraction") {
-            i = parsePerProcessMemoryFraction(config, i);
+    c10::CachingAllocator::ConfigTokenizer tokenizer(env);
+    for (size_t i = 0; i < tokenizer.size(); i++) {
+        const auto& key = tokenizer[i];
+        // If supported_settings is not empty, check if the setting is supported by torch_npu.npu.memory._set_allocator_settings().
+        TORCH_CHECK(supported_settings.empty() || supported_settings.count(key) != 0,
+            "torch_npu.npu.memory._set_allocator_settings() unsupported setting: ", key,
+            OPS_ERROR(ErrCode::VALUE));
+        if (key == "pin_memory_expandable_segments") {
+            i = parsePinMemoryExpandableSegments(tokenizer, i);
+        } else if (key == "pinned_mem_register") {
+            i = parsePinnedMemRegister(tokenizer, i);
+        } else if (key == "base_addr_aligned_kb") {
+            i = parseAddrAlignSize(tokenizer, i);
+        } else if (key == "page_size") {
+            i = parsePageSize(tokenizer, i);
+        } else if (key == "segment_size_mb") {
+            i = parseSegmentSizeMb(tokenizer, i);
+        } else if (key == "multi_stream_lazy_reclaim") {
+            i = parseMultiStreamLazyReclaim(tokenizer, i);
+        } else if (key == "per_process_memory_fraction") {
+            i = parsePerProcessMemoryFraction(tokenizer, i);
+        } else if (key == "pinned_reserve_segment_size_mb") {
+            tokenizer.checkToken(++i, ":");
+            m_pinned_reserve_segment_size_mb = tokenizer.toSizeT(++i);
         } else {
-            TORCH_CHECK(false, "Unrecognized CachingAllocator option: ", config[i], PTA_ERROR(ErrCode::PARAM));
+            const auto& accelerator_keys = c10::CachingAllocator::AcceleratorAllocatorConfig::getKeys();
+            const auto& npu_support_keys = getSupportedPubilcKeys();
+            // Check if it's a common key handled by AcceleratorAllocatorConfig
+            if (accelerator_keys.find(key) != accelerator_keys.end()) {
+                // Check if it's a supported key by torch_npu
+                if (npu_support_keys.find(key) == npu_support_keys.end()) {
+                    TORCH_NPU_WARN_ONCE("torch_npu not support key '", key, "' in NPU allocator config.");
+                }
+            } else {
+                TORCH_CHECK_VALUE(false, "Unrecognized key '", key, "' in NPU allocator config.");
+            }
+            if (!supported_settings.empty()) {
+                // supported_settings is not empty in torch_npu.npu.memory._set_allocator_settings()
+                c10::CachingAllocator::AcceleratorAllocatorConfig::instance().parseArgs(env);
+            }
+            i = tokenizer.skipKey(i);
         }
-
-        if (i + 1 < config.size()) {
-            consumeToken(config, ++i, ',');
+        if (i + 1 < tokenizer.size()) {
+            tokenizer.checkToken(++i, ",");
         }
     }
-
-    if (m_expandable_segments) {
-        if (set_expandable_segments_flag) {
-            TORCH_CHECK(m_max_split_size == std::numeric_limits<size_t>::max() && m_garbage_collection_threshold == 0,
-                "`max_split_size_mb` or `garbage_collection_threshold`, cannot be enabled with "
-                "`expandable_segments`, please set `expandable_segments` to `False`.",
-                OPS_ERROR(ErrCode::PARAM));
-        } else if (m_max_split_size != std::numeric_limits<size_t>::max() || m_garbage_collection_threshold != 0) {
-            m_expandable_segments = false;
-            TORCH_NPU_WARN_ONCE("`max_split_size_mb` or `garbage_collection_threshold` is enabled, and the "
-                "`expandable_segments` is changed to `False` by default.");
-        }
-    }
-
     if (m_pinned_mem_register) {
         if (!c10_npu::acl::AclrtMallocHostWithCfgExist()) {
             TORCH_NPU_WARN_ONCE("pinned_mem_register setting failure, the current cann version or driver version does not support this feature, now change to `False`."
@@ -446,6 +290,6 @@ void CachingAllocatorConfig::parseArgs(const char *env, std::set<std::string> su
         }
     }
 }
-
+REGISTER_ALLOCATOR_CONFIG_PARSE_HOOK(NPUAllocatorConfig)
 } // namespace NPUCachingAllocator
 } // namespace c10_npu
