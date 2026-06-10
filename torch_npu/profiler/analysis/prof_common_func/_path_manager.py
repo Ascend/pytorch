@@ -87,6 +87,16 @@ class ProfilerPathManager:
         return device_id_list
 
     @classmethod
+    def get_plt_dir_path(cls, profiler_path: str) -> str:
+        plt_dir_pattern = Constant.PLATFORM_ANALYSIS_DIR + r"_\d{1,20}"
+        sub_dirs = os.listdir(os.path.realpath(profiler_path))
+        for sub_dir in sub_dirs:
+            sub_path = os.path.join(profiler_path, sub_dir)
+            if os.path.isdir(sub_path) and re.match(plt_dir_pattern, sub_dir):
+                return sub_path
+        return ""
+
+    @classmethod
     def get_start_info_path(cls, cann_path: str) -> str:
         start_info_path = os.path.join(cann_path, "host", "start_info")
         if os.path.exists(start_info_path):

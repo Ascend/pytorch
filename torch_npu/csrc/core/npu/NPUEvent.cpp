@@ -4,6 +4,7 @@
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/NPUEventManager.h"
+#include "torch_npu/csrc/core/npu/NPUStreamUtils.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
@@ -113,6 +114,7 @@ void NPUEvent::recordOnce(const NPUStream& stream)
 
 void NPUEvent::record(const NPUStream& stream)
 {
+    c10_npu::detail::checkNotExternalStream(stream, "NPUEvent::record");
     if (!is_created_) {
         createEvent(stream.device_index());
     }
@@ -131,6 +133,7 @@ void NPUEvent::record(const NPUStream& stream)
 
 void NPUEvent::block(const NPUStream& stream)
 {
+    c10_npu::detail::checkNotExternalStream(stream, "NPUEvent::block");
     if (is_created_) {
         // If using multiple task queues or using IPC events across devices in a single process,
         // it is necessary to ensure that the enqueued record is dequeued before wait.

@@ -1,5 +1,5 @@
 diff --git a/test/test_fx.py b/test/test_fx.py
-index fe3b6a7..b003c44 100644
+index fe3b6a7..219e1e2 100644
 --- a/test/test_fx.py
 +++ b/test/test_fx.py
 @@ -41,6 +41,7 @@ from typing import Any, NamedTuple
@@ -134,6 +134,15 @@ index fe3b6a7..b003c44 100644
          self.assertEqual(mod(inp), rmatmul_f(inp))
  
      @skipIfNoDynamoSupport
+@@ -490,7 +491,7 @@ class TestFX(JitTestCase):
+         # Test symbolic node as an arg
+         class MyInplaceMod3(torch.nn.Module):
+             def forward(self, x):
+-                y = torch.ones(3, 4)
++                y = torch.ones(3, 4).npu()
+                 y.add_(x)
+                 return x
+ 
 @@ -588,12 +589,12 @@ class TestFX(JitTestCase):
              def forward(self, x: torch.Tensor):
                  return wrapped_with_submodule(x, self.batchnorm1d)

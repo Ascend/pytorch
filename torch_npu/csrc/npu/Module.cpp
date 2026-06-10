@@ -879,23 +879,30 @@ PyObject* THNPModule_restart_device_wrap(PyObject* self, PyObject* arg) {
   HANDLE_TH_ERRORS
   int device = THPUtils_unpackLong(arg);
   TORCH_NPU_RECOVERY_LOGI("NPU restart device start, device is %d.", device);
-  auto memUceInfo_ = c10_npu::get_mem_uce_info();
-  if (memUceInfo_.retSize > 0) {
-    TORCH_NPU_RECOVERY_LOGI(
-        "exec AclrtMemUceRepair start, device is %d, retSize is %d.",
-        memUceInfo_.device,
-        memUceInfo_.retSize);
-    NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::acl::AclrtMemUceRepair(
-        memUceInfo_.device, memUceInfo_.info, memUceInfo_.retSize));
-    TORCH_NPU_RECOVERY_LOGI(
-        "exec AclrtMemUceRepair end, device is %d, retSize is %d.",
-        memUceInfo_.device,
-        memUceInfo_.retSize);
-  }
-
-  c10_npu::clear_mem_uce_info();
-  if (c10_npu::ShouldAppendDeviceErrorVerbose()) {
-    (void)c10_npu::repair_device_error();
+  if (!c10_npu::acl::IsExistAclrtRepairError()) {
+    // If aclrtRepairError is not exist in CANN (older version), only repair UCE memory.
+    auto memUceInfo_ = c10_npu::get_mem_uce_info();
+    if (memUceInfo_.retSize > 0) {
+      TORCH_NPU_RECOVERY_LOGI(
+          "exec AclrtMemUceRepair start, device is %d, retSize is %d.",
+          memUceInfo_.device,
+          memUceInfo_.retSize);
+      NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::acl::AclrtMemUceRepair(
+          memUceInfo_.device, memUceInfo_.info, memUceInfo_.retSize));
+      TORCH_NPU_RECOVERY_LOGI(
+          "exec AclrtMemUceRepair end, device is %d, retSize is %d.",
+          memUceInfo_.device,
+          memUceInfo_.retSize);
+    }
+    c10_npu::clear_mem_uce_info();
+  } else {
+    auto error_info = c10_npu::get_device_error_info();
+    TORCH_NPU_RECOVERY_LOGI("get_device_error_info device is %d, errorType is %d.", error_info.device, error_info.info.errorType);
+    if (error_info.is_valid && error_info.info.tryRepair) {
+      TORCH_NPU_RECOVERY_LOGI("NPU repair error start, device is %d.", error_info.device);
+      NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::acl::AclrtRepairError(error_info.device, &error_info.info));
+      TORCH_NPU_RECOVERY_LOGI("NPU repair error end, device is %d.", error_info.device);
+    }
     c10_npu::clear_device_error_info();
   }
   setDefaultStreamsStatus(device, c10_npu::RepoStatus::INIT);
@@ -2109,7 +2116,16 @@ PyObject* THNPModule_npu_reset_thread_affinity(
     PyObject* self,
     PyObject* noargs) {
   HANDLE_TH_ERRORS
-  c10_npu::SetThreadAffinity(c10_npu::ThreadType::MAIN_THREAD);
+  c10_npu::ResetThreadAffinity();
+  Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_npu_set_thread_main_type(
+    PyObject* self,
+    PyObject* noargs) {
+  HANDLE_TH_ERRORS
+  c10_npu::SetThreadType(c10_npu::ThreadType::MAIN_THREAD);
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
 }
@@ -2697,6 +2713,10 @@ static struct PyMethodDef THNPModule_methods[] = {
      nullptr},
     {"_npu_reset_thread_affinity",
      (PyCFunction)THNPModule_npu_reset_thread_affinity,
+     METH_NOARGS,
+     nullptr},
+    {"_npu_set_thread_main_type",
+     (PyCFunction)THNPModule_npu_set_thread_main_type,
      METH_NOARGS,
      nullptr},
     {"_npu_set_fft_plan_cache_max_size",

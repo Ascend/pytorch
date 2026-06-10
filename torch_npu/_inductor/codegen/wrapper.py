@@ -1,4 +1,5 @@
 import copy
+import dataclasses
 import hashlib
 import os
 
@@ -7,10 +8,16 @@ import torch
 import torch_npu.npu.aclnn
 from torch._inductor import config
 from torch._inductor.codegen.wrapper import (
+    EnterCudaStreamContextLine,
+    ExitCudaStreamContextLine,
+    IndentedBuffer,
     PythonWrapperCodegen,
     SubgraphPythonWrapperCodegen,
     SymbolicCallArg,
+    WrapperLine,
 )
+from torch._inductor.stream_constants import DEFAULT_STREAM, STREAM_NAME_TEMPLATE
+from torch._inductor.stream_utils import get_stream_name
 from torch._inductor.ir import GraphPartitionSignature
 from torch._inductor.runtime import triton_heuristics
 from torch._inductor.utils import cache_on_self
@@ -19,6 +26,15 @@ from torch._subclasses.fake_tensor import FakeTensor
 from torch.utils._sympy.singleton_int import SingletonInt
 from torch_npu._inductor import config as npu_config
 from torch_npu._inductor.codegen.triton import NPUIndexTritonKernel
+
+
+@dataclasses.dataclass
+class EnterNpuStreamContextLine(WrapperLine):
+    stream_idx: int
+
+    def codegen(self, code: IndentedBuffer) -> None:
+        code.writeline(f"with torch.npu.stream({get_stream_name(self.stream_idx)}):")
+        code.do_indent()
 
 
 class _NPUKernelCodegenMixin:
@@ -34,7 +50,7 @@ class _NPUKernelCodegenMixin:
     (AOT debug / aclnn initialization / whole-graph benchmark harness, etc.)
     from leaking into subgraphs.
     """
-    
+
     # generate numel expr for range_tree_node
     def generate_node_numel_expr(self, kernel_name: str, node, numel_expr):
         expr = f"{kernel_name}_{node.name}_numel"
@@ -93,6 +109,45 @@ class _NPUKernelCodegenMixin:
                 "'''\n" + NPUIndexTritonKernel.gen_triton_ext_imports() + "\n"
             )
         super().define_kernel(kernel_name, kernel_body, metadata, gpu, cpp_definition)
+
+    def _ensure_npu_stream_vars(self) -> None:
+        """Declare stream vars when device_need_guard is disabled for NPU."""
+        if getattr(self, "_npu_stream_vars_initialized", False):
+            return
+        scheduler = V.graph.scheduler
+        if not scheduler._has_multi_stream_nodes():
+            self._npu_stream_vars_initialized = True
+            return
+        import_line = (
+            "from torch._dynamo.graph_bytecode_inputs import "
+            "get_external_object_by_index"
+        )
+        if not self.imports.contains(import_line):
+            self.imports.writeline(import_line)
+        self.writeline(f"{DEFAULT_STREAM} = torch.npu.current_stream()")
+        for stream_idx, user_obj_idx in scheduler.stream_idx_to_user_obj_idx.items():
+            self.writeline(
+                f"{STREAM_NAME_TEMPLATE.format(stream_idx=stream_idx)} "
+                f"= get_external_object_by_index({user_obj_idx})"
+            )
+        self._npu_stream_vars_initialized = True
+
+    def codegen_cuda_stream_enter(
+        self,
+        stream_idx: int,
+    ) -> EnterCudaStreamContextLine:
+        self._ensure_npu_stream_vars()
+        if (current_stream_name := V.graph.scheduler.current_stream_name) is not None:
+            raise ValueError(
+                f"Nested stream context switching: {current_stream_name} -> "
+                f"{get_stream_name(stream_idx)}",
+            )
+        ctx_entrance = EnterNpuStreamContextLine(stream_idx=stream_idx)
+        self.writeline(ctx_entrance)
+        return ctx_entrance
+
+    def codegen_cuda_stream_exit(self) -> None:
+        self.writeline(ExitCudaStreamContextLine())
 
 
 class NPUWrapperCodeGen(_NPUKernelCodegenMixin, PythonWrapperCodegen):

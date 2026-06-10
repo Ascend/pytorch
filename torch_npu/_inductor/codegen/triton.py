@@ -658,9 +658,8 @@ class NPUIndexTritonKernel(TritonKernel):
             else:
                 numel_expr = node.expr.subs({sympy_index_symbol(r.name): r.numel for r in self.range_trees})
 
-            numel_expr = V.graph.sizevars.to_symint_or_int(numel_expr)
-
-            size_hints.append(numel_expr)
+            numel_hint = V.graph.sizevars.optimization_hint(numel_expr)
+            size_hints.append(int(numel_hint))
         return size_hints
 
     def add_numel_to_call_args(self, name, call_args, arg_types):

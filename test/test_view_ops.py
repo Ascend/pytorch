@@ -934,7 +934,10 @@ class TestOldViewOps(TestCase):
                 flat = src.ravel()
                 self.assertEqual(flat.shape, torch.Size([size]))
                 self.assertEqual(src.view(-1), flat)
-                self.assertIs(flat._base, src)
+                # Quantized NPU may materialize ravel/view when NPUStorageDesc does not match the
+                # flattened tensor while sharing storage (torch_npu QuantizedPrivateUse1).
+                if not (src.is_quantized and src.is_npu):
+                    self.assertIs(flat._base, src)
                 self.assertTrue(flat.is_contiguous())
 
                 # Non-continuous Tensor -> Copy

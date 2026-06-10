@@ -1,7 +1,5 @@
 # Owner(s): ["module: unknown"]
-import json
 import os
-import statistics
 import subprocess
 import sys
 import textwrap
@@ -28,13 +26,17 @@ EXPECTED_LOADED_MODULES = [
     "torch_npu.profiler",
     "torch_npu.distributed",
     "torch_npu.distributed.rpc",
+    "torch_npu.distributed.nn",
+    "torch_npu.distributed.nn.functional",
     "torch_npu.op_plugin",
     "torch_npu.op_plugin.meta",
     "torch_npu.op_plugin.meta._meta_registrations",
+    "torch_npu.asd.checksum",
     "torch_npu.utils._dynamo",
     "torch_npu.utils._inductor",
     "torch_npu.utils.custom_ops",
     "torch_npu.utils.patch_getenv",
+    "torch_npu.utils.syncbatchnorm",
 ]
 
 EXPECTED_NOT_LOADED_MODULES = [
@@ -469,6 +471,83 @@ class TestTorchNpuBootstrap(TestCase):
             """
         )
 
+    def test_09_legacy_submodule_attribute_compatibility(self):
+        self._run_python(
+            """
+            import sys
+            import torch_npu
+
+            # Old behavior: importing torch_npu also exposed these child modules
+            # as attributes on their parent packages.
+
+            assert "torch_npu.asd.checksum" in sys.modules
+            assert hasattr(torch_npu, "asd")
+            assert hasattr(torch_npu.asd, "checksum")
+            assert torch_npu.asd.checksum is sys.modules["torch_npu.asd.checksum"]
+            assert hasattr(torch_npu.asd.checksum, "_matmul_checksum")
+
+            assert "torch_npu.utils.syncbatchnorm" in sys.modules
+            assert hasattr(torch_npu.utils, "syncbatchnorm")
+            assert torch_npu.utils.syncbatchnorm is (
+                sys.modules["torch_npu.utils.syncbatchnorm"]
+            )
+            """
+        )
+
+    def test_10_legacy_top_level_distributed_api_compatibility(self):
+        self._run_python(
+            """
+            import torch_npu
+            from torch.distributed.fsdp import sharded_grad_scaler
+            from torch_npu._C._distributed_c10d import ParallelStore
+            from torch_npu.npu.amp.sharded_grad_scaler import _ShardedGradScaler
+
+            # Old behavior: these names were visible on torch_npu top-level
+            # due to module-scope imports in the old monolithic __init__.py.
+            assert hasattr(torch_npu, "ParallelStore")
+            assert torch_npu.ParallelStore is ParallelStore
+            assert "ParallelStore" not in torch_npu.__all__
+
+            assert hasattr(torch_npu, "_ShardedGradScaler")
+            assert torch_npu._ShardedGradScaler is _ShardedGradScaler
+            assert "_ShardedGradScaler" not in torch_npu.__all__
+
+            # The FSDP patch behavior should still be preserved.
+            assert sharded_grad_scaler.ShardedGradScaler is _ShardedGradScaler
+            """
+        )
+
+    def test_11_import_does_not_trigger_device_count(self):
+        cases = [
+            "import torch; import torch_npu",
+            "import torch_npu",
+        ]
+
+        for import_code in cases:
+            self._run_python(
+                f"""
+                import os
+
+                {import_code}
+
+                assert torch_npu.npu.is_initialized() is False, (
+                    "import torch_npu unexpectedly triggered NPU lazy init"
+                )
+
+                # Regression test for import-time low-level device probing.
+                # If import torch_npu has already called low-level NPU device count,
+                # changing ASCEND_RT_VISIBLE_DEVICES here will no longer take effect.
+                os.environ["ASCEND_RT_VISIBLE_DEVICES"] = "32"
+
+                raw_count = torch_npu._C._npu_getDeviceCount()
+                assert raw_count == 0, (
+                    f"import torch_npu unexpectedly triggered low-level NPU "
+                    f"device probing, raw_count={{raw_count}}"
+                )
+
+                assert torch_npu.npu.is_initialized() is False
+                """
+            )
 
 if __name__ == "__main__":
     run_tests()

@@ -389,6 +389,12 @@ def patch_npu_stream_context():
     ] = _handle_npu_device_interface_stream
 
 
+def patch_npu_current_stream():
+    """Reuse PT handle_current_stream so current_stream gets user_object_index."""
+    handlers = TorchInGraphFunctionVariable._get_handlers()
+    handlers[torch.npu.current_stream] = handlers[torch.accelerator.current_stream]
+
+
 def patch_user_defined_class_variable():
     import functools
 
@@ -418,4 +424,5 @@ def add_dynamo_methods():
     patch_event_variable_python_type()
     patch_builtin_variable()
     patch_npu_stream_context()
+    patch_npu_current_stream()
     patch_user_defined_class_variable()

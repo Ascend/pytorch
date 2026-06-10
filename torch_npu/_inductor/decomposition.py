@@ -3,7 +3,7 @@ from torch._inductor.decomposition import decompositions, pw_cast_for_opmath
 from torch._inductor.decomposition import register_decomposition
 from torch._prims_common.wrappers import out_wrapper
 
-from .lowering import _init_set
+from .lowering_common import add_overload
 
 aten = torch.ops.aten
 
@@ -17,12 +17,14 @@ DECOMPOSITION_OVERLOAD_OP = [
     aten.embedding_dense_backward,
     aten.addmm,
     aten.gelu,
+    aten.expm1,
+    aten.erfc,
 ]
 
 
 def _register_npu_inductor_decompositons():
     overload_op_set = set()
-    _init_set(DECOMPOSITION_OVERLOAD_OP, overload_op_set)
+    add_overload(DECOMPOSITION_OVERLOAD_OP, overload_op_set)
 
     for op in overload_op_set:
         if (op in decompositions):

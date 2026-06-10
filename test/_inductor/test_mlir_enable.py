@@ -8,7 +8,6 @@ import torch_npu._inductor
 
 class TestAdd(TestUtils):
 
-
     def op_calc(self, first_element, second_element):
         result = first_element + second_element
         return result

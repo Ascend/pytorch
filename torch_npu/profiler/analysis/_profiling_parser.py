@@ -75,6 +75,24 @@ class ProfilingParser:
             raise RuntimeError("Current CANN package version does not support export db. "
                                "If you want to export db, you can install supported CANN package version.")
 
+    def update_platform_analysis_dir(self):
+        plt_dir_path = ProfilerPathManager.get_plt_dir_path(self._profiler_path)
+        if not plt_dir_path:
+            return
+        if len(os.listdir(plt_dir_path)) == 0:
+            PathManager.remove_path_safety(plt_dir_path)
+            return
+        tokens = os.path.basename(os.path.realpath(self._profiler_path)).split("_")
+        if len(tokens) > 2 and tokens[2].isnumeric():
+            ts_profiler_dir = tokens[2]
+            new_plt_name = f"{Constant.PLATFORM_ANALYSIS_DIR}_{ts_profiler_dir}"
+            future_plt_path = os.path.join(
+                os.path.dirname(self._profiler_path), new_plt_name
+            )
+            if os.path.exists(future_plt_path):
+                PathManager.remove_path_safety(future_plt_path)
+            os.replace(plt_dir_path, future_plt_path)
+
     def delete_previous_cann_db_files(self):
         cann_path = ProfilerPathManager.get_cann_path(self._profiler_path)
         if not cann_path:
