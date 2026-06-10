@@ -1,7 +1,7 @@
-diff --git a/torch/csrc/inductor/aoti_runtime/model.h b/torch/csrc/inductor/aoti_runtime/model.h
+diff --git a/torch/include/torch/csrc/inductor/aoti_runtime/model.h b/torch/include/torch/csrc/inductor/aoti_runtime/model.h
 index 1111111..2222222 100644
---- a/torch/csrc/inductor/aoti_runtime/model.h
-+++ b/torch/csrc/inductor/aoti_runtime/model.h
+--- a/torch/include/torch/csrc/inductor/aoti_runtime/model.h
++++ b/torch/include/torch/csrc/inductor/aoti_runtime/model.h
 @@ -105,25 +105,34 @@ inline void parse_device_str(
      const std::string& device_str,
      int32_t& device_type,

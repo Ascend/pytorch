@@ -3,9 +3,8 @@
 ## 目录结构
 
 1. 核心仓库地址
-
-- 官方 PyTorch 仓库（v2.7.1 版本）：https://github.com/pytorch/pytorch/tree/v2.7.1，需拉取该仓库并切换至 tags/v2.7.1 标签。
-- 补丁仓库（Ascend/pytorch）：https://gitcode.com/Ascend/pytorch，仅需提取该仓库中的 patch 目录。
+   - [官方 PyTorch 仓库（v2.7.1 版本）](https://github.com/pytorch/pytorch/tree/v2.7.1)，需拉取该仓库并切换至 tags/v2.7.1 标签。
+   - [补丁仓库（Ascend/pytorch）](https://gitcode.com/Ascend/pytorch)，仅需提取该仓库中的 patch 目录。
 
 2. 核心目录结构
 
@@ -13,7 +12,7 @@
     pytorch/                  # PyTorch 源码根目录
     ├─ ...（其他 PyTorch 原生文件/目录）
     └─ test_upstream/                 # 补丁目录
-       ├─ apply_patches.sh            # 批量应用脚本
+       ├─ apply_test_patch.sh            # 批量应用脚本
        ├─ *.patch                     # 补丁文件（支持子目录嵌套）
        ├─ ...（其他补丁子目录）
 ```
@@ -30,7 +29,7 @@
 
 ```bash
 cd test_upstream
-./apply_patches.sh
+./apply_test_patch.sh
 ```
 
 脚本执行说明：自动定位 PyTorch 根目录，递归扫描所有 .patch文件，按文件名排序强制应用，冲突部分生成 .rej 文件.
