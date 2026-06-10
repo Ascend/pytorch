@@ -4,7 +4,6 @@ import os
 from .codegen.common import register_device_op_overrides_npu, patch_cache_base_get_system
 from .graph import patch_codegen_with_cpp_wrapper
 from .utils import patch_has_triton, patch_device_supports_tma, patch_is_gpu, get_current_raw_stream
-from torch._inductor.lowering import make_fallback as _ori_make_fallback
 register_device_op_overrides_npu()
 patch_has_triton()
 patch_is_gpu()
@@ -23,9 +22,14 @@ def _load_mlir_backend():
         from torch_mlir import ir
     except ImportError as err:
         raise ImportError("torch_mlir is not installed, install it first.") from err
-    global _ori_make_fallback
-    torch._inductor.lowering.make_fallback = _ori_make_fallback
-    from .ascend_npu_ir.ascend_npu_ir.npu import npu_inductor_plugin
+    from .ascend_npu_ir.ascend_npu_ir.npu import npu_inductor_plugin, torch_mlir_patch
+    from .lowering_patch import apply_mlir_inductor_patch
+    from .ascend_npu_ir.ascend_npu_ir.npu.npu_inductor_plugin import (
+        register_mlir_codegen_backend,
+    )
+
+    apply_mlir_inductor_patch()
+    register_mlir_codegen_backend()
 
 def _load_triton_backend():
     import os
@@ -149,6 +153,11 @@ _BACKEND_LOADERS = {
 
 
 def _load_backend():
+    from .lowering_patch import restore_inductor_baseline
+
+    # Reset Inductor globals before each backend switch (mlir <-> triton in one process).
+    restore_inductor_baseline()
+
     backend = _get_backend()
     loader = _BACKEND_LOADERS.get(backend, _load_triton_backend)
     loader()

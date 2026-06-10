@@ -59,7 +59,7 @@ def _worker_compile(
     device_info = (device, device.index)
     try:
         kernel.get_best_kernel()
-    except:
+    except Exception:
         kernel.precompile(device_info=device_info, logger_level=logger_level)
 
 
@@ -97,7 +97,6 @@ def _load_kernel(
     kernel.init(module=source_code, extra_env=extra_env)
     try:
         kernel.get_best_kernel()
-    # [wtd#25] Replace bare except with except Exception to avoid catching KeyboardInterrupt
     except Exception:
         kernel.precompile(device_info=device_info, suppress_error=suppress_error)
     return kernel
@@ -258,7 +257,7 @@ class CustomAsyncCompile(AsyncCompile):
                 try:
                     kernel.get_best_kernel()
                     return kernel
-                except:
+                except Exception:
                     if kernel._should_disable_autotune_for_determinism():
                         compile_args = [(None, True, True)]
                     else:
@@ -276,7 +275,6 @@ class CustomAsyncCompile(AsyncCompile):
                 try:
                     kernel.get_best_kernel()
                     return kernel
-                # [wtd#26] Replace bare except with except Exception to avoid catching KeyboardInterrupt
                 except Exception:
                     future = self.process_pool().submit(
                         _worker_compile, kernel, cc, device, logger_level=logger.level, extra_env=extra_env
