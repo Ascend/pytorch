@@ -22,7 +22,7 @@ on:
       distributed_shards:
         required: false
         type: string
-        default: '2'
+        default: '5'
         description: Number of shards for distributed tests
       regular_shards:
         required: false
@@ -65,6 +65,7 @@ jobs:
       total_cases: ${{ steps.collect_and_shard.outputs.total_cases }}
 
     steps:
+
       - name: Setup NPU test environment
         uses: kerer-ai/pytorch/.github/actions/setup-npu-test-env@v2.12.0_dev
         with:
@@ -133,6 +134,14 @@ jobs:
             ls -la ../collection_errors.tar.gz
           fi
 
+          # Stage logs to a flat directory for clean artifact layout
+          mkdir -p ../collect-logs-staging
+          cp /tmp/collect_cases.log ../collect-logs-staging/ 2>/dev/null || true
+          cp /tmp/torch_env_patch_collect.log ../collect-logs-staging/ 2>/dev/null || true
+          if [ -f ../collection_errors.tar.gz ]; then
+            cp ../collection_errors.tar.gz ../collect-logs-staging/
+          fi
+
       - name: Upload cases shard JSONs
         uses: actions/upload-artifact@v4
         with:
@@ -145,9 +154,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: collect-cases-logs
-          path: |
-            /tmp/collect_cases.log
-            /tmp/torch_env_patch_collect.log
-            collection_errors.tar.gz
+          path: collect-logs-staging/
           if-no-files-found: warn
           retention-days: 60

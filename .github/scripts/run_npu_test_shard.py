@@ -122,14 +122,6 @@ class CaseExecutionTask:
     test_file: str
 
 
-@dataclasses.dataclass
-class ConcurrentExecutionConfig:
-    """Configuration for concurrent execution."""
-    max_workers: int = 4
-    per_case_timeout: int = 1200
-    verbose: bool = False
-
-
 # ==============================================================================
 # Case Log Saving Functions
 # ==============================================================================
@@ -355,22 +347,33 @@ def parse_junit_xml_status(xml_file: Path) -> Dict:
             # Check <skipped>
             skipped_elem = testcase.find("skipped")
             if skipped_elem is not None:
+                skip_type = skipped_elem.get("type", "")
+                if skip_type == "pytest.xfail":
+                    result["status"] = "passed"
+                    result["message"] = "xfailed: expected failure"
+                    return result
                 result["status"] = "skipped"
-                result["message"] = skipped_elem.get("message", "")
+                attr_msg = skipped_elem.get("message", "")
+                text_msg = (skipped_elem.text or "").strip()
+                result["message"] = attr_msg + ("\n" + text_msg if text_msg else "")
                 return result
 
             # Check <failure>
             failure_elem = testcase.find("failure")
             if failure_elem is not None:
                 result["status"] = "failed"
-                result["message"] = failure_elem.get("message", "")
+                attr_msg = failure_elem.get("message", "")
+                text_msg = (failure_elem.text or "").strip()
+                result["message"] = attr_msg + ("\n" + text_msg if text_msg else "")
                 return result
 
             # Check <error>
             error_elem = testcase.find("error")
             if error_elem is not None:
                 result["status"] = "error"
-                result["message"] = error_elem.get("message", "")
+                attr_msg = error_elem.get("message", "")
+                text_msg = (error_elem.text or "").strip()
+                result["message"] = attr_msg + ("\n" + text_msg if text_msg else "")
                 return result
 
             # No failure/error/skipped = passed
@@ -445,251 +448,8 @@ def load_installed_torch_root() -> str:
 
 
 # ==============================================================================
-# Concurrent Case Execution
+# Log Writer Thread
 # ==============================================================================
-
-
-def run_single_case_concurrent(
-    task: CaseExecutionTask,
-    test_dir: Path,
-    merged_env: Dict[str, str],
-    config: ConcurrentExecutionConfig,
-    result_aggregator: ConcurrentResultAggregator,
-    progress_tracker: ProgressTracker,
-    log_queue: Queue,
-    report_dir: Path,
-    shard: int,
-    shard_type: str,
-    npu_device_id: Optional[int] = None,
-) -> Dict:
-    """
-    Execute a single test case in subprocess (for concurrent execution).
-
-    This function runs in ThreadPoolExecutor threads. Each call spawns
-    an independent subprocess for the test case. Core dumps and crashes
-    in the subprocess do NOT affect the main Python process or other
-    concurrent tasks.
-
-    CRITICAL: This function must catch ALL exceptions and return a result
-    dict. It should NEVER raise exceptions to ThreadPoolExecutor level.
-
-    Args:
-        task: Case execution task with nodeid and metadata
-        test_dir: PyTorch test directory
-        merged_env: Environment variables
-        config: Execution configuration
-        result_aggregator: Thread-safe result collector
-        progress_tracker: Thread-safe progress tracker
-        log_queue: Queue for log messages
-
-    Returns:
-        Dict with case result (never raises exception)
-    """
-    start_time = monotonic()
-    original_nodeid = task.nodeid
-    case_nodeid = task.nodeid
-
-    # Strip test/ prefix for pytest execution
-    if case_nodeid.startswith("test/"):
-        case_nodeid = case_nodeid[5:]
-
-    # Generate XML file path with descriptive name
-    prefix = "dist" if shard_type == "distributed" else "reg"
-    safe_case_name = sanitize_nodeid_for_filename(original_nodeid)
-    xml_filename = f"{prefix}-{shard}_{task.case_idx}_{safe_case_name}.xml"
-    xml_file = report_dir / "junit_xmls" / xml_filename
-
-    command = [
-        sys.executable,
-        "-m",
-        "pytest",
-        "--color=no",
-        "-ra",
-        "--tb=short",
-        case_nodeid,
-        f"--junitxml={xml_file}",
-    ]
-
-    if config.per_case_timeout > 0:
-        command.append(f"--timeout={config.per_case_timeout}")
-
-    if config.verbose:
-        command.append("-vv")
-    else:
-        command.append("-v")
-
-    command_str = " ".join(command)
-
-    # Build per-case environment with test file directory in PYTHONPATH
-    # This enables imports of sibling modules (e.g., 'from model_registry import MLPModule')
-    case_env = merged_env.copy()
-    test_file = task.test_file
-    if test_file.startswith("test/"):
-        test_file_rel = test_file[5:]
-    else:
-        test_file_rel = test_file
-
-    test_file_path = Path(test_file_rel)
-    test_file_dir = test_dir / test_file_path.parent
-
-    existing_pythonpath = case_env.get("PYTHONPATH", "")
-    case_env["PYTHONPATH"] = str(test_file_dir) + (":" + existing_pythonpath if existing_pythonpath else "")
-
-    # Set NPU device for regular tests (round-robin allocation)
-    # distributed tests do not set ASCEND_RT_VISIBLE_DEVICES to allow using all devices
-    if npu_device_id is not None:
-        case_env["ASCEND_RT_VISIBLE_DEVICES"] = str(npu_device_id)
-
-    # Print start log to stdout (before execution)
-    # Truncate nodeid for display
-    display_nodeid = original_nodeid[:70] + "..." if len(original_nodeid) > 70 else original_nodeid
-    print(f"[{task.case_idx}] Starting: {display_nodeid}", flush=True)
-
-    # Log start
-    log_queue.put({
-        "type": "case_start",
-        "case_idx": task.case_idx,
-        "nodeid": original_nodeid,
-        "file": task.test_file,
-        "command": command_str,
-    })
-
-    # Execute subprocess - CRITICAL: catch ALL exceptions
-    try:
-        result = subprocess.run(
-            command,
-            cwd=str(test_dir),
-            env=case_env,  # Use per-case environment with test file directory in PYTHONPATH
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=config.per_case_timeout + 30,  # Extra 30s buffer for pytest startup overhead
-        )
-
-        duration = monotonic() - start_time
-        returncode = result.returncode
-
-        # Parse JUnit XML for status
-        # - Has XML: use XML status
-        # - No XML: error
-        xml_result = parse_junit_xml_status(xml_file)
-        xml_status = xml_result.get("status")
-
-        if xml_status == "no_xml":
-            # No XML → error
-            status = "error"
-            message = xml_result.get("message")
-        else:
-            # Has XML → use XML status
-            status = xml_status
-            message = xml_result.get("message", "")
-
-        # Save logs for all cases
-        save_case_log(
-            report_dir=report_dir,
-            shard=shard,
-            shard_type=shard_type,
-            nodeid=original_nodeid,
-            case_idx=task.case_idx,
-            status=status,
-            stdout=result.stdout,
-            stderr=result.stderr,
-            duration=duration,
-            returncode=returncode,
-            command=command_str,
-            npu_device_id=npu_device_id,
-        )
-
-        case_result = {
-            "nodeid": original_nodeid,
-            "status": status,
-            "duration": duration,
-            "returncode": returncode,
-            "message": message,
-            "command": command_str,
-            "file": task.test_file,
-            "case_idx": task.case_idx,
-        }
-
-    except subprocess.TimeoutExpired:
-        # Timeout → no XML, status = timeout
-        duration = monotonic() - start_time
-        status = "timeout"
-        case_result = {
-            "nodeid": original_nodeid,
-            "status": status,
-            "duration": duration,
-            "returncode": -1,
-            "message": f"Timeout after {config.per_case_timeout}s",
-            "command": command_str,
-            "file": task.test_file,
-            "case_idx": task.case_idx,
-        }
-
-        # Save log for timeout
-        save_case_log(
-            report_dir=report_dir,
-            shard=shard,
-            shard_type=shard_type,
-            nodeid=original_nodeid,
-            case_idx=task.case_idx,
-            status=status,
-            stdout="(process timed out, no output captured)",
-            stderr="(process timed out, no output captured)",
-            duration=duration,
-            returncode=-1,
-            command=command_str,
-            npu_device_id=npu_device_id,
-        )
-
-    except Exception as e:
-        # Any other exception - return result, don't raise
-        duration = monotonic() - start_time
-        case_result = {
-            "nodeid": original_nodeid,
-            "status": "error",
-            "duration": duration,
-            "returncode": 1,
-            "message": f"Unexpected error: {str(e)[:200]}",
-            "command": command_str,
-            "file": task.test_file,
-            "case_idx": task.case_idx,
-        }
-
-        # Save error case log
-        save_case_log(
-            report_dir=report_dir,
-            shard=shard,
-            shard_type=shard_type,
-            nodeid=original_nodeid,
-            case_idx=task.case_idx,
-            status="error",
-            stdout="(exception occurred before execution)",
-            stderr=str(e),
-            duration=duration,
-            returncode=1,
-            command=command_str,
-            npu_device_id=npu_device_id,
-        )
-
-    # Log finish
-    log_queue.put({
-        "type": "case_finish",
-        "case_idx": task.case_idx,
-        "nodeid": original_nodeid,
-        "status": case_result["status"],
-        "duration": case_result["duration"],
-        "message": case_result["message"][:200] if case_result["message"] else "",
-    })
-
-    # Update aggregator (thread-safe)
-    result_aggregator.add_case_result(case_result)
-
-    # Update progress (thread-safe)
-    progress_tracker.mark_completed(original_nodeid, case_result["status"], duration)
-
-    return case_result
 
 
 def log_writer_thread(log_queue: Queue, log_file: Path, stop_event: threading.Event) -> None:
@@ -1013,14 +773,15 @@ def _execute_worker_batch(
     result_aggregator: ConcurrentResultAggregator,
     progress_tracker: ProgressTracker,
     log_queue: Queue,
-    max_coredump_retries: int = 3,
 ) -> None:
     """
     Execute one batch in a worker subprocess using pytest.main().
 
     Spawns a subprocess that calls pytest.main() for each case in the batch.
     Reads stdout JSON lines for real-time progress updates.
-    On coredump (returncode < 0), retries remaining cases up to max_coredump_retries.
+    No retries: on coredump or idle timeout, the first unreported case is
+    marked as error/timeout and a new worker is started for the remaining
+    cases. Every case gets exactly one execution chance.
     Never raises — all errors become case_result entries in the aggregator.
     """
     script_path = Path(__file__).resolve()
@@ -1028,17 +789,13 @@ def _execute_worker_batch(
 
     remaining_cases = list(batch)
     completed_nodeids = set()
-    coredump_retries = 0  # consecutive coredumps on same remaining_cases
     batch_input = _build_batch_input_json(
         batch, batch_id, test_dir, report_dir,
         {},  # env_updates already merged by caller
         timeout, verbose, shard, shard_type, npu_device_id,
     )
 
-    # Outer loop: unlimited restarts for idle timeouts.
-    # Each restart spawns a new worker for the remaining cases.
     while remaining_cases:
-        # Update batch input with current remaining cases
         batch_input["cases"] = [
             {
                 "case_idx": t.case_idx,
@@ -1069,7 +826,6 @@ def _execute_worker_batch(
                 errors="replace",
             )
 
-            stdout_lines = []
             last_output_time = monotonic()
 
             def _read_stdout():
@@ -1077,7 +833,40 @@ def _execute_worker_batch(
                 if proc.stdout:
                     for line in proc.stdout:
                         last_output_time = monotonic()
-                        stdout_lines.append(line.strip())
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            case_result = json.loads(line)
+                        except json.JSONDecodeError:
+                            continue
+
+                        nodeid = case_result.get("nodeid", "")
+                        status = case_result.get("status", "error")
+                        duration = case_result.get("duration", 0.0)
+
+                        full_result = {
+                            "nodeid": nodeid,
+                            "status": status,
+                            "duration": duration,
+                            "returncode": int(case_result.get("returncode", 1)),
+                            "message": case_result.get("message", ""),
+                            "command": case_result.get("command", ""),
+                            "file": case_result.get("file", ""),
+                            "case_idx": int(case_result.get("case_idx", 0)),
+                        }
+
+                        result_aggregator.add_case_result(full_result)
+                        progress_tracker.mark_completed(nodeid, status, duration)
+                        log_queue.put({
+                            "type": "case_finish",
+                            "case_idx": full_result["case_idx"],
+                            "nodeid": nodeid,
+                            "status": status,
+                            "duration": duration,
+                            "message": case_result.get("message", "")[:200],
+                        })
+                        attempt_completed.add(nodeid)
 
             reader_thread = threading.Thread(target=_read_stdout, daemon=True)
             reader_thread.start()
@@ -1109,51 +898,13 @@ def _execute_worker_batch(
 
                 sleep(0.5)
 
-            # Process stdout lines (both timeout and normal paths)
-            for line in stdout_lines:
-                if not line:
-                    continue
-                try:
-                    case_result = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
-
-                nodeid = case_result.get("nodeid", "")
-                status = case_result.get("status", "error")
-                duration = case_result.get("duration", 0.0)
-
-                full_result = {
-                    "nodeid": nodeid,
-                    "status": status,
-                    "duration": duration,
-                    "returncode": int(case_result.get("returncode", 1)),
-                    "message": case_result.get("message", ""),
-                    "command": case_result.get("command", ""),
-                    "file": case_result.get("file", ""),
-                    "case_idx": int(case_result.get("case_idx", 0)),
-                }
-
-                result_aggregator.add_case_result(full_result)
-                progress_tracker.mark_completed(nodeid, status, duration)
-                log_queue.put({
-                    "type": "case_finish",
-                    "case_idx": full_result["case_idx"],
-                    "nodeid": nodeid,
-                    "status": status,
-                    "duration": duration,
-                    "message": case_result.get("message", "")[:200],
-                })
-                attempt_completed.add(nodeid)
+            completed_nodeids.update(attempt_completed)
+            not_reported = [
+                t for t in remaining_cases
+                if t.nodeid not in attempt_completed
+            ]
 
             if timeout_occurred:
-                # Idle timeout: mark the hung case, restart worker for the
-                # rest.  Unlimited restarts — worst case every case times
-                # out individually, same overhead as per-case subprocess.
-                coredump_retries = 0
-                not_reported = [
-                    t for t in remaining_cases
-                    if t.nodeid not in attempt_completed
-                ]
                 if not_reported:
                     hung_case = not_reported[0]
                     timeout_result = {
@@ -1177,54 +928,53 @@ def _execute_worker_batch(
 
                 if remaining_cases:
                     print(
-                        f"  [Batch {batch_id}] Restarting worker for "
+                        f"  [Batch {batch_id}] Continuing with "
                         f"{len(remaining_cases)} remaining cases...",
                         flush=True,
                     )
-                continue  # back to while loop
+                continue
 
             if returncode < 0:
-                # Worker killed by signal → coredump
-                coredump_retries += 1
                 signal_num = -returncode
                 try:
                     signal_name = signal.Signals(signal_num).name
                 except (ValueError, AttributeError):
                     signal_name = f"signal {signal_num}"
                 print(
-                    f"  [Batch {batch_id}] Worker coredump ({signal_name}), "
-                    f"attempt {coredump_retries}/{max_coredump_retries}",
+                    f"  [Batch {batch_id}] Worker coredump ({signal_name})",
                     flush=True,
                 )
 
-                completed_nodeids.update(attempt_completed)
-                remaining_cases = [
-                    t for t in batch if t.nodeid not in completed_nodeids
-                ]
+                if not_reported:
+                    crashed_case = not_reported[0]
+                    error_result = {
+                        "nodeid": crashed_case.nodeid,
+                        "status": "error",
+                        "duration": 0.0,
+                        "returncode": returncode,
+                        "message": f"Worker killed by signal ({signal_name})",
+                        "command": "",
+                        "file": crashed_case.test_file,
+                        "case_idx": crashed_case.case_idx,
+                    }
+                    result_aggregator.add_case_result(error_result)
+                    progress_tracker.mark_completed(
+                        crashed_case.nodeid, "error", 0.0
+                    )
+                    completed_nodeids.add(crashed_case.nodeid)
+                    remaining_cases = not_reported[1:]
+                else:
+                    remaining_cases = []
 
-                if coredump_retries > max_coredump_retries:
-                    for task in remaining_cases:
-                        error_result = {
-                            "nodeid": task.nodeid,
-                            "status": "error",
-                            "duration": 0.0,
-                            "returncode": 1,
-                            "message": f"Coredump: max retries exceeded ({signal_name})",
-                            "command": "",
-                            "file": task.test_file,
-                            "case_idx": task.case_idx,
-                        }
-                        result_aggregator.add_case_result(error_result)
-                        progress_tracker.mark_completed(
-                            task.nodeid, "error", 0.0
-                        )
-                        completed_nodeids.add(task.nodeid)
-                    break
-                continue  # back to while loop
+                if remaining_cases:
+                    print(
+                        f"  [Batch {batch_id}] Continuing with "
+                        f"{len(remaining_cases)} remaining cases...",
+                        flush=True,
+                    )
+                continue
 
             # Normal exit: all cases processed
-            completed_nodeids.update(attempt_completed)
-
             if not attempt_completed:
                 results_file = report_dir / f"batch_results_{batch_id}.json"
                 if results_file.exists():
