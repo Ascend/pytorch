@@ -1,10 +1,14 @@
-from functools import reduce
-
 import torch._ops
 from torch._inductor import decomposition, lowering
 from torch._inductor.fx_passes.control_dependencies import ControlDeps
 from torch._inductor.lowering import lowerings, make_fallback
 from torch.utils._ordered_set import OrderedSet
+
+from torch_npu._inductor.lowering_common import (
+    add_overload,
+    fallback_ops_with_meta,
+    resolve_op_from_name,
+)
 
 from .. import config
 from ..npu.utils import get_anir_mode, run_once
@@ -23,21 +27,10 @@ def _register_npu_inductor_fallbacks():
     fallback_set_exclude = OrderedSet()
     env_fallback_list = config.enable_full_lowering_fallback
 
-    def _resolve_op_from_name(op_name: str):
-        try:
-            obj = torch.ops
-            for part in op_name.split("."):
-                obj = getattr(obj, part)
-            return obj
-        except AttributeError:
-            logger.warning(
-                "[npu|inductor|lowering|fallback] invalid identifier name: %s", op_name
-            )
-
     if env_fallback_list:
         for op_name in env_fallback_list.split(","):
             op_name = op_name.strip()
-            op = _resolve_op_from_name(op_name)
+            op = resolve_op_from_name(op_name, logger)
             if isinstance(op, torch._ops.OpOverloadPacket):
                 fallback_set.add(op)
                 fallback_set_exclude.add(op)
@@ -51,19 +44,8 @@ def _register_npu_inductor_fallbacks():
                     op_name,
                 )
 
-    for fn in config.GENERATE_LIST:
-        gen_set.add(fn)
-        if isinstance(fn, torch._ops.OpOverloadPacket):
-            for overload in fn.overloads():
-                other_fn = getattr(fn, overload)
-                gen_set.add(other_fn)
-
-    for fn in config.FALLBACK_LIST:
-        fallback_set.add(fn)
-        if isinstance(fn, torch._ops.OpOverloadPacket):
-            for overload in fn.overloads():
-                other_fn = getattr(fn, overload)
-                fallback_set.add(other_fn)
+    add_overload(config.GENERATE_LIST, gen_set)
+    add_overload(config.FALLBACK_LIST, fallback_set)
 
     def fallback_except_gen_set(gen_set):
         for op in lowering.lowerings:
@@ -110,7 +92,11 @@ def _register_npu_inductor_fallbacks():
         for op in ops_to_fallback:
             make_fallback(op)
 
-        _fallback_ops_with_meta()
+        fallback_ops_with_meta(
+            lowerings,
+            decomposition.decompositions,
+            make_fallback,
+        )
 
     if config.fallback_to_aten_mode not in {"off", "include", "exclude", "all"}:
         raise AssertionError(
@@ -129,43 +115,3 @@ def _register_npu_inductor_fallbacks():
         fallback_via_fallback_set(fallback_set=fallback_set_exclude)
     elif config.fallback_to_aten_mode == "all":
         enable_full_lowering_fallback()
-
-
-def get_nested_attr(obj, attr_path, default=None):
-    try:
-        return reduce(getattr, attr_path.split("."), obj)
-    except AttributeError:
-        return default
-
-
-def _fallback_ops_with_meta():
-    """
-    Fallback all ops that have a Meta implementation but are not yet in lowerings
-    """
-    all_ops = torch._C._dispatch_get_all_op_names()
-
-    for op_name in all_ops:
-        has_meta = torch._C._dispatch_has_kernel_for_dispatch_key(op_name, "Meta")
-        has_comp = torch._C._dispatch_has_kernel_for_dispatch_key(
-            op_name, "CompositeImplicitAutograd"
-        )
-
-        if not (has_meta or has_comp):
-            continue
-
-        namespace, name_with_overload = op_name.split("::", 1)
-
-        if "." in name_with_overload:
-            name, overload = name_with_overload.rsplit(".", 1)
-        else:
-            name, overload = name_with_overload, "default"
-
-        normalized_path = f"{namespace}.{name}.{overload}"
-        op_overload = get_nested_attr(torch.ops, normalized_path)
-        if not isinstance(op_overload, torch._ops.OpOverload):
-            continue
-
-        if op_overload in lowerings or op_overload in decomposition.decompositions:
-            continue
-
-        make_fallback(op_overload)

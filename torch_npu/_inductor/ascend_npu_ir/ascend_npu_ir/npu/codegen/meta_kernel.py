@@ -38,7 +38,11 @@ from torch._inductor.scheduler import Scheduler
 
 from torch.fx.experimental.proxy_tensor import make_fx
 from torch._dynamo.device_interface import get_interface_for_device
-from ...npu.inductor_patch.lowering import map_strings_to_operators
+from torch_npu._inductor.lowering_common import (
+    MLIR_OPERATOR_MAPPING,
+    map_strings_to_operators as _map_strings_to_operators,
+    merge_fx_graphs,
+)
 from ...npu.utils import (
     MLIRProcessor,
     parse_fx_example_inputs,
@@ -52,10 +56,12 @@ from ...npu.utils import (
     view_to_reshape
 )
 from ... import config as anir_config
-from ...npu.inductor_patch.lowering import merge_fx_graphs
-
 
 id_iter = count()
+
+
+def map_strings_to_operators(expr_str: str):
+    return _map_strings_to_operators(expr_str, MLIR_OPERATOR_MAPPING)
 
 
 class NpuTritonKernel(TritonKernel):
@@ -115,10 +121,10 @@ def refresh_input_meta_with_buffer_layout(node):
         return val
 
     size, stride = tuple(layout.size), tuple(layout.stride)
-    if any(not isinstance(x, int) for x in (*size, *stride)):
+    if any(not isinstance(x, (int, sympy.Integer)) for x in (*size, *stride)):
         return val
 
-    if val.size() != size or val.stride() != stride:
+    if tuple(val.size()) != size or tuple(val.stride()) != stride:
         with V.graph.fake_mode:
             val = torch.empty_strided(
                 size,

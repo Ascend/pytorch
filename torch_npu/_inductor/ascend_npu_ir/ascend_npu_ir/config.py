@@ -318,4 +318,5 @@ decomps_to_exclude_npu = [
     aten.reflection_pad2d,
     aten.grid_sampler_2d,
     aten.grid_sampler_2d_backward,
+    aten.expm1,
 ]
