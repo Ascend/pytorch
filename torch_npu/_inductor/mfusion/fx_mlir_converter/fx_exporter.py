@@ -19,7 +19,6 @@ torch.fx.GraphModule.
 
 import logging
 import operator
-import re
 from typing import Any
 
 from torch_mlir import ir
@@ -257,79 +256,6 @@ def _get_schema_from_operator(op: ir.Operation) -> str:
         )
 
     return f"({args_str}) -> {ret_str}"
-
-
-def _tensor_from_mlir_type(mlir_type: ir.Type) -> torch.Tensor | None:
-    type_str = str(mlir_type)
-    match = re.match(r"!torch\.(?:vtensor|tensor)<\[(.*?)\],\s*([a-z0-9]+)>", type_str)
-    if match is None:
-        return None
-    shape_str, dtype_str = match.groups()
-    dims: list[int] = []
-    for dim in shape_str.split(","):
-        dim = dim.strip()
-        if not dim or dim == "?" or not dim.lstrip("-").isdigit():
-            dims.append(1)
-        else:
-            dims.append(int(dim))
-
-    dtype_map = {
-        "f16": torch.float16,
-        "f32": torch.float32,
-        "f64": torch.float64,
-        "bf16": torch.bfloat16,
-        "i64": torch.int64,
-        "i32": torch.int32,
-        "i8": torch.int8,
-        "ui8": torch.uint8,
-        "i1": torch.bool,
-    }
-    dtype = dtype_map.get(dtype_str)
-    if dtype is None:
-        return None
-    return torch.empty(dims, dtype=dtype)
-
-
-def _attach_placeholder_meta_from_func(
-    gm: torch.fx.GraphModule, func_op: ir.Operation
-) -> None:
-    func_type = ir.FunctionType(ir.TypeAttr(func_op.attributes["function_type"]).value)
-    arg_types = list(func_type.inputs)
-    arg_index = 0
-    for node in gm.graph.nodes:
-        if node.op != "placeholder":
-            continue
-        if arg_index >= len(arg_types):
-            break
-        val = _tensor_from_mlir_type(arg_types[arg_index])
-        if val is not None:
-            node.meta["val"] = val
-        arg_index += 1
-
-
-def _build_fake_inputs(gm: torch.fx.GraphModule) -> list[Any] | None:
-    fake_mode = FakeTensorMode()
-    args: list[Any] = []
-    for node in gm.graph.nodes:
-        if node.op != "placeholder":
-            continue
-        val = node.meta.get("val", None)
-        if val is None:
-            return None
-        if isinstance(val, torch.Tensor):
-            args.append(fake_mode.from_tensor(val))
-        else:
-            args.append(val)
-    return args
-
-
-def _propagate_fake_meta(gm: torch.fx.GraphModule) -> None:
-    from torch.fx.passes.fake_tensor_prop import FakeTensorProp
-
-    args = _build_fake_inputs(gm)
-    if args is None:
-        return
-    FakeTensorProp(gm).propagate(*args)
 
 
 def _get_op_target(op_name: str) -> Any:
@@ -738,8 +664,6 @@ class FxExporter:
         # Recursively export subgraph
         sub_exporter = FxExporter(export_single_tuple_output=False)
         sub_gm = sub_exporter.export_func(sub_func)
-        # _attach_placeholder_meta_from_func(sub_gm, sub_func)
-        # _propagate_fake_meta(sub_gm)
         schema = _get_schema_from_operator(op)
 
         payload = subgraph_registry.Payload(
