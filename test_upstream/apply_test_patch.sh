@@ -29,7 +29,8 @@ echo "================================================"
 cd "$ROOT_DIR" || exit 1
 
 # 递归查找所有 patch 文件并排序
-PATCH_FILES=$(find "$PATCH_DIR" -type f \( -name "*.patch" -o -name "*.diff" \) | sort)
+# 只在 test/ 目录下查找源码测试patch，torch/ 下的patch由 torch_env_patch.sh 负责给安装后环境打
+PATCH_FILES=$(find "$PATCH_DIR/test" -type f \( -name "*.patch" -o -name "*.diff" \) | sort)
 
 if [ -z "$PATCH_FILES" ]; then
     echo "未找到任何 .patch / .diff 文件"
@@ -45,7 +46,7 @@ for patch in $PATCH_FILES; do
     count=$((count+1))
     echo -e "\n[$count] 应用：$patch"
 
-    patch -p1 --no-backup-if-mismatch -f --fuzz=5 < "$patch"
+    patch -p1 --no-backup-if-mismatch -f < "$patch"
 
     if [ $? -eq 0 ]; then
         echo "成功"

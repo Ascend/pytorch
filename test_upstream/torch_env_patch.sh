@@ -90,7 +90,7 @@ for patch in $PATCH_FILES; do
     patch_rel=$(realpath --relative-to="$SCRIPT_DIR" "$patch" 2>/dev/null || basename "$patch")
     echo "[$count/$PATCH_COUNT] $patch_rel"
 
-    if patch -p1 --no-backup-if-mismatch -f --fuzz=5 < "$patch" > /tmp/torch_patch_output.log 2>&1; then
+    if patch -p1 --no-backup-if-mismatch -f < "$patch" > /tmp/torch_patch_output.log 2>&1; then
         :
     else
         echo "  FAILED: $(cat /tmp/torch_patch_output.log)"
