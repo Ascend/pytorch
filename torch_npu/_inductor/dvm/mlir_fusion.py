@@ -84,8 +84,8 @@ anir_config.GENERATE_LIST = [
     aten.reshape,
     # aten.clone,
     aten.lift_fresh_copy,
- 	aten.lift_fresh_copy.default,
- 	triton_kernel_wrapper_mutation,
+    aten.lift_fresh_copy.default,
+    triton_kernel_wrapper_mutation,
 ]
 
 

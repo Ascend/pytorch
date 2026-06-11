@@ -743,7 +743,7 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
             [](c10_npu::NPUGraph& self,
                std::optional<c10_npu::MempoolId_t> pool_opt,
                std::string capture_error_mode,
-			   bool report_shape) {
+                bool report_shape) {
                 aclmdlRICaptureMode capture_mode;
                 c10_npu::MempoolId_t pool = pool_opt.has_value()
                     ? pool_opt.value() : c10_npu::MempoolId_t{0, 0};
