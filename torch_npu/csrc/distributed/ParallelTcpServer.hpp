@@ -102,9 +102,9 @@ using ServerProcFn = std::function<StoreMessage(int fd, const StoreMessage &req)
 class ParallelTcpServer {
 public:
     explicit ParallelTcpServer(uint32_t threadNum, const std::string host, uint16_t port, uint32_t listenThreadNum,
-		ServerProcFn process) noexcept;
+        ServerProcFn process) noexcept;
     explicit ParallelTcpServer(uint32_t threadNum, const std::string localSocketPath, uint32_t listenThreadNum,
-		ServerProcFn process) noexcept;
+        ServerProcFn process) noexcept;
 
     int Start() noexcept;
     void Stop() noexcept;

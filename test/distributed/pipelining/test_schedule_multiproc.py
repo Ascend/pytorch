@@ -1037,9 +1037,9 @@ instantiate_parametrized_tests(ScheduleTest)
 
 
 @unittest.skip(
- 	    "Skip: pre-existing CI environment issue, "
- 	    "HCCL communication error (hcclCommInitRootInfoConfig failed) on ARM CI"
- 	)
+        "Skip: pre-existing CI environment issue, "
+        "HCCL communication error (hcclCommInitRootInfoConfig failed) on ARM CI"
+    )
 class CustomSchedulesTest(MultiProcContinuousTest):
     """
     These schedules are from the ScheduleRegistry and require world_size == 2

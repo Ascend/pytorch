@@ -76,20 +76,20 @@ def _add_op_to_meta_table(op, fn, avoid_fallback_flag=False, inductor_decomp=Fal
         if avoid_fallback_flag:
             avoid_make_fallback_table.append(op_overload)
         if inductor_decomp:
- 	        inductor_decomp_table.append(op_overload)
+            inductor_decomp_table.append(op_overload)
 
 
 def patch_torch_inductor_decompositions():
- 	'''
- 	TorchInductor traces compiled backward with its own decomposition table.
- 	Only patch ops that explicitly opted in via inductor_decomp=True so we
- 	don't accidentally overwrite unrelated inductor decompositions.
- 	'''
- 	import torch._inductor.decomposition as inductor_decomposition
+    '''
+    TorchInductor traces compiled backward with its own decomposition table.
+    Only patch ops that explicitly opted in via inductor_decomp=True so we
+    don't accidentally overwrite unrelated inductor decompositions.
+    '''
+    import torch._inductor.decomposition as inductor_decomposition
 
- 	for op_overload in inductor_decomp_table:
- 	    if op_overload in npu_meta_table:
- 	        inductor_decomposition.decompositions[op_overload] = npu_meta_table[op_overload]
+    for op_overload in inductor_decomp_table:
+        if op_overload in npu_meta_table:
+            inductor_decomposition.decompositions[op_overload] = npu_meta_table[op_overload]
 
 
 def patch_torch_decomp_decompositions():
