@@ -1,5 +1,6 @@
 # Owner(s): ["module: dataloader"]
 
+import dataclasses
 import math
 import sys
 import errno
@@ -931,10 +932,14 @@ def _test_worker_info_init_fn(worker_id):
     # test that WorkerInfo attributes are read-only
     try:
         worker_info.id = 3999
+    except dataclasses.FrozenInstanceError as e:
+        assert str(e) == "cannot assign to field 'id'"
     except RuntimeError as e:
         assert str(e) == "Cannot assign attributes to WorkerInfo objects"
     try:
         worker_info.a = 3
+    except TypeError as e:
+        assert str(e) == "super(type, obj): obj must be an instance or subtype of type"
     except RuntimeError as e:
         assert str(e) == "Cannot assign attributes to WorkerInfo objects"
     for k in ['id', 'num_workers', 'seed', 'dataset']:
