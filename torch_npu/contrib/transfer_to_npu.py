@@ -306,6 +306,10 @@ def _patch_has_triton():
     return False
 
 
+def _get_npu_type():
+    return "npu"
+
+
 def _patch_get_available_device_type():
     if torch.npu.is_available():
         return 'npu'
@@ -514,6 +518,11 @@ def _init():
     setattr(torch._dynamo.utils, 'has_triton', _patch_has_triton)
     setattr(torch._inductor.runtime.autotune_cache, 'has_triton', _patch_has_triton)
     setattr(torch._inductor.compile_fx, 'has_triton', _patch_has_triton)
+
+    setattr(torch._inductor.utils, "get_gpu_type", _get_npu_type)
+    setattr(torch._inductor.fx_passes.post_grad, "get_gpu_type", _get_npu_type)
+    setattr(torch._inductor.fx_passes.joint_graph, "get_gpu_type", _get_npu_type)
+    setattr(torch._inductor.autotune_process, "get_gpu_type", _get_npu_type)
 
     setattr(torch._utils, '_get_available_device_type', _patch_get_available_device_type)
     setattr(torch.distributed.checkpoint.filesystem._OverlappingCpuLoader, '__init__',
