@@ -201,7 +201,7 @@ gcc --version
 
 **处理方法**
 
-如版本低于GCC 8，请参考《[Ascend Extension for PyTorch 软件安装指南](installation_description.md)》安装 GCC 8 及以上版本。
+如果GCC版本低于8，请参考《[安装GCC 11.2.0版本](installing_gcc_11-2-0.md)》安装GCC 8及以上版本。
 
 ## 安装问题
 
@@ -233,7 +233,7 @@ bash ci/build.sh --python=3.xx
 
 **问题描述**
 
-安装后无法正常“import torch_npu”。
+导入torch_npu时，系统报错缺失libhccl.so文件。
 
 报错文本
 
@@ -248,3 +248,54 @@ ImportError: libhccl.so: cannot open shared object file: No such file or directo
 **处理方法**
 
 请检查是否已安装配套版本的 NPU 驱动固件、CANN 软件（Toolkit、ops 和 NNAL）并正确配置 CANN 环境变量，具体请参考《[CANN 软件安装](https://www.hiascend.com/document/detail/zh/canncommercial/900/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum)》（商用版）或《[CANN 软件安装](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/900/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum)》（社区版）。
+
+### 导入torch_npu时，系统报错core dump
+
+**问题描述**
+
+编译安装torch_npu后，执行“import torch_npu”，系统报错core dump。
+
+报错文本
+
+```text
+Segmentation fault
+(core dumped)
+```
+
+**报错原因**
+
+编译构建时GCC版本不符合预期。pybind存在abi校验，不同GCC版本的abi_version不一致，导致校验失败。
+
+**处理方法**
+
+使用对应的GCC版本进行编译，具体对应版本可参考[GCC和Cmake版本要求](compilation_installation_using_source_code.md#gcc_cmake)。
+
+### “import torch_npu”报错找不到torch_npu._C
+
+**问题描述**
+
+安装torch_npu后，“import torch_npu”报错torch_npu._C。
+
+报错文本
+
+```text
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "/home/pytorch/torch_npu/__init__.py", line 58, in <module>
+    import torch_npu.utils.patch_getenv
+  File "/home/pytorch/torch_npu/utils/__init__.py", line 12, in <module>
+    from torch_npu.npu.utils import get_cann_version
+  File "/home/pytorch/torch_npu/npu/__init__.py", line 158, in <module>
+    from .utils import (obfuscation_initialize, obfuscation_calculate, obfuscation_finalize, 
+  File "/home/pytorch/torch_npu/npu/utils.py", line 11, in <module>
+    import torch_npu._C
+ModuleNotFoundError: No module named 'torch_npu._C'
+```
+
+**报错原因**
+
+因为安装的torch_npu与该项目下的文件夹重名，不能在项目目录下运行“import torch_npu”。
+
+**处理方法**
+
+进入合适的运行目录下重试，如先`cd test`或`cd /home/test`后再“import torch_npu”。

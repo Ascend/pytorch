@@ -136,6 +136,14 @@ class TestMgr:
         self.test_files['ut_files'] = ordered_split(self.test_files['ut_files'], rank - 1, world_size)
         self.test_files['op_ut_files'] = ordered_split(self.test_files['op_ut_files'], rank - 1, world_size)
 
+    def exclude_files_from_list(self, exclude_list_file):
+        with open(exclude_list_file) as f:
+            exclude_names = {line.strip() for line in f if line.strip()}
+        self.test_files['ut_files'] = [
+            f for f in self.test_files['ut_files']
+            if Path(f).name not in exclude_names
+        ]
+
     def exclude_test_files(self, slow_files=None, not_run_files=None, mode="slow_test"):
         """
         Args:

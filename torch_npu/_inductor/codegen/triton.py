@@ -1274,9 +1274,19 @@ class NPUIndexTritonKernel(TritonKernel):
         self.golden_var_list = None
         self.reduce_analysis = None
         self.load_store_indexing = None
-        self.npu_kernel_type = NPUKernelType.SIMD
+        if npu_config.is_ascend950:
+            self.npu_kernel_type = NPUKernelType.SIMT_TEMPLATE
+        else:
+            self.npu_kernel_type = NPUKernelType.SIMD
         self.current_subblock_axis = set()  # noqa: set_linter
         self.node_schedule = self.features.node_schedule
+        # Independent set to track only genuine reduction result variables,
+        # avoiding pollution from outside_loop_vars (see upstream store() L2296)
+        self.reduction_result_vars: OrderedSet[Any] = OrderedSet()
+        # Plain string list for deferred stores that reference reduction results.
+        # Uses append() instead of IndentedBuffer.writeline() to avoid _indent
+        # inconsistency issues across static/dynamic modes.
+        self._deferred_reduction_stores: list[str] = []
         self.decide_codegen_dims_in_kernel()
 
     def should_use_persistent_reduction(self) -> bool:
@@ -2518,6 +2528,13 @@ class NPUIndexTritonKernel(TritonKernel):
                 loop_body(index, indexing_code, is_last_axis, do_indent)
                 self.body.splice(self.post_loop_combine)
                 self.body.splice(self.post_loop_store)
+                # Output deferred reduction stores here (outside the loop).
+                # body.writeline() controls indentation uniformly, keeping
+                # these stores consistent with post_loop_store in both
+                # static and dynamic modes.
+                for store_line in self._deferred_reduction_stores:
+                    self.body.writeline(store_line)
+                self._deferred_reduction_stores.clear()
                 self.post_loop_combine.clear()
                 self.post_loop_store.clear()
 
@@ -2583,6 +2600,11 @@ class NPUIndexTritonKernel(TritonKernel):
         self.stores.clear()
         self.post_loop_store.clear()
         self.prefix.clear()
+        self.outside_loop_vars.clear()
+        # Note: do NOT clear reduction_result_vars here. It must survive
+        # across multiple codegen_body() calls (one per node in node_schedule)
+        # because it's only populated once in reduction() and never re-filled.
+        # clearing it would cause the next node's store() check to fail.
         self.first_node = False
 
     # for creat constant tensor, if have two axis, constant=tl.full([1,1]) else  tl.full([1])
@@ -2665,9 +2687,17 @@ class NPUIndexTritonKernel(TritonKernel):
         else:
             raise NotImplementedError(f"store mode={mode}")
 
-        self.stores.writeline(DeferredLine(name, line))
-        if advance_block_ptr:
-            self.stores.writeline(advance_block_ptr)
+        if value in self.reduction_result_vars:
+            # Use plain list append (not IndentedBuffer.writeline) to avoid
+            # _indent being frozen at write time, which causes inconsistent
+            # indentation when splice() is called later.
+            self._deferred_reduction_stores.append(line)
+            if advance_block_ptr:
+                self._deferred_reduction_stores.append(advance_block_ptr)
+        else:
+            self.stores.writeline(DeferredLine(name, line))
+            if advance_block_ptr:
+                self.stores.writeline(advance_block_ptr)
 
         if not self.inside_reduction:
             self.outside_loop_vars.add(value)
@@ -3716,8 +3746,10 @@ class NPUIndexTritonKernel(TritonKernel):
 
         if isinstance(result_var, tuple):
             self.outside_loop_vars |= set(result_var)  # noqa: set_linter
+            self.reduction_result_vars |= set(result_var)
         else:
             self.outside_loop_vars.add(result_var)
+            self.reduction_result_vars.add(result_var)
 
         return result_var
 

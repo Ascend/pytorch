@@ -84,16 +84,20 @@ if anir_config.online_acc_comp:
 aten = torch.ops.aten
 
 ## Override original dynamo device interface in torch_npu
-if os.getenv('TORCHINDUCTOR_USE_AKG', '0') == '1':
-    try:
-        import akg
-        import torch_mlir
-        register_backend_for_device("npu", AkgScheduling, NpuMlirWrapperCodeGen)
-    except:
-        logger.warning(f"akg not found, fallback to torch-mlir for compilation.")
+
+
+def register_mlir_codegen_backend() -> None:
+    """Register MLIR scheduling/wrapper; call on each mlir/dvm backend switch."""
+    if os.getenv('TORCHINDUCTOR_USE_AKG', '0') == '1':
+        try:
+            import akg
+            import torch_mlir
+            register_backend_for_device("npu", AkgScheduling, NpuMlirWrapperCodeGen)
+        except ImportError:
+            logger.warning("akg not found, fallback to torch-mlir for compilation.")
+            register_backend_for_device("npu", NpuMlirScheduling, NpuMlirWrapperCodeGen)
+    else:
         register_backend_for_device("npu", NpuMlirScheduling, NpuMlirWrapperCodeGen)
-else:
-    register_backend_for_device("npu", NpuMlirScheduling, NpuMlirWrapperCodeGen)
 
 
 class NewNpuInterface(NpuInterface):
@@ -183,10 +187,6 @@ def _patch_run_node(tracer, node, args, kwargs, nnmodule):
     raise AssertionError(op)
 
 
-def _register_npu_inductor_fallbacks_operation():
-    from ..npu import inductor_patch
-
-_register_npu_inductor_fallbacks_operation()
 disable_implicit_decomposition()
 torch._dynamo.utils.run_node = _patch_run_node
 
