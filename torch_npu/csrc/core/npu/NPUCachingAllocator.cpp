@@ -2202,7 +2202,7 @@ public:
                 c10_npu::npuSynchronizeDevice(true);
                 std::shared_ptr<c10::GatheredContext> context = maybeGatherContext(RecordContext::ALL);
                 release_cached_blocks(true, context, true);
- 	        }
+            }
         }
     }
 
