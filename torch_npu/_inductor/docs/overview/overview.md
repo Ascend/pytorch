@@ -13,7 +13,7 @@ Inductor-Ascend在继承Pytorch社区Inductor能力的基础上，针对昇腾As
   <img src="overview_arch.png" width="70%">
 </div>
 
-当前Inductor-Ascend逻辑组件如图2所示，其核心组件是：图优化、lowering、scheduling、CodeGen。此外，针对A5 SIMT，Inductor支持了基于SIMD+SIMT的离散访存类算子融合；引入Catlass算子模板库支持mm/bmm/addmm/groupmm及其与ReLU等pointwise/broadcast类算子融合；支持flex attention；支持动态Shape等。(相关常用概念见下表)
+当前Inductor-Ascend逻辑组件如图2所示，其核心组件是：图优化、lowering、scheduling、CodeGen。此外，针对A5 SIMT，Inductor支持了基于SIMD+SIMT的离散访存类算子融合；引入Catlass算子模板库支持mm/bmm/addmm/groupmm及其与ReLU等pointwise/broadcast类算子融合；支持flex attention；支持CppWrapper、支持AOTI等。(相关常用概念见下表)
 
 图2 Inductor-Ascend逻辑架构图
 <div align="left">
@@ -43,6 +43,7 @@ Inductor-Ascend在继承Pytorch社区Inductor能力的基础上，针对昇腾As
 | SIMD | Single Instruction Multiple Data，详细介绍可点击[link1](https://www.glick.cloud/blog/simt-vs-simd-parallelism-in-modern-processors) [link2](https://docs.nvidia.com/cuda/cuda-programming-guide/02-basics/writing-cuda-kernels.html)
 | FlexAttention | FlexAttentin是Pytorch-2.5+推出的灵活、高性能注意力编程模型，核心是：用几行Pytorch代码自定义任意注意力变体，同时获得极致性能，详细介绍可点击[link1](https://pytorch.org/blog/flexattention/) [link2](https://arxiv.org/abs/2412.05496)
 | 动态Shape | 是指算子输入Tensor的shape不固定，一般常见于变化的BatchSize和SeqLen。详细介绍可点击[link1](https://ianbarber.blog/2025/04/04/dynamic-shapes-in-pytorch/) [link2](http://docs.pytorch.org/docs/main/user_guide/torch_compiler/torch.compiler_dynamic_shapes.html)
+| CppWrapper | 用于生成 C++ 调用代码替代默认的 Python 包装器，以减少 torch.compile 后模型在推理时的 Python 开销。详细介绍可点击[link](https://docs.pytorch.org/tutorials/unstable/inductor_cpp_wrapper_tutorial.html)
 | AOTInductor | 旨在处理导出的PyTorch模型，对其进行优化，并生成动态链接库及其他相关产物。这些编译产物广泛应用于服务端推理部署场景，支持非Python环境下的推理执行。详细介绍可点击[link](https://docs.pytorch.org/docs/2.11/user_guide/torch_compiler/torch.compiler_aot_inductor.html)
 
 ## 使用说明
