@@ -12522,5 +12522,143 @@
         [
             ""
         ]
+    ],
+    "test_after_dynamo_cpu_compile_backend_passes (__main__.MinifierTests)": [
+        "CI reg-1: rc=1 - failed on teardown with \"FileNotFoundError: [Errno 2] No such file or directory: '/tmp/tmp27u5kt3f'\" | /usr/local/lib/pyth",
+        [
+            ""
+        ]
+    ],
+    "test_after_dynamo_cpu_runtime_backend_passes (__main__.MinifierTests)": [
+        "CI reg-1: rc=1 - failed on teardown with \"FileNotFoundError: [Errno 2] No such file or directory: '/tmp/tmp27u5kt3f'\" | /usr/local/lib/pyth",
+        [
+            ""
+        ]
+    ],
+    "test_after_dynamo_cuda_accuracy_backend_passes (__main__.MinifierTests)": [
+        "CI reg-1: rc=1 - failed on teardown with \"FileNotFoundError: [Errno 2] No such file or directory: '/tmp/tmp27u5kt3f'\" | /usr/local/lib/pyth",
+        [
+            ""
+        ]
+    ],
+    "test_after_dynamo_cuda_compile_backend_passes (__main__.MinifierTests)": [
+        "CI reg-1: rc=1 - failed on teardown with \"FileNotFoundError: [Errno 2] No such file or directory: '/tmp/tmp27u5kt3f'\" | /usr/local/lib/pyth",
+        [
+            ""
+        ]
+    ],
+    "test_after_dynamo_cuda_runtime_backend_passes (__main__.MinifierTests)": [
+        "CI reg-1: rc=1 - failed on teardown with \"FileNotFoundError: [Errno 2] No such file or directory: '/tmp/tmp27u5kt3f'\" | /usr/local/lib/pyth",
+        [
+            ""
+        ]
+    ],
+    "test_embedding_max_norm_fwd_AD_npu_float16 (__main__.TestEmbeddingNNDeviceTypePRIVATEUSE1)": [
+        "CI reg-1: rc=4 - No testcase in XML",
+        [
+            ""
+        ]
+    ],
+    "test_embedding_max_norm_fwd_AD_npu_float64 (__main__.TestEmbeddingNNDeviceTypePRIVATEUSE1)": [
+        "CI reg-1: rc=4 - No testcase in XML",
+        [
+            ""
+        ]
+    ],
+    "test_jagged_to_padded_dense_zero_size (__main__.TestCustomLowering)": [
+        "CI reg-1: rc=1 - failed on setup with \"RuntimeError: Only a single TORCH_LIBRARY can be used to register the namespace test_inductor_ops;",
+        [
+            ""
+        ]
+    ],
+    "test_multi_inp_asm (__main__.TestCustomLowering)": [
+        "CI reg-1: rc=1 - failed on setup with \"RuntimeError: Only a single TORCH_LIBRARY can be used to register the namespace test_inductor_ops;",
+        [
+            ""
+        ]
+    ],
+    "test_only_eval_fn (__main__.test_fuse_eager)": [
+        "CI reg-1: rc=1 - failed on setup with \"file /usr/local/lib/python3.10/dist-packages/torch/testing/_internal/common_quantization.py, line ",
+        [
+            ""
+        ]
+    ],
+    "test_only_eval_fn (__main__.test_numeric_suite_eager)": [
+        "CI reg-1: rc=1 - failed on setup with \"file /usr/local/lib/python3.10/dist-packages/torch/testing/_internal/common_quantization.py, line ",
+        [
+            ""
+        ]
+    ],
+    "test_only_eval_fn (__main__.test_quantize_eager_ptq)": [
+        "CI reg-1: rc=1 - failed on setup with \"file /usr/local/lib/python3.10/dist-packages/torch/testing/_internal/common_quantization.py, line ",
+        [
+            ""
+        ]
+    ],
+    "test_only_eval_fn (__main__.test_quantize_eager_qat)": [
+        "CI reg-1: rc=1 - failed on setup with \"file /usr/local/lib/python3.10/dist-packages/torch/testing/_internal/common_quantization.py, line ",
+        [
+            ""
+        ]
+    ],
+    "test_only_eval_fn (__main__.test_quantize_fx)": [
+        "CI reg-1: rc=1 - failed on setup with \"file /usr/local/lib/python3.10/dist-packages/torch/testing/_internal/common_quantization.py, line ",
+        [
+            ""
+        ]
+    ],
+    "test_only_eval_fn (__main__.test_quantize_jit)": [
+        "CI reg-1: rc=1 - failed on setup with \"file /usr/local/lib/python3.10/dist-packages/torch/testing/_internal/common_quantization.py, line ",
+        [
+            ""
+        ]
+    ],
+    "test_only_eval_fn (__main__.test_workflow_module)": [
+        "CI reg-1: rc=1 - failed on setup with \"file /usr/local/lib/python3.10/dist-packages/torch/testing/_internal/common_quantization.py, line ",
+        [
+            ""
+        ]
+    ],
+    "test_only_train_fn (__main__.test_fuse_eager)": [
+        "CI reg-1: rc=1 - failed on setup with \"file /usr/local/lib/python3.10/dist-packages/torch/testing/_internal/common_quantization.py, line ",
+        [
+            ""
+        ]
+    ],
+    "test_only_train_fn (__main__.test_quantize_eager_qat)": [
+        "CI reg-1: rc=1 - failed on setup with \"file /usr/local/lib/python3.10/dist-packages/torch/testing/_internal/common_quantization.py, line ",
+        [
+            ""
+        ]
+    ],
+    "test_only_train_fn (__main__.test_quantize_fx)": [
+        "CI reg-1: rc=1 - failed on setup with \"file /usr/local/lib/python3.10/dist-packages/torch/testing/_internal/common_quantization.py, line ",
+        [
+            ""
+        ]
+    ],
+    "test_open_device_registration (__main__.ExtensionBackendTests)": [
+        "CI reg-1: rc=1 - failed on setup with \"RuntimeError: Ninja is required to load C++ extensions\" | inductor/test_extension_backend.py:85: in ",
+        [
+            ""
+        ]
+    ],
+    "test_tanh_approx (__main__.TestCustomLowering)": [
+        "CI reg-1: rc=1 - failed on setup with \"RuntimeError: Only a single TORCH_LIBRARY can be used to register the namespace test_inductor_ops;",
+        [
+            ""
+        ]
+    ],
+    "test_type_promotion_fails_npu_float8_e4m3fnuz (__main__.TestFloat8DtypePRIVATEUSE1)": [
+        "CI reg-1: rc=4 - No testcase in XML",
+        [
+            ""
+        ]
+    ],
+    "test_type_promotion_fails_npu_float8_e5m2fnuz (__main__.TestFloat8DtypePRIVATEUSE1)": [
+        "CI reg-1: rc=4 - No testcase in XML",
+        [
+            ""
+        ]
     ]
 }
