@@ -231,9 +231,9 @@ def patch_inductor_wrapper():
             )
 
         if "shape_handling_configs" not in ori_dict:
-            ori_dict["shape_handling_configs"] = None
+            ori_dict["shape_handling_configs"] = []
             self._config["shape_handling_configs"] = _ConfigEntry(
-                Config(default=None, value_type=list)
+                Config(default=[], value_type=list)
             )
 
         if "shape_handling_dict" not in ori_dict:
