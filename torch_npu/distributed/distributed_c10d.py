@@ -106,7 +106,7 @@ def _batch_isend_irecv(p2p_op_list):
         is_supported_device_name = (
             npu_device_name >= "Ascend910B1" and npu_device_name <= "Ascend910B4_1"
         ) or (
-            npu_device_name >= "Ascend910_9362" and npu_device_name <= "Ascend910_9391"
+            npu_device_name >= "Ascend910_9362" and npu_device_name <= "Ascend910_9392"
         )
         is_fake_backend = isinstance(_group, FakeProcessGroup)
         if (
