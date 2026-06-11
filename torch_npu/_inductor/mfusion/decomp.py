@@ -22,6 +22,8 @@ decomps_to_exclude_npu = [
     aten.embedding_dense_backward,
     aten.gelu.default,
     aten.gelu_backward.default,
+    aten.elu.default,
+    aten.elu_backward.default,
     aten.grid_sampler_2d,
     aten.grid_sampler_2d_backward,
     aten.linalg_vector_norm,
