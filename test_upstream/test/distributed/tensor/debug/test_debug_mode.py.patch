@@ -1,0 +1,60 @@
+﻿diff --git a/test/distributed/tensor/debug/test_debug_mode.py b/test/distributed/tensor/debug/test_debug_mode.py
+index 337fd2bd76c..ce8f8ceb098 100644
+--- a/test/distributed/tensor/debug/test_debug_mode.py
++++ b/test/distributed/tensor/debug/test_debug_mode.py
+@@ -5,6 +5,8 @@ import os
+ import unittest
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch.distributed as dist
+ import torch.distributed._functional_collectives as _functional_collectives
+ from torch._dynamo.testing import CompileCounterWithBackend
+@@ -45,7 +47,7 @@ from torch.utils._python_dispatch import TorchDispatchMode
+ from torch.utils._triton import has_triton_package
+ 
+ 
+-@requires_cuda
++# @requires_cuda
+ class TestDTensorDebugMode(TestCase):
+     def tearDown(self):
+         super().tearDown()
+@@ -58,7 +60,7 @@ class TestDTensorDebugMode(TestCase):
+         dist.init_process_group(
+             backend="fake", rank=0, world_size=self.world_size, store=store
+         )
+-        self.device_type = "cuda"
++        self.device_type = "npu"
+ 
+     def test_debug_mode_mm(self):
+         mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
+@@ -907,8 +909,8 @@ class TestDTensorDebugMode(TestCase):
+         )
+ 
+     @unittest.skipIf(
+-        not torch.cuda.is_available()
+-        or torch.cuda.get_device_properties(0).total_memory < 2**26,
++        not torch.npu.is_available()
++        or torch.npu.get_device_properties(0).total_memory < 2**26,
+         "Being conservative, test peak memory is 25MB?",
+     )
+     def test_tensor_hash_redistribute(self):
+@@ -1147,7 +1149,7 @@ class TestDTensorDebugModeNCCLBackend(MultiProcessTestCase):
+ 
+     def _init_process_group(self):
+         """Initialize NCCL process group for each spawned process."""
+-        torch.cuda.set_device(self.rank)
++        torch.npu.set_device(self.rank)
+         store = dist.FileStore(self.file_name, self.world_size)
+         dist.init_process_group(
+             "nccl",
+@@ -1155,7 +1157,7 @@ class TestDTensorDebugModeNCCLBackend(MultiProcessTestCase):
+             rank=self.rank,
+             store=store,
+         )
+-        self.device = f"cuda:{self.rank}"
++        self.device = f"npu:{self.rank}"
+ 
+     def _destroy_process_group(self):
+         """Destroy the process group."""

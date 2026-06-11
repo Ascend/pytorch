@@ -1,0 +1,22 @@
+﻿diff --git a/test/distributed/_composable/test_replicate_training.py b/test/distributed/_composable/test_replicate_training.py
+index 24e070fe97a..c1acd7df099 100644
+--- a/test/distributed/_composable/test_replicate_training.py
++++ b/test/distributed/_composable/test_replicate_training.py
+@@ -9,6 +9,8 @@ from collections import defaultdict
+ from collections.abc import Iterable
+ 
+ import torch
++from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ import torch.distributed as dist
+ import torch.nn as nn
+ from torch.distributed._composable import checkpoint
+@@ -367,7 +369,7 @@ class TestReplicate1DTrainingCore(FSDPTest):
+             in (2, 3)
+         ):
+             return
+-        if test_device_type not in ("cuda", "hpu", "xpu", "cpu"):
++        if test_device_type not in ("npu", "hpu", "xpu", "cpu"):
+             raise AssertionError(f"Unexpected device type: {test_device_type}")
+         torch.manual_seed(42)
+         vocab_size = 1024

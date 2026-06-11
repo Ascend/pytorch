@@ -1,0 +1,13 @@
+﻿diff --git a/test/dynamo/test_sets.py b/test/dynamo/test_sets.py
+index dab0bdea8ea..b1fc7d13ee0 100644
+--- a/test/dynamo/test_sets.py
++++ b/test/dynamo/test_sets.py
+@@ -7,6 +7,8 @@ import unittest
+ from collections.abc import Iterable
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch._dynamo.test_case
+ from torch._dynamo.exc import Unsupported
+ from torch._dynamo.testing import CompileCounter

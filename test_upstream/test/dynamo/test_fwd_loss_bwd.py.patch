@@ -1,0 +1,13 @@
+﻿diff --git a/test/dynamo/test_fwd_loss_bwd.py b/test/dynamo/test_fwd_loss_bwd.py
+index 5cfc2f11b63..f5487fe29a7 100644
+--- a/test/dynamo/test_fwd_loss_bwd.py
++++ b/test/dynamo/test_fwd_loss_bwd.py
+@@ -5,6 +5,8 @@ import re
+ import textwrap
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch._dynamo
+ from torch._dynamo.testing import (
+     AotEagerAndRecordGraphs,

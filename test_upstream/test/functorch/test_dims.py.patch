@@ -1,0 +1,115 @@
+﻿diff --git a/test/functorch/test_dims.py b/test/functorch/test_dims.py
+index 8cb755878de..442721e074a 100644
+--- a/test/functorch/test_dims.py
++++ b/test/functorch/test_dims.py
+@@ -12,6 +12,14 @@ from attn_positional import BertSelfAttention as BertSelfAttentionB
+ 
+ import functorch.dim
+ import torch
++import torch_npu
++# from torch_npu.contrib import transfer_to_npu
++torch._C._cuda_setStream = torch_npu._C._npu_setStream
++torch.cuda.get_device_capability = lambda *args, **kwargs:(10,0)
++torch._C._cuda_setDevice = torch_npu._C._npu_setDevice
++torch._C._cuda_getCompiledVersion = lambda:11080
++torch.version.cuda = '11.8'
++CUDA_VERSION = 11080
+ from functorch.dim import Dim, DimList, dimlists, dims, stack, Tensor
+ from torch.testing._internal.common_utils import (
+     run_tests,
+@@ -55,9 +63,9 @@ def triu(A):
+     return torch.where(i <= j, a, zero).order(i, j)
+ 
+ 
+-def gpu_time(lmb, name, r=100):
+-    b = torch.cuda.Event(enable_timing=True)
+-    e = torch.cuda.Event(enable_timing=True)
++def npu_time(lmb, name, r=100):
++    b = torch_npu.npu.Event(enable_timing=True)
++    e = torch_npu.npu.Event(enable_timing=True)
+     # with magic_trace(name + ".fxt"):
+     for _ in range(r):
+         lmb()
+@@ -88,8 +96,8 @@ class TestMin(TestCase):
+         for o in gc.get_objects():
+             if isinstance(o, (torch.Tensor, Dim, Tensor, DimList)):
+                 self.interesting.add(id(o))
+-        if "cuda" in self._testMethodName:
+-            self.mem_allocated = torch.cuda.memory_allocated()
++        if "npu" in self._testMethodName:
++            self.mem_allocated = torch_npu.npu.memory_allocated()
+ 
+     def tearDown(self):
+         interesting = []
+@@ -101,8 +109,8 @@ class TestMin(TestCase):
+                 interesting.append(o)
+ 
+         extra_memory = 0
+-        if "cuda" in self._testMethodName:
+-            extra_memory += torch.cuda.memory_allocated() - self.mem_allocated
++        if "npu" in self._testMethodName:
++            extra_memory += torch_npu.npu.memory_allocated() - self.mem_allocated
+ 
+         #  nolevels = _n_levels_in_use() == 0
+         if extra_memory != 0 or len(interesting) != 0:
+@@ -176,8 +184,8 @@ class TestMin(TestCase):
+         )  # why does a simple matmul not do the right thing?
+ 
+         if time:
+-            gpu_time(lambda: B(hidden_state), "positional", r=3)
+-            gpu_time(lambda: A(hidden_state), "first_class", r=3)
++            npu_time(lambda: B(hidden_state), "positional", r=3)
++            npu_time(lambda: A(hidden_state), "first_class", r=3)
+ 
+         for approach in ("relative_key", "relative_key_query"):
+             A = maybe_to(
+@@ -209,8 +217,8 @@ class TestMin(TestCase):
+             torch.testing.assert_close(a_out, b_out)
+ 
+             if time:
+-                gpu_time(lambda: B(hidden_state), "positional", r=3)
+-                gpu_time(lambda: A(hidden_state), "first_class", r=3)
++                npu_time(lambda: B(hidden_state), "positional", r=3)
++                npu_time(lambda: A(hidden_state), "first_class", r=3)
+ 
+         A = maybe_to(
+             BertSelfAttentionA(
+@@ -258,8 +266,8 @@ class TestMin(TestCase):
+         torch.testing.assert_close(a_out, b_out)
+ 
+         if time:
+-            gpu_time(lambda: B(hidden_state), "positional", r=3)
+-            gpu_time(lambda: A(hidden_state), "first_class", r=3)
++            npu_time(lambda: B(hidden_state), "positional", r=3)
++            npu_time(lambda: A(hidden_state), "first_class", r=3)
+ 
+     def test_attn(self):
+         self.attn()
+@@ -285,15 +293,15 @@ class TestMin(TestCase):
+         for _ in range(10):
+             f()
+ 
+-    @skipIf(not TEST_CUDA, "no CUDA")
+-    def test_attn_cuda(self):
++    # @skipIf(not TEST_CUDA, "no CUDA")
++    def test_attn_npu(self):
+         # size from the BERT paper, 90% pretraining of sequence length 128
+         self.attn(
+             batch_size=256,
+             hidden_size=768,
+             sequence_length=128,
+             num_attention_heads=12,
+-            device="cuda",
++            device="npu",
+             time=measure_perf,
+             linear=torch.nn.Linear,
+         )
+@@ -677,7 +685,7 @@ class TestMin(TestCase):
+         x.split(l, 0)
+ 
+ 
+-skip_functorch_only = ["test_time_mm_fuse", "test_attn_cuda"]
++skip_functorch_only = ["test_time_mm_fuse", "test_attn_npu"]
+ 
+ 
+ class TestMinFunctorchOnly(TestMin):

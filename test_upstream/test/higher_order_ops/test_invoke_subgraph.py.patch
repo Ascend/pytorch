@@ -1,0 +1,13 @@
+﻿diff --git a/test/higher_order_ops/test_invoke_subgraph.py b/test/higher_order_ops/test_invoke_subgraph.py
+index 708ffc54fa6..48c43f2979c 100644
+--- a/test/higher_order_ops/test_invoke_subgraph.py
++++ b/test/higher_order_ops/test_invoke_subgraph.py
+@@ -9,6 +9,8 @@ import unittest.mock as mock
+ from parameterized import parameterized_class
+ 
+ import torch
++from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ import torch._dynamo
+ import torch._functorch
+ import torch._inductor

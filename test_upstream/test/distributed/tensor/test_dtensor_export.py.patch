@@ -1,0 +1,31 @@
+﻿diff --git a/test/distributed/tensor/test_dtensor_export.py b/test/distributed/tensor/test_dtensor_export.py
+index 8255013db88..e8fe2205263 100644
+--- a/test/distributed/tensor/test_dtensor_export.py
++++ b/test/distributed/tensor/test_dtensor_export.py
+@@ -3,6 +3,8 @@
+ import contextlib
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch.distributed as dist
+ import torch.fx.traceback as fx_traceback
+ from torch._dynamo.functional_export import dynamo_graph_capture_for_export
+@@ -175,7 +177,7 @@ register_pytree_node(
+ )
+ 
+ 
+-@requires_cuda
++# @requires_cuda
+ class DTensorExportTest(TestCase):
+     def tearDown(self):
+         super().tearDown()
+@@ -188,7 +190,7 @@ class DTensorExportTest(TestCase):
+         dist.init_process_group(
+             backend="fake", rank=0, world_size=self.world_size, store=store
+         )
+-        self.device_type = "cuda"
++        self.device_type = "npu"
+ 
+     def _run_test(self, export_fn, test_annotation=False):
+         dp_degree = 2

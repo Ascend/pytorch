@@ -1,0 +1,281 @@
+﻿diff --git a/test/dynamo/test_activation_checkpointing.py b/test/dynamo/test_activation_checkpointing.py
+index 9a377a52c5b..781c09855ba 100644
+--- a/test/dynamo/test_activation_checkpointing.py
++++ b/test/dynamo/test_activation_checkpointing.py
+@@ -1,3 +1,6 @@
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["module: dynamo"]
+ # flake8: noqa: B950
+ # flake8: noqa: E731
+@@ -327,7 +330,7 @@ class ActivationCheckpointingViaTagsTests(torch._dynamo.test_case.TestCase):
+         )
+         self._validate(fn, backend, x, y)
+ 
+-    @requires_cuda_and_triton
++    # @requires_cuda_and_triton
+     @parametrize(
+         "partition_fn",
+         [
+@@ -357,7 +360,7 @@ class ActivationCheckpointingViaTagsTests(torch._dynamo.test_case.TestCase):
+         )
+         self._validate(fn, backend, x, y)
+ 
+-    @requires_cuda_and_triton
++    # @requires_cuda_and_triton
+     @parametrize(
+         "partition_fn",
+         [
+@@ -388,7 +391,7 @@ class ActivationCheckpointingViaTagsTests(torch._dynamo.test_case.TestCase):
+         )
+         self._validate(fn, backend, x, y)
+ 
+-    @requires_cuda_and_triton
++    # @requires_cuda_and_triton
+     def test_checkpoint_shows_tags_in_tlparse(self, device):
+         def gn(x, y):
+             return torch.sigmoid(torch.matmul(x, y))
+@@ -555,7 +558,7 @@ class ActivationCheckpointingViaTagsTests(torch._dynamo.test_case.TestCase):
+         )
+         _ = torch.compile(fn, backend=backend)(x, y)
+ 
+-    @requires_cuda_and_triton
++    # @requires_cuda_and_triton
+     @parametrize(
+         "partition_fn",
+         [
+@@ -591,7 +594,7 @@ class ActivationCheckpointingViaTagsTests(torch._dynamo.test_case.TestCase):
+         )
+         self._validate(fn, backend, x)
+ 
+-    @requires_cuda_and_triton
++    # @requires_cuda_and_triton
+     @parametrize(
+         "partition_fn",
+         [
+@@ -624,7 +627,7 @@ class ActivationCheckpointingViaTagsTests(torch._dynamo.test_case.TestCase):
+         )
+         self._validate(fn, backend, x, y)
+ 
+-    @requires_cuda_and_triton
++    # @requires_cuda_and_triton
+     @parametrize(
+         "partition_fn",
+         [
+@@ -663,7 +666,7 @@ class ActivationCheckpointingViaTagsTests(torch._dynamo.test_case.TestCase):
+         )
+         self._validate(fn, backend, x)
+ 
+-    @requires_cuda_and_triton
++    # @requires_cuda_and_triton
+     @parametrize(
+         "partition_fn",
+         [
+@@ -706,7 +709,7 @@ class ActivationCheckpointingViaTagsTests(torch._dynamo.test_case.TestCase):
+         )
+         self._validate(fn, backend, x)
+ 
+-    @requires_cuda_and_triton
++    # @requires_cuda_and_triton
+     @torch._inductor.config.patch(fallback_random=True)
+     def test_tags_recomputed_rand(self, device):
+         def gn(x, y):
+@@ -730,7 +733,7 @@ class ActivationCheckpointingViaTagsTests(torch._dynamo.test_case.TestCase):
+         backend = "inductor"
+         self._validate(fn, backend, x, y)
+ 
+-    @requires_cuda_and_triton
++    # @requires_cuda_and_triton
+     @torch._inductor.config.patch(fallback_random=True)
+     def test_tags_rand(self, device):
+         def gn(x, y):
+@@ -757,7 +760,7 @@ class ActivationCheckpointingViaTagsTests(torch._dynamo.test_case.TestCase):
+         backend = "inductor"
+         self._validate(fn, backend, x, y)
+ 
+-    @requires_cuda_and_triton
++    # @requires_cuda_and_triton
+     @torch._inductor.config.patch(fallback_random=True)
+     def test_tags_dropout(self, device):
+         # Figure out a way to test the number of inductor_random calls
+@@ -865,7 +868,7 @@ Non-primal fwd outputs from model w/ backward hook: {mod_with_hook_fwd_outputs_n
+ Non-primal fwd outputs from model w/o backward hook: {mod_no_hook_fwd_outputs_no_primal}.""",
+         )
+ 
+-    @requires_cuda_and_triton
++    # @requires_cuda_and_triton
+     def test_fallback(self, device):
+         def gn(x, y):
+             torch._dynamo.graph_break()
+@@ -893,7 +896,7 @@ Non-primal fwd outputs from model w/o backward hook: {mod_no_hook_fwd_outputs_no
+         self.assertEqual(cnt.op_count, 2)
+         self.assertEqual(len(cnt.graphs), 2)
+ 
+-    @requires_cuda_and_triton
++    # @requires_cuda_and_triton
+     def test_kwargs(self, device):
+         def gn(x, y, z=None):
+             a = torch.matmul(x, y)
+@@ -927,7 +930,7 @@ Non-primal fwd outputs from model w/o backward hook: {mod_no_hook_fwd_outputs_no
+         body_function = getattr(cnt.graphs[0], wrap_node.args[0].name)
+         self.assertEqual(op_count(body_function), 2)
+ 
+-    @requires_cuda_and_triton
++    # @requires_cuda_and_triton
+     def test_symints_location(self, device):
+         def gn(x, y):
+             return torch.matmul(x, torch.nn.functional.dropout(y, 0.5))
+@@ -957,7 +960,7 @@ Non-primal fwd outputs from model w/o backward hook: {mod_no_hook_fwd_outputs_no
+         wrap_node = find_first_node(cnt.graphs[0], tag_activation_checkpoint)
+         self.assertEqual(len(wrap_node.args), 3)
+ 
+-    @requires_cuda_and_triton
++    # @requires_cuda_and_triton
+     @unittest.skipIf(IS_WINDOWS, "torch.compile doesn't work with windows")
+     @parametrize(
+         "partition_fn",
+@@ -1065,7 +1068,7 @@ Non-primal fwd outputs from model w/o backward hook: {mod_no_hook_fwd_outputs_no
+         result = opt_fn(a, b)
+         self.assertEqual(result, expected)
+ 
+-    @requires_cuda_and_triton
++    # @requires_cuda_and_triton
+     @unittest.skipIf(IS_WINDOWS, "torch.compile doesn't work with windows")
+     @parametrize(
+         "partition_fn",
+@@ -1121,7 +1124,7 @@ Non-primal fwd outputs from model w/o backward hook: {mod_no_hook_fwd_outputs_no
+         self._validate(fn, backend, x, y)
+         self._compare_orig_and_checkpointed_fns(gn, fn, x, y)
+ 
+-    @requires_cuda_and_triton
++    # @requires_cuda_and_triton
+     @unittest.skipIf(IS_WINDOWS, "torch.compile doesn't work with windows")
+     @parametrize(
+         "partition_fn",
+@@ -1177,7 +1180,7 @@ Non-primal fwd outputs from model w/o backward hook: {mod_no_hook_fwd_outputs_no
+         self._validate(fn, backend, x, y)
+         self._compare_orig_and_checkpointed_fns(gn, fn, x, y)
+ 
+-    @requires_cuda_and_triton
++    # @requires_cuda_and_triton
+     @unittest.skipIf(IS_WINDOWS, "torch.compile doesn't work with windows")
+     @parametrize(
+         "partition_fn",
+@@ -1251,7 +1254,7 @@ Non-primal fwd outputs from model w/o backward hook: {mod_no_hook_fwd_outputs_no
+         self._validate(fn, backend, x, y)
+         self._compare_orig_and_checkpointed_fns(gn, fn, x, y)
+ 
+-    @requires_cuda_and_triton
++    # @requires_cuda_and_triton
+     @unittest.skipIf(IS_WINDOWS, "torch.compile doesn't work with windows")
+     @parametrize(
+         "partition_fn",
+@@ -1308,7 +1311,7 @@ Non-primal fwd outputs from model w/o backward hook: {mod_no_hook_fwd_outputs_no
+         self._validate(fn, backend, x, y)
+         self._compare_orig_and_checkpointed_fns(gn, fn, x, y)
+ 
+-    @requires_cuda_and_triton
++    # @requires_cuda_and_triton
+     @unittest.skipIf(IS_WINDOWS, "torch.compile doesn't work with windows")
+     @parametrize(
+         "partition_fn",
+@@ -1380,7 +1383,7 @@ Non-primal fwd outputs from model w/o backward hook: {mod_no_hook_fwd_outputs_no
+         self._validate(fn, backend, x, y)
+         self._compare_orig_and_checkpointed_fns(gn, fn, x, y)
+ 
+-    @requires_cuda_and_triton
++    # @requires_cuda_and_triton
+     @unittest.skipIf(IS_WINDOWS, "torch.compile doesn't work with windows")
+     @parametrize(
+         "partition_fn",
+@@ -1433,7 +1436,7 @@ Non-primal fwd outputs from model w/o backward hook: {mod_no_hook_fwd_outputs_no
+         self._validate(fn, backend, x, y)
+         self._compare_orig_and_checkpointed_fns(gn, fn, x, y)
+ 
+-    @requires_cuda_and_triton
++    # @requires_cuda_and_triton
+     @unittest.skipIf(IS_WINDOWS, "torch.compile doesn't work with windows")
+     @parametrize(
+         "partition_fn",
+@@ -1485,7 +1488,7 @@ Non-primal fwd outputs from model w/o backward hook: {mod_no_hook_fwd_outputs_no
+         self._validate(fn, backend, x, y)
+         self._compare_orig_and_checkpointed_fns(gn, fn, x, y)
+ 
+-    @requires_cuda_and_triton
++    # @requires_cuda_and_triton
+     @unittest.skipIf(IS_WINDOWS, "torch.compile doesn't work with windows")
+     @parametrize(
+         "partition_fn",
+@@ -1540,7 +1543,7 @@ Non-primal fwd outputs from model w/o backward hook: {mod_no_hook_fwd_outputs_no
+         "In-place op support in selective checkpointing + torch.compile "
+         "requires TorchDispatchMode + torch.compile work to complete"
+     )
+-    @requires_cuda_and_triton
++    # @requires_cuda_and_triton
+     @parametrize(
+         "partition_fn",
+         [
+@@ -1593,7 +1596,7 @@ Non-primal fwd outputs from model w/o backward hook: {mod_no_hook_fwd_outputs_no
+         self._validate(fn, backend, x, y)
+         self._compare_orig_and_checkpointed_fns(gn, fn, x, y)
+ 
+-    @requires_cuda_and_triton
++    # @requires_cuda_and_triton
+     @unittest.skipIf(IS_WINDOWS, "torch.compile doesn't work with windows")
+     @torch._inductor.config.patch(fallback_random=True)
+     @parametrize(
+@@ -1660,7 +1663,7 @@ Non-primal fwd outputs from model w/o backward hook: {mod_no_hook_fwd_outputs_no
+             self._validate(fn, backend, x, skip_check=not preserve_rng_state)
+             self._compare_orig_and_checkpointed_fns(gn, fn, x)
+ 
+-    @requires_cuda_and_triton
++    # @requires_cuda_and_triton
+     @unittest.skipIf(IS_WINDOWS, "torch.compile doesn't work with windows")
+     @parametrize(
+         "partition_fn",
+@@ -1806,7 +1809,7 @@ Non-primal fwd outputs from model w/o backward hook: {mod_no_hook_fwd_outputs_no
+         self.assertEqual(out, out_compiled)
+         self.assertEqual(input.grad, input_compiled.grad)
+ 
+-    @requires_cuda_and_triton
++    # @requires_cuda_and_triton
+     def test_autocast_flash_attention(self, device):
+         def fn(primals_1, primals_2, primals_3):
+             return torch.ops.aten._scaled_dot_product_efficient_attention.default(
+@@ -1830,7 +1833,7 @@ Non-primal fwd outputs from model w/o backward hook: {mod_no_hook_fwd_outputs_no
+             res = opt_gn(*args)
+             self.assertEqual(ref, res)
+ 
+-    @requires_cuda_and_triton
++    # @requires_cuda_and_triton
+     def test_error_msg(self, device):
+         class MockModule(torch.nn.Module):
+             def __init__(self) -> None:
+@@ -1854,7 +1857,7 @@ Non-primal fwd outputs from model w/o backward hook: {mod_no_hook_fwd_outputs_no
+         ):
+             opt_fn(x)
+ 
+-    @requires_cuda_and_triton
++    # @requires_cuda_and_triton
+     def test_list_inputs(self, device):
+         class MockModule(torch.nn.Module):
+             def __init__(self) -> None:
+@@ -1879,7 +1882,7 @@ Non-primal fwd outputs from model w/o backward hook: {mod_no_hook_fwd_outputs_no
+         res = opt_fn(x, [y, z])
+         self.assertEqual(ref, res)
+ 
+-    @requires_cuda_and_triton
++    # @requires_cuda_and_triton
+     def test_pattern_matcher(self, device):
+         # Check that the sdpa op is recomputed in the backward graph
+         # tests percolate_tags
+@@ -1944,7 +1947,7 @@ Non-primal fwd outputs from model w/o backward hook: {mod_no_hook_fwd_outputs_no
+         self.assertTrue(count_ops(bwd_graph, [], freq=1, op=sdpa_op))
+ 
+     @requires_distributed()
+-    @requires_cuda_and_triton
++    # @requires_cuda_and_triton
+     def test_distributed_utils_checkpoint_wrapper(self):
+         from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
+             checkpoint_wrapper as dist_checkpoint_wrapper,

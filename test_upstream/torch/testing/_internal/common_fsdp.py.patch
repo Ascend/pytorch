@@ -1,0 +1,13 @@
+﻿diff --git a/torch/testing/_internal/common_fsdp.py b/torch/testing/_internal/common_fsdp.py
+index cebeb1a4c01..df3ced3a7c4 100644
+--- a/torch/testing/_internal/common_fsdp.py
++++ b/torch/testing/_internal/common_fsdp.py
+@@ -75,7 +75,7 @@ else:
+     DEVICE_COUNT = 4
+ 
+ if TEST_CUDA:
+-    DEVICE_TYPE = "cuda"
++    DEVICE_TYPE = "npu"
+     DISTRIBUTED_BACKEND = "nccl"
+     DEVICE_COUNT = torch.cuda.device_count()
+ elif TEST_HPU:

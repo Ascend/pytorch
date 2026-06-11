@@ -1,0 +1,22 @@
+﻿diff --git a/test/profiler/test_python_tracer.py b/test/profiler/test_python_tracer.py
+index 930331cdbff..f33993a9853 100644
+--- a/test/profiler/test_python_tracer.py
++++ b/test/profiler/test_python_tracer.py
+@@ -30,7 +30,7 @@ class TestPythonTracer(TestCase):
+         names = ["Alice", "Bob"]
+ 
+         with profile(
+-            activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], with_stack=True
++            activities=[ProfilerActivity.CPU, ProfilerActivity.PrivateUse1], with_stack=True
+         ) as prof:
+             sorted(names, key=get_key)
+ 
+@@ -56,7 +56,7 @@ class TestPythonTracer(TestCase):
+         from sys import monitoring
+ 
+         with profile(
+-            activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], with_stack=True
++            activities=[ProfilerActivity.CPU, ProfilerActivity.PrivateUse1], with_stack=True
+         ):
+             name = monitoring.get_tool(2)
+             if vi.micro < 5:

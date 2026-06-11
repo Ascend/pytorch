@@ -1,0 +1,39 @@
+﻿diff --git a/test/inductor/test_kernel_benchmark.py b/test/inductor/test_kernel_benchmark.py
+index 1f6ec150bdc..c33102527ba 100644
+--- a/test/inductor/test_kernel_benchmark.py
++++ b/test/inductor/test_kernel_benchmark.py
+@@ -1,3 +1,11 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ # ruff: noqa: F841
+ import contextlib
+@@ -7,7 +15,6 @@ import sys
+ import unittest
+ from unittest.mock import patch
+ 
+-import torch
+ import torch._inductor.async_compile  # noqa: F401 required to warm up AsyncCompile pools
+ from torch._dynamo.testing import rand_strided
+ from torch._inductor import config
+@@ -17,6 +24,7 @@ from torch._inductor.utils import fresh_cache, run_and_get_kernels
+ from torch.testing import FileCheck
+ from torch.testing._internal.common_cuda import xfailIfSM89
+ from torch.testing._internal.inductor_utils import GPU_TYPE, HAS_GPU, IS_BIG_GPU
++import torch_npu._inductor
+ 
+ 
+ class TestKernelBenchmark(TestCase):
+@@ -535,5 +543,4 @@ class TestKernelBenchmark(TestCase):
+ 
+ 
+ if __name__ == "__main__":
+-    if HAS_GPU:
+-        run_tests()
++    run_tests()

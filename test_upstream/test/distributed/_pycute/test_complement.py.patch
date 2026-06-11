@@ -1,0 +1,14 @@
+﻿diff --git a/test/distributed/_pycute/test_complement.py b/test/distributed/_pycute/test_complement.py
+index 77c8f50c9cc..d173630228e 100644
+--- a/test/distributed/_pycute/test_complement.py
++++ b/test/distributed/_pycute/test_complement.py
+@@ -38,7 +38,8 @@ Unit tests for _pycute.complement
+ """
+ 
+ import logging
+-
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ from torch.distributed._pycute import *
+ from torch.testing._internal.common_utils import run_tests, TestCase
+ 

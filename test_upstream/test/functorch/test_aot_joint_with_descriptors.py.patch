@@ -1,0 +1,22 @@
+﻿diff --git a/test/functorch/test_aot_joint_with_descriptors.py b/test/functorch/test_aot_joint_with_descriptors.py
+index 13f2318a0f5..4b2be04cc59 100644
+--- a/test/functorch/test_aot_joint_with_descriptors.py
++++ b/test/functorch/test_aot_joint_with_descriptors.py
+@@ -9,6 +9,8 @@
+ from contextlib import ExitStack
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch.fx.traceback as fx_traceback
+ import torch.nn as nn
+ import torch.utils._pytree as pytree
+@@ -844,7 +846,7 @@ class inner_f(torch.nn.Module):
+         b = 24
+         batch_size = 2
+         seqlen = a * b
+-        device = "cuda"
++        device = "npu"
+ 
+         # Create seq_idx tensor - maps each position to a document/sequence ID
+         # Example: Split sequence into 2 documents for each batch

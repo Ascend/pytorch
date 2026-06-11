@@ -1,0 +1,33 @@
+﻿diff --git a/test/test_transformers.py b/test/test_transformers.py
+index ced9b0133e1..7f39ca9703c 100644
+--- a/test/test_transformers.py
++++ b/test/test_transformers.py
+@@ -1,11 +1,15 @@
+ # Owner(s): ["module: sdpa"]
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++torch.cuda.get_device_capability = lambda :(10, 0)
++# import torch_npu.testing
+ 
+ import contextlib
+ from functools import partial
+ from collections import namedtuple
+ import os
+ import sys
+-import torch
+ import torch.nn as nn
+ import torch.nn.functional as F
+ from torch.nn.functional import scaled_dot_product_attention
+@@ -5241,9 +5245,9 @@ class TestAttnBias(NNTestCase):
+             scaled_dot_product_attention(query, key, value, attn_mask=attn_bias, is_causal=True, dropout_p=0.0)
+ 
+ if NOTEST_CPU:
+-    device_types = ("cuda", "mps", "mtia")
++    device_types = ("privateuse1", "mps", "mtia")
+ else:
+-    device_types = ("cpu", "cuda", "mps", "mtia")
++    device_types = ("cpu", "privateuse1", "mps", "mtia")
+ 
+ if TEST_XPU:
+     device_types += ("xpu", )

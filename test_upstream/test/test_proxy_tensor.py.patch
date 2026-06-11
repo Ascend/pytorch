@@ -1,0 +1,22 @@
+﻿diff --git a/test/test_proxy_tensor.py b/test/test_proxy_tensor.py
+index 171c13bbe34..89e566f8b33 100644
+--- a/test/test_proxy_tensor.py
++++ b/test/test_proxy_tensor.py
+@@ -33,7 +33,7 @@ import re
+ import functools
+ import itertools
+ from pathlib import Path
+-
++from torch_npu.contrib import transfer_to_npu
+ aten = torch.ops.aten
+ 
+ HAS_CUDA = torch.cuda.is_available()
+@@ -2197,7 +2197,7 @@ class TestProxyTensorOpInfo(TestCase):
+         _test_make_fx_helper(self, device, dtype, op, "symbolic", out=True)
+ 
+ 
+-only_for = ("cpu")
++only_for = ("cpu",)
+ instantiate_device_type_tests(TestProxyTensorOpInfo, globals(), only_for=only_for)
+ 
+ 

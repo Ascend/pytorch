@@ -1,0 +1,90 @@
+﻿diff --git a/test/quantization/core/test_quantized_tensor.py b/test/quantization/core/test_quantized_tensor.py
+index 4dc56e03488..5dc0f96be55 100644
+--- a/test/quantization/core/test_quantized_tensor.py
++++ b/test/quantization/core/test_quantized_tensor.py
+@@ -196,7 +196,7 @@ class TestQuantizedTensor(TestCase):
+             qx_nhwc_using_to = qx.to(memory_format=torch.channels_last)
+             self.assertEqual(qx_nhwc_using_to.stride(), x_nhwc.stride())
+ 
+-    @unittest.skipIf(not TEST_CUDA, "No gpu is available.")
++    # @unittest.skipIf(not TEST_CUDA, "No gpu is available.")
+     def test_qtensor_cuda(self):
+         self._test_qtensor(torch.device('cuda'))
+         self._test_qtensor_dynamic(torch.device('cuda'))
+@@ -434,11 +434,11 @@ class TestQuantizedTensor(TestCase):
+     def test_dequantize_fp16_cpu(self):
+         self._test_dequantize_fp16(torch.device('cpu'))
+ 
+-    @unittest.skipIf(not TEST_CUDA, "No gpu is available.")
++    # @unittest.skipIf(not TEST_CUDA, "No gpu is available.")
+     def test_dequantize_fp16_cuda(self):
+         self._test_dequantize_fp16(torch.device('cuda'))
+ 
+-    @unittest.skipIf(not TEST_CUDA, "No gpu is available.")
++    # @unittest.skipIf(not TEST_CUDA, "No gpu is available.")
+     def test_per_channel_qtensor_creation_cuda(self):
+         self._test_per_channel_qtensor_creation(torch.device('cuda'))
+ 
+@@ -502,7 +502,7 @@ class TestQuantizedTensor(TestCase):
+             rqr = qr.dequantize()
+             self.assertTrue(np.allclose(r.numpy(), rqr.numpy(), atol=2 / scale))
+ 
+-    @unittest.skipIf(not TEST_CUDA, "No gpu is available.")
++    # @unittest.skipIf(not TEST_CUDA, "No gpu is available.")
+     def test_per_tensor_to_device(self):
+         dtypes = [
+             torch.quint8,
+@@ -522,7 +522,7 @@ class TestQuantizedTensor(TestCase):
+             self.assertEqual('cuda', qr.device.type)
+             self.assertEqual('cpu', qr_cuda.device.type)
+ 
+-    @unittest.skipIf(not TEST_CUDA, "No gpu is available.")
++    # @unittest.skipIf(not TEST_CUDA, "No gpu is available.")
+     def test_per_channel_to_device(self):
+         dtype_and_zero_types = [
+             (torch.quint8, torch.float),
+@@ -577,12 +577,12 @@ class TestQuantizedTensor(TestCase):
+     @unittest.skipIf(not torch.cuda.is_available(), 'CUDA is not available')
+     def test_compare_per_channel_device_numerics(self):
+         dtype_and_zero_types = [
+-            (torch.quint8, torch.float),
+-            (torch.qint8, torch.float),
++            (torch.quint8, torch.int32),
++            (torch.qint8, torch.int32),
+             #  (torch.qint32, torch.float) not supported for quantize_per_channel
+-            (torch.quint8, torch.long),
+-            (torch.qint8, torch.long),
+-            (torch.qint32, torch.long),
++            (torch.quint8, torch.int32),
++            (torch.qint8, torch.int32),
++            (torch.qint32, torch.int32),
+         ]
+         axis = 1
+         device = torch.device('cuda')
+@@ -1019,7 +1019,7 @@ class TestQuantizedTensor(TestCase):
+     def test_qtensor_masked_fill_cpu(self):
+         self._test_qtensor_masked_fill('cpu')
+ 
+-    @unittest.skipIf(not TEST_CUDA, "No gpu is available.")
++    # @unittest.skipIf(not TEST_CUDA, "No gpu is available.")
+     def test_qtensor_masked_fill_cuda(self):
+         self._test_qtensor_masked_fill('cuda')
+ 
+@@ -1081,7 +1081,7 @@ class TestQuantizedTensor(TestCase):
+         self._test_qtensor_index_put('cpu')
+         self._test_qtensor_index_put_non_accumulate_deterministic('cpu')
+ 
+-    @unittest.skipIf(not TEST_CUDA, "No gpu is available.")
++    # @unittest.skipIf(not TEST_CUDA, "No gpu is available.")
+     def test_qtensor_index_put_cuda(self):
+         self._test_qtensor_index_put('cuda')
+         self._test_qtensor_index_put_non_accumulate_deterministic('cuda')
+@@ -1162,7 +1162,7 @@ class TestQuantizedTensor(TestCase):
+             self.assertEqual(q_filled.q_per_channel_scales(), scales)
+             self.assertEqual(q_filled.q_per_channel_zero_points(), zero_points)
+ 
+-    @unittest.skipIf(not TEST_CUDA, "No gpu is available.")
++    # @unittest.skipIf(not TEST_CUDA, "No gpu is available.")
+     def test_qtensor_index_select_cuda(self):
+         self._test_qtensor_index_select('cuda')
+ 

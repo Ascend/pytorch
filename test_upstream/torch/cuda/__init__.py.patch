@@ -1,0 +1,13 @@
+﻿diff --git a/torch/cuda/__init__.py b/torch/cuda/__init__.py
+index d18d6e05fcc..716f9a8e302 100644
+--- a/torch/cuda/__init__.py
++++ b/torch/cuda/__init__.py
+@@ -231,7 +231,7 @@ def is_tf32_supported() -> bool:
+ 
+     # Otherwise, tf32 is supported on CUDA platforms that natively (i.e. no emulation)
+     # support bfloat16.
+-    return is_bf16_supported(including_emulation=False)
++    return is_bf16_supported()
+ 
+ 
+ def _sleep(cycles):

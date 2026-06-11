@@ -1,0 +1,24 @@
+﻿diff --git a/test/inductor/test_ordered_set.py b/test/inductor/test_ordered_set.py
+index debd621b065..f945db49a63 100644
+--- a/test/inductor/test_ordered_set.py
++++ b/test/inductor/test_ordered_set.py
+@@ -1,3 +1,11 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ # ruff: noqa: F841
+ import collections
+@@ -14,6 +22,7 @@ from test import support
+ 
+ from torch.testing._internal.common_utils import TestCase
+ from torch.utils._ordered_set import OrderedSet
++import torch_npu._inductor
+ 
+ 
+ class PassThru(Exception):

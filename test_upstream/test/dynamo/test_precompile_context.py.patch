@@ -1,0 +1,20 @@
+﻿diff --git a/test/dynamo/test_precompile_context.py b/test/dynamo/test_precompile_context.py
+index 805bd939eae..280db622d60 100644
+--- a/test/dynamo/test_precompile_context.py
++++ b/test/dynamo/test_precompile_context.py
+@@ -1,5 +1,7 @@
+ # Owner(s): ["module: dynamo"]
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch._dynamo
+ import torch._dynamo.test_case
+ import torch._functorch
+@@ -11,6 +13,7 @@ from torch._functorch._aot_autograd.autograd_cache import (
+ from torch._inductor.test_case import TestCase as InductorTestCase
+ from torch.testing._internal.inductor_utils import GPU_TYPE, requires_triton
+ 
++GPU_TYPE = "npu"
+ 
+ @functorch_config.patch({"enable_autograd_cache": True})
+ @torch._dynamo.config.patch(

@@ -1,0 +1,22 @@
+﻿diff --git a/test/distributed/checkpoint/test_state_dict_stager.py b/test/distributed/checkpoint/test_state_dict_stager.py
+index 8e3baf6ea3e..489a731a995 100644
+--- a/test/distributed/checkpoint/test_state_dict_stager.py
++++ b/test/distributed/checkpoint/test_state_dict_stager.py
+@@ -9,6 +9,8 @@ from datetime import timedelta
+ import psutil
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch.distributed as dist
+ from torch.distributed._shard.sharded_tensor import (
+     init_from_local_shards,
+@@ -923,7 +925,7 @@ class TestReplicationStager(DTensorTestBase):
+ 
+     @property
+     def backend(self) -> str:
+-        return "cpu:gloo,cuda:nccl"
++        return "cpu:gloo,npu:hccl"
+ 
+     def _create_simple_state_dict(self, rank: int) -> dict:
+         """

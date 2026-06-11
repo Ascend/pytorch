@@ -1,0 +1,13 @@
+﻿diff --git a/test/distributed/checkpoint/_experimental/test_checkpointer.py b/test/distributed/checkpoint/_experimental/test_checkpointer.py
+index ec70035392a..c79df193a8a 100644
+--- a/test/distributed/checkpoint/_experimental/test_checkpointer.py
++++ b/test/distributed/checkpoint/_experimental/test_checkpointer.py
+@@ -7,6 +7,8 @@ from concurrent.futures import Future
+ from unittest.mock import Mock
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ from torch.distributed.checkpoint._experimental.checkpoint_process import (
+     CheckpointProcess,
+     CheckpointProcessConfig,

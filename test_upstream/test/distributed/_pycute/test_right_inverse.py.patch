@@ -1,0 +1,14 @@
+﻿diff --git a/test/distributed/_pycute/test_right_inverse.py b/test/distributed/_pycute/test_right_inverse.py
+index 043e86e021a..90e288b9e22 100644
+--- a/test/distributed/_pycute/test_right_inverse.py
++++ b/test/distributed/_pycute/test_right_inverse.py
+@@ -38,7 +38,8 @@ Unit tests for _pycute.left_inverse
+ """
+ 
+ import logging
+-
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ from torch.distributed._pycute import *
+ from torch.testing._internal.common_utils import run_tests, TestCase
+ 

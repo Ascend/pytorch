@@ -1,0 +1,13 @@
+﻿diff --git a/test/dynamo/test_lazy_constant.py b/test/dynamo/test_lazy_constant.py
+index 3a3fc70bb1f..a7d4db92653 100644
+--- a/test/dynamo/test_lazy_constant.py
++++ b/test/dynamo/test_lazy_constant.py
+@@ -3,6 +3,8 @@
+ import keyword
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch._dynamo
+ from torch._dynamo.test_case import run_tests, TestCase
+ from torch._dynamo.testing import CompileCounter, same

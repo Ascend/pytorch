@@ -1,0 +1,40 @@
+﻿diff --git a/test/distributed/_composable/fsdp/test_fully_shard_training.py b/test/distributed/_composable/fsdp/test_fully_shard_training.py
+index cb61f61a2d9..80c2692c87c 100644
+--- a/test/distributed/_composable/fsdp/test_fully_shard_training.py
++++ b/test/distributed/_composable/fsdp/test_fully_shard_training.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["oncall: distributed"]
+ 
+ import contextlib
+@@ -70,7 +75,7 @@ from torch.testing._internal.distributed._tensor.common_dtensor import (
+     Transformer,
+     TransformerBlock,
+ )
+-
++TEST_CUDA = True
+ 
+ c10d_ops = torch.ops.c10d
+ funcol = torch.ops.c10d_functional
+@@ -445,7 +450,7 @@ class TestFullyShard1DTrainingCore(FSDPTest):
+             and offload_policy.pin_memory
+         ):
+             return
+-        if test_device_type not in ("cuda", "hpu", "xpu", "cpu"):
++        if test_device_type not in ("npu", "hpu", "xpu", "cpu"):
+             raise AssertionError(f"Unexpected device type: {test_device_type}")
+         torch.manual_seed(42)
+         vocab_size = 1024
+@@ -2151,7 +2156,7 @@ class TestFullyShardCudaGraph(FSDPTest):
+         not TEST_CUDA_GRAPH, "CUDA >= 11.0 or ROCM >= 5.3 required for graphs"
+     )
+     def test_two_layer_fully_shard_cudagraph(self):
+-        if device_type.type == "cuda":
++        if device_type.type == "npu":
+             torch.cuda.set_device(self.rank)
+         device = torch.device(device_type.type, self.rank)
+         torch.manual_seed(42)

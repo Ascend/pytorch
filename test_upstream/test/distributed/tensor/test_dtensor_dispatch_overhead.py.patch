@@ -1,0 +1,24 @@
+﻿diff --git a/test/distributed/tensor/test_dtensor_dispatch_overhead.py b/test/distributed/tensor/test_dtensor_dispatch_overhead.py
+index ab9b578b80f..c1df76991ec 100644
+--- a/test/distributed/tensor/test_dtensor_dispatch_overhead.py
++++ b/test/distributed/tensor/test_dtensor_dispatch_overhead.py
+@@ -8,6 +8,8 @@ import time
+ from collections import namedtuple
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ from torch.distributed.device_mesh import init_device_mesh
+ from torch.distributed.tensor import distribute_tensor, DTensor, Shard
+ from torch.testing._internal.common_distributed import skip_if_lt_x_gpu
+@@ -80,8 +82,8 @@ class DistOpDispatchOverHead(DTensorTestBase):
+         expected_dispatch_time = 90  # noqa: F841
+         diff_percent_threshold = 0.20  # noqa: F841
+         propagator = DTensor._op_dispatcher.sharding_propagator
+-        device_mesh = init_device_mesh("cuda", (self.world_size,))
+-        input_data = torch.rand(512, 512, device="cuda")
++        device_mesh = init_device_mesh("npu", (self.world_size,))
++        input_data = torch.rand(512, 512, device="npu")
+         a = distribute_tensor(input_data, device_mesh, [Shard(0)])
+         # warm up
+         with TimeCaptureMode() as tcm:

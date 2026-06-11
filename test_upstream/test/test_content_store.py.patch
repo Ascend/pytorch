@@ -1,0 +1,14 @@
+﻿diff --git a/test/test_content_store.py b/test/test_content_store.py
+index 755f0852af7..4b8c969abd4 100644
+--- a/test/test_content_store.py
++++ b/test/test_content_store.py
+@@ -16,6 +16,9 @@ from torch.utils._content_store import (
+     hash_storage,
+ )
+ 
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ 
+ class TestContentStore(TestCase):
+     def test_basic(self, device):

@@ -1,0 +1,102 @@
+﻿diff --git a/test/export/test_passes.py b/test/export/test_passes.py
+index 56f56438776..4552183466e 100644
+--- a/test/export/test_passes.py
++++ b/test/export/test_passes.py
+@@ -1324,11 +1324,11 @@ default](args = (%x, %b_state), kwargs = {})
+     return (b_state, getitem_3, getitem_4)""",
+             )
+ 
+-    @unittest.skipIf(not TEST_CUDA, "requires cuda")
++    # @unittest.skipIf(not TEST_CUDA, "requires cuda")
+     def test_move_device_to(self):
+         class M(torch.nn.Module):
+             def forward(self, x):
+-                x = torch.ops.aten.to.device(x, device="cuda:0", dtype=torch.float32)
++                x = torch.ops.aten.to.device(x, device="npu:0", dtype=torch.float32)
+                 return x + x
+ 
+         ep = torch.export.export(M(), (torch.ones(3),))
+@@ -1345,12 +1345,12 @@ def forward(self, x):
+     """,  # noqa: B950
+         )
+ 
+-    @unittest.skipIf(not TEST_CUDA, "requires cuda")
++    # @unittest.skipIf(not TEST_CUDA, "requires cuda")
+     def test_move_device_submod(self):
+         class M(torch.nn.Module):
+             def forward(self, x):
+                 with torch.autocast(device_type="cuda", dtype=torch.bfloat16):
+-                    x = x.to(device="cuda:0")
++                    x = x.to(device="npu:0")
+                     return x + x
+ 
+         ep = torch.export.export(M(), (torch.ones(3),))
+@@ -1367,7 +1367,7 @@ def forward(self, arg0_1):
+     """,  # noqa: B950
+         )
+ 
+-    @unittest.skipIf(not TEST_CUDA, "requires cuda")
++    # @unittest.skipIf(not TEST_CUDA, "requires cuda")
+     def test_move_to_device_pass(self):
+         class Model(torch.nn.Module):
+             def __init__(self, size=4, h_dim=10):
+@@ -1378,16 +1378,16 @@ def forward(self, arg0_1):
+                 _, states = self.rnn(x)
+                 return states
+ 
+-        # move the exported program from cpu to cuda:0
++        # move the exported program from cpu to npu:0
+         mod = Model()
+         example_inputs = (torch.rand(1, 10, 4),)
+         ep = export(mod, example_inputs, strict=True)
+-        location = torch.device("cuda:0")
++        location = torch.device("npu:0")
+         ep = move_to_device_pass(ep, location=location)
+         gm = ep.module()
+-        test_inputs = (torch.rand(1, 10, 4).to("cuda:0"),)
++        test_inputs = (torch.rand(1, 10, 4).to("npu:0"),)
+         outputs = gm(*test_inputs)
+-        self.assertEqual(outputs.device, torch.device("cuda:0"))
++        self.assertEqual(outputs.device, torch.device("npu:0"))
+         # move it back to cpu
+         location = "cpu"
+         ep = move_to_device_pass(ep, location=location)
+@@ -1395,15 +1395,15 @@ def forward(self, arg0_1):
+         test_inputs = (torch.rand(1, 10, 4).to("cpu"),)
+         outputs = gm(*test_inputs)
+         self.assertEqual(outputs.device, torch.device("cpu"))
+-        # move it to cuda:0 again
+-        location = {"cpu": "cuda:0"}
++        # move it to npu:0 again
++        location = {"cpu": "npu:0"}
+         ep = move_to_device_pass(ep, location=location)
+         gm = ep.module()
+-        test_inputs = (torch.rand(1, 10, 4).to("cuda:0"),)
++        test_inputs = (torch.rand(1, 10, 4).to("npu:0"),)
+         outputs = gm(*test_inputs)
+-        self.assertEqual(outputs.device, torch.device("cuda:0"))
++        self.assertEqual(outputs.device, torch.device("npu:0"))
+ 
+-    @unittest.skipIf(not TEST_CUDA, "requires cuda")
++    # @unittest.skipIf(not TEST_CUDA, "requires cuda")
+     def test_move_device_example_inputs(self):
+         class Model(torch.nn.Module):
+             def __init__(self):
+@@ -1427,13 +1427,13 @@ def forward(self, arg0_1):
+         self.assertEqual(ep.example_inputs[1]["z"].device, torch.device("cpu"))
+ 
+         # Move to CUDA
+-        location = torch.device("cuda:0")
++        location = torch.device("npu:0")
+         ep_cuda = move_to_device_pass(ep, location=location)
+ 
+         # Verify example_inputs moved to CUDA
+-        self.assertEqual(ep_cuda.example_inputs[0][0].device, torch.device("cuda:0"))
+-        self.assertEqual(ep_cuda.example_inputs[0][1].device, torch.device("cuda:0"))
+-        self.assertEqual(ep_cuda.example_inputs[1]["z"].device, torch.device("cuda:0"))
++        self.assertEqual(ep_cuda.example_inputs[0][0].device, torch.device("npu:0"))
++        self.assertEqual(ep_cuda.example_inputs[0][1].device, torch.device("npu:0"))
++        self.assertEqual(ep_cuda.example_inputs[1]["z"].device, torch.device("npu:0"))
+ 
+ 
+ if __name__ == "__main__":

@@ -1,0 +1,88 @@
+﻿diff --git a/test/test_meta.py b/test/test_meta.py
+index ca5869722c9..3843e8791e8 100644
+--- a/test/test_meta.py
++++ b/test/test_meta.py
+@@ -3,6 +3,9 @@
+ 
+ import itertools
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++# from torch_npu import testing
+ import os
+ import numpy as np
+ from enum import Enum
+@@ -30,7 +33,7 @@ from torch.testing._internal.common_utils import (
+ from torch.testing._internal.common_device_type import (
+     ops,
+     instantiate_device_type_tests,
+-    onlyCUDA,
++    onlyPRIVATEUSE1,
+     onlyCPU,
+     OpDTypes,
+ )
+@@ -897,8 +900,8 @@ meta_dispatch_device_expected_failures['cuda'] = {
+     aten._unique2.default: {f16},  # aten::_unique2
+     aten._use_cudnn_ctc_loss.default: {f32, f64},  # aten::_use_cudnn_ctc_loss
+     aten._use_cudnn_ctc_loss.Tensor: {f32, f64},  # aten::_use_cudnn_ctc_loss.Tensor
+-    aten._use_miopen_ctc_loss.default: {f32, f64},  # aten::_use_miopen_ctc_loss
+-    aten._use_miopen_ctc_loss.Tensor: {f32, f64},  # aten::_use_miopen_ctc_loss.Tensor
++    # aten._use_miopen_ctc_loss.default: {f32, f64},  # aten::_use_miopen_ctc_loss
++    # aten._use_miopen_ctc_loss.Tensor: {f32, f64},  # aten::_use_miopen_ctc_loss.Tensor
+     aten.cudnn_grid_sampler.default: {f16, f32, f64},  # aten::cudnn_grid_sampler
+     aten.geqrf.default: {f32, f64},  # aten::geqrf
+     aten.linalg_eigvalsh.out: {f32, f64},  # aten::linalg_eigvalsh.out
+@@ -1273,6 +1276,8 @@ class TestMeta(TestCase):
+     @suppress_warnings
+     @ops(itertools.chain(op_db, foreach_op_db))
+     def test_dispatch_meta_outplace(self, device, dtype, op):
++        torch.npu.init()
++        torch.npu.config.allow_internal_format = False
+         self._run_dispatch_meta_test(device, dtype, op, symbolic_meta=False, inplace=False)
+ 
+     @skipIfCrossRef
+@@ -1299,7 +1304,7 @@ class TestMeta(TestCase):
+     # only test one dtype, as output stride behavior is the same for all dtypes
+     @ops(itertools.chain(op_db, foreach_op_db), dtypes=OpDTypes.any_common_cpu_cuda_one)
+     # Only test on CUDA, as CUDA kernel's stride is the reference
+-    @onlyCUDA
++    # @onlyPRIVATEUSE1
+     def test_dispatch_symbolic_meta_outplace_all_strides(self, device, dtype, op):
+         self._run_dispatch_meta_test(device, dtype, op, symbolic_meta=True, inplace=False, all_stride_variants=True)
+ 
+@@ -1308,7 +1313,7 @@ class TestMeta(TestCase):
+     # only test one dtype, as output stride behavior is the same for all dtypes
+     @ops(itertools.chain(op_db, foreach_op_db), dtypes=OpDTypes.any_common_cpu_cuda_one)
+     # Only test on CUDA, as CUDA kernel's stride is the reference
+-    @onlyCUDA
++    # @onlyPRIVATEUSE1
+     def test_dispatch_symbolic_meta_inplace_all_strides(self, device, dtype, op):
+         self._run_dispatch_meta_test(device, dtype, op, symbolic_meta=True, inplace=True, all_stride_variants=True)
+ 
+@@ -1317,7 +1322,7 @@ class TestMeta(TestCase):
+     # only test one dtype, as output stride behavior is the same for all dtypes
+     @ops(binary_ufuncs, allowed_dtypes=(torch.float32,))
+     # Only test on CUDA, as CUDA kernel's stride is the reference
+-    @onlyCUDA
++    # @onlyPRIVATEUSE1
+     def test_binary_ufuncs_mixed_dtype(self, device, dtype, op):
+         make_arg = partial(
+             make_tensor,
+@@ -1707,7 +1712,7 @@ class TestMeta(TestCase):
+         self.assertEqual(ref_out.size(), meta_out.size())
+         self.assertEqual(ref_out.stride(), meta_out.stride())
+ 
+-    @onlyCUDA
++    @onlyPRIVATEUSE1
+     @unittest.skipIf(torch.version.hip, "cuFFT-specific stride behavior")
+     def test_fft_multi_dim_cufft_stride_matches_meta(self, device):
+         self._assert_fft_meta_stride_matches_eager(
+@@ -1726,7 +1731,7 @@ class TestMeta(TestCase):
+         )
+ 
+     # opinfo test is using aten.fill_, it's not testing aten.fill
+-    @onlyCUDA
++    @onlyPRIVATEUSE1
+     def test_fill_stride(self):
+         to_meta = MetaConverter()
+         sample_args = [torch.rand(2, 2, 2, 2), 1.0]

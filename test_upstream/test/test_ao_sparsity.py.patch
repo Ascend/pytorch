@@ -1,0 +1,27 @@
+﻿diff --git a/test/test_ao_sparsity.py b/test/test_ao_sparsity.py
+index 35b96522a81..f45b9f39726 100644
+--- a/test/test_ao_sparsity.py
++++ b/test/test_ao_sparsity.py
+@@ -27,11 +27,11 @@ from ao.sparsity.test_structured_sparsifier import (  # noqa: F401
+     TestSaliencyPruner,
+ )
+ 
+-from torch.testing._internal.common_utils import IS_ARM64, run_tests
+ 
++from torch.testing._internal.common_utils import IS_ARM64, run_tests
+ 
+ # Composability
+-if not IS_ARM64:
++if IS_ARM64:
+     from ao.sparsity.test_composability import (  # noqa: F401
+         TestComposability,
+         TestFxComposability,
+@@ -55,6 +55,8 @@ from ao.sparsity.test_data_sparsifier import (  # noqa: F401
+ # Utilities
+ from ao.sparsity.test_sparsity_utils import TestSparsityUtilFunctions  # noqa: F401
+ 
++# Qlinear Packed Params
++from ao.sparsity.test_qlinear_packed_params import TestQlinearPackedParams
+ 
+ if __name__ == "__main__":
+     logging.basicConfig(

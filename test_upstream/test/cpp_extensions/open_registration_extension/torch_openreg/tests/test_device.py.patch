@@ -1,0 +1,13 @@
+﻿diff --git a/test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_device.py b/test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_device.py
+index a732290c1fd..46386fee127 100644
+--- a/test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_device.py
++++ b/test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_device.py
+@@ -3,6 +3,8 @@
+ import multiprocessing
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ from torch.testing._internal.common_dtype import get_all_dtypes
+ from torch.testing._internal.common_utils import run_tests, skipIfWindows, TestCase
+ 

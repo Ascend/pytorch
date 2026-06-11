@@ -1,0 +1,14 @@
+﻿diff --git a/test/dynamo/test_inline_and_install.py b/test/dynamo/test_inline_and_install.py
+index 157bea9b9c9..fea72e8fa44 100644
+--- a/test/dynamo/test_inline_and_install.py
++++ b/test/dynamo/test_inline_and_install.py
+@@ -2,7 +2,8 @@
+ 
+ from torch._dynamo import config
+ from torch._dynamo.testing import make_test_cls_with_patches
+-
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ 
+ try:
+     from . import test_export

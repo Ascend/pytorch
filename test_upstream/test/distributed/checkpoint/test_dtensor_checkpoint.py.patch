@@ -1,0 +1,25 @@
+﻿diff --git a/test/distributed/checkpoint/test_dtensor_checkpoint.py b/test/distributed/checkpoint/test_dtensor_checkpoint.py
+index d8ae3d1f427..429fb6f57b5 100644
+--- a/test/distributed/checkpoint/test_dtensor_checkpoint.py
++++ b/test/distributed/checkpoint/test_dtensor_checkpoint.py
+@@ -1,6 +1,8 @@
+ # Owner(s): ["oncall: distributed"]
+ 
+ import torch
++from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ import torch.distributed as dist
+ import torch.distributed.checkpoint as dist_cp
+ from torch.distributed.tensor import (
+@@ -15,9 +17,10 @@ from torch.testing._internal.common_utils import run_tests
+ from torch.testing._internal.distributed._tensor.common_dtensor import (
+     DTensorTestBase,
+     skip_if_lt_x_gpu,
+-    with_comms,
++    # with_comms,
+ )
+ from torch.testing._internal.distributed.checkpoint_utils import with_temp_dir
++from torch_npu.testing.common_distributed import with_comms
+ 
+ 
+ SUBMESH_TENSOR_SIZE = 6

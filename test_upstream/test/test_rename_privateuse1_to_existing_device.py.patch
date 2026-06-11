@@ -1,0 +1,13 @@
+﻿diff --git a/test/test_rename_privateuse1_to_existing_device.py b/test/test_rename_privateuse1_to_existing_device.py
+index 40941ca4e77..817fb8bfe66 100644
+--- a/test/test_rename_privateuse1_to_existing_device.py
++++ b/test/test_rename_privateuse1_to_existing_device.py
+@@ -1,6 +1,8 @@
+ # Owner(s): ["module: PrivateUse1"]
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ from torch.testing._internal.common_utils import run_tests, skipIfTorchDynamo, TestCase
+ 
+ 

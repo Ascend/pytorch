@@ -1,0 +1,49 @@
+name: Torch NPU Upstream v2.12.0 Trigger
+
+on:
+  pull_request:
+    paths:
+      - '.github/**'
+      - 'test_upstream/**'
+
+jobs:
+  # ============================================================================
+  # 1. Detect Changed Patches
+  # ============================================================================
+  detect:
+    name: Detect changed patches
+    runs-on: ubuntu-latest
+    outputs:
+      test_files: ${{ steps.detect.outputs.test_files }}
+      has_test_changes: ${{ steps.detect.outputs.has_test_changes }}
+      has_torch_changes: ${{ steps.detect.outputs.has_torch_changes }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed patch files
+        id: detect
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_REF: ${{ github.base_ref }}
+          INPUT_PATCH_FILES: ''
+        run: |
+          chmod +x .github/scripts/detect_changed_patches.sh
+          .github/scripts/detect_changed_patches.sh
+
+  # ============================================================================
+  # 2. Trigger Tests
+  # ============================================================================
+  trigger_test:
+    needs: detect
+    if: always()
+    uses: ./.github/workflows/_torch-npu-upstream-test.yml
+    with:
+      distributed_shards: '5'
+      regular_shards: '5'
+      test_files: ''
+      # test_files: ${{ needs.detect.outputs.test_files || '' }}

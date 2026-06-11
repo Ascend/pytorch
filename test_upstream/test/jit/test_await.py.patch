@@ -1,0 +1,11 @@
+﻿diff --git a/test/jit/test_await.py b/test/jit/test_await.py
+index 0f538fd9b90..bd1a1f3508e 100644
+--- a/test/jit/test_await.py
++++ b/test/jit/test_await.py
+@@ -1,3 +1,6 @@
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["oncall: jit"]
+ 
+ import io

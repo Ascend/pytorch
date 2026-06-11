@@ -1,0 +1,13 @@
+﻿diff --git a/test/test_custom_ops.py b/test/test_custom_ops.py
+index 72c7da5b015..0129ac58c40 100644
+--- a/test/test_custom_ops.py
++++ b/test/test_custom_ops.py
+@@ -3066,6 +3066,8 @@ class TestCustomOpAPI(TestCase):
+         script = """\
+ import warnings
+ import torch
++from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ from torch import Tensor
+ 
+ with warnings.catch_warnings(record=True) as w:

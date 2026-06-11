@@ -1,0 +1,13 @@
+﻿diff --git a/test/dynamo/test_nested_graph_breaks.py b/test/dynamo/test_nested_graph_breaks.py
+index 54fdfd14426..74283f72641 100644
+--- a/test/dynamo/test_nested_graph_breaks.py
++++ b/test/dynamo/test_nested_graph_breaks.py
+@@ -2,6 +2,8 @@
+ import sys
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch._dynamo.test_case
+ import torch._dynamo.testing
+ from torch._dynamo import config

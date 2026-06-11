@@ -1,0 +1,47 @@
+﻿diff --git a/test/inductor/test_aot_inductor.py b/test/inductor/test_aot_inductor.py
+index 45444ae3d7f..f533beabb7e 100644
+--- a/test/inductor/test_aot_inductor.py
++++ b/test/inductor/test_aot_inductor.py
+@@ -13,7 +13,6 @@ import zipfile
+ from unittest import skip
+ from unittest.mock import patch
+ 
+-import torch
+ import torch._export
+ import torch._inductor
+ import torch._inductor.config
+@@ -209,7 +208,7 @@ except (unittest.SkipTest, ImportError):
+     if __name__ == "__main__":
+         sys.exit(0)
+     raise
+-
++import torch_npu._inductor
+ 
+ def get_module_ext_type():
+     if IS_WINDOWS:
+@@ -532,7 +531,6 @@ class AOTInductorTestsTemplate:
+         new_output = runner_call(test_inputs)
+         self.assertEqual(expected, new_output)
+ 
+-    @requires_gpu
+     def test_duplicate_constant_folding(self):
+         class Model(torch.nn.Module):
+             def __init__(self, device):
+@@ -679,7 +677,6 @@ class AOTInductorTestsTemplate:
+             dynamic_shapes=dynamic_shapes,
+         )
+ 
+-    @requires_gpu
+     def test_multi_device(self):
+         if self.device == "cpu" and GPU_TYPE == "xpu":
+             raise unittest.SkipTest(
+@@ -8651,7 +8648,5 @@ class TestCheckLowerboundConfig(TestCase):
+ 
+ if __name__ == "__main__":
+     from torch._inductor.test_case import run_tests
+-
+-    # cpp_extension N/A in fbcode
+-    if HAS_GPU or sys.platform == "darwin":
+-        run_tests(needs="filelock")
++    
++    run_tests(needs="filelock")
