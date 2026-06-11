@@ -105,4 +105,6 @@
 |[torch.nn.functional.upsample_bilinear](https://pytorch.org/docs/2.10/generated/torch.nn.functional.upsample_bilinear.html)|是|支持fp16，fp32|
 |[torch.nn.functional.grid_sample](https://pytorch.org/docs/2.10/generated/torch.nn.functional.grid_sample.html)|是|支持fp16，fp32，fp64|
 |[torch.nn.functional.affine_grid](https://pytorch.org/docs/2.10/generated/torch.nn.functional.affine_grid.html)|是|支持fp16，fp32|
+|[torch.nn.functional.scaled_mm](https://docs.pytorch.org/docs/2.10/generated/torch.nn.functional.scaled_mm.html)|是|支持fp8模式下ScalingType为tensorwise，rowwise和BlockWise1x128，mxfp8模式下ScalingType为BlockWise1x32的排布，mxfp8遵循[aclnnQuantMatmulV5](https://gitcode.com/cann/ops-nn/blob/master/matmul/quant_batch_matmul_v4/docs/aclnnQuantMatmulV5.md)要求（scale_a和scale_b详见约束说明）|
+|[torch.nn.functional.scaled_grouped_mm](https://docs.pytorch.org/docs/2.10/generated/torch.nn.functional.scaled_grouped_mm.html)|是|支持fp8模式下ScalingType为rowwise，mxfp8模式的排布，mxfp8遵循[aclnnGroupedMatmulV5](https://gitcode.com/cann/ops-transformer/blob/master/gmm/grouped_matmul/docs/aclnnGroupedMatmulV5.md)要求（scale_a和scale_b详见约束说明）|
 |[torch.nn.parallel.data_parallel](https://pytorch.org/docs/2.10/nn.html#torch.nn.parallel.data_parallel)|否|-|
