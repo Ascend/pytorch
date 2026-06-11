@@ -928,6 +928,7 @@ class MFusionPatch:
     _enabled = False
     _orig_generate_fallback_kernel = None
     _orig_post_grad_custom_post_pass = None
+    _orig_graph_partition = None
 
     @staticmethod
     def enable() -> None:
@@ -939,10 +940,16 @@ class MFusionPatch:
             MFusionPatch._orig_post_grad_custom_post_pass = (
                 inductor_config.post_grad_custom_post_pass
             )
+            MFusionPatch._orig_graph_partition = inductor_config.graph_partition
             PythonWrapperCodegen.generate_fallback_kernel = (
                 _mfusion_generate_fallback_kernel
             )
             inductor_config.post_grad_custom_post_pass = mfusion_graph_fusion
+            # MFusion makes the compiled graph much more extern-heavy. Running
+            # Inductor graph partition signature analysis on that graph can
+            # become pathologically slow, so disable partitioning only while
+            # the MFusion patch is active.
+            inductor_config.graph_partition = False
             MFusionPatch._enabled = True
 
     @staticmethod
@@ -955,6 +962,7 @@ class MFusionPatch:
         inductor_config.post_grad_custom_post_pass = (
             MFusionPatch._orig_post_grad_custom_post_pass
         )
+        inductor_config.graph_partition = MFusionPatch._orig_graph_partition
         MFusionPatch._enabled = False
 
     def __enter__(self) -> "MFusionPatch":
