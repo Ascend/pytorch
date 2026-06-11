@@ -412,47 +412,25 @@ def patch_dynamo_context():
         if compiler_config is None or not compiler_config.get("enable_shape_handling", False):
             return False
 
-        if not isinstance(callback, CatchErrorsWrapper):
+        if callback is None or not isinstance(callback, CatchErrorsWrapper):
             return False
 
-        orig_callable = callback._torchdynamo_orig_callable
-        if not isinstance(orig_callable, ConvertFrame):
+        convert_frame = getattr(callback, "_torchdynamo_orig_backend", None)
+        if not isinstance(convert_frame, ConvertFrame):
             return False
 
-        deep_callable = orig_callable._torchdynamo_orig_callable
-        if not isinstance(deep_callable, WrapBackendDebug):
+        backend_debug = getattr(convert_frame, "_torchdynamo_orig_backend", None)
+        if not isinstance(backend_debug, WrapBackendDebug):
             return False
 
-        if getattr(deep_callable, "_compiler_name", None) != "inductor":
-            return False
-
-        return True
+        return getattr(backend_debug, "_compiler_name", None) == "inductor"
 
     def nothing():
         pass
 
-    def new_init(self,
-                 callback: DynamoCallback,
-                 on_enter=nothing,
-                 backend_ctx_ctor=null_context,
-                 patch_fn=nothing,
-                 first_ctx=False,
-                 *,
-                 export=False,
-                 dynamic=None,
-                 compiler_config=None,
-        ) -> None:
-        src_init(
-            self,
-            callback,
-            on_enter=on_enter,
-            backend_ctx_ctor=backend_ctx_ctor,
-            patch_fn=patch_fn,
-            first_ctx=first_ctx,
-            export=export,
-            dynamic=dynamic,
-            compiler_config=compiler_config
-        )
+    def new_init(self, callback: DynamoCallback, *args, **kwargs) -> None:
+        src_init(self, callback, *args, **kwargs)
+        compiler_config = kwargs.get("compiler_config")
         if (is_enable_shape_handling(callback, compiler_config=compiler_config)):
             trans_pre_fn = None
             trans_post_fn = None
