@@ -105,7 +105,7 @@ class FakeSizeVars:
     def statically_known_leq(self, a, b):
         return False
 
-    def size_hints(self, x):
+    def size_hints(self, x, fallback=8192):
         return x
 
     def simplify(self, x):

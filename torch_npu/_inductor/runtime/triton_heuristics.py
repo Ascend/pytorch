@@ -2861,6 +2861,8 @@ def precompile_parallel(
         warm_cache_only=False,
         reload_kernel: Optional[Callable[[], CachingAutotuner]] = None,
 ):
+    if reload_kernel is not None:
+        self._reload_kernel = reload_kernel
     start_time = time.perf_counter()
     if hasattr(self, "skip_precompile"):
         if self.skip_precompile:
