@@ -12216,5 +12216,311 @@
         [
             ""
         ]
+    ],
+    "test_addmm_sizes_all_sparse_csr_k_8_n_1_m_1_npu_bfloat16 (__main__.TestSparseCSRPRIVATEUSE1)": [
+        "CI reg-4: rc=4 - No testcase in XML",
+        [
+            ""
+        ]
+    ],
+    "test_addmm_sizes_all_sparse_csr_k_8_n_1_m_1_npu_float16 (__main__.TestSparseCSRPRIVATEUSE1)": [
+        "CI reg-4: rc=4 - No testcase in XML",
+        [
+            ""
+        ]
+    ],
+    "test_addmm_sizes_all_sparse_csr_k_8_n_1_m_25_npu_bfloat16 (__main__.TestSparseCSRPRIVATEUSE1)": [
+        "CI reg-4: rc=4 - No testcase in XML",
+        [
+            ""
+        ]
+    ],
+    "test_addmm_sizes_all_sparse_csr_k_8_n_1_m_25_npu_float16 (__main__.TestSparseCSRPRIVATEUSE1)": [
+        "CI reg-4: rc=4 - No testcase in XML",
+        [
+            ""
+        ]
+    ],
+    "test_bool (__main__.WeakKeyDictionaryScriptObjectTestCase)": [
+        "CI reg-5: rc=1 - failed on setup with \"OSError: /usr/local/lib/python3.10/dist-packages/torch/build/lib/libtorchbind_test.so: cannot open",
+        [
+            ""
+        ]
+    ],
+    "test_cdist_cuda_backward_npu (__main__.TestTorchDeviceTypePRIVATEUSE1)": [
+        "CI reg-5: rc=1 - No result produced (worker exited normally)",
+        [
+            ""
+        ]
+    ],
+    "test_constructor (__main__.WeakKeyDictionaryScriptObjectTestCase)": [
+        "CI reg-5: rc=1 - failed on setup with \"OSError: /usr/local/lib/python3.10/dist-packages/torch/build/lib/libtorchbind_test.so: cannot open",
+        [
+            ""
+        ]
+    ],
+    "test_fused_sdp_choice_privateuseone (__main__.TestSDPAPrivateUse1Only)": [
+        "CI reg-5: rc=1 - failed on setup with \"RuntimeError: Ninja is required to load C++ extensions\" | test_transformers_privateuse1.py:35: in se",
+        [
+            ""
+        ]
+    ],
+    "test_get (__main__.WeakKeyDictionaryScriptObjectTestCase)": [
+        "CI reg-5: rc=1 - failed on setup with \"OSError: /usr/local/lib/python3.10/dist-packages/torch/build/lib/libtorchbind_test.so: cannot open",
+        [
+            ""
+        ]
+    ],
+    "test_getitem (__main__.WeakKeyDictionaryScriptObjectTestCase)": [
+        "CI reg-5: rc=1 - failed on setup with \"OSError: /usr/local/lib/python3.10/dist-packages/torch/build/lib/libtorchbind_test.so: cannot open",
+        [
+            ""
+        ]
+    ],
+    "test_items (__main__.WeakKeyDictionaryScriptObjectTestCase)": [
+        "CI reg-5: rc=1 - failed on setup with \"OSError: /usr/local/lib/python3.10/dist-packages/torch/build/lib/libtorchbind_test.so: cannot open",
+        [
+            ""
+        ]
+    ],
+    "test_keys (__main__.WeakKeyDictionaryScriptObjectTestCase)": [
+        "CI reg-5: rc=1 - failed on setup with \"OSError: /usr/local/lib/python3.10/dist-packages/torch/build/lib/libtorchbind_test.so: cannot open",
+        [
+            ""
+        ]
+    ],
+    "test_len (__main__.WeakKeyDictionaryScriptObjectTestCase)": [
+        "CI reg-5: rc=1 - failed on setup with \"OSError: /usr/local/lib/python3.10/dist-packages/torch/build/lib/libtorchbind_test.so: cannot open",
+        [
+            ""
+        ]
+    ],
+    "test_native_multihead_self_attention_use_nt_False_use_padding_False_pad_all_False_need_weights_False_average_attn_weights_False_fused_False_npu_float16 (__main__.TestMHADeviceTypePRIVATEUSE1)": [
+        "CI reg-3: rc=4 - No testcase in XML",
+        [
+            ""
+        ]
+    ],
+    "test_native_multihead_self_attention_use_nt_False_use_padding_False_pad_all_False_need_weights_False_average_attn_weights_False_fused_True_npu_float16 (__main__.TestMHADeviceTypePRIVATEUSE1)": [
+        "CI reg-3: rc=4 - No testcase in XML",
+        [
+            ""
+        ]
+    ],
+    "test_native_multihead_self_attention_use_nt_False_use_padding_False_pad_all_False_need_weights_False_average_attn_weights_True_fused_False_npu_float16 (__main__.TestMHADeviceTypePRIVATEUSE1)": [
+        "CI reg-3: rc=4 - No testcase in XML",
+        [
+            ""
+        ]
+    ],
+    "test_native_multihead_self_attention_use_nt_False_use_padding_False_pad_all_False_need_weights_False_average_attn_weights_True_fused_True_npu_float16 (__main__.TestMHADeviceTypePRIVATEUSE1)": [
+        "CI reg-3: rc=4 - No testcase in XML",
+        [
+            ""
+        ]
+    ],
+    "test_native_multihead_self_attention_use_nt_False_use_padding_True_pad_all_False_need_weights_False_average_attn_weights_False_fused_False_npu_float16 (__main__.TestMHADeviceTypePRIVATEUSE1)": [
+        "CI reg-3: rc=4 - No testcase in XML",
+        [
+            ""
+        ]
+    ],
+    "test_native_multihead_self_attention_use_nt_False_use_padding_True_pad_all_False_need_weights_False_average_attn_weights_False_fused_True_npu_float16 (__main__.TestMHADeviceTypePRIVATEUSE1)": [
+        "CI reg-3: rc=4 - No testcase in XML",
+        [
+            ""
+        ]
+    ],
+    "test_native_multihead_self_attention_use_nt_False_use_padding_True_pad_all_False_need_weights_False_average_attn_weights_True_fused_False_npu_float16 (__main__.TestMHADeviceTypePRIVATEUSE1)": [
+        "CI reg-3: rc=4 - No testcase in XML",
+        [
+            ""
+        ]
+    ],
+    "test_native_multihead_self_attention_use_nt_False_use_padding_True_pad_all_False_need_weights_False_average_attn_weights_True_fused_True_npu_float16 (__main__.TestMHADeviceTypePRIVATEUSE1)": [
+        "CI reg-3: rc=4 - No testcase in XML",
+        [
+            ""
+        ]
+    ],
+    "test_native_multihead_self_attention_use_nt_False_use_padding_True_pad_all_True_need_weights_False_average_attn_weights_False_fused_False_npu_float16 (__main__.TestMHADeviceTypePRIVATEUSE1)": [
+        "CI reg-3: rc=4 - No testcase in XML",
+        [
+            ""
+        ]
+    ],
+    "test_native_multihead_self_attention_use_nt_False_use_padding_True_pad_all_True_need_weights_False_average_attn_weights_False_fused_True_npu_float16 (__main__.TestMHADeviceTypePRIVATEUSE1)": [
+        "CI reg-3: rc=4 - No testcase in XML",
+        [
+            ""
+        ]
+    ],
+    "test_native_multihead_self_attention_use_nt_False_use_padding_True_pad_all_True_need_weights_False_average_attn_weights_True_fused_False_npu_float16 (__main__.TestMHADeviceTypePRIVATEUSE1)": [
+        "CI reg-3: rc=4 - No testcase in XML",
+        [
+            ""
+        ]
+    ],
+    "test_native_multihead_self_attention_use_nt_False_use_padding_True_pad_all_True_need_weights_False_average_attn_weights_True_fused_True_npu_float16 (__main__.TestMHADeviceTypePRIVATEUSE1)": [
+        "CI reg-3: rc=4 - No testcase in XML",
+        [
+            ""
+        ]
+    ],
+    "test_native_multihead_self_attention_use_nt_True_use_padding_False_pad_all_False_need_weights_False_average_attn_weights_False_fused_False_npu_float16 (__main__.TestMHADeviceTypePRIVATEUSE1)": [
+        "CI reg-3: rc=4 - No testcase in XML",
+        [
+            ""
+        ]
+    ],
+    "test_native_multihead_self_attention_use_nt_True_use_padding_False_pad_all_False_need_weights_False_average_attn_weights_False_fused_True_npu_float16 (__main__.TestMHADeviceTypePRIVATEUSE1)": [
+        "CI reg-3: rc=4 - No testcase in XML",
+        [
+            ""
+        ]
+    ],
+    "test_native_multihead_self_attention_use_nt_True_use_padding_False_pad_all_False_need_weights_False_average_attn_weights_True_fused_False_npu_float16 (__main__.TestMHADeviceTypePRIVATEUSE1)": [
+        "CI reg-3: rc=4 - No testcase in XML",
+        [
+            ""
+        ]
+    ],
+    "test_native_multihead_self_attention_use_nt_True_use_padding_False_pad_all_False_need_weights_False_average_attn_weights_True_fused_True_npu_float16 (__main__.TestMHADeviceTypePRIVATEUSE1)": [
+        "CI reg-3: rc=4 - No testcase in XML",
+        [
+            ""
+        ]
+    ],
+    "test_native_multihead_self_attention_use_nt_True_use_padding_True_pad_all_False_need_weights_False_average_attn_weights_False_fused_False_npu_float16 (__main__.TestMHADeviceTypePRIVATEUSE1)": [
+        "CI reg-3: rc=4 - No testcase in XML",
+        [
+            ""
+        ]
+    ],
+    "test_native_multihead_self_attention_use_nt_True_use_padding_True_pad_all_False_need_weights_False_average_attn_weights_False_fused_True_npu_float16 (__main__.TestMHADeviceTypePRIVATEUSE1)": [
+        "CI reg-3: rc=4 - No testcase in XML",
+        [
+            ""
+        ]
+    ],
+    "test_native_multihead_self_attention_use_nt_True_use_padding_True_pad_all_False_need_weights_False_average_attn_weights_True_fused_False_npu_float16 (__main__.TestMHADeviceTypePRIVATEUSE1)": [
+        "CI reg-3: rc=4 - No testcase in XML",
+        [
+            ""
+        ]
+    ],
+    "test_native_multihead_self_attention_use_nt_True_use_padding_True_pad_all_False_need_weights_False_average_attn_weights_True_fused_True_npu_float16 (__main__.TestMHADeviceTypePRIVATEUSE1)": [
+        "CI reg-3: rc=4 - No testcase in XML",
+        [
+            ""
+        ]
+    ],
+    "test_noncontiguous_samples_cdouble_npu_complex64 (__main__.TestCommonPRIVATEUSE1)": [
+        "CI reg-4: rc=1 - No result produced (worker exited normally)",
+        [
+            ""
+        ]
+    ],
+    "test_pop (__main__.WeakKeyDictionaryScriptObjectTestCase)": [
+        "CI reg-5: rc=1 - failed on setup with \"OSError: /usr/local/lib/python3.10/dist-packages/torch/build/lib/libtorchbind_test.so: cannot open",
+        [
+            ""
+        ]
+    ],
+    "test_popitem (__main__.WeakKeyDictionaryScriptObjectTestCase)": [
+        "CI reg-5: rc=1 - failed on setup with \"OSError: /usr/local/lib/python3.10/dist-packages/torch/build/lib/libtorchbind_test.so: cannot open",
+        [
+            ""
+        ]
+    ],
+    "test_qtensor_permute (__main__.TestQuantizedTensor)": [
+        "CI reg-4: rc=1 - No result produced (worker exited normally)",
+        [
+            ""
+        ]
+    ],
+    "test_read (__main__.WeakKeyDictionaryScriptObjectTestCase)": [
+        "CI reg-5: rc=1 - failed on setup with \"OSError: /usr/local/lib/python3.10/dist-packages/torch/build/lib/libtorchbind_test.so: cannot open",
+        [
+            ""
+        ]
+    ],
+    "test_save_load_npu_float8_e4m3fnuz (__main__.TestFloat8DtypePRIVATEUSE1)": [
+        "CI reg-4: rc=4 - No testcase in XML",
+        [
+            ""
+        ]
+    ],
+    "test_save_load_npu_float8_e5m2fnuz (__main__.TestFloat8DtypePRIVATEUSE1)": [
+        "CI reg-4: rc=4 - No testcase in XML",
+        [
+            ""
+        ]
+    ],
+    "test_scaled_dot_product_fused_attention_overrideable (__main__.TestSDPAPrivateUse1Only)": [
+        "CI reg-5: rc=1 - failed on setup with \"ImportError: /root/.cache/torch_extensions/py310_cpu/custom_device_extension/custom_device_extensi",
+        [
+            ""
+        ]
+    ],
+    "test_scaled_dot_product_fused_attention_overrideable_backward (__main__.TestSDPAPrivateUse1Only)": [
+        "CI reg-5: rc=1 - failed on setup with \"ImportError: /root/.cache/torch_extensions/py310_cpu/custom_device_extension/custom_device_extensi",
+        [
+            ""
+        ]
+    ],
+    "test_scatter_reduce_prod_npu_bool (__main__.TestScatterGatherPRIVATEUSE1)": [
+        "CI reg-4: rc=4 - No testcase in XML",
+        [
+            ""
+        ]
+    ],
+    "test_scatter_reduce_prod_npu_complex128 (__main__.TestScatterGatherPRIVATEUSE1)": [
+        "CI reg-4: rc=4 - No testcase in XML",
+        [
+            ""
+        ]
+    ],
+    "test_scatter_reduce_prod_npu_complex64 (__main__.TestScatterGatherPRIVATEUSE1)": [
+        "CI reg-4: rc=4 - No testcase in XML",
+        [
+            ""
+        ]
+    ],
+    "test_setdefault (__main__.WeakKeyDictionaryScriptObjectTestCase)": [
+        "CI reg-5: rc=1 - failed on setup with \"OSError: /usr/local/lib/python3.10/dist-packages/torch/build/lib/libtorchbind_test.so: cannot open",
+        [
+            ""
+        ]
+    ],
+    "test_update (__main__.WeakKeyDictionaryScriptObjectTestCase)": [
+        "CI reg-5: rc=1 - failed on setup with \"OSError: /usr/local/lib/python3.10/dist-packages/torch/build/lib/libtorchbind_test.so: cannot open",
+        [
+            ""
+        ]
+    ],
+    "test_values (__main__.WeakKeyDictionaryScriptObjectTestCase)": [
+        "CI reg-5: rc=1 - failed on setup with \"OSError: /usr/local/lib/python3.10/dist-packages/torch/build/lib/libtorchbind_test.so: cannot open",
+        [
+            ""
+        ]
+    ],
+    "test_variable_sequence_cuda_float32 (__main__.TestNNDeviceTypeCUDA)": [
+        "CI reg-3: rc=1 - No result produced (worker exited normally)",
+        [
+            ""
+        ]
+    ],
+    "test_variable_sequence_npu_float16 (__main__.TestNNDeviceTypePRIVATEUSE1)": [
+        "CI reg-3: rc=1 - No result produced (worker exited normally)",
+        [
+            ""
+        ]
+    ],
+    "test_write (__main__.WeakKeyDictionaryScriptObjectTestCase)": [
+        "CI reg-5: rc=1 - failed on setup with \"OSError: /usr/local/lib/python3.10/dist-packages/torch/build/lib/libtorchbind_test.so: cannot open",
+        [
+            ""
+        ]
     ]
 }
