@@ -1,5 +1,5 @@
 diff --git a/test/test_jit.py b/test/test_jit.py
-index 1cafa30..b7b5afa 100644
+index 1cafa30..0350a92 100644
 --- a/test/test_jit.py
 +++ b/test/test_jit.py
 @@ -2,13 +2,24 @@
@@ -371,6 +371,28 @@ index 1cafa30..b7b5afa 100644
          self.assertEqual(m(input), m2(input))
  
      @slowTest
+@@ -3937,10 +3948,10 @@ def foo(x):
+     def test_cpp_module_iterator(self):
+         a = nn.Module()
+         a.name = 'a'
+-        a.p = nn.Parameter(torch.rand(3, 4))
++        a.p = nn.Parameter(torch.rand(3, 4).npu())
+         a.foo = nn.Module()
+         a.foo.name = 'foo'
+-        a.foo.b = nn.Buffer(torch.rand(1, 1))
++        a.foo.b = nn.Buffer(torch.rand(1, 1).npu())
+         a.foo.bar = nn.Module()
+         a.foo.bar.name = 'bar'
+         a.foo.bar.an_int = 4
+@@ -4012,7 +4023,7 @@ def foo(x):
+     def test_parameter_order(self):
+         m = nn.Module()
+         for i, name in enumerate(string.ascii_letters):
+-            setattr(m, name, nn.Parameter(torch.tensor([float(i)])))
++            setattr(m, name, nn.Parameter(torch.tensor([float(i)]).npu()))
+         ms = torch.jit.script(m)
+         print(torch.cat(list(m.parameters())))
+         print(torch.cat(list(ms.parameters())))
 @@ -4689,10 +4700,10 @@ def foo(xyz):
          self.assertFalse(float32(x_long))
          self.assertTrue(float32(x_float32))
@@ -410,6 +432,15 @@ index 1cafa30..b7b5afa 100644
  
          x = torch.ones(3, 4)
          script_fn = torch.jit.script(to_cuda)
+@@ -8846,7 +8857,7 @@ dedent """
+                 return x + 2
+ 
+         mod = torch.jit.script(MyMod())
+-        inps = tuple([torch.tensor(i) for i in range(1, 5)])
++        inps = tuple([torch.tensor(i).npu() for i in range(1, 5)])
+         self.assertEqual(mod.method(*inps), MyMod().method(*inps))
+ 
+     def test_script_module_const(self):
 @@ -9795,7 +9806,7 @@ dedent """
              else:
                  return x - 1
@@ -428,3 +459,60 @@ index 1cafa30..b7b5afa 100644
          self.checkScript(test_is_tracing, (inp,))
  
      def test_is_scripting(self):
+@@ -13119,19 +13130,19 @@ dedent """
+         self.checkScript(dedent(code), (101,))
+ 
+     def test_module_parameters_and_buffers(self):
+-        weights = torch.randn(10, 10)
+-        bias = torch.randn(10)
+-        weights2 = torch.randn(10, 10)
+-        bias2 = torch.randn(10)
++        weights = torch.randn(10, 10).npu()
++        bias = torch.randn(10).npu()
++        weights2 = torch.randn(10, 10).npu()
++        bias2 = torch.randn(10).npu()
+ 
+         class TestLinear(torch.nn.Module):
+             def __init__(self, in_features, out_features):
+                 super().__init__()
+                 self.in_features = in_features
+                 self.out_features = out_features
+-                self.weight = torch.nn.Parameter(torch.empty(out_features, in_features))
+-                self.bias = torch.nn.Parameter(torch.empty(out_features))
+-                self.counter = nn.Buffer(torch.ones(out_features))
++                self.weight = torch.nn.Parameter(torch.empty(out_features, in_features).npu())
++                self.bias = torch.nn.Parameter(torch.empty(out_features).npu())
++                self.counter = nn.Buffer(torch.ones(out_features).npu())
+                 self.reset_parameters()
+ 
+             def reset_parameters(self):
+@@ -13162,14 +13173,14 @@ dedent """
+         strong_mod = Strong()
+ 
+         # Run same calculation as module
+-        inp = torch.ones(10)
++        inp = torch.ones(10).npu()
+         lin = torch.nn.Linear(10, 10)
+         lin.weight = torch.nn.Parameter(weights)
+         lin.bias = torch.nn.Parameter(bias)
+         lin2 = torch.nn.Linear(10, 10)
+         lin2.weight = torch.nn.Parameter(weights2)
+         lin2.bias = torch.nn.Parameter(bias2)
+-        expected_result = inp + (lin(inp) + torch.ones(10)) * 2 + lin2(inp) + torch.ones(10)
++        expected_result = inp + (lin(inp) + torch.ones(10).npu()) * 2 + lin2(inp) + torch.ones(10).npu()
+ 
+         self.assertEqual(strong_mod(inp), expected_result)
+         self.assertExportImportModule(strong_mod, (inp,))
+@@ -15529,9 +15540,9 @@ dedent """
+                 self.mod = (torch.nn.ReLU())
+                 self.mod2 = (torch.nn.ReLU())
+                 self.mod3 = torch.nn.Sequential(torch.nn.Sequential(torch.nn.ReLU()))
+-                self.x = nn.Buffer(torch.zeros(3))
+-                self.y = nn.Buffer(torch.zeros(3))
+-                self.z = torch.zeros(3)
++                self.x = nn.Buffer(torch.zeros(3).npu())
++                self.y = nn.Buffer(torch.zeros(3).npu())
++                self.z = torch.zeros(3).npu()
+ 
+             def bleh(self):
+                 return self.z + 4
