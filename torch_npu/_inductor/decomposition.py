@@ -9,7 +9,6 @@ from torch._C import DispatchKey
 from torch._decomp import remove_decompositions
 from torch._prims_common.wrappers import out_wrapper
 import torch.nn.functional as F
-from .ascend_npu_ir.ascend_npu_ir.npu.utils import run_once
 from .config import is_ascend950
 from .lowering_common import add_overload
 from .ascend_npu_ir.ascend_npu_ir import config as anir_config
@@ -18,6 +17,21 @@ from .ascend_npu_ir.ascend_npu_ir import config as anir_config
 aten = torch.ops.aten
 npu = torch.ops.npu
 
+def run_once(f):
+    """Runs a function (successfully) only once.
+    The running can be reset by setting the `has_run` attribute to False
+    """
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        if not wrapper.has_run:
+            result = f(*args, **kwargs)
+            wrapper.has_run = True
+            return result
+        return None
+    wrapper.has_run = False
+    return wrapper
+
+@run_once
 def _register_shared_decompositions():
     @register_decomposition([aten.expm1])
     def expm1(x):
