@@ -1,62 +1,48 @@
-# [[linter]]
-# code = 'FLAKE8'
-# include_patterns = ['**/*.py']
-# exclude_patterns = [
-#     '.git/**',
-#     'build_test_custom_build/**',
-#     'build/**',
-#     'caffe2/**',
-#     'docs/caffe2/**',
-#     'docs/cpp/src/**',
-#     'docs/src/**',
-#     'fb/**',
-#     '**/fb/**',
-#     'functorch/docs/**',
-#     'functorch/examples/**',
-#     'functorch/docs/source/tutorials/**',
-#     'torch_npu/_inductor/fx_passes/serialized_patterns/**',
-#     'torch_npu/_inductor/autoheuristic/artifacts/**',
-#     'torch_npu/_inductor/kernel/vendored_templates/cutedsl/kernels/**',
-#     'torch_npu/_inductor/kernel/vendored_templates/cutedsl/dense_blockscaled_gemm_persistent.py',
-#     'scripts/**',
-#     'test/generated_type_hints_smoketest.py',
-#     'test/test_torchfuzz_repros.py',
-#     # CPython tests
-#     'test/dynamo/cpython/**',
-#     # Tests from the NumPy test suite
-#     'test/torch_np/numpy_test/**/*.py',
-#     'test/npu/test_fault_mode.py',
-#     'torch_npu/utils/_dynamo.py',
-#     'test/npu/test_resnet.py',
-#     'test/npu/test_public_bindings.py',
-#     'test/npu/test_compatibility.py',
-#     # Skip all tests for NPUGraph
-#     'third_party/**',
-#     'torch_npu/include/**',
-#     'torch_npu/lib/**',
-#     # NPUGraph logs files
-#     'torch_npu/_logging/_internal.py',
-#     'torch_npu/csrc/core/npu/NPUGraph.cpp',
-#     'torch_npu/csrc/core/npu/NPUGraph.h',
-#     'torch_npu/csrc/npu/Graph.cpp',
-#     'torch_npu/npu/_graph_tree.py',
-#     'torch_npu/npu/graphs.py',
-#     'torch_npu/utils/_graph_tree.py',
-#     'torch/include/**',
-#     'torch/lib/**',
-#     'venv/**',
-#     '**/*.pyi',
-#     "tools/experimental/torchfuzz/**",
-#     'tools/test/test_selective_build.py',
-# ]
-# command = [
-#     'uv',
-#     'run',
-#     '--script',
-#     'tools/linter/adapters/flake8_linter.py',
-#     '--',
-#     '@{{PATHSFILE}}'
-# ]
+[[linter]]
+code = 'FLAKE8'
+include_patterns = ['**/*.py']
+exclude_patterns = [
+    '.git/**',
+    'build_test_custom_build/**',
+    'build/**',
+    'caffe2/**',
+    'docs/caffe2/**',
+    'docs/cpp/src/**',
+    'docs/src/**',
+    'fb/**',
+    '**/fb/**',
+    'functorch/docs/**',
+    'functorch/examples/**',
+    'functorch/docs/source/tutorials/**',
+    'torch_npu/_inductor/fx_passes/serialized_patterns/**',
+    'torch_npu/_inductor/autoheuristic/artifacts/**',
+    'torch_npu/_inductor/kernel/vendored_templates/cutedsl/kernels/**',
+    'torch_npu/_inductor/kernel/vendored_templates/cutedsl/dense_blockscaled_gemm_persistent.py',
+    'scripts/**',
+    'test/generated_type_hints_smoketest.py',
+    'test/test_torchfuzz_repros.py',
+    # CPython tests
+    'test/dynamo/cpython/**',
+    # Tests from the NumPy test suite
+    'test/torch_np/numpy_test/**/*.py',
+    'third_party/**',
+    'torch_npu/include/**',
+    'torch_npu/lib/**',
+    'torch/include/**',
+    'torch/lib/**',
+    'venv/**',
+    '**/*.pyi',
+    "tools/experimental/torchfuzz/**",
+    'tools/test/test_selective_build.py',
+]
+command = [
+    'uv',
+    'run',
+    '--script',
+    'tools/linter/adapters/flake8_linter.py',
+    '--',
+    '@{{PATHSFILE}}'
+]
 
 
 # [[linter]]
