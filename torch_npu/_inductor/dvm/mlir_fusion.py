@@ -82,6 +82,8 @@ anir_config.GENERATE_LIST = [
     aten.unsqueeze,
     aten.squeeze,
     aten.reshape,
+    # aten.copy,
+    # aten.copy_,
     # aten.clone,
     aten.lift_fresh_copy,
     aten.lift_fresh_copy.default,
