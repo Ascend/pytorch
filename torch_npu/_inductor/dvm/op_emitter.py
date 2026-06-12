@@ -215,7 +215,9 @@ def format_shape(shape):
     input_dtypes=[*DVM_SUPPORT_FLOAT_TYPE, torch.int32],
     output_dtypes=[*DVM_SUPPORT_FLOAT_TYPE, torch.int32],
 )
-def add(x, y):
+def add(x, y, alpha=1):
+    if alpha != 1:
+        y = mul(y, alpha)
     return f"k.add({x}, {y})"
 
 
@@ -498,6 +500,16 @@ def relu(x):
 
 def copy(x):
     return f"k.copy({x})"
+
+
+@register_dvm_op(
+    aten.copy.default,
+    aten.copy_.default,
+    input_dtypes=DVM_SUPPORT_TYPE,
+    output_dtypes=DVM_SUPPORT_TYPE,
+)
+def copy_(dst, src, non_blocking=False):
+    return src
 
 
 @register_dvm_op(aten.clone.default)
