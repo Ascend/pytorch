@@ -795,6 +795,9 @@ def _execute_worker_batch(
         timeout, verbose, shard, shard_type, npu_device_id,
     )
 
+    unexpected_stdout_dir = report_dir / "unexpected_stdout"
+    unexpected_stdout_dir.mkdir(parents=True, exist_ok=True)
+
     while remaining_cases:
         batch_input["cases"] = [
             {
@@ -828,17 +831,47 @@ def _execute_worker_batch(
 
             last_output_time = monotonic()
 
+            unexpected_log_path = unexpected_stdout_dir / f"batch_{batch_id}.log"
+            unexpected_count = 0
+            unexpected_lock = threading.Lock()
+
             def _read_stdout():
-                nonlocal last_output_time
+                nonlocal last_output_time, unexpected_count
                 if proc.stdout:
                     for line in proc.stdout:
                         last_output_time = monotonic()
-                        line = line.strip()
-                        if not line:
+                        raw_line = line.strip()
+                        if not raw_line:
                             continue
                         try:
-                            case_result = json.loads(line)
+                            case_result = json.loads(raw_line)
                         except json.JSONDecodeError:
+                            continue
+
+                        if not isinstance(case_result, dict):
+                            with unexpected_lock:
+                                unexpected_count += 1
+                                count = unexpected_count
+                            ts = datetime.now().isoformat()
+                            json_type = type(case_result).__name__
+                            line_preview = raw_line[:10000]
+                            try:
+                                with open(unexpected_log_path, "a", encoding="utf-8") as uf:
+                                    uf.write(
+                                        f"[{ts}] #{count} type={json_type}"
+                                        f" len={len(raw_line)}\n"
+                                        f"{line_preview}\n"
+                                        f"{'-' * 80}\n"
+                                    )
+                            except OSError:
+                                pass
+                            if count == 1:
+                                print(
+                                    f"  [Batch {batch_id}] Unexpected non-dict JSON line"
+                                    f" (type={json_type}, len={len(raw_line)}),"
+                                    f" full details saved to {unexpected_log_path}",
+                                    flush=True,
+                                )
                             continue
 
                         nodeid = case_result.get("nodeid", "")
