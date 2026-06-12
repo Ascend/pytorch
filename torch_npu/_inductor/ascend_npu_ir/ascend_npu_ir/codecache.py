@@ -29,8 +29,10 @@ from torch._inductor.async_compile import (
 from torch._dynamo.device_interface import get_interface_for_device
 
 from torch._inductor.codecache import CodeCacheFuture, config
+from torch._inductor.codegen.common import device_codegens
 
 from .npu.mlir_compiler import NpuMlirCompiler, AkgCompiler
+from .npu.codegen.akg import AkgScheduling
 from . import config as anir_config
 from .npu.utils import logger
 
@@ -82,7 +84,7 @@ def _load_kernel(
         suppress_error=False,
         kernel_meta=None,
         extra_env=None) -> ModuleType:
-    if os.getenv("TORCHINDUCTOR_USE_AKG", "0") == "1":
+    if getattr(device_codegens.get("npu"), "scheduling", None) is AkgScheduling:
         if extra_env:
             os.environ.update(extra_env)
         kernel = AkgCompiler(kernel_name, no_more_compile=no_more_compile, kernel_meta=kernel_meta)
@@ -102,8 +104,11 @@ def _load_kernel(
     return kernel
 
 def _load_fx_graph(kernel_name: str, source_code=None, extra_env=None, kernel_meta=None, autotune=True) -> ModuleType:
-    kernel = NpuMlirCompiler(kernel_name, kernel_meta=kernel_meta, autotune=autotune)
-    if source_code is not None:
+    if getattr(device_codegens.get("npu"), "scheduling", None) is AkgScheduling:
+        kernel = AkgCompiler(kernel_name, kernel_meta=kernel_meta, autotune=autotune)
+    else:
+        kernel = NpuMlirCompiler(kernel_name, kernel_meta=kernel_meta, autotune=autotune)
+    if source_code is not None and isinstance(kernel, NpuMlirCompiler):
         kernel.init(module=source_code, extra_env=extra_env)
     kernel.register_fx_fallback(kernel_meta)
     os.makedirs(os.path.join(kernel_meta.get('traced_graph_cache'), str(kernel_meta.get('device_index')), kernel_meta.get('traced_graph_hash'), 'keep'), exist_ok=True)
