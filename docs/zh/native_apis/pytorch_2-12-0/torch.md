@@ -234,7 +234,7 @@
 |[torch.mean](https://pytorch.org/docs/2.12/generated/torch.mean.html)|是|支持bf16，fp16，fp32，complex64，complex128|
 |[torch.nanmean](https://pytorch.org/docs/2.12/generated/torch.nanmean.html)|是|支持bf16，fp16，fp32|
 |[torch.median](https://pytorch.org/docs/2.12/generated/torch.median.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64|
-|[torch.norm](https://pytorch.org/docs/2.12/generated/torch.norm.html)|是|支持bf16，fp16，fp32，fp64<br>参数p为负数时，计算结果可能存在精度误差<br>参数dim指定为输入tensor中shape维度值为1的轴时，计算结果可能存在精度误差|
+|[torch.norm](https://pytorch.org/docs/2.12/generated/torch.norm.html)|是|支持bf16，fp16，fp32<br>参数dim指定为输入tensor中shape维度值为1的轴时，计算结果可能存在精度误差|
 |[torch.nansum](https://pytorch.org/docs/2.12/generated/torch.nansum.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |[torch.prod](https://pytorch.org/docs/2.12/generated/torch.prod.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[torch.nanquantile](https://pytorch.org/docs/2.12/generated/torch.nanquantile.html)|否|-|
