@@ -44,6 +44,12 @@ static bool ShouldFallbackNzToNd(const at::Tensor& self, int64_t acl_format)
     if (src_desc.npu_format_ != ACL_FORMAT_ND) {
         return false;
     }
+    // Scalar and rank-1 tensors cannot be represented as real NZ tensors.
+    // Keep historical aclop behavior and avoid invalid aclnn storage size
+    // calculation on CANN/Soc combinations with 32 padding.
+    if (src_desc.base_sizes_.size() < 2) {
+        return true;
+    }
     if (src_desc.base_sizes_.size() != self.sizes().size()) {
         return true;
     }
@@ -107,7 +113,7 @@ std::tuple<bool, int64_t, c10::SmallVector<int64_t, SIZE>> MaybeUseAclnnNpuForma
     // Non-aclnn-only path (910B and older chips).
     // CANN >= 9.1.0 supports aclnn format_cast with customize_dtype on 910B.
     // Match original aclop behavior: 4-byte types (float32/int32) default to
-    // ACL_FLOAT16 (C0=16); smaller types keep their natural C0 (int8→32, fp16→16).
+    // ACL_FLOAT16 (C0=16); smaller types keep their natural C0 (int8 C0=32, fp16 C0=16).
     // See FormatHelper.cpp InferShapeNDToNZ: (itemsize > 2) ? 2 : itemsize.
     if (!customize_dtype.has_value()) {
         if (src.element_size() >= 4) {
