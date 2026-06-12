@@ -1972,6 +1972,32 @@ class NPUIndexTritonKernel(TritonKernel):
         except UnsupportedGroupedPlan as exc:
             self._disable_grouped_autotune(inductor_meta, str(exc))
 
+    def _has_dynamic_shape_axis(self):
+        for axis in self.sorted_axis:
+            length = V.graph.sizevars.simplify(axis.length)
+            if not isinstance(length, (int, sympy.Integer)):
+                return True
+        return False
+
+    def _enable_auto_blockify_for_grouped_fallback_if_needed(self, inductor_meta):
+        """
+        Enable Triton Ascend auto-blockify only for dynamic-shape kernels that
+        fall back from symbolic grouped autotune.
+
+        When symbolic grouped autotune is enabled but this kernel cannot use the
+        grouped path, dynamic runtime shapes may still make the fixed launch grid
+        exceed the hardware grid limit. In that fallback case, pass
+        enable_auto_blockify through inductor_meta so runtime compilation can ask
+        triton-ascend to add --enable-auto-blockify-loop.
+        """
+        if not npu_config.enable_symbolic_shape_group_autotune:
+            return
+        if inductor_meta.get("group_enabled", False):
+            return
+        if not self._has_dynamic_shape_axis():
+            return
+        inductor_meta["enable_auto_blockify"] = True
+
     def _same_grouped_benchmark_expr(self, left, right) -> bool:
         return V.graph.sizevars.simplify(left - right) == 0
 
@@ -2215,6 +2241,8 @@ class NPUIndexTritonKernel(TritonKernel):
                 inductor_meta.setdefault("extra_launcher_arg_specs", ())
             except RuntimeError as exc:
                 self._disable_grouped_autotune(inductor_meta, str(exc))
+
+        self._enable_auto_blockify_for_grouped_fallback_if_needed(inductor_meta)
 
         # add in tiling args
         self.add_autotune_args(argdefs, signature, triton_meta_signature)
