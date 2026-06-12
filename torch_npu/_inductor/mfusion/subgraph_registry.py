@@ -11,7 +11,6 @@ logger = logging.getLogger(__name__)
 @dataclass(frozen=True)
 class Payload:
     fx_gm: torch.fx.GraphModule
-    mlir: str
     is_dynamic: bool
     torch_name: str | None = None
     full_op_name: str | None = None
@@ -29,8 +28,6 @@ def _validate_name(name: str) -> None:
 def _validate_payload(payload: Payload) -> None:
     if not isinstance(payload.fx_gm, torch.fx.GraphModule):
         raise TypeError("payload.fx_gm must be torch.fx.GraphModule")
-    if not isinstance(payload.mlir, str) or not payload.mlir.strip():
-        raise ValueError("payload.mlir must be a non-empty string")
     if not isinstance(payload.is_dynamic, bool):
         raise TypeError("payload.is_dynamic must be bool")
 

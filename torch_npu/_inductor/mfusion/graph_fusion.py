@@ -1,6 +1,7 @@
 import logging
 import os
-from typing import Any, NamedTuple
+from functools import cache
+from typing import Any
 
 import torch
 import torch.utils._pytree as pytree
@@ -9,7 +10,6 @@ from torch._inductor.codegen.common import IndentedBuffer
 from torch._inductor.codegen.simd import code_hash
 from torch._inductor.codegen.wrapper import pexpr, PythonWrapperCodegen
 from torch._inductor.virtualized import V
-from torch._subclasses.fake_tensor import FakeTensorMode
 from torch.fx import Graph, GraphModule, Node
 from torch.utils._ordered_set import OrderedSet
 from torch_npu._inductor.dvm.fx_pass import (
@@ -45,6 +45,14 @@ def _ensure_mfusion_inductor_decomp_patches() -> None:
         logger.exception("Failed to apply MFusion Inductor decomposition patches.")
         raise
     _mfusion_inductor_decomp_patches_applied = True
+
+
+@cache
+def _warn_mfusion_akg_fallback_once() -> None:
+    logger.warning(
+        "MFusion AKG codegen is not supported currently; "
+        "falling back to DVM codegen for fused subgraphs."
+    )
 
 
 def _configure_mfusion_logger() -> None:
@@ -86,63 +94,6 @@ def _mfusion_has_matmul(gm: GraphModule) -> bool:
         if node.target in (aten.mm.default, aten.bmm.default, aten.addmm.default):
             return True
     return False
-
-
-def _mfusion_meta_summary(obj: Any, max_list_items: int = 8) -> Any:
-    try:
-        if isinstance(obj, torch.Tensor):
-            # Works for FakeTensor as well (subclass of Tensor).
-            return {
-                "type": type(obj).__name__,
-                "dtype": str(getattr(obj, "dtype", None)),
-                "device": str(getattr(obj, "device", None)),
-                "shape": list(getattr(obj, "shape", ())),
-                "stride": list(obj.stride()) if hasattr(obj, "stride") else None,
-                "requires_grad": bool(getattr(obj, "requires_grad", False)),
-            }
-        if isinstance(obj, (torch.SymInt, torch.SymBool, torch.SymFloat)):
-            return {"type": type(obj).__name__, "repr": str(obj)}
-        if isinstance(obj, (int, float, bool, str)) or obj is None:
-            return obj
-        if isinstance(obj, (list, tuple)):
-            items = [
-                _mfusion_meta_summary(x, max_list_items=max_list_items)
-                for x in obj[:max_list_items]
-            ]
-            if len(obj) > max_list_items:
-                items.append(f"...(+{len(obj) - max_list_items} more)")
-            return items
-        if isinstance(obj, dict):
-            # Avoid overly verbose dumps.
-            out = {}
-            for i, (k, v) in enumerate(obj.items()):
-                if i >= max_list_items:
-                    out["..."] = f"+{len(obj) - max_list_items} more keys"
-                    break
-                out[str(k)] = _mfusion_meta_summary(v, max_list_items=max_list_items)
-            return out
-        return {"type": type(obj).__name__, "repr": repr(obj)[:300]}
-    except Exception as exc:
-        return {"type": type(obj).__name__, "error": repr(exc)}
-
-
-def _build_fake_inputs_from_meta(meta_vals: list[Any]) -> list[Any] | None:
-    if not all(v is not None for v in meta_vals):
-        raise ValueError("invalid meta_vals: all values must be non-None")
-    fake_mode: FakeTensorMode | None = None
-    for v in meta_vals:
-        if hasattr(v, "fake_mode"):
-            fake_mode = v.fake_mode
-            break
-    if fake_mode is None:
-        fake_mode = FakeTensorMode()
-    args: list[Any] = []
-    for v in meta_vals:
-        if isinstance(v, torch.Tensor):
-            args.append(fake_mode.from_tensor(v))
-        else:
-            args.append(v)
-    return args
 
 
 def _mfusion_safe_repr(obj: Any, max_len: int = 240) -> str:
@@ -252,15 +203,7 @@ def _propagate_subgraph_meta_from_main(gm: GraphModule) -> None:
                 fake_inputs.append(arg.meta.get("val"))
             else:
                 fake_inputs.append(arg)
-        # fake_inputs = _build_fake_inputs_from_meta(fake_inputs)
-        if fake_inputs is None:
-            raise RuntimeError("invalid fake_inputs: expected list, got None")
         fake_tensor_propagate_mfusion_subgraph(sub_gm, fake_inputs)
-
-
-class _MFusionMetaSnapshot(NamedTuple):
-    placeholders: list[dict[str, Any]]
-    meta_by_name: dict[str, dict[str, Any]]
 
 
 def _mfusion_print_banner(title: str) -> None:
@@ -286,156 +229,6 @@ def _mfusion_print_mlir(mlir_text: str, title: str) -> None:
     _mfusion_print_banner(title)
     print(mlir_text)
     print("=" * 100)
-
-
-def _mfusion_log_saved_metas(
-    gm: GraphModule,
-    old_placeholders: list[dict[str, Any]],
-    old_meta_by_name: dict[str, dict[str, Any]],
-) -> None:
-    logger.debug(
-        "[mfusion_graph_fusion][debug] saved placeholder metas (count=%s):",
-        len(old_placeholders),
-    )
-    for i, ph in enumerate(old_placeholders):
-        logger.debug(
-            "[mfusion_graph_fusion][debug]   saved placeholder idx=%s name=%s val=%s unbacked_bindings=%s",
-            i,
-            ph.get("name"),
-            _mfusion_meta_summary(ph.get("val")),
-            _mfusion_meta_summary(ph.get("unbacked_bindings")),
-        )
-
-    # Only log nodes we actually saved in old_meta_by_name (i.e., had "val").
-    nodes_with_meta = [n for n in gm.graph.nodes if n.name in old_meta_by_name]
-    logger.debug(
-        "[mfusion_graph_fusion][debug] saved node metas (count=%s):",
-        len(nodes_with_meta),
-    )
-    for n in nodes_with_meta:
-        logger.debug(
-            "[mfusion_graph_fusion][debug]   saved node name=%s op=%s target=%s meta_keys=%s val=%s unbacked_bindings=%s",
-            n.name,
-            n.op,
-            str(getattr(n, "target", None)),
-            sorted(n.meta.keys()),
-            _mfusion_meta_summary(n.meta.get("val", None)),
-            _mfusion_meta_summary(n.meta.get("unbacked_bindings", None)),
-        )
-
-
-def _mfusion_snapshot_metas(
-    gm: GraphModule, *, debug_meta: bool
-) -> _MFusionMetaSnapshot:
-    """
-    Snapshot `node.meta["val"]` (and optional `unbacked_bindings`) before FX<->MLIR
-    roundtrip. Placeholder names may change after roundtrip, so we store placeholder
-    metas by position (list order) and store other node metas by name as best-effort.
-    """
-    old_placeholders: list[dict[str, Any]] = []
-    old_meta_by_name: dict[str, dict[str, Any]] = {}
-
-    for n in gm.graph.nodes:
-        if "val" in n.meta:
-            meta = {
-                "val": n.meta["val"],
-                "unbacked_bindings": n.meta.get("unbacked_bindings", None),
-            }
-            old_meta_by_name[n.name] = meta
-            if n.op == "placeholder":
-                old_placeholders.append({"name": n.name, **meta})
-        else:
-            logger.debug(
-                "[mfusion_graph_fusion][debug] node name=%s op=%s has no val meta",
-                n.name,
-                n.op,
-            )
-
-    if debug_meta:
-        _mfusion_log_saved_metas(gm, old_placeholders, old_meta_by_name)
-
-    return _MFusionMetaSnapshot(
-        placeholders=old_placeholders, meta_by_name=old_meta_by_name
-    )
-
-
-def _mfusion_restore_metas_after_roundtrip(
-    gm: GraphModule, *, snapshot: _MFusionMetaSnapshot, debug_meta: bool
-) -> None:
-    # Restore placeholder metas by position (names change: a/b/c -> arg0/arg1/arg2).
-    new_placeholders = [n for n in gm.graph.nodes if n.op == "placeholder"]
-    for i, n in enumerate(new_placeholders):
-        if i >= len(snapshot.placeholders):
-            break
-        if n.meta.get("val") is not None:
-            logger.debug(
-                "[mfusion_graph_fusion][debug] placeholder idx=%s new_name=%s already has val=%s",
-                i,
-                n.name,
-                _mfusion_meta_summary(n.meta.get("val")),
-            )
-            continue
-        meta = snapshot.placeholders[i]
-        n.meta["val"] = meta["val"]
-        if meta.get("unbacked_bindings") is not None:
-            n.meta["unbacked_bindings"] = meta["unbacked_bindings"]
-        if debug_meta:
-            logger.debug(
-                "[mfusion_graph_fusion][debug] restored placeholder idx=%s old_name=%s -> new_name=%s val=%s unbacked_bindings=%s",
-                i,
-                meta.get("name"),
-                n.name,
-                _mfusion_meta_summary(meta.get("val")),
-                _mfusion_meta_summary(meta.get("unbacked_bindings")),
-            )
-
-    # Restore any remaining metas by name (get_attr etc.), best-effort.
-    for n in gm.graph.nodes:
-        if "val" in n.meta:
-            logger.debug(
-                "[mfusion_graph_fusion][debug] node name=%s op=%s already has val=%s",
-                n.name,
-                n.op,
-                _mfusion_meta_summary(n.meta.get("val")),
-            )
-            continue
-        meta = snapshot.meta_by_name.get(n.name)
-        if not meta:
-            logger.debug(
-                "[mfusion_graph_fusion][debug] node name=%s op=%s has no meta to restore",
-                n.name,
-                n.op,
-            )
-            continue
-        n.meta["val"] = meta["val"]
-        if meta.get("unbacked_bindings") is not None:
-            n.meta["unbacked_bindings"] = meta["unbacked_bindings"]
-        if debug_meta:
-            logger.debug(
-                "[mfusion_graph_fusion][debug] restored non-placeholder name=%s op=%s target=%s val=%s unbacked_bindings=%s",
-                n.name,
-                n.op,
-                str(getattr(n, "target", None)),
-                _mfusion_meta_summary(meta.get("val")),
-                _mfusion_meta_summary(meta.get("unbacked_bindings")),
-            )
-
-
-def _mfusion_refresh_faketensor_metas(gm: GraphModule) -> None:
-    # Recompute faketensor meta for call_function nodes in the new graph.
-    # This must run under Inductor fake mode (V.fake_mode is set by Inductor).
-    try:
-        from torch._inductor.fx_utils import FakeTensorUpdater
-
-        updater = FakeTensorUpdater(gm.graph)
-        # Force processing all nodes in the reconstructed graph.
-        updater.processed_hashes.clear()
-        updater.incremental_update()
-    except Exception:
-        logger.debug(
-            "mfusion graph_fusion failed to refresh node.meta['val']",
-            exc_info=True,
-        )
 
 
 def _is_mfusion_op(fallback_kernel) -> bool:
@@ -535,29 +328,6 @@ def _ensure_graph_module(orig_graph) -> GraphModule | None:
     return None
 
 
-def _get_mfusion_orig_graph(fallback_kernel) -> GraphModule | None:
-    origin_node = fallback_kernel.get_origin_node()
-    if origin_node is None:
-        raise RuntimeError("mfusion custom_op has no origin node")
-    payload = _get_mfusion_payload_from_node(origin_node)
-    return _ensure_graph_module(payload.fx_gm)
-
-
-def _get_mfusion_mlir(fallback_kernel) -> str | None:
-    origin_node = fallback_kernel.get_origin_node()
-    if origin_node is None:
-        return None
-    payload = _get_mfusion_payload_from_node(origin_node)
-    return payload.mlir
-
-
-def _get_mfusion_payload_from_fallback(fallback_kernel) -> subgraph_registry.Payload:
-    origin_node = fallback_kernel.get_origin_node()
-    if origin_node is None:
-        raise RuntimeError("mfusion custom_op has no origin node")
-    return _get_mfusion_payload_from_node(origin_node)
-
-
 def _layout_get_size(layout):
     if hasattr(layout, "size"):
         return layout.size
@@ -601,17 +371,6 @@ def _format_sympy_list(items) -> str:
     return "[" + ", ".join(pexpr(item) for item in items) + "]"
 
 
-def _graph_output_has_none(gm: GraphModule) -> bool:
-    """True if the graph output tuple contains any None (e.g. backward grad_outputs)."""
-    for node in gm.graph.nodes:
-        if node.op == "output":
-            args = node.args[0]
-            if not isinstance(args, (list, tuple)):
-                args = [args]
-            return any(a is None for a in args)
-    return False
-
-
 def mfusion_graph_fusion(graph: Graph) -> None:
     # Ensure Inductor decomposition table excludes rms_norm (decomps_to_exclude_npu) so
     # that graphs entering MFusion still contain aten.rms_norm when model uses F.rms_norm.
@@ -631,14 +390,8 @@ def mfusion_graph_fusion(graph: Graph) -> None:
     gm: GraphModule = graph.owning_module
     # NOTE [Inductor meta['val'] invariants]
     # Inductor expects FX nodes to carry FakeTensor metadata in `node.meta["val"]`
-    # (placeholders/get_attr/call_function, etc.). Post-grad passes run with a
-    # FakeTensorUpdater that can incrementally refresh this metadata *as long as*
-    # we mutate the existing graph. The FX<->MLIR roundtrip below reconstructs a
-    # new graph and would drop all `meta["val"]`, causing Inductor to later fail
-    # with KeyError: 'val'. We snapshot input/const metas and then re-propagate.
-    # Snapshot metas from the *current* graph (pre-roundtrip).
-    # NOTE: placeholder names/targets may change after roundtrip, so we must
-    # restore placeholder metas by position, not by name.
+    # (placeholders/get_attr/call_function, etc.). FX<->MLIR roundtrip
+    # reconstructs the graph, so re-propagate FakeTensor metadata afterwards.
 
     # Record original output structure when output contains None (restore after roundtrip so backward returns correct count)
     original_output_args = None
@@ -720,13 +473,8 @@ def mfusion_graph_fusion(graph: Graph) -> None:
     _mfusion_print_fx_graph(gm, "# After torch-mlir -> fx, FX Graph:")
 
     # 4.restore meta info
-    # v1:
-    # _mfusion_restore_metas_after_roundtrip(gm, snapshot=snapshot, debug_meta=debug_meta)
-    # _mfusion_refresh_faketensor_metas(gm)
-    # v2:
-    # Restore metadata using FakeTensorProp. MLIR roundtrip can emit aten.mm + dvm_trans_* (fused
-    # transpose semantics with storage shapes); use fake_tensor_propagate_mfusion_subgraph so mm is
-    # patched during propagation (see fx_exporter.patch_dvm_mm_targets_for_fake_eval).
+    # MLIR roundtrip can emit aten.mm + dvm_trans_* with fused transpose semantics.
+    # Use MFusion fake propagation so mm is patched while metadata is refreshed.
     if all(x is not None for x in example_inputs):
         mode = None
         for x in example_inputs:
@@ -746,7 +494,7 @@ def mfusion_graph_fusion(graph: Graph) -> None:
         # dvm_trans_* keeps storage shapes for fused aclnn semantics; Inductor mm lowering needs
         # explicit transpose + mm so mm_args inner dims match. Re-propagate FakeTensor after expand.
         if expand_dvm_mm_to_explicit_transpose_for_inductor(gm):
-             fake_tensor_propagate_mfusion_subgraph(gm, example_inputs, fake_mode=mode)
+            fake_tensor_propagate_mfusion_subgraph(gm, example_inputs, fake_mode=mode)
 
     _propagate_subgraph_meta_from_main(gm)
     gm.recompile()
@@ -833,11 +581,14 @@ def _define_mfusion_akg_kernel(self, mlir: str, num_outputs: int, is_dynamic: bo
 def _emit_mfusion_akg_codegen(
     self, fallback_kernel, args, sub_gm: GraphModule, payload
 ) -> None:
-    # payload is already passed in from caller
-    mlir = payload.mlir
-    if not mlir:
-        raise RuntimeError("mfusion custom_op has no mlir string input")
+    raise RuntimeError(
+        "mfusion AKG codegen through the legacy MLIR attribute path has been disabled. "
+        "AKG should be re-enabled after it is migrated to FX graph codegen."
+    )
 
+    # Legacy MLIR attribute AKG path is kept here but intentionally unreachable.
+    # The fused subgraph is now carried through Payload.fx_gm only.
+    mlir = ""
     # Ref: torch._inductor.codegen.wrapper generate_extern_kernel_alloc
     # outputs are inferred from fallback kernel layout
     output_layouts = _normalize_output_layouts(fallback_kernel.layout)
@@ -995,9 +746,8 @@ def _mfusion_generate_fallback_kernel(self, fallback_kernel) -> None:
 
         use_akg = os.getenv("TORCHINDUCTOR_USE_AKG", "0") == "1"
         if use_akg:
-            _emit_mfusion_akg_codegen(self, fallback_kernel, args, sub_gm, payload)
-        else:
-            _emit_mfusion_dvm_codegen(self, fallback_kernel, args, sub_gm, payload)
+            _warn_mfusion_akg_fallback_once()
+        _emit_mfusion_dvm_codegen(self, fallback_kernel, args, sub_gm, payload)
     finally:
         try:
             subgraph_registry.pop(subgraph_name)
