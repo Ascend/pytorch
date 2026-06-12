@@ -18,6 +18,8 @@ Add validation cases for torch.fx.Tracer/Transformer APIs on NPU:
    - torch.fx.Tracer.call_module
 
 2. This file validates the core functionality of these APIs on NPU environment.
+3. This file also validates Tracer class-level behavior with module state,
+   multiple inputs, multiple outputs, and eval mode.
 """
 
 import torch
@@ -30,6 +32,42 @@ from torch.fx.proxy import Proxy, TraceError
 from torch.testing._internal.common_utils import TestCase, run_tests
 
 device_type = acc.type if (acc := torch.accelerator.current_accelerator()) else "cpu"
+
+
+torch_npu.npu.set_compile_mode(jit_compile=False)
+
+
+class TestFxTracerApi(TestCase):
+    def test_tracer_module_state(self):
+        class MyModule(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.weight = torch.nn.Parameter(torch.ones(2, 3).npu())
+                self.register_buffer("bias", torch.ones(2, 3).npu())
+                self.dropout = torch.nn.Dropout(p=0.5)
+
+            def forward(self, x, y):
+                out = self.dropout(x + y + self.weight + self.bias)
+                return out, out.neg()
+
+        module = MyModule().eval()
+        x, y = torch.randn(2, 3).npu(), torch.randn(2, 3).npu()
+
+        tracer = Tracer()
+        graph = tracer.trace(module)
+        graph.lint()
+        traced = GraphModule(tracer.root, graph)
+        traced.eval()
+
+        expected = module(x, y)
+        result = traced(x, y)
+
+        self.assertFalse(traced.training)
+        self.assertEqual(result[0], expected[0])
+        self.assertEqual(result[1], expected[1])
+        self.assertEqual(result[0].device.type, "npu")
+        self.assertEqual(result[1].device.type, "npu")
+        self.assertTrue(any(node.op == "get_attr" for node in graph.nodes))
 
 
 class TestTracerTrace(TestCase):
