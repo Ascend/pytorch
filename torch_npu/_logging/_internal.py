@@ -41,9 +41,8 @@ def _add_logging_module():
     torch._logging._internal.register_log("shmem", "torch_npu.symmetric_memory")
     torch._logging._internal.register_log("env", "torch_npu.env")
     torch._logging._internal.register_log("acl", "torch_npu.acl")
-    torch._logging._internal.register_log("aclgraph", "torch_npu.aclgraph")
+    torch._logging._internal.register_log("aclgraph", "torch_npu.npugraph")
     torch._logging._internal.register_log("npugraph", "torch_npu.npugraph")
-    torch._logging._internal.register_log("cudagraphs", "torch_npu.npugraph")
 
 
 def _update_log_state_from_env():

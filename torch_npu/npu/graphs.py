@@ -61,7 +61,7 @@ from torch_npu._C import (  # noqa: F401
 )
 
 
-log = logging.getLogger("torch_npu.npugraph")
+log = torch._logging.getArtifactLogger("torch_npu.npugraph", "cudagraphs")
 
 
 def is_current_stream_capturing():
@@ -229,18 +229,18 @@ def _print_npugraph_tensor_impl(input, tensor_name=None):
     if device.type == "cpu":
         _print_callback_pending(tensor_name, input)
         return
-    
+
     if device.type != "npu":
         return
 
     device_index = device.index
     save_stream = _get_save_tensor_stream(device_index)
-    
+
     # Record event on the original compute stream before switching
     event1 = torch.npu.Event()
     event2 = torch.npu.Event()
     event1.record()
-    
+
     with torch.npu.stream(save_stream):
         # Wait for the original stream to complete before D2H
         event1.wait()
@@ -255,7 +255,7 @@ def _print_npugraph_tensor_impl(input, tensor_name=None):
         )
         # Mark save_stream completion
         event2.record()
-    
+
     # Wait for save_stream to complete (back to original stream now)
     event2.wait()
 
@@ -268,19 +268,19 @@ def _save_npugraph_tensor_impl(input, save_path=None, overwrite=False):
     if device.type == "cpu":
         torch.save(input, _build_save_npugraph_tensor_path(save_path, overwrite=overwrite))
         return
-    
+
     if device.type != "npu":
         return
 
     device_index = device.index
     save_stream = _get_save_tensor_stream(device_index)
     final_path = _build_save_npugraph_tensor_path(save_path, device_index, overwrite)
-    
+
     # Record event on the original compute stream before switching
     event1 = torch.npu.Event()
     event2 = torch.npu.Event()
     event1.record()
-    
+
     with torch.npu.stream(save_stream):
         # Wait for the original stream to complete before D2H
         event1.wait()
@@ -295,7 +295,7 @@ def _save_npugraph_tensor_impl(input, save_path=None, overwrite=False):
         )
         # Mark save_stream completion
         event2.record()
-    
+
     # Wait for save_stream to complete (back to original stream now)
     event2.wait()
 
@@ -305,19 +305,19 @@ def _save_npugraph_tensor_tensor_list_impl(input, save_path=None, overwrite=Fals
     if device.type == "cpu":
         torch.save(list(input), _build_save_npugraph_tensor_path(save_path, overwrite=overwrite))
         return
-    
+
     if device.type != "npu":
         return
 
     device_index = device.index
     save_stream = _get_save_tensor_stream(device_index)
     final_path = _build_save_npugraph_tensor_path(save_path, device_index, overwrite)
-    
+
     # Record event on the original compute stream before switching
     event1 = torch.npu.Event()
     event2 = torch.npu.Event()
     event1.record()
-    
+
     with torch.npu.stream(save_stream):
         # Wait for the original stream to complete before D2H
         event1.wait()
@@ -332,7 +332,7 @@ def _save_npugraph_tensor_tensor_list_impl(input, save_path=None, overwrite=Fals
         )
         # Mark save_stream completion
         event2.record()
-    
+
     # Wait for save_stream to complete (back to original stream now)
     event2.wait()
 
@@ -585,7 +585,6 @@ class _GraphDispatchMode(torch.utils._python_dispatch.TorchDispatchMode):
                 record.op_cache_entry(*record.args, **record.kwargs)
                 graph_task_update_end(self.update_stream)
                 record.event.record(self.update_stream)
-
 
 # Python shim helps Sphinx process docstrings more reliably.
 class NPUGraph(torch_npu._C._NPUGraph):
