@@ -5,11 +5,6 @@ import torch_npu
 
 def patch_supported_devices():
     device_name = torch_npu.npu.get_device_name(torch_npu.npu.current_device())
-    cann_version = torch_npu._C._get_cann_version("CANN")
-
-    # CANN < 8.0 does not support foreach kernels on NPU
-    if cann_version < '8.0' or cann_version == 'not known':
-        return ["cuda", "xpu"]
 
     if (device_name > "Ascend910B" and device_name < "Ascend910PremiumA") or (device_name > "Ascend910_9"):
         return ["cuda", "xpu", torch._C._get_privateuse1_backend_name()]
