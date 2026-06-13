@@ -122,6 +122,7 @@ if npu_config.dump_fx_graph:
         _npu_get_unmet_dep_nodes,
         clone,
         to_dtype,
+        pointwise_cat,
         DUMP_FX_GRAPH_LOWERING_OPS
     )
     LOWERING_OVERRIDE_OP = list((set(LOWERING_OVERRIDE_OP) | set(DUMP_FX_GRAPH_LOWERING_OPS)) - set(FALLBACK_LIST))
