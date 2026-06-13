@@ -120,8 +120,12 @@ def check_accuracy_triton(*args, launcher, grid, stream, inductor_meta, **kwargs
     fx_args = []
     for idx in fx_module.call_args_mapping:
         arg = args[idx]
+        if isinstance(arg, int):
+            fx_args.append(arg)
+            continue
+
         if not isinstance(arg, torch.Tensor):
-            arg = torch.Tensor(arg).npu()
+            arg = torch.tensor(arg).npu()
         fx_arg = clone_preserve_strides(arg).float() if arg.dtype == torch.bfloat16 else clone_preserve_strides(
                 arg)
         fx_args.append(fx_arg)
