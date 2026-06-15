@@ -79,6 +79,10 @@ TORCH_NPU_LOAD_FUNC(aclrtEventGetTimestamp)
 TORCH_NPU_LOAD_FUNC(aclmdlRICaptureBegin)
 TORCH_NPU_LOAD_FUNC(aclmdlRICaptureGetInfo)
 TORCH_NPU_LOAD_FUNC(aclmdlRICaptureEnd)
+TORCH_NPU_LOAD_FUNC(aclmdlRICondHandleCreate)
+TORCH_NPU_LOAD_FUNC(aclmdlRICondHandleGetCondPtr)
+TORCH_NPU_LOAD_FUNC(aclmdlRIAddCondTask)
+TORCH_NPU_LOAD_FUNC(aclmdlRICaptureToModelRIBegin)
 TORCH_NPU_LOAD_FUNC(aclmdlRIDebugPrint)
 TORCH_NPU_LOAD_FUNC(aclmdlRIExecuteAsync)
 TORCH_NPU_LOAD_FUNC(aclmdlRIDestroy)
@@ -129,6 +133,7 @@ TORCH_NPU_LOAD_FUNC(aclrtGetErrorVerbose)
 TORCH_NPU_LOAD_FUNC(aclrtRepairError)
 TORCH_NPU_LOAD_FUNC(aclrtGetDeviceInfo)
 TORCH_NPU_LOAD_FUNC(aclrtMemset)
+TORCH_NPU_LOAD_FUNC(aclrtMemsetAsync)
 TORCH_NPU_LOAD_FUNC(aclmdlRICaptureThreadExchangeMode)
 
 aclprofStepInfoPtr init_stepinfo() {
@@ -1068,6 +1073,63 @@ aclError AclmdlRICaptureEnd(aclrtStream stream, aclmdlRI *modelRI)
     return func(stream, modelRI);
 }
 
+aclError AclmdlRICondHandleCreate(aclmdlRI modelRI, unsigned int defaultLaunchValue, uint32_t flag,
+                                  aclmdlRICondHandle *handle)
+{
+    ACL_CALL_LOG("aclmdlRICondHandleCreate", "modelRI=" << modelRI << ", defaultLaunchValue="
+             << defaultLaunchValue << ", flag=" << flag << ", handle=" << handle);
+    typedef aclError (*AclmdlRICondHandleCreate)(aclmdlRI, unsigned int, uint32_t, aclmdlRICondHandle *);
+    static AclmdlRICondHandleCreate func = nullptr;
+    if (func == nullptr) {
+        func = (AclmdlRICondHandleCreate) TORCH_NPU_GET_FUNC(aclmdlRICondHandleCreate);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclmdlRICondHandleCreate", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(modelRI, defaultLaunchValue, flag, handle);
+}
+
+aclError AclmdlRICondHandleGetCondPtr(aclmdlRICondHandle handle, uint64_t **ptr)
+{
+    ACL_CALL_LOG("aclmdlRICondHandleGetCondPtr", "handle=" << handle << ", ptr=" << ptr);
+    typedef aclError (*AclmdlRICondHandleGetCondPtr)(aclmdlRICondHandle, uint64_t **);
+    static AclmdlRICondHandleGetCondPtr func = nullptr;
+    if (func == nullptr) {
+        func = (AclmdlRICondHandleGetCondPtr) TORCH_NPU_GET_FUNC(aclmdlRICondHandleGetCondPtr);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclmdlRICondHandleGetCondPtr", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(handle, ptr);
+}
+
+aclError AclmdlRIAddCondTask(aclmdlRICondTaskParams params, aclrtStream stream, uint32_t flags)
+{
+    ACL_CALL_LOG("aclmdlRIAddCondTask", "handle=" << params.handle << ", type=" << params.type
+             << ", size=" << params.size << ", modelRIArray=" << params.modelRIArray
+             << ", stream=" << stream << ", flags=" << flags);
+    typedef aclError (*AclmdlRIAddCondTask)(aclmdlRICondTaskParams, aclrtStream, uint32_t);
+    static AclmdlRIAddCondTask func = nullptr;
+    if (func == nullptr) {
+        func = (AclmdlRIAddCondTask) TORCH_NPU_GET_FUNC(aclmdlRIAddCondTask);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclmdlRIAddCondTask", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(params, stream, flags);
+}
+
+aclError AclmdlRICaptureToModelRIBegin(aclrtStream stream, aclmdlRI modelRI, aclmdlRICaptureMode mode)
+{
+    ACL_CALL_LOG("aclmdlRICaptureToModelRIBegin", "stream=" << stream << ", modelRI=" << modelRI
+             << ", mode=" << mode);
+    typedef aclError (*AclmdlRICaptureToModelRIBegin)(aclrtStream, aclmdlRI, aclmdlRICaptureMode);
+    static AclmdlRICaptureToModelRIBegin func = nullptr;
+    if (func == nullptr) {
+        func = (AclmdlRICaptureToModelRIBegin) TORCH_NPU_GET_FUNC(aclmdlRICaptureToModelRIBegin);
+    }
+
+    TORCH_CHECK(func, "Failed to find function aclmdlRICaptureToModelRIBegin", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(stream, modelRI, mode);
+}
+
 aclError AclmdlRIDebugPrint(aclmdlRI modelRI)
 {
     ACL_CALL_LOG("aclmdlRIDebugPrint", "modelRI=" << modelRI);
@@ -1813,6 +1875,17 @@ aclError AclrtMemSet(void *devPtr, size_t maxCount, int32_t value, size_t count)
     }
     TORCH_CHECK(func, "Failed to find function aclrtMemset", PTA_ERROR(ErrCode::NOT_FOUND));
     return func(devPtr, maxCount, value, count);
+}
+
+aclError AclrtMemSetAsync(void *devPtr, size_t maxCount, int32_t value, size_t count, aclrtStream stream)
+{
+    typedef aclError (*AclrtMemSetAsync)(void *, size_t, int32_t, size_t, aclrtStream);
+    static AclrtMemSetAsync func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtMemSetAsync) TORCH_NPU_GET_FUNC(aclrtMemsetAsync);
+    }
+    TORCH_CHECK(func, "Failed to find function aclrtMemsetAsync", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(devPtr, maxCount, value, count, stream);
 }
 
 aclError AclmdlRICaptureThreadExchangeMode(aclmdlRICaptureMode* mode)
