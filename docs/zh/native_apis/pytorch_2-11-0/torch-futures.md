@@ -10,8 +10,8 @@
 |[torch.futures.Future.done](https://pytorch.org/docs/2.11/futures.html#torch.futures.Future.done)|是|-|
 |[torch.futures.Future.set_exception](https://pytorch.org/docs/2.11/futures.html#torch.futures.Future.set_exception)|是|-|
 |[torch.futures.Future.set_result](https://pytorch.org/docs/2.11/futures.html#torch.futures.Future.set_result)|是|-|
-|[torch.futures.Future.then](https://pytorch.org/docs/2.11/generated/torch.futures.Future.then.html)|是|-|
-|[torch.futures.Future.value](https://pytorch.org/docs/2.11/generated/torch.futures.Future.value.html)|是|-|
-|[torch.futures.Future.wait](https://pytorch.org/docs/2.11/generated/torch.futures.Future.wait.html)|是|-|
+|[torch.futures.Future.then](https://pytorch.org/docs/2.11/futures.html#torch.futures.Future.then)|是|-|
+|[torch.futures.Future.value](https://pytorch.org/docs/2.11/futures.html#torch.futures.Future.value)|是|-|
+|[torch.futures.Future.wait](https://pytorch.org/docs/2.11/futures.html#torch.futures.Future.wait)|是|-|
 |[torch.futures.collect_all](https://pytorch.org/docs/2.11/futures.html#torch.futures.collect_all)|是|-|
 |[torch.futures.wait_all](https://pytorch.org/docs/2.11/futures.html#torch.futures.wait_all)|是|-|
