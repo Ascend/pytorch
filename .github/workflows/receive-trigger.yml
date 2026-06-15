@@ -18,5 +18,5 @@ jobs:
         run: |
           echo "=== event_type: ${{ inputs.event_type }} ==="
           cat <<'ENDOFPAYLOAD' | jq .
-          ${{ fromJSON(inputs.payload) }}
+          ${{ toJSON(fromJSON(inputs.payload)) }}
           ENDOFPAYLOAD
