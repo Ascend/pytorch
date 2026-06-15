@@ -247,8 +247,6 @@ NPU_EXTRA_FALLBACK_LIST = [
     aten.bucketize.Scalar_out,
     aten.bucketize.Tensor,
     aten.bucketize.Tensor_out,
-    aten.cat.names_out,
-    aten.cat.out,
     aten.constant_pad_nd,
     aten.constant_pad_nd.default,
     aten.constant_pad_nd.out,
@@ -985,6 +983,7 @@ if inductor_indirect_memory_mode != 'linear':
     ]
 
 INDIRECT_MEM_FALLBACK_LIST = [
+    aten.cat,
     aten.embedding,
     aten.embedding.default,
     aten.embedding.out,
