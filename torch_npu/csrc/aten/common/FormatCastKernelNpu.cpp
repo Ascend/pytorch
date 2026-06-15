@@ -7,6 +7,7 @@
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
+#include "torch_npu/csrc/core/npu/GetCANNInfo.h"
 #include "torch_npu/csrc/aten/CustomFunctions.h"
 #include "torch_npu/csrc/custom_dtype/Init.h"
 #include "third_party/op-plugin/op_plugin/utils/op_api_common.h"
@@ -21,6 +22,44 @@ static std::unordered_map<int, int> FORMAT_REAL_TO_FAKE {
 
 using tensor_list = std::vector<at::Tensor>;
 using GetFormatFunc = int (*)(const aclTensor *, const int, const int, int64_t **, uint64_t *, int *);
+
+// Check if current CANN version supports aclnn format_cast with customize_dtype.
+// Only 910B and 910C series support aclnnNpuFormatCastCalculateSizeAndFormat.
+// 950 goes through IsAclnnOnly() path separately; 910A/310 series do not support this API.
+static bool IsAclnnFormatCastSupported()
+{
+    static const auto soc = c10_npu::GetSocVersion();
+    static const bool supported = IsGteCANNVersion("9.1.0", "CANN") &&
+        ((soc >= c10_npu::SocVersion::Ascend910B1 && soc < c10_npu::SocVersion::Ascend310B1) ||
+         (soc >= c10_npu::SocVersion::Ascend910_9391 && soc < c10_npu::SocVersion::Ascend950));
+    return supported;
+}
+
+static bool ShouldFallbackNzToNd(const at::Tensor& self, int64_t acl_format)
+{
+    if (acl_format != ACL_FORMAT_FRACTAL_NZ) {
+        return false;
+    }
+    auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_;
+    if (src_desc.npu_format_ != ACL_FORMAT_ND) {
+        return false;
+    }
+    // Scalar and rank-1 tensors cannot be represented as real NZ tensors.
+    // Keep historical aclop behavior and avoid invalid aclnn storage size
+    // calculation on CANN/Soc combinations with 32 padding.
+    if (src_desc.base_sizes_.size() < 2) {
+        return true;
+    }
+    if (src_desc.base_sizes_.size() != self.sizes().size()) {
+        return true;
+    }
+    for (size_t i = 0; i < src_desc.base_sizes_.size(); ++i) {
+        if (src_desc.base_sizes_[i] != self.sizes()[i]) {
+            return true;
+        }
+    }
+    return false;
+}
 
 std::tuple<bool, int64_t, c10::SmallVector<int64_t, SIZE>> MaybeUseAclnnNpuFormatCast(const at::Tensor& src,
     int64_t acl_format, c10::optional<int64_t> customize_dtype, c10::optional<int64_t> input_dtype)
@@ -71,6 +110,51 @@ std::tuple<bool, int64_t, c10::SmallVector<int64_t, SIZE>> MaybeUseAclnnNpuForma
             "aclnnNpuFormatCast does not exist, Current soc version only support aclnn operators.",
             PTA_ERROR(ErrCode::NOT_SUPPORT));
     }
+    // Non-aclnn-only path (910B and older chips).
+    // CANN >= 9.1.0 supports aclnn format_cast with customize_dtype on 910B.
+    // Match original aclop behavior: 4-byte types (float32/int32) default to
+    // ACL_FLOAT16 (C0=16); smaller types keep their natural C0 (int8 C0=32, fp16 C0=16).
+    // See FormatHelper.cpp InferShapeNDToNZ: (itemsize > 2) ? 2 : itemsize.
+    if (!customize_dtype.has_value()) {
+        if (src.element_size() >= 4) {
+            customizeAcltype = aclDataType::ACL_FLOAT16;
+        }
+    }
+    // else: customizeAcltype stays as user's customize_dtype value (set at top of function)
+    if (IsAclnnFormatCastSupported() && aclnnNpuFormatCastExist) {
+        auto acl_src = ConvertType(srcWrapper);
+        auto api_ret = GetFormat(acl_src, acl_format, customizeAcltype, &dstStorageShape,
+            &dstShapeSize, &dstFormat);
+        Release(acl_src);
+        // CANN aclnn does not yet support all format pairs (e.g. NC1HWC0->ND,
+        // 2D->NC1HWC0, 4D->NZ). Fall back to aclop for unsupported pairs.
+        if (api_ret != 0) {
+            return std::make_tuple(false, dstFormat, outputShape);
+        }
+        for (uint64_t i = 0; i < dstShapeSize; i++) {
+            outputShape.push_back(dstStorageShape[i]);
+        }
+        // For 4-bit types: when customize_dtype=INT32 (8 packed int4, C0=8),
+        // CANN already computes correct storage shape, skip halving.
+        // Otherwise default C0=16: halve last dim and remap format.
+        if (customizeAcltype != aclDataType::ACL_INT32 &&
+            (srcAcltype == aclDataType::ACL_FLOAT4_E2M1 || srcAcltype == aclDataType::ACL_FLOAT4_E1M2 ||
+             srcAcltype == aclDataType::ACL_INT4)) {
+            if (FORMAT_REAL_TO_FAKE.find(dstFormat) == FORMAT_REAL_TO_FAKE.end() || outputShape.empty()) {
+                delete[] dstStorageShape;
+                dstStorageShape = nullptr;
+                TORCH_CHECK(false,
+                    "aclnnNpuFormatCast not support recovery format.",
+                    PTA_ERROR(ErrCode::NOT_SUPPORT));
+            }
+            outputShape.back() = outputShape.back() >> 1;
+            dstFormat = FORMAT_REAL_TO_FAKE[dstFormat];
+        }
+        delete[] dstStorageShape;
+        dstStorageShape = nullptr;
+        return std::make_tuple(true, static_cast<int64_t>(dstFormat), outputShape);
+    }
+    // CANN < 9.1.0: customize_dtype not supported, fall back to aclop path.
     if (C10_UNLIKELY(customize_dtype.has_value())) {
         TORCH_CHECK(false,
             "customize_dtype is not supported by the current soc version.",
@@ -324,6 +408,11 @@ at::Tensor NPUNativeFunctions::npu_format_cast(const at::Tensor& self, int64_t a
                                                c10::optional<int64_t> input_dtype)
 {
     torch_npu::utils::torch_check_npu(self);
+    // Match aclop behavior for manually set storage tensors whose NPU desc
+    // base shape does not match current logical shape.
+    if (ShouldFallbackNzToNd(self, acl_format)) {
+        acl_format = ACL_FORMAT_ND;
+    }
     if (NPUNativeFunctions::get_npu_format(self) == acl_format) {
         ASCEND_LOGD("no need to do format cast");
         return self;
