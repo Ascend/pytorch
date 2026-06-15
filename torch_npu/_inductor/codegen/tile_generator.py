@@ -190,7 +190,7 @@ class TileGenerator:
         # This is tmp check for simt overflow, and will be removed latter
         if self.npu_kernel_type == NPUKernelType.SIMT_ONLY and total_numel * self.dtype_bytes > 8 * 1024:
             return False
-        self.configs.append(Config(newcfg, num_warps=1, num_stages=1))
+        self.configs.append(Config(newcfg, num_warps=1, num_stages=2))
         return True
 
     def desecnd_all_low_dims_with_all_blocks(self):
