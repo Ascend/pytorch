@@ -20,17 +20,50 @@ from torch._inductor.codegen.common import DeferredLine, WorkspaceArg, IndentedB
 from torch._inductor.codegen.wrapper import BufferLike, WrapperLine
 from torch._inductor import ir
 import torch_npu.npu.aclnn
+from torch_npu._inductor._aclgraph_update_plan import (
+    append_inductor_aclgraph_update_plan_for_codegen_node,
+    emit_inductor_aclgraph_update_plan_for_wrapper,
+)
 from ..fx_passes.utils.schedule_node_utils import is_multi_stream
 
 
-class NPUSubgraphPythonWrapperCodegen(SubgraphPythonWrapperCodegen):
+class _NPUKernelCodegenMixin:
+    # generate numel expr for range_tree_node
     def generate_node_numel_expr(self, kernel_name: str, node, numel_expr):
         expr = f"{kernel_name}_{node.name}_numel"
-        self.writeline(f"{expr} = {pexpr(numel_expr)}")
+        simplified = V.graph.sizevars.simplify(numel_expr)
+        # Ensure all PRECOMPUTED_SIZE symbols in the *simplified* expression
+        # are defined before we emit the line that uses them.
+        for sym in simplified.free_symbols:
+            self.ensure_size_computed(sym)
+        self.writeline(f"{expr} = {pexpr(simplified)}")
+        # We can get symbolic expressions here, like s0*64
+        # It is fine to have them here, but we need to handle them correctly as their own type
+        # This is tricky to do, so we wrap in a custom type, distinct from scalars, but also from sympy*
+        # scalars as well.
+        # This is handled in `generate_args_decl` which has a correct comment of: TODO: only works for
+        # constant now, need type info. I agree, this needs type info, and while this is not true type info
+        # it suffices as a type hint for the purposes of producing the correct code for this type.
         return SymbolicCallArg(expr, numel_expr)
 
+    # don't assert
+    def codegen_input_size_asserts(self) -> None:
+        pass
 
-class NPUWrapperCodeGen(PythonWrapperCodegen):
+    def generate_extern_kernel_alloc(self, extern_kernel, args):
+        append_inductor_aclgraph_update_plan_for_codegen_node(self, extern_kernel)
+        super().generate_extern_kernel_alloc(extern_kernel, args)
+
+    def generate_after_suffix(self, result: IndentedBuffer) -> None:
+        super().generate_after_suffix(result)
+        emit_inductor_aclgraph_update_plan_for_wrapper(
+            self,
+            result,
+            _is_codegen_graph_partition_subgraph(self),
+        )
+
+
+class NPUWrapperCodeGen(_NPUKernelCodegenMixin, PythonWrapperCodegen):
     def __init__(self):
         super().__init__()
         self.buffer_args_multi_stream_intent = {}
@@ -68,24 +101,6 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
                 "import torch_npu._inductor.runtime.triton_heuristics as triton_heuristics"
             )
 
-    # generate numel expr for range_tree_node
-    def generate_node_numel_expr(self, kernel_name: str, node, numel_expr):
-        expr = f"{kernel_name}_{node.name}_numel"
-        simplified = V.graph.sizevars.simplify(numel_expr)
-        # Ensure all PRECOMPUTED_SIZE symbols in the *simplified* expression
-        # are defined before we emit the line that uses them.
-        for sym in simplified.free_symbols:
-            self.ensure_size_computed(sym)
-        self.writeline(f"{expr} = {pexpr(simplified)}")
-        # We can get symbolic expressions here, like s0*64
-        # It is fine to have them here, but we need to handle them correctly as their own type
-        # This is tricky to do, so we wrap in a custom type, distinct from scalars, but also from sympy*
-        # scalars as well.
-        # This is handled in `generate_args_decl` which has a correct comment of: TODO: only works for
-        # constant now, need type info. I agree, this needs type info, and while this is not true type info
-        # it suffices as a type hint for the purposes of producing the correct code for this type.
-        return SymbolicCallArg(expr, numel_expr)
-
     def generate_save_uncompiled_kernels(self):
         # remove incorrect grid=(0,0,0) param
         self.wrapper_call.splice(
@@ -101,10 +116,6 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
                         )
             """
         )
-
-    # don't assert
-    def codegen_input_size_asserts(self) -> None:
-        pass
 
     def get_next_kernel_suffix(self) -> str:
         iter_val = copy.copy(self._names_iter)
@@ -198,6 +209,7 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
 
     def generate_extern_kernel_alloc(self, extern_kernel, args):
         if is_multi_stream():
+            append_inductor_aclgraph_update_plan_for_codegen_node(self, extern_kernel)
             no_return = isinstance(extern_kernel.layout, NoneLayout)
             output_name = extern_kernel.get_name()
             origin_node = extern_kernel.get_origin_node()
@@ -364,8 +376,8 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
             multi_stream_intent_str = self.get_buffer_define_multi_stream_by_name(new_name)
             return f"{multi_stream_intent_str}{self.declare_maybe_reference}{new_name} = {old_name}{del_line}{self.ending}  {self.comment} reuse"
         return super().codegen_exact_buffer_reuse(old_name, new_name, del_line)
-    
-    
+
+
     def codegen_deferred_allocation(self, name: str, view: ir.ReinterpretView) -> None:
         if is_multi_stream():
             multi_stream_intent_str = self.get_buffer_define_multi_stream_by_name(name)
@@ -446,7 +458,7 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
                     if isinstance(line, str) and "main_stream = " in line:
                         stream_line = idx
                         break
-                
+
                 if stream_line == -1:
                     for line in self.lines:
                         if isinstance(line, WrapperLine):
@@ -508,8 +520,7 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
                 self.kernel_declarations.getvaluewithlinemap(),
             )
         return super()._generate(is_inference)
-    
-    
+
     def handle_cross_stream_del_buf(self):
         total_lines = len(self.lines)
         sub_streams_line_no = self.get_sub_streams_line_no()
@@ -521,12 +532,12 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
                 tab_value = self.buffer_args_multi_stream_intent[keys[0]]
                 if idx > sub_stream_line[0] and idx < sub_stream_line[1] and isinstance(line, WrapperLine) and hasattr(line, "node") and line.node.get_name() not in self.buffer_args_multi_stream_intent.keys():
                     self.buffer_args_multi_stream_intent[line.node.get_name()] = tab_value
-            
+
             n = len(sub_streams_line_no)
             for i in range(1, n):
                 prev_end = sub_streams_line_no[i-1][1]
                 curr_start = sub_streams_line_no[i][0]
-                
+
                 if prev_end < idx < curr_start and isinstance(line, WrapperLine) and hasattr(line, "node") and line.node.get_name() in self.buffer_args_multi_stream_intent.keys():
                     self.buffer_args_multi_stream_intent.pop(line.node.get_name(), None)
 
@@ -534,8 +545,8 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
                 last_end = sub_streams_line_no[-1][1]
                 if last_end < idx < total_lines and isinstance(line, WrapperLine) and hasattr(line, "node") and line.node.get_name() in self.buffer_args_multi_stream_intent.keys():
                     self.buffer_args_multi_stream_intent.pop(line.node.get_name(), None)
-    
-    
+
+
     def get_sub_streams_line_no(self):
         sub_streams_line_no = []
         i = 0
@@ -565,3 +576,11 @@ class NPUWrapperCodeGen(PythonWrapperCodegen):
                     continue
             i += 1
         return sub_streams_line_no
+
+
+def _is_codegen_graph_partition_subgraph(wrapper: PythonWrapperCodegen) -> bool:
+    return isinstance(wrapper, SubgraphPythonWrapperCodegen)
+
+
+class NPUSubgraphPythonWrapperCodegen(_NPUKernelCodegenMixin, SubgraphPythonWrapperCodegen):
+    pass

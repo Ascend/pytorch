@@ -6,13 +6,17 @@ import sympy
 from torch._inductor.virtualized import V
 from torch._inductor import config, ir
 from torch._inductor.codegen.wrapper import (
-    PythonWrapperCodegen, 
-    pexpr, 
+    PythonWrapperCodegen,
+    pexpr,
     cache_on_self,
     SubgraphPythonWrapperCodegen,
     counters,
 )
 import torch_npu
+from torch_npu._inductor._aclgraph_update_plan import (
+    append_inductor_aclgraph_update_plan_for_codegen_node,
+    emit_inductor_aclgraph_update_plan_for_wrapper,
+)
 
 from ... import codecache
 
@@ -25,9 +29,9 @@ class NpuMlirWrapperCodeGen(PythonWrapperCodegen):
 
     @staticmethod
     def create(
-        is_subgraph: bool, 
-        subgraph_name: str, 
-        parent_wrapper: PythonWrapperCodegen, 
+        is_subgraph: bool,
+        subgraph_name: str,
+        parent_wrapper: PythonWrapperCodegen,
         partition_signatures: Optional[ir.GraphPartitionSignature] = None
     ):
         if is_subgraph:
@@ -39,7 +43,7 @@ class NpuMlirWrapperCodeGen(PythonWrapperCodegen):
                 raise ValueError(
                     "parent_wrapper must be provided for python wrapper"
                 )
-            return SubgraphPythonWrapperCodegen(
+            return NpuMlirSubgraphPythonWrapperCodegen(
                 subgraph_name, parent_wrapper, partition_signatures
             )
         return NpuMlirWrapperCodeGen()
@@ -94,6 +98,7 @@ class NpuMlirWrapperCodeGen(PythonWrapperCodegen):
         )
 
     def generate_extern_kernel_alloc(self, extern_kernel, args):
+        append_inductor_aclgraph_update_plan_for_codegen_node(self, extern_kernel)
         # If it's a NoneLayout then the extern_kernel should essentially be
         # treated as if it doesn't return anything
         no_return = isinstance(extern_kernel.layout, ir.NoneLayout)
@@ -126,6 +131,14 @@ class NpuMlirWrapperCodeGen(PythonWrapperCodegen):
                     f"run_intermediate_hooks({origin_node.name!r}, {output_name})"
                 )
 
+    def generate_after_suffix(self, result) -> None:
+        super().generate_after_suffix(result)
+        emit_inductor_aclgraph_update_plan_for_wrapper(
+            self,
+            result,
+            is_graph_partition_subgraph=False,
+        )
+
     def write_get_raw_stream(self, device_idx: int, graph=None) -> str:
         self.write_triton_header_once()
         name = f"stream{device_idx}"
@@ -134,7 +147,7 @@ class NpuMlirWrapperCodeGen(PythonWrapperCodegen):
             f"torch_npu.npu.set_device({device_idx})"
         )
         return name
-    
+
     def generate_kernel_call(
         self,
         kernel_name,
@@ -207,3 +220,17 @@ class NpuMlirWrapperCodeGen(PythonWrapperCodegen):
                 self.wrapper_call.writeline('exc_info=(None, None, None)')
                 self.wrapper_call.writeline('static_kernel_complier.__exit__(*exc_info)')
         super().generate_return(output_refs)
+
+
+class NpuMlirSubgraphPythonWrapperCodegen(SubgraphPythonWrapperCodegen):
+    def generate_extern_kernel_alloc(self, extern_kernel, args):
+        append_inductor_aclgraph_update_plan_for_codegen_node(self, extern_kernel)
+        super().generate_extern_kernel_alloc(extern_kernel, args)
+
+    def generate_after_suffix(self, result) -> None:
+        super().generate_after_suffix(result)
+        emit_inductor_aclgraph_update_plan_for_wrapper(
+            self,
+            result,
+            is_graph_partition_subgraph=True,
+        )
