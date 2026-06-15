@@ -95,7 +95,12 @@ class NPUPythonWrapperCodeGen(PythonWrapperCodegen):
     # generate numel expr for range_tree_node
     def generate_node_numel_expr(self, kernel_name: str, node, numel_expr):
         expr = f"{kernel_name}_{node.name}_numel"
-        self.writeline(f"{expr} = {pexpr(numel_expr)}")
+        simplified = V.graph.sizevars.simplify(numel_expr)
+        # Ensure all PRECOMPUTED_SIZE symbols in the *simplified* expression
+        # are defined before we emit the line that uses them.
+        for sym in simplified.free_symbols:
+            self.ensure_size_computed(sym)
+        self.writeline(f"{expr} = {pexpr(simplified)}")
         # We can get symbolic expressions here, like s0*64
         # It is fine to have them here, but we need to handle them correctly as their own type
         # This is tricky to do, so we wrap in a custom type, distinct from scalars, but also from sympy*
