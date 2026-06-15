@@ -634,14 +634,14 @@ public:
         const c10d::ReduceOptions& opts = c10d::ReduceOptions());
 
     c10::intrusive_ptr<c10d::Work> batch_isend_irecv(
-	    std::vector<std::string>& op_type,
-	    std::vector<at::Tensor>& tensors,
-	    std::vector<int64_t> remote_rank_list);
+        std::vector<std::string>& op_type,
+        std::vector<at::Tensor>& tensors,
+        std::vector<int64_t> remote_rank_list);
 
     c10::intrusive_ptr<c10d::Work> batch_isend_irecv_inner(
-	    std::vector<std::string>& op_type,
-	    std::vector<at::Tensor>& tensors,
-	    std::vector<int64_t> remote_rank_list);
+        std::vector<std::string>& op_type,
+        std::vector<at::Tensor>& tensors,
+        std::vector<int64_t> remote_rank_list);
 
     at::Tensor byte_alignment(at::Tensor& tensors) const;
 
@@ -1088,6 +1088,12 @@ protected:
     std::shared_ptr<HCCLComm> coalescedComm_ = nullptr;
 
     TensorShelf coalescedTensors_;
+
+    // Recv tensors of internal (non-base) format coalesced in the current group,
+    // paired as {user_tensor, base_format_buffer}. The format cast back into the
+    // user tensor must be deferred until endCoalescing(), after the grouped HCCL
+    // recv ops are actually submitted by hcclGroupEnd().
+    std::vector<std::pair<at::Tensor, at::Tensor>> coalescedP2PFormatCasts_;
 
     // map from the key: "group name + pg counter (ID)" to the
     // HCCL Master ID count. This needs to be group and pg specific

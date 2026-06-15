@@ -482,6 +482,18 @@ class TestShapeOps(TestCase):
         self.assertRaises(IndexError, lambda: data.flip(0, 1, 2, 3))
         self.assertRaises(IndexError, lambda: data.flip(3))
 
+    def test_flip_per_channel_quantized_error(self, device):
+        data = torch.randn(2, 3, device=device)
+        scales = torch.ones(3, dtype=torch.float, device=device) * 0.1
+        zero_points = torch.zeros(3, dtype=torch.long, device=device)
+        qdata = torch.quantize_per_channel(
+            data, scales, zero_points, axis=1, dtype=torch.qint8
+        )
+
+        error_msg = "Setting strides is possible only on uniformly quantized tensor"
+        with self.assertRaisesRegex(RuntimeError, error_msg):
+            qdata.flip((0,))
+
 
     def _rand_shape(self, dim, min_size, max_size):
         return tuple(torch.randint(min_size, max_size + 1, (dim,)))

@@ -1,6 +1,7 @@
 #include <ATen/record_function.h>
 #include <algorithm>
 #include <map>
+#include <mutex>
 #include <tuple>
 #include <unordered_set>
 #include <unistd.h>
@@ -69,6 +70,7 @@ namespace c10d_npu {
 namespace {
 static constexpr uint32_t kOpWaitTimeoutOffset = 30U; // second
 static uint32_t kOpWaitTimeout = 1868U; // second
+static std::once_flag kOpWaitTimeoutInitFlag;
 static int32_t defaultExecTimeout = 1836;
 constexpr const char* P2P_DEVICE_KEY = "_p2p";
 
@@ -1135,27 +1137,29 @@ ProcessGroupHCCL::ProcessGroupHCCL(
         hccl_exec_timeout = defaultExecTimeout;
     }
 
-    if (hccl_event_timeout > 0) {
-        kOpWaitTimeout = static_cast<uint32_t>(hccl_event_timeout);
-        if (hccl_event_timeout <= hccl_exec_timeout) {
-            TORCH_NPU_WARN_ONCE("The value of HCCL_EVENT_TIMEOUT:", hccl_event_timeout, " is less than or equal to the value of HCCL_EXEC_TIMEOUT:", hccl_exec_timeout, ".");
-        } else if (hccl_exec_timeout == 0) {
-            TORCH_NPU_WARN_ONCE("The value of HCCL_EXEC_TIMEOUT was set to 0(never timeout), so it is bigger than the value of HCCL_EVENT_TIMEOUT:", hccl_event_timeout, ".");
-        }
-    } else if (hccl_event_timeout == 0) {
-        kOpWaitTimeout = 0;
-    } else {
-        if (hccl_exec_timeout == 0) {
+    std::call_once(kOpWaitTimeoutInitFlag, [&]() {
+        if (hccl_event_timeout > 0) {
+            kOpWaitTimeout = static_cast<uint32_t>(hccl_event_timeout);
+            if (hccl_event_timeout <= hccl_exec_timeout) {
+                TORCH_NPU_WARN_ONCE("The value of HCCL_EVENT_TIMEOUT:", hccl_event_timeout, " is less than or equal to the value of HCCL_EXEC_TIMEOUT:", hccl_exec_timeout, ".");
+            } else if (hccl_exec_timeout == 0) {
+                TORCH_NPU_WARN_ONCE("The value of HCCL_EXEC_TIMEOUT was set to 0(never timeout), so it is bigger than the value of HCCL_EVENT_TIMEOUT:", hccl_event_timeout, ".");
+            }
+        } else if (hccl_event_timeout == 0) {
             kOpWaitTimeout = 0;
         } else {
-            kOpWaitTimeout = static_cast<uint32_t>(hccl_exec_timeout) + kOpWaitTimeoutOffset;
-            if (kOpWaitTimeout <= static_cast<uint32_t>(hccl_exec_timeout)) {
-                kOpWaitTimeout = UINT_MAX;
+            if (hccl_exec_timeout == 0) {
+                kOpWaitTimeout = 0;
+            } else {
+                kOpWaitTimeout = static_cast<uint32_t>(hccl_exec_timeout) + kOpWaitTimeoutOffset;
+                if (kOpWaitTimeout <= static_cast<uint32_t>(hccl_exec_timeout)) {
+                    kOpWaitTimeout = UINT_MAX;
+                }
             }
         }
-    }
-    TORCH_NPU_HCCL_LOGI("Set op wait timeout to %u.", kOpWaitTimeout);
-    NPU_CHECK_ERROR(c10_npu::acl::AclrtSetOpWaitTimeout(kOpWaitTimeout));
+        TORCH_NPU_HCCL_LOGI("Set op wait timeout to %u.", kOpWaitTimeout);
+        NPU_CHECK_ERROR(c10_npu::acl::AclrtSetOpWaitTimeout(kOpWaitTimeout));
+    });
     blockingWait_ = c10d::getCvarBool(TORCH_HCCL_BLOCKING_WAIT, false);
 
     logPrefix_ = createLogPrefix();
@@ -4769,15 +4773,15 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::batch_isend_irecv_inner(
         tensors_tmp,
         [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
             RECORD_FUNCTION("HcclBatchSendRecv", std::vector<c10::IValue>({input}));
-			auto itemNum = static_cast<uint32_t>(op_type.size());
-			std::vector<void *> tensor_ptr_list;
-			std::vector<uint64_t> numel_list;
-			std::vector<HcclDataType> type_list;
-			for (size_t i = 0; i < op_type.size(); ++i) {
-			    tensor_ptr_list.push_back(tensors[i].data_ptr());
-			    numel_list.push_back(getNumelForHCCL(tensors[i]));
-			    type_list.push_back(getHcclDataType(tensors[i].scalar_type()));
-			}
+            auto itemNum = static_cast<uint32_t>(op_type.size());
+            std::vector<void *> tensor_ptr_list;
+            std::vector<uint64_t> numel_list;
+            std::vector<HcclDataType> type_list;
+            for (size_t i = 0; i < op_type.size(); ++i) {
+                tensor_ptr_list.push_back(tensors[i].data_ptr());
+                numel_list.push_back(getNumelForHCCL(tensors[i]));
+                type_list.push_back(getHcclDataType(tensors[i].scalar_type()));
+            }
 
             std::vector<uint32_t> remote_rank_list_cast;
             remote_rank_list_cast.reserve(remote_rank_list.size());
@@ -4789,36 +4793,36 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::batch_isend_irecv_inner(
                 }
                 remote_rank_list_cast.push_back(static_cast<uint32_t>(remote_rank_list[i]));
             }
-			auto hccl_call = [tensor_ptr_list, numel_list, type_list, remote_rank_list_cast, op_type, itemNum, comm, stream, is_dispatched]() -> int {
-			    HcclSendRecvItem sendRecvInfo[itemNum];
-			    HcclSendRecvType currType;
-			    for (size_t i = 0; i < op_type.size(); ++i) {
-			        if (op_type[i] == "isend") {
-			            currType = HcclSendRecvType::HCCL_SEND;
-			        } else if (op_type[i] == "irecv") {
-			            currType = HcclSendRecvType::HCCL_RECV;
-			        } else {
-			            currType = HcclSendRecvType::HCCL_SEND_RECV_RESERVED;
-			        }
-			        sendRecvInfo[i] = HcclSendRecvItem{currType,
-			                                           tensor_ptr_list[i],
-			                                           numel_list[i],
-			                                           type_list[i],
-			                                           remote_rank_list_cast[i]
-			                                           };
-			    }
+            auto hccl_call = [tensor_ptr_list, numel_list, type_list, remote_rank_list_cast, op_type, itemNum, comm, stream, is_dispatched]() -> int {
+                HcclSendRecvItem sendRecvInfo[itemNum];
+                HcclSendRecvType currType;
+                for (size_t i = 0; i < op_type.size(); ++i) {
+                    if (op_type[i] == "isend") {
+                        currType = HcclSendRecvType::HCCL_SEND;
+                    } else if (op_type[i] == "irecv") {
+                        currType = HcclSendRecvType::HCCL_RECV;
+                    } else {
+                        currType = HcclSendRecvType::HCCL_SEND_RECV_RESERVED;
+                    }
+                    sendRecvInfo[i] = HcclSendRecvItem{currType,
+                                                        tensor_ptr_list[i],
+                                                        numel_list[i],
+                                                        type_list[i],
+                                                        remote_rank_list_cast[i]
+                                                        };
+                }
 #ifndef BUILD_LIBTORCH
                 torch_npu::profiler::MstxRange range(
                     getMstxHcclMsg("HcclBatchSendRecv", sendRecvInfo[0].count, sendRecvInfo[0].dataType, comm, stream.id(), -1, -1),
                     stream.stream(false), torch_npu::profiler::DOMAIN_COMMUNICATION);
 #endif
-			    if (c10_npu::is_core_control_enabled()) {
+                if (c10_npu::is_core_control_enabled()) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
                 auto hccl_result = hcclBatchIsendIrecv(sendRecvInfo, itemNum, comm, stream.stream(false));
                 *is_dispatched = true;
                 return hccl_result;
-			};
+            };
             at_npu::native::OpCommand::RunOpApiV3("HcclBatchSendRecv", hccl_call, false, &stream);
             return HCCL_SUCCESS;
         },
@@ -6228,6 +6232,7 @@ void ProcessGroupHCCL::startCoalescing()
     coalescedDevice_.set_index(-1);
     coalescedComm_ = nullptr;
     coalescedTensors_.clear();
+    coalescedP2PFormatCasts_.clear();
     coalescing_state_ |= CoalActive;
     c10_npu::OptionalNPUGuard npuGuard;
     npuGuard.set_index(getDeviceForRank(getRank()).index());
@@ -6284,6 +6289,18 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::endCoalescing(c10d::OpType opty
     // Set device before hcclGroupEnd
     NPU_CHECK_ERROR(c10_npu::SetDevice(device.index()));
     groupEnd();
+
+    // Apply deferred recv format conversions now that the grouped HCCL recv ops
+    // have been submitted by hcclGroupEnd(). Enqueue on the comm stream so each
+    // copy is ordered after its receive and before the end event is recorded.
+    if (!coalescedP2PFormatCasts_.empty()) {
+        c10_npu::NPUStreamGuard guard(hcclStream);
+        for (auto& cast_pair : coalescedP2PFormatCasts_) {
+            c10_npu::NPUCachingAllocator::recordStream(cast_pair.second.storage().data_ptr(), hcclStream);
+            cast_pair.first.copy_(cast_pair.second, true);
+        }
+        coalescedP2PFormatCasts_.clear();
+    }
 
     // Record end after hcclGroupEnd
     (*(work->hcclEndEvents_))[0].record(hcclStream);
@@ -6805,6 +6822,17 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::recv(std::vector<at::Tensor>& t
                 }
             }
         });
+    // In coalescing mode pointToPoint skips the post callback, so the format
+    // conversion back into a private-format recv tensor never runs. The recv data
+    // is only valid after endCoalescing() submits the grouped HCCL ops, so record
+    // the {user_tensor, base_format_buffer} pairs and defer the copy until then.
+    if (coalescing_state_) {
+        for (size_t i = 0; i < tensors.size(); ++i) {
+            if (!at_npu::native::FormatHelper::IsBaseFormatType(tensors[i])) {
+                coalescedP2PFormatCasts_.emplace_back(tensors[i], tensors_[i]);
+            }
+        }
+    }
     return ret;
 }
 

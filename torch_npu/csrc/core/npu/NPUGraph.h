@@ -4,13 +4,19 @@
 #include <c10/core/Device.h>
 #include <c10/util/flat_hash_map.h>
 
+#include <stack>
+#include <vector>
+#include <functional>
+
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
 #include "third_party/acl/inc/acl/super_kernel.h"
+#include "torch_npu/csrc/core/npu/interface/AclInterface.h"
 #include "torch_npu/csrc/core/npu/interface/SkInterface.h"
 #include "torch_npu/csrc/core/npu/NPUGraphsUtils.h"
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
+#include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "torch_npu/csrc/logging/LogContext.h"
 
 namespace npu_logging {
@@ -73,17 +79,22 @@ TORCH_NPU_API void unsubscribe_report(uint64_t threadId, c10_npu::NPUStream stre
 struct TORCH_NPU_API NPUGraph {
     NPUGraph();
     ~NPUGraph();
+    NPUGraph(const NPUGraph&) = delete;
+    NPUGraph& operator=(const NPUGraph&) = delete;
+    NPUGraph(NPUGraph&&) = delete;
+    NPUGraph& operator=(NPUGraph&&) = delete;
 
     static void inc_pending_event_queries();
     static void dec_pending_event_queries();
     static int num_pending_event_queries();
+    static NPUGraph* get_currently_capturing_graph();
 
     void register_generator_state(c10::intrusive_ptr<at_npu::NPUGeneratorState> state);
     void register_generator_state(const at::Generator& generator);
     void capture_begin(
         MempoolId_t pool = {0, 0},
         aclmdlRICaptureMode capture_mode = aclmdlRICaptureMode::ACL_MODEL_RI_CAPTURE_MODE_GLOBAL,
-		bool report_shape = true);
+        bool report_shape = true);
     void capture_end();
     void replay();
     void reset();
@@ -91,6 +102,13 @@ struct TORCH_NPU_API NPUGraph {
     void enable_debug_mode();
     void debug_dump(const std::string& debug_path);
     void super_kernel_optimize(const aclskOptions *options);
+    void begin_capture_to_if_node(const at::Tensor& scalar_npu_pred_tensor);
+    void end_capture_to_conditional_node();
+    void set_conditional_handle(aclmdlRICondHandle handle, const at::Tensor& scalar_npu_pred_tensor);
+
+private:
+    std::function<bool(aclrtStream)> create_allocate_filter() const;
+    std::function<bool(aclrtStream)> create_child_allocate_filter(aclmdlRI child_model_ri) const;
 
 protected:
     aclmdlRI model_ri_ = nullptr;
@@ -120,6 +138,13 @@ protected:
 
     // Stream on which capture began
     NPUStream capture_stream_;
+    aclmdlRICaptureMode capture_mode_{};
+
+    std::stack<NPUStreamGuard> conditional_node_streams_;
+    std::stack<aclmdlRI> conditional_model_ri_stack_;
+    std::stack<
+        ska::flat_hash_map<c10::intrusive_ptr<at_npu::NPUGeneratorState>, uint64_t>>
+        conditional_rng_snapshots_;
 
     // Device where capture occurred. Right now, for simplicity, we require all ops
     // in a capture to run on the same device, but this is a limitation of CUDAGraph,

@@ -798,9 +798,18 @@ class TestDynamicProfiler(TestCase):
         self.assertIsNone(result)
 
     def test_start_while_profiler_active(self):
-        dp.start()
-        dp.start()
+        cfg_json = copy.deepcopy(self.json_sample)
+        cfg_json["prof_dir"] = self.active_rank_prof_dir
+        with os.fdopen(os.open(self.cfg_path, self.flags, self.mode), "w") as f:
+            json.dump(cfg_json, f, indent=4)
+
+        dp.start(self.cfg_path)
+        dp.start(self.cfg_path)
         self.assertIsNotNone(_DynamicProfile().prof)
+        _DynamicProfile().prof.stop()
+        _DynamicProfile().prof = None
+        if os.path.exists(self.active_rank_prof_dir):
+            PathManager.remove_path_safety(self.active_rank_prof_dir)
 
     def test_init_repeated_warning(self):
         dp.init(self.results_path)
@@ -814,6 +823,28 @@ class TestDynamicProfiler(TestCase):
         dynamic_prof._step_record_time = time.time()
         dynamic_prof.step()
         self.assertIsNotNone(dynamic_prof._step_time)
+
+    def test_set_state(self):
+        dynamic_prof = _DynamicProfile()
+        dynamic_prof.cur_step = 7
+
+        dynamic_prof.cur_step = 0
+        dynamic_prof.set_state({"cur_step": 7})
+        self.assertEqual(dynamic_prof.cur_step, 7)
+
+        dynamic_prof.set_state({"cur_step": -1})
+        self.assertEqual(dynamic_prof.cur_step, 7)
+
+    def test_set_state_continue_step(self):
+        dynamic_prof = _DynamicProfile()
+        dynamic_prof.cur_step = 0
+        dynamic_prof._dynamic_monitor = MagicMock()
+        dynamic_prof._dynamic_monitor.shm_to_prof_conf_context.return_value = None
+        dynamic_prof._step_mstx_range_id = 0
+        dynamic_prof.set_state({"cur_step": 10})
+        with patch("torch_npu.profiler.dynamic_profile.mstx.range_start", return_value=1):
+            dynamic_prof.step()
+            self.assertEqual(dynamic_prof.cur_step, 11)
 
 
 if __name__ == "__main__":

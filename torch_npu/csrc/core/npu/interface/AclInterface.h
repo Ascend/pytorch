@@ -15,6 +15,7 @@ struct aclOpExecutor;
 struct aclrtUuid;
 struct aclrtIpcEventHandle;
 struct aclrtErrorInfo;
+
 namespace c10_npu {
 namespace acl {
 enum aclrtEventWaitStatus {
@@ -236,6 +237,15 @@ aclError AclmdlRICaptureGetInfo(aclrtStream stream, aclmdlRICaptureStatus *statu
 
 aclError AclmdlRICaptureEnd(aclrtStream stream, aclmdlRI *modelRI);
 
+aclError AclmdlRICondHandleCreate(aclmdlRI modelRI, unsigned int defaultLaunchValue, uint32_t flag,
+                                  aclmdlRICondHandle *handle);
+
+aclError AclmdlRICondHandleGetCondPtr(aclmdlRICondHandle handle, uint64_t **ptr);
+
+aclError AclmdlRIAddCondTask(aclmdlRICondTaskParams params, aclrtStream stream, uint32_t flags);
+
+aclError AclmdlRICaptureToModelRIBegin(aclrtStream stream, aclmdlRI modelRI, aclmdlRICaptureMode mode);
+
 aclError AclmdlRIDebugPrint(aclmdlRI modelRI);
 
 aclError AclmdlRIExecuteAsync(aclmdlRI modelRI, aclrtStream stream);
@@ -387,6 +397,8 @@ bool IsExistAclrtGetDeviceInfo();
 aclError AclrtGetDeviceInfo(uint32_t deviceId, aclrtDevAttr attr, int64_t *value);
 
 aclError AclrtMemSet(void *devPtr, size_t maxCount, int32_t value, size_t count);
+
+aclError AclrtMemSetAsync(void *devPtr, size_t maxCount, int32_t value, size_t count, aclrtStream stream);
 
 } // namespace acl
 } // namespace c10_npu

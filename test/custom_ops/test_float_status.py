@@ -1,3 +1,4 @@
+import os
 import unittest
 import torch
 import torch_npu
@@ -5,9 +6,13 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 
 
+# for A2/A3
+os.environ["INF_NAN_MODE_FORCE_DISABLE"] = "1"
+os.environ["INF_NAN_MODE_ENABLE"] = "1"
+
+
 class TestFloatStatus(TestCase):
 
-    @unittest.skip("Temporarily skipping")
     def test_float_status(self, device="npu"):
         float_tensor = torch.tensor([40000.0], dtype=torch.float16).npu()
         float_tensor = float_tensor + float_tensor

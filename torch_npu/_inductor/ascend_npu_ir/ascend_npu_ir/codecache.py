@@ -29,8 +29,10 @@ from torch._inductor.async_compile import (
 from torch._dynamo.device_interface import get_interface_for_device
 
 from torch._inductor.codecache import CodeCacheFuture, config
+from torch._inductor.codegen.common import device_codegens
 
 from .npu.mlir_compiler import NpuMlirCompiler, AkgCompiler
+from .npu.codegen.akg import AkgScheduling
 from . import config as anir_config
 from .npu.utils import logger
 
@@ -59,7 +61,7 @@ def _worker_compile(
     device_info = (device, device.index)
     try:
         kernel.get_best_kernel()
-    except:
+    except Exception:
         kernel.precompile(device_info=device_info, logger_level=logger_level)
 
 
@@ -82,7 +84,7 @@ def _load_kernel(
         suppress_error=False,
         kernel_meta=None,
         extra_env=None) -> ModuleType:
-    if os.getenv("TORCHINDUCTOR_USE_AKG", "0") == "1":
+    if getattr(device_codegens.get("npu"), "scheduling", None) is AkgScheduling:
         if extra_env:
             os.environ.update(extra_env)
         kernel = AkgCompiler(kernel_name, no_more_compile=no_more_compile, kernel_meta=kernel_meta)
@@ -97,14 +99,16 @@ def _load_kernel(
     kernel.init(module=source_code, extra_env=extra_env)
     try:
         kernel.get_best_kernel()
-    # [wtd#25] Replace bare except with except Exception to avoid catching KeyboardInterrupt
     except Exception:
         kernel.precompile(device_info=device_info, suppress_error=suppress_error)
     return kernel
 
 def _load_fx_graph(kernel_name: str, source_code=None, extra_env=None, kernel_meta=None, autotune=True) -> ModuleType:
-    kernel = NpuMlirCompiler(kernel_name, kernel_meta=kernel_meta, autotune=autotune)
-    if source_code is not None:
+    if getattr(device_codegens.get("npu"), "scheduling", None) is AkgScheduling:
+        kernel = AkgCompiler(kernel_name, kernel_meta=kernel_meta, autotune=autotune)
+    else:
+        kernel = NpuMlirCompiler(kernel_name, kernel_meta=kernel_meta, autotune=autotune)
+    if source_code is not None and isinstance(kernel, NpuMlirCompiler):
         kernel.init(module=source_code, extra_env=extra_env)
     kernel.register_fx_fallback(kernel_meta)
     os.makedirs(os.path.join(kernel_meta.get('traced_graph_cache'), str(kernel_meta.get('device_index')), kernel_meta.get('traced_graph_hash'), 'keep'), exist_ok=True)
@@ -258,7 +262,7 @@ class CustomAsyncCompile(AsyncCompile):
                 try:
                     kernel.get_best_kernel()
                     return kernel
-                except:
+                except Exception:
                     if kernel._should_disable_autotune_for_determinism():
                         compile_args = [(None, True, True)]
                     else:
@@ -276,7 +280,6 @@ class CustomAsyncCompile(AsyncCompile):
                 try:
                     kernel.get_best_kernel()
                     return kernel
-                # [wtd#26] Replace bare except with except Exception to avoid catching KeyboardInterrupt
                 except Exception:
                     future = self.process_pool().submit(
                         _worker_compile, kernel, cc, device, logger_level=logger.level, extra_env=extra_env

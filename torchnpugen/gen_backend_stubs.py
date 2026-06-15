@@ -1340,9 +1340,11 @@ SPECIAL_REGISTERS = {
         filename="QuantizedRegister",
         header="""\
 #include <ATen/ops/quantize_per_tensor.h>
+#include "torch_npu/csrc/aten/ops/QuantizedFlipKernelNpu.h"
 #include "op_plugin/OpInterface.h"
 """,
         extra_impls=[
+            'm.impl("flip", TORCH_FN(at_npu::native::quantized_flip));',
             'm.impl("q_scale", TORCH_FN(at::native::q_scale_quant));',
             'm.impl("q_per_channel_scales", TORCH_FN(at::native::q_per_channel_scales));',
             'm.impl("q_zero_point", TORCH_FN(at::native::q_zero_point_quant));',

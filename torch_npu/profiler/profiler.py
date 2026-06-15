@@ -7,6 +7,7 @@ from typing import Any, Optional, Union
 
 import torch.autograd.profiler as prof
 import torch_npu.npu
+from torch_npu.npu import current_stream, mstx
 from torch_npu._C._profiler import (
     _disable_profiler_in_child_thread,
     _enable_profiler_in_child_thread,
@@ -78,12 +79,6 @@ class _KinetoProfile:
     def export_chrome_trace(self, output_path: str):
         output_path = ProfilerPathManager.get_realpath(output_path)
         PathManager.check_input_file_path(output_path)
-        file_name = os.path.basename(output_path)
-        if not file_name.endswith(".json"):
-            raise RuntimeError(
-                "Invalid parameter output_path, which must be a json file."
-                + prof_error(ErrCode.VALUE)
-            )
         if not self.prof_if.prof_path:
             print_warn_msg("Invalid profiling path.")
             return
@@ -259,6 +254,8 @@ class profile(_KinetoProfile):
         self.current_action = self.schedule(self.step_num)
         self._step_num_offset = 0
         self.step_rec_fn: Optional[prof.record_function] = None
+        self._step_mstx_range_id = 0
+        self._is_dynamic_prof = False
         if use_cuda is not None:
             print_warn_msg("This is npu environment, use_cuda is invalid")
         self.stopped = False
@@ -283,6 +280,17 @@ class profile(_KinetoProfile):
     @no_exception_func()
     def _set_step_num_offset_for_dynamic_prof(self, step: int):
         self._step_num_offset = step
+        self._is_dynamic_prof = True
+
+    def _start_step_mstx_range(self, message: str):
+        if not self._is_dynamic_prof:
+            self._step_mstx_range_id = mstx.range_start(message, current_stream())
+
+    def _end_step_mstx_range(self):
+        if self._is_dynamic_prof or not self._step_mstx_range_id:
+            return
+        mstx.range_end(self._step_mstx_range_id)
+        self._step_mstx_range_id = 0
 
     @no_exception_func()
     def start(self):
@@ -291,15 +299,16 @@ class profile(_KinetoProfile):
             ProfPathCreator().init(export_only_mode=True)
         self.action_controller.transit_action(ProfilerAction.NONE, self.current_action)
         if self.record_steps:
-            self.step_rec_fn = prof.record_function(
-                "ProfilerStep#" + str(self.step_num + self._step_num_offset)
-            )
+            step_name = "ProfilerStep#" + str(self.step_num + self._step_num_offset)
+            self.step_rec_fn = prof.record_function(step_name)
             self.step_rec_fn.__enter__()
+            self._start_step_mstx_range(step_name)
 
     @no_exception_func()
     def stop(self):
         if self.record_steps and self.step_rec_fn:
             self.step_rec_fn.__exit__(None, None, None)
+            self._end_step_mstx_range()
         self.action_controller.transit_action(self.current_action, None)
         self.stopped = True
 
@@ -310,15 +319,16 @@ class profile(_KinetoProfile):
             return
         if self.record_steps and self.step_rec_fn:
             self.step_rec_fn.__exit__(None, None, None)
+            self._end_step_mstx_range()
         prev_action = self.current_action
         self.step_num += 1
         self.current_action = self.schedule(self.step_num)
         self.action_controller.transit_action(prev_action, self.current_action)
         if self.record_steps:
-            self.step_rec_fn = prof.record_function(
-                "ProfilerStep#" + str(self.step_num + self._step_num_offset)
-            )
+            step_name = "ProfilerStep#" + str(self.step_num + self._step_num_offset)
+            self.step_rec_fn = prof.record_function(step_name)
             self.step_rec_fn.__enter__()
+            self._start_step_mstx_range(step_name)
 
     @no_exception_func()
     def set_custom_trace_id_callback(self, callback: Callable[[], str]) -> None:

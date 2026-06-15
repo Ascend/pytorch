@@ -16,6 +16,28 @@ from torch.testing._internal.common_utils import run_tests, TestCase
 d_hid = 512
 batch_size = 256
 
+class TwoInputOutputOp(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, input, weight):
+        return input, weight
+
+    @staticmethod
+    def backward(ctx, grad_input, grad_weight):
+        return grad_input, grad_weight
+
+
+class MultiInterMediateModel(torch.nn.Module):
+    def __init__(self, weight_shape: list[int]):
+        super().__init__()
+        self.shape = weight_shape
+        self.w = torch.nn.Parameter(torch.randn(*weight_shape))
+
+    def forward(self, x):
+        a, b = torch.split(x, self.shape, dim=1)
+        a, w = TwoInputOutputOp.apply(a, self.w)
+        a = torch.matmul(a, w)
+        return a * b
+
 
 class StageBackwardTests(TestCase):
     def test_stage_backward(self):
@@ -182,6 +204,32 @@ class StageBackwardTests(TestCase):
                 print(f"Gradient test failed for {name}: {p.grad} vs {ref_p.grad}")
                 raise
 
+    def test_stage_backward_multi_output_intermediate(self, device="npu"):
+        mod = MultiInterMediateModel([d_hid // 2, d_hid // 2]).to(device)
+        x = torch.randn(batch_size, d_hid, device=device, requires_grad=True)
+
+        out = mod(x)
+        loss = out.sum()
+
+        dinputs, param_groups = stage_backward_input(
+            stage_outputs_or_loss=[loss],
+            output_grads=None,
+            input_values=[x],
+            weights=mod.parameters(),
+        )
+
+        stage_backward_weight(mod.parameters(), param_groups)
+
+        ref_mod = copy.deepcopy(mod)
+        ref_x = x.detach().clone().requires_grad_(True)
+        ref_out = ref_mod(ref_x)
+        ref_loss = ref_out.sum()
+        ref_loss.backward()
+
+        torch.testing.assert_close(dinputs[0], ref_x.grad)
+        for name, p in mod.named_parameters():
+            ref_p = ref_mod.get_parameter(name)
+            torch.testing.assert_close(p.grad, ref_p.grad)
 
 if __name__ == "__main__":
     run_tests()

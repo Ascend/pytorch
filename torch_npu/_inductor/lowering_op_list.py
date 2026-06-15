@@ -82,7 +82,7 @@ GENERATE_LIST = [
     torch.ops.higher_order.invoke_subgraph,
     torch.ops.higher_order.cond,
     torch.ops._inductor_test.realize,
- 	torch.ops._inductor_test.realize.default,
+    torch.ops._inductor_test.realize.default,
 ]
 
 GENERATE_LIST2 = [

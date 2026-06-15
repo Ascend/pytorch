@@ -150,7 +150,11 @@ class ConfigContext:
                 self.with_modules = False
 
     def _parse_ranks(self, json_data: dict):
-        self.is_rank = json_data.get("is_rank", False)
+        if not self._is_dyno:
+            self.is_rank = json_data.get("is_rank", False)
+        else:
+            self.is_rank = json_data.get("PROFILE_IS_RANK", 'false')
+            self.is_rank = self.BOOL_MAP.get(self.is_rank.lower(), False)
         if not isinstance(self.is_rank, bool):
             self.is_rank = False
             DynamicProfilerUtils.out_log("Set is_rank failed, is_rank must be bool!",
@@ -159,7 +163,11 @@ class ConfigContext:
         if not self.is_rank:
             return
         DynamicProfilerUtils.out_log("Set is_rank success!", DynamicProfilerUtils.LoggerLevelEnum.INFO)
-        ranks = json_data.get("rank_list", False)
+        if not self._is_dyno:
+            ranks = json_data.get("rank_list", False)
+        else:
+            ranks = DynamicProfilerUtils.parse_str_params_to_list(json_data.get('PROFILE_RANK_LIST', None))
+            ranks = [int(rank) for rank in ranks if rank.strip().isdigit()]
         if not isinstance(ranks, list):
             DynamicProfilerUtils.out_log("Set rank_list failed, rank_list must be list!",
                                          DynamicProfilerUtils.LoggerLevelEnum.WARNING)

@@ -32,11 +32,15 @@ jobs:
       - name: Print full github.event
         run: |
           echo '=== FULL github.event ==='
-          echo '${{ toJSON(github.event) }}' | jq .
+          cat <<'ENDOFPAYLOAD' | jq 'walk(if type == "object" then with_entries(select(.key | test("^(token|secret|password|credential|authorization|access_token|api_key|private_key|secrets)$"; "i") | not)) else . end)'
+          ${{ toJSON(github.event) }}
+          ENDOFPAYLOAD
       - name: Print full client_payload
         run: |
           echo '=== FULL client_payload ==='
-          echo '${{ toJSON(github.event.client_payload) }}' | jq .
+          cat <<'ENDOFPAYLOAD' | jq 'walk(if type == "object" then with_entries(select(.key | test("^(token|secret|password|credential|authorization|access_token|api_key|private_key|secrets)$"; "i") | not)) else . end)'
+          ${{ toJSON(github.event.client_payload) }}
+          ENDOFPAYLOAD
       - name: Print key fields
         run: |
           echo "=== KEY FIELDS ==="
@@ -46,3 +50,9 @@ jobs:
           echo "sender:           ${{ github.event.client_payload.payload.sender.login }}"
           echo "downstream_repo:  ${{ github.repository }}"
           echo "github.run_id:    ${{ github.run_id }}"
+
+  forward:
+    uses: Ascend/pytorch/.github/workflows/receive-trigger.yml@ci-test
+    with:
+      event_type: ${{ github.event.client_payload.event_type }}
+      payload: ${{ toJSON(github.event.client_payload) }}

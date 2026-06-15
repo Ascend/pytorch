@@ -141,7 +141,7 @@ class Constant:
     DISK = "disk"
     NETWORK = "network"
     OSRT = "osrt"
-    PLATFORM = "platform"
+    NUMA = "numa"
 
     # profiler end info
     END_INFO = "end_info"

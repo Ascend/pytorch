@@ -293,7 +293,7 @@ class TestGraphPartitionNPU(TestCase):
             foo(torch.ones([10], device="npu"), torch.ones([20]))
 
         FileCheck().check_count(
-            "[NPUGRAPH-TREE][Node][Record] function=0, graph=0",
+            "NPUGRAPH-TREE Node Record function=0, graph=0",
             1,
             exactly=True,
         ).run(log_stream.getvalue())

@@ -14,6 +14,10 @@ Add validation cases for torch.fx symbolic_shapes related APIs on NPU:
    - symbolic_shapes.CallMethodKey.get
    - symbolic_shapes.canonicalize_bool_expr
    - symbolic_shapes.check_consistent
+   - symbolic_shapes.StrictMinMaxConstraint
+   - symbolic_shapes.StrictMinMaxConstraint.render
+   - symbolic_shapes.SubclassSymbolicContext
+   - symbolic_shapes.sym_eq
 """
 
 import sympy
@@ -23,6 +27,7 @@ import torch_npu
 from torch._dynamo.source import ConstantSource
 from torch.fx.experimental import symbolic_shapes
 from torch.testing._internal.common_utils import TestCase, run_tests
+from torch.utils._sympy.value_ranges import ValueRanges
 
 
 device_type = acc.type if (acc := torch.accelerator.current_accelerator()) else "cpu"
@@ -83,6 +88,48 @@ class TestSymbolicShapesAPI(TestCase):
         symbolic_expr = symbol + 1
         constraints.add_equality(source, symbolic_expr)
         self.assertEqual(constraints._symbolic_equivalences, [(source, symbolic_expr)])
+
+    def test_strict_min_max_constraint_records_warn_only_and_value_range(self):
+        # Verify that StrictMinMaxConstraint stores warn_only and ValueRanges
+        # according to its actual constructor signature.
+        constraint = symbolic_shapes.StrictMinMaxConstraint(
+            warn_only=False,
+            vr=ValueRanges(2, 10),
+        )
+
+        self.assertFalse(constraint.warn_only)
+        self.assertEqual(constraint.vr.lower, 2)
+        self.assertEqual(constraint.vr.upper, 10)
+
+    def test_strict_min_max_constraint_render(self):
+        # Verify that render converts the min/max range constraint into
+        # a readable constraint expression for the given source.
+        constraint = symbolic_shapes.StrictMinMaxConstraint(
+            warn_only=False,
+            vr=ValueRanges(2, 10),
+        )
+
+        self.assertEqual(constraint.render(ConstantSource("x")), "2 <= x <= 10")
+
+    def test_subclass_symbolic_context_records_dynamic_sizes_and_tensor_source(self):
+        # Verify that SubclassSymbolicContext can be constructed with the
+        # required dynamic_sizes, tensor_source, and inner_contexts arguments.
+        source = ConstantSource("x")
+        context = symbolic_shapes.SubclassSymbolicContext(
+            dynamic_sizes=[],
+            tensor_source=source,
+            inner_contexts={},
+        )
+
+        self.assertEqual(context.dynamic_sizes, [])
+        self.assertIs(context.tensor_source, source)
+        self.assertEqual(context.inner_contexts, {})
+
+    def test_sym_eq_for_python_values(self):
+        # Verify that sym_eq returns the expected equality result for
+        # ordinary Python values.
+        self.assertTrue(symbolic_shapes.sym_eq(1, 1))
+        self.assertFalse(symbolic_shapes.sym_eq(1, 2))
 
 
 class TestSymbolicShapesTargetApiNPU(TestCase):
