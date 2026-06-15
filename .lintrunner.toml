@@ -464,49 +464,42 @@ is_formatter = true
 #     '@{{PATHSFILE}}'
 # ]
 
-# [[linter]]
-# code = 'TABS'
-# include_patterns = ['**']
-# exclude_patterns = [
-#     '**/*.svg',
-#     '**/*Makefile',
-#     '**/contrib/**',
-#     'third_party/**',
-#     '**/.gitattributes',
-#     '**/.gitmodules',
-#     'fb/**',
-#     '**/fb/**',
-#     'aten/src/ATen/native/vulkan/api/vk_mem_alloc.h',
-#     'test/cpp/jit/upgrader_models/*.ptl',
-#     'test/cpp/jit/upgrader_models/*.ptl.ff',
-#     '.ci/docker/common/install_rocm_drm.sh',
-#     '.lintrunner.toml',
-#     '**/*.patch',
-#     # NPUGraph logs files
-#     'torch_npu/_logging/_internal.py',
-#     'torch_npu/csrc/core/npu/NPUGraph.cpp',
-#     'torch_npu/csrc/core/npu/NPUGraph.h',
-#     'torch_npu/csrc/npu/Graph.cpp',
-#     'torch_npu/csrc/core/npu/NPUCachingAllocator.cpp',
-#  	'torch_npu/csrc/core/npu/NPUWorkspaceAllocator.cpp',
-#     'torch_npu/npu/_graph_tree.py',
-#     'torch_npu/npu/graphs.py',
-#     'torch_npu/utils/_graph_tree.py',
-# ]
-# command = [
-#     'python3',
-#     'tools/linter/adapters/grep_linter.py',
-#     # @lint-ignore TXT2
-#     '--pattern=	',
-#     '--linter-name=TABS',
-#     '--error-name=saw some tabs',
-#     '--replace-pattern=s/\t/    /',
-#     """--error-description=\
-#         This line has tabs; please replace them with spaces.\
-#     """,
-#     '--',
-#     '@{{PATHSFILE}}'
-# ]
+[[linter]]
+code = 'TABS'
+include_patterns = ['**']
+exclude_patterns = [
+    '**/*.svg',
+    '**/*Makefile',
+    '**/contrib/**',
+    'third_party/**',
+    '**/.gitattributes',
+    '**/.gitmodules',
+    'fb/**',
+    '**/fb/**',
+    'aten/src/ATen/native/vulkan/api/vk_mem_alloc.h',
+    'test/cpp/jit/upgrader_models/*.ptl',
+    'test/cpp/jit/upgrader_models/*.ptl.ff',
+    '.ci/docker/common/install_rocm_drm.sh',
+    '.lintrunner.toml',
+    '**/*.patch',
+    # NPUGraph logs files
+    'torch_npu/_logging/_internal.py',
+    '**/*.md',
+]
+command = [
+    'python3',
+    'tools/linter/adapters/grep_linter.py',
+    # @lint-ignore TXT2
+    '--pattern=	',
+    '--linter-name=TABS',
+    '--error-name=saw some tabs',
+    '--replace-pattern=s/\t/    /',
+    """--error-description=\
+        This line has tabs; please replace them with spaces.\
+    """,
+    '--',
+    '@{{PATHSFILE}}'
+]
 
 # [[linter]]
 # code = 'C10_UNUSED'

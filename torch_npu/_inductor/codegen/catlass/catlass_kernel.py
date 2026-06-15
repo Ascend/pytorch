@@ -15,7 +15,7 @@ from torch._inductor.codegen.cpp_utils import DTYPE_TO_CPP, CppPrinter
 from torch._inductor.codegen.cpp_wrapper_cpu import CppWrapperCpu
 from torch._inductor.ir import (Buffer, ChoiceCaller, IRNode, Layout,
                                 PrimitiveInfoType, TemplateBuffer, TensorBox)
-from torch._inductor.utils import sympy_product
+from torch._inductor.utils import sympy_product, has_free_symbols
 from torch._inductor.virtualized import ops, V
 from ...fx_passes.utils.schedule_node_utils import is_multi_stream
 from ...autotune_process import CATLASSBenchmarkRequest
@@ -321,56 +321,131 @@ class CATLASSTemplateKernel(Kernel):
                     else f"c_void_p({call_args[i]}.data_ptr())"
                 )
 
-        # workspace_size ptr is NULL to mark this call is not intended for retrieving workspace_size.
-        # workspace_size should have already been retrieved prior to this call.
-        # workspace_size is here.
-        call_args.append("nullptr" if V.graph.cpp_wrapper else "None")
-        if V.graph.cpp_wrapper:
-            arg_types.append("size_t*")
+        # Check if shape is dynamic (contains symbolic expressions)
+        is_dynamic_shape = has_free_symbols(layout_args)
+        # For dynamic shapes with workspace, use two-pass approach:
+        # 1st call: query workspace size by passing byref(workspace_size), None for workspace and stream
+        # 2nd call: execute kernel with dynamically allocated workspace
+        if is_dynamic_shape and not V.graph.cpp_wrapper and node.get_workspace_size() > 0:
+            # --- Add c_size_t and byref imports (must be present for dynamic shape path) ---
+            if not getattr(wrapper, '_catlass_dynamic_shape_imports_added', False):
+                wrapper.imports.splice("from ctypes import c_size_t, byref")
+                wrapper._catlass_dynamic_shape_imports_added = True
 
-        if node.get_workspace_size() > 0:
+            # --- Prepare workspace variable names ---
             ws = WorkspaceArg(
                 count=node.get_workspace_size(),
                 device=V.graph.get_current_device_or_throw(),
                 zero_mode=WorkspaceZeroMode.UNINITIALIZED,
                 outer_name=WorkspaceArg.unique_name(),
             )
-            if is_multi_stream():
-                wrapper.generate_workspace_allocation(ws, origin_node)
-            else:
-                wrapper.generate_workspace_allocation(ws)
             workspace = str(ws.outer_name)
-            call_args.append(
-                workspace
-                if V.graph.cpp_wrapper
-                else f"c_void_p({workspace}.data_ptr())"
+            # Derive workspace_size variable name from workspace name
+            ws_size_name = f"{workspace}_size"
+
+            # --- First call: query workspace size ---
+            wrapper.writeline(f"{ws_size_name} = c_size_t()")
+
+            # Build first call args: base_args + byref(workspace_size) + None(workspace) + None(stream)
+            first_call_args = list(call_args)
+            first_call_args.append(f"byref({ws_size_name})")  # workspace_size
+            first_call_args.append("None")  # workspace
+            first_call_args.append("None")  # stream
+
+            # Convert sympy expressions to strings
+            first_call_args_str = wrapper.prepare_triton_kernel_call(first_call_args)
+            first_call_args_str = ", ".join(first_call_args_str)
+
+            # Write the first call (query workspace size)
+            wrapper.writeline(f"{name}.{name}({first_call_args_str})")
+
+            # --- Allocate workspace with dynamic size ---
+            # Write workspace allocation with dynamic size from runtime query
+            wrapper.writeline(
+                f"{workspace} = empty_strided("
+                f"({ws_size_name}.value, ), (1, ), "
+                f"device='{V.graph.get_current_device_or_throw().type}', dtype=torch.uint8)"
             )
-        else:
-            ws = None
-            call_args.append("nullptr" if V.graph.cpp_wrapper else "None")
-        if V.graph.cpp_wrapper:
-            arg_types.append("uint8_t*")
-        if is_multi_stream():
-            wrapper.generate_kernel_call(
-                name,
-                call_args,
-                origin_node,
-                triton=False,
-                arg_types=arg_types,
-            )
-        else:
-            wrapper.generate_kernel_call(
-                name,
-                call_args,
-                origin_node=None,
-                triton=False,
-                arg_types=arg_types,
-            )
-        if ws:
+
+            # --- Second call: execute kernel with workspace ---
+            # Build second call args: base_args + None(workspace_size) + c_void_p(workspace.data_ptr())
+            # Stream will be added by generate_kernel_call
+            second_call_args = list(call_args)
+            second_call_args.append("None")  # workspace_size
+            second_call_args.append(f"c_void_p({workspace}.data_ptr())")  # workspace
+            second_arg_types = list(arg_types) + ["size_t*", "uint8_t*"]
+
             if is_multi_stream():
-                wrapper.generate_workspace_deallocation(ws, origin_node)
+                wrapper.generate_kernel_call(
+                    name,
+                    second_call_args,
+                    origin_node,
+                    triton=False,
+                    arg_types=second_arg_types,
+                )
             else:
-                wrapper.generate_workspace_deallocation(ws)
+                wrapper.generate_kernel_call(
+                    name,
+                    second_call_args,
+                    origin_node=None,
+                    triton=False,
+                    arg_types=second_arg_types,
+                )
+
+            # Deallocate workspace (directly write del to bypass memory planning,
+            # since workspace size is dynamic and not suitable for buffer reuse)
+            wrapper.writeline(f"del {workspace}")
+        else:
+            # Static shape or no workspace: use existing single-pass approach
+            # workspace_size ptr is NULL to mark this call is not intended for retrieving workspace_size.
+            # workspace_size should have already been retrieved prior to this call.
+            call_args.append("nullptr" if V.graph.cpp_wrapper else "None")
+            if V.graph.cpp_wrapper:
+                arg_types.append("size_t*")
+
+            if node.get_workspace_size() > 0:
+                ws = WorkspaceArg(
+                    count=node.get_workspace_size(),
+                    device=V.graph.get_current_device_or_throw(),
+                    zero_mode=WorkspaceZeroMode.UNINITIALIZED,
+                    outer_name=WorkspaceArg.unique_name(),
+                )
+                if is_multi_stream():
+                    wrapper.generate_workspace_allocation(ws, origin_node)
+                else:
+                    wrapper.generate_workspace_allocation(ws)
+                workspace = str(ws.outer_name)
+                call_args.append(
+                    workspace
+                    if V.graph.cpp_wrapper
+                    else f"c_void_p({workspace}.data_ptr())"
+                )
+            else:
+                ws = None
+                call_args.append("nullptr" if V.graph.cpp_wrapper else "None")
+            if V.graph.cpp_wrapper:
+                arg_types.append("uint8_t*")
+            if is_multi_stream():
+                wrapper.generate_kernel_call(
+                    name,
+                    call_args,
+                    origin_node,
+                    triton=False,
+                    arg_types=arg_types,
+                )
+            else:
+                wrapper.generate_kernel_call(
+                    name,
+                    call_args,
+                    origin_node=None,
+                    triton=False,
+                    arg_types=arg_types,
+                )
+            if ws:
+                if is_multi_stream():
+                    wrapper.generate_workspace_deallocation(ws, origin_node)
+                else:
+                    wrapper.generate_workspace_deallocation(ws)
 
     def dtype(self, node: IRNode) -> Optional[str]:
         """

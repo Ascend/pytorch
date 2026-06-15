@@ -76,6 +76,7 @@ def _catlass_include_paths() -> List[str]:
         os.path.realpath(os.path.join(ASCEND_HOME, "include/experiment/runtime")),
         os.path.realpath(os.path.join(ASCEND_HOME, "include/experiment/msprof")),
         os.path.realpath(os.path.join(ASCEND_HOME, "pkg_inc")),
+        os.path.realpath(os.path.join(ASCEND_HOME, "pkg_inc/profiling")),
         os.path.realpath(os.path.join(catlass_path, "include")),
     ]
 

@@ -2,25 +2,28 @@
 index 25c1cf2be65..a548d9697a2 100644
 --- a/test/test_cuda_multigpu.py
 +++ b/test/test_cuda_multigpu.py
-@@ -14,6 +14,8 @@ from itertools import chain, repeat
+@@ -14,6 +14,9 @@ from itertools import chain, repeat
  from typing import NamedTuple, Union
  
  import torch
 +import torch_npu
++from torch_npu.version import __version__ as TORCH_NPU_VERSION
 +from torch_npu.contrib import transfer_to_npu
  import torch.cuda.comm as comm
  from torch.nn.parallel import scatter_gather
  from torch.testing._internal.common_cuda import (
-@@ -45,6 +47,7 @@ if not TEST_CUDA:
+@@ -45,6 +48,8 @@ if not TEST_CUDA:
      print("CUDA not available, skipping tests", file=sys.stderr)
      TestCase = NoTest  # noqa: F811
  
++CURRENT_VERSION = tuple(int(part) for part in TORCH_NPU_VERSION.split("+")[0].split(".")[:2])
 +TEST_NPU = True
  
  class TestCudaMultiGPU(TestCase):
      FIFTY_MIL_CYCLES = 50000000
-@@ -437,13 +440,13 @@ class TestCudaMultiGPU(TestCase):
+@@ -437,13 +441,14 @@ class TestCudaMultiGPU(TestCase):
      @unittest.skipIf(torch.cuda.device_count() >= 10, "Loading a cuda:9 tensor")
++    @unittest.skipIf(CURRENT_VERSION < (2, 9), "NPU serialization device location is supported since torch_npu 2.9")
      def test_load_nonexistent_device(self):
          # Setup: create a serialized file object with a 'cuda:9' restore location
 -        tensor = torch.randn(2, device="cuda")

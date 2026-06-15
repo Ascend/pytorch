@@ -97,7 +97,7 @@ class CATLASSTemplate(KernelTemplate):
             call_args,
             expected_args,
         )
-        size_args = V.graph.sizevars.size_hints(kernel.get_layout_args())
+        size_args = V.graph.sizevars.size_hints(kernel.get_layout_args(), fallback=8192)
 
         kernel_hash_name = f"{self.name}_{next(self.index_counter)}"
 

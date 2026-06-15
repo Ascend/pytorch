@@ -11,6 +11,7 @@ from torch._inductor.codegen.simd import code_hash
 from torch._inductor.codegen.wrapper import pexpr, PythonWrapperCodegen
 from torch._inductor.virtualized import V
 from torch.fx import Graph, GraphModule, Node
+from torch.utils._ordered_set import OrderedSet
 from torch_npu._inductor.dvm.fx_pass import (
     expand_dvm_mm_to_explicit_transpose_for_inductor,
 )
@@ -233,6 +234,97 @@ def _mfusion_print_mlir(mlir_text: str, title: str) -> None:
 def _is_mfusion_op(fallback_kernel) -> bool:
     logger.debug("is_mfusion_op: %s", fallback_kernel.op_overload._name)
     return fallback_kernel.op_overload._name.startswith("mfusion::")
+
+
+def _iter_ir_inputs(ir_node: Any):
+    for inp in getattr(ir_node, "inputs", ()):
+        if isinstance(inp, (list, tuple)):
+            for inner in inp:
+                yield inner
+        else:
+            yield inp
+
+
+def _is_mfusion_related_ir(ir_node: Any, seen: set[int] | None = None) -> bool:
+    if ir_node is None:
+        return False
+    if seen is None:
+        seen = set()
+    key = id(ir_node)
+    if key in seen:
+        return False
+    seen.add(key)
+
+    op_overload = getattr(ir_node, "op_overload", None)
+    op_name = getattr(op_overload, "_name", "")
+    if isinstance(op_name, str) and op_name.startswith("mfusion::"):
+        return True
+
+    for inp in _iter_ir_inputs(ir_node):
+        if _is_mfusion_related_ir(inp, seen):
+            return True
+    return False
+
+
+def _layout_only_symbol_uses(ir_node: Any, unbacked_only: bool = False) -> OrderedSet:
+    result = OrderedSet()
+
+    outputs = list(getattr(ir_node, "outputs", ()) or ())
+    if not outputs:
+        outputs = list(getattr(ir_node, "get_outputs", lambda: ())())
+
+    for out in outputs:
+        layout = getattr(out, "layout", None)
+        if layout is not None and hasattr(layout, "get_free_symbol_uses"):
+            try:
+                result.update(layout.get_free_symbol_uses(unbacked_only))
+            except NotImplementedError:
+                continue
+
+    if not result:
+        layout = getattr(ir_node, "layout", None)
+        if layout is not None and hasattr(layout, "get_free_symbol_uses"):
+            try:
+                result.update(layout.get_free_symbol_uses(unbacked_only))
+            except NotImplementedError:
+                pass
+
+    return result
+
+
+def _patch_mfusion_symbol_fastpath() -> None:
+    from torch._inductor.ir import FallbackKernel, MultiOutput
+
+    if (
+        getattr(MFusionPatch, "_patched_fallback_get_free_symbol_uses", False)
+        or getattr(MFusionPatch, "_patched_multioutput_get_free_symbol_uses", False)
+    ):
+        return
+
+    MFusionPatch._orig_fallback_get_free_symbol_uses = getattr(
+        FallbackKernel, "get_free_symbol_uses", None
+    )
+    MFusionPatch._orig_multioutput_get_free_symbol_uses = getattr(
+        MultiOutput, "get_free_symbol_uses", None
+    )
+
+    def fallback_get_free_symbol_uses(self, unbacked_only: bool = False):
+        if _is_mfusion_op(self):
+            return _layout_only_symbol_uses(self, unbacked_only)
+        return MFusionPatch._orig_fallback_get_free_symbol_uses(self, unbacked_only)
+
+    def multioutput_get_free_symbol_uses(self, unbacked_only: bool = False):
+        input_node = self.inputs[0] if getattr(self, "inputs", None) else None
+        if _is_mfusion_related_ir(input_node):
+            return _layout_only_symbol_uses(self, unbacked_only)
+        return MFusionPatch._orig_multioutput_get_free_symbol_uses(self, unbacked_only)
+
+    if callable(MFusionPatch._orig_fallback_get_free_symbol_uses):
+        FallbackKernel.get_free_symbol_uses = fallback_get_free_symbol_uses
+        MFusionPatch._patched_fallback_get_free_symbol_uses = True
+    if callable(MFusionPatch._orig_multioutput_get_free_symbol_uses):
+        MultiOutput.get_free_symbol_uses = multioutput_get_free_symbol_uses
+        MFusionPatch._patched_multioutput_get_free_symbol_uses = True
 
 
 def _ensure_graph_module(orig_graph) -> GraphModule | None:
@@ -676,6 +768,10 @@ class MFusionPatch:
     _enabled = False
     _orig_generate_fallback_kernel = None
     _orig_post_grad_custom_post_pass = None
+    _orig_fallback_get_free_symbol_uses = None
+    _orig_multioutput_get_free_symbol_uses = None
+    _patched_fallback_get_free_symbol_uses = False
+    _patched_multioutput_get_free_symbol_uses = False
 
     @staticmethod
     def enable() -> None:
@@ -691,6 +787,7 @@ class MFusionPatch:
                 _mfusion_generate_fallback_kernel
             )
             inductor_config.post_grad_custom_post_pass = mfusion_graph_fusion
+            _patch_mfusion_symbol_fastpath()
             MFusionPatch._enabled = True
 
     @staticmethod
@@ -703,6 +800,24 @@ class MFusionPatch:
         inductor_config.post_grad_custom_post_pass = (
             MFusionPatch._orig_post_grad_custom_post_pass
         )
+        if (
+            MFusionPatch._patched_fallback_get_free_symbol_uses
+            or MFusionPatch._patched_multioutput_get_free_symbol_uses
+        ):
+            from torch._inductor.ir import FallbackKernel, MultiOutput
+
+            if MFusionPatch._patched_fallback_get_free_symbol_uses:
+                FallbackKernel.get_free_symbol_uses = (
+                    MFusionPatch._orig_fallback_get_free_symbol_uses
+                )
+            if MFusionPatch._patched_multioutput_get_free_symbol_uses:
+                MultiOutput.get_free_symbol_uses = (
+                    MFusionPatch._orig_multioutput_get_free_symbol_uses
+                )
+        MFusionPatch._orig_fallback_get_free_symbol_uses = None
+        MFusionPatch._orig_multioutput_get_free_symbol_uses = None
+        MFusionPatch._patched_fallback_get_free_symbol_uses = False
+        MFusionPatch._patched_multioutput_get_free_symbol_uses = False
         MFusionPatch._enabled = False
 
     def __enter__(self) -> "MFusionPatch":

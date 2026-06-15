@@ -1,16 +1,54 @@
 diff --git a/test/test_dataloader.py b/test/test_dataloader.py
-index 5c07088..1661ade 100644
+index 5c07088..c23f93b 100644
 --- a/test/test_dataloader.py
 +++ b/test/test_dataloader.py
 @@ -18,6 +18,8 @@ import unittest
  import warnings
- 
+
  import torch
 +import torch_npu
 +from torch_npu.contrib import transfer_to_npu
  import torch.utils.data.datapipes as dp
  from torch import multiprocessing as mp
  from torch._utils import ExceptionWrapper
+@@ -286,23 +288,23 @@ class TestDatasetRandomSplit(TestCase):
+     def test_splits_generator(self):
+         # A random_split without a specific generator should affect the default one
+         state = torch.get_rng_state()
+-        a = torch.rand(10)
++        a = torch.rand(10).npu()
+         torch.set_rng_state(state)
+         random_split(range(10), [5, 5])
+-        b = torch.rand(10)
++        b = torch.rand(10).npu()
+         self.assertNotEqual(a, b)
+
+         # A random_split with a specific generator should not affect the default one
+         state = torch.get_rng_state()
+-        a = torch.rand(10)
++        a = torch.rand(10).npu()
+         torch.set_rng_state(state)
+         random_split(range(10), [5, 5], generator=torch.Generator().manual_seed(42))
+-        b = torch.rand(10)
++        b = torch.rand(10).npu()
+         self.assertEqual(a, b)
+
+     def test_slicing_of_subset_of_dataset(self):
+         # Testing slicing a subset initialized with a dataset
+-        dataset = TensorDataset(torch.tensor([1, 2, 3, 4, 5]))
++        dataset = TensorDataset(torch.tensor([1, 2, 3, 4, 5]).npu())
+         subset_of_dataset = Subset(dataset, [0, 1, 2, 3, 4])
+         self.assertEqual(subset_of_dataset[:], dataset[:])
+         self.assertEqual(subset_of_dataset[1:2], dataset[1:2])
+@@ -315,7 +317,7 @@ class TestDatasetRandomSplit(TestCase):
+
+     def test_slicing_of_subset_of_subset(self):
+         # Testing slicing a subset initialized with a subset
+-        dataset = TensorDataset(torch.tensor([1, 2, 3, 4, 5]))
++        dataset = TensorDataset(torch.tensor([1, 2, 3, 4, 5]).npu())
+         subset_of_dataset = Subset(dataset, [0, 1, 2, 3, 4])
+         subset_of_subset = Subset(subset_of_dataset, [0, 1, 2, 3, 4])
+         self.assertEqual(subset_of_subset[:], dataset[:])
 @@ -373,37 +375,37 @@ class CountingIterableDataset(IterableDataset):
  )
  class TestTensorDataset(TestCase):
@@ -18,7 +56,7 @@ index 5c07088..1661ade 100644
 -        source = TensorDataset(torch.randn(15, 10, 2, 3, 4, 5), torch.randperm(15))
 +        source = TensorDataset(torch.randn(15, 10, 2, 3, 4, 5).npu(), torch.randperm(15).npu())
          self.assertEqual(len(source), 15)
- 
+
      def test_getitem(self):
 -        t = torch.randn(15, 10, 2, 3, 4, 5)
 -        l = torch.randn(15, 10)
@@ -28,7 +66,7 @@ index 5c07088..1661ade 100644
          for i in range(15):
              self.assertEqual(t[i], source[i][0])
              self.assertEqual(l[i], source[i][1])
- 
+
      def test_getitem_1d(self):
 -        t = torch.randn(15)
 -        l = torch.randn(15)
@@ -38,7 +76,7 @@ index 5c07088..1661ade 100644
          for i in range(15):
              self.assertEqual(t[i], source[i][0])
              self.assertEqual(l[i], source[i][1])
- 
+
      def test_single_tensor(self):
 -        t = torch.randn(5, 10)
 +        t = torch.randn(5, 10).npu()
@@ -46,7 +84,7 @@ index 5c07088..1661ade 100644
          self.assertEqual(len(source), 5)
          for i in range(5):
              self.assertEqual(t[i], source[i][0])
- 
+
      def test_many_tensors(self):
 -        t0 = torch.randn(5, 10, 2, 3, 4, 5)
 -        t1 = torch.randn(5, 10)
@@ -66,7 +104,7 @@ index 5c07088..1661ade 100644
 -                TensorDataset(torch.randn(15, 10)), a=TensorDataset(torch.randn(10, 15))
 +                TensorDataset(torch.randn(15, 10).npu()), a=TensorDataset(torch.randn(10, 15).npu())
              )
- 
+
      def test_size_mismatch(self):
          with self.assertRaisesRegex(ValueError, "Size mismatch between datasets"):
              StackDataset(
@@ -80,7 +118,7 @@ index 5c07088..1661ade 100644
 +                a=TensorDataset(torch.randn(15, 10).npu()),
 +                b=TensorDataset(torch.randn(10, 15).npu()),
              )
- 
+
      def test_len(self):
          source = StackDataset(
 -            TensorDataset(torch.randn(15, 10)), TensorDataset(torch.randn(15))
@@ -98,7 +136,7 @@ index 5c07088..1661ade 100644
 -        source = StackDataset(a=TensorDataset(torch.randn(15, 10)))
 +        source = StackDataset(a=TensorDataset(torch.randn(15, 10).npu()))
          self.assertEqual(len(source), 15)
- 
+
      def test_single(self):
 -        t = TensorDataset(torch.randn(15, 10))
 +        t = TensorDataset(torch.randn(15, 10).npu())
@@ -107,7 +145,7 @@ index 5c07088..1661ade 100644
              self.assertEqual(t[i], source[i][0])
 @@ -466,8 +468,8 @@ class TestStackDataset(TestCase):
              self.assertEqual(t[i], source[i]["a"])
- 
+
      def test_getitem(self):
 -        t = TensorDataset(torch.randn(15, 10))
 -        l = TensorDataset(torch.randn(15, 5, 4))
@@ -122,7 +160,7 @@ index 5c07088..1661ade 100644
              def __init__(self) -> None:
 -                self.data = torch.randn(4)
 +                self.data = torch.randn(4).npu()
- 
+
              def __getitem__(self, item):
                  return self.data[item]
 @@ -509,7 +511,7 @@ class TestStackDataset(TestCase):
@@ -131,7 +169,7 @@ index 5c07088..1661ade 100644
              def __init__(self) -> None:
 -                self.data = torch.randn(4)
 +                self.data = torch.randn(4).npu()
- 
+
              def __getitem__(self, item):
                  return self.data[item]
 @@ -531,7 +533,7 @@ class TestStackDataset(TestCase):
@@ -140,12 +178,12 @@ index 5c07088..1661ade 100644
              def __init__(self) -> None:
 -                self.data = torch.randn(4)
 +                self.data = torch.randn(4).npu()
- 
+
              def __getitem__(self, item):
                  return self.data[item]
 @@ -585,9 +587,9 @@ class TestConcatDataset(TestCase):
              result[11]
- 
+
      def test_add_dataset(self):
 -        d1 = TensorDataset(torch.rand(7, 3, 28, 28), torch.rand(7))
 -        d2 = TensorDataset(torch.rand(7, 3, 28, 28), torch.rand(7))
@@ -158,17 +196,17 @@ index 5c07088..1661ade 100644
          self.assertEqual(0, (d1[0][0] - result[0][0]).abs().sum())
 @@ -595,7 +597,7 @@ class TestConcatDataset(TestCase):
          self.assertEqual(0, (d3[0][0] - result[14][0]).abs().sum())
- 
+
      def test_iterable_dataset_err(self):
 -        d1 = TensorDataset(torch.rand(7, 3, 28, 28), torch.rand(7))
 +        d1 = TensorDataset(torch.rand(7, 3, 28, 28).npu(), torch.rand(7).npu())
          it1 = CountingIterableDataset(5)
          it2 = CountingIterableDataset(10)
- 
+
 @@ -1178,6 +1180,11 @@ class TestDataLoader(TestCase):
          self.dataset = TensorDataset(self.data, self.labels)
          self.persistent_workers = False
- 
+
 +    def _move_dataset_to_npu(self):
 +        self.data = self.data.npu()
 +        self.labels = self.labels.npu()
@@ -179,19 +217,19 @@ index 5c07088..1661ade 100644
          if persistent_workers and kwargs.get("num_workers", 0) == 0:
 @@ -1321,9 +1328,11 @@ except RuntimeError as e:
              self.assertRaises(ValueError, fn)
- 
+
      def test_sequential_nonbatch(self):
 +        self._move_dataset_to_npu()
          self._test_sequential(self._get_data_loader(self.dataset, batch_size=None))
- 
+
      def test_sequential_batch(self):
 +        self._move_dataset_to_npu()
          self._test_sequential(self._get_data_loader(self.dataset))
          self._test_sequential(self._get_data_loader(self.dataset, batch_size=2))
- 
+
 @@ -1844,6 +1853,10 @@ except RuntimeError as e:
              list(iter(ChainDataset([dataset1, self.dataset])))
- 
+
      @unittest.skipIf(not TEST_CUDA_IPC, "CUDA IPC not available")
 +    @unittest.skipIf(
 +        torch.npu.is_available() and not any(conf.strip() == "expandable_segments:True" for conf in os.environ.get("PYTORCH_NPU_ALLOC_CONF", "").split(",")),
@@ -203,14 +241,14 @@ index 5c07088..1661ade 100644
 @@ -2210,7 +2223,7 @@ except RuntimeError as e:
      def test_distributed_sampler_invalid_rank(self):
          from torch.utils.data.distributed import DistributedSampler
- 
+
 -        dataset = torch.IntTensor(range(10))
 +        dataset = torch.IntTensor(range(10)).npu()
          with self.assertRaisesRegex(ValueError, "Invalid rank"):
              sampler = DistributedSampler(dataset, 3, 3)
- 
+
 @@ -2222,8 +2235,8 @@ except RuntimeError as e:
- 
+
          num_processes = 4
          num_batches = 9
 -        data_set = torch.IntTensor(range(num_batches))
@@ -223,7 +261,7 @@ index 5c07088..1661ade 100644
 @@ -2782,6 +2795,16 @@ except RuntimeError as e:
          self.assertEqual(collated, torch.tensor(arr))
          self.assertEqual(collated.dtype, torch.bool)
- 
+
 +        npu_batch = [
 +            torch.tensor([1, 2], device="npu"),
 +            torch.tensor([3, 4], device="npu"),

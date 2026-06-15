@@ -60,6 +60,13 @@ class TestNpuFormatCastAclnn(TestCase):
         self.assertEqual(torch_npu.get_npu_format(out), ACL_FORMAT_FRACTAL_NZ)
         self.assertEqual(out.shape, t.shape)
 
+    @SupportedDevices(['Ascend910B', 'Ascend910_93', 'Ascend950'])
+    def test_1d_nd_to_nz_fallback_to_nd(self):
+        t = torch.empty(12).float().npu()
+        out = torch_npu.npu_format_cast(t, ACL_FORMAT_FRACTAL_NZ)
+        self.assertEqual(torch_npu.get_npu_format(out), ACL_FORMAT_ND)
+        self.assertEqual(out.shape, t.shape)
+
     # ------------------------------------------------------------------ #
     # Group 1b: NZ -> ND format conversion (reverse)
     # ------------------------------------------------------------------ #

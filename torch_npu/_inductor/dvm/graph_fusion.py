@@ -343,6 +343,8 @@ class GraphFusionPartitioner(CapabilityBasedPartitioner):
             erase_nodes(self.graph_module, sorted_nodes)
 
         legalize_graph(self.graph_module)
+        output_node = self.graph_module.graph.find_nodes(op="output")[0]
+        next(iter(reversed(self.graph_module.graph.nodes))).append(output_node)
         return self.graph_module
 
 

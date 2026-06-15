@@ -77,6 +77,13 @@ class MmTransposeBackwardModel(torch.nn.Module):
         return loss, grad_a, grad_b
 
 
+class CopyInplaceModel(torch.nn.Module):
+    def forward(self, dst, src):
+        add = torch.ops.aten.add.Tensor(src, 1.0)
+        torch.ops.aten.copy_.default(dst, add)
+        return ()
+
+
 class TestDvmByMlir(TestCase):
     def _run_and_get_code_with_dvm(self, model, *args):
         original_backend = os.environ.get("TORCHINDUCTOR_NPU_BACKEND")
@@ -222,6 +229,19 @@ class TestDvmByMlir(TestCase):
         code = "\n".join(codes)
         self.assertEqual(expect, result, atol=1e-3, rtol=1e-3)
         self.assertNotIn("dvm_fused_matmul_backward", code)
+
+    def test_copy_inplace_codegen(self):
+        src = torch.randn((128,), dtype=torch.float32, device="npu")
+        dst = torch.zeros((128,), dtype=torch.float32, device="npu")
+        expect_dst = dst.clone()
+        actual_dst = dst.clone()
+        model = CopyInplaceModel()
+
+        with torch.no_grad():
+            model(expect_dst, src)
+            self._run_and_get_code_with_dvm(model, actual_dst, src)
+
+        self.assertEqual(expect_dst, actual_dst)
 
 
 instantiate_parametrized_tests(TestDvmByMlir)
