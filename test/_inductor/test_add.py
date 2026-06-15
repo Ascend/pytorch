@@ -2,7 +2,7 @@ import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
 from testutils import TestUtils
 import torch_npu
-
+import torch_npu._inductor
 
 class TestAdd(TestUtils):
     def op_calc(self, first_element, second_element):
