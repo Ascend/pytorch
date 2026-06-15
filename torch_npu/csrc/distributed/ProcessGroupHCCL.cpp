@@ -2830,6 +2830,8 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::createHCCLComm(
     hcclComms.resize(devices.size());
     std::vector<c10_npu::NPUStream> streamVal;
     streamVal.reserve(devices.size());
+    c10_npu::OptionalNPUGuard npuGuard;
+    npuGuard.set_index(getDeviceForRank(getRank()).index());
 
     TORCH_NPU_HCCL_LOGI("Create HCCL comm, devicesKey %s, commType %d, p2pRank %d.", devicesKey.c_str(), commType, p2pRank);
 
@@ -2844,6 +2846,7 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::createHCCLComm(
     if (!createHCCLCommEx(devicesKey, devices, commType, commConfig, hcclComms, streamVal, p2pRank)) {
         createHCCLCommOrigin(devicesKey, devices, commType, commConfig, hcclComms, streamVal, p2pRank);
     }
+    npuGuard.set_index(getDeviceForRank(getRank()).index());
     // restart the HcclGroupStart
     for (const auto i : c10::irange(hcclActiveGroupCounter_)) {
         (void)i;
@@ -5999,6 +6002,8 @@ void ProcessGroupHCCL::startCoalescing()
     coalescedTensors_.clear();
     coalescedP2PFormatCasts_.clear();
     coalescing_state_ |= CoalActive;
+    c10_npu::OptionalNPUGuard npuGuard;
+    npuGuard.set_index(getDeviceForRank(getRank()).index());
     groupStart();
 }
 
