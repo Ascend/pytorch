@@ -16,10 +16,15 @@ on:
         type: string
         default: ''
         description: The fork repository full name for PR from fork (owner/repo)
-      downstream_repo:
+      torch_npu_repo:
         required: true
         type: string
-        description: The downstream repository full name (owner/repo)
+        description: The torch_npu repository full name (owner/repo)
+      torch_npu_ref:
+        required: false
+        type: string
+        default: 'master'
+        description: The torch_npu repository branch, tag, or SHA to build
 
 jobs:
   build:
@@ -35,21 +40,31 @@ jobs:
       USE_CUDA: 0
       USE_XNNPACK: 0
       _GLIBCXX_USE_CXX11_ABI: 1
+      BUILD_IGNORE_SVE_UNAVAILABLE: 1
+      BUILD_WITHOUT_SHA: 1
       PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
     steps:
-      # Step 1: Checkout upstream PyTorch PR code
-      # Use fork repo if available (PR from fork), otherwise use upstream repo
+      # Step 1: Checkout upstream PyTorch PR code (shallow)
+      # fetch-depth: 1 = single commit only, no branches/tags/history.
+      # PyTorch repo has thousands of branches; full clone takes ~3min.
+      # Submodules init deferred to separate step with --depth=1.
       - name: Checkout upstream PyTorch PR
         uses: actions/checkout@v6
         with:
           repository: ${{ inputs.upstream_fork_repo != '' && inputs.upstream_fork_repo || inputs.upstream_repo }}
           ref: ${{ inputs.upstream_sha }}
-          submodules: recursive
+          fetch-depth: 1
+          submodules: false
           path: pytorch
 
+      - name: Init submodules (shallow)
+        working-directory: pytorch
+        run: |
+          git submodule update --init --recursive --depth=1 --jobs=$(nproc)
+
       # Step 2: Build and install PyTorch
-      # setup.py develop = build + editable install in one step
       - name: Build and install PyTorch
+        id: build_pytorch
         working-directory: pytorch
         run: |
           echo "============================================"
@@ -62,58 +77,188 @@ jobs:
           echo "Commit SHA: ${{ inputs.upstream_sha }}"
           echo "MAX_JOBS: ${MAX_JOBS}"
           echo "============================================"
-          pip install -r requirements.txt
-          python setup.py develop
-          python -c "import torch; print(f'PyTorch version: {torch.__version__}')"
 
-      # Step 3: Checkout downstream torch_npu master
+          pip install -r requirements.txt
+
+          # Build wheel first, then install from it.
+          # This produces an artifact we can upload for downstream use.
+          mkdir -p /tmp/wheels
+          set +o pipefail
+          python -m pip wheel --no-build-isolation -w /tmp/wheels/ . 2>&1 | tee /tmp/build-pytorch.log
+          BUILD_STATUS=${PIPESTATUS[0]}
+          set -o pipefail
+
+          if [ ${BUILD_STATUS} -ne 0 ]; then
+            echo "PyTorch build failed!"
+            exit ${BUILD_STATUS}
+          fi
+
+          pip install /tmp/wheels/torch*.whl
+
+          # Must NOT run from pytorch/ source dir: Python would find
+          # the local torch/ source tree instead of the installed package.
+          cd /tmp
+          python -c "import torch; print(f'PyTorch version: {torch.__version__}')"
+          cd "${GITHUB_WORKSPACE}"
+
+      # Step 3: Checkout downstream torch_npu
       - name: Checkout downstream repo (torch_npu)
         uses: actions/checkout@v6
         with:
-          repository: ${{ inputs.downstream_repo }}
-          ref: master
-          submodules: recursive
+          repository: ${{ inputs.torch_npu_repo }}
+          ref: ${{ inputs.torch_npu_ref }}
+          fetch-depth: 1
+          submodules: false
           path: torch_npu
+
+      - name: Init submodules (shallow)
+        working-directory: torch_npu
+        run: |
+          git submodule update --init --recursive --depth=1 --jobs=$(nproc)
+
+      # Step 3.5: Diagnose installed PyTorch for Dimname references
+      - name: "[Diagnostic] Check installed torchgen for Dimname"
+        working-directory: /tmp
+        run: |
+          echo "=== Checking installed torchgen for Dimname ==="
+          python -c "
+          import torchgen, os, sys
+          d = os.path.dirname(torchgen.__file__)
+          yaml_path = os.path.join(d, 'packaged/ATen/native/native_functions.yaml')
+          print(f'Checking: {yaml_path}')
+          if not os.path.exists(yaml_path):
+              print('ERROR: native_functions.yaml not found!')
+              sys.exit(1)
+          with open(yaml_path) as f:
+              c = f.read()
+          cnt = c.count('Dimname')
+          print(f'native_functions.yaml: {cnt} Dimname reference(s)')
+          if cnt > 0:
+              for i, l in enumerate(c.split('\n')):
+                  if 'Dimname' in l:
+                      print(f'  line {i}: {l.strip()[:150]}')
+              print('FATAL: Stale native_functions.yaml with Dimname detected!')
+              sys.exit(1)
+          else:
+              print('OK: native_functions.yaml is clean')
+          "
+
+          echo ""
+          echo "=== Checking model.py BaseTy ==="
+          python -c "
+          import torchgen.model as m
+          has = 'Dimname' in [e.name for e in m.BaseTy]
+          print(f'model.py BaseTy has Dimname member: {has}')
+          import sys
+          if has:
+              print('FATAL: model.py still has Dimname in BaseTy!')
+              sys.exit(1)
+          else:
+              print('OK: model.py BaseTy is clean')
+          "
+
+          echo ""
+          echo "=== Checking tags.yaml ==="
+          python -c "
+          import torchgen, os
+          d = os.path.dirname(torchgen.__file__)
+          tags_path = os.path.join(d, 'packaged/ATen/native/tags.yaml')
+          print(f'Checking: {tags_path}')
+          with open(tags_path) as f:
+              c = f.read()
+          cnt = c.count('Dimname')
+          print(f'tags.yaml: {cnt} Dimname reference(s)')
+          if cnt > 0:
+              print('WARNING: tags.yaml has Dimname refs!')
+          else:
+              print('OK: tags.yaml is clean')
+          "
 
       # Step 4: Build and install torch_npu
       # NOTE: Intentionally do NOT use 'pip install -r requirements.txt' from torch_npu,
       # because that file pins a specific torch version which would overwrite the
       # source-built PyTorch from the upstream PR.
       - name: Build and install torch_npu
+        id: build_torchnpu
         working-directory: torch_npu
         run: |
           echo "============================================"
-          echo "Building torch_npu from downstream master..."
-          echo "Repository: ${{ inputs.downstream_repo }}"
-          echo "Branch: master"
+          echo "Building torch_npu..."
+          echo "Repository: ${{ inputs.torch_npu_repo }}"
+          echo "Ref: ${{ inputs.torch_npu_ref }}"
           echo "============================================"
-          bash ci/build.sh --python=3.10 --disable_torchair --disable_rpc
+
+          set +o pipefail
+          bash ci/build.sh --python=3.10 --disable_torchair --disable_rpc 2>&1 | tee /tmp/build-torchnpu.log
+          BUILD_STATUS=${PIPESTATUS[0]}
+          set -o pipefail
+
+          if [ ${BUILD_STATUS} -ne 0 ]; then
+            echo "torch_npu build failed!"
+            exit ${BUILD_STATUS}
+          fi
+
           pip install dist/torch_npu*.whl
+          cp dist/torch_npu*.whl /tmp/wheels/
 
-      # Step 5: Verify both packages import successfully
-      - name: Verify installation
+      # Step 5: Upload wheel artifacts
+      - name: Upload wheel artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ github.run_number }}
+          path: /tmp/wheels/*.whl
+          retention-days: 7
+
+      # Step 6: Verify NPU environment and imports
+      - name: Verify NPU device
         run: |
-          echo "============================================"
-          echo "Verifying PyTorch and torch_npu imports..."
-          echo "============================================"
-          python -c "import torch; print(f'PyTorch version: {torch.__version__}'); print(f'PyTorch path: {torch.__file__}')"
-          python -c "import torch_npu; print(f'torch_npu version: {torch_npu.__version__}'); print(f'torch_npu path: {torch_npu.__file__}')"
-          echo ""
-          echo "Both PyTorch and torch_npu imported successfully."
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
 
-      # Step 6: Summary
+          echo "=== NPU Device Information ==="
+          npu-smi info
+          echo "=== End of NPU Device Information ==="
+
+      - name: Verify NPU availability
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          python -c "
+          import torch
+          print(f'torch: {torch.__version__}')
+          import torch_npu
+          print(f'torch_npu: {torch_npu.__version__}')
+          print(f'NPU available: {torch.npu.is_available()}')
+          print(f'NPU count: {torch.npu.device_count()}')
+          "
+
+      # Step 7: Upload build artifacts (always, for debugging failures)
+      - name: Upload build artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts-${{ github.run_number }}
+          path: |
+            /tmp/build-pytorch.log
+            /tmp/build-torchnpu.log
+            torch_npu/torch_npu/csrc/inductor/aoti_torch/generated/c_shim_npu.h
+          if-no-files-found: warn
+
+      # Step 8: Summary
       - name: Summary
+        if: always()
         run: |
           echo "============================================"
-          echo "Build Summary"
+          echo "             Build Summary"
           echo "============================================"
           if [ -n "${{ inputs.upstream_fork_repo }}" ]; then
-            echo "1. PyTorch fork PR: ${{ inputs.upstream_fork_repo }}@${{ inputs.upstream_sha }}"
+            echo "PyTorch fork PR : ${{ inputs.upstream_fork_repo }}"
           else
-            echo "1. PyTorch upstream: ${{ inputs.upstream_repo }}@${{ inputs.upstream_sha }}"
+            echo "PyTorch upstream: ${{ inputs.upstream_repo }}"
           fi
-          echo "2. PyTorch build + install: SUCCESS"
-          echo "3. torch_npu master: ${{ inputs.downstream_repo }}"
-          echo "4. torch_npu build + install: SUCCESS"
-          echo "5. Import verification: SUCCESS"
+          echo "PyTorch commit  : ${{ inputs.upstream_sha }}"
+          echo "torch_npu repo  : ${{ inputs.torch_npu_repo }}"
+          echo "Max jobs        : ${MAX_JOBS}"
           echo "============================================"
