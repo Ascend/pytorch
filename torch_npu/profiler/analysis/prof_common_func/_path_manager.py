@@ -1,5 +1,6 @@
 import os
 import re
+import warnings
 
 from torch_npu.utils._error_code import ErrCode, prof_error
 from ._constant import Constant
@@ -172,8 +173,8 @@ class ProfilerPathManager:
             raise RuntimeError("Input path is empty, please check. " + "ErrorType: {}".format(ErrCode.UNAVAIL.msg))
         path = os.path.expanduser(path)
         if os.path.islink(path):
-            msg = f"Invalid input path is a soft chain: {path}" + prof_error(ErrCode.UNAVAIL)
-            raise RuntimeError(msg)
+            msg = f"Invalid input path is a soft chain: {path}"
+            warnings.warn(msg)
         return os.path.realpath(path)
 
     @classmethod
@@ -189,11 +190,6 @@ class ProfilerPathManager:
                     # Recursively obtain subdirectories and paths
                     paths.extend(cls.get_all_subdir(full_path, max_depth, cur_depth + 1))
         return paths
-
-    @classmethod
-    def path_is_other_writable(cls, path):
-        stat_info = os.stat(path)
-        return bool(stat_info.st_mode & 0o022)
 
     @classmethod
     def check_path_permission(cls, path):

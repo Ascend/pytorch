@@ -834,5 +834,16 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
                 }
             },
             py::arg("optimize_options"),
-            py::arg("debug_options"));
+            py::arg("debug_options"))
+        .def_static(
+            "get_currently_capturing_graph",
+            torch::wrap_pybind_function_no_gil(&c10_npu::NPUGraph::get_currently_capturing_graph),
+            py::return_value_policy::reference)
+        .def(
+            "begin_capture_to_if_node",
+            torch::wrap_pybind_function_no_gil(&c10_npu::NPUGraph::begin_capture_to_if_node),
+            py::arg("scalar_npu_pred_tensor"))
+        .def(
+            "end_capture_to_conditional_node",
+            torch::wrap_pybind_function_no_gil(&c10_npu::NPUGraph::end_capture_to_conditional_node));
 }
