@@ -15,6 +15,7 @@ Ascend Extension for PyTorch环境变量请参考《[Ascend Extension for PyTorc
 | Catlass    |TORCHINDUCTOR_NPU_CATLASS_DIR| 环境中catlass库的路径，与社区TORCHINDUCTOR_CUTLASS_DIR保持一致，社区环境变量为TORCHINDUCTOR_CUTLASS_DIR，若路径配置错误，会有WARNING信息提示，并跳过尝试引入catlass后端的功能，默认值为""         |
 | Catlass    |TORCHINDUCTOR_PROFILE_WITH_DO_BENCH_USING_PROFILING| 该环境变量与社区一致，用于管理autotune过程中是否使用profiling进行autotune，"0"为不使用profiling，"1"为使用profiling，默认值为0                  |
 | FXGraph图优化 |SHUT_DOWN_FX_PASS_LIST| 用于精确控制生效的pass，默认为""，即所有pass都生效                                                                                                  |
+| 计算图多流并行 |ENABLE_PARALLEL_SCHEDULER| 是否开启计算图多流并行调度策略，默认为False，即不开启计算图多流并行调度策略，设置为True，表示开启计算图多流并行调度策                  |
 | 离散访存       |INDUCTOR_INDIRECT_MEMORY_MODE| 是否开启离散访存的融合以及配置融合方式，默认值为"simd_simt_mix"                                                                                                            |
 | 离散访存       |USE_STORE_IN_CAT| 用于控制Inductor针对cat融合的行为，当前默认为False                                                                                               |
 | 自动Tiling优化 |FASTAUTOTUNE| 控制是否使用fast autotune，默认值为0                                                                                                       |
