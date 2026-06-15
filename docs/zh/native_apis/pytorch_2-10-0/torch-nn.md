@@ -90,11 +90,11 @@
 |[torch.nn.modules.module.register_module_forward_pre_hook](https://pytorch.org/docs/2.10/generated/torch.nn.modules.module.register_module_forward_pre_hook.html)|是|支持fp32|
 |[torch.nn.modules.module.register_module_forward_hook](https://pytorch.org/docs/2.10/generated/torch.nn.modules.module.register_module_forward_hook.html)|是|支持fp32|
 |[torch.nn.modules.module.register_module_backward_hook](https://pytorch.org/docs/2.10/generated/torch.nn.modules.module.register_module_backward_hook.html)|是|支持fp32|
-|[torch.nn.modules.module.register_module_full_backward_pre_hook](https://pytorch.org/docs/2.10/generated/torch.nn.modules.module.register_module_full_backward_pre_hook.html)|否|-|
+|[torch.nn.modules.module.register_module_full_backward_pre_hook](https://pytorch.org/docs/2.10/generated/torch.nn.modules.module.register_module_full_backward_pre_hook.html)|是|-|
 |[torch.nn.modules.module.register_module_full_backward_hook](https://pytorch.org/docs/2.10/generated/torch.nn.modules.module.register_module_full_backward_hook.html)|是|支持fp32|
-|[torch.nn.modules.module.register_module_buffer_registration_hook](https://pytorch.org/docs/2.10/generated/torch.nn.modules.module.register_module_buffer_registration_hook.html)|否|-|
-|[torch.nn.modules.module.register_module_module_registration_hook](https://pytorch.org/docs/2.10/generated/torch.nn.modules.module.register_module_module_registration_hook.html)|否|-|
-|[torch.nn.modules.module.register_module_parameter_registration_hook](https://pytorch.org/docs/2.10/generated/torch.nn.modules.module.register_module_parameter_registration_hook.html)|否|-|
+|[torch.nn.modules.module.register_module_buffer_registration_hook](https://pytorch.org/docs/2.10/generated/torch.nn.modules.module.register_module_buffer_registration_hook.html)|是|-|
+|[torch.nn.modules.module.register_module_module_registration_hook](https://pytorch.org/docs/2.10/generated/torch.nn.modules.module.register_module_module_registration_hook.html)|是|-|
+|[torch.nn.modules.module.register_module_parameter_registration_hook](https://pytorch.org/docs/2.10/generated/torch.nn.modules.module.register_module_parameter_registration_hook.html)|是|-|
 |[torch.nn.Conv1d](https://pytorch.org/docs/2.10/generated/torch.nn.Conv1d.html)|是|支持fp16，fp32|
 |[torch.nn.Conv2d](https://pytorch.org/docs/2.10/generated/torch.nn.Conv2d.html)|是|支持bf16，fp16，fp32<br><term>Atlas A2 训练系列产品</term>，默认场景下，如果频繁触发编译，建议手动设置torch.npu.config.allow_internal_format为False，控制入参不使能内部格式，避免在线编译|
 |[torch.nn.Conv3d](https://pytorch.org/docs/2.10/generated/torch.nn.Conv3d.html)|是|支持bf16，fp16，fp32|
