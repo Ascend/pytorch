@@ -318,7 +318,7 @@ def _patch_lowering_type_checks():
     )
 
 
-def _patch_sum_lowering():
+def _patch_lowering():
     from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.inductor_patch.lowering import (
         is_boolean_dtype,
         is_integer_dtype,
@@ -362,6 +362,13 @@ def _patch_sum_lowering():
     anir_config.disable_any_pbr = False
     ops = get_overloads([aten.sum, prims.sum])
     npu_lowering.register_lowering(ops)(sum_)
+    npu_lowering.make_fallback(
+        aten.matmul_backward.default,
+        layout_constraint=None,
+        warn=False,
+        override_decomp=True,
+    )
+    npu_lowering.add_layout_constraint(aten.matmul_backward.default, None)
 
 
 class DvmMlirFusionPatch:
@@ -382,7 +389,7 @@ class DvmMlirFusionPatch:
         inductor_config.allow_buffer_reuse = False
         patch_decomp()
         _patch_lowering_type_checks()
-        _patch_sum_lowering()
+        _patch_lowering()
         NpuMlirKernel.codegen_kernel = _codegen_dvm_kernel
         NpuMlirScheduling.define_kernel = _define_dvm_kernel
         if disable_post_reduce_fusion:
