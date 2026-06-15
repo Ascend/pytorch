@@ -204,6 +204,8 @@ class NPUTritonKernelOverrides(TritonKernelOverrides):
         before_subblock_axis = V.kernel.current_subblock_axis
         current_subblock_axis = body.body.masked_indexing.get(current_subblock, {})
         V.kernel.current_subblock_axis = before_subblock_axis | current_subblock_axis
+        for sub_axis in current_subblock_axis:
+            mask = ops.logical_and(mask, sympy_index_symbol(sub_axis + "_mask"))
         with V.kernel.mask_loads(mask, value=value) as new_mask:
             result = body()
         V.kernel.current_subblock_axis = before_subblock_axis
