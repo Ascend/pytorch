@@ -1,5 +1,21 @@
 # libtorch_triton_ascend
 
+## 环境约束
+
+1）**torch_npu 和 CANN 环境**
+
+本样例依赖 torch_npu 运行环境，推荐 torch_npu 26.1.0 及配套 CANN 9.1.0 版本。
+
+2）**triton-ascend >= 3.2.2**
+
+在 https://github.com/triton-lang/triton-ascend/releases 获取最新whl包。或拉取[源码](https://github.com/triton-lang/triton-ascend/tree/release/3.2.2-dev)编译，依赖pr https://github.com/triton-lang/triton-ascend/pull/246
+
+3）**pybind11**
+
+```bash
+pip install pybind11
+```
+
 ## 跑demo
 
 demo.cpp 包含三个示例：
@@ -54,3 +70,19 @@ C++: match: YES
 ```bash
 export LOG_TORCH_TRITON_RUNTIME=1
 ```
+
+## FAQ
+
+1）**编译报错 unsupported relocation，python环境中没有 libpython\*.so**
+
+本样例会链接 `libpython*.so`，要求 Python 安装目录下存在该共享库（即 CPython 编译时须启用 `--enable-shared`）。
+
+检查方法：
+
+```bash
+ls $(python3 -c "import sysconfig; print(sysconfig.get_config_var('LIBDIR'))")/libpython*.so
+```
+
+如找不到当前 Python 版本的 `libpython*.so`，或仅有 `libpython*.a` 静态链接库，则可能会产生编译报错。
+
+修复方法：使用 `apt install -y python3-dev` 安装python-dev包，或使用Conda创建python环境
