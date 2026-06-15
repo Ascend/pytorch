@@ -295,14 +295,17 @@ def _layout_only_symbol_uses(ir_node: Any, unbacked_only: bool = False) -> Order
 def _patch_mfusion_symbol_fastpath() -> None:
     from torch._inductor.ir import FallbackKernel, MultiOutput
 
-    if getattr(MFusionPatch, "_orig_fallback_get_free_symbol_uses", None) is not None:
+    if (
+        getattr(MFusionPatch, "_patched_fallback_get_free_symbol_uses", False)
+        or getattr(MFusionPatch, "_patched_multioutput_get_free_symbol_uses", False)
+    ):
         return
 
-    MFusionPatch._orig_fallback_get_free_symbol_uses = (
-        FallbackKernel.get_free_symbol_uses
+    MFusionPatch._orig_fallback_get_free_symbol_uses = getattr(
+        FallbackKernel, "get_free_symbol_uses", None
     )
-    MFusionPatch._orig_multioutput_get_free_symbol_uses = (
-        MultiOutput.get_free_symbol_uses
+    MFusionPatch._orig_multioutput_get_free_symbol_uses = getattr(
+        MultiOutput, "get_free_symbol_uses", None
     )
 
     def fallback_get_free_symbol_uses(self, unbacked_only: bool = False):
@@ -316,8 +319,12 @@ def _patch_mfusion_symbol_fastpath() -> None:
             return _layout_only_symbol_uses(self, unbacked_only)
         return MFusionPatch._orig_multioutput_get_free_symbol_uses(self, unbacked_only)
 
-    FallbackKernel.get_free_symbol_uses = fallback_get_free_symbol_uses
-    MultiOutput.get_free_symbol_uses = multioutput_get_free_symbol_uses
+    if callable(MFusionPatch._orig_fallback_get_free_symbol_uses):
+        FallbackKernel.get_free_symbol_uses = fallback_get_free_symbol_uses
+        MFusionPatch._patched_fallback_get_free_symbol_uses = True
+    if callable(MFusionPatch._orig_multioutput_get_free_symbol_uses):
+        MultiOutput.get_free_symbol_uses = multioutput_get_free_symbol_uses
+        MFusionPatch._patched_multioutput_get_free_symbol_uses = True
 
 
 def _ensure_graph_module(orig_graph) -> GraphModule | None:
@@ -763,6 +770,8 @@ class MFusionPatch:
     _orig_post_grad_custom_post_pass = None
     _orig_fallback_get_free_symbol_uses = None
     _orig_multioutput_get_free_symbol_uses = None
+    _patched_fallback_get_free_symbol_uses = False
+    _patched_multioutput_get_free_symbol_uses = False
 
     @staticmethod
     def enable() -> None:
@@ -791,15 +800,24 @@ class MFusionPatch:
         inductor_config.post_grad_custom_post_pass = (
             MFusionPatch._orig_post_grad_custom_post_pass
         )
-        if MFusionPatch._orig_fallback_get_free_symbol_uses is not None:
+        if (
+            MFusionPatch._patched_fallback_get_free_symbol_uses
+            or MFusionPatch._patched_multioutput_get_free_symbol_uses
+        ):
             from torch._inductor.ir import FallbackKernel, MultiOutput
 
-            FallbackKernel.get_free_symbol_uses = (
-                MFusionPatch._orig_fallback_get_free_symbol_uses
-            )
-            MultiOutput.get_free_symbol_uses = (
-                MFusionPatch._orig_multioutput_get_free_symbol_uses
-            )
+            if MFusionPatch._patched_fallback_get_free_symbol_uses:
+                FallbackKernel.get_free_symbol_uses = (
+                    MFusionPatch._orig_fallback_get_free_symbol_uses
+                )
+            if MFusionPatch._patched_multioutput_get_free_symbol_uses:
+                MultiOutput.get_free_symbol_uses = (
+                    MFusionPatch._orig_multioutput_get_free_symbol_uses
+                )
+        MFusionPatch._orig_fallback_get_free_symbol_uses = None
+        MFusionPatch._orig_multioutput_get_free_symbol_uses = None
+        MFusionPatch._patched_fallback_get_free_symbol_uses = False
+        MFusionPatch._patched_multioutput_get_free_symbol_uses = False
         MFusionPatch._enabled = False
 
     def __enter__(self) -> "MFusionPatch":
