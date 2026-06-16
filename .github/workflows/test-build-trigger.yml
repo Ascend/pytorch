@@ -14,6 +14,6 @@ jobs:
     uses: ./.github/workflows/_build.yml
     with:
       upstream_repo: pytorch/pytorch
-      upstream_sha: 32d3da3df9f98fcc75739253142d85a6dfb6180b
+      upstream_sha: 5daacd359a77af018e3079aef3fe3d05e22cd669
       torch_npu_repo: ${{ github.repository }}
       torch_npu_ref: ci-test
