@@ -28,7 +28,7 @@ static PyObject* THNPEvent_pynew(PyTypeObject *type, PyObject *args, PyObject *k
     }
 
     TORCH_CHECK(
-        !interprocess || c10_npu::acl::IsSupportIpcEvent(),
+        !interprocess || c10_npu::acl::IsSupportIpcEvent(false),
         "Parameter interprocess is not supported, please upgrade the HDK(driver) or CANN package.",
         PTA_ERROR(ErrCode::NOT_SUPPORT));
 
@@ -71,7 +71,7 @@ static PyObject* THNPEvent_from_ipc_handle(
 {
     HANDLE_TH_ERRORS
     TORCH_CHECK(
-        c10_npu::acl::IsSupportIpcEvent(),
+        c10_npu::acl::IsSupportIpcEvent(false),
         "The from_ipc_handle method is not supported, please upgrade the HDK(driver) or CANN package.",
         PTA_ERROR(ErrCode::NOT_SUPPORT));
 
