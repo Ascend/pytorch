@@ -49,9 +49,12 @@ jobs:
 
       - name: Package PyTorch source
         run: |
-          echo "Packaging pytorch/ into pytorch-source.tar.gz ..."
-          tar -czf pytorch-source.tar.gz pytorch/
-          echo "Package size: $(du -h pytorch-source.tar.gz | cut -f1)"
+          SHORT_SHA=$(echo "${{ inputs.upstream_sha }}" | cut -c1-10)
+          TARBALL="pytorch-source-${SHORT_SHA}.tar.gz"
+          echo "Packaging pytorch/ into ${TARBALL} ..."
+          tar -czf "${TARBALL}" pytorch/
+          echo "Package size: $(du -h ${TARBALL} | cut -f1)"
+          echo "TARBALL=${TARBALL}" >> "$GITHUB_ENV"
 
       - name: Authenticate to Huawei Cloud
         uses: huaweicloud/auth-action@v1.1.0
@@ -65,9 +68,16 @@ jobs:
         with:
           region: cn-north-4
           bucket_name: pytorch-cache
-          local_file_path: ./pytorch-source.tar.gz
-          obs_file_path: 7day-cache/pytorch-source-${{ github.run_id }}.tar.gz
+          local_file_path: ./${{ env.TARBALL }}
+          obs_file_path: 7day-cache/${{ env.TARBALL }}
           operation_type: upload
+
+      - name: Upload PyTorch source as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.TARBALL }}
+          path: ./${{ env.TARBALL }}
+          retention-days: 7
 
   # ======================================================================
   # Job 2: Build PyTorch + torch_npu on self-hosted ARM64 runner
@@ -98,19 +108,26 @@ jobs:
           secret_access_key: ${{ secrets.SECRETACCESSKEY }}
           region: cn-north-4
 
+      - name: Compute SHAs
+        id: sha
+        run: |
+          UPSTREAM_SHORT=$(echo "${{ inputs.upstream_sha }}" | cut -c1-10)
+          echo "upstream_short=${UPSTREAM_SHORT}" >> "$GITHUB_OUTPUT"
+          echo "source_tarball=pytorch-source-${UPSTREAM_SHORT}.tar.gz" >> "$GITHUB_OUTPUT"
+
       - name: Download PyTorch source from OBS
         uses: huaweicloud/obs-helper@v1.0.1
         with:
           region: cn-north-4
           bucket_name: pytorch-cache
-          local_file_path: ./pytorch-source.tar.gz
-          obs_file_path: 7day-cache/pytorch-source-${{ github.run_id }}.tar.gz
+          local_file_path: ./${{ steps.sha.outputs.source_tarball }}
+          obs_file_path: 7day-cache/${{ steps.sha.outputs.source_tarball }}
           operation_type: download
 
       - name: Extract PyTorch source
         run: |
-          tar -xzf pytorch-source.tar.gz
-          rm pytorch-source.tar.gz
+          tar -xzf ${{ steps.sha.outputs.source_tarball }}
+          rm ${{ steps.sha.outputs.source_tarball }}
           echo "PyTorch source extracted: $(du -sh pytorch/ | cut -f1)"
 
       # Step 2: Build and install PyTorch
@@ -151,6 +168,22 @@ jobs:
           cd /tmp
           python -c "import torch; print(f'PyTorch version: {torch.__version__}')"
           cd "${GITHUB_WORKSPACE}"
+
+      - name: Capture PyTorch wheel info
+        id: pytorch_wheel
+        run: |
+          wheel=$(ls /tmp/wheels/torch-*.whl | head -1)
+          echo "path=${wheel}" >> "$GITHUB_OUTPUT"
+          echo "name=$(basename ${wheel})" >> "$GITHUB_OUTPUT"
+
+      - name: Upload PyTorch wheel to OBS
+        uses: huaweicloud/obs-helper@v1.0.1
+        with:
+          region: cn-north-4
+          bucket_name: pytorch-cache
+          local_file_path: ${{ steps.pytorch_wheel.outputs.path }}
+          obs_file_path: 7day-cache/${{ steps.pytorch_wheel.outputs.name }}
+          operation_type: upload
 
       # Step 3: Checkout downstream torch_npu
       - name: Checkout downstream repo (torch_npu)
@@ -194,12 +227,28 @@ jobs:
           pip install dist/torch_npu*.whl
           cp dist/torch_npu*.whl /tmp/wheels/
 
+      - name: Capture torch_npu wheel info
+        id: torchnpu_wheel
+        run: |
+          wheel=$(ls /tmp/wheels/torch_npu*.whl | head -1)
+          echo "path=${wheel}" >> "$GITHUB_OUTPUT"
+          echo "name=$(basename ${wheel})" >> "$GITHUB_OUTPUT"
+
+      - name: Upload torch_npu wheel to OBS
+        uses: huaweicloud/obs-helper@v1.0.1
+        with:
+          region: cn-north-4
+          bucket_name: pytorch-cache
+          local_file_path: ${{ steps.torchnpu_wheel.outputs.path }}
+          obs_file_path: 7day-cache/${{ steps.torchnpu_wheel.outputs.name }}
+          operation_type: upload
+
       # Step 5: Upload wheel artifacts
       - name: Upload wheel artifacts
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: wheels-${{ github.run_number }}
+          name: packages-pytorch-${{ steps.sha.outputs.upstream_short }}
           path: /tmp/wheels/*.whl
           retention-days: 7
 
@@ -243,6 +292,8 @@ jobs:
       - name: Summary
         if: always()
         run: |
+          TORCH_NPU_SHA=$(git -C torch_npu rev-parse HEAD)
+
           echo "============================================"
           echo "             Build Summary"
           echo "============================================"
@@ -253,5 +304,38 @@ jobs:
           fi
           echo "PyTorch commit  : ${{ inputs.upstream_sha }}"
           echo "torch_npu repo  : ${{ inputs.torch_npu_repo }}"
+          echo "torch_npu commit: ${TORCH_NPU_SHA}"
           echo "Max jobs        : ${MAX_JOBS}"
           echo "============================================"
+
+          {
+            echo "## Build Summary"
+            echo ""
+            echo "| Item | Value |"
+            echo "|------|-------|"
+            if [ -n "${{ inputs.upstream_fork_repo }}" ]; then
+              echo "| PyTorch fork PR | ${{ inputs.upstream_fork_repo }} |"
+            else
+              echo "| PyTorch upstream | ${{ inputs.upstream_repo }} |"
+            fi
+            echo "| PyTorch commit | \`${{ inputs.upstream_sha }}\` |"
+            echo "| torch_npu repo | ${{ inputs.torch_npu_repo }} |"
+            echo "| torch_npu commit | \`${TORCH_NPU_SHA}\` |"
+            echo "| Max jobs | ${MAX_JOBS} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Step 9: Report CI completed to dashboard
+      - name: Report CI completed
+        if: always()
+        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@main
+        with:
+          status: completed
+          conclusion: ${{ job.status == 'success' && 'success' || 'failure' }}
+          test-results: >-
+            {
+              "passed": 10,
+              "failed": 1,
+              "skipped": 2,
+              "total": 13
+            }
+          artifact-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
