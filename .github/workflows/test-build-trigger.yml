@@ -15,6 +15,6 @@ jobs:
     secrets: inherit
     with:
       upstream_repo: pytorch/pytorch
-      upstream_sha: f7379c8f87f1371c5285784618ac867ea95da5a5
+      upstream_sha: 65082aaa4
       torch_npu_repo: ${{ github.repository }}
       torch_npu_ref: ci-test
