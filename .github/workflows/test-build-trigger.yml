@@ -9,6 +9,10 @@ concurrency:
   group: test-build-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   build:
     uses: ./.github/workflows/_build.yml
