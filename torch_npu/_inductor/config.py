@@ -163,6 +163,7 @@ rtol_default = 1.3e-6
 atol_default = 1e-5
 
 if dump_fx_graph:
+    torch._inductor.config.split_reductions = False
     # Configure accuracy comparison thresholds when check_accuracy is enabled
     ENV_TOL_STR = os.environ.get("INDUCTOR_ASCEND_CHECK_ACCURACY_RTOL_ATOL", "")
     rtol_custom, atol_custom = parse_rtol_atol(ENV_TOL_STR)
