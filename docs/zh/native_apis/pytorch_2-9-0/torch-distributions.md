@@ -250,7 +250,7 @@
 |[torch.distributions.log_normal.LogNormal.mean](https://pytorch.org/docs/2.9/distributions.html#torch.distributions.log_normal.LogNormal.mean)|是|-|
 |[torch.distributions.log_normal.LogNormal.mode](https://pytorch.org/docs/2.9/distributions.html#torch.distributions.log_normal.LogNormal.mode)|是|-|
 |[torch.distributions.log_normal.LogNormal.scale](https://pytorch.org/docs/2.9/distributions.html#torch.distributions.log_normal.LogNormal.scale)|是|-|
-|[torch.distributions.log_normal.LogNormal.support](https://pytorch.org/docs/2.9/generated/torch.distributions.log_normal.LogNormal.support.html)|是|-|
+|[torch.distributions.log_normal.LogNormal.support](https://pytorch.org/docs/2.9/distributions.html#torch.distributions.log_normal.LogNormal.support)|是|-|
 |[torch.distributions.log_normal.LogNormal.variance](https://pytorch.org/docs/2.9/distributions.html#torch.distributions.log_normal.LogNormal.variance)|是|-|
 |[torch.distributions.lowrank_multivariate_normal.LowRankMultivariateNormal](https://pytorch.org/docs/2.9/distributions.html#torch.distributions.lowrank_multivariate_normal.LowRankMultivariateNormal)|是|-|
 |[torch.distributions.lowrank_multivariate_normal.LowRankMultivariateNormal.arg_constraints](https://pytorch.org/docs/2.9/distributions.html#torch.distributions.lowrank_multivariate_normal.LowRankMultivariateNormal.arg_constraints)|是|-|

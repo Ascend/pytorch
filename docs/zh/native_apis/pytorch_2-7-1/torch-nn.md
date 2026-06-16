@@ -57,7 +57,7 @@
 |[torch.nn.Module.train](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.train)|是|支持fp32|
 |[torch.nn.Module.type](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.type)|是|支持fp16，fp32，int64|
 |[torch.nn.Module.xpu](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.xpu)|是|NPU形式名称为torch.nn.Module.npu|
-|[torch.nn.Module.npu](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.npu)|否|-|
+|[torch.nn.Module.npu](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html)|否|-|
 |[torch.nn.Module.zero_grad](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.zero_grad)|是|支持fp32|
 |[torch.nn.Sequential](https://pytorch.org/docs/2.7/generated/torch.nn.Sequential.html)|是|支持fp32|
 |[torch.nn.Sequential.append](https://pytorch.org/docs/2.7/generated/torch.nn.Sequential.html#torch.nn.Sequential.append)|是|支持fp32|
