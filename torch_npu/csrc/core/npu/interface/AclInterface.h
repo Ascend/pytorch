@@ -147,7 +147,7 @@ aclError AclIpcGetEventHandle(aclrtEvent event, aclrtIpcEventHandle *handle);
 
 aclError AclIpcOpenEventHandle(aclrtIpcEventHandle handle, aclrtEvent *event);
 
-bool IsSupportIpcEvent();
+bool IsSupportIpcEvent(bool ignore_error = true);
 
 aclError AclProfilingInit(const char *profilerResultPath, size_t length);
 aclError AclProfilingStart(const aclprofConfig *profilerConfig);
