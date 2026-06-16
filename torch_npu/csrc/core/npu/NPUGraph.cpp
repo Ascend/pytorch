@@ -8,10 +8,8 @@
 #include "third_party/acl/inc/acl/error_codes/rt_error_codes.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 
-#include <chrono>
 #include <cstddef>
 #include <cstdint>
-#include <thread>
 #include <vector>
 
 #include <ATen/Functions.h>
@@ -19,7 +17,6 @@
 namespace c10_npu {
 
 static bool _npu_graphs_debug = false;
-constexpr int kSynchronizeBusyWaitMillis = 10;
 
 namespace {
 void apply_cache_op_info(aclrtStream stream, bool enabled)
@@ -134,28 +131,6 @@ void unsubscribe_report(uint64_t threadId, c10_npu::NPUStream stream)
  * describes memory management for captures.
  */
 
-std::atomic<int> NPUGraph::pending_event_queries = 0;
-
-// Track any outstanding event queries that could happen e.g., in a NCCL watchdog so that they
-// can be resolved before the capture begins. Note that event queries are not allowed during a
-// graph capture in the default capture mode.
-void NPUGraph::inc_pending_event_queries()
-{
-    pending_event_queries++;
-}
-
-void NPUGraph::dec_pending_event_queries()
-{
-    TORCH_INTERNAL_ASSERT(pending_event_queries > 0,
-                          "Attempted to decrement the number of outstanding events to be queried, but it was <= 0.");
-    pending_event_queries--;
-}
-
-int NPUGraph::num_pending_event_queries()
-{
-    return pending_event_queries;
-}
-
 NPUGraph::NPUGraph()
     // NPUStreams may not be default-constructed.
     : capture_stream_(c10_npu::getCurrentNPUStream()) {
@@ -233,15 +208,6 @@ void NPUGraph::capture_begin(MempoolId_t pool, aclmdlRICaptureMode capture_mode,
         NPU_CHECK_ERROR(c10_npu::acl::AclmdlRICaptureGetInfo(stream, &status, &model_ri));
         return status == aclmdlRICaptureStatus::ACL_MODEL_RI_CAPTURE_STATUS_ACTIVE && model_ri == model_ri_;
     });
-
-    // At this point, any NCCL watchdogs should be aware that we are in capture mode
-    // and therefore should not enqueue any additional work that could be event-queried.
-    // We still must wait on any existing work that has not been cleaned up.
-    while (num_pending_event_queries()) {
-        TORCH_WARN_ONCE("Waiting for pending NCCL work to finish before starting graph capture.");
-        std::this_thread::sleep_for(
-            std::chrono::milliseconds(kSynchronizeBusyWaitMillis));
-    }
 
     // cudaStreamCaptureModeGlobal is the most conservative option to
     // prevent potentially unsafe CUDA API calls during capture.
