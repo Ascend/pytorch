@@ -9,6 +9,11 @@ Add validation cases for torch.fx symbolic_shapes related APIs on NPU:
 3. Current covered APIs / behaviors include:
    - symbolic_shapes.DimConstraints.add
    - symbolic_shapes.DimConstraints.add_equality
+   - torch.fx.experimental.symbolic_shapes.ShapeEnv.size_hint
+   - torch.fx.experimental.symbolic_shapes.ShapeEnv.suppress_guards
+   - torch.fx.experimental.symbolic_shapes.ShapeEnvSettings
+   - torch.fx.experimental.symbolic_shapes.StatefulSymbolicContext
+   - torch.fx.experimental.symbolic_shapes.StatelessSymbolicContext
    - symbolic_shapes._lru_cache
    - symbolic_shapes.CallMethodKey
    - symbolic_shapes.CallMethodKey.get
@@ -19,6 +24,9 @@ Add validation cases for torch.fx symbolic_shapes related APIs on NPU:
    - symbolic_shapes.SubclassSymbolicContext
    - symbolic_shapes.sym_eq
 """
+
+import dataclasses
+import inspect
 
 import sympy
 import torch
@@ -130,6 +138,81 @@ class TestSymbolicShapesAPI(TestCase):
         # ordinary Python values.
         self.assertTrue(symbolic_shapes.sym_eq(1, 1))
         self.assertFalse(symbolic_shapes.sym_eq(1, 2))
+
+
+    def test_shape_env_size_hint(self):
+        shape_env = symbolic_shapes.ShapeEnv()
+        self.assertEqual(shape_env.size_hint(sympy.Integer(8)), 8)
+
+        signature = inspect.signature(shape_env.size_hint)
+        self.assertIn("expr", signature.parameters)
+        self.assertIn("allow_none", signature.parameters)
+        self.assertEqual(signature.parameters["allow_none"].default, False)
+
+    def test_shape_env_suppress_guards(self):
+        shape_env = symbolic_shapes.ShapeEnv()
+        with shape_env.suppress_guards():
+            self.assertEqual(shape_env.size_hint(sympy.Integer(4)), 4)
+
+    def test_shape_env_settings(self):
+        field_names = {
+            field.name for field in dataclasses.fields(symbolic_shapes.ShapeEnvSettings)
+        }
+        setting_values = {
+            "allow_scalar_outputs": True,
+            "allow_dynamic_output_shape_ops": True,
+            "assume_static_by_default": False,
+            "specialize_zero_one": True,
+            "duck_shape": True,
+            "prefer_deferred_runtime_asserts_over_guards": False,
+            "allow_complex_guards_as_runtime_asserts": False,
+            "trace_asserts": False,
+        }
+
+        settings = symbolic_shapes.ShapeEnvSettings(
+            **{
+                name: value
+                for name, value in setting_values.items()
+                if name in field_names
+            }
+        )
+
+        self.assertIn("allow_scalar_outputs", field_names)
+        self.assertIn("duck_shape", field_names)
+        for name, value in setting_values.items():
+            if name in field_names:
+                self.assertEqual(getattr(settings, name), value)
+
+    def test_stateless_symbolic_context(self):
+        context = symbolic_shapes.StatelessSymbolicContext(
+            dynamic_sizes=[symbolic_shapes.DimDynamic.DUCK, symbolic_shapes.DimDynamic.DUCK],
+        )
+
+        self.assertEqual(
+            context.dynamic_sizes,
+            [symbolic_shapes.DimDynamic.DUCK, symbolic_shapes.DimDynamic.DUCK],
+        )
+        self.assertEqual(
+            context.dynamic_strides,
+            [symbolic_shapes.DimDynamic.INFER_STRIDE, symbolic_shapes.DimDynamic.INFER_STRIDE],
+        )
+        self.assertEqual(context.constraint_sizes, [None, None])
+        self.assertEqual(context.constraint_strides, [None, None])
+
+    def test_stateful_symbolic_context(self):
+        tensor_source = ConstantSource("x")
+        context = symbolic_shapes.StatefulSymbolicContext(
+            dynamic_sizes=[symbolic_shapes.DimDynamic.DUCK, symbolic_shapes.DimDynamic.DUCK],
+            tensor_source=tensor_source,
+        )
+
+        self.assertEqual(context.tensor_source, tensor_source)
+        self.assertEqual(context.shape_env_to_source_to_symbol_cache, {})
+        self.assertEqual(
+            context.dynamic_sizes,
+            [symbolic_shapes.DimDynamic.DUCK, symbolic_shapes.DimDynamic.DUCK],
+        )
+
 
 
 class TestSymbolicShapesTargetApiNPU(TestCase):
