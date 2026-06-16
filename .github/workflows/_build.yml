@@ -74,7 +74,7 @@ jobs:
   # ======================================================================
   build:
     needs: fetch
-    runs-on: linux-aarch64-a3-16
+    runs-on: linux-aarch64-a3-8
     defaults:
       run:
         shell: bash
@@ -82,7 +82,7 @@ jobs:
       image: quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly
       options: --network host
     env:
-      MAX_JOBS: 128
+      MAX_JOBS: 64
       USE_CUDA: 0
       USE_XNNPACK: 0
       _GLIBCXX_USE_CXX11_ABI: 1
