@@ -112,7 +112,7 @@ jobs:
             --patch-count "${{ inputs.patch_count }}" \
             --shard-matrix-json "${COMBINED_MATRIX}" \
             --docker-image "${{ inputs.docker_image }}" \
-            --runner "linux-aarch64-a3-16 (distributed, serial), linux-aarch64-a3-16 (regular, 64 workers), linux-aarch64-a3-8 (custom)" \
+            --runner "linux-aarch64-a3-8 (distributed, serial), linux-aarch64-a3-16 (regular, 16 workers), linux-aarch64-a3-16 (custom)" \
             --cases-summary cases-shards/cases_collection_summary.json \
             --cases-by-file-dir cases-shards
 

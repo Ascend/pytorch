@@ -122,8 +122,8 @@ jobs:
           echo "total_cases=${TOTAL_CASES}" >> $GITHUB_OUTPUT
 
           echo "=== Shard configuration ==="
-          echo "Distributed tests: ${DISTRIBUTED_SHARDS} shards (case-level, serial execution, linux-aarch64-a3-16)"
-          echo "Regular tests: ${REGULAR_SHARDS} shards (case-level, 64 workers, linux-aarch64-a3-16)"
+          echo "Distributed tests: ${DISTRIBUTED_SHARDS} shards (case-level, serial execution, linux-aarch64-a3-8)"
+          echo "Regular tests: ${REGULAR_SHARDS} shards (case-level, 16 workers, linux-aarch64-a3-16)"
           echo "Total cases: ${TOTAL_CASES}"
 
           # Package error logs if any (place at workspace root for flat artifact layout)
