@@ -12,8 +12,9 @@ concurrency:
 jobs:
   build:
     uses: ./.github/workflows/_build.yml
+    secrets: inherit
     with:
       upstream_repo: pytorch/pytorch
-      upstream_sha: 5daacd359a77af018e3079aef3fe3d05e22cd669
+      upstream_sha: f7379c8f87f1371c5285784618ac867ea95da5a5
       torch_npu_repo: ${{ github.repository }}
       torch_npu_ref: ci-test
