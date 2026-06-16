@@ -87,11 +87,11 @@
 |[torch.nn.ParameterDict.setdefault](https://pytorch.org/docs/2.9/generated/torch.nn.ParameterDict.html#torch.nn.ParameterDict.setdefault)|是|支持fp32|
 |[torch.nn.ParameterDict.update](https://pytorch.org/docs/2.9/generated/torch.nn.ParameterDict.html#torch.nn.ParameterDict.update)|是|支持fp32|
 |[torch.nn.ParameterDict.values](https://pytorch.org/docs/2.9/generated/torch.nn.ParameterDict.html#torch.nn.ParameterDict.values)|是|支持fp32|
-|[torch.nn.modules.module.register_module_forward_pre_hook](https://pytorch.org/docs/2.9/generated/torch.nn.modules.module.register_module_forward_pre_hook.html)|是|支持fp32|
-|[torch.nn.modules.module.register_module_forward_hook](https://pytorch.org/docs/2.9/generated/torch.nn.modules.module.register_module_forward_hook.html)|是|支持fp32|
-|[torch.nn.modules.module.register_module_backward_hook](https://pytorch.org/docs/2.9/generated/torch.nn.modules.module.register_module_backward_hook.html)|是|支持fp32|
+|[torch.nn.modules.module.register_module_forward_pre_hook](https://pytorch.org/docs/2.9/generated/torch.nn.modules.module.register_module_forward_pre_hook.html)|是|-|
+|[torch.nn.modules.module.register_module_forward_hook](https://pytorch.org/docs/2.9/generated/torch.nn.modules.module.register_module_forward_hook.html)|是|-|
+|[torch.nn.modules.module.register_module_backward_hook](https://pytorch.org/docs/2.9/generated/torch.nn.modules.module.register_module_backward_hook.html)|是|-|
 |[torch.nn.modules.module.register_module_full_backward_pre_hook](https://pytorch.org/docs/2.9/generated/torch.nn.modules.module.register_module_full_backward_pre_hook.html)|是|-|
-|[torch.nn.modules.module.register_module_full_backward_hook](https://pytorch.org/docs/2.9/generated/torch.nn.modules.module.register_module_full_backward_hook.html)|是|支持fp32|
+|[torch.nn.modules.module.register_module_full_backward_hook](https://pytorch.org/docs/2.9/generated/torch.nn.modules.module.register_module_full_backward_hook.html)|是|-|
 |[torch.nn.modules.module.register_module_buffer_registration_hook](https://pytorch.org/docs/2.9/generated/torch.nn.modules.module.register_module_buffer_registration_hook.html)|是|-|
 |[torch.nn.modules.module.register_module_module_registration_hook](https://pytorch.org/docs/2.9/generated/torch.nn.modules.module.register_module_module_registration_hook.html)|是|-|
 |[torch.nn.modules.module.register_module_parameter_registration_hook](https://pytorch.org/docs/2.9/generated/torch.nn.modules.module.register_module_parameter_registration_hook.html)|是|-|
