@@ -53,11 +53,16 @@ jobs:
           tar -czf pytorch-source.tar.gz pytorch/
           echo "Package size: $(du -h pytorch-source.tar.gz | cut -f1)"
 
+      - name: Authenticate to Huawei Cloud
+        uses: huaweicloud/auth-action@v1.0.0
+        with:
+          access_key_id: ${{ secrets.ACCESSKEY }}
+          secret_access_key: ${{ secrets.SECRETACCESSKEY }}
+          region: cn-north-4
+
       - name: Upload PyTorch source to OBS
         uses: huaweicloud/obs-helper@v1.0.1
         with:
-          access_key: ${{ secrets.ACCESSKEY }}
-          secret_key: ${{ secrets.SECRETACCESSKEY }}
           region: cn-north-4
           bucket_name: pytorch-cache
           local_file_path: ./pytorch-source.tar.gz
@@ -86,11 +91,16 @@ jobs:
       PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
     steps:
       # Step 1: Download and extract pre-fetched PyTorch source
+      - name: Authenticate to Huawei Cloud
+        uses: huaweicloud/auth-action@v1.0.0
+        with:
+          access_key_id: ${{ secrets.ACCESSKEY }}
+          secret_access_key: ${{ secrets.SECRETACCESSKEY }}
+          region: cn-north-4
+
       - name: Download PyTorch source from OBS
         uses: huaweicloud/obs-helper@v1.0.1
         with:
-          access_key: ${{ secrets.ACCESSKEY }}
-          secret_key: ${{ secrets.SECRETACCESSKEY }}
           region: cn-north-4
           bucket_name: pytorch-cache
           local_file_path: ./pytorch-source.tar.gz
