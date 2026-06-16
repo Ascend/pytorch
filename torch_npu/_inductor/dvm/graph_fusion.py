@@ -20,7 +20,7 @@ from torch.fx.passes.utils.fuser_utils import (
     erase_nodes,
 )
 
-from .graph_build import DvmCodegenInterpreter
+from .graph_build import DvmCodegenInterpreter, is_fx_dynamic
 from .util import patch_gm_placeholder_strides_from_codegen_args
 from .fx_test import generate_dvm_fx_case
 from .op_emitter import DVM_OP_REGISTRY
@@ -373,7 +373,8 @@ def _dvm_generate_fallback_kernel(self, fallback_kernel, args):
     meta = _fused_metas.pop(fused_id)
 
     args_list = list(args[:-1])
-    patch_gm_placeholder_strides_from_codegen_args(meta.gm, args_list)
+    if not is_fx_dynamic(meta.gm):
+        patch_gm_placeholder_strides_from_codegen_args(meta.gm, args_list)
     cg, code = meta.codegen()
     self.header.splice(code)
 
