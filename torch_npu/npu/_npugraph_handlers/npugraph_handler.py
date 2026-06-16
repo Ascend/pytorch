@@ -42,19 +42,33 @@ class NpuGraphOpHandler:
     parameter is ``cls``, not ``self``).  There is no instance; the global
     registry stores **class objects** directly.  This structurally prevents
     storing mutable per-invocation state.  Class-level constants (e.g.
-    ``_OP_ARG_SPECS``) are accessible via ``cls``.
+    ``UPDATE_SPECS``) are accessible via ``cls``.
 
-    Users should inherit this class and override the needed hooks:
+    **Declarative update_args via UPDATE_SPECS**: Subclasses declare which
+    update keys they consume and where those keys live in args/kwargs via the
+    ``UPDATE_SPECS`` class attribute. The base ``update_args`` implementation
+    walks the spec and applies updates uniformly. Subclasses normally do not
+    need to override ``update_args``.
+
+    Schema:
+
+    .. code-block:: python
+
+        UPDATE_SPECS: Dict[op_name, List[Tuple[Literal["arg", "kwarg"], int | str, key_name]]]
+
+    Example:
 
     .. code-block:: python
 
         @register_npu_graph_handler(["my_op", "my_op.default"])
         class MyHandler(NpuGraphOpHandler):
-            @classmethod
-            def update_args(cls, record, update_input):
-                if "batch" in update_input and len(record.args) >= 3:
-                    record.args[2] = update_input["batch"]
+            UPDATE_SPECS = {
+                "my_op":         [("arg", 2, "batch")],
+                "my_op.default": [("arg", 2, "batch")],
+            }
     """
+
+    UPDATE_SPECS = {}
 
     @classmethod
     def prepare_capture(cls, func, args, kwargs):
@@ -100,19 +114,42 @@ class NpuGraphOpHandler:
         return result
 
     @classmethod
-    def update_args(cls, dispatch_record, update_input):
-        r"""Apply operator-specific indexed-arg updates.
+    def get_update_specs(cls, op_name):
+        r"""Return per-op update specs.
 
-        Framework-level kwargs updates are handled by the dispatch skeleton.
-        Override this hook only when update values must be applied to
-        arguments by index.
+        Args:
+            op_name (str): Operator dispatch name (e.g. ``"_npu_paged_attention.default"``).
+
+        Returns:
+            List of ``(loc, idx_or_name, key)`` tuples. ``loc`` is ``"arg"`` or
+            ``"kwarg"``; ``idx_or_name`` is an int index for ``"arg"`` or a
+            string name for ``"kwarg"``; ``key`` is the user-facing update key.
+            Empty list if this op is not in ``UPDATE_SPECS``.
+        """
+        return cls.UPDATE_SPECS.get(op_name, [])
+
+    @classmethod
+    def update_args(cls, dispatch_record, update_input):
+        r"""Apply operator-specific updates by walking ``UPDATE_SPECS``.
+
+        Default implementation reads the spec for this op and assigns the
+        matching key's value from ``update_input`` to the recorded args/kwargs
+        slot. Subclasses normally do not need to override this; declare
+        ``UPDATE_SPECS`` instead.
 
         Args:
             dispatch_record (_GraphDispatchRecord): Recorded operator call.
-                Args can be modified via ``dispatch_record.args[i]``.
             update_input (dict): User-provided update payload.
         """
-        pass
+        specs = cls.get_update_specs(dispatch_record.op_cache_entry.__name__)
+        for loc, idx_or_name, key in specs:
+            if key not in update_input:
+                continue
+            if loc == "arg":
+                if len(dispatch_record.args) > idx_or_name:
+                    dispatch_record.args[idx_or_name] = update_input[key]
+            elif loc == "kwarg":
+                dispatch_record.kwargs[idx_or_name] = update_input[key]
 
     @classmethod
     def record_wrap_kwarg(cls, key, value, tensor_param_names):
@@ -204,8 +241,8 @@ def register_npu_graph_handler(op_names):
             if name in _NPU_GRAPH_OP_HANDLERS:
                 existing = _NPU_GRAPH_OP_HANDLERS[name].__name__
                 logger.warning(
-                    f"NpuGraphOpHandler for '{name}' is being overridden: "
-                    f"{existing} -> {cls.__name__}"
+                    "NpuGraphOpHandler for '%s' is being overridden: %s -> %s",
+                    name, existing, cls.__name__,
                 )
             _NPU_GRAPH_OP_HANDLERS[name] = cls   # store class, not instance
         return cls
