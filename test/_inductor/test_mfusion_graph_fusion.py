@@ -7,6 +7,7 @@ from torch.testing._internal.common_utils import (
     run_tests,
     TestCase,
 )
+from torch.utils._ordered_set import OrderedSet
 
 
 try:
@@ -156,7 +157,68 @@ class TestMfusionByGraphFusion(TestCase):
         self._compile_and_check(Model(), (a, b), atol=1e-3, rtol=1e-3)
 
 
+class TestMfusionSymbolFastpath(TestCase):
+    def test_is_mfusion_related_ir_detects_recursive_inputs(self):
+        from torch_npu._inductor.mfusion.graph_fusion import _is_mfusion_related_ir
+
+        class FakeOpOverload:
+            def __init__(self, name):
+                self._name = name
+
+        class FakeNode:
+            def __init__(self, *, op_name="", inputs=()):
+                self.op_overload = FakeOpOverload(op_name) if op_name else None
+                self.inputs = inputs
+
+        mfusion_leaf = FakeNode(op_name="mfusion::subgraph_0")
+        plain_leaf = FakeNode(op_name="aten::add")
+        recursive_node = FakeNode(inputs=(plain_leaf, mfusion_leaf))
+
+        self.assertTrue(_is_mfusion_related_ir(mfusion_leaf))
+        self.assertTrue(_is_mfusion_related_ir(recursive_node))
+        self.assertFalse(_is_mfusion_related_ir(plain_leaf))
+
+    def test_layout_only_symbol_uses_prefers_output_layout(self):
+        from torch_npu._inductor.mfusion.graph_fusion import _layout_only_symbol_uses
+
+        class FakeLayout:
+            def __init__(self, symbols=None, *, raise_not_implemented=False):
+                self.symbols = OrderedSet(symbols or ())
+                self.raise_not_implemented = raise_not_implemented
+
+            def get_free_symbol_uses(self, unbacked_only=False):
+                if self.raise_not_implemented:
+                    raise NotImplementedError
+                return OrderedSet(self.symbols)
+
+        class FakeValue:
+            def __init__(self, layout):
+                self.layout = layout
+
+        class FakeNode:
+            def __init__(self, *, outputs=(), layout=None):
+                self.outputs = outputs
+                self.layout = layout
+
+        out0 = FakeValue(FakeLayout(("s0",)))
+        out1 = FakeValue(FakeLayout(("s1",)))
+        node = FakeNode(
+            outputs=(out0, out1),
+            layout=FakeLayout(("fallback_symbol",)),
+        )
+        self.assertEqual(_layout_only_symbol_uses(node), OrderedSet(("s0", "s1")))
+
+        fallback_node = FakeNode(
+            outputs=(FakeValue(FakeLayout(raise_not_implemented=True)),),
+            layout=FakeLayout(("layout_symbol",)),
+        )
+        self.assertEqual(
+            _layout_only_symbol_uses(fallback_node), OrderedSet(("layout_symbol",))
+        )
+
+
 instantiate_parametrized_tests(TestMfusionByGraphFusion)
+instantiate_parametrized_tests(TestMfusionSymbolFastpath)
 
 if __name__ == "__main__":
     run_tests()
