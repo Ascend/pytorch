@@ -213,3 +213,33 @@ blacklist:
   - distributed/test_c10d_spawn.py
   - dynamo/cpython/3_13/
   - jit/fixtures_srcs/test_upgrader_models_generation.py
+  # P1/P2 - NPU incompatible / missing dependencies / ninja
+  - distributed/test_c10d_ops_nccl.py
+  - distributed/test_nvshmem_triton.py
+  - distributed/rpc/test_faulty_agent.py
+  - distributed/rpc/test_tensorpipe_agent.py
+  - dynamo/test_torchrec.py
+  - mobile/test_lite_script_module.py
+  - custom_operator/test_custom_ops.py
+  - profiler/test_cpp_thread.py
+  - jit/xnnpack/test_xnnpack_delegate.py
+  - test/test_bundled_images.py
+  - test/test_cpp_api_parity.py
+  - test/test_privateuseone_python_backend.py
+  - test/test_mps.py
+  - test/test_xpu_expandable_segments.py
+  - quantization/core/experimental
+  # P3 - device-specific tests (CUDA/XPU/MPS only)
+  - jit/test_cuda.py
+  - jit/test_hooks_modules.py
+  - jit/test_pdt.py
+  - package/package_a
+  - package/package_c
+  - test/test_cpp_extensions_aot.py
+  - test/test_cuda_multigpu.py
+  - test/test_cuda_primary_ctx.py
+  - test/test_cuda_sanitizer.py
+  - test/test_cuda_trace.py
+  - xpu/test_conv.py
+  - xpu/test_fusion.py
+  - xpu/test_gemm.py

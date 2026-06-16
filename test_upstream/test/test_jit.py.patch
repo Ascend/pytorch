@@ -21,12 +21,12 @@ index 9519ed8..10c87bb 100644
 +_original_jit_script = torch.jit.script
 +_original_jit_script_method = torch.jit.script_method
 +# Keep transfer_to_npu compatible with the 2.12 torch_npu patch hook.
-+if torch_npu._apply_patches.__code__.co_argcount == 0:
-+    _original_apply_patches = torch_npu._apply_patches
-+    torch_npu._apply_patches = lambda *args, **kwargs: _original_apply_patches()
++if torch_npu._apply_all_patches.__code__.co_argcount == 0:
++    _original_apply_patches = torch_npu._apply_all_patches
++    torch_npu._apply_all_patches = lambda *args, **kwargs: _original_apply_patches()
 +from torch_npu.contrib import transfer_to_npu
 +if "_original_apply_patches" in globals():
-+    torch_npu._apply_patches = _original_apply_patches
++    torch_npu._apply_all_patches = _original_apply_patches
 +torch.jit.script = _original_jit_script
 +torch.jit.script_method = _original_jit_script_method
 +

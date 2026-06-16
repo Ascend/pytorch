@@ -2,12 +2,11 @@
 index 47ed532c5cb..cd3e542b9e9 100644
 --- a/test/functorch/test_aotdispatch.py
 +++ b/test/functorch/test_aotdispatch.py
-@@ -25,8 +25,6 @@ from common_utils import (
+@@ -25,8 +25,7 @@ from common_utils import (
      skipOps,
      xfail,
  )
 -
--import torch
  import torch._dynamo as torchdynamo
  import torch.nn as nn
  import torch.nn.functional as F
