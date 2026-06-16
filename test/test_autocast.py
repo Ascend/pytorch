@@ -280,6 +280,16 @@ class TestAutocastNPU(TestCase):
         torch_npu.npu.set_autocast_enabled(False)
         self.assertTrue(torch_npu.npu.is_autocast_enabled() is not True)
 
+    def test_get_amp_supported_dtype(self):
+        amp_supported_dtypes = torch_npu.npu.get_amp_supported_dtype()
+        self.assertTrue(torch.float16 in amp_supported_dtypes)
+        self.assertTrue(torch.float32 in amp_supported_dtypes)
+        if torch.npu.is_bf16_supported():
+            self.assertTrue(torch.bfloat16 in amp_supported_dtypes)
+            self.assertTrue(len(amp_supported_dtypes) == 3)
+        else:
+            self.assertTrue(len(amp_supported_dtypes) == 2)
+
 
 @unittest.skipIf(not torch.npu.is_available(), "requires npu")
 class TestAutocastNPUfp32(TestCase):

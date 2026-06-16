@@ -459,6 +459,12 @@ print(f"{{r1}}, {{r2}}")
         except Exception as e:
             self.assertIn("Overflow when unpacking", str(e), f"{e}")
 
+    def test_use_compatible_impl(self):
+        old_enabled = torch_npu.npu.are_compatible_impl_enabled()
+        torch_npu.npu.use_compatible_impl(True)
+        self.assertTrue(torch_npu.npu.are_compatible_impl_enabled() is True)
+        torch_npu.npu.use_compatible_impl(old_enabled)
+
 
 if __name__ == "__main__":
     run_tests()
