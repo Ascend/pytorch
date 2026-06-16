@@ -44,6 +44,21 @@ class _FA3TensorListOutHandler(NpuGraphOpHandler):
 class FA3ForwardHandler(_FA3TensorListOutHandler):
     """FA v3 forward: ``.default`` pre-allocates and swaps to ``.out``; ``.out`` passthrough."""
 
+    UPDATE_SPECS = {
+        "npu_fusion_attention_v3": [
+            ("arg", 14, "actual_seq_qlen"),
+            ("arg", 15, "actual_seq_kvlen"),
+        ],
+        "npu_fusion_attention_v3.default": [
+            ("arg", 14, "actual_seq_qlen"),
+            ("arg", 15, "actual_seq_kvlen"),
+        ],
+        "npu_fusion_attention_v3.out": [
+            ("arg", 14, "actual_seq_qlen"),
+            ("arg", 15, "actual_seq_kvlen"),
+        ],
+    }
+
     @classmethod
     def should_handle(cls, func, args, kwargs):
         """BNSD layout bypasses handler entirely — no dispatch record, no update."""
@@ -53,13 +68,6 @@ class FA3ForwardHandler(_FA3TensorListOutHandler):
         if input_layout == "BNSD":
             return False
         return True
-
-    @classmethod
-    def update_args(cls, record, update_input):
-        if "actual_seq_qlen" in update_input and len(record.args) > 14:
-            record.args[14] = update_input["actual_seq_qlen"]
-        if "actual_seq_kvlen" in update_input and len(record.args) > 15:
-            record.args[15] = update_input["actual_seq_kvlen"]
 
     @classmethod
     def prepare_capture(cls, func, args, kwargs):
@@ -127,6 +135,21 @@ class FA3ForwardHandler(_FA3TensorListOutHandler):
 class FA3BackwardHandler(_FA3TensorListOutHandler):
     """FA v3 backward: ``.default`` pre-allocates and swaps to ``.out``; ``.out`` passthrough."""
 
+    UPDATE_SPECS = {
+        "npu_fusion_attention_grad_v3": [
+            ("arg", 21, "actual_seq_qlen"),
+            ("arg", 22, "actual_seq_kvlen"),
+        ],
+        "npu_fusion_attention_grad_v3.default": [
+            ("arg", 21, "actual_seq_qlen"),
+            ("arg", 22, "actual_seq_kvlen"),
+        ],
+        "npu_fusion_attention_grad_v3.out": [
+            ("arg", 21, "actual_seq_qlen"),
+            ("arg", 22, "actual_seq_kvlen"),
+        ],
+    }
+
     @classmethod
     def should_handle(cls, func, args, kwargs):
         """BNSD layout bypasses handler entirely — no dispatch record, no update."""
@@ -136,13 +159,6 @@ class FA3BackwardHandler(_FA3TensorListOutHandler):
         if input_layout == "BNSD":
             return False
         return True
-
-    @classmethod
-    def update_args(cls, record, update_input):
-        if "actual_seq_qlen" in update_input and len(record.args) > 21:
-            record.args[21] = update_input["actual_seq_qlen"]
-        if "actual_seq_kvlen" in update_input and len(record.args) > 22:
-            record.args[22] = update_input["actual_seq_kvlen"]
 
     @classmethod
     def prepare_capture(cls, func, args, kwargs):
