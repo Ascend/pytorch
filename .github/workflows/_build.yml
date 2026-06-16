@@ -167,64 +167,6 @@ jobs:
         run: |
           git submodule update --init --recursive --depth=1 --jobs=$(nproc)
 
-      # Step 3.5: Diagnose installed PyTorch for Dimname references
-      - name: "[Diagnostic] Check installed torchgen for Dimname"
-        working-directory: /tmp
-        run: |
-          echo "=== Checking installed torchgen for Dimname ==="
-          python -c "
-          import torchgen, os, sys
-          d = os.path.dirname(torchgen.__file__)
-          yaml_path = os.path.join(d, 'packaged/ATen/native/native_functions.yaml')
-          print(f'Checking: {yaml_path}')
-          if not os.path.exists(yaml_path):
-              print('ERROR: native_functions.yaml not found!')
-              sys.exit(1)
-          with open(yaml_path) as f:
-              c = f.read()
-          cnt = c.count('Dimname')
-          print(f'native_functions.yaml: {cnt} Dimname reference(s)')
-          if cnt > 0:
-              for i, l in enumerate(c.split('\n')):
-                  if 'Dimname' in l:
-                      print(f'  line {i}: {l.strip()[:150]}')
-              print('FATAL: Stale native_functions.yaml with Dimname detected!')
-              sys.exit(1)
-          else:
-              print('OK: native_functions.yaml is clean')
-          "
-
-          echo ""
-          echo "=== Checking model.py BaseTy ==="
-          python -c "
-          import torchgen.model as m
-          has = 'Dimname' in [e.name for e in m.BaseTy]
-          print(f'model.py BaseTy has Dimname member: {has}')
-          import sys
-          if has:
-              print('FATAL: model.py still has Dimname in BaseTy!')
-              sys.exit(1)
-          else:
-              print('OK: model.py BaseTy is clean')
-          "
-
-          echo ""
-          echo "=== Checking tags.yaml ==="
-          python -c "
-          import torchgen, os
-          d = os.path.dirname(torchgen.__file__)
-          tags_path = os.path.join(d, 'packaged/ATen/native/tags.yaml')
-          print(f'Checking: {tags_path}')
-          with open(tags_path) as f:
-              c = f.read()
-          cnt = c.count('Dimname')
-          print(f'tags.yaml: {cnt} Dimname reference(s)')
-          if cnt > 0:
-              print('WARNING: tags.yaml has Dimname refs!')
-          else:
-              print('OK: tags.yaml is clean')
-          "
-
       # Step 4: Build and install torch_npu
       # NOTE: Intentionally do NOT use 'pip install -r requirements.txt' from torch_npu,
       # because that file pins a specific torch version which would overwrite the
