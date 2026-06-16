@@ -44,6 +44,8 @@ export INDUCTOR_ASCEND_CHECK_ACCURACY_RTOL_ATOL="rtol=1e-6,atol=1e-7"
 
 - 在torch.compile图编译后端为“inductor”时可使用此环境变量。
 
+- 此环境变量开启时,Triton后端会自动将`torch._inductor.config.split_reductions`设置为`False`。
+
 ## 支持的型号
 
 - <term>Atlas A2 训练系列产品</term>
