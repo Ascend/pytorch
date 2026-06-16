@@ -53,12 +53,16 @@ jobs:
           tar -czf pytorch-source.tar.gz pytorch/
           echo "Package size: $(du -h pytorch-source.tar.gz | cut -f1)"
 
-      - name: Upload PyTorch source artifact
-        uses: actions/upload-artifact@v4
+      - name: Upload PyTorch source to OBS
+        uses: huaweicloud/obs-helper@v1.4.0
         with:
-          name: pytorch-source-${{ github.run_id }}
-          path: pytorch-source.tar.gz
-          retention-days: 1
+          access_key: ${{ secrets.ACCESSKEY }}
+          secret_key: ${{ secrets.SECRETACCESSKEY }}
+          region: cn-north-4
+          bucket_name: pytorch-cache
+          local_file_path: ./pytorch-source.tar.gz
+          obs_file_path: 7day-cache/pytorch-source-${{ github.run_id }}.tar.gz
+          operation_type: upload
 
   # ======================================================================
   # Job 2: Build PyTorch + torch_npu on self-hosted ARM64 runner
@@ -82,11 +86,16 @@ jobs:
       PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
     steps:
       # Step 1: Download and extract pre-fetched PyTorch source
-      - name: Download PyTorch source
-        uses: actions/download-artifact@v4
+      - name: Download PyTorch source from OBS
+        uses: huaweicloud/obs-helper@v1.4.0
         with:
-          name: pytorch-source-${{ github.run_id }}
-          path: .
+          access_key: ${{ secrets.ACCESSKEY }}
+          secret_key: ${{ secrets.SECRETACCESSKEY }}
+          region: cn-north-4
+          bucket_name: pytorch-cache
+          local_file_path: ./pytorch-source.tar.gz
+          obs_file_path: 7day-cache/pytorch-source-${{ github.run_id }}.tar.gz
+          operation_type: download
 
       - name: Extract PyTorch source
         run: |
