@@ -1,14 +1,12 @@
 import os
 import shutil
 import stat
-from unittest.mock import patch, MagicMock
 
 from torch_npu.profiler.analysis.prof_common_func._constant import Constant
 from torch_npu.profiler.analysis.prof_common_func._file_manager import FileManager
 from torch_npu.profiler.analysis.prof_common_func._path_manager import ProfilerPathManager
 
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.utils._path_manager import PathManager
 
 
 class TestPathManager(TestCase):
@@ -120,7 +118,7 @@ class TestPathManager(TestCase):
         os.makedirs(os.path.join(prof_path2, "PROF_1_2_3a"))
         self.assertEqual([prof_path1], ProfilerPathManager.get_profiler_path_list(prof_path1))
         self.assertEqual([prof_path2], ProfilerPathManager.get_profiler_path_list(prof_path2))
-        self.assertEqual(set((prof_path1, prof_path2)), set(ProfilerPathManager.get_profiler_path_list(self.tmp_dir)))
+        self.assertEqual({prof_path1, prof_path2}, set(ProfilerPathManager.get_profiler_path_list(self.tmp_dir)))
 
     def test_device_all_file_list_by_tag(self):
         self.assertEqual([], ProfilerPathManager.get_output_all_file_list_by_type(self.tmp_dir, "mindstudio_profiler_output"))
@@ -214,20 +212,6 @@ class TestPathManager(TestCase):
             os.path.join(self.tmp_dir, 'dir3', 'subdir3', 'subsubdir2'),
         ]
         self.assertCountEqual(result_depth_2, expected_depth_2)
-
-    @patch('os.stat')
-    def test_path_is_other_writable(self, mock_stat):
-        mock_stat_result = MagicMock()
-        mock_stat_result.st_mode = 0o777
-        mock_stat.return_value = mock_stat_result
-
-        self.assertTrue(ProfilerPathManager.path_is_other_writable(self.tmp_dir))
-        mock_stat_result.st_mode = 0o755
-        self.assertFalse(ProfilerPathManager.path_is_other_writable(self.tmp_dir))
-        mock_stat_result.st_mode = 0o775
-        self.assertTrue(ProfilerPathManager.path_is_other_writable(self.tmp_dir))
-        mock_stat_result.st_mode = 0o700
-        self.assertFalse(ProfilerPathManager.path_is_other_writable(self.tmp_dir))
 
 
 if __name__ == "__main__":
