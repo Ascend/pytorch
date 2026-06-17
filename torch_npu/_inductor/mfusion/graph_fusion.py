@@ -388,6 +388,15 @@ def _output_arg_list(output_node: Node) -> list[Any]:
     return list(args) if isinstance(args, (list, tuple)) else [args]
 
 
+def _output_container_kind(output_node: Node) -> str:
+    args = output_node.args[0]
+    if isinstance(args, tuple):
+        return "tuple"
+    if isinstance(args, list):
+        return "list"
+    return "single"
+
+
 def _copy_output_meta_value(value: Any) -> Any:
     if isinstance(value, list):
         return list(value)
@@ -404,6 +413,7 @@ def _snapshot_output_contract(output_node: Node | None) -> dict[str, Any]:
 
     output_args = _output_arg_list(output_node)
     return {
+        "output_container": _output_container_kind(output_node),
         "output_len": len(output_args),
         "none_positions": [i for i, arg in enumerate(output_args) if arg is None],
         "valid_positions": [i for i, arg in enumerate(output_args) if arg is not None],
@@ -470,7 +480,23 @@ def _restore_output_contract(output_node: Node | None, snapshot: dict[str, Any])
             original_output_strides
         )
 
-    output_node.args = (tuple(restored),)
+    output_container = snapshot.get("output_container", "tuple")
+    if output_container == "tuple":
+        output_node.args = (tuple(restored),)
+    elif output_container == "list":
+        output_node.args = (list(restored),)
+    elif output_container == "single":
+        if len(restored) != 1:
+            raise RuntimeError(
+                "mfusion output ABI mismatch while restoring single output: "
+                f"restored_len={len(restored)}, original_len={output_len}"
+            )
+        output_node.args = (restored[0],)
+    else:
+        raise RuntimeError(
+            "mfusion output ABI has unsupported output container: "
+            f"{output_container!r}"
+        )
 
 
 def _layout_get_size(layout):
