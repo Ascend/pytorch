@@ -61,6 +61,7 @@ def patch_has_triton():
 
     torch.utils._triton.has_triton = has_triton
     torch._inductor.scheduler.has_triton = has_triton
+    torch._inductor.compile_fx.has_triton = has_triton
 
 
 def patch_has_triton_tma():
