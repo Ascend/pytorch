@@ -32,12 +32,12 @@ try:
     )
     from torch_npu._inductor.mfusion.subgraph_registry import Payload
 except ImportError:
-    _emit_mfusion_dvm_codegen = None  # type: ignore[misc, assignment]
-    _find_output_node = None  # type: ignore[misc, assignment]
-    _restore_output_contract = None  # type: ignore[misc, assignment]
-    _snapshot_output_contract = None  # type: ignore[misc, assignment]
-    MFusionPatch = None  # type: ignore[misc, assignment]
-    Payload = None  # type: ignore[misc, assignment]
+    _emit_mfusion_dvm_codegen = None
+    _find_output_node = None
+    _restore_output_contract = None
+    _snapshot_output_contract = None
+    MFusionPatch = None
+    Payload = None
 
 # Gate omits AKG mfusion; keep module importable even if torch_npu mfusion tree is absent.
 HAS_MFUSION_STACK = HAS_AKG_MFUSION and MFusionPatch is not None
@@ -96,6 +96,56 @@ def _make_add_mul_subgraph():
     "torch_npu._inductor.mfusion.graph_fusion not available",
 )
 class TestMfusionOutputContract(TestCase):
+    def test_restore_output_contract_preserves_single_output(self):
+        graph = Graph()
+        a = graph.placeholder("a")
+        b = graph.placeholder("b")
+        add = graph.call_function(torch.ops.aten.add.Tensor, (a, b))
+        graph.output(add)
+        gm = GraphModule(torch.nn.Module(), graph)
+
+        snapshot = _snapshot_output_contract(_find_output_node(gm.graph))
+
+        roundtrip_graph = Graph()
+        rt_a = roundtrip_graph.placeholder("a")
+        rt_b = roundtrip_graph.placeholder("b")
+        rt_add = roundtrip_graph.call_function(torch.ops.aten.add.Tensor, (rt_a, rt_b))
+        roundtrip_graph.output(rt_add)
+        rt_gm = GraphModule(torch.nn.Module(), roundtrip_graph)
+
+        _restore_output_contract(_find_output_node(rt_gm.graph), snapshot)
+
+        restored_output = _find_output_node(rt_gm.graph)
+        self.assertIsNotNone(restored_output)
+        self.assertIs(restored_output.args[0], rt_add)
+
+    def test_restore_output_contract_preserves_list_output(self):
+        graph = Graph()
+        a = graph.placeholder("a")
+        b = graph.placeholder("b")
+        add = graph.call_function(torch.ops.aten.add.Tensor, (a, b))
+        graph.output([add, b])
+        gm = GraphModule(torch.nn.Module(), graph)
+
+        snapshot = _snapshot_output_contract(_find_output_node(gm.graph))
+
+        roundtrip_graph = Graph()
+        rt_a = roundtrip_graph.placeholder("a")
+        rt_b = roundtrip_graph.placeholder("b")
+        rt_add = roundtrip_graph.call_function(torch.ops.aten.add.Tensor, (rt_a, rt_b))
+        roundtrip_graph.output((rt_add, rt_b))
+        rt_gm = GraphModule(torch.nn.Module(), roundtrip_graph)
+
+        _restore_output_contract(_find_output_node(rt_gm.graph), snapshot)
+
+        restored_output = _find_output_node(rt_gm.graph)
+        self.assertIsNotNone(restored_output)
+        restored_args = restored_output.args[0]
+        self.assertIsInstance(restored_args, list)
+        self.assertEqual(len(restored_args), 2)
+        self.assertIs(restored_args[0], rt_add)
+        self.assertIs(restored_args[1], rt_b)
+
     def test_restore_output_contract_preserves_none_slots_and_stride_meta(self):
         graph = Graph()
         a = graph.placeholder("a")
