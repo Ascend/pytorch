@@ -8,7 +8,7 @@ MFusion 包含如下核心组件：
 | ----------------- | -------------- | ------------------------------------------------------------------------------ |
 | graph_fusion      | 核心融合引擎   | 负责 FX Graph 的子图提取、MLIR 转换与融合算子生成，支持动态 shape 和静态图场景 |
 | fx_mlir_converter | FX-MLIR 转换器 | 将 FX Graph 转换为 MLIR 中间表示，保留算子语义并生成融合算子                   |
-| subgraph_registry | 子图注册表     | 管理融合子图的元数据，包括 FX GraphModule、MLIR 代码和动态/静态标记            |
+| subgraph_registry | 子图注册表     | 管理融合子图的元数据，包括 FX GraphModule 和动态/静态标记                      |
 | decomp            | 算子分解       | 提供 Inductor 融合前的算子预处理，确保融合路径的正确性                         |
 
 # 使用指导
@@ -108,11 +108,11 @@ with MFusionPatch():
 
 启用 MFusion 后，`torch.compile` 会生成融合后的 kernel 代码。如需查看融合算子的详细信息，可通过设置环境变量 export TORCH_COMPILE_DEBUG=1 开启调试模式，相关信息会输出到torch_compile_debug目录下的output_code.py 文件中。
 
-kernel 会生成 `mfusion_dvm_*` 命名的 DVM kernel：
+kernel 会生成 `mfusion_dvm_fused_<ops>_<suffix>` 命名的 DVM kernel：
 
 ```Python
 @dvm.kernel(ktype='vector', dyn_shape=False)
-def mfusion_dvm_0(k):
+def mfusion_dvm_fused_add_mul_0(k):
     arg0 = k.load([32], dvm.float32)
     arg1 = k.load([32], dvm.float32)
     ...
