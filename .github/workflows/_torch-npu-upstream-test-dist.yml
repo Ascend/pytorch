@@ -150,3 +150,24 @@ jobs:
           name: error-logs-dist-${{ matrix.shard }}
           path: error-logs-dist-${{ matrix.shard }}.tar.gz
           retention-days: 60
+
+      - name: Compress /root/ascend CANN logs
+        if: always()
+        run: |
+          if [ -d "/root/ascend" ]; then
+            echo "=== Compressing /root/ascend CANN logs ==="
+            FILE_COUNT=$(find /root/ascend -type f | wc -l)
+            echo "Found ${FILE_COUNT} files under /root/ascend"
+            tar -czf ascend-cann-logs-dist-${{ matrix.shard }}.tar.gz -C /root ascend
+            echo "CANN logs compressed: $(ls -lh ascend-cann-logs-dist-${{ matrix.shard }}.tar.gz)"
+          else
+            echo "/root/ascend directory does not exist, skipping"
+          fi
+
+      - name: Upload CANN logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ascend-cann-logs-dist-${{ matrix.shard }}
+          path: ascend-cann-logs-dist-${{ matrix.shard }}.tar.gz
+          retention-days: 60
