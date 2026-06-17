@@ -6,3 +6,4 @@
   - [NPUGraphs](./pytorch_compile_npugraph_desc.md)
   - [NPUGraph\_EX](./pytorch_npugraph_ex_desc.md)
   - [AOT\_Eager](./pytorch_aoteager_desc.md)
+  - [TorchAir-GE](./pytorch_torchair_ge_desc.md)
