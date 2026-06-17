@@ -25,6 +25,13 @@ DVM_SUPPORT_FLOAT_TYPE = [
     torch.float32,
 ]
 
+_extra_int_types = [torch.int32] if is_ascend950 else [torch.int32, torch.int64]
+DVM_SUPPORT_FLOAT_INT_TYPE = [
+    *DVM_SUPPORT_FLOAT_TYPE,
+    *_extra_int_types,
+]
+
+
 DVM_DTYPE_MAP = {
     torch.bfloat16: "dvm.bfloat16",
     torch.float16: "dvm.float16",
@@ -212,8 +219,8 @@ def format_shape(shape):
 @register_dvm_op(
     aten.add.Tensor,
     aten.add.Scalar,
-    input_dtypes=[*DVM_SUPPORT_FLOAT_TYPE, torch.int32],
-    output_dtypes=[*DVM_SUPPORT_FLOAT_TYPE, torch.int32],
+    input_dtypes=DVM_SUPPORT_FLOAT_INT_TYPE,
+    output_dtypes=DVM_SUPPORT_FLOAT_INT_TYPE,
 )
 def add(x, y, alpha=1):
     if alpha != 1:
@@ -224,8 +231,8 @@ def add(x, y, alpha=1):
 @register_dvm_op(
     aten.sub.Tensor,
     aten.sub.Scalar,
-    input_dtypes=[*DVM_SUPPORT_FLOAT_TYPE, torch.int32],
-    output_dtypes=[*DVM_SUPPORT_FLOAT_TYPE, torch.int32],
+    input_dtypes=DVM_SUPPORT_FLOAT_INT_TYPE,
+    output_dtypes=DVM_SUPPORT_FLOAT_INT_TYPE,
 )
 def sub(x, y):
     return f"k.sub({x}, {y})"
@@ -254,7 +261,7 @@ def pow_op(x, y):
 @register_dvm_op(
     aten.lt.Tensor,
     aten.lt.Scalar,
-    input_dtypes=[*DVM_SUPPORT_FLOAT_TYPE, torch.int32],
+    input_dtypes=DVM_SUPPORT_FLOAT_INT_TYPE,
     output_dtypes=[torch.bool],
 )
 def less(x, y):
@@ -264,7 +271,7 @@ def less(x, y):
 @register_dvm_op(
     aten.le.Tensor,
     aten.le.Scalar,
-    input_dtypes=[*DVM_SUPPORT_FLOAT_TYPE, torch.int32],
+    input_dtypes=DVM_SUPPORT_FLOAT_INT_TYPE,
     output_dtypes=[torch.bool],
 )
 def less_equal(x, y):
@@ -274,7 +281,7 @@ def less_equal(x, y):
 @register_dvm_op(
     aten.gt.Tensor,
     aten.gt.Scalar,
-    input_dtypes=[*DVM_SUPPORT_FLOAT_TYPE, torch.int32],
+    input_dtypes=DVM_SUPPORT_FLOAT_INT_TYPE,
     output_dtypes=[torch.bool],
 )
 def greater(x, y):
@@ -284,7 +291,7 @@ def greater(x, y):
 @register_dvm_op(
     aten.ge.Tensor,
     aten.ge.Scalar,
-    input_dtypes=[*DVM_SUPPORT_FLOAT_TYPE, torch.int32],
+    input_dtypes=DVM_SUPPORT_FLOAT_INT_TYPE,
     output_dtypes=[torch.bool],
 )
 def greater_equal(x, y):
@@ -334,7 +341,7 @@ def logical_or(x, y):
 @register_dvm_op(
     aten.eq.Tensor,
     aten.eq.Scalar,
-    input_dtypes=[*DVM_SUPPORT_FLOAT_TYPE, torch.int32],
+    input_dtypes=DVM_SUPPORT_FLOAT_INT_TYPE,
     output_dtypes=[torch.bool],
 )
 def equal(x, y):
@@ -344,7 +351,7 @@ def equal(x, y):
 @register_dvm_op(
     aten.ne.Tensor,
     aten.ne.Scalar,
-    input_dtypes=[*DVM_SUPPORT_FLOAT_TYPE, torch.int32],
+    input_dtypes=DVM_SUPPORT_FLOAT_INT_TYPE,
     output_dtypes=[torch.bool],
 )
 def not_equal(x, y):
@@ -480,8 +487,8 @@ def reduce_min(x, dim=None, keepdim=False):
     aten.view.default,
     aten.reshape.default,
     aten._unsafe_view.default,
-    input_dtypes=DVM_SUPPORT_TYPE,
-    output_dtypes=DVM_SUPPORT_TYPE,
+    input_dtypes=DVM_SUPPORT_FLOAT_INT_TYPE,
+    output_dtypes=DVM_SUPPORT_FLOAT_INT_TYPE,
 )
 def reshape(x, shape):
     shape = format_shape(shape)
