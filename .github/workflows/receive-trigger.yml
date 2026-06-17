@@ -19,6 +19,7 @@ jobs:
       upstream_repo: ${{ steps.extract.outputs.upstream_repo }}
       upstream_sha: ${{ steps.extract.outputs.upstream_sha }}
       upstream_fork_repo: ${{ steps.extract.outputs.upstream_fork_repo }}
+      should_build: ${{ steps.extract.outputs.should_build }}
     steps:
       - name: Extract build parameters from payload
         id: extract
@@ -28,6 +29,33 @@ jobs:
         run: |
           set -euo pipefail
 
+          # ---- Filter: only PRs targeting main, skip tag deletions ----
+          if [ "${EVENT_TYPE}" = "pull_request" ]; then
+            BASE_REF=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pull_request.base.ref // empty')
+            if [ "${BASE_REF}" != "main" ]; then
+              echo "SKIP: PR targets '${BASE_REF}', not 'main'"
+              echo "should_build=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          elif [ "${EVENT_TYPE}" = "push" ]; then
+            REF=$(echo "$PAYLOAD_JSON" | jq -r '.payload.ref // empty')
+            AFTER=$(echo "$PAYLOAD_JSON" | jq -r '.payload.after // empty')
+            if [ "${REF}" != "refs/heads/main" ]; then
+              echo "SKIP: push event ref is '${REF}', not 'refs/heads/main'"
+              echo "should_build=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            if [ "${AFTER}" = "0000000000000000000000000000000000000000" ]; then
+              echo "SKIP: push event is a deletion (after=0000000)"
+              echo "should_build=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          else
+            echo "ERROR: Unknown event_type: ${EVENT_TYPE}"
+            exit 1
+          fi
+
+          # ---- Extract build parameters ----
           UPSTREAM_REPO=$(echo "$PAYLOAD_JSON" | jq -r '.payload.repository.full_name // empty')
 
           if [ "${EVENT_TYPE}" = "pull_request" ]; then
@@ -59,6 +87,7 @@ jobs:
           echo "upstream_repo=${UPSTREAM_REPO}" >> "$GITHUB_OUTPUT"
           echo "upstream_sha=${UPSTREAM_SHA}" >> "$GITHUB_OUTPUT"
           echo "upstream_fork_repo=${UPSTREAM_FORK_REPO}" >> "$GITHUB_OUTPUT"
+          echo "should_build=true" >> "$GITHUB_OUTPUT"
 
           echo "=== Extracted Build Parameters ==="
           echo "event_type:         ${EVENT_TYPE}"
@@ -68,6 +97,7 @@ jobs:
 
   build:
     needs: extract
+    if: ${{ needs.extract.outputs.should_build == 'true' }}
     uses: ./.github/workflows/_build.yml
     secrets: inherit
     with:
