@@ -88,11 +88,14 @@ static inline DevicePtrInfo getPointer(PyObject *obj, int idx) {{
     if (!PyLong_Check(ret)) {{
       PyErr_SetString(PyExc_TypeError, "data_ptr method of Pointer object must return 64-bit int");
       ptr_info.valid = false;
+      Py_DECREF(ret);
       return ptr_info;
     }}
     ptr_info.dev_ptr = reinterpret_cast<void *>(PyLong_AsLongLong(ret));
-    if(!ptr_info.dev_ptr)
+    if(!ptr_info.dev_ptr) {{
+      Py_DECREF(ret);
       return ptr_info;
+    }}
     Py_DECREF(ret);
     return ptr_info;
   }}

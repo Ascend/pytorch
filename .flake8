@@ -31,6 +31,8 @@ per-file-ignores =
     torch/testing/_internal/dynamo_test_failures.py: B950
     torch/__init__.py: F401
     torch/_prims/__init__.py: F401
+    # This file embeds long generated C++ launcher templates in f-strings.
+    torch_npu/_inductor/ascend_npu_ir/ascend_npu_ir/npu/codegen/cpp_wrapper.py: B950,E128
 optional-ascii-coding = True
 exclude =
     ./.git,

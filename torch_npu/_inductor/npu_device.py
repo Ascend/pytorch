@@ -1,12 +1,9 @@
-import torch
 from torch._inductor.codegen.common import register_device_op_overrides
-from torch_npu.npu import device_count
-from torch_npu.utils._dynamo_device import NpuInterface, current_device, set_device
 from torch_npu.utils._inductor import NPUDeviceOpOverrides
 from . import config as npu_config
 
 
-## Override original inductor device overrides in torch_npu
+# Override original inductor device overrides in torch_npu
 class NewNPUDeviceOpOverrides(NPUDeviceOpOverrides):
     def import_get_raw_stream_as(self, name):
         return f"from torch_npu._inductor import get_current_raw_stream as {name}"
@@ -113,15 +110,15 @@ class NewNPUDeviceOpOverrides(NPUDeviceOpOverrides):
                 std::streamsize data_size = file.tellg();
 
                 file.seekg(0, std::ios::beg);
-                char* buffer = new char[data_size];
-                if (!file.read(buffer, data_size)) {
+                std::vector<char> buffer(data_size);
+                if (!file.read(buffer.data(), data_size)) {
                     throw std::runtime_error(std::string("read npubin failed"));
                 }
 
                 rtError_t rtRet;
 
                 rtDevBinary_t devbin;
-                devbin.data = buffer;
+                devbin.data = buffer.data();
                 devbin.length = data_size;
                 const std::string kernel_mode{kernel_mode_str};
                 if (kernel_mode == "aiv") {
