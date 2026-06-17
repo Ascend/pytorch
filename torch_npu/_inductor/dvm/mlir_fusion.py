@@ -40,6 +40,7 @@ _quantized = torch.ops._quantized
 
 anir_config.GENERATE_LIST = [
     control_deps,
+    aten._assert_scalar,
     aten.mul,
     aten.add,
     aten.sub,
