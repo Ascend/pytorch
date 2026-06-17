@@ -6,7 +6,23 @@ import sympy
 
 import torch
 import torch_npu.npu.aclnn
+from torch_npu._inductor._aclgraph_update_plan import (
+    append_inductor_aclgraph_update_plan_for_codegen_node,
+    emit_inductor_aclgraph_update_plan_for_wrapper,
+)
+
+
+def _is_codegen_graph_partition_subgraph(wrapper) -> bool:
+    try:
+        from torch._inductor.utils import is_codegen_graph_partition_subgraph
+    except ImportError:
+        return isinstance(wrapper, SubgraphPythonWrapperCodegen)
+    try:
+        return is_codegen_graph_partition_subgraph(wrapper)
+    except AttributeError:
+        return isinstance(wrapper, SubgraphPythonWrapperCodegen)
 from torch._inductor import config
+from torch._inductor.codegen.common import IndentedBuffer
 from torch._inductor.codegen.wrapper import (
     PythonWrapperCodegen,
     SubgraphPythonWrapperCodegen,
@@ -94,6 +110,22 @@ class _NPUKernelCodegenMixin:
                 "'''\n" + NPUIndexTritonKernel.gen_triton_ext_imports() + "\n"
             )
         super().define_kernel(kernel_name, kernel_body, metadata, gpu, cpp_definition)
+
+    def generate_fallback_kernel(self, node) -> None:
+        append_inductor_aclgraph_update_plan_for_codegen_node(self, node)
+        super().generate_fallback_kernel(node)
+
+    def generate_extern_kernel_alloc(self, extern_kernel):
+        append_inductor_aclgraph_update_plan_for_codegen_node(self, extern_kernel)
+        super().generate_extern_kernel_alloc(extern_kernel)
+
+    def generate_after_suffix(self, result: IndentedBuffer) -> None:
+        super().generate_after_suffix(result)
+        emit_inductor_aclgraph_update_plan_for_wrapper(
+            self,
+            result,
+            _is_codegen_graph_partition_subgraph(self),
+        )
 
 
 class NPUWrapperCodeGen(_NPUKernelCodegenMixin, PythonWrapperCodegen):

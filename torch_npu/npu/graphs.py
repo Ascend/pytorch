@@ -13,7 +13,6 @@ __all__ = [
 ]
 
 import gc
-import logging
 import os
 import re
 import threading
@@ -21,7 +20,7 @@ import typing
 from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import List, Dict, Any, Optional, Tuple
+from typing import Dict, Any, Optional, Tuple
 
 import torch
 from torch.fx.node import has_side_effect
@@ -103,7 +102,7 @@ def graph_task_update_end(stream):
 def _super_kernel_scope_begin_impl(scope_name: Optional[str] = None) -> None:
     if scope_name is not None and not scope_name.strip():
         raise RuntimeError(
-            f"scope_name should be None or a non-empty string.",
+            "scope_name should be None or a non-empty string.",
             pta_error(ErrCode.PARAM),
         )
     _super_kernel_scope_begin(scope_name)
@@ -112,7 +111,7 @@ def _super_kernel_scope_begin_impl(scope_name: Optional[str] = None) -> None:
 def _super_kernel_scope_end_impl(scope_name: Optional[str] = None) -> None:
     if scope_name is not None and not scope_name.strip():
         raise RuntimeError(
-            f"scope_name should be None or a non-empty string.",
+            "scope_name should be None or a non-empty string.",
             pta_error(ErrCode.PARAM),
         )
     _super_kernel_scope_end(scope_name)
@@ -587,7 +586,6 @@ class _GraphDispatchMode(torch.utils._python_dispatch.TorchDispatchMode):
                 graph_task_update_end(self.update_stream)
                 record.event.record(self.update_stream)
 
-
 # Python shim helps Sphinx process docstrings more reliably.
 class NPUGraph(torch_npu._C._NPUGraph):
     r"""Wrapper around a NPU graph.
@@ -604,7 +602,7 @@ class NPUGraph(torch_npu._C._NPUGraph):
         self.auto_dispatch_capture = False
         log.debug("NPUGRAPH Lifecycle NPUGraph created, graph_id=%s, auto_dispatch=%s",
                   id(self), self.auto_dispatch_capture)
-        return super().__init__()
+        super().__init__()
 
     def capture_begin(self, pool=None, capture_error_mode="global"):
         r"""Begin capturing NPU work on the current stream.
@@ -987,16 +985,22 @@ def make_graphed_callables(
             if len(c._backward_hooks) > 0 or len(c._forward_hooks) > 0 or len(c._forward_pre_hooks) > 0:
                 log.error("NPUGraph: ERROR — hooks registered on module %s", type(c).__name__)
                 log.warning("NPUGRAPH DFX Fix: remove hooks before make_graphed_callables, re-register after")
-                raise RuntimeError("Modules must not have hooks registered at the time they are passed. However, "
-                    + "registering hooks on modules after passing them through make_graphed_callables is allowed.")
+                raise RuntimeError(
+                    "Modules must not have hooks registered at the time they are passed. However, "
+                    + "registering hooks on modules after passing them through make_graphed_callables is allowed."
+                )
             if any(b.requires_grad for b in c.buffers()):
-                raise RuntimeError("In any :class:`~torch.nn.Module` passed to :func:`~make_graphed_callables`,"
-                    + " only parameters may be trainable. All buffers must have ``requires_grad=False``.")
+                raise RuntimeError(
+                    "In any :class:`~torch.nn.Module` passed to :func:`~make_graphed_callables`,"
+                    + " only parameters may be trainable. All buffers must have ``requires_grad=False``."
+                )
         flatten_arg = torch.utils._pytree.arg_tree_leaves(*args)
         flatten_sample_args.append(tuple(flatten_arg))
         if not all(isinstance(arg, torch.Tensor) for arg in flatten_arg):
-            raise RuntimeError("In the beta API, sample_args "
-                + "for each callable must contain only Tensors. Other types are not allowed.")
+            raise RuntimeError(
+                "In the beta API, sample_args "
+                + "for each callable must contain only Tensors. Other types are not allowed."
+            )
 
     # If a callable is an nn.Module, its graph's full input surface is the args the user explicitly
     # passes to forward (ie, its sample_args) AND the module's parameter attributes.
@@ -1133,8 +1137,10 @@ def make_graphed_callables(
             @torch.autograd.function.once_differentiable
             def backward(ctx, *grads):
                 if (len(grads) != len(static_grad_outputs)):
-                    raise RuntimeError("The length of grads"
-                        + " is not equal with the length of static_grad_outputs.")
+                    raise RuntimeError(
+                        "The length of grads"
+                        + " is not equal with the length of static_grad_outputs."
+                    )
                 for g, grad in zip(static_grad_outputs, grads):
                     if g is not None:
                         # don't copy if autograd gods have been kind and the

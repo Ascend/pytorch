@@ -46,7 +46,6 @@ import threading
 import traceback
 import warnings
 import weakref
-import logging
 from collections import defaultdict
 from enum import auto, Enum
 from typing import (
@@ -62,7 +61,6 @@ from typing import (
     Sequence,
     Set,
     Tuple,
-    Type,
     TYPE_CHECKING,
     TypeVar,
     Union,
@@ -104,11 +102,15 @@ import torch_npu
 from torch_npu._C import (
     _npu_NPUAllocator_AllocatorState as AllocatorState,
     _set_cached_tensors_enabled as _set_cached_tensors_enabled)
+from torch_npu.npu._aclgraph_update_plan.resolver import (
+    ACLGRAPH_UPDATE_PLAN_GLOBAL,
+    update_aclgraph_records_for_graph,
+    validate_aclgraph_update_plan_for_graph,
+)
 import torch_npu.npu.aclnn
 
 if TYPE_CHECKING:
     from torch._inductor.utils import InputType
-    from torch.types import _bool
 
 
 StorageWeakRefPointer = int
@@ -777,6 +779,9 @@ class NPUGraphNode:
         if not isinstance(inputs, (list, tuple)):
             raise RuntimeError("check isinstance(inputs, (list, tuple))")
         self.wrapped_function = wrapped_function
+        self.aclgraph_update_plan = getattr(
+            wrapped_function.model, ACLGRAPH_UPDATE_PLAN_GLOBAL, None
+        ) or []
         self.id = graph_id
         self.device = device_index
         self.stack_traces = stack_traces
@@ -1071,12 +1076,19 @@ class NPUGraphNode:
     def run(self, new_inputs: List[InputType]) -> OutputType:
         log.debug("NPUGRAPH-TREE Node Run node=%s", self.id)
         self.check_static_inputs_are_stable(new_inputs)
-        for item in new_inputs:
-            if isinstance(item, torch.Tensor) and item.dtype == torch.int32 and item.device.type == "cpu":
-                self.graph.update(cpu_update_input=[{"context_lens": item}, {"actual_seq_lengths_kv": item}])
+        aclgraph_update_submitted = update_aclgraph_records_for_graph(
+            self.aclgraph_update_plan,
+            self.graph,
+            new_inputs,
+        )
         self._copy_inputs_and_remove_from_src(self.reconstructed_inputs, new_inputs)
 
         self.run_graph()
+        if aclgraph_update_submitted:
+            # Ensure the next ACLGraph update does not record reusable external events before this replay resets them.
+            self.graph.graph_dispatch_mode.update_stream.wait_stream(
+                torch.npu.current_stream()
+            )
 
         outputs = self.reconstruct_outputs()
         new_inputs.clear()
@@ -1230,7 +1242,7 @@ class NPUGraphNode:
                     isinstance(elem, torch.Tensor)
                     and idxs not in self.wrapped_function.static_input_idxs
                     and elem.untyped_storage().data_ptr() != 0
-                    )
+                )
 
             memory += [
                 StorageWeakRefWrapper(elem)
@@ -1240,11 +1252,7 @@ class NPUGraphNode:
 
             check_memory_pool(self.device, self.npu_graphs_pool, memory)
 
-        cpu_tensor = None
-        for item in inputs:
-            if isinstance(item, torch.Tensor) and item.dtype == torch.int32 and item.device.type == "cpu":
-                cpu_tensor = item.clone()
-            del item
+        aclgraph_update_inputs = list(inputs)
 
         with preserve_rng_state(), torch.npu.device(
             self.device
@@ -1257,9 +1265,13 @@ class NPUGraphNode:
         ), get_history_recording():
             static_outputs = model(inputs)
 
-        if cpu_tensor is not None:
-            self.graph.update(cpu_update_input=[{"context_lens": cpu_tensor},
-                                                {"actual_seq_lengths_kv": cpu_tensor}])
+        validate_aclgraph_update_plan_for_graph(self.aclgraph_update_plan, self.graph)
+        update_aclgraph_records_for_graph(
+            self.aclgraph_update_plan,
+            self.graph,
+            aclgraph_update_inputs,
+        )
+        aclgraph_update_inputs.clear()
 
         # running model should reclaim memory
         if not len(inputs) == 0:
@@ -1302,7 +1314,11 @@ class NPUGraphNode:
 
         for index_, out_ in enumerate(outputs):
             from torch_npu._inductor import config as npu_config
-            if out_ is None or not isinstance(out_, torch.Tensor) or (npu_config.npugraph_trees.disable_cpu_input_check and out_.is_cpu):
+            if (
+                out_ is None
+                or not isinstance(out_, torch.Tensor)
+                or (npu_config.npugraph_trees.disable_cpu_input_check and out_.is_cpu)
+            ):
                 self.output_storage_alias.append(UnaliasedStorage)
                 continue
 
@@ -1312,7 +1328,7 @@ class NPUGraphNode:
                     "Expected all npu outputs in npu graph recording. Non npu output "
                     f"from {self.stack_traces[index_] if self.stack_traces else '(unknown)'}"
                 ),
-            ),
+            )
 
             ref = static_input_persistent_storage_ptrs.get(
                 out_.untyped_storage().data_ptr(), None
@@ -1559,7 +1575,10 @@ class NPUGraphNode:
                         raise RuntimeError("check output_liveness is not None fail")
                     stor_weak_ptr, stor_data_ptr = stor_weak_ptr_and_data_ptr
                     if not (stor_data_ptr in live_storage_data_ptrs) == (stor_weak_ptr in live_storage_weak_ptrs):
-                        raise RuntimeError("check (stor_data_ptr in live_storage_data_ptrs) == (stor_weak_ptr in live_storage_weak_ptrs) fail")
+                        raise RuntimeError(
+                            "check (stor_data_ptr in live_storage_data_ptrs) == "
+                            "(stor_weak_ptr in live_storage_weak_ptrs) fail"
+                        )
                     live_storage_data_ptrs.add(stor_data_ptr)
                     live_storage_weak_ptrs.add(stor_weak_ptr)
 
@@ -2105,8 +2124,10 @@ class NPUGraphTreeManager:
         # Early exit if the function mutates inputs which are neither parameters/buffers nor
         # npugraph recorded tensors. This check should happen after `try_end_curr_recording`
         # and `try_end_curr_warmup` which may change self.current_node.
-        if self.non_npugraph_managed_mutation_hint[node_id][function_id] or \
-            self.exceed_rerecord_limit(node_id, function_id):
+        if (
+            self.non_npugraph_managed_mutation_hint[node_id][function_id]
+            or self.exceed_rerecord_limit(node_id, function_id)
+        ):
             return self.ids_to_funcs[function_id].model(new_inputs)
 
         # warming up a function and subsequentally recording may use different memory addresses

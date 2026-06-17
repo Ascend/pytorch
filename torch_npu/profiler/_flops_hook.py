@@ -4,7 +4,7 @@ import logging
 import sys
 import threading
 from collections.abc import Callable
-from typing import Any
+from typing import Any, Optional
 
 from torch_npu.npu.mstx import mstx
 
@@ -70,7 +70,7 @@ class FlopsHookManager:
     _installed = False
 
     @classmethod
-    def install(cls, target_ops: dict[str, tuple[Any, str]] | None = None):
+    def install(cls, target_ops: Optional[dict[str, tuple[Any, str]]] = None):
         if cls._installed:
             return
         if target_ops is None:

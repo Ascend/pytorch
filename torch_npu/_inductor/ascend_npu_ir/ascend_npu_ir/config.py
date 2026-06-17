@@ -52,8 +52,9 @@ def parse_rtol_atol(env_str: str):
         match = re.match(r"^(rtol|atol)\s*=\s*([0-9.eE+-]+)$", part, re.IGNORECASE)
         if not match:
             logging.warning(
-                f"INDUCTOR_ASCEND_CHECK_ACCURACY_RTOL_ATOL environment variable has invalid format: {part}. "
-                f"It should be like 'rtol=1e-6,atol=1e-5'. "
+                "INDUCTOR_ASCEND_CHECK_ACCURACY_RTOL_ATOL environment variable has invalid format: {part}. "
+                "It should be like 'rtol=1e-6,atol=1e-5'. ",
+                part
             )
             continue
 
@@ -66,8 +67,9 @@ def parse_rtol_atol(env_str: str):
                 atol = value
         except ValueError:
             logging.warning(
-                f"INDUCTOR_ASCEND_CHECK_ACCURACY_RTOL_ATOL environment variable has invalid value for {key}: {value_str}. "
-                f"It should be a float number. "
+                "INDUCTOR_ASCEND_CHECK_ACCURACY_RTOL_ATOL environment variable has invalid value for {key}: {value_str}. "
+                "It should be a float number. ",
+                key, value_str
             )
             continue
     return rtol, atol
@@ -233,6 +235,8 @@ POINTWISE_OPS = [
 ]
 
 NON_POINTWISE_OPS = [
+    control_deps,
+    aten._assert_scalar,
     aten.split,
     aten.split_with_sizes,
     aten.cat,

@@ -6,7 +6,8 @@ This module defines the NPU Graph operator handlers for the
 
 Structure: ``_TensorListOutHandler`` provides ``postprocess_result`` (return
 kwargs["out"]).  ``IFAv1DefaultHandler`` and ``IFAv2DefaultHandler`` inherit
-it and each implement ``update_args`` and ``prepare_capture``; both
+it and declare ``UPDATE_SPECS`` + ``prepare_capture``; the spec-driven
+``update_args`` from the base class handles all updates uniformly. Both
 ``.default`` and ``.out`` are registered on the same handler class.
 """
 __all__ = []
@@ -37,10 +38,20 @@ class _TensorListOutHandler(NpuGraphOpHandler):
 class _IFAv1DefaultHandler(_TensorListOutHandler):
     """IFA v1: ``.default`` pre-allocates and swaps to ``.out``; ``.out`` passthrough."""
 
-    @classmethod
-    def update_args(cls, record, update_input):
-        if "actual_seq_lengths_kv" in update_input and len(record.args) >= 7:
-            record.args[6] = update_input["actual_seq_lengths_kv"]
+    UPDATE_SPECS = {
+        "npu_fused_infer_attention_score": [
+            ("arg", 5, "actual_seq_lengths"),
+            ("arg", 6, "actual_seq_lengths_kv"),
+        ],
+        "npu_fused_infer_attention_score.default": [
+            ("arg", 5, "actual_seq_lengths"),
+            ("arg", 6, "actual_seq_lengths_kv"),
+        ],
+        "npu_fused_infer_attention_score.out": [
+            ("arg", 5, "actual_seq_lengths"),
+            ("arg", 6, "actual_seq_lengths_kv"),
+        ],
+    }
 
     @classmethod
     def prepare_capture(cls, func, args, kwargs):
@@ -82,10 +93,20 @@ class _IFAv1DefaultHandler(_TensorListOutHandler):
 class _IFAv2DefaultHandler(_TensorListOutHandler):
     """IFA v2: ``.default`` pre-allocates and swaps to ``.out``; ``.out`` passthrough."""
 
-    @classmethod
-    def update_args(cls, record, update_input):
-        if "actual_seq_kvlen" in update_input and len(record.args) >= 9:
-            record.args[8] = update_input["actual_seq_kvlen"]
+    UPDATE_SPECS = {
+        "npu_fused_infer_attention_score_v2": [
+            ("arg", 7, "actual_seq_qlen"),
+            ("arg", 8, "actual_seq_kvlen"),
+        ],
+        "npu_fused_infer_attention_score_v2.default": [
+            ("arg", 7, "actual_seq_qlen"),
+            ("arg", 8, "actual_seq_kvlen"),
+        ],
+        "npu_fused_infer_attention_score_v2.out": [
+            ("arg", 7, "actual_seq_qlen"),
+            ("arg", 8, "actual_seq_kvlen"),
+        ],
+    }
 
     @classmethod
     def prepare_capture(cls, func, args, kwargs):

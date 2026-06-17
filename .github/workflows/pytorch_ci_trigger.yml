@@ -53,6 +53,7 @@ jobs:
 
   forward:
     uses: Ascend/pytorch/.github/workflows/receive-trigger.yml@ci-test
+    secrets: inherit
     with:
       event_type: ${{ github.event.client_payload.event_type }}
       payload: ${{ toJSON(github.event.client_payload) }}
