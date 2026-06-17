@@ -84,9 +84,6 @@ struct TORCH_NPU_API NPUGraph {
     NPUGraph(NPUGraph&&) = delete;
     NPUGraph& operator=(NPUGraph&&) = delete;
 
-    static void inc_pending_event_queries();
-    static void dec_pending_event_queries();
-    static int num_pending_event_queries();
     static NPUGraph* get_currently_capturing_graph();
 
     void register_generator_state(c10::intrusive_ptr<at_npu::NPUGeneratorState> state);
@@ -112,8 +109,6 @@ private:
 
 protected:
     aclmdlRI model_ri_ = nullptr;
-
-    static std::atomic<int> pending_event_queries;
 
     // Set to true in capture_end if NPU graph is captured succeeded
     bool has_graph_exec_ = false;
