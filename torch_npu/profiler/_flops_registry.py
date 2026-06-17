@@ -1,16 +1,17 @@
 import logging
 from collections.abc import Callable
+from typing import Optional
 
 
 logger = logging.getLogger(__name__)
 
-_default_npu_flop_registry: dict[str, tuple[Callable, str | None]] = {}
-_npu_flop_registry: dict[str, tuple[Callable, str | None]] = {}
+_default_npu_flop_registry: dict[str, tuple[Callable, Optional[str]]] = {}
+_npu_flop_registry: dict[str, tuple[Callable, Optional[str]]] = {}
 
 
 def register_npu_flop(
-    target: str | None = None,
-    op_name: str | None = None,
+    target: Optional[str] = None,
+    op_name: Optional[str] = None,
     *,
     is_default: bool = False,
 ):
@@ -34,7 +35,7 @@ def register_npu_flop(
     return decorator
 
 
-def get_flop_func(op_name: str) -> Callable | None:
+def get_flop_func(op_name: str) -> Optional[Callable]:
     entry = _npu_flop_registry.get(op_name) or _default_npu_flop_registry.get(op_name)
     return entry[0] if entry else None
 
