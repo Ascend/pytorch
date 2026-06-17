@@ -544,8 +544,9 @@ void StartMainThreadBind(c10::DeviceIndex device_id) {
   }
   SetThreadAffinity(device_id);
 
-  static thread_local bool main_thread_bound = false;
-  if (main_thread_bound) {
+  // Make sure that the bind is only executed once per thread, otherwise, it will impact the performance of NPUGuardImpl::uncheckedSetDevice
+  static thread_local bool bind_main_executed = false;
+  if (bind_main_executed) {
     return;
   }
   // Use 16 bytes to store thread name.
@@ -553,9 +554,12 @@ void StartMainThreadBind(c10::DeviceIndex device_id) {
   int ret = pthread_getname_np(pthread_self(), thread_name, sizeof(thread_name));
   if (ret != 0) {
     ASCEND_LOGE("Failed to get thread name, ret: %d", ret);
+    bind_main_executed = true;
     return;
   }
+  // During the first step, main thread sets affinity by autograd thread to avoid polluting child thread affinity
   if (!std::regex_match(thread_name, std::regex("pt_autograd_[0-9]+"))) {
+    bind_main_executed = true;
     return;
   }
   CoreIdList core_list = getCoreList(device_id, ThreadType::MAIN_THREAD);
@@ -567,7 +571,6 @@ void StartMainThreadBind(c10::DeviceIndex device_id) {
   pid_t main_thread_tid = getpid();
   ret = sched_setaffinity(main_thread_tid, sizeof(mask), &mask);
   if (ret == 0) {
-    main_thread_bound = true;
     ASCEND_LOGD(
         "Device %d set %s affinity to %s success, thread name: %s.",
         device_id,
@@ -582,6 +585,7 @@ void StartMainThreadBind(c10::DeviceIndex device_id) {
         formatCoreRange(core_list).c_str(),
         thread_name);
   }
+  bind_main_executed = true;
 }
 
 } // namespace c10_npu
