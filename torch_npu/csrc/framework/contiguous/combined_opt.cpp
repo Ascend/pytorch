@@ -1,4 +1,3 @@
-#include <ATen/NamedTensorUtils.h>
 #include <ATen/quantized/QTensorImpl.h>
 
 #include <map>
