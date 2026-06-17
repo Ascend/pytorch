@@ -29,27 +29,24 @@ jobs:
         run: |
           set -euo pipefail
 
-          # ---- Filter: only PRs targeting main, skip tag deletions ----
+          # ---- Filter: only PR closed events targeting main ----
           if [ "${EVENT_TYPE}" = "pull_request" ]; then
+            ACTION=$(echo "$PAYLOAD_JSON" | jq -r '.payload.action // empty')
             BASE_REF=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pull_request.base.ref // empty')
+            if [ "${ACTION}" != "closed" ]; then
+              echo "SKIP: PR action is '${ACTION}', not 'closed'"
+              echo "should_build=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
             if [ "${BASE_REF}" != "main" ]; then
               echo "SKIP: PR targets '${BASE_REF}', not 'main'"
               echo "should_build=false" >> "$GITHUB_OUTPUT"
               exit 0
             fi
           elif [ "${EVENT_TYPE}" = "push" ]; then
-            REF=$(echo "$PAYLOAD_JSON" | jq -r '.payload.ref // empty')
-            AFTER=$(echo "$PAYLOAD_JSON" | jq -r '.payload.after // empty')
-            if [ "${REF}" != "refs/heads/main" ]; then
-              echo "SKIP: push event ref is '${REF}', not 'refs/heads/main'"
-              echo "should_build=false" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-            if [ "${AFTER}" = "0000000000000000000000000000000000000000" ]; then
-              echo "SKIP: push event is a deletion (after=0000000)"
-              echo "should_build=false" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
+            echo "SKIP: push events are not processed"
+            echo "should_build=false" >> "$GITHUB_OUTPUT"
+            exit 0
           else
             echo "ERROR: Unknown event_type: ${EVENT_TYPE}"
             exit 1
