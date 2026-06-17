@@ -233,6 +233,7 @@ POINTWISE_OPS = [
 
 NON_POINTWISE_OPS = [
     control_deps,
+    aten._assert_scalar,
     aten.squeeze,
     aten.unsqueeze,
     aten.expand,
