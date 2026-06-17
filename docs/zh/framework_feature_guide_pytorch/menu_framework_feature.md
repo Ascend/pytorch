@@ -43,6 +43,7 @@
         -   [NPUGraphs](./pytorch_compile_npugraph_desc.md)
         -   [NPUGraph\_EX](./pytorch_npugraph_ex_desc.md)
         -   [AOT\_Eager](./pytorch_aoteager_desc.md)
+        -   [TorchAir-GE](./pytorch_torchair_ge_desc.md)
 
 -   [自定义算子适配开发](./custom_operator_adaptation.md)
     -   [基于OpPlugin算子适配开发](./opplugin_operator_adaptation.md)

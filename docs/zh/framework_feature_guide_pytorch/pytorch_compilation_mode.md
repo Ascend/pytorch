@@ -27,7 +27,7 @@ torch.compile(model, *, fullgraph=False, dynamic=None, backend="inductor",
 | model | nn.Module | 必填 | 待编译的模型 |
 | fullgraph | bool | False | 是否强制整图编译 |
 | dynamic | bool | None | 是否启用动态 shape 编译 |
-| backend | str | `"inductor"` | 编译后端：`inductor`、`npugraphs`、`npugraph_ex`、`aot_eager` |
+| backend | str/Callable | `"inductor"` | 编译后端：`inductor`、`npugraphs`、`npugraph_ex`、`aot_eager`、`TorchAir-GE后端(Callable)` |
 | mode | str | None | 编译模式：`None` 或 `"reduce-overhead"` （仅`inductor`后端支持）|
 | options | dict | None | 编译选项|
 | disable | bool | False | 关闭 torch.compile |
@@ -42,3 +42,4 @@ torch.compile(model, *, fullgraph=False, dynamic=None, backend="inductor",
 | NPUGraphs | `backend="npugraphs"` | ACLGraph图下沉，一次捕获多次重放，消除kernel启动开销 | kernel调用频繁、CPU调度密集 |
 | NPUGraph_EX | `backend="npugraph_ex"` | ACLGraph图下沉 + FX图优化 + 编译缓存复用 | 大模型推理部署 |
 | AOT_Eager | `backend="aot_eager"` | 不做优化，仅验证图捕获正确性 | 调试、基线性能对比 |
+| TorchAir-GE  | `backend=torchair.get_npu_backend(...)` | 将PyTorch的FX图转换为计算图，并通过GE图引擎实现计算图编译和运行 | 大模型推理部署 |
