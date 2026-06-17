@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - ci-test
+  workflow_dispatch:
 
 concurrency:
   group: test-build-${{ github.ref }}
@@ -14,11 +15,54 @@ permissions:
   contents: read
 
 jobs:
+  extract:
+    runs-on: ubuntu-latest
+    outputs:
+      upstream_repo: ${{ steps.extract.outputs.upstream_repo }}
+      upstream_sha: ${{ steps.extract.outputs.upstream_sha }}
+      upstream_fork_repo: ${{ steps.extract.outputs.upstream_fork_repo }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Extract build parameters from test payload
+        id: extract
+        run: |
+          set -euo pipefail
+
+          PAYLOAD=$(cat .github/workflows/payloads/pr-133315.json)
+
+          UPSTREAM_REPO=$(echo "$PAYLOAD" | jq -r '.payload.repository.full_name // empty')
+
+          UPSTREAM_SHA=$(echo "$PAYLOAD" | jq -r '.payload.pull_request.head.sha // empty')
+          HEAD_REPO=$(echo "$PAYLOAD" | jq -r '.payload.pull_request.head.repo.full_name // empty')
+          BASE_REPO=$(echo "$PAYLOAD" | jq -r '.payload.pull_request.base.repo.full_name // empty')
+          if [ "${HEAD_REPO}" != "${BASE_REPO}" ] && [ -n "${HEAD_REPO}" ]; then
+            UPSTREAM_FORK_REPO="${HEAD_REPO}"
+          else
+            UPSTREAM_FORK_REPO=""
+          fi
+
+          if [ -z "${UPSTREAM_REPO}" ] || [ -z "${UPSTREAM_SHA}" ]; then
+            echo "ERROR: Failed to extract required params from payload"
+            exit 1
+          fi
+
+          echo "upstream_repo=${UPSTREAM_REPO}" >> "$GITHUB_OUTPUT"
+          echo "upstream_sha=${UPSTREAM_SHA}" >> "$GITHUB_OUTPUT"
+          echo "upstream_fork_repo=${UPSTREAM_FORK_REPO}" >> "$GITHUB_OUTPUT"
+
+          echo "=== Extracted from test payload ==="
+          echo "upstream_repo:      ${UPSTREAM_REPO}"
+          echo "upstream_sha:       ${UPSTREAM_SHA}"
+          echo "upstream_fork_repo: ${UPSTREAM_FORK_REPO:-<none>}"
+
   build:
+    needs: extract
     uses: ./.github/workflows/_build.yml
     secrets: inherit
     with:
-      upstream_repo: pytorch/pytorch
-      upstream_sha: 65082aaa4571aae5cc2cfa2b62fa5db650abbe8c
+      upstream_repo: ${{ needs.extract.outputs.upstream_repo }}
+      upstream_sha: ${{ needs.extract.outputs.upstream_sha }}
+      upstream_fork_repo: ${{ needs.extract.outputs.upstream_fork_repo }}
       torch_npu_repo: ${{ github.repository }}
       torch_npu_ref: ci-test
