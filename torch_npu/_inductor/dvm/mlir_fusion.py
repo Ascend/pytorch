@@ -389,6 +389,7 @@ class DvmMlirFusionPatch:
             False  # npu ops always return contiguous tensors which maybe different from meta outputs
         )
         inductor_config.allow_buffer_reuse = False
+        inductor_config.comprehensive_padding = False
         patch_decomp()
         _patch_lowering_type_checks()
         _patch_lowering()
