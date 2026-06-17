@@ -68,6 +68,33 @@ class TestActionController(TestCase):
             self.prof_if.stop_trace()
             mock_stop.assert_called_once()
 
+    def test_start_and_stop_trace_with_flops_and_msprof_tx(self):
+        self.prof_if.with_flops = True
+        self.prof_if.experimental_config._msprof_tx = True
+        with (
+            mock.patch(self.namespace + "._start_profiler"),
+            mock.patch(self.namespace + "._stop_profiler"),
+            mock.patch(self.namespace + ".FlopsHookManager.install") as mock_install,
+            mock.patch(self.namespace + ".FlopsHookManager.uninstall") as mock_uninstall,
+        ):
+            self.prof_if.start_trace()
+            self.prof_if.stop_trace()
+        mock_install.assert_called_once()
+        mock_uninstall.assert_called_once()
+
+    def test_start_and_stop_trace_with_flops_without_msprof_tx_skips_flops_hook(self):
+        self.prof_if.with_flops = True
+        with (
+            mock.patch(self.namespace + "._start_profiler"),
+            mock.patch(self.namespace + "._stop_profiler"),
+            mock.patch(self.namespace + ".FlopsHookManager.install") as mock_install,
+            mock.patch(self.namespace + ".FlopsHookManager.uninstall") as mock_uninstall,
+        ):
+            self.prof_if.start_trace()
+            self.prof_if.stop_trace()
+        mock_install.assert_not_called()
+        mock_uninstall.assert_not_called()
+
     def test_finalize_trace(self):
         with (
             mock.patch(self.namespace + "._init_profiler"),
