@@ -1508,7 +1508,7 @@ def triton_config_npu_index(
 
 ) -> List[Config]:
     num_warps = 1
-    num_stages = 1
+    num_stages = 2
     configs = []
     split_axis = inductor_meta["split_axis"]
     tiling_axis = inductor_meta["tiling_axis"]
