@@ -111,8 +111,8 @@ def _batch_isend_irecv(p2p_op_list):
         is_fake_backend = isinstance(_group, FakeProcessGroup)
         if (
             (isinstance(group, ProcessGroup)
-            and cann_version >= "9.0.0"
-            and is_supported_device_name) or is_fake_backend
+                and cann_version >= "9.0.0"
+                and is_supported_device_name) or is_fake_backend
         ):
             # coalescing manager
             _check_p2p_op_list(p2p_op_list)
@@ -202,6 +202,11 @@ def _gather(tensor, gather_list=None, dst=0, group=None, async_op=False):
     use_compatible_impl = False
     if tensor.device.type == "npu":
         use_compatible_impl = npu.are_compatible_impl_enabled()
+
+    if use_compatible_impl:
+        npu_device_name = npu.get_device_name()
+        use_compatible_impl = (npu_device_name >= "Ascend910B1" and npu_device_name <= "Ascend910B4_1") or \
+            (npu_device_name >= "Ascend910_9362" and npu_device_name <= "Ascend910_9392")
 
     if group is None or group is GroupMember.WORLD:
         default_pg = _get_default_group()
