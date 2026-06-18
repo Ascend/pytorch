@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
-import functools
 import sympy
 import torch
 import torch.nn.functional as F
 from torch.autograd import Function
 from torch.library import Library, impl
-from torch._inductor.pattern_matcher import init_once_fakemode
 import torch_npu
 
 npu_def = Library("npu_graph", "DEF")
@@ -155,102 +153,3 @@ def npu_fusion_attention_graph(query, key, value, head_num, input_layout, pse=No
 
 
 torch_npu.npu_fusion_attention_graph = npu_fusion_attention_graph
-
-
-@init_once_fakemode
-def register_fa_pass():
-    TOKEN_MAX = 2147483647
-    from torch._inductor.pattern_matcher import register_replacement, fwd_only, joint_fwd_bwd
-    from torch._inductor.fx_passes.joint_graph import patterns
-    from torch._dynamo.utils import counters
-    from torch._inductor.fx_passes.fuse_attention import partialize_and_update_signature
-
-    def _npu_fusion_attention_graph_pattern_1(query, key, value, inv_scale_factor, dropout_p):
-        q = query.permute(0, 2, 1, 3)
-        k = key.permute(0, 2, 1, 3)
-        v = value.permute(0, 2, 1, 3)
-        return torch.nn.functional.dropout(
-            torch.matmul(q, k.transpose(-2, -1)).div(inv_scale_factor).softmax(dim=-1),
-            p=dropout_p,
-        ).matmul(v)
-
-    def _npu_fusion_attention_graph_replacement_1(query, key, value, inv_scale_factor, dropout_p):
-        counters["inductor"]["fuse_attention"] += 1
-        head_num = query.size(2)
-        input_layout = "BNSD"
-        return torch_npu.npu_fusion_attention_graph(
-            query.transpose(1, 2),
-            key.transpose(1, 2),
-            value.transpose(1, 2),
-            head_num,
-            input_layout,
-            None,
-            atten_mask=None,
-            scale=inv_scale_factor,
-            keep_prob=1.0 - dropout_p,
-        )[0]
-
-    def _get_sfdp_patterns():
-        device = 'npu'
-        g_inp = functools.partial(
-            torch.empty, (2, 4, 8, 16), device=device, requires_grad=True
-        )
-        c_inp = functools.partial(torch.tensor, 2.0, device=g_inp().device)
-        d = {"dropout_p": 0.113377}
-        candidates = []
-        for dtype in [torch.float]:
-            g = functools.partial(g_inp, dtype=dtype)
-            c = functools.partial(c_inp, dtype=dtype)
-            candidates.append((
-                _npu_fusion_attention_graph_pattern_1,
-                _npu_fusion_attention_graph_replacement_1,
-                [g(), g(), g(), c()],
-                d,
-            ))
-
-            for pattern, replacement, args, workaround in candidates:
-                # gets serialized to a python file and does not require tracing at runtime.
-                if not isinstance(workaround, dict):
-                    raise ValueError("workaround not dict")
-                name = pattern.__name__
-
-                if dtype != torch.float:
-                    name += "_half"
-
-                if args[0].size(0) == 1:
-                    name += "_bs1"
-
-                training_name = name + "_training"
-                yield training_name, {
-                    "search_fn": pattern,
-                    "replace_fn": replacement,
-                    "example_inputs": args,
-                    "trace_fn": joint_fwd_bwd,
-                    "pass_dicts": patterns,
-                    "scalar_workaround": workaround,
-                }
-
-                if workaround:
-                    if not (len(workaround) == 1 and "dropout_p" in workaround):
-                        raise ValueError("not (len(workaround) == 1 and dropout_p in workaround)")
-                    # functools.partial insufficient because we look at signature downstream
-                    pattern = partialize_and_update_signature(pattern, dropout_p=0.0)
-                    replacement = partialize_and_update_signature(
-                        replacement, dropout_p=0.0
-                    )
-                    workaround = {}
-
-                inference_name = name + "_inference"
-                yield inference_name, {
-                    "search_fn": pattern,
-                    "replace_fn": replacement,
-                    "example_inputs": args,
-                    "trace_fn": fwd_only,
-                    "pass_dicts": patterns,
-                    "scalar_workaround": workaround,
-                }
-
-    for _, register_replacement_kwargs in _get_sfdp_patterns():
-        register_replacement(
-            **register_replacement_kwargs,
-        )
