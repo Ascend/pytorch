@@ -4,7 +4,7 @@
 
 `npugraphs`是`torch.compile()`的图捕获后端，基于NPUGraph(ACLGraph)技术实现。NPUGraphs捕获一系列NPU操作（如kernel调用、内存拷贝）组成静态图缓存在NPU设备上；一次捕获、多次复跑，避免重复的kernel启动开销（kernel launch overhead）。
 
-使用该后端时，Dynamo将FX Graph交由NPUGraph自动下沉为ACLGraph静态图重放优化，无需手动管理Stream和捕获流程。NPUGraphs是NPUGraph API的高级封装，自动完成图捕获和重放流程。如需更精细的控制（如手动管理Stream、分区域捕获、动态控制流下的安全子图捕获等），请参考[NPUGraph](./pytorch_npugraph_desc.md)文档中的`NPUGraph`类、`graph()`上下文管理器和`make_graphed_callables` API。
+使用该后端时，Dynamo将FX Graph交由NPUGraph自动下沉为ACLGraph静态图重放优化，无需手动管理Stream和捕获流程。NPUGraphs是NPUGraph API的高级封装，自动完成图捕获和重放流程。如需更精细的控制（如手动管理Stream、分区域捕获、动态控制流下的安全子图捕获等），请参考[torch_npu.npu.NPUGraph](../framework_feature_guide_pytorch/pytorch_npugraph_desc.md)文档中的`NPUGraph`类、`graph()`上下文管理器和`make_graphed_callables` API。
 
 ## 适用场景
 
