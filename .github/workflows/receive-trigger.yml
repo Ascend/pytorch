@@ -103,5 +103,5 @@ jobs:
       # upstream_fork_repo: ${{ needs.extract.outputs.upstream_fork_repo }}
       upstream_repo: pytorch/pytorch
       upstream_sha: 65082aaa4571aae5cc2cfa2b62fa5db650abbe8c
-      torch_npu_repo: ${{ github.repository }}
+      torch_npu_repo: Ascend/pytorch
       torch_npu_ref: master
