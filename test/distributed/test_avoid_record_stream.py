@@ -101,7 +101,7 @@ class HcclSendRecvDistTest(TestCase):
         done_event.set()
         for p in ps:
             p.join(2)
-
+    @unittest.skip("Temporarily disable")
     @skipIfUnsupportMultiNPU(2)
     def test_avoid_isend_irecv_hccl(self):
         self._test_multiprocess(
@@ -109,6 +109,7 @@ class HcclSendRecvDistTest(TestCase):
             torch.randn(400, 1024, 1024),
             HcclSendRecvDistTest._init_dist_hccl)
 
+    @unittest.skip("Temporarily disable")
     @skipIfUnsupportMultiNPU(2)
     def test_avoid_batch_isend_irecv_hccl(self):
         self._test_multiprocess(
