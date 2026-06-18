@@ -19,7 +19,6 @@ torch.fx.GraphModule.
 
 import logging
 import operator
-import re
 from typing import Any
 
 from torch_mlir import ir
@@ -233,79 +232,6 @@ def _get_schema_from_operator(op: ir.Operation) -> str:
     return f"({args_str}) -> {ret_str}"
 
 
-def _tensor_from_mlir_type(mlir_type: ir.Type) -> torch.Tensor | None:
-    type_str = str(mlir_type)
-    match = re.match(r"!torch\.(?:vtensor|tensor)<\[(.*?)\],\s*([a-z0-9]+)>", type_str)
-    if match is None:
-        return None
-    shape_str, dtype_str = match.groups()
-    dims: list[int] = []
-    for dim in shape_str.split(","):
-        dim = dim.strip()
-        if not dim or dim == "?" or not dim.lstrip("-").isdigit():
-            dims.append(1)
-        else:
-            dims.append(int(dim))
-
-    dtype_map = {
-        "f16": torch.float16,
-        "f32": torch.float32,
-        "f64": torch.float64,
-        "bf16": torch.bfloat16,
-        "i64": torch.int64,
-        "i32": torch.int32,
-        "i8": torch.int8,
-        "ui8": torch.uint8,
-        "i1": torch.bool,
-    }
-    dtype = dtype_map.get(dtype_str)
-    if dtype is None:
-        return None
-    return torch.empty(dims, dtype=dtype)
-
-
-def _attach_placeholder_meta_from_func(
-    gm: torch.fx.GraphModule, func_op: ir.Operation
-) -> None:
-    func_type = ir.FunctionType(ir.TypeAttr(func_op.attributes["function_type"]).value)
-    arg_types = list(func_type.inputs)
-    arg_index = 0
-    for node in gm.graph.nodes:
-        if node.op != "placeholder":
-            continue
-        if arg_index >= len(arg_types):
-            break
-        val = _tensor_from_mlir_type(arg_types[arg_index])
-        if val is not None:
-            node.meta["val"] = val
-        arg_index += 1
-
-
-def _build_fake_inputs(gm: torch.fx.GraphModule) -> list[Any] | None:
-    fake_mode = FakeTensorMode()
-    args: list[Any] = []
-    for node in gm.graph.nodes:
-        if node.op != "placeholder":
-            continue
-        val = node.meta.get("val", None)
-        if val is None:
-            return None
-        if isinstance(val, torch.Tensor):
-            args.append(fake_mode.from_tensor(val))
-        else:
-            args.append(val)
-    return args
-
-
-def _propagate_fake_meta(gm: torch.fx.GraphModule) -> None:
-    from torch.fx.passes.fake_tensor_prop import FakeTensorProp
-
-    args = _build_fake_inputs(gm)
-    if args is None:
-        return
-    FakeTensorProp(gm).propagate(*args)
-
-
 def _get_op_target(op_name: str) -> Any:
     """Resolves a torch.ops target from an MLIR op name string."""
     # Convert 'torch.aten.add.Tensor' -> torch.ops.aten.add.Tensor
@@ -502,14 +428,9 @@ class FxExporter:
 
     def _process_operator(self, op: ir.Operation):
         target_name = op.attributes["name"].value
-        has_mlir_attr = "mfusion.subgraph_mlir" in op.attributes
         has_dynamic_attr = "mfusion.is_dynamic" in op.attributes
         has_subgraph_symbol = "subgraph" in op.attributes
-        if has_mlir_attr or has_dynamic_attr:
-            if not (has_mlir_attr and has_dynamic_attr):
-                raise ValueError(
-                    f"Operator {target_name} missing required mfusion attributes"
-                )
+        if has_dynamic_attr:
             mapped_operands = [self.value_map[arg] for arg in op.operands]
             if not mapped_operands:
                 raise ValueError(f"Operator {target_name} missing operands")
@@ -530,7 +451,7 @@ class FxExporter:
         """Register torch.operator target from a plain `subgraph = @sym` reference.
 
         This path is intentionally lightweight and used when operator carries only
-        a symbol reference (without mfusion.subgraph_mlir / mfusion.is_dynamic).
+        a symbol reference (without mfusion.is_dynamic).
         It keeps fx_mlir_converter roundtrip tests runnable in eager backends.
         """
         if self.module is None:
@@ -621,20 +542,6 @@ class FxExporter:
                 f"Operator {target_name} missing non-empty subgraph_name operand"
             )
 
-        if "mfusion.subgraph_mlir" in op.attributes:
-            subgraph_mlir_attr = op.attributes["mfusion.subgraph_mlir"]
-        else:
-            subgraph_mlir_attr = None
-        if subgraph_mlir_attr is None:
-            raise ValueError(
-                f"Operator {target_name} missing 'subgraph_mlir' attribute"
-            )
-        subgraph_mlir = subgraph_mlir_attr.value
-        if not isinstance(subgraph_mlir, str) or not subgraph_mlir.strip():
-            raise ValueError(
-                f"Operator {target_name} has empty 'subgraph_mlir' attribute"
-            )
-
         if "mfusion.is_dynamic" in op.attributes:
             is_dynamic_attr = op.attributes["mfusion.is_dynamic"]
         else:
@@ -675,13 +582,10 @@ class FxExporter:
         # Recursively export subgraph
         sub_exporter = FxExporter(export_single_tuple_output=False)
         sub_gm = sub_exporter.export_func(sub_func)
-        # _attach_placeholder_meta_from_func(sub_gm, sub_func)
-        # _propagate_fake_meta(sub_gm)
         schema = _get_schema_from_operator(op)
 
         payload = subgraph_registry.Payload(
             fx_gm=sub_gm,
-            mlir=subgraph_mlir,
             is_dynamic=is_dynamic,
             torch_name=target_name,
             full_op_name=full_op_name,
