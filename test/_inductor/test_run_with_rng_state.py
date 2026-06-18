@@ -30,7 +30,7 @@ class TestRunWithRngState(TestUtils):
 
         return res1, res2
 
-    @parametrize("shape", [(10,)])
+    @parametrize("shape", [(20,)])
     @parametrize("dtype", [torch.float32])
     def test_rng_state_with_compile(self, shape, dtype):
         device = "npu"
