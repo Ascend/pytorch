@@ -2803,15 +2803,10 @@ bool ProcessGroupHCCL::createHCCLCommSub(
         TORCH_NPU_HCCL_LOGI("The global process group is not exist, switch to original interface.");
         return false;
     }
-    std::shared_ptr<HCCLComm> globalHcclComm = nullptr;
-    try {
-        globalHcclComm = global_->getHcclCommByDevices(devices);
-    } catch (const std::exception& e) {
-        TORCH_NPU_HCCL_LOGI("Get global HCCL communicator failed: %s, switch to original interface.", e.what());
-        return false;
-    }
+
+    std::shared_ptr<HCCLComm> globalHcclComm = global_->getHcclCommByDevicesFromCache(devices);
     if (!globalHcclComm) {
-        TORCH_NPU_HCCL_LOGI("Create sub hccl comm failed, globalHcclComm is nullptr, switch to original interface.");
+        TORCH_NPU_HCCL_LOGI("Get global HCCL communicator failed, switch to original interface.");
         return false;
     }
 
@@ -3434,6 +3429,17 @@ ProcessGroupHCCL::Options::Options(bool is_high_priority_stream)
       opTimeout(kProcessGroupHCCLOpTimeoutMillis),
       is_high_priority_stream(is_high_priority_stream)
 {
+}
+
+std::shared_ptr<HCCLComm> ProcessGroupHCCL::getHcclCommByDevicesFromCache(const std::vector<at::Device>& devices)
+{
+    const auto key = getKeyFromDevices(devices);
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto it = devHCCLCommMap_.find(key);
+    if (it != devHCCLCommMap_.end() && !it->second.empty()) {
+        return it->second[0];
+    }
+    return nullptr;
 }
 
 std::shared_ptr<HCCLComm> ProcessGroupHCCL::getHcclCommByDevices(const std::vector<at::Device>& devices)

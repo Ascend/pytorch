@@ -32067,6 +32067,8 @@
   "test_softmax_forward_64bit_indexing_npu (__main__.TestNNDeviceTypePRIVATEUSE1)": ["", [""]],
   "test_data_parallel_rnn (__main__.TestDataParallel)": ["", ["Disabled during A1 to A2 chip transition"]],
   "test_alltoall_single_2p_size_dist (__main__.HcclAlltoAllSingleTest)": ["", ["Disabled during A1 to A2 chip transition"]],
+  "test_avoid_batch_isend_irecv_hccl (__main__.HcclSendRecvDistTest)": ["", [""]],
+  "test_avoid_isend_irecv_hccl (__main__.HcclSendRecvDistTest)": ["", [""]],
   "test_compare_cpu__chunk_cat_npu_float32 (__main__.TestCommonPRIVATEUSE1)": ["", [""]],
   "test_variant_consistency_eager__chunk_cat_npu_float32 (__main__.TestCommonPRIVATEUSE1)": ["", [""]],
   "test_operator__chunk_cat_npu_float32 (__main__.TestCompositeComplianceNPU)": ["", [""]]
