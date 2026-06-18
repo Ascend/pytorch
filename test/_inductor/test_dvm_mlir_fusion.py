@@ -70,6 +70,13 @@ class BitwiseIntModel(torch.nn.Module):
         return torch.ops.aten.bitwise_not.default(arg0)
 
 
+class MmTransposeBackwardModel(torch.nn.Module):
+    def forward(self, a, b):
+        loss = torch.mm(a, b.t()).sum()
+        grad_a, grad_b = torch.autograd.grad(loss, (a, b))
+        return loss, grad_a, grad_b
+
+
 class TestDvmByMlir(TestCase):
     def _run_and_get_code_with_dvm(self, model, *args):
         original_backend = os.environ.get("TORCHINDUCTOR_NPU_BACKEND")
@@ -197,6 +204,24 @@ class TestDvmByMlir(TestCase):
         code = "\n".join(codes)
         self.assertEqual(expect, result)
         self.assertNotIn("k.logical_not", code)
+
+    def test_mm_t_backward_no_dvm_fused_matmul_backward(self):
+        a = torch.randn((4, 8), dtype=torch.float32, device="npu")
+        b = torch.randn((3, 8), dtype=torch.float32, device="npu")
+        a_eager = a.detach().clone().requires_grad_(True)
+        b_eager = b.detach().clone().requires_grad_(True)
+        a_compiled = a.detach().clone().requires_grad_(True)
+        b_compiled = b.detach().clone().requires_grad_(True)
+        model = MmTransposeBackwardModel()
+
+        expect = model(a_eager, b_eager)
+        result, codes = self._run_and_get_code_with_dvm(
+            model, a_compiled, b_compiled
+        )
+
+        code = "\n".join(codes)
+        self.assertEqual(expect, result, atol=1e-3, rtol=1e-3)
+        self.assertNotIn("dvm_fused_matmul_backward", code)
 
 
 instantiate_parametrized_tests(TestDvmByMlir)
