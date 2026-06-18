@@ -13,14 +13,12 @@ namespace torch::aot_inductor {
 
 inline void delete_npu_guard(void* ptr)
 {
-    AOTI_TORCH_ERROR_CODE_CHECK(
-        aoti_torch_delete_npu_guard(reinterpret_cast<NPUGuardHandle>(ptr)));
+    AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_delete_npu_guard(reinterpret_cast<NPUGuardHandle>(ptr)));
 }
 
 inline void delete_npu_stream_guard(void* ptr)
 {
-    AOTI_TORCH_ERROR_CODE_CHECK(
-        aoti_torch_delete_npu_stream_guard(reinterpret_cast<NPUStreamGuardHandle>(ptr)));
+    AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_delete_npu_stream_guard(reinterpret_cast<NPUStreamGuardHandle>(ptr)));
 }
 
 class AOTINpuGuard {
@@ -34,8 +32,7 @@ public:
 
     void set_index(int32_t device_index)
     {
-        AOTI_TORCH_ERROR_CODE_CHECK(
-            aoti_torch_npu_guard_set_index(guard_.get(), device_index));
+        AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_npu_guard_set_index(guard_.get(), device_index));
     }
 
 private:
@@ -47,8 +44,7 @@ public:
     AOTINpuStreamGuard(aclrtStream stream, int32_t device_index): guard_(nullptr, delete_npu_stream_guard)
     {
         NPUStreamGuardHandle ptr = nullptr;
-        AOTI_TORCH_ERROR_CODE_CHECK(
-            aoti_torch_create_npu_stream_guard(stream, device_index, &ptr));
+        AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_create_npu_stream_guard(stream, device_index, &ptr));
         guard_.reset(ptr);
     }
 
