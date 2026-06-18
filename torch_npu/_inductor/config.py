@@ -285,3 +285,5 @@ if "TORCHNPU_PRECOMPILE_THREADS" in os.environ:
 
 lowering_axis_count = None
 inductor_ascend_linear_mode = "linear"
+
+autotune_continue_on_failure = os.environ.get('TORCHINDUCTOR_NPU_BACKEND') == "default"

@@ -1810,6 +1810,9 @@ class NPUIndexTritonKernel(TritonKernel):
         split_axis_dtype = (
             self.get_axis_dtype(self.split_axis[0]) if self.split_axis else None
         )
+        runtime_block_arg_names = tuple(
+            f"{axis.name.upper()}BLOCK" for axis in self.split_axis
+        )
 
         from ..config import inductor_ascend_linear_mode
 
@@ -1834,6 +1837,7 @@ class NPUIndexTritonKernel(TritonKernel):
             "traced_graph_dir": "TRACED_GRAPH_DIR",
             "are_deterministic_algorithms_enabled": torch.are_deterministic_algorithms_enabled(),
             "inductor_ascend_linear_mode": inductor_ascend_linear_mode,
+            "runtime_block_arg_names": runtime_block_arg_names,
             **TritonKernel.inductor_meta_common(),
         }
         grouped_meta = getattr(self, "grouped_autotune_meta", None)
@@ -1860,7 +1864,6 @@ class NPUIndexTritonKernel(TritonKernel):
                     "static_split_axes": (),
                     "secondary_runtime_symbolic_axes": (),
                     "group_features": (),
-                    "runtime_block_arg_names": (),
                 }
             )
         return inductor_meta
@@ -1922,18 +1925,14 @@ class NPUIndexTritonKernel(TritonKernel):
 
     # BLOCK and SUB_BLOCK definitions
     def add_autotune_args(self, argdefs, signature, triton_meta_signature):
-        group_enabled = bool(getattr(self, "inductor_meta", {}).get("group_enabled"))
         for axis in self.split_axis:
             arg_name = f"{axis.name.upper()}BLOCK"
-            if group_enabled:
-                sizearg = SizeArg(arg_name, axis.length)
-                signature.append(sizearg)
-                triton_meta_signature[arg_name] = signature_of(
-                    sizearg, size_dtype=self.index_dtype
-                )
-                argdefs.append(ArgName(arg_name))
-            else:
-                argdefs.append(ArgName(arg_name, is_constexpr=True))
+            sizearg = SizeArg(arg_name, axis.length)
+            signature.append(sizearg)
+            triton_meta_signature[arg_name] = signature_of(
+                sizearg, size_dtype=self.index_dtype
+            )
+            argdefs.append(ArgName(arg_name))
 
         for axis in self.tiling_axis:
             # Skip persistent_reduction reduction axis only if length is static (handled in codegen_static_numels)
@@ -1961,7 +1960,6 @@ class NPUIndexTritonKernel(TritonKernel):
         inductor_meta["static_split_axes"] = ()
         inductor_meta["secondary_runtime_symbolic_axes"] = ()
         inductor_meta["group_features"] = ()
-        inductor_meta["runtime_block_arg_names"] = ()
 
     def _disable_grouped_autotune_if_unsupported(self, inductor_meta):
         if not inductor_meta.get("group_enabled", False):

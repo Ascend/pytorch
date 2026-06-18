@@ -129,7 +129,7 @@ def _load_triton_backend():
     from .shape_handling import NPUShapeHandling, patch_shape_handling
     from .utils import patch_get_first_incompatible_cudagraph_node
 
-    from .graph import patch_count_bytes, patch_run_node
+    from .graph import patch_count_bytes
     
     from .autotune_process import patch_tuning_process, patch_tuning_process_pool
     from .codegen.cpp_utils import patch_device_to_aten
@@ -246,7 +246,6 @@ def _load_triton_backend():
     patch_get_optimization_cflags()
     patch_extract_read_writes()
     patch_count_bytes()
-    patch_run_node()
     patch_tuning_process()
     patch_tuning_process_pool()
     patch_device_to_aten()
