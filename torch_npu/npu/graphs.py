@@ -588,7 +588,6 @@ class _GraphDispatchMode(torch.utils._python_dispatch.TorchDispatchMode):
                 graph_task_update_end(self.update_stream)
                 record.event.record(self.update_stream)
 
-
 # Python shim helps Sphinx process docstrings more reliably.
 class NPUGraph(torch_npu._C._NPUGraph):
     r"""Wrapper around a NPU graph.

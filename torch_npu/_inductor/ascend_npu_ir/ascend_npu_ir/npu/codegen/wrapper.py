@@ -12,6 +12,12 @@ from torch._inductor.codegen.wrapper import (
     SubgraphPythonWrapperCodegen,
     counters,
 )
+import torch_npu
+from torch_npu._inductor._aclgraph_update_plan import (
+    append_inductor_aclgraph_update_plan_for_codegen_node,
+    emit_inductor_aclgraph_update_plan_for_wrapper,
+)
+
 from ... import codecache
 from torch._inductor.codegen.common import (
     IndentedBuffer,
@@ -36,8 +42,10 @@ class NpuMlirWrapperCodeGen(PythonWrapperCodegen):
             if subgraph_name is None:
                 raise ValueError("subgraph_name must be provided for python wrapper")
             if parent_wrapper is None:
-                raise ValueError("parent_wrapper must be provided for python wrapper")
-            return SubgraphPythonWrapperCodegen(
+                raise ValueError(
+                    "parent_wrapper must be provided for python wrapper"
+                )
+            return NpuMlirSubgraphPythonWrapperCodegen(
                 subgraph_name, parent_wrapper, partition_signatures
             )
         return NpuMlirWrapperCodeGen()
@@ -125,6 +133,22 @@ class NpuMlirWrapperCodeGen(PythonWrapperCodegen):
                     f"run_intermediate_hooks({origin_node.name!r}, {output_name})"
                 )
 
+    def generate_extern_kernel_alloc(self, extern_kernel):
+        append_inductor_aclgraph_update_plan_for_codegen_node(self, extern_kernel)
+        super().generate_extern_kernel_alloc(extern_kernel)
+
+    def generate_fallback_kernel(self, node) -> None:
+        append_inductor_aclgraph_update_plan_for_codegen_node(self, node)
+        super().generate_fallback_kernel(node)
+
+    def generate_after_suffix(self, result) -> None:
+        super().generate_after_suffix(result)
+        emit_inductor_aclgraph_update_plan_for_wrapper(
+            self,
+            result,
+            is_graph_partition_subgraph=False,
+        )
+
     def write_get_raw_stream(self, device_idx: int, graph=None) -> str:
         self.write_triton_header_once()
         name = f"stream{device_idx}"
@@ -183,3 +207,21 @@ class NpuMlirWrapperCodeGen(PythonWrapperCodegen):
 
     def generate_return(self, output_refs: list[str]) -> None:
         super().generate_return(output_refs)
+
+
+class NpuMlirSubgraphPythonWrapperCodegen(SubgraphPythonWrapperCodegen):
+    def generate_extern_kernel_alloc(self, extern_kernel):
+        append_inductor_aclgraph_update_plan_for_codegen_node(self, extern_kernel)
+        super().generate_extern_kernel_alloc(extern_kernel)
+
+    def generate_fallback_kernel(self, node) -> None:
+        append_inductor_aclgraph_update_plan_for_codegen_node(self, node)
+        super().generate_fallback_kernel(node)
+
+    def generate_after_suffix(self, result) -> None:
+        super().generate_after_suffix(result)
+        emit_inductor_aclgraph_update_plan_for_wrapper(
+            self,
+            result,
+            is_graph_partition_subgraph=True,
+        )

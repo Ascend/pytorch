@@ -2330,6 +2330,9 @@
   "torch_npu.npu.NpuGraphOpHandler.update_args": {
     "signature": "(dispatch_record, update_input)"
   },
+  "torch_npu.npu.NpuGraphOpHandler.get_update_specs": {
+    "signature": "(op_name)"
+  },
   "torch_npu.npu.NpuGraphOpHandler.record_wrap_kwarg": {
     "signature": "(key, value, tensor_param_names)"
   },
