@@ -7,6 +7,7 @@
 #include <torch/csrc/inductor/aoti_torch/utils.h>
 #include <torch/csrc/inductor/inductor_ops.h>
 #include <torch_npu/csrc/aten/common/from_blob.h>
+#include <torch_npu/csrc/core/npu/NPUGuard.h>
 #include <torch_npu/csrc/core/npu/NPUStream.h>
 #include <torch_npu/csrc/core/npu/NPUCachingAllocator.h>
 #include <torch_npu/csrc/inductor/aoti_torch/c/shim_npu.h>
@@ -33,20 +34,24 @@ static c10::Device c10_device(int32_t device_type, int32_t device_index)
 
 AOTITorchError aoti_torch_create_npu_guard(int32_t device_index, NPUGuardHandle* ret_guard)
 {
-    // todo: implement create npu guard logic
-    return AOTI_TORCH_SUCCESS;
+    AOTI_TORCH_CONVERT_EXCEPTION_TO_ERROR_CODE({
+        TORCH_CHECK(ret_guard != nullptr, "ret_guard is nullptr");
+        *ret_guard = nullptr;
+        c10_npu::NPUGuard* guard = new c10_npu::NPUGuard(static_cast<c10::DeviceIndex>(device_index));
+        *ret_guard = reinterpret_cast<NPUGuardHandle>(guard);
+    });
 }
 
 AOTITorchError aoti_torch_delete_npu_guard(NPUGuardHandle guard)
 {
-    // todo: implement delete npu guard logic
-    return AOTI_TORCH_SUCCESS;
+    AOTI_TORCH_CONVERT_EXCEPTION_TO_ERROR_CODE({ delete reinterpret_cast<c10_npu::NPUGuard*>(guard); });
 }
 
 AOTITorchError aoti_torch_npu_guard_set_index(NPUGuardHandle guard, int32_t device_index)
 {
-    // todo: implement npu guard set index logic
-    return AOTI_TORCH_SUCCESS;
+    AOTI_TORCH_CONVERT_EXCEPTION_TO_ERROR_CODE({
+        reinterpret_cast<c10_npu::NPUGuard*>(guard)->set_index(static_cast<c10::DeviceIndex>(device_index));
+    });
 }
 
 AOTITorchError aoti_torch_create_npu_stream_guard(
@@ -78,6 +83,8 @@ AOTITorchError aoti_torch_create_tensor_from_blob_npu(void* data, int64_t ndim, 
                                                       AtenTensorHandle* ret_new_tensor)
 {
     AOTI_TORCH_CONVERT_EXCEPTION_TO_ERROR_CODE({
+        TORCH_CHECK(ret_new_tensor != nullptr, "ret_new_tensor is nullptr");
+        *ret_new_tensor = nullptr;
         c10::IntArrayRef sizes(sizes_ptr, ndim);
         c10::IntArrayRef strides(strides_ptr, ndim);
         c10::Device device = c10_device(device_type, device_index);
@@ -96,8 +103,10 @@ AOTITorchError aoti_torch_create_tensor_from_blob_npu_v2(void* data, int64_t ndi
                                                          const uint8_t* opaque_metadata, int64_t opaque_metadata_size)
 {
     AOTI_TORCH_CONVERT_EXCEPTION_TO_ERROR_CODE({
+        TORCH_CHECK(ret_new_tensor != nullptr, "ret_new_tensor is nullptr");
+        *ret_new_tensor = nullptr;
         if (layout == static_cast<int32_t>(at::kMkldnn)) {
-            throw std::runtime_error("do not support mkldnn on npu.");
+            TORCH_CHECK(false, "do not support mkldnn on npu.");
         } else {
             aoti_torch_create_tensor_from_blob_npu(data, ndim, sizes_ptr, strides_ptr, storage_offset, dtype,
                                                    device_type, device_index, ret_new_tensor);

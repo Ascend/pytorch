@@ -88,8 +88,10 @@ class NPUWrapperCodeGen(_NPUKernelCodegenMixin, PythonWrapperCodegen):
         super().write_triton_header_once()
         import_str = f"""
             import torch_npu
+            torch_npu.npu._initialized = torch_npu.npu.is_initialized()
             has_initialized = False
         """
+
         if config.triton.autotune_at_compile_time:
             self.kernel_autotune_calls.splice(import_str)
             self.kernel_autotune_calls.splice(

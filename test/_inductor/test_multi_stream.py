@@ -603,88 +603,55 @@ class TestMultiStreamPass(TestUtils):
             2,
         )
 
-
     def multi_stream_test(
         self,
-        arg0_1,
-        arg1_1, arg2_1, arg3_1, arg4_1, arg5_1, arg6_1, arg7_1, arg8_1, arg9_1,
-        arg10_1, arg11_1, arg12_1, arg13_1, arg14_1, arg15_1, arg16_1, arg17_1,
-        arg18_1, arg19_1, arg20_1, arg21_1, arg22_1,
-        arg23_1, arg24_1, arg25_1, arg26_1, arg27_1, arg28_1,
+        arg0_1, arg2_1, arg3_1, arg4_1, arg5_1, arg6_1, arg7_1, arg8_1, arg9_1,
+        arg10_1, arg23_1, arg24_1, arg25_1, arg26_1, arg27_1, arg28_1,
         arg29_1, arg30_1, arg31_1, arg32_1, arg33_1, arg34_1,
         arg35_1, arg36_1, arg37_1, arg38_1, arg39_1
     ):
-        slice_2 = torch.ops.aten.slice.Tensor(arg0_1, 1, 0, 3)
+        slice_2 = torch.ops.aten.slice.Tensor(arg0_1, 1, 0, 1)
         sum_1 = torch.ops.aten.sum.dim_IntList(torch.ops.aten.embedding.default(arg2_1, slice_2), [1])
-        slice_4 = torch.ops.aten.slice.Tensor(arg0_1, 1, 3, 5)
+        slice_4 = torch.ops.aten.slice.Tensor(arg0_1, 1, 1, 2)
         sum_2 = torch.ops.aten.sum.dim_IntList(torch.ops.aten.embedding.default(arg3_1, slice_4), [1])
-        slice_6 = torch.ops.aten.slice.Tensor(arg0_1, 1, 5, 6)
+        slice_6 = torch.ops.aten.slice.Tensor(arg0_1, 1, 2, 3)
         sum_3 = torch.ops.aten.sum.dim_IntList(torch.ops.aten.embedding.default(arg4_1, slice_6), [1])
-        slice_8 = torch.ops.aten.slice.Tensor(arg0_1, 1, 6, 8)
+        slice_8 = torch.ops.aten.slice.Tensor(arg0_1, 1, 3, 4)
         sum_4 = torch.ops.aten.sum.dim_IntList(torch.ops.aten.embedding.default(arg5_1, slice_8), [1])
-        slice_10 = torch.ops.aten.slice.Tensor(arg0_1, 1, 8, 14)
+        slice_10 = torch.ops.aten.slice.Tensor(arg0_1, 1, 4, 6)
         sum_5 = torch.ops.aten.sum.dim_IntList(torch.ops.aten.embedding.default(arg6_1, slice_10), [1])
-        slice_12 = torch.ops.aten.slice.Tensor(arg0_1, 1, 14, 15)
+        slice_12 = torch.ops.aten.slice.Tensor(arg0_1, 1, 6, 7)
         sum_6 = torch.ops.aten.sum.dim_IntList(torch.ops.aten.embedding.default(arg7_1, slice_12), [1])
-        slice_14 = torch.ops.aten.slice.Tensor(arg0_1, 1, 15, 16)
+        slice_14 = torch.ops.aten.slice.Tensor(arg0_1, 1, 7, 8)
         sum_7 = torch.ops.aten.sum.dim_IntList(torch.ops.aten.embedding.default(arg8_1, slice_14), [1])
-        slice_16 = torch.ops.aten.slice.Tensor(arg0_1, 1, 16, 17)
+        slice_16 = torch.ops.aten.slice.Tensor(arg0_1, 1, 8, 9)
         sum_8 = torch.ops.aten.sum.dim_IntList(torch.ops.aten.embedding.default(arg9_1, slice_16), [1])
-        slice_18 = torch.ops.aten.slice.Tensor(arg0_1, 1, 17, 18)
+        slice_18 = torch.ops.aten.slice.Tensor(arg0_1, 1, 9, 10)
         sum_9 = torch.ops.aten.sum.dim_IntList(torch.ops.aten.embedding.default(arg10_1, slice_18), [1])
-        slice_20 = torch.ops.aten.slice.Tensor(arg0_1, 1, 18, 25)
-        sum_10 = torch.ops.aten.sum.dim_IntList(torch.ops.aten.embedding.default(arg11_1, slice_20), [1])
-        slice_22 = torch.ops.aten.slice.Tensor(arg0_1, 1, 25, 28)
-        sum_11 = torch.ops.aten.sum.dim_IntList(torch.ops.aten.embedding.default(arg12_1, slice_22), [1])
-        slice_24 = torch.ops.aten.slice.Tensor(arg0_1, 1, 28, 36)
-        sum_12 = torch.ops.aten.sum.dim_IntList(torch.ops.aten.embedding.default(arg13_1, slice_24), [1])
-        slice_26 = torch.ops.aten.slice.Tensor(arg0_1, 1, 36, 37)
-        sum_13 = torch.ops.aten.sum.dim_IntList(torch.ops.aten.embedding.default(arg14_1, slice_26), [1])
-        slice_28 = torch.ops.aten.slice.Tensor(arg0_1, 1, 37, 43)
-        sum_14 = torch.ops.aten.sum.dim_IntList(torch.ops.aten.embedding.default(arg15_1, slice_28), [1])
-        slice_30 = torch.ops.aten.slice.Tensor(arg0_1, 1, 43, 52)
-        sum_15 = torch.ops.aten.sum.dim_IntList(torch.ops.aten.embedding.default(arg16_1, slice_30), [1])
-        slice_32 = torch.ops.aten.slice.Tensor(arg0_1, 1, 52, 57)
-        sum_16 = torch.ops.aten.sum.dim_IntList(torch.ops.aten.embedding.default(arg17_1, slice_32), [1])
-        slice_34 = torch.ops.aten.slice.Tensor(arg0_1, 1, 57, 58)
-        sum_17 = torch.ops.aten.sum.dim_IntList(torch.ops.aten.embedding.default(arg18_1, slice_34), [1])
-        slice_36 = torch.ops.aten.slice.Tensor(arg0_1, 1, 58, 59)
-        sum_18 = torch.ops.aten.sum.dim_IntList(torch.ops.aten.embedding.default(arg19_1, slice_36), [1])
-        slice_38 = torch.ops.aten.slice.Tensor(arg0_1, 1, 59, 60)
-        sum_19 = torch.ops.aten.sum.dim_IntList(torch.ops.aten.embedding.default(arg20_1, slice_38), [1])
-        slice_40 = torch.ops.aten.slice.Tensor(arg0_1, 1, 60, 72)
-        sum_20 = torch.ops.aten.sum.dim_IntList(torch.ops.aten.embedding.default(arg21_1, slice_40), [1])
-        slice_42 = torch.ops.aten.slice.Tensor(arg0_1, 1, 72, 172)
-        sum_21 = torch.ops.aten.sum.dim_IntList(torch.ops.aten.embedding.default(arg22_1, slice_42), [1])
+
         cat = torch.ops.aten.cat.default(
             [sum_1, sum_2, sum_3, sum_4, sum_5,
-            sum_6, sum_7, sum_8, sum_9, sum_10,
-            sum_11, sum_12, sum_13, sum_14, sum_15,
-            sum_16, sum_17, sum_18, sum_19, sum_20, sum_21],
+             sum_6, sum_7, sum_8, sum_9],
             1
         )
         add_relu = torch.ops.aten.add.Tensor(cat, cat)
 
-        # branch A
         a = torch.ops.aten.relu.default(torch.ops.aten.mm.default(arg23_1, arg24_1))
         a = torch.ops.aten.relu.default(torch.ops.aten.mm.default(a, arg25_1))
         a = torch.ops.aten.relu.default(torch.ops.aten.mm.default(a, arg26_1))
         a = torch.ops.aten.relu.default(torch.ops.aten.mm.default(a, arg27_1))
         mm_4 = torch.ops.aten.relu.default(torch.ops.aten.mm.default(a, arg28_1))
 
-        # branch B
         b = torch.ops.aten.relu.default(torch.ops.aten.mm.default(arg29_1, arg30_1))
         b = torch.ops.aten.relu.default(torch.ops.aten.mm.default(b, arg31_1))
         b = torch.ops.aten.relu.default(torch.ops.aten.mm.default(b, arg32_1))
         b = torch.ops.aten.relu.default(torch.ops.aten.mm.default(b, arg33_1))
         mm_8 = torch.ops.aten.relu.default(torch.ops.aten.mm.default(b, arg34_1))
 
-        # merge
         mm_8_t = torch.ops.aten.permute.default(mm_8, [1, 0])
         merge = torch.ops.aten.mm.default(mm_4, mm_8_t)
         merge = torch.ops.aten.mm.default(merge, arg35_1)
 
-        # MAIN
         add = torch.ops.aten.add.Tensor(merge, add_relu)
         mm_15 = torch.ops.aten.mm.default(arg36_1, add)
         relu_15 = torch.ops.aten.relu.default(mm_15)
@@ -696,54 +663,48 @@ class TestMultiStreamPass(TestUtils):
         )
         return out
 
-
     @patch("torch_npu._inductor.fx_passes.parallel_scheduler_pass.is_multi_stream", return_value=True)
     def test_multi_stream_compile_case(self, mock_multi_stream):
-        arg0_1  = torch.randint(0, 99, (64, 199), dtype=torch.int64, device="npu")
-        arg1_1  = torch.randn(100, 64, device="npu")
-        arg2_1  = torch.randn(100, 64, device="npu")
-        arg3_1  = torch.randn(100, 64, device="npu")
-        arg4_1  = torch.randn(100, 64, device="npu")
-        arg5_1  = torch.randn(100, 64, device="npu")
-        arg6_1  = torch.randn(100, 64, device="npu")
-        arg7_1  = torch.randn(100, 64, device="npu")
-        arg8_1  = torch.randn(100, 64, device="npu")
-        arg9_1  = torch.randn(100, 64, device="npu")
-        arg10_1 = torch.randn(100, 64, device="npu")
-        arg11_1 = torch.randn(100, 64, device="npu")
-        arg12_1 = torch.randn(100, 64, device="npu")
-        arg13_1 = torch.randn(100, 64, device="npu")
-        arg14_1 = torch.randn(100, 64, device="npu")
-        arg15_1 = torch.randn(100, 64, device="npu")
-        arg16_1 = torch.randn(100, 64, device="npu")
-        arg17_1 = torch.randn(100, 64, device="npu")
-        arg18_1 = torch.randn(100, 64, device="npu")
-        arg19_1 = torch.randn(100, 64, device="npu")
-        arg20_1 = torch.randn(100, 64, device="npu")
-        arg21_1 = torch.randn(100, 64, device="npu")
-        arg22_1 = torch.randn(100, 64, device="npu")
-        arg23_1 = torch.randn(64, 64, device="npu")
-        arg24_1 = torch.randn(64, 64, device="npu")
-        arg25_1 = torch.randn(64, 64, device="npu")
-        arg26_1 = torch.randn(64, 64, device="npu")
-        arg27_1 = torch.randn(64, 64, device="npu")
-        arg28_1 = torch.randn(64, 64, device="npu")
-        arg29_1 = torch.randn(64, 64, device="npu")
-        arg30_1 = torch.randn(64, 64, device="npu")
-        arg31_1 = torch.randn(64, 64, device="npu")
-        arg32_1 = torch.randn(64, 64, device="npu")
-        arg33_1 = torch.randn(64, 64, device="npu")
-        arg34_1 = torch.randn(64, 64, device="npu")
-        arg35_1 = torch.randn(64, 1344, device="npu")
-        arg36_1 = torch.randn(64, 64, device="npu")
-        arg37_1 = torch.randn(64, 1344, device="npu")
-        arg38_1 = torch.randn(64, 64, device="npu")
-        arg39_1 = torch.randn(64, 1344, device="npu")
+        arg0_1 = torch.randint(0, 16, (8, 40), dtype=torch.int64, device="npu")
+        arg1_1 = torch.randn(16, 8, device="npu")
+        arg2_1 = torch.randn(16, 8, device="npu")
+        arg3_1 = torch.randn(16, 8, device="npu")
+        arg4_1 = torch.randn(16, 8, device="npu")
+        arg5_1 = torch.randn(16, 8, device="npu")
+        arg6_1 = torch.randn(16, 8, device="npu")
+        arg7_1 = torch.randn(16, 8, device="npu")
+        arg8_1 = torch.randn(16, 8, device="npu")
+        arg9_1 = torch.randn(16, 8, device="npu")
+        arg10_1 = torch.randn(16, 8, device="npu")
 
-        std_result = self.multi_stream_test(arg0_1, arg1_1, arg2_1, arg3_1, arg4_1, arg5_1, arg6_1, arg7_1, arg8_1, arg9_1, arg10_1, arg11_1, arg12_1, arg13_1, arg14_1, arg15_1, arg16_1, arg17_1, arg18_1, arg19_1, arg20_1, arg21_1, arg22_1, arg23_1, arg24_1, arg25_1, arg26_1, arg27_1, arg28_1, arg29_1, arg30_1, arg31_1, arg32_1, arg33_1, arg34_1, arg35_1, arg36_1, arg37_1, arg38_1, arg39_1)
+        arg23_1 = torch.randn(8, 8, device="npu")
+        arg24_1 = torch.randn(8, 8, device="npu")
+        arg25_1 = torch.randn(8, 8, device="npu")
+        arg26_1 = torch.randn(8, 8, device="npu")
+        arg27_1 = torch.randn(8, 8, device="npu")
+        arg28_1 = torch.randn(8, 8, device="npu")
+        arg29_1 = torch.randn(8, 8, device="npu")
+        arg30_1 = torch.randn(8, 8, device="npu")
+        arg31_1 = torch.randn(8, 8, device="npu")
+        arg32_1 = torch.randn(8, 8, device="npu")
+        arg33_1 = torch.randn(8, 8, device="npu")
+        arg34_1 = torch.randn(8, 8, device="npu")
+        arg35_1 = torch.randn(8, 72, device="npu")
+        arg36_1 = torch.randn(8, 8, device="npu")
+        arg37_1 = torch.randn(8, 72, device="npu")
+        arg38_1 = torch.randn(8, 8, device="npu")
+        arg39_1 = torch.randn(8, 72, device="npu")
+
+        std_result = self.multi_stream_test(arg0_1, arg2_1, arg3_1, arg4_1, arg5_1, arg6_1, arg7_1, arg8_1, arg9_1,
+                                            arg10_1, arg23_1, arg24_1, arg25_1, arg26_1, arg27_1, arg28_1, arg29_1,
+                                            arg30_1, arg31_1, arg32_1, arg33_1, arg34_1, arg35_1, arg36_1, arg37_1,
+                                            arg38_1, arg39_1)
         with torch.no_grad():
             compiled_op_calc = torch.compile(self.multi_stream_test, backend="inductor")
-            inductor_result = compiled_op_calc(arg0_1, arg1_1, arg2_1, arg3_1, arg4_1, arg5_1, arg6_1, arg7_1, arg8_1, arg9_1, arg10_1, arg11_1, arg12_1, arg13_1, arg14_1, arg15_1, arg16_1, arg17_1, arg18_1, arg19_1, arg20_1, arg21_1, arg22_1, arg23_1, arg24_1, arg25_1, arg26_1, arg27_1, arg28_1, arg29_1, arg30_1, arg31_1, arg32_1, arg33_1, arg34_1, arg35_1, arg36_1, arg37_1, arg38_1, arg39_1)
+            inductor_result = compiled_op_calc(arg0_1, arg2_1, arg3_1, arg4_1, arg5_1, arg6_1, arg7_1, arg8_1, arg9_1,
+                                               arg10_1, arg23_1, arg24_1, arg25_1, arg26_1, arg27_1, arg28_1, arg29_1,
+                                               arg30_1, arg31_1, arg32_1, arg33_1, arg34_1, arg35_1, arg36_1, arg37_1,
+                                               arg38_1, arg39_1)
             self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3)
 
 
