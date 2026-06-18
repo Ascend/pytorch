@@ -9,7 +9,7 @@ from torch._C import DispatchKey
 from torch._decomp import remove_decompositions
 from torch._prims_common.wrappers import out_wrapper
 import torch.nn.functional as F
-from .config import is_ascend950
+
 from .lowering_common import add_overload
 from .ascend_npu_ir.ascend_npu_ir import config as anir_config
 from .ascend_npu_ir.ascend_npu_ir.npu.utils import run_once

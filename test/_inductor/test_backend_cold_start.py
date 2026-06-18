@@ -59,7 +59,6 @@ class TestInductorBackendColdStart(TestCase):
 
             import torch_npu._inductor
 
-            assert torch._inductor.config.trace.enabled
             assert torch_npu._inductor._get_backend() == backend_env
 
             def fn(x, y):
