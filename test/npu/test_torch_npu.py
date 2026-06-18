@@ -1,5 +1,4 @@
 import unittest
-import contextlib
 import collections
 import multiprocessing
 import threading
@@ -387,16 +386,24 @@ class TorchNPUApiTestCase(TestCase):
                 raise result_queue.get()
 
     def test_npu_device_count_without_visible_devices(self):
-        test_script = f"import torch; import torch_npu; \
+        test_script = "import torch; import torch_npu; \
         count1 = torch.npu.device_count(); count2 = torch_npu._C._npu_getDeviceCount(); print(count1 == count2)"
         rc = check_output([sys.executable, '-c', test_script]).decode("ascii").strip()
         self.assertEqual(rc, "True")
 
     @skipIfUnsupportMultiNPU(2)
     def test_npu_device_count_with_visible_devices(self):
-        for var in ['', ',', ' ,', ', ', '0,', ',0', '0, ', '0, 1', '0 ,1', '0,1', '0,32,1', '0,32,0', '0,0', '0,1,1', 'npu0', '1,0']:
-            test_script = f"import os; import torch; import torch_npu; os.environ['ASCEND_RT_VISIBLE_DEVICES'] = '{var}'; \
-            count1 = torch.npu.device_count(); count2 = torch_npu._C._npu_getDeviceCount(); print(count1 == count2)"
+        for var in ['', ',', ' ,', ', ', '0,', ',0', '0, ', '0, 1', '0 ,1', '0,1', '0,32,1', '0,32,0', '0,0', '0,1,1',
+                    'npu0', '1,0']:
+            test_script = f"""\
+import os
+import torch
+import torch_npu
+os.environ['ASCEND_RT_VISIBLE_DEVICES'] = '{var}'
+count1 = torch.npu.device_count()
+count2 = torch_npu._C._npu_getDeviceCount()
+print(count1 == count2)
+"""
             rc = check_output([sys.executable, '-c', test_script]).decode("ascii").strip()
             self.assertEqual(rc, "True")
 
@@ -407,11 +414,23 @@ class TorchNPUApiTestCase(TestCase):
         # Check that `rts` was not called during the import
         # By using torch_npu._C._npu_getDeviceCount() because it will not change if `rts` was called
         # torch_npu.npu.device_count() will parses ASCEND_RT_VISIBLE_DEVICES and will change along with it
-        test_script = f"import os; import torch; import torch_npu; os.environ['{VISIBLE_DEVICES}']='32';print(torch_npu._C._npu_getDeviceCount())"
+        test_script = f""""\
+import os; import torch
+import torch_npu
+os.environ['{VISIBLE_DEVICES}']='32'
+print(torch_npu._C._npu_getDeviceCount())
+"""
         rc = check_output([sys.executable, "-c", test_script]).decode("ascii").strip()
         self.assertEqual(rc, "0")
 
-        test_script = f"import os; import torch; import torch_npu; torch.npu.device_count(); os.environ['{VISIBLE_DEVICES}']='32';print(torch_npu._C._npu_getDeviceCount())"
+        test_script = f"""\
+import os
+import torch
+import torch_npu
+torch.npu.device_count()
+os.environ['{VISIBLE_DEVICES}']='32'
+print(torch_npu._C._npu_getDeviceCount())
+"""
         rc = check_output([sys.executable, "-c", test_script]).decode("ascii").strip()
         self.assertEqual(rc, "0")
 
@@ -457,6 +476,12 @@ print(f"{{r1}}, {{r2}}")
             self.fail("Expected exception not raised for large timeout value")
         except Exception as e:
             self.assertIn("Overflow when unpacking", str(e), f"{e}")
+
+    def test_use_compatible_impl(self):
+        old_enabled = torch_npu.npu.are_compatible_impl_enabled()
+        torch_npu.npu.use_compatible_impl(True)
+        self.assertTrue(torch_npu.npu.are_compatible_impl_enabled() is True)
+        torch_npu.npu.use_compatible_impl(old_enabled)
 
 
 if __name__ == "__main__":

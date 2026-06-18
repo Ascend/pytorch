@@ -1,6 +1,5 @@
 # Owner(s): ["module: unknown"]
 
-import collections
 import unittest
 
 import torch
@@ -329,7 +328,10 @@ class TestTorchAutocast(TestCase):
             assert torch.amp.is_autocast_available(device_type=dev)
 
     def test_non_string_device(self):
-        """Test that `autocast` throws a ValueError when provided a `torch.device` object for `device_type` instead of a string"""
+        """
+        Test that `autocast` throws a ValueError when provided a `torch.device` object for `device_type` instead of a
+        string.
+        """
         dev = torch.device("cpu")
         msg = f"Expected `device_type` of type `str`, got: `{type(dev)}`"
         with self.assertRaisesRegex(expected_exception=ValueError, expected_regex=msg):
