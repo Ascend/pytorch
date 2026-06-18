@@ -72,8 +72,14 @@ C10_NPU_API CaptureStatus currentStreamCaptureStatusMayInitCtx();
 inline CaptureStatus currentStreamCaptureStatus()
 {
     // don't create a context if we don't have to
-    if (c10_npu::isDeviceCtxActive(c10_npu::current_device())) {
-        return currentStreamCaptureStatusMayInitCtx();
+    if (at_npu::native::env::CheckCompatibleImpl()) {
+        if (c10_npu::isDeviceCtxActive(c10_npu::current_device())) {
+            return currentStreamCaptureStatusMayInitCtx();
+        }
+    } else {
+        if (c10_npu::IsContextInitialized()) {
+            return currentStreamCaptureStatusMayInitCtx();
+        }
     }
     return CaptureStatus::None;
 }
