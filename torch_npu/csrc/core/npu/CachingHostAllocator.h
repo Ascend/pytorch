@@ -55,9 +55,15 @@ inline TORCH_NPU_API bool CachingHostAllocator_isPinned(void* ptr) {
             return false;
         }
         at::OptionalDeviceGuard device_guard;
-        auto primary_ctx_device_index = c10_npu::getDeviceIndexWithPrimaryContext();
-        if (primary_ctx_device_index.has_value()) {
-            device_guard.reset_device(at::Device(at::DeviceType::PrivateUse1, *primary_ctx_device_index));
+        if (at_npu::native::env::CheckCompatibleImpl()) {
+            auto primary_ctx_device_index = c10_npu::getDeviceIndexWithPrimaryContext();
+            if (primary_ctx_device_index.has_value()) {
+                device_guard.reset_device(at::Device(at::DeviceType::PrivateUse1, *primary_ctx_device_index));
+            }
+        } else {
+            if (c10_npu::GetLocalDevice() < 0) {
+                c10_npu::SetCurrentDevice();
+            }
         }
         aclrtPtrAttributes attributes;
         NPU_CHECK_ERROR(c10_npu::acl::AclrtPointerGetAttributes(ptr, &attributes), "aclrtPointerGetAttributes");
