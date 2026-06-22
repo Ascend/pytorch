@@ -10,9 +10,9 @@
 
 > [!NOTE]
 >
-> - acl.init接口详情具体请参见《CANN 特征向量检索》中“[函数：init](https://www.hiascend.com/document/detail/zh/canncommercial/900/others/fvsearch/aclpythondevg_01_0823.html)”章节。
-> - acl.rt.set\_op\_wait\_timeout接口详情具体请参见《CANN Runtime运行时 API》中“[函数：set\_op\_wait\_timeout](https://www.hiascend.com/document/detail/zh/canncommercial/900/API/runtimeapi/aclpythondevg_01_0102.html)”章节。
-> - acl.rt.stream\_wait\_event接口详情具体请参见《CANN Runtime运行时 API》中“[函数：stream\_wait\_event](https://www.hiascend.com/document/detail/zh/canncommercial/900/API/runtimeapi/aclpythondevg_01_0101.html)”章节。
+> - acl.init接口详情请参见《CANN 特征向量检索》中“[函数：init](https://www.hiascend.com/document/detail/zh/canncommercial/900/others/fvsearch/aclpythondevg_01_0823.html)”章节。
+> - acl.rt.set\_op\_wait\_timeout接口详情请参见《CANN Runtime运行时 API》中“[函数：set\_op\_wait\_timeout](https://www.hiascend.com/document/detail/zh/canncommercial/900/API/runtimeapi/aclpythondevg_01_0102.html)”章节。
+> - acl.rt.stream\_wait\_event接口详情请参见《CANN Runtime运行时 API》中“[函数：stream\_wait\_event](https://www.hiascend.com/document/detail/zh/canncommercial/900/API/runtimeapi/aclpythondevg_01_0101.html)”章节。
 
 ## 配置示例
 

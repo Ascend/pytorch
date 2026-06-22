@@ -65,7 +65,7 @@
 |[torch.distributed.all_gather_into_tensor](https://pytorch.org/docs/2.12/distributed.html#torch.distributed.all_gather_into_tensor)|是|支持bf16，fp16，fp32，int8，int32，bool<br>world size不支持3，5，6，7|
 |[torch.distributed.all_gather_object](https://pytorch.org/docs/2.12/distributed.html#torch.distributed.all_gather_object)|是|-|
 |[torch.distributed.gather](https://pytorch.org/docs/2.12/distributed.html#torch.distributed.gather)|是|支持bf16，fp16，fp32，int8，int32，bool<br>通过设置torch_npu.npu.use_compatible_impl(True)，torch.distributed.gather切换为与原生实现保持一致|
-|[torch.distributed.gather_object](https://pytorch.org/docs/2.12/distributed.html#torch.distributed.gather_object)|是|支持的输入类型为Python Object对象|
+|[torch.distributed.gather_object](https://pytorch.org/docs/2.12/distributed.html#torch.distributed.gather_object)|是|支持的输入类型为Python Object|
 |[torch.distributed.scatter](https://pytorch.org/docs/2.12/distributed.html#torch.distributed.scatter)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool<br>通过设置torch_npu.npu.use_compatible_impl(True)，torch.distributed.scatter切换为与原生实现保持一致|
 |[torch.distributed.scatter_object_list](https://pytorch.org/docs/2.12/distributed.html#torch.distributed.scatter_object_list)|是|不涉及dtype参数|
 |[torch.distributed.reduce_scatter](https://pytorch.org/docs/2.12/distributed.html#torch.distributed.reduce_scatter)|是|支持bf16，fp16，fp32，int8，int32|

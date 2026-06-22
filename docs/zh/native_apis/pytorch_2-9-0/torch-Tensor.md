@@ -409,7 +409,7 @@
 |[Tensor.t](https://pytorch.org/docs/2.9/generated/torch.Tensor.t.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，complex64，complex128|
 |[Tensor.t_](https://pytorch.org/docs/2.9/generated/torch.Tensor.t_.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64|
 |[Tensor.tensor_split](https://pytorch.org/docs/2.9/generated/torch.Tensor.tensor_split.html)|是|仅CPU支持|
-|[Tensor.tile](https://pytorch.org/docs/2.9/generated/torch.Tensor.tile.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>若入参dims的长度小于Tensor.shape的长度，则会在dims前自动补全1，使其长度与 Tensor.shape对齐。补全后的dims，需要满足如下限制：<br>- 当需要对第一根轴进行重复时，最多允许同时对4个维度进行重复操作(即dims中大于1的元素个数 ≤ 4)，例如：不支持Tensor.tile([2, 3, 4, 5, 6]) ，支持Tensor.tile([2, 3, 1, 5, 6])<br>- 当不需要对第一根轴进行重复时，最多允许同时对3个维度进行重复操作(即dims中大于1的元素个数 ≤ 3)，例如：不支持Tensor.tile([1, 3, 4, 5, 6]) ，支持Tensor.tile([1, 3, 1, 5, 6])<br>- 若执行反向计算，Tensor的维度数与入参dims中大于1的元素个数之和不得超过8|
+|[Tensor.tile](https://pytorch.org/docs/2.9/generated/torch.Tensor.tile.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>若入参dims的长度小于Tensor.shape的长度，则会在dims前自动补全1，使其长度与 Tensor.shape对齐。补全后的dims，需要满足如下限制：<br>- 当需要对第一根轴进行重复时，最多允许同时对4个维度进行重复操作（即dims中大于1的元素个数 ≤ 4），例如：不支持Tensor.tile([2, 3, 4, 5, 6]) ，支持Tensor.tile([2, 3, 1, 5, 6])<br>- 当不需要对第一根轴进行重复时，最多允许同时对3个维度进行重复操作（即dims中大于1的元素个数 ≤ 3），例如：不支持Tensor.tile([1, 3, 4, 5, 6]) ，支持Tensor.tile([1, 3, 1, 5, 6])<br>- 若执行反向计算，Tensor的维度数与入参dims中大于1的元素个数之和不得超过8|
 |[Tensor.to](https://pytorch.org/docs/2.9/generated/torch.Tensor.to.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>当前NPU设备仅支持设置memory_format为torch.contiguous_format或torch.preserve_format<br><term>Atlas 推理系列产品</term>不支持跨NPU拷贝|
 |[to](https://pytorch.org/docs/2.9/generated/torch.Tensor.to.html)|是|-|
 |[Tensor.to_mkldnn](https://pytorch.org/docs/2.9/generated/torch.Tensor.to_mkldnn.html)|否|-|
@@ -424,7 +424,7 @@
 |[Tensor.arctanh](https://pytorch.org/docs/2.9/generated/torch.Tensor.arctanh.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.arctanh_](https://pytorch.org/docs/2.9/generated/torch.Tensor.arctanh_.html)|是|支持fp16，fp32，complex64，complex128|
 |[Tensor.tolist](https://pytorch.org/docs/2.9/generated/torch.Tensor.tolist.html)|是|支持fp32|
-|[Tensor.topk](https://pytorch.org/docs/2.9/generated/torch.Tensor.topk.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64<br>由于硬件差异，npu topk索引结果与gpu/cpu不一致。当前npu仅支持返回sorted为true的计算结果<br>不支持标量tensor|
+|[Tensor.topk](https://pytorch.org/docs/2.9/generated/torch.Tensor.topk.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64<br>由于硬件差异，npu topk索引结果与GPU/CPU不一致。当前NPU仅支持返回sorted为true的计算结果<br>不支持标量tensor|
 |[Tensor.to_dense](https://pytorch.org/docs/2.9/generated/torch.Tensor.to_dense.html)|否|-|
 |[Tensor.to_sparse](https://pytorch.org/docs/2.9/generated/torch.Tensor.to_sparse.html)|否|-|
 |[to_sparse](https://pytorch.org/docs/2.9/generated/torch.Tensor.to_sparse.html)|否|-|

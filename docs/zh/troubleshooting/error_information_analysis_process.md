@@ -19,7 +19,7 @@
 
 1. 查看回显信息中的首报错。
 
-    ```ColdFusion
+    ```text
     EZ3002: 2024-11-05-22:31:29.035.909 Optype [%s] of Ops kernel [%s] is unsupported. Reason: %s.
     ```
 
@@ -34,11 +34,11 @@
 
 3. 查看torch\_npu错误码。
 
-    ```ColdFusion
+    ```text
     ERR00100 PTA call acl api failed
     ```
 
-    “ERR00100”即为torch\_npu错误码，如果有明确错误指向，可根据具体故障原因清除故障。
+    “ERR00100”即为torch\_npu错误码，如果有明确错误指向，可根据具体故障原因排除故障。
 
 4. 另外，此处表明torch\_npu调用底层接口报错，还可以查看plog日志，根据日志中的首报错分析故障原因。
 

@@ -6,10 +6,10 @@
 
 |环境变量名称|简介|
 |--|--|
-|[INF_NAN_MODE_ENABLE](INF_NAN_MODE_ENABLE.md)|通过此环境变量可控制AI处理器对输入数据为Inf/NaN的处理能力，即控制AI处理器使用饱和模式还是INF_NAN模式。|
+|[INF_NAN_MODE_ENABLE](INF_NAN_MODE_ENABLE.md)|通过此环境变量可控制AI处理器对输入数据为Inf/NaN的处理方式，即控制AI处理器使用饱和模式还是INF_NAN模式。|
 |[INF_NAN_MODE_FORCE_DISABLE](INF_NAN_MODE_FORCE_DISABLE.md)|<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>，通过此环境变量可强制关闭INF_NAN模式。|
 |[COMBINED_ENABLE](COMBINED_ENABLE.md)|通过此环境变量可设置combined标志。|
-|[ASCEND_LAUNCH_BLOCKING](ASCEND_LAUNCH_BLOCKING.md)|通过此环境变量可控制算子执行时是否启动同步模式。|
+|[ASCEND_LAUNCH_BLOCKING](ASCEND_LAUNCH_BLOCKING.md)|通过此环境变量可控制算子执行时是否启用同步模式。|
 |[TASK_QUEUE_ENABLE](TASK_QUEUE_ENABLE.md)|通过此环境变量可配置task_queue算子下发队列是否开启和优化等级。|
 |[PER_STREAM_QUEUE](PER_STREAM_QUEUE.md)|通过此环境变量可配置是否开启一个stream一个task_queue算子下发队列。|
 |[TORCH_NPU_USE_COMPATIBLE_IMPL](TORCH_NPU_USE_COMPATIBLE_IMPL.md)|该环境变量用于控制API的实现是否与PyTorch原生社区完全对齐。|
@@ -63,7 +63,7 @@
 
 |环境变量名称|简介|
 |--|--|
-|[NPU_ASD_ENABLE](NPU_ASD_ENABLE.md)|Ascend Extension for PyTorch 7.0.0及之前版本，通过此环境变量可控制是否开启Ascend Extension for PyTorch的特征值检测功能。|
+|[NPU_ASD_ENABLE](NPU_ASD_ENABLE.md)|Ascend Extension for PyTorch 7.0.0及之前版本，通过此环境变量可控制是否开启特征值检测功能。|
 |[NPU_ASD_UPPER_THRESH](NPU_ASD_UPPER_THRESH.md)|Ascend Extension for PyTorch 7.0.0及之前版本，通过此环境变量可配置特征值检测功能的绝对阈值。|
 |[NPU_ASD_SIGMA_THRESH](NPU_ASD_SIGMA_THRESH.md)|Ascend Extension for PyTorch 7.0.0及之前版本，通过此环境变量可配置特征值检测功能的相对阈值。|
 |[NPU_ASD_CONFIG](NPU_ASD_CONFIG.md)|Ascend Extension for PyTorch 7.1.0及之后版本，通过此环境变量可控制是否开启Ascend Extension for PyTorch的特征值检测功能。|

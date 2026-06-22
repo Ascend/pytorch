@@ -201,7 +201,7 @@
 
 ## 编译验证
 
-1. 编译Ascend Extension for PyTorch插件并安装，推荐使用容器场景进行编译，具体操作可参考《AscendExtension for PyTorch 软件安装指南》中的“[方式二：源码编译安装](../installation_guide/compilation_installation_using_source_code.md)”章节的“方式一（推荐）：容器场景”。
+1. 编译Ascend Extension for PyTorch插件并安装，推荐使用容器场景进行编译，具体操作可参考《Ascend Extension for PyTorch 软件安装指南》中的“[方式二：源码编译安装](../installation_guide/compilation_installation_using_source_code.md)”章节的“方式一（推荐）：容器场景”。
 
 2. 上述开发过程完成后，调用开发者测试脚本，验证基本功能是否正常。
 

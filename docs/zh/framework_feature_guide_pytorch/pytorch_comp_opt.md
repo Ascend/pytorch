@@ -24,7 +24,7 @@
         pip install -r requirements.txt
         ```
 
-3. 根据需要的优化类型进行相应编译参数设置并进行编译，LTO和PGO优化可以单独使用也可以叠加一起使用。
+3. 根据需要的优化类型进行相应编译参数设置并进行编译，LTO和PGO优化可以单独使用也可以叠加使用。
     - LTO优化
         1. 配置编译参数，设置环境变量。
 
@@ -92,7 +92,7 @@
                 >
                 > OMP\_PROC\_BIND会影响模型运行时的性能，无论是采集还是优化，运行模型前都需确保将该环境变量设置为false。
 
-            - 安装一次编译后的PyTorch的whl包，执行如下命令：
+            - 安装第一次编译得到的PyTorch的whl包，执行如下命令：
 
                 ```shell
                 pip3 install /path/to/*.whl --force-reinstall --no-deps
@@ -104,7 +104,7 @@
                 > 
                 > 毕昇编译的PyTorch须与毕昇编译的torch\_npu配套使用，其他兼容性可参考[表1](comp_opt_intro.md#custom-anchor)。
 
-            - 模型跑完之后，程序停止执行，在一次编译时指定的对应目录下可以生成profraw格式文件。亦可通过在运行机器上配置环境变量LLVM\_PROFILE\_FILE指定profraw文件生成位置，参考命令中%m允许在线合并profile数据，改为%p将按pid记录数据。
+            - 模型跑完之后，程序停止执行，在第一次编译时指定的对应目录下可以生成profraw格式文件。亦可通过在运行机器上配置环境变量LLVM\_PROFILE\_FILE指定profraw文件生成位置，参考命令中的%m允许在线合并profile数据，改为%p将按pid记录数据。
 
                 参考命令：
 

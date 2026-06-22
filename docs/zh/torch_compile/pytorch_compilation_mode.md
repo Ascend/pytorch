@@ -36,7 +36,7 @@ torch.compile(model, *, fullgraph=False, dynamic=None, backend="inductor",
 
 **编译后端说明**
 
-| 后端 | 使能方式 | 核心机制 | 适用场景 |
+| 后端 | 开启方式 | 核心机制 | 适用场景 |
 |------|----------|---------|---------|
 | Inductor（默认） | `backend="inductor"` | 算子融合 + 代码生成（Triton/MLIR/DVM） | 大多数场景，不确定时首选 |
 | NPUGraphs | `backend="npugraphs"` | ACLGraph图下沉，一次捕获多次重放，消除kernel启动开销 | kernel调用频繁、CPU调度密集 |

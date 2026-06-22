@@ -136,7 +136,7 @@
             bash ci/build.sh --python=3.10
             ```
 
-            如需指定其他Python版本请使用--python=3.9、--python=3.11、--python=3.12或--python=3.13。
+            如需指定其他Python版本，请使用--python=3.9、--python=3.11、--python=3.12或--python=3.13。
 
     3. 安装pytorch/dist目录下生成的插件torch\_npu包，如果使用非root用户安装，需要在命令后加`--user`。
 

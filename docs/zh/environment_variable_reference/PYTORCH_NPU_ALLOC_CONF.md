@@ -16,7 +16,7 @@
 
     主动回收未使用的NPU内存块。在设置value阈值（例如0.8）后，如果NPU内存容量使用超过阈值（即分配给NPU应用程序的总内存的80%），缓存分配器将开始回收NPU内存块，优先释放最先申请和长时间未复用的内存块，避免释放积极复用的内存块。其中<value\>取值范围为\(0.0,1.0\)。默认不开启该功能。垃圾回收阈值需与内存因子配合使用，内存因子可参考《[Ascend Extension for PyTorch 自定义API参考](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/overview.md)》的“torch\_npu.npu.set\_per\_process\_memory\_fraction”。
 
-- expandable\_segments:<value\>，使能内存池扩展段功能，即虚拟内存特性。
+- expandable\_segments:<value\>，开启内存池扩展段功能，即虚拟内存特性。
 
     默认为False。如果设置为True，此设置将指示缓存分配器创建特定的内存块分配，这些内存块后续可以扩展，以便能更好地处理内存使用中频繁变更使用内存大小的情况。如果设置为False，关闭内存池扩展段功能，使用原有的内存申请方式。
 
@@ -54,7 +54,7 @@
 
     默认值为False，不启用后台线程。当设置为True时，启用后台线程，在后台线程执行查询和处理events操作，减少主线程的阻塞时间。
 
-- pin\_memory\_expandable\_segments:<value\>，使能pin_memory内存池扩展段功能，即虚拟内存特性。
+- pin\_memory\_expandable\_segments:<value\>，开启pin_memory内存池扩展段功能，即虚拟内存特性。
 
     默认为False。如果设置为True，此设置将指示pin_memory缓存分配器内存池物理内存申请粒度为20MB（不可配置），创建的内存块后续可以扩展，以便能更好地处理内存使用中频繁变更内存大小的情况，同时pin_memory内存块计数相关统计指标不参与统计（默认值：0）。如果设置为False，关闭pin_memory内存池扩展段功能，使用原有的内存申请方式。
 
@@ -62,7 +62,7 @@
 
     默认为False。如果设置为True，此设置将指示pin_memory内存启用host register功能，将pin_memory内存映射注册为Device可访问的内存地址。如果设置为False，关闭host register功能。
 
-> [!NOTE]  
+> [!NOTE]
 >
 > 用户使用Ascend Extension for PyTorch 6.0.RC3及以上版本配套的驱动（Ascend HDK 24.1.RC3及以上），开启虚拟内存特性时，可以使用单进程多卡特性；用户使用Ascend Extension for PyTorch 6.0.RC3以下版本配套的驱动（Ascend HDK 24.1.RC3以下版本），开启虚拟内存特性时，不能使用单进程多卡特性。
 
@@ -139,15 +139,15 @@ export PYTORCH_NPU_ALLOC_CONF=pinned_mem_register:True
     - <term>Atlas A3 训练系列产品</term>
 
 - page\_size特性与其他特性同时配置时，仅page\_size配置生效，且申请内存注意事项如下：
-    - 当申请内存大于1M时：
+    - 当申请内存大于1MB时：
         - 若配置page\_size，内存申请粒度为1GB。
         - 若未配置page\_size，内存申请粒度为2MB。
 
     - 当申请内存小于等于1MB时：配置page\_size也不生效，内存申请粒度为2MB。
-- pin_memory_expandable_segments特性要求Ascend Extension for PyTorch 7.3.0及以上版本、Ascend HDK 25.5.0及以上版本、CANN商发8.5.0及以上版本使用。
+- pin_memory_expandable_segments特性要求Ascend Extension for PyTorch 7.3.0及以上版本、Ascend HDK 25.5.0及以上版本、CANN商用8.5.0及以上版本使用。
 - pinned_use_background_threads特性要求在Ascend Extension for PyTorch 26.0.0及以上版本且PyTorch 2.8.0及以上版本使用。
 - pinned_mem_register使用注意事项如下：
-    - 特性要求Ascend Extension for PyTorch 26.0.0及以上版本、Ascend HDK 26.0.rc1及以上版本、CANN商用8.5.0及以上版本使用。
+    - 特性要求Ascend Extension for PyTorch 26.0.0及以上版本、Ascend HDK 26.0.RC1及以上版本、CANN商用8.5.0及以上版本使用。
     - 与pin_memory_expandable_segments特性不支持同时配置。
 - multi_stream_lazy_reclaim使用注意事项：
     - 特性要求在Ascend Extension for PyTorch 7.3.0以上版本上使用。
