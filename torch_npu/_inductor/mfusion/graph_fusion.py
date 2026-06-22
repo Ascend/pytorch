@@ -644,13 +644,8 @@ def mfusion_graph_fusion(graph: Graph) -> None:
         # dvm_trans_* keeps storage shapes for fused aclnn semantics; Inductor mm lowering needs
         # explicit transpose + mm so mm_args inner dims match. Re-propagate FakeTensor after expand.
         if expand_dvm_mm_to_explicit_transpose_for_inductor(gm):
-            from torch.fx.passes.fake_tensor_prop import FakeTensorProp
+            fake_tensor_propagate_mfusion_subgraph(gm, example_inputs, fake_mode=mode)
 
-            if mode is not None:
-                with mode:
-                    FakeTensorProp(gm, mode=mode).propagate(*example_inputs)
-            else:
-                FakeTensorProp(gm).propagate(*example_inputs)
     _propagate_subgraph_meta_from_main(gm)
     gm.recompile()
     _mfusion_print_fx_graph(gm, "# After restore meta, FX Graph:")

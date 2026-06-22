@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import operator
 from unittest import skipUnless
 
 import torch
@@ -55,6 +56,11 @@ class TestFusedModule(nn.Module):
         a = x * y
         b = a + x
         return b
+
+
+def opaque_pair(pair, *, scales):
+    lhs, rhs = pair
+    return ((lhs + rhs) * scales["sum"], (lhs - rhs) * scales["diff"])
 
 
 class WrapperModule(torch.nn.Module):
@@ -238,6 +244,70 @@ class TestFxRoundtrip(TestCase):
 
         self.assertTrue(torch.allclose(res, expected_res))
         self.assertTrue(torch.allclose(x_input, x))
+
+    def test_opaque_call_function_roundtrip_multi_output(self):
+        from torch.fx.passes.fake_tensor_prop import FakeTensorProp
+        from torch_npu._inductor.mfusion.fx_mlir_converter.fx_importer import (
+            _validate_call_function_targets,
+            _wrap_unsupported_call_function_targets,
+        )
+
+        x = torch.randn(3, 4)
+        y = torch.randn(3, 4)
+        graph = torch.fx.Graph()
+        x_node = graph.placeholder("x")
+        y_node = graph.placeholder("y")
+        opaque_node = graph.call_function(
+            opaque_pair,
+            args=((x_node, y_node),),
+            kwargs={"scales": {"sum": 2.0, "diff": 0.5}},
+        )
+        out0 = graph.call_function(operator.getitem, args=(opaque_node, 0))
+        out1 = graph.call_function(operator.getitem, args=(opaque_node, 1))
+        graph.output((out0, out1))
+        gm = torch.fx.GraphModule(torch.nn.Module(), graph)
+
+        FakeTensorProp(gm).propagate(x, y)
+        unsupported_nodes = [
+            node
+            for node in gm.graph.nodes
+            if node.op == "call_function" and node.target is opaque_pair
+        ]
+        self.assertEqual(len(unsupported_nodes), 1)
+
+        _wrap_unsupported_call_function_targets(gm)
+        _validate_call_function_targets(gm)
+
+        wrapped_nodes = [
+            node
+            for node in gm.graph.nodes
+            if node.op == "call_function"
+            and isinstance(node.target, torch._ops.OpOverload)
+            and getattr(node.target, "_name", "").startswith("mfusion_opaque::call_")
+        ]
+        self.assertEqual(len(wrapped_nodes), 1)
+        self.assertEqual(len([n for n in gm.graph.nodes if n.target is opaque_pair]), 0)
+
+        mlir_module = import_mlir_module_from_fx(gm)
+        mlir_text = str(mlir_module)
+
+        self.assertIn("torch.mfusion_opaque.call_", mlir_text)
+
+        new_gm = export_mlir_module_to_fx(mlir_module)
+        result = new_gm(x, y)
+        expected = opaque_pair((x, y), scales={"sum": 2.0, "diff": 0.5})
+
+        self.assertEqual(len(result), 2)
+        self.assertTrue(torch.allclose(result[0], expected[0]))
+        self.assertTrue(torch.allclose(result[1], expected[1]))
+
+        opaque_nodes = [
+            node
+            for node in new_gm.graph.nodes
+            if node.op == "call_function" and node.target is opaque_pair
+        ]
+        self.assertEqual(len(opaque_nodes), 1)
+        self.assertTrue(opaque_nodes[0].meta.get("mfusion_opaque_roundtrip"))
 
     def test_inductor_with_roundtrip_pass(self):
         import torch._inductor.config as inductor_config
