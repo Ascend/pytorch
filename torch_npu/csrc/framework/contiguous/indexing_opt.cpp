@@ -52,7 +52,7 @@ private:
     }
 
     // indexing信息获取部分
-    // Get step info(for indexing step at index aixs should > 1)
+    // Get step info(for indexing step at index axis should > 1)
     for (const auto i : c10::irange(indexing_size.size())) {
       step.emplace_back(indexing_stride[i] / base_stride[i]);
     }

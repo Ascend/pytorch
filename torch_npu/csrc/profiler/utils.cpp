@@ -33,14 +33,14 @@ static bool validateInput(
 {
     std::stringstream ss;
     if (inputs.size() < min_size) {
-        ss << "Failed to save extra arguments for flops compuation of op " << op_name << ", min size: " << min_size <<
+        ss << "Failed to save extra arguments for flops computation of op " << op_name << ", min size: " << min_size <<
             ", actual size: " << inputs.size();
         TORCH_NPU_WARN(ss.str());
         return false;
     }
     for (auto index : should_be_tensor) {
         if (!inputs[index].isTensor()) {
-            ss << "Failed to save extra arguments for flops compuation of op " << op_name << ", input[" << index <<
+            ss << "Failed to save extra arguments for flops computation of op " << op_name << ", input[" << index <<
                 "] must be a tensor.";
             TORCH_NPU_WARN(ss.str());
             return false;

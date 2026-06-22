@@ -46,7 +46,7 @@ at::Tensor& NPUNativeFunctions::set_(
     if (CheckStorageDesc(self, src)) {
         StorageDescHelper::SetDesc(self, size, stride);
     } else {
-        // Check input tensor propertys. If conditions are not met, NPUStorageDesc
+        // Check input tensor properties. If conditions are not met, NPUStorageDesc
         // base_sizes_ change to 1D. Conditions:
         // 1. Tensor storage_offset == 0
         // 2. Tnput tensor is contiguous

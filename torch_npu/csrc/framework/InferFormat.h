@@ -37,7 +37,7 @@ public:
     // not effect the storage data.
     static FormatShape GuessStorageSizeWhenConvertFormat(const at::Tensor &tensor);
     // This api is used to judge if tensor is reasonable when size changes.
-    // solution: tranform to base format to fix it.
+    // solution: transform to base format to fix it.
     // fix: NCHW | 5HD -> NCDHW | NCDHW or ND | ND
     // unsqueeze/squeeze/select/flatten/view will change meta data, they will call
     // as_strided and view

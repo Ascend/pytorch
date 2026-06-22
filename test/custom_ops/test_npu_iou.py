@@ -10,7 +10,7 @@ class TestNpuIou(TestCase):
         def box_area(boxes):
             return (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
 
-        # Logics here have some differents from torchvision.
+        # Logics here have some differences from torchvision.
         lt = torch.max(bboxes[:, :2], gtboxes[:, None, :2])
         rb = torch.min(bboxes[:, 2:], gtboxes[:, None, 2:])
         wh = torch.clamp(rb - lt, min=0)

@@ -282,7 +282,7 @@ at::Tensor OpPreparation::apply_tensor_with_format(c10::IntArrayRef sizes,
                 OPS_ERROR(ErrCode::TYPE));
     auto fixFormat = InferFormat::GuessStorageFormat(sizes, static_cast<aclFormat>(format));
     if (options.dtype_opt() == at::ScalarType::Double && !FormatHelper::IsBaseFormatType(static_cast<aclFormat>(format))) {
-        ASCEND_LOGW("NPU don't support create double dtype tensor with inner format, repalce with base format.");
+        ASCEND_LOGW("NPU don't support create double dtype tensor with inner format, replace with base format.");
         fixFormat = FormatHelper::GetBaseFormat(static_cast<aclFormat>(format));
     }
     return NPUNativeFunctions::unsafe_empty_with_format(sizes,

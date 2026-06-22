@@ -67,7 +67,7 @@ void* registerSvmMem(void* ptr, size_t size, bool is_support_consistency)
         TORCH_CHECK(false, "AclrtHostRegister failed.", PTA_ERROR(ErrCode::ACL));
     }
     if (alignedPtr != svmPtr) {
-        ASCEND_LOGW("The svmPtr(0x%llx) is not equel to alignedPtr(0x%llx), then the memory pointed by svmPtr can not be printed directly on host ", svmPtr, alignedPtr)
+        ASCEND_LOGW("The svmPtr(0x%llx) is not equal to alignedPtr(0x%llx), then the memory pointed by svmPtr can not be printed directly on host ", svmPtr, alignedPtr)
     }
 
     HostPtr hostPtr;

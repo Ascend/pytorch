@@ -35,7 +35,7 @@ std::tuple<aclFormat, aclFormat> InferFormat::GuessFormatUnit(const c10::IntArra
         return std::make_tuple(ACL_FORMAT_NCHW, ACL_FORMAT_NCHW);
     } else {
         if (baseFormat == ACL_FORMAT_NCDHW) {
-            // scence: Dimensionality reduction: NCDHW->NCHW, for example: max/min
+            // scenario: Dimensionality reduction: NCDHW->NCHW, for example: max/min
             // NOTE(NPU Dimensionality reduction)
             if (size.size() == 4) {
                 return std::make_tuple(ACL_FORMAT_NCHW, ACL_FORMAT_NCHW);

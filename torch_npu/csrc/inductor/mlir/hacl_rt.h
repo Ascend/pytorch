@@ -32,7 +32,7 @@ typedef enum tagRtError {
     RT_ERROR_MEMORY_ALLOCATION = 0x2,         // memory allocation fail
     RT_ERROR_INVALID_RESOURCE_HANDLE = 0x3,   // invalid handle
     RT_ERROR_INVALID_DEVICE_POINTER = 0x4,    // invalid device point
-    RT_ERROR_INVALID_MEMCPY_DIRECTION = 0x5,  // invalid memory copy dirction
+    RT_ERROR_INVALID_MEMCPY_DIRECTION = 0x5,  // invalid memory copy direction
     RT_ERROR_INVALID_DEVICE = 0x6,            // invalid device
     RT_ERROR_NO_DEVICE = 0x7,                 // no valid device
     RT_ERROR_CMD_OCCUPY_FAILURE = 0x8,        // command occpuy failure
@@ -51,7 +51,7 @@ typedef enum tagRtError {
     RT_ERROR_DEVICE_POWER_UP_FAIL = 0x15,
     RT_ERROR_DEVICE_POWER_DOWN_FAIL = 0x16,
     RT_ERROR_FEATURE_NOT_SUPPROT = 0x17,
-    RT_ERROR_KERNEL_DUPLICATE = 0x18,         // register same kernel repeatly
+    RT_ERROR_KERNEL_DUPLICATE = 0x18,         // register same kernel repeatedly
     RT_ERROR_MODEL_STREAM_EXE_FAILED = 0x91,  // the model stream failed
     RT_ERROR_MODEL_LOAD_FAILED = 0x94,        // the model stream failed
     RT_ERROR_END_OF_SEQUENCE = 0x95,          // end of sequence
@@ -165,9 +165,9 @@ RTS_API rtError_t rtFunctionRegister(void *binHandle, const void *stubFunc, cons
  * @ingroup rt_kernel
  * @brief launch kernel to device
  * @param [in] stubFunc   stub function
- * @param [in] blockDim   block dimentions
- * @param [in] args   argments address for kernel function
- * @param [in] argsSize   argements size
+ * @param [in] blockDim   block dimensions
+ * @param [in] args   arguments address for kernel function
+ * @param [in] argsSize   arguments size
  * @param [in] smDesc   shared memory description
  * @param [in] stream   associated stream
  * @return RT_ERROR_NONE for ok, errno for failed
@@ -191,8 +191,8 @@ typedef struct tagRtArgsEx {
  * @ingroup rt_kernel
  * @brief launch kernel and tiling to device
  * @param [in] stubFunc   stub function
- * @param [in] blockDim   block dimentions
- * @param [in] argsInfo   argments address for kernel function
+ * @param [in] blockDim   block dimensions
+ * @param [in] argsInfo   arguments address for kernel function
  * @param [in] smDesc     shared memory description
  * @param [in] stream     associated stream
  * @param [in] flag       not use, set 0

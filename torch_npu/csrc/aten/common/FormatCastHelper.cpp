@@ -49,7 +49,7 @@ bool FormatCastHelper::format_cast_between_group(
             // src base format (src format) -> dst base format
             // dst base format -> dst format
             auto src_base_format = FormatHelper::GetBaseFormat(src);
-            format_cast_as_base_format(src, FormatHelper::GetBaseFormat(dst)); // prepare: covert src to dst base format
+            format_cast_as_base_format(src, FormatHelper::GetBaseFormat(dst)); // prepare: convert src to dst base format
             format_cast_inside_group(dst, src); // src base format (src format) -> dst base format
             format_cast_as_base_format(src, src_base_format); // recover: dst base format -> dst format
             return true;

@@ -21,7 +21,7 @@ class TestNpuConv2d(TestCase):
 
     def test_npu_conv2d_fp16(self):
         shape_format = [
-            # input, weigth, bias, stride, padding, dilation, groups
+            # input, weight, bias, stride, padding, dilation, groups
             [[np.float16, 0, [16, 128, 112, 112]], [np.float16, 0, [256, 128, 3, 3]], [np.float16, 2, [256]], [1, 1],
              [1, 1], [1, 1], 1],
             [[np.float16, 0, [1024, 232, 7, 7]], [np.float16, 0, [232, 232, 1, 1]], [np.float16, 2, [232]], [1, 2],
@@ -51,7 +51,7 @@ class TestNpuConv2d(TestCase):
 
     def test_npu_conv2d_fp32(self):
         shape_format = [
-            # input, weigth, bias, stride, padding, dilation, groups
+            # input, weight, bias, stride, padding, dilation, groups
             [[np.float32, 0, [16, 128, 112, 112]], [np.float32, 0, [256, 128, 3, 3]], [np.float32, 2, [256]], [1, 1],
              [1, 1], [1, 1], 1],
             [[np.float32, 0, [1024, 232, 7, 7]], [np.float32, 0, [232, 232, 1, 1]], [np.float32, 2, [232]], [1, 2],

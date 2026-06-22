@@ -348,7 +348,7 @@ at::Tensor copy_d2d_format_cast(at::Tensor& dst, const at::Tensor& src)
     if (!FormatCastHelper::IsSameGroupType(src, dst)) {
         bool res = FormatCastHelper::format_cast_between_group(dst, src, copy_d2d_format_cast);
         if (!res) {
-            AT_ERROR("unsupport cast from ", srcFormat, " to ", dstFormat);
+            AT_ERROR("unsupported cast from ", srcFormat, " to ", dstFormat);
         }
     return dst;
     }

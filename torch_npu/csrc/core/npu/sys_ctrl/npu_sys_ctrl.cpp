@@ -334,7 +334,7 @@ NpuSysCtrl::SysStatus NpuSysCtrl::Finalize()
         NPU_CHECK_WARN(aclmdlFinalizeDump());
     }
 
-    // call release fn by priotity
+    // call release fn by priority
     for (const auto &iter: release_fn_) {
         const auto &fn_vec = iter.second;
         for (const auto &fn: fn_vec) {

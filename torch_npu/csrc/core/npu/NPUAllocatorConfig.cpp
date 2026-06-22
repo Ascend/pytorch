@@ -44,7 +44,7 @@ NPUAllocatorConfig& NPUAllocatorConfig::instance()
             c10::utils::set_env("PYTORCH_ALLOC_CONF", env.value().c_str(), true);
         }
         if (!env.has_value()) {
-            TORCH_NPU_MEMORY_LOGI("PYTORCH_NPU_ALLOC_CONF and PYTORCH_ALLOC_CONF not setted, use default configuration.");
+            TORCH_NPU_MEMORY_LOGI("PYTORCH_NPU_ALLOC_CONF and PYTORCH_ALLOC_CONF not set, use default configuration.");
             return;
         }
         TORCH_NPU_MEMORY_LOGI("Get alloc conf env: %s", env.value().c_str());

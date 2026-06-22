@@ -14,7 +14,7 @@ on:
       image:
         required: true
         type: string
-        description: The docker iamge which will be loaded
+        description: The docker image which will be loaded
 
 jobs:
   build-and-test:

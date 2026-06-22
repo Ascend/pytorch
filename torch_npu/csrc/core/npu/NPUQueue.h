@@ -74,7 +74,7 @@ private:
   void ChangeStatus(RepoStatus expected, RepoStatus desired);
 
 private:
-  void* datas = nullptr;
+  void* data = nullptr;
   std::thread releaser;
   c10::DeviceIndex device_idx;
 
@@ -141,7 +141,7 @@ private:
   void ThrowDeviceError(RepoStatus current_status, void* cur_paras);
 
 private:
-  void* datas = nullptr;
+  void* data = nullptr;
   std::thread consumer;
   int efd_read;
   int efd_write;

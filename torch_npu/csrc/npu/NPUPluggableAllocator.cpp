@@ -151,7 +151,7 @@ c10::DataPtr NPUPluggableAllocator::allocate(size_t size)
 
 c10::DataPtr NPUPluggableAllocator::allocate_with_aligned(size_t size, size_t base_addr_aligned_kb) const
 {
-    TORCH_CHECK(false, "NPUPluggableAllocator does't has allocate_with_aligned", PTA_ERROR(ErrCode::NOT_SUPPORT));
+    TORCH_CHECK(false, "NPUPluggableAllocator doesn't has allocate_with_aligned", PTA_ERROR(ErrCode::NOT_SUPPORT));
     return c10::DataPtr();
 }
 

@@ -371,7 +371,7 @@ bool Repository::WriteQueue(void *cur_paras)
     }
 
     __sync_synchronize();
-    manager().Copy(datas, write_idx.idx, cur_paras);
+    manager().Copy(data, write_idx.idx, cur_paras);
     __sync_synchronize();
 
     TORCH_NPU_QUEUE_LOGD("WriteQueue: write success, %s, device = %d, write_idx = %u, read_idx = %u, status = %d",
@@ -444,20 +444,20 @@ bool Repository::ReadQueue()
 
     __sync_synchronize();
 #ifndef BUILD_LIBTORCH
-    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(2, datas, read_idx.idx);
-    auto ret = manager().Call(datas, read_idx.idx);
-    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(3, datas, read_idx.idx);
+    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(2, data, read_idx.idx);
+    auto ret = manager().Call(data, read_idx.idx);
+    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(3, data, read_idx.idx);
 #else
-    auto ret = manager().Call(datas, read_idx.idx);
+    auto ret = manager().Call(data, read_idx.idx);
 #endif
     if (ret != 0) {
-        repo_error = get_func_error_msg(manager().getCurrentParams(datas, read_idx.idx));
+        repo_error = get_func_error_msg(manager().getCurrentParams(data, read_idx.idx));
         ASCEND_LOGE("---Thread---%llu: device = %d, write_idx = %u, read_idx = %u, status = %d, ret = %d",
             std::this_thread::get_id(), device_idx, write_idx.idx, read_idx.idx, GetStatus(), ret);
         TORCH_NPU_QUEUE_LOGI("ReadQueue: read failed, %s, device = %d, write_idx = %u, read_idx = %u, status = %d, ret = %d",
             repo_error.c_str(), device_idx, write_idx.idx, read_idx.idx, GetStatus(), ret);
         while (!IsEmptyQueue()) { // ignore other tasks
-            manager().Release(datas, read_idx.idx, releaseQueue);
+            manager().Release(data, read_idx.idx, releaseQueue);
             read_idx.idx = (read_idx.idx + 1) & (kQueueCapacity - 1);
         }
         std::string err_msg;
@@ -481,11 +481,11 @@ bool Repository::ReadQueue()
         return false;
     }
 
-    manager().Release(datas, read_idx.idx, releaseQueue);
+    manager().Release(data, read_idx.idx, releaseQueue);
     __sync_synchronize();
 
     TORCH_NPU_QUEUE_LOGD("ReadQueue: read success, %s, device = %d, write_idx = %u, read_idx = %u, status = %d",
-        get_func_error_msg(manager().getCurrentParams(datas, read_idx.idx)).c_str(), device_idx, write_idx.idx, read_idx.idx, GetStatus());
+        get_func_error_msg(manager().getCurrentParams(data, read_idx.idx)).c_str(), device_idx, write_idx.idx, read_idx.idx, GetStatus());
     read_idx.idx = (read_idx.idx + 1) & (kQueueCapacity - 1);
 
     if (GetStatus() == RepoStatus::STOP_EXIT) {
@@ -736,7 +736,7 @@ void Repository::Dequeue()
 
 void Repository::ReleaseResource()
 {
-    manager().DeInit(datas);
+    manager().DeInit(data);
     if (efd_read > 0) {
         close(efd_read);
         efd_read = -1;
@@ -811,8 +811,8 @@ void StartConsume(Repository *repo, c10::DeviceIndex device_id)
 
 void Repository::InitRepo(c10::DeviceIndex device_id)
 {
-    if (datas == nullptr) {
-        datas = manager().Init(kQueueCapacity);
+    if (data == nullptr) {
+        data = manager().Init(kQueueCapacity);
         ASCEND_LOGI("TaskQueue is enable");
     }
 
@@ -835,7 +835,7 @@ std::string Repository::GetPara()
         return "EmptyQueue";
     }
     __sync_synchronize();
-    std::string repo_para = get_func_error_msg(manager().getCurrentParams(datas, read_idx.idx));
+    std::string repo_para = get_func_error_msg(manager().getCurrentParams(data, read_idx.idx));
     __sync_synchronize();
     return repo_para;
 }
@@ -847,7 +847,7 @@ bool ReleaseQueue::WriteToReleaseQueue(void *cur_paras)
         return false;
     }
     __sync_synchronize();
-    releaseManager().CopyRealseParam(datas, write_idx.idx, cur_paras);
+    releaseManager().CopyRealseParam(data, write_idx.idx, cur_paras);
 
     __sync_synchronize();
     write_idx.idx = (write_idx.idx + 1) & (kReleaseQueueCapacity - 1);
@@ -877,7 +877,7 @@ bool ReleaseQueue::ReadFromReleaseQueue()
     }
 
     __sync_synchronize();
-    releaseManager().ReleaseParam(datas, read_idx.idx);
+    releaseManager().ReleaseParam(data, read_idx.idx);
 
     __sync_synchronize();
     read_idx.idx = (read_idx.idx + 1) & (kReleaseQueueCapacity - 1);
@@ -919,8 +919,8 @@ void StartRelease(ReleaseQueue *releaseQue)
 
 void ReleaseQueue::InitReleaseQueue(c10::DeviceIndex device_id)
 {
-    if (datas == nullptr) {
-        datas = releaseManager().Init(kReleaseQueueCapacity);
+    if (data == nullptr) {
+        data = releaseManager().Init(kReleaseQueueCapacity);
     }
 
     initialized = true;
@@ -938,7 +938,7 @@ ReleaseQueue::~ReleaseQueue()
             releaser.join();
         }
     }
-    releaseManager().DeInit(datas);
+    releaseManager().DeInit(data);
 }
 
 bool ReleaseQueue::IsFullQueue() const

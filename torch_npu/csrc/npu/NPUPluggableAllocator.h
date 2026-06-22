@@ -129,7 +129,7 @@ protected:
     std::function<void(int, c10_npu::MempoolId_t, std::function<bool(aclrtStream)>)> begin_allocate_to_pool_fn_;
     std::function<void(int, c10_npu::MempoolId_t)> end_allocate_to_pool_fn_;
     std::function<void(int, c10_npu::MempoolId_t)> release_pool_fn_;
-    // We do the bookeeping here in order to simplify custom allocators
+    // We do the bookkeeping here in order to simplify custom allocators
     std::unordered_map<void*, _AllocationMetadata> allocation_metadata_;
 
     bool initialized_ = false;
