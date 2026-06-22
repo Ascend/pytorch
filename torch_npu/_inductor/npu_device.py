@@ -80,29 +80,14 @@ class NewNPUDeviceOpOverrides(NPUDeviceOpOverrides):
 
             static inline void * loadKernel(
                     std::string filePath,
-                    const std::string &&nameFuncMode,
+                    const std::string &&nameFunc,
+                    const std::string &&kernel_mode_str,
                     uint32_t sharedMemBytes,
                     const std::optional<std::string> &cubinDir = std::nullopt) {
                 if (cubinDir) {
                     std::filesystem::path p1{*cubinDir};
                     std::filesystem::path p2{filePath};
                     filePath = (p1 / p2.filename()).string();
-                }
-                std::string funcName;
-                std::string kernel_mode_str;
-                size_t spacePos = nameFuncMode.find(' ');
-                if (spacePos != std::string::npos) {
-                    kernel_mode_str = nameFuncMode.substr(spacePos + 1);
-                    funcName = nameFuncMode.substr(0, spacePos);
-                } else {
-                    size_t underLinePos = nameFuncMode.find_last_of('_');
-                    if (underLinePos != std::string::npos) {
-                        kernel_mode_str = nameFuncMode.substr(underLinePos + 1);
-                        funcName = nameFuncMode.substr(0, underLinePos);
-                    } else {
-                        throw std::runtime_error(std::string("Parse kernel name failed, expect "
-                                    "'kernel_name kernel_mode' or 'kernel_name_kernel_mode', bug got: ") + nameFuncMode);
-                    }
                 }
 
                 std::ifstream file(std::string(filePath), std::ios::binary | std::ios::ate);
@@ -143,7 +128,7 @@ class NewNPUDeviceOpOverrides(NPUDeviceOpOverrides):
                     throw std::runtime_error(std::string("rtDevBinaryRegister failed, 0x") + std::to_string(rtRet));
                 }
 
-                const char* name = funcName.c_str();
+                const char* name = nameFunc.c_str();
 
                 std::string stubName(name);
                 stubName += "_" + std::to_string(registered_names[name]);
@@ -164,12 +149,6 @@ class NewNPUDeviceOpOverrides(NPUDeviceOpOverrides):
         # Could not use OpCommand when debug_kernel, because we want to
         # use torch::save, which will cause dead lock in child thread.
         launch_code = """
-            static inline void launchKernel(
-                    std::function<int()> launch_call,
-                    std::string&& kernel_name) {
-                launch_call();
-            }
-        """ if npu_config.aot_inductor.debug_kernel else """
             static inline void launchKernel(
                     std::function<int()> launch_call,
                     std::string&& kernel_name) {
