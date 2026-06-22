@@ -609,6 +609,9 @@ class NPUCachingAutotuner(CachingAutotuner):
             "triton_meta": self.triton_meta,
             "def_args": input_launcher.def_args,
             "call_args": input_launcher.call_args,
+            "mix_mode": input_launcher.bin.metadata.mix_mode,
+            "parallel_mode": input_launcher.bin.metadata.parallel_mode,
+            "force_simt_only": input_launcher.bin.metadata.force_simt_only
         }
         from torch._inductor.codecache import CudaKernelParamCache
 

@@ -169,6 +169,7 @@ class DeferredNpuTritonCallWrapper:
             load_kernel_args = [
                 cpp_string_literal(params[get_cpp_wrapper_cubin_path_name()]),
                 cpp_string_literal(params["mangled_name"]),
+                cpp_string_literal(params["mix_mode"]),
                 str(params["shared_mem"]),
                 "cubin_dir_",
             ]
