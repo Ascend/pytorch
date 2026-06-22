@@ -87,7 +87,6 @@ anir_config.GENERATE_LIST = [
     # aten.clone,
 ]
 
-
 def _is_node_supported_by_dvm_rule(node, allow_common_rule=False):
     if node.target in DVM_OP_REGISTRY:
         _, rule = DVM_OP_REGISTRY.get(node.target)
@@ -387,6 +386,7 @@ class DvmMlirFusionPatch:
             False  # npu ops always return contiguous tensors which maybe different from meta outputs
         )
         inductor_config.allow_buffer_reuse = False
+        inductor_config.comprehensive_padding = False
         patch_decomp()
         _patch_lowering_type_checks()
         _patch_lowering()
