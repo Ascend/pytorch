@@ -1025,6 +1025,7 @@ private:
 
     // XXX - maybe we should generalize and have multiple events
     std::vector<OutOfMemoryObserver> oom_observers_;
+    std::vector<AllocatorTraceTracker> trace_trackers_;
     std::shared_ptr<c10d_npu::HCCLComm> hcclComm_;
 
     // Private pools for NPU graphs
@@ -1096,6 +1097,12 @@ public:
     void attachOutOfMemoryObserver(OutOfMemoryObserver observer)
     {
         oom_observers_.emplace_back(observer);
+    }
+
+    void attachAllocatorTraceTracker(AllocatorTraceTracker tracker)
+    {
+        std::unique_lock<std::recursive_mutex> lock(mutex);
+        trace_trackers_.emplace_back(std::move(tracker));
     }
 
     bool checkUceInMemPool()
@@ -3114,12 +3121,16 @@ private:
     void record_trace(TraceEntry::Action action, int64_t addr, size_t size, aclrtStream stream, int device,
         std::shared_ptr<c10::GatheredContext> context)
     {
-        if (!record_history) {
+        if (!record_history && trace_trackers_.empty()) {
             return;
         }
 
         auto te = TraceEntry(action, device, addr, size, stream,
             record_context_ >= RecordContext::ALLOC ? std::move(context) : nullptr);
+
+        for (const auto& cb : trace_trackers_) {
+            cb(te);
+        }
 
         if (record_history) {
             if (alloc_trace->size() < alloc_trace_max_entries_) {
@@ -3275,6 +3286,13 @@ public:
     {
         for (auto &allocator : device_allocator) {
             allocator->attachOutOfMemoryObserver(observer);
+        }
+    }
+
+    void attachAllocatorTraceTracker(AllocatorTraceTracker tracker) override
+    {
+        for (auto& allocator : device_allocator) {
+            allocator->attachAllocatorTraceTracker(tracker);
         }
     }
 
