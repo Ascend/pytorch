@@ -87,10 +87,9 @@ GRAPH_FUSION_SUPPORT_OP = [
     aten.where.default,
     aten.where.self,
     # aten.expand.default,
-    # aten.full.default,
+    aten.full.default,
     # aten.reshape.default,
 ]
-
 
 class UnionFind:
     def __init__(self) -> None:
@@ -268,7 +267,8 @@ class GraphFusionPartitioner(CapabilityBasedPartitioner):
         if need_fallback_gm(sub_gm):
             return False
         return any(
-            isinstance(node.meta.get("val", None), FakeTensor) for node in orig_inputs
+            isinstance(node.meta.get("val", None), FakeTensor)
+            for node in [*orig_inputs, *orig_outputs]
         )
 
     def partition_and_fuse(self) -> GraphModule:
@@ -344,6 +344,8 @@ class GraphFusionPartitioner(CapabilityBasedPartitioner):
             erase_nodes(self.graph_module, sorted_nodes)
 
         legalize_graph(self.graph_module)
+        output_node = self.graph_module.graph.find_nodes(op="output")[0]
+        next(iter(reversed(self.graph_module.graph.nodes))).append(output_node)
         return self.graph_module
 
 
