@@ -244,7 +244,7 @@ TorchKernelPy::ParsedCallInputs TorchKernelPy::ParseTensorCallInputs(py::args in
     auto addr = std::make_shared<std::vector<void*> >();
     addr->resize(relocs_.size());
     tensor_refs.reserve(loads_.size());
-    at::TensorOptions options;
+    at::TensorOptions options = at::TensorOptions(c10::DeviceType::PrivateUse1);
 
     for (size_t i = 0; i < loads_.size(); ++i) {
         auto tensor = inputs[i].cast<at::Tensor>();
@@ -619,7 +619,7 @@ TorchKernelPy::ParsedCallInputs DynKernelPy::ParseDynCallInputs(py::args inputs,
     auto addr = std::make_shared<std::vector<void*> >();
     addr->resize(relocs_.size());
     tensor_refs.reserve(dyn_load_shapes_.size());
-    at::TensorOptions options;
+    at::TensorOptions options = at::TensorOptions(c10::DeviceType::PrivateUse1);
 
     size_t input_index = 0;
     size_t sym_scalar_index = 0;
