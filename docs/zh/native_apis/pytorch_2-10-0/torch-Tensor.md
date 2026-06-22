@@ -425,7 +425,7 @@
 |[Tensor.arctanh](https://pytorch.org/docs/2.10/generated/torch.Tensor.arctanh.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.arctanh_](https://pytorch.org/docs/2.10/generated/torch.Tensor.arctanh_.html)|是|支持fp16，fp32，complex64，complex128|
 |[Tensor.tolist](https://pytorch.org/docs/2.10/generated/torch.Tensor.tolist.html)|是|支持fp32|
-|[Tensor.topk](https://pytorch.org/docs/2.10/generated/torch.Tensor.topk.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64<br>由于硬件差异，npu topk索引结果与gpu/cpu不一致。当前npu仅支持返回sorted为true的计算结果<br>不支持标量tensor|
+|[Tensor.topk](https://pytorch.org/docs/2.10/generated/torch.Tensor.topk.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64<br>由于硬件差异，npu topk索引结果与GPU/CPU不一致。当前NPU仅支持返回sorted为true的计算结果<br>不支持标量tensor|
 |[Tensor.to_dense](https://pytorch.org/docs/2.10/generated/torch.Tensor.to_dense.html)|否|-|
 |[Tensor.to_sparse](https://pytorch.org/docs/2.10/generated/torch.Tensor.to_sparse.html)|否|-|
 |[to_sparse](https://pytorch.org/docs/2.10/generated/torch.Tensor.to_sparse.html)|否|-|

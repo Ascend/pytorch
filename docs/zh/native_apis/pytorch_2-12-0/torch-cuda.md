@@ -2,7 +2,7 @@
 
 > [!NOTE]  
 > 若API“是否支持”为“是”，“限制与说明”为“-”，说明此API和原生API支持度保持一致。<br>
-> 在使用支持的cuda接口时，需要将API名称中的cuda替换为NPU形式才能使用：将torch.cuda.替换为torch_npu.npu.或torch.npu.。torch_npu.npu.和torch.npu.两种调用方式，功能一致。举例如下：
+> 在使用支持的CUDA接口时，需要将API名称中的CUDA替换为NPU形式才能使用：将torch.cuda.替换为torch_npu.npu.或torch.npu.。torch_npu.npu.和torch.npu.两种调用方式，功能一致。举例如下：
 >
 > `torch.cuda.current_device` --> `torch_npu.npu.current_device`<br>
 > `torch.cuda.current_device` --> `torch.npu.current_device`
@@ -20,7 +20,7 @@
 |[torch.cuda.device_of](https://pytorch.org/docs/2.12/generated/torch.cuda.device_of.html)|torch_npu.npu.device_of|是|-|
 |[torch.cuda.get_device_capability](https://pytorch.org/docs/2.12/generated/torch.cuda.get_device_capability.html)|torch_npu.npu.get_device_capability|是|通过环境变量TORCH_NPU_DEVICE_CAPABILITY配置`torch_npu.npu.get_device_capability()`的返回值，仅用于兼容原生PyTorch，不代表NPU硬件实际能力|
 |[torch.cuda.get_device_name](https://pytorch.org/docs/2.12/generated/torch.cuda.get_device_name.html)|torch_npu.npu.get_device_name|是|-|
-|[torch.cuda.get_device_properties](https://pytorch.org/docs/2.12/generated/torch.cuda.get_device_properties.html)|torch_npu.npu.get_device_properties|是|仅支持name、total_memory、L2_cache_size、cube_core_num和vector_core_num属性，原cuda上支持的其余属性均返回空字段|
+|[torch.cuda.get_device_properties](https://pytorch.org/docs/2.12/generated/torch.cuda.get_device_properties.html)|torch_npu.npu.get_device_properties|是|仅支持name、total_memory、L2_cache_size、cube_core_num和vector_core_num属性，原CUDA上支持的其余属性均返回空字段|
 |[torch.cuda.get_sync_debug_mode](https://pytorch.org/docs/2.12/generated/torch.cuda.get_sync_debug_mode.html)|torch_npu.npu.get_sync_debug_mode|是|-|
 |[torch.cuda.init](https://pytorch.org/docs/2.12/generated/torch.cuda.init.html)|torch_npu.npu.init|是|-|
 |[torch.cuda.ipc_collect](https://pytorch.org/docs/2.12/generated/torch.cuda.ipc_collect.html)|torch_npu.npu.ipc_collect|是|-|

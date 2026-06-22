@@ -11,7 +11,7 @@
 
 ## 配置示例
 
-在启用MLIR后，再使能AKG：
+在启用MLIR后，再开启AKG：
 
 ```bash
 export TORCHINDUCTOR_NPU_BACKEND="mlir"

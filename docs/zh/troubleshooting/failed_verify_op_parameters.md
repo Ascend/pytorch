@@ -18,7 +18,7 @@ RuntimeError: Expected all tensors to be on the same device. Expected NPU tensor
 
 使用torch相关API对tensor操作时，打印错误码“ERR01002”。
 
-输入的tensors的device类型不一致，导致算子不能正常调用，需要tensor的device同时为CPU或NPU。
+输入的tensors的device类型不一致，导致算子不能正常调用，需要tensor的device同时均为CPU或均为NPU。
 
 ## 解决措施
 

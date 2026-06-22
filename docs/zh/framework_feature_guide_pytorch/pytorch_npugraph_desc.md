@@ -2,7 +2,7 @@
 
 ## 简介
 
-NPUGraph是一种在Eager Mode（单算子执行模式）下使用的静态图捕获技术，将一系列NPU内核定义并封装为一个单元（即操作图），通过单一CPU操作启动多个NPU操作，从而减少启动开销。更多核心原理可参见[CUDAGraphs](https://pytorch.org/blog/accelerating-pytorch-with-cuda-graphs/)。
+NPUGraph是一种在Eager Mode（单算子执行模式）下使用的静态图捕获技术，将一系列NPU内核定义并封装为一个单元（即操作图），通过单一CPU操作启动多个NPU操作，从而减少启动开销。更多核心原理可参见[CUDA Graphs](https://pytorch.org/blog/accelerating-pytorch-with-cuda-graphs/)。
 
 ### 工作流程
 

@@ -47,7 +47,7 @@
 
 ## gdb调试core文件
 
-gdb命令行调试主要针对coredump场景，执行脚本后会在当前目录下会生成coredump文件，使用gdb调试该文件并打印堆栈，方法如下：
+gdb命令行调试主要针对coredump场景，执行脚本后会在当前目录下生成coredump文件，使用gdb调试该文件并打印堆栈，方法如下：
 
 1. 参考[GDB官方文档](https://sourceware.org/gdb/)安装GDB。
 2. 调试coredump文件。
