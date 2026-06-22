@@ -24,7 +24,7 @@ from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.utils import (
 from .decomp import patch_decomp
 from .fx_test import generate_dvm_fx_case
 from .graph_build import DvmCodegenInterpreter
-from .op_emitter import common_rule, DVM_OP_REGISTRY, DVM_SUPPORT_TYPE
+from .op_emitter import common_rule, DVM_OP_REGISTRY, DVM_SUPPORT_TYPE, _extra_int_types
 
 
 dump_fx_test = os.environ.get("INDUCTOR_DVM_DUMP_FX_TEST", "0") == "1"
@@ -102,7 +102,7 @@ def _codegen_dvm_kernel(self, Name=None):
         if node.op == "placeholder":
             meta = node.meta["val"]
             if isinstance(meta, torch._subclasses.FakeTensor):
-                return meta.dtype in DVM_SUPPORT_TYPE
+                return meta.dtype in [*DVM_SUPPORT_TYPE, *_extra_int_types]
         if node.op == "call_function":
             return _is_node_supported_by_dvm_rule(node)
         return True

@@ -84,6 +84,23 @@ class CopyInplaceModel(torch.nn.Module):
         return ()
 
 
+class Int64AddModel(torch.nn.Module):
+    def forward(self, x, y):
+        return x + y
+
+
+class Int64CompareModel(torch.nn.Module):
+    def forward(self, x, y):
+        return x > y
+
+
+class Int64PointwiseFusionModel(torch.nn.Module):
+    def forward(self, x, y):
+        sum_xy = x + y
+        mask = sum_xy > y
+        return torch.where(mask, sum_xy, x)
+
+
 class TestDvmByMlir(TestCase):
     def _run_and_get_code_with_dvm(self, model, *args):
         original_backend = os.environ.get("TORCHINDUCTOR_NPU_BACKEND")
@@ -96,6 +113,48 @@ class TestDvmByMlir(TestCase):
                 os.environ.pop("TORCHINDUCTOR_NPU_BACKEND", None)
             else:
                 os.environ["TORCHINDUCTOR_NPU_BACKEND"] = original_backend
+
+    def test_int64_add_fuses_into_dvm(self):
+        arg0 = torch.randint(-8, 8, (32, 32), dtype=torch.int64, device="npu")
+        arg1 = torch.randint(-8, 8, (32, 32), dtype=torch.int64, device="npu")
+        model = Int64AddModel()
+
+        with torch.no_grad():
+            expect = model(arg0, arg1)
+            result, codes = self._run_and_get_code_with_dvm(model, arg0, arg1)
+
+        code = "\n".join(codes)
+        self.assertEqual(expect, result)
+        self.assertIn("k.add", code)
+
+    def test_int64_compare_fuses_into_dvm(self):
+        arg0 = torch.randint(-8, 8, (32, 32), dtype=torch.int64, device="npu")
+        arg1 = torch.randint(-8, 8, (32, 32), dtype=torch.int64, device="npu")
+        model = Int64CompareModel()
+
+        with torch.no_grad():
+            expect = model(arg0, arg1)
+            result, codes = self._run_and_get_code_with_dvm(model, arg0, arg1)
+
+        code = "\n".join(codes)
+        self.assertEqual(expect, result)
+        self.assertIn("k.greater", code)
+
+    def test_int64_pointwise_chain_fuses_into_dvm(self):
+        arg0 = torch.randint(-8, 8, (32, 32), dtype=torch.int64, device="npu")
+        arg1 = torch.randint(-8, 8, (32, 32), dtype=torch.int64, device="npu")
+        model = Int64PointwiseFusionModel()
+
+        with torch.no_grad():
+            expect = model(arg0, arg1)
+            result, codes = self._run_and_get_code_with_dvm(model, arg0, arg1)
+
+        code = "\n".join(codes)
+        self.assertEqual(expect, result)
+        self.assertIn("k.add", code)
+        self.assertIn("k.greater", code)
+        self.assertNotIn("k.select", code)
+
 
     @parametrize("dtype", [torch.float16, torch.float32, torch.bfloat16])
     @parametrize("is_dynamic", [True, False])

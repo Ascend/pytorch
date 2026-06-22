@@ -189,11 +189,27 @@ py::object TorchKernelPy::Load(py::object shape, DataTypePy type)
     return ObjToPy(op);
 }
 
+py::object TorchKernelPy::GlobalAccess(py::object shape, DataTypePy type)
+{
+    ShapeRef* shape_ref = SymIntArraytoShapeRef(shape);
+    auto op = kernel_.GlobalAccess(nullptr, shape_ref, type);
+    loads_.emplace_back(op);
+    return ObjToPy(op);
+}
+
 py::object TorchKernelPy::ViewLoad(py::object shape, py::object stride, DataTypePy type)
 {
     ShapeRef* shape_ref = SymIntArraytoShapeRef(shape);
     ShapeRef* stride_ref = SymIntArraytoShapeRef(stride);
     auto op = kernel_.Load(nullptr, shape_ref, stride_ref, type);
+    loads_.emplace_back(op);
+    return ObjToPy(op);
+}
+
+py::object TorchKernelPy::GatherLoad(py::object shape, py::object index, DataTypePy type, int axis)
+{
+    ShapeRef* shape_ref = SymIntArraytoShapeRef(shape);
+    auto op = kernel_.GatherLoad(nullptr, shape_ref, PyToObj(index), axis, type);
     loads_.emplace_back(op);
     return ObjToPy(op);
 }
@@ -492,6 +508,16 @@ py::object DynKernelPy::Load(py::object shape, DataTypePy type)
     return ObjToPy(op);
 }
 
+py::object DynKernelPy::GlobalAccess(py::object shape, DataTypePy type)
+{
+    auto shape_seq = shape.cast<py::sequence>();
+    auto ref = GetDynLoadShapeRef(shape_seq.size());
+    ShapeRef* shape_ref = &ref->shape;
+    auto op = kernel_.GlobalAccess(nullptr, shape_ref, type);
+    loads_.emplace_back(op);
+    return ObjToPy(op);
+}
+
 py::object DynKernelPy::ViewLoad(py::object shape, py::object stride, DataTypePy type)
 {
     auto shape_seq = shape.cast<py::sequence>();
@@ -500,6 +526,16 @@ py::object DynKernelPy::ViewLoad(py::object shape, py::object stride, DataTypePy
     ShapeRef* shape_ref = &ref->shape;
     ShapeRef* stride_ref = &ref->stride;
     auto op = kernel_.Load(nullptr, shape_ref, stride_ref, type);
+    loads_.emplace_back(op);
+    return ObjToPy(op);
+}
+
+py::object DynKernelPy::GatherLoad(py::object shape, py::object index, DataTypePy type, int axis)
+{
+    auto shape_seq = shape.cast<py::sequence>();
+    auto ref = GetDynLoadShapeRef(shape_seq.size());
+    ShapeRef* shape_ref = &ref->shape;
+    auto op = kernel_.GatherLoad(nullptr, shape_ref, PyToObj(index), axis, type);
     loads_.emplace_back(op);
     return ObjToPy(op);
 }
