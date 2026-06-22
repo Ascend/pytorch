@@ -55,6 +55,28 @@ class TestNpuGraphHandlerBuiltinRegistration(TestCase):
                     f"Expected handler for '{op_name}' not found in registry",
                 )
 
+    def test_ifa_update_specs_cover_actual_seq_args(self):
+        for op_name in (
+            "npu_fused_infer_attention_score",
+            "npu_fused_infer_attention_score.default",
+            "npu_fused_infer_attention_score.out",
+        ):
+            with self.subTest(op_name=op_name):
+                specs = _NPU_GRAPH_OP_HANDLERS[op_name].get_update_specs(op_name)
+                self.assertIn(("arg", 5, "actual_seq_lengths"), specs)
+                self.assertIn(("arg", 6, "actual_seq_lengths_kv"), specs)
+
+    def test_ifa_v2_update_specs_cover_actual_seq_args(self):
+        for op_name in (
+            "npu_fused_infer_attention_score_v2",
+            "npu_fused_infer_attention_score_v2.default",
+            "npu_fused_infer_attention_score_v2.out",
+        ):
+            with self.subTest(op_name=op_name):
+                specs = _NPU_GRAPH_OP_HANDLERS[op_name].get_update_specs(op_name)
+                self.assertIn(("arg", 7, "actual_seq_qlen"), specs)
+                self.assertIn(("arg", 8, "actual_seq_kvlen"), specs)
+
 
 if __name__ == "__main__":
     run_tests()

@@ -12,21 +12,12 @@ from .npugraph_handler import NpuGraphOpHandler, register_npu_graph_handler
 class _SimpleGraphHandler(NpuGraphOpHandler):
     """Handler for PA (Paged Attention) and MLA operators.
 
-    Attributes:
-        _OP_ARG_SPECS (dict[str, tuple[int, str]]): Specifies
-            ``op_name -> (arg_index, update_key)`` for each supported
-            operator.
+    Update behavior is declarative via :attr:`UPDATE_SPECS`. The base class's
+    spec-driven ``update_args`` walks this map and assigns the matching
+    update_input key's value to the recorded arg slot.
     """
 
-    _OP_ARG_SPECS = {
-        "_npu_paged_attention.default": (7, "context_lens"),
-        "npu_multi_head_latent_attention.out": (5, "context_lens"),
+    UPDATE_SPECS = {
+        "_npu_paged_attention.default":        [("arg", 7, "context_lens")],
+        "npu_multi_head_latent_attention.out": [("arg", 5, "context_lens")],
     }
-
-    @classmethod
-    def update_args(cls, record, update_input):
-        spec = cls._OP_ARG_SPECS.get(record.op_cache_entry.__name__)
-        if spec:
-            arg_index, key = spec
-            if key in update_input and len(record.args) >= (arg_index + 1):
-                record.args[arg_index] = update_input[key]
