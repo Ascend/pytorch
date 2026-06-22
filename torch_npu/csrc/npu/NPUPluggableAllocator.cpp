@@ -433,6 +433,17 @@ void NPUPluggableAllocator::attachOutOfMemoryObserver(
         "If you need it, please file an issue describing your use case.");
 }
 
+void NPUPluggableAllocator::attachAllocatorTraceTracker(
+    c10_npu::NPUCachingAllocator::AllocatorTraceTracker tracker)
+{
+    (void)tracker;
+    TORCH_CHECK(
+        false,
+        "NPUPluggableAllocator does not support attachAllocatorTraceTracker. "
+        "attachAllocatorTraceTracker is only used inside Pytorch.",
+        PTA_ERROR(ErrCode::NOT_SUPPORT));
+}
+
 bool NPUPluggableAllocator::checkUceInMemPool(int device)
 {
     TORCH_NPU_WARN(
