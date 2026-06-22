@@ -23,6 +23,63 @@ from torch._inductor.codegen.wrapper import BufferLike, WrapperLine
 from torch._inductor import ir
 import torch_npu.npu.aclnn
 from ..fx_passes.utils.schedule_node_utils import is_multi_stream
+from torch_npu._inductor._aclgraph_update_plan import (
+    append_inductor_aclgraph_update_plan_for_codegen_node,
+    emit_inductor_aclgraph_update_plan_for_wrapper,
+)
+
+
+def _is_codegen_graph_partition_subgraph(wrapper) -> bool:
+    try:
+        from torch._inductor.utils import is_codegen_graph_partition_subgraph
+    except ImportError:
+        return isinstance(wrapper, SubgraphPythonWrapperCodegen)
+    try:
+        return is_codegen_graph_partition_subgraph(wrapper)
+    except AttributeError:
+        return isinstance(wrapper, SubgraphPythonWrapperCodegen)
+
+
+class _NPUKernelCodegenMixin:
+    # This mixin must appear before the PyTorch wrapper base in the MRO so NPU
+    # hooks run first, then cooperative super() continues into the base wrapper.
+    # generate numel expr for range_tree_node
+    def generate_node_numel_expr(self, kernel_name: str, node, numel_expr):
+        expr = f"{kernel_name}_{node.name}_numel"
+        simplified = V.graph.sizevars.simplify(numel_expr)
+        # Ensure all PRECOMPUTED_SIZE symbols in the *simplified* expression
+        # are defined before we emit the line that uses them.
+        for sym in simplified.free_symbols:
+            self.ensure_size_computed(sym)
+        self.writeline(f"{expr} = {pexpr(simplified)}")
+        # We can get symbolic expressions here, like s0*64
+        # It is fine to have them here, but we need to handle them correctly as their own type
+        # This is tricky to do, so we wrap in a custom type, distinct from scalars, but also from sympy*
+        # scalars as well.
+        # This is handled in `generate_args_decl` which has a correct comment of: TODO: only works for
+        # constant now, need type info. I agree, this needs type info, and while this is not true type info
+        # it suffices as a type hint for the purposes of producing the correct code for this type.
+        return SymbolicCallArg(expr, numel_expr)
+
+    # don't assert
+    def codegen_input_size_asserts(self) -> None:
+        pass
+
+    def generate_fallback_kernel(self, node: ir.FallbackKernel) -> None:
+        append_inductor_aclgraph_update_plan_for_codegen_node(self, node)
+        super().generate_fallback_kernel(node)
+
+    def generate_extern_kernel_alloc(self, extern_kernel):
+        append_inductor_aclgraph_update_plan_for_codegen_node(self, extern_kernel)
+        super().generate_extern_kernel_alloc(extern_kernel)
+
+    def generate_after_suffix(self, result: IndentedBuffer) -> None:
+        super().generate_after_suffix(result)
+        emit_inductor_aclgraph_update_plan_for_wrapper(
+            self,
+            result,
+            _is_codegen_graph_partition_subgraph(self),
+        )
 
 
 @dataclasses.dataclass
@@ -54,7 +111,7 @@ class NPUMultiOutputLine(MultiOutputLine):
             f"{self.multi_stream_intent}{self.wrapper.declare}{self.result_name} = {value}{self.wrapper.ending}"
         )
 
-class NPUPythonWrapperCodeGen(PythonWrapperCodegen):
+class NPUPythonWrapperCodeGen(_NPUKernelCodegenMixin, PythonWrapperCodegen):
     def __init__(self):
         super().__init__()
         self.buffer_args_multi_stream_intent = {}
@@ -92,24 +149,6 @@ class NPUPythonWrapperCodeGen(PythonWrapperCodegen):
                 "import torch_npu._inductor.runtime.triton_heuristics as triton_heuristics"
             )
 
-    # generate numel expr for range_tree_node
-    def generate_node_numel_expr(self, kernel_name: str, node, numel_expr):
-        expr = f"{kernel_name}_{node.name}_numel"
-        simplified = V.graph.sizevars.simplify(numel_expr)
-        # Ensure all PRECOMPUTED_SIZE symbols in the *simplified* expression
-        # are defined before we emit the line that uses them.
-        for sym in simplified.free_symbols:
-            self.ensure_size_computed(sym)
-        self.writeline(f"{expr} = {pexpr(simplified)}")
-        # We can get symbolic expressions here, like s0*64
-        # It is fine to have them here, but we need to handle them correctly as their own type
-        # This is tricky to do, so we wrap in a custom type, distinct from scalars, but also from sympy*
-        # scalars as well.
-        # This is handled in `generate_args_decl` which has a correct comment of: TODO: only works for
-        # constant now, need type info. I agree, this needs type info, and while this is not true type info
-        # it suffices as a type hint for the purposes of producing the correct code for this type.
-        return SymbolicCallArg(expr, numel_expr)
-
     def generate_save_uncompiled_kernels(self):
         # remove incorrect grid=(0,0,0) param
         self.wrapper_call.splice(
@@ -125,10 +164,6 @@ class NPUPythonWrapperCodeGen(PythonWrapperCodegen):
                         )
             """
         )
-
-    # don't assert
-    def codegen_input_size_asserts(self) -> None:
-        pass
 
     def write_prefix(self) -> None:
         super().write_prefix()
@@ -155,7 +190,6 @@ class NPUPythonWrapperCodeGen(PythonWrapperCodegen):
                 self.wrapper_call.writeline('exc_info=(None, None, None)')
                 self.wrapper_call.writeline('static_kernel_complier.__exit__(*exc_info)')
         super().generate_return(output_refs)
-
 
     def get_buffer_define_multi_stream_by_name(self, name):
         multi_stream_intent_str = ""
@@ -594,8 +628,5 @@ class NPUPythonWrapperCodeGen(PythonWrapperCodegen):
             i += 1
         return sub_streams_line_no
 
-class NPUSubgraphPythonWrapperCodegen(SubgraphPythonWrapperCodegen):
-    def generate_node_numel_expr(self, kernel_name: str, node, numel_expr):
-        expr = f"{kernel_name}_{node.name}_numel"
-        self.writeline(f"{expr} = {pexpr(numel_expr)}")
-        return SymbolicCallArg(expr, numel_expr)
+class NPUSubgraphPythonWrapperCodegen(_NPUKernelCodegenMixin, SubgraphPythonWrapperCodegen):
+    pass

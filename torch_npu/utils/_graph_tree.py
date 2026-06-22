@@ -110,6 +110,7 @@ def npugraphify(
     mutated_input_idxs: Tuple[int, ...] = (),
 ) -> Callable[..., Any]:
     from torch_npu.npu._graph_tree import npugraphify_impl as new_npugraphify_impl
+
     npugraphify_fn: Callable[..., Any]
     if config.triton.cudagraph_trees:
         npugraphify_fn = functools.partial(
@@ -389,13 +390,11 @@ def _apply_npugraph_tree_methods():
     torch._inductor.cudagraph_utils.check_multiple_devices_or_any_cpu_nodes = check_multiple_devices_or_any_cpu_nodes
     torch.compiler.npugraph_mark_step_begin = npugraph_mark_step_begin
 
-    # Bridge upstream callers of `torch._inductor.cudagraph_trees.get_manager`
-    # to the NPU manager registry. The only upstream call sites are
-    # `_inductor/output_code.py:maybe_handle_backward_generation` (used when
-    # forward was cudagraph'd but backward is not, to drive the cudagraph
-    # generation state machine) and `_dynamo/backends/cudagraphs.py`. NPU
-    # registers its manager under `torch_npu.npu._graph_tree`, so without
-    # this forward those upstream paths raise AttributeError or return None.
     import torch._inductor.cudagraph_trees as _upstream_cgt  # noqa: F401
-    from torch_npu.npu._graph_tree import get_manager as _npu_get_manager
+
+    def _npu_get_manager(*args, **kwargs):
+        from torch_npu.npu._graph_tree import get_manager
+
+        return get_manager(*args, **kwargs)
+
     _upstream_cgt.get_manager = _npu_get_manager
