@@ -930,9 +930,29 @@ def _register_npu_inductor_fallbacks():
 
     @register_lowering(aten.cat)
     def cat(inputs, dim=0):
-        if is_ascend950 and len(inputs) <= torch._inductor.config.max_pointwise_cat_inputs:
-            return lowering.cat(inputs, dim)
-        return fallback_handler(aten.cat.default)(inputs, dim)
+        cpu_device = inputs[0].get_device().type == "cpu"
+        if cpu_device and all(
+            input.get_dtype() in [torch.int8, torch.uint8] for input in inputs
+        ):
+            return lowering.cat(inputs)
+
+        if len(inputs) == 1:
+            return clone(inputs[0])
+
+        if not is_ascend950 or len(inputs) > torch._inductor.config.max_pointwise_cat_inputs:
+            return fallback_handler(aten.cat.default)(inputs, dim)
+
+        dim = _validate_dim(inputs[0], dim, 0)
+        dtype = get_promoted_dtype(
+            *inputs, type_promotion_kind=ELEMENTWISE_TYPE_PROMOTION_KIND.DEFAULT
+        )
+        inputs = [to_dtype(inp, dtype) for inp in inputs]
+
+        # for NPU, we never cat tensor with mask+where, except config.force_pointwise_cat = True
+        if torch._inductor.config.force_pointwise_cat:
+            return pointwise_cat(inputs, dim)
+
+        return TensorBox(ir.ConcatKernel.create(inputs, dim))
 
     @register_lowering(aten.native_layer_norm)
     def native_layer_norm(
