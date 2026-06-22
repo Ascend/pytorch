@@ -287,19 +287,19 @@ public:
         }
         for (const auto& block_pair : blocks) {
             auto te = TraceEntry(TraceEntry::WORKSPACE_SNAPSHOT, device, int64_t(block_pair.second->data_ptr),
-                                 block_pair.second->size, block_pair.first,
+                                 block_pair.second->size, block_pair.first, MempoolId_t{0, 0},
                                  record_context_ >= RecordContext::ALLOC ? block_pair.second->context_when_allocated
                                                                          : nullptr);
             alloc_trace.emplace_back(te);
 
             te = TraceEntry(TraceEntry::SEGMENT_ALLOC, device, int64_t(block_pair.second->data_ptr),
-                            block_pair.second->size, block_pair.first,
+                            block_pair.second->size, block_pair.first, MempoolId_t{0, 0},
                             record_context_ >= RecordContext::ALLOC ? block_pair.second->context_when_allocated
                                                                     : nullptr);
             alloc_trace.emplace_back(te);
 
             te = TraceEntry(TraceEntry::ALLOC, device, int64_t(block_pair.second->data_ptr), block_pair.second->size,
-                            block_pair.first,
+                            block_pair.first, MempoolId_t{0, 0},
                             record_context_ >= RecordContext::ALLOC ? block_pair.second->context_when_allocated
                                                                     : nullptr);
             alloc_trace.emplace_back(te);

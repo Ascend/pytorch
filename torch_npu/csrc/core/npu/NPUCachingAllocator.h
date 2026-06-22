@@ -183,17 +183,19 @@ struct TraceEntry {
     };
     TraceEntry(Action action, int device, int64_t addr, size_t size,
                aclrtStream stream,
+               MempoolId_t mempool = {0, 0},
                std::shared_ptr<c10::GatheredContext> context = nullptr)
         : action_(action), device_(device), addr_(addr),
-          context_(std::move(context)), stream_(stream), size_(size)
-    {
-    }
+          context_(std::move(context)), stream_(stream), size_(size),
+          mempool_(std::move(mempool))
+    {}
     Action action_;
     int device_;
     int64_t addr_; // for OOM, this is the amount of free bytes reported by cuda
     std::shared_ptr<c10::GatheredContext> context_;
     aclrtStream stream_;
     int64_t size_;
+    MempoolId_t mempool_;
 };
 
 struct SnapshotInfo {
@@ -219,6 +221,7 @@ enum struct RecordContext {
 using OutOfMemoryObserver =
     std::function<void(int64_t device, int64_t allocated, int64_t device_total,
                        int64_t device_free)>;
+using AllocatorTraceTracker = std::function<void(const TraceEntry&)>;
 
 struct ShareableHandle {
     ptrdiff_t offset;
@@ -296,6 +299,13 @@ public:
     virtual CheckpointDelta setCheckpointPoolState(
         c10::DeviceIndex device,
         std::shared_ptr<AllocatorState> pps) = 0;
+    // Attached AllocatorTraceTracker callbacks will be called while the
+    // per-device allocator lock is held. Any additional locks taken from within
+    // the callback must be proven to always have the lock order that never
+    // triggers a deadlock. In particular, Python's GIL may be held when
+    // calling the allocator so it is unsafe to try to acquire the GIL in this
+    // callback.
+    virtual void attachAllocatorTraceTracker(AllocatorTraceTracker tracker) = 0;
 };
 
 // Allocator object, statically initialized
@@ -500,6 +510,11 @@ inline bool checkPoolLiveAllocations(
 inline void attachOutOfMemoryObserver(OutOfMemoryObserver observer)
 {
     return get()->attachOutOfMemoryObserver(observer);
+}
+
+inline void attachAllocatorTraceTracker(AllocatorTraceTracker tracker)
+{
+    return get()->attachAllocatorTraceTracker(std::move(tracker));
 }
 
 inline bool checkUceInMemPool(int device)
