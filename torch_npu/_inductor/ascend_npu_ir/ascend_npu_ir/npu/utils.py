@@ -1,5 +1,4 @@
 import os
-import sys
 import re
 import hashlib
 import tempfile
@@ -12,18 +11,9 @@ import subprocess
 import copy
 import torch
 import torch.nn as nn
-from typing import Any, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 from sympy import Expr
 from pathlib import Path
-from typing import List
-
-from typing import (
-    Optional,
-    List,
-    Dict,
-    Union,
-    Tuple
-)
 
 from torch.fx.graph_module import (
     _custom_builtins,
@@ -49,20 +39,6 @@ MLIR_DTYPE_MAPPING = {
     "f16" : torch.float16,
     "si64" : torch.int64
 }
-
-def run_once(f):
-    """Runs a function (successfully) only once.
-    The running can be reset by setting the `has_run` attribute to False
-    """
-    @functools.wraps(f)
-    def wrapper(*args, **kwargs):
-        if not wrapper.has_run:
-            result = f(*args, **kwargs)
-            wrapper.has_run = True
-            return result
-        return None
-    wrapper.has_run = False
-    return wrapper
 
 def get_device_info(example_inputs) -> Union[Tuple[str, int], None]:
     for inp in example_inputs:
@@ -117,7 +93,7 @@ def _build_npu_ext(obj_name: str, src_path, src_dir) -> str:
         f"-L{torch_npu_lib_dir}",
         f"-I{acl_inc_dir}",
         "-ltorch_npu",
-        f"-Wl,-rpath",
+        "-Wl,-rpath",
         "-std=c++17",
         f"-D_GLIBCXX_USE_CXX11_ABI={ABI_TAG}",
         "-shared",
@@ -142,7 +118,7 @@ def parse_fx_example_inputs(gm: torch.fx.GraphModule):
 def generate_compiler_repro_string(gm: torch.fx.GraphModule):
     from torch._dynamo.debug_utils import NNModuleToString
     model_str = textwrap.dedent(
-        f"""
+        """
 import torch
 import torch_npu
 from torch import tensor, device
@@ -225,7 +201,7 @@ num_args = {num_args}
 
 fx_inputs = [clone_preserve_strides(arg) for arg in args[:num_args]]
 """
-    fx_runner = f"""
+    fx_runner = """
 fx_inputs = [inp.float() if inp.dtype == torch.bfloat16 else inp for inp in fx_inputs]
 with torch.no_grad():
     output2 = model(*fx_inputs)
@@ -276,28 +252,28 @@ def view_to_reshape(gm: torch.fx.GraphModule):
     for nd in gm.graph.find_nodes(
         op="call_function", target=torch.ops.aten.div.Tensor
     ):
-        if not (isinstance(nd.args[1], torch.fx.node.Node) and \
+        if not (isinstance(nd.args[1], torch.fx.node.Node) and
                 isinstance(nd.args[1].meta['val'], torch.Tensor)):
             nd.target = torch.ops.aten.div.Scalar
 
     for nd in gm.graph.find_nodes(
         op="call_function", target=torch.ops.aten.add.Tensor
     ):
-        if not (isinstance(nd.args[1], torch.fx.node.Node) and \
+        if not (isinstance(nd.args[1], torch.fx.node.Node) and
                 isinstance(nd.args[1].meta['val'], torch.Tensor)):
             nd.target = torch.ops.aten.add.Scalar
 
     for nd in gm.graph.find_nodes(
         op="call_function", target=torch.ops.aten.sub.Tensor
     ):
-        if not (isinstance(nd.args[1], torch.fx.node.Node) and \
+        if not (isinstance(nd.args[1], torch.fx.node.Node) and
                 isinstance(nd.args[1].meta['val'], torch.Tensor)):
             nd.target = torch.ops.aten.sub.Scalar
 
     for nd in gm.graph.find_nodes(
         op="call_function", target=torch.ops.aten.mul.Tensor
     ):
-        if not (isinstance(nd.args[1], torch.fx.node.Node) and \
+        if not (isinstance(nd.args[1], torch.fx.node.Node) and
                 isinstance(nd.args[1].meta['val'], torch.Tensor)):
             nd.target = torch.ops.aten.mul.Scalar
 
@@ -306,13 +282,21 @@ def view_to_reshape(gm: torch.fx.GraphModule):
     ):
         nd.target = torch.ops.npu.npu_dtype_cast.default
 
+_NPU_DTYPE_CAST_OPS = [
+    torch.ops.npu.npu_dtype_cast.default,
+    torch.ops.npu.npu_dtype_cast_backward.default,
+    torch.ops.npu._npu_dtype_cast.default,
+    torch.ops.npu._npu_dtype_cast_backward.default,
+]
+
+
 def npu_cast_to_prim_cast(gm: torch.fx.GraphModule):
     """
     Replace npu.npu_dtype_cast ops in the GraphModule to prims.convert_element_type ops.
     """
     new_gm = copy.deepcopy(gm)
     for nd in new_gm.graph.nodes:
-        if nd.target in [torch.ops.npu.npu_dtype_cast.default, torch.ops.npu.npu_dtype_cast_backward.default, torch.ops.npu._npu_dtype_cast.default, torch.ops.npu._npu_dtype_cast_backward.default]:
+        if nd.target in _NPU_DTYPE_CAST_OPS:
             nd.target = torch.ops.prims.convert_element_type.default
         if nd.target in [torch.ops.aten.index_put_.default]:
             nd.target = torch.ops.aten.index_put.default
@@ -323,7 +307,7 @@ def modify_gm_for_acc_comp(gm: torch.fx.GraphModule):
     In precision comparison mode, if the second argument of npu_dtype_cast is torch.bfloat16, change it to torch.float32.
     """
     for nd in gm.graph.nodes:
-        if nd.target in [torch.ops.npu.npu_dtype_cast.default, torch.ops.npu.npu_dtype_cast_backward.default, torch.ops.npu._npu_dtype_cast.default, torch.ops.npu._npu_dtype_cast_backward.default]:
+        if nd.target in _NPU_DTYPE_CAST_OPS:
             if nd.args[1] == torch.bfloat16:
                 new_args = list(nd.args)
                 new_args[1] = torch.float32
@@ -377,7 +361,7 @@ def fold_expand(gm: torch.fx.GraphModule) -> None:
         inp0 = node.args[0] if len(node.args) > 0 else None
         inp1 = node.args[1] if len(node.args) > 1 else None
         if (isinstance(inp0, torch.fx.Node) and inp0.op == 'call_function' and
-            inp0.target == torch.ops.aten.expand.default):
+                inp0.target == torch.ops.aten.expand.default):
             if len(inp0.args) > 0:
                 expand_input = inp0.args[0]
                 node.replace_input_with(inp0, expand_input)
@@ -385,7 +369,7 @@ def fold_expand(gm: torch.fx.GraphModule) -> None:
                     graph.erase_node(inp0)
                     changed = True
         elif (isinstance(inp1, torch.fx.Node) and inp1.op == 'call_function' and
-            inp1.target == torch.ops.aten.expand.default):
+                inp1.target == torch.ops.aten.expand.default):
             if len(inp1.args) > 0:
                 expand_input = inp1.args[0]
                 node.replace_input_with(inp1, expand_input)
@@ -512,10 +496,12 @@ class MLIRProcessor:
         num_outputs = len(func_type.results)
         return signature, num_outputs, ranks
 
-    def process_mlir(self,
-                    module: Union[str, ir.Module],
-                    get_sig: bool = True,
-                    dynamic: bool = False) -> tuple:
+    def process_mlir(
+        self,
+        module: Union[str, ir.Module],
+        get_sig: bool = True,
+        dynamic: bool = False,
+    ) -> tuple:
         """
         处理MLIR模块的核心方法
 
@@ -532,7 +518,7 @@ class MLIRProcessor:
         func_str = str(func)
         func_hash_str = func_str + "_host" if dynamic else func_str
         module_hash = hashlib.sha256(func_hash_str.encode()).hexdigest()
-        logger.info(f"Generated kernel hash: {module_hash}")
+        logger.info("Generated kernel hash: %s", module_hash)
 
         if get_sig:
             signature, num_outputs, ranks = self.get_signature(func)
@@ -544,10 +530,12 @@ class MLIRProcessor:
 
         return func_str, kernel_info
 
-    def get_named_op_str(self,
-                        module: Union[str, ir.Module],
-                        kernel_name: str,
-                        dynamic: bool = False) -> Dict[str, Any]:
+    def get_named_op_str(
+        self,
+        module: Union[str, ir.Module],
+        kernel_name: str,
+        dynamic: bool = False,
+    ) -> Dict[str, Any]:
         """
         获取命名操作格式的MLIR字符串
 
@@ -562,7 +550,7 @@ class MLIRProcessor:
             '"#hfusion.fusion_kind<PURE_ELEMWISE>"',
             '#hfusion.fusion_kind<PURE_ELEMWISE>'
         )
-        logger.debug(f"原始Linalg方言MLIR:\n{cleaned_func}")
+        logger.debug("原始Linalg方言MLIR:\n%s", cleaned_func)
 
         # 执行转换命令
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -570,10 +558,12 @@ class MLIRProcessor:
             with open(torch_mlir_path, 'w') as f:
                 f.write(cleaned_func)
 
-            cmd = (f"{self.bisheng_torch_mlir_path} "
-                    "--torch-backend-to-named-op-backend-pipeline="
-                    "\"ensure-no-implicit-broadcast=true\" "
-                    f"{torch_mlir_path}")
+            cmd = (
+                f"{self.bisheng_torch_mlir_path} "
+                "--torch-backend-to-named-op-backend-pipeline="
+                "\"ensure-no-implicit-broadcast=true\" "
+                f"{torch_mlir_path}"
+            )
 
             try:
                 result = subprocess.check_output(
@@ -586,19 +576,21 @@ class MLIRProcessor:
                 )
 
                 # 根据模式设置函数属性
-                func_attr = ("hacc.entry, hacc.function_kind = #hacc.function_kind<HOST>"
-                            if dynamic else
-                            "hacc.entry, hacc.function_kind = #hacc.function_kind<DEVICE>")
+                func_attr = (
+                    "hacc.entry, hacc.function_kind = #hacc.function_kind<HOST>"
+                    if dynamic else
+                    "hacc.entry, hacc.function_kind = #hacc.function_kind<DEVICE>"
+                )
                 processed_mlir = processed_mlir.replace("hacc.placeholder", func_attr)
 
                 # 应用额外的数据类型处理（需实现mlir_match_and_replace_unsupported_dtypes）
                 final_mlir = self._replace_unsupported_dtypes(processed_mlir)
-                logger.debug(f"转换后的NamedOp方言MLIR:\n{final_mlir}")
+                logger.debug("转换后的NamedOp方言MLIR:\n%s", final_mlir)
 
                 return final_mlir, sig_dict
 
             except subprocess.CalledProcessError as e:
-                logger.error(f"命令执行失败: {cmd}\n错误: {e.output}")
+                logger.error("命令执行失败: %s\n错误: %s", cmd, e.output)
                 raise RuntimeError(f"MLIR转换失败: {e.stderr}") from e
 
     def _replace_unsupported_dtypes(self, mlir_text: str) -> str:
@@ -607,7 +599,7 @@ class MLIRProcessor:
         matches1 = re.findall(pattern1, mlir_text)
 
         for var1, var2 in matches1:
-            pattern2 = rf"%" + var2 + r" = arith\.constant (\d+(\.\d+)?) : f64"
+            pattern2 = r"%" + var2 + r" = arith\.constant (\d+(\.\d+)?) : f64"
             match2 = re.search(pattern2, mlir_text)
             if match2:
                 mlir_text = re.sub(r': f64', ': f32', mlir_text)
@@ -618,7 +610,7 @@ def mlir_match_and_replace_unsupported_dtypes(mlir_text: str) -> str:
     matches1 = re.findall(pattern1, mlir_text)
 
     for var1, var2 in matches1:
-        pattern2 = rf"%" + var2 + r" = arith\.constant (\d+(\.\d+)?) : f64"
+        pattern2 = r"%" + var2 + r" = arith\.constant (\d+(\.\d+)?) : f64"
         match2 = re.search(pattern2, mlir_text)
         if match2:
             mlir_text = re.sub(r': f64', ': f32', mlir_text)
@@ -770,7 +762,9 @@ def do_bench(fn, warmup=25, rep=100, grad_to_none=None, quantiles=None, fast_flu
     :type quantiles: list[float], optional
     :param fast_flush: Use faster kernel to flush L2 cache between measurements
     :type fast_flush: bool, default is True
-    :param return_mode: The statistical measure to return. Options are "min", "max", "mean", "median", or "all" Default is "mean".    :type return_mode: str
+    :param return_mode: The statistical measure to return. Options are "min", "max", "mean",
+        "median", or "all" Default is "mean".
+    :type return_mode: str
     """
     assert return_mode in ["min", "max", "mean", "median", "all"]
     import torch

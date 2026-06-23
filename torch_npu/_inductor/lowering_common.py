@@ -16,9 +16,10 @@ from __future__ import annotations
 
 import inspect
 import sympy
+import functools
 from functools import reduce
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import torch
 import torch._ops
@@ -39,6 +40,20 @@ LOWERING_REGISTRY_ATTRS: tuple[str, ...] = (
     "inplaceable_foreach_ops",
 )
 
+
+def run_once(f):
+    """Runs a function (successfully) only once.
+    The running can be reset by setting the `has_run` attribute to False
+    """
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        if not wrapper.has_run:
+            result = f(*args, **kwargs)
+            wrapper.has_run = True
+            return result
+        return None
+    wrapper.has_run = False
+    return wrapper
 
 def get_module_functions(module: Any) -> dict[str, Callable[..., Any]]:
     functions: dict[str, Callable[..., Any]] = {}
@@ -68,7 +83,7 @@ def resolve_op_from_name(op_name: str, logger=None):
         return obj
     except AttributeError:
         if logger is not None:
-            logger.warning(f"[npu|inductor|lowering|fallback] invalid identifier name: {op_name}")
+            logger.warning("[npu|inductor|lowering|fallback] invalid identifier name: %s", op_name)
         return None
 
 
@@ -121,8 +136,8 @@ def enable_full_lowering_fallback(
 ):
     ops_to_fallback = list(filter(
         lambda op: op not in decompositions and
-            isinstance(op, (torch._ops.OpOverloadPacket, torch._ops.OpOverload, torch._ops.HigherOrderOperator)) and
-            op not in excluded_ops,
+        isinstance(op, (torch._ops.OpOverloadPacket, torch._ops.OpOverload, torch._ops.HigherOrderOperator)) and
+        op not in excluded_ops,
         lowerings
     ))
     for op in ops_to_fallback:
