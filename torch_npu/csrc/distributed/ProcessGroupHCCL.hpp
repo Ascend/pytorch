@@ -1287,7 +1287,8 @@ private:
         HcclCommConfig* commConfig,
         std::vector<std::shared_ptr<HCCLComm>> &hcclComms,
         std::vector<c10_npu::NPUStream> &streamVal,
-        int p2pRank);
+        int p2pRank,
+        bool isOrigin = false);
 
     void createHCCLCommForZeroCopy(
         std::vector<std::shared_ptr<HCCLComm>> &hcclComms,
