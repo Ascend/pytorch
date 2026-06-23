@@ -164,7 +164,7 @@ class CATLASSGemmTemplate(CATLASSTemplate, ABC):
 
 
     @staticmethod
-    def get_shape_desc(input_nodes) -> Tuple[int, int, int]:
+    def get_shape_desc(input_nodes, default_shape=8192) -> Tuple[int, int, int]:
         X, W = input_nodes[0], input_nodes[1]
         M = X.get_size()[-2]
         K = X.get_size()[-1]
@@ -176,7 +176,10 @@ class CATLASSGemmTemplate(CATLASSTemplate, ABC):
                 shape_desc[i] = int(x)
             elif isinstance(x, (sympy.Symbol, sympy.Expr)):
                 x = x.subs(V.graph.sizevars.var_to_val)
-                shape_desc[i] = int(x)
+                try:
+                    shape_desc[i] = int(x)
+                except Exception:
+                    shape_desc[i] = default_shape
             else:
                 raise ValueError(f"Unknown shape dim type: {type(x)}, value: {x}")
         return tuple(shape_desc)
@@ -775,8 +778,8 @@ class CATLASS1xGemmTemplate(CATLASSGemmTemplate):
             return False
         if len(B_layout.size) < 1:
             return False
-        A_size = list(V.graph.sizevars.size_hints(A_layout.size))
-        B_size = list(V.graph.sizevars.size_hints(B_layout.size))
+        A_size = list(V.graph.sizevars.size_hints(A_layout.size, fallback=8192))
+        B_size = list(V.graph.sizevars.size_hints(B_layout.size, fallback=8192))
         if len(A_size) < 2:
             A_size.insert(0, 1)
         if len(B_size) < 2:

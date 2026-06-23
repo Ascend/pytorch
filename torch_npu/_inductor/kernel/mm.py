@@ -144,6 +144,43 @@ def _register_npu_inductor_addmm():
         if V.graph.cpp_wrapper:
             return fallback_handler(aten.addmm.default)(inp, mat1, mat2, alpha=alpha, beta=beta)
 
+        # Fallback addmm using fallback handler before mm_args(), if there is no valid catlass template.
+        # In case, aten_addmm.bind would decompose to broadcast + mm + add
+        shape1 = mat1.shape
+        shape2 = mat2.shape
+        bias_shape = inp.shape
+        m0 = shape1[0]
+        k0 = shape1[1]
+        n0 = shape2[1]
+
+        if layout is None:
+            from torch._inductor.ir import FixedLayout
+
+            layout_tmp = FixedLayout(
+                mat1.get_device(),
+                mat1.get_dtype(),
+                [m0, n0],
+            )
+
+        static_shape_tmp, is_nonzero_tmp = _is_static_problem(layout_tmp if layout is None else layout)
+
+        if not (static_shape_tmp and is_nonzero_tmp):
+            return fallback_handler(aten.addmm.default)(inp, mat1, mat2, alpha=alpha, beta=beta)
+
+        try:
+            is_contiguous_input_tmp = (
+                is_contiguous_striding(mat1.get_size(), mat1.get_stride())
+                and is_contiguous_striding(mat2.get_size(), mat2.get_stride())
+            )
+        except NotImplementedError:
+            is_contiguous_input_tmp = False
+
+        if not (
+            is_contiguous_input_tmp
+            and use_catlass_template("addmm", layout_tmp if layout is None else layout, m0, n0, k0)
+        ):
+            return fallback_handler(aten.addmm.default)(inp, mat1, mat2, alpha=alpha, beta=beta)
+
         ordered_kwargs_for_cpp_kernel = ("beta", "alpha")
         m, n, k, layout, mat1, mat2, inp_expanded = mm_args(
             mat1, mat2, inp, layout=layout

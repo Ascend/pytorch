@@ -1847,6 +1847,8 @@ def precompile_parallel(
         reload_kernel: Optional[Callable[[], CachingAutotuner]] = None,
         static_triton_bundle_key: Optional[str] = None,
 ):
+    if reload_kernel is not None:
+        self._reload_kernel = reload_kernel
     start_time = time.perf_counter()
     if hasattr(self, "skip_precompile"):
         if self.skip_precompile:
