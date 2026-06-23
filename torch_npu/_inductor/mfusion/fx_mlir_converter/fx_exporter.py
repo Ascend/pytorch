@@ -138,6 +138,12 @@ def _make_opaque_fake_forward(output_meta: Any):
     return _fn
 
 
+def _meta_value_at_path(val: Any, path: tuple[int, ...]) -> Any:
+    for index in path:
+        val = val[index]
+    return val
+
+
 def patch_opaque_roundtrip_targets_for_fake_eval(
     gm: torch.fx.GraphModule,
 ) -> list[tuple[torch.fx.Node, Any]]:
@@ -501,7 +507,29 @@ class FxExporter:
         node.meta = dict(payload.meta)
         node.meta["mfusion_opaque_roundtrip"] = True
 
-        if len(op.results) == 1:
+        result_paths = payload.result_paths
+        if result_paths:
+            if len(result_paths) != len(op.results):
+                raise RuntimeError(
+                    "opaque result path count does not match MLIR results: "
+                    f"{len(result_paths)} != {len(op.results)}"
+                )
+            path_nodes: dict[tuple[int, ...], torch.fx.Node] = {(): node}
+            for path, res in zip(result_paths, op.results):
+                prefix = ()
+                for index in path:
+                    child_path = prefix + (index,)
+                    if child_path not in path_nodes:
+                        result_node = self.graph.call_function(
+                            operator.getitem, (path_nodes[prefix], index)
+                        )
+                        result_node.meta["val"] = _meta_value_at_path(
+                            payload.meta["val"], child_path
+                        )
+                        path_nodes[child_path] = result_node
+                    prefix = child_path
+                self.value_map[res] = path_nodes[path]
+        elif len(op.results) == 1:
             self.value_map[op.results[0]] = node
         elif len(op.results) > 1:
             for i, res in enumerate(op.results):

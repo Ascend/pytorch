@@ -15,6 +15,7 @@
 
 from unittest import skipUnless
 
+import operator
 import torch
 import torch.nn as nn
 from torch.func import functionalize
@@ -55,6 +56,10 @@ class TestFusedModule(nn.Module):
         a = x * y
         b = a + x
         return b
+
+
+def opaque_nested_tuple_target(x):
+    raise RuntimeError("test-only opaque target should not execute")
 
 
 class WrapperModule(torch.nn.Module):
@@ -202,6 +207,70 @@ class TestFxRoundtrip(TestCase):
         mlir_text = str(mlir_module)
         self.assertIn("func.func @main", mlir_text)
         self.assertIn("torch.aten.mul", mlir_text)
+
+    def test_opaque_run_and_save_rng_state_roundtrip(self):
+        from torch._prims.rng_prims import run_and_save_rng_state
+
+        def f(x):
+            return run_and_save_rng_state(torch.ops.aten.rand_like.default, x)
+
+        gm = make_fx(f)(torch.empty(2, 3))
+        mlir_module = import_mlir_module_from_fx(gm)
+        self.assertIn("torch.mfusion_opaque", str(mlir_module))
+
+        new_gm = export_mlir_module_to_fx(mlir_module)
+        self.assertTrue(
+            any(
+                node.op == "call_function"
+                and node.target is run_and_save_rng_state
+                for node in new_gm.graph.nodes
+            )
+        )
+
+    def test_opaque_nested_tuple_result_roundtrip(self):
+        from torch._subclasses.fake_tensor import FakeTensorMode
+
+        mode = FakeTensorMode()
+        with mode:
+            fake = mode.from_tensor(torch.empty(2, 3))
+
+        graph = torch.fx.Graph()
+        x = graph.placeholder("x")
+        x.meta["val"] = fake
+        root = graph.call_function(opaque_nested_tuple_target, (x,))
+        root.meta["val"] = (fake, (fake, fake))
+        first = graph.call_function(operator.getitem, (root, 0))
+        first.meta["val"] = fake
+        second = graph.call_function(operator.getitem, (root, 1))
+        second.meta["val"] = (fake, fake)
+        nested0 = graph.call_function(operator.getitem, (second, 0))
+        nested0.meta["val"] = fake
+        nested1 = graph.call_function(operator.getitem, (second, 1))
+        nested1.meta["val"] = fake
+        graph.output((first, nested0, nested1))
+        gm = torch.fx.GraphModule(torch.nn.Module(), graph)
+
+        mlir_module = import_mlir_module_from_fx(gm)
+        self.assertIn("torch.mfusion_opaque", str(mlir_module))
+
+        new_gm = export_mlir_module_to_fx(mlir_module)
+        self.assertTrue(
+            any(
+                node.op == "call_function"
+                and node.target is opaque_nested_tuple_target
+                for node in new_gm.graph.nodes
+            )
+        )
+        self.assertTrue(
+            any(
+                node.op == "call_function"
+                and node.target == operator.getitem
+                and isinstance(node.args[0], torch.fx.Node)
+                and node.args[0].op == "call_function"
+                and node.args[0].target == operator.getitem
+                for node in new_gm.graph.nodes
+            )
+        )
 
     def test_fused_op_roundtrip(self):
         def fused_backend(gm: torch.fx.GraphModule, example_inputs):

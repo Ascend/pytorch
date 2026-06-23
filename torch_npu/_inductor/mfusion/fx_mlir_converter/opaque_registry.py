@@ -10,6 +10,7 @@ class Payload:
     args_spec: Any
     kwargs_spec: Any
     meta: dict[str, Any]
+    result_paths: tuple[tuple[int, ...], ...] = ()
 
 
 _registry: dict[str, Payload] = {}
