@@ -166,12 +166,13 @@ def substituted_dims_in_indexing(self, indexing, kernel, range_tree_nodes_substi
     return substituted
 
 
-def generate_body_indexing(body, indices):
+def generate_body_indexing(body, indices, allow_same_symbol_in_index=False):
     index = list(itertools.chain.from_iterable(indices))
     if not (len(index) == len(body.var_ranges)):
         raise RuntimeError("assert len(index) == len(body.var_ranges), (index, body.var_ranges)")
-    if not (all(v not in body.var_ranges for v in index)):
-        raise RuntimeError("assert all(v not in body.var_ranges for v in index)")
+    if not allow_same_symbol_in_index:
+        if not (all(v not in body.var_ranges for v in index)):
+            raise RuntimeError("assert all(v not in body.var_ranges for v in index)")
 
     replacements = dict(zip(body.var_ranges.keys(), index))
     indexing_map = dict(zip(index, body.var_ranges.keys()))
@@ -193,7 +194,7 @@ def transform_dims_in_indexing(self, indices):
 # select tiling axis, recover missing dimensions,
 def loopbody__call__(self, *indices, allow_same_symbol_in_index=False):
     if self.indexing is None:
-        generate_body_indexing(self, indices)
+        generate_body_indexing(self, indices, allow_same_symbol_in_index)
     result = self.root_block()
     self.indexing = None
     return result
