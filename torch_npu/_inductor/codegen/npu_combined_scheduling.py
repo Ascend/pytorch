@@ -87,9 +87,10 @@ class NPUCombinedScheduling(CUDACombinedScheduling):
             try:
                 return self._triton_scheduling.codegen_node(node)
             except Exception:
-                log.exception(
+                log.debug(
                     "linear codegen for node %s raise error, fallback to origin codegen",
                     node,
+                    exc_info=True,
                 )
         # regroup snode
         for snode in node.get_nodes():
