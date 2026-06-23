@@ -1,8 +1,8 @@
 diff --git a/torch/testing/_internal/opinfo/definitions/special.py b/torch/testing/_internal/opinfo/definitions/special.py
-index 1626ead6432..05ad67320a6 100644
+index 1626ead..51e9aeb 100644
 --- a/torch/testing/_internal/opinfo/definitions/special.py
 +++ b/torch/testing/_internal/opinfo/definitions/special.py
-@@ -158,12 +158,15 @@ op_db: list[OpInfo] = [
+@@ -158,12 +158,10 @@ op_db: list[OpInfo] = [
              ),
          ),
          skips=(
@@ -19,3 +19,20 @@ index 1626ead6432..05ad67320a6 100644
          ),
          supports_fwgrad_bwgrad=True,
          supports_forward_ad=True,
+@@ -955,12 +953,10 @@ python_ref_db: list[OpInfo] = [
+             ),
+         ),
+         skips=(
+-            DecorateInfo(
+-                unittest.skip("Incorrect result!"),
+-                "TestUnaryUfuncs",
+-                "test_reference_numerics_large",
+-                dtypes=(torch.int8,),
+-            ),
++            unittest.skip("Incorrect result!"),
++            "TestUnaryUfuncs",
++            "test_reference_numerics_large",
++            dtypes=(torch.int8,),
+         ),
+     ),
+     ElementwiseUnaryPythonRefInfo(

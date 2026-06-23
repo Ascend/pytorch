@@ -1,12 +1,11 @@
 diff --git a/torch/testing/_internal/common_cuda.py b/torch/testing/_internal/common_cuda.py
-index 51c2f1fb7e2..de1c8c9fc4c 100644
+index 51c2f1f..6be14a2 100644
 --- a/torch/testing/_internal/common_cuda.py
 +++ b/torch/testing/_internal/common_cuda.py
-@@ -24,28 +24,29 @@
+@@ -26,24 +26,25 @@ else:
  TEST_CUDNN_VERSION = LazyVal(lambda: torch.backends.cudnn.version() if TEST_CUDNN else 0)
  ROCM_VERSION = LazyVal(lambda : tuple(int(v) for v in torch.version.hip.split('.')[:2]) if torch.version.hip else (0, 0))
  
-+torch.cuda.get_device_capability = lambda *args, **kwargs: (10, 0)
 -SM53OrLater = LazyVal(lambda: torch.cuda.is_available() and torch.cuda.get_device_capability() >= (5, 3))
 -SM60OrLater = LazyVal(lambda: torch.cuda.is_available() and torch.cuda.get_device_capability() >= (6, 0))
 -SM70OrLater = LazyVal(lambda: torch.cuda.is_available() and torch.cuda.get_device_capability() >= (7, 0))
@@ -16,6 +15,7 @@ index 51c2f1fb7e2..de1c8c9fc4c 100644
 -SM90OrLater = LazyVal(lambda: torch.cuda.is_available() and torch.cuda.get_device_capability() >= (9, 0))
 -SM100OrLater = LazyVal(lambda: torch.cuda.is_available() and torch.cuda.get_device_capability() >= (10, 0))
 -SM120OrLater = LazyVal(lambda: torch.cuda.is_available() and torch.cuda.get_device_capability() >= (12, 0))
++torch.cuda.get_device_capability = lambda *args, **kwargs: (10, 0)
 +SM53OrLater = LazyVal(lambda: torch.cuda.is_available() and torch.cuda.get_device_capability() is not None and torch.cuda.get_device_capability() >= (5, 3))
 +SM60OrLater = LazyVal(lambda: torch.cuda.is_available() and torch.cuda.get_device_capability() is not None and torch.cuda.get_device_capability() >= (6, 0))
 +SM70OrLater = LazyVal(lambda: torch.cuda.is_available() and torch.cuda.get_device_capability() is not None and torch.cuda.get_device_capability() >= (7, 0))
@@ -27,8 +27,10 @@ index 51c2f1fb7e2..de1c8c9fc4c 100644
 +SM120OrLater = LazyVal(lambda: torch.cuda.is_available() and torch.cuda.get_device_capability() is not None and torch.cuda.get_device_capability() >= (12, 0))
  
  IS_THOR = LazyVal(lambda: torch.cuda.is_available() and torch.version.cuda is not None and
-                   ((torch.cuda.get_device_capability() == (11, 0) and int(torch.version.cuda[:2]) >= 13) or
-                    (torch.cuda.get_device_capability() == (10, 1) and int(torch.version.cuda[:2]) < 13)))
+-                  ((torch.cuda.get_device_capability() == (11, 0) and int(torch.version.cuda[:2]) >= 13) or
+-                   (torch.cuda.get_device_capability() == (10, 1) and int(torch.version.cuda[:2]) < 13)))
++                  ((torch.cuda.get_device_capability() is not None and torch.cuda.get_device_capability() == (11, 0) and int(torch.version.cuda[:2]) >= 13) or
++                   (torch.cuda.get_device_capability() is not None and torch.cuda.get_device_capability() == (10, 1) and int(torch.version.cuda[:2]) < 13)))
  IS_JETSON = LazyVal(lambda: torch.cuda.is_available() and (torch.cuda.get_device_capability() in [(7, 2), (8, 7)] or IS_THOR))
 -IS_SM89 = LazyVal(lambda: torch.cuda.is_available() and torch.cuda.get_device_capability() == (8, 9))
 -IS_SM90 = LazyVal(lambda: torch.cuda.is_available() and torch.cuda.get_device_capability() == (9, 0))
@@ -38,27 +40,24 @@ index 51c2f1fb7e2..de1c8c9fc4c 100644
 +IS_SM90 = LazyVal(lambda: torch.cuda.is_available() and torch.cuda.get_device_capability() is not None and torch.cuda.get_device_capability() == (9, 0))
 +IS_SM100 = LazyVal(lambda: torch.cuda.is_available() and torch.cuda.get_device_capability() is not None and torch.cuda.get_device_capability() == (10, 0))
 +IS_SM12X = LazyVal(lambda: torch.cuda.is_available() and torch.cuda.get_device_capability() is not None and torch.cuda.get_device_capability()[0] == 12)
-
-#
-# NPU Patch Explanation:
-# 
-# 1. Mock device capability: torch.cuda.get_device_capability = lambda *args, **kwargs: (10, 0)
-#    - NPU is not a CUDA device, so get_device_capability() returns None
-#    - This mock makes NPU appear as SM 10.0 device, enabling all SM tests
-#
-# 2. Null check for all SM version judgments:
-#    - Added "is not None" check before comparison to prevent TypeError
-#    - Prevents "None >= tuple" errors when running on NPU
-#
-# 3. Coverage: 12 SM version judgments (SM53-SM120 + IS_SM89/90/100/12X)
-#    - PyTorch 2.12.0 adds new SM versions (SM100, SM120)
-#    - All judgments need null check for NPU compatibility
-#
-# 4. Key SM versions:
-#    - SM 5.3: Maxwell architecture (GTX 750)
-#    - SM 6.0: Pascal architecture (GTX 1080)
-#    - SM 7.0: Volta architecture (Tesla V100)
-#    - SM 8.0: Ampere architecture (RTX 3090)
-#    - SM 9.0: Hopper architecture (H100)
-#    - SM 10.0/12.0: Future architectures (Blackwell/Next-gen)
-#
+ 
+ @contextlib.contextmanager
+ def blas_library_context(backend):
+@@ -180,7 +181,7 @@ def evaluate_platform_supports_fp8():
+                     return True
+             return False
+         else:
+-            return SM90OrLater or torch.cuda.get_device_capability() == (8, 9)
++            return SM90OrLater or torch.cuda.get_device_capability() is not None and torch.cuda.get_device_capability() == (8, 9)
+     if torch.xpu.is_available():
+         return True
+     # As CPU supports FP8 and is always available, return True.
+@@ -220,7 +221,7 @@ def evaluate_platform_supports_fp8_sparse():
+             return 'gfx950' in torch.cuda.get_device_properties(0).gcnArchName
+         else:
+             return (
+-                (SM90OrLater or torch.cuda.get_device_capability() == (8, 9))
++                (SM90OrLater or torch.cuda.get_device_capability() is not None and torch.cuda.get_device_capability() == (8, 9))
+                 and torch.backends.cusparselt.is_available()
+                 and torch.backends.cusparselt.version() >= 602
+             )

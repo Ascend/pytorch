@@ -1,5 +1,5 @@
 diff --git a/test/test_dataloader.py b/test/test_dataloader.py
-index df5c53b..b5b2dea 100644
+index df5c53b..90a2451 100644
 --- a/test/test_dataloader.py
 +++ b/test/test_dataloader.py
 @@ -18,6 +18,8 @@ import unittest
@@ -230,6 +230,7 @@ index df5c53b..b5b2dea 100644
          self.assertEqual(collated, torch.tensor(arr))
          self.assertEqual(collated.dtype, torch.bool)
  
++
 +        npu_batch = [
 +            torch.tensor([1, 2], device="npu"),
 +            torch.tensor([3, 4], device="npu"),
@@ -239,50 +240,6 @@ index df5c53b..b5b2dea 100644
 +        self.assertEqual(
 +            npu_collated, torch.tensor([[1, 2], [3, 4]], device="npu")
 +        )
-+
-# Should be a no-op
-        arr = ["a", "b", "c"]
-        self.assertEqual(arr, dataloader.default_collate(arr))
-
-#
-# ============================================================================
-# Patch Explanation: test_dataloader.py
-# ============================================================================
-#
-# 1. Purpose:
-#    - Enable DataLoader tests to run on NPU devices
-#    - Ensure tensor creation and operations use NPU device
-#    - Add NPU-specific test cases and skip conditions
-#
-# 2. Key Modifications:
-#    a) Import torch_npu module and transfer_to_npu utility
-#    b) Add .npu() calls to tensor creation for TensorDataset tests
-#    c) Add _move_dataset_to_npu() helper method for DataLoader tests
-#    d) Add NPU IPC skip condition for multiprocessing contexts
-#    e) Add default_collate NPU device test
-#
-# 3. Modification Patterns:
-#    - TensorDataset tests: Convert all torch.randn/rand calls to .npu()
-#      Example: torch.randn(15, 10) -> torch.randn(15, 10).npu()
-#    - StackDataset tests: Add .npu() to all TensorDataset instances
-#    - ConcatDataset tests: Add .npu() to tensor creation
-#    - DataLoader tests: Use helper method to move dataset to NPU
-#
-# 4. NPU IPC Requirement:
-#    - NPU IPC tensor sharing requires PYTORCH_NPU_ALLOC_CONF expandable_segments:True
-#    - Added skip condition to prevent test failures on NPU without this config
-#
-# 5. Test Coverage:
-#    - TensorDataset: test_len, test_getitem, test_getitem_1d, test_single_tensor, test_many_tensors
-#    - StackDataset: test_mixed, test_size_mismatch, test_len, test_single, test_getitem, test_getitems variants
-#    - ConcatDataset: test_add_dataset, test_iterable_dataset_err
-#    - DataLoader: test_sequential_nonbatch, test_sequential_batch, test_multiprocessing_contexts
-#    - DistributedSampler: test_distributed_sampler_invalid_rank, sampler tests
-#
-# 6. Key Changes Summary:
-#    - 245 lines of changes across test classes
-#    - ~50+ tensor creations converted to NPU device
-#    - 1 helper method added (_move_dataset_to_npu)
-#    - 1 skip decorator added (NPU IPC requirement)
-#    - 1 new test case added (default_collate NPU test)
-#
+         # Should be a no-op
+         arr = ["a", "b", "c"]
+         self.assertEqual(arr, dataloader.default_collate(arr))
