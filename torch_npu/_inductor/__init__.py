@@ -4,6 +4,7 @@ import os
 from .codegen.common import register_device_op_overrides_npu, patch_cache_base_get_system
 from .graph import patch_codegen_with_cpp_wrapper
 from .utils import patch_has_triton, patch_device_supports_tma, patch_is_gpu, get_current_raw_stream
+from .cpp_builder import patch_get_optimization_cflags
 
 register_device_op_overrides_npu()
 patch_has_triton()
@@ -144,6 +145,7 @@ def _load_triton_backend():
 
     register_fa_pass()
     disable_foreach()
+    patch_get_optimization_cflags()
     patch_fx_node_is_input_dependent_cudagraph_unsafe()
     os.environ["TORCHINDUCTOR_COMPREHENSIVE_PADDING"] = "0"
     torch._inductor.config.comprehensive_padding = False

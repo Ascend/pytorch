@@ -11,7 +11,8 @@ from torch_npu._inductor.lowering_common import (
 )
 
 from .. import config
-from ..npu.utils import get_anir_mode, run_once
+from ..npu.utils import get_anir_mode
+from torch_npu._inductor.lowering_common import run_once
 from .utils import logger
 
 

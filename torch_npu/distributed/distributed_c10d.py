@@ -203,6 +203,11 @@ def _gather(tensor, gather_list=None, dst=0, group=None, async_op=False):
     if tensor.device.type == "npu":
         use_compatible_impl = npu.are_compatible_impl_enabled()
 
+    if use_compatible_impl:
+        npu_device_name = npu.get_device_name()
+        use_compatible_impl = (npu_device_name >= "Ascend910B1" and npu_device_name <= "Ascend910B4_1") or \
+            (npu_device_name >= "Ascend910_9362" and npu_device_name <= "Ascend910_9392")
+
     if group is None or group is GroupMember.WORLD:
         default_pg = _get_default_group()
         if tensor.device.type == "npu":

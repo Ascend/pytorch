@@ -6,6 +6,7 @@
 #include <mutex>
 #include <regex>
 #include <set>
+#include <unordered_set>
 #include <vector>
 #include <fstream>
 
@@ -14,6 +15,7 @@
 #include <c10/util/irange.h>
 #include <c10/util/UniqueVoidPtr.h>
 #include <c10/util/llvmMathExtras.h>
+#include <c10/util/ScopeExit.h>
 
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
@@ -226,6 +228,8 @@ struct BlockPool {
           is_small(small),
           owner_PrivatePool(private_pool)
     {}
+
+    MempoolId_t owner_MempoolId() const;
 };
 
 struct ExpandableSegment;
@@ -823,10 +827,12 @@ private:
 
 // NPU graphs helper
 struct PrivatePool {
-    PrivatePool() : large_blocks(false, this), small_blocks(true, this) {}
+    explicit PrivatePool(MempoolId_t id)
+        : id(std::move(id)), large_blocks(false, this), small_blocks(true, this) {}
     PrivatePool(const PrivatePool &) = delete;
     PrivatePool(PrivatePool &&) = delete;
     PrivatePool &operator = (const PrivatePool &) = delete;
+    MempoolId_t id{ 0, 0 };
     // Number of live graphs using this pool
     int use_count{ 1 };
     // Number of unfreed npuMallocs made for this pool. When use_count and
@@ -841,6 +847,14 @@ struct PrivatePool {
     BlockPool large_blocks;
     BlockPool small_blocks;
 };
+
+MempoolId_t BlockPool::owner_MempoolId() const
+{
+    if (owner_PrivatePool) {
+        return owner_PrivatePool->id;
+    }
+    return {0, 0};
+}
 
 BlockState::BlockState(Block* block)
     : device(block->device),
@@ -900,7 +914,12 @@ void setAllocatorSettings(const std::string& settings)
     // Empty NPU task queue before changing the allocator settings.
     NPUStatus ret = c10_npu::emptyAllNPUStream();
     TORCH_CHECK(ret == NPU_STATUS_SUCCESS, "Failed to empty NPU task queue, ret:", ret, PTA_ERROR(ErrCode::INTERNAL));
-    NPUAllocatorConfig::instance().parseArgs(settings, {"expandable_segments"});
+    NPUAllocatorConfig::instance().parseArgs(settings, {
+        "expandable_segments",
+        "max_split_size_mb",
+        "max_non_split_rounding_mb",
+        "release_lock_on_npumalloc"
+    });
 }
 
 bool saveDevMemUsageInfo(const int& device)
@@ -1026,6 +1045,7 @@ private:
 
     // XXX - maybe we should generalize and have multiple events
     std::vector<OutOfMemoryObserver> oom_observers_;
+    std::vector<AllocatorTraceTracker> trace_trackers_;
     std::shared_ptr<c10d_npu::HCCLComm> hcclComm_;
 
     // Private pools for NPU graphs
@@ -1098,6 +1118,12 @@ public:
     void attachOutOfMemoryObserver(OutOfMemoryObserver observer)
     {
         oom_observers_.emplace_back(observer);
+    }
+
+    void attachAllocatorTraceTracker(AllocatorTraceTracker tracker)
+    {
+        std::unique_lock<std::recursive_mutex> lock(mutex);
+        trace_trackers_.emplace_back(std::move(tracker));
     }
 
     bool checkUceInMemPool()
@@ -1278,7 +1304,7 @@ public:
                 stats.num_ooms += 1;
 
                 record_trace(TraceEntry::OOM, device_free, params.size(), params.stream(), params.device(),
-                    std::move(context));
+                    params.pool->owner_MempoolId(), std::move(context));
                 auto observers_local = oom_observers_;
 
                 // Make sure we do not have the device lock before calling our
@@ -1420,7 +1446,7 @@ public:
 
         block->context_when_allocated = std::move(context);
         record_trace(TraceEntry::ALLOC, int64_t(block->ptr), orig_size, block->stream, block->device,
-            block->context_when_allocated);
+            block->pool->owner_MempoolId(), block->context_when_allocated);
 
         active_blocks.insert(block);
 
@@ -1483,7 +1509,8 @@ public:
         });
 
         record_trace(TraceEntry::FREE_REQUESTED, int64_t(block->ptr), block->requested_size, block->stream,
-            block->device, context ? context : block->context_when_allocated);
+            block->device, block->pool->owner_MempoolId(),
+            context ? context : block->context_when_allocated);
 
         if (block->size >= NPUAllocatorConfig::max_split_size()) {
             update_stat(stats.oversize_allocations, -1);
@@ -2065,7 +2092,7 @@ public:
         std::sort(result.begin(), result.end(),
             [](const SegmentInfo &a, const SegmentInfo &b) { return a.address < b.address; });
 
-        record_trace(TraceEntry::SNAPSHOT, 0, total_active, nullptr, 0, nullptr);
+        record_trace(TraceEntry::SNAPSHOT, 0, total_active, nullptr, 0, {0, 0}, nullptr);
         return result;
     }
 
@@ -2125,26 +2152,41 @@ public:
     // See Note [Interaction with NPU graph capture]
 
     // Called by NPUGraph::capture_begin
-    void beginAllocateToPool(MempoolId_t mempool_id, std::function<bool(aclrtStream)> filter)
+    void create_or_incref_pool(MempoolId_t mempool_id)
     {
-        std::lock_guard<std::recursive_mutex> lock(mutex);
         auto it = graph_pools.find(mempool_id);
         if (it == graph_pools.end()) {
-            // mempool_id does not reference an existing pool. Make a new pool for
-            // this capture.
-            graph_pools.emplace(mempool_id, std::make_unique<PrivatePool>());
+            // mempool_id does not reference an existing pool.
+            // Make a new pool for NPUGraph capture or torch.npu.use_mem_pool
+            // usage. use_count is initially 1, which means the pool is
+            // being used since somebody called createOrIncrefPool.
+            graph_pools.emplace(mempool_id, std::make_unique<PrivatePool>(mempool_id));
             TORCH_NPU_MEMORY_LOGD("NPUCachingAllocator beginAllocateToPool: new pool, "
                                   "mempool_id=(%lu,%lu)", mempool_id.first, mempool_id.second);
         } else {
-            // mempool_id references an existing pool, which the current capture will
+            // mempool_id references an existing pool, which the current NPUGraph
+            // capture or torch.npu.use_mem_pool will
             // share. Check this pool is live (at least one other capture already
-            // references it).
+            // references it). Increment it to establish the usage.
             TORCH_INTERNAL_ASSERT(it->second->use_count > 0);
             it->second->use_count++;
             TORCH_NPU_MEMORY_LOGD("NPUCachingAllocator beginAllocateToPool: reuse pool, "
                                   "mempool_id=(%lu,%lu), use_count=%d",
                                   mempool_id.first, mempool_id.second, it->second->use_count);
         }
+    }
+
+    PrivatePool* get_private_pool(MempoolId_t mempool_id) const
+    {
+        auto it = graph_pools.find(mempool_id);
+        TORCH_INTERNAL_ASSERT(it != graph_pools.end());
+        return it->second.get();
+    }
+
+    void beginAllocateToPool(MempoolId_t mempool_id, std::function<bool(aclrtStream)> filter)
+    {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+        create_or_incref_pool(mempool_id);
         for (auto it2 = captures_underway.begin(); it2 != captures_underway.end(); ++it2) {
             TORCH_CHECK(it2->first != mempool_id, "beginAllocateToPool: already recording to mempool_id");
         }
@@ -2185,15 +2227,14 @@ public:
         // mempool. When the count reaches 0, we tell free_cached_blocks it may now
         // npuFree blocks from this graph's pool when it discovers they're unused
         // (unsplit).
-        auto it = graph_pools.find(mempool_id);
-        TORCH_INTERNAL_ASSERT(it != graph_pools.end());
-        auto uc = --(it->second->use_count);
+        auto pp = get_private_pool(mempool_id);
+        auto uc = --(pp->use_count);
         TORCH_INTERNAL_ASSERT(uc >= 0);
         if (uc == 0) {
             // Allows free_cached_blocks to begin npuFreeing this pool's memory,
             // and makes sure this pool wasn't somehow made freeable already.
             // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
-            bool inserted = graph_pools_freeable.insert({ mempool_id, it->second.get() }).second;
+            bool inserted = graph_pools_freeable.insert({ mempool_id, pp }).second;
             TORCH_INTERNAL_ASSERT(inserted);
             TORCH_NPU_MEMORY_LOGD("NPUCachingAllocator releasePool: mempool_id=(%lu,%lu), "
                                   "use_count reached 0, pool marked freeable",
@@ -2341,7 +2382,7 @@ private:
         for_each_selected_stat_type(stat_types,
             [&](size_t stat_type) { update_stat(stats.reserved_bytes[stat_type], mapped_range.size); });
         record_trace(TraceEntry::SEGMENT_MAP, int64_t(mapped_range.ptr), mapped_range.size, to_map->stream,
-            to_map->device, ctx);
+            to_map->device, to_map->pool->owner_MempoolId(), ctx);
         if (!to_map->prev && !to_map->context_when_segment_allocated) {
             to_map->context_when_segment_allocated = ctx;
         }
@@ -2388,7 +2429,8 @@ private:
         AT_ASSERT(!block->allocated && block->event_count == 0, PTA_ERROR(ErrCode::VALUE));
 
         record_trace(TraceEntry::FREE_COMPLETED, int64_t(block->ptr), block->requested_size, block->stream,
-            block->device, context ? context : block->context_when_allocated);
+            block->device, block->pool->owner_MempoolId(),
+            context ? context : block->context_when_allocated);
 
         block->context_when_allocated = nullptr;
         block->hccl_work_ptr = nullptr;
@@ -2597,7 +2639,8 @@ private:
             return false;
         }
         // Allow oversized block size to be rounded up but within a limit
-        if ((p.size() >= NPUAllocatorConfig::max_split_size()) && ((*it)->size >= p.size() + kLargeBuffer)) {
+        if ((p.size() >= NPUAllocatorConfig::max_split_size()) &&
+            ((*it)->size >= p.size() + NPUAllocatorConfig::max_non_split_rounding_size())) {
             return false;
         }
         p.block = *it;
@@ -2726,7 +2769,17 @@ private:
                 if (IsMallocPage1GMem(p.pool->is_small)) {
                     policy = aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE1G_ONLY;
                 }
-                p.err = c10_npu::acl::AclrtMallocAlign32(&ptr, size, policy);
+                if (NPUAllocatorConfig::release_lock_on_npumalloc()) {
+                    // safe relock at last of this if region
+                    auto sg = c10::make_scope_exit([&]() { lock.lock(); });
+                    lock.unlock();
+                    p.err = c10_npu::acl::AclrtMallocAlign32(&ptr, size, policy);
+                } else {
+                    p.err = c10_npu::acl::AclrtMallocAlign32(&ptr, size, policy);
+                }
+                if (NPUAllocatorConfig::release_lock_on_npumalloc()) {
+                    TORCH_CHECK(lock.owns_lock(), "Failed to re-acquire lock after npumalloc");
+                }
             }
             if (p.err != ACL_ERROR_NONE) {
                 return false;
@@ -2754,7 +2807,8 @@ private:
         // p.block came from new, not npuMalloc. It should not be nullptr here.
         TORCH_INTERNAL_ASSERT(p.block != nullptr && p.block->ptr != nullptr);
 
-        record_trace(TraceEntry::SEGMENT_ALLOC, int64_t(p.block->ptr), p.block->size, p.stream(), p.device(), ctx);
+        record_trace(TraceEntry::SEGMENT_ALLOC, int64_t(p.block->ptr), p.block->size, p.stream(), p.device(),
+            p.block->pool->owner_MempoolId(), ctx);
         p.block->context_when_segment_allocated = ctx;
         return true;
     }
@@ -2861,6 +2915,7 @@ private:
             block->size, block->ptr, block->device);
 
         record_trace(TraceEntry::SEGMENT_FREE, int64_t(block->ptr), block->size, block->stream, block->device,
+            block->pool->owner_MempoolId(),
             context ? context : block->context_when_segment_allocated);
 
         auto it = ipc_handle_map.find(block->ptr);
@@ -2945,6 +3000,7 @@ private:
         }
 
         record_trace(TraceEntry::SEGMENT_UNMAP, int64_t(unmapped.ptr), unmapped.size, block->stream, block->device,
+            block->pool->owner_MempoolId(),
             context ? context : block->context_when_segment_allocated);
     }
 
@@ -3137,14 +3193,24 @@ private:
     }
 
     void record_trace(TraceEntry::Action action, int64_t addr, size_t size, aclrtStream stream, int device,
-        std::shared_ptr<c10::GatheredContext> context)
+        MempoolId_t mempool_id = {0, 0}, std::shared_ptr<c10::GatheredContext> context = nullptr)
     {
-        if (!record_history) {
+        if (!record_history && trace_trackers_.empty()) {
             return;
         }
-
-        auto te = TraceEntry(action, device, addr, size, stream,
+        auto te = TraceEntry(
+            action,
+            device,
+            addr,
+            size,
+            stream,
+            mempool_id,
             record_context_ >= RecordContext::ALLOC ? std::move(context) : nullptr);
+
+        // Callbacks should not include any Pytorch call
+        for (const auto& cb : trace_trackers_) {
+            cb(te);
+        }
 
         if (record_history) {
             if (alloc_trace->size() < alloc_trace_max_entries_) {
@@ -3300,6 +3366,13 @@ public:
     {
         for (auto &allocator : device_allocator) {
             allocator->attachOutOfMemoryObserver(observer);
+        }
+    }
+
+    void attachAllocatorTraceTracker(AllocatorTraceTracker tracker) override
+    {
+        for (auto& allocator : device_allocator) {
+            allocator->attachAllocatorTraceTracker(tracker);
         }
     }
 

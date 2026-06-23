@@ -103,6 +103,73 @@ class TestJitScriptModuleCode(TestCase):
         self.assertTrue(hasattr(model, 'code'))
         self.assertIn('forward', str(model.code))
 
+class TestJitScriptModuleCPU(TestCase):
+    def _check_model_device(self, model: torch.jit.ScriptModule, device_type: str):
+        """Check whether all parameters and buffers of the model are on the specified device."""
+        for param in model.parameters():
+            self.assertEqual(param.device.type, device_type)
+        for buf in model.buffers():
+            self.assertEqual(buf.device.type, device_type)
+
+    def _run_infer(self, model: torch.jit.ScriptModule, device):
+        x = torch.randn(2, 1, 32, 32).to(device)
+        out = model(x)
+        self.assertEqual(out.dim(), 4)
+
+    def test_script_module_cpu_from_npu(self):
+        # Skip test if NPU is not available
+        if not hasattr(torch, "npu") or not torch.npu.is_available():
+            self.skipTest("NPU device unavailable, skip this test case")
+
+        # Instantiate model and convert to ScriptModule
+        model = Model()
+        script_model = torch.jit.script(model)
+
+        # Move ScriptModule to NPU and verify device
+        script_model = script_model.npu()
+        self._check_model_device(script_model, "npu")
+
+        # Transfer model from NPU back to CPU via cpu() method
+        cpu_script_model = script_model.cpu()
+
+        # Assert model type, device and normal inference execution
+        self.assertIsInstance(cpu_script_model, torch.jit.ScriptModule)
+        self._check_model_device(cpu_script_model, "cpu")
+        self._run_infer(cpu_script_model, torch.device("cpu"))
+
+class TestJitScriptModuleCompile(TestCase):
+    def _check_model_device(self, model: torch.jit.ScriptModule, device_type: str):
+        """Check whether all parameters and buffers of the model are on the specified device."""
+        for param in model.parameters():
+            self.assertEqual(param.device.type, device_type)
+        for buf in model.buffers():
+            self.assertEqual(buf.device.type, device_type)
+
+    def _run_infer(self, model, device):
+        """Run model inference and verify output tensor shape validity."""
+        x = torch.randn(2, 1, 32, 32).to(device)
+        out = model(x)
+        self.assertEqual(out.dim(), 4)
+
+    def test_script_module_compile(self):
+        """Test compilation and inference using torch.compile with NPU backend."""
+        torch.npu.config.allow_internal_format = False
+        if not hasattr(torch, "npu") or not torch.npu.is_available():
+            self.skipTest("NPU device is unavailable, skip this test case")
+
+        # Initialize model and convert to ScriptModule
+        model = Model().npu()
+
+        # Move model to NPU and check device placement
+        self._check_model_device(model, "npu")
+
+        # Compile model with NPU backend
+        compiled_model = torch.compile(model, backend="npugraph_ex", fullgraph=True, dynamic=False)
+
+        # run inference validation
+        self._run_infer(compiled_model, torch.device("npu"))
+
+
 
 if __name__ == "__main__":
     run_tests()

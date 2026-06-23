@@ -2307,7 +2307,7 @@
     "signature": "(cache_bin, print_output=True, file=None)"
   },
   "torch_npu.npu.npugraph_ex.scope.limit_core_num": {
-    "signature": "(op_aicore_num: int, op_vectorcore_num: int)"
+    "signature": "(op_aicore_num: int, op_vectorcore_num: int, stream=None)"
   },
   "torch_npu.npu.npugraph_ex.compile_fx": {
     "signature": "(gm, example_inputs=None, options=None)"
@@ -2329,6 +2329,9 @@
   },
   "torch_npu.npu.NpuGraphOpHandler.update_args": {
     "signature": "(dispatch_record, update_input)"
+  },
+  "torch_npu.npu.NpuGraphOpHandler.get_update_specs": {
+    "signature": "(op_name)"
   },
   "torch_npu.npu.NpuGraphOpHandler.record_wrap_kwarg": {
     "signature": "(key, value, tensor_param_names)"
