@@ -114,7 +114,8 @@ def gen_common_triton_imports():
         """
         import torch
         import torch_npu
-        torch_npu.npu._initialized = True
+        if not torch_npu.npu.is_initialized():
+            torch_npu.npu._initialized = True
         from torch_npu._inductor.runtime import triton_heuristics as triton_heuristics
         from torch_npu._inductor.runtime import triton_helpers
         from torch_npu._inductor.runtime.triton_helpers import libdevice, extension, math as tl_math

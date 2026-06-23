@@ -1026,6 +1026,6 @@ def _enable_full_lowering_fallback():
 
 
 def _add_fallback_ops_for_torchgen():
-    from torchgen.aoti.fallback_ops import inductor_fallback_ops
+    from torchgen.aoti import fallback_ops
     from torchnpugen.aoti.fallback_ops import inductor_fallback_ops_npu, inductor_fallback_ops_npu_not_support
-    inductor_fallback_ops = (inductor_fallback_ops | inductor_fallback_ops_npu) - inductor_fallback_ops_npu_not_support
+    fallback_ops.inductor_fallback_ops = (fallback_ops.inductor_fallback_ops | inductor_fallback_ops_npu) - inductor_fallback_ops_npu_not_support

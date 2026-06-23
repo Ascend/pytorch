@@ -47,7 +47,6 @@ AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu__fused_moving_avg_obs_fq_helper_
 AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu__log_softmax_backward_data(AtenTensorHandle grad_output, AtenTensorHandle output, int64_t dim, int32_t input_dtype, AtenTensorHandle* ret0);
 AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu__neg_view(AtenTensorHandle self, AtenTensorHandle* ret0);
 AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu__pdist_forward(AtenTensorHandle self, double p, AtenTensorHandle* ret0);
-AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu__scaled_dot_product_fused_attention_overrideable(AtenTensorHandle query, AtenTensorHandle key, AtenTensorHandle value, AtenTensorHandle* attn_bias, double dropout_p, int32_t is_causal, int32_t return_debug_mask, double* scale, AtenTensorHandle* ret0, AtenTensorHandle* ret1, AtenTensorHandle* ret2, AtenTensorHandle* ret3, int64_t* ret4, int64_t* ret5, AtenTensorHandle* ret6, AtenTensorHandle* ret7, AtenTensorHandle* ret8);
 AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu__thnn_fused_lstm_cell(AtenTensorHandle input_gates, AtenTensorHandle hidden_gates, AtenTensorHandle cx, AtenTensorHandle* input_bias, AtenTensorHandle* hidden_bias, AtenTensorHandle* ret0, AtenTensorHandle* ret1, AtenTensorHandle* ret2);
 AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu__to_sparse(AtenTensorHandle self, int32_t* layout, const int64_t** blocksize, int64_t blocksize_len_, int64_t* dense_dim, AtenTensorHandle* ret0);
 AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu__unsafe_index_Tensor(AtenTensorHandle self, const AtenTensorHandle** indices, int64_t indices_len_, AtenTensorHandle* ret0);
@@ -194,7 +193,6 @@ AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu_mul__Tensor(AtenTensorHandle sel
 AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu_nanmedian(AtenTensorHandle self, AtenTensorHandle* ret0);
 AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu_native_dropout(AtenTensorHandle input, double p, int32_t* train, AtenTensorHandle* ret0, AtenTensorHandle* ret1);
 AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu_native_dropout_out(AtenTensorHandle out0, AtenTensorHandle out1, AtenTensorHandle input, double p, int32_t* train);
-AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu_native_layer_norm(AtenTensorHandle input, const int64_t* normalized_shape, int64_t normalized_shape_len_, AtenTensorHandle* weight, AtenTensorHandle* bias, double eps, AtenTensorHandle* ret0, AtenTensorHandle* ret1, AtenTensorHandle* ret2);
 AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu_new_empty_strided_out(AtenTensorHandle out, AtenTensorHandle self, const int64_t* size, int64_t size_len_, const int64_t* stride, int64_t stride_len_);
 AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu_nll_loss_backward(AtenTensorHandle grad_output, AtenTensorHandle self, AtenTensorHandle target, AtenTensorHandle* weight, int64_t reduction, int64_t ignore_index, AtenTensorHandle total_weight, AtenTensorHandle* ret0);
 AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu_nll_loss_forward(AtenTensorHandle self, AtenTensorHandle target, AtenTensorHandle* weight, int64_t reduction, int64_t ignore_index, AtenTensorHandle* ret0, AtenTensorHandle* ret1);

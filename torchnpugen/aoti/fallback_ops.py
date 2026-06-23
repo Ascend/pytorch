@@ -505,7 +505,7 @@ inductor_fallback_ops_npu_not_support = {
     "aten._weight_int8pack_mm.default",
     "aten.broadcast_tensors",
     "aten._scaled_dot_product_fused_attention_overrideable_backward.default",
-    "aten._scaled_dot_product_fused_attention_overrideable.default"
+    "aten._scaled_dot_product_fused_attention_overrideable.default",
     "aten.fill_",
     "aten.fractional_max_pool2d_backward.default",
     "aten.fractional_max_pool2d.default",
@@ -551,4 +551,5 @@ inductor_fallback_ops_npu_not_support = {
     "aten.scatter_reduce",
     "aten.scatter_reduce_",
     "aten.scatter_reduce_.two",
+    "aten.native_layer_norm.default",
 }
