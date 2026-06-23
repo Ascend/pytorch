@@ -17,6 +17,15 @@ constexpr size_t kRoundUpPowerOfTwoIntervals = 16;
 
 class CachingAllocatorConfig {
 public:
+    static bool release_lock_on_npumalloc() {
+        return instance().m_release_lock_on_npumalloc;
+    }
+
+    static size_t max_non_split_rounding_size()
+    {
+        return instance().m_max_non_split_rounding_size;
+    }
+
     static size_t max_split_size()
     {
         return instance().m_max_split_size;
@@ -82,6 +91,8 @@ public:
     void parseArgs(const char *env, std::set<std::string> supported_settings = {});
 
 private:
+    bool m_release_lock_on_npumalloc;
+    size_t m_max_non_split_rounding_size;
     size_t m_max_split_size;
     double m_garbage_collection_threshold;
     bool m_expandable_segments;
@@ -104,7 +115,9 @@ private:
           m_base_addr_aligned_size(kAlignRoundLarge),
           m_segment_size_mb(0),
           m_roundup_power2_divisions(kRoundUpPowerOfTwoIntervals, 0),
-          m_pinned_use_background_threads(false)
+          m_pinned_use_background_threads(false),
+          m_max_non_split_rounding_size(kLargeBuffer),
+          m_release_lock_on_npumalloc(false)
     {}
 
     void lexArgs(const char *env, std::vector<std::string> &config);
@@ -120,6 +133,8 @@ private:
     size_t parseRoundUpPower2Divisions(const std::vector<std::string> &config, size_t i);
     size_t parsePinnedUseBackgroundThreads(const std::vector<std::string> &config, size_t i);
     size_t parseMultiStreamLazyReclaim(const std::vector<std::string> &config, size_t i);
+    size_t parseMaxNonSplitRoundingSize(const std::vector<std::string> &config, size_t i);
+    size_t parseReleaseLockOnNpuMalloc(const std::vector<std::string> &config, size_t i);
 };
 } // namespace NPUCachingAllocator
 } // namespace c10_npu
