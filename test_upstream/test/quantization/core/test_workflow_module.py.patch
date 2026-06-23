@@ -1,0 +1,140 @@
+diff --git a/test/quantization/core/test_workflow_module.py b/test/quantization/core/test_workflow_module.py
+index 56b43430897..89ef3d8f3a2 100644
+--- a/test/quantization/core/test_workflow_module.py
++++ b/test/quantization/core/test_workflow_module.py
+@@ -1,7 +1,26 @@
+ # Owner(s): ["oncall: quantization"]
+ # ruff: noqa: F841
+-
+ # Torch
++        devices = ["cpu", "npu"] if torch_npu.npu.is_available() else ["cpu"]
++            ["cpu", "npu"] if torch_npu.npu.is_available() else ["cpu"]
++        device = torch.device('npu:0')
++        # device = torch.device('cuda:0')
++CUDA_VERSION = 11080
++torch.version.cuda = '11.8'
++torch._C._cuda_getCompiledVersion = lambda:11080
++torch._C._cuda_setDevice = torch_npu._C._npu_setDevice
++torch.cuda.get_device_capability = lambda *args, **kwargs:(10,0)
++torch._C._cuda_setStream = torch_npu._C._npu_setStream
++# from torch_npu.contrib import transfer_to_npu
++import torch_npu
++CUDA_VERSION = 11080
++torch.version.cuda = '11.8'
++torch._C._cuda_getCompiledVersion = lambda:11080
++torch._C._cuda_setDevice = torch_npu._C._npu_setDevice
++torch.cuda.get_device_capability = lambda *args, **kwargs:(10,0)
++torch._C._cuda_setStream = torch_npu._C._npu_setStream
++# from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ # Standard library
+ import copy
+ import io
+@@ -41,7 +60,8 @@ from torch.ao.quantization import (
+     RecordingObserver,
+ )
+ from torch.ao.quantization.quantize import _get_observer_dict
+-
++settings.load_profile("disable_deadline")
++settings.register_profile("disable_deadline", deadline=None)
+ hu.assert_deadline_disabled()
+ from torch.testing._internal.common_cuda import TEST_CUDA, TEST_MULTIGPU
+ 
+@@ -299,8 +319,8 @@ class TestObserver(QuantizationTestCase):
+             loaded = torch.jit.load(buf)
+             self.assertEqual(obs.calculate_qparams(), loaded.calculate_qparams())
+ 
+-    @unittest.skipIf(not TEST_MULTIGPU, "multi-GPU not supported")
+-    @unittest.skipIf(not TEST_CUDA, "CUDA unavailable")
++    # @unittest.skipIf(not TEST_CUDA, "CUDA unavailable")
++    # @unittest.skipIf(not TEST_MULTIGPU, "multi-GPU not supported")
+     @override_qengines
+     def test_state_dict_respects_device_affinity(self):
+         """
+@@ -308,7 +328,8 @@ class TestObserver(QuantizationTestCase):
+         device.
+         """
+         device_cpu = torch.device('cpu')
+-        device_cuda = torch.device('cuda:0')
++        device_cuda = torch.device('npu:0')
++        # device_cuda = torch.device('cuda:0')
+         test_cases = itertools.product(
+             [device_cpu, device_cuda],
+             [device_cpu, device_cuda],
+@@ -432,8 +453,8 @@ class TestObserver(QuantizationTestCase):
+             self.assertEqual(scripted.state_dict(), scripted_2.state_dict())
+ 
+ 
+-    @unittest.skipIf(not TEST_MULTIGPU, "multi-GPU not supported")
+-    @unittest.skipIf(not TEST_CUDA, "CUDA unavailable")
++    # @unittest.skipIf(not TEST_CUDA, "CUDA unavailable")
++    # @unittest.skipIf(not TEST_MULTIGPU, "multi-GPU not supported")
+     def test_observer_qparams_respects_device_affinity(self):
+         """
+         Ensure that the scale and zero_point returned by the observer
+@@ -444,7 +465,7 @@ class TestObserver(QuantizationTestCase):
+                         PerChannelMinMaxObserver(),
+                         MovingAveragePerChannelMinMaxObserver()]
+         for obs in observerList:
+-            device = torch.device('cuda:1')
++            device = torch.device('npu:1')
+             x = torch.randn(1, 2, device=device)
+             obs.to(device)
+             result = obs(x)
+@@ -857,7 +878,8 @@ class TestHistogramObserver(QuantizationTestCase):
+         self.assertEqual(myobs.histogram, [1., 0., 1., 2., 1., 0., 0., 1., 1., 1.])
+ 
+ class TestFakeQuantize(TestCase):
+-    @given(device=st.sampled_from(['cpu', 'cuda'] if torch.cuda.is_available() else ['cpu']),
++    @given(device=st.sampled_from(['cpu', 'npu'] if torch_npu.npu.is_available() else ['cpu']),
++    @given(device=st.sampled_from(['cpu', 'npu'] if torch.cuda.is_available() else ['cpu']),
+            X=hu.per_channel_tensor(shapes=hu.array_shapes(2, 5,),
+            qparams=hu.qparams(dtypes=torch.qint8)))
+     def test_fq_module_per_channel(self, device, X):
+@@ -909,6 +931,7 @@ class TestFakeQuantize(TestCase):
+         self.assertEqual(fq_module.activation_post_process.quant_min, -128)
+         self.assertEqual(fq_module.activation_post_process.quant_max, 127)
+         # test quant_min/quant_max override
++    @given(device=st.sampled_from(['cpu', 'npu'] if torch.cuda.is_available() else ['cpu']),
+         fq_module = FakeQuantize(observer, quant_min=0, quant_max=127)
+         self.assertEqual(fq_module.activation_post_process.quant_min, 0)
+         self.assertEqual(fq_module.activation_post_process.quant_max, 127)
+@@ -1048,6 +1071,8 @@ class TestDistributed(QuantizationTestCase):
+                 buffer_ids_after,
+                 msg=f"{str(observer)}: Buffers must be modified in place")
+ 
++    # @unittest.skipIf(not TEST_CUDA, "CUDA unavailable")
++    # @unittest.skipIf(not TEST_MULTIGPU, "multi-GPU not supported")
+     def test_fake_quant_preserves_buffers(self):
+         """
+         Tests that fake quant only modifies buffers in place. Note: this is important
+@@ -1079,7 +1104,7 @@ class TestDistributed(QuantizationTestCase):
+         if 'fbgemm' not in torch.backends.quantized.supported_engines:
+             return
+         with override_quantized_engine('fbgemm'):
+-            device = torch.device('cuda')
++            device = torch.device('npu')
+ 
+             model = nn.Sequential(
+                 torch.ao.quantization.QuantStub(),
+@@ -1162,8 +1187,8 @@ class TestDistributed(QuantizationTestCase):
+             hasattr(m[1], "qconfig"),
+             "missing qconfig after SyncBatchNorm conversion")
+ 
+-    @unittest.skipIf(not TEST_MULTIGPU, "multi-GPU not supported")
+-    @unittest.skipIf(not TEST_CUDA, "CUDA unavailable")
++    # @unittest.skipIf(not TEST_CUDA, "CUDA unavailable")
++    # @unittest.skipIf(not TEST_MULTIGPU, "multi-GPU not supported")
+     @override_qengines
+     def test_device_affinity(self):
+         """
+@@ -1528,6 +1553,9 @@ class TestFusedObsFakeQuantModule(TestCase):
+                              obs2match)
+ 
+ if __name__ == '__main__':
++    
++    
++    run_tests()
+     raise RuntimeError("This test file is not meant to be run directly, use:\n\n"
+                        "\tpython test/test_quantization.py TESTNAME\n\n"
+                        "instead.")

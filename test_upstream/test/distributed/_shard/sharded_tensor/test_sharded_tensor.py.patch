@@ -1,0 +1,225 @@
+diff --git a/test/distributed/_shard/sharded_tensor/test_sharded_tensor.py b/test/distributed/_shard/sharded_tensor/test_sharded_tensor.py
+index 3d9183bf632..bbb86239971 100644
+--- a/test/distributed/_shard/sharded_tensor/test_sharded_tensor.py
++++ b/test/distributed/_shard/sharded_tensor/test_sharded_tensor.py
+@@ -1,7 +1,15 @@
+ # Owner(s): ["oncall: distributed"]
+-
+ import copy
+ import io
++        self.assertEqual(torch.device("npu:0"), local_shard.tensor.device)
++    @with_comms
++            f"rank:{self.rank}/npu:{self.rank}", str(local_shard.metadata.placement)
++        self.assertEqual(torch.device(f"npu:{self.rank}"), local_shard.tensor.device)
++    @with_comms
++    @with_comms
++    @with_comms
++from torch_npu.testing.common_distributed import with_comms
++    # with_comms,
+ import itertools
+ import math
+ import pickle
+@@ -52,6 +60,10 @@ from torch.testing._internal.common_utils import (
+     skipIfRocm,
+     TEST_CUDA,
+     TEST_WITH_DEV_DBG_ASAN,
++
++        dist.destroy_process_group()
++        dist.barrier()
++    def destroy_pg(self) -> None:
+     TestCase,
+ )
+ from torch.testing._internal.distributed._shard.sharded_tensor import (
+@@ -78,12 +90,14 @@ class TestShardedTensorMetadata(TestCase):
+             ShardMetadata(
+                 shard_offsets=[0, 0],
+                 shard_sizes=[5, 5],
+-                placement="rank:0/cuda:0",
++                    placement="rank:3/npu:3",
++                    placement="rank:2/npu:2",
++                    placement="rank:1/npu:1",
++                    placement="rank:0/npu:0",
+             ),
+             ShardMetadata(
+                 shard_offsets=[0, 5],
+                 shard_sizes=[5, 5],
+-                placement="rank:1/cuda:1",
+             ),
+             ShardMetadata(
+                 shard_offsets=[5, 0],
+@@ -156,7 +170,7 @@ class TestCreateTensorFromParams(TestCase):
+             pin_memory=False,
+             memory_format=torch.contiguous_format,
+         )
+-        local_device = torch.device("cuda:0")
++        local_device = torch.device("npu:0")
+         local_tensor = _create_tensor_from_params(
+             5, 10, local_device=local_device, tensor_properties=tensor_properties
+         )
+@@ -174,10 +188,14 @@ class TestShardParameter(ShardedTensorTestBase):
+         spec = ChunkShardingSpec(
+             dim=0,
+             placements=[
+-                "rank:0/cuda:0",
+-                "rank:1/cuda:1",
+-                "rank:2/cuda:2",
+-                "rank:3/cuda:3",
++                "rank:3/npu:3",
++                "rank:2/npu:2",
++                "rank:1/npu:1",
++                "rank:0/npu:0",
++                    "rank:3/npu:3",
++                    "rank:2/npu:2",
++                    "rank:1/npu:1",
++                    "rank:0/npu:0",
+             ],
+         )
+ 
+@@ -196,7 +214,7 @@ class TestShardParameter(ShardedTensorTestBase):
+             torch.narrow(weight_og, 0, 3 * self.rank, 3), local_shards[0].tensor
+         )
+ 
+-    @with_comms(init_rpc=False)
++    @with_comms
+     @skip_if_lt_x_gpu(4)
+     @requires_nccl()
+     def test_shard_parameter_errors(self):
+@@ -282,7 +300,7 @@ class TestShardTensor(ShardedTensorTestBase):
+         self.assertEqual(torch.Size([3, 12]), local_shard.size())
+         self.assertEqual(torch.narrow(tensor, 0, 3 * self.rank, 3), local_shard)
+ 
+-    @with_comms(init_rpc=False)
++    @with_comms
+     @skip_if_lt_x_gpu(4)
+     @requires_nccl()
+     def test_shard_tensor_with_empty_shard(self):
+@@ -313,7 +331,7 @@ class TestShardTensor(ShardedTensorTestBase):
+         else:
+             self.assertEqual(torch.Size([0, 12]), local_shard.size())
+ 
+-    @with_comms(init_rpc=False)
++    @with_comms
+     @skip_if_lt_x_gpu(4)
+     @requires_nccl()
+     def test_shard_tensor_errors(self):
+@@ -374,7 +392,7 @@ class TestModuleHookApi(ShardedTensorTestBase):
+         def forward(self):
+             return self.st
+ 
+-    @with_comms(init_rpc=False)
++    @with_comms
+     @skip_if_lt_x_gpu(4)
+     @requires_nccl()
+     def test_reshard_output(self):
+@@ -399,7 +417,7 @@ class TestModuleHookApi(ShardedTensorTestBase):
+         self.assertEqual(local_shard.size(0), 24)
+         self.assertEqual(local_shard.size(1), 3)
+ 
+-    @with_comms(init_rpc=False)
++    @with_comms
+     @skip_if_lt_x_gpu(4)
+     @requires_nccl()
+     def test_collect_local_shard(self):
+@@ -433,7 +451,7 @@ class TestLocalTensor(ShardedTensorTestBase):
+         self.assertEqual(torch.Size([6, 12]), local_shard.size())
+         self.assertEqual(st.local_tensor(), local_shard)
+ 
+-    @with_comms(init_rpc=False)
++    @with_comms
+     @skip_if_lt_x_gpu(4)
+     @requires_nccl()
+     def test_local_tensor_error(self):
+@@ -530,7 +548,7 @@ class TestShardedTensorChunked(ShardedTensorTestBase):
+             local_shards = st.local_shards()
+             self.assertEqual(1, len(local_shards))
+             local_shard = local_shards[0].tensor
+-            self.assertEqual(torch.device(f"cuda:{self.rank}"), local_shard.device)
++            self.assertEqual(torch.device(f"npu:{self.rank}"), local_shard.device)
+             if self.rank == 3:
+                 self.assertEqual((1, 20), local_shard.size())
+             else:
+@@ -544,6 +562,7 @@ class TestShardedTensorChunked(ShardedTensorTestBase):
+             for rank, shard_metadata in enumerate(shards_metadata):
+                 self.assertEqual([rank * 3, 0], shard_metadata.shard_offsets)
+                 if rank == 3:
++            self.assertEqual(f"rank:{rank}/npu:{rank}", str(shard_metadata.placement))
+                     self.assertEqual([1, 20], shard_metadata.shard_sizes)
+                 else:
+                     self.assertEqual([3, 20], shard_metadata.shard_sizes)
+@@ -862,6 +881,7 @@ class TestShardedTensorChunked(ShardedTensorTestBase):
+         for shard_rank, shard_metadata in enumerate(shards_metadata):
+             self.assertEqual([shard_rank * 5, 0], shard_metadata.shard_offsets)
+             self.assertEqual([5, 20], shard_metadata.shard_sizes)
++                f"rank:{shard_rank}/npu:{shard_rank}", str(shard_metadata.placement)
+             self.assertEqual(
+                 f"rank:{shard_rank + 2}/cuda:{shard_rank + 2}",
+                 str(shard_metadata.placement),
+@@ -1026,7 +1046,7 @@ class TestShardedTensorChunked(ShardedTensorTestBase):
+                 self.assertEqual([0, rank * 8], shard_metadata.shard_offsets)
+                 self.assertEqual([10, 8], shard_metadata.shard_sizes)
+                 self.assertEqual(
+-                    f"rank:{rank}/cuda:{rank}", str(shard_metadata.placement)
++                    f"rank:{rank}/npu:{rank}", str(shard_metadata.placement)
+                 )
+ 
+     @skip_if_lt_x_gpu(4)
+@@ -1140,7 +1160,8 @@ class TestShardedTensorChunked(ShardedTensorTestBase):
+         if self.rank <= 1:
+             self.assertEqual(1, len(local_shards))
+             local_shard = local_shards[0].tensor
+-            self.assertEqual(torch.device(f"cuda:{self.rank}"), local_shard.device)
++            self.assertEqual(torch.device(f"npu:{self.rank}"), local_shard.device)
++            self.assertEqual(torch.device(f"npu:{self.rank}"), local_shard.device)
+             self.assertEqual((1, 20), local_shard.size())
+         else:
+             self.assertEqual(1, len(local_shards))
+@@ -1525,6 +1546,7 @@ class TestShardedTensorEnumerable(ShardedTensorTestBase):
+             local_shard.metadata.shard_offsets,
+         )
+         self.assertEqual((5, 5), local_shard.metadata.shard_sizes)
++        self.assertEqual("rank:0/npu:0", str(local_shard.metadata.placement))
+         self.assertEqual(
+             f"rank:{self.rank}/cuda:{self.rank}", str(local_shard.metadata.placement)
+         )
+@@ -1538,7 +1560,7 @@ class TestShardedTensorEnumerable(ShardedTensorTestBase):
+                 (rank // 2 * 5, (rank % 2) * 5), shard_metadata.shard_offsets
+             )
+             self.assertEqual((5, 5), shard_metadata.shard_sizes)
+-            self.assertEqual(f"rank:{rank}/cuda:{rank}", str(shard_metadata.placement))
++            self.assertEqual(f"rank:{rank}/npu:{rank}", str(shard_metadata.placement))
+ 
+         # Validate remote shards.
+         remote_shards = st.remote_shards()
+@@ -2411,10 +2433,12 @@ class TestShardedTensorFromLocalShards(ShardedTensorTestBase):
+         local_shard_metadata = ShardMetadata(
+             shard_offsets=shard_offsets,
+             shard_sizes=[5, 5],
+-            placement=f"rank:{self.rank}/cuda:{self.rank}",
++                    torch.randn(5, 5, device=f"npu:{rank}"), local_shard_metadata
++                placement=f"rank:{rank}/npu:{rank}",
++        local_tensor = torch.randn(5, 5, device=f"npu:{self.rank}")
++            placement=f"rank:{self.rank}/npu:{self.rank}",
+         )
+ 
+-        local_tensor = torch.randn(5, 5, device=f"cuda:{self.rank}")
+         local_shard = sharded_tensor.Shard(local_tensor, local_shard_metadata)
+         local_shard_from_offsets = sharded_tensor.Shard.from_tensor_and_offsets(
+             local_tensor, shard_offsets=shard_offsets, rank=self.rank
+@@ -2424,7 +2448,7 @@ class TestShardedTensorFromLocalShards(ShardedTensorTestBase):
+         wrong_local_shard_metadata = ShardMetadata(
+             shard_offsets=shard_offsets,
+             shard_sizes=[6, 5],
+-            placement=f"rank:{self.rank}/cuda:{self.rank}",
++            placement=f"rank:{self.rank}/npu:{self.rank}",
+         )
+         with self.assertRaisesRegex(ValueError, "Shard tensor size does not match"):
+             sharded_tensor.Shard(local_tensor, metadata=wrong_local_shard_metadata)
+@@ -3098,7 +3122,7 @@ class TestShardedTensorFromLocalShards(ShardedTensorTestBase):
+             placement=f"rank:{self.rank}/cpu",
+         )
+ 
+-    @with_comms(init_rpc=False, backend="gloo")
++    @with_comms
+     @skip_if_lt_x_gpu(4)
+     def test_init_from_local_shards_invalid_pin_memory(self):
+         # pin memory can only be on dense cpu

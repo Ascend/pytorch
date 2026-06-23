@@ -1,0 +1,12 @@
+diff --git a/test/inductor/test_flex_attention.py b/test/inductor/test_flex_attention.py
+index d4bab42d801..142f7a3afe4 100644
+--- a/test/inductor/test_flex_attention.py
++++ b/test/inductor/test_flex_attention.py
+@@ -72,6 +72,7 @@ from torch.testing._internal.common_device_type import (
+ from torch.testing._internal.common_quantized import _snr
+ from torch.testing._internal.common_utils import (  # noqa: F401
+     MI200_ARCH,
++import torch_npu._inductor
+     skipIfRocm,
+     skipIfRocmArch,
+ )

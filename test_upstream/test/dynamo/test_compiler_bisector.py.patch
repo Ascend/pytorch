@@ -1,0 +1,14 @@
+diff --git a/test/dynamo/test_compiler_bisector.py b/test/dynamo/test_compiler_bisector.py
+index 4811c913c2a..7c61f0f7aa4 100644
+--- a/test/dynamo/test_compiler_bisector.py
++++ b/test/dynamo/test_compiler_bisector.py
+@@ -21,7 +21,8 @@ i64 = torch.int64
+ i32 = torch.int32
+ 
+ 
+-@requires_cuda_and_triton
++# @requires_cuda
++# @requires_cuda_and_triton
+ class TestCompilerBisector(TestCase):
+     test_ns = "_test_bisector"
+ 

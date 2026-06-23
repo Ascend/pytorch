@@ -1,0 +1,102 @@
+diff --git a/test/test_datapipe.py b/test/test_datapipe.py
+index 393ebcbef3f..0ac19815fae 100644
+--- a/test/test_datapipe.py
++++ b/test/test_datapipe.py
+@@ -27,6 +27,8 @@ from unittest import skipIf
+ import numpy as np
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch.nn as nn
+ import torch.utils.data.datapipes as dp
+ import torch.utils.data.graph
+@@ -1390,19 +1392,19 @@ class TestFunctionalIterDataPipe(TestCase):
+         input_dp = dp.iter.IterableWrapper(range(target_length))
+ 
+         def fn(item, dtype=torch.float, *, sum=False):
+-            data = torch.tensor(item, dtype=dtype)
++            data = torch.tensor(item, dtype=dtype).npu()
+             return data if not sum else data.sum()
+ 
+         # Functional Test: apply to each element correctly
+         map_dp = input_dp.map(fn)
+         self.assertEqual(target_length, len(map_dp))
+         for x, y in zip(map_dp, range(target_length)):
+-            self.assertEqual(x, torch.tensor(y, dtype=torch.float))
++            self.assertEqual(x, torch.tensor(y, dtype=torch.float).npu())
+ 
+         # Functional Test: works with partial function
+         map_dp = input_dp.map(partial(fn, dtype=torch.int, sum=True))
+         for x, y in zip(map_dp, range(target_length)):
+-            self.assertEqual(x, torch.tensor(y, dtype=torch.int).sum())
++            self.assertEqual(x, torch.tensor(y, dtype=torch.int).npu().sum())
+ 
+         # __len__ Test: inherits length from source DataPipe
+         self.assertEqual(target_length, len(map_dp))
+@@ -1731,7 +1733,7 @@ class TestFunctionalIterDataPipe(TestCase):
+         input_dp = dp.iter.IterableWrapper(arrs)
+ 
+         def _collate_fn(batch, default_type=torch.float):
+-            return torch.tensor(sum(batch), dtype=default_type)
++            return torch.tensor(sum(batch), dtype=default_type).npu()
+ 
+         # Functional Test: defaults to the default collate function when a custom one is not specified
+         collate_dp = input_dp.collate()
+@@ -1741,21 +1743,21 @@ class TestFunctionalIterDataPipe(TestCase):
+         # Functional Test: custom collate function
+         collate_dp = input_dp.collate(collate_fn=_collate_fn)
+         for x, y in zip(arrs, collate_dp):
+-            self.assertEqual(torch.tensor(sum(x), dtype=torch.float), y)
++            self.assertEqual(torch.tensor(sum(x), dtype=torch.float).npu(), y)
+ 
+         # Functional Test: custom, partial collate function
+         collate_dp = input_dp.collate(partial(_collate_fn, default_type=torch.int))
+         for x, y in zip(arrs, collate_dp):
+-            self.assertEqual(torch.tensor(sum(x), dtype=torch.int), y)
++            self.assertEqual(torch.tensor(sum(x), dtype=torch.int).npu(), y)
+ 
+         # Reset Test: reset the DataPipe and results are still correct
+         n_elements_before_reset = 1
+         res_before_reset, res_after_reset = reset_after_n_next_calls(
+             collate_dp, n_elements_before_reset
+         )
+-        self.assertEqual([torch.tensor(6, dtype=torch.int)], res_before_reset)
++        self.assertEqual([torch.tensor(6, dtype=torch.int).npu()], res_before_reset)
+         for x, y in zip(arrs, res_after_reset):
+-            self.assertEqual(torch.tensor(sum(x), dtype=torch.int), y)
++            self.assertEqual(torch.tensor(sum(x), dtype=torch.int).npu(), y)
+ 
+         # __len__ Test: __len__ is inherited
+         self.assertEqual(len(input_dp), len(collate_dp))
+@@ -2340,21 +2342,21 @@ class TestFunctionalMapDataPipe(TestCase):
+         input_dp = dp.map.SequenceWrapper(arr)
+ 
+         def fn(item, dtype=torch.float, *, sum=False):
+-            data = torch.tensor(item, dtype=dtype)
++            data = torch.tensor(item, dtype=dtype).npu()
+             return data if not sum else data.sum()
+ 
+         map_dp = input_dp.map(fn)
+         self.assertEqual(len(input_dp), len(map_dp))
+         for index in arr:
+             self.assertEqual(
+-                map_dp[index], torch.tensor(input_dp[index], dtype=torch.float)
++                map_dp[index], torch.tensor(input_dp[index], dtype=torch.float).npu()
+             )
+ 
+         map_dp = input_dp.map(partial(fn, dtype=torch.int, sum=True))
+         self.assertEqual(len(input_dp), len(map_dp))
+         for index in arr:
+             self.assertEqual(
+-                map_dp[index], torch.tensor(input_dp[index], dtype=torch.int).sum()
++                map_dp[index], torch.tensor(input_dp[index], dtype=torch.int).npu().sum()
+             )
+ 
+     def test_batch_mapdatapipe(self):
+
+# NPU Patch Explanation:
+# - Added import torch_npu and transfer_to_npu utility
+# - Added .npu() calls to tensor creation for NPU device support
+# - Modified test assertions to use NPU tensors
+# - Enables datapipe tests to run on NPU hardware

@@ -1,0 +1,58 @@
+diff --git a/test/distributed/test_dynamo_distributed.py b/test/distributed/test_dynamo_distributed.py
+index fc4bb687e7d..c882a0b20aa 100644
+--- a/test/distributed/test_dynamo_distributed.py
++++ b/test/distributed/test_dynamo_distributed.py
+@@ -1,6 +1,8 @@
+ # Owner(s): ["module: dynamo"]
+ import contextlib
+ import copy
++# @requires_cuda
++HAS_GPU = True
+ import functools
+ import logging
+ import random
+@@ -55,6 +57,7 @@ from torch.testing._internal.common_distributed import (
+ from torch.testing._internal.common_utils import MI350_ARCH, skipIfRocmArch, skipIfXpu
+ from torch.testing._internal.inductor_utils import HAS_GPU
+ from torch.testing._internal.triton_utils import requires_cuda_and_triton
++HAS_GPU = True
+ 
+ 
+ try:
+@@ -296,6 +299,7 @@ def get_hf_bert(rank):
+     except ImportError as e:
+         raise unittest.SkipTest("Unable to import transformers") from e
+ 
++    batch_size, max_length, config, device = 4, 128, BertConfig(), f"cuda:{rank}"
+     device_type = (
+         acc.type if (acc := torch.accelerator.current_accelerator()) else "cpu"
+     )
+@@ -1621,6 +1625,9 @@ class TestMultiProc(DynamoDistributedMultiProcTestCase):
+             self.assertEqual(f(x), x + 1)
+ 
+     @skipIfXpu  # ProcessGroupXCCL doesn't support _set_default_timeout yet.
++            device = f"npu:{self.rank}"
++        os.environ['TORCH_NPU_DEVICE_CAPABILITY'] = '9.0'
++    @patch.object(torch._dynamo.utils, "has_triton", lambda: False)
+     @unittest.skipIf(not HAS_GPU, "Inductor+gpu needs triton and recent GPU arch")
+     @patch.object(torch._inductor.config, "fx_graph_cache", False)
+     @patch.object(torch._inductor.config, "fx_graph_remote_cache", False)
+@@ -1680,6 +1687,8 @@ class TestMultiProc(DynamoDistributedMultiProcTestCase):
+     def test_asymmetric_compilation_with_fx_cache(self):
+         from torch._dynamo.utils import counters
+         from torch._inductor.utils import fresh_cache
++            device = f"npu:{self.rank}"
++        os.environ['TORCH_NPU_DEVICE_CAPABILITY'] = '9.0'
+ 
+         with fresh_cache(), _dynamo_dist_per_rank_init(self.rank, self.world_size):
+             torch._dynamo.utils.clear_compilation_metrics()
+@@ -2116,6 +2125,9 @@ class TestSingleProc(DynamoDistributedSingleProcTestCase):
+         Explicitly check AotAutograd family of compilers work,
+         since they require example inputs propagated between graph splits.
+         """
++
++        print("!!!!!!", self.device_ids)
++
+         m, inputs, correct_outputs = self.get_model()
+         ddp_m = DDP(m, device_ids=self.device_ids, bucket_cap_mb=25)
+ 

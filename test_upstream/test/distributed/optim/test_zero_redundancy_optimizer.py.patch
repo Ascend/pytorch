@@ -1,0 +1,40 @@
+diff --git a/test/distributed/optim/test_zero_redundancy_optimizer.py b/test/distributed/optim/test_zero_redundancy_optimizer.py
+index 283ac98bf5c..95e849bbc46 100644
+--- a/test/distributed/optim/test_zero_redundancy_optimizer.py
++++ b/test/distributed/optim/test_zero_redundancy_optimizer.py
+@@ -698,10 +698,15 @@ class TestZeroRedundancyOptimizerDistributed(TestZeroRedundancyOptimizer):
+                 MIN_WORLD_SIZE,
+             )
+             return
++        device = torch.device(self.rank)
++        #     device = torch.device("cpu")
++        # else:
++        #     device = torch.device(self.rank)
++        # if torch.cuda.is_available() and torch.cuda.device_count() >= self.world_size:
++        BACKEND = "cpu:gloo,npu:hccl"
++        # BACKEND = dist.Backend.GLOO
+         # Use GPU if enough are available, or fall back to CPU otherwise
+         if torch.get_device_module(self.device).device_count() < self.world_size:
+-            device = torch.device("cpu")
+-        else:
+             device = torch.device(self.device)
+         self.create_pg(device.type)
+         # Create a new process group consisting of the even ranks to exercise
+@@ -711,6 +716,7 @@ class TestZeroRedundancyOptimizerDistributed(TestZeroRedundancyOptimizer):
+             ranks=subgroup_ranks,
+             backend=self.backend(device.type),
+         )
++        torch.npu.set_device(self.rank)
+         # Ranks not participating in the new process group are no longer needed
+         if self.rank not in subgroup_ranks:
+             return
+@@ -945,6 +951,9 @@ class TestZeroRedundancyOptimizerDistributed(TestZeroRedundancyOptimizer):
+         rank = self.rank
+         world_size = self.world_size
+         self.create_pg(device)
++        torch.npu.set_device(self.rank)
++        backend = "hccl"
++        # backend = _get_backend_for_tests() if is_gpu else dist.Backend.GLOO
+ 
+         model = torch.nn.Sequential(
+             torch.nn.Linear(2, 3),

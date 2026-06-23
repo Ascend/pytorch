@@ -1,0 +1,115 @@
+diff --git a/test/functorch/test_dims.py b/test/functorch/test_dims.py
+index 8cb755878de..510eb4798a6 100644
+--- a/test/functorch/test_dims.py
++++ b/test/functorch/test_dims.py
+@@ -1,6 +1,14 @@
+ # Owner(s): ["module: functorch"]
+ # Copyright (c) Facebook, Inc. and its affiliates.
+ # All rights reserved.
++CUDA_VERSION = 11080
++torch.version.cuda = '11.8'
++torch._C._cuda_getCompiledVersion = lambda:11080
++torch._C._cuda_setDevice = torch_npu._C._npu_setDevice
++torch.cuda.get_device_capability = lambda *args, **kwargs:(10,0)
++torch._C._cuda_setStream = torch_npu._C._npu_setStream
++# from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ #
+ # This source code is licensed under the BSD-style license found in the
+ # LICENSE file in the root directory of this source tree.
+@@ -11,6 +19,15 @@ from attn_ft import BertSelfAttention as BertSelfAttentionA, Linear
+ from attn_positional import BertSelfAttention as BertSelfAttentionB
+ 
+ import functorch.dim
++
++CUDA_VERSION = 11080
++torch.version.cuda = '11.8'
++torch._C._cuda_getCompiledVersion = lambda:11080
++torch._C._cuda_setDevice = torch_npu._C._npu_setDevice
++torch.cuda.get_device_capability = lambda *args, **kwargs:(10,0)
++torch._C._cuda_setStream = torch_npu._C._npu_setStream
++# from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ import torch
+ from functorch.dim import Dim, DimList, dimlists, dims, stack, Tensor
+ from torch.testing._internal.common_utils import (
+@@ -55,9 +72,9 @@ def triu(A):
+     return torch.where(i <= j, a, zero).order(i, j)
+ 
+ 
+-def gpu_time(lmb, name, r=100):
+-    b = torch.cuda.Event(enable_timing=True)
+-    e = torch.cuda.Event(enable_timing=True)
++    e = torch_npu.npu.Event(enable_timing=True)
++    b = torch_npu.npu.Event(enable_timing=True)
++def npu_time(lmb, name, r=100):
+     # with magic_trace(name + ".fxt"):
+     for _ in range(r):
+         lmb()
+@@ -88,8 +105,8 @@ class TestMin(TestCase):
+         for o in gc.get_objects():
+             if isinstance(o, (torch.Tensor, Dim, Tensor, DimList)):
+                 self.interesting.add(id(o))
+-        if "cuda" in self._testMethodName:
+-            self.mem_allocated = torch.cuda.memory_allocated()
++            self.mem_allocated = torch_npu.npu.memory_allocated()
++        if "npu" in self._testMethodName:
+ 
+     def tearDown(self):
+         interesting = []
+@@ -101,8 +118,8 @@ class TestMin(TestCase):
+                 interesting.append(o)
+ 
+         extra_memory = 0
+-        if "cuda" in self._testMethodName:
+-            extra_memory += torch.cuda.memory_allocated() - self.mem_allocated
++            extra_memory += torch_npu.npu.memory_allocated() - self.mem_allocated
++        if "npu" in self._testMethodName:
+ 
+         #  nolevels = _n_levels_in_use() == 0
+         if extra_memory != 0 or len(interesting) != 0:
+@@ -176,8 +193,8 @@ class TestMin(TestCase):
+         )  # why does a simple matmul not do the right thing?
+ 
+         if time:
+-            gpu_time(lambda: B(hidden_state), "positional", r=3)
+-            gpu_time(lambda: A(hidden_state), "first_class", r=3)
++            npu_time(lambda: A(hidden_state), "first_class", r=3)
++            npu_time(lambda: B(hidden_state), "positional", r=3)
+ 
+         for approach in ("relative_key", "relative_key_query"):
+             A = maybe_to(
+@@ -209,8 +226,10 @@ class TestMin(TestCase):
+             torch.testing.assert_close(a_out, b_out)
+ 
+             if time:
+-                gpu_time(lambda: B(hidden_state), "positional", r=3)
+-                gpu_time(lambda: A(hidden_state), "first_class", r=3)
++            npu_time(lambda: A(hidden_state), "first_class", r=3)
++            npu_time(lambda: B(hidden_state), "positional", r=3)
++                npu_time(lambda: A(hidden_state), "first_class", r=3)
++                npu_time(lambda: B(hidden_state), "positional", r=3)
+ 
+         A = maybe_to(
+             BertSelfAttentionA(
+@@ -285,8 +304,9 @@ class TestMin(TestCase):
+         for _ in range(10):
+             f()
+ 
+-    @skipIf(not TEST_CUDA, "no CUDA")
+-    def test_attn_cuda(self):
++            device="npu",
++    def test_attn_npu(self):
++    # @skipIf(not TEST_CUDA, "no CUDA")
+         # size from the BERT paper, 90% pretraining of sequence length 128
+         self.attn(
+             batch_size=256,
+@@ -677,7 +697,7 @@ class TestMin(TestCase):
+         x.split(l, 0)
+ 
+ 
+-skip_functorch_only = ["test_time_mm_fuse", "test_attn_cuda"]
++skip_functorch_only = ["test_time_mm_fuse", "test_attn_npu"]
+ 
+ 
+ class TestMinFunctorchOnly(TestMin):

@@ -1,0 +1,23 @@
+diff --git a/test/distributed/_tools/test_mem_tracker.py b/test/distributed/_tools/test_mem_tracker.py
+index fc23ba6f586..14cc5f6a1fe 100644
+--- a/test/distributed/_tools/test_mem_tracker.py
++++ b/test/distributed/_tools/test_mem_tracker.py
+@@ -1,6 +1,9 @@
+ # Owner(s): ["oncall: distributed"]
+ import gc
+ import unittest
++from torch_npu.contrib import transfer_to_npu
++import torch_npu
++import torch_npu.testing
+ 
+ import torch
+ import torch.nn as nn
+@@ -12,7 +15,7 @@ from torch.testing._internal.common_utils import (
+     TestCase,
+ )
+ from torch.utils.checkpoint import checkpoint
+-
++TEST_CUDA = True
+ 
+ class TestMemTracker(TestCase):
+     def _init_cublas_workspace(self, dev: torch.device):

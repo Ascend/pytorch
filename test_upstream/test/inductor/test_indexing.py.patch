@@ -1,0 +1,20 @@
+diff --git a/test/inductor/test_indexing.py b/test/inductor/test_indexing.py
+index 373596d7102..e823bf174db 100644
+--- a/test/inductor/test_indexing.py
++++ b/test/inductor/test_indexing.py
+@@ -30,7 +30,7 @@ from torch.utils._sympy.functions import (
+     RoundDecimal,
+     RoundToInt,
+ )
+-
++import torch_npu._inductor
+ 
+ # int64_t is long long on MacOS, but long on 64-bit Linux
+ LONG_SUFFIX = "LL" if IS_MACOS or IS_WINDOWS else "L"
+@@ -753,5 +753,4 @@ class TestOptimizationHintIdentityExpansion(InductorTestCase):
+ if __name__ == "__main__":
+     from torch._inductor.test_case import run_tests
+ 
+-    if HAS_CPU or HAS_GPU:
+-        run_tests("sympy")
++    run_tests("sympy")

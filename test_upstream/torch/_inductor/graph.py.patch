@@ -1,0 +1,26 @@
+diff --git a/torch/_inductor/graph.py b/torch/_inductor/graph.py
+index c7747724945..3ec897a8d91 100644
+--- a/torch/_inductor/graph.py
++++ b/torch/_inductor/graph.py
+@@ -1223,10 +1223,20 @@ class GraphLowering(torch.fx.Interpreter):
+             else:
+                 expr = example.node.expr
+             self.graph_inputs[target] = expr
+-            self.graph_input_names.append(target)
+             return expr
+         elif isinstance(example, (int, bool, float)):
+             expr = sympy.sympify(example)
++        #     return gen
++        #     self.graph_input_names.append(target)
++        #     self.graph_inputs[target] = gen  # type: ignore[assignment]
++        #     gen = ir.GeneratorState(name=target, device=example.device)
++        #     )
++        #         torch.ops.higher_order.invoke_subgraph,
++        #         torch._prims.rng_prims.graphsafe_run_with_rng_state,
++        #     ).target in (
++        #         iter(V.graph.current_node.users)
++        #     assert len(V.graph.current_node.users) == 1 and next(
++        # elif isinstance(example, torch.Generator):
+             self.graph_inputs[target] = expr
+             self.graph_input_names.append(target)
+             return expr

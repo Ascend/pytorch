@@ -1,0 +1,16 @@
+diff --git a/test/test_cuda_primary_ctx.py b/test/test_cuda_primary_ctx.py
+index 60d4f36e0c1..11cdcb31feb 100644
+--- a/test/test_cuda_primary_ctx.py
++++ b/test/test_cuda_primary_ctx.py
+@@ -4,6 +4,11 @@ import sys
+ import unittest
+ 
+ import torch
++torch._C._cuda_hasPrimaryContext = torch_npu._C._npu_hasPrimaryContext
++from torch_npu.contrib import transfer_to_npu
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ from torch.testing._internal.common_cuda import TEST_CUDA, TEST_MULTIGPU
+ from torch.testing._internal.common_utils import NoTest, run_tests, skipIfRocm, TestCase
+ 

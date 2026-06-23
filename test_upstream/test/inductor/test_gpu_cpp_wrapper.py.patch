@@ -1,0 +1,14 @@
+diff --git a/test/inductor/test_gpu_cpp_wrapper.py b/test/inductor/test_gpu_cpp_wrapper.py
+index bad8817c9d7..8b89a10c142 100644
+--- a/test/inductor/test_gpu_cpp_wrapper.py
++++ b/test/inductor/test_gpu_cpp_wrapper.py
+@@ -46,7 +46,8 @@ except unittest.SkipTest:
+     if __name__ == "__main__":
+         sys.exit(0)
+     raise
+-
++    run_tests(needs="filelock")
++import torch_npu._inductor
+ 
+ class GpuWrapperTemplate:
+     pass

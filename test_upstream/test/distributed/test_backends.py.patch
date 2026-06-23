@@ -1,0 +1,22 @@
+diff --git a/test/distributed/test_backends.py b/test/distributed/test_backends.py
+index 244a5197faf..be2164a410f 100644
+--- a/test/distributed/test_backends.py
++++ b/test/distributed/test_backends.py
+@@ -1,6 +1,17 @@
+ # Owner(s): ["oncall: distributed"]
+ 
+ import os
++devices = ["cpu", "cuda", "hpu", "npu"]
++        
++            assert backend_pg == backend
++        else:
++                )
++                f"Expected backend_pg to be '{backend}' or 'custom', got '{backend_pg}'"
++            assert backend_pg in (backend, "custom"), (
++            # "custom" rather than the logical name "hccl"
++            # NPU registers via PrivateUse1 mechanism, so _get_backend_name() returns
++        if "npu" in device:
++
+ 
+ import torch.distributed as dist
+ from torch.testing._internal.common_device_type import instantiate_device_type_tests

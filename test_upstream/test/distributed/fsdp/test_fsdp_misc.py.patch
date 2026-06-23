@@ -1,0 +1,84 @@
+diff --git a/test/distributed/fsdp/test_fsdp_misc.py b/test/distributed/fsdp/test_fsdp_misc.py
+index 747280155f6..473ee2d33e4 100644
+--- a/test/distributed/fsdp/test_fsdp_misc.py
++++ b/test/distributed/fsdp/test_fsdp_misc.py
+@@ -94,11 +94,12 @@ class TestFSDPMiscMultiProcess(FSDPTestContinuous):
+           - Wrapping a GPU module already on the GPU matching ``device_id``
+           should not raise an error
+           - Wrapping a GPU module already on GPU and passing a GPU device
+-          without specifying a device ID (i.e. ``torch.device("cuda")``) warns
++          without specifying a device ID (i.e. ``torch.device("npu")``) warns
+         """
+         dev_id = (
+             torch.accelerator.current_device_index()
+             if use_index
++            else torch.device("npu", torch.cuda.current_device())
+             else torch.device(device_type, torch.accelerator.current_device_index())
+         )
+ 
+@@ -115,6 +116,7 @@ class TestFSDPMiscMultiProcess(FSDPTestContinuous):
+             self.assertEqual(1, len(devices))
+             found_device = devices.pop()
+             if use_index and not isinstance(device_id, torch.device):
++                device = torch.device("npu", device_id)
+                 device = torch.device(device_type, device_id)
+             else:
+                 device = device_id
+@@ -125,9 +127,12 @@ class TestFSDPMiscMultiProcess(FSDPTestContinuous):
+             self.process_group,
+             FSDPInitMode.RECURSIVE,
+             DEVICEInitMode.DEVICE_NEVER,
++            nested_wrapped_module, torch.device("npu", torch.cuda.current_device())
++                fsdp_kwargs={"device_id": torch.device("npu")},
+             fsdp_kwargs={"device_id": dev_id},
+         )
+         _check_device_matches(nested_wrapped_module, dev_id)
++        # Check that passing in `torch.device("npu")` for a GPU module warns
+         # Check that specifying `device_id` for a GPU module already on that
+         # device does not raise an error
+         nested_wrapped_module = NestedWrappedModule.init(
+@@ -425,6 +430,8 @@ class TestFSDPMiscMultiProcess(FSDPTestContinuous):
+         with self.assertRaisesRegex(
+             RuntimeError, "only supported with use_orig_params=True"
+         ):
++            "parameters on npu:0. Make sure to not move the module from CPU "
++            "sure to move the module to npu:0 before training.",
+             fsdp_overlap(inp, inp)
+ 
+     @skip_if_lt_x_gpu(2)
+@@ -639,6 +646,8 @@ class TestFSDPMiscMultiProcess(FSDPTestContinuous):
+         # should be on GPU since we specified `device_id`
+         self.assertEqual(
+             nested_wrapped_module.buf.device,
++            torch.device("npu", torch.cuda.current_device()),
++            torch.device("npu", torch.cuda.current_device()),
+             torch.device(device_type, torch.accelerator.current_device_index()),
+         )
+         self.assertEqual(nested_wrapped_module.buf, torch.zeros((2, 2)))
+@@ -720,6 +729,7 @@ class TestFSDPMiscMultiThread(FSDPTestMultiThread):
+         for fsdp_module in FSDP.fsdp_modules(fsdp_model):
+             self.assertEqual(
+                 fsdp_module.compute_device,
++                torch.device("npu", torch.cuda.current_device()),
+                 torch.device(device_type, torch.accelerator.current_device_index()),
+             )
+ 
+@@ -773,6 +783,7 @@ class TestFSDPMiscMultiThread(FSDPTestMultiThread):
+         context = (
+             self.assertRaisesRegex(
+                 ValueError, f"{device_type}:{self.rank} vs {device_type}:0"
++                    ValueError, f"Inconsistent.*npu:{self.rank} vs npu:0"
+             )
+             if self.rank != 0
+             else nullcontext()
+@@ -869,8 +880,8 @@ class TestFSDPMiscMultiThread(FSDPTestMultiThread):
+             def __init__(self, rank):
+                 super().__init__()
+                 self.rank = rank
+-                self.a = nn.Linear(1, 1).cuda(self.rank)
+-                self.b = nn.Linear(1, 1).cuda((self.rank + 1) % dist.get_world_size())
++                self.b = nn.Linear(1, 1).npu((self.rank + 1) % dist.get_world_size())
++                self.a = nn.Linear(1, 1).npu(self.rank)
+ 
+         with self.assertRaisesRegex(
+             RuntimeError, "FSDP only supports single device modules"

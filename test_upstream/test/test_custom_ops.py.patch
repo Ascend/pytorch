@@ -1,0 +1,13 @@
+diff --git a/test/test_custom_ops.py b/test/test_custom_ops.py
+index 72c7da5b015..8f85ed4bd83 100644
+--- a/test/test_custom_ops.py
++++ b/test/test_custom_ops.py
+@@ -70,6 +70,8 @@ from torch._custom_op.impl import custom_op  # usort: skip
+ MyList = list
+ MyTensor = torch.Tensor
+ 
++from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ device_type = (
+     acc.type
+     if (acc := torch.accelerator.current_accelerator(check_available=True))

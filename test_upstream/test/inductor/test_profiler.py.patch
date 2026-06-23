@@ -1,0 +1,24 @@
+diff --git a/test/inductor/test_profiler.py b/test/inductor/test_profiler.py
+index 2a90c55285f..c89288cb925 100644
+--- a/test/inductor/test_profiler.py
++++ b/test/inductor/test_profiler.py
+@@ -1,11 +1,11 @@
+ # Owner(s): ["module: inductor"]
+ import json
+ import os
++import torch_npu._inductor
+ import tempfile
+ import unittest
+ from collections.abc import Callable
+ 
+-import torch
+ import torch._inductor.test_case
+ import torch._inductor.utils
+ from torch import _dynamo as torchdynamo
+@@ -351,5 +351,4 @@ class DynamoProfilerTests(torch._inductor.test_case.TestCase):
+ if __name__ == "__main__":
+     from torch._inductor.test_case import run_tests
+ 
+-    if HAS_GPU_AND_TRITON:
+-        run_tests()
++    run_tests()

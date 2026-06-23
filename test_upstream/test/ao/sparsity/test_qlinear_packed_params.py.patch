@@ -1,0 +1,52 @@
+diff --git a/test/ao/sparsity/test_qlinear_packed_params.py b/test/ao/sparsity/test_qlinear_packed_params.py
+index 7968e57eb37..ce85e695596 100644
+--- a/test/ao/sparsity/test_qlinear_packed_params.py
++++ b/test/ao/sparsity/test_qlinear_packed_params.py
+@@ -3,7 +3,26 @@
+ 
+ import tempfile
+ 
++from torch.ao.nn.sparse.quantized.linear import LinearPackedParams
++
++CUDA_VERSION = 11080
++torch.version.cuda = '11.8'
++torch._C._cuda_getCompiledVersion = lambda:11080
++torch._C._cuda_setDevice = torch_npu._C._npu_setDevice
++torch.cuda.get_device_capability = lambda *args, **kwargs:(10,0)
++torch._C._cuda_setStream = torch_npu._C._npu_setStream
++# from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ import torch
++
++CUDA_VERSION = 11080
++torch.version.cuda = '11.8'
++torch._C._cuda_getCompiledVersion = lambda:11080
++torch._C._cuda_setDevice = torch_npu._C._npu_setDevice
++torch.cuda.get_device_capability = lambda *args, **kwargs:(10,0)
++torch._C._cuda_setStream = torch_npu._C._npu_setStream
++# from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ from torch.ao.nn.sparse.quantized.dynamic.linear import Linear
+ from torch.testing._internal.common_quantization import skipIfNoFBGEMM, skipIfNoQNNPACK
+ from torch.testing._internal.common_quantized import (
+@@ -159,7 +178,8 @@ class TestQlinearPackedParams(TestCase):
+             with tempfile.TemporaryFile() as file_buff:
+                 torch.save(lin, file_buff)
+                 file_buff.seek(0)
+-                lin2 = torch.load(file_buff)
++                    lin2 = torch.load(file_buff)
++                with torch.serialization.safe_globals([Linear, LinearPackedParams, torch.ScriptObject]):
+                 self.assertEqual(lin._weight_bias(), lin2._weight_bias())
+                 # Serialize -> Deserialize -> Serialize should match Serialize
+                 self.assertEqual(
+@@ -232,8 +252,9 @@ class TestQlinearPackedParams(TestCase):
+ 
+             return ((state, weight_bias), file_buff)
+ 
++                lin2 = torch.load(f_b)
++            with torch.serialization.safe_globals([Linear, LinearPackedParams, torch.ScriptObject]):
+         def load_get_state_weight_bias(f_b):
+-            lin2 = torch.load(f_b)
+             state = lin2._packed_params._packed_params.__getstate__()
+             weight_bias = lin2._weight_bias()
+             f_b.close()

@@ -1,0 +1,31 @@
+diff --git a/test/test_type_hints.py b/test/test_type_hints.py
+index 4cdfb0d1493..81f47057741 100644
+--- a/test/test_type_hints.py
++++ b/test/test_type_hints.py
+@@ -2,6 +2,7 @@
+ # Owner(s): ["module: typing"]
+ 
+ import doctest
++                        "--follow-imports=skip",
+ import inspect
+ import os
+ import tempfile
+@@ -9,6 +10,7 @@ import unittest
+ from pathlib import Path
+ 
+ import torch
++from torch_npu.contrib import transfer_to_npu
+ from torch.testing._internal.common_utils import (
+     run_tests,
+     set_cwd,
+@@ -52,6 +54,10 @@ def get_all_examples():
+         "import io",
+         "import itertools",
+         "",
++        "from torch._subclasses.fake_tensor import FakeTensorMode",
++        "",
++        "import torch_npu"
++        "import numpy as np",
+         "from typing import Any, ClassVar, Generic, List, Tuple, Union",
+         "from typing_extensions import Literal, get_origin, TypeAlias",
+         "T: TypeAlias = object",

@@ -1,0 +1,27 @@
+diff --git a/test/inductor/test_torchinductor_strided_blocks.py b/test/inductor/test_torchinductor_strided_blocks.py
+index ec7961d7cde..1123a69506d 100644
+--- a/test/inductor/test_torchinductor_strided_blocks.py
++++ b/test/inductor/test_torchinductor_strided_blocks.py
+@@ -9,7 +9,6 @@ import unittest
+ from collections.abc import Callable
+ from typing import Any
+ 
+-import torch
+ import torch.utils._pytree as pytree
+ from torch._dynamo.debug_utils import InputReader
+ from torch._inductor import config
+@@ -43,6 +42,7 @@ try:
+     from . import test_torchinductor
+ except ImportError:
+     import test_torchinductor
++import torch_npu._inductor
+ 
+ 
+ skip_windows_ci(__name__, __file__)
+@@ -2173,5 +2173,4 @@ class TestTilingExtra(InductorTestCase):
+ if __name__ == "__main__":
+     from torch._inductor.test_case import run_tests
+ 
+-    if HAS_GPU or TRITON_HAS_CPU:
+-        run_tests(needs="filelock")
++    run_tests(needs="filelock")

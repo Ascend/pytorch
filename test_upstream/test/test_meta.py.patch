@@ -1,0 +1,53 @@
+diff --git a/test/test_meta.py b/test/test_meta.py
+index ca5869722c9..583891d6dab 100644
+--- a/test/test_meta.py
++++ b/test/test_meta.py
+@@ -1,6 +1,9 @@
+ # Owner(s): ["module: decompositions"]
+ # ruff: noqa: F841
+ 
++# from torch_npu import testing
++from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ import itertools
+ import torch
+ import os
+@@ -897,8 +900,8 @@ meta_dispatch_device_expected_failures['cuda'] = {
+     aten._unique2.default: {f16},  # aten::_unique2
+     aten._use_cudnn_ctc_loss.default: {f32, f64},  # aten::_use_cudnn_ctc_loss
+     aten._use_cudnn_ctc_loss.Tensor: {f32, f64},  # aten::_use_cudnn_ctc_loss.Tensor
+-    aten._use_miopen_ctc_loss.default: {f32, f64},  # aten::_use_miopen_ctc_loss
+-    aten._use_miopen_ctc_loss.Tensor: {f32, f64},  # aten::_use_miopen_ctc_loss.Tensor
++    # aten._use_miopen_ctc_loss.Tensor: {f32, f64},  # aten::_use_miopen_ctc_loss.Tensor
++    # aten._use_miopen_ctc_loss.default: {f32, f64},  # aten::_use_miopen_ctc_loss
+     aten.cudnn_grid_sampler.default: {f16, f32, f64},  # aten::cudnn_grid_sampler
+     aten.geqrf.default: {f32, f64},  # aten::geqrf
+     aten.linalg_eigvalsh.out: {f32, f64},  # aten::linalg_eigvalsh.out
+@@ -1162,6 +1165,8 @@ class TestMeta(TestCase):
+     @suppress_warnings
+     @ops(itertools.chain(op_db, foreach_op_db))
+     def test_meta_outplace(self, device, dtype, op):
++        torch.npu.config.allow_internal_format = False
++        torch.npu.init()
+         if "_scaled_mm" in op.name:
+             raise unittest.SkipTest("_scaled_mm dose not support meta device")
+         skip_op_names = (
+@@ -1299,7 +1304,9 @@ class TestMeta(TestCase):
+     # only test one dtype, as output stride behavior is the same for all dtypes
+     @ops(itertools.chain(op_db, foreach_op_db), dtypes=OpDTypes.any_common_cpu_cuda_one)
+     # Only test on CUDA, as CUDA kernel's stride is the reference
+-    @onlyCUDA
++    # @onlyCUDA
++    # @onlyCUDA
++    # @onlyCUDA
+     def test_dispatch_symbolic_meta_outplace_all_strides(self, device, dtype, op):
+         self._run_dispatch_meta_test(device, dtype, op, symbolic_meta=True, inplace=False, all_stride_variants=True)
+ 
+@@ -1638,6 +1645,7 @@ class TestMeta(TestCase):
+         self.assertEqual(grad_weight.to('meta'), meta_grad_weight)
+ 
+     def test_segment_reduce_backward(self):
++    # @onlyCUDA
+         grad = torch.ones(16, dtype=torch.float)
+         output = torch.ones(16, dtype=torch.float)
+         data = torch.ones(16, dtype=torch.float)

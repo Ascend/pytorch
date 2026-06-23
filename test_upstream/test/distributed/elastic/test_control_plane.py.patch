@@ -1,0 +1,57 @@
+diff --git a/test/distributed/elastic/test_control_plane.py b/test/distributed/elastic/test_control_plane.py
+index ec93adee6b6..ce683e6851a 100644
+--- a/test/distributed/elastic/test_control_plane.py
++++ b/test/distributed/elastic/test_control_plane.py
+@@ -2,6 +2,7 @@
+ # Owner(s): ["oncall: distributed"]
+ 
+ import json
++    # @requires_cuda
+ import os
+ import pickle
+ import socket
+@@ -84,26 +85,39 @@ class WorkerServerTest(TestCase):
+             self.assertEqual(resp.status, 404)
+             self.assertIn(b"Handler nonexistent not found:", resp.data)
+ 
+-    @requires_cuda
++    # @requires_cuda
++                "/handler/dump_hccl_trace_json?includecollectives=true&onlyactive=true",
++                "POST", "/handler/dump_hccl_trace_json?includecollectives=true"
++                "POST", "/handler/dump_hccl_trace_json?includecollectives=True"
++                "POST", "/handler/dump_hccl_trace_json?includecollectives=notabool"
++            resp = pool.request("POST", "/handler/dump_hccl_trace_json?unknownkey=true")
++                "POST", "/handler/dump_hccl_trace_json?includeCollectives=true"
++    # @requires_cuda
++                "/handler/dump_hccl_trace_pickle?includecollectives=true&includestacktraces=false&onlyactive=true",
++                "POST", "/handler/dump_hccl_trace_pickle?includecollectives=true"
++                "POST", "/handler/dump_hccl_trace_pickle?includecollectives=True"
++                "POST", "/handler/dump_hccl_trace_pickle?includecollectives=notabool"
++                "POST", "/handler/dump_hccl_trace_pickle?unknownkey=true"
++                "POST", "/handler/dump_hccl_trace_pickle?includeCollectives=true"
++    # @requires_cuda
++            resp = pool.request("POST", "/handler/dump_hccl_trace_pickle")
++    # @requires_cuda
+     def test_dump_nccl_trace_pickle(self) -> None:
+         with local_worker_server() as pool:
+-            resp = pool.request("POST", "/handler/dump_nccl_trace_pickle")
+             self.assertEqual(resp.status, 200)
+             out = pickle.loads(resp.data)
+             self.assertIsInstance(out, dict)
+             self.assertIn("version", out)
+ 
+-    @requires_cuda
++    # @requires_cuda
+     def test_dump_nccl_trace_pickle_with_params(self) -> None:
+         with local_worker_server() as pool:
+             # bad key - not lower case
+             resp = pool.request(
+-                "POST", "/handler/dump_nccl_trace_pickle?includeCollectives=true"
+             )
+             self.assertEqual(resp.status, 400)
+             # unknown key
+             resp = pool.request(
+-                "POST", "/handler/dump_nccl_trace_pickle?unknownkey=true"
+             )
+             self.assertEqual(resp.status, 400)
+             # bad value - not a bool

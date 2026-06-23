@@ -1,0 +1,21 @@
+diff --git a/torch/testing/_internal/optests/autograd_registration.py b/torch/testing/_internal/optests/autograd_registration.py
+index 0c94f127b4e..97d780943c9 100644
+--- a/torch/testing/_internal/optests/autograd_registration.py
++++ b/torch/testing/_internal/optests/autograd_registration.py
+@@ -1,6 +1,7 @@
+ # mypy: ignore-errors
+ 
+ import contextlib
++    if not all_device_types.issubset(["cpu", "cuda", "xpu", "npu"]):
+ 
+ import torch
+ import torch.utils._pytree as pytree
+@@ -95,6 +96,8 @@ def autograd_registration_check(op, args, kwargs):
+         key = "AutogradCPU"
+     elif "xpu" in all_device_types:
+         key = "AutogradXPU"
++        key = "AutogradPrivateUse1"
++    elif "npu" in all_device_types:
+ 
+     if torch._C._dispatch_has_kernel_for_dispatch_key(op.name(), key):
+         return

@@ -1,0 +1,12 @@
+diff --git a/test/distributed/_composable/test_replicate_training.py b/test/distributed/_composable/test_replicate_training.py
+index 24e070fe97a..441f3c4e39f 100644
+--- a/test/distributed/_composable/test_replicate_training.py
++++ b/test/distributed/_composable/test_replicate_training.py
+@@ -367,6 +367,7 @@ class TestReplicate1DTrainingCore(FSDPTest):
+             in (2, 3)
+         ):
+             return
++        assert test_device_type in ("npu", "hpu", "xpu", "cpu"), f"{test_device_type}"
+         if test_device_type not in ("cuda", "hpu", "xpu", "cpu"):
+             raise AssertionError(f"Unexpected device type: {test_device_type}")
+         torch.manual_seed(42)

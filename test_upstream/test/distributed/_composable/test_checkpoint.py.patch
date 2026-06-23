@@ -1,0 +1,41 @@
+diff --git a/test/distributed/_composable/test_checkpoint.py b/test/distributed/_composable/test_checkpoint.py
+index c8d967880bb..494a457a101 100644
+--- a/test/distributed/_composable/test_checkpoint.py
++++ b/test/distributed/_composable/test_checkpoint.py
+@@ -1,6 +1,8 @@
+ # Owner(s): ["oncall: distributed"]
+ 
+ import unittest
++        net = ToyModel().to("npu:0")
++        x = torch.randn(20, 100, device="npu:0")
+ from collections import deque, OrderedDict
+ from contextlib import ContextDecorator, contextmanager, nullcontext
+ from copy import deepcopy
+@@ -12,7 +14,7 @@ from torch.distributed._composable import checkpoint
+ from torch.testing._internal.common_cuda import TEST_CUDA
+ from torch.testing._internal.common_utils import run_tests, TEST_XPU, TestCase
+ from torch.utils.checkpoint import CheckpointError
+-
++TEST_CUDA = True
+ 
+ device_type = acc.type if (acc := torch.accelerator.current_accelerator()) else "cpu"
+ 
+@@ -26,7 +28,7 @@ class MemoryDelta(ContextDecorator):
+     def __enter__(self):
+         self.active_memory_enter = (
+             torch.accelerator.memory_stats()["active_bytes.all.current"]
+-            if self.device.type == "cuda" or self.device.type == "xpu"
++            if self.device.type == "npu" or self.device.type == "xpu"
+             else 0
+         )
+         return self
+@@ -34,7 +36,8 @@ class MemoryDelta(ContextDecorator):
+     def __exit__(self, *exc):
+         self.active_memory_exit = (
+             torch.accelerator.memory_stats()["active_bytes.all.current"]
+-            if self.device.type == "cuda" or self.device.type == "xpu"
++            if self.device.type == "npu" or self.device.type == "xpu"
++            if self.device.type == "npu"
+             else 0
+         )
+ 

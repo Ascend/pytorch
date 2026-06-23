@@ -1,0 +1,13 @@
+diff --git a/test/dynamo/test_dynamo_decompositions.py b/test/dynamo/test_dynamo_decompositions.py
+index 16f40c7a3bc..96ceb23231b 100644
+--- a/test/dynamo/test_dynamo_decompositions.py
++++ b/test/dynamo/test_dynamo_decompositions.py
+@@ -1,6 +1,8 @@
+ # Owner(s): ["module: dynamo"]
+ 
+ import unittest
++from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ 
+ import torch
+ import torch._dynamo.config

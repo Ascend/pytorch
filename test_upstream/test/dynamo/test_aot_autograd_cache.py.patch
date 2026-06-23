@@ -1,0 +1,32 @@
+diff --git a/test/dynamo/test_aot_autograd_cache.py b/test/dynamo/test_aot_autograd_cache.py
+index 07c679f494a..8020bbaa29b 100644
+--- a/test/dynamo/test_aot_autograd_cache.py
++++ b/test/dynamo/test_aot_autograd_cache.py
+@@ -1,6 +1,8 @@
+ # Owner(s): ["module: dynamo"]
+ 
+ import contextlib
++    # @requires_cuda_and_triton
++    # @requires_cuda_and_triton
+ import copy
+ import dataclasses
+ import functools
+@@ -360,6 +362,9 @@ class AOTAutogradCacheTests(CacheKeyEquivalenceMixin, InductorTestCase):
+             self.assertEqual(counters["aot_autograd"]["autograd_cache_miss"], 1)
+             self.assertEqual(counters["aot_autograd"]["autograd_cache_hit"], 0)
+             self.assertEqual(counters["aot_autograd"]["autograd_cache_saved"], 1)
++    # @requires_cuda_and_triton
++    # @requires_cuda_and_triton
++    # @requires_cuda_and_triton
+ 
+         artifacts = torch.compiler.save_cache_artifacts()
+ 
+@@ -1207,7 +1212,7 @@ class AOTAutogradCacheTests(CacheKeyEquivalenceMixin, InductorTestCase):
+         result = torch.ops.test.local_var_triton_op(a)
+         self.assertEqual(result, expected)
+ 
+-    @requires_cuda_and_triton
++    # @requires_cuda_and_triton
+     @inductor_config.patch("fx_graph_remote_cache", False)
+     @inductor_config.patch("fx_graph_cache", True)
+     @functorch_config.patch({"enable_autograd_cache": True})

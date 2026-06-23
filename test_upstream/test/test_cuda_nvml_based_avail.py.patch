@@ -1,0 +1,24 @@
+diff --git a/test/test_cuda_nvml_based_avail.py b/test/test_cuda_nvml_based_avail.py
+index eaf2365315d..67f26092e52 100644
+--- a/test/test_cuda_nvml_based_avail.py
++++ b/test/test_cuda_nvml_based_avail.py
+@@ -7,6 +7,11 @@ import unittest
+ from unittest.mock import patch
+ 
+ import torch
++TEST_NPU = True
++from torch_npu.contrib import transfer_to_npu
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ 
+ 
+ # NOTE: Each of the tests in this module need to be run in a brand new process to ensure CUDA is uninitialized
+@@ -58,6 +63,7 @@ class TestExtendedCUDAIsAvail(TestCase):
+     # `torch.cuda.is_available()` assessment. The NVML-based assessment should be attempted when
+     # `PYTORCH_NVML_BASED_CUDA_CHECK` is set to 1, reverting to the default CUDA Runtime API check otherwise.
+     # If the NVML-based assessment is attempted but fails, the CUDA Runtime API check should be executed
++    @unittest.skipIf(TEST_NPU, "NPU doesn't have nvml")
+     @unittest.skipIf(IS_WINDOWS, "Needs fork")
+     @parametrize("nvml_avail", [True, False])
+     @parametrize("avoid_init", ["1", "0", None])

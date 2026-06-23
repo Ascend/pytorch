@@ -1,0 +1,28 @@
+diff --git a/test/inductor/test_compiled_optimizers.py b/test/inductor/test_compiled_optimizers.py
+index 197e3148dc4..d4e957611ab 100644
+--- a/test/inductor/test_compiled_optimizers.py
++++ b/test/inductor/test_compiled_optimizers.py
+@@ -73,6 +73,7 @@ from torch.testing._internal.inductor_utils import (
+ from torch.testing._internal.triton_utils import requires_gpu, requires_gpu_and_triton
+ 
+ 
++import torch_npu._inductor
+ def get_inputs(optim):
+     steps = []
+     params = []
+@@ -359,6 +360,7 @@ except (unittest.SkipTest, ImportError) as e:
+     if __name__ == "__main__":
+         sys.exit(0)
+     raise
++    run_tests(needs="filelock")
+ 
+ 
+ def call_scheduler(scheduler):
+@@ -803,7 +805,6 @@ class CompiledOptimizerTests(TestCase):
+         self.assertEqual(actual_steps, expected_steps)
+ 
+     # Basic shampoo test to verify we support compiling the various ops without error
+-    @requires_gpu
+     def test_basic_shampoo(self):
+         param_buf = torch.rand((1024, 128))
+         param_buf_c = param_buf.detach().clone()

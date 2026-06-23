@@ -1,0 +1,50 @@
+diff --git a/test/dynamo/test_fx_annotate.py b/test/dynamo/test_fx_annotate.py
+index 71c09b2b7a5..f8115159b8e 100644
+--- a/test/dynamo/test_fx_annotate.py
++++ b/test/dynamo/test_fx_annotate.py
+@@ -1,6 +1,8 @@
+ # Owner(s): ["module: dynamo"]
+ 
+ import warnings
++from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ 
+ import torch
+ import torch._dynamo.test_case
+@@ -27,7 +29,7 @@ class AnnotateTests(torch._dynamo.test_case.TestCase):
+                     with fx_traceback.annotate({"fdsp_bucket": 0}):
+                         sin = torch.sin(x)
+                     sub = sin - 2
+-                    with fx_traceback.annotate({"cuda_stream": 2, "fsdp_bucket": 1}):
++                    with fx_traceback.annotate({"npu_stream": 2, "fsdp_bucket": 1}):
+                         mul = sub * 2
+                 div = mul / 3
+                 return div
+@@ -50,7 +52,9 @@ class AnnotateTests(torch._dynamo.test_case.TestCase):
+ ('placeholder', 'l_x_', {'pp_stage': 0, 'fdsp_bucket': 0})
+ ('call_function', 'sin', {'pp_stage': 0, 'fdsp_bucket': 0})
+ ('call_function', 'sub', {'pp_stage': 0})
+-('call_function', 'mul', {'pp_stage': 0, 'cuda_stream': 2, 'fsdp_bucket': 1})""",  # noqa: B950
++('call_function', 'mul_1', {'pp_stage': 0, 'npu_stream': 2, 'fsdp_bucket': 1})
++('call_function', 'mul', {'pp_stage': 0, 'npu_stream': 2, 'fsdp_bucket': 1})""",  # noqa: B950
++('call_function', 'mul', {'pp_stage': 0, 'npu_stream': 2, 'fsdp_bucket': 1})""",  # noqa: B950
+         )
+         self.assertExpectedInline(
+             str(fw_metadata),
+@@ -146,7 +150,7 @@ class AnnotateTests(torch._dynamo.test_case.TestCase):
+ ('call_function', 'mul', {'stage': 0})""",  # noqa: B950
+         )
+ 
+-    @requires_cuda_and_triton
++    # @requires_cuda_and_triton
+     def test_ac_flex_attention(self):
+         def _squared(score, b, h, m, n):
+             return score * score
+@@ -159,6 +163,7 @@ class AnnotateTests(torch._dynamo.test_case.TestCase):
+         block_mask = create_block_mask(mask_mod, None, None, a * b, a * b)
+ 
+         def gn(x: torch.Tensor):
++            device="npu",
+             with fx_traceback.annotate({"compile_inductor": 0}):
+                 return flex_attention(
+                     x, x, x, block_mask=block_mask, score_mod=_squared

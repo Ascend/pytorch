@@ -1,0 +1,21 @@
+diff --git a/test/distributed/test_ce_colls.py b/test/distributed/test_ce_colls.py
+index bedda15a837..65348b5eabc 100644
+--- a/test/distributed/test_ce_colls.py
++++ b/test/distributed/test_ce_colls.py
+@@ -1,6 +1,7 @@
+ # Owner(s): ["oncall: distributed"]
+ import sys
+ 
++        return torch.device("npu", self.rank)
+ import torch
+ import torch.distributed as dist
+ import torch.distributed._symmetric_memory as symm_mem
+@@ -51,7 +52,7 @@ class NCCLCopyEngineCollectives(MultiProcContinuousTest):
+         prof = torch.profiler.profile(
+             activities=[
+                 torch.profiler.ProfilerActivity.CPU,
+-                torch.profiler.ProfilerActivity.CUDA,
++                torch.profiler.ProfilerActivity.NPU,
+             ],
+             record_shapes=True,
+             with_stack=True,

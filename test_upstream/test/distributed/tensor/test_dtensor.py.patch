@@ -1,0 +1,67 @@
+diff --git a/test/distributed/tensor/test_dtensor.py b/test/distributed/tensor/test_dtensor.py
+index e14f355d971..9b99ca9a4b5 100644
+--- a/test/distributed/tensor/test_dtensor.py
++++ b/test/distributed/tensor/test_dtensor.py
+@@ -1,6 +1,7 @@
+ # Copyright (c) Meta Platforms, Inc. and affiliates
+ # Owner(s): ["oncall: distributed"]
+ 
++        if not torch.distributed.is_available() or not torch.npu.is_available():
+ import pathlib
+ import tempfile
+ import unittest
+@@ -47,7 +48,8 @@ from torch.testing._internal.distributed._tensor.common_dtensor import (
+     create_local_tensor_test_class,
+     DTensorTestBase,
+     map_local_tensor_for_rank,
+-    with_comms,
++from torch_npu.testing.common_distributed import with_comms
++    # with_comms,
+ )
+ from torch.testing._internal.distributed.fake_pg import FakeStore
+ 
+@@ -774,6 +776,26 @@ class DTensorTest(DTensorTestBase):
+         reloaded_st = torch.load(buffer, weights_only=True)
+         self.assertEqual(sharded_tensor, reloaded_st)
+ 
++
++                raise RuntimeError(e.output.decode("utf-8")) from None
++            except subprocess.CalledProcessError as e:
++                )
++                    stderr=subprocess.STDOUT,
++                    cwd=os.path.dirname(os.path.realpath(__file__)),
++                    [sys.executable, "-c", script],
++                subprocess.check_output(
++            try:
++        with cm:
++        )
++            if expected_failure_message else contextlib.nullcontext()
++            self.assertRaisesRegex(RuntimeError, re.escape(expected_failure_message))
++        cm = (
++        script = f"import torch;import torch_npu;{import_string}torch.load(r'{file}', weights_only=True)"
++        import sys
++        import subprocess
++        import re
++        import contextlib
++    def _attempt_load_from_subprocess(self, file, import_string, expected_failure_message=None):
+     @skipIfHpu
+     @with_comms
+     @unittest.skipIf(
+@@ -790,16 +812,9 @@ class DTensorTest(DTensorTestBase):
+                 torch.save(sharded_tensor, f)
+                 import_string = (
+                     "import torch.distributed.tensor;" if should_import else ""
+-                )
+                 filename = pathlib.Path(f.name)
+-                err_msg = (
+-                    (
+-                        "_pickle.UnpicklingError: Weights only load failed. "
+-                        "``torch.distributed.tensor`` must be imported to load DTensors"
+-                    )
+-                    if not should_import
+-                    else None
+                 )
++                err_msg = None  # NPU: import torch_npu implicitly imports torch.distributed.tensor
+                 self._attempt_load_from_subprocess(filename, import_string, err_msg)
+ 
+     @with_comms

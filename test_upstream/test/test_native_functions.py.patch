@@ -1,0 +1,11 @@
+diff --git a/test/test_native_functions.py b/test/test_native_functions.py
+index 198bdf89891..bbb601ced10 100644
+--- a/test/test_native_functions.py
++++ b/test/test_native_functions.py
+@@ -1,4 +1,6 @@
+ # Owner(s): ["module: unknown"]
++#from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ 
+ import torch
+ from torch.testing._internal.common_utils import TestCase, run_tests, skipIfTorchDynamo

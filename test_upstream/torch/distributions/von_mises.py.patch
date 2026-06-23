@@ -1,0 +1,15 @@
+diff --git a/torch/distributions/von_mises.py b/torch/distributions/von_mises.py
+index 552b5c5f666..cc2fca5da54 100644
+--- a/torch/distributions/von_mises.py
++++ b/torch/distributions/von_mises.py
+@@ -1,6 +1,10 @@
+ # mypy: allow-untyped-defs
+ import math
+ 
++        u = torch.rand((3,) + x.shape).to(loc.device).to(loc.dtype)
++        # u = torch.rand((3,) + x.shape, dtype=loc.dtype, device=loc.device)
++    done = torch.zeros(x.shape).to(loc.device).to(torch.bool)
++    # done = torch.zeros(x.shape, dtype=torch.bool, device=loc.device)
+ import torch
+ import torch.jit
+ from torch import Tensor

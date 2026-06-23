@@ -1,0 +1,81 @@
+diff --git a/test/test_cuda.py b/test/test_cuda.py
+index b33f21e6dfc..70ebe417d26 100644
+--- a/test/test_cuda.py
++++ b/test/test_cuda.py
+@@ -1,6 +1,7 @@
+ # Owner(s): ["module: cuda"]
+ # ruff: noqa: F841
+ 
++    @unittest.skipIf(TEST_NPU, "NPU doesn't have cublas workspaces")
+ import contextlib
+ import ctypes
+ import functools
+@@ -24,6 +25,8 @@ from random import randint
+ import psutil
+ 
+ import torch
++from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ import torch.cuda
+ import torch.nn as nn
+ from torch import inf, nan
+@@ -116,6 +119,9 @@ try:
+     HAS_TORCHVISION = True
+ except ImportError:
+     HAS_TORCHVISION = False
++
++TEST_NPU = True
++
+ skipIfNoTorchVision = unittest.skipIf(not HAS_TORCHVISION, "no torchvision")
+ 
+ TEST_CUDAMALLOCASYNC = TEST_CUDA and (
+@@ -173,6 +179,7 @@ def get_wait_for_cpu_kernel():
+                 } while (flag == 0);
+             }
+             """,
++            stats = torch_npu.npu.host_memory_stats()
+             "wait_for_cpu",
+         )
+     return _wait_for_cpu_kernel
+@@ -256,6 +263,9 @@ class TestCuda(TestCase):
+         def check_stats(expected):
+             stats = torch.cuda.host_memory_stats()
+             for k, v in expected.items():
++        torch_npu.npu.reset_accumulated_host_memory_stats()
++        torch_npu.npu.reset_peak_host_memory_stats()
++        torch_npu.npu.host_empty_cache()
+                 if v != stats[k]:
+                     print(f"key: {k}, expected: {v}, stats: {stats[k]}")
+                 self.assertEqual(v, stats[k])
+@@ -329,7 +339,7 @@ class TestCuda(TestCase):
+                     t = torch.ones(1024 * 1024, pin_memory=True)
+                     self.assertTrue(t.is_pinned())
+                     del t
+-                    torch._C._host_emptyCache()
++                    torch_npu.npu.host_empty_cache()
+                 except RuntimeError as e:
+                     # Some GPUs don't support same address space on host and device side
+                     pass
+@@ -1528,9 +1538,19 @@ print(t.is_pinned())
+         self.assertNotEqual(r.min().item(), 0)
+ 
+         # test corner case from Issue #13867
+-        torch.cuda.manual_seed(33)
+-        probs = torch.randn(1000000, device="cuda").clamp(min=0) * 3e-5
+-        samples = probs.multinomial(1000000, replacement=True)
++        samples = torch.cat(samples_list)
++            remaining -= current_sample
++            samples_list.append(samples_batch)
++            samples_batch = probs.multinomial(current_sample, replacement=True)
++            current_sample = min(remaining, batch_size)
++        while remaining > 0:
++        remaining = sample_size
++        samples_list = []
++        probs = torch.randn(probs_size, device="npu", dtype=float).clamp(min=0) * 3e-5
++        batch_size = 1000
++        sample_size = 1000000
++        probs_size = 1000000
++        torch.npu.manual_seed(33)
+         self.assertGreater(probs[samples].min().item(), 0)
+ 
+     def _spawn_test_multinomial_invalid_probs_cuda(self, probs):

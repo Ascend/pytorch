@@ -1,0 +1,30 @@
+diff --git a/test/distributed/_composable/fsdp/test_fully_shard_state_dict.py b/test/distributed/_composable/fsdp/test_fully_shard_state_dict.py
+index 9527120b99f..c261081270a 100644
+--- a/test/distributed/_composable/fsdp/test_fully_shard_state_dict.py
++++ b/test/distributed/_composable/fsdp/test_fully_shard_state_dict.py
+@@ -1,6 +1,7 @@
+ # Owner(s): ["oncall: distributed"]
+ 
+ import copy
++        inp = torch.rand(mlp_dim, mlp_dim, device="npu")
+ import functools
+ from contextlib import nullcontext
+ 
+@@ -27,7 +28,7 @@ from torch.testing._internal.distributed._tensor.common_dtensor import (
+     Transformer,
+     TransformerBlock,
+ )
+-
++TEST_CUDA = True
+ 
+ device_type = torch.device(get_devtype())
+ 
+@@ -204,6 +205,8 @@ class TestFullyShardStateDictMultiProcess(FSDPTest):
+             model.load_state_dict(sd, assign=True, strict=False)
+ 
+         # lazy init without error
++                r"Found following parameters on non-CPU device: \[\('0.weight', device\(type='npu'",
++        inp = torch.rand((mlp_dim, mlp_dim), device="npu")
+         inp = torch.rand((mlp_dim, mlp_dim), device=device_type.type)
+ 
+         context = (
