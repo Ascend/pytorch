@@ -121,14 +121,17 @@ def _normalize_npu_arch_to_atlas(arch: str) -> str:
         raise NotImplementedError(f"Unsupported npu arch: {arch}")
 
 
-def _trans_sympy_to_int(input_tuple):
+def _trans_sympy_to_int(input_tuple, default_shape=8192):
     output = []
     for x in input_tuple:
         if isinstance(x, (int, sympy.Integer)):
             output.append(int(x))
         elif isinstance(x, (sympy.Symbol, sympy.Expr)):
             x = x.subs(V.graph.sizevars.var_to_val)
-            output.append(int(x))
+            try:
+                output.append(int(x))
+            except Exception:
+                output.append(default_shape)
         else:
             raise ValueError(f"Unknown shape dim type: {type(x)}, value: {x}")
     return tuple(output)
@@ -206,14 +209,12 @@ def _gen_ops_cached(arch: str, op_tensors=None, is_group_mm=False) -> List[Any]:
 
     for kernel in kernels:
         tilings = generate_configs(arch, kernel)
-        if tilings:
-            for tiling in tilings:
-                k = copy.deepcopy(kernel)
-                k.tune(tiling[0], tiling[1], is_hf32=use_hf32)
-                ops.append(k)
-        else:
-            kernel.tune(is_hf32=use_hf32)
-            ops.append(kernel)
+        kernel.tune(is_hf32=use_hf32)
+        ops.append(kernel)
+        for tiling in tilings:
+            k = copy.deepcopy(kernel)
+            k.tune(tiling[0], tiling[1], is_hf32=use_hf32)
+            ops.append(k)
 
     if arch is None:
         log.error(

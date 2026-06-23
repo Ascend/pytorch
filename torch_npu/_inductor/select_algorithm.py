@@ -858,7 +858,8 @@ def patch_algorithm_selector() -> None:
             TOTAL_STEP = 50
             l2_cache_size = 192 * (1 << 20)
             buffer = torch.empty(l2_cache_size // 4, dtype=torch.int, device="npu")
-            buffer.zero_()
+            buffer = buffer.float()
+            buffer.sum()
             torch.npu.synchronize()  # shake out of any npu error
             with torch_npu.profiler.profile(
                 activities=[torch_npu.profiler.ProfilerActivity.NPU],
@@ -872,7 +873,7 @@ def patch_algorithm_selector() -> None:
             ):
                 for fn, args, kwargs in funcs:
                     for _ in range(TOTAL_STEP):
-                        buffer.zero_()
+                        buffer.sum()
                         fn(*args, **kwargs)
                         torch.npu.synchronize()
                     # One aclnn op may be seperated into multiple ops, recorded in kernel_details.csv,
@@ -891,7 +892,7 @@ def patch_algorithm_selector() -> None:
                     target_file = os.path.join(root, file)
                     df = pd.read_csv(target_file)
                     # filter out l2 cache clear operation
-                    filter_cond = ~df["Name"].str.contains(r"zero|ZerosLike", case=False, na=False)
+                    filter_cond = ~df["Name"].str.contains(r"^ReduceSum$", case=False, na=False)
                     filter_df = df[filter_cond]
                     if key is not None:
                         key_rows = filter_df[filter_df["Name"].str.contains(key, na=False)]
