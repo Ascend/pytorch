@@ -1,4 +1,4 @@
-﻿diff --git a/test/test_tensorboard.py b/test/test_tensorboard.py
+diff --git a/test/test_tensorboard.py b/test/test_tensorboard.py
 index 1f93a86..aa1e750 100644
 --- a/test/test_tensorboard.py
 +++ b/test/test_tensorboard.py

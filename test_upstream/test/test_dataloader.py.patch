@@ -1,4 +1,4 @@
-﻿diff --git a/test/test_dataloader.py b/test/test_dataloader.py
+diff --git a/test/test_dataloader.py b/test/test_dataloader.py
 index df5c53b..b5b2dea 100644
 --- a/test/test_dataloader.py
 +++ b/test/test_dataloader.py

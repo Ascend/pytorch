@@ -1,4 +1,4 @@
-﻿diff --git a/test/fx/test_subgraph_rewriter.py b/test/fx/test_subgraph_rewriter.py
+diff --git a/test/fx/test_subgraph_rewriter.py b/test/fx/test_subgraph_rewriter.py
 index d19ee70..5149c63 100644
 --- a/test/fx/test_subgraph_rewriter.py
 +++ b/test/fx/test_subgraph_rewriter.py
