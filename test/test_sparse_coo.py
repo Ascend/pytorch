@@ -1,6 +1,7 @@
 import unittest
 from numbers import Number
 import torch
+import torch_npu
 from torch.testing import make_tensor
 from torch_npu.testing.common_utils import SupportedDevices
 from torch_npu.testing.testcase import TestCase, run_tests

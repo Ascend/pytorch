@@ -50,19 +50,6 @@ MLIR_DTYPE_MAPPING = {
     "si64" : torch.int64
 }
 
-def run_once(f):
-    """Runs a function (successfully) only once.
-    The running can be reset by setting the `has_run` attribute to False
-    """
-    @functools.wraps(f)
-    def wrapper(*args, **kwargs):
-        if not wrapper.has_run:
-            result = f(*args, **kwargs)
-            wrapper.has_run = True
-            return result
-        return None
-    wrapper.has_run = False
-    return wrapper
 
 def get_device_info(example_inputs) -> Union[Tuple[str, int], None]:
     for inp in example_inputs:

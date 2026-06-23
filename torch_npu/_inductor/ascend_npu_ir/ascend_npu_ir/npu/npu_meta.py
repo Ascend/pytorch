@@ -18,25 +18,10 @@ from torch._dynamo.exc import Unsupported
 from torch._dynamo.variables.lists import TupleVariable
 from torch._dynamo.variables.nn_module import NNModuleVariable
 
+from torch_npu._inductor.lowering_common import run_once
 
 aten = torch.ops.aten
 npu = torch.ops.npu
-
-
-def run_once(f):
-    """Runs a function (successfully) only once.
-    The running can be reset by setting the `has_run` attribute to False
-    """
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        if not wrapper.has_run:
-            result = f(*args, **kwargs)
-            wrapper.has_run = True
-            return result
-        return None
-    wrapper.has_run = False
-    return wrapper
-
 
 npu_meta_table = {}
 break_fn_table = {}
