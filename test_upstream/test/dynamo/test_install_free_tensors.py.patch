@@ -1,16 +1,13 @@
 diff --git a/test/dynamo/test_install_free_tensors.py b/test/dynamo/test_install_free_tensors.py
-index fd9e14c..900a8b0 100644
+index 438ad5c..c36dca2 100644
 --- a/test/dynamo/test_install_free_tensors.py
 +++ b/test/dynamo/test_install_free_tensors.py
-@@ -1,6 +1,8 @@
- # Owner(s): ["module: dynamo"]
- import unittest
- from collections.abc import Callable, Sequence
- from typing import Any
- 
+@@ -5,6 +5,8 @@ from typing import Any
+
  import torch
+ import torch._dynamo
 +import torch_npu
 +from torch_npu.contrib import transfer_to_npu
- import torch._dynamo
  import torch._dynamo.test_case
  import torch._dynamo.testing
+ from torch._dynamo.testing import EagerAndRecordGraphs
