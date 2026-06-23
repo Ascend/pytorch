@@ -1,13 +1,13 @@
 diff --git a/test/jit/test_alias_analysis.py b/test/jit/test_alias_analysis.py
-index 222140d..b52891e 100644
+index 8905872..50b18d6 100644
 --- a/test/jit/test_alias_analysis.py
 +++ b/test/jit/test_alias_analysis.py
-@@ -1,3 +1,9 @@
+@@ -1,3 +1,8 @@
 +import torch_npu
 +from torch_npu.contrib import transfer_to_npu
 +
 +from torch_npu import npu
 +
  # Owner(s): ["oncall: jit"]
- 
+
  import torch
