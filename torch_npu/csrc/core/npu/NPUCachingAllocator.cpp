@@ -15,6 +15,7 @@
 #include <c10/util/irange.h>
 #include <c10/util/UniqueVoidPtr.h>
 #include <c10/util/llvmMathExtras.h>
+#include <c10/util/ScopeExit.h>
 
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
@@ -914,7 +915,12 @@ void setAllocatorSettings(const std::string& settings)
     // Empty NPU task queue before changing the allocator settings.
     NPUStatus ret = c10_npu::emptyAllNPUStream();
     TORCH_CHECK(ret == NPU_STATUS_SUCCESS, "Failed to empty NPU task queue, ret:", ret, PTA_ERROR(ErrCode::INTERNAL));
-    NPUAllocatorConfig::instance().parseArgs(settings, {"expandable_segments"});
+    NPUAllocatorConfig::instance().parseArgs(settings, {
+        "expandable_segments",
+        "max_split_size_mb",
+        "max_non_split_rounding_mb",
+        "release_lock_on_npumalloc"
+    });
 }
 
 bool saveDevMemUsageInfo(const int& device)
@@ -2625,7 +2631,8 @@ private:
             return false;
         }
         // Allow oversized block size to be rounded up but within a limit
-        if ((p.size() >= NPUAllocatorConfig::max_split_size()) && ((*it)->size >= p.size() + kLargeBuffer)) {
+        if ((p.size() >= NPUAllocatorConfig::max_split_size()) &&
+            ((*it)->size >= p.size() + NPUAllocatorConfig::max_non_split_rounding_size())) {
             return false;
         }
         p.block = *it;
@@ -2754,7 +2761,17 @@ private:
                 if (IsMallocPage1GMem(p.pool->is_small)) {
                     policy = aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE1G_ONLY;
                 }
-                p.err = c10_npu::acl::AclrtMallocAlign32(&ptr, size, policy);
+                if (NPUAllocatorConfig::release_lock_on_npumalloc()) {
+                    // safe relock at last of this if region
+                    auto sg = c10::make_scope_exit([&]() { lock.lock(); });
+                    lock.unlock();
+                    p.err = c10_npu::acl::AclrtMallocAlign32(&ptr, size, policy);
+                } else {
+                    p.err = c10_npu::acl::AclrtMallocAlign32(&ptr, size, policy);
+                }
+                if (NPUAllocatorConfig::release_lock_on_npumalloc()) {
+                    TORCH_CHECK(lock.owns_lock(), "Failed to re-acquire lock after npumalloc");
+                }
             }
             if (p.err != ACL_ERROR_NONE) {
                 return false;

@@ -94,6 +94,15 @@ public:
         return instance().m_pinned_reserve_segment_size_mb;
     }
 
+    static bool release_lock_on_npumalloc() {
+        return instance().m_release_lock_on_npumalloc;
+    }
+
+    static size_t max_non_split_rounding_size()
+    {
+        return c10::CachingAllocator::AcceleratorAllocatorConfig::max_non_split_rounding_size();
+    }
+
     static NPUAllocatorConfig &instance();
 
     // Required by REGISTER_ALLOCATOR_CONFIG_PARSE_HOOK macro
@@ -106,7 +115,8 @@ public:
             "segment_size_mb",
             "multi_stream_lazy_reclaim",
             "pinned_reserve_segment_size_mb",
-            "per_process_memory_fraction"
+            "per_process_memory_fraction",
+            "release_lock_on_npumalloc"
         };
         return keys;
     }
@@ -119,7 +129,8 @@ public:
             "roundup_power2_divisions",
             "expandable_segments",
             "pinned_use_background_threads",
-            "large_segment_size_mb"
+            "large_segment_size_mb",
+            "max_non_split_rounding_mb"
         };
         return keys;
     }
@@ -127,6 +138,7 @@ public:
     void parseArgs(const std::string& env, std::set<std::string> supported_settings = {});
 
 private:
+    bool m_release_lock_on_npumalloc;
     bool m_pin_memory_expandable_segments;
     bool m_pinned_mem_register;
     size_t m_base_addr_aligned_size;
@@ -144,7 +156,8 @@ private:
           m_segment_size_mb(0),
           m_multi_stream_lazy_reclaim(false),
           m_per_process_memory_fraction(1.0),
-          m_pinned_reserve_segment_size_mb(0)
+          m_pinned_reserve_segment_size_mb(0),
+          m_release_lock_on_npumalloc(false)
     {}
 
     size_t parsePinMemoryExpandableSegments(const c10::CachingAllocator::ConfigTokenizer& config, size_t i);
@@ -154,6 +167,7 @@ private:
     size_t parseSegmentSizeMb(const c10::CachingAllocator::ConfigTokenizer& config, size_t i);
     size_t parseMultiStreamLazyReclaim(const c10::CachingAllocator::ConfigTokenizer& config, size_t i);
     size_t parsePerProcessMemoryFraction(const c10::CachingAllocator::ConfigTokenizer& config, size_t i);
+    size_t parseReleaseLockOnNpuMalloc(const c10::CachingAllocator::ConfigTokenizer& config, size_t i);
 };
 
 } // namespace NPUCachingAllocator

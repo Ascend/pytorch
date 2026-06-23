@@ -73,6 +73,7 @@ NPUAllocatorConfig& NPUAllocatorConfig::instance()
         // log all the configuration
         TORCH_NPU_MEMORY_LOGI(
             "[npu alloc config] "
+            "m_release_lock_on_npumalloc: %d, ",
             "pin_memory_expandable_segments: %d, "
             "pinned_mem_register: %d, "
             "base_addr_aligned_kb: %zu, "
@@ -81,6 +82,7 @@ NPUAllocatorConfig& NPUAllocatorConfig::instance()
             "multi_stream_lazy_reclaim: %d, "
             "pinned_reserve_segment_size_mb: %zu, "
             "per_process_memory_fraction: %f.",
+            s_instance.m_release_lock_on_npumalloc,
             s_instance.m_pin_memory_expandable_segments,
             s_instance.m_pinned_mem_register,
             s_instance.m_base_addr_aligned_size,
@@ -91,12 +93,14 @@ NPUAllocatorConfig& NPUAllocatorConfig::instance()
             s_instance.m_per_process_memory_fraction);
         TORCH_NPU_MEMORY_LOGI(
             "[common alloc config] "
+            "max_non_split_rounding_size: %zu, ",
             "max_split_size_mb: %zu, "
             "garbage_collection_threshold: %f, "
             "roundup_power2_divisions: %zu, "
             "expandable_segments: %d, "
             "pinned_use_background_threads: %d, "
             "large_segment_size: %zu.",
+            accAllocConfIns.max_non_split_rounding_size(),
             accAllocConfIns.max_split_size(),
             accAllocConfIns.garbage_collection_threshold(),
             accAllocConfIns.roundup_power2_divisions(),
@@ -225,6 +229,21 @@ size_t NPUAllocatorConfig::parseSegmentSizeMb(const c10::CachingAllocator::Confi
     return i;
 }
 
+size_t NPUAllocatorConfig::parseReleaseLockOnNpuMalloc(
+    const c10::CachingAllocator::ConfigTokenizer& tokenizer,
+    size_t i)
+{
+    tokenizer.checkToken(++i, ":");
+    if (++i < tokenizer.size()) {
+        TORCH_CHECK(i < tokenizer.size() && (tokenizer[i] == "True" || tokenizer[i] == "False"),
+            "Expected a single True/False argument for release_lock_on_npumalloc", PTA_ERROR(ErrCode::PARAM));
+        m_release_lock_on_npumalloc = (tokenizer[i] == "True");
+    } else {
+        TORCH_CHECK(false, "Error, expecting release_lock_on_npumalloc value", PTA_ERROR(ErrCode::PARAM));
+    }
+    return i;
+}
+
 void NPUAllocatorConfig::parseArgs(const std::string& env, std::set<std::string> supported_settings)
 {
     if (env.empty()) {
@@ -254,6 +273,8 @@ void NPUAllocatorConfig::parseArgs(const std::string& env, std::set<std::string>
         } else if (key == "pinned_reserve_segment_size_mb") {
             tokenizer.checkToken(++i, ":");
             m_pinned_reserve_segment_size_mb = tokenizer.toSizeT(++i);
+        } else if (key == "release_lock_on_npumalloc") {
+            i = parseReleaseLockOnNpuMalloc(tokenizer, i);
         } else {
             const auto& accelerator_keys = c10::CachingAllocator::AcceleratorAllocatorConfig::getKeys();
             const auto& npu_support_keys = getSupportedPubilcKeys();
