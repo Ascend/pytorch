@@ -34,7 +34,6 @@ from ..npu.codegen.wrapper import NpuMlirWrapperCodeGen
 from ..npu.npu_lowering import _register_npu_inductor_fallbacks
 from ..npu.utils import (
     npu_optimize_fx_graph,
-    run_once,
     logger,
 )
 
