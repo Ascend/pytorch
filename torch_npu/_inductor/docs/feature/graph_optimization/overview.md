@@ -12,6 +12,7 @@
 # pre
 cat_slice_cat_fold_pass
 pad_slice_fold
+fusion_attention_v3_pass
 ```
 
 ```text
@@ -80,7 +81,7 @@ with torch.no_grad():
 ```python
 # 设置 inductor 日志级别以便观察 pass 生效情况
 import os
-os.environ["INDUCTOR_ASCEND_LOG_LEVEL"] = "INFO"
+os.environ["INDUCTOR_ASCEND_LOG_LEVEL"] = "DEBUG"
 import torch
 ```
 
