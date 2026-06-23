@@ -1,28 +1,25 @@
 import os
-from typing import Any, List, Optional, Sequence, Tuple, Union
+from typing import List, Tuple
 
 import torch
-from torch.utils.cpp_extension import _HERE, _TORCH_PATH, TORCH_LIB_PATH
+from torch.utils.cpp_extension import _TORCH_PATH, TORCH_LIB_PATH
 
 from torch_npu.utils.cpp_extension import PYTORCH_NPU_INSTALL_PATH
 from torch_npu.utils._error_code import ErrCode, pta_error
 
 if "ASCEND_HOME_PATH" not in os.environ:
     def lazy_error():
-        raise RuntimeError("Could not find ASCEND_HOME_PATH in env. Please run set_env.sh first."
-                            + pta_error(ErrCode.NOT_FOUND))
+        raise RuntimeError("Could not find ASCEND_HOME_PATH in env. Please run set_env.sh first." + pta_error(ErrCode.NOT_FOUND))
     get_ascend_home = lazy_error
 else:
     def get_ascend_home_from_env():
         return os.environ["ASCEND_HOME_PATH"]
     get_ascend_home = get_ascend_home_from_env
 
-TORCH_LIB_PATH = os.path.join(_TORCH_PATH, 'lib')
-
 
 def include_paths(npu: bool = False) -> List[str]:
     """
-    Get the includ paths required to build a C++ extension.
+    Get the include paths required to build a C++ extension.
 
     Args:
         npu: If 'True', includes NPU-specific include paths.
@@ -40,6 +37,8 @@ def include_paths(npu: bool = False) -> List[str]:
         os.path.join(lib_include, 'TH'),
         os.path.join(lib_include, 'THC')
     ]
+    include_path = os.path.join(PYTORCH_NPU_INSTALL_PATH, "include", "third_party", "acl", "inc")
+    paths.extend([include_path])
     if npu:
         ASCEND_HOME = get_ascend_home()
         paths.extend([
@@ -88,7 +87,7 @@ def get_cpp_torch_device_options(
 
     npu = "npu" == device_type
 
-    definations: List[str] = []
+    definitions: List[str] = []
     include_dirs: List[str] = []
     cflags: List[str] = []
     ldflags: List[str] = []
@@ -100,15 +99,15 @@ def get_cpp_torch_device_options(
     libraries_dirs = library_paths(npu)
 
     if npu:
-        definations.append("USE_NPU")
+        definitions.append("USE_NPU")
         libraries += ["torch_npu", "runtime", "ascendcl"]
 
-        # Could not add BUILD_LIBTORCH=ON to definations because it cannot
-        # process defination include "=" like -DXXX=xx.
+        # Could not add BUILD_LIBTORCH=ON to definitions because it cannot
+        # process definitions include "=" like -DXXX=xx.
         passthough_args += ["-DBUILD_LIBTORCH=ON -Wno-unused-function"]
 
     return (
-        definations,
+        definitions,
         include_dirs,
         cflags,
         ldflags,
