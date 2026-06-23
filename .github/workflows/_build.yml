@@ -106,7 +106,7 @@ jobs:
       # Step 0: Report CI started to dashboard
       - name: Report CI started
         continue-on-error: true
-        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@main
+        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@898e17739c37bcf8f052bf0ead50af2ac4108c0c
         with:
           status: in_progress
 
@@ -338,7 +338,7 @@ jobs:
       - name: Report CI completed
         if: always()
         continue-on-error: true
-        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@main
+        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@898e17739c37bcf8f052bf0ead50af2ac4108c0c
         with:
           status: completed
           conclusion: ${{ job.status == 'success' && 'success' || 'failure' }}
