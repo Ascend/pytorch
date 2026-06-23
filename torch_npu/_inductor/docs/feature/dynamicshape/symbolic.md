@@ -266,6 +266,9 @@ print(f"ShapeHandling: 将形状映射到档位，相同档位复用编译结果
 import torch
 import torch_npu
 
+def model(A, B):
+    return torch.matmul(A, B)
+
 # 场景1：形状完全固定
 model_fixed = torch.compile(model, backend='inductor', dynamic=False)
 
@@ -274,9 +277,15 @@ model_dynamic_controlled = torch.compile(
     model, 
     backend='inductor', 
     dynamic=True,
-    options={
+    options = {
         "enable_shape_handling": True,
-        "shape_handling_configs": [...]
+        "shape_handling_configs": [{
+        "type": "BATCHSIZE",
+        "dimensions": 0,
+        "min_size": 1,
+        "max_size": 256,
+        "policy": "TIMES"
+        }]
     }
 )
 
@@ -290,17 +299,26 @@ model_auto = torch.compile(model, backend='inductor', dynamic=None)
 ### 2. 调试符号化问题
 
 ```python
-import os
+import torch
+import torch_npu
 
-# 启用详细日志
-os.environ["TORCH_SHOW_CPP_STACKTRACES"] = "1"
+# 1. 定义一个简单的模型函数
+def model_fn(A, B):
+    return torch.matmul(A, B)
 
-# 运行编译
+# 2. 准备 NPU 上的测试数据
+A = torch.randn((16, 128), device="npu")
+B = torch.randn((128, 16), device="npu")
+
+# 3. 示例一：使用 torch.compile 编译运行
 compiled_fn = torch.compile(model_fn, backend='inductor', dynamic=True)
-out = compiled_fn(input_tensor)
+out = compiled_fn(A, B)
+print("1. torch.compile 运行成功，输出形状:", out.shape)
 
-# 检查编译图
-print(torch._dynamo.export().get_compiler_stack())
+# 4. 示例二：使用 torch._dynamo.export 导出计算图并打印
+graph_module, _ = torch._dynamo.export(model_fn)(A, B)
+print("\n2. torch._dynamo.export 导出成功，生成的图代码如下:")
+print(graph_module.code)
 ```
 
 ## 注意事项
