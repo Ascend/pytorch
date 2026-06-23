@@ -130,6 +130,9 @@ class SubCommDerivationTest(TestCase):
         ranks = list(range(world_size))
         sub_pg = dist.new_group(backend='hccl', ranks=ranks)
 
+        global_tensor = xs[0].clone()
+        dist.all_reduce(global_tensor, op=dist.ReduceOp.SUM)
+
         with StderrCapture(label=f"allreduce_rank{rank}") as cap:
             dist.all_reduce(xs[0], group=sub_pg, op=dist.ReduceOp.SUM)
 
@@ -161,6 +164,9 @@ class SubCommDerivationTest(TestCase):
         tensor_tp = xs[0].clone()
         tensor_pp = xs[0].clone()
         tensor_dp = xs[0].clone()
+
+        global_tensor = xs[0].clone()
+        dist.all_reduce(global_tensor, op=dist.ReduceOp.SUM)
 
         with StderrCapture(label=f"multi_comms_rank{rank}") as cap:
             dist.all_reduce(tensor_tp, group=tp_pg, op=dist.ReduceOp.SUM)
@@ -195,6 +201,9 @@ class SubCommDerivationTest(TestCase):
         ranks = list(range(world_size))
         sub_pg = dist.new_group(backend='hccl', ranks=ranks)
 
+        global_tensor = xs[0].clone()
+        dist.all_reduce(global_tensor, op=dist.ReduceOp.SUM)
+
         ys = [torch.zeros(xs[0].shape, dtype=xs[0].dtype, device=xs[0].device) for _ in range(world_size)]
 
         with StderrCapture(label=f"allgather_rank{rank}") as cap:
@@ -225,6 +234,9 @@ class SubCommDerivationTest(TestCase):
 
         ranks = list(range(world_size))
         sub_pg = dist.new_group(backend='hccl', ranks=ranks)
+
+        global_tensor = xs[0].clone()
+        dist.all_reduce(global_tensor, op=dist.ReduceOp.SUM)
 
         with StderrCapture(label=f"broadcast_rank{rank}") as cap:
             dist.broadcast(xs[0], src=0, group=sub_pg)
@@ -290,6 +302,9 @@ class SubCommDerivationTest(TestCase):
         }
         sub_pg = dist.new_group(backend='hccl', ranks=ranks, pg_options=options)
 
+        global_tensor = xs[0].clone()
+        dist.all_reduce(global_tensor, op=dist.ReduceOp.SUM)
+
         with StderrCapture(label=f"custom_config_rank{rank}") as cap:
             dist.all_reduce(xs[0], group=sub_pg, op=dist.ReduceOp.SUM)
 
@@ -316,6 +331,9 @@ class SubCommDerivationTest(TestCase):
         ranks = list(range(world_size))
         sub_pg = dist.new_group(backend='hccl', ranks=ranks)
 
+        global_tensor = xs[0].clone()
+        dist.all_reduce(global_tensor, op=dist.ReduceOp.SUM)
+
         with StderrCapture(label=f"async_rank{rank}") as cap:
             work = dist.all_reduce(xs[0], group=sub_pg, op=dist.ReduceOp.SUM, async_op=True)
         work.wait()
@@ -341,6 +359,9 @@ class SubCommDerivationTest(TestCase):
         xs = [shared_tensors[rank].to(f"npu:{rank}")]
 
         ranks = list(range(world_size))
+
+        global_tensor = xs[0].clone()
+        dist.all_reduce(global_tensor, op=dist.ReduceOp.SUM)
 
         sub_pg1 = dist.new_group(backend='hccl', ranks=ranks)
         with StderrCapture(label=f"recreate1_rank{rank}") as cap1:
@@ -376,6 +397,9 @@ class SubCommDerivationTest(TestCase):
         ranks = list(range(world_size))
         sub_pg = dist.new_group(backend='hccl', ranks=ranks)
 
+        global_tensor = xs[0].clone()
+        dist.all_reduce(global_tensor, op=dist.ReduceOp.SUM)
+
         with StderrCapture(label=f"reduce_rank{rank}") as cap:
             dist.reduce(xs[0], dst=0, op=dist.ReduceOp.SUM, group=sub_pg)
 
@@ -405,6 +429,9 @@ class SubCommDerivationTest(TestCase):
         partial_ranks = [0, 1]
 
         sub_pg = dist.new_group(backend='hccl', ranks=partial_ranks)
+
+        global_tensor = xs[0].clone()
+        dist.all_reduce(global_tensor, op=dist.ReduceOp.SUM)
 
         if rank in partial_ranks:
             with StderrCapture(label=f"partial_rank{rank}") as cap:
