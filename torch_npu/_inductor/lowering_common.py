@@ -17,6 +17,7 @@ from __future__ import annotations
 import inspect
 import sympy
 from functools import reduce
+import functools
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
@@ -28,6 +29,22 @@ from sympy.core.numbers import Number as SympyNumber
 from torch._inductor import ir
 from torch._inductor.ir import ExpandView, IndexingConstant, TensorBox
 from torch._inductor.virtualized import V
+
+
+def run_once(f):
+    """Runs a function (successfully) only once.
+    The running can be reset by setting the `has_run` attribute to False
+    """
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        if not wrapper.has_run:
+            result = f(*args, **kwargs)
+            wrapper.has_run = True
+            return result
+        return None
+    wrapper.has_run = False
+    return wrapper
+
 
 LOWERING_REGISTRY_ATTRS: tuple[str, ...] = (
     "lowerings",
