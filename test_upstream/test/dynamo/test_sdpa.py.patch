@@ -1,4 +1,4 @@
-﻿diff --git a/test/dynamo/test_sdpa.py b/test/dynamo/test_sdpa.py
+diff --git a/test/dynamo/test_sdpa.py b/test/dynamo/test_sdpa.py
 index 02a867af76d..c21a77d3191 100644
 --- a/test/dynamo/test_sdpa.py
 +++ b/test/dynamo/test_sdpa.py

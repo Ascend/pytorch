@@ -1,4 +1,4 @@
-﻿diff --git a/test/onnx/exporter/test_verification.py b/test/onnx/exporter/test_verification.py
+diff --git a/test/onnx/exporter/test_verification.py b/test/onnx/exporter/test_verification.py
 index f296ce90adc..64c42fe4afb 100644
 --- a/test/onnx/exporter/test_verification.py
 +++ b/test/onnx/exporter/test_verification.py

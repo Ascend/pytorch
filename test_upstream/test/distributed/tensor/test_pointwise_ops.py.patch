@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/tensor/test_pointwise_ops.py b/test/distributed/tensor/test_pointwise_ops.py
+diff --git a/test/distributed/tensor/test_pointwise_ops.py b/test/distributed/tensor/test_pointwise_ops.py
 index 64f5d5a6810..49bfaa76d99 100644
 --- a/test/distributed/tensor/test_pointwise_ops.py
 +++ b/test/distributed/tensor/test_pointwise_ops.py

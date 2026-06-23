@@ -1,4 +1,4 @@
-﻿diff --git a/test/dynamo/test_fx_graph_runnable.py b/test/dynamo/test_fx_graph_runnable.py
+diff --git a/test/dynamo/test_fx_graph_runnable.py b/test/dynamo/test_fx_graph_runnable.py
 index 5da16806e1d..14245142c2f 100644
 --- a/test/dynamo/test_fx_graph_runnable.py
 +++ b/test/dynamo/test_fx_graph_runnable.py

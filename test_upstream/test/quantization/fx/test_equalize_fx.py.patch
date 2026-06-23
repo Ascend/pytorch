@@ -1,4 +1,4 @@
-﻿diff --git a/test/quantization/fx/test_equalize_fx.py b/test/quantization/fx/test_equalize_fx.py
+diff --git a/test/quantization/fx/test_equalize_fx.py b/test/quantization/fx/test_equalize_fx.py
 index 4a1e6dbdf5c..0666683aecb 100644
 --- a/test/quantization/fx/test_equalize_fx.py
 +++ b/test/quantization/fx/test_equalize_fx.py

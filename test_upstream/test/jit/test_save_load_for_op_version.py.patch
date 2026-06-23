@@ -1,4 +1,4 @@
-﻿diff --git a/test/jit/test_save_load_for_op_version.py b/test/jit/test_save_load_for_op_version.py
+diff --git a/test/jit/test_save_load_for_op_version.py b/test/jit/test_save_load_for_op_version.py
 index fdb0b085044..9208eda1fe9 100644
 --- a/test/jit/test_save_load_for_op_version.py
 +++ b/test/jit/test_save_load_for_op_version.py

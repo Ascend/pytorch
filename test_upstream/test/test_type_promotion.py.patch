@@ -1,35 +1,54 @@
-﻿diff --git a/test/test_type_promotion.py b/test/test_type_promotion.py
-index abb32d525bf..2024742758f 100644
+diff --git a/test/test_type_promotion.py b/test/test_type_promotion.py
+index abb32d525bf..631d410b5ba 100644
 --- a/test/test_type_promotion.py
 +++ b/test/test_type_promotion.py
-@@ -5,7 +5,7 @@ import itertools
- import unittest
- 
- import torch
+@@ -1,14 +1,15 @@
+ # Owner(s): ["module: type promotion"]
 -
+ from functools import wraps
+ import itertools
+ import unittest
+-
+ import torch
+ 
 +import torch_npu
  from torch.testing._internal.common_utils import (TestCase, run_tests, load_tests, make_tensor,
                                                    TEST_NUMPY, set_default_dtype, torch_to_numpy_dtype_dict,
                                                    numpy_to_torch_dtype_dict, skipIfTorchDynamo)
-@@ -423,8 +423,8 @@ class TestTypePromotion(TestCase):
++import torch_npu.testing
++import torch_npu
+ from torch.testing._internal.common_device_type import (instantiate_device_type_tests, onlyNativeDeviceTypes,
+                                                         dtypes, onlyCPU, expectedFailureMeta, skipMeta)
+ from torch.testing._internal.common_dtype import (
+@@ -47,7 +48,8 @@ class TestTypePromotion(TestCase):
+     @float_double_default_dtype
+     def test_inplace(self, device):
+         int_tensor = torch.ones([4, 4, 4], dtype=torch.int32, device=device)
+-
++        self.assertEqual((onedim + True).cpu(), onedim)
++        self.assertEqual((onedim + onedim).cpu(), onedim)
+         self.assertRaisesRegex(RuntimeError, "can't be cast to", lambda: int_tensor.add_(1.5))
+ 
+         expected = torch.ones([4, 4, 4], dtype=torch.int32, device=device)
+@@ -423,8 +425,8 @@ class TestTypePromotion(TestCase):
      def test_booleans(self, device):
          onedim = torch.tensor([True], device=device)
  
 -        self.assertEqual(onedim + onedim, onedim)
 -        self.assertEqual(onedim + True, onedim)
-+        self.assertEqual((onedim + onedim).cpu(), onedim)
 +        self.assertEqual((onedim + True).cpu(), onedim)
++        self.assertEqual((onedim + onedim).cpu(), onedim)
          self.assertEqual(torch.add(True, True), True)
          self.assertEqual(torch.add(False, False), False)
          self.assertEqual(torch.add(False, True), True)
-@@ -432,8 +432,8 @@ class TestTypePromotion(TestCase):
+@@ -432,8 +434,8 @@ class TestTypePromotion(TestCase):
          self.assertRaisesRegex(RuntimeError, "Boolean alpha only supported",
                                 lambda: torch.add(1, 1, alpha=True))
          self.assertEqual(torch.add(torch.tensor(True, device=device),
 -                         torch.tensor(True, device=device), True),
 -                         torch.tensor(True, device=device))
-+                         torch.tensor(True, device=device), True).cpu(),
 +                         torch.tensor(True, device=device).cpu())
++                         torch.tensor(True, device=device), True).cpu(),
  
      @skipIfTorchDynamo("Not a TorchDynamo suitable test")
      @float_double_default_dtype

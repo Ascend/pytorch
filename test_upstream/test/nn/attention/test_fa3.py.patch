@@ -1,4 +1,4 @@
-﻿diff --git a/test/nn/attention/test_fa3.py b/test/nn/attention/test_fa3.py
+diff --git a/test/nn/attention/test_fa3.py b/test/nn/attention/test_fa3.py
 index 6f786ad79ca..bc14476f49f 100644
 --- a/test/nn/attention/test_fa3.py
 +++ b/test/nn/attention/test_fa3.py

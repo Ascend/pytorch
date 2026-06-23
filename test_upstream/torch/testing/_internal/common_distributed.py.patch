@@ -1,5 +1,5 @@
-﻿diff --git a/torch/testing/_internal/common_distributed.py b/torch/testing/_internal/common_distributed.py
-index 894acb6be19..984b351ef52 100644
+diff --git a/torch/testing/_internal/common_distributed.py b/torch/testing/_internal/common_distributed.py
+index 894acb6be19..3fdac140f9a 100644
 --- a/torch/testing/_internal/common_distributed.py
 +++ b/torch/testing/_internal/common_distributed.py
 @@ -571,7 +571,8 @@ def sm_is_or_higher_than(device: torch.device, major: int, minor: int) -> bool:
@@ -7,8 +7,8 @@ index 894acb6be19..984b351ef52 100644
          return False
  
 -    return torch.cuda.get_device_capability(device) >= (major, minor)
-+    # return torch.cuda.get_device_capability(device) >= (major, minor)
 +    return True
++    # return torch.cuda.get_device_capability(device) >= (major, minor)
  
  
  @retry_on_connect_failures
@@ -16,8 +16,8 @@ index 894acb6be19..984b351ef52 100644
              return "hccl"
          elif "xpu" in device:
              return "xccl"
-+        elif "npu" in device:
 +            return "hccl"
++        elif "npu" in device:
          else:
              return "gloo"
  

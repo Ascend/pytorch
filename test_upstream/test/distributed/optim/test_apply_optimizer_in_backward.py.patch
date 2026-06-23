@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/optim/test_apply_optimizer_in_backward.py b/test/distributed/optim/test_apply_optimizer_in_backward.py
+diff --git a/test/distributed/optim/test_apply_optimizer_in_backward.py b/test/distributed/optim/test_apply_optimizer_in_backward.py
 index c7be2c8a1d0..33208bb0438 100644
 --- a/test/distributed/optim/test_apply_optimizer_in_backward.py
 +++ b/test/distributed/optim/test_apply_optimizer_in_backward.py

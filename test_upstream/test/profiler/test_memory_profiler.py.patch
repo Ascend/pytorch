@@ -1,4 +1,4 @@
-﻿diff --git a/test/profiler/test_memory_profiler.py b/test/profiler/test_memory_profiler.py
+diff --git a/test/profiler/test_memory_profiler.py b/test/profiler/test_memory_profiler.py
 index c9b01054929..a5e949c4606 100644
 --- a/test/profiler/test_memory_profiler.py
 +++ b/test/profiler/test_memory_profiler.py

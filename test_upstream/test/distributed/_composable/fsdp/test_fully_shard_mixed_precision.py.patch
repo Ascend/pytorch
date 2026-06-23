@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/_composable/fsdp/test_fully_shard_mixed_precision.py b/test/distributed/_composable/fsdp/test_fully_shard_mixed_precision.py
+diff --git a/test/distributed/_composable/fsdp/test_fully_shard_mixed_precision.py b/test/distributed/_composable/fsdp/test_fully_shard_mixed_precision.py
 index 6bc4b7ad064..082855e7fb5 100644
 --- a/test/distributed/_composable/fsdp/test_fully_shard_mixed_precision.py
 +++ b/test/distributed/_composable/fsdp/test_fully_shard_mixed_precision.py

@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/_composable/test_replicate_with_fsdp.py b/test/distributed/_composable/test_replicate_with_fsdp.py
+diff --git a/test/distributed/_composable/test_replicate_with_fsdp.py b/test/distributed/_composable/test_replicate_with_fsdp.py
 index 6236c93dc6c..850d7ea4907 100644
 --- a/test/distributed/_composable/test_replicate_with_fsdp.py
 +++ b/test/distributed/_composable/test_replicate_with_fsdp.py

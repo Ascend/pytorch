@@ -1,4 +1,4 @@
-﻿diff --git a/test/inductor/test_decompose_mem_bound_mm.py b/test/inductor/test_decompose_mem_bound_mm.py
+diff --git a/test/inductor/test_decompose_mem_bound_mm.py b/test/inductor/test_decompose_mem_bound_mm.py
 index 79cb68b2d71..c12d3469c67 100644
 --- a/test/inductor/test_decompose_mem_bound_mm.py
 +++ b/test/inductor/test_decompose_mem_bound_mm.py

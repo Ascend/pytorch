@@ -1,4 +1,4 @@
-﻿diff --git a/test/dynamo/test_graph_deduplication.py b/test/dynamo/test_graph_deduplication.py
+diff --git a/test/dynamo/test_graph_deduplication.py b/test/dynamo/test_graph_deduplication.py
 index 03daf70c573..a7ea5ea48bf 100644
 --- a/test/dynamo/test_graph_deduplication.py
 +++ b/test/dynamo/test_graph_deduplication.py

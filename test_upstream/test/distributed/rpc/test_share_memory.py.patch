@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/rpc/test_share_memory.py b/test/distributed/rpc/test_share_memory.py
+diff --git a/test/distributed/rpc/test_share_memory.py b/test/distributed/rpc/test_share_memory.py
 index 97273981d08..d80616f5c5a 100644
 --- a/test/distributed/rpc/test_share_memory.py
 +++ b/test/distributed/rpc/test_share_memory.py

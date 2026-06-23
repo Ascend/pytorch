@@ -1,4 +1,4 @@
-﻿diff --git a/test/test_flop_counter.py b/test/test_flop_counter.py
+diff --git a/test/test_flop_counter.py b/test/test_flop_counter.py
 index 912883173b8..894cdd5f4ec 100644
 --- a/test/test_flop_counter.py
 +++ b/test/test_flop_counter.py

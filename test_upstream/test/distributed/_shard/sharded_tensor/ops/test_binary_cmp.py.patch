@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/_shard/sharded_tensor/ops/test_binary_cmp.py b/test/distributed/_shard/sharded_tensor/ops/test_binary_cmp.py
+diff --git a/test/distributed/_shard/sharded_tensor/ops/test_binary_cmp.py b/test/distributed/_shard/sharded_tensor/ops/test_binary_cmp.py
 index 094bc0f53d9..cc20188fbe8 100644
 --- a/test/distributed/_shard/sharded_tensor/ops/test_binary_cmp.py
 +++ b/test/distributed/_shard/sharded_tensor/ops/test_binary_cmp.py

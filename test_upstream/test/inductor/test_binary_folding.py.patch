@@ -1,4 +1,4 @@
-﻿diff --git a/test/inductor/test_binary_folding.py b/test/inductor/test_binary_folding.py
+diff --git a/test/inductor/test_binary_folding.py b/test/inductor/test_binary_folding.py
 index 746a2808c90..a9c70b69c80 100644
 --- a/test/inductor/test_binary_folding.py
 +++ b/test/inductor/test_binary_folding.py

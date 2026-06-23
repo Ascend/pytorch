@@ -1,13 +1,22 @@
-﻿diff --git a/test/test_mps.py b/test/test_mps.py
-index 9cdcd4b484b..fd01505e62b 100644
+diff --git a/test/test_mps.py b/test/test_mps.py
+index 9cdcd4b484b..0753ebba585 100644
 --- a/test/test_mps.py
 +++ b/test/test_mps.py
-@@ -15,6 +15,8 @@ import copy
+@@ -1,5 +1,8 @@
+ # Owner(s): ["module: mps"]
+ # ruff: noqa: F841
++
++from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ import contextlib
+ import io
+ import sys
+@@ -15,6 +18,8 @@ import copy
  import gc
  import threading
  import torch
-+import torch_npu
 +from torch_npu.contrib import transfer_to_npu
++import torch_npu
  import torch.nn as nn
  import torch.nn.functional as F
  import itertools

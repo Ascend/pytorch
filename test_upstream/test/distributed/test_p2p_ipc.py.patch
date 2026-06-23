@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/test_p2p_ipc.py b/test/distributed/test_p2p_ipc.py
+diff --git a/test/distributed/test_p2p_ipc.py b/test/distributed/test_p2p_ipc.py
 index 8f964ebc9be..acd3057492d 100644
 --- a/test/distributed/test_p2p_ipc.py
 +++ b/test/distributed/test_p2p_ipc.py

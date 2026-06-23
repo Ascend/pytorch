@@ -1,5 +1,5 @@
 diff --git a/test/nn/test_parametrization.py b/test/nn/test_parametrization.py
-index 5dca91f..53f46ed 100644
+index 5dca91f0d2c..53f46ed48f8 100644
 --- a/test/nn/test_parametrization.py
 +++ b/test/nn/test_parametrization.py
 @@ -4,6 +4,7 @@ from copy import deepcopy

@@ -1,4 +1,4 @@
-﻿diff --git a/test/jit/test_union.py b/test/jit/test_union.py
+diff --git a/test/jit/test_union.py b/test/jit/test_union.py
 index c5afa134632..92d5080ed05 100644
 --- a/test/jit/test_union.py
 +++ b/test/jit/test_union.py

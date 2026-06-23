@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/test_data_parallel.py b/test/distributed/test_data_parallel.py
+diff --git a/test/distributed/test_data_parallel.py b/test/distributed/test_data_parallel.py
 index 25d0e0d6c68..6e6efc5d836 100644
 --- a/test/distributed/test_data_parallel.py
 +++ b/test/distributed/test_data_parallel.py

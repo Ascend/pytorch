@@ -1,4 +1,4 @@
-﻿diff --git a/test/functorch/test_logging.py b/test/functorch/test_logging.py
+diff --git a/test/functorch/test_logging.py b/test/functorch/test_logging.py
 index 658750d323b..69b7cbcdd6a 100644
 --- a/test/functorch/test_logging.py
 +++ b/test/functorch/test_logging.py

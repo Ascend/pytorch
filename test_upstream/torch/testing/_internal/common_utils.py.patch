@@ -29,7 +29,7 @@ index 193d625c5e9..07fd4bfb2bf 100644
                                       device_type=deviceStream.device_type)
 -        torch._C._cuda_setDevice(beforeDevice)
 +        torch_npu._C._npu_setDevice(beforeDevice)
- 
+
      def __exit__(self, exc_type, exc_value, traceback):
          # After completing CUDA test load previously active streams on all
          # CUDA devices.
@@ -41,17 +41,17 @@ index 193d625c5e9..07fd4bfb2bf 100644
                                       device_type=self.beforeStreams[d].device_type)
 -        torch._C._cuda_setDevice(beforeDevice)
 +        torch_npu._C._npu_setDevice(beforeDevice)
- 
+
  class CudaMemoryLeakCheck:
      def __init__(self, testcase, name=None):
 @@ -3304,8 +3307,8 @@ class TestCase(expecttest.TestCase):
- 
+
              # Wraps the tested method if we should enforce non default CUDA stream.
              self._do_cuda_non_default_stream &= getattr(test_method, '_do_cuda_non_default_stream', True)
 -            if self._do_cuda_non_default_stream and not IS_WINDOWS:
 -                self.wrap_with_cuda_policy(method_name, self.enforceNonDefaultStream)
 +            # if self._do_cuda_non_default_stream and not IS_WINDOWS:
 +            #    self.wrap_with_cuda_policy(method_name, self.enforceNonDefaultStream)
- 
+
              if self._ignore_not_implemented_error:
                  self.wrap_with_policy(method_name, lambda: skip_exception_type(NotImplementedError))

@@ -1,13 +1,16 @@
-﻿diff --git a/test/distributed/test_c10d_common.py b/test/distributed/test_c10d_common.py
-index 36f17631c28..ca7d92e96df 100644
+diff --git a/test/distributed/test_c10d_common.py b/test/distributed/test_c10d_common.py
+index 36f17631c28..601ece2139a 100644
 --- a/test/distributed/test_c10d_common.py
 +++ b/test/distributed/test_c10d_common.py
-@@ -1,3 +1,8 @@
-+import torch_npu.testing
+@@ -1230,6 +1230,11 @@ class AbstractCommTest:
+             world_size=self.world_size,
+             rank=self.rank,
+             store=store,
 +
-+import torch_npu
-+from torch_npu.contrib import transfer_to_npu
-+
- # Owner(s): ["oncall: distributed"]
- 
- import copy
++                excepted_backend = "custom"
++            if (backend == dist.Backend.NCCL and getattr(torch, "npu", None) is not None and torch.npu.is_available()):
++            # On NPU, nccl is replaced by hccl and the process group reports name "custom"
++            
+         )
+         self._test_sequence_num_incremented(
+             c10d._get_default_group(),

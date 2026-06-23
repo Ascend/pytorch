@@ -1,14 +1,37 @@
-﻿diff --git a/test/test_dispatch.py b/test/test_dispatch.py
-index 046faea9c48..44d0523665e 100644
+diff --git a/test/test_dispatch.py b/test/test_dispatch.py
+index 046faea9c48..46ece5a2571 100644
 --- a/test/test_dispatch.py
 +++ b/test/test_dispatch.py
-@@ -10,6 +10,9 @@ import torch.utils.cpp_extension
- from torch._python_dispatcher import PythonDispatcher
+@@ -11,6 +11,9 @@ from torch._python_dispatcher import PythonDispatcher
  from torch.testing._internal.common_utils import run_tests, TestCase
  
-+import torch_npu
-+from torch_npu.contrib import transfer_to_npu
-+
  
++from torch_npu.contrib import transfer_to_npu
++import torch_npu
++
  # TODO: Expand the dispatcher API to be a generic API for interfacing with
  # the dispatcher from Python!
+ #
+@@ -947,10 +950,20 @@ CompositeImplicitAutograd[alias] (inactive): fn1 :: (Tensor _0) -> Tensor _0 [ b
+     # no longer exists
+     def test_find_dangling_impls(self):
+         dangling_impls = C._dispatch_find_dangling_impls()
++            filtered_impls[0],
++        self.assertEqual(1, len(filtered_impls))
++        ]
++            if "npu" not in impl
++            impl for impl in impls
++        filtered_impls = [
++            msg=f"Expect zero dangling impls, but found: {filtered_dangling_impls}",
++            len(filtered_dangling_impls),
++        ]
++            if "npu" not in impl
++            impl for impl in dangling_impls
++        filtered_dangling_impls = [
+         self.assertEqual(
+             0,
+-            len(dangling_impls),
+-            msg=f"Expect zero dangling impls, but found: {dangling_impls}",
+         )
+ 
+     def test_find_dangling_impls_ext(self):

@@ -1,4 +1,4 @@
-﻿diff --git a/test/fx/test_partitioner_order.py b/test/fx/test_partitioner_order.py
+diff --git a/test/fx/test_partitioner_order.py b/test/fx/test_partitioner_order.py
 index 670f675f3f9..4f695a8c56a 100644
 --- a/test/fx/test_partitioner_order.py
 +++ b/test/fx/test_partitioner_order.py

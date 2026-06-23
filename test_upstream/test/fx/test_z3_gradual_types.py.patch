@@ -1,4 +1,4 @@
-﻿diff --git a/test/fx/test_z3_gradual_types.py b/test/fx/test_z3_gradual_types.py
+diff --git a/test/fx/test_z3_gradual_types.py b/test/fx/test_z3_gradual_types.py
 index d2f8b9f86de..258842bae71 100644
 --- a/test/fx/test_z3_gradual_types.py
 +++ b/test/fx/test_z3_gradual_types.py

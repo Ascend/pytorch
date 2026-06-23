@@ -1,5 +1,5 @@
 diff --git a/test/dynamo/test_functions.py b/test/dynamo/test_functions.py
-index 48e08b0..d1fea78 100644
+index 48e08b057b9..d1fea780079 100644
 --- a/test/dynamo/test_functions.py
 +++ b/test/dynamo/test_functions.py
 @@ -5454,7 +5454,7 @@ class DefaultsTests(torch._dynamo.test_case.TestCase):
@@ -19,6 +19,11 @@ index 48e08b0..d1fea78 100644
 -            "b": [torch.randn(4), torch.randn(4)],
 +            "a": torch.randn(4).npu(),
 +            "b": [torch.randn(4).npu(), torch.randn(4).npu()],
-         }
-         ref = fn(x, f)
-         res = opt_fn(x, f)
+        }
+        ref = fn(x, f)
+        res = opt_fn(x, f)
+
+# NPU Patch Explanation:
+# - Added .npu() calls to torch.randn tensor creation
+# - Enables dynamo function tests to run on NPU hardware
+# - Tests default argument handling with NPU tensors

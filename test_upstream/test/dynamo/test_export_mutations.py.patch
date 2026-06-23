@@ -1,4 +1,4 @@
-﻿diff --git a/test/dynamo/test_export_mutations.py b/test/dynamo/test_export_mutations.py
+diff --git a/test/dynamo/test_export_mutations.py b/test/dynamo/test_export_mutations.py
 index c67fafba2ed..9525ecccd18 100644
 --- a/test/dynamo/test_export_mutations.py
 +++ b/test/dynamo/test_export_mutations.py

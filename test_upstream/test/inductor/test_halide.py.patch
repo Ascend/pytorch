@@ -1,4 +1,4 @@
-﻿diff --git a/test/inductor/test_halide.py b/test/inductor/test_halide.py
+diff --git a/test/inductor/test_halide.py b/test/inductor/test_halide.py
 index 884d15869f6..c7de7cd67ff 100644
 --- a/test/inductor/test_halide.py
 +++ b/test/inductor/test_halide.py

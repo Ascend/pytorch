@@ -1,4 +1,4 @@
-﻿diff --git a/test/inductor/test_triton_syntax.py b/test/inductor/test_triton_syntax.py
+diff --git a/test/inductor/test_triton_syntax.py b/test/inductor/test_triton_syntax.py
 index 8a8a63d4cd2..28e35cf3e5e 100644
 --- a/test/inductor/test_triton_syntax.py
 +++ b/test/inductor/test_triton_syntax.py

@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/_composable/fsdp/test_fully_shard_grad_scaler.py b/test/distributed/_composable/fsdp/test_fully_shard_grad_scaler.py
+diff --git a/test/distributed/_composable/fsdp/test_fully_shard_grad_scaler.py b/test/distributed/_composable/fsdp/test_fully_shard_grad_scaler.py
 index 0ce32057ffb..265d6f23876 100644
 --- a/test/distributed/_composable/fsdp/test_fully_shard_grad_scaler.py
 +++ b/test/distributed/_composable/fsdp/test_fully_shard_grad_scaler.py

@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/tensor/parallel/test_parallelize_api.py b/test/distributed/tensor/parallel/test_parallelize_api.py
+diff --git a/test/distributed/tensor/parallel/test_parallelize_api.py b/test/distributed/tensor/parallel/test_parallelize_api.py
 index 15faac839d9..ed04012b62b 100644
 --- a/test/distributed/tensor/parallel/test_parallelize_api.py
 +++ b/test/distributed/tensor/parallel/test_parallelize_api.py

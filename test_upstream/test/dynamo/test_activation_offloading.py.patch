@@ -1,4 +1,4 @@
-﻿diff --git a/test/dynamo/test_activation_offloading.py b/test/dynamo/test_activation_offloading.py
+diff --git a/test/dynamo/test_activation_offloading.py b/test/dynamo/test_activation_offloading.py
 index 7d969431823..00ffe2803b4 100644
 --- a/test/dynamo/test_activation_offloading.py
 +++ b/test/dynamo/test_activation_offloading.py

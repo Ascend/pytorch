@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/_shard/sharded_tensor/ops/test_embedding.py b/test/distributed/_shard/sharded_tensor/ops/test_embedding.py
+diff --git a/test/distributed/_shard/sharded_tensor/ops/test_embedding.py b/test/distributed/_shard/sharded_tensor/ops/test_embedding.py
 index 0b4cb6d1f64..2c0bddfffea 100644
 --- a/test/distributed/_shard/sharded_tensor/ops/test_embedding.py
 +++ b/test/distributed/_shard/sharded_tensor/ops/test_embedding.py

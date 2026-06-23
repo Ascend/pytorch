@@ -1,13 +1,13 @@
-﻿diff --git a/test/distributed/_tools/test_fake_collectives.py b/test/distributed/_tools/test_fake_collectives.py
-index c41886503a7..32cfa1f685c 100644
+diff --git a/test/distributed/_tools/test_fake_collectives.py b/test/distributed/_tools/test_fake_collectives.py
+index c41886503a7..b4520e2e301 100644
 --- a/test/distributed/_tools/test_fake_collectives.py
 +++ b/test/distributed/_tools/test_fake_collectives.py
 @@ -1,4 +1,8 @@
  # Owner(s): ["oncall: distributed"]
-+import torch_npu.testing
-+
-+import torch_npu
 +from torch_npu.contrib import transfer_to_npu
++import torch_npu
++
++import torch_npu.testing
  import unittest
  
  import torch

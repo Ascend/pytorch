@@ -1,31 +1,42 @@
 diff --git a/test/onnx/test_pytorch_onnx_onnxruntime.py b/test/onnx/test_pytorch_onnx_onnxruntime.py
-index 89fc795cd74..ee1644a1664 100644
+index 89fc795cd74..993137f9d90 100644
 --- a/test/onnx/test_pytorch_onnx_onnxruntime.py
 +++ b/test/onnx/test_pytorch_onnx_onnxruntime.py
-@@ -38,6 +38,15 @@ from pytorch_test_common import (
- )
-
- import torch
-+import torch_npu
-+# from torch_npu.contrib import transfer_to_npu
-+torch._C._cuda_setStream = torch_npu._C._npu_setStream
-+torch.cuda.get_device_capability = lambda *args, **kwargs:(10,0)
-+torch._C._cuda_setDevice = torch_npu._C._npu_setDevice
-+torch._C._cuda_getCompiledVersion = lambda:11080
-+torch.version.cuda = '11.8'
-+CUDA_VERSION = 11080
+@@ -29,6 +29,17 @@ from pytorch_test_common import (
+     RNN_SEQUENCE_LENGTH,
+     skipDtypeChecking,
+     skipIfQuantizationBackendQNNPack,
 +
- from torch import Tensor
- from torch.nn.utils import rnn as rnn_utils
- from torch.onnx import errors
-@@ -13166,6 +13175,10 @@ class TestONNXRuntime(onnx_test_common._TestONNXRuntime):
-         self.run_test(ArithmeticModel(), (x, y))
-
++CUDA_VERSION = 11080
++torch.version.cuda = '11.8'
++torch._C._cuda_getCompiledVersion = lambda:11080
++torch._C._cuda_setDevice = torch_npu._C._npu_setDevice
++torch.cuda.get_device_capability = lambda *args, **kwargs:(10,0)
++torch._C._cuda_setStream = torch_npu._C._npu_setStream
++# from torch_npu.contrib import transfer_to_npu
++import torch_npu
++    useBackendOnednnOnArm
++    skipIfOneDnnVersionLessThan,
+     skipIfUnsupportedMaxOpsetVersion,
+     skipIfUnsupportedMinOpsetVersion,
+     skipIfUnsupportedOpsetVersion,
+@@ -1469,6 +1480,8 @@ class TestONNXRuntime(onnx_test_common._TestONNXRuntime):
+ 
      @skipIfUnsupportedMinOpsetVersion(10)
-+    @unittest.skip(
-+        "PyTorch quantized::add/mul (QuantizedCPU) vs ONNX Runtime QDQ can differ by +/-1 "
-+        "quint8 at requant(scale=0.4, zp=100); verification.verify default atol=1e-7 is too strict."
+     def test_maxpool_dynamic(self):
++    @useBackendOnednnOnArm
++    @skipIfOneDnnVersionLessThan(3, 9, 0)
+         class test(torch.nn.Module):
+             def __init__(self, in_channels, out_channels):
+                 super().__init__()
+@@ -13166,6 +13179,10 @@ class TestONNXRuntime(onnx_test_common._TestONNXRuntime):
+         self.run_test(ArithmeticModel(), (x, y))
+ 
+     @skipIfUnsupportedMinOpsetVersion(10)
 +    )
++        "quint8 at requant(scale=0.4, zp=100); verification.verify default atol=1e-7 is too strict."
++        "PyTorch quantized::add/mul (QuantizedCPU) vs ONNX Runtime QDQ can differ by +/-1 "
++    @unittest.skip(
      def test_quantized_arithmetic(self):
          x = torch.quantize_per_tensor(torch.randn(3, 4), 0.2, 128, torch.quint8)
          y = torch.quantize_per_tensor(torch.randn(3, 4), 0.2, 128, torch.quint8)

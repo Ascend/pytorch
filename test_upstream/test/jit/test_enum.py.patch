@@ -1,4 +1,4 @@
-﻿diff --git a/test/jit/test_enum.py b/test/jit/test_enum.py
+diff --git a/test/jit/test_enum.py b/test/jit/test_enum.py
 index 2308ebb4f4e..52930bfda01 100644
 --- a/test/jit/test_enum.py
 +++ b/test/jit/test_enum.py

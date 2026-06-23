@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/_shard/sharded_optim/test_sharded_optim.py b/test/distributed/_shard/sharded_optim/test_sharded_optim.py
+diff --git a/test/distributed/_shard/sharded_optim/test_sharded_optim.py b/test/distributed/_shard/sharded_optim/test_sharded_optim.py
 index 12ba2a2aed1..202dab5a995 100644
 --- a/test/distributed/_shard/sharded_optim/test_sharded_optim.py
 +++ b/test/distributed/_shard/sharded_optim/test_sharded_optim.py

@@ -1,4 +1,4 @@
-﻿diff --git a/test/inductor/test_split_cat_fx_passes.py b/test/inductor/test_split_cat_fx_passes.py
+diff --git a/test/inductor/test_split_cat_fx_passes.py b/test/inductor/test_split_cat_fx_passes.py
 index aae07ba53d6..3427e7e4469 100644
 --- a/test/inductor/test_split_cat_fx_passes.py
 +++ b/test/inductor/test_split_cat_fx_passes.py

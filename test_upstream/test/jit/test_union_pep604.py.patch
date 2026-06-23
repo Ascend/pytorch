@@ -1,4 +1,4 @@
-﻿diff --git a/test/jit/test_union_pep604.py b/test/jit/test_union_pep604.py
+diff --git a/test/jit/test_union_pep604.py b/test/jit/test_union_pep604.py
 index 953ce52c497..6a718651274 100644
 --- a/test/jit/test_union_pep604.py
 +++ b/test/jit/test_union_pep604.py

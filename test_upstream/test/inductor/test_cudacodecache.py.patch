@@ -1,4 +1,4 @@
-﻿diff --git a/test/inductor/test_cudacodecache.py b/test/inductor/test_cudacodecache.py
+diff --git a/test/inductor/test_cudacodecache.py b/test/inductor/test_cudacodecache.py
 index b6786130416..6f66b990202 100644
 --- a/test/inductor/test_cudacodecache.py
 +++ b/test/inductor/test_cudacodecache.py

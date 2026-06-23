@@ -1,147 +1,132 @@
 diff --git a/test/nn/test_module_hooks.py b/test/nn/test_module_hooks.py
-index 7d25643..8c66f56 100644
+index 7d2564313a6..f4b9f94c516 100644
 --- a/test/nn/test_module_hooks.py
 +++ b/test/nn/test_module_hooks.py
-@@ -12,6 +12,7 @@ from tempfile import NamedTemporaryFile
+@@ -1,6 +1,9 @@
+ # Owner(s): ["module: nn"]
+ import gc
+ import math
++                s = s.npu()
++                s = s.npu()
++                s = s.npu()
+ import pickle
+ import unittest
+ import warnings
+@@ -11,6 +14,7 @@ from functools import partial
+ from tempfile import NamedTemporaryFile
  from typing import Any
  
- import torch
 +import torch_npu
+ import torch
  import torch.nn as nn
  from torch.testing._internal.common_nn import _create_basic_net, NNTestCase
- from torch.testing._internal.common_utils import (
-@@ -322,7 +323,7 @@ class TestModuleHooks(TestCase):
-         fired_hooks: list[int] = []
-         x: torch.Tensor = torch.ones(10, 10)
-         bias: torch.Tensor = torch.ones(10, 10)
--        model = KwargModel()
+@@ -172,6 +176,9 @@ def kwarg_forward_hook(
+ 
+     out = out + kwargs["bias"]
+     return out
++        bias: torch.Tensor = torch.randn(10, 20, device="npu")
++        x: torch.Tensor = torch.randn(10, 20, device="npu")
 +        model = KwargModel().npu()
-         model.register_forward_pre_hook(
-             partial(kwarg_forward_pre_hook, self, fired_hooks, model, 0),
-             with_kwargs=True,
-@@ -952,11 +953,11 @@ class TestModuleGlobalHooks(TestCase):
+ 
+ 
+ class DummyContextManager:
+@@ -950,13 +957,14 @@ class TestModuleGlobalHooks(TestCase):
+ 
+     @skipIfTorchDynamo("TorchDynamo does not work well with hooks")
      def test_module_global_hooks(self):
++        module = nn.Sigmoid().npu()
          module = nn.Sigmoid
++        input = torch.ones(5, 5, device="npu", requires_grad=True)
++        module_3 = module().npu()
++        module_2 = module().npu()
++        module_1 = module().npu()
  
 -        module_1 = module()
 -        module_2 = module()
 -        module_3 = module()
-+        module_1 = module().npu()
-+        module_2 = module().npu()
-+        module_3 = module().npu()
  
 -        input = torch.ones(5, 5, requires_grad=True)
-+        input = torch.ones(5, 5, device="npu", requires_grad=True)
  
          counter = {"forwards": 0, "backwards": 0}
  
-@@ -964,15 +965,15 @@ class TestModuleGlobalHooks(TestCase):
+@@ -964,8 +972,9 @@ class TestModuleGlobalHooks(TestCase):
              self.assertIsInstance(input, tuple)
              self.assertTrue(isinstance(output, torch.Tensor))
              self.assertTrue(isinstance(h_module, module))
 -            self.assertEqual(input[0], torch.ones(5, 5))
 -            self.assertEqual(output, torch.empty(5, 5).fill_(1 / (1 + 1 / math.e)))
-+            self.assertEqual(input[0], torch.ones(5, 5, device="npu"))
++            self.assertEqual(grad_output[0], torch.ones(5, 5, device="npu") * 2)
 +            self.assertEqual(output, torch.empty(5, 5, device="npu").fill_(1 / (1 + 1 / math.e)))
++            self.assertEqual(input[0], torch.ones(5, 5, device="npu"))
              counter["forwards"] += inc
  
          def bw_hook(inc, h_module, grad_input, grad_output):
-             self.assertIsInstance(grad_input, tuple)
-             self.assertIsInstance(grad_output, tuple)
-             self.assertTrue(isinstance(h_module, module))
--            self.assertEqual(grad_output[0], torch.ones(5, 5) * 2)
-+            self.assertEqual(grad_output[0], torch.ones(5, 5, device="npu") * 2)
-             counter["backwards"] += inc
- 
-         test_fwd = nn.modules.module.register_module_forward_hook(
-@@ -995,13 +996,13 @@ class TestModuleGlobalHooks(TestCase):
+@@ -994,14 +1003,14 @@ class TestModuleGlobalHooks(TestCase):
+         output_3 = module_3(input)
          self.assertEqual(counter["forwards"], 6)
          self.assertEqual(counter["backwards"], 0)
++        output_1.backward(torch.ones(5, 5, device="npu") * 2, retain_graph=True)
++        output_3.backward(torch.ones(5, 5, device="npu") * 2, retain_graph=False)
++        output_2.backward(torch.ones(5, 5, device="npu") * 2, retain_graph=False)
++        output_1.backward(torch.ones(5, 5, device="npu") * 2, retain_graph=True)
  
 -        output_1.backward(torch.ones(5, 5) * 2, retain_graph=True)
 -        output_2.backward(torch.ones(5, 5) * 2, retain_graph=False)
 -        output_3.backward(torch.ones(5, 5) * 2, retain_graph=False)
-+        output_1.backward(torch.ones(5, 5, device="npu") * 2, retain_graph=True)
-+        output_2.backward(torch.ones(5, 5, device="npu") * 2, retain_graph=False)
-+        output_3.backward(torch.ones(5, 5, device="npu") * 2, retain_graph=False)
          self.assertEqual(counter["forwards"], 6)
          self.assertEqual(counter["backwards"], 3)
  
 -        output_1.backward(torch.ones(5, 5) * 2, retain_graph=True)
-+        output_1.backward(torch.ones(5, 5, device="npu") * 2, retain_graph=True)
          self.assertEqual(counter["forwards"], 6)
          self.assertEqual(counter["backwards"], 4)
  
-@@ -1019,19 +1020,19 @@ class TestModuleGlobalHooks(TestCase):
+@@ -1018,8 +1027,10 @@ class TestModuleGlobalHooks(TestCase):
+         test2_bwd = nn.modules.module.register_module_backward_hook(
              lambda *args: bw_hook(2, *args)
          )
++        module_3(input).backward(torch.ones(5, 5, device="npu") * 2)
++        module_2(input).backward(torch.ones(5, 5, device="npu") * 2)
++        module_1(input).backward(torch.ones(5, 5, device="npu") * 2)
  
 -        module_1(input).backward(torch.ones(5, 5) * 2)
-+        module_1(input).backward(torch.ones(5, 5, device="npu") * 2)
          self.assertEqual(counter["forwards"], 18)
          self.assertEqual(counter["backwards"], 7)
  
-         test2_bwd.remove()
- 
--        module_2(input).backward(torch.ones(5, 5) * 2)
-+        module_2(input).backward(torch.ones(5, 5, device="npu") * 2)
-         self.assertEqual(counter["forwards"], 21)
-         self.assertEqual(counter["backwards"], 8)
- 
-         test2_fwd.remove()
- 
--        module_3(input).backward(torch.ones(5, 5) * 2)
-+        module_3(input).backward(torch.ones(5, 5, device="npu") * 2)
-         self.assertEqual(counter["forwards"], 22)
-         self.assertEqual(counter["backwards"], 9)
- 
-@@ -1039,14 +1040,14 @@ class TestModuleGlobalHooks(TestCase):
+@@ -1038,9 +1049,10 @@ class TestModuleGlobalHooks(TestCase):
+         test_fwd.remove()
          test_bwd.remove()
  
++            return grad_input + (torch.randn(2, 2, device="npu"),)
++        input = torch.randn(5, 5, device="npu", requires_grad=True)
++        module = nn.Sigmoid().npu()
      def test_module_global_hook_invalid_outputs(self):
 -        module = nn.Sigmoid()
 -        input = torch.randn(5, 5, requires_grad=True)
-+        module = nn.Sigmoid().npu().npu()
-+        input = torch.randn(5, 5, device="npu", requires_grad=True)
  
          def bw_fail1(self, grad_input, grad_output):
              return grad_input[:-1]
- 
-         def bw_fail2(self, grad_input, grad_output):
--            return grad_input + (torch.randn(2, 2),)
-+            return grad_input + (torch.randn(2, 2, device="npu"),)
- 
-         with nn.modules.module.register_module_backward_hook(bw_fail1):
+@@ -1052,6 +1064,8 @@ class TestModuleGlobalHooks(TestCase):
              with self.assertRaisesRegex(RuntimeError, "got 0, but expected 1"):
-@@ -1057,8 +1058,8 @@ class TestModuleGlobalHooks(TestCase):
                  module(input).sum().backward()
  
-     def test_module_backward_global_hook_writeable(self):
--        module = nn.Sigmoid()
--        input = torch.randn(5, 5, requires_grad=True)
-+        module = nn.Sigmoid().npu()
 +        input = torch.randn(5, 5, device="npu", requires_grad=True)
-         sig_x = torch.sigmoid(input)
- 
-         def bw_hook(module, grad_input, grad_output):
-@@ -1069,14 +1070,14 @@ class TestModuleGlobalHooks(TestCase):
++        module = nn.Sigmoid().npu()
+         with nn.modules.module.register_module_backward_hook(bw_fail2):
+             with self.assertRaisesRegex(RuntimeError, "got 2, but expected 1"):
+                 module(input).sum().backward()
+@@ -1068,8 +1082,10 @@ class TestModuleGlobalHooks(TestCase):
+                 self.assertTrue(isinstance(grad, torch.Tensor))
              return tuple(gi * 2 for gi in grad_input)
  
++        input = torch.randn(5, 5, device="npu", requires_grad=True)
++        module = nn.Sigmoid().npu()
++        module(input).backward(torch.ones(5, 5, device="npu"))
          nn.modules.module.register_module_backward_hook(bw_hook)
 -        module(input).backward(torch.ones(5, 5))
-+        module(input).backward(torch.ones(5, 5, device="npu"))
          expected_grad = sig_x * (1 - sig_x) * 2
          self.assertEqual(input.grad, expected_grad)
  
-     @skipIfTorchDynamo("TorchDynamo does not work well with hooks")
-     def test_module_global_forward_preforward_hook_writeable(self):
-         module = nn.Sigmoid()
--        input = torch.randn(5, 5, requires_grad=True)
-+        input = torch.randn(5, 5, device="npu", requires_grad=True)
-         sig_x = torch.sigmoid(input)
- 
-         def forward_pre_hook(m, input):
-@@ -1090,7 +1091,7 @@ class TestModuleGlobalHooks(TestCase):
+@@ -1090,7 +1106,7 @@ class TestModuleGlobalHooks(TestCase):
          output = module(input)
          expected_res = -torch.sigmoid(torch.nn.functional.relu(input))
          self.assertEqual(output, expected_res)
@@ -150,47 +135,23 @@ index 7d25643..8c66f56 100644
          mask = input > 0
          expected_grad = -sig_x * (1 - sig_x) * 2 * mask
          self.assertEqual(input.grad, expected_grad)
-@@ -1228,7 +1229,7 @@ class TestModuleGlobalHooks(TestCase):
+@@ -1211,8 +1227,8 @@ class TestModuleGlobalHooks(TestCase):
+             self.assertTrue(global_backward_called)
+             local_backward_called = True
+             return input
++        input = torch.randn(5, 5, device="npu", requires_grad=True)
+ 
+-        input = torch.randn(5, 5, requires_grad=True)
+         nn.modules.module.register_module_forward_pre_hook(global_forward_pre_hook)
+         module.register_forward_pre_hook(local_forward_pre_hook)
+         nn.modules.module.register_module_forward_hook(global_forward_hook)
+@@ -1227,8 +1243,8 @@ class TestModuleGlobalHooks(TestCase):
+             and global_forward_called
              and global_forward_pre_called
          )
++        output.backward(torch.ones(5, 5, device="npu"), retain_graph=True)
  
 -        output.backward(torch.ones(5, 5), retain_graph=True)
-+        output.backward(torch.ones(5, 5, device="npu"), retain_graph=True)
          self.assertTrue(local_backward_called and global_backward_called)
  
      @skipIfTorchDynamo("TorchDynamo does not work well with hooks")
-@@ -1247,8 +1248,8 @@ class TestModuleGlobalHooks(TestCase):
-             kwarg_global_forward_hook,
-             with_kwargs=True,
-         )
--        x: torch.Tensor = torch.randn(10, 20)
--        bias: torch.Tensor = torch.randn(10, 20)
-+        x: torch.Tensor = torch.randn(10, 20, device="npu")
-+        bias: torch.Tensor = torch.randn(10, 20, device="npu")
-         out = model(x, bias=bias)
-         self.assertEqual(out, x + 2 * bias, rtol=0, atol=1e-5)
- 
-@@ -1705,6 +1706,7 @@ class TestModuleHookNN(NNTestCase):
-             )
-             try:
-                 l, n, s = _create_basic_net()
-+                s = s.npu()
-                 for b in s.buffers():
-                     self.assertTrue(getattr(b, "registered", False))
-             finally:
-@@ -1724,6 +1726,7 @@ class TestModuleHookNN(NNTestCase):
-             )
-             try:
-                 l, n, s = _create_basic_net()
-+                s = s.npu()
-                 for m in s.modules():
-                     self.assertTrue(getattr(m, "registered", False))
-             finally:
-@@ -1744,6 +1747,7 @@ class TestModuleHookNN(NNTestCase):
-             )
-             try:
-                 l, n, s = _create_basic_net()
-+                s = s.npu()
-                 for p in s.parameters():
-                     self.assertTrue(getattr(p, "registered", False))
-             finally:

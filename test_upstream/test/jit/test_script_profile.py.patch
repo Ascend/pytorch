@@ -1,4 +1,4 @@
-﻿diff --git a/test/jit/test_script_profile.py b/test/jit/test_script_profile.py
+diff --git a/test/jit/test_script_profile.py b/test/jit/test_script_profile.py
 index 4bc8008d1aa..4f65b7ad1d1 100644
 --- a/test/jit/test_script_profile.py
 +++ b/test/jit/test_script_profile.py

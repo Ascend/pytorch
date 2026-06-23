@@ -1,4 +1,4 @@
-﻿diff --git a/test/onnx/exporter/test_capture_strategies.py b/test/onnx/exporter/test_capture_strategies.py
+diff --git a/test/onnx/exporter/test_capture_strategies.py b/test/onnx/exporter/test_capture_strategies.py
 index 2fd61d6c357..c5b11029b6f 100644
 --- a/test/onnx/exporter/test_capture_strategies.py
 +++ b/test/onnx/exporter/test_capture_strategies.py

@@ -1,4 +1,4 @@
-﻿diff --git a/test/test_prims.py b/test/test_prims.py
+diff --git a/test/test_prims.py b/test/test_prims.py
 index e528a1eb2e4..982d8e69449 100644
 --- a/test/test_prims.py
 +++ b/test/test_prims.py

@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/flight_recorder/test_fr_analysis.py b/test/distributed/flight_recorder/test_fr_analysis.py
+diff --git a/test/distributed/flight_recorder/test_fr_analysis.py b/test/distributed/flight_recorder/test_fr_analysis.py
 index e68e7195371..0cf103c3cea 100644
 --- a/test/distributed/flight_recorder/test_fr_analysis.py
 +++ b/test/distributed/flight_recorder/test_fr_analysis.py

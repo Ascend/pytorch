@@ -1,4 +1,4 @@
-﻿diff --git a/test/jit/test_python_bindings.py b/test/jit/test_python_bindings.py
+diff --git a/test/jit/test_python_bindings.py b/test/jit/test_python_bindings.py
 index dc6300f6919..8916319df60 100644
 --- a/test/jit/test_python_bindings.py
 +++ b/test/jit/test_python_bindings.py

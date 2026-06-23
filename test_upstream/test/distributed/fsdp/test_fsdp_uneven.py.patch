@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/fsdp/test_fsdp_uneven.py b/test/distributed/fsdp/test_fsdp_uneven.py
+diff --git a/test/distributed/fsdp/test_fsdp_uneven.py b/test/distributed/fsdp/test_fsdp_uneven.py
 index 4d97f3ac9e4..2de8c76f5b7 100644
 --- a/test/distributed/fsdp/test_fsdp_uneven.py
 +++ b/test/distributed/fsdp/test_fsdp_uneven.py

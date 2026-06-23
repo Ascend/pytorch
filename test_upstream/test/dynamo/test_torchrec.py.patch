@@ -1,4 +1,4 @@
-﻿diff --git a/test/dynamo/test_torchrec.py b/test/dynamo/test_torchrec.py
+diff --git a/test/dynamo/test_torchrec.py b/test/dynamo/test_torchrec.py
 index 311270a8f65..641ba52578e 100644
 --- a/test/dynamo/test_torchrec.py
 +++ b/test/dynamo/test_torchrec.py

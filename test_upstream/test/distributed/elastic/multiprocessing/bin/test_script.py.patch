@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/elastic/multiprocessing/bin/test_script.py b/test/distributed/elastic/multiprocessing/bin/test_script.py
+diff --git a/test/distributed/elastic/multiprocessing/bin/test_script.py b/test/distributed/elastic/multiprocessing/bin/test_script.py
 index 48672f1a6bc..a1425ec66dc 100755
 --- a/test/distributed/elastic/multiprocessing/bin/test_script.py
 +++ b/test/distributed/elastic/multiprocessing/bin/test_script.py

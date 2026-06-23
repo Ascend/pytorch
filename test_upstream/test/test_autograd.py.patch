@@ -1,5 +1,5 @@
 diff --git a/test/test_autograd.py b/test/test_autograd.py
-index cdb4f9e..c2d1578 100644
+index cdb4f9ed7aa..7be87f2784c 100644
 --- a/test/test_autograd.py
 +++ b/test/test_autograd.py
 @@ -28,6 +28,7 @@ from operator import mul
@@ -137,12 +137,3 @@ index cdb4f9e..c2d1578 100644
          context_fn = functools.partial(create_selective_checkpoint_contexts, policy_fn)
          out = checkpoint(fn, x, use_reentrant=False, context_fn=context_fn)
          out.sum().backward(retain_graph=True)
-@@ -15753,7 +15754,7 @@ class TestSelectiveActivationCheckpoint(TestCase):
-                 fwd_decisions.append(decision)
-                 return decision
- 
--            x = torch.randn(4, requires_grad=True)
-+            x = torch.randn(4, device="npu", requires_grad=True)
-             context_fn = functools.partial(
-                 create_selective_checkpoint_contexts, policy_fn
-             )

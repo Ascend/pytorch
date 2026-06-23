@@ -1,4 +1,4 @@
-﻿diff --git a/test/functorch/test_rearrange.py b/test/functorch/test_rearrange.py
+diff --git a/test/functorch/test_rearrange.py b/test/functorch/test_rearrange.py
 index b3c8f775368..2cba7f4d0a4 100644
 --- a/test/functorch/test_rearrange.py
 +++ b/test/functorch/test_rearrange.py

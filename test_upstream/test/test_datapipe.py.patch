@@ -1,5 +1,5 @@
 diff --git a/test/test_datapipe.py b/test/test_datapipe.py
-index 393ebcb..0ac1981 100644
+index 393ebcbef3f..0ac19815fae 100644
 --- a/test/test_datapipe.py
 +++ b/test/test_datapipe.py
 @@ -27,6 +27,8 @@ from unittest import skipIf
@@ -94,3 +94,9 @@ index 393ebcb..0ac1981 100644
              )
  
      def test_batch_mapdatapipe(self):
+
+# NPU Patch Explanation:
+# - Added import torch_npu and transfer_to_npu utility
+# - Added .npu() calls to tensor creation for NPU device support
+# - Modified test assertions to use NPU tensors
+# - Enables datapipe tests to run on NPU hardware

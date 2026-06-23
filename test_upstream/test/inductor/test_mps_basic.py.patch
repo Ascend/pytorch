@@ -1,4 +1,4 @@
-﻿diff --git a/test/inductor/test_mps_basic.py b/test/inductor/test_mps_basic.py
+diff --git a/test/inductor/test_mps_basic.py b/test/inductor/test_mps_basic.py
 index 5d1d68d391a..59b3f9f762a 100644
 --- a/test/inductor/test_mps_basic.py
 +++ b/test/inductor/test_mps_basic.py

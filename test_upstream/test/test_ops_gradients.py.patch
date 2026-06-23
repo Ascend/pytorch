@@ -1,4 +1,4 @@
-﻿diff --git a/test/test_ops_gradients.py b/test/test_ops_gradients.py
+diff --git a/test/test_ops_gradients.py b/test/test_ops_gradients.py
 index 4dfedc45852..773efcc48f7 100644
 --- a/test/test_ops_gradients.py
 +++ b/test/test_ops_gradients.py

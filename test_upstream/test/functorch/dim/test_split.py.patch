@@ -1,4 +1,4 @@
-﻿diff --git a/test/functorch/dim/test_split.py b/test/functorch/dim/test_split.py
+diff --git a/test/functorch/dim/test_split.py b/test/functorch/dim/test_split.py
 index 12b47c5ab4d..022943549ad 100644
 --- a/test/functorch/dim/test_split.py
 +++ b/test/functorch/dim/test_split.py

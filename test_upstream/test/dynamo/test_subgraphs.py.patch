@@ -1,4 +1,4 @@
-﻿diff --git a/test/dynamo/test_subgraphs.py b/test/dynamo/test_subgraphs.py
+diff --git a/test/dynamo/test_subgraphs.py b/test/dynamo/test_subgraphs.py
 index 7095b4f80db..d3d86ddef7f 100644
 --- a/test/dynamo/test_subgraphs.py
 +++ b/test/dynamo/test_subgraphs.py

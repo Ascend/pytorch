@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/checkpoint/test_quantized_hf_storage.py b/test/distributed/checkpoint/test_quantized_hf_storage.py
+diff --git a/test/distributed/checkpoint/test_quantized_hf_storage.py b/test/distributed/checkpoint/test_quantized_hf_storage.py
 index da15cff6801..2bb87025514 100644
 --- a/test/distributed/checkpoint/test_quantized_hf_storage.py
 +++ b/test/distributed/checkpoint/test_quantized_hf_storage.py

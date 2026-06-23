@@ -1,4 +1,4 @@
-﻿diff --git a/test/inductor/test_extension_backend.py b/test/inductor/test_extension_backend.py
+diff --git a/test/inductor/test_extension_backend.py b/test/inductor/test_extension_backend.py
 index 08b458d761f..78d4fb6250e 100644
 --- a/test/inductor/test_extension_backend.py
 +++ b/test/inductor/test_extension_backend.py

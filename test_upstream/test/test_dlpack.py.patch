@@ -1,4 +1,4 @@
-﻿diff --git a/test/test_dlpack.py b/test/test_dlpack.py
+diff --git a/test/test_dlpack.py b/test/test_dlpack.py
 index e5cd153d5b2..f66b2cc70b9 100644
 --- a/test/test_dlpack.py
 +++ b/test/test_dlpack.py

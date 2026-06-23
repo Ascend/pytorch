@@ -1,4 +1,4 @@
-﻿diff --git a/test/test_subclass.py b/test/test_subclass.py
+diff --git a/test/test_subclass.py b/test/test_subclass.py
 index 36d870512cc..2cf2f437853 100644
 --- a/test/test_subclass.py
 +++ b/test/test_subclass.py

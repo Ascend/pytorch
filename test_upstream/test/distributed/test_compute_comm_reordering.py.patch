@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/test_compute_comm_reordering.py b/test/distributed/test_compute_comm_reordering.py
+diff --git a/test/distributed/test_compute_comm_reordering.py b/test/distributed/test_compute_comm_reordering.py
 index cc541ab8c38..a09367512b4 100644
 --- a/test/distributed/test_compute_comm_reordering.py
 +++ b/test/distributed/test_compute_comm_reordering.py

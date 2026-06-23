@@ -1,4 +1,4 @@
-﻿diff --git a/test/test_hop_infra.py b/test/test_hop_infra.py
+diff --git a/test/test_hop_infra.py b/test/test_hop_infra.py
 index 58f1a3819a5..f49ff81fdd5 100644
 --- a/test/test_hop_infra.py
 +++ b/test/test_hop_infra.py

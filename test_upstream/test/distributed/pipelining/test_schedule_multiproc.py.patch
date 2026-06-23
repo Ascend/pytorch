@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/pipelining/test_schedule_multiproc.py b/test/distributed/pipelining/test_schedule_multiproc.py
+diff --git a/test/distributed/pipelining/test_schedule_multiproc.py b/test/distributed/pipelining/test_schedule_multiproc.py
 index 6d37e65214f..608fa3c4988 100644
 --- a/test/distributed/pipelining/test_schedule_multiproc.py
 +++ b/test/distributed/pipelining/test_schedule_multiproc.py

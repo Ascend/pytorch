@@ -1,4 +1,4 @@
-﻿diff --git a/test/jit/test_unsupported_ops.py b/test/jit/test_unsupported_ops.py
+diff --git a/test/jit/test_unsupported_ops.py b/test/jit/test_unsupported_ops.py
 index 47d57bd7461..a612705fe70 100644
 --- a/test/jit/test_unsupported_ops.py
 +++ b/test/jit/test_unsupported_ops.py

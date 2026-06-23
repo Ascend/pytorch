@@ -1,4 +1,4 @@
-﻿diff --git a/test/quantization/jit/test_deprecated_jit_quant.py b/test/quantization/jit/test_deprecated_jit_quant.py
+diff --git a/test/quantization/jit/test_deprecated_jit_quant.py b/test/quantization/jit/test_deprecated_jit_quant.py
 index a6fd49588da..d7eda35650a 100644
 --- a/test/quantization/jit/test_deprecated_jit_quant.py
 +++ b/test/quantization/jit/test_deprecated_jit_quant.py

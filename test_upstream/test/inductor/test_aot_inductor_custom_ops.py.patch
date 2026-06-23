@@ -1,5 +1,5 @@
-﻿diff --git a/test/inductor/test_aot_inductor_custom_ops.py b/test/inductor/test_aot_inductor_custom_ops.py
-index e83d11fe0af..5660e3e2aa2 100644
+diff --git a/test/inductor/test_aot_inductor_custom_ops.py b/test/inductor/test_aot_inductor_custom_ops.py
+index e83d11fe0af..460d76c28e1 100644
 --- a/test/inductor/test_aot_inductor_custom_ops.py
 +++ b/test/inductor/test_aot_inductor_custom_ops.py
 @@ -1,3 +1,11 @@
@@ -31,13 +31,11 @@ index e83d11fe0af..5660e3e2aa2 100644
  
  @torch.library.custom_op(
      "aoti_custom_ops::fn_with_incorrect_optional_tensor", mutates_args=()
-@@ -644,7 +651,5 @@ copy_tests(
- 
+@@ -645,6 +652,4 @@ copy_tests(
  if __name__ == "__main__":
      from torch._inductor.test_case import run_tests
--
+ 
 -    # cpp_extension N/A in fbcode
 -    if HAS_GPU_AND_TRITON or sys.platform == "darwin":
 -        run_tests(needs="filelock")
-+    
 +    run_tests(needs="filelock")

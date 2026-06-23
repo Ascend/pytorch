@@ -1,4 +1,4 @@
-﻿diff --git a/test/lazy/test_extract_compiled_graph.py b/test/lazy/test_extract_compiled_graph.py
+diff --git a/test/lazy/test_extract_compiled_graph.py b/test/lazy/test_extract_compiled_graph.py
 index 844b9fef1af..19341563f71 100644
 --- a/test/lazy/test_extract_compiled_graph.py
 +++ b/test/lazy/test_extract_compiled_graph.py

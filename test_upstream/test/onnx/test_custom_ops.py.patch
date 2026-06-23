@@ -1,4 +1,4 @@
-﻿diff --git a/test/onnx/test_custom_ops.py b/test/onnx/test_custom_ops.py
+diff --git a/test/onnx/test_custom_ops.py b/test/onnx/test_custom_ops.py
 index bf751822dea..8dd5080a540 100644
 --- a/test/onnx/test_custom_ops.py
 +++ b/test/onnx/test_custom_ops.py

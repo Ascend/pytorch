@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/test_collective_utils.py b/test/distributed/test_collective_utils.py
+diff --git a/test/distributed/test_collective_utils.py b/test/distributed/test_collective_utils.py
 index d5cc98f4617..8f47614d9dc 100644
 --- a/test/distributed/test_collective_utils.py
 +++ b/test/distributed/test_collective_utils.py

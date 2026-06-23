@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/checkpoint/test_dedup_tensors.py b/test/distributed/checkpoint/test_dedup_tensors.py
+diff --git a/test/distributed/checkpoint/test_dedup_tensors.py b/test/distributed/checkpoint/test_dedup_tensors.py
 index b86f8175a9b..9df85db171b 100644
 --- a/test/distributed/checkpoint/test_dedup_tensors.py
 +++ b/test/distributed/checkpoint/test_dedup_tensors.py

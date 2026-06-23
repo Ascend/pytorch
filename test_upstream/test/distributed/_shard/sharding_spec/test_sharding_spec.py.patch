@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/_shard/sharding_spec/test_sharding_spec.py b/test/distributed/_shard/sharding_spec/test_sharding_spec.py
+diff --git a/test/distributed/_shard/sharding_spec/test_sharding_spec.py b/test/distributed/_shard/sharding_spec/test_sharding_spec.py
 index fe14f815749..c861f7e1942 100644
 --- a/test/distributed/_shard/sharding_spec/test_sharding_spec.py
 +++ b/test/distributed/_shard/sharding_spec/test_sharding_spec.py

@@ -1,4 +1,4 @@
-﻿diff --git a/test/dynamo/test_deque_reconstruct.py b/test/dynamo/test_deque_reconstruct.py
+diff --git a/test/dynamo/test_deque_reconstruct.py b/test/dynamo/test_deque_reconstruct.py
 index 05f45260aaa..5b1f3cf89ef 100644
 --- a/test/dynamo/test_deque_reconstruct.py
 +++ b/test/dynamo/test_deque_reconstruct.py

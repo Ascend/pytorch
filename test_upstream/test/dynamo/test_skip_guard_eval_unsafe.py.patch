@@ -1,4 +1,4 @@
-﻿diff --git a/test/dynamo/test_skip_guard_eval_unsafe.py b/test/dynamo/test_skip_guard_eval_unsafe.py
+diff --git a/test/dynamo/test_skip_guard_eval_unsafe.py b/test/dynamo/test_skip_guard_eval_unsafe.py
 index dc7d74bc362..63efebb102b 100644
 --- a/test/dynamo/test_skip_guard_eval_unsafe.py
 +++ b/test/dynamo/test_skip_guard_eval_unsafe.py

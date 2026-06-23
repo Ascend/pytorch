@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/fsdp/test_fsdp_use_orig_params.py b/test/distributed/fsdp/test_fsdp_use_orig_params.py
+diff --git a/test/distributed/fsdp/test_fsdp_use_orig_params.py b/test/distributed/fsdp/test_fsdp_use_orig_params.py
 index 34ba6329a7a..8e6745e96ce 100644
 --- a/test/distributed/fsdp/test_fsdp_use_orig_params.py
 +++ b/test/distributed/fsdp/test_fsdp_use_orig_params.py

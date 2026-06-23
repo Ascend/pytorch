@@ -1,4 +1,4 @@
-﻿diff --git a/test/inductor/test_auto_functionalize.py b/test/inductor/test_auto_functionalize.py
+diff --git a/test/inductor/test_auto_functionalize.py b/test/inductor/test_auto_functionalize.py
 index 897e0c64a64..c15fa8047bc 100644
 --- a/test/inductor/test_auto_functionalize.py
 +++ b/test/inductor/test_auto_functionalize.py

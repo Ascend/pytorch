@@ -1,4 +1,4 @@
-﻿diff --git a/test/inductor/test_memory_planning.py b/test/inductor/test_memory_planning.py
+diff --git a/test/inductor/test_memory_planning.py b/test/inductor/test_memory_planning.py
 index 17b863cc1bc..9f613abdba9 100644
 --- a/test/inductor/test_memory_planning.py
 +++ b/test/inductor/test_memory_planning.py

@@ -1,4 +1,4 @@
-﻿diff --git a/test/jit/test_op_decompositions.py b/test/jit/test_op_decompositions.py
+diff --git a/test/jit/test_op_decompositions.py b/test/jit/test_op_decompositions.py
 index dacd829e793..247b6772777 100644
 --- a/test/jit/test_op_decompositions.py
 +++ b/test/jit/test_op_decompositions.py

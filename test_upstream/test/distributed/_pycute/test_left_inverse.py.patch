@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/_pycute/test_left_inverse.py b/test/distributed/_pycute/test_left_inverse.py
+diff --git a/test/distributed/_pycute/test_left_inverse.py b/test/distributed/_pycute/test_left_inverse.py
 index a02e3b29938..2ad81e924f6 100644
 --- a/test/distributed/_pycute/test_left_inverse.py
 +++ b/test/distributed/_pycute/test_left_inverse.py

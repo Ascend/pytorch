@@ -1,4 +1,4 @@
-﻿diff --git a/test/inductor/test_pad_mm.py b/test/inductor/test_pad_mm.py
+diff --git a/test/inductor/test_pad_mm.py b/test/inductor/test_pad_mm.py
 index 728b8635765..ecd1066cde8 100644
 --- a/test/inductor/test_pad_mm.py
 +++ b/test/inductor/test_pad_mm.py

@@ -1,4 +1,4 @@
-﻿diff --git a/test/functorch/test_vmap_registrations.py b/test/functorch/test_vmap_registrations.py
+diff --git a/test/functorch/test_vmap_registrations.py b/test/functorch/test_vmap_registrations.py
 index d9d12526ea8..b813c6df09a 100644
 --- a/test/functorch/test_vmap_registrations.py
 +++ b/test/functorch/test_vmap_registrations.py

@@ -1,4 +1,4 @@
-﻿diff --git a/test/jit/test_complexity.py b/test/jit/test_complexity.py
+diff --git a/test/jit/test_complexity.py b/test/jit/test_complexity.py
 index 2fa038d1496..07803b51574 100644
 --- a/test/jit/test_complexity.py
 +++ b/test/jit/test_complexity.py

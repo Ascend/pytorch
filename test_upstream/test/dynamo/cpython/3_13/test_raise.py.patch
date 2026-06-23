@@ -1,4 +1,4 @@
-﻿diff --git a/test/dynamo/cpython/3_13/test_raise.py b/test/dynamo/cpython/3_13/test_raise.py
+diff --git a/test/dynamo/cpython/3_13/test_raise.py b/test/dynamo/cpython/3_13/test_raise.py
 index 99326c05670..abd76e48365 100644
 --- a/test/dynamo/cpython/3_13/test_raise.py
 +++ b/test/dynamo/cpython/3_13/test_raise.py

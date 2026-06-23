@@ -1,4 +1,4 @@
-﻿diff --git a/test/jit/test_recursive_script.py b/test/jit/test_recursive_script.py
+diff --git a/test/jit/test_recursive_script.py b/test/jit/test_recursive_script.py
 index 4399c260499..159a7dc2efe 100644
 --- a/test/jit/test_recursive_script.py
 +++ b/test/jit/test_recursive_script.py

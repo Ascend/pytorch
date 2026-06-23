@@ -1,4 +1,4 @@
-﻿diff --git a/test/jit/test_attr.py b/test/jit/test_attr.py
+diff --git a/test/jit/test_attr.py b/test/jit/test_attr.py
 index d9d5fab1615..3b8c1087eef 100644
 --- a/test/jit/test_attr.py
 +++ b/test/jit/test_attr.py

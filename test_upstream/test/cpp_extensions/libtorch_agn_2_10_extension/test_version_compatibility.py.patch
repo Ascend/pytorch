@@ -1,4 +1,4 @@
-﻿diff --git a/test/cpp_extensions/libtorch_agn_2_10_extension/test_version_compatibility.py b/test/cpp_extensions/libtorch_agn_2_10_extension/test_version_compatibility.py
+diff --git a/test/cpp_extensions/libtorch_agn_2_10_extension/test_version_compatibility.py b/test/cpp_extensions/libtorch_agn_2_10_extension/test_version_compatibility.py
 index 9724610d038..37d70671df3 100644
 --- a/test/cpp_extensions/libtorch_agn_2_10_extension/test_version_compatibility.py
 +++ b/test/cpp_extensions/libtorch_agn_2_10_extension/test_version_compatibility.py

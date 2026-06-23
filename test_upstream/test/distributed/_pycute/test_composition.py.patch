@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/_pycute/test_composition.py b/test/distributed/_pycute/test_composition.py
+diff --git a/test/distributed/_pycute/test_composition.py b/test/distributed/_pycute/test_composition.py
 index 467b13933ff..ddf904f1f31 100644
 --- a/test/distributed/_pycute/test_composition.py
 +++ b/test/distributed/_pycute/test_composition.py

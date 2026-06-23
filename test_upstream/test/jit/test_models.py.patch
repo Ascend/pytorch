@@ -1,4 +1,4 @@
-﻿diff --git a/test/jit/test_models.py b/test/jit/test_models.py
+diff --git a/test/jit/test_models.py b/test/jit/test_models.py
 index 4dd099dbaad..da3239527da 100644
 --- a/test/jit/test_models.py
 +++ b/test/jit/test_models.py

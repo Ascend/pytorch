@@ -1,175 +1,29 @@
+diff --git a/torch/distributed/distributed_c10d.py b/torch/distributed/distributed_c10d.py
+index 05986c191a2..f2f6d4e5f43 100644
 --- a/torch/distributed/distributed_c10d.py
 +++ b/torch/distributed/distributed_c10d.py
-@@ -287,6 +287,7 @@
-     UNDEFINED = "undefined"
-     GLOO = "gloo"
-     NCCL = "nccl"
-+    HCCL = "hcc_l"
-     UCC = "ucc"
-     MPI = "mpi"
-     XCCL = "xccl"
-@@ -296,23 +297,25 @@
- 
-     _plugins: dict[str, _BackendPlugin] = {}
- 
--    backend_list = [UNDEFINED, GLOO, NCCL, XCCL, UCC, MPI, FAKE]
-+    backend_list = [UNDEFINED, GLOO, NCCL, HCCL, XCCL, UCC, MPI, FAKE]
- 
-     # 3rd-party devices can register the default backend support here
-     default_device_backend_map: dict[str, str] = {
-         "cpu": GLOO,
--        "cuda": NCCL,
-+        "npu": NCCL,
+@@ -304,10 +304,14 @@ class Backend(str):  # noqa: SLOT000
+         "cuda": NCCL,
          "xpu": XCCL,
          "mps": GLOO,
++        MPI: ["cpu", "npu"],
++        UCC: ["cpu", "npu"],
++        HCCL: ["npu"],
++        GLOO: ["cpu", "npu"],
 +        "npu": HCCL,
      }
  
      backend_capability: dict[str, list[str]] = {
 -        GLOO: ["cpu", "cuda"],
--        NCCL: ["cuda"],
-+        GLOO: ["cpu", "npu"],
-+        NCCL: ["npu"],
-+        HCCL: ["npu"],
+         NCCL: ["cuda"],
          XCCL: ["xpu"],
--        UCC: ["cpu", "cuda"],
--        MPI: ["cpu", "cuda"],
--        FAKE: ["cpu", "cuda", "hpu", "xpu"],
-+        UCC: ["cpu", "npu"],
-+        MPI: ["cpu", "npu"],
-+        FAKE: ["cpu", "npu", "hpu", "xpu"],
-     }
- 
-     backend_type_map: dict[str, ProcessGroup.BackendType] = {
-@@ -361,8 +364,8 @@
-                                            will get an instance of ``c10d::DistributedBackendOptions``, and
-                                            a process group options object as defined by the backend implementation.
-             device (str or list of str, optional): device type this backend
--                            supports, e.g. "cpu", "cuda", etc. If `None`,
--                            assuming both "cpu" and "cuda"
-+                            supports, e.g. "cpu", "npu", etc. If `None`,
-+                            assuming both "cpu" and "npu"
- 
-         .. note:: This support of 3rd party backend is experimental and subject to change.
- 
-@@ -386,7 +389,7 @@
-         # Update device capability matrix in Backend class
-         if devices is None:
-             # This is more of a backward support for groups like `threaded`:
--            # assume default devices "cpu" and "cuda", but warn
-+            # assume default devices "cpu" and "npu", but warn
-             warnings.warn(
-                 f"Device capability of {name} unspecified, assuming `cpu` and "
-                 "`cuda` or `xpu`. Please specify it via the `devices` argument of "
-@@ -394,7 +397,7 @@
-                 stacklevel=2,
-             )
-             Backend.backend_capability[name.lower()] = (
--                ["cpu", "cuda", "xpu"] if torch.xpu.is_available() else ["cpu", "cuda"]
-+                ["cpu", "npu", "xpu"] if torch.xpu.is_available() else ["cpu", "npu"]
-             )
-         elif isinstance(devices, str):
-             # Single device string specified. Simply convert to list.
-@@ -472,7 +475,7 @@
-             backend_val = Backend(backend)
-             self.device_backend_map = {
-                 "cpu": backend_val,
--                "cuda": backend_val,
-+                "npu": backend_val,
-                 "xpu": backend_val,
-             }
- 
-@@ -861,7 +864,7 @@
- 
-     """
-     ``group._device_types`` is a property pybind that returns the devices
--    ("cpu", "cuda", etc) supported by ``group``. Can be multiple if the
-+    ("cpu", "npu", etc) supported by ``group``. Can be multiple if the
-     ``group`` supports multiple devices.
-     """
-     devices = group._device_types
-@@ -898,7 +901,7 @@
-     Return the device type registered with ``group``.
- 
-     For example, if `init_process_group("nccl", ...)` was called, the returned
--    value would be `torch.device("cuda")`.
-+    value would be `torch.device("npu")`.
- 
-     Errors out if no device has been registered.
- 
-@@ -936,7 +939,7 @@
- 
-     """
-     ``group._device_types`` is a property pybind that returns the devices
--    ("cpu", "cuda", etc) supported by ``group``. Can be multiple if the
-+    ("cpu", "npu", etc) supported by ``group``. Can be multiple if the
-     ``group`` supports multiple devices.
-     """
-     devices = group._device_types
-@@ -1476,7 +1479,7 @@
- def _get_process_group_uid(pg: ProcessGroup) -> int:
-     backend = None
-     try:
--        backend = pg._get_backend(torch.device("cuda"))
-+        backend = pg._get_backend(torch.device("npu"))
-     except RuntimeError:
-         pass
-     if is_nccl_available() and isinstance(backend, ProcessGroupNCCL):
-@@ -1563,8 +1566,8 @@
-     """
-     for pg in _world.pg_map:
-         devices = pg._device_types
--        if torch.device("cuda") in devices:
--            backend = pg._get_backend(torch.device("cuda"))
-+        if torch.device("npu") in devices:
-+            backend = pg._get_backend(torch.device("npu"))
-             if is_nccl_available() and isinstance(backend, ProcessGroupNCCL):
-                 backend._add_ephemeral_timeout(timeout)
- 
-@@ -1601,8 +1604,8 @@
-         backend = group._get_backend(torch.device("cpu"))
-         if isinstance(backend, ProcessGroupGloo):
-             backends.add(backend)
--    if torch.device("cuda") in devices:
--        backend = group._get_backend(torch.device("cuda"))
-+    if torch.device("npu") in devices:
-+        backend = group._get_backend(torch.device("npu"))
-         if is_nccl_available() and isinstance(backend, ProcessGroupNCCL):
-             backends.add(backend)  # type: ignore[arg-type]
-         elif is_gloo_available() and isinstance(backend, ProcessGroupGloo):
-@@ -1921,7 +1924,7 @@
-         split_from = pg._get_backend(pg.bound_device_id)
-     elif pg is _world.default_pg:
-         try:
--            split_from = pg._get_backend(torch.device("cuda"))
-+            split_from = pg._get_backend(torch.device("npu"))
-         except RuntimeError:
-             # no cuda device associated with this backend
-             pass
-@@ -2420,7 +2423,7 @@
-         raise ValueError("Invalid process group specified or has been destroyed.")
- 
-     try:
--        backend = pg._get_backend(torch.device("cuda"))
-+        backend = pg._get_backend(torch.device("npu"))
-     except RuntimeError:
-         backend = None
- 
-@@ -6204,7 +6207,7 @@
-         else:
-             # Try CUDA first if available, else CPU
-             try:
--                backend_impl = target_pg._get_backend(torch.device("cuda"))
-+                backend_impl = target_pg._get_backend(torch.device("npu"))
-             except Exception:
-                 backend_impl = target_pg._get_backend(torch.device("cpu"))
-     except RuntimeError as e:
-@@ -6390,7 +6393,7 @@
-         backend_device = torch.device("cpu")
- 
-     # Choose backend enum based on device type
--    if backend_device.type == "cuda":
-+    if backend_device.type == "npu":
-         backend_type = ProcessGroup.BackendType.NCCL
+         UCC: ["cpu", "cuda"],
+@@ -1465,7 +1469,7 @@ def get_default_backend_for_device(device: str | torch.device) -> str:
+         device_str = device.type
      else:
-         backend_type = ProcessGroup.BackendType.GLOO
+         device_str = torch.device(device).type
+-
++    device_str = 'npu'
+     backend = Backend.default_device_backend_map.get(device_str)
+     if backend is None:
+         raise ValueError(f"Default backend not registered for device : {device}")

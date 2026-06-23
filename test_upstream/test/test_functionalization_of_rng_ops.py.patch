@@ -1,4 +1,4 @@
-﻿diff --git a/test/test_functionalization_of_rng_ops.py b/test/test_functionalization_of_rng_ops.py
+diff --git a/test/test_functionalization_of_rng_ops.py b/test/test_functionalization_of_rng_ops.py
 index ecbd6322448..ebedde54daf 100644
 --- a/test/test_functionalization_of_rng_ops.py
 +++ b/test/test_functionalization_of_rng_ops.py

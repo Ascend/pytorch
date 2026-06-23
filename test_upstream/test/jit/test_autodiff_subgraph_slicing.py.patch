@@ -1,4 +1,4 @@
-﻿diff --git a/test/jit/test_autodiff_subgraph_slicing.py b/test/jit/test_autodiff_subgraph_slicing.py
+diff --git a/test/jit/test_autodiff_subgraph_slicing.py b/test/jit/test_autodiff_subgraph_slicing.py
 index fe8a5e0e752..ef0beabdcdc 100644
 --- a/test/jit/test_autodiff_subgraph_slicing.py
 +++ b/test/jit/test_autodiff_subgraph_slicing.py

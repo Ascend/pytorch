@@ -1,4 +1,4 @@
-﻿diff --git a/test/inductor/test_select_algorithm.py b/test/inductor/test_select_algorithm.py
+diff --git a/test/inductor/test_select_algorithm.py b/test/inductor/test_select_algorithm.py
 index f17084bacf4..aff94f4176d 100644
 --- a/test/inductor/test_select_algorithm.py
 +++ b/test/inductor/test_select_algorithm.py

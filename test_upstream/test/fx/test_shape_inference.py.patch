@@ -1,4 +1,4 @@
-﻿diff --git a/test/fx/test_shape_inference.py b/test/fx/test_shape_inference.py
+diff --git a/test/fx/test_shape_inference.py b/test/fx/test_shape_inference.py
 index 77c69d065dd..000a2a7d1c4 100644
 --- a/test/fx/test_shape_inference.py
 +++ b/test/fx/test_shape_inference.py

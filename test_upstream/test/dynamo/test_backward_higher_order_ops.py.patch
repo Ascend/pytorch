@@ -1,4 +1,4 @@
-﻿diff --git a/test/dynamo/test_backward_higher_order_ops.py b/test/dynamo/test_backward_higher_order_ops.py
+diff --git a/test/dynamo/test_backward_higher_order_ops.py b/test/dynamo/test_backward_higher_order_ops.py
 index f49885319ca..90f2e2aceff 100644
 --- a/test/dynamo/test_backward_higher_order_ops.py
 +++ b/test/dynamo/test_backward_higher_order_ops.py

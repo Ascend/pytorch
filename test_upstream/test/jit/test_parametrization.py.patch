@@ -1,4 +1,4 @@
-﻿diff --git a/test/jit/test_parametrization.py b/test/jit/test_parametrization.py
+diff --git a/test/jit/test_parametrization.py b/test/jit/test_parametrization.py
 index 3be2fc526f5..7cca4cb0725 100644
 --- a/test/jit/test_parametrization.py
 +++ b/test/jit/test_parametrization.py

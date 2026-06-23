@@ -1,15 +1,13 @@
-﻿diff --git a/test/test_quantization.py b/test/test_quantization.py
-index 42e145edbab..75d271e72e4 100644
+diff --git a/test/test_quantization.py b/test/test_quantization.py
+index 42e145edbab..138fc4be836 100644
 --- a/test/test_quantization.py
 +++ b/test/test_quantization.py
-@@ -2,7 +2,6 @@
- 
+@@ -1,5 +1,4 @@
+ # Owner(s): ["oncall: quantization"]
+-
  import logging
  from torch.testing._internal.common_utils import run_tests
--
- # Quantization core tests. These include tests for
- # - quantized kernels
- # - quantized functional operators
+ 
 @@ -13,9 +12,9 @@ from torch.testing._internal.common_utils import run_tests
  # 1. Quantized Kernels
  # TODO: merge the different quantized op tests into one test class
@@ -21,21 +19,19 @@ index 42e145edbab..75d271e72e4 100644
  from quantization.core.test_quantized_op import TestDynamicQuantizedOps  # noqa: F401
  from quantization.core.test_quantized_op import TestComparatorOps  # noqa: F401
  from quantization.core.test_quantized_op import TestPadding  # noqa: F401
-@@ -132,7 +131,7 @@ try:
+@@ -72,8 +71,14 @@ try:
  except ImportError as e:
-     log.warning(e)  # noqa:G200
- try:
--    from quantization.core.experimental.test_bits import TestBitsCUDA  # noqa: F401
+     # In FBCode we separate FX out into a separate target for the sake of dev
+     # velocity. These are covered by a separate test target `quantization_fx`
++    from quantization.core.experimental.test_float8 import TestFloat8DtypePRIVATEUSE1  # noqa: F401
 +    from quantization.core.experimental.test_bits import TestBitsPRIVATEUSE1  # noqa: F401
- except ImportError as e:
-     log.warning(e)  # noqa:G200
- try:
-@@ -144,7 +143,7 @@ try:
- except ImportError as e:
-     log.warning(e)  # noqa:G200
- try:
--    from quantization.core.experimental.test_floatx import TestFloat8DtypeCPUOnlyCPU  # noqa: F401
++# # Experimental functionality
 +    from quantization.core.experimental.test_floatx import TestFloat8DtypePRIVATEUSE1  # noqa: F401
- except ImportError as e:
++    from quantization.core.experimental.test_bits import TestBitsPRIVATEUSE1  # noqa: F401
      log.warning(e)  # noqa:G200
- 
+-
++# # PyTorch 2 Export Quantization
++#
+ try:
+     from quantization.fx.test_numeric_suite_fx import TestFXGraphMatcher  # noqa: F401
+     from quantization.fx.test_numeric_suite_fx import TestFXGraphMatcherModels  # noqa: F401

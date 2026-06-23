@@ -1,4 +1,4 @@
-﻿diff --git a/test/test_license.py b/test/test_license.py
+diff --git a/test/test_license.py b/test/test_license.py
 index 6f289a15bb4..c6a79158569 100644
 --- a/test/test_license.py
 +++ b/test/test_license.py

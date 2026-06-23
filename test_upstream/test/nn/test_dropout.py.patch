@@ -1,4 +1,4 @@
-﻿diff --git a/test/nn/test_dropout.py b/test/nn/test_dropout.py
+diff --git a/test/nn/test_dropout.py b/test/nn/test_dropout.py
 index 5110d875256..60daa40ab61 100644
 --- a/test/nn/test_dropout.py
 +++ b/test/nn/test_dropout.py

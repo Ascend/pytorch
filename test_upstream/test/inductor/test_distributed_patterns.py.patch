@@ -1,4 +1,4 @@
-﻿diff --git a/test/inductor/test_distributed_patterns.py b/test/inductor/test_distributed_patterns.py
+diff --git a/test/inductor/test_distributed_patterns.py b/test/inductor/test_distributed_patterns.py
 index 9a8f9a79ddf..7ec557fbceb 100644
 --- a/test/inductor/test_distributed_patterns.py
 +++ b/test/inductor/test_distributed_patterns.py

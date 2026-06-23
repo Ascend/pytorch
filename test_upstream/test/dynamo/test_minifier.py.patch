@@ -1,4 +1,4 @@
-﻿diff --git a/test/dynamo/test_minifier.py b/test/dynamo/test_minifier.py
+diff --git a/test/dynamo/test_minifier.py b/test/dynamo/test_minifier.py
 index 9ea0f287edc..fa06406bd7f 100644
 --- a/test/dynamo/test_minifier.py
 +++ b/test/dynamo/test_minifier.py

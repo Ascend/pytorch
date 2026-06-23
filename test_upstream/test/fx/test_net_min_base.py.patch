@@ -1,4 +1,4 @@
-﻿diff --git a/test/fx/test_net_min_base.py b/test/fx/test_net_min_base.py
+diff --git a/test/fx/test_net_min_base.py b/test/fx/test_net_min_base.py
 index 7e164e72629..d0f9e80dc9d 100644
 --- a/test/fx/test_net_min_base.py
 +++ b/test/fx/test_net_min_base.py

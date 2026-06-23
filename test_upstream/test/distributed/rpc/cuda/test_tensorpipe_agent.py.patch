@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/rpc/cuda/test_tensorpipe_agent.py b/test/distributed/rpc/cuda/test_tensorpipe_agent.py
+diff --git a/test/distributed/rpc/cuda/test_tensorpipe_agent.py b/test/distributed/rpc/cuda/test_tensorpipe_agent.py
 index 7b2425bc44e..0f2e5ecb13a 100644
 --- a/test/distributed/rpc/cuda/test_tensorpipe_agent.py
 +++ b/test/distributed/rpc/cuda/test_tensorpipe_agent.py

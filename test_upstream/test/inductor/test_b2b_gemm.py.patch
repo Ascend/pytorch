@@ -1,4 +1,4 @@
-﻿diff --git a/test/inductor/test_b2b_gemm.py b/test/inductor/test_b2b_gemm.py
+diff --git a/test/inductor/test_b2b_gemm.py b/test/inductor/test_b2b_gemm.py
 index fa5194fc834..6ab19f55e28 100644
 --- a/test/inductor/test_b2b_gemm.py
 +++ b/test/inductor/test_b2b_gemm.py

@@ -1,4 +1,4 @@
-﻿diff --git a/test/inductor/test_xpu_basic.py b/test/inductor/test_xpu_basic.py
+diff --git a/test/inductor/test_xpu_basic.py b/test/inductor/test_xpu_basic.py
 index 4501b8264c5..0573d900e67 100644
 --- a/test/inductor/test_xpu_basic.py
 +++ b/test/inductor/test_xpu_basic.py

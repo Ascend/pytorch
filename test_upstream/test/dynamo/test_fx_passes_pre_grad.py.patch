@@ -1,4 +1,4 @@
-﻿diff --git a/test/dynamo/test_fx_passes_pre_grad.py b/test/dynamo/test_fx_passes_pre_grad.py
+diff --git a/test/dynamo/test_fx_passes_pre_grad.py b/test/dynamo/test_fx_passes_pre_grad.py
 index 4bc3928fa68..bd08ac5c3ef 100644
 --- a/test/dynamo/test_fx_passes_pre_grad.py
 +++ b/test/dynamo/test_fx_passes_pre_grad.py

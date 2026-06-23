@@ -1,4 +1,4 @@
-﻿diff --git a/test/mobile/test_quantize_fx_lite_script_module.py b/test/mobile/test_quantize_fx_lite_script_module.py
+diff --git a/test/mobile/test_quantize_fx_lite_script_module.py b/test/mobile/test_quantize_fx_lite_script_module.py
 index 30cd4647d17..1632a0a2e78 100644
 --- a/test/mobile/test_quantize_fx_lite_script_module.py
 +++ b/test/mobile/test_quantize_fx_lite_script_module.py

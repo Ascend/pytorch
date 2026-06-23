@@ -1,24 +1,155 @@
-﻿diff --git a/torch/testing/_internal/common_nn.py b/torch/testing/_internal/common_nn.py
-index 7697a438f94..1c4f56d97e4 100644
+diff --git a/torch/testing/_internal/common_nn.py b/torch/testing/_internal/common_nn.py
+index 7697a438f94..a7fe8361a2a 100644
 --- a/torch/testing/_internal/common_nn.py
 +++ b/torch/testing/_internal/common_nn.py
-@@ -3525,9 +3525,6 @@ class ModuleTest(TestBase):
-                 test_case.assertEqual(test_case._get_parameters(module)[1], d_param)
+@@ -1,6 +1,95 @@
+ # mypy: ignore-errors
  
+ from abc import abstractmethod
++            self.test_noncontig(test_case, npu_module, npu_input_tuple)
++
++                        test_case.assertEqual(cpu_d_p, npu_d_p, atol=self.precision, rtol=0, exact_dtype=False)
++                    if cpu_d_p is not None and npu_d_p is not None:
++                for cpu_d_p, npu_d_p in zip(cpu_gg, npu_gg):
++                test_case.assertEqual(cpu_gradInput, npu_gradInput, atol=self.precision, rtol=0, exact_dtype=False)
++                    retain_graph=True)
++                    npu_input_tuple + (npu_gradOutput,) + tuple(npu_module.parameters()),
++                    outputs_npu,
++                npu_gg = torch.autograd.grad(
++                    retain_graph=True)
++                    cpu_input_tuple + (cpu_gradOutput,) + tuple(cpu_module.parameters()),
++                    outputs_cpu,
++                cpu_gg = torch.autograd.grad(
++
++                    outputs_npu = npu_output.sum() + sum(x.sum() for x in npu_gradInputs if x is not None)
++                    outputs_cpu = cpu_output.sum() + sum(x.sum() for x in cpu_gradInputs)
++                else:
++                    outputs_npu = npu_output.sum().abs() + sum(x.sum().abs() for x in npu_gradInputs if x is not None)
++                    outputs_cpu = cpu_output.sum().abs() + sum(x.sum().abs() for x in cpu_gradInputs)
++                if is_any_input_complex:
++                        test_case.assertEqual(cpu_d_i, npu_d_i, atol=self.precision, rtol=0, exact_dtype=False)
++                    if cpu_d_i is not None and npu_d_i is not None:
++                for cpu_d_i, npu_d_i in zip(cpu_gradInputs, npu_gradInputs):
++
++                    create_graph=True)
++                    npu_gradOutput,
++                    npu_input_tuple + tuple(npu_module.parameters()),
++                    npu_output,
++                npu_gradInputs = torch.autograd.grad(
++                    create_graph=True)
++                    cpu_gradOutput,
++                    cpu_input_tuple + tuple(cpu_module.parameters()),
++                    cpu_output,
++                cpu_gradInputs = torch.autograd.grad(
++
++                npu_gradOutput.requires_grad = True
++                npu_gradOutput = cpu_gradOutput.type_as(npu_output).detach()
++                cpu_gradOutput = torch.randn_like(cpu_output, requires_grad=True)
++
++                    npu_output = npu_output[0]
++                    cpu_output = cpu_output[0]
++                if getattr(cpu_module, "return_indices", False):
++                npu_output = npu_module(*npu_input_tuple)
++                cpu_output = cpu_module(*cpu_input_tuple)
++            if self.check_gradgrad and not self.FIXME_no_cuda_gradgrad_comparison:
++            # Run double-backwards on CPU and NPU and compare results
++
++                    test_case.assertEqual(cpu_d_p, npu_d_p, atol=self.precision, rtol=0)
++                for cpu_d_p, npu_d_p in zip(cpu_param[1], npu_param[1]):
++                test_case.assertEqual(cpu_gradInput, npu_gradInput, atol=self.precision, rtol=0, exact_dtype=False)
++                npu_gradInput = test_case._backward(npu_module, npu_input_tuple, npu_output, npu_gradOutput)
++                cpu_gradInput = test_case._backward(cpu_module, cpu_input_tuple, cpu_output, cpu_gradOutput)
++                npu_gradOutput = cpu_gradOutput.type_as(npu_output)
++                cpu_gradOutput = cpu_output.clone().normal_()
++            for _ in range(5):
++            # Run backwards on CPU and NPU and compare results
++
++            test_case.assertEqual(cpu_output, npu_output, atol=self.precision, rtol=0, exact_dtype=False)
++                npu_output = npu_output[0]
++                cpu_output = cpu_output[0]
++            if getattr(cpu_module, "return_indices", False):
++            npu_output = test_case._forward(npu_module, npu_input_tuple)
++            cpu_output = test_case._forward(cpu_module, cpu_input_tuple)
++            test_case._zero_grad_parameters(npu_module)
++            test_case._zero_grad_parameters(cpu_module)
++            test_case._zero_grad_input(npu_input_tuple)
++            test_case._zero_grad_input(cpu_input_tuple)
++
++                npu_p.data.copy_(cpu_p)
++            for cpu_p, npu_p in zip(cpu_param[0], npu_param[0]):
++            npu_param = test_case._get_parameters(npu_module)
++            cpu_param = test_case._get_parameters(cpu_module)
++            npu_module = self.constructor(*self.constructor_args).float().npu()
++            cpu_module = self.constructor(*self.constructor_args)
++
++            npu_input_tuple = to_npu(cpu_input_tuple, type_map=type_map)
++            type_map = {torch.double: torch.float}
++            # NPU only supports float, half, bfloat16 - use type_map to convert double to float
++
++            is_any_input_complex = any(isinstance(t, torch.Tensor) and t.dtype.is_complex for t in cpu_input_tuple)
++
++            cpu_input_tuple = cpu_input if isinstance(cpu_input, tuple) else (cpu_input,)
++            cpu_input = self._get_input()
++        with set_default_dtype(self.default_dtype):
++
++            raise unittest.SkipTest('Excluded from NPU tests')
++        if not TEST_NPU or not self.should_test_cuda:
++    def test_npu(self, test_case):
+ import tempfile
+ import unittest
+ 
+@@ -15,8 +104,9 @@ import torch.cuda
+ import torch.nn as nn
+ import torch.nn.functional as F
+ from torch.nn import _reduction as _Reduction
++    gradcheck, gradgradcheck, set_default_dtype, skipIfTorchDynamo, TEST_NPU
++from torch.testing._internal.common_utils import TestCase, to_gpu, to_npu, freeze_rng_state, is_iterable, \
+ from torch.testing._internal import common_utils
+-from torch.testing._internal.common_utils import TestCase, to_gpu, freeze_rng_state, is_iterable, \
+     gradcheck, gradgradcheck, set_default_dtype, skipIfTorchDynamo, TEST_WITH_ROCM
+ from torch.testing._internal.common_cuda import TEST_CUDA, SM90OrLater
+ from torch.autograd.gradcheck import _get_numerical_jacobian, _iter_tensors
+@@ -3379,6 +3469,32 @@ class TestBase:
+     def extra_args(self):
+         return self._get_arg('extra_args', True)
+ 
++
++            test_case.assertEqual(cpu_gradInput, npu_gradInput, atol=4e-4, rtol=0, exact_dtype=False)
++                npu_module, npu_input, npu_output, npu_target, extra_args=extra_args)
++            npu_gradInput = test_case._backward_criterion(
++                cpu_module, cpu_input, cpu_output, cpu_target, extra_args=extra_args)
++            cpu_gradInput = test_case._backward_criterion(
++
++            test_case.assertEqual(cpu_output, npu_output, atol=4e-4, rtol=0, exact_dtype=False)
++            npu_output = test_case._forward_criterion(npu_module, npu_input, npu_target, extra_args=extra_args)
++            cpu_output = test_case._forward_criterion(cpu_module, cpu_input, cpu_target, extra_args=extra_args)
++
++            npu_module.npu()
++            npu_target = to_npu(cpu_target, type_map=type_map)
++            npu_input = to_npu(cpu_input, type_map=type_map) if isinstance(cpu_input, torch.Tensor) else to_npu(cpu_input, type_map=type_map)
++            type_map = {torch.double: torch.float}
++            # NPU only supports float, half, bfloat16 - use type_map to convert double to float
++
++            npu_module = self.constructor(*self.constructor_args).float()
++            cpu_module = self.constructor(*self.constructor_args)
++            cpu_target = self._get_target()
++            cpu_input = self._get_input()
++        with set_default_dtype(self.default_dtype):
++
++            raise unittest.SkipTest('Excluded from NPU tests')
++        if not TEST_NPU or not self.should_test_cuda:
++    def test_npu(self, test_case, extra_args=None):
+     def _get_arg(self, name, unpack):
+         if name not in self._required_arg_names:
+             raise AssertionError(f"Expected name '{name}' to be in required arg names")
+@@ -3523,10 +3639,7 @@ class ModuleTest(TestBase):
+                 test_case.assertEqual(out, output)
+                 test_case.assertEqual(grad, d_input, atol=1e-4, rtol=0)
+                 test_case.assertEqual(test_case._get_parameters(module)[1], d_param)
+-
      def test_cuda(self, test_case):
 -        if not TEST_CUDA or not self.should_test_cuda:
 -            raise unittest.SkipTest('Excluded from CUDA tests')
--
+ 
          with set_default_dtype(self.default_dtype):
              cpu_input = self._get_input()
- 
-@@ -3903,9 +3900,6 @@ class CriterionTest(InputVariableMixin, TestBase):  # type: ignore[misc]
-             else:
-                 return obj
- 
--        if not TEST_CUDA or not self.should_test_cuda:
--            raise unittest.SkipTest('Excluded from CUDA tests')
--
-         with set_default_dtype(self.default_dtype):
-             cpu_input = self._get_input()
-             cpu_target = self._get_target()

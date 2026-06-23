@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/test_distributed_spawn.py b/test/distributed/test_distributed_spawn.py
+diff --git a/test/distributed/test_distributed_spawn.py b/test/distributed/test_distributed_spawn.py
 index 641377c7865..25808fa4915 100644
 --- a/test/distributed/test_distributed_spawn.py
 +++ b/test/distributed/test_distributed_spawn.py

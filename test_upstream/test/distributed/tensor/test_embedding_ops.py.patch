@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/tensor/test_embedding_ops.py b/test/distributed/tensor/test_embedding_ops.py
+diff --git a/test/distributed/tensor/test_embedding_ops.py b/test/distributed/tensor/test_embedding_ops.py
 index 792b183032e..1ac2f5460b6 100644
 --- a/test/distributed/tensor/test_embedding_ops.py
 +++ b/test/distributed/tensor/test_embedding_ops.py

@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/_shard/sharded_tensor/test_logger.py b/test/distributed/_shard/sharded_tensor/test_logger.py
+diff --git a/test/distributed/_shard/sharded_tensor/test_logger.py b/test/distributed/_shard/sharded_tensor/test_logger.py
 index fa946819f93..b8f4f94cf47 100644
 --- a/test/distributed/_shard/sharded_tensor/test_logger.py
 +++ b/test/distributed/_shard/sharded_tensor/test_logger.py

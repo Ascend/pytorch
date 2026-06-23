@@ -1,4 +1,4 @@
-﻿diff --git a/test/inductor/test_unbacked_symints.py b/test/inductor/test_unbacked_symints.py
+diff --git a/test/inductor/test_unbacked_symints.py b/test/inductor/test_unbacked_symints.py
 index 565a632cb47..d6f2898037d 100644
 --- a/test/inductor/test_unbacked_symints.py
 +++ b/test/inductor/test_unbacked_symints.py

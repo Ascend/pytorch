@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/fsdp/test_fsdp_comm_hooks.py b/test/distributed/fsdp/test_fsdp_comm_hooks.py
+diff --git a/test/distributed/fsdp/test_fsdp_comm_hooks.py b/test/distributed/fsdp/test_fsdp_comm_hooks.py
 index 7f0cc4cdb7e..c8bb99d177a 100644
 --- a/test/distributed/fsdp/test_fsdp_comm_hooks.py
 +++ b/test/distributed/fsdp/test_fsdp_comm_hooks.py

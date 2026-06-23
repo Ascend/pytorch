@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/test_c10d_spawn_ucc.py b/test/distributed/test_c10d_spawn_ucc.py
+diff --git a/test/distributed/test_c10d_spawn_ucc.py b/test/distributed/test_c10d_spawn_ucc.py
 index 34e654c666d..029c27413d0 100644
 --- a/test/distributed/test_c10d_spawn_ucc.py
 +++ b/test/distributed/test_c10d_spawn_ucc.py

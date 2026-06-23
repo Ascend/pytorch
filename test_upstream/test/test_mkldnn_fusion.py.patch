@@ -1,4 +1,4 @@
-﻿diff --git a/test/test_mkldnn_fusion.py b/test/test_mkldnn_fusion.py
+diff --git a/test/test_mkldnn_fusion.py b/test/test_mkldnn_fusion.py
 index 4cb27866ef2..8384f9af842 100644
 --- a/test/test_mkldnn_fusion.py
 +++ b/test/test_mkldnn_fusion.py

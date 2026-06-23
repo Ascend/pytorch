@@ -1,30 +1,79 @@
-﻿diff --git a/test/export/test_converter.py b/test/export/test_converter.py
-index 0cb48529635..51b8587f6ad 100644
+diff --git a/test/export/test_converter.py b/test/export/test_converter.py
+index 0cb48529635..e4182fe936c 100644
 --- a/test/export/test_converter.py
 +++ b/test/export/test_converter.py
-@@ -17,7 +17,7 @@ from torch.testing._internal.torchbind_impls import (
- )
+@@ -1,6 +1,42 @@
+ # Owner(s): ["oncall: export"]
+ 
+ import unittest
++            )
++                "_TorchScriptTesting::_TensorQueue"
++            torch._library.fake_class_registry.deregister_fake_class(
++        if self._torchbind_available:
++            self.torch_bind_ops = []
++        except (OSError, RuntimeError):
++            self._torchbind_available = True
++            ]
++                torch.ops._TorchScriptTesting.queue_size,
++                torch.ops._TorchScriptTesting.queue_push,
++                torch.ops._TorchScriptTesting.queue_pop,
++            self.torch_bind_ops = [
++                    return float(len(self.queue))
++                def float_size(self):
++                    return len(self.queue) == 0
++                def is_empty(self):
++                    return len(self.queue)
++                def size(self):
++                    return self.queue.pop(0)
++                        return torch.empty([])
++                    if self.is_empty():
++                def pop(self):
++                    self.queue.append(x)
++                def push(self, x):
++                    return cls(**dict(flattened_ctx))
++                def __obj_unflatten__(cls, flattened_ctx):
++                @classmethod
++                    self.queue = queue
++                def __init__(self, queue):
++            class _FakeTensorQueue:
++            @torch._library.register_fake_class("_TorchScriptTesting::_TensorQueue")
++            init_torchbind_implementations()
++        try:
++        self._torchbind_available = False
++requires_npu = unittest.skipUnless(torch.npu.is_available(), "requires npu")
++requires_npu = unittest.skipUnless(torch.npu.is_available(), "requires npu")
+ from collections import OrderedDict
+ from typing import Any
+ 
+@@ -14,21 +50,13 @@ from torch.testing._internal.common_utils import IS_WINDOWS, run_tests, xfailIfS
+ from torch.testing._internal.torchbind_impls import (
+     _empty_tensor_queue,
+     init_torchbind_implementations,
+-)
  
  
 -requires_cuda = unittest.skipUnless(torch.cuda.is_available(), "requires cuda")
-+requires_npu = unittest.skipUnless(torch.npu.is_available(), "requires npu")
  
  
  class TestConverter(TestCase):
-@@ -376,14 +376,14 @@ class TestConverter(TestCase):
+     def setUp(self):
+-        init_torchbind_implementations()
+ 
+-        self.torch_bind_ops = [
+-            torch.ops._TorchScriptTesting.queue_pop,
+-            torch.ops._TorchScriptTesting.queue_push,
+-            torch.ops._TorchScriptTesting.queue_size,
+-        ]
+ 
+     def tearDown(self):
+         return
+@@ -376,7 +404,8 @@ class TestConverter(TestCase):
          inp = (torch.rand(3, 4),)
          self._check_equal_ts_ep_converter(Module(), inp)
  
 -    @requires_cuda
++        inp = (torch.rand((3, 4), device="npu:0"),)
 +    @requires_npu
      def test_prim_device_cuda(self):
          class Module(torch.nn.Module):
              def forward(self, x):
-                 device = x.device
-                 return torch.ones(2, 3, device=device)
- 
--        inp = (torch.rand((3, 4), device="cuda:0"),)
-+        inp = (torch.rand((3, 4), device="npu:0"),)
-         self._check_equal_ts_ep_converter(Module(), inp)
- 
-     def test_prim_dtype(self):

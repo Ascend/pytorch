@@ -1,4 +1,4 @@
-﻿diff --git a/test/dynamo/cpython/3_13/test_userdict.py b/test/dynamo/cpython/3_13/test_userdict.py
+diff --git a/test/dynamo/cpython/3_13/test_userdict.py b/test/dynamo/cpython/3_13/test_userdict.py
 index 5b6074af2f0..291493f4c27 100644
 --- a/test/dynamo/cpython/3_13/test_userdict.py
 +++ b/test/dynamo/cpython/3_13/test_userdict.py

@@ -1,4 +1,4 @@
-﻿diff --git a/test/jit/test_string_formatting.py b/test/jit/test_string_formatting.py
+diff --git a/test/jit/test_string_formatting.py b/test/jit/test_string_formatting.py
 index 295ae85e3fb..69c79f1b8e3 100644
 --- a/test/jit/test_string_formatting.py
 +++ b/test/jit/test_string_formatting.py

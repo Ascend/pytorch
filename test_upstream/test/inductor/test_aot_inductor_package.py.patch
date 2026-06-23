@@ -1,5 +1,5 @@
-﻿diff --git a/test/inductor/test_aot_inductor_package.py b/test/inductor/test_aot_inductor_package.py
-index 6ae1dc02084..f9f68f6c2e4 100644
+diff --git a/test/inductor/test_aot_inductor_package.py b/test/inductor/test_aot_inductor_package.py
+index 6ae1dc02084..4e954ebac3a 100644
 --- a/test/inductor/test_aot_inductor_package.py
 +++ b/test/inductor/test_aot_inductor_package.py
 @@ -1,3 +1,11 @@
@@ -30,12 +30,10 @@ index 6ae1dc02084..f9f68f6c2e4 100644
  
  
  def skipif(predicate: Callable[[str, bool], bool], reason: str):
-@@ -1060,6 +1068,5 @@ class TestAOTInductorPackage(TestCase):
- 
+@@ -1061,5 +1069,4 @@ class TestAOTInductorPackage(TestCase):
  if __name__ == "__main__":
      from torch._inductor.test_case import run_tests
--
+ 
 -    if HAS_GPU or sys.platform == "darwin":
 -        run_tests(needs="filelock")
-+    
 +    run_tests(needs="filelock")

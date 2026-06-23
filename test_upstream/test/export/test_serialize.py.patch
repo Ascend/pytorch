@@ -1,4 +1,4 @@
-﻿diff --git a/test/export/test_serialize.py b/test/export/test_serialize.py
+diff --git a/test/export/test_serialize.py b/test/export/test_serialize.py
 index 97a8919e116..c82abe875a1 100644
 --- a/test/export/test_serialize.py
 +++ b/test/export/test_serialize.py

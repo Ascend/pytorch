@@ -1,4 +1,4 @@
-﻿diff --git a/test/jit/test_type_sharing.py b/test/jit/test_type_sharing.py
+diff --git a/test/jit/test_type_sharing.py b/test/jit/test_type_sharing.py
 index a6313a94244..323e9cf65d9 100644
 --- a/test/jit/test_type_sharing.py
 +++ b/test/jit/test_type_sharing.py

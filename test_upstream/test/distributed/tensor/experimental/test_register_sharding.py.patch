@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/tensor/experimental/test_register_sharding.py b/test/distributed/tensor/experimental/test_register_sharding.py
+diff --git a/test/distributed/tensor/experimental/test_register_sharding.py b/test/distributed/tensor/experimental/test_register_sharding.py
 index fbba4839fc5..c8aa53013e8 100644
 --- a/test/distributed/tensor/experimental/test_register_sharding.py
 +++ b/test/distributed/tensor/experimental/test_register_sharding.py

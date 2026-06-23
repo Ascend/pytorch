@@ -1,4 +1,4 @@
-﻿diff --git a/test/inductor/test_cpu_repro.py b/test/inductor/test_cpu_repro.py
+diff --git a/test/inductor/test_cpu_repro.py b/test/inductor/test_cpu_repro.py
 index 4295ade4df8..4505d353841 100644
 --- a/test/inductor/test_cpu_repro.py
 +++ b/test/inductor/test_cpu_repro.py

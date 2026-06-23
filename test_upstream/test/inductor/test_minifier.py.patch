@@ -1,5 +1,5 @@
-﻿diff --git a/test/inductor/test_minifier.py b/test/inductor/test_minifier.py
-index 6c4e7bb992c..c44fe4633b1 100644
+diff --git a/test/inductor/test_minifier.py b/test/inductor/test_minifier.py
+index 6c4e7bb992c..496d59a7e70 100644
 --- a/test/inductor/test_minifier.py
 +++ b/test/inductor/test_minifier.py
 @@ -1,3 +1,11 @@
@@ -48,7 +48,7 @@ index 6c4e7bb992c..c44fe4633b1 100644
          self._aoti_check_relu_repro(res)
  
 -    @requires_gpu
-+    
++
      @inductor_config.patch(
          "triton.inject_relu_bug_TESTING_ONLY",
          "compile_error",
@@ -57,7 +57,7 @@ index 6c4e7bb992c..c44fe4633b1 100644
          self._aoti_check_relu_repro(res)
  
 -    @requires_gpu
-+    
++
      @inductor_config.patch(
          "triton.inject_relu_bug_TESTING_ONLY",
          "compile_error",
@@ -66,7 +66,7 @@ index 6c4e7bb992c..c44fe4633b1 100644
          self._aoti_check_relu_repro(res)
  
 -    @requires_gpu
-+    
++
      @inductor_config.patch("triton.inject_relu_bug_TESTING_ONLY", "accuracy")
      def test_aoti_gpu_accuracy_error(self):
          res = self._test_aoti(GPU_TYPE, "AccuracyError")

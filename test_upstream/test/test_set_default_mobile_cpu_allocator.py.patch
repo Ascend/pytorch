@@ -1,4 +1,4 @@
-﻿diff --git a/test/test_set_default_mobile_cpu_allocator.py b/test/test_set_default_mobile_cpu_allocator.py
+diff --git a/test/test_set_default_mobile_cpu_allocator.py b/test/test_set_default_mobile_cpu_allocator.py
 index accf1fa13d7..7c3ab4b1f2c 100644
 --- a/test/test_set_default_mobile_cpu_allocator.py
 +++ b/test/test_set_default_mobile_cpu_allocator.py

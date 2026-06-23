@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/fsdp/test_fsdp_clip_grad_norm.py b/test/distributed/fsdp/test_fsdp_clip_grad_norm.py
+diff --git a/test/distributed/fsdp/test_fsdp_clip_grad_norm.py b/test/distributed/fsdp/test_fsdp_clip_grad_norm.py
 index 5745e17a643..9a2be7f1162 100644
 --- a/test/distributed/fsdp/test_fsdp_clip_grad_norm.py
 +++ b/test/distributed/fsdp/test_fsdp_clip_grad_norm.py

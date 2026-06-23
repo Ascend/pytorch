@@ -1,4 +1,4 @@
-﻿diff --git a/test/onnx/test_autograd_funs.py b/test/onnx/test_autograd_funs.py
+diff --git a/test/onnx/test_autograd_funs.py b/test/onnx/test_autograd_funs.py
 index 81c70d7d987..9e187d93a04 100644
 --- a/test/onnx/test_autograd_funs.py
 +++ b/test/onnx/test_autograd_funs.py

@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/test_c10d_spawn.py b/test/distributed/test_c10d_spawn.py
+diff --git a/test/distributed/test_c10d_spawn.py b/test/distributed/test_c10d_spawn.py
 index 5efa3dc2deb..09a61bfba91 100644
 --- a/test/distributed/test_c10d_spawn.py
 +++ b/test/distributed/test_c10d_spawn.py

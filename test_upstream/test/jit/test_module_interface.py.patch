@@ -1,4 +1,4 @@
-﻿diff --git a/test/jit/test_module_interface.py b/test/jit/test_module_interface.py
+diff --git a/test/jit/test_module_interface.py b/test/jit/test_module_interface.py
 index c9765b4e282..181ccfedbe3 100644
 --- a/test/jit/test_module_interface.py
 +++ b/test/jit/test_module_interface.py

@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/checkpoint/test_pg_transport.py b/test/distributed/checkpoint/test_pg_transport.py
+diff --git a/test/distributed/checkpoint/test_pg_transport.py b/test/distributed/checkpoint/test_pg_transport.py
 index 0a9787a5ba6..4ad5a55425c 100644
 --- a/test/distributed/checkpoint/test_pg_transport.py
 +++ b/test/distributed/checkpoint/test_pg_transport.py

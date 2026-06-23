@@ -1,4 +1,4 @@
-﻿diff --git a/test/inductor/test_block_analysis.py b/test/inductor/test_block_analysis.py
+diff --git a/test/inductor/test_block_analysis.py b/test/inductor/test_block_analysis.py
 index 83ec5cf20ae..8229c152c75 100644
 --- a/test/inductor/test_block_analysis.py
 +++ b/test/inductor/test_block_analysis.py

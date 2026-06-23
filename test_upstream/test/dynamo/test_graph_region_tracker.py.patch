@@ -1,4 +1,4 @@
-﻿diff --git a/test/dynamo/test_graph_region_tracker.py b/test/dynamo/test_graph_region_tracker.py
+diff --git a/test/dynamo/test_graph_region_tracker.py b/test/dynamo/test_graph_region_tracker.py
 index ce456596fd5..acce36a470e 100644
 --- a/test/dynamo/test_graph_region_tracker.py
 +++ b/test/dynamo/test_graph_region_tracker.py

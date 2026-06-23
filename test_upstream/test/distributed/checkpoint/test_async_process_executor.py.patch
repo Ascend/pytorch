@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/checkpoint/test_async_process_executor.py b/test/distributed/checkpoint/test_async_process_executor.py
+diff --git a/test/distributed/checkpoint/test_async_process_executor.py b/test/distributed/checkpoint/test_async_process_executor.py
 index 424369514c5..cb6f84c3461 100644
 --- a/test/distributed/checkpoint/test_async_process_executor.py
 +++ b/test/distributed/checkpoint/test_async_process_executor.py

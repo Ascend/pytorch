@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/tensor/test_single_dim_strategy.py b/test/distributed/tensor/test_single_dim_strategy.py
+diff --git a/test/distributed/tensor/test_single_dim_strategy.py b/test/distributed/tensor/test_single_dim_strategy.py
 index 472bf39f37a..0dbd397b0d2 100644
 --- a/test/distributed/tensor/test_single_dim_strategy.py
 +++ b/test/distributed/tensor/test_single_dim_strategy.py

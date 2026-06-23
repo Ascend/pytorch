@@ -1,4 +1,4 @@
-﻿diff --git a/test/test_rename_privateuse1_to_existing_device.py b/test/test_rename_privateuse1_to_existing_device.py
+diff --git a/test/test_rename_privateuse1_to_existing_device.py b/test/test_rename_privateuse1_to_existing_device.py
 index 40941ca4e77..817fb8bfe66 100644
 --- a/test/test_rename_privateuse1_to_existing_device.py
 +++ b/test/test_rename_privateuse1_to_existing_device.py

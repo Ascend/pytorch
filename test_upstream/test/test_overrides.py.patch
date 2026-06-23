@@ -1,5 +1,5 @@
 diff --git a/test/test_overrides.py b/test/test_overrides.py
-index cd1dec9..30b84bf 100644
+index cd1dec932df..30b84bff8a8 100644
 --- a/test/test_overrides.py
 +++ b/test/test_overrides.py
 @@ -338,7 +338,14 @@ def generate_tensor_like_torch_implementations():
@@ -82,3 +82,10 @@ index cd1dec9..30b84bf 100644
  
              def get_stack():
                  return [torch._C._get_function_stack_at(i) for i in range(_len_torch_function_stack())]
+
+# NPU Patch Explanation:
+# - Added NPU-specific function overrides to testing_ignore set
+# - Added npu_override_test_ignore for NPU incompatible tests
+# - Changed device references from 'cuda' to 'npu'
+# - Modified torch.randn and torch.rand calls to use device='npu'
+# - Skips tests that are incompatible with NPU hardware

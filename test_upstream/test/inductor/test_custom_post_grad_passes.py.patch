@@ -1,4 +1,4 @@
-﻿diff --git a/test/inductor/test_custom_post_grad_passes.py b/test/inductor/test_custom_post_grad_passes.py
+diff --git a/test/inductor/test_custom_post_grad_passes.py b/test/inductor/test_custom_post_grad_passes.py
 index e964add7ad4..349abfaf0b6 100644
 --- a/test/inductor/test_custom_post_grad_passes.py
 +++ b/test/inductor/test_custom_post_grad_passes.py

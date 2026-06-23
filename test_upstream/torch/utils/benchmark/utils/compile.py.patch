@@ -1,4 +1,4 @@
-﻿diff --git a/torch/utils/benchmark/utils/compile.py b/torch/utils/benchmark/utils/compile.py
+diff --git a/torch/utils/benchmark/utils/compile.py b/torch/utils/benchmark/utils/compile.py
 index dd15a582a27..e4f889e2d18 100644
 --- a/torch/utils/benchmark/utils/compile.py
 +++ b/torch/utils/benchmark/utils/compile.py

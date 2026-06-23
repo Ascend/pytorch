@@ -1,5 +1,5 @@
-﻿diff --git a/test/inductor/test_group_batch_fusion.py b/test/inductor/test_group_batch_fusion.py
-index 670258df001..5f2b1108348 100644
+diff --git a/test/inductor/test_group_batch_fusion.py b/test/inductor/test_group_batch_fusion.py
+index 670258df001..84ff70d39df 100644
 --- a/test/inductor/test_group_batch_fusion.py
 +++ b/test/inductor/test_group_batch_fusion.py
 @@ -1,9 +1,16 @@
@@ -33,7 +33,7 @@ index 670258df001..5f2b1108348 100644
          )
  
 -    @requires_gpu()
-+    
++
      @unittest.skipIf(not has_fbgemm, "requires fbgemm")
      @torch._inductor.config.patch(
          pre_grad_fusion_options={},
@@ -42,7 +42,7 @@ index 670258df001..5f2b1108348 100644
              counters.clear()
  
 -    @requires_gpu()
-+    
++
      @unittest.skipIf(not has_fbgemm, "requires fbgemm")
      @torch._inductor.config.patch(
          pre_grad_fusion_options={},
@@ -51,7 +51,7 @@ index 670258df001..5f2b1108348 100644
          counters.clear()
  
 -    @requires_gpu()
-+    
++
      @unittest.skipIf(GPU_TYPE == "mps", "welford_reduce is yet not implemented for MPS")
      @torch._inductor.config.patch(
          pre_grad_fusion_options={"batch_layernorm": {}},
@@ -60,7 +60,7 @@ index 670258df001..5f2b1108348 100644
                  counters.clear()
  
 -    @requires_gpu()
-+    
++
      @torch._inductor.config.patch(
          pre_grad_fusion_options={"batch_linear_lhs": {}},
          post_grad_fusion_options={},
@@ -69,7 +69,7 @@ index 670258df001..5f2b1108348 100644
              counters.clear()
  
 -    @requires_gpu()
-+    
++
      @torch._inductor.config.patch(
          pre_grad_fusion_options={"batch_linear": {}},
          post_grad_fusion_options={},
@@ -78,7 +78,7 @@ index 670258df001..5f2b1108348 100644
              counters.clear()
  
 -    @requires_gpu()
-+    
++
      @torch._inductor.config.patch(
          pre_grad_fusion_options={
              "batch_relu": {},
@@ -87,7 +87,7 @@ index 670258df001..5f2b1108348 100644
          counters.clear()
  
 -    @requires_gpu()
-+    
++
      @torch._inductor.config.patch(
          pre_grad_fusion_options={},
          post_grad_fusion_options={
@@ -96,7 +96,7 @@ index 670258df001..5f2b1108348 100644
          counters.clear()
  
 -    @requires_gpu()
-+    
++
      @torch._inductor.config.patch(
          pre_grad_fusion_options={},
          post_grad_fusion_options={
@@ -105,7 +105,7 @@ index 670258df001..5f2b1108348 100644
          counters.clear()
  
 -    @requires_gpu()
-+    
++
      @torch._inductor.config.patch(
          pre_grad_fusion_options={
              "normalization_pass": {},
@@ -114,7 +114,7 @@ index 670258df001..5f2b1108348 100644
          counters.clear()
  
 -    @requires_gpu()
-+    
++
      @torch._inductor.config.patch(
          pre_grad_fusion_options={
              "normalization_pass": {},

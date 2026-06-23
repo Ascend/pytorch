@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/checkpoint/test_consolidate_hf_safetensors.py b/test/distributed/checkpoint/test_consolidate_hf_safetensors.py
+diff --git a/test/distributed/checkpoint/test_consolidate_hf_safetensors.py b/test/distributed/checkpoint/test_consolidate_hf_safetensors.py
 index ed2f1fdd7c9..ef7148cfa51 100644
 --- a/test/distributed/checkpoint/test_consolidate_hf_safetensors.py
 +++ b/test/distributed/checkpoint/test_consolidate_hf_safetensors.py

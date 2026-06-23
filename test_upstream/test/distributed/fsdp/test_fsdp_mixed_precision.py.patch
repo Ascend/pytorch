@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/fsdp/test_fsdp_mixed_precision.py b/test/distributed/fsdp/test_fsdp_mixed_precision.py
+diff --git a/test/distributed/fsdp/test_fsdp_mixed_precision.py b/test/distributed/fsdp/test_fsdp_mixed_precision.py
 index 3f83ec3f2e5..0aee064982a 100644
 --- a/test/distributed/fsdp/test_fsdp_mixed_precision.py
 +++ b/test/distributed/fsdp/test_fsdp_mixed_precision.py

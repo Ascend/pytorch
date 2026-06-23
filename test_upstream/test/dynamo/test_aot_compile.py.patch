@@ -1,13 +1,44 @@
-﻿diff --git a/test/dynamo/test_aot_compile.py b/test/dynamo/test_aot_compile.py
-index eb1d6533132..1557c025621 100644
+diff --git a/test/dynamo/test_aot_compile.py b/test/dynamo/test_aot_compile.py
+index eb1d6533132..0d28c62f03e 100644
 --- a/test/dynamo/test_aot_compile.py
 +++ b/test/dynamo/test_aot_compile.py
-@@ -15,6 +15,8 @@ from contextlib import contextmanager
+@@ -1,6 +1,13 @@
+ # Owner(s): ["module: dynamo"]
+ 
+ import contextlib
++            device = torch.device(f"npu:{rank}")
++                torch.randn(3, 4, device="npu", requires_grad=True),
++                torch.randn(3, 4, device="npu", requires_grad=True),
++        with torch.device("npu"):
++        with torch.device("npu"):
++        with torch.device("npu"):
++TEST_CUDA = True
+ import copy
+ import functools
+ import inspect
+@@ -15,6 +22,8 @@ from contextlib import contextmanager
  from unittest.mock import patch
  
  import torch
-+import torch_npu
 +from torch_npu.contrib import transfer_to_npu
++import torch_npu
  import torch._dynamo.testing
  import torch._inductor.config
  import torch._inductor.test_case
+@@ -1423,6 +1432,8 @@ from user code:
+             loaded_fn = torch.compiler.load_compiled_function(
+                 f, f_globals=fn.__globals__
+             )
++            torch.randn(3, 4, device="npu", requires_grad=True),
++            torch.randn(3, 4, device="npu", requires_grad=True),
+ 
+         expected = fn(x)
+         actual = loaded_fn(x)
+@@ -1558,6 +1569,7 @@ from user code:
+             seq_len = 16
+ 
+             device_mesh = init_device_mesh(
++                "npu",
+                 GPU_TYPE,
+                 (1,),
+                 mesh_dim_names=("dp",),

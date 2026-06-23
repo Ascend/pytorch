@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/_pycute/test_int_tuple.py b/test/distributed/_pycute/test_int_tuple.py
+diff --git a/test/distributed/_pycute/test_int_tuple.py b/test/distributed/_pycute/test_int_tuple.py
 index b6fb10394c5..87d2b52f4ef 100644
 --- a/test/distributed/_pycute/test_int_tuple.py
 +++ b/test/distributed/_pycute/test_int_tuple.py

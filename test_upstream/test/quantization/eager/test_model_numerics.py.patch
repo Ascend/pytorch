@@ -1,4 +1,4 @@
-﻿diff --git a/test/quantization/eager/test_model_numerics.py b/test/quantization/eager/test_model_numerics.py
+diff --git a/test/quantization/eager/test_model_numerics.py b/test/quantization/eager/test_model_numerics.py
 index b5b20dc5423..5fd5bd93ce7 100644
 --- a/test/quantization/eager/test_model_numerics.py
 +++ b/test/quantization/eager/test_model_numerics.py

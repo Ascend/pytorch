@@ -1,4 +1,4 @@
-﻿diff --git a/test/test_cuda_compatibility.py b/test/test_cuda_compatibility.py
+diff --git a/test/test_cuda_compatibility.py b/test/test_cuda_compatibility.py
 index d3339b53010..121cf36cb74 100644
 --- a/test/test_cuda_compatibility.py
 +++ b/test/test_cuda_compatibility.py

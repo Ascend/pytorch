@@ -1,4 +1,4 @@
-﻿diff --git a/test/test_torch_config_hash_determinism.py b/test/test_torch_config_hash_determinism.py
+diff --git a/test/test_torch_config_hash_determinism.py b/test/test_torch_config_hash_determinism.py
 index 0f81ea386b5..5c955beaa2c 100644
 --- a/test/test_torch_config_hash_determinism.py
 +++ b/test/test_torch_config_hash_determinism.py

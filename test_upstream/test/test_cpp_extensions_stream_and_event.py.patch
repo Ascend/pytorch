@@ -1,4 +1,4 @@
-﻿diff --git a/test/test_cpp_extensions_stream_and_event.py b/test/test_cpp_extensions_stream_and_event.py
+diff --git a/test/test_cpp_extensions_stream_and_event.py b/test/test_cpp_extensions_stream_and_event.py
 index a6a5ae8cd9b..e44683de3fe 100644
 --- a/test/test_cpp_extensions_stream_and_event.py
 +++ b/test/test_cpp_extensions_stream_and_event.py

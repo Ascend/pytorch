@@ -1,4 +1,4 @@
-﻿diff --git a/test/dynamo/test_exitstack.py b/test/dynamo/test_exitstack.py
+diff --git a/test/dynamo/test_exitstack.py b/test/dynamo/test_exitstack.py
 index 8fef8a822d5..43746ef61bc 100644
 --- a/test/dynamo/test_exitstack.py
 +++ b/test/dynamo/test_exitstack.py

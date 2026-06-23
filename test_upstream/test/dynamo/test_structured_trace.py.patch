@@ -1,4 +1,4 @@
-﻿diff --git a/test/dynamo/test_structured_trace.py b/test/dynamo/test_structured_trace.py
+diff --git a/test/dynamo/test_structured_trace.py b/test/dynamo/test_structured_trace.py
 index d2e177bba11..86786052a06 100644
 --- a/test/dynamo/test_structured_trace.py
 +++ b/test/dynamo/test_structured_trace.py

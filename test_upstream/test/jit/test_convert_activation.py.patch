@@ -1,4 +1,4 @@
-﻿diff --git a/test/jit/test_convert_activation.py b/test/jit/test_convert_activation.py
+diff --git a/test/jit/test_convert_activation.py b/test/jit/test_convert_activation.py
 index 90cb26ce263..e45cb314cb3 100644
 --- a/test/jit/test_convert_activation.py
 +++ b/test/jit/test_convert_activation.py

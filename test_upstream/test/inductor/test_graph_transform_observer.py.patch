@@ -1,4 +1,4 @@
-﻿diff --git a/test/inductor/test_graph_transform_observer.py b/test/inductor/test_graph_transform_observer.py
+diff --git a/test/inductor/test_graph_transform_observer.py b/test/inductor/test_graph_transform_observer.py
 index e30f2189cd4..0a9fc4fb77f 100644
 --- a/test/inductor/test_graph_transform_observer.py
 +++ b/test/inductor/test_graph_transform_observer.py

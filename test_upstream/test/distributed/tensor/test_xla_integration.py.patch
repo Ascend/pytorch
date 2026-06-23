@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/tensor/test_xla_integration.py b/test/distributed/tensor/test_xla_integration.py
+diff --git a/test/distributed/tensor/test_xla_integration.py b/test/distributed/tensor/test_xla_integration.py
 index ff898f18e81..88571386de9 100644
 --- a/test/distributed/tensor/test_xla_integration.py
 +++ b/test/distributed/tensor/test_xla_integration.py

@@ -1,4 +1,4 @@
-﻿diff --git a/test/test_native_mha.py b/test/test_native_mha.py
+diff --git a/test/test_native_mha.py b/test/test_native_mha.py
 index c360bf350e9..98e468e1cf5 100644
 --- a/test/test_native_mha.py
 +++ b/test/test_native_mha.py

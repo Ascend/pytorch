@@ -1,4 +1,4 @@
-﻿diff --git a/test/package/test_mangling.py b/test/package/test_mangling.py
+diff --git a/test/package/test_mangling.py b/test/package/test_mangling.py
 index 30477e8f277..63ceaaa7575 100644
 --- a/test/package/test_mangling.py
 +++ b/test/package/test_mangling.py

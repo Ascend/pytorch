@@ -1,4 +1,4 @@
-﻿diff --git a/test/test_ci_sanity_check_fail.py b/test/test_ci_sanity_check_fail.py
+diff --git a/test/test_ci_sanity_check_fail.py b/test/test_ci_sanity_check_fail.py
 index 895cf985dbc..57b41176600 100644
 --- a/test/test_ci_sanity_check_fail.py
 +++ b/test/test_ci_sanity_check_fail.py

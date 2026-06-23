@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/local_tensor_tutorial_examples/test_local_tensor_tutorial_examples.py b/test/distributed/local_tensor_tutorial_examples/test_local_tensor_tutorial_examples.py
+diff --git a/test/distributed/local_tensor_tutorial_examples/test_local_tensor_tutorial_examples.py b/test/distributed/local_tensor_tutorial_examples/test_local_tensor_tutorial_examples.py
 index 1f21541b319..6a63523e1a3 100644
 --- a/test/distributed/local_tensor_tutorial_examples/test_local_tensor_tutorial_examples.py
 +++ b/test/distributed/local_tensor_tutorial_examples/test_local_tensor_tutorial_examples.py

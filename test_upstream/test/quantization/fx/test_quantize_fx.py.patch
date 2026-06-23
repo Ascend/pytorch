@@ -1,5 +1,5 @@
-﻿diff --git a/test/quantization/fx/test_quantize_fx.py b/test/quantization/fx/test_quantize_fx.py
-index 8584b9f405d..221a4c658de 100644
+diff --git a/test/quantization/fx/test_quantize_fx.py b/test/quantization/fx/test_quantize_fx.py
+index 8584b9f405d..74702f3b458 100644
 --- a/test/quantization/fx/test_quantize_fx.py
 +++ b/test/quantization/fx/test_quantize_fx.py
 @@ -1,9 +1,19 @@
@@ -22,17 +22,6 @@ index 8584b9f405d..221a4c658de 100644
  import torch.nn.functional as F
  import torch.nn as nn
  import torch.ao.nn.quantized as nnq
-@@ -1794,8 +1804,8 @@ class TestQuantizeFx(QuantizationTestCase):
- 
- 
- 
--    @unittest.skipIf(not TEST_MULTIGPU, "multi-GPU not supported")
--    @unittest.skipIf(not TEST_CUDA, "CUDA unavailable")
-+    # @unittest.skipIf(not TEST_MULTIGPU, "multi-GPU not supported")
-+    # @unittest.skipIf(not TEST_CUDA, "CUDA unavailable")
-     @override_qengines
-     def test_qat_prepare_device_affinity(self):
-         """
 @@ -1818,7 +1828,7 @@ class TestQuantizeFx(QuantizationTestCase):
          model = Model()
          qengine = torch.backends.quantized.engine

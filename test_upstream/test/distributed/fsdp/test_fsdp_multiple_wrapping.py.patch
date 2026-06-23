@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/fsdp/test_fsdp_multiple_wrapping.py b/test/distributed/fsdp/test_fsdp_multiple_wrapping.py
+diff --git a/test/distributed/fsdp/test_fsdp_multiple_wrapping.py b/test/distributed/fsdp/test_fsdp_multiple_wrapping.py
 index 41317745301..82638964a1e 100644
 --- a/test/distributed/fsdp/test_fsdp_multiple_wrapping.py
 +++ b/test/distributed/fsdp/test_fsdp_multiple_wrapping.py

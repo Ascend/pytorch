@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/checkpoint/e2e/test_e2e_save_and_load.py b/test/distributed/checkpoint/e2e/test_e2e_save_and_load.py
+diff --git a/test/distributed/checkpoint/e2e/test_e2e_save_and_load.py b/test/distributed/checkpoint/e2e/test_e2e_save_and_load.py
 index c3f16b9473f..64db2ad43af 100644
 --- a/test/distributed/checkpoint/e2e/test_e2e_save_and_load.py
 +++ b/test/distributed/checkpoint/e2e/test_e2e_save_and_load.py

@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/checkpoint/test_fsdp_model_state.py b/test/distributed/checkpoint/test_fsdp_model_state.py
+diff --git a/test/distributed/checkpoint/test_fsdp_model_state.py b/test/distributed/checkpoint/test_fsdp_model_state.py
 index f73604a1d77..f9d4cec1bf8 100644
 --- a/test/distributed/checkpoint/test_fsdp_model_state.py
 +++ b/test/distributed/checkpoint/test_fsdp_model_state.py

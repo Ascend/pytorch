@@ -1,4 +1,4 @@
-﻿diff --git a/test/dynamo/test_trace_rules.py b/test/dynamo/test_trace_rules.py
+diff --git a/test/dynamo/test_trace_rules.py b/test/dynamo/test_trace_rules.py
 index 2496e0e9701..f718c18fcaa 100644
 --- a/test/dynamo/test_trace_rules.py
 +++ b/test/dynamo/test_trace_rules.py

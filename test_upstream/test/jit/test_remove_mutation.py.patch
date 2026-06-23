@@ -1,4 +1,4 @@
-﻿diff --git a/test/jit/test_remove_mutation.py b/test/jit/test_remove_mutation.py
+diff --git a/test/jit/test_remove_mutation.py b/test/jit/test_remove_mutation.py
 index 31230e522b2..8a8aaa57d9c 100644
 --- a/test/jit/test_remove_mutation.py
 +++ b/test/jit/test_remove_mutation.py

@@ -1,4 +1,4 @@
-﻿diff --git a/test/inductor/test_benchmark_fusion.py b/test/inductor/test_benchmark_fusion.py
+diff --git a/test/inductor/test_benchmark_fusion.py b/test/inductor/test_benchmark_fusion.py
 index fb7fd688071..f5e9d7f7279 100644
 --- a/test/inductor/test_benchmark_fusion.py
 +++ b/test/inductor/test_benchmark_fusion.py

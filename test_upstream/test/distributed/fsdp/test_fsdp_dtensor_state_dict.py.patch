@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/fsdp/test_fsdp_dtensor_state_dict.py b/test/distributed/fsdp/test_fsdp_dtensor_state_dict.py
+diff --git a/test/distributed/fsdp/test_fsdp_dtensor_state_dict.py b/test/distributed/fsdp/test_fsdp_dtensor_state_dict.py
 index 88a55a2ce89..b1d0924eb7d 100644
 --- a/test/distributed/fsdp/test_fsdp_dtensor_state_dict.py
 +++ b/test/distributed/fsdp/test_fsdp_dtensor_state_dict.py

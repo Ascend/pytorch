@@ -1,4 +1,4 @@
-﻿diff --git a/test/inductor/test_triton_heuristics.py b/test/inductor/test_triton_heuristics.py
+diff --git a/test/inductor/test_triton_heuristics.py b/test/inductor/test_triton_heuristics.py
 index 5910b68b064..afd488a5350 100644
 --- a/test/inductor/test_triton_heuristics.py
 +++ b/test/inductor/test_triton_heuristics.py

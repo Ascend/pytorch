@@ -1,55 +1,31 @@
-﻿diff --git a/test/distributed/_composable/fsdp/test_fully_shard_comm.py b/test/distributed/_composable/fsdp/test_fully_shard_comm.py
-index 0d9daab6be7..c60eb3b0932 100644
+diff --git a/test/distributed/_composable/fsdp/test_fully_shard_comm.py b/test/distributed/_composable/fsdp/test_fully_shard_comm.py
+index 0d9daab6be7..367dc799a1b 100644
 --- a/test/distributed/_composable/fsdp/test_fully_shard_comm.py
 +++ b/test/distributed/_composable/fsdp/test_fully_shard_comm.py
-@@ -1,3 +1,8 @@
-+import torch_npu.testing
-+
-+import torch_npu
-+from torch_npu.contrib import transfer_to_npu
-+
- # Owner(s): ["oncall: distributed"]
+@@ -78,9 +78,9 @@ from torch.testing._internal.distributed._tensor.common_dtensor import (
+     Transformer,
+     TransformerBlock,
+ )
++TEST_CUDA = True
+ from torch.testing._internal.inductor_utils import skipCUDAIf
  
- import copy
-@@ -1665,7 +1670,7 @@ class TestFullyShardAllocFromPG(FSDPTest):
+-
+ c10d_ops = torch.ops.c10d
+ 
+ # For recording FSDP events like unshard or post-backward
+@@ -120,6 +120,7 @@ class TestFullyShardCollectiveOps(FSDPTestMultiThread):
+         torch.manual_seed(42)
+         orig_params = [
+             nn.Parameter(torch.randn(size, device=self.device)) for size in param_sizes
++        ref_model = copy.deepcopy(model).npu()
+         ]
+         # Since seed is per process, not per thread, we broadcast to ensure the
+         # same original parameters across ranks
+@@ -1292,6 +1293,7 @@ class TestFullyShardPrefetch(FSDPTest):
          fully_shard(model)
+         optim = torch.optim.AdamW(model.parameters(), lr=1e-2)
  
-         torch.manual_seed(42 + self.rank)
--        inp = torch.randint(0, model_args.vocab_size, (2, 16), device="cuda")
 +        inp = torch.randint(0, model_args.vocab_size, (2, 16), device="npu")
- 
-         loss = model(inp)
-         loss.sum().backward()
-@@ -1730,12 +1735,12 @@ class TestFullyShardSymmMem(MultiProcContinuousTest):
- 
-     @property
-     def device(self) -> torch.device:
--        return torch.device("cuda", self.rank)
-+        return torch.device("npu", self.rank)
- 
-     @parametrize("sum_reduction", [True, False])
-     def test_fully_shard_symm_mem(self, sum_reduction: bool):
-         torch.manual_seed(42 + self.rank)
--        device = torch.device("cuda", self.rank)
-+        device = torch.device("npu", self.rank)
-         torch.cuda.set_device(device)
-         seq_len = 64
-         model_args = ModelArgs()
-@@ -1817,7 +1822,7 @@ class TestFullyShardForceSumReduction(FSDPTest):
-         )
- 
-         torch.manual_seed(42 + self.rank)
--        inp = torch.randint(0, model_args.vocab_size, (2, 16), device="cuda")
-+        inp = torch.randint(0, model_args.vocab_size, (2, 16), device="npu")
- 
-         loss = model(inp)
-         loss.sum().backward()
-@@ -1882,7 +1887,7 @@ class TestFullyShardForceSumReduction(FSDPTest):
-         )
- 
-         torch.manual_seed(42 + self.rank)
--        inp = torch.randint(0, model_args.vocab_size, (2, 16), device="cuda")
-+        inp = torch.randint(0, model_args.vocab_size, (2, 16), device="npu")
- 
-         loss = model(inp)
-         loss.sum().backward()
+         events: list[EventType] = []
+         unshard_with_record = self._get_unshard_with_record(
+             FSDPParamGroup.unshard, events

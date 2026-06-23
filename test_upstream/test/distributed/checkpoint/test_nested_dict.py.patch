@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/checkpoint/test_nested_dict.py b/test/distributed/checkpoint/test_nested_dict.py
+diff --git a/test/distributed/checkpoint/test_nested_dict.py b/test/distributed/checkpoint/test_nested_dict.py
 index bf9a61fe114..978a98dffaa 100644
 --- a/test/distributed/checkpoint/test_nested_dict.py
 +++ b/test/distributed/checkpoint/test_nested_dict.py

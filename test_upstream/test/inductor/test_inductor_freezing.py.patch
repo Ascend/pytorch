@@ -1,4 +1,4 @@
-﻿diff --git a/test/inductor/test_inductor_freezing.py b/test/inductor/test_inductor_freezing.py
+diff --git a/test/inductor/test_inductor_freezing.py b/test/inductor/test_inductor_freezing.py
 index 299532a9cee..9149ce0bf37 100644
 --- a/test/inductor/test_inductor_freezing.py
 +++ b/test/inductor/test_inductor_freezing.py

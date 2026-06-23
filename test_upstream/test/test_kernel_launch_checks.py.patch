@@ -1,4 +1,4 @@
-﻿diff --git a/test/test_kernel_launch_checks.py b/test/test_kernel_launch_checks.py
+diff --git a/test/test_kernel_launch_checks.py b/test/test_kernel_launch_checks.py
 index 278026a021d..4968ab303e9 100644
 --- a/test/test_kernel_launch_checks.py
 +++ b/test/test_kernel_launch_checks.py

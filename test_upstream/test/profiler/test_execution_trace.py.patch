@@ -1,4 +1,4 @@
-﻿diff --git a/test/profiler/test_execution_trace.py b/test/profiler/test_execution_trace.py
+diff --git a/test/profiler/test_execution_trace.py b/test/profiler/test_execution_trace.py
 index a2e80c2d26e..b6a750042f3 100644
 --- a/test/profiler/test_execution_trace.py
 +++ b/test/profiler/test_execution_trace.py

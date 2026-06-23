@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/algorithms/quantization/test_quantization.py b/test/distributed/algorithms/quantization/test_quantization.py
+diff --git a/test/distributed/algorithms/quantization/test_quantization.py b/test/distributed/algorithms/quantization/test_quantization.py
 index 6044eac70b5..1a2054203a0 100644
 --- a/test/distributed/algorithms/quantization/test_quantization.py
 +++ b/test/distributed/algorithms/quantization/test_quantization.py

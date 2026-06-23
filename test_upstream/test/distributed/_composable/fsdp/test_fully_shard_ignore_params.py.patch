@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/_composable/fsdp/test_fully_shard_ignore_params.py b/test/distributed/_composable/fsdp/test_fully_shard_ignore_params.py
+diff --git a/test/distributed/_composable/fsdp/test_fully_shard_ignore_params.py b/test/distributed/_composable/fsdp/test_fully_shard_ignore_params.py
 index c7463f36ca4..413e2840026 100644
 --- a/test/distributed/_composable/fsdp/test_fully_shard_ignore_params.py
 +++ b/test/distributed/_composable/fsdp/test_fully_shard_ignore_params.py

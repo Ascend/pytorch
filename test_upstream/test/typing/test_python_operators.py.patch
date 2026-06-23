@@ -1,4 +1,4 @@
-﻿diff --git a/test/typing/test_python_operators.py b/test/typing/test_python_operators.py
+diff --git a/test/typing/test_python_operators.py b/test/typing/test_python_operators.py
 index d7146b7e580..ad9f8fee851 100644
 --- a/test/typing/test_python_operators.py
 +++ b/test/typing/test_python_operators.py

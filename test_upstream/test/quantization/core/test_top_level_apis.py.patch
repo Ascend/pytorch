@@ -1,4 +1,4 @@
-﻿diff --git a/test/quantization/core/test_top_level_apis.py b/test/quantization/core/test_top_level_apis.py
+diff --git a/test/quantization/core/test_top_level_apis.py b/test/quantization/core/test_top_level_apis.py
 index 86a4a30af7b..0e8b40dab7e 100644
 --- a/test/quantization/core/test_top_level_apis.py
 +++ b/test/quantization/core/test_top_level_apis.py

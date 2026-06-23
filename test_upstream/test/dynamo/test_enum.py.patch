@@ -1,4 +1,4 @@
-﻿diff --git a/test/dynamo/test_enum.py b/test/dynamo/test_enum.py
+diff --git a/test/dynamo/test_enum.py b/test/dynamo/test_enum.py
 index d94c1ab97b8..4dfb1f75238 100644
 --- a/test/dynamo/test_enum.py
 +++ b/test/dynamo/test_enum.py

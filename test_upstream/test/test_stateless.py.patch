@@ -1,5 +1,5 @@
-﻿diff --git a/test/test_stateless.py b/test/test_stateless.py
-index 77af5eb24fa..3c4b7ed8199 100644
+diff --git a/test/test_stateless.py b/test/test_stateless.py
+index 77af5eb24fa..5a98edc6146 100644
 --- a/test/test_stateless.py
 +++ b/test/test_stateless.py
 @@ -13,6 +13,7 @@ from torch.testing._internal.common_cuda import TEST_MULTIGPU
@@ -10,11 +10,12 @@ index 77af5eb24fa..3c4b7ed8199 100644
  
  class MockModule(torch.nn.Module):
      def __init__(self) -> None:
-@@ -104,6 +105,7 @@ class TestStatelessFunctionalAPI(TestCase):
+@@ -96,6 +97,8 @@ class TestStatelessFunctionalAPI(TestCase):
          subtest(stateless.functional_call, "stateless")
      ])
-     def test_functional_call_with_jit(self, functional_call):
-+        # 鏉╂瑤閲滃ù瀣槸閻劋绶ラ弰鐥t娑撳秷鍏樻担璺ㄦ暏transfer_to_npu闂団偓鐟曚礁宕熼悪顒冪獓
+     def test_functional_call(self, functional_call):
++        # 这个测试用例是jit不能使用transfer_to_npu需要单独跑
++        # 杩欎釜娴嬭瘯鐢ㄤ緥鏄痡it涓嶈兘浣跨敤transfer_to_npu闇€瑕佸崟鐙窇
          module = MockModule()
-         jit_module = torch.jit.script(module)
-         with self.assertRaisesRegex(
+         self._run_call_with_mock_module(module, functional_call)
+ 

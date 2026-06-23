@@ -1,5 +1,5 @@
-﻿diff --git a/test/functorch/test_eager_transforms.py b/test/functorch/test_eager_transforms.py
-index 6330640bf95..4214db7bcfd 100644
+diff --git a/test/functorch/test_eager_transforms.py b/test/functorch/test_eager_transforms.py
+index 6330640bf95..a40b458190d 100644
 --- a/test/functorch/test_eager_transforms.py
 +++ b/test/functorch/test_eager_transforms.py
 @@ -16,10 +16,20 @@ from functools import partial, wraps
@@ -24,15 +24,6 @@ index 6330640bf95..4214db7bcfd 100644
  import torch.autograd.forward_ad as fwAD
  import torch.nn as nn
  import torch.nn.functional as F
-@@ -60,7 +70,7 @@ from torch.testing._internal.common_device_type import (
-     dtypes,
-     instantiate_device_type_tests,
-     onlyCPU,
--    onlyCUDA,
-+    onlyPRIVATEUSE1,
- )
- from torch.testing._internal.common_dtype import get_all_fp_dtypes
- from torch.testing._internal.common_utils import (
 @@ -1389,18 +1399,19 @@ class TestAutogradFunction(TestCase):
              @staticmethod
              def forward(input):
@@ -69,7 +60,7 @@ index 6330640bf95..4214db7bcfd 100644
          self.assertEqual(actual_jvp, expected_jvp)
  
 -    @onlyCUDA
-+    # @onlyPRIVATEUSE1
++    # @onlyCUDA
      def test_linearize_errors(self):
          dtype = torch.float
          device = torch.device("cpu")

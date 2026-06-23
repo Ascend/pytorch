@@ -1,4 +1,4 @@
-﻿diff --git a/test/inductor/test_layout_optim.py b/test/inductor/test_layout_optim.py
+diff --git a/test/inductor/test_layout_optim.py b/test/inductor/test_layout_optim.py
 index 8962e6bb18b..84c42282d24 100644
 --- a/test/inductor/test_layout_optim.py
 +++ b/test/inductor/test_layout_optim.py

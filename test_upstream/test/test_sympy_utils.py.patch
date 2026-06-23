@@ -1,4 +1,4 @@
-﻿diff --git a/test/test_sympy_utils.py b/test/test_sympy_utils.py
+diff --git a/test/test_sympy_utils.py b/test/test_sympy_utils.py
 index f1a706e4276..d8208142523 100644
 --- a/test/test_sympy_utils.py
 +++ b/test/test_sympy_utils.py

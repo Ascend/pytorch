@@ -1,4 +1,4 @@
-﻿diff --git a/test/inductor/test_max_autotune.py b/test/inductor/test_max_autotune.py
+diff --git a/test/inductor/test_max_autotune.py b/test/inductor/test_max_autotune.py
 index f5339774368..2cbe1537657 100644
 --- a/test/inductor/test_max_autotune.py
 +++ b/test/inductor/test_max_autotune.py

@@ -1,4 +1,4 @@
-﻿diff --git a/test/inductor/test_snode_runtime.py b/test/inductor/test_snode_runtime.py
+diff --git a/test/inductor/test_snode_runtime.py b/test/inductor/test_snode_runtime.py
 index 51be7248769..51517286123 100644
 --- a/test/inductor/test_snode_runtime.py
 +++ b/test/inductor/test_snode_runtime.py

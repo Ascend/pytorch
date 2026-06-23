@@ -1,4 +1,4 @@
-﻿diff --git a/test/jit/test_torchbind.py b/test/jit/test_torchbind.py
+diff --git a/test/jit/test_torchbind.py b/test/jit/test_torchbind.py
 index 3664ece0d38..0504dbcd04b 100644
 --- a/test/jit/test_torchbind.py
 +++ b/test/jit/test_torchbind.py

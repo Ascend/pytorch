@@ -1,4 +1,4 @@
-﻿diff --git a/test/test_unary_ufuncs.py b/test/test_unary_ufuncs.py
+diff --git a/test/test_unary_ufuncs.py b/test/test_unary_ufuncs.py
 index 6fa4bd47057..ed106bf1a94 100644
 --- a/test/test_unary_ufuncs.py
 +++ b/test/test_unary_ufuncs.py

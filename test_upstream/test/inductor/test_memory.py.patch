@@ -1,4 +1,4 @@
-﻿diff --git a/test/inductor/test_memory.py b/test/inductor/test_memory.py
+diff --git a/test/inductor/test_memory.py b/test/inductor/test_memory.py
 index eb362b6535a..b3111e0b33a 100644
 --- a/test/inductor/test_memory.py
 +++ b/test/inductor/test_memory.py

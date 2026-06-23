@@ -1,0 +1,24 @@
+diff --git a/torch/_inductor/utils.py b/torch/_inductor/utils.py
+index 7dc7476f2c9..556531ba183 100644
+--- a/torch/_inductor/utils.py
++++ b/torch/_inductor/utils.py
+@@ -97,6 +97,7 @@ if TYPE_CHECKING:
+     from .scheduler import BaseSchedulerNode, SchedulerBuffer
+ 
+ 
++GPU_TYPES = ["cuda", "mps", "xpu", "npu"]
+ GPU_TYPES = ["cuda", "mps", "xpu", "mtia"]
+ T = TypeVar("T")
+ 
+@@ -105,10 +106,7 @@ T = TypeVar("T")
+ # when get_gpu_type is imported from dynamo
+ @functools.cache
+ def get_gpu_type() -> str:
+-    avail_gpus = [x for x in GPU_TYPES if getattr(torch, x).is_available()]
+-    assert len(avail_gpus) <= 1
+-    gpu_type = "cuda" if len(avail_gpus) == 0 else avail_gpus.pop()
+-    return gpu_type
++    return "npu"
+ 
+ 
+ from torch._dynamo.device_interface import get_interface_for_device

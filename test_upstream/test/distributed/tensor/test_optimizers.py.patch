@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/tensor/test_optimizers.py b/test/distributed/tensor/test_optimizers.py
+diff --git a/test/distributed/tensor/test_optimizers.py b/test/distributed/tensor/test_optimizers.py
 index abc4bde4429..c13dc3b89bc 100644
 --- a/test/distributed/tensor/test_optimizers.py
 +++ b/test/distributed/tensor/test_optimizers.py

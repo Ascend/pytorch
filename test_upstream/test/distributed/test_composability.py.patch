@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/test_composability.py b/test/distributed/test_composability.py
+diff --git a/test/distributed/test_composability.py b/test/distributed/test_composability.py
 index 1a15cb10dc5..b2a8057456e 100644
 --- a/test/distributed/test_composability.py
 +++ b/test/distributed/test_composability.py

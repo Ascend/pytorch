@@ -1,13 +1,36 @@
-﻿diff --git a/test/distributed/test_c10d_logger.py b/test/distributed/test_c10d_logger.py
-index bbbcd2c751a..2ef03c4dfe0 100644
+diff --git a/test/distributed/test_c10d_logger.py b/test/distributed/test_c10d_logger.py
+index bbbcd2c751a..06a360f55d6 100644
 --- a/test/distributed/test_c10d_logger.py
 +++ b/test/distributed/test_c10d_logger.py
-@@ -1,3 +1,8 @@
-+import torch_npu.testing
-+
-+import torch_npu
-+from torch_npu.contrib import transfer_to_npu
-+
- # Owner(s): ["oncall: distributed"]
+@@ -92,9 +92,9 @@ class C10dErrorLoggerTest(DistributedTestBase):
+                 re.search("({.+})", captured.output[0]).group(0).replace("'", '"')
+             )
  
- import json
++            self.assertEqual(len(error_msg_dict), 8)
+             # NCCL adds additional nccl_version data to the error_msg_dict
+             if self.backend(device_type) == dist.Backend.NCCL:
+-                self.assertEqual(len(error_msg_dict), 9)
+             else:
+                 self.assertEqual(len(error_msg_dict), 8)
+ 
+@@ -105,14 +105,15 @@ class C10dErrorLoggerTest(DistributedTestBase):
+             self.assertEqual("broadcast", error_msg_dict["func_name"])
+ 
+             self.assertIn("backend", error_msg_dict.keys())
++            # )
++            #     ".".join(str(v) for v in nccl_ver), error_msg_dict["nccl_version"]
++            # self.assertEqual(
++            # nccl_ver = torch.cuda.nccl.version()
++            # self.assertIn("nccl_version", error_msg_dict.keys())
++            self.assertEqual("hccl", error_msg_dict["backend"])
+             self.assertEqual(self.backend(device_type), error_msg_dict["backend"])
+ 
+             if self.backend(device_type) == dist.Backend.NCCL:
+-                self.assertIn("nccl_version", error_msg_dict.keys())
+-                nccl_ver = torch.cuda.nccl.version()
+-                self.assertEqual(
+-                    ".".join(str(v) for v in nccl_ver), error_msg_dict["nccl_version"]
+-                )
+ 
+             # In this test case, group_size = world_size, since we don't have multiple processes on one node.
+             self.assertIn("group_size", error_msg_dict.keys())

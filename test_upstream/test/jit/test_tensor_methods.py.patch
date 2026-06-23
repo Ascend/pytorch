@@ -1,4 +1,4 @@
-﻿diff --git a/test/jit/test_tensor_methods.py b/test/jit/test_tensor_methods.py
+diff --git a/test/jit/test_tensor_methods.py b/test/jit/test_tensor_methods.py
 index 05526341c9f..eb7bfd99e26 100644
 --- a/test/jit/test_tensor_methods.py
 +++ b/test/jit/test_tensor_methods.py

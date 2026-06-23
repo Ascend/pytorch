@@ -1,4 +1,4 @@
-﻿diff --git a/test/dynamo/test_regional_inductor.py b/test/dynamo/test_regional_inductor.py
+diff --git a/test/dynamo/test_regional_inductor.py b/test/dynamo/test_regional_inductor.py
 index 70d24836f35..809a6e21dd7 100644
 --- a/test/dynamo/test_regional_inductor.py
 +++ b/test/dynamo/test_regional_inductor.py

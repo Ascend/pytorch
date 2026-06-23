@@ -1,4 +1,4 @@
-﻿diff --git a/test/quantization/core/experimental/test_floatx.py b/test/quantization/core/experimental/test_floatx.py
+diff --git a/test/quantization/core/experimental/test_floatx.py b/test/quantization/core/experimental/test_floatx.py
 index 75b542a78d0..4945286e02f 100644
 --- a/test/quantization/core/experimental/test_floatx.py
 +++ b/test/quantization/core/experimental/test_floatx.py

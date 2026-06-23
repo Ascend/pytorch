@@ -1,4 +1,4 @@
-﻿diff --git a/test/dynamo/test_bytecode_utils.py b/test/dynamo/test_bytecode_utils.py
+diff --git a/test/dynamo/test_bytecode_utils.py b/test/dynamo/test_bytecode_utils.py
 index 73736846aff..981e350bc42 100644
 --- a/test/dynamo/test_bytecode_utils.py
 +++ b/test/dynamo/test_bytecode_utils.py

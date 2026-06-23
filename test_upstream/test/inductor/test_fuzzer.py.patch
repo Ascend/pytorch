@@ -1,4 +1,4 @@
-﻿diff --git a/test/inductor/test_fuzzer.py b/test/inductor/test_fuzzer.py
+diff --git a/test/inductor/test_fuzzer.py b/test/inductor/test_fuzzer.py
 index d13662c6f66..36c502b7bf4 100644
 --- a/test/inductor/test_fuzzer.py
 +++ b/test/inductor/test_fuzzer.py

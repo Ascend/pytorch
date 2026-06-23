@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/nn/jit/test_instantiator.py b/test/distributed/nn/jit/test_instantiator.py
+diff --git a/test/distributed/nn/jit/test_instantiator.py b/test/distributed/nn/jit/test_instantiator.py
 index 37cd99be10d..0e3450fc539 100644
 --- a/test/distributed/nn/jit/test_instantiator.py
 +++ b/test/distributed/nn/jit/test_instantiator.py

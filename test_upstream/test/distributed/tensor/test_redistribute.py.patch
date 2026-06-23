@@ -1,13 +1,18 @@
-﻿diff --git a/test/distributed/tensor/test_redistribute.py b/test/distributed/tensor/test_redistribute.py
-index fc019b53109..18b3a6055d1 100644
+diff --git a/test/distributed/tensor/test_redistribute.py b/test/distributed/tensor/test_redistribute.py
+index fc019b53109..1174b97f1af 100644
 --- a/test/distributed/tensor/test_redistribute.py
 +++ b/test/distributed/tensor/test_redistribute.py
-@@ -1,3 +1,8 @@
-+import torch_npu.testing
-+
-+import torch_npu
-+from torch_npu.contrib import transfer_to_npu
-+
- # Copyright (c) Meta Platforms, Inc. and affiliates
- # Owner(s): ["oncall: distributed"]
+@@ -59,11 +59,12 @@ from torch.testing._internal.distributed._tensor.common_dtensor import (
+     map_local_tensor_for_rank,
+     patched_distribute_tensor as _distribute_tensor,
+     redistribute,
++from torch_npu.testing.common_distributed import with_comms
++    # with_comms,
+ )
+ from torch.testing._internal.distributed.fake_pg import FakeStore
+ from torch.utils._debug_mode import DebugMode
+ 
+-
+ funcol = torch.ops.c10d_functional
+ 
  

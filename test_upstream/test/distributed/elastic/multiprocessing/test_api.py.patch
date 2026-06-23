@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/elastic/multiprocessing/test_api.py b/test/distributed/elastic/multiprocessing/test_api.py
+diff --git a/test/distributed/elastic/multiprocessing/test_api.py b/test/distributed/elastic/multiprocessing/test_api.py
 index 109dc5b557d..a34fe772288 100644
 --- a/test/distributed/elastic/multiprocessing/test_api.py
 +++ b/test/distributed/elastic/multiprocessing/test_api.py

@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/tensor/debug/test_debug_mode.py b/test/distributed/tensor/debug/test_debug_mode.py
+diff --git a/test/distributed/tensor/debug/test_debug_mode.py b/test/distributed/tensor/debug/test_debug_mode.py
 index 337fd2bd76c..ce8f8ceb098 100644
 --- a/test/distributed/tensor/debug/test_debug_mode.py
 +++ b/test/distributed/tensor/debug/test_debug_mode.py

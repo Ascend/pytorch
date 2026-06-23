@@ -1,4 +1,4 @@
-﻿diff --git a/test/test_numa_binding.py b/test/test_numa_binding.py
+diff --git a/test/test_numa_binding.py b/test/test_numa_binding.py
 index 53cdaa0248b..12859282774 100644
 --- a/test/test_numa_binding.py
 +++ b/test/test_numa_binding.py

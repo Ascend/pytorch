@@ -1,4 +1,4 @@
-﻿diff --git a/test/lazy/test_generator.py b/test/lazy/test_generator.py
+diff --git a/test/lazy/test_generator.py b/test/lazy/test_generator.py
 index 36cf8c52df5..179c8c48f93 100644
 --- a/test/lazy/test_generator.py
 +++ b/test/lazy/test_generator.py

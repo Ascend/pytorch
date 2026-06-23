@@ -1,36 +1,69 @@
-diff --git a/test/dynamo/test_misc.py b/test/dynamo/test_misc.py
+﻿diff --git a/pytorch2.12.0/test/dynamo/test_misc.py b/72w/pytorch-test-src/test/dynamo/test_misc.py
 index 893fe24..fca0602 100644
---- a/test/dynamo/test_misc.py
-+++ b/test/dynamo/test_misc.py
-@@ -1034,6 +1034,6 @@ class MiscTests(torch._inductor.test_case.TestCase):
+--- a/pytorch2.12.0/test/dynamo/test_misc.py
++++ b/72w/pytorch-test-src/test/dynamo/test_misc.py
+@@ -12569,7 +12569,7 @@ def ___make_guard_fn():
  
-     @unittest.skipIf(
--        not torch.cuda.is_available() or torch.cuda.get_device_capability() < (9, 0),
-+        not torch.cuda.is_available() or (torch.cuda.get_device_capability() or (0,)) < (9, 0),
-         "requires Hopper+ (SM >= 9.0) for TMA",
-     )
-     @unittest.skipIf(
-@@ -12572 +12572 @@ def ___make_guard_fn():
+         # Call create_symbolic_sizes_strides_storage_offset on both of them.
+         r = main.create_symbolic_sizes_strides_storage_offset(
 -            torch.randn(3, 2), ConstantSource("x")
 +            torch.randn(3, 2).npu(), ConstantSource("x")
-@@ -12626 +12626 @@ ShapeEnv not equal: field values don't match:
+         )
+ 
+         # Create a guard: size[0] == 3 (call evaluate_expr)
+@@ -12623,7 +12623,7 @@ ShapeEnv not equal: field values don't match:
+     def test_shape_env_equal_create_symbolic_sizes_strides_storage_offset(self):
+         main, other = ShapeEnv(), ShapeEnv()
+         main.create_symbolic_sizes_strides_storage_offset(
 -            torch.randn(3, 2), ConstantSource("x")
 +            torch.randn(3, 2).npu(), ConstantSource("x")
-@@ -12696 +12696 @@ ShapeEnv not equal: field values don't match:
+         )
+         self.assertExpectedRaisesInline(
+             NotEqualError,
+@@ -12693,10 +12693,10 @@ ShapeEnv not equal: field values don't match:
+ 
+         # Call create_symbolic_sizes_strides_storage_offset on both of them.
+         r = main.create_symbolic_sizes_strides_storage_offset(
 -            torch.randn(3, 2), ConstantSource("x")
 +            torch.randn(3, 2).npu(), ConstantSource("x")
-@@ -12699 +12699 @@ ShapeEnv not equal: field values don't match:
+         )
+         other.create_symbolic_sizes_strides_storage_offset(
 -            torch.randn(3, 2), ConstantSource("x")
 +            torch.randn(3, 2).npu(), ConstantSource("x")
-@@ -12736 +12736 @@ ShapeEnv not equal: field values don't match:
+         )
+ 
+         # Create a guard: size[0] % 3 == 0 (only in the main ShapeEnv)
+@@ -12733,10 +12733,10 @@ ShapeEnv not equal: field values don't match:
+ 
+         # Call create_symbolic_sizes_strides_storage_offset on both of them.
+         r = main.create_symbolic_sizes_strides_storage_offset(
 -            torch.randn(3, 2), ConstantSource("x")
 +            torch.randn(3, 2).npu(), ConstantSource("x")
-@@ -12739 +12739 @@ ShapeEnv not equal: field values don't match:
+         )
+         other.create_symbolic_sizes_strides_storage_offset(
 -            torch.randn(3, 2), ConstantSource("x")
 +            torch.randn(3, 2).npu(), ConstantSource("x")
-@@ -12779 +12779 @@ ShapeEnv not equal: field values don't match:
+         )
+ 
+         # Create a guard: size[0] == 3 (only in the main ShapeEnv)
+@@ -12776,10 +12776,10 @@ ShapeEnv not equal: field values don't match:
+ 
+         # Call create_symbolic_sizes_strides_storage_offset on both of them.
+         r = main.create_symbolic_sizes_strides_storage_offset(
 -            torch.randn(3, 2), ConstantSource("x")
 +            torch.randn(3, 2).npu(), ConstantSource("x")
-@@ -12782 +12782 @@ ShapeEnv not equal: field values don't match:
+         )
+         other.create_symbolic_sizes_strides_storage_offset(
 -            torch.randn(3, 2), ConstantSource("x")
 +            torch.randn(3, 2).npu(), ConstantSource("x")
+         )
+ 
+         # Create a guard: size[0] >= 3 (only in the main ShapeEnv)
+
+#
+# NPU Patch Explanation:
+# 
+# Key modifications:
+# - Added .npu() calls to tensor creation for NPU device
+# - Changes in create_symbolic_sizes_strides_storage_offset calls
+# - About 8 places modified for NPU compatibility

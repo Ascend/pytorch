@@ -1,4 +1,4 @@
-﻿diff --git a/test/functorch/test_aot_joint_with_descriptors.py b/test/functorch/test_aot_joint_with_descriptors.py
+diff --git a/test/functorch/test_aot_joint_with_descriptors.py b/test/functorch/test_aot_joint_with_descriptors.py
 index 13f2318a0f5..4b2be04cc59 100644
 --- a/test/functorch/test_aot_joint_with_descriptors.py
 +++ b/test/functorch/test_aot_joint_with_descriptors.py

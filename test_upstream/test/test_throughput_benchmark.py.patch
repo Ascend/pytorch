@@ -1,4 +1,4 @@
-﻿diff --git a/test/test_throughput_benchmark.py b/test/test_throughput_benchmark.py
+diff --git a/test/test_throughput_benchmark.py b/test/test_throughput_benchmark.py
 index f98e837611d..46f2fe17aa8 100644
 --- a/test/test_throughput_benchmark.py
 +++ b/test/test_throughput_benchmark.py

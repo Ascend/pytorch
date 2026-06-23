@@ -1,4 +1,4 @@
-﻿diff --git a/test/lazy/test_ts_opinfo.py b/test/lazy/test_ts_opinfo.py
+diff --git a/test/lazy/test_ts_opinfo.py b/test/lazy/test_ts_opinfo.py
 index bc88867bd50..4ff76dabebd 100644
 --- a/test/lazy/test_ts_opinfo.py
 +++ b/test/lazy/test_ts_opinfo.py

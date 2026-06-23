@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/fsdp/test_fsdp_multiple_forward.py b/test/distributed/fsdp/test_fsdp_multiple_forward.py
+diff --git a/test/distributed/fsdp/test_fsdp_multiple_forward.py b/test/distributed/fsdp/test_fsdp_multiple_forward.py
 index 187d2b23f93..7e982d4b0d7 100644
 --- a/test/distributed/fsdp/test_fsdp_multiple_forward.py
 +++ b/test/distributed/fsdp/test_fsdp_multiple_forward.py

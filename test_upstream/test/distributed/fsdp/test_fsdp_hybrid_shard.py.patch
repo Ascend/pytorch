@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/fsdp/test_fsdp_hybrid_shard.py b/test/distributed/fsdp/test_fsdp_hybrid_shard.py
+diff --git a/test/distributed/fsdp/test_fsdp_hybrid_shard.py b/test/distributed/fsdp/test_fsdp_hybrid_shard.py
 index 3479cea0c56..b775f574f35 100644
 --- a/test/distributed/fsdp/test_fsdp_hybrid_shard.py
 +++ b/test/distributed/fsdp/test_fsdp_hybrid_shard.py

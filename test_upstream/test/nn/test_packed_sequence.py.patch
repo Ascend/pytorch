@@ -1,5 +1,5 @@
 diff --git a/test/nn/test_packed_sequence.py b/test/nn/test_packed_sequence.py
-index 016a5ef..3d57794 100644
+index 016a5efaf41..3d577948989 100644
 --- a/test/nn/test_packed_sequence.py
 +++ b/test/nn/test_packed_sequence.py
 @@ -7,6 +7,9 @@ import torch
@@ -116,6 +116,12 @@ index 016a5ef..3d57794 100644
                  seq_len = i * i
 -                sequences.append(torch.rand(seq_len, 5, *trailing_dims))
 +                sequences.append(torch.rand(seq_len, 5, *trailing_dims).npu())
-             random.shuffle(sequences)
- 
-             packed_sequences = rnn_utils.pack_sequence(sequences, enforce_sorted=False)
+                random.shuffle(sequences)
+
+                packed_sequences = rnn_utils.pack_sequence(sequences, enforce_sorted=False)
+
+# NPU Patch Explanation:
+# - Added import torch_npu and transfer_to_npu utility
+# - Added .npu() calls to tensor creation for NPU device support
+# - Modified pad_sequence, unpad_sequence, and pack_sequence tests
+# - Enables packed sequence tests to run on NPU hardware

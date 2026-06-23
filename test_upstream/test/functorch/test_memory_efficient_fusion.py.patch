@@ -1,5 +1,5 @@
-﻿diff --git a/test/functorch/test_memory_efficient_fusion.py b/test/functorch/test_memory_efficient_fusion.py
-index b8807202cce..814fd73db26 100644
+diff --git a/test/functorch/test_memory_efficient_fusion.py b/test/functorch/test_memory_efficient_fusion.py
+index b8807202cce..ab03aff3330 100644
 --- a/test/functorch/test_memory_efficient_fusion.py
 +++ b/test/functorch/test_memory_efficient_fusion.py
 @@ -6,6 +6,15 @@ import unittest
@@ -29,15 +29,6 @@ index b8807202cce..814fd73db26 100644
  
  
  def _num_args(fn: Callable):
-@@ -89,7 +100,7 @@ def hard_mish(x):
- #         return x * self.weight.view(v_shape).to(dtype=x_dtype) + self.bias.view(v_shape).to(dtype=x_dtype)
- 
- 
--# device = "cuda"
-+# device = "npu"
- # dtype = torch.float
- 
- # evo_norm = EvoNorm2dS0(2048)
 @@ -98,7 +109,7 @@ def hard_mish(x):
  
  def run_and_compare_activation(self, fn, inps):

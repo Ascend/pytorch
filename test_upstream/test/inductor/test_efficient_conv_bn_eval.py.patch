@@ -1,4 +1,4 @@
-﻿diff --git a/test/inductor/test_efficient_conv_bn_eval.py b/test/inductor/test_efficient_conv_bn_eval.py
+diff --git a/test/inductor/test_efficient_conv_bn_eval.py b/test/inductor/test_efficient_conv_bn_eval.py
 index 7d69e8a1819..77b1d30a540 100644
 --- a/test/inductor/test_efficient_conv_bn_eval.py
 +++ b/test/inductor/test_efficient_conv_bn_eval.py

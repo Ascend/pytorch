@@ -1,4 +1,4 @@
-﻿diff --git a/test/inductor/test_smoke.py b/test/inductor/test_smoke.py
+diff --git a/test/inductor/test_smoke.py b/test/inductor/test_smoke.py
 index 2a247fddbe7..33bd44b7747 100644
 --- a/test/inductor/test_smoke.py
 +++ b/test/inductor/test_smoke.py

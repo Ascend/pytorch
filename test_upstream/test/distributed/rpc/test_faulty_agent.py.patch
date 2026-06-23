@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/rpc/test_faulty_agent.py b/test/distributed/rpc/test_faulty_agent.py
+diff --git a/test/distributed/rpc/test_faulty_agent.py b/test/distributed/rpc/test_faulty_agent.py
 index f9e9db18cce..d3ace7d4b23 100644
 --- a/test/distributed/rpc/test_faulty_agent.py
 +++ b/test/distributed/rpc/test_faulty_agent.py

@@ -1,4 +1,4 @@
-﻿diff --git a/test/test_xpu.py b/test/test_xpu.py
+diff --git a/test/test_xpu.py b/test/test_xpu.py
 index 6d9f772655e..abf455af204 100644
 --- a/test/test_xpu.py
 +++ b/test/test_xpu.py

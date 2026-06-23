@@ -1,4 +1,4 @@
-﻿diff --git a/test/jit/test_dtype_analysis.py b/test/jit/test_dtype_analysis.py
+diff --git a/test/jit/test_dtype_analysis.py b/test/jit/test_dtype_analysis.py
 index 0b2079e9998..debd4977a9e 100644
 --- a/test/jit/test_dtype_analysis.py
 +++ b/test/jit/test_dtype_analysis.py

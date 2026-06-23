@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/checkpoint/e2e/test_fine_tuning.py b/test/distributed/checkpoint/e2e/test_fine_tuning.py
+diff --git a/test/distributed/checkpoint/e2e/test_fine_tuning.py b/test/distributed/checkpoint/e2e/test_fine_tuning.py
 index 50e158793ab..9e5801b7bf7 100644
 --- a/test/distributed/checkpoint/e2e/test_fine_tuning.py
 +++ b/test/distributed/checkpoint/e2e/test_fine_tuning.py

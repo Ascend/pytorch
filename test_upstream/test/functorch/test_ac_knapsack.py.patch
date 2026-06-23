@@ -1,4 +1,4 @@
-﻿diff --git a/test/functorch/test_ac_knapsack.py b/test/functorch/test_ac_knapsack.py
+diff --git a/test/functorch/test_ac_knapsack.py b/test/functorch/test_ac_knapsack.py
 index 2d2899e9ca2..8a1f886ef9c 100644
 --- a/test/functorch/test_ac_knapsack.py
 +++ b/test/functorch/test_ac_knapsack.py

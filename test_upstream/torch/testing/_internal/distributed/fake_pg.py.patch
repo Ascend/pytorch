@@ -1,4 +1,4 @@
-﻿diff --git a/torch/testing/_internal/distributed/fake_pg.py b/torch/testing/_internal/distributed/fake_pg.py
+diff --git a/torch/testing/_internal/distributed/fake_pg.py b/torch/testing/_internal/distributed/fake_pg.py
 index af1917eeb0f..a8c358a2242 100644
 --- a/torch/testing/_internal/distributed/fake_pg.py
 +++ b/torch/testing/_internal/distributed/fake_pg.py

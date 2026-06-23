@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/fsdp/test_fsdp_memory.py b/test/distributed/fsdp/test_fsdp_memory.py
+diff --git a/test/distributed/fsdp/test_fsdp_memory.py b/test/distributed/fsdp/test_fsdp_memory.py
 index 93391f01b37..a9dbee377fb 100644
 --- a/test/distributed/fsdp/test_fsdp_memory.py
 +++ b/test/distributed/fsdp/test_fsdp_memory.py

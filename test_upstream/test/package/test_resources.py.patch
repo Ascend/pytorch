@@ -1,4 +1,4 @@
-﻿diff --git a/test/package/test_resources.py b/test/package/test_resources.py
+diff --git a/test/package/test_resources.py b/test/package/test_resources.py
 index b37290a34a4..a3c9369cfd8 100644
 --- a/test/package/test_resources.py
 +++ b/test/package/test_resources.py

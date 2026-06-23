@@ -1,4 +1,4 @@
-﻿diff --git a/test/dynamo/cpython/3_13/test_contextlib.py b/test/dynamo/cpython/3_13/test_contextlib.py
+diff --git a/test/dynamo/cpython/3_13/test_contextlib.py b/test/dynamo/cpython/3_13/test_contextlib.py
 index 9098be5d1f2..e49ade3cd3d 100644
 --- a/test/dynamo/cpython/3_13/test_contextlib.py
 +++ b/test/dynamo/cpython/3_13/test_contextlib.py

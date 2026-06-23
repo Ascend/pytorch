@@ -1,4 +1,4 @@
-﻿diff --git a/test/test_tensorexpr.py b/test/test_tensorexpr.py
+diff --git a/test/test_tensorexpr.py b/test/test_tensorexpr.py
 index f1731888566..25cf189b6dc 100644
 --- a/test/test_tensorexpr.py
 +++ b/test/test_tensorexpr.py

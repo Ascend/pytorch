@@ -1,4 +1,4 @@
-﻿diff --git a/test/fx/test_cse_pass.py b/test/fx/test_cse_pass.py
+diff --git a/test/fx/test_cse_pass.py b/test/fx/test_cse_pass.py
 index 1166a67d4fb..4e3941f1160 100644
 --- a/test/fx/test_cse_pass.py
 +++ b/test/fx/test_cse_pass.py

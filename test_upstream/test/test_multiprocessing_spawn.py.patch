@@ -1,14 +1,21 @@
-﻿diff --git a/test/test_multiprocessing_spawn.py b/test/test_multiprocessing_spawn.py
-index b77105567cb..38009ba0b4f 100644
+diff --git a/test/test_multiprocessing_spawn.py b/test/test_multiprocessing_spawn.py
+index b77105567cb..06efa9a4397 100644
 --- a/test/test_multiprocessing_spawn.py
 +++ b/test/test_multiprocessing_spawn.py
-@@ -7,7 +7,8 @@ import signal
+@@ -1,4 +1,6 @@
+ # Owner(s): ["module: multiprocessing"]
++from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ 
+ import os
+ import pickle
+@@ -7,7 +9,8 @@ import signal
  import sys
  import time
  import unittest
 -
-+import torch_npu
 +from torch_npu.contrib import transfer_to_npu
++import torch_npu
  import torch.multiprocessing as mp
  
  from torch.testing._internal.common_utils import (

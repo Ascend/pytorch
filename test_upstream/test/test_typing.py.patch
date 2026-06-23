@@ -1,0 +1,12 @@
+diff --git a/test/test_typing.py b/test/test_typing.py
+index 5564d1979ba..70b5a7fe68d 100644
+--- a/test/test_typing.py
++++ b/test/test_typing.py
+@@ -9,6 +9,7 @@ import unittest
+ from collections import defaultdict
+ from threading import Lock
+ from typing import IO
++from torch_npu.contrib import transfer_to_npu
+ 
+ from torch.testing._internal.common_utils import (
+     instantiate_parametrized_tests,

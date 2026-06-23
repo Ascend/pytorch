@@ -1,4 +1,4 @@
-﻿diff --git a/test/test_autocast.py b/test/test_autocast.py
+diff --git a/test/test_autocast.py b/test/test_autocast.py
 index b262ed95dbb..7c9878f8579 100644
 --- a/test/test_autocast.py
 +++ b/test/test_autocast.py

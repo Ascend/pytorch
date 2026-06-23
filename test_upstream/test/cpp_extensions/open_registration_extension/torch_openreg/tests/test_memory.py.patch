@@ -1,4 +1,4 @@
-﻿diff --git a/test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_memory.py b/test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_memory.py
+diff --git a/test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_memory.py b/test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_memory.py
 index 146597869f7..1018ec6ce28 100644
 --- a/test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_memory.py
 +++ b/test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_memory.py

@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/fsdp/test_utils.py b/test/distributed/fsdp/test_utils.py
+diff --git a/test/distributed/fsdp/test_utils.py b/test/distributed/fsdp/test_utils.py
 index 0a9343ce41a..571725b0e15 100644
 --- a/test/distributed/fsdp/test_utils.py
 +++ b/test/distributed/fsdp/test_utils.py

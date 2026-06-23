@@ -1,4 +1,4 @@
-﻿diff --git a/test/inductor/test_compiled_autograd.py b/test/inductor/test_compiled_autograd.py
+diff --git a/test/inductor/test_compiled_autograd.py b/test/inductor/test_compiled_autograd.py
 index 8e581956f60..04891e49659 100644
 --- a/test/inductor/test_compiled_autograd.py
 +++ b/test/inductor/test_compiled_autograd.py

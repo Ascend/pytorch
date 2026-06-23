@@ -1,4 +1,4 @@
-﻿diff --git a/test/jit/test_cuda.py b/test/jit/test_cuda.py
+diff --git a/test/jit/test_cuda.py b/test/jit/test_cuda.py
 index 8cfe63faa0e..0f27d019506 100644
 --- a/test/jit/test_cuda.py
 +++ b/test/jit/test_cuda.py

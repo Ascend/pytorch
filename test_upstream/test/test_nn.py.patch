@@ -1,4 +1,4 @@
-diff --git a/test/test_nn.py b/test/test_nn.py
+﻿diff --git a/test/test_nn.py b/test/test_nn.py
 index 29a1b44..b6386a4 100644
 --- a/test/test_nn.py
 +++ b/test/test_nn.py
@@ -18,7 +18,6 @@ index 29a1b44..b6386a4 100644
 +if (acc := torch.accelerator.current_accelerator()) and acc.type == "npu":
 +    torch.cuda.get_device_capability = lambda *args, **kwargs: (0, 0)
 +    torch.cuda.is_tf32_supported = lambda: False
-+
  from torch.types import _TensorOrTensors
  from torch.testing._internal.common_mkldnn import reduced_f32_on_and_off
  
@@ -1419,3 +1418,15 @@ index 29a1b44..b6386a4 100644
      def test_layernorm_weight_bias(self):
          width = 128
          input = torch.rand(1, 5, width, device="cuda", dtype=torch.float32) * 0.1
+#
+# NPU Patch Explanation:
+# 
+# Key modifications:
+# - Added import torch_npu
+# - Added import from torch_npu.contrib import transfer_to_npu
+# - Added NPU device check and TF32 capability override for CUDA compatibility
+# - Changed module creations to use .npu() method (e.g., nn.Linear().npu())
+# - Changed tensor creations to use device="npu" parameter
+# - Changed .cuda() calls to .to(device) or .npu() for device-agnostic handling
+# - Removed @onlyCUDA decorators to allow NPU tests to run
+# - Modified device-specific code to support both CUDA and NPU devices

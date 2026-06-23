@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/bin/test_script.py b/test/distributed/bin/test_script.py
+diff --git a/test/distributed/bin/test_script.py b/test/distributed/bin/test_script.py
 index 10cfabd3df1..75e4608622d 100755
 --- a/test/distributed/bin/test_script.py
 +++ b/test/distributed/bin/test_script.py

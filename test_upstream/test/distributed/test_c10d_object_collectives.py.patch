@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/test_c10d_object_collectives.py b/test/distributed/test_c10d_object_collectives.py
+diff --git a/test/distributed/test_c10d_object_collectives.py b/test/distributed/test_c10d_object_collectives.py
 index 7b97614c8c0..1f1783816f5 100644
 --- a/test/distributed/test_c10d_object_collectives.py
 +++ b/test/distributed/test_c10d_object_collectives.py

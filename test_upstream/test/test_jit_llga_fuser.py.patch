@@ -1,4 +1,4 @@
-﻿diff --git a/test/test_jit_llga_fuser.py b/test/test_jit_llga_fuser.py
+diff --git a/test/test_jit_llga_fuser.py b/test/test_jit_llga_fuser.py
 index 32e8fc7438e..95c453709ad 100644
 --- a/test/test_jit_llga_fuser.py
 +++ b/test/test_jit_llga_fuser.py

@@ -1,4 +1,4 @@
-﻿diff --git a/test/nn/test_multihead_attention.py b/test/nn/test_multihead_attention.py
+diff --git a/test/nn/test_multihead_attention.py b/test/nn/test_multihead_attention.py
 index e1148f89feb..2b555b30894 100644
 --- a/test/nn/test_multihead_attention.py
 +++ b/test/nn/test_multihead_attention.py

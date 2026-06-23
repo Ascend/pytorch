@@ -1,4 +1,4 @@
-﻿diff --git a/test/distributed/algorithms/test_join.py b/test/distributed/algorithms/test_join.py
+diff --git a/test/distributed/algorithms/test_join.py b/test/distributed/algorithms/test_join.py
 index e68b5a1682d..8d15bc80776 100644
 --- a/test/distributed/algorithms/test_join.py
 +++ b/test/distributed/algorithms/test_join.py

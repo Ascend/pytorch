@@ -1,4 +1,4 @@
-﻿diff --git a/test/fx/test_fx_xform_observer.py b/test/fx/test_fx_xform_observer.py
+diff --git a/test/fx/test_fx_xform_observer.py b/test/fx/test_fx_xform_observer.py
 index 8db18f0c55e..2b4d63229f6 100644
 --- a/test/fx/test_fx_xform_observer.py
 +++ b/test/fx/test_fx_xform_observer.py

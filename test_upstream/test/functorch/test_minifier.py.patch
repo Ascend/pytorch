@@ -1,4 +1,4 @@
-﻿diff --git a/test/functorch/test_minifier.py b/test/functorch/test_minifier.py
+diff --git a/test/functorch/test_minifier.py b/test/functorch/test_minifier.py
 index 6ee5001f7c5..898d7251a49 100644
 --- a/test/functorch/test_minifier.py
 +++ b/test/functorch/test_minifier.py

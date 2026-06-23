@@ -1,4 +1,4 @@
-﻿diff --git a/test/ao/sparsity/test_parametrization.py b/test/ao/sparsity/test_parametrization.py
+diff --git a/test/ao/sparsity/test_parametrization.py b/test/ao/sparsity/test_parametrization.py
 index 5d8934dbeba..54154d38132 100644
 --- a/test/ao/sparsity/test_parametrization.py
 +++ b/test/ao/sparsity/test_parametrization.py

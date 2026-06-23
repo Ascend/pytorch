@@ -1,4 +1,4 @@
-﻿diff --git a/test/test_mkl_verbose.py b/test/test_mkl_verbose.py
+diff --git a/test/test_mkl_verbose.py b/test/test_mkl_verbose.py
 index 5e6cbda12a2..b87d1beacba 100644
 --- a/test/test_mkl_verbose.py
 +++ b/test/test_mkl_verbose.py

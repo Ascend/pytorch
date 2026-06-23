@@ -1,4 +1,4 @@
-﻿diff --git a/test/test_function_schema.py b/test/test_function_schema.py
+diff --git a/test/test_function_schema.py b/test/test_function_schema.py
 index d98b7054a6e..c0d5a2f27c9 100644
 --- a/test/test_function_schema.py
 +++ b/test/test_function_schema.py
