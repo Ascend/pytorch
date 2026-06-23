@@ -759,6 +759,8 @@ public:
     // may indicate that there is some sort of collective desynchronization.
     uint64_t getSequenceNumberForGroup() override;
 
+    std::shared_ptr<HCCLComm> getHcclCommByDevicesFromCache(const std::vector<at::Device>& devices);
+
     std::shared_ptr<HCCLComm> getHcclCommByDevices(const std::vector<at::Device>& devices);
 
     int64_t getHcclComm(int rankid);
@@ -1291,7 +1293,8 @@ private:
         HcclCommConfig* commConfig,
         std::vector<std::shared_ptr<HCCLComm>> &hcclComms,
         std::vector<c10_npu::NPUStream> &streamVal,
-        int p2pRank);
+        int p2pRank,
+        bool isOrigin = false);
 
     void createHCCLCommForZeroCopy(
         std::vector<std::shared_ptr<HCCLComm>> &hcclComms,
