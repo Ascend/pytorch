@@ -17,6 +17,7 @@ from __future__ import annotations
 import inspect
 import sympy
 from functools import reduce
+import functools
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
@@ -38,6 +39,21 @@ LOWERING_REGISTRY_ATTRS: tuple[str, ...] = (
     "inplace_foreach_ops",
     "inplaceable_foreach_ops",
 )
+
+
+def run_once(f):
+    """Runs a function (successfully) only once.
+    The running can be reset by setting the `has_run` attribute to False
+    """
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        if not wrapper.has_run:
+            result = f(*args, **kwargs)
+            wrapper.has_run = True
+            return result
+        return None
+    wrapper.has_run = False
+    return wrapper
 
 
 def get_module_functions(module: Any) -> dict[str, Callable[..., Any]]:

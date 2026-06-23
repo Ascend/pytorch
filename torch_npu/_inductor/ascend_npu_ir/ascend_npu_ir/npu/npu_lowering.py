@@ -9,7 +9,9 @@ from torch_npu._inductor.lowering_common import (
 )
 from .. import config
 from .utils import logger
-from ..npu.utils import run_once, get_anir_mode
+from ..npu.utils import  get_anir_mode
+from torch_npu._inductor.lowering_common import run_once
+
 
 aten = torch.ops.aten
 tr_c10d = torch.ops.tr_c10d
