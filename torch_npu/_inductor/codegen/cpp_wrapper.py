@@ -30,6 +30,8 @@ from ..config import npu_block as NPU_ALIGN_BYTES
 if TYPE_CHECKING:
     from torch._inductor.graph import GraphLowering
 
+config.triton.autotune_at_compile_time = False
+
 
 def checkIfTrue(value, msg):
     if not value:
