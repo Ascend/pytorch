@@ -2667,6 +2667,14 @@ void ProcessGroupHCCL::createHCCLCommOrigin(
     std::vector<c10_npu::NPUStream> &streamVal,
     int p2pRank)
 {
+    bool isSub = !options_->global_ranks_in_group.empty();
+    if (isSub) {
+        if (createHCCLCommSub(devicesKey, devices, commType, commConfig, hcclComms, streamVal, p2pRank, true)) {
+            return;
+        }
+        TORCH_NPU_HCCL_LOGI("Sub comm derivation failed in createHCCLCommOrigin, fallback to rootinfo.");
+    }
+
     HcclRootInfo hcclID;
     bool isSingleP2POp = commType == HcclCommType::P2P ? true : false;
     if (rank_ == 0 || (isSingleP2POp && p2pRank == 0)) {
@@ -2744,34 +2752,35 @@ bool ProcessGroupHCCL::createHCCLCommEx(
         return false;
     }
     c10_npu::OptionalNPUGuard npuGuard;
-    // global process group only; sub comm derivation is handled by createHCCLCommSub
-    if (!(options_->global_ranks_in_group.empty() && commType == HcclCommType::DEFAULT)) {
-        TORCH_NPU_HCCL_LOGI("createHCCLCommEx only handles global comm with ranktable, skip for sub/P2P comm.");
-        return false;
-    }
-    auto startTime = std::chrono::steady_clock::now();
-    for (size_t i = 0; i < devices.size(); ++i) {
-        int rank = getRank() * static_cast<int>(devices.size()) + static_cast<int>(i);
+    // global process group
+    if (options_->global_ranks_in_group.empty() && commType == HcclCommType::DEFAULT) {
+        auto startTime = std::chrono::steady_clock::now();
+        for (size_t i = 0; i < devices.size(); ++i) {
+            int rank = getRank() * static_cast<int>(devices.size()) + static_cast<int>(i);
 
-        npuGuard.set_index(devices[i].index());
-        HcclCommConfig config;
-        if (commConfig == nullptr) {
-            config = createHcclCommConfigWithOptions();
-            commConfig = &config;
+            npuGuard.set_index(devices[i].index());
+            HcclCommConfig config;
+            if (commConfig == nullptr) {
+                config = createHcclCommConfigWithOptions();
+                commConfig = &config;
+            }
+            auto comm = HCCLComm::createGlobalHcclComm(rankTableFile.c_str(), rank, commConfig);
+            if (comm == nullptr) {
+                TORCH_NPU_HCCL_LOGI("Create global hccl comm with ranktable failed, switch to original interface.");
+                return false;
+            }
+            hcclComms[i] = comm;
+            // Creates the HCCL streams
+            streamVal.push_back(getHcclNPUStream(devices[i]));
         }
-        auto comm = HCCLComm::createGlobalHcclComm(rankTableFile.c_str(), rank, commConfig);
-        if (comm == nullptr) {
-            TORCH_NPU_HCCL_LOGI("Create global hccl comm with ranktable failed, switch to original interface.");
-            return false;
-        }
-        hcclComms[i] = comm;
-        // Creates the HCCL streams
-        streamVal.push_back(getHcclNPUStream(devices[i]));
+        auto endTime = std::chrono::steady_clock::now();
+        auto timeElapsed = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+        TORCH_NPU_HCCL_LOGI("Create global hccl comm with ranktable success, take %d milliseconds", static_cast<int>(timeElapsed.count()));
+        return true;
     }
-    auto endTime = std::chrono::steady_clock::now();
-    auto timeElapsed = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
-    TORCH_NPU_HCCL_LOGI("Create global hccl comm with ranktable success, take %d milliseconds", static_cast<int>(timeElapsed.count()));
-    return true;
+
+    // sub process group
+    return createHCCLCommSub(devicesKey, devices, commType, commConfig, hcclComms, streamVal, p2pRank);
 }
 
 bool ProcessGroupHCCL::createHCCLCommSub(
@@ -2781,7 +2790,8 @@ bool ProcessGroupHCCL::createHCCLCommSub(
     HcclCommConfig* commConfig,
     std::vector<std::shared_ptr<HCCLComm>> &hcclComms,
     std::vector<c10_npu::NPUStream> &streamVal,
-    int p2pRank)
+    int p2pRank,
+    bool isOrigin)
 {
     if (!hcclCreateSubCommConfigExist()) {
         TORCH_NPU_HCCL_LOGI("The hcclCreateSubCommConfig is not exist, switch to original interface.");
@@ -2792,17 +2802,24 @@ bool ProcessGroupHCCL::createHCCLCommSub(
         return false;
     }
     std::shared_ptr<HCCLComm> globalHcclComm = nullptr;
-    try {
-        globalHcclComm = global_->getHcclCommByDevices(devices);
-    } catch (const std::exception& e) {
-        TORCH_NPU_HCCL_LOGI("Get global HCCL communicator failed: %s, switch to original interface.", e.what());
-        return false;
+    if (!isOrigin) {
+        try {
+            globalHcclComm = global_->getHcclCommByDevices(devices);
+        } catch (const std::exception& e) {
+            TORCH_NPU_HCCL_LOGI("Get global HCCL communicator failed: %s, switch to original interface.", e.what());
+            return false;
+        }
+        if (!globalHcclComm) {
+            TORCH_NPU_HCCL_LOGI("Create sub hccl comm failed, globalHcclComm is nullptr, switch to original interface.");
+            return false;
+        }
+    } else {
+        globalHcclComm = global_->getHcclCommByDevicesFromCache(devices);
+        if (!globalHcclComm) {
+            TORCH_NPU_HCCL_LOGI("Get global HCCL communicator failed, switch to original interface.");
+            return false;
+        }
     }
-    if (!globalHcclComm) {
-        TORCH_NPU_HCCL_LOGI("Create sub hccl comm failed, globalHcclComm is nullptr, switch to original interface.");
-        return false;
-    }
-
     c10_npu::OptionalNPUGuard npuGuard;
     uint64_t hcclid = (std::hash<string>{}(options_->group_id));
     auto subStartTime = std::chrono::steady_clock::now();
@@ -2843,7 +2860,7 @@ bool ProcessGroupHCCL::createHCCLCommSub(
                 commConfig->hcclCommName[COMM_NAME_MAX_LENGTH - 1] = '\0';
 #endif
             }
-            if (strlen(commConfig->hcclUdi) > 0) {
+            if ((!isOrigin) && strlen(commConfig->hcclUdi) > 0) {
 #ifndef BUILD_LIBTORCH
                 torch_npu::toolkit::profiler::Utils::safe_strcpy_s(commConfig->hcclUdi, p2pName.c_str(), UDI_MAX_LENGTH);
 #else
@@ -2953,19 +2970,7 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::createHCCLComm(
         };
         at_npu::native::OpCommand::RunOpApiV3("hcclGroupEnd", hccl_call);
     }
-    bool isSubComm = !(options_->global_ranks_in_group.empty() && commType == HcclCommType::DEFAULT);
-    bool created = false;
-    if (isSubComm) {
-        // Sub comm: derive from global_ via hcclCreateSubCommConfig (works for both ranktable and rootinfo)
-        created = createHCCLCommSub(devicesKey, devices, commType, commConfig, hcclComms, streamVal, p2pRank);
-        if (!created) {
-            TORCH_NPU_HCCL_LOGI("Sub comm derivation failed, fallback to original interface.");
-        }
-    } else {
-        // Global comm: try ranktable path first
-        created = createHCCLCommEx(devicesKey, devices, commType, commConfig, hcclComms, streamVal, p2pRank);
-    }
-    if (!created) {
+    if (!createHCCLCommEx(devicesKey, devices, commType, commConfig, hcclComms, streamVal, p2pRank)) {
         createHCCLCommOrigin(devicesKey, devices, commType, commConfig, hcclComms, streamVal, p2pRank);
     }
     npuGuard.set_index(getDeviceForRank(getRank()).index());
@@ -3411,6 +3416,17 @@ ProcessGroupHCCL::Options::Options(bool is_high_priority_stream)
       opTimeout(kProcessGroupHCCLOpTimeoutMillis),
       is_high_priority_stream(is_high_priority_stream)
 {
+}
+
+std::shared_ptr<HCCLComm> ProcessGroupHCCL::getHcclCommByDevicesFromCache(const std::vector<at::Device>& devices)
+{
+    const auto key = getKeyFromDevices(devices);
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto it = devHCCLCommMap_.find(key);
+    if (it != devHCCLCommMap_.end() && !it->second.empty()) {
+        return it->second[0];
+    }
+    return nullptr;
 }
 
 std::shared_ptr<HCCLComm> ProcessGroupHCCL::getHcclCommByDevices(const std::vector<at::Device>& devices)
