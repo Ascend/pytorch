@@ -30,7 +30,6 @@ from torch_npu.utils._error_code import ErrCode, pta_error
 origin_mpdl_iter_init = _MultiProcessingDataLoaderIter.__init__
 
 CONV3D_SUPPORT_FP32_SOC_PREFIX = ["Ascend910B", "Ascend910_93"]
-recovery_main_thread_once = False
 
 
 def npu(self, device=None):
@@ -428,17 +427,9 @@ def _mpdl_iter_init(self, *args, **kwargs):
         torch_npu.npu.synchronize()
     except Exception as e:
         print(e)
-    global recovery_main_thread_once
-    affinity = os.sched_getaffinity(0) if not recovery_main_thread_once else None
     torch_npu._C._npu_set_thread_affinity(-1, -1)
     origin_mpdl_iter_init(self, *args, **kwargs)
-    if not recovery_main_thread_once:
-        # During the first step, main thread sets affinity during backward pass to avoid polluting child thread affinity
-        torch_npu._C._npu_set_thread_main_type()
-        os.sched_setaffinity(0, affinity)
-        recovery_main_thread_once = True
-    else:
-        torch_npu._C._npu_reset_thread_affinity()
+    torch_npu._C._npu_reset_thread_affinity()
 
 
 def _parallel_apply(
