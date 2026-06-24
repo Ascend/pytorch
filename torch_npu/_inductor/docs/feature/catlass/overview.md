@@ -2,7 +2,7 @@
 
 ## 特性简介
 
-在深度学习领域，矩阵乘法（GEMM: 通用矩阵乘发，MM: 矩阵乘法，BMM: 批量矩阵乘法，MMADD: 矩阵乘加）是计算量最大的核心操作。传统的 PyTorch eager 模式下，矩阵乘法和随后pointwise（逐点的）算子（如激活函数 ReLU（修正线性单元）、SiLU（Sigmoid Linear Unit）、Bias Add（偏置加法） 等）通常作为独立的Kernel依次执行。这种方式会导致频繁的Kernel启动开销和大量的全局内存数据传输（I/O 瓶颈），严重影响性能。
+在深度学习领域，矩阵乘法（GEMM: 通用矩阵乘法，MM: 矩阵乘法，BMM: 批量矩阵乘法，MMADD: 矩阵乘加）是计算量最大的核心操作。传统的 PyTorch eager 模式下，矩阵乘法和随后pointwise（逐点的）算子（如激活函数 ReLU（修正线性单元）、SiLU（Sigmoid Linear Unit）、Bias Add（偏置加法） 等）通常作为独立的Kernel依次执行。这种方式会导致频繁的Kernel启动开销和大量的全局内存数据传输（I/O 瓶颈），严重影响性能。
 NVIDIA的CUTLASS库提供了高度优化的GEMM Kernel，并支持在Epilogue阶段（Kernel 的最后阶段）融合自定义的后处理操作。通过将部分支持的pointwise类算子直接融合到 GEMM Kernel 中，可以显著减少内存访问和Kernel启动次数，提升整体性能。
 
 在昇腾领域，Catlass对标NVIDIA Cutlass。因此，为了在PyTorch编译模式下，提供对等的方案，我们在inductor-ascend中也引入Catlass；在此基础上，也支持部分pointwise类进行epilogue融合。
