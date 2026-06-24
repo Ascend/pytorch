@@ -31,6 +31,7 @@ DVM_SUPPORT_FLOAT_INT_TYPE = [
     *_extra_int_types,
 ]
 
+DVM_SUPPORT_OPTIONAL_INT64_TYPE = DVM_SUPPORT_TYPE if is_ascend950 else [*DVM_SUPPORT_TYPE, torch.int64]
 
 DVM_DTYPE_MAP = {
     torch.bfloat16: "dvm.bfloat16",
@@ -68,7 +69,7 @@ def _check_dtype(inputs, supported_dtypes):
 
 
 def where_rule(node: torch.fx.Node):
-    return _check_dtype(node.args[1:], DVM_SUPPORT_FLOAT_TYPE)
+    return _check_dtype(node.args[1:], DVM_SUPPORT_FLOAT_INT_TYPE)
 
 
 def _is_last2_transpose_tensor(t: torch._subclasses.FakeTensor) -> bool:
@@ -430,8 +431,8 @@ def trunc(x):
     torch.ops.npu.npu_dtype_cast_backward.default,
     torch.ops.npu._npu_dtype_cast.default,
     torch.ops.npu._npu_dtype_cast_backward.default,
-    input_dtypes=DVM_SUPPORT_TYPE,
-    output_dtypes=DVM_SUPPORT_TYPE,
+    input_dtypes=DVM_SUPPORT_OPTIONAL_INT64_TYPE,
+    output_dtypes=DVM_SUPPORT_OPTIONAL_INT64_TYPE,
 )
 def cast(x, dtype):
     dtype = to_dvm_dtype(dtype)
@@ -452,7 +453,7 @@ def broadcast(x, shape):
     aten.where.default,
     aten.where.self,
     input_dtypes=None,
-    output_dtypes=DVM_SUPPORT_TYPE,
+    output_dtypes=DVM_SUPPORT_FLOAT_INT_TYPE,
     rule=where_rule,
 )
 def select(x, y, z):
