@@ -101,9 +101,16 @@ from torch.utils._ordered_set import OrderedSet
 from torch.utils.weak import TensorWeakRef
 
 import torch_npu
+from torch_npu.npu import graphs as _npu_graphs
 from torch_npu._C import (
     _npu_NPUAllocator_AllocatorState as AllocatorState,
     _set_cached_tensors_enabled as _set_cached_tensors_enabled)
+from torch_npu.npu._aclgraph_update_plan.resolver import (
+    ACLGRAPH_UPDATE_PLAN_GLOBAL,
+    resolve_aclgraph_update_plan,
+    update_aclgraph_records_for_graph,
+    validate_aclgraph_update_plan_for_graph,
+)
 import torch_npu.npu.aclnn
 
 if TYPE_CHECKING:
@@ -777,6 +784,9 @@ class NPUGraphNode:
         if not isinstance(inputs, (list, tuple)):
             raise RuntimeError("check isinstance(inputs, (list, tuple))")
         self.wrapped_function = wrapped_function
+        self.aclgraph_update_plan = getattr(
+            wrapped_function.model, ACLGRAPH_UPDATE_PLAN_GLOBAL, None
+        ) or []
         self.id = graph_id
         self.device = device_index
         self.stack_traces = stack_traces
@@ -1071,12 +1081,18 @@ class NPUGraphNode:
     def run(self, new_inputs: List[InputType]) -> OutputType:
         log.debug("NPUGRAPH-TREE Node Run node=%s", self.id)
         self.check_static_inputs_are_stable(new_inputs)
-        for item in new_inputs:
-            if isinstance(item, torch.Tensor) and item.dtype == torch.int32 and item.device.type == "cpu":
-                self.graph.update(cpu_update_input=[{"context_lens": item}, {"actual_seq_lengths_kv": item}])
+        aclgraph_update_submitted = update_aclgraph_records_for_graph(
+            resolve_aclgraph_update_plan(self.aclgraph_update_plan, new_inputs),
+            self.graph,
+        )
         self._copy_inputs_and_remove_from_src(self.reconstructed_inputs, new_inputs)
 
         self.run_graph()
+        if aclgraph_update_submitted:
+            # Ensure the next ACLGraph update does not record reusable external events before this replay resets them.
+            self.graph.graph_dispatch_mode.update_stream.wait_stream(
+                torch.npu.current_stream()
+            )
 
         outputs = self.reconstruct_outputs()
         new_inputs.clear()
@@ -1240,11 +1256,10 @@ class NPUGraphNode:
 
             check_memory_pool(self.device, self.npu_graphs_pool, memory)
 
-        cpu_tensor = None
-        for item in inputs:
-            if isinstance(item, torch.Tensor) and item.dtype == torch.int32 and item.device.type == "cpu":
-                cpu_tensor = item.clone()
-            del item
+        aclgraph_cpu_update_input = resolve_aclgraph_update_plan(
+            self.aclgraph_update_plan,
+            inputs,
+        )
 
         with preserve_rng_state(), torch.npu.device(
             self.device
@@ -1257,10 +1272,6 @@ class NPUGraphNode:
         ), get_history_recording():
             static_outputs = model(inputs)
 
-        if cpu_tensor is not None:
-            self.graph.update(cpu_update_input=[{"context_lens": cpu_tensor},
-                                                {"actual_seq_lengths_kv": cpu_tensor}])
-
         # running model should reclaim memory
         if not len(inputs) == 0:
             raise RuntimeError("check len(inputs) == 0 fail")
@@ -1268,6 +1279,8 @@ class NPUGraphNode:
             static_outputs = (static_outputs,)
 
         self._add_first_outputs(static_outputs, static_input_persistent_storage_ptrs)
+        validate_aclgraph_update_plan_for_graph(self.aclgraph_update_plan, self.graph)
+        update_aclgraph_records_for_graph(aclgraph_cpu_update_input, self.graph)
 
         log.debug("NPUGRAPH-TREE Node Record node=%s recorded: outputs=%d, "
                   "non_static_inputs=%d, static_input_idxs=%d",
