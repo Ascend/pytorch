@@ -186,6 +186,7 @@ py::object TorchKernelPy::Load(py::object shape, DataTypePy type)
     ShapeRef* shape_ref = SymIntArraytoShapeRef(shape);
     auto op = kernel_.Load(nullptr, shape_ref, type);
     loads_.emplace_back(op);
+    load_types_.emplace_back(LoadType::Load);
     return ObjToPy(op);
 }
 
@@ -203,6 +204,7 @@ py::object TorchKernelPy::ViewLoad(py::object shape, py::object stride, DataType
     ShapeRef* stride_ref = SymIntArraytoShapeRef(stride);
     auto op = kernel_.Load(nullptr, shape_ref, stride_ref, type);
     loads_.emplace_back(op);
+    load_types_.emplace_back(LoadType::View);
     return ObjToPy(op);
 }
 
@@ -274,7 +276,7 @@ TorchKernelPy::ParsedCallInputs TorchKernelPy::ParseTensorCallInputs(py::args in
     return {addr, options};
 }
 
-py::object TorchKernelPy::Run(py::args args)
+void TorchKernelPy::Run(py::args args)
 {
     const auto num_inputs = loads_.size();
     const auto num_outputs = stores_.size();
@@ -288,12 +290,13 @@ py::object TorchKernelPy::Run(py::args args)
         auto tensor = args[i].cast<at::Tensor>();
         if (i < num_inputs && tensor.device().type() == c10::DeviceType::CPU) {
             tensor = at_npu::native::OpPreparation::copy_tensor_host_to_device(tensor);
-        } else if (!contiguity_flags_.empty() && !contiguity_flags_[i]) {
-            if (i < num_inputs) {
+        }
+        if (i < num_inputs) {
+            if (!tensor.is_contiguous() && load_types_[i] == LoadType::Load) {
                 tensor = tensor.contiguous();
-            } else if (!tensor.is_contiguous()) {
-                tensor = out_refs_.emplace_back(tensor, at::empty(tensor.sizes(), tensor.options())).second;
             }
+        } else if (!tensor.is_contiguous()) {
+            tensor = out_refs_.emplace_back(tensor, at::empty(tensor.sizes(), tensor.options())).second;
         }
         tensor_list_.emplace_back(tensor);
         (*addr)[i] = tensor.data_ptr();
@@ -316,7 +319,6 @@ py::object TorchKernelPy::Run(py::args args)
     }
     tensor_list_.clear();
     out_refs_.clear();
-    return py::none();
 }
 
 py::object TorchKernelPy::Call(py::args args)
@@ -418,7 +420,7 @@ void GraphSplitKernelPy::Setup()
     kernel_.CodeGen(nullptr, 0, &fake_alloc);
 }
 
-py::object GraphSplitKernelPy::Run(py::args)
+void GraphSplitKernelPy::Run(py::args)
 {
     TORCH_CHECK(false, "GraphSplitKernel::Run is unsupported. Use Call/__call__ to create outputs internally.");
 }
@@ -453,7 +455,7 @@ std::unique_ptr<DynKernelPy> DynGraphSplitKernelPy::CloneExecutor() const
 
 void DynGraphSplitKernelPy::Setup() { DynKernelPy::Setup(); }
 
-py::object DynGraphSplitKernelPy::Run(py::args)
+void DynGraphSplitKernelPy::Run(py::args)
 {
     TORCH_CHECK(false, "DynGraphSplitKernel::Run is unsupported. Use Call/__call__ to create outputs internally.");
 }
@@ -505,6 +507,7 @@ py::object DynKernelPy::Load(py::object shape, DataTypePy type)
     ShapeRef* shape_ref = &ref->shape;
     auto op = kernel_.Load(nullptr, shape_ref, type);
     loads_.emplace_back(op);
+    load_types_.emplace_back(LoadType::Load);
     return ObjToPy(op);
 }
 
@@ -527,6 +530,7 @@ py::object DynKernelPy::ViewLoad(py::object shape, py::object stride, DataTypePy
     ShapeRef* stride_ref = &ref->stride;
     auto op = kernel_.Load(nullptr, shape_ref, stride_ref, type);
     loads_.emplace_back(op);
+    load_types_.emplace_back(LoadType::View);
     return ObjToPy(op);
 }
 
@@ -582,7 +586,7 @@ void DynKernelPy::CloneExecutorStateTo(DynKernelPy& executor) const
     executor.ws_size_ = ws_size_;
     executor.op_name_ = op_name_;
     executor.op_fullname_ = op_fullname_;
-    executor.contiguity_flags_ = contiguity_flags_;
+    executor.load_types_ = load_types_;
     executor.kernel_.SetNameHint(executor.op_name_.c_str(), executor.op_fullname_.c_str());
 
     executor.shapes_.reserve(shapes_.size());
@@ -703,7 +707,7 @@ void DynKernelPy::Setup()
     dyn_executors_.push_back(this);
 }
 
-py::object DynKernelPy::Run(py::args args)
+void DynKernelPy::Run(py::args args)
 {
     TORCH_CHECK(!IsCurrentStreamCapturing(),
                 "DynKernel does not support stream capture: dynamic shape requires runtime CodeGen.");
@@ -724,12 +728,13 @@ py::object DynKernelPy::Run(py::args args)
             auto tensor = args[i].cast<at::Tensor>();
             if (i < num_inputs + num_sym && tensor.device().type() == c10::DeviceType::CPU) {
                 tensor = at_npu::native::OpPreparation::copy_tensor_host_to_device(tensor);
-            } else if (!contiguity_flags_.empty() && !contiguity_flags_[i]) {
-                if (i < num_inputs + num_sym) {
+            }
+            if (i < num_inputs + num_sym) {
+                if (!tensor.is_contiguous() && load_types_[i] == LoadType::Load) {
                     tensor = tensor.contiguous();
-                } else if (!tensor.is_contiguous()) {
-                    tensor = out_refs_.emplace_back(tensor, at::empty(tensor.sizes(), tensor.options())).second;
                 }
+            } else if (!tensor.is_contiguous()) {
+                tensor = out_refs_.emplace_back(tensor, at::empty(tensor.sizes(), tensor.options())).second;
             }
             if (i < num_inputs + num_sym) {
                 info->shape.emplace_back(tensor.sizes().vec());
@@ -779,7 +784,6 @@ py::object DynKernelPy::Run(py::args args)
     }
     tensor_list_.clear();
     out_refs_.clear();
-    return py::none();
 }
 
 py::object DynKernelPy::Call(py::args args)

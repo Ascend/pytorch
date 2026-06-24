@@ -69,10 +69,8 @@ public:
     py::object ViewStore(py::object obj, py::object stride, DataTypePy type) override;
     IntArrayRef* GetShapeRef(py::object shape) override;
 
-    void SetKernelInfo(const std::string& op_name, const std::string& op_fullname,
-                       const std::vector<bool>& contiguity_flags)
+    void SetKernelInfo(const std::string& op_name, const std::string& op_fullname)
     {
-        contiguity_flags_ = contiguity_flags;
         op_name_ = op_name;
         op_fullname_ = op_fullname;
         kernel_.SetNameHint(op_name_.c_str(), op_fullname_.c_str());
@@ -81,7 +79,7 @@ public:
     int LaunchV1(void** addr, aclrtStream stream, void* workspace_ptr);
     int LaunchV2(void** addr, aclrtStream stream);
     virtual void Setup();
-    virtual py::object Run(py::args args);
+    virtual void Run(py::args args);
     virtual py::object Call(py::args args);
 
     static void SetDeterm(bool enable);
@@ -103,6 +101,12 @@ public:
     };
 
 protected:
+    enum class LoadType {
+        Load,
+        View,
+        SymBol,
+    };
+
     struct ParsedCallInputs {
         std::shared_ptr<std::vector<void*> > addr;
         at::TensorOptions options;
@@ -115,9 +119,9 @@ protected:
     std::vector<ShapeWithRef*> shapes_;
     std::vector<NDObject*> loads_;
     std::vector<NDObject*> stores_;
+    std::vector<LoadType> load_types_;
     std::vector<at::Tensor> tensor_list_;
     std::vector<std::pair<at::Tensor, at::Tensor> > out_refs_;
-    std::vector<bool> contiguity_flags_;
     size_t ws_size_;
     int kernel_type_;
     uint32_t kernel_flags_;
@@ -152,7 +156,7 @@ public:
     };
     LoadShapeRef* GetDynLoadShapeRef(size_t dim_size);
     void Setup() override;
-    py::object Run(py::args args) override;
+    void Run(py::args args) override;
     py::object Call(py::args args) override;
     ShapeRef* SymIntArraytoShapeRef(py::object shape) override;
     void UpdateSymShapeData();
@@ -161,6 +165,7 @@ public:
     {
         auto scalar = std::make_shared<ScalarRefPy>(type);
         sym_scalar_input_.emplace_back(scalar);
+        load_types_.emplace_back(LoadType::SymBol);
         return py::cast(scalar);
     }
 
@@ -209,7 +214,7 @@ class GraphSplitKernelPy : public TorchKernelPy, public GraphSplitBase {
 public:
     GraphSplitKernelPy() : TorchKernelPy(KernelPy::K_SPLIT, KernelPy::F_UWS) {}
     void Setup() override;
-    py::object Run(py::args inputs) override;
+    void Run(py::args inputs) override;
     py::object Call(py::args inputs) override;
 };
 
@@ -220,7 +225,7 @@ public:
     {
     }
     void Setup() override;
-    py::object Run(py::args inputs) override;
+    void Run(py::args inputs) override;
     py::object Call(py::args inputs) override;
 
 private:
