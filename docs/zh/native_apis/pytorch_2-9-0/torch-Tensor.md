@@ -38,9 +38,9 @@
 |[Tensor.addbmm](https://pytorch.org/docs/2.9/generated/torch.Tensor.addbmm.html)|是|支持fp16，fp32|
 |[Tensor.addbmm_](https://pytorch.org/docs/2.9/generated/torch.Tensor.addbmm_.html)|是|支持fp16，fp32|
 |[Tensor.addcdiv](https://pytorch.org/docs/2.9/generated/torch.Tensor.addcdiv.html)|是|支持bf16，fp16，fp32，int64<br>int64类型不支持三个tensor同时广播|
-|[Tensor.addcdiv_](https://pytorch.org/docs/2.9/generated/torch.Tensor.addcdiv_.html)|是|<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>：支持bf16，fp16，fp32，fp64<br><term>Atlas 训练系列产品</term>：支持fp16，fp32，fp64<br>int64类型不支持三个tensor同时广播|
+|[Tensor.addcdiv_](https://pytorch.org/docs/2.9/generated/torch.Tensor.addcdiv_.html)|是|<term>Atlas A2 训练系列产品</term>、<term>Atlas A3 训练系列产品</term>：支持bf16，fp16，fp32，fp64<br><term>Atlas 训练系列产品</term>：支持fp16，fp32，fp64<br>int64类型不支持三个tensor同时广播|
 |[Tensor.addcmul](https://pytorch.org/docs/2.9/generated/torch.Tensor.addcmul.html)|是|支持fp16，fp32，int64<br>int64类型不支持三个tensor同时广播|
-|[Tensor.addcmul_](https://pytorch.org/docs/2.9/generated/torch.Tensor.addcmul_.html)|是|<term>Atlas A2 训练系列产品</term><term>Atlas A3 训练系列产品</term>：支持bf16，fp16，fp32，fp64，uint8，int8，int32，int64<br><term>Atlas 训练系列产品</term>：支持fp16，fp32，fp64，uint8，int8，int32，int64<br>int64类型不支持三个tensor同时广播|
+|[Tensor.addcmul_](https://pytorch.org/docs/2.9/generated/torch.Tensor.addcmul_.html)|是|<term>Atlas A2 训练系列产品</term>、<term>Atlas A3 训练系列产品</term>：支持bf16，fp16，fp32，fp64，uint8，int8，int32，int64<br><term>Atlas 训练系列产品</term>：支持fp16，fp32，fp64，uint8，int8，int32，int64<br>int64类型不支持三个tensor同时广播|
 |[Tensor.addmm](https://pytorch.org/docs/2.9/generated/torch.Tensor.addmm.html)|是|支持fp16，fp32|
 |[Tensor.addmm_](https://pytorch.org/docs/2.9/generated/torch.Tensor.addmm_.html)|是|支持fp16，fp32|
 |[Tensor.sspaddmm](https://pytorch.org/docs/2.9/generated/torch.Tensor.sspaddmm.html)|否|-|
@@ -120,7 +120,7 @@
 |[Tensor.arccosh_](https://pytorch.org/docs/2.9/generated/torch.Tensor.arccosh_.html)|是|支持bf16，fp16，fp32，fp64，complex64，complex128|
 |[Tensor.cpu](https://pytorch.org/docs/2.9/generated/torch.Tensor.cpu.html)|是|-|
 |[Tensor.cross](https://pytorch.org/docs/2.9/generated/torch.Tensor.cross.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，complex64，complex128<br>两个输入的shape要保持一致|
-|[Tensor.cuda](https://pytorch.org/docs/2.9/generated/torch.Tensor.cuda.html)|是|NPU对应接口为Tensor.npu，memory_format仅支持传入torch.contiguous_format|
+|[Tensor.cuda](https://pytorch.org/docs/2.9/generated/torch.Tensor.cuda.html)|是|NPU对应接口为Tensor.npu，其memory_format参数仅支持传入torch.contiguous_format|
 |[Tensor.cummax](https://pytorch.org/docs/2.9/generated/torch.Tensor.cummax.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool<br>可能回退至CPU执行|
 |[Tensor.cummin](https://pytorch.org/docs/2.9/generated/torch.Tensor.cummin.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |[Tensor.cumsum](https://pytorch.org/docs/2.9/generated/torch.Tensor.cumsum.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>支持Named Tensor|
@@ -149,7 +149,7 @@
 |[Tensor.divide](https://pytorch.org/docs/2.9/generated/torch.Tensor.divide.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |[Tensor.divide_](https://pytorch.org/docs/2.9/generated/torch.Tensor.divide_.html)|是|支持fp16，fp32|
 |[Tensor.dot](https://pytorch.org/docs/2.9/generated/torch.Tensor.dot.html)|是|支持fp16，fp32|
-|[Tensor.double](https://pytorch.org/docs/2.9/generated/torch.Tensor.double.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>当前部分NPU接口暂不支持double类型，出于兼容性考虑默认返回fp32，后续完成支持后将正常返回fp64<br>可能回退至CPU执行|
+|[Tensor.double](https://pytorch.org/docs/2.9/generated/torch.Tensor.double.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>当前NPU上部分接口暂不支持double类型，出于兼容性考虑默认返回fp32，后续完成支持后将正常返回fp64<br>可能回退至CPU执行|
 |[Tensor.dsplit](https://pytorch.org/docs/2.9/generated/torch.Tensor.dsplit.html)|是|支持fp32|
 |[Tensor.element_size](https://pytorch.org/docs/2.9/generated/torch.Tensor.element_size.html)|是|支持fp32|
 |[Tensor.eq](https://pytorch.org/docs/2.9/generated/torch.Tensor.eq.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
@@ -393,7 +393,7 @@
 |[Tensor.square_](https://pytorch.org/docs/2.9/generated/torch.Tensor.square_.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，complex64，complex128|
 |[Tensor.squeeze](https://pytorch.org/docs/2.9/generated/torch.Tensor.squeeze.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.squeeze_](https://pytorch.org/docs/2.9/generated/torch.Tensor.squeeze_.html)|是|支持fp32|
-|[Tensor.std](https://pytorch.org/docs/2.9/generated/torch.Tensor.std.html)|是|支持bf16，fp16，fp32<br>input不支持标量tensor<br>correction不大于int32的范围|
+|[Tensor.std](https://pytorch.org/docs/2.9/generated/torch.Tensor.std.html)|是|支持bf16，fp16，fp32<br>input不支持标量tensor<br>correction参数值不能超过int32的最大值|
 |[Tensor.storage](https://pytorch.org/docs/2.9/generated/torch.Tensor.storage.html)|是|支持fp32|
 |[Tensor.untyped_storage](https://pytorch.org/docs/2.9/generated/torch.Tensor.untyped_storage.html)|是|支持fp32|
 |[Tensor.storage_offset](https://pytorch.org/docs/2.9/generated/torch.Tensor.storage_offset.html)|是|支持fp32|
@@ -409,7 +409,7 @@
 |[Tensor.t](https://pytorch.org/docs/2.9/generated/torch.Tensor.t.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，complex64，complex128|
 |[Tensor.t_](https://pytorch.org/docs/2.9/generated/torch.Tensor.t_.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64|
 |[Tensor.tensor_split](https://pytorch.org/docs/2.9/generated/torch.Tensor.tensor_split.html)|是|仅CPU支持|
-|[Tensor.tile](https://pytorch.org/docs/2.9/generated/torch.Tensor.tile.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>若入参dims的长度小于Tensor.shape的长度，则会在dims前自动补全1，使其长度与 Tensor.shape对齐。补全后的dims，需要满足如下限制：<br>- 当需要对第一根轴进行重复时，最多允许同时对4个维度进行重复操作（即dims中大于1的元素个数 ≤ 4），例如：不支持Tensor.tile([2, 3, 4, 5, 6]) ，支持Tensor.tile([2, 3, 1, 5, 6])<br>- 当不需要对第一根轴进行重复时，最多允许同时对3个维度进行重复操作（即dims中大于1的元素个数 ≤ 3），例如：不支持Tensor.tile([1, 3, 4, 5, 6]) ，支持Tensor.tile([1, 3, 1, 5, 6])<br>- 若执行反向计算，Tensor的维度数与入参dims中大于1的元素个数之和不得超过8|
+|[Tensor.tile](https://pytorch.org/docs/2.9/generated/torch.Tensor.tile.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>若入参dims的长度小于Tensor.shape的长度，则会在dims前自动补全1，使其长度与 Tensor.shape对齐。补全后的dims，需要满足如下限制：<br>- 当需要对第一根轴进行重复时，最多允许同时对4个维度进行重复操作（即dims中大于1的元素个数 ≤ 4），例如：不支持Tensor.tile([2, 3, 4, 5, 6]) ，支持Tensor.tile([2, 3, 1, 5, 6])<br>- 当不需要对第一根轴进行重复时，最多允许同时对3个维度进行重复操作（即dims中大于1的元素个数 ≤ 3），例如：不支持Tensor.tile([1, 3, 4, 5, 6]) ，支持Tensor.tile([1, 3, 1, 5, 6])<br>- 若执行反向计算，Tensor的维度数加上dims中大于1的元素个数之和不得超过8|
 |[Tensor.to](https://pytorch.org/docs/2.9/generated/torch.Tensor.to.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>当前NPU设备仅支持设置memory_format为torch.contiguous_format或torch.preserve_format<br><term>Atlas 推理系列产品</term>不支持跨NPU拷贝|
 |[to](https://pytorch.org/docs/2.9/generated/torch.Tensor.to.html)|是|-|
 |[Tensor.to_mkldnn](https://pytorch.org/docs/2.9/generated/torch.Tensor.to_mkldnn.html)|否|-|
@@ -453,7 +453,7 @@
 |[Tensor.unsqueeze](https://pytorch.org/docs/2.9/generated/torch.Tensor.unsqueeze.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.unsqueeze_](https://pytorch.org/docs/2.9/generated/torch.Tensor.unsqueeze_.html)|是|支持fp32|
 |[Tensor.values](https://pytorch.org/docs/2.9/generated/torch.Tensor.values.html)|是|依赖稀疏tensor|
-|[Tensor.var](https://pytorch.org/docs/2.9/generated/torch.Tensor.var.html)|是|支持bf16，fp16，fp32<br>correction不大于int32的范围|
+|[Tensor.var](https://pytorch.org/docs/2.9/generated/torch.Tensor.var.html)|是|支持bf16，fp16，fp32<br>correction参数值不能超过int32的最大值|
 |[Tensor.view](https://pytorch.org/docs/2.9/generated/torch.Tensor.view.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[view](https://pytorch.org/docs/2.9/generated/torch.Tensor.view.html)|是|-|
 |[Tensor.view_as](https://pytorch.org/docs/2.9/generated/torch.Tensor.view_as.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|

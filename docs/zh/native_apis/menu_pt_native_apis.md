@@ -63,7 +63,7 @@
   - [Named Tensors](./pytorch_2-12-0/Named-Tensors.md)
   - [torch.\_\_config\_\_](./pytorch_2-12-0/torch-__config__.md)
 
-- [PyTorch 2.10.0版本](./pytorch_2-11-0/PyTorch-2-11-0.md)
+- [PyTorch 2.11.0版本](./pytorch_2-11-0/PyTorch-2-11-0.md)
   - [概述](./pytorch_2-11-0/overview.md)
   - [torch](./pytorch_2-11-0/torch.md)
   - [torch.nn](./pytorch_2-11-0/torch-nn.md)
