@@ -48,8 +48,13 @@ def _load_dvm_backend():
     from .dvm import mlir_fusion
 
 def _load_triton_backend():
-    import torch
     import os
+    import torch
+    has_triton = torch.utils._triton.has_triton()
+    if not has_triton:
+        import warnings
+        warnings.warn("triton-ascend is not installed, install it first.")
+        return
     from torch._dynamo.device_interface import (
         get_interface_for_device,
         register_interface_for_device,
