@@ -186,6 +186,27 @@ class TestNpuGraphEx(TestCase):
         in4 = torch.randn(1000, 1000, dtype=torch.float16, device="npu")
         res = compiled_model(in1, in2, in3, in4)
 
+    def test_limit_core_num_with_stream(self):
+        class Model(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+
+            def forward(self, in1, in2, in3, in4):
+                stream1 = torch.npu.Stream()
+                with torch.npu.npugraph_ex.scope.limit_core_num(4, 5, stream=stream1):
+                    mm_result = torch.mm(in3, in4)
+                    with torch.npu.stream(stream1):
+                        add_result = torch.add(in1, in2)
+                mm1_result = torch.mm(in3, in4)
+                return add_result, mm_result, mm1_result
+
+        model = Model().npu()
+        compiled_model = torch.compile(model, backend="npugraph_ex", fullgraph=True, dynamic=False)
+        in1 = torch.randn(1000, 1000, dtype=torch.float16, device="npu")
+        in2 = torch.randn(1000, 1000, dtype=torch.float16, device="npu")
+        in3 = torch.randn(1000, 1000, dtype=torch.float16, device="npu")
+        in4 = torch.randn(1000, 1000, dtype=torch.float16, device="npu")
+        res = compiled_model(in1, in2, in3, in4)
 
 if __name__ == "__main__":
     from torch._dynamo.test_case import run_tests
