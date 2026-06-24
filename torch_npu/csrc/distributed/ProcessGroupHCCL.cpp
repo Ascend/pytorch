@@ -2935,7 +2935,7 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::createHCCLComm(
     std::vector<c10_npu::NPUStream> streamVal;
     streamVal.reserve(devices.size());
     c10_npu::OptionalNPUGuard npuGuard;
-    npuGuard.set_index(getDeviceForRank(getRank()).index());
+    npuGuard.set_index(devices[0].index());
 
     TORCH_NPU_HCCL_LOGI("Create HCCL comm, devicesKey %s, commType %d, p2pRank %d.", devicesKey.c_str(), commType, p2pRank);
 
@@ -2962,7 +2962,7 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::createHCCLComm(
     if (!created) {
         createHCCLCommOrigin(devicesKey, devices, commType, commConfig, hcclComms, streamVal, p2pRank);
     }
-    npuGuard.set_index(getDeviceForRank(getRank()).index());
+    npuGuard.set_index(devices[0].index());
     // restart the HcclGroupStart
     for (const auto i : c10::irange(hcclActiveGroupCounter_)) {
         (void)i;
@@ -6185,7 +6185,8 @@ void ProcessGroupHCCL::startCoalescing()
     coalescedTensors_.clear();
     coalescing_state_ |= CoalActive;
     c10_npu::OptionalNPUGuard npuGuard;
-    npuGuard.set_index(getDeviceForRank(getRank()).index());
+    // Infer device from the global rank to support sub process groups.
+    npuGuard.set_index(getDeviceForRank(static_cast<int>(groupRanks()[getRank()])).index());
     groupStart();
 }
 
