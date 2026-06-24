@@ -2,7 +2,7 @@ import dataclasses
 import os
 import sys
 from itertools import count, zip_longest
-from typing import Any
+from typing import Any, Optional
 from typing_extensions import Self
 
 import sympy
@@ -185,12 +185,13 @@ class DeferredNpuTritonCallWrapper(DeferredTritonCallWrapper):
         ]
         arg_types = [arg_type_lookup[name] for name in call_args]
         arg_signatures = [triton_meta["signature"][name] for name in call_args]
+        force_simt_only = npu_config.is_ascend950 and params["force_simt_only"]
         enable_simt = npu_config.is_ascend950 and (
             "simt" in params["parallel_mode"] or params["force_simt_only"]
         )
         prefix.splice(f"""
         auto launch_call = [=]() {{
-        {wrapper.generate_args_decl(prefix, call_args, arg_types, arg_signatures, True, enable_simt)}
+        {wrapper.generate_args_decl(prefix, call_args, arg_types, arg_signatures, True, force_simt_only)}
         {wrapper.generate_launch_preparation(kernel_var_name, params, enable_simt)}
         }};
         """)
@@ -215,9 +216,9 @@ class CppWrapperNpu(CppWrapperGpu):
     @staticmethod
     def create(
         is_subgraph: bool,
-        subgraph_name: str | None,
-        parent_wrapper: PythonWrapperCodegen | None,
-        partition_signatures: GraphPartitionSignature | None = None,
+        subgraph_name: Optional[str],
+        parent_wrapper: Optional[PythonWrapperCodegen],
+        partition_signatures: Optional[GraphPartitionSignature] = None,
     ):
         # comment at CppWrapperCpu `codegen_subgraph` function.
         return CppWrapperNpu()
@@ -420,7 +421,7 @@ class CppWrapperNpu(CppWrapperGpu):
         arg_types,
         arg_signatures,
         is_triton_kernel=True,
-        enable_simt=False,
+        force_simt_only=False,
     ):
         """
         Generates any declarations of args to pass into a kernel call, and then returns the arg names.
@@ -525,20 +526,20 @@ class CppWrapperNpu(CppWrapperGpu):
         args_str = f"""
             rtError_t ret;
             {ffts_str if target_support_ffts else ""}
-            {"void* workspace_addr = NULL;" if not enable_simt else ""}
-            {"void* sync_block_lock = NULL;" if not enable_simt else ""}
+            {"void* workspace_addr = NULL;" if not force_simt_only else ""}
+            {"void* sync_block_lock = NULL;" if not force_simt_only else ""}
             struct __attribute__((packed)) {{
                 {"void* ffts_addr __attribute__((aligned(8)));" if target_support_ffts else ""}
-                {"void* sync_block_lock __attribute__((aligned(8)));" if not enable_simt else ""}
-                {"void* workspace_addr __attribute__((aligned(8)));" if not enable_simt else ""}
+                {"void* sync_block_lock __attribute__((aligned(8)));" if not force_simt_only else ""}
+                {"void* workspace_addr __attribute__((aligned(8)));" if not force_simt_only else ""}
                 {struct_def_body}
                 int32_t grid_0 __attribute__((aligned(4)));
                 int32_t grid_1 __attribute__((aligned(4)));
                 int32_t grid_2 __attribute__((aligned(4)));
             }} kernel_args = {{
                 {"static_cast<void*>(ffts_addr)," if target_support_ffts else ""}
-                {"static_cast<void*>(sync_block_lock)," if not enable_simt else ""}
-                {"static_cast<void*>(workspace_addr)," if not enable_simt else ""}
+                {"static_cast<void*>(sync_block_lock)," if not force_simt_only else ""}
+                {"static_cast<void*>(workspace_addr)," if not force_simt_only else ""}
                 {struct_arg_body}
                 static_cast<int32_t>(grid_0),
                 static_cast<int32_t>(grid_1),
