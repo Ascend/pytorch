@@ -195,16 +195,9 @@ def _define_dvm_kernel(self, src_code, mlir_kernel, traced_graph, mode=None):
             wrapper.add_import_once("from torch_npu._inductor import dvm")
             if dump_fx_test:
                 generate_dvm_fx_case(mlir_kernel._gm, fusion_type="mlir")
-            out_indices = mlir_kernel.non_contiguous_indices.get("outputs")
-            num_inputs = len(mlir_kernel.dvm_codegen.cont_flag_input)
-            contiguity_flags = mlir_kernel.dvm_codegen.cont_flag_input + [
-                i not in out_indices
-                for i in range(num_inputs, num_inputs + mlir_kernel.num_outputs)
-            ]
             kernel_meta = {
                 "kernel_name": fused_kernel_name,
                 "kernel_fullname": kernel_name,
-                "contiguity_flags": contiguity_flags,
             }
             code = mlir_kernel.dvm_codegen.code
             code.splice(
@@ -212,7 +205,6 @@ def _define_dvm_kernel(self, src_code, mlir_kernel, traced_graph, mode=None):
                 k.set_kernel_info(
                     {kernel_meta.get("kernel_name")!r},  # kernel_name
                     {kernel_meta.get("kernel_fullname")!r},  # kernel_fullname
-                    {kernel_meta.get("contiguity_flags")},  # contiguity_flags
                 )
                 """,
                 strip=True,
