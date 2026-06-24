@@ -145,7 +145,7 @@ W0226 11:27:21.957000 119301 site-packages/torch/_inductor/debug.py:454] [0/0] m
 [2026-02-26 11:27:22] [WARNING] [119301] profiler.py: Invalid parameter export_type: None, reset it to text.
 [2026-02-26 11:27:23] [INFO] [119301] profiler.py: Start parsing profiling data: /data/test_dir/triton/indirect_mem/embedding_sum/profile_result/triton_d0894ab32616d540621169a362912f67/localhost.localdomain_119301_20260226112722262_ascend_pt
 [2026-02-26 11:27:23] [INFO] [119301] profiler.py: SimpleProfilingAnalyzer parsed in a total time of 0:00:00.495121
-complied embedding_sum validation passed
+complie embedding_sum validation passed
 [2026-02-26 11:27:24] [WARNING] [119301] profiler.py: Invalid parameter export_type: None, reset it to text.
 [2026-02-26 11:27:24] [WARNING] [119301] profiler.py: Profiler won't be using warmup, this can skew profiler results
 [2026-02-26 11:27:24] [INFO] [121654] profiler.py: Start parsing profiling data in sync mode at: /data/test_dir/triton/indirect_mem/embedding_sum/result/eager/localhost.localdomain_119301_20260226112724121_ascend_pt
