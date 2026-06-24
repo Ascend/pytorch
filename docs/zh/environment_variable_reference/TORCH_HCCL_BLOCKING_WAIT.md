@@ -7,7 +7,6 @@
 - `0`（默认值）：关闭阻塞等待。
 - `1`：开启阻塞等待。
 
-
 > [!NOTE]
 >
 > - 当前版本同时兼容旧名称`HCCL_BLOCKING_WAIT`。
@@ -33,7 +32,6 @@ export HCCL_BLOCKING_WAIT=1
 
 - 此环境变量仅在使用HCCL作为通信后端时生效。
 - 此环境变量在 `ProcessGroupHCCL` 初始化时读取；若在`init_process_group`或`new_group`创建进程组之后再修改，不会影响已创建的进程组。
-
 
 ## 支持的型号
 
