@@ -6126,8 +6126,13 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base(
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
             if (opts.reduceOp == c10d::ReduceOp::AVG) {
                 c10_npu::NPUStreamGuard guard(hcclStreams[0]);
+                bool is_atlas_a5 = c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend950;
                 for (auto& tensor : outputs) {
-                    tensor.div_(getSize());
+                    if (is_atlas_a5) {
+                        tensor.div_(getSize(), "trunc");
+                    } else {
+                        tensor.div_(getSize());
+                    }
                 }
             }
         },
