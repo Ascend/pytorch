@@ -43,6 +43,8 @@ def include_paths(npu: bool = False) -> List[str]:
         os.path.join(lib_include, 'TH'),
         os.path.join(lib_include, 'THC')
     ]
+    include_path = os.path.join(PYTORCH_NPU_INSTALL_PATH, "include", "third_party", "acl", "inc")
+    paths.extend([include_path])
     if npu:
         ASCEND_HOME = get_ascend_home()
         paths.extend([
