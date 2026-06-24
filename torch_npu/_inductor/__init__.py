@@ -72,6 +72,8 @@ def _load_triton_backend():
     import torch
     has_triton = torch.utils._triton.has_triton()
     if not has_triton:
+        import warnings
+        warnings.warn("triton-ascend is not installed, install it first.")
         return
     import logging
     log = logging.getLogger(__name__)
