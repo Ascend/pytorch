@@ -3,7 +3,7 @@ index 438ad5c..c36dca2 100644
 --- a/test/dynamo/test_install_free_tensors.py
 +++ b/test/dynamo/test_install_free_tensors.py
 @@ -5,6 +5,8 @@ from typing import Any
-
+ 
  import torch
  import torch._dynamo
 +import torch_npu

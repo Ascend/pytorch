@@ -9,5 +9,5 @@ index 8905872..50b18d6 100644
 +from torch_npu import npu
 +
  # Owner(s): ["oncall: jit"]
-
+ 
  import torch

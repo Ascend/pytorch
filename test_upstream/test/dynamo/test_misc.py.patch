@@ -3,13 +3,13 @@ index 893fe24..fca0602 100644
 --- a/test/dynamo/test_misc.py
 +++ b/test/dynamo/test_misc.py
 @@ -12569,7 +12569,7 @@ def ___make_guard_fn():
-
+ 
          # Call create_symbolic_sizes_strides_storage_offset on both of them.
          r = main.create_symbolic_sizes_strides_storage_offset(
 -            torch.randn(3, 2), ConstantSource("x")
 +            torch.randn(3, 2).npu(), ConstantSource("x")
          )
-
+ 
          # Create a guard: size[0] == 3 (call evaluate_expr)
 @@ -12623,7 +12623,7 @@ ShapeEnv not equal: field values don't match:
      def test_shape_env_equal_create_symbolic_sizes_strides_storage_offset(self):
@@ -21,7 +21,7 @@ index 893fe24..fca0602 100644
          self.assertExpectedRaisesInline(
              NotEqualError,
 @@ -12693,10 +12693,10 @@ ShapeEnv not equal: field values don't match:
-
+ 
          # Call create_symbolic_sizes_strides_storage_offset on both of them.
          r = main.create_symbolic_sizes_strides_storage_offset(
 -            torch.randn(3, 2), ConstantSource("x")
@@ -31,10 +31,10 @@ index 893fe24..fca0602 100644
 -            torch.randn(3, 2), ConstantSource("x")
 +            torch.randn(3, 2).npu(), ConstantSource("x")
          )
-
+ 
          # Create a guard: size[0] % 3 == 0 (only in the main ShapeEnv)
 @@ -12733,10 +12733,10 @@ ShapeEnv not equal: field values don't match:
-
+ 
          # Call create_symbolic_sizes_strides_storage_offset on both of them.
          r = main.create_symbolic_sizes_strides_storage_offset(
 -            torch.randn(3, 2), ConstantSource("x")
@@ -44,10 +44,10 @@ index 893fe24..fca0602 100644
 -            torch.randn(3, 2), ConstantSource("x")
 +            torch.randn(3, 2).npu(), ConstantSource("x")
          )
-
+ 
          # Create a guard: size[0] == 3 (only in the main ShapeEnv)
 @@ -12776,10 +12776,10 @@ ShapeEnv not equal: field values don't match:
-
+ 
          # Call create_symbolic_sizes_strides_storage_offset on both of them.
          r = main.create_symbolic_sizes_strides_storage_offset(
 -            torch.randn(3, 2), ConstantSource("x")
@@ -57,5 +57,5 @@ index 893fe24..fca0602 100644
 -            torch.randn(3, 2), ConstantSource("x")
 +            torch.randn(3, 2).npu(), ConstantSource("x")
          )
-
+ 
          # Create a guard: size[0] >= 3 (only in the main ShapeEnv)

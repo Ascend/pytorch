@@ -2,8 +2,7 @@ diff --git a/test/dynamo/test_guard_serialization.py b/test/dynamo/test_guard_se
 index 99727bb..808d7a5 100644
 --- a/test/dynamo/test_guard_serialization.py
 +++ b/test/dynamo/test_guard_serialization.py
-@@ -1,6 +1,8 @@
- # Owner(s): ["module: dynamo"]
+@@ -13,5 +13,7 @@
  
  import torch
 +import torch_npu

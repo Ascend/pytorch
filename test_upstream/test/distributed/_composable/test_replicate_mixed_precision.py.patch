@@ -1,9 +1,8 @@
 diff --git a/test/distributed/_composable/test_replicate_mixed_precision.py b/test/distributed/_composable/test_replicate_mixed_precision.py
-index 8a03bdb..8924f15 100644
 --- a/test/distributed/_composable/test_replicate_mixed_precision.py
 +++ b/test/distributed/_composable/test_replicate_mixed_precision.py
-@@ -1,6 +1,8 @@
- # Owner(s): ["oncall: distributed"]
+@@ -5,6 +5,8 @@
+ import functools
  
  import torch
 +import torch_npu

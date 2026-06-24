@@ -177,12 +177,4 @@ index d19ee70..5149c63 100644
 +        x1 = torch.randn(3, 4).npu()
  
          subgraph_rewriter.replace_pattern(traced, pattern, replacement)
-#
-# NPU Patch Explanation:
-# 
-# Key modifications:
-# - Changed all torch.rand/torch.randn tensor creations to use .npu() method
-# - All test input tensors now created on NPU device
-# - Subgraph rewriter tests now execute on NPU instead of CPU
-# - Pattern matching and replacement operations validated on NPU
-# - No import changes needed as torch_npu is typically imported elsewhere
+ 
