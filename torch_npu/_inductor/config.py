@@ -26,6 +26,10 @@ if not enable_inplace_buffers:
 # inductor debug switch
 config.trace.enabled = True
 
+enable_flex_attention_dq_before_scale_materialize = os.environ.get(
+    "FLEX_ATTENTION_DQ_BEFORE_SCALE_MATERIALIZE", "1"
+).lower() in ("1", "true", "yes")
+
 device = torch.npu.current_device()
 prop = torch.npu.get_device_properties(device)
 

@@ -61,6 +61,7 @@ from torch._inductor.kernel.flex_attention import (
     flex_attention_backward_grid,
     create_num_blocks_fake_generator
 )
+from torch_npu._inductor import config as npu_config
 from torch_npu._inductor.select_algorithm import NPUTritonTemplate
 aten = torch.ops.aten
 Expr = sympy.Expr
@@ -642,10 +643,8 @@ def _get_default_config_bwd(query) -> tuple[int, int, int, int]:
     return _get_npu_config(query, mode=Mode.bwd)
 
 
-flex_attention_backward_template = NPUTritonTemplate(
-    name="flex_attention_backward",
-    grid=flex_attention_backward_grid,
-    source=r"""
+_FLEX_ATTENTION_BACKWARD_SOURCE = (
+    r"""
 {{def_kernel("Q", "K", "V", "LSE", "DELTA", "DO", "DQ", "DV", "KV_NUM_BLKS", "KV_IDX", "Q_NUM_BLKS", "Q_IDX", "FULL_KV_NUM_BLKS", "FULL_KV_IDX", "FULL_Q_NUM_BLKS", "FULL_Q_IDX")}}
     # Sub notation for this kernel:
     #
@@ -1350,7 +1349,80 @@ def bwd_dkdv_block_mn(
  """
     + compute_next_offset_func
     + get_bounded_indices_func
-    + load_checked_2d,
+    + load_checked_2d
+)
+
+def _replace_once(source: str, old: str, new: str) -> str:
+    assert source.count(old) == 1
+    return source.replace(old, new)
+
+
+_FLEX_ATTENTION_BACKWARD_DEF_KERNEL = (
+    '{{def_kernel("Q", "K", "V", "LSE", "DELTA", "DO", "DQ", "DV", '
+    '"KV_NUM_BLKS", "KV_IDX", "Q_NUM_BLKS", "Q_IDX", "FULL_KV_NUM_BLKS", '
+    '"FULL_KV_IDX", "FULL_Q_NUM_BLKS", "FULL_Q_IDX")}}'
+)
+_FLEX_ATTENTION_BACKWARD_MATERIALIZE_DEF_KERNEL = (
+    '{{def_kernel("Q", "K", "V", "LSE", "DELTA", "DO", "DQ", "DV", '
+    '"KV_NUM_BLKS", "KV_IDX", "Q_NUM_BLKS", "Q_IDX", "FULL_KV_NUM_BLKS", '
+    '"FULL_KV_IDX", "FULL_Q_NUM_BLKS", "FULL_Q_IDX", "DQ_MATERIALIZE")}}'
+)
+_FLEX_ATTENTION_BACKWARD_DQ_STRIDES = (
+    '    stride_dqz, stride_dqh, stride_dqm, stride_dqd = {{stride("DQ")}}\n'
+    '    stride_dvz, stride_dvh, stride_dvm, stride_dvd = {{stride("DV")}}\n'
+)
+_FLEX_ATTENTION_BACKWARD_MATERIALIZE_DQ_STRIDES = (
+    '    stride_dqz, stride_dqh, stride_dqm, stride_dqd = {{stride("DQ")}}\n'
+    '    stride_dq_materialize_z, stride_dq_materialize_h, '
+    'stride_dq_materialize_m, stride_dq_materialize_d = '
+    '{{stride("DQ_MATERIALIZE")}}\n'
+    '    stride_dvz, stride_dvh, stride_dvm, stride_dvd = {{stride("DV")}}\n'
+)
+_FLEX_ATTENTION_BACKWARD_DQ_WRITEBACK = (
+    "        # Write back dQ.\n"
+    "        dq_ptrs = DQ2 + offs_m2[:, None] * stride_dqm + offs_k[None, :] * stride_dqd\n"
+    "        dq *= SM_SCALE\n"
+)
+_FLEX_ATTENTION_BACKWARD_MATERIALIZE_DQ_WRITEBACK = (
+    "        # Write back dQ.\n"
+    "        dq_ptrs = DQ2 + offs_m2[:, None] * stride_dqm + offs_k[None, :] * stride_dqd\n"
+    "        dq_materialize_adj = (\n"
+    "            stride_dq_materialize_h * off_hq2\n"
+    "            + stride_dq_materialize_z * off_zq\n"
+    "        ).to(tl.int64)\n"
+    "        DQ_MATERIALIZE2 = DQ_MATERIALIZE + dq_materialize_adj\n"
+    "        dq_materialize_ptrs = DQ_MATERIALIZE2 + offs_m2[:, None] * "
+    "stride_dq_materialize_m + offs_k[None, :] * stride_dq_materialize_d\n"
+    "        dq_materialize_mask = (offs_m2[:, None] < Q_LEN) & "
+    "(offs_k[None, :] < QK_HEAD_DIM)\n"
+    "        tl.store(dq_materialize_ptrs, dq, mask=dq_materialize_mask)\n"
+    "        dq *= SM_SCALE\n"
+)
+
+_FLEX_ATTENTION_BACKWARD_DQ_BEFORE_SCALE_MATERIALIZE_SOURCE = _replace_once(
+    _replace_once(
+        _replace_once(
+            _FLEX_ATTENTION_BACKWARD_SOURCE,
+            _FLEX_ATTENTION_BACKWARD_DEF_KERNEL,
+            _FLEX_ATTENTION_BACKWARD_MATERIALIZE_DEF_KERNEL,
+        ),
+        _FLEX_ATTENTION_BACKWARD_DQ_STRIDES,
+        _FLEX_ATTENTION_BACKWARD_MATERIALIZE_DQ_STRIDES,
+    ),
+    _FLEX_ATTENTION_BACKWARD_DQ_WRITEBACK,
+    _FLEX_ATTENTION_BACKWARD_MATERIALIZE_DQ_WRITEBACK,
+)
+
+flex_attention_backward_no_dq_materialize_template = NPUTritonTemplate(
+    name="flex_attention_backward",
+    grid=flex_attention_backward_grid,
+    source=_FLEX_ATTENTION_BACKWARD_SOURCE,
+)
+
+flex_attention_backward_dq_before_scale_materialize_template = NPUTritonTemplate(
+    name="flex_attention_backward_dq_before_scale_materialize",
+    grid=flex_attention_backward_grid,
+    source=_FLEX_ATTENTION_BACKWARD_DQ_BEFORE_SCALE_MATERIALIZE_SOURCE,
 )
 
 
@@ -1790,6 +1862,17 @@ def _register_npu_inductor_flex_attention():
             dtype=query.get_dtype(),
             device=query.get_device(),
         )
+        enable_dq_before_scale_materialize = (
+            npu_config.enable_flex_attention_dq_before_scale_materialize
+        )
+        dq_before_scale_materialize = None
+        if enable_dq_before_scale_materialize:
+            dq_before_scale_materialize = empty_strided(
+                query_size,
+                stride=[sympy.sympify(s) for s in grad_query_strides],
+                dtype=torch.float32,
+                device=query.get_device(),
+            )
 
         # Construct output layout with stride order matching value
         value_size = [Bq, Hkv, seq_len_kv, v_head_dim]
@@ -1821,6 +1904,38 @@ def _register_npu_inductor_flex_attention():
 
         SPARSE_Q_BLOCK_SIZE = V.graph.sizevars.evaluate_static_shape(SPARSE_Q_BLOCK_SIZE)
         SPARSE_KV_BLOCK_SIZE = V.graph.sizevars.evaluate_static_shape(SPARSE_KV_BLOCK_SIZE)
+
+        flex_attention_backward_template = (
+            flex_attention_backward_dq_before_scale_materialize_template
+            if enable_dq_before_scale_materialize
+            else flex_attention_backward_no_dq_materialize_template
+        )
+        backward_input_nodes = [
+            query,
+            key,
+            value,
+            logsumexp,
+            delta,
+            grad_out,
+            grad_query,
+            broadcasted_grad_value,
+            kv_num_blocks,
+            kv_indices,
+            q_num_blocks,
+            q_indices,
+            full_kv_num_blocks,
+            full_kv_indices,
+            full_q_num_blocks,
+            full_q_indices,
+        ]
+        backward_mutated_inputs = [
+            grad_query,
+            broadcasted_grad_value,
+            *joint_outputs.mutated_grads,
+        ]
+        if dq_before_scale_materialize is not None:
+            backward_input_nodes.append(dq_before_scale_materialize)
+            backward_mutated_inputs.append(dq_before_scale_materialize)
 
         choices: list[Any] = []
         configs: list[tuple[int, int, int, int]] = []
@@ -1870,24 +1985,7 @@ def _register_npu_inductor_flex_attention():
 
             flex_attention_backward_template.maybe_append_choice(
                 choices=choices,
-                input_nodes=[
-                    query,
-                    key,
-                    value,
-                    logsumexp,
-                    delta,
-                    grad_out,
-                    grad_query,
-                    broadcasted_grad_value,
-                    kv_num_blocks,
-                    kv_indices,
-                    q_num_blocks,
-                    q_indices,
-                    full_kv_num_blocks,
-                    full_kv_indices,
-                    full_q_num_blocks,
-                    full_q_indices,
-                ],
+                input_nodes=backward_input_nodes,
                 layout=layout_broadcasted_k,  # We use store_output only for grad_key
                 subgraphs=[
                     fw_subgraph_buffer,
@@ -1895,33 +1993,12 @@ def _register_npu_inductor_flex_attention():
                     mask_graph_buffer,
                     joint_outputs.captured_grads_compute,
                 ],
-                mutated_inputs=[
-                    grad_query,
-                    broadcasted_grad_value,
-                    *joint_outputs.mutated_grads,
-                ],
+                mutated_inputs=backward_mutated_inputs,
                 call_sizes=query.get_size() + key.get_size()[1:3],
                 **cur_kernel_options,
             )
         inputs_for_autotuning = (
-            [
-                query,
-                key,
-                value,
-                logsumexp,
-                delta,
-                grad_out,
-                grad_query,
-                broadcasted_grad_value,
-                kv_num_blocks,
-                kv_indices,
-                q_num_blocks,
-                q_indices,
-                full_kv_num_blocks,
-                full_kv_indices,
-                full_q_num_blocks,
-                full_q_indices,
-            ]
+            backward_input_nodes
             + list(score_mod_other_buffers)
             + list(mask_mod_other_buffers)
             + joint_outputs.mutated_grads
