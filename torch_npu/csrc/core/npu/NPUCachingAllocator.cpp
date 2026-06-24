@@ -121,45 +121,15 @@ enum ShareableHandleType : char {
     SHAREABLE_NPU_EXPANDABLE_SEGMENT = 'e'
 };
 
-using StatTypes = std::array<bool, static_cast<size_t>(StatType::NUM_TYPES)>;
-
 void update_stat(Stat &stat, int64_t amount)
 {
-    stat.current += amount;
-    stat.peak = std::max(stat.current, stat.peak);
     if (amount > 0) {
-        stat.allocated += amount;
-    }
-    if (amount < 0) {
-        stat.freed += -amount;
-    }
-}
-
-void reset_accumulated_stat(Stat &stat)
-{
-    stat.allocated = 0;
-    stat.freed = 0;
-}
-
-void reset_peak_stat(Stat &stat)
-{
-    stat.peak = stat.current;
-}
-
-template <typename Func> void for_each_selected_stat_type(const StatTypes &stat_types, Func f)
-{
-    for (const auto stat_type : c10::irange(stat_types.size())) {
-        if (stat_types[stat_type]) {
-            f(stat_type);
-        }
+        stat.increase(static_cast<size_t>(amount));
+    } else if (amount < 0) {
+        stat.decrease(static_cast<size_t>(-amount));
     }
 }
 
-void update_stat_array(StatArray &stat_array, int64_t amount, const StatTypes &stat_types)
-{
-    for_each_selected_stat_type(stat_types,
-        [&stat_array, amount](size_t stat_type) { update_stat(stat_array[stat_type], amount); });
-}
 
 bool IsMallocPage1GMem(bool is_small_pool)
 {
@@ -1419,8 +1389,9 @@ public:
 
             if (already_split && !block->expandable_segment_) {
                 // An already-split inactive block is being shrunk by size bytes.
-                update_stat_array(stats.inactive_split_bytes, -static_cast<std::int64_t>(block->size),
-                    params.stat_types);
+                for_each_selected_stat_type(params.stat_types, [&](size_t stat_type) {
+                    update_stat(stats.inactive_split_bytes[stat_type], -static_cast<std::int64_t>(block->size));
+                });
             } else if (!block->expandable_segment_) {
                 // A new split inactive block is being created from a previously unsplit
                 // block, size remaining->size bytes.
@@ -1733,21 +1704,25 @@ public:
         std::lock_guard<std::recursive_mutex> lock(mutex);
 
         for (size_t statType = 0; statType < static_cast<size_t>(StatType::NUM_TYPES); ++statType) {
-            reset_accumulated_stat(stats.allocation[statType]);
-            reset_accumulated_stat(stats.segment[statType]);
-            reset_accumulated_stat(stats.active[statType]);
-            reset_accumulated_stat(stats.inactive_split[statType]);
-            reset_accumulated_stat(stats.allocated_bytes[statType]);
-            reset_accumulated_stat(stats.reserved_bytes[statType]);
-            reset_accumulated_stat(stats.active_bytes[statType]);
-            reset_accumulated_stat(stats.inactive_split_bytes[statType]);
-            reset_accumulated_stat(stats.requested_bytes[statType]);
+            stats.allocation[statType].reset_accumulated();
+            stats.segment[statType].reset_accumulated();
+            stats.active[statType].reset_accumulated();
+            stats.inactive_split[statType].reset_accumulated();
+            stats.allocated_bytes[statType].reset_accumulated();
+            stats.reserved_bytes[statType].reset_accumulated();
+            stats.active_bytes[statType].reset_accumulated();
+            stats.inactive_split_bytes[statType].reset_accumulated();
+            stats.requested_bytes[statType].reset_accumulated();
         }
 
         stats.num_alloc_retries = 0;
         stats.num_ooms = 0;
-        reset_accumulated_stat(stats.oversize_allocations);
-        reset_accumulated_stat(stats.oversize_segments);
+        stats.num_sync_all_streams = 0;
+        stats.num_device_alloc = 0;
+        stats.num_device_free = 0;
+        stats.num_oom_rejections = 0;
+        stats.oversize_allocations.reset_accumulated();
+        stats.oversize_segments.reset_accumulated();
     }
 
     /* * Resets the historical peak stats for the device * */
@@ -1756,19 +1731,19 @@ public:
         std::lock_guard<std::recursive_mutex> lock(mutex);
 
         for (size_t statType = 0; statType < static_cast<size_t>(StatType::NUM_TYPES); ++statType) {
-            reset_peak_stat(stats.allocation[statType]);
-            reset_peak_stat(stats.segment[statType]);
-            reset_peak_stat(stats.active[statType]);
-            reset_peak_stat(stats.inactive_split[statType]);
-            reset_peak_stat(stats.allocated_bytes[statType]);
-            reset_peak_stat(stats.reserved_bytes[statType]);
-            reset_peak_stat(stats.active_bytes[statType]);
-            reset_peak_stat(stats.inactive_split_bytes[statType]);
-            reset_peak_stat(stats.requested_bytes[statType]);
+            stats.allocation[statType].reset_peak();
+            stats.segment[statType].reset_peak();
+            stats.active[statType].reset_peak();
+            stats.inactive_split[statType].reset_peak();
+            stats.allocated_bytes[statType].reset_peak();
+            stats.reserved_bytes[statType].reset_peak();
+            stats.active_bytes[statType].reset_peak();
+            stats.inactive_split_bytes[statType].reset_peak();
+            stats.requested_bytes[statType].reset_peak();
         }
 
-        reset_peak_stat(stats.oversize_allocations);
-        reset_peak_stat(stats.oversize_segments);
+        stats.oversize_allocations.reset_peak();
+        stats.oversize_segments.reset_peak();
     }
 
     /* Checkpoint the state of a private pool necessary to return it to its
@@ -2381,6 +2356,7 @@ private:
         StatTypes stat_types = get_stat_types_for_pool(*to_map->pool);
         for_each_selected_stat_type(stat_types,
             [&](size_t stat_type) { update_stat(stats.reserved_bytes[stat_type], mapped_range.size); });
+        stats.num_device_alloc++;
         record_trace(TraceEntry::SEGMENT_MAP, int64_t(mapped_range.ptr), mapped_range.size, to_map->stream,
             to_map->device, to_map->pool->owner_MempoolId(), ctx);
         if (!to_map->prev && !to_map->context_when_segment_allocated) {
@@ -2807,6 +2783,7 @@ private:
         // p.block came from new, not npuMalloc. It should not be nullptr here.
         TORCH_INTERNAL_ASSERT(p.block != nullptr && p.block->ptr != nullptr);
 
+        stats.num_device_alloc++;
         record_trace(TraceEntry::SEGMENT_ALLOC, int64_t(p.block->ptr), p.block->size, p.stream(), p.device(),
             p.block->pool->owner_MempoolId(), ctx);
         p.block->context_when_segment_allocated = ctx;
@@ -2914,6 +2891,7 @@ private:
         TORCH_NPU_MEMORY_LOGD("NPUCachingAllocator free by aclrtFree: size=%zu, ptr=%p, device=%d",
             block->size, block->ptr, block->device);
 
+        stats.num_device_free++;
         record_trace(TraceEntry::SEGMENT_FREE, int64_t(block->ptr), block->size, block->stream, block->device,
             block->pool->owner_MempoolId(),
             context ? context : block->context_when_segment_allocated);
@@ -2998,7 +2976,7 @@ private:
             TORCH_INTERNAL_ASSERT(block->pool->owner_PrivatePool->npuMalloc_count > 0);
             block->pool->owner_PrivatePool->npuMalloc_count--;
         }
-
+        stats.num_device_free++;
         record_trace(TraceEntry::SEGMENT_UNMAP, int64_t(unmapped.ptr), unmapped.size, block->stream, block->device,
             block->pool->owner_MempoolId(),
             context ? context : block->context_when_segment_allocated);
@@ -3046,6 +3024,7 @@ private:
 
     void synchronize_and_free_events(bool check_error, const std::shared_ptr<c10::GatheredContext> &context)
     {
+        stats.num_sync_all_streams++;
         // This function syncs, so capture should not be underway. Might as well
         // make sure capture-deferred end of life events get processed too.
         TORCH_INTERNAL_ASSERT(captures_underway.empty());
@@ -3250,6 +3229,8 @@ private:
     }
 
 public:
+    using NPUAllocator::emptyCache;    // avoid hiding base class overload
+    using NPUAllocator::recordStream;  // avoid hiding base class overload
     std::vector<std::unique_ptr<DeviceCachingAllocator>> device_allocator;
 
     Block *get_allocated_block(void *ptr, bool remove = false)
@@ -3765,19 +3746,19 @@ public:
             ": did you call init?", PTA_ERROR(ErrCode::PARAM));
     }
 
-    DeviceStats getDeviceStats(int device) override
+    DeviceStats getDeviceStats(c10::DeviceIndex device) override
     {
         assertValidDevice(device);
         return device_allocator[device]->getStats();
     }
 
-    void resetAccumulatedStats(int device) override
+    void resetAccumulatedStats(c10::DeviceIndex device) override
     {
         assertValidDevice(device);
         device_allocator[device]->resetAccumulatedStats();
     }
 
-    void resetPeakStats(int device) override
+    void resetPeakStats(c10::DeviceIndex device) override
     {
         assertValidDevice(device);
         device_allocator[device]->resetPeakStats();

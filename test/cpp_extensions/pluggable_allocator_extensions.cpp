@@ -30,13 +30,13 @@ bool check_custom_allocator_used()
     return useflag;
 }
 
-DeviceStats my_get_device_stats(int device)
+DeviceStats my_get_device_stats(c10::DeviceIndex device)
 {
     DeviceStats stats;
     return stats;
 }
 
-void my_reset_peak_status(int device)
+void my_reset_peak_status(c10::DeviceIndex device)
 {
     std::cout<<"resetPeakStatus success!"<<std::endl;
 }

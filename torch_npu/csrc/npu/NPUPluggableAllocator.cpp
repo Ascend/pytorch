@@ -83,13 +83,13 @@ void NPUPluggableAllocator::set_erase_stream_fn(
 }
 
 void NPUPluggableAllocator::set_get_device_stats_fn(
-    std::function<c10_npu::NPUCachingAllocator::DeviceStats(int)> get_device_stats_fn)
+    std::function<c10_npu::NPUCachingAllocator::DeviceStats(c10::DeviceIndex)> get_device_stats_fn)
 {
     get_device_stats_fn_ = std::move(get_device_stats_fn);
 }
 
 void NPUPluggableAllocator::set_reset_peak_status_fn(
-    std::function<void(int)> reset_peak_status_fn)
+    std::function<void(c10::DeviceIndex)> reset_peak_status_fn)
 {
     reset_peak_status_fn_ = std::move(reset_peak_status_fn);
 }
@@ -321,7 +321,7 @@ void NPUPluggableAllocator::recordHcclWorkForBlock(void* block_ptr, void* work_p
                   "If you need it, please file an issue describing your use case.");
 }
 
-c10_npu::NPUCachingAllocator::DeviceStats NPUPluggableAllocator::getDeviceStats(int device)
+c10_npu::NPUCachingAllocator::DeviceStats NPUPluggableAllocator::getDeviceStats(c10::DeviceIndex device)
 {
     if (get_device_stats_fn_) {
         return get_device_stats_fn_(device);
@@ -330,13 +330,13 @@ c10_npu::NPUCachingAllocator::DeviceStats NPUPluggableAllocator::getDeviceStats(
     }
 }
 
-void NPUPluggableAllocator::resetAccumulatedStats(int device)
+void NPUPluggableAllocator::resetAccumulatedStats(c10::DeviceIndex device)
 {
     TORCH_NPU_WARN("NPUPluggableAllocator does not yet support resetAccumulatedStats. "
                   "If you need it, please file an issue describing your use case.");
 }
 
-void NPUPluggableAllocator::resetPeakStats(int device)
+void NPUPluggableAllocator::resetPeakStats(c10::DeviceIndex device)
 {
     if (reset_peak_status_fn_) {
         reset_peak_status_fn_(device);

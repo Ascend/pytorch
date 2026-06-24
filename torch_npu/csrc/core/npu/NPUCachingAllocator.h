@@ -1,11 +1,12 @@
 #pragma once
 
-#include <c10/core/Allocator.h>
+#include <c10/core/CachingDeviceAllocator.h>
 #include <c10/util/Registry.h>
 #include <c10/util/SmallVector.h>
 #include "torch_npu/csrc/logging/LogContext.h"
 #include "torch_npu/csrc/core/npu/NPUGraphsUtils.h"
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
+#include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/distributed/HCCLUtils.hpp"
@@ -76,58 +77,12 @@ C10_DECLARE_REGISTRY(FreeNPUMemoryCallbacksRegistry, FreeMemoryCallback);
 // prefix?  Mostly because it made the HIPify rules easier to write; _ is
 // not counted as a word boundary, so you would otherwise have to list each
 // of these functions.
-struct Stat {
-    int64_t current = 0;
-    int64_t peak = 0;
-    int64_t allocated = 0;
-    int64_t freed = 0;
-};
-
-enum struct StatType : uint64_t {
-    AGGREGATE = 0,
-    SMALL_POOL = 1,
-    LARGE_POOL = 2,
-    NUM_TYPES = 3  // remember to update this whenever a new stat type is added
-};
-
-typedef std::array<Stat, static_cast<size_t>(StatType::NUM_TYPES)> StatArray;
-// Struct containing memory allocator summary statistics for a device.
-struct DeviceStats {
-    // COUNT: allocations requested by client code
-    StatArray allocation;
-    // COUNT: number of allocated segments from npuMalloc().
-    StatArray segment;
-    // COUNT: number of active memory blocks (allocated or used by stream)
-    StatArray active;
-    // COUNT: number of inactive, split memory blocks (unallocated but can't be released via npuFree)
-    StatArray inactive_split;
-
-    // SUM: bytes requested by client code
-    StatArray allocated_bytes;
-    // SUM: bytes reserved by this memory allocator (both free and used)
-    StatArray reserved_bytes;
-    // SUM: bytes within active memory blocks
-    StatArray active_bytes;
-    // SUM: bytes within inactive, split memory blocks
-    StatArray inactive_split_bytes;
-    // SUM: bytes requested by client code
-    StatArray requested_bytes;
-
-    // COUNT: total number of failed calls to NPU malloc necessitating cache flushes.
-    int64_t num_alloc_retries = 0;
-
-    // COUNT: total number of OOMs (i.e. failed calls to NPU after cache flush)
-    int64_t num_ooms = 0;
-
-    // COUNT: total number of oversize blocks allocated from pool
-    Stat oversize_allocations;
-
-    // COUNT: total number of oversize blocks requiring malloc
-    Stat oversize_segments;
-
-    // SIZE: maximum block size that is allowed to be split.
-    int64_t max_split_size = 0;
-};
+using c10::CachingAllocator::Stat;
+using c10::CachingAllocator::StatType;
+using c10::CachingAllocator::StatTypes;
+using c10::CachingAllocator::StatArray;
+using c10::CachingAllocator::for_each_selected_stat_type;
+using c10::CachingDeviceAllocator::DeviceStats;
 
 typedef std::shared_ptr<c10::GatheredContext> (*CreateContextFn)(void);
 
@@ -228,29 +183,51 @@ struct ShareableHandle {
     std::string handle;
 };
 
-class NPUAllocator : public c10::Allocator {
+class NPUAllocator : public c10::DeviceAllocator {
 public:
     virtual c10::DataPtr allocate_with_aligned(size_t size, size_t aligned) const = 0;
     virtual void* raw_alloc(size_t nbytes) = 0;
     virtual void* raw_alloc_with_stream(size_t nbytes, aclrtStream stream) = 0;
     virtual void raw_delete(void* ptr) = 0;
     virtual void init(int device_count) = 0;
-    virtual bool initialized() = 0;
     virtual double getMemoryFraction(int device) = 0;
     virtual void setMemoryFraction(double fraction, int device) = 0;
     virtual void emptyCacheImpl(bool check_error, bool free_physical) = 0;
     virtual void emptyCache(bool check_error) = 0;
+    void emptyCache(c10::MempoolId_t mempool_id = {0, 0}) override {
+        // Pool-scoped emptyCache is not yet supported by NPU caching allocator;
+        // a non-default mempool_id is currently ignored and the global cache is freed.
+        if (mempool_id.first != 0 || mempool_id.second != 0) {
+            TORCH_NPU_WARN_ONCE(
+                "NPUAllocator::emptyCache(MempoolId_t) does not yet support per-pool "
+                "release; the requested mempool_id is ignored and the entire cache is freed.");
+        }
+        emptyCache(true);
+    }
     virtual void emptyVirtAddrCache(bool check_error) = 0;
     virtual void cacheInfo(int dev_id, size_t* cachedAndFree, size_t* largestBlock) = 0;
     virtual void* getBaseAllocation(void* ptr, size_t* size) = 0;
     virtual void recordStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream) = 0;
+    void recordStream(const c10::DataPtr& ptr, c10::Stream stream) override {
+        TORCH_CHECK(
+            stream.device_type() == c10::DeviceType::PrivateUse1,
+            "Expected NPU (PrivateUse1) stream, got ",
+            c10::DeviceTypeName(stream.device_type()),
+            PTA_ERROR(ErrCode::PARAM));
+        NPUStream npu_stream = NPUStream(stream);
+        recordStream(ptr, npu_stream);
+    }
     virtual void eraseStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream) = 0;
     virtual void eraseStreamWithBlockPtr(void* block_ptr, c10_npu::NPUStream stream, void* work_ptr) = 0;
     virtual void* getBlockPtr(const c10::DataPtr& ptr) = 0;
     virtual void recordHcclWorkForBlock(void* block_ptr, void* work_ptr) = 0;
-    virtual DeviceStats getDeviceStats(int device) = 0;
-    virtual void resetAccumulatedStats(int device) = 0;
-    virtual void resetPeakStats(int device) = 0;
+    std::pair<size_t, size_t> getMemoryInfo(c10::DeviceIndex device) override {
+        c10_npu::NPUGuard device_guard(device);
+        size_t free = 0;
+        size_t total = 0;
+        NPU_CHECK_ERROR(aclrtGetMemInfo(ACL_HBM_MEM, &free, &total));
+        return {free, total};
+    }
     virtual SnapshotInfo snapshot() = 0;
 
     // CUDAGraph interactions
@@ -409,17 +386,17 @@ inline void recordHcclWorkForBlock(void* block_ptr, void* work_ptr)
     return get()->recordHcclWorkForBlock(block_ptr, work_ptr);
 }
 
-inline DeviceStats getDeviceStats(int device)
+inline DeviceStats getDeviceStats(c10::DeviceIndex device)
 {
     return get()->getDeviceStats(device);
 }
 
-inline void resetAccumulatedStats(int device)
+inline void resetAccumulatedStats(c10::DeviceIndex device)
 {
     return get()->resetAccumulatedStats(device);
 }
 
-inline void resetPeakStats(int device)
+inline void resetPeakStats(c10::DeviceIndex device)
 {
     return get()->resetPeakStats(device);
 }

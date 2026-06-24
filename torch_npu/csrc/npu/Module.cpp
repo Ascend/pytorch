@@ -448,7 +448,7 @@ void RegisterNpuPluggableAllocator(PyObject* module) {
           "set_get_device_stats_fn",
           [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self,
              uint64_t func_ptr) {
-            using FuncType = c10_npu::NPUCachingAllocator::DeviceStats(int);
+            using FuncType = c10_npu::NPUCachingAllocator::DeviceStats(c10::DeviceIndex);
             std::function<FuncType> func =
                 reinterpret_cast<FuncType*>(func_ptr);
             self.set_get_device_stats_fn(func);
@@ -457,7 +457,7 @@ void RegisterNpuPluggableAllocator(PyObject* module) {
           "set_reset_peak_status_fn",
           [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self,
              uint64_t func_ptr) {
-            using FuncType = void(int);
+            using FuncType = void(c10::DeviceIndex);
             std::function<FuncType> func =
                 reinterpret_cast<FuncType*>(func_ptr);
             self.set_reset_peak_status_fn(func);
@@ -1361,12 +1361,12 @@ PyObject* THNPModule_memoryStats(PyObject* _unused, PyObject* arg) {
       THPUtils_checkLong(arg),
       "invalid argument to memory_allocated",
       PTA_ERROR(ErrCode::PARAM));
-  const int device = (int)THPUtils_unpackLong(arg);
+  const auto device = static_cast<c10::DeviceIndex>(THPUtils_unpackLong(arg));
 
-  using c10_npu::NPUCachingAllocator::DeviceStats;
-  using c10_npu::NPUCachingAllocator::Stat;
-  using c10_npu::NPUCachingAllocator::StatArray;
-  using c10_npu::NPUCachingAllocator::StatType;
+  using c10::CachingAllocator::Stat;
+  using c10::CachingAllocator::StatArray;
+  using c10::CachingAllocator::StatType;
+  using c10::CachingDeviceAllocator::DeviceStats;
 
   const auto statToDict = [](const Stat& stat) {
     py::dict dict;
@@ -1395,6 +1395,10 @@ PyObject* THNPModule_memoryStats(PyObject* _unused, PyObject* arg) {
   result["num_alloc_retries"] = stats.num_alloc_retries;
   result["num_ooms"] = stats.num_ooms;
   result["max_split_size"] = stats.max_split_size;
+  result["num_sync_all_streams"] = stats.num_sync_all_streams;
+  result["num_device_alloc"] = stats.num_device_alloc;
+  result["num_device_free"] = stats.num_device_free;
+  result["num_oom_rejections"] = stats.num_oom_rejections;
   result["allocation"] = statArrayToDict(stats.allocation);
   result["segment"] = statArrayToDict(stats.segment);
   result["active"] = statArrayToDict(stats.active);
@@ -1419,7 +1423,7 @@ PyObject* THNPModule_resetAccumulatedMemoryStats(
       THPUtils_checkLong(arg),
       "invalid argument to reset_accumulated_memory_stats",
       PTA_ERROR(ErrCode::PARAM));
-  const int device = (int)THPUtils_unpackLong(arg);
+  const auto device = static_cast<c10::DeviceIndex>(THPUtils_unpackLong(arg));
   c10_npu::NPUCachingAllocator::resetAccumulatedStats(device);
   END_HANDLE_TH_ERRORS
   Py_RETURN_NONE;
@@ -1431,7 +1435,7 @@ PyObject* THNPModule_resetPeakMemoryStats(PyObject* _unused, PyObject* arg) {
       THPUtils_checkLong(arg),
       "invalid argument to reset_peak_memory_stats",
       PTA_ERROR(ErrCode::PARAM));
-  const int device = (int)THPUtils_unpackLong(arg);
+  const auto device = static_cast<c10::DeviceIndex>(THPUtils_unpackLong(arg));
   c10_npu::NPUCachingAllocator::resetPeakStats(device);
   END_HANDLE_TH_ERRORS
   Py_RETURN_NONE;

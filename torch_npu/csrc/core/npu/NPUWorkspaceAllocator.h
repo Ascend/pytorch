@@ -13,7 +13,7 @@ using c10_npu::NPUCachingAllocator::SegmentInfo;
 using c10_npu::NPUCachingAllocator::TraceEntry;
 using c10_npu::NPUCachingAllocator::SnapshotInfo;
 using c10_npu::NPUCachingAllocator::RecordContext;
-using c10_npu::NPUCachingAllocator::Stat;
+using c10::CachingAllocator::Stat;
 
 struct DeviceStats {
     // SUM: bytes requested by client code
