@@ -4,29 +4,29 @@
 
 接口原型：
 
-```
+```python
 def compile(model, *, fullgraph = False, dynamic = None, backend = "inductor", mode = None, options = None, disable = False)
 ```
 
 参数说明：
 
--   **model**: 必选参数，要编译的模型或者参数。
--   **fullgraph**：可选参数，是否强制整图编译，默认值为False。
--   **dynamic**：可选参数，是否需要动态shape编译，默认值为None。
--   **backend**：可选参数，编译后端，支持inductor和npugraphs，默认值为inductor。
--   **mode**：可选参数，编译模式，目前支持None（默认值）和"reduce-overhead"。
--   **options**：可选参数，编译选项。目前支持以下：
-    -   triton.cudagraphs
-    -   trace.enabled
-    -   [enable_shape_handling](../feature/dynamicshape/overview.md) (形状处理特性开关，详见特性介绍页面)
+- **model**: 必选参数，要编译的模型或者参数。
+- **fullgraph**：可选参数，是否强制整图编译，默认值为False。
+- **dynamic**：可选参数，是否需要动态shape编译，默认值为None。
+- **backend**：可选参数，编译后端，支持inductor和npugraphs，默认值为inductor。
+- **mode**：可选参数，编译模式，目前支持None（默认值）和"reduce-overhead"。
+- **options**：可选参数，编译选项。目前支持以下：
+    - triton.cudagraphs
+    - trace.enabled
+    - [enable_shape_handling](../feature/dynamicshape/shapehandling.md) (形状处理特性开关，详见特性介绍页面)
 
--   **disable**：可选参数，是否关闭torch.compile能力，默认值为False。
+- **disable**：可选参数，是否关闭torch.compile能力，默认值为False。
 
 该接口详情可参考原生[torch.compile](https://docs.pytorch.org/docs/stable/generated/torch.compile.html)。
 
 ## 使用样例
 
--   Inductor后端torch.compile\(backend="inductor"\)示例：
+- Inductor后端torch.compile\(backend="inductor"\)示例：
 
     ```Python
     import torch
