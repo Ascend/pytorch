@@ -1,14 +1,12 @@
 import unittest
-import os
 
 import numpy as np
 import torch
 import torch.distributed as dist
-import torch.multiprocessing as mp
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.common_utils import create_common_tensor
+from torch_npu.testing.common_utils import create_common_tensor, SupportedDevices
 from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
 
 from test_reduce_scatter import HcclReduceScatterTestBase
@@ -60,6 +58,7 @@ class HcclReduceScatterTensorTest(HcclReduceScatterTestBase):
         with test_case.assertRaisesRegex(RuntimeError, error_expect):
             pg.reduce_scatter_tensor(output, input_tensor)
 
+    @SupportedDevices(['Ascend910A', 'Ascend910B', 'Ascend910_93'])
     @skipIfUnsupportMultiNPU(2)
     def test_reduce_scatter_tensor(self):
         ranks = [2]
@@ -92,6 +91,7 @@ class HcclReduceScatterTensorTest(HcclReduceScatterTestBase):
         dist.barrier()
         p2c.get()
 
+    @SupportedDevices(['Ascend910A', 'Ascend910B', 'Ascend910_93'])
     @skipIfUnsupportMultiNPU(2)
     def test_reduce_scatter_tensor_uneven(self):
         ranks = [2]
@@ -108,7 +108,8 @@ class HcclReduceScatterTensorTest(HcclReduceScatterTestBase):
                 for _ in range(world_size):
                     _, input1 = create_common_tensor(shape, -10, 10)
                     input_list.append(input1.cpu())
-                expected = self._construct_excepted_result(input_list, world_size, torch_npu.distributed.reduce_scatter_tensor_uneven)
+                expected = self._construct_excepted_result(
+                    input_list, world_size, torch_npu.distributed.reduce_scatter_tensor_uneven)
                 self._test_multiprocess(HcclReduceScatterTensorTest._test_reduce_scatter_tensor_uneven,
                                         HcclReduceScatterTensorTest._init_dist_hccl, expected, input_list, world_size)
 
@@ -127,7 +128,8 @@ class HcclReduceScatterTensorTest(HcclReduceScatterTestBase):
                     input_list.append(input1.cpu())
                 expected = self._construct_excepted_result(input_list, world_size, dist.reduce_scatter_tensor, dist.ReduceOp.AVG)
                 self._test_multiprocess(HcclReduceScatterTensorTest._test_reduce_scatter_tensor,
-                                        HcclReduceScatterTensorTest._init_dist_hccl, expected, input_list, world_size, dist.ReduceOp.AVG)
+                                        HcclReduceScatterTensorTest._init_dist_hccl, expected, input_list,
+                                        world_size, dist.ReduceOp.AVG)
 
     @skipIfUnsupportMultiNPU(2)
     def test_reduce_scatter_tensor_with_input_internal_format_and_offset(self):
@@ -169,9 +171,11 @@ class HcclReduceScatterTensorTest(HcclReduceScatterTestBase):
                 for _ in range(world_size):
                     _, input1 = create_common_tensor(shape, -10, 10)
                     input_list.append(input1.cpu())
-                expected = self._construct_excepted_result(input_list, world_size, dist.reduce_scatter_tensor_uneven, dist.ReduceOp.AVG)
+                expected = self._construct_excepted_result(
+                    input_list, world_size, dist.reduce_scatter_tensor_uneven, dist.ReduceOp.AVG)
                 self._test_multiprocess(HcclReduceScatterTensorTest._test_reduce_scatter_tensor_uneven,
-                                        HcclReduceScatterTensorTest._init_dist_hccl, expected, input_list, world_size, dist.ReduceOp.AVG)
+                                        HcclReduceScatterTensorTest._init_dist_hccl, expected, input_list,
+                                        world_size, dist.ReduceOp.AVG)
 
     @skipIfUnsupportMultiNPU(2)
     def test_reduce_scatter_tensor_pre_mul(self):
