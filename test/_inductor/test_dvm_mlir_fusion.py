@@ -95,10 +95,20 @@ class Int64CompareModel(torch.nn.Module):
 
 
 class Int64PointwiseFusionModel(torch.nn.Module):
-    def forward(self, x, y):
+    def forward(self, x, y, ids):
         sum_xy = x + y
         mask = sum_xy > y
-        return torch.where(mask, sum_xy, x)
+        pointwise = torch.where(mask, sum_xy, x)
+        dense_mask = torch.unsqueeze(
+            torch.where(
+                ids >= 0,
+                torch.ones_like(ids, dtype=torch.float32),
+                torch.zeros_like(ids),
+            ),
+            dim=-1,
+        )
+        ids = torch.where(ids == -1, torch.zeros_like(ids), ids)
+        return pointwise, dense_mask, ids
 
 
 class TestDvmByMlir(TestCase):
@@ -143,17 +153,20 @@ class TestDvmByMlir(TestCase):
     def test_int64_pointwise_chain_fuses_into_dvm(self):
         arg0 = torch.randint(-8, 8, (32, 32), dtype=torch.int64, device="npu")
         arg1 = torch.randint(-8, 8, (32, 32), dtype=torch.int64, device="npu")
+        ids = torch.randint(-2, 4, (32, 32), dtype=torch.int64, device="npu")
         model = Int64PointwiseFusionModel()
 
         with torch.no_grad():
-            expect = model(arg0, arg1)
-            result, codes = self._run_and_get_code_with_dvm(model, arg0, arg1)
+            expect = model(arg0, arg1, ids)
+            result, codes = self._run_and_get_code_with_dvm(model, arg0, arg1, ids)
 
         code = "\n".join(codes)
         self.assertEqual(expect, result)
         self.assertIn("k.add", code)
         self.assertIn("k.greater", code)
-        self.assertNotIn("k.select", code)
+        self.assertIn("k.greater_equal", code)
+        self.assertIn("k.equal", code)
+        self.assertEqual(code.count("k.select("), 3)
 
 
     @parametrize("dtype", [torch.float16, torch.float32, torch.bfloat16])
