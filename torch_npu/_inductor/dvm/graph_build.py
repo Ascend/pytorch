@@ -168,7 +168,4 @@ class DvmCodegenInterpreter(torch.fx.Interpreter):
         self, kernel_name: str, num_outputs: int
     ) -> None:
         """Emit ``k.set_kernel_info`` so Ascend profiler shows ``kernel_name`` instead of UnnamedDvmOp."""
-        contiguity = list(self.cont_flag_input) + [True] * num_outputs
-        self.code.splice(
-            f"k.set_kernel_info({kernel_name!r}, {kernel_name!r}, {contiguity})"
-        )
+        self.code.splice(f"k.set_kernel_info({kernel_name!r}, {kernel_name!r})")
