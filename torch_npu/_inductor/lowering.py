@@ -190,11 +190,6 @@ def _resolve_op_from_name(op_name: str):
         log.warning(f"[npu|inductor|lowering|fallback] invalid identifier name: {op_name}")
         return None
 
-def _add_fallback_ops_for_torchgen():
-    import torchgen.aoti.fallback_ops as fallback_ops
-    from torchnpugen.aoti.fallback_ops import inductor_fallback_ops_npu, inductor_fallback_ops_npu_not_support
-    fallback_ops.inductor_fallback_ops = (fallback_ops.inductor_fallback_ops | inductor_fallback_ops_npu) - inductor_fallback_ops_npu_not_support
-
 def _register_npu_inductor_fallbacks():
 
     env_fallback_list = enable_full_lowering_fallback
@@ -1082,3 +1077,8 @@ def _enable_full_lowering_fallback():
         make_fallback(op)
         FALLBACK_LIST.append(op)
     _fallback_ops_with_meta()
+
+def _add_fallback_ops_for_torchgen():
+    from torchgen.aoti import fallback_ops
+    from torchnpugen.aoti.fallback_ops import inductor_fallback_ops_npu, inductor_fallback_ops_npu_not_support
+    fallback_ops.inductor_fallback_ops = (fallback_ops.inductor_fallback_ops | inductor_fallback_ops_npu) - inductor_fallback_ops_npu_not_support
