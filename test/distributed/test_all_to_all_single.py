@@ -85,7 +85,7 @@ class HcclAlltoAllSingleTest(TestCase):
         c2p = ctx.Queue(2)
         p2c = ctx.Queue(2)
         expected = []
-        expectError = "Split sizes dosen't match total dim 0 size"
+        expectError = "Split sizes doesn't match total dim 0 size"
         ps = []
         for i in range(ws):
             p = ctx.Process(
