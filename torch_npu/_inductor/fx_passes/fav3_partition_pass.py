@@ -22,7 +22,10 @@ from torch._inductor.pattern_matcher import (
 )
 from torch.fx.operator_schemas import normalize_function
 
+from torch_npu.npu.utils import get_cann_version
 from . import _proxy_ops
+
+_CANN_VERSION = get_cann_version("CANN")
 
 
 _PASS_KEY = "fav3_partition"
@@ -57,7 +60,12 @@ def _make_check_and_handler(target):
             return False
         if not isinstance(keep_prob, (int, float)):
             return False
-        return input_layout.upper() == "TND" and float(keep_prob) < 1.0
+        if input_layout.upper() == "TND":
+            if float(keep_prob) < 1.0:
+                return True
+            if float(keep_prob) == 1.0 and _CANN_VERSION < "9.1.0":
+                return True
+        return False
 
     def _handler(match, *args, **kwargs):
         node = match.nodes[0]
