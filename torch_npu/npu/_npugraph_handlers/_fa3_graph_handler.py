@@ -16,7 +16,10 @@ import torch
 
 import torch_npu
 
+from torch_npu.npu.utils import get_cann_version
 from .npugraph_handler import NpuGraphOpHandler, register_npu_graph_handler
+
+_CANN_VERSION = get_cann_version("CANN")
 
 
 class _FA3TensorListOutHandler(NpuGraphOpHandler):
@@ -62,6 +65,8 @@ class FA3ForwardHandler(_FA3TensorListOutHandler):
     @classmethod
     def should_handle(cls, func, args, kwargs):
         """BNSD layout bypasses handler entirely — no dispatch record, no update."""
+        if not _CANN_VERSION >= "9.1.0":
+            return False
         input_layout = kwargs.get("input_layout") or (
             args[4] if len(args) > 4 else None
         )
@@ -153,6 +158,8 @@ class FA3BackwardHandler(_FA3TensorListOutHandler):
     @classmethod
     def should_handle(cls, func, args, kwargs):
         """BNSD layout bypasses handler entirely — no dispatch record, no update."""
+        if not _CANN_VERSION >= "9.1.0":
+            return False
         input_layout = kwargs.get("input_layout") or (
             args[5] if len(args) > 5 else None
         )
