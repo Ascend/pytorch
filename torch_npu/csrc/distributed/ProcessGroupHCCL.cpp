@@ -409,7 +409,7 @@ void check_split_sizes(const std::vector<int64_t>& split_sizes, const at::Tensor
             split_sizes.size() == static_cast<size_t>(group_size), "Number of tensor splits not equal to group size",
             DIST_ERROR(ErrCode::TYPE));
         const auto sum = c10::sum_integers(split_sizes);
-        TORCH_CHECK(sum == tensor.size(0), "Split sizes dosen't match total dim 0 size", DIST_ERROR(ErrCode::TYPE));
+        TORCH_CHECK(sum == tensor.size(0), "Split sizes doesn't match total dim 0 size", DIST_ERROR(ErrCode::TYPE));
     }
 }
 
@@ -1704,7 +1704,7 @@ void ProcessGroupHCCL::heartbeatMonitor()
             // 1. The local rank is the first to observe a timeout.shouldDump_ will be
             // set to true.
             // 2. other ranks detected the timeout and signal the local rank to dump
-            // In addtion, monitor threads will dump if watchdog threads has no
+            // In addition, monitor threads will dump if watchdog threads has no
             // heartbeat or dumpPipe is not empty.
             if (shouldDump_.load()) {
                 errorMsg = c10::str(
@@ -3077,9 +3077,9 @@ int64_t ProcessGroupHCCL::getP2PStreamId(
 void ProcessGroupHCCL::windowRegisterAndExchange(int64_t windowSize, std::vector<uint32_t>& peerRanks)
 {
     TORCH_CHECK(windowSize > 0, "Window memory must be greater than 0.", DIST_ERROR(ErrCode::PARAM));
-    TORCH_CHECK(!windowMem_, "Window memory cannnot be registered repeatedly.", DIST_ERROR(ErrCode::UNAVAIL));
+    TORCH_CHECK(!windowMem_, "Window memory cannot be registered repeatedly.", DIST_ERROR(ErrCode::UNAVAIL));
     TORCH_CHECK(!c10_npu::option::OptionsManager::IsHcclZeroCopyEnable(),
-                "Window memory register unsupport set HCCL_ZERO_COPY=1", DIST_ERROR(ErrCode::UNAVAIL));
+                "Window memory register unsupported set HCCL_ZERO_COPY=1", DIST_ERROR(ErrCode::UNAVAIL));
 
     auto options = at::TensorOptions(c10::DeviceType::PrivateUse1).dtype(at::kChar);
     windowMem_ = at::empty({windowSize}, options);
@@ -3357,7 +3357,7 @@ c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL> ProcessGroupHCCL::initWork(
         // - initially, moved record() into workEnqueue(), but found that makes it
         //   hard to get access to profilingTitle,
         //   inputs, and outputs for metadata recording, and we don't want to attach
-        //   these objects to the Work becuase it has implications for keeping those
+        //   these objects to the Work because it has implications for keeping those
         //   tensors alive longer and adds overhead when copying Work objects
         //   between threads
         r->trace_id_ = HCCLTraceBuffer::get()->record(
@@ -6094,8 +6094,13 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base(
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
             if (opts.reduceOp == c10d::ReduceOp::AVG) {
                 c10_npu::NPUStreamGuard guard(hcclStreams[0]);
+                bool is_atlas_a5 = c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend950;
                 for (auto& tensor : outputs) {
-                    tensor.div_(getSize());
+                    if (is_atlas_a5) {
+                        tensor.div_(getSize(), "trunc");
+                    } else {
+                        tensor.div_(getSize());
+                    }
                 }
             }
         },
