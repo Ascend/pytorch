@@ -171,15 +171,19 @@ class ProcessGroupHCCLTest(TestCase):
 
 class ComputeBucketAssignmentTest(TestCase):
     def test_single_limit_single_dtype(self):
-        tensors = [
-            torch_npu.npu_format_cast(torch.empty([100, 1], dtype=torch.float).npu(), Format.NZ),
-            torch.empty([200], dtype=torch.float).npu(),
-            torch.empty([100], dtype=torch.float).npu(),
-            torch.empty([50], dtype=torch.float).npu(),
-        ]
-        result = dist._compute_bucket_assignment_by_size(tensors, [1792 * 4 + 1])
-        expec_result = ([[0, 1, 2, 3]], [7169])
-        self.assertEqual(expec_result, result)
+        torch_npu.npu.config.allow_internal_format = True
+        try:
+            tensors = [
+                torch_npu.npu_format_cast(torch.empty([100, 1], dtype=torch.float).npu(), Format.NZ),
+                torch.empty([200], dtype=torch.float).npu(),
+                torch.empty([100], dtype=torch.float).npu(),
+                torch.empty([50], dtype=torch.float).npu(),
+            ]
+            result = dist._compute_bucket_assignment_by_size(tensors, [1792 * 4 + 1])
+            expec_result = ([[0, 1, 2, 3]], [7169])
+            self.assertEqual(expec_result, result)
+        finally:
+            torch_npu.npu.config.allow_internal_format = False
 
     def test_single_limit_multi_dtype(self):
         tensors = [
