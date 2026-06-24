@@ -1,29 +1,47 @@
 diff --git a/torch/distributed/distributed_c10d.py b/torch/distributed/distributed_c10d.py
-index 05986c191a2..f2f6d4e5f43 100644
 --- a/torch/distributed/distributed_c10d.py
 +++ b/torch/distributed/distributed_c10d.py
-@@ -304,10 +304,14 @@ class Backend(str):  # noqa: SLOT000
+@@ -290,6 +290,7 @@ class Backend(str):
+     UCC = "ucc"
+     MPI = "mpi"
+     XCCL = "xccl"
++    HCCL = "hccl"
+     FAKE = "fake"
+
+     _BackendPlugin = namedtuple("_BackendPlugin", ["creator_fn", "extended_api"])
+@@ -297,7 +298,7 @@ class Backend(str):
+     _plugins: dict[str, _BackendPlugin] = {}
+
+-    backend_list = [UNDEFINED, GLOO, NCCL, XCCL, UCC, MPI, FAKE]
++    backend_list = [UNDEFINED, GLOO, NCCL, XCCL, UCC, MPI, HCCL, FAKE]
+
+     # 3rd-party devices can register the default backend support here
+     default_device_backend_map: dict[str, str] = {
+@@ -301,6 +302,7 @@ class Backend(str):
          "cuda": NCCL,
          "xpu": XCCL,
          "mps": GLOO,
-+        MPI: ["cpu", "npu"],
-+        UCC: ["cpu", "npu"],
-+        HCCL: ["npu"],
-+        GLOO: ["cpu", "npu"],
 +        "npu": HCCL,
      }
- 
+
      backend_capability: dict[str, list[str]] = {
--        GLOO: ["cpu", "cuda"],
+@@ -305,9 +307,11 @@ class Backend(str):
+         GLOO: ["cpu", "cuda"],
          NCCL: ["cuda"],
++        HCCL: ["npu"],
          XCCL: ["xpu"],
          UCC: ["cpu", "cuda"],
-@@ -1465,7 +1469,7 @@ def get_default_backend_for_device(device: str | torch.device) -> str:
+         MPI: ["cpu", "cuda"],
+-        FAKE: ["cpu", "cuda", "hpu", "xpu"],
++        FAKE: ["cpu", "npu", "hpu", "xpu"],
+     }
+
+     backend_type_map: dict[str, ProcessGroup.BackendType] = {
+@@ -1465,6 +1469,7 @@ def get_default_backend_for_device(device: str | torch.device) -> str:
+     if isinstance(device, torch.device):
          device_str = device.type
      else:
          device_str = torch.device(device).type
--
 +    device_str = 'npu'
+
      backend = Backend.default_device_backend_map.get(device_str)
-     if backend is None:
-         raise ValueError(f"Default backend not registered for device : {device}")
