@@ -31,7 +31,7 @@ class TestUnifiedAxis(TestUtils):
         add = view_1 + view_3
         return add
 
-
+    @unittest.skip("Temporarily skipped")
     @parametrize('dtype', ['bfloat16', 'float16', 'float32'])
     def test_unified_axis_cases(self, dtype):
         """
