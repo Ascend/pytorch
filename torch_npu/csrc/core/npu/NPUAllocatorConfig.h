@@ -1,4 +1,5 @@
 #pragma once
+#include <set>
 #include <unordered_set>
 
 #include <c10/core/AllocatorConfig.h>
@@ -33,16 +34,20 @@ class NPUAllocatorConfig {
 public:
     static size_t max_split_size()
     {
+        // Make sure the NPUAllocatorConfig instance is initialized first
+        instance();
         return c10::CachingAllocator::AcceleratorAllocatorConfig::max_split_size();
     }
 
     static double garbage_collection_threshold()
     {
+        instance();
         return c10::CachingAllocator::AcceleratorAllocatorConfig::garbage_collection_threshold();
     }
 
     static bool expandable_segments()
     {
+        instance();
         return c10::CachingAllocator::AcceleratorAllocatorConfig::use_expandable_segments();
     }
 
@@ -80,12 +85,15 @@ public:
         return instance().m_per_process_memory_fraction;
     }
 
-    static size_t roundup_power2_divisions(size_t size) {
+    static size_t roundup_power2_divisions(size_t size)
+    {
+        instance();
         return c10::CachingAllocator::AcceleratorAllocatorConfig::roundup_power2_divisions(size);
     }
 
     static bool pinned_use_background_threads()
     {
+        instance();
         return c10::CachingAllocator::AcceleratorAllocatorConfig::pinned_use_background_threads();
     }
 
@@ -100,6 +108,7 @@ public:
 
     static size_t max_non_split_rounding_size()
     {
+        instance();
         return c10::CachingAllocator::AcceleratorAllocatorConfig::max_non_split_rounding_size();
     }
 
@@ -121,44 +130,20 @@ public:
         return keys;
     }
 
-    // torch_npu only support these keys in AcceleratorAllocatorConfig
-    static const std::unordered_set<std::string>& getSupportedPubilcKeys() {
-        static std::unordered_set<std::string> keys {
-            "max_split_size_mb",
-            "garbage_collection_threshold",
-            "roundup_power2_divisions",
-            "expandable_segments",
-            "pinned_use_background_threads",
-            "large_segment_size_mb",
-            "max_non_split_rounding_mb"
-        };
-        return keys;
-    }
-
     void parseArgs(const std::string& env, std::set<std::string> supported_settings = {});
 
 private:
-    bool m_release_lock_on_npumalloc;
-    bool m_pin_memory_expandable_segments;
-    bool m_pinned_mem_register;
-    size_t m_base_addr_aligned_size;
-    bool m_page_size_1g; // 新增1G页配置标志
-    size_t m_segment_size_mb;
-    bool m_multi_stream_lazy_reclaim;
-    double m_per_process_memory_fraction;
-    size_t m_pinned_reserve_segment_size_mb;
+    bool m_pin_memory_expandable_segments = false;
+    bool m_pinned_mem_register = false;
+    size_t m_base_addr_aligned_size = kAlignRoundLarge;
+    bool m_page_size_1g = false; // 新增1G页配置标志
+    size_t m_segment_size_mb = 0;
+    bool m_multi_stream_lazy_reclaim = false;
+    double m_per_process_memory_fraction = 1.0;
+    size_t m_pinned_reserve_segment_size_mb = 0;
+    bool m_release_lock_on_npumalloc = false;
 
-    NPUAllocatorConfig()
-        : m_pin_memory_expandable_segments(false),
-          m_pinned_mem_register(false),
-          m_base_addr_aligned_size(kAlignRoundLarge),
-          m_page_size_1g(false),
-          m_segment_size_mb(0),
-          m_multi_stream_lazy_reclaim(false),
-          m_per_process_memory_fraction(1.0),
-          m_pinned_reserve_segment_size_mb(0),
-          m_release_lock_on_npumalloc(false)
-    {}
+    NPUAllocatorConfig() = default;
 
     size_t parsePinMemoryExpandableSegments(const c10::CachingAllocator::ConfigTokenizer& config, size_t i);
     size_t parsePinnedMemRegister(const c10::CachingAllocator::ConfigTokenizer& config, size_t i);
