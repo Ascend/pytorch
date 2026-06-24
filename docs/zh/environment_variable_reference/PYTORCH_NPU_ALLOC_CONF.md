@@ -2,7 +2,11 @@
 
 ## 功能描述
 
-通过此环境变量可控制缓存分配器行为。配置此环境变量会改变内存占用量，可能造成性能波动。从Ascend Extension for PyTorch 26.2.0版本且PyTorch 2.10.0及以上版本开始，torch\_npu也支持通过PYTORCH\_ALLOC\_CONF环境变量配置缓存分配器参数，配置方式、支持的参数和PYTORCH\_NPU\_ALLOC\_CONF相同。
+通过此环境变量可控制缓存分配器行为。配置此环境变量会改变内存占用量，可能造成性能波动。
+
+> [!CAUTION]  
+>
+> 从Ascend Extension for PyTorch 26.2.0版本且PyTorch 2.10.0及以上版本开始，torch\_npu也支持通过PYTORCH\_ALLOC\_CONF环境变量配置缓存分配器参数，配置方式、支持的参数和PYTORCH\_NPU\_ALLOC\_CONF相同，二者选其一配置即可，同时配置会报错并退出程序。建议优先使用PYTORCH\_ALLOC\_CONF环境变量配置缓存分配器行为。
 
 缓存分配器会根据申请内存的大小使用不同内存池，小于1MB使用小块内存池，反之使用大块内存池；虚拟内存特性下，大块内存池申请的物理内存粒度（segment\_size\_mb）默认为20MB，小块内存池默认为2MB（不可配置）；大模型场景下小块内存池内存使用通常较少，因此部分环境配置项（page\_size、segment\_size\_mb）只作用于大块内存池。
 
@@ -82,8 +86,7 @@
 
 > [!NOTE]  
 >
-> 1. 用户使用Ascend Extension for PyTorch 6.0.RC3及以上版本配套的驱动（Ascend HDK 24.1.RC3及以上），开启虚拟内存特性时，可以使用单进程多卡特性；用户使用Ascend Extension for PyTorch 6.0.RC3以下版本配套的驱动（Ascend HDK 24.1.RC3以下版本），开启虚拟内存特性时，不能使用单进程多卡特性。
-> 2. 在Ascend Extension for PyTorch 26.2.0版本且PyTorch 2.10.0及以上版本中，当用户同时配置PYTORCH\_NPU\_ALLOC\_CONF和PYTORCH\_ALLOC\_CONF，或者仅配置PYTORCH\_NPU\_ALLOC\_CONF时，为兼容旧版本且对齐PyTorch原生社区，torch\_npu会使用PYTORCH\_NPU\_ALLOC\_CONF的值覆盖掉PYTORCH\_ALLOC\_CONF的值；仅配置PYTORCH\_ALLOC\_CONF时，torch\_npu则直接使用已配置的环境变量值。建议优先使用PYTORCH\_ALLOC\_CONF环境变量配置缓存分配器行为。
+> 用户使用Ascend Extension for PyTorch 6.0.RC3及以上版本配套的驱动（Ascend HDK 24.1.RC3及以上），开启虚拟内存特性时，可以使用单进程多卡特性；用户使用Ascend Extension for PyTorch 6.0.RC3以下版本配套的驱动（Ascend HDK 24.1.RC3以下版本），开启虚拟内存特性时，不能使用单进程多卡特性。
 
 ## 配置示例<a id="配置示例"></a> 
 
