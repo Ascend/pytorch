@@ -19,6 +19,7 @@ from torch._dynamo.exc import Unsupported
 from torch._dynamo.variables.lists import TupleVariable
 from torch._dynamo.variables.nn_module import NNModuleVariable
 from torch._decomp import meta_table
+from torch._meta_registrations import device_hint
 import torch_npu
 
 aten = torch.ops.aten
@@ -171,6 +172,18 @@ def meta_native_dropout_patch(tensor_input: Tensor, p: float, train: Optional[bo
     else:
         from torch._decomp.decompositions import native_dropout
         return native_dropout(tensor_input, p, train)
+
+
+@register_meta_npu(aten.sort.default, avoid_fallback_flag=True)
+def meta_sort(self, stable=None, dim=-1, descending=False, values=None, indices=None):
+    if device_hint(self) == "npu":
+        v = torch.empty(self.shape, dtype=self.dtype, device=self.device)
+        i = torch.empty(self.shape, dtype=torch.int64, device=self.device)
+
+        return v, i
+    else:
+        from torch._meta_registrations import meta_sort
+        return meta_sort(self, stable=stable, dim=dim, descending=descending, values=values, indices=indices)
 
 
 @register_meta_npu(aten.native_dropout_backward, inductor_decomp=True)
