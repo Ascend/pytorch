@@ -79,7 +79,42 @@ class NewNPUDeviceOpOverrides(DeviceOpOverrides):
         load_code = """
             static std::unordered_map<std::string, size_t> registered_names;
             static std::unordered_map<std::string, std::unique_ptr<size_t>> func_stubs;
-            
+
+            static inline bool endsWith(const std::string &value, const std::string &suffix) {
+                return value.size() >= suffix.size()
+                    && value.compare(value.size() - suffix.size(), suffix.size(), suffix) == 0;
+            }
+
+            static inline std::string inferKernelModeFromName(const std::string &nameFuncMode) {
+                size_t spacePos = nameFuncMode.find(' ');
+                if (spacePos != std::string::npos && spacePos + 1 < nameFuncMode.size()) {
+                    return nameFuncMode.substr(spacePos + 1);
+                }
+                if (endsWith(nameFuncMode, "_aiv")) {
+                    return "aiv";
+                }
+                if (endsWith(nameFuncMode, "_aic")) {
+                    return "aic";
+                }
+                return "";
+            }
+
+            static inline std::string parseKernelFuncName(
+                    const std::string &nameFuncMode,
+                    const std::string &kernel_mode) {
+                size_t spacePos = nameFuncMode.find(' ');
+                if (spacePos != std::string::npos) {
+                    return nameFuncMode.substr(0, spacePos);
+                }
+                if (!kernel_mode.empty()) {
+                    const std::string mode_suffix = "_" + kernel_mode;
+                    if (endsWith(nameFuncMode, mode_suffix)) {
+                        return nameFuncMode.substr(0, nameFuncMode.size() - mode_suffix.size());
+                    }
+                }
+                return nameFuncMode;
+            }
+
             static inline void * loadKernel(
                     std::string filePath,
                     const std::string &&nameFunc,
@@ -110,7 +145,10 @@ class NewNPUDeviceOpOverrides(DeviceOpOverrides):
                 rtDevBinary_t devbin;
                 devbin.data = buffer;
                 devbin.length = data_size;
-                const std::string kernel_mode{kernel_mode_str};
+                std::string kernel_mode{kernel_mode_str};
+                if (kernel_mode.empty()) {
+                    kernel_mode = inferKernelModeFromName(nameFunc);
+                }
                 if (kernel_mode == "aiv") {
                     devbin.magic = RT_DEV_BINARY_MAGIC_ELF_AIVEC;
                 } else {
@@ -130,7 +168,8 @@ class NewNPUDeviceOpOverrides(DeviceOpOverrides):
                     throw std::runtime_error(std::string("rtDevBinaryRegister failed, 0x") + std::to_string(rtRet));
                 }
 
-                const char* name = nameFunc.c_str();
+                std::string kernel_func_name = parseKernelFuncName(nameFunc, kernel_mode);
+                const char* name = kernel_func_name.c_str();
 
                 std::string stubName(name);
                 stubName += "_" + std::to_string(registered_names[name]);
@@ -141,10 +180,22 @@ class NewNPUDeviceOpOverrides(DeviceOpOverrides):
                                             (void *)name, 0);
                 if (rtRet != RT_ERROR_NONE) {
                     throw std::runtime_error(std::string("rtFunctionRegister failed, stubName = ") + stubName
+                                + std::string(", name = ") + name
+                                + std::string(", original_name_func = ") + nameFunc
+                                + std::string(", kernel_mode = ") + kernel_mode
                                 + std::string(" , 0x") + std::to_string(rtRet));
                 }
 
                 return func_stub_handle;
+            }
+
+            static inline void * loadKernel(
+                    std::string filePath,
+                    const std::string &&nameFunc,
+                    uint32_t sharedMemBytes,
+                    const std::optional<std::string> &cubinDir = std::nullopt) {
+                return loadKernel(std::move(filePath), std::move(nameFunc), inferKernelModeFromName(nameFunc),
+                                  sharedMemBytes, cubinDir);
             }
         """
 
