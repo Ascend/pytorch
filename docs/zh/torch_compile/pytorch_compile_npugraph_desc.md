@@ -59,3 +59,4 @@ for _ in range(1000):
 1. **必须固定输入形状**：捕获后无法修改batch_size、序列长度等。
 2. **仅支持NN算子**：所有算子必须为aclnn算子方可入图。
 3. 如需动态形状支持，请考虑使用Inductor后端的`reduce-overhead`模式（NPUGraph Tree）。
+4. 当前不支持npu_fusion_attention_v3接口在TND格式下入图。
