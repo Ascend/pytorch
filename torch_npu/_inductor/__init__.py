@@ -70,6 +70,9 @@ def _load_triton_backend():
     )
 
     from .graph import patch_codegen_with_cpp_wrapper
+    from ._npu_meta_registration import npu_patch_meta
+
+    npu_patch_meta()
 
     def _inductor_register_backend_for_device():
         from .codegen.cpp_wrapper import CppWrapperNpu

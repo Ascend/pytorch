@@ -13,10 +13,3 @@ def apply_npu_format_patch():
     from torch_npu.npu._format import _apply_npu_format_patch
 
     _apply_npu_format_patch()
-
-
-@PatchManager.register_patch("npu")
-def apply_npu_meta_patch():
-    from torch_npu.utils._npu_meta_registration import npu_patch_meta
-
-    npu_patch_meta()
