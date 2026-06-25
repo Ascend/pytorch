@@ -8,6 +8,7 @@ from torch import Tensor
 from torch._C import DispatchKey
 from torch._decomp import decomposition_table, meta_table
 from torch._inductor import decomposition as inductor_decompo
+from torch._meta_registrations import device_hint
 from torch._ops import OpOverload, OpOverloadPacket
 from torch._prims_common.wrappers import out_wrapper
 from torch._subclasses import fake_tensor as _subclasses_fake_tensor
@@ -106,7 +107,9 @@ def patch_torch_decomp_decompositions():
 
 def register_meta_npu(op, avoid_fallback_flag=False, inductor_decomp=False):
     def meta_decorator(fn: Callable):
-        _add_op_to_meta_table(op, fn, avoid_fallback_flag, inductor_decomp)
+        ops = op if isinstance(op, list) else [op]
+        for single_op in ops:
+            _add_op_to_meta_table(single_op, fn, avoid_fallback_flag, inductor_decomp)
         return fn
 
     return meta_decorator
@@ -146,6 +149,26 @@ def npu_patch_meta():
     inductor_decompo.fast_random_decomps.cache_clear()
     patch_torch_decomp_decompositions()
     patch_torch_inductor_decompositions()
+
+
+@register_meta_npu(
+    [
+        aten.sort.default,
+        aten.sort.stable,
+        aten.sort.values,
+        aten.sort.values_stable,
+    ]
+    , avoid_fallback_flag=True
+)
+def meta_sort(self, stable=None, dim=-1, descending=False, values=None, indices=None):
+    if device_hint(self) == "npu":
+        v = torch.empty(self.shape, dtype=self.dtype, device=self.device)
+        i = torch.empty(self.shape, dtype=torch.int64, device=self.device)
+
+        return v, i
+    else:
+        from torch._meta_registrations import meta_sort
+        meta_sort(self, stable=stable, dim=dim, descending=descending, values=values, indices=indices)
 
 
 @register_meta_npu(aten.index_put.default)

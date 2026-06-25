@@ -68,7 +68,9 @@ def _load_triton_backend():
         disable_foreach,
         patch_fx_node_is_input_dependent_cudagraph_unsafe,
     )
+    from ._npu_meta_registration import npu_patch_meta
 
+    npu_patch_meta()
     def _inductor_register_backend_for_device():
         from .codegen.cpp_wrapper import CppWrapperNpu
         from .codegen.scheduling import NPUTritonScheduling
