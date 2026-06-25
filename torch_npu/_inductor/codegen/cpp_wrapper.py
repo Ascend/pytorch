@@ -283,7 +283,7 @@ class CppWrapperNpu(CppWrapperGpu):
 
         super().codegen_inputs()
 
-    def generate_kernel_call(
+    def _generate_kernel_call_helper(
         self,
         kernel_name: str,
         call_args,
@@ -294,9 +294,10 @@ class CppWrapperNpu(CppWrapperGpu):
         raw_keys=None,
         raw_args=None,
         triton_meta=None,
+        graph_name="",
         original_fxnode_name=None,
     ):
-        super().generate_kernel_call(
+        super()._generate_kernel_call_helper(
             kernel_name,
             call_args,
             device=device,
@@ -305,68 +306,9 @@ class CppWrapperNpu(CppWrapperGpu):
             raw_keys=raw_keys,
             raw_args=raw_args,
             triton_meta=triton_meta,
+            graph_name=graph_name,
             original_fxnode_name=original_fxnode_name,
         )
-
-        if (
-            triton
-            and config.triton.autotune_at_compile_time
-            and kernel_name not in self.kernel_autotune_names
-        ):
-            # Call PythonWrapperCodegen to create the autotune code block
-            PythonWrapperCodegen._generate_kernel_call_helper(
-                self,
-                kernel_name,
-                call_args,
-                device=device,
-                triton=triton,
-                arg_types=arg_types,
-                raw_keys=raw_keys,
-                raw_args=raw_args,
-                triton_meta=triton_meta,
-                original_fxnode_name=original_fxnode_name,
-            )
-
-        stream = (
-            "stream"
-            if V.graph.aot_mode
-            else self.write_get_raw_stream(V.graph.scheduler.current_device.index, V.graph)
-        )
-
-        if triton:
-            call_args, arg_types = self.prepare_triton_wrapper_args(
-                call_args, arg_types
-            )
-            wrapper_name = f"call_{kernel_name}"
-            if wrapper_name not in self._triton_call_wrappers:
-                self._triton_call_wrappers[wrapper_name] = DeferredTritonCallWrapper(
-                    wrapper_name,
-                    kernel_name,
-                    self._kernel_name_to_body,
-                    arg_types,
-                )
-            device_idx = "this->device_idx_" if V.graph.aot_mode else str(V.graph.scheduler.current_device.index)
-            call_args.append(device_idx)
-            call_args.append(stream)
-            if V.graph.aot_mode:
-                call_args.append("kernels")
-                call_args.append("this->cubin_dir_")
-            debug_printer_manager = V.graph.wrapper_code.debug_printer
-            debug_printer_manager.set_printer_args(
-                call_args[: len(arg_types)], kernel_name, arg_types, None
-            )
-            with debug_printer_manager:
-                self.writeline(f"{wrapper_name}({', '.join(call_args)});")
-        else:
-            casted = []
-            for arg_type, arg in zip(arg_types, call_args):
-                new_arg = arg
-                if arg_type.endswith("*") and arg != "nullptr":
-                    new_arg = f"{arg}.data_ptr()"
-                casted.append(f"({arg_type}){cexpr(new_arg)}")
-            call_args_str = ", ".join(casted)
-            self.writeline(f"kernels.{kernel_name}({call_args_str}, {stream});")
-
         wrapper_name = f"call_{kernel_name}"
         if wrapper_name in self._triton_call_wrappers:
             # trans DeferredTritonCallWrapper to DeferredNpuTritonCallWrapper
