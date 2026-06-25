@@ -564,6 +564,14 @@ def _patch_model_21():
     # The current operator suffers from severe performance degradation.
     # This patch will be removed after the issue is fixed in the future.
     patch_remove_decomposition(["aten._softmax"])
+    try:
+        from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir import (
+            config as anir_config,
+        )
+
+        anir_config.force_fallback_kernel_names["mlir_fused_add_lt_neg_where_16"] = True
+    except ImportError:
+        log.warning("import config failed for hf_T5_base patch")
 
 
 @register_patch("hf_T5_large")
@@ -571,6 +579,14 @@ def _patch_model_22():
     # The current operator suffers from severe performance degradation.
     # This patch will be removed after the issue is fixed in the future.
     patch_remove_decomposition(["aten._softmax"])
+    try:
+        from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir import (
+            config as anir_config,
+        )
+
+        anir_config.force_fallback_kernel_names["mlir_fused_add_lt_neg_where_16"] = True
+    except ImportError:
+        log.warning("import config failed for hf_T5_large patch")
 
 
 @register_patch("pytorch_unet")
