@@ -271,10 +271,10 @@
 |[torch.nn.utils.prune.PruningContainer.prune](https://pytorch.org/docs/2.9/generated/torch.nn.utils.prune.PruningContainer.html#torch.nn.utils.prune.PruningContainer.prune)|是|支持fp32|
 |[torch.nn.utils.prune.PruningContainer.remove](https://pytorch.org/docs/2.9/generated/torch.nn.utils.prune.PruningContainer.html#torch.nn.utils.prune.PruningContainer.remove)|是|支持fp32|
 |[torch.nn.utils.prune.Identity](https://pytorch.org/docs/2.9/utils.html#torch.nn.utils.prune.Identity)|是|支持fp32|
-|[torch.nn.utils.prune.Identity.apply](https://pytorch.org/docs/2.9/nn.html#torch.nn.utils.prune.Identity.apply)|是|支持fp32|
-|[torch.nn.utils.prune.Identity.apply_mask](https://pytorch.org/docs/2.9/nn.html#torch.nn.utils.prune.Identity.apply_mask)|是|支持fp32|
-|[torch.nn.utils.prune.Identity.prune](https://pytorch.org/docs/2.9/nn.html#torch.nn.utils.prune.Identity.prune)|是|支持fp32|
-|[torch.nn.utils.prune.Identity.remove](https://pytorch.org/docs/2.9/nn.html#torch.nn.utils.prune.Identity.remove)|是|支持fp32|
+|[torch.nn.utils.prune.Identity.apply](https://pytorch.org/docs/2.9/generated/torch.nn.utils.prune.Identity.html#torch.nn.utils.prune.Identity.apply)|是|支持fp32|
+|[torch.nn.utils.prune.Identity.apply_mask](https://pytorch.org/docs/2.9/generated/torch.nn.utils.prune.Identity.html#torch.nn.utils.prune.Identity.apply_mask)|是|支持fp32|
+|[torch.nn.utils.prune.Identity.prune](https://pytorch.org/docs/2.9/generated/torch.nn.utils.prune.Identity.html#torch.nn.utils.prune.Identity.prune)|是|支持fp32|
+|[torch.nn.utils.prune.Identity.remove](https://pytorch.org/docs/2.9/generated/torch.nn.utils.prune.Identity.html#torch.nn.utils.prune.Identity.remove)|是|支持fp32|
 |[torch.nn.utils.prune.RandomUnstructured](https://pytorch.org/docs/2.9/generated/torch.nn.utils.prune.RandomUnstructured.html)|是|支持fp32|
 |[torch.nn.utils.prune.RandomUnstructured.apply](https://pytorch.org/docs/2.9/generated/torch.nn.utils.prune.RandomUnstructured.html#torch.nn.utils.prune.RandomUnstructured.apply)|是|支持fp32|
 |[torch.nn.utils.prune.RandomUnstructured.apply_mask](https://pytorch.org/docs/2.9/generated/torch.nn.utils.prune.RandomUnstructured.html#torch.nn.utils.prune.RandomUnstructured.apply_mask)|是|支持fp32|
@@ -341,4 +341,4 @@
 |[torch.nn.modules.lazy.LazyModuleMixin](https://pytorch.org/docs/2.9/generated/torch.nn.modules.lazy.LazyModuleMixin.html)|是|支持fp32|
 |[torch.nn.modules.lazy.LazyModuleMixin.has_uninitialized_params](https://pytorch.org/docs/2.9/generated/torch.nn.modules.lazy.LazyModuleMixin.html#torch.nn.modules.lazy.LazyModuleMixin.has_uninitialized_params)|是|支持fp32|
 |[torch.nn.modules.lazy.LazyModuleMixin.initialize_parameters](https://pytorch.org/docs/2.9/generated/torch.nn.modules.lazy.LazyModuleMixin.html#torch.nn.modules.lazy.LazyModuleMixin.initialize_parameters)|是|支持fp32|
-|[torch.nn.Unflatten.NamedShape](https://docs.pytorch.org/docs/2.7/generated/torch.nn.Unflatten.html#torch.nn.Unflatten.NamedShape)|是|-|
+|[torch.nn.modules.flatten.Unflatten.NamedShape](https://docs.pytorch.org/docs/2.9/generated/torch.nn.modules.flatten.Unflatten.html#torch.nn.modules.flatten.Unflatten.NamedShape)|是|-|
