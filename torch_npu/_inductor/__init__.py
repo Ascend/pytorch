@@ -69,6 +69,9 @@ def _load_triton_backend():
         disable_foreach,
     )
     from .codegen.cpp_utils import patch_device_to_aten
+    from ._npu_meta_registration import npu_patch_meta
+
+    npu_patch_meta()
 
     def _inductor_register_backend_for_device():
         from .codegen.cpp_wrapper import CppWrapperNpu
