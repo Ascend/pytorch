@@ -85,6 +85,9 @@ def _load_triton_backend():
         disable_foreach,
         get_current_raw_stream,
     )
+    from ._npu_meta_registration import npu_patch_meta
+
+    npu_patch_meta()
 
     def _inductor_register_backend_for_device():
         from .codegen.cpp_wrapper import CppWrapperNpu
