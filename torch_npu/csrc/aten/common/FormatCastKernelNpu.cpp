@@ -8,7 +8,6 @@
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/core/npu/GetCANNInfo.h"
-#include "torch_npu/csrc/framework/interface/EnvVariables.h"
 #include "torch_npu/csrc/aten/CustomFunctions.h"
 #include "torch_npu/csrc/custom_dtype/Init.h"
 #include "third_party/op-plugin/op_plugin/utils/op_api_common.h"
@@ -69,21 +68,9 @@ static bool ShouldFallbackNzToNd(const at::Tensor& self, int64_t acl_format)
     return false;
 }
 
-static int64_t MaybeDowngradeInternalFormat(int64_t acl_format)
-{
-    if (env::CheckForbidInternalFormat() &&
-        !FormatHelper::IsBaseFormatType(static_cast<aclFormat>(acl_format))) {
-        TORCH_WARN_ONCE("Cannot create tensor with internal format while allow_internal_format=False, "
-                        "tensor will be created with base format.");
-        return static_cast<int64_t>(FormatHelper::GetBaseFormat(static_cast<aclFormat>(acl_format)));
-    }
-    return acl_format;
-}
-
 std::tuple<bool, int64_t, c10::SmallVector<int64_t, SIZE>> MaybeUseAclnnNpuFormatCast(const at::Tensor& src,
     int64_t acl_format, c10::optional<int64_t> customize_dtype, c10::optional<int64_t> input_dtype)
 {
-    acl_format = MaybeDowngradeInternalFormat(acl_format);
     const static auto GetFormatFuncAddr = GetOpApiFuncAddr("aclnnNpuFormatCastCalculateSizeAndFormat");
     const static auto FormatCastFuncAddr = GetOpApiFuncAddr("aclnnNpuFormatCast");
 
