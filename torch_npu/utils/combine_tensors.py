@@ -19,6 +19,8 @@ def npu_combine_tensors(list_of_tensor, require_copy_value=True):
         if tensor.device.type != "npu":
             raise RuntimeError("Tensors to combine must be on NPU, got {}.".format(tensor.device.type) +
                                pta_error(ErrCode.VALUE))
+        if not tensor.is_contiguous():
+            raise RuntimeError("Tensors to combine must be contiguous." + pta_error(ErrCode.VALUE))
         total_numel += torch_npu.get_storage_size(tensor)
 
     if total_numel == 0:
@@ -68,7 +70,8 @@ def is_combined_tensor_valid(combined_tensor, list_of_tensor):
     for tensor in list_of_tensor:
         if tensor is None or \
                 tensor.data_ptr() < combined_tensor_start_addr or \
-                tensor.data_ptr() >= combined_tensor_end_addr:
+                tensor.data_ptr() >= combined_tensor_end_addr or \
+                not tensor.is_contiguous():
             return False
 
     return True
