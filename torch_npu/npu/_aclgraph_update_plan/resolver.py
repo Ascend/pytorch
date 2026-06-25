@@ -142,16 +142,15 @@ def validate_aclgraph_update_plan_for_graph(
 
 
 def update_aclgraph_records_for_graph(
-    plan: Sequence[Dict[str, Any]],
+    cpu_update_input: Sequence[Dict[str, Any]],
     graph: Any,
-    new_inputs: Sequence[Any],
 ) -> bool:
     if graph is None or not graph.auto_dispatch_capture:
         return False
-    if not plan:
+    if not cpu_update_input:
         return False
 
-    graph.update(resolve_aclgraph_update_plan(plan, new_inputs))
+    graph.update(cpu_update_input)
     return True
 
 

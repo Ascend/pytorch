@@ -104,6 +104,7 @@ from torch_npu._C import (
     _set_cached_tensors_enabled as _set_cached_tensors_enabled)
 from torch_npu.npu._aclgraph_update_plan.resolver import (
     ACLGRAPH_UPDATE_PLAN_GLOBAL,
+    resolve_aclgraph_update_plan,
     update_aclgraph_records_for_graph,
     validate_aclgraph_update_plan_for_graph,
 )
@@ -227,7 +228,7 @@ class TreeManagerContainer:
                 self.graph = None
 
                 # manager was used again after existing cleanup,
-                # we shouldnt set it to None
+                # we shouldn't set it to None
                 if self.live_npugraphify_fns == 0:
                     self.tree_manager = None
 
@@ -1077,9 +1078,8 @@ class NPUGraphNode:
         log.debug("NPUGRAPH-TREE Node Run node=%s", self.id)
         self.check_static_inputs_are_stable(new_inputs)
         aclgraph_update_submitted = update_aclgraph_records_for_graph(
-            self.aclgraph_update_plan,
+            resolve_aclgraph_update_plan(self.aclgraph_update_plan, new_inputs),
             self.graph,
-            new_inputs,
         )
         self._copy_inputs_and_remove_from_src(self.reconstructed_inputs, new_inputs)
 
@@ -1232,7 +1232,7 @@ class NPUGraphNode:
             static_input_persistent_storage_ptrs[inp.untyped_storage().data_ptr()] = StorageWeakRefWrapper(inp)
 
         if config.triton.slow_path_cudagraph_asserts:
-            # need to use parent live weakrefs because live_indices isnt set yet
+            # need to use parent live weakrefs because live_indices isn't set yet
             memory = (
                 [] if self.parent is None else list(self.parent.path_live_weakrefs())
             )
@@ -1252,7 +1252,10 @@ class NPUGraphNode:
 
             check_memory_pool(self.device, self.npu_graphs_pool, memory)
 
-        aclgraph_update_inputs = list(inputs)
+        aclgraph_cpu_update_input = resolve_aclgraph_update_plan(
+            self.aclgraph_update_plan,
+            inputs,
+        )
 
         with preserve_rng_state(), torch.npu.device(
             self.device
@@ -1265,14 +1268,6 @@ class NPUGraphNode:
         ), get_history_recording():
             static_outputs = model(inputs)
 
-        validate_aclgraph_update_plan_for_graph(self.aclgraph_update_plan, self.graph)
-        update_aclgraph_records_for_graph(
-            self.aclgraph_update_plan,
-            self.graph,
-            aclgraph_update_inputs,
-        )
-        aclgraph_update_inputs.clear()
-
         # running model should reclaim memory
         if not len(inputs) == 0:
             raise RuntimeError("check len(inputs) == 0 fail")
@@ -1280,6 +1275,8 @@ class NPUGraphNode:
             static_outputs = (static_outputs,)
 
         self._add_first_outputs(static_outputs, static_input_persistent_storage_ptrs)
+        validate_aclgraph_update_plan_for_graph(self.aclgraph_update_plan, self.graph)
+        update_aclgraph_records_for_graph(aclgraph_cpu_update_input, self.graph)
 
         log.debug("NPUGRAPH-TREE Node Record node=%s recorded: outputs=%d, "
                   "non_static_inputs=%d, static_input_idxs=%d",
@@ -1648,7 +1645,7 @@ class NPUGraphNode:
 
     def clear_path_state(self) -> None:
         "Clear the path state in this current executing node"
-        # this doesnt actually do anything right now, leaving it as placeholder
+        # this doesn't actually do anything right now, leaving it as placeholder
         pass
 
     @staticmethod
