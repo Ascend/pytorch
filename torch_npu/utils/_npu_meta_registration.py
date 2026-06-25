@@ -7,6 +7,7 @@ import torch_npu  # noqa: F401
 from torch import Tensor
 from torch._C import DispatchKey
 from torch._decomp import decomposition_table, meta_table
+from torch._meta_registrations import device_hint
 from torch._inductor import decomposition as inductor_decompo
 from torch._ops import OpOverload, OpOverloadPacket
 from torch._prims_common.wrappers import out_wrapper
@@ -172,6 +173,18 @@ def meta_native_dropout_patch(tensor_input: Tensor, p: float, train: bool | None
         from torch._decomp.decompositions import native_dropout
 
         return native_dropout(tensor_input, p, train)
+
+
+@register_meta_npu(aten.sort.default, avoid_fallback_flag=True)
+def meta_sort(self, stable=None, dim=-1, descending=False, values=None, indices=None):
+    if device_hint(self) == "npu":
+        v = torch.empty(self.shape, dtype=self.dtype, device=self.device)
+        i = torch.empty(self.shape, dtype=torch.int64, device=self.device)
+
+        return v, i
+    else:
+        from torch._meta_registrations import meta_sort
+        return meta_sort(self, stable=stable, dim=dim, descending=descending, values=values, indices=indices)
 
 
 @register_meta_npu(aten.native_dropout_backward, inductor_decomp=True)
