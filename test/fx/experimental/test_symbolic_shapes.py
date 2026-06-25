@@ -1,7 +1,10 @@
 """
 Add validation cases for torch.fx.experimental.symbolic_shapes APIs on NPU:
 1. PyTorch community lacks sufficient and direct API validations for these APIs, so this file is added.
-2. This file validates RelaxedUnspecConstraint, resolve_unbacked_bindings, safe_expand, ShapeEnv.add_var_to_val, ShapeEnv.create_symboolnode and ShapeEnv.create_symfloatnode.
+2. This file validates RelaxedUnspecConstraint, resolve_unbacked_bindings, safe_expand,
+-ShapeEnv.add_var_to_val, ShapeEnv.create_symboolnode, ShapeEnv.create_symfloatnode,
+-ShapeEnv.create_symbol, ShapeEnv.bound_sympy, ShapeEnv.check_equal,
+-ShapeEnv.cleanup, ShapeEnv.bind_symbols.
 3. This file is extendable for other torch.fx.experimental.symbolic_shapes APIs.
 """
 
@@ -118,6 +121,104 @@ class TestShapeEnvSymbolicShapes(TestCase):
         self.assertIn(sym, shape_env.var_to_val)
         self.assertEqual(shape_env.var_to_val[sym], 7)
         self.assertEqual(dummy_tensor.device.type, "npu")
+
+
+class TestShapeEnvCoreMethods(TestCase):
+    """Unit tests for ShapeEnv core methods: create_symbol, bound_sympy, check_equal, cleanup, bind_symbols."""
+
+    def setUp(self):
+        self.env = ShapeEnv()
+        self.source = ConstantSource("x")
+
+    def test_create_symbol(self):
+        """Test create_symbol returns unique sympy.Symbol instances usable in expressions."""
+        sym1 = self.env.create_symbol(5, self.source)
+        sym2 = self.env.create_symbol(10, self.source)
+
+        self.assertIsInstance(sym1, sympy.Symbol)
+        self.assertIsInstance(sym2, sympy.Symbol)
+        self.assertTrue(sym1.name.startswith('s'))
+        self.assertTrue(sym2.name.startswith('s'))
+        self.assertNotEqual(sym1.name, sym2.name, "Symbols must have distinct names")
+        expr = sym1 + sym2
+        self.assertIsInstance(expr, sympy.Expr)
+
+    def test_bound_sympy(self):
+        """Test bound_sympy returns correct lower bound for 's0+2' (at least 4)."""
+        s0 = self.env.create_symbol(5, self.source)
+        expr = s0 + 2
+        bounds = self.env.bound_sympy(expr)
+
+        self.assertTrue(hasattr(bounds, 'lower'))
+        self.assertTrue(hasattr(bounds, 'upper'))
+        self.assertLessEqual(bounds.lower, bounds.upper)
+        self.assertGreaterEqual(bounds.lower, 4)
+
+    def test_check_equal(self):
+        """Test check_equal passes for self-equality and fails for different environment states."""
+        self.env.check_equal(self.env)
+
+        other = ShapeEnv()
+        other.create_symbol(5, self.source)
+        # NotEqualError is defined in torch.fx.experimental.recording (PyTorch 2.9+)
+        try:
+            from torch.fx.experimental.recording import NotEqualError
+            expected_exceptions = (AssertionError, NotEqualError)
+        except ImportError:
+            expected_exceptions = AssertionError
+        with self.assertRaises(expected_exceptions):
+            self.env.check_equal(other)
+
+    def test_cleanup(self):
+        """Test cleanup does not break future symbol creation."""
+        self.env.create_symbol(5, self.source)
+        self.env.cleanup()
+        new_sym = self.env.create_symbol(10, self.source)
+        self.assertIsInstance(new_sym, sympy.Symbol)
+
+    def test_bind_symbols(self):
+        """Test bind_symbols correctly maps symbolic placeholders to concrete tensor dimensions."""
+        try:
+            from torch.fx.experimental.proxy_tensor import make_fake_tensor
+            has_fake = True
+        except ImportError:
+            has_fake = False
+
+        if not has_fake:
+            self.skipTest("make_fake_tensor not available in this environment")
+
+        # Single tensor binding
+        s0 = self.env.create_symbol(5, self.source)
+        s1 = self.env.create_symbol(2, self.source)
+        fake_input = make_fake_tensor(torch.empty(s0, s1), self.env, self.source)
+        real_input = torch.randn(5, 2)
+        bindings = self.env.bind_symbols([fake_input], [real_input])
+        self.assertIsInstance(bindings, dict)
+        self.assertIn(s0, bindings)
+        self.assertIn(s1, bindings)
+        self.assertEqual(bindings[s0], 5)
+        self.assertEqual(bindings[s1], 2)
+
+        # Multiple tensor batch binding
+        s2 = self.env.create_symbol(3, self.source)
+        s3 = self.env.create_symbol(4, self.source)
+        fake_input_2 = make_fake_tensor(torch.empty(s2, s3), self.env, self.source)
+        real_input_2 = torch.randn(3, 4)
+        bindings_batch = self.env.bind_symbols([fake_input, fake_input_2], [real_input, real_input_2])
+        self.assertEqual(len(bindings_batch), 4)
+        # Verify both old and new symbols are correctly mapped
+        self.assertIn(s0, bindings_batch)
+        self.assertIn(s1, bindings_batch)
+        self.assertIn(s2, bindings_batch)
+        self.assertIn(s3, bindings_batch)
+        self.assertEqual(bindings_batch[s0], 5)
+        self.assertEqual(bindings_batch[s1], 2)
+        self.assertEqual(bindings_batch[s2], 3)
+        self.assertEqual(bindings_batch[s3], 4)
+
+        # Negative case: mismatched argument count
+        with self.assertRaises(ValueError):
+            self.env.bind_symbols([fake_input], [real_input, torch.randn(3, 4)])
 
 
 if __name__ == "__main__":
