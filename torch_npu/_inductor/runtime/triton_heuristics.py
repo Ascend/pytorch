@@ -972,6 +972,9 @@ class NPUCachingAutotuner(CachingAutotuner):
     def _apply_costmodel_to_configs(self, *args, **kwargs):
         """Use triton-ascend costmodel path to prefilter configs before full compile."""
         self._costmodel_fallback_configs = None
+        if self.heuristic_type == HeuristicType.USER_AUTOTUNE:
+            return
+
         if not self.configs or len(self.configs) <= 1:
             return
 
