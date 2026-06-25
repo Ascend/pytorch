@@ -27,7 +27,7 @@ export TORCH_TRANSFER_TO_NPU=0
 ## 使用约束
 
 - 此环境变量必须在导入torch之前设置，否则不生效。
-- 更多transfer\_to\_npu相关约束参考《PyTorch 训练模型迁移调优指南》中的“[（推荐）自动迁移](https://gitcode.com/Ascend/docs/blob/master/FrameworkPTAdapter/26.0.0/zh/pytorch_model_migration_fine_tuning/recommended_auto_migration.md)”章节。
+- 更多transfer\_to\_npu相关约束参考[（推荐）自动迁移](https://gitcode.com/Ascend/ModelZoo-PyTorch/blob/master/PyTorch/docs/model_migration/auto_migration.md)。
 
 ## 支持的型号
 

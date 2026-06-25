@@ -21,10 +21,10 @@
 |torch._foreach_add|是|支持bf16，fp16，fp32，int32，bool|
 |torch._foreach_lerp|是|支持bf16，fp16，fp32|
 |torch.ops.aten._to_copy.default|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|torch._scaled_mm|是|支持fp8模式下ScalingType为tensorwise，rowwise和BlockWise1x128，mxfp8模式下ScalingType为BlockWise1x32的排布，mxfp8遵循[aclnnQuantMatmulV5](https://gitcode.com/cann/ops-nn/blob/master/matmul/quant_batch_matmul_v4/docs/aclnnQuantMatmulV5.md)要求（scale_a和scale_b详见约束说明）<br>仅支持PyTorch 2.7.1以上版本|
-|torch._scaled_mm_v2|是|支持fp8模式下ScalingType为tensorwise，rowwise和BlockWise1x128，mxfp8模式下ScalingType为BlockWise1x32的排布，mxfp8遵循[aclnnQuantMatmulV5](https://gitcode.com/cann/ops-nn/blob/master/matmul/quant_batch_matmul_v4/docs/aclnnQuantMatmulV5.md)要求（swizzle_a和swizzle_b必须为None，scale_a和scale_b详见约束说明）<br>仅支持PyTorch 2.10.0以上版本|
-|torch._scaled_grouped_mm|是|支持fp8模式下ScalingType为rowwise，mxfp8模式的排布，mxfp8遵循[aclnnGroupedMatmulV5](https://gitcode.com/cann/ops-transformer/blob/master/gmm/grouped_matmul/docs/aclnnGroupedMatmulV5.md)要求（scale_a和scale_b详见约束说明）<br>仅支持PyTorch 2.7.1以上版本|
-|torch._scaled_grouped_mm_v2|是|支持fp8模式下ScalingType为rowwise，mxfp8模式的排布，mxfp8遵循[aclnnGroupedMatmulV5](https://gitcode.com/cann/ops-transformer/blob/master/gmm/grouped_matmul/docs/aclnnGroupedMatmulV5.md)要求（swizzle_a和swizzle_b必须为None，scale_a和scale_b详见约束说明）<br>仅支持PyTorch 2.10.0以上版本|
+|torch._scaled_mm|是|支持fp8模式下ScalingType为tensorwise，rowwise和BlockWise1x128，mxfp8模式下ScalingType为BlockWise1x32的排布，mxfp8遵循[aclnnQuantMatmulV5](https://gitcode.com/cann/ops-nn/blob/9.0.0/matmul/quant_batch_matmul_v4/docs/aclnnQuantMatmulV5.md)要求（scale_a和scale_b详见约束说明）<br>仅支持PyTorch 2.7.1以上版本|
+|torch._scaled_mm_v2|是|支持fp8模式下ScalingType为tensorwise，rowwise和BlockWise1x128，mxfp8模式下ScalingType为BlockWise1x32的排布，mxfp8遵循[aclnnQuantMatmulV5](https://gitcode.com/cann/ops-nn/blob/9.0.0/matmul/quant_batch_matmul_v4/docs/aclnnQuantMatmulV5.md)要求（swizzle_a和swizzle_b必须为None，scale_a和scale_b详见约束说明）<br>仅支持PyTorch 2.10.0以上版本|
+|torch._scaled_grouped_mm|是|支持fp8模式下ScalingType为rowwise，mxfp8模式的排布，mxfp8遵循[aclnnGroupedMatmulV5](https://gitcode.com/cann/ops-nn/blob/9.0.0/matmul/quant_batch_matmul_v4/docs/aclnnQuantMatmulV5.md)要求（scale_a和scale_b详见约束说明）<br>仅支持PyTorch 2.7.1以上版本|
+|torch._scaled_grouped_mm_v2|是|支持fp8模式下ScalingType为rowwise，mxfp8模式的排布，mxfp8遵循[aclnnGroupedMatmulV5](https://gitcode.com/cann/ops-transformer/blob/9.0.0/gmm/grouped_matmul/docs/aclnnGroupedMatmulV5.md)要求（swizzle_a和swizzle_b必须为None，scale_a和scale_b详见约束说明）<br>仅支持PyTorch 2.10.0以上版本|
 
 ## torch.amp
 

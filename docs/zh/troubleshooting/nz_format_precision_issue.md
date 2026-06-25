@@ -2,7 +2,7 @@
 
 ## 问题现象描述
 
-在网络调优时，用户开启[`torch.npu.config.allow_internal_format = True`](https://www.hiascend.com/document/detail/zh/Pytorch/2600/apiref/torchnpuCustomsapi/docs/zh/custom_APIs/torch_npu-npu/%EF%BC%88beta%EF%BC%89torch_npu-npu-config-allow_internal_format.md)后，模型的计算结果出现精度异常。
+在网络调优时，用户开启[`torch.npu.config.allow_internal_format = True`](https://gitcode.com/Ascend/op-plugin/blob/26.1.0/docs/zh/custom_APIs/torch_npu-npu/%EF%BC%88beta%EF%BC%89torch_npu-npu-config-allow_internal_format.md)后，模型的计算结果出现精度异常。
 
 ## 原因分析
 

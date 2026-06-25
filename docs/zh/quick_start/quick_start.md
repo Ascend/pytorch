@@ -96,7 +96,7 @@
 
     > [!NOTE]
     >
-    > 具体介绍可参见《PyTorch 训练模型迁移调优指南》中的“[混合精度适配](https://gitcode.com/Ascend/docs/blob/master/FrameworkPTAdapter/26.0.0/zh/pytorch_model_migration_fine_tuning/adaptation_introduction.md)”章节。
+    > 具体介绍可参见[混合精度适配](https://gitcode.com/Ascend/ModelZoo-PyTorch/blob/master/PyTorch/docs/mixed_precision_adaptation/README.md)。
 
     ```diff
         import time
@@ -107,7 +107,7 @@
     +   from torch_npu.contrib import transfer_to_npu    # 开启自动迁移
     ```
 
-    若未开启自动迁移，用户可参考《PyTorch 训练模型迁移调优指南》中的“[手工迁移](https://gitcode.com/Ascend/docs/blob/master/FrameworkPTAdapter/26.0.0/zh/pytorch_model_migration_fine_tuning/manual_migration.md)”章节进行相关操作。
+    若未开启自动迁移，用户可参考[手工迁移](https://gitcode.com/Ascend/ModelZoo-PyTorch/blob/master/PyTorch/docs/model_migration/manual_migration.md)进行相关操作。
 
 3. 开启AMP混合精度计算。若用户使用<term>Atlas A2 训练系列产品</term>或<term>Atlas A3 训练系列产品</term>，则可以选择跳过此步骤。
 
@@ -167,7 +167,7 @@
 
 ## 进阶开发
 
-- 如果您想体验PyTorch模型训练迁移更丰富的功能，请前往《[PyTorch 训练模型迁移调优指南](https://gitcode.com/Ascend/docs/blob/master/FrameworkPTAdapter/26.0.0/zh/pytorch_model_migration_fine_tuning/overview.md)》文档阅读了解。
+- 如果您想体验PyTorch模型训练迁移更丰富的功能，请前往《[PyTorch 训练模型迁移调优指南](https://gitcode.com/Ascend/ModelZoo-PyTorch/blob/master/PyTorch/docs/README.md)》文档阅读了解。
 - 如果您想体验大模型训练更丰富的功能，请参见[表1](#模型迁移指导)了解。
 
     **表 1**  模型迁移指导<a id="模型迁移指导"></a>    
