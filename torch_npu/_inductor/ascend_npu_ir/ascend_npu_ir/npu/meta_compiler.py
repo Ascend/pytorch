@@ -269,10 +269,11 @@ class MetaCompiler:
             output, _ = self.acc_compare_and_dump(*args_list, **kwargs)
             self._copy_back_non_contiguous_outputs(args_list, original_outputs)
             return output
+        runtime_args = args_list
         if self.dynamic and not is_fallback_kernel:
-            args_list = self.prepare_runtime_args(
+            runtime_args = self.prepare_runtime_args(
                 args_list,
             )
-        ret = launcher(*tuple(args_list), **kwargs)
+        ret = launcher(*tuple(runtime_args), **kwargs)
         self._copy_back_non_contiguous_outputs(args_list, original_outputs)
         return ret
