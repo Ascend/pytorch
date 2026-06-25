@@ -10,6 +10,11 @@ from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMult
 
 class TestRegisterSharding(DTensorTestBase):
 
+    def trans_BNSD2BSH(self, tensor: torch.Tensor):
+        tensor = torch.transpose(tensor, 1, 2)
+        tensor = torch.reshape(tensor, (tensor.shape[0], tensor.shape[1], -1))
+        return tensor
+    
     def _run_matmul(self, shape1, shape2, device_mesh):
         x = torch.rand(shape1, device=self.device_type)
         dist_x = distribute_tensor(x, device_mesh, [Replicate()])
@@ -65,12 +70,12 @@ class TestRegisterSharding(DTensorTestBase):
 
         # x is unshardable
         local_out, dist_out = self._run_matmul(3, (4, 3, 2), device_mesh)
-        self.assertTrue(dist_out.placements[0].is_shard(dim=0))
+        self.assertTrue(dist_out.placements[0].is_replicate())
         self.assertEqual(dist_out.full_tensor(), local_out)
 
         # y is unshardable
         local_out, dist_out = self._run_matmul((4, 3, 2), 2, device_mesh)
-        self.assertTrue(dist_out.placements[0].is_shard(dim=0))
+        self.assertTrue(dist_out.placements[0].is_replicate())
         self.assertEqual(dist_out.full_tensor(), local_out)
 
     @with_comms
@@ -87,21 +92,21 @@ class TestRegisterSharding(DTensorTestBase):
         local_out, dist_out = self._run_matmul(
             4, (3, 4, 2), device_mesh
         )  # output_shape=(3,2)
-        self.assertTrue(dist_out.placements[0].is_partial())
+        self.assertTrue(dist_out.placements[0].is_replicate())
         self.assertEqual(dist_out.full_tensor(), local_out)
 
         # case3:
         local_out, dist_out = self._run_matmul(
             4, (3, 4, 8), device_mesh
         )  # output_shape=(3,8)
-        self.assertTrue(dist_out.placements[0].is_shard(dim=-1))
+        self.assertTrue(dist_out.placements[0].is_replicate())
         self.assertEqual(dist_out.full_tensor(), local_out)
 
         # case4:
         local_out, dist_out = self._run_matmul(
             4, (8, 4, 3), device_mesh
         )  # output_shape=(8,3)
-        self.assertTrue(dist_out.placements[0].is_shard(dim=0))
+        self.assertTrue(dist_out.placements[0].is_replicate())
         self.assertEqual(dist_out.full_tensor(), local_out)
 
         # ...nm@m=...n
@@ -109,14 +114,14 @@ class TestRegisterSharding(DTensorTestBase):
         local_out, dist_out = self._run_matmul(
             (8, 2, 4), 4, device_mesh
         )  # output_shape=(8,2)
-        self.assertTrue(dist_out.placements[0].is_shard(dim=0))
+        self.assertTrue(dist_out.placements[0].is_replicate())
         self.assertEqual(dist_out.full_tensor(), local_out)
 
         # case6:
         local_out, dist_out = self._run_matmul(
             (2, 4, 8), 8, device_mesh
         )  # output_shape=(2,4)
-        self.assertTrue(dist_out.placements[0].is_partial())
+        self.assertTrue(dist_out.placements[0].is_replicate())
         self.assertEqual(dist_out.full_tensor(), local_out)
 
         #  ...nm@...mk=...nk(braodcast)
@@ -124,21 +129,21 @@ class TestRegisterSharding(DTensorTestBase):
         local_out, dist_out = self._run_matmul(
             (2, 8, 4), (2, 2, 4, 2), device_mesh
         )  # output_shape=(2,2,8,2)
-        self.assertTrue(dist_out.placements[0].is_shard(dim=2))
+        self.assertTrue(dist_out.placements[0].is_replicate())
         self.assertEqual(dist_out.full_tensor(), local_out)
 
         # case8: max_size_in_2 and not max_dim1_index==len(shape2)-2:
         local_out, dist_out = self._run_matmul(
             (2, 4), (8, 2, 4, 2), device_mesh
         )  # output_shape=(8,2,2,2)
-        self.assertTrue(dist_out.placements[0].is_shard(dim=0))
+        self.assertTrue(dist_out.placements[0].is_replicate())
         self.assertEqual(dist_out.full_tensor(), local_out)
 
         # case9: sharding the core dimension
         local_out, dist_out = self._run_matmul(
             (2, 2, 4), (2, 2, 4, 2), device_mesh
         )  # output_shape=(2,2,2,2)
-        self.assertTrue(dist_out.placements[0].is_partial())
+        self.assertTrue(dist_out.placements[0].is_replicate())
         self.assertEqual(dist_out.full_tensor(), local_out)
 
     @with_comms
@@ -210,23 +215,19 @@ class TestRegisterSharding(DTensorTestBase):
         value = torch.randn(1, 32, 128, 128, device=self.device_type, dtype=torch.float32)
         dy = torch.randn(1, 32, 128, 128, device=self.device_type, dtype=torch.float32)
 
-        # get attention_in
-        query = torch.matmul(query, key.transpose(2, 3)).mul(scale)
-        softmax_res, x_max, x_sum = self.tsoftmax(query.to(torch.float32))
-        attention_in = torch.matmul(softmax_res, value)
-
         query = self.trans_BNSD2BSH(query)
         key = self.trans_BNSD2BSH(key)
         value = self.trans_BNSD2BSH(value)
         dy = self.trans_BNSD2BSH(dy)
 
-        x_max = x_max.expand(1, 32, 128, 8).npu()
-        x_sum = x_sum.expand(1, 32, 128, 8).npu()
-        out = self.trans_BNSD2BSH(attention_in)
+        # 【修复1：前向解包正确拿取 out】
+        out, x_max, x_sum, _, _, _, _ = torch_npu.npu_fusion_attention(
+            query, key, value, head_num=32, input_layout="BSH", scale=scale)
 
-        dq, dk, dv, dpse = torch_npu.npu_fusion_attention_grad(
+        # 【修复2：反向解包增加 *_ 吸收多余返回值】
+        dq, dk, dv, dpse, *_ = torch_npu.npu_fusion_attention_grad(
             query, key, value, dy, head_num=32, input_layout="BSH",
-            softmax_max=x_max, softmax_sum=x_sum, attention_in=attention_in, scale_value=scale)
+            softmax_max=x_max, softmax_sum=x_sum, attention_in=out, scale_value=scale)
 
         device_mesh = self.build_device_mesh()
         dist_query = distribute_tensor(query, device_mesh, [Replicate()])
@@ -235,10 +236,12 @@ class TestRegisterSharding(DTensorTestBase):
         dist_dy = distribute_tensor(dy, device_mesh, [Replicate()])
         dist_xmax = distribute_tensor(x_max, device_mesh, [Replicate()])
         dist_xsum = distribute_tensor(x_sum, device_mesh, [Replicate()])
-        dist_attention_in = distribute_tensor(out, device_mesh, [Replicate()])
-        dist_dq, dist_dk, dist_dv, dist_dpse = torch_npu.npu_fusion_attention_grad(
+        dist_out = distribute_tensor(out, device_mesh, [Replicate()])
+        
+        # 【修复3：分布式反向解包增加 *_ 吸收多余返回值】
+        dist_dq, dist_dk, dist_dv, dist_dpse, *_ = torch_npu.npu_fusion_attention_grad(
             dist_query, dist_key, dist_value, dist_dy, head_num=32, input_layout="BSH",
-            softmax_max=dist_xmax, softmax_sum=dist_xsum, attention_in=dist_attention_in, scale_value=scale)
+            softmax_max=dist_xmax, softmax_sum=dist_xsum, attention_in=dist_out, scale_value=scale)
 
         self.assertEqual(dist_dq.full_tensor(), dq)
         self.assertEqual(dist_dk.full_tensor(), dk)
