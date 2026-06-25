@@ -582,19 +582,18 @@ class AkgCompiler(MetaCompiler):
                             need_compile=True,
                             debug=anir_config.debug,
                         )
-                    except Exception as e:
-                        logger.warning(f"compile {self.kernel_name} fail, err msg: {e}")
-
-                    binary_output_path = os.path.join(tmpdir, kernel_file_name)
-                    meta_output_path = os.path.join(tmpdir, kernel_meta_file_name)
-                    with open(binary_output_path, "rb") as f:
-                        cache_kernel_path = self.cache.put(f.read(), kernel_file_name, binary=True)
-                    with open(meta_output_path, "rb") as f:
-                        cache_kernel_meta_path = self.cache.put(f.read(), kernel_meta_file_name, binary=True)
-                    global_cache.add(cache_kernel_path)
-                    if anir_config.debug:
-                        log_output_path = os.path.join(tmpdir, kernel_log_file_name)
-                        shutil.copy(log_output_path, os.path.join(anir_config.debug_dir, kernel_log_file_name))
+                        binary_output_path = os.path.join(tmpdir, kernel_file_name)
+                        meta_output_path = os.path.join(tmpdir, kernel_meta_file_name)
+                        with open(binary_output_path, "rb") as f:
+                            cache_kernel_path = self.cache.put(f.read(), kernel_file_name, binary=True)
+                        with open(meta_output_path, "rb") as f:
+                            cache_kernel_meta_path = self.cache.put(f.read(), kernel_meta_file_name, binary=True)
+                        global_cache.add(cache_kernel_path)
+                    finally:
+                        if anir_config.debug:
+                            log_output_path = os.path.join(tmpdir, kernel_log_file_name)
+                            if os.path.isfile(log_output_path):
+                                shutil.copy(log_output_path, os.path.join(anir_config.debug_dir, kernel_log_file_name))
             else:
                 self.kernel.compile(
                     str(mlir_module),
