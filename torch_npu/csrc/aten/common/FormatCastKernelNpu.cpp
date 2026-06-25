@@ -24,6 +24,13 @@ static std::unordered_map<int, int> FORMAT_REAL_TO_FAKE {
 using tensor_list = std::vector<at::Tensor>;
 using GetFormatFunc = int (*)(const aclTensor *, const int, const int, int64_t **, uint64_t *, int *);
 
+static bool IsAclnnNpuFormatCastExist()
+{
+    const static auto GetFormatFuncAddr = GetOpApiFuncAddr("aclnnNpuFormatCastCalculateSizeAndFormat");
+    const static auto FormatCastFuncAddr = GetOpApiFuncAddr("aclnnNpuFormatCast");
+    return GetFormatFuncAddr != nullptr && FormatCastFuncAddr != nullptr;
+}
+
 // Check if current CANN version supports aclnn format_cast with customize_dtype.
 // Only 910B and 910C series support aclnnNpuFormatCastCalculateSizeAndFormat.
 // 950 goes through IsAclnnOnly() path separately; 910A/310 series do not support this API.
@@ -80,8 +87,7 @@ std::tuple<bool, int64_t, c10::SmallVector<int64_t, SIZE>> MaybeUseAclnnNpuForma
     const static auto GetFormatFuncAddr = GetOpApiFuncAddr("aclnnNpuFormatCastCalculateSizeAndFormat");
     const static auto FormatCastFuncAddr = GetOpApiFuncAddr("aclnnNpuFormatCast");
 
-    const static bool aclnnNpuFormatCastExist =
-        (GetFormatFuncAddr == nullptr || FormatCastFuncAddr == nullptr) ? false : true;
+    const static bool aclnnNpuFormatCastExist = IsAclnnNpuFormatCastExist();
 
     GetFormatFunc GetFormat = reinterpret_cast<GetFormatFunc>(GetFormatFuncAddr);
     int64_t *dstStorageShape = nullptr;
@@ -421,9 +427,9 @@ at::Tensor NPUNativeFunctions::npu_format_cast(const at::Tensor& self, int64_t a
                                                c10::optional<int64_t> input_dtype)
 {
     torch_npu::utils::torch_check_npu(self);
-    // Match aclop behavior for manually set storage tensors whose NPU desc
-    // base shape does not match current logical shape.
-    if (ShouldFallbackNzToNd(self, acl_format)) {
+    // Match aclop behavior for 910B/910C manually set storage tensors whose
+    // NPU desc base shape does not match current logical shape.
+    if (IsAclnnFormatCastSupported() && IsAclnnNpuFormatCastExist() && ShouldFallbackNzToNd(self, acl_format)) {
         acl_format = ACL_FORMAT_ND;
     }
     if (NPUNativeFunctions::get_npu_format(self) == acl_format) {
