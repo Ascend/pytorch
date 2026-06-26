@@ -121,6 +121,7 @@ if __name__ == "__main__":
     parser.add_argument('--inductor', action="store_true", help='Run inductor testcases')
     parser.add_argument('--rank', default=0, type=int, help='Index of current ut nodes')
     parser.add_argument('--world_size', default=0, type=int, help='Number of ut nodes')
+    parser.add_argument('--npu_core', help='Run core testcases in npu')
     parser.add_argument('--network_ops', action="store_true", help='Run network_ops testcases in the op-plugin repo')
     options = parser.parse_args()
     print(f"options: {options}")
