@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import functools
 import logging
+from typing import Optional
 
 import torch
 import torch_npu
@@ -128,7 +129,7 @@ def patch_get_first_incompatible_cudagraph_node():
 
     def get_first_incompatible_cudagraph_node(
         gm: torch.fx.GraphModule,
-    ) -> torch.fx.Node | None:
+    ) -> Optional[torch.fx.Node]:
         forbidden_set = OrderedSet(
             [
                 "aten._fused_moving_avg_obs_fq_helper.default",

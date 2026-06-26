@@ -2,15 +2,15 @@ from __future__ import annotations
 
 import dataclasses
 from collections.abc import Mapping, Sequence
-from typing import Literal
+from typing import Literal, Union, Optional
 
 import sympy
 
 
-JsonScalar = int | float | bool | str | None
+JsonScalar = Union[int, float, bool, str, None]
 
 
-@dataclasses.dataclass(frozen=True, slots=True)
+@dataclasses.dataclass(frozen=True)
 class GroupFeatureSpec:
     name: str
     source: Literal["primary_axis", "outer_product", "reduction_product", "axis"]
@@ -18,7 +18,7 @@ class GroupFeatureSpec:
     buckets: tuple[int, ...]
 
 
-@dataclasses.dataclass(frozen=True, slots=True)
+@dataclasses.dataclass(frozen=True)
 class KernelVariant:
     variant_id: str
     constexpr_kwargs: tuple[tuple[str, int], ...]
@@ -27,7 +27,7 @@ class KernelVariant:
     extra_compile_kwargs: tuple[tuple[str, JsonScalar], ...]
 
 
-@dataclasses.dataclass(frozen=True, slots=True)
+@dataclasses.dataclass(frozen=True)
 class LaunchPolicy:
     policy_id: str
     group_id: int
@@ -36,7 +36,7 @@ class LaunchPolicy:
     grid_target: int
 
 
-@dataclasses.dataclass(frozen=True, slots=True)
+@dataclasses.dataclass(frozen=True)
 class GroupedCandidate:
     group_id: int
     variant_id: str
@@ -47,11 +47,11 @@ class UnsupportedGroupedPlan(RuntimeError):
     pass
 
 
-@dataclasses.dataclass(frozen=True, slots=True)
+@dataclasses.dataclass(frozen=True)
 class GroupedKernelMeta:
     enabled: bool
     template: str
-    primary_group_axis: str | None
+    primary_group_axis: Optional[str]
     static_split_axes: tuple[str, ...]
     secondary_runtime_symbolic_axes: tuple[str, ...]
     group_features: tuple[GroupFeatureSpec, ...]
@@ -378,7 +378,7 @@ def _require_str(value: object, field_name: str) -> str:
     return value
 
 
-def _require_optional_str(value: object, field_name: str) -> str | None:
+def _require_optional_str(value: object, field_name: str) -> Optional[str]:
     if value is None:
         return None
     return _require_str(value, field_name)

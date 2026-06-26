@@ -19,7 +19,7 @@ torch.fx.GraphModule.
 
 import logging
 import operator
-from typing import Any
+from typing import Any, Optional
 
 from torch_mlir import ir
 from torch_mlir.extras.fx_importer import (
@@ -157,7 +157,7 @@ def patch_opaque_roundtrip_targets_for_fake_eval(
 def fake_tensor_propagate_mfusion_subgraph(
     sub_gm: torch.fx.GraphModule,
     fake_inputs: list,
-    fake_mode: FakeTensorMode | None = None,
+    fake_mode: Optional[FakeTensorMode] = None,
 ) -> None:
     """FakeTensorProp on an MFusion-exported subgraph; fixes mm when dvm_trans_* disagrees with torch.mm.
 
@@ -315,7 +315,7 @@ class FxExporter:
             ir.Value, Any
         ] = {}  # Maps MLIR Value to FX Node or Python Value
         self.constants_module = torch.nn.Module()
-        self.module: ir.Module | None = None
+        self.module: Optional[ir.Module] = None
 
     def export(self, module: ir.Module) -> torch.fx.GraphModule:
         """

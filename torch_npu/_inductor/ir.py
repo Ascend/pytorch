@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from collections.abc import Callable, Sequence
 from typing_extensions import Never
+from typing import Optional
 
 from sympy import Expr, Integer
 
@@ -13,11 +14,11 @@ from torch._inductor.virtualized import ops, V
 
 @ir_dataclass
 class IndexputTemplate(Scatter):
-    boundary: int | None = None
+    boundary: Optional[int] = None
 
     def store_output(
         self,
-        output_name: str | None,
+        output_name: Optional[str],
         indexer: Callable[[Sequence[Expr]], Never],
         store_vars: Sequence[Expr],
     ) -> None:
@@ -43,7 +44,7 @@ class IndexputTemplate(Scatter):
 class ScatterTemplate(Scatter):
     def store_output(
         self,
-        output_name: str | None,
+        output_name: Optional[str],
         indexer: Callable[[Sequence[Expr]], Never],
         store_vars: Sequence[Expr],
     ) -> None:

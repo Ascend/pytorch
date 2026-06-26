@@ -2,7 +2,7 @@ import logging
 import os
 import re
 from functools import cache
-from typing import Any
+from typing import Any, Optional
 
 import torch
 import torch.utils._pytree as pytree
@@ -96,7 +96,7 @@ def _mfusion_has_matmul(gm: GraphModule) -> bool:
     return False
 
 
-def _sanitize_mfusion_kernel_name_part(name: Any) -> str | None:
+def _sanitize_mfusion_kernel_name_part(name: Any) -> Optional[str]:
     if name is None:
         return None
     text = str(name)
@@ -108,7 +108,7 @@ def _sanitize_mfusion_kernel_name_part(name: Any) -> str | None:
     return text
 
 
-def _mfusion_op_name_from_target(target: Any) -> str | None:
+def _mfusion_op_name_from_target(target: Any) -> Optional[str]:
     overload_packet = getattr(target, "_overloadpacket", None)
     if overload_packet is not None:
         name = getattr(overload_packet, "__name__", None)
@@ -122,7 +122,7 @@ def _mfusion_op_name_from_target(target: Any) -> str | None:
     return _sanitize_mfusion_kernel_name_part(target)
 
 
-def _mfusion_op_name_from_node(node: Node) -> str | None:
+def _mfusion_op_name_from_node(node: Node) -> Optional[str]:
     original_aten = node.meta.get("original_aten")
     if original_aten is not None:
         name = _mfusion_op_name_from_target(original_aten)
@@ -156,7 +156,7 @@ def _mfusion_safe_repr(obj: Any, max_len: int = 240) -> str:
     return text
 
 
-def _extract_subgraph_name_from_arg(arg: Any, gm: GraphModule | None) -> str | None:
+def _extract_subgraph_name_from_arg(arg: Any, gm: Optional[GraphModule]) -> Optional[str]:
     if isinstance(arg, str):
         return arg
     if (
@@ -286,7 +286,7 @@ def _is_mfusion_op(fallback_kernel) -> bool:
     return fallback_kernel.op_overload._name.startswith("mfusion::")
 
 
-def _ensure_graph_module(orig_graph) -> GraphModule | None:
+def _ensure_graph_module(orig_graph) -> Optional[GraphModule]:
     if isinstance(orig_graph, GraphModule):
         return orig_graph
     if isinstance(orig_graph, Graph):
@@ -294,7 +294,7 @@ def _ensure_graph_module(orig_graph) -> GraphModule | None:
     return None
 
 
-def _find_output_node(graph: Graph) -> Node | None:
+def _find_output_node(graph: Graph) -> Optional[Node]:
     return next((node for node in graph.nodes if node.op == "output"), None)
 
 
@@ -322,7 +322,7 @@ def _copy_output_meta_value(value: Any) -> Any:
     return value
 
 
-def _snapshot_output_contract(output_node: Node | None) -> dict[str, Any]:
+def _snapshot_output_contract(output_node: Optional[Node]) -> dict[str, Any]:
     if output_node is None:
         return {}
 
@@ -341,7 +341,7 @@ def _snapshot_output_contract(output_node: Node | None) -> dict[str, Any]:
     }
 
 
-def _restore_output_contract(output_node: Node | None, snapshot: dict[str, Any]) -> None:
+def _restore_output_contract(output_node: Optional[Node], snapshot: dict[str, Any]) -> None:
     if output_node is None or not snapshot:
         return
 
