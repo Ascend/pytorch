@@ -1,6 +1,7 @@
 import logging
 import os  # noqa: C101
 import re
+from typing import Optional
 
 import torch
 import torch._inductor.config as inductor_config
@@ -59,7 +60,7 @@ class catlass:
     # Configures the maximum number of CATLASS configs to profile in max_autotune.
     # By default it's None, so that all CATLASS configs are tuned.
     # This is mainly used to reduce test time in CI.
-    catlass_max_profiling_configs: int | None = None
+    catlass_max_profiling_configs: Optional[int] = None
 
     catlass_backend_min_gemm_size: int = 1
 

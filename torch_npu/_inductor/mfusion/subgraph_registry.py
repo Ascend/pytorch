@@ -1,6 +1,7 @@
 import logging
 import threading
 from dataclasses import dataclass
+from typing import Optional
 
 import torch.fx
 
@@ -12,8 +13,8 @@ logger = logging.getLogger(__name__)
 class Payload:
     fx_gm: torch.fx.GraphModule
     is_dynamic: bool
-    torch_name: str | None = None
-    full_op_name: str | None = None
+    torch_name: Optional[str] = None
+    full_op_name: Optional[str] = None
 
 
 _registry: dict[str, Payload] = {}

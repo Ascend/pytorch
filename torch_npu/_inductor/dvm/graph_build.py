@@ -1,3 +1,5 @@
+from typing import Optional
+
 import torch
 import torch.utils._pytree as pytree
 from torch._inductor.utils import IndentedBuffer
@@ -33,7 +35,7 @@ class DvmCodegenInterpreter(torch.fx.Interpreter):
         gm: torch.fx.GraphModule,
         ktype: str,
         view_fusion_level=1,
-        is_dynamic: bool | None = None,
+        is_dynamic: Optional[bool] = None,
     ):
         super().__init__(gm)
         self.gm = gm

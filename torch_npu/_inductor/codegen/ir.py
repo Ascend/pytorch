@@ -1,6 +1,6 @@
 import itertools
 from math import gcd
-from typing import cast
+from typing import cast, Optional
 
 import sympy
 
@@ -876,7 +876,7 @@ def eliminate_modular(term):
     expr, lower, upper = term.args
 
     # Get symbol's length information
-    def get_symbol_length(symbol: sympy.Symbol) -> int | None:
+    def get_symbol_length(symbol: sympy.Symbol) -> Optional[int]:
         """Get symbol's length (from range tree)"""
         if symbol in V.kernel.range_tree_nodes:
             return V.kernel.range_tree_nodes[symbol].length

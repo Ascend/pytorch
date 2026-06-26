@@ -2,7 +2,7 @@ import dataclasses
 import os
 import sys
 from itertools import count, zip_longest
-from typing import Any, Optional
+from typing import Any, Optional, Union
 from typing_extensions import Self
 
 import sympy
@@ -416,7 +416,7 @@ class CppWrapperNpu(CppWrapperGpu):
 
     def generate_args_decl(
         self,
-        code: IndentedBuffer | Self,
+        code: Union[IndentedBuffer, Self],
         call_args,
         arg_types,
         arg_signatures,

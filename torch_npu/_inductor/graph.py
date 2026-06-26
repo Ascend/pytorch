@@ -1,6 +1,6 @@
 import itertools
 import operator
-from typing import Any
+from typing import Any, Union
 
 import sympy
 
@@ -54,8 +54,8 @@ def patch_codegen_with_cpp_wrapper():
                 compiled = self.compile_to_module().call
 
                 def materialize(
-                    x: torch.SymInt | torch.SymFloat | torch.Tensor,
-                ) -> int | float | torch.Tensor:
+                    x: Union[torch.SymInt, torch.SymFloat, torch.Tensor],
+                ) -> Union[int, float, torch.Tensor]:
                     if x is None:
                         return None
                     elif isinstance(x, (torch.SymInt, torch.SymFloat)):

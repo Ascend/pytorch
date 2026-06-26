@@ -6,7 +6,7 @@ import math
 import operator
 import re
 from collections.abc import Callable, Iterable, Sequence
-from typing import Any, cast, Optional
+from typing import Any, cast, Optional, Union
 
 import sympy
 
@@ -535,8 +535,8 @@ class IterationRangesRootNPUIndex(IterationRangesRoot):
         pid_cache=None,
         *,
         is_loop: bool,
-        tensor_dim: int | None,
-        grid_dim: int | None,
+        tensor_dim: Optional[int],
+        grid_dim: Optional[int],
     ):
         super().__init__(
             name,
@@ -658,7 +658,7 @@ class NPUTritonKernel(TritonKernel):
         tiling: dict[str, sympy.Expr],
         min_elem_per_thread=0,
         optimize_mask=True,
-        fixed_config: FixedTritonConfig | None = None,
+        fixed_config: Optional[FixedTritonConfig] = None,
         **kwargs,
     ):
         super().__init__(
@@ -729,7 +729,7 @@ class NPUTritonKernelWithLoop(NPUTritonKernel):
         tiling: dict[str, sympy.Expr],
         min_elem_per_thread=0,
         optimize_mask=True,
-        fixed_config: FixedTritonConfig | None = None,
+        fixed_config: Optional[FixedTritonConfig] = None,
         **kwargs,
     ):
         self.loop_header = IndentedBuffer()  # reduction loops prefix info
@@ -1254,7 +1254,7 @@ class NPUIndexTritonKernel(TritonKernel):
         tiling: dict[str, sympy.Expr],
         min_elem_per_thread=0,
         optimize_mask=True,
-        fixed_config: FixedTritonConfig | None = None,
+        fixed_config: Optional[FixedTritonConfig] = None,
         **kwargs,
     ):
         super().__init__(
@@ -3616,8 +3616,8 @@ class NPUIndexTritonKernel(TritonKernel):
         dtype: torch.dtype,
         src_dtype: torch.dtype,
         reduction_type: ReductionType,
-        value: CSEVariable | tuple[CSEVariable, ...],
-    ) -> CSEVariable | tuple[CSEVariable, ...]:
+        value: Union[CSEVariable, tuple[CSEVariable, ...]],
+    ) -> Union[CSEVariable, tuple[CSEVariable, ...]]:
         if not self.inside_reduction:
             raise RuntimeError("assert self.inside_reduction")
         if self.persistent_reduction and self.numof_reduction_axis() == 1:
@@ -4002,7 +4002,7 @@ class NPUIndexTritonKernel(TritonKernel):
         is_index_expr=False,
         apply_var_replacements=True,
         materialize_var_directions=True,
-    ) -> IndexingOptions | BlockPtrOptions:
+    ) -> Union[IndexingOptions, BlockPtrOptions]:
         """
         Compute the index and mask to pass to tl.load() or tl.store()
         """
@@ -4236,7 +4236,7 @@ class NPUIndexTritonKernel(TritonKernel):
     def _can_preserve_store_semantics_with_value_layout(
         self,
         value: CSEVariable,
-        raw_indexing: IndexingOptions | BlockPtrOptions,
+        raw_indexing: Union[IndexingOptions, BlockPtrOptions],
         index_analyze: IndexAnalysis,
     ) -> bool:
         if not isinstance(raw_indexing, IndexingOptions):
@@ -4489,7 +4489,7 @@ class NPUIndexTritonKernel(TritonKernel):
             @staticmethod
             def indirect_indexing(
                 var: CSEVariable,
-                size: sympy.Expr | int,
+                size: Union[sympy.Expr, int],
                 check: bool = True,
                 wrap_neg=True,
             ):
@@ -4601,8 +4601,8 @@ class NPUIndexTritonKernel(TritonKernel):
                 dtype: torch.dtype,
                 src_dtype: torch.dtype,
                 reduction_type: ReductionType,
-                value: CSEVariable | tuple[CSEVariable, ...],
-            ) -> CSEVariable | tuple[CSEVariable, ...]:
+                value: Union[CSEVariable, tuple[CSEVariable, ...]],
+            ) -> Union[CSEVariable, tuple[CSEVariable, ...]]:
                 self.num_reduction += 1
                 return self.reduction(dtype, src_dtype, reduction_type, value)
 
@@ -4633,8 +4633,8 @@ class NPUIndexTritonKernel(TritonKernel):
                 boundary_indices: CSEVariable,
                 indexing_dtype: torch.dtype,
                 right: bool,
-                sorter: tuple[str, sympy.Expr] | None = None,
-                sorter_indices: CSEVariable | None = None,
+                sorter: Optional[tuple[str, sympy.Expr]] = None,
+                sorter_indices: Optional[CSEVariable] = None,
             ) -> CSEVariable:
                 return self.bucketize(
                     values,
@@ -4973,7 +4973,7 @@ class NPUIndexTritonKernel(TritonKernel):
         self.exit_stack.enter_context(V.set_kernel_handler(self))
         return self
 
-    def call_kernel(self, name: str, node: IRNode | None = None, origin_node=None):
+    def call_kernel(self, name: str, node: Optional[IRNode] = None, origin_node=None):
         if is_multi_stream():
             wrapper = V.graph.wrapper_code
             wrapper.write_triton_header_once()
