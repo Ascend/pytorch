@@ -22,10 +22,12 @@ from torch._inductor.pattern_matcher import (
 )
 from torch.fx.operator_schemas import normalize_function
 
-from torch_npu.npu.utils import get_cann_version
+# Returns True if installed CANN version >= given version.
+from torch_npu.npu.utils import _is_gte_cann_version
+
+_CANN_VERSION = _is_gte_cann_version("9.1.0")
 from . import _proxy_ops
 
-_CANN_VERSION = get_cann_version("CANN")
 
 
 _PASS_KEY = "fav3_partition"
@@ -63,7 +65,7 @@ def _make_check_and_handler(target):
         if input_layout.upper() == "TND":
             if float(keep_prob) < 1.0:
                 return True
-            if float(keep_prob) == 1.0 and _CANN_VERSION < "9.1.0":
+            if float(keep_prob) == 1.0 and not _CANN_VERSION:
                 return True
         return False
 
