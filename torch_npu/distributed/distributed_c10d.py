@@ -60,7 +60,9 @@ from torch.distributed.distributed_c10d import (
 )
 from torch.distributed.elastic.rendezvous import RendezvousParameters
 from torch_npu import npu
-from torch_npu.utils import get_cann_version
+from torch_npu.npu.utils import _is_gte_cann_version
+
+_CANN_VERSION = _is_gte_cann_version("9.0.0")
 from torch_npu.utils._error_code import dist_error, ErrCode
 
 
@@ -77,7 +79,6 @@ if is_xccl_available():
 
 logger = logging.getLogger("torch.distributed")
 origin_get_sequence_number_for_group = ProcessGroup._get_sequence_number_for_group
-cann_version = get_cann_version("CANN")
 npu_device_name = None
 
 
@@ -110,7 +111,7 @@ def _batch_isend_irecv(p2p_op_list):
         is_fake_backend = isinstance(_group, FakeProcessGroup)
         if (
             (isinstance(group, ProcessGroup)
-            and cann_version >= "9.0.0"
+            and _CANN_VERSION
             and is_supported_device_name) or is_fake_backend
         ):
             # coalescing manager
