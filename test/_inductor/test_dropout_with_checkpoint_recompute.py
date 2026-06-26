@@ -43,4 +43,5 @@ class TestDropoutWithCheckpointRecompute(TestUtils):
 instantiate_parametrized_tests(TestDropoutWithCheckpointRecompute)
 
 if __name__ == "__main__":
-    run_tests()
+    with torch._inductor.config.patch("fallback_random", True):
+        run_tests()

@@ -1,9 +1,10 @@
+import collections
 import functools
 import itertools
 import os
 import math
-from torch_npu.utils._path_manager import PathManager
 import textwrap
+from torch_npu.utils._path_manager import PathManager
 from typing import (
     Any,
     Callable,
@@ -21,6 +22,7 @@ from torch._inductor import ir
 from torch._inductor import lowering
 from torch._inductor import scheduler
 from torch._inductor.decomposition import decompositions, pw_cast_for_opmath
+from torch._higher_order_ops.triton_kernel_wrap import triton_kernel_wrapper_mutation
 from torch._inductor.fx_passes.post_grad import view_to_reshape
 from torch._inductor.ir import (
     ExpandView,
@@ -36,6 +38,18 @@ from torch._inductor.ir import (
     validate_ir,
     View,
 )
+from torch._inductor.lowering import mul
+from torch._inductor.scheduler import (
+    Dep,
+    WeakDep,
+    Scheduler,
+    SchedulerNode,
+    SchedulerBuffer,
+    FusedSchedulerNode,
+    BaseSchedulerNode,
+    ExternKernelSchedulerNode,
+    NopKernelSchedulerNode,
+    )
 from torch._inductor.utils import ModularIndexing, FloorDiv
 from torch._inductor.utils import (
     decode_device,
@@ -54,11 +68,13 @@ from torch._prims_common import (
     Number,
 )
 from torch.fx.experimental.proxy_tensor import make_fx
+from torch.utils._ordered_set import OrderedSet
 from torch.utils._sympy.functions import (
     FloorDiv,
     Identity,
     ModularIndexing,
 )
+from torch_npu._inductor import ir as npu_ir
 from .config import log
 from .lowering_common import (
     TracedGraph,
@@ -76,7 +92,6 @@ from .lowering_common import (
     register_to_aten as _register_to_aten,
     subtract_graph,
 )
-from .lowering_op_list import GENERATE_LIST, GENERATE_LIST2, FALLBACK_LIST, LOWERING_OVERLOAD_OP
 
 aten = torch.ops.aten
 tr_c10d = torch.ops.tr_c10d
@@ -88,6 +103,150 @@ fn_to_aten_fn = {}
 node_id = itertools.count(0)
 snodes_to_fx = {}
 
+DUMP_FX_GRAPH_LOWERING_OPS = [
+    prims.convert_element_type,
+    aten.where,
+    aten.broadcast_tensors,
+    aten.squeeze,
+    aten.squeeze_,
+    aten.isinf,
+    aten.isnan,
+    aten.ceil,
+    aten.floor,
+    aten.round,
+    aten.trunc,
+    aten.expand,
+    aten.expand_as,
+    prims.device_put,
+    aten.repeat,
+    aten._unsafe_view,
+    aten.view,
+    aten.reshape,
+    aten.permute,
+    aten.slice,
+    aten.select,
+    aten.unbind,
+    aten.unsqueeze,
+    aten.unsqueeze_,
+    aten.copy,
+    prims.iota,
+    aten.select_scatter,
+    aten.slice_scatter,
+    aten.scalar_tensor,
+    aten.empty_strided,
+    aten.empty,
+    aten.full,
+    aten.clone,
+    aten.constant_pad_nd,
+    aten.pow,
+    aten.empty_like,
+    aten.full_like,
+    aten.fill_,
+    aten.copy_,
+    aten.div,
+    aten.true_divide,
+    aten.mul,
+    aten.reciprocal,
+    prims.div,
+    aten.rsqrt,
+    aten.prod,
+    aten.any,
+    prims.xor_sum,
+    aten.add,
+    aten.exp,
+    aten.exp2,
+    aten.expm1,
+    aten.relu,
+    aten.sigmoid,
+    aten.split,
+    aten.split_with_sizes,
+    aten.sqrt,
+    aten.square,
+    aten.sub,
+    aten.cos,
+    aten.sin,
+    aten.abs,
+    aten.bitwise_and,
+    aten.bitwise_left_shift,
+    aten.bitwise_not,
+    aten.bitwise_or,
+    aten.bitwise_right_shift,
+    aten.bitwise_xor,
+    aten.lgamma,
+    aten.erf,
+    aten.special_erf,
+    aten.log1p,
+    aten.tan,
+    aten.tanh,
+    aten.log,
+    aten.logical_and,
+    aten.logical_not,
+    aten.logical_or,
+    aten.logical_xor,
+    aten.maximum,
+    aten.minimum,
+    aten.clamp_min,
+    aten.clamp_max,
+    aten.neg,
+    aten._neg_view,
+    aten.remainder,
+    aten.sign,
+    aten.signbit,
+    aten.le,
+    aten.lt,
+    aten.ge,
+    aten.gt,
+    aten.eq,
+    aten.ne,
+    aten.cosh,
+    aten.sinh,
+    aten.acos,
+    aten.acosh,
+    aten.asin,
+    aten.asinh,
+    aten.atan2,
+    aten.atan,
+    aten.atanh,
+    aten.copysign,
+    aten.erfc,
+    aten.erfinv,
+    aten.hypot,
+    aten.log10,
+    aten.log2,
+    aten.nextafter,
+    aten.add_,
+    aten.bitwise_and_,
+    aten.bitwise_left_shift_,
+    aten.bitwise_not_,
+    aten.bitwise_or_,
+    aten.bitwise_right_shift_,
+    aten.bitwise_xor_,
+    aten.mul_,
+    aten.logical_and_,
+    aten.logical_not_,
+    aten.logical_or_,
+    aten.logical_xor_,
+    aten.sub_,
+    aten.relu_,
+    aten.sigmoid_,
+    aten.__and__,
+    aten.__lshift__,
+    aten.__or__,
+    aten.__rshift__,
+    aten.__xor__,
+    aten.__iand__,
+    aten.__ilshift__,
+    aten.__ior__,
+    aten.__irshift__,
+    aten.__ixor__,
+    aten.sum,
+    prims.sum,
+    torch.ops._inductor_test.realize,
+    torch.ops._inductor_test.realize.default,
+    aten.embedding,
+    aten.gather,
+]
+
 
 def register_fn_to_aten_fn(fn, aten_fn=None):
     return _register_fn_to_aten_fn(fn_to_aten_fn, fn, aten_fn)
@@ -98,6 +257,90 @@ def register_to_aten(aten_fn=None):
 
 
 reduction_type_to_aten_fn = get_reduction_type_to_aten_fn()
+
+
+def npu_compute_ancestors(self) -> None:
+    """
+    Populate each node.ancestors
+    """
+    # note self.nodes is topologically sorted
+    name_to_ancestors: Dict[str, OrderedSet[str]] = {}
+    for node in self.nodes:
+        ancestors: OrderedSet[str] = OrderedSet()
+        for dep in node.unmet_dependencies:
+            if dep.name not in self.name_to_buf:
+                continue
+            dep_node_name = self.name_to_buf[dep.name].defining_op.get_name()
+            ancestors.add(dep_node_name)
+            ancestors |= name_to_ancestors[dep_node_name]
+        name_to_ancestors[node.get_name()] = ancestors
+        node.ancestors = ancestors
+
+    for order, node in enumerate(self.nodes):
+        node.min_order = order
+        node.max_order = order
+
+
+def _npu_prune_redundant_deps(
+    node: BaseSchedulerNode,
+    name_to_fused_node: Dict[str, BaseSchedulerNode],
+    name_to_buf: Dict[str, SchedulerBuffer],
+) -> None:
+    """
+    Prunes weakdeps intended for mutation ordering
+    on an upstream fused node if after fusion there is another dependency
+    on the fused upstream node, making the weakdep redundant
+
+    In essence this enforces an ordering on fusions. As fusions occur, weakdeps will
+    be incrementally removed, enabling other fusions, ensuring they are fused in order.
+    """
+    name_to_dep_count: collections.Counter[str] = collections.Counter()
+
+    for dep in node.unmet_dependencies:
+        if not isinstance(dep, WeakDep) and dep.name in name_to_buf:
+            op = name_to_buf[dep.name].defining_op
+            name_to_dep_count[name_to_fused_node[op.get_name()].get_name()] += 1
+
+    def should_prune(dep: Dep) -> bool:
+        if isinstance(dep, WeakDep) and dep.name in name_to_buf:
+            op_name = name_to_buf[dep.name].defining_op.get_name()
+            is_redundant = name_to_dep_count[name_to_fused_node[op_name].get_name()] > 0
+            # These can occur because fused nodes always gather deps from their snodes
+            # If B has a weakdep on A
+            # B gets fused with C, then any time BC is fused, the weakdep will reappear
+            is_self_dep = name_to_fused_node[op_name] == node
+            return is_redundant or is_self_dep
+        else:
+            return False
+
+    deps_to_prune = OrderedSet(
+        dep for dep in node.unmet_dependencies if should_prune(dep)
+    )
+
+    if deps_to_prune:
+        node.unmet_dependencies = node.unmet_dependencies - deps_to_prune
+        node.set_read_writes(node.read_writes.remove_reads(deps_to_prune))
+
+
+def _npu_get_unmet_dep_nodes(self, snode: BaseSchedulerNode) -> List[BaseSchedulerNode]:
+    unmet_deps = set()
+    if isinstance(
+        snode,
+        (
+            SchedulerNode,
+            ExternKernelSchedulerNode,
+            NopKernelSchedulerNode,
+            FusedSchedulerNode,
+        ),
+    ):
+        for dep in snode.unmet_dependencies:
+            unmet_deps.add(dep.name)
+    else:
+        raise RuntimeError(
+            f"get_unmet_dep_nodes is not implemented for {type(snode)}."
+        )
+    unmet_dep_ops = (self.name_to_buf[dep].defining_op for dep in unmet_deps if dep in self.name_to_buf)
+    return list({self.name_to_fused_node[n.get_name()] for n in unmet_dep_ops})
 
 operator_to_string = TRITON_OPERATOR_MAPPING.operator_to_string
 string_to_operator = TRITON_OPERATOR_MAPPING.string_to_operator
@@ -121,7 +364,6 @@ def process_ir_constant(inp: ExpandView) -> Union[TracedGraph, int, float]:
 
 def fetch_graphs(inputs: Optional[List[TensorBox]]):
     return _fetch_graphs(inputs, TRITON_OPERATOR_MAPPING, use_npu_meta=True)
-
 
 def merge_traced_graphs(input_graphs: List[TracedGraph], origin_fn, node_name, **kwargs):
     return _merge_traced_graphs(
@@ -227,18 +469,52 @@ def create_compile_kwargs(final_kernel, fx_call_args, fx_args):
     for idx, call_arg in enumerate(fx_call_args):
         if call_arg in final_kernel.args.inplace_buffers:
             fx_call_args[idx] = final_kernel.args.inplace_buffers[call_arg].other_names[-1]
-    fx_arg_shapes = [fx_arg.shape for fx_arg in fx_args if isinstance(fx_arg, torch.Tensor)]
+    fx_arg_shapes = [fx_arg.shape if isinstance(fx_arg, torch.Tensor) else ['ushape'] for fx_arg in fx_args]
 
-    if set(kernel_call_args) != set(fx_call_args):
+    fx_call_args_no_dy = [arg for arg in fx_call_args if not (arg.startswith(("_", "u")))]
+
+    if set(kernel_call_args) != set(fx_call_args_no_dy):
+        # Handle NonOwningLayout alias
+        kernel_call_args_set = set(kernel_call_args)
+        for idx, call_arg in enumerate(fx_call_args):
+            if call_arg in kernel_call_args_set:
+                continue
+            buf = V.graph.try_get_buffer(call_arg)
+            if buf is None:
+                continue
+            for alias_target in buf.get_inputs_that_alias_output():
+                if alias_target in kernel_call_args_set:
+                    fx_call_args[idx] = alias_target
+                    break
+
+    fx_call_args_no_dy = [arg for arg in fx_call_args if not (arg.startswith(("_", "u")))]
+    if set(kernel_call_args) != set(fx_call_args_no_dy):
         return None
     final_kernel.add_numel_to_call_args(final_kernel.kernel_name, kernel_call_args, arg_types)
 
-    index_map = {element: idx for idx, element in enumerate(kernel_call_args)}
-    call_args_mapping = [index_map[element] for element in fx_call_args]
-
+    kernel_call_args = [
+        map_operators_to_strings(str(item.inner_expr)) if isinstance(item, torch._inductor.codegen.wrapper.SymbolicCallArg)
+        else item
+        for item in kernel_call_args
+    ]
+    index_map = {str(element): idx for idx, element in enumerate(kernel_call_args)}
+    call_args_mapping = [index_map[str(element)] for element in fx_call_args if str(element) in index_map]
     mismatch_indices_shapes = {}
 
+    def is_dynamic_shape_dim(d):
+        if str(type(d)).find("torch.fx.expermental.symbolic_shapes") != -1:
+            return True
+        s = str(d).strip()
+        if s.startswith("u") or s.startswith("i") or s in ("-1", "?"):
+            return True
+        try:
+            return int(d) < 0
+        except:
+            return True
+
     for i in range(len(fx_call_args)):
+        if any(is_dynamic_shape_dim(dim) for dim in fx_arg_shapes[i]):
+            continue
         mismatch_indices_shapes[i] = fx_arg_shapes[i]
 
     return {
@@ -271,7 +547,7 @@ from torch._inductor.codegen.multi_kernel import MultiKernelCall
 import triton
 import triton.language as tl
 from torch._inductor.runtime.triton_heuristics import start_graph, end_graph
-from torch_npu._inductor import get_current_raw_stream as get_raw_stream
+from torch_npu._C import _npu_getCurrentRawStream as get_raw_stream
 from torch_npu._inductor import config as npu_config
 
 aten = torch.ops.aten
@@ -298,15 +574,17 @@ num_inputs = {compile_kwargs['num_inputs']}
 num_outputs = {compile_kwargs['num_outputs']}
 non_contiguous_indices = {compile_kwargs['non_contiguous_indices']}
 mismatch_indices_shapes = {compile_kwargs['mismatch_indices_shapes']}
+
 async_compile = AsyncCompile()
 {kernel_name} = async_compile.triton('{kernel_name}', '''
 {kernel_code}
-''', device_str='npu')
+    ''', device_str='npu')
 
 async_compile.wait(globals())
 del async_compile
 
 def run():
+
     stream0 = get_raw_stream(0)
 
 
@@ -320,9 +598,14 @@ def run():
     fx_args = []
     for idx in call_args_mapping:
         arg = args[idx]
-        if isinstance(arg, torch.Tensor):
-            fx_arg = clone_preserve_strides(arg).float() if arg.dtype == torch.bfloat16 else clone_preserve_strides(arg)
-            fx_args.append(fx_arg)
+        if isinstance(arg, int):
+            fx_args.append(arg)
+            continue
+
+        if not isinstance(arg, torch.Tensor):
+            arg = torch.tensor(arg).npu()
+        fx_arg = clone_preserve_strides(arg).float() if arg.dtype == torch.bfloat16 else clone_preserve_strides(arg)
+        fx_args.append(fx_arg)
 
     fx_inputs = [fx_args[idx].contiguous() if idx in non_contiguous_indices['inputs'] else fx_args[idx] for idx in range(num_inputs)]
     if len(mismatch_indices_shapes):
@@ -347,7 +630,7 @@ def run():
         rtol = acc_comp_tol['rtol']
         atol = acc_comp_tol['atol']
         try:
-            torch.testing.assert_close(actual, expected, rtol=rtol, atol=atol, equal_nan=False)
+            torch.testing.assert_close(actual, expected, rtol=rtol, atol=atol, equal_nan=True)
         except Exception as e:
             print(e)
 
@@ -355,6 +638,27 @@ if __name__ == "__main__":
     run()
 """
     return code_template
+
+
+def dump_fx_graph_code(code, dump_path, traced_graph_hash):
+    py_path = os.path.join(dump_path, traced_graph_hash + '.py')
+    with open(py_path, 'w') as f:
+        f.write(code)
+
+
+def clone(x, *, memory_format=None):
+    # TODO(jansel): memory format
+    input_graphs = fetch_graphs(x)
+    node_name = f'clone_{next(node_id)}'
+    new_graph = merge_traced_graphs(input_graphs, aten.clone, node_name)
+    return Pointwise.create(
+        device=x.get_device(),
+        dtype=x.get_dtype(),
+        inner_fn=x.make_loader(),
+        ranges=list(x.get_size()),
+        traced_graph=new_graph,
+        node_name=node_name
+    )
 
 
 def make_pointwise(
@@ -546,6 +850,74 @@ def clone(x, *, memory_format=None):
         node_name=node_name
     )
 
+def pointwise_cat(inputs, dim=0):
+    inputs_ranges: list[tuple[sympy.Expr, sympy.Expr]] = []
+    prev_end = 0
+    for inp in inputs:
+        inputs_ranges.append((prev_end, prev_end + inp.get_size()[dim]))
+        prev_end = inputs_ranges[-1][-1]
+
+    inputs_loaders = [inp.make_loader() for inp in inputs]
+
+    def inner_fn(idx):
+        idx_dim = ops.index_expr(idx[dim], torch.int64)
+
+        masks = []
+        masked_loads = []
+        for i in range(len(inputs)):
+            start = (
+                ops.constant(0, torch.int64)
+                if i == 0
+                else ops.index_expr(inputs_ranges[i][0], torch.int64)
+            )
+            end = ops.index_expr(inputs_ranges[i][1], torch.int64)
+
+            start_cond = ops.ge(idx_dim, start)
+            end_cond = ops.lt(idx_dim, end)
+            if i == 0:
+                mask = end_cond
+            elif i == len(inputs) - 1:
+                mask = start_cond
+            else:
+                mask = ops.and_(start_cond, end_cond)
+
+            masks.append(mask)
+            idx_load = list(idx)
+
+            idx_load[dim] = Identity(idx_load[dim] - inputs_ranges[i][0])
+
+            masked_loads.append(
+                ops.masked(
+                    mask,
+                    lambda: inputs_loaders[i](idx_load),
+                    0.0,
+                ),
+            )
+
+        next_val = masked_loads[-1]
+        for i in range((len(inputs)) - 2, -1, -1):
+            next_val = ops.where(
+                masks[i],
+                masked_loads[i],
+                next_val,
+            )
+        return next_val
+
+    new_size = list(inputs[0].get_size())
+    new_size[dim] = inputs_ranges[-1][-1]
+
+    input_graphs = fetch_graphs(inputs)
+    node_name = f'cat_{next(node_id)}'
+    new_graph = merge_traced_graphs([input_graphs], aten.cat, node_name, dim=dim)
+
+    return Pointwise.create(
+        device=inputs[0].get_device(),
+        dtype=inputs[0].get_dtype(),
+        inner_fn=inner_fn,
+        ranges=new_size,
+        traced_graph=new_graph,
+        node_name=node_name,
+    )
 
 def _register_npu_inductor_fallbacks_fx(make_reduction):
 
@@ -756,6 +1128,8 @@ def _register_npu_inductor_fallbacks_fx(make_reduction):
             )(fn)
         return fn
 
+
+
     @register_lowering(aten.where, broadcast=False, type_promotion_kind=None)
     def where(cond, a, b):
         def fn(*args):
@@ -836,7 +1210,7 @@ def _register_npu_inductor_fallbacks_fx(make_reduction):
         for d, s in enumerate(x.get_size()):
             if not (
                     d in dims
-                    and V.graph.sizevars.evaluate_expr(sympy.Eq(s, 1, size_oblivious=True))
+                    and V.graph.sizevars.evaluate_expr(sympy.Eq(s, 1), size_oblivious=True)
             ):
                 new_shape.append(s)
 
@@ -936,6 +1310,23 @@ def _register_npu_inductor_fallbacks_fx(make_reduction):
     def expand_as(x, y):
         return expand(x, y.get_size())
 
+    def to_device(x: TensorBox, device: torch.device, *, copy=False, non_blocking=False):
+        device = decode_device(device)
+        if x.get_device() == device:
+            return clone(x) if copy else x
+        input_graphs = fetch_graphs([x, device])
+        node_name = f'device_put_{next(node_id)}'
+        new_graph = merge_traced_graphs(input_graphs, prims.device_put, node_name, non_blocking=non_blocking)
+        out_data = ir.DeviceCopy.create(x, device, non_blocking)
+        out_data._post_init_setattr("traced_graph", new_graph)
+        out_data._post_init_setattr("node_name", node_name)
+        out = TensorBox.create(out_data)
+        return out
+
+    @register_lowering(prims.device_put, type_promotion_kind=None)
+    def _device_put(x: TensorBox, device: torch.device, non_blocking=False):
+        return to_device(x, device, copy=True, non_blocking=non_blocking)
+
     @register_lowering(aten.repeat)
     def repeat(x, repeats):
         input_graphs = fetch_graphs([x, repeats])
@@ -1033,42 +1424,10 @@ def _register_npu_inductor_fallbacks_fx(make_reduction):
         idx = View.handle_negative_index(idx, x.get_size()[dim])
         return squeeze(slice_(x, dim, idx, idx + 1), dim)
 
-    @register_lowering(aten.split, type_promotion_kind=None)
-    def split(x, sizes, dim=0):
-        dim = _validate_dim(x, dim, 0)
-        sizes_ = sizes
-
-        # If sizes is an integer (or a SymInt), we turn it into a list of sizes
-        # by computing what the actual size of each chunk should be.
-        if not isinstance(sizes, (list, tuple)):
-            x_size = x.get_size()[dim]
-            chunks = V.graph.sizevars.evaluate_static_shape(
-                FloorDiv(x_size + sizes - 1, sizes)
-            )
-            sizes_ = [sizes] * chunks
-            # The last chunk might have a smaller size than the rest.
-            sizes_[-1] = x_size - (chunks - 1) * sizes
-
-        # From this point, we assume that the sum of the sizes of all chunks
-        # equals the size of the base tensor.
-        result = []
-        start = 0
-        for size in sizes_:
-            end = start + size
-            # No need for clamping here, since we compute the exact
-            # start and end values.
-            result.append(slice_(x, dim, start, end, clamp=False))
-            start = end
-        return result
-
-    @register_lowering(aten.split_with_sizes, type_promotion_kind=None)
-    def split_with_sizes(x, sizes, dim=0):
-        return split(x, sizes, dim)
-
     @register_lowering(aten.unbind, type_promotion_kind=None)
     def unbind(x, dim=0):
         dim = _validate_dim(x, dim, 0)
-        x_size = V.graph.sizevars.evaluate_static_shape(x.get_size()[dim])
+        x_size = V.graph.sizevars.guard_int(x.get_size()[dim])
         result = [select(x, dim, i) for i in range(x_size)]
         return result
 
@@ -1149,8 +1508,8 @@ def _register_npu_inductor_fallbacks_fx(make_reduction):
         dim = _validate_dim(x, dim, 0)
         if V.graph.sizevars.evaluate_expr(sympy.Lt(index, 0)):
             index = index + x.get_size()[dim]
-        V.graph.sizevars.guard_leq(0, index)  # type: ignore[arg-type]
-        V.graph.sizevars.guard_lt(index, x.get_size()[dim])  # type: ignore[arg-type]
+        V.graph.sizevars.check_leq(0, index)  # type: ignore[arg-type]
+        V.graph.sizevars.check_lt(index, x.get_size()[dim])  # type: ignore[arg-type]
         src = expand(unsqueeze(src, dim), x.get_size())
         src_loader = src.make_loader()
 
@@ -1387,7 +1746,7 @@ def _register_npu_inductor_fallbacks_fx(make_reduction):
     ):
         if not isinstance(size, (list, tuple)):
             raise RuntimeError(f"assert Expected list or tuple")
-        if not isinstance(stride, (list, tuple)):
+        if stride is not None and not isinstance(stride, (list, tuple)):
             raise RuntimeError(f"assert Expected list or tuple or None")
         lowering.assert_nyi(not pin_memory, "pin_memory")
         lowering.assert_nyi(layout in (None, torch.strided), f"layout={layout}")
@@ -1655,9 +2014,6 @@ def _register_npu_inductor_fallbacks_fx(make_reduction):
             fn = register_fn_to_aten_fn(fn, aten.mul)
             return make_pointwise(fn)(a, b)
 
-    @register_lowering([aten.reciprocal], broadcast=True, )
-    def reciprocal(a):
-        return div(1.0, a)
 
     @register_lowering([prims.div], broadcast=True)
     def div_prim(a, b):
@@ -1718,36 +2074,7 @@ def _register_npu_inductor_fallbacks_fx(make_reduction):
         x = to_dtype(x, torch.bool)
         return make_reduction("any")(x, axis=dim, keepdims=keepdim)
 
-    @register_lowering(aten.max, type_promotion_kind=None)
-    def reduce_max(x, dim=None, keepdim=False):
-        if dim is not None:
-            return (
-                reduce_amax(x, axis=dim, keepdims=keepdim),
-                reduce_argmax(x, axis=dim, keepdims=keepdim),
-            )
-
-        return reduce_amax(x, axis=None, keepdims=keepdim)
-
-    @register_lowering(aten.min, type_promotion_kind=None)
-    def reduce_min(x, dim=None, keepdim=False):
-        if dim is not None:
-            return (
-                reduce_amin(x, axis=dim, keepdims=keepdim),
-                reduce_argmin(x, axis=dim, keepdims=keepdim),
-            )
-
-        return reduce_amin(x, axis=None, keepdims=keepdim)
-
     register_lowering(prims.xor_sum)(make_reduction("xor_sum"))
-    reduce_amax = register_lowering(aten.amax)(make_reduction("max"))
-    reduce_amin = register_lowering(aten.amin)(make_reduction("min"))
-    reduce_argmax = register_lowering(aten.argmax)(
-        make_reduction("argmax", override_return_dtype=torch.int64)
-    )
-    reduce_argmin = register_lowering(aten.argmin)(
-        make_reduction("argmin", override_return_dtype=torch.int64)
-    )
-
     add = register_pointwise(
         aten.add, allow_alpha=True, override_fn_when_input_bool="logical_or"
     )
@@ -1866,6 +2193,7 @@ def _register_npu_inductor_fallbacks_fx(make_reduction):
     register_pointwise_numeric(aten.log10)
     register_pointwise_numeric(aten.log2)
     register_pointwise_numeric(aten.nextafter)
+    register_pointwise_numeric(aten.reciprocal)
 
     register_inplace(aten.add_, add)
     register_inplace(aten.bitwise_and_, bitwise_and)
@@ -1908,7 +2236,131 @@ def _register_npu_inductor_fallbacks_fx(make_reduction):
         fn = make_reduction("sum", override_return_dtype=dtype)
         return fn(x, axis, keepdims, dtype=dtype)
 
-    lowering.make_fallback(aten._log_softmax)
-    lowering.make_fallback(aten.gather)
-    lowering.make_fallback(aten.nll_loss_forward)
-    return (squeeze, _validate_dim, div, square, sub, sum_)
+    def inductor_embedding(weight, indices, padding_idx=-1, scale_grad_by_freq=False, sparse=False):
+        if sparse:
+            raise ValueError("Sparse tensors are not supported.")
+        if not isinstance(weight, TensorBox):
+            raise TypeError(f"Expected weight to be a TensorBox, got {type(weight)}.")
+        if not isinstance(indices, TensorBox):
+            raise TypeError(f"Expected indices to be a TensorBox, got {type(indices)}.")
+        if "int" not in str(indices.get_dtype()):
+            raise TypeError(f"indices must have integer dtype, got {indices.get_dtype()}.")
+
+        weight_loader = weight.make_loader()
+        indices_loader = indices.make_loader()
+        indices_ndim = len(indices.get_size())
+        weight_size = weight.get_size()
+        new_size = [*indices.get_size(), *weight_size[1:]]
+
+        def fn(idx):
+            if len(idx) != len(new_size):
+                raise ValueError(f"Length mismatch: len(idx)={len(idx)} != len(new_size)={len(new_size)} ({idx} != {new_size})")
+            var_index = indices_loader(idx[:indices_ndim])
+            weight_idx = [ops.indirect_indexing(var_index, weight_size[0])] + [
+                *idx[indices_ndim:]
+            ]
+            return weight_loader(weight_idx)
+
+        input_graphs = fetch_graphs([weight, indices])
+        node_name = f'embedding_{next(node_id)}'
+        new_graph = merge_traced_graphs(input_graphs, torch.ops.aten.embedding.default, node_name, padding_idx=padding_idx, scale_grad_by_freq=scale_grad_by_freq, sparse=sparse)
+
+        return Pointwise.create(
+            device=weight.get_device(),
+            dtype=weight.get_dtype(),
+            inner_fn=fn,
+            ranges=new_size,
+            traced_graph=new_graph,
+            node_name=node_name
+        )
+
+    def inductor_gather(x, dim, index, sparse_grad=False):
+        # sparse_grad doesn't affect forward computation,
+        # and backward tracing is taken care of by AOT Autograd
+        if not isinstance(x, TensorBox):
+            raise TypeError(f"Expected x to be a TensorBox, got {type(x)}.")
+        if index.get_numel() == 0:
+            # Empty index case. Return an empty array with the same shape
+            return new_empty(x, index.get_size())
+
+        input_graphs = fetch_graphs([x, dim, index])
+        node_name = f'gather_{next(node_id)}'
+        new_graph = merge_traced_graphs(input_graphs, torch.ops.aten.gather.default, node_name, sparse_grad=sparse_grad)
+
+        if not index.get_dtype() == torch.int64:
+            raise TypeError(f"index must have integer dtype, got {index.get_dtype()}.")
+
+        size = x.get_size()
+        offset = len(size) == 0
+        dim = _validate_dim(x, dim, offset)
+
+        if offset:
+            x = expand(x, [1])
+            size = [1]
+
+        x_loader = x.make_loader()
+        index_loader = index.make_loader()
+
+        def fn(idx):
+            idx = list(idx)
+            gather_idx = ops.indirect_indexing(index_loader(idx), size[dim])
+            if len(idx) == 0:
+                idx = [gather_idx]
+            else:
+                idx[dim] = gather_idx
+            return x_loader(idx)
+
+        return Pointwise.create(
+            device=x.get_device(),
+            dtype=x.get_dtype(),
+            inner_fn=fn,
+            ranges=index.get_size(),
+            traced_graph=new_graph,
+            node_name=node_name
+        )
+
+    def inductor_index_impl(x, indices, check):
+        input_graphs = fetch_graphs([x, indices])
+        node_name = f'index_{next(node_id)}'
+        new_graph = merge_traced_graphs(input_graphs, torch.ops.aten.index.Tensor, node_name)
+        output_size, inner_fn, _ = lowering.index_impl_helper(x, indices, check)
+
+        return Pointwise.create(
+            device=x.get_device(),
+            dtype=x.get_dtype(),
+            inner_fn=inner_fn,
+            ranges=output_size,
+            traced_graph=new_graph,
+            node_name=node_name
+        )
+
+    @register_lowering(aten.split, type_promotion_kind=None)
+    def split(x, sizes, dim=0):
+        dim = _validate_dim(x, dim, 0)
+        sizes_ = sizes
+
+        if not isinstance(sizes, (list, tuple)):
+            x_size = x.get_size()[dim]
+            chunks = V.graph.sizevars.guard_int(
+                FloorDiv(x_size + sizes - 1, sizes)
+            )
+            sizes_ = [sizes] * chunks
+            sizes_[-1] = x_size - (chunks - 1) * sizes
+
+        result = []
+        start = 0
+        for size in sizes_:
+            end = start + size
+            result.append(slice_(x, dim, start, end, clamp=False))
+            start = end
+        return result
+
+    @register_lowering(aten.split_with_sizes, type_promotion_kind=None)
+    def split_with_sizes(x, sizes, dim=0):
+        return split(x, sizes, dim)
+
+    lowering.index_impl=inductor_index_impl
+    lowering.embedding=inductor_embedding
+    lowering.gather=inductor_gather
+
+    return (squeeze, expand, view, unsqueeze, _validate_dim, full_like, mul, div, rsqrt, add, square, sub)

@@ -3,12 +3,7 @@ from typing import Iterable
 from typing import Iterable
 from typing import Tuple, List
 import sympy
-import torch
-from torch._inductor.codegen.simd import SIMDScheduling
 from torch._inductor.codegen.simd_kernel_features import SIMDKernelFeatures, NodeScheduleEntry
-from torch._inductor.utils import cache_on_self
-from torch._inductor.virtualized import V
-from torch.utils._ordered_set import OrderedSet
 
 
 class NumelList(Tuple):

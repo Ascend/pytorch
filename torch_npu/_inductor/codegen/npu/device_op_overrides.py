@@ -1,15 +1,9 @@
-import torch
-from torch._inductor.codegen.common import register_device_op_overrides
-from torch_npu.npu import device_count
-from torch_npu.utils._dynamo_device import NpuInterface, current_device, set_device
-from torch_npu.utils._inductor import NPUDeviceOpOverrides
-from . import config as npu_config
+from torch._inductor.codegen.common import DeviceOpOverrides, register_device_op_overrides
 
 
-## Override original inductor device overrides in torch_npu
-class NewNPUDeviceOpOverrides(NPUDeviceOpOverrides):
+class NewNPUDeviceOpOverrides(DeviceOpOverrides):
     def import_get_raw_stream_as(self, name):
-        return f"from torch_npu._inductor import get_current_raw_stream as {name}"
+        return f"from torch_npu._C import _npu_getCurrentRawStream as {name}"
 
     def set_device(self, device_idx):
         return f"torch.npu.set_device({device_idx})"

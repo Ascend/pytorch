@@ -23,7 +23,7 @@ class TestEq(TestUtils):
 
         std_result = self.op_calc(first_element, second_element)
 
-        compiled_op_calc = torch.compile(self.op_calc, backend="inductor")
+        compiled_op_calc = torch.compile(self.op_calc, backend="inductor", dynamic=False)
         inductor_result = compiled_op_calc(first_element, second_element)
 
         self.assertEqual(std_result, inductor_result)

@@ -18,7 +18,7 @@ from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.codegen.wrapper import 
 )
 from torch_npu._inductor.codegen.wrapper import (
     _NPUKernelCodegenMixin,
-    NPUSubgraphWrapperCodegen,
+    NPUSubgraphPythonWrapperCodegen,
 )
 from torch.testing._internal.common_utils import run_tests
 
@@ -356,7 +356,7 @@ class TestACLGraphUpdatePlanCompile(TestUtils):
             config.triton.cudagraph_trees = True
             config.graph_partition = True
 
-            wrapper = object.__new__(NPUSubgraphWrapperCodegen)
+            wrapper = object.__new__(NPUSubgraphPythonWrapperCodegen)
             wrapper.launcher_fn_name = "partition_0"
             with V.set_graph_handler(Graph()):
                 wrapper.torch_npu_aclgraph_update_plan = plan
