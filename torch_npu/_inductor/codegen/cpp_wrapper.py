@@ -329,6 +329,8 @@ class CppWrapperNpu(CppWrapperGpu):
     def get_device_include_path(device: str) -> str:
         common_include = f"""
         #include <fstream>
+        #include <acl/acl.h>
+        #include <acl/acl_rt.h>
         #include <runtime/runtime/rt.h>
         #include <torch_npu/csrc/core/npu/NPUStream.h>
         #include <torch_npu/csrc/framework/OpCommand.h>
@@ -516,15 +518,14 @@ class CppWrapperNpu(CppWrapperGpu):
 
         ffts_str = """
             void* ffts_addr = NULL;
-            uint32_t ffts_len;
-            ret = rtGetC2cCtrlAddr((uint64_t*)&ffts_addr, &ffts_len);
-            if (ret != RT_ERROR_NONE) {
-                throw std::runtime_error(std::string("rtGetC2cCtrlAddr failed, 0x") + std::to_string(ret));
+            ret = aclrtGetHardwareSyncAddr(&ffts_addr);
+            if (ret != ACL_SUCCESS) {
+                throw std::runtime_error(std::string("aclrtGetHardwareSyncAddr failed, 0x") + std::to_string(ret));
             }
             """
 
         args_str = f"""
-            rtError_t ret;
+            aclError ret;
             {ffts_str if target_support_ffts else ""}
             {"void* workspace_addr = NULL;" if not force_simt_only else ""}
             {"void* sync_block_lock = NULL;" if not force_simt_only else ""}
@@ -552,21 +553,29 @@ class CppWrapperNpu(CppWrapperGpu):
         if enable_simt:
             shared_mem_dynamic_size = params["shared_mem_dynamic_size"]
             cpp_kernel_launch = f"""
-            rtArgsEx_t argsInfo = {{}};
-            argsInfo.args = static_cast<void*>(&kernel_args);
-            argsInfo.argsSize = sizeof(kernel_args);
-            rtTaskCfgInfo_t cfgInfo = {{}};
-            cfgInfo.localMemorySize = {shared_mem_dynamic_size};
-            ret = rtKernelLaunchWithFlagV2({kernel_var_name}, block_num, &argsInfo, NULL, stream_, 0, &cfgInfo);"""
+            aclrtLaunchKernelAttr attrInfo = {{}};
+            attrInfo.id = ACL_RT_LAUNCH_KERNEL_ATTR_DYN_UBUF_SIZE;
+            aclrtLaunchKernelAttrValue value = {{}};
+            value.localMemorySize = {shared_mem_dynamic_size};
+            attrInfo.value = value;
+
+            aclrtLaunchKernelCfg cfgCfgInfo = {{}};
+            cfgCfgInfo.attrs = &attrInfo;
+            cfgCfgInfo.numAttrs = 1;
+            void* args = static_cast<void*>(&kernel_args);
+            auto args_size = sizeof(kernel_args);
+            ret = aclrtLaunchKernelWithHostArgs({kernel_var_name}, block_num, stream_, &cfgCfgInfo, args, args_size, nullptr, 0);
+            """
         else:
             cpp_kernel_launch = f"""
             void* args = static_cast<void*>(&kernel_args);
             auto args_size = sizeof(kernel_args);
-            ret = rtKernelLaunch({kernel_var_name}, block_num, args, args_size, NULL, stream_);"""
+            ret = aclrtLaunchKernelWithHostArgs({kernel_var_name}, block_num, stream_, nullptr, args, args_size, nullptr, 0);
+            """
 
         launch_str = f"""
             uint32_t block_num = grid_0 * grid_1 * grid_2;
             {cpp_kernel_launch}
-            if (ret != RT_ERROR_NONE) return ret;
+            if (ret != ACL_SUCCESS) return ret;
             return ret;"""
         return launch_str
