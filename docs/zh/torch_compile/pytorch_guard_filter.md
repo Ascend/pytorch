@@ -251,4 +251,4 @@ compiled = torch.compile(
 ## 约束说明
 
 - PyTorch版本：必须为2.9.0及以上版本。
-- torch_npu版本：必须安装与PyTorch版本配套的版本，具体请参考[版本说明](https://gitcode.com/Ascend/pytorch/blob/v2.7.1/docs/zh/release_notes/release_notes.md#%E7%9B%B8%E5%85%B3%E4%BA%A7%E5%93%81%E7%89%88%E6%9C%AC%E9%85%8D%E5%A5%97%E8%AF%B4%E6%98%8E)。
+- torch_npu版本：必须安装与PyTorch版本配套的版本，具体请参考[版本说明](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.1.0/docs/zh/release_notes/release_notes.md#%E7%9B%B8%E5%85%B3%E4%BA%A7%E5%93%81%E7%89%88%E6%9C%AC%E9%85%8D%E5%A5%97%E8%AF%B4%E6%98%8E)。

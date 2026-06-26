@@ -23,7 +23,7 @@
 
 ## 算子适配常见API<a id="section002"></a>
 
-torch_npu算子操作基础接口可参见[LINK](https://gitcode.com/Ascend/pytorch/blob/v2.7.1/torch_npu/csrc/framework/utils/OpPreparation.h)。常见接口如下：
+torch_npu算子操作基础接口可参见[LINK](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.1.0/torch_npu/csrc/framework/utils/OpPreparation.h)。常见接口如下：
 
 - **`at_npu::native::OpPreparation::apply_tensor`**  
    - 功能：创建与输入张量属性（设备、数据类型、格式）一致的输出张量，适用于大多数算子的输出初始化。  
