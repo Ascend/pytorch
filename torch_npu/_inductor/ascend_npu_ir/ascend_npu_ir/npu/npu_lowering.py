@@ -28,7 +28,7 @@ def _register_npu_inductor_fallbacks():
     fallback_set_exclude = OrderedSet()
     env_fallback_list = config.enable_full_lowering_fallback
 
-    if env_fallback_list:
+    if env_fallback_list and config.fallback_to_aten_mode != "all":
         for op_name in env_fallback_list.split(","):
             op_name = op_name.strip()
             op = resolve_op_from_name(op_name, logger)
