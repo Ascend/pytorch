@@ -160,10 +160,11 @@ def _get_compile_mode():
 block_dim = 48
 
 """
-support {"off", "include", "exclude"}, to 
+support {"off", "include", "exclude", "all"}, to 
 "off": No fallback at all.
 "include": At compile-time, Aten IR included in FALLBACK_LIST will fall back to aten.
 "exclude": At compile-time, Aten IR excluded from GENERATE_LIST will fall back to aten.
+"all": At compile-time, all Aten IR entering the NPU inductor lowering path will fall back to aten.
 """
 fallback_to_aten_mode: str = "exclude"
 

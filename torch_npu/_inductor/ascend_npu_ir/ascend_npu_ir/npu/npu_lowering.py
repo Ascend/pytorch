@@ -24,7 +24,10 @@ def _register_npu_inductor_fallbacks():
     fallback_set_exclude = set()
     env_fallback_list = config.enable_full_lowering_fallback
 
-    if env_fallback_list:
+    if config.fallback_to_aten_mode not in {"off", "include", "exclude", "all"}:
+        raise AssertionError(f"Error! Unsupported fallback_to_aten_mode: {config.fallback_to_aten_mode} was set!")
+
+    if env_fallback_list and config.fallback_to_aten_mode != 'all':
         for op_name in env_fallback_list.split(','):
             op_name = op_name.strip()
             op = resolve_op_from_name(op_name, logger)
@@ -52,10 +55,7 @@ def _register_npu_inductor_fallbacks():
                 if isinstance(op, torch._ops.OpOverloadPacket) or \
                     isinstance(op, (torch._ops.OpOverload, torch._ops.HigherOrderOperator)):
                     make_fallback(op)
-    
-    if config.fallback_to_aten_mode not in {"off", "include", "exclude"}:
-        raise AssertionError(f"Error! Unsupported fallback_to_aten_mode: {config.fallback_to_aten_mode} was set!")
-    
+
     if get_anir_mode() == 'O0':
         fallback_except_gen_set(gen_set=[])
         decomposition.decompositions.clear()
