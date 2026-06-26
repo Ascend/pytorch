@@ -1,4 +1,4 @@
-diff --git a/test/test_public_bindings.py b/test/test_public_bindings.py
+﻿diff --git a/test/test_public_bindings.py b/test/test_public_bindings.py
 index 5cae005d845..83891cebda7 100644
 --- a/test/test_public_bindings.py
 +++ b/test/test_public_bindings.py

@@ -1,4 +1,4 @@
-diff --git a/test/cpp_extensions/python_agnostic_extension/test/test_python_agnostic.py b/test/cpp_extensions/python_agnostic_extension/test/test_python_agnostic.py
+﻿diff --git a/test/cpp_extensions/python_agnostic_extension/test/test_python_agnostic.py b/test/cpp_extensions/python_agnostic_extension/test/test_python_agnostic.py
 index 95ca8638ab9..ca98b526eac 100644
 --- a/test/cpp_extensions/python_agnostic_extension/test/test_python_agnostic.py
 +++ b/test/cpp_extensions/python_agnostic_extension/test/test_python_agnostic.py

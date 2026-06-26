@@ -1,4 +1,4 @@
-diff --git a/test/ao/sparsity/test_composability.py b/test/ao/sparsity/test_composability.py
+﻿diff --git a/test/ao/sparsity/test_composability.py b/test/ao/sparsity/test_composability.py
 index 1725f288cf7..f8f3fad18d5 100644
 --- a/test/ao/sparsity/test_composability.py
 +++ b/test/ao/sparsity/test_composability.py

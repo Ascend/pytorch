@@ -1,4 +1,4 @@
-diff --git a/test/jit/test_backend_nnapi.py b/test/jit/test_backend_nnapi.py
+﻿diff --git a/test/jit/test_backend_nnapi.py b/test/jit/test_backend_nnapi.py
 index 3e79b257131..9424d40edf2 100644
 --- a/test/jit/test_backend_nnapi.py
 +++ b/test/jit/test_backend_nnapi.py

@@ -1,4 +1,4 @@
-diff --git a/test/inductor/test_torchinductor.py b/test/inductor/test_torchinductor.py
+﻿diff --git a/test/inductor/test_torchinductor.py b/test/inductor/test_torchinductor.py
 index 2475036c438..d9349b07ef5 100644
 --- a/test/inductor/test_torchinductor.py
 +++ b/test/inductor/test_torchinductor.py
@@ -197,4 +197,3 @@ index 2475036c438..d9349b07ef5 100644
 -    if RUN_CPU or RUN_GPU or HAS_MPS:
 -        run_tests(needs="filelock")
 +    run_tests(needs="filelock")
- 

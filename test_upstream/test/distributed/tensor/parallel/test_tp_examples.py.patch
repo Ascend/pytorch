@@ -1,4 +1,4 @@
-diff --git a/test/distributed/tensor/parallel/test_tp_examples.py b/test/distributed/tensor/parallel/test_tp_examples.py
+﻿diff --git a/test/distributed/tensor/parallel/test_tp_examples.py b/test/distributed/tensor/parallel/test_tp_examples.py
 index 0829baf2f53..0ed8eea302e 100644
 --- a/test/distributed/tensor/parallel/test_tp_examples.py
 +++ b/test/distributed/tensor/parallel/test_tp_examples.py

@@ -1,4 +1,4 @@
-diff --git a/test/package/test_dependency_api.py b/test/package/test_dependency_api.py
+﻿diff --git a/test/package/test_dependency_api.py b/test/package/test_dependency_api.py
 index 7dc317e9b5a..e9d73e51cde 100644
 --- a/test/package/test_dependency_api.py
 +++ b/test/package/test_dependency_api.py

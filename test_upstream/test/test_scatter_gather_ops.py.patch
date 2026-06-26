@@ -1,4 +1,4 @@
-diff --git a/test/test_scatter_gather_ops.py b/test/test_scatter_gather_ops.py
+﻿diff --git a/test/test_scatter_gather_ops.py b/test/test_scatter_gather_ops.py
 index ce2c83c5ef5..cc3fafcc56c 100644
 --- a/test/test_scatter_gather_ops.py
 +++ b/test/test_scatter_gather_ops.py

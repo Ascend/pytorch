@@ -1,4 +1,4 @@
-diff --git a/test/lazy/test_reuse_ir.py b/test/lazy/test_reuse_ir.py
+﻿diff --git a/test/lazy/test_reuse_ir.py b/test/lazy/test_reuse_ir.py
 index be8b86229a0..7b85389af8f 100644
 --- a/test/lazy/test_reuse_ir.py
 +++ b/test/lazy/test_reuse_ir.py

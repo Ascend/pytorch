@@ -1,4 +1,4 @@
-diff --git a/test/test_functional_autograd_benchmark.py b/test/test_functional_autograd_benchmark.py
+﻿diff --git a/test/test_functional_autograd_benchmark.py b/test/test_functional_autograd_benchmark.py
 index 1ce16f2dcbe..99a3e64a67d 100644
 --- a/test/test_functional_autograd_benchmark.py
 +++ b/test/test_functional_autograd_benchmark.py

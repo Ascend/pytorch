@@ -1,45 +1,14 @@
-diff --git a/test/test_utils.py b/test/test_utils.py
-index b02011e53e6..b77822f3c9b 100644
+﻿diff --git a/test/test_utils.py b/test/test_utils.py
+index b02011e53e6..7688620b891 100644
 --- a/test/test_utils.py
 +++ b/test/test_utils.py
-@@ -1,5 +1,10 @@
- # mypy: allow-untyped-defs
- # Owner(s): ["module: unknown"]
-+import torch_npu.testing
-+torch.cuda.get_device_capability = lambda :(10, 0)
-+from torch_npu.contrib import transfer_to_npu
-+import torch_npu
-+import torch
- 
- import multiprocessing
- import os
-@@ -14,8 +19,10 @@ import unittest
- import warnings
+@@ -15,6 +15,9 @@ import warnings
  from typing import Any
  
--import torch
- import torch.cuda
-+torch.cuda.get_device_capability = lambda :(10, 0)
-+from torch_npu.contrib import transfer_to_npu
+ import torch
 +import torch_npu
++from torch_npu.contrib import transfer_to_npu
++torch.cuda.get_device_capability = lambda :(10, 0)
+ import torch.cuda
  import torch.nn as nn
  import torch.utils.cpp_extension
- import torch.utils.data
-@@ -96,6 +103,9 @@ class TestCheckpoint(TestCase):
-         }
-         input_grad_not_checkpointed = input.grad.detach().clone()
-         for model_to_compare in module_lists_to_compare:
-+        self.assertTrue("first device type: npu" in warning_msg)
-+        self.assertTrue("Device types: ['meta', 'npu']" in warning_msg)
-+            self.assertEqual("npu", device_type)
-             # checkpointed model by passing list of modules
-             detached = input.detach()
-             detached.requires_grad = True
-@@ -535,6 +545,7 @@ class TestCheckpoint(TestCase):
-         with warnings.catch_warnings():
-             warnings.simplefilter("error")
-             _device_type = _infer_device_type(inp)
-+            self.assertEqual("npu", device_type)
-             self.assertEqual(device_type, _device_type)
-         inp = {
-             "foo": torch.rand(10, device=f"{device_type}:0"),

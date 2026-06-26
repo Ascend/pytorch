@@ -1,4 +1,4 @@
-diff --git a/test/mobile/test_bytecode.py b/test/mobile/test_bytecode.py
+﻿diff --git a/test/mobile/test_bytecode.py b/test/mobile/test_bytecode.py
 index 7d0922cacfa..ffc858a41fe 100644
 --- a/test/mobile/test_bytecode.py
 +++ b/test/mobile/test_bytecode.py

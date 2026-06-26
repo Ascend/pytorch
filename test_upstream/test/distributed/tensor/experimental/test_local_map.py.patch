@@ -1,4 +1,4 @@
-diff --git a/test/distributed/tensor/experimental/test_local_map.py b/test/distributed/tensor/experimental/test_local_map.py
+﻿diff --git a/test/distributed/tensor/experimental/test_local_map.py b/test/distributed/tensor/experimental/test_local_map.py
 index dad23226363..d296a9f812c 100644
 --- a/test/distributed/tensor/experimental/test_local_map.py
 +++ b/test/distributed/tensor/experimental/test_local_map.py

@@ -1,5 +1,5 @@
-diff --git a/torch/testing/_internal/common_device_type.py b/torch/testing/_internal/common_device_type.py
-index 8fc9f2c..f66afeb 100644
+﻿diff --git a/torch/testing/_internal/common_device_type.py b/torch/testing/_internal/common_device_type.py
+index 8fc9f2cd968..88c92a1655b 100644
 --- a/torch/testing/_internal/common_device_type.py
 +++ b/torch/testing/_internal/common_device_type.py
 @@ -543,7 +543,7 @@ class CPUTestBase(DeviceTypeTestBase):
@@ -11,7 +11,7 @@ index 8fc9f2c..f66afeb 100644
      _do_cuda_memory_leak_check = True
      _do_cuda_non_default_stream = True
      primary_device: ClassVar[str]
-@@ -756,6 +756,13 @@ def filter_desired_device_types(device_type_test_bases, except_for=None, only_fo
+@@ -756,6 +756,12 @@ def filter_desired_device_types(device_type_test_bases, except_for=None, only_fo
              f"device ({intersect}) appeared in both except_for and only_for"
          )
  
@@ -21,11 +21,10 @@ index 8fc9f2c..f66afeb 100644
 +    if only_for is not None and isinstance(only_for, str):
 +        only_for = [only_for]
 +
-+
      # Replace your privateuse1 backend name with 'privateuse1'
      # This handles the case where PrivateUse1TestBase.device_type has been
      # changed from "privateuse1" to the actual backend name (e.g., "openreg")
-@@ -788,7 +795,7 @@ def filter_desired_device_types(device_type_test_bases, except_for=None, only_fo
+@@ -788,7 +794,7 @@ def filter_desired_device_types(device_type_test_bases, except_for=None, only_fo
          )
      if only_for:
          device_type_test_bases = filter(
@@ -34,7 +33,7 @@ index 8fc9f2c..f66afeb 100644
              device_type_test_bases,
          )
  
-@@ -1266,7 +1273,7 @@ class skipCPUIf(skipIf):
+@@ -1266,7 +1272,7 @@ class skipCPUIf(skipIf):
  # Skips a test on CUDA if the condition is true.
  class skipCUDAIf(skipIf):
      def __init__(self, dep, reason):
@@ -43,7 +42,7 @@ index 8fc9f2c..f66afeb 100644
  
  
  # Skips a test on XPU if the condition is true.
-@@ -1319,7 +1326,7 @@ class skipPRIVATEUSE1If(skipIf):
+@@ -1319,7 +1325,7 @@ class skipPRIVATEUSE1If(skipIf):
  def _has_sufficient_memory(device, size):
      device_ = torch.device(device)
      device_type = device_.type
@@ -52,7 +51,7 @@ index 8fc9f2c..f66afeb 100644
          acc = torch.accelerator.current_accelerator()
          # Case 1: no accelerator found
          if not acc:
-@@ -1337,7 +1344,7 @@ def _has_sufficient_memory(device, size):
+@@ -1337,7 +1343,7 @@ def _has_sufficient_memory(device, size):
          if device_.index is None:
              device_ = torch.device(device_type, 0)
  
@@ -61,7 +60,7 @@ index 8fc9f2c..f66afeb 100644
              return (
                  torch.cuda.memory.mem_get_info(device_)[0]
                  * torch.cuda.memory.get_per_process_memory_fraction(device_)
-@@ -1400,8 +1407,8 @@ def largeTensorTest(size, device=None, inductor=TEST_WITH_TORCHINDUCTOR):
+@@ -1400,8 +1406,8 @@ def largeTensorTest(size, device=None, inductor=TEST_WITH_TORCHINDUCTOR):
              # an additional array of the same size as the input.
              if inductor and torch._inductor.config.cpp_wrapper and _device != "cpu":
                  size_bytes *= 2
@@ -72,7 +71,7 @@ index 8fc9f2c..f66afeb 100644
  
              return fn(self, *args, **kwargs)
  
-@@ -1650,7 +1657,7 @@ class dtypesIfCPU(dtypes):
+@@ -1650,7 +1656,7 @@ class dtypesIfCPU(dtypes):
  # Overrides specified dtypes on CUDA.
  class dtypesIfCUDA(dtypes):
      def __init__(self, *args):
@@ -81,20 +80,19 @@ index 8fc9f2c..f66afeb 100644
  
  
  # Overrides specified dtypes on Intel GPU.
-@@ -1679,7 +1686,11 @@ def onlyCPU(fn):
+@@ -1679,8 +1685,10 @@ def onlyCPU(fn):
  
  
  def onlyCUDA(fn):
 -    return onlyOn("cuda")(fn)
 +    return onlyOn("npu")(fn)
-+
-+
+ 
 +def onlyNPU(fn):
 +    return onlyOn("npu")(fn)
  
- 
  def onlyMPS(fn):
-@@ -1706,7 +1717,7 @@ def onlyPRIVATEUSE1(fn):
+     return onlyOn("mps")(fn)
+@@ -1706,7 +1714,7 @@ def onlyPRIVATEUSE1(fn):
  def onlyCUDAAndPRIVATEUSE1(fn):
      @wraps(fn)
      def only_fn(self, *args, **kwargs):
@@ -103,7 +101,7 @@ index 8fc9f2c..f66afeb 100644
              reason = f"onlyCUDAAndPRIVATEUSE1: doesn't run on {self.device_type}"
              raise unittest.SkipTest(reason)
  
-@@ -1718,7 +1729,7 @@ def onlyCUDAAndPRIVATEUSE1(fn):
+@@ -1718,7 +1726,7 @@ def onlyCUDAAndPRIVATEUSE1(fn):
  def disablecuDNN(fn):
      @wraps(fn)
      def disable_cudnn(self, *args, **kwargs):
@@ -112,7 +110,7 @@ index 8fc9f2c..f66afeb 100644
              with torch.backends.cudnn.flags(enabled=False):
                  return fn(self, *args, **kwargs)
          return fn(self, *args, **kwargs)
-@@ -1742,7 +1753,7 @@ def expectedFailureCPU(fn):
+@@ -1742,7 +1750,7 @@ def expectedFailureCPU(fn):
  
  
  def expectedFailureCUDA(fn):
@@ -121,7 +119,7 @@ index 8fc9f2c..f66afeb 100644
  
  
  def expectedFailureXPU(fn):
-@@ -1897,7 +1908,7 @@ def skipCUDAIfRocmVersionLessThan(version=None):
+@@ -1897,7 +1905,7 @@ def skipCUDAIfRocmVersionLessThan(version=None):
      def dec_fn(fn):
          @wraps(fn)
          def wrap_fn(self, *args, **kwargs):
@@ -130,7 +128,7 @@ index 8fc9f2c..f66afeb 100644
                  if not TEST_WITH_ROCM:
                      reason = "ROCm not available"
                      raise unittest.SkipTest(reason)
-@@ -1924,7 +1935,7 @@ def skipCUDAIfRocmHipBlasltVersionLessThan(version=None):
+@@ -1924,7 +1932,7 @@ def skipCUDAIfRocmHipBlasltVersionLessThan(version=None):
      def dec_fn(fn):
          @wraps(fn)
          def wrap_fn(self, *args, **kwargs):
@@ -139,7 +137,7 @@ index 8fc9f2c..f66afeb 100644
                  if not TEST_WITH_ROCM:
                      reason = "ROCm not available"
                      raise unittest.SkipTest(reason)
-@@ -1993,7 +2004,7 @@ def skipCUDAIfCudnnVersionLessThan(version=0):
+@@ -1993,7 +2001,7 @@ def skipCUDAIfCudnnVersionLessThan(version=0):
      def dec_fn(fn):
          @wraps(fn)
          def wrap_fn(self, *args, **kwargs):
@@ -148,7 +146,7 @@ index 8fc9f2c..f66afeb 100644
                  if self.no_cudnn:
                      reason = "cuDNN not available"
                      raise unittest.SkipTest(reason)
-@@ -2073,7 +2084,7 @@ def skipPRIVATEUSE1(fn):
+@@ -2073,7 +2081,7 @@ def skipPRIVATEUSE1(fn):
  # TODO: the "all" in the name isn't true anymore for quite some time as we have also have for example XLA and MPS now.
  #  This should probably enumerate all available device type test base classes.
  def get_all_device_types() -> list[str]:

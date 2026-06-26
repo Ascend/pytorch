@@ -1,21 +1,13 @@
-diff --git a/test/distributed/_composable/fsdp/test_fully_shard_compile.py b/test/distributed/_composable/fsdp/test_fully_shard_compile.py
-index 4a3bbd2734c..96e3b3afae1 100644
+﻿diff --git a/test/distributed/_composable/fsdp/test_fully_shard_compile.py b/test/distributed/_composable/fsdp/test_fully_shard_compile.py
+index 4a3bbd2734c..336c536809d 100644
 --- a/test/distributed/_composable/fsdp/test_fully_shard_compile.py
 +++ b/test/distributed/_composable/fsdp/test_fully_shard_compile.py
-@@ -1,6 +1,7 @@
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
  # Owner(s): ["oncall: distributed"]
  
  
-+            inp = torch.randn((2, hidden_dim), device="npu", requires_grad=False)
- import copy
- import unittest
- 
-@@ -32,6 +33,8 @@ class Mod(torch.nn.Module):
-         super().__init__()
- 
-         self.encoder = torch.nn.Sequential(
-+                    torch.zeros(hidden_dim, dtype=torch.float, device="npu")
-+                        hidden_dim, hidden_dim, dtype=torch.float, device="npu"
-             torch.nn.Linear(28 * 28, 1024, device=device_type),
-             torch.nn.Linear(1024, 1024, device=device_type),
-             torch.nn.Linear(1024, 4096, device=device_type),

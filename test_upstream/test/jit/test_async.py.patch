@@ -1,4 +1,4 @@
-diff --git a/test/jit/test_async.py b/test/jit/test_async.py
+﻿diff --git a/test/jit/test_async.py b/test/jit/test_async.py
 index 2621ac9414e..1a9918b0c1b 100644
 --- a/test/jit/test_async.py
 +++ b/test/jit/test_async.py

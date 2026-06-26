@@ -1,4 +1,4 @@
-diff --git a/test/dynamo/test_nops.py b/test/dynamo/test_nops.py
+﻿diff --git a/test/dynamo/test_nops.py b/test/dynamo/test_nops.py
 index 664a0f61bf6..1ad384cd6f7 100644
 --- a/test/dynamo/test_nops.py
 +++ b/test/dynamo/test_nops.py

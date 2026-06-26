@@ -1,4 +1,4 @@
-diff --git a/test/quantization/jit/test_fusion_passes.py b/test/quantization/jit/test_fusion_passes.py
+﻿diff --git a/test/quantization/jit/test_fusion_passes.py b/test/quantization/jit/test_fusion_passes.py
 index f4580c891e8..15bcc26b2ba 100644
 --- a/test/quantization/jit/test_fusion_passes.py
 +++ b/test/quantization/jit/test_fusion_passes.py

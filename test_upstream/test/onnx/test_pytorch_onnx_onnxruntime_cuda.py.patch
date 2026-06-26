@@ -1,4 +1,4 @@
-diff --git a/test/onnx/test_pytorch_onnx_onnxruntime_cuda.py b/test/onnx/test_pytorch_onnx_onnxruntime_cuda.py
+﻿diff --git a/test/onnx/test_pytorch_onnx_onnxruntime_cuda.py b/test/onnx/test_pytorch_onnx_onnxruntime_cuda.py
 index 85aeafceafb..5968c8f4d90 100644
 --- a/test/onnx/test_pytorch_onnx_onnxruntime_cuda.py
 +++ b/test/onnx/test_pytorch_onnx_onnxruntime_cuda.py

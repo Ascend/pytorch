@@ -1,4 +1,4 @@
-diff --git a/test/distributed/tensor/test_placement_types.py b/test/distributed/tensor/test_placement_types.py
+﻿diff --git a/test/distributed/tensor/test_placement_types.py b/test/distributed/tensor/test_placement_types.py
 index 49998e4be83..57e539805eb 100644
 --- a/test/distributed/tensor/test_placement_types.py
 +++ b/test/distributed/tensor/test_placement_types.py

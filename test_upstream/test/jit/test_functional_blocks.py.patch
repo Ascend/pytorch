@@ -1,4 +1,4 @@
-diff --git a/test/jit/test_functional_blocks.py b/test/jit/test_functional_blocks.py
+﻿diff --git a/test/jit/test_functional_blocks.py b/test/jit/test_functional_blocks.py
 index 40dff3765fe..f1ecf71fc91 100644
 --- a/test/jit/test_functional_blocks.py
 +++ b/test/jit/test_functional_blocks.py

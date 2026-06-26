@@ -1,4 +1,4 @@
-diff --git a/test/ao/sparsity/test_activation_sparsifier.py b/test/ao/sparsity/test_activation_sparsifier.py
+﻿diff --git a/test/ao/sparsity/test_activation_sparsifier.py b/test/ao/sparsity/test_activation_sparsifier.py
 index 9279ab41065..c711d70ac11 100644
 --- a/test/ao/sparsity/test_activation_sparsifier.py
 +++ b/test/ao/sparsity/test_activation_sparsifier.py

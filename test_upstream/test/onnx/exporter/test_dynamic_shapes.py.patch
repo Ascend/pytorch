@@ -1,4 +1,4 @@
-diff --git a/test/onnx/exporter/test_dynamic_shapes.py b/test/onnx/exporter/test_dynamic_shapes.py
+﻿diff --git a/test/onnx/exporter/test_dynamic_shapes.py b/test/onnx/exporter/test_dynamic_shapes.py
 index 42a08e5647b..b59a1debd38 100644
 --- a/test/onnx/exporter/test_dynamic_shapes.py
 +++ b/test/onnx/exporter/test_dynamic_shapes.py

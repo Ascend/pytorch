@@ -1,4 +1,4 @@
-diff --git a/test/dynamo/cpython/3_13/test_numeric_tower.py b/test/dynamo/cpython/3_13/test_numeric_tower.py
+﻿diff --git a/test/dynamo/cpython/3_13/test_numeric_tower.py b/test/dynamo/cpython/3_13/test_numeric_tower.py
 index 85841ef5ea5..7b1eda024cc 100644
 --- a/test/dynamo/cpython/3_13/test_numeric_tower.py
 +++ b/test/dynamo/cpython/3_13/test_numeric_tower.py

@@ -1,4 +1,4 @@
-diff --git a/test/fx/test_fx_const_fold.py b/test/fx/test_fx_const_fold.py
+﻿diff --git a/test/fx/test_fx_const_fold.py b/test/fx/test_fx_const_fold.py
 index 934d06f1a5a..717f9ff03db 100644
 --- a/test/fx/test_fx_const_fold.py
 +++ b/test/fx/test_fx_const_fold.py

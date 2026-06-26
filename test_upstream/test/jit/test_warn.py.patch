@@ -1,4 +1,4 @@
-diff --git a/test/jit/test_warn.py b/test/jit/test_warn.py
+﻿diff --git a/test/jit/test_warn.py b/test/jit/test_warn.py
 index 70f14cd2faf..ef49c928337 100644
 --- a/test/jit/test_warn.py
 +++ b/test/jit/test_warn.py

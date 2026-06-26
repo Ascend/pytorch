@@ -1,4 +1,4 @@
-diff --git a/test/test_legacy_vmap.py b/test/test_legacy_vmap.py
+﻿diff --git a/test/test_legacy_vmap.py b/test/test_legacy_vmap.py
 index 8b451614318..225cf282fcc 100644
 --- a/test/test_legacy_vmap.py
 +++ b/test/test_legacy_vmap.py

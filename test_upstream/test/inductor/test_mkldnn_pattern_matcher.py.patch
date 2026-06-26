@@ -1,4 +1,4 @@
-diff --git a/test/inductor/test_mkldnn_pattern_matcher.py b/test/inductor/test_mkldnn_pattern_matcher.py
+﻿diff --git a/test/inductor/test_mkldnn_pattern_matcher.py b/test/inductor/test_mkldnn_pattern_matcher.py
 index a342e67deec..6bda6d67635 100644
 --- a/test/inductor/test_mkldnn_pattern_matcher.py
 +++ b/test/inductor/test_mkldnn_pattern_matcher.py

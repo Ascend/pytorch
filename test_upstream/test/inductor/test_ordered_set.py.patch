@@ -1,4 +1,4 @@
-diff --git a/test/inductor/test_ordered_set.py b/test/inductor/test_ordered_set.py
+﻿diff --git a/test/inductor/test_ordered_set.py b/test/inductor/test_ordered_set.py
 index debd621b065..f945db49a63 100644
 --- a/test/inductor/test_ordered_set.py
 +++ b/test/inductor/test_ordered_set.py

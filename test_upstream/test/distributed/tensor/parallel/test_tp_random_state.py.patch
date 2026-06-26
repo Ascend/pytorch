@@ -1,4 +1,4 @@
-diff --git a/test/distributed/tensor/parallel/test_tp_random_state.py b/test/distributed/tensor/parallel/test_tp_random_state.py
+﻿diff --git a/test/distributed/tensor/parallel/test_tp_random_state.py b/test/distributed/tensor/parallel/test_tp_random_state.py
 index d1f2153181c..fddc072e442 100644
 --- a/test/distributed/tensor/parallel/test_tp_random_state.py
 +++ b/test/distributed/tensor/parallel/test_tp_random_state.py

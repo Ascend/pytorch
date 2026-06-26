@@ -1,4 +1,4 @@
-diff --git a/test/test_jit_string.py b/test/test_jit_string.py
+﻿diff --git a/test/test_jit_string.py b/test/test_jit_string.py
 index a2e9f5c6abc..aae47171e69 100644
 --- a/test/test_jit_string.py
 +++ b/test/test_jit_string.py

@@ -1,5 +1,5 @@
-diff --git a/test/distributed/test_overlap_bucketing_unit.py b/test/distributed/test_overlap_bucketing_unit.py
-index 71bb8cf6c63..f4d73528a5f 100644
+﻿diff --git a/test/distributed/test_overlap_bucketing_unit.py b/test/distributed/test_overlap_bucketing_unit.py
+index 71bb8cf6c63..d2fe75816b7 100644
 --- a/test/distributed/test_overlap_bucketing_unit.py
 +++ b/test/distributed/test_overlap_bucketing_unit.py
 @@ -2,6 +2,8 @@
@@ -60,3 +60,12 @@ index 71bb8cf6c63..f4d73528a5f 100644
          ag_ins = [t1, t2, t3]
          out_dtypes = [torch.float32, torch.float16, torch.float32]
          out_dtype_ints = [_ALL_DTYPES.index(d) for d in out_dtypes]
+@@ -1717,7 +1719,7 @@ class TestCoalescedCollectiveOverlap(InductorTestCase):
+ 
+         store = FakeStore()
+         dist.init_process_group(backend="fake", rank=0, world_size=8, store=store)
+-        cls.device = "cuda"
++        cls.device = "npu"
+ 
+     @classmethod
+     def tearDownClass(cls):

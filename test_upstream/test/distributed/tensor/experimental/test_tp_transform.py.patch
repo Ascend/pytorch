@@ -1,4 +1,4 @@
-diff --git a/test/distributed/tensor/experimental/test_tp_transform.py b/test/distributed/tensor/experimental/test_tp_transform.py
+﻿diff --git a/test/distributed/tensor/experimental/test_tp_transform.py b/test/distributed/tensor/experimental/test_tp_transform.py
 index 2f52d9c18b2..cce08bb6056 100644
 --- a/test/distributed/tensor/experimental/test_tp_transform.py
 +++ b/test/distributed/tensor/experimental/test_tp_transform.py

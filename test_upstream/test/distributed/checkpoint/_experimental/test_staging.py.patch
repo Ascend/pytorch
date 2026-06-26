@@ -1,13 +1,13 @@
-diff --git a/test/distributed/checkpoint/_experimental/test_staging.py b/test/distributed/checkpoint/_experimental/test_staging.py
-index 739d098a899..42a053c1882 100644
+﻿diff --git a/test/distributed/checkpoint/_experimental/test_staging.py b/test/distributed/checkpoint/_experimental/test_staging.py
+index 739d098a899..c9f04c3e259 100644
 --- a/test/distributed/checkpoint/_experimental/test_staging.py
 +++ b/test/distributed/checkpoint/_experimental/test_staging.py
 @@ -3,6 +3,8 @@
  from concurrent.futures import Future
  
  import torch
-+from torch_npu.contrib import transfer_to_npu
 +import torch_npu
++from torch_npu.contrib import transfer_to_npu
  from torch.distributed.checkpoint._experimental.staging import (
      CheckpointStagerConfig,
      DefaultStager,

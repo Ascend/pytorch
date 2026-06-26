@@ -1,4 +1,4 @@
-diff --git a/test/test_autoload.py b/test/test_autoload.py
+﻿diff --git a/test/test_autoload.py b/test/test_autoload.py
 index b9f094d6bfb..46c2a1acb2c 100644
 --- a/test/test_autoload.py
 +++ b/test/test_autoload.py

@@ -1,4 +1,4 @@
-diff --git a/test/dynamo/test_comptime.py b/test/dynamo/test_comptime.py
+﻿diff --git a/test/dynamo/test_comptime.py b/test/dynamo/test_comptime.py
 index 882ae2d18d2..90692643ab0 100644
 --- a/test/dynamo/test_comptime.py
 +++ b/test/dynamo/test_comptime.py

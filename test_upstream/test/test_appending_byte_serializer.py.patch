@@ -1,4 +1,4 @@
-diff --git a/test/test_appending_byte_serializer.py b/test/test_appending_byte_serializer.py
+﻿diff --git a/test/test_appending_byte_serializer.py b/test/test_appending_byte_serializer.py
 index d21e1d69495..624aa8d7d9f 100644
 --- a/test/test_appending_byte_serializer.py
 +++ b/test/test_appending_byte_serializer.py

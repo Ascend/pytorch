@@ -1,4 +1,4 @@
-diff --git a/test/ao/sparsity/test_scheduler.py b/test/ao/sparsity/test_scheduler.py
+﻿diff --git a/test/ao/sparsity/test_scheduler.py b/test/ao/sparsity/test_scheduler.py
 index a42b0958906..2357b3ef1dc 100644
 --- a/test/ao/sparsity/test_scheduler.py
 +++ b/test/ao/sparsity/test_scheduler.py

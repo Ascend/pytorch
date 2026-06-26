@@ -1,4 +1,4 @@
-diff --git a/test/inductor/test_online_softmax.py b/test/inductor/test_online_softmax.py
+﻿diff --git a/test/inductor/test_online_softmax.py b/test/inductor/test_online_softmax.py
 index cccfa156242..8946c609ba0 100644
 --- a/test/inductor/test_online_softmax.py
 +++ b/test/inductor/test_online_softmax.py

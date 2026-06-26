@@ -1,4 +1,4 @@
-diff --git a/test/jit/test_symbolic_shape_analysis.py b/test/jit/test_symbolic_shape_analysis.py
+﻿diff --git a/test/jit/test_symbolic_shape_analysis.py b/test/jit/test_symbolic_shape_analysis.py
 index ad1f4fc7a15..a7a3645588d 100644
 --- a/test/jit/test_symbolic_shape_analysis.py
 +++ b/test/jit/test_symbolic_shape_analysis.py

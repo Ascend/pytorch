@@ -1,5 +1,5 @@
 diff --git a/test/test_dataloader.py b/test/test_dataloader.py
-index df5c53b..90a2451 100644
+index df5c53b..b5b2dea 100644
 --- a/test/test_dataloader.py
 +++ b/test/test_dataloader.py
 @@ -18,6 +18,8 @@ import unittest
@@ -230,7 +230,6 @@ index df5c53b..90a2451 100644
          self.assertEqual(collated, torch.tensor(arr))
          self.assertEqual(collated.dtype, torch.bool)
  
-+
 +        npu_batch = [
 +            torch.tensor([1, 2], device="npu"),
 +            torch.tensor([3, 4], device="npu"),
@@ -240,6 +239,7 @@ index df5c53b..90a2451 100644
 +        self.assertEqual(
 +            npu_collated, torch.tensor([[1, 2], [3, 4]], device="npu")
 +        )
++
          # Should be a no-op
          arr = ["a", "b", "c"]
          self.assertEqual(arr, dataloader.default_collate(arr))

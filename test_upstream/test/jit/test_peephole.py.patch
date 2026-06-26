@@ -1,4 +1,4 @@
-diff --git a/test/jit/test_peephole.py b/test/jit/test_peephole.py
+﻿diff --git a/test/jit/test_peephole.py b/test/jit/test_peephole.py
 index 3cdc09ba0f3..945b5b71f74 100644
 --- a/test/jit/test_peephole.py
 +++ b/test/jit/test_peephole.py

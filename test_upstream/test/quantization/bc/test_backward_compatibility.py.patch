@@ -1,4 +1,4 @@
-diff --git a/test/quantization/bc/test_backward_compatibility.py b/test/quantization/bc/test_backward_compatibility.py
+﻿diff --git a/test/quantization/bc/test_backward_compatibility.py b/test/quantization/bc/test_backward_compatibility.py
 index 01c546a95a5..329bbbf9ef2 100644
 --- a/test/quantization/bc/test_backward_compatibility.py
 +++ b/test/quantization/bc/test_backward_compatibility.py

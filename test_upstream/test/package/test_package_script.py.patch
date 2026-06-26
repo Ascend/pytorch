@@ -1,4 +1,4 @@
-diff --git a/test/package/test_package_script.py b/test/package/test_package_script.py
+﻿diff --git a/test/package/test_package_script.py b/test/package/test_package_script.py
 index a9b8165380e..bbb4a68dc5e 100644
 --- a/test/package/test_package_script.py
 +++ b/test/package/test_package_script.py

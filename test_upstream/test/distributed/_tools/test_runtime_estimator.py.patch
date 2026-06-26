@@ -1,19 +1,17 @@
-diff --git a/test/distributed/_tools/test_runtime_estimator.py b/test/distributed/_tools/test_runtime_estimator.py
-index 62ecbe7cfbf..1435c9f1836 100644
+﻿diff --git a/test/distributed/_tools/test_runtime_estimator.py b/test/distributed/_tools/test_runtime_estimator.py
+index 62ecbe7cfbf..2aff7c73022 100644
 --- a/test/distributed/_tools/test_runtime_estimator.py
 +++ b/test/distributed/_tools/test_runtime_estimator.py
-@@ -3,6 +3,10 @@ import unittest
- from collections.abc import Callable
- from dataclasses import dataclass
+@@ -5,6 +5,8 @@ from dataclasses import dataclass
  from typing import Any, cast
-+from torch_npu.contrib import transfer_to_npu
-+import torch_npu
-+
-+import torch_npu.testing
  
  import torch
++from torch_npu.contrib import transfer_to_npu
++import torch_npu
  from torch import nn, optim
-@@ -14,7 +18,7 @@ from torch.testing._internal.distributed._tensor.common_dtensor import (
+ from torch._subclasses.fake_tensor import FakeTensorMode
+ from torch.distributed._tools.runtime_estimator import RuntimeEstimator
+@@ -14,7 +16,7 @@ from torch.testing._internal.distributed._tensor.common_dtensor import (
      ModelArgs,
      Transformer,
  )

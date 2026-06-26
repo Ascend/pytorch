@@ -1,4 +1,4 @@
-diff --git a/torch/distributed/checkpoint/filesystem.py b/torch/distributed/checkpoint/filesystem.py
+﻿diff --git a/torch/distributed/checkpoint/filesystem.py b/torch/distributed/checkpoint/filesystem.py
 index 831fa163945..15859d89d4b 100644
 --- a/torch/distributed/checkpoint/filesystem.py
 +++ b/torch/distributed/checkpoint/filesystem.py

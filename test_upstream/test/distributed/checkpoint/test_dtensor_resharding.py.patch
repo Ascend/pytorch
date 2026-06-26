@@ -1,4 +1,4 @@
-diff --git a/test/distributed/checkpoint/test_dtensor_resharding.py b/test/distributed/checkpoint/test_dtensor_resharding.py
+﻿diff --git a/test/distributed/checkpoint/test_dtensor_resharding.py b/test/distributed/checkpoint/test_dtensor_resharding.py
 index a8974ac27ed..9349b399bfa 100644
 --- a/test/distributed/checkpoint/test_dtensor_resharding.py
 +++ b/test/distributed/checkpoint/test_dtensor_resharding.py

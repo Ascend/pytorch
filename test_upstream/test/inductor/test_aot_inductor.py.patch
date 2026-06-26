@@ -1,4 +1,4 @@
-diff --git a/test/inductor/test_aot_inductor.py b/test/inductor/test_aot_inductor.py
+﻿diff --git a/test/inductor/test_aot_inductor.py b/test/inductor/test_aot_inductor.py
 index 45444ae3d7f..f533beabb7e 100644
 --- a/test/inductor/test_aot_inductor.py
 +++ b/test/inductor/test_aot_inductor.py
@@ -14,9 +14,9 @@ index 45444ae3d7f..f533beabb7e 100644
      if __name__ == "__main__":
          sys.exit(0)
      raise
- 
 -
 +import torch_npu._inductor
+ 
  def get_module_ext_type():
      if IS_WINDOWS:
 @@ -532,7 +531,6 @@ class AOTInductorTestsTemplate:
@@ -43,5 +43,5 @@ index 45444ae3d7f..f533beabb7e 100644
 -    # cpp_extension N/A in fbcode
 -    if HAS_GPU or sys.platform == "darwin":
 -        run_tests(needs="filelock")
-+
++    
 +    run_tests(needs="filelock")

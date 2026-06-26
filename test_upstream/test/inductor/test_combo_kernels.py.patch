@@ -1,4 +1,4 @@
-diff --git a/test/inductor/test_combo_kernels.py b/test/inductor/test_combo_kernels.py
+﻿diff --git a/test/inductor/test_combo_kernels.py b/test/inductor/test_combo_kernels.py
 index 7ee8df912b7..62282e69f65 100644
 --- a/test/inductor/test_combo_kernels.py
 +++ b/test/inductor/test_combo_kernels.py

@@ -1,4 +1,4 @@
-diff --git a/test/inductor/test_op_completeness.py b/test/inductor/test_op_completeness.py
+﻿diff --git a/test/inductor/test_op_completeness.py b/test/inductor/test_op_completeness.py
 index 23d59a78941..1a33badc58b 100644
 --- a/test/inductor/test_op_completeness.py
 +++ b/test/inductor/test_op_completeness.py

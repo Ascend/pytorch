@@ -1,4 +1,4 @@
-diff --git a/test/test_cpp_extensions_mtia_backend.py b/test/test_cpp_extensions_mtia_backend.py
+﻿diff --git a/test/test_cpp_extensions_mtia_backend.py b/test/test_cpp_extensions_mtia_backend.py
 index 8a70ce82352..b4dc06d1553 100644
 --- a/test/test_cpp_extensions_mtia_backend.py
 +++ b/test/test_cpp_extensions_mtia_backend.py

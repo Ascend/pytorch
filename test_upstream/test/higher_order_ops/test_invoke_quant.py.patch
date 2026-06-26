@@ -1,4 +1,4 @@
-diff --git a/test/higher_order_ops/test_invoke_quant.py b/test/higher_order_ops/test_invoke_quant.py
+﻿diff --git a/test/higher_order_ops/test_invoke_quant.py b/test/higher_order_ops/test_invoke_quant.py
 index 7796a9e4a16..550503dd025 100644
 --- a/test/higher_order_ops/test_invoke_quant.py
 +++ b/test/higher_order_ops/test_invoke_quant.py

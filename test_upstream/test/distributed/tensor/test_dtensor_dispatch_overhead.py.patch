@@ -1,4 +1,4 @@
-diff --git a/test/distributed/tensor/test_dtensor_dispatch_overhead.py b/test/distributed/tensor/test_dtensor_dispatch_overhead.py
+﻿diff --git a/test/distributed/tensor/test_dtensor_dispatch_overhead.py b/test/distributed/tensor/test_dtensor_dispatch_overhead.py
 index ab9b578b80f..c1df76991ec 100644
 --- a/test/distributed/tensor/test_dtensor_dispatch_overhead.py
 +++ b/test/distributed/tensor/test_dtensor_dispatch_overhead.py

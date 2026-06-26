@@ -1,36 +1,40 @@
-diff --git a/test/functorch/test_ops.py b/test/functorch/test_ops.py
-index 632a4a915a6..71992f8548f 100644
+﻿diff --git a/test/functorch/test_ops.py b/test/functorch/test_ops.py
+index 632a4a915a6..d110fa55b3e 100644
 --- a/test/functorch/test_ops.py
 +++ b/test/functorch/test_ops.py
-@@ -1,12 +1,27 @@
- # Owner(s): ["module: functorch"]
- # ruff: noqa: F841
- 
-+only_for = ("cpu", "privateuse1")
-+                print(in_dims)
-+
-+aten = torch.ops.aten
- # Copyright (c) Facebook, Inc. and its affiliates.
- # All rights reserved.
- #
+@@ -7,10 +7,21 @@
  # This source code is licensed under the BSD-style license found in the
  # LICENSE file in the root directory of this source tree.
  
-+
-+
-+CUDA_VERSION = 11080
-+torch.version.cuda = '11.8'
-+torch._C._cuda_getCompiledVersion = lambda:11080
-+torch._C._cuda_setDevice = torch_npu._C._npu_setDevice
-+torch.cuda.get_device_capability = lambda *args, **kwargs:(10,0)
-+torch._C._cuda_setStream = torch_npu._C._npu_setStream
-+# from torch_npu.contrib import transfer_to_npu
-+import torch_npu
 +import torch
++import torch_npu
++# from torch_npu.contrib import transfer_to_npu
++torch._C._cuda_setStream = torch_npu._C._npu_setStream
++torch.cuda.get_device_capability = lambda *args, **kwargs:(10,0)
++torch._C._cuda_setDevice = torch_npu._C._npu_setDevice
++torch._C._cuda_getCompiledVersion = lambda:11080
++torch.version.cuda = '11.8'
++CUDA_VERSION = 11080
++
  import functools
  import itertools
  import unittest
-@@ -61,9 +76,6 @@ from torch.utils import _pytree as pytree
+ 
++
+ from common_utils import (
+     check_vmap_fallback,
+     decorate,
+@@ -30,7 +41,8 @@ from common_utils import (
+ )
+ from functorch_additional_op_db import additional_op_db
+ 
+-import torch
++aten = torch.ops.aten
++
+ import torch.autograd.forward_ad as fwAD
+ from functorch import grad, jacfwd, jacrev, vjp, vmap
+ from torch import Tensor
+@@ -61,9 +73,6 @@ from torch.utils import _pytree as pytree
  from torch.utils._pytree import tree_flatten, tree_map, tree_unflatten
  
  
@@ -40,62 +44,67 @@ index 632a4a915a6..71992f8548f 100644
  # Version of autograd.grad with some differences:
  #   - pytree inputs is allowed (but leaves of the pytree have to all
  #     be tensors)
-@@ -360,6 +372,7 @@ vjp_fail = {
-     decorate("nn.functional.scaled_dot_product_attention", decorator=skipIfRocm),
- }
- 
-+                    device_type="npu",
- aliasing_ops = {
-     "T",
-     "broadcast_to",
-@@ -486,6 +499,26 @@ class TestOperators(TestCase):
+@@ -492,12 +501,12 @@ class TestOperators(TestCase):
              tol1(
-                 "nn.functional.binary_cross_entropy_with_logits",
-                 {torch.float32: tol(atol=1e-04, rtol=1e-04)},
-+                device_type="npu",
-+                device_type="npu",
-+                device_type="npu",
-+                device_type="npu",
-+                device_type="npu",
-+                device_type="npu",
-+                device_type="npu",
-+                device_type="npu",
-+                device_type="npu",
-+                "svd", {torch.float32: tol(atol=5e-04, rtol=1e-04)}, device_type="npu"
-+                device_type="npu",
-+                device_type="npu",
-+                device_type="npu",
-+                device_type="npu",
-+                device_type="npu",
-+                device_type="npu",
-+                device_type="npu",
-+                device_type="npu",
-+                device_type="npu",
+                 "linalg.multi_dot",
+                 {torch.float32: tol(atol=1e-05, rtol=8e-04)},
+-                device_type="cuda",
 +                device_type="npu",
              ),
-             tol1("masked.cumprod", {torch.float32: tol(atol=1e-05, rtol=1e-05)}),
-             tol1("svd_lowrank", {torch.float32: tol(atol=3e-04, rtol=3e-04)}),
-@@ -538,7 +571,9 @@ class TestOperators(TestCase):
-         for sample in samples:
-             args = [sample.input] + list(sample.args)
-             kwargs = sample.kwargs
--
-+                continue
-+            if any(t.numel() == 0 for t in args):
-+            # empty tensor skip，npu not support
-             if op.name not in skip_noncontig:
-                 noncontig_sample = sample.noncontiguous()
-                 noncontig_args = [noncontig_sample.input] + list(noncontig_sample.args)
-@@ -735,6 +770,8 @@ class TestOperators(TestCase):
-         primal_outs, tangent_outs = jvp(contig_fn, primals, tangents)
- 
-         self.assertEqual(primal_outs, expected_primal_outs)
-+        print(expected_tangent_outs)
-+        print(tangent_outs)
-         self.assertEqual(tangent_outs, expected_tangent_outs)
- 
-         if test_noncontig:
-@@ -832,7 +869,6 @@ class TestOperators(TestCase):
+             tol1(
+                 "linalg.tensorsolve",
+                 {torch.float32: tol(atol=3e-04, rtol=3e-04)},
+-                device_type="cuda",
++                device_type="npu",
+             ),
+             tol1(
+                 "nn.functional.multi_head_attention_forward",
+@@ -506,12 +515,12 @@ class TestOperators(TestCase):
+             tol1(
+                 "__rmatmul__",
+                 {torch.float32: tol(atol=3e-04, rtol=3e-04)},
+-                device_type="cuda",
++                device_type="npu",
+             ),
+             tol1(
+                 "matmul",
+                 {torch.float32: tol(atol=3e-04, rtol=3e-04)},
+-                device_type="cuda",
++                device_type="npu",
+             ),
+             tol1(
+                 "pca_lowrank",
+@@ -628,17 +637,17 @@ class TestOperators(TestCase):
+             tol1(
+                 "nn.functional.conv_transpose3d",
+                 {torch.float32: tol(atol=1e-04, rtol=1.3e-06)},
+-                device_type="cuda",
++                device_type="npu",
+             ),
+             tol1(
+                 "linalg.tensorsolve",
+                 {torch.float32: tol(atol=1e-04, rtol=1.3e-05)},
+-                device_type="cuda",
++                device_type="npu",
+             ),
+             tol1(
+                 "masked.prod",
+                 {torch.float32: tol(atol=1e-05, rtol=1.3e-05)},
+-                device_type="cuda",
++                device_type="npu",
+             ),
+             tol1(
+                 "nn.functional.binary_cross_entropy_with_logits",
+@@ -795,7 +804,7 @@ class TestOperators(TestCase):
+             tol1(
+                 "nn.functional.conv_transpose3d",
+                 {torch.float32: tol(atol=5e-05, rtol=9e-05)},
+-                device_type="cuda",
++                device_type="npu",
+             ),
+             tol1(
+                 "nn.functional.binary_cross_entropy_with_logits",
+@@ -832,7 +841,6 @@ class TestOperators(TestCase):
                  fn, primals = normalize_op_input_output(_op, sample)
                  result = fn(*primals)
                  cotangents = tree_map(lambda x: torch.randn_like(x), result)
@@ -103,7 +112,16 @@ index 632a4a915a6..71992f8548f 100644
                  out, vjp_fn = vjp(fn, *primals)
                  self.assertEqual(out, result)
                  result_vjps = vjp_fn(cotangents)
-@@ -1187,7 +1223,7 @@ class TestOperators(TestCase):
+@@ -897,7 +905,7 @@ class TestOperators(TestCase):
+             tol1(
+                 "nn.functional.conv_transpose3d",
+                 {torch.float32: tol(atol=5e-05, rtol=9e-05)},
+-                device_type="cuda",
++                device_type="npu",
+             ),
+             tol1("prod", {torch.float32: tol(atol=2e-05, rtol=1e-04)}),
+             tol1("masked.cumprod", {torch.float32: tol(atol=5e-04, rtol=5e-04)}),
+@@ -1187,7 +1195,7 @@ class TestOperators(TestCase):
              xfail("chalf", ""),
              xfail("scatter_reduce", "prod"),  # item call
              # Batching rule not implemented for aten::_use_cudnn_ctc_loss.Tensor
@@ -112,15 +130,68 @@ index 632a4a915a6..71992f8548f 100644
              # NYI: querying is_contiguous inside of vmap for memory_format other than torch.contiguous_format
              xfail("nn.functional.max_unpool2d"),
              xfail("nn.functional.max_unpool2d", "grad"),
-@@ -1529,6 +1565,7 @@ class TestOperators(TestCase):
-                 xfail("nn.functional.multi_margin_loss", ""),
-                 xfail("nn.functional.multilabel_margin_loss", ""),
-                 xfail("nn.functional.pdist", ""),
+@@ -1212,10 +1220,10 @@ class TestOperators(TestCase):
+             tol1(
+                 "linalg.svd",
+                 {torch.float32: tol(atol=5e-04, rtol=1e-04)},
+-                device_type="cuda",
++                device_type="npu",
+             ),
+             tol1(
+-                "svd", {torch.float32: tol(atol=5e-04, rtol=1e-04)}, device_type="cuda"
++                "svd", {torch.float32: tol(atol=5e-04, rtol=1e-04)}, device_type="npu"
+             ),
+             tol1(
+                 "linalg.householder_product",
+@@ -1224,7 +1232,7 @@ class TestOperators(TestCase):
+             tol1(
+                 "matrix_exp",
+                 {torch.float32: tol(atol=5e-04, rtol=1e-04)},
+-                device_type="cuda",
++                device_type="npu",
+             ),
+             tol1(
+                 "nn.functional.layer_norm",
+@@ -1352,7 +1360,7 @@ class TestOperators(TestCase):
+             tol1(
+                 "nn.functional.conv_transpose3d",
+                 {torch.float32: tol(atol=2e-04, rtol=9e-3)},
+-                device_type="cuda",
++                device_type="npu",
+             ),
+             tol1(
+                 "linalg.householder_product",
+@@ -1800,7 +1808,7 @@ class TestOperators(TestCase):
+                     "nn.functional.multi_margin_loss", ""
+                 ),  # NYI: forward AD with multi_margin_loss
+                 skip(
+-                    "linalg.householder_product", "", device_type="cuda"
 +                    "linalg.householder_product", "", device_type="npu"
-                 xfail("nn.functional.max_unpool1d", ""),
-                 xfail("nn.functional.max_unpool3d", ""),
-                 xfail("nn.functional.max_unpool3d", "grad"),
-@@ -2374,7 +2411,7 @@ class TestOperators(TestCase):
+                 ),  # flaky, I'm not sure why
+                 xfail("sparse.sampled_addmm", ""),  # Sparse tensors have no strides
+                 xfail(
+@@ -1827,17 +1835,17 @@ class TestOperators(TestCase):
+             tol1(
+                 "cumprod",
+                 {torch.float32: tol(atol=1e-03, rtol=5e-04)},
+-                device_type="cuda",
++                device_type="npu",
+             ),
+             tol1(
+                 "linalg.det",
+                 {torch.float32: tol(atol=3e-05, rtol=5e-06)},
+-                device_type="cuda",
++                device_type="npu",
+             ),
+             tol1(
+                 "linalg.vander",
+                 {torch.float32: tol(atol=1e-04, rtol=1.3e-05)},
+-                device_type="cuda",
++                device_type="npu",
+             ),
+             tol1(
+                 "nn.functional.group_norm", {torch.float32: tol(atol=1e-03, rtol=1e-03)}
+@@ -2374,7 +2382,7 @@ class TestOperators(TestCase):
              decorate("xlogy", decorator=skipIfRocm),
              # numerical inconsistencies, look like bugs
              skip(
@@ -129,20 +200,53 @@ index 632a4a915a6..71992f8548f 100644
              ),  # fails on linux, passes on windows
              skip(
                  "ldexp", dtypes=(torch.float32,), device_type="cpu"
-@@ -2388,10 +2425,10 @@ class TestOperators(TestCase):
+@@ -2388,10 +2396,10 @@ class TestOperators(TestCase):
                  "nn.functional.layer_norm", dtypes=(torch.float32,), device_type="cpu"
              ),  # fails on windows
              skip(
 -                "linalg.lu_factor", dtypes=(torch.float32,), device_type="cuda"
-+                "linalg.lu_factor_ex", dtypes=(torch.float32,), device_type="npu"
 +                "linalg.lu_factor", dtypes=(torch.float32,), device_type="npu"
              ),  # fails on all but windows
              skip(
 -                "linalg.lu_factor_ex", dtypes=(torch.float32,), device_type="cuda"
++                "linalg.lu_factor_ex", dtypes=(torch.float32,), device_type="npu"
              ),  # fails on all but windows
              skip("linalg.multi_dot", "", device_type="cpu"),
              skip("sparse.sampled_addmm", ""),
-@@ -2966,33 +3003,17 @@ class TestOperators(TestCase):
+@@ -2406,12 +2414,12 @@ class TestOperators(TestCase):
+             tol1(
+                 "ldexp",
+                 {torch.float32: tol(atol=6e-04, rtol=5e-06)},
+-                device_type="cuda",
++                device_type="npu",
+             ),
+             tol1(
+                 "linalg.householder_product",
+                 {torch.float32: tol(atol=5e-04, rtol=9e-03)},
+-                device_type="cuda",
++                device_type="npu",
+             ),
+             tol1(
+                 "linalg.householder_product",
+@@ -2421,7 +2429,7 @@ class TestOperators(TestCase):
+             tol1(
+                 "linalg.multi_dot",
+                 {torch.float32: tol(atol=2e-04, rtol=1e-04)},
+-                device_type="cuda",
++                device_type="npu",
+             ),
+             tol2(
+                 "linalg.pinv", "hermitian", {torch.float32: tol(atol=5e-06, rtol=5e-06)}
+@@ -2430,7 +2438,7 @@ class TestOperators(TestCase):
+             tol1(
+                 "nn.functional.conv2d",
+                 {torch.float32: tol(atol=5e-05, rtol=5e-05)},
+-                device_type="cuda",
++                device_type="npu",
+             ),
+             tol1("svd_lowrank", {torch.float32: tol(atol=5e-05, rtol=5e-05)}),
+             tol1("pca_lowrank", {torch.float32: tol(atol=5e-05, rtol=5e-05)}),
+@@ -2966,7 +2974,7 @@ class TestOperators(TestCase):
              t.data = torch.randn(3, 3)
              return t.sum()
  
@@ -150,31 +254,13 @@ index 632a4a915a6..71992f8548f 100644
 +        msg = "incompatible tensor type"
          with self.assertRaisesRegex(RuntimeError, msg):
              grad(fn)(t)
--
-         with self.assertRaisesRegex(RuntimeError, msg):
+ 
+@@ -3028,7 +3036,7 @@ class TestOperators(TestCase):
+             )
+ 
+ 
+-only_for = ("cpu", "cuda")
 +only_for = ("cpu", "privateuse1")
-             vjp(fn, t)
--
-         with self.assertRaisesRegex(RuntimeError, msg):
-             jvp(fn, (t,), (torch.randn_like(t),))
+ instantiate_device_type_tests(TestOperators, globals(), only_for=only_for)
  
--    def test_tensor_with_scalar_list(self, device):
--        x = torch.randn((), device=device)
- 
--        def func_list_of_scalar(x):
--            return torch.tensor([x], device=device)
- 
--        def func(x):
--            return torch.tensor(x, device=device).view(1)
--
--        actual_o, actual_fn = vjp(func_list_of_scalar, x)
--        expected_o, expected_fn = vjp(func, x)
--
--        self.assertEqual(actual_o, expected_o)
--        self.assertEqual(
--            expected_fn(torch.ones_like(expected_o)),
--            actual_fn(torch.ones_like(actual_o)),
--        )
- 
-     @ops(bool_ordered_op_db, dtypes=[torch.bool])
-     def test_ordered_bool_raises(self, device, dtype, op):
+ if __name__ == "__main__":

@@ -1,4 +1,4 @@
-diff --git a/test/test_module_tracker.py b/test/test_module_tracker.py
+﻿diff --git a/test/test_module_tracker.py b/test/test_module_tracker.py
 index 50a5e3ff1a6..55ef2c49c11 100644
 --- a/test/test_module_tracker.py
 +++ b/test/test_module_tracker.py

@@ -1,4 +1,4 @@
-diff --git a/test/distributed/launcher/bin/test_script_local_rank.py b/test/distributed/launcher/bin/test_script_local_rank.py
+﻿diff --git a/test/distributed/launcher/bin/test_script_local_rank.py b/test/distributed/launcher/bin/test_script_local_rank.py
 index f6663db8c84..7b322aef09f 100755
 --- a/test/distributed/launcher/bin/test_script_local_rank.py
 +++ b/test/distributed/launcher/bin/test_script_local_rank.py

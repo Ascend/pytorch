@@ -1,5 +1,5 @@
-diff --git a/torch/cuda/__init__.py b/torch/cuda/__init__.py
-index d18d6e0..716f9a8 100644
+﻿diff --git a/torch/cuda/__init__.py b/torch/cuda/__init__.py
+index d18d6e05fcc..716f9a8e302 100644
 --- a/torch/cuda/__init__.py
 +++ b/torch/cuda/__init__.py
 @@ -231,7 +231,7 @@ def is_tf32_supported() -> bool:

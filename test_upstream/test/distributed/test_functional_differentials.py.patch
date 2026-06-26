@@ -1,4 +1,4 @@
-diff --git a/test/distributed/test_functional_differentials.py b/test/distributed/test_functional_differentials.py
+﻿diff --git a/test/distributed/test_functional_differentials.py b/test/distributed/test_functional_differentials.py
 index 504fce48ea7..50586f930aa 100644
 --- a/test/distributed/test_functional_differentials.py
 +++ b/test/distributed/test_functional_differentials.py

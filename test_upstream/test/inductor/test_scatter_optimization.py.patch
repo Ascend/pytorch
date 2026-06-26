@@ -1,4 +1,4 @@
-diff --git a/test/inductor/test_scatter_optimization.py b/test/inductor/test_scatter_optimization.py
+﻿diff --git a/test/inductor/test_scatter_optimization.py b/test/inductor/test_scatter_optimization.py
 index a68565602e1..7094f4a53d7 100644
 --- a/test/inductor/test_scatter_optimization.py
 +++ b/test/inductor/test_scatter_optimization.py

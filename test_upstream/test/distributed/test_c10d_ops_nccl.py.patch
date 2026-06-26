@@ -1,4 +1,4 @@
-diff --git a/test/distributed/test_c10d_ops_nccl.py b/test/distributed/test_c10d_ops_nccl.py
+﻿diff --git a/test/distributed/test_c10d_ops_nccl.py b/test/distributed/test_c10d_ops_nccl.py
 index 9a663d3fdd3..c798ad316bf 100644
 --- a/test/distributed/test_c10d_ops_nccl.py
 +++ b/test/distributed/test_c10d_ops_nccl.py

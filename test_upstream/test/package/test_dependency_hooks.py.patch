@@ -1,4 +1,4 @@
-diff --git a/test/package/test_dependency_hooks.py b/test/package/test_dependency_hooks.py
+﻿diff --git a/test/package/test_dependency_hooks.py b/test/package/test_dependency_hooks.py
 index 6a4a239ef0a..b3bc1e8f477 100644
 --- a/test/package/test_dependency_hooks.py
 +++ b/test/package/test_dependency_hooks.py

@@ -1,4 +1,4 @@
-diff --git a/test/inductor/test_foreach.py b/test/inductor/test_foreach.py
+﻿diff --git a/test/inductor/test_foreach.py b/test/inductor/test_foreach.py
 index 4e85153a6a0..5e99107e045 100644
 --- a/test/inductor/test_foreach.py
 +++ b/test/inductor/test_foreach.py

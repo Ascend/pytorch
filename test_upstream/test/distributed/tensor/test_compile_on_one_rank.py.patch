@@ -1,4 +1,4 @@
-diff --git a/test/distributed/tensor/test_compile_on_one_rank.py b/test/distributed/tensor/test_compile_on_one_rank.py
+﻿diff --git a/test/distributed/tensor/test_compile_on_one_rank.py b/test/distributed/tensor/test_compile_on_one_rank.py
 index 166de302ee7..33180504062 100644
 --- a/test/distributed/tensor/test_compile_on_one_rank.py
 +++ b/test/distributed/tensor/test_compile_on_one_rank.py

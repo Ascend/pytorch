@@ -1,4 +1,4 @@
-diff --git a/test/distributed/pipelining/test_transformer.py b/test/distributed/pipelining/test_transformer.py
+﻿diff --git a/test/distributed/pipelining/test_transformer.py b/test/distributed/pipelining/test_transformer.py
 index 66de58167f9..93fdceaa811 100644
 --- a/test/distributed/pipelining/test_transformer.py
 +++ b/test/distributed/pipelining/test_transformer.py

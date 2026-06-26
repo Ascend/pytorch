@@ -1,4 +1,4 @@
-diff --git a/test/functorch/common_utils.py b/test/functorch/common_utils.py
+﻿diff --git a/test/functorch/common_utils.py b/test/functorch/common_utils.py
 index dd1258b5749..45bde460470 100644
 --- a/test/functorch/common_utils.py
 +++ b/test/functorch/common_utils.py

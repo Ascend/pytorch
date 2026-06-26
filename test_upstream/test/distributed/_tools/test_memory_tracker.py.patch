@@ -1,4 +1,4 @@
-diff --git a/test/distributed/_tools/test_memory_tracker.py b/test/distributed/_tools/test_memory_tracker.py
+﻿diff --git a/test/distributed/_tools/test_memory_tracker.py b/test/distributed/_tools/test_memory_tracker.py
 index 63366033629..fb4a9b1aec8 100644
 --- a/test/distributed/_tools/test_memory_tracker.py
 +++ b/test/distributed/_tools/test_memory_tracker.py

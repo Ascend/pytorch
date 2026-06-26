@@ -1,4 +1,4 @@
-diff --git a/test/inductor/test_dependencies.py b/test/inductor/test_dependencies.py
+﻿diff --git a/test/inductor/test_dependencies.py b/test/inductor/test_dependencies.py
 index ea500c9727e..ad305baabcd 100644
 --- a/test/inductor/test_dependencies.py
 +++ b/test/inductor/test_dependencies.py

@@ -1,4 +1,4 @@
-diff --git a/test/distributed/optim/test_named_optimizer.py b/test/distributed/optim/test_named_optimizer.py
+﻿diff --git a/test/distributed/optim/test_named_optimizer.py b/test/distributed/optim/test_named_optimizer.py
 index 5900b297abc..483c038cd0a 100644
 --- a/test/distributed/optim/test_named_optimizer.py
 +++ b/test/distributed/optim/test_named_optimizer.py

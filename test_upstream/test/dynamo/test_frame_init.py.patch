@@ -1,4 +1,4 @@
-diff --git a/test/dynamo/test_frame_init.py b/test/dynamo/test_frame_init.py
+﻿diff --git a/test/dynamo/test_frame_init.py b/test/dynamo/test_frame_init.py
 index 20cebe9e700..766c8c78263 100644
 --- a/test/dynamo/test_frame_init.py
 +++ b/test/dynamo/test_frame_init.py

@@ -1,5 +1,5 @@
-diff --git a/test/dynamo/test_package.py b/test/dynamo/test_package.py
-index 87b4c088a1a..0ed4ea02528 100644
+﻿diff --git a/test/dynamo/test_package.py b/test/dynamo/test_package.py
+index 87b4c088a1a..b7b1850cfbf 100644
 --- a/test/dynamo/test_package.py
 +++ b/test/dynamo/test_package.py
 @@ -7,6 +7,8 @@ import tempfile
@@ -192,6 +192,19 @@ index 87b4c088a1a..0ed4ea02528 100644
 +    @parametrize("device", ("cpu", "npu", "xpu"))
      @torch._dynamo.config.patch(caching_precompile=True)
      def test_automatic_dynamo_graph_breaks_from_print_model_as_fn(self, device):
+-        if device == "cuda" and not HAS_CUDA_AND_TRITON:
++        if device == "npu" and not HAS_CUDA_AND_TRITON:
+             raise unittest.SkipTest("Requires CUDA/Triton")
+         if device == "xpu" and not HAS_XPU_AND_TRITON:
+             raise unittest.SkipTest("Requires XPU/Triton")
+@@ -732,10 +735,10 @@ def add(x, y):
+             x = self.instance_method_with_args(x)
+             return x
+ 
+-    @parametrize("device", ("cpu", "cuda", "xpu"))
++    @parametrize("device", ("cpu", "npu", "xpu"))
+     @torch._dynamo.config.patch(caching_precompile=True)
+     def test_classmethod_qualname(self, device):
 -        if device == "cuda" and not HAS_CUDA_AND_TRITON:
 +        if device == "npu" and not HAS_CUDA_AND_TRITON:
              raise unittest.SkipTest("Requires CUDA/Triton")

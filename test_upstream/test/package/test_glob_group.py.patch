@@ -1,4 +1,4 @@
-diff --git a/test/package/test_glob_group.py b/test/package/test_glob_group.py
+﻿diff --git a/test/package/test_glob_group.py b/test/package/test_glob_group.py
 index 65c106b364a..625f44ce04d 100644
 --- a/test/package/test_glob_group.py
 +++ b/test/package/test_glob_group.py

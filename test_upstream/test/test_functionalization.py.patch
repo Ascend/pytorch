@@ -1,16 +1,8 @@
 diff --git a/test/test_functionalization.py b/test/test_functionalization.py
-index 65e7429..06c38db 100644
+index 65e7429..7f3ab89 100644
 --- a/test/test_functionalization.py
 +++ b/test/test_functionalization.py
-@@ -15,6 +15,7 @@ from torch._subclasses.functional_tensor import (
-     FunctionalTensorMode,
- )
- from torch.fx.experimental.proxy_tensor import make_fx
-+from torch_npu.contrib import transfer_to_npu
- from torch.fx.passes.reinplace import reinplace
- from torch.multiprocessing.reductions import StorageWeakRef
- from torch.testing._internal.common_utils import (
-@@ -236,7 +237,7 @@ class TestFunctionalization(TestCase):
+@@ -236,7 +236,7 @@ class TestFunctionalization(TestCase):
              return x.grad
  
          with torch.autograd.detect_anomaly(check_nan=False):

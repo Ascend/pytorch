@@ -1,4 +1,4 @@
-diff --git a/test/inductor/test_provenance_tracing.py b/test/inductor/test_provenance_tracing.py
+﻿diff --git a/test/inductor/test_provenance_tracing.py b/test/inductor/test_provenance_tracing.py
 index a5e3e8dfc4a..398113365c2 100644
 --- a/test/inductor/test_provenance_tracing.py
 +++ b/test/inductor/test_provenance_tracing.py

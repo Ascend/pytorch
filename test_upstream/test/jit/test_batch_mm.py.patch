@@ -1,4 +1,4 @@
-diff --git a/test/jit/test_batch_mm.py b/test/jit/test_batch_mm.py
+﻿diff --git a/test/jit/test_batch_mm.py b/test/jit/test_batch_mm.py
 index e0b2c640898..8f90a6c3a3a 100644
 --- a/test/jit/test_batch_mm.py
 +++ b/test/jit/test_batch_mm.py

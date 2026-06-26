@@ -1,4 +1,4 @@
-diff --git a/test/inductor/test_external_callables.py b/test/inductor/test_external_callables.py
+﻿diff --git a/test/inductor/test_external_callables.py b/test/inductor/test_external_callables.py
 index 3e2b68e26c4..b2f1639310e 100644
 --- a/test/inductor/test_external_callables.py
 +++ b/test/inductor/test_external_callables.py

@@ -1,4 +1,4 @@
-diff --git a/test/jit/test_list_dict.py b/test/jit/test_list_dict.py
+﻿diff --git a/test/jit/test_list_dict.py b/test/jit/test_list_dict.py
 index 1949ec46557..febdaa21b96 100644
 --- a/test/jit/test_list_dict.py
 +++ b/test/jit/test_list_dict.py

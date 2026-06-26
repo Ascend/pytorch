@@ -1,4 +1,4 @@
-diff --git a/test/inductor/test_torchinductor_dynamic_shapes.py b/test/inductor/test_torchinductor_dynamic_shapes.py
+﻿diff --git a/test/inductor/test_torchinductor_dynamic_shapes.py b/test/inductor/test_torchinductor_dynamic_shapes.py
 index 1144c1f9c45..5225d832d31 100644
 --- a/test/inductor/test_torchinductor_dynamic_shapes.py
 +++ b/test/inductor/test_torchinductor_dynamic_shapes.py

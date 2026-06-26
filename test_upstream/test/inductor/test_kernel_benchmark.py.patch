@@ -1,4 +1,4 @@
-diff --git a/test/inductor/test_kernel_benchmark.py b/test/inductor/test_kernel_benchmark.py
+﻿diff --git a/test/inductor/test_kernel_benchmark.py b/test/inductor/test_kernel_benchmark.py
 index 1f6ec150bdc..c33102527ba 100644
 --- a/test/inductor/test_kernel_benchmark.py
 +++ b/test/inductor/test_kernel_benchmark.py

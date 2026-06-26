@@ -1,4 +1,4 @@
-diff --git a/test/quantization/fx/test_model_report_fx.py b/test/quantization/fx/test_model_report_fx.py
+﻿diff --git a/test/quantization/fx/test_model_report_fx.py b/test/quantization/fx/test_model_report_fx.py
 index d05c9351902..058abed6c82 100644
 --- a/test/quantization/fx/test_model_report_fx.py
 +++ b/test/quantization/fx/test_model_report_fx.py

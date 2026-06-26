@@ -1,4 +1,4 @@
-diff --git a/test/onnx/exporter/test_hf_models_e2e.py b/test/onnx/exporter/test_hf_models_e2e.py
+﻿diff --git a/test/onnx/exporter/test_hf_models_e2e.py b/test/onnx/exporter/test_hf_models_e2e.py
 index 3cc7c8b02c7..45bda0d8529 100644
 --- a/test/onnx/exporter/test_hf_models_e2e.py
 +++ b/test/onnx/exporter/test_hf_models_e2e.py

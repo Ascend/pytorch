@@ -1,4 +1,4 @@
-diff --git a/test/distributed/tensor/test_experimental_ops.py b/test/distributed/tensor/test_experimental_ops.py
+﻿diff --git a/test/distributed/tensor/test_experimental_ops.py b/test/distributed/tensor/test_experimental_ops.py
 index decb3c9e7f4..0c1ff8cfa65 100644
 --- a/test/distributed/tensor/test_experimental_ops.py
 +++ b/test/distributed/tensor/test_experimental_ops.py

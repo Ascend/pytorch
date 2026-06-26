@@ -1,4 +1,4 @@
-diff --git a/test/distributed/tensor/debug/test_comm_mode_features.py b/test/distributed/tensor/debug/test_comm_mode_features.py
+﻿diff --git a/test/distributed/tensor/debug/test_comm_mode_features.py b/test/distributed/tensor/debug/test_comm_mode_features.py
 index 86b3849fda6..00b9d10c1db 100644
 --- a/test/distributed/tensor/debug/test_comm_mode_features.py
 +++ b/test/distributed/tensor/debug/test_comm_mode_features.py

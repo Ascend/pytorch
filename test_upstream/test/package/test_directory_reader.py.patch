@@ -1,4 +1,4 @@
-diff --git a/test/package/test_directory_reader.py b/test/package/test_directory_reader.py
+﻿diff --git a/test/package/test_directory_reader.py b/test/package/test_directory_reader.py
 index 85d01b0974b..c41809413bb 100644
 --- a/test/package/test_directory_reader.py
 +++ b/test/package/test_directory_reader.py

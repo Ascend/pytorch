@@ -1,4 +1,4 @@
-diff --git a/test/jit/test_profiler.py b/test/jit/test_profiler.py
+﻿diff --git a/test/jit/test_profiler.py b/test/jit/test_profiler.py
 index 47b8da3bca1..6becad7261c 100644
 --- a/test/jit/test_profiler.py
 +++ b/test/jit/test_profiler.py

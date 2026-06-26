@@ -1,4 +1,4 @@
-diff --git a/test/test_serialization.py b/test/test_serialization.py
+﻿diff --git a/test/test_serialization.py b/test/test_serialization.py
 index 51ff9182fa9..fbf7e529ffb 100644
 --- a/test/test_serialization.py
 +++ b/test/test_serialization.py

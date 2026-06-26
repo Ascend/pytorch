@@ -1,30 +1,12 @@
 diff --git a/test/test_python_dispatch.py b/test/test_python_dispatch.py
-index 041450e..1059294 100644
+index 041450e..770b277 100644
 --- a/test/test_python_dispatch.py
 +++ b/test/test_python_dispatch.py
-@@ -52,6 +52,7 @@ from torch.utils._python_dispatch import (
-     TorchDispatchMode,
- )
- from torch.utils._pytree import tree_map, tree_map_only
-+from torch_npu.contrib import transfer_to_npu
- 
- 
- # used as DataLoader collate_fn below; named here to avoid trying to pickle a lambda
-@@ -2259,6 +2260,8 @@ $0: f32[] = torch._ops.aten.empty.memory_format([], device=device(type='cpu'), p
-                         ShapeEnv,
-                     )
- 
+@@ -2261,0 +2262 @@ $0: f32[] = torch._ops.aten.empty.memory_format([], device=device(type='cpu'), p
 +                    tensor = torch.ones(123).npu()
-+
-                     shape_env = ShapeEnv()
-                     si = shape_env.create_symintnode(
-                         shape_env.create_symbol(
-@@ -2267,7 +2270,7 @@ $0: f32[] = torch._ops.aten.empty.memory_format([], device=device(type='cpu'), p
-                             dynamic_dim=DimDynamic.DUCK,
-                             constraint_dim=None,
-                         ),
+@@ -2265 +2266 @@ $0: f32[] = torch._ops.aten.empty.memory_format([], device=device(type='cpu'), p
+-                            123,
++                            tensor.size(0),
+@@ -2270 +2271 @@ $0: f32[] = torch._ops.aten.empty.memory_format([], device=device(type='cpu'), p
 -                        hint=123,
 +                        hint=tensor.size(0),
-                     )
-                     return (si,)
- 

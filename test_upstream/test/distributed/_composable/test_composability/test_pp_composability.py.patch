@@ -1,4 +1,4 @@
-diff --git a/test/distributed/_composable/test_composability/test_pp_composability.py b/test/distributed/_composable/test_composability/test_pp_composability.py
+﻿diff --git a/test/distributed/_composable/test_composability/test_pp_composability.py b/test/distributed/_composable/test_composability/test_pp_composability.py
 index 67ca31f7cd1..ee38745ef22 100644
 --- a/test/distributed/_composable/test_composability/test_pp_composability.py
 +++ b/test/distributed/_composable/test_composability/test_pp_composability.py

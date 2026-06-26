@@ -1,4 +1,4 @@
-diff --git a/test/jit/test_hash.py b/test/jit/test_hash.py
+﻿diff --git a/test/jit/test_hash.py b/test/jit/test_hash.py
 index 764110d46dd..63e4ccdd959 100644
 --- a/test/jit/test_hash.py
 +++ b/test/jit/test_hash.py

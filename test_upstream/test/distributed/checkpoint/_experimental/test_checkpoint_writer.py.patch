@@ -1,4 +1,4 @@
-diff --git a/test/distributed/checkpoint/_experimental/test_checkpoint_writer.py b/test/distributed/checkpoint/_experimental/test_checkpoint_writer.py
+﻿diff --git a/test/distributed/checkpoint/_experimental/test_checkpoint_writer.py b/test/distributed/checkpoint/_experimental/test_checkpoint_writer.py
 index b6262291872..dae580a39c9 100644
 --- a/test/distributed/checkpoint/_experimental/test_checkpoint_writer.py
 +++ b/test/distributed/checkpoint/_experimental/test_checkpoint_writer.py

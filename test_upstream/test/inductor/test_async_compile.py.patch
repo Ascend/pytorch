@@ -1,4 +1,4 @@
-diff --git a/test/inductor/test_async_compile.py b/test/inductor/test_async_compile.py
+﻿diff --git a/test/inductor/test_async_compile.py b/test/inductor/test_async_compile.py
 index 67a4bc24494..94245ba5eda 100644
 --- a/test/inductor/test_async_compile.py
 +++ b/test/inductor/test_async_compile.py

@@ -1,4 +1,4 @@
-diff --git a/test/dynamo/test_polyfills.py b/test/dynamo/test_polyfills.py
+﻿diff --git a/test/dynamo/test_polyfills.py b/test/dynamo/test_polyfills.py
 index 26d7353a8ad..7a0ed862a6f 100644
 --- a/test/dynamo/test_polyfills.py
 +++ b/test/dynamo/test_polyfills.py

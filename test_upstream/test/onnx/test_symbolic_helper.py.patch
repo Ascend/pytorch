@@ -1,4 +1,4 @@
-diff --git a/test/onnx/test_symbolic_helper.py b/test/onnx/test_symbolic_helper.py
+﻿diff --git a/test/onnx/test_symbolic_helper.py b/test/onnx/test_symbolic_helper.py
 index cc7a3a13373..b89c7751257 100644
 --- a/test/onnx/test_symbolic_helper.py
 +++ b/test/onnx/test_symbolic_helper.py

@@ -1,4 +1,4 @@
-diff --git a/test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_autograd.py b/test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_autograd.py
+﻿diff --git a/test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_autograd.py b/test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_autograd.py
 index 38fa1d77bef..4b44a64debe 100644
 --- a/test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_autograd.py
 +++ b/test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_autograd.py

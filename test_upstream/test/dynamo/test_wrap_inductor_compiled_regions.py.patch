@@ -1,5 +1,5 @@
-diff --git a/test/dynamo/test_wrap_inductor_compiled_regions.py b/test/dynamo/test_wrap_inductor_compiled_regions.py
-index 0f2d335adfe..8b12e48b4e6 100644
+﻿diff --git a/test/dynamo/test_wrap_inductor_compiled_regions.py b/test/dynamo/test_wrap_inductor_compiled_regions.py
+index 0f2d335adfe..6ebc83c0081 100644
 --- a/test/dynamo/test_wrap_inductor_compiled_regions.py
 +++ b/test/dynamo/test_wrap_inductor_compiled_regions.py
 @@ -3,6 +3,8 @@
@@ -71,6 +71,17 @@ index 0f2d335adfe..8b12e48b4e6 100644
      def test_wrap_default_disabled(self):
          """Test that wrapping is disabled by default"""
  
+@@ -161,8 +163,8 @@ class TestWrapInductorCompiledRegions(torch._dynamo.test_case.TestCase):
+         def fn(x, y):
+             return torch.matmul(x, y)
+ 
+-        x = torch.randn(4, 4, device="cuda")
+-        y = torch.randn(4, 4, device="cuda")
++        x = torch.randn(4, 4, device="npu")
++        y = torch.randn(4, 4, device="npu")
+ 
+         with DebugMode() as debug_mode:
+             result = fn(x, y)
 @@ -176,7 +178,7 @@ class TestWrapInductorCompiledRegions(torch._dynamo.test_case.TestCase):
          expected = torch.matmul(x, y)
          self.assertEqual(result, expected)
@@ -353,6 +364,17 @@ index 0f2d335adfe..8b12e48b4e6 100644
  
          # Clone for comparison
          x_eager = x.detach().clone().requires_grad_(True)
+@@ -975,8 +977,8 @@ class TestWrapInductorCompiledRegions(torch._dynamo.test_case.TestCase):
+             a = inner_compiled_matmul(x, y)
+             return torch.relu(a)
+ 
+-        x = torch.randn(4, 4, device="cuda", requires_grad=True)
+-        y = torch.randn(4, 4, device="cuda", requires_grad=True)
++        x = torch.randn(4, 4, device="npu", requires_grad=True)
++        y = torch.randn(4, 4, device="npu", requires_grad=True)
+ 
+         x_eager = x.detach().clone().requires_grad_(True)
+         y_eager = y.detach().clone().requires_grad_(True)
 @@ -1003,7 +1005,7 @@ class TestWrapInductorCompiledRegions(torch._dynamo.test_case.TestCase):
          self.assertEqual(x.grad, x_eager.grad)
          self.assertEqual(y.grad, y_eager.grad)

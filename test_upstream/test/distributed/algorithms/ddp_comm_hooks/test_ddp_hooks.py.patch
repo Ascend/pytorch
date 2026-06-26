@@ -1,4 +1,4 @@
-diff --git a/test/distributed/algorithms/ddp_comm_hooks/test_ddp_hooks.py b/test/distributed/algorithms/ddp_comm_hooks/test_ddp_hooks.py
+﻿diff --git a/test/distributed/algorithms/ddp_comm_hooks/test_ddp_hooks.py b/test/distributed/algorithms/ddp_comm_hooks/test_ddp_hooks.py
 index 961e40556c0..a6469d630f2 100644
 --- a/test/distributed/algorithms/ddp_comm_hooks/test_ddp_hooks.py
 +++ b/test/distributed/algorithms/ddp_comm_hooks/test_ddp_hooks.py

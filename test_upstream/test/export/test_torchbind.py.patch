@@ -1,22 +1,31 @@
-diff --git a/test/export/test_torchbind.py b/test/export/test_torchbind.py
-index adf09868116..354f1679ad7 100644
+﻿diff --git a/test/export/test_torchbind.py b/test/export/test_torchbind.py
+index adf09868116..4557a7dd76e 100644
 --- a/test/export/test_torchbind.py
 +++ b/test/export/test_torchbind.py
-@@ -170,6 +170,7 @@ class TestExportTorchbind(TestCase):
+@@ -927,7 +927,7 @@ def forward(self, token, safe_obj):
                  super().__init__()
-                 self.attr = torch.classes._TorchScriptTesting._Foo(10, 20)
  
+             def forward(self, tq, x):
+-                with torch.autocast("cuda", dtype=torch.bfloat16):
 +                with torch.autocast("npu", dtype=torch.bfloat16):
-             def forward(self, x, n):
-                 return x + self.attr.add_tensor(x)
+                     torch.ops._TorchScriptTesting.queue_push(tq, x.cos())
+                     torch.ops._TorchScriptTesting.queue_push(tq, x.sin())
+                     x_sin = torch.ops._TorchScriptTesting.queue_pop(
+@@ -1562,7 +1562,7 @@ def forward(self, token, obj, x):
+         )
  
-@@ -841,6 +842,9 @@ def forward(self, token, safe_obj):
-             with torch.library._scoped_library(ns, "FRAGMENT") as lib:
-                 lib.impl(
-                     op.name(), torch.library.fallthrough_kernel, TEST_DISPATCH_KEY_STR
-+                del op.default.py_kernels[torch._C.DispatchKey.AutocastNPU]
-+                op.default.py_impl(torch._C.DispatchKey.AutocastNPU)(
-+                        op.__name__, torch.library.fallthrough_kernel, "AutocastNPU"
-                 )
-                 self.assertTrue(
-                     torch._C._dispatch_kernel_for_dispatch_key_is_fallthrough(
+     @requires_cuda_and_triton
+-    @parametrize("device", ["cpu", "cuda"])
++    @parametrize("device", ["cpu", "npu"])
+     @parametrize("backend", ["eager", "aot_eager", "inductor"])
+     def test_compile_obj_torchbind_op_with_autocast(self, backend, device):
+         def f(tq, x):
+@@ -1580,7 +1580,7 @@ def forward(self, token, obj, x):
+         )
+ 
+     @requires_cuda_and_triton
+-    @parametrize("device", ["cpu", "cuda"])
++    @parametrize("device", ["cpu", "npu"])
+     def test_export_obj_torchbind_op_with_autocast(self, device):
+         class Mod(torch.nn.Module):
+             def forward(self, x, tq):

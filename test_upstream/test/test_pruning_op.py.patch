@@ -1,4 +1,4 @@
-diff --git a/test/test_pruning_op.py b/test/test_pruning_op.py
+﻿diff --git a/test/test_pruning_op.py b/test/test_pruning_op.py
 index d8e42d78139..11cfc95c0b8 100644
 --- a/test/test_pruning_op.py
 +++ b/test/test_pruning_op.py

@@ -1,4 +1,4 @@
-diff --git a/test/lazy/test_step_closures.py b/test/lazy/test_step_closures.py
+﻿diff --git a/test/lazy/test_step_closures.py b/test/lazy/test_step_closures.py
 index b6fb1711233..20d5ae0393a 100644
 --- a/test/lazy/test_step_closures.py
 +++ b/test/lazy/test_step_closures.py

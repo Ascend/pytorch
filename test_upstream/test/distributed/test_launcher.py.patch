@@ -1,4 +1,4 @@
-diff --git a/test/distributed/test_launcher.py b/test/distributed/test_launcher.py
+﻿diff --git a/test/distributed/test_launcher.py b/test/distributed/test_launcher.py
 index decae9d1c7c..c9342be1d99 100644
 --- a/test/distributed/test_launcher.py
 +++ b/test/distributed/test_launcher.py

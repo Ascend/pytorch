@@ -1,4 +1,4 @@
-diff --git a/test/package/test_digraph.py b/test/package/test_digraph.py
+﻿diff --git a/test/package/test_digraph.py b/test/package/test_digraph.py
 index c6c9de03503..d0e97416c06 100644
 --- a/test/package/test_digraph.py
 +++ b/test/package/test_digraph.py

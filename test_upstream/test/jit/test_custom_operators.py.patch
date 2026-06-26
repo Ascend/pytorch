@@ -1,4 +1,4 @@
-diff --git a/test/jit/test_custom_operators.py b/test/jit/test_custom_operators.py
+﻿diff --git a/test/jit/test_custom_operators.py b/test/jit/test_custom_operators.py
 index 02fb5d28519..32acdfc49c7 100644
 --- a/test/jit/test_custom_operators.py
 +++ b/test/jit/test_custom_operators.py

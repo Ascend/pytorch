@@ -1,4 +1,4 @@
-diff --git a/test/dynamo/test_lazy_constant.py b/test/dynamo/test_lazy_constant.py
+﻿diff --git a/test/dynamo/test_lazy_constant.py b/test/dynamo/test_lazy_constant.py
 index 3a3fc70bb1f..a7d4db92653 100644
 --- a/test/dynamo/test_lazy_constant.py
 +++ b/test/dynamo/test_lazy_constant.py

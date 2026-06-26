@@ -1,4 +1,4 @@
-diff --git a/test/distributed/launcher/bin/test_script_is_torchelastic_launched.py b/test/distributed/launcher/bin/test_script_is_torchelastic_launched.py
+﻿diff --git a/test/distributed/launcher/bin/test_script_is_torchelastic_launched.py b/test/distributed/launcher/bin/test_script_is_torchelastic_launched.py
 index f3ab4090e8d..bddd94fa9af 100755
 --- a/test/distributed/launcher/bin/test_script_is_torchelastic_launched.py
 +++ b/test/distributed/launcher/bin/test_script_is_torchelastic_launched.py

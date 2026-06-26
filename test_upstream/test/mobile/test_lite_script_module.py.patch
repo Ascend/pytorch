@@ -1,4 +1,4 @@
-diff --git a/test/mobile/test_lite_script_module.py b/test/mobile/test_lite_script_module.py
+﻿diff --git a/test/mobile/test_lite_script_module.py b/test/mobile/test_lite_script_module.py
 index f0316f7606a..cf733590b92 100644
 --- a/test/mobile/test_lite_script_module.py
 +++ b/test/mobile/test_lite_script_module.py

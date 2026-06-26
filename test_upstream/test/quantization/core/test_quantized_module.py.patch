@@ -1,4 +1,4 @@
-diff --git a/test/quantization/core/test_quantized_module.py b/test/quantization/core/test_quantized_module.py
+﻿diff --git a/test/quantization/core/test_quantized_module.py b/test/quantization/core/test_quantized_module.py
 index 6805cf23948..310c228fc7d 100644
 --- a/test/quantization/core/test_quantized_module.py
 +++ b/test/quantization/core/test_quantized_module.py

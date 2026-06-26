@@ -1,4 +1,4 @@
-diff --git a/test/package/test_load_bc_packages.py b/test/package/test_load_bc_packages.py
+﻿diff --git a/test/package/test_load_bc_packages.py b/test/package/test_load_bc_packages.py
 index 4280736d6e3..05ef2b76488 100644
 --- a/test/package/test_load_bc_packages.py
 +++ b/test/package/test_load_bc_packages.py

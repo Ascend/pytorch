@@ -1,4 +1,4 @@
-diff --git a/test/distributed/_shard/test_sharder.py b/test/distributed/_shard/test_sharder.py
+﻿diff --git a/test/distributed/_shard/test_sharder.py b/test/distributed/_shard/test_sharder.py
 index 27b79c55406..305270a886c 100644
 --- a/test/distributed/_shard/test_sharder.py
 +++ b/test/distributed/_shard/test_sharder.py

@@ -1,4 +1,4 @@
-diff --git a/test/inductor/test_torchinductor_codegen_config_overrides.py b/test/inductor/test_torchinductor_codegen_config_overrides.py
+﻿diff --git a/test/inductor/test_torchinductor_codegen_config_overrides.py b/test/inductor/test_torchinductor_codegen_config_overrides.py
 index 930a74557aa..611460fd056 100644
 --- a/test/inductor/test_torchinductor_codegen_config_overrides.py
 +++ b/test/inductor/test_torchinductor_codegen_config_overrides.py

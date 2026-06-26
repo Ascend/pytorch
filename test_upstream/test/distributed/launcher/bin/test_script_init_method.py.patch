@@ -1,4 +1,4 @@
-diff --git a/test/distributed/launcher/bin/test_script_init_method.py b/test/distributed/launcher/bin/test_script_init_method.py
+﻿diff --git a/test/distributed/launcher/bin/test_script_init_method.py b/test/distributed/launcher/bin/test_script_init_method.py
 index 9c06bb95dbc..315e65f5499 100755
 --- a/test/distributed/launcher/bin/test_script_init_method.py
 +++ b/test/distributed/launcher/bin/test_script_init_method.py

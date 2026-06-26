@@ -1,4 +1,4 @@
-diff --git a/test/dynamo/cpython/3_13/test_heapq.py b/test/dynamo/cpython/3_13/test_heapq.py
+﻿diff --git a/test/dynamo/cpython/3_13/test_heapq.py b/test/dynamo/cpython/3_13/test_heapq.py
 index 0652f36c661..5a29c1513cc 100644
 --- a/test/dynamo/cpython/3_13/test_heapq.py
 +++ b/test/dynamo/cpython/3_13/test_heapq.py

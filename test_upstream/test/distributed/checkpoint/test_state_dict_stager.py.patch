@@ -1,4 +1,4 @@
-diff --git a/test/distributed/checkpoint/test_state_dict_stager.py b/test/distributed/checkpoint/test_state_dict_stager.py
+﻿diff --git a/test/distributed/checkpoint/test_state_dict_stager.py b/test/distributed/checkpoint/test_state_dict_stager.py
 index 8e3baf6ea3e..489a731a995 100644
 --- a/test/distributed/checkpoint/test_state_dict_stager.py
 +++ b/test/distributed/checkpoint/test_state_dict_stager.py

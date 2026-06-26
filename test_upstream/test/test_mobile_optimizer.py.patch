@@ -1,4 +1,4 @@
-diff --git a/test/test_mobile_optimizer.py b/test/test_mobile_optimizer.py
+﻿diff --git a/test/test_mobile_optimizer.py b/test/test_mobile_optimizer.py
 index 1f4a86eecd4..287044fa75a 100644
 --- a/test/test_mobile_optimizer.py
 +++ b/test/test_mobile_optimizer.py

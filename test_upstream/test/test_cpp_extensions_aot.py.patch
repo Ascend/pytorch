@@ -1,4 +1,4 @@
-diff --git a/test/test_cpp_extensions_aot.py b/test/test_cpp_extensions_aot.py
+﻿diff --git a/test/test_cpp_extensions_aot.py b/test/test_cpp_extensions_aot.py
 index 0655652a083..04a76f6b41b 100644
 --- a/test/test_cpp_extensions_aot.py
 +++ b/test/test_cpp_extensions_aot.py

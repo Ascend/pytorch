@@ -1,4 +1,4 @@
-diff --git a/test/dynamo/test_deviceguard.py b/test/dynamo/test_deviceguard.py
+﻿diff --git a/test/dynamo/test_deviceguard.py b/test/dynamo/test_deviceguard.py
 index de2c9f1b76b..0eb258fe711 100644
 --- a/test/dynamo/test_deviceguard.py
 +++ b/test/dynamo/test_deviceguard.py

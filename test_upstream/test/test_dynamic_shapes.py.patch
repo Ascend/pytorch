@@ -1,4 +1,4 @@
-diff --git a/test/test_dynamic_shapes.py b/test/test_dynamic_shapes.py
+﻿diff --git a/test/test_dynamic_shapes.py b/test/test_dynamic_shapes.py
 index 8a0f6177781..9bf5e830f55 100644
 --- a/test/test_dynamic_shapes.py
 +++ b/test/test_dynamic_shapes.py

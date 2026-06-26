@@ -1,16 +1,8 @@
-diff --git a/test/inductor/test_cutlass_backend.py b/test/inductor/test_cutlass_backend.py
-index a57d2603559..4123ead1dd3 100644
+﻿diff --git a/test/inductor/test_cutlass_backend.py b/test/inductor/test_cutlass_backend.py
+index a57d2603559..74155e85b96 100644
 --- a/test/inductor/test_cutlass_backend.py
 +++ b/test/inductor/test_cutlass_backend.py
-@@ -1,6 +1,7 @@
- # Owner(s): ["module: inductor"]
- import gc
- import itertools
-+import torch_npu._inductor
- import logging
- import math
- import os
-@@ -29,7 +30,6 @@ try:
+@@ -29,7 +29,6 @@ try:
  except ImportError:
      from .test_aot_inductor_utils import AOTIRunnerUtil
  
@@ -18,3 +10,11 @@ index a57d2603559..4123ead1dd3 100644
  import torch._inductor.codecache
  import torch.version
  from torch._dynamo import config as dynamo_config
+@@ -79,6 +78,7 @@ if HAS_CUDA_AND_TRITON:
+ 
+ 
+ log = logging.getLogger(__name__)
++import torch_npu._inductor
+ 
+ 
+ def _get_path_without_sccache() -> str:

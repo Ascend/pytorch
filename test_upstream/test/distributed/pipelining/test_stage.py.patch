@@ -1,4 +1,4 @@
-diff --git a/test/distributed/pipelining/test_stage.py b/test/distributed/pipelining/test_stage.py
+﻿diff --git a/test/distributed/pipelining/test_stage.py b/test/distributed/pipelining/test_stage.py
 index b6481fce17b..cb675d7dd6c 100644
 --- a/test/distributed/pipelining/test_stage.py
 +++ b/test/distributed/pipelining/test_stage.py

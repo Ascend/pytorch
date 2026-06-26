@@ -1,4 +1,4 @@
-diff --git a/test/torch_np/numpy_tests/core/test_indexing.py b/test/torch_np/numpy_tests/core/test_indexing.py
+﻿diff --git a/test/torch_np/numpy_tests/core/test_indexing.py b/test/torch_np/numpy_tests/core/test_indexing.py
 index b56644cabe5..486a564d38f 100644
 --- a/test/torch_np/numpy_tests/core/test_indexing.py
 +++ b/test/torch_np/numpy_tests/core/test_indexing.py

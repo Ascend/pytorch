@@ -1,4 +1,4 @@
-diff --git a/test/distributed/_pycute/test_coalesce.py b/test/distributed/_pycute/test_coalesce.py
+﻿diff --git a/test/distributed/_pycute/test_coalesce.py b/test/distributed/_pycute/test_coalesce.py
 index 81dd2295f40..9c15e580156 100644
 --- a/test/distributed/_pycute/test_coalesce.py
 +++ b/test/distributed/_pycute/test_coalesce.py

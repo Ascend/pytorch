@@ -1,4 +1,4 @@
-diff --git a/test/benchmark_utils/test_benchmark_utils.py b/test/benchmark_utils/test_benchmark_utils.py
+﻿diff --git a/test/benchmark_utils/test_benchmark_utils.py b/test/benchmark_utils/test_benchmark_utils.py
 index 3812160f507..747ffa15c84 100644
 --- a/test/benchmark_utils/test_benchmark_utils.py
 +++ b/test/benchmark_utils/test_benchmark_utils.py

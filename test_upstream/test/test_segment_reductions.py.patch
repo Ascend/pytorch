@@ -1,4 +1,4 @@
-diff --git a/test/test_segment_reductions.py b/test/test_segment_reductions.py
+﻿diff --git a/test/test_segment_reductions.py b/test/test_segment_reductions.py
 index 18159044407..46b257afed5 100644
 --- a/test/test_segment_reductions.py
 +++ b/test/test_segment_reductions.py

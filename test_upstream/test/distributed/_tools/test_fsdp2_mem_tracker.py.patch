@@ -1,21 +1,13 @@
-diff --git a/test/distributed/_tools/test_fsdp2_mem_tracker.py b/test/distributed/_tools/test_fsdp2_mem_tracker.py
-index 7e513ef186a..34697f264b3 100644
+﻿diff --git a/test/distributed/_tools/test_fsdp2_mem_tracker.py b/test/distributed/_tools/test_fsdp2_mem_tracker.py
+index 7e513ef186a..54edd9d744a 100644
 --- a/test/distributed/_tools/test_fsdp2_mem_tracker.py
 +++ b/test/distributed/_tools/test_fsdp2_mem_tracker.py
-@@ -1,4 +1,8 @@
- # Owner(s): ["module: fsdp"]
-+from torch_npu.contrib import transfer_to_npu
-+import torch_npu
-+
-+import torch_npu.testing
- import functools
+@@ -3,6 +3,8 @@ import functools
  import gc
  
-@@ -88,6 +92,7 @@ class TestTrackerFullyShard1DTrainingCore(FSDPTest):
-         lin_dim, bsz = 2048, 8192
-         with torch.device(dev):
-             model = nn.Sequential(*[MLP(dim=lin_dim, device=dev) for _ in range(4)])
-+        mesh = init_device_mesh("npu", (self.world_size,))
-         mesh = init_device_mesh(dev.type, (self.world_size,))
-         fully_shard_fn = functools.partial(
-             fully_shard,
+ import torch
++from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ import torch.nn as nn
+ from torch.distributed._composable import checkpoint
+ from torch.distributed._tools.fsdp2_mem_tracker import FSDPMemTracker

@@ -1,4 +1,4 @@
-diff --git a/test/distributed/_shard/sharded_tensor/ops/test_tensor_ops.py b/test/distributed/_shard/sharded_tensor/ops/test_tensor_ops.py
+﻿diff --git a/test/distributed/_shard/sharded_tensor/ops/test_tensor_ops.py b/test/distributed/_shard/sharded_tensor/ops/test_tensor_ops.py
 index ddf88424b23..71bf0f65b24 100644
 --- a/test/distributed/_shard/sharded_tensor/ops/test_tensor_ops.py
 +++ b/test/distributed/_shard/sharded_tensor/ops/test_tensor_ops.py

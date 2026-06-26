@@ -1,4 +1,4 @@
-diff --git a/test/dynamo/test_metrics_context.py b/test/dynamo/test_metrics_context.py
+﻿diff --git a/test/dynamo/test_metrics_context.py b/test/dynamo/test_metrics_context.py
 index 3a8657003cd..a0a993931b5 100644
 --- a/test/dynamo/test_metrics_context.py
 +++ b/test/dynamo/test_metrics_context.py

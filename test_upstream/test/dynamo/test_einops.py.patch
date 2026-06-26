@@ -1,4 +1,4 @@
-diff --git a/test/dynamo/test_einops.py b/test/dynamo/test_einops.py
+﻿diff --git a/test/dynamo/test_einops.py b/test/dynamo/test_einops.py
 index 5e8a77098c1..f06d267b33c 100644
 --- a/test/dynamo/test_einops.py
 +++ b/test/dynamo/test_einops.py

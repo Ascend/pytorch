@@ -1,4 +1,4 @@
-diff --git a/test/nn/attention/test_open_registry.py b/test/nn/attention/test_open_registry.py
+﻿diff --git a/test/nn/attention/test_open_registry.py b/test/nn/attention/test_open_registry.py
 index 2bfb30fa886..f6a7bdafa7a 100644
 --- a/test/nn/attention/test_open_registry.py
 +++ b/test/nn/attention/test_open_registry.py

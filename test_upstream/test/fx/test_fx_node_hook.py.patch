@@ -1,4 +1,4 @@
-diff --git a/test/fx/test_fx_node_hook.py b/test/fx/test_fx_node_hook.py
+﻿diff --git a/test/fx/test_fx_node_hook.py b/test/fx/test_fx_node_hook.py
 index 4cdb79702ff..4ca99537300 100644
 --- a/test/fx/test_fx_node_hook.py
 +++ b/test/fx/test_fx_node_hook.py

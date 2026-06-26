@@ -1,4 +1,4 @@
-diff --git a/test/test_linalg.py b/test/test_linalg.py
+﻿diff --git a/test/test_linalg.py b/test/test_linalg.py
 index 82c5ee64b51..4e2ab473940 100644
 --- a/test/test_linalg.py
 +++ b/test/test_linalg.py

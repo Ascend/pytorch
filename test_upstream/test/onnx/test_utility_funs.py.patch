@@ -1,4 +1,4 @@
-diff --git a/test/onnx/test_utility_funs.py b/test/onnx/test_utility_funs.py
+﻿diff --git a/test/onnx/test_utility_funs.py b/test/onnx/test_utility_funs.py
 index 1f80f4163eb..c8dd0a407d1 100644
 --- a/test/onnx/test_utility_funs.py
 +++ b/test/onnx/test_utility_funs.py

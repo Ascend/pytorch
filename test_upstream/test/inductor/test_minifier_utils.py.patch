@@ -1,23 +1,13 @@
-diff --git a/test/inductor/test_minifier_utils.py b/test/inductor/test_minifier_utils.py
-index 80c7738..adacb43 100644
+﻿diff --git a/test/inductor/test_minifier_utils.py b/test/inductor/test_minifier_utils.py
+index 2ac067a9e67..a3d94c68276 100644
 --- a/test/inductor/test_minifier_utils.py
 +++ b/test/inductor/test_minifier_utils.py
-@@ -1,3 +1,11 @@
-+import torch
-+import torch_npu
-+from torch_npu.contrib import transfer_to_npu
-+from torch_npu.utils import _dynamo
-+_dynamo.use_jit_script = True
-+torch.cuda.get_device_capability = lambda :(10, 0)
-+import torch_npu.testing
-+
- # Owner(s): ["module: inductor"]
+@@ -2,6 +2,8 @@
  from unittest.mock import patch
  
-@@ -10,4 +18,5 @@ from torch._dynamo.repro.aoti import (
- )
- from torch.testing._internal.common_utils import run_tests, TestCase
- 
-+import torch_npu._inductor
- 
- class MinifierUtilsTests(TestCase):
+ import torch
++from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ from torch._dynamo.exc import UserError, UserErrorType
+ from torch._dynamo.repro.aoti import (
+     AOTIMinifierError,

@@ -1,4 +1,4 @@
-diff --git a/test/inductor/test_inductor_annotations.py b/test/inductor/test_inductor_annotations.py
+﻿diff --git a/test/inductor/test_inductor_annotations.py b/test/inductor/test_inductor_annotations.py
 index 3824b25cdea..7cff652690c 100644
 --- a/test/inductor/test_inductor_annotations.py
 +++ b/test/inductor/test_inductor_annotations.py

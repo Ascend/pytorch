@@ -1,5 +1,5 @@
 diff --git a/test/test_tensorboard.py b/test/test_tensorboard.py
-index 1f93a86..aa1e750 100644
+index 1f93a86eb2a..aa1e7501f2a 100644
 --- a/test/test_tensorboard.py
 +++ b/test/test_tensorboard.py
 @@ -11,6 +11,9 @@ from pathlib import Path
@@ -208,16 +208,3 @@ index 1f93a86..aa1e750 100644
  
  
  class TestTensorBoardFigure(BaseTestCase):
-#
-# NPU Patch Explanation:
-# 
-# Key modifications:
-# - Added import torch_npu
-# - Added import from torch_npu.contrib import transfer_to_npu
-# - Moved torch import before torch_npu imports for proper ordering
-# - Changed tensor creations to use .to("npu") method
-# - Changed model creations to use .to("npu") method
-# - All tensor operations now target NPU device instead of CPU
-# - Histogram and scalar operations now use NPU tensors
-# - Embedding visualization tests modified to use NPU tensors
-# - Graph model tests modified to use NPU for all layers and inputs

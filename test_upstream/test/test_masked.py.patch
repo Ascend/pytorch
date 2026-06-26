@@ -1,33 +1,12 @@
-diff --git a/test/test_masked.py b/test/test_masked.py
-index fb50482eac1..48e02647c40 100644
+﻿diff --git a/test/test_masked.py b/test/test_masked.py
+index fb50482eac1..b1e5982fd96 100644
 --- a/test/test_masked.py
 +++ b/test/test_masked.py
-@@ -6,6 +6,18 @@
- import itertools
- import torch
+@@ -8,6 +8,7 @@ import torch
  from typing import Any
-+
-+
-+from torch_npu.contrib import transfer_to_npu
-+)
-+    "PyTorch sparse CSR PrivateUse1/NPU invariant is supported starting from PyTorch 2.8.0"
-+SPARSE_CSR_PRIVATEUSE1_SKIP = (
-+
-+
-+    return version.parse(torch.__version__.split("+")[0]).release >= (2, 8, 0)
-+def torch_sparse_csr_privateuse1_supported():
-+from torch_npu.contrib import transfer_to_npu
-+from packaging import version
  from functools import wraps
  import unittest
++from torch_npu.contrib import transfer_to_npu
  from torch.testing._internal.common_utils import skipIfTorchDynamo
-@@ -224,6 +236,9 @@ class mask_layouts(_TestParametrizer):
-                     raise unittest.SkipTest(f"{op.name} does not support inputs with {layout_name} layout")
-                 sample_inputs_func = op.sample_inputs_sparse_coo
-             elif layout == torch.sparse_csr:
-+                    raise unittest.SkipTest(SPARSE_CSR_PRIVATEUSE1_SKIP)
-+                        and not torch_sparse_csr_privateuse1_supported()):
-+                if (torch.device(device).type == torch._C._get_privateuse1_backend_name()
-                 if not op.supports_sparse_csr:
-                     raise unittest.SkipTest(f"{op.name} does not support inputs with {layout_name} layout")
-                 sample_inputs_func = op.sample_inputs_sparse_csr
+ 
+ 
