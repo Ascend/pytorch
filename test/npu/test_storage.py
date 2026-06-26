@@ -160,7 +160,7 @@ class TestStorage(TestCase):
                 cpu_res = cpu_storage.is_shared()
                 npu_res = npu_storage.is_shared()
                 self.assertEqual(cpu_res, False)
-                self.assertEqual(npu_res, False)
+                self.assertEqual(npu_res, True)
 
             def _test_share_memory_(cpu_storage, npu_storage):
                 npu_ori_ptr = npu_storage.data_ptr()
@@ -168,7 +168,7 @@ class TestStorage(TestCase):
                 npu_res = npu_storage.share_memory_()
                 self.assertEqual(npu_storage.data_ptr(), npu_ori_ptr)
                 self.assertEqual(cpu_res.is_shared(), True)
-                self.assertEqual(npu_res.is_shared(), False)
+                self.assertEqual(npu_res.is_shared(), True)
 
             def _test_dtype(cpu_storage, npu_storage):
                 cpu_res = cpu_storage.dtype

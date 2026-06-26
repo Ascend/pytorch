@@ -90,8 +90,10 @@ class TestUtilsCheckpointAPIs(TestCase):
                 for ctx in contexts
             )
         )
-        self.assertTrue(any(ctx.is_recompute for ctx in contexts))
-        self.assertTrue(any(not ctx.is_recompute for ctx in contexts))
+        # Since PyTorch #176455, SAC uses indexed storage during the backward
+        # recompute pass and no longer invokes policy_fn there, so every context
+        # passed to policy_fn comes from the forward pass (is_recompute=False).
+        self.assertTrue(all(not ctx.is_recompute for ctx in contexts))
 
         forward_contexts = [ctx for ctx in contexts if not ctx.is_recompute]
         if forward_contexts and hasattr(forward_contexts[0], "op_output"):

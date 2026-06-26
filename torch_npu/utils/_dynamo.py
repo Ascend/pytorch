@@ -197,7 +197,9 @@ def patch_inductor_wrapper():
     from typing import Any
 
     from torch import _TorchCompileInductorWrapper
-    from torch.utils._config_module import _ConfigEntry, Config, ConfigModule
+    from torch.utils._config_module import Config, ConfigModule
+
+    from torch_npu._compat.utils import make_config_entry
 
 
     src_init = _TorchCompileInductorWrapper.__init__
@@ -210,12 +212,10 @@ def patch_inductor_wrapper():
             return ori_dict
         if "npu_backend" not in ori_dict:
             ori_dict["npu_backend"] = "default"
-            cfg = Config(default="default", value_type=str)
-            # PyTorch >=2.12 added a required `name` arg to _ConfigEntry.
-            if "name" in inspect.signature(_ConfigEntry.__init__).parameters:
-                self._config["npu_backend"] = _ConfigEntry(cfg, "npu_backend")
-            else:
-                self._config["npu_backend"] = _ConfigEntry(cfg)
+            self._config["npu_backend"] = make_config_entry(
+                Config(default="default", value_type=str),
+                name="npu_backend",
+            )
         return ori_dict
 
     def new_init(self, mode, options, dynamic, name=None):
