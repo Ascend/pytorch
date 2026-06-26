@@ -7,7 +7,7 @@
 - 1：强制关闭INF\_NAN模式，开启饱和模式。<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>强制关闭INF\_NAN模式后需注意Inf和NaN值的变化。
 - 0：不对INF\_NAN模式做处理，<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>关闭INF\_NAN模式时会被拦截报错。默认值为0。
 
-针对<term>Atlas 训练系列产品</term>/<term>Atlas 推理系列产品</term>/<term>Atlas 200I/500 A2 推理产品</term>，该环境变量不生效。
+针对<term>Atlas 训练系列产品</term>/<term>Atlas 推理系列产品</term>/<term>Atlas 200I/500 A2 推理产品</term>/<term>Atlas 350 加速卡</term>，该环境变量不生效。
 
 ## 配置示例
 

@@ -7,7 +7,7 @@
 - 设置为“0”时，表示关闭一致性配置。
 - 设置为“1”时，表示开启一致性配置。
 
-默认值为“0”（关闭一致性配置）。
+ <term>Atlas 350 加速卡</term>上默认为“1”（开启一致性配置，与GPU行为对齐）。其他型号默认为“0”（关闭一致性配置）。
 
 ## 配置示例
 
@@ -32,3 +32,4 @@ export TORCH_NPU_USE_COMPATIBLE_IMPL=1
 - <term>Atlas A2 训练系列产品</term>
 - <term>Atlas A3 训练系列产品</term>
 - <term>Atlas 推理系列产品</term>
+- <term>Atlas 350 加速卡</term>
