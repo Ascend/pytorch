@@ -4,7 +4,7 @@
 	ignore = dirty
 [submodule "third_party/googletest"]
 	path = third_party/googletest
-	url = https://gitee.com/mirrors/googletest.git
+	url = https://gitcode.com/GitHub_Trending/go/googletest.git
 [submodule "third_party/torchair/torchair"]
 	path = third_party/torchair/torchair
 	url = https://gitcode.com/ascend/torchair.git
@@ -13,13 +13,13 @@
 	url = https://gitcode.com/ascend/Tensorpipe.git
 [submodule "third_party/fmt"]
 	path = third_party/fmt
-	url = https://gitee.com/mirrors/fmt.git
+	url = https://gitcode.com/GitHub_Trending/fm/fmt.git
 [submodule "third_party/nlohmann"]
 	path = third_party/nlohmann
-	url = https://gitcode.com/GitHub_Trending/js/json
+	url = https://gitcode.com/GitHub_Trending/js/json.git
 [submodule "third_party/torch-mlir"]
 	path = third_party/torch-mlir
-	url = https://gitee.com/mirrors_llvm/torch-mlir.git
+	url = https://gitcode.com/gh_mirrors/to/torch-mlir.git
 	update = none
 [submodule "third_party/dvm/dvm"]
 	path = third_party/dvm/dvm
