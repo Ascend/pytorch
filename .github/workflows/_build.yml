@@ -7,15 +7,10 @@ on:
         required: true
         type: string
         description: The upstream repository full name (owner/repo)
-      upstream_sha:
+      upstream_ref:
         required: true
         type: string
-        description: The upstream commit SHA to build
-      upstream_fork_repo:
-        required: false
-        type: string
-        default: ''
-        description: The fork repository full name for PR from fork (owner/repo)
+        description: Git ref to build — branch name (main), tag, or commit SHA
       torch_npu_repo:
         required: true
         type: string
@@ -32,15 +27,27 @@ jobs:
   # ======================================================================
   fetch:
     runs-on: ubuntu-latest
+    outputs:
+      resolved_sha: ${{ steps.resolve.outputs.sha }}
+      resolved_short: ${{ steps.resolve.outputs.short }}
     steps:
       - name: Checkout upstream PyTorch
         uses: actions/checkout@v6
         with:
-          repository: ${{ inputs.upstream_fork_repo != '' && inputs.upstream_fork_repo || inputs.upstream_repo }}
-          ref: ${{ inputs.upstream_sha }}
+          repository: ${{ inputs.upstream_repo }}
+          ref: ${{ inputs.upstream_ref }}
           fetch-depth: 1
           submodules: false
           path: pytorch
+
+      - name: Resolve actual HEAD SHA
+        id: resolve
+        working-directory: pytorch
+        run: |
+          SHA=$(git rev-parse HEAD)
+          echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
+          echo "short=${SHA:0:10}" >> "$GITHUB_OUTPUT"
+          echo "Resolved ${{ inputs.upstream_ref }} -> ${SHA}"
 
       - name: Init submodules (shallow)
         working-directory: pytorch
@@ -49,8 +56,7 @@ jobs:
 
       - name: Package PyTorch source
         run: |
-          SHORT_SHA=$(echo "${{ inputs.upstream_sha }}" | cut -c1-10)
-          TARBALL="pytorch-source-${SHORT_SHA}.tar.gz"
+          TARBALL="pytorch-source-${{ steps.resolve.outputs.short }}.tar.gz"
           echo "Packaging pytorch/ into ${TARBALL} ..."
           tar -czf "${TARBALL}" pytorch/
           echo "Package size: $(du -h ${TARBALL} | cut -f1)"
@@ -121,7 +127,7 @@ jobs:
       - name: Compute SHAs
         id: sha
         run: |
-          UPSTREAM_SHORT=$(echo "${{ inputs.upstream_sha }}" | cut -c1-10)
+          UPSTREAM_SHORT="${{ needs.fetch.outputs.resolved_short }}"
           echo "upstream_short=${UPSTREAM_SHORT}" >> "$GITHUB_OUTPUT"
           echo "source_tarball=pytorch-source-${UPSTREAM_SHORT}.tar.gz" >> "$GITHUB_OUTPUT"
 
@@ -146,13 +152,8 @@ jobs:
         working-directory: pytorch
         run: |
           echo "============================================"
-          echo "Building PyTorch from upstream PR..."
-          if [ -n "${{ inputs.upstream_fork_repo }}" ]; then
-            echo "Fork Repository: ${{ inputs.upstream_fork_repo }}"
-          else
-            echo "Repository: ${{ inputs.upstream_repo }}"
-          fi
-          echo "Commit SHA: ${{ inputs.upstream_sha }}"
+          echo "Building PyTorch from ${{ inputs.upstream_repo }} @ ${{ inputs.upstream_ref }}"
+          echo "Resolved commit: ${{ needs.fetch.outputs.resolved_sha }}"
           echo "MAX_JOBS: ${MAX_JOBS}"
           echo "============================================"
 
@@ -211,9 +212,6 @@ jobs:
           git submodule update --init --recursive --depth=1 --jobs=$(nproc)
 
       # Step 4: Build and install torch_npu
-      # NOTE: Intentionally do NOT use 'pip install -r requirements.txt' from torch_npu,
-      # because that file pins a specific torch version which would overwrite the
-      # source-built PyTorch from the upstream PR.
       - name: Build and install torch_npu
         id: build_torchnpu
         working-directory: torch_npu
@@ -307,12 +305,9 @@ jobs:
           echo "============================================"
           echo "             Build Summary"
           echo "============================================"
-          if [ -n "${{ inputs.upstream_fork_repo }}" ]; then
-            echo "PyTorch fork PR : ${{ inputs.upstream_fork_repo }}"
-          else
-            echo "PyTorch upstream: ${{ inputs.upstream_repo }}"
-          fi
-          echo "PyTorch commit  : ${{ inputs.upstream_sha }}"
+          echo "PyTorch upstream: ${{ inputs.upstream_repo }}"
+          echo "PyTorch ref     : ${{ inputs.upstream_ref }}"
+          echo "PyTorch commit  : ${{ needs.fetch.outputs.resolved_sha }}"
           echo "torch_npu repo  : ${{ inputs.torch_npu_repo }}"
           echo "torch_npu commit: ${TORCH_NPU_SHA}"
           echo "Max jobs        : ${MAX_JOBS}"
@@ -323,12 +318,8 @@ jobs:
             echo ""
             echo "| Item | Value |"
             echo "|------|-------|"
-            if [ -n "${{ inputs.upstream_fork_repo }}" ]; then
-              echo "| PyTorch fork PR | ${{ inputs.upstream_fork_repo }} |"
-            else
-              echo "| PyTorch upstream | ${{ inputs.upstream_repo }} |"
-            fi
-            echo "| PyTorch commit | \`${{ inputs.upstream_sha }}\` |"
+            echo "| PyTorch upstream | ${{ inputs.upstream_repo }} |"
+            echo "| PyTorch commit | \`${{ needs.fetch.outputs.resolved_sha }}\` |"
             echo "| torch_npu repo | ${{ inputs.torch_npu_repo }} |"
             echo "| torch_npu commit | \`${TORCH_NPU_SHA}\` |"
             echo "| Max jobs | ${MAX_JOBS} |"
