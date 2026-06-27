@@ -1,6 +1,7 @@
 import inspect
 import os
 import sys
+import logging
 from typing import Any, Optional, TYPE_CHECKING
 import importlib
 import torch
@@ -27,7 +28,7 @@ if TYPE_CHECKING:
     from torch._dynamo.symbolic_convert import InstructionTranslator
 
 use_jit_script = False
-
+log = logging.getLogger(__name__)
 
 class NPUTorchCtxManagerClassVariable(TorchCtxManagerClassVariable):
     def call_function(self, tx, args, kwargs):
@@ -224,10 +225,14 @@ def patch_inductor_wrapper():
         else:
             src_init(self, mode, options, dynamic)
         backend = _resolve_npu_backend_from_wrapper(self)
-        if backend == "mlir" or backend == "dvm":
+        if backend == "mlir":
             with _NpuBackendScope(backend):
+                log.info("Running MLIR backend")
                 device_id = torch_npu.npu.current_device()
                 torch_npu._C._recovery_all_npu_stream(device_id)
+        if backend == "dvm":
+            with _NpuBackendScope(backend):
+                log.info("Running dvm backend")
 
     def new_call(self, model_, inputs_):
         backend = _resolve_npu_backend_from_wrapper(self)
