@@ -3,6 +3,7 @@ import math
 import torch
 from torch._decomp import remove_decompositions
 from torch._inductor import decomposition as inductor_decomp
+from torch_npu._inductor.mfusion.decomp import matmul_backward
 
 
 aten = torch.ops.aten
@@ -54,6 +55,7 @@ decomps_to_exclude_npu = [
 FP32_MIN_V2 = -8.8
 FP32_MAX_V2 = 8.8
 DOUBLE_X = 2.0
+enable_matmul_backward_decomp = True
 
 
 def tanh(a):
@@ -174,4 +176,8 @@ def patch_decomp():
     _register_inductor_decomposition_safe([aten.gelu_backward.default], gelu_backward)
     _register_inductor_decomposition_safe([aten.gelu.default], gelu)
     _register_inductor_decomposition_safe([aten.tanh.default], tanh)
+    if enable_matmul_backward_decomp:
+        _register_inductor_decomposition_safe(
+            [torch.ops.aten.matmul_backward.default], matmul_backward
+        )
     _dvm_inductor_decomp_patched = True
