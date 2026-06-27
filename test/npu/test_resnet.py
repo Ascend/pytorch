@@ -5,6 +5,7 @@ import shutil
 import time
 import warnings
 
+import unittest
 import torch
 import torch.nn as nn
 import torch.nn.parallel
@@ -12,10 +13,16 @@ import torch.backends.cudnn as cudnn
 import torch.optim
 import torch.utils.data
 import torch.utils.data.distributed
-import torchvision.models as models
 
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
+
+try:
+    import torchvision.models as models
+    _TORCHVISION_IMPORT_ERROR = None
+except ImportError as err:
+    models = None
+    _TORCHVISION_IMPORT_ERROR = err
 
 BATCH_SIZE = 128
 EPOCHS_SIZE = 1
@@ -26,9 +33,12 @@ CALCULATE_DEVICE = "npu:0"
 PRINT_DEVICE = "cpu"
 
 
-model_names = sorted(name for name in models.__dict__
-                     if name.islower() and not name.startswith("__")
-                     and callable(models.__dict__[name]))
+if models is not None:
+    model_names = sorted(name for name in models.__dict__
+                         if name.islower() and not name.startswith("__")
+                         and callable(models.__dict__[name]))
+else:
+    model_names = ['resnet18']
 
 parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
 parser.add_argument('-a', '--arch', metavar='ARCH', default='resnet18',
@@ -84,6 +94,9 @@ best_acc1 = 0
 
 
 def run_resnet():
+    if models is None:
+        raise unittest.SkipTest("torchvision is not available: {}".format(_TORCHVISION_IMPORT_ERROR))
+
     args, _ = parser.parse_known_args()
 
     if args.seed is not None:
@@ -330,6 +343,8 @@ def accuracy(output, target, topk=(1,)):
 
 
 class TestResnet(TestCase):
+
+    @unittest.skipIf(models is None, "torchvision is not available")
     def test_resnet(self):
         if 'npu' in CALCULATE_DEVICE:
             torch.npu.set_device(CALCULATE_DEVICE)
