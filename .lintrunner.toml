@@ -1153,50 +1153,35 @@ command = [
 #     '@{{PATHSFILE}}',
 # ]
 
-# [[linter]]
-# code = 'CODESPELL'
-# command = [
-#     'uv',
-#     'run',
-#     '--script',
-#     'tools/linter/adapters/codespell_linter.py',
-#     '--',
-#     '@{{PATHSFILE}}'
-# ]
-# include_patterns = [
-#     '**',
-# ]
-# exclude_patterns = [
-#     # We don't care too much about files in this directory, don't enforce
-#     # spelling on them
-#     'caffe2/**',
-#     'fb/**',
-#     '**/fb/**',
-#     'test/npu/test_fault_mode.py',
-#     'torch_npu/utils/_dynamo.py',
-#     'test/npu/test_resnet.py',
-#     'test/npu/test_public_bindings.py',
-#     'test/npu/test_compatibility.py',
-#     'third_party/**',
-#     'test/dynamo/cpython/**',
-#     'torch_npu/_vendor/**',
-#     'torch_npu/_inductor/fx_passes/serialized_patterns/**',
-#     'torch_npu/_inductor/autoheuristic/artifacts/**',
-#     'torch_npu/_inductor/kernel/vendored_templates/cutedsl/kernels/**',
-#     'torch_npu/_inductor/kernel/vendored_templates/cutedsl/dense_blockscaled_gemm_persistent.py',
-#     'torch_npu/utils/model_dump/preact.mjs',
-#     # NPUGraph logs files
-#     'torch_npu/_logging/_internal.py',
-#     'torch_npu/csrc/core/npu/NPUGraph.cpp',
-#     'torch_npu/csrc/core/npu/NPUGraph.h',
-#     'torch_npu/csrc/npu/Graph.cpp',
-#     'torch_npu/csrc/core/npu/NPUCachingAllocator.cpp',
-#     'torch_npu/csrc/core/npu/NPUWorkspaceAllocator.cpp',
-#     'torch_npu/npu/_graph_tree.py',
-#     'torch_npu/npu/graphs.py',
-#     'torch_npu/utils/_graph_tree.py',
-# ]
-# is_formatter = true
+[[linter]]
+code = 'CODESPELL'
+command = [
+    'uv',
+    'run',
+    '--script',
+    'tools/linter/adapters/codespell_linter.py',
+    '--',
+    '@{{PATHSFILE}}'
+]
+include_patterns = [
+    '**',
+]
+exclude_patterns = [
+    # We don't care too much about files in this directory, don't enforce
+    # spelling on them
+    'caffe2/**',
+    'fb/**',
+    '**/fb/**',
+    'third_party/**',
+    'test/dynamo/cpython/**',
+    'torch_npu/_vendor/**',
+    'torch_npu/_inductor/fx_passes/serialized_patterns/**',
+    'torch_npu/_inductor/autoheuristic/artifacts/**',
+    'torch_npu/_inductor/kernel/vendored_templates/cutedsl/kernels/**',
+    'torch_npu/_inductor/kernel/vendored_templates/cutedsl/dense_blockscaled_gemm_persistent.py',
+    'torch_npu/utils/model_dump/preact.mjs',
+]
+is_formatter = true
 
 # # usort + ruff-format
 # [[linter]]

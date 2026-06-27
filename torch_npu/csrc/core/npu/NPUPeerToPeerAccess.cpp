@@ -17,7 +17,7 @@ NpuP2pCtrl::NpuP2pCtrl()
     device_enabled_count_.resize(num_devices_, 0);
 
     p2p_access_enabled_cache_.clear();
-    p2p_access_enabled_cache_.resize(num_devices_ * num_devices_, P2pStatus::UNKONWN);
+    p2p_access_enabled_cache_.resize(num_devices_ * num_devices_, P2pStatus::UNKNOWN);
 
     for (const auto i : c10::irange(num_devices_)) {
         // device self-connections are not counted
@@ -51,7 +51,7 @@ bool NpuP2pCtrl::get_p2p_access(int32_t source_dev, int32_t dest_dev, bool& flag
     auto &cache_s2d = p2p_access_enabled_cache_[source_dev * num_devices_ + dest_dev];
     auto &cache_d2s = p2p_access_enabled_cache_[dest_dev * num_devices_ + source_dev];
 
-    if (cache_s2d != P2pStatus::UNKONWN) {
+    if (cache_s2d != P2pStatus::UNKNOWN) {
         return static_cast<bool>(cache_s2d);
     }
 

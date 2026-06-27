@@ -22,7 +22,7 @@ def create_schedule_context_holder(
     A holder class for managing scheduling context in distributed inference.
 
     Args:
-        schedule_mode: Scheduling mode identifier, 0:schedule ffn, 1:shcedule attention
+        schedule_mode: Scheduling mode identifier, 0:schedule ffn, 1:schedule attention
         session_num: Number of sessions
         micro_batch_num: Number of micro batches
         micro_batch_size: micro batch size

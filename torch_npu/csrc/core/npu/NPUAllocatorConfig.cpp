@@ -1,5 +1,8 @@
+#include "torch_npu/csrc/core/npu/NPUAllocatorConfig.h"
+
 #include <mutex>
 #include <set>
+#include <unordered_set>
 #include <string>
 
 #include <c10/core/AllocatorConfig.h>
@@ -9,7 +12,6 @@
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "torch_npu/csrc/core/npu/GetCANNInfo.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
-#include "torch_npu/csrc/core/npu/NPUAllocatorConfig.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 
 namespace c10_npu {
@@ -28,81 +30,37 @@ bool isDigit(std::string str)
     });
 }
 
+namespace {
+// torch_npu only support these keys in AcceleratorAllocatorConfig
+const std::unordered_set<std::string> kNPUSupportAccKeys = {
+    "max_split_size_mb",
+    "garbage_collection_threshold",
+    "roundup_power2_divisions",
+    "expandable_segments",
+    "pinned_use_background_threads",
+    "large_segment_size_mb",
+    "max_non_split_rounding_mb"
+};
+}
+
 NPUAllocatorConfig& NPUAllocatorConfig::instance()
 {
     static NPUAllocatorConfig s_instance;
     static std::once_flag s_init_flag;
 
     std::call_once(s_init_flag, []() {
-        auto env = c10::utils::get_env("PYTORCH_NPU_ALLOC_CONF");
-        if (!env.has_value()) {
-            env = c10::utils::get_env("PYTORCH_ALLOC_CONF");
-        } else {
-            // If PYTORCH_NPU_ALLOC_CONF is set, assign its value to PYTORCH_ALLOC_CONF,
-            // because the AcceleratorAllocatorConfig parses PYTORCH_ALLOC_CONF.
-            TORCH_NPU_MEMORY_LOGI("Set PYTORCH_ALLOC_CONF to PYTORCH_NPU_ALLOC_CONF value.");
-            c10::utils::set_env("PYTORCH_ALLOC_CONF", env.value().c_str(), true);
-        }
-        if (!env.has_value()) {
-            TORCH_NPU_MEMORY_LOGI("PYTORCH_NPU_ALLOC_CONF and PYTORCH_ALLOC_CONF not setted, use default configuration.");
+        auto npu_env = c10::utils::get_env("PYTORCH_NPU_ALLOC_CONF");
+        auto acc_env = c10::utils::get_env("PYTORCH_ALLOC_CONF");
+        TORCH_CHECK(!npu_env.has_value() || !acc_env.has_value(),
+            "Both PYTORCH_NPU_ALLOC_CONF and PYTORCH_ALLOC_CONF have been set, please set only one of them.",
+            OPS_ERROR(ErrCode::VALUE));
+        if (!npu_env.has_value() && !acc_env.has_value()) {
+            TORCH_NPU_MEMORY_LOGI("PYTORCH_NPU_ALLOC_CONF and PYTORCH_ALLOC_CONF not been set, use default configuration.");
             return;
         }
-        TORCH_NPU_MEMORY_LOGI("Get alloc conf env: %s", env.value().c_str());
-        auto& accAllocConfIns = c10::CachingAllocator::AcceleratorAllocatorConfig::instance();
-        // Updating status of the AcceleratorAllocatorConfig instance is very important
-        accAllocConfIns.parseArgs(env.value());
-        // Check if the environment variable is valid
-        if (accAllocConfIns.use_expandable_segments()) {
-            TORCH_CHECK(accAllocConfIns.max_split_size() == std::numeric_limits<size_t>::max() &&
-                accAllocConfIns.garbage_collection_threshold() == 0,
-                "`max_split_size_mb` or `garbage_collection_threshold`, cannot be enabled with "
-                "`expandable_segments`, please set `expandable_segments` to `False`.", OPS_ERROR(ErrCode::PARAM));
-            void *ptr = nullptr;
-            auto status = c10_npu::acl::AclrtReserveMemAddress(&ptr, 512, 0, nullptr, 1);
-            if (status == ACL_ERROR_NONE && ptr != nullptr) {
-                NPU_CHECK_ERROR(c10_npu::acl::AclrtReleaseMemAddress(ptr), "aclrtReleaseMemAddress failed.");
-            } else {
-                NPU_CHECK_ERROR(status, "aclrtReserveMemAddress failed.");
-                const char* const report_msg = "expandable_segments setting failure, now change to `False`.";
-                TORCH_NPU_WARN_ONCE(report_msg);
-                TORCH_NPU_MEMORY_LOGW("%s", report_msg);
-                accAllocConfIns.parseArgs("expandable_segments:False");
-            }
-        }
-        s_instance.parseArgs(env.value());
-        // log all the configuration
-        TORCH_NPU_MEMORY_LOGI(
-            "[npu alloc config] "
-            "pin_memory_expandable_segments: %d, "
-            "pinned_mem_register: %d, "
-            "base_addr_aligned_kb: %zu, "
-            "page_size_1g: %d, "
-            "segment_size_mb: %zu, "
-            "multi_stream_lazy_reclaim: %d, "
-            "pinned_reserve_segment_size_mb: %zu, "
-            "per_process_memory_fraction: %f.",
-            s_instance.m_pin_memory_expandable_segments,
-            s_instance.m_pinned_mem_register,
-            s_instance.m_base_addr_aligned_size,
-            s_instance.m_page_size_1g,
-            s_instance.m_segment_size_mb,
-            s_instance.m_multi_stream_lazy_reclaim,
-            s_instance.m_pinned_reserve_segment_size_mb,
-            s_instance.m_per_process_memory_fraction);
-        TORCH_NPU_MEMORY_LOGI(
-            "[common alloc config] "
-            "max_split_size_mb: %zu, "
-            "garbage_collection_threshold: %f, "
-            "roundup_power2_divisions: %zu, "
-            "expandable_segments: %d, "
-            "pinned_use_background_threads: %d, "
-            "large_segment_size: %zu.",
-            accAllocConfIns.max_split_size(),
-            accAllocConfIns.garbage_collection_threshold(),
-            accAllocConfIns.roundup_power2_divisions(),
-            accAllocConfIns.use_expandable_segments(),
-            accAllocConfIns.pinned_use_background_threads(),
-            accAllocConfIns.large_segment_size());
+        auto env_str = npu_env.has_value() ? npu_env.value() : acc_env.value();
+        TORCH_NPU_MEMORY_LOGI("Get alloc conf env: %s", env_str.c_str());
+        s_instance.parseArgs(env_str);
     });
 
     return s_instance;
@@ -226,18 +184,56 @@ size_t NPUAllocatorConfig::parseSegmentSizeMb(const c10::CachingAllocator::Confi
     return i;
 }
 
+size_t NPUAllocatorConfig::parseReleaseLockOnNpuMalloc(
+    const c10::CachingAllocator::ConfigTokenizer& tokenizer,
+    size_t i)
+{
+    tokenizer.checkToken(++i, ":");
+    if (++i < tokenizer.size()) {
+        TORCH_CHECK(i < tokenizer.size() && (tokenizer[i] == "True" || tokenizer[i] == "False"),
+            "Expected a single True/False argument for release_lock_on_npumalloc", PTA_ERROR(ErrCode::PARAM));
+        m_release_lock_on_npumalloc = (tokenizer[i] == "True");
+    } else {
+        TORCH_CHECK(false, "Error, expecting release_lock_on_npumalloc value", PTA_ERROR(ErrCode::PARAM));
+    }
+    return i;
+}
+
 void NPUAllocatorConfig::parseArgs(const std::string& env, std::set<std::string> supported_settings)
 {
     if (env.empty()) {
         return;
     }
+
+    const auto& accelerator_keys = c10::CachingAllocator::AcceleratorAllocatorConfig::getKeys();
+    const auto& npu_keys = getKeys();
     c10::CachingAllocator::ConfigTokenizer tokenizer(env);
+
     for (size_t i = 0; i < tokenizer.size(); i++) {
         const auto& key = tokenizer[i];
-        // If supported_settings is not empty, check if the setting is supported by torch_npu.npu.memory._set_allocator_settings().
-        TORCH_CHECK(supported_settings.empty() || supported_settings.count(key) != 0,
-            "torch_npu.npu.memory._set_allocator_settings() unsupported setting: ", key,
-            OPS_ERROR(ErrCode::VALUE));
+        auto key_in_acc = accelerator_keys.count(key);
+        auto key_in_npu = npu_keys.count(key);
+        auto key_in_support_acc = kNPUSupportAccKeys.count(key);
+        if (!key_in_acc && !key_in_npu) {
+            TORCH_CHECK_VALUE(false, "Unrecognized key '", key, "' in NPU allocator config, ", OPS_ERROR(ErrCode::VALUE));
+        } else if (!key_in_support_acc && !key_in_npu) {
+            TORCH_CHECK_VALUE(false, "torch_npu not support key '", key, "' in NPU allocator config, ", OPS_ERROR(ErrCode::VALUE));
+        } else if (!supported_settings.empty() && supported_settings.count(key) == 0) {
+            // If supported_settings is not empty, check if the setting is supported by torch_npu.npu.memory._set_allocator_settings()
+            TORCH_CHECK_VALUE(false, "torch_npu.npu.memory._set_allocator_settings() unsupported setting: ", key, OPS_ERROR(ErrCode::VALUE));
+        }
+        i = tokenizer.skipKey(i);
+        if (i + 1 < tokenizer.size()) {
+            tokenizer.checkToken(++i, ",");
+        }
+    }
+
+    auto& acc_alloc_conf_ins = c10::CachingAllocator::AcceleratorAllocatorConfig::instance();
+    // Updating status of the AcceleratorAllocatorConfig instance is very important
+    acc_alloc_conf_ins.parseArgs(env);
+
+    for (size_t i = 0; i < tokenizer.size(); i++) {
+        const auto& key = tokenizer[i];
         if (key == "pin_memory_expandable_segments") {
             i = parsePinMemoryExpandableSegments(tokenizer, i);
         } else if (key == "pinned_mem_register") {
@@ -255,26 +251,31 @@ void NPUAllocatorConfig::parseArgs(const std::string& env, std::set<std::string>
         } else if (key == "pinned_reserve_segment_size_mb") {
             tokenizer.checkToken(++i, ":");
             m_pinned_reserve_segment_size_mb = tokenizer.toSizeT(++i);
+        } else if (key == "release_lock_on_npumalloc") {
+            i = parseReleaseLockOnNpuMalloc(tokenizer, i);
         } else {
-            const auto& accelerator_keys = c10::CachingAllocator::AcceleratorAllocatorConfig::getKeys();
-            const auto& npu_support_keys = getSupportedPubilcKeys();
-            // Check if it's a common key handled by AcceleratorAllocatorConfig
-            if (accelerator_keys.find(key) != accelerator_keys.end()) {
-                // Check if it's a supported key by torch_npu
-                if (npu_support_keys.find(key) == npu_support_keys.end()) {
-                    TORCH_NPU_WARN_ONCE("torch_npu not support key '", key, "' in NPU allocator config.");
-                }
-            } else {
-                TORCH_CHECK_VALUE(false, "Unrecognized key '", key, "' in NPU allocator config.");
-            }
-            if (!supported_settings.empty()) {
-                // supported_settings is not empty in torch_npu.npu.memory._set_allocator_settings()
-                c10::CachingAllocator::AcceleratorAllocatorConfig::instance().parseArgs(env);
-            }
             i = tokenizer.skipKey(i);
         }
         if (i + 1 < tokenizer.size()) {
             tokenizer.checkToken(++i, ",");
+        }
+    }
+    // Check if the environment variable is valid
+    if (acc_alloc_conf_ins.use_expandable_segments()) {
+        TORCH_CHECK(acc_alloc_conf_ins.max_split_size() == std::numeric_limits<size_t>::max() &&
+            acc_alloc_conf_ins.garbage_collection_threshold() == 0,
+            "`max_split_size_mb` or `garbage_collection_threshold`, cannot be enabled with "
+            "`expandable_segments`, please set `expandable_segments` to `False`.", OPS_ERROR(ErrCode::PARAM));
+        void *ptr = nullptr;
+        auto status = c10_npu::acl::AclrtReserveMemAddress(&ptr, 512, 0, nullptr, 1);
+        if (status == ACL_ERROR_NONE && ptr != nullptr) {
+            NPU_CHECK_ERROR(c10_npu::acl::AclrtReleaseMemAddress(ptr), "aclrtReleaseMemAddress failed.");
+        } else {
+            NPU_CHECK_ERROR(status, "aclrtReserveMemAddress failed.");
+            const char* const report_msg = "expandable_segments setting failure, now change to `False`.";
+            TORCH_NPU_WARN_ONCE(report_msg);
+            TORCH_NPU_MEMORY_LOGW("%s", report_msg);
+            acc_alloc_conf_ins.parseArgs("expandable_segments:False");
         }
     }
     if (m_pinned_mem_register) {
@@ -302,6 +303,43 @@ void NPUAllocatorConfig::parseArgs(const std::string& env, std::set<std::string>
                 "for large pool allocations (size > 1MB). It is recommended to use only `page_size:1g`.");
         }
     }
+    // log all the configuration
+    TORCH_NPU_MEMORY_LOGI(
+        "[npu alloc config] "
+        "m_release_lock_on_npumalloc: %d, "
+        "pin_memory_expandable_segments: %d, "
+        "pinned_mem_register: %d, "
+        "base_addr_aligned_kb: %zu, "
+        "page_size_1g: %d, "
+        "segment_size_mb: %zu, "
+        "multi_stream_lazy_reclaim: %d, "
+        "pinned_reserve_segment_size_mb: %zu, "
+        "per_process_memory_fraction: %f.",
+        m_release_lock_on_npumalloc,
+        m_pin_memory_expandable_segments,
+        m_pinned_mem_register,
+        m_base_addr_aligned_size,
+        m_page_size_1g,
+        m_segment_size_mb,
+        m_multi_stream_lazy_reclaim,
+        m_pinned_reserve_segment_size_mb,
+        m_per_process_memory_fraction);
+    TORCH_NPU_MEMORY_LOGI(
+        "[common alloc config] "
+        "max_non_split_rounding_size: %zu, "
+        "max_split_size_mb: %zu, "
+        "garbage_collection_threshold: %f, "
+        "roundup_power2_divisions: %zu, "
+        "expandable_segments: %d, "
+        "pinned_use_background_threads: %d, "
+        "large_segment_size: %zu.",
+        acc_alloc_conf_ins.max_non_split_rounding_size(),
+        acc_alloc_conf_ins.max_split_size(),
+        acc_alloc_conf_ins.garbage_collection_threshold(),
+        acc_alloc_conf_ins.roundup_power2_divisions(),
+        acc_alloc_conf_ins.use_expandable_segments(),
+        acc_alloc_conf_ins.pinned_use_background_threads(),
+        acc_alloc_conf_ins.large_segment_size());
 }
 REGISTER_ALLOCATOR_CONFIG_PARSE_HOOK(NPUAllocatorConfig)
 } // namespace NPUCachingAllocator

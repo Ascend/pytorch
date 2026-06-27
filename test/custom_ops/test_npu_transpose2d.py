@@ -22,7 +22,7 @@ class TestNpuConv2d(TestCase):
 
     def test_npu_conv_transpose2d(self):
         shape_format = [
-            # input, weigth, bias, stride, padding, output_padding, dilation, groups
+            # input, weight, bias, stride, padding, output_padding, dilation, groups
             [[np.float16, 0, [1, 3, 3, 3]], [np.float16, 0, [3, 2, 3, 3]], [np.float16, 2, [2]], [1, 1], [0, 0], [0, 0],
              [1, 1], 1],
             [[np.float32, 0, [1, 3, 3, 3]], [np.float32, 0, [3, 2, 3, 3]], [np.float32, 2, [2]], [1, 1], [0, 0], [0, 0],

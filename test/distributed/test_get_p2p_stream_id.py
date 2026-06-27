@@ -100,7 +100,7 @@ class P2PStreamIdTest(TestCase):
         peer = 1 - rank
         p2p_stream_id = backend.get_p2p_stream_id(device, peer, 0)
 
-        # Verify P2P Stream ID is invaild
+        # Verify P2P Stream ID is invalid
         assert0 = True if p2p_stream_id == -1 else False
 
         c2p.put(assert0)

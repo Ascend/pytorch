@@ -525,6 +525,23 @@ class TestPublicBindings(TestCase):
             "torch._inductor.kernel.vendored_templates.cutedsl.dense_blockscaled_gemm_persistent",  # depends on cutlass
             "torch._inductor.kernel.vendored_templates.cutedsl.wrappers",  # depends on cutlass_api
             "torch._inductor.kernel.vendored_templates.cutedsl.wrappers.dense_blockscaled_gemm_kernel",  # depends on cutlass_api
+            "torch._native.ops.scatter_add._ptx",  # depends on cutlass
+            "torch._native.ops.scatter_add.tma_kernel",  # depends on cutlass
+            "torch._native.ops.scatter_add.vec_scatter_kernel",  # depends on cutlass
+            # The vendored quack package __init__ eager-imports rmsnorm, which
+            # pulls in cutlass; importing the package or any of its submodules
+            # fails when cutlass is unavailable (e.g. on NPU CI).
+            "torch._vendor.quack",
+            "torch._vendor.quack.cache_utils",
+            "torch._vendor.quack.compile_utils",
+            "torch._vendor.quack.copy_utils",
+            "torch._vendor.quack.cute_dsl_utils",
+            "torch._vendor.quack.layout_utils",
+            "torch._vendor.quack.reduce",
+            "torch._vendor.quack.reduction_base",
+            "torch._vendor.quack.rmsnorm",
+            "torch._vendor.quack.rounding",
+            "torch._vendor.quack.utils",
             "torch.ao.pruning._experimental.data_sparsifier.lightning.callbacks.data_sparsity",
             "torch.backends._coreml.preprocess",
             "torch.contrib._tensorboard_vis",
@@ -756,8 +773,8 @@ class TestPublicBindings(TestCase):
         try:
             file_abspath = os.path.abspath(__file__)
             air_path = 'third_party/torchair/torchair/tests/st/allowlist_for_publicAPI.json'
-            with open(
-                os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(file_abspath))), air_path)) as json_file_torchair:
+            repo_root = os.path.dirname(os.path.dirname(os.path.dirname(file_abspath)))
+            with open(os.path.join(repo_root, air_path)) as json_file_torchair:
                 allow_dict_torchair = json.load(json_file_torchair)
                 update_allow_dict_torchair = {f"torch_npu.dynamo.{key}": value for key, value in allow_dict_torchair.items()}
         except Exception:
@@ -767,8 +784,8 @@ class TestPublicBindings(TestCase):
         try:
             file_abspath = os.path.abspath(__file__)
             op_plugin_path = 'third_party/op-plugin/test/allowlist_for_publicAPI.json'
-            with open(
-                os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(file_abspath))), op_plugin_path)) as json_file_op_plugin:
+            repo_root = os.path.dirname(os.path.dirname(os.path.dirname(file_abspath)))
+            with open(os.path.join(repo_root, op_plugin_path)) as json_file_op_plugin:
                 version_tag = _get_test_torch_version()
                 allow_dict_info = json.load(json_file_op_plugin)
                 allow_dict_op_plugin = {}
@@ -853,19 +870,19 @@ class TestPublicBindings(TestCase):
                         return
 
                     if ((modname in allow_dict and elem in allow_dict[modname]) or
-                        (modname in deprecated_dict and elem in deprecated_dict[modname])):
+                            (modname in deprecated_dict and elem in deprecated_dict[modname])):
                         return
 
                     if is_public:
                         why_is_public = f"it is inside the module's (`{modname}`) `__all__`" if is_all else \
                             "it is an attribute that does not start with `_` on a module that " \
                             "does not have `__all__` defined"
-                        fix_is_public = f"remove it from the modules's (`{modname}`) `__all__`" if is_all else \
+                        fix_is_public = f"remove it from the modules' (`{modname}`) `__all__`" if is_all else \
                             f"either define a `__all__` for `{modname}` or add a `_` at the beginning of the name"
                     else:
                         assert is_all
                         why_is_public = f"it is not inside the module's (`{modname}`) `__all__`"
-                        fix_is_public = f"add it from the modules's (`{modname}`) `__all__`"
+                        fix_is_public = f"add it from the modules' (`{modname}`) `__all__`"
 
                     if looks_public:
                         why_looks_public = "it does look public because it follows the rules from the doc above " \

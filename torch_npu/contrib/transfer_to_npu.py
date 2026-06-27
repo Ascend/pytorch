@@ -4,12 +4,11 @@ import json
 import collections
 import importlib.metadata
 import logging as logger
-import functools
 from functools import wraps
 from typing import Callable, cast, Optional
 import torch
 from torch.utils._device import _device_constructors
-from torch.utils._triton import has_triton
+import torch.utils._triton  # ensure module is loaded for patching has_triton below
 from torch.nn.parameter import UninitializedTensorMixin
 from torch._utils import _get_device_module
 from torch.utils import cpp_extension
@@ -57,8 +56,8 @@ class _TorchTypeProxyMeta(type(torch.Generator)):
 
     # Keep isinstance(obj, torch.Generator/Event) working for base C++ objects
     # when torch.Generator/Event is rebound to a proxy type.
-    def __instancecheck__(cls, instance):
-        return super().__instancecheck__(instance) or isinstance(instance, cls.__mro__[1])
+    def __instancecheck__(self, instance):
+        return super().__instancecheck__(instance) or isinstance(instance, self.__mro__[1])
 
 
 class _GeneratorProxy(torch.Generator, metaclass=_TorchTypeProxyMeta):
@@ -186,25 +185,27 @@ def _wrapper_cuda(fn):
                 if device is not None:
                     _replace_cuda_to_npu_in_kwargs(kwargs, device_arg, device)
             device_ids = kwargs.get('device_ids', None)
-            if type(device_ids) == list:
+            if type(device_ids) is list:
                 device_ids = _replace_cuda_to_npu_in_list(device_ids, replace_int)
         return fn(*args, **kwargs)
 
     return decorated
 
 
+@torch._dynamo.disable
 def _replace_cuda_to_npu_in_kwargs(kwargs, device_arg, device):
-    if type(device) == str and 'cuda' in device:
+    if type(device) is str and 'cuda' in device:
         kwargs[device_arg] = device.replace('cuda', 'npu')
-    elif type(device) == torch.device and 'cuda' in device.type:
+    elif type(device) is torch.device and 'cuda' in device.type:
         device_info = 'npu:{}'.format(device.index) if device.index is not None else 'npu'
         kwargs[device_arg] = torch.device(device_info)
-    elif type(device) == int:
+    elif type(device) is int:
         kwargs[device_arg] = f'npu:{device}'
-    elif type(device) == dict:
+    elif type(device) is dict:
         kwargs[device_arg] = _replace_cuda_to_npu_in_dict(device)
 
 
+@torch._dynamo.disable
 def _replace_cuda_to_npu_in_list(args_list, replace_int):
     for idx, arg in enumerate(args_list):
         if isinstance(arg, str) and 'cuda' in arg:
@@ -219,6 +220,7 @@ def _replace_cuda_to_npu_in_list(args_list, replace_int):
     return args_list
 
 
+@torch._dynamo.disable
 def _replace_cuda_to_npu_in_dict(device_dict):
     new_dict = {}
     for key, value in device_dict.items():
@@ -243,13 +245,21 @@ def _wrapper_hccl(fn):
         if args:
             args_new = list(args)
             for idx, arg in enumerate(args_new):
-                if type(arg) == str and 'nccl' in arg:
-                    args_new[idx] = arg.replace('nccl', 'hccl')
+                if type(arg) is str:
+                    if 'nccl' in arg:
+                        arg = arg.replace('nccl', 'hccl')
+                    if 'cuda' in arg:
+                        arg = arg.replace('cuda', 'npu')
+                    args_new[idx] = arg
             args = args_new
         if kwargs:
             backend = kwargs.get('backend', None)
-            if type(backend) == str and 'nccl' in backend:
-                kwargs['backend'] = backend.replace('nccl', 'hccl')
+            if type(backend) is str:
+                if 'nccl' in backend:
+                    backend = backend.replace('nccl', 'hccl')
+                if 'cuda' in backend:
+                    backend = backend.replace('cuda', 'npu')
+                kwargs['backend'] = backend
         return fn(*args, **kwargs)
 
     return decorated
@@ -260,7 +270,7 @@ def _wrapper_profiler(fn):
     def decorated(*args, **kwargs):
         if kwargs:
             if 'experimental_config' in kwargs.keys() and \
-                    type(kwargs.get('experimental_config')) != torch_npu.profiler._ExperimentalConfig:
+                    type(kwargs.get('experimental_config')) is not torch_npu.profiler._ExperimentalConfig:
                 logger.warning(
                     'The parameter experimental_config of torch.profiler.profile has been deleted by the tool '
                     'because it can only be used in cuda, please manually modify the code '
@@ -337,7 +347,7 @@ def _patch_OverlappingCpuLoader_init_(self, resolve_fun: Callable, stream: Optio
 
 
 def _patch_cuda():
-    patchs = [
+    patches = [
         ['cuda', torch_npu.npu], ['cuda.amp', torch_npu.npu.amp],
         ['cuda.random', torch_npu.npu.random],
         ['cuda.amp.autocast_mode', torch_npu.npu.amp.autocast_mode],
@@ -346,11 +356,11 @@ def _patch_cuda():
     ]
 
     from torch_npu._init.patches.monkey_patches import _apply_patches
-    _apply_patches(patchs)
+    _apply_patches(patches)
 
 
 def _patch_profiler():
-    patchs = [
+    patches = [
         ['profiler.profile', torch_npu.profiler.profile],
         ['profiler.schedule', torch_npu.profiler.schedule],
         ['profiler.tensorboard_trace_handler', torch_npu.profiler.tensorboard_trace_handler],
@@ -360,13 +370,15 @@ def _patch_profiler():
     ]
 
     from torch_npu._init.patches.monkey_patches import _apply_patches
-    _apply_patches(patchs)
+    _apply_patches(patches)
 
 
 def _warning_fn(msg, rank0=True):
-    is_distributed = torch.distributed.is_available() and \
-                     torch.distributed.is_initialized() and \
-                     torch.distributed.get_world_size() > 1
+    is_distributed = (
+        torch.distributed.is_available()
+        and torch.distributed.is_initialized()
+        and torch.distributed.get_world_size() > 1
+    )
     env_rank = os.getenv('RANK', None)
 
     if rank0 and is_distributed:
@@ -409,8 +421,8 @@ def _patch_nametuple(nametuple):
                 device_ids = _replace_cuda_to_npu_in_list(device_ids, False)
         return original__new__(cls, *args, **kwargs)
     nametuple.__new__ = new_nametuple__new__
-    
-    
+
+
 def _compose_wrappers(*wrappers):
 
     def compose(f):
@@ -440,10 +452,10 @@ def _init():
     _device_wrapper(torch.cuda, torch_cuda_fn_white_list)
     torch.cuda.device.__init__ = _wrapper_cuda(torch.cuda.device.__init__)
     torch.cuda.amp.autocast_mode = torch_npu.npu.amp.autocast_mode
-    
+
     def _update_cuda_default_generators():
         torch.cuda.default_generators = torch_npu.npu.default_generators
-    
+
     torch_npu.npu._lazy_call(_update_cuda_default_generators)
 
     # torch.cuda.memory.*
@@ -514,23 +526,23 @@ def _init():
 
     _do_wrapper_libraries_func(_load_json_file(config_path))
 
-    setattr(torch.utils._triton, 'has_triton', _patch_has_triton)
-    setattr(torch._dynamo.utils, 'has_triton', _patch_has_triton)
-    setattr(torch._inductor.runtime.autotune_cache, 'has_triton', _patch_has_triton)
-    setattr(torch._inductor.compile_fx, 'has_triton', _patch_has_triton)
+    torch.utils._triton.has_triton = _patch_has_triton
+    torch._dynamo.utils.has_triton = _patch_has_triton
+    torch._inductor.runtime.autotune_cache.has_triton = _patch_has_triton
+    torch._inductor.compile_fx.has_triton = _patch_has_triton
 
-    setattr(torch._inductor.utils, "get_gpu_type", _get_npu_type)
-    setattr(torch._inductor.fx_passes.post_grad, "get_gpu_type", _get_npu_type)
-    setattr(torch._inductor.fx_passes.joint_graph, "get_gpu_type", _get_npu_type)
-    setattr(torch._inductor.autotune_process, "get_gpu_type", _get_npu_type)
+    torch._inductor.utils.get_gpu_type = _get_npu_type
+    torch._inductor.fx_passes.post_grad.get_gpu_type = _get_npu_type
+    torch._inductor.fx_passes.joint_graph.get_gpu_type = _get_npu_type
+    torch._inductor.autotune_process.get_gpu_type = _get_npu_type
 
-    setattr(torch._utils, '_get_available_device_type', _patch_get_available_device_type)
-    setattr(torch.distributed.checkpoint.filesystem._OverlappingCpuLoader, '__init__',
-            _patch_OverlappingCpuLoader_init_)
+    torch._utils._get_available_device_type = _patch_get_available_device_type
+    torch.distributed.checkpoint.filesystem._OverlappingCpuLoader.__init__ = \
+        _patch_OverlappingCpuLoader_init_
 
     _replace_to_method_in_allowed_methods()
 
-    setattr(torch.utils, 'cpp_extension', cpp_extension)
+    torch.utils.cpp_extension = cpp_extension
     _device_wrapper(torch.utils.cpp_extension, ['include_paths'])
 
     _patch_nametuple(Kernel)

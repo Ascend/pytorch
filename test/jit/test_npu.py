@@ -266,7 +266,7 @@ class TestCUDA(JitTestCase):
             default_stream_id : int
             user_stream_id : int
 
-        # The test aims at checking different stream proporties.
+        # The test aims at checking different stream properties.
         @torch.jit.script
         def test_get_stream():
             device_index = torch.npu.current_device()
@@ -422,7 +422,7 @@ class TestCUDA(JitTestCase):
 
         # Record the NPU event for operation torch.mm on the current stream
         # and then test if the elapsed time is greater than 0. This test is also
-        # an adaption from eager mdoe NPU tests available at test/test_npu.py
+        # an adaption from eager mode NPU tests available at test/test_npu.py
         @torch.jit.script
         def test_event():
             device_index = torch.npu.current_device()

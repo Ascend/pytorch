@@ -1,42 +1,14 @@
-import os
-import sys
-import operator
-from functools import wraps, reduce, lru_cache
-from typing import Callable, Optional, Tuple
+from functools import lru_cache
+from typing import Callable
 import torch
-import torch_npu
-from torch import Tensor
 from torch._ops import OpOverload, OpOverloadPacket
 from torch._subclasses import fake_tensor as _subclasses_fake_tensor
 from torch._C import DispatchKey
-from torch._refs import div as refs_div, _broadcast_shapes
-from torch._prims_common import corresponding_real_dtype, corresponding_complex_dtype
-from torch._prims_common.wrappers import out_wrapper
-from torch._decomp import decomposition_table, decompositions_for_rng, get_decompositions
-from torch._dynamo.symbolic_convert import break_graph_if_unsupported, InstructionTranslatorBase, stack_op
-from torch._dynamo.exc import Unsupported
-from torch._dynamo.variables.lists import TupleVariable
-from torch._dynamo.variables.nn_module import NNModuleVariable
-
+from torch._decomp import decomposition_table
+from torch_npu._indutor.lowering_common import run_once
 
 aten = torch.ops.aten
 npu = torch.ops.npu
-
-
-def run_once(f):
-    """Runs a function (successfully) only once.
-    The running can be reset by setting the `has_run` attribute to False
-    """
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        if not wrapper.has_run:
-            result = f(*args, **kwargs)
-            wrapper.has_run = True
-            return result
-        return None
-    wrapper.has_run = False
-    return wrapper
-
 
 npu_meta_table = {}
 break_fn_table = {}

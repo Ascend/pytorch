@@ -4,7 +4,7 @@ from .base import AccurateTest
 
 class CoreTestStrategy(AccurateTest):
     """
-    Determine whether the core tests should be runned
+    Determine whether the core tests should be run
     """
     def __init__(self):
         super().__init__()

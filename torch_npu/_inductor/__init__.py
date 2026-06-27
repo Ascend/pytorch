@@ -37,6 +37,8 @@ def _load_triton_backend():
 
     has_triton = torch.utils._triton.has_triton()
     if not has_triton:
+        import warnings
+        warnings.warn("triton-ascend is not installed, install it first.")
         return
     from torch._dynamo.device_interface import (
         get_interface_for_device,
@@ -68,6 +70,10 @@ def _load_triton_backend():
     )
 
     from .graph import patch_codegen_with_cpp_wrapper
+    from ._npu_meta_registration import npu_patch_meta
+
+    npu_patch_meta()
+
     def _inductor_register_backend_for_device():
         from .codegen.cpp_wrapper import CppWrapperNpu
         from .codegen.scheduling import NPUTritonScheduling

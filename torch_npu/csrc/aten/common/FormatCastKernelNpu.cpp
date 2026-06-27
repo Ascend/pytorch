@@ -223,7 +223,7 @@ at::Tensor format_cast_impl_out_npu(at::Tensor& dst, const at::Tensor& src)
     if (!FormatCastHelper::IsSameGroupType(src, dst)) {
         bool res = FormatCastHelper::format_cast_between_group(dst, src, format_cast_impl_out_npu);
         if (!res) {
-            AT_ERROR("unsupport cast from ", srcFormat, " to ", dstFormat);
+            AT_ERROR("unsupported cast from ", srcFormat, " to ", dstFormat);
         }
         return dst;
     }
@@ -266,7 +266,7 @@ at::Tensor& NPUNativeFunctions::npu_format_cast_(at::Tensor& self, const at::Ten
     return self;
 }
 
-// conver self to acl_format, write the result into new result tensor
+// convert self to acl_format, write the result into new result tensor
 at::Tensor npu_format_cast_impl(
     const at::Tensor& src,
     int64_t acl_format)
@@ -284,7 +284,7 @@ at::Tensor npu_format_cast_impl(
     return dst;
 }
 
-// conver self to dst'format, write the result into new result tensor
+// convert self to dst'format, write the result into new result tensor
 at::Tensor NPUNativeFunctions::npu_format_cast(
     const at::Tensor& self,
     const at::Tensor& dst,
@@ -296,7 +296,7 @@ at::Tensor NPUNativeFunctions::npu_format_cast(
     return custom_ops::npu_format_cast(self, dst_format, customize_dtype, input_dtype);
 }
 
-// conver self to acl_format, write the result into self
+// convert self to acl_format, write the result into self
 at::Tensor& NPUNativeFunctions::npu_format_cast_(
     at::Tensor& self,
     int64_t acl_format,

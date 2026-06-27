@@ -17,7 +17,7 @@ on:
         required: true
         type: string
         default: 'ascendai/cann:7.1-openeuler2203sp2'
-        description: The docker iamge which will be loaded
+        description: The docker image which will be loaded
 
 jobs:
   linux-py3_8-fetch-and-rebase:

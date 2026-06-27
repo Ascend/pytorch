@@ -10,7 +10,7 @@ class NpuP2pCtrl {
 public:
     // Values include "1" (copy allowed), "0" (copy not allowed), and "-1" (unknown).
     enum class P2pStatus : int8_t {
-        UNKONWN = -1,
+        UNKNOWN = -1,
         COPY_NOT_ALLOWED = 0,
         COPY_ALLOWED = 1
     };

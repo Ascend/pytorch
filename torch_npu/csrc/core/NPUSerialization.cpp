@@ -27,7 +27,7 @@ void npu_info_serialization(const at::Tensor &t, std::unordered_map<std::string,
 
 void npu_info_deserialization(const at::Tensor &t, std::unordered_map<std::string, bool> &map)
 {
-    // Set the true stroage description
+    // Set the true storage description
     at_npu::native::StorageDescHelper::SetDescForSerialization(t, map);
 
     auto str_to_aclFormat = [](std::string str) -> aclFormat {

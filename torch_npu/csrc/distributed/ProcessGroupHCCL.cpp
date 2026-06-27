@@ -409,7 +409,7 @@ void check_split_sizes(const std::vector<int64_t>& split_sizes, const at::Tensor
             split_sizes.size() == static_cast<size_t>(group_size), "Number of tensor splits not equal to group size",
             DIST_ERROR(ErrCode::TYPE));
         const auto sum = c10::sum_integers(split_sizes);
-        TORCH_CHECK(sum == tensor.size(0), "Split sizes dosen't match total dim 0 size", DIST_ERROR(ErrCode::TYPE));
+        TORCH_CHECK(sum == tensor.size(0), "Split sizes doesn't match total dim 0 size", DIST_ERROR(ErrCode::TYPE));
     }
 }
 
@@ -1711,7 +1711,7 @@ void ProcessGroupHCCL::heartbeatMonitor()
             // 1. The local rank is the first to observe a timeout.shouldDump_ will be
             // set to true.
             // 2. other ranks detected the timeout and signal the local rank to dump
-            // In addtion, monitor threads will dump if watchdog threads has no
+            // In addition, monitor threads will dump if watchdog threads has no
             // heartbeat or dumpPipe is not empty.
             if (shouldDump_.load()) {
                 errorMsg = c10::str(
@@ -2679,6 +2679,14 @@ void ProcessGroupHCCL::createHCCLCommOrigin(
     std::vector<c10_npu::NPUStream> &streamVal,
     int p2pRank)
 {
+    bool isSub = !options_->global_ranks_in_group.empty();
+    if (isSub) {
+        if (createHCCLCommSub(devicesKey, devices, commType, commConfig, hcclComms, streamVal, p2pRank, true)) {
+            return;
+        }
+        TORCH_NPU_HCCL_LOGI("Sub comm derivation failed in createHCCLCommOrigin, fallback to rootinfo.");
+    }
+
     HcclRootInfo hcclID;
     bool isSingleP2POp = commType == HcclCommType::P2P ? true : false;
     if (rank_ == 0 || (isSingleP2POp && p2pRank == 0)) {
@@ -2756,34 +2764,35 @@ bool ProcessGroupHCCL::createHCCLCommEx(
         return false;
     }
     c10_npu::OptionalNPUGuard npuGuard;
-    // global process group only; sub comm derivation is handled by createHCCLCommSub
-    if (!(options_->global_ranks_in_group.empty() && commType == HcclCommType::DEFAULT)) {
-        TORCH_NPU_HCCL_LOGI("createHCCLCommEx only handles global comm with ranktable, skip for sub/P2P comm.");
-        return false;
-    }
-    auto startTime = std::chrono::steady_clock::now();
-    for (size_t i = 0; i < devices.size(); ++i) {
-        int rank = getRank() * static_cast<int>(devices.size()) + static_cast<int>(i);
+    // global process group
+    if (options_->global_ranks_in_group.empty() && commType == HcclCommType::DEFAULT) {
+        auto startTime = std::chrono::steady_clock::now();
+        for (size_t i = 0; i < devices.size(); ++i) {
+            int rank = getRank() * static_cast<int>(devices.size()) + static_cast<int>(i);
 
-        npuGuard.set_index(devices[i].index());
-        HcclCommConfig config;
-        if (commConfig == nullptr) {
-            config = createHcclCommConfigWithOptions();
-            commConfig = &config;
+            npuGuard.set_index(devices[i].index());
+            HcclCommConfig config;
+            if (commConfig == nullptr) {
+                config = createHcclCommConfigWithOptions();
+                commConfig = &config;
+            }
+            auto comm = HCCLComm::createGlobalHcclComm(rankTableFile.c_str(), rank, commConfig);
+            if (comm == nullptr) {
+                TORCH_NPU_HCCL_LOGI("Create global hccl comm with ranktable failed, switch to original interface.");
+                return false;
+            }
+            hcclComms[i] = comm;
+            // Creates the HCCL streams
+            streamVal.push_back(getHcclNPUStream(devices[i]));
         }
-        auto comm = HCCLComm::createGlobalHcclComm(rankTableFile.c_str(), rank, commConfig);
-        if (comm == nullptr) {
-            TORCH_NPU_HCCL_LOGI("Create global hccl comm with ranktable failed, switch to original interface.");
-            return false;
-        }
-        hcclComms[i] = comm;
-        // Creates the HCCL streams
-        streamVal.push_back(getHcclNPUStream(devices[i]));
+        auto endTime = std::chrono::steady_clock::now();
+        auto timeElapsed = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+        TORCH_NPU_HCCL_LOGI("Create global hccl comm with ranktable success, take %d milliseconds", static_cast<int>(timeElapsed.count()));
+        return true;
     }
-    auto endTime = std::chrono::steady_clock::now();
-    auto timeElapsed = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
-    TORCH_NPU_HCCL_LOGI("Create global hccl comm with ranktable success, take %d milliseconds", static_cast<int>(timeElapsed.count()));
-    return true;
+
+    // sub process group
+    return createHCCLCommSub(devicesKey, devices, commType, commConfig, hcclComms, streamVal, p2pRank);
 }
 
 bool ProcessGroupHCCL::createHCCLCommSub(
@@ -2793,7 +2802,8 @@ bool ProcessGroupHCCL::createHCCLCommSub(
     HcclCommConfig* commConfig,
     std::vector<std::shared_ptr<HCCLComm>> &hcclComms,
     std::vector<c10_npu::NPUStream> &streamVal,
-    int p2pRank)
+    int p2pRank,
+    bool isOrigin)
 {
     if (!hcclCreateSubCommConfigExist()) {
         TORCH_NPU_HCCL_LOGI("The hcclCreateSubCommConfig is not exist, switch to original interface.");
@@ -2804,17 +2814,24 @@ bool ProcessGroupHCCL::createHCCLCommSub(
         return false;
     }
     std::shared_ptr<HCCLComm> globalHcclComm = nullptr;
-    try {
-        globalHcclComm = global_->getHcclCommByDevices(devices);
-    } catch (const std::exception& e) {
-        TORCH_NPU_HCCL_LOGI("Get global HCCL communicator failed: %s, switch to original interface.", e.what());
-        return false;
+    if (!isOrigin) {
+        try {
+            globalHcclComm = global_->getHcclCommByDevices(devices);
+        } catch (const std::exception& e) {
+            TORCH_NPU_HCCL_LOGI("Get global HCCL communicator failed: %s, switch to original interface.", e.what());
+            return false;
+        }
+        if (!globalHcclComm) {
+            TORCH_NPU_HCCL_LOGI("Create sub hccl comm failed, globalHcclComm is nullptr, switch to original interface.");
+            return false;
+        }
+    } else {
+        globalHcclComm = global_->getHcclCommByDevicesFromCache(devices);
+        if (!globalHcclComm) {
+            TORCH_NPU_HCCL_LOGI("Get global HCCL communicator failed, switch to original interface.");
+            return false;
+        }
     }
-    if (!globalHcclComm) {
-        TORCH_NPU_HCCL_LOGI("Create sub hccl comm failed, globalHcclComm is nullptr, switch to original interface.");
-        return false;
-    }
-
     c10_npu::OptionalNPUGuard npuGuard;
     uint64_t hcclid = (std::hash<string>{}(options_->group_id));
     auto subStartTime = std::chrono::steady_clock::now();
@@ -2855,7 +2872,7 @@ bool ProcessGroupHCCL::createHCCLCommSub(
                 commConfig->hcclCommName[COMM_NAME_MAX_LENGTH - 1] = '\0';
 #endif
             }
-            if (strlen(commConfig->hcclUdi) > 0) {
+            if ((!isOrigin) && strlen(commConfig->hcclUdi) > 0) {
 #ifndef BUILD_LIBTORCH
                 torch_npu::toolkit::profiler::Utils::safe_strcpy_s(commConfig->hcclUdi, p2pName.c_str(), UDI_MAX_LENGTH);
 #else
@@ -2953,7 +2970,7 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::createHCCLComm(
     std::vector<c10_npu::NPUStream> streamVal;
     streamVal.reserve(devices.size());
     c10_npu::OptionalNPUGuard npuGuard;
-    npuGuard.set_index(getDeviceForRank(getRank()).index());
+    npuGuard.set_index(devices[0].index());
 
     TORCH_NPU_HCCL_LOGI("Create HCCL comm, devicesKey %s, commType %d, p2pRank %d.", devicesKey.c_str(), commType, p2pRank);
 
@@ -2965,22 +2982,10 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::createHCCLComm(
         };
         at_npu::native::OpCommand::RunOpApiV3("hcclGroupEnd", hccl_call);
     }
-    bool isSubComm = !(options_->global_ranks_in_group.empty() && commType == HcclCommType::DEFAULT);
-    bool created = false;
-    if (isSubComm) {
-        // Sub comm: derive from global_ via hcclCreateSubCommConfig (works for both ranktable and rootinfo)
-        created = createHCCLCommSub(devicesKey, devices, commType, commConfig, hcclComms, streamVal, p2pRank);
-        if (!created) {
-            TORCH_NPU_HCCL_LOGI("Sub comm derivation failed, fallback to original interface.");
-        }
-    } else {
-        // Global comm: try ranktable path first
-        created = createHCCLCommEx(devicesKey, devices, commType, commConfig, hcclComms, streamVal, p2pRank);
-    }
-    if (!created) {
+    if (!createHCCLCommEx(devicesKey, devices, commType, commConfig, hcclComms, streamVal, p2pRank)) {
         createHCCLCommOrigin(devicesKey, devices, commType, commConfig, hcclComms, streamVal, p2pRank);
     }
-    npuGuard.set_index(getDeviceForRank(getRank()).index());
+    npuGuard.set_index(devices[0].index());
     // restart the HcclGroupStart
     for (const auto i : c10::irange(hcclActiveGroupCounter_)) {
         (void)i;
@@ -3084,9 +3089,9 @@ int64_t ProcessGroupHCCL::getP2PStreamId(
 void ProcessGroupHCCL::windowRegisterAndExchange(int64_t windowSize, std::vector<uint32_t>& peerRanks)
 {
     TORCH_CHECK(windowSize > 0, "Window memory must be greater than 0.", DIST_ERROR(ErrCode::PARAM));
-    TORCH_CHECK(!windowMem_, "Window memory cannnot be registered repeatedly.", DIST_ERROR(ErrCode::UNAVAIL));
+    TORCH_CHECK(!windowMem_, "Window memory cannot be registered repeatedly.", DIST_ERROR(ErrCode::UNAVAIL));
     TORCH_CHECK(!c10_npu::option::OptionsManager::IsHcclZeroCopyEnable(),
-                "Window memory register unsupport set HCCL_ZERO_COPY=1", DIST_ERROR(ErrCode::UNAVAIL));
+                "Window memory register unsupported set HCCL_ZERO_COPY=1", DIST_ERROR(ErrCode::UNAVAIL));
 
     auto options = at::TensorOptions(c10::DeviceType::PrivateUse1).dtype(at::kChar);
     windowMem_ = at::empty({windowSize}, options);
@@ -3364,7 +3369,7 @@ c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL> ProcessGroupHCCL::initWork(
         // - initially, moved record() into workEnqueue(), but found that makes it
         //   hard to get access to profilingTitle,
         //   inputs, and outputs for metadata recording, and we don't want to attach
-        //   these objects to the Work becuase it has implications for keeping those
+        //   these objects to the Work because it has implications for keeping those
         //   tensors alive longer and adds overhead when copying Work objects
         //   between threads
         r->trace_id_ = HCCLTraceBuffer::get()->record(
@@ -3434,6 +3439,17 @@ ProcessGroupHCCL::Options::Options(bool is_high_priority_stream)
       opTimeout(kProcessGroupHCCLOpTimeoutMillis),
       is_high_priority_stream(is_high_priority_stream)
 {
+}
+
+std::shared_ptr<HCCLComm> ProcessGroupHCCL::getHcclCommByDevicesFromCache(const std::vector<at::Device>& devices)
+{
+    const auto key = getKeyFromDevices(devices);
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto it = devHCCLCommMap_.find(key);
+    if (it != devHCCLCommMap_.end() && !it->second.empty()) {
+        return it->second[0];
+    }
+    return nullptr;
 }
 
 std::shared_ptr<HCCLComm> ProcessGroupHCCL::getHcclCommByDevices(const std::vector<at::Device>& devices)
@@ -6110,8 +6126,13 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base(
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
             if (opts.reduceOp == c10d::ReduceOp::AVG) {
                 c10_npu::NPUStreamGuard guard(hcclStreams[0]);
+                bool is_atlas_a5 = c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend950;
                 for (auto& tensor : outputs) {
-                    tensor.div_(getSize());
+                    if (is_atlas_a5) {
+                        tensor.div_(getSize(), "trunc");
+                    } else {
+                        tensor.div_(getSize());
+                    }
                 }
             }
         },
@@ -6224,7 +6245,8 @@ void ProcessGroupHCCL::startCoalescing()
     coalescedP2PFormatCasts_.clear();
     coalescing_state_ |= CoalActive;
     c10_npu::OptionalNPUGuard npuGuard;
-    npuGuard.set_index(getDeviceForRank(getRank()).index());
+    // Infer device from the global rank to support sub process groups.
+    npuGuard.set_index(getDeviceForRank(static_cast<int>(groupRanks()[getRank()])).index());
     groupStart();
 }
 

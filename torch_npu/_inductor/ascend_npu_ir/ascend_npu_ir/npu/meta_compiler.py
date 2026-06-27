@@ -6,7 +6,6 @@ from itertools import count
 from typing import Any, Callable, Dict, List, Optional, Tuple, Iterator
 
 import torch
-from torch._inductor.compile_fx import clone_preserve_strides
 from torch_npu._inductor.npu_compare import check_accuracy_mlir
 
 from .. import config as anir_config
@@ -85,17 +84,29 @@ class MetaCompiler:
         if not dump_path:
             dump_path = os.path.join(anir_config.fx_subgraph_dump_path, str(self.device_index), self.kernel_name)
         runable_py_path = os.path.join(dump_path, f'runnable_{self.kernel_name}.py')
-        fake_inputs = [f'rand_strided({arg.shape}, {arg.stride()}, device="{arg.device.type}", dtype={arg.dtype})' \
-                       if isinstance(arg, torch.Tensor) else str(arg) for arg in args[:-self.num_outputs]]
-        fake_outputs = [f'empty_strided({arg.shape}, {arg.stride()}, device="{arg.device.type}", dtype={arg.dtype})' \
-                        if isinstance(arg, torch.Tensor) else str(arg) for arg in args[-self.num_outputs:]]
+        fake_inputs = [
+            f'rand_strided({arg.shape}, {arg.stride()}, device="{arg.device.type}", dtype={arg.dtype})'
+            if isinstance(arg, torch.Tensor)
+            else str(arg)
+            for arg in args[:-self.num_outputs]
+        ]
+        fake_outputs = [
+            f'empty_strided({arg.shape}, {arg.stride()}, device="{arg.device.type}", dtype={arg.dtype})'
+            if isinstance(arg, torch.Tensor)
+            else str(arg)
+            for arg in args[-self.num_outputs:]
+        ]
         replacements = {"FAKE_ARGS_PLACEHOLDER": f"args = [{', '.join(fake_inputs + fake_outputs)}]"}
         replace_placeholders(runable_py_path, replacements)
 
     def fx_subgraph_dump(self, suffix):
         subgraph_dump_path = os.path.join(anir_config.fx_subgraph_dump_path, str(self.device_index), self.kernel_name)
         failed_fx_subgraph_dump_path = anir_config.fx_subgraph_dump_path + f'_{suffix}'
-        failed_subgraph_dump_path = os.path.join(failed_fx_subgraph_dump_path, str(self.device_index), f'{next(_dump_id_iter)}_' + self.kernel_name)
+        failed_subgraph_dump_path = os.path.join(
+            failed_fx_subgraph_dump_path,
+            str(self.device_index),
+            f"{next(_dump_id_iter)}_{self.kernel_name}",
+        )
         if os.path.exists(failed_subgraph_dump_path):
             shutil.rmtree(failed_subgraph_dump_path)
         shutil.copytree(subgraph_dump_path, failed_subgraph_dump_path)
@@ -269,10 +280,11 @@ class MetaCompiler:
             output, _ = self.acc_compare_and_dump(*args_list, **kwargs)
             self._copy_back_non_contiguous_outputs(args_list, original_outputs)
             return output
+        runtime_args = args_list
         if self.dynamic and not is_fallback_kernel:
-            args_list = self.prepare_runtime_args(
+            runtime_args = self.prepare_runtime_args(
                 args_list,
             )
-        ret = launcher(*tuple(args_list), **kwargs)
+        ret = launcher(*tuple(runtime_args), **kwargs)
         self._copy_back_non_contiguous_outputs(args_list, original_outputs)
         return ret

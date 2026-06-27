@@ -10,7 +10,7 @@
 namespace at_npu {
 namespace native {
 
-// covert pytorch tensor to acl tensor.
+// convert pytorch tensor to acl tensor.
 class OpCmdHelper {
 public:
     static std::tuple<aclTensorDesc *, aclDataBuffer *> CovertTensorToAclInput(const at::Tensor &tensor,

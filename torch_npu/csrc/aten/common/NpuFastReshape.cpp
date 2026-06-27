@@ -29,7 +29,7 @@ void npu_fast_reshape_(at::Tensor& tensor)
         return;
     }
 
-    // refresh matadata to input tensor
+    // refresh metadata to input tensor
     StorageDescHelper::ReflushDescBySelf(tensor);
     auto base_format = InferFormat::GuessBaseFormat(tensor.sizes());
     NPUNativeFunctions::npu_format_cast_(tensor, base_format);

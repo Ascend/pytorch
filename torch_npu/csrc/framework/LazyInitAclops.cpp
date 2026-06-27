@@ -196,7 +196,7 @@ void InitializeJitCompilationMode()
     }
 }
 
-// set default jit_Compile value from Get acl defalut value
+// set default jit_Compile value from Get acl default value
 void GetAndSetDefaultJitCompileByAcl()
 {
     if (IsJitCompileModeSetted()) {

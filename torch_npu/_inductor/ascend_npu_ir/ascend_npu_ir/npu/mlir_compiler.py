@@ -1,8 +1,6 @@
 import os
-import sys
 import functools
-from typing import Callable, Dict, Any, List, Tuple, Iterator, Optional
-from itertools import count
+from typing import Callable, Dict, Any, List, Tuple, Optional
 from pathlib import Path
 import importlib
 import tempfile
@@ -19,7 +17,6 @@ from torch._inductor.runtime.cache_dir_utils import triton_cache_dir
 from .utils import (
     MLIRProcessor,
     _build_npu_ext,
-    replace_placeholders,
     do_bench,
     logger,
 )
@@ -38,13 +35,16 @@ os.environ['TORCHINDUCTOR_NPU_BACKEND'] = 'mlir'
 reinterpret_tensor = torch.ops.inductor._reinterpret_tensor
 global_cache = set()
 
+
 class NpuMlirCompiler(MetaCompiler):
-    def __init__(self,
-            kernel_name: str = '',
-            multiprocess_compile=False,
-            no_more_compile=False,
-            kernel_meta=None,
-            autotune=True):
+    def __init__(
+        self,
+        kernel_name: str = '',
+        multiprocess_compile=False,
+        no_more_compile=False,
+        kernel_meta=None,
+        autotune=True,
+    ):
         super().__init__(
             kernel_name=kernel_name,
             multiprocess_compile=multiprocess_compile,
@@ -121,13 +121,13 @@ class NpuMlirCompiler(MetaCompiler):
             input_path,
             "-o", output_path
         ]
-        logger.info(f"Start to compile, command is: [{' '.join(command)}]")
+        logger.info("Start to compile, command is: [%s]", " ".join(command))
         try:
             subprocess.run(command, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=30)
-            logger.info(f"[bisheng-compile success]")
+            logger.info("[bisheng-compile success]")
         except subprocess.CalledProcessError as e:
-            logger.info(f"[bisheng-compile failed]")
-            logger.warning(f"Compile error msg: {e.stderr.decode('utf-8')}")
+            logger.info("[bisheng-compile failed]")
+            logger.warning("Compile error msg: %s", e.stderr.decode("utf-8"))
             raise e
 
     def prepare_launch(self, need_pickle=False):
@@ -142,10 +142,19 @@ class NpuMlirCompiler(MetaCompiler):
         if cache_so_path is None or (anir_config.always_compile and cache_so_path not in global_cache):
             with tempfile.TemporaryDirectory() as tmpdir:
                 c_wrapper_path = os.path.join(tmpdir, f"{self.kernel_name}_launch.cpp")
-                cache_mlir_path = self.cache.put(cpp_launcher(self.signature, self.kernel_name, self.ranks, dynamic=self.dynamic), f"{self.kernel_name}_launch.cpp")
+                cache_mlir_path = self.cache.put(
+                    cpp_launcher(
+                        self.signature, self.kernel_name, self.ranks, dynamic=self.dynamic
+                    ),
+                    f"{self.kernel_name}_launch.cpp",
+                )
                 global_cache.add(cache_mlir_path)
                 with open(c_wrapper_path, 'w') as c_wrapper_file:
-                    c_wrapper_file.write(cpp_launcher(self.signature, self.kernel_name, self.ranks, dynamic=self.dynamic))
+                    c_wrapper_file.write(
+                        cpp_launcher(
+                            self.signature, self.kernel_name, self.ranks, dynamic=self.dynamic
+                        )
+                    )
                 if self.dynamic:
                     with open(c_wrapper_path, "rb") as f:
                         cache_c_wrapper_path = self.cache.put(f.read(), f"{self.kernel_name}_launch.cpp", binary=True)
@@ -156,32 +165,51 @@ class NpuMlirCompiler(MetaCompiler):
                 global_cache.add(cache_so_path)
         if not need_pickle:
             mod = get_launch_mod(cache_so_path)
-            self.launch = getattr(mod, "launch")
+            self.launch = mod.launch
             if self.dynamic:
-                self.get_host_func_and_tiling_size = getattr(mod, "get_host_func_and_tiling_size")
+                self.get_host_func_and_tiling_size = mod.get_host_func_and_tiling_size
 
     def get_named_op_path(self):
         named_op_name = f"{self.kernel_name}_named_op.mlir"
         cache_mlir_path = self.cache.get_file(named_op_name)
         if cache_mlir_path is None or (anir_config.always_compile and cache_mlir_path not in global_cache):
-            #if anir_config.cache_named_op:
             cache_mlir_path = self.cache.put(self.mlir_text, named_op_name)
             global_cache.add(cache_mlir_path)
         if anir_config.fx_subgraph_dump_path:
-            shutil.copy(cache_mlir_path, os.path.join(anir_config.fx_subgraph_dump_path, \
-                                                      str(self.device_index), self.kernel_name))
+            shutil.copy(
+                cache_mlir_path,
+                os.path.join(
+                    anir_config.fx_subgraph_dump_path,
+                    str(self.device_index),
+                    self.kernel_name,
+                ),
+            )
         return cache_mlir_path
 
     def get_launch_dynamic(self, function, tiling_func, tiling_size):
         block_dim = anir_config.block_dim
         arg_tiling_device = torch.empty((tiling_size // 8), device='npu', dtype=torch.int64)
         arg_tiling_host = torch.empty((tiling_size // 8), dtype=torch.int64)
+
         def kernel_call(*args, stream=None):
-            self.launch(block_dim, stream, function, tiling_func, tiling_size, arg_tiling_host, arg_tiling_device, None, None, None, *args)
+            self.launch(
+                block_dim,
+                stream,
+                function,
+                tiling_func,
+                tiling_size,
+                arg_tiling_host,
+                arg_tiling_device,
+                None,
+                None,
+                None,
+                *args,
+            )
         return kernel_call
 
     def get_launch(self, function):
         block_dim = anir_config.block_dim
+
         def kernel_call(*args, function, stream=None):
             self.launch(block_dim, stream, function, None, None, None, *args)
 
@@ -189,10 +217,12 @@ class NpuMlirCompiler(MetaCompiler):
 
     def get_launch_func(self, cache_kernel_path):
         if self.dynamic:
-            function, tiling_func, tiling_size = self.get_host_func_and_tiling_size(self.kernel_name,
-                                                                                    self.kernel_name + '_tiling_function',
-                                                                                    self.kernel_name + '_get_tiling_struct_size_function',
-                                                                                    cache_kernel_path)
+            function, tiling_func, tiling_size = self.get_host_func_and_tiling_size(
+                self.kernel_name,
+                self.kernel_name + '_tiling_function',
+                self.kernel_name + '_get_tiling_struct_size_function',
+                cache_kernel_path,
+            )
             return self.get_launch_dynamic(function, tiling_func, tiling_size)
         else:
             function = load_kernel_binary(self.kernel_name, cache_kernel_path)
@@ -212,16 +242,19 @@ class NpuMlirCompiler(MetaCompiler):
         if kernel_path.endswith('_fx_fallback'):
             if auto_fallback:
                 if anir_config.fallback_warning:
-                    print(f"This kernel {self.kernel_name} has been fallback to the eager fx graph mode, ", \
-                    "which will lead to a significant decrease in performance.", flush=True)
+                    print(
+                        f"This kernel {self.kernel_name} has been fallback to the eager fx graph mode, ",
+                        "which will lead to a significant decrease in performance.",
+                        flush=True,
+                    )
                 if anir_config.fallback_dump and not disable_dump:
                     self.fx_subgraph_dump('fallback')
-        logger.info(f"register launcher {launcher} {kernel_path} success")
+        logger.info("register launcher %s %s success", launcher, kernel_path)
 
     def compile_mlir(self,
                      device_info: Tuple[Any],
                      compile_args: List[Any],
-                     logger_level = None) -> Callable[..., None]:
+                     logger_level=None) -> Callable[..., None]:
         if logger_level is not None:
             # re-init logger level in subprocess
             logger.setLevel(logger_level)
@@ -237,8 +270,12 @@ class NpuMlirCompiler(MetaCompiler):
         else:
             cache_kernel_path = self.cache.get_file(f"{tiling_kernel_name}.o")
 
-        logger.info("Start to get cached kernel. Tiling info: " +
-                    f"tiling_size {tiling_size} ops_reorder {ops_reorder} auto_db {auto_db}")
+        logger.info(
+            "Start to get cached kernel. Tiling info: tiling_size %s ops_reorder %s auto_db %s",
+            tiling_size,
+            ops_reorder,
+            auto_db,
+        )
 
         if cache_kernel_path is None and self.no_more_compile:
             raise RuntimeError("Skip compile.")
@@ -247,31 +284,43 @@ class NpuMlirCompiler(MetaCompiler):
             logger.info("No cached kernel. Start to exec compile.")
             with tempfile.TemporaryDirectory() as tmpdir:
                 kernel_path = os.path.join(tmpdir, tiling_kernel_name)
-                self.bisheng_compile(named_op_mlir_path, kernel_path, tiling_size=tiling_size,
-                                    ops_reorder=ops_reorder, auto_db=auto_db,
-                                    extra_command=anir_config.extra_command)
-
+                self.bisheng_compile(
+                    named_op_mlir_path,
+                    kernel_path,
+                    tiling_size=tiling_size,
+                    ops_reorder=ops_reorder,
+                    auto_db=auto_db,
+                    extra_command=anir_config.extra_command,
+                )
 
                 if self.dynamic:
                     kernel_path = os.path.join(tmpdir, f"lib{tiling_kernel_name}.so")
                     with open(kernel_path, "rb") as f:
-                        cache_kernel_path =  self.cache.put(f.read(), f"lib{tiling_kernel_name}.so", binary=True)
+                        cache_kernel_path = self.cache.put(f.read(), f"lib{tiling_kernel_name}.so", binary=True)
                     global_cache.add(cache_kernel_path)
                 else:
-                    kernel_path =  os.path.join(tmpdir, tiling_kernel_name + '.o')
+                    kernel_path = os.path.join(tmpdir, tiling_kernel_name + '.o')
                     with open(kernel_path, "rb") as f:
-                        cache_kernel_path =  self.cache.put(f.read(), f"{tiling_kernel_name}.o", binary=True)
+                        cache_kernel_path = self.cache.put(f.read(), f"{tiling_kernel_name}.o", binary=True)
                     global_cache.add(cache_kernel_path)
 
         logger.info("Get kernel success.")
         if not self.multiprocess_compile:
-            logger.info(f"Start to register kernel, path '{cache_kernel_path}' func '{self.kernel_name}'")
+            logger.info(
+                "Start to register kernel, path '%s' func '%s'",
+                cache_kernel_path,
+                self.kernel_name,
+            )
             launch_func = self.get_launch_func(cache_kernel_path)
             self.register_launcher(launch_func, cache_kernel_path)
 
         if anir_config.fx_subgraph_dump_path:
-            kernel_dump_path = os.path.join(anir_config.fx_subgraph_dump_path, \
-                                            str(self.device_index), self.kernel_name, 'kernel_dump')
+            kernel_dump_path = os.path.join(
+                anir_config.fx_subgraph_dump_path,
+                str(self.device_index),
+                self.kernel_name,
+                'kernel_dump',
+            )
             os.makedirs(kernel_dump_path, exist_ok=True)
             shutil.copy(cache_kernel_path, kernel_dump_path)
 
@@ -279,7 +328,11 @@ class NpuMlirCompiler(MetaCompiler):
         self.launchers.clear()
         self.kernel_paths.clear()
         self.is_fallback_kernels.clear()
-        logger.info(f"Start to replace kernel by specific path, path '{kernel_path}' func '{self.kernel_name}'")
+        logger.info(
+            "Start to replace kernel by specific path, path '%s' func '%s'",
+            kernel_path,
+            self.kernel_name,
+        )
         launch_func = self.get_launch_func(kernel_path)
         self.register_launcher(launch_func, kernel_path)
 
@@ -302,9 +355,9 @@ class NpuMlirCompiler(MetaCompiler):
         if kernel_path is None:
             return RuntimeError()
         mod = get_launch_mod(so_path)
-        self.launch = getattr(mod, "launch")
+        self.launch = mod.launch
         if self.dynamic:
-            self.get_host_func_and_tiling_size = getattr(mod, "get_host_func_and_tiling_size")
+            self.get_host_func_and_tiling_size = mod.get_host_func_and_tiling_size
 
         launch_func = self.get_launch_func(kernel_path)
         self.register_launcher(launch_func, kernel_path)
@@ -312,7 +365,7 @@ class NpuMlirCompiler(MetaCompiler):
 
     def get_autotune_config(self):
         def get_tiling_range():
-            return [i for i in range(-10, 20, 2)]
+            return list(range(-10, 20, 2))
         compile_args = []
         for ops_reorder in [True, False]:
             for auto_db in [True, False]:
@@ -326,11 +379,12 @@ class NpuMlirCompiler(MetaCompiler):
             and self.kernel_meta.get('is_reduction', False)
         )
 
-    def precompile(self,
-                    device_info: Tuple[Any],
-                    suppress_error=False,
-                    logger_level=None):
-
+    def precompile(
+        self,
+        device_info: Tuple[Any],
+        suppress_error=False,
+        logger_level=None,
+    ):
         if anir_config.autotune and not self._should_disable_autotune_for_determinism():
             compile_args = self.get_autotune_config()
         else:
@@ -340,7 +394,8 @@ class NpuMlirCompiler(MetaCompiler):
                 self.compile_mlir(device_info, cargs, logger_level=logger_level)
             except Exception as e:
                 if suppress_error:
-                    logger.warning(f"compile args {cargs} fail, err msg: {e}")
+                    error_msg = str(e)
+                    logger.warning("compile args %s fail, err msg: %s", cargs, error_msg)
                 else:
                     raise e
 
@@ -348,6 +403,7 @@ class NpuMlirCompiler(MetaCompiler):
         if anir_config.runtime_error_dump:
             self.data_dump_fake(*args)
         cloned_args = args
+
         def kernel_call():
             launcher(*cloned_args, **kwargs)
         try:
@@ -401,10 +457,24 @@ class NpuMlirCompiler(MetaCompiler):
 
         if anir_config.acc_check_during_tune:
             launcher_fx = self.launchers[-1]
-            fx_outputs = [clone_preserve_strides(arg).to(torch.float32) if arg.dtype == torch.bfloat16 \
-                        else clone_preserve_strides(arg) for arg in args[-self.num_outputs:]]
-            fx_inputs = [clone_preserve_strides(arg) if isinstance(arg, torch.Tensor) else arg for arg in args[:-self.num_outputs]]
-            fx_inputs = [inp.float() if isinstance(inp, torch.Tensor) and inp.dtype == torch.bfloat16 else inp for inp in fx_inputs]
+            fx_outputs = [
+                clone_preserve_strides(arg).to(torch.float32)
+                if arg.dtype == torch.bfloat16
+                else clone_preserve_strides(arg)
+                for arg in args[-self.num_outputs:]
+            ]
+            fx_inputs = [
+                clone_preserve_strides(arg)
+                if isinstance(arg, torch.Tensor)
+                else arg
+                for arg in args[:-self.num_outputs]
+            ]
+            fx_inputs = [
+                inp.float()
+                if isinstance(inp, torch.Tensor) and inp.dtype == torch.bfloat16
+                else inp
+                for inp in fx_inputs
+            ]
 
             fx_args = fx_inputs + fx_outputs
             launcher_fx(*fx_args, **kwargs)
@@ -442,14 +512,14 @@ class NpuMlirCompiler(MetaCompiler):
             if self.is_fallback_kernels[idx] and not anir_config.autotune_fx_fallback:
                 continue
             try:
-                logger.info(f"start to eval kernel {self.kernel_paths[idx]}")
+                logger.info("start to eval kernel %s", self.kernel_paths[idx])
                 times = self.bench(idx, launcher, *transformed_args, **kwargs)
                 if anir_config.acc_check_during_tune:
                     if self.accuracy_pass(fx_outputs, *args):
                         timings.append([times, idx])
                 else:
                     timings.append([times, idx])
-                logger.info(f"eval over")
+                logger.info("eval over")
             except Exception as e:
                 print(e)
                 continue
@@ -459,18 +529,18 @@ class NpuMlirCompiler(MetaCompiler):
         return timings
 
     def autotune_to_one_config(self, *args, **kwargs):
-        if any([isinstance(arg, torch.Tensor) and not arg.is_contiguous() for arg in args]):
+        if any(isinstance(arg, torch.Tensor) and not arg.is_contiguous() for arg in args):
             print(f'Non contiguous args exists! Kernel name is {self.kernel_name}')
         timings = self.benchmark_all_configs(*args, **kwargs)
         timings.sort()
-        logger.info(f"autotune over, timings: {timings}")
+        logger.info("autotune over, timings: %s", timings)
         if timings[0][0] > 99999:
             self.launchers.clear()
             self.is_fallback_kernels.clear()
             self.register_fx_fallback(self.kernel_meta)
             return
         idx = timings[0][1]
-        logger.info(f"autotune benchmark over, using kernel {self.kernel_paths[idx]}")
+        logger.info("autotune benchmark over, using kernel %s", self.kernel_paths[idx])
         self.kernel_paths = [self.kernel_paths[idx]]
         self.launchers = [self.launchers[idx]]
         self.is_fallback_kernels = [self.is_fallback_kernels[idx]]
@@ -535,7 +605,8 @@ class AkgCompiler(MetaCompiler):
             return
 
         logger.warning(
-            f"AKG accuracy compare failed for {self.kernel_name}: kernel_compile_failed"
+            "AKG accuracy compare failed for %s: kernel_compile_failed",
+            self.kernel_name,
         )
         self.launchers.clear()
         self.kernel_paths.clear()
@@ -546,7 +617,8 @@ class AkgCompiler(MetaCompiler):
         if self.force_fallback(self.kernel_name):
             self.register_fx_fallback(self.kernel_meta)
             logger.warning(
-                f"AKG compile skipped for {self.kernel_name}, forced fallback to FX."
+                "AKG compile skipped for %s, forced fallback to FX.",
+                self.kernel_name,
             )
             return
 
@@ -584,19 +656,30 @@ class AkgCompiler(MetaCompiler):
                             need_compile=True,
                             debug=anir_config.debug,
                         )
-                    except Exception as e:
-                        logger.warning(f"compile {self.kernel_name} fail, err msg: {e}")
-
-                    binary_output_path = os.path.join(tmpdir, kernel_file_name)
-                    meta_output_path = os.path.join(tmpdir, kernel_meta_file_name)
-                    with open(binary_output_path, "rb") as f:
-                        cache_kernel_path = self.cache.put(f.read(), kernel_file_name, binary=True)
-                    with open(meta_output_path, "rb") as f:
-                        cache_kernel_meta_path = self.cache.put(f.read(), kernel_meta_file_name, binary=True)
-                    global_cache.add(cache_kernel_path)
-                    if anir_config.debug:
-                        log_output_path = os.path.join(tmpdir, kernel_log_file_name)
-                        shutil.copy(log_output_path, os.path.join(anir_config.debug_dir, kernel_log_file_name))
+                        binary_output_path = os.path.join(tmpdir, kernel_file_name)
+                        meta_output_path = os.path.join(tmpdir, kernel_meta_file_name)
+                        with open(binary_output_path, "rb") as f:
+                            cache_kernel_path = self.cache.put(f.read(), kernel_file_name, binary=True)
+                        with open(meta_output_path, "rb") as f:
+                            cache_kernel_meta_path = self.cache.put(f.read(), kernel_meta_file_name, binary=True)
+                        global_cache.add(cache_kernel_path)
+                    finally:
+                        if anir_config.debug:
+                            log_output_path = os.path.join(tmpdir, kernel_log_file_name)
+                            if os.path.isfile(log_output_path):
+                                debug_log_path = os.path.join(
+                                    anir_config.debug_dir, kernel_log_file_name
+                                )
+                                try:
+                                    shutil.copy(log_output_path, debug_log_path)
+                                except Exception as copy_error:
+                                    copy_error_msg = str(copy_error)
+                                    logger.warning(
+                                        "Failed to copy AKG debug log from %s to %s: %s",
+                                        log_output_path,
+                                        debug_log_path,
+                                        copy_error_msg,
+                                    )
             else:
                 self.kernel.compile(
                     str(mlir_module),
@@ -606,6 +689,9 @@ class AkgCompiler(MetaCompiler):
             self.register_launcher(self.kernel.run, kernel_path=cache_kernel_path)
         except Exception as e:
             self.register_fx_fallback(self.kernel_meta)
+            error_msg = str(e)
             logger.warning(
-                f"AKG compile failed for {self.kernel_name}, fallback to FX. reason: {e}"
+                "AKG compile failed for %s, fallback to FX. reason: %s",
+                self.kernel_name,
+                error_msg,
             )

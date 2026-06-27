@@ -3,30 +3,22 @@ import collections
 from collections import Counter
 import functools
 import itertools
-import shutil
 import os
 from torch.utils._ordered_set import OrderedSet
 
 import torch
 import torch.nn.functional as F
-from torch import Tensor
 
 from torch._dynamo.utils import set_current_node, UnsupportedFakeTensorException
-
-
 
 from typing import (
     Set,
     Dict,
-    Optional,
-    Tuple,
     List
 )
-from torch._dynamo.utils import dynamo_timed
 from torch._inductor.async_compile import shutdown_compile_workers
-from torch._inductor.codegen.common import register_backend_for_device, register_device_op_overrides
+from torch._inductor.codegen.common import register_backend_for_device
 from torch._inductor.virtualized import V
-from torch._inductor import decomposition as inductor_decomp
 
 from ..npu.codegen.akg import AkgScheduling
 from ..npu.codegen.mlir import NpuMlirScheduling
@@ -34,7 +26,6 @@ from ..npu.codegen.wrapper import NpuMlirWrapperCodeGen
 from ..npu.npu_lowering import _register_npu_inductor_fallbacks
 from ..npu.utils import (
     npu_optimize_fx_graph,
-    run_once,
     logger,
 )
 
@@ -44,7 +35,7 @@ from torch._decomp import (
     decomposition_table,
 )
 
-from . import npu_patch_deprecated
+from . import npu_patch_deprecated  # noqa: F401
 from .npu_meta import npu_patch_meta
 
 # Fix Error: Exit earlier than child process.
@@ -67,15 +58,15 @@ if anir_config.online_acc_comp:
 
 aten = torch.ops.aten
 
-## Override original dynamo device interface in torch_npu
+# Override original dynamo device interface in torch_npu
 
 
 def register_mlir_codegen_backend() -> None:
     """Register MLIR scheduling/wrapper; call on each mlir/dvm backend switch."""
     if os.getenv('TORCHINDUCTOR_USE_AKG', '0') == '1':
         try:
-            import akg
-            import torch_mlir
+            import akg  # noqa: F401
+            import torch_mlir  # noqa: F401
             register_backend_for_device("npu", AkgScheduling, NpuMlirWrapperCodeGen)
         except ImportError:
             logger.warning("akg not found, fallback to torch-mlir for compilation.")
@@ -85,7 +76,7 @@ def register_mlir_codegen_backend() -> None:
 
 try:
     from torch_npu.npu import device_count
-except:
+except ImportError:
     from torch_npu.npu.utils import device_count
 from torch._dynamo.device_interface import register_interface_for_device
 from torch_npu.utils._dynamo_device import NpuInterface
@@ -103,10 +94,8 @@ class NewNpuInterface(NpuInterface):
 
 register_interface_for_device("npu", NewNpuInterface)
 
-## npu patch
-from ..npu import npu_decomp
+# npu patch
 from torch._C import DispatchKey
-from torch._prims_common.wrappers import out_wrapper
 
 def disable_implicit_decomposition():
     '''
@@ -179,7 +168,6 @@ disable_implicit_decomposition()
 torch._dynamo.utils.run_node = _patch_run_node
 
 
-from torch._dynamo.backends import common
 from torch._dynamo.backends.common import AotAutograd
 
 def wrap_compiler(fn):
@@ -193,6 +181,7 @@ def wrap_aot_autograd(fn):
     @functools.wraps(fn)
     def npu_aot_autograd(*args, **kwargs):
         _register_npu_inductor_fallbacks()
+
         def wrap_compiler_by_key(name):
             if name in kwargs:
                 kwargs[name] = wrap_compiler(kwargs[name])
@@ -218,8 +207,8 @@ from torch._inductor.scheduler import (
     ExternKernelSchedulerNode,
     NopKernelSchedulerNode,
     WhyNoFuse,
-    MemoryDep
-    )
+    MemoryDep,
+)
 
 def used_or_aliased_buffer_names(node) -> Set[str]:
     used_names: OrderedSet[str] = OrderedSet()
@@ -412,8 +401,6 @@ F.avg_pool2d = wrap_avg_pool2d(F.avg_pool2d)
 # patches for transfer_to_npu
 def patch_transfer_to_npu():
     try:
-        import torch
-        import torch_npu
         from torch_npu.contrib import transfer_to_npu
         from torch_npu.contrib.transfer_to_npu import (
             _replace_cuda_to_npu_in_list,
@@ -442,7 +429,7 @@ def patch_transfer_to_npu():
                         if device is not None:
                             _replace_cuda_to_npu_in_kwargs(kwargs, device_arg, device)
                     device_ids = kwargs.get('device_ids', None)
-                    if type(device_ids) == list:
+                    if isinstance(device_ids, list):
                         device_ids = _replace_cuda_to_npu_in_list(device_ids, replace_int)
                 return fn(*args, **kwargs)
 

@@ -1,5 +1,6 @@
 # Owner(s): ["module: tests"]
 
+import gc
 import sys
 
 import torch
@@ -111,6 +112,208 @@ class TestAccelerator(TestCase):
         torch.npu.synchronize()
         ms = start_event.elapsed_time(end_event)
         self.assertGreater(ms, 0)
+
+    def test_device_context_manager(self):
+        prev_device = torch.accelerator.current_device_index()
+        with torch.accelerator.device_index(None):
+            self.assertEqual(torch.accelerator.current_device_index(), prev_device)
+        self.assertEqual(torch.accelerator.current_device_index(), prev_device)
+        with torch.accelerator.device_index(0):
+            self.assertEqual(torch.accelerator.current_device_index(), 0)
+        self.assertEqual(torch.accelerator.current_device_index(), prev_device)
+
+    def test_stream_context_manager_reentrance(self):
+        prev_stream = torch.accelerator.current_stream()
+        s0 = torch.Stream()
+        with s0, s0:
+            self.assertEqual(torch.accelerator.current_stream(), s0)
+        self.assertEqual(torch.accelerator.current_stream(), prev_stream)
+        s1 = torch.Stream()
+        with s0:
+            self.assertEqual(torch.accelerator.current_stream(), s0)
+            with s1:
+                self.assertEqual(torch.accelerator.current_stream(), s1)
+                with s0:
+                    self.assertEqual(torch.accelerator.current_stream(), s0)
+        self.assertEqual(torch.accelerator.current_stream(), prev_stream)
+
+    def test_memory_interfaces_smoke(self):
+        """All 10 torch.accelerator.memory APIs exist and return correct types."""
+        acc = torch.accelerator.current_accelerator()
+        tmp = torch.randn(10, device=acc)
+
+        # void-return APIs: exist and don't throw
+        torch.accelerator.empty_cache()
+        torch.accelerator.memory.empty_host_cache()
+        torch.accelerator.reset_peak_memory_stats()
+        torch.accelerator.reset_accumulated_memory_stats()
+
+        # dict-return APIs
+        self.assertIsInstance(torch.accelerator.memory_stats(), dict)
+
+        # int-return APIs
+        for fn in [
+            torch.accelerator.memory_allocated,
+            torch.accelerator.max_memory_allocated,
+            torch.accelerator.memory_reserved,
+            torch.accelerator.max_memory_reserved,
+        ]:
+            self.assertIsInstance(fn(), int)
+
+        # tuple-return API
+        free_mem, total_mem = torch.accelerator.get_memory_info()
+        self.assertIsInstance(free_mem, int)
+        self.assertIsInstance(total_mem, int)
+
+        del tmp
+        gc.collect()
+        torch.accelerator.empty_cache()
+
+    def test_memory_stats(self):
+        acc = torch.accelerator.current_accelerator()
+        tmp = torch.randn(100, device=acc)
+        del tmp
+        gc.collect()
+        self.assertTrue(torch._C._accelerator_isAllocatorInitialized())
+        torch.accelerator.empty_cache()
+
+        pool_type = ["all", "small_pool", "large_pool"]
+        metric_type = ["peak", "current", "allocated", "freed"]
+        stats_type = [
+            "allocated_bytes",
+            "reserved_bytes",
+            "active_bytes",
+            "requested_bytes",
+        ]
+        mem_stats = torch.accelerator.memory_stats()
+        expected_stats = [
+            f"{st}.{pt}.{mt}"
+            for st in stats_type
+            for pt in pool_type
+            for mt in metric_type
+        ]
+        missing_stats = [stat for stat in expected_stats if stat not in mem_stats]
+        self.assertEqual(
+            len(missing_stats),
+            0,
+            f"Missing expected memory statistics: {missing_stats}",
+        )
+
+        self.assertIn("num_alloc_retries", mem_stats)
+        self.assertIn("num_ooms", mem_stats)
+        self.assertIn("num_sync_all_streams", mem_stats)
+        self.assertIn("num_device_alloc", mem_stats)
+        self.assertIn("num_device_free", mem_stats)
+
+    def test_memory_allocated_reserved(self):
+        acc = torch.accelerator.current_accelerator()
+        tmp = torch.randn(100, device=acc)
+        del tmp
+        gc.collect()
+        self.assertTrue(torch._C._accelerator_isAllocatorInitialized())
+        torch.accelerator.empty_cache()
+
+        prev_allocated = torch.accelerator.memory_allocated()
+        prev_reserved = torch.accelerator.memory_reserved()
+        prev_max_allocated = torch.accelerator.max_memory_allocated()
+        prev_max_reserved = torch.accelerator.max_memory_reserved()
+        self.assertGreaterEqual(prev_allocated, 0)
+        self.assertGreaterEqual(prev_reserved, 0)
+        self.assertGreater(prev_max_allocated, 0)
+        self.assertGreater(prev_max_reserved, 0)
+        tmp = torch.ones(256, device=acc)
+        self.assertGreater(torch.accelerator.memory_allocated(), prev_allocated)
+        self.assertGreaterEqual(torch.accelerator.memory_reserved(), prev_reserved)
+        del tmp
+        gc.collect()
+        torch.accelerator.empty_cache()
+        torch.accelerator.reset_peak_memory_stats()
+        self.assertEqual(torch.accelerator.memory_allocated(), prev_allocated)
+        self.assertEqual(torch.accelerator.memory_reserved(), prev_reserved)
+
+    def test_memory_stats_active_bytes(self):
+        acc = torch.accelerator.current_accelerator()
+        tmp = torch.empty(100, device=acc)
+        del tmp
+        gc.collect()
+        self.assertTrue(torch._C._accelerator_isAllocatorInitialized())
+        torch.accelerator.empty_cache()
+        torch.accelerator.reset_accumulated_memory_stats()
+        torch.accelerator.reset_peak_memory_stats()
+        self.assertEqual(torch.accelerator.memory_stats()["active_bytes.all.freed"], 0)
+
+        prev_max_allocated = torch.accelerator.max_memory_allocated()
+        prev_max_reserved = torch.accelerator.max_memory_reserved()
+        prev_active_current = torch.accelerator.memory_stats()[
+            "active_bytes.all.current"
+        ]
+        self.assertEqual(prev_max_allocated, 0)
+        self.assertEqual(prev_active_current, 0)
+
+        tmp = torch.randn(256, device=acc)
+        active_delta = (
+            torch.accelerator.memory_stats()["active_bytes.all.current"]
+            - prev_active_current
+        )
+        self.assertGreater(active_delta, 0)
+        del tmp
+        gc.collect()
+        torch.accelerator.synchronize()
+        torch.accelerator.empty_cache()
+        self.assertEqual(
+            torch.accelerator.memory_stats()["active_bytes.all.current"],
+            prev_active_current,
+        )
+        torch.accelerator.reset_peak_memory_stats()
+        self.assertEqual(torch.accelerator.max_memory_allocated(), prev_max_allocated)
+        self.assertEqual(torch.accelerator.max_memory_reserved(), prev_max_reserved)
+
+    def test_get_memory_info(self):
+        """getMemoryInfo is an independent aclrtGetMemInfo + NPUGuard path."""
+        free_bytes, total_bytes = torch.accelerator.get_memory_info()
+        self.assertGreaterEqual(free_bytes, 0)
+        self.assertGreaterEqual(total_bytes, 0)
+        self.assertGreater(total_bytes, free_bytes)
+
+    def test_device_capability_supported_dtypes(self):
+        try:
+            caps = torch.accelerator.get_device_capability()
+        except RuntimeError:
+            self.skipTest("Backend doesn't support get_device_capability")
+        supported_dtypes = caps["supported_dtypes"]
+        self.assertIsInstance(supported_dtypes, set)
+        self.assertGreater(len(supported_dtypes), 0)
+
+    def test_memory_stats_consistency_with_npu(self):
+        """accelerator memory_stats must match torch.npu.memory_stats exactly."""
+        acc_stats = torch.accelerator.memory_stats()
+        npu_stats = torch.npu.memory_stats()
+
+        for key in acc_stats:
+            self.assertIn(key, npu_stats, f"Key '{key}' missing from npu stats")
+            self.assertEqual(
+                acc_stats[key],
+                npu_stats[key],
+                f"Mismatch for key '{key}': accelerator={acc_stats[key]}, "
+                f"npu={npu_stats[key]}",
+            )
+
+        self.assertEqual(
+            torch.accelerator.memory_allocated(),
+            torch.npu.memory_allocated(),
+        )
+        self.assertEqual(
+            torch.accelerator.max_memory_allocated(),
+            torch.npu.max_memory_allocated(),
+        )
+        self.assertEqual(
+            torch.accelerator.memory_reserved(),
+            torch.npu.memory_reserved(),
+        )
+        self.assertEqual(
+            torch.accelerator.max_memory_reserved(),
+            torch.npu.max_memory_reserved(),
+        )
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <c10/core/Allocator.h>
+#include <c10/core/CachingDeviceAllocator.h>
 
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
@@ -45,8 +45,8 @@ struct NPUPluggableAllocator
         std::function<void(void* ptr, c10_npu::NPUStream stream)> record_stream_fn);
     void set_erase_stream_fn(
         std::function<void(void* ptr, c10_npu::NPUStream stream)> erase_stream_fn);
-    void set_get_device_stats_fn(std::function<c10_npu::NPUCachingAllocator::DeviceStats(int)> get_device_stats_fn);
-    void set_reset_peak_status_fn(std::function<void(int)> reset_peak_status_fn);
+    void set_get_device_stats_fn(std::function<c10_npu::NPUCachingAllocator::DeviceStats(c10::DeviceIndex)> get_device_stats_fn);
+    void set_reset_peak_status_fn(std::function<void(c10::DeviceIndex)> reset_peak_status_fn);
     void set_begin_allocate_to_pool(
             std::function<void(int, c10_npu::MempoolId_t, std::function<bool(aclrtStream)>)> capture_begin_fn);
     void set_end_allocate_to_pool_fn(std::function<void(int, c10_npu::MempoolId_t)> capture_about_to_end_fn);
@@ -65,19 +65,21 @@ struct NPUPluggableAllocator
     double getMemoryFraction(int device) override;
     void setMemoryFraction(double fraction, int device) override;
     void emptyCacheImpl(bool check_error, bool free_physical) override;
+    using c10_npu::NPUCachingAllocator::NPUAllocator::emptyCache; // avoid hiding base class method
     void emptyCache(bool check_error) override;
     void emptyVirtAddrCache(bool check_error) override;
     void cacheInfo(int dev_id, size_t* cachedAndFree, size_t* largestBlock) override;
     void* getBaseAllocation(void* ptr, size_t* size) override;
+    using c10_npu::NPUCachingAllocator::NPUAllocator::recordStream; // avoid hiding base class method
     void recordStream(const c10::DataPtr&, streamType stream) override;
     void eraseStream(const c10::DataPtr&, streamType stream) override;
     void eraseStreamWithBlockPtr(void* block_ptr, c10_npu::NPUStream stream, void* work_ptr) override;
     void* getBlockPtr(const c10::DataPtr& ptr) override;
     void recordHcclWorkForBlock(void* block_ptr, void* work_ptr) override;
     c10_npu::NPUCachingAllocator::DeviceStats getDeviceStats(
-        int device) override;
-    void resetAccumulatedStats(int device) override;
-    void resetPeakStats(int device) override;
+        c10::DeviceIndex device) override;
+    void resetAccumulatedStats(c10::DeviceIndex device) override;
+    void resetPeakStats(c10::DeviceIndex device) override;
     c10_npu::NPUCachingAllocator::SnapshotInfo snapshot() override;
 
     // CUDAGraph interactions
@@ -101,6 +103,7 @@ struct NPUPluggableAllocator
         size_t alloc_trace_max_entries,
         c10_npu::NPUCachingAllocator::RecordContext when) override;
     void attachOutOfMemoryObserver(c10_npu::NPUCachingAllocator::OutOfMemoryObserver observer) override;
+    void attachAllocatorTraceTracker(c10_npu::NPUCachingAllocator::AllocatorTraceTracker tracker) override;
     bool checkUceInMemPool(int device) override;
     bool checkBlockIsSafe(const c10::DataPtr& ptr) override;
     void markAllBlockUnsafe(int device) override;
@@ -122,13 +125,13 @@ protected:
     std::function<void*(void*, size_t*)> base_alloc_fn_;
     std::function<void(void* ptr, c10_npu::NPUStream stream)> record_stream_fn_;
     std::function<void(void* ptr, c10_npu::NPUStream stream)> erase_stream_fn_;
-    std::function<c10_npu::NPUCachingAllocator::DeviceStats(int)> get_device_stats_fn_;
-    std::function<void(int)> reset_peak_status_fn_;
+    std::function<c10_npu::NPUCachingAllocator::DeviceStats(c10::DeviceIndex)> get_device_stats_fn_;
+    std::function<void(c10::DeviceIndex)> reset_peak_status_fn_;
     std::mutex allocator_mutex_;
     std::function<void(int, c10_npu::MempoolId_t, std::function<bool(aclrtStream)>)> begin_allocate_to_pool_fn_;
     std::function<void(int, c10_npu::MempoolId_t)> end_allocate_to_pool_fn_;
     std::function<void(int, c10_npu::MempoolId_t)> release_pool_fn_;
-    // We do the bookeeping here in order to simplify custom allocators
+    // We do the bookkeeping here in order to simplify custom allocators
     std::unordered_map<void*, _AllocationMetadata> allocation_metadata_;
 
     bool initialized_ = false;

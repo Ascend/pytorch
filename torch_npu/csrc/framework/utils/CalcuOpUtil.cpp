@@ -204,7 +204,7 @@ c10::Scalar CalcuOpUtil::ConvertTensorToScalar(const at::Tensor &tensor)
         c10::Scalar scalar(value);
         expScalar = scalar;
     } else {
-        ASCEND_LOGE("unsupport scalar type! ");
+        ASCEND_LOGE("unsupported scalar type! ");
         NPU_CHECK_ERROR(ACL_ERROR_UNSUPPORTED_DATA_TYPE);
     }
 

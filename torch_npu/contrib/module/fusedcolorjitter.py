@@ -69,7 +69,7 @@ class _FusedColorJitterApply(object):
             elif C == 1:
                 img = img.repeat(3, axis=-1)
             else:
-                raise ValueError('Unknow format using.. Currnet shape is {}'.format(img.shape) + 
+                raise ValueError('Unknow format using.. Current shape is {}'.format(img.shape) + 
                                  ops_error(ErrCode.VALUE))
             H, W, C = img.shape
         img = np.matmul(img.reshape(-1, 3), transform_matrix) + transform_offset

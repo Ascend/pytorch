@@ -344,7 +344,7 @@ OpCommand& OpCommand::AddTensorInput(at::Tensor &tensor, at::ScalarType forceSca
     if (commonType.has_value() && commonType.value() != tensor.scalar_type()) {
         tensor = custom_ops::_npu_dtype_cast(tensor, commonType.value());
     }
-    // as for dim=0, the dtype of tensor can not be `uint16` because of `TBE`
+    // as for dim=0, the dtype of tensor can not be `uint16` because of the backend
     if (torch_npu::NPUBridge::GetNpuStorageImplDesc(tensor).storage_sizes_.empty()) {
         if (torch_npu::utils::is_npu(tensor)) {
             res = OpCmdHelper::CovertNPUTensorWithZeroDimToAclInput(tensor, descName);

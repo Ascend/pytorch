@@ -13,7 +13,7 @@ run-name: >-
   }}
 on:
   repository_dispatch:
-    types: [pull_request, push]
+    types: [pull_request]
 
 concurrency:
   group: >-

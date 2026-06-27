@@ -6,7 +6,7 @@ class Prefetcher(object):
 
 
     Args:
-        loder (torch.utils.data.DataLoader or DataLoader like iterator):
+        loader (torch.utils.data.DataLoader or DataLoader like iterator):
             Using to generate inputs after preprocessing.
         stream (torch.npu.Stream): Default None.
             Because of the limitation of NPU's memory mechanism,

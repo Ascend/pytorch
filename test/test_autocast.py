@@ -1,6 +1,5 @@
 # Owner(s): ["module: unknown"]
 
-import collections
 import unittest
 
 import torch
@@ -280,6 +279,16 @@ class TestAutocastNPU(TestCase):
         torch_npu.npu.set_autocast_enabled(False)
         self.assertTrue(torch_npu.npu.is_autocast_enabled() is not True)
 
+    def test_get_amp_supported_dtype(self):
+        amp_supported_dtypes = torch_npu.npu.get_amp_supported_dtype()
+        self.assertTrue(torch.float16 in amp_supported_dtypes)
+        self.assertTrue(torch.float32 in amp_supported_dtypes)
+        if torch.npu.is_bf16_supported():
+            self.assertTrue(torch.bfloat16 in amp_supported_dtypes)
+            self.assertTrue(len(amp_supported_dtypes) == 3)
+        else:
+            self.assertTrue(len(amp_supported_dtypes) == 2)
+
 
 @unittest.skipIf(not torch.npu.is_available(), "requires npu")
 class TestAutocastNPUfp32(TestCase):
@@ -329,7 +338,10 @@ class TestTorchAutocast(TestCase):
             assert torch.amp.is_autocast_available(device_type=dev)
 
     def test_non_string_device(self):
-        """Test that `autocast` throws a ValueError when provided a `torch.device` object for `device_type` instead of a string"""
+        """
+        Test that `autocast` throws a ValueError when provided a `torch.device` object for `device_type` instead of a
+        string.
+        """
         dev = torch.device("cpu")
         msg = f"Expected `device_type` of type `str`, got: `{type(dev)}`"
         with self.assertRaisesRegex(expected_exception=ValueError, expected_regex=msg):

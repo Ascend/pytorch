@@ -33,7 +33,6 @@ import yaml
 from torchgen.api.cpp import JIT_TO_CPP_DEFAULT
 from torchgen.code_template import CodeTemplate
 from torchgen.model import (
-    BackendIndex,
     SchemaKind,
     TensorOptionsArguments,
 )
@@ -69,7 +68,6 @@ from torchgen.api.types import (
     tensorT
 )
 from torchgen.dest.register_dispatch_key import StructuredRegisterDispatchKey
-from torchgen.gen_backend_stubs import gen_dispatchkey_nativefunc_headers
 import torchgen.api.meta as meta
 import torchgen.api.structured as structured
 
@@ -851,7 +849,8 @@ $dispatch_registrations_body
                                 class_method_name=f'{class_name}',
                                 skip_dispatcher_op_registration=False,
                             ),
-                            [   g
+                            [
+                                g
                                 for g in grouped_native_functions
                                 if g.root_name not in custom_op_names
                             ]
@@ -1272,6 +1271,35 @@ KERNEL_TEMPLATE = CodeTemplate("""\
 m.impl("${schema}", TORCH_FN(op_plugin::${kernel}));""")
 
 
+def _is_aclnn_extension_codegen() -> bool:
+    return bool(os.getenv("ACLNN_EXTENSION_SWITCH"))
+
+
+def _quantized_register_header() -> str:
+    headers = [
+        "#include <ATen/ops/quantize_per_tensor.h>",
+    ]
+    if not _is_aclnn_extension_codegen():
+        headers.append('#include "torch_npu/csrc/aten/ops/QuantizedFlipKernelNpu.h"')
+    headers.append('#include "op_plugin/OpInterface.h"')
+    return "\n".join(headers) + "\n"
+
+
+def _quantized_extra_impls() -> list[str]:
+    extra_impls = []
+    if not _is_aclnn_extension_codegen():
+        extra_impls.append('m.impl("flip", TORCH_FN(at_npu::native::quantized_flip));')
+    extra_impls.extend([
+        'm.impl("q_scale", TORCH_FN(at::native::q_scale_quant));',
+        'm.impl("q_per_channel_scales", TORCH_FN(at::native::q_per_channel_scales));',
+        'm.impl("q_zero_point", TORCH_FN(at::native::q_zero_point_quant));',
+        'm.impl("q_per_channel_zero_points", TORCH_FN(at::native::q_per_channel_zero_points));',
+        'm.impl("q_per_channel_axis", TORCH_FN(at::native::q_per_channel_axis));',
+        'm.impl("qscheme", TORCH_FN(at::native::qscheme_quant));',
+    ])
+    return extra_impls
+
+
 def _gen_special_registration_body(
     backend_indices: BackendIndex,
     config: SpecialRegisterConfig,
@@ -1338,20 +1366,8 @@ SPECIAL_REGISTERS = {
     "quantize": SpecialRegisterConfig(
         dispatch_key="QuantizedPrivateUse1",
         filename="QuantizedRegister",
-        header="""\
-#include <ATen/ops/quantize_per_tensor.h>
-#include "torch_npu/csrc/aten/ops/QuantizedFlipKernelNpu.h"
-#include "op_plugin/OpInterface.h"
-""",
-        extra_impls=[
-            'm.impl("flip", TORCH_FN(at_npu::native::quantized_flip));',
-            'm.impl("q_scale", TORCH_FN(at::native::q_scale_quant));',
-            'm.impl("q_per_channel_scales", TORCH_FN(at::native::q_per_channel_scales));',
-            'm.impl("q_zero_point", TORCH_FN(at::native::q_zero_point_quant));',
-            'm.impl("q_per_channel_zero_points", TORCH_FN(at::native::q_per_channel_zero_points));',
-            'm.impl("q_per_channel_axis", TORCH_FN(at::native::q_per_channel_axis));',
-            'm.impl("qscheme", TORCH_FN(at::native::qscheme_quant));',
-        ],
+        header=_quantized_register_header(),
+        extra_impls=_quantized_extra_impls(),
     ),
     "nestedtensor": SpecialRegisterConfig(
         dispatch_key="NestedTensorPrivateUse1",

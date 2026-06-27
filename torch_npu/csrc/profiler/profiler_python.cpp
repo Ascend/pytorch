@@ -332,7 +332,7 @@ void PythonTracer::start(size_t max_threads)
             frame = PyFrame_GetBack(frame);
             ++depth;
         }
-        // record py call before proflier start
+        // record py call before profiler start
         for (auto it = current_stack.rbegin(); it != current_stack.rend(); it++) {
             start_py_call_info_[reinterpret_cast<uintptr_t>(ctx)].emplace_back(genPyCallHashId(*it));
         }
@@ -367,7 +367,7 @@ void PythonTracer::startOne()
             frame = PyFrame_GetBack(frame);
             ++depth;
         }
-        // record py call before proflier start
+        // record py call before profiler start
         for (auto it = current_stack.rbegin(); it != current_stack.rend(); it++) {
             start_py_call_info_[reinterpret_cast<uintptr_t>(ctx)].emplace_back(genPyCallHashId(*it));
         }

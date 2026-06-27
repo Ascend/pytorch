@@ -359,7 +359,7 @@ class TestTransferToNpu(TestCase):
 
     def test_torch_utils_cpp_extension_include_paths(self):
         torch.utils.cpp_extension.include_paths(device_type='cuda')
-        
+
     def test_init_process_group(self):
         MASTER_ADDR = "127.0.0.1"
         MASTER_PORT = "29500"
@@ -370,19 +370,19 @@ class TestTransferToNpu(TestCase):
         os.environ['MASTER_PORT'] = MASTER_PORT
         os.environ['RANK'] = str(RANK)
         os.environ['WORLD_SIZE'] = str(WORLD_SIZE)
-        
+
         try:
 
             torch.distributed.init_process_group(
-                backend='nccl',
+                backend='cuda:nccl',
                 init_method=f"tcp://{MASTER_ADDR}:{MASTER_PORT}",
                 world_size=WORLD_SIZE,
                 rank=RANK,
                 device_id=torch.device(f"cuda:{RANK}")
             )
-            self.assertEqual(torch.distributed.get_backend(), 'hccl')
+            self.assertEqual(torch.distributed.get_backend(), 'npu:hccl')
             torch.distributed.barrier()
-        
+
         finally:
             if torch.distributed.is_initialized():
                 torch.distributed.destroy_process_group()
@@ -398,7 +398,7 @@ class TestTransferToNpu(TestCase):
 
     def test_host_empty_cache_is_patched(self):
         self.assertEqual(torch._C._host_emptyCache, torch_npu._C._npu_hostEmptyCache)
-        
+
     def test_update_cuda_default_generators(self):
         torch.randn(1).npu()
         self.assertEqual(torch.cuda.default_generators, torch_npu.npu.default_generators)

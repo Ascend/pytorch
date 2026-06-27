@@ -145,7 +145,7 @@ public:
         if (run_finished_) {
             auto code = aclrtDestroyEvent(*run_finished_);
             if (code != ACL_SUCCESS) {
-                std::cerr << "Failed to destroy NPU event in AOTInductor model erorr code: " << code << std::endl;
+                std::cerr << "Failed to destroy NPU event in AOTInductor model error code: " << code << std::endl;
             }
         }
 #endif // USE_NPU
@@ -616,7 +616,7 @@ protected:
     bool include_weights;
 
     // Record if the model finishes an inference run so that its owning
-    // AOTModelContainer can re-use this instance.
+    // AOTModelContainer can reuse this instance.
 #if defined(USE_NPU)
     std::optional<aclrtEvent> run_finished_;
 #else
