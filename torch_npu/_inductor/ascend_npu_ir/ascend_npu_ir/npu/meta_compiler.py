@@ -217,7 +217,7 @@ class MetaCompiler:
             for out1, out2 in zip(actual_outputs, args[-num_outputs:]):
                 if isinstance(out1, torch.Tensor) and not out1.is_contiguous():
                     out1 = out1.contiguous()
-                out2.copy_(out1)
+                out2.set_(out1)
         return module_call
 
     def _load_traced_graph_model(self) -> torch.nn.Module:
