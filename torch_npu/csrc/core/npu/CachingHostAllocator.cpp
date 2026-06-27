@@ -387,21 +387,47 @@ struct ExpandableSegment {
             prop.reserve = 0;
             ASCEND_LOGD("Alloc memory from physical host for block %zu", i);
             auto status = c10_npu::acl::AclrtMallocPhysical(&handle, segment_size_, &prop, 0);
-            if (status == ACL_ERROR_RT_MEMORY_ALLOCATION) {
+            if (status != ACL_SUCCESS) {
+                // best-effort: log and continue, original error re-thrown below
                 for (auto j : c10::irange(begin, i)) {
                     auto h = handles_.at(j).value();
                     handles_.at(j) = std::nullopt;
-                    NPU_CHECK_ERROR(c10_npu::acl::AclrtFreePhysical(h.handle));
+                    auto free_status = c10_npu::acl::AclrtFreePhysical(h.handle);
+                    if (free_status != ACL_SUCCESS) {
+                        ASCEND_LOGW("AclrtFreePhysical failed during rollback, slot=%zu, status=%d", j, free_status);
+                    }
                 }
                 trimHandles();
-                return rangeFromHandles(begin, begin);
+                if (status == ACL_ERROR_RT_MEMORY_ALLOCATION) {
+                    return rangeFromHandles(begin, begin);
+                }
+                NPU_CHECK_ERROR(status, "aclrtMallocPhysical");
             }
-            NPU_CHECK_ERROR(status, "aclrtMallocPhysical");
             handles_.at(i) = Handle{handle};
         }
         for (auto i : c10::irange(begin, end)) {
-            NPU_CHECK_ERROR(c10_npu::acl::AclrtMapMem(static_cast<char *>(ptr_) + i * segment_size_, segment_size_, 0,
-                handles_.at(i).value().handle, 0, nullptr));
+            auto map_status = c10_npu::acl::AclrtMapMem(static_cast<char *>(ptr_) + i * segment_size_,
+                segment_size_, 0, handles_.at(i).value().handle, 0, nullptr);
+            if (map_status != ACL_SUCCESS) {
+                // best-effort: log and continue, original error re-thrown below
+                for (auto j : c10::irange(begin, i)) {
+                    auto unmap_status = c10_npu::acl::AclrtUnmapMem(
+                        static_cast<char *>(ptr_) + j * segment_size_, nullptr);
+                    if (unmap_status != ACL_SUCCESS) {
+                        ASCEND_LOGW("AclrtUnmapMem failed during rollback, slot=%zu, status=%d", j, unmap_status);
+                    }
+                }
+                for (auto j : c10::irange(begin, end)) {
+                    auto h = handles_.at(j).value();
+                    handles_.at(j) = std::nullopt;
+                    auto free_status = c10_npu::acl::AclrtFreePhysical(h.handle);
+                    if (free_status != ACL_SUCCESS) {
+                        ASCEND_LOGW("AclrtFreePhysical failed during rollback, slot=%zu, status=%d", j, free_status);
+                    }
+                }
+                trimHandles();
+                NPU_CHECK_ERROR(map_status, "aclrtMapMem");
+            }
         }
         ASCEND_LOGD("NPUExpandableHostAllocator map: segment_size=%zu", segment_size_);
         return rangeFromHandles(begin, end);
