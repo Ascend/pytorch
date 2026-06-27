@@ -33,6 +33,7 @@ jobs:
           if [ "${EVENT_TYPE}" = "pull_request" ]; then
             ACTION=$(echo "$PAYLOAD_JSON" | jq -r '.payload.action // empty')
             BASE_REF=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pull_request.base.ref // empty')
+            MERGED=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pull_request.merged // false')
             if [ "${ACTION}" != "closed" ]; then
               echo "SKIP: PR action is '${ACTION}', not 'closed'"
               echo "should_build=false" >> "$GITHUB_OUTPUT"
@@ -40,6 +41,11 @@ jobs:
             fi
             if [ "${BASE_REF}" != "main" ]; then
               echo "SKIP: PR targets '${BASE_REF}', not 'main'"
+              echo "should_build=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            if [ "${MERGED}" != "true" ]; then
+              echo "SKIP: PR was closed but not merged (merged=${MERGED})"
               echo "should_build=false" >> "$GITHUB_OUTPUT"
               exit 0
             fi
@@ -53,23 +59,18 @@ jobs:
           fi
 
           # ---- Extract build parameters ----
+          # (Filter above guarantees: pull_request, closed, target=main, merged=true)
           UPSTREAM_REPO=$(echo "$PAYLOAD_JSON" | jq -r '.payload.repository.full_name // empty')
-
-          if [ "${EVENT_TYPE}" = "pull_request" ]; then
+          UPSTREAM_SHA=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pull_request.merge_commit_sha // empty')
+          if [ -z "${UPSTREAM_SHA}" ] || [ "${UPSTREAM_SHA}" = "null" ]; then
             UPSTREAM_SHA=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pull_request.head.sha // empty')
-            HEAD_REPO=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pull_request.head.repo.full_name // empty')
-            BASE_REPO=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pull_request.base.repo.full_name // empty')
-            if [ "${HEAD_REPO}" != "${BASE_REPO}" ] && [ -n "${HEAD_REPO}" ]; then
-              UPSTREAM_FORK_REPO="${HEAD_REPO}"
-            else
-              UPSTREAM_FORK_REPO=""
-            fi
-          elif [ "${EVENT_TYPE}" = "push" ]; then
-            UPSTREAM_SHA=$(echo "$PAYLOAD_JSON" | jq -r '.payload.after // empty')
-            UPSTREAM_FORK_REPO=""
+          fi
+          HEAD_REPO=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pull_request.head.repo.full_name // empty')
+          BASE_REPO=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pull_request.base.repo.full_name // empty')
+          if [ "${HEAD_REPO}" != "${BASE_REPO}" ] && [ -n "${HEAD_REPO}" ]; then
+            UPSTREAM_FORK_REPO="${HEAD_REPO}"
           else
-            echo "ERROR: Unknown event_type: ${EVENT_TYPE}"
-            exit 1
+            UPSTREAM_FORK_REPO=""
           fi
 
           if [ -z "${UPSTREAM_REPO}" ]; then
@@ -98,10 +99,8 @@ jobs:
     uses: ./.github/workflows/_build.yml
     secrets: inherit
     with:
-      # upstream_repo: ${{ needs.extract.outputs.upstream_repo }}
-      # upstream_sha: ${{ needs.extract.outputs.upstream_sha }}
-      # upstream_fork_repo: ${{ needs.extract.outputs.upstream_fork_repo }}
-      upstream_repo: pytorch/pytorch
-      upstream_sha: 65082aaa4571aae5cc2cfa2b62fa5db650abbe8c
+      upstream_repo: ${{ needs.extract.outputs.upstream_repo }}
+      upstream_sha: ${{ needs.extract.outputs.upstream_sha }}
+      upstream_fork_repo: ${{ needs.extract.outputs.upstream_fork_repo }}
       torch_npu_repo: Ascend/pytorch
       torch_npu_ref: master
