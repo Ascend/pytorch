@@ -590,9 +590,9 @@ class TestACLGraphUpdatePlanCompile(TestUtils):
         original_update = graph_tree.update_aclgraph_records_for_graph
         seen_plans = []
 
-        def collect_plan(plan, graph, inputs):
-            seen_plans.append(plan)
-            return original_update(plan, graph, inputs)
+        def collect_plan(update_input, graph):
+            seen_plans.append(update_input)
+            return original_update(update_input, graph)
 
         try:
             config.triton.cudagraphs = True
@@ -628,13 +628,9 @@ class TestACLGraphUpdatePlanCompile(TestUtils):
             torch._dynamo.reset()
 
         self.assertTrue(seen_plans)
-        self.assertTrue(any(plan for plan in seen_plans))
-        plan = next(plan for plan in seen_plans if plan)
-        self.assertEqual(plan[0]["op"], "npu_fused_infer_attention_score.default")
-        self.assertEqual(
-            plan[0]["updates"]["actual_seq_lengths"],
-            {"kind": "list", "items": [{"kind": "constant", "value": 37}]},
-        )
+        self.assertTrue(any(update_input for update_input in seen_plans))
+        update_input = next(update_input for update_input in seen_plans if update_input)
+        self.assertEqual(update_input[0]["actual_seq_lengths"], [37])
 
     def test_npugraphify_keeps_aclgraph_update_plan_on_callable_attribute(self):
         import torch_npu.npu._graph_tree as graph_tree
@@ -687,9 +683,9 @@ class TestACLGraphUpdatePlanCompile(TestUtils):
         original_update = graph_tree.update_aclgraph_records_for_graph
         seen_plans = []
 
-        def collect_plan(plan, graph, inputs):
-            seen_plans.append(plan)
-            return original_update(plan, graph, inputs)
+        def collect_plan(update_input, graph):
+            seen_plans.append(update_input)
+            return original_update(update_input, graph)
 
         try:
             config.triton.cudagraphs = True
@@ -724,13 +720,9 @@ class TestACLGraphUpdatePlanCompile(TestUtils):
             config.triton.slow_path_cudagraph_asserts = old_slow_path_asserts
             torch._dynamo.reset()
 
-        self.assertTrue(any(plan for plan in seen_plans))
-        plan = next(plan for plan in seen_plans if plan)
-        self.assertEqual(plan[0]["op"], "npu_fused_infer_attention_score_v2.default")
-        self.assertEqual(
-            plan[0]["updates"]["actual_seq_qlen"],
-            {"kind": "list", "items": [{"kind": "constant", "value": 1}]},
-        )
+        self.assertTrue(any(update_input for update_input in seen_plans))
+        update_input = next(update_input for update_input in seen_plans if update_input)
+        self.assertEqual(update_input[0]["actual_seq_qlen"], [1])
 
 
 if __name__ == "__main__":
