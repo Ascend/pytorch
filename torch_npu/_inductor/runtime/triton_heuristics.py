@@ -641,7 +641,7 @@ class NPUCachingAutotuner(CachingAutotuner):
             if launcher is not None:
                 self.variant_launcher_map[variant_id] = launcher
                 continue
-            log.info(
+            log.debug(
                 "No compiled launcher found for variant %s of kernel %s",
                 variant_id,
                 self.get_fn_name(),
