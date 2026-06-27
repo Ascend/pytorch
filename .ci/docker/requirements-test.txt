@@ -1,0 +1,37 @@
+--index-url https://download.pytorch.org/whl/cpu
+--extra-index-url https://pypi.org/simple
+-f https://data.pyg.org/whl/torch-2.12.0+cpu.html
+
+coverage
+hypothesis
+beartype==0.17.0
+expecttest==0.1.3
+numpy==1.26.4
+
+mypy==1.16.0
+onnx==1.21.0
+onnxruntime==1.23.1
+onnxscript==0.6.2
+onnx-ir==0.1.16
+
+Pillow==10.3.0
+requests==2.32.0
+torch_geometric==2.5.3
+torch-scatter==2.1.2
+transformers==4.40.0
+pytest==8.1.1
+parameterized==0.9.0
+ml-dtypes==0.5.1
+protobuf==6.33.5
+
+torchvision==0.27.0
+
+pybind11==3.0.1
+tabulate==0.9.0
+z3-solver==4.13.0.0
+psutil
+packaging
+decorator
+scipy
+unittest-xml-reporting
+importlib_metadata
