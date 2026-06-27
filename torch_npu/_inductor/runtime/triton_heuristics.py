@@ -603,7 +603,7 @@ class NPUCachingAutotuner(CachingAutotuner):
         except Exception:
             return None
 
-    def _build_ttir_arg_value_map(self, ttir_text, runtime_args, runtime_kwargs=None):
+    def _build_ttir_arg_value_map(self, ttir_text, runtime_args, runtime_kwargs=None, cfg=None):
         """Map TTIR arg id -> runtime value.
 
         Primary mapping uses frontend signature names (positional + kwargs) so callers
@@ -611,6 +611,7 @@ class NPUCachingAutotuner(CachingAutotuner):
         """
         if runtime_kwargs is None:
             runtime_kwargs = {}
+        cfg_kwargs = getattr(cfg, "kwargs", {}) if cfg is not None else {}
 
         m = re.search(r"tt\.func\s+public\s+@\w+\((.*?)\)\s+attributes", ttir_text, re.S)
         if m is None:
@@ -628,6 +629,12 @@ class NPUCachingAutotuner(CachingAutotuner):
         for name, value in runtime_kwargs.items():
             if name in name_to_value or name in signature_names:
                 name_to_value[name] = value
+        for name, value in cfg_kwargs.items():
+            if name not in signature_names:
+                continue
+            current_value = name_to_value.get(name)
+            if name not in name_to_value or self._try_parse_int_like(current_value) is None:
+                name_to_value[name] = value
 
         arg_value_map = {}
         for pos, arg_id in enumerate(ttir_arg_ids):
@@ -640,10 +647,10 @@ class NPUCachingAutotuner(CachingAutotuner):
                 arg_value_map[arg_id] = runtime_args[pos]
         return arg_value_map
 
-    def _build_costmodel_arg_bindings(self, ttir_text, runtime_args, runtime_kwargs=None):
+    def _build_costmodel_arg_bindings(self, ttir_text, runtime_args, runtime_kwargs=None, cfg=None):
         """Build costmodel arg-bindings string from TTIR arg ids and runtime values."""
         try:
-            arg_value_map = self._build_ttir_arg_value_map(ttir_text, runtime_args, runtime_kwargs)
+            arg_value_map = self._build_ttir_arg_value_map(ttir_text, runtime_args, runtime_kwargs, cfg)
             if not arg_value_map:
                 return ""
 
@@ -682,7 +689,7 @@ class NPUCachingAutotuner(CachingAutotuner):
             try:
                 ttir_module = self._make_ttir_module_from_cfg(cfg)
                 ttir_text = str(ttir_module)
-                arg_bindings = self._build_costmodel_arg_bindings(ttir_text, runtime_args, runtime_kwargs)
+                arg_bindings = self._build_costmodel_arg_bindings(ttir_text, runtime_args, runtime_kwargs, cfg)
                 items.append({
                     "config": cfg,
                     "ttir": ttir_text,
@@ -736,6 +743,9 @@ class NPUCachingAutotuner(CachingAutotuner):
     def _apply_costmodel_to_configs(self, *args, **kwargs):
         """Use triton-ascend costmodel path to prefilter configs before full compile."""
         self._costmodel_fallback_configs = None
+        if self.heuristic_type == HeuristicType.USER_AUTOTUNE:
+            return
+
         if not self.configs or len(self.configs) <= 1:
             return
 
