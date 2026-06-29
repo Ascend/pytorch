@@ -290,6 +290,39 @@ class TestFoldIotaArithmeticPass(TestCase):
         changed = _cse_constant_call(gm.graph, _FULL)
         self.assertTrue(changed)
 
+    def test_cse_skips_mutation_targets(self):
+        """被 triton_kernel_wrapper_mutation 使用的 full 节点不应被 CSE 合并，
+        否则两个不同的 mutation kernel 会写入同一个 buffer 导致精度错误。"""
+        _MUTATION = torch.ops.higher_order.triton_kernel_wrapper_mutation
+        fm = new_fake_mode()
+        gb = GraphBuilder(fm)
+        with fm:
+            f_fake = torch.ops.aten.full.default([4], 0.0, dtype=torch.float32)
+            inp_fake = torch.empty((4,), dtype=torch.float32)
+        inp = gb.placeholder("inp", inp_fake)
+        f1 = gb.graph.call_function(_FULL, args=([4], 0.0), kwargs={"dtype": torch.float32})
+        f1.meta["val"] = f_fake
+        f2 = gb.graph.call_function(_FULL, args=([4], 0.0), kwargs={"dtype": torch.float32})
+        f2.meta["val"] = f_fake
+        mut1 = gb.graph.call_function(
+            _MUTATION,
+            kwargs={"kernel_idx": 0, "constant_args_idx": 0,
+                    "grid": [(4, 1, 1)], "tma_descriptor_metadata": {},
+                    "kwargs": {"in_ptr0": inp, "out_ptr": f1}},
+        )
+        mut2 = gb.graph.call_function(
+            _MUTATION,
+            kwargs={"kernel_idx": 1, "constant_args_idx": 1,
+                    "grid": [(4, 1, 1)], "tma_descriptor_metadata": {},
+                    "kwargs": {"in_ptr0": inp, "out_ptr": f2}},
+        )
+        add = gb.call(torch.ops.aten.add.Tensor, args=(f1, f2))
+        gb.output(add)
+        gm = gb.to_module()
+        changed = _cse_constant_call(gm.graph, _FULL)
+        self.assertFalse(changed)
+        self.assertEqual(count_target(gm.graph, _FULL), 2)
+
 
 if __name__ == "__main__":
     run_tests()
