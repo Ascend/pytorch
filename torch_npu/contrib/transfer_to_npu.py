@@ -193,6 +193,7 @@ def _wrapper_cuda(fn):
     return decorated
 
 
+@torch._dynamo.disable
 def _replace_cuda_to_npu_in_kwargs(kwargs, device_arg, device):
     if type(device) == str and 'cuda' in device:
         kwargs[device_arg] = device.replace('cuda', 'npu')
@@ -205,6 +206,7 @@ def _replace_cuda_to_npu_in_kwargs(kwargs, device_arg, device):
         kwargs[device_arg] = _replace_cuda_to_npu_in_dict(device)
 
 
+@torch._dynamo.disable
 def _replace_cuda_to_npu_in_list(args_list, replace_int):
     for idx, arg in enumerate(args_list):
         if isinstance(arg, str) and 'cuda' in arg:
@@ -219,6 +221,7 @@ def _replace_cuda_to_npu_in_list(args_list, replace_int):
     return args_list
 
 
+@torch._dynamo.disable
 def _replace_cuda_to_npu_in_dict(device_dict):
     new_dict = {}
     for key, value in device_dict.items():
