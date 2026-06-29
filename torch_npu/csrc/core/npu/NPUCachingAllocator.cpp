@@ -1666,9 +1666,10 @@ public:
     }
 
     /* * returns cached blocks to the system allocator * */
-    void emptyCache(int device, bool check_error, bool free_physical)
+    void emptyCache(int device, bool check_error, bool free_physical, MempoolId_t mempool_id = {0, 0})
     {
-        TORCH_NPU_MEMORY_LOGI("emptyCache: device=%d, check_error=%d, free_physical=%d", device, check_error, free_physical);
+        TORCH_NPU_MEMORY_LOGI("emptyCache: device=%d, check_error=%d, free_physical=%d, mempool_id={%lu, %lu}",
+            device, check_error, free_physical, mempool_id.first, mempool_id.second);
         // when exec emptyCache in torch_npu.npu.check_uce_in_memory(), check_error is false
         bool prev_need_check_error = need_check_error;
         need_check_error = check_error;
@@ -1676,8 +1677,10 @@ public:
         // Make sure event deque from taskqueue, then synchronize Event
         c10_npu::npuSynchronizeDevice(need_check_error);
         std::lock_guard<std::recursive_mutex> lock(mutex);
-        c10_npu::NPUWorkspaceAllocator::emptyCache(device, need_check_error);
-        release_cached_blocks(check_error, context, free_physical);
+        if (mempool_id.first == 0 && mempool_id.second == 0) {
+            c10_npu::NPUWorkspaceAllocator::emptyCache(device, need_check_error);
+        }
+        release_cached_blocks(check_error, context, free_physical, mempool_id);
         need_check_error = prev_need_check_error;
         TORCH_NPU_MEMORY_LOGI("emptyCache success, device=%d.", device);
     }
@@ -2175,6 +2178,14 @@ public:
                                   "mempool_id=(%lu,%lu), use_count=%d",
                                   mempool_id.first, mempool_id.second, it->second->use_count);
         }
+    }
+
+    void createOrIncrefPool(MempoolId_t mempool_id)
+    {
+        // Create a PrivatePool object if it does not exist yet
+        // and increment its use_count
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+        create_or_incref_pool(mempool_id);
     }
 
     PrivatePool* get_private_pool(MempoolId_t mempool_id) const
@@ -2856,22 +2867,53 @@ private:
         return true;
     }
 
-    // npuSynchronizeDevice must be executed before this function can be called
-    bool release_cached_blocks(bool check_error, const std::shared_ptr<c10::GatheredContext> &context, bool free_physical)
+    /**
+     * 1) If mempool_id is {0,0} (the default pool) and there are no
+     * currently capturing memory pools, free the default pool's blocks
+     * and also free the blocks of the freeable private pools.
+     *
+     * If mempool_id corresponds to a private pool that is freeable,
+     * call synchronize_and_free_events() on that private pool. Free the
+     * blocks of all freeable private pools, including this one.
+     *
+     * 2) npuSynchronizeDevice must be executed before this function can be called
+    */
+    bool release_cached_blocks(
+        bool check_error,
+        const std::shared_ptr<c10::GatheredContext>& context,
+        bool free_physical,
+        MempoolId_t mempool_id = {0, 0})
     {
-        // First ensure that all blocks that can't currently be allocated due to
-        // outstanding events are returned to the pool.
-        synchronize_and_free_events(check_error, context);
+        if (mempool_id.first == 0 && mempool_id.second == 0 && captures_underway.empty()) {
+            // If there is no active mempool, we work on releasing *all* blocks.
 
-        // Free all non-split cached blocks
-        release_blocks(large_blocks, context, free_physical);
-        release_blocks(small_blocks, context, free_physical);
+            // First ensure that all blocks that can't currently be allocated due to
+            // outstanding events are returned to the pool.
+            synchronize_and_free_events(check_error, context);
+
+            // Free all non-split cached blocks to system allocator
+            release_blocks(large_blocks, context, free_physical);
+            release_blocks(small_blocks, context, free_physical);
+        }
 
         for (auto it = graph_pools_freeable.begin(); it != graph_pools_freeable.end();) {
-            // See notifyCaptureDestroy for the strategy here.
+            if (mempool_id.first != 0 || mempool_id.second != 0) {
+                if (it->first == mempool_id) {
+                    // If there is an active mempool, we sync only the events
+                    // associated with the pool
+                    synchronize_and_free_events(check_error, context, it->second);
+                } else {
+                    // otherwise we move on
+                    ++it;
+                    continue;
+                }
+            }
+
             TORCH_INTERNAL_ASSERT(it->second->use_count == 0);
+
             release_blocks(it->second->small_blocks, context, free_physical);
             release_blocks(it->second->large_blocks, context, free_physical);
+
             if (it->second->npuMalloc_count == 0) {
                 auto erase_count = graph_pools.erase(it->first);
                 TORCH_INTERNAL_ASSERT(erase_count == 1);
@@ -3036,7 +3078,10 @@ private:
         return event_pool->get(idx);
     }
 
-    void synchronize_and_free_events(bool check_error, const std::shared_ptr<c10::GatheredContext> &context)
+    void synchronize_and_free_events(
+        bool check_error,
+        const std::shared_ptr<c10::GatheredContext> &context,
+        PrivatePool* pool = nullptr)
     {
         // This function syncs, so capture should not be underway. Might as well
         // make sure capture-deferred end of life events get processed too.
@@ -3044,10 +3089,17 @@ private:
         insert_events_deferred_until_no_capture(context);
 
         // Synchronize on outstanding events and then free associated blocks.
-        for (auto &st : npu_events) {
-            for (auto &e : st.second) {
-                EventPool::Event event = std::move(e.first);
-                Block *block = e.second;
+        for (auto it = npu_events.begin(); it != npu_events.end();) {
+            for (auto e = it->second.begin(); e != it->second.end();) {
+                Block *block = e->second;
+
+                // If a pool was passed, only synchronize the events
+                // that are associated with the pool, otherwise move on
+                if (pool && block->pool->owner_PrivatePool != pool) {
+                    ++e;
+                    continue;
+                }
+                EventPool::Event event = std::move(e->first);
                 auto err = aclrtSynchronizeEvent(*event);
                 if (err != ACL_ERROR_NONE) {
                     if (check_error) {
@@ -3059,20 +3111,26 @@ private:
                     TORCH_NPU_MEMORY_LOGI("Event: aclrtSynchronizeEvent is successfully executed, event=%p", event.get());
                 }
 #ifndef BUILD_LIBTORCH
-                const c10_npu::impl::PyCallbackTrigger *trigger = c10_npu::impl::NPUTrace::getTrace();
+                const auto *trigger = c10_npu::impl::NPUTrace::getTrace();
                 if (C10_UNLIKELY(trigger)) {
                     trigger->traceNpuEventSynchronization(reinterpret_cast<uintptr_t>(event.get()));
                 }
 #endif
-
                 block->event_count--;
                 if (block->event_count == 0) {
                     free_block(block, context);
                 }
+                e = it->second.erase(e);
+            }
+
+            // If the events deque is empty, only then erase the
+            // cuda event from the events map
+            if (it->second.empty()) {
+                it = npu_events.erase(it);
+            } else {
+                ++it;
             }
         }
-
-        npu_events.clear();
     }
 
     void remove_npugraph_stream_uses(Block *block)
@@ -3415,7 +3473,8 @@ public:
         }
     }
 
-    void emptyCacheImpl(bool check_error, bool free_physical) override
+    // uninherited function
+    void emptyCache(bool check_error, bool free_physical, MempoolId_t mempool_id)
     {
         TORCH_NPU_MEMORY_LOGD("Begin empty cache with check_error = %d", check_error);
         int32_t current_device = 0;
@@ -3431,7 +3490,7 @@ public:
             } else {
                 NPU_CHECK_WARN(c10_npu::SetDevice(device_idx));
             }
-            device_allocator[device_idx]->emptyCache(device_idx, check_error, free_physical);
+            device_allocator[device_idx]->emptyCache(device_idx, check_error, free_physical, mempool_id);
         }
         if (check_error) {
             NPU_CHECK_ERROR(c10_npu::MaybeSetDevice(current_device));
@@ -3439,6 +3498,16 @@ public:
             NPU_CHECK_WARN(c10_npu::MaybeSetDevice(current_device));
         }
         TORCH_NPU_MEMORY_LOGD("End empty cache with check_error = %d", check_error);
+    }
+
+    void emptyCache(MempoolId_t mempool_id) override
+    {
+        emptyCache(true, true, mempool_id);
+    }
+
+    void emptyCacheImpl(bool check_error, bool free_physical) override
+    {
+        emptyCache(check_error, free_physical, {0, 0});
     }
 
     void emptyCache(bool check_error) override
@@ -3933,6 +4002,14 @@ public:
     {
         device_allocator[device]->buildServerMemMapForHccl(hcclComm);
     }
+
+    void createOrIncrefPool(
+        c10::DeviceIndex device,
+        MempoolId_t mempool_id)
+    {
+        assertValidDevice(device);
+        device_allocator[device]->createOrIncrefPool(std::move(mempool_id));
+    }
 };
 
 NpuCachingAllocator caching_allocator;
@@ -4028,6 +4105,14 @@ MemPool::MemPool(NPUCachingAllocator::NPUAllocator *allocator, bool is_user_crea
     } else {
         id_ = { uuid_++, 0 };
     }
+    device_ = c10_npu::current_device();
+    NPUCachingAllocator::createOrIncrefPool(device_, id_);
+}
+
+MemPool::~MemPool() {
+    // not support UseOnOom in this version
+    NPUCachingAllocator::releasePool(device_, id_);
+    NPUCachingAllocator::emptyCache(id_);
 }
 
 MempoolId_t MemPool::id()
@@ -4038,6 +4123,17 @@ MempoolId_t MemPool::id()
 NPUCachingAllocator::NPUAllocator *MemPool::allocator()
 {
     return allocator_;
+}
+
+c10::DeviceIndex MemPool::device() {
+    return device_;
+}
+
+MempoolId_t MemPool::graph_pool_handle(bool is_user_created) {
+    if (is_user_created) {
+        return {0, uid_++};
+    }
+    return {uuid_++, 0};
 }
 
 // Note that active_mempool_ is a global variable here
