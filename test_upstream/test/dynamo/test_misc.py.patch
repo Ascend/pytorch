@@ -2,6 +2,14 @@ diff --git a/test/dynamo/test_misc.py b/test/dynamo/test_misc.py
 index 893fe24..fca0602 100644
 --- a/test/dynamo/test_misc.py
 +++ b/test/dynamo/test_misc.py
+@@ -1034,6 +1034,6 @@ class MiscTests(torch._inductor.test_case.TestCase):
+ 
+     @unittest.skipIf(
+-        not torch.cuda.is_available() or torch.cuda.get_device_capability() < (9, 0),
++        not torch.cuda.is_available() or (torch.cuda.get_device_capability() or (0,)) < (9, 0),
+         "requires Hopper+ (SM >= 9.0) for TMA",
+     )
+     @unittest.skipIf(
 @@ -12572 +12572 @@ def ___make_guard_fn():
 -            torch.randn(3, 2), ConstantSource("x")
 +            torch.randn(3, 2).npu(), ConstantSource("x")

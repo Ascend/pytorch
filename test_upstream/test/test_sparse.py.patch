@@ -1,5 +1,6 @@
-﻿diff --git a/test/test_sparse.py b/test/test_sparse.py
-index b444c711317..f6ccece04fb 100644
+warning: in the working copy of 'test/test_sparse.py', LF will be replaced by CRLF the next time Git touches it
+diff --git a/test/test_sparse.py b/test/test_sparse.py
+index b444c71..f6ccece 100644
 --- a/test/test_sparse.py
 +++ b/test/test_sparse.py
 @@ -2,6 +2,8 @@

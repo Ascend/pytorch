@@ -1,5 +1,5 @@
-﻿diff --git a/test/test_unary_ufuncs.py b/test/test_unary_ufuncs.py
-index 6fa4bd47057..ed106bf1a94 100644
+diff --git a/test/test_unary_ufuncs.py b/test/test_unary_ufuncs.py
+index 6fa4bd4..ed106bf 100644
 --- a/test/test_unary_ufuncs.py
 +++ b/test/test_unary_ufuncs.py
 @@ -9,7 +9,8 @@ import numpy as np

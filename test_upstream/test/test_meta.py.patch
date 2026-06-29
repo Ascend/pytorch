@@ -1,5 +1,6 @@
-﻿diff --git a/test/test_meta.py b/test/test_meta.py
-index ca5869722c9..3843e8791e8 100644
+warning: in the working copy of 'test/test_meta.py', LF will be replaced by CRLF the next time Git touches it
+diff --git a/test/test_meta.py b/test/test_meta.py
+index ca58697..3843e87 100644
 --- a/test/test_meta.py
 +++ b/test/test_meta.py
 @@ -3,6 +3,9 @@

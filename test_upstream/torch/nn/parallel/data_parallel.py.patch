@@ -1,5 +1,5 @@
-﻿diff --git a/torch/nn/parallel/data_parallel.py b/torch/nn/parallel/data_parallel.py
-index 16537624663..cab2426662c 100644
+diff --git a/torch/nn/parallel/data_parallel.py b/torch/nn/parallel/data_parallel.py
+index 1653762..cab2426 100644
 --- a/torch/nn/parallel/data_parallel.py
 +++ b/torch/nn/parallel/data_parallel.py
 @@ -44,7 +44,7 @@ def _check_balance(device_ids: Sequence[int | torch.device]) -> None:

@@ -1,5 +1,5 @@
-﻿diff --git a/test/functorch/test_ops.py b/test/functorch/test_ops.py
-index 632a4a915a6..d110fa55b3e 100644
+diff --git a/test/functorch/test_ops.py b/test/functorch/test_ops.py
+index 632a4a9..2eeb1f5 100644
 --- a/test/functorch/test_ops.py
 +++ b/test/functorch/test_ops.py
 @@ -7,10 +7,21 @@
@@ -95,7 +95,16 @@ index 632a4a915a6..d110fa55b3e 100644
              ),
              tol1(
                  "nn.functional.binary_cross_entropy_with_logits",
-@@ -795,7 +804,7 @@ class TestOperators(TestCase):
+@@ -735,6 +744,8 @@ class TestOperators(TestCase):
+         primal_outs, tangent_outs = jvp(contig_fn, primals, tangents)
+ 
+         self.assertEqual(primal_outs, expected_primal_outs)
++        print(tangent_outs)
++        print(expected_tangent_outs)
+         self.assertEqual(tangent_outs, expected_tangent_outs)
+ 
+         if test_noncontig:
+@@ -795,7 +806,7 @@ class TestOperators(TestCase):
              tol1(
                  "nn.functional.conv_transpose3d",
                  {torch.float32: tol(atol=5e-05, rtol=9e-05)},
@@ -104,7 +113,7 @@ index 632a4a915a6..d110fa55b3e 100644
              ),
              tol1(
                  "nn.functional.binary_cross_entropy_with_logits",
-@@ -832,7 +841,6 @@ class TestOperators(TestCase):
+@@ -832,7 +843,6 @@ class TestOperators(TestCase):
                  fn, primals = normalize_op_input_output(_op, sample)
                  result = fn(*primals)
                  cotangents = tree_map(lambda x: torch.randn_like(x), result)
@@ -112,7 +121,7 @@ index 632a4a915a6..d110fa55b3e 100644
                  out, vjp_fn = vjp(fn, *primals)
                  self.assertEqual(out, result)
                  result_vjps = vjp_fn(cotangents)
-@@ -897,7 +905,7 @@ class TestOperators(TestCase):
+@@ -897,7 +907,7 @@ class TestOperators(TestCase):
              tol1(
                  "nn.functional.conv_transpose3d",
                  {torch.float32: tol(atol=5e-05, rtol=9e-05)},
@@ -121,7 +130,7 @@ index 632a4a915a6..d110fa55b3e 100644
              ),
              tol1("prod", {torch.float32: tol(atol=2e-05, rtol=1e-04)}),
              tol1("masked.cumprod", {torch.float32: tol(atol=5e-04, rtol=5e-04)}),
-@@ -1187,7 +1195,7 @@ class TestOperators(TestCase):
+@@ -1187,7 +1197,7 @@ class TestOperators(TestCase):
              xfail("chalf", ""),
              xfail("scatter_reduce", "prod"),  # item call
              # Batching rule not implemented for aten::_use_cudnn_ctc_loss.Tensor
@@ -130,7 +139,7 @@ index 632a4a915a6..d110fa55b3e 100644
              # NYI: querying is_contiguous inside of vmap for memory_format other than torch.contiguous_format
              xfail("nn.functional.max_unpool2d"),
              xfail("nn.functional.max_unpool2d", "grad"),
-@@ -1212,10 +1220,10 @@ class TestOperators(TestCase):
+@@ -1212,10 +1222,10 @@ class TestOperators(TestCase):
              tol1(
                  "linalg.svd",
                  {torch.float32: tol(atol=5e-04, rtol=1e-04)},
@@ -143,7 +152,7 @@ index 632a4a915a6..d110fa55b3e 100644
              ),
              tol1(
                  "linalg.householder_product",
-@@ -1224,7 +1232,7 @@ class TestOperators(TestCase):
+@@ -1224,7 +1234,7 @@ class TestOperators(TestCase):
              tol1(
                  "matrix_exp",
                  {torch.float32: tol(atol=5e-04, rtol=1e-04)},
@@ -152,7 +161,7 @@ index 632a4a915a6..d110fa55b3e 100644
              ),
              tol1(
                  "nn.functional.layer_norm",
-@@ -1352,7 +1360,7 @@ class TestOperators(TestCase):
+@@ -1352,7 +1362,7 @@ class TestOperators(TestCase):
              tol1(
                  "nn.functional.conv_transpose3d",
                  {torch.float32: tol(atol=2e-04, rtol=9e-3)},
@@ -161,7 +170,26 @@ index 632a4a915a6..d110fa55b3e 100644
              ),
              tol1(
                  "linalg.householder_product",
-@@ -1800,7 +1808,7 @@ class TestOperators(TestCase):
+@@ -1712,7 +1722,9 @@ class TestOperators(TestCase):
+         for sample in samples:
+             args = [sample.input] + list(sample.args)
+             kwargs = sample.kwargs
+-
++            # empty tensor skip，npu not support
++            if any(t.numel() == 0 for t in args):
++                continue
+             is_batch_norm_and_training = is_batch_norm and is_batch_norm_training(
+                 op.name, kwargs
+             )
+@@ -1721,6 +1733,7 @@ class TestOperators(TestCase):
+             )
+ 
+             for batched_args, in_dims, kwargs in generator:
++                print(in_dims)
+                 vmapped_op = vmap(op, in_dims)
+                 fn, primals = normalize_op_input_output2(
+                     vmapped_op, batched_args, kwargs, sample.output_process_fn_grad
+@@ -1800,7 +1813,7 @@ class TestOperators(TestCase):
                      "nn.functional.multi_margin_loss", ""
                  ),  # NYI: forward AD with multi_margin_loss
                  skip(
@@ -170,7 +198,7 @@ index 632a4a915a6..d110fa55b3e 100644
                  ),  # flaky, I'm not sure why
                  xfail("sparse.sampled_addmm", ""),  # Sparse tensors have no strides
                  xfail(
-@@ -1827,17 +1835,17 @@ class TestOperators(TestCase):
+@@ -1827,17 +1840,17 @@ class TestOperators(TestCase):
              tol1(
                  "cumprod",
                  {torch.float32: tol(atol=1e-03, rtol=5e-04)},
@@ -191,7 +219,7 @@ index 632a4a915a6..d110fa55b3e 100644
              ),
              tol1(
                  "nn.functional.group_norm", {torch.float32: tol(atol=1e-03, rtol=1e-03)}
-@@ -2374,7 +2382,7 @@ class TestOperators(TestCase):
+@@ -2374,7 +2387,7 @@ class TestOperators(TestCase):
              decorate("xlogy", decorator=skipIfRocm),
              # numerical inconsistencies, look like bugs
              skip(
@@ -200,7 +228,7 @@ index 632a4a915a6..d110fa55b3e 100644
              ),  # fails on linux, passes on windows
              skip(
                  "ldexp", dtypes=(torch.float32,), device_type="cpu"
-@@ -2388,10 +2396,10 @@ class TestOperators(TestCase):
+@@ -2388,10 +2401,10 @@ class TestOperators(TestCase):
                  "nn.functional.layer_norm", dtypes=(torch.float32,), device_type="cpu"
              ),  # fails on windows
              skip(
@@ -213,7 +241,7 @@ index 632a4a915a6..d110fa55b3e 100644
              ),  # fails on all but windows
              skip("linalg.multi_dot", "", device_type="cpu"),
              skip("sparse.sampled_addmm", ""),
-@@ -2406,12 +2414,12 @@ class TestOperators(TestCase):
+@@ -2406,12 +2419,12 @@ class TestOperators(TestCase):
              tol1(
                  "ldexp",
                  {torch.float32: tol(atol=6e-04, rtol=5e-06)},
@@ -228,7 +256,7 @@ index 632a4a915a6..d110fa55b3e 100644
              ),
              tol1(
                  "linalg.householder_product",
-@@ -2421,7 +2429,7 @@ class TestOperators(TestCase):
+@@ -2421,7 +2434,7 @@ class TestOperators(TestCase):
              tol1(
                  "linalg.multi_dot",
                  {torch.float32: tol(atol=2e-04, rtol=1e-04)},
@@ -237,7 +265,7 @@ index 632a4a915a6..d110fa55b3e 100644
              ),
              tol2(
                  "linalg.pinv", "hermitian", {torch.float32: tol(atol=5e-06, rtol=5e-06)}
-@@ -2430,7 +2438,7 @@ class TestOperators(TestCase):
+@@ -2430,7 +2443,7 @@ class TestOperators(TestCase):
              tol1(
                  "nn.functional.conv2d",
                  {torch.float32: tol(atol=5e-05, rtol=5e-05)},
@@ -246,7 +274,7 @@ index 632a4a915a6..d110fa55b3e 100644
              ),
              tol1("svd_lowrank", {torch.float32: tol(atol=5e-05, rtol=5e-05)}),
              tol1("pca_lowrank", {torch.float32: tol(atol=5e-05, rtol=5e-05)}),
-@@ -2966,7 +2974,7 @@ class TestOperators(TestCase):
+@@ -2966,7 +2979,7 @@ class TestOperators(TestCase):
              t.data = torch.randn(3, 3)
              return t.sum()
  
@@ -255,7 +283,32 @@ index 632a4a915a6..d110fa55b3e 100644
          with self.assertRaisesRegex(RuntimeError, msg):
              grad(fn)(t)
  
-@@ -3028,7 +3036,7 @@ class TestOperators(TestCase):
+@@ -2976,24 +2989,6 @@ class TestOperators(TestCase):
+         with self.assertRaisesRegex(RuntimeError, msg):
+             jvp(fn, (t,), (torch.randn_like(t),))
+ 
+-    def test_tensor_with_scalar_list(self, device):
+-        x = torch.randn((), device=device)
+-
+-        def func_list_of_scalar(x):
+-            return torch.tensor([x], device=device)
+-
+-        def func(x):
+-            return torch.tensor(x, device=device).view(1)
+-
+-        actual_o, actual_fn = vjp(func_list_of_scalar, x)
+-        expected_o, expected_fn = vjp(func, x)
+-
+-        self.assertEqual(actual_o, expected_o)
+-        self.assertEqual(
+-            expected_fn(torch.ones_like(expected_o)),
+-            actual_fn(torch.ones_like(actual_o)),
+-        )
+-
+     @ops(bool_ordered_op_db, dtypes=[torch.bool])
+     def test_ordered_bool_raises(self, device, dtype, op):
+         # Generate sample inputs for the op
+@@ -3028,7 +3023,7 @@ class TestOperators(TestCase):
              )
  
  

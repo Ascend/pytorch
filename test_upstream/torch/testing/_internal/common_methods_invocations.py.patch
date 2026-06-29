@@ -1,5 +1,5 @@
-diff --git a/torch/testing/_internal/common_methods_invocations.py b/torch/testing/_internal/common_methods_invocations.py
-index 9b1665c..0538df2 100644
+﻿diff --git a/torch/testing/_internal/common_methods_invocations.py b/torch/testing/_internal/common_methods_invocations.py
+index 9b1665c67d0..d7b4afe17f7 100644
 --- a/torch/testing/_internal/common_methods_invocations.py
 +++ b/torch/testing/_internal/common_methods_invocations.py
 @@ -12,6 +12,9 @@ import math
@@ -12,29 +12,7 @@ index 9b1665c..0538df2 100644
  import numpy as np
  import numpy.typing as npt
  from torch import inf, nan
-@@ -5246,7 +5249,7 @@ def sample_inputs_to(op_info, device, dtype, requires_grad, **kwargs):
-     devices = [device]
-     if torch.device(device).type == 'cpu':
-         devices = [torch.device('cpu'), torch.device('cuda:0')] if torch.cuda.is_available() else devices
--    memory_formats = [torch.preserve_format, torch.channels_last]
-+    memory_formats = [torch.preserve_format]
- 
-     # TODO: can't switch `to.device` overload to use positional arguments
-     # https://github.com/pytorch/pytorch/issues/84265
-@@ -16995,7 +16998,11 @@ op_db: list[OpInfo] = [
-            dtypesIfMPS=floating_types_and(
-                torch.float16, torch.bfloat16, torch.int16, torch.int32, torch.int64, torch.uint8, torch.bool, torch.int8
-            ),
--           sample_inputs_func=sample_inputs_max_unpool_grad),
-+           sample_inputs_func=sample_inputs_max_unpool_grad,
-+           skips=(
-+               DecorateInfo(unittest.skip("Skipped!"), 'TestJit', 'test_variant_consistency_jit',
-+                            dtypes=(torch.float32,), device_type='npu'),
-+           )),
-     OpInfo('nn.functional.max_unpool3d',
-            aten_name='max_unpool3d',
-            # Runs very slowly on slow gradcheck - alternatively reduce input sizes
-@@ -17760,7 +17767,7 @@ op_db: list[OpInfo] = [
+@@ -17760,7 +17762,7 @@ op_db: list[OpInfo] = [
             supports_fwgrad_bwgrad=True,
             allow_cow_input_materialize_forward=[1, 2],
             allow_cow_input_materialize_backward=[1, 2],
@@ -43,15 +21,7 @@ index 9b1665c..0538df2 100644
             skips=(
                 DecorateInfo(toleranceOverride({torch.float32: tol(atol=1e-03, rtol=1e-04)}),
                              'TestJit', 'test_variant_consistency_jit'),
-@@ -21260,6 +21267,7 @@ op_db: list[OpInfo] = [
-            dtypes=all_types_and_complex_and(torch.bool, torch.float16, torch.bfloat16),
-            backward_dtypes=floating_types(),
-            backward_dtypesIfCUDA=floating_types_and(torch.float16, torch.bfloat16),
-+           gradcheck_fast_mode=False,
-            supports_out=False,
-            supports_sparse_csr=True,
-            supports_sparse_csc=True,
-@@ -21582,7 +21590,7 @@ op_db: list[OpInfo] = [
+@@ -21582,7 +21584,7 @@ op_db: list[OpInfo] = [
          supports_out=False,
          supports_autograd=False,  # jiterator ops doesn't have backward defined
          decorators=[
@@ -60,7 +30,7 @@ index 9b1665c..0538df2 100644
              DecorateInfo(toleranceOverride({torch.float16: tol(atol=1e-02, rtol=1e-02)}),
                           'TestUnaryUfuncs', 'test_reference_numerics_extremal'),
              DecorateInfo(toleranceOverride({torch.float16: tol(atol=1e-02, rtol=1e-02)}),
-@@ -21633,7 +21641,7 @@ op_db: list[OpInfo] = [
+@@ -21633,7 +21635,7 @@ op_db: list[OpInfo] = [
          supports_out=False,
          supports_autograd=False,  # jiterator ops doesn't have backward defined
          supports_rhs_python_scalar=False,
@@ -69,7 +39,7 @@ index 9b1665c..0538df2 100644
          skips=(
              # Jiterator ops doesn't support neg or conj view
              DecorateInfo(unittest.expectedFailure, 'TestMathBits', 'test_neg_view'),
-@@ -21658,7 +21666,7 @@ op_db: list[OpInfo] = [
+@@ -21658,7 +21660,7 @@ op_db: list[OpInfo] = [
          sample_inputs_func=partial(sample_inputs_jiterator, num_inputs=4, alpha=3.14, beta=-4.20),
          supports_out=False,
          supports_autograd=False,  # jiterator ops doesn't have backward defined
@@ -78,7 +48,7 @@ index 9b1665c..0538df2 100644
          skips=(
              # Jiterator ops doesn't support neg or conj view
              DecorateInfo(unittest.expectedFailure, 'TestMathBits', 'test_neg_view'),
-@@ -21689,7 +21697,7 @@ op_db: list[OpInfo] = [
+@@ -21689,7 +21691,7 @@ op_db: list[OpInfo] = [
          supports_out=False,
          supports_autograd=False,  # jiterator ops doesn't have backward defined
          supports_rhs_python_scalar=False,
@@ -87,7 +57,7 @@ index 9b1665c..0538df2 100644
          skips=(
              # Jiterator ops doesn't support neg or conj view
              DecorateInfo(unittest.expectedFailure, 'TestMathBits', 'test_neg_view'),
-@@ -21720,7 +21728,7 @@ op_db: list[OpInfo] = [
+@@ -21720,7 +21722,7 @@ op_db: list[OpInfo] = [
          sample_inputs_func=partial(sample_inputs_jiterator, num_inputs=2),
          supports_out=False,
          supports_autograd=False,  # jiterator ops doesn't have backward defined
@@ -96,7 +66,7 @@ index 9b1665c..0538df2 100644
          skips=(
              # Jiterator ops doesn't support neg or conj view
              DecorateInfo(unittest.expectedFailure, 'TestMathBits', 'test_neg_view'),
-@@ -24176,6 +24184,18 @@ python_ref_db = [
+@@ -24176,6 +24178,18 @@ python_ref_db = [
              DecorateInfo(toleranceOverride({torch.bfloat16: tol(atol=1e-3, rtol=0.016)}),
                           "TestUnaryUfuncs", "test_reference_numerics_normal",
                           device_type="cuda"),
@@ -115,8 +85,7 @@ index 9b1665c..0538df2 100644
          ),
      ),
      ElementwiseUnaryPythonRefInfo(
-@@ -24211,7 +24231,23 @@ python_ref_db = [
-                          dtypes=[torch.complex64, torch.cdouble], device_type='cuda'),
+@@ -24212,6 +24226,22 @@ python_ref_db = [
              DecorateInfo(unittest.skip("Skipped!"), 'TestUnaryUfuncs',
                           'test_reference_numerics_large',
 -                         dtypes=[torch.chalf, torch.complex64, torch.cdouble], device_type='cuda')

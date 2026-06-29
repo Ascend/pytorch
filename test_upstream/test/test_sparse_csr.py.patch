@@ -1,5 +1,6 @@
-﻿diff --git a/test/test_sparse_csr.py b/test/test_sparse_csr.py
-index 7a65fce1757..9be9e94d40c 100644
+warning: in the working copy of 'test/test_sparse_csr.py', LF will be replaced by CRLF the next time Git touches it
+diff --git a/test/test_sparse_csr.py b/test/test_sparse_csr.py
+index 7a65fce..9be9e94 100644
 --- a/test/test_sparse_csr.py
 +++ b/test/test_sparse_csr.py
 @@ -7,16 +7,18 @@ import io
