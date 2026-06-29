@@ -282,16 +282,22 @@ def patch_builtin_variable():
     torch._dynamo.variables.builtin.BuiltinVariable.call_id = _wrap_call_id
 
 
-def patch_event_variable_python_type():
+def patch_stream_event_variable_python_type():
     """
-    Add the 'python_type' method to the EventVariable class.
+    Preserve backend-specific stream/event Python types in Dynamo.
+
+    PyTorch's generic StreamVariable/EventVariable report torch.Stream and
+    torch.Event. NPU subclasses have Python methods that use super(NpuType,
+    self), so Dynamo must use the real runtime subclass when tracing those
+    methods, especially when profiler wrappers cause Dynamo to inline them.
     """
 
     def python_type(self):
         return type(self.value)
 
-    if "python_type" not in torch._dynamo.variables.streams.EventVariable.__dict__:
-        torch._dynamo.variables.streams.EventVariable.python_type = python_type
+    streams = torch._dynamo.variables.streams
+    streams.StreamVariable.python_type = python_type
+    streams.EventVariable.python_type = python_type
 
 
 class NpuStreamContextVariable(StreamContextVariable):
@@ -401,7 +407,7 @@ def add_dynamo_methods():
     patch_dynamo_optimize()
     patch_inductor_wrapper()
     patch_user_defined_class_variable()
-    patch_event_variable_python_type()
+    patch_stream_event_variable_python_type()
     patch_builtin_variable()
     patch_npu_stream_context()
     patch_user_defined_class_variable()
