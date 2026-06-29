@@ -131,6 +131,12 @@ class NPUPythonWrapperCodeGen(_NPUKernelCodegenMixin, PythonWrapperCodegen):
             return NPUSubgraphPythonWrapperCodegen(subgraph_name, parent_wrapper, partition_signatures)
         return NPUPythonWrapperCodeGen()
 
+    def write_header(self) -> None:
+        super().write_header()
+        self.imports.splice(
+            V.graph.device_ops.import_get_raw_stream_as("get_raw_stream")
+        )
+
     @cache_on_self
     def write_triton_header_once(self) -> None:
         super().write_triton_header_once()
