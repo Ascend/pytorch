@@ -112,7 +112,7 @@ jobs:
       # Step 0: Report CI started to dashboard
       - name: Report CI started
         continue-on-error: true
-        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@898e17739c37bcf8f052bf0ead50af2ac4108c0c
+        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@main
         with:
           status: in_progress
 
@@ -329,15 +329,103 @@ jobs:
       - name: Report CI completed
         if: always()
         continue-on-error: true
-        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@898e17739c37bcf8f052bf0ead50af2ac4108c0c
+        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@main
         with:
           status: completed
           conclusion: ${{ job.status == 'success' && 'success' || 'failure' }}
+
+  # ======================================================================
+  # Job 3: a3_test — placeholder (not a real test yet)
+  # ======================================================================
+  a3_test:
+    needs: [pytorch_and_torch-npu_build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report in_progress
+        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@main
+        with:
+          status: in_progress
+
+      - name: Report completed
+        continue-on-error: true
+        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@main
+        with:
+          status: completed
+          conclusion: failure
           test-results: >-
             {
-              "passed": 10,
-              "failed": 1,
-              "skipped": 2,
-              "total": 13
+              "passed": 452,
+              "failed": 3,
+              "skipped": 15,
+              "total": 470
             }
-          artifact-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## a3_test — placeholder" >> $GITHUB_STEP_SUMMARY
+          echo ":x: status: completed, conclusion: failure" >> $GITHUB_STEP_SUMMARY
+
+  # ======================================================================
+  # Job 4: a5_test — placeholder (not a real test yet)
+  # ======================================================================
+  a5_test:
+    needs: [pytorch_and_torch-npu_build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report in_progress
+        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@main
+        with:
+          status: in_progress
+
+      - name: Report completed
+        continue-on-error: true
+        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@main
+        with:
+          status: completed
+          conclusion: skipped
+          test-results: >-
+            {
+              "passed": 389,
+              "failed": 7,
+              "skipped": 12,
+              "total": 408
+            }
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## a5_test — placeholder" >> $GITHUB_STEP_SUMMARY
+          echo ":fast_forward: status: completed, conclusion: skipped" >> $GITHUB_STEP_SUMMARY
+
+  # ======================================================================
+  # Job 5: distributed_test — placeholder (not a real test yet)
+  # ======================================================================
+  distributed_test:
+    needs: [pytorch_and_torch-npu_build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report in_progress
+        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@main
+        with:
+          status: in_progress
+
+      - name: Report completed
+        continue-on-error: true
+        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@main
+        with:
+          status: completed
+          conclusion: cancelled
+          test-results: >-
+            {
+              "passed": 128,
+              "failed": 2,
+              "skipped": 5,
+              "total": 135
+            }
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## distributed_test — placeholder" >> $GITHUB_STEP_SUMMARY
+          echo ":no_entry: status: completed, conclusion: cancelled" >> $GITHUB_STEP_SUMMARY
