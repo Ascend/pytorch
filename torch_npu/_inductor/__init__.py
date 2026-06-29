@@ -339,6 +339,8 @@ def _load_backend():
     backend = _get_backend()
     loader = _BACKEND_LOADERS.get(backend, _load_triton_backend)
     loader()
+    from .decomposition import _register_shared_decompositions
+    _register_shared_decompositions()
     from ..utils._dynamo import _InductorNpuRegistry
     _InductorNpuRegistry._loaded_backend = backend
 

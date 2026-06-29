@@ -12,24 +12,18 @@ import torch.nn.functional as F
 
 from .lowering_common import add_overload
 from .ascend_npu_ir.ascend_npu_ir import config as anir_config
+from .lowering_common import run_once
 
 
 aten = torch.ops.aten
 npu = torch.ops.npu
 
-def run_once(f):
-    """Runs a function (successfully) only once.
-    The running can be reset by setting the `has_run` attribute to False
-    """
-    @functools.wraps(f)
-    def wrapper(*args, **kwargs):
-        if not wrapper.has_run:
-            result = f(*args, **kwargs)
-            wrapper.has_run = True
-            return result
-        return None
-    wrapper.has_run = False
-    return wrapper
+@run_once
+def _register_shared_decompositions():
+    @register_decomposition([aten.expm1])
+    def expm1(x):
+        tensor = torch.exp(x) - torch.ones_like(x)
+        return tensor
 
 
 def _register_triton_decompositions():
@@ -71,10 +65,6 @@ def _register_triton_decompositions():
             result = x * sigmoid_z
             return result
 
-        @register_decomposition([aten.expm1])
-        def expm1(x):
-            tensor = torch.exp(x) - torch.ones_like(x)
-            return tensor
 
     _register_npu_triton_decompositions()
 
