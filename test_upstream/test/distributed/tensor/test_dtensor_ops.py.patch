@@ -1,0 +1,22 @@
+﻿diff --git a/test/distributed/tensor/test_dtensor_ops.py b/test/distributed/tensor/test_dtensor_ops.py
+index b354577c3d8..a23c1a6929a 100644
+--- a/test/distributed/tensor/test_dtensor_ops.py
++++ b/test/distributed/tensor/test_dtensor_ops.py
+@@ -1,3 +1,7 @@
++import torch_npu.testing
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Copyright (c) Meta Platforms, Inc. and affiliates
+ # Owner(s): ["oncall: distributed"]
+ 
+@@ -497,6 +501,9 @@ class TestDTensorOps(TestCase):
+             args = [sample.input] + list(sample.args)
+             kwargs = sample.kwargs
+ 
++            if 'device' in kwargs and kwargs['device'] == 'cuda':
++                kwargs['device'] = 'npu'
++
+             if sample_filter and not sample_filter(args, kwargs):
+                 continue
+ 

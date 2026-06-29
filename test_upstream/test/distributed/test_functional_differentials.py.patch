@@ -1,0 +1,31 @@
+﻿diff --git a/test/distributed/test_functional_differentials.py b/test/distributed/test_functional_differentials.py
+index 504fce48ea7..50586f930aa 100644
+--- a/test/distributed/test_functional_differentials.py
++++ b/test/distributed/test_functional_differentials.py
+@@ -4,6 +4,8 @@ import sys
+ from functools import partial, wraps
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch.distributed as dist
+ from torch.distributed import _functional_collectives as fcols
+ from torch.testing._internal.common_device_type import instantiate_device_type_tests
+@@ -25,7 +27,7 @@ if not dist.is_available():
+ 
+ 
+ # Determine available devices
+-DEVICE = "cuda"
++DEVICE = "npu"
+ devices = ["cpu"]
+ if acc := torch.accelerator.current_accelerator(True):
+     devices += [acc.type]
+@@ -38,7 +40,7 @@ def with_comms(func=None):
+     @wraps(func)
+     def wrapper(self, *args, **kwargs):
+         if (
+-            torch.cuda.is_available()
++            torch.npu.is_available()
+             and torch.accelerator.device_count() < self.world_size
+         ):
+             sys.exit(TEST_SKIPS[f"multi-gpu-{self.world_size}"].exit_code)

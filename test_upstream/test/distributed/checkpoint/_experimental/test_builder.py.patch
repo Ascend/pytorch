@@ -1,0 +1,13 @@
+﻿diff --git a/test/distributed/checkpoint/_experimental/test_builder.py b/test/distributed/checkpoint/_experimental/test_builder.py
+index 64aacaf8c00..ed63c7284f6 100644
+--- a/test/distributed/checkpoint/_experimental/test_builder.py
++++ b/test/distributed/checkpoint/_experimental/test_builder.py
+@@ -5,6 +5,8 @@ import shutil
+ import tempfile
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ from torch.distributed.checkpoint._experimental.barriers import BarrierConfig
+ from torch.distributed.checkpoint._experimental.builder import (
+     make_async_checkpointer,

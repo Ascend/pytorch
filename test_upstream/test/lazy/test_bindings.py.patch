@@ -1,0 +1,12 @@
+﻿diff --git a/test/lazy/test_bindings.py b/test/lazy/test_bindings.py
+index 4846b6e60ca..81627b33651 100644
+--- a/test/lazy/test_bindings.py
++++ b/test/lazy/test_bindings.py
+@@ -1,5 +1,6 @@
+ # Owner(s): ["oncall: jit"]
+-
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch._lazy.metrics
+ from torch.testing._internal.common_utils import run_tests
+ 

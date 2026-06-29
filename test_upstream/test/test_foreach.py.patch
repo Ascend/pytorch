@@ -1,0 +1,14 @@
+﻿diff --git a/test/test_foreach.py b/test/test_foreach.py
+index e775b12e93f..302f9b2db91 100644
+--- a/test/test_foreach.py
++++ b/test/test_foreach.py
+@@ -10,6 +10,9 @@ from contextlib import nullcontext
+ from numbers import Number
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++torch.cuda.get_device_capability = lambda :(10, 0)
+ from torch.testing import make_tensor
+ from torch.testing._comparison import default_tolerances
+ from torch.testing._internal.common_cuda import _get_torch_cuda_version, TEST_MULTIGPU

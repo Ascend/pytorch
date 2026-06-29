@@ -1,0 +1,190 @@
+name: Torch NPU Upstream Build
+
+on:
+  workflow_call:
+    inputs:
+      python_version:
+        required: true
+        type: string
+        description: Python version to use for building
+      docker_image:
+        required: true
+        type: string
+        description: Docker image to use for building
+      torch_npu_wheel_artifact:
+        required: true
+        type: string
+        description: Name of the artifact to upload the wheel
+      max_jobs:
+        required: false
+        type: string
+        default: '40'
+        description: Maximum number of parallel build jobs
+    outputs:
+      wheel_name:
+        description: Name of the built wheel file
+        value: ${{ jobs.build_torch_npu.outputs.wheel }}
+      build_status:
+        description: Build status (0 for success, non-zero for failure)
+        value: ${{ jobs.build_torch_npu.outputs.status }}
+
+
+jobs:
+  build_torch_npu:
+    runs-on: linux-aarch64-a3-2
+    container:
+      image: ${{ inputs.docker_image }}
+      options: --user root
+    outputs:
+      wheel: ${{ steps.build.outputs.wheel }}
+      status: ${{ steps.build.outputs.status }}
+    env:
+      DOCKER_IMAGE: ${{ inputs.docker_image }}
+      PYTHON_VERSION: ${{ inputs.python_version }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          submodules: recursive
+
+      - name: Check image dependencies
+        run: |
+          echo "=== Python Version ==="
+          python${{ inputs.python_version }} --version
+          pip${{ inputs.python_version }} --version
+
+          echo "=== CMake Version ==="
+          cmake3 --version | head -1
+
+          echo "=== GCC Version ==="
+          gcc --version | head -1
+
+          echo "=== ccache Version ==="
+          ccache --version | head -1
+
+          echo "=== nproc ==="
+          nproc
+
+          echo "=== PyTorch Version ==="
+          python${{ inputs.python_version }} -c "import torch; print(torch.__version__)"
+
+      - name: Collect repository metadata
+        id: repo_meta
+        run: |
+          COMMIT=$(git rev-parse HEAD)
+          COMMIT_SHORT=$(git rev-parse --short HEAD)
+          COMMIT_DATE=$(git log -1 --format='%ci')
+
+          echo "commit=${COMMIT}" >> $GITHUB_OUTPUT
+          echo "commit_short=${COMMIT_SHORT}" >> $GITHUB_OUTPUT
+          echo "commit_date=${COMMIT_DATE}" >> $GITHUB_OUTPUT
+
+      - name: Collect toolchain metadata
+        id: toolchain_meta
+        run: |
+          CMAKE_VERSION=$(cmake3 --version | head -1)
+          GCC_VERSION=$(gcc --version | head -1)
+          TORCH_VERSION=$(python${{ inputs.python_version }} -c "import torch; print(torch.__version__)")
+
+          echo "cmake_version=${CMAKE_VERSION}" >> $GITHUB_OUTPUT
+          echo "gcc_version=${GCC_VERSION}" >> $GITHUB_OUTPUT
+          echo "torch_version=${TORCH_VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Setup ccache directory
+        run: |
+          mkdir -p /github/home/.cache/ccache
+          chmod -R 777 /github/home/.cache
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: /github/home/.cache/ccache
+          key: ccache-py${{ inputs.python_version }}-${{ github.sha }}
+          restore-keys: |
+            ccache-py${{ inputs.python_version }}-
+
+      - name: Build torch_npu wheel
+        id: build
+        run: |
+          PYTHON=python${{ inputs.python_version }}
+
+          ccache -M 10G
+          ccache -z || true
+          export CC="ccache gcc"
+          export CXX="ccache g++"
+          export CCACHE_DIR=/github/home/.cache/ccache
+          export CCACHE_COMPRESS=1
+          export CCACHE_MAXSIZE=10G
+          export CCACHE_BASEDIR="${PWD}"
+
+          echo "nproc value: $(nproc)"
+          echo "MAX_JOBS: ${{ inputs.max_jobs }}"
+          export MAX_JOBS=${{ inputs.max_jobs }}
+          export DISABLE_INSTALL_TORCHAIR=FALSE
+          export BUILD_WITHOUT_SHA=1
+
+          bash ci/build.sh --python=${{ inputs.python_version }} 2>&1 | tee /tmp/build_torch_npu.log
+          BUILD_STATUS=${PIPESTATUS[0]}
+
+          CCACHE_STATS=$(ccache -s 2>&1 | grep -iE "cacheable calls|hits:|misses:|cache size" | tr '\n' ' ')
+          echo "ccache_stats=${CCACHE_STATS}" >> $GITHUB_OUTPUT
+          ccache -s 2>&1
+
+          echo "status=${BUILD_STATUS}" >> $GITHUB_OUTPUT
+
+          if [ ${BUILD_STATUS} -eq 0 ]; then
+            WHL=$(ls dist/*.whl 2>/dev/null | head -1)
+            echo "wheel=${WHL}" >> $GITHUB_OUTPUT
+            echo "Build succeeded: ${WHL}"
+          fi
+
+          exit ${BUILD_STATUS}
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs-torch-npu
+          path: /tmp/build_torch_npu.log
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Upload built torch_npu wheel
+        if: steps.build.outputs.status == '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.torch_npu_wheel_artifact }}
+          path: dist/*.whl
+          if-no-files-found: error
+          retention-days: 60
+
+      - name: Build summary
+        if: always()
+        run: |
+          BUILD_STATUS="${{ steps.build.outputs.status }}"
+          if [ "${BUILD_STATUS}" = "0" ]; then
+            BUILD_RESULT="SUCCESS"
+          else
+            BUILD_RESULT="FAILED"
+          fi
+
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## torch_npu Source Build
+
+          | Item | Value |
+          |------|-------|
+          | Build time | $(date -u '+%Y-%m-%d %H:%M UTC') |
+          | Docker image | \`${{ env.DOCKER_IMAGE }}\` |
+          | CMake | \`${{ steps.toolchain_meta.outputs.cmake_version }}\` |
+          | GCC | \`${{ steps.toolchain_meta.outputs.gcc_version }}\` |
+          | Source commit | [\`${{ steps.repo_meta.outputs.commit_short }}\`](${{ github.server_url }}/${{ github.repository }}/commit/${{ steps.repo_meta.outputs.commit }}) |
+          | Commit time | ${{ steps.repo_meta.outputs.commit_date }} |
+          | PyTorch | \`${{ steps.toolchain_meta.outputs.torch_version }}\` |
+          | ccache | ${{ steps.build.outputs.ccache_stats || 'N/A' }} |
+          | Build result | ${BUILD_RESULT} |
+
+          $( [ "${BUILD_STATUS}" = "0" ] && echo "> Wheel: \`${{ steps.build.outputs.wheel }}\`" || echo "> See the build-logs-torch-npu artifact for failure details." )
+          EOF

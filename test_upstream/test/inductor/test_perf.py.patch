@@ -1,0 +1,12 @@
+﻿diff --git a/test/inductor/test_perf.py b/test/inductor/test_perf.py
+index 4e168fd0b4c..66ff9feef07 100644
+--- a/test/inductor/test_perf.py
++++ b/test/inductor/test_perf.py
+@@ -42,6 +42,7 @@ if HAS_GPU_AND_TRITON:
+     import triton.language as tl  # @manual
+ 
+     from torch.testing._internal.triton_utils import add_kernel
++import torch_npu._inductor
+ 
+ aten = torch.ops.aten
+ 

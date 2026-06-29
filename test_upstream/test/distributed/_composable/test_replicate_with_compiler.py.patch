@@ -1,0 +1,26 @@
+﻿diff --git a/test/distributed/_composable/test_replicate_with_compiler.py b/test/distributed/_composable/test_replicate_with_compiler.py
+index 5936a729cbe..aa0fe428a69 100644
+--- a/test/distributed/_composable/test_replicate_with_compiler.py
++++ b/test/distributed/_composable/test_replicate_with_compiler.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["oncall: distributed"]
+ 
+ import contextlib
+@@ -35,9 +40,10 @@ from torch.testing._internal.common_utils import run_tests
+ from torch.testing._internal.distributed.fake_pg import FakeStore
+ from torch.testing._internal.inductor_utils import HAS_GPU
+ from torch.utils.checkpoint import checkpoint
++HAS_GPU = True
+ 
+-
+-device_type = str(get_devtype())
++# device_type = str(get_devtype())
++device_type = "npu"
+ 
+ DIM = 2000
+ 

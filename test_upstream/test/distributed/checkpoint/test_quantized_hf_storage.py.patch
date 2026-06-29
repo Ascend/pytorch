@@ -1,0 +1,13 @@
+﻿diff --git a/test/distributed/checkpoint/test_quantized_hf_storage.py b/test/distributed/checkpoint/test_quantized_hf_storage.py
+index da15cff6801..2bb87025514 100644
+--- a/test/distributed/checkpoint/test_quantized_hf_storage.py
++++ b/test/distributed/checkpoint/test_quantized_hf_storage.py
+@@ -4,6 +4,8 @@ import tempfile
+ from unittest.mock import MagicMock, patch
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ from torch.distributed.checkpoint._hf_utils import _HFStorageInfo
+ from torch.distributed.checkpoint.metadata import MetadataIndex
+ from torch.distributed.checkpoint.planner import LoadItemType, ReadItem

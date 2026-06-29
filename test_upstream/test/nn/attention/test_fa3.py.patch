@@ -1,0 +1,22 @@
+﻿diff --git a/test/nn/attention/test_fa3.py b/test/nn/attention/test_fa3.py
+index 6f786ad79ca..bc14476f49f 100644
+--- a/test/nn/attention/test_fa3.py
++++ b/test/nn/attention/test_fa3.py
+@@ -6,6 +6,8 @@ import unittest
+ from _fa_test_common import FlashAttentionTestMixin, SdpaShape
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch.nn.functional as F
+ from torch.backends.cuda import SDPBackend
+ from torch.nn.attention import activate_flash_attention_impl, sdpa_kernel
+@@ -425,7 +427,7 @@ class TestFlashAttentionFA3(FlashAttentionTestMixin, TestCase):
+         self.assertEqual(dv.shape, v.shape)
+ 
+ 
+-instantiate_device_type_tests(TestFlashAttentionFA3, globals(), only_for="cuda")
++instantiate_device_type_tests(TestFlashAttentionFA3, globals(), only_for="npu")
+ 
+ if __name__ == "__main__":
+     run_tests()

@@ -1,0 +1,97 @@
+FROM pytorch/manylinux2_28-builder:cpu-v2.12.0-rc9
+
+ARG PYTORCH_VERSION=2.12.0
+
+ENV PATH=/usr/local/bin:$PATH
+ENV AUDITWHEEL_PLAT=manylinux_2_28_x86_64
+ENV PYTORCH_VERSION=${PYTORCH_VERSION}
+
+COPY requirements-builder.txt /opt/buildtools/
+
+# Dynamically discover available cpython versions and create pip/python symlinks.
+# The base manylinux image provides /opt/_internal/cpython-X.Y.Z/ for each Python.
+RUN set -e; cd /usr/local/bin \
+    && for cpython_dir in /opt/_internal/cpython-3.*/; do \
+        py_ver=$(basename "$cpython_dir" | sed 's/cpython-//'); \
+        major_minor=$(echo "$py_ver" | grep -oP '^\d+\.\d+'); \
+        pybin="${cpython_dir}bin/python${major_minor}"; \
+        pipbin="${cpython_dir}bin/pip${major_minor}"; \
+        [ -f "$pybin" ] && ln -sf "$pybin" "python${major_minor}"; \
+        [ -f "$pipbin" ] && ln -sf "$pipbin" "pip${major_minor}"; \
+        echo "Registered Python ${major_minor} (${py_ver})"; \
+    done \
+    && ln -sf python3.10 python3 \
+    && ln -sf pip3.10 pip3 \
+    && echo "Default python: $(python3 --version)" \
+    && echo "Default pip: $(pip3 --version)"
+
+# Set pip source
+RUN mkdir /root/.pip \
+    && echo "[global]" > /root/.pip/pip.conf \
+    && echo "index-url=https://mirrors.huaweicloud.com/repository/pypi/simple" >> /root/.pip/pip.conf \
+    && echo "trusted-host=mirrors.huaweicloud.com" >> /root/.pip/pip.conf \
+    && echo "timeout=120" >> /root/.pip/pip.conf
+
+# Install PyTorch, build deps, and requirements for each python version.
+# x86_64 uses +cpu suffix to avoid pulling CUDA builds from PyPI.
+# Only install on Python 3.10-3.13; skip 3.14+ (torch 2.12 has no wheels for 3.14).
+RUN for pp in $(ls /usr/local/bin/pip3.* 2>/dev/null | grep -oP 'pip\d+\.\d+' | sort -V); do \
+        pyver=${pp#pip}; \
+        case "$pyver" in \
+            3.9|3.10|3.11|3.12|3.13) ;; \
+            *) echo "=== Skipping ${pp} (Python ${pyver} not supported by torch 2.12) ==="; continue ;; \
+        esac; \
+        echo "=== Installing PyTorch ${PYTORCH_VERSION}+cpu for ${pp} ==="; \
+        $pp install --no-cache-dir torch==${PYTORCH_VERSION}+cpu --extra-index-url https://download.pytorch.org/whl/cpu \
+            -r /opt/buildtools/requirements-builder.txt; \
+    done \
+    && echo "=== PyTorch installation complete ===" \
+    && auditwheel_bin=$(find /opt/_internal/cpython-3.1*/bin/auditwheel 2>/dev/null | tail -1) \
+    && if [ -n "$auditwheel_bin" ]; then \
+        ln -sf "$auditwheel_bin" /usr/local/bin/auditwheel; \
+        echo "auditwheel linked from ${auditwheel_bin}"; \
+    fi
+
+# Install system build tools
+RUN yum remove -y ius-release epel-release 2>/dev/null || true \
+    && rm -rf /etc/yum.repos.d/ius*.repo /etc/yum.repos.d/epel*.repo \
+    && yum clean all && rm -rf /var/cache/dnf /var/cache/yum \
+    && echo "alias ll='ls -l --color=auto'" >> /root/.bashrc \
+    && yum install -y vim-common --disablerepo=ius \
+    && yum install -y binutils lld dos2unix gcc gcc-c++ make cmake3 wget tar unzip elfutils java-1.8.0-openjdk-devel \
+    && cd /tmp \
+    && wget -q https://github.com/ninja-build/ninja/releases/download/v1.12.1/ninja-linux.zip \
+    && unzip ninja-linux.zip \
+    && cp ninja /usr/local/bin/ && chmod +x /usr/local/bin/ninja \
+    && cd /tmp \
+    && wget -q https://github.com/rui314/mold/archive/refs/tags/v2.32.1.tar.gz \
+    && tar -xf v2.32.1.tar.gz \
+    && cd mold-2.32.1 \
+    && cmake -DCMAKE_BUILD_TYPE=Release -DMOLD_MOSTLY_STATIC=ON . \
+    && make -j$(nproc) && make install \
+    && cd /tmp \
+    && wget https://github.com/ccache/ccache/releases/download/v4.10/ccache-4.10.tar.gz \
+    && tar -xzf ccache-4.10.tar.gz \
+    && cd ccache-4.10 \
+    && mkdir build \
+    && cd build \
+    && cmake3 .. \
+    && make -j$(nproc) \
+    && make install \
+    && cd /tmp && rm -rf /tmp/* \
+    && ninja --version && mold --version && ccache --version \
+    && wget https://github.com/etcd-io/etcd/releases/download/v3.4.3/etcd-v3.4.3-linux-amd64.tar.gz \
+    && tar -zxf etcd-v3.4.3-linux-amd64.tar.gz \
+    && mv etcd-v3.4.3-linux-amd64/etcd /usr/local/bin/ \
+    && pip3.10 install python-etcd \
+    && etcd --version \
+    && yum clean all \
+    && yum update -y
+
+# Set timezone
+RUN rm -f /etc/localtime \
+    && cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
+    && echo 'Asia/Shanghai' >/etc/timezone \
+    && echo "export TZ='Asia/Shanghai'" >>/etc/profile
+
+WORKDIR /home

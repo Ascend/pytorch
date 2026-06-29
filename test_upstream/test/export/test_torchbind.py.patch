@@ -1,0 +1,31 @@
+﻿diff --git a/test/export/test_torchbind.py b/test/export/test_torchbind.py
+index adf09868116..4557a7dd76e 100644
+--- a/test/export/test_torchbind.py
++++ b/test/export/test_torchbind.py
+@@ -927,7 +927,7 @@ def forward(self, token, safe_obj):
+                 super().__init__()
+ 
+             def forward(self, tq, x):
+-                with torch.autocast("cuda", dtype=torch.bfloat16):
++                with torch.autocast("npu", dtype=torch.bfloat16):
+                     torch.ops._TorchScriptTesting.queue_push(tq, x.cos())
+                     torch.ops._TorchScriptTesting.queue_push(tq, x.sin())
+                     x_sin = torch.ops._TorchScriptTesting.queue_pop(
+@@ -1562,7 +1562,7 @@ def forward(self, token, obj, x):
+         )
+ 
+     @requires_cuda_and_triton
+-    @parametrize("device", ["cpu", "cuda"])
++    @parametrize("device", ["cpu", "npu"])
+     @parametrize("backend", ["eager", "aot_eager", "inductor"])
+     def test_compile_obj_torchbind_op_with_autocast(self, backend, device):
+         def f(tq, x):
+@@ -1580,7 +1580,7 @@ def forward(self, token, obj, x):
+         )
+ 
+     @requires_cuda_and_triton
+-    @parametrize("device", ["cpu", "cuda"])
++    @parametrize("device", ["cpu", "npu"])
+     def test_export_obj_torchbind_op_with_autocast(self, device):
+         class Mod(torch.nn.Module):
+             def forward(self, x, tq):

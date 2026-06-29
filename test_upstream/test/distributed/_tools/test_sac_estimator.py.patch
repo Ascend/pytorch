@@ -1,0 +1,23 @@
+﻿diff --git a/test/distributed/_tools/test_sac_estimator.py b/test/distributed/_tools/test_sac_estimator.py
+index a3378d2841f..5ebdf4d79b3 100644
+--- a/test/distributed/_tools/test_sac_estimator.py
++++ b/test/distributed/_tools/test_sac_estimator.py
+@@ -1,6 +1,9 @@
+ # Owner(s): ["oncall: distributed"]
+ import unittest
++import torch_npu.testing
+ 
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch
+ from torch._subclasses.fake_tensor import FakeTensorMode
+ from torch.distributed._tools.sac_estimator import SACEstimator
+@@ -10,7 +13,7 @@ from torch.testing._internal.distributed._tensor.common_dtensor import (
+     ModelArgs,
+     Transformer,
+ )
+-
++TEST_CUDA = True
+ 
+ class TestSACEstimator(TestCase):
+     def _sac_estimation(

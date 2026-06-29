@@ -1,0 +1,15 @@
+﻿diff --git a/test/distributed/_tools/test_mod_tracker.py b/test/distributed/_tools/test_mod_tracker.py
+index 646689752f6..11a472bed83 100644
+--- a/test/distributed/_tools/test_mod_tracker.py
++++ b/test/distributed/_tools/test_mod_tracker.py
+@@ -1,7 +1,10 @@
+ # Owner(s): ["oncall: distributed"]
+ 
+ from copy import copy
++import torch_npu.testing
+ 
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch
+ from torch.distributed._tools.mod_tracker import ModTracker
+ from torch.testing._internal.common_utils import run_tests, TestCase, xfailIfTorchDynamo

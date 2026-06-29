@@ -1,0 +1,40 @@
+﻿diff --git a/test/distributed/elastic/test_control_plane.py b/test/distributed/elastic/test_control_plane.py
+index ec93adee6b6..b53b72128d4 100644
+--- a/test/distributed/elastic/test_control_plane.py
++++ b/test/distributed/elastic/test_control_plane.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ #!/usr/bin/env python3
+ # Owner(s): ["oncall: distributed"]
+ 
+@@ -84,7 +89,7 @@ class WorkerServerTest(TestCase):
+             self.assertEqual(resp.status, 404)
+             self.assertIn(b"Handler nonexistent not found:", resp.data)
+ 
+-    @requires_cuda
++    # @requires_cuda
+     def test_dump_nccl_trace_pickle(self) -> None:
+         with local_worker_server() as pool:
+             resp = pool.request("POST", "/handler/dump_nccl_trace_pickle")
+@@ -93,7 +98,7 @@ class WorkerServerTest(TestCase):
+             self.assertIsInstance(out, dict)
+             self.assertIn("version", out)
+ 
+-    @requires_cuda
++    # @requires_cuda
+     def test_dump_nccl_trace_pickle_with_params(self) -> None:
+         with local_worker_server() as pool:
+             # bad key - not lower case
+@@ -128,7 +133,7 @@ class WorkerServerTest(TestCase):
+             )
+             self.assertEqual(resp.status, 200)
+ 
+-    @requires_cuda
++    # @requires_cuda
+     def test_dump_nccl_trace_pickle_with_json(self) -> None:
+         with local_worker_server() as pool:
+             # bad key - not lower case

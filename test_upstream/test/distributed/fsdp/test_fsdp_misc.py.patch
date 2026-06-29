@@ -1,0 +1,69 @@
+﻿diff --git a/test/distributed/fsdp/test_fsdp_misc.py b/test/distributed/fsdp/test_fsdp_misc.py
+index 747280155f6..c1926239cc7 100644
+--- a/test/distributed/fsdp/test_fsdp_misc.py
++++ b/test/distributed/fsdp/test_fsdp_misc.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["oncall: distributed"]
+ 
+ import functools
+@@ -94,7 +99,7 @@ class TestFSDPMiscMultiProcess(FSDPTestContinuous):
+           - Wrapping a GPU module already on the GPU matching ``device_id``
+           should not raise an error
+           - Wrapping a GPU module already on GPU and passing a GPU device
+-          without specifying a device ID (i.e. ``torch.device("cuda")``) warns
++          without specifying a device ID (i.e. ``torch.device("npu")``) warns
+         """
+         dev_id = (
+             torch.accelerator.current_device_index()
+@@ -137,7 +142,7 @@ class TestFSDPMiscMultiProcess(FSDPTestContinuous):
+             fsdp_kwargs={"device_id": dev_id},
+         )
+         _check_device_matches(nested_wrapped_module, dev_id)
+-        # Check that passing in `torch.device("cuda")` for a GPU module warns
++        # Check that passing in `torch.device("npu")` for a GPU module warns
+         regex = "does not have an explicit index"
+         context = self.assertWarnsRegex(
+             expected_warning=UserWarning, expected_regex=regex
+@@ -869,8 +874,8 @@ class TestFSDPMiscMultiThread(FSDPTestMultiThread):
+             def __init__(self, rank):
+                 super().__init__()
+                 self.rank = rank
+-                self.a = nn.Linear(1, 1).cuda(self.rank)
+-                self.b = nn.Linear(1, 1).cuda((self.rank + 1) % dist.get_world_size())
++                self.a = nn.Linear(1, 1).npu(self.rank)
++                self.b = nn.Linear(1, 1).npu((self.rank + 1) % dist.get_world_size())
+ 
+         with self.assertRaisesRegex(
+             RuntimeError, "FSDP only supports single device modules"
+@@ -903,7 +908,7 @@ class TestFSDPMiscMultiThread(FSDPTestMultiThread):
+         context = (
+             (
+                 self.assertRaisesRegex(
+-                    ValueError, f"Inconsistent.*cuda:{self.rank} vs cuda:0"
++                    ValueError, f"Inconsistent.*npu:{self.rank} vs npu:0"
+                 )
+             )
+             if self.rank != 0
+@@ -1083,7 +1088,7 @@ class TestFSDPMiscWorldSize1(FSDPTestMultiThread):
+         with self.assertRaisesRegex(
+             RuntimeError,
+             "An FSDP-managed module unexpectedly has parameters on cpu. Make "
+-            "sure to move the module to cuda:0 before training.",
++            "sure to move the module to npu:0 before training.",
+         ):
+             fsdp_model(inp)
+ 
+@@ -1095,7 +1100,7 @@ class TestFSDPMiscWorldSize1(FSDPTestMultiThread):
+         with self.assertRaisesRegex(
+             RuntimeError,
+             "An FSDP-managed module with parameter CPU offloading enabled has "
+-            "parameters on cuda:0. Make sure to not move the module from CPU "
++            "parameters on npu:0. Make sure to not move the module from CPU "
+             "when offloading parameters.",
+         ):
+             fsdp_model(inp)

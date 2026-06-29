@@ -1,0 +1,25 @@
+﻿diff --git a/test/distributed/tensor/test_dtensor.py b/test/distributed/tensor/test_dtensor.py
+index e14f355d971..ba1f00f6d01 100644
+--- a/test/distributed/tensor/test_dtensor.py
++++ b/test/distributed/tensor/test_dtensor.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Copyright (c) Meta Platforms, Inc. and affiliates
+ # Owner(s): ["oncall: distributed"]
+ 
+@@ -47,9 +52,10 @@ from torch.testing._internal.distributed._tensor.common_dtensor import (
+     create_local_tensor_test_class,
+     DTensorTestBase,
+     map_local_tensor_for_rank,
+-    with_comms,
++    # with_comms,
+ )
+ from torch.testing._internal.distributed.fake_pg import FakeStore
++from torch_npu.testing.common_distributed import with_comms
+ 
+ 
+ c10d_functional = torch.ops.c10d_functional

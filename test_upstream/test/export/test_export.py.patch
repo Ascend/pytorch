@@ -1,0 +1,117 @@
+﻿diff --git a/test/export/test_export.py b/test/export/test_export.py
+index 9fed39d19b0..d20f099d5aa 100755
+--- a/test/export/test_export.py
++++ b/test/export/test_export.py
+@@ -10056,7 +10056,7 @@ def forward(self, b_a_buffer, x):
+     @requires_cuda_and_triton
+     @testing.expectedFailureCppRuntime
+     def test_export_associative_scan_symbol_dim(self):
+-        device = torch.device("cuda")
++        device = torch.device("npu")
+         combine_mode = "pointwise"
+ 
+         dim1 = torch.export.Dim("dim0", min=5, max=15)
+@@ -10081,7 +10081,7 @@ def forward(self, b_a_buffer, x):
+     @requires_cuda_and_triton
+     @testing.expectedFailureCppRuntime
+     def test_export_associative_scan_symbol_scandim(self):
+-        device = torch.device("cuda")
++        device = torch.device("npu")
+         combine_mode = "pointwise"
+ 
+         dim1 = torch.export.Dim("dim0", min=5, max=15)
+@@ -10108,7 +10108,7 @@ def forward(self, b_a_buffer, x):
+         if "cpp_runtime_nonstrict" in self.id():
+             self.skipTest("TODO Unexpected success in OSS but not in fbcode.")
+ 
+-        device = torch.device("cuda")
++        device = torch.device("npu")
+         combine_mode = "pointwise"
+ 
+         class A(torch.nn.Module):
+@@ -14317,7 +14317,7 @@ def forward(self, x, b_t, y):
+         class Model(torch.nn.Module):
+             def forward(self, x):
+                 with torch.autocast(
+-                    device_type="cuda", dtype=torch.int16, enabled=True
++                    device_type="npu", dtype=torch.int16, enabled=True
+                 ):
+                     y = x.sin().sum()
+                 with torch.autocast(
+@@ -16870,7 +16870,7 @@ class GraphModule(torch.nn.Module):
+                 self.mod = Model()
+ 
+             def forward(self, x):
+-                if "cuda" in str(x.device):
++                if "npu" in str(x.device):
+                     mod = self.mod.to(x.device)
+                     return mod(x)
+                 else:
+@@ -16885,7 +16885,7 @@ class GraphModule(torch.nn.Module):
+             container_eager = copy.deepcopy(container)
+             gm = torch.export.export(
+                 container,
+-                (torch.randn(4, 4, 4, device="cuda"),),
++                (torch.randn(4, 4, 4, device="npu"),),
+                 strict=True,
+             ).module()
+ 
+@@ -16912,7 +16912,7 @@ def forward(self, x):
+     return pytree.tree_unflatten((add,), self._out_spec)""",
+             )
+ 
+-            inp = torch.randn(4, 4, 4, device="cuda")
++            inp = torch.randn(4, 4, 4, device="npu")
+ 
+             # Call container first to move shared weights to CUDA
+             export_out = gm(inp)
+@@ -17020,7 +17020,7 @@ def forward(self, x):
+         self.assertEqual(x.sin(), ep.module()(x))
+         pytree._deregister_pytree_node(torch.FunctionSchema)
+ 
+-    @unittest.skipIf(not torch.cuda.is_available(), "Test requires CUDA.")
++    @unittest.skipIf(not torch.npu.is_available(), "Test requires NPU.")
+     def test_exception(self):
+         class Model(torch.nn.Module):
+             def __init__(self):
+@@ -17040,7 +17040,7 @@ def forward(self, x):
+                 self.mod = Model()
+ 
+             def forward(self, x):
+-                if "cuda" in str(x.device):
++                if "npu" in str(x.device):
+                     mod = self.mod.to(x.device)
+                     return mod(x)
+                 else:
+@@ -17052,7 +17052,7 @@ def forward(self, x):
+                 self.mod = BarModel()
+ 
+             def forward(self, x):
+-                with torch.amp.autocast(device_type="cuda"):
++                with torch.amp.autocast(device_type="npu"):
+                     y = self.mod(x)
+                 return y
+ 
+@@ -17061,7 +17061,7 @@ def forward(self, x):
+                 _ = torch.export.export(
+                     BarBar(),
+                     (),
+-                    {"x": torch.randn(4, 4, 4, device="cuda")},
++                    {"x": torch.randn(4, 4, 4, device="npu")},
+                     strict=False,
+                 ).module()
+ 
+@@ -18142,10 +18142,10 @@ def forward(self, x):
+                 y = y.float()
+                 return x + y
+ 
+-        inp = (torch.randn(3, device="cuda"), torch.randn(3, device="cuda"))
++        inp = (torch.randn(3, device="npu"), torch.randn(3, device="npu"))
+         ep = export(N(), inp)
+-        ep = move_to_device_pass(ep, {"cuda:0": "cuda"})
+-        ep.module()(torch.randn(3, device="cuda:0"), torch.randn(3, device="cuda:0"))
++        ep = move_to_device_pass(ep, {"npu:0": "npu"})
++        ep.module()(torch.randn(3, device="npu:0"), torch.randn(3, device="npu:0"))
+ 
+     @unittest.skipIf(not HAS_TORCHREC, "only run when there is torchrec imported")
+     def test_torchrec_jagged_tensor(self):

@@ -1,0 +1,22 @@
+﻿diff --git a/test/distributed/test_nvshmem.py b/test/distributed/test_nvshmem.py
+index 584a1c17e4e..b623fcafa5d 100644
+--- a/test/distributed/test_nvshmem.py
++++ b/test/distributed/test_nvshmem.py
+@@ -7,6 +7,8 @@
+ import os
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch.distributed as dist
+ import torch.distributed._symmetric_memory as symm_mem
+ from torch.distributed.device_mesh import init_device_mesh
+@@ -56,7 +58,7 @@ def requires_nvls():
+ 
+ 
+ # So that tests are written in device-agnostic way
+-device_type = "cuda"
++device_type = "npu"
+ device_module = torch.get_device_module(device_type)
+ 
+ 

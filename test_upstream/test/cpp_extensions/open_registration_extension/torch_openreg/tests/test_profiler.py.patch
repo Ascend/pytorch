@@ -1,0 +1,13 @@
+﻿diff --git a/test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_profiler.py b/test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_profiler.py
+index 10382c3f926..b182d85ecc3 100644
+--- a/test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_profiler.py
++++ b/test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_profiler.py
+@@ -4,6 +4,8 @@ import json
+ import tempfile
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch.nn as nn
+ from torch.autograd.profiler import profile as autograd_profile
+ from torch.profiler import record_function

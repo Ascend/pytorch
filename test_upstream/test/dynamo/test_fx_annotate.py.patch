@@ -1,0 +1,83 @@
+﻿diff --git a/test/dynamo/test_fx_annotate.py b/test/dynamo/test_fx_annotate.py
+index 71c09b2b7a5..ecefb5c69ed 100644
+--- a/test/dynamo/test_fx_annotate.py
++++ b/test/dynamo/test_fx_annotate.py
+@@ -3,6 +3,8 @@
+ import warnings
+ 
+ import torch
++from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ import torch._dynamo.test_case
+ import torch.fx.traceback as fx_traceback
+ import torch.utils.checkpoint
+@@ -27,7 +29,7 @@ class AnnotateTests(torch._dynamo.test_case.TestCase):
+                     with fx_traceback.annotate({"fdsp_bucket": 0}):
+                         sin = torch.sin(x)
+                     sub = sin - 2
+-                    with fx_traceback.annotate({"cuda_stream": 2, "fsdp_bucket": 1}):
++                    with fx_traceback.annotate({"npu_stream": 2, "fsdp_bucket": 1}):
+                         mul = sub * 2
+                 div = mul / 3
+                 return div
+@@ -50,19 +52,19 @@ class AnnotateTests(torch._dynamo.test_case.TestCase):
+ ('placeholder', 'l_x_', {'pp_stage': 0, 'fdsp_bucket': 0})
+ ('call_function', 'sin', {'pp_stage': 0, 'fdsp_bucket': 0})
+ ('call_function', 'sub', {'pp_stage': 0})
+-('call_function', 'mul', {'pp_stage': 0, 'cuda_stream': 2, 'fsdp_bucket': 1})""",  # noqa: B950
++('call_function', 'mul', {'pp_stage': 0, 'npu_stream': 2, 'fsdp_bucket': 1})""",  # noqa: B950
+         )
+         self.assertExpectedInline(
+             str(fw_metadata),
+             """\
+ ('call_function', 'sin', {'pp_stage': 0, 'fdsp_bucket': 0})
+ ('call_function', 'sub', {'pp_stage': 0})
+-('call_function', 'mul', {'pp_stage': 0, 'cuda_stream': 2, 'fsdp_bucket': 1})""",  # noqa: B950
++('call_function', 'mul', {'pp_stage': 0, 'npu_stream': 2, 'fsdp_bucket': 1})""",  # noqa: B950
+         )
+         self.assertExpectedInline(
+             str(bw_metadata),
+             """\
+-('call_function', 'mul_1', {'pp_stage': 0, 'cuda_stream': 2, 'fsdp_bucket': 1})
++('call_function', 'mul_1', {'pp_stage': 0, 'npu_stream': 2, 'fsdp_bucket': 1})
+ ('call_function', 'cos', {'pp_stage': 0, 'fdsp_bucket': 0})
+ ('call_function', 'mul_2', {'pp_stage': 0, 'fdsp_bucket': 0})""",  # noqa: B950
+         )
+@@ -146,7 +148,7 @@ class AnnotateTests(torch._dynamo.test_case.TestCase):
+ ('call_function', 'mul', {'stage': 0})""",  # noqa: B950
+         )
+ 
+-    @requires_cuda_and_triton
++    # @requires_cuda_and_triton
+     def test_ac_flex_attention(self):
+         def _squared(score, b, h, m, n):
+             return score * score
+@@ -175,7 +177,7 @@ class AnnotateTests(torch._dynamo.test_case.TestCase):
+             a * b,
+             b,
+             dtype=torch.bfloat16,
+-            device="cuda",
++            device="npu",
+             requires_grad=True,
+         )
+ 
+@@ -249,15 +251,15 @@ class AnnotateTests(torch._dynamo.test_case.TestCase):
+             return q_idx >= kv_idx
+ 
+         q = torch.randn(
+-            1, 2, 128, 32, device="cuda", dtype=torch.bfloat16, requires_grad=True
++            1, 2, 128, 32, device="npu", dtype=torch.bfloat16, requires_grad=True
+         )
+         k = torch.randn(
+-            1, 2, 128, 32, device="cuda", dtype=torch.bfloat16, requires_grad=True
++            1, 2, 128, 32, device="npu", dtype=torch.bfloat16, requires_grad=True
+         )
+         v = torch.randn(
+-            1, 2, 128, 32, device="cuda", dtype=torch.bfloat16, requires_grad=True
++            1, 2, 128, 32, device="npu", dtype=torch.bfloat16, requires_grad=True
+         )
+-        block_mask = create_block_mask(causal_mask, 1, 2, 128, 128, device="cuda")
++        block_mask = create_block_mask(causal_mask, 1, 2, 128, 128, device="npu")
+ 
+         def fn(q, k, v, block_mask):
+             with fx_traceback.annotate({"ac_region_id": 0}):

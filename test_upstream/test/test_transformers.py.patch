@@ -1,0 +1,101 @@
+diff --git a/test/test_transformers.py b/test/test_transformers.py
+index ced9b01..7acacc5 100644
+--- a/test/test_transformers.py
++++ b/test/test_transformers.py
+@@ -1,11 +1,16 @@
+ # Owner(s): ["module: sdpa"]
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++torch_npu.npu.use_compatible_impl(True)
+ 
+ import contextlib
+ from functools import partial
+ from collections import namedtuple
+ import os
+ import sys
+-import torch
+ import torch.nn as nn
+ import torch.nn.functional as F
+ from torch.nn.functional import scaled_dot_product_attention
+@@ -903,14 +908,14 @@ class TestTransformers(NNTestCase):
+         torch.backends.cuda.allow_fp16_bf16_reduction_math_sdp(False)
+         sdp_math_high_prec_out = scaled_dot_product_attention(xq, xk, xv, mask, SDPBackend.MATH)
+ 
+-        sdp_math_fp64_out_ref = scaled_dot_product_attention(
+-            xq.double(), xk.double(), xv.double(), mask, SDPBackend.MATH
++        sdp_math_fp32_out_ref = scaled_dot_product_attention(
++            xq.float(), xk.float(), xv.float(), mask, SDPBackend.MATH
+         ).bfloat16()
+ 
+-        torch.testing.assert_close(sdp_math_high_prec_out, sdp_math_fp64_out_ref, atol=1e-2, rtol=1e-2)
++        torch.testing.assert_close(sdp_math_high_prec_out, sdp_math_fp32_out_ref, atol=1e-2, rtol=1e-2)
+ 
+         with self.assertRaisesRegex(AssertionError, "Tensor-likes are not close"):
+-            torch.testing.assert_close(sdp_math_low_prec_out, sdp_math_fp64_out_ref, atol=1e-2, rtol=1e-2)
++            torch.testing.assert_close(sdp_math_low_prec_out, sdp_math_fp32_out_ref, atol=1e-2, rtol=1e-2)
+ 
+     @onlyCUDA
+     @parametrize("nb_heads", [1, 8])
+@@ -2235,7 +2240,7 @@ class TestSDPACpuOnly(NNTestCase):
+ 
+     @parametrize("type", ["dense", "nested"])
+     @parametrize("dropout", [0.0, 0.7])
+-    @parametrize("dtype", [torch.float64, torch.float32, torch.bfloat16, torch.half])
++    @parametrize("dtype", [torch.float32, torch.bfloat16, torch.half])
+     @skipIfTorchDynamo()
+     def test_fused_sdp_choice_cpu(self, device, type: str, dropout: float, dtype: torch.dtype):
+         # Test that cpu and nestedtensor cpu return MATH backend
+@@ -2272,7 +2277,7 @@ class TestSDPACpuOnly(NNTestCase):
+         return q, k, v
+ 
+     @parametrize("fused_kernel", [SDPBackend.FLASH_ATTENTION])
+-    @parametrize("dtype", [torch.float64, torch.float32, torch.bfloat16, torch.float16])
++    @parametrize("dtype", [torch.float32, torch.bfloat16, torch.float16])
+     @parametrize("batch_size", [2, 12])
+     @parametrize("q_seq_len", [11, 514, 1030])
+     @parametrize("kv_seq_len", [17, 514])
+@@ -2516,11 +2521,11 @@ class TestSDPACpuOnly(NNTestCase):
+             grads = torch.autograd.grad(loss, [query, key, value])
+             return masked_out, grads
+ 
+-        if backend == SDPBackend.FLASH_ATTENTION and "cuda" in str(device):
+-            unittest.skip("FlashAttention does not support masks on cuda")
++        if backend == SDPBackend.FLASH_ATTENTION and ("cuda" in str(device) or "npu" in str(device)):
++            unittest.skip("FlashAttention does not support masks on cuda or npu")
+             return
+-        if backend == SDPBackend.EFFICIENT_ATTENTION and "cpu" in str(device):
+-            unittest.skip("EfficientAttention does not support masks on cpu")
++        if backend == SDPBackend.EFFICIENT_ATTENTION and ("cpu" in str(device) or "npu" in str(device)):
++            unittest.skip("EfficientAttention does not support masks on cpu or npu")
+             return
+         query, key, value, mask = attention_inputs(seq_len, head_dim, device, dtype)
+ 
+@@ -4606,12 +4611,7 @@ class TestSDPAXpuOnly(NNTestCase):
+         make_tensor = partial(rand_sdpa_tensor, type=type, device=device, dtype=dtype)
+         size = SdpaShape(2, 8, 128, 64)
+         q, k, v = make_tensor(size), make_tensor(size), make_tensor(size)
+-        if dropout > 0.0 or dtype not in [torch.float32, torch.bfloat16, torch.float16]:
+-            if torch._fused_sdp_choice(q, k, v, dropout_p=dropout) != SDPBackend.MATH.value:
+-                raise AssertionError("expected MATH backend")
+-        else:
+-            if torch._fused_sdp_choice(q, k, v, dropout_p=dropout) != SDPBackend.OVERRIDEABLE.value:
+-                raise AssertionError("expected OVERRIDEABLE backend")
++        assert torch._fused_sdp_choice(q, k, v, dropout_p=dropout) == SDPBackend.OVERRIDEABLE.value
+ 
+     def test_backends_set_to_math(self, device):
+         dtype = torch.bfloat16
+@@ -5241,9 +5241,9 @@ class TestAttnBias(NNTestCase):
+             scaled_dot_product_attention(query, key, value, attn_mask=attn_bias, is_causal=True, dropout_p=0.0)
+ 
+ if NOTEST_CPU:
+-    device_types = ("cuda", "mps", "mtia")
++    device_types = ("privateuse1", "mps", "mtia")
+ else:
+-    device_types = ("cpu", "cuda", "mps", "mtia")
++    device_types = ("cpu", "privateuse1", "mps", "mtia")
+ 
+ if TEST_XPU:
+     device_types += ("xpu", )

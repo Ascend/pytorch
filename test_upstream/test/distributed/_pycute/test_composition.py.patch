@@ -1,0 +1,14 @@
+﻿diff --git a/test/distributed/_pycute/test_composition.py b/test/distributed/_pycute/test_composition.py
+index 467b13933ff..ddf904f1f31 100644
+--- a/test/distributed/_pycute/test_composition.py
++++ b/test/distributed/_pycute/test_composition.py
+@@ -38,7 +38,8 @@ Unit tests for _pycute.composition
+ """
+ 
+ import logging
+-
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ from torch.distributed._pycute import *
+ from torch.testing._internal.common_utils import run_tests, TestCase
+ 

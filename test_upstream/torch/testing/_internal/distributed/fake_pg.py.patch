@@ -1,0 +1,11 @@
+﻿diff --git a/torch/testing/_internal/distributed/fake_pg.py b/torch/testing/_internal/distributed/fake_pg.py
+index af1917eeb0f..a8c358a2242 100644
+--- a/torch/testing/_internal/distributed/fake_pg.py
++++ b/torch/testing/_internal/distributed/fake_pg.py
+@@ -31,5 +31,5 @@ dist.Backend.register_backend(
+     dist.Backend.FAKE,
+     _create_fake_pg,
+     extended_api=True,
+-    devices=["cpu", "cuda", "hpu", "xpu"],
++    devices=["cpu", "npu", "hpu", "xpu"],
+ )

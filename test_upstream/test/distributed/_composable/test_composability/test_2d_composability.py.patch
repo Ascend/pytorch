@@ -1,0 +1,13 @@
+﻿diff --git a/test/distributed/_composable/test_composability/test_2d_composability.py b/test/distributed/_composable/test_composability/test_2d_composability.py
+index cbd06e13c1d..212a5a0f896 100644
+--- a/test/distributed/_composable/test_composability/test_2d_composability.py
++++ b/test/distributed/_composable/test_composability/test_2d_composability.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Owner(s): ["oncall: distributed"]
+ 
+ import copy

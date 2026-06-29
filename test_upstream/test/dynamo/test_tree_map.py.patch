@@ -1,0 +1,13 @@
+﻿diff --git a/test/dynamo/test_tree_map.py b/test/dynamo/test_tree_map.py
+index dffa408a4b2..d0e377d5ced 100644
+--- a/test/dynamo/test_tree_map.py
++++ b/test/dynamo/test_tree_map.py
+@@ -5,6 +5,8 @@ from dataclasses import dataclass
+ from typing import NamedTuple
+ 
+ import torch
++from torch_npu.contrib import transfer_to_npu
++import torch_npu
+ import torch._dynamo
+ import torch.utils._pytree as python_pytree
+ from torch._dynamo.test_case import run_tests, TestCase

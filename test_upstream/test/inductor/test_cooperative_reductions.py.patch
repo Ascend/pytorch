@@ -1,0 +1,29 @@
+﻿diff --git a/test/inductor/test_cooperative_reductions.py b/test/inductor/test_cooperative_reductions.py
+index fa395dac4b5..4ac05914f76 100644
+--- a/test/inductor/test_cooperative_reductions.py
++++ b/test/inductor/test_cooperative_reductions.py
+@@ -1,9 +1,16 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ from typing import Any
+ 
+ import sympy
+ 
+-import torch
+ import torch._inductor
+ from torch._inductor import config
+ from torch._inductor.choices import InductorChoices
+@@ -378,5 +385,4 @@ class TestFixedConfigs(TestCase):
+ if __name__ == "__main__":
+     from torch._dynamo.test_case import run_tests
+ 
+-    if HAS_GPU:
+-        run_tests(needs="filelock")
++    run_tests(needs="filelock")

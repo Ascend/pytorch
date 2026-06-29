@@ -1,0 +1,13 @@
+﻿diff --git a/test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_misc.py b/test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_misc.py
+index 7b8db983011..39bc9ab1120 100644
+--- a/test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_misc.py
++++ b/test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_misc.py
+@@ -4,6 +4,8 @@ import types
+ import unittest
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ from torch.testing._internal.common_utils import run_tests, skipIfTorchDynamo, TestCase
+ 
+ 

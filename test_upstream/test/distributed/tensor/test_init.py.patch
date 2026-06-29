@@ -1,0 +1,25 @@
+﻿diff --git a/test/distributed/tensor/test_init.py b/test/distributed/tensor/test_init.py
+index 12970292717..c8797c31330 100644
+--- a/test/distributed/tensor/test_init.py
++++ b/test/distributed/tensor/test_init.py
+@@ -1,3 +1,8 @@
++import torch_npu.testing
++
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ # Copyright (c) Meta Platforms, Inc. and affiliates
+ # Owner(s): ["oncall: distributed"]
+ 
+@@ -8,9 +13,9 @@ from torch.testing._internal.common_utils import run_tests
+ from torch.testing._internal.distributed._tensor.common_dtensor import (
+     create_local_tensor_test_class,
+     DTensorTestBase,
+-    with_comms,
++    # with_comms,
+ )
+-
++from torch_npu.testing.common_distributed import with_comms
+ 
+ class DTensorInitOpsTest(DTensorTestBase):
+     def _run_init_op(self, init_op, *args, **kwargs):

@@ -1,0 +1,14 @@
+﻿diff --git a/test/profiler/test_torch_tidy.py b/test/profiler/test_torch_tidy.py
+index a0f41114e91..88f2b8ce865 100644
+--- a/test/profiler/test_torch_tidy.py
++++ b/test/profiler/test_torch_tidy.py
+@@ -31,6 +31,9 @@ except ImportError:
+ 
+ Json = dict[str, Any]
+ 
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
+ 
+ def find_node_with_name(nodes, name):
+     for node in _utils.traverse_dfs(nodes):

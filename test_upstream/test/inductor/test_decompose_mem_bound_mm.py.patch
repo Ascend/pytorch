@@ -1,0 +1,38 @@
+﻿diff --git a/test/inductor/test_decompose_mem_bound_mm.py b/test/inductor/test_decompose_mem_bound_mm.py
+index 79cb68b2d71..c12d3469c67 100644
+--- a/test/inductor/test_decompose_mem_bound_mm.py
++++ b/test/inductor/test_decompose_mem_bound_mm.py
+@@ -1,9 +1,16 @@
++import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++from torch_npu.utils import _dynamo
++_dynamo.use_jit_script = True
++torch.cuda.get_device_capability = lambda :(10, 0)
++import torch_npu.testing
++
+ # Owner(s): ["module: inductor"]
+ 
+ import logging
+ import unittest
+ 
+-import torch
+ import torch._inductor
+ from torch._dynamo.utils import counters
+ from torch._inductor.fx_passes.decompose_mem_bound_mm import check_device
+@@ -18,6 +25,7 @@ from torch.testing._internal.common_utils import (
+ )
+ from torch.testing._internal.inductor_utils import GPU_TYPE, HAS_GPU_AND_TRITON
+ from torch.testing._internal.triton_utils import requires_gpu
++import torch_npu._inductor
+ 
+ 
+ class MyModule(torch.nn.Module):
+@@ -59,7 +67,6 @@ class TestDecomposeAddMM(torch.nn.Module):
+         return torch.ops.aten.addmm.default(z, x, y)
+ 
+ 
+-@requires_gpu
+ @torch._inductor.config.patch(
+     post_grad_fusion_options={
+         "decompose_mm_pass": {},

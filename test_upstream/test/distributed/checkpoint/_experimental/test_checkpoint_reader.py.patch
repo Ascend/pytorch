@@ -1,0 +1,31 @@
+﻿diff --git a/test/distributed/checkpoint/_experimental/test_checkpoint_reader.py b/test/distributed/checkpoint/_experimental/test_checkpoint_reader.py
+index 70d1d30facd..13119d95492 100644
+--- a/test/distributed/checkpoint/_experimental/test_checkpoint_reader.py
++++ b/test/distributed/checkpoint/_experimental/test_checkpoint_reader.py
+@@ -5,6 +5,8 @@ import tempfile
+ from typing import Any
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ from torch.distributed.checkpoint._experimental.checkpoint_reader import (
+     CheckpointReader,
+ )
+@@ -71,7 +73,7 @@ class TestCheckpointReader(TestCase):
+         elif isinstance(state_dict, list):
+             return [self.move_tensors_to_device(item, device) for item in state_dict]
+         elif isinstance(state_dict, torch.Tensor):
+-            return state_dict.cuda() if device == "cpu" else state_dict.cpu()
++            return state_dict.npu() if device == "cpu" else state_dict.cpu()
+         else:
+             return state_dict
+ 
+@@ -112,7 +114,7 @@ class TestCheckpointReader(TestCase):
+     def test_read_with_map_location(self):
+         """Test that read correctly uses the map_location parameter."""
+         # Call read with map_location='cpu'
+-        map_location = "cuda" if torch.cuda.is_available() else "cpu"
++        map_location = "npu" if torch.npu.is_available() else "cpu"
+         read_state_dict, _ = self.reader.read(
+             self.checkpoint_path, map_location=map_location
+         )

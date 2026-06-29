@@ -1,0 +1,12 @@
+﻿diff --git a/test/inductor/test_torchbind.py b/test/inductor/test_torchbind.py
+index 253b072f088..744446edfd9 100644
+--- a/test/inductor/test_torchbind.py
++++ b/test/inductor/test_torchbind.py
+@@ -19,6 +19,7 @@ from torch.testing._internal.torchbind_impls import (
+     _empty_tensor_queue,
+     init_torchbind_implementations,
+ )
++import torch_npu._inductor
+ 
+ 
+ class TestTorchbind(TestCase):
