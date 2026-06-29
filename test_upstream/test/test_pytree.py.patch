@@ -1,0 +1,185 @@
+diff --git a/test/test_pytree.py b/test/test_pytree.py
+index 1b7902c020..0622b74ffa 100644
+--- a/test/test_pytree.py
++++ b/test/test_pytree.py
+@@ -214,7 +214,7 @@ class TestGenericPytree(TestCase):
+         run_test_with_leaf(1.0)
+         run_test_with_leaf(None)
+         run_test_with_leaf(bool)
+-        run_test_with_leaf(torch.randn(3, 3))
++        run_test_with_leaf(torch.randn(3, 3).npu())
+ 
+     @parametrize(
+         "pytree,gen_expected_fn",
+@@ -249,7 +249,7 @@ class TestGenericPytree(TestCase):
+         run_test(())
+         run_test((1.0,))
+         run_test((1.0, 2))
+-        run_test((torch.tensor([1.0, 2]), 2, 10, 9, 11))
++        run_test((torch.tensor([1.0, 2]).npu(), 2, 10, 9, 11))
+ 
+     @parametrize(
+         "pytree,gen_expected_fn",
+@@ -283,7 +283,7 @@ class TestGenericPytree(TestCase):
+ 
+         run_test([])
+         run_test([1.0, 2])
+-        run_test([torch.tensor([1.0, 2]), 2, 10, 9, 11])
++        run_test([torch.tensor([1.0, 2]).npu(), 2, 10, 9, 11])
+ 
+     @parametrize(
+         "pytree,gen_expected_fn",
+@@ -322,9 +322,9 @@ class TestGenericPytree(TestCase):
+ 
+         run_test({})
+         run_test({"a": 1})
+-        run_test({"abcdefg": torch.randn(2, 3)})
+-        run_test({1: torch.randn(2, 3)})
+-        run_test({"a": 1, "b": 2, "c": torch.randn(2, 3)})
++        run_test({"abcdefg": torch.randn(2, 3).npu()})
++        run_test({1: torch.randn(2, 3).npu()})
++        run_test({"a": 1, "b": 2, "c": torch.randn(2, 3).npu()})
+ 
+     @parametrize(
+         "pytree,gen_expected_fn",
+@@ -367,7 +367,7 @@ class TestGenericPytree(TestCase):
+         run_test(od)
+ 
+         od["b"] = 1
+-        od["a"] = torch.tensor(3.14)
++        od["a"] = torch.tensor(3.14).npu()
+         run_test(od)
+ 
+     @parametrize(
+@@ -410,9 +410,9 @@ class TestGenericPytree(TestCase):
+ 
+         run_test(defaultdict(list, {}))
+         run_test(defaultdict(int, {"a": 1}))
+-        run_test(defaultdict(int, {"abcdefg": torch.randn(2, 3)}))
+-        run_test(defaultdict(int, {1: torch.randn(2, 3)}))
+-        run_test(defaultdict(int, {"a": 1, "b": 2, "c": torch.randn(2, 3)}))
++        run_test(defaultdict(int, {"abcdefg": torch.randn(2, 3).npu()}))
++        run_test(defaultdict(int, {1: torch.randn(2, 3).npu()}))
++        run_test(defaultdict(int, {"a": 1, "b": 2, "c": torch.randn(2, 3).npu()}))
+ 
+     @parametrize(
+         "pytree,gen_expected_fn",
+@@ -452,7 +452,7 @@ class TestGenericPytree(TestCase):
+ 
+         run_test(deque([]))
+         run_test(deque([1.0, 2]))
+-        run_test(deque([torch.tensor([1.0, 2]), 2, 10, 9, 11], maxlen=8))
++        run_test(deque([torch.tensor([1.0, 2]).npu(), 2, 10, 9, 11], maxlen=8))
+ 
+     @parametrize_pytree_module
+     def test_flatten_unflatten_namedtuple(self, pytree):
+@@ -475,7 +475,7 @@ class TestGenericPytree(TestCase):
+             self.assertIsInstance(unflattened, Point)
+ 
+         run_test(Point(1.0, 2))
+-        run_test(Point(torch.tensor(1.0), 2))
++        run_test(Point(torch.tensor(1.0).npu(), 2))
+ 
+     @parametrize(
+         "op",
+@@ -486,7 +486,7 @@ class TestGenericPytree(TestCase):
+     )
+     @parametrize_pytree_module
+     def test_flatten_unflatten_return_types(self, pytree, op):
+-        x = torch.randn(3, 3)
++        x = torch.randn(3, 3).npu()
+         expected = op(x, dim=0)
+ 
+         values, spec = pytree.tree_flatten(expected)
+@@ -515,7 +515,11 @@ class TestGenericPytree(TestCase):
+             ([],),
+             {"a": ()},
+             {"a": 0, "b": [{"c": 1}]},
+-            {"a": 0, "b": [1, {"c": 2}, torch.randn(3)], "c": (torch.randn(2, 3), 1)},
++            {
++                "a": 0,
++                "b": [1, {"c": 2}, torch.randn(3).npu()],
++                "c": (torch.randn(2, 3).npu(), 1),
++            },
+         ]
+         for case in cases:
+             run_test(case)
+@@ -550,10 +554,10 @@ class TestGenericPytree(TestCase):
+             (
+                 {
+                     "a": 0,
+-                    "b": [1, {"c": 2}, torch.ones(3)],
+-                    "c": (torch.zeros(2, 3), 1),
++                    "b": [1, {"c": 2}, torch.ones(3).npu()],
++                    "c": (torch.zeros(2, 3).npu(), 1),
+                 },
+-                [0, [1, {"c": 2}, torch.ones(3)], (torch.zeros(2, 3), 1)],
++                [0, [1, {"c": 2}, torch.ones(3).npu()], (torch.zeros(2, 3).npu(), 1)],
+             ),
+         ]
+         for case in cases:
+@@ -875,6 +879,7 @@ class TestPythonPytree(TestCase):
+                 lambda xs, _: DummyType(*xs),
+             )
+ 
++    @unittest.skip("the _pytree functionality is maintained by upstream(native PyTorch)")
+     def test_import_pytree_doesnt_import_optree(self):
+         # importing torch.utils._pytree shouldn't import optree.
+         # only importing torch.utils._cxx_pytree should.
+@@ -1294,10 +1299,10 @@ if "optree" in sys.modules:
+             d: str = field(init=False, default="")
+ 
+         python_pytree.register_dataclass(Data)
+-        old_data = Data(torch.tensor(3), "b", "c")
++        old_data = Data(torch.tensor(3).npu(), "b", "c")
+         old_data.d = "d"
+         new_data = python_pytree.tree_map(lambda x: x, old_data)
+-        self.assertEqual(new_data.a, torch.tensor(3))
++        self.assertEqual(new_data.a, torch.tensor(3).npu())
+         self.assertEqual(new_data.b, "b")
+         self.assertEqual(new_data.c, "c")
+         self.assertEqual(new_data.d, "")
+@@ -1315,9 +1320,9 @@ if "optree" in sys.modules:
+         python_pytree.register_dataclass(
+             Data, field_names=["a"], drop_field_names=["b", "c"]
+         )
+-        old_data = Data(torch.tensor(3), "b", "c")
++        old_data = Data(torch.tensor(3).npu(), "b", "c")
+         new_data = python_pytree.tree_map(lambda x: x, old_data)
+-        self.assertEqual(new_data.a, torch.tensor(3))
++        self.assertEqual(new_data.a, torch.tensor(3).npu())
+         self.assertEqual(new_data.b, "moo")
+         self.assertEqual(new_data.c, None)
+         python_pytree._deregister_pytree_node(Data)
+@@ -1333,10 +1338,10 @@ if "optree" in sys.modules:
+ 
+         python_pytree.register_dataclass(CustomClass, field_names=["x", "y"])
+         try:
+-            c = CustomClass(torch.tensor(0), torch.tensor(1))
++            c = CustomClass(torch.tensor(0).npu(), torch.tensor(1).npu())
+             mapped = python_pytree.tree_map(lambda x: x + 1, c)
+-            self.assertEqual(mapped.x, torch.tensor(1))
+-            self.assertEqual(mapped.y, torch.tensor(2))
++            self.assertEqual(mapped.x, torch.tensor(1).npu())
++            self.assertEqual(mapped.y, torch.tensor(2).npu())
+         finally:
+             python_pytree._deregister_pytree_node(CustomClass)
+ 
+@@ -1433,7 +1438,7 @@ if "optree" in sys.modules:
+         SOME_PYTREES = [
+             (None,),
+             ["hello", [1, 2], {"foo": [(3)]}],
+-            [ANamedTuple(x=torch.rand(2, 3), y=1, z="foo")],
++            [ANamedTuple(x=torch.rand(2, 3).npu(), y=1, z="foo")],
+             [ACustomPytree(x=12, y={"cin": [1, 4, 10], "bar": 18}, z="leaf"), 5],
+         ]
+         for tree in SOME_PYTREES:
+@@ -1465,7 +1470,7 @@ if "optree" in sys.modules:
+         SOME_PYTREES = [
+             (None,),
+             ["hello", [1, 2], {"foo": [(3)]}],
+-            [ANamedTuple(x=torch.rand(2, 3), y=1, z="foo")],
++            [ANamedTuple(x=torch.rand(2, 3).npu(), y=1, z="foo")],
+             [ACustomPytree(x=12, y={"cin": [1, 4, 10], "bar": 18}, z="leaf"), 5],
+         ]
+         for tree in SOME_PYTREES:
