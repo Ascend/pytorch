@@ -113,6 +113,14 @@ public:
         return instance().m_release_lock_on_npumalloc;
     }
 
+    // When enabled, preemptively reject allocations exceeding
+    // per_process_memory_fraction * total_device_memory, throwing
+    // OutOfMemoryError without attempting the driver allocation.
+    // This prevents fatal device OOM crashes in serving scenarios.
+    static bool throw_on_npumalloc_oom() {
+        return instance().m_throw_on_npumalloc_oom;
+    }
+
     static size_t max_non_split_rounding_size()
     {
         instance();
@@ -132,7 +140,8 @@ public:
             "multi_stream_lazy_reclaim",
             "pinned_reserve_segment_size_mb",
             "per_process_memory_fraction",
-            "release_lock_on_npumalloc"
+            "release_lock_on_npumalloc",
+            "throw_on_npumalloc_oom"
         };
         return keys;
     }
@@ -149,6 +158,7 @@ private:
     double m_per_process_memory_fraction = 1.0;
     size_t m_pinned_reserve_segment_size_mb = 0;
     bool m_release_lock_on_npumalloc = false;
+    bool m_throw_on_npumalloc_oom = false;
 
     NPUAllocatorConfig() = default;
 
@@ -160,6 +170,7 @@ private:
     size_t parseMultiStreamLazyReclaim(const c10::CachingAllocator::ConfigTokenizer& config, size_t i);
     size_t parsePerProcessMemoryFraction(const c10::CachingAllocator::ConfigTokenizer& config, size_t i);
     size_t parseReleaseLockOnNpuMalloc(const c10::CachingAllocator::ConfigTokenizer& config, size_t i);
+    size_t parseThrowOnNpuMallocOom(const c10::CachingAllocator::ConfigTokenizer& config, size_t i);
 };
 
 } // namespace NPUCachingAllocator

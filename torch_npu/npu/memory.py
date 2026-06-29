@@ -6,8 +6,7 @@ import pickle
 import sys
 import os
 import stat
-import platform
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Optional, Tuple
 
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, pta_error
@@ -102,7 +101,7 @@ def caching_allocator_alloc(size, device=None, stream=None):
     if not isinstance(stream, int):
         raise TypeError('Invalid type for stream argument, must be '
                         '`torch_npu.npu.Stream` or `int` representing a pointer '
-                        'to a exisiting stream' + pta_error(ErrCode.TYPE))
+                        'to a existing stream' + pta_error(ErrCode.TYPE))
     with torch_npu.npu.device(device):
         return torch_npu._C._npu_npuCachingAllocator_raw_alloc(size, stream)
 
@@ -312,6 +311,8 @@ def memory_stats(device=None):
     - ``"num_alloc_retries"``: number of failed ``npuMalloc`` calls that
       result in a cache flush and retry.
     - ``"num_ooms"``: number of out-of-memory errors thrown.
+    - ``"num_oom_rejections"``: number of allocations preemptively rejected by the
+        throw_on_npumalloc_oom + per_process_memory_fraction policy.
     The caching allocator can be configured via ENV to not split blocks larger than a
     defined size (see Memory Management section of the Cuda Semantics documentation).
     This helps avoid memory framentation but may have a performance
@@ -856,7 +857,7 @@ def _record_memory_history(enabled="all", *args, **kwargs):
     Args:
         enabled (Literal[None, "state", "all"], optional):
             `None`, disable recording memory history.
-            `"state"`, keep information for currenly allocated memory.
+            `"state"`, keep information for currently allocated memory.
             `"all"`, additionally keep a history of all alloc/free calls.
             Defaults to "all".
         context (Literal[None, "state", "alloc", "all"], optional):

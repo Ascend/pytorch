@@ -433,6 +433,14 @@ void NPUPluggableAllocator::attachOutOfMemoryObserver(
         "If you need it, please file an issue describing your use case.");
 }
 
+void NPUPluggableAllocator::attachOomRejectionObserver(
+    c10_npu::NPUCachingAllocator::OomRejectionObserver observer)
+{
+    TORCH_NPU_WARN(
+        "NPUPluggableAllocator does not yet support attachOomRejectionObserver. "
+        "If you need it, please file an issue describing your use case.");
+}
+
 void NPUPluggableAllocator::attachAllocatorTraceTracker(
     c10_npu::NPUCachingAllocator::AllocatorTraceTracker tracker)
 {

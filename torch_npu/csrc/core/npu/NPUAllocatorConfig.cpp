@@ -199,6 +199,21 @@ size_t NPUAllocatorConfig::parseReleaseLockOnNpuMalloc(
     return i;
 }
 
+size_t NPUAllocatorConfig::parseThrowOnNpuMallocOom(
+    const c10::CachingAllocator::ConfigTokenizer& tokenizer,
+    size_t i)
+{
+    tokenizer.checkToken(++i, ":");
+    if (++i < tokenizer.size()) {
+        TORCH_CHECK(i < tokenizer.size() && (tokenizer[i] == "True" || tokenizer[i] == "False"),
+            "Expected a single True/False argument for throw_on_npumalloc_oom", PTA_ERROR(ErrCode::PARAM));
+        m_throw_on_npumalloc_oom = (tokenizer[i] == "True");
+    } else {
+        TORCH_CHECK(false, "Error, expecting throw_on_npumalloc_oom value", PTA_ERROR(ErrCode::PARAM));
+    }
+    return i;
+}
+
 void NPUAllocatorConfig::parseArgs(const std::string& env, std::set<std::string> supported_settings)
 {
     if (env.empty()) {
@@ -253,6 +268,8 @@ void NPUAllocatorConfig::parseArgs(const std::string& env, std::set<std::string>
             m_pinned_reserve_segment_size_mb = tokenizer.toSizeT(++i);
         } else if (key == "release_lock_on_npumalloc") {
             i = parseReleaseLockOnNpuMalloc(tokenizer, i);
+        } else if (key == "throw_on_npumalloc_oom") {
+            i = parseThrowOnNpuMallocOom(tokenizer, i);
         } else {
             i = tokenizer.skipKey(i);
         }
@@ -314,7 +331,8 @@ void NPUAllocatorConfig::parseArgs(const std::string& env, std::set<std::string>
         "segment_size_mb: %zu, "
         "multi_stream_lazy_reclaim: %d, "
         "pinned_reserve_segment_size_mb: %zu, "
-        "per_process_memory_fraction: %f.",
+        "per_process_memory_fraction: %f, "
+        "throw_on_npumalloc_oom: %d.",
         m_release_lock_on_npumalloc,
         m_pin_memory_expandable_segments,
         m_pinned_mem_register,
@@ -323,7 +341,8 @@ void NPUAllocatorConfig::parseArgs(const std::string& env, std::set<std::string>
         m_segment_size_mb,
         m_multi_stream_lazy_reclaim,
         m_pinned_reserve_segment_size_mb,
-        m_per_process_memory_fraction);
+        m_per_process_memory_fraction,
+        m_throw_on_npumalloc_oom);
     TORCH_NPU_MEMORY_LOGI(
         "[common alloc config] "
         "max_non_split_rounding_size: %zu, "

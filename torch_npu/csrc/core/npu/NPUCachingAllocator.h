@@ -176,6 +176,15 @@ enum struct RecordContext {
 using OutOfMemoryObserver =
     std::function<void(int64_t device, int64_t allocated, int64_t device_total,
                        int64_t device_free)>;
+// Observer called when an allocation is preemptively rejected due to
+// throw_on_npumalloc_oom policy. Parameters:
+//   - device: device index
+//   - alloc_size: size of the rejected allocation request
+//   - total_allocated: total memory allocated before the request
+//   - device_total: total device memory
+using OomRejectionObserver =
+    std::function<void(int64_t device, size_t alloc_size, size_t total_allocated,
+                       size_t device_total)>;
 using AllocatorTraceTracker = std::function<void(const TraceEntry&)>;
 
 struct ShareableHandle {
@@ -264,6 +273,7 @@ public:
                                size_t alloc_trace_max_entries,
                                RecordContext when) = 0;
     virtual void attachOutOfMemoryObserver(OutOfMemoryObserver observer) = 0;
+    virtual void attachOomRejectionObserver(OomRejectionObserver observer) = 0;
     virtual bool checkUceInMemPool(int device) = 0;
     virtual bool checkBlockIsSafe(const c10::DataPtr& ptr) = 0;
     virtual void markAllBlockUnsafe(int device) = 0;
@@ -487,6 +497,11 @@ inline bool checkPoolLiveAllocations(
 inline void attachOutOfMemoryObserver(OutOfMemoryObserver observer)
 {
     return get()->attachOutOfMemoryObserver(observer);
+}
+
+inline void attachOomRejectionObserver(OomRejectionObserver observer)
+{
+    return get()->attachOomRejectionObserver(std::move(observer));
 }
 
 inline void attachAllocatorTraceTracker(AllocatorTraceTracker tracker)

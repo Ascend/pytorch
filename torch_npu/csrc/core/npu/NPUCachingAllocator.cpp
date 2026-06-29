@@ -1,14 +1,15 @@
 #include <algorithm>
 #include <bitset>
 #include <deque>
+#include <fstream>
 #include <map>
 #include <memory>
 #include <mutex>
 #include <regex>
 #include <set>
+#include <thread>
 #include <unordered_set>
 #include <vector>
-#include <fstream>
 
 #include <c10/core/Allocator.h>
 #include <c10/util/flat_hash_map.h>
@@ -723,6 +724,14 @@ static bool BlockComparatorAddress(const Block *a, const Block *b)
     return reinterpret_cast<uintptr_t>(a->ptr) < reinterpret_cast<uintptr_t>(b->ptr);
 }
 
+// Info about OOM rejection, used to defer observer callbacks outside of lock
+struct OomRejectionInfo {
+    bool rejected{false};
+    size_t alloc_size{0};
+    size_t total_allocated{0};
+    size_t device_total{0};
+};
+
 struct AllocParams {
     AllocParams(int device, size_t size, aclrtStream stream, BlockPool *pool, size_t alloc_size, DeviceStats &stats)
         : search_key(device, stream, size), pool(pool), alloc_size(alloc_size), block(nullptr), err(ACL_ERROR_NONE)
@@ -747,6 +756,7 @@ struct AllocParams {
     Block *block;
     StatTypes stat_types = { false };
     aclError err;
+    OomRejectionInfo oom_rejection_info;
 };
 
 class EventPool {
@@ -888,7 +898,9 @@ void setAllocatorSettings(const std::string& settings)
         "expandable_segments",
         "max_split_size_mb",
         "max_non_split_rounding_mb",
-        "release_lock_on_npumalloc"
+        "release_lock_on_npumalloc",
+        "throw_on_npumalloc_oom",
+        "per_process_memory_fraction"
     });
 }
 
@@ -1015,6 +1027,7 @@ private:
 
     // XXX - maybe we should generalize and have multiple events
     std::vector<OutOfMemoryObserver> oom_observers_;
+    std::vector<OomRejectionObserver> oom_rejection_observers_;
     std::vector<AllocatorTraceTracker> trace_trackers_;
     std::shared_ptr<c10d_npu::HCCLComm> hcclComm_;
 
@@ -1088,6 +1101,11 @@ public:
     void attachOutOfMemoryObserver(OutOfMemoryObserver observer)
     {
         oom_observers_.emplace_back(observer);
+    }
+
+    void attachOomRejectionObserver(OomRejectionObserver observer)
+    {
+        oom_rejection_observers_.emplace_back(std::move(observer));
     }
 
     void attachAllocatorTraceTracker(AllocatorTraceTracker tracker)
@@ -1238,13 +1256,22 @@ public:
                 garbage_collect_cached_blocks(context, lock);
             }
             // Attempt allocate
-            block_found = alloc_block(params, false, context, lock) ||
-                // Free enough available cached blocks to satisfy alloc and retry
-                // alloc.
-                (release_available_cached_blocks(params, context, lock) && alloc_block(params, false, context, lock));
+            block_found = alloc_block(params, false, context, lock);
+
+            // If allocation was rejected by OOM policy, skip retry chain and fail
+            // immediately
+            if (!block_found && params.oom_rejection_info.rejected) {
+                // Skip retry chain - will be handled below in the !block_found path
+            } else if (!block_found) {
+                // Normal retry chain: try various strategies to free memory and retry
+                block_found =
+                    // Free enough available cached blocks to satisfy alloc and retry
+                    // alloc.
+                    (release_available_cached_blocks(params, context, lock) && alloc_block(params, false, context, lock));
+            }
         }
 
-        if (!block_found && C10_LIKELY(captures_underway.empty())) {
+        if (!block_found && !params.oom_rejection_info.rejected && C10_LIKELY(captures_underway.empty())) {
             const char* const allocRetryMsg = "Get a block from the existing pool failed. Try to free cached blocks and reallocate. This error log can be ignored.";
             // torch_npu will try to free cached blocks and reallocate memory, so this error can be ignored.
             // write error message to plog, and tell users that this error log can be ignored.
@@ -1263,6 +1290,43 @@ public:
 
         if (!block_found) {
             if (params.err == ACL_ERROR_RT_MEMORY_ALLOCATION) {
+                // Handle OOM rejection separately - return nullptr instead of throwing
+                // This allows callers to handle rejection gracefully without crashing
+                if (params.oom_rejection_info.rejected) {
+                    if (!oom_rejection_observers_.empty()) {
+                        auto observers_local = oom_rejection_observers_;
+                        auto rejection_info = params.oom_rejection_info;
+                        auto rejection_device = device;
+
+                        // Release lock before dispatching observers
+                        lock.unlock();
+
+                        // Dispatch observers asynchronously to minimize latency impact on
+                        // rejection path
+                        std::thread([observers_local = std::move(observers_local),
+                                     rejection_info,
+                                     rejection_device]() {
+                            try {
+                                for (const auto& observer : observers_local) {
+                                    observer(
+                                        rejection_device,
+                                        rejection_info.alloc_size,
+                                        rejection_info.total_allocated,
+                                        rejection_info.device_total);
+                                }
+                            } catch (const std::exception& e) {
+                                TORCH_NPU_MEMORY_LOGE("Exception in OOM rejection observer: %s", e.what());
+                            } catch (...) {
+                                TORCH_NPU_MEMORY_LOGE("Unknown exception in OOM rejection observer");
+                            }
+                        }).detach();
+                    } else {
+                        lock.unlock();
+                    }
+
+                    return nullptr;
+                }
+
                 size_t device_free;
                 size_t device_total;
                 NPU_CHECK_ERROR(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
@@ -2723,7 +2787,35 @@ private:
             total_allocated_memory + size > allowed_memory_maximum.value()) {
             p.err = ACL_ERROR_RT_MEMORY_ALLOCATION;
             return false;
-        } else if (NPUAllocatorConfig::expandable_segments()) {
+        }
+
+        // When throw_on_npumalloc_oom is enabled, check
+        // per_process_memory_fraction to reject allocations that would exceed the
+        // configured limit. This prevents fatal driver aborts by throwing
+        // OutOfMemoryError instead.
+        if (NPUAllocatorConfig::throw_on_npumalloc_oom()) {
+            size_t device_free = 0;
+            size_t device_total = 0;
+            NPU_CHECK_ERROR(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
+            (void)device_free;
+            size_t max_allowed = static_cast<size_t>(
+                NPUAllocatorConfig::per_process_memory_fraction() * static_cast<double>(device_total));
+            if (total_allocated_memory + size > max_allowed) {
+                stats.num_oom_rejections++;
+                p.oom_rejection_info = {true, size, total_allocated_memory, device_total};
+                p.err = ACL_ERROR_RT_MEMORY_ALLOCATION;
+                TORCH_NPU_WARN_ONCE("Preemptively rejecting allocation of ",
+                    format_size(size), " on NPU ", p.device(), ": total_allocated_memory (",
+                    format_size(total_allocated_memory), ") + requested size would exceed "
+                    "memory limit (", format_size(max_allowed), " = ",
+                    NPUAllocatorConfig::per_process_memory_fraction() * 100, "% of ",
+                    format_size(device_total), "). Set throw_on_npumalloc_oom:False "
+                    "to disable this behavior.");
+                return false;
+            }
+        }
+
+        if (NPUAllocatorConfig::expandable_segments()) {
             p.block = try_allocate_expandable_block(p.device(), p.stream(), p.pool, p.size(), ctx);
             if (p.block) {
                 p.err = ACL_ERROR_NONE;
@@ -3269,6 +3361,17 @@ public:
             "Allocator not initialized for device ", device, ": did you call init?", PTA_ERROR(ErrCode::PARAM));
         Block *block = device_allocator[device]->malloc(device, size, stream);
 
+        // block can be nullptr if allocation was rejected by
+        // throw_on_npumalloc_oom + per_process_memory_fraction policy.
+        // Throw OutOfMemoryError so callers with OOM error handlers
+        // can catch it gracefully.
+        if (C10_UNLIKELY(!block)) {
+            TORCH_CHECK_WITH(OutOfMemoryError, false,
+                "NPU out of memory. Allocation was preemptively rejected because "
+                "it would exceed per_process_memory_fraction limit. Requested size: ",
+                format_size(size));
+        }
+
         add_allocated_block(block);
         *devPtr = static_cast<void *>(block->ptr);
 #ifndef BUILD_LIBTORCH
@@ -3347,6 +3450,13 @@ public:
     {
         for (auto &allocator : device_allocator) {
             allocator->attachOutOfMemoryObserver(observer);
+        }
+    }
+
+    void attachOomRejectionObserver(OomRejectionObserver observer) override
+    {
+        for (auto &allocator : device_allocator) {
+            allocator->attachOomRejectionObserver(observer);
         }
     }
 
