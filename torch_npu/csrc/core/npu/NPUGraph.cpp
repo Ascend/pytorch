@@ -40,8 +40,7 @@ MempoolId_t graph_pool_handle()
 {
     // Sets just the second value, to distinguish it from MempoolId_ts created from
     // aclmdlRICaptureGetInfo id_s in capture_begin.
-    auto new_pool = c10_npu::MemPool();
-    return new_pool.id();
+    return c10_npu::MemPool::graph_pool_handle();
 }
 
 void graph_task_group_begin(c10_npu::NPUStream stream)
@@ -193,8 +192,7 @@ void NPUGraph::capture_begin(MempoolId_t pool, aclmdlRICaptureMode capture_mode,
     } else {
         // User did not ask us to share a mempool. Create graph pool handle using is_user_created=false.
         // Sets just the first value, to distinguish it from MempoolId_ts created by graph_pool_handle().
-        auto mempool = c10_npu::MemPool({}, false);
-        mempool_id_ = mempool.id();
+        mempool_id_ = c10_npu::MemPool::graph_pool_handle(false);
         TORCH_INTERNAL_ASSERT(mempool_id_.first > 0);
     }
 

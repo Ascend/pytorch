@@ -6,8 +6,7 @@ import pickle
 import sys
 import os
 import stat
-import platform
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Optional, Tuple
 
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, pta_error
@@ -102,7 +101,7 @@ def caching_allocator_alloc(size, device=None, stream=None):
     if not isinstance(stream, int):
         raise TypeError('Invalid type for stream argument, must be '
                         '`torch_npu.npu.Stream` or `int` representing a pointer '
-                        'to a exisiting stream' + pta_error(ErrCode.TYPE))
+                        'to a existing stream' + pta_error(ErrCode.TYPE))
     with torch_npu.npu.device(device):
         return torch_npu._C._npu_npuCachingAllocator_raw_alloc(size, stream)
 
@@ -832,6 +831,8 @@ def use_mem_pool(pool: MemPool, device=None):
         yield
     finally:
         torch_npu._C._npu_endAllocateCurrentStreamToPool(device_index, pool.id)
+        # after endAllocate, need call releasePool to achieve the right count(use_count--)
+        torch_npu._C._npu_releasePool(device_index, pool.id)
         del ctx
 
 
@@ -856,7 +857,7 @@ def _record_memory_history(enabled="all", *args, **kwargs):
     Args:
         enabled (Literal[None, "state", "all"], optional):
             `None`, disable recording memory history.
-            `"state"`, keep information for currenly allocated memory.
+            `"state"`, keep information for currently allocated memory.
             `"all"`, additionally keep a history of all alloc/free calls.
             Defaults to "all".
         context (Literal[None, "state", "alloc", "all"], optional):
