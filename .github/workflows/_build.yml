@@ -49,10 +49,10 @@ jobs:
           echo "short=${SHA:0:10}" >> "$GITHUB_OUTPUT"
           echo "Resolved ${{ inputs.upstream_ref }} -> ${SHA}"
 
-      - name: Init submodules (shallow)
+      - name: Init submodules
         working-directory: pytorch
         run: |
-          git submodule update --init --recursive --depth=1 --jobs=$(nproc)
+          git submodule update --init --recursive --jobs=$(nproc)
 
       - name: Package PyTorch source
         run: |
@@ -206,10 +206,10 @@ jobs:
           submodules: false
           path: torch_npu
 
-      - name: Init submodules (shallow)
+      - name: Init submodules
         working-directory: torch_npu
         run: |
-          git submodule update --init --recursive --depth=1 --jobs=$(nproc)
+          git submodule update --init --recursive --jobs=$(nproc)
 
       # Step 4: Build and install torch_npu
       - name: Build and install torch_npu
