@@ -66,6 +66,7 @@ struct NPUPluggableAllocator
     void setMemoryFraction(double fraction, int device) override;
     void emptyCacheImpl(bool check_error, bool free_physical) override;
     void emptyCache(bool check_error) override;
+    void emptyCache(c10_npu::MempoolId_t mempool_id = {0, 0}) override;
     void emptyVirtAddrCache(bool check_error) override;
     void cacheInfo(int dev_id, size_t* cachedAndFree, size_t* largestBlock) override;
     void* getBaseAllocation(void* ptr, size_t* size) override;

@@ -4,6 +4,7 @@
 #include <torch/csrc/utils/pybind.h>
 
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
+#include "torch_npu/csrc/utils/LazyInit.h"
 
 template <typename T>
 using shared_ptr_class_ = py::class_<T, std::shared_ptr<T>>;
@@ -11,7 +12,11 @@ using shared_ptr_class_ = py::class_<T, std::shared_ptr<T>>;
 void TORCH_NPU_API THNPMemPool_init(PyObject* module) {
     auto torch_C_m = py::handle(module).cast<py::module>();
     shared_ptr_class_<::c10_npu::MemPool>(torch_C_m, "_MemPool")
-        .def(py::init<c10_npu::NPUCachingAllocator::NPUAllocator*, bool>())
+        .def(py::init(
+            [](c10_npu::NPUCachingAllocator::NPUAllocator* allocator, bool is_user_created) {
+                torch_npu::utils::npu_lazy_init(); // init npu before construct mempool
+                return std::make_shared<::c10_npu::MemPool>(allocator, is_user_created);
+            }))
         .def_property_readonly("id", &::c10_npu::MemPool::id)
         .def_property_readonly("allocator", &::c10_npu::MemPool::allocator);
     shared_ptr_class_<::c10_npu::MemPoolContext>(torch_C_m, "_MemPoolContext")
