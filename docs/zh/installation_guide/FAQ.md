@@ -219,7 +219,7 @@ ERROR: torch_npuxxx.whl is not a supported wheel on this platform
 
 **报错原因**
 
-构建时的python环境与安装时的python环境不匹配。
+构建时的Python环境与安装时的Python环境不匹配。
 
 **处理方法**
 
