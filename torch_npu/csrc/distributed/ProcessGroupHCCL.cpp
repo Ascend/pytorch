@@ -2291,7 +2291,6 @@ void ProcessGroupHCCL::Watchdog::runLoop()
                 pg_->pgStatus_->lastCompletedNumelOut = work.numelOut_;
                 HCCLTraceBuffer::get()->retire_id(work.trace_id_, true);
                 it = pg_->workMetaList_.erase(it);
-                c10_npu::NPUGraph::dec_pending_event_queries();
             } else {
                 if (status_save_enable && work.isStarted(pg_->asyncErrorHandling_)) {
                     pg_->is_refreshed = pg_->refreshStatusInfo(work, "start"); // Update Statusinfo，but not write into the map
@@ -4151,11 +4150,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     for (const auto& output : outputs) {
         work->numelOut_ += static_cast<size_t>(output.numel());
     }
-    c10_npu::NPUGraph::inc_pending_event_queries();
     if (asyncErrorHandling_ != NoHandling && capture_status == c10_npu::CaptureStatus::None) {
         workEnqueue(work);
-    } else {
-        c10_npu::NPUGraph::dec_pending_event_queries();
     }
     
     return work;
@@ -4368,11 +4364,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collectiveCoalesced(
     // multi-device per process is deprecated
     work->numelIn_ = static_cast<size_t>(inputs[0].numel());
     work->numelOut_ = static_cast<size_t>(outputs[0].numel());
-    c10_npu::NPUGraph::inc_pending_event_queries();
     if (asyncErrorHandling_ != NoHandling && capture_status == c10_npu::CaptureStatus::None) {
         workEnqueue(work);
-    } else {
-        c10_npu::NPUGraph::dec_pending_event_queries();
     }
     
     return work;
@@ -4626,11 +4619,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::pointToPoint(
             work->numelIn_ = work->numelOut_ = static_cast<size_t>(tensors[i].numel());
         }
     
-        c10_npu::NPUGraph::inc_pending_event_queries();
         if (asyncErrorHandling_ != NoHandling && capture_status == c10_npu::CaptureStatus::None) {
             workEnqueue(work);
-        } else {
-            c10_npu::NPUGraph::dec_pending_event_queries();
         }
     }
 
@@ -6283,7 +6273,6 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::endCoalescing(c10d::OpType opty
     (*(work->hcclEndEvents_))[0].record(hcclStream);
 
     if (enqueue) {
-        c10_npu::NPUGraph::inc_pending_event_queries();
         workEnqueue(work);
     }
     {
