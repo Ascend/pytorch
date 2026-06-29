@@ -203,16 +203,6 @@ public:
     virtual void setMemoryFraction(double fraction, int device) = 0;
     virtual void emptyCacheImpl(bool check_error, bool free_physical) = 0;
     virtual void emptyCache(bool check_error) = 0;
-    void emptyCache(c10::MempoolId_t mempool_id = {0, 0}) override {
-        // Pool-scoped emptyCache is not yet supported by NPU caching allocator;
-        // a non-default mempool_id is currently ignored and the global cache is freed.
-        if (mempool_id.first != 0 || mempool_id.second != 0) {
-            TORCH_NPU_WARN_ONCE(
-                "NPUAllocator::emptyCache(MempoolId_t) does not yet support per-pool "
-                "release; the requested mempool_id is ignored and the entire cache is freed.");
-        }
-        emptyCache(true);
-    }
     virtual void emptyVirtAddrCache(bool check_error) = 0;
     virtual void cacheInfo(int dev_id, size_t* cachedAndFree, size_t* largestBlock) = 0;
     virtual void* getBaseAllocation(void* ptr, size_t* size) = 0;
@@ -293,6 +283,17 @@ public:
     // calling the allocator so it is unsafe to try to acquire the GIL in this
     // callback.
     virtual void attachAllocatorTraceTracker(AllocatorTraceTracker tracker) = 0;
+    // start from torch 2.7, not support input 'allocator' in this version
+    // will gradually fill in missing abilities
+    virtual void createOrIncrefPool(c10::DeviceIndex, MempoolId_t)
+    {
+        TORCH_CHECK(
+            false,
+            name(),
+            " does not yet support createOrIncrefPool. "
+            "If you need it, please file an issue describing your use case.");
+    }
+    using c10::DeviceAllocator::emptyCache;
 };
 
 // Allocator object, statically initialized
@@ -349,6 +350,12 @@ inline void setMemoryFraction(double fraction, int device)
 inline void emptyCacheImpl(bool check_error = true, bool free_physical = true)
 {
     return get()->emptyCacheImpl(check_error, free_physical);
+}
+
+// overload, align to cuda, not outer(C10_NPU_API) in this version
+inline void emptyCache(MempoolId_t mempool_id)
+{
+    return get()->emptyCache(mempool_id);
 }
 
 C10_NPU_API inline void emptyCache(bool check_error = true)
@@ -539,6 +546,13 @@ inline void buildServerMemMapForHccl(int device, std::shared_ptr<c10d_npu::HCCLC
     return get()->buildServerMemMapForHccl(device, hcclComm);
 }
 
+inline void createOrIncrefPool(
+        c10::DeviceIndex device,
+        MempoolId_t mempool_id)
+{
+    get()->createOrIncrefPool(device, mempool_id);
+}
+
 bool checkConfigExpandableSegments();
 
 bool isConfig1GPageSizeEnable();
@@ -563,8 +577,16 @@ struct C10_NPU_API MemPool {
         NPUCachingAllocator::NPUAllocator* allocator = nullptr,
         bool is_user_created = true);
 
+    MemPool(const MemPool&) = delete;
+    MemPool(MemPool&&) = default;
+    MemPool& operator=(const MemPool&) = delete;
+    MemPool& operator=(MemPool&&) = default;
+    ~MemPool();
+
     MempoolId_t id();
     NPUCachingAllocator::NPUAllocator* allocator();
+    c10::DeviceIndex device();
+    static MempoolId_t graph_pool_handle(bool is_user_created = true);
 
 private:
     static std::atomic<CaptureId_t> uid_;
@@ -572,6 +594,7 @@ private:
     NPUCachingAllocator::NPUAllocator* allocator_;
     bool is_user_created_;
     MempoolId_t id_;
+    c10::DeviceIndex device_;
 };
 
 // MemPoolContext holds the currently active pool and stashes the previous

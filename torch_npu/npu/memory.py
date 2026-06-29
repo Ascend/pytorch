@@ -833,6 +833,8 @@ def use_mem_pool(pool: MemPool, device=None):
         yield
     finally:
         torch_npu._C._npu_endAllocateCurrentStreamToPool(device_index, pool.id)
+        # after endAllocate, need call releasePool to achieve the right count(use_count--)
+        torch_npu._C._npu_releasePool(device_index, pool.id)
         del ctx
 
 

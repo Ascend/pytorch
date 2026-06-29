@@ -236,6 +236,12 @@ void NPUPluggableAllocator::emptyCacheImpl(bool check_error, bool free_physical)
                    "If you need it, please file an issue describing your use case.");
 }
 
+void NPUPluggableAllocator::emptyCache(c10_npu::MempoolId_t mempool_id)
+{
+    TORCH_NPU_WARN("NPUPluggableAllocator does not yet support emptyCache with mempool_id. "
+                   "If you need it, please file an issue describing your use case.");
+}
+
 void NPUPluggableAllocator::emptyCache(bool check_error)
 {
     if (reset_fn_) {
