@@ -3,7 +3,7 @@ import re
 import sys
 import os
 import site
-import warnings
+from typing_extensions import deprecated
 from collections import namedtuple
 
 from torch.utils import collect_env as torch_collect_env
@@ -49,17 +49,21 @@ def get_torch_npu_install_path():
         path = site_packages[0]
     return path
 
-
+@deprecated(
+    "`torch_npu.utils.collect_env.check_path_owner_consistent(path)` is deprecated and no longer performs path owner verification. "
+    "Please use `check_directory_path_readable(path)` to check the path existence.",
+    category=FutureWarning,
+)
 def check_path_owner_consistent(path: str):
     if not os.path.exists(path):
         msg = f"The path does not exist: {path}"
         raise RuntimeError(msg)
-    if os.stat(path).st_uid != os.getuid():
-        warnings.warn(f"Warning: The {path} owner does not match the current owner.")
 
 
 def check_directory_path_readable(path):
-    check_path_owner_consistent(path)
+    if not os.path.exists(path):
+        msg = f"The path does not exist: {path}"
+        raise RuntimeError(msg)
     if os.path.islink(path):
         msg = f"Invalid path is a soft chain: {path}"
         raise RuntimeError(msg)
