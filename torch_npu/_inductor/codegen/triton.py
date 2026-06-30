@@ -114,7 +114,7 @@ def gen_common_triton_imports():
         """
         import torch
         import torch_npu
-        if not torch_npu.npu.is_initialized():
+        if not torch_npu.npu.is_initialized() and torch_npu.npu._is_in_bad_fork():
             torch_npu.npu._initialized = True
         from torch_npu._inductor.runtime import triton_heuristics as triton_heuristics
         from torch_npu._inductor.runtime import triton_helpers
