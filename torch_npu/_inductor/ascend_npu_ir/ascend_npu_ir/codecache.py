@@ -1,7 +1,5 @@
 import os
-import sys
 import functools
-import importlib
 
 from types import ModuleType
 from typing import (
@@ -49,9 +47,9 @@ def codegen_subgraph_dump(inds, shapes, strides, dtypes, inds2):
     for ind, shape, stride, dtype in zip(inds, shapes, strides, dtypes):
         codes.append(f'new_args[{ind}] = rand_strided({shape}, {stride}, device="cuda:0", dtype={dtype})')
     codes.append(f'indices = {inds2}')
-    codes.append(f'for i, ind in enumerate(indices):')
-    codes.append(f'    new_args[ind] = args[i]')
-    codes.append(f'args = new_args')
+    codes.append('for i, ind in enumerate(indices):')
+    codes.append('    new_args[ind] = args[i]')
+    codes.append('args = new_args')
     return '\n'.join(codes)
 
 
@@ -111,7 +109,15 @@ def _load_fx_graph(kernel_name: str, source_code=None, extra_env=None, kernel_me
     if source_code is not None and isinstance(kernel, NpuMlirCompiler):
         kernel.init(module=source_code, extra_env=extra_env)
     kernel.register_fx_fallback(kernel_meta)
-    os.makedirs(os.path.join(kernel_meta.get('traced_graph_cache'), str(kernel_meta.get('device_index')), kernel_meta.get('traced_graph_hash'), 'keep'), exist_ok=True)
+    os.makedirs(
+        os.path.join(
+            kernel_meta.get('traced_graph_cache'),
+            str(kernel_meta.get('device_index')),
+            kernel_meta.get('traced_graph_hash'),
+            'keep',
+        ),
+        exist_ok=True,
+    )
     return kernel
 
 class MulitprocessCompileFuture(CodeCacheFuture):
@@ -132,23 +138,24 @@ class MulitprocessCompileFuture(CodeCacheFuture):
         self.extra_env = extra_env
 
     # @dynamo_utils.dynamo_timed
-    def result(self) -> ModuleType:
+    def result(self, timeout: float | None = None) -> ModuleType:
         t0 = time()
         if hasattr(self, "kernel"):
             return self.kernel
         errors = []
         for future in self.futures:
             try:
-                future.result()
+                future.result(timeout=timeout)
             except Exception as e:
-                logger.warning(f"Error detected when multiprocess compile, error message: {e}")
+                err_msg = str(e)
+                logger.warning("Error detected when multiprocess compile, error message: %s", err_msg)
                 errors.append(e)
 
         if len(errors) < len(self.futures):
             kernel = self.kernel = _load_kernel(self.kernel_name, self.source_code,
                                                 no_more_compile=True, suppress_error=True,
                                                 kernel_meta=self.kernel_meta, extra_env=self.extra_env)
-        elif self.kernel_meta.get('num_outputs', 0): # All compiles fail and auto fallback
+        elif self.kernel_meta.get('num_outputs', 0):  # All compiles fail and auto fallback
             print("==========================Kernel compiled failed!=======================================")
             print(f'kernel name: {self.kernel_name}')
             print(f'{self.source_code}')
@@ -186,21 +193,29 @@ class NPUTritonFuture(CodeCacheFuture):
         self.extra_env = extra_env
 
     # @dynamo_utils.dynamo_timed
-    def result(self) -> ModuleType:
+    def result(self, timeout: float | None = None) -> ModuleType:
         t0 = time()
         if hasattr(self, "kernel"):
             return self.kernel
         # If the worker failed this will throw an exception.
         if self.kernel_meta.get('num_outputs'):
             try:
-                self.future.result()
-                kernel = self.kernel = _load_kernel(self.kernel_name, self.source_code, no_more_compile=True, kernel_meta=self.kernel_meta, extra_env=self.extra_env)
+                self.future.result(timeout=timeout)
+                kernel = self.kernel = _load_kernel(
+                    self.kernel_name, self.source_code,
+                    no_more_compile=True,
+                    kernel_meta=self.kernel_meta, extra_env=self.extra_env,
+                )
             except Exception as e:
                 kernel = self.kernel = _load_fx_graph(
                     self.kernel_name, source_code=self.source_code, extra_env=self.extra_env, kernel_meta=self.kernel_meta)
         else:
-            self.future.result()
-            kernel = self.kernel = _load_kernel(self.kernel_name, self.source_code, no_more_compile=True, kernel_meta=self.kernel_meta, extra_env=self.extra_env)
+            self.future.result(timeout=timeout)
+            kernel = self.kernel = _load_kernel(
+                self.kernel_name, self.source_code,
+                no_more_compile=True,
+                kernel_meta=self.kernel_meta, extra_env=self.extra_env,
+            )
         latency = time() - t0
         if latency > 50:
             developer_warning(
@@ -245,7 +260,8 @@ class CustomAsyncCompile(AsyncCompile):
             return _load_kernel(kernel_name, source_code)
 
     def mlir_auto_fallback(
-        self, kernel_name: str, source_code: str, kernel_meta: Dict[str, Any]) -> Callable:
+        self, kernel_name: str, source_code: str, kernel_meta: Dict[str, Any]
+    ) -> Callable:
         _compile_start()
 
         device_interface = get_interface_for_device(kernel_meta.get('device_str'))
@@ -286,14 +302,18 @@ class CustomAsyncCompile(AsyncCompile):
                     )
                     return NPUTritonFuture(kernel_name, source_code, future, kernel_meta, extra_env)
         else:
-            kernel = _load_kernel(kernel_name, source_code, suppress_error=anir_config.autotune, kernel_meta=kernel_meta, extra_env=extra_env)
+            kernel = _load_kernel(
+                kernel_name, source_code, suppress_error=anir_config.autotune,
+                kernel_meta=kernel_meta, extra_env=extra_env,
+            )
             if len(kernel.launchers) == 0:
-                logger.info(f"fallback to fx graph call")
+                logger.info("fallback to fx graph call")
                 return _load_fx_graph(kernel_name, source_code=source_code, extra_env=extra_env, kernel_meta=kernel_meta)
             return kernel
 
     def akg_auto_fallback(
-        self, kernel_name: str, source_code: str, kernel_meta: Dict[str, Any]) -> Callable:
+        self, kernel_name: str, source_code: str, kernel_meta: Dict[str, Any]
+    ) -> Callable:
         _compile_start()
         env_vars = ["TORCHINDUCTOR_CACHE_DIR", "TRITON_CACHE_DIR"]
         extra_env = {v: os.environ[v] for v in env_vars if v in os.environ}
@@ -311,12 +331,13 @@ class CustomAsyncCompile(AsyncCompile):
         else:
             kernel = _load_kernel(kernel_name, source_code, kernel_meta=kernel_meta, extra_env=extra_env)
             if len(kernel.launchers) == 0:
-                logger.info(f"fallback to fx graph call")
+                logger.info("fallback to fx graph call")
                 return _load_fx_graph(kernel_name, source_code=source_code, extra_env=extra_env, kernel_meta=kernel_meta)
             return kernel
 
     def import_fx(
-        self, module_name: str, kernel_meta: Dict[str, Any]) -> Callable:
+        self, module_name: str, kernel_meta: Dict[str, Any]
+    ) -> Callable:
 
         device_interface = get_interface_for_device(kernel_meta.get('device_str'))
         device = torch.device(kernel_meta.get('device_str'), device_interface.current_device())

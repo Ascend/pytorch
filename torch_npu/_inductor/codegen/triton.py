@@ -1,10 +1,6 @@
-import functools
 import itertools
 import operator
-import os
 import re
-import textwrap
-from enum import Enum
 from typing import List, Set, Iterable, Callable, Sequence
 from typing import (
     Optional,
@@ -43,16 +39,15 @@ from torch._inductor.codegen.triton import (
     CSEVariable,
     BlockPtrOptions,
     triton_acc_type,
+    triton_compute_type,
     constant_repr,
     is_welford_reduction, FixedTritonConfig,
     prefix_is_reduction, upcast_acc_dtype,
     get_kernel_category_by_source_code,
-    get_fused_kernel_name
+    get_fused_kernel_name,
 )
-from torch._inductor.codegen.triton_utils import config_of, signature_of, signature_to_meta
+from torch._inductor.codegen.triton_utils import signature_of, signature_to_meta
 from torch._inductor.dtype_propagation import DtypePropagationOpsHandler
-from torch._inductor.runtime.hints import ReductionHint
-from torch._inductor.runtime.runtime_utils import next_power_of_2
 from torch._inductor.scheduler import SchedulerNode
 from torch._inductor.utils import (
     Placeholder,
@@ -249,7 +244,7 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
         self.directions[index] = ":"
         return f"[{','.join(self.directions)}]"
 
-    # axis var, need to define var with diffent direction
+    # axis var, need to define var with different direction
     def _codegen(self):
         self.indexing_code.clear()
         index = None
@@ -562,6 +557,7 @@ class NPUIndexTritonKernel(TritonKernel):
         dtype = None
         if axis is None:
             return None
+
         def _lookup_dim(sym) -> Optional["IterationRangesEntryNPUIndex"]:
             dim = self.range_tree_nodes.get(sym)
             if dim is not None:
@@ -658,7 +654,7 @@ class NPUIndexTritonKernel(TritonKernel):
             else:
                 numel_expr = node.expr.subs({sympy_index_symbol(r.name): r.numel for r in self.range_trees})
 
-            numel_expr = V.graph.sizevars.symbolic_hint(numel_expr)
+            numel_expr = V.graph.sizevars.optimization_hint(numel_expr)
 
             size_hints.append(numel_expr)
         return size_hints
@@ -930,7 +926,7 @@ class NPUIndexTritonKernel(TritonKernel):
                 self.sorted_axis) - numof_tilings - 1 and self.numof_reduction_axis()
 
             is_last_axis = index == len(self.sorted_axis) - 1
-            indexing_code = getattr(range_val, "indexing_code")
+            indexing_code = range_val.indexing_code
             reduction_1d = is_1d_reduction()
             do_indent = False
             # do nothing except for writing porintwise
@@ -1118,7 +1114,7 @@ class NPUIndexTritonKernel(TritonKernel):
         self.golden_var_list = None
 
         def all_tiling_in_var_list(var_list):
-            return all([x in var_list for x in self.tiling_axis])
+            return all(x in var_list for x in self.tiling_axis)
 
         # all are load indexings, select the longest as gold
         for index in self.load_store_indexing:
@@ -1587,7 +1583,7 @@ class NPUIndexTritonKernel(TritonKernel):
             if (index != 0):
                 index_str = f"tl.full({expand_str}, {index_str}, tl.int32)"
             else:
-                index_str = f"tl.arange(0,1)"
+                index_str = "tl.arange(0,1)"
             return IndexingOptions(
                 index_str,
                 OrderedSet(),
@@ -1742,7 +1738,7 @@ class NPUIndexTritonKernel(TritonKernel):
                     output_idx = 0
 
                     def do_cse(v):
-                        # cpp backend doesnt set current device
+                        # cpp backend doesn't set current device
                         if V.graph.current_device is not None:
                             device_str = V.graph.get_current_device_or_throw().type
                             triton_backend = (
@@ -1763,7 +1759,7 @@ class NPUIndexTritonKernel(TritonKernel):
                                     name,
                                 )(*args, **kwargs)
                         else:
-                            # cpp backend doesnt track dtype yet
+                            # cpp backend doesn't track dtype yet
                             output_dtype = None
 
                         csevar = V.kernel.cse.generate(
@@ -1889,7 +1885,7 @@ class NPUIndexTritonKernel(TritonKernel):
                     assert_lower = not (var.bounds.lower >= 0)
                     # value ranges cannot x < s when x and s are symbols
                     assert_upper = not isinstance(size, sympy.Number) or not (
-                            var.bounds.upper < size
+                        var.bounds.upper < size
                     )
                     self.check_bounds(sympy_var, size, assert_lower, assert_upper)
                 return sympy_var
