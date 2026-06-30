@@ -15,6 +15,9 @@
         "npu_silu",
         "npu_sort_v2"
     ],
+    "torch_npu.utils.collect_env": [
+        "deprecated"
+    ],
     "torch_npu.contrib": [
         "BiLSTM",
         "DCNv2",
