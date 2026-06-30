@@ -392,7 +392,7 @@ class NPUPythonWrapperCodeGen(_NPUKernelCodegenMixin, PythonWrapperCodegen):
             with debug_printer_manager:
                 self.writeline(f"{multi_stream_intent}{kernel_name}.run({call_args_str}, stream={stream_name})")
         else:
-            super().generate_kernel_call(kernel_name, call_args, device=device, triton=triton, arg_types=arg_types, raw_args=raw_args, triton_meta=triton_meta)
+            super().generate_kernel_call(kernel_name, call_args, device=device, triton=triton, arg_types=arg_types, raw_keys=raw_keys, raw_args=raw_args, triton_meta=triton_meta, debug_handle=debug_handle)
 
 
     def codegen_multi_output(self, node: ir.MultiOutput):
