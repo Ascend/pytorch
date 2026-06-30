@@ -46,14 +46,16 @@ NPU_UNSUPPORTED_OPS = [
     "aten._scaled_dot_product_fused_attention_overrideable_backward.default",
     "aten._scaled_dot_product_fused_attention_overrideable.default",
     "aten._scaled_mm.default",
-    "aten._scaled_grouped_mm.default"
+    "aten._scaled_grouped_mm.default",
+    "aten.scatter_reduce.two_out"
 ]
 
 
+# Use None as default to avoid FLAKE8 B006 mutable argument warning.
 def _get_backend_index_for_npu(
     func: NativeFunction,
     backend_indices: dict[DispatchKey, BackendIndex],
-    structured_func_group_dict: dict[OperatorName, NativeFunctionsGroup] = {},
+    structured_func_group_dict: dict[OperatorName, NativeFunctionsGroup] | None = None,
 ) -> BackendIndex | None:
     for dk in NPU_DISPATCH_KEYS:
         if dk in backend_indices:
