@@ -56,6 +56,14 @@ _PUBLIC_API_ALIASES = [
         "distributed.reinit_process_group",
         "distributed.reinit_process_group",
     ),
+    (
+        "distributed._symmetric_memory.enable_symm_mem_for_group",
+        "distributed._symmetric_memory._enable_symm_mem_for_group",
+    ),
+    (
+        "distributed.nn.functional._AllGatherBase.backward",
+        "distributed.nn.functional._allgather_base_backward_hccl",
+    ),
 ]
 
 

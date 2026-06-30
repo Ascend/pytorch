@@ -3,9 +3,16 @@ import os
 import subprocess
 import sys
 import textwrap
+import unittest
+from packaging import version
 
+import torch_npu
 from torch_npu.testing.testcase import run_tests, TestCase
 
+
+ENABLE_2_7_1_TEST = (
+    version.parse(torch_npu.__version__).base_version == "2.7.1"
+)
 
 REQUIRED_C_EXTENSION_CHILDREN = [
     "_profiler",
@@ -562,6 +569,52 @@ class TestTorchNpuBootstrap(TestCase):
                 assert torch_npu.npu.is_initialized() is False
                 """
             )
+
+    @unittest.skipIf(not ENABLE_2_7_1_TEST, "only for torch_npu 2.7.1")
+    def test_12_distributed_enable_symm_mem_for_group(self):
+        self._run_python(
+            """
+            import torch
+            import torch_npu
+            import torch.distributed as dist
+            import torch.distributed.nn.functional as F
+
+            # 1. symmetric memory patch check
+            assert hasattr(dist._symmetric_memory, "enable_symm_mem_for_group"), (
+                "missing symmetric memory patch"
+            )
+            assert (
+                dist._symmetric_memory.enable_symm_mem_for_group
+                is not None
+            )
+            assert (
+                dist._symmetric_memory.enable_symm_mem_for_group
+                is torch_npu.distributed._symmetric_memory._enable_symm_mem_for_group
+            )
+            """
+        )
+
+    def test_13_distributed_allgatherbase_backward(self):
+        self._run_python(
+            """
+            import torch
+            import torch_npu
+            import torch.distributed as dist
+            import torch.distributed.nn.functional as F
+
+            # 1. AllGatherBase backward patch check
+            assert hasattr(F._AllGatherBase, "backward"), (
+                "missing AllGatherBase backward patch"
+            )
+            assert (
+                F._AllGatherBase.backward
+                is torch_npu.distributed.nn.functional._allgather_base_backward_hccl
+            )
+            # 2. ensure patch not default torch impl
+            import inspect
+            assert "torch_npu" in str(F._AllGatherBase.backward.__module__)
+            """
+        )
 
 if __name__ == "__main__":
     run_tests()
