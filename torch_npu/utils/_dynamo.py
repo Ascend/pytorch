@@ -1,6 +1,7 @@
 import inspect
 import os
 import sys
+import logging
 from typing import Any, Optional, TYPE_CHECKING
 import importlib
 
@@ -26,7 +27,7 @@ from torch._dynamo.variables.torch import (
 from torch._dynamo.variables.user_defined import UserDefinedClassVariable
 from torch_npu.dynamo import _get_global_npu_backend
 
-
+log = logging.getLogger(__name__)
 use_jit_script = False
 
 
@@ -218,10 +219,14 @@ def patch_inductor_wrapper():
     def new_init(self, mode, options, dynamic):
         src_init(self, mode, options, dynamic)
         backend = _resolve_npu_backend_from_wrapper(self)
-        if backend == "mlir" or backend == "dvm":
+        if backend == "mlir":
             with _NpuBackendScope(backend):
+                log.info("Running MLIR backend")
                 device_id = torch_npu.npu.current_device()
                 torch_npu._C._recovery_all_npu_stream(device_id)
+        if backend == "dvm":
+            with _NpuBackendScope(backend):
+                log.info("Running dvm backend")
 
     def new_call(self, model_, inputs_):
         backend = _resolve_npu_backend_from_wrapper(self)
