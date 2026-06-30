@@ -12,14 +12,14 @@ import os
 
 # all backends need register npu/cpu/mps device_op_overrides
 from .graph import patch_codegen_with_cpp_wrapper
-from .utils import patch_has_triton, patch_has_triton_tma, patch_is_gpu, get_current_raw_stream
+from .utils import patch_has_triton, patch_device_supports_tma, patch_is_gpu, get_current_raw_stream
 # All backends need npu/cpu/mps device_op_overrides.
 from .codegen.common import register_device_op_overrides_npu, patch_cache_base_get_system
 from .shape_handling import NPUShapeHandling, patch_shape_handling
 register_device_op_overrides_npu()
 patch_has_triton()
 patch_is_gpu()
-patch_has_triton_tma()
+patch_device_supports_tma()
 patch_codegen_with_cpp_wrapper()
 patch_cache_base_get_system()
 # Prevent RecursionError when formatting LoweringException for huge output tuples (e.g. many permute nodes).
