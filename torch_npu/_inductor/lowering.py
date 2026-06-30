@@ -939,6 +939,9 @@ def _register_npu_inductor_fallbacks():
         if len(inputs) == 1:
             return clone(inputs[0])
 
+        if not is_ascend950 or len(inputs) > torch._inductor.config.max_pointwise_cat_inputs:
+            return fallback_handler(aten.cat.default)(inputs, dim)
+
         dim = _validate_dim(inputs[0], dim, 0)
         dtype = get_promoted_dtype(
             *inputs, type_promotion_kind=ELEMENTWISE_TYPE_PROMOTION_KIND.DEFAULT
@@ -1023,6 +1026,6 @@ def _enable_full_lowering_fallback():
 
 
 def _add_fallback_ops_for_torchgen():
-    from torchgen.aoti.fallback_ops import inductor_fallback_ops
+    from torchgen.aoti import fallback_ops
     from torchnpugen.aoti.fallback_ops import inductor_fallback_ops_npu, inductor_fallback_ops_npu_not_support
-    inductor_fallback_ops = (inductor_fallback_ops | inductor_fallback_ops_npu) - inductor_fallback_ops_npu_not_support
+    fallback_ops.inductor_fallback_ops = (fallback_ops.inductor_fallback_ops | inductor_fallback_ops_npu) - inductor_fallback_ops_npu_not_support

@@ -1,6 +1,7 @@
 import logging
 import os  # noqa: C101
 import re
+from typing import Optional
 
 import torch
 import torch._inductor.config as inductor_config
@@ -25,6 +26,10 @@ if not enable_inplace_buffers:
 
 # inductor debug switch
 config.trace.enabled = True
+
+enable_flex_attention_dq_before_scale_materialize = os.environ.get(
+    "FLEX_ATTENTION_DQ_BEFORE_SCALE_MATERIALIZE", "1"
+).lower() in ("1", "true", "yes")
 
 device = torch.npu.current_device()
 prop = torch.npu.get_device_properties(device)
@@ -55,7 +60,7 @@ class catlass:
     # Configures the maximum number of CATLASS configs to profile in max_autotune.
     # By default it's None, so that all CATLASS configs are tuned.
     # This is mainly used to reduce test time in CI.
-    catlass_max_profiling_configs: int | None = None
+    catlass_max_profiling_configs: Optional[int] = None
 
     catlass_backend_min_gemm_size: int = 1
 
@@ -159,6 +164,7 @@ rtol_default = 1.3e-6
 atol_default = 1e-5
 
 if dump_fx_graph:
+    torch._inductor.config.split_reductions = False
     # Configure accuracy comparison thresholds when check_accuracy is enabled
     ENV_TOL_STR = os.environ.get("INDUCTOR_ASCEND_CHECK_ACCURACY_RTOL_ATOL", "")
     rtol_custom, atol_custom = parse_rtol_atol(ENV_TOL_STR)
@@ -284,3 +290,5 @@ if "TORCHNPU_PRECOMPILE_THREADS" in os.environ:
 
 lowering_axis_count = None
 inductor_ascend_linear_mode = "linear"
+
+autotune_continue_on_failure = os.environ.get('TORCHINDUCTOR_NPU_BACKEND') == "default"

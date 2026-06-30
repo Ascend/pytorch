@@ -1,6 +1,6 @@
 import itertools
 from math import gcd
-from typing import cast
+from typing import cast, Optional
 
 import sympy
 
@@ -66,9 +66,7 @@ def detect_flattened_dims(kernel, index):
         elif var in kernel.range_tree_nodes_removed:
             parent_axis = kernel.range_tree_nodes_removed[var]
         else:
-            raise RuntimeError(
-                f"detect_flattened_dims not support var {var} with divisors {divisors} yet"
-            )
+            continue
 
         for divisor, pair in divisors.items():
             if not pair[0] and not pair[1]:
@@ -189,9 +187,7 @@ def rebuild_flattened_dims(indexing):
             elif var in kernel.range_tree_nodes_removed:
                 old_node = kernel.range_tree_nodes_removed[var]
             else:
-                raise RuntimeError(
-                    f"rebuild_flattened_dims not support var {var} with flatten_dim {flatten_dim} yet"
-                )
+                continue
 
             rebuild_flattened_dim(key, index, old_node, flatten_dim)
 
@@ -845,9 +841,7 @@ def eliminate_zero_term(term):
     elif expr in V.kernel.range_tree_nodes_removed:
         numel = V.kernel.range_tree_nodes_removed[expr].length
     else:
-        raise RuntimeError(
-            f"eliminate_zero_term not support var {expr} with divisor {divisor} yet"
-        )
+        return term
 
     length = term.eval(numel, divisor)
     if length == 0:
@@ -876,7 +870,7 @@ def eliminate_modular(term):
     expr, lower, upper = term.args
 
     # Get symbol's length information
-    def get_symbol_length(symbol: sympy.Symbol) -> int | None:
+    def get_symbol_length(symbol: sympy.Symbol) -> Optional[int]:
         """Get symbol's length (from range tree)"""
         if symbol in V.kernel.range_tree_nodes:
             return V.kernel.range_tree_nodes[symbol].length

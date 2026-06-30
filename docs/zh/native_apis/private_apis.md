@@ -39,7 +39,7 @@
 |--|--|--|
 |torch.distributed._functional_collectives.reduce_scatter_tensor|是|支持bf16，fp16，fp32，int8，int32，int64|
 |torch.distributed._reduce_scatter_base|是|支持fp16，fp32，int8，int32，int64|
-|torch.distributed.all_reduce_coalesced |是|支持fp16，fp32，uint8，int8，int32，int64，bool，complex64|
+|torch.distributed.all_reduce_coalesced|是|支持fp16，fp32，uint8，int8，int32，int64，bool，complex64|
 |torch.distributed._functional_collectives.AsyncCollectiveTensor|是|支持bf16，fp16，fp32，fp64，uint8，int8，int32，int64，bool，complex64，complex128|
 
 ## torch.distributed.nn

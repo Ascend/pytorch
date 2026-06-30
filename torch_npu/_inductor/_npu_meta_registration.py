@@ -17,6 +17,7 @@ from torch._dynamo.symbolic_convert import break_graph_if_unsupported, Instructi
 from torch._dynamo.exc import Unsupported
 from torch._dynamo.variables.lists import TupleVariable
 from torch._dynamo.variables.nn_module import NNModuleVariable
+from torch._meta_registrations import device_hint
 import torch_npu
 
 aten = torch.ops.aten
@@ -94,7 +95,9 @@ def patch_torch_decomp_decompositions():
 
 def register_meta_npu(op, avoid_fallback_flag=False, inductor_decomp=False):
     def meta_decorator(fn: Callable):
-        _add_op_to_meta_table(op, fn, avoid_fallback_flag, inductor_decomp)
+        ops = op if isinstance(op, list) else [op]
+        for single_op in ops:
+            _add_op_to_meta_table(single_op, fn, avoid_fallback_flag, inductor_decomp)
         return fn
 
     return meta_decorator
@@ -120,8 +123,26 @@ def npu_patch_meta():
     patch_torch_decomp_decompositions()
     patch_torch_inductor_decompositions()
 
+@register_meta_npu(
+    [
+        aten.sort.default,
+        aten.sort.stable,
+        aten.sort.values,
+        aten.sort.values_stable,
+    ]
+    , avoid_fallback_flag=True
+)
+def meta_sort(self, stable=None, dim=-1, descending=False, values=None, indices=None):
+    if device_hint(self) == "npu":
+        v = torch.empty(self.shape, dtype=self.dtype, device=self.device)
+        i = torch.empty(self.shape, dtype=torch.int64, device=self.device)
 
-
+        return v, i
+    else:
+        from torch._meta_registrations import meta_sort
+        meta_sort(self, stable=stable, dim=dim, descending=descending, values=values, indices=indices)
+    
+    
 @register_meta_npu(aten.index_put.default)
 def meta_index_put_patch(self, indices, values, accumulate=False):
     return self.new_empty(self.shape)

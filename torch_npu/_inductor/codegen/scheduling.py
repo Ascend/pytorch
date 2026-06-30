@@ -55,9 +55,9 @@ class NPUNoLinearTritonScheduling(TritonScheduling):
     def __init__(self, input_scheduler):
         super().__init__(input_scheduler)
         from ..config import inductor_ascend_linear_mode
-        self.kernel_type = NPUTritonKernelWithLoop
-        if inductor_ascend_linear_mode == 'no_linear':
-            self.kernel_type = NPUTritonKernel
+        self.kernel_type = NPUTritonKernel
+        if inductor_ascend_linear_mode == 'no_linear_loop':
+            self.kernel_type = NPUTritonKernelWithLoop
 
 class NPUTritonScheduling(TritonScheduling):
     kernel_type = NPUIndexTritonKernel

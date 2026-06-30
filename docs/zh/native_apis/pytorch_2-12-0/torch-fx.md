@@ -10,11 +10,11 @@
 |[torch.fx.experimental.proxy_tensor.make_fx](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.proxy_tensor.make_fx.html)|是|-|
 |[torch.fx.experimental.proxy_tensor.maybe_disable_thunkify](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.proxy_tensor.maybe_disable_thunkify.html)|是|-|
 |[torch.fx.experimental.proxy_tensor.maybe_enable_thunkify](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.proxy_tensor.maybe_enable_thunkify.html)|是|-|
-|[torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symbolic_sizes_strides_storage_offset](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symbolic_sizes_strides_storage_offset.html)|是|-|
-|[torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symboolnode](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symboolnode.html)|是|-|
-|[torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symfloatnode](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symfloatnode.html)|是|-|
-|[torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symintnode](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symintnode.html)|是|-|
-|[torch.fx.experimental.symbolic_shapes.ShapeEnv.create_unbacked_symbool](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.create_unbacked_symbool.html)|是|-|
+|[torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symbolic_sizes_strides_storage_offset](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symbolic_sizes_strides_storage_offset)|是|-|
+|[torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symboolnode](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symboolnode)|是|-|
+|[torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symfloatnode](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symfloatnode)|是|-|
+|[torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symintnode](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symintnode)|是|-|
+|[torch.fx.experimental.symbolic_shapes.ShapeEnv.create_unbacked_symbool](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.create_unbacked_symbool)|是|-|
 |[torch.fx.symbolic_trace](https://pytorch.org/docs/2.12/fx.html#torch.fx.symbolic_trace)|是|支持fp32|
 |[torch.fx.wrap](https://pytorch.org/docs/2.12/fx.html#torch.fx.wrap)|是|支持fp32|
 |[torch.fx.graph.map_arg](https://pytorch.org/docs/2.12/fx.html#torch.fx.graph.map_arg)|是|支持fp32|

@@ -1,10 +1,13 @@
 from torch._inductor.codegen.common import DeviceOpOverrides, register_device_op_overrides
 import torch_npu
-from torch_npu._inductor.codegen.catlass.catlass_utils import try_import_catlass
 
 
 class NewNPUDeviceOpOverrides(DeviceOpOverrides):
     def import_get_raw_stream_as(self, name):
+        # Importing CATLASS loads the NPU config, which initializes NPU state.
+        # Keep it lazy so forked compile workers can import device overrides.
+        from torch_npu._inductor.codegen.catlass.catlass_utils import try_import_catlass
+
         enabled_catlass = try_import_catlass()
         if not enabled_catlass and hasattr(torch_npu._C, "_npu_getCurrentRawStreamNoWait"):
             return f"from torch_npu._C import _npu_getCurrentRawStreamNoWait as {name}"
@@ -74,9 +77,43 @@ class NewNPUDeviceOpOverrides(DeviceOpOverrides):
         """
 
         load_code = """
-            static std::unordered_map<std::string, size_t> registered_names;
-            static std::unordered_map<std::string, std::unique_ptr<size_t>> func_stubs;
-            
+            static std::unordered_map<std::string, std::pair<aclrtBinHandle, aclrtFuncHandle>> registered_kernels;
+
+            static inline bool endsWith(const std::string &value, const std::string &suffix) {
+                return value.size() >= suffix.size()
+                    && value.compare(value.size() - suffix.size(), suffix.size(), suffix) == 0;
+            }
+
+            static inline std::string inferKernelModeFromName(const std::string &nameFuncMode) {
+                size_t spacePos = nameFuncMode.find(' ');
+                if (spacePos != std::string::npos && spacePos + 1 < nameFuncMode.size()) {
+                    return nameFuncMode.substr(spacePos + 1);
+                }
+                if (endsWith(nameFuncMode, "_aiv")) {
+                    return "aiv";
+                }
+                if (endsWith(nameFuncMode, "_aic")) {
+                    return "aic";
+                }
+                return "";
+            }
+
+            static inline std::string parseKernelFuncName(
+                    const std::string &nameFuncMode,
+                    const std::string &kernel_mode) {
+                size_t spacePos = nameFuncMode.find(' ');
+                if (spacePos != std::string::npos) {
+                    return nameFuncMode.substr(0, spacePos);
+                }
+                if (!kernel_mode.empty()) {
+                    const std::string mode_suffix = "_" + kernel_mode;
+                    if (endsWith(nameFuncMode, mode_suffix)) {
+                        return nameFuncMode.substr(0, nameFuncMode.size() - mode_suffix.size());
+                    }
+                }
+                return nameFuncMode;
+            }
+
             static inline void * loadKernel(
                     std::string filePath,
                     const std::string &&nameFunc,
@@ -102,59 +139,59 @@ class NewNPUDeviceOpOverrides(DeviceOpOverrides):
                     throw std::runtime_error(std::string("read npubin failed"));
                 }
 
-                rtError_t rtRet;
+                aclError aclRet;
 
-                rtDevBinary_t devbin;
-                devbin.data = buffer;
-                devbin.length = data_size;
-                const std::string kernel_mode{kernel_mode_str};
+                uint32_t magic;
+                std::string kernel_mode{kernel_mode_str};
+                if (kernel_mode.empty()) {
+                    kernel_mode = inferKernelModeFromName(nameFunc);
+                }
                 if (kernel_mode == "aiv") {
-                    devbin.magic = RT_DEV_BINARY_MAGIC_ELF_AIVEC;
+                    magic = ACL_RT_BINARY_MAGIC_ELF_VECTOR_CORE;
                 } else {
-                    devbin.magic = RT_DEV_BINARY_MAGIC_ELF;
-                }
-                devbin.version = 0;
-
-                int device = 0;
-                rtRet = rtSetDevice(device);
-                if (rtRet != RT_ERROR_NONE) {
-                    throw std::runtime_error(std::string("rtSetDevice failed, 0x") + std::to_string(rtRet));
+                    magic = ACL_RT_BINARY_MAGIC_ELF_AICORE;
                 }
 
-                void *devbinHandle = NULL;
-                rtRet = rtDevBinaryRegister(&devbin, &devbinHandle);
-                if (rtRet != RT_ERROR_NONE) {
-                    throw std::runtime_error(std::string("rtDevBinaryRegister failed, 0x") + std::to_string(rtRet));
+                aclrtBinaryLoadOption optArr[] = {
+                    { .type = ACL_RT_BINARY_LOAD_OPT_LAZY_LOAD, .value = { .isLazyLoad = 0 } },
+                    { .type = ACL_RT_BINARY_LOAD_OPT_MAGIC, .value = { .magic = magic } }
+                };
+                aclrtBinaryLoadOptions loadOptions = { .options = optArr, .numOpt = 2 };
+                aclrtBinHandle binHandle = nullptr;
+                aclRet = aclrtBinaryLoadFromData(buffer, data_size, &loadOptions, &binHandle);
+                if (aclRet != ACL_SUCCESS) {
+                    throw std::runtime_error(std::string("aclrtBinaryLoadFromData failed, 0x") + std::to_string(aclRet));
                 }
 
-                const char* name = nameFunc.c_str();
-
-                std::string stubName(name);
-                stubName += "_" + std::to_string(registered_names[name]);
-                registered_names[name]++;
-                auto registered = func_stubs.emplace(stubName, std::make_unique<size_t>(0));
-                void *func_stub_handle = registered.first->second.get();
-                rtRet = rtFunctionRegister(devbinHandle, func_stub_handle, stubName.c_str(),
-                                            (void *)name, 0);
-                if (rtRet != RT_ERROR_NONE) {
-                    throw std::runtime_error(std::string("rtFunctionRegister failed, stubName = ") + stubName
-                                + std::string(" , 0x") + std::to_string(rtRet));
+                std::string kernel_func_name = parseKernelFuncName(nameFunc, kernel_mode);
+                const char* name = kernel_func_name.c_str();
+                aclrtFuncHandle funcHandle = nullptr;
+                aclRet = aclrtBinaryGetFunction(binHandle, name, &funcHandle);
+                if (aclRet != ACL_SUCCESS) {
+                    throw std::runtime_error(std::string("aclrtBinaryGetFunction failed(name = ") + name
+                                + std::string("), 0x") + std::to_string(aclRet));
                 }
 
-                return func_stub_handle;
+                registered_kernels[nameFunc] = std::make_pair(binHandle, funcHandle);
+
+                return reinterpret_cast<void *>(funcHandle);
+            }
+
+            static inline void * loadKernel(
+                    std::string filePath,
+                    const std::string &&nameFunc,
+                    uint32_t sharedMemBytes,
+                    const std::optional<std::string> &cubinDir = std::nullopt) {
+                return loadKernel(std::move(filePath), std::move(nameFunc), inferKernelModeFromName(nameFunc),
+                                  sharedMemBytes, cubinDir);
             }
         """
 
-        # Could not use OpCommand when debug_kernel, because we want to
-        # use torch::save, which will cause dead lock in child thread.
         launch_code = """
             static inline void launchKernel(
                     std::function<int()> launch_call,
                     const char* kernel_name) {
-                at_npu::native::OpCommand cmd;
-                cmd.Name(kernel_name)
-                    .SetCustomHandler(launch_call)
-                    .Run();
+                at_npu::native::OpCommand::RunOpApiV2(kernel_name, launch_call);
             }
         """
         extra_code = ""

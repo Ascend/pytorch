@@ -6,6 +6,7 @@
 namespace c10_npu {
     namespace NPUCachingAllocator {
         constexpr size_t kAlignRoundLarge = 16384;            // round up large allocs to 16 KB
+        constexpr size_t kLargeBuffer = 20971520;             // "large" allocations may be packed in 20 MiB blocks
         constexpr size_t minMaxSplitSizeMb = 20971520;        // minimum value of max_split_size
         constexpr size_t kMB = 1024 * 1024;                   // 1 MB
         constexpr size_t k20MB = 20;                          // 20 MB for segment_size
@@ -16,6 +17,15 @@ namespace c10_npu {
 
         class CachingAllocatorConfig {
         public:
+            static bool release_lock_on_npumalloc() {
+                return instance().m_release_lock_on_npumalloc;
+            }
+
+            static size_t max_non_split_rounding_size()
+            {
+                return instance().m_max_non_split_rounding_size;
+            }
+
             static size_t max_split_size()
             {
                 return instance().m_max_split_size;
@@ -76,6 +86,9 @@ namespace c10_npu {
             void parseArgs(const char *env, const std::set<std::string>& supported_settings = {});
 
         private:
+            bool m_release_lock_on_npumalloc;
+            size_t m_max_non_split_rounding_size;
+
             size_t m_max_split_size;
 
             double m_garbage_collection_threshold;
@@ -106,7 +119,9 @@ namespace c10_npu {
                   m_pinned_mem_register(false),
                   m_base_addr_aligned_size(kAlignRoundLarge),
                   m_segment_size_mb(0),
-                  m_roundup_power2_divisions(kRoundUpPowerOfTwoIntervals, 0)
+                  m_roundup_power2_divisions(kRoundUpPowerOfTwoIntervals, 0),
+                  m_max_non_split_rounding_size(kLargeBuffer),
+                  m_release_lock_on_npumalloc(false)
             {}
 
             void lexArgs(const char *env, std::vector<std::string> &config);
@@ -132,6 +147,9 @@ namespace c10_npu {
             size_t parseRoundUpPower2Divisions(const std::vector<std::string> &config, size_t i);
 
             size_t parseMultiStreamLazyReclaim(const std::vector<std::string> &config, size_t i);
+
+            size_t parseMaxNonSplitRoundingSize(const std::vector<std::string> &config, size_t i);
+            size_t parseReleaseLockOnNpuMalloc(const std::vector<std::string> &config, size_t i);
         };
     } // namespace NPUCachingAllocator
 } // namespace c10_npu

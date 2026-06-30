@@ -1,7 +1,8 @@
 import logging
 import os
+import re
 from functools import cache
-from typing import Any
+from typing import Any, Optional
 
 import torch
 import torch.utils._pytree as pytree
@@ -96,6 +97,56 @@ def _mfusion_has_matmul(gm: GraphModule) -> bool:
     return False
 
 
+def _sanitize_mfusion_kernel_name_part(name: Any) -> Optional[str]:
+    if name is None:
+        return None
+    text = str(name)
+    text = re.sub(r"\W+", "_", text).strip("_")
+    if not text:
+        return None
+    if text[0].isdigit():
+        text = "op_" + text
+    return text
+
+
+def _mfusion_op_name_from_target(target: Any) -> Optional[str]:
+    overload_packet = getattr(target, "_overloadpacket", None)
+    if overload_packet is not None:
+        name = getattr(overload_packet, "__name__", None)
+        if name:
+            return _sanitize_mfusion_kernel_name_part(name)
+
+    name = getattr(target, "__name__", None)
+    if name:
+        return _sanitize_mfusion_kernel_name_part(name)
+
+    return _sanitize_mfusion_kernel_name_part(target)
+
+
+def _mfusion_op_name_from_node(node: Node) -> Optional[str]:
+    original_aten = node.meta.get("original_aten")
+    if original_aten is not None:
+        name = _mfusion_op_name_from_target(original_aten)
+        if name:
+            return name
+    return _mfusion_op_name_from_target(node.target)
+
+
+def _mfusion_dvm_kernel_base_name(sub_gm: GraphModule) -> str:
+    sources = {
+        name
+        for node in sub_gm.graph.nodes
+        if node.op == "call_function"
+        for name in [_mfusion_op_name_from_node(node)]
+        if name
+    }
+    return "_".join(["mfusion_dvm", "fused", *(sorted(sources) or ["unknown"])])
+
+
+def _mfusion_dvm_layout_key(cg: DvmCodegenInterpreter, num_outputs: int) -> tuple:
+    return tuple(cg.cont_flag_input), tuple(cg.need_trans_input), num_outputs
+
+
 def _mfusion_safe_repr(obj: Any, max_len: int = 240) -> str:
     try:
         text = repr(obj)
@@ -106,7 +157,7 @@ def _mfusion_safe_repr(obj: Any, max_len: int = 240) -> str:
     return text
 
 
-def _extract_subgraph_name_from_arg(arg: Any, gm: GraphModule | None) -> str | None:
+def _extract_subgraph_name_from_arg(arg: Any, gm: Optional[GraphModule]) -> Optional[str]:
     if isinstance(arg, str):
         return arg
     if (
@@ -245,7 +296,7 @@ def _iter_ir_inputs(ir_node: Any):
             yield inp
 
 
-def _is_mfusion_related_ir(ir_node: Any, seen: set[int] | None = None) -> bool:
+def _is_mfusion_related_ir(ir_node: Any, seen: Optional[set[int]] = None) -> bool:
     if ir_node is None:
         return False
     if seen is None:
@@ -327,12 +378,132 @@ def _patch_mfusion_symbol_fastpath() -> None:
         MFusionPatch._patched_multioutput_get_free_symbol_uses = True
 
 
-def _ensure_graph_module(orig_graph) -> GraphModule | None:
+def _ensure_graph_module(orig_graph) -> Optional[GraphModule]:
     if isinstance(orig_graph, GraphModule):
         return orig_graph
     if isinstance(orig_graph, Graph):
         return GraphModule(torch.nn.Module(), orig_graph)
     return None
+
+
+def _find_output_node(graph: Graph) -> Optional[Node]:
+    return next((node for node in graph.nodes if node.op == "output"), None)
+
+
+def _output_arg_list(output_node: Node) -> list[Any]:
+    args = output_node.args[0]
+    return list(args) if isinstance(args, (list, tuple)) else [args]
+
+
+def _output_container_kind(output_node: Node) -> str:
+    args = output_node.args[0]
+    if isinstance(args, tuple):
+        return "tuple"
+    if isinstance(args, list):
+        return "list"
+    return "single"
+
+
+def _copy_output_meta_value(value: Any) -> Any:
+    if isinstance(value, list):
+        return list(value)
+    if isinstance(value, tuple):
+        return tuple(value)
+    if isinstance(value, set):
+        return set(value)
+    return value
+
+
+def _snapshot_output_contract(output_node: Optional[Node]) -> dict[str, Any]:
+    if output_node is None:
+        return {}
+
+    output_args = _output_arg_list(output_node)
+    return {
+        "output_container": _output_container_kind(output_node),
+        "output_len": len(output_args),
+        "none_positions": [i for i, arg in enumerate(output_args) if arg is None],
+        "valid_positions": [i for i, arg in enumerate(output_args) if arg is not None],
+        "user_visible_output_idxs": _copy_output_meta_value(
+            output_node.meta.get("user_visible_output_idxs")
+        ),
+        "original_output_strides": _copy_output_meta_value(
+            output_node.meta.get("original_output_strides")
+        ),
+    }
+
+
+def _restore_output_contract(output_node: Optional[Node], snapshot: dict[str, Any]) -> None:
+    if output_node is None or not snapshot:
+        return
+
+    output_len = snapshot["output_len"]
+    valid_positions = snapshot["valid_positions"]
+    current = _output_arg_list(output_node)
+    has_original_contract = (
+        snapshot.get("user_visible_output_idxs") is not None
+        or snapshot.get("original_output_strides") is not None
+    )
+
+    if len(current) == output_len:
+        restored = current
+    elif len(current) == len(valid_positions):
+        restored = [None] * output_len
+        for src_idx, output_idx in enumerate(valid_positions):
+            restored[output_idx] = current[src_idx]
+    else:
+        if not has_original_contract:
+            return
+        raise RuntimeError(
+            "mfusion output ABI mismatch while restoring output metadata: "
+            f"original_len={output_len}, current_len={len(current)}, "
+            f"valid_positions={valid_positions}, "
+            f"user_visible_output_idxs={snapshot.get('user_visible_output_idxs')}, "
+            f"original_output_strides_len={len(snapshot.get('original_output_strides') or [])}"
+        )
+
+    user_visible_output_idxs = snapshot.get("user_visible_output_idxs")
+    original_output_strides = snapshot.get("original_output_strides")
+    if user_visible_output_idxs is not None:
+        bad_idxs = [idx for idx in user_visible_output_idxs if idx >= output_len or idx < 0]
+        if bad_idxs:
+            raise RuntimeError(
+                "mfusion output metadata has out-of-range user-visible indexes: "
+                f"original_len={output_len}, bad_idxs={bad_idxs}, "
+                f"user_visible_output_idxs={user_visible_output_idxs}"
+            )
+        output_node.meta["user_visible_output_idxs"] = _copy_output_meta_value(
+            user_visible_output_idxs
+        )
+
+    if original_output_strides is not None:
+        if len(original_output_strides) != output_len:
+            raise RuntimeError(
+                "mfusion output metadata has mismatched original_output_strides length: "
+                f"original_len={output_len}, "
+                f"original_output_strides_len={len(original_output_strides)}"
+            )
+        output_node.meta["original_output_strides"] = _copy_output_meta_value(
+            original_output_strides
+        )
+
+    output_container = snapshot.get("output_container", "tuple")
+    if output_container == "tuple":
+        output_node.args = (tuple(restored),)
+    elif output_container == "list":
+        output_node.args = (list(restored),)
+    elif output_container == "single":
+        if len(restored) != 1:
+            raise RuntimeError(
+                "mfusion output ABI mismatch while restoring single output: "
+                f"restored_len={len(restored)}, original_len={output_len}"
+            )
+        output_node.args = (restored[0],)
+    else:
+        raise RuntimeError(
+            "mfusion output ABI has unsupported output container: "
+            f"{output_container!r}"
+        )
 
 
 def _layout_get_size(layout):
@@ -400,16 +571,7 @@ def mfusion_graph_fusion(graph: Graph) -> None:
     # (placeholders/get_attr/call_function, etc.). FX<->MLIR roundtrip
     # reconstructs the graph, so re-propagate FakeTensor metadata afterwards.
 
-    # Record original output structure when output contains None (restore after roundtrip so backward returns correct count)
-    original_output_args = None
-    valid_positions = None
-    output_node_pre = next((n for n in gm.graph.nodes if n.op == "output"), None)
-    if output_node_pre:
-        args_pre = output_node_pre.args[0]
-        args_pre = list(args_pre) if isinstance(args_pre, (list, tuple)) else [args_pre]
-        if any(a is None for a in args_pre):
-            original_output_args = args_pre
-            valid_positions = [i for i, a in enumerate(args_pre) if a is not None]
+    output_contract = _snapshot_output_contract(_find_output_node(gm.graph))
 
     # 0.Extract inputs for metadata restoration
     example_inputs = [
@@ -464,19 +626,7 @@ def mfusion_graph_fusion(graph: Graph) -> None:
             "got the same instance as the input graph"
         )
     gm.graph = out_gm.graph
-    # Restore original output count by padding None at positions that were None (AOT backward expects fixed count)
-    if original_output_args is not None and valid_positions is not None:
-        out_node = next((n for n in gm.graph.nodes if n.op == "output"), None)
-        if out_node:
-            current = out_node.args[0]
-            current = list(current) if isinstance(current, (list, tuple)) else [current]
-            if len(current) == len(valid_positions) and len(original_output_args) > len(
-                valid_positions
-            ):
-                new_output_list = [None] * len(original_output_args)
-                for j, i in enumerate(valid_positions):
-                    new_output_list[i] = current[j]
-                out_node.args = (tuple(new_output_list),)
+    _restore_output_contract(_find_output_node(gm.graph), output_contract)
     _mfusion_print_fx_graph(gm, "# After torch-mlir -> fx, FX Graph:")
 
     # 4.restore meta info
@@ -522,12 +672,19 @@ def _emit_mfusion_dvm_codegen(
         is_dynamic=payload.is_dynamic,
     )
     cg.run()
-    kernel_name = f"mfusion_dvm_{self.next_kernel_suffix()}"
-    cg.append_mfusion_kernel_profiling_metadata(
-        kernel_name, _mfusion_gm_num_outputs(sub_gm)
-    )
-    code = cg.code.getvalue().replace(cg.KERNEL_NAME_PLACEHOLDER, kernel_name)
-    self.header.splice(code)
+    num_outputs = _mfusion_gm_num_outputs(sub_gm)
+    src_code = cg.code.getvalue()
+    kernel_key = (src_code, _mfusion_dvm_layout_key(cg, num_outputs))
+    kernel_name = self.src_to_kernel.get(kernel_key)
+    if kernel_name is None:
+        fused_kernel_name = _mfusion_dvm_kernel_base_name(sub_gm)
+        kernel_name = f"{fused_kernel_name}_{self.next_kernel_suffix()}"
+        self.src_to_kernel[kernel_key] = kernel_name
+        cg.append_mfusion_kernel_profiling_metadata(kernel_name, num_outputs)
+        code = cg.code.getvalue().replace(cg.KERNEL_NAME_PLACEHOLDER, kernel_name)
+        self.header.splice(code)
+    else:
+        code = src_code
 
     logger.debug("dvm codegen: %s", code)
 

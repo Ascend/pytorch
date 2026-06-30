@@ -16,7 +16,7 @@
     git clone -b v2.7.1 https://gitcode.com/ascend/pytorch.git torch_npu
     ```
 
-3. 根据需要的优化类型进行相应编译参数设置并进行编译，LTO和PGO优化可以单独使用，也可以叠加一起使用，当前torch\_npu已支持基于毕昇编译器的编译优化选项。
+3. 根据需要的优化类型进行相应编译参数设置并进行编译，LTO和PGO优化可以单独使用，也可以叠加使用，当前torch\_npu已支持基于毕昇编译器的编译优化选项。
 
     > [!NOTE]
     > 

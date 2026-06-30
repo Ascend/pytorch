@@ -219,6 +219,7 @@ enum struct RecordContext {
 using OutOfMemoryObserver =
     std::function<void(int64_t device, int64_t allocated, int64_t device_total,
                        int64_t device_free)>;
+using AllocatorTraceTracker = std::function<void(const TraceEntry&)>;
 
 struct ShareableHandle {
     ptrdiff_t offset;
@@ -284,6 +285,7 @@ public:
                                size_t alloc_trace_max_entries,
                                RecordContext when) = 0;
     virtual void attachOutOfMemoryObserver(OutOfMemoryObserver observer) = 0;
+    virtual void attachAllocatorTraceTracker(AllocatorTraceTracker tracker) = 0;
     virtual bool checkUceInMemPool(int device) = 0;
     virtual bool checkBlockIsSafe(const c10::DataPtr& ptr) = 0;
     virtual void markAllBlockUnsafe(int device) = 0;
@@ -500,6 +502,11 @@ inline bool checkPoolLiveAllocations(
 inline void attachOutOfMemoryObserver(OutOfMemoryObserver observer)
 {
     return get()->attachOutOfMemoryObserver(observer);
+}
+
+inline void attachAllocatorTraceTracker(AllocatorTraceTracker tracker)
+{
+    return get()->attachAllocatorTraceTracker(std::move(tracker));
 }
 
 inline bool checkUceInMemPool(int device)

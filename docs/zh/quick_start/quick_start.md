@@ -104,12 +104,12 @@
         ......
     +   import torch_npu
     +   from torch_npu.npu import amp # 导入AMP模块
-    +   from torch_npu.contrib import transfer_to_npu    # 使能自动迁移
+    +   from torch_npu.contrib import transfer_to_npu    # 开启自动迁移
     ```
 
-    若未使能自动迁移，用户可参考《PyTorch 训练模型迁移调优指南》中的“[手工迁移](https://gitcode.com/Ascend/docs/blob/master/FrameworkPTAdapter/26.0.0/zh/pytorch_model_migration_fine_tuning/manual_migration.md)”章节进行相关操作。
+    若未开启自动迁移，用户可参考《PyTorch 训练模型迁移调优指南》中的“[手工迁移](https://gitcode.com/Ascend/docs/blob/master/FrameworkPTAdapter/26.0.0/zh/pytorch_model_migration_fine_tuning/manual_migration.md)”章节进行相关操作。
 
-3. 使能AMP混合精度计算。若用户使用<term>Atlas A2 训练系列产品</term>或<term>Atlas A3 训练系列产品</term>，则可以选择跳过此步骤。
+3. 开启AMP混合精度计算。若用户使用<term>Atlas A2 训练系列产品</term>或<term>Atlas A3 训练系列产品</term>，则可以选择跳过此步骤。
 
     在模型、优化器定义之后，定义AMP功能中的GradScaler。
 

@@ -14,6 +14,7 @@
 #include <c10/util/irange.h>
 #include <c10/util/UniqueVoidPtr.h>
 #include <c10/util/llvmMathExtras.h>
+#include <c10/util/ScopeExit.h>
 
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
@@ -95,7 +96,6 @@ using stream_set = ska::flat_hash_set<c10_npu::NPUStream>;
 constexpr size_t kMinBlockSize = 512;                 // all sizes are rounded to at least 512 bytes
 constexpr size_t kSmallSize = 1048576;                // largest "small" allocation is 1 MiB
 constexpr size_t kSmallBuffer = 2097152;              // "small" allocations are packed in 2 MiB blocks
-constexpr size_t kLargeBuffer = 20971520;             // "large" allocations may be packed in 20 MiB blocks
 constexpr size_t kExtraLargeBuffer = 1073741824;      // "extra large" allocations may be packed in 1 GB blocks
 constexpr size_t kMinLargeAlloc = 10485760;           // allocations between 1 and 10 MiB may use kLargeBuffer
 constexpr size_t kRoundLarge = 2097152;               // round up large allocs to 2 MiB
@@ -898,7 +898,12 @@ void setAllocatorSettings(const std::string& settings)
     NPUStatus ret = c10_npu::emptyAllNPUStream();
     TORCH_CHECK(ret == NPU_STATUS_SUCCESS, "Failed to empty NPU task queue, ret:", ret, PTA_ERROR(ErrCode::INTERNAL));
     // Only support expandable_segments setting.
-    CachingAllocatorConfig::instance().parseArgs(settings.c_str(), {"expandable_segments"});
+    CachingAllocatorConfig::instance().parseArgs(settings.c_str(), {
+        "expandable_segments",
+        "max_split_size_mb",
+        "max_non_split_rounding_mb",
+        "release_lock_on_npumalloc"
+    });
 }
 
 bool saveDevMemUsageInfo(const int& device)
@@ -1025,6 +1030,7 @@ private:
 
     // XXX - maybe we should generalize and have multiple events
     std::vector<OutOfMemoryObserver> oom_observers_;
+    std::vector<AllocatorTraceTracker> trace_trackers_;
     std::shared_ptr<c10d_npu::HCCLComm> hcclComm_;
 
     // Private pools for NPU graphs
@@ -1096,6 +1102,12 @@ public:
     void attachOutOfMemoryObserver(OutOfMemoryObserver observer)
     {
         oom_observers_.emplace_back(observer);
+    }
+
+    void attachAllocatorTraceTracker(AllocatorTraceTracker tracker)
+    {
+        std::unique_lock<std::recursive_mutex> lock(mutex);
+        trace_trackers_.emplace_back(std::move(tracker));
     }
 
     bool checkUceInMemPool()
@@ -2574,7 +2586,8 @@ private:
             return false;
         }
         // Allow oversized block size to be rounded up but within a limit
-        if ((p.size() >= CachingAllocatorConfig::max_split_size()) && ((*it)->size >= p.size() + kLargeBuffer)) {
+        if ((p.size() >= CachingAllocatorConfig::max_split_size()) &&
+            ((*it)->size >= p.size() + CachingAllocatorConfig::max_non_split_rounding_size())) {
             return false;
         }
         p.block = *it;
@@ -2701,7 +2714,17 @@ private:
                 if (IsMallocPage1GMem(p.pool->is_small)) {
                     policy = aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE1G_ONLY;
                 }
-                p.err = c10_npu::acl::AclrtMallocAlign32(&ptr, size, policy);
+                if (CachingAllocatorConfig::release_lock_on_npumalloc()) {
+                    // safe relock at last of this if region
+                    auto sg = c10::make_scope_exit([&]() { lock.lock(); });
+                    lock.unlock();
+                    p.err = c10_npu::acl::AclrtMallocAlign32(&ptr, size, policy);
+                } else {
+                    p.err = c10_npu::acl::AclrtMallocAlign32(&ptr, size, policy);
+                }
+                if (CachingAllocatorConfig::release_lock_on_npumalloc()) {
+                    TORCH_CHECK(lock.owns_lock(), "Failed to re-acquire lock after npumalloc");
+                }
             }
             if (p.err != ACL_ERROR_NONE) {
                 return false;
@@ -3114,12 +3137,16 @@ private:
     void record_trace(TraceEntry::Action action, int64_t addr, size_t size, aclrtStream stream, int device,
         std::shared_ptr<c10::GatheredContext> context)
     {
-        if (!record_history) {
+        if (!record_history && trace_trackers_.empty()) {
             return;
         }
 
         auto te = TraceEntry(action, device, addr, size, stream,
             record_context_ >= RecordContext::ALLOC ? std::move(context) : nullptr);
+
+        for (const auto& cb : trace_trackers_) {
+            cb(te);
+        }
 
         if (record_history) {
             if (alloc_trace->size() < alloc_trace_max_entries_) {
@@ -3275,6 +3302,13 @@ public:
     {
         for (auto &allocator : device_allocator) {
             allocator->attachOutOfMemoryObserver(observer);
+        }
+    }
+
+    void attachAllocatorTraceTracker(AllocatorTraceTracker tracker) override
+    {
+        for (auto& allocator : device_allocator) {
+            allocator->attachAllocatorTraceTracker(tracker);
         }
     }
 

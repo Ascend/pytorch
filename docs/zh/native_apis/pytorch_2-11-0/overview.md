@@ -1,6 +1,6 @@
 # 概述
 
-介绍PyTorch2.11.0版本原生API接口在昇腾NPU上的支持情况与限制说明，PyTorch2.11.0版本原生API接口具体使用方法请参考[PyTorch社区文档](https://pytorch.org/docs/2.11/)。原生API接口在昇腾NPU上的支持情况与限制说明可分为如下四类：
+介绍PyTorch2.11.0版本原生API在昇腾NPU上的支持情况与限制说明，PyTorch2.11.0版本原生API具体使用方法请参考[PyTorch社区文档](https://pytorch.org/docs/2.11/)。原生API接口在昇腾NPU上的支持情况与限制说明可分为如下四类：
 
 - API“是否支持”为“是”，“限制与说明”为“-”，说明此API和原生API支持度保持一致。
 - API“是否支持”为“是”，“限制与说明”不为“-”，说明此API和原生API支持度不一致，请注意昇腾NPU上的支持度。

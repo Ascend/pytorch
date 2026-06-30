@@ -24,7 +24,7 @@ from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.utils import (
 from .decomp import patch_decomp
 from .fx_test import generate_dvm_fx_case
 from .graph_build import DvmCodegenInterpreter
-from .op_emitter import common_rule, DVM_OP_REGISTRY, DVM_SUPPORT_TYPE
+from .op_emitter import common_rule, DVM_OP_REGISTRY, DVM_SUPPORT_TYPE, _extra_int_types
 from torch._higher_order_ops.triton_kernel_wrap import triton_kernel_wrapper_mutation
 
 dump_fx_test = os.environ.get("INDUCTOR_DVM_DUMP_FX_TEST", "0") == "1"
@@ -39,6 +39,7 @@ _quantized = torch.ops._quantized
 
 
 anir_config.GENERATE_LIST = [
+    aten._assert_scalar,
     aten.mul,
     aten.add,
     aten.sub,
@@ -89,7 +90,6 @@ anir_config.GENERATE_LIST = [
     triton_kernel_wrapper_mutation,
 ]
 
-
 def _is_node_supported_by_dvm_rule(node, allow_common_rule=False):
     if node.target in DVM_OP_REGISTRY:
         _, rule = DVM_OP_REGISTRY.get(node.target)
@@ -102,7 +102,7 @@ def _codegen_dvm_kernel(self, Name=None):
         if node.op == "placeholder":
             meta = node.meta["val"]
             if isinstance(meta, torch._subclasses.FakeTensor):
-                return meta.dtype in DVM_SUPPORT_TYPE
+                return meta.dtype in [*DVM_SUPPORT_TYPE, *_extra_int_types]
         if node.op == "call_function":
             return _is_node_supported_by_dvm_rule(node)
         return True
@@ -195,16 +195,9 @@ def _define_dvm_kernel(self, src_code, mlir_kernel, traced_graph, mode=None):
             wrapper.add_import_once("from torch_npu._inductor import dvm")
             if dump_fx_test:
                 generate_dvm_fx_case(mlir_kernel._gm, fusion_type="mlir")
-            out_indices = mlir_kernel.non_contiguous_indices.get("outputs")
-            num_inputs = len(mlir_kernel.dvm_codegen.cont_flag_input)
-            contiguity_flags = mlir_kernel.dvm_codegen.cont_flag_input + [
-                i not in out_indices
-                for i in range(num_inputs, num_inputs + mlir_kernel.num_outputs)
-            ]
             kernel_meta = {
                 "kernel_name": fused_kernel_name,
                 "kernel_fullname": kernel_name,
-                "contiguity_flags": contiguity_flags,
             }
             code = mlir_kernel.dvm_codegen.code
             code.splice(
@@ -212,7 +205,6 @@ def _define_dvm_kernel(self, src_code, mlir_kernel, traced_graph, mode=None):
                 k.set_kernel_info(
                     {kernel_meta.get("kernel_name")!r},  # kernel_name
                     {kernel_meta.get("kernel_fullname")!r},  # kernel_fullname
-                    {kernel_meta.get("contiguity_flags")},  # contiguity_flags
                 )
                 """,
                 strip=True,
@@ -389,6 +381,7 @@ class DvmMlirFusionPatch:
             False  # npu ops always return contiguous tensors which maybe different from meta outputs
         )
         inductor_config.allow_buffer_reuse = False
+        inductor_config.comprehensive_padding = False
         patch_decomp()
         _patch_lowering_type_checks()
         _patch_lowering()

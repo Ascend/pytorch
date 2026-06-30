@@ -128,4 +128,4 @@
 |[torch.ao.nn.quantized.dynamic.RNNCell](https://pytorch.org/docs/2.10/generated/torch.ao.nn.quantized.dynamic.RNNCell.html)|是|支持fp32|
 |[torch.ao.nn.quantized.dynamic.LSTMCell](https://pytorch.org/docs/2.10/generated/torch.ao.nn.quantized.dynamic.LSTMCell.html)|是|支持fp32|
 |[torch.ao.nn.quantized.dynamic.GRUCell](https://pytorch.org/docs/2.10/generated/torch.ao.nn.quantized.dynamic.GRUCell.html)|是|支持fp32|
-|[torch.ao.ns.fx.utils.compute_sqnr](https://pytorch.org/docs/2.10/ao.html#torch.ao.ns.fx.utils.compute_sqnr)|否|-|
+|[torch.ao.ns.fx.utils.compute_sqnr](https://pytorch.org/docs/2.10/quantization.html#torch.ao.ns.fx.utils.compute_sqnr)|否|-|

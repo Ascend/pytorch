@@ -6,7 +6,7 @@
 |API名称|是否支持|限制与说明|
 |--|--|--|
 |[torch.distributed.is_available](https://pytorch.org/docs/2.11/distributed.html#torch.distributed.is_available)|是|-|
-|[torch.distributed.init_process_group](https://pytorch.org/docs/2.11/distributed.html#torch.distributed.init_process_group)|是|当pg_options参数传入类型为torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()时，配置该变量属性hccl_config可控制HCCL通信域缓存区大小。具体示例可参考《PyTorch 训练模型迁移调优指南》的“[hccl_buffer_size](https://gitcode.com/Ascend/docs/blob/master/FrameworkPTAdapter/26.0.0/zh/pytorch_model_migration_fine_tuning/hccl_buffer_size.md)”章节。配置变量属性hccl_config的group_name字段可以设置HCCL通信域的通信组自定义名称，取值为长度不超过32的字符串。|
+|[torch.distributed.init_process_group](https://pytorch.org/docs/2.11/distributed.html#torch.distributed.init_process_group)|是|当pg_options参数传入类型为torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()时，配置该变量属性hccl_config可控制HCCL通信域缓冲区大小。具体示例可参考《PyTorch 训练模型迁移调优指南》的“[hccl_buffer_size](https://gitcode.com/Ascend/docs/blob/master/FrameworkPTAdapter/26.0.0/zh/pytorch_model_migration_fine_tuning/hccl_buffer_size.md)”章节。配置变量属性hccl_config的group_name字段可以设置HCCL通信域的通信组自定义名称，取值为长度不超过32的字符串。|
 |[torch.distributed.is_initialized](https://pytorch.org/docs/2.11/distributed.html#torch.distributed.is_initialized)|是|-|
 |[torch.distributed.is_mpi_available](https://pytorch.org/docs/2.11/distributed.html#torch.distributed.is_mpi_available)|是|-|
 |[torch.distributed.is_nccl_available](https://pytorch.org/docs/2.11/distributed.html#torch.distributed.is_nccl_available)|是|-|
@@ -46,7 +46,7 @@
 |[torch.distributed.FileStore.path](https://pytorch.org/docs/2.11/distributed.html#torch.distributed.FileStore.path)|是|-|
 |[torch.distributed.PrefixStore.\_\_init\_\_](https://pytorch.org/docs/2.11/distributed.html#torch.distributed.PrefixStore.__init__)|是|-|
 |[torch.distributed.PrefixStore.underlying_store](https://pytorch.org/docs/2.11/distributed.html#torch.distributed.PrefixStore.underlying_store)|是|-|
-|[torch.distributed.new_group](https://pytorch.org/docs/2.11/distributed.html#torch.distributed.new_group)|是|当pg_options参数传入类型为torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()时，配置该变量属性hccl_config可控制HCCL通信域缓存区大小。具体示例可参考《PyTorch 训练模型迁移调优指南》的“[hccl_buffer_size](https://gitcode.com/Ascend/docs/blob/master/FrameworkPTAdapter/26.0.0/zh/pytorch_model_migration_fine_tuning/hccl_buffer_size.md)”章节。配置变量属性hccl_config的group_name字段可以设置HCCL通信域的通信组自定义名称，取值为长度不超过32的字符串。|
+|[torch.distributed.new_group](https://pytorch.org/docs/2.11/distributed.html#torch.distributed.new_group)|是|当pg_options参数传入类型为torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()时，配置该变量属性hccl_config可控制HCCL通信域缓冲区大小。具体示例可参考《PyTorch 训练模型迁移调优指南》的“[hccl_buffer_size](https://gitcode.com/Ascend/docs/blob/master/FrameworkPTAdapter/26.0.0/zh/pytorch_model_migration_fine_tuning/hccl_buffer_size.md)”章节。配置变量属性hccl_config的group_name字段可以设置HCCL通信域的通信组自定义名称，取值为长度不超过32的字符串。|
 |[torch.distributed.get_group_rank](https://pytorch.org/docs/2.11/distributed.html#torch.distributed.get_group_rank)|是|-|
 |[torch.distributed.get_global_rank](https://pytorch.org/docs/2.11/distributed.html#torch.distributed.get_global_rank)|是|-|
 |[torch.distributed.get_process_group_ranks](https://pytorch.org/docs/2.11/distributed.html#torch.distributed.get_process_group_ranks)|是|-|

@@ -18,6 +18,7 @@ from torch_npu._inductor.npu_compare import check_accuracy_dvm
 
 
 debug_mode = os.environ.get("INDUCTOR_DVM_DEBUG_MODE", "0") == "1"
+bf16_vector_keep_promoted = False
 
 bool_ = DataType.bool
 float16 = DataType.float16
@@ -183,7 +184,7 @@ def _install_bf16_promote():
 
             new_args = tuple(maybe_cast_arg(a) for a in args)
             out = op_fn(self, *new_args)
-            if need_cast_back:
+            if bf16_vector_keep_promoted and need_cast_back :
                 out = self.cast(out, bfloat16)
             return out
 

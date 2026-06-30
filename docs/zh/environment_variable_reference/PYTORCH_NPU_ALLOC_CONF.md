@@ -4,6 +4,10 @@
 
 通过此环境变量可控制缓存分配器行为。配置此环境变量会改变内存占用量，可能造成性能波动。
 
+> [!CAUTION]  
+>
+> 从Ascend Extension for PyTorch 26.2.0版本且PyTorch 2.10.0及以上版本开始，torch\_npu也支持通过PYTORCH\_ALLOC\_CONF环境变量配置缓存分配器参数，配置方式、支持的参数和PYTORCH\_NPU\_ALLOC\_CONF相同，二者选其一配置即可，同时配置会报错并退出程序。建议优先使用PYTORCH\_ALLOC\_CONF环境变量配置缓存分配器行为。
+
 缓存分配器会根据申请内存的大小使用不同内存池，小于1MB使用小块内存池，反之使用大块内存池；虚拟内存特性下，大块内存池申请的物理内存粒度（segment\_size\_mb）默认为20MB，小块内存池默认为2MB（不可配置）；大模型场景下小块内存池内存使用通常较少，因此部分环境配置项（page\_size、segment\_size\_mb）只作用于大块内存池。
 
 可选参数：
@@ -16,7 +20,7 @@
 
     主动回收未使用的NPU内存块。在设置value阈值（例如0.8）后，如果NPU内存容量使用超过阈值（即分配给NPU应用程序的总内存的80%），缓存分配器将开始回收NPU内存块，优先释放最先申请和长时间未复用的内存块，避免释放积极复用的内存块。其中<value\>取值范围为\(0.0,1.0\)。默认不开启该功能。垃圾回收阈值需与内存因子配合使用，内存因子可参考《[Ascend Extension for PyTorch 自定义API参考](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/overview.md)》的“torch\_npu.npu.set\_per\_process\_memory\_fraction”。
 
-- expandable\_segments:<value\>，使能内存池扩展段功能，即虚拟内存特性。
+- expandable\_segments:<value\>，开启内存池扩展段功能，即虚拟内存特性。
 
     默认为False。如果设置为True，此设置将指示缓存分配器创建特定的内存块分配，这些内存块后续可以扩展，以便能更好地处理内存使用中频繁变更使用内存大小的情况。如果设置为False，关闭内存池扩展段功能，使用原有的内存申请方式。
 
@@ -58,7 +62,7 @@
 
     默认值为False，不启用后台线程。当设置为True时，启用后台线程，在后台线程执行查询和处理events操作，减少主线程的阻塞时间。
 
-- pin\_memory\_expandable\_segments:<value\>，使能pin_memory内存池扩展段功能，即虚拟内存特性。
+- pin\_memory\_expandable\_segments:<value\>，开启pin_memory内存池扩展段功能，即虚拟内存特性。
 
     默认为False。如果设置为True，此设置将指示pin_memory缓存分配器内存池物理内存申请粒度为20MB（不可配置），创建的内存块后续可以扩展，以便能更好地处理内存使用中频繁变更内存大小的情况，同时pin_memory内存块计数相关统计指标不参与统计（默认值：0）。如果设置为False，关闭pin_memory内存池扩展段功能，使用原有的内存申请方式。
 
@@ -160,6 +164,12 @@ export PYTORCH_NPU_ALLOC_CONF=large_segment_size_mb:50
 export PYTORCH_NPU_ALLOC_CONF=per_process_memory_fraction:0.5
 ```
 
+示例十二：
+
+```bash
+export PYTORCH_ALLOC_CONF=max_split_size_mb:32,garbage_collection_threshold:0.6
+```
+
 ## 使用约束
 
 - expandable\_segments特性需在Ascend HDK 23.0.0及以上版本上使用。
@@ -169,21 +179,22 @@ export PYTORCH_NPU_ALLOC_CONF=per_process_memory_fraction:0.5
     - <term>Atlas A3 训练系列产品</term>
 
 - page\_size特性与其他特性同时配置时，仅page\_size配置生效，且申请内存注意事项如下：
-    - 当申请内存大于1M时：
+    - 当申请内存大于1MB时：
         - 若配置page\_size，内存申请粒度为1GB。
         - 若未配置page\_size，内存申请粒度为2MB。
 
     - 当申请内存小于等于1MB时：配置page\_size也不生效，内存申请粒度为2MB。
-- pin_memory_expandable_segments特性要求Ascend Extension for PyTorch 7.3.0及以上版本、Ascend HDK 25.5.0及以上版本、CANN商发8.5.0及以上版本使用。
+- pin_memory_expandable_segments特性要求Ascend Extension for PyTorch 7.3.0及以上版本、Ascend HDK 25.5.0及以上版本、CANN商用8.5.0及以上版本使用。
 - pinned_use_background_threads特性要求在Ascend Extension for PyTorch 26.0.0及以上版本且PyTorch 2.8.0及以上版本使用。
 - pinned_mem_register使用注意事项如下：
-    - 特性要求Ascend Extension for PyTorch 26.0.0及以上版本、Ascend HDK 26.0.rc1及以上版本、CANN商用8.5.0及以上版本使用。
+    - 特性要求Ascend Extension for PyTorch 26.0.0及以上版本、Ascend HDK 26.0.RC1及以上版本、CANN商用8.5.0及以上版本使用。
     - 与pin_memory_expandable_segments特性不支持同时配置。
 - multi_stream_lazy_reclaim使用注意事项：
     - 特性要求在Ascend Extension for PyTorch 7.3.0以上版本上使用。
     - 该特性主要解决多流场景下，Host侧存在下发性能瓶颈时的系统效率问题。单流、少流场景或者非Host性能瓶颈时，该功能收益不大。
 - large\_segment\_size\_mb特性需在Ascend Extension for PyTorch 26.1.0及以上版本、PyTorch 2.11.0 及以版本上使用。
 - per\_process\_memory\_fraction特性需在Ascend Extension for PyTorch 26.1.0及以上版本、PyTorch 2.10.0 及以上版本使用。
+- 通过PYTORCH\_ALLOC\_CONF环境变量配置缓存分配器参数，需在Ascend Extension for PyTorch 26.2.0版本且PyTorch 2.10.0及以上版本使用。
 
 ## 支持的型号
 

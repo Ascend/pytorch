@@ -297,6 +297,41 @@ namespace c10_npu {
             return instance().m_roundup_power2_divisions[index];
         }
 
+        size_t CachingAllocatorConfig::parseMaxNonSplitRoundingSize(const std::vector<std::string> &config, size_t i)
+        {
+            consumeToken(config, ++i, ':');
+            if (++i < config.size()) {
+                TORCH_CHECK(isDigit(config[i]), "CachingAllocator option max_non_split_rounding_mb is invalid.");
+                size_t val = static_cast<size_t>(stoi(config[i]));
+
+                size_t min_allowed_size_mb = kLargeBuffer / kMB;
+                constexpr size_t max_allowed_size_mb = std::numeric_limits<size_t>::max() / kMB;
+
+                TORCH_CHECK(val >= min_allowed_size_mb,
+                    "CachingAllocator option max_non_split_rounding_mb too small, must be >= ", min_allowed_size_mb,
+                    PTA_ERROR(ErrCode::VALUE));
+
+                val = std::min(val, max_allowed_size_mb);
+                m_max_non_split_rounding_size = val * kMB;
+            } else {
+                TORCH_CHECK(false, "Error, expecting max_non_split_rounding_mb value", PTA_ERROR(ErrCode::PARAM));
+            }
+            return i;
+        }
+
+        size_t CachingAllocatorConfig::parseReleaseLockOnNpuMalloc(const std::vector<std::string> &config, size_t i)
+        {
+            consumeToken(config, ++i, ':');
+            if (++i < config.size()) {
+                TORCH_CHECK(i < config.size() && (config[i] == "True" || config[i] == "False"),
+                    "Expected a single True/False argument for release_lock_on_npumalloc", PTA_ERROR(ErrCode::PARAM));
+                m_release_lock_on_npumalloc = (config[i] == "True");
+            } else {
+                TORCH_CHECK(false, "Error, expecting release_lock_on_npumalloc value", PTA_ERROR(ErrCode::PARAM));
+            }
+            return i;
+        }
+
         void CachingAllocatorConfig::parseArgs(const char *env, const std::set<std::string>& supported_settings)
         {
             // If empty, set the default values
@@ -338,6 +373,10 @@ namespace c10_npu {
                     i = parseRoundUpPower2Divisions(config, i);
                 } else if (config[i] == "multi_stream_lazy_reclaim") {
                     i = parseMultiStreamLazyReclaim(config, i);
+                } else if (config[i] == "max_non_split_rounding_mb") {
+                    i = parseMaxNonSplitRoundingSize(config, i);
+                } else if (config[i] == "release_lock_on_npumalloc") {
+                    i = parseReleaseLockOnNpuMalloc(config, i);
                 } else {
                     TORCH_CHECK(false, "Unrecognized CachingAllocator option: ", config[i], OPS_ERROR(ErrCode::PARAM));
                 }

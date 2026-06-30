@@ -172,6 +172,10 @@ def build_aclgraph_update_plan_entry_for_inductor(
     if handler_cls is None:
         return None
 
+    if hasattr(handler_cls, 'should_handle'):
+        if not handler_cls.should_handle(op_overload, args, kwargs):
+            return None
+
     bound = _bind_by_schema(op_overload, args, kwargs)
     if _matches_aclgraph_update_exclusion(op_name, bound):
         return None

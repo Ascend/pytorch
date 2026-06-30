@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from torch._inductor.codegen.cuda_combined_scheduling import CUDACombinedScheduling
 from torch._inductor.scheduler import (
@@ -31,7 +31,7 @@ class NPUCombinedScheduling(CUDACombinedScheduling):
     this would also be the place to do it.
     """
 
-    def __init__(self, scheduler: Scheduler | None) -> None:
+    def __init__(self, scheduler: Optional[Scheduler]) -> None:
         BaseScheduling.__init__(self, scheduler)
         self._nolinear_triton_scheduling = NPUNoLinearTritonScheduling(scheduler)
         self._triton_scheduling = NPUTritonScheduling(scheduler)
@@ -79,7 +79,7 @@ class NPUCombinedScheduling(CUDACombinedScheduling):
             return False
         return True
 
-    def codegen_node(self, node: FusedSchedulerNode | SchedulerNode):
+    def codegen_node(self, node: Union[FusedSchedulerNode, SchedulerNode]):
         if not is_ascend950:
             return self._triton_scheduling.codegen_node(node)
 
@@ -87,9 +87,10 @@ class NPUCombinedScheduling(CUDACombinedScheduling):
             try:
                 return self._triton_scheduling.codegen_node(node)
             except Exception:
-                log.exception(
+                log.debug(
                     "linear codegen for node %s raise error, fallback to origin codegen",
                     node,
+                    exc_info=True,
                 )
         # regroup snode
         for snode in node.get_nodes():

@@ -74,6 +74,8 @@ def _load_triton_backend():
     import torch
     has_triton = torch.utils._triton.has_triton()
     if not has_triton:
+        import warnings
+        warnings.warn("triton-ascend is not installed, install it first.")
         return
     import logging
     log = logging.getLogger(__name__)
@@ -129,7 +131,7 @@ def _load_triton_backend():
     from .shape_handling import NPUShapeHandling, patch_shape_handling
     from .utils import patch_get_first_incompatible_cudagraph_node
 
-    from .graph import patch_count_bytes, patch_run_node
+    from .graph import patch_count_bytes
     
     from .autotune_process import patch_tuning_process, patch_tuning_process_pool
     from .codegen.cpp_utils import patch_device_to_aten
@@ -157,6 +159,10 @@ def _load_triton_backend():
         flex_attention._dense_to_ordered = _dense_to_ordered_npu_safe
 
     _patch_flex_attention_singleton_sort()
+
+    from ._npu_meta_registration import npu_patch_meta
+
+    npu_patch_meta()
 
     def _inductor_register_backend_for_device():
         from .codegen.cpp_wrapper import CppWrapperNpu
@@ -246,7 +252,6 @@ def _load_triton_backend():
     patch_get_optimization_cflags()
     patch_extract_read_writes()
     patch_count_bytes()
-    patch_run_node()
     patch_tuning_process()
     patch_tuning_process_pool()
     patch_device_to_aten()
@@ -307,11 +312,6 @@ def _load_triton_backend():
     add_additional_op()
     os.environ["TORCHINDUCTOR_COMPREHENSIVE_PADDING"] = "0"
     torch._inductor.config.comprehensive_padding = False
-    compile_threads = int( 
-        os.environ.get("TORCHINDUCTOR_COMPILE_THREADS") or "1" 
-     ) 
-    os.environ["TORCHINDUCTOR_COMPILE_THREADS"] = str(compile_threads) 
-    torch._inductor.config.compile_threads = compile_threads
 
     _fasta_autotune = os.environ.get("FASTAUTOTUNE", "0") == "1"
     _fasta_autotune_method = os.getenv("AUTOTUNE_METHOD", "Expert")

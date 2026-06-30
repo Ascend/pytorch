@@ -52,7 +52,7 @@ def get_aligned_numel(dtype):
 
 
 def get_indirect_var(node_name):
-    match = re.compile(r"indirect").search(node_name)
+    match = re.compile(r"indirect|masked").search(node_name)
     if match is None:
         return None 
     return node_name[match.start():]

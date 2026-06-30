@@ -20,7 +20,7 @@
 |[torch.cuda.device_of](https://pytorch.org/docs/2.10/generated/torch.cuda.device_of.html)|torch_npu.npu.device_of|是|-|
 |[torch.cuda.get_device_capability](https://pytorch.org/docs/2.10/generated/torch.cuda.get_device_capability.html)|torch_npu.npu.get_device_capability|是|通过环境变量TORCH_NPU_DEVICE_CAPABILITY配置`torch_npu.npu.get_device_capability()`的返回值，仅用于兼容原生PyTorch，不代表NPU硬件实际能力|
 |[torch.cuda.get_device_name](https://pytorch.org/docs/2.10/generated/torch.cuda.get_device_name.html)|torch_npu.npu.get_device_name|是|-|
-|[torch.cuda.get_device_properties](https://pytorch.org/docs/2.10/generated/torch.cuda.get_device_properties.html)|torch_npu.npu.get_device_properties|是|仅支持name、total_memory、L2_cache_size、cube_core_num和vector_core_num属性，原cuda上支持的其余属性均返回空字段|
+|[torch.cuda.get_device_properties](https://pytorch.org/docs/2.10/generated/torch.cuda.get_device_properties.html)|torch_npu.npu.get_device_properties|是|仅支持name、total_memory、L2_cache_size、cube_core_num和vector_core_num属性，原CUDA上支持的其余属性均返回空字段|
 |[torch.cuda.get_sync_debug_mode](https://pytorch.org/docs/2.10/generated/torch.cuda.get_sync_debug_mode.html)|torch_npu.npu.get_sync_debug_mode|是|-|
 |[torch.cuda.init](https://pytorch.org/docs/2.10/generated/torch.cuda.init.html)|torch_npu.npu.init|是|-|
 |[torch.cuda.ipc_collect](https://pytorch.org/docs/2.10/generated/torch.cuda.ipc_collect.html)|torch_npu.npu.ipc_collect|是|-|
@@ -82,7 +82,7 @@
 |[torch.cuda.CUDAPluggableAllocator](https://pytorch.org/docs/2.10/cuda.html#torch.cuda.CUDAPluggableAllocator)|torch_npu.npu.NPUPluggableAllocator|是|该接口涉及高危操作，使用请参考《Ascend Extension for PyTorch 自定义 API参考》中的“[torch_npu.npu.NPUPluggableAllocator](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-npu/torch-npu-npu-NPUPluggableAllocator.md)”章节。|
 |[torch.cuda.change_current_allocator](https://pytorch.org/docs/2.10/cuda.html#torch.cuda.change_current_allocator)|torch_npu.npu.change_current_allocator|是|该接口涉及高危操作，使用请参考《Ascend Extension for PyTorch 自定义 API参考》中的“[torch_npu.npu.change_current_allocator](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-npu/torch-npu-npu-change_current_allocator.md)”章节。|
 |[torch.cuda._sanitizer.enable_cuda_sanitizer](https://pytorch.org/docs/2.10/cuda._sanitizer.html#torch.cuda._sanitizer.enable_cuda_sanitizer)|torch_npu.npu._sanitizer.enable_npu_sanitizer|是|-|
-|[torch.cuda.reset_accumulated_host_memory_stats](https://pytorch.org/docs/2.10/cuda.html#torch.cuda.reset_accumulated_host_memory_stats)| torch_npu.npu.reset_accumulated_host_memory_stats |是|-|
-|[torch.cuda.reset_peak_host_memory_stats](https://pytorch.org/docs/2.10/cuda.html#torch.cuda.reset_peak_host_memory_stats)| torch_npu.npu.reset_peak_host_memory_stats          |是|-|
-|[torch.cuda.host_memory_stats_as_nested_dict](https://pytorch.org/docs/2.10/cuda.html#torch.cuda.host_memory_stats_as_nested_dict)| torch_npu.npu.host_memory_stats_as_nested_dict             |是|-|
-|[torch.cuda.host_memory_stats](https://pytorch.org/docs/2.10/cuda.html#torch.cuda.host_memory_stats)| torch_npu.npu.host_memory_stats             |是|-|
+|[torch.cuda.reset_accumulated_host_memory_stats](https://pytorch.org/docs/2.10/cuda.html#torch.cuda.reset_accumulated_host_memory_stats)| torch_npu.npu.reset_accumulated_host_memory_stats|是|-|
+|[torch.cuda.reset_peak_host_memory_stats](https://pytorch.org/docs/2.10/cuda.html#torch.cuda.reset_peak_host_memory_stats)|torch_npu.npu.reset_peak_host_memory_stats|是|-|
+|[torch.cuda.host_memory_stats_as_nested_dict](https://pytorch.org/docs/2.10/cuda.html#torch.cuda.host_memory_stats_as_nested_dict)|torch_npu.npu.host_memory_stats_as_nested_dict|是|-|
+|[torch.cuda.host_memory_stats](https://pytorch.org/docs/2.10/cuda.html#torch.cuda.host_memory_stats)|torch_npu.npu.host_memory_stats|是|-|

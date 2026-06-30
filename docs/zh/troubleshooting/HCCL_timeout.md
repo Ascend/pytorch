@@ -4,7 +4,7 @@
 
 关键词“**EI0002**”
 
-```ColdFusion
+```text
 [W compiler_depend.ts:487] Warning: NPU warning, error code is 507048[Error]: 
 [Error]: The execution of the internal task times out. 
         Rectify the fault based on the error information in the ascend log.

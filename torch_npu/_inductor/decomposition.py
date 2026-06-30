@@ -9,10 +9,9 @@ from torch._C import DispatchKey
 from torch._decomp import remove_decompositions
 from torch._prims_common.wrappers import out_wrapper
 import torch.nn.functional as F
-from .config import is_ascend950
 from .lowering_common import add_overload
 from .ascend_npu_ir.ascend_npu_ir import config as anir_config
-from .ascend_npu_ir.ascend_npu_ir.npu.utils import run_once
+from .lowering_common import run_once
 
 aten = torch.ops.aten
 npu = torch.ops.npu
@@ -53,6 +52,16 @@ def _register_triton_decompositions():
         def erfc(x):
             tensor = torch.ones_like(x) - torch.erf(x)
             return tensor
+
+        @register_decomposition([aten.gelu])
+        def gelu(x):
+            two_sqrt_2_over_pi = 1.5957691216057308
+            coeff = 0.044715
+            x_cubed = x * x * x
+            z = two_sqrt_2_over_pi * (x + coeff * x_cubed)
+            sigmoid_z = torch.sigmoid(z)
+            result = x * sigmoid_z
+            return result
 
     _register_npu_triton_decompositions()
 

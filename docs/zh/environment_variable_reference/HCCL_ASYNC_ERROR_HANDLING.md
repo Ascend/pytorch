@@ -10,7 +10,7 @@
 当PyTorch版本为1.11.0时，默认值为0；当PyTorch版本大于等于2.1.0时，默认值为1。
 
 > [!NOTE]  
-> 当前版本，开启异步处理时，若出现CQE错误，进程会终止；其他错误信息，仅屏显信息提示，不会终止进程。
+> 当前版本，开启异步处理时，若出现CQE错误，进程会终止；其他错误仅显示提示信息，不会终止进程。
 
 ## 配置示例
 
@@ -20,7 +20,7 @@ export HCCL_ASYNC_ERROR_HANDLING=1
 
 ## 使用约束
 
-通过此环境变量开启异步错误处理时，为了更好地明确HCCL超时原因，建议new\_group和init\_process\_group传参的timeout时间大于HCCL\_CONNECT\_TIMEOUT和HCCL\_EXEC\_TIMEOUT环境变量配置的时间，HCCL\_CONNECT\_TIMEOUT具体参考《CANN 环境变量参考》中的“[HCCL\_CONNECT\_TIMEOUT](https://www.hiascend.com/document/detail/zh/canncommercial/900/maintenref/envvar/envref_07_0077.html)”章节，HCCL\_EXEC\_TIMEOUT具体请参考《CANN 环境变量参考》中的“[HCCL\_EXEC\_TIMEOUT](https://www.hiascend.com/document/detail/zh/canncommercial/900/maintenref/envvar/envref_07_0078.html)”章节。
+通过此环境变量开启异步错误处理时，为了更好地定位HCCL超时原因，建议new\_group和init\_process\_group传参的timeout时间大于HCCL\_CONNECT\_TIMEOUT和HCCL\_EXEC\_TIMEOUT环境变量配置的时间，HCCL\_CONNECT\_TIMEOUT具体参考《CANN 环境变量参考》中的“[HCCL\_CONNECT\_TIMEOUT](https://www.hiascend.com/document/detail/zh/canncommercial/900/maintenref/envvar/envref_07_0077.html)”章节，HCCL\_EXEC\_TIMEOUT具体请参考《CANN 环境变量参考》中的“[HCCL\_EXEC\_TIMEOUT](https://www.hiascend.com/document/detail/zh/canncommercial/900/maintenref/envvar/envref_07_0078.html)”章节。
 
 ## 支持的型号
 

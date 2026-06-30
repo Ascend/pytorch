@@ -25,7 +25,7 @@
     2. 构建镜像。
 
         ```bash
-        cd pytorch/docker/builder/{arch} 
+        cd pytorch/docker/builder/{arch}
         docker build -t manylinux-builder:v1 .
         ```
 
@@ -94,21 +94,21 @@
 
                     根据实际情况，安装对应gcc和cmake版本，版本信息及安装指导请参见[表1](#gcc_cmake)。
 
-            **表 1**  gcc和cmake版本要求<a id="gcc_cmake"></a>
+                    **表 1**  gcc和cmake版本要求<a id="gcc_cmake"></a>
 
-            |PyTorch版本|系统架构|gcc版本|cmake版本|
-            |--|--|--|--|
-            |2.7.1|X86_64|11.2.0|3.18.4|
-            |2.7.1|AArch64|11.2.0|3.31.1|
-            |2.8.0|X86_64|13.3.0|3.18.4|
-            |2.8.0|AArch64|13.3.0|4.0.3|
-            |2.9.0|X86_64|13.3.0|3.18.4|
-            |2.9.0|AArch64|13.3.0|4.0.3|
-            |2.10.0|X86_64|13.3.0|3.18.4|
-            |2.10.0|AArch64|13.3.0|4.0.3|
+                    |PyTorch版本|系统架构|gcc版本|cmake版本|
+                    |--|--|--|--|
+                    |2.7.1|X86_64|11.2.0|3.18.4|
+                    |2.7.1|AArch64|11.2.0|3.31.1|
+                    |2.8.0|X86_64|13.3.0|3.18.4|
+                    |2.8.0|AArch64|13.3.0|4.0.3|
+                    |2.9.0|X86_64|13.3.0|3.18.4|
+                    |2.9.0|AArch64|13.3.0|4.0.3|
+                    |2.10.0|X86_64|13.3.0|3.18.4|
+                    |2.10.0|AArch64|13.3.0|4.0.3|
 
-            > [!NOTE]<br>
-            > 安装指导可参见[安装11.2.0版本gcc](installing_gcc_11-2-0.md)和[安装3.18.4版本cmake](installing_cmake_3-18-4.md)。
+                    > [!NOTE]<br>
+                    > 安装指导可参见[安装11.2.0版本gcc](installing_gcc_11-2-0.md)和[安装3.18.4版本cmake](installing_cmake_3-18-4.md)。
 
         2. 安装环境依赖。
     
@@ -124,7 +124,7 @@
         1. 以v2.7.1-26.0.0为例，下载对应的Ascend Extension for PyTorch分支代码并进入插件根目录。
 
             ```bash
-            git clone -b v2.7.1-26.0.0 https://gitcode.com/Ascend/pytorch.git 
+            git clone -b v2.7.1-26.0.0 https://gitcode.com/Ascend/pytorch.git
             cd pytorch
             ```
 
@@ -136,7 +136,7 @@
             bash ci/build.sh --python=3.10
             ```
 
-            如需指定其他Python版本请使用--python=3.9、--python=3.11、--python=3.12或--python=3.13。
+            如需指定其他Python版本，请使用--python=3.9、--python=3.11、--python=3.12或--python=3.13。
 
     3. 安装pytorch/dist目录下生成的插件torch\_npu包，如果使用非root用户安装，需要在命令后加`--user`。
 
@@ -152,9 +152,42 @@
         pip3 install -r requirements.txt
         ```
 
+## 版本查询
+
+执行以下命令可检查安装的Python、PyTorch框架和torch_npu插件版本。
+
+- 查看已安装的Pyhton版本。
+
+    ```bash
+    python --version
+    ```
+
+    输出如下Python版本。
+
+    ```text
+    Python 3.13.0
+    ```
+
+- 查看已安装的PyTorch框架和torch_npu插件版本。
+
+    ```bash
+    pip list | grep torch
+    ```
+
+    输出如下PyTorch框架和torch_npu插件版本。
+
+    ```text
+    torch     2.10.0
+    torch_npu      26.0.0 
+    ```
+
+    > [!NOTE]
+    >
+    > 如果需要查询Ascend Extension for PyTorch安装包版本，请单击[相关产品版本配套说明](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.0.0/docs/zh/release_notes/release_notes.md#%E7%9B%B8%E5%85%B3%E4%BA%A7%E5%93%81%E7%89%88%E6%9C%AC%E9%85%8D%E5%A5%97%E8%AF%B4%E6%98%8E)查看。
+
 ## 安装后验证
 
-执行以下命令可检查PyTorch框架和torch\_npu插件是否已成功安装。
+执行以下命令可检查PyTorch框架和torch_npu插件是否已成功安装。
 
 - 方法一
 

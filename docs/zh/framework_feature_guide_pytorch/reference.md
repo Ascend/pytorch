@@ -4,7 +4,7 @@
 
 官方schema（算子描述规范）指导可参见[LINK](https://github.com/pytorch/pytorch/blob/main/aten/src/ATen/native/README.md)。
 
-由于PyTorch 2.1版本使用官方的torchgen进行代码生成，因此要遵循官方的一些生成规范，未满足schema规范的算子会在编译时报错。当前有涉及到的有：
+由于PyTorch 2.1版本使用官方的torchgen进行代码生成，因此要遵循官方的一些生成规范，未满足schema规范的算子会在编译时报错。当前涉及到的有：
 
 - 函数名以"new_"开头、"_like"结尾或入参中带有tensor_options但又没tensor入参的，需要有CompositeExplicitAutograd的dispatch。
 
@@ -21,7 +21,7 @@
       tags: nondeterministic_seeded
     ```
 
-## 算子适配常见API接口<a id="section002"></a>
+## 算子适配常见API<a id="section002"></a>
 
 torch_npu算子操作基础接口可参见[LINK](https://gitcode.com/Ascend/pytorch/blob/v2.7.1/torch_npu/csrc/framework/utils/OpPreparation.h)。常见接口如下：
 

@@ -1,7 +1,13 @@
 # Owner(s): ["module: inductor"]
+import importlib
+from itertools import count
+import re
 from unittest import skip, skipIf
 
 import torch
+from torch._inductor.codegen.common import IndentedBuffer
+from torch._inductor.virtualized import V
+from torch.fx import Graph, GraphModule
 from torch.testing._internal.common_utils import (
     instantiate_parametrized_tests,
     run_tests,
@@ -10,19 +16,204 @@ from torch.testing._internal.common_utils import (
 
 
 try:
-    import mfusion  # noqa: F401
+    importlib.import_module("mfusion")
 
     HAS_AKG_MFUSION = True
 except ModuleNotFoundError:
     HAS_AKG_MFUSION = False
 
 try:
-    from torch_npu._inductor.mfusion.graph_fusion import MFusionPatch
+    from torch_npu._inductor.mfusion.graph_fusion import (
+        _emit_mfusion_dvm_codegen,
+        _find_output_node,
+        _restore_output_contract,
+        _snapshot_output_contract,
+        MFusionPatch,
+    )
+    from torch_npu._inductor.mfusion.subgraph_registry import Payload
 except ImportError:
-    MFusionPatch = None  # type: ignore[misc, assignment]
+    _emit_mfusion_dvm_codegen = None
+    _find_output_node = None
+    _restore_output_contract = None
+    _snapshot_output_contract = None
+    MFusionPatch = None
+    Payload = None
 
 # Gate omits AKG mfusion; keep module importable even if torch_npu mfusion tree is absent.
 HAS_MFUSION_STACK = HAS_AKG_MFUSION and MFusionPatch is not None
+
+
+class _FakeWrapper:
+    def __init__(self):
+        self.header = IndentedBuffer()
+        self.body = IndentedBuffer()
+        self.src_to_kernel = {}
+        self.imports = set()
+        self._suffixes = count()
+
+    def next_kernel_suffix(self):
+        return str(next(self._suffixes))
+
+    def writeline(self, line):
+        self.body.writeline(line)
+
+    def add_import_once(self, line):
+        self.imports.add(line)
+
+
+class _FakeGraph:
+    def try_get_buffer(self, name):
+        return None
+
+
+class _FakeFallbackKernel:
+    def __init__(self, name):
+        self._name = name
+
+    def get_name(self):
+        return self._name
+
+
+def _make_add_mul_subgraph():
+    graph = Graph()
+    meta = torch.empty_strided((2, 4), (4, 1), dtype=torch.float16)
+    a = graph.placeholder("arg0")
+    a.meta["val"] = meta
+    b = graph.placeholder("arg1")
+    b.meta["val"] = meta
+    add = graph.call_function(torch.ops.aten.add.Tensor, (a, b))
+    add.meta["val"] = meta
+    mul = graph.call_function(torch.ops.aten.mul.Tensor, (add, a))
+    mul.meta["val"] = meta
+    graph.output(mul)
+    return GraphModule(torch.nn.Module(), graph)
+
+
+@skipIf(
+    _find_output_node is None
+    or _restore_output_contract is None
+    or _snapshot_output_contract is None,
+    "torch_npu._inductor.mfusion.graph_fusion not available",
+)
+class TestMfusionOutputContract(TestCase):
+    def test_restore_output_contract_preserves_single_output(self):
+        graph = Graph()
+        a = graph.placeholder("a")
+        b = graph.placeholder("b")
+        add = graph.call_function(torch.ops.aten.add.Tensor, (a, b))
+        graph.output(add)
+        gm = GraphModule(torch.nn.Module(), graph)
+
+        snapshot = _snapshot_output_contract(_find_output_node(gm.graph))
+
+        roundtrip_graph = Graph()
+        rt_a = roundtrip_graph.placeholder("a")
+        rt_b = roundtrip_graph.placeholder("b")
+        rt_add = roundtrip_graph.call_function(torch.ops.aten.add.Tensor, (rt_a, rt_b))
+        roundtrip_graph.output(rt_add)
+        rt_gm = GraphModule(torch.nn.Module(), roundtrip_graph)
+
+        _restore_output_contract(_find_output_node(rt_gm.graph), snapshot)
+
+        restored_output = _find_output_node(rt_gm.graph)
+        self.assertIsNotNone(restored_output)
+        self.assertIs(restored_output.args[0], rt_add)
+
+    def test_restore_output_contract_preserves_list_output(self):
+        graph = Graph()
+        a = graph.placeholder("a")
+        b = graph.placeholder("b")
+        add = graph.call_function(torch.ops.aten.add.Tensor, (a, b))
+        graph.output([add, b])
+        gm = GraphModule(torch.nn.Module(), graph)
+
+        snapshot = _snapshot_output_contract(_find_output_node(gm.graph))
+
+        roundtrip_graph = Graph()
+        rt_a = roundtrip_graph.placeholder("a")
+        rt_b = roundtrip_graph.placeholder("b")
+        rt_add = roundtrip_graph.call_function(torch.ops.aten.add.Tensor, (rt_a, rt_b))
+        roundtrip_graph.output((rt_add, rt_b))
+        rt_gm = GraphModule(torch.nn.Module(), roundtrip_graph)
+
+        _restore_output_contract(_find_output_node(rt_gm.graph), snapshot)
+
+        restored_output = _find_output_node(rt_gm.graph)
+        self.assertIsNotNone(restored_output)
+        restored_args = restored_output.args[0]
+        self.assertIsInstance(restored_args, list)
+        self.assertEqual(len(restored_args), 2)
+        self.assertIs(restored_args[0], rt_add)
+        self.assertIs(restored_args[1], rt_b)
+
+    def test_restore_output_contract_preserves_none_slots_and_stride_meta(self):
+        graph = Graph()
+        a = graph.placeholder("a")
+        b = graph.placeholder("b")
+        add = graph.call_function(torch.ops.aten.add.Tensor, (a, b))
+        output = graph.output((None, add, b))
+        output.meta["user_visible_output_idxs"] = [1, 2]
+        output.meta["original_output_strides"] = [None, (1, 50257), (1280, 1)]
+        gm = GraphModule(torch.nn.Module(), graph)
+
+        snapshot = _snapshot_output_contract(_find_output_node(gm.graph))
+
+        roundtrip_graph = Graph()
+        rt_a = roundtrip_graph.placeholder("a")
+        rt_b = roundtrip_graph.placeholder("b")
+        rt_add = roundtrip_graph.call_function(torch.ops.aten.add.Tensor, (rt_a, rt_b))
+        rt_output = roundtrip_graph.output((rt_add, rt_b))
+        rt_gm = GraphModule(torch.nn.Module(), roundtrip_graph)
+
+        _restore_output_contract(_find_output_node(rt_gm.graph), snapshot)
+
+        restored_output = _find_output_node(rt_gm.graph)
+        self.assertIsNotNone(restored_output)
+        restored_args = restored_output.args[0]
+        self.assertEqual(len(restored_args), 3)
+        self.assertIsNone(restored_args[0])
+        self.assertEqual(restored_output.meta["user_visible_output_idxs"], [1, 2])
+        self.assertEqual(
+            restored_output.meta["original_output_strides"],
+            [None, (1, 50257), (1280, 1)],
+        )
+
+
+@skipIf(
+    _emit_mfusion_dvm_codegen is None or Payload is None,
+    "torch_npu._inductor.mfusion.graph_fusion not available",
+)
+class TestMfusionDvmCodegen(TestCase):
+    def test_dvm_kernel_name_is_descriptive_and_deduped(self):
+        wrapper = _FakeWrapper()
+        payload0 = Payload(_make_add_mul_subgraph(), is_dynamic=False)
+        payload1 = Payload(_make_add_mul_subgraph(), is_dynamic=False)
+
+        with V.set_graph_handler(_FakeGraph()):
+            _emit_mfusion_dvm_codegen(
+                wrapper,
+                _FakeFallbackKernel("buf0"),
+                ("arg0", "arg1", "subgraph0"),
+                payload0.fx_gm,
+                payload0,
+            )
+            _emit_mfusion_dvm_codegen(
+                wrapper,
+                _FakeFallbackKernel("buf1"),
+                ("arg2", "arg3", "subgraph1"),
+                payload1.fx_gm,
+                payload1,
+            )
+
+        header = wrapper.header.getvalue()
+        body = wrapper.body.getvalue()
+        definitions = re.findall(r"^def (mfusion_dvm_fused_add_mul_\d+)\(", header, re.M)
+
+        self.assertEqual(len(definitions), 1)
+        self.assertEqual(len(wrapper.src_to_kernel), 1)
+        kernel_name = definitions[0]
+        self.assertIn(f"buf0 = {kernel_name}(arg0, arg1)", body)
+        self.assertIn(f"buf1 = {kernel_name}(arg2, arg3)", body)
 
 
 @skipIf(

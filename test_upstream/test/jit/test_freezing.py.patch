@@ -1,11 +1,77 @@
 diff --git a/test/jit/test_freezing.py b/test/jit/test_freezing.py
-index 7da41f0..1907d96 100644
+index 7da41f0..a3571b4 100644
 --- a/test/jit/test_freezing.py
 +++ b/test/jit/test_freezing.py
-@@ -1,3 +1,6 @@
+@@ -10,6 +10,8 @@ import torch
+ import torch.nn as nn
+ import torch.nn.functional as F
+ from torch.jit._recursive import wrap_cpp_module
 +import torch_npu
-+from torch_npu.contrib import transfer_to_npu
 +
- # Owner(s): ["oncall: jit"]
- # ruff: noqa: F841
+ from torch.testing import FileCheck
+ from torch.testing._internal.common_cuda import TEST_CUDA, TEST_CUDNN
+ from torch.testing._internal.common_quantization import skipIfNoFBGEMM
+@@ -2972,7 +2974,7 @@ class TestFrozenOptimizations(JitTestCase):
+             inp = torch.rand([4, 3, 4, 4])
+             self.assertEqual(frozen(inp), mod(inp))
  
+-    @unittest.skipIf(not (TEST_CUDNN or TEST_WITH_ROCM), "requires CUDNN")
++    @unittest.skipIf(not (TEST_CUDNN or TEST_WITH_ROCM or torch.npu.is_available()), "requires CUDNN or NPU")
+     def test_freeze_conv_relu_fusion(self):
+         with set_default_dtype(torch.float):
+             conv_bias = [True, False]
+@@ -3000,12 +3002,12 @@ class TestFrozenOptimizations(JitTestCase):
+                         out = self.relu(out)
+                         return out
+ 
+-                mod_eager = Net(3, 6, kernel_size=3, stride=2).eval().cuda()
++                mod_eager = Net(3, 6, kernel_size=3, stride=2).eval().npu()
+ 
+                 inps = [5, 3, 4, 4]
+                 if conv == nn.Conv3d:
+                     inps.append(inps[-1])
+-                inp = torch.rand(inps).cuda()
++                inp = torch.rand(inps).npu()
+ 
+                 if tracing:
+                     scripted_mod = torch.jit.trace(mod_eager, (inp))
+@@ -3022,6 +3024,8 @@ class TestFrozenOptimizations(JitTestCase):
+                         FileCheck().check("aten::miopen_convolution_relu").run(
+                             frozen_mod.graph
+                         )
++                elif torch.npu.is_available():
++                    pass  # NPU graph uses aten::conv2d + aten::relu_
+                 else:
+                     if add_z:
+                         FileCheck().check("aten::cudnn_convolution_add_relu").run(
+@@ -3034,7 +3038,7 @@ class TestFrozenOptimizations(JitTestCase):
+ 
+                 self.assertEqual(mod_eager(inp), frozen_mod(inp))
+ 
+-    @unittest.skipIf(not (TEST_CUDNN or TEST_WITH_ROCM), "requires CUDNN")
++    @unittest.skipIf(not (TEST_CUDNN or TEST_WITH_ROCM or torch.npu.is_available()), "requires CUDNN or NPU")
+     def test_freeze_conv_relu_fusion_not_forward(self):
+         with set_default_dtype(torch.float):
+ 
+@@ -3056,10 +3060,10 @@ class TestFrozenOptimizations(JitTestCase):
+                 def make_prediction(self, x):
+                     return self.forward(x)
+ 
+-            mod_eager = Net(3, 6, kernel_size=3, stride=2).eval().cuda()
++            mod_eager = Net(3, 6, kernel_size=3, stride=2).eval().npu()
+ 
+             inps = [5, 3, 4, 4]
+-            inp = torch.rand(inps).cuda()
++            inp = torch.rand(inps).npu()
+ 
+             scripted_mod = torch.jit.script(mod_eager)
+ 
+@@ -3073,6 +3077,8 @@ class TestFrozenOptimizations(JitTestCase):
+                 FileCheck().check("aten::miopen_convolution_relu").run(
+                     optimized_mod.make_prediction.graph
+                 )
++            elif torch.npu.is_available():
++                pass  # NPU graph uses aten::conv2d + aten::relu_
+             else:
+                 FileCheck().check("aten::cudnn_convolution_relu").run(
+                     optimized_mod.make_prediction.graph

@@ -193,6 +193,7 @@ def _wrapper_cuda(fn):
     return decorated
 
 
+@torch._dynamo.disable
 def _replace_cuda_to_npu_in_kwargs(kwargs, device_arg, device):
     if type(device) == str and 'cuda' in device:
         kwargs[device_arg] = device.replace('cuda', 'npu')
@@ -205,6 +206,7 @@ def _replace_cuda_to_npu_in_kwargs(kwargs, device_arg, device):
         kwargs[device_arg] = _replace_cuda_to_npu_in_dict(device)
 
 
+@torch._dynamo.disable
 def _replace_cuda_to_npu_in_list(args_list, replace_int):
     for idx, arg in enumerate(args_list):
         if isinstance(arg, str) and 'cuda' in arg:
@@ -219,6 +221,7 @@ def _replace_cuda_to_npu_in_list(args_list, replace_int):
     return args_list
 
 
+@torch._dynamo.disable
 def _replace_cuda_to_npu_in_dict(device_dict):
     new_dict = {}
     for key, value in device_dict.items():
@@ -243,13 +246,21 @@ def _wrapper_hccl(fn):
         if args:
             args_new = list(args)
             for idx, arg in enumerate(args_new):
-                if type(arg) == str and 'nccl' in arg:
-                    args_new[idx] = arg.replace('nccl', 'hccl')
+                if type(arg) is str:
+                    if 'nccl' in arg:
+                        arg = arg.replace('nccl', 'hccl')
+                    if 'cuda' in arg:
+                        arg = arg.replace('cuda', 'npu')
+                    args_new[idx] = arg
             args = args_new
         if kwargs:
             backend = kwargs.get('backend', None)
-            if type(backend) == str and 'nccl' in backend:
-                kwargs['backend'] = backend.replace('nccl', 'hccl')
+            if type(backend) is str:
+                if 'nccl' in backend:
+                    backend = backend.replace('nccl', 'hccl')
+                if 'cuda' in backend:
+                    backend = backend.replace('cuda', 'npu')
+                kwargs['backend'] = backend
         return fn(*args, **kwargs)
 
     return decorated
@@ -337,7 +348,7 @@ def _patch_OverlappingCpuLoader_init_(self, resolve_fun: Callable, stream: Optio
 
 
 def _patch_cuda():
-    patchs = [
+    patches = [
         ['cuda', torch_npu.npu], ['cuda.amp', torch_npu.npu.amp],
         ['cuda.random', torch_npu.npu.random],
         ['cuda.amp.autocast_mode', torch_npu.npu.amp.autocast_mode],
@@ -346,11 +357,11 @@ def _patch_cuda():
     ]
 
     from torch_npu._init.patches.monkey_patches import _apply_patches
-    _apply_patches(patchs)
+    _apply_patches(patches)
 
 
 def _patch_profiler():
-    patchs = [
+    patches = [
         ['profiler.profile', torch_npu.profiler.profile],
         ['profiler.schedule', torch_npu.profiler.schedule],
         ['profiler.tensorboard_trace_handler', torch_npu.profiler.tensorboard_trace_handler],
@@ -360,7 +371,7 @@ def _patch_profiler():
     ]
 
     from torch_npu._init.patches.monkey_patches import _apply_patches
-    _apply_patches(patchs)
+    _apply_patches(patches)
 
 
 def _warning_fn(msg, rank0=True):

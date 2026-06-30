@@ -379,24 +379,28 @@ aclError AclIpcOpenEventHandle(aclrtIpcEventHandle handle, aclrtEvent *event)
     return func(handle, event);
 }
 
-bool IsSupportIpcEvent()
+bool IsSupportIpcEvent(bool ignore_error)
 {
+    static string dbg_msg = "";
     const static bool is_support = []() -> bool {
         constexpr long supported_page_size = 4096;
         long size = sysconf(_SC_PAGE_SIZE);
         if (size != supported_page_size) {
-            ASCEND_LOGD("IsSupportIpcEvent return false because page size %ld is not supported.", size);
+            dbg_msg = "IPC Event is not support because IPC event requires page size " +
+                      std::to_string(supported_page_size) +
+                      " but current page size is " + std::to_string(size) +
+                      ", which is not supported by the current HDK(driver).";
             return false;
         }
 
         if (!IsExistCreateEventExWithFlag()) {
-            ASCEND_LOGD("IsSupportIpcEvent return false because aclrtCreateEventExWithFlag does not exist.");
+            dbg_msg = "IPC Event is not support because aclrtCreateEventExWithFlag does not exist.";
             return false;
         }
 
         auto func = TORCH_NPU_GET_FUNC(aclrtIpcGetEventHandle);
         if (func == nullptr) {
-            ASCEND_LOGD("IsSupportIpcEvent return false because aclrtIpcGetEventHandle does not exist.");
+            dbg_msg = "IPC Event is not support because aclrtIpcGetEventHandle does not exist.";
             return false;
         }
 
@@ -406,15 +410,25 @@ bool IsSupportIpcEvent()
         aclrtEvent npu_event = nullptr;
         auto ret = c10_npu::acl::AclrtCreateEventWithFlag(&npu_event, ACL_EVENT_IPC);
         if (ret == ACL_ERROR_RT_FEATURE_NOT_SUPPORT) {
-            ASCEND_LOGD("IsSupportIpcEvent return false because create event with flag ACL_EVENT_IPC failed.");
+            dbg_msg = "IPC Event is not support because create event with flag ACL_EVENT_IPC failed.";
             return false;
         }
         NPU_CHECK_ERROR(ret);
         NPU_CHECK_ERROR(aclrtDestroyEvent(npu_event));
 
-        ASCEND_LOGD("IsSupportIpcEvent return true.");
+        dbg_msg = "IsSupportIpcEvent return true.";
         return true;
     }();
+
+    if (!is_support && !ignore_error) {
+        TORCH_CHECK(false, dbg_msg, PTA_ERROR(ErrCode::NOT_SUPPORT));
+    }
+
+    static bool logged = false;
+    if (!logged) {
+        logged = true;
+        ASCEND_LOGD("%s", dbg_msg.c_str());
+    }
 
     return is_support;
 }

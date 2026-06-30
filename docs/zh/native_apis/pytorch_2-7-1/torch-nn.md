@@ -57,7 +57,7 @@
 |[torch.nn.Module.train](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.train)|是|支持fp32|
 |[torch.nn.Module.type](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.type)|是|支持fp16，fp32，int64|
 |[torch.nn.Module.xpu](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.xpu)|是|NPU形式名称为torch.nn.Module.npu|
-|[torch.nn.Module.npu](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.npu)|否|-|
+|[torch.nn.Module.npu](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html)|否|-|
 |[torch.nn.Module.zero_grad](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.zero_grad)|是|支持fp32|
 |[torch.nn.Sequential](https://pytorch.org/docs/2.7/generated/torch.nn.Sequential.html)|是|支持fp32|
 |[torch.nn.Sequential.append](https://pytorch.org/docs/2.7/generated/torch.nn.Sequential.html#torch.nn.Sequential.append)|是|支持fp32|
@@ -87,16 +87,16 @@
 |[torch.nn.ParameterDict.setdefault](https://pytorch.org/docs/2.7/generated/torch.nn.ParameterDict.html#torch.nn.ParameterDict.setdefault)|是|支持fp32|
 |[torch.nn.ParameterDict.update](https://pytorch.org/docs/2.7/generated/torch.nn.ParameterDict.html#torch.nn.ParameterDict.update)|是|支持fp32|
 |[torch.nn.ParameterDict.values](https://pytorch.org/docs/2.7/generated/torch.nn.ParameterDict.html#torch.nn.ParameterDict.values)|是|支持fp32|
-|[torch.nn.modules.module.register_module_forward_pre_hook](https://pytorch.org/docs/2.7/generated/torch.nn.modules.module.register_module_forward_pre_hook.html)|是|支持fp32|
-|[torch.nn.modules.module.register_module_forward_hook](https://pytorch.org/docs/2.7/generated/torch.nn.modules.module.register_module_forward_hook.html)|是|支持fp32|
-|[torch.nn.modules.module.register_module_backward_hook](https://pytorch.org/docs/2.7/generated/torch.nn.modules.module.register_module_backward_hook.html)|是|支持fp32|
+|[torch.nn.modules.module.register_module_forward_pre_hook](https://pytorch.org/docs/2.7/generated/torch.nn.modules.module.register_module_forward_pre_hook.html)|是|-|
+|[torch.nn.modules.module.register_module_forward_hook](https://pytorch.org/docs/2.7/generated/torch.nn.modules.module.register_module_forward_hook.html)|是|-|
+|[torch.nn.modules.module.register_module_backward_hook](https://pytorch.org/docs/2.7/generated/torch.nn.modules.module.register_module_backward_hook.html)|是|-|
 |[torch.nn.modules.module.register_module_full_backward_pre_hook](https://pytorch.org/docs/2.7/generated/torch.nn.modules.module.register_module_full_backward_pre_hook.html)|是|-|
-|[torch.nn.modules.module.register_module_full_backward_hook](https://pytorch.org/docs/2.7/generated/torch.nn.modules.module.register_module_full_backward_hook.html)|是|支持fp32|
+|[torch.nn.modules.module.register_module_full_backward_hook](https://pytorch.org/docs/2.7/generated/torch.nn.modules.module.register_module_full_backward_hook.html)|是|-|
 |[torch.nn.modules.module.register_module_buffer_registration_hook](https://pytorch.org/docs/2.7/generated/torch.nn.modules.module.register_module_buffer_registration_hook.html)|是|-|
 |[torch.nn.modules.module.register_module_module_registration_hook](https://pytorch.org/docs/2.7/generated/torch.nn.modules.module.register_module_module_registration_hook.html)|是|-|
 |[torch.nn.modules.module.register_module_parameter_registration_hook](https://pytorch.org/docs/2.7/generated/torch.nn.modules.module.register_module_parameter_registration_hook.html)|是|-|
 |[torch.nn.Conv1d](https://pytorch.org/docs/2.7/generated/torch.nn.Conv1d.html)|是|支持fp16，fp32|
-|[torch.nn.Conv2d](https://pytorch.org/docs/2.7/generated/torch.nn.Conv2d.html)|是|支持bf16，fp16，fp32<br><term>Atlas A2 训练系列产品</term>，默认场景下，如果频繁触发编译，建议手动设置torch.npu.config.allow_internal_format为False，控制入参不使能内部格式，避免在线编译|
+|[torch.nn.Conv2d](https://pytorch.org/docs/2.7/generated/torch.nn.Conv2d.html)|是|支持bf16，fp16，fp32<br><term>Atlas A2 训练系列产品</term>，默认场景下，如果频繁触发编译，建议手动设置torch.npu.config.allow_internal_format为False，控制入参不开启内部格式，避免在线编译|
 |[torch.nn.Conv3d](https://pytorch.org/docs/2.7/generated/torch.nn.Conv3d.html)|是|支持bf16，fp16，fp32|
 |[torch.nn.ConvTranspose1d](https://pytorch.org/docs/2.7/generated/torch.nn.ConvTranspose1d.html)|是|支持fp32|
 |[torch.nn.ConvTranspose2d](https://pytorch.org/docs/2.7/generated/torch.nn.ConvTranspose2d.html)|是|支持fp16，fp32<br><term>Atlas 训练系列产品</term>/<term>Atlas A2 训练系列产品</term>，需手动设置torch.npu.config.allow_internal_format为False，才可支持3维输入|
@@ -271,10 +271,10 @@
 |[torch.nn.utils.prune.PruningContainer.prune](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.PruningContainer.html#torch.nn.utils.prune.PruningContainer.prune)|是|支持fp32|
 |[torch.nn.utils.prune.PruningContainer.remove](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.PruningContainer.html#torch.nn.utils.prune.PruningContainer.remove)|是|支持fp32|
 |[torch.nn.utils.prune.Identity](https://pytorch.org/docs/2.7/utils.html#torch.nn.utils.prune.Identity)|是|支持fp32|
-|[torch.nn.utils.prune.Identity.apply](https://pytorch.org/docs/2.7/nn.html#torch.nn.utils.prune.Identity.apply)|是|支持fp32|
-|[torch.nn.utils.prune.Identity.apply_mask](https://pytorch.org/docs/2.7/nn.html#torch.nn.utils.prune.Identity.apply_mask)|是|支持fp32|
-|[torch.nn.utils.prune.Identity.prune](https://pytorch.org/docs/2.7/nn.html#torch.nn.utils.prune.Identity.prune)|是|支持fp32|
-|[torch.nn.utils.prune.Identity.remove](https://pytorch.org/docs/2.7/nn.html#torch.nn.utils.prune.Identity.remove)|是|支持fp32|
+|[torch.nn.utils.prune.Identity.apply](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.Identity.html#torch.nn.utils.prune.Identity.apply)|是|支持fp32|
+|[torch.nn.utils.prune.Identity.apply_mask](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.Identity.html#torch.nn.utils.prune.Identity.apply_mask)|是|支持fp32|
+|[torch.nn.utils.prune.Identity.prune](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.Identity.html#torch.nn.utils.prune.Identity.prune)|是|支持fp32|
+|[torch.nn.utils.prune.Identity.remove](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.Identity.html#torch.nn.utils.prune.Identity.remove)|是|支持fp32|
 |[torch.nn.utils.prune.RandomUnstructured](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.RandomUnstructured.html)|是|支持fp32|
 |[torch.nn.utils.prune.RandomUnstructured.apply](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.RandomUnstructured.html#torch.nn.utils.prune.RandomUnstructured.apply)|是|支持fp32|
 |[torch.nn.utils.prune.RandomUnstructured.apply_mask](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.RandomUnstructured.html#torch.nn.utils.prune.RandomUnstructured.apply_mask)|是|支持fp32|
@@ -338,7 +338,7 @@
 |[torch.nn.utils.rnn.unpad_sequence](https://pytorch.org/docs/2.7/generated/torch.nn.utils.rnn.unpad_sequence.html)|否|-|
 |[torch.nn.Flatten](https://pytorch.org/docs/2.7/generated/torch.nn.Flatten.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[torch.nn.Unflatten](https://pytorch.org/docs/2.7/generated/torch.nn.Unflatten.html)|是|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
-|[torch.nn.Unflatten.NamedShape](https://docs.pytorch.org/docs/2.7/generated/torch.nn.Unflatten.html#torch.nn.Unflatten.NamedShape)|是|-|
+|[torch.nn.Unflatten.NamedShape](https://pytorch.org/docs/2.7/generated/torch.nn.Unflatten.html#torch.nn.Unflatten.NamedShape)|是|-|
 |[torch.nn.modules.lazy.LazyModuleMixin](https://pytorch.org/docs/2.7/generated/torch.nn.modules.lazy.LazyModuleMixin.html)|是|支持fp32|
 |[torch.nn.modules.lazy.LazyModuleMixin.has_uninitialized_params](https://pytorch.org/docs/2.7/generated/torch.nn.modules.lazy.LazyModuleMixin.html#torch.nn.modules.lazy.LazyModuleMixin.has_uninitialized_params)|是|支持fp32|
 |[torch.nn.modules.lazy.LazyModuleMixin.initialize_parameters](https://pytorch.org/docs/2.7/generated/torch.nn.modules.lazy.LazyModuleMixin.html#torch.nn.modules.lazy.LazyModuleMixin.initialize_parameters)|是|支持fp32|
