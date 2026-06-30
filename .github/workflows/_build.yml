@@ -339,6 +339,7 @@ jobs:
   # ======================================================================
   a3_test:
     needs: [pytorch_and_torch-npu_build]
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Report in_progress
@@ -371,6 +372,7 @@ jobs:
   # ======================================================================
   a5_test:
     needs: [pytorch_and_torch-npu_build]
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Report in_progress
@@ -403,6 +405,7 @@ jobs:
   # ======================================================================
   distributed_test:
     needs: [pytorch_and_torch-npu_build]
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Report in_progress
