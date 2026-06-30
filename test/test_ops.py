@@ -14,7 +14,7 @@ import stat
 
 from typing import Dict
 from collections import defaultdict
-from importlib import import_module
+from importlib import import_module  # noqa: F401
 
 import torch
 import torch_npu
@@ -31,12 +31,8 @@ from torch.testing._internal.common_utils import (
     TestCase,
     is_iterable_of_tensors,
     run_tests,
-    IS_SANDCASTLE,
     clone_input_helper,
-    set_default_dtype,
     suppress_warnings,
-    noncontiguous_like,
-    parametrize,
     skipIfTorchInductor,
 )
 from torch.testing._internal.common_methods_invocations import (
@@ -48,15 +44,15 @@ from torch.testing._internal.common_methods_invocations import (
     ops_and_refs,
     python_ref_db,
     BinaryUfuncInfo,
-    xfail,
-    skip,
-    skipOps
 )
 from torch.testing._internal.common_device_type import (
     instantiate_device_type_tests,
     ops,
     OpDTypes,
     skipMeta,
+    skip,
+    skipOps,
+    xfail,
 )
 from torch._subclasses.fake_tensor import (
     FakeTensor,
@@ -65,9 +61,9 @@ from torch._subclasses.fake_tensor import (
 from torch._subclasses.fake_utils import outputs_alias_inputs
 
 import torch._prims as prims
-from torch._prims.context import TorchRefsMode
+from torch._prims.context import TorchRefsMode  # noqa: F401
 
-from torch.testing._internal import opinfo
+from torch.testing._internal import opinfo  # noqa: F401
 from torch.testing._internal import composite_compliance
 
 from torch.utils._pytree import tree_flatten
@@ -86,7 +82,7 @@ _variant_ops = partial(
 # Get names of all the operators which have ref in their entry in OpInfo (testing infra)
 #   except for elementwise unary operators (separately implemented in test/test_unary_ufuncs.py),
 #   elementwise binary operators (separately implemented in test_binary_ufuncs.py),
-#   reduction operations (separately impelemented in test_reductions.py),
+#   reduction operations (separately implemented in test_reductions.py),
 #   and Spectral Functions (separately implemented for only 1D as of now, in test/test_spectral_ops.py)
 _ref_test_ops = tuple(
     filter(
@@ -233,7 +229,7 @@ class TestCommon(TestCase):
 
             # output_process_fn_grad has a very unfortunate name
             # We use this function in linalg extensively to postprocess the inputs of functions
-            # that are not completely well-defined. Think svd and muliplying the singular vectors by -1.
+            # that are not completely well-defined. Think svd and multiplying the singular vectors by -1.
             # CPU and NPU implementations of the SVD can return valid SVDs that are different.
             # We use this function to compare them.
             npu_results = sample.output_process_fn_grad(npu_results)
@@ -454,7 +450,7 @@ class TestCommon(TestCase):
             try:
                 if with_out:
                     out = torch.empty(0, dtype=torch.int32, device=device)
-                    op_to_test(inputs, out=out, *args, **kwargs)
+                    op_to_test(inputs, *args, out=out, **kwargs)
                 else:
                     out = op_to_test(inputs, *args, **kwargs)
                 self.assertFalse(expectFail)
@@ -1390,13 +1386,13 @@ class TestFakeTensor(TestCase):
                 pass
 
     @ops([op for op in op_db if op.supports_autograd], allowed_dtypes=(torch.float,))
-    @skipOps('TestFakeTensor', 'test_fake_crossref_backward_no_amp', fake_backward_xfails)
+    @skipOps(fake_backward_xfails)
     @unittest.skip("skip test fake crossref backward no amp now")
     def test_fake_crossref_backward_no_amp(self, device, dtype, op):
         self._test_fake_crossref_helper(device, dtype, op, contextlib.nullcontext)
 
     @ops([op for op in op_db if op.supports_autograd], allowed_dtypes=(torch.float,))
-    @skipOps('TestFakeTensor', 'test_fake_crossref_backward_amp', fake_backward_xfails | fake_autocast_backward_xfails)
+    @skipOps(fake_backward_xfails | fake_autocast_backward_xfails)
     @unittest.skip("skip test fake crossref backward amp now")
     def test_fake_crossref_backward_amp(self, device, dtype, op):
         self._test_fake_crossref_helper(device, dtype, op, torch.npu.amp.autocast)
