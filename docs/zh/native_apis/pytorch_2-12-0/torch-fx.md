@@ -141,6 +141,11 @@
 |[torch.fx.experimental.symbolic_shapes.SubclassSymbolicContext](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.SubclassSymbolicContext.html)|是|-|
 |[torch.fx.experimental.symbolic_shapes.sym_eq](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.sym_eq.html)|是|-|
 |[torch.fx.experimental.symbolic_shapes.statically_known_true](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.statically_known_true.html)|是|-|
+|[torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symbol](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symbol)|是|-|
+|[torch.fx.experimental.symbolic_shapes.ShapeEnv.bound_sympy](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.bound_sympy)|是|-|
+|[torch.fx.experimental.symbolic_shapes.ShapeEnv.check_equal](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.check_equal)|是|-|
+|[torch.fx.experimental.symbolic_shapes.ShapeEnv.cleanup](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.cleanup)|是|-|
+|[torch.fx.experimental.symbolic_shapes.ShapeEnv.bind_symbols](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.bind_symbols)|是|-|
 | [torch.fx.experimental.symbolic_shapes.ShapeEnv.produce_guards](https://pytorch.org/docs/2.12.0/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.produce_guards) |是|-|
 | [torch.fx.experimental.symbolic_shapes.ShapeEnv.get_nontrivial_guards](https://pytorch.org/docs/2.12.0/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.get_nontrivial_guards) |是|-|
 | [torch.fx.experimental.symbolic_shapes.ShapeEnv.get_pruned_guards](https://pytorch.org/docs/2.12.0/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.get_pruned_guards) |是|-|
