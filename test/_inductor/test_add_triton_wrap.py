@@ -8,7 +8,6 @@ from torch.testing._internal.common_utils import (
     instantiate_parametrized_tests,
 )
 from testutils import TestUtils
-import torch_npu
 
 
 class TestWrapTriton(TestUtils):
