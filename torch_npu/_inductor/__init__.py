@@ -13,7 +13,9 @@ from .shape_handling import NPUShapeHandling, patch_shape_handling
 from .utils import patch_has_triton, patch_has_triton_tma, patch_is_gpu
 from .graph import patch_codegen_with_cpp_wrapper
 from .codegen.common import patch_cache_base_get_system
+from ._npu_meta_registration import npu_patch_meta
 
+npu_patch_meta()
 register_device_op_overrides_npu()
 patch_has_triton()
 patch_has_triton_tma()
@@ -160,9 +162,7 @@ def _load_triton_backend():
 
     _patch_flex_attention_singleton_sort()
 
-    from ._npu_meta_registration import npu_patch_meta
-
-    npu_patch_meta()
+    
 
     def _inductor_register_backend_for_device():
         from .codegen.cpp_wrapper import CppWrapperNpu
