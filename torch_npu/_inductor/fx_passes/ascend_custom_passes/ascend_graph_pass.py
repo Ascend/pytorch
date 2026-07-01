@@ -1323,13 +1323,58 @@ def _hashable_const_key(value):
     return value
 
 
-def _cse_constant_call(graph, target):
+def _collect_mutation_buffer_ids(graph):
+    """收集图中所有被 mutation / triton kernel 操作引用的 Node id 集合。
+    匹配 triton_kernel_wrapper_mutation、triton_kernel_wrapper_functional
+    以及 ATen in-place 算子（通过 __name__ 和 _schema.name 双重检测）。
+    主动遍历节点的 args/kwargs（含嵌套 dict/list），不依赖 node.users。"""
+
+    def _is_mutation_node(n):
+        if n.op != "call_function":
+            return False
+        target = n.target
+        name = getattr(target, "__name__", "") or ""
+        if name.startswith("triton_kernel_wrapper") or name.endswith("_"):
+            return True
+        if isinstance(target, torch._ops.OpOverload):
+            schema_name = getattr(getattr(target, "_schema", None), "name", "")
+            if schema_name.endswith("_"):
+                return True
+        return False
+
+    def _collect_nodes(val, out):
+        if isinstance(val, torch.fx.Node):
+            out.add(id(val))
+        elif isinstance(val, dict):
+            for v in val.values():
+                _collect_nodes(v, out)
+        elif isinstance(val, (list, tuple)):
+            for v in val:
+                _collect_nodes(v, out)
+
+    ids = set()
+    for n in graph.nodes:
+        if not _is_mutation_node(n):
+            continue
+        for a in n.args:
+            _collect_nodes(a, ids)
+        for v in n.kwargs.values():
+            _collect_nodes(v, ids)
+    return ids
+
+
+def _cse_constant_call(graph, target, mutation_buf_ids=None):
     """对指定 target 的常量参数调用做公共子表达式消除：
-    相同 args/kwargs 的重复调用只保留首次，其余复用结果。"""
+    相同 args/kwargs 的重复调用只保留首次，其余复用结果。
+    被 mutation 操作引用的节点不参与 CSE，避免多个 mutation 写入同一 buffer。"""
+    if mutation_buf_ids is None:
+        mutation_buf_ids = _collect_mutation_buffer_ids(graph)
     seen = {}
     changed = False
     for n in list(graph.nodes):
         if n.op != "call_function" or n.target is not target:
+            continue
+        if id(n) in mutation_buf_ids:
             continue
         try:
             key = (
@@ -1353,12 +1398,13 @@ def fold_iota_arithmetic_pass(graph: torch.fx.Graph) -> None:
     changed = False
 
     iota_target = torch.ops.prims.iota.default
+    mutation_buf_ids = _collect_mutation_buffer_ids(graph)
     for tgt in (
         iota_target,
         torch.ops.aten.arange.default,
         torch.ops.aten.full.default,
     ):
-        if _cse_constant_call(graph, tgt):
+        if _cse_constant_call(graph, tgt, mutation_buf_ids):
             changed = True
 
     for iota in list(graph.nodes):
