@@ -16,6 +16,9 @@ from .utils import patch_has_triton, patch_device_supports_tma, patch_is_gpu, ge
 # All backends need npu/cpu/mps device_op_overrides.
 from .codegen.common import register_device_op_overrides_npu, patch_cache_base_get_system
 from .shape_handling import NPUShapeHandling, patch_shape_handling
+from ._npu_meta_registration import npu_patch_meta
+
+npu_patch_meta()
 register_device_op_overrides_npu()
 patch_has_triton()
 patch_is_gpu()
@@ -139,9 +142,6 @@ def _load_triton_backend():
     from .autotune_process import patch_tuning_process, patch_tuning_process_pool
     flex_attention._validate_device = _validate_device
 
-    from ._npu_meta_registration import npu_patch_meta
-
-    npu_patch_meta()
 
     def _inductor_register_backend_for_device():
         from .codegen.cpp_wrapper import CppWrapperNpu
