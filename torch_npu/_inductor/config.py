@@ -228,6 +228,19 @@ aggresive_autotune = os.getenv("INDUCTOR_ASCEND_AGGRESSIVE_AUTOTUNE", "0").lower
     "1",
     "true",
 )
+enable_symbolic_shape_group_autotune = os.getenv(
+    "INDUCTOR_ASCEND_SYMBOLIC_GROUP_AUTOTUNE", "0"
+).lower() in ("1", "true", "yes")
+
+# Temporary rollout-only switch. Remove after grouped autotune is fully enabled.
+symbolic_group_allow_templates = tuple(
+    x.strip()
+    for x in os.getenv(
+        "INDUCTOR_ASCEND_SYMBOLIC_GROUP_TEMPLATES",
+        "pointwise,reduction,persistent_reduction",
+    ).split(",")
+    if x.strip()
+)
 inductor_static_mode = os.environ.get("INDUCTOR_STATIC_MODE", "0").lower() in (
     "1",
     "yes",
