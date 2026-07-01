@@ -49,17 +49,17 @@ RUN yum install -y vim-common\
 # Install pip package(build)
 RUN pip3.10 install pyyaml  \
     && pip3.10 install setuptools  \
-    && pip3.10 install torch==2.12.1+cpu --index-url https://download.pytorch.org/whl/cpu \
+    && pip3.10 install torch==2.12.0+cpu --index-url https://download.pytorch.org/whl/cpu \
     && pip3.10 install numpy==1.23.2
 
 RUN pip3.11 install pyyaml  \
     && pip3.11 install setuptools  \
-    && pip3.11 install torch==2.12.1+cpu --index-url https://download.pytorch.org/whl/cpu \
+    && pip3.11 install torch==2.12.0+cpu --index-url https://download.pytorch.org/whl/cpu \
     && pip3.11 install numpy==1.26.2
 
 RUN pip3.12 install pyyaml  \
     && pip3.12 install setuptools  \
-    && pip3.12 install torch==2.12.1+cpu --index-url https://download.pytorch.org/whl/cpu \
+    && pip3.12 install torch==2.12.0+cpu --index-url https://download.pytorch.org/whl/cpu \
     && pip3.12 install numpy==1.26.2
 
 WORKDIR /home
