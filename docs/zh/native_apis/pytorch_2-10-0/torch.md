@@ -250,8 +250,8 @@
 |[torch.argsort](https://pytorch.org/docs/2.10/generated/torch.argsort.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64|
 |[torch.eq](https://pytorch.org/docs/2.10/generated/torch.eq.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[torch.equal](https://pytorch.org/docs/2.10/generated/torch.equal.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
-|[torch.ge](https://pytorch.org/docs/2.10/generated/torch.ge.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
-|[torch.greater_equal](https://pytorch.org/docs/2.10/generated/torch.greater_equal.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
+|[torch.ge](https://pytorch.org/docs/2.10/generated/torch.ge.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
+|[torch.greater_equal](https://pytorch.org/docs/2.10/generated/torch.greater_equal.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |[torch.gt](https://pytorch.org/docs/2.10/generated/torch.gt.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |[torch.greater](https://pytorch.org/docs/2.10/generated/torch.greater.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |[torch.isclose](https://pytorch.org/docs/2.10/generated/torch.isclose.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
@@ -361,3 +361,4 @@
 |[torch._foreach_sqrt](https://pytorch.org/docs/2.10/generated/torch._foreach_sqrt.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |[torch._foreach_asin](https://pytorch.org/docs/2.10/generated/torch._foreach_asin.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |[torch.\_foreach\_neg\_](https://docs.pytorch.org/docs/2.10/generated/torch._foreach_neg_.html#torch._foreach_neg_)|是|支持bf16，fp16，fp32，int8，int32，int64|
+|[torch.corrcoef](https://pytorch.org/docs/2.10/generated/torch.corrcoef.html)|是|支持bf16，fp16，fp32|
