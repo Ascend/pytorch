@@ -31,20 +31,63 @@ def detect_flattened_dims(kernel, index):
 
         if isinstance(expr, ModularIndexing):
             var, divisor, length = expr.args
-            init_new_vars(var, length)
-            new_vars[var][length][1] = (expr, divisor, length)
+            if isinstance(var, sympy.Symbol):
+                init_new_vars(var, length)
+                new_vars[var][length][1] = (expr, divisor, length)
+            else:
+                # Handle complex expressions (e.g., s77**2) by checking if base symbols exist
+                if hasattr(var, 'free_symbols') and var.free_symbols:
+                    found_valid_symbol = False
+                    for sym in var.free_symbols:
+                        if sym in kernel.range_tree_nodes or sym in kernel.range_tree_nodes_removed:
+                            log.warning(
+                                "Skipping ModularIndexing with complex var %s, "
+                                "base symbol %s found in range_tree_nodes",
+                                var,
+                                sym
+                            )
+                            found_valid_symbol = True
+                            break
+                    if not found_valid_symbol:
+                        detect_flattened_axis(var)
+                else:
+                    detect_flattened_axis(var)
         elif isinstance(expr, FloorDiv):
             var, divisor = expr.args
-            init_new_vars(var, divisor)
-            # over than 1 node_schedule, var may be deleted in kernel.range_tree_nodes
-            # it should be found in range_tree_nodes_removed dict
-            if var in kernel.range_tree_nodes:
-                numel = kernel.range_tree_nodes[var].length
-            else:
-                numel = kernel.range_tree_nodes_removed[var].length
+            if isinstance(var, sympy.Symbol):
+                init_new_vars(var, divisor)
+                # var may be deleted from range_tree_nodes after node_schedule, check both dicts
+                if var in kernel.range_tree_nodes:
+                    numel = kernel.range_tree_nodes[var].length
+                elif var in kernel.range_tree_nodes_removed:
+                    numel = kernel.range_tree_nodes_removed[var].length
+                else:
+                    log.warning(
+                        "Skipping FloorDiv with var %s not found in range_tree_nodes or range_tree_nodes_removed",
+                        var
+                    )
+                    return
 
-            length = expr.eval(numel, divisor)
-            new_vars[var][divisor][0] = (expr, divisor, length)
+                length = expr.eval(numel, divisor)
+                new_vars[var][divisor][0] = (expr, divisor, length)
+            else:
+                # Handle complex expressions (e.g., s77**2) by checking if base symbols exist
+                if hasattr(var, 'free_symbols') and var.free_symbols:
+                    found_valid_symbol = False
+                    for sym in var.free_symbols:
+                        if sym in kernel.range_tree_nodes or sym in kernel.range_tree_nodes_removed:
+                            log.warning(
+                                "Skipping FloorDiv with complex var %s, "
+                                "base symbol %s found in range_tree_nodes",
+                                var,
+                                sym
+                            )
+                            found_valid_symbol = True
+                            break
+                    if not found_valid_symbol:
+                        detect_flattened_axis(var)
+                else:
+                    detect_flattened_axis(var)
 
         else:
             for x in expr.args:
