@@ -111,6 +111,7 @@ from torch_npu.npu._aclgraph_update_plan.resolver import (
     validate_aclgraph_update_plan_for_graph,
 )
 import torch_npu.npu.aclnn
+from torch_npu.npu._graph_resource_pool import GraphResourcePool
 
 if TYPE_CHECKING:
     from torch._inductor.utils import InputType
@@ -779,6 +780,7 @@ class NPUGraphNode:
         self.device = device_index
         self.stack_traces = stack_traces
         self.stream = stream
+        self.function_id: Optional[FunctionID] = None  # set when attached to tree
 
         # Enable re-record a cudagraph when static tensor address changed.
         # if not we should error when it changed.
@@ -1504,6 +1506,7 @@ class NPUGraphNode:
 
     def add_child(self, function_id: FunctionID, node: NPUGraphNode) -> None:
         "Adds node as a a child of self"
+        node.function_id = function_id
         self.children[function_id].append(node)
 
     @staticmethod
@@ -1618,11 +1621,69 @@ class NPUGraphNode:
         self.cached_tensor_outputs.clear()
 
         for i, unaliased in enumerate(self.unaliased_in_all_paths):
-            if unaliased:
+            if unaliased and i < len(self.outputs_weakrefs):
                 n = self.outputs_weakrefs[i]
                 if n is None:
                     raise RuntimeError("check n is not None fail")
                 n.remove_extra_reference()
+
+    def release(self) -> None:
+        """Release all resources held by this graph node and detach from the tree.
+
+        Release order:
+        1. **Detach from tree** — remove self from ``parent.children`` (or from
+           ``tree_manager.roots`` for root nodes) so that subsequent replay
+           lookups do not encounter a freed node.
+        2. **Cached tensors** — clear all cached tensor references held for
+           graph inputs / outputs (``remove_node_cached_tensors``).
+        3. **Output blocks** — collect unaliased output tensor data pointers
+           for later recycling via the caching allocator.
+        4. **NPU graph** — call ``self.graph.reset()`` to free the underlying
+           device graph resources, then drop the reference.
+        5. **Weakrefs and recording state** — null out ``outputs_weakrefs``,
+           ``tensor_weakrefs``, ``recording_outputs``, and
+           ``checkpointed_caching_state`` to break reference cycles.
+        6. **Block pointers** — for each collected unaliased output block, call
+           ``raw_delete`` on the caching allocator, returning the memory to the
+           free pool.
+
+        After this call the node is safe to drop; the NPU graph memory is
+        released and the tree structure no longer references this node.
+        """
+        # Detach from tree structure to avoid dangling references.
+        parent = self.parent
+        function_id = self.function_id
+        if parent is not None:
+            if function_id is not None:
+                siblings = parent.children.get(function_id, [])
+                if self in siblings:
+                    siblings.remove(self)
+        else:
+            # Root node: remove from tree manager's roots dict.
+            container = get_container(self.device)
+            tree_manager = container.tree_manager if container is not None else None
+            if tree_manager is not None and tree_manager.roots is not None:
+                if function_id is not None:
+                    root_list = tree_manager.roots.get(function_id, [])
+                    if self in root_list:
+                        root_list.remove(self)
+        self.remove_node_cached_tensors()
+        blocks_to_recycle = []
+        for i, unaliased in enumerate(self.unaliased_in_all_paths):
+            if unaliased and i < len(self.outputs_weakrefs):
+                ref = self.outputs_weakrefs[i]
+                if ref is not None and ref():
+                    blocks_to_recycle.append(ref().data_ptr())
+        if self.graph is not None:
+            self.graph.reset()
+            self.graph = None
+        self.cached_tensor_outputs = []
+        self.outputs_weakrefs = []
+        self.tensor_weakrefs = []
+        self.recording_outputs = None
+        self.checkpointed_caching_state = None
+        for ptr in set(blocks_to_recycle):
+            torch_npu._C._npu_npuCachingAllocator_raw_delete(ptr)
 
     def remove_path_cached_tensors(self) -> None:
         for node in self._path_from_root:
@@ -2251,6 +2312,7 @@ class NPUGraphTreeManager:
             self.stream,
         )
         if self.current_node is None:
+            node.function_id = function_id
             self.roots[function_id].append(node)
         else:
             self.current_node.add_child(function_id, node)
@@ -2259,6 +2321,9 @@ class NPUGraphTreeManager:
         self.update_generation()
         log.debug("NPUGRAPH-TREE State state=RECORDING, node=%s, gen=%d",
                   graph_id.id, self.current_gen)
+        pool = GraphResourcePool.get_pool(self.device_index)
+        if pool.is_active():
+            pool.register(node)
         torch.npu.synchronize()
         return node.run_first_inputs(new_inputs)
 
