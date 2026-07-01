@@ -360,5 +360,5 @@
 |[torch.quasirandom.SobolEngine.draw](https://pytorch.org/docs/2.9/generated/torch.quasirandom.SobolEngine.html#torch.quasirandom.SobolEngine.draw)|是|支持fp32，fp64|
 |[torch._foreach_sqrt](https://pytorch.org/docs/2.9/generated/torch._foreach_sqrt.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |[torch._foreach_asin](https://pytorch.org/docs/2.9/generated/torch._foreach_asin.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
-|[torch.\_foreach\_neg\_](https://pytorch.org/docs/2.9/torch.html#torch.\_foreach\_neg\_)|是|支持bf16，fp16，fp32，int8，int32，int64|
+|[torch.\_foreach\_neg\_](https://pytorch.org/docs/2.9/generated/torch._foreach_neg_.html#torch._foreach_neg_)|是|支持bf16，fp16，fp32，int8，int32，int64|
 |[torch.corrcoef](https://pytorch.org/docs/2.9/generated/torch.corrcoef.html)|是|支持bf16，fp16，fp32|

@@ -33,6 +33,13 @@
 |torch._amp_foreach_non_finite_check_and_unscale_|是|支持fp16，fp32|
 |torch.\_amp\_update\_scale\_|是|支持fp32|
 
+## torch.cuda
+
+|API名称|NPU形式名称|是否支持|限制与说明|
+|--|--|--|--|
+|torch.cuda.reset_accumulated_host_memory_stats| torch_npu.npu.reset_accumulated_host_memory_stats|是|此接口自PyTorch2.9.0版本开始修改为公开接口|
+|torch.cuda.host_memory_stats_as_nested_dict|torch_npu.npu.host_memory_stats_as_nested_dict|是|此接口自PyTorch2.9.0版本开始修改为公开接口|
+
 ## torch.distributed
 
 |API名称|是否支持|限制与说明|
@@ -54,6 +61,7 @@
 |--|--|--|
 |torch.distributed.tensor._redistribute.redistribute_local_tensor|是|支持bf16，fp16，fp32，fp64，uint8，int8，int32，int64，bool|
 |torch.distributed.tensor.DTensor._local_tensor|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|torch.distributed.tensor.placement_types._StridedShard|是|支持bf16，fp16，fp32，fp64，uint8，int8，int32，int64，bool<br>此接口自PyTorch2.11.0版本开始修改为公开接口|
 
 ## torch.distributed.fsdp.fully_shard
 
@@ -63,3 +71,11 @@
 |torch.distributed.fsdp._fully_shard._fsdp_collectives.DefaultReduceScatter|是|支持bf16，fp16，fp32，int32，int64<br>仅支持PyTorch 2.9.0以上版本|
 |torch.distributed.fsdp._fully_shard._fsdp_collectives.ProcessGroupAllocReduceScatter|是|支持bf16，fp16，fp32，int32，int64<br>仅支持PyTorch 2.9.0以上版本|
 |torch.distributed.fsdp._fully_shard._fsdp_collectives.foreach_reduce|是|支持bf16，fp16，fp32<br>仅支持PyTorch 2.8.0以上版本|
+
+## torch.fx
+
+|API名称|是否支持|限制与说明|
+|--|--|--|
+|torch.fx.proxy.ParameterProxy|是|-|
+|torch.fx.passes.split_module.split_module|是|-|
+|torch.fx.passes.regional_inductor.regional_inductor|是|仅支持PyTorch 2.10.0以上版本<br>此接口自PyTorch2.12.0版本开始修改为公开接口|
