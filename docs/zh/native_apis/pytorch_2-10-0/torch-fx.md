@@ -78,8 +78,6 @@
 |[torch.fx.Tracer.to_bool](https://pytorch.org/docs/2.10/fx.html#torch.fx.Tracer.to_bool)|是|支持fp32|
 |[torch.fx.Tracer.trace](https://pytorch.org/docs/2.10/fx.html#torch.fx.Tracer.trace)|是|-|
 |[torch.fx.Proxy](https://pytorch.org/docs/2.10/fx.html#torch.fx.Proxy)|是|-|
-|[torch.fx.proxy.ParameterProxy](https://pytorch.org/docs/2.10/fx.html#torch.fx.proxy.ParameterProxy)|是|-|
-|[torch.fx.passes.split_module.split_module](https://pytorch.org/docs/2.7/fx.html#torch.fx.passes.split_module)|是|-|
 |[torch.fx.Interpreter](https://pytorch.org/docs/2.10/fx.html#torch.fx.Interpreter)|是|-|
 |[torch.fx.Interpreter.call_function](https://pytorch.org/docs/2.10/fx.html#torch.fx.Interpreter.call_function)|是|支持fp32|
 |[torch.fx.Interpreter.call_method](https://pytorch.org/docs/2.10/fx.html#torch.fx.Interpreter.call_method)|是|支持fp32|
@@ -99,7 +97,6 @@
 |[torch.fx.Transformer.placeholder](https://pytorch.org/docs/2.10/fx.html#torch.fx.Transformer.placeholder)|是|支持fp32|
 |[torch.fx.Transformer.transform](https://pytorch.org/docs/2.10/fx.html#torch.fx.Transformer.transform)|是|-|
 |[torch.fx.replace_pattern](https://pytorch.org/docs/2.10/fx.html#torch.fx.replace_pattern)|是|-|
-|[torch.fx.passes.regional_inductor.regional_inductor](https://pytorch.org/docs/2.10/fx.html#torch.fx.passes.regional_inductor.regional_inductor)|是|-|
 |[torch.fx.experimental.symbolic_shapes.compute_unbacked_bindings](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.compute_unbacked_bindings.html)|是|-|
 |[torch.fx.experimental.symbolic_shapes.constrain_range](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.constrain_range.html)|是|需通过torch.compile获取SymInt|
 |[torch.fx.experimental.symbolic_shapes.constrain_unify](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.constrain_unify.html)|是|需通过torch.compile获取SymInt|

@@ -105,4 +105,4 @@
 |[torch.nn.functional.upsample_bilinear](https://pytorch.org/docs/2.7/generated/torch.nn.functional.upsample_bilinear.html)|是|支持fp16，fp32|
 |[torch.nn.functional.grid_sample](https://pytorch.org/docs/2.7/generated/torch.nn.functional.grid_sample.html)|是|支持fp16，fp32，fp64|
 |[torch.nn.functional.affine_grid](https://pytorch.org/docs/2.7/generated/torch.nn.functional.affine_grid.html)|是|支持fp16，fp32|
-|[torch.nn.parallel.data_parallel](https://pytorch.org/docs/2.7/nn.html#torch.nn.parallel.data_parallel)|否|-|
+|[torch.nn.parallel.data_parallel](https://pytorch.org/docs/2.7/generated/torch.nn.functional.torch.nn.parallel.data_parallel.html)|否|-|

@@ -12,7 +12,7 @@
 |[torch.distributed.elastic.agent.server.WorkerSpec.get_entrypoint_name](https://pytorch.org/docs/2.10/elastic/agent.html#torch.distributed.elastic.agent.server.WorkerSpec.get_entrypoint_name)|是|-|
 |[torch.distributed.elastic.agent.server.WorkerState](https://pytorch.org/docs/2.10/elastic/agent.html#torch.distributed.elastic.agent.server.WorkerState)|是|-|
 |[torch.distributed.elastic.agent.server.WorkerState.is_running](https://pytorch.org/docs/2.10/elastic/agent.html#torch.distributed.elastic.agent.server.WorkerState.is_running)|是|-|
-|[torch.distributed.elastic.control_plane.worker_main](https://pytorch.org/docs/2.10/elastic/agent.html#torch.distributed.elastic.control_plane.worker_main)|是|-|
+|[torch.distributed.elastic.control_plane.worker_main](https://pytorch.org/docs/2.10/elastic/control_plane.html#torch.distributed.elastic.control_plane.worker_main)|是|-|
 |[torch.distributed.elastic.agent.server.Worker](https://pytorch.org/docs/2.10/elastic/agent.html#torch.distributed.elastic.agent.server.Worker)|是|-|
 |[torch.distributed.elastic.agent.server.WorkerGroup](https://pytorch.org/docs/2.10/elastic/agent.html#torch.distributed.elastic.agent.server.WorkerGroup)|是|-|
 |[torch.distributed.elastic.agent.server.local_elastic_agent.LocalElasticAgent](https://pytorch.org/docs/2.10/elastic/agent.html#torch.distributed.elastic.agent.server.local_elastic_agent.LocalElasticAgent)|是|-|
@@ -41,10 +41,10 @@
 |[torch.distributed.elastic.multiprocessing.api.LogsDest](https://pytorch.org/docs/2.10/elastic/multiprocessing.html#torch.distributed.elastic.multiprocessing.api.LogsDest)|是|-|
 |[torch.distributed.elastic.multiprocessing.api.LogsSpecs](https://pytorch.org/docs/2.10/elastic/multiprocessing.html#torch.distributed.elastic.multiprocessing.api.LogsSpecs)|是|-|
 |[torch.distributed.elastic.multiprocessing.api.LogsSpecs.reify](https://pytorch.org/docs/2.10/elastic/multiprocessing.html#torch.distributed.elastic.multiprocessing.api.LogsSpecs.reify)|是|-|
-|[torch.distributed.elastic.multiprocessing.errors.record](https://pytorch.org/docs/2.10/elastic/multiprocessing.html#torch.distributed.elastic.multiprocessing.errors.record)|是|-|
-|[torch.distributed.elastic.multiprocessing.errors.ChildFailedError](https://pytorch.org/docs/2.10/elastic/multiprocessing.html#torch.distributed.elastic.multiprocessing.errors.ChildFailedError)|是|-|
-|[torch.distributed.elastic.multiprocessing.errors.ErrorHandler](https://pytorch.org/docs/2.10/elastic/multiprocessing.html#torch.distributed.elastic.multiprocessing.errors.ErrorHandler)|是|-|
-|[torch.distributed.elastic.multiprocessing.errors.ProcessFailure](https://pytorch.org/docs/2.10/elastic/multiprocessing.html#torch.distributed.elastic.multiprocessing.errors.ProcessFailure)|是|-|
+|[torch.distributed.elastic.multiprocessing.errors.record](https://pytorch.org/docs/2.10/elastic/errors.html#torch.distributed.elastic.multiprocessing.errors.record)|是|-|
+|[torch.distributed.elastic.multiprocessing.errors.ChildFailedError](https://pytorch.org/docs/2.10/elastic/errors.html#torch.distributed.elastic.multiprocessing.errors.ChildFailedError)|是|-|
+|[torch.distributed.elastic.multiprocessing.errors.ErrorHandler](https://pytorch.org/docs/2.10/elastic/errors.html#torch.distributed.elastic.multiprocessing.errors.ErrorHandler)|是|-|
+|[torch.distributed.elastic.multiprocessing.errors.ProcessFailure](https://pytorch.org/docs/2.10/elastic/errors.html#torch.distributed.elastic.multiprocessing.errors.ProcessFailure)|是|-|
 |[torch.distributed.elastic.rendezvous.RendezvousParameters](https://pytorch.org/docs/2.10/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.RendezvousParameters)|是|-|
 |[torch.distributed.elastic.rendezvous.RendezvousParameters.get](https://pytorch.org/docs/2.10/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.RendezvousParameters.get)|是|-|
 |[torch.distributed.elastic.rendezvous.RendezvousParameters.get_as_bool](https://pytorch.org/docs/2.10/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.RendezvousParameters.get_as_bool)|是|-|
@@ -97,7 +97,6 @@
 |[torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.get](https://pytorch.org/docs/2.10/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.get)|是|-|
 |[torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.set](https://pytorch.org/docs/2.10/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.set)|是|-|
 |[torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.wait](https://pytorch.org/docs/2.10/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.wait)|是|-|
-|[torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.set_timeout](https://pytorch.org/docs/2.10/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.set_timeout)|是|-|
 |[torch.distributed.elastic.rendezvous.etcd_server.EtcdServer](https://pytorch.org/docs/2.10/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_server.EtcdServer)|否|-|
 |[torch.distributed.elastic.timer.configure](https://pytorch.org/docs/2.10/elastic/timer.html#torch.distributed.elastic.timer.configure)|是|-|
 |[torch.distributed.elastic.timer.debug_info_logging.log_debug_info_for_expired_timers](https://pytorch.org/docs/2.10/elastic/timer.html#torch.distributed.elastic.timer.debug_info_logging.log_debug_info_for_expired_timers)|是|-|

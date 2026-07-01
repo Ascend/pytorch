@@ -52,8 +52,6 @@
 
 - **[torch.hub](torch-hub.md)**  
 
-- **[torch.jit](torch-jit.md)**  
-
 - **[torch.linalg](torch-linalg.md)**  
 
 - **[torch.monitor](torch-monitor.md)**  
