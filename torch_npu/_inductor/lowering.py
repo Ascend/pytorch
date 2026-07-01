@@ -485,7 +485,6 @@ def _register_npu_inductor_fallbacks():
             ranges=index.get_size(),
         )
 
-
     def index_put_impl_(self, indices, values, accumulate, check, may_realize=False):
         if may_realize:
 
@@ -937,6 +936,9 @@ def _register_npu_inductor_fallbacks():
 
         if len(inputs) == 1:
             return clone(inputs[0])
+
+        if not is_ascend950 or len(inputs) > torch._inductor.config.max_pointwise_cat_inputs:
+            return fallback_handler(aten.cat.default)(inputs, dim)
 
         dim = _validate_dim(inputs[0], dim, 0)
         dtype = get_promoted_dtype(

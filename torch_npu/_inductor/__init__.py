@@ -297,12 +297,6 @@ def _load_triton_backend():
     add_additional_op()
     torch._inductor.config.comprehensive_padding = False
 
-    compile_threads = int(
-        os.environ.get("TORCHINDUCTOR_COMPILE_THREADS") or "1"
-    )
-    os.environ["TORCHINDUCTOR_COMPILE_THREADS"] = str(compile_threads)
-    torch._inductor.config.compile_threads = compile_threads
-
     _fasta_autotune = os.environ.get("FASTAUTOTUNE", "0") == "1"
     _fasta_autotune_method = os.getenv("AUTOTUNE_METHOD", "Expert")
     if _fasta_autotune:
