@@ -4,7 +4,7 @@
 
 回显信息中存在关键字“**Address already in use**”，类似如下打印信息：
 
-```ColdFusion
+```text
 torch.distributed.run: [WARNING] *****************************************
 [W socket.cpp:436] [c10d] The server socket has failed to bind to [::]:29500 (errno: 98 - Address already in use).
 [W socket.cpp:436] [c10d] The server socket has failed to bind to ?UNKNOWN? (errno: 98 - Address already in use).

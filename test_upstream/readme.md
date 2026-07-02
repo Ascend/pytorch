@@ -8,7 +8,7 @@
 
 2. 核心目录结构
 
-```coldFusion
+```text
     pytorch/                  # PyTorch 源码根目录
     ├─ ...（其他 PyTorch 原生文件/目录）
     └─ test_upstream/                 # 补丁目录
