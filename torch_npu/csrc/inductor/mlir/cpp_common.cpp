@@ -8,8 +8,8 @@
 #include <torch_npu/csrc/framework/OpCommand.h>
 #include <torch_npu/csrc/profiler/profiler_mgr.h>
 
-#include "third_party/acl/inc/experiment/msprof/toolchain/prof_api.h"
-#include "third_party/acl/inc/experiment/msprof/toolchain/prof_common.h"
+#include "third_party/acl/inc/profiling/prof_api.h"
+#include "third_party/acl/inc/profiling/prof_common.h"
 
 struct TilingMem {
     std::unique_ptr<void, decltype(&aclrtFreeHost)> arg_tiling_host;

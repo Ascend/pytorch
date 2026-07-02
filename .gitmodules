@@ -21,6 +21,10 @@
 	path = third_party/torch-mlir
 	url = https://gitcode.com/gh_mirrors/to/torch-mlir.git
 	update = none
+[submodule "third_party/dvm/dvm"]
+	path = third_party/dvm/dvm
+	url = https://gitcode.com/mindspore/dvm.git
+	branch = r2.10
 [submodule "third_party/acl_src/runtime"]
 	path = third_party/acl_src/runtime
 	url = https://gitcode.com/cann/runtime.git

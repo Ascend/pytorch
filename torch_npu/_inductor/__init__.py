@@ -34,6 +34,19 @@ def _load_mlir_backend():
     apply_mlir_inductor_patch()
     register_mlir_codegen_backend()
 
+
+def _load_dvm_backend():
+    import torch
+    from .ascend_npu_ir.ascend_npu_ir.npu import npu_inductor_plugin
+    from .lowering_patch import apply_mlir_inductor_patch
+    from .ascend_npu_ir.ascend_npu_ir.npu.npu_inductor_plugin import (
+        register_mlir_codegen_backend,
+    )
+    apply_mlir_inductor_patch()
+    register_mlir_codegen_backend()
+    from .dvm import mlir_fusion
+
+
 def _load_triton_backend():
     import os
     import torch
@@ -154,6 +167,7 @@ def _load_triton_backend():
 
 _BACKEND_LOADERS = {
     "mlir": _load_mlir_backend,
+    "dvm": _load_dvm_backend,
     "default": _load_triton_backend,
 }
 
