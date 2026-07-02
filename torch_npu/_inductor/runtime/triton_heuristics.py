@@ -916,6 +916,27 @@ class NPUCachingAutotuner(CachingAutotuner):
                 items.append({"config": cfg, "ttir": "", "arg_bindings": ""})
         return items
 
+    def _select_ttir_test_config(self):
+        smallest_config = None
+        min_sub_product = float("inf")
+        for cfg in self.configs:
+            kwargs = getattr(cfg, "kwargs", None) or {}
+            current_sub_product = 1
+            has_sub_tiling = False
+            for tiling_name, tiling in kwargs.items():
+                if not isinstance(tiling_name, str) or not tiling_name.endswith("SUB"):
+                    continue
+                try:
+                    tiling_value = int(tiling)
+                except (TypeError, ValueError):
+                    continue
+                current_sub_product *= tiling_value
+                has_sub_tiling = True
+            if has_sub_tiling and current_sub_product < min_sub_product:
+                min_sub_product = current_sub_product
+                smallest_config = cfg
+        return smallest_config if smallest_config is not None else self.configs[0]
+
     def _triton_make_ttir(self):
         if not self.configs:
             raise NoTritonConfigsError("No triton configs are available")
@@ -943,7 +964,7 @@ class NPUCachingAutotuner(CachingAutotuner):
         compile_results = []
         exc = None
         exc_stack = ""
-        test_config = self.configs[0]
+        test_config = self._select_ttir_test_config()
         try:
             compile_results.append(make_ttir_from_cfg(test_config))
         except Exception as e:
@@ -1153,6 +1174,9 @@ class NPUCachingAutotuner(CachingAutotuner):
         # pure simt stack overflow check
         if compile_meta['compile_mode'] == NPUKernelType.SIMT_ONLY.compile_mode():
             options['simt_stack_limit'] = npu_config.simt_default_warp_stacksize
+
+        if self.inductor_meta.get("inductor_ascend_linear_mode", "no_linear") == "no_linear":
+            options['enable_auto_blockify'] = True
 
         compile_kwargs = {
             "target": target,
@@ -2980,8 +3004,6 @@ def _triton_config_npu_index_legacy(
             configs.extend(tile_generator.descend_split_tiling())
             tile_generator.set_kernel_type(NPUKernelType.SIMT_TEMPLATE)
             configs.extend(tile_generator.descend_split_tiling())
-            tile_generator.set_kernel_type(NPUKernelType.SIMD)
-            configs.extend(tile_generator.descend_split_tiling())
         else:
             configs = tile_generator.descend_split_tiling()
 
@@ -3014,6 +3036,7 @@ def _triton_config_npu_index_legacy(
             for tiling, tling_value in tiling_kwargs.items():
                 if isinstance(tiling, str) and tiling.endswith("SUB"):
                     tiling_cfg.kwargs[tiling.rstrip("_SUB")] = tling_value
+                    tiling_cfg.kwargs.pop(tiling)
     elif inductor_ascend_linear_mode == "no_linear_loop":
         for tiling_cfg in configs:
             tiling_kwargs = copy.deepcopy(tiling_cfg.kwargs)
