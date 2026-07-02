@@ -742,5 +742,10 @@ uint64_t OptionsManager::GetShmemSymmetricSize()
     return symmetricSize;
 }
 
+char *OptionsManager::GetAclInitPath()
+{
+    return get_and_log_env("TORCH_ACL_INIT_CONFIG_PATH");
+}
+
 } // namespace option
 } // namespace c10_npu
