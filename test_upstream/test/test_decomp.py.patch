@@ -1,0 +1,12 @@
+diff --git a/test/test_decomp.py b/test/test_decomp.py
+index 07dcd82..f76e2b3 100644
+--- a/test/test_decomp.py
++++ b/test/test_decomp.py
+@@ -9,6 +9,7 @@ from functools import partial
+ 
+ import torch._inductor.decomposition
+ import torch.autograd
++import torch_npu.testing
+ from torch import Tensor
+ from torch._decomp import core_aten_decompositions, decomposition_table
+ from torch._dispatch.python import enable_python_dispatcher

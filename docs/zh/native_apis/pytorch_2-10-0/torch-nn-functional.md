@@ -16,8 +16,8 @@
 |[torch.nn.functional.avg_pool1d](https://pytorch.org/docs/2.10/generated/torch.nn.functional.avg_pool1d.html)|是|支持bf16，fp16，fp32|
 |[torch.nn.functional.avg_pool2d](https://pytorch.org/docs/2.10/generated/torch.nn.functional.avg_pool2d.html)|是|支持bf16，fp16，fp32|
 |[torch.nn.functional.avg_pool3d](https://pytorch.org/docs/2.10/generated/torch.nn.functional.avg_pool3d.html)|否|-|
-|[torch.nn.functional.max_pool1d](https://pytorch.org/docs/2.10/generated/torch.nn.functional.max_pool1d.html)|否|-|
-|[torch.nn.functional.max_pool2d](https://pytorch.org/docs/2.10/generated/torch.nn.functional.max_pool2d.html)|是|支持bf16，fp16，fp32<br>通过设置torch_npu.npu.use_compatible_impl(True)，保证与社区同名接口在内存一致性上对齐|
+|[torch.nn.functional.max_pool1d](https://pytorch.org/docs/2.10/generated/torch.nn.functional.max_pool1d.html)|是|支持fp16，fp32<br>dilation仅支持1<br>通过设置torch_npu.npu.use_compatible_impl(True)，保证与社区同名接口在内存一致性上对齐<br>return_indices为True时，返回的argmax的数据类型为int32|
+|[torch.nn.functional.max_pool2d](https://pytorch.org/docs/2.10/generated/torch.nn.functional.max_pool2d.html)|是|支持bf16，fp16，fp32<br>dilation的值目前在NPU上仅支持设置为1或(1,1)<br>通过设置torch_npu.npu.use_compatible_impl(True)，保证与社区同名接口在内存一致性上对齐<br>return_indices为True时，返回的argmax的数据类型为int32|
 |[torch.nn.functional.max_pool3d](https://pytorch.org/docs/2.10/generated/torch.nn.functional.max_pool3d.html)|是|支持bf16，fp16，fp32<br>dilation的值目前在NPU上仅支持设置为1或(1,1,1)<br>return_indices为True时，返回的argmax的数据类型为int32|
 |[torch.nn.functional.max_unpool1d](https://pytorch.org/docs/2.10/generated/torch.nn.functional.max_unpool1d.html)|是|支持fp16，fp32，fp64，uint8，int8，int32，int64|
 |[torch.nn.functional.max_unpool2d](https://pytorch.org/docs/2.10/generated/torch.nn.functional.max_unpool2d.html)|是|支持fp16，fp32，fp64，uint8，int8，int32，int64<br>jit_compile=False即二进制模式时，output_size的乘积需要大于等于input的H，W的乘积|
