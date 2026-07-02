@@ -148,6 +148,7 @@ public:
     static bool ShouldPrintWarning();
     static bool IsCompactErrorOutput();
     static uint64_t GetShmemSymmetricSize();
+    static char *GetAclInitPath();
 
 private:
     static int GetBoolTypeOption(const char* env_str, int defaultVal = 0);
