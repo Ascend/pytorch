@@ -21,10 +21,10 @@
 |[torch.fx.GraphModule](https://pytorch.org/docs/2.9/fx.html#torch.fx.GraphModule)|是|支持fp32|
 |[torch.fx.GraphModule.__init__](https://pytorch.org/docs/2.9/fx.html#torch.fx.GraphModule.__init__)|是|支持fp32|
 |[torch.fx.GraphModule.add_submodule](https://pytorch.org/docs/2.9/fx.html#torch.fx.GraphModule.add_submodule)|是|支持fp32|
-|[torch.fx.GraphModule.code](https://pytorch.org/docs/2.9/fx.html#torch.fx.GraphModule.code)|否|-|
+|[torch.fx.GraphModule.code](https://pytorch.org/docs/2.9/fx.html#torch.fx.GraphModule.code)|是|-|
 |[torch.fx.GraphModule.delete_all_unused_submodules](https://pytorch.org/docs/2.9/fx.html#torch.fx.GraphModule.delete_all_unused_submodules)|是|支持fp32|
 |[torch.fx.GraphModule.delete_submodule](https://pytorch.org/docs/2.9/fx.html#torch.fx.GraphModule.delete_submodule)|是|支持fp32|
-|[torch.fx.GraphModule.graph](https://pytorch.org/docs/2.9/fx.html#torch.fx.GraphModule.graph)|否|-|
+|[torch.fx.GraphModule.graph](https://pytorch.org/docs/2.9/fx.html#torch.fx.GraphModule.graph)|是|-|
 |[torch.fx.GraphModule.print_readable](https://pytorch.org/docs/2.9/fx.html#torch.fx.GraphModule.print_readable)|是|-|
 |[torch.fx.GraphModule.recompile](https://pytorch.org/docs/2.9/fx.html#torch.fx.GraphModule.recompile)|是|-|
 |[torch.fx.GraphModule.to_folder](https://pytorch.org/docs/2.9/fx.html#torch.fx.GraphModule.to_folder)|是|支持fp32|
