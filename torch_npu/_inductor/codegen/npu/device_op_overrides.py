@@ -126,8 +126,8 @@ class NewNPUDeviceOpOverrides(DeviceOpOverrides):
                 std::streamsize data_size = file.tellg();
 
                 file.seekg(0, std::ios::beg);
-                char* buffer = new char[data_size];
-                if (!file.read(buffer, data_size)) {
+                auto buffer = std::make_unique<char[]>(data_size);
+                if (!file.read(buffer.get(), data_size)) {
                     throw std::runtime_error(std::string("read npubin failed"));
                 }
 
@@ -150,7 +150,7 @@ class NewNPUDeviceOpOverrides(DeviceOpOverrides):
                 };
                 aclrtBinaryLoadOptions loadOptions = { .options = optArr, .numOpt = 2 };
                 aclrtBinHandle binHandle = nullptr;
-                aclRet = aclrtBinaryLoadFromData(buffer, data_size, &loadOptions, &binHandle);
+                aclRet = aclrtBinaryLoadFromData(buffer.get(), data_size, &loadOptions, &binHandle);
                 if (aclRet != ACL_SUCCESS) {
                     throw std::runtime_error(std::string("aclrtBinaryLoadFromData failed, 0x") + std::to_string(aclRet));
                 }

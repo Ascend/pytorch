@@ -32,14 +32,6 @@ AOTI_TORCH_EXPORT AOTITorchError aoti_torch_delete_npu_stream_guard(NPUStreamGua
 
 AOTI_TORCH_EXPORT AOTITorchError aoti_torch_get_current_npu_stream(int32_t device_index, void** ret_stream);
 
-AOTI_TORCH_EXPORT AOTITorchError
-aoti_torch_get_current_npu_device(int32_t* device_index);
-
-AOTI_TORCH_EXPORT AOTITorchError
-aoti_torch_set_current_npu_device(const int32_t& device_index);
-
-AOTI_TORCH_EXPORT AOTITorchError aoti_torch_get_current_sycl_queue(void** ret);
-
 #ifdef __cplusplus
 } // extern "C"
 #endif

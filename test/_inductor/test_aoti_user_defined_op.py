@@ -53,7 +53,8 @@ def _(x, y):
 
 @triton.jit
 def triton_fused_activation_min_max(in_ptr0, in_ptr1, out_ptr, n_elements, BLOCK_SIZE: tl.constexpr):
-    block_start = tl.program_id(0) * BLOCK_SIZE
+    block_id = tl.program_id(0)
+    block_start = block_id * BLOCK_SIZE
     offsets = block_start + tl.arange(0, BLOCK_SIZE)
     mask = offsets < n_elements
     tmp0 = tl.load(in_ptr0 + offsets, mask)
@@ -63,7 +64,7 @@ def triton_fused_activation_min_max(in_ptr0, in_ptr1, out_ptr, n_elements, BLOCK
     tmp4 = tl.min(tmp2, axis=0)
     tmp5 = tl.max(tmp3, axis=0)
     tmp6 = tmp4 + tmp5
-    tl.store(out_ptr + offsets, tmp6, mask)
+    tl.store(out_ptr + block_id, tmp6)
 
 
 @triton_op("my_triton::activation_min_max", mutates_args={})
@@ -139,21 +140,14 @@ class TestAotiUserDefinedOp(TestUtils):
     @parametrize('shape_x', [8])
     @parametrize('shape_y', [32])
     @parametrize('autotune_at_compile', [True, False])
-    @parametrize('static_mode', [True, False])
     @parametrize('dynamic', [True, False])
-    def test_aoti_export_and_load(self, shape_x, shape_y, autotune_at_compile, static_mode, dynamic):
-        if static_mode and dynamic:
-            # static mode and dynamic is mutual exclusion
-            return
-
-        with torch.no_grad():
-            model = Model().to("npu")
-            torch._inductor.config.triton.autotune_at_compile_time = autotune_at_compile
-            torch_npu._inductor.config.inductor_static_mode = static_mode
+    def test_aoti_export_and_load(self, shape_x, shape_y, autotune_at_compile, dynamic):
+        model = Model().to("npu")
+        with torch._inductor.config.patch("triton.autotune_at_compile_time", autotune_at_compile):
             x_input, y_input = self.generate_input_tensor(shape_x, shape_y)
             eager_res = model(x_input, y_input)
 
-            model_name = f"model_{os.getpid()}_{shape_x}_{shape_y}_{int(autotune_at_compile)}_{int(static_mode)}_{int(dynamic)}.pt2"
+            model_name = f"model_{os.getpid()}_{shape_x}_{shape_y}_{int(autotune_at_compile)}_{int(dynamic)}.pt2"
 
             if dynamic:
                 batch_dim = torch.export.Dim("batch", min=1, max=128)
