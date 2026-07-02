@@ -158,6 +158,7 @@ void THNPEvent_init(PyObject *module);
 void THNPGraph_init(PyObject *module);
 void THNPMemPool_init(PyObject* module);
 void THNPMLIR_init(PyObject* module);
+void THDVM_init(PyObject* module);
 PyMethodDef* THNPModule_get_methods();
 
 static std::vector<PyMethodDef> methods;
@@ -201,6 +202,7 @@ PyObject* initModule()
     THNPGraph_init(module);
     THNPMemPool_init(module);
     THNPMLIR_init(module);
+    THDVM_init(module);
 
     RegisterNPUDeviceProperties(module);
     BindGetDeviceProperties(module);

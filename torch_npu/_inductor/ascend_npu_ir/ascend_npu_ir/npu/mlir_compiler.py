@@ -32,8 +32,6 @@ akg_spec = importlib.util.find_spec("akg")
 if akg_spec is not None:
     from akg.kernel import Kernel as MlirKernel
 
-os.environ['TORCHINDUCTOR_NPU_BACKEND'] = 'mlir'
-
 
 reinterpret_tensor = torch.ops.inductor._reinterpret_tensor
 global_cache = set()
