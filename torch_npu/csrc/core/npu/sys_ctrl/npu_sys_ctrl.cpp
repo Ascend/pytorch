@@ -7,6 +7,9 @@
 #include <torch/csrc/utils/python_numbers.h>
 #endif
 
+#include <nlohmann/json.hpp>
+#include <fstream>
+
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/core/npu/interface/AclInterface.h"
@@ -108,6 +111,54 @@ std::string GetTorchNpuFile()
 std::string GetAclConfigJsonPath()
 {
 #ifndef BUILD_LIBTORCH
+    const char* acl_init_path = c10_npu::option::OptionsManager::GetAclInitPath();
+    if (acl_init_path != nullptr) {
+        std::string json_path = std::string(acl_init_path);
+        std::string json_path_str = torch_npu::toolkit::profiler::Utils::RealPath(json_path);
+        if (json_path_str.empty()) {
+            TORCH_CHECK(false, "TORCH_ACL_INIT_CONFIG_PATH ", acl_init_path,
+                        " is invalid.", PTA_ERROR(ErrCode::UNAVAIL));
+        }
+
+        std::ifstream config_file(json_path_str);
+        if (!config_file.is_open()) {
+            TORCH_CHECK(false, "Failed to open user acl json ", json_path_str,
+                        PTA_ERROR(ErrCode::UNAVAIL));
+        }
+
+        using json = nlohmann::json;
+        json config;
+        try {
+            config_file >> config;
+        } catch (const std::exception& e) {
+            TORCH_CHECK(false, "Failed to parse user acl json ", json_path_str,
+                        " : ", e.what(), PTA_ERROR(ErrCode::UNAVAIL));
+        }
+
+        if (c10_npu::is_lazy_set_device()) {
+            if (!config.contains("defaultDevice") || !config["defaultDevice"].is_object()) {
+                TORCH_CHECK(false, "User acl json ", json_path_str,
+                            " lacks 'defaultDevice' object, required for lazy set_device mode.",
+                            PTA_ERROR(ErrCode::VALUE));
+            }
+            const auto& default_dev = config["defaultDevice"];
+            if (!default_dev.contains("default_device") ||
+                !default_dev["default_device"].is_string() ||
+                default_dev["default_device"].get<std::string>() != "0") {
+                TORCH_CHECK(false, "User acl json ", json_path_str,
+                            " requires 'defaultDevice.default_device' to be \"0\" in lazy set_device mode.",
+                            PTA_ERROR(ErrCode::VALUE));
+            }
+        } else {
+            if (config.contains("defaultDevice")) {
+                TORCH_CHECK(false, "User acl json ", json_path_str,
+                            " contains 'defaultDevice' which is not expected in non-lazy set_device mode.",
+                            PTA_ERROR(ErrCode::VALUE));
+            }
+        }
+
+        return json_path_str;
+    }
     std::string npu_path = GetTorchNpuFile();
     if (npu_path == "") {
         ASCEND_LOGW("Failed to get npu path!");
