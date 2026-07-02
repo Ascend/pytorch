@@ -47,10 +47,13 @@ from torch._dynamo.utils import clone_inputs
 try:
     import torch_npu
     from npu_support import _patch_environment_variables
-    is_ascend950 = torch_npu._is_ascend950()
 except ImportError:
-    is_ascend950 = False
     pass
+try:
+    from torch_npu.npu._backends import get_soc_version
+    is_ascend950 = get_soc_version() >= 260 # Ascend950 = 260
+except (ImportError, AttributeError):
+    is_ascend950 = False
 from benchmark.userbenchmark.dynamo.dynamobench.torchbench import (
     DONT_CHANGE_BATCH_SIZE,
     FORCE_AMP_FOR_FP16_BF16_MODELS,
