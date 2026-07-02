@@ -187,6 +187,7 @@ def run_cmake():
         "-DPYTORCH_INSTALL_DIR=" + get_pytorch_dir(),
         "-DTORCH_VERSION=" + VERSION,
         "-DBUILD_LIBTORCH=" + "ON",
+        "-DUSE_NPU=" + "ON",
     ]
 
     if check_opplugin_valid(BASE_DIR):
@@ -284,15 +285,11 @@ def copy_hpp():
             "third_party/acl/inc/*/*/*.h",
             "third_party/hccl/inc/*/*.h",
         ]
-        glob_header_files_old = []
+        glob_header_files = []
         for regex_pattern in header_files:
-            glob_header_files_old += glob.glob(
+            glob_header_files += glob.glob(
                 os.path.join(BASE_DIR, regex_pattern), recursive=True
             )
-
-        suffixes = ("/torch_npu/csrc/inductor/aoti_package/pybind.h", "/torch_npu/csrc/inductor/aoti_runner/pybind.h")
-        glob_header_files = [path for path in glob_header_files_old if not path.endswith(suffixes)]
-
 
         for src in glob_header_files:
             dst = os.path.join(

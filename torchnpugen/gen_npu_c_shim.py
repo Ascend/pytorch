@@ -36,6 +36,7 @@ from torchgen.model import (
     OperatorName,
 )
 from torchgen.utils import mapMaybe
+from torchnpugen.aoti.fallback_ops import inductor_fallback_ops_npu, inductor_fallback_ops_npu_not_support
 
 
 NPU_DEVICE = "npu"
@@ -177,6 +178,7 @@ def gen_npu_c_shim(
 
             #pragma once
 
+            #include <torch/csrc/inductor/aoti_torch/utils.h>
             #include <torch_npu/csrc/inductor/aoti_torch/c/shim.h>
 
             #ifdef __cplusplus
@@ -197,8 +199,8 @@ def gen_npu_c_shim(
             warning
             + textwrap.dedent(f"""
 
+            #include <torch/csrc/inductor/aoti_torch/utils.h>
             #include <torch_npu/csrc/inductor/aoti_torch/generated/c_shim_{NPU_DEVICE}.h>
-            #include <torch_npu/csrc/inductor/aoti_torch/utils.h>
 
             #ifndef AT_PER_OPERATOR_HEADERS
             #include <torch_npu/csrc/aten/NPUFunctions.h>
@@ -236,9 +238,11 @@ def gen_npu_c_shim_files(
                 structured_func_group_dict[func.structured_delegate] = func_group
                 break
 
+    final_fallback_ops = {k: v for k, v in (inductor_fallback_ops | inductor_fallback_ops_npu).items() if k not in inductor_fallback_ops_npu_not_support}
+
     fallback_ops_dict = {
         op: info
-        for op, info in inductor_fallback_ops.items()
+        for op, info in final_fallback_ops.items()
         if op not in NPU_UNSUPPORTED_OPS
     }
     fallbacks = {}

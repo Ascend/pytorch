@@ -175,7 +175,6 @@ tr_c10d = torch.ops.tr_c10d
 prims = torch.ops.prims
 npu = torch.ops.npu
 
-
 def _register_npu_inductor_fallbacks():
 
     env_fallback_list = enable_full_lowering_fallback
@@ -214,6 +213,7 @@ def _register_npu_inductor_fallbacks():
                 f"len(FALLBACK_LIST): {len(FALLBACK_LIST)}, make_fallback finished.")
     log.info(f"[npu|inductor|lowering|fallback] len(NPU_EXTRA_FALLBACK_LIST): {len(NPU_EXTRA_FALLBACK_LIST)}")
 
+    _add_fallback_ops_for_torchgen()
     # register the reductions useing custom make_reduction
     reduce_amax = register_lowering(aten.amax)(make_reduction("max"))
     reduce_amin = register_lowering(aten.amin)(make_reduction("min"))
@@ -1022,3 +1022,9 @@ def _enable_full_lowering_fallback():
             torch._higher_order_ops.triton_kernel_wrap.TritonKernelWrapperFunctional,
         ),
     )
+
+def _add_fallback_ops_for_torchgen():
+    import torchgen.aoti.fallback_ops as fallback_ops
+    from torchnpugen.aoti.fallback_ops import inductor_fallback_ops_npu, inductor_fallback_ops_npu_not_support
+    fallback_ops.inductor_fallback_ops = \
+        {k: v for k, v in (fallback_ops.inductor_fallback_ops | inductor_fallback_ops_npu).items() if k not in inductor_fallback_ops_npu_not_support}

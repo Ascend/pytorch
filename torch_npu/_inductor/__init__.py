@@ -88,7 +88,7 @@ def _load_triton_backend():
 
     from . import codegen, config as npu_config
     from .async_compile import patch_async_compile
-    from .codecache import patch_aot_code_compiler_compile
+    from .codecache import patch_get_cpp_wrapper_header
     from .codegen._sizevars import patch_simplify
     from .codegen.ir import patch_indexing, patch_loop_body
     from .codegen.triton import (
@@ -114,7 +114,7 @@ def _load_triton_backend():
         pre_grad_custom_pass_fuc,
     )
     from .fx_passes.joint_graph import patch_constant_fold_uniform_value
-    from .ir import patch_fallback_kernel_codegen, patch_num_splits
+    from .ir import patch_num_splits
     from .kernel import (
         _register_npu_inductor_addmm,
         _register_npu_inductor_bmm,
@@ -156,10 +156,9 @@ def _load_triton_backend():
 
     inductor_lowering.make_reduction = make_reduction
 
+    patch_get_cpp_wrapper_header()
     patch_get_cpp_torch_device_options()
     patch_constant_fold_uniform_value()
-    patch_fallback_kernel_codegen()
-    patch_aot_code_compiler_compile()
     patch_device_to_aten()
 
     if npu_config.dump_fx_graph:

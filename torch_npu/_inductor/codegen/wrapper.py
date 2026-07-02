@@ -300,8 +300,7 @@ class NPUPythonWrapperCodeGen(_NPUKernelCodegenMixin, PythonWrapperCodegen):
         raw_keys=None,
         raw_args=None,
         triton_meta=None,
-        original_fxnode_name=None,
-        debug_handle: int | None = None,
+        original_fxnode_name=None
     ):
         if is_multi_stream():
             """
@@ -392,7 +391,7 @@ class NPUPythonWrapperCodeGen(_NPUKernelCodegenMixin, PythonWrapperCodegen):
             with debug_printer_manager:
                 self.writeline(f"{multi_stream_intent}{kernel_name}.run({call_args_str}, stream={stream_name})")
         else:
-            super().generate_kernel_call(kernel_name, call_args, device=device, triton=triton, arg_types=arg_types, raw_args=raw_args, triton_meta=triton_meta)
+            super().generate_kernel_call(kernel_name, call_args, device=device, triton=triton, arg_types=arg_types, raw_keys=raw_keys, raw_args=raw_args, triton_meta=triton_meta, original_fxnode_name=original_fxnode_name)
 
 
     def codegen_multi_output(self, node: ir.MultiOutput):

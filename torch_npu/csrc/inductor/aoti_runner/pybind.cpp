@@ -4,10 +4,10 @@
 #ifdef USE_NPU
 #include <torch_npu/csrc/inductor/aoti_runner/model_container_runner_npu.h>
 #endif
-#include <torch_npu/csrc/inductor/aoti_runner/model_container_runner_cpu.h>
-#include <torch_npu/csrc/inductor/aoti_runner/pybind.h>
-#include <torch_npu/csrc/inductor/aoti_torch/utils.h>
-#include <torch_npu/csrc/inductor/aoti_torch/tensor_converter.h>
+#include <torch/csrc/inductor/aoti_runner/model_container_runner_cpu.h>
+#include <torch/csrc/inductor/aoti_runner/pybind.h>
+#include <torch/csrc/inductor/aoti_torch/utils.h>
+#include <torch/csrc/inductor/aoti_torch/tensor_converter.h>
 
 namespace torch::inductor {
 
