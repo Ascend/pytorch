@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 __all__ = [
     "is_initialized",
     "init",
@@ -140,6 +141,7 @@ __all__ = [
     "register_npu_graph_handler",
     "super_kernel_scope_begin",
     "super_kernel_scope_end",
+    "npurt",
 ]
 
 from typing import Tuple, Union, List, cast, Optional
@@ -168,7 +170,7 @@ from .npu_config import *  # noqa: F403
 from .autocast_utils import *  # noqa: F403
 from .backends import *  # noqa: F403
 from ._backends import *  # noqa: F403
-from .deterministic import enable_deterministic_with_backward, disable_deterministic_with_backward # noqa: F403
+from .deterministic import enable_deterministic_with_backward, disable_deterministic_with_backward  # noqa: F403
 from . import npugraph_ex
 
 from .graphs import (
@@ -239,6 +241,40 @@ def init():
     Does nothing if the NPU state is already initialized.
     """
     torch_npu.npu._lazy_init()
+
+
+def npurt():
+    r"""Retrieves the NPU runtime API module.
+
+    This function initializes the NPU runtime environment if it is not already
+    initialized and returns the NPU runtime API module (_npurt). The module
+    provides access to a subset of NPU runtime functions.
+
+    Available APIs include:
+        - npuHostRegister: Register host memory for device access.
+          The `flags` parameter must follow CANN ACL Host Register
+          definitions.
+
+          Refer to:
+          https://www.hiascend.com/document/detail/zh/canncommercial/900/API/runtimeapi/aclcppdevg_03_2128.html
+
+        - npuHostUnregister: Unregister previously registered host memory.
+
+        - npuStreamCreate: Create a raw runtime stream.
+
+        - npuStreamDestroy: Destroy a raw runtime stream.
+
+    Returns:
+        The NPU runtime API module (_npurt).
+
+    Raises:
+        RuntimeError: If the NPU runtime cannot be initialized or the runtime
+            API module is unavailable.
+    """
+    torch_npu.npu._lazy_init()
+    if not hasattr(torch_npu._C, "_npurt"):
+        raise RuntimeError("torch_npu._C._npurt is unavailable in this build.")
+    return torch_npu._C._npurt
 
 
 def _lazy_init():
@@ -471,9 +507,9 @@ def can_device_access_peer(device_id, peer_device_id):
     device_id = _get_device_index(device_id, optional=True)
     peer_device_id = _get_device_index(peer_device_id, optional=True)
     if device_id < 0 or device_id >= device_count():
-        raise AssertionError("Invalid devide id" + pta_error(ErrCode.VALUE))
+        raise AssertionError("Invalid device id" + pta_error(ErrCode.VALUE))
     if peer_device_id < 0 or peer_device_id >= device_count():
-        raise AssertionError("Invalid peer devide id" + pta_error(ErrCode.VALUE))
+        raise AssertionError("Invalid peer device id" + pta_error(ErrCode.VALUE))
     return torch_npu._C._npu_canDeviceAccessPeer(device_id, peer_device_id)
 
 
@@ -514,7 +550,8 @@ def get_device_capability(device=None):
     The format should be "major.minor", e.g., "9.0" or "8.0".
 
     .. note::
-        The return value of get_device_capability is only for compatibility with PyTorch and does not represent the actual capability of the NPU device.
+        The return value of get_device_capability is only for compatibility with PyTorch
+        and does not represent the actual capability of the NPU device.
 
     Args:
         device (torch.device or int, optional): The device parameter has no practical meaning.
@@ -535,7 +572,10 @@ def get_device_capability(device=None):
     global _cached_device_capability, _cached_device_capability_env
 
     capability_env = os.getenv("TORCH_NPU_DEVICE_CAPABILITY")
-    warning_str = "The return value of get_device_capability is only for compatibility with PyTorch and does not represent the actual capability of the NPU device."
+    warning_str = (
+        "The return value of get_device_capability is only for compatibility with PyTorch "
+        "and does not represent the actual capability of the NPU device."
+    )
     if not capability_env:
         warnings.warn(f"You can set the device capability via the environment variable TORCH_NPU_DEVICE_CAPABILITY. {warning_str}")
         return None
@@ -544,7 +584,8 @@ def get_device_capability(device=None):
     if _cached_device_capability_env == capability_env and _cached_device_capability is not None:
         return _cached_device_capability
 
-    # Validate the format of the environment variable, expected format is 'major.minor' where major and minor are non-negative integers (e.g., '8.0')
+    # Validate the format of the environment variable, expected format is 'major.minor' where major
+    # and minor are non-negative integers (e.g., '8.0')
     pattern = r'^(\d+)\.(\d+)$'
     match = re.match(pattern, capability_env)
     if not match:
