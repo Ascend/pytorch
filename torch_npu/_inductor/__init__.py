@@ -4,7 +4,9 @@ import os
 from .codegen.common import register_device_op_overrides_npu, patch_cache_base_get_system
 from .graph import patch_codegen_with_cpp_wrapper
 from .utils import patch_has_triton, patch_device_supports_tma, patch_is_gpu, get_current_raw_stream
+from ._npu_meta_registration import npu_patch_meta
 
+npu_patch_meta()
 register_device_op_overrides_npu()
 patch_has_triton()
 patch_is_gpu()
@@ -82,9 +84,6 @@ def _load_triton_backend():
         disable_foreach,
     )
     from .codegen.cpp_utils import patch_device_to_aten
-    from ._npu_meta_registration import npu_patch_meta
-
-    npu_patch_meta()
 
     def _inductor_register_backend_for_device():
         from .codegen.cpp_wrapper import CppWrapperNpu
