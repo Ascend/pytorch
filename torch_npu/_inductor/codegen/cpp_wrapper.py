@@ -189,7 +189,7 @@ class DeferredNpuTritonCallWrapper(DeferredTritonCallWrapper):
         enable_simt = npu_config.is_ascend950 and (
             "simt" in params["parallel_mode"] or params["force_simt_only"]
         )
-        enable_auto_blockify = "has_auto_blockify_blacklist_op" in triton_meta and triton_support_auto_blockify()
+        enable_auto_blockify = not getattr(triton_meta, "has_auto_blockify_blacklist_op", False) and triton_support_auto_blockify()
         prefix.splice(f"""
         auto launch_call = [=]() {{
         {wrapper.generate_args_decl(prefix, call_args, arg_types, arg_signatures, True, force_simt_only)}
