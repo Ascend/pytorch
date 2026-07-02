@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import unittest
 import contextlib
 import collections
@@ -27,9 +28,9 @@ class TorchNPUDeviceTestCase(TestCase):
     def test_npu_can_device_access_peer(self):
         res = torch_npu.npu.can_device_access_peer(0, 0)
         self.assertEqual(res, False)
-        with self.assertRaisesRegex(AssertionError, "Invalid devide id"):
+        with self.assertRaisesRegex(AssertionError, "Invalid device id"):
             torch_npu.npu.can_device_access_peer(-1, 0)
-        with self.assertRaisesRegex(AssertionError, "Invalid peer devide id"):
+        with self.assertRaisesRegex(AssertionError, "Invalid peer device id"):
             torch_npu.npu.can_device_access_peer(0, -1)
 
     def test_npu_device(self):
