@@ -1,6 +1,7 @@
 #include "torch_npu/csrc/core/npu/NPUGraph.h"
 #include "torch_npu/csrc/core/npu/NPUAllocatorConfig.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
+#include "torch_npu/csrc/core/npu/MemPool.h"
 #include "torch_npu/csrc/core/npu/DeviceUtils.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUStreamUtils.h"

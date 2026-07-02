@@ -83,7 +83,7 @@ struct NPUPluggableAllocator
     void resetPeakStats(c10::DeviceIndex device) override;
     c10_npu::NPUCachingAllocator::SnapshotInfo snapshot() override;
 
-    // CUDAGraph interactions
+    // NPUGraph interactions
     void beginAllocateToPool(
         c10::DeviceIndex device,
         c10_npu::MempoolId_t mempool_id,

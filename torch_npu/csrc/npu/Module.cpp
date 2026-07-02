@@ -528,7 +528,7 @@ void RegisterNpuPluggableAllocator(PyObject* module) {
             device, mempool_id, [](aclrtStream) { return true; });
       });
   m.def(
-      "_npu_endAllocateCurrentStreamToPool",
+      "_npu_endAllocateToPool",
       [](c10::DeviceIndex device, c10_npu::MempoolId_t mempool_id) {
         c10_npu::NPUCachingAllocator::endAllocateToPool(device, mempool_id);
       });

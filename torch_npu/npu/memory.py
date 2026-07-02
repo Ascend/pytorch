@@ -39,7 +39,6 @@ __all__ = [
     "NPUPluggableAllocator",
     "change_current_allocator",
     "MemPool",
-    "MemPoolContext",
     "use_mem_pool",
     "host_empty_cache",
     "host_memory_stats",
@@ -55,13 +54,16 @@ if not hasattr(torch_npu._C, "_npu_NPUAllocator"):
 if not hasattr(torch_npu._C, "_MemPool"):
     # Define dummy base classes
     torch_npu._C.__dict__["_MemPool"] = _dummy_type("_MemPool")
-    torch_npu._C.__dict__["_MemPoolContext"] = _dummy_type("_MemPoolContext")
     torch_npu._C.__dict__["_npu_beginAllocateToPool"] = _dummy_type(
         "_npu_beginAllocateToPool"
     )
-    torch_npu._C.__dict__["_npu_endAllocateCurrentStreamToPool"] = _dummy_type(
-        "_npu_endAllocateCurrentStreamToPool"
+    torch_npu._C.__dict__["_npu_beginAllocateCurrentThreadToPool"] = _dummy_type(
+        "_npu_beginAllocateCurrentThreadToPool"
     )
+    torch_npu._C.__dict__["_npu_endAllocateToPool"] = _dummy_type(
+        "_npu_endAllocateToPool"
+    )
+    torch_npu._C.__dict__["_npu_releasePool"] = _dummy_type("_npu_releasePool")
 
 @contextlib.contextmanager
 def _free_mutex():
@@ -787,30 +789,18 @@ class MemPool(torch_npu._C._MemPool):
         r"""Returns the ID of this pool as a tuple of two ints."""
         return super().id
 
-    @property
-    def allocator(self) -> Optional[torch_npu._C._npu_NPUAllocator]:
-        r"""Returns the allocator this MemPool routes allocations to"""
-        return super().allocator
+    def use_count(self) -> int:
+        r"""Returns the reference count of this pool."""
+        return super().use_count()
 
+    def snapshot(self):
+        r"""Return a snapshot of the NPU memory allocator pool state across all
+        devices.
 
-class MemPoolContext(torch_npu._C._MemPoolContext):
-    r"""MemPoolContext holds the currently active pool and stashes the previous
-    pool. On deletion it makes the previous pool active.
-
-    Args:
-        pool(torch_npu.npu.MemPool): a MemPool object to be made active so that
-        allocations route to this pool.
-
-    """
-
-    def __init__(self, pool: MemPool):
-        super().__init__(pool)
-
-    @staticmethod
-    def active_pool() -> Optional[torch_npu._C._MemPool]:
-        r"""Returns the active MemPool"""
-        return torch_npu._C._MemPoolContext.active_pool()
-
+        Interpreting the output of this function requires familiarity with the
+        memory allocator internals.
+        """
+        return memory_snapshot()
 
 @contextlib.contextmanager
 def use_mem_pool(pool: MemPool, device=None):
@@ -823,19 +813,22 @@ def use_mem_pool(pool: MemPool, device=None):
             the current device, given by :func:`~torch_npu.npu.current_device,
             if :attr:`device` is ``None`` (default).
 
+    .. note::
+        This context manager makes only current thread's allocations route to
+        the given pool. If a new thread is spawned inside the context manager,
+        allocations in that thread will not route to the given pool.
+
     """
-    ctx = MemPoolContext(pool)
     device_index = (
         torch_npu.npu.current_device() if device is None else _get_device_index(device)
     )
-    torch_npu._C._npu_beginAllocateToPool(device_index, pool.id)
+    torch_npu._C._npu_beginAllocateCurrentThreadToPool(device_index, pool.id)
     try:
         yield
     finally:
-        torch_npu._C._npu_endAllocateCurrentStreamToPool(device_index, pool.id)
+        torch_npu._C._npu_endAllocateToPool(device_index, pool.id)
         # after endAllocate, need call releasePool to achieve the right count(use_count--)
         torch_npu._C._npu_releasePool(device_index, pool.id)
-        del ctx
 
 
 def _record_memory_history(enabled="all", *args, **kwargs):

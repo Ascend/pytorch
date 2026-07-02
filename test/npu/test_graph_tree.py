@@ -2,14 +2,13 @@ import os
 
 os.environ["ASCEND_LAUNCH_BLOCKING"] = "0"
 
-from unittest.mock import patch, MagicMock, call, ANY
+from unittest.mock import patch, MagicMock, ANY
 import weakref
 import pytest
 import torch
 import torch_npu
 from torch_npu.npu._graph_tree import (
     check_memory_pool,
-    clear_cublass_cache,
     clear_cublas_manager,
     disable_conv_cache_emptying,
     enable_history_recording,
@@ -26,7 +25,6 @@ from torch_npu.npu._graph_tree import (
     get_npugraph_segments,
     reset_npugraph_trees,
     local,
-    OutputAliasInfo,
     UnaliasedStorage,
     AliasesPriorGraphOutput,
     AliasesNewOutput,
@@ -354,7 +352,7 @@ class TestOutputAliasInfo(TestCase):
 
 class TestNPUGraphNode:
     def tearDown(self):
-        torch_npu._C._npu_endAllocateCurrentStreamToPool(0, (0, 0))
+        torch_npu._C._npu_endAllocateToPool(0, (0, 0))
         torch_npu._C._npu_releasePool(0, (0, 0))
 
     def test_initialization(self, mock_wrapped_function, mock_parent_node):
@@ -771,10 +769,10 @@ class TestGetNpugraphSegments(TestCase):
     @patch('torch.npu.memory_snapshot')
     def test_get_npugraph_segments(self, mock_snapshot):
         mock_snapshot.return_value = [
-                    {"segment_pool_id": (0, 1), "address": 1000, "blocks": []},
-                    {"segment_pool_id": (0, 0), "address": 2000, "blocks": []},
-                    {"segment_pool_id": (0, 1), "address": 3000, "blocks": []},
-                ]
+            {"segment_pool_id": (0, 1), "address": 1000, "blocks": []},
+            {"segment_pool_id": (0, 0), "address": 2000, "blocks": []},
+            {"segment_pool_id": (0, 1), "address": 3000, "blocks": []},
+        ]
         result = get_npugraph_segments((0, 1))
         self.assertEqual(len(result), 2)
         mock_snapshot.assert_called_once_with()
@@ -789,7 +787,7 @@ class TestGetBlockAddrs(TestCase):
                 "address": 1000,
                 "blocks": [
                     {"state": "active_allocated", "size": 100},
-                    {"state": "inactivate", "size": 200},
+                    {"state": "inactive", "size": 200},
                     {"state": "active_allocated", "size": 300},
                 ]
             },
@@ -798,7 +796,7 @@ class TestGetBlockAddrs(TestCase):
                 "address": 2000,
                 "blocks": [
                     {"state": "active_allocated", "size": 50},
-                    {"state": "inactivate", "size": 150},
+                    {"state": "inactive", "size": 150},
                 ]
             }
         ]
@@ -814,7 +812,7 @@ class TestGetBlockAddrs(TestCase):
                 "address": 1000,
                 "blocks": [
                     {"state": "active_allocated", "size": 100},
-                    {"state": "inactivate", "size": 200},
+                    {"state": "inactive", "size": 200},
                 ]
             }
         ]
@@ -869,7 +867,7 @@ class TestCheckMemoryPool(TestCase):
                 "address": 1000,
                 "blocks": [
                     {"state": "active_allocated", "size": 100, "frames": []},
-                    {"state": "inactivate", "size": 200},
+                    {"state": "inactive", "size": 200},
                 ]
             }
         ]

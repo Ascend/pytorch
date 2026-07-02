@@ -229,7 +229,6 @@ public:
     }
     virtual SnapshotInfo snapshot() = 0;
 
-    // CUDAGraph interactions
     virtual void beginAllocateToPool(
         c10::DeviceIndex device,
         MempoolId_t mempool_id,
@@ -238,6 +237,15 @@ public:
         c10::DeviceIndex device,
         MempoolId_t mempool_id) = 0;
     virtual void releasePool(c10::DeviceIndex device, MempoolId_t mempool_id) = 0;
+    virtual int getPoolUseCount(
+        c10::DeviceIndex device,
+        MempoolId_t mempool_id)
+    {
+        TORCH_CHECK(false, name(),
+            " does not yet support getPoolUseCount. "
+            "If you need it, please file an issue describing your use case.", PTA_ERROR(ErrCode::NOT_SUPPORT));
+    }
+
     virtual bool hasCapturesUnderway(c10::DeviceIndex device) { return false; }
     virtual void FreeDeviceCachedMemory(int device) = 0;
     virtual std::string name() = 0;
@@ -285,7 +293,10 @@ public:
     virtual void attachAllocatorTraceTracker(AllocatorTraceTracker tracker) = 0;
     // start from torch 2.7, not support input 'allocator' in this version
     // will gradually fill in missing abilities
-    virtual void createOrIncrefPool(c10::DeviceIndex, MempoolId_t)
+    virtual void createOrIncrefPool(
+        c10::DeviceIndex device,
+        MempoolId_t mempool_id,
+        std::shared_ptr<NPUAllocator> allocator = nullptr)
     {
         TORCH_CHECK(
             false,
@@ -547,10 +558,16 @@ inline void buildServerMemMapForHccl(int device, std::shared_ptr<c10d_npu::HCCLC
 }
 
 inline void createOrIncrefPool(
-        c10::DeviceIndex device,
-        MempoolId_t mempool_id)
+    c10::DeviceIndex device,
+    MempoolId_t mempool_id,
+    std::shared_ptr<NPUAllocator> allocator = nullptr)
 {
-    get()->createOrIncrefPool(device, mempool_id);
+    get()->createOrIncrefPool(device, mempool_id, std::move(allocator));
+}
+
+inline int getPoolUseCount(c10::DeviceIndex device, MempoolId_t mempool_id)
+{
+    return get()->getPoolUseCount(device, mempool_id);
 }
 
 bool checkConfigExpandableSegments();
@@ -562,56 +579,4 @@ C10_NPU_API void setAllocatorSettings(const std::string& settings);
 C10_NPU_API bool saveDevMemUsageInfo(const int& device);
 
 } // namespace NPUCachingAllocator
-} // namespace c10_npu
-
-namespace c10_npu {
-
-// MemPool represents a pool of memory in a caching allocator. Currently,
-// it's just the ID of the pool object maintained in the NPUCachingAllocator.
-//
-// An allocator pointer can be passed to the MemPool to define how the
-// allocations should be done in the pool. For example: using a different
-// system allocator such as ncclMemAlloc.
-struct C10_NPU_API MemPool {
-    MemPool(
-        NPUCachingAllocator::NPUAllocator* allocator = nullptr,
-        bool is_user_created = true);
-
-    MemPool(const MemPool&) = delete;
-    MemPool(MemPool&&) = default;
-    MemPool& operator=(const MemPool&) = delete;
-    MemPool& operator=(MemPool&&) = default;
-    ~MemPool();
-
-    MempoolId_t id();
-    NPUCachingAllocator::NPUAllocator* allocator();
-    c10::DeviceIndex device();
-    static MempoolId_t graph_pool_handle(bool is_user_created = true);
-
-private:
-    static std::atomic<CaptureId_t> uid_;
-    static std::atomic<CaptureId_t> uuid_;
-    NPUCachingAllocator::NPUAllocator* allocator_;
-    bool is_user_created_;
-    MempoolId_t id_;
-    c10::DeviceIndex device_;
-};
-
-// MemPoolContext holds the currently active pool and stashes the previous
-// pool. On deletion it makes the previous pool active.
-struct C10_NPU_API MemPoolContext {
-    MemPoolContext(MemPool* mempool);
-
-    ~MemPoolContext();
-
-    // getActiveMemPool() can be used to get the currently active pool.
-    // For instance: in NPUCachingAllocator, we can route allocations
-    // to a user provided allocator, by doing:
-
-    static MemPool* getActiveMemPool();
-
-private:
-    MemPool* prev_mempool_;
-};
-
 } // namespace c10_npu

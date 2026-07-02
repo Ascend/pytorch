@@ -611,12 +611,6 @@
   "torch_npu.npu.DoubleStorage": {
     "signature": "(*args, wrap_storage=None, dtype=None, device=None, _internal=False)"
   },
-  "torch_npu.npu.MemPoolContext.active_pool": {
-    "signature": "() -> Optional[torch_npu._C._MemPool]"
-  },
-  "torch_npu.npu.memory.MemPoolContext.active_pool": {
-    "signature": "() -> Optional[torch_npu._C._MemPool]"
-  },
   "torch_npu.npu.graphs.graph_task_group_begin": {
     "signature": "(stream)"
   },
@@ -656,9 +650,6 @@
   "torch_npu.npu_giou": {
     "signature": "(self, gtboxes, trans=False, is_cross=False, mode=0)"
   },
-  "torch_npu.npu.memory.MemPoolContext": {
-    "signature": "(pool: torch_npu.npu.memory.MemPool)"
-  },
   "torch_npu.npu_iou": {
     "signature": "(bboxes, gtboxes, mode=0)"
   },
@@ -670,9 +661,6 @@
   },
   "torch_npu.npu.NPUGraph.capture_end": {
     "signature": "(self)"
-  },
-  "torch_npu.npu.MemPoolContext": {
-    "signature": "(pool: torch_npu.npu.memory.MemPool)"
   },
   "torch_npu.npu.memory.MemPool": {
     "signature": "(allocator: Optional[torch_npu._C._npu_NPUAllocator] = None)"

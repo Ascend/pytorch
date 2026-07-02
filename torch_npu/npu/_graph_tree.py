@@ -529,7 +529,7 @@ def _use_npu_memory_pool_manager(
         try:
             yield
         finally:
-            torch_npu._C._npu_endAllocateCurrentStreamToPool(device, mem_pool)
+            torch_npu._C._npu_endAllocateToPool(device, mem_pool)
             torch_npu._C._npu_releasePool(device, mem_pool)
 
     torch.npu.current_stream().wait_stream(stream)

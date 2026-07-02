@@ -51,7 +51,6 @@ __all__ = [
     "memory_snapshot",
     "memory_summary",
     "MemPool",
-    "MemPoolContext",
     "use_mem_pool",
     "get_allocator_backend",
     "NPUPluggableAllocator",
