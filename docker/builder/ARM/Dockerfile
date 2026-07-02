@@ -45,7 +45,8 @@ RUN git config --global --add safe.directory "*"
 FROM base AS builder
 
 ARG PY_VERSION
-ARG DEVTOOLSET_VERSION=14
+ARG DEVTOOLSET_VERSION=13
+ARG TORCH_VERSION=2.9.0
 
 RUN yum install -y \
     autoconf \
@@ -78,7 +79,7 @@ RUN case "${PY_VERSION}" in \
     esac && \
     pip${PY_VERSION} install pyyaml && \
     pip${PY_VERSION} install setuptools wheel && \
-    pip${PY_VERSION} install torch==2.9.0+cpu --index-url https://download.pytorch.org/whl/cpu && \
+    pip${PY_VERSION} install torch==${TORCH_VERSION} --index-url https://download.pytorch.org/whl/cpu && \
     pip${PY_VERSION} install numpy==${NUMPY_VER}
 
 FROM builder AS dev
