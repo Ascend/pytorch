@@ -1,6 +1,7 @@
 import dataclasses
 import os
 import sys
+from contextlib import contextmanager
 from itertools import count, zip_longest
 from typing import Any, Optional, Union
 from typing_extensions import Self
@@ -55,8 +56,8 @@ class DeferredNpuTritonCallWrapper(DeferredTritonCallWrapper):
     arg_types: list[Any]
     kernel_id: int
 
-    def generate(self, wrapper: CppWrapperGpu):
-        prefix = wrapper.prefix
+    @contextmanager
+    def _patch_runtime_block_params(self):
         if self.kernel_name.startswith("multi_kernel_"):
             self.kernel_name = MultiKernelCall.lookup_choice(self.kernel_name)
         params = CudaKernelParamCache.get(self.kernel_name)
@@ -64,78 +65,46 @@ class DeferredNpuTritonCallWrapper(DeferredTritonCallWrapper):
             raise RuntimeError(
                 f"CudaKernelParamCache not populated for {self.kernel_name}"
             )
-        def_args = params["def_args"]
-        arg_types = self.arg_types
+
+        original_def_args = params["def_args"]
+        original_arg_types = self.arg_types
         inductor_meta = params["inductor_meta"]
         runtime_block_names = tuple(inductor_meta.get("runtime_block_arg_names", ()))
-        wrapper_def_args = [
-            name for name in def_args if name not in runtime_block_names
-        ]
 
-        if "extra_launcher_args" in inductor_meta and len(wrapper_def_args) > len(arg_types):
-            expected_arg_count = len(arg_types) - len(inductor_meta["extra_launcher_args"])
-            if len(wrapper_def_args) != expected_arg_count:
-                raise RuntimeError(
-                    "wrapper_def_args and arg_types do not match for extra_launcher_args: "
-                    f"{len(wrapper_def_args)} != {expected_arg_count}"
-                )
-            arg_types = arg_types + [SymbolicCallArg] * len(
-                inductor_meta["extra_launcher_args"]
-            )
+        try:
+            if runtime_block_names:
+                wrapper_def_args = [
+                    name for name in original_def_args if name not in runtime_block_names
+                ]
+                params["def_args"] = wrapper_def_args
 
-        if not V.graph.aot_mode:
-            prefix.writeline(
-                maybe_hipify_code_wrapper(
-                    f"static {wrapper.device_codegen.cpp_kernel_type()} {self.kernel_name} = nullptr;"
-                )
-            )
-            kernel_var_name = self.kernel_name
-        else:
-            kernel_var_name = f"kernels_.{self.kernel_name}"
+                if (
+                    "extra_launcher_args" in inductor_meta
+                    and len(wrapper_def_args) > len(original_arg_types)
+                ):
+                    expected_arg_count = len(original_arg_types) - len(
+                        inductor_meta["extra_launcher_args"]
+                    )
+                    if len(wrapper_def_args) != expected_arg_count:
+                        raise RuntimeError(
+                            "wrapper_def_args and arg_types do not match for extra_launcher_args: "
+                            f"{len(wrapper_def_args)} != {expected_arg_count}"
+                        )
+                    self.arg_types = original_arg_types + [SymbolicCallArg] * len(
+                        inductor_meta["extra_launcher_args"]
+                    )
 
-        template_types = [
-            f"typename {name}_type_"
-            for name, arg_type in zip(wrapper_def_args, arg_types)
-            if isinstance(arg_type, (torch_dtype, UnwrapUnspecArg))
-        ]
-        if V.graph.aot_mode:
-            template_types.append("typename kernels_type_")
-        if template_types:
-            prefix.writeline(f"template <{', '.join(template_types)}>")
-        prefix.writeline(f"static inline void {self.wrapper_name}(")
-        with prefix.indent():
-            if len(wrapper_def_args) != len(arg_types):
-                raise RuntimeError(
-                    "wrapper_def_args and arg_types length mismatch: "
-                    f"{len(wrapper_def_args)} != {len(arg_types)}; "
-                    f"{wrapper_def_args}, {arg_types}"
-                )
-            for name, arg_type in zip(wrapper_def_args, arg_types):
-                if isinstance(arg_type, (torch_dtype, UnwrapUnspecArg)):
-                    prefix.writeline(f"const {name}_type_& {name},")
-                elif issubclass(arg_type, (SymbolicCallArg, sympy.Expr, int)):
-                    prefix.writeline(f"int64_t {name},")
-                elif arg_type is float:
-                    prefix.writeline(f"float {name},")
-                elif arg_type is bool:
-                    prefix.writeline(f"bool {name},")
-                else:
-                    raise ValueError(f"Unexpected arg type {arg_type}")
-            prefix.writeline(f"{wrapper.device_codegen.cpp_stream_type()} stream_,")
-            if V.graph.aot_mode:
-                prefix.writeline("kernels_type_& kernels_,")
-            prefix.writeline(
-                "const std::optional<std::string>& cubin_dir_ = std::nullopt"
-            )
-        prefix.writeline("){")
-        with prefix.indent():
-            self.generate_grid(prefix, inductor_meta, params)
-            self.generate_load_kernel(prefix, kernel_var_name, params)
-            self.generate_launch_kernel(prefix, wrapper, kernel_var_name, params)
-        prefix.writeline("}")
-        V.graph.wrapper_code.additional_files.append(
-            params[get_cpp_wrapper_cubin_path_name()]
-        )
+            yield params
+        finally:
+            params["def_args"] = original_def_args
+            self.arg_types = original_arg_types
+
+    def generate(self, wrapper: CppWrapperGpu):
+        with self._patch_runtime_block_params() as params:
+            super().generate(wrapper)
+            cubin_path = params[get_cpp_wrapper_cubin_path_name()]
+            if cubin_path not in V.graph.wrapper_code.additional_files:
+                V.graph.wrapper_code.additional_files.append(cubin_path)
 
     def generate_grid(
         self,
