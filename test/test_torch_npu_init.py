@@ -549,5 +549,28 @@ class TestTorchNpuBootstrap(TestCase):
                 """
             )
 
+    def test_12_distributed_allgatherbase_backward(self):
+        self._run_python(
+            """
+            import torch
+            import torch_npu
+            import torch.distributed as dist
+            import torch.distributed.nn.functional as F
+
+            # 1. AllGatherBase backward patch check
+            assert hasattr(F._AllGatherBase, "backward"), (
+                "missing AllGatherBase backward patch"
+            )
+            assert (
+                F._AllGatherBase.backward
+                is torch_npu.distributed.nn.functional._allgather_base_backward_hccl
+            )
+            # 2. ensure patch not default torch impl
+            import inspect
+            assert "torch_npu" in str(F._AllGatherBase.backward.__module__)
+            """
+        )
+
+
 if __name__ == "__main__":
     run_tests()
