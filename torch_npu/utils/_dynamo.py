@@ -226,12 +226,12 @@ def patch_inductor_wrapper():
         else:
             src_init(self, mode, options, dynamic)
         backend = _resolve_npu_backend_from_wrapper(self)
-        if backend=="mlir":
+        if backend == "mlir":
             with _NpuBackendScope(backend):
                 log.info("Running MLIR backend")
                 device_id = torch_npu.npu.current_device()
                 torch_npu._C._recovery_all_npu_stream(device_id)
-        if backend=="dvm":
+        if backend == "dvm":
             with _NpuBackendScope(backend):
                 log.info("Running dvm backend")
 
