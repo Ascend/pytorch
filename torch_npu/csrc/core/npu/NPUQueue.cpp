@@ -9,6 +9,7 @@
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/core/npu/NPUEventManager.h"
 #include "torch_npu/csrc/logging/LogContext.h"
+#include "third_party/op-plugin/op_plugin/ops/dvm/lazy_fusion_kernel.h"
 
 #ifndef BUILD_LIBTORCH
 #include <Python.h>
@@ -250,6 +251,9 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error)
         return NPU_STATUS_FAILED;
     }
     ASCEND_LOGI("Begin to makesure taskqueue empty.");
+    if (lazy_fusion::IsEnabled()) {
+        lazy_fusion::LazyFusionFlush();
+    }
     // While waiting for ACL thread to launch tasks,
     // the current thread should not hold GIL.
     // When the operator compilation is triggered in the ACL thread,
@@ -591,6 +595,15 @@ void Repository::Enqueue(void *cur_paras)
         }
         return;
     }
+
+    if (lazy_fusion::IsEnabled()) {
+        auto type = static_cast<c10_npu::queue::QueueParas *>(cur_paras)->paramType;
+        // LAZY_DESTROY_EVENT may execute in a separate thread, parallel with forward and backward threads.
+        if (type != c10_npu::queue::LAZY_DESTROY_EVENT) {
+            lazy_fusion::LazyFusionFlush();
+        }
+    }
+
     bool ret = false;
     ssize_t s;
     uint64_t u = 1;
