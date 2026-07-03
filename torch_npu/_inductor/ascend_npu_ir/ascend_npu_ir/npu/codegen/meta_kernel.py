@@ -329,6 +329,9 @@ class NpuMetaScheduling(SIMDScheduling):
             kernel_suffix = wrapper.next_kernel_suffix()
             prefix = self._get_kernel_prefix()
             kernel_name = "_".join([prefix, fused_name, kernel_suffix])
+
+        if mode in ["auto_fallback", "default"]:
+            src_code = src_code.replace("MODEL_NAME", kernel_name)
         compile_src_code, extra_kernel_meta = self._postprocess_src_code(src_code, mlir_kernel, kernel_name)
 
         current_device = V.graph.get_current_device_or_throw()
@@ -351,7 +354,6 @@ class NpuMetaScheduling(SIMDScheduling):
         metadata_comment = ""
 
         if mode == "auto_fallback":
-            src_code = src_code.replace("MODEL_NAME", kernel_name)
             self._handle_auto_fallback_mode(
                 compile_wrapper, src_code, kernel_name, subs_name, kernel_meta, wrapper, metadata_comment, mlir_kernel
             )
@@ -360,7 +362,6 @@ class NpuMetaScheduling(SIMDScheduling):
                 compile_wrapper, kernel_name, kernel_meta, wrapper, metadata_comment, mlir_kernel
             )
         else:
-            src_code = src_code.replace("MODEL_NAME", kernel_name)
             self._handle_default_mode(
                 compile_wrapper, src_code, kernel_name, subs_name, kernel_meta, wrapper, metadata_comment, mlir_kernel
             )
