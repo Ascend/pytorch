@@ -2810,39 +2810,66 @@ class NPUIndexTritonKernel(TritonKernel):
         self, name: str, index: sympy.Expr, value: CSEVariable, mode: StoreMode = None
     ) -> None:
         var = self.args.output(name)
-        index_analyze = IndexAnalysis(self, index, is_store_index=True)
-        index_analyze.analyze_index()
-        indexing = self.indexing(
-            index,
-            dense_indexing=True,
-            block_ptr=mode is None,
-            index_analyze=index_analyze,
-        )
-        index_str = indexing.index_str
         value_str = f"{value}"
-        mask_str = indexing.mask_str
+        selected_indexing = None
 
-        if index_analyze.need_permute:
-            value_str = value_str.replace(
-                f"{value}", f"{value}{index_analyze.generate_statement()}"
+        dryrun_index_analyze = IndexAnalysis(self, index, is_store_index=True)
+        # First inspect the store index without materializing replacement axes.
+        # If the raw scheduler store layout already matches the RHS buffer
+        # layout, preserve the original store semantics and skip remapping.
+        # If layout metadata has already been dropped by an earlier update /
+        # inplace chain, we conservatively fall back to the remapped store path.
+        dryrun_index_analyze.analyze_index(materialize_var_directions=False)
+        if getattr(value, "layout_known", False) and dryrun_index_analyze.need_permute:
+            raw_indexing = self.indexing(
+                index,
+                dense_indexing=True,
+                block_ptr=False,
+                index_analyze=dryrun_index_analyze,
+                apply_var_replacements=False,
+                materialize_var_directions=False,
             )
+            if self._can_preserve_store_semantics_with_value_layout(
+                value, raw_indexing, dryrun_index_analyze
+            ):
+                selected_indexing = raw_indexing
+
+        if selected_indexing is None:
+            # Fall back to the legacy remapped store path when raw scheduler
+            # semantics do not match the current RHS buffer layout.
+            index_analyze = IndexAnalysis(self, index, is_store_index=True)
+            index_analyze.analyze_index()
+            indexing = self.indexing(
+                index,
+                dense_indexing=True,
+                block_ptr=mode is None,
+                index_analyze=index_analyze,
+            )
+            if index_analyze.need_permute:
+                value_str = value_str.replace(
+                    f"{value}", f"{value}{index_analyze.generate_statement()}"
+                )
+            selected_indexing = indexing
+
+        index_str = selected_indexing.index_str
+        mask_str = selected_indexing.mask_str
 
         advance_block_ptr = None
-        if isinstance(indexing, BlockPtrOptions):
+        if isinstance(selected_indexing, BlockPtrOptions):
             block_ptr, advance_block_ptr, other = self.codegen_block_ptr(
-                name, var, indexing
+                name, var, selected_indexing
             )
             # block_ptr stores don't do implicit casting
             line = self.codegen_block_ptr_store_line(
-                name, indexing, block_ptr, value, other
+                name, selected_indexing, block_ptr, value, other
             )
         elif mode is None:
             line = f"tl.store({var} + ({index_str}), {value_str}, {mask_str})"
             if self.numof_reduction_axis() > 1:
-                line = f"tl.store({var} + ({index_str} + tl.arange(0,1) ), {value_str}, {indexing.mask_str})"
+                line = f"tl.store({var} + ({index_str} + tl.arange(0,1) ), {value_str}, {selected_indexing.mask_str})"
 
         elif mode == "atomic_add":
-            line = f"tl.atomic_add({var} + ({index_str}), {value_str}, {indexing.mask_str})"
+            line = f"tl.atomic_add({var} + ({index_str}), {value_str}, {selected_indexing.mask_str})"
         else:
             raise NotImplementedError(f"store mode={mode}")
 
@@ -3934,9 +3961,13 @@ class NPUIndexTritonKernel(TritonKernel):
 
         index_analyze = IndexAnalysis(self, index)
         nddma_switch = npu_config.nddma_switch
-        index_analyze.analyze_index(nddma=nddma_switch)
         indirect_indexing = self.is_indirect_indexing(index)
-        indexing = self.indexing(index, nddma=nddma_switch, block_ptr=True)
+        indexing = self.indexing(
+            index,
+            nddma=nddma_switch,
+            block_ptr=True,
+            index_analyze=index_analyze,
+        )
         has_rindex = indexing.has_rindex()
         has_tmpmask = indexing.has_tmpmask()
         ep = ""
@@ -4009,14 +4040,33 @@ class NPUIndexTritonKernel(TritonKernel):
         if not (isinstance(result_var, TritonCSEVariable)):
             raise RuntimeError("assert isinstance(result_var, TritonCSEVariable)")
         result_var.mask_vars = indexing.mask_vars  # type: ignore[assignment]
+        # Track the buffer layout produced by the finalized load indexing.
+        loaded_layout_axes = (
+            self._infer_layout_axes_from_expr(indexing.index, index_analyze=index_analyze)
+            if isinstance(indexing, IndexingOptions)
+            else None
+        )
+        self._set_layout_axes(result_var, loaded_layout_axes)
 
         if append_broadcast and append_broadcast != "[]":
             line = f"tl.reshape({result_var}, {append_broadcast})"
             result_var = self.cse.generate(load_buffer, line, dtype=dtype, shape=indexing.expand_shape)
+            # Once a scalar/degenerate load is reshaped, we no longer trust the
+            # direct axis-to-slot mapping for scheduler-semantic store checks.
+            self._mark_layout_unknown(result_var)
         # triton can handle broadcast
         elif index_analyze.need_permute:
             line = f"{result_var}{index_analyze.generate_statement()}"
             result_var = self.cse.generate(self.loads, line, dtype=dtype, shape=result_var.shape)
+            if index_analyze.need_reshape or index_analyze.need_broadcast:
+                # Mixed reshape/broadcast/permute transforms are conservatively
+                # treated as layout-unknown.
+                self._mark_layout_unknown(result_var)
+            else:
+                permuted_layout = self._permute_layout_axes(
+                    loaded_layout_axes, index_analyze.permute_shape
+                )
+                self._set_layout_axes(result_var, permuted_layout)
 
         if advance_block_ptr:
             load_buffer.writeline(advance_block_ptr)
@@ -4026,9 +4076,14 @@ class NPUIndexTritonKernel(TritonKernel):
 
         return result_var
 
-    # don't call symlify_indexing
+    # don't call simplify_indexing
     def prepare_indexing(
-        self, index: sympy.Expr, index_analyze, is_index_expr=False, nddma=False
+        self,
+        index: sympy.Expr,
+        index_analyze,
+        is_index_expr=False,
+        nddma=False,
+        materialize_var_directions=True,
     ):
         index = sympy_subs(index, V.graph.sizevars.precomputed_replacements)
         # if simple replacements didn't get rid of floor/ceil, try full subs
@@ -4054,7 +4109,9 @@ class NPUIndexTritonKernel(TritonKernel):
         )
 
         # to generate range.var_directions for permuted axis
-        index_analyze.analyze_index(nddma)
+        index_analyze.analyze_index(
+            nddma, materialize_var_directions=materialize_var_directions
+        )
         return self.codegen_indexing(simp_index)
 
     def replace_index_vars(self, index, index_analyze):
@@ -4088,15 +4145,25 @@ class NPUIndexTritonKernel(TritonKernel):
         index_analyze=None,
         is_index_expr=False,
         tma_compatibility_checker: TMACompatibilityChecker | None = None,
+        apply_var_replacements=True,
+        materialize_var_directions=True,
     ) -> IndexingOptions | BlockPtrOptions:
         """
         Compute the index and mask to pass to tl.load() or tl.store()
         """
         if not index_analyze:
             index_analyze = IndexAnalysis(self, index, is_index_expr=is_index_expr)
-        index_analyze.analyze_index(nddma)
+        index_analyze.analyze_index(
+            nddma, materialize_var_directions=materialize_var_directions
+        )
 
-        index = self.prepare_indexing(index, index_analyze, is_index_expr, nddma=nddma)
+        index = self.prepare_indexing(
+            index,
+            index_analyze,
+            is_index_expr,
+            nddma=nddma,
+            materialize_var_directions=materialize_var_directions,
+        )
         index_vars = index.free_symbols
         has_rindex = False
         index = sympy_subs(index, V.graph.sizevars.precomputed_replacements)
@@ -4115,7 +4182,8 @@ class NPUIndexTritonKernel(TritonKernel):
                     index = sympy_subs(index, replacements)
 
         # if not self.inside_reduction :
-        index = self.replace_index_vars(index, index_analyze)
+        if apply_var_replacements:
+            index = self.replace_index_vars(index, index_analyze)
         index_vars = index.free_symbols
         has_rindex = False
 
@@ -4179,6 +4247,162 @@ class NPUIndexTritonKernel(TritonKernel):
                     )
                 self.range_tree_nodes[sym].codegen()  # type: ignore[index]
         return expr
+
+    @staticmethod
+    def _direction_slot_from_str(direction_str: Optional[str]) -> Optional[int]:
+        if not direction_str:
+            return None
+        stripped = direction_str.strip()
+        if not (stripped.startswith("[") and stripped.endswith("]")):
+            return None
+        dims = [x.strip() for x in stripped[1:-1].split(",")]
+        slots = [idx for idx, dim in enumerate(dims) if dim == ":"]
+        if len(slots) != 1:
+            return None
+        return slots[0]
+
+    def _lookup_symbol_direction(
+        self, sym: sympy.Symbol, index_analyze: Optional[IndexAnalysis] = None
+    ) -> Optional[str]:
+        if index_analyze is not None:
+            if sym in index_analyze.var_directions:
+                return index_analyze.var_directions[sym]
+            if sym in index_analyze.nddma_var_directions:
+                return index_analyze.nddma_var_directions[sym]
+        if sym in self.range_tree_nodes:
+            return self.range_tree_nodes[sym].get_axis_direction()
+        if sym in self.range_tree_nodes_removed:
+            return self.range_tree_nodes_removed[sym].get_axis_direction()
+        for node in itertools.chain(
+            self.range_tree_nodes.values(), self.range_tree_nodes_removed.values()
+        ):
+            if sym in node.var_directions:
+                return node.var_directions[sym]
+        return None
+
+    def _lookup_semantic_axis_name(
+        self, sym: sympy.Symbol, index_analyze: Optional[IndexAnalysis] = None
+    ) -> Optional[str]:
+        if sym in self.range_tree_nodes:
+            return self.range_tree_nodes[sym].name
+        if sym in self.range_tree_nodes_removed:
+            return self.range_tree_nodes_removed[sym].name
+        if index_analyze is not None:
+            for original, replacement in itertools.chain(
+                index_analyze.var_replacements.items(),
+                index_analyze.nddma_var_replacements.items(),
+            ):
+                if replacement == sym:
+                    return str(original)
+        for node in itertools.chain(
+            self.range_tree_nodes.values(), self.range_tree_nodes_removed.values()
+        ):
+            if sym in node.var_directions:
+                return node.name
+        return None
+
+    def _infer_layout_axes_from_expr(
+        self, expr: Optional[sympy.Expr], index_analyze: Optional[IndexAnalysis] = None
+    ) -> Optional[tuple[str, ...]]:
+        if expr is None:
+            return None
+        # Recover buffer layout from broadcast directions, not from memory
+        # stride magnitude. The same address order can still materialize into a
+        # different logical axis-to-slot mapping.
+        slot_to_axis: dict[int, str] = {}
+        found_layout_axis = False
+        layout_basis = {str(axis) for axis in (self.golden_var_list or ())}
+        for sym in sorted(expr.free_symbols, key=str):
+            semantic_axis = self._lookup_semantic_axis_name(sym, index_analyze)
+            if semantic_axis is None:
+                continue
+            if layout_basis and semantic_axis not in layout_basis:
+                # This symbol contributes to pointer arithmetic, but it is not
+                # part of the dense-layout axis basis for the current kernel.
+                # Layout inference must conservatively give up here and let
+                # store codegen fall back to the remapped path.
+                return None
+            direction = self._lookup_symbol_direction(sym, index_analyze)
+            if direction is None:
+                return None
+            slot = self._direction_slot_from_str(direction)
+            if slot is None:
+                return None
+            previous_axis = slot_to_axis.get(slot)
+            if previous_axis is not None and previous_axis != semantic_axis:
+                return None
+            slot_to_axis[slot] = semantic_axis
+            found_layout_axis = True
+        if not found_layout_axis:
+            return None
+        return tuple(axis for _, axis in sorted(slot_to_axis.items()))
+
+    @staticmethod
+    def _permute_layout_axes(
+        layout_axes: Optional[tuple[str, ...]], permute_shape: Sequence[int]
+    ) -> Optional[tuple[str, ...]]:
+        if layout_axes is None:
+            return None
+        if len(layout_axes) != len(permute_shape):
+            return None
+        return tuple(layout_axes[idx] for idx in permute_shape)
+
+    @staticmethod
+    def _mark_layout_unknown(var: TritonCSEVariable) -> None:
+        var.layout_axes = None
+        var.layout_known = False
+
+    @staticmethod
+    def _set_layout_axes(
+        var: TritonCSEVariable, layout_axes: Optional[tuple[str, ...]]
+    ) -> None:
+        var.layout_axes = layout_axes
+        var.layout_known = layout_axes is not None
+
+    def _update_layout_on_args(
+        self,
+        csevar: TritonCSEVariable,
+        args: Sequence[object],
+        kwargs: dict[str, object],
+    ) -> None:
+        # Preserve layout only across simple pointwise expressions where all
+        # tensor inputs agree on the same buffer layout.
+        # Known limitation: update / inplace lowering chains (for example,
+        # permute -> add_ / mutate_to -> clone) may still drop layout metadata
+        # here and force store emission to fall back to the remapped path.
+        candidate_layouts = []
+        for arg in itertools.chain(args, kwargs.values()):
+            if isinstance(arg, TritonCSEVariable):
+                if not getattr(arg, "layout_known", False):
+                    self._mark_layout_unknown(csevar)
+                    return
+                candidate_layouts.append(getattr(arg, "layout_axes", None))
+        if not candidate_layouts:
+            self._mark_layout_unknown(csevar)
+            return
+        first_layout = candidate_layouts[0]
+        if first_layout is None or any(layout != first_layout for layout in candidate_layouts[1:]):
+            self._mark_layout_unknown(csevar)
+            return
+        self._set_layout_axes(csevar, first_layout)
+
+    def _can_preserve_store_semantics_with_value_layout(
+        self,
+        value: CSEVariable,
+        raw_indexing: IndexingOptions | BlockPtrOptions,
+        index_analyze: IndexAnalysis,
+    ) -> bool:
+        if not isinstance(raw_indexing, IndexingOptions):
+            return False
+        # Only preserve the raw scheduler store path when the target layout
+        # implied by the raw store index matches the RHS buffer layout exactly.
+        raw_store_layout = self._infer_layout_axes_from_expr(
+            raw_indexing.index, index_analyze=index_analyze
+        )
+        return (
+            raw_store_layout is not None
+            and raw_store_layout == getattr(value, "layout_axes", None)
+        )
 
     #  when xindex(16) -> x2:2,x3:8, when new length:16 in , should return (x2,x3)
     def split_and_set_ranges(self, lengths: Sequence[Sequence[sympy.Expr]]):
@@ -4366,6 +4590,7 @@ class NPUIndexTritonKernel(TritonKernel):
                         output_idx += 1
 
                         csevar.update_on_args(name, args, kwargs)
+                        V.kernel._update_layout_on_args(csevar, args, kwargs)
 
                         return csevar
 
