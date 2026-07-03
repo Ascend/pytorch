@@ -38,6 +38,14 @@ export INDUCTOR_ASCEND_CHECK_ACCURACY_RTOL_ATOL="rtol=1e-6,atol=1e-7"
 > - Triton：[config](../../../torch_npu/_inductor/config.py)
 > - MLIR和DVM：[config](../../../torch_npu/_inductor/ascend_npu_ir/ascend_npu_ir/config.py)
 
+精度比对无异常时不打印额外信息。比对有异常时打印如下格式的告警：
+
+```bash
+CHECK ACCURACY FAILED! Kernel: <kernel_name>, Output idx: <idx>, Mismatched: <m>/<n> (<pct>%), Greatest Rel Diff: <rel>, Greatest Abs Diff: <abs>, rtol: <rtol>, atol: <atol>, dump_path: <path> 
+```
+
+当设置为Triton后端时会将数据及fx graph文件保存至打印信息的dump_path目录下。
+
 ## 使用约束
 
 - 此环境变量仅可在PyTorch2.7.1和PyTorch2.9.0版本使用。
