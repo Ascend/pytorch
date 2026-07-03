@@ -116,13 +116,15 @@ std::string GetAclConfigJsonPath()
         std::string json_path = std::string(acl_init_path);
         std::string json_path_str = torch_npu::toolkit::profiler::Utils::RealPath(json_path);
         if (json_path_str.empty()) {
-            TORCH_CHECK(false, "TORCH_ACL_INIT_CONFIG_PATH ", acl_init_path,
-                        " is invalid.", PTA_ERROR(ErrCode::UNAVAIL));
+            TORCH_CHECK(false, "TORCH_ACL_INIT_CONFIG_PATH ", acl_init_path, " is invalid. ",
+                        "Please set the environment variable 'TORCH_ACL_INIT_CONFIG_PATH' to a valid JSON config file path.",
+                        PTA_ERROR(ErrCode::UNAVAIL));
         }
 
         std::ifstream config_file(json_path_str);
         if (!config_file.is_open()) {
             TORCH_CHECK(false, "Failed to open user acl json ", json_path_str,
+                        ". Please ensure the file exists and has read permission.",
                         PTA_ERROR(ErrCode::UNAVAIL));
         }
 
@@ -132,13 +134,15 @@ std::string GetAclConfigJsonPath()
             config_file >> config;
         } catch (const std::exception& e) {
             TORCH_CHECK(false, "Failed to parse user acl json ", json_path_str,
-                        " : ", e.what(), PTA_ERROR(ErrCode::UNAVAIL));
+                        ". Please check that the file contains valid JSON syntax. Error: ", e.what(),
+                        PTA_ERROR(ErrCode::UNAVAIL));
         }
 
         if (c10_npu::is_lazy_set_device()) {
             if (!config.contains("defaultDevice") || !config["defaultDevice"].is_object()) {
                 TORCH_CHECK(false, "User acl json ", json_path_str,
-                            " lacks 'defaultDevice' object, required for lazy set_device mode.",
+                            " lacks 'defaultDevice' object, required for lazy set_device mode. ",
+                            "Please add: \"defaultDevice\": {\"default_device\": \"0\"}",
                             PTA_ERROR(ErrCode::VALUE));
             }
             const auto& default_dev = config["defaultDevice"];
@@ -146,13 +150,15 @@ std::string GetAclConfigJsonPath()
                 !default_dev["default_device"].is_string() ||
                 default_dev["default_device"].get<std::string>() != "0") {
                 TORCH_CHECK(false, "User acl json ", json_path_str,
-                            " requires 'defaultDevice.default_device' to be \"0\" in lazy set_device mode.",
+                            " requires 'defaultDevice.default_device' to be \"0\" in lazy set_device mode. ",
+                            "Please set: \"defaultDevice\": {\"default_device\": \"0\"}",
                             PTA_ERROR(ErrCode::VALUE));
             }
         } else {
             if (config.contains("defaultDevice")) {
                 TORCH_CHECK(false, "User acl json ", json_path_str,
-                            " contains 'defaultDevice' which is not expected in non-lazy set_device mode.",
+                            " contains 'defaultDevice' which is not expected in non-lazy set_device mode. ",
+                            "Please remove the 'defaultDevice' field from your JSON config.",
                             PTA_ERROR(ErrCode::VALUE));
             }
         }
