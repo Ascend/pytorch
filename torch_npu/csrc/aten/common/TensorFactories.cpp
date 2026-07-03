@@ -11,7 +11,6 @@
 #include <string>
 
 #include <ATen/ATen.h>
-#include <ATen/NamedTensorUtils.h>
 #include <c10/util/irange.h>
 #include <ATen/record_function.h>
 #include <c10/core/impl/COW.h>
@@ -325,9 +324,6 @@ at::Tensor empty_like_npu(
         }
     }
 
-    if (self.opt_names()) {
-        at::namedinference::propagate_names(result, self.names());
-    }
 
     return result;
 }
@@ -427,42 +423,6 @@ at::Tensor NPUNativeFunctions::unsafe_empty_with_format(
     return NPUNativeFunctions::empty_with_format(size, dtype_opt, layout_opt, device_opt, pin_memory_opt, dst_format, c10::nullopt);
 }
 
-at::Tensor NPUNativeFunctions::empty_with_format(
-    c10::IntArrayRef size,
-    c10::optional<at::DimnameList> names,
-    c10::optional<at::ScalarType> dtype_opt,
-    c10::optional<c10::Layout> layout_opt,
-    c10::optional<c10::Device> device_opt,
-    c10::optional<bool> pin_memory_opt,
-    int64_t dst_format)
-{
-    torch_npu::utils::torch_check_npu(c10::device_or_default(device_opt));
-    caffe2::TypeMeta dtype = c10::scalarTypeToTypeMeta(dtype_or_default(dtype_opt));
-    c10::TensorOptions options = c10::TensorOptions().dtype(dtype_opt)
-                                        .device(device_opt)
-                                        .layout(layout_opt)
-                                        .pinned_memory(pin_memory_opt);
-    at::Tensor result = OpPreparation::ApplyTensorWithFormat(size, options, dst_format);
-    if (names.has_value()) {
-        internal_set_names_inplace(result, names);
-    }
-
-    return result;
-}
-
-at::Tensor empty_with_format_name_npu(
-    c10::IntArrayRef size,
-    c10::optional<at::DimnameList> names,
-    const c10::TensorOptions &options,
-    int64_t dst_format)
-{
-    at::Tensor result = OpPreparation::ApplyTensorWithFormat(size, options, dst_format);
-    if (names.has_value()) {
-        internal_set_names_inplace(result, names);
-    }
-
-    return result;
-}
 
 at::Tensor NPUNativeFunctions::empty_strided(
     c10::IntArrayRef size,

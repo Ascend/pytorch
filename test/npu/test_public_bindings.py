@@ -525,23 +525,12 @@ class TestPublicBindings(TestCase):
             "torch._inductor.kernel.vendored_templates.cutedsl.dense_blockscaled_gemm_persistent",  # depends on cutlass
             "torch._inductor.kernel.vendored_templates.cutedsl.wrappers",  # depends on cutlass_api
             "torch._inductor.kernel.vendored_templates.cutedsl.wrappers.dense_blockscaled_gemm_kernel",  # depends on cutlass_api
+            "torch._native.ops.foreach_mm.nvmath_impl",  # depends on nvmath (CUDA-only)
             "torch._native.ops.scatter_add._ptx",  # depends on cutlass
             "torch._native.ops.scatter_add.tma_kernel",  # depends on cutlass
             "torch._native.ops.scatter_add.vec_scatter_kernel",  # depends on cutlass
-            # The vendored quack package __init__ eager-imports rmsnorm, which
-            # pulls in cutlass; importing the package or any of its submodules
-            # fails when cutlass is unavailable (e.g. on NPU CI).
-            "torch._vendor.quack",
-            "torch._vendor.quack.cache_utils",
-            "torch._vendor.quack.compile_utils",
-            "torch._vendor.quack.copy_utils",
-            "torch._vendor.quack.cute_dsl_utils",
-            "torch._vendor.quack.layout_utils",
-            "torch._vendor.quack.reduce",
-            "torch._vendor.quack.reduction_base",
-            "torch._vendor.quack.rmsnorm",
-            "torch._vendor.quack.rounding",
-            "torch._vendor.quack.utils",
+            "torch._native.ops.topk.cutedsl_kernels",  # depends on cutedsl (CUDA-only)
+            # torch._vendor.quack is handled by a prefix skip below.
             "torch.ao.pruning._experimental.data_sparsifier.lightning.callbacks.data_sparsity",
             "torch.backends._coreml.preprocess",
             "torch.contrib._tensorboard_vis",
@@ -749,6 +738,10 @@ class TestPublicBindings(TestCase):
 
             # Skip torchair submodules that may fail to import in CI environments
             if mod.startswith("torch_npu.dynamo.torchair"):
+                continue
+
+            # Skip the whole vendored quack package, this package requires cuda
+            if mod.startswith("torch._vendor.quack"):
                 continue
 
             errors.append(f"{mod} failed to import with error {excep_type}")

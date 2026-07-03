@@ -1,5 +1,4 @@
 #include <ATen/ATen.h>
-#include <ATen/NamedTensorUtils.h>
 
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
@@ -8,40 +7,12 @@
 namespace at_npu {
 namespace native {
 
-inline const at::Tensor& resize_named_tensor_(
-    const at::Tensor& self,
-    c10::IntArrayRef size,
-    c10::optional<c10::MemoryFormat> format)
-{
-    TORCH_INTERNAL_ASSERT(self.has_names());
-    TORCH_CHECK(
-        self.sizes() == size,
-        "Cannot resize named tensor with resize_ or resize_as_ (tried to resize "
-        "Tensor",
-        self.names(),
-        " with size ",
-        self.sizes(),
-        " to ",
-        size,
-        "). This may be caused by passing a named tensor ",
-        "as an `out=` argument; please ensure that the sizes are the same. ",
-        OPS_ERROR(ErrCode::VALUE));
-    TORCH_CHECK(
-        !format.has_value(),
-        "Unsupported memory format for named tensor resize ",
-        format.value(),
-        OPS_ERROR(ErrCode::NOT_SUPPORT));
-    return self;
-}
 
 const at::Tensor& NPUNativeFunctions::resize_(
     const at::Tensor& self,
     c10::IntArrayRef size,
     c10::optional<c10::MemoryFormat> format)
 {
-    if (self.has_names()) {
-        return resize_named_tensor_(self, size, format);
-    }
     // because of resize _impl_npu_ only support at base format, so
     // no need to reflush NpuStorageDesc here.
     auto ks = self.key_set();
@@ -76,7 +47,6 @@ const at::Tensor& NPUNativeFunctions::resize_as_(
     }
 
     const at::Tensor& result = self.resize_(the_template.sizes());
-    at::namedinference::propagate_names(result, the_template);
     return result;
 }
 

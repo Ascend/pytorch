@@ -6,7 +6,6 @@
 #include <vector>
 
 #include <ATen/ATen.h>
-#include <ATen/NamedTensorUtils.h>
 
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/DeviceUtils.h"

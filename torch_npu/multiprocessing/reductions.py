@@ -111,7 +111,6 @@ def _npu_reduce_tensor(tensor):
             "before serializing (e.g., putting it on the queue)."
         )
 
-    torch._namedtensor_internals.check_serializing_named_tensor(tensor)
     torch.utils.hooks.warn_if_has_hooks(tensor)
 
     if storage._untyped_storage.device.type == "npu":
