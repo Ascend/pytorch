@@ -162,20 +162,32 @@ class CATLASSScheduling(BaseScheduling):
         ), "Epilogue nodes must all be instances of ir.ComputedBuffer"
         kernel, render = ctb.make_kernel_render(ctb, epilogue_nodes=epilogue_nodes)
         with kernel:
-            for node in [template_node, *epilogue_nodes]:
-                node.mark_run()
+            # mark_run() must be skipped in the benchmark/autotune path
+            # (only_src_code=True). In that path V.graph.scheduler.current_node
+            # is not set, so calling mark_run() -> buf.allocate() -> AllocateLine
+            # would trigger the assertion `V.graph.scheduler.current_node is not
+            # None`. This mirrors SIMDScheduling._codegen_single_template which
+            # only calls mark_run() when not only_gen_src_code.
+            if not only_src_code:
+                for node in [template_node, *epilogue_nodes]:
+                    node.mark_run()
 
             # typically there is a codegen pass which runs after mark_run
             # for this kernel we've already generated the C++ code, but we still
             # need to let the kernel know about loads/stores that occur in the fused
-            # kernel for memory planning to properly optimize allocations
+            # kernel for memory planning to properly optimize allocations.
+            # These emulate/store calls are required by render() even in the
+            # benchmark path (only_src_code=True) so that the generated kernel
+            # source contains the correct epilogue store logic.
             ctb.emulate_store_fn()
             for node in epilogue_ir_nodes:
                 with V.set_ops_handler(MockCatlassHandler(V.get_ops_handler())):
                     assert isinstance(
                         node, ComputedBuffer
                     )  # Not sure why we need to do this again
-                    node.get_store_function()(CatlassEVGCodegen.get_index_vars(node))
+                    node.get_store_function()(
+                        CatlassEVGCodegen.get_index_vars(node)
+                    )
 
         with V.set_kernel_handler(kernel):
             src_code = render()
