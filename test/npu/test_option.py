@@ -7,8 +7,6 @@ from functools import wraps
 import torch
 import torch_npu
 
-import torch_npu.npu.utils as utils
-
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import SupportedDevices, SkipIfNotGteCANNVersion
 
@@ -114,6 +112,16 @@ class TestAclOpInitMode(TestCase):
         self.assertIn(self.INVALID_VALUE_WARN, stderr)
 
 
+def _skipIfLazy(fn):
+    @wraps(fn)
+    def wrapper(slf, *args, **kwargs):
+        if torch_npu.npu.utils._is_gte_cann_version('8.3.RC1'):
+            raise unittest.SkipTest(
+                "Test only for non-lazy set_device mode (CANN < 8.3.RC1)")
+        return fn(slf, *args, **kwargs)
+    return wrapper
+
+
 class TestAclInitConfigPath(TestCase):
 
     LACKS_DEFAULT_DEVICE_MSG = "lacks 'defaultDevice'"
@@ -169,16 +177,6 @@ class TestAclInitConfigPath(TestCase):
                       "Empty JSON file should raise RuntimeError")
 
     # ---- non-lazy 模式（CANN < 8.3.RC1） ----
-
-    @staticmethod
-    def _skipIfLazy(fn):
-        @wraps(fn)
-        def wrapper(slf, *args, **kwargs):
-            if utils._is_gte_cann_version('8.3.RC1'):
-                raise unittest.SkipTest(
-                    "Test only for non-lazy set_device mode (CANN < 8.3.RC1)")
-            return fn(slf, *args, **kwargs)
-        return wrapper
 
     @_skipIfLazy
     def test_valid_json_non_lazy(self):
