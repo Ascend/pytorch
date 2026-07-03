@@ -48,6 +48,7 @@ NPU_UNSUPPORTED_OPS = [
     "aten._scaled_dot_product_fused_attention_overrideable.default",
     "aten._scaled_mm.default",
     "aten._scaled_grouped_mm.default",
+    "aten.scatter_reduce.two",
     "aten.scatter_reduce.two_out"
 ]
 
