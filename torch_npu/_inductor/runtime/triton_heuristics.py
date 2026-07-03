@@ -571,6 +571,7 @@ class NPUCachingAutotuner(CachingAutotuner):
         # variant_launcher_map points to the deduplicated compiled variants.
         self.candidate_plan = None
         self.variant_launcher_map = {}
+        self.compiled_candidate_entries = ()
         self.best_candidate_config = None
         self.best_runtime_blocks = ()
         self.best_launcher = None
@@ -595,6 +596,13 @@ class NPUCachingAutotuner(CachingAutotuner):
 
     def _build_runtime_launch_args(self, args, runtime_blocks: tuple[int, ...]):
         return (*args, *runtime_blocks)
+
+    def _first_compiled_candidate_entry(self):
+        if not self.compiled_candidate_entries:
+            raise RuntimeError(
+                f"No compiled runtime block candidates are available for [{self.get_fn_name()}]."
+            )
+        return self.compiled_candidate_entries[0]
 
     def _precompile_variant_configs(self, configs=None):
         configs = self.configs if configs is None else configs
@@ -621,6 +629,7 @@ class NPUCachingAutotuner(CachingAutotuner):
 
     def _refresh_variant_launchers(self):
         self.variant_launcher_map = {}
+        self.compiled_candidate_entries = ()
         if self.candidate_plan is None:
             self.candidate_plan = build_candidate_plan(
                 self.configs, self.runtime_block_arg_names
@@ -646,6 +655,14 @@ class NPUCachingAutotuner(CachingAutotuner):
                 variant_id,
                 self.get_fn_name(),
             )
+        self.compiled_candidate_entries = tuple(
+            {
+                "candidate": candidate,
+                "launcher": self.variant_launcher_map[candidate["variant_id"]],
+            }
+            for candidate in self.candidate_plan["candidate_entries"]
+            if candidate["variant_id"] in self.variant_launcher_map
+        )
 
     def precompile(
         self,
@@ -1512,33 +1529,41 @@ class NPUCachingAutotuner(CachingAutotuner):
         )
         device_interface = self.get_device_interface()
         stream = device_interface.get_raw_stream(device_interface.current_device())
-        timings = {}
+        timings = {
+            candidate["candidate_id"]: float("inf")
+            for candidate in plan["candidate_entries"]
+        }
         runnable_candidates = []
         prerun_timings = []
         candidate_map = {
             candidate["candidate_id"]: candidate
             for candidate in plan["candidate_entries"]
         }
+        compiled_candidate_ids = {
+            entry["candidate"]["candidate_id"]
+            for entry in self.compiled_candidate_entries
+        }
+        for candidate in plan["candidate_entries"]:
+            candidate_id = candidate["candidate_id"]
+            if candidate_id in compiled_candidate_ids:
+                continue
+            log.debug(
+                "No compiled launcher found for candidate %s (variant %s) of kernel %s",
+                candidate_id,
+                candidate["variant_id"],
+                self.get_fn_name(),
+            )
 
         # Benchmarking stays at candidate granularity even when several candidates
         # share the same compiled launcher through variant deduplication.
-        for candidate in plan["candidate_entries"]:
-            launcher = self.variant_launcher_map.get(candidate["variant_id"])
+        for entry in self.compiled_candidate_entries:
+            candidate = entry["candidate"]
+            launcher = entry["launcher"]
             runtime_blocks = tuple(value for _, value in candidate["runtime_blocks"])
             candidate_id = candidate["candidate_id"]
-            if launcher is None:
-                timings[candidate_id] = float("inf")
-                log.debug(
-                    "No compiled launcher found for candidate %s (variant %s) of kernel %s",
-                    candidate_id,
-                    candidate["variant_id"],
-                    self.get_fn_name(),
-                )
-                continue
             launch_args = self._build_runtime_launch_args(args, runtime_blocks)
 
             if not self.custom_kernel and launcher.n_spills > config.triton.spill_threshold:
-                timings[candidate_id] = float("inf")
                 continue
 
             # Freeze loop variables so the batch benchmark keeps per-candidate args.
@@ -1575,7 +1600,6 @@ class NPUCachingAutotuner(CachingAutotuner):
                     f"success, elapsed: {prerun_ms:.3f} ms"
                 )
             except Exception as e:
-                timings[candidate_id] = float("inf")
                 prerun_log_str = (
                     f"PreRun [{self.fn.__name__}], candidate: {candidate_id}\n"
                     f" variant [{launcher.config}] runtime_blocks [{runtime_blocks}] \n err: {e}"
@@ -1591,9 +1615,6 @@ class NPUCachingAutotuner(CachingAutotuner):
             for entry in runnable_candidates
             if entry["candidate_id"] in selected_candidate_ids
         ]
-        for entry in runnable_candidates:
-            if entry["candidate_id"] not in selected_candidate_ids:
-                timings[entry["candidate_id"]] = float("inf")
 
         selected_total_ms = sum(
             prerun_ms
@@ -1864,16 +1885,18 @@ class NPUCachingAutotuner(CachingAutotuner):
             self._refresh_variant_launchers()
 
         if candidate_count == 1:
-            candidate = self.candidate_plan["candidate_entries"][0]
-            launcher = self.variant_launcher_map[candidate["variant_id"]]
+            entry = self._first_compiled_candidate_entry()
+            candidate = entry["candidate"]
+            launcher = entry["launcher"]
             self._set_best_candidate(candidate, launcher)
             self.launchers = [launcher]
             log.info(f"{self.get_fn_name()} benchmark elapsed time {time.perf_counter() - autotune_start_time}s")
             return
 
         if self._should_skip_autotune_for_determinism():
-            candidate = self.candidate_plan["candidate_entries"][0]
-            launcher = self.variant_launcher_map[candidate["variant_id"]]
+            entry = self._first_compiled_candidate_entry()
+            candidate = entry["candidate"]
+            launcher = entry["launcher"]
             self._set_best_candidate(candidate, launcher)
             self.launchers = [launcher]
             if self.save_cache_hook:
@@ -2218,12 +2241,18 @@ class NPUSymbolicGroupedAutotuner(NPUCachingAutotuner):
 
     def _build_grouped_benchmark_entries(self):
         entries = []
+        compiled_launcher_by_candidate_id = {
+            entry["candidate"]["candidate_id"]: entry["launcher"]
+            for entry in self.compiled_candidate_entries
+        }
         for group_id, candidates in enumerate(self.candidate_plan["group_to_candidates"]):
             if not candidates:
                 continue
             benchmark_args = self._materialize_benchmark_args(group_id)
             for candidate in candidates:
-                launcher = self.variant_launcher_map.get(candidate["variant_id"])
+                launcher = compiled_launcher_by_candidate_id.get(
+                    candidate["candidate_id"]
+                )
                 if launcher is None or not launcher.runnable:
                     continue
                 runtime_blocks = self._materialize_runtime_blocks(candidate, benchmark_args)
