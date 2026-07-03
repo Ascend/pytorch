@@ -19,6 +19,8 @@
 #include <torch/csrc/utils/python_numbers.h>
 #include <torch/csrc/utils/python_strings.h>
 #include <torch/csrc/utils/tensor_numpy.h>
+#include <torch/csrc/inductor/aoti_runner/pybind.h>
+#include <torch_npu/csrc/inductor/aoti_runner/pybind.h>
 
 #include <op_plugin/utils/custom_functions/opapi/FFTCommonOpApi.h>
 #include <third_party/acl/inc/acl/acl.h>
@@ -184,6 +186,9 @@ void RegisterNPUDeviceProperties(PyObject* module) {
   m.def("_npu_isHistoryEnabled", []() {
     return c10_npu::NPUCachingAllocator::isHistoryEnabled();
   });
+
+  torch::inductor::initAOTIRunnerBindingsNpu(module);
+
 }
 
 std::string GetDeviceName() {
