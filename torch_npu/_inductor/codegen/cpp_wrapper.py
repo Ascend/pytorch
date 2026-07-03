@@ -33,7 +33,7 @@ from torch._inductor.virtualized import V
 
 from .. import config as npu_config
 from ..runtime.triton_heuristics import GridExprNpu
-from ..utils import NPU_ALIGN_BYTES, triton_support_ffts
+from ..utils import NPU_ALIGN_BYTES, triton_support_ffts, triton_support_auto_blockify
 
 config.triton.autotune_at_compile_time = False
 
@@ -160,10 +160,11 @@ class DeferredNpuTritonCallWrapper(DeferredTritonCallWrapper):
         enable_simt = npu_config.is_ascend950 and (
             "simt" in params["parallel_mode"] or params["force_simt_only"]
         )
+        enable_auto_blockify = not getattr(triton_meta, "has_auto_blockify_blacklist_op", False) and triton_support_auto_blockify()
         prefix.splice(f"""
         auto launch_call = [=]() {{
         {wrapper.generate_args_decl(prefix, call_args, arg_types, arg_signatures, True, force_simt_only)}
-        {wrapper.generate_launch_preparation(kernel_var_name, params, enable_simt)}
+        {wrapper.generate_launch_preparation(kernel_var_name, params, enable_simt, enable_auto_blockify)}
         }};
         """)
         prefix.writeline(
@@ -542,7 +543,7 @@ class CppWrapperNpu(CppWrapperGpu):
 
         return args_str
 
-    def generate_launch_preparation(self, kernel_var_name, params, enable_simt):
+    def generate_launch_preparation(self, kernel_var_name, params, enable_simt, enable_auto_blockify):
         if enable_simt:
             shared_mem_dynamic_size = params["shared_mem_dynamic_size"]
             cpp_kernel_launch = f"""
@@ -568,6 +569,7 @@ class CppWrapperNpu(CppWrapperGpu):
 
         launch_str = f"""
             uint32_t block_num = grid_0 * grid_1 * grid_2;
+            {f'block_num = std::min(block_num, (uint32_t){str(npu_config.num_vector_core)});' if enable_auto_blockify else ''}
             {cpp_kernel_launch}
             if (ret != ACL_SUCCESS) return ret;
             return ret;"""

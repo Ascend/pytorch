@@ -273,6 +273,9 @@ def use_catlass_template(op_name, layout, m: int, n: int, k: int) -> bool:
 
     return res
 
+def triton_support_auto_blockify():
+    from triton.backends.ascend.utils import _is_auto_map_parallel_blocks_enabled
+    return _is_auto_map_parallel_blocks_enabled()
 
 def triton_support_ffts():
     from triton.backends.ascend.utils import (
