@@ -69,6 +69,15 @@ class TestProfilerConfig(TestCase):
         self.assertEqual(config._rank_id, -1)
         self.assertEqual(config._activities, [])
 
+    def test_reset_is_load_will_reset_is_load_to_false(self):
+        config = profiler_config.ProfilerConfig()
+        config._rank_id = 1
+        config._is_load = True
+
+        config.reset_is_load()
+
+        self.assertEqual(config._rank_id, 1)
+        self.assertFalse(config._is_load)
 
     def test_load_syscnt_info_json_decode_error(self):
         config = profiler_config.ProfilerConfig()
