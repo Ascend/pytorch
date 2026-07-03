@@ -44,7 +44,6 @@ class DbManager:
 
         try:
             curs = conn.cursor()
-            os.chmod(db_path, Constant.FILE_AUTHORITY)
             return conn, curs
         except sqlite3.Error as err:
             return EmptyClass("empty conn"), EmptyClass("empty curs")
