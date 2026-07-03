@@ -1,0 +1,2 @@
+# C++ Extensions Operator Adaptation
+<!-- md-trans-meta sourceCommit=unknown translatedAt=2026-06-15T07:49:02.687Z pushedAt=2026-06-15T12:00:44.064Z -->

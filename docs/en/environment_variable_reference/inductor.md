@@ -1,0 +1,7 @@
+# Graph Mode
+
+<!-- md-trans-meta sourceCommit=unknown translatedAt=2026-06-15T12:03:50.625Z pushedAt=2026-06-16T03:14:22.208Z -->
+
+- **[TORCHINDUCTOR\_NPU\_BACKEND](TORCHINDUCTOR_NPU_BACKEND.md)**
+
+- **[(Beta) INDUCTOR\_ASCEND\_CHECK\_ACCURACY](INDUCTOR_ASCEND_CHECK_ACCURACY.md)**

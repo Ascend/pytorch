@@ -72,7 +72,7 @@ symint:
 
 - all\_version：表示当前PyTorch支持的所有版本，版本列表会根据torch_npu演进调整，具体以代码为准。可通过[]设置算子支持的版本范围，例如[v2.1, newest]代表该算子支持从v2.1到最新版本。
 - official和custom：分别表示该字段下的算子为PyTorch原生和自定义算子；symint字段表明该算子支持symint类型的入参，该种算子请参考[symint算子适配](#symint算子适配)。
-- func：表示定义算子的schema(算子描述规范)，其内容完全遵循PyTorch原生Aten IR算子schema的定义规则，通过“算子名称+入参列表+返回参数”的结构化形式，完整描述算子的调用接口与语义约束。具体规则可参考[PyTorch schema规则](reference.md#section001)。
+- func：表示定义算子的schema(算子描述规范)，其内容完全遵循PyTorch原生Aten IR算子schema的定义规则，通过“算子名称+入参列表+返回参数”的结构化形式，完整描述算子的调用接口与语义约束。具体规则可参考[PyTorch schema规则](reference.md#pytorch-schema规则)。
 - acl\_op：表示在该版本支持acl\_op调用，如果支持的版本与all\_version表示的版本一致，则可以用"all\_version"表示，可选字段。
 - op\_api：表示在该版本支持op\_api调用，如果支持的版本与all\_version表示的版本一致，则可以用"all\_version"表示，可选字段。
 - gen\_opapi：对于支持op\_api调用的算子，如果适配代码简单，可以直接调用底层算子，不需要额外的适配，则可以考虑用结构化适配的方式自动生成适配代码，详见章节[结构化适配介绍(可选)](#结构化适配介绍可选)。
@@ -224,7 +224,7 @@ aclnn算子适配文件路径为：op\_plugin/ops/opapi/AbsKernelNpuOpApi.cpp，
     ```
 
     > [!NOTE]  
-    > 更多算子适配常见API接口可参见[LINK](reference.md#section002)，更多常见宏定义可参见[LINK](reference.md#section003)。
+    > 更多算子适配常见API接口可参见[LINK](reference.md#算子适配常见api接口)，更多常见宏定义可参见[LINK](reference.md#算子适配常见宏定义)。
 
 3. 若接口包含多种变体，比如入参带out、原地操作(inplace)变体，需增加相应的适配代码，适配参考如下：
 

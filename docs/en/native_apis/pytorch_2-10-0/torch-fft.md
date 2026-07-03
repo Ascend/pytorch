@@ -1,0 +1,25 @@
+# torch.fft
+
+<!-- md-trans-meta sourceCommit=unknown translatedAt=2026-06-14T07:56:15.940Z pushedAt=2026-06-14T09:16:34.740Z -->
+
+>[!NOTE]
+>If the "Supported" column for an API is "Yes" and the "Limitations and Notes" column is "-", it means the API support is consistent with the native API.
+>
+>To use the following interfaces, you need to configure the following information:
+>
+>`source {CANN installation path}/nnal/atb/set_env.sh`
+>`source {CANN installation path}/nnal/asdsip/set_env.sh`
+
+|API Name|Supported|Limitations and Notes|
+|--|--|--|
+|[torch.fft.rfftn](https://pytorch.org/docs/2.10/generated/torch.fft.rfftn.html)|Yes|Supports fp32<br>Value range: Each element must be within [-100, 100]<br>Supports 1-8 dimensions. 2D dimensions are (batch, n), 1D dimensions are (n)<br>1. batch dimension: [1, 8, 16, 24, 32, 64]<br>2. n dimension restrictions (satisfying any one of the following):<br>- $2^n$, where n is within 23<br>- Arbitrary multiplication of 2, 3, 5, 7, for example: 2\*2\*2\*5\*7\*7\*9, but the result must be within 1000000<br>- Arbitrary multiplication of prime numbers within 200, the result must be within 100000|
+|[torch.fft.hfft](https://pytorch.org/docs/2.10/generated/torch.fft.hfft.html)|Yes|-|
+|[torch.fft.ihfft](https://pytorch.org/docs/2.10/generated/torch.fft.ihfft.html)|Yes|-|
+|[torch.fft.hfft2](https://pytorch.org/docs/2.10/generated/torch.fft.hfft2.html)|Yes|-|
+|[torch.fft.ihfft2](https://pytorch.org/docs/2.10/generated/torch.fft.ihfft2.html)|No|-|
+|[torch.fft.hfftn](https://pytorch.org/docs/2.10/generated/torch.fft.hfftn.html)|Yes|-|
+|[torch.fft.ihfftn](https://pytorch.org/docs/2.10/generated/torch.fft.ihfftn.html)|No|-|
+|[torch.fft.fftfreq](https://pytorch.org/docs/2.10/generated/torch.fft.fftfreq.html)|No|-|
+|[torch.fft.rfftfreq](https://pytorch.org/docs/2.10/generated/torch.fft.rfftfreq.html)|No|-|
+|[torch.fft.fftshift](https://pytorch.org/docs/2.10/generated/torch.fft.fftshift.html)|No|-|
+|[torch.fft.ifftshift](https://pytorch.org/docs/2.10/generated/torch.fft.ifftshift.html)|No|-|

@@ -1,0 +1,24 @@
+# torch.nn.init
+
+<!-- md-trans-meta sourceCommit=unknown translatedAt=2026-06-14T07:57:41.586Z pushedAt=2026-06-14T09:16:34.757Z -->
+
+> [!NOTE]  
+> If the "Supported" column for an API is "Yes" and the "Restrictions and Notes" column is "-", it means the API support is consistent with the native API.
+
+|API Name|Supported|Restrictions and Notes|
+|--|--|--|
+|[torch.nn.init.calculate_gain](https://pytorch.org/docs/2.10/nn.init.html#torch.nn.init.calculate_gain)|Yes|-|
+|[torch.nn.init.uniform_](https://pytorch.org/docs/2.10/nn.init.html#torch.nn.init.uniform_)|Yes|fp32 support|
+|[torch.nn.init.normal_](https://pytorch.org/docs/2.10/nn.init.html#torch.nn.init.normal_)|Yes|fp32 support|
+|[torch.nn.init.constant_](https://pytorch.org/docs/2.10/nn.init.html#torch.nn.init.constant_)|Yes|fp32 support|
+|[torch.nn.init.ones_](https://pytorch.org/docs/2.10/nn.init.html#torch.nn.init.ones_)|Yes|fp32 support|
+|[torch.nn.init.zeros_](https://pytorch.org/docs/2.10/nn.init.html#torch.nn.init.zeros_)|Yes|fp32 support|
+|[torch.nn.init.eye_](https://pytorch.org/docs/2.10/nn.init.html#torch.nn.init.eye_)|Yes|fp32 support|
+|[torch.nn.init.dirac_](https://pytorch.org/docs/2.10/nn.init.html#torch.nn.init.dirac_)|Yes|fp32 support|
+|[torch.nn.init.xavier_uniform_](https://pytorch.org/docs/2.10/nn.init.html#torch.nn.init.xavier_uniform_)|Yes|fp32 support|
+|[torch.nn.init.xavier_normal_](https://pytorch.org/docs/2.10/nn.init.html#torch.nn.init.xavier_normal_)|Yes|fp32 support|
+|[torch.nn.init.kaiming_uniform_](https://pytorch.org/docs/2.10/nn.init.html#torch.nn.init.kaiming_uniform_)|Yes|fp32 support|
+|[torch.nn.init.kaiming_normal_](https://pytorch.org/docs/2.10/nn.init.html#torch.nn.init.kaiming_normal_)|Yes|fp32 support|
+|[torch.nn.init.trunc_normal_](https://pytorch.org/docs/2.10/nn.init.html#torch.nn.init.trunc_normal_)|Yes|-|
+|[torch.nn.init.orthogonal_](https://pytorch.org/docs/2.10/nn.init.html#torch.nn.init.orthogonal_)|Yes|fp32 support|
+|[torch.nn.init.sparse_](https://pytorch.org/docs/2.10/nn.init.html#torch.nn.init.sparse_)|Yes|fp32 support|
