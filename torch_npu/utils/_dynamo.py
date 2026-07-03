@@ -394,8 +394,12 @@ def fake_record_stream(self, s):
 def patch_record_stream():
     torch.npu.fake_record_stream = fake_record_stream
 
-    def method_record_stream(self, s):
-        tx = torch._dynamo.symbolic_convert.InstructionTranslator.current_tx()
+    def method_record_stream(self, *args):
+        if len(args) == 1:
+            s = args[0]
+            tx = torch._dynamo.symbolic_convert.InstructionTranslator.current_tx()
+        else:
+            tx, s = args[0], args[1]
         return torch._dynamo.variables.TorchInGraphFunctionVariable(
             torch.npu.fake_record_stream
         ).call_function(tx, [self, s], {})
