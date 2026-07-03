@@ -206,8 +206,9 @@ class NPUTritonKernelOverrides(TritonKernelOverrides):
         before_subblock_axis = V.kernel.current_subblock_axis
         current_subblock_axis = body.body.masked_indexing.get(current_subblock, {})
         V.kernel.current_subblock_axis = before_subblock_axis | current_subblock_axis
-        for sub_axis in current_subblock_axis:
-            mask = ops.logical_and(mask, sympy_index_symbol(sub_axis + "_mask"))
+        if mask is not None:
+            for sub_axis in current_subblock_axis:
+                mask = ops.logical_and(mask, sympy_index_symbol(sub_axis + "_mask"))
         with V.kernel.mask_loads(mask, value=value) as new_mask:
             result = body()
         V.kernel.current_subblock_axis = before_subblock_axis
@@ -1913,16 +1914,12 @@ class NPUIndexTritonKernel(TritonKernel):
     def gen_numel_args(self, signature, triton_meta, triton_meta_signature, argdefs):
         for node in self.sorted_axis:
             arg_name = f"{node.name}_numel"
-            if not npu_config.inductor_static_mode:
-                sizearg = SizeArg(arg_name, node.length)
-                signature.append(sizearg)
-                triton_meta_signature[arg_name] = signature_of(
-                    sizearg, size_dtype=self.index_dtype
-                )
-                argdefs.append(ArgName(arg_name))
-            else:
-                argdefs.append(ArgName(arg_name, is_constexpr=True))
-                triton_meta["constants"][arg_name] = node.length
+            sizearg = SizeArg(arg_name, node.length)
+            signature.append(sizearg)
+            triton_meta_signature[arg_name] = signature_of(
+                sizearg, size_dtype=self.index_dtype
+            )
+            argdefs.append(ArgName(arg_name))
 
     # BLOCK and SUB_BLOCK definitions
     def add_autotune_args(self, argdefs, signature, triton_meta_signature):
