@@ -241,11 +241,7 @@ symbolic_group_allow_templates = tuple(
     ).split(",")
     if x.strip()
 )
-inductor_static_mode = os.environ.get("INDUCTOR_STATIC_MODE", "0").lower() in (
-    "1",
-    "yes",
-    "true",
-)
+
 profile_path = "./profile_result/"
 
 fasta_autotune = os.environ.get("FASTAUTOTUNE", "0") == "1"

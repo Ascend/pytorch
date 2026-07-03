@@ -14,7 +14,7 @@ class TestUtils(TestCase):
                                (32, 32, 1024, 1024)]  # 128*128*4096*2048 is too big(512G)
     _pointwise_test_shapes = _pointwise_test_shape2d + _pointwise_test_shape3d + _pointwise_test_shape4d
 
-    _pointwise_demo_shapes = [(1024, 32), (8, 16, 256, 32)]
+    _pointwise_demo_shapes = [(1024, 32), (8, 16, 32)]
     _reduction_extest_shape4d = [(8, 8, 8, 16384), (8, 8, 16384, 8), (8, 16384, 8, 8), (16384, 8, 8, 8)]
     _reduction_extest_dim4d = [-1, -2, 1, 0]
     _reduction_extest_SDbinding = list(zip(_reduction_extest_shape4d, _reduction_extest_dim4d))

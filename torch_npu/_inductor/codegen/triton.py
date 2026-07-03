@@ -2071,16 +2071,12 @@ class NPUIndexTritonKernel(TritonKernel):
     def gen_numel_args(self, signature, triton_meta, triton_meta_signature, argdefs):
         for node in self.sorted_axis:
             arg_name = f"{node.name}_numel"
-            if not npu_config.inductor_static_mode:
-                sizearg = SizeArg(arg_name, node.length)
-                signature.append(sizearg)
-                triton_meta_signature[arg_name] = signature_of(
-                    sizearg, size_dtype=self.index_dtype
-                )
-                argdefs.append(ArgName(arg_name))
-            else:
-                argdefs.append(ArgName(arg_name, is_constexpr=True))
-                triton_meta["constants"][arg_name] = node.length
+            sizearg = SizeArg(arg_name, node.length)
+            signature.append(sizearg)
+            triton_meta_signature[arg_name] = signature_of(
+                sizearg, size_dtype=self.index_dtype
+            )
+            argdefs.append(ArgName(arg_name))
 
     # BLOCK and SUB_BLOCK definitions
     def add_autotune_args(self, argdefs, signature, triton_meta_signature):

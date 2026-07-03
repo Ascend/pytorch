@@ -28,19 +28,19 @@ from torch._inductor.codegen.multi_kernel import MultiKernelCall
 from torch._inductor.codegen.wrapper import PythonWrapperCodegen, SymbolicCallArg
 from torch._inductor.ir import GraphPartitionSignature
 from torch._inductor.runtime.runtime_utils import dynamo_timed
-from torch._inductor.utils import ALIGN_BYTES, IndentedBuffer
+from torch._inductor.utils import IndentedBuffer
 from torch._inductor.virtualized import V
 
 from .. import config as npu_config
 from ..runtime.triton_heuristics import GridExprNpu
-from ..utils import NPU_ALIGN_BYTES, triton_support_ffts, triton_support_auto_blockify
+from ..utils import triton_support_ffts, triton_support_auto_blockify
 
-config.triton.autotune_at_compile_time = False
-
-
-# follow triton-ascend implement
-DTYPE_TO_CPP[torch.bool] = "int32_t"
-
+# follow triton-ascend implement, except torch.bfloat16
+# torch.bfloat16 -> "float" will be specially deal in codegen_tensor_item_npu
+DTYPE_TO_TA_TYPE = {
+    **DTYPE_TO_CPP,
+    torch.bool: "int32_t"
+}
 
 @dataclasses.dataclass
 class DeferredNpuTritonCallWrapper(DeferredTritonCallWrapper):
@@ -160,7 +160,7 @@ class DeferredNpuTritonCallWrapper(DeferredTritonCallWrapper):
         enable_simt = npu_config.is_ascend950 and (
             "simt" in params["parallel_mode"] or params["force_simt_only"]
         )
-        enable_auto_blockify = not getattr(triton_meta, "has_auto_blockify_blacklist_op", False) and triton_support_auto_blockify()
+        enable_auto_blockify = not params.get("has_auto_blockify_blacklist_op", False) and triton_support_auto_blockify()
         prefix.splice(f"""
         auto launch_call = [=]() {{
         {wrapper.generate_args_decl(prefix, call_args, arg_types, arg_signatures, True, force_simt_only)}
@@ -219,12 +219,8 @@ class CppWrapperNpu(CppWrapperGpu):
 
         if V.graph.aot_mode:
             if config.aot_inductor.dynamic_linkage:
-                with open(
-                    os.path.join(
-                        os.path.dirname(__file__), "aoti_runtime", "interface.cpp"
-                    )
-                ) as f:
-                    self.header.splice(f.read())
+                self.header.splice(self._adapt_community_interface_cpp())
+                self.header.splice("\n")
             else:
                 # we produce a separate model header for each model in static linkage
                 self.header.splice(f"""#include \"{self.model_class_name_suffix}.h\"""")
@@ -246,6 +242,32 @@ class CppWrapperNpu(CppWrapperGpu):
             maybe_hipify_code_wrapper(self.device_codegen.kernel_driver())
         )
 
+    @staticmethod
+    def _adapt_community_interface_cpp() -> str:
+        """Reuse the upstream interface.cpp from torch and adapt it for NPU.
+
+        Instead of maintaining a duplicated copy, read the community
+        interface.cpp and apply the minimal NPU-specific transformations:
+        - Redirect model_container.h include to the torch_npu variant, since
+          NPU ships its own model container implementation.
+        - Default to "npu" instead of "cuda" in AOTInductorModelContainerCreate.
+        """
+        community_interface_path = os.path.join(
+            os.path.dirname(torch.__file__),
+            "_inductor",
+            "codegen",
+            "aoti_runtime",
+            "interface.cpp",
+        )
+        with open(community_interface_path) as f:
+            content = f.read()
+        content = content.replace(
+            "<torch/csrc/inductor/aoti_runtime/model_container.h>",
+            "<torch_npu/csrc/inductor/aoti_runtime/model_container.h>",
+        )
+        content = content.replace("cuda", "npu")
+        return content
+
     def generate_node_numel_expr(self, kernel_name: str, node, numel_expr):
         expr = f"{kernel_name}_{node.name}_numel"
 
@@ -256,28 +278,6 @@ class CppWrapperNpu(CppWrapperGpu):
         else:
             self.writeline(f"{expr} = {cexpr(numel_expr)};")
         return SymbolicCallArg(expr, numel_expr)
-
-    def codegen_inputs(self):
-        # See Note: [Input Alignment handling in Inductor]
-        #
-        # JIT Inductor does not guard on input alignment. It relies on copy_misaligned_inputs to
-        # copy misaligned inputs to aligned buffers. For AOTInductor, we expect users to use it
-        # as non-Python deployment for its best performance, so implicitly copying misaligned inputs
-        # to aligned buffers is going to bring a surprising performance hit. Instead, we check input
-        # alignment and throw an error if any input is misaligned.
-        if V.graph.aot_mode and V.graph.inputs_to_check:
-            for idx in V.graph.inputs_to_check:
-                input_name = V.graph.graph_input_names[idx]
-
-                self.prefix.splice(
-                    f"""
-                    if ((long({input_name}.data_ptr()) & ({NPU_ALIGN_BYTES} -1)) != 0) {{
-                        throw std::runtime_error("{input_name} is not aligned to {NPU_ALIGN_BYTES} bytes");
-                    }}
-                    """
-                )
-
-        super().codegen_inputs()
 
     def _generate_kernel_call_helper(
         self,
@@ -364,18 +364,6 @@ class CppWrapperNpu(CppWrapperGpu):
         with dynamo_timed("CppWrapperNpu.generate", log_pt2_compile_event=True):
             return super().generate(is_inference)
 
-    def prepare_triton_kernel_call(self, call_args):
-        new_call_args = call_args
-        if npu_config.inductor_static_mode:
-            # in inductor_static_mode, numel arg is constexpr, remove all Integer constant args from call_args
-            new_call_args = [
-                call_arg
-                for call_arg in call_args
-                if not isinstance(call_arg, sympy.Integer)
-            ]
-
-        return super().prepare_triton_kernel_call(new_call_args)
-
     def codegen_tensor_item_npu(
         self, dtype: torch.dtype, tensor: str, scalar: str, indented_buffer=None
     ):
@@ -384,7 +372,7 @@ class CppWrapperNpu(CppWrapperGpu):
 
         if dtype == torch.float16 or dtype == torch.bfloat16:
             scalar_tmp = f"{scalar}_tmp"
-            writer.writeline(f"{DTYPE_TO_CPP[dtype]} {scalar_tmp};")
+            writer.writeline(f"{DTYPE_TO_TA_TYPE[dtype]} {scalar_tmp};")
             writer.writeline(
                 f"AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_item_{dtype_str}({tensor}, &{scalar_tmp}));"
             )
@@ -392,12 +380,12 @@ class CppWrapperNpu(CppWrapperGpu):
             struct_data = f"float {scalar} __attribute__((aligned(4)));"
             arg_data = f"static_cast<float>({scalar})"
         else:
-            writer.writeline(f"{DTYPE_TO_CPP[dtype]} {scalar};")
+            writer.writeline(f"{DTYPE_TO_TA_TYPE[dtype]} {scalar};")
             writer.writeline(
                 f"AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_item_{dtype_str}({tensor}, &{scalar}));"
             )
-            struct_data = f"{DTYPE_TO_CPP[dtype]} {scalar} __attribute__((aligned(sizeof({DTYPE_TO_CPP[dtype]} ))));"
-            arg_data = f"static_cast<{DTYPE_TO_CPP[dtype]}>({scalar})"
+            struct_data = f"{DTYPE_TO_TA_TYPE[dtype]} {scalar} __attribute__((aligned(sizeof({DTYPE_TO_TA_TYPE[dtype]} ))));"
+            arg_data = f"static_cast<{DTYPE_TO_TA_TYPE[dtype]}>({scalar})"
 
         return struct_data, arg_data
 
