@@ -1,7 +1,7 @@
 import os
 import sqlite3
 
-from ._constant import Constant, print_warn_msg, print_error_msg
+from ._constant import print_warn_msg, print_error_msg
 from ._file_manager import FileManager
 from ._singleton import Singleton
 
@@ -40,11 +40,10 @@ class DbManager:
             # timeout set int max to avoid database is locked error.
             conn = sqlite3.connect(db_path, timeout=2147483, check_same_thread=False)
         except sqlite3.Error as err:
-            return EmptyClass("emoty conn"), EmptyClass("empty curs")
+            return EmptyClass("empty conn"), EmptyClass("empty curs")
 
         try:
             curs = conn.cursor()
-            os.chmod(db_path, Constant.FILE_AUTHORITY)
             return conn, curs
         except sqlite3.Error as err:
             return EmptyClass("empty conn"), EmptyClass("empty curs")
@@ -59,12 +58,12 @@ class DbManager:
         try:
             cur.close()
         except sqlite3.Error as err:
-            raise RuntimeError(f"Falied to close db connection cursor") from err
+            raise RuntimeError("Failed to close db connection cursor") from err
 
         try:
             conn.close()
         except sqlite3.Error as err:
-            raise RuntimeError(f"Falied to close db connection") from err
+            raise RuntimeError("Failed to close db connection") from err
 
     @classmethod
     def execute_sql(cls, conn: sqlite3.Connection, sql: str) -> bool:
@@ -102,7 +101,7 @@ class DbManager:
             cur.execute(sql, (table_name,))
             return cur.fetchone()[0]
         except sqlite3.Error as err:
-            raise RuntimeError(f"Falied to judge table in db file") from err
+            raise RuntimeError("Failed to judge table in db file") from err
 
     @classmethod
     def create_table_with_headers(cls, conn: sqlite3.Connection, cur: sqlite3.Cursor, table_name: str, headers: list) -> None:
