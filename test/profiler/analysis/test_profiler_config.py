@@ -1,24 +1,10 @@
-import json
-import os
-import re
 from json import JSONDecodeError
-from configparser import ConfigParser
 from unittest.mock import patch
 
 from torch_npu.profiler.analysis.prof_common_func._file_manager import FileManager
 from torch_npu.profiler.analysis.prof_common_func._path_manager import ProfilerPathManager
-from torch_npu.profiler.analysis.prof_common_func._singleton import Singleton
-from torch_npu.profiler.analysis.prof_common_func._constant import Constant, print_warn_msg, print_error_msg
+from torch_npu.profiler.analysis.prof_common_func._constant import Constant
 
-from torch_npu.profiler.analysis.prof_bean._ai_cpu_bean import AiCpuBean
-from torch_npu.profiler.analysis.prof_bean._l2_cache_bean import L2CacheBean
-from torch_npu.profiler.analysis.prof_bean._api_statistic_bean import ApiStatisticBean
-from torch_npu.profiler.analysis.prof_bean._op_statistic_bean import OpStatisticBean
-from torch_npu.profiler.analysis.prof_bean._npu_module_mem_bean import NpuModuleMemoryBean
-from torch_npu.profiler.analysis.prof_bean._nic_bean import NicBean
-from torch_npu.profiler.analysis.prof_bean._roce_bean import RoCEBean
-from torch_npu.profiler.analysis.prof_bean._pcie_bean import PcieBean
-from torch_npu.profiler.analysis.prof_bean._hccs_bean import HccsBean
 
 import torch_npu.profiler.analysis._profiler_config as profiler_config
 from torch_npu.testing.testcase import TestCase, run_tests
@@ -69,6 +55,15 @@ class TestProfilerConfig(TestCase):
         self.assertEqual(config._rank_id, -1)
         self.assertEqual(config._activities, [])
 
+    def test_reset_is_load_will_reset_is_load_to_false(self):
+        config = profiler_config.ProfilerConfig()
+        config._rank_id = 1
+        config._is_load = True
+
+        config.reset_is_load()
+
+        self.assertEqual(config._rank_id, 1)
+        self.assertFalse(config._is_load)
 
     def test_load_syscnt_info_json_decode_error(self):
         config = profiler_config.ProfilerConfig()
