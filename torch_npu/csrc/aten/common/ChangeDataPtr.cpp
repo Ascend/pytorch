@@ -1,6 +1,7 @@
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
+#include "third_party/op-plugin/op_plugin/ops/dvm/lazy_fusion_kernel.h"
 
 namespace at_npu {
 namespace native {
@@ -49,6 +50,11 @@ int64_t NPUNativeFunctions::npu_change_data_ptr(const at::Tensor& dst, const at:
     } else {
         at::Half* data_ptr = static_cast<at::Half*>(src.storage().data_ptr().get()) + index;
         aim_data_ptr = at::DataPtr(data_ptr, dst.storage().device());
+    }
+    // Flush pending DVM ops before changing data_ptr — their Store nodes
+    // reference the current data_ptr which is about to become invalid.
+    if (lazy_fusion::IsEnabled() && torch_npu::NPUBridge::GetNpuStorageImpl(dst)->lazy_fusion_data_ != nullptr) {
+        lazy_fusion::LazyFusionFlush();
     }
     dst.storage().set_data_ptr(std::move(aim_data_ptr));
 
