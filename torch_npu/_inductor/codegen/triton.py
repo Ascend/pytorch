@@ -2128,12 +2128,15 @@ class NPUIndexTritonKernel(TritonKernel):
         if not (self.loads or self.stores or self.compute or self.post_loop_store):
             return
 
-        def write_pointwise():
+        def write_pointwise(allow_stores=None):
+            if allow_stores is None:
+                allow_stores = self.numof_reduction_axis() <= 1
             self._emit_coordinate_transforms()
             self.body.splice(self.indexing_code)
             self.body.splice(self.loads)
             self.body.splice(self.compute)
-            self.body.splice(self.stores)
+            if allow_stores:
+                self.body.splice(self.stores)
 
         def collect_store_unified_vars():
             """
@@ -2247,6 +2250,23 @@ class NPUIndexTritonKernel(TritonKernel):
 
             reduction_1d = is_1d_reduction()
             do_indent = False
+
+            have_load_store = self.find_axis_in_load_store(range_val)
+            if not have_load_store:
+                indexing_code = None
+
+            is_first_reduction_tiling = (
+                self.numof_reduction_axis() > 1
+                and range_val.is_tiling_axis
+                and range_val.prefix == "r"
+                and not any(ax.prefix == "r" for ax in self.sorted_axis[:index])
+            )
+            use_outer_reduction_post_loop = (
+                self.numof_reduction_axis() > 1
+                and range_val.prefix == "r"
+                and bool(self.prefix._lines)
+            )
+
             # tiling axis and last tiling
             if range_val.is_tiling_axis and last_tiling:
                 do_indent = False
@@ -2257,23 +2277,31 @@ class NPUIndexTritonKernel(TritonKernel):
                 if (
                     range_val.prefix != "r" or not self.persistent_reduction
                 ) and need_axis_loop:
-                    self.body.splice(self.prefix)
+                    if self.numof_reduction_axis() <= 1:
+                        self.body.splice(self.prefix)
                     self.body.writeline(
                         f"for loop_{range_val.name} in range(loops_{range_val.name}):"
                     )
                     do_indent = True
                 loop_body(index, indexing_code, is_last_axis, do_indent)
-                self.body.splice(self.post_loop_combine)
-                self.body.splice(self.post_loop_store)
-                # Output deferred reduction stores here (outside the loop).
-                # body.writeline() controls indentation uniformly, keeping
-                # these stores consistent with post_loop_store in both
-                # static and dynamic modes.
-                for store_line in self._deferred_reduction_stores:
-                    self.body.writeline(store_line)
-                self._deferred_reduction_stores.clear()
-                self.post_loop_combine.clear()
-                self.post_loop_store.clear()
+                if use_outer_reduction_post_loop:
+                    pass
+                else:
+                    if self.numof_reduction_axis() <= 1 or range_val.prefix != "r":
+                        self.body.splice(self.post_loop_combine)
+                    self.body.splice(self.post_loop_store)
+                    # Output deferred reduction stores here (outside the loop).
+                    # body.writeline() controls indentation uniformly, keeping
+                    # these stores consistent with post_loop_store in both
+                    # static and dynamic modes.
+                    for store_line in self._deferred_reduction_stores:
+                        self.body.writeline(store_line)
+                    self._deferred_reduction_stores.clear()
+                    if self.numof_reduction_axis() > 1 and range_val.prefix == "r":
+                        self.body.splice(self.stores)
+                        self.stores.clear()
+                    self.post_loop_combine.clear()
+                    self.post_loop_store.clear()
 
             # tiling axis and but not last tiling
             elif range_val.is_tiling_axis:
@@ -2284,10 +2312,24 @@ class NPUIndexTritonKernel(TritonKernel):
                     indexing_code = None
                 if not range_val.is_no_loop_axis:
                     do_indent = True
+                    if is_first_reduction_tiling or self.numof_reduction_axis() <= 1:
+                        self.body.splice(self.prefix)
                     self.body.writeline(
                         f"for loop_{range_val.name} in range(loops_{range_val.name}):"
                     )
                 loop_body(index, indexing_code, is_last_axis, do_indent=do_indent)
+                if is_first_reduction_tiling and use_outer_reduction_post_loop:
+                    self.body.splice(self.post_loop_combine)
+                    for store_line in self.post_loop_store._lines:
+                        self.body.writeline(store_line)
+                    for store_line in self.stores._lines:
+                        self.body.writeline(store_line)
+                    for store_line in self._deferred_reduction_stores:
+                        self.body.writeline(store_line)
+                    self._deferred_reduction_stores.clear()
+                    self.stores.clear()
+                    self.post_loop_combine.clear()
+                    self.post_loop_store.clear()
 
             elif not is_last_axis:
                 do_indent = True
@@ -2328,11 +2370,20 @@ class NPUIndexTritonKernel(TritonKernel):
             codegen_range(0)
         else:
             last_axis_order = self.tiling_axis[-1].sorted_order
-            if self.persistent_reduction and self.numof_reduction_axis() > 1:
+            skip_reduction_axes = False
+            if self.numof_reduction_axis() > 1:
                 last_axis_order = last_axis_order - self.numof_reduction_axis() + 1
+                skip_reduction_axes = not any(
+                    self.find_axis_in_load_store(axis)
+                    for axis in self.sorted_axis[last_axis_order:]
+                    if axis.prefix == "r"
+                )
             for _ in range(last_axis_order):
                 self.body.do_indent()
-            codegen_range(last_axis_order)
+            if skip_reduction_axes:
+                write_pointwise(allow_stores=True)
+            else:
+                codegen_range(last_axis_order)
             for _ in range(last_axis_order):
                 self.body.do_unindent()
 
@@ -3197,6 +3248,19 @@ class NPUIndexTritonKernel(TritonKernel):
         ndims = self.triton_tensor_ndim()
         if ndims == 1:
             return f"triton_helpers.promote_to_tensor({value})"
+
+        if self.numof_reduction_axis() > 1 and self.is_contiguous_reduction():
+            if not self.golden_var_list:
+                self.select_golden_varlist()
+
+            dense_list = self.reduce_analysis.dense_size_list()
+            for i, axis in enumerate(reversed(self.golden_var_list)):
+                if axis.name[0] == "r":
+                    dense_list[i] = "1"
+
+            expand_str = ", ".join(dense_list)
+            return f"{value}.reshape({expand_str})"
+
         dense_list = self.dense_size_list()
         dense_list[dim] = "1"
         contiguous_reduction = self.is_contiguous_reduction()
@@ -3321,6 +3385,8 @@ class NPUIndexTritonKernel(TritonKernel):
             self.reduce_analysis = ReductionAnalysis(self)
 
         dense_size_str = self.dense_size_str()
+        permute_order = None
+        need_permute = False
         axis_list = []
         for index in self.load_store_indexing:
             for axis in V.kernel.range_tree_nodes:
@@ -3336,17 +3402,39 @@ class NPUIndexTritonKernel(TritonKernel):
                 ),
                 value,
             )
-        if len(dense_size_str) > 2 and (
-            not self.persistent_reduction or self.numof_reduction_axis() != 1
-        ):
-            value = self._map_tuple_or_scalar(
-                lambda v: self.cse.generate(
-                    self.compute,
-                    f"tl.reshape({v}, {dense_size_str})",
-                    dtype=v.dtype,
-                ),
-                value,
+        if (
+            len(dense_size_str) > 2
+            and (
+                not self.persistent_reduction or self.numof_reduction_axis() != 1
             )
+        ):
+            if self.numof_reduction_axis() > 1 and self.is_contiguous_reduction():
+                value_order = list(reversed(self.golden_var_list))
+                target_order = [x for x in value_order if x.name[0] != "r"] + [
+                    x for x in value_order if x.name[0] == "r"
+                ]
+                permute_order = [value_order.index(x) for x in target_order]
+                current_order = list(range(len(value_order)))
+                need_permute = permute_order != current_order
+
+            if need_permute:
+                value = self._map_tuple_or_scalar(
+                    lambda v: self.cse.generate(
+                        self.compute,
+                        f"tl.reshape({v}.permute({permute_order}), {dense_size_str})",
+                        dtype=v.dtype,
+                    ),
+                    value,
+                )
+            else:
+                value = self._map_tuple_or_scalar(
+                    lambda v: self.cse.generate(
+                        self.compute,
+                        f"tl.reshape({v}, {dense_size_str})",
+                        dtype=v.dtype,
+                    ),
+                    value,
+                )
 
         dim: int
         root_op: str
@@ -3386,7 +3474,10 @@ class NPUIndexTritonKernel(TritonKernel):
         torch_acc_type = upcast_acc_dtype(src_dtype)
         result_var: Any = self.cse.newvar(dtype=torch_acc_type)
         result_var.mask_vars = {var for var in masks if var[0] != "r"}  # noqa: set_linter
-        cond = f"({' & '.join(masks)}).reshape({dense_size_str})"
+        cond_expr = f"({' & '.join(masks)})"
+        if need_permute:
+            cond_expr = f"{cond_expr}.permute({permute_order})"
+        cond = f"{cond_expr}.reshape({dense_size_str})"
 
         def where_cond(tval, fval):
             if not cond:
