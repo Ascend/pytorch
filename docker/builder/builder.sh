@@ -15,6 +15,7 @@ INSTALL_NNAL=0
 NO_CACHE=0
 CANN_RELEASE_TRAIN=""
 IMAGE_TARGET="builder"
+TORCH_VERSION="2.10.0"
 
 function usage() {
     cat <<EOF
@@ -22,6 +23,7 @@ Usage: $0 [OPTIONS]
 
 Options:
   -p, --python VERSION      Python version: 3.10 3.11 3.12 3.13 (default: 3.10)
+  --torch-version VER       PyTorch version: x.x.x (e.g. 2.7.1)
   --no-cache                Build docker image without cache
   -h, --help                Show this help message
 
@@ -54,6 +56,10 @@ while [[ $# -gt 0 ]]; do
     --no-cache)
         NO_CACHE=1
         shift
+        ;;
+    --torch-version)
+        TORCH_VERSION="$2"
+        shift 2
         ;;
     --cann)
         INSTALL_CANN=1
@@ -142,6 +148,7 @@ fi
 
 BUILD_ARGS=""
 BUILD_ARGS="${BUILD_ARGS} --build-arg PY_VERSION=${PY_VERSION}"
+BUILD_ARGS="${BUILD_ARGS} --build-arg TORCH_VERSION=${TORCH_VERSION}"
 if [ "${INSTALL_CANN}" -eq 1 ]; then
     IMAGE_TARGET="dev"
     BUILD_ARGS="${BUILD_ARGS} --build-arg CANN_VERSION=${CANN_VERSION}"
@@ -163,6 +170,7 @@ echo " Architecture: ${ARCH}"
 echo " Dockerfile:   ${DOCKERFILE_DIR}/Dockerfile"
 echo " Target:       ${IMAGE_TARGET}"
 echo " Python:       ${PY_VERSION}"
+echo " Torch:        ${TORCH_VERSION}"
 if [ "${INSTALL_CANN}" -eq 1 ]; then
     echo " CANN:         ${CANN_VERSION} (${CANN_PRODUCT})"
     if [ -n "${CANN_RELEASE_TRAIN}" ]; then
