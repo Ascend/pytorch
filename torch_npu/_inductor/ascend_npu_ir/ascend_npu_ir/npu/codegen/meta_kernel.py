@@ -1,5 +1,5 @@
 from itertools import count
-from typing import List, Union, Optional, Tuple, Any, Dict
+from typing import List, Union, Optional, Any, Dict
 import os
 import sympy
 import textwrap
@@ -19,7 +19,7 @@ from torch._inductor.codegen.triton import (
     SIMDScheduling,
     FixedTritonConfig,
 )
-from torch._inductor import config, ir, scheduler, metrics
+from torch._inductor import config, scheduler, metrics
 from torch._inductor.codecache import get_path
 from torch._dynamo.utils import counters
 from torch._inductor.codegen.common import (
@@ -66,17 +66,17 @@ def map_strings_to_operators(expr_str: str):
 
 class NpuTritonKernel(TritonKernel):
     def __init__(self,
-            tiling: Dict[str, sympy.Expr],
-            min_elem_per_thread=0,
-            optimize_mask=True,
-            fixed_config: Optional[FixedTritonConfig] = None,
-            **kwargs,
-            ):
+                 tiling: Dict[str, sympy.Expr],
+                 min_elem_per_thread=0,
+                 optimize_mask=True,
+                 fixed_config: Optional[FixedTritonConfig] = None,
+                 **kwargs,
+                 ):
         super().__init__(
             tiling,
             min_elem_per_thread=min_elem_per_thread,
             optimize_mask=optimize_mask,
-            fixed_config = fixed_config,
+            fixed_config=fixed_config,
             **kwargs,
         )
 
@@ -188,7 +188,15 @@ def create_fx_from_snodes_by_traced_graph(snodes: List[scheduler.SchedulerNode],
 
 
 class NpuMetaKernel(Kernel):
-    def __init__(self, gm: torch.fx.GraphModule, snodes: list[scheduler.SchedulerNode], call_args: list[str], non_contiguous_indices: list[int], num_outputs: list[int] = None, mutated_indices: list[int] = None):
+    def __init__(
+            self,
+            gm: torch.fx.GraphModule,
+            snodes: list[scheduler.SchedulerNode],
+            call_args: list[str],
+            non_contiguous_indices: list[int],
+            num_outputs: list[int] = None,
+            mutated_indices: list[int] = None,
+    ):
         super().__init__()
         if gm is None:
             self._gm = None
@@ -231,10 +239,9 @@ class NpuMetaKernel(Kernel):
 
         scalarize_tensor_ops_on_scalars(self._gm_with_prim_cast)
 
-        set_model_name(f'MODEL_NAME')
+        set_model_name('MODEL_NAME')
         *_, model_name, nth_graph = get_aot_compilation_context()
 
-        import torch_mlir
         from ..torch_mlir_patch import stateless_fx_import
 
         mlir_module = stateless_fx_import(
@@ -247,7 +254,7 @@ class NpuMetaKernel(Kernel):
 
         run_pipeline_with_repro_report(
             mlir_module,
-            f"builtin.module(torch-lower-to-backend-contract)",
+            "builtin.module(torch-lower-to-backend-contract)",
             "Lowering TorchFX IR -> Torch Backend IR",
         )
         code.splice(f'{str(mlir_module)}')
@@ -277,11 +284,11 @@ class NpuMetaKernel(Kernel):
         fd.write("\n")
         fd.write("if __name__ == '__main__':\n")
         fd.write("    from torch._inductor.utils import print_performance\n")
-        fd.write(f"    with torch.no_grad():\n")
+        fd.write("    with torch.no_grad():\n")
         fd.write(generate_fake_inputs(name_to_example_inputs))
         fd.write('\n')
         fd.write(f"        fn = lambda: mod({call_args_str})\n")
-        fd.write(f"        print_performance(fn, times=10, repeat=10)\n")
+        fd.write("        print_performance(fn, times=10, repeat=10)\n")
 
 
 class NpuMetaScheduling(SIMDScheduling):
@@ -312,7 +319,7 @@ class NpuMetaScheduling(SIMDScheduling):
             if isinstance(cached_val, str):
                 return cached_val
             else:
-                log.warning(f"Found invalid cache entry for kernel {mlir_kernel}. Recompiling.")
+                log.warning("Found invalid cache entry for kernel %s. Recompiling.", mlir_kernel)
                 del wrapper.src_to_kernel[kernel_key]
 
         fused_name = (
@@ -329,6 +336,9 @@ class NpuMetaScheduling(SIMDScheduling):
             kernel_suffix = wrapper.next_kernel_suffix()
             prefix = self._get_kernel_prefix()
             kernel_name = "_".join([prefix, fused_name, kernel_suffix])
+
+        if mode in ["auto_fallback", "default"]:
+            src_code = src_code.replace("MODEL_NAME", kernel_name)
         compile_src_code, extra_kernel_meta = self._postprocess_src_code(src_code, mlir_kernel, kernel_name)
 
         current_device = V.graph.get_current_device_or_throw()
@@ -351,7 +361,6 @@ class NpuMetaScheduling(SIMDScheduling):
         metadata_comment = ""
 
         if mode == "auto_fallback":
-            src_code = src_code.replace("MODEL_NAME", kernel_name)
             self._handle_auto_fallback_mode(
                 compile_wrapper, src_code, kernel_name, subs_name, kernel_meta, wrapper, metadata_comment, mlir_kernel
             )
@@ -360,7 +369,6 @@ class NpuMetaScheduling(SIMDScheduling):
                 compile_wrapper, kernel_name, kernel_meta, wrapper, metadata_comment, mlir_kernel
             )
         else:
-            src_code = src_code.replace("MODEL_NAME", kernel_name)
             self._handle_default_mode(
                 compile_wrapper, src_code, kernel_name, subs_name, kernel_meta, wrapper, metadata_comment, mlir_kernel
             )
@@ -394,7 +402,10 @@ class NpuMetaScheduling(SIMDScheduling):
             'are_deterministic_algorithms_enabled': torch.are_deterministic_algorithms_enabled(),
         }
 
-    def _handle_auto_fallback_mode(self, compile_wrapper, src_code, name, subs_name, meta, wrapper, metadata_comment, mlir_kernel=None):
+    def _handle_auto_fallback_mode(
+            self, compile_wrapper, src_code, name, subs_name,
+            meta, wrapper, metadata_comment, mlir_kernel=None,
+    ):
         _basename, _, kernel_path = get_path(code_hash(src_code.strip()), "py")
 
         compile_wrapper.writeline(f"async_compile.{self._get_compile_api()}({subs_name!r}, '''")
@@ -440,9 +451,20 @@ class NpuMetaScheduling(SIMDScheduling):
             subgraph_dump_path = os.path.join(anir_config.fx_subgraph_dump_path, str(device.index), kernel_name)
             os.makedirs(subgraph_dump_path, exist_ok=True)
 
-            num_args = len(mlir_kernel._gm.code.split('forward(', )[1].split(')')[0].split(', ')) - 1
-            fx_graph_code = get_fx_graph_code(mlir_kernel._gm.code, num_args, runnable=False, kernel_code=compile_code, kernel_name=kernel_name)
-            runnable_fx_graph_code = get_fx_graph_code(mlir_kernel._gm.code, num_args, runnable=True, kernel_code=compile_code, kernel_name=kernel_name)
+            num_args = (
+                len(mlir_kernel._gm.code.split('forward(', )[1]
+                    .split(')')[0].split(', ')) - 1
+            )
+            fx_graph_code = get_fx_graph_code(
+                mlir_kernel._gm.code, num_args,
+                runnable=False, kernel_code=compile_code,
+                kernel_name=kernel_name,
+            )
+            runnable_fx_graph_code = get_fx_graph_code(
+                mlir_kernel._gm.code, num_args,
+                runnable=True, kernel_code=compile_code,
+                kernel_name=kernel_name,
+            )
 
             with open(os.path.join(subgraph_dump_path, f'{kernel_name}.py'), 'w') as f:
                 f.write(fx_graph_code)
