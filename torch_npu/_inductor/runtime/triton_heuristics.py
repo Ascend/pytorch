@@ -742,6 +742,11 @@ class NPUCachingAutotuner(CachingAutotuner):
             "compile_mode": compile_meta['compile_mode'],
             "enable_vf_fusion": cfg_kwargs.get('enable_vf_fusion', False),
         }
+        options = self.parse_triton_ascend_options(
+            self.triton_meta.get("npu_compile_options", {}),
+            options,
+        )
+        options = self.parse_triton_ascend_options(cfg_kwargs, options)
         # pure simt stack overflow check
         if compile_meta['compile_mode'] == NPUKernelType.SIMT_ONLY.compile_mode():
             options['simt_stack_limit'] = npu_config.simt_default_warp_stacksize
@@ -1186,6 +1191,10 @@ class NPUCachingAutotuner(CachingAutotuner):
             "compile_mode": compile_meta['compile_mode'],
         }
 
+        options = self.parse_triton_ascend_options(
+            self.triton_meta.get("npu_compile_options", {}),
+            options,
+        )
         options = self.parse_triton_ascend_options(cfg_kwargs, options)
         if self.inductor_meta.get("enable_auto_blockify", False):
             options["enable_auto_blockify"] = True

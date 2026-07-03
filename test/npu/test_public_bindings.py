@@ -699,6 +699,8 @@ class TestPublicBindings(TestCase):
             "torch_npu._inductor.fasta_autotune",
             "torch_npu._inductor.profiler",
             "torch_npu._inductor.kernel.flex_attention",
+            "torch_npu._inductor.kernel.flex_attention_config_generator",
+            "torch_npu._inductor.kernel.flex_attention_metadata",
             "torch_npu._inductor.fx_passes.parallel_scheduler_pass",
             "torch_npu._inductor.fx_passes.parallelism_strategy_base",
             "torch_npu._inductor.fx_passes.parallelism_strategy_cv",

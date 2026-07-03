@@ -29,9 +29,8 @@ from .mfusion.safe_inductor_exc import apply_safe_operator_str_patch_if_enabled
 
 apply_safe_operator_str_patch_if_enabled()
 
-def _get_backend() -> str: 
+def _get_backend() -> str:
      return os.getenv("TORCHINDUCTOR_NPU_BACKEND", "default")
-
 
 def _load_mlir_backend():
     import torch
@@ -67,8 +66,6 @@ def _load_dvm_backend():
         patch_gen_common_triton_ext_imports()
         patch_triton_scheduling()
         patch_triton_heuristics_cached_autotune()
-
-    
 
 
 def _load_triton_backend():
@@ -122,6 +119,7 @@ def _load_triton_backend():
         _register_npu_inductor_grouped_mm,
         _register_npu_inductor_mm,
         _validate_device,
+        patch_flex_attention,
     )
     from .lowering import make_reduction
     from .runtime import (
@@ -134,12 +132,13 @@ def _load_triton_backend():
     from .utils import patch_get_first_incompatible_cudagraph_node
 
     from .graph import patch_count_bytes
-    
+
     from .autotune_process import patch_tuning_process, patch_tuning_process_pool
     from .codegen.cpp_utils import patch_device_to_aten
     from .codegen.triton import patch_gen_common_triton_ext_imports, patch_triton_scheduling
     from .runtime import patch_triton_heuristics_cached_autotune
     flex_attention._validate_device = _validate_device
+    patch_flex_attention()
 
     def _patch_flex_attention_singleton_sort():
         original = getattr(flex_attention, "_dense_to_ordered", None)
