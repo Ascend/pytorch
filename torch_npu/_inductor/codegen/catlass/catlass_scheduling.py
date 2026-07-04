@@ -211,7 +211,7 @@ class CATLASSScheduling(BaseScheduling):
             V.graph.removed_buffers |= kernel.removed_buffers
             self.free_buffers_in_scheduler()
 
-        size_args = V.graph.sizevars.size_hints(kernel.get_layout_args())
+        size_args = V.graph.sizevars.size_hints(kernel.get_layout_args(), fallback=8192)
         return src_code, size_args
 
     def generate_kernel_code_from_nodes(self, nodes, benchmark_kernel=False, hint_override=None):
