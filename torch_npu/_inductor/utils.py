@@ -9,8 +9,6 @@ import torch_npu
 import torch._inductor.config as inductor_config
 log = logging.getLogger("torch._inductor")
 
-NPU_ALIGN_BYTES = 32
-
 
 def get_current_raw_stream(device):
     return torch.npu.current_stream(device).npu_stream

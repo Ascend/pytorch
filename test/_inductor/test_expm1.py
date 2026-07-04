@@ -15,7 +15,7 @@ class TestExpm1(TestUtils):
         first_element = self._generate_tensor(shape, dtype)
 
         std_result = self.op_calc(first_element)
-        compiled_op_calc = torch.compile(self.op_calc, backend="inductor")
+        compiled_op_calc = torch.compile(self.op_calc, backend="inductor", dynamic=False)
         inductor_result = compiled_op_calc(first_element)
 
         self.assertEqual(std_result, inductor_result, atol=1e-3, rtol=1e-3, equal_nan=True)

@@ -227,11 +227,7 @@ aggresive_autotune = os.getenv("INDUCTOR_ASCEND_AGGRESSIVE_AUTOTUNE", "0").lower
     "1",
     "true",
 )
-inductor_static_mode = os.environ.get("INDUCTOR_STATIC_MODE", "0").lower() in (
-    "1",
-    "yes",
-    "true",
-)
+
 profile_path = "./profile_result/"
 
 fasta_autotune = os.environ.get("FASTAUTOTUNE", "0") == "1"
