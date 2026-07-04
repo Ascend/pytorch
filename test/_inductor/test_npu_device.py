@@ -48,11 +48,14 @@ class TestNpuDevice(TestCase):
         excepted = "torch.npu.set_device(0)"
         self.assertEqual(result, excepted)
 
-    def test_import_get_raw_stream_as(self):
         overrides = NewNPUDeviceOpOverrides()
-        result = overrides.import_get_raw_stream_as("test_name")
-        excepted = "from torch_npu._C import _npu_getCurrentRawStream as test_name"
-        self.assertEqual(result, excepted)
+        test_name = "test_name_npu"
+        result = overrides.import_get_raw_stream_as(test_name)
+        expected = f"from torch._C import _npu_getCurrentRawStream as {test_name}"
+        import torch_npu
+        if hasattr(torch_npu._C, "_npu_getCurrentRawStreamNoWait"):
+            expected = f"from torch_npu._C import _npu_getCurrentRawStreamNoWait as {test_name}"
+        self.assertEqual(result, expected)
 
 
 if __name__ == "__main__":

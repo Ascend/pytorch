@@ -1435,7 +1435,10 @@ class NPUIndexTritonKernel(TritonKernel):
         self.golden_var_list = None
         self.reduce_analysis = None
         self.load_store_indexing = None
-        self.npu_kernel_type = NPUKernelType.SIMD
+        if npu_config.is_ascend950:
+            self.npu_kernel_type = NPUKernelType.SIMT_TEMPLATE
+        else:
+            self.npu_kernel_type = NPUKernelType.SIMD
         self.current_subblock_axis = set()  # noqa: set_linter
         self.node_schedule = self.features.node_schedule
         # Independent set to track only genuine reduction result variables,

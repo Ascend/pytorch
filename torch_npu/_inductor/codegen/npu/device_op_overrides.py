@@ -3,6 +3,11 @@ from torch._inductor.codegen.common import DeviceOpOverrides, register_device_op
 
 class NewNPUDeviceOpOverrides(DeviceOpOverrides):
     def import_get_raw_stream_as(self, name):
+        import torch_npu
+        from torch._inductor.config import max_autotune
+
+        if not max_autotune and hasattr(torch_npu._C, "_npu_getCurrentRawStreamNoWait"):
+            return f"from torch_npu._C import _npu_getCurrentRawStreamNoWait as {name}"
         return f"from torch_npu._C import _npu_getCurrentRawStream as {name}"
 
     def set_device(self, device_idx):
