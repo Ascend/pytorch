@@ -857,6 +857,25 @@ def generate_bwd_fused_mask_out_candidate_configs(
     )
 
 
+def generate_bwd_split_mask_out_candidate_configs(
+    query_shape: tuple,
+    key_shape: tuple,
+    sparse_q_block_size: int,
+    sparse_kv_block_size: int,
+    dtype: torch.dtype,
+    num_cube_core: int,
+) -> list[dict]:
+    """Generate candidate configs for split DQ and DKDV backward mask-out kernels."""
+    return generate_bwd_fused_mask_out_candidate_configs(
+        query_shape=query_shape,
+        key_shape=key_shape,
+        sparse_q_block_size=sparse_q_block_size,
+        sparse_kv_block_size=sparse_kv_block_size,
+        dtype=dtype,
+        num_cube_core=num_cube_core,
+    )
+
+
 def validate_benchmark_config() -> None:
     """
     Validate benchmark configuration before autotuning.

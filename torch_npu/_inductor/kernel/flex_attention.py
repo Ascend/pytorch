@@ -311,12 +311,11 @@ from torch_npu._inductor.kernel.flex_attention_metadata import (
 )
 from torch_npu._inductor.kernel.flex_attention_config_generator import (
     build_sparse_mask_candidate_configs,
-    generate_bwd_fused_mask_out_candidate_configs,
+    generate_bwd_split_mask_out_candidate_configs,
     generate_fwd_candidate_configs,
     is_bwd_config_compatible,
     prefer_max_tiling_without_benchmark,
     sparse_mask_attention_cvpipeline_config_variants,
-    split_attention_block_n_candidates,
     validate_benchmark_config,
 )
 from torch_npu._inductor.select_algorithm import NPUTritonTemplate
@@ -341,6 +340,45 @@ def _force_fixed_layout(x: TensorBox, strides: Sequence[Any]) -> TensorBox:
             stride=[sympy.sympify(s) for s in strides],
         )
     return x
+
+
+def _get_graph_output_node(graph) -> Any:
+    for node in reversed(graph.nodes):
+        if node.op != "output":
+            continue
+        output_arg = node.args[0]
+        if isinstance(output_arg, (tuple, list)):
+            return output_arg[0] if output_arg else None
+        return output_arg
+    return None
+
+
+def _is_score_mod_identity_graph(fw_graph) -> bool:
+    graph = fw_graph.graph_module.graph
+    placeholders = [node for node in graph.nodes if node.op == "placeholder"]
+    if not placeholders:
+        return False
+    return _get_graph_output_node(graph) is placeholders[0]
+
+
+def _is_grad_score_mod_identity_graph(joint_graph) -> bool:
+    graph = joint_graph.graph_module.graph
+    placeholders = [node for node in graph.nodes if node.op == "placeholder"]
+    if len(placeholders) < 6:
+        return False
+    grad_score_ph = placeholders[5]
+    output_arg = _get_graph_output_node(graph)
+    if output_arg is grad_score_ph:
+        return True
+
+    for node in reversed(graph.nodes):
+        if node.op != "output":
+            continue
+        raw_output = node.args[0]
+        if isinstance(raw_output, (tuple, list)) and raw_output:
+            return raw_output[0] is grad_score_ph
+        return False
+    return False
 
 
 def patch_flex_attention() -> None:
@@ -764,7 +802,7 @@ compute_bwd_sparse_mask_kernel_compact = r"""
         mask_mod_output = mask_mod_output & store_mask
         mask_base = SPARSE_MASK + expected_flat_blk * SPARSE_MASK_STRIDE_BLK
         mask_offsets = offs_m_local[:, None] * SPARSE_MASK_STRIDE_M + offs_n_local[None, :]
-        tl.store(mask_base + mask_offsets, mask_mod_output.to(tl.int8), mask=store_mask)
+        tl.store(mask_base + mask_offsets, mask_mod_output, mask=store_mask)
 """
 
 compute_sparse_mask_block_pos_kernel = r"""
@@ -874,9 +912,6 @@ def forward_block_mn_sparse_mask(
         out="qk"
     ) | indent_except_first(1) }}
 
-    if CHECK_BLOCK_BOUNDARY:
-        post_mod_scores = tl.where(offs_n < KV_LEN, post_mod_scores, float("-inf"))
-
     if not IS_FULL_BLOCKS:
         SPARSE_Q_MULTIPLE: tl.constexpr = (SPARSE_Q_BLOCK_SIZE // BLOCK_M)
         SPARSE_HQ: tl.constexpr = {{size("KV_NUM_BLKS", 1)}}
@@ -911,12 +946,18 @@ def forward_block_mn_sparse_mask(
         mask_mod_output = tl.load(mask_base + mask_offsets, mask=mask_bounds, other=0) != 0
 
         if CHECK_BLOCK_BOUNDARY:
-            mask_mod_output = tl.where(offs_n < KV_LEN, mask_mod_output, False)
+            mask_mod_output = mask_mod_output & (offs_n < KV_LEN)
         # apply mask for partially unmasked blocks
         post_mod_scores = tl.where(mask_mod_output, post_mod_scores, float("-inf"))
+    elif CHECK_BLOCK_BOUNDARY:
+        post_mod_scores = tl.where(offs_n < KV_LEN, post_mod_scores, float("-inf"))
 
     # -- compute scaling constant ---
-    m_ij = tl.maximum(m_i, tl.max(post_mod_scores, 1))
+    m_ij = tl.maximum(
+        m_i,
+        tl.max(post_mod_scores, 1, propagate_nan=True),
+        propagate_nan=tl.PropagateNan.ALL,
+    )
     if not ROWS_GUARANTEED_SAFE:
         masked_out_rows = (m_ij == float("-inf"))
         m_ij_masked = tl.where(masked_out_rows, 0, m_ij)
@@ -1084,7 +1125,11 @@ compute_flex_attention_sparse_mask_normal_in_loop_no_load_balance = r"""
 
         kv_indices = KV_IDX + sparse_kv_idx_offset
         kv_num_blocks = tl.load(KV_NUM_BLKS + sparse_kv_num_blks_offset)
-        block_n_end = tl.minimum(kv_num_blocks * SPARSE_KV_MULTIPLE, tl.maximum(tl.cdiv(KV_LEN, BLOCK_N), 1))
+        block_n_end = tl.minimum(
+            kv_num_blocks * SPARSE_KV_MULTIPLE,
+            tl.maximum(tl.cdiv(KV_LEN, BLOCK_N), 1, propagate_nan=True),
+            propagate_nan=tl.PropagateNan.ALL,
+        )
 
         acc, l_i, m_i = forward_inner_sparse_mask_direct_index(
             {{gen_argdefs()}},
@@ -1270,6 +1315,168 @@ compute_flex_attention_sparse_mask_full_128_in_loop_no_load_balance = r"""
                 tl.store(l_ptrs, lse, mask=offs_m < Q_LEN)
 """
 
+compute_flex_attention_sparse_mask_in_loop_no_load_balance = r"""
+{{def_kernel("Q", "K", "V", "SPARSE_MASK", "Q_OFFSETS", "KV_NUM_BLKS", "KV_IDX", "LSE", "FULL_KV_NUM_BLKS", "FULL_KV_IDX")}}
+    tl.static_assert(SPARSE_Q_BLOCK_SIZE >= BLOCK_M and SPARSE_Q_BLOCK_SIZE % BLOCK_M == 0)
+    tl.static_assert(SPARSE_KV_BLOCK_SIZE >= BLOCK_N and SPARSE_KV_BLOCK_SIZE % BLOCK_N == 0)
+    tl.static_assert(SPARSE_Q_BLOCK_SIZE == BLOCK_M)
+
+    stride_qz, stride_qh, stride_qm, stride_qk = {{stride("Q")}}
+    stride_kz, stride_kh, stride_kn, stride_kk = {{stride("K")}}
+    stride_vz, stride_vh, stride_vn, stride_vk = {{stride("V")}}
+
+    ZQ = {{size("Q", 0)}}
+    HQ = {{size("Q", 1)}}
+    Q_LEN = {{size("Q", 2)}}
+    ZKV = {{size("K", 0)}}
+    KV_LEN = {{size("K", 2)}}
+
+    MATMUL_PRECISION = Q.dtype.element_ty
+
+    for tile_id in range(tl.program_id(0), NUM_SPARSE_Q_BLOCKS * ZQ * HQ, tl.num_programs(0)):
+        q_start = tile_id % NUM_SPARSE_Q_BLOCKS
+        off_zh = tile_id // NUM_SPARSE_Q_BLOCKS
+        off_zq = off_zh // HQ
+        off_hq = off_zh % HQ
+        off_zkv = off_zq % ZKV
+        off_hkv = off_hq // GQA_SHARED_HEADS
+
+        Q_tile = Q + off_zq * stride_qz + off_hq * stride_qh
+        K_tile = K + off_zkv * stride_kz + off_hkv * stride_kh
+        V_tile = V + off_zkv * stride_vz + off_hkv * stride_vh
+
+        SPARSE_Z = {{size("KV_NUM_BLKS", 0)}}
+        SPARSE_HQ = {{size("KV_NUM_BLKS", 1)}}
+        sparse_idx_z = off_zq % SPARSE_Z
+        sparse_idx_hq = off_hq % SPARSE_HQ
+
+        SPARSE_Q_MULTIPLE: tl.constexpr = (SPARSE_Q_BLOCK_SIZE // BLOCK_M)
+        SPARSE_KV_MULTIPLE: tl.constexpr = (SPARSE_KV_BLOCK_SIZE // BLOCK_N)
+        FULL128_SUBTILES: tl.constexpr = (SPARSE_KV_BLOCK_SIZE // BLOCK_N)
+
+        stride_kv_num_blks_h = {{stride("KV_NUM_BLKS", 1)}}
+        stride_kv_idx_h = {{stride("KV_IDX", 1)}}
+        stride_kv_idx_m = {{stride("KV_IDX", 2)}}
+
+        m_i = tl.zeros([BLOCK_M], dtype=tl.float32) - float("inf")
+        l_i = tl.zeros([BLOCK_M], dtype=tl.float32)
+        acc = tl.zeros([BLOCK_M, V_HEAD_DIM_ROUNDED], dtype=tl.float32)
+
+        offs_m = q_start * BLOCK_M + tl.arange(0, BLOCK_M)
+        q_sparse_idx = q_start // SPARSE_Q_MULTIPLE
+
+        sparse_hz_offset = sparse_idx_z * SPARSE_HQ + sparse_idx_hq
+        sparse_kv_num_blks_offset = sparse_hz_offset * stride_kv_num_blks_h + q_sparse_idx
+        sparse_kv_idx_offset = sparse_hz_offset * stride_kv_idx_h + q_sparse_idx * stride_kv_idx_m
+
+        Q_block_ptr = tl.make_block_ptr(
+            base=Q_tile,
+            shape=(Q_LEN, QK_HEAD_DIM),
+            strides=(stride_qm, stride_qk),
+            offsets=(q_start * BLOCK_M, 0),
+            block_shape=(BLOCK_M, QK_HEAD_DIM_ROUNDED),
+            order=(1, 0),
+        )
+        q = load_checked_block(Q_block_ptr, IS_DIVISIBLE, SAFE_HEAD_DIM)
+
+        kv_indices = KV_IDX + sparse_kv_idx_offset
+        kv_num_blocks = tl.load(KV_NUM_BLKS + sparse_kv_num_blks_offset)
+        block_n_end = tl.minimum(
+            kv_num_blocks * SPARSE_KV_MULTIPLE,
+            tl.maximum(tl.cdiv(KV_LEN, BLOCK_N), 1, propagate_nan=True),
+            propagate_nan=tl.PropagateNan.ALL,
+        )
+
+        acc, l_i, m_i = forward_inner_sparse_mask_direct_index(
+            {{gen_argdefs()}},
+            q, K_tile, V_tile, Q_LEN, KV_LEN,
+            stride_kk, stride_kn, stride_vn, stride_vk,
+            acc, l_i, m_i,
+            off_zq, off_hq, offs_m[:, None],
+            kv_indices, kv_num_blocks,
+            0, block_n_end,
+            MATMUL_PRECISION,
+            q_start,
+            IS_FULL_BLOCKS=False,
+        )
+
+        FULL_SPARSE_Z = {{size("FULL_KV_NUM_BLKS", 0)}}
+        FULL_SPARSE_HQ = {{size("FULL_KV_NUM_BLKS", 1)}}
+        full_sparse_idx_z = off_zq % FULL_SPARSE_Z
+        full_sparse_idx_hq = off_hq % FULL_SPARSE_HQ
+
+        stride_full_kv_num_blks_h = {{stride("FULL_KV_NUM_BLKS", 1)}}
+        stride_full_kv_idx_h = {{stride("FULL_KV_IDX", 1)}}
+        stride_full_kv_idx_m = {{stride("FULL_KV_IDX", 2)}}
+
+        full_hz_offset = full_sparse_idx_z * FULL_SPARSE_HQ + full_sparse_idx_hq
+        full_kv_num_blks_offset = full_hz_offset * stride_full_kv_num_blks_h + q_sparse_idx
+        full_kv_idx_offset = full_hz_offset * stride_full_kv_idx_h + q_sparse_idx * stride_full_kv_idx_m
+        kv_num_blocks = tl.load(FULL_KV_NUM_BLKS + full_kv_num_blks_offset)
+
+        if kv_num_blocks > 0:
+            kv_indices = FULL_KV_IDX + full_kv_idx_offset
+
+            for start_n in range(0, kv_num_blocks):
+                kv_block_start = tl.load(kv_indices + start_n) * SPARSE_KV_BLOCK_SIZE
+                for sub_idx in range(0, FULL128_SUBTILES):
+                    kv_start = kv_block_start + sub_idx * BLOCK_N
+                    K_block_ptr = tl.make_block_ptr(
+                        base=K_tile,
+                        shape=(KV_LEN, QK_HEAD_DIM),
+                        strides=(stride_kn, stride_kk),
+                        offsets=(kv_start, 0),
+                        block_shape=(BLOCK_N, QK_HEAD_DIM_ROUNDED),
+                        order=(1, 0),
+                    )
+                    V_block_ptr = tl.make_block_ptr(
+                        base=V_tile,
+                        shape=(KV_LEN, V_HEAD_DIM),
+                        strides=(stride_vn, stride_vk),
+                        offsets=(kv_start, 0),
+                        block_shape=(BLOCK_N, V_HEAD_DIM_ROUNDED),
+                        order=(1, 0),
+                    )
+                    offs_n = kv_start + tl.arange(0, BLOCK_N)
+
+                    if IS_DIVISIBLE:
+                        acc, l_i, m_i = forward_block_mn_full(
+                            {{gen_argdefs()}},
+                            q, K_block_ptr, V_block_ptr, Q_LEN, KV_LEN,
+                            acc, l_i, m_i,
+                            off_zq, off_hq, offs_m[:, None], offs_n[None, :],
+                            MATMUL_PRECISION,
+                        )
+                    else:
+                        acc, l_i, m_i = forward_block_mn_full(
+                            {{gen_argdefs()}},
+                            q, K_block_ptr, V_block_ptr, Q_LEN, KV_LEN,
+                            acc, l_i, m_i,
+                            off_zq, off_hq, offs_m[:, None], offs_n[None, :],
+                            MATMUL_PRECISION,
+                            CHECK_BLOCK_BOUNDARY=True,
+                        )
+
+        l_i = tl.where(l_i == 0.0, 1, l_i)
+        acc = acc / l_i[:, None]
+        idx_zq = off_zq
+        idx_hq = off_hq
+        idx_m = offs_m[:, None]
+        idx_d = tl.arange(0, V_HEAD_DIM_ROUNDED)[None, :]
+        mask = (idx_m < Q_LEN) & (idx_d < V_HEAD_DIM)
+
+        {{store_output(("idx_zq", "idx_hq", "idx_m", "idx_d"), "acc", "mask", indent_width=8)}}
+
+        if OUTPUT_LOGSUMEXP:
+            off_hz = off_zq * HQ + off_hq
+            l_ptrs = LSE + off_hz * Q_LEN + offs_m
+            lse = m_i + tl.math.log(l_i)
+            if IS_DIVISIBLE:
+                tl.store(l_ptrs, lse)
+            else:
+                tl.store(l_ptrs, lse, mask=offs_m < Q_LEN)
+"""
+
 compute_forward_block_mn_full = r"""
 @triton.jit
 def forward_block_mn_full(
@@ -1303,7 +1510,11 @@ def forward_block_mn_full(
     if CHECK_BLOCK_BOUNDARY:
         post_mod_scores = tl.where(offs_n < KV_LEN, post_mod_scores, float("-inf"))
 
-    m_ij = tl.maximum(m_i, tl.max(post_mod_scores, 1))
+    m_ij = tl.maximum(
+        m_i,
+        tl.max(post_mod_scores, 1, propagate_nan=True),
+        propagate_nan=tl.PropagateNan.ALL,
+    )
     if not ROWS_GUARANTEED_SAFE:
         masked_out_rows = (m_ij == float("-inf"))
         m_ij_masked = tl.where(masked_out_rows, 0, m_ij)
@@ -1372,6 +1583,17 @@ flex_attention_sparse_mask_full_128_template_in_loop_no_load_balance = NPUTriton
     name="flex_attention_sparse_mask_full_128_in_loop_no_load_balance",
     grid=flex_attention_in_loop_grid,
     source=compute_flex_attention_sparse_mask_full_128_in_loop_no_load_balance
+    + compute_forward_block_mn_full
+    + load_checked_block
+    + get_bounded_indices_func,
+)
+
+flex_attention_sparse_mask_template_in_loop_no_load_balance = NPUTritonTemplate(
+    name="flex_attention_sparse_mask_in_loop_no_load_balance",
+    grid=flex_attention_in_loop_grid,
+    source=compute_flex_attention_sparse_mask_in_loop_no_load_balance
+    + compute_forward_inner_sparse_mask_direct_index
+    + compute_forward_block_mn_sparse_mask
     + compute_forward_block_mn_full
     + load_checked_block
     + get_bounded_indices_func,
@@ -1487,16 +1709,309 @@ def _build_persistent_bwd_launch_meta(
     }
 
 
+def _build_qmajor_dq_launch_meta(
+    batch_size_hint: int,
+    q_heads_hint: int,
+    num_queries_hint: int,
+    block_m: int,
+) -> dict[str, int]:
+    num_q_blocks = (num_queries_hint + block_m - 1) // block_m
+    num_tasks = num_q_blocks * batch_size_hint * q_heads_hint
+    num_cube_core = max(int(npu_config.num_cube_core), 1)
+    launch_programs = max(min(num_tasks, num_cube_core), 1)
+
+    log.info(
+        "[qmajor-dq-bwd] Computing launch meta with BLOCK_M2=%d: "
+        "DQ_NUM_Q_BLOCKS=%d (%d/%d), DQ_NUM_TASKS=%d (%d*%d*%d), "
+        "DQ_LAUNCH_PROGRAMS=%d",
+        block_m,
+        num_q_blocks,
+        num_queries_hint,
+        block_m,
+        num_tasks,
+        num_q_blocks,
+        batch_size_hint,
+        q_heads_hint,
+        launch_programs,
+    )
+
+    return {
+        "DQ_NUM_Q_BLOCKS": num_q_blocks,
+        "DQ_NUM_TASKS": num_tasks,
+        "DQ_LAUNCH_PROGRAMS": launch_programs,
+    }
+
+
 @SymbolicGridFn
-def flex_attention_backward_fused_grid(
+def flex_attention_backward_dq_grid(
+    batch_size, q_heads, num_queries, qk_head_dim, kv_heads, num_key_value, meta, *, cdiv
+):
+    return (meta["DQ_LAUNCH_PROGRAMS"], 1, 1)
+
+
+@SymbolicGridFn
+def flex_attention_backward_dkdv_grid(
     batch_size, q_heads, num_queries, qk_head_dim, kv_heads, num_key_value, meta, *, cdiv
 ):
     return (meta["LAUNCH_PROGRAMS"], 1, 1)
 
 
+flex_attention_backward_qmajor_dq_source = r"""
+{{def_kernel("Q", "K", "V", "LSE", "DELTA", "DO", "DQ", "SPARSE_MASK", "Q_OFFSETS", "SPARSE_MASK_BLOCK_POS", "KV_NUM_BLKS", "KV_IDX", "Q_NUM_BLKS", "Q_IDX", "FULL_KV_NUM_BLKS", "FULL_KV_IDX", "FULL_Q_NUM_BLKS", "FULL_Q_IDX")}}
+    stride_qz, stride_qh, stride_qm, stride_qd = {{stride("Q")}}
+    stride_kz, stride_kh, stride_kn, stride_kd = {{stride("K")}}
+    stride_vz, stride_vh, stride_vn, stride_vd = {{stride("V")}}
+    stride_doz, stride_doh, stride_dom, stride_dod = {{stride("DO")}}
+    stride_dqz, stride_dqh, stride_dqm, stride_dqd = {{stride("DQ")}}
 
-flex_attention_backward_fused_compact_sparse_mask_out_source = r"""
-{{def_kernel("Q", "K", "V", "LSE", "DELTA", "DO", "DQ", "DV", "DK", "SPARSE_MASK", "Q_OFFSETS", "SPARSE_MASK_BLOCK_POS", "KV_NUM_BLKS", "KV_IDX", "Q_NUM_BLKS", "Q_IDX", "FULL_KV_NUM_BLKS", "FULL_KV_IDX", "FULL_Q_NUM_BLKS", "FULL_Q_IDX")}}
+    ZQ = {{size("Q", 0)}}
+    HQ = {{size("Q", 1)}}
+    HKV = {{size("K", 1)}}
+    Q_LEN = {{size("Q", 2)}}
+    ZKV = {{size("K", 0)}}
+    KV_LEN = {{size("K", 2)}}
+    MATMUL_PRECISION = Q.dtype.element_ty
+
+    tl.static_assert(BLOCK_M2 == SPARSE_Q_BLOCK_SIZE)
+    tl.static_assert(BLOCK_N2 == SPARSE_KV_BLOCK_SIZE)
+
+    pid = tl.program_id(0).to(tl.int32)
+    num_core = tl.num_programs(0).to(tl.int32)
+
+    SPARSE_Z = {{size("KV_NUM_BLKS", 0)}}
+    SPARSE_HQ = {{size("KV_NUM_BLKS", 1)}}
+
+    offs_k = tl.arange(0, QK_HEAD_DIM_ROUNDED)
+    offs_v = tl.arange(0, V_HEAD_DIM_ROUNDED)
+
+    stride_kv_num_blks_z = {{stride("KV_NUM_BLKS", 0)}}
+    stride_kv_num_blks_h = {{stride("KV_NUM_BLKS", 1)}}
+    stride_kv_num_blks_m = {{stride("KV_NUM_BLKS", 2)}}
+    stride_kv_idx_z = {{stride("KV_IDX", 0)}}
+    stride_kv_idx_h = {{stride("KV_IDX", 1)}}
+    stride_kv_idx_m = {{stride("KV_IDX", 2)}}
+    stride_kv_idx_blk = {{stride("KV_IDX", 3)}}
+    stride_full_kv_num_blks_z = {{stride("FULL_KV_NUM_BLKS", 0)}}
+    stride_full_kv_num_blks_h = {{stride("FULL_KV_NUM_BLKS", 1)}}
+    stride_full_kv_num_blks_m = {{stride("FULL_KV_NUM_BLKS", 2)}}
+    stride_full_kv_idx_z = {{stride("FULL_KV_IDX", 0)}}
+    stride_full_kv_idx_h = {{stride("FULL_KV_IDX", 1)}}
+    stride_full_kv_idx_m = {{stride("FULL_KV_IDX", 2)}}
+    stride_full_kv_idx_blk = {{stride("FULL_KV_IDX", 3)}}
+
+    for task_id in range(pid, DQ_NUM_TASKS, num_core):
+        q_block = task_id % DQ_NUM_Q_BLOCKS
+        off_zq = (task_id // DQ_NUM_Q_BLOCKS) // HQ
+        off_hq = (task_id // DQ_NUM_Q_BLOCKS) % HQ
+        off_hkv = off_hq // GQA_SHARED_HEADS
+        off_zkv = off_zq % ZKV
+        sparse_idx_z = off_zq % SPARSE_Z
+        sparse_h = off_hq % SPARSE_HQ
+        sparse_mask_h = off_hq % SPARSE_MASK_HQ
+
+        q_start = q_block * BLOCK_M2
+        offs_m = q_start + tl.arange(0, BLOCK_M2)
+
+        q_base = Q + stride_qz * off_zq + stride_qh * off_hq
+        k_base = K + stride_kz * off_zkv + stride_kh * off_hkv
+        v_base = V + stride_vz * off_zkv + stride_vh * off_hkv
+        do_base = DO + stride_doz * off_zq + stride_doh * off_hq
+        dq_base = DQ + stride_dqz * off_zq + stride_dqh * off_hq
+        off_chz = ((off_zq * HQ + off_hq) * Q_LEN).to(tl.int64)
+        lse_base = LSE + off_chz
+        delta_base = DELTA + off_chz
+
+        q = load_checked_2d(Q + stride_qz * off_zq + stride_qh * off_hq, offs_m, offs_k, stride_qm, stride_qd, IS_DIVISIBLE, SAFE_HEAD_DIM, Q_LEN, QK_HEAD_DIM)
+        do = load_checked_2d(DO + stride_doz * off_zq + stride_doh * off_hq, offs_m, offs_v, stride_dom, stride_dod, IS_DIVISIBLE, SAFE_HEAD_DIM, Q_LEN, V_HEAD_DIM)
+        lse = tl.load(lse_base + offs_m, mask=offs_m < Q_LEN, other=float("-inf"))
+        lse = tl.where(lse == -float("inf"), 0.0, lse)
+        Di = tl.load(delta_base + offs_m, mask=offs_m < Q_LEN, other=0.0)
+        dq = tl.zeros([BLOCK_M2, QK_HEAD_DIM_ROUNDED], dtype=tl.float32)
+
+        kv_num_offset = (
+            sparse_idx_z * stride_kv_num_blks_z
+            + sparse_h * stride_kv_num_blks_h
+            + q_block * stride_kv_num_blks_m
+        )
+        kv_idx_offset = (
+            sparse_idx_z * stride_kv_idx_z
+            + sparse_h * stride_kv_idx_h
+            + q_block * stride_kv_idx_m
+        )
+        q_offsets_idx = (
+            sparse_idx_z * SPARSE_MASK_HQ * (NUM_SPARSE_Q_BLOCKS + 1)
+            + sparse_mask_h * (NUM_SPARSE_Q_BLOCKS + 1)
+            + q_block
+        )
+        q_offset_base = tl.load(arg_Q_OFFSETS + q_offsets_idx)
+
+        kv_num_blocks = tl.load(arg_KV_NUM_BLKS + kv_num_offset)
+        for blk_pos in range(0, kv_num_blocks):
+            kv_sparse_idx = tl.load(arg_KV_IDX + kv_idx_offset + blk_pos * stride_kv_idx_blk)
+            offs_n = kv_sparse_idx * SPARSE_KV_BLOCK_SIZE + tl.arange(0, BLOCK_N2)
+            k = load_checked_2d(k_base, offs_n, offs_k, stride_kn, stride_kd, IS_DIVISIBLE, SAFE_HEAD_DIM, KV_LEN, QK_HEAD_DIM)
+            v = load_checked_2d(v_base, offs_n, offs_v, stride_vn, stride_vd, IS_DIVISIBLE, SAFE_HEAD_DIM, KV_LEN, V_HEAD_DIM)
+            qk = tl.dot(q, tl.trans(k), input_precision="ieee")
+            if not PRESCALE_QK:
+                qk *= SM_SCALE
+
+            m = get_bounded_indices(offs_m[:, None], Q_LEN if (not IS_DIVISIBLE or not SAFE_HEAD_DIM) else None)
+            n = get_bounded_indices(offs_n[None, :], KV_LEN if (not IS_DIVISIBLE or not SAFE_HEAD_DIM) else None)
+            flat_blk = q_offset_base + blk_pos
+            offs_m_local = offs_m[:, None] - q_block * SPARSE_Q_BLOCK_SIZE
+            offs_n_local = offs_n[None, :] - kv_sparse_idx * SPARSE_KV_BLOCK_SIZE
+            mask_offsets = offs_m_local * SPARSE_MASK_STRIDE_M + offs_n_local
+            mask_bounds = (offs_m[:, None] < Q_LEN) & (offs_n[None, :] < KV_LEN)
+            mask_mod_output = tl.load(
+                arg_SPARSE_MASK + flat_blk * SPARSE_MASK_STRIDE_BLK + mask_offsets,
+                mask=mask_bounds,
+                other=0,
+            )
+{% if BWD_SCORE_MOD_IS_IDENTITY %}
+{% if not BWD_GRAD_SCORE_MOD_IS_IDENTITY %}
+            pre_mod_scores = qk
+{% endif %}
+            qk = tl.where(mask_mod_output & (offs_n[None, :] < KV_LEN), qk, float("-inf"))
+            p = tl.math.exp(qk - lse[:, None])
+{% else %}
+            pre_mod_scores = qk
+            {{ modification(
+                subgraph_number=0,
+                output_name="post_mod_scores",
+                score="qk",
+                b="off_zq",
+                h="off_hq",
+                m="m",
+                n="n",
+                out="qk",
+            ) | indent_except_first(3) }}
+            post_mod_scores = tl.where(mask_mod_output & (offs_n[None, :] < KV_LEN), post_mod_scores, float("-inf"))
+            p = tl.math.exp(post_mod_scores - lse[:, None])
+{% endif %}
+            dp = tl.dot(do, tl.trans(v), input_precision="ieee")
+            ds = p * (dp - Di[:, None])
+{% if BWD_GRAD_SCORE_MOD_IS_IDENTITY %}
+            ds = tl.where(mask_mod_output, ds, 0.0)
+{% else %}
+            {{ modification(
+                subgraph_number=1,
+                output_name="grad_scores",
+                score="pre_mod_scores",
+                b="off_zq",
+                h="off_hq",
+                m="m",
+                n="n",
+                grad_score_mod="ds",
+            ) | indent_except_first(3) }}
+            ds = tl.where(mask_mod_output, grad_scores, 0.0)
+{% endif %}
+            dq += tl.dot(ds.to(MATMUL_PRECISION), k, input_precision="ieee")
+
+        if HAS_FULL_BLOCKS:
+            full_kv_num_offset = (
+                sparse_idx_z * stride_full_kv_num_blks_z
+                + sparse_h * stride_full_kv_num_blks_h
+                + q_block * stride_full_kv_num_blks_m
+            )
+            full_kv_idx_offset = (
+                sparse_idx_z * stride_full_kv_idx_z
+                + sparse_h * stride_full_kv_idx_h
+                + q_block * stride_full_kv_idx_m
+            )
+            full_kv_num_blocks = tl.load(arg_FULL_KV_NUM_BLKS + full_kv_num_offset)
+            for blk_pos in range(0, full_kv_num_blocks):
+                kv_sparse_idx = tl.load(arg_FULL_KV_IDX + full_kv_idx_offset + blk_pos * stride_full_kv_idx_blk)
+                offs_n = kv_sparse_idx * SPARSE_KV_BLOCK_SIZE + tl.arange(0, BLOCK_N2)
+                k = load_checked_2d(k_base, offs_n, offs_k, stride_kn, stride_kd, IS_DIVISIBLE, SAFE_HEAD_DIM, KV_LEN, QK_HEAD_DIM)
+                v = load_checked_2d(v_base, offs_n, offs_v, stride_vn, stride_vd, IS_DIVISIBLE, SAFE_HEAD_DIM, KV_LEN, V_HEAD_DIM)
+                qk = tl.dot(q, tl.trans(k), input_precision="ieee")
+                if not PRESCALE_QK:
+                    qk *= SM_SCALE
+
+                m = get_bounded_indices(offs_m[:, None], Q_LEN if (not IS_DIVISIBLE or not SAFE_HEAD_DIM) else None)
+                n = get_bounded_indices(offs_n[None, :], KV_LEN if (not IS_DIVISIBLE or not SAFE_HEAD_DIM) else None)
+{% if BWD_SCORE_MOD_IS_IDENTITY %}
+{% if not BWD_GRAD_SCORE_MOD_IS_IDENTITY %}
+                pre_mod_scores = qk
+{% endif %}
+                qk = tl.where(offs_n[None, :] < KV_LEN, qk, float("-inf"))
+                p = tl.math.exp(qk - lse[:, None])
+{% else %}
+                pre_mod_scores = qk
+                {{ modification(
+                    subgraph_number=0,
+                    output_name="post_mod_scores",
+                    score="qk",
+                    b="off_zq",
+                    h="off_hq",
+                    m="m",
+                    n="n",
+                    out="qk",
+                ) | indent_except_first(4) }}
+                post_mod_scores = tl.where(offs_n[None, :] < KV_LEN, post_mod_scores, float("-inf"))
+                p = tl.math.exp(post_mod_scores - lse[:, None])
+{% endif %}
+                dp = tl.dot(do, tl.trans(v), input_precision="ieee")
+                ds = p * (dp - Di[:, None])
+{% if BWD_GRAD_SCORE_MOD_IS_IDENTITY %}
+                dq += tl.dot(ds.to(MATMUL_PRECISION), k, input_precision="ieee")
+{% else %}
+                {{ modification(
+                    subgraph_number=1,
+                    output_name="grad_scores",
+                    score="pre_mod_scores",
+                    b="off_zq",
+                    h="off_hq",
+                    m="m",
+                    n="n",
+                    grad_score_mod="ds",
+                ) | indent_except_first(4) }}
+                grad_scores = tl.where(offs_n[None, :] < KV_LEN, grad_scores, 0.0)
+                dq += tl.dot(grad_scores.to(MATMUL_PRECISION), k, input_precision="ieee")
+{% endif %}
+
+        dq *= SM_SCALE
+        index_m = offs_m[:, None]
+        index_k = offs_k[None, :]
+        if SAFE_HEAD_DIM:
+            dq_mask = index_m < Q_LEN
+        else:
+            dq_mask = (index_m < Q_LEN) & (index_k < QK_HEAD_DIM)
+        tl.store(dq_base + index_m * stride_dqm + index_k * stride_dqd, dq, mask=dq_mask)
+
+@triton.jit
+def get_bounded_indices(indices, max_len=None):
+    return indices % max_len if max_len is not None else indices
+
+@triton.jit
+def load_checked_2d(
+    ptr,
+    offs_m,
+    offs_n,
+    stride_m,
+    stride_n,
+    IS_DIVISIBLE_M: tl.constexpr,
+    IS_DIVISIBLE_N: tl.constexpr,
+    M_LEN: tl.constexpr,
+    N_DIM: tl.constexpr,
+):
+    if stride_m is not None and stride_n is not None:
+        ptr = ptr + offs_m[:, None] * stride_m + offs_n[None, :] * stride_n
+
+    if not IS_DIVISIBLE_M and not IS_DIVISIBLE_N:
+        return tl.load(ptr, mask=(offs_m[:, None] < M_LEN) & (offs_n[None, :] < N_DIM), other=0.0)
+    elif IS_DIVISIBLE_M and not IS_DIVISIBLE_N:
+        return tl.load(ptr, mask=(offs_n[None, :] < N_DIM), other=0.0)
+    elif not IS_DIVISIBLE_M and IS_DIVISIBLE_N:
+        return tl.load(ptr, mask=(offs_m[:, None] < M_LEN), other=0.0)
+    else:
+        return tl.load(ptr)
+"""
+
+
+
+flex_attention_backward_dkdv_only_source = r"""
+{{def_kernel("Q", "K", "V", "LSE", "DELTA", "DO", "DV", "DK", "SPARSE_MASK", "Q_OFFSETS", "SPARSE_MASK_BLOCK_POS", "KV_NUM_BLKS", "KV_IDX", "Q_NUM_BLKS", "Q_IDX", "FULL_KV_NUM_BLKS", "FULL_KV_IDX", "FULL_Q_NUM_BLKS", "FULL_Q_IDX")}}
     # Sub notation for this kernel:
     #
     # Q: Query, K: Key, V: Value
@@ -1536,7 +2051,6 @@ flex_attention_backward_fused_compact_sparse_mask_out_source = r"""
     stride_vz, stride_vh, stride_vn, stride_vd = {{stride("V")}}
     stride_doz, stride_doh, stride_dom, stride_dod = {{stride("DO")}}
 
-    stride_dqz, stride_dqh, stride_dqm, stride_dqd = {{stride("DQ")}}
     stride_dvz, stride_dvh, stride_dvm, stride_dvd = {{stride("DV")}}
 
     ZQ = {{size("Q", 0)}}
@@ -1596,12 +2110,10 @@ flex_attention_backward_fused_compact_sparse_mask_out_source = r"""
 
             q_adj1 = (stride_qh * off_hq1 + stride_qz * off_zq).to(tl.int64)
             do_adj1 = (stride_doh * off_hq1 + stride_doz * off_zq).to(tl.int64)
-            dq_adj1 = (stride_dqh * off_hq1 + stride_dqz * off_zq).to(tl.int64)
             off_chz1 = ((off_zq * HQ + off_hq1) * Q_LEN).to(tl.int64)
 
             Q1 = Q + q_adj1
             DO1 = DO + do_adj1
-            DQ1 = DQ + dq_adj1
             LSE1 = LSE + off_chz1
             DELTA1 = DELTA + off_chz1
 
@@ -1623,10 +2135,10 @@ flex_attention_backward_fused_compact_sparse_mask_out_source = r"""
                 offs_m1 = q_start + tl.arange(0, BLOCK_M1)
                 bwd_dkdv_block_mn(
                     {{gen_argdefs()}},
-                    Q1, DO1, DQ1, DK, DELTA1, LSE1, DV1,
+                    Q1, DO1, DK, DELTA1, LSE1, DV1,
                     k, v, Q_LEN, KV_LEN,
                     off_zq, off_hq1, off_hkv, offs_n1, offs_m1, q_start, q_block, pid_mask, offs_k, offs_v,
-                    stride_qm, stride_qd, stride_dom, stride_dod, stride_dqm, stride_dqd,
+                    stride_qm, stride_qd, stride_dom, stride_dod,
                     stride_dvm, stride_dvd, stride_kz, stride_kh, stride_kn, stride_kd,
                     MATMUL_PRECISION,
                     False, CHECK_BLOCK_BOUNDARY=not IS_DIVISIBLE,
@@ -1647,10 +2159,10 @@ flex_attention_backward_fused_compact_sparse_mask_out_source = r"""
 {% if not PRESCALE_QK %}
                     bwd_dkdv_full_block_mn(
                         {{gen_argdefs()}},
-                        Q1, DO1, DQ1, DK, DELTA1, LSE1, DV1,
+                        Q1, DO1, DK, DELTA1, LSE1, DV1,
                         k, v, Q_LEN, KV_LEN,
                         off_zq, off_hq1, off_hkv, offs_n1, offs_m1, q_start, offs_k, offs_v,
-                        stride_qm, stride_qd, stride_dom, stride_dod, stride_dqm, stride_dqd,
+                        stride_qm, stride_qd, stride_dom, stride_dod,
                         stride_dvm, stride_dvd, stride_kz, stride_kh, stride_kn, stride_kd,
                         MATMUL_PRECISION,
                         CHECK_BLOCK_BOUNDARY=not IS_DIVISIBLE,
@@ -1658,10 +2170,10 @@ flex_attention_backward_fused_compact_sparse_mask_out_source = r"""
 {% else %}
                     bwd_dkdv_block_mn(
                         {{gen_argdefs()}},
-                        Q1, DO1, DQ1, DK, DELTA1, LSE1, DV1,
+                        Q1, DO1, DK, DELTA1, LSE1, DV1,
                         k, v, Q_LEN, KV_LEN,
                         off_zq, off_hq1, off_hkv, offs_n1, offs_m1, q_start, q_block, pid_mask, offs_k, offs_v,
-                        stride_qm, stride_qd, stride_dom, stride_dod, stride_dqm, stride_dqd,
+                        stride_qm, stride_qd, stride_dom, stride_dod,
                         stride_dvm, stride_dvd, stride_kz, stride_kh, stride_kn, stride_kd,
                         MATMUL_PRECISION,
                         True, CHECK_BLOCK_BOUNDARY=not IS_DIVISIBLE,
@@ -1671,10 +2183,10 @@ flex_attention_backward_fused_compact_sparse_mask_out_source = r"""
 @triton.jit
 def bwd_dkdv_block_mn(
     {{gen_argdefs()}},
-    Q, DO, DQ, DK, DELTA, LSE, DV,
+    Q, DO, DK, DELTA, LSE, DV,
     k, v, Q_LEN, KV_LEN,
     off_z, off_hq, off_hkv, offs_n1, offs_m1, start_m1, q_sparse_idx, kv_sparse_idx, offs_k, offs_v,
-    stride_qm, stride_qd, stride_dom, stride_dod, stride_dqm, stride_dqd,
+    stride_qm, stride_qd, stride_dom, stride_dod,
     stride_dvm, stride_dvd, stride_kz, stride_kh, stride_kn, stride_kd,
     MATMUL_PRECISION,
     IS_FULL_BLOCKS, CHECK_BLOCK_BOUNDARY=False,
@@ -1692,7 +2204,7 @@ def bwd_dkdv_block_mn(
     if IS_DIVISIBLE:
         lse = tl.load(LSE + offs_m1)
     else:
-        lse = tl.load(LSE + offs_m1, mask=offs_m1 < Q_LEN)
+        lse = tl.load(LSE + offs_m1, mask=offs_m1 < Q_LEN, other=float("-inf"))
     lse = tl.where(lse == -float("inf"), 0.0, lse)
     qkT = tl.dot(qT, tl.trans(k), input_precision="ieee")
     if not PRESCALE_QK:
@@ -1700,6 +2212,13 @@ def bwd_dkdv_block_mn(
     m = get_bounded_indices(offs_m1[None, :], Q_LEN if CHECK_BLOCK_BOUNDARY else None)
     n = get_bounded_indices(offs_n1[None, :], KV_LEN if (not IS_DIVISIBLE or CHECK_BLOCK_BOUNDARY) else None)
 
+{% if BWD_SCORE_MOD_IS_IDENTITY %}
+{% if not BWD_GRAD_SCORE_MOD_IS_IDENTITY %}
+    pre_mod_scores = qkT
+{% endif %}
+    if CHECK_BLOCK_BOUNDARY:
+        qkT = tl.where(offs_n1[None, :] < KV_LEN, qkT, float("-inf"))
+{% else %}
     pre_mod_scores = qkT
     {{ modification(
         subgraph_number=0,
@@ -1714,11 +2233,11 @@ def bwd_dkdv_block_mn(
 
     if CHECK_BLOCK_BOUNDARY:
         post_mod_scores = tl.where(offs_n1[None, :] < KV_LEN, post_mod_scores, float("-inf"))
+{% endif %}
 
     if not IS_FULL_BLOCKS:
         SPARSE_Z: tl.constexpr = {{size("KV_NUM_BLKS", 0)}}
         SPARSE_HQ: tl.constexpr = {{size("KV_NUM_BLKS", 1)}}
-        sparse_idx_z = off_z % SPARSE_Z
         sparse_idx_z = off_z % SPARSE_Z
         sparse_mask_h = off_hq % SPARSE_MASK_HQ
         q_sparse_start = q_sparse_idx * SPARSE_Q_BLOCK_SIZE
@@ -1747,14 +2266,19 @@ def bwd_dkdv_block_mn(
             mask_base + mask_offsets,
             mask=mask_bounds & has_matching_kv_block,
             other=0,
-        ) != 0
+        )
         mask_mod_output = mask_mod_output & has_matching_kv_block
-
-        if CHECK_BLOCK_BOUNDARY:
-            mask_mod_output = tl.where(offs_n1[None, :] < KV_LEN, mask_mod_output, False)
+{% if BWD_SCORE_MOD_IS_IDENTITY %}
+        qkT = tl.where(mask_mod_output, qkT, float("-inf"))
+{% else %}
         post_mod_scores = tl.where(mask_mod_output, post_mod_scores, float("-inf"))
+{% endif %}
 
+{% if BWD_SCORE_MOD_IS_IDENTITY %}
+    pT = tl.math.exp(qkT - lse[:, None]).to(MATMUL_PRECISION)
+{% else %}
     pT = tl.math.exp(post_mod_scores - lse[:, None]).to(MATMUL_PRECISION)
+{% endif %}
     DO_block_ptr = tl.make_block_ptr(
         base=DO,
         shape=(Q_LEN, V_HEAD_DIM),
@@ -1776,9 +2300,10 @@ def bwd_dkdv_block_mn(
     if IS_DIVISIBLE:
         Di = tl.load(DELTA + offs_m1)
     else:
-        Di = tl.load(DELTA + offs_m1, mask=offs_m1 < Q_LEN)
+        Di = tl.load(DELTA + offs_m1, mask=offs_m1 < Q_LEN, other=0.0)
     dpT = tl.dot(do, tl.trans(v), input_precision="ieee").to(MATMUL_PRECISION)
     dsT = (pT * (dpT - Di[:, None])).to(MATMUL_PRECISION)
+{% if not BWD_GRAD_SCORE_MOD_IS_IDENTITY %}
     {{ modification(
         subgraph_number=1,
         output_name="grad_scores",
@@ -1789,46 +2314,37 @@ def bwd_dkdv_block_mn(
         n="n",
         grad_score_mod="dsT"
     ) | indent_except_first(1) }}
-
-    if not WRITE_DQ:
-        idx_b = off_z
-        idx_h = off_hq
-        idx_m = m
-        idx_n = n
-        scatter_mask = offs_m1[None, :] < Q_LEN and offs_n1[:, None] < KV_LEN
-        {{ modification(
-            subgraph_number=3,
-            output_name=None,
-            mask="scatter_mask",
-            score="pre_mod_scores",
-            b="idx_b",
-            h="idx_h",
-            m="idx_m",
-            n="idx_n",
-            grad_score_mod="dsT"
-        ) | indent_except_first(2) }}
-
-    if CHECK_BLOCK_BOUNDARY:
-        grad_scores = tl.where(offs_n1[None, :] < KV_LEN, grad_scores, 0.0)
-
-    dsT = grad_scores
-    if not IS_FULL_BLOCKS:
-        if CHECK_BLOCK_BOUNDARY:
-            mask_mod_output = tl.where(offs_n1[None, :] < KV_LEN, mask_mod_output, False)
-        dsT = tl.where(mask_mod_output, dsT, 0.0)
-
-    dq = tl.dot(dsT.to(MATMUL_PRECISION), k, input_precision="ieee")
-{% if PRESCALE_QK %}
-    dq *= SM_SCALE
 {% endif %}
-    index_m = offs_m1[:, None]
+
+{% if RUN_CAPTURED_GRADS %}
+    idx_b = off_z
+    idx_h = off_hq
+    idx_m = m
+    idx_n = n
+    scatter_mask = (offs_m1[:, None] < Q_LEN) & (offs_n1[None, :] < KV_LEN)
+    {{ modification(
+        subgraph_number=3,
+        output_name=None,
+        mask="scatter_mask",
+        score="pre_mod_scores",
+        b="idx_b",
+        h="idx_h",
+        m="idx_m",
+        n="idx_n",
+        grad_score_mod="dsT"
+    ) | indent_except_first(1) }}
+{% endif %}
+
+{% if not BWD_GRAD_SCORE_MOD_IS_IDENTITY %}
+    dsT = grad_scores
+{% endif %}
+    if not IS_FULL_BLOCKS:
+        dsT = tl.where(mask_mod_output, dsT, 0.0)
+{% if not BWD_IDENTITY_SCORE_AND_GRAD %}
+    dsT = tl.where(offs_m1[:, None] < Q_LEN, dsT, 0.0)
+{% endif %}
+
     index_k = offs_k[None, :]
-    if SAFE_HEAD_DIM:
-        dq_mask = index_m < Q_LEN
-    else:
-        dq_mask = (index_m < Q_LEN) & (index_k < QK_HEAD_DIM)
-    dq_ptrs = DQ + index_m * stride_dqm + index_k * stride_dqd
-    tl.atomic_add(dq_ptrs, dq, mask=dq_mask)
 
     dk = tl.dot(tl.trans(dsT).to(MATMUL_PRECISION), qT, input_precision="ieee")
 {% if PRESCALE_QK %}
@@ -1849,10 +2365,10 @@ def bwd_dkdv_block_mn(
 @triton.jit
 def bwd_dkdv_full_block_mn(
     {{gen_argdefs()}},
-    Q, DO, DQ, DK, DELTA, LSE, DV,
+    Q, DO, DK, DELTA, LSE, DV,
     k, v, Q_LEN, KV_LEN,
     off_z, off_hq, off_hkv, offs_n1, offs_m1, start_m1, offs_k, offs_v,
-    stride_qm, stride_qd, stride_dom, stride_dod, stride_dqm, stride_dqd,
+    stride_qm, stride_qd, stride_dom, stride_dod,
     stride_dvm, stride_dvd, stride_kz, stride_kh, stride_kn, stride_kd,
     MATMUL_PRECISION,
     CHECK_BLOCK_BOUNDARY=False,
@@ -1870,7 +2386,7 @@ def bwd_dkdv_full_block_mn(
     if IS_DIVISIBLE:
         lse = tl.load(LSE + offs_m1)
     else:
-        lse = tl.load(LSE + offs_m1, mask=offs_m1 < Q_LEN)
+        lse = tl.load(LSE + offs_m1, mask=offs_m1 < Q_LEN, other=float("-inf"))
     lse = tl.where(lse == -float("inf"), 0.0, lse)
     qkT = tl.dot(qT, tl.trans(k), input_precision="ieee")
     if not PRESCALE_QK:
@@ -1878,6 +2394,14 @@ def bwd_dkdv_full_block_mn(
     m = get_bounded_indices(offs_m1[None, :], Q_LEN if CHECK_BLOCK_BOUNDARY else None)
     n = get_bounded_indices(offs_n1[None, :], KV_LEN if (not IS_DIVISIBLE or CHECK_BLOCK_BOUNDARY) else None)
 
+{% if BWD_SCORE_MOD_IS_IDENTITY %}
+{% if not BWD_GRAD_SCORE_MOD_IS_IDENTITY %}
+    pre_mod_scores = qkT
+{% endif %}
+    if CHECK_BLOCK_BOUNDARY:
+        qkT = tl.where(offs_n1[None, :] < KV_LEN, qkT, float("-inf"))
+    pT = tl.math.exp(qkT - lse[:, None]).to(MATMUL_PRECISION)
+{% else %}
     pre_mod_scores = qkT
     {{ modification(
         subgraph_number=0,
@@ -1893,7 +2417,8 @@ def bwd_dkdv_full_block_mn(
     if CHECK_BLOCK_BOUNDARY:
         post_mod_scores = tl.where(offs_n1[None, :] < KV_LEN, post_mod_scores, float("-inf"))
 
-    pT = tl.math.exp(post_mod_scores - lse[:, None])
+    pT = tl.math.exp(post_mod_scores - lse[:, None]).to(MATMUL_PRECISION)
+{% endif %}
     DO_block_ptr = tl.make_block_ptr(
         base=DO,
         shape=(Q_LEN, V_HEAD_DIM),
@@ -1904,12 +2429,21 @@ def bwd_dkdv_full_block_mn(
     )
     do = load_checked_block(DO_block_ptr, IS_DIVISIBLE, SAFE_HEAD_DIM)
     index_n = offs_n1[:, None]
+    dv = tl.dot(tl.trans(pT.to(MATMUL_PRECISION)), do, input_precision="ieee")
+    index_v = offs_v[None, :]
+    dv_ptrs = DV + index_n * stride_dvm + index_v * stride_dvd
+    tl.atomic_add(
+        dv_ptrs,
+        dv,
+        mask=(index_n < KV_LEN) & (index_v < V_HEAD_DIM),
+    )
     if IS_DIVISIBLE:
         Di = tl.load(DELTA + offs_m1)
     else:
-        Di = tl.load(DELTA + offs_m1, mask=offs_m1 < Q_LEN)
+        Di = tl.load(DELTA + offs_m1, mask=offs_m1 < Q_LEN, other=0.0)
     dpT = tl.dot(do, tl.trans(v), input_precision="ieee").to(MATMUL_PRECISION)
     dsT = (pT * (dpT - Di[:, None])).to(MATMUL_PRECISION)
+{% if not BWD_GRAD_SCORE_MOD_IS_IDENTITY %}
     {{ modification(
         subgraph_number=1,
         output_name="grad_scores",
@@ -1920,41 +2454,34 @@ def bwd_dkdv_full_block_mn(
         n="n",
         grad_score_mod="dsT"
     ) | indent_except_first(1) }}
-
-    if not WRITE_DQ:
-        idx_b = off_z
-        idx_h = off_hq
-        idx_m = m
-        idx_n = n
-        scatter_mask = offs_m1[None, :] < Q_LEN and offs_n1[:, None] < KV_LEN
-        {{ modification(
-            subgraph_number=3,
-            output_name=None,
-            mask="scatter_mask",
-            score="pre_mod_scores",
-            b="idx_b",
-            h="idx_h",
-            m="idx_m",
-            n="idx_n",
-            grad_score_mod="dsT"
-        ) | indent_except_first(2) }}
-
-    if CHECK_BLOCK_BOUNDARY:
-        grad_scores = tl.where(offs_n1[None, :] < KV_LEN, grad_scores, 0.0)
-
-    dsT = grad_scores
-    dq = tl.dot(dsT.to(MATMUL_PRECISION), k, input_precision="ieee")
-{% if PRESCALE_QK %}
-    dq *= SM_SCALE
 {% endif %}
-    index_m = offs_m1[:, None]
+
+{% if RUN_CAPTURED_GRADS %}
+    idx_b = off_z
+    idx_h = off_hq
+    idx_m = m
+    idx_n = n
+    scatter_mask = (offs_m1[:, None] < Q_LEN) & (offs_n1[None, :] < KV_LEN)
+    {{ modification(
+        subgraph_number=3,
+        output_name=None,
+        mask="scatter_mask",
+        score="pre_mod_scores",
+        b="idx_b",
+        h="idx_h",
+        m="idx_m",
+        n="idx_n",
+        grad_score_mod="dsT"
+    ) | indent_except_first(1) }}
+{% endif %}
+
+{% if not BWD_GRAD_SCORE_MOD_IS_IDENTITY %}
+    dsT = grad_scores
+{% endif %}
+{% if not BWD_IDENTITY_SCORE_AND_GRAD %}
+    dsT = tl.where(offs_m1[:, None] < Q_LEN, dsT, 0.0)
+{% endif %}
     index_k = offs_k[None, :]
-    if SAFE_HEAD_DIM:
-        dq_mask = index_m < Q_LEN
-    else:
-        dq_mask = (index_m < Q_LEN) & (index_k < QK_HEAD_DIM)
-    dq_ptrs = DQ + index_m * stride_dqm + index_k * stride_dqd
-    tl.atomic_add(dq_ptrs, dq, mask=dq_mask)
 
     dk = tl.dot(tl.trans(dsT).to(MATMUL_PRECISION), qT, input_precision="ieee")
 {% if PRESCALE_QK %}
@@ -1971,15 +2498,6 @@ def bwd_dkdv_full_block_mn(
     tl.atomic_add(dk_ptrs, dk, mask=dk_mask)
     if ENABLE_COMPILE_HINT:
         tl.extra.cann.extension.compile_hint(dk, "hivm.tile_mix_cube_num", 2)
-
-    dv = tl.dot(tl.trans(pT.to(MATMUL_PRECISION)), do, input_precision="ieee")
-    index_v = offs_v[None, :]
-    dv_ptrs = DV + index_n * stride_dvm + index_v * stride_dvd
-    tl.atomic_add(
-        dv_ptrs,
-        dv,
-        mask=(index_n < KV_LEN) & (index_v < V_HEAD_DIM),
-    )
 
 
 @triton.jit
@@ -2024,10 +2542,16 @@ def load_checked_2d(
         return tl.load(ptr)
 """
 
-flex_attention_backward_fused_compact_sparse_mask_out_template = NPUTritonTemplate(
-    name="flex_attention_backward_fused_compact_sparse_mask_out",
-    grid=flex_attention_backward_fused_grid,
-    source=flex_attention_backward_fused_compact_sparse_mask_out_source,
+flex_attention_backward_qmajor_dq_template = NPUTritonTemplate(
+    name="flex_attention_backward_qmajor_dq",
+    grid=flex_attention_backward_dq_grid,
+    source=flex_attention_backward_qmajor_dq_source,
+)
+
+flex_attention_backward_dkdv_only_template = NPUTritonTemplate(
+    name="flex_attention_backward_dkdv_only",
+    grid=flex_attention_backward_dkdv_grid,
+    source=flex_attention_backward_dkdv_only_source,
 )
 
 
@@ -2259,58 +2783,6 @@ def _register_npu_inductor_flex_attention():
         kernel_options.setdefault("SPARSE_MASK_STRIDE_BLK", sparse_mask_strides[0])
         kernel_options.setdefault("SPARSE_MASK_STRIDE_M", sparse_mask_strides[1])
 
-        Hq_val = V.graph.sizevars.evaluate_static_shape(Hq)
-        v_head_dim_rounded = int(kernel_options["V_HEAD_DIM_ROUNDED"])
-        intermediate_acc_size = [
-            B,
-            Hq,
-            num_sparse_q_blocks,
-            SPARSE_Q_BLOCK_SIZE,
-            v_head_dim_rounded,
-        ]
-        intermediate_acc_strides = [
-            Hq_val * num_sparse_q_blocks_val * SPARSE_Q_BLOCK_SIZE * v_head_dim_rounded,
-            num_sparse_q_blocks_val * SPARSE_Q_BLOCK_SIZE * v_head_dim_rounded,
-            SPARSE_Q_BLOCK_SIZE * v_head_dim_rounded,
-            v_head_dim_rounded,
-            1,
-        ]
-        intermediate_state_size = [
-            B,
-            Hq,
-            num_sparse_q_blocks,
-            SPARSE_Q_BLOCK_SIZE,
-        ]
-        intermediate_state_strides = [
-            Hq_val * num_sparse_q_blocks_val * SPARSE_Q_BLOCK_SIZE,
-            num_sparse_q_blocks_val * SPARSE_Q_BLOCK_SIZE,
-            SPARSE_Q_BLOCK_SIZE,
-            1,
-        ]
-        intermediate_acc_layout = FixedLayout(
-            query.get_device(),
-            torch.float32,
-            intermediate_acc_size,
-            stride=[sympy.sympify(s) for s in intermediate_acc_strides],
-        )
-        intermediate_acc = empty_strided(
-            intermediate_acc_size,
-            intermediate_acc_strides,
-            dtype=torch.float32,
-            device=query.get_device(),
-        )
-        intermediate_l = empty_strided(
-            intermediate_state_size,
-            intermediate_state_strides,
-            dtype=torch.float32,
-            device=query.get_device(),
-        )
-        intermediate_m = empty_strided(
-            intermediate_state_size,
-            intermediate_state_strides,
-            dtype=torch.float32,
-            device=query.get_device(),
-        )
         kernel_options.setdefault("NUM_SPARSE_Q_BLOCKS", num_sparse_q_blocks_val)
 
         fwd_call_size_hints = V.graph.sizevars.size_hints(
@@ -2330,8 +2802,18 @@ def _register_npu_inductor_flex_attention():
         validate_benchmark_config()  # Now only warns, doesn't raise errors
 
         choices: list[Any] = []
-        sparse_mask_normal_choices: list[Any] = []
-        sparse_mask_full_128_choices: list[Any] = []
+        forward_input_nodes = [
+            query,
+            key,
+            value,
+            sparse_mask_buffer,
+            compact_q_offsets,
+            kv_num_blocks,
+            kv_indices,
+            logsumexp,
+            full_kv_num_blocks,
+            full_kv_indices,
+        ]
 
         log.debug(
             "Config Generation Mode: use_config_generator=%s",
@@ -2445,121 +2927,36 @@ def _register_npu_inductor_flex_attention():
             )
 
 
-            # Try to append choice, catch compilation errors
             try:
-                normal_kernel_options = cur_kernel_options.copy()
-                normal_kernel_options["num_stages"] = 2
-                normal_block_n_candidates = split_attention_block_n_candidates(
-                    SPARSE_KV_BLOCK_SIZE
-                )
-                normal_block_m_candidates = [cur_kernel_options["BLOCK_M"]]
-                full_128_block_n_candidates = [SPARSE_KV_BLOCK_SIZE]
-                log.info(
-                    "split attention BLOCK_N candidates: normal=%s full_128=%s normal_BLOCK_M=%s",
-                    normal_block_n_candidates,
-                    full_128_block_n_candidates,
-                    normal_block_m_candidates,
-                )
-                normal_prev = len(sparse_mask_normal_choices)
-                full_128_prev = len(sparse_mask_full_128_choices)
-                normal_template = flex_attention_sparse_mask_normal_template_in_loop_no_load_balance
-                full_128_template = flex_attention_sparse_mask_full_128_template_in_loop_no_load_balance
-
-                normal_errors = []
-                full_128_errors = []
-                for block_m in normal_block_m_candidates:
-                    normal_kernel_options["BLOCK_M"] = block_m
-                    for block_n in normal_block_n_candidates:
-                        normal_kernel_options["BLOCK_N"] = block_n
-                        for normal_variant_options in sparse_mask_attention_cvpipeline_config_variants(
-                            normal_kernel_options,
-                            block_n=block_n,
-                        ):
-                            log.info(
-                                "Appending split normal choice BLOCK_N=%d multibuffer=%s BLOCK_M=%d",
-                                block_n,
-                                normal_variant_options.get("multibuffer"),
-                                block_m,
-                            )
-                            normal_input_nodes = [
-                                query,
-                                key,
-                                value,
-                                sparse_mask_buffer,
-                                kv_num_blocks,
-                                kv_indices,
-                                intermediate_acc,
-                                intermediate_l,
-                                intermediate_m,
-                            ]
-                            normal_input_nodes.insert(4, compact_q_offsets)
-                            normal_error = normal_template.maybe_append_choice(
-                                choices=sparse_mask_normal_choices,
-                                input_nodes=normal_input_nodes,
-                                layout=intermediate_acc_layout,
-                                subgraphs=[subgraph_buffer],
-                                mutated_inputs=[
-                                    intermediate_acc,
-                                    intermediate_l,
-                                    intermediate_m,
-                                ],
-                                call_sizes=query.get_size(),
-                                **normal_variant_options,
-                            )
-                            if normal_error is not None:
-                                normal_errors.append(normal_error)
-
-                for block_n in full_128_block_n_candidates:
-                    full_128_kernel_options = cur_kernel_options.copy()
-                    full_128_kernel_options["BLOCK_N"] = block_n
-                    full_128_kernel_options["num_stages"] = 2
-                    for full_128_variant_options in sparse_mask_attention_cvpipeline_config_variants(
-                        full_128_kernel_options,
-                        block_n=block_n,
-                    ):
-                        log.info(
-                            "Appending split full_128 choice BLOCK_N=%d multibuffer=%s",
-                            block_n,
-                            full_128_variant_options.get("multibuffer"),
-                        )
-                        full_128_input_nodes = [
-                            query,
-                            key,
-                            value,
-                            logsumexp,
-                            full_kv_num_blocks,
-                            full_kv_indices,
-                            intermediate_acc,
-                            intermediate_l,
-                            intermediate_m,
-                        ]
-                        full_128_error = full_128_template.maybe_append_choice(
-                            choices=sparse_mask_full_128_choices,
-                            input_nodes=full_128_input_nodes,
-                            layout=layout,
-                            subgraphs=[subgraph_buffer],
-                            mutated_inputs=[
-                                logsumexp,
-                            ],
-                            call_sizes=query.get_size(),
-                            **full_128_variant_options,
-                        )
-                        if full_128_error is not None:
-                            full_128_errors.append(full_128_error)
-                split_errors = [
-                    err for err in (
-                        normal_errors + full_128_errors
-                    )
-                    if err is not None
-                ]
-                if (
-                    len(sparse_mask_normal_choices) == normal_prev
-                    or len(sparse_mask_full_128_choices) == full_128_prev
+                forward_kernel_options = cur_kernel_options.copy()
+                forward_kernel_options["num_stages"] = 2
+                choice_count = len(choices)
+                forward_errors = []
+                for forward_variant_options in sparse_mask_attention_cvpipeline_config_variants(
+                    forward_kernel_options,
+                    block_n=forward_kernel_options["BLOCK_N"],
                 ):
-                    del sparse_mask_normal_choices[normal_prev:]
-                    del sparse_mask_full_128_choices[full_128_prev:]
-                    error = split_errors[0] if split_errors else "split sparse-mask choice was not appended"
-                    log.warning("Config %s split compilation returned error: %s", cfg, error)
+                    log.info(
+                        "Appending sparse-mask forward choice BLOCK_M=%d BLOCK_N=%d multibuffer=%s",
+                        forward_kernel_options["BLOCK_M"],
+                        forward_kernel_options["BLOCK_N"],
+                        forward_variant_options.get("multibuffer"),
+                    )
+                    error = flex_attention_sparse_mask_template_in_loop_no_load_balance.maybe_append_choice(
+                        choices=choices,
+                        input_nodes=forward_input_nodes,
+                        layout=layout,
+                        subgraphs=[subgraph_buffer],
+                        mutated_inputs=[logsumexp],
+                        call_sizes=query.get_size(),
+                        **forward_variant_options,
+                    )
+                    if error is not None:
+                        forward_errors.append(error)
+
+                if len(choices) == choice_count:
+                    error = forward_errors[0] if forward_errors else "sparse-mask forward choice was not appended"
+                    log.warning("Config %s compilation returned error: %s", cfg, error)
                     if len(dict_configs) == 1:
                         if isinstance(error, BaseException):
                             raise error
@@ -2567,7 +2964,7 @@ def _register_npu_inductor_flex_attention():
                     continue
 
                 _tag_flex_attention_report_choices(
-                    sparse_mask_full_128_choices[full_128_prev:],
+                    choices[choice_count:],
                     "forward",
                     cfg,
                 )
@@ -2576,8 +2973,6 @@ def _register_npu_inductor_flex_attention():
                 log.warning("Config %s compilation failed: %s: %s", cfg, type(e).__name__, str(e)[:200])
                 # Continue to next config instead of raising
                 continue
-
-        choices = sparse_mask_full_128_choices
 
         sparse_mask_choices = []
         sparse_mask_base_kernel_options = {
@@ -2684,50 +3079,18 @@ def _register_npu_inductor_flex_attention():
             len(sparse_mask_tiling_configs),
         )
 
-        sparse_mask_normal_input_nodes = [
-            query,
-            key,
-            value,
-            sparse_mask_buffer,
-            kv_num_blocks,
-            kv_indices,
-            intermediate_acc,
-            intermediate_l,
-            intermediate_m,
-        ]
-        sparse_mask_normal_input_nodes.insert(4, compact_q_offsets)
-        sparse_mask_normal_inputs_for_autotuning = (
-            sparse_mask_normal_input_nodes + list(score_mod_other_buffers)
-        )
-        sparse_mask_normal_input_gen_fns = {4: create_compact_q_offsets_fake}
-        kv_num_blocks_arg_idx = 5
-        kv_indices_arg_idx = 6
-        sparse_mask_normal_input_gen_fns.update(
-            {
-                kv_num_blocks_arg_idx: _create_sparse_mask_num_blocks_fake_generator(
+        inputs_for_autotuning = forward_input_nodes + list(score_mod_other_buffers)
+        input_gen_fns = {
+            4: create_compact_q_offsets_fake,
+            5: _create_sparse_mask_num_blocks_fake_generator(
                 kernel_options.get(
                     "SPARSE_MASK_MAX_NORMAL_BLOCKS",
                     V.graph.sizevars.evaluate_static_shape(kv_indices.get_size()[3]),
                 )
-                ),
-                kv_indices_arg_idx: _create_sparse_mask_indices_fake_generator(),
-            }
-        )
-        input_nodes = [
-            query,
-            key,
-            value,
-            logsumexp,
-            full_kv_num_blocks,
-            full_kv_indices,
-            intermediate_acc,
-            intermediate_l,
-            intermediate_m,
-        ]
-        inputs_for_autotuning = input_nodes + list(score_mod_other_buffers)
-        input_gen_fns = {
-            4: create_num_blocks_fake_generator(full_kv_indices),
-            5: create_indices_fake,
+            ),
+            6: _create_sparse_mask_indices_fake_generator(),
+            8: create_num_blocks_fake_generator(full_kv_indices),
+            9: create_indices_fake,
         }
         # Check if we have at least one successful choice
         if not choices:
@@ -2801,19 +3164,6 @@ def _register_npu_inductor_flex_attention():
             "Sparse mask kernel autotune completed with %d choices",
             len(sparse_mask_choices),
         )
-
-        autotune_select_algorithm(
-            "flex_attention_sparse_mask_normal",
-            sparse_mask_normal_choices,
-            sparse_mask_normal_inputs_for_autotuning,
-            intermediate_acc_layout,
-            input_gen_fns=sparse_mask_normal_input_gen_fns,
-        )
-        log.info(
-            "Sparse mask normal attention autotune completed with %d choices",
-            len(sparse_mask_normal_choices),
-        )
-
 
         result = autotune_select_algorithm(
             "flex_attention",
@@ -2931,6 +3281,12 @@ def _register_npu_inductor_flex_attention():
         fw_subgraph_buffer = _build_subgraph_buffer_with_additional_lowerings(
             fwd_placeholder_inps + list(score_mod_other_buffers), fw_graph
         )
+        score_mod_is_identity = _is_score_mod_identity_graph(fw_graph)
+        log.debug(
+            "flex_attention_backward fw_graph identity_check=%s graph:\n%s",
+            score_mod_is_identity,
+            fw_graph.graph_module.graph,
+        )
 
         joint_placeholder_inps = fwd_placeholder_inps + [
             create_placeholder("grad_score_mod", dtype, device)
@@ -2941,6 +3297,12 @@ def _register_npu_inductor_flex_attention():
         # It is hard to raise nice errors for some joint graphs during subgraph lowering
         # This lets us do some checks before attempting to lower
         validate_joint_graph(joint_graph.graph_module.graph)
+        grad_score_mod_is_identity = _is_grad_score_mod_identity_graph(joint_graph)
+        log.debug(
+            "flex_attention_backward joint_graph identity_check=%s graph:\n%s",
+            grad_score_mod_is_identity,
+            joint_graph.graph_module.graph,
+        )
 
         all_joint_outputs = _build_subgraph_buffer_with_additional_lowerings(
             joint_placeholder_inps + list(score_mod_other_buffers),
@@ -2996,7 +3358,7 @@ def _register_npu_inductor_flex_attention():
         grad_query = empty_strided(
             query_size,
             stride=[sympy.sympify(s) for s in grad_query_strides],
-            dtype=torch.float32,
+            dtype=query.get_dtype(),
             device=query.get_device(),
         )
 
@@ -3015,10 +3377,6 @@ def _register_npu_inductor_flex_attention():
             stride=[sympy.sympify(s) for s in key_strides],
             dtype=torch.float32,
             device=key.get_device(),
-        )
-        grad_query = _force_fixed_layout(
-            lowerings[aten.fill_](grad_query, 0),
-            grad_query_strides,
         )
         broadcasted_grad_value = _force_fixed_layout(
             lowerings[aten.fill_](broadcasted_grad_value, 0),
@@ -3091,7 +3449,7 @@ def _register_npu_inductor_flex_attention():
         ]
         bwd_sparse_mask_layout = FixedLayout(
             query.get_device(),
-            torch.int8,
+            torch.bool,
             bwd_sparse_mask_size,
             stride=[sympy.sympify(s) for s in bwd_sparse_mask_strides],
         )
@@ -3143,7 +3501,8 @@ def _register_npu_inductor_flex_attention():
             npu_config.flex_attention.use_config_generator
         )
 
-        fused_choices: list[Any] = []
+        dq_choices: list[Any] = []
+        dkdv_choices: list[Any] = []
         bwd_sparse_mask_choices = []
         bwd_sparse_mask_block_pos_choices = []
         bwd_sparse_mask_base_kernel_options = {
@@ -3319,7 +3678,7 @@ def _register_npu_inductor_flex_attention():
             bwd_sparse_mask_block_pos_result,
         )
 
-        fused_dict_configs = generate_bwd_fused_mask_out_candidate_configs(
+        bwd_dict_configs = generate_bwd_split_mask_out_candidate_configs(
             query_shape=query.get_size(),
             key_shape=key.get_size(),
             sparse_q_block_size=SPARSE_Q_BLOCK_SIZE,
@@ -3329,12 +3688,11 @@ def _register_npu_inductor_flex_attention():
         )
 
         log.debug(
-            "bwd fused dict_configs count: fused=%d",
-            len(fused_dict_configs),
+            "bwd split dict_configs count: split=%d",
+            len(bwd_dict_configs),
         )
 
         original_kernel_options = kernel_options.copy()
-        current_bwd_fused_template = flex_attention_backward_fused_compact_sparse_mask_out_template
         assert bwd_sparse_mask_result is not None
         assert compact_q_offsets is not None
         assert bwd_sparse_mask_block_pos_result is not None
@@ -3344,11 +3702,8 @@ def _register_npu_inductor_flex_attention():
             bwd_sparse_mask_block_pos_result,
         ]
 
-        def make_bwd_kernel_options(cfg: dict) -> dict:
-            # Performance tuning
-            # Triton heuristics
+        def make_bwd_base_kernel_options(cfg: dict) -> dict:
             cur_kernel_options = original_kernel_options.copy()
-            # Remove prefix for backward kernels options and delete forward kernel options.
             for k in list(cur_kernel_options.keys()):
                 if k.startswith("bwd_"):
                     v = cur_kernel_options.pop(k)
@@ -3360,9 +3715,15 @@ def _register_npu_inductor_flex_attention():
             for k, v in cfg.items():
                 cur_kernel_options.setdefault(k, v)
 
+            for key in npu_config.FLEX_ATTENTION_NPU_COMPILE_HINT_KEYS:
+                cur_kernel_options.pop(key, None)
+
             # Blocksparse options
             cur_kernel_options.setdefault("SPARSE_Q_BLOCK_SIZE", SPARSE_Q_BLOCK_SIZE)
             cur_kernel_options.setdefault("SPARSE_KV_BLOCK_SIZE", SPARSE_KV_BLOCK_SIZE)
+            cur_kernel_options.setdefault("BWD_SCORE_MOD_IS_IDENTITY", score_mod_is_identity)
+            cur_kernel_options.setdefault("BWD_GRAD_SCORE_MOD_IS_IDENTITY", grad_score_mod_is_identity)
+            cur_kernel_options.setdefault("BWD_IDENTITY_SCORE_AND_GRAD", bwd_identity_score_and_grad)
             cur_kernel_options.setdefault(
                 "NUM_SPARSE_Q_BLOCKS",
                 V.graph.sizevars.evaluate_static_shape(kv_num_blocks.get_size()[2]),
@@ -3374,6 +3735,55 @@ def _register_npu_inductor_flex_attention():
                 context="bwd",
             )
             return cur_kernel_options
+
+        def make_bwd_dq_kernel_options(cfg: dict) -> dict:
+            opts = make_bwd_base_kernel_options(cfg)
+            opts.update(
+                {
+                    "BLOCK_M2": cfg["BLOCK_M2"],
+                    "BLOCK_N2": cfg["BLOCK_N2"],
+                    "num_stages": 1,
+                    "num_warps": 4,
+                }
+            )
+            opts.update(
+                _build_qmajor_dq_launch_meta(
+                    batch_size_hint=bwd_batch_size_hint,
+                    q_heads_hint=bwd_q_heads_hint,
+                    num_queries_hint=bwd_num_queries_hint,
+                    block_m=cfg["BLOCK_M2"],
+                )
+            )
+            return opts
+
+        bwd_dkdv_compile_options = {
+            "multibuffer": True,
+            "set_workspace_multibuffer": 0,
+            "disable_auto_inject_block_sync": True,
+            "enable_mixed_cv": True,
+            "limit_auto_multi_buffer_of_local_buffer": "no-limit",
+        }
+
+        def make_bwd_dkdv_kernel_options(cfg: dict) -> dict:
+            opts = make_bwd_base_kernel_options(cfg)
+            opts.update(
+                {
+                    "BLOCK_M1": cfg["BLOCK_M1"],
+                    "BLOCK_N1": cfg["BLOCK_N1"],
+                    "num_stages": 2,
+                    "num_warps": 4,
+                }
+            )
+            opts.update(bwd_dkdv_compile_options)
+            opts.update(
+                _build_persistent_bwd_launch_meta(
+                    batch_size_hint=bwd_batch_size_hint,
+                    kv_heads_hint=bwd_kv_heads_hint,
+                    num_key_value_hint=bwd_num_key_value_hint,
+                    block_n1=cfg["BLOCK_N1"],
+                )
+            )
+            return opts
 
         def log_bwd_choice(kind: str, cfg: dict, cur_kernel_options: dict) -> None:
             bwd_grid_x = (
@@ -3395,120 +3805,218 @@ def _register_npu_inductor_flex_attention():
                 type(kv_num_blocks).__name__, type(kv_indices).__name__, type(grad_lse).__name__, cur_kernel_options
             )
 
-        for cfg in fused_dict_configs:
+        has_captured_grad_side_effect = bool(joint_outputs.mutated_grads)
+        if has_captured_grad_side_effect:
+            score_mod_is_identity = False
+            grad_score_mod_is_identity = False
+        bwd_identity_score_and_grad = (
+            score_mod_is_identity and grad_score_mod_is_identity
+        )
+        captured_grad_owner = "dkdv" if has_captured_grad_side_effect else None
+        assert captured_grad_owner in (None, "dq", "dkdv")
+        log.debug(
+            "bwd split captured_grad_owner=%s mutated_grads=%d score_identity=%s grad_identity=%s identity_score_and_grad=%s",
+            captured_grad_owner,
+            len(joint_outputs.mutated_grads),
+            score_mod_is_identity,
+            grad_score_mod_is_identity,
+            bwd_identity_score_and_grad,
+        )
+
+        def make_bwd_subgraphs_and_mutations(kind: str, base_mutated_inputs: list[Any]):
+            subgraphs = [
+                fw_subgraph_buffer,
+                joint_outputs.grad_input,
+                mask_graph_buffer,
+            ]
+            mutated_inputs = list(base_mutated_inputs)
+            run_captured_grads = captured_grad_owner == kind
+            if run_captured_grads:
+                subgraphs.append(joint_outputs.captured_grads_compute)
+                mutated_inputs.extend(joint_outputs.mutated_grads)
+            return subgraphs, mutated_inputs, run_captured_grads
+
+        dq_input_nodes = [
+            query,
+            key,
+            value,
+            logsumexp,
+            delta,
+            grad_out,
+            grad_query,
+            *bwd_mask_out_input_nodes,
+            kv_num_blocks,
+            kv_indices,
+            q_num_blocks,
+            q_indices,
+            full_kv_num_blocks,
+            full_kv_indices,
+            full_q_num_blocks,
+            full_q_indices,
+        ]
+        dkdv_input_nodes = [
+            query,
+            key,
+            value,
+            logsumexp,
+            delta,
+            grad_out,
+            broadcasted_grad_value,
+            broadcasted_grad_key_accum,
+            *bwd_mask_out_input_nodes,
+            kv_num_blocks,
+            kv_indices,
+            q_num_blocks,
+            q_indices,
+            full_kv_num_blocks,
+            full_kv_indices,
+            full_q_num_blocks,
+            full_q_indices,
+        ]
+
+        for cfg in bwd_dict_configs:
             if not is_bwd_config_compatible(
                 cfg, SPARSE_Q_BLOCK_SIZE, SPARSE_KV_BLOCK_SIZE
             ):
                 continue
 
-            cur_kernel_options = make_bwd_kernel_options(cfg)
-            cur_kernel_options.update(
-                _build_persistent_bwd_launch_meta(
-                    batch_size_hint=bwd_batch_size_hint,
-                    kv_heads_hint=bwd_kv_heads_hint,
-                    num_key_value_hint=bwd_num_key_value_hint,
-                    block_n1=cfg["BLOCK_N1"],
+            if (
+                cfg["BLOCK_M2"] == SPARSE_Q_BLOCK_SIZE
+                and cfg["BLOCK_N2"] == SPARSE_KV_BLOCK_SIZE
+            ):
+                dq_kernel_options = make_bwd_dq_kernel_options(cfg)
+                dq_subgraphs, dq_mutated_inputs, dq_run_captured = (
+                    make_bwd_subgraphs_and_mutations("dq", [grad_query])
+                )
+                dq_kernel_options["RUN_CAPTURED_GRADS"] = dq_run_captured
+                log_bwd_choice("dq", cfg, dq_kernel_options)
+
+                prev_dq_choice_count = len(dq_choices)
+                flex_attention_backward_qmajor_dq_template.maybe_append_choice(
+                    choices=dq_choices,
+                    input_nodes=dq_input_nodes,
+                    layout=grad_query.get_layout(),
+                    subgraphs=dq_subgraphs,
+                    mutated_inputs=dq_mutated_inputs,
+                    reset_to_zero_arg_names=None,
+                    large_input_buffers=bwd_mask_out_input_nodes,
+                    call_sizes=query.get_size() + key.get_size()[1:3],
+                    **dq_kernel_options,
+                )
+                if len(dq_choices) > prev_dq_choice_count:
+                    _tag_flex_attention_report_choices(
+                        dq_choices[prev_dq_choice_count:],
+                        "backward_dq",
+                        cfg,
+                    )
+            else:
+                log.debug(
+                    "skip bwd-dq choice requiring full sparse block: cfg=%s SPARSE_Q=%s SPARSE_KV=%s",
+                    cfg,
+                    SPARSE_Q_BLOCK_SIZE,
+                    SPARSE_KV_BLOCK_SIZE,
+                )
+
+            dkdv_kernel_options = make_bwd_dkdv_kernel_options(cfg)
+            dkdv_subgraphs, dkdv_mutated_inputs, dkdv_run_captured = (
+                make_bwd_subgraphs_and_mutations(
+                    "dkdv",
+                    [broadcasted_grad_value, broadcasted_grad_key_accum],
                 )
             )
-            log_bwd_choice("fused", cfg, cur_kernel_options)
+            dkdv_kernel_options["RUN_CAPTURED_GRADS"] = dkdv_run_captured
+            log_bwd_choice("dkdv", cfg, dkdv_kernel_options)
 
-            prev_fused_choice_count = len(fused_choices)
-            fused_reset_to_zero_arg_names = ["arg_DQ", "arg_DV", "arg_DK"]
-            current_bwd_fused_template.maybe_append_choice(
-                choices=fused_choices,
-                input_nodes=[
-                    query,
-                    key,
-                    value,
-                    logsumexp,
-                    delta,
-                    grad_out,
-                    grad_query,
-                    broadcasted_grad_value,
-                    broadcasted_grad_key_accum,
-                    *bwd_mask_out_input_nodes,
-                    kv_num_blocks,
-                    kv_indices,
-                    q_num_blocks,
-                    q_indices,
-                    full_kv_num_blocks,
-                    full_kv_indices,
-                    full_q_num_blocks,
-                    full_q_indices,
-                ],
+            prev_dkdv_choice_count = len(dkdv_choices)
+            flex_attention_backward_dkdv_only_template.maybe_append_choice(
+                choices=dkdv_choices,
+                input_nodes=dkdv_input_nodes,
                 layout=layout_broadcasted_k_accum,
-                subgraphs=[
-                    fw_subgraph_buffer,
-                    joint_outputs.grad_input,
-                    mask_graph_buffer,
-                    joint_outputs.captured_grads_compute,
-                ],
-                mutated_inputs=[
-                    grad_query,
-                    broadcasted_grad_value,
-                    broadcasted_grad_key_accum,
-                    *joint_outputs.mutated_grads,
-                ],
-                reset_to_zero_arg_names=fused_reset_to_zero_arg_names,
+                subgraphs=dkdv_subgraphs,
+                mutated_inputs=dkdv_mutated_inputs,
+                reset_to_zero_arg_names=["arg_DV", "arg_DK"],
                 large_input_buffers=bwd_mask_out_input_nodes,
                 call_sizes=query.get_size() + key.get_size()[1:3],
-                **cur_kernel_options,
+                **dkdv_kernel_options,
             )
-            if len(fused_choices) > prev_fused_choice_count:
+            if len(dkdv_choices) > prev_dkdv_choice_count:
                 _tag_flex_attention_report_choices(
-                    fused_choices[prev_fused_choice_count:],
-                    "backward",
+                    dkdv_choices[prev_dkdv_choice_count:],
+                    "backward_dkdv",
                     cfg,
                 )
-        inputs_for_autotuning = (
-            [
-                query,
-                key,
-                value,
-                logsumexp,
-                delta,
-                grad_out,
-                grad_query,
-                broadcasted_grad_value,
-                broadcasted_grad_key_accum,
-                *bwd_mask_out_input_nodes,
-                kv_num_blocks,
-                kv_indices,
-                q_num_blocks,
-                q_indices,
-                full_kv_num_blocks,
-                full_kv_indices,
-                full_q_num_blocks,
-                full_q_indices,
-            ]
+
+        dq_inputs_for_autotuning = (
+            dq_input_nodes
             + list(score_mod_other_buffers)
-            + joint_outputs.mutated_grads
+            + (
+                list(joint_outputs.mutated_grads)
+                if captured_grad_owner == "dq"
+                else []
+            )
         )
-        block_metadata_input_idx = 9 + len(bwd_mask_out_input_nodes)
-        input_gen_fns = {
-            block_metadata_input_idx: create_num_blocks_fake_generator(kv_indices),  # kv_num_blocks
-            block_metadata_input_idx + 1: create_indices_fake,
-            block_metadata_input_idx + 2: create_num_blocks_fake_generator(q_indices),  # q_num_blocks
-            block_metadata_input_idx + 3: create_indices_fake,
-            block_metadata_input_idx + 4: create_num_blocks_fake_generator(full_kv_indices),  # full_kv_num_blocks
-            block_metadata_input_idx + 5: create_indices_fake,
-            block_metadata_input_idx + 6: create_num_blocks_fake_generator(full_q_indices),  # full_q_num_blocks
-            block_metadata_input_idx + 7: create_indices_fake,
+        dq_q_offsets_input_idx = 8
+        dq_block_pos_input_idx = 9
+        dq_block_metadata_input_idx = 10
+        dq_input_gen_fns = {
+            dq_q_offsets_input_idx: create_compact_q_offsets_fake,
+            dq_block_pos_input_idx: create_zero_int_tensor_fake,
+            dq_block_metadata_input_idx: create_num_blocks_fake_generator(kv_indices),
+            dq_block_metadata_input_idx + 1: create_indices_fake,
+            dq_block_metadata_input_idx + 2: create_num_blocks_fake_generator(q_indices),
+            dq_block_metadata_input_idx + 3: create_indices_fake,
+            dq_block_metadata_input_idx + 4: create_num_blocks_fake_generator(full_kv_indices),
+            dq_block_metadata_input_idx + 5: create_indices_fake,
+            dq_block_metadata_input_idx + 6: create_num_blocks_fake_generator(full_q_indices),
+            dq_block_metadata_input_idx + 7: create_indices_fake,
         }
-        input_gen_fns[10] = create_compact_q_offsets_fake
-        input_gen_fns[11] = create_zero_int_tensor_fake
+
+        dkdv_inputs_for_autotuning = (
+            dkdv_input_nodes
+            + list(score_mod_other_buffers)
+            + (
+                list(joint_outputs.mutated_grads)
+                if captured_grad_owner == "dkdv"
+                else []
+            )
+        )
+        dkdv_q_offsets_input_idx = 9
+        dkdv_block_pos_input_idx = 10
+        dkdv_block_metadata_input_idx = 11
+        dkdv_input_gen_fns = {
+            dkdv_q_offsets_input_idx: create_compact_q_offsets_fake,
+            dkdv_block_pos_input_idx: create_zero_int_tensor_fake,
+            dkdv_block_metadata_input_idx: create_num_blocks_fake_generator(kv_indices),
+            dkdv_block_metadata_input_idx + 1: create_indices_fake,
+            dkdv_block_metadata_input_idx + 2: create_num_blocks_fake_generator(q_indices),
+            dkdv_block_metadata_input_idx + 3: create_indices_fake,
+            dkdv_block_metadata_input_idx + 4: create_num_blocks_fake_generator(full_kv_indices),
+            dkdv_block_metadata_input_idx + 5: create_indices_fake,
+            dkdv_block_metadata_input_idx + 6: create_num_blocks_fake_generator(full_q_indices),
+            dkdv_block_metadata_input_idx + 7: create_indices_fake,
+        }
+
         log.info(
-            "bwd-summary: fused_choices=%d query_call_size_hints=%s key_call_size_hints=%s aicore_count=%d",
-            len(fused_choices),
+            "bwd-summary: dq_choices=%d dkdv_choices=%d query_call_size_hints=%s key_call_size_hints=%s aicore_count=%d",
+            len(dq_choices),
+            len(dkdv_choices),
             tuple(bwd_query_call_size_hints), tuple(bwd_key_call_size_hints), bwd_num_cube_core
         )
 
         autotune_select_algorithm(
-            "flex_attention_backward_fused_compact_sparse_mask_out",
-            fused_choices,
-            inputs_for_autotuning,
+            "flex_attention_backward_qmajor_dq",
+            dq_choices,
+            dq_inputs_for_autotuning,
+            grad_query.get_layout(),
+            input_gen_fns=dq_input_gen_fns,
+        )
+
+        autotune_select_algorithm(
+            "flex_attention_backward_dkdv_only",
+            dkdv_choices,
+            dkdv_inputs_for_autotuning,
             layout_broadcasted_k_accum,
-            input_gen_fns=input_gen_fns,
+            input_gen_fns=dkdv_input_gen_fns,
         )
 
         if V.graph.sizevars.evaluate_expr(sympy.Eq(Bq, Bkv)):
@@ -3529,7 +4037,6 @@ def _register_npu_inductor_flex_attention():
         if not kernel_options.get("PRESCALE_QK", False):
             sm_scale = kernel_options["SM_SCALE"]
             grad_key_accum = lowerings[aten.mul](grad_key_accum, sm_scale)
-            grad_query = lowerings[aten.mul](grad_query, sm_scale)
         grad_value = _force_fixed_layout(
             _maybe_copy_to_dtype(grad_value_accum, value.get_dtype()),
             value_strides,

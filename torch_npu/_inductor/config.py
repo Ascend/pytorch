@@ -299,9 +299,12 @@ FLEX_ATTENTION_NPU_COMPILE_HINT_KEYS = (
     "unit_flag",
     "enable_ubuf_saving",
     "limit_auto_multi_buffer_only_for_local_buffer",
+    "limit_auto_multi_buffer_of_local_buffer",
     "set_workspace_multibuffer",
     "tile_mix_vector_loop",
     "tile_mix_cube_loop",
+    "disable_auto_inject_block_sync",
+    "enable_mixed_cv",
 )
 
 
@@ -320,9 +323,12 @@ class flex_attention:
     unit_flag = True
     enable_ubuf_saving = True
     limit_auto_multi_buffer_only_for_local_buffer = False
+    limit_auto_multi_buffer_of_local_buffer = "no-limit"
     set_workspace_multibuffer = 4
     tile_mix_vector_loop = 4
     tile_mix_cube_loop = 4
+    disable_auto_inject_block_sync = False
+    enable_mixed_cv = False
 
     @classmethod
     def get_npu_compile_hint_params(cls) -> dict:
