@@ -447,8 +447,8 @@ def parse_backend_yaml(
         supported_by_name[op_schema_name] = op_info
         if isinstance(op, dict):
             native_func = native_functions_map.get(op_schema_name)
-            is_structured = bool(op.get('structured', False))
-            has_structured_delegate = op.get('structured_delegate') is not None
+            is_structured = bool(op.get('structured', False)) if op_name != "cat.out" else False
+            has_structured_delegate = op.get('structured_delegate') is not None if op_name != "cat" else False
             if is_structured or has_structured_delegate:
                 if native_func is None:
                     raise KeyError(f"Found an invalid structured operator name: {op_schema_name}")
