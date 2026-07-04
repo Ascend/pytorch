@@ -162,8 +162,9 @@ class CATLASSScheduling(BaseScheduling):
         ), "Epilogue nodes must all be instances of ir.ComputedBuffer"
         kernel, render = ctb.make_kernel_render(ctb, epilogue_nodes=epilogue_nodes)
         with kernel:
-            for node in [template_node, *epilogue_nodes]:
-                node.mark_run()
+            if not only_src_code:
+                for node in [template_node, *epilogue_nodes]:
+                    node.mark_run()
 
             # typically there is a codegen pass which runs after mark_run
             # for this kernel we've already generated the C++ code, but we still
