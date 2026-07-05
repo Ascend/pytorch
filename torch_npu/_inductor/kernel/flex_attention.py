@@ -2261,17 +2261,18 @@ def bwd_dkdv_block_mn(
         flat_blk = tl.load(arg_Q_OFFSETS + q_offsets_idx) + safe_blk_idx
         mask_base = arg_SPARSE_MASK + flat_blk * SPARSE_MASK_STRIDE_BLK
         mask_offsets = offs_m_local * SPARSE_MASK_STRIDE_M + offs_n_local
-        mask_bounds = (offs_m1[:, None] < Q_LEN) & (offs_n1[None, :] < KV_LEN)
         mask_mod_output = tl.load(
             mask_base + mask_offsets,
-            mask=mask_bounds & has_matching_kv_block,
-            other=0,
         )
-        mask_mod_output = mask_mod_output & has_matching_kv_block
+        mask_mod_output = mask_mod_output & has_matching_kv_block & (offs_m1[:, None] < Q_LEN)
 {% if BWD_SCORE_MOD_IS_IDENTITY %}
-        qkT = tl.where(mask_mod_output, qkT, float("-inf"))
+        qkT = tl.where(mask_mod_output & (offs_n1[None, :] < KV_LEN), qkT, float("-inf"))
 {% else %}
-        post_mod_scores = tl.where(mask_mod_output, post_mod_scores, float("-inf"))
+        post_mod_scores = tl.where(
+            mask_mod_output & (offs_n1[None, :] < KV_LEN),
+            post_mod_scores,
+            float("-inf"),
+        )
 {% endif %}
 
 {% if BWD_SCORE_MOD_IS_IDENTITY %}
