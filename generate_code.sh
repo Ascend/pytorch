@@ -13,6 +13,10 @@ IFS='.' read -ra version_parts <<< "$pytorch_version"
 
 pytorch_dir="v${version_parts[0]}r${version_parts[1]}"
 
+# Opt op-plugin into DVM lazy-fusion codegen unless the caller already chose.
+: "${_TORCH_NPU_ENABLE_DVM:=1}"
+export _TORCH_NPU_ENABLE_DVM
+
 # Fetch ACL headers from submodule paths
 ACL_DEST="$CDIR/third_party/acl/inc/acl"
 echo " --- Fetching ACL headers from submodules..."

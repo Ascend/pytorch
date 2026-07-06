@@ -282,6 +282,9 @@ endif()
 set(OPS_PLUGIN_SRCS)
 # Add subdirectory of op-plugin
 include_directories(${PROJECT_SOURCE_DIR}/third_party/op-plugin)
+if (NOT DEFINED ENV{_TORCH_NPU_ENABLE_DVM})
+  set(ENV{_TORCH_NPU_ENABLE_DVM} "1")
+endif()
 add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/op-plugin/op_plugin)
 
 if (DEFINED BUILD_TENSORPIPE)
