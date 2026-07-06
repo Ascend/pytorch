@@ -1,4 +1,5 @@
 import os
+import threading
 
 os.environ["ASCEND_LAUNCH_BLOCKING"] = "0"
 
@@ -7,6 +8,7 @@ import weakref
 import pytest
 import torch
 import torch_npu
+from torch_npu.npu._graph_resource_pool import GraphResourcePool
 from torch_npu.npu._graph_tree import (
     check_memory_pool,
     clear_cublass_cache,
@@ -172,7 +174,8 @@ class TestTreeManagerContainer(TestCase):
         ):
             manager = self.container.get_tree_manager()
         self.assertIsNotNone(manager)
-        self.assertIs(manager, self.container.get_tree_manager())  # Same instance
+        # Same instance
+        self.assertIs(manager, self.container.get_tree_manager())
 
 
 class TestStorageWeakRefWrapper(TestCase):
@@ -1204,6 +1207,321 @@ class TestNPUGraphTreeManager:
             "before each model invocation"
         )
         assert FunctionID(1) in manager.warned_functions
+
+    @patch('torch.npu.synchronize')
+    @patch('torch_npu.npu._graph_tree.NPUGraphNode')
+    def test_record_function_pool_registration(self, mock_node, mock_synchronize):
+        """Both root and child nodes are registered in GraphResourcePool."""
+        GraphResourcePool.reset_all()
+        manager = NPUGraphTreeManager(0)
+        manager.ids_to_funcs[FunctionID(1)] = MagicMock()
+        manager.ids_to_stack_traces[FunctionID(1)] = "stack_trace"
+        manager.npu_graphs_thread_pool = "pool_handle"
+        manager.device_index = 0
+        manager.stream = MagicMock()
+        mock_node_instance = MagicMock()
+        mock_node.return_value = mock_node_instance
+        mock_node_instance.run_first_inputs.return_value = [torch.tensor([1.0])]
+
+        t1 = torch.tensor([1.0])
+        t2 = torch.tensor([2.0, 3.0])
+        manager.record_function([t1, t2], FunctionID(1))
+
+        # Root node: registered in the pool with an opaque integer key.
+        pool = GraphResourcePool.get_pool(0)
+        assert pool.entry_count == 1
+        root_keys = pool.consume_recent_keys()
+        assert len(root_keys) == 1
+        root_key = root_keys[0]
+        assert isinstance(root_key, int)
+        assert pool._entries[root_key] is mock_node_instance
+        # consume must drain the per-thread pending buffer.
+        assert pool.consume_recent_keys() == []
+
+        # Child node: also registered with its own key.
+        parent_node = MagicMock()
+        manager.current_node = parent_node
+        t3 = torch.tensor([4.0, 5.0, 6.0])
+        child_instance = MagicMock()
+        mock_node.return_value = child_instance
+        child_instance.run_first_inputs.return_value = [torch.tensor([1.0])]
+        manager.record_function([t3], FunctionID(1))
+
+        assert pool.entry_count == 2
+        child_keys = pool.consume_recent_keys()
+        assert len(child_keys) == 1
+        assert pool._entries[child_keys[0]] is child_instance
+        # consume must drain the buffer again.
+        assert pool.consume_recent_keys() == []
+        GraphResourcePool.reset_all()
+
+
+class TestGraphResourcePool:
+    """Tests for opaque-key registration / removal in GraphResourcePool."""
+
+    def setup_method(self):
+        GraphResourcePool.reset_all()
+
+    def teardown_method(self):
+        GraphResourcePool.reset_all()
+
+    # helpers ----------------------------------------------------------
+
+    @staticmethod
+    def _register_resource(pool, resource=None):
+        """Activate the pool, register *resource* (or a fresh MagicMock),
+        and return (key, resource)."""
+        pool.activate()
+        if resource is None:
+            resource = MagicMock()
+        key = pool.register(resource)
+        assert isinstance(key, int)
+        return key, resource
+
+    # tests ------------------------------------------------------------
+
+    def test_activate_deactivate(self):
+        """Default False, activate → True, deactivate → False."""
+        pool = GraphResourcePool.get_pool(0)
+        assert not pool.is_active()
+        pool.activate()
+        assert pool.is_active()
+        pool.deactivate()
+        assert not pool.is_active()
+
+    def test_activate_refcount(self):
+        """Nested activate/deactivate — outer activation survives inner
+        deactivate."""
+        pool = GraphResourcePool.get_pool(0)
+        pool.activate()               # outer
+        pool.activate()               # inner
+        pool.deactivate()             # close inner — outer still active
+        assert pool.is_active()
+        key = pool.register(MagicMock())
+        assert key >= 0
+        assert pool.entry_count == 1
+        pool.deactivate()             # close outer — now disabled
+        assert not pool.is_active()
+
+    @patch('torch.npu.synchronize')
+    def test_register_returns_int_key(self, _mock_sync):
+        """register() returns an opaque integer key when activated."""
+        pool = GraphResourcePool.get_pool(0)
+        key, _ = self._register_resource(pool)
+        assert isinstance(key, int)
+        assert pool.entry_count == 1
+
+    # -- consume_recent_keys -----------------------------------------------
+
+    def test_consume_recent_keys_returns_registered_keys(self):
+        """consume_recent_keys returns all keys registered since last consume."""
+        pool = GraphResourcePool.get_pool(0)
+        k1, _ = self._register_resource(pool)
+        k2, _ = self._register_resource(pool)
+        assert pool.entry_count == 2
+        keys = pool.consume_recent_keys()
+        assert keys == [k1, k2]
+
+    def test_consume_recent_keys_drains_buffer(self):
+        """A second consume_recent_keys returns [] (buffer was drained)."""
+        pool = GraphResourcePool.get_pool(0)
+        self._register_resource(pool)
+        self._register_resource(pool)
+        first = pool.consume_recent_keys()
+        assert len(first) == 2
+        # Buffer must be empty after consume.
+        assert pool.consume_recent_keys() == []
+
+    def test_consume_recent_keys_empty_when_no_registration(self):
+        """consume_recent_keys returns [] when nothing was registered."""
+        pool = GraphResourcePool.get_pool(0)
+        assert pool.consume_recent_keys() == []
+
+    def test_consume_recent_keys_thread_isolation(self):
+        """Each thread sees only its own registrations."""
+        pool = GraphResourcePool.get_pool(0)
+        results = {}
+
+        def register_and_consume(thread_id):
+            r1 = MagicMock()
+            r2 = MagicMock()
+            k1 = pool.register(r1)
+            k2 = pool.register(r2)
+            keys = pool.consume_recent_keys()
+            results[thread_id] = (k1, k2, keys)
+
+        t_a = threading.Thread(target=register_and_consume, args=(0,))
+        t_b = threading.Thread(target=register_and_consume, args=(1,))
+        t_a.start()
+        t_b.start()
+        t_a.join()
+        t_b.join()
+
+        # Each thread must receive exactly its own 2 keys.
+        k1_a, k2_a, keys_a = results[0]
+        k1_b, k2_b, keys_b = results[1]
+        assert keys_a == [k1_a, k2_a]
+        assert keys_b == [k1_b, k2_b]
+        # Keys across threads are globally unique.
+        assert len({k1_a, k2_a, k1_b, k2_b}) == 4
+        assert pool.entry_count == 4
+
+        # Consuming from the main thread must return nothing.
+        assert pool.consume_recent_keys() == []
+
+    # -- remove_by_keys ----------------------------------------------------
+
+    @patch('torch.npu.synchronize')
+    def test_register_and_remove_single(self, _mock_sync):
+        """Register one resource and remove it — basic happy path."""
+        pool = GraphResourcePool.get_pool(0)
+        key, resource = self._register_resource(pool)
+        assert pool.entry_count == 1
+        pool.remove_by_keys([key])
+        resource.release.assert_called_once()
+        assert pool.entry_count == 0
+
+    @patch('torch.npu.synchronize')
+    def test_remove_unknown_key_is_noop(self, _mock_sync):
+        """Removing a key that was never registered must not touch anything."""
+        pool = GraphResourcePool.get_pool(0)
+        key, resource = self._register_resource(pool)
+        # Use a key that is semantically impossible (negative).
+        pool.remove_by_keys([-1])
+        resource.release.assert_not_called()
+        assert pool.entry_count == 1
+
+    @patch('torch.npu.synchronize')
+    def test_multiple_resources_independent_keys(self, _mock_sync):
+        """Each register() returns a distinct key; removing one doesn't
+        affect the other."""
+        pool = GraphResourcePool.get_pool(0)
+        k1, r1 = self._register_resource(pool)
+        k2, r2 = self._register_resource(pool)
+        assert k1 != k2
+        assert pool.entry_count == 2
+        pool.remove_by_keys([k1])
+        r1.release.assert_called_once()
+        r2.release.assert_not_called()
+        assert pool.entry_count == 1
+
+    @patch('torch.npu.synchronize')
+    def test_pool_isolation_across_devices(self, _mock_sync):
+        """Per-device pools are independent."""
+        pool_0 = GraphResourcePool.get_pool(0)
+        pool_1 = GraphResourcePool.get_pool(1)
+        assert pool_0 is not pool_1
+        k0, r0 = self._register_resource(pool_0)
+        k1, r1 = self._register_resource(pool_1)
+        pool_0.remove_by_keys([k0])
+        r0.release.assert_called_once()
+        r1.release.assert_not_called()
+        assert pool_1.entry_count == 1
+
+    @patch('torch.npu.synchronize')
+    def test_remove_empty_keys_is_noop(self, _mock_sync):
+        """Empty key list should not crash or release anything."""
+        pool = GraphResourcePool.get_pool(0)
+        key, resource = self._register_resource(pool)
+        pool.remove_by_keys([])
+        assert pool.entry_count == 1
+        resource.release.assert_not_called()
+
+    @patch('torch.npu.synchronize')
+    def test_remove_already_removed_key_is_noop(self, _mock_sync):
+        """Removing an already-removed key twice must not crash (idempotency)."""
+        pool = GraphResourcePool.get_pool(0)
+        key, resource = self._register_resource(pool)
+        pool.remove_by_keys([key])
+        assert pool.entry_count == 0
+        resource.release.assert_called_once()
+        pool.remove_by_keys([key])  # second removal — must not crash
+        assert pool.entry_count == 0
+        # release must NOT be called a second time.
+        resource.release.assert_called_once()
+
+    # -- lifecycle ---------------------------------------------------------
+
+    @patch('torch.npu.synchronize')
+    def test_register_consume_remove_lifecycle(self, _mock_sync):
+        """Full lifecycle: register → consume → remove, matching upper layer flow.
+
+        Simulates the new_fn loop in shape_handling.py where each src_fn
+        invocation produces N graph captures (N pool registrations) that are
+        then consumed, recorded as cleanup_keys on gears, and later removed
+        en masse on gear eviction.
+        """
+        pool = GraphResourcePool.get_pool(0)
+
+        # -- variant 0: 3 sub-graphs captured --
+        r_a, r_b, r_c = MagicMock(), MagicMock(), MagicMock()
+        k_a = pool.register(r_a)
+        k_b = pool.register(r_b)
+        k_c = pool.register(r_c)
+        assert pool.entry_count == 3
+
+        # Upper layer consumes keys for this variant.
+        keys_v0 = pool.consume_recent_keys()
+        assert keys_v0 == [k_a, k_b, k_c]
+        assert pool.consume_recent_keys() == []   # drained
+
+        # -- variant 1: 2 sub-graphs captured in a different shape --
+        r_d, r_e = MagicMock(), MagicMock()
+        k_d = pool.register(r_d)
+        k_e = pool.register(r_e)
+        assert pool.entry_count == 5
+
+        keys_v1 = pool.consume_recent_keys()
+        assert keys_v1 == [k_d, k_e]
+
+        # -- gear eviction removes variant 0 --
+        # All 3 keys for this variant are passed together (they may be
+        # distributed across several gears; e.g. BATCHSIZE:32 cleanup_keys
+        # also contains them).
+        pool.remove_by_keys(keys_v0)
+        r_a.release.assert_called_once()
+        r_b.release.assert_called_once()
+        r_c.release.assert_called_once()
+        # Variant 1 resources untouched.
+        assert pool.entry_count == 2
+
+        # -- gear eviction removes variant 1 later --
+        pool.remove_by_keys(keys_v1)
+        assert pool.entry_count == 0
+
+        # Re-removing any key is harmless (gears share keys → idempotent).
+        pool.remove_by_keys(keys_v0)  # no crash
+        pool.remove_by_keys(keys_v1)  # no crash
+        assert pool.entry_count == 0
+
+    @patch('torch.npu.synchronize')
+    def test_bulk_remove_mixed_keys(self, _mock_sync):
+        """Bulk remove handles a mix of existing and already-removed keys."""
+        pool = GraphResourcePool.get_pool(0)
+        k1, r1 = self._register_resource(pool)
+        k2, r2 = self._register_resource(pool)
+
+        # Remove k1 first.
+        pool.remove_by_keys([k1])
+        assert pool.entry_count == 1
+
+        # Bulk remove: k1 (already gone) + k2 (still present).
+        pool.remove_by_keys([k1, k2])
+        r1.release.assert_called_once()   # only once, from first remove
+        r2.release.assert_called_once()
+        assert pool.entry_count == 0
+
+    @patch('torch.npu.synchronize')
+    def test_remove_calls_reset_when_no_release(self, _mock_sync):
+        """Simple-mode graph (torch.npu.NPUGraph) uses reset(), not release()."""
+        from unittest.mock import Mock
+
+        pool = GraphResourcePool.get_pool(0)
+        pool.activate()
+        resource = Mock(spec_set=['reset'])
+        key = pool.register(resource)
+        pool.remove_by_keys([key])
+        resource.reset.assert_called_once()
 
 
 if __name__ == "__main__":

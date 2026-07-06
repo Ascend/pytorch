@@ -21,10 +21,10 @@
 |[torch.fx.GraphModule](https://pytorch.org/docs/2.7/fx.html#torch.fx.GraphModule)|是|支持fp32|
 |[torch.fx.GraphModule.__init__](https://pytorch.org/docs/2.7/fx.html#torch.fx.GraphModule.__init__)|是|支持fp32|
 |[torch.fx.GraphModule.add_submodule](https://pytorch.org/docs/2.7/fx.html#torch.fx.GraphModule.add_submodule)|是|支持fp32|
-|[torch.fx.GraphModule.code](https://pytorch.org/docs/2.7/fx.html#torch.fx.GraphModule.code)|否|-|
+|[torch.fx.GraphModule.code](https://pytorch.org/docs/2.7/fx.html#torch.fx.GraphModule.code)|是|-|
 |[torch.fx.GraphModule.delete_all_unused_submodules](https://pytorch.org/docs/2.7/fx.html#torch.fx.GraphModule.delete_all_unused_submodules)|是|支持fp32|
 |[torch.fx.GraphModule.delete_submodule](https://pytorch.org/docs/2.7/fx.html#torch.fx.GraphModule.delete_submodule)|是|支持fp32|
-|[torch.fx.GraphModule.graph](https://pytorch.org/docs/2.7/fx.html#torch.fx.GraphModule.graph)|否|-|
+|[torch.fx.GraphModule.graph](https://pytorch.org/docs/2.7/fx.html#torch.fx.GraphModule.graph)|是|-|
 |[torch.fx.GraphModule.print_readable](https://pytorch.org/docs/2.7/fx.html#torch.fx.GraphModule.print_readable)|是|-|
 |[torch.fx.GraphModule.recompile](https://pytorch.org/docs/2.7/fx.html#torch.fx.GraphModule.recompile)|是|-|
 |[torch.fx.GraphModule.to_folder](https://pytorch.org/docs/2.7/fx.html#torch.fx.GraphModule.to_folder)|是|支持fp32|
@@ -88,8 +88,6 @@
 |[torch.fx.Tracer.to_bool](https://pytorch.org/docs/2.7/fx.html#torch.fx.Tracer.to_bool)|是|支持fp32|
 |[torch.fx.Tracer.trace](https://pytorch.org/docs/2.7/fx.html#torch.fx.Tracer.trace)|是|-|
 |[torch.fx.Proxy](https://pytorch.org/docs/2.7/fx.html#torch.fx.Proxy)|是|-|
-|[torch.fx.proxy.ParameterProxy](https://pytorch.org/docs/2.7/fx.html#torch.fx.proxy.ParameterProxy)|是|-|
-|[torch.fx.passes.split_module.split_module](https://pytorch.org/docs/2.7/fx.html#torch.fx.passes.split_module)|是|-|
 |[torch.fx.Interpreter](https://pytorch.org/docs/2.7/fx.html#torch.fx.Interpreter)|是|-|
 |[torch.fx.Interpreter.call_function](https://pytorch.org/docs/2.7/fx.html#torch.fx.Interpreter.call_function)|是|支持fp32|
 |[torch.fx.Interpreter.call_method](https://pytorch.org/docs/2.7/fx.html#torch.fx.Interpreter.call_method)|是|支持fp32|
@@ -139,6 +137,11 @@
 |[torch.fx.experimental.symbolic_shapes.SubclassSymbolicContext](https://pytorch.org/docs/2.7/generated/torch.fx.experimental.symbolic_shapes.SubclassSymbolicContext.html)|是|-|
 |[torch.fx.experimental.symbolic_shapes.sym_eq](https://pytorch.org/docs/2.7/generated/torch.fx.experimental.symbolic_shapes.sym_eq.html)|是|-|
 |[torch.fx.experimental.symbolic_shapes.statically_known_true](https://pytorch.org/docs/2.7/generated/torch.fx.experimental.symbolic_shapes.statically_known_true.html)|是|-|
+|[torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symbol](https://pytorch.org/docs/2.7/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symbol)|是|-|
+|[torch.fx.experimental.symbolic_shapes.ShapeEnv.bound_sympy](https://pytorch.org/docs/2.7/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.bound_sympy)|是|-|
+|[torch.fx.experimental.symbolic_shapes.ShapeEnv.check_equal](https://pytorch.org/docs/2.7/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.check_equal)|是|-|
+|[torch.fx.experimental.symbolic_shapes.ShapeEnv.cleanup](https://pytorch.org/docs/2.7/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.cleanup)|是|-|
+|[torch.fx.experimental.symbolic_shapes.ShapeEnv.bind_symbols](https://pytorch.org/docs/2.7/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.bind_symbols)|是|-|
 | [torch.fx.experimental.symbolic_shapes.ShapeEnv.produce_guards](https://pytorch.org/docs/2.7.1/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.produce_guards) |是|-|
 | [torch.fx.experimental.symbolic_shapes.ShapeEnv.get_nontrivial_guards](https://pytorch.org/docs/2.7.1/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.get_nontrivial_guards) |是|-|
 | [torch.fx.experimental.symbolic_shapes.ShapeEnv.get_pruned_guards](https://pytorch.org/docs/2.7.1/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.get_pruned_guards) |是|-|

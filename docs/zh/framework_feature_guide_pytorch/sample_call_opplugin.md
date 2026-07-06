@@ -252,7 +252,7 @@
 
       输出如下打印，说明执行正确：
 
-      ```coldfusion
+      ```text
       test_add_custom (__main__.TestCustomAdd) ... ok
       test_add_custom_backward (__main__.TestCustomAdd) ... ok
 

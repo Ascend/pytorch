@@ -4,7 +4,7 @@
 
 1. 依赖安装。
 
-    PyTorch推荐在容器里进行编译，参考[使用源代码进行安装](https://gitcode.com/Ascend/pytorch#%E4%BD%BF%E7%94%A8%E6%BA%90%E4%BB%A3%E7%A0%81%E8%BF%9B%E8%A1%8C%E5%AE%89%E8%A3%85)章节拉取镜像。
+    PyTorch推荐在容器里进行编译，具体请参考[源码安装](../installation_guide/compilation_installation_using_source_code.md#安装torch_npu插件)。
 
     毕昇环境变量配置，详情请参见[安装毕昇编译器](install_bisheng_comp.md)。
 

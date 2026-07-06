@@ -1,5 +1,5 @@
 diff --git a/test/test_ops.py b/test/test_ops.py
-index 871b643..b13da9b 100644
+index 871b643..d483e32 100644
 --- a/test/test_ops.py
 +++ b/test/test_ops.py
 @@ -4,6 +4,7 @@ import copy
@@ -20,7 +20,7 @@ index 871b643..b13da9b 100644
  from torch.testing._internal.common_device_type import (
      deviceCountAtLeast,
      instantiate_device_type_tests,
-@@ -244,11 +248,16 @@ class TestCommon(TestCase):
+@@ -244,11 +249,16 @@ class TestCommon(TestCase):
              assert len(filtered_ops) == 0, err_msg
  
      # Validates that each OpInfo works correctly on different CUDA devices
@@ -38,7 +38,7 @@ index 871b643..b13da9b 100644
              cuda_device = torch.device(cuda_device_str)
              # NOTE: only tests on first sample
              samples = op.sample_inputs(cuda_device, dtype)
-@@ -376,7 +382,7 @@ class TestCommon(TestCase):
+@@ -376,7 +386,7 @@ class TestCommon(TestCase):
                  )
  
      # Tests that the cpu and gpu results are consistent
@@ -47,16 +47,60 @@ index 871b643..b13da9b 100644
      @suppress_warnings
      @slowTest
      @ops(_ops_and_refs_with_no_numpy_ref, dtypes=OpDTypes.any_common_cpu_cuda_one)
-@@ -386,6 +392,8 @@ class TestCommon(TestCase):
+@@ -386,6 +396,43 @@ class TestCommon(TestCase):
                  return arg.to(device="cpu")
              return arg
  
-+        if cuda_device_str.startswith('cpu'):
++        integral_dtypes = {
++            torch.uint8,
++            torch.int8,
++            torch.int16,
++            torch.int32,
++            torch.int64,
++        }
++
++        npu_pooling_ops = {
++            "nn.functional.max_pool1d",
++            "nn.functional.max_pool2d",
++            "nn.functional.max_pool3d",
++        }
++
++        def align_npu_pooling_indices_dtype(cuda_results, cpu_results):
++            if not (device.startswith("npu") and op.name in npu_pooling_ops):
++                return cuda_results
++            cuda_leaves, cuda_spec = pytree.tree_flatten(cuda_results)
++            cpu_leaves, cpu_spec = pytree.tree_flatten(cpu_results)
++            if cuda_spec != cpu_spec or len(cuda_leaves) <= 1:
++                return cuda_results
++            cuda_idx = cuda_leaves[1]
++            cpu_idx = cpu_leaves[1]
++            if (
++                isinstance(cuda_idx, torch.Tensor)
++                and isinstance(cpu_idx, torch.Tensor)
++                and cuda_idx.device.type == "npu"
++                and cuda_idx.dtype in integral_dtypes
++                and cpu_idx.dtype in integral_dtypes
++                and cuda_idx.dtype != cpu_idx.dtype
++            ):
++                cuda_leaves[1] = cuda_idx.to(dtype=cpu_idx.dtype)
++                return pytree.tree_unflatten(cuda_leaves, cuda_spec)
++            return cuda_results
++
++        if device.startswith('cpu'):
 +            raise unittest.SkipTest("onlyCUDA skip cpu")
          samples = op.reference_inputs(device, dtype)
  
          for sample in samples:
-@@ -637,11 +645,15 @@ class TestCommon(TestCase):
+@@ -400,6 +447,8 @@ class TestCommon(TestCase):
+             # We use this function to compare them.
+             cuda_results = sample.output_process_fn_grad(cuda_results)
+             cpu_results = cpu_sample.output_process_fn_grad(cpu_results)
++            if device.startswith("npu"):
++                cuda_results = align_npu_pooling_indices_dtype(cuda_results, cpu_results)
+ 
+             # Lower tolerance because we are running this as a `@slowTest`
+             # Don't want the periodic tests to fail frequently
+@@ -637,11 +686,15 @@ class TestCommon(TestCase):
              )
          self._ref_test_helper(contextlib.nullcontext, device, dtype, op)
  
@@ -73,22 +117,67 @@ index 871b643..b13da9b 100644
          if (
              TEST_WITH_ROCM
              and (op.name == "_refs.fft.ihfftn" or op.name == "_refs.fft.ihfft2")
-@@ -1146,1 +1162,4 @@ class TestCommon(TestCase):
+@@ -722,7 +775,28 @@ class TestCommon(TestCase):
+     @ops(op_db, allowed_dtypes=(torch.float32, torch.long, torch.complex64))
+     def test_noncontiguous_samples(self, device, dtype, op):
+         test_grad = dtype in op.supported_backward_dtypes(torch.device(device).type)
+-        sample_inputs = op.sample_inputs(device, dtype, requires_grad=test_grad)
++        if device.startswith("npu") and op.name == "nn.functional.max_pool2d":
++            from torch.testing._internal.common_methods_invocations import _TestParamsMaxPool2d
++            from torch.testing._internal.opinfo.core import SampleInput
++
++            make_arg = partial(make_tensor, device=device, dtype=dtype, requires_grad=False)
++
++            def npu_supported_max_pool2d_samples():
++                params_generator = _TestParamsMaxPool2d()
++                for (shape, memory_format), kwargs in params_generator.gen_input_params():
++                    if memory_format != torch.contiguous_format:
++                        continue
++                    dilation = kwargs.get("dilation", 1)
++                    if isinstance(dilation, int):
++                        dilation = (dilation, dilation)
++                    if any(d != 1 for d in dilation):
++                        continue
++                    arg = make_arg(shape).to(memory_format=memory_format).requires_grad_(test_grad)
++                    yield SampleInput(arg, kwargs=kwargs)
++
++            sample_inputs = npu_supported_max_pool2d_samples()
++        else:
++            sample_inputs = op.sample_inputs(device, dtype, requires_grad=test_grad)
+         for sample_input in sample_inputs:
+             t_inp, t_args, t_kwargs = (
+                 sample_input.input,
+@@ -1143,6 +1217,9 @@ class TestCommon(TestCase):
+         dtypes=OpDTypes.supported,
+         allowed_dtypes=[torch.float, torch.cfloat],
+     )
 +    @skipOps("TestCommon", "test_out_requires_grad_error", {
 +        skip("sparse.sampled_addmm", "", device_type="privateuse1", dtypes=(torch.float32,)),
 +    })
      def test_out_requires_grad_error(self, device, dtype, op):
-@@ -1816,1 +1835,4 @@ class TestCompositeCompliance(TestCase):
+         sample = first_sample(self, op.sample_inputs(device, dtype))
+ 
+@@ -1813,6 +1890,9 @@ class TestCompositeCompliance(TestCase):
+             )
+ 
+     @ops(op_db, allowed_dtypes=(torch.float,))
 +    @skipOps("TestCompositeCompliance", "test_cow_input", {
 +        skip("sparse.sampled_addmm", "", device_type="privateuse1", dtypes=(torch.float32,)),
 +    })
      def test_cow_input(self, device, dtype, op):
-@@ -1975,1 +1997,4 @@ class TestCompositeCompliance(TestCase):
+         samples = op.sample_inputs(device, dtype, requires_grad=op.supports_autograd)
+ 
+@@ -1972,6 +2052,9 @@ class TestCompositeCompliance(TestCase):
+                         )
+ 
+     @ops(op_db, allowed_dtypes=(torch.float,))
 +    @skipOps("TestCompositeCompliance", "test_view_replay", {
 +        skip("sparse.sampled_addmm", "", device_type="privateuse1", dtypes=(torch.float32,)),
 +    })
      def test_view_replay(self, device, dtype, op):
-@@ -2113,7 +2125,7 @@ class TestMathBits(TestCase):
+         def _assert_match_metadata(a, b):
+             self.assertEqual(a.size(), b.size())
+@@ -2113,7 +2196,7 @@ class TestMathBits(TestCase):
                      cloned1_tensor = (
                          cloned1 if isinstance(cloned1, torch.Tensor) else cloned1[0]
                      )
@@ -97,7 +186,7 @@ index 871b643..b13da9b 100644
  
                      tensor.grad, cloned1_tensor.grad = None, None
  
-@@ -2125,7 +2137,7 @@ class TestMathBits(TestCase):
+@@ -2125,7 +2208,7 @@ class TestMathBits(TestCase):
                              math_op_view(math_op_physical(grad))
                          )
  
@@ -106,7 +195,7 @@ index 871b643..b13da9b 100644
  
      @ops(ops_and_refs, allowed_dtypes=(torch.cfloat,))
      def test_conj_view(self, device, dtype, op):
-@@ -2508,6 +2520,7 @@ fake_autocast_device_skips = defaultdict(dict)
+@@ -2508,6 +2591,7 @@ fake_autocast_device_skips = defaultdict(dict)
  # TODO: investigate/fix
  fake_autocast_device_skips["cpu"] = {"linalg.pinv"}
  fake_autocast_device_skips["cuda"] = {"linalg.pinv", "pinverse"}
@@ -114,7 +203,114 @@ index 871b643..b13da9b 100644
  
  
  dynamic_output_op_tests = (
-@@ -2794,15 +2807,17 @@ class TestFakeTensor(TestCase):
+@@ -2571,6 +2655,36 @@ fake_autocast_backward_xfails = {
+ 
+ @unMarkDynamoStrictTest
+ class TestFakeTensor(TestCase):
++    def _is_npu_pooling_indices_sample(self, device, name, sample):
++        return (
++            device.startswith("npu")
++            and name
++            in {
++                "nn.functional.max_pool1d",
++                "nn.functional.max_pool2d",
++                "nn.functional.max_pool3d",
++            }
++        )
++
++    def _align_npu_pooling_indices_dtype(self, actual, expected):
++        integral_dtypes = {
++            torch.uint8,
++            torch.int8,
++            torch.int16,
++            torch.int32,
++            torch.int64,
++        }
++        if (
++            isinstance(actual, torch.Tensor)
++            and isinstance(expected, torch.Tensor)
++            and actual.device.type == "npu"
++            and actual.dtype in integral_dtypes
++            and expected.dtype in integral_dtypes
++            and actual.dtype != expected.dtype
++        ):
++            return actual.to(dtype=expected.dtype)
++        return actual
++
+     def setUp(self):
+         # Turn on FakeTensor caching and cross-checking for these tests:
+         cache_enabled = unittest.mock.patch(
+@@ -2631,8 +2745,8 @@ class TestFakeTensor(TestCase):
+                     if not match_results:
+                         return
+ 
+-                    for fake_out, real_out in zip(
+-                        pytree.tree_leaves(res_fake), pytree.tree_leaves(res)
++                    for out_idx, (fake_out, real_out) in enumerate(
++                        zip(pytree.tree_leaves(res_fake), pytree.tree_leaves(res))
+                     ):
+                         if not isinstance(fake_out, torch.Tensor):
+                             self.assertTrue(not isinstance(real_out, torch.Tensor))
+@@ -2652,6 +2766,15 @@ class TestFakeTensor(TestCase):
+ 
+                             # note: the excluded ops have intentionally incorrect device;
+                             # see "Note [Seed and Offset]" (_meta_registrations.py)
++                            if (
++                                out_idx == 1
++                                and self._is_npu_pooling_indices_sample(
++                                    device, name, sample
++                                )
++                            ):
++                                real_out = self._align_npu_pooling_indices_dtype(
++                                    real_out, fake_out
++                                )
+                             prims.utils.compare_tensor_meta(fake_out, real_out, True)
+ 
+                         if name not in aliasing_failures:
+@@ -2760,6 +2883,9 @@ class TestFakeTensor(TestCase):
+         self._test_fake_helper(device, dtype, op, context_fn)
+ 
+     def _test_fake_crossref_helper(self, device, dtype, op, context):
++        name = op.name
++        if op.variant_test_name:
++            name += "." + op.variant_test_name
+         samples = op.sample_inputs(device, dtype, requires_grad=True)
+ 
+         for sample in samples:
+@@ -2773,11 +2899,30 @@ class TestFakeTensor(TestCase):
+                 aten.copy_.default,
+                 aten.is_same_size.default,
+             )
++            orig_check_fake_real_tensors = (
++                torch._subclasses.fake_utils._check_fake_real_tensors
++            )
++
++            def check_fake_real_tensors(real_out, fake_out, *args, **kwargs):
++                if self._is_npu_pooling_indices_sample(device, name, sample):
++                    real_out = self._align_npu_pooling_indices_dtype(
++                        real_out, fake_out
++                    )
++                return orig_check_fake_real_tensors(
++                    real_out, fake_out, *args, **kwargs
++                )
+ 
+             # TODO: enable check_aliasing, batch norm fails
+             try:
+-                with torch._subclasses.CrossRefFakeMode(
+-                    ignore_op_fn=lambda fn: fn in common_skip_ops, check_aliasing=True
++                with (
++                    unittest.mock.patch(
++                        "torch._subclasses.fake_utils._check_fake_real_tensors",
++                        check_fake_real_tensors,
++                    ),
++                    torch._subclasses.CrossRefFakeMode(
++                        ignore_op_fn=lambda fn: fn in common_skip_ops,
++                        check_aliasing=True,
++                    ),
+                 ):
+                     with (
+                         warnings.catch_warnings(),
+@@ -2794,15 +2939,17 @@ class TestFakeTensor(TestCase):
              except torch._subclasses.fake_tensor.UnsupportedOperatorException:
                  pass
  
@@ -134,7 +330,7 @@ index 871b643..b13da9b 100644
      @ops([op for op in op_db if op.supports_autograd], allowed_dtypes=(torch.float,))
      @skipOps(
          "TestFakeTensor",
-@@ -2810,7 +2825,9 @@ class TestFakeTensor(TestCase):
+@@ -2810,7 +2957,9 @@ class TestFakeTensor(TestCase):
          fake_backward_xfails | fake_autocast_backward_xfails,
      )
      def test_fake_crossref_backward_amp(self, device, dtype, op):

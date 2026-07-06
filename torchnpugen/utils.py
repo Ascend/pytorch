@@ -73,33 +73,18 @@ DEVICE_CHECK_NOTSUPPORT_TYPE = {"Tensor[]?"}
 class PathManager:
 
     @classmethod
-    def check_path_owner_consistent(cls, path: str):
-        """
-        Function Description:
-            check whether the path belong to process owner
-        Parameter:
-            path: the path to check
-        Exception Description:
-            when invalid path, prompt the user
-        """
-
-        if not os.path.exists(path):
-            msg = f"The path does not exist: {path}"
-            raise RuntimeError(msg)
-        if os.stat(path).st_uid != os.getuid():
-            warnings.warn(f"Warning: The {path} owner does not match the current user.")
-
-    @classmethod
     def check_directory_path_readable(cls, path):
         """
         Function Description:
-            check whether the path is writable
+            check whether the path is readable
         Parameter:
             path: the path to check
         Exception Description:
             when invalid data throw exception
         """
-        cls.check_path_owner_consistent(path)
+        if not os.path.exists(path):
+            msg = f"The path does not exist: {path}"
+            raise RuntimeError(msg)
         if os.path.islink(path):
             msg = f"Invalid path is a soft chain: {path}"
             raise RuntimeError(msg)

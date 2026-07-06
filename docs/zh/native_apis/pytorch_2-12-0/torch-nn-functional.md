@@ -16,8 +16,8 @@
 |[torch.nn.functional.avg_pool1d](https://pytorch.org/docs/2.12/generated/torch.nn.functional.avg_pool1d.html)|是|支持bf16，fp16，fp32|
 |[torch.nn.functional.avg_pool2d](https://pytorch.org/docs/2.12/generated/torch.nn.functional.avg_pool2d.html)|是|支持bf16，fp16，fp32|
 |[torch.nn.functional.avg_pool3d](https://pytorch.org/docs/2.12/generated/torch.nn.functional.avg_pool3d.html)|否|-|
-|[torch.nn.functional.max_pool1d](https://pytorch.org/docs/2.12/generated/torch.nn.functional.max_pool1d.html)|否|-|
-|[torch.nn.functional.max_pool2d](https://pytorch.org/docs/2.12/generated/torch.nn.functional.max_pool2d.html)|是|支持bf16，fp16，fp32<br>通过设置torch_npu.npu.use_compatible_impl(True)，保证与社区同名接口在内存一致性上对齐|
+|[torch.nn.functional.max_pool1d](https://pytorch.org/docs/2.12/generated/torch.nn.functional.max_pool1d.html)|是|支持fp16，fp32<br>dilation仅支持1<br>通过设置torch_npu.npu.use_compatible_impl(True)，保证与社区同名接口在内存一致性上对齐<br>return_indices为True时，返回的argmax的数据类型为int32|
+|[torch.nn.functional.max_pool2d](https://pytorch.org/docs/2.12/generated/torch.nn.functional.max_pool2d.html)|是|支持bf16，fp16，fp32<br>dilation的值目前在NPU上仅支持设置为1或(1,1)<br>通过设置torch_npu.npu.use_compatible_impl(True)，保证与社区同名接口在内存一致性上对齐<br>return_indices为True时，返回的argmax的数据类型为int32|
 |[torch.nn.functional.max_pool3d](https://pytorch.org/docs/2.12/generated/torch.nn.functional.max_pool3d.html)|是|支持bf16，fp16，fp32<br>dilation的值目前在NPU上仅支持设置为1或(1,1,1)<br>return_indices为True时，返回的argmax的数据类型为int32|
 |[torch.nn.functional.max_unpool1d](https://pytorch.org/docs/2.12/generated/torch.nn.functional.max_unpool1d.html)|是|支持fp16，fp32，fp64，uint8，int8，int32，int64|
 |[torch.nn.functional.max_unpool2d](https://pytorch.org/docs/2.12/generated/torch.nn.functional.max_unpool2d.html)|是|支持fp16，fp32，fp64，uint8，int8，int32，int64<br>jit_compile=False即二进制模式时，output_size的乘积需要大于等于input的H，W的乘积|
@@ -107,4 +107,4 @@
 |[torch.nn.functional.affine_grid](https://pytorch.org/docs/2.12/generated/torch.nn.functional.affine_grid.html)|是|支持fp16，fp32|
 |[torch.nn.functional.scaled_mm](https://docs.pytorch.org/docs/2.12/generated/torch.nn.functional.scaled_mm.html)|是|支持fp8模式下ScalingType为tensorwise，rowwise和BlockWise1x128，mxfp8模式下ScalingType为BlockWise1x32的排布，mxfp8遵循[aclnnQuantMatmulV5](https://gitcode.com/cann/ops-nn/blob/master/matmul/quant_batch_matmul_v4/docs/aclnnQuantMatmulV5.md)要求（scale_a和scale_b详见约束说明）|
 |[torch.nn.functional.scaled_grouped_mm](https://docs.pytorch.org/docs/2.12/generated/torch.nn.functional.scaled_grouped_mm.html)|是|支持fp8模式下ScalingType为rowwise，mxfp8模式的排布，mxfp8遵循[aclnnGroupedMatmulV5](https://gitcode.com/cann/ops-transformer/blob/master/gmm/grouped_matmul/docs/aclnnGroupedMatmulV5.md)要求（scale_a和scale_b详见约束说明）|
-|[torch.nn.parallel.data_parallel](https://pytorch.org/docs/2.12/nn.html#torch.nn.parallel.data_parallel)|否|-|
+|[torch.nn.parallel.data_parallel](https://pytorch.org/docs/2.12/generated/torch.nn.functional.torch.nn.parallel.data_parallel.html#torch.nn.parallel.data_parallel)|否|-|

@@ -549,6 +549,8 @@ inductor_fallback_ops_npu_not_support = {
     "aten.scatter_.value",
     "aten.scatter_.value_reduce",
     "aten.scatter_reduce",
+    "aten.scatter_reduce.two",
+    "aten.scatter_reduce.two_out",
     "aten.scatter_reduce_",
     "aten.scatter_reduce_.two",
     "aten.native_layer_norm.default",

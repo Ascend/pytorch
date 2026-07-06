@@ -4,7 +4,7 @@
 
 回显信息中存在关键字“**Expected all tensors to be on the same device. Expected NPU tensor, please check whether the input tensor device is correct.**”，类似如下打印信息：
 
-```ColdFusion
+```text
 Traceback (most recent call last):
   File "/root/miniconda3/envs/pt2.1/lib/python3.8/site-packages/torch/testing/_internal/common_utils.py", line 2388, in wrapper
     method(*args, **kwargs)

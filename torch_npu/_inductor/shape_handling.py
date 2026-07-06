@@ -1,12 +1,16 @@
-__all__ = ["NPUShapeHandling"]
+__all__ = ["NPUShapeHandling", "unified_copy"]
 
 from typing import Any, Callable, Dict, List, Optional, Tuple
 import copy
 import logging
+import sys
+import time
 import warnings
 from torch.utils._pytree import tree_flatten, tree_unflatten, TreeSpec
 import torch
 import torch_npu._C
+
+logger = logging.getLogger(__name__)
 
 
 class NPUShapeHandling(torch_npu._C._NPUShapeHandling):
@@ -47,6 +51,7 @@ class NPUShapeHandling(torch_npu._C._NPUShapeHandling):
     def __init__(
         self,
         configs: List[Dict[str, Any]] = None,
+        adaptive_configs: Optional[Dict[str, Any]] = None,
         transform_pre_fn: Optional[Callable[..., List[torch.Tensor]]] = None,
         transform_post_fn: Optional[Callable[[List[List[torch.Tensor]]], Tuple[List[Tuple], List[Dict]]]] = None,
         recover_pre_fn: Optional[Callable[[List[Any]], List[List[torch.Tensor]]]] = None,
@@ -69,6 +74,8 @@ class NPUShapeHandling(torch_npu._C._NPUShapeHandling):
         self.transform_post_fn = transform_post_fn
         self.recover_pre_fn = recover_pre_fn
         self.recover_post_fn = recover_post_fn
+        self.adaptive_configs = adaptive_configs
+        self._adaptive_manager = None
         if configs and len(configs) > 0:
             self._validate_configs(configs)
             self.configs = configs
@@ -85,6 +92,71 @@ class NPUShapeHandling(torch_npu._C._NPUShapeHandling):
                 "max_size": 1024,
                 "policy": "TIMES"
             }]
+        if self.adaptive_configs is not None:
+            self._validate_adaptive_configs(self.adaptive_configs)
+            self._adaptive_manager = self._create_adaptive_manager()
+
+    @property
+    def adaptive_manager(self):
+        return self._adaptive_manager
+
+    def _validate_adaptive_configs(self, adaptive_configs: Dict[str, Any]) -> None:
+        from .adaptive_gears import AdaptiveGearRuntime
+
+        _ratio_keys = {
+            "pad_add_threshold", "split_add_threshold", "replace_loss_threshold",
+            "weight_hit", "weight_pad", "weight_split",
+            "device_memory_usage_threshold_ratio",
+        }
+        _seconds_keys = {
+            "window_seconds", "recent_use_protect_seconds",
+            "update_interval_seconds",
+        }
+        _int_keys = {
+            "min_samples_per_gear", "min_gear_count_per_type",
+            "add_min_samples", "max_gears_per_type",
+        }
+
+        valid_keys = set(AdaptiveGearRuntime.DEFAULT_CONFIG.keys())
+        for key, value in adaptive_configs.items():
+            if key not in valid_keys:
+                raise ValueError(
+                    f"Unknown adaptive config key: '{key}'. "
+                    f"Valid keys: {sorted(valid_keys)}"
+                )
+            if key in _ratio_keys:
+                if not isinstance(value, (int, float)) or not (0.0 <= value <= 1.0):
+                    raise ValueError(
+                        f"adaptive config '{key}' must be a number in [0, 1], got {value!r}"
+                    )
+            elif key in _seconds_keys:
+                if not isinstance(value, (int, float)) or value < 0:
+                    raise ValueError(
+                        f"adaptive config '{key}' must be >= 0, got {value!r}"
+                    )
+            elif key in _int_keys:
+                if not isinstance(value, int) or value < 1:
+                    raise ValueError(
+                        f"adaptive config '{key}' must be a positive int, got {value!r}"
+                    )
+
+    def _create_adaptive_manager(self):
+        from .adaptive_gears import AdaptiveGearRuntime
+
+        return AdaptiveGearRuntime(
+            shape_handling_configs=self.configs,
+            adaptive_configs=self.adaptive_configs,
+            shape_handling_builder=self._build_adaptive_snapshot_handler,
+        )
+
+    def _build_adaptive_snapshot_handler(self, shape_configs: List[Dict[str, Any]]):
+        return NPUShapeHandling(
+            configs=shape_configs,
+            transform_pre_fn=self.transform_pre_fn,
+            transform_post_fn=self.transform_post_fn,
+            recover_pre_fn=self.recover_pre_fn,
+            recover_post_fn=self.recover_post_fn,
+        )
 
     def _validate_configs(self, configs: List[Dict[str, Any]]) -> None:
         if not configs or len(configs) == 0:
@@ -237,37 +309,70 @@ class NPUShapeHandling(torch_npu._C._NPUShapeHandling):
         *args: Any,
         **kwargs: Any
     ) -> Tuple[List[Tuple], List[Dict]]:
-        # 获取 logger
-        logger = logging.getLogger(__name__)
-        # 预处理阶段优化：统一使用预定义函数或默认逻辑
+        outputs, _, _ = self._transform_with_context(*args, **kwargs)
+        return outputs
+
+    def _transform_with_metadata(
+        self,
+        *args: Any,
+        **kwargs: Any
+    ) -> Tuple[Tuple[List[Tuple], List[Dict]], List[Dict[str, Any]]]:
+        """Like :meth:`transform_hook`, but also collects per-gear metadata.
+
+        After shape transformation, this method extracts the raw (pre-transform)
+        and mapped (post-transform) dimension values for every tensor / config
+        pair, computes per-tensor pad and split ratios, and packages them
+        together with ``cleanup_shapes`` (the post-transform tensor shapes used
+        for graph resource pool indexing) into a list of metadata dicts — one
+        per gear variant produced by the transform.
+
+        The metadata is consumed by :meth:`AdaptiveGearRuntime.record_event` to
+        build the time-decayed statistics that drive gear eviction / addition
+        decisions.
+
+        Failures in metadata collection are caught and logged; an empty metadata
+        list is returned in that case so that the core inference path is never
+        blocked.
+        """
+        from .adaptive_gears import collect_transform_metadata
+
+        outputs, inputs, trans_outputs = self._transform_with_context(*args, **kwargs)
+        try:
+            metadata = collect_transform_metadata(inputs, trans_outputs, self.configs)
+        except Exception:
+            logger.warning("Failed to collect transform metadata, adaptive gears degraded", exc_info=True)
+            metadata = []
+        return outputs, metadata
+
+    def _transform_with_context(
+        self,
+        *args: Any,
+        **kwargs: Any
+    ) -> Tuple[Tuple[List[Tuple], List[Dict]], List[torch.Tensor], List[List[torch.Tensor]]]:
         if self.transform_pre_fn:
             inputs = self.transform_pre_fn(*args, **kwargs)
         else:
             inputs, indices, leaves, spec = self._process_inputs(args, kwargs)
-        
-        # 提取转换前的形状 (inputs 通常是 Tensor 列表)
+
         if logger.isEnabledFor(logging.INFO):
             pre_shapes = [self.get_shape_safe(t) for t in inputs]
             logger.info(f"[Transform] Starting. Input tensors: {len(inputs)}, Shapes: {pre_shapes}")
 
-        # 执行核心转换操作
         trans_outputs = self.transform(tensors=inputs)
 
-        # 提取转换后的形状
         if logger.isEnabledFor(logging.INFO):
             post_shapes = [self.get_shape_safe(t) for t in trans_outputs]
             logger.info(f"> Post-transform content: {post_shapes}")
-        
-        # 后处理阶段优化：避免嵌套循环
+
         if self.transform_post_fn:
             outputs = self.transform_post_fn(trans_outputs)
         else:
             outputs = self._recover_inputs(trans_outputs, indices, leaves, spec)
-            
+
         if not outputs:
             logger.error(f"CRITICAL: _recover_inputs returned NULL")
-        
-        return outputs
+
+        return outputs, inputs, trans_outputs
 
     def flatten_to_tensors(self, structure: Any) -> Tuple[List[torch.Tensor], List[int], List[Any], TreeSpec]:
         leaves, spec = tree_flatten(structure)
@@ -302,7 +407,10 @@ class NPUShapeHandling(torch_npu._C._NPUShapeHandling):
         res = []
         for processd_tensors in transform_res:
             res.append(self.unflatten_from_tensors(processd_tensors, indices, list(leaves), spec))
-        return zip(*res)
+        if not res:
+            return [], []
+        args_list, kwargs_list = zip(*res)
+        return list(args_list), list(kwargs_list)
     
     def _process_outputs(
         self,
@@ -458,15 +566,18 @@ def patch_dynamo_context():
             trans_post_fn = None
             re_pre_fn = None
             re_post_fn = None
+            adaptive_configs = None
             function_dict = compiler_config.get("shape_handling_dict")
             if function_dict is not None:
                 trans_pre_fn = function_dict.get("trans_pre_fn", None)
                 trans_post_fn = function_dict.get("trans_post_fn", None)
                 re_pre_fn = function_dict.get("re_pre_fn", None)
                 re_post_fn = function_dict.get("re_post_fn", None)
+                adaptive_configs = function_dict.get("adaptive_gears", None)
             
             self.shape_handling = NPUShapeHandling(
                 configs=compiler_config.get("shape_handling_configs"),
+                adaptive_configs=adaptive_configs,
                 transform_pre_fn=trans_pre_fn,
                 transform_post_fn=trans_post_fn,
                 recover_pre_fn=re_pre_fn,
@@ -477,19 +588,66 @@ def patch_dynamo_context():
         src_fn = src_call(self, fn)
         if isinstance(fn, torch.nn.Module) or inspect.isclass(fn):
             return src_fn
-        
+
         def new_fn(*args, **kwargs):
             if (is_enable_shape_handling(self.callback, compiler_config=self.compiler_config)):
-                new_args, new_kwargs = self.shape_handling.transform_hook(*args, **kwargs)
-                args_is_split = len(args) != 0 and len(new_args) > 1
-                kwargs_is_split = len(kwargs) != 0 and len(new_kwargs) > 1
-                zipped_params = zip(new_args, new_kwargs)
-                res = [
-                    unified_copy(src_fn(*arg, **kwargs)) if args_is_split or kwargs_is_split
-                    else src_fn(*arg, **kwargs)
-                    for arg, kwargs in zipped_params
-                ]
-                return self.shape_handling.recover_hook(res)
+                sh = self.shape_handling
+                manager = sh.adaptive_manager
+                snapshot = manager.get_snapshot() if manager else None
+                target_sh = snapshot.shape_handling if snapshot else sh
+
+                pool = None
+                try:
+                    if manager:
+                        from torch_npu.npu._graph_resource_pool import GraphResourcePool
+                        pool = GraphResourcePool.get_pool(torch.npu.current_device())
+                        pool.activate()
+                        (new_args, new_kwargs), metadata = target_sh._transform_with_metadata(*args, **kwargs)
+                    else:
+                        new_args, new_kwargs = target_sh.transform_hook(*args, **kwargs)
+                        metadata = []
+                    args_is_split = len(args) != 0 and len(new_args) > 1
+                    kwargs_is_split = len(kwargs) != 0 and len(new_kwargs) > 1
+                    res = []
+                    for index, (call_args, call_kwargs) in enumerate(zip(new_args, new_kwargs)):
+                        raised_exc = None
+                        try:
+                            result = (
+                                unified_copy(src_fn(*call_args, **call_kwargs))
+                                if args_is_split or kwargs_is_split
+                                else src_fn(*call_args, **call_kwargs)
+                            )
+                        except Exception:
+                            raised_exc = sys.exc_info()[0]
+                            raise
+                        finally:
+                            if pool is not None:
+                                # Consume graph keys registered during this
+                                # src_fn invocation (pool.activate was called).
+                                keys = pool.consume_recent_keys()
+                                if raised_exc is not None:
+                                    if keys:
+                                        pool.remove_by_keys(keys)
+                                elif manager and snapshot and index < len(metadata):
+                                    meta = metadata[index]
+                                    for key in (keys or [None]):
+                                        try:
+                                            manager.record_event(
+                                                raw_gear_values=meta["raw_gear_values"],
+                                                mapped_gear_values=meta["mapped_gear_values"],
+                                                pad_ratios=meta["pad_ratios"],
+                                                split_ratios=meta["split_ratios"],
+                                                event_ts=time.time(),
+                                                cleanup_key=key,
+                                            )
+                                        except Exception:
+                                            logger.warning("Failed to record adaptive gear event", exc_info=True)
+                        res.append(result)
+                    output = target_sh.recover_hook(res)
+                    return output
+                finally:
+                    if pool is not None:
+                        pool.deactivate()
             return src_fn(*args, **kwargs)
         return new_fn
     _TorchDynamoContext.__call__ = new_call

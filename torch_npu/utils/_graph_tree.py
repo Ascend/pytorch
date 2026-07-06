@@ -197,6 +197,16 @@ def npugraphify_impl(
     if not isinstance(static_outputs, (list, tuple)):
         static_outputs = (static_outputs,)
 
+    # Register the underlying NPUGraph in the device-level resource pool.
+    from torch_npu.npu._graph_resource_pool import GraphResourcePool
+    device_index = next(
+        (inp.device.index for inp in inputs if isinstance(inp, torch.Tensor)),
+        0,
+    )
+    pool = GraphResourcePool.get_pool(device_index)
+    if pool.is_active():
+        pool.register(graph)
+
     if config.size_asserts:
 
         def run(new_inputs: List[InputType]) -> Callable[[List[InputType]], Any]:

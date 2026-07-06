@@ -44,6 +44,11 @@ Ascend950 = 260
 is_ascend950 = get_soc_version() >= Ascend950
 
 
+def _read_env_bool(name: str, default: str = "False") -> bool:
+    value = os.environ.get(name, default)
+    return value.strip().lower() in ("1", "true", "yes", "on")
+
+
 class catlass:
     # Whether to enable debug info, e.g., line number
     enable_debug_info: bool = False
@@ -243,11 +248,6 @@ symbolic_group_allow_templates = tuple(
     ).split(",")
     if x.strip()
 )
-inductor_static_mode = os.environ.get("INDUCTOR_STATIC_MODE", "0").lower() in (
-    "1",
-    "yes",
-    "true",
-)
 profile_path = "./profile_result/"
 
 fasta_autotune = os.environ.get("FASTAUTOTUNE", "0") == "1"
@@ -292,3 +292,62 @@ lowering_axis_count = None
 inductor_ascend_linear_mode = "linear"
 
 autotune_continue_on_failure = os.environ.get('TORCHINDUCTOR_NPU_BACKEND') == "default"
+
+
+FLEX_ATTENTION_NPU_COMPILE_HINT_KEYS = (
+    "multibuffer",
+    "unit_flag",
+    "enable_ubuf_saving",
+    "limit_auto_multi_buffer_only_for_local_buffer",
+    "limit_auto_multi_buffer_of_local_buffer",
+    "set_workspace_multibuffer",
+    "tile_mix_vector_loop",
+    "tile_mix_cube_loop",
+    "disable_auto_inject_block_sync",
+    "enable_mixed_cv",
+)
+
+
+class flex_attention:
+    """
+    Configuration for the minimal flex_attention path ported from the source branch.
+
+    The default path is fixed to the current verified sparse-mask case.
+    """
+    enable_npu_optimization = False
+    use_config_generator = True
+    metadata_auto_infer = True
+    bwd_mask_out = True
+
+    multibuffer = True
+    unit_flag = True
+    enable_ubuf_saving = True
+    limit_auto_multi_buffer_only_for_local_buffer = False
+    limit_auto_multi_buffer_of_local_buffer = "no-limit"
+    set_workspace_multibuffer = 4
+    tile_mix_vector_loop = 4
+    tile_mix_cube_loop = 4
+    disable_auto_inject_block_sync = False
+    enable_mixed_cv = False
+
+    @classmethod
+    def get_npu_compile_hint_params(cls) -> dict:
+        """Get NPU compile hint parameters as a dictionary.
+
+        Returns:
+            Dictionary containing all NPU compile hint parameter values
+        """
+        return {
+            key: getattr(cls, key)
+            for key in FLEX_ATTENTION_NPU_COMPILE_HINT_KEYS
+        }
+
+
+def apply_flex_attention_npu_params(config: dict, *, enable: bool) -> dict:
+    config = config.copy()
+    if enable:
+        config.update(flex_attention.get_npu_compile_hint_params())
+        config["ENABLE_COMPILE_HINT"] = True
+    else:
+        config["ENABLE_COMPILE_HINT"] = False
+    return config

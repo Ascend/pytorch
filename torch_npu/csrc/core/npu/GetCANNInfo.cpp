@@ -458,31 +458,33 @@ std::string GetCANNVersion(const std::string& module)
     }
     std::string module_version = "";
     if (find_module != packageNameMap.end()) {
-        aclCANNPackageVersion version;
+        aclCANNPackageVersion version = {};
         aclCANNPackageName name = find_module->second;
         aclError ret = c10_npu::acl::AclsysGetCANNVersion(name, &version);
-        if (ret == ACL_ERROR_RT_FEATURE_NOT_SUPPORT) {
-            ASCEND_LOGW("Failed to find function aclsysGetCANNVersion.");
+        if (ret != ACL_RT_SUCCESS) {
+            ASCEND_LOGW("Failed to find function aclsysGetCANNVersion, ret: %d.", ret);
             CANNVersionCache[module] = "";
             return "";
+        } else {
+            module_version = version.version;
+            CANNVersionCache[module] = module_version;
+            return module_version;
         }
-        module_version = version.version;
-        CANNVersionCache[module] = module_version;
     }
     
     if (find_module_v2 != pkgNameV2Map.end()) {
         char versionStr[ACL_PKG_VERSION_MAX_SIZE] = {0};
         aclError retV2 = c10_npu::acl::AclsysGetVersionStr(const_cast<char*>(module.c_str()), versionStr);
-        if (retV2 == ACL_ERROR_RT_FEATURE_NOT_SUPPORT) {
-            ASCEND_LOGW("Failed to find function aclsysGetVersionStr.");
+        if (retV2 != ACL_RT_SUCCESS) {
+            ASCEND_LOGW("Failed to find function aclsysGetVersionStr, ret: %d.", retV2);
             CANNVersionCache[module] = "";
             return "";
+        } else {
+            module_version = versionStr;
+            CANNVersionCache[module] = module_version;
+            return module_version;
         }
-        module_version = versionStr;
-        CANNVersionCache[module] = module_version;
     }
-    
-    return module_version;
 }
 
 // Returns: 1 if currentVersion >= targetVersion, 0 if currentVersion < targetVersion, -1 if invalid

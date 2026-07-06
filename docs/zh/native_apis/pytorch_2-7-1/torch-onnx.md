@@ -20,9 +20,9 @@
 |[torch.onnx.DiagnosticOptions](https://pytorch.org/docs/2.7/onnx_dynamo.html#torch.onnx.DiagnosticOptions)|否|-|
 |[torch.onnx.is_onnxrt_backend_supported](https://pytorch.org/docs/2.7/onnx_dynamo_onnxruntime_backend.html#torch.onnx.is_onnxrt_backend_supported)|是|-|
 |[torch.onnx.export](https://pytorch.org/docs/2.7/onnx_torchscript.html#torch.onnx.export)|是|-|
-|[torch.onnx.register_custom_op_symbolic](https://pytorch.org/docs/2.7/onnx.html#torch.onnx.register_custom_op_symbolic)|是|-|
-|[torch.onnx.unregister_custom_op_symbolic](https://pytorch.org/docs/2.7/onnx.html#torch.onnx.unregister_custom_op_symbolic)|是|-|
-|[torch.onnx.select_model_mode_for_export](https://pytorch.org/docs/2.7/onnx.html#torch.onnx.select_model_mode_for_export)|是|-|
+|[torch.onnx.register_custom_op_symbolic](https://pytorch.org/docs/2.7/onnx_torchscript.html#torch.onnx.register_custom_op_symbolic)|是|-|
+|[torch.onnx.unregister_custom_op_symbolic](https://pytorch.org/docs/2.7/onnx_torchscript.html#torch.onnx.unregister_custom_op_symbolic)|是|-|
+|[torch.onnx.select_model_mode_for_export](https://pytorch.org/docs/2.7/onnx_torchscript.html#torch.onnx.select_model_mode_for_export)|是|-|
 |[torch.onnx.is_in_onnx_export](https://pytorch.org/docs/2.7/onnx_torchscript.html#torch.onnx.is_in_onnx_export)|是|-|
 |[torch.onnx.verification.find_mismatch](https://pytorch.org/docs/2.7/onnx_verification.html#torch.onnx.verification.find_mismatch)|是|-|
 |[torch.onnx.JitScalarType](https://pytorch.org/docs/2.7/generated/torch.onnx.JitScalarType.html)|是|-|

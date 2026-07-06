@@ -434,9 +434,6 @@ def patch_scheduler():
                             ms_fused_choice = choice
                             ms_fused_mod = mod_fused
 
-                V.graph.wrapper_code.lines = []
-                V.graph.wrapper_code.allocated.clear()
-
                 if ms_fused_choice:
                     log_fusion(min_ms_fused, ms1, ms2, ms_fused_choice.name)
 

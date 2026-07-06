@@ -94,7 +94,7 @@ _DICT_GUARD_TYPES = frozenset({
 def filter_dict_guards(entries):
     return [entry.guard_type not in _DICT_GUARD_TYPES for entry in entries]
 
-model = MyModel().npu()
+model = MyModel().npu()  # 注意：此处MyModel仅为示例占位类，实际使用时需要替换为自定义的真实模型类
 compiled = torch.compile(model, options={"guard_filter_fn": filter_dict_guards})
 ```
 
@@ -115,7 +115,7 @@ _RUNTIME_STATE_GUARD_TYPES = frozenset({
 def filter_runtime_state_guards(entries):
     return [entry.guard_type not in _RUNTIME_STATE_GUARD_TYPES for entry in entries]
 
-model = MyModel().npu()
+model = MyModel().npu()  # 注意：此处MyModel仅为示例占位类，实际使用时需要替换为自定义的真实模型类
 compiled = torch.compile(model, options={"guard_filter_fn": filter_runtime_state_guards})
 
 # 切换grad mode不会触发重编译
@@ -149,7 +149,7 @@ _FILTER_GUARD_TYPES = frozenset({
 def npu_guard_filter(entries):
     return [entry.guard_type not in _FILTER_GUARD_TYPES for entry in entries]
 
-model = MyModel().npu()
+model = MyModel().npu()  # 注意：此处MyModel仅为示例占位类，实际使用时需要替换为自定义的真实模型类
 compiled = torch.compile(model, options={"guard_filter_fn": npu_guard_filter})
 ```
 
@@ -185,7 +185,7 @@ import torch_npu
 def filter_globals(entries):
     return [not entry.is_global for entry in entries]
 
-model = MyModel().npu()
+model = MyModel().npu()  # 注意：此处MyModel仅为示例占位类，实际使用时需要替换为自定义的真实模型类
 compiled = torch.compile(model, options={"guard_filter_fn": filter_globals})
 ```
 
@@ -196,7 +196,7 @@ import torch
 import torch_npu
 
 # 使用PyTorch内置的nn.Module guard过滤
-model = MyModel().npu()
+model = MyModel().npu()  # 注意：此处MyModel仅为示例占位类，实际使用时需要替换为自定义的真实模型类
 compiled = torch.compile(
     model,
     options={

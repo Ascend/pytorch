@@ -27,5 +27,5 @@
 |[torch.utils.data.RandomSampler](https://pytorch.org/docs/2.9/data.html#torch.utils.data.RandomSampler)|是|支持fp32|
 |[torch.utils.data.SubsetRandomSampler](https://pytorch.org/docs/2.9/data.html#torch.utils.data.SubsetRandomSampler)|是|支持fp32|
 |[torch.utils.data.WeightedRandomSampler](https://pytorch.org/docs/2.9/data.html#torch.utils.data.WeightedRandomSampler)|是|支持fp32|
-|[torch.utils.data.BatchSampler](https://pytorch.org/docs/2.9/data.html#torch.utils.data.BatchSampler)|是|支持fp32|
+|[torch.utils.data.BatchSampler](https://pytorch.org/docs/2.9/data.html#torch.utils.data.BatchSampler)|是|-|
 |[torch.utils.data.distributed.DistributedSampler](https://pytorch.org/docs/2.9/data.html#torch.utils.data.distributed.DistributedSampler)|是|支持int32|

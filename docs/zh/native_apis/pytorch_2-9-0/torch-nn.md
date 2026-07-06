@@ -270,7 +270,7 @@
 |[torch.nn.utils.prune.PruningContainer.compute_mask](https://pytorch.org/docs/2.9/generated/torch.nn.utils.prune.PruningContainer.html#torch.nn.utils.prune.PruningContainer.compute_mask)|是|支持fp32|
 |[torch.nn.utils.prune.PruningContainer.prune](https://pytorch.org/docs/2.9/generated/torch.nn.utils.prune.PruningContainer.html#torch.nn.utils.prune.PruningContainer.prune)|是|支持fp32|
 |[torch.nn.utils.prune.PruningContainer.remove](https://pytorch.org/docs/2.9/generated/torch.nn.utils.prune.PruningContainer.html#torch.nn.utils.prune.PruningContainer.remove)|是|支持fp32|
-|[torch.nn.utils.prune.Identity](https://pytorch.org/docs/2.9/utils.html#torch.nn.utils.prune.Identity)|是|支持fp32|
+|[torch.nn.utils.prune.Identity](https://pytorch.org/docs/2.9/generated/torch.nn.utils.prune.Identity.html#torch.nn.utils.prune.Identity)|是|支持fp32|
 |[torch.nn.utils.prune.Identity.apply](https://pytorch.org/docs/2.9/generated/torch.nn.utils.prune.Identity.html#torch.nn.utils.prune.Identity.apply)|是|支持fp32|
 |[torch.nn.utils.prune.Identity.apply_mask](https://pytorch.org/docs/2.9/generated/torch.nn.utils.prune.Identity.html#torch.nn.utils.prune.Identity.apply_mask)|是|支持fp32|
 |[torch.nn.utils.prune.Identity.prune](https://pytorch.org/docs/2.9/generated/torch.nn.utils.prune.Identity.html#torch.nn.utils.prune.Identity.prune)|是|支持fp32|

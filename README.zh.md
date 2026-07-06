@@ -10,7 +10,7 @@
 
 关键目录如下：
 
-```ColdFusion
+```text
 ├─ci                             # 持续集成脚本目录
 ├─cmake                          # CMake构建配置目录
 ├─torch_npu                      # 核心适配目录

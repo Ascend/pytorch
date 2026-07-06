@@ -18,7 +18,7 @@
 |[Tensor.ccol_indices](https://pytorch.org/docs/2.12/generated/torch.Tensor.ccol_indices.html)|是|-|
 |[torch.sparse_compressed_tensor](https://pytorch.org/docs/2.12/generated/torch.sparse_compressed_tensor.html)|是|-|
 |[torch.sparse.check_sparse_tensor_invariants](https://pytorch.org/docs/2.12/generated/torch.sparse.check_sparse_tensor_invariants.html)|否|-|
-|[torch.sparse.check_sparse_tensor_invariants.disable](https://pytorch.org/docs/2.12/sparse.html#torch.sparse.check_sparse_tensor_invariants.disable)|否|-|
-|[torch.sparse.check_sparse_tensor_invariants.enable](https://pytorch.org/docs/2.12/sparse.html#torch.sparse.check_sparse_tensor_invariants.enable)|否|-|
-|[torch.sparse.check_sparse_tensor_invariants.is_enabled](https://pytorch.org/docs/2.12/sparse.html#torch.sparse.check_sparse_tensor_invariants.is_enabled)|否|-|
+|[torch.sparse.check_sparse_tensor_invariants.disable](https://pytorch.org/docs/2.12/generated/torch.sparse.check_sparse_tensor_invariants.html#torch.sparse.check_sparse_tensor_invariants.disable)|否|-|
+|[torch.sparse.check_sparse_tensor_invariants.enable](https://pytorch.org/docs/2.12/generated/torch.sparse.check_sparse_tensor_invariants.html#torch.sparse.check_sparse_tensor_invariants.enable)|否|-|
+|[torch.sparse.check_sparse_tensor_invariants.is_enabled](https://pytorch.org/docs/2.12/generated/torch.sparse.check_sparse_tensor_invariants.html#torch.sparse.check_sparse_tensor_invariants.is_enabled)|否|-|
 |[torch.sparse.as_sparse_gradcheck](https://pytorch.org/docs/2.12/generated/torch.sparse.as_sparse_gradcheck.html)|否|-|

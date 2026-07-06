@@ -18,7 +18,7 @@
 |[torch.distributed.checkpoint.StorageReader.read_metadata](https://pytorch.org/docs/2.12/distributed.checkpoint.html#torch.distributed.checkpoint.StorageReader.read_metadata)|是|-|
 |[torch.distributed.checkpoint.StorageReader.reset](https://pytorch.org/docs/2.12/distributed.checkpoint.html#torch.distributed.checkpoint.StorageReader.reset)|是|-|
 |[torch.distributed.checkpoint.StorageReader.set_up_storage_reader](https://pytorch.org/docs/2.12/distributed.checkpoint.html#torch.distributed.checkpoint.StorageReader.set_up_storage_reader)|是|-|
-|[torch.distributed.checkpoint.StorageReader.classmethod](https://pytorch.org/docs/2.12/distributed.checkpoint.html#torch.distributed.checkpoint.StorageReader.classmethod)|是|-|
+|[torch.distributed.checkpoint.StorageReader.validate_checkpoint_id](https://pytorch.org/docs/2.12/distributed.checkpoint.html#torch.distributed.checkpoint.StorageReader.validate_checkpoint_id)|是|-|
 |[torch.distributed.checkpoint.StorageWriter](https://pytorch.org/docs/2.12/distributed.checkpoint.html#torch.distributed.checkpoint.StorageWriter)|是|-|
 |[torch.distributed.checkpoint.StorageWriter.finish](https://pytorch.org/docs/2.12/distributed.checkpoint.html#torch.distributed.checkpoint.StorageWriter.finish)|是|-|
 |[torch.distributed.checkpoint.StorageWriter.prepare_global_plan](https://pytorch.org/docs/2.12/distributed.checkpoint.html#torch.distributed.checkpoint.StorageWriter.prepare_global_plan)|是|-|
@@ -26,7 +26,7 @@
 |[torch.distributed.checkpoint.StorageWriter.reset](https://pytorch.org/docs/2.12/distributed.checkpoint.html#torch.distributed.checkpoint.StorageWriter.reset)|是|-|
 |[torch.distributed.checkpoint.StorageWriter.set_up_storage_writer](https://pytorch.org/docs/2.12/distributed.checkpoint.html#torch.distributed.checkpoint.StorageWriter.set_up_storage_writer)|是|-|
 |[torch.distributed.checkpoint.StorageWriter.storage_meta](https://pytorch.org/docs/2.12/distributed.checkpoint.html#torch.distributed.checkpoint.StorageWriter.storage_meta)|是|-|
-|[torch.distributed.checkpoint.StorageWriter.classmethod](https://pytorch.org/docs/2.12/distributed.checkpoint.html#torch.distributed.checkpoint.StorageWriter.classmethod)|是|-|
+|[torch.distributed.checkpoint.StorageWriter.validate_checkpoint_id](https://pytorch.org/docs/2.12/distributed.checkpoint.html#torch.distributed.checkpoint.StorageWriter.validate_checkpoint_id)|是|-|
 |[torch.distributed.checkpoint.StorageWriter.write_data](https://pytorch.org/docs/2.12/distributed.checkpoint.html#torch.distributed.checkpoint.StorageWriter.write_data)|是|-|
 |[torch.distributed.checkpoint.LoadPlanner](https://pytorch.org/docs/2.12/distributed.checkpoint.html#torch.distributed.checkpoint.LoadPlanner)|是|-|
 |[torch.distributed.checkpoint.LoadPlanner.commit_tensor](https://pytorch.org/docs/2.12/distributed.checkpoint.html#torch.distributed.checkpoint.LoadPlanner.commit_tensor)|是|-|
