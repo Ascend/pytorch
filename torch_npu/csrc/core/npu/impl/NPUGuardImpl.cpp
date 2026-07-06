@@ -89,6 +89,12 @@ c10::Stream NPUGuardImpl::exchangeStream(c10::Stream s) const noexcept
     return old_stream.unwrap();
 }
 
+void* NPUGuardImpl::getStreamNativeHandle(const c10::Stream stream) const
+{
+    NPUStream npu_stream{stream};
+    return npu_stream.stream();
+}
+
 c10::DeviceIndex NPUGuardImpl::deviceCount() const noexcept
 {
     static c10::DeviceIndex count = c10_npu::device_count();

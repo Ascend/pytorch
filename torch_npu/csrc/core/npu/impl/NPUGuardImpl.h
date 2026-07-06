@@ -43,6 +43,7 @@ struct C10_NPU_API NPUGuardImpl final : public c10::impl::DeviceGuardImplInterfa
     c10::Stream getStreamFromGlobalPool(c10::Device d, bool isHighPriority = false) const override;
     // NB: These do NOT set the current device
     c10::Stream exchangeStream(c10::Stream s) const noexcept override;
+    void* getStreamNativeHandle(const c10::Stream stream) const override;
     c10::DeviceIndex deviceCount() const noexcept override;
 
     // Event-related functions
