@@ -47,7 +47,7 @@ jobs:
           prepared_test_src_artifact: ${{ inputs.prepared_test_src_artifact }}
           patch_log_suffix: custom
 
-      - name: Run custom test files
+      - name: Run custom test files (serial, per-case process isolation)
         id: run_tests
         env:
           CI: ''
@@ -58,14 +58,18 @@ jobs:
           REPORT_DIR=test-reports
           mkdir -p ${REPORT_DIR}
           set +e
-          # Custom test files: per-case isolation execution
+          # Serial execution with per-case process isolation:
+          #   --max-workers 1: only one worker at a time (serial)
+          #   --max-cases-per-batch 1: each test case runs in its own independent subprocess
+          #   This ensures no concurrent HBM access across Dies on the same Chip.
           python${{ inputs.python_version }} ascend_pytorch/.github/scripts/run_npu_test_shard.py \
             --test-files "${{ inputs.test_files }}" \
             --test-dir pytorch-test-src/test \
             --disabled-testcases pytorch-test-src/test_upstream/disabled_testcases.json \
             --report-dir ${REPORT_DIR} \
             --timeout 1200 \
-            --max-workers 16 \
+            --max-workers 1 \
+            --max-cases-per-batch 1 \
             --verbose \
             2>&1 | tee /tmp/test_custom.log
 

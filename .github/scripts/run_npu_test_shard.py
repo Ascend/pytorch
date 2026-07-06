@@ -497,6 +497,7 @@ def run_tests_with_tasks_concurrent(
     max_workers: int,
     result_module,
     quick_test: int = None,
+    max_cases_per_batch: int = 100,
 ) -> Tuple[int, float, List[Dict]]:
     """
     Execute pre-collected test cases with concurrent per-case isolation.
@@ -574,8 +575,8 @@ def run_tests_with_tasks_concurrent(
 
     total_cases = len(tasks)
 
-    # Sort and batch tasks: group same-file cases, max 100 per batch
-    batches = sort_and_batch_tasks(tasks, max_cases_per_batch=100)
+    # Sort and batch tasks: group same-file cases, max max_cases_per_batch per batch
+    batches = sort_and_batch_tasks(tasks, max_cases_per_batch=max_cases_per_batch)
 
     print(f"\n{'=' * 80}", flush=True)
     print(f"Pre-collected cases: {total_cases} cases", flush=True)
@@ -1433,6 +1434,13 @@ def parse_args():
         default=4,
         help="Maximum concurrent workers for regular tests (default: 4). Each worker handles one batch of cases.",
     )
+    parser.add_argument(
+        "--max-cases-per-batch",
+        type=int,
+        default=100,
+        help="Maximum cases per batch (default: 100). Set to 1 for true per-case process isolation "
+             "(each test case runs in its own independent subprocess).",
+    )
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
     parser.add_argument("--quick-test", type=int, default=None, help="Quick test mode: execute only N cases for fast verification (default: None, run all cases)")
     parser.add_argument("--worker", type=str, default=None, help=argparse.SUPPRESS)
@@ -1593,6 +1601,7 @@ def main():
                 effective_workers,
                 result_module,
                 None,  # quick_test already applied above
+                args.max_cases_per_batch,
             )
             info["per_case_isolation"] = True
             info["concurrent_workers"] = effective_workers
@@ -1713,6 +1722,7 @@ def main():
                 effective_workers,
                 result_module,
                 args.quick_test,
+                args.max_cases_per_batch,
             )
             info["execution_mode"] = "serial" if effective_workers == 1 else "concurrent"
             info["concurrent_workers"] = effective_workers
