@@ -298,12 +298,11 @@ bool MstxMgr::isProfTxEnable()
 
 bool MstxMgr::isMsptiTxEnableImpl()
 {
-    static bool isMsptiSoInLdPreload = []() -> bool {
+    auto isSoInLdPreload = [](const std::string& soName) -> bool {
         const char* envVal = std::getenv("LD_PRELOAD");
         if (envVal == nullptr) {
             return false;
         }
-        static const std::string soName = "libmspti.so";
         std::stringstream ss(envVal);
         std::string path;
         while (std::getline(ss, path, ':')) {
@@ -313,7 +312,17 @@ bool MstxMgr::isMsptiTxEnableImpl()
             }
         }
         return false;
-    }();
+    };
+    static bool isMsptiSoInLdPreload = isSoInLdPreload("libmspti.so");
+    static bool isKernelHookSoInLdPreload = isSoInLdPreload("libascend_kernel_hook.so");
+    if (isMsptiSoInLdPreload && isKernelHookSoInLdPreload) {
+        TORCH_NPU_WARN_ONCE(
+            "Detected both libmspti.so and libascend_kernel_hook.so in LD_PRELOAD. "
+            "Mspti Marker activity will be disabled when libascend_kernel_hook.so is preloaded.");
+    }
+    if (isKernelHookSoInLdPreload) {
+        return false;
+    }
     if (isMsptiSoInLdPreload) {
         return true;
     }
