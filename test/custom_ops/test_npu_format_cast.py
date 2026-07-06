@@ -213,20 +213,20 @@ class TestNpuFormatCastAclnn(TestCase):
     # Group 6: Error cases
     # ------------------------------------------------------------------ #
 
-    @SupportedDevices(['Ascend910B', 'Ascend910_93', 'Ascend950'])
-    def test_noncontiguous_with_internal_format_raises(self):
-        """Non-contiguous tensor with internal format raises or converts correctly."""
+
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
+    def test_noncontiguous_with_internal_format_fallback(self):
         nz = torch_npu.npu_format_cast(torch.rand(16, 32).half().npu(), ACL_FORMAT_FRACTAL_NZ)
         nz_t = nz.transpose(0, 1)
-        # v2.9.0 may route this case through a newer backend path that can
-        # handle non-contiguous internal-format tensors. v2.7.1 only expected
-        # the unsupported path to raise, so keep both legal behaviors here.
-        try:
-            out = torch_npu.npu_format_cast(nz_t, ACL_FORMAT_ND)
-        except RuntimeError:
-            return
+        out = torch_npu.npu_format_cast(nz_t, ACL_FORMAT_ND)
         self.assertEqual(torch_npu.get_npu_format(out), ACL_FORMAT_ND)
-        self.assertEqual(out.shape, nz_t.shape)
+
+    @SupportedDevices(['Ascend950'])
+    def test_noncontiguous_with_internal_format_raises(self):
+        nz = torch_npu.npu_format_cast(torch.rand(16, 32).half().npu(), ACL_FORMAT_FRACTAL_NZ)
+        nz_t = nz.transpose(0, 1)
+        with self.assertRaises(RuntimeError):
+            torch_npu.npu_format_cast(nz_t, ACL_FORMAT_ND)
 
 
 class TestNpuFormatCastDtypeParam(TestCase):
