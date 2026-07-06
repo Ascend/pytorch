@@ -32,6 +32,8 @@ import torch
 import torch.fx
 import torch.utils._pytree as pytree
 from torch._subclasses.fake_tensor import FakeTensorMode
+from torch_npu._inductor.graph import constrain_to_fx_strides
+from torch_npu._inductor.lowering import make_fallback
 from torch_npu._inductor.mfusion import subgraph_registry
 from torch_npu._inductor.mfusion.fx_mlir_converter import opaque_registry
 
@@ -668,6 +670,20 @@ class FxExporter:
                 "mfusion custom_op should not run in eager mode. "
                 "It must be lowered by inductor to dvm/akg kernel execution."
             )
+
+        op_target = _get_op_target(target_name)
+        try:
+            make_fallback(
+                op_target,
+                layout_constraint=constrain_to_fx_strides,
+                warn=False,
+                override_decomp=True,
+            )
+        except Exception as exc:
+            raise RuntimeError(
+                "Failed to register mfusion fallback lowering for "
+                f"{full_op_name!r} (target={target_name!r}, subgraph={subgraph_name!r})"
+            ) from exc
 
         @_fused_impl.register_fake
         def _(*args):
