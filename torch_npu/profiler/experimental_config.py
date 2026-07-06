@@ -148,6 +148,10 @@ class _ExperimentalConfig:
     def gc_detect_threshold(self):
         return self._gc_detect_threshold
 
+    @property
+    def tx_enabled(self):
+        return self._msprof_tx or self._mstx
+
     def _conver_export_type_to_list(self, export_type: Union[str, list]) -> list:
         if not export_type:
             print_warn_msg(
