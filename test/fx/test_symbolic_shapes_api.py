@@ -9,6 +9,10 @@ Add validation cases for torch.fx symbolic_shapes related APIs on NPU:
 3. Current covered APIs / behaviors include:
    - symbolic_shapes.DimConstraints.add
    - symbolic_shapes.DimConstraints.add_equality
+   - symbolic_shapes.DimConstraints.rewrite_with_congruences
+   - symbolic_shapes.DimConstraints.solve
+   - symbolic_shapes.DimConstraints.forced_specializations
+   - symbolic_shapes.DimConstraints.prettify_results
    - torch.fx.experimental.symbolic_shapes.ShapeEnv.size_hint
    - torch.fx.experimental.symbolic_shapes.ShapeEnv.suppress_guards
    - torch.fx.experimental.symbolic_shapes.ShapeEnvSettings
@@ -33,8 +37,10 @@ import torch
 
 import torch_npu
 from torch._dynamo.source import ConstantSource
+from torch.export import Dim
 from torch.fx.experimental import symbolic_shapes
 from torch.testing._internal.common_utils import TestCase, run_tests
+from torch.utils._sympy.functions import FloorDiv, Mod
 from torch.utils._sympy.value_ranges import ValueRanges
 
 
@@ -96,6 +102,85 @@ class TestSymbolicShapesAPI(TestCase):
         symbolic_expr = symbol + 1
         constraints.add_equality(source, symbolic_expr)
         self.assertEqual(constraints._symbolic_equivalences, [(source, symbolic_expr)])
+
+    def test_dim_constraints_rewrite_with_congruences_records_mod_guard(self):
+        # Verify that congruence guards rewrite floor division and record
+        # the corresponding modular relationship for the symbol.
+        symbol = sympy.Symbol("s0", positive=True, integer=True)
+        constraints = symbolic_shapes.DimConstraints(
+            {},
+            {symbol: sympy.Integer(5)},
+            set(),
+            {},
+        )
+
+        rewritten = constraints.rewrite_with_congruences(symbol, FloorDiv(symbol, 2))
+
+        self.assertEqual(rewritten, symbol / 2 - sympy.Rational(1, 2))
+        self.assertEqual(
+            {str(expr) for expr in constraints._congruences[symbol]},
+            {"Mod(s0 + 1, 2)"},
+        )
+
+    def test_dim_constraints_solve_records_dynamic_results(self):
+        # Verify that `solve` classifies a satisfiable lower-bound guard
+        # as a dynamic result rather than a static specialization.
+        symbol = sympy.Symbol("s0", positive=True, integer=True)
+        constraints = symbolic_shapes.DimConstraints(
+            {symbol: [ConstantSource("x")]},
+            {symbol: sympy.Integer(4)},
+            {symbol},
+            {},
+        )
+
+        constraints.add(symbol >= 2)
+        constraints.solve()
+
+        self.assertEqual(constraints._static_results, set())
+        self.assertEqual(constraints._dynamic_results, {"2 <= x"})
+
+    def test_dim_constraints_forced_specializations_reports_marked_dynamic_equalities(self):
+        # Verify that marked dynamic equalities are reported as forced
+        # specializations using the configured debug name.
+        symbol = sympy.Symbol("s0", positive=True, integer=True)
+        constraints = symbolic_shapes.DimConstraints(
+            {symbol: [ConstantSource("x")]},
+            {symbol: sympy.Integer(4)},
+            {symbol},
+            {"x": "dx"},
+        )
+
+        constraints.add(sympy.Eq(symbol, 4))
+        constraints.solve()
+
+        self.assertEqual(constraints.forced_specializations(), {"dx = x": 4})
+
+    def test_dim_constraints_prettify_results_reports_forced_specialization(self):
+        # Verify that `prettify_results` explains a forced specialization
+        # and includes the suggested concrete dimension value.
+        def fn(x):
+            return x
+
+        symbol = sympy.Symbol("s0", positive=True, integer=True)
+        constraints = symbolic_shapes.DimConstraints(
+            {symbol: [ConstantSource("x")]},
+            {symbol: sympy.Integer(4)},
+            {symbol},
+            {"x": "dx"},
+        )
+
+        constraints.add(sympy.Eq(symbol, 4))
+        constraints.solve()
+        message = constraints.prettify_results(
+            inspect.signature(fn),
+            {"x": Dim("dx")},
+            ValueError("dummy constraint violation"),
+            constraints.forced_specializations(),
+        )
+
+        self.assertIn("Specializations unexpectedly required (dx)!", message)
+        self.assertIn("dx = x", message)
+        self.assertIn("dx = 4", message)
 
     def test_strict_min_max_constraint_records_warn_only_and_value_range(self):
         # Verify that StrictMinMaxConstraint stores warn_only and ValueRanges
