@@ -1,12 +1,12 @@
 # 安装说明
 
-为使用PyTorch框架的开发者提供昇腾AI处理器的超强算力，昇腾开发Ascend Extension for PyTorch（即torch\_npu插件）用于适配PyTorch框架。
+为使用PyTorch框架的开发者提供昇腾AI处理器的超强算力，昇腾开发TorchNPU用于适配PyTorch框架。
 
-本文主要向用户介绍如何快速完成PyTorch框架、Ascend Extension for PyTorch（即torch\_npu插件）以及扩展模块的安装。
+本文主要向用户介绍如何快速完成PyTorch框架、TorchNPU以及扩展模块的安装。
 
 ## 安装方案
 
-本文档包含物理机、容器、虚拟机场景下，安装驱动、固件、<term>CANN</term>软件、PyTorch框架和torch\_npu插件的方案，部署架构如[图1](#安装方案图)所示。
+本文档包含物理机、容器、虚拟机场景下，安装驱动、固件、<term>CANN</term>软件、PyTorch框架和TorchNPU插件的方案，部署架构如[图1](#安装方案图)所示。
 
 **图 1**  安装方案<a id="安装方案图"></a>  
 ![](../figures/installation_scheme.png)
@@ -34,4 +34,4 @@
 
 ## 安装方式
 
-本手册提供了离线安装（Whl）和源码安装方式，用户可根据实际需求自行选择安装PyTorch框架和torch\_npu插件的方式，不要求两者安装方式统一。
+本手册提供了离线安装（Whl）和源码安装方式，用户可根据实际需求自行选择安装PyTorch框架和TorchNPU插件的方式，不要求两者安装方式统一。

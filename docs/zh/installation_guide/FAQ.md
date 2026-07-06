@@ -243,7 +243,7 @@ ImportError: libhccl.so: cannot open shared object file: No such file or directo
 
 **报错原因**
 
-当前环境未满足运行torch_npu的条件，编译构建时torch_npu依赖torch，而运行时依赖配套的NPU驱动固件与CANN软件。
+当前环境未满足运行TorchNPU的条件，编译构建时TorchNPU依赖torch，而运行时依赖配套的NPU驱动固件与CANN软件。
 
 **处理方法**
 
@@ -253,7 +253,7 @@ ImportError: libhccl.so: cannot open shared object file: No such file or directo
 
 **问题描述**
 
-编译安装torch_npu后，执行“import torch_npu”，系统报错core dump。
+编译安装TorchNPU后，执行“import torch_npu”，系统报错core dump。
 
 报错文本
 
@@ -274,7 +274,7 @@ Segmentation fault
 
 **问题描述**
 
-安装torch_npu后，“import torch_npu”报错torch_npu._C。
+安装TorchNPU后，“import torch_npu”报错torch_npu._C。
 
 报错文本
 
@@ -294,7 +294,7 @@ ModuleNotFoundError: No module named 'torch_npu._C'
 
 **报错原因**
 
-因为安装的torch_npu与该项目下的文件夹重名，不能在项目目录下运行“import torch_npu”。
+因为安装的TorchNPU与该项目下的文件夹重名，不能在项目目录下运行“import torch_npu”。
 
 **处理方法**
 

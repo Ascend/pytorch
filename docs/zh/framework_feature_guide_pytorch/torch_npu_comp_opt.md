@@ -1,10 +1,10 @@
-# 编译优化（torch\_npu）
+# 编译优化（TorchNPU）
 
 1. 依赖安装。
 
-    torch\_npu构建依赖PyTorch，目前需要参考[编译优化（PyTorch）](pytorch_comp_opt.md)用毕昇编译器构建PyTorch之后，在环境里重新安装PyTorch，然后再编译torch\_npu。
+    TorchNPU构建依赖PyTorch，目前需要参考[编译优化（PyTorch）](pytorch_comp_opt.md)用毕昇编译器构建PyTorch之后，在环境里重新安装PyTorch，然后再编译TorchNPU。
 
-    torch\_npu推荐在容器里进行编译，具体请参考[源码安装](../installation_guide/compilation_installation_using_source_code.md#安装torch_npu插件)。以下描述均以torch\_npu v2.7.1版为例。
+    TorchNPU推荐在容器里进行编译，具体请参考[源码安装](../installation_guide/compilation_installation_using_source_code.md)。以下描述均以TorchNPU v2.7.1版为例。
 
     参考[安装毕昇编译器](install_bisheng_comp.md)配置毕昇编译器环境。
 
@@ -16,11 +16,11 @@
     git clone -b v2.7.1 https://gitcode.com/ascend/pytorch.git torch_npu
     ```
 
-3. 根据需要的优化类型进行相应编译参数设置并进行编译，LTO和PGO优化可以单独使用，也可以叠加使用，当前torch\_npu已支持基于毕昇编译器的编译优化选项。
+3. 根据需要的优化类型进行相应编译参数设置并进行编译，LTO和PGO优化可以单独使用，也可以叠加使用，当前TorchNPU已支持基于毕昇编译器的编译优化选项。
 
     > [!NOTE]
     > 
-    > 使用毕昇编译torch\_npu之前需要先参照[编译优化（PyTorch）](pytorch_comp_opt.md)，用毕昇重新编译PyTorch并安装，然后再编译torch\_npu。
+    > 使用毕昇编译TorchNPU之前需要先参照[编译优化（PyTorch）](pytorch_comp_opt.md)，用毕昇重新编译PyTorch并安装，然后再编译TorchNPU。
 
     - LTO优化
         1. 配置编译参数，设置环境变量。
@@ -62,7 +62,7 @@
                 bash ci/build.sh --python=3.8 --enable_lto --enable_pgo=1
                 ```
 
-        - 安装一次编译后的torch\_npu的whl包，执行如下命令：
+        - 安装一次编译后的TorchNPU的whl包，执行如下命令：
 
             ```shell
             pip3 install /path/to/*.whl --force-reinstall --no-deps
@@ -94,7 +94,7 @@
 
         - 二次编译（使用Profile数据）
 
-            配置profdata文件：将前一步骤中生成的default.profdata文件拷贝到torch\_npu目录下。请将profdata文件命名为default.profdata。
+            配置profdata文件：将前一步骤中生成的default.profdata文件拷贝到TorchNPU目录下。请将profdata文件命名为default.profdata。
 
             执行编译命令：
 
@@ -104,4 +104,4 @@
             bash ci/build.sh --python=3.8 --enable_lto --enable_pgo=2
             ```
 
-            二次编译后的torch\_npu的whl包为正式使用的高性能包。
+            二次编译后的TorchNPU的whl包为正式使用的高性能包。

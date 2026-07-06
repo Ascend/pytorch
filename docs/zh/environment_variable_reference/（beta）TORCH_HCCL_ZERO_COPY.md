@@ -20,13 +20,13 @@ export TORCH_HCCL_ZERO_COPY=1
 
 ## 使用约束
 
-- 该环境变量依赖Ascend Extension for PyTorch虚拟内存管理功能，参见[PYTORCH\_NPU\_ALLOC\_CONF](PYTORCH_NPU_ALLOC_CONF.md)，要求配置满足：
+- 该环境变量依赖TorchNPU虚拟内存管理功能，参见[PYTORCH\_NPU\_ALLOC\_CONF](PYTORCH_NPU_ALLOC_CONF.md)，要求配置满足：
 
     ```bash
     export PYTORCH_NPU_ALLOC_CONF=expandable_segments:True
     ```
 
-- 此环境变量不支持在PyTorch图模式（TorchAir）场景下使用。
+- 此环境变量不支持在TorchAir场景下使用。
 - 其他约束请参见《CANN HCCL 集合通信库》中“零拷贝功能 \> [使用前必读](https://www.hiascend.com/document/detail/zh/canncommercial/900/API/hcclug/hcclcpp_07_0053.html)”章节。
 
 ## 支持的型号

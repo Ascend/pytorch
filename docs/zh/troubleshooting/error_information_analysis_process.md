@@ -32,15 +32,15 @@
 
     屏幕中显示先调用`torch_npu.npu.synchronize()`，继而调用`torch_npu._C._npu_synchronize()`失败。异常信息显示报错时正在运行的算子是ReduceAny，可据此找到对应异常组件，如果没有明确错误指向，需继续查看后续调用。
 
-3. 查看torch\_npu错误码。
+3. 查看TorchNPU错误码。
 
     ```text
     ERR00100 PTA call acl api failed
     ```
 
-    “ERR00100”即为torch\_npu错误码，如果有明确错误指向，可根据具体故障原因排除故障。
+    “ERR00100”即为TorchNPU错误码，如果有明确错误指向，可根据具体故障原因排除故障。
 
-4. 另外，此处表明torch\_npu调用底层接口报错，还可以查看plog日志，根据日志中的首报错分析故障原因。
+4. 另外，此处表明TorchNPU调用底层接口报错，还可以查看plog日志，根据日志中的首报错分析故障原因。
 
     **图 4**  plog日志中查找报错组件  
     ![](../figures/locate_component_reports_error_plog.png "plog日志中查找报错组件")

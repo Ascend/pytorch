@@ -1,6 +1,6 @@
 # 卸载
 
-## 卸载Ascend Extension for PyTorch
+## 卸载TorchNPU
 
 - 卸载PyTorch框架需执行如下命令：
 
@@ -8,7 +8,7 @@
     pip3 uninstall torch
     ```
 
-- 卸载torch\_npu插件需执行如下命令：
+- 卸载TorchNPU插件需执行如下命令：
 
     ```bash
     pip3 uninstall torch_npu

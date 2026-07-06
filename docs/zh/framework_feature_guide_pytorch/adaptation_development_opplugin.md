@@ -17,8 +17,8 @@
 |   ├── python
 |   │   └── meta
 |   │       └── _meta_registrations.py         # 算子meta实现注册文件
-│   ├── OpInterface.h                         # 编译自动生成op_plugin对外接口的头文件，用于框架侧调用算子
-│   ├── OpInterface.cpp                        # 编译自动生成op_plugin对外接口路由实现，内部实现不同类型算子分支选择代码
+│   ├── OpInterface.h                          # 编译自动生成OpPlugin对外接口的头文件，用于框架侧调用算子
+│   ├── OpInterface.cpp                        # 编译自动生成OpPlugin对外接口路由实现，内部实现不同类型算子分支选择代码
 │   ├── AclOpsInterface.h                      # 编译自动生成aclop算子插件适配所对应头文件 
 │   ├── OpApiInterface.h                       # 编译自动生成aclnn算子插件适配所对应头文件
 │   └── ...
@@ -70,7 +70,7 @@ symint:
 
 参数说明：
 
-- all\_version：表示当前PyTorch支持的所有版本，版本列表会根据torch_npu演进调整，具体以代码为准。可通过[]设置算子支持的版本范围，例如[v2.1, newest]代表该算子支持从v2.1到最新版本。
+- all\_version：表示当前PyTorch支持的所有版本，版本列表会根据TorchNPU演进调整，具体以代码为准。可通过[]设置算子支持的版本范围，例如[v2.1, newest]代表该算子支持从v2.1到最新版本。
 - official和custom：分别表示该字段下的算子为PyTorch原生和自定义算子；symint字段表明该算子支持symint类型的入参，该种算子请参考[symint算子适配](#symint算子适配)。
 - func：表示定义算子的schema(算子描述规范)，其内容完全遵循PyTorch原生Aten IR算子schema的定义规则，通过“算子名称+入参列表+返回参数”的结构化形式，完整描述算子的调用接口与语义约束。具体规则可参考[PyTorch schema规则](reference.md#section001)。
 - acl\_op：表示在该版本支持acl\_op调用，如果支持的版本与all\_version表示的版本一致，则可以用"all\_version"表示，可选字段。
@@ -80,7 +80,7 @@ symint:
 - internal_format_opapi：表示支持昇腾亲和格式NZ数据分发到op_api算子调用的白名单机制。当前对于入参为昇腾亲和格式的数据默认被分发到acl_op调用；只有当算子显示添加internal_format_opapi字段并加入白名单后，才会将NZ格式数据分发到op_api调用路径。
 
 > [!NOTE]  
-> 如果存在某个算子适配有两个版本不一致，则需要两个都加上，如std.correction在PyTorch1.11.0版本和PyTorch2.1.0及以上版本的入参名称不同，则需要分开写成两个，通过version区分。<br>
+> 如果存在某个算子适配有两个版本不一致，则需要两个都加上，如std.correction在PyTorch 1.11.0版本和PyTorch 2.1.0及以上版本的入参名称不同，则需要分开写成两个，通过version区分。<br>
 >
 >```yaml
 >  - func: std.correction(Tensor self, int[1]? dim, *, int? correction, bool keepdim=False) -> Tensor
@@ -155,7 +155,7 @@ symint为PyTorch在v2.0及以上版本新增的数据类型，op\_plugin/config/
        acl_op: all_version
     ```
 
-3. 算子实现在同算子文件下，新增算子名称为zeros\_symint，且入参中第一个参数的类型为symint相关的类型c10::SymIntArrayRef。由于symint特性只在PyTorch2.0以上支持，symint相关适配代码需要根据实际版本支持情况添加版本编译宏VERSION\_BETWEEN来控制编译。
+3. 算子实现在同算子文件下，新增算子名称为zeros\_symint，且入参中第一个参数的类型为symint相关的类型c10::SymIntArrayRef。由于symint特性只在PyTorch 2.0以上支持，symint相关适配代码需要根据实际版本支持情况添加版本编译宏VERSION\_BETWEEN来控制编译。
 
     ```cpp
     #include "op_plugin/AclOpsInterface.h"

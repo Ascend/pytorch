@@ -28,9 +28,9 @@ export NPU_ASD_SIGMA_THRESH=100000,5000
 
 ## 使用约束
 
-- 此环境变量不支持在PyTorch图模式（TorchAir）场景下使用。
+- 此环境变量不支持在TorchAir场景下使用。
 
-- 此环境变量适用于Ascend Extension for PyTorch 7.0.0及之前版本。
+- 此环境变量适用于TorchNPU 7.0.0及之前版本。
 
 ## 支持的型号
 

@@ -9,6 +9,6 @@
 
 - **[编译优化（PyTorch）](pytorch_comp_opt.md)**  
 
-- **[编译优化（torch\_npu）](torch_npu_comp_opt.md)**  
+- **[编译优化（TorchNPU）](torch_npu_comp_opt.md)**  
 
 - **[编译优化常见问题](comp_opt_faq.md)**  

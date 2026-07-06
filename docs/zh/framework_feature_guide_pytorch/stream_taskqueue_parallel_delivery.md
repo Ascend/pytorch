@@ -8,7 +8,7 @@
 
 当前开启task\_queue算子下发队列时采用单Device单TaskQueue模式，所有Stream共享同一个任务队列。一级流水线程（多线程）向统一队列提交任务，二级流水线程从队列中串行取出任务下发。这种架构在高并发场景下（多Stream同时提交）会出现队列竞争问题，导致任务下发存在串行化瓶颈。
 
-为解决此问题，Ascend Extension for PyTorch推出Stream级TaskQueue并行下发特性。开启该特性后，每个Stream会初始化独立的TaskQueue和对应的Dequeue线程，实现真正的二级流水并行下发机制。不同Stream的任务可以并行下发，有效解决了队列竞争问题，提升了高并发场景下的任务下发效率。
+为解决此问题，TorchNPU推出Stream级TaskQueue并行下发特性。开启该特性后，每个Stream会初始化独立的TaskQueue和对应的Dequeue线程，实现真正的二级流水并行下发机制。不同Stream的任务可以并行下发，有效解决了队列竞争问题，提升了高并发场景下的任务下发效率。
 
 ## 使用场景
 
