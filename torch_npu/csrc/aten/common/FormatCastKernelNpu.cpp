@@ -79,7 +79,7 @@ std::tuple<bool, int64_t, c10::SmallVector<int64_t, SIZE>> MaybeUseAclnnNpuForma
     GetFormatFunc GetFormat = reinterpret_cast<GetFormatFunc>(GetFormatFuncAddr);
     int64_t *dstStorageShape = nullptr;
     uint64_t dstShapeSize = 0;
-    int dstFormat;
+    int dstFormat = 0;
     at::SmallVector<int64_t, SIZE> outputShape = {};
     aclDataType srcAcltype = input_dtype.has_value() ? c10_npu::GetAclDataType(input_dtype.value()) :
                                   at_npu::native::OpPreparation::convert_to_acl_data_type(src.scalar_type());
@@ -127,6 +127,9 @@ std::tuple<bool, int64_t, c10::SmallVector<int64_t, SIZE>> MaybeUseAclnnNpuForma
         }
     }
     // else: customizeAcltype stays as user's customize_dtype value (set at top of function)
+    if (!FormatHelper::IsBaseFormatType(src) && !src.is_contiguous()) {
+        return std::make_tuple(false, dstFormat, outputShape);
+    }
     if (IsAclnnFormatCastSupported() && aclnnNpuFormatCastExist) {
         auto acl_src = ConvertType(srcWrapper);
         auto api_ret = GetFormat(acl_src, acl_format, customizeAcltype, &dstStorageShape,
