@@ -9,8 +9,8 @@ import unittest
 
 import sympy
 import torch
-import torch_npu
 from torch import nn
+from torch._guards import ShapeGuard, SLoc
 from torch._subclasses.fake_tensor import FakeTensorMode
 from torch.fx import Graph, Interpreter, symbolic_trace
 from torch.fx.experimental.symbolic_shapes import (
@@ -304,6 +304,89 @@ class TestShapeEnvNPU(TestCase):
         env = ShapeEnv()
         a, b = sympy.symbols("a b")
         self.assertEqual(env.simplify((a + b) - b), a)
+
+    @unittest.skipUnless(torch.npu.is_available(), "requires npu")
+    def test_torch_fx_experimental_symbolic_shapes_ShapeEnv_format_guards(self):
+        """Verify format_guards returns formatted guard strings."""
+        se = ShapeEnv()
+        self.assertEqual(se.format_guards(), "")
+
+        s0 = sympy.Symbol('s0', integer=True, positive=True)
+        s1 = sympy.Symbol('s1', integer=True, positive=True)
+        sloc = SLoc("framework_loc", "user_loc")
+        se.guards.append(ShapeGuard(
+            sympy.Lt(s0, s1, evaluate=False), sloc, False))
+        se.guards.append(ShapeGuard(
+            sympy.Ge(s0, sympy.Integer(1), evaluate=False), sloc, False))
+
+        result = se.format_guards()
+        self.assertIn("s0 < s1", result)
+        self.assertIn("s0 >= 1", result)
+
+        result_verbose = se.format_guards(verbose=True)
+        self.assertIn("s0 < s1", result_verbose)
+        self.assertIn("user_loc", result_verbose)
+
+    @unittest.skipUnless(torch.npu.is_available(), "requires npu")
+    def test_torch_fx_experimental_symbolic_shapes_ShapeEnv_freeze(self):
+        """Verify freeze toggles the frozen state of ShapeEnv."""
+        se = ShapeEnv()
+        self.assertFalse(se.frozen)
+        se.freeze()
+        self.assertTrue(se.frozen)
+
+    @unittest.skipUnless(torch.npu.is_available(), "requires npu")
+    def test_torch_fx_experimental_symbolic_shapes_ShapeEnv_freeze_runtime_asserts(self):
+        """Verify freeze_runtime_asserts toggles runtime_asserts_frozen."""
+        se = ShapeEnv()
+        self.assertFalse(se.runtime_asserts_frozen)
+        se.freeze_runtime_asserts()
+        self.assertTrue(se.runtime_asserts_frozen)
+
+    @unittest.skipUnless(torch.npu.is_available(), "requires npu")
+    def test_torch_fx_experimental_symbolic_shapes_ShapeEnv_get_axioms(self):
+        """Verify get_axioms returns axioms tuple, optionally filtered by symbols."""
+        se = ShapeEnv()
+        self.assertIsInstance(se.get_axioms(), tuple)
+
+        s0 = sympy.Symbol('s0', integer=True, positive=True)
+        s1 = sympy.Symbol('s1', integer=True, positive=True)
+        sloc = SLoc("framework_loc", "user_loc")
+        se.guards.append(ShapeGuard(
+            sympy.Lt(s0, s1, evaluate=False), sloc, False))
+
+        axioms = se.get_axioms(symbols=(s0,))
+        self.assertIn(sympy.Lt(s0, s1, evaluate=False), axioms)
+
+    @unittest.skipUnless(torch.npu.is_available(), "requires npu")
+    def test_torch_fx_experimental_symbolic_shapes_ShapeEnv_get_implications(self):
+        """Verify get_implications returns implications for Eq/Lt/Ne/Le expressions."""
+        se = ShapeEnv()
+        s0 = sympy.Symbol('s0', integer=True, positive=True)
+        s1 = sympy.Symbol('s1', integer=True, positive=True)
+
+        # Eq implies equality
+        impl_eq = dict(se.get_implications(
+            sympy.Eq(s0, s1, evaluate=False)))
+        self.assertIn(sympy.Eq(s0, s1, evaluate=False), impl_eq)
+
+        # Lt implies Le and Ne
+        impl_lt = dict(se.get_implications(
+            sympy.Lt(s0, s1, evaluate=False)))
+        self.assertIn(sympy.Lt(s0, s1, evaluate=False), impl_lt)
+        self.assertIn(sympy.Le(s0, s1, evaluate=False), impl_lt)
+        self.assertIn(sympy.Ne(s0, s1, evaluate=False), impl_lt)
+
+        # Ne
+        impl_ne = dict(se.get_implications(
+            sympy.Ne(s0, s1, evaluate=False)))
+        self.assertIn(sympy.Ne(s0, s1, evaluate=False), impl_ne)
+
+        # Le implies Lt(a, b+1)
+        impl_le = dict(se.get_implications(
+            sympy.Le(s0, s1, evaluate=False)))
+        self.assertIn(sympy.Le(s0, s1, evaluate=False), impl_le)
+        self.assertIn(sympy.Lt(s0, s1 + 1, evaluate=False), impl_le)
 
 
 if __name__ == "__main__":
