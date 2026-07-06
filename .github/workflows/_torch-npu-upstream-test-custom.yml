@@ -72,6 +72,19 @@ jobs:
             # Dies on the same A3 Chip.
             # ================================================================
             echo "=== Nodeid serial mode: each case in its own pytest process ==="
+
+            # Resolve absolute paths before changing directory
+            ORIG_CWD=$(pwd)
+            REPORT_DIR=$(realpath "${REPORT_DIR}")
+            JUNIT_DIR="${REPORT_DIR}/junit_xmls"
+            CASES_LOG_DIR="${REPORT_DIR}/cases_logs"
+            mkdir -p ${JUNIT_DIR} ${CASES_LOG_DIR}
+
+            # Switch to test directory (matching run_npu_test_shard.py behavior)
+            TEST_SRC_DIR="pytorch-test-src/test"
+            cd "${TEST_SRC_DIR}"
+            echo "Working directory: $(pwd)"
+
             IFS=',' read -ra NODEIDS <<< "${TEST_FILES}"
             TOTAL_CASES=${#NODEIDS[@]}
             PASSED=0
@@ -81,6 +94,11 @@ jobs:
 
             for i in "${!NODEIDS[@]}"; do
               nodeid=$(echo "${NODEIDS[$i]}" | xargs)
+
+              # Strip "test/" prefix from nodeid to match cwd (pytorch-test-src/test/)
+              # e.g. "test/functorch/test_ops.py::..." -> "functorch/test_ops.py::..."
+              pytest_nodeid="${nodeid#test/}"
+
               case_idx=$((i + 1))
 
               # Generate safe filename from nodeid
@@ -94,7 +112,7 @@ jobs:
               start_time=$(date +%s)
               python${{ inputs.python_version }} -m pytest \
                 --color=no -ra --tb=short \
-                "${nodeid}" \
+                "${pytest_nodeid}" \
                 --junitxml="${xml_file}" \
                 --timeout=1200 -v \
                 > "${log_file}" 2>&1
