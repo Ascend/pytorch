@@ -206,6 +206,13 @@ void NPUSHMEMSymmetricMemoryAllocator::free(void* ptr)
     {
         std::lock_guard<std::mutex> lock(mutex_);
         allocations_.erase(ptr);
+        for (auto it = symm_mems_.begin(); it != symm_mems_.end();) {
+            if (std::get<0>(it->first) == ptr) {
+                it = symm_mems_.erase(it);
+            } else {
+                ++it;
+            }
+        }
     }
     TORCH_NPU_SYMMEM_LOGD("NPUSHMEMSymmetricMemoryAllocator free end, ptr is %p", ptr);
 }
