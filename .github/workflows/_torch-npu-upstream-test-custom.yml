@@ -87,15 +87,22 @@ jobs:
             echo "Found ${XML_COUNT} XML files"
             tar -czf test-reports/junit_xmls.tar.gz -C test-reports junit_xmls
             rm -rf test-reports/junit_xmls
-            echo "JUnit XMLs compressed"
+            echo "JUnit XMLs compressed: $(ls -lh test-reports/junit_xmls.tar.gz)"
           fi
 
-          # Package failed cases logs into compressed archive
-          if [ -d "test-reports/failed_cases_logs" ]; then
-            echo "=== Compressing failed cases logs ==="
-            tar -czf test-reports/failed_cases_logs.tar.gz -C test-reports failed_cases_logs
-            rm -rf test-reports/failed_cases_logs
-            echo "Failed cases logs compressed"
+          # Package cases logs into compressed archive
+          if [ -d "test-reports/cases_logs" ]; then
+            echo "=== Compressing cases logs ==="
+            LOGS_COUNT=$(find test-reports/cases_logs -type f | wc -l)
+            echo "Found ${LOGS_COUNT} case log files"
+            tar -czf test-reports/cases_logs.tar.gz -C test-reports cases_logs
+            rm -rf test-reports/cases_logs
+            echo "Cases logs compressed: $(ls -lh test-reports/cases_logs.tar.gz)"
+          fi
+
+          # Package shard_cases.json
+          if [ -f "test-reports/shard_custom-1_cases.json" ]; then
+            echo "Cases JSON exists: $(ls -lh test-reports/shard_custom-1_cases.json)"
           fi
 
       - name: Upload test reports
@@ -121,4 +128,25 @@ jobs:
         with:
           name: error-logs-custom
           path: error-logs-custom.tar.gz
+          retention-days: 60
+
+      - name: Compress /root/ascend CANN logs
+        if: always()
+        run: |
+          if [ -d "/root/ascend" ]; then
+            echo "=== Compressing /root/ascend CANN logs ==="
+            FILE_COUNT=$(find /root/ascend -type f | wc -l)
+            echo "Found ${FILE_COUNT} files under /root/ascend"
+            tar -czf ascend-cann-logs-custom.tar.gz -C /root ascend
+            echo "CANN logs compressed: $(ls -lh ascend-cann-logs-custom.tar.gz)"
+          else
+            echo "/root/ascend directory does not exist, skipping"
+          fi
+
+      - name: Upload CANN logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ascend-cann-logs-custom
+          path: ascend-cann-logs-custom.tar.gz
           retention-days: 60
