@@ -4,9 +4,9 @@
 
 ## 适配前准备
 
-1. 安装PyTorch框架，具体请参见《[Ascend Extension for PyTorch 软件安装指南](../installation_guide/menu_installation_guide.md)》。
+1. 安装PyTorch框架，具体请参见《[软件安装](../installation_guide/menu_installation_guide.md)》。
 
-2. （可选）当用户使用“二进制软件包安装”或“二进制软件包安装（abi1版本）”安装torch\_npu插件时，适配前需执行如下命令拉取torch\_npu仓对应分支的代码并进入OpPlugin目录，完成torch_npu源码下载。
+2. （可选）当用户使用“二进制软件包安装”或“二进制软件包安装（abi1版本）”安装TorchNPU插件时，适配前需执行如下命令拉取TorchNPU仓对应分支的代码并进入OpPlugin目录，完成TorchNPU源码下载。
 
     ```bash
     git clone https://gitcode.com/ascend/pytorch.git -b v2.7.1-26.0.0 --recursive
@@ -14,7 +14,7 @@
     ```
 
     - *2.7.1*为PyTorch版本，用户需根据实际情况指定PyTorch版本。
-    - *26.0.0*为Ascend Extension for PyTorch软件版本。
+    - *26.0.0*为TorchNPU软件版本。
 
 3. 在框架算子适配前，请先确保CANN已有相关算子实现，具体可查询[CANN 算子库接口](https://www.hiascend.com/document/detail/zh/canncommercial/900/API/aolapi/operatorlist_00001.html)。
     > [!NOTE]
@@ -201,7 +201,7 @@
 
 ## 编译验证
 
-1. 编译Ascend Extension for PyTorch插件并安装，推荐使用容器场景进行编译，具体操作可参考《Ascend Extension for PyTorch 软件安装指南》中的“[方式二：源码编译安装](../installation_guide/compilation_installation_using_source_code.md)”章节的“方式一（推荐）：容器场景”。
+1. 编译TorchNPU插件并安装，推荐使用容器场景进行编译，具体操作可参考《软件安装》中的“[方式二：源码编译安装](../installation_guide/compilation_installation_using_source_code.md)”章节的“方式一（推荐）：容器场景”。
 
 2. 上述开发过程完成后，调用开发者测试脚本，验证基本功能是否正常。
 
@@ -244,7 +244,7 @@
    2. 执行命令如下验证新增算子功能是否正常：
       > [!CAUTION]  
       >
-      > 注意运行该脚本的时候不要在torch\_npu仓的根目录下，否则可能会出现找不到torch\_npu.\_C的报错。
+      > 注意运行该脚本的时候不要在TorchNPU仓的根目录下，否则可能会出现找不到torch\_npu.\_C的报错。
 
       ```bash
       python op-plugin/test/test_custom_ops/test_npu_add_custom.py -v

@@ -2,7 +2,7 @@
 
 ## 功能描述
 
-通过此环境变量可开启Ascend Extension for PyTorch Eager模式下的DVM算子融合。DVM将多个相邻的小算子合并成单个融合kernel，减少kernel下发次数和中间张量的搬运，从而加速训练和推理。
+通过此环境变量可开启TorchNPU Eager模式下的DVM算子融合。DVM将多个相邻的小算子合并成单个融合kernel，减少kernel下发次数和中间张量的搬运，从而加速训练和推理。
 
 - 配置为"True"时：开启DVM算子融合。
 - 未配置或配置为"False"时：关闭DVM算子融合。
