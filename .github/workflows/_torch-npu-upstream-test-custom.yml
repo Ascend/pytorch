@@ -56,24 +56,102 @@ jobs:
           source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
 
           REPORT_DIR=test-reports
-          mkdir -p ${REPORT_DIR}
-          set +e
-          # Serial execution with per-case process isolation:
-          #   --max-workers 1: only one worker at a time (serial)
-          #   --max-cases-per-batch 1: each test case runs in its own independent subprocess
-          #   This ensures no concurrent HBM access across Dies on the same Chip.
-          python${{ inputs.python_version }} ascend_pytorch/.github/scripts/run_npu_test_shard.py \
-            --test-files "${{ inputs.test_files }}" \
-            --test-dir pytorch-test-src/test \
-            --disabled-testcases pytorch-test-src/test_upstream/disabled_testcases.json \
-            --report-dir ${REPORT_DIR} \
-            --timeout 1200 \
-            --max-workers 1 \
-            --max-cases-per-batch 1 \
-            --verbose \
-            2>&1 | tee /tmp/test_custom.log
+          JUNIT_DIR="${REPORT_DIR}/junit_xmls"
+          CASES_LOG_DIR="${REPORT_DIR}/cases_logs"
+          mkdir -p ${REPORT_DIR} ${JUNIT_DIR} ${CASES_LOG_DIR}
 
-          TEST_STATUS=${PIPESTATUS[0]}
+          TEST_FILES="${{ inputs.test_files }}"
+          set +e
+
+          # Detect execution mode: nodeid format (contains "::") vs file path format
+          if echo "${TEST_FILES}" | grep -q "::"; then
+            # ================================================================
+            # Nodeid mode: direct pytest per-case, serial, independent process
+            # Each nodeid runs in its own pytest invocation (true per-case
+            # process isolation). Ensures no concurrent HBM access across
+            # Dies on the same A3 Chip.
+            # ================================================================
+            echo "=== Nodeid serial mode: each case in its own pytest process ==="
+            IFS=',' read -ra NODEIDS <<< "${TEST_FILES}"
+            TOTAL_CASES=${#NODEIDS[@]}
+            PASSED=0
+            FAILED=0
+            ERRORS=0
+            OVERALL_STATUS=0
+
+            for i in "${!NODEIDS[@]}"; do
+              nodeid=$(echo "${NODEIDS[$i]}" | xargs)
+              case_idx=$((i + 1))
+
+              # Generate safe filename from nodeid
+              safe_name=$(echo "${nodeid}" | sed 's/[\/:]/_/g' | sed 's/__*/_/g' | sed 's/^_//')
+              xml_file="${JUNIT_DIR}/custom_${case_idx}_${safe_name}.xml"
+              log_file="${CASES_LOG_DIR}/custom_${case_idx}_${safe_name}.log"
+
+              echo ""
+              echo "=== [${case_idx}/${TOTAL_CASES}] ${nodeid} ==="
+
+              start_time=$(date +%s)
+              python${{ inputs.python_version }} -m pytest \
+                --color=no -ra --tb=short \
+                "${nodeid}" \
+                --junitxml="${xml_file}" \
+                --timeout=1200 -v \
+                > "${log_file}" 2>&1
+              rc=$?
+              end_time=$(date +%s)
+              duration=$((end_time - start_time))
+
+              case "${rc}" in
+                0) status="passed";  PASSED=$((PASSED + 1));   echo "  [PASS] (${duration}s)" ;;
+                1) status="failed";  FAILED=$((FAILED + 1));   echo "  [FAIL] (${duration}s)"; OVERALL_STATUS=1 ;;
+                *) status="error";   ERRORS=$((ERRORS + 1));   echo "  [ERR] rc=${rc} (${duration}s)"; OVERALL_STATUS=1 ;;
+              esac
+
+              # Append to combined log
+              echo "[${case_idx}/${TOTAL_CASES}] ${status^^} ${nodeid} (${duration}s)" >> /tmp/test_custom.log
+
+              # Also dump failure output to combined log for easy viewing
+              if [ "${rc}" -ne 0 ]; then
+                echo "--- FAILURE LOG: ${nodeid} ---" >> /tmp/test_custom.log
+                tail -80 "${log_file}" >> /tmp/test_custom.log
+                echo "--- END FAILURE: ${nodeid} ---" >> /tmp/test_custom.log
+              fi
+            done
+
+            echo ""
+            echo "=============================================="
+            echo "Serial nodeid execution complete"
+            echo "  Total:  ${TOTAL_CASES}"
+            echo "  Passed: ${PASSED}"
+            echo "  Failed: ${FAILED}"
+            echo "  Errors: ${ERRORS}"
+            echo "  Exit code: ${OVERALL_STATUS}"
+            echo "=============================================="
+            TEST_STATUS=${OVERALL_STATUS}
+
+          else
+            # ================================================================
+            # File path mode: use run_npu_test_shard.py for auto case discovery
+            # Serial execution with per-case process isolation:
+            #   --max-workers 1: only one worker at a time (serial)
+            #   --max-cases-per-batch 1: each case runs in independent subprocess
+            # ================================================================
+            echo "=== File path mode: using run_npu_test_shard.py ==="
+            python${{ inputs.python_version }} ascend_pytorch/.github/scripts/run_npu_test_shard.py \
+              --test-files "${TEST_FILES}" \
+              --test-dir pytorch-test-src/test \
+              --disabled-testcases pytorch-test-src/test_upstream/disabled_testcases.json \
+              --report-dir ${REPORT_DIR} \
+              --timeout 1200 \
+              --max-workers 1 \
+              --max-cases-per-batch 1 \
+              --verbose \
+              2>&1 | tee /tmp/test_custom.log
+
+            TEST_STATUS=${PIPESTATUS[0]}
+          fi
+
           echo "status=${TEST_STATUS}" >> $GITHUB_OUTPUT
           # Don't exit with test status - let step succeed to allow report generation
 

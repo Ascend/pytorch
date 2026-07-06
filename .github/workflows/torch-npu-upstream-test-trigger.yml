@@ -45,4 +45,4 @@ jobs:
     with:
       distributed_shards: '5'
       regular_shards: '5'
-      test_files: 'test/functorch/test_ops.py'
+      test_files: 'test/functorch/test_ops.py::TestOperatorsPRIVATEUSE1::test_grad_to_sparse_npu_float32,test/functorch/test_ops.py::TestOperatorsPRIVATEUSE1::test_grad_topk_npu_float32,test/functorch/test_ops.py::TestOperatorsPRIVATEUSE1::test_grad_torch_ops_aten__safe_softmax_default_npu_float32,test/functorch/test_ops.py::TestOperatorsPRIVATEUSE1::test_grad_trace_npu_float32,test/functorch/test_ops.py::TestOperatorsPRIVATEUSE1::test_grad_transpose_copy_npu_float32'
