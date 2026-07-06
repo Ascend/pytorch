@@ -1,10 +1,9 @@
-import functools
 import re
 import dataclasses
 import os
 import sys
 from itertools import chain, count, zip_longest
-from typing import Any, Callable, List, Optional, Tuple, TYPE_CHECKING, Union
+from typing import Any, List, Optional
 import sympy
 import torch
 from torch import dtype as torch_dtype
@@ -18,17 +17,14 @@ from torch._inductor.codegen.triton_utils import should_unwrap_unspec_arg
 from torch._inductor.codegen.cpp_wrapper_cpu import CppWrapperCpu
 from torch._inductor.codegen.multi_kernel import MultiKernelCall
 from torch._inductor.codegen.wrapper import PythonWrapperCodegen, SymbolicCallArg
-from torch._inductor.ir import IRNode, TensorBox, GraphPartitionSignature
+from torch._inductor.ir import IRNode, GraphPartitionSignature
 from torch._inductor.runtime.runtime_utils import dynamo_timed
-from torch._inductor.utils import DeferredLineBase, IndentedBuffer
+from torch._inductor.utils import IndentedBuffer
 from torch._inductor.virtualized import V
-from torch._inductor.utils import _align, ALIGN_BYTES
+from torch._inductor.utils import ALIGN_BYTES
 
 from .. import config as npu_config
 from ..config import npu_block as NPU_ALIGN_BYTES
-
-if TYPE_CHECKING:
-    from torch._inductor.graph import GraphLowering
 
 
 def checkIfTrue(value, msg):
@@ -169,6 +165,7 @@ class DeferredNpuTritonCallWrapper:
             load_kernel_args = [
                 cpp_string_literal(params[get_cpp_wrapper_cubin_path_name()]),
                 cpp_string_literal(params["mangled_name"]),
+                cpp_string_literal(params["mix_mode"]),
                 str(params["shared_mem"]),
                 "cubin_dir_",
             ]
@@ -632,7 +629,11 @@ class CppWrapperNpu(CppWrapperCpu):
                 code.writeline(
                     f"{signature2dtype[arg_signature]} {var_name} = {cexpr(arg)};"
                 )
-                struct_data = f"{signature2dtype[arg_signature]} {var_name} __attribute__((aligned(sizeof({signature2dtype[arg_signature]}))));"
+                dtype_str = signature2dtype[arg_signature]
+                struct_data = (
+                    f"{dtype_str} {var_name} "
+                    f"__attribute__((aligned(sizeof({dtype_str}))));"
+                )
                 arg_data = f"static_cast<{signature2dtype[arg_signature]}>({var_name})"
             else:
                 raise TypeError("Infer arg_type to cpp failed!")

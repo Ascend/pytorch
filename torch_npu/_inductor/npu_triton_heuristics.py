@@ -3,23 +3,18 @@ import copy
 import functools
 from functools import lru_cache
 import hashlib
-import importlib
-import json
 import logging
 import dataclasses
 import os
 import re
-import sys
 import time
 import shutil
-import hashlib
 import csv
 import uuid
 from itertools import count
-from typing import Any, Callable, Literal, Optional, TYPE_CHECKING, Union, List
+from typing import Any, Callable, Literal, Optional, Union, List
 from contextlib import contextmanager
 import torch
-from torch._logging import warning_once
 import triton
 from torch._dynamo.utils import dynamo_timed
 from torch._inductor import config
@@ -52,7 +47,6 @@ from torch._inductor.runtime.triton_heuristics import (
     config_from_dict
 )
 from torch._inductor.runtime.runtime_utils import triton_hash_to_path_key
-from triton.compiler import CompiledKernel
 from torch._inductor.triton_bundler import TritonBundler
 
 try:
@@ -68,11 +62,7 @@ import torch_npu
 from torch_npu.utils._error_code import ErrCode, pta_error
 from torch_npu._inductor.npu_compare import check_accuracy_triton, get_triton_fx_graph_call
 
-from .codegen.split_tiling import SplitTiling
-from .utils import get_current_raw_stream
 from .codegen.tile_generator import TileGenerator
-from .codegen.triton_utils import get_aligned_numel
-from .config import aggresive_autotune
 from .config import log
 from . import config as npu_config
 
@@ -92,7 +82,8 @@ def create_profiler(torch_path):
         with_stack=False,
         schedule=torch_npu.profiler.schedule(wait=0, warmup=1, active=1, repeat=1, skip_first=1),
         on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(profile_path),
-        experimental_config=experimental_config) as prof:
+        experimental_config=experimental_config
+    ) as prof:
         yield prof
 
 
@@ -377,11 +368,11 @@ class TritonCompileResultNpu(TritonCompileResult):
             f"    grid_0 = {grid.x_grid}",
             f"    grid_1 = {grid.y_grid}",
             f"    grid_2 = {grid.z_grid}",
-            f"    log.debug(",
-            f"        f'[Runtime] Launch KERNEL {fn.fn.__name__} with ' ",
-            f"        f'grid {{grid_0, grid_1, grid_2}} and cfg {{grid_meta}}]'",
-            f"    )",
-            f"    runner({', '.join(runner_args)})",
+            "    log.debug(",
+            "        f'[Runtime] Launch KERNEL {fn.fn.__name__} with ' ",
+            "        f'grid {{grid_0, grid_1, grid_2}} and cfg {{grid_meta}}]'",
+            "    )",
+            "    runner({', '.join(runner_args)})",
         ]
         exec("\n".join(lines), scope)
 
@@ -609,6 +600,9 @@ class NPUCachingAutotuner(CachingAutotuner):
             "triton_meta": self.triton_meta,
             "def_args": input_launcher.def_args,
             "call_args": input_launcher.call_args,
+            "mix_mode": input_launcher.bin.metadata.mix_mode,
+            "parallel_mode": input_launcher.bin.metadata.parallel_mode,
+            "force_simt_only": input_launcher.bin.metadata.force_simt_only
         }
         from torch._inductor.codecache import CudaKernelParamCache
 
@@ -667,7 +661,7 @@ class NPUCachingAutotuner(CachingAutotuner):
         benchmark_time_taken_ns = time.time_ns() - start_time
         self.launchers = [builtins.min(timings, key=timings.get)]
         self.autotune_time_taken_ns = (
-                self.precompile_time_taken_ns + benchmark_time_taken_ns
+            self.precompile_time_taken_ns + benchmark_time_taken_ns
         )
         if self.save_cache_hook:
             self.save_cache_hook(self.launchers[0].config, self.autotune_time_taken_ns)
@@ -684,7 +678,7 @@ class NPUCachingAutotuner(CachingAutotuner):
     def data_dump(self, *args, dump_path=None):
         dump_path = self.get_fx_graph_dump_path() if dump_path is None else dump_path
         if dump_path is None:
-            log.warning(f"data dump for kernel {self.get_fn_name()} failed, no valid dump_path is supplied.")
+            log.warning("data dump for kernel %s failed, no valid dump_path is supplied.", self.get_fn_name())
             return False
         data_dump_path = os.path.join(dump_path, 'data.pth')
         torch.save(args, data_dump_path)
@@ -767,7 +761,7 @@ class NPUCachingAutotuner(CachingAutotuner):
 
     def maybe_run_debug(self, *args, grid_, stream, launcher, **kwargs):
         kernel_name = self.get_fn_name()
-        log.info(f"Try to run debug mode for kernel {kernel_name}.")
+        log.info("Try to run debug mode for kernel %s.", kernel_name)
         if npu_config.dump_fx_graph:
             if torch_npu.npu.is_current_stream_capturing():
                 raise RuntimeError(
@@ -791,15 +785,15 @@ class NPUCachingAutotuner(CachingAutotuner):
         elif npu_config.force_fallback_kernel_id:
             fallback_result = self.fallback_to_fx(*args, launcher=launcher, grid_=grid_, stream=stream, **kwargs)
             if fallback_result is not None:
-                log.debug(f"fallback kernel {self.get_fn_name()} to fx graph call.")
+                log.debug("fallback kernel %s to fx graph call.", self.get_fn_name())
                 return "force_fallback_kernel_id"
             else:
-                log.warning(f"kernel {self.get_fn_name()} could not fallback to fx.")
+                log.warning("kernel %s could not fallback to fx.", self.get_fn_name())
         elif npu_config.aot_inductor.debug_kernel_in_run:
             _ = self.debug_kernel_in_run(*args, launcher=launcher, grid_=grid_, stream=stream, **kwargs)
             return "debug_kernel_in_run"
 
-        log.info(f"No debug mode is activated for kernel {kernel_name}.")
+        log.info("No debug mode is activated for kernel %s.", kernel_name)
         return None
 
     def run(
@@ -855,7 +849,7 @@ class NPUCachingAutotuner(CachingAutotuner):
         _, grid = self._interpret_args_grid(args, launcher.config)
         debug_mode = self.maybe_run_debug(*args, grid_=grid, stream=stream, launcher=launcher, **kwargs)
         if debug_mode:
-            log.info(f"Kernel {self.get_fn_name()} goes into {debug_mode} and return.")
+            log.info("Kernel %s goes into %s and return.", self.get_fn_name(), debug_mode)
             return
 
         # it is faster than entering and exiting a context manager, even if the context
@@ -1252,7 +1246,7 @@ def benchmark_all_configs(self, *args, input_grid, **kwargs):
         timinglist = do_batch_benchmark(tilling_kernel_list)
         if not len(timinglist) == len(self.launchers):
             raise RuntimeError("not len(timinglist) == len(self.launchers)")
-        timings = {launcher: timing for launcher, timing in zip(self.launchers, timinglist)}
+        timings = dict(zip(self.launchers, timinglist))
     except Exception as e:
         print("some cases in batch benchmark has error! Logging Exception as:")
         print(e)
