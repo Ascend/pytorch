@@ -1,7 +1,6 @@
 from typing import Optional
 
 import torch
-from torch._inductor.codegen.common import DeviceOpOverrides, register_device_op_overrides
 from torch._prims_common import TensorLike
 from torch._prims.rng_prims import register_rng_prim
 

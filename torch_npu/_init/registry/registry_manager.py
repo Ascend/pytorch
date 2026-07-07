@@ -58,12 +58,10 @@ def _register_dynamo():
     """
     from torch_npu._init.registry.dynamo import (
         register_dynamo_backends,
-        register_dynamo_device_interface,
         register_dynamo_trace_rules,
     )
 
     register_dynamo_backends()
-    register_dynamo_device_interface()
 
     # Do not repeat this call for register_dynamo_trace_rules appends rules into
     # Dynamo's global rules maps.
