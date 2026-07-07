@@ -1,28 +1,82 @@
 diff --git a/test/dynamo/test_misc.py b/test/dynamo/test_misc.py
-index 893fe24..fca0602 100644
+index 893fe24..515e33f 100644
 --- a/test/dynamo/test_misc.py
 +++ b/test/dynamo/test_misc.py
-@@ -12572 +12572 @@ def ___make_guard_fn():
+@@ -35,6 +35,8 @@ from unittest.mock import patch
+ import numpy as np
+ 
+ import torch
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
+ import torch._dynamo.testing
+ import torch._inductor.config
+ import torch._inductor.test_case
+@@ -5817,9 +5819,9 @@ not ___dict_contains('cccccccc', G['sys'].modules)""",
+         def f(x):
+             if torch.overrides.is_tensor_like(x):
+                 return (x * 2,)
+-            return (torch.ones(10) + x,)
++            return (torch.ones(10).npu() + x,)
+ 
+-        x = torch.randn(10)
++        x = torch.randn(10).npu()
+         ref0 = f(x)
+         ref1 = f(4)
+         opt_f = torch.compile(f, backend=cnts, fullgraph=True)
+@@ -12569,7 +12571,7 @@ def ___make_guard_fn():
+ 
+         # Call create_symbolic_sizes_strides_storage_offset on both of them.
+         r = main.create_symbolic_sizes_strides_storage_offset(
 -            torch.randn(3, 2), ConstantSource("x")
 +            torch.randn(3, 2).npu(), ConstantSource("x")
-@@ -12626 +12626 @@ ShapeEnv not equal: field values don't match:
+         )
+ 
+         # Create a guard: size[0] == 3 (call evaluate_expr)
+@@ -12623,7 +12625,7 @@ ShapeEnv not equal: field values don't match:
+     def test_shape_env_equal_create_symbolic_sizes_strides_storage_offset(self):
+         main, other = ShapeEnv(), ShapeEnv()
+         main.create_symbolic_sizes_strides_storage_offset(
 -            torch.randn(3, 2), ConstantSource("x")
 +            torch.randn(3, 2).npu(), ConstantSource("x")
-@@ -12696 +12696 @@ ShapeEnv not equal: field values don't match:
+         )
+         self.assertExpectedRaisesInline(
+             NotEqualError,
+@@ -12693,10 +12695,10 @@ ShapeEnv not equal: field values don't match:
+ 
+         # Call create_symbolic_sizes_strides_storage_offset on both of them.
+         r = main.create_symbolic_sizes_strides_storage_offset(
 -            torch.randn(3, 2), ConstantSource("x")
 +            torch.randn(3, 2).npu(), ConstantSource("x")
-@@ -12699 +12699 @@ ShapeEnv not equal: field values don't match:
+         )
+         other.create_symbolic_sizes_strides_storage_offset(
 -            torch.randn(3, 2), ConstantSource("x")
 +            torch.randn(3, 2).npu(), ConstantSource("x")
-@@ -12736 +12736 @@ ShapeEnv not equal: field values don't match:
+         )
+ 
+         # Create a guard: size[0] % 3 == 0 (only in the main ShapeEnv)
+@@ -12733,10 +12735,10 @@ ShapeEnv not equal: field values don't match:
+ 
+         # Call create_symbolic_sizes_strides_storage_offset on both of them.
+         r = main.create_symbolic_sizes_strides_storage_offset(
 -            torch.randn(3, 2), ConstantSource("x")
 +            torch.randn(3, 2).npu(), ConstantSource("x")
-@@ -12739 +12739 @@ ShapeEnv not equal: field values don't match:
+         )
+         other.create_symbolic_sizes_strides_storage_offset(
 -            torch.randn(3, 2), ConstantSource("x")
 +            torch.randn(3, 2).npu(), ConstantSource("x")
-@@ -12779 +12779 @@ ShapeEnv not equal: field values don't match:
+         )
+ 
+         # Create a guard: size[0] == 3 (only in the main ShapeEnv)
+@@ -12776,10 +12778,10 @@ ShapeEnv not equal: field values don't match:
+ 
+         # Call create_symbolic_sizes_strides_storage_offset on both of them.
+         r = main.create_symbolic_sizes_strides_storage_offset(
 -            torch.randn(3, 2), ConstantSource("x")
 +            torch.randn(3, 2).npu(), ConstantSource("x")
-@@ -12782 +12782 @@ ShapeEnv not equal: field values don't match:
+         )
+         other.create_symbolic_sizes_strides_storage_offset(
 -            torch.randn(3, 2), ConstantSource("x")
 +            torch.randn(3, 2).npu(), ConstantSource("x")
+         )
+ 
+         # Create a guard: size[0] >= 3 (only in the main ShapeEnv)
