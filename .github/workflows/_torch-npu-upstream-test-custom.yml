@@ -242,9 +242,9 @@ jobs:
           else
             # ================================================================
             # File path mode: use run_npu_test_shard.py for auto case discovery
-            # Serial execution with per-case process isolation:
             #   --max-workers 1: only one worker at a time (serial)
-            #   --max-cases-per-batch 1: each case runs in independent subprocess
+            #   --max-cases-per-batch 10000: all cases in one pytest process
+            #   (simulates direct "pytest test_ops.py" execution)
             # ================================================================
             echo "=== File path mode: using run_npu_test_shard.py ==="
             python${{ inputs.python_version }} ascend_pytorch/.github/scripts/run_npu_test_shard.py \
@@ -254,7 +254,7 @@ jobs:
               --report-dir ${REPORT_DIR} \
               --timeout 1200 \
               --max-workers 1 \
-              --max-cases-per-batch 1 \
+              --max-cases-per-batch 10000 \
               --verbose \
               2>&1 | tee /tmp/test_custom.log
 
