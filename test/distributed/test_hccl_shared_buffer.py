@@ -313,7 +313,7 @@ class HcclSharedBufferTest(TestCase):
         _, _, mem_after = cls.get_memory_info()
         diff = (memory_info_before[0] - mem_after[0]) / 1024 / 1024
         num_different_buffer_group += 1
-        expected = buffer_size * num_different_buffer_group + tol
+        expected = (buffer_size + tol) * num_different_buffer_group
         mem_diff["pg1"] = [diff, expected]
 
         # create pg2 with the same buffer
@@ -325,7 +325,7 @@ class HcclSharedBufferTest(TestCase):
         # get pg2 mem info
         _, _, mem_after = cls.get_memory_info()
         diff = (memory_info_before[0] - mem_after[0]) / 1024 / 1024
-        expected = buffer_size * num_different_buffer_group + tol
+        expected = (buffer_size + tol) * num_different_buffer_group
         mem_diff["pg2"] = [diff, expected]
 
         # create pg3 with a different buffer
@@ -338,7 +338,7 @@ class HcclSharedBufferTest(TestCase):
         _, _, mem_after = cls.get_memory_info()
         diff = (memory_info_before[0] - mem_after[0]) / 1024 / 1024
         num_different_buffer_group += 1
-        expected = buffer_size * num_different_buffer_group + tol
+        expected = (buffer_size + tol) * num_different_buffer_group
         mem_diff["pg3"] = [diff, expected]
         torch_npu.npu.synchronize()
 
