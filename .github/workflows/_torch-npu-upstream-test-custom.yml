@@ -63,8 +63,87 @@ jobs:
           TEST_FILES="${{ inputs.test_files }}"
           set +e
 
-          # Detect execution mode: nodeid format (contains "::") vs file path format
-          if echo "${TEST_FILES}" | grep -q "::"; then
+          # ==================================================================
+          # Execution mode detection (checked in priority order):
+          #   1. SAME_PROCESS: prefix → all nodeids in one pytest (control experiment)
+          #   2. Contains "::" → per-case independent pytest processes (serial)
+          #   3. Otherwise → file path mode (run_npu_test_shard.py)
+          # ==================================================================
+
+          if echo "${TEST_FILES}" | grep -q "^SAME_PROCESS:"; then
+            # ================================================================
+            # SAME_PROCESS mode: all cases in a SINGLE pytest invocation.
+            # Control experiment — eliminates BOTH cross-process HBM
+            # contention AND per-case subprocess isolation.
+            # If this PASSES → proves HBM concurrency is the root cause.
+            # If this FAILS → proves pytest.main() batch is the root cause.
+            # ================================================================
+            echo "=== SAME_PROCESS mode: all cases in one pytest process ==="
+
+            # Strip prefix and get nodeids
+            RAW_NODEIDS="${TEST_FILES#SAME_PROCESS:}"
+            ORIG_CWD=$(pwd)
+            REPORT_DIR=$(realpath "${REPORT_DIR}")
+            JUNIT_DIR="${REPORT_DIR}/junit_xmls"
+            CASES_LOG_DIR="${REPORT_DIR}/cases_logs"
+            mkdir -p ${JUNIT_DIR} ${CASES_LOG_DIR}
+
+            # Switch to test directory
+            TEST_SRC_DIR="pytorch-test-src/test"
+            cd "${TEST_SRC_DIR}"
+            echo "Working directory: $(pwd)"
+
+            # Build pytest nodeid args (strip test/ prefix from each)
+            IFS=',' read -ra NODEIDS <<< "${RAW_NODEIDS}"
+            PARSED_NODEIDS=()
+            for nid in "${NODEIDS[@]}"; do
+              nid=$(echo "${nid}" | xargs)
+              PARSED_NODEIDS+=("${nid#test/}")
+            done
+
+            TOTAL_CASES=${#PARSED_NODEIDS[@]}
+            echo "Running ${TOTAL_CASES} cases in a single pytest process:"
+            for nid in "${PARSED_NODEIDS[@]}"; do
+              echo "  - ${nid}"
+            done
+
+            # Generate combined log filename
+            xml_file="${JUNIT_DIR}/same_process_combined.xml"
+            log_file="${CASES_LOG_DIR}/same_process_combined.log"
+
+            start_time=$(date +%s)
+            python${{ inputs.python_version }} -m pytest \
+              --color=no -ra --tb=short \
+              "${PARSED_NODEIDS[@]}" \
+              --junitxml="${xml_file}" \
+              --timeout=1200 -v \
+              > "${log_file}" 2>&1
+            rc=$?
+            end_time=$(date +%s)
+            duration=$((end_time - start_time))
+
+            if [ "${rc}" -eq 0 ]; then
+              echo "[PASS] All ${TOTAL_CASES} cases passed in one process (${duration}s)"
+              OVERALL_STATUS=0
+            else
+              echo "[FAIL] Some cases failed (rc=${rc}, ${duration}s)"
+              echo "See full log: ${log_file}"
+              tail -80 "${log_file}"
+              OVERALL_STATUS=1
+            fi
+
+            echo ""
+            echo "=============================================="
+            echo "SAME_PROCESS mode complete"
+            echo "  Total cases: ${TOTAL_CASES}"
+            echo "  Duration:    ${duration}s"
+            echo "  Exit code:   ${rc}"
+            echo "  If PASSED → HBM concurrency IS the root cause"
+            echo "  If FAILED → pytest.main() batch IS the root cause"
+            echo "=============================================="
+            TEST_STATUS=${OVERALL_STATUS}
+
+          elif echo "${TEST_FILES}" | grep -q "::"; then
             # ================================================================
             # Nodeid mode: direct pytest per-case, serial, independent process
             # Each nodeid runs in its own pytest invocation (true per-case
