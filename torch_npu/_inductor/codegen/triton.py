@@ -4165,10 +4165,17 @@ class NPUIndexTritonKernel(TritonKernel):
         # different logical axis-to-slot mapping.
         slot_to_axis: dict[int, str] = {}
         found_layout_axis = False
+        layout_basis = {str(axis) for axis in (self.golden_var_list or ())}
         for sym in sorted(expr.free_symbols, key=str):
             semantic_axis = self._lookup_semantic_axis_name(sym, index_analyze)
             if semantic_axis is None:
                 continue
+            if layout_basis and semantic_axis not in layout_basis:
+                # This symbol contributes to pointer arithmetic, but it is not
+                # part of the dense-layout axis basis for the current kernel.
+                # Layout inference must conservatively give up here and let
+                # store codegen fall back to the remapped path.
+                return None
             direction = self._lookup_symbol_direction(sym, index_analyze)
             if direction is None:
                 return None
