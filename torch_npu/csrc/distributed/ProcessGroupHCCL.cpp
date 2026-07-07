@@ -6087,7 +6087,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base(
                 c10_npu::NPUStreamGuard guard(hcclStreams[0]);
                 bool is_atlas_a5 = c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend950;
                 for (auto& tensor : outputs) {
-                    if (is_atlas_a5) {
+                    if (is_atlas_a5 && at::isIntegralType(tensor.scalar_type(), /*includeBool=*/false)) {
                         tensor.div_(getSize(), "trunc");
                     } else {
                         tensor.div_(getSize());
