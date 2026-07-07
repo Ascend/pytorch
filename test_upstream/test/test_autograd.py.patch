@@ -1,16 +1,42 @@
 diff --git a/test/test_autograd.py b/test/test_autograd.py
-index eb2ad5c..9d1e3fb 100644
+index eb2ad5c..88d6071 100644
 --- a/test/test_autograd.py
 +++ b/test/test_autograd.py
-@@ -28,6 +28,7 @@ from operator import mul
+@@ -28,6 +28,8 @@ from operator import mul
  from typing import TYPE_CHECKING
  
  import torch
 +import torch_npu
++from torch_npu.contrib import transfer_to_npu
  import torch.autograd._functions
  import torch.autograd.forward_ad as fwAD
  from torch import inf, nan, nn
-@@ -7588,7 +7589,7 @@ for shape in [(1,), ()]:
+@@ -7490,11 +7492,11 @@ for shape in [(1,), ()]:
+             checkpoint(lambda x: x, a)
+ 
+     def test_checkpoint_sequential_warns_if_use_reentrant_not_passed_explcitly(self):
+-        a = torch.randn(3, requires_grad=True)
++        a = torch.randn(3, device="npu", requires_grad=True)
+         modules_list = [
+-            torch.nn.Linear(3, 3),
+-            torch.nn.Linear(3, 3),
+-            torch.nn.Linear(3, 3),
++            torch.nn.Linear(3, 3).npu(),
++            torch.nn.Linear(3, 3).npu(),
++            torch.nn.Linear(3, 3).npu(),
+         ]
+ 
+         # Passing explicitly should not warn
+@@ -7574,7 +7576,7 @@ for shape in [(1,), ()]:
+             return x.sin().exp()
+ 
+         def save_2_tensors_alt(x):
+-            return x.sin() * torch.tensor([1.0, 2.0])
++            return x.sin() * torch.tensor([1., 2.], device=x.device)
+ 
+         def get_non_det_fn(orig_fn, recompute_fn):
+             counter = [0]
+@@ -7588,7 +7590,7 @@ for shape in [(1,), ()]:
  
              return fn
  
@@ -19,7 +45,7 @@ index eb2ad5c..9d1e3fb 100644
  
          # Save fewer tensors during recompute
          fn = get_non_det_fn(orig_fn=save_3_tensors, recompute_fn=save_2_tensors)
-@@ -7737,7 +7738,7 @@ for shape in [(1,), ()]:
+@@ -7737,7 +7739,7 @@ for shape in [(1,), ()]:
              self.assertEqual(checkpoint_param.grad, param.grad)
  
      def test_checkpoint_valid_reset_on_error(self):
@@ -28,7 +54,7 @@ index eb2ad5c..9d1e3fb 100644
  
          with self.assertRaisesRegex(
              Exception, "torch.utils.checkpoint is incompatible"
-@@ -14946,8 +14947,8 @@ class TestSelectiveActivationCheckpoint(TestCase):
+@@ -14946,8 +14948,8 @@ class TestSelectiveActivationCheckpoint(TestCase):
          def fn(x, y):
              return x.view(-1), y.sin().cos()
  
@@ -39,7 +65,7 @@ index eb2ad5c..9d1e3fb 100644
  
          context_fn = functools.partial(
              create_selective_checkpoint_contexts,
-@@ -14963,7 +14964,7 @@ class TestSelectiveActivationCheckpoint(TestCase):
+@@ -14963,7 +14965,7 @@ class TestSelectiveActivationCheckpoint(TestCase):
          #
          # 1. size/strides are dispatched upon
          # 2. our policy saves sizes
@@ -48,7 +74,7 @@ index eb2ad5c..9d1e3fb 100644
  
          class CustomSizeDynamicShapesTensor(torch.Tensor):
              @staticmethod
-@@ -15023,7 +15024,7 @@ class TestSelectiveActivationCheckpoint(TestCase):
+@@ -15023,7 +15025,7 @@ class TestSelectiveActivationCheckpoint(TestCase):
              self.assertEqual(view_out.grad_fn._saved_self_sym_sizes, [12])
              return view_out.exp()
  
@@ -57,7 +83,7 @@ index eb2ad5c..9d1e3fb 100644
          x_wrapper = CustomSizeDynamicShapesTensor(x)
          context_fn = functools.partial(create_selective_checkpoint_contexts, policy_fn)
          out = checkpoint(fn, x_wrapper, use_reentrant=False, context_fn=context_fn)
-@@ -15072,7 +15073,7 @@ class TestSelectiveActivationCheckpoint(TestCase):
+@@ -15072,7 +15074,7 @@ class TestSelectiveActivationCheckpoint(TestCase):
          def fn(x):
              return x.sin().sin().sin()
  
@@ -66,7 +92,7 @@ index eb2ad5c..9d1e3fb 100644
          context_fn = functools.partial(
              create_selective_checkpoint_contexts,
              Policy(),
-@@ -15124,7 +15125,7 @@ class TestSelectiveActivationCheckpoint(TestCase):
+@@ -15124,7 +15126,7 @@ class TestSelectiveActivationCheckpoint(TestCase):
          with disable_gc():
              # Case 1: If graph goes away without backward, make sure there's no reference cycle
              #         keeping storage alive.
@@ -75,7 +101,7 @@ index eb2ad5c..9d1e3fb 100644
              context_fn = functools.partial(
                  create_selective_checkpoint_contexts, policy_fn
              )
-@@ -15134,7 +15135,7 @@ class TestSelectiveActivationCheckpoint(TestCase):
+@@ -15134,7 +15136,7 @@ class TestSelectiveActivationCheckpoint(TestCase):
              self.assertIsNone(ref())
  
              # Case 2: After backward, even if retain_graph=True, the storage should go away
@@ -84,7 +110,7 @@ index eb2ad5c..9d1e3fb 100644
              context_fn = functools.partial(
                  create_selective_checkpoint_contexts, policy_fn
              )
-@@ -15156,7 +15157,7 @@ class TestSelectiveActivationCheckpoint(TestCase):
+@@ -15156,7 +15158,7 @@ class TestSelectiveActivationCheckpoint(TestCase):
          def fn(x):
              return x.sin().mul_(2).cos().exp()
  
@@ -93,7 +119,7 @@ index eb2ad5c..9d1e3fb 100644
          context_fn = functools.partial(create_selective_checkpoint_contexts, policy_fn)
          out = checkpoint(fn, x, use_reentrant=False, context_fn=context_fn)
  
-@@ -15164,7 +15165,7 @@ class TestSelectiveActivationCheckpoint(TestCase):
+@@ -15164,7 +15166,7 @@ class TestSelectiveActivationCheckpoint(TestCase):
          with self.assertRaisesRegex(RuntimeError, "has been mutated"):
              out.sum().backward()
  
@@ -102,7 +128,7 @@ index eb2ad5c..9d1e3fb 100644
          context_fn = functools.partial(
              create_selective_checkpoint_contexts,
              policy_fn,
-@@ -15192,7 +15193,7 @@ class TestSelectiveActivationCheckpoint(TestCase):
+@@ -15192,7 +15194,7 @@ class TestSelectiveActivationCheckpoint(TestCase):
              a, b = torch.var_mean(x)
              return a * b
  
@@ -111,7 +137,7 @@ index eb2ad5c..9d1e3fb 100644
          context_fn = functools.partial(create_selective_checkpoint_contexts, policy_fn)
          out = checkpoint(fn, x, use_reentrant=False, context_fn=context_fn)
          x_grad = torch.autograd.grad(out.sum(), (x,))
-@@ -15223,14 +15224,14 @@ class TestSelectiveActivationCheckpoint(TestCase):
+@@ -15223,14 +15225,14 @@ class TestSelectiveActivationCheckpoint(TestCase):
                  "mylib::sin_with_extra", backward, setup_context=setup_context
              )
  
@@ -128,7 +154,7 @@ index eb2ad5c..9d1e3fb 100644
              context_fn = functools.partial(
                  create_selective_checkpoint_contexts, ops_list
              )
-@@ -15254,7 +15255,7 @@ class TestSelectiveActivationCheckpoint(TestCase):
+@@ -15254,7 +15256,7 @@ class TestSelectiveActivationCheckpoint(TestCase):
          def fn(x):
              return x.sin().cos().exp()
  
