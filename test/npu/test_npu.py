@@ -7,9 +7,8 @@ import torch
 from torch.autograd import Variable
 
 import torch_npu
-from torch_npu.testing.common_utils import freeze_rng_state
+from torch_npu.testing.common_utils import SupportedDevices, freeze_rng_state
 from torch_npu.testing.testcase import run_tests, TestCase
-
 
 class TestNpu(TestCase):
     FIFTY_MIL_CYCLES = 50000000
@@ -369,6 +368,24 @@ class TestNpu(TestCase):
                 pin_memory=(dst == "npu"),
             )
             _test_to_non_blocking(src, try_non_blocking, dst)
+
+    @SupportedDevices(['Ascend910B', 'Ascend910_93', 'Ascend950'])
+    def test_to_non_blocking_different_dtype(self):
+        stream = torch_npu.npu.current_stream()
+
+        def _test_to_non_blocking_different_dtype(src, non_blocking, dst, dtype):
+            torch_npu.npu.synchronize()
+            out = src.to(device=dst, dtype=dtype, non_blocking=non_blocking)
+            stream.synchronize()
+            self.assertEqual(src.to(dtype=dtype), out)
+            self.assertTrue(out.is_pinned() == (non_blocking and dst == "cpu"))
+
+        src_cpu = torch.arange(1024, dtype=torch.int32).reshape(128, 8).pin_memory()
+        src_npu = torch.arange(1024, dtype=torch.int32, device="npu").reshape(128, 8)
+
+        for non_blocking in (True, False):
+            _test_to_non_blocking_different_dtype(src_cpu, non_blocking, "npu", torch.float32)
+            _test_to_non_blocking_different_dtype(src_npu, non_blocking, "cpu", torch.float32)
 
     def test_to_cpu_blocking_by_default(self):
         src = torch.randn(1000000, device="npu")
