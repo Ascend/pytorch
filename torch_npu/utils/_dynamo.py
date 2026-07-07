@@ -3,114 +3,83 @@ import os
 import logging
 import sys
 import importlib
-
+import functools
 import torch
 import torch_npu
 from torch import _TorchCompileWrapper
-from torch._dynamo import optimize
-from torch._dynamo.utils import tensortype_to_dtype
-from torch._dynamo.variables.base import VariableTracker
-from torch._dynamo.variables.constant import ConstantVariable
-from torch._dynamo.variables.ctx_manager import AutocastModeVariable
-from torch._dynamo.variables.functions import SkipFunctionVariable
-from torch._dynamo.variables.lists import TupleVariable
-from torch._dynamo.variables.tensor import TensorVariable
-from torch._dynamo.variables.torch import (
-    TorchCtxManagerClassVariable,
-    TorchInGraphFunctionVariable,
-)
-from torch._dynamo.variables.user_defined import UserDefinedClassVariable
-from torch_npu.dynamo import _get_global_npu_backend
 
 
 use_jit_script = False
 log = logging.getLogger(__name__)
 
-class NPUTorchCtxManagerClassVariable(TorchCtxManagerClassVariable):
-    def call_function(self, tx, args, kwargs):
-        return NPUAutocastModeVariable.create(self.value, args, kwargs)
 
 
-class NPUAutocastModeVariable(AutocastModeVariable):
-    @staticmethod
-    def create(func, args, kwargs):
-        bound_args = inspect.signature(func).bind(*args, **kwargs)
-        bound_args.apply_defaults()
-        target_values = []
-        kwargs.clear()
+def _create_npu_autocast_mode_variable(func, args, kwargs):
+    from torch._dynamo.variables.ctx_manager import AutocastModeVariable
+    from torch._dynamo.variables.base import VariableTracker
+    bound_args = inspect.signature(func).bind(*args, **kwargs)
+    bound_args.apply_defaults()
+    target_values = []
+    kwargs.clear()
 
-        for key in ["device_type", "dtype", "enabled", "cache_enabled"]:
-            if key == "device_type" and func in [
-                torch_npu.npu.amp.autocast,
-            ]:
-                arg = "npu" if func is torch_npu.npu.amp.autocast else "cpu"
-            else:
-                arg = bound_args.arguments[key]
-            if isinstance(arg, VariableTracker):
-                target_values.append(arg.as_python_constant())
-            else:
-                target_values.append(arg)
+    for key in ["device_type", "dtype", "enabled", "cache_enabled"]:
+        if key == "device_type" and func in [
+            torch_npu.npu.amp.autocast,
+        ]:
+            arg = "npu" if func is torch_npu.npu.amp.autocast else "cpu"
+        else:
+            arg = bound_args.arguments[key]
+        if isinstance(arg, VariableTracker):
+            target_values.append(arg.as_python_constant())
+        else:
+            target_values.append(arg)
 
-        var = AutocastModeVariable(target_values, initial_values=None, **kwargs)
-        return var
+    var = AutocastModeVariable(target_values, initial_values=None, **kwargs)
+    return var
 
+def patch_SkipFunctionVariable():
+    from torch._dynamo.variables.functions import SkipFunctionVariable
+    from torch._dynamo.variables.torch import TorchInGraphFunctionVariable
+    def SkipFunctionVariable__new__(cls, value, reason=None, **kwargs):
+        if value in [
+            torch.npu.stream,
+            torch_npu.npu.stream,
+            torch_npu.npu.utils.stream,
+        ]:
+            return TorchInGraphFunctionVariable(value, **kwargs)
+        return cls.__new__raw(cls)
 
-def UserDefinedClassVariable__new__(cls, value, **kwargs):
-    if value in [
-        torch.npu.amp.autocast,
-        torch_npu.npu.amp.autocast,
-        torch.npu.amp.autocast_mode.autocast,
-        torch_npu.npu.amp.autocast_mode.autocast,
-    ]:
-        return NPUTorchCtxManagerClassVariable(value, **kwargs)
-    elif value in [
-        torch.npu.Stream,
-        torch_npu.npu.Stream,
-        torch.npu.streams.Stream,
-        torch_npu.npu.streams.Stream,
-        torch_npu.npu.BoolTensor,
-        torch_npu.npu.ByteTensor,
-        torch_npu.npu.CharTensor,
-        torch_npu.npu.DoubleTensor,
-        torch_npu.npu.FloatTensor,
-        torch_npu.npu.HalfTensor,
-        torch_npu.npu.IntTensor,
-        torch_npu.npu.LongTensor,
-        torch_npu.npu.ShortTensor,
-        torch_npu.npu.BFloat16Tensor,
-    ]:
-        return TorchInGraphFunctionVariable(value, **kwargs)
-    return cls.__new__raw(cls)
+    SkipFunctionVariable.__new__raw = SkipFunctionVariable.__new__
+    SkipFunctionVariable.__new__ = SkipFunctionVariable__new__
 
+def patch_TensorVariable_call_method():
+    from torch._dynamo.variables.tensor import TensorVariable
+    from torch._dynamo.utils import tensortype_to_dtype
+    from torch._dynamo.variables.constant import ConstantVariable
+    from torch._dynamo.variables.lists import TupleVariable
 
-def SkipFunctionVariable__new__(cls, value, reason=None, **kwargs):
-    if value in [
-        torch.npu.stream,
-        torch_npu.npu.stream,
-        torch_npu.npu.utils.stream,
-    ]:
-        return TorchInGraphFunctionVariable(value, **kwargs)
-    return cls.__new__raw(cls)
+    def TensorVariable_call_method(self, tx, name, args, kwargs):
+        if (
+            name == "type"
+            and self.dtype is not None
+            and len(args) == 0
+            and isinstance(self.device, torch.device)
+            and self.device.type == "npu"
+        ):
+            tensortype = next(k for k, v in tensortype_to_dtype.items() if self.dtype in v)
+            constant_result = ConstantVariable.create(f"torch.npu.{tensortype.__name__}")
 
+            if len(args) == 1:
+                return constant_result.getitem_const(args[0])
+            elif args:
+                return TupleVariable([constant_result.getitem_const(a) for a in args])
+            return constant_result
+        else:
+            return TensorVariable.call_method_raw(self, tx, name, args, kwargs)
 
-def TensorVariable_call_method(self, tx, name, args, kwargs):
-    if (
-        name == "type"
-        and self.dtype is not None
-        and len(args) == 0
-        and isinstance(self.device, torch.device)
-        and self.device.type == "npu"
-    ):
-        tensortype = next(k for k, v in tensortype_to_dtype.items() if self.dtype in v)
-        constant_result = ConstantVariable.create(f"torch.npu.{tensortype.__name__}")
+    TensorVariable.call_method_raw = TensorVariable.call_method
+    TensorVariable.call_method = TensorVariable_call_method
 
-        if len(args) == 1:
-            return constant_result.getitem_const(args[0])
-        elif args:
-            return TupleVariable([constant_result.getitem_const(a) for a in args])
-        return constant_result
-    else:
-        return TensorVariable.call_method_raw(self, tx, name, args, kwargs)
 
 
 class _InductorNpuRegistry:
@@ -193,79 +162,11 @@ class _NpuBackendScope:
         return False
 
 
-def patch_inductor_wrapper():
-    from typing import Any, Literal, Optional
-
-    from torch import _TorchCompileInductorWrapper
-    from torch.utils._config_module import _ConfigEntry, Config, ConfigModule
-
-    src_apply_options = _TorchCompileInductorWrapper.apply_options
-    src_init = _TorchCompileInductorWrapper.__init__
-    src_get_config_copy = ConfigModule.get_config_copy
-    src_call = _TorchCompileInductorWrapper.__call__
-
-    def new_apply_options(self, options: Optional[dict[str, Any]]):
-        if options is not None and options.get("enable_shape_handling", False):
-            if not is_inductor_npu_initialized():
-                register_inductor_npu()
-            torch_npu._inductor.patch_shape_handling()
-        src_apply_options(self, options)
-
-    def new_get_config_copy(self) -> dict[str, Any]:
-        ori_dict = src_get_config_copy(self)
-        if self is not torch._inductor.config:
-            return ori_dict
-        NpuBackendType = Literal["default", "mlir", "dvm"]
-        if "npu_backend" not in ori_dict:
-            ori_dict["npu_backend"] = "default"
-            self._config["npu_backend"] = _ConfigEntry(
-                Config(default="default", value_type=NpuBackendType)
-            )
-
-        if "enable_shape_handling" not in ori_dict:
-            ori_dict["enable_shape_handling"] = False
-            self._config["enable_shape_handling"] = _ConfigEntry(
-                Config(default=False, value_type=bool)
-            )
-
-        if "shape_handling_configs" not in ori_dict:
-            ori_dict["shape_handling_configs"] = []
-            self._config["shape_handling_configs"] = _ConfigEntry(
-                Config(default=[], value_type=list)
-            )
-
-        if "shape_handling_dict" not in ori_dict:
-            ori_dict["shape_handling_dict"] = None
-            self._config["shape_handling_dict"] = _ConfigEntry(
-                Config(default=None, value_type=dict)
-            )
-        return ori_dict
-
-    def new_init(self, mode, options, dynamic):
-        src_init(self, mode, options, dynamic)
-        backend = _resolve_npu_backend_from_wrapper(self)
-        if backend=="mlir":
-            with _NpuBackendScope(backend):
-                log.info("Running MLIR backend")
-                device_id = torch_npu.npu.current_device()
-                torch_npu._C._recovery_all_npu_stream(device_id)
-        if backend=="dvm":
-            with _NpuBackendScope(backend):
-                log.info("Running dvm backend")
-
-    def new_call(self, model_, inputs_):
-        backend = _resolve_npu_backend_from_wrapper(self)
-        with _NpuBackendScope(backend):
-            return src_call(self, model_, inputs_)
-
-    _TorchCompileInductorWrapper.__call__ = new_call
-    _TorchCompileInductorWrapper.apply_options = new_apply_options
-    _TorchCompileInductorWrapper.__init__ = new_init
-    ConfigModule.get_config_copy = new_get_config_copy
-    torch._inductor.config.get_config_copy()
 
 
 def patch_dynamo_optimize():
+    from torch._dynamo import optimize
+    from torch_npu.dynamo import _get_global_npu_backend
     src_optimize = optimize
 
     def npu_optimize(*args, **kwargs):
@@ -291,8 +192,13 @@ def patch_dynamo_optimize():
 
 def patch_user_defined_class_variable():
     import functools
-
+    from torch._dynamo.variables.user_defined import UserDefinedClassVariable
+    from torch._dynamo.variables.torch import TorchCtxManagerClassVariable
+    from torch._dynamo.variables.torch import TorchInGraphFunctionVariable
     original_method = UserDefinedClassVariable._in_graph_classes
+    class NPUTorchCtxManagerClassVariable(TorchCtxManagerClassVariable):
+        def call_function(self, tx, args, kwargs):
+            return _create_npu_autocast_mode_variable(self.value, args, kwargs)
 
     @staticmethod
     @functools.lru_cache(None)
@@ -302,8 +208,36 @@ def patch_user_defined_class_variable():
         result.add(torch.npu.Stream)
         return result
 
-    UserDefinedClassVariable._in_graph_classes = patched_in_graph_classes
+    def UserDefinedClassVariable__new__(cls, value, **kwargs):
+        if value in [
+            torch.npu.amp.autocast,
+            torch_npu.npu.amp.autocast,
+            torch.npu.amp.autocast_mode.autocast,
+            torch_npu.npu.amp.autocast_mode.autocast,
+        ]:
+            return NPUTorchCtxManagerClassVariable(value, **kwargs)
+        elif value in [
+            torch.npu.Stream,
+            torch_npu.npu.Stream,
+            torch.npu.streams.Stream,
+            torch_npu.npu.streams.Stream,
+            torch_npu.npu.BoolTensor,
+            torch_npu.npu.ByteTensor,
+            torch_npu.npu.CharTensor,
+            torch_npu.npu.DoubleTensor,
+            torch_npu.npu.FloatTensor,
+            torch_npu.npu.HalfTensor,
+            torch_npu.npu.IntTensor,
+            torch_npu.npu.LongTensor,
+            torch_npu.npu.ShortTensor,
+            torch_npu.npu.BFloat16Tensor,
+        ]:
+            return TorchInGraphFunctionVariable(value, **kwargs)
+        return cls.__new__raw(cls)
 
+    UserDefinedClassVariable._in_graph_classes = patched_in_graph_classes
+    UserDefinedClassVariable.__new__raw = UserDefinedClassVariable.__new__
+    UserDefinedClassVariable.__new__ = UserDefinedClassVariable__new__
 
 def fake_record_stream(self, s):
     """
@@ -382,18 +316,116 @@ def patch_event_variable_python_type():
     if "python_type" not in torch._dynamo.variables.ctx_manager.EventVariable.__dict__:
         torch._dynamo.variables.ctx_manager.EventVariable.python_type = python_type
 
+def run_once(f):
+    """Runs a function (successfully) only once.
+    The running can be reset by setting the `has_run` attribute to False
+    """
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        if not wrapper.has_run:
+            result = f(*args, **kwargs)
+            wrapper.has_run = True
+            return result
+        return None
+    wrapper.has_run = False
+    return wrapper
 
-def add_dynamo_methods():
-    UserDefinedClassVariable.__new__raw = UserDefinedClassVariable.__new__
-    UserDefinedClassVariable.__new__ = UserDefinedClassVariable__new__
-    SkipFunctionVariable.__new__raw = SkipFunctionVariable.__new__
-    SkipFunctionVariable.__new__ = SkipFunctionVariable__new__
-    TensorVariable.call_method_raw = TensorVariable.call_method
-    TensorVariable.call_method = TensorVariable_call_method
-    patch_dynamo_optimize()
-    patch_inductor_wrapper()
+
+@run_once
+def _dynamo_register_interface_for_device():
+    from torch._dynamo.device_interface import register_interface_for_device
+    from torch_npu.utils._dynamo_device import NpuInterface
+
+    register_interface_for_device("npu", NpuInterface)
+    for i in range(32):
+
+        register_interface_for_device(f"npu:{i}", NpuInterface)
+
+@run_once
+def add_dynamo_methods_init():
+    _dynamo_register_interface_for_device()
+    patch_SkipFunctionVariable()
+    patch_TensorVariable_call_method()
     patch_user_defined_class_variable()
     patch_record_stream()
     patch_event_variable_python_type()
     patch_variable_builder()
     patch_builtin_variable()
+
+
+def patch_inductor_wrapper():
+    from typing import Any, Literal, Optional
+
+    from torch import _TorchCompileInductorWrapper
+    from torch.utils._config_module import _ConfigEntry, Config, ConfigModule
+
+    src_apply_options = _TorchCompileInductorWrapper.apply_options
+    src_init = _TorchCompileInductorWrapper.__init__
+    src_get_config_copy = ConfigModule.get_config_copy
+    src_call = _TorchCompileInductorWrapper.__call__
+
+    def new_apply_options(self, options: Optional[dict[str, Any]]):
+        if options is not None and options.get("enable_shape_handling", False):
+            if not is_inductor_npu_initialized():
+                register_inductor_npu()
+            torch_npu._inductor.patch_shape_handling()
+        src_apply_options(self, options)
+
+    def new_get_config_copy(self) -> dict[str, Any]:
+        ori_dict = src_get_config_copy(self)
+        if self is not torch._inductor.config:
+            return ori_dict
+        NpuBackendType = Literal["default", "mlir", "dvm"]
+        if "npu_backend" not in ori_dict:
+            ori_dict["npu_backend"] = "default"
+            self._config["npu_backend"] = _ConfigEntry(
+                Config(default="default", value_type=NpuBackendType)
+            )
+
+        if "enable_shape_handling" not in ori_dict:
+            ori_dict["enable_shape_handling"] = False
+            self._config["enable_shape_handling"] = _ConfigEntry(
+                Config(default=False, value_type=bool)
+            )
+
+        if "shape_handling_configs" not in ori_dict:
+            ori_dict["shape_handling_configs"] = []
+            self._config["shape_handling_configs"] = _ConfigEntry(
+                Config(default=[], value_type=list)
+            )
+
+        if "shape_handling_dict" not in ori_dict:
+            ori_dict["shape_handling_dict"] = None
+            self._config["shape_handling_dict"] = _ConfigEntry(
+                Config(default=None, value_type=dict)
+            )
+        return ori_dict
+
+    def new_init(self, mode, options, dynamic):
+        add_dynamo_methods_init()
+        src_init(self, mode, options, dynamic)
+        backend = _resolve_npu_backend_from_wrapper(self)
+        if backend=="mlir":
+            with _NpuBackendScope(backend):
+                log.info("Running MLIR backend")
+                device_id = torch_npu.npu.current_device()
+                torch_npu._C._recovery_all_npu_stream(device_id)
+        if backend=="dvm":
+            with _NpuBackendScope(backend):
+                log.info("Running dvm backend")
+
+    def new_call(self, model_, inputs_):
+        backend = _resolve_npu_backend_from_wrapper(self)
+        with _NpuBackendScope(backend):
+            return src_call(self, model_, inputs_)
+
+    _TorchCompileInductorWrapper.__call__ = new_call
+    _TorchCompileInductorWrapper.apply_options = new_apply_options
+    _TorchCompileInductorWrapper.__init__ = new_init
+    ConfigModule.get_config_copy = new_get_config_copy
+    torch._inductor.config.get_config_copy()
+
+
+def add_dynamo_methods():
+    patch_dynamo_optimize()
+    patch_inductor_wrapper()

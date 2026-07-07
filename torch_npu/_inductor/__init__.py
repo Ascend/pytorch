@@ -9,7 +9,7 @@ AsyncCompile.warm_pool()
 os.environ["TORCH_DEVICE_BACKEND_AUTOLOAD"] = ORG_AUTOLOAD
 
 import os
-
+from torch_npu.utils._dynamo import _dynamo_register_interface_for_device, patch_SkipFunctionVariable, patch_TensorVariable_call_method
 # all backends need register npu/cpu/mps device_op_overrides
 from .graph import patch_codegen_with_cpp_wrapper
 from .utils import patch_has_triton, patch_device_supports_tma, patch_is_gpu, get_current_raw_stream
@@ -19,6 +19,7 @@ from .shape_handling import NPUShapeHandling, patch_shape_handling
 from ._npu_meta_registration import npu_patch_meta
 
 npu_patch_meta()
+_dynamo_register_interface_for_device()
 register_device_op_overrides_npu()
 patch_has_triton()
 patch_is_gpu()
