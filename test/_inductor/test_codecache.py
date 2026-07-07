@@ -88,7 +88,8 @@ class TestCachingPrecompileCodeCache(TestCase):
 
         artifact_bytes, cache_info = artifacts
 
-        autotune_expect = 1 if device == "npu" else 0
+        # NPU compiles both forward sin and backward cos/mul as autotuned Triton pointwise kernels.
+        autotune_expect = 2 if device == "npu" else 0
         self.assertEqual(len(cache_info.inductor_artifacts), 2)
         self.assertEqual(len(cache_info.autotune_artifacts), autotune_expect)
         self.assertEqual(len(cache_info.aot_autograd_artifacts), 1)
