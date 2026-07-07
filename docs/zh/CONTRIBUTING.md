@@ -101,9 +101,7 @@ pytorch
 
 ### 贡献者许可协议
 
-在您第一次向 PyTorch 社区提交代码之前，需要签署 CLA。
-
-对于个人贡献者，详细信息请参考 [ICLA 在线文档](https://www.mindspore.cn/icla)。
+在您第一次向PyTorch社区提交代码之前，需要签署[CLA](https://clasign.osinfra.cn/sign-cla/690ca9ddf91c03dee6082ab1/individual)。
 
 ### 开发与测试
 
