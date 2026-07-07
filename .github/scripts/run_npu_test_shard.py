@@ -785,15 +785,33 @@ def _build_batch_input_json(
 
 NPU_QUEUE_FATAL_EXIT_CODE = 70
 
+# Layer 1: Fatal error signatures (string matching)
+#
+# Two categories:
+#   A. NPUQueue ERROR_EXIT throw path — produces "The process exits for
+#      this inner error" (covers operator bugs like aclnnRepeat, CANN OOM).
+#   B. deviceErrorMap throw path (NPUQueue.cpp:175-183 ThrowDeviceError) —
+#      produces device error labels for hardware faults. These bypass
+#      ERROR_EXIT and go directly to UCE_EXIT / HBM_ECC_EXIT / etc.,
+#      so they do NOT contain the "process exits" signature.
+#
+# Note: EZ9999 / EE9999 / EZ1009 are CANN runtime error codes that appear
+# in the exception message alongside the deviceErrorMap labels. They are
+# kept for additional robustness but are partially redundant with category B.
 NPU_QUEUE_FATAL_SIGNATURES = [
-    # NPUQueue CAN_EXIT (soft fatal: operator bugs, OOM)
+    # A. NPUQueue ERROR_EXIT (operator bugs, OOM)
     "The process exits for this inner error",
-    # Hardware device errors (AiCore faults)
+    # B. deviceErrorMap labels (hardware faults, NPUQueue.cpp:175-183)
+    "UCE ERROR",
+    "HBM MULTI BIT ECC ERROR",
+    "SUSPECT MEM ERROR",
+    "HCCS LINK ERROR",
+    "HCCL OP RETRY FAILED",
+    "SUSPECT REMOTE ERROR",
+    # C. CANN runtime error codes (redundant with B, kept for robustness)
     "EZ9999",
     "EE9999",
     "EZ1009",
-    "vector core exception",
-    "rtDeviceSynchronizeWithTimeout execution failed",
 ]
 
 
@@ -803,11 +821,43 @@ def _check_fatal_npu_error(
     stdout: str,
     stderr: str,
 ) -> bool:
-    """Check if a case result contains a fatal NPU error signature."""
+    """Layer 1: Check if a case result contains a known fatal NPU error signature."""
     if status not in ("failed", "error"):
         return False
     combined = (message or "") + "\n" + (stdout or "") + "\n" + (stderr or "")
     return any(sig in combined for sig in NPU_QUEUE_FATAL_SIGNATURES)
+
+
+def _check_npu_poisoned() -> bool:
+    """
+    Layer 2: Probe NPU device health by running a trivial computation.
+
+    When the NPU task queue is in CAN_EXIT state (poisoned by a prior fatal
+    error), all operators become silent no-ops — NPUQueue.cpp:573-596 Enqueue()
+    returns without executing, and output tensors contain uninitialized device
+    memory. This probe creates a tensor with a known value and verifies the
+    result. If the queue is poisoned, the result will be garbage. If the
+    device is in error state, the sync will throw.
+
+    This catches poisoning paths that signature matching misses (e.g. new
+    CANN error formats, SUSPECT REMOTE ERROR without EZ9999 prefix, etc.).
+
+    Cost: ~1ms per call. Only invoked on failed/error cases where Layer 1
+    did not match, so zero overhead for passing tests.
+    """
+    try:
+        import torch
+        # torch.ones on NPU calls fill_ -> EXEC_NPU_CMD(aclnnInplaceFillScalar)
+        # -> Enqueue -> no-op if CAN_EXIT. sum() similarly no-op.
+        # .item() triggers MakeSureQueueEmpty (sync), which does NOT throw
+        # in CAN_EXIT state (runtime_error left empty, NPUQueue.cpp:313-315),
+        # so it returns garbage from uninitialized device memory.
+        probe = torch.ones(4, device="npu")
+        return probe.sum().item() != 4.0
+    except Exception:
+        # Any exception (sync timeout, device error, OOM) means the device
+        # context is unhealthy and the worker should be restarted.
+        return True
 
 
 def _execute_worker_batch(
@@ -1318,17 +1368,28 @@ def _worker_main(worker_input_file: str) -> None:
         # subsequent ops become silent no-ops producing garbage data. Exit
         # the worker cleanly between cases (no case in progress) so the
         # parent can restart a fresh worker for remaining cases.
-        if _check_fatal_npu_error(status, message,
-                                  captured_stdout, captured_stderr):
-            print(
-                f"[{case['case_idx']}] NPU fatal error detected, "
-                f"exiting worker (code {NPU_QUEUE_FATAL_EXIT_CODE}) "
-                f"to trigger restart for remaining cases",
-                flush=True,
+        #
+        # Two-layer detection:
+        #   Layer 1: signature matching (fast, zero overhead, known patterns)
+        #   Layer 2: probe computation (~1ms, catches unknown patterns)
+        # Layer 2 only runs if Layer 1 didn't match, and only for
+        # failed/error cases. Zero overhead for passing tests.
+        if status in ("failed", "error"):
+            poisoned = _check_fatal_npu_error(
+                status, message, captured_stdout, captured_stderr
             )
-            sys.stdout.flush()
-            sys.stderr.flush()
-            os._exit(NPU_QUEUE_FATAL_EXIT_CODE)
+            if not poisoned:
+                poisoned = _check_npu_poisoned()
+            if poisoned:
+                print(
+                    f"[{case['case_idx']}] NPU fatal error detected, "
+                    f"exiting worker (code {NPU_QUEUE_FATAL_EXIT_CODE}) "
+                    f"to trigger restart for remaining cases",
+                    flush=True,
+                )
+                sys.stdout.flush()
+                sys.stderr.flush()
+                os._exit(NPU_QUEUE_FATAL_EXIT_CODE)
 
     # Write batch results file as fallback
     results_file = report_dir / f"batch_results_{batch_id}.json"
