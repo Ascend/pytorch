@@ -692,6 +692,45 @@ result = out.cpu()
 """)
         self._assert_match(r_off, r_on)
 
+    def test_viewstore_inplace_strided_3d_view(self):
+        """Inplace writes to a non-contiguous innermost-contiguous view use viewstore."""
+        r_off, r_on = compare_dvm_on_off("""
+base = torch.randn(2, 5, 8, dtype=torch.float32).npu()
+other = torch.randn(2, 3, 5, dtype=torch.float32).npu()
+view = base[:, 1:4, 2:7]
+
+view.add_(other, alpha=0.25)
+view.tanh_()
+
+result = {
+    "base": base.cpu(),
+    "view": view.cpu(),
+}
+""")
+        self._assert_match(r_off, r_on, atol=1e-6)
+
+    def test_viewstore_inplace_sibling_views(self):
+        """Multiple non-contiguous sibling views can be updated through viewstore."""
+        r_off, r_on = compare_dvm_on_off("""
+base = torch.randn(4, 10, dtype=torch.float32).npu()
+left = base[:, 1:5]
+right = base[:, 5:9]
+left_src = torch.randn(4, 4, dtype=torch.float32).npu()
+right_src = torch.randn(4, 4, dtype=torch.float32).npu()
+
+left.mul_(1.5)
+left.add_(left_src)
+right.sub_(right_src, alpha=0.5)
+right.relu_()
+
+result = {
+    "base": base.cpu(),
+    "left": left.cpu(),
+    "right": right.cpu(),
+}
+""")
+        self._assert_match(r_off, r_on, atol=1e-6)
+
 class TestDvmFusionPatterns(_DvmTestBase):
     """Complex fusion patterns: chains, RMSNorm, SwiGLU, attention, etc."""
 
@@ -919,6 +958,49 @@ result = out.cpu()
                         r_off, r_on, atol=1e-4,
                         msg=f" shape={shape} with_weight={with_weight} with_bias={with_bias}"
                     )
+
+    def test_native_batch_norm_backward_train_weight_only(self):
+        r_off, r_on = compare_dvm_on_off("""
+x = torch.randn(4, 3, 5, 5, dtype=torch.float32).npu()
+grad = torch.randn_like(x)
+weight = torch.randn(3, dtype=torch.float32).npu()
+save_mean = torch.randn(3, dtype=torch.float32).npu()
+save_var = (torch.rand(3, dtype=torch.float32) + 0.2).npu()
+
+out = torch.ops.aten.native_batch_norm_backward.default(
+    grad, x, weight, None, None, save_mean, save_var, True, 1e-5,
+    [False, True, False],
+)
+result = tuple(None if t is None else t.cpu() for t in out)
+""")
+        self._assert_match(r_off, r_on, atol=1e-4)
+
+    def test_native_batch_norm_backward_train_masks(self):
+        cases = [
+            ((4, 3, 5, 5), [True, False, False]),
+            ((4, 3, 5, 5), [False, False, True]),
+            ((2, 4, 6), [True, True, True]),
+        ]
+        for shape, mask in cases:
+            with self.subTest(shape=shape, mask=mask):
+                r_off, r_on = compare_dvm_on_off(f"""
+shape = {shape}
+mask = {mask}
+c = shape[1]
+
+x = torch.randn(shape, dtype=torch.float32).npu()
+grad = torch.randn_like(x)
+weight = torch.randn(c, dtype=torch.float32).npu()
+save_mean = torch.randn(c, dtype=torch.float32).npu()
+save_var = (torch.rand(c, dtype=torch.float32) + 0.2).npu()
+
+out = torch.ops.aten.native_batch_norm_backward.default(
+    grad, x, weight, None, None, save_mean, save_var, True, 1e-5,
+    mask,
+)
+result = tuple(None if t is None else t.cpu() for t in out)
+""")
+                self._assert_match(r_off, r_on, atol=1e-4, msg=f" shape={shape} mask={mask}")
 
 if __name__ == "__main__":
     unittest.main()
