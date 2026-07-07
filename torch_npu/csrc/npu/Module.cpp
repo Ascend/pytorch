@@ -217,14 +217,23 @@ void initDeviceProperty(int64_t deviceid) {
     device_properties[deviceid].name = std::string(device_name);
   }
   static const bool is_cann_900beta2 = IsGteCANNVersion("9.0.0.beta2", "CANN");
-  if (is_cann_900beta2 && c10_npu::acl::IsExistAclrtGetDeviceInfo() &&
-      (c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend950)) {
+  bool device_info_avail = is_cann_900beta2 && c10_npu::acl::IsExistAclrtGetDeviceInfo();
+  if (device_info_avail) {
     int64_t tmp_device_total = 0;
-    NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::acl::AclrtGetDeviceInfo(
+    aclError acl_ret = c10_npu::acl::AclrtGetDeviceInfo(
         static_cast<uint32_t>(deviceid),
         ACL_DEV_ATTR_TOTAL_GLOBAL_MEM_SIZE,
-        &tmp_device_total));
-    device_total = static_cast<size_t>(tmp_device_total);
+        &tmp_device_total);
+    if (acl_ret == ACL_ERROR_NONE) {
+      device_total = static_cast<size_t>(tmp_device_total);
+    } else {
+      TORCH_NPU_WARN_ONCE("AclrtGetDeviceInfo failed to get total global memory, "
+          "error code is ", acl_ret, ". The possible cause is that the driver version "
+          "is too old or does not match CANN. Fall back to aclrtGetMemInfo. "
+          "Please upgrade the driver to the matching version.");
+      NPU_CHECK_ERROR_WITHOUT_UCE(
+          aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
+    }
   } else {
     NPU_CHECK_ERROR_WITHOUT_UCE(
         aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
