@@ -382,7 +382,6 @@ class CATLASSTemplateKernel(Kernel):
                 wrapper.generate_kernel_call(
                     name,
                     second_call_args,
-                    origin_node=None,
                     triton=False,
                     arg_types=second_arg_types,
                 )

@@ -81,6 +81,49 @@ class _NPUKernelCodegenMixin:
             _is_codegen_graph_partition_subgraph(self),
         )
 
+    def _generate_kernel_call_helper(
+        self,
+        kernel_name: str,
+        call_args,
+        *,
+        device=None,
+        triton=True,
+        arg_types=None,
+        raw_keys=None,
+        raw_args=None,
+        triton_meta=None,
+        graph_name="",
+        original_fxnode_name=None,
+    ):
+        # NPU C++ kernels (e.g. CATLASS template kernels, triton=False) are not
+        # handled by the upstream _generate_kernel_call_helper which only supports
+        # cpu/mps/cuda for non-triton kernels and raises "device npu nyi".
+        # Route NPU C++ kernels through the same codegen path as CUDA C++ kernels.
+        device = device or V.graph.get_current_device_or_throw()
+        if not triton and device.type == "npu":
+            call_args_str = self.prepare_triton_kernel_call(call_args)
+            call_args_str = ", ".join(call_args_str)
+            stream_name = PythonWrapperCodegen.write_get_raw_stream(
+                self, device.index, graph_name
+            )
+            stream_ptr = f"c_void_p({stream_name})"
+            self.writeline(
+                f"{kernel_name}.{kernel_name}({call_args_str}, {stream_ptr})"
+            )
+            return
+        return super()._generate_kernel_call_helper(
+            kernel_name,
+            call_args,
+            device=device,
+            triton=triton,
+            arg_types=arg_types,
+            raw_keys=raw_keys,
+            raw_args=raw_args,
+            triton_meta=triton_meta,
+            graph_name=graph_name,
+            original_fxnode_name=original_fxnode_name,
+        )
+
 
 @dataclasses.dataclass
 class NPUMultiOutputLine(MultiOutputLine):
@@ -395,49 +438,6 @@ class NPUPythonWrapperCodeGen(_NPUKernelCodegenMixin, PythonWrapperCodegen):
         else:
             super().generate_kernel_call(kernel_name, call_args, device=device, triton=triton, arg_types=arg_types, raw_keys=raw_keys, raw_args=raw_args, triton_meta=triton_meta, original_fxnode_name=original_fxnode_name)
 
-
-    def _generate_kernel_call_helper(
-        self,
-        kernel_name: str,
-        call_args,
-        *,
-        device=None,
-        triton=True,
-        arg_types=None,
-        raw_keys=None,
-        raw_args=None,
-        triton_meta=None,
-        graph_name="",
-        original_fxnode_name=None,
-    ):
-        # NPU C++ kernels (e.g. CATLASS template kernels, triton=False) are not
-        # handled by the upstream _generate_kernel_call_helper which only supports
-        # cpu/mps/cuda for non-triton kernels and raises "device npu nyi".
-        # Route NPU C++ kernels through the same codegen path as CUDA C++ kernels.
-        device = device or V.graph.get_current_device_or_throw()
-        if not triton and device.type == "npu":
-            call_args_str = self.prepare_triton_kernel_call(call_args)
-            call_args_str = ", ".join(call_args_str)
-            stream_name = PythonWrapperCodegen.write_get_raw_stream(
-                self, device.index, graph_name
-            )
-            stream_ptr = f"c_void_p({stream_name})"
-            self.writeline(
-                f"{kernel_name}.{kernel_name}({call_args_str}, {stream_ptr})"
-            )
-            return
-        return super()._generate_kernel_call_helper(
-            kernel_name,
-            call_args,
-            device=device,
-            triton=triton,
-            arg_types=arg_types,
-            raw_keys=raw_keys,
-            raw_args=raw_args,
-            triton_meta=triton_meta,
-            graph_name=graph_name,
-            original_fxnode_name=original_fxnode_name,
-        )
 
     def codegen_multi_output(self, node: ir.MultiOutput):
         if is_multi_stream():
