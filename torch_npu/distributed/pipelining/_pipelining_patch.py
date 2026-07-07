@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import contextlib
 import importlib
+import warnings
 from typing import Any, Optional
 
 import torch
@@ -96,24 +97,76 @@ def _prune_none_root_placeholders(pipe) -> None:
 
     if not hasattr(pipe, "get_stage_module") or not hasattr(pipe, "num_stages"):
         return
+    if not hasattr(pipe, "split_gm") or not isinstance(pipe.split_gm, fx.GraphModule):
+        return
 
+    root_graph_changed = False
     for stage_index in range(pipe.num_stages):
         stage_module = pipe.get_stage_module(stage_index)
         if not isinstance(stage_module, fx.GraphModule):
             continue
 
         graph = stage_module.graph
-        changed = False
         placeholders = [node for node in graph.nodes if node.op == "placeholder"]
-        for placeholder in placeholders:
-            if placeholder.meta.get("val", "__missing__") is None:
-                placeholder.replace_all_uses_with(None)
-                graph.erase_node(placeholder)
-                changed = True
+        remove_indices = [
+            placeholder_index
+            for placeholder_index, placeholder in enumerate(placeholders)
+            if placeholder.meta.get("val", "__missing__") is None
+        ]
+        if not remove_indices:
+            continue
 
-        if changed:
-            graph.lint()
-            stage_module.recompile()
+        root_call_node = None
+        for node in pipe.split_gm.graph.nodes:
+            if node.op != "call_module":
+                continue
+
+            try:
+                called_module = pipe.split_gm.get_submodule(node.target)
+            except AttributeError:
+                continue
+
+            if called_module is stage_module:
+                root_call_node = node
+                break
+
+        if root_call_node is None:
+            warnings.warn(
+                "Failed to find root graph call_module node for pipeline "
+                f"stage {stage_index}. Skip pruning None placeholders for "
+                "this stage to avoid graph inconsistency.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+            continue
+        if max(remove_indices) >= len(root_call_node.args):
+            warnings.warn(
+                "Root graph call_module args do not match pipeline stage "
+                f"placeholders for stage {stage_index}. Skip pruning None "
+                "placeholders for this stage to avoid graph inconsistency.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+            continue
+        for placeholder_index in remove_indices:
+            placeholder = placeholders[placeholder_index]
+            placeholder.replace_all_uses_with(None)
+            graph.erase_node(placeholder)
+
+        graph.lint()
+        stage_module.recompile()
+
+        remove_index_set = set(remove_indices)
+        root_call_node.args = tuple(
+            arg
+            for arg_index, arg in enumerate(root_call_node.args)
+            if arg_index not in remove_index_set
+        )
+        root_graph_changed = True
+
+    if root_graph_changed:
+        pipe.split_gm.graph.lint()
+        pipe.split_gm.recompile()
 
 
 def _quiet_modify_graph_op_device(
