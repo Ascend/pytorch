@@ -83,16 +83,17 @@ class Model(torch.nn.Module):
         self.fc1 = torch.nn.Linear(dim, dim, dtype=torch.float16)
         self.sigmoid = torch.nn.Sigmoid()
 
-    def forward(self, x, y):
+    def forward(self, x, y, z):
         # test fused kernel with weights
         x = self.fc1(x + 1)
         x = self.sigmoid(x)
         y = torch.abs(y)
 
-        # test user defined triton kernel
+        # test alloc kernel
         z1 = torch.zeros_like(x)
 
-        z2 = torch.zeros_like(x)
+        # z2 is a cpu kernel with cpu input
+        z2 = (z + 1).npu()
 
         # test register_graph_pattern
         z3 = torch.cos(x) + torch.sin(y)
@@ -119,7 +120,9 @@ class TestAotiUserDefinedOp(TestUtils):
         x_input = 1.0 / x_input.to(torch.float16)
         y_input = torch.arange(batch_size * dim, 0, -1, device=device).reshape([batch_size, dim])
         y_input = 1.0 / y_input.to(torch.float16)
-        return x_input, y_input
+        # z_input is a cpu input tensor
+        z_input = torch.ones(batch_size * dim, device="cpu", dtype=torch.float16).reshape([batch_size, dim])
+        return x_input, y_input, z_input
 
 
     @parametrize('shape_x', [8])
@@ -129,11 +132,11 @@ class TestAotiUserDefinedOp(TestUtils):
         with torch._inductor.config.patch("cpp_wrapper", use_cpp_wrapper):
             with torch.no_grad():
                 model = Model().to("npu")
-                x_input, y_input = self.generate_input_tensor(shape_x, shape_y)
-                eager_res = model.forward(x_input, y_input)
+                x_input, y_input, z_input = self.generate_input_tensor(shape_x, shape_y)
+                eager_res = model.forward(x_input, y_input, z_input)
 
                 model_c = torch.compile(model, backend="inductor", dynamic=False)
-                compile_res = model_c(x_input, y_input)
+                compile_res = model_c(x_input, y_input, z_input)
                 self.assertEqual(eager_res, compile_res, atol=1e-3, rtol=1e-3)
 
 
@@ -144,17 +147,17 @@ class TestAotiUserDefinedOp(TestUtils):
     def test_aoti_export_and_load(self, shape_x, shape_y, autotune_at_compile, dynamic):
         model = Model().to("npu")
         with torch._inductor.config.patch("triton.autotune_at_compile_time", autotune_at_compile):
-            x_input, y_input = self.generate_input_tensor(shape_x, shape_y)
-            eager_res = model(x_input, y_input)
+            x_input, y_input, z_input = self.generate_input_tensor(shape_x, shape_y)
+            eager_res = model(x_input, y_input, z_input)
 
             model_name = f"model_{os.getpid()}_{shape_x}_{shape_y}_{int(autotune_at_compile)}_{int(dynamic)}.pt2"
 
             if dynamic:
                 batch_dim = torch.export.Dim("batch", min=1, max=128)
-                exported = torch.export.export(model, (x_input, y_input),
-                                               dynamic_shapes={"x": {0: batch_dim}, "y": {0: batch_dim}})
+                exported = torch.export.export(model, (x_input, y_input, z_input),
+                                               dynamic_shapes={"x": {0: batch_dim}, "y": {0: batch_dim}, "z": {0: batch_dim}})
             else:
-                exported = torch.export.export(model, (x_input, y_input))
+                exported = torch.export.export(model, (x_input, y_input, z_input))
 
             output_path = torch._inductor.aoti_compile_and_package(
                 exported,
@@ -166,7 +169,7 @@ class TestAotiUserDefinedOp(TestUtils):
             )
 
             model_loaded = torch._inductor.aoti_load_package(os.path.join(os.getcwd(), model_name))
-            load_res = model_loaded(x_input, y_input)
+            load_res = model_loaded(x_input, y_input, z_input)
             self.assertEqual(eager_res, load_res, atol=1e-3, rtol=1e-3)
 
 instantiate_parametrized_tests(TestAotiUserDefinedOp)

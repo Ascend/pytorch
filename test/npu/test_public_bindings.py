@@ -584,7 +584,7 @@ class TestPublicBindings(TestCase):
             "torch_npu._inductor.runtime",
             "torch_npu._inductor.utils",
             "torch_npu._inductor.codegen._sizevars",
-            "torch_npu._inductor.codegen.cpp_wrapper",
+            "torch_npu._inductor.codegen.cpp_wrapper_npu",
             "torch_npu._inductor.codegen.ir",
             "torch_npu._inductor.codegen.ir_fx",
             "torch_npu._inductor.codegen.kernel_analysis",
