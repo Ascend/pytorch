@@ -14,8 +14,12 @@ torch.jit.ScriptModule.register_state_dict_post_hook
 (extendable)
 """
 
+import warnings
+import io
+import numpy as np
 import torch
 import torch.nn as nn
+from torch.testing._internal.jit_utils import JitTestCase
 from torch.testing._internal.common_utils import run_tests, TestCase
 
 
@@ -521,6 +525,164 @@ class TestScriptModuleHooks(TestCase):
         model.state_dict()
         self.assertEqual(len(called), 1)
 
+
+class TestJitIgnoreNPU(JitTestCase):
+
+    def getExportImportCopy(self, mod):
+        buffer = io.BytesIO()
+        torch.jit.save(mod, buffer)
+        buffer.seek(0)
+        return torch.jit.load(buffer)
+
+    def test_ignore_decorator(self):
+        with warnings.catch_warnings(record=True) as warns:
+            warnings.simplefilter("always")
+
+            class M(nn.Module):
+                def __init__(self) -> None:
+                    super().__init__()
+                    self.state = nn.Buffer(torch.zeros(1).to(device_type))
+
+                def forward(self, x: torch.Tensor) -> torch.Tensor:
+                    return x
+
+                @torch.jit.ignore(drop_on_export=True)
+                def ignored_func(self, x: torch.Tensor) -> torch.Tensor:
+                    self.state = torch.tensor([999.0]).to(device_type)
+                    return x * 10
+
+            raw_m = M().to(device_type)
+            m = torch.jit.script(raw_m)
+
+        target_warns = [w for w in warns if "TorchScript will now drop the function" in str(w.message)]
+        self.assertEqual(len(target_warns), 1)
+        warn_msg = str(target_warns[0].message)
+        self.assertIn("TorchScript will now drop the function", warn_msg)
+
+        x = torch.tensor(2.0).to(device_type)
+        eager_out = m(x)
+        self.assertEqual(eager_out, x)
+
+        m.ignored_func(x)
+        self.assertEqual(m.state, torch.tensor([999.0], device=device_type))
+        self.assertEqual(m.ignored_func(torch.tensor(3, device=device_type)), torch.tensor(30, device=device_type))
+
+        m_export = self.getExportImportCopy(m)
+
+        with self.assertRaises(AttributeError):
+            _ = m_export.ignored_func
+
+        self.assertTrue(hasattr(m, "ignored_func"))
+        self.assertFalse(hasattr(m_export, "ignored_func"))
+        self.assertNotIn("ignored_func", dir(m_export))
+
+        export_out = m_export(x)
+        self.assertEqual(export_out, x)
+        self.assertEqual(m_export.state, torch.tensor([999.0], device=device_type))
+
+    def test_ignored_props(self):
+        class A(nn.Module):
+            __jit_ignored_attributes__ = ["ignored", "ignored_return_val"]
+
+            @property
+            def ignored(self):
+                raise ValueError("shouldn't be called")
+
+            @property
+            def ignored_return_val(self):
+                return 1
+
+            @torch.jit.ignore
+            def call(self):
+                return self.ignored_return_val
+
+        f = torch.jit.script(A())
+        # jank way to test if there is no error
+        self.assertTrue(isinstance(f, torch.jit.ScriptModule))
+        self.assertTrue(isinstance(f.call(), property))
+
+    def test_torch_ignore_conversion_to_none(self):
+        class A(torch.nn.Module):
+            @torch.jit.ignore
+            def ignored(self, a: int) -> None:
+                l: int = len([2 for i in range(a) if i > 2])
+                return
+
+            def forward(self) -> int:
+                a: int = 4
+                b: int = 5
+                self.ignored(a)
+                return a + b
+
+        class B(torch.nn.Module):
+            @torch.jit.ignore
+            def ignored(self, a: int):
+                l: int = len([2 for i in range(a) if i > 2])
+                return
+
+            def forward(self) -> int:
+                a: int = 4
+                b: int = 5
+                self.ignored(a)
+                return a + b
+
+        modelA = torch.jit.script(A())
+        self.assertEqual(modelA(), 9)
+
+        modelB = torch.jit.script(B())
+        self.assertEqual(modelB(), 9)
+
+    def test_comment_ignore_indent(self):
+        class Model(torch.nn.Module):
+            def __init__(self) -> None:
+                # useless comment that is not indented correctly  # noqa: E115
+                super().__init__()
+
+            def forward(self):
+                return 5
+
+        # should compile without an error
+        self.checkModule(Model(), ())
+
+    def test_ignored_method_binding(self):
+        class Bar(torch.nn.Module):
+            def __init__(self) -> None:
+                super().__init__()
+                self.x : int = 0
+
+            @torch.jit.export
+            def setx(self, x : int):
+                self.x = x
+
+            @torch.jit.export
+            def getx(self):
+                return self.x
+
+            @torch.jit.ignore
+            def ignored_getx(self):
+                return self.x
+
+        b = Bar()
+        b.setx(123)
+        sb = torch.jit.script(b)
+        self.assertEqual(sb.getx(), 123)
+        self.assertEqual(sb.ignored_getx(), 123)
+
+        sb.setx(456)
+        self.assertEqual(sb.getx(), 456)
+        self.assertEqual(sb.ignored_getx(), 456)
+
+    def test_no_self_arg_ignore_function(self):
+        class MyModule(nn.Module):
+            @torch.jit.ignore
+            def call_np():  # noqa: B902
+                return np.random.choice(2, p=[.95, .05])
+
+            def forward(self):
+                return self.call_np()
+
+        with self.assertRaisesRegex(Exception, "does not have a self argument"):
+            torch.jit.script(MyModule())
 
 if __name__ == "__main__":
     run_tests()
