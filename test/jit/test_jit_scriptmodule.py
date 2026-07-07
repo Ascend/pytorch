@@ -2,15 +2,15 @@
 Add validation cases for torch.jit.ScriptModule APIs on NPU:
 
 PyTorch community lacks sufficient and direct API validations for some APIs, so this file is added.
-This file validates torch.jit.ScriptModule.bfloat16, torch.jit.ScriptModule.buffers, torch.jit.ScriptModule.children, torch.jit.ScriptModule.code
+This file validates torch.jit.ScriptModule.bfloat16, torch.jit.ScriptModule.buffers,
+torch.jit.ScriptModule.children, torch.jit.ScriptModule.code
+torch.jit.ScriptModule.compile, torch.jit.ScriptModule.cpu
 """
 
 import torch
-import torch_npu
 from torch.testing._internal.common_utils import TestCase, run_tests
 import torch.nn as nn
 import torch.nn.functional as F
-
 
 class Model(nn.Module):
     def __init__(self) -> None:
@@ -103,6 +103,72 @@ class TestJitScriptModuleCode(TestCase):
         self.assertTrue(hasattr(model, 'code'))
         self.assertIn('forward', str(model.code))
 
+class TestJitScriptModuleCPU(TestCase):
+    def _check_model_device(self, model: torch.jit.ScriptModule, device_type: str):
+        """Check whether all parameters and buffers of the model are on the specified device."""
+        for param in model.parameters():
+            self.assertEqual(param.device.type, device_type)
+        for buf in model.buffers():
+            self.assertEqual(buf.device.type, device_type)
+
+    def _run_infer(self, model: torch.jit.ScriptModule, device):
+        x = torch.randn(2, 1, 32, 32).to(device)
+        out = model(x)
+        self.assertEqual(out.dim(), 4)
+
+    def test_script_module_cpu_from_npu(self):
+        # Skip test if NPU is not available
+        if not hasattr(torch, "npu") or not torch.npu.is_available():
+            self.skipTest("NPU device unavailable, skip this test case")
+
+        # Instantiate model and convert to ScriptModule
+        model = Model()
+        script_model = torch.jit.script(model)
+
+        # Move ScriptModule to NPU and verify device
+        script_model = script_model.npu()
+        self._check_model_device(script_model, "npu")
+
+        # Transfer model from NPU back to CPU via cpu() method
+        cpu_script_model = script_model.cpu()
+
+        # Assert model type, device and normal inference execution
+        self.assertIsInstance(cpu_script_model, torch.jit.ScriptModule)
+        self._check_model_device(cpu_script_model, "cpu")
+        self._run_infer(cpu_script_model, torch.device("cpu"))
+
+class TestJitScriptModuleCompile(TestCase):
+    def _check_model_device(self, model: torch.jit.ScriptModule, device_type: str):
+        """Check whether all parameters and buffers of the model are on the specified device."""
+        for param in model.parameters():
+            self.assertEqual(param.device.type, device_type)
+        for buf in model.buffers():
+            self.assertEqual(buf.device.type, device_type)
+
+    def _run_infer(self, model, device):
+        """Run model inference and verify output tensor shape validity."""
+        x = torch.randn(2, 1, 32, 32).to(device)
+        out = model(x)
+        self.assertEqual(out.dim(), 4)
+
+    def test_script_module_compile(self):
+        """Test compilation and inference using torch.compile with NPU backend."""
+        if not hasattr(torch, "npu") or not torch.npu.is_available():
+            self.skipTest("NPU device is unavailable, skip this test case")
+        torch.npu.config.allow_internal_format = False
+
+        # Initialize model and convert to ScriptModule
+        model = Model()
+        scripted_model = torch.jit.script(model).npu()
+
+        # Move model to NPU and check device placement
+        self._check_model_device(scripted_model, "npu")
+
+        # Compile model with NPU backend
+        compiled_model = torch.compile(scripted_model, backend="npugraph_ex", fullgraph=True, dynamic=False)
+
+        # run inference validation
+        self._run_infer(compiled_model, torch.device("npu"))
 
 if __name__ == "__main__":
     run_tests()
