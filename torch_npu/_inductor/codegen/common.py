@@ -19,7 +19,12 @@ def patch_cache_base_get_system():
     @staticmethod
     def get_system():
         try:
-            from triton.compiler.compiler import triton_key
+            try:
+                from triton.runtime.cache import triton_key  # type: ignore[attr-defined]
+            except ImportError:
+                from triton.compiler.compiler import (
+                    triton_key,  # type: ignore[attr-defined,no-redef]
+                )
 
             # Use triton_key instead of triton.__version__ as the version
             # is not updated with each code change
