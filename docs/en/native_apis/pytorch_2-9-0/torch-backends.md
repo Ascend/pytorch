@@ -32,7 +32,7 @@
 |[torch.backends.mps.is_built](https://pytorch.org/docs/2.9/backends.html#torch.backends.mps.is_built)|-|Yes|-|
 |[torch.backends.mkl.is_available](https://pytorch.org/docs/2.9/backends.html#torch.backends.mkl.is_available)|-|Yes|-|
 |[torch.backends.mkl.verbose](https://pytorch.org/docs/2.9/backends.html#torch.backends.mkl.verbose)|-|Yes|-|
-|[torch.backends.mkldnn.is_available](https://pytorch.org/docs/2.9/backends.html#torch.backends.mkldnn.is_available)|-|<term>Atlas Training Series</term>: Yes<br><term>Atlas A2 Training Series</term>: Yes<br><term>Atlas A3 Training Series</term>: No|-|
+|[torch.backends.mkldnn.is_available](https://pytorch.org/docs/2.9/backends.html#torch.backends.mkldnn.is_available)|-|Atlas Training Series: Yes<br>Atlas A2 Training Series: Yes<br>Atlas A3 Training Series: No|-|
 |[torch.backends.mkldnn.verbose](https://pytorch.org/docs/2.9/backends.html#torch.backends.mkldnn.verbose)|-|Yes|-|
 |[torch.backends.openmp.is_available](https://pytorch.org/docs/2.9/backends.html#torch.backends.openmp.is_available)|-|Yes|Supports fp32|
 |[torch.backends.opt_einsum.is_available](https://pytorch.org/docs/2.9/backends.html#torch.backends.opt_einsum.is_available)|-|Yes|Supports fp32|

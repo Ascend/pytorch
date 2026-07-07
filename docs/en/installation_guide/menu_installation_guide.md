@@ -1,7 +1,5 @@
 # Software Installation Guide
 
-<!-- md-trans-meta sourceCommit=unknown translatedAt=2026-06-15T03:38:11.904Z pushedAt=2026-06-15T07:27:21.207Z -->
-
 - [Installation Instructions](installation_description.md)
 - [Preparing for Installation](preparing_installation.md)
 - [Installing PyTorch](installing_PyTorch.md)

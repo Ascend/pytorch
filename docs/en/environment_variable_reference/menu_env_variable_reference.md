@@ -1,7 +1,5 @@
 # Environment Variable Reference
 
-<!-- md-trans-meta sourceCommit=unknown translatedAt=2026-06-15T12:04:24.961Z pushedAt=2026-06-16T03:14:22.248Z -->
-
 - [Environment Variable List](env_variable_list.md)
 
 - [Operator Execution](op_execution.md)

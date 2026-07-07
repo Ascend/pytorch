@@ -98,10 +98,10 @@
 |[torch.nn.modules.module.register_module_module_registration_hook](https://pytorch.org/docs/2.7/generated/torch.nn.modules.module.register_module_module_registration_hook.html)|No|-|
 |[torch.nn.modules.module.register_module_parameter_registration_hook](https://pytorch.org/docs/2.7/generated/torch.nn.modules.module.register_module_parameter_registration_hook.html)|No|-|
 |[torch.nn.Conv1d](https://pytorch.org/docs/2.7/generated/torch.nn.Conv1d.html)|Yes|Supports fp16, fp32|
-|[torch.nn.Conv2d](https://pytorch.org/docs/2.7/generated/torch.nn.Conv2d.html)|Yes|Supports bf16, fp16, fp32<br><term>Atlas A2 Training Series</term>, in default scenarios, if compilation is triggered frequently, it is recommended to manually set torch.npu.config.allow_internal_format to False to control input parameters not to enable internal format, avoiding online compilation|
+|[torch.nn.Conv2d](https://pytorch.org/docs/2.7/generated/torch.nn.Conv2d.html)|Yes|Supports bf16, fp16, fp32<br>Atlas A2 Training Series, in default scenarios, if compilation is triggered frequently, it is recommended to manually set torch.npu.config.allow_internal_format to False to control input parameters not to enable internal format, avoiding online compilation|
 |[torch.nn.Conv3d](https://pytorch.org/docs/2.7/generated/torch.nn.Conv3d.html)|Yes|Supports bf16, fp16, fp32|
 |[torch.nn.ConvTranspose1d](https://pytorch.org/docs/2.7/generated/torch.nn.ConvTranspose1d.html)|Yes|Supports fp32|
-|[torch.nn.ConvTranspose2d](https://pytorch.org/docs/2.7/generated/torch.nn.ConvTranspose2d.html)|Yes|Supports fp16, fp32<br><term>Atlas Training Series</term>/<term>Atlas A2 Training Series</term>, torch.npu.config.allow_internal_format must be manually set to False to support 3-dimensional input|
+|[torch.nn.ConvTranspose2d](https://pytorch.org/docs/2.7/generated/torch.nn.ConvTranspose2d.html)|Yes|Supports fp16, fp32<br>Atlas Training Series/Atlas A2 Training Series, torch.npu.config.allow_internal_format must be manually set to False to support 3-dimensional input|
 |[torch.nn.ConvTranspose3d](https://pytorch.org/docs/2.7/generated/torch.nn.ConvTranspose3d.html)|Yes|Supports bf16, fp16, fp32|
 |[torch.nn.LazyConv1d](https://pytorch.org/docs/2.7/generated/torch.nn.LazyConv1d.html)|Yes|Supports fp16, fp32|
 |[torch.nn.LazyConv1d.cls_to_become](https://pytorch.org/docs/2.7/generated/torch.nn.LazyConv1d.html#torch.nn.LazyConv1d.cls_to_become)|Yes|-|

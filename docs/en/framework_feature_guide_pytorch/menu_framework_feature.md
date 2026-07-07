@@ -1,7 +1,5 @@
 # Framework Feature Guide
 
-<!-- md-trans-meta sourceCommit=unknown translatedAt=2026-06-15T07:50:27.635Z pushedAt=2026-06-15T12:00:44.084Z -->
-
 -   [Overview](overview.md)
 -   [Memory Resource Optimization](./memory_resource_optimization.md)
     -   [Virtual Memory](./virtual_memory.md)

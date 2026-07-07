@@ -1,7 +1,5 @@
 # Supported Native APIs
 
-<!-- md-trans-meta sourceCommit=unknown translatedAt=2026-06-15T02:25:13.293Z pushedAt=2026-06-15T03:25:49.246Z -->
-
 - [PyTorch 2.10.0 version](./pytorch_2-10-0/PyTorch-2-10-0.md)
   - [overview](./pytorch_2-10-0/overview.md)
   - [torch](./pytorch_2-10-0/torch.md)

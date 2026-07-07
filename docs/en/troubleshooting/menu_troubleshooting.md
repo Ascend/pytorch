@@ -1,7 +1,5 @@
 # Troubleshooting
 
-<!-- md-trans-meta sourceCommit=unknown translatedAt=2026-06-12T08:23:50.246Z pushedAt=2026-06-12T11:22:41.046Z -->
-
 - [Troubleshooting Process](troubleshooting_process.md)
 - [Error Codes](error_codes_introduction.md)
   - [Usage Instructions](usage_instruction.md)
