@@ -93,6 +93,13 @@ jobs:
             cd "${TEST_SRC_DIR}"
             echo "Working directory: $(pwd)"
 
+            # Bind to single NPU device (matching original run behavior
+            # where each worker subprocess was pinned to one device).
+            # This prevents the process from spanning multiple devices
+            # and isolates the per-process memory space.
+            export ASCEND_RT_VISIBLE_DEVICES=0
+            echo "NPU device binding: ASCEND_RT_VISIBLE_DEVICES=0"
+
             # Build pytest nodeid args (strip test/ prefix from each)
             IFS=',' read -ra NODEIDS <<< "${RAW_NODEIDS}"
             PARSED_NODEIDS=()
@@ -163,6 +170,11 @@ jobs:
             TEST_SRC_DIR="pytorch-test-src/test"
             cd "${TEST_SRC_DIR}"
             echo "Working directory: $(pwd)"
+
+            # Bind to single NPU device (matching original run_npu_test_shard.py
+            # behavior where each worker round-robins to one device).
+            export ASCEND_RT_VISIBLE_DEVICES=0
+            echo "NPU device binding: ASCEND_RT_VISIBLE_DEVICES=0"
 
             IFS=',' read -ra NODEIDS <<< "${TEST_FILES}"
             TOTAL_CASES=${#NODEIDS[@]}
