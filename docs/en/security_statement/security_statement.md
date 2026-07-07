@@ -8,10 +8,10 @@ The security hardening measures outlined in this document are basic recommendati
 
 |Component|Address|
 |:---|:---|
-|Ascend Extension for PyTorch|For the v2.7.1 branch, see the [Security Statement](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.0.0/docs/zh/SECURITYNOTE.md).|
+|Ascend Extension for PyTorch|For the v2.7.1 branch, see the [Security Statement](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.0.0/docs/en/SECURITYNOTE.md).|
 |Ascend Extension for PyTorch|For the v2.8.0 branch, see the [Security Statement](https://gitcode.com/Ascend/pytorch/blob/v2.8.0-26.0.0/SECURITYNOTE.md).|
 |Ascend Extension for PyTorch|For the v2.9.0 branch, see the [Security Statement](https://gitcode.com/Ascend/pytorch/blob/v2.9.0-26.0.0/SECURITYNOTE.md).|
 |Ascend Extension for PyTorch|For the v2.10.0 branch, see the [Security Statement](https://gitcode.com/Ascend/pytorch/blob/v2.10.0-26.0.0/SECURITYNOTE.md).|
-|OpPlugin|See the [Security Statement](https://gitcode.com/Ascend/op-plugin/blob/26.0.0/docs/zh/SECURITYNOTE.md).|
+|OpPlugin|See the [Security Statement](https://gitcode.com/Ascend/op-plugin/blob/26.0.0/docs/en/SECURITYNOTE.md).|
 |TorchAir|See the [Security Statement](https://gitcode.com/Ascend/torchair/blob/26.0.0/SECURITY_README.md).|
 |Ascend Extension for TensorPipe|See the [Security Statement](https://gitcode.com/Ascend/Tensorpipe/blob/master/docs/zh/SECURITYNOTE.md).|

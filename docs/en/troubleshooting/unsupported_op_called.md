@@ -23,4 +23,4 @@ An operator that is not yet supported on the NPU is called.
 
 ## Solution
 
-If only a warning is triggered without an error, you can ignore it if performance improvement is not a concern. Otherwise, use other replaceable and supported interfaces of torch. For details, see [Ascend Extension for PyTorch Custom API Reference](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/overview.md) or [Supported PyTorch Native APIs](../native_apis/pytorch_2-10-0/overview.md).
+If only a warning is triggered without an error, you can ignore it if performance improvement is not a concern. Otherwise, use other replaceable and supported interfaces of torch. For details, see [Ascend Extension for PyTorch Custom API Reference](https://gitcode.com/Ascend/op-plugin/blob/26.0.0/docs/en/custom_APIs/overview.md) or [Supported PyTorch Native APIs](../native_apis/pytorch_2-10-0/overview.md).

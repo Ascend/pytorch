@@ -33,7 +33,7 @@ Controls whether to enable multi-stream memory reuse through the environment var
 
 The default value is 1.
 
-For details on using this environment variable, refer to the [MULTI\_STREAM\_MEMORY\_REUSE](https://www.hiascend.com/document/detail/zh/Pytorch/720/comref/Envvariables/Envir_016.html) section in the *Environment Variable Reference*.
+For details on using this environment variable, refer to the [MULTI\_STREAM\_MEMORY\_REUSE](../environment_variable_reference/MULTI_STREAM_MEMORY_REUSE.md) section in the *Environment Variable Reference*.
 
 ## Usage Example
 

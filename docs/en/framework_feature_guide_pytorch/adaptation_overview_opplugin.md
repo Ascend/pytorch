@@ -31,4 +31,4 @@ Operator adaptation is not merely a technical modification; it is a critical mea
 ## How to Perform Operator Adaptation
 
 - For detailed operations on single-operator adaptation, refer to the subsequent chapters.
-- For graph-mode operator development, refer to the [Custom Operator Graph Capture](https://www.hiascend.com/document/detail/zh/Pytorch/730/modthirdparty/torchairuseguide/torchair_00055.html) section in the *PyTorch Graph Mode Usage Guide (TorchAir)*.
+- For graph-mode operator development, refer to the [Custom Operator Graph Capture](https://gitcode.com/Ascend/torchair/blob/26.0.0/docs/zh/overview.md) section in the *PyTorch Graph Mode Usage Guide (TorchAir)*.

@@ -25,7 +25,7 @@ Parameter description:
 - `alloc_fn_name`: (str) Memory allocation function name (must match the function name in the C/C++ file).
 - `free_fn_name`: (str) Name of the memory deallocation function (must match the function name in the C/C++ file).
 
-For details about this interface, refer to the [torch_npu.npu.NPUPluggableAllocator](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-npu/torch-npu-npu-NPUPluggableAllocator.md) section in the *Ascend Extension for PyTorch Custom API Reference*.
+For details about this interface, refer to the [torch_npu.npu.NPUPluggableAllocator](https://gitcode.com/Ascend/op-plugin/blob/26.0.0/docs/en/custom_APIs/torch_npu-npu/torch-npu-npu-NPUPluggableAllocator.md) section in the *Ascend Extension for PyTorch Custom API Reference*.
 
 ## Usage Example
 

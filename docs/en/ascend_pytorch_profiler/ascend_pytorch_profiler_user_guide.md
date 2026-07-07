@@ -329,11 +329,11 @@ The usage process is as follows:
 
 1. Add the Ascend PyTorch Profiler interface to the PyTorch script, and enable the custom marking function through the `mstx` parameter of [experimental_config](#experimental_config-parameter-description).
 2. (Optional) Set the profiler_level switch to Level_none (you can configure the corresponding level based on actual collection needs) and use the domain filtering attributes mstx_domain_include or mstx_domain_exclude to collect marking data.
-3. In the PyTorch script, call the [torch_npu.npu.mstx](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-npu/torch_npu-npu_list.md#table17382716193111) series APIs for the events you want to profile, to profile the duration of the corresponding events.
+3. In the PyTorch script, call the [torch_npu.npu.mstx](https://gitcode.com/Ascend/op-plugin/blob/26.0.0/docs/en/custom_APIs/torch_npu-npu/torch_npu-npu_list.md#table17382716193111) series APIs for the events you want to profile, to profile the duration of the corresponding events.
 
 #### Precautions
 
-If the user's code only involves pure CPU-side operations, there is no need to pass the stream parameter when calling the [torch_npu.npu.mstx](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-npu/torch_npu-npu_list.md#table17382716193111) series APIs. If the user's code includes device operations and it is necessary to observe the duration on the device side, the stream parameter must be passed.
+If the user's code only involves pure CPU-side operations, there is no need to pass the stream parameter when calling the [torch_npu.npu.mstx](https://gitcode.com/Ascend/op-plugin/blob/26.0.0/docs/en/custom_APIs/torch_npu-npu/torch_npu-npu_list.md#table17382716193111) series APIs. If the user's code includes device operations and it is necessary to observe the duration on the device side, the stream parameter must be passed.
 
 #### Usage Example
 
@@ -1424,7 +1424,7 @@ This file is a table structure file. It is recommended to use the MindStudio Ins
 | with_modules | Optional | Records Python call stacks at the modules level, i.e., call information at the framework layer, Bool type. Values: <br/>&#8226; True: Enable. <br/>&#8226; False: Disable. <br/>Disabled by default. <br/>Takes effect when torch_npu.profiler.ProfilerActivity.CPU is enabled. <br/>Enabling this configuration introduces additional performance inflation. |
 | with_flops | Optional | Records operator floating-point operations (this parameter does not currently support parsing performance data). Values: <br/>&#8226; True: Enable. <br/>&#8226; False: Disable. <br/>Disabled by default. <br/>Takes effect when torch_npu.profiler.ProfilerActivity.CPU is enabled. |
 | experimental_config | Optional | Extended parameter, used to configure common collection items for performance analysis tools. For supported collection items and detailed descriptions, see [experimental_config Parameter Description](#experimental_config-parameter-description). |
-| custom_trace_id_callback | Optional | Generates a trace_id to identify each Profiler data file. <br>For a usage example, see [torch_npu.profiler.profile](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-profiler/torch_npu-profiler-profile.md) <br>The trace_id is output in the profiler\_metadata.json file. |
+| custom_trace_id_callback | Optional | Generates a trace_id to identify each Profiler data file. <br>For a usage example, see [torch_npu.profiler.profile](https://gitcode.com/Ascend/op-plugin/blob/26.0.0/docs/en/custom_APIs/torch_npu-profiler/torch_npu-profiler-profile.md) <br>The trace_id is output in the profiler\_metadata.json file. |
 
 **Table 2** Description of `torch_npu.profiler.profile` and `torch_npu.profiler._KinetoProfile` methods
 

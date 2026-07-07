@@ -25,7 +25,7 @@ Since PyTorch 2.1 uses the official torchgen for code generation, certain offici
 
 ## Common API Interfaces for Operator Adaptation
 
-For the basic interfaces of torch_npu operator operations, see the [OpPreparation](https://gitcode.com/Ascend/pytorch/blob/v2.7.1/torch_npu/csrc/framework/utils/OpPreparation.h). Common interfaces are as follows:
+For the basic interfaces of torch_npu operator operations, see the [OpPreparation](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.0.0/torch_npu/csrc/framework/utils/OpPreparation.h). Common interfaces are as follows:
 
 - **`at_npu::native::OpPreparation::apply_tensor`**  
   - Function: Creates an output tensor with the same attributes (device, data type, format) as the input tensor, suitable for output initialization of most operators.  
@@ -71,7 +71,7 @@ For the basic interfaces of torch_npu operator operations, see the [OpPreparatio
 
 ## Common Macro Definitions for Operator Adaptation
 
-For operator adaptation macro definition APIs, refer to the [operator APIs](https://gitcode.com/Ascend/op-plugin/blob/master/op_plugin/utils/op_api_common.h). Common macro definitions are as follows:
+For operator adaptation macro definition APIs, refer to the [operator APIs](https://gitcode.com/Ascend/op-plugin/blob/26.0.0/op_plugin/utils/op_api_common.h). Common macro definitions are as follows:
 
 - **`DO_COMPATIBILITY`**  
   - Function: Used for operator compatibility handling. When the native NPU operator is unavailable, it automatically degrades to an alternative implementation (such as the CPU version), ensuring functional compatibility across different environments.  

@@ -24,7 +24,7 @@ export TORCH_NPU_USE_COMPATIBLE_IMPL=1
 
 - Currently, only `torch.nn.functional.gelu`, `torch.matmul`, `torch.nn.functional.max_pool1d`, and `torch.nn.functional.max_pool2d` are supported.
 
-- Configuring `TORCH_NPU_USE_COMPATIBLE_IMPL` affects [torch_npu.npu.use_compatible_impl(is_enable)](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-npu/torch_npu-npu-use_compatible_impl.md)
+- Configuring `TORCH_NPU_USE_COMPATIBLE_IMPL` affects [torch_npu.npu.use_compatible_impl(is_enable)](https://gitcode.com/Ascend/op-plugin/blob/26.0.0/docs/en/custom_APIs/torch_npu-npu/torch_npu-npu-use_compatible_impl.md)
 
 status. Setting `TORCH_NPU_USE_COMPATIBLE_IMPL=1` automatically configures `torch_npu.npu.use_compatible_impl(True)`.
 
