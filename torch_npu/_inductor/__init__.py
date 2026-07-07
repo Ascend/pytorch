@@ -1,5 +1,5 @@
 import os
-
+from torch_npu.utils._dynamo import _dynamo_register_interface_for_device, patch_SkipFunctionVariable, patch_TensorVariable_call_method
 # All backends need npu/cpu/mps device_op_overrides.
 from .codegen.common import register_device_op_overrides_npu, patch_cache_base_get_system
 from .graph import patch_codegen_with_cpp_wrapper
@@ -8,6 +8,7 @@ from .cpp_builder import patch_get_optimization_cflags
 from ._npu_meta_registration import npu_patch_meta
 
 npu_patch_meta()
+_dynamo_register_interface_for_device()
 register_device_op_overrides_npu()
 patch_has_triton()
 patch_is_gpu()
