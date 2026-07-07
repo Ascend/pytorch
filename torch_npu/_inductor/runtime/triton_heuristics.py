@@ -1188,6 +1188,8 @@ class NPUCachingAutotuner(CachingAutotuner):
         }
 
         options = self.parse_triton_ascend_options(cfg_kwargs, options)
+        if self.inductor_meta.get("enable_auto_blockify", False):
+            options["enable_auto_blockify"] = True
         # pure simt stack overflow check
         if compile_meta['compile_mode'] == NPUKernelType.SIMT_ONLY.compile_mode():
             options['simt_stack_limit'] = npu_config.simt_default_warp_stacksize
