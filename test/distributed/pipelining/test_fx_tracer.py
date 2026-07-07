@@ -7,7 +7,6 @@ from functools import wraps
 
 import torch
 import torch.distributed as dist
-import torch_npu
 from torch.distributed.pipelining import Schedule1F1B, SplitPoint
 from torch_npu.distributed.pipelining import pipeline
 from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
@@ -59,6 +58,28 @@ class TinyTransformer(torch.nn.Module):
         return self.output(self.norm(x))
 
 
+class NoneMaskBlock(torch.nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.linear = torch.nn.Linear(d_hid, d_hid)
+
+    def forward(self, x, mask=None):
+        assert mask is None
+        return self.linear(x)
+
+
+class NoneInputPipelineModel(torch.nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.block0 = NoneMaskBlock()
+        self.block1 = NoneMaskBlock()
+        self.split_spec = {"block1": SplitPoint.BEGINNING}
+
+    def forward(self, x, mask=None):
+        x = self.block0(x, mask)
+        return self.block1(x, mask)
+
+
 class FXTracerPublicApiTest(TestCase):
     def test_public_pipeline_is_patched(self):
         import torch.distributed.pipelining as pipelining
@@ -69,7 +90,6 @@ class FXTracerPublicApiTest(TestCase):
         self.assertIn("mode", signature.parameters)
         self.assertIn("atomic_units", signature.parameters)
         self.assertEqual(pipeline.__module__, "torch_npu.distributed.pipelining")
-
 
 class FXTracerScheduleTest(TestCase):
     MAIN_PROCESS_RANK = -1
@@ -183,6 +203,23 @@ class FXTracerScheduleTest(TestCase):
         stage = pipe.build_stage(self.rank, self.device)
         return model, pipe, stage, x
 
+    def _build_none_input_pipe_and_stage(self):
+        self._seed_all(2028)
+        self._set_device()
+        model = NoneInputPipelineModel().to(self.device)
+        x = torch.randn(batch_size, d_hid, device=self.device)
+        x_mb = x.chunk(chunks)[0]
+
+        pipe = pipeline(
+            module=model,
+            mb_args=(x_mb, None),
+            split_spec=model.split_spec,
+            mode="fx",
+            atomic_units=["block0", "block1"],
+        )
+        stage = pipe.build_stage(self.rank, self.device)
+        return pipe, stage, x
+
     def _schedule_step(self, schedule, *args, **kwargs):
         original_fork_rng = torch.random.fork_rng
 
@@ -265,6 +302,35 @@ class FXTracerScheduleTest(TestCase):
                 )
 
         self.assertLessEqual(fx_elapsed, export_elapsed * 1.2)
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_fx_schedule_accepts_none_input(self):
+        self.dist_init()
+        pipe, stage, x = self._build_none_input_pipe_and_stage()
+        self.assertEqual(pipe.num_stages, self.world_size)
+
+        for node in pipe.split_gm.graph.nodes:
+            if node.op != "call_module":
+                continue
+            stage_module = pipe.split_gm.get_submodule(node.target)
+            placeholders = [
+                stage_node
+                for stage_node in stage_module.graph.nodes
+                if stage_node.op == "placeholder"
+            ]
+            self.assertEqual(len(node.args), len(placeholders))
+            self.assertTrue(
+                all(
+                    placeholder.meta.get("val", "__missing__") is not None
+                    for placeholder in placeholders
+                )
+            )
+
+        loss_fn = torch.nn.MSELoss(reduction="sum")
+        schedule = Schedule1F1B(stage, chunks, loss_fn=loss_fn, scale_grads=False)
+        target = torch.randn(batch_size, d_hid, device=self.device)
+        losses = []
+        self._schedule_step(schedule, x, target=target, losses=losses)
 
     @skipIfUnsupportMultiNPU(2)
     def test_fx_tracer_builds_pipe_and_stage(self):
