@@ -1188,7 +1188,9 @@ bool IsCaptureSupported()
 {
     static bool is_support = false;
     static bool have_load_func = false;
-    static bool default_support_capture = ((GetSocVersion() >= SocVersion::Ascend910B1) &&
+    static bool default_support_capture = ((GetSocVersion() >= SocVersion::Ascend310P1) &&
+        (GetSocVersion() <= SocVersion::Ascend310P7)) ||
+        ((GetSocVersion() >= SocVersion::Ascend910B1) &&
         (GetSocVersion() < SocVersion::Ascend310B1)) ||
         ((GetSocVersion() >= SocVersion::Ascend910_9391));
     if (default_support_capture && !have_load_func) {
