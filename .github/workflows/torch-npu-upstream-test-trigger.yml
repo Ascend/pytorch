@@ -45,4 +45,4 @@ jobs:
     with:
       distributed_shards: '5'
       regular_shards: '5'
-      test_files: 'SAME_PROCESS:test/functorch/test_ops.py'
+      test_files: ${{ needs.detect.outputs.test_files || '' }}

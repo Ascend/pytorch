@@ -47,7 +47,7 @@ jobs:
           prepared_test_src_artifact: ${{ inputs.prepared_test_src_artifact }}
           patch_log_suffix: custom
 
-      - name: Run custom test files (serial, per-case process isolation)
+      - name: Run custom test files
         id: run_tests
         env:
           CI: ''
@@ -242,9 +242,8 @@ jobs:
           else
             # ================================================================
             # File path mode: use run_npu_test_shard.py for auto case discovery
-            #   --max-workers 1: only one worker at a time (serial)
-            #   --max-cases-per-batch 10000: all cases in one pytest process
-            #   (simulates direct "pytest test_ops.py" execution)
+            # Parallel execution matching regular workflow: 16 concurrent
+            # workers (one per NPU device), 100 same-file cases per batch.
             # ================================================================
             echo "=== File path mode: using run_npu_test_shard.py ==="
             python${{ inputs.python_version }} ascend_pytorch/.github/scripts/run_npu_test_shard.py \
@@ -253,8 +252,7 @@ jobs:
               --disabled-testcases pytorch-test-src/test_upstream/disabled_testcases.json \
               --report-dir ${REPORT_DIR} \
               --timeout 1200 \
-              --max-workers 1 \
-              --max-cases-per-batch 10000 \
+              --max-workers 16 \
               --verbose \
               2>&1 | tee /tmp/test_custom.log
 
