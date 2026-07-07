@@ -760,6 +760,38 @@ def _build_batch_input_json(
     }
 
 
+def _is_fatal_npu_error(message: str) -> bool:
+    """
+    Detect fatal NPU device errors that corrupt device state.
+
+    When these errors occur in a worker subprocess, the NPU device enters
+    an unrecoverable state. All subsequent cases in the same process will
+    likely fail with garbage/corrupted data. The worker must be killed and
+    restarted to get a clean device context.
+
+    Patterns detected:
+        - EZ9999 / EE9999: device internal unrecoverable errors
+        - EZ1009: vector core execution exception
+        - ERR00100: PTA acl api error
+        - vector core exception: AiCore hardware fault
+        - rtDeviceSynchronizeWithTimeout: stream sync failure
+            due to device error
+    """
+    if not message:
+        return False
+    fatal_patterns = [
+        "EZ9999",
+        "EE9999",
+        "EZ1009",
+        "ERR00100",
+        "vector core exception",
+        "rtDeviceSynchronizeWithTimeout execution failed",
+        "device error",
+        "Kernel Run failed",
+    ]
+    return any(p in message for p in fatal_patterns)
+
+
 def _execute_worker_batch(
     batch: List[CaseExecutionTask],
     batch_id: int,
@@ -836,6 +868,13 @@ def _execute_worker_batch(
             unexpected_count = 0
             unexpected_lock = threading.Lock()
 
+            # Fatal device error tracking: when a case hits EZ9999/EE9999
+            # or vector core exception, the NPU device is poisoned and all
+            # subsequent cases in this worker will fail. We must kill the
+            # worker and restart to get a clean device context.
+            fatal_device_error = [False]  # mutable list for closure access
+            fatal_case_nodeid = [None]
+
             def _read_stdout():
                 nonlocal last_output_time, unexpected_count
                 if proc.stdout:
@@ -878,13 +917,14 @@ def _execute_worker_batch(
                         nodeid = case_result.get("nodeid", "")
                         status = case_result.get("status", "error")
                         duration = case_result.get("duration", 0.0)
+                        message = case_result.get("message", "")
 
                         full_result = {
                             "nodeid": nodeid,
                             "status": status,
                             "duration": duration,
                             "returncode": int(case_result.get("returncode", 1)),
-                            "message": case_result.get("message", ""),
+                            "message": message,
                             "command": case_result.get("command", ""),
                             "file": case_result.get("file", ""),
                             "case_idx": int(case_result.get("case_idx", 0)),
@@ -898,9 +938,20 @@ def _execute_worker_batch(
                             "nodeid": nodeid,
                             "status": status,
                             "duration": duration,
-                            "message": case_result.get("message", "")[:200],
+                            "message": message[:200],
                         })
                         attempt_completed.add(nodeid)
+
+                        # Check for fatal NPU device errors that poison
+                        # the device context for subsequent cases.
+                        if _is_fatal_npu_error(message):
+                            fatal_device_error[0] = True
+                            fatal_case_nodeid[0] = nodeid
+                            print(
+                                f"  [Batch {batch_id}] FATAL NPU DEVICE ERROR"
+                                f" detected in {nodeid}",
+                                flush=True,
+                            )
 
             reader_thread = threading.Thread(target=_read_stdout, daemon=True)
             reader_thread.start()
@@ -920,6 +971,26 @@ def _execute_worker_batch(
                     print(
                         f"  [Batch {batch_id}] Idle timeout ({hung_duration:.0f}s "
                         f"without output), killing worker...",
+                        flush=True,
+                    )
+                    proc.kill()
+                    try:
+                        returncode = proc.wait(timeout=30)
+                    except subprocess.TimeoutExpired:
+                        returncode = -9
+                    reader_thread.join(timeout=10)
+                    break
+
+                # Fatal NPU device error (EZ9999/EE9999/vector core exception):
+                # the device context is poisoned — kill worker immediately.
+                # Same logic as coredump: first unreported case gets error,
+                # remaining cases restart with a fresh worker/device.
+                if fatal_device_error[0]:
+                    print(
+                        f"  [Batch {batch_id}] FATAL NPU device error"
+                        f" from {fatal_case_nodeid[0]} — killing worker"
+                        f" and restarting with clean device context"
+                        f" for remaining cases",
                         flush=True,
                     )
                     proc.kill()
@@ -964,6 +1035,48 @@ def _execute_worker_batch(
                     print(
                         f"  [Batch {batch_id}] Continuing with "
                         f"{len(remaining_cases)} remaining cases...",
+                        flush=True,
+                    )
+                continue
+
+            # Handle fatal NPU device error (EZ9999/EE9999/vector core exception).
+            # Worker was killed because device context is poisoned. The first
+            # unreported case was likely executing when the error occurred —
+            # mark it as device error. Remaining cases restart in a new worker
+            # with a clean device context.
+            if fatal_device_error[0]:
+                if not_reported:
+                    poisoned_case = not_reported[0]
+                    fatal_result = {
+                        "nodeid": poisoned_case.nodeid,
+                        "status": "error",
+                        "duration": 0.0,
+                        "returncode": -1,
+                        "message": (
+                            f"Worker killed: fatal NPU device error"
+                            f" (EZ9999/EE9999) detected in preceding"
+                            f" case {fatal_case_nodeid[0]}."
+                            f" Device context poisoned — restarting"
+                            f" worker for remaining cases."
+                        ),
+                        "command": "",
+                        "file": poisoned_case.test_file,
+                        "case_idx": poisoned_case.case_idx,
+                    }
+                    result_aggregator.add_case_result(fatal_result)
+                    progress_tracker.mark_completed(
+                        poisoned_case.nodeid, "error", 0.0
+                    )
+                    completed_nodeids.add(poisoned_case.nodeid)
+                    remaining_cases = not_reported[1:]
+                else:
+                    remaining_cases = []
+
+                if remaining_cases:
+                    print(
+                        f"  [Batch {batch_id}] Fatal NPU error handled —"
+                        f" restarting with {len(remaining_cases)} remaining"
+                        f" cases in new worker (clean device)",
                         flush=True,
                     )
                 continue
