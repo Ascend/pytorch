@@ -6,19 +6,31 @@ from .graph import patch_codegen_with_cpp_wrapper
 from .utils import patch_has_triton, patch_device_supports_tma, patch_is_gpu, get_current_raw_stream
 from ._npu_meta_registration import npu_patch_meta
 
+# 顶层 patch：所有 inductor backend（triton / mlir / dvm / ascendc）都需要的 NPU 设备级patch，
+# 与 codegen 后端选择无关，在任何 backend loader 之前无条件执行
 npu_patch_meta()
 _dynamo_register_interface_for_device()
 register_device_op_overrides_npu()
-patch_has_triton()
-patch_is_gpu()
-patch_device_supports_tma()
-patch_codegen_with_cpp_wrapper()
-patch_cache_base_get_system()
+
+
+def _apply_common_patches():
+    # triton / mlir 后端共用的 patch
+    patch_has_triton()
+    patch_is_gpu()
+    patch_device_supports_tma()
+    patch_codegen_with_cpp_wrapper()
+    patch_cache_base_get_system()
+
 
 def _get_backend() -> str:
     return os.getenv("TORCHINDUCTOR_NPU_BACKEND", "default")
 
+
+def _load_ascendc_backend():
+    from . import ascendc
+
 def _load_mlir_backend():
+    _apply_common_patches()
     import torch
     try:
         import torch_mlir
@@ -36,6 +48,7 @@ def _load_mlir_backend():
 
 
 def _load_dvm_backend():
+    _apply_common_patches()
     import torch
     from .ascend_npu_ir.ascend_npu_ir.npu import npu_inductor_plugin
     from .lowering_patch import apply_mlir_inductor_patch
@@ -48,6 +61,7 @@ def _load_dvm_backend():
 
 
 def _load_triton_backend():
+    _apply_common_patches()
     import os
     import torch
     has_triton = torch.utils._triton.has_triton()
@@ -170,6 +184,7 @@ def _load_triton_backend():
 _BACKEND_LOADERS = {
     "mlir": _load_mlir_backend,
     "dvm": _load_dvm_backend,
+    "ascendc": _load_ascendc_backend,
     "default": _load_triton_backend,
 }
 
