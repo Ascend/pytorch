@@ -103,6 +103,7 @@ public:
     bool has_multicast_support(int device_idx) override;
 
 private:
+    std::mutex mutex_;
     std::unordered_map<void*, std::shared_ptr<NPUSHMEMAllocation>> allocations_;
     std::map<std::tuple<void*, std::string>, c10::intrusive_ptr<SymmetricMemory>>
         symm_mems_;

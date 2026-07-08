@@ -253,13 +253,15 @@ int ParallelTcpServer::CreateSocketWithFamily(const std::string host, uint16_t p
         return -1;
     }
 
+    int sockFd = -1;
     for (::addrinfo* addr = result; addr != nullptr; addr = addr->ai_next) {
-        int sockFd = CreateSocketAndListen(*addr);
+        sockFd = CreateSocketAndListen(*addr);
         if (sockFd >= 0) {
-            return sockFd;
+            break;
         }
     }
-    return -1;
+    ::freeaddrinfo(result);
+    return sockFd;
 }
 
 int ParallelTcpServer::CreateSocketAndListen(const ::addrinfo &addr) noexcept
