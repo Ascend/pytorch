@@ -5,10 +5,10 @@
 
 |API名称|是否支持|限制与说明|
 |--|--|--|
-|[torch.linalg.cholesky](https://pytorch.org/docs/2.9/generated/torch.linalg.cholesky.html)|是|支持fp32|
-|[torch.linalg.norm](https://pytorch.org/docs/2.9/generated/torch.linalg.norm.html)|是|支持bf16，fp16，fp32|
-|[torch.linalg.lstsq](https://pytorch.org/docs/2.9/generated/torch.linalg.lstsq.html)|是|可能回退至CPU执行|
-|[torch.linalg.matmul](https://pytorch.org/docs/2.9/generated/torch.linalg.matmul.html)|是|支持fp16，fp32<br>输入最大支持6维|
-|[torch.linalg.ldl_factor](https://pytorch.org/docs/2.9/generated/torch.linalg.ldl_factor.html)|否|-|
-|[torch.linalg.qr](https://pytorch.org/docs/2.9/generated/torch.linalg.qr.html)|是|支持fp32，fp64，complex64，complex128|
-|[torch.linalg.solve_triangular](https://pytorch.org/docs/2.9/generated/torch.linalg.solve_triangular.html)|是|支持fp32，fp64，complex64，complex128|
+|torch.linalg.cholesky|是|支持fp32|
+|torch.linalg.norm|是|支持bf16，fp16，fp32|
+|torch.linalg.lstsq|是|可能回退至CPU执行|
+|torch.linalg.matmul|是|支持fp16，fp32<br>输入最大支持6维|
+|torch.linalg.ldl_factor|否|-|
+|torch.linalg.qr|是|支持fp32，fp64，complex64，complex128|
+|torch.linalg.solve_triangular|是|支持fp32，fp64，complex64，complex128|

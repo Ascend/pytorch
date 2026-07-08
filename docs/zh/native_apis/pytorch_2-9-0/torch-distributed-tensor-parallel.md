@@ -5,9 +5,9 @@
 
 |API名称|是否支持|限制与说明|
 |--|--|--|
-|[torch.distributed.tensor.parallel.parallelize_module](https://pytorch.org/docs/2.9/distributed.tensor.parallel.html#torch.distributed.tensor.parallel.parallelize_module)|否|-|
-|[torch.distributed.tensor.parallel.ColwiseParallel](https://pytorch.org/docs/2.9/distributed.tensor.parallel.html#torch.distributed.tensor.parallel.ColwiseParallel)|是|支持bf16，fp16，fp32|
-|[torch.distributed.tensor.parallel.RowwiseParallel](https://pytorch.org/docs/2.9/distributed.tensor.parallel.html#torch.distributed.tensor.parallel.RowwiseParallel)|否|-|
-|[torch.distributed.tensor.parallel.PrepareModuleInput](https://pytorch.org/docs/2.9/distributed.tensor.parallel.html#torch.distributed.tensor.parallel.PrepareModuleInput)|否|-|
-|[torch.distributed.tensor.parallel.PrepareModuleOutput](https://pytorch.org/docs/2.9/distributed.tensor.parallel.html#torch.distributed.tensor.parallel.PrepareModuleOutput)|是|-|
-|[torch.distributed.tensor.parallel.loss_parallel](https://pytorch.org/docs/2.9/distributed.tensor.parallel.html#torch.distributed.tensor.parallel.loss_parallel)|是|支持bf16，fp16，fp32，int64|
+|torch.distributed.tensor.parallel.parallelize_module|否|-|
+|torch.distributed.tensor.parallel.ColwiseParallel|是|支持bf16，fp16，fp32|
+|torch.distributed.tensor.parallel.RowwiseParallel|否|-|
+|torch.distributed.tensor.parallel.PrepareModuleInput|否|-|
+|torch.distributed.tensor.parallel.PrepareModuleOutput|是|-|
+|torch.distributed.tensor.parallel.loss_parallel|是|支持bf16，fp16，fp32，int64|

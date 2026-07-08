@@ -5,4 +5,4 @@
 
 |API名称|是否支持|限制与说明|
 |--|--|--|
-|[torch.utils.mobile_optimizer.optimize_for_mobile](https://pytorch.org/docs/2.7/mobile_optimizer.html#torch.utils.mobile_optimizer.optimize_for_mobile)|否|-|
+|torch.utils.mobile_optimizer.optimize_for_mobile|否|-|
