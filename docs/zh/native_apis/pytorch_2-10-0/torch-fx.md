@@ -122,6 +122,11 @@
 |[torch.fx.experimental.symbolic_shapes.constrain_unify](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.constrain_unify.html)|是|需通过torch.compile获取SymInt|
 |[torch.fx.experimental.symbolic_shapes.ConvertIntKey](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.ConvertIntKey.html)|是|-|
 |[torch.fx.experimental.symbolic_shapes.ConvertIntKey.get](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.ConvertIntKey.html#torch.fx.experimental.symbolic_shapes.ConvertIntKey.get)|是|-|
+|[torch.fx.experimental.symbolic_shapes.DimConstraints.forced_specializations](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.DimConstraints.html#torch.fx.experimental.symbolic_shapes.DimConstraints.forced_specializations)|是|-|
+|[torch.fx.experimental.symbolic_shapes.DimConstraints.prettify_results](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.DimConstraints.html#torch.fx.experimental.symbolic_shapes.DimConstraints.prettify_results)|是|-|
+|[torch.fx.experimental.symbolic_shapes.DimConstraints.rewrite_with_congruences](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.DimConstraints.html#torch.fx.experimental.symbolic_shapes.DimConstraints.rewrite_with_congruences)|是|-|
+|[torch.fx.experimental.symbolic_shapes.DimConstraints.solve](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.DimConstraints.html#torch.fx.experimental.symbolic_shapes.DimConstraints.solve)|是|-|
+|[torch.fx.experimental.symbolic_shapes.DimDynamic](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.DimDynamic.html)|是|-|
 |[torch.fx.experimental.symbolic_shapes.CallMethodKey](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.CallMethodKey.html)|是|-|
 |[torch.fx.experimental.symbolic_shapes.CallMethodKey.get](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.CallMethodKey.html#torch.fx.experimental.symbolic_shapes.CallMethodKey.get)|是|-|
 |[torch.fx.experimental.symbolic_shapes.canonicalize_bool_expr](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.canonicalize_bool_expr.html)|是|-|
