@@ -5,10 +5,6 @@ import sys
 from typing import Any, Optional, TYPE_CHECKING
 import importlib
 import functools
-
-if TYPE_CHECKING:
-    from torch._dynamo.symbolic_convert import InstructionTranslator
-
 import torch
 import torch_npu
 from torch import _TorchCompileWrapper
@@ -266,6 +262,8 @@ def patch_npu_stream_context():
     from torch._dynamo.variables.base import VariableTracker
     from torch._dynamo.variables.streams import StreamContextVariable, StreamVariable
     from torch._dynamo.variables.torch import TorchInGraphFunctionVariable
+    if TYPE_CHECKING:
+        from torch._dynamo.symbolic_convert import InstructionTranslator
 
     class NpuStreamContextVariable(StreamContextVariable):
         """This represents NPU stream context with FX graph set_stream node creation."""
