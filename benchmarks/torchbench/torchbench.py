@@ -45,9 +45,15 @@ from torch._dynamo.utils import clone_inputs
 
 
 try:
+    import torch_npu
     from npu_support import _patch_environment_variables
 except ImportError:
     pass
+try:
+    from torch_npu.npu._backends import get_soc_version
+    is_ascend950 = get_soc_version() >= 260 # Ascend950 = 260
+except (ImportError, AttributeError):
+    is_ascend950 = False
 from benchmark.userbenchmark.dynamo.dynamobench.torchbench import (
     DONT_CHANGE_BATCH_SIZE,
     FORCE_AMP_FOR_FP16_BF16_MODELS,
@@ -119,6 +125,15 @@ NPU_REQUIRE_HIGHER_TOLERANCE = {
     "timm_vovnet",
     "phlippe_resnet",
 }
+
+NPU_REQUIRE_HIGHER_TOLERANCE_ON_A5 = {
+    "densenet121",
+    "resnet50",
+    "resnet18",
+    "resnext50_32x4d",
+    "resnet152",
+}
+
 
 
 NPU_REQUIRE_EVEN_HIGHER_TOLERANCE = {
@@ -438,6 +453,8 @@ class TorchBenchmarkRunner(BenchmarkRunner):
                 tolerance = 1e-2
             elif name in NPU_REQUIRE_EVEN_HIGHER_TOLERANCE:
                 tolerance = 2e-2
+            elif is_ascend950 and name in NPU_REQUIRE_HIGHER_TOLERANCE_ON_A5:
+                tolerance = 2e-3
         return tolerance, cosine
 
     def get_learning_rate(self, is_training, current_device, name):
