@@ -1,7 +1,6 @@
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
 from testutils import TestUtils
-import torch_npu
 
 
 class TestAdd(TestUtils):
