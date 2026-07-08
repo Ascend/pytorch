@@ -419,7 +419,7 @@ def _calculate_tnd_layout_flops(
     _, _, v_d = v_shape
     q_lens = _parse_seq_len(actual_seq_qlen)
     kv_lens = _parse_seq_len(actual_seq_kvlen)
-    if len(q_lens) != len(kv_lens) or any(length <= 0 for length in q_lens + kv_lens):
+    if len(q_lens) != len(kv_lens) or any(length < 0 for length in q_lens + kv_lens):
         raise ValueError("actual_seq_qlen and actual_seq_kvlen must contain valid cumulative lengths")
     attention_scores = sum(q_len * kv_len for q_len, kv_len in zip(q_lens, kv_lens))
     return int(2 * (q_heads or shape_q_heads) * (q_d + v_d) * attention_scores)
