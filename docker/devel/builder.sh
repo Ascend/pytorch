@@ -15,7 +15,7 @@ INSTALL_NNAL=0
 NO_CACHE=0
 CANN_RELEASE_TRAIN=""
 IMAGE_TARGET="builder"
-TORCH_VERSION="2.13.0.dev20260521"
+TORCH_VERSION="2.13.0.dev20260610"
 
 function usage() {
     cat <<EOF
@@ -23,7 +23,7 @@ Usage: $0 [OPTIONS]
 
 Options:
   -p, --python VERSION      Python version: 3.10 3.11 3.12 3.13 (default: 3.10)
-  --torch-version VER       PyTorch version: x.x.x (e.g. 2.7.1, 2.12.0) or dev version (e.g. 2.13.0.dev20260521) (default: 2.13.0.dev20260521)
+  --torch-version VER       PyTorch version: x.x.x (e.g. 2.7.1, 2.12.0) or dev version (e.g. 2.13.0.dev20260610) (default: 2.13.0.dev20260610)
   --no-cache                Build docker image without cache
   -h, --help                Show this help message
 
@@ -122,18 +122,7 @@ if [ "${INSTALL_CANN}" -eq 1 ]; then
 fi
 
 ARCH=$(uname -m)
-case "${ARCH}" in
-x86_64)
-    DOCKERFILE_DIR="${SCRIPT_DIR}/X86"
-    ;;
-aarch64)
-    DOCKERFILE_DIR="${SCRIPT_DIR}/ARM"
-    ;;
-*)
-    echo "Unsupported architecture: ${ARCH}"
-    exit 1
-    ;;
-esac
+DOCKERFILE_DIR="${SCRIPT_DIR}"
 
 if [ ! -f "${DOCKERFILE_DIR}/Dockerfile" ]; then
     echo "Dockerfile not found: ${DOCKERFILE_DIR}/Dockerfile"

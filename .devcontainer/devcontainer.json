@@ -1,0 +1,28 @@
+{
+    "name": "TorchNPU Dev (CANN)",
+    "build": {
+        "dockerfile": "../docker/devel/Dockerfile",
+        "context": "..",
+        "target": "dev",
+        "args": {
+            "PY_VERSION": "3.10",
+            "TORCH_VERSION": "2.13.0.dev20260610",
+            "CANN_VERSION": "9.1.0_beta.1",
+            "CANN_PRODUCT": "910b"
+        }
+    },
+    "workspaceMount": "source=${localWorkspaceFolder},target=/home/pytorch,type=bind,consistency=consistent",
+    "workspaceFolder": "/home/pytorch",
+    "remoteUser": "root",
+    "privileged": true,
+    "mounts": [
+        "source=/dev,target=/dev,type=bind,consistency=consistent",
+        "source=/usr/local/Ascend/driver,target=/usr/local/Ascend/driver,type=bind,consistency=consistent",
+        "source=/usr/local/Ascend/add-ons,target=/usr/local/Ascend/add-ons,type=bind,consistency=consistent",
+        "source=/usr/local/sbin/npu-smi,target=/usr/local/bin/npu-smi,type=bind,consistency=consistent",
+        "source=/var/log/npu,target=/usr/slog,type=bind,consistency=consistent"
+    ],
+    "remoteEnv": {
+        "LD_LIBRARY_PATH": "${containerEnv:LD_LIBRARY_PATH}:/usr/local/Ascend/driver/lib64:/usr/local/Ascend/driver/lib64/base:/usr/local/Ascend/driver/lib64/common:/usr/local/Ascend/driver/lib64/driver"
+    }
+}
