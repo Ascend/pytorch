@@ -588,5 +588,47 @@ class TestTorchNpuBootstrap(TestCase):
             """
         )
 
+    def test_13_patch_dataclass_before_dynamo_source_import(self):
+        self._run_python(
+            """
+            import torch
+            import torch_npu
+
+            patched_decorator = torch._guards.dataclass_with_cached_hash
+            assert patched_decorator.__module__ == "torch_npu.utils._guards"
+
+            from torch._dynamo import source as source_module
+            from torch._dynamo.source import DefaultsSource, LocalSource
+
+            assert source_module.dataclass_with_cached_hash is patched_decorator
+
+            source = DefaultsSource(LocalSource("fn"), 0)
+            reduce_callable, reduce_args = source.__reduce__()
+            assert reduce_callable is DefaultsSource
+            assert reduce_args == (LocalSource("fn"), 0, False)
+            """
+        )
+
+    def test_14_patch_dataclass_after_dynamo_source_import(self):
+        self._run_python(
+            """
+            import torch
+            from torch._dynamo import source as source_module
+            from torch._dynamo.source import DefaultsSource, LocalSource
+
+            source = DefaultsSource(LocalSource("fn"), 0)
+            assert len(source.__reduce__()[1]) == 5
+
+            import torch_npu
+
+            patched_decorator = torch._guards.dataclass_with_cached_hash
+            assert source_module.dataclass_with_cached_hash is patched_decorator
+
+            reduce_callable, reduce_args = source.__reduce__()
+            assert reduce_callable is DefaultsSource
+            assert reduce_args == (LocalSource("fn"), 0, False)
+            """
+        )
+
 if __name__ == "__main__":
     run_tests()
