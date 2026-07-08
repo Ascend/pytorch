@@ -1,5 +1,9 @@
 # 编译优化（TorchNPU）
 
+> [!NOTE]
+>
+> 编译优化（TorchNPU）不支持<term>Ascend 950DT</term>。
+
 1. 依赖安装。
 
     TorchNPU构建依赖PyTorch，目前需要参考[编译优化（PyTorch）](pytorch_comp_opt.md)用毕昇编译器构建PyTorch之后，在环境里重新安装PyTorch，然后再编译TorchNPU。

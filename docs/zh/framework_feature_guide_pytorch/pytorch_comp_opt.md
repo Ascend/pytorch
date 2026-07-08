@@ -2,6 +2,10 @@
 
 以PyTorch 2.7.1为例进行编译优化。
 
+> [!NOTE]
+>
+> 编译优化（PyTorch）不支持<term>Ascend 950DT</term>。
+
 1. 依赖安装。
 
     PyTorch推荐在容器里进行编译，具体请参考[源码安装](../installation_guide/compilation_installation_using_source_code.md)。
