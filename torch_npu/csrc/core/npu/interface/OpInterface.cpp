@@ -17,6 +17,7 @@ TORCH_NPU_REGISTER_LIBRARY(libopapi)
 TORCH_NPU_LOAD_FUNC(aclnnSilentCheck)
 TORCH_NPU_LOAD_FUNC(aclnnSilentCheckV2)
 TORCH_NPU_LOAD_FUNC(aclnnReselectStaticKernel)
+TORCH_NPU_LOAD_FUNC(aclnnReselectStaticKernelWithPath)
 
 bool IsExistAclnnSilentCheck()
 {
@@ -36,6 +37,21 @@ aclnnStatus ReselectStaticKernel()
     }
     TORCH_CHECK(aclnnReselectStaticKernelFunc, "Failed to find function ", "aclnnReselectStaticKernel", PTA_ERROR(ErrCode::NOT_FOUND));
     auto ret = aclnnReselectStaticKernelFunc();
+    return ret;
+}
+
+aclnnStatus ReselectStaticKernelWithPath(const std::string &path)
+{
+    typedef aclnnStatus (*AclnnApiFunc)(const char *);
+    static AclnnApiFunc aclnnReselectStaticKernelWithPathFunc = nullptr;
+    if (aclnnReselectStaticKernelWithPathFunc == nullptr) {
+        aclnnReselectStaticKernelWithPathFunc =
+            (AclnnApiFunc)TORCH_NPU_GET_FUNC(aclnnReselectStaticKernelWithPath);
+    }
+    TORCH_CHECK(aclnnReselectStaticKernelWithPathFunc,
+                "Failed to find function ", "aclnnReselectStaticKernelWithPath",
+                PTA_ERROR(ErrCode::NOT_FOUND));
+    auto ret = aclnnReselectStaticKernelWithPathFunc(path.c_str());
     return ret;
 }
 
