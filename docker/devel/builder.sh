@@ -122,18 +122,7 @@ if [ "${INSTALL_CANN}" -eq 1 ]; then
 fi
 
 ARCH=$(uname -m)
-case "${ARCH}" in
-x86_64)
-    DOCKERFILE_DIR="${SCRIPT_DIR}/X86"
-    ;;
-aarch64)
-    DOCKERFILE_DIR="${SCRIPT_DIR}/ARM"
-    ;;
-*)
-    echo "Unsupported architecture: ${ARCH}"
-    exit 1
-    ;;
-esac
+DOCKERFILE_DIR="${SCRIPT_DIR}"
 
 if [ ! -f "${DOCKERFILE_DIR}/Dockerfile" ]; then
     echo "Dockerfile not found: ${DOCKERFILE_DIR}/Dockerfile"

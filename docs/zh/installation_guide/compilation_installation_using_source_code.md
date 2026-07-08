@@ -25,12 +25,14 @@
     2. 构建镜像。
 
         ```bash
-        cd pytorch/docker/builder/{arch}
+        cd pytorch/docker/devel
+        export DOCKER_BUILDKIT=1
         docker build -t manylinux-builder:v1 .
         ```
 
         > [!NOTE]
-        > - _{arch}_ 表示CPU架构（X86或ARM）。
+        > - Dockerfile会自动根据当前架构（ARM/X86）拉取对应镜像。
+        > - 如果需要指定更具体的构建参数，可参考该目录（pytorch/docker/devel）下README。
         > - 注意不要遗漏命令结尾的“.”。
 
     3. 进入Docker容器，并将TorchNPU源代码挂载至容器内。
