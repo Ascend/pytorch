@@ -335,100 +335,187 @@ jobs:
           conclusion: ${{ job.status == 'success' && 'success' || 'failure' }}
 
   # ======================================================================
-  # Job 3: a3_test — placeholder (not a real test yet)
+  # Job 3: a3_test — run test_functionalization.py on NPU
   # ======================================================================
   a3_test:
-    needs: [pytorch_and_torch-npu_build]
+    needs: [fetch, pytorch_and_torch-npu_build]
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: linux-aarch64-a3-16
+    permissions:
+      id-token: write
+      contents: read
+    defaults:
+      run:
+        shell: bash
+    container:
+      image: quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly
+      options: --network host
+    env:
+      PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
     steps:
+      # Step 0: Report in_progress
       - name: Report in_progress
         uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@main
         with:
           status: in_progress
 
+      # Step 1: Download PyTorch source (contains test files)
+      - name: Authenticate to Huawei Cloud
+        uses: huaweicloud/auth-action@v1.1.0
+        with:
+          access_key_id: ${{ secrets.ACCESSKEY }}
+          secret_access_key: ${{ secrets.SECRETACCESSKEY }}
+          region: cn-north-4
+
+      - name: Compute SHAs
+        id: sha
+        run: |
+          UPSTREAM_SHORT="${{ needs.fetch.outputs.resolved_short }}"
+          echo "upstream_short=${UPSTREAM_SHORT}" >> "$GITHUB_OUTPUT"
+          echo "source_tarball=pytorch-source-${UPSTREAM_SHORT}.tar.gz" >> "$GITHUB_OUTPUT"
+
+      - name: Download PyTorch source from OBS
+        uses: huaweicloud/obs-helper@v1.0.1
+        with:
+          region: cn-north-4
+          bucket_name: pytorch-cache
+          local_file_path: ./${{ steps.sha.outputs.source_tarball }}
+          obs_file_path: 7day-cache/${{ steps.sha.outputs.source_tarball }}
+          operation_type: download
+
+      - name: Extract PyTorch source
+        run: |
+          tar -xzf ${{ steps.sha.outputs.source_tarball }}
+          rm ${{ steps.sha.outputs.source_tarball }}
+          echo "PyTorch source extracted: $(du -sh pytorch/ | cut -f1)"
+
+      # Step 2: Download and install built wheels
+      - name: Download wheel artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: packages-pytorch-${{ needs.fetch.outputs.resolved_short }}
+          path: /tmp/wheels
+
+      - name: Install wheels
+        run: |
+          pip install /tmp/wheels/torch*.whl
+          pip install /tmp/wheels/torch_npu*.whl
+
+      # Step 3: Checkout this repo for test scripts
+      - name: Checkout test scripts
+        uses: actions/checkout@v6
+        with:
+          path: ci-scripts
+
+      # Step 4: Verify NPU environment
+      - name: Verify NPU environment
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          echo "=== NPU Device Information ==="
+          npu-smi info
+          echo "=== End of NPU Device Information ==="
+
+          python -c "
+          import torch
+          print(f'torch: {torch.__version__}')
+          import torch_npu
+          print(f'torch_npu: {torch_npu.__version__}')
+          print(f'NPU available: {torch.npu.is_available()}')
+          print(f'NPU count: {torch.npu.device_count()}')
+          "
+
+      # Step 5: Run test_functionalization.py with 16 concurrent workers
+      - name: Run test_functionalization.py
+        id: run_tests
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          python ci-scripts/.github/scripts/run_npu_test_shard.py \
+            --test-files test_functionalization.py \
+            --test-dir pytorch/test \
+            --report-dir test-reports \
+            --max-workers 16 \
+            --timeout 1200 \
+            --verbose
+
+      # Step 6: Parse test results for dashboard reporting
+      - name: Parse test results
+        id: parse_results
+        if: always()
+        run: |
+          echo "Parsing test results..."
+          python3 -c "
+          import json, os, sys, glob
+
+          stats = {'passed': 0, 'failed': 0, 'errors': 0, 'skipped': 0, 'total': 0}
+          try:
+              # Find cases.json produced by run_npu_test_shard.py
+              candidates = glob.glob('test-reports/**/cases*.json', recursive=True) + \
+                           glob.glob('test-reports/cases*.json')
+              cases_file = candidates[0] if candidates else 'test-reports/cases.json'
+              with open(cases_file) as f:
+                  data = json.load(f)
+              stats['passed'] = data.get('passed', 0)
+              stats['failed'] = data.get('failed', 0)
+              stats['errors'] = data.get('errors', 0)
+              stats['skipped'] = data.get('skipped', 0)
+              stats['total'] = data.get('total_cases', 0)
+          except Exception as e:
+              print(f'Warning: Could not parse results: {e}', file=sys.stderr)
+
+          total_failed = stats['failed'] + stats['errors']
+
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              for k, v in stats.items():
+                  f.write(f'{k}={v}\n')
+              f.write(f'total_failed={total_failed}\n')
+
+          print(f'Results: {stats[\"passed\"]} passed, {stats[\"failed\"]} failed, '
+                f'{stats[\"errors\"]} errors, {stats[\"skipped\"]} skipped, '
+                f'{stats[\"total\"]} total')
+          "
+
+      # Step 7: Report completed to dashboard
       - name: Report completed
+        if: always()
         continue-on-error: true
         uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@main
         with:
           status: completed
-          conclusion: failure
+          conclusion: ${{ steps.parse_results.outputs.total_failed == '0' && 'success' || 'failure' }}
           test-results: >-
             {
-              "passed": 452,
-              "failed": 3,
-              "skipped": 15,
-              "total": 470
+              "passed": ${{ steps.parse_results.outputs.passed }},
+              "failed": ${{ steps.parse_results.outputs.failed }},
+              "skipped": ${{ steps.parse_results.outputs.skipped }},
+              "total": ${{ steps.parse_results.outputs.total }}
             }
 
+      # Step 8: Upload test reports
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a3-test-reports-${{ github.run_number }}
+          path: test-reports/
+          retention-days: 7
+
+      # Step 9: Summary
       - name: Summary
         if: always()
         run: |
-          echo "## a3_test — placeholder" >> $GITHUB_STEP_SUMMARY
-          echo ":x: status: completed, conclusion: failure" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## a3_test — test_functionalization.py"
+            echo ""
+            echo "| Metric | Count |"
+            echo "|--------|-------|"
+            echo "| Passed | ${{ steps.parse_results.outputs.passed }} |"
+            echo "| Failed | ${{ steps.parse_results.outputs.failed }} |"
+            echo "| Errors | ${{ steps.parse_results.outputs.errors }} |"
+            echo "| Skipped | ${{ steps.parse_results.outputs.skipped }} |"
+            echo "| Total  | ${{ steps.parse_results.outputs.total }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
 
-  # ======================================================================
-  # Job 4: a5_test — placeholder (not a real test yet)
-  # ======================================================================
-  a5_test:
-    needs: [pytorch_and_torch-npu_build]
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Report in_progress
-        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@main
-        with:
-          status: in_progress
-
-      - name: Report completed
-        continue-on-error: true
-        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@main
-        with:
-          status: completed
-          conclusion: skipped
-          test-results: >-
-            {
-              "passed": 389,
-              "failed": 7,
-              "skipped": 12,
-              "total": 408
-            }
-
-      - name: Summary
-        if: always()
-        run: |
-          echo "## a5_test — placeholder" >> $GITHUB_STEP_SUMMARY
-          echo ":fast_forward: status: completed, conclusion: skipped" >> $GITHUB_STEP_SUMMARY
-
-  # ======================================================================
-  # Job 5: distributed_test — placeholder (not a real test yet)
-  # ======================================================================
-  distributed_test:
-    needs: [pytorch_and_torch-npu_build]
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Report in_progress
-        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@main
-        with:
-          status: in_progress
-
-      - name: Report completed
-        continue-on-error: true
-        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@main
-        with:
-          status: completed
-          conclusion: cancelled
-          test-results: >-
-            {
-              "passed": 128,
-              "failed": 2,
-              "skipped": 5,
-              "total": 135
-            }
-
-      - name: Summary
-        if: always()
-        run: |
-          echo "## distributed_test — placeholder" >> $GITHUB_STEP_SUMMARY
-          echo ":no_entry: status: completed, conclusion: cancelled" >> $GITHUB_STEP_SUMMARY
