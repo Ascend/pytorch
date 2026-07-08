@@ -30,3 +30,4 @@ PyTorch版本为1.11.0时，此环境变量需要与[HCCL\_ASYNC\_ERROR\_HANDLIN
 - <term>Atlas A2 训练系列产品</term>
 - <term>Atlas A3 训练系列产品</term>
 - <term>Atlas 推理系列产品</term>
+- <term>Ascend 950DT</term>

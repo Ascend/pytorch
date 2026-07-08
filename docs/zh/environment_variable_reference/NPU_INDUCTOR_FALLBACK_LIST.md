@@ -38,3 +38,4 @@ os.environ["NPU_INDUCTOR_FALLBACK_LIST"] = "allfallback"
 - <term>Atlas A2 训练系列产品</term>
 - <term>Atlas A3 训练系列产品</term>
 - <term>Atlas 800I A2 推理产品</term>
+- <term>Ascend 950DT</term>

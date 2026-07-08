@@ -27,3 +27,4 @@ export STREAMS_PER_DEVICE=8
 - <term>Atlas 训练系列产品</term>
 - <term>Atlas A2 训练系列产品</term>
 - <term>Atlas A3 训练系列产品</term>
+- <term>Ascend 950DT</term>

@@ -38,3 +38,4 @@ unset TORCH_NPU_DISABLED_WARNING
 - <term>Atlas A3 训练系列产品</term>
 - <term>Atlas 800I A2 推理产品</term>
 - <term>Atlas 推理系列产品</term>
+- <term>Ascend 950DT</term>

@@ -44,3 +44,4 @@ TASK\_QUEUE\_ENABLE配置为“2”时，由于内存并发，可能导致运行
 - <term>Atlas A3 训练系列产品</term>
 - <term>Atlas 800I A2 推理产品</term>
 - <term>Atlas 推理系列产品</term>
+- <term>Ascend 950DT</term>

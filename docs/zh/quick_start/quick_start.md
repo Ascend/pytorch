@@ -92,7 +92,7 @@
 2. 在train.py中添加以下代码。
 
     - 若用户使用<term>Atlas 训练系列产品</term>，则在迁移完成、训练开始之前，由于其架构特性，用户需要开启混合精度。
-    - 若用户使用<term>Atlas A2 训练系列产品</term>或<term>Atlas A3 训练系列产品</term>，则可以自行选择是否开启混合精度。
+    - 若用户使用<term>Atlas A2 训练系列产品</term>、<term>Atlas A3 训练系列产品</term>或<term>Ascend 950DT</term>，则可以自行选择是否开启混合精度。
 
     > [!NOTE]
     >
@@ -109,7 +109,7 @@
 
     若未开启自动迁移，用户可参考[手工迁移](https://gitcode.com/Ascend/ModelZoo-PyTorch/blob/master/PyTorch/docs/model_migration/manual_migration.md)进行相关操作。
 
-3. 开启AMP混合精度计算。若用户使用<term>Atlas A2 训练系列产品</term>或<term>Atlas A3 训练系列产品</term>，则可以选择跳过此步骤。
+3. 开启AMP混合精度计算。若用户使用<term>Atlas A2 训练系列产品</term>、<term>Atlas A3 训练系列产品</term>或<term>Ascend 950DT</term>，则可以选择跳过此步骤。
 
     在模型、优化器定义之后，定义AMP功能中的GradScaler。
 
