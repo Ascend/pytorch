@@ -61,14 +61,6 @@ constexpr const char* HCCL_BACKEND_NAME = "hccl";
 
 constexpr const char* EXCEPTION_DUMP = "exception_dump";
 
-// Environment variable which controls whether or not we perform Async Error
-// Handling with HCCL.
-constexpr const char* HCCL_ASYNC_ERROR_HANDLING = "HCCL_ASYNC_ERROR_HANDLING";
-
-// Environment Variable to control whether Desync Debug is enabled.
-// This variable must be set together with HCCL_ASYNC_ERROR_HANDLING.
-constexpr const char* HCCL_DESYNC_DEBUG = "HCCL_DESYNC_DEBUG";
-
 constexpr const int DEFAULT_TIMEOUT = 30 * 60 * 1000;
 
 // Control whether dumping debug info on watchdog
@@ -117,7 +109,7 @@ struct ProcessGroupStatus {
     int64_t lastEnqueuedSeq{-1};
     // the sequential number of the last collective started as the kernel
     int64_t lastStartedSeq{-1};
-    // the sequential number of the last colletive completed marked by
+    // the sequential number of the last collective completed marked by
     // the watchdog thread
     // initialized to be -1 to indicate no collective has been completed
     int64_t lastCompletedSeq{-1};
@@ -256,7 +248,7 @@ enum class WatchdogStatus {
 // specifically, each HCCL call is scheduled on a separate runtime stream that
 // is different from the current runtime stream. This is for the purpose of
 // achieving potentially concurrency and better performance. As a result,
-// it is the callers' responsibilty to make sure that the runtime stream their
+// it is the callers' responsibility to make sure that the runtime stream their
 // code works on needs to wait for the HCCL operation from
 // this class.
 //
@@ -401,7 +393,7 @@ public:
         // for tests.
         virtual std::exception_ptr checkForHCCLErrors(
             const std::vector<std::shared_ptr<HCCLComm>>& hcclComms) const;
-        
+
         friend std::ostream& operator<<(
         std::ostream& output,
         const WorkHCCL& workHCCL);
@@ -444,12 +436,12 @@ public:
         std::vector<std::pair<c10::weak_intrusive_ptr<c10::StorageImpl>, c10_npu::NPUStream>> recorded_outputs_;
 
         std::vector<at::Tensor> lazy_destroy_tensors_;
-        
+
         std::vector<at::Tensor> stashed_for_allocator_safety_;
         // unique id used to tell the trace buffer that this
         // work has completed
         c10::optional<uint64_t> trace_id_;
-        
+
         mutable std::once_flag print_flag;
 
         friend class ProcessGroupHCCL;
@@ -591,7 +583,7 @@ public:
     {
         return std::string(HCCL_BACKEND_NAME);
     }
-    
+
     bool supportsCoalescing() const override
     {
         return true;
@@ -864,7 +856,7 @@ protected:
     {
         return pg_desc_;
     }
-    
+
     void setP2pPeer(int newPeer)
     {
         peer_ = newPeer;
@@ -874,7 +866,7 @@ protected:
     {
         return peer_;
     }
-    
+
     // In the timeout case and we will dump debug info such as the NCCL flight
     // recorder to storage. Down the road, if we have more complicated or blocking
     // operations, we might need to use a side thread to do it.
@@ -890,7 +882,7 @@ protected:
     // we can dump the debugging information and abort the process.
     virtual void heartbeatMonitor();
 #endif
-    
+
     // Instance of the watchdog thread.
     std::unique_ptr<Watchdog> watchdog_;
     // Function that directly trigger std::abort so that the whole process
@@ -977,7 +969,7 @@ protected:
     std::unordered_map<std::string, std::vector<std::shared_ptr<HCCLComm>>> devHCCLCommMap_;
 
     std::unordered_set<std::string> reportedErrorComms_;
-    
+
     std::unordered_map<int, std::vector<std::string>> p2pSendRecvKeys_;
 
     std::unordered_map<std::string, std::string> devHCCLCommNameMap_;
@@ -1056,7 +1048,7 @@ protected:
     // Mutex for watchdog.
     std::mutex watchdogCVMutex_;
 
-    // The NPU steams used by HCCL kernels
+    // The NPU streams used by HCCL kernels
     std::unordered_map<std::string, std::vector<c10_npu::NPUStream>>
         hcclStreams_;
 
@@ -1066,7 +1058,7 @@ protected:
     // The NPU events used to control task rate to protect streams
     std::unordered_map<std::string, std::vector<c10_npu::NPUEvent>>
         rateCtrlEvents_;
-    
+
     std::unordered_map<std::string, std::vector<uint64_t>> collectiveCnts_;
 
     // Device Indexes used for all collectives in this group
@@ -1154,7 +1146,7 @@ protected:
     uint64_t seqP2P_{0};
 
     // Counting for the sequential number of HCCL collective call.
-    // (specfically, how many actual kernels we launched, which differs from)
+    // (specifically, how many actual kernels we launched, which differs from)
     // op_id_ when coalescing is enabled)
     uint64_t seq_{0};
 
@@ -1219,7 +1211,7 @@ private:
         std::vector<at::Tensor>& output,
         Fn fn,
         c10d::OpType opType);
-    
+
     template <typename Fn, typename PreProcess, typename PostProcess>
     c10::intrusive_ptr<c10d::Work> collective(
         std::vector<at::Tensor>& input,
@@ -1341,7 +1333,7 @@ private:
     // Util function to assign timeout to each work.
     void assignTimeoutToWork(const c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work,
         const c10::intrusive_ptr<Options>& option);
-    
+
     void silenceCheck(at::Tensor &input, c10d::OpType opType);
 
     HcclCommConfig createHcclCommConfigWithOptions();
@@ -1368,7 +1360,7 @@ private:
     c10::optional<at::Tensor> windowMem_;
 
     uint32_t cached_aic_num;
-    
+
     uint32_t cached_aiv_num;
 
 };

@@ -17,23 +17,23 @@ WatchDog不仅支持算子执行异常监测、通信超时监测、超时分析
 
 ## 使用指导
 
-通过环境变量HCCL\_ASYNC\_ERROR\_HANDLING可以设置是否启用WatchDog。
+通过环境变量TORCH\_HCCL\_ASYNC\_ERROR\_HANDLING可以设置是否启用WatchDog。
 
-HCCL\_ASYNC\_ERROR\_HANDLING取值情况：
+TORCH\_HCCL\_ASYNC\_ERROR\_HANDLING取值情况：
 
 - 0：不开启异步错误处理。
 - 1：开启异步错误处理。
 
 当PyTorch版本为1.11.0时，默认值为0；当PyTorch版本大于等于2.1.0时，默认值为1。
 
-此环境变量使用详情请参考《环境变量参考》中的“[HCCL\_ASYNC\_ERROR\_HANDLING](../environment_variable_reference/HCCL_ASYNC_ERROR_HANDLING.md)”章节。
+此环境变量使用详情请参考《环境变量参考》中的“[TORCH\_HCCL\_ASYNC\_ERROR\_HANDLING](../environment_variable_reference/TORCH_HCCL_ASYNC_ERROR_HANDLING.md)”章节。
 
 ## 使用样例
 
 开启异步错误处理：
 
 ```shell
-export HCCL_ASYNC_ERROR_HANDLING=1
+export TORCH_HCCL_ASYNC_ERROR_HANDLING=1
 ```
 
 ## 约束说明

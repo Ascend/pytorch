@@ -38,8 +38,8 @@
 |环境变量名称|简介|
 |--|--|
 |[TORCH_HCCL_BLOCKING_WAIT](TORCH_HCCL_BLOCKING_WAIT.md)|当使用HCCL作为通信后端时，通过此环境变量可控制`ProcessGroupHCCL`中`wait()`和`synchronize()`的同步模式（阻塞或非阻塞）。|
-|[HCCL_ASYNC_ERROR_HANDLING](HCCL_ASYNC_ERROR_HANDLING.md)|当使用HCCL作为通信后端时，通过此环境变量可控制是否开启异步错误处理。|
-|[HCCL_DESYNC_DEBUG](HCCL_DESYNC_DEBUG.md)|当使用HCCL作为通信后端时，通过此环境变量可控制是否进行通信超时分析。|
+|[TORCH_HCCL_ASYNC_ERROR_HANDLING](TORCH_HCCL_ASYNC_ERROR_HANDLING.md)|当使用HCCL作为通信后端时，通过此环境变量可控制是否开启异步错误处理。|
+|[TORCH_HCCL_DESYNC_DEBUG](TORCH_HCCL_DESYNC_DEBUG.md)|当使用HCCL作为通信后端时，通过此环境变量可控制是否进行通信超时分析。|
 |[HCCL_EVENT_TIMEOUT](HCCL_EVENT_TIMEOUT.md)|当使用HCCL作为通信后端时，通过此环境变量可设置等待event完成的超时时间。|
 |[P2P_HCCL_BUFFSIZE](P2P_HCCL_BUFFSIZE.md)|通过此环境变量可配置是否开启点对点通信（`torch.distributed.isend`、`torch.distributed.irecv`和`torch.distributed.batch_isend_irecv`），并使用独立通信域功能。|
 |[RANK_TABLE_FILE](RANK_TABLE_FILE.md)|通过此环境变量可配置RANK_TABLE_FILE文件的路径，用于集合通信域建链。|

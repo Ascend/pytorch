@@ -1,4 +1,4 @@
-# HCCL\_ASYNC\_ERROR\_HANDLING
+# TORCH\_HCCL\_ASYNC\_ERROR\_HANDLING
 
 ## 功能描述
 
@@ -10,9 +10,20 @@
 当PyTorch版本为1.11.0时，默认值为0；当PyTorch版本大于等于2.1.0时，默认值为1。
 
 > [!NOTE]  
-> 当前版本，开启异步处理时，若出现CQE错误，进程会终止；其他错误仅显示提示信息，不会终止进程。
+>
+> - 当前版本同时兼容旧名称`HCCL_ASYNC_ERROR_HANDLING`。
+> - 当`TORCH_HCCL_ASYNC_ERROR_HANDLING`和`HCCL_ASYNC_ERROR_HANDLING`同时配置时，优先使用`TORCH_HCCL_ASYNC_ERROR_HANDLING`。
+> - 当前版本，开启异步处理时，若出现ERROR CQE错误，进程会终止；其他错误信息，仅屏显信息提示，不会终止进程。
 
 ## 配置示例
+
+推荐配置方式如下：
+
+```bash
+export TORCH_HCCL_ASYNC_ERROR_HANDLING=1
+```
+
+兼容旧名称的配置方式如下：
 
 ```bash
 export HCCL_ASYNC_ERROR_HANDLING=1
