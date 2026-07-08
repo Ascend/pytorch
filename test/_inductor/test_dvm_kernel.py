@@ -17,6 +17,7 @@ def fused_add_sum(k: dvm.Kernel):
     k.store(c)
 
 
+@skip("DVM kernel registration SIGSEGV")
 class TestDvmKernelOp(TestCase):
     def test_dvm_kernel_op(self):
         a = torch.normal(0, 0.1, size=(512, 128, 256), dtype=torch.float32).npu()

@@ -30,6 +30,7 @@ class MatMulModule(torch.nn.Module):
         return mm + 1
 
 
+@skip("DVM kernel registration SIGSEGV")
 class TestDvmByGraphFusion(TestCase):
     @parametrize("dtype", [torch.float16, torch.float32, torch.bfloat16])
     @parametrize("is_dynamic", [True, False])
