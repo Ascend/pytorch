@@ -15,10 +15,16 @@ base        manylinux + Python 软链接 + pip 源 + 基础系统包（curl/wget
 - **builder**（默认）：用于编译 torch_npu wheel，不含 CANN
 - **dev**：基于 builder，叠加 CANN 运行环境；继承全部编译工具链，可在容器内直接重新编译
 
+> Dockerfile会自动根据当前架构（ARM/X86）拉取对应镜像。
 > Driver 不包含在镜像中，用户需在宿主机自行安装。镜像仅提供 CANN 编译环境，运行时需宿主机已安装匹配的 NPU 驱动。
 > 镜像中预装的 PyTorch CPU 版本默认为 v2.11.0 分支对应的版本（`torch==2.11.0`）。可通过构建参数 `TORCH_VERSION` 指定其他版本（如 `2.7.1`），详见 [构建参数参考](#构建参数参考)。
 
 ## 2 镜像构建
+
+```Shell
+cd pytorch/docker/devel
+export DOCKER_BUILDKIT=1
+```
 
 ### 2.1 docker build 构建
 
@@ -35,10 +41,6 @@ base        manylinux + Python 软链接 + pip 源 + 基础系统包（curl/wget
 | `CANN_RELEASE_TRAIN` | - | CANN 发布版本号，仅当`CANN_VERSION`与默认值不同时需手动指定 | dev |
 
 #### 使用示例
-
-```Shell
-cd pytorch/docker/builder/X86    # 或 ARM
-```
 
 ##### 场景一：构建 builder 镜像
 
@@ -77,7 +79,7 @@ docker build -t manylinux-builder:v1 \
 
 ### 2.2 脚本构建
 
-> `builder.sh` 为 **Linux 构建脚本**，自动检测架构（X86/ARM）、构建镜像并启动容器。
+> `builder.sh` 为 **Linux 构建脚本**，自动构建镜像并启动容器。
 
 #### 参数说明
 
@@ -115,14 +117,14 @@ bash builder.sh --cann --no-cache                        # 含 CANN 且不使用
 
 ### 场景一：builder 镜像
 
-仅需挂载源码，无需 NPU 驱动透传。以下命令须在 `pytorch/docker/builder/X86`（或 `ARM`）目录下执行，与手动构建步骤的工作目录一致：
+仅需挂载源码，无需 NPU 驱动透传。以下命令须在 `pytorch/docker/devel`目录下执行，与手动构建步骤的工作目录一致：
 
 ```Shell
 docker rm -f torch-npu-builder 2>/dev/null
 
 docker run -d --rm \
     --name torch-npu-builder \
-    -v $(pwd)/../../..:/home/pytorch \
+    -v $(pwd)/../..:/home/pytorch \
     -e PY_VERSION=3.10 \
     manylinux-builder:v1 \
     tail -f /dev/null
@@ -139,7 +141,7 @@ docker run -d --rm \
     --name torch-npu-builder \
     --privileged \
     -v /dev:/dev \
-    -v $(pwd)/../../..:/home/pytorch \
+    -v $(pwd)/../..:/home/pytorch \
     -v /usr/local/Ascend/driver:/usr/local/Ascend/driver \
     -v /usr/local/Ascend/add-ons:/usr/local/Ascend/add-ons \
     -v /usr/local/sbin/npu-smi:/usr/local/bin/npu-smi \
@@ -183,7 +185,7 @@ docker exec -it torch-npu-builder bash
 
 Windows 下命令格式与 Linux 的主要差异：
 
-- **工作目录**：需进入对应架构子目录，如 `pytorch\docker\builder\X86`（ARM 机器用 `ARM` 子目录）。
+- **工作目录**：需进入 `pytorch\docker\devel` 目录。
 - **路径分隔符**：使用反斜杠 `\`，而非正斜杠 `/`。
 - **续行符**：PowerShell 使用反引号 `` ` ``，而非反斜杠 `\`。
 - **挂载路径**：使用 Windows 风格（`E:\...`），Docker Desktop for Windows 会自动转换；切勿使用 MSYS 风格（`/e/...`）。

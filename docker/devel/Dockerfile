@@ -1,4 +1,4 @@
-FROM quay.io/pypa/manylinux_2_28_x86_64 AS base
+FROM quay.io/pypa/manylinux_2_28 AS base
 
 ENV LC_ALL=en_US.UTF-8 \
     LANG=en_US.UTF-8 \
@@ -47,6 +47,7 @@ FROM base AS builder
 ARG PY_VERSION
 ARG DEVTOOLSET_VERSION=13
 ARG TORCH_VERSION=2.11.0
+ARG TARGETARCH
 
 RUN yum install -y \
     autoconf \
@@ -71,8 +72,10 @@ RUN yum install -y \
 ENV PATH=/opt/rh/gcc-toolset-${DEVTOOLSET_VERSION}/root/usr/bin:$PATH \
     LD_LIBRARY_PATH=/opt/rh/gcc-toolset-${DEVTOOLSET_VERSION}/root/usr/lib64:/opt/rh/gcc-toolset-${DEVTOOLSET_VERSION}/root/usr/lib:$LD_LIBRARY_PATH
 
-RUN python3 -mpip install cmake==3.18.4.post1 && \
-    ln -sf /usr/local/bin/cmake /usr/bin/cmake3
+RUN if [ "${TARGETARCH}" = "amd64" ]; then \
+        python3 -mpip install cmake==3.18.4.post1 && \
+        ln -sf /usr/local/bin/cmake /usr/bin/cmake3; \
+    fi
 
 RUN case "${PY_VERSION}" in \
         3.10) NUMPY_VER=1.23.2 ;; \
