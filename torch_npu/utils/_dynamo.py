@@ -11,9 +11,6 @@ import torch_npu
 from torch import _TorchCompileWrapper
 
 
-if TYPE_CHECKING:
-    from torch._dynamo.symbolic_convert import InstructionTranslator
-
 use_jit_script = False
 log = logging.getLogger(__name__)
 
@@ -280,6 +277,8 @@ def patch_npu_stream_context():
     from torch._dynamo.variables.base import VariableTracker
     from torch._dynamo.variables.streams import StreamContextVariable, StreamVariable
     from torch._dynamo.variables.torch import TorchInGraphFunctionVariable
+    if TYPE_CHECKING:
+        from torch._dynamo.symbolic_convert import InstructionTranslator
 
     class NpuStreamContextVariable(StreamContextVariable):
         """This represents NPU stream context with FX graph set_stream node creation."""
