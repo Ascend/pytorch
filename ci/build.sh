@@ -3,15 +3,15 @@
 set -e
 
 CUR_DIR=$(dirname $(readlink -f $0))
-SUPPORTED_PY_VERSION=(3.9 3.10 3.11 3.12 3.13)
-# Default supported python version is 3.9
-PY_VERSION="3.9"
+SUPPORTED_PY_VERSION=(3.10 3.11 3.12 3.13)
+# Default supported python version is 3.10
+PY_VERSION="3.10"
 
 # Parse arguments inside script
 function parse_script_args() {
     local args_num=0
     if [[ "x${1}" = "x" ]]; then
-        # default: bash build.sh (python3.9)
+        # default: bash build.sh (python3.10)
         return 0
     fi
 
