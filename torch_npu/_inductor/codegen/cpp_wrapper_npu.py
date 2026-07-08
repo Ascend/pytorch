@@ -293,6 +293,39 @@ class CppWrapperNpu(CppWrapperGpu):
         graph_name="",
         original_fxnode_name=None,
     ):
+        if (
+            not triton
+            and not V.graph.aot_mode
+            and kernel_name in self.initialized_kernels
+        ):
+            # CATLASS kernel in JIT cpp_wrapper mode.
+            #
+            # In the community CUTLASS flow, AOT mode links the kernel .o into
+            # model.so and calls it through a function pointer in the
+            # AOTInductorModelKernels class (kernels.<name>(...)).  In JIT mode
+            # the community does not support CUTLASS cpp_wrapper.  We extend it
+            # by loading the standalone .so via dlopen/dlsym at first call,
+            # which is the CATLASS analog of Triton's loadKernel/launchKernel
+            # pattern.  The load_* helper and function pointer are emitted in
+            # finalize_prefix().
+            device = device or V.graph.get_current_device_or_throw()
+            stream = self.write_get_raw_stream(device.index, graph_name)
+
+            # Build the casted argument list (same logic as CppWrapperGpu).
+            casted = []
+            for arg_type, arg in zip(arg_types, call_args):
+                new_arg = arg
+                if isinstance(arg_type, str) and arg_type.endswith("*") and arg != "nullptr":
+                    new_arg = f"{arg}.data_ptr()"
+                casted.append(f"({arg_type}){cexpr(new_arg)}")
+            call_args_str = ", ".join(casted)
+
+            # Lazy-load the .so on first call, then invoke through the
+            # function pointer.
+            self.writeline(f"load_{kernel_name}();")
+            self.writeline(f"{kernel_name}({call_args_str}, {stream});")
+            return
+
         super()._generate_kernel_call_helper(
             kernel_name,
             call_args,
@@ -363,6 +396,118 @@ class CppWrapperNpu(CppWrapperGpu):
     def generate(self, is_inference):
         with dynamo_timed("CppWrapperNpu.generate", log_pt2_compile_event=True):
             return super().generate(is_inference)
+
+    def finalize_prefix(self):
+        """Generate C++ declarations for CATLASS kernels before the parent
+        finalises the prefix.
+
+        AOT mode:
+            The parent ``codegen_model_kernels()`` (called via
+            ``CppWrapperCpu.finalize_prefix``) emits ``extern "C"`` declarations
+            and function-pointer bindings for every kernel in
+            ``initialized_kernels``, and the CATLASS .o files are linked into
+            model.so via ``CATLASSCodeCache.aot_kernels_o`` — exactly the same
+            flow as the community CUTLASS backend.
+
+        JIT cpp_wrapper mode:
+            The community does not support CUTLASS in JIT cpp_wrapper.  We
+            extend it by emitting a function-pointer typedef, a static pointer
+            initialised to ``nullptr``, and a ``load_*`` helper that uses
+            ``dlopen``/``dlsym`` on first call.  The .so path is computed from
+            ``src_to_kernel`` + ``_catlass_kernel_is_mix`` (populated in
+            ``CATLASSScheduling.define_kernel``) so that no redundant
+            compilation is triggered.
+        """
+        old_prefix = self.prefix
+
+        # Generate C++ declarations for CATLASS kernels (JIT mode only).
+        self.prefix = IndentedBuffer()
+        if not V.graph.aot_mode and self.initialized_kernels:
+            import textwrap as _textwrap
+            from torch_npu._inductor.codecache import CATLASSCodeCache
+
+            # Build reverse lookup: kernel_name -> original src_code
+            src_to_kernel = V.graph.wrapper_code.src_to_kernel
+            kernel_to_src = {v: k for k, v in src_to_kernel.items()}
+            is_mix_map = getattr(V.graph.wrapper_code, "_catlass_kernel_is_mix", {})
+
+            # Ensure <dlfcn.h> is available for dlopen/dlsym.
+            self.prefix.writeline("#include <dlfcn.h>")
+            self.prefix.writeline("")
+
+            # CATLASS kernels use catlass-native type names (bfloat16_t, half)
+            # in their signatures.  Provide aliases so the C++ wrapper code
+            # (which uses the at:: namespace) can reference them.
+            self.prefix.writeline("// CATLASS-native type aliases for cpp_wrapper")
+            self.prefix.writeline("using bfloat16_t = at::BFloat16;")
+            self.prefix.writeline("using half = at::Half;")
+            self.prefix.writeline("")
+
+            for kernel_name, kernel in self.initialized_kernels.items():
+                signature = kernel.get_signature()
+
+                # Build a typedef by replacing the function name with
+                # "(*typedef_name)".
+                typedef_sig = signature.replace(
+                    kernel_name, f"(*{kernel_name}_t)"
+                )
+                self.prefix.writeline(f"typedef {typedef_sig};")
+                self.prefix.writeline(
+                    f"static {kernel_name}_t {kernel_name} = nullptr;"
+                )
+                self.prefix.writeline(
+                    f"static void* {kernel_name}_so_handle = nullptr;"
+                )
+                self.prefix.writeline("")
+
+                # Compute the .so path from the source code that
+                # async_compile.catlass() will compile.  We must use the
+                # *exact* source string: splice(src_code, strip=True)
+                # produces "\n" + textwrap.dedent(src_code).strip() + "\n".
+                # CATLASSCodeCache.write() only writes the .cpp source file
+                # (no compilation), so this is cheap and the resulting path
+                # matches the .so that async_compile.catlass() produces.
+                original_src = kernel_to_src.get(kernel_name, "")
+                compiled_src = original_src.replace("KERNEL_NAME", kernel_name)
+                autotune_src = "\n" + _textwrap.dedent(compiled_src).strip() + "\n"
+                is_mix = is_mix_map.get(kernel_name, False)
+                _key, _input_path = CATLASSCodeCache.write(
+                    autotune_src, "so", is_mix
+                )
+                so_path = (
+                    _input_path[: -len(CATLASSCodeCache._SOURCE_CODE_SUFFIX)] + "so"
+                )
+
+                self.prefix.splice(f"""
+static inline void load_{kernel_name}() {{
+    if ({kernel_name} == nullptr) {{
+        const char* so_path = "{so_path}";
+        {kernel_name}_so_handle = dlopen(so_path, RTLD_NOW);
+        if ({kernel_name}_so_handle == nullptr) {{
+            throw std::runtime_error(std::string("Failed to dlopen catlass kernel: ") + so_path + " error: " + dlerror());
+        }}
+        {kernel_name} = reinterpret_cast<{kernel_name}_t>(dlsym({kernel_name}_so_handle, "{kernel_name}"));
+        if ({kernel_name} == nullptr) {{
+            throw std::runtime_error(std::string("Failed to dlsym catlass kernel '{kernel_name}' in: ") + so_path + " error: " + dlerror());
+        }}
+    }}
+}}
+""")
+                self.prefix.writeline("")
+
+        catlass_prefix = self.prefix
+
+        # Now let the parent (CppWrapperGpu -> CppWrapperCpu) do its work.
+        # In AOT mode, this calls codegen_model_kernels() which emits
+        # extern "C" declarations and function-pointer bindings for
+        # initialized_kernels — the same flow as community CUTLASS.
+        self.prefix = IndentedBuffer()
+        super().finalize_prefix()
+
+        # Prepend our CATLASS declarations.
+        self.prefix.splice(catlass_prefix)
+        self.prefix.writeline("\n")
+        self.prefix.splice(old_prefix)
 
     def codegen_tensor_item_npu(
         self, dtype: torch.dtype, tensor: str, scalar: str, indented_buffer=None
