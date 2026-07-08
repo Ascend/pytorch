@@ -1,5 +1,7 @@
 #include <chrono>
+#include <cstdlib>
 #include <future>
+#include <linux/limits.h>
 #include <sstream>
 #include <sys/stat.h>
 #include <thread>
@@ -2097,13 +2099,15 @@ PyObject* THNPModule_aclnn_reselect_static_kernel_with_path(
   TORCH_CHECK(path.find('\0') == std::string::npos,
               "path must not contain null byte",
               PTA_ERROR(ErrCode::PARAM));
-  struct stat st;
-  TORCH_CHECK(stat(path.c_str(), &st) == 0,
-              "path does not exist: ", path,
+  char abs_path[PATH_MAX] = {'\0'};
+  TORCH_CHECK(realpath(path.c_str(), abs_path) != nullptr,
+              "failed to resolve path: ", path,
               PTA_ERROR(ErrCode::NOT_FOUND));
-  TORCH_CHECK(S_ISDIR(st.st_mode),
-              "path must be a directory: ", path,
+  struct stat st;
+  TORCH_CHECK(stat(abs_path, &st) == 0 && S_ISDIR(st.st_mode),
+              "path must be a directory: ", abs_path,
               PTA_ERROR(ErrCode::PARAM));
+  std::string resolved_path(abs_path);
 
   NPUStatus ret = c10_npu::emptyAllNPUStream();
   TORCH_CHECK(
@@ -2115,8 +2119,8 @@ PyObject* THNPModule_aclnn_reselect_static_kernel_with_path(
   static const auto task_queue_enable =
       c10_npu::option::OptionsManager::GetTaskQueueEnable();
   if (task_queue_enable == 2) {
-    auto acl_call = [path]() -> int {
-      return c10_npu::opapi::ReselectStaticKernelWithPath(path);
+    auto acl_call = [resolved_path]() -> int {
+      return c10_npu::opapi::ReselectStaticKernelWithPath(resolved_path);
     };
     at_npu::native::OpCommand::RunOpApiV2("reselect_static_kernel_with_path", acl_call);
     NPUStatus ret = c10_npu::emptyAllNPUStream();
@@ -2126,7 +2130,7 @@ PyObject* THNPModule_aclnn_reselect_static_kernel_with_path(
         ret,
         PTA_ERROR(ErrCode::INTERNAL));
   } else {
-    NPU_CHECK_ERROR(c10_npu::opapi::ReselectStaticKernelWithPath(path));
+    NPU_CHECK_ERROR(c10_npu::opapi::ReselectStaticKernelWithPath(resolved_path));
   }
 
   Py_RETURN_NONE;
