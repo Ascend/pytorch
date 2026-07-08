@@ -152,7 +152,7 @@ class TestMode(TestCase):
             message
         )
         self.assertIn(
-            "times out",
+            "EI0002",
             message
         )
 
