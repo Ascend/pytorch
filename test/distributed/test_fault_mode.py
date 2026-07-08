@@ -148,11 +148,10 @@ class TestMode(TestCase):
             process.kill()
             stdout_msg, message = process.communicate()
 
-        self.assertTrue(
-            "task timeout" in message.lower() or "107020" in message,
+        self.assertIn(
+            "EI0002",
             message
         )
-
     @skipIfUnsupportMultiNPU(2)
     @SupportedDevices(['Ascend950'])
     def test_hccl_timeout_950(self):
