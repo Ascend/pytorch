@@ -3,10 +3,10 @@
 set -e
 
 CUR_DIR=$(dirname $(readlink -f $0))
-SUPPORTED_PY_VERSION=(3.9 3.10 3.11 3.12 3.13)
+SUPPORTED_PY_VERSION=(3.10 3.11 3.12 3.13 3.14)
 SUPPORTED_TORCH_VERSION=(2.10.0 2.11.0 2.12.0)
-# Default supported python version is 3.9
-PY_VERSION="3.9"
+# Default supported python version is 3.10
+PY_VERSION="3.10"
 # Torch version to validate against installed PyTorch (empty = skip check)
 # Also written to version.txt before building
 TORCH_VERSION=""
@@ -15,7 +15,7 @@ TORCH_VERSION=""
 function parse_script_args() {
     local args_num=0
     if [[ "x${1}" = "x" ]]; then
-        # default: bash build.sh (python3.9)
+        # default: bash build.sh (python3.10)
         return 0
     fi
 
