@@ -112,12 +112,12 @@ static std::vector<std::string> TORCH_HCCL_HIGH_PRIORITY = {
 // A struct to hold the latest status of the process group.
 struct ProcessGroupStatus {
     // the sequential number of the last collective enqueued into workMetaList_
-    // This is useful for indentifying a rank that has not join a collective
+    // This is useful for identifying a rank that has not join a collective
     // initialized to be -1 to indicate no collective has been enqueued
     int64_t lastEnqueuedSeq{-1};
     // the sequential number of the last collective started as the kernel
     int64_t lastStartedSeq{-1};
-    // the sequential number of the last colletive completed marked by
+    // the sequential number of the last collective completed marked by
     // the watchdog thread
     // initialized to be -1 to indicate no collective has been completed
     int64_t lastCompletedSeq{-1};
@@ -255,7 +255,7 @@ enum class WatchdogStatus {
 // specifically, each HCCL call is scheduled on a separate runtime stream that
 // is different from the current runtime stream. This is for the purpose of
 // achieving potentially concurrency and better performance. As a result,
-// it is the callers' responsibilty to make sure that the runtime stream their
+// it is the callers' responsibility to make sure that the runtime stream their
 // code works on needs to wait for the HCCL operation from
 // this class.
 //
@@ -1033,7 +1033,7 @@ protected:
     std::atomic<bool> collectiveDebugInfoMode_;
 
     // This is the signal from watchdog threads to indicate whether the monitor
-    // thread should dump. Making it static so that it is accessiable from all the
+    // thread should dump. Making it static so that it is accessible from all the
     // PGs. With this flag, monitor thread would dump debug info under any one of
     // the 3 conditions: 1: this flag is set to true by the watchdog thread when
     // it detects a timeout. 2: timeout signal is received from
@@ -1067,7 +1067,7 @@ protected:
     // Mutex for watchdog.
     std::mutex watchdogCVMutex_;
 
-    // The NPU steams used by HCCL kernels
+    // The NPU streams used by HCCL kernels
     std::unordered_map<std::string, std::vector<c10_npu::NPUStream>>
         hcclStreams_;
 
@@ -1174,7 +1174,7 @@ protected:
     uint64_t seqP2P_{0};
 
     // Counting for the sequential number of HCCL collective call.
-    // (specfically, how many actual kernels we launched, which differs from)
+    // (specifically, how many actual kernels we launched, which differs from)
     // op_id_ when coalescing is enabled)
     uint64_t seq_{0};
 

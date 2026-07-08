@@ -222,26 +222,48 @@ int32_t OptionsManager::GetACLDeviceSyncTimeout()
 
 uint32_t OptionsManager::CheckUseHcclAsyncErrorHandleEnable()
 {
-    char* asyncErrorHandling_val = get_and_log_env("HCCL_ASYNC_ERROR_HANDLING");
-    int64_t asyncErrorHandlingFlag =
-        (asyncErrorHandling_val != nullptr) ? strtol(asyncErrorHandling_val, nullptr, 10) : 1;
-    std::unordered_map<int32_t, std::string> asyncErrorHandlingMode = getAsyncErrorHandlingMode();
-    if (asyncErrorHandlingMode.find(asyncErrorHandlingFlag) == asyncErrorHandlingMode.end()) {
-        TORCH_CHECK(false, "HCCL_ASYNC_ERROR_HANDLING should be 0,1,2,3.", PTA_ERROR(ErrCode::VALUE));
-    }
-    return static_cast<uint32_t>(asyncErrorHandlingFlag);
+    const static uint32_t asyncErrorHandlingVal = []() -> uint32_t {
+        char* env_val = get_and_log_env("TORCH_HCCL_ASYNC_ERROR_HANDLING");
+        if (env_val == nullptr) {
+            env_val = get_and_log_env("HCCL_ASYNC_ERROR_HANDLING");
+            if (env_val != nullptr) {
+                TORCH_NPU_WARN_ONCE(
+                    "HCCL_ASYNC_ERROR_HANDLING is deprecated, "
+                    "please use TORCH_HCCL_ASYNC_ERROR_HANDLING instead.");
+            }
+        }
+        int64_t envFlag = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : 1;
+        std::unordered_map<int32_t, std::string> asyncErrorHandlingMode = getAsyncErrorHandlingMode();
+        if (asyncErrorHandlingMode.find(envFlag) == asyncErrorHandlingMode.end()) {
+            TORCH_CHECK(false, "TORCH_HCCL_ASYNC_ERROR_HANDLING should be 0, 1, 2, or 3.", PTA_ERROR(ErrCode::VALUE));
+        }
+        return static_cast<uint32_t>(envFlag);
+    }();
+    return asyncErrorHandlingVal;
 }
 
 uint32_t OptionsManager::CheckUseDesyncDebugEnable()
 {
-    char* desyncDebug_val = get_and_log_env("HCCL_DESYNC_DEBUG");
-    int64_t desyncDebugFlag = (desyncDebug_val != nullptr) ? strtol(desyncDebug_val, nullptr, 10) : 0;
-    std::unordered_map<int32_t, std::string> desyncDebugMode = getDesyncDebugMode();
-    if (desyncDebugMode.find(desyncDebugFlag) == desyncDebugMode.end()) {
-        TORCH_CHECK(false, "HCCL_DESYNC_DEBUG should be 0 or 1.", PTA_ERROR(ErrCode::VALUE));
-    }
-    return static_cast<uint32_t>(desyncDebugFlag);
+    const static uint32_t desyncDebugVal = []() -> uint32_t {
+        char* env_val = get_and_log_env("TORCH_HCCL_DESYNC_DEBUG");
+        if (env_val == nullptr) {
+            env_val = get_and_log_env("HCCL_DESYNC_DEBUG");
+            if (env_val != nullptr) {
+                TORCH_NPU_WARN_ONCE(
+                    "HCCL_DESYNC_DEBUG is deprecated, "
+                    "please use TORCH_HCCL_DESYNC_DEBUG instead.");
+            }
+        }
+        int64_t envFlag = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : 0;
+        std::unordered_map<int32_t, std::string> desyncDebugMode = getDesyncDebugMode();
+        if (desyncDebugMode.find(envFlag) == desyncDebugMode.end()) {
+            TORCH_CHECK(false, "TORCH_HCCL_DESYNC_DEBUG should be 0 or 1.", PTA_ERROR(ErrCode::VALUE));
+        }
+        return static_cast<uint32_t>(envFlag);
+    }();
+    return desyncDebugVal;
 }
+
 
 bool OptionsManager::isACLGlobalLogOn(aclLogLevel level)
 {

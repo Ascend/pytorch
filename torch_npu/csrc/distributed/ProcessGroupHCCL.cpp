@@ -1206,7 +1206,7 @@ ProcessGroupHCCL::ProcessGroupHCCL(
     if (blockingWait_) {
         if (asyncErrorHandling_ != NoHandling || desyncDebug_) {
         LOG(INFO) << "[Rank " << rank_ << "] TORCH_HCCL_BLOCKING_WAIT and "
-                    << "HCCL_ASYNC_ERROR_HANDLING|HCCL_DESYNC_DEBUG"
+                    << "TORCH_HCCL_ASYNC_ERROR_HANDLING|TORCH_HCCL_DESYNC_DEBUG"
                     << "should not both be enabled. "
                     << "Only TORCH_HCCL_BLOCKING_WAIT is being used in this process.";
         asyncErrorHandling_ = NoHandling;
@@ -1217,9 +1217,9 @@ ProcessGroupHCCL::ProcessGroupHCCL(
     } else {
         if (desyncDebug_ && asyncErrorHandling_ == NoHandling) {
         LOG(INFO) << "[Rank " << rank_
-                    << "] HCCL_DESYNC_DEBUG and HCCL_ASYNC_ERROR_HANDLING "
+                    << "] TORCH_HCCL_DESYNC_DEBUG and TORCH_HCCL_ASYNC_ERROR_HANDLING "
                     << "must both be enabled. "
-                    << "Enabling HCCL_ASYNC_ERROR_HANDLING.";
+                    << "Enabling TORCH_HCCL_ASYNC_ERROR_HANDLING.";
         asyncErrorHandling_ = TearDown;
         }
     }
@@ -1236,7 +1236,7 @@ ProcessGroupHCCL::ProcessGroupHCCL(
                     hccl_exec_timeout * 1000, "ms! The plog may not be recorded.");
             } else if (hccl_exec_timeout == 0) {
                 TORCH_NPU_WARN("The HCCL execution timeout was set to 0(never timeout), so it is bigger than watchdog timeout ",
-                    (options_->timeout).count(), "ms which is set by init_process_group! The plog may not be recorded. You can disable watchdog by 'export HCCL_ASYNC_ERROR_HANDLING=0'.");
+                    (options_->timeout).count(), "ms which is set by init_process_group! The plog may not be recorded. You can disable watchdog by 'export TORCH_HCCL_ASYNC_ERROR_HANDLING=0'.");
             }
         } else {
             if (hccl_exec_timeout == 0) {
@@ -2241,10 +2241,10 @@ void ProcessGroupHCCL::Watchdog::runLoop()
                         auto desyncMsg = retrieveDesyncReport(pg_->store_, "HCCL", pg_->getRank(), pg_->getSize());
                         LOG(ERROR) << desyncMsg;
                     } catch (const std::exception& e) {
-                        LOG(ERROR) << "Failed to retrieve HCCL_DESYNC_DEBUG report. "
+                        LOG(ERROR) << "Failed to retrieve TORCH_HCCL_DESYNC_DEBUG report. "
                                    << " Please file an issue. Error: " << e.what();
                     } catch (...) {
-                        LOG(ERROR) << "Failed to rerieve HCCL_DESYNC_DEBUG report with unknown error."
+                        LOG(ERROR) << "Failed to rerieve TORCH_HCCL_DESYNC_DEBUG report with unknown error."
                                    << " Please file an issue.";
                     }
                 }
