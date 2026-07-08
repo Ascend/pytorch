@@ -1206,7 +1206,7 @@ ProcessGroupHCCL::ProcessGroupHCCL(
     if (blockingWait_) {
         if (asyncErrorHandling_ != NoHandling || desyncDebug_) {
         LOG(INFO) << "[Rank " << rank_ << "] TORCH_HCCL_BLOCKING_WAIT and "
-                    << "HCCL_ASYNC_ERROR_HANDLING|HCCL_DESYNC_DEBUG"
+                    << "TORCH_HCCL_ASYNC_ERROR_HANDLING|TORCH_HCCL_DESYNC_DEBUG"
                     << "should not both be enabled. "
                     << "Only TORCH_HCCL_BLOCKING_WAIT is being used in this process.";
         asyncErrorHandling_ = NoHandling;
@@ -1217,9 +1217,9 @@ ProcessGroupHCCL::ProcessGroupHCCL(
     } else {
         if (desyncDebug_ && asyncErrorHandling_ == NoHandling) {
         LOG(INFO) << "[Rank " << rank_
-                    << "] HCCL_DESYNC_DEBUG and HCCL_ASYNC_ERROR_HANDLING "
+                    << "] TORCH_HCCL_DESYNC_DEBUG and TORCH_HCCL_ASYNC_ERROR_HANDLING "
                     << "must both be enabled. "
-                    << "Enabling HCCL_ASYNC_ERROR_HANDLING.";
+                    << "Enabling TORCH_HCCL_ASYNC_ERROR_HANDLING.";
         asyncErrorHandling_ = TearDown;
         }
     }
@@ -1236,7 +1236,7 @@ ProcessGroupHCCL::ProcessGroupHCCL(
                     hccl_exec_timeout * 1000, "ms! The plog may not be recorded.");
             } else if (hccl_exec_timeout == 0) {
                 TORCH_NPU_WARN("The HCCL execution timeout was set to 0(never timeout), so it is bigger than watchdog timeout ",
-                    (options_->timeout).count(), "ms which is set by init_process_group! The plog may not be recorded. You can disable watchdog by 'export HCCL_ASYNC_ERROR_HANDLING=0'.");
+                    (options_->timeout).count(), "ms which is set by init_process_group! The plog may not be recorded. You can disable watchdog by 'export TORCH_HCCL_ASYNC_ERROR_HANDLING=0'.");
             }
         } else {
             if (hccl_exec_timeout == 0) {
@@ -2241,10 +2241,10 @@ void ProcessGroupHCCL::Watchdog::runLoop()
                         auto desyncMsg = retrieveDesyncReport(pg_->store_, "HCCL", pg_->getRank(), pg_->getSize());
                         LOG(ERROR) << desyncMsg;
                     } catch (const std::exception& e) {
-                        LOG(ERROR) << "Failed to retrieve HCCL_DESYNC_DEBUG report. "
+                        LOG(ERROR) << "Failed to retrieve TORCH_HCCL_DESYNC_DEBUG report. "
                                    << " Please file an issue. Error: " << e.what();
                     } catch (...) {
-                        LOG(ERROR) << "Failed to rerieve HCCL_DESYNC_DEBUG report with unknown error."
+                        LOG(ERROR) << "Failed to rerieve TORCH_HCCL_DESYNC_DEBUG report with unknown error."
                                    << " Please file an issue.";
                     }
                 }
@@ -4778,15 +4778,15 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::batch_isend_irecv_inner(
         tensors_tmp,
         [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
             RECORD_FUNCTION("HcclBatchSendRecv", std::vector<c10::IValue>({input}));
-			auto itemNum = static_cast<uint32_t>(op_type.size());
-			std::vector<void *> tensor_ptr_list;
-			std::vector<uint64_t> numel_list;
-			std::vector<HcclDataType> type_list;
-			for (size_t i = 0; i < op_type.size(); ++i) {
-			    tensor_ptr_list.push_back(tensors[i].data_ptr());
-			    numel_list.push_back(getNumelForHCCL(tensors[i]));
-			    type_list.push_back(getHcclDataType(tensors[i].scalar_type()));
-			}
+            auto itemNum = static_cast<uint32_t>(op_type.size());
+            std::vector<void *> tensor_ptr_list;
+            std::vector<uint64_t> numel_list;
+            std::vector<HcclDataType> type_list;
+            for (size_t i = 0; i < op_type.size(); ++i) {
+                tensor_ptr_list.push_back(tensors[i].data_ptr());
+                numel_list.push_back(getNumelForHCCL(tensors[i]));
+                type_list.push_back(getHcclDataType(tensors[i].scalar_type()));
+            }
 
             std::vector<uint32_t> remote_rank_list_cast;
             remote_rank_list_cast.reserve(remote_rank_list.size());
@@ -4798,36 +4798,36 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::batch_isend_irecv_inner(
                 }
                 remote_rank_list_cast.push_back(static_cast<uint32_t>(remote_rank_list[i]));
             }
-			auto hccl_call = [tensor_ptr_list, numel_list, type_list, remote_rank_list_cast, op_type, itemNum, comm, stream, is_dispatched]() -> int {
-			    HcclSendRecvItem sendRecvInfo[itemNum];
-			    HcclSendRecvType currType;
-			    for (size_t i = 0; i < op_type.size(); ++i) {
-			        if (op_type[i] == "isend") {
-			            currType = HcclSendRecvType::HCCL_SEND;
-			        } else if (op_type[i] == "irecv") {
-			            currType = HcclSendRecvType::HCCL_RECV;
-			        } else {
-			            currType = HcclSendRecvType::HCCL_SEND_RECV_RESERVED;
-			        }
-			        sendRecvInfo[i] = HcclSendRecvItem{currType,
-			                                           tensor_ptr_list[i],
-			                                           numel_list[i],
-			                                           type_list[i],
-			                                           remote_rank_list_cast[i]
-			                                           };
-			    }
+            auto hccl_call = [tensor_ptr_list, numel_list, type_list, remote_rank_list_cast, op_type, itemNum, comm, stream, is_dispatched]() -> int {
+                HcclSendRecvItem sendRecvInfo[itemNum];
+                HcclSendRecvType currType;
+                for (size_t i = 0; i < op_type.size(); ++i) {
+                    if (op_type[i] == "isend") {
+                        currType = HcclSendRecvType::HCCL_SEND;
+                    } else if (op_type[i] == "irecv") {
+                        currType = HcclSendRecvType::HCCL_RECV;
+                    } else {
+                        currType = HcclSendRecvType::HCCL_SEND_RECV_RESERVED;
+                    }
+                    sendRecvInfo[i] = HcclSendRecvItem{currType,
+                                                        tensor_ptr_list[i],
+                                                        numel_list[i],
+                                                        type_list[i],
+                                                        remote_rank_list_cast[i]
+                                                        };
+                }
 #ifndef BUILD_LIBTORCH
                 torch_npu::profiler::MstxRange range(
                     getMstxHcclMsg("HcclBatchSendRecv", sendRecvInfo[0].count, sendRecvInfo[0].dataType, comm, stream.id(), -1, -1),
                     stream.stream(false), torch_npu::profiler::DOMAIN_COMMUNICATION);
 #endif
-			    if (c10_npu::is_core_control_enabled()) {
+                if (c10_npu::is_core_control_enabled()) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
                 auto hccl_result = hcclBatchIsendIrecv(sendRecvInfo, itemNum, comm, stream.stream(false));
                 *is_dispatched = true;
                 return hccl_result;
-			};
+            };
             at_npu::native::OpCommand::RunOpApiV3("HcclBatchSendRecv", hccl_call, false, &stream);
             return HCCL_SUCCESS;
         },
