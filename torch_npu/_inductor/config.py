@@ -1,8 +1,6 @@
 import logging
 import os  # noqa: C101
 
-from triton.runtime.driver import driver
-
 import torch
 from torch._inductor import config
 
@@ -17,13 +15,10 @@ config.trace.enabled = True
 
 config.fallback_random = True
 
-# npu hardware params from trion
-target = driver.active.get_current_target()
-device = driver.active.get_current_device()
-prop = driver.active.utils.get_device_properties(device)
-
-num_cube_core = prop["num_aicore"]
-num_vector_core = prop["num_aicore"]
+device = torch.npu.current_device()
+prop = torch.npu.get_device_properties(device)
+num_cube_core = prop.cube_core_num
+num_vector_core = prop.vector_core_num
 
 # unit byte
 npu_block = 32
@@ -111,9 +106,6 @@ acc_comp_tol = {
     torch.bfloat16: {"rtol": 1.6e-2, "atol": 1e-5},
     "default": {"rtol": 1.3e-6, "atol": 1e-5},
 }
-
-if "Ascend910B" in target.arch:
-    num_vector_core = num_cube_core * 2
 
 log_level_env = os.getenv("INDUCTOR_ASCEND_LOG_LEVEL", "WARNING").upper()
 log_level_mapping = {
