@@ -533,6 +533,7 @@ def _patched_new_process_group_helper(
     pg_tag=None,
     device_id=None,
     group_desc=None,
+    enable_reconfigure=False,  # noqa: ARG001  accepted for 2.14+ init_process_group signature; HCCL does not consume it
 ):
     """
     Create a new distributed process group.

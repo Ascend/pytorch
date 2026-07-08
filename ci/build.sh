@@ -4,7 +4,7 @@ set -e
 
 CUR_DIR=$(dirname $(readlink -f $0))
 SUPPORTED_PY_VERSION=(3.9 3.10 3.11 3.12 3.13)
-SUPPORTED_TORCH_VERSION=(2.10.0 2.11.0 2.12.0 2.13.0)
+SUPPORTED_TORCH_VERSION=(2.10.0 2.11.0 2.12.0 2.13.0 2.14.0)
 # Default supported python version is 3.9
 PY_VERSION="3.9"
 # Torch version to validate against installed PyTorch (empty = skip check)

@@ -1,5 +1,6 @@
 #include <ATen/Functions.h>
 
+#include "torch_npu/csrc/_compat/version.h"
 #include "torch_npu/csrc/aten/common/from_blob.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/aten/common/DLConvertor.h"
@@ -66,6 +67,14 @@ DLDataType getDLDataType(const Tensor& t)
         case ScalarType::ComplexDouble:
             dtype.code = DLDataTypeCode::kDLComplex;
             break;
+#if TORCH_NPU_VERSION_GE(2, 14)
+        // Upstream pytorch#186928 (2026-06-15) added BComplex32 = complex<BFloat16>.
+        // DLPack has no encoding for complex-of-BFloat16 (kDLComplex is bit-width only),
+        // so treat it as unsupported, matching the Float8 handling below.
+        case ScalarType::BComplex32:
+            TORCH_CHECK(false, "BComplex32 (complex<BFloat16>) is not supported by dlpack", PTA_ERROR(ErrCode::TYPE));
+            break;
+#endif
         case ScalarType::BFloat16:
             dtype.code = DLDataTypeCode::kDLBfloat;
             break;

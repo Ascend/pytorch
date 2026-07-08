@@ -5,7 +5,7 @@ import torch
 from torch.distributed._tensor.experimental import register_sharding
 from torch.distributed.tensor._dtensor_spec import DTensorSpec, TensorMeta
 from torch.distributed.tensor._ops.utils import expand_to_full_mesh_op_strategy
-from torch.distributed.tensor._ops._matrix_ops import _mm_like_strategy
+from torch_npu._compat.distributed import _mm_like_strategy
 from torch_npu._compat.distributed import register_op_strategy
 from torch.distributed.tensor import DTensor, Partial, Replicate, Shard
 from torch.distributed.tensor._op_schema import (
@@ -54,7 +54,7 @@ def _handle_tensor_list_in_kwargs(kwargs: Dict[str, object], op_info: OpInfo) ->
             for dtensor in value:
                 new_schema.append(dtensor._spec)
                 new_local_tensors.append(dtensor._local_tensor)
-            op_info.schema.kwargs_schema[key] = tuple(new_schema) # list is not hashable for cache
+            op_info.schema.kwargs_schema[key] = tuple(new_schema)  # list is not hashable for cache
             op_info.local_kwargs[key] = new_local_tensors
 
     op_info.schema._recompute_comparison_key()
@@ -113,8 +113,16 @@ if os.getenv("TORCH_NPU_USE_COMPATIBLE_IMPL") != "1":
             is_shape1_longer = len1 > len2
 
             for i in range(min(len1, len2) - 3, -1, -1):
-                shape1_shardable = shape1[i + diff] % tensor1.mesh.size(0) == 0 if is_shape1_longer else shape1[i] % tensor1.mesh.size(0) == 0
-                shape2_shardable = shape2[i] % tensor2.mesh.size(0) == 0 if is_shape1_longer else shape2[i + diff] % tensor2.mesh.size(0) == 0
+                shape1_shardable = (
+                    shape1[i + diff] % tensor1.mesh.size(0) == 0
+                    if is_shape1_longer
+                    else shape1[i] % tensor1.mesh.size(0) == 0
+                )
+                shape2_shardable = (
+                    shape2[i] % tensor2.mesh.size(0) == 0
+                    if is_shape1_longer
+                    else shape2[i + diff] % tensor2.mesh.size(0) == 0
+                )
 
                 if shape1_shardable and shape2_shardable:
                     strategy_batch = ([Shard(i + diff)], [Shard(i + diff), Shard(i)]) if is_shape1_longer \
@@ -304,7 +312,7 @@ def npu_grouped_matmul_strategy(op_schema: OpSchema) -> OpStrategy:
         op_schema.kwargs_schema.get("group_list", None) is not None
     ) else 0
     split_item = op_schema.kwargs_schema.get("split_item", 0)
-    y_num = weight_num if split_item in (0, 1) else 1 # 0/1: multiple outputs, 2/3: single output
+    y_num = weight_num if split_item in (0, 1) else 1  # 0/1: multiple outputs, 2/3: single output
 
     strategies = []
 
@@ -313,7 +321,7 @@ def npu_grouped_matmul_strategy(op_schema: OpSchema) -> OpStrategy:
     strategies.append(all_replicate_strategy)
 
     unsupported_arguments = [
-        "scale", "offset", "antiquant_scale", "antiquant_offset", "per_token_scale", # quant
+        "scale", "offset", "antiquant_scale", "antiquant_offset", "per_token_scale",  # quant
         "activation_input", "activation_quant_scale", "activation_quant_offset",     # reserved, unused now
     ]
     for key in unsupported_arguments:
@@ -327,7 +335,7 @@ def npu_grouped_matmul_strategy(op_schema: OpSchema) -> OpStrategy:
                     strategy.output_specs = [strategy.output_specs]
             return full_mesh_strategies
 
-    if bias_num == 0: # if y is partial and bias exists, the bias will be added multiple times to the full tensor
+    if bias_num == 0:  # if y is partial and bias exists, the bias will be added multiple times to the full tensor
         replicate_partial_strategy = [Partial()] * y_num
         replicate_partial_strategy.extend([Replicate()] * x_num)
         replicate_partial_strategy.extend([Partial()] * weight_num)
@@ -344,13 +352,13 @@ def npu_grouped_matmul_strategy(op_schema: OpSchema) -> OpStrategy:
     if group_type is not None and group_type > 0:
         raise NotImplementedError(f"npu_grouped_matmul does not support group_type={group_type} now.")
 
-    if x_num > 1 and weight_num > 1 and y_num > 1: # x_num, weight_num, y_num are equal
+    if x_num > 1 and weight_num > 1 and y_num > 1:  # x_num, weight_num, y_num are equal
         pair_strategies = []
         # x: 2-6D, weight: 2D, weight: 1D (equals to weight.shape[1])
         # shard x
         x_ndim = x_src_strategy.children[0].ndim
         for i in range(x_ndim - 1):
-            pair_strategies.append([Shard(i), Shard(i), Replicate(), Replicate()]) # y, x, weight, bias
+            pair_strategies.append([Shard(i), Shard(i), Replicate(), Replicate()])  # y, x, weight, bias
         # shard weight
         pair_strategies.append([Shard(x_ndim - 1), Replicate(), Shard(1), Shard(0)])
         # shard contracting dim
@@ -364,7 +372,7 @@ def npu_grouped_matmul_strategy(op_schema: OpSchema) -> OpStrategy:
             strategy.extend([bias_spec] * bias_num)
             strategy.extend([Replicate()] * group_list_num)
             strategies.append(strategy)
-    elif x_num == 1 and weight_num == 1 and y_num == 1: # npu_grouped_matmul.default only
+    elif x_num == 1 and weight_num == 1 and y_num == 1:  # npu_grouped_matmul.default only
         # x: 2D, weight: 3D, bias: 2D, y: 2D, for each pair, define shape x: (m, k), weight: (k, n)
         if bias_num == 0:
             k_shard_strategy = [Partial(), Shard(1), Shard(1)]
@@ -374,7 +382,7 @@ def npu_grouped_matmul_strategy(op_schema: OpSchema) -> OpStrategy:
         n_shard_strategy.extend([Shard(1)] * bias_num)
         n_shard_strategy.extend([Replicate()] * group_list_num)
         strategies.append(n_shard_strategy)
-    elif weight_num > 1: # x1wNy1, xNwNy1, x1wNyN
+    elif weight_num > 1:  # x1wNy1, xNwNy1, x1wNyN
         # x: 2D, weight: 2D, bias: 1D, y: 2D
         if bias_num == 0:
             k_shard_strategy = [Partial()] * y_num
@@ -413,7 +421,7 @@ def _infer_npu_grouped_matmul_kwargs(
             kwargs_spec[key] = spec
             continue
 
-        if key == 'group_list': # tensor
+        if key == 'group_list':  # tensor
             target_placement = [Replicate() for _ in output_spec.placements]
             kwargs_spec[key] = DTensorSpec(mesh=spec.mesh, placements=target_placement, tensor_meta=spec.tensor_meta)
             continue
@@ -424,7 +432,7 @@ def _infer_npu_grouped_matmul_kwargs(
                 Shard(0) if placement == Shard(output_spec.ndim - 1) else Replicate()
                 for placement in output_spec.placements
             ]
-        else: # unsupported sharding keys
+        else:  # unsupported sharding keys
             target_placement = [Replicate() for _ in output_spec.placements]
         kwargs_spec[key] = [DTensorSpec(mesh=e.mesh, placements=target_placement, tensor_meta=e.tensor_meta) for e in spec]
 
@@ -479,18 +487,18 @@ def npu_all_gather_base_mm_strategy(x1, x2, hcom, world_size, bias=None, x1_scal
     strategies = []
     sharding_strategy_S0R = (
         [
-            Replicate(), # output
+            Replicate(),  # output
             Replicate()  # gather_out
         ],
         [
             Shard(0),    # x1
-            Replicate(), # x2
+            Replicate(),  # x2
             None,        # hcom
             None,        # world_size
             None if bias is None else Replicate(),     # bias, global shape(n * world_size,)
             None if x1_scale is None else Shard(0),    # x1_scale follow x1, global shape(m * world_size, 1)
-            None if x2_scale is None else Replicate(), # x2_scale follow x2, global shape(1, n * world_size)
-            None, None, None, None, None # gather_index, gather_output, comm_turn, output_dtype, comm_mode
+            None if x2_scale is None else Replicate(),  # x2_scale follow x2, global shape(1, n * world_size)
+            None, None, None, None, None  # gather_index, gather_output, comm_turn, output_dtype, comm_mode
         ]
     )
     strategies.append(sharding_strategy_S0R)
@@ -498,17 +506,17 @@ def npu_all_gather_base_mm_strategy(x1, x2, hcom, world_size, bias=None, x1_scal
     sharding_strategy_S0S1 = (
         [
             Shard(1),   # output
-            Replicate() # gather_out
+            Replicate()  # gather_out
         ],
         [
-            Shard(0), # x1
-            Shard(1), # x2
+            Shard(0),  # x1
+            Shard(1),  # x2
             None,     # hcom
             None,     # world_size
             None if bias is None else Shard(0),     # bias, global shape(n * world_size,)
-            None if x1_scale is None else Shard(0), # x1_scale follow x1, global shape(m * world_size, 1)
-            None if x2_scale is None else Shard(1), # x2_scale follow x2, global shape(1, n * world_size)
-            None, None, None, None, None # gather_index, gather_output, comm_turn, output_dtype, comm_mode
+            None if x1_scale is None else Shard(0),  # x1_scale follow x1, global shape(m * world_size, 1)
+            None if x2_scale is None else Shard(1),  # x2_scale follow x2, global shape(1, n * world_size)
+            None, None, None, None, None  # gather_index, gather_output, comm_turn, output_dtype, comm_mode
         ]
     )
     strategies.append(sharding_strategy_S0S1)
@@ -532,12 +540,12 @@ def _infer_npu_all_gather_base_mm_kwargs(
             if placement == Replicate():
                 if key == 'x1_scale':
                     target_placement.append(Shard(0))
-                else: # bias, x2_scale
+                else:  # bias, x2_scale
                     target_placement.append(Replicate())
             elif placement == Shard(1):
                 if key == 'x2_scale':
                     target_placement.append(Shard(1))
-                else: # bias, x1_scale
+                else:  # bias, x1_scale
                     target_placement.append(Shard(0))
             else:
                 raise ValueError(
@@ -568,15 +576,15 @@ def npu_mm_reduce_scatter_base_strategy(x1, x2, hcom, world_size, reduce_op='sum
             Shard(0)  # output
         ],
         [
-            Shard(1), # x1
-            Shard(0), # x2
+            Shard(1),  # x1
+            Shard(0),  # x2
             None,     # hcom
             None,     # world_size
             None,     # reduce_op
             None if bias is None else Shard(0),     # bias, global shape(n * world_size,)
-            None if x1_scale is None else Shard(1), # x1_scale follow x1, global shape(m, world_size)
-            None if x2_scale is None else Shard(0), # x2_scale follow x2, global shape(world_size, n)
-            None, None, None # comm_turn, output_dtype, comm_mode
+            None if x1_scale is None else Shard(1),  # x1_scale follow x1, global shape(m, world_size)
+            None if x2_scale is None else Shard(0),  # x2_scale follow x2, global shape(world_size, n)
+            None, None, None  # comm_turn, output_dtype, comm_mode
         ]
     )
     strategies.append(sharding_strategy_S1S0)
@@ -600,7 +608,7 @@ def _infer_npu_mm_reduce_scatter_base_kwargs(
             if placement == Shard(0):
                 if key == 'x1_scale':
                     target_placement.append(Shard(1))
-                else: # bias, x2_scale
+                else:  # bias, x2_scale
                     target_placement.append(Shard(0))
             else:
                 raise ValueError(
@@ -639,7 +647,7 @@ def npu_comm_mm_fusion_handler(
 
     if op_call == npu.npu_all_gather_base_mm.default:
         world_size = args[3]
-        for spec in output_sharding.output_spec: # output, gather_out
+        for spec in output_sharding.output_spec:  # output, gather_out
             spec.tensor_meta = get_output_meta(spec.tensor_meta, 0, world_size)
     elif op_call == npu.npu_mm_reduce_scatter_base.default:
         world_size = args[3]
@@ -740,12 +748,12 @@ def _npu_apply_adam_w_handler(
                 output_sharding.use_val_from_redistribute_schema,
             )
         local_args = (
-                pytree.tree_unflatten(
-                    cast(list[object], op_info.local_args), op_info.args_tree_spec
-                )
-                if op_info.args_tree_spec
-                else op_info.local_args
+            pytree.tree_unflatten(
+                cast(list[object], op_info.local_args), op_info.args_tree_spec
             )
+            if op_info.args_tree_spec
+            else op_info.local_args
+        )
 
         local_results = torch_npu.npu_apply_adam_w(*local_args, **op_info.local_kwargs)
 

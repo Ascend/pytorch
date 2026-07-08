@@ -16,6 +16,7 @@
 #include "torch_npu/csrc/framework/contiguous/ReshapeOpt.h"
 #include "torch_npu/csrc/framework/interface/AclOpCompileInterface.h"
 #include "torch_npu/csrc/framework/interface/EnvVariables.h"
+#include "torch_npu/csrc/_compat/version.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/ForceJitCompileList.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
@@ -28,6 +29,19 @@ static const string CUBE_MATH_TYPE = "CUBE_MATH_TYPE";
 #define ENUM_PAIR_FUNC(_1, n) static_assert(static_cast<int64_t>(at::ScalarType::n) >= 0, #n " is negative");
 AT_FORALL_SCALAR_TYPES_WITH_COMPLEX_AND_QINTS(ENUM_PAIR_FUNC)
 #undef ENUM_PAIR_FUNC
+
+// Upstream pytorch#186928 (2026-06-15, releasing in 2.14 and backported to
+// release/2.13 tip after v2.13.0-rc14) inserted BComplex32 (complex<BFloat16>)
+// into the ScalarType enum between Float4_e2m1fn_x2 and Undefined, shifting
+// NumOptions by one. Gate the extra mapping entry so the assertion still
+// passes on 2.13 rc14 (where BComplex32 does not exist) and on 2.14 (where
+// it does). Ascend has no native BComplex32 dtype, so map to ACL_DT_UNDEFINED.
+#if TORCH_NPU_VERSION_GE(2, 14)
+#define AT_SCALAR_TYPE_V214_ADDS(_)                                                                                    \
+    _(at::ScalarType::BComplex32, ACL_DT_UNDEFINED)
+#else
+#define AT_SCALAR_TYPE_V214_ADDS(_)  /* nothing on <2.14 */
+#endif
 
 #define AT_ALL_SCALAR_TYPE_AND_ACL_DATATYPE_PAIR(_)                                                                    \
     _(at::ScalarType::Byte, ACL_UINT8)                                                                                 \
@@ -76,6 +90,7 @@ AT_FORALL_SCALAR_TYPES_WITH_COMPLEX_AND_QINTS(ENUM_PAIR_FUNC)
     _(at::ScalarType::Int7, ACL_DT_UNDEFINED)                                                                          \
     _(at::ScalarType::Float8_e8m0fnu, ACL_FLOAT8_E8M0)                                                                \
     _(at::ScalarType::Float4_e2m1fn_x2, ACL_FLOAT4_E2M1)                                                              \
+    AT_SCALAR_TYPE_V214_ADDS(_)                                                                                        \
     _(at::ScalarType::Undefined, ACL_DT_UNDEFINED)                                                                     \
     _(at::ScalarType::NumOptions, ACL_DT_UNDEFINED)
 

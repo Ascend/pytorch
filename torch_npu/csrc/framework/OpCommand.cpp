@@ -457,7 +457,7 @@ bool OpCommand::ScalarIsInLimits(const c10::Scalar &scalar, at::ScalarType type)
     if (at::isFloatingType(type)) {
         auto value = scalar.to<double>();
         scalar_flag = value <= floating_limits_map[type][0] && value >= floating_limits_map[type][1];
-    } else if (at::isIntegralType(type)) {
+    } else if (at::isIntegralType(type, false)) {
         auto value = scalar.to<long>();
         scalar_flag = value <= integral_limits_map[type][0] && value >= integral_limits_map[type][1];
     }
