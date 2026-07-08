@@ -51,6 +51,7 @@ __all__ = ["import_mlir_module_from_fx"]
 
 _INT64_MIN = -(1 << 63)
 _INT64_MAX = (1 << 63) - 1
+_TORCH_MLIR_SUPPORTED_HOPS = frozenset({"auto_functionalized"})
 
 
 def _normalize_var_to_range(var_to_range):
@@ -76,7 +77,7 @@ def _is_supported_call_function_target(node: torch.fx.Node) -> bool:
     if isinstance(target, TorchOpOverload):
         return True
     if isinstance(target, HigherOrderOperator):
-        return True
+        return target.name() in _TORCH_MLIR_SUPPORTED_HOPS
     return False
 
 
@@ -121,6 +122,17 @@ def _schema_type_from_meta_value(val: Any) -> str:
     raise RuntimeError(f"unsupported opaque schema value type: {type(val).__name__}")
 
 
+def _flatten_result_meta_tree(
+    val: Any, path: tuple[int, ...] = ()
+) -> list[tuple[tuple[int, ...], Any]]:
+    if isinstance(val, tuple):
+        leaves: list[tuple[tuple[int, ...], Any]] = []
+        for i, item in enumerate(val):
+            leaves.extend(_flatten_result_meta_tree(item, path + (i,)))
+        return leaves
+    return [(path, val)]
+
+
 def _encode_fx_arg_tree(arg: Any, flat_nodes: list[torch.fx.Node]) -> Any:
     if isinstance(arg, torch.fx.Node):
         index = len(flat_nodes)
@@ -139,8 +151,10 @@ def _encode_fx_arg_tree(arg: Any, flat_nodes: list[torch.fx.Node]) -> Any:
 
 
 def _register_opaque_custom_op(
-    node: torch.fx.Node, flat_nodes: list[torch.fx.Node]
-) -> Any:
+    node: torch.fx.Node,
+    flat_nodes: list[torch.fx.Node],
+    flat_result_metas: list[Any],
+) -> tuple[Any, tuple[tuple[int, ...], ...]]:
     target_name = opaque_registry.new_target_name()
     _, lib_name, op_name = target_name.split(".", 2)
     full_op_name = f"{lib_name}::{op_name.replace('.', '_')}"
@@ -154,7 +168,14 @@ def _register_opaque_custom_op(
         f"{_schema_type_from_meta_value(arg.meta['val'])} arg{i}"
         for i, arg in enumerate(flat_nodes)
     )
-    ret_schema = _schema_type_from_meta_value(node.meta["val"])
+    flat_results = _flatten_result_meta_tree(node.meta["val"])
+    result_paths = tuple(path for path, _ in flat_results)
+    flat_result_metas[:] = [meta for _, meta in flat_results]
+    ret_schemas = [_schema_type_from_meta_value(meta) for meta in flat_result_metas]
+    if len(ret_schemas) == 1:
+        ret_schema = ret_schemas[0]
+    else:
+        ret_schema = f"({', '.join(ret_schemas)})"
     schema = f"({arg_schema}) -> {ret_schema}"
 
     @torch.library.custom_op(full_op_name, mutates_args=(), schema=schema)
@@ -168,9 +189,42 @@ def _register_opaque_custom_op(
             args_spec=args_spec,
             kwargs_spec=kwargs_spec,
             meta=dict(node.meta),
+            result_paths=result_paths,
         ),
     )
-    return getattr(getattr(torch.ops, lib_name), op_name).default
+    return getattr(getattr(torch.ops, lib_name), op_name).default, result_paths
+
+
+def _rewrite_opaque_result_users(
+    gm: torch.fx.GraphModule,
+    source: torch.fx.Node,
+    leaf_nodes: dict[tuple[int, ...], torch.fx.Node],
+    base_path: tuple[int, ...] = (),
+) -> None:
+    for user in list(source.users):
+        if (
+            user.op == "call_function"
+            and user.target == operator.getitem
+            and len(user.args) >= 2
+            and isinstance(user.args[1], int)
+        ):
+            path = base_path + (user.args[1],)
+            if path in leaf_nodes:
+                user.replace_all_uses_with(leaf_nodes[path])
+                gm.graph.erase_node(user)
+                continue
+            if any(leaf_path[: len(path)] == path for leaf_path in leaf_nodes):
+                _rewrite_opaque_result_users(gm, user, leaf_nodes, path)
+                if len(user.users) == 0:
+                    gm.graph.erase_node(user)
+                continue
+
+            raise RuntimeError(f"opaque result getitem path is out of range: {path}")
+
+        raise RuntimeError(
+            "unsupported opaque result use: "
+            f"name={user.name}, target={user.target!r}, path={base_path}"
+        )
 
 
 def _wrap_unsupported_call_function_targets(gm: torch.fx.GraphModule) -> None:
@@ -179,11 +233,32 @@ def _wrap_unsupported_call_function_targets(gm: torch.fx.GraphModule) -> None:
         if node.op != "call_function" or _is_supported_call_function_target(node):
             continue
         flat_nodes: list[torch.fx.Node] = []
-        opaque_target = _register_opaque_custom_op(node, flat_nodes)
+        flat_result_metas: list[Any] = []
+        opaque_target, result_paths = _register_opaque_custom_op(
+            node, flat_nodes, flat_result_metas
+        )
+        if len(flat_result_metas) == 1 and result_paths[0] != ():
+            raise RuntimeError(
+                "unsupported opaque single-leaf tuple result: "
+                f"name={node.name}, target={node.target!r}, path={result_paths[0]}"
+            )
         with gm.graph.inserting_before(node):
             replacement = gm.graph.call_function(opaque_target, tuple(flat_nodes))
         replacement.meta = dict(node.meta)
-        node.replace_all_uses_with(replacement)
+        if len(flat_result_metas) > 1:
+            replacement.meta["val"] = tuple(flat_result_metas)
+            leaf_nodes: dict[tuple[int, ...], torch.fx.Node] = {}
+            for i, (path, meta) in enumerate(zip(result_paths, flat_result_metas)):
+                with gm.graph.inserting_before(node):
+                    leaf_node = gm.graph.call_function(
+                        operator.getitem, (replacement, i)
+                    )
+                leaf_node.meta["val"] = meta
+                leaf_nodes[path] = leaf_node
+            _rewrite_opaque_result_users(gm, node, leaf_nodes)
+        else:
+            replacement.meta["val"] = flat_result_metas[0]
+            node.replace_all_uses_with(replacement)
         gm.graph.erase_node(node)
         changed = True
 
