@@ -47,10 +47,10 @@ aclnnStatus ReselectStaticKernelWithPath(const std::string &path)
     if (aclnnReselectStaticKernelWithPathFunc == nullptr) {
         aclnnReselectStaticKernelWithPathFunc =
             (AclnnApiFunc)TORCH_NPU_GET_FUNC(aclnnReselectStaticKernelWithPath);
+        TORCH_CHECK(aclnnReselectStaticKernelWithPathFunc,
+                    "Failed to find function ", "aclnnReselectStaticKernelWithPath",
+                    PTA_ERROR(ErrCode::NOT_FOUND));
     }
-    TORCH_CHECK(aclnnReselectStaticKernelWithPathFunc,
-                "Failed to find function ", "aclnnReselectStaticKernelWithPath",
-                PTA_ERROR(ErrCode::NOT_FOUND));
     auto ret = aclnnReselectStaticKernelWithPathFunc(path.c_str());
     return ret;
 }

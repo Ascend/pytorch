@@ -18,8 +18,7 @@ bool IsExistAclnnSilentCheck();
 aclnnStatus ReselectStaticKernel();
 
 /**
-  This Api is used to reselect static kernel with a specified path,
-  it need to be called once at process.
+  This Api is used to reselect static kernel with a specified path.
  */
 aclnnStatus ReselectStaticKernelWithPath(const std::string &path);
 
