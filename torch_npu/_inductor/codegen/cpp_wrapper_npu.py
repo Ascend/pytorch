@@ -1,6 +1,7 @@
 import dataclasses
 import os
 import sys
+from contextlib import contextmanager
 from itertools import count, zip_longest
 from typing import Any, Optional, Union
 from typing_extensions import Self
@@ -10,7 +11,10 @@ import sympy
 import torch
 from torch import dtype as torch_dtype
 from torch._inductor import config
-from torch._inductor.codecache import get_cpp_wrapper_cubin_path_name
+from torch._inductor.codecache import (
+    CudaKernelParamCache,
+    get_cpp_wrapper_cubin_path_name,
+)
 from torch._inductor.codegen.aoti_hipify_utils import maybe_hipify_code_wrapper
 from torch._inductor.codegen.common import get_device_op_overrides
 from torch._inductor.codegen.cpp_utils import cexpr, DEVICE_TO_ATEN, DTYPE_TO_CPP
@@ -20,6 +24,7 @@ from torch._inductor.codegen.cpp_wrapper_gpu import (
     DeferredTritonCallWrapper,
     UnwrapUnspecArg,
 )
+from torch._inductor.codegen.multi_kernel import MultiKernelCall
 from torch._inductor.codegen.wrapper import PythonWrapperCodegen, SymbolicCallArg
 from torch._inductor.ir import GraphPartitionSignature
 from torch._inductor.runtime.runtime_utils import dynamo_timed
@@ -51,6 +56,56 @@ class DeferredNpuTritonCallWrapper(DeferredTritonCallWrapper):
     arg_types: list[Any]
     kernel_id: int
 
+    @contextmanager
+    def _patch_runtime_block_params(self):
+        if self.kernel_name.startswith("multi_kernel_"):
+            self.kernel_name = MultiKernelCall.lookup_choice(self.kernel_name)
+        params = CudaKernelParamCache.get(self.kernel_name)
+        if not params:
+            raise RuntimeError(
+                f"CudaKernelParamCache not populated for {self.kernel_name}"
+            )
+
+        original_def_args = params["def_args"]
+        original_arg_types = self.arg_types
+        inductor_meta = params["inductor_meta"]
+        runtime_block_names = tuple(inductor_meta.get("runtime_block_arg_names", ()))
+
+        try:
+            if runtime_block_names:
+                wrapper_def_args = [
+                    name for name in original_def_args if name not in runtime_block_names
+                ]
+                params["def_args"] = wrapper_def_args
+
+                if (
+                    "extra_launcher_args" in inductor_meta
+                    and len(wrapper_def_args) > len(original_arg_types)
+                ):
+                    expected_arg_count = len(original_arg_types) - len(
+                        inductor_meta["extra_launcher_args"]
+                    )
+                    if len(wrapper_def_args) != expected_arg_count:
+                        raise RuntimeError(
+                            "wrapper_def_args and arg_types do not match for extra_launcher_args: "
+                            f"{len(wrapper_def_args)} != {expected_arg_count}"
+                        )
+                    self.arg_types = original_arg_types + [SymbolicCallArg] * len(
+                        inductor_meta["extra_launcher_args"]
+                    )
+
+            yield params
+        finally:
+            params["def_args"] = original_def_args
+            self.arg_types = original_arg_types
+
+    def generate(self, wrapper: CppWrapperGpu):
+        with self._patch_runtime_block_params() as params:
+            super().generate(wrapper)
+            cubin_path = params[get_cpp_wrapper_cubin_path_name()]
+            if cubin_path not in V.graph.wrapper_code.additional_files:
+                V.graph.wrapper_code.additional_files.append(cubin_path)
+
     def generate_grid(
         self,
         prefix: IndentedBuffer,
@@ -58,6 +113,8 @@ class DeferredNpuTritonCallWrapper(DeferredTritonCallWrapper):
         params: dict[str, Any],
     ):
         numels = [arg for arg in params["def_args"] if "_numel" in arg]
+        for block_name, block_value in dict(params.get("runtime_blocks", {})).items():
+            prefix.writeline(f"int64_t {block_name} = {block_value};")
         grid = GridExprNpu.from_meta_and_set_numel(
             inductor_meta, params["config"], numels, "cpp"
         )
@@ -91,6 +148,8 @@ class DeferredNpuTritonCallWrapper(DeferredTritonCallWrapper):
     def generate_launch_kernel(self, prefix, wrapper, kernel_var_name, params):
         triton_meta = params["triton_meta"]
         arg_type_lookup = dict(zip(params["def_args"], self.arg_types))
+        for block_name in params["inductor_meta"].get("runtime_block_arg_names", ()):
+            arg_type_lookup.setdefault(block_name, SymbolicCallArg)
         # difference between Python and C++ wrapper: C++ wrapper strips out equal_to_1 constants
         call_args = [
             name for name in params["call_args"] if name not in triton_meta["constants"]

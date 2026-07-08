@@ -170,7 +170,7 @@ class IndexAnalysis:
             index = similar.index(x)
             self.reshape_sizes[index] = f"{x.name.upper()}BLOCK_SUB"
 
-    def analyze_var_direction(self, nddma=False):
+    def analyze_var_direction(self, nddma=False, materialize_var_directions=True):
         if self.var_list == self.gold:
             return
         var_list = self.var_list if len(self.var_list) == len(self.gold) else self.similar
@@ -217,13 +217,16 @@ class IndexAnalysis:
                     continue
                 self.var_replacements[x] = var_obj
                 self.var_directions[var_obj] = direction_str
-            self.kernel.range_tree_nodes[x].var_directions[var_obj] = direction_str
+            # Store-side semantic checks need a no-side-effect analysis mode so we
+            # can inspect replacement directions without polluting final codegen.
+            if materialize_var_directions:
+                self.kernel.range_tree_nodes[x].var_directions[var_obj] = direction_str
 
         if processed_nddma:
             self.processed_nddma = True
             self.need_permute = False
 
-    def analyze_index(self, nddma=False):
+    def analyze_index(self, nddma=False, materialize_var_directions=True):
         if isinstance(self.index, sympy.Integer):
             return
         if not self.kernel.golden_var_list:
@@ -252,7 +255,9 @@ class IndexAnalysis:
             pass
 
         # 4 analyze var direction
-        self.analyze_var_direction(nddma)
+        self.analyze_var_direction(
+            nddma, materialize_var_directions=materialize_var_directions
+        )
 
     def generate_statement(self):
         statement = ""

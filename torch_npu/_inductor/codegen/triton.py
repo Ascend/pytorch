@@ -1,4 +1,5 @@
 import contextlib
+import dataclasses
 import functools
 import itertools
 import math
@@ -18,6 +19,8 @@ from torch._inductor.codegen.common import (
     free_symbol_is_type,
     IndentedBuffer,
     SizeArg,
+    TensorArg,
+    WorkspaceArg,
 )
 from torch._inductor.codegen.simd import CantSplit, DisableReduction, EnableReduction
 from torch._inductor.codegen.triton import (
@@ -73,6 +76,11 @@ from .. import config as npu_config
 from ..config import log
 from ..fx_passes.utils.schedule_node_utils import is_multi_stream
 from ..runtime import triton_heuristics as npu_triton_heuristics
+from ..runtime.symbolic_grouping import (
+    GroupedKernelMeta,
+    UnsupportedGroupedPlan,
+    build_group_representatives,
+)
 from .kernel_analysis import (
     collect_stride_sorted_vars_from_indexings,
     collect_stride_sorted_vars_from_nodes,
@@ -1794,8 +1802,16 @@ class NPUIndexTritonKernel(TritonKernel):
         no_loop_axis = [x.sorted_order for x in self.tiling_axis if x.is_no_loop_axis]
         split_axis = [x.sorted_order for x in self.split_axis]
         axis_names = [x.name for x in self.sorted_axis]
+        axis_static_values = []
+        for axis in self.sorted_axis:
+            length = axis.length
+            if isinstance(length, (int, sympy.Integer)):
+                axis_static_values.append((axis.name, int(length)))
         split_axis_dtype = (
             self.get_axis_dtype(self.split_axis[0]) if self.split_axis else None
+        )
+        runtime_block_arg_names = tuple(
+            f"{axis.name.upper()}BLOCK" for axis in self.split_axis
         )
 
         from ..config import inductor_ascend_linear_mode
@@ -1811,6 +1827,7 @@ class NPUIndexTritonKernel(TritonKernel):
             "tiling_axis": tiling_axis,
             "no_loop_axis": no_loop_axis,
             "axis_names": axis_names,
+            "axis_static_values": tuple(axis_static_values),
             "low_dims": self.low_dims,
             "numof_reduction_axis": self.numof_reduction_axis(),
             "split_axis_dtype": split_axis_dtype,
@@ -1820,8 +1837,35 @@ class NPUIndexTritonKernel(TritonKernel):
             "traced_graph_dir": "TRACED_GRAPH_DIR",
             "are_deterministic_algorithms_enabled": torch.are_deterministic_algorithms_enabled(),
             "inductor_ascend_linear_mode": inductor_ascend_linear_mode,
+            "runtime_block_arg_names": runtime_block_arg_names,
             **TritonKernel.inductor_meta_common(),
         }
+        grouped_meta = getattr(self, "grouped_autotune_meta", None)
+        if grouped_meta is not None:
+            inductor_meta.update(
+                {
+                    "group_enabled": bool(grouped_meta.enabled),
+                    "group_template": grouped_meta.template,
+                    "primary_group_axis": grouped_meta.primary_group_axis,
+                    "static_split_axes": grouped_meta.static_split_axes,
+                    "secondary_runtime_symbolic_axes": grouped_meta.secondary_runtime_symbolic_axes,
+                    "group_features": tuple(
+                        dataclasses.asdict(spec) for spec in grouped_meta.group_features
+                    ),
+                    "runtime_block_arg_names": grouped_meta.runtime_block_arg_names,
+                }
+            )
+        else:
+            inductor_meta.update(
+                {
+                    "group_enabled": False,
+                    "group_template": None,
+                    "primary_group_axis": None,
+                    "static_split_axes": (),
+                    "secondary_runtime_symbolic_axes": (),
+                    "group_features": (),
+                }
+            )
         return inductor_meta
 
     # numels sent to autotune configs
@@ -1876,9 +1920,15 @@ class NPUIndexTritonKernel(TritonKernel):
             argdefs.append(ArgName(arg_name))
 
     # BLOCK and SUB_BLOCK definitions
-    def add_autotune_args(self, argdefs):
+    def add_autotune_args(self, argdefs, signature, triton_meta_signature):
         for axis in self.split_axis:
-            argdefs.append(ArgName(f"{axis.name.upper()}BLOCK", is_constexpr=True))
+            arg_name = f"{axis.name.upper()}BLOCK"
+            sizearg = SizeArg(arg_name, axis.length)
+            signature.append(sizearg)
+            triton_meta_signature[arg_name] = signature_of(
+                sizearg, size_dtype=self.index_dtype
+            )
+            argdefs.append(ArgName(arg_name))
 
         for axis in self.tiling_axis:
             # Skip persistent_reduction reduction axis only if length is static (handled in codegen_static_numels)
@@ -1893,6 +1943,207 @@ class NPUIndexTritonKernel(TritonKernel):
                     continue  # Static length: handled by codegen_static_numels
                 # Dynamic length: need to pass as parameter
             argdefs.append(ArgName(f"{axis.name.upper()}BLOCK_SUB", is_constexpr=True))
+
+    def _disable_grouped_autotune(self, inductor_meta, reason: str):
+        log.debug(
+            "Disable grouped autotune for %s: %s",
+            inductor_meta.get("kernel_name"),
+            reason,
+        )
+        inductor_meta["group_enabled"] = False
+        inductor_meta["group_template"] = None
+        inductor_meta["primary_group_axis"] = None
+        inductor_meta["static_split_axes"] = ()
+        inductor_meta["secondary_runtime_symbolic_axes"] = ()
+        inductor_meta["group_features"] = ()
+
+    def _disable_grouped_autotune_if_unsupported(self, inductor_meta):
+        if not inductor_meta.get("group_enabled", False):
+            return
+        try:
+            build_group_representatives(
+                inductor_meta.get("group_features", ()),
+                inductor_meta.get("axis_names", ()),
+                inductor_meta.get("axis_static_values", ()),
+            )
+        except UnsupportedGroupedPlan as exc:
+            self._disable_grouped_autotune(inductor_meta, str(exc))
+
+    def _same_grouped_benchmark_expr(self, left, right) -> bool:
+        return V.graph.sizevars.simplify(left - right) == 0
+
+    def _grouped_benchmark_expr_spec(
+        self, expr, runtime_arg_name_to_index=None, context=None
+    ):
+        runtime_arg_name_to_index = runtime_arg_name_to_index or {}
+        expr = V.graph.sizevars.simplify(expr)
+        for node in self.sorted_axis:
+            if self._same_grouped_benchmark_expr(expr, node.length):
+                return {"axis_name": node.name}
+        if isinstance(expr, (int, sympy.Integer)):
+            return {"const": int(expr)}
+        if isinstance(expr, sympy.Symbol):
+            symbol_name = str(expr)
+            for node in self.sorted_axis:
+                if symbol_name in (node.name, f"{node.name}_numel"):
+                    return {"axis_name": node.name}
+            if symbol_name in runtime_arg_name_to_index:
+                return {"runtime_arg_index": runtime_arg_name_to_index[symbol_name]}
+        if isinstance(expr, sympy.Mul):
+            return {
+                "mul": tuple(
+                    self._grouped_benchmark_expr_spec(
+                        arg, runtime_arg_name_to_index, context
+                    )
+                    for arg in expr.args
+                )
+            }
+        if isinstance(expr, sympy.Add):
+            return {
+                "add": tuple(
+                    self._grouped_benchmark_expr_spec(
+                        arg, runtime_arg_name_to_index, context
+                    )
+                    for arg in expr.args
+                )
+            }
+        if isinstance(expr, FloorDiv):
+            return {
+                "floordiv": tuple(
+                    self._grouped_benchmark_expr_spec(
+                        arg, runtime_arg_name_to_index, context
+                    )
+                    for arg in expr.args
+                )
+            }
+        raise RuntimeError(
+            f"grouped benchmark arg expr is not supported by V1: {expr}"
+        )
+
+    def _grouped_benchmark_tensor_spec(
+        self,
+        arg_name: str,
+        source: str,
+        size,
+        stride,
+        device,
+        dtype,
+        runtime_arg_name_to_index=None,
+    ):
+        return {
+            "kind": "tensor",
+            "source": source,
+            "name": arg_name,
+                    "dtype": str(dtype),
+                    "device": str(device),
+                    "size_exprs": tuple(
+                self._grouped_benchmark_expr_spec(
+                    expr,
+                    runtime_arg_name_to_index,
+                    context=f"tensor:{arg_name}:size[{idx}]",
+                )
+                for idx, expr in enumerate(size)
+                    ),
+                    "stride_exprs": tuple(
+                self._grouped_benchmark_expr_spec(
+                    expr,
+                    runtime_arg_name_to_index,
+                    context=f"tensor:{arg_name}:stride[{idx}]",
+                )
+                for idx, expr in enumerate(stride)
+                    ),
+        }
+
+    def build_grouped_benchmark_arg_specs(self, argdefs, signature):
+        ordered_arg_specs = []
+        tensor_arg_specs = []
+        size_arg_specs = []
+        workspace_arg_specs = []
+        runtime_arg_name_to_index = {
+            arg.name: idx for idx, arg in enumerate(argdefs)
+        }
+
+        for arg_index, (arg_name, arg_sig) in enumerate(
+            zip((arg.name for arg in argdefs), signature)
+        ):
+            if isinstance(arg_sig, TensorArg):
+                buf = V.graph.try_get_buffer(arg_sig.buffer)
+                if buf is not None:
+                    spec = self._grouped_benchmark_tensor_spec(
+                        arg_name,
+                        "buffer",
+                        buf.get_size(),
+                        buf.get_stride(),
+                        buf.get_device(),
+                        buf.get_dtype(),
+                        runtime_arg_name_to_index,
+                    )
+                elif arg_sig.buffer in V.graph.constants:
+                    const_tensor = V.graph.constants[arg_sig.buffer]
+                    spec = self._grouped_benchmark_tensor_spec(
+                        arg_name,
+                        "constant",
+                        const_tensor.size(),
+                        const_tensor.stride(),
+                        const_tensor.device,
+                        const_tensor.dtype,
+                        runtime_arg_name_to_index,
+                    )
+                else:
+                    raise RuntimeError(
+                        f"grouped benchmark tensor arg {arg_name} is missing buffer metadata"
+                    )
+                ordered_arg_specs.append(spec)
+                tensor_arg_specs.append(spec)
+                continue
+
+            if isinstance(arg_sig, SizeArg):
+                expr_spec = self._grouped_benchmark_expr_spec(
+                    arg_sig.expr,
+                    runtime_arg_name_to_index,
+                    context=f"size:{arg_name}",
+                )
+                if expr_spec == {"runtime_arg_index": arg_index}:
+                    spec = {
+                        "kind": "size",
+                        "source": "runtime_arg",
+                        "name": arg_name,
+                        "index": arg_index,
+                    }
+                else:
+                    spec = {
+                        "kind": "size",
+                        "source": "axis_expr",
+                        "name": arg_name,
+                        "expr": expr_spec,
+                    }
+                ordered_arg_specs.append(spec)
+                size_arg_specs.append(spec)
+                continue
+
+            if isinstance(arg_sig, WorkspaceArg):
+                spec = {
+                    "kind": "workspace",
+                    "source": "workspace",
+                    "name": arg_name,
+                    "count_expr": self._grouped_benchmark_expr_spec(
+                        arg_sig.count,
+                        runtime_arg_name_to_index,
+                        context=f"workspace:{arg_name}:count",
+                    ),
+                    "dtype": str(arg_sig.dtype),
+                    "device": str(arg_sig.device),
+                    "zero_mode": arg_sig.zero_mode.name,
+                }
+                ordered_arg_specs.append(spec)
+                workspace_arg_specs.append(spec)
+
+        return {
+            "ordered_arg_specs": tuple(ordered_arg_specs),
+            "tensor_arg_specs": tuple(tensor_arg_specs),
+            "size_arg_specs": tuple(size_arg_specs),
+            "workspace_arg_specs": tuple(workspace_arg_specs),
+        }
 
     def _get_heuristic(self):
         # not support fixed config and cooperative_reduction yet
@@ -1942,6 +2193,8 @@ class NPUIndexTritonKernel(TritonKernel):
         }
 
         inductor_meta = self.create_inductor_meta()
+        self.inductor_meta = inductor_meta
+        self._disable_grouped_autotune_if_unsupported(inductor_meta)
         num_gb = None
         if config.benchmark_kernel or config.profile_bandwidth:
             num_gb = self.estimate_kernel_num_bytes() / 1e9
@@ -1951,8 +2204,17 @@ class NPUIndexTritonKernel(TritonKernel):
         if self.is_unified_simt_kernel():
             triton_meta["configs"] = [config_of(signature)]
 
+        if inductor_meta.get("group_enabled", False):
+            try:
+                inductor_meta.update(
+                    self.build_grouped_benchmark_arg_specs(argdefs, signature)
+                )
+                inductor_meta.setdefault("extra_launcher_arg_specs", ())
+            except RuntimeError as exc:
+                self._disable_grouped_autotune(inductor_meta, str(exc))
+
         # add in tiling args
-        self.add_autotune_args(argdefs)
+        self.add_autotune_args(argdefs, signature, triton_meta_signature)
         # for scalar codegen
         if len(self.range_tree_nodes) == 0:
             self.write_scalar()
@@ -2441,39 +2703,66 @@ class NPUIndexTritonKernel(TritonKernel):
         self, name: str, index: sympy.Expr, value: CSEVariable, mode: StoreMode = None
     ) -> None:
         var = self.args.output(name)
-        index_analyze = IndexAnalysis(self, index, is_store_index=True)
-        index_analyze.analyze_index()
-        indexing = self.indexing(
-            index,
-            dense_indexing=True,
-            block_ptr=mode is None,
-            index_analyze=index_analyze,
-        )
-        index_str = indexing.index_str
         value_str = f"{value}"
-        mask_str = indexing.mask_str
+        selected_indexing = None
 
-        if index_analyze.need_permute:
-            value_str = value_str.replace(
-                f"{value}", f"{value}{index_analyze.generate_statement()}"
+        dryrun_index_analyze = IndexAnalysis(self, index, is_store_index=True)
+        # First inspect the store index without materializing replacement axes.
+        # If the raw scheduler store layout already matches the RHS buffer
+        # layout, preserve the original store semantics and skip remapping.
+        # If layout metadata has already been dropped by an earlier update /
+        # inplace chain, we conservatively fall back to the remapped store path.
+        dryrun_index_analyze.analyze_index(materialize_var_directions=False)
+        if getattr(value, "layout_known", False) and dryrun_index_analyze.need_permute:
+            raw_indexing = self.indexing(
+                index,
+                dense_indexing=True,
+                block_ptr=False,
+                index_analyze=dryrun_index_analyze,
+                apply_var_replacements=False,
+                materialize_var_directions=False,
             )
+            if self._can_preserve_store_semantics_with_value_layout(
+                value, raw_indexing, dryrun_index_analyze
+            ):
+                selected_indexing = raw_indexing
+
+        if selected_indexing is None:
+            # Fall back to the legacy remapped store path when raw scheduler
+            # semantics do not match the current RHS buffer layout.
+            index_analyze = IndexAnalysis(self, index, is_store_index=True)
+            index_analyze.analyze_index()
+            indexing = self.indexing(
+                index,
+                dense_indexing=True,
+                block_ptr=mode is None,
+                index_analyze=index_analyze,
+            )
+            if index_analyze.need_permute:
+                value_str = value_str.replace(
+                    f"{value}", f"{value}{index_analyze.generate_statement()}"
+                )
+            selected_indexing = indexing
+
+        index_str = selected_indexing.index_str
+        mask_str = selected_indexing.mask_str
 
         advance_block_ptr = None
-        if isinstance(indexing, BlockPtrOptions):
+        if isinstance(selected_indexing, BlockPtrOptions):
             block_ptr, advance_block_ptr, other = self.codegen_block_ptr(
-                name, var, indexing
+                name, var, selected_indexing
             )
             # block_ptr stores don't do implicit casting
             line = self.codegen_block_ptr_store_line(
-                name, indexing, block_ptr, value, other
+                name, selected_indexing, block_ptr, value, other
             )
         elif mode is None:
             line = f"tl.store({var} + ({index_str}), {value_str}, {mask_str})"
             if self.numof_reduction_axis() > 1:
-                line = f"tl.store({var} + ({index_str} + tl.arange(0,1) ), {value_str}, {indexing.mask_str})"
+                line = f"tl.store({var} + ({index_str} + tl.arange(0,1) ), {value_str}, {selected_indexing.mask_str})"
 
         elif mode == "atomic_add":
-            line = f"tl.atomic_add({var} + ({index_str}), {value_str}, {indexing.mask_str})"
+            line = f"tl.atomic_add({var} + ({index_str}), {value_str}, {selected_indexing.mask_str})"
         else:
             raise NotImplementedError(f"store mode={mode}")
 
@@ -3598,9 +3887,13 @@ class NPUIndexTritonKernel(TritonKernel):
 
         index_analyze = IndexAnalysis(self, index)
         nddma_switch = npu_config.nddma_switch
-        index_analyze.analyze_index(nddma=nddma_switch)
         indirect_indexing = self.is_indirect_indexing(index)
-        indexing = self.indexing(index, nddma=nddma_switch, block_ptr=True)
+        indexing = self.indexing(
+            index,
+            nddma=nddma_switch,
+            block_ptr=True,
+            index_analyze=index_analyze,
+        )
         has_rindex = indexing.has_rindex()
         has_tmpmask = indexing.has_tmpmask()
         ep = ""
@@ -3665,14 +3958,33 @@ class NPUIndexTritonKernel(TritonKernel):
         if not (isinstance(result_var, TritonCSEVariable)):
             raise RuntimeError("assert isinstance(result_var, TritonCSEVariable)")
         result_var.mask_vars = indexing.mask_vars  # type: ignore[assignment]
+        # Track the buffer layout produced by the finalized load indexing.
+        loaded_layout_axes = (
+            self._infer_layout_axes_from_expr(indexing.index, index_analyze=index_analyze)
+            if isinstance(indexing, IndexingOptions)
+            else None
+        )
+        self._set_layout_axes(result_var, loaded_layout_axes)
 
         if append_broadcast and append_broadcast != "[]":
             line = f"tl.reshape({result_var}, {append_broadcast})"
-            result_var = self.cse.generate(load_buffer, line, dtype=dtype)
+            result_var = self.cse.generate(load_buffer, line, dtype=dtype, shape=indexing.expand_shape)
+            # Once a scalar/degenerate load is reshaped, we no longer trust the
+            # direct axis-to-slot mapping for scheduler-semantic store checks.
+            self._mark_layout_unknown(result_var)
         # triton can handle broadcast
         elif index_analyze.need_permute:
             line = f"{result_var}{index_analyze.generate_statement()}"
-            result_var = self.cse.generate(self.loads, line, dtype=dtype)
+            result_var = self.cse.generate(self.loads, line, dtype=dtype, shape=result_var.shape)
+            if index_analyze.need_reshape or index_analyze.need_broadcast:
+                # Mixed reshape/broadcast/permute transforms are conservatively
+                # treated as layout-unknown.
+                self._mark_layout_unknown(result_var)
+            else:
+                permuted_layout = self._permute_layout_axes(
+                    loaded_layout_axes, index_analyze.permute_shape
+                )
+                self._set_layout_axes(result_var, permuted_layout)
 
         if advance_block_ptr:
             load_buffer.writeline(advance_block_ptr)
@@ -3682,9 +3994,14 @@ class NPUIndexTritonKernel(TritonKernel):
 
         return result_var
 
-    # don't call symlify_indexing
+    # don't call simplify_indexing
     def prepare_indexing(
-        self, index: sympy.Expr, index_analyze, is_index_expr=False, nddma=False
+        self,
+        index: sympy.Expr,
+        index_analyze,
+        is_index_expr=False,
+        nddma=False,
+        materialize_var_directions=True,
     ):
         index = sympy_subs(index, V.graph.sizevars.precomputed_replacements)
         # if simple replacements didn't get rid of floor/ceil, try full subs
@@ -3710,7 +4027,9 @@ class NPUIndexTritonKernel(TritonKernel):
         )
 
         # to generate range.var_directions for permuted axis
-        index_analyze.analyze_index(nddma)
+        index_analyze.analyze_index(
+            nddma, materialize_var_directions=materialize_var_directions
+        )
         return self.codegen_indexing(simp_index)
 
     def replace_index_vars(self, index, index_analyze):
@@ -3744,15 +4063,25 @@ class NPUIndexTritonKernel(TritonKernel):
         index_analyze=None,
         is_index_expr=False,
         tma_compatibility_checker: TMACompatibilityChecker | None = None,
+        apply_var_replacements=True,
+        materialize_var_directions=True,
     ) -> IndexingOptions | BlockPtrOptions:
         """
         Compute the index and mask to pass to tl.load() or tl.store()
         """
         if not index_analyze:
             index_analyze = IndexAnalysis(self, index, is_index_expr=is_index_expr)
-        index_analyze.analyze_index(nddma)
+        index_analyze.analyze_index(
+            nddma, materialize_var_directions=materialize_var_directions
+        )
 
-        index = self.prepare_indexing(index, index_analyze, is_index_expr, nddma=nddma)
+        index = self.prepare_indexing(
+            index,
+            index_analyze,
+            is_index_expr,
+            nddma=nddma,
+            materialize_var_directions=materialize_var_directions,
+        )
         index_vars = index.free_symbols
         has_rindex = False
         index = sympy_subs(index, V.graph.sizevars.precomputed_replacements)
@@ -3771,7 +4100,8 @@ class NPUIndexTritonKernel(TritonKernel):
                     index = sympy_subs(index, replacements)
 
         # if not self.inside_reduction :
-        index = self.replace_index_vars(index, index_analyze)
+        if apply_var_replacements:
+            index = self.replace_index_vars(index, index_analyze)
         index_vars = index.free_symbols
         has_rindex = False
 
@@ -3835,6 +4165,162 @@ class NPUIndexTritonKernel(TritonKernel):
                     )
                 self.range_tree_nodes[sym].codegen()  # type: ignore[index]
         return expr
+
+    @staticmethod
+    def _direction_slot_from_str(direction_str: Optional[str]) -> Optional[int]:
+        if not direction_str:
+            return None
+        stripped = direction_str.strip()
+        if not (stripped.startswith("[") and stripped.endswith("]")):
+            return None
+        dims = [x.strip() for x in stripped[1:-1].split(",")]
+        slots = [idx for idx, dim in enumerate(dims) if dim == ":"]
+        if len(slots) != 1:
+            return None
+        return slots[0]
+
+    def _lookup_symbol_direction(
+        self, sym: sympy.Symbol, index_analyze: Optional[IndexAnalysis] = None
+    ) -> Optional[str]:
+        if index_analyze is not None:
+            if sym in index_analyze.var_directions:
+                return index_analyze.var_directions[sym]
+            if sym in index_analyze.nddma_var_directions:
+                return index_analyze.nddma_var_directions[sym]
+        if sym in self.range_tree_nodes:
+            return self.range_tree_nodes[sym].get_axis_direction()
+        if sym in self.range_tree_nodes_removed:
+            return self.range_tree_nodes_removed[sym].get_axis_direction()
+        for node in itertools.chain(
+            self.range_tree_nodes.values(), self.range_tree_nodes_removed.values()
+        ):
+            if sym in node.var_directions:
+                return node.var_directions[sym]
+        return None
+
+    def _lookup_semantic_axis_name(
+        self, sym: sympy.Symbol, index_analyze: Optional[IndexAnalysis] = None
+    ) -> Optional[str]:
+        if sym in self.range_tree_nodes:
+            return self.range_tree_nodes[sym].name
+        if sym in self.range_tree_nodes_removed:
+            return self.range_tree_nodes_removed[sym].name
+        if index_analyze is not None:
+            for original, replacement in itertools.chain(
+                index_analyze.var_replacements.items(),
+                index_analyze.nddma_var_replacements.items(),
+            ):
+                if replacement == sym:
+                    return str(original)
+        for node in itertools.chain(
+            self.range_tree_nodes.values(), self.range_tree_nodes_removed.values()
+        ):
+            if sym in node.var_directions:
+                return node.name
+        return None
+
+    def _infer_layout_axes_from_expr(
+        self, expr: Optional[sympy.Expr], index_analyze: Optional[IndexAnalysis] = None
+    ) -> Optional[tuple[str, ...]]:
+        if expr is None:
+            return None
+        # Recover buffer layout from broadcast directions, not from memory
+        # stride magnitude. The same address order can still materialize into a
+        # different logical axis-to-slot mapping.
+        slot_to_axis: dict[int, str] = {}
+        found_layout_axis = False
+        layout_basis = {str(axis) for axis in (self.golden_var_list or ())}
+        for sym in sorted(expr.free_symbols, key=str):
+            semantic_axis = self._lookup_semantic_axis_name(sym, index_analyze)
+            if semantic_axis is None:
+                continue
+            if layout_basis and semantic_axis not in layout_basis:
+                # This symbol contributes to pointer arithmetic, but it is not
+                # part of the dense-layout axis basis for the current kernel.
+                # Layout inference must conservatively give up here and let
+                # store codegen fall back to the remapped path.
+                return None
+            direction = self._lookup_symbol_direction(sym, index_analyze)
+            if direction is None:
+                return None
+            slot = self._direction_slot_from_str(direction)
+            if slot is None:
+                return None
+            previous_axis = slot_to_axis.get(slot)
+            if previous_axis is not None and previous_axis != semantic_axis:
+                return None
+            slot_to_axis[slot] = semantic_axis
+            found_layout_axis = True
+        if not found_layout_axis:
+            return None
+        return tuple(axis for _, axis in sorted(slot_to_axis.items()))
+
+    @staticmethod
+    def _permute_layout_axes(
+        layout_axes: Optional[tuple[str, ...]], permute_shape: Sequence[int]
+    ) -> Optional[tuple[str, ...]]:
+        if layout_axes is None:
+            return None
+        if len(layout_axes) != len(permute_shape):
+            return None
+        return tuple(layout_axes[idx] for idx in permute_shape)
+
+    @staticmethod
+    def _mark_layout_unknown(var: TritonCSEVariable) -> None:
+        var.layout_axes = None
+        var.layout_known = False
+
+    @staticmethod
+    def _set_layout_axes(
+        var: TritonCSEVariable, layout_axes: Optional[tuple[str, ...]]
+    ) -> None:
+        var.layout_axes = layout_axes
+        var.layout_known = layout_axes is not None
+
+    def _update_layout_on_args(
+        self,
+        csevar: TritonCSEVariable,
+        args: Sequence[object],
+        kwargs: dict[str, object],
+    ) -> None:
+        # Preserve layout only across simple pointwise expressions where all
+        # tensor inputs agree on the same buffer layout.
+        # Known limitation: update / inplace lowering chains (for example,
+        # permute -> add_ / mutate_to -> clone) may still drop layout metadata
+        # here and force store emission to fall back to the remapped path.
+        candidate_layouts = []
+        for arg in itertools.chain(args, kwargs.values()):
+            if isinstance(arg, TritonCSEVariable):
+                if not getattr(arg, "layout_known", False):
+                    self._mark_layout_unknown(csevar)
+                    return
+                candidate_layouts.append(getattr(arg, "layout_axes", None))
+        if not candidate_layouts:
+            self._mark_layout_unknown(csevar)
+            return
+        first_layout = candidate_layouts[0]
+        if first_layout is None or any(layout != first_layout for layout in candidate_layouts[1:]):
+            self._mark_layout_unknown(csevar)
+            return
+        self._set_layout_axes(csevar, first_layout)
+
+    def _can_preserve_store_semantics_with_value_layout(
+        self,
+        value: CSEVariable,
+        raw_indexing: IndexingOptions | BlockPtrOptions,
+        index_analyze: IndexAnalysis,
+    ) -> bool:
+        if not isinstance(raw_indexing, IndexingOptions):
+            return False
+        # Only preserve the raw scheduler store path when the target layout
+        # implied by the raw store index matches the RHS buffer layout exactly.
+        raw_store_layout = self._infer_layout_axes_from_expr(
+            raw_indexing.index, index_analyze=index_analyze
+        )
+        return (
+            raw_store_layout is not None
+            and raw_store_layout == getattr(value, "layout_axes", None)
+        )
 
     #  when xindex(16) -> x2:2,x3:8, when new length:16 in , should return (x2,x3)
     def split_and_set_ranges(self, lengths: Sequence[Sequence[sympy.Expr]]):
@@ -4016,6 +4502,7 @@ class NPUIndexTritonKernel(TritonKernel):
                         output_idx += 1
 
                         csevar.update_on_args(name, args, kwargs)
+                        V.kernel._update_layout_on_args(csevar, args, kwargs)
 
                         return csevar
 

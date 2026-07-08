@@ -45,7 +45,7 @@ class TileGenerator:
 
         local_mem_size = 128 * 1024 if self.npu_kernel_type == NPUKernelType.SIMT_ONLY else config.ub_size
         self.max_numel_threshold = local_mem_size // self.input_ptr_num // self.dtype_bytes
-        self.stop_numel = min(self.max_numel_threshold, self.max_total_numel // (config.num_vector_core * self.dtype_bytes)) // 8
+        self.stop_numel = min(self.max_numel_threshold, self.max_total_numel // config.num_vector_core) // 8
         for axis, name in enumerate(self.axis_name):
             if axis not in tiling_axis and axis not in split_axis:
                 self.blocks[axis] = 1
@@ -143,8 +143,6 @@ class TileGenerator:
                 tiling_numel = min(self.sub_blocks[axis], blocks[axis])
             cfg[self.sub_block_name[axis]] = aligned_numel_32byte(tiling_numel, self.dtype_bytes)
         cfg["compile_mode"] = self.npu_kernel_type.compile_mode()
-        cfg["remain_programs"] = self.cal_cfg_remain_programs(cfg)
-        cfg["using_programs"] = self.calc_cfg_programs(cfg)
 
     def cal_cfg_remain_programs(self, cfg):
         remain_programs = 0
@@ -156,18 +154,6 @@ class TileGenerator:
             else:
                 remain_programs += self.numels[i] % config_block
         return remain_programs
-
-    def calc_cfg_programs(self, cfg):
-        grids = []
-        for i, _ in enumerate(self.blocks):
-            block_name = self.block_name.get(i, "")
-            config_block = cfg.get(block_name, None)
-            if config_block is None:
-                grids.append(1)
-            else:
-                grids.append((self.numels[i] + config_block - 1) // config_block)
-        total_programs = functools.reduce(lambda x, y: x * y, grids) if grids else 1
-        return total_programs
 
     def find_config(self, cfg):
         for config_var in self.configs:
@@ -453,12 +439,19 @@ class TileGenerator:
         # 1. for simt kernel, numels do not need to too detailed tiling
         # 2. for kernel, loop with no mask which means numel can be divisible by tiling blocksub is preferrable
         if self.npu_kernel_type == NPUKernelType.SIMT_ONLY and len(self.configs) > 0:
-            self.configs.sort(key=lambda x: x.kwargs['remain_programs'], reverse=False)
-            if self.configs[0].kwargs['remain_programs'] == 0:
-                split_index = len(self.configs)
-                for i, conf in enumerate(self.configs):
-                    if conf.kwargs['remain_programs'] != 0:
+            ranked_configs = sorted(
+                (
+                    (self.cal_cfg_remain_programs(conf.kwargs), conf)
+                    for conf in self.configs
+                ),
+                key=lambda item: item[0],
+            )
+            self.configs = [conf for _, conf in ranked_configs]
+            if ranked_configs[0][0] == 0:
+                split_index = len(ranked_configs)
+                for i, (remain_programs, _) in enumerate(ranked_configs):
+                    if remain_programs != 0:
                         split_index = i
                         break
-                self.configs = self.configs[:split_index]
+                self.configs = [conf for _, conf in ranked_configs[:split_index]]
         return self.configs
