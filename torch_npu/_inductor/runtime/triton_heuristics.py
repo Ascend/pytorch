@@ -78,6 +78,10 @@ from torch._inductor.runtime.triton_heuristics import ( # noqa: F401
 from torch._inductor.runtime.runtime_utils import triton_hash_to_path_key
 from triton.compiler import CompiledKernel
 from torch._inductor.triton_bundler import TritonBundler
+try:
+    from triton import knobs
+except ImportError:
+    knobs = None
 
 try:
     from triton.backends.compiler import GPUTarget
@@ -412,11 +416,17 @@ class TritonCompileResultNpu(TritonCompileResult):
         )
         if is_namedtuple_isinstance(binary.packed_metadata):
             binary.packed_metadata = binary.packed_metadata._asdict()
+        if knobs is None:
+            launcher_enter = binary.__class__.launch_enter_hook
+            launcher_exit = binary.__class__.launch_exit_hook
+        else:
+            launcher_enter = knobs.runtime.launch_enter_hook
+            launcher_exit = knobs.runtime.launch_exit_hook
         scope = {
             "grid_meta": cfg.kwargs,
             "bin": binary,
-            "launch_enter_hook": binary.__class__.launch_enter_hook,
-            "launch_exit_hook": binary.__class__.launch_exit_hook,
+            "launch_enter_hook": launcher_enter,
+            "launch_exit_hook": launcher_exit,
             "metadata": (
                 binary.packed_metadata
                 if hasattr(binary, "packed_metadata")
@@ -462,7 +472,7 @@ class TritonCompileResultNpu(TritonCompileResult):
                 *call_args,
             ]
         else:
-            if binary.__class__.launch_enter_hook:
+            if launcher_enter:
                 launch_metadata = f"bin.launch_metadata((grid_0, grid_1, grid_2), stream, {', '.join(call_args)})"
             else:
                 launch_metadata = "None"
