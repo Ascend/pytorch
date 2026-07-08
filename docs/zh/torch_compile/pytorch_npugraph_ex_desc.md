@@ -21,7 +21,7 @@ NPUGraph_EX后端适用于大模型推理场景，通过图优化和缓存复用
 compiled_model = torch.compile(model, backend="npugraph_ex")
 ```
 
-NPUGraph_EX支持的编译选项（`options`参数）和详细使用指导请参考《PyTorch图模式使用(TorchAir)》中的 [npugraph_ex后端](https://gitcode.com/Ascend/torchair/blob/master/docs/zh/npugraph_ex/npugraph_ex.md)。
+NPUGraph_EX支持的编译选项（`options`参数）和详细使用指导请参考《TorchAir》中的 [npugraph_ex后端](https://gitcode.com/Ascend/torchair/blob/master/docs/zh/npugraph_ex/npugraph_ex.md)。
 
 ## 调用样例
 

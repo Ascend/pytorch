@@ -14,7 +14,7 @@ export KINETO_USE_DAEMON=1
 
 ## 使用约束
 
-- 脚本不手动添加代码的情况，此环境变量适用于PyTorch训练场景。
+- 脚本不手动添加代码的情况，此环境变量适用于TorchNPU训练场景。
 - 脚本内添加dynamic\_profile模块后，此环境变量可以在非训练场景使用。例如：
 
     ```python

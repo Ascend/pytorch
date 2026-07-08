@@ -6,7 +6,7 @@ from torch._inductor.scheduler import BaseSchedulerNode
 from torch._inductor.virtualized import V
 from torch.utils._ordered_set import OrderedSet
 
-from ...codegen.cpp_wrapper import CppWrapperNpu
+from ...codegen.cpp_wrapper_npu import CppWrapperNpu
 
 
 def is_multi_stream():

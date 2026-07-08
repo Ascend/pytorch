@@ -164,7 +164,7 @@ def _load_triton_backend():
     
 
     def _inductor_register_backend_for_device():
-        from .codegen.cpp_wrapper import CppWrapperNpu
+        from .codegen.cpp_wrapper_npu import CppWrapperNpu
         from .codegen.npu_combined_scheduling import NPUCombinedScheduling
         from .codegen.wrapper import NPUWrapperCodeGen
 

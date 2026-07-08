@@ -19,6 +19,6 @@
 
     以上命令以root用户安装后的默认路径为例，请用户根据set\_env.sh的实际路径进行替换。
 
-- 容器场景下源码安装torch\_npu插件，涉及从外部网络获取社区提供基础镜像、Python第三方库以及编译使用源码，代理配置等相关网络问题请参考[Docker官方文档](https://docs.docker.com/engine/cli/proxy/)。
+- 容器场景下源码安装TorchNPU插件，涉及从外部网络获取社区提供基础镜像、Python第三方库以及编译使用源码，代理配置等相关网络问题请参考[Docker官方文档](https://docs.docker.com/engine/cli/proxy/)。
 - 在安装不同类型操作系统所需依赖前，请在安装用户下检查源是否可用。以配置华为镜像源为例，可参考[华为开源镜像站](https://mirrors.huaweicloud.com/)中镜像源对应的配置方法操作。
 - Python3.11的调度（即下发）性能优于Python3.10，建议用Python3.11及以上。

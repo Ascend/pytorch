@@ -11,7 +11,7 @@
 
     关于CANN软件“错误码”的详细介绍，请参见《CANN 故障处理》的“[错误码参考](https://www.hiascend.com/document/detail/zh/canncommercial/900/maintenref/troubleshooting/troubleshooting_0225.html)”章节。
 
-    关于torch\_npu插件“错误码”的详细介绍，请参见[Error Code介绍](error_codes_introduction.md)。
+    关于TorchNPU插件“错误码”的详细介绍，请参见[Error Code介绍](error_codes_introduction.md)。
 
 - 收集故障信息
 
@@ -23,7 +23,7 @@
 
     关于日志路径以及日志文件的详细介绍，请参见《CANN 日志参考》中的“[查看日志（Ascend EP）](https://www.hiascend.com/document/detail/zh/canncommercial/900/maintenref/logreference/logreference_0002.html)”章节。
 
-    关于回显信息，Ascend Extension for PyTorch的告警信息默认正常打印，集群场景下告警信息会正常打印在首节点的屏幕上。
+    关于回显信息，TorchNPU的告警信息默认正常打印，集群场景下告警信息会正常打印在首节点的屏幕上。
 
     通过msnpureport工具将Device侧的系统日志传输到Host侧进行查看，具体请参见《[msnpureport工具使用](https://support.huawei.com/enterprise/zh/ascend-computing/atlas-800t-a2-pid-254184887?category=reference-guides)》。
 

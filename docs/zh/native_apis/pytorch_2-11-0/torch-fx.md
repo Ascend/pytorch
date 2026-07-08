@@ -15,6 +15,11 @@
 |[torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symfloatnode](https://pytorch.org/docs/2.11/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symfloatnode)|是|-|
 |[torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symintnode](https://pytorch.org/docs/2.11/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symintnode)|是|-|
 |[torch.fx.experimental.symbolic_shapes.ShapeEnv.create_unbacked_symbool](https://pytorch.org/docs/2.11/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.create_unbacked_symbool)|是|-|
+|[torch.fx.experimental.symbolic_shapes.ShapeEnv.deserialize_symexpr](https://pytorch.org/docs/2.11/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.deserialize_symexpr)|是|-|
+|[torch.fx.experimental.symbolic_shapes.ShapeEnv.evaluate_guards_expression](https://pytorch.org/docs/2.11/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.evaluate_guards_expression)|是|-|
+|[torch.fx.experimental.symbolic_shapes.ShapeEnv.evaluate_guards_for_args](https://pytorch.org/docs/2.11/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.evaluate_guards_for_args)|是|-|
+|[torch.fx.experimental.symbolic_shapes.ShapeEnv.evaluate_sym_node](https://pytorch.org/docs/2.11/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.evaluate_sym_node)|是|-|
+|[torch.fx.experimental.symbolic_shapes.ShapeEnv.evaluate_symexpr](https://pytorch.org/docs/2.11/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.evaluate_symexpr)|是|-|
 |[torch.fx.symbolic_trace](https://pytorch.org/docs/2.11/fx.html#torch.fx.symbolic_trace)|是|支持fp32|
 |[torch.fx.wrap](https://pytorch.org/docs/2.11/fx.html#torch.fx.wrap)|是|支持fp32|
 |[torch.fx.graph.map_arg](https://pytorch.org/docs/2.11/fx.html#torch.fx.graph.map_arg)|是|支持fp32|
@@ -138,6 +143,11 @@
 |[torch.fx.experimental.symbolic_shapes.SubclassSymbolicContext](https://pytorch.org/docs/2.11/generated/torch.fx.experimental.symbolic_shapes.SubclassSymbolicContext.html)|是|-|
 |[torch.fx.experimental.symbolic_shapes.sym_eq](https://pytorch.org/docs/2.11/generated/torch.fx.experimental.symbolic_shapes.sym_eq.html)|是|-|
 |[torch.fx.experimental.symbolic_shapes.statically_known_true](https://pytorch.org/docs/2.11/generated/torch.fx.experimental.symbolic_shapes.statically_known_true.html)|是|-|
+|[torch.fx.experimental.symbolic_shapes.DivideByKey](https://pytorch.org/docs/2.11/generated/torch.fx.experimental.symbolic_shapes.DivideByKey.html)|是|-|
+|[torch.fx.experimental.symbolic_shapes.DivideByKey.get](https://pytorch.org/docs/2.11/generated/torch.fx.experimental.symbolic_shapes.DivideByKey.html#torch.fx.experimental.symbolic_shapes.DivideByKey.get)|是|-|
+|[torch.fx.experimental.symbolic_shapes.EqualityConstraint](https://pytorch.org/docs/2.11/generated/torch.fx.experimental.symbolic_shapes.EqualityConstraint.html)|是|-|
+|[torch.fx.experimental.symbolic_shapes.guard_size_oblivious](https://pytorch.org/docs/2.11/generated/torch.fx.experimental.symbolic_shapes.guard_size_oblivious.html)|是|-|
+|[torch.fx.experimental.symbolic_shapes.has_free_symbols](https://pytorch.org/docs/2.11/generated/torch.fx.experimental.symbolic_shapes.has_free_symbols.html)|是|-|
 |[torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symbol](https://pytorch.org/docs/2.11/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symbol)|是|-|
 |[torch.fx.experimental.symbolic_shapes.ShapeEnv.bound_sympy](https://pytorch.org/docs/2.11/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.bound_sympy)|是|-|
 |[torch.fx.experimental.symbolic_shapes.ShapeEnv.check_equal](https://pytorch.org/docs/2.11/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.check_equal)|是|-|

@@ -2,7 +2,7 @@
 
 ## 功能描述
 
-此环境变量用于过滤Ascend Extension for PyTorch日志输出内容，通过黑白名单机制筛选需要显示的日志信息，帮助开发者在大量日志中快速定位关键信息。
+此环境变量用于过滤TorchNPU日志输出内容，通过黑白名单机制筛选需要显示的日志信息，帮助开发者在大量日志中快速定位关键信息。
 
 配合`TORCH_NPU_LOGS`使用时，可以在开启日志打印的基础上，进一步精细化控制日志输出内容，减少无关日志干扰，提升调试效率。
 
@@ -15,7 +15,7 @@
 
 ## 配置示例
 
-以下示例使用op_plugin模块演示过滤功能，该功能同样适用于其他模块（memory、dispatch等）。
+以下示例使用OpPlugin模块演示过滤功能，该功能同样适用于其他模块（memory、dispatch等）。
 
 - 白名单过滤：
 
@@ -24,7 +24,7 @@
     export TORCH_NPU_LOGS_FILTER="+aclnnAdd,+aclnnMul"
     ```
 
-    以上配置表示开启op_plugin模块的DEBUG级别日志，并仅显示包含"aclnnAdd"或"aclnnMul"算子的日志信息。
+    以上配置表示开启OpPlugin模块的DEBUG级别日志，并仅显示包含"aclnnAdd"或"aclnnMul"算子的日志信息。
 
 - 黑名单过滤：
 
@@ -33,7 +33,7 @@
     export TORCH_NPU_LOGS_FILTER="-aclnnAdd,-aclnnMul"
     ```
 
-    以上配置表示开启op_plugin模块的DEBUG级别日志，并过滤掉包含"aclnnAdd"或"aclnnMul"算子的日志信息。
+    以上配置表示开启OpPlugin模块的DEBUG级别日志，并过滤掉包含"aclnnAdd"或"aclnnMul"算子的日志信息。
 
 - 关闭过滤：
 

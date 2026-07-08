@@ -18,7 +18,7 @@
 
 - garbage\_collection\_threshold:<value\>，垃圾回收阈值。
 
-    主动回收未使用的NPU内存块。在设置value阈值（例如0.8）后，如果NPU内存容量使用超过阈值（即分配给NPU应用程序的总内存的80%），缓存分配器将开始回收NPU内存块，优先释放最先申请和长时间未复用的内存块，避免释放积极复用的内存块。其中<value\>取值范围为\(0.0,1.0\)。默认不开启该功能。垃圾回收阈值需与内存因子配合使用，内存因子可参考《[Ascend Extension for PyTorch 自定义API参考](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/overview.md)》的“torch\_npu.npu.set\_per\_process\_memory\_fraction”。
+    主动回收未使用的NPU内存块。在设置value阈值（例如0.8）后，如果NPU内存容量使用超过阈值（即分配给NPU应用程序的总内存的80%），缓存分配器将开始回收NPU内存块，优先释放最先申请和长时间未复用的内存块，避免释放积极复用的内存块。其中<value\>取值范围为\(0.0,1.0\)。默认不开启该功能。垃圾回收阈值需与内存因子配合使用，内存因子可参考《[自定义API](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/overview.md)》的“torch\_npu.npu.set\_per\_process\_memory\_fraction”。
 
 - expandable\_segments:<value\>，开启内存池扩展段功能，即虚拟内存特性。
 
@@ -86,7 +86,7 @@
 
 > [!NOTE]  
 >
-> 用户使用Ascend Extension for PyTorch 6.0.RC3及以上版本配套的驱动（Ascend HDK 24.1.RC3及以上），开启虚拟内存特性时，可以使用单进程多卡特性；用户使用Ascend Extension for PyTorch 6.0.RC3以下版本配套的驱动（Ascend HDK 24.1.RC3以下版本），开启虚拟内存特性时，不能使用单进程多卡特性。
+> 用户使用TorchNPU 6.0.RC3及以上版本配套的驱动（Ascend HDK 24.1.RC3及以上），开启虚拟内存特性时，可以使用单进程多卡特性；用户使用TorchNPU 6.0.RC3以下版本配套的驱动（Ascend HDK 24.1.RC3以下版本），开启虚拟内存特性时，不能使用单进程多卡特性。
 
 ## 配置示例<a id="配置示例"></a> 
 
@@ -184,13 +184,13 @@ export PYTORCH_ALLOC_CONF=max_split_size_mb:32,garbage_collection_threshold:0.6
         - 若未配置page\_size，内存申请粒度为2MB。
 
     - 当申请内存小于等于1MB时：配置page\_size也不生效，内存申请粒度为2MB。
-- pin_memory_expandable_segments特性要求Ascend Extension for PyTorch 7.3.0及以上版本、Ascend HDK 25.5.0及以上版本、CANN商用8.5.0及以上版本使用。
-- pinned_use_background_threads特性要求在Ascend Extension for PyTorch 26.0.0及以上版本且PyTorch 2.8.0及以上版本使用。
+- pin_memory_expandable_segments特性要求TorchNPU 7.3.0及以上版本、Ascend HDK 25.5.0及以上版本、CANN商用8.5.0及以上版本使用。
+- pinned_use_background_threads特性要求在TorchNPU 26.0.0及以上版本且PyTorch 2.8.0及以上版本使用。
 - pinned_mem_register使用注意事项如下：
-    - 特性要求Ascend Extension for PyTorch 26.0.0及以上版本、Ascend HDK 26.0.RC1及以上版本、CANN商用8.5.0及以上版本使用。
+    - 特性要求TorchNPU 26.0.0及以上版本、Ascend HDK 26.0.RC1及以上版本、CANN商用8.5.0及以上版本使用。
     - 与pin_memory_expandable_segments特性不支持同时配置。
 - multi_stream_lazy_reclaim使用注意事项：
-    - 特性要求在Ascend Extension for PyTorch 7.3.0以上版本上使用。
+    - 特性要求在TorchNPU 7.3.0以上版本上使用。
     - 该特性主要解决多流场景下，Host侧存在下发性能瓶颈时的系统效率问题。单流、少流场景或者非Host性能瓶颈时，该功能收益不大。
 - large\_segment\_size\_mb特性需在Ascend Extension for PyTorch 26.1.0及以上版本、PyTorch 2.11.0 及以版本上使用。
 - per\_process\_memory\_fraction特性需在Ascend Extension for PyTorch 26.1.0及以上版本、PyTorch 2.10.0 及以上版本使用。

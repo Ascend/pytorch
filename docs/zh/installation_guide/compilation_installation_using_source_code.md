@@ -1,6 +1,6 @@
 # 方式二：源码安装
 
-源码安装适用于二次开发场景，如自定义算子适配开发后，用户可以选择需要的分支版本自行编译PyTorch框架和torch\_npu插件。
+源码安装适用于二次开发场景，如自定义算子适配开发后，用户可以选择需要的分支版本自行编译PyTorch框架和TorchNPU插件。
 
 执行安装命令前，请参见[安装前准备](preparing_installation.md)完成环境变量配置及其他环境准备。
 
@@ -8,19 +8,19 @@
 
 具体步骤请参见[PyTorch官网](https://github.com/pytorch/pytorch?tab=readme-ov-file#from-source)。
 
-## 安装torch\_npu插件
+## 安装TorchNPU插件
 
 以下操作步骤以安装PyTorch 2.7.1版本为例。
 
 - **方式一（推荐）：容器场景**
 
-    1. 下载torch\_npu源码。
+    1. 下载TorchNPU源码。
 
         ```bash
         git clone https://gitcode.com/Ascend/pytorch.git -b v2.7.1-26.0.0 --depth 1
         ```
 
-        以v2.7.1-26.0.0为例，下载对应的Ascend Extension for PyTorch分支代码。请参见《版本说明》中的“[相关产品版本配套说明](../release_notes/release_notes.md#相关产品版本配套说明)”章节下载Ascend Extension for PyTorch其他版本的分支代码。
+        以v2.7.1-26.0.0为例，下载对应的TorchNPU分支代码。请参见《版本说明》中的“[相关产品版本配套说明](../release_notes/release_notes.md#相关产品版本配套说明)”章节下载TorchNPU其他版本的分支代码。
 
     2. 构建镜像。
 
@@ -33,13 +33,13 @@
         > - _{arch}_ 表示CPU架构（X86或ARM）。
         > - 注意不要遗漏命令结尾的“.”。
 
-    3. 进入Docker容器，并将torch\_npu源代码挂载至容器内。
+    3. 进入Docker容器，并将TorchNPU源代码挂载至容器内。
 
         ```bash
         docker run -it -v /{code_path}/pytorch:/home/pytorch manylinux-builder:v1 bash
         ```
 
-        _{code_path}_ 表示torch\_npu源代码路径，请根据实际情况进行替换。
+        _{code_path}_ 表示TorchNPU源代码路径，请根据实际情况进行替换。
 
     4. 编译生成Whl安装包。
 
@@ -50,13 +50,13 @@
 
         如需指定其他Python版本，请使用--python=3.9、--python=3.11、--python=3.12或--python=3.13。
 
-    5. 在运行环境中安装生成的torch\_npu插件包，如果使用非root用户进行安装，需要在命令后加`--user`。
+    5. 在运行环境中安装生成的TorchNPU插件包，如果使用非root用户进行安装，需要在命令后加`--user`。
 
         ```bash
         pip3 install --upgrade dist/torch_npu-2.7.1.post2-cp310-cp310-linux_aarch64.whl
         ```
 
-        请用户根据实际情况更改命令中的torch\_npu包名。
+        请用户根据实际情况更改命令中的TorchNPU包名。
 
     6. 在运行环境中安装pytorch目录下的依赖文件requirements.txt。
 
@@ -120,15 +120,15 @@
 
             如果使用非root用户安装，需要在命令后加`--user`，例如：**pip3 install pyyaml --user**。
 
-    2. 编译生成torch\_npu插件的Whl安装包。
-        1. 以v2.7.1-26.0.0为例，下载对应的Ascend Extension for PyTorch分支代码并进入插件根目录。
+    2. 编译生成TorchNPU插件的Whl安装包。
+        1. 以v2.7.1-26.0.0为例，下载对应的TorchNPU分支代码并进入插件根目录。
 
             ```bash
             git clone -b v2.7.1-26.0.0 https://gitcode.com/Ascend/pytorch.git
             cd pytorch
             ```
 
-            请参见《版本说明》中的“[相关产品版本配套说明](../release_notes/release_notes.md#相关产品版本配套说明)”章节下载Ascend Extension for PyTorch其他版本的分支代码。
+            请参见《版本说明》中的“[相关产品版本配套说明](../release_notes/release_notes.md#相关产品版本配套说明)”章节下载TorchNPU其他版本的分支代码。
 
         2. 编译生成Whl安装包。
 
@@ -138,13 +138,13 @@
 
             如需指定其他Python版本，请使用--python=3.9、--python=3.11、--python=3.12或--python=3.13。
 
-    3. 安装pytorch/dist目录下生成的插件torch\_npu包，如果使用非root用户安装，需要在命令后加`--user`。
+    3. 安装pytorch/dist目录下生成的插件TorchNPU包，如果使用非root用户安装，需要在命令后加`--user`。
 
         ```bash
         pip3 install --upgrade dist/torch_npu-2.7.1.post2-cp310-cp310-linux_aarch64.whl
         ```
 
-        请用户根据实际情况更改命令中的torch\_npu包名。
+        请用户根据实际情况更改命令中的TorchNPU包名。
 
     4. 安装pytorch目录下的依赖文件requirements.txt。
 
@@ -154,7 +154,7 @@
 
 ## 版本查询
 
-执行以下命令可检查安装的Python、PyTorch框架和torch_npu插件版本。
+执行以下命令可检查安装的Python、PyTorch框架和TorchNPU插件版本。
 
 - 查看已安装的Pyhton版本。
 
@@ -168,13 +168,13 @@
     Python 3.13.0
     ```
 
-- 查看已安装的PyTorch框架和torch_npu插件版本。
+- 查看已安装的PyTorch框架和TorchNPU插件版本。
 
     ```bash
     pip list | grep torch
     ```
 
-    输出如下PyTorch框架和torch_npu插件版本。
+    输出如下PyTorch框架和TorchNPU插件版本。
 
     ```text
     torch     2.10.0
@@ -183,11 +183,11 @@
 
     > [!NOTE]
     >
-    > 如果需要查询Ascend Extension for PyTorch安装包版本，请单击[相关产品版本配套说明](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.0.0/docs/zh/release_notes/release_notes.md#%E7%9B%B8%E5%85%B3%E4%BA%A7%E5%93%81%E7%89%88%E6%9C%AC%E9%85%8D%E5%A5%97%E8%AF%B4%E6%98%8E)查看。
+    > 如果需要查询TorchNPU安装包版本，请单击[相关产品版本配套说明](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.0.0/docs/zh/release_notes/release_notes.md#%E7%9B%B8%E5%85%B3%E4%BA%A7%E5%93%81%E7%89%88%E6%9C%AC%E9%85%8D%E5%A5%97%E8%AF%B4%E6%98%8E)查看。
 
 ## 安装后验证
 
-执行以下命令可检查PyTorch框架和torch_npu插件是否已成功安装。
+执行以下命令可检查PyTorch框架和TorchNPU插件是否已成功安装。
 
 - 方法一
 

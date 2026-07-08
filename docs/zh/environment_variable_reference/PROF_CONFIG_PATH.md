@@ -2,7 +2,7 @@
 
 ## 功能描述
 
-在PyTorch训练场景中，通过此环境变量可指定Ascend PyTorch Profiler接口的dynamic_profile采集功能的profiler_config.json配置文件路径。
+在TorchNPU训练场景中，通过此环境变量可指定TorchNPU Profiler接口的dynamic_profile采集功能的profiler_config.json配置文件路径。
 
 ## 配置示例
 
@@ -16,7 +16,7 @@ export PROF_CONFIG_PATH="/path/to/profiler_config_path"
 
 ## 使用约束
 
-- 脚本不手动添加代码的情况，此环境变量适用于PyTorch训练场景。
+- 脚本不手动添加代码的情况，此环境变量适用于TorchNPU训练场景。
 - 脚本内添加dynamic\_profile模块后，此环境变量可以在非训练场景使用。例如：
 
     ```python

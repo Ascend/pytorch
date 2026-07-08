@@ -33,8 +33,9 @@ def npu_fusion_attention_flops(
         return _calculate_tnd_layout_flops(
             q_shape, k_shape, v_shape, actual_seq_qlen, actual_seq_kvlen
         )
+    kv_heads = _infer_kv_heads(q_shape, k_shape, input_layout, head_num)
     return _calculate_common_layout_flops(
-        q_shape, k_shape, v_shape, input_layout, sparse_mode, head_num, head_num
+        q_shape, k_shape, v_shape, input_layout, sparse_mode, head_num, kv_heads
     )
 
 
@@ -418,10 +419,28 @@ def _calculate_tnd_layout_flops(
     _, _, v_d = v_shape
     q_lens = _parse_seq_len(actual_seq_qlen)
     kv_lens = _parse_seq_len(actual_seq_kvlen)
-    if len(q_lens) != len(kv_lens) or any(length <= 0 for length in q_lens + kv_lens):
+    if len(q_lens) != len(kv_lens) or any(length < 0 for length in q_lens + kv_lens):
         raise ValueError("actual_seq_qlen and actual_seq_kvlen must contain valid cumulative lengths")
     attention_scores = sum(q_len * kv_len for q_len, kv_len in zip(q_lens, kv_lens))
     return int(2 * (q_heads or shape_q_heads) * (q_d + v_d) * attention_scores)
+
+
+def _infer_kv_heads(q_shape, k_shape, input_layout, q_heads):
+    if input_layout == "BNSD":
+        return k_shape[1]
+    if input_layout == "BSND":
+        return k_shape[2]
+    if input_layout == "BSH":
+        _, _, q_hidden = q_shape
+        _, _, k_hidden = k_shape
+    elif input_layout == "SBH":
+        _, _, q_hidden = q_shape
+        _, _, k_hidden = k_shape
+    else:
+        return q_heads
+
+    q_head_dim = _head_dim(q_hidden, q_heads)
+    return _head_dim(k_hidden, q_head_dim)
 
 
 def _calculate_attention_scores(q_s, k_s, sparse_mode):

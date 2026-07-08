@@ -366,9 +366,11 @@ def _patch_profiler():
         ['profiler.schedule', torch_npu.profiler.schedule],
         ['profiler.tensorboard_trace_handler', torch_npu.profiler.tensorboard_trace_handler],
         ['profiler.ProfilerAction', torch_npu.profiler.ProfilerAction],
+        ['profiler.ProfilerActivity', torch_npu.profiler.ProfilerActivity],
         ['profiler.ProfilerActivity.CUDA', torch_npu.profiler.ProfilerActivity.NPU],
         ['profiler.ProfilerActivity.CPU', torch_npu.profiler.ProfilerActivity.CPU]
     ]
+    torch._C._profiler.ProfilerActivity = torch_npu._C._profiler.ProfilerActivity
 
     from torch_npu._init.patches.monkey_patches import _apply_patches
     _apply_patches(patches)

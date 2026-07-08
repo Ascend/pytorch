@@ -213,9 +213,17 @@ class TestNpuFormatCastAclnn(TestCase):
     # Group 6: Error cases
     # ------------------------------------------------------------------ #
 
-    @SupportedDevices(['Ascend910B', 'Ascend910_93', 'Ascend950'])
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
+    def test_noncontiguous_with_internal_format_fallback(self):
+        """910B/910_93: non-contig internal-format tensor falls back to aclop."""
+        nz = torch_npu.npu_format_cast(torch.rand(16, 32).half().npu(), ACL_FORMAT_FRACTAL_NZ)
+        nz_t = nz.transpose(0, 1)
+        out = torch_npu.npu_format_cast(nz_t, ACL_FORMAT_ND)
+        self.assertEqual(torch_npu.get_npu_format(out), ACL_FORMAT_ND)
+
+    @SupportedDevices(['Ascend950'])
     def test_noncontiguous_with_internal_format_raises(self):
-        """Non-contiguous tensor with internal format raises RuntimeError."""
+        """950 (aclnn-only): non-contig internal-format tensor raises RuntimeError."""
         nz = torch_npu.npu_format_cast(torch.rand(16, 32).half().npu(), ACL_FORMAT_FRACTAL_NZ)
         nz_t = nz.transpose(0, 1)
         with self.assertRaises(RuntimeError):
