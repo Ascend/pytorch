@@ -358,7 +358,7 @@ from torch.distributed.distributed_c10d import _world
 
 if (torch.__version__ != '1.11.0') :
     stream_id = _world.default_pg._get_backend(torch.device('npu'))._get_stream_id(False)
-    collective_stream = torch.npu.Stream(stream_id=collective_stream_id, device_type=20, device_index=device_id)    # device_index设置实际业务的device_id值
+    collective_stream = torch.npu.Stream(stream_id=stream_id, device_type=20, device_index=device_id)    # device_index设置实际业务的device_id值
 else:
     stream_id = _world.default_pg._get_stream_id(False)
     current_stream = torch.npu.current_stream()
@@ -376,7 +376,7 @@ from torch.distributed.distributed_c10d import _world
  
 if (torch.__version__ != '1.11.0') :
     stream_id = _world.default_pg._get_backend(torch.device('npu'))._get_stream_id(True)
-    p2p_stream = torch.npu.Stream(stream_id=collective_stream_id, device_type=20, device_index=device_id)    # device_index设置实际业务的device_id值
+    p2p_stream = torch.npu.Stream(stream_id=stream_id, device_type=20, device_index=device_id)    # device_index设置实际业务的device_id值
 else:
     stream_id = _world.default_pg._get_stream_id(True)
     current_stream = torch.npu.current_stream()
@@ -716,7 +716,7 @@ if __name__ == "__main__":
     from torch_npu.profiler.profiler import analyse
     
     if __name__ == "__main__":
-        analyse(profiler_path="./result_data", max_process_number=1, export_type=text)
+        analyse(profiler_path="./result_data", max_process_number=1, export_type=['text'])
     ```
 
     **表 1**  参数说明
@@ -1384,7 +1384,7 @@ PCIe带宽数据。
 |--|--|
 |step|划分不同迭代。torch_npu.profiler._KinetoProfile不支持该方法。|
 |export_chrome_trace|导出trace。在指定的.json文件里写入trace数据。Trace为Ascend PyTorch Profiler接口整合框架侧CANN软件栈及NPU数据后展示的各算子和接口的运行时间及关联关系。包含参数：<br>&#8226; *path*：trace文件（.json）路径。指定文件所在的路径格式仅支持由字母、数字和下划线组成的字符串，不支持软链接。必选。<br>多卡场景下需要将不同卡设置不同的文件名，<br>示例代码：<br>`pid = os.getpid()`<br/>`prof.export_chrome_trace(f'./chrome_trace_{pid}.json')`|
-|export_stacks|导出堆栈信息到文件。包含参数：<br>&#8226; *path*：堆栈文件保存路径，需要配置文件名为“\*.log”，可以指定路径，例如：/home/*.log，直接配置文件名时，文件保存在当前目录。路径格式仅支持由字母、数字和下划线组成的字符串，不支持软链接。必选。<br/>&#8226; metric：保存的芯片类型可选择CPU或NPU，配置为“self_cpu_time_total”或“self_npu_time_total”。必选。<br/>与export_chrome_trace方法在训练/在线推理脚本中的位置相同，示例如下：<br/>`export_stacks('result_dir/stack.log', metric='self_npu_time_total')`<br/>导出的结果文件可使用FlameGraph工具进行查看，操作方法如下：<br/>`git clone https://github.com/brendangregg/FlameGraph`<br/>`cd FlameGraph`<br/>`./flamegraph.pl –title "NPU time" –countname "us." profiler.stacks > perf_viz.svg`|
+|export_stacks|导出堆栈信息到文件。包含参数：<br>&#8226; *path*：堆栈文件保存路径，需要配置文件名为“\*.log”，可以指定路径，例如：/home/*.log，直接配置文件名时，文件保存在当前目录。路径格式仅支持由字母、数字和下划线组成的字符串，不支持软链接。必选。<br/>&#8226; metric：保存的芯片类型可选择CPU或NPU，配置为“self_cpu_time_total”或“self_npu_time_total”。必选。<br/>与export_chrome_trace方法在训练/在线推理脚本中的位置相同，示例如下：<br/>`export_stacks('result_dir/stack.log', metric='self_npu_time_total')`<br/>导出的结果文件可使用FlameGraph工具进行查看，操作方法如下：<br/>`git clone https://github.com/brendangregg/FlameGraph`<br/>`cd FlameGraph`<br/>`./flamegraph.pl --title "NPU time" --countname "us." profiler.stacks > perf_viz.svg`|
 |export_memory_timeline|详细介绍请参见[显存可视化](#显存可视化)。|
 |start|设置采集开始的位置。可参考如下样例，在需要采集性能数据的训练/在线推理代码前后添加start和stop：<br/>`prof = torch_npu.profiler.profile(`<br/>`on_trace_ready=torch_npu.profiler.tensorboard_trace_handler("./result"))`<br/>`for step in range(steps):`<br/>`if step == 5:`<br/>`prof.start()`<br/>`train_one_step()`<br/>`if step == 5:`<br/>`prof.stop()`|
 |stop|设置采集结束的位置，需要先执行start。|
@@ -1577,7 +1577,7 @@ profiler_config_path/
 
     AI任务启动时每个Rank会开启一个AI任务进程，dynamic\_profile根据每个AI任务进程ID生成各个AI任务进程下的日志文件。
 
-- dp\_ubuntu\_xxxxxx.log.1：日志老化备份文件，dp\_ubuntu\_xxxxxx.log文件的存储上限为200K，达到上限后将时间最早的日志记录转移到dp\_ubuntu\_xxxxxx.log.1中，dp\_ubuntu\_xxxxxx.log.1文件存储上限同样为200K，达到上限后则将最早的日志记录老化删除。
+- dp\_ubuntu\_xxxxxx.log.1：日志老化备份文件，dp\_ubuntu\_xxxxxx.log文件的存储上限为200KB，达到上限后将时间最早的日志记录转移到dp\_ubuntu\_xxxxxx.log.1中，dp\_ubuntu\_xxxxxx.log.1文件存储上限同样为200KB，达到上限后则将最早的日志记录老化删除。
 - monitor\_dp\_ubuntu\_xxxxxx.log：profiler\_config.json文件修改日志，开启dynamic\_profile动态采集后，实时记录profiler\_config.json文件的每次修改时间、修改是否生效以及dynamic\_profile进程的结束，示例如下：
 
     ```log
@@ -1588,7 +1588,7 @@ profiler_config_path/
 
     文件命名格式：monitor\_dp\_\{操作系统\}\_\{monitor进程ID\}\_\{Rank\_ID\}.log。
 
-- monitor\_dp\_ubuntu\_xxxxxx.log.1：日志老化备份文件，monitor\_dp\_ubuntu\_xxxxxx.log文件的存储上限为200K，达到上限后将时间最早的日志记录转移到monitor\_dp\_ubuntu\_xxxxxx.log.1中，monitor\_dp\_ubuntu\_xxxxxx.log.1文件存储上限同样为200K，达到上限后则将最早的日志记录老化删除。
+- monitor\_dp\_ubuntu\_xxxxxx.log.1：日志老化备份文件，monitor\_dp\_ubuntu\_xxxxxx.log文件的存储上限为200KB，达到上限后将时间最早的日志记录转移到monitor\_dp\_ubuntu\_xxxxxx.log.1中，monitor\_dp\_ubuntu\_xxxxxx.log.1文件存储上限同样为200KB，达到上限后则将最早的日志记录老化删除。
 - shm目录：为了适配Python3.7，dynamic\_profile会在py37环境下生成shm目录，目录下生成一个二进制文件（DynamicProfileNpuShm+时间）映射共享内存，程序正常结束后会自动清理，当使用pkill终止程序时，由于是异常终止，程序无法释放资源，需要用户手动清理此文件，否则短时间内（&lt;1h）下次使用同一配置路径启动dynamic\_profile，则会导致dynamic\_profile异常。对于Python3.8及以上版本，二进制文件（DynamicProfileNpuShm+时间）存放在/dev/shm目录下，当使用pkill终止程序时，同样需要手动清理此文件。
 
 ## FAQ<a id="FAQ"></a>
