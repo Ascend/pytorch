@@ -1326,8 +1326,10 @@ bool AclrtMallocHostWithCfgExist()
         if (currentCANNVersion == "") {
             return false;
         }
+        // Ascend950 HDK has supported this since its first commercial release.
+        // The first commercial HDK versions are: PCIe card: 25.7, Pod: 25.1, Server: 25.6.
         const std::string kMinDriverVersion = "26.0.rc1";
-        if (!IsGteDriverVersion(kMinDriverVersion)) {
+        if ((!IsGteDriverVersion(kMinDriverVersion)) && (c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend950)) {
             return false;
         }
         // determine the runtime version
@@ -1338,8 +1340,7 @@ bool AclrtMallocHostWithCfgExist()
         auto func = TORCH_NPU_GET_FUNC(aclrtMallocHostWithCfg);
         if (func != nullptr) {
             ASCEND_LOGI("Successfully to find function aclrtMallocHostWithCfg");
-            return c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1 &&
-                c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend950;
+            return c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1;
         }
         return false;
     }();
@@ -1759,9 +1760,13 @@ aclError AclrtPointerGetAttributes(const void *ptr, aclrtPtrAttributes *attribut
 bool AclrtPointerGetAttributesExist()
 {
     const static bool isAclrtPointerGetAttributesExist = []() -> bool {
-        const std::string kMinDriverVersion = "25.5.0";
-        if (!IsGteDriverVersion(kMinDriverVersion)) {
-            return false;
+        // Ascend950 HDK has supported this since its first commercial release.
+        // The first commercial HDK versions are: PCIe card: 25.7, Pod: 25.1, Server: 25.6.
+        if (c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend950) {
+            const std::string kMinDriverVersion = "25.5.0";
+            if (!IsGteDriverVersion(kMinDriverVersion)) {
+                return false;
+            }
         }
         const std::string kMinRuntimeVersion = "8.5.0";
         if (!IsGteCANNVersion(kMinRuntimeVersion, "RUNTIME")) {
