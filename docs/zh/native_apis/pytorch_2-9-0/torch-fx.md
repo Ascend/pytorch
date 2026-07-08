@@ -20,6 +20,11 @@
 |[torch.fx.experimental.symbolic_shapes.ShapeEnv.evaluate_guards_for_args](https://pytorch.org/docs/2.9/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.evaluate_guards_for_args)|是|-|
 |[torch.fx.experimental.symbolic_shapes.ShapeEnv.evaluate_sym_node](https://pytorch.org/docs/2.9/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.evaluate_sym_node)|是|-|
 |[torch.fx.experimental.symbolic_shapes.ShapeEnv.evaluate_symexpr](https://pytorch.org/docs/2.9/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.evaluate_symexpr)|是|-|
+|[torch.fx.experimental.symbolic_shapes.ShapeEnv.size_hint](https://pytorch.org/docs/2.9/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.size_hint)|是|-|
+|[torch.fx.experimental.symbolic_shapes.ShapeEnv.suppress_guards](https://pytorch.org/docs/2.9/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.suppress_guards)|是|-|
+|[torch.fx.experimental.symbolic_shapes.ShapeEnvSettings](https://pytorch.org/docs/2.9/generated/torch.fx.experimental.symbolic_shapes.ShapeEnvSettings.html)|是|-|
+|[torch.fx.experimental.symbolic_shapes.StatefulSymbolicContext](https://pytorch.org/docs/2.9/generated/torch.fx.experimental.symbolic_shapes.StatefulSymbolicContext.html)|是|-|
+|[torch.fx.experimental.symbolic_shapes.StatelessSymbolicContext](https://pytorch.org/docs/2.9/generated/torch.fx.experimental.symbolic_shapes.StatelessSymbolicContext.html)|是|-|
 |[torch.fx.symbolic_trace](https://pytorch.org/docs/2.9/fx.html#torch.fx.symbolic_trace)|是|支持fp32|
 |[torch.fx.wrap](https://pytorch.org/docs/2.9/fx.html#torch.fx.wrap)|是|支持fp32|
 |[torch.fx.graph.map_arg](https://pytorch.org/docs/2.9/fx.html#torch.fx.graph.map_arg)|是|支持fp32|
