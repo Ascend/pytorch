@@ -512,6 +512,24 @@ def _build_single_fwd_config(
     return cfgs
 
 
+def get_bwd_dq_compile_options() -> dict:
+    return {
+        "limit_auto_multi_buffer_buffer": "no-limit",
+        "hfusion_enable_multiple_consumer_fusion": True,
+        "enable_select_analysis": False,
+        "limit_auto_multi_buffer_of_local_buffer": "no-l0c",
+    }
+
+
+def get_bwd_dkdv_compile_options() -> dict:
+    return {
+        "limit_auto_multi_buffer_buffer": "no-limit",
+        "hfusion_enable_multiple_consumer_fusion": True,
+        "unit_flag": True,
+        "limit_auto_multi_buffer_of_local_buffer": "no-l0c",
+    }
+
+
 def generate_fwd_candidate_configs(
     query_shape: tuple,
     key_shape: tuple,

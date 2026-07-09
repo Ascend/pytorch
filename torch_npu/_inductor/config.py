@@ -295,9 +295,12 @@ autotune_continue_on_failure = os.environ.get('TORCHINDUCTOR_NPU_BACKEND') == "d
 
 
 FLEX_ATTENTION_NPU_COMPILE_HINT_KEYS = (
+    "limit_auto_multi_buffer_buffer",
     "multibuffer",
     "unit_flag",
     "enable_ubuf_saving",
+    "hfusion_enable_multiple_consumer_fusion",
+    "enable_select_analysis",
     "limit_auto_multi_buffer_only_for_local_buffer",
     "limit_auto_multi_buffer_of_local_buffer",
     "set_workspace_multibuffer",
@@ -322,6 +325,9 @@ class flex_attention:
     multibuffer = True
     unit_flag = True
     enable_ubuf_saving = True
+    limit_auto_multi_buffer_buffer = "no-limit"
+    hfusion_enable_multiple_consumer_fusion = True
+    enable_select_analysis = False
     limit_auto_multi_buffer_only_for_local_buffer = False
     limit_auto_multi_buffer_of_local_buffer = "no-limit"
     set_workspace_multibuffer = 4

@@ -311,6 +311,8 @@ from torch_npu._inductor.kernel.flex_attention_metadata import (
 )
 from torch_npu._inductor.kernel.flex_attention_config_generator import (
     build_sparse_mask_candidate_configs,
+    get_bwd_dkdv_compile_options,
+    get_bwd_dq_compile_options,
     generate_bwd_split_mask_out_candidate_configs,
     generate_fwd_candidate_configs,
     is_bwd_config_compatible,
@@ -3747,6 +3749,7 @@ def _register_npu_inductor_flex_attention():
                     "num_warps": 4,
                 }
             )
+            opts.update(get_bwd_dq_compile_options())
             opts.update(
                 _build_qmajor_dq_launch_meta(
                     batch_size_hint=bwd_batch_size_hint,
@@ -3756,14 +3759,6 @@ def _register_npu_inductor_flex_attention():
                 )
             )
             return opts
-
-        bwd_dkdv_compile_options = {
-            "multibuffer": True,
-            "set_workspace_multibuffer": 0,
-            "disable_auto_inject_block_sync": True,
-            "enable_mixed_cv": True,
-            "limit_auto_multi_buffer_of_local_buffer": "no-limit",
-        }
 
         def make_bwd_dkdv_kernel_options(cfg: dict) -> dict:
             opts = make_bwd_base_kernel_options(cfg)
@@ -3775,7 +3770,7 @@ def _register_npu_inductor_flex_attention():
                     "num_warps": 4,
                 }
             )
-            opts.update(bwd_dkdv_compile_options)
+            opts.update(get_bwd_dkdv_compile_options())
             opts.update(
                 _build_persistent_bwd_launch_meta(
                     batch_size_hint=bwd_batch_size_hint,
