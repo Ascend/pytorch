@@ -1,11 +1,10 @@
-import os
 import sympy
 
 import torch._ops
 from torch._inductor import ir
 from torch._inductor import lowering
-from torch._inductor.decomposition import decompositions, pw_cast_for_opmath
-from torch._inductor.ir import ExpandView, TensorBox, ops_wrapper
+from torch._inductor.decomposition import decompositions
+from torch._inductor.ir import ExpandView, TensorBox
 from torch._inductor.ir import Reduction
 from torch._inductor.lowering import sum_ as sum__pt, clone
 from torch._inductor.utils import sympy_product
@@ -17,7 +16,6 @@ from torch._prims_common import (
 )
 from torch._inductor.lowering import (
     lowerings,
-    make_fallback,
     register_lowering,
     to_dtype,
     fallback_cumsum,
@@ -27,13 +25,9 @@ from torch._inductor.lowering import (
     square as square_pt,
     sub as sub_pt,
     fallback_handler,
-    logical_and,
-    make_pointwise,
     _make_reduction_inner,
-    _validate_reduction_axis,
     add_needs_realized_inputs,
     add_layout_constraint,
-    require_channels_last,
     _validate_dim as _validate_dim_pt,
     get_promoted_dtype,
 )
@@ -46,7 +40,7 @@ from .lowering_common import (
 from .config import log, enable_full_lowering_fallback
 from .lowering_op_list import GENERATE_LIST, GENERATE_LIST2, FALLBACK_LIST, LOWERING_OVERLOAD_OP
 from . import config as npu_config
-from .lowering_fx import (
+from .lowering_fx import (  # noqa: F401
     fetch_graphs,
     merge_traced_graphs,
     node_id,
@@ -57,7 +51,7 @@ from .lowering_fx import (
     generate_fx_graph_code,
     dump_fx_graph_code,
     snodes_to_fx,
-    )
+)
 
 
 def npu_make_fallback(op, layout_constraint=None, warn=True, override_decomp=False, get_decomp_fn=None):
@@ -86,11 +80,11 @@ make_fallback = npu_make_fallback
 
 
 if npu_config.dump_fx_graph:
-    from .lowering_fx import (
+    from .lowering_fx import (  # noqa: F811
         _make_reduction_inner,
         reduction_type_to_aten_fn,
         clone,
-        to_dtype
+        to_dtype,
     )
 
     LOWERING_OVERLOAD_OP = list(set(GENERATE_LIST) | set(LOWERING_OVERLOAD_OP))
@@ -110,15 +104,19 @@ def make_reduction(reduction_type: str, override_return_dtype=None):
             input_graphs = fetch_graphs([x, axis if axis is not None else list(range(len(x.get_size())))])
             new_graph = merge_traced_graphs(input_graphs, reduction_type_to_aten_fn[reduction_type],
                                             node_name, keepdim=keepdims)
-            result = Reduction.create(reduction_type=reduction_type,
-                                    input_node=x,
-                                    node_name=node_name,
-                                    traced_graph=new_graph,
-                                    **kwargs)
+            result = Reduction.create(
+                reduction_type=reduction_type,
+                input_node=x,
+                node_name=node_name,
+                traced_graph=new_graph,
+                **kwargs
+            )
         else:
-            result = Reduction.create(reduction_type=reduction_type,
-                                        input_node=x,
-                                        **kwargs)
+            result = Reduction.create(
+                reduction_type=reduction_type,
+                input_node=x,
+                **kwargs
+            )
         if isinstance(
                 result.data.data, Reduction
         ):  # Only realize if reduction isn't unrolled
@@ -160,20 +158,19 @@ def _register_npu_inductor_fallbacks():
             op = resolve_op_from_name(op_name, log)
             if isinstance(op, (torch._ops.OpOverloadPacket, torch._ops.OpOverload, torch._ops.HigherOrderOperator)):
                 FALLBACK_LIST.append(op)
-                log.info(f"[npu|inductor|lowering|fallback] User specified fallback: {op_name}")
+                log.info("[npu|inductor|lowering|fallback] User specified fallback: %s", op_name)
             else:
-                log.warning(f"[npu|inductor|lowering|fallback] Cannot resolve operator: {op_name}")
+                log.warning("[npu|inductor|lowering|fallback] Cannot resolve operator: %s", op_name)
     # 算子fallback
     for op in lowering.lowerings:
         if op in FALLBACK_LIST and op not in decompositions \
-            and isinstance(op, (torch._ops.OpOverloadPacket, torch._ops.OpOverload, torch._ops.HigherOrderOperator)):
+                and isinstance(op, (torch._ops.OpOverloadPacket, torch._ops.OpOverload, torch._ops.HigherOrderOperator)):
             make_fallback(op)
 
     # 把不在白名单的op fallback
     for op in lowerings:
         if op not in decompositions and op not in gen_set:
-            if isinstance(op, torch._ops.OpOverloadPacket) or \
-                    isinstance(op, (torch._ops.OpOverload, torch._ops.HigherOrderOperator)):
+            if isinstance(op, (torch._ops.OpOverloadPacket, torch._ops.OpOverload, torch._ops.HigherOrderOperator)):
                 flag = False
                 for gens in GENERATE_LIST2:
                     if str(op).find(gens) != -1:
@@ -193,7 +190,9 @@ def _register_npu_inductor_fallbacks():
         (squeeze, _validate_dim, div, square, sub, sum_) = _register_npu_inductor_fallbacks_fx(make_reduction)
     else:
         (squeeze, _validate_dim, div, square, sub, sum_) = (squeeze_pt, _validate_dim_pt, div_pt, square_pt, sub_pt, sum__pt)
-    # register the reductions useing custom make_reduction
+
+    _add_fallback_ops_for_torchgen()
+    # register the reductions using custom make_reduction
     reduce_amax = register_lowering(aten.amax)(make_reduction("max"))
     reduce_amin = register_lowering(aten.amin)(make_reduction("min"))
     reduce_argmax = register_lowering(aten.argmax)(
@@ -348,3 +347,12 @@ def _enable_full_lowering_fallback():
             torch._higher_order_ops.triton_kernel_wrap.TritonKernelWrapperFunctional,
         ),
     )
+
+def _add_fallback_ops_for_torchgen():
+    import torchgen.aoti.fallback_ops as fallback_ops
+    from torchnpugen.aoti.fallback_ops import inductor_fallback_ops_npu, inductor_fallback_ops_npu_not_support
+    fallback_ops.inductor_fallback_ops = {
+        k: v
+        for k, v in (fallback_ops.inductor_fallback_ops | inductor_fallback_ops_npu).items()
+        if k not in inductor_fallback_ops_npu_not_support
+    }

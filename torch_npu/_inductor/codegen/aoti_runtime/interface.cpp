@@ -1,7 +1,7 @@
 // Licensed under the BSD 3-Clause License  (the "License");
 // Definition of AOTI runtime interface functions
 
-#include <torch_npu/csrc/inductor/aoti_runtime/interface.h>
+#include <torch/csrc/inductor/aoti_runtime/interface.h>
 #include <torch_npu/csrc/inductor/aoti_runtime/model_container.h>
 
 #include <iostream>

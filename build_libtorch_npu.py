@@ -136,7 +136,7 @@ def generate_dbg_files_and_strip():
     library_files = [Path(i) for i in library_dir.rglob('*.so')]
     for library_file in library_files:
         subprocess.check_call(["eu-strip", library_file, "-f",
-                                str(dbg_dir.joinpath(library_file.name)) + ".debug"], cwd=BASE_DIR)  # Compliant
+                              str(dbg_dir.joinpath(library_file.name)) + ".debug"], cwd=BASE_DIR)  # Compliant
 
 
 def run_cmake():
@@ -160,7 +160,8 @@ def run_cmake():
         '-DPYTHON_INCLUDE_DIR=' + get_paths().get('include'),
         '-DPYTORCH_INSTALL_DIR=' + get_pytorch_dir(),
         '-DTORCH_VERSION=' + VERSION,
-        '-DBUILD_LIBTORCH=' + "ON"]
+        '-DBUILD_LIBTORCH=' + "ON",
+        '-DUSE_NPU=' + 'ON']
 
     if check_opplugin_valid(BASE_DIR):
         cmake_args.append('-DBUILD_OPPLUGIN=on')

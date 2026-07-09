@@ -76,7 +76,7 @@ def _load_triton_backend():
     from torch_npu.utils._dynamo_device import current_device, NpuInterface, set_device
     from torch_npu.utils._inductor import NPUDeviceOpOverrides
     from . import codegen, config as npu_config
-    from .codecache import patch_aot_code_compiler_compile
+    from .codecache import patch_get_cpp_wrapper_header
     from .config import aggresive_autotune, log as npulog, num_vector_core
     from .decomposition import _register_npu_inductor_decompositons
     from .lowering import make_reduction, npu_make_fallback
@@ -112,20 +112,18 @@ def _load_triton_backend():
         from .codegen.cpp_utils import patch_device_to_aten
         from .cpp_builder import patch_get_cpp_torch_device_options
         from .fx_passes.joint_graph import patch_constant_fold_uniform_value
-        from .ir import patch_fallback_kernel_codegen
         from .utils import patch_is_same_tensor
 
         patch_get_cpp_torch_device_options()
         patch_is_same_tensor()
         patch_constant_fold_uniform_value()
-        patch_fallback_kernel_codegen()
         patch_device_to_aten()
 
         from .ir import patch_extern_kernel_codegen_size_asserts
 
         patch_extern_kernel_codegen_size_asserts()
 
-        patch_aot_code_compiler_compile()
+        patch_get_cpp_wrapper_header()
 
     if os.environ.get("DISABLE_AOTI_PATCH", "0") != "1":
         patch_torch_for_aoti()

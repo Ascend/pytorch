@@ -1,12 +1,14 @@
 #pragma once
+#ifdef USE_NPU
 
-#if defined(USE_NPU)
 // WARNING: Be careful when adding new includes here. This header will be used
 // in model.so, and should not refer to any aten/c10 headers except the stable
 // C ABI defined in torch_npu/csrc/inductor/aoti_torch/c/shim.h. The same rule
 // applies to other files under torch_npu/csrc/inductor/aoti_runtime/.
-#include <torch_npu/csrc/inductor/aoti_runtime/utils.h>
 
+#include <third_party/acl/inc/acl/acl_base.h>
+#include <torch/csrc/inductor/aoti_runtime/utils.h>
+#include <torch_npu/csrc/inductor/aoti_torch/c/shim_npu.h>
 namespace torch::aot_inductor {
 
 inline void delete_npu_guard(void* ptr)

@@ -368,11 +368,7 @@ class TritonCompileResultNpu(TritonCompileResult):
             f"    grid_0 = {grid.x_grid}",
             f"    grid_1 = {grid.y_grid}",
             f"    grid_2 = {grid.z_grid}",
-            "    log.debug(",
-            "        f'[Runtime] Launch KERNEL {fn.fn.__name__} with ' ",
-            "        f'grid {{grid_0, grid_1, grid_2}} and cfg {{grid_meta}}]'",
-            "    )",
-            "    runner({', '.join(runner_args)})",
+            f"    runner({', '.join(runner_args)})",
         ]
         exec("\n".join(lines), scope)
 
@@ -635,7 +631,7 @@ class NPUCachingAutotuner(CachingAutotuner):
         if self.inductor_meta.get("profile_bandwidth_with_do_bench_using_profiling", False):
             return do_bench_using_profiling_npu(kernel_call, rep=1)
 
-        return benchmarker.benchmark_gpu(kernel_call, rep=1)
+        return benchmarker.benchmark_gpu(kernel_call, rep=1, device_type="npu")
 
     def _should_skip_autotune_for_determinism(self):
         """

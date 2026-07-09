@@ -26,6 +26,8 @@ from torch._inductor.utils import ALIGN_BYTES
 from .. import config as npu_config
 from ..config import npu_block as NPU_ALIGN_BYTES
 
+config.triton.autotune_at_compile_time = False
+
 
 def checkIfTrue(value, msg):
     if not value:
@@ -230,8 +232,8 @@ class CppWrapperNpu(CppWrapperCpu):
         if V.graph.aot_mode:
             self.header.splice(
                 """
-                #include <torch_npu/csrc/inductor/aoti_runtime/interface.h>
                 #include <torch_npu/csrc/inductor/aoti_runtime/model.h>
+                #include <torch_npu/csrc/inductor/aoti_runtime/model_container.h>
                 """
             )
             with open(
@@ -274,19 +276,18 @@ class CppWrapperNpu(CppWrapperCpu):
                     PyObject* obj_;
                 };
 
-                #include <torch_npu/csrc/inductor/aoti_runtime/device_utils.h>
-                #include <torch_npu/csrc/inductor/aoti_runtime/utils.h>
+                #include <torch/csrc/inductor/aoti_runtime/utils.h>
                 using namespace torch::aot_inductor;
                 """
             )
 
         self.header.splice(
             f"""
-            #include <torch_npu/csrc/inductor/aoti_runtime/arrayref_tensor.h>
+            #include <torch/csrc/inductor/aoti_runtime/arrayref_tensor.h>
+            #include <torch/csrc/inductor/aoti_runtime/scalar_to_tensor.h>
             #include <torch_npu/csrc/inductor/aoti_runtime/thread_local.h>
-            #include <torch_npu/csrc/inductor/aoti_runtime/scalar_to_tensor.h>
             // Here comment c_shim_npu.h because npu doesn't implement it.
-            // #include <torch_npu/csrc/inductor/aoti_torch/generated/c_shim_{self.device}.h>
+            #include <torch_npu/csrc/inductor/aoti_torch/generated/c_shim_{self.device}.h>
 
             #include <c10/util/generic_math.h>
             typedef at::Half half;
@@ -478,6 +479,9 @@ class CppWrapperNpu(CppWrapperCpu):
             arg_data = f"static_cast<{DTYPE_TO_CPP[dtype]}>({scalar})"
 
         return struct_data, arg_data
+
+    def get_device_include_path_aot(self, device: str) -> str:
+        return f"#include <torch_npu/csrc/inductor/aoti_include/{device}.h>"
 
     def codegen_device(self, device):
         if device.type not in DEVICE_TO_ATEN:
