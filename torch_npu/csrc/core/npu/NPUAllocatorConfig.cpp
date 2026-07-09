@@ -5,6 +5,7 @@
 #include "torch_npu/csrc/core/npu/GetCANNInfo.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/NPUAllocatorConfig.h"
+#include "torch_npu/csrc/core/npu/NpuVariables.h"
 
 namespace c10_npu {
     namespace NPUCachingAllocator {
@@ -119,7 +120,10 @@ namespace c10_npu {
                         m_pin_memory_expandable_segments = false;
                         return i;
                     }
-                    if (!IsGteDriverVersion(pinMemoryExpandableMinDriverVersion)) {
+                    // Ascend950 HDK has supported this since its first commercial release.
+                    // The first commercial HDK versions are: PCIe card: 25.7, Pod: 25.1, Server: 25.6.
+                    if ((c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend950) &&
+                        (!IsGteDriverVersion(pinMemoryExpandableMinDriverVersion))) {
                         TORCH_NPU_WARN_ONCE("m_pin_memory_expandable_segments setting failure, the current driver version does not support this feature, now change to `False`."
                         "To use this feature, you need to upgrade to version " + pinMemoryExpandableMinDriverVersion + " or higher");
                         m_pin_memory_expandable_segments = false;
