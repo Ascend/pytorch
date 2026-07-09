@@ -72,7 +72,8 @@ class NpuInterface(DeviceInterface):
     @staticmethod
     def exchange_device(device: int) -> int:
         curr_device = current_device()
-        set_device(device)
+        if curr_device != device:
+            set_device(device)
         return curr_device
 
     @staticmethod
