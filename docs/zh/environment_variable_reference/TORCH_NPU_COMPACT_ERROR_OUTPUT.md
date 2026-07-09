@@ -24,6 +24,7 @@ export TORCH_NPU_COMPACT_ERROR_OUTPUT=1
 - <term>Atlas 训练系列产品</term>
 - <term>Atlas A2 训练系列产品</term>
 - <term>Atlas A3 训练系列产品</term>
+- <term>Ascend 950DT</term>
 
 ## 结果示例
 

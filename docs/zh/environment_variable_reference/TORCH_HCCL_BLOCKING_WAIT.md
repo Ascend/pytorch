@@ -39,3 +39,4 @@ export HCCL_BLOCKING_WAIT=1
 - <term>Atlas A2 训练系列产品</term>
 - <term>Atlas A3 训练系列产品</term>
 - <term>Atlas 推理系列产品</term>
+- <term>Ascend 950DT</term>

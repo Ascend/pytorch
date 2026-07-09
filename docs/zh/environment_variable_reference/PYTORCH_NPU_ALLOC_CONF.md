@@ -10,6 +10,10 @@
 
 缓存分配器会根据申请内存的大小使用不同内存池，小于1MB使用小块内存池，反之使用大块内存池；虚拟内存特性下，大块内存池申请的物理内存粒度（segment\_size\_mb）默认为20MB，小块内存池默认为2MB（不可配置）；大模型场景下小块内存池内存使用通常较少，因此部分环境配置项（page\_size、segment\_size\_mb）只作用于大块内存池。
 
+> [!NOTICE]
+>
+> <term>Ascend 950DT</term>仅支持expandable\_segments、pinned\_use\_background\_threads、pin\_memory\_expandable\_segments和pinned\_mem\_register四个参数，其余参数均不支持。
+
 可选参数：
 
 - max\_split\_size\_mb:<value\>，内存块允许切分上限。

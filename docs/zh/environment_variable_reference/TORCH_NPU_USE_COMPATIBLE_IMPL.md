@@ -30,4 +30,4 @@ export TORCH_NPU_USE_COMPATIBLE_IMPL=1
 - <term>Atlas A2 训练系列产品</term>
 - <term>Atlas A3 训练系列产品</term>
 - <term>Atlas 推理系列产品</term>
-- <term>Atlas 350 加速卡</term>
+- <term>Ascend 950DT</term>
