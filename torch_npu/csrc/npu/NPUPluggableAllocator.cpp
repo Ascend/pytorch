@@ -351,7 +351,8 @@ void NPUPluggableAllocator::resetPeakStats(c10::DeviceIndex device)
     }
 }
 
-c10_npu::NPUCachingAllocator::SnapshotInfo NPUPluggableAllocator::snapshot()
+c10_npu::NPUCachingAllocator::SnapshotInfo NPUPluggableAllocator::snapshot(
+    c10_npu::MempoolId_t mempool_id)
 {
     TORCH_NPU_WARN("NPUPluggableAllocator does not yet support snapshot. "
                   "If you need it, please file an issue describing your use case.");

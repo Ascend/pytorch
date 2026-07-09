@@ -1470,8 +1470,22 @@ CapturedTraceback* getFromContext(
       OPS_ERROR(ErrCode::NOT_FOUND));
 }
 
-PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* noargs) {
+PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* arg) {
   HANDLE_TH_ERRORS
+
+  c10_npu::MempoolId_t mempool_id = {0, 0};
+  if (arg && !Py_IsNone(arg)) {
+    TORCH_CHECK(PyTuple_Check(arg), "Expected tuple or None");
+    Py_ssize_t size = PyTuple_Size(arg);
+    TORCH_CHECK(size == 2, "Expected tuple of size 2 (mempool_id_first, mempool_id_second)");
+    auto id1 = THPObjectPtr(PyTuple_GetItem(arg, 0));
+    auto id2 = THPObjectPtr(PyTuple_GetItem(arg, 1));
+    TORCH_CHECK(
+        THPUtils_checkLong(id1) && THPUtils_checkLong(id2),
+        "mempool_id elements must be integers");
+    mempool_id = c10_npu::MempoolId_t(
+        THPUtils_unpackLong(id1), THPUtils_unpackLong(id2));
+  }
 
   using c10_npu::NPUCachingAllocator::BlockInfo;
   using c10_npu::NPUCachingAllocator::SegmentInfo;
@@ -1549,23 +1563,25 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* noargs) {
     return segmentDict;
   };
 
-  auto snapshot = c10_npu::NPUCachingAllocator::snapshot();
+  auto snapshot = c10_npu::NPUCachingAllocator::snapshot(mempool_id);
   py::list segments;
 
   for (const auto& segmentInfo : snapshot.segments) {
     segments.append(segmentInfoToDict(segmentInfo));
   }
 
-  auto workspace_snapshot = c10_npu::NPUWorkspaceAllocator::snapshot();
-  for (size_t i = 0; i < workspace_snapshot.segments.size(); i++) {
-    segments.append(segmentInfoToDict(workspace_snapshot.segments[i]));
-  }
+  if (mempool_id.first == 0 && mempool_id.second == 0) {
+    auto workspace_snapshot = c10_npu::NPUWorkspaceAllocator::snapshot();
+    for (size_t i = 0; i < workspace_snapshot.segments.size(); i++) {
+      segments.append(segmentInfoToDict(workspace_snapshot.segments[i]));
+    }
 
-  for (size_t i = 0; i < workspace_snapshot.device_traces.size(); i++) {
-    snapshot.device_traces[i].insert(
-        snapshot.device_traces[i].begin(),
-        workspace_snapshot.device_traces[i].begin(),
-        workspace_snapshot.device_traces[i].end());
+    for (size_t i = 0; i < workspace_snapshot.device_traces.size(); i++) {
+      snapshot.device_traces[i].insert(
+          snapshot.device_traces[i].begin(),
+          workspace_snapshot.device_traces[i].begin(),
+          workspace_snapshot.device_traces[i].end());
+    }
   }
 
   py::list traces;
@@ -1582,6 +1598,7 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* noargs) {
   py::str workspace_snapshot_s = "workspace_snapshot";
   py::str oom_s = "oom";
   py::str device_free_s = "device_free";
+  py::str pool_id_s = "pool_id";
 
   using namespace c10_npu::NPUCachingAllocator;
 
@@ -1628,6 +1645,7 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* noargs) {
           te.addr_;
       trace_entry[size_s] = te.size_;
       trace_entry[stream_s] = int64_t(te.stream_);
+      trace_entry[pool_id_s] = te.mempool_;
       trace.append(trace_entry);
     }
     traces.append(trace);
@@ -2669,7 +2687,7 @@ static struct PyMethodDef THNPModule_methods[] = {
      nullptr},
     {"_npu_memorySnapshot",
      (PyCFunction)THNPModule_memorySnapshot,
-     METH_NOARGS,
+     METH_O,
      nullptr},
     {"_npu_saveDevMemUsageInfo",
      (PyCFunction)THNPModule_saveDevMemUsageInfo,

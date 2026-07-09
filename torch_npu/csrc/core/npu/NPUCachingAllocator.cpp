@@ -1048,6 +1048,11 @@ private:
     // Private pools for NPU graphs
     ska::flat_hash_map<MempoolId_t, std::unique_ptr<PrivatePool>, MempoolIdHash> graph_pools;
 
+    // tracks which pools we can use as a last resort before ooming
+    ska::flat_hash_set<MempoolId_t, MempoolIdHash> use_on_oom_pools;
+    // tracks which pools should not split a segment
+    ska::flat_hash_set<MempoolId_t, MempoolIdHash> no_split_pools;
+
     // Pools no longer referenced by any graph. Their BlockPools are eligible for
     // free_blocks. Can't be a vector or deque because we might erase entries in
     // any order. Could be an std::list, but we don't care much, access and
@@ -1146,13 +1151,13 @@ public:
             void *addr_end = static_cast<char *>(addr) + length - 1;
 
             // Iterate through all blocks and check if there's an overlap with addr
-            for (const Block * const head_block : all_blocks) {
+            for (Block * head_block : all_blocks) {
                 void *block_start = head_block->ptr;
                 void *block_end = static_cast<char *>(head_block->ptr) + head_block->size - 1;
 
                 // If there is an overlap, mark the block as unsafe
                 if (addr <= block_end && addr_end >= block_start) {
-                    const_cast<Block *>(head_block)->is_safe = false;
+                    head_block->is_safe = false;
                     TORCH_NPU_MEMORY_LOGI(
                         "Memory block with UCE fault error found in the NPUCachingAllocator and was marked as unsafe");
                     found = true;
@@ -1279,9 +1284,12 @@ public:
             } else if (!block_found) {
                 // Normal retry chain: try various strategies to free memory and retry
                 block_found =
+                    // Try to use memory pools that have opted in as overflow before
+                    // expensive memory freeing operations.
+                    try_mempool_fallback(params, size, stream, device, alloc_size)
                     // Free enough available cached blocks to satisfy alloc and retry
                     // alloc.
-                    (release_available_cached_blocks(params, context, lock) && alloc_block(params, false, context, lock));
+                    || (release_available_cached_blocks(params, context, lock) && alloc_block(params, false, context, lock));
             }
         }
 
@@ -2086,22 +2094,28 @@ public:
     }
 
     /* * Dump a complete snapshot of the memory held by the allocator. Potentially VERY expensive. * */
-    std::vector<SegmentInfo> snapshot()
+    std::vector<SegmentInfo> snapshot(MempoolId_t mempool_id)
     {
         std::lock_guard<std::recursive_mutex> lock(mutex);
 
-        std::unordered_map<PrivatePool *, MempoolId_t> pool_to_id;
-        pool_to_id.reserve(graph_pools.size() + graph_pools_freeable.size());
-        for (const auto &pair : graph_pools) {
-            pool_to_id[pair.second.get()] = pair.first;
-        }
-        for (const auto &pair : graph_pools_freeable) {
-            pool_to_id[pair.second] = pair.first;
+        std::vector<Block*> all_blocks;
+
+        if (mempool_id.first != 0 || mempool_id.second != 0) {
+            // If there is an active mempool, we find the corresponding PrivatePool
+            // in graph_pools and only return the blocks from it.
+            auto pool = graph_pools.find(mempool_id);
+            if (pool != graph_pools.end()) {
+                all_blocks = get_private_pool_head_blocks(pool->second.get());
+            }
+        } else {
+            // When snapshot is called with default mempool_id, we return
+            // all the blocks in the NPUCachingAllocator (as returned by
+            // get_all_blocks).
+            all_blocks = get_all_blocks();
         }
 
         uint64_t total_active = 0;
         std::vector<SegmentInfo> result;
-        const auto all_blocks = get_all_blocks();
 
         for (const Block * const head_block : all_blocks) {
             // For expandable segments, we report one segment for each contiguous
@@ -2117,9 +2131,9 @@ public:
             segment_info.is_large = (!head_block->pool->is_small);
             segment_info.is_expandable = head_block->expandable_segment_;
             segment_info.context_when_allocated = head_block->context_when_segment_allocated;
-            auto mempool_id = pool_to_id.find(head_block->pool->owner_PrivatePool);
-            if (mempool_id != pool_to_id.end()) {
-                segment_info.owner_private_pool_id = mempool_id->second;
+            MempoolId_t id = head_block->pool->owner_MempoolId();
+            if ((mempool_id.first == 0 && mempool_id.second == 0) || id == mempool_id) {
+                segment_info.owner_private_pool_id = id;
             }
             const Block *block = head_block;
             while (block != nullptr && block->mapped) {
@@ -2148,7 +2162,7 @@ public:
         std::sort(result.begin(), result.end(),
             [](const SegmentInfo &a, const SegmentInfo &b) { return a.address < b.address; });
 
-        record_trace(TraceEntry::SNAPSHOT, 0, total_active, nullptr, 0, {0, 0}, nullptr);
+        record_trace(TraceEntry::SNAPSHOT, 0, total_active, nullptr, 0, mempool_id, nullptr);
         return result;
     }
 
@@ -2250,6 +2264,23 @@ public:
         return pp->use_count;
     }
 
+    void setUseOnOOM(MempoolId_t mempool_id, bool use_on_oom)
+    {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+        if (use_on_oom) {
+            use_on_oom_pools.insert(mempool_id);
+        } else {
+            use_on_oom_pools.erase(mempool_id);
+        }
+    }
+
+    void setNoSplit(MempoolId_t mempool_id)
+    {
+        // Choose if this pool should not split a segment
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+        no_split_pools.insert(mempool_id);
+    }
+
     PrivatePool* get_private_pool(MempoolId_t mempool_id) const
     {
         auto it = graph_pools.find(mempool_id);
@@ -2324,9 +2355,9 @@ public:
 private:
     // All private methods do not acquire the allocator mutex.
 
-    std::vector<const Block *> get_all_blocks() const
+    std::vector<Block*> get_all_blocks() const
     {
-        std::vector<const Block *> blocks;
+        std::vector<Block*> blocks;
         blocks.insert(blocks.end(), small_blocks.blocks.begin(), small_blocks.blocks.end());
         blocks.insert(blocks.end(), large_blocks.blocks.begin(), large_blocks.blocks.end());
         for (const auto &gp : graph_pools) {
@@ -2600,9 +2631,9 @@ private:
         // a capture, so it's usually 0, and we can short-circuit
         // npuStreamCaptureStatus (which does a TLS lookup).
         if (C10_UNLIKELY(!captures_underway.empty())) {
-            for (auto &entry : captures_underway) {
-                if (entry.second(stream)) {
-                    auto it1 = graph_pools.find(entry.first);
+            for (auto it = captures_underway.rbegin(); it != captures_underway.rend(); ++it) {
+                if (it->second(stream)) {
+                    auto it1 = graph_pools.find(it->first);
                     TORCH_INTERNAL_ASSERT(it1 != graph_pools.end());
                     if (size <= kSmallSize) {
                         return it1->second->small_blocks;
@@ -2629,12 +2660,57 @@ private:
 
     bool should_split(const Block *block, size_t size)
     {
+        // If the pool is marked as not splitting a segment, do not split
+        if (no_split_pools.find(block->pool->owner_MempoolId()) !=
+            no_split_pools.end()) {
+            return false;
+        }
         size_t remaining = block->size - size;
         if (block->pool->is_small || NPUAllocatorConfig::expandable_segments()) {
             return remaining >= kMinBlockSize;
         } else {
             return (size < NPUAllocatorConfig::max_split_size()) && (remaining > kSmallSize);
         }
+    }
+
+    bool try_mempool_fallback(
+        AllocParams &params,
+        size_t size,
+        aclrtStream stream,
+        int device_idx,
+        size_t alloc_size)
+    {
+        TORCH_NPU_MEMORY_LOGD("try_mempool_fallback: size=%zu, alloc_size=%zu, stream=%p, device=%d",
+            size, alloc_size, stream, device_idx);
+        bool block_found = false;
+        // if already trying to use a mempool, then just oom
+        bool active_pool = params.pool->owner_PrivatePool;
+        if (!active_pool) {
+            for (MempoolId_t mempool_id : use_on_oom_pools) {
+                TORCH_NPU_MEMORY_LOGD("try_mempool_fallback: trying mempool_id={%lu, %lu}", mempool_id.first,
+                    mempool_id.second);
+                auto tid = std::this_thread::get_id();
+                auto filter = [tid](aclrtStream) {
+                    return std::this_thread::get_id() == tid;
+                };
+                beginAllocateToPool(mempool_id, filter);
+                auto &mempool = get_pool(size, stream);
+                AllocParams mempool_params(
+                    device_idx, size, stream, &mempool, alloc_size, stats);
+                mempool_params.stat_types = get_stat_types_for_pool(mempool);
+                block_found = get_free_block(mempool_params);
+                endAllocateToPool(mempool_id);
+                releasePool(mempool_id);
+                if (block_found) {
+                    TORCH_NPU_MEMORY_LOGD("try_mempool_fallback: found block in mempool_id={%lu, %lu}",
+                        mempool_id.first, mempool_id.second);
+                    params = mempool_params;
+                    break;
+                }
+            }
+        }
+        TORCH_NPU_MEMORY_LOGD("try_mempool_fallback: result=%s", block_found ? "success" : "failed");
+        return block_found;
     }
 
     static size_t get_custom_expandable_segment_size(bool is_small_pool)
@@ -3788,13 +3864,13 @@ public:
         return;
     }
 
-    SnapshotInfo snapshot() override
+    SnapshotInfo snapshot(MempoolId_t mempool_id) override
     {
         SnapshotInfo result;
         int count = static_cast<int>(device_allocator.size());
         for (int i = 0; i < count; i++) {
             result.device_traces.emplace_back(device_allocator[i]->trace());
-            auto snap = device_allocator[i]->snapshot();
+            auto snap = device_allocator[i]->snapshot(mempool_id);
             result.segments.insert(result.segments.end(), snap.begin(), snap.end());
         }
         return result;
@@ -3878,7 +3954,22 @@ public:
     int getPoolUseCount(c10::DeviceIndex device, MempoolId_t mempool_id) override
     {
         assertValidDevice(device);
-        return device_allocator[device]->getPoolUseCount(mempool_id);
+        return device_allocator[device]->getPoolUseCount(std::move(mempool_id));
+    }
+
+    void setUseOnOOM(
+        c10::DeviceIndex device,
+        MempoolId_t mempool_id,
+        bool use_on_oom) override
+    {
+        assertValidDevice(device);
+        device_allocator[device]->setUseOnOOM(std::move(mempool_id), use_on_oom);
+    }
+
+    void setNoSplit(c10::DeviceIndex device, MempoolId_t mempool_id) override
+    {
+        assertValidDevice(device);
+        device_allocator[device]->setNoSplit(std::move(mempool_id));
     }
 
     bool hasCapturesUnderway(c10::DeviceIndex device) override

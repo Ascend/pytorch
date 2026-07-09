@@ -21,7 +21,9 @@ using c10::MempoolId_t;
 struct C10_NPU_API MemPool {
     MemPool(
         std::shared_ptr<NPUCachingAllocator::NPUAllocator> allocator = nullptr,
-        bool is_user_created = true);
+        bool is_user_created = true,
+        bool use_on_oom = false,
+        bool no_split = false);
     MemPool(const MemPool&) = delete;
     MemPool(MemPool&&) = default;
     MemPool& operator=(const MemPool&) = delete;

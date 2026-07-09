@@ -227,7 +227,7 @@ public:
         NPU_CHECK_ERROR(aclrtGetMemInfo(ACL_HBM_MEM, &free, &total));
         return {free, total};
     }
-    virtual SnapshotInfo snapshot() = 0;
+    virtual SnapshotInfo snapshot(MempoolId_t mempool_id = {0, 0}) = 0;
 
     virtual void beginAllocateToPool(
         c10::DeviceIndex device,
@@ -243,6 +243,21 @@ public:
     {
         TORCH_CHECK(false, name(),
             " does not yet support getPoolUseCount. "
+            "If you need it, please file an issue describing your use case.", PTA_ERROR(ErrCode::NOT_SUPPORT));
+    }
+    virtual void setUseOnOOM(
+        c10::DeviceIndex device,
+        MempoolId_t mempool_id,
+        bool use_on_oom)
+    {
+        TORCH_CHECK(false, name(),
+            " does not yet support setUseOnOOM. "
+            "If you need it, please file an issue describing your use case.", PTA_ERROR(ErrCode::NOT_SUPPORT));
+    }
+    virtual void setNoSplit(c10::DeviceIndex device, MempoolId_t mempool_id)
+    {
+        TORCH_CHECK(false, name(),
+            " does not yet support setNoSplit. "
             "If you need it, please file an issue describing your use case.", PTA_ERROR(ErrCode::NOT_SUPPORT));
     }
 
@@ -429,9 +444,9 @@ inline void resetPeakStats(c10::DeviceIndex device)
     return get()->resetPeakStats(device);
 }
 
-inline SnapshotInfo snapshot()
+inline SnapshotInfo snapshot(MempoolId_t mempool_id = {0, 0})
 {
-    return get()->snapshot();
+    return get()->snapshot(mempool_id);
 }
 
 inline std::shared_ptr<AllocatorState> getCheckpointState(
@@ -568,6 +583,19 @@ inline void createOrIncrefPool(
 inline int getPoolUseCount(c10::DeviceIndex device, MempoolId_t mempool_id)
 {
     return get()->getPoolUseCount(device, mempool_id);
+}
+
+inline void setUseOnOOM(
+    c10::DeviceIndex device,
+    MempoolId_t mempool_id,
+    bool use_on_oom)
+{
+    get()->setUseOnOOM(device, mempool_id, use_on_oom);
+}
+
+inline void setNoSplit(c10::DeviceIndex device, MempoolId_t mempool_id)
+{
+    get()->setNoSplit(device, mempool_id);
 }
 
 bool checkConfigExpandableSegments();

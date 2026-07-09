@@ -543,17 +543,25 @@ def max_memory_cached(device=None):
     return max_memory_reserved(device=device)
 
 
-def memory_snapshot():
+def memory_snapshot(mempool_id=None):
     r"""Returns a snapshot of the NPU memory allocator state across all devices.
 
     Interpreting the output of this function requires familiarity with the
     memory allocator internals.
 
+    Args:
+        mempool_id (Tuple[int, int], optional): the id of the memory pool to
+            filter the snapshot. If ``None`` (default), the snapshot of all
+            memory pools is returned.
+
     .. note::
         See :ref:`npu-memory-management` for more details about NPU memory
         management.
     """
-    return torch_npu._C._npu_memorySnapshot()["segments"]
+    if mempool_id is None:
+        return torch_npu._C._npu_memorySnapshot(None)["segments"]
+    else:
+        return torch_npu._C._npu_memorySnapshot((mempool_id[0], mempool_id[1]))["segments"]
 
 
 def _format_size(sz, pref_sz):
@@ -778,11 +786,21 @@ class MemPool(torch_npu._C._MemPool):
             define how memory gets allocated in the pool. If :attr:`allocator`
             is ``None`` (default), memory allocation follows the default/
             current configuration of the NPUCachingAllocator.
+        use_on_oom(bool): a bool that indicates if this pool can be used
+            as a last resort if a memory allocation outside of the pool fails due
+            to Out Of Memory. This is False by default.
+        no_split(bool): a bool that indicates if this pool should not split a segment.
+            This is False by default.
 
     """
 
-    def __init__(self, allocator: Optional[torch_npu._C._npu_NPUAllocator] = None):
-        super().__init__(allocator, True)
+    def __init__(
+        self,
+        allocator: Optional[torch_npu._C._npu_NPUAllocator] = None,
+        use_on_oom: bool = False,
+        no_split: bool = False,
+    ):
+        super().__init__(allocator, True, use_on_oom, no_split)
 
     @property
     def id(self) -> Tuple[int, int]:
@@ -800,7 +818,7 @@ class MemPool(torch_npu._C._MemPool):
         Interpreting the output of this function requires familiarity with the
         memory allocator internals.
         """
-        return memory_snapshot()
+        return memory_snapshot(self.id)
 
 @contextlib.contextmanager
 def use_mem_pool(pool: MemPool, device=None):
@@ -906,6 +924,7 @@ def _snapshot(device=None):
             segment_type: Literal['small', 'large'] # 'large' (>1MB)
             allocated_size: int # size of memory in use
             active_size: int # size of memory in use or in active_awaiting_free state
+            segment_pool_id: Tuple[int, int] # id of the memory pool owning this segment
             blocks : List[Block]
 
         class Block(TypedDict):
@@ -950,13 +969,14 @@ def _snapshot(device=None):
             frames: List[Frame]
             size: int
             stream: int
+            pool_id: Tuple[int, int] # id of the memory pool for this entry
             device_free: int # only present for OOM, the amount of
                             # memory npu still reports to be free
 
     Returns:
         The Snapshot dictionary object
     """
-    return torch_npu._C._npu_memorySnapshot()
+    return torch_npu._C._npu_memorySnapshot(None)
 
 
 def _dump_snapshot(filename="dump_snapshot.pickle"):

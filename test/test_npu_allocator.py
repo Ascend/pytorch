@@ -385,6 +385,401 @@ class TestMemPool(TestCase):
         finally:
             pa.module.reset_alloc_free_count()
 
+    @serialTest()
+    def test_mempool_with_allocator(self):
+        # Exercises use_count transitions and pool.snapshot() segment counts
+        # as the pool accumulates allocations.
+        # NPU large segment size is 20 MiB (kLargeBuffer), so each allocation
+        # between 1 MiB (kSmallSize) and 10 MiB (kMinLargeAlloc) gets a 20 MiB
+        # block. Use 7 MiB per tensor: 2 fit in one 20 MiB segment, but 3 force
+        # a second segment.
+        pa = get_pluggable_allocator()
+        if pa.module is None:
+            self.skipTest("pluggable allocator module not available")
+        allocator = torch_npu.npu.memory.NPUPluggableAllocator(
+            os.path.join(pa.build_directory, 'pluggable_allocator_extensions.so'),
+            'my_malloc', 'my_free')
+        pool = torch_npu.npu.MemPool(allocator._allocator)
+
+        # pool's use count should be 1 at this point as MemPool object
+        # holds a reference
+        self.assertEqual(pool.use_count(), 1)
+
+        pa.module.reset_alloc_free_count()
+        try:
+            # 7 MiB of float32 elements
+            nelem_7mb = 7 * 1024 * 1024 // 4
+
+            with torch_npu.npu.use_mem_pool(pool):
+                # torch.empty avoids RNG state allocation that would create an
+                # extra small-pool segment on NPU (unlike CUDA where torch.randn
+                # does not trigger an internal side-allocation).
+                out_0 = torch.empty(nelem_7mb, device="npu")
+
+                # use_mem_pool takes a reference, bumping use_count to 2
+                self.assertEqual(pool.use_count(), 2)
+
+            # context exit drops the reference, use_count back to 1
+            self.assertEqual(pool.use_count(), 1)
+
+            # the custom allocator's malloc must have been called for out_0
+            self.assertGreater(pa.module.get_alloc_count(), 0)
+            self.assertEqual(pa.module.get_free_count(), 0)
+
+            with torch_npu.npu.use_mem_pool(pool):
+                # First 7 MiB allocation — one 20 MiB segment, ~13 MiB free.
+                self.assertEqual(len(pool.snapshot()), 1)
+
+                out_1 = torch.empty(nelem_7mb, device="npu")
+                # Second 7 MiB fits in the remaining ~13 MiB, still one segment.
+                self.assertEqual(len(pool.snapshot()), 1)
+
+                out_2 = torch.empty(nelem_7mb, device="npu")
+                # Third 7 MiB cannot fit (~6 MiB free < 7 MiB), forces a second
+                # 20 MiB segment.
+                self.assertEqual(len(pool.snapshot()), 2)
+
+            self.assertEqual(len(pool.snapshot()), 2)
+
+            del out_0, out_1, out_2
+            del pool
+
+            # pool's destructor calls emptyCache(), which must drive the custom
+            # allocator's free path.
+            torch_npu.npu.synchronize()
+            torch_npu.npu.empty_cache()
+            self.assertGreater(pa.module.get_free_count(), 0)
+        finally:
+            pa.module.reset_alloc_free_count()
+
+    def test_mempool_empty_cache(self):
+        # Aligned with PyTorch's test_mempool_empty_cache: pool cache must
+        # outlive the pool object so subsequent empty_cache() can reclaim it.
+        torch_npu.npu.empty_cache()
+        pool = torch_npu.npu.MemPool()
+        x = torch.empty(1024, 1024, device="npu")
+
+        with torch_npu.npu.use_mem_pool(pool):
+            y = torch.empty(1024, 1024, device="npu")
+
+        del y
+        del x
+        del pool
+        segments = torch_npu.npu.memory._snapshot()["segments"]
+        self.assertGreater(len(segments), 0, "expected at least one cached segment")
+
+    def test_pool_id_in_snapshot(self):
+        # Aligned with PyTorch's test_pool_id_in_snapshot: the snapshot must
+        # tag each segment and each trace entry with the owning pool's id.
+        try:
+            torch_npu.npu.empty_cache()
+            torch_npu.npu.memory._record_memory_history("all")
+
+            pool = torch_npu.npu.MemPool()
+            with torch_npu.npu.use_mem_pool(pool):
+                x = torch.rand(64, device="npu")
+
+            ss = torch_npu.npu.memory._snapshot()
+
+            # segment_pool_id should match the MemPool id
+            found_segment = False
+            for seg in ss["segments"]:
+                if seg["segment_pool_id"] == pool.id:
+                    found_segment = True
+                    break
+            self.assertTrue(found_segment, "no segment tagged with pool.id")
+
+            # trace entries for this allocation should carry pool_id
+            found_trace = False
+            for trace in ss["device_traces"]:
+                for te in trace:
+                    if te.get("pool_id") == pool.id and te["action"] == "alloc":
+                        found_trace = True
+                        break
+            self.assertTrue(found_trace, "no alloc trace tagged with pool.id")
+
+            del x
+        finally:
+            torch_npu.npu.memory._record_memory_history(None)
+
+    def test_nested_mempool(self):
+        # Aligned with PyTorch's test_nested_mempool: nested use_mem_pool
+        # contexts must route allocations to the innermost pool, and each pool
+        # keeps the segments allocated inside it.
+        torch_npu.npu.empty_cache()
+        pool1 = torch_npu.npu.MemPool()
+        pool2 = torch_npu.npu.MemPool()
+        pool3 = torch_npu.npu.MemPool()
+
+        data = []
+        nelem_1mb = 1024 * 1024 // 4
+
+        def allocate_data():
+            data.append(torch.empty(nelem_1mb * 20, device="npu"))
+
+        with torch_npu.npu.use_mem_pool(pool1):
+            allocate_data()
+            with torch_npu.npu.use_mem_pool(pool2):
+                allocate_data()
+                with torch_npu.npu.use_mem_pool(pool3):
+                    allocate_data()
+                allocate_data()
+            allocate_data()
+
+        # Each pool keeps the segments allocated inside it. With 20 MB
+        # allocations (large pool), each allocation lands in its own segment:
+        # pool1 = 2, pool2 = 2, pool3 = 1.
+        s1 = torch_npu.npu.memory.memory_snapshot(pool1.id)
+        s2 = torch_npu.npu.memory.memory_snapshot(pool2.id)
+        s3 = torch_npu.npu.memory.memory_snapshot(pool3.id)
+        self.assertEqual(len(s1), 2)
+        self.assertEqual(len(s2), 2)
+        self.assertEqual(len(s3), 1)
+
+    def test_mempool_emptycache_multithread(self):
+        # Aligned with PyTorch's test_mempool_emptycache_multithread:
+        # empty_cache() inside a use_mem_pool context must NOT release the
+        # pool's cached segments.
+        num_threads = 4
+
+        def my_function(pool):
+            with torch_npu.npu.use_mem_pool(pool):
+                x = torch.randn(4, device="npu")
+                del x
+                torch_npu.npu.empty_cache()
+
+        pools = [torch_npu.npu.MemPool() for _ in range(num_threads)]
+        threads = [
+            threading.Thread(target=my_function, args=(pools[i],))
+            for i in range(num_threads)
+        ]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        # empty_cache should have done nothing under mempool context: each
+        # pool still holds its single segment.
+        for p in pools:
+            self.assertEqual(len(p.snapshot()), 1, "expected a single cached segment")
+
+
+class TestMemPoolUseOnOOM(TestCase):
+    """Behavioral tests for MemPool use_on_oom.
+
+    Aligned with PyTorch's test_mempool_limited_memory_with_allocator and
+    test_deleted_mempool_not_used_on_oom: a use_on_oom pool must serve
+    allocations when the default pool OOMs, and a deleted use_on_oom pool
+    must NOT be reused.
+    """
+
+    _saved_fraction = None
+
+    @classmethod
+    def setUpClass(cls):
+        cls._saved_fraction = torch_npu.npu.get_per_process_memory_fraction()
+        torch.npu.memory._set_allocator_settings("expandable_segments:False")
+
+    @classmethod
+    def tearDownClass(cls):
+        torch_npu.npu.set_per_process_memory_fraction(cls._saved_fraction)
+        torch.npu.memory._set_allocator_settings("expandable_segments:False")
+
+    def _setup_limited_memory(self, additional_allowed_mb):
+        # Limit the caching allocator to (already_reserved + additional_allowed_mb).
+        torch_npu.npu.empty_cache()
+        mb = 1024 * 1024
+        _, all_memory = torch_npu.npu.mem_get_info()
+        pre_reserved = torch_npu.npu.memory_reserved()
+        total_allowed = additional_allowed_mb * mb + pre_reserved
+        fraction = total_allowed / all_memory
+        torch_npu.npu.set_per_process_memory_fraction(fraction)
+        return torch_npu.npu.current_device(), torch.int8
+
+    def _teardown_limited_memory(self):
+        torch_npu.npu.empty_cache()
+        torch_npu.npu.set_per_process_memory_fraction(self._saved_fraction)
+
+    @serialTest()
+    def test_mempool_limited_memory_with_allocator(self):
+        # use_on_oom=True pool must absorb allocations when the default pool
+        # OOMs; use_on_oom=False pool must NOT.
+        # NPU: large allocations round up to the next 2 MiB boundary
+        # (kRoundLarge), so a 40 MiB tensor may need up to 42 MiB. The budget
+        # adds headroom (88 MiB) to account for this rounding overhead.
+        # torch.empty is used instead of torch.randn to avoid extra RNG state
+        # allocations in the default pool on NPU.
+        pool_do_not_use = torch_npu.npu.MemPool()
+        pool_use = torch_npu.npu.MemPool(use_on_oom=True)
+
+        nelem_1mb = 1024 * 1024 // 4
+        self._setup_limited_memory(88)
+        try:
+            # remaining free mem: 88 mb
+            # mempool_use [] 0 mb
+            # mempool_do_not_use [] 0 mb
+            # default pool [] 0 mb
+            with torch_npu.npu.use_mem_pool(pool_do_not_use):
+                a = torch.empty(40 * nelem_1mb, device="npu")
+            with torch_npu.npu.use_mem_pool(pool_use):
+                b = torch.empty(40 * nelem_1mb, device="npu")
+            a_dataptr = a.data_ptr()
+            b_dataptr = b.data_ptr()
+            # remaining free mem: 8 mb
+            # mempool_do_not_use [aaaa] 40 mb
+            # mempool_use [bbbb] 40 mb
+            # default pool [] 0 mb
+
+            with self.assertRaises(torch.OutOfMemoryError):
+                # out of memory
+                c = torch.empty(40 * nelem_1mb, device="npu")
+
+            del a, b
+            # remaining free mem: 8 mb
+            # mempool_do_not_use [____] 40 mb
+            # mempool_use [____] 40 mb
+            # default pool [] 0 mb
+
+            # c should not oom and instead can use mempool_use as fallback
+            c = torch.empty(30 * nelem_1mb, device="npu")
+            c_dataptr = c.data_ptr()
+            # remaining free mem: 8 mb
+            # mempool_do_not_use [____] 40 mb
+            # mempool_use [ccc_] 40 mb
+            # default pool [] 0 mb
+
+            # pool_do_not_use must not be used as fallback.
+            with self.assertRaises(torch.OutOfMemoryError):
+                # out of memory since can't use mempool_do_not_use
+                d = torch.empty(30 * nelem_1mb, device="npu")
+
+            del c
+            # remaining free mem: 8 mb
+            # mempool_do_not_use [____] 40 mb
+            # mempool_use [____] 40 mb
+            # default pool [] 0 mb
+
+            # c reused b's address because b's pool served the fallback.
+            self.assertEqual(b_dataptr, c_dataptr)
+
+            # make sure we can still use mempool_use as intended after c is deleted
+            with torch_npu.npu.use_mem_pool(pool_use):
+                e = torch.empty(20 * nelem_1mb, device="npu")
+            # remaining free mem: 8 mb
+            # mempool_do_not_use [____] 40 mb
+            # mempool_use [ee__] 40 mb
+            # default pool [] 0 mb
+
+            e_dataptr = e.data_ptr()
+            del e
+            self.assertEqual(e_dataptr, c_dataptr)
+
+            # pool's destructor calls emptyCache()
+            del pool_use, pool_do_not_use
+        finally:
+            self._teardown_limited_memory()
+
+    @serialTest()
+    def test_deleted_mempool_not_used_on_oom(self):
+        # Regression for ~MemPool() calling setUseOnOOM(id, false): a deleted
+        # use_on_oom pool must be removed from use_on_oom_pools and never
+        # serve fallback allocations.
+        # NPU: large allocations round up to the next 2 MiB boundary
+        # (kRoundLarge), so a 40 MiB tensor may need up to 42 MiB. The budget
+        # adds headroom (48 MiB) to account for this rounding overhead.
+        # torch.empty is used instead of torch.randn to avoid extra RNG state
+        # allocations in the default pool on NPU.
+        nelem_1mb = 1024 * 1024 // 4
+
+        self._setup_limited_memory(48)
+        try:
+            # Create + delete many use_on_oom pools; each one's dtor must
+            # unregister it from use_on_oom_pools.
+            for _ in range(10):
+                pool_use_on_oom = torch_npu.npu.MemPool(use_on_oom=True)
+                with torch_npu.npu.use_mem_pool(pool_use_on_oom):
+                    a = torch.empty(40 * nelem_1mb, device="npu")
+                del a
+                del pool_use_on_oom
+
+            # One live use_on_oom pool holding all 40 MB.
+            new_pool = torch_npu.npu.MemPool(use_on_oom=True)
+            with torch_npu.npu.use_mem_pool(new_pool):
+                a = torch.empty(40 * nelem_1mb, device="npu")
+            del a
+
+            # Fallback must succeed (uses new_pool) and not crash on the
+            # deleted pools.
+            b = torch.empty(20 * nelem_1mb, device="npu")
+            c = torch.empty(20 * nelem_1mb, device="npu")
+
+            del b, c, new_pool
+        finally:
+            self._teardown_limited_memory()
+
+
+class TestMemPoolNoSplit(TestCase):
+    """Behavioral tests for MemPool no_split.
+
+    Aligned with PyTorch's test_mempool_no_split: a no_split pool must not
+    split segments, so each segment holds exactly one block and the no_split
+    pool has more segments (and fewer blocks) than the split pool.
+    """
+
+    @serialTest()
+    def test_mempool_no_split(self):
+        torch_npu.npu.empty_cache()
+
+        pool_split = torch_npu.npu.MemPool()  # default: no_split=False
+        pool_no_split = torch_npu.npu.MemPool(no_split=True)
+
+        # 1 MB in number of float32 elements.
+        nelem_1mb = 1024 * 1024 // 4
+
+        # First 4 MB allocation in each pool: both get one segment.
+        with torch_npu.npu.use_mem_pool(pool_split):
+            a_split = torch.randn(4 * nelem_1mb, device="npu")
+        with torch_npu.npu.use_mem_pool(pool_no_split):
+            a_no_split = torch.randn(4 * nelem_1mb, device="npu")
+
+        # Second 4 MB allocation: split pool reuses the leftover of the
+        # existing segment; no_split pool must open a new segment.
+        with torch_npu.npu.use_mem_pool(pool_split):
+            b_split = torch.randn(4 * nelem_1mb, device="npu")
+        with torch_npu.npu.use_mem_pool(pool_no_split):
+            b_no_split = torch.randn(4 * nelem_1mb, device="npu")
+
+        snap_split = pool_split.snapshot()
+        snap_no_split = pool_no_split.snapshot()
+
+        # no_split pool should have strictly more segments.
+        if len(snap_no_split) <= len(snap_split):
+            raise AssertionError(
+                f"Expected no_split pool to have more segments, "
+                f"but got {len(snap_no_split)} vs {len(snap_split)}")
+
+        # Every no_split segment holds exactly one block (no splitting).
+        for seg in snap_no_split:
+            if len(seg["blocks"]) != 1:
+                raise AssertionError(
+                    f"Expected 1 block in no_split segment, got {len(seg['blocks'])}")
+
+        def count_blocks(snaps):
+            return sum(len(seg["blocks"]) for seg in snaps)
+
+        blocks_split = count_blocks(snap_split)
+        blocks_no_split = count_blocks(snap_no_split)
+
+        # no_split pool has fewer blocks because it doesn't keep a leftover
+        # block for the remaining memory in each segment.
+        self.assertLess(
+            blocks_no_split, blocks_split,
+            f"Expected no_split pool to have fewer blocks, "
+            f"but got {blocks_no_split} vs {blocks_split}")
+
+        del a_split, b_split, a_no_split, b_no_split
+        del pool_split, pool_no_split
+
 
 instantiate_parametrized_tests(TestPluggableAllocator)
 

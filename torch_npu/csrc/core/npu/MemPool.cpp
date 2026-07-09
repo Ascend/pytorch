@@ -18,7 +18,9 @@ std::atomic<CaptureId_t> MemPool::uuid_{ 1 };
 
 MemPool::MemPool(
     std::shared_ptr<NPUCachingAllocator::NPUAllocator> allocator,
-    bool is_user_created)
+    bool is_user_created,
+    bool use_on_oom,
+    bool no_split)
     : is_user_created_(is_user_created)
 {
     if (is_user_created_) {
@@ -28,6 +30,12 @@ MemPool::MemPool(
     }
     device_ = c10_npu::current_device();
     NPUCachingAllocator::createOrIncrefPool(device_, id_, std::move(allocator));
+    if (use_on_oom) {
+        NPUCachingAllocator::setUseOnOOM(device_, id_, true);
+    }
+    if (no_split) {
+        NPUCachingAllocator::setNoSplit(device_, id_);
+    }
 }
 
 MemPool::~MemPool() {
@@ -36,7 +44,7 @@ MemPool::~MemPool() {
     // However, this assertion is not true if a memory pool is shared
     // with a cuda graph. That CUDAGraph will increase the use count
     // until it is reset.
-    // not support UseOnOom in this version
+    NPUCachingAllocator::setUseOnOOM(device_, id_, false);
     NPUCachingAllocator::releasePool(device_, id_);
     NPUCachingAllocator::emptyCache(id_);
 }
