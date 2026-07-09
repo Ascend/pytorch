@@ -5,5 +5,5 @@
 
 |API名称|是否支持|限制与说明|
 |--|--|--|
-|torch.\_\_config\_\_.show|是|-|
-|torch.\_\_config\_\_.parallel_info|是|-|
+|torch.\_\_config\_\_.show|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.\_\_config\_\_.parallel_info|是<br>暂不支持<term>Ascend 950DT</term>|-|

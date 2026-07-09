@@ -7,4 +7,4 @@
 |--|--|--|
 |torch.dtype|是|-|
 |torch.device|是|-|
-|torch.layout|是|-|
+|torch.layout|是<br>暂不支持<term>Ascend 950DT</term>|-|

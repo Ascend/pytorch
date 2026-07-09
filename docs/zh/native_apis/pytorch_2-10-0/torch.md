@@ -5,32 +5,32 @@
 
 |API名称|是否支持|限制与说明|
 |--|--|--|
-|torch.default_generator|是|-|
-|torch.SymInt|是|支持fp32|
-|torch.SymFloat|是|支持fp32|
-|torch.SymBool|是|支持fp32|
-|torch.Tag|是|-|
-|torch.Tag.name|是|-|
+|torch.default_generator|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.SymInt|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.SymFloat|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.SymBool|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.Tag|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.Tag.name|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.is_tensor|是|-|
-|torch.is_storage|是|-|
+|torch.is_storage|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.is_complex|是|支持complex64，complex128|
-|torch.is_conj|是|-|
+|torch.is_conj|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.is_floating_point|是|-|
-|torch.is_nonzero|是|-|
+|torch.is_nonzero|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.set_default_dtype|是|-|
 |torch.get_default_dtype|是|-|
 |torch.set_default_device|是|-|
-|torch.set_default_tensor_type|是|不支持传入torch.npu.DtypeTensor类型|
+|torch.set_default_tensor_type|是<br>暂不支持<term>Ascend 950DT</term>|不支持传入torch.npu.DtypeTensor类型|
 |torch.numel|是|-|
 |torch.set_printoptions|是|-|
-|torch.set_flush_denormal|是|-|
-|torch.tensor|是|-|
+|torch.set_flush_denormal|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.tensor|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.sparse_coo_tensor|是|indices支持int32，int64<br>values支持fp16，fp32，int32<br>dtype参数与values的dtype保持一致|
 |torch.sparse_csr_tensor|否|-|
 |torch.sparse_csc_tensor|否|-|
 |torch.sparse_bsr_tensor|否|-|
 |torch.sparse_bsc_tensor|否|-|
-|torch.asarray|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
+|torch.asarray|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |torch.as_tensor|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |torch.as_strided|是|支持fp32|
 |torch.from_numpy|是|支持输出fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
@@ -51,35 +51,35 @@
 |torch.full_like|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |torch.quantize_per_tensor|否|-|
 |torch.quantize_per_channel|否|-|
-|torch.dequantize|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|torch.dequantize|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |torch.complex|是|-|
 |torch.polar|是|支持fp32<br>入参abs和angle的维度需相等|
 |torch.heaviside|否|-|
-|torch.argwhere|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
+|torch.argwhere|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |torch.cat|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
-|torch.concat|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64|
-|torch.concatenate|是|支持bf16，fp16，fp32，int64，bool，complex64|
+|torch.concat|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64<br><term>Ascend 950DT</term>：不支持complex64|
+|torch.concatenate|是|支持bf16，fp16，fp32，int64，bool，complex64<br><term>Ascend 950DT</term>：不支持complex64|
 |torch.conj|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |torch.chunk|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |torch.dsplit|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |torch.dstack|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64|
-|torch.gather|是|支持fp16，fp32，int16，int32，int64，bool<br>index的维度数需与input的维度数一致|
+|torch.gather|是|支持fp16，fp32，int16，int32，int64，bool<br>index的维度数需与input的维度数一致<br>针对<term>Ascend 950DT</term>，由于硬件差异，在索引存在重复的情况下，精度可能和<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>存在差异|
 |torch.hsplit|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |torch.hstack|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64|
 |torch.index_add|是|支持fp16，fp32，int64，bool|
-|torch.index_copy|是|支持fp32|
+|torch.index_copy|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
 |torch.index_reduce|是|可能回退至CPU执行|
-|torch.index_select|是|支持bf16，fp16，fp32，int16，int32，int64，bool|
+|torch.index_select|是|支持bf16，fp16，fp32，int16，int32，int64，bool<br>针对<term>Ascend 950DT</term>，由于硬件差异，在索引存在重复的情况下，精度可能和<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>存在差异|
 |torch.masked_select|是|支持fp16，fp32，int16，int32，int64，bool|
 |torch.movedim|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|torch.moveaxis|是|支持fp32，int64，complex128|
+|torch.moveaxis|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32，int64，complex128|
 |torch.narrow|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |torch.narrow_copy|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool<br>可能回退至CPU执行|
-|torch.nonzero|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
+|torch.nonzero|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |torch.permute|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |torch.reshape|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |torch.row_stack|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64|
-|torch.scatter|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>可能回退至CPU执行|
+|torch.scatter|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>可能回退至CPU执行<br>针对<term>Ascend 950DT</term>，由于硬件差异，在索引存在重复的情况下，精度可能和<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>存在差异|
 |torch.diagonal_scatter|是|支持bf16，fp16，fp32，int16，int32，int64，bool|
 |torch.select_scatter|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |torch.slice_scatter|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
@@ -87,7 +87,7 @@
 |torch.split|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |torch.squeeze|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |torch.stack|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
-|torch.swapaxes|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
+|torch.swapaxes|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |torch.swapdims|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |torch.t|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |torch.take|是|支持fp16，fp32，int16，int32，int64，bool|
@@ -100,12 +100,12 @@
 |torch.vstack|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64|
 |torch.where|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool<br>不支持8维度的shape|
 |torch.Generator|是|-|
-|torch.Generator.device|是|-|
-|torch.Generator.get_state|是|-|
-|torch.Generator.initial_seed|是|-|
+|torch.Generator.device|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.Generator.get_state|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.Generator.initial_seed|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.Generator.manual_seed|是|-|
-|torch.Generator.seed|是|-|
-|torch.Generator.set_state|是|-|
+|torch.Generator.seed|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.Generator.set_state|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.seed|是|-|
 |torch.manual_seed|是|-|
 |torch.initial_seed|是|-|
@@ -120,20 +120,20 @@
 |torch.randint|是|-|
 |torch.randint_like|是|支持fp16，fp32，int64|
 |torch.randn|是|-|
-|torch.randn_like|是|支持fp32|
+|torch.randn_like|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
 |torch.randperm|是|-|
 |torch.save|是|-|
 |torch.load|是|-|
 |torch.get_num_threads|是|-|
 |torch.set_num_threads|是|-|
-|torch.get_num_interop_threads|是|-|
-|torch.set_num_interop_threads|是|-|
+|torch.get_num_interop_threads|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.set_num_interop_threads|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.no_grad|是|-|
 |torch.enable_grad|是|-|
-|torch.autograd.grad_mode.set_grad_enabled|是|-|
+|torch.autograd.grad_mode.set_grad_enabled|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.is_grad_enabled|是|-|
-|torch.autograd.grad_mode.inference_mode|是|-|
-|torch.is_inference_mode_enabled|是|-|
+|torch.autograd.grad_mode.inference_mode|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.is_inference_mode_enabled|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.abs|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |torch.absolute|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64|
 |torch.acos|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
@@ -143,14 +143,14 @@
 |torch.add|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |torch.addcdiv|是|支持fp16，fp32，int64<br>在int64类型下不支持三个tensor同时广播|
 |torch.addcmul|是|支持bf16，fp16，fp32，fp64，uint8，int8，int32，int64<br>在fp64，uint8，int8，int64类型下不支持三个tensor同时广播|
-|torch.angle|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64|
+|torch.angle|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64|
 |torch.asin|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |torch.arcsin|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |torch.asinh|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |torch.arcsinh|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |torch.atan|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |torch.arctan|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
-|torch.atanh|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|torch.atanh|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |torch.arctanh|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |torch.atan2|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |torch.arctan2|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
@@ -175,11 +175,11 @@
 |torch.exp2|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |torch.expm1|是|支持bf16，fp16，fp32，fp64，int64，bool|
 |torch.fix|是|支持bf16，fp16，fp32|
-|torch.float_power|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex128|
+|torch.float_power|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex128|
 |torch.floor|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64|
 |torch.floor_divide|是|支持fp16，fp32，uint8，int8，int16，int32，int64|
 |torch.fmod|是|支持bf16，fp16，fp32，uint8，int8，int32，int64|
-|torch.gradient|是|支持bf16，fp16，fp32，int8，int16，int32，int64|
+|torch.gradient|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32，int8，int16，int32，int64|
 |torch.ldexp|是|支持fp16，fp64，complex64|
 |torch.lerp|是|支持fp16，fp32|
 |torch.log|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
@@ -224,7 +224,7 @@
 |torch.argmin|是|支持fp16，fp32，uint8，int8，int16，int32，int64|
 |torch.amax|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |torch.amin|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
-|torch.aminmax|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
+|torch.aminmax|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |torch.all|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |torch.any|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |torch.max|是|支持bf16，fp16，fp32，int64，bool|
@@ -235,19 +235,19 @@
 |torch.nanmean|是|支持bf16，fp16，fp32|
 |torch.median|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64|
 |torch.norm|是|支持bf16，fp16，fp32<br>参数dim指定为输入tensor中shape维度值为1的轴时，计算结果可能存在精度误差|
-|torch.nansum|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
+|torch.nansum|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |torch.prod|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |torch.nanquantile|否|-|
 |torch.std|是|可能回退至CPU执行|
 |torch.std_mean|否|-|
 |torch.sum|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool<br>不支持dtype参数|
-|torch.unique|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool<br>带dim场景不支持fp16<br>在输入包含0的情况下，输出中可能会包含正0和负0，而非只输出一个0|
+|torch.unique|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool<br>带dim场景不支持fp16<br>在输入包含0的情况下，输出中可能会包含正0和负0，而非只输出一个0|
 |torch.unique_consecutive|否|-|
 |torch.var|是|支持fp16，fp32|
 |torch.var_mean|否|-|
 |torch.count_nonzero|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |torch.allclose|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
-|torch.argsort|是|支持fp16，fp32，uint8，int8，int16，int32，int64|
+|torch.argsort|是|支持fp16，fp32，uint8，int8，int16，int32，int64<br>针对<term>Ascend 950DT</term>，由于底层实现限制，"stable"仅支持True，设置为False在执行时会自动修改为True|
 |torch.eq|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |torch.equal|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |torch.ge|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
@@ -270,10 +270,10 @@
 |torch.minimum|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |torch.ne|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |torch.not_equal|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|torch.sort|是|支持fp16，fp32，uint8，int8，int16，int32，int64|
-|torch.topk|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64<br>不支持sorted=False场景|
+|torch.sort|是|支持fp16，fp32，uint8，int8，int16，int32，int64<br>针对<term>Ascend 950DT</term>，由于底层实现限制，"stable"仅支持True，设置为False在执行时会自动修改为True|
+|torch.topk|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64<br>不支持sorted=False场景|
 |torch.msort|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64|
-|torch.stft|是|支持fp32，fp64，complex64，complex128<br>若算子超时，需要用官方接口set_op_execute_time_out进行设置，调高超时阈值以延长判断时间|
+|torch.stft|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32，fp64，complex64，complex128<br>若算子超时，需要用官方接口set_op_execute_time_out进行设置，调高超时阈值以延长判断时间|
 |torch.hann_window|是|支持bf16，fp16，fp32<br>数据类型为fp32时，参数window_length在大于10000的情况下，计算结果可能存在误差|
 |torch.atleast_1d|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |torch.atleast_2d|是|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
@@ -283,7 +283,7 @@
 |torch.broadcast_tensors|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |torch.broadcast_to|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |torch.broadcast_shapes|是|-|
-|torch.cdist|是|支持bf16，fp16，fp32<br>当 p=2.0 时，"compute_mode"仅支持"donot_use_mm_for_euclid_dist"模式，传入其他值会自动修改为此模式|
+|torch.cdist|是|支持bf16，fp16，fp32<br>当 p=2.0 时，"compute_mode"仅支持"donot_use_mm_for_euclid_dist"模式，传入其他值会自动修改为此模式<br>针对<term>Ascend 950DT</term>，输入为fp16时，精度可能和<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>存在差异|
 |torch.clone|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |torch.combinations|是|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |torch.cov|是|支持fp32|
@@ -310,7 +310,7 @@
 |torch.searchsorted|是|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64|
 |torch.tensordot|是|支持fp16，fp32|
 |torch.tril|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
-|torch.tril_indices|是|-|
+|torch.tril_indices|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.triu|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |torch.triu_indices|是|-|
 |torch.unflatten|是|-|
@@ -318,41 +318,41 @@
 |torch.view_as_complex|是|支持fp32，fp64|
 |torch.resolve_conj|是|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |torch.resolve_neg|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|torch.addbmm|是|支持fp16，fp32|
-|torch.addmm|是|支持fp16，fp32|
+|torch.addbmm|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
+|torch.addmm|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
 |torch.addmv|是|支持fp16，fp32，uint8，int8，int16，int32，int64|
-|torch.addr|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
+|torch.addr|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |torch.baddbmm|是|支持bf16，fp16，fp32|
-|torch.bmm|是|支持fp16，fp32|
+|torch.bmm|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
 |torch.dot|是|支持bf16，fp16，fp32，uint8，int8，int32|
 |torch.slogdet|是|支持fp32，complex64，complex128<br>可能回退至CPU执行|
-|torch.matmul|是|支持fp16，fp32<br>支持Named Tensor<br>输入最大支持6维|
-|torch.mm|是|支持fp16，fp32|
+|torch.matmul|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32<br>支持Named Tensor<br>输入最大支持6维|
+|torch.mm|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
 |torch.outer|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |torch.qr|是|-|
-|torch.trapezoid|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64|
+|torch.trapezoid|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64|
 |torch.cumulative_trapezoid|是|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64|
 |torch.vdot|是|支持fp16，fp32|
-|torch.compiled_with_cxx11_abi|是|-|
-|torch.result_type|是|支持fp32|
-|torch.can_cast|是|-|
-|torch.promote_types|是|-|
+|torch.compiled_with_cxx11_abi|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.result_type|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.can_cast|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.promote_types|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.use_deterministic_algorithms|是|同时设置HCCL_DETERMINISTIC和torch.use_deterministic_algorithms时，若HCCL_DETERMINISTIC开启确定性则HCCL接口启用确定性，否则HCCL确定性由torch.use_deterministic_algorithms接口控制|
 |torch.are_deterministic_algorithms_enabled|是|-|
 |torch.is_deterministic_algorithms_warn_only_enabled|否|-|
-|torch.set_deterministic_debug_mode|是|-|
+|torch.set_deterministic_debug_mode|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.get_deterministic_debug_mode|是|-|
-|torch.set_float32_matmul_precision|是|-|
-|torch.get_float32_matmul_precision|是|-|
-|torch.set_warn_always|是|-|
-|torch.is_warn_always_enabled|是|-|
-|torch.vmap|是|-|
-|torch._assert|是|-|
-|torch.sym_float|是|支持fp32|
+|torch.set_float32_matmul_precision|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.get_float32_matmul_precision|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.set_warn_always|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.is_warn_always_enabled|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.vmap|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch._assert|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.sym_float|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
 |torch.sym_int|是|支持fp32|
-|torch.sym_max|是|支持fp32|
-|torch.sym_min|是|支持fp32|
-|torch.sym_not|是|支持fp32|
+|torch.sym_max|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.sym_min|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.sym_not|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
 |torch.compile|是|backend可支持npugraphs，整体功能与backend="cudagraphs"一致|
 |torch.bucketize|是|支持fp16，fp32，uint8，int8，int16，int32，int64|
 |torch.cartesian_prod|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
@@ -360,5 +360,5 @@
 |torch.quasirandom.SobolEngine.draw|是|支持fp32，fp64|
 |torch._foreach_sqrt|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |torch._foreach_asin|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
-|torch.\_foreach\_neg\_|是|支持bf16，fp16，fp32，int8，int32，int64|
+|torch.\_foreach\_neg\_|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32，int8，int32，int64|
 |torch.corrcoef|是|支持bf16，fp16，fp32|

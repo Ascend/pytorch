@@ -11,17 +11,17 @@
 |torch.distributed.rpc.remote|是|-|
 |torch.distributed.rpc.get_worker_info|是|-|
 |torch.distributed.rpc.shutdown|是|-|
-|torch.distributed.rpc.WorkerInfo|是|-|
-|torch.distributed.rpc.functions.async_execution|是|-|
-|torch.distributed.rpc.BackendType|是|-|
-|torch.distributed.rpc.RpcBackendOptions|是|-|
+|torch.distributed.rpc.WorkerInfo|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.rpc.functions.async_execution|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.rpc.BackendType|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.rpc.RpcBackendOptions|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.distributed.rpc.TensorPipeRpcBackendOptions|是|建议使用已适配的torch_npu.distributed.rpc.options.NPUTensorPipeRpcBackendOptions|
-|torch.distributed.rpc.TensorPipeRpcBackendOptions.set_device_map|是|建议使用已适配的torch_npu.distributed.rpc.options.NPUTensorPipeRpcBackendOptions.set_device_map|
-|torch.distributed.rpc.TensorPipeRpcBackendOptions.set_devices|是|建议使用已适配的torch_npu.distributed.rpc.options.NPUTensorPipeRpcBackendOptions.set_devices|
-|torch.distributed.rpc.PyRRef|是|-|
-|torch.distributed.nn.api.remote_module.RemoteModule|是|-|
-|torch.distributed.nn.api.remote_module.RemoteModule.get_module_rref|是|-|
-|torch.distributed.nn.api.remote_module.RemoteModule.remote_parameters|是|-|
-|torch.distributed.autograd.backward|是|-|
-|torch.distributed.autograd.context|是|-|
-|torch.distributed.autograd.get_gradients|是|-|
+|torch.distributed.rpc.TensorPipeRpcBackendOptions.set_device_map|是<br>暂不支持<term>Ascend 950DT</term>|建议使用已适配的torch_npu.distributed.rpc.options.NPUTensorPipeRpcBackendOptions.set_device_map|
+|torch.distributed.rpc.TensorPipeRpcBackendOptions.set_devices|是<br>暂不支持<term>Ascend 950DT</term>|建议使用已适配的torch_npu.distributed.rpc.options.NPUTensorPipeRpcBackendOptions.set_devices|
+|torch.distributed.rpc.PyRRef|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.nn.api.remote_module.RemoteModule|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.nn.api.remote_module.RemoteModule.get_module_rref|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.nn.api.remote_module.RemoteModule.remote_parameters|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.autograd.backward|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.autograd.context|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.autograd.get_gradients|是<br>暂不支持<term>Ascend 950DT</term>|-|

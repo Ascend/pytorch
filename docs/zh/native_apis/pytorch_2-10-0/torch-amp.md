@@ -9,5 +9,5 @@
 |torch.cuda.amp.autocast|torch_npu.npu.amp.autocast|是|-|
 |torch.cuda.amp.custom_fwd|torch_npu.npu.amp.custom_fwd|是|-|
 |torch.cuda.amp.custom_bwd|torch_npu.npu.amp.custom_bwd|是|-|
-|torch.cpu.amp.autocast|torch.cpu.amp.autocast|是|-|
+|torch.cpu.amp.autocast|torch.cpu.amp.autocast|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.cuda.amp.GradScaler|torch_npu.npu.amp.GradScaler|是|-|

@@ -11,14 +11,14 @@
 
 |API名称|是否支持|限制与说明|
 |--|--|--|
-|torch.fft.rfftn|是|支持fp32<br>数值范围：每个元素必须在[-100, 100]内<br>支持1-8维。2维维度为(batch, n)，1维维度为(n)<br>1. batch维度：[1, 8, 16, 24, 32, 64]<br>2. n维度限制（满足任一即可）：<br>- $2^n$，n为23以内<br>- 2, 3, 5, 7任意相乘，例如：2\*2\*2\*3\*3\*5\*7\*7，但结果需在1000000以内<br>- 200以内质数任意相乘，结果需在100000以内|
-|torch.fft.hfft|是|-|
-|torch.fft.ihfft|是|-|
-|torch.fft.hfft2|是|-|
+|torch.fft.rfftn|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32<br>数值范围：每个元素必须在[-100, 100]内<br>支持1-8维。2维维度为(batch, n)，1维维度为(n)<br>1. batch维度：[1, 8, 16, 24, 32, 64]<br>2. n维度限制（满足任一即可）：<br>- $2^n$，n为23以内<br>- 2, 3, 5, 7任意相乘，例如：2\*2\*2\*3\*3\*5\*7\*7，但结果需在1000000以内<br>- 200以内质数任意相乘，结果需在100000以内|
+|torch.fft.hfft|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.fft.ihfft|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.fft.hfft2|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.fft.ihfft2|否|-|
-|torch.fft.hfftn|是|-|
+|torch.fft.hfftn|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.fft.ihfftn|否|-|
 |torch.fft.fftfreq|否|-|
 |torch.fft.rfftfreq|否|-|
 |torch.fft.fftshift|否|-|
-|torch.fft.ifftshift|否|-|
+|torch.fft.ifftshift|仅支持<term>Ascend 950DT</term>|<term>Ascend 950DT</term>：不支持fp64，complex64，complex128|

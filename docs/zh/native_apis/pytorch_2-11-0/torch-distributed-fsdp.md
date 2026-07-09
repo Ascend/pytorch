@@ -32,12 +32,12 @@
 |torch.distributed.fsdp.ShardingStrategy|是|-|
 |torch.distributed.fsdp.MixedPrecision|是|-|
 |torch.distributed.fsdp.CPUOffload|是|-|
-|torch.distributed.fsdp.StateDictConfig|是|-|
+|torch.distributed.fsdp.StateDictConfig|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.distributed.fsdp.FullStateDictConfig|是|-|
 |torch.distributed.fsdp.ShardedStateDictConfig|是|-|
-|torch.distributed.fsdp.LocalStateDictConfig|是|-|
-|torch.distributed.fsdp.OptimStateDictConfig|是|-|
+|torch.distributed.fsdp.LocalStateDictConfig|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.fsdp.OptimStateDictConfig|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.distributed.fsdp.FullOptimStateDictConfig|是|-|
 |torch.distributed.fsdp.ShardedOptimStateDictConfig|是|-|
-|torch.distributed.fsdp.LocalOptimStateDictConfig|是|-|
-|torch.distributed.fsdp.StateDictSettings|是|-|
+|torch.distributed.fsdp.LocalOptimStateDictConfig|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.fsdp.StateDictSettings|是<br>暂不支持<term>Ascend 950DT</term>|-|

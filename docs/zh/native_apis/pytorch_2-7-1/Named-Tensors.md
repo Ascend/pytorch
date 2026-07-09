@@ -6,10 +6,10 @@
 |API名称|是否支持|限制与说明|
 |--|--|--|
 |torch.Tensor|是|支持fp32|
-|names|是|支持fp32|
-|rename|是|支持fp32|
-|rename_|是|支持fp32|
-|refine_names|是|支持fp32|
-|align_as|是|支持fp32|
-|align_to|是|支持fp32|
-|flatten|是|支持fp32|
+|names|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|rename|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|rename_|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|refine_names|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|align_as|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|align_to|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|flatten|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|

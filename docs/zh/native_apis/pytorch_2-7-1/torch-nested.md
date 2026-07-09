@@ -10,4 +10,4 @@
 |torch.nested.to_padded_tensor|否|-|
 |torch.nested.nested_tensor_from_jagged|否|-|
 |torch.nested.masked_select|否|-|
-|torch.nested.narrow|否|-|
+|torch.nested.narrow|仅支持<term>Ascend 950DT</term>|<term>Ascend 950DT</term>：不支持complex64，complex128|

@@ -5,23 +5,23 @@
 
 |API名称|是否支持|限制与说明|
 |--|--|--|
-|torch.utils.tensorboard.SummaryWriter|是|-|
-|torch.utils.tensorboard.writer.SummaryWriter|是|-|
-|torch.utils.tensorboard.writer.SummaryWriter.\_\_init_\_|是|-|
-|torch.utils.tensorboard.writer.SummaryWriter.add_scalar|是|-|
-|torch.utils.tensorboard.writer.SummaryWriter.add_scalars|是|-|
-|torch.utils.tensorboard.writer.SummaryWriter.add_histogram|是|-|
-|torch.utils.tensorboard.writer.SummaryWriter.add_image|是|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
-|torch.utils.tensorboard.writer.SummaryWriter.add_images|是|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
-|torch.utils.tensorboard.writer.SummaryWriter.add_figure|是|-|
-|torch.utils.tensorboard.writer.SummaryWriter.add_video|是|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
-|torch.utils.tensorboard.writer.SummaryWriter.add_audio|是|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
-|torch.utils.tensorboard.writer.SummaryWriter.add_text|是|-|
-|torch.utils.tensorboard.writer.SummaryWriter.add_graph|是|支持bf16，fp16，fp32|
-|torch.utils.tensorboard.writer.SummaryWriter.add_embedding|是|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
-|torch.utils.tensorboard.writer.SummaryWriter.add_pr_curve|是|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
-|torch.utils.tensorboard.writer.SummaryWriter.add_custom_scalars|是|-|
-|torch.utils.tensorboard.writer.SummaryWriter.add_mesh|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
-|torch.utils.tensorboard.writer.SummaryWriter.add_hparams|是|-|
-|torch.utils.tensorboard.writer.SummaryWriter.flush|是|-|
-|torch.utils.tensorboard.writer.SummaryWriter.close|是|-|
+|torch.utils.tensorboard.SummaryWriter|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.utils.tensorboard.writer.SummaryWriter|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.utils.tensorboard.writer.SummaryWriter.\_\_init_\_|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.utils.tensorboard.writer.SummaryWriter.add_scalar|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.utils.tensorboard.writer.SummaryWriter.add_scalars|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.utils.tensorboard.writer.SummaryWriter.add_histogram|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.utils.tensorboard.writer.SummaryWriter.add_image|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
+|torch.utils.tensorboard.writer.SummaryWriter.add_images|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
+|torch.utils.tensorboard.writer.SummaryWriter.add_figure|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.utils.tensorboard.writer.SummaryWriter.add_video|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
+|torch.utils.tensorboard.writer.SummaryWriter.add_audio|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
+|torch.utils.tensorboard.writer.SummaryWriter.add_text|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.utils.tensorboard.writer.SummaryWriter.add_graph|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32|
+|torch.utils.tensorboard.writer.SummaryWriter.add_embedding|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
+|torch.utils.tensorboard.writer.SummaryWriter.add_pr_curve|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
+|torch.utils.tensorboard.writer.SummaryWriter.add_custom_scalars|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.utils.tensorboard.writer.SummaryWriter.add_mesh|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
+|torch.utils.tensorboard.writer.SummaryWriter.add_hparams|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.utils.tensorboard.writer.SummaryWriter.flush|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.utils.tensorboard.writer.SummaryWriter.close|是<br>暂不支持<term>Ascend 950DT</term>|-|

@@ -5,123 +5,123 @@
 
 |API名称|是否支持|限制与说明|
 |--|--|--|
-|torch.distributed.elastic.agent.server.ElasticAgent|是|-|
-|torch.distributed.elastic.agent.server.ElasticAgent.get_worker_group|是|-|
-|torch.distributed.elastic.agent.server.ElasticAgent.run|是|-|
-|torch.distributed.elastic.agent.server.WorkerSpec|是|-|
-|torch.distributed.elastic.agent.server.WorkerSpec.get_entrypoint_name|是|-|
-|torch.distributed.elastic.agent.server.WorkerState|是|-|
-|torch.distributed.elastic.agent.server.WorkerState.is_running|是|-|
-|torch.distributed.elastic.control_plane.worker_main|是|-|
-|torch.distributed.elastic.agent.server.Worker|是|-|
-|torch.distributed.elastic.agent.server.WorkerGroup|是|-|
-|torch.distributed.elastic.agent.server.local_elastic_agent.LocalElasticAgent|是|-|
-|torch.distributed.elastic.agent.server.SimpleElasticAgent|是|-|
-|torch.distributed.elastic.agent.server.SimpleElasticAgent._assign_worker_ranks|是|-|
-|torch.distributed.elastic.agent.server.SimpleElasticAgent._exit_barrier|是|-|
-|torch.distributed.elastic.agent.server.SimpleElasticAgent._initialize_workers|是|-|
-|torch.distributed.elastic.agent.server.SimpleElasticAgent._monitor_workers|是|-|
-|torch.distributed.elastic.agent.server.SimpleElasticAgent._rendezvous|是|-|
-|torch.distributed.elastic.agent.server.SimpleElasticAgent._restart_workers|是|-|
-|torch.distributed.elastic.agent.server.SimpleElasticAgent._shutdown|是|-|
-|torch.distributed.elastic.agent.server.SimpleElasticAgent._start_workers|是|-|
-|torch.distributed.elastic.agent.server.SimpleElasticAgent._stop_workers|是|-|
-|torch.distributed.elastic.agent.server.api.RunResult|是|-|
-|torch.distributed.elastic.agent.server.health_check_server.create_healthcheck_server|是|-|
-|torch.distributed.elastic.agent.server.health_check_server.HealthCheckServer|是|-|
-|torch.distributed.elastic.agent.server.health_check_server.HealthCheckServer.start|是|-|
-|torch.distributed.elastic.agent.server.health_check_server.HealthCheckServer.stop|是|-|
-|torch.distributed.elastic.multiprocessing.start_processes|是|-|
-|torch.distributed.elastic.multiprocessing.api.PContext|是|-|
-|torch.distributed.elastic.multiprocessing.api.MultiprocessContext|是|-|
-|torch.distributed.elastic.multiprocessing.api.SubprocessContext|是|-|
-|torch.distributed.elastic.multiprocessing.api.RunProcsResult|是|-|
-|torch.distributed.elastic.multiprocessing.api.DefaultLogsSpecs|是|-|
-|torch.distributed.elastic.multiprocessing.api.DefaultLogsSpecs.reify|是|-|
-|torch.distributed.elastic.multiprocessing.api.LogsDest|是|-|
-|torch.distributed.elastic.multiprocessing.api.LogsSpecs|是|-|
-|torch.distributed.elastic.multiprocessing.api.LogsSpecs.reify|是|-|
-|torch.distributed.elastic.multiprocessing.errors.record|是|-|
-|torch.distributed.elastic.multiprocessing.errors.ChildFailedError|是|-|
-|torch.distributed.elastic.multiprocessing.errors.ErrorHandler|是|-|
-|torch.distributed.elastic.multiprocessing.errors.ProcessFailure|是|-|
-|torch.distributed.elastic.rendezvous.RendezvousParameters|是|-|
-|torch.distributed.elastic.rendezvous.RendezvousParameters.get|是|-|
-|torch.distributed.elastic.rendezvous.RendezvousParameters.get_as_bool|是|-|
-|torch.distributed.elastic.rendezvous.RendezvousParameters.get_as_int|是|-|
-|torch.distributed.elastic.rendezvous.RendezvousHandlerRegistry|是|-|
-|torch.distributed.elastic.rendezvous.RendezvousHandler|是|-|
-|torch.distributed.elastic.rendezvous.RendezvousHandler.get_backend|是|-|
-|torch.distributed.elastic.rendezvous.RendezvousHandler.get_run_id|是|-|
-|torch.distributed.elastic.rendezvous.RendezvousHandler.is_closed|是|-|
-|torch.distributed.elastic.rendezvous.RendezvousHandler.next_rendezvous|是|-|
-|torch.distributed.elastic.rendezvous.RendezvousHandler.num_nodes_waiting|是|-|
-|torch.distributed.elastic.rendezvous.RendezvousHandler.set_closed|是|-|
-|torch.distributed.elastic.rendezvous.RendezvousHandler.shutdown|是|-|
-|torch.distributed.elastic.rendezvous.RendezvousHandler.use_agent_store|是|-|
-|torch.distributed.elastic.rendezvous.RendezvousInfo|是|-|
-|torch.distributed.elastic.rendezvous.api.RendezvousError|是|-|
-|torch.distributed.elastic.rendezvous.api.RendezvousClosedError|是|-|
-|torch.distributed.elastic.rendezvous.api.RendezvousTimeoutError|是|-|
-|torch.distributed.elastic.rendezvous.api.RendezvousConnectionError|是|-|
-|torch.distributed.elastic.rendezvous.api.RendezvousStateError|是|-|
-|torch.distributed.elastic.rendezvous.api.RendezvousGracefulExitError|是|-|
-|torch.distributed.elastic.rendezvous.api.RendezvousStoreInfo|是|-|
-|torch.distributed.elastic.rendezvous.api.RendezvousStoreInfo.build|是|-|
-|torch.distributed.elastic.rendezvous.dynamic_rendezvous.create_handler|是|-|
-|torch.distributed.elastic.rendezvous.dynamic_rendezvous.DynamicRendezvousHandler|是|-|
-|torch.distributed.elastic.rendezvous.dynamic_rendezvous.DynamicRendezvousHandler.from_backend|是|-|
-|torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousBackend|是|-|
-|torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousBackend.get_state|是|-|
-|torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousBackend.name|是|-|
-|torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousBackend.set_state|是|-|
-|torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousTimeout|是|-|
-|torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousTimeout.close|是|-|
-|torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousTimeout.heartbeat|是|-|
-|torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousTimeout.join|是|-|
-|torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousTimeout.last_call|是|-|
-|torch.distributed.elastic.rendezvous.c10d_rendezvous_backend.create_backend|是|-|
-|torch.distributed.elastic.rendezvous.c10d_rendezvous_backend.C10dRendezvousBackend|是|-|
-|torch.distributed.elastic.rendezvous.c10d_rendezvous_backend.C10dRendezvousBackend.get_state|是|-|
-|torch.distributed.elastic.rendezvous.c10d_rendezvous_backend.C10dRendezvousBackend.name|是|-|
-|torch.distributed.elastic.rendezvous.c10d_rendezvous_backend.C10dRendezvousBackend.set_state|是|-|
-|torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.create_backend|是|-|
-|torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend|是|-|
-|torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend.get_state|是|-|
-|torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend.name|是|-|
-|torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend.set_state|是|-|
-|torch.distributed.elastic.rendezvous.etcd_rendezvous.EtcdRendezvousHandler|是|-|
-|torch.distributed.elastic.rendezvous.etcd_store.EtcdStore|是|-|
-|torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.add|是|-|
-|torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.check|是|-|
-|torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.get|是|-|
-|torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.set|是|-|
-|torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.wait|是|-|
+|torch.distributed.elastic.agent.server.ElasticAgent|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.agent.server.ElasticAgent.get_worker_group|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.agent.server.ElasticAgent.run|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.agent.server.WorkerSpec|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.agent.server.WorkerSpec.get_entrypoint_name|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.agent.server.WorkerState|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.agent.server.WorkerState.is_running|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.control_plane.worker_main|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.agent.server.Worker|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.agent.server.WorkerGroup|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.agent.server.local_elastic_agent.LocalElasticAgent|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.agent.server.SimpleElasticAgent|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.agent.server.SimpleElasticAgent._assign_worker_ranks|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.agent.server.SimpleElasticAgent._exit_barrier|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.agent.server.SimpleElasticAgent._initialize_workers|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.agent.server.SimpleElasticAgent._monitor_workers|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.agent.server.SimpleElasticAgent._rendezvous|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.agent.server.SimpleElasticAgent._restart_workers|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.agent.server.SimpleElasticAgent._shutdown|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.agent.server.SimpleElasticAgent._start_workers|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.agent.server.SimpleElasticAgent._stop_workers|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.agent.server.api.RunResult|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.agent.server.health_check_server.create_healthcheck_server|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.agent.server.health_check_server.HealthCheckServer|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.agent.server.health_check_server.HealthCheckServer.start|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.agent.server.health_check_server.HealthCheckServer.stop|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.multiprocessing.start_processes|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.multiprocessing.api.PContext|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.multiprocessing.api.MultiprocessContext|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.multiprocessing.api.SubprocessContext|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.multiprocessing.api.RunProcsResult|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.multiprocessing.api.DefaultLogsSpecs|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.multiprocessing.api.DefaultLogsSpecs.reify|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.multiprocessing.api.LogsDest|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.multiprocessing.api.LogsSpecs|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.multiprocessing.api.LogsSpecs.reify|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.multiprocessing.errors.record|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.multiprocessing.errors.ChildFailedError|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.multiprocessing.errors.ErrorHandler|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.multiprocessing.errors.ProcessFailure|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.RendezvousParameters|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.RendezvousParameters.get|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.RendezvousParameters.get_as_bool|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.RendezvousParameters.get_as_int|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.RendezvousHandlerRegistry|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.RendezvousHandler|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.RendezvousHandler.get_backend|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.RendezvousHandler.get_run_id|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.RendezvousHandler.is_closed|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.RendezvousHandler.next_rendezvous|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.RendezvousHandler.num_nodes_waiting|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.RendezvousHandler.set_closed|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.RendezvousHandler.shutdown|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.RendezvousHandler.use_agent_store|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.RendezvousInfo|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.api.RendezvousError|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.api.RendezvousClosedError|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.api.RendezvousTimeoutError|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.api.RendezvousConnectionError|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.api.RendezvousStateError|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.api.RendezvousGracefulExitError|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.api.RendezvousStoreInfo|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.api.RendezvousStoreInfo.build|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.dynamic_rendezvous.create_handler|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.dynamic_rendezvous.DynamicRendezvousHandler|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.dynamic_rendezvous.DynamicRendezvousHandler.from_backend|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousBackend|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousBackend.get_state|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousBackend.name|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousBackend.set_state|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousTimeout|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousTimeout.close|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousTimeout.heartbeat|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousTimeout.join|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousTimeout.last_call|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.c10d_rendezvous_backend.create_backend|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.c10d_rendezvous_backend.C10dRendezvousBackend|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.c10d_rendezvous_backend.C10dRendezvousBackend.get_state|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.c10d_rendezvous_backend.C10dRendezvousBackend.name|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.c10d_rendezvous_backend.C10dRendezvousBackend.set_state|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.create_backend|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend.get_state|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend.name|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend.set_state|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.etcd_rendezvous.EtcdRendezvousHandler|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.etcd_store.EtcdStore|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.add|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.check|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.get|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.set|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.wait|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.distributed.elastic.rendezvous.etcd_server.EtcdServer|否|-|
-|torch.distributed.elastic.timer.configure|是|-|
-|torch.distributed.elastic.timer.debug_info_logging.log_debug_info_for_expired_timers|是|-|
-|torch.distributed.elastic.timer.expires|是|-|
-|torch.distributed.elastic.timer.LocalTimerServer|是|-|
-|torch.distributed.elastic.timer.LocalTimerClient|是|-|
-|torch.distributed.elastic.timer.FileTimerServer|是|-|
-|torch.distributed.elastic.timer.FileTimerClient|是|-|
-|torch.distributed.elastic.timer.TimerRequest|是|-|
-|torch.distributed.elastic.timer.TimerServer|是|-|
-|torch.distributed.elastic.timer.TimerServer.clear_timers|是|-|
-|torch.distributed.elastic.timer.TimerServer.get_expired_timers|是|-|
-|torch.distributed.elastic.timer.TimerServer.register_timers|是|-|
-|torch.distributed.elastic.timer.TimerClient|是|-|
-|torch.distributed.elastic.timer.TimerClient.acquire|是|-|
-|torch.distributed.elastic.timer.TimerClient.release|是|-|
-|torch.distributed.elastic.metrics.api.MetricHandler|是|-|
-|torch.distributed.elastic.metrics.api.ConsoleMetricHandler|是|-|
-|torch.distributed.elastic.metrics.api.NullMetricHandler|是|-|
-|torch.distributed.elastic.metrics.configure|是|-|
-|torch.distributed.elastic.metrics.prof|是|-|
-|torch.distributed.elastic.metrics.put_metric|是|-|
-|torch.distributed.elastic.events.record|是|-|
-|torch.distributed.elastic.events.get_logging_handler|是|-|
-|torch.distributed.elastic.events.api.Event|是|-|
-|torch.distributed.elastic.events.api.EventSource|是|-|
-|torch.distributed.elastic.events.api.EventMetadataValue|是|-|
-|torch.distributed.elastic.events.construct_and_record_rdzv_event|是|-|
+|torch.distributed.elastic.timer.configure|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.timer.debug_info_logging.log_debug_info_for_expired_timers|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.timer.expires|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.timer.LocalTimerServer|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.timer.LocalTimerClient|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.timer.FileTimerServer|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.timer.FileTimerClient|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.timer.TimerRequest|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.timer.TimerServer|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.timer.TimerServer.clear_timers|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.timer.TimerServer.get_expired_timers|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.timer.TimerServer.register_timers|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.timer.TimerClient|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.timer.TimerClient.acquire|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.timer.TimerClient.release|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.metrics.api.MetricHandler|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.metrics.api.ConsoleMetricHandler|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.metrics.api.NullMetricHandler|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.metrics.configure|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.metrics.prof|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.metrics.put_metric|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.events.record|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.events.get_logging_handler|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.events.api.Event|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.events.api.EventSource|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.events.api.EventMetadataValue|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.elastic.events.construct_and_record_rdzv_event|是<br>暂不支持<term>Ascend 950DT</term>|-|

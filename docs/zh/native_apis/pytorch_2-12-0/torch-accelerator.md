@@ -5,13 +5,13 @@
 
 |API名称|是否支持|限制与说明|
 |--|--|--|
-|torch.accelerator.device_count|是|-|
+|torch.accelerator.device_count|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.accelerator.is_available|是|-|
 |torch.accelerator.current_accelerator|是|-|
 |torch.accelerator.set_device_index|是|-|
-|torch.accelerator.set_device_idx|是|-|
+|torch.accelerator.set_device_idx|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.accelerator.current_device_index|是|-|
-|torch.accelerator.current_device_idx|是|-|
-|torch.accelerator.set_stream|是|-|
+|torch.accelerator.current_device_idx|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.accelerator.set_stream|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.accelerator.current_stream|是|-|
 |torch.accelerator.synchronize|是|-|

@@ -8,90 +8,90 @@
 |torch.nn.parameter.Parameter|是|支持fp32|
 |torch.nn.parameter.Buffer|是|支持fp32|
 |torch.nn.parameter.UninitializedParameter|是|-|
-|torch.nn.parameter.UninitializedParameter.cls_to_become|是|-|
+|torch.nn.parameter.UninitializedParameter.cls_to_become|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.nn.parameter.UninitializedBuffer|是|-|
 |torch.nn.Module|是|支持fp32|
-|torch.nn.Module.add_module|是|支持fp32|
-|torch.nn.Module.apply|是|支持fp32|
-|torch.nn.Module.bfloat16|是|-|
+|torch.nn.Module.add_module|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.Module.apply|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.Module.bfloat16|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.nn.Module.buffers|是|-|
-|torch.nn.Module.children|是|支持fp32|
-|torch.nn.Module.compile|是|-|
-|torch.nn.Module.cpu|是|支持fp32|
-|torch.nn.Module.cuda|是|支持fp32|
-|torch.nn.Module.double|是|-|
-|torch.nn.Module.eval|是|支持fp32，int64|
-|torch.nn.Module.extra_repr|是|支持fp32|
-|torch.nn.Module.float|是|支持fp16，fp32|
-|torch.nn.Module.forward|是|支持fp32|
-|torch.nn.Module.get_buffer|是|-|
-|torch.nn.Module.get_extra_state|是|-|
-|torch.nn.Module.get_parameter|是|支持fp32|
-|torch.nn.Module.get_submodule|是|支持fp32|
-|torch.nn.Module.half|是|支持fp16，fp32|
+|torch.nn.Module.children|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.Module.compile|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.Module.cpu|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.Module.cuda|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.Module.double|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.Module.eval|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32，int64|
+|torch.nn.Module.extra_repr|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.Module.float|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
+|torch.nn.Module.forward|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.Module.get_buffer|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.Module.get_extra_state|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.Module.get_parameter|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.Module.get_submodule|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.Module.half|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
 |torch.nn.Module.ipu|否|-|
-|torch.nn.Module.load_state_dict|是|支持fp32|
+|torch.nn.Module.load_state_dict|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
 |torch.nn.Module.modules|是|支持fp32|
-|torch.nn.Module.named_buffers|是|-|
-|torch.nn.Module.named_children|是|支持fp32|
+|torch.nn.Module.named_buffers|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.Module.named_children|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
 |torch.nn.Module.named_modules|是|支持fp32|
 |torch.nn.Module.named_parameters|是|-|
-|torch.nn.Module.parameters|是|-|
-|torch.nn.Module.register_backward_hook|是|支持fp32|
-|torch.nn.Module.register_buffer|是|支持fp32|
+|torch.nn.Module.parameters|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.Module.register_backward_hook|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.Module.register_buffer|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
 |torch.nn.Module.register_forward_hook|是|支持fp32|
 |torch.nn.Module.register_forward_pre_hook|是|支持fp32|
-|torch.nn.Module.register_full_backward_hook|是|支持fp32|
-|torch.nn.Module.register_full_backward_pre_hook|是|支持fp32|
+|torch.nn.Module.register_full_backward_hook|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.Module.register_full_backward_pre_hook|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
 |torch.nn.Module.register_load_state_dict_post_hook|是|支持fp32|
-|torch.nn.Module.register_module|是|支持fp32|
-|torch.nn.Module.register_parameter|是|-|
-|torch.nn.Module.register_state_dict_pre_hook|是|-|
-|torch.nn.Module.requires_grad_|是|-|
-|torch.nn.Module.set_extra_state|是|-|
-|torch.nn.Module.set_submodule|是|-|
+|torch.nn.Module.register_module|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.Module.register_parameter|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.Module.register_state_dict_pre_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.Module.requires_grad_|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.Module.set_extra_state|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.Module.set_submodule|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.nn.Module.share_memory|否|-|
 |torch.nn.Module.state_dict|是|支持fp32|
-|torch.nn.Module.to|是|支持fp32|
-|torch.nn.Module.to_empty|是|支持fp32|
-|torch.nn.Module.train|是|支持fp32|
-|torch.nn.Module.type|是|支持fp16，fp32，int64|
-|torch.nn.Module.xpu|是|NPU形式名称为torch.nn.Module.npu|
+|torch.nn.Module.to|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.Module.to_empty|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.Module.train|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.Module.type|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，int64|
+|torch.nn.Module.xpu|是<br>暂不支持<term>Ascend 950DT</term>|NPU形式名称为torch.nn.Module.npu|
 |torch.nn.Module.npu|否|-|
-|torch.nn.Module.zero_grad|是|支持fp32|
+|torch.nn.Module.zero_grad|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
 |torch.nn.Sequential|是|支持fp32|
-|torch.nn.Sequential.append|是|支持fp32|
+|torch.nn.Sequential.append|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
 |torch.nn.ModuleList|是|支持fp32|
-|torch.nn.ModuleList.append|是|支持fp32|
-|torch.nn.ModuleList.extend|是|支持fp32|
-|torch.nn.ModuleList.insert|是|支持fp32|
+|torch.nn.ModuleList.append|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.ModuleList.extend|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.ModuleList.insert|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
 |torch.nn.ModuleDict|是|支持fp32|
-|torch.nn.ModuleDict.clear|是|支持fp32|
-|torch.nn.ModuleDict.items|是|支持fp32|
-|torch.nn.ModuleDict.keys|是|支持fp32|
-|torch.nn.ModuleDict.pop|是|支持fp32|
-|torch.nn.ModuleDict.update|是|支持fp32|
-|torch.nn.ModuleDict.values|是|支持fp32|
+|torch.nn.ModuleDict.clear|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.ModuleDict.items|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.ModuleDict.keys|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.ModuleDict.pop|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.ModuleDict.update|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.ModuleDict.values|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
 |torch.nn.ParameterList|是|支持fp32|
-|torch.nn.ParameterList.append|是|支持fp32|
-|torch.nn.ParameterList.extend|是|支持fp32|
+|torch.nn.ParameterList.append|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.ParameterList.extend|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
 |torch.nn.ParameterDict|是|支持fp32|
-|torch.nn.ParameterDict.clear|是|支持fp32|
-|torch.nn.ParameterDict.copy|是|支持fp32|
-|torch.nn.ParameterDict.fromkeys|是|支持fp32|
-|torch.nn.ParameterDict.get|是|支持fp32|
-|torch.nn.ParameterDict.items|是|支持fp32|
-|torch.nn.ParameterDict.keys|是|支持fp32|
-|torch.nn.ParameterDict.pop|是|支持fp32|
-|torch.nn.ParameterDict.popitem|是|支持fp32|
-|torch.nn.ParameterDict.setdefault|是|支持fp32|
-|torch.nn.ParameterDict.update|是|支持fp32|
-|torch.nn.ParameterDict.values|是|支持fp32|
-|torch.nn.modules.module.register_module_forward_pre_hook|是|支持fp32|
-|torch.nn.modules.module.register_module_forward_hook|是|支持fp32|
-|torch.nn.modules.module.register_module_backward_hook|是|支持fp32|
+|torch.nn.ParameterDict.clear|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.ParameterDict.copy|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.ParameterDict.fromkeys|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.ParameterDict.get|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.ParameterDict.items|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.ParameterDict.keys|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.ParameterDict.pop|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.ParameterDict.popitem|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.ParameterDict.setdefault|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.ParameterDict.update|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.ParameterDict.values|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.modules.module.register_module_forward_pre_hook|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.modules.module.register_module_forward_hook|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.modules.module.register_module_backward_hook|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
 |torch.nn.modules.module.register_module_full_backward_pre_hook|否|-|
-|torch.nn.modules.module.register_module_full_backward_hook|是|支持fp32|
+|torch.nn.modules.module.register_module_full_backward_hook|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
 |torch.nn.modules.module.register_module_buffer_registration_hook|否|-|
 |torch.nn.modules.module.register_module_module_registration_hook|否|-|
 |torch.nn.modules.module.register_module_parameter_registration_hook|否|-|
@@ -101,35 +101,35 @@
 |torch.nn.ConvTranspose1d|是|支持fp32|
 |torch.nn.ConvTranspose2d|是|支持fp16，fp32<br><term>Atlas 训练系列产品</term>/<term>Atlas A2 训练系列产品</term>，需手动设置torch.npu.config.allow_internal_format为False，才可支持3维输入|
 |torch.nn.ConvTranspose3d|是|支持bf16，fp16，fp32|
-|torch.nn.LazyConv1d|是|支持fp16，fp32|
+|torch.nn.LazyConv1d|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
 |torch.nn.LazyConv1d.cls_to_become|是|-|
 |torch.nn.LazyConv2d|是|支持fp16，fp32|
 |torch.nn.LazyConv2d.cls_to_become|是|-|
 |torch.nn.LazyConv3d.cls_to_become|是|-|
-|torch.nn.LazyConvTranspose1d|是|支持fp16|
-|torch.nn.LazyConvTranspose1d.cls_to_become|是|-|
+|torch.nn.LazyConvTranspose1d|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16|
+|torch.nn.LazyConvTranspose1d.cls_to_become|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.nn.LazyConvTranspose2d|是|支持fp16，fp32|
 |torch.nn.LazyConvTranspose2d.cls_to_become|是|-|
-|torch.nn.LazyConvTranspose3d.cls_to_become|是|-|
+|torch.nn.LazyConvTranspose3d.cls_to_become|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.nn.Unfold|是|支持bf16，fp16，fp32|
 |torch.nn.Fold|是|支持fp16|
 |torch.nn.MaxPool1d|否|-|
 |torch.nn.MaxPool2d|是|支持bf16，fp16，fp32<br>通过设置torch_npu.npu.use_compatible_impl(True)，保证与社区同名接口在内存一致性上对齐|
 |torch.nn.MaxPool3d|否|-|
-|torch.nn.MaxUnpool1d|是|支持fp16，fp32|
+|torch.nn.MaxUnpool1d|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
 |torch.nn.MaxUnpool2d|是|支持fp16，fp32|
 |torch.nn.MaxUnpool3d|否|-|
 |torch.nn.AvgPool1d|是|支持bf16，fp16，fp32|
 |torch.nn.AvgPool2d|是|支持bf16，fp16，fp32|
 |torch.nn.AvgPool3d|否|-|
-|torch.nn.LPPool1d|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
-|torch.nn.LPPool2d|是|支持fp16，fp32，int16，int32，int64，bool|
+|torch.nn.LPPool1d|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
+|torch.nn.LPPool2d|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，int16，int32，int64，bool|
 |torch.nn.AdaptiveMaxPool1d|否|-|
 |torch.nn.AdaptiveMaxPool2d|否|-|
 |torch.nn.AdaptiveMaxPool3d|是|支持fp32，fp64|
 |torch.nn.AdaptiveAvgPool1d|是|支持fp16，fp32|
 |torch.nn.AdaptiveAvgPool2d|是|支持fp16，fp32|
-|torch.nn.AdaptiveAvgPool3d|是|支持bf16，fp16，fp32|
+|torch.nn.AdaptiveAvgPool3d|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32|
 |torch.nn.ReflectionPad1d|是|支持fp16，fp32|
 |torch.nn.ReflectionPad2d|是|支持fp16，fp32|
 |torch.nn.ReflectionPad3d|否|-|
@@ -144,25 +144,25 @@
 |torch.nn.ConstantPad3d|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>在输入x为六维以上时可能会出现性能下降问题|
 |torch.nn.ELU|是|支持bf16，fp16，fp32，fp64|
 |torch.nn.Hardshrink|是|支持fp16，fp32<br>可能回退至CPU执行|
-|torch.nn.Hardsigmoid|是|支持fp16，fp32，int32<br>可能回退至CPU执行|
+|torch.nn.Hardsigmoid|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，int32<br>可能回退至CPU执行|
 |torch.nn.Hardtanh|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64|
 |torch.nn.Hardswish|是|支持fp16，fp32|
 |torch.nn.LeakyReLU|是|支持bf16，fp16，fp32，fp64|
 |torch.nn.LogSigmoid|是|支持fp16，fp32|
-|torch.nn.MultiheadAttention|是|支持bf16，fp16，fp32|
-|torch.nn.MultiheadAttention.forward|是|支持bf16，fp16，fp32|
+|torch.nn.MultiheadAttention|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32|
+|torch.nn.MultiheadAttention.forward|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32|
 |torch.nn.PReLU|是|支持fp32|
 |torch.nn.ReLU|是|支持bf16，fp16，fp32，uint8，int8，int32，int64|
 |torch.nn.ReLU6|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64|
 |torch.nn.RReLU|否|-|
 |torch.nn.SELU|是|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
-|torch.nn.CELU|是|支持fp16，fp32|
+|torch.nn.CELU|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
 |torch.nn.GELU|是|支持bf16，fp16，fp32<br>approximate参数仅支持设置为tanh|
 |torch.nn.Sigmoid|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |torch.nn.SiLU|是|支持bf16，fp16，fp32|
 |torch.nn.Mish|是|支持fp16，fp32|
-|torch.nn.Softplus|是|支持bf16，fp16，fp32|
-|torch.nn.Softshrink|是|支持bf16，fp16，fp32|
+|torch.nn.Softplus|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32|
+|torch.nn.Softshrink|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32|
 |torch.nn.Softsign|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64|
 |torch.nn.Tanh|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |torch.nn.Tanhshrink|是|支持fp16，fp32，uint8，int8，int16，int32，int64<br>可能回退至CPU执行|
@@ -170,7 +170,7 @@
 |torch.nn.GLU|是|支持fp16，fp32|
 |torch.nn.Softmin|是|支持bf16，fp16，fp32|
 |torch.nn.Softmax|是|支持bf16，fp16，fp32，fp64|
-|torch.nn.Softmax2d|是|支持bf16，fp16，fp32|
+|torch.nn.Softmax2d|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32|
 |torch.nn.LogSoftmax|是|支持bf16，fp16，fp32|
 |torch.nn.AdaptiveLogSoftmaxWithLoss|否|-|
 |torch.nn.AdaptiveLogSoftmaxWithLoss.log_prob|否|-|
@@ -184,18 +184,18 @@
 |torch.nn.GroupNorm|是|支持fp32<br>eps参数需大于0<br>不支持jit_compile=True的场景<br>该API仅支持2维及以上的输入input。该API反向传播时，不支持输入维度不为4维，或输入num_groups非32整除，或C轴维度非(10 * num_groups)整除的场景|
 |torch.nn.SyncBatchNorm|是|支持fp16，fp32|
 |torch.nn.SyncBatchNorm.convert_sync_batchnorm|是|-|
-|torch.nn.LazyInstanceNorm1d.cls_to_become|是|-|
+|torch.nn.LazyInstanceNorm1d.cls_to_become|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.nn.LazyInstanceNorm2d.cls_to_become|是|-|
 |torch.nn.LazyInstanceNorm3d.cls_to_become|是|-|
 |torch.nn.LayerNorm|是|支持bf16，fp16，fp32<br>通过torch_npu.npu.use_compatible_impl(True)，设置该接口从aclnnLayerNorm算子切换为aclnnFastLayerNorm算子，保证与社区同名接口在内存一致性上对齐。|
 |torch.nn.RNNBase|否|-|
 |torch.nn.RNNBase.flatten_parameters|否|-|
 |torch.nn.RNN|否|-|
-|torch.nn.LSTM|是|支持fp32<br>不支持proj_size参数<br>不支持dropout参数<br>入参input不支持2维|
+|torch.nn.LSTM|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32<br>不支持proj_size参数<br>不支持dropout参数<br>入参input不支持2维|
 |torch.nn.GRU|否|-|
 |torch.nn.RNNCell|否|-|
-|torch.nn.LSTMCell|是|接口暂不支持jit_compile=False，需要在该模式下使用时请将"DynamicGRUV2"添加至"NPU_FUZZY_COMPILE_BLACKLIST"选项内，具体操作可参考[添加二进制黑名单示例](../example_of_adding_a_binary_blocklist.md)|
-|torch.nn.GRUCell|是|支持fp16，fp32|
+|torch.nn.LSTMCell|是<br>暂不支持<term>Ascend 950DT</term>|接口暂不支持jit_compile=False，需要在该模式下使用时请将"DynamicGRUV2"添加至"NPU_FUZZY_COMPILE_BLACKLIST"选项内，具体操作可参考[添加二进制黑名单示例](../example_of_adding_a_binary_blocklist.md)|
+|torch.nn.GRUCell|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
 |torch.nn.Transformer|是|支持fp16，fp32|
 |torch.nn.Transformer.forward|否|-|
 |torch.nn.TransformerEncoder|否|-|
@@ -205,7 +205,7 @@
 |torch.nn.TransformerEncoderLayer.forward|否|-|
 |torch.nn.TransformerDecoderLayer.forward|否|-|
 |torch.nn.Identity|是|支持fp32|
-|torch.nn.Linear|是|支持fp16，fp32|
+|torch.nn.Linear|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
 |torch.nn.Bilinear|是|支持bf16，fp16，fp32|
 |torch.nn.LazyLinear|是|支持fp16，fp32|
 |torch.nn.LazyLinear.cls_to_become|否|-|
@@ -213,27 +213,27 @@
 |torch.nn.Dropout2d|是|支持fp16，fp32，int64，bool|
 |torch.nn.AlphaDropout|是|支持fp16，fp32|
 |torch.nn.FeatureAlphaDropout|是|支持fp16，fp32|
-|torch.nn.Embedding|是|支持int32，int64<br>属性max_norm不支持nan，仅支持非负值|
-|torch.nn.Embedding.from_pretrained|是|支持fp64|
+|torch.nn.Embedding|是<br>暂不支持<term>Ascend 950DT</term>|支持int32，int64<br>属性max_norm不支持nan，仅支持非负值|
+|torch.nn.Embedding.from_pretrained|是<br>暂不支持<term>Ascend 950DT</term>|支持fp64|
 |torch.nn.EmbeddingBag|是|支持int32，int64<br>仅支持max_norm大于等于0|
-|torch.nn.EmbeddingBag.forward|是|支持int64|
-|torch.nn.EmbeddingBag.from_pretrained|是|支持int64|
+|torch.nn.EmbeddingBag.forward|是<br>暂不支持<term>Ascend 950DT</term>|支持int64|
+|torch.nn.EmbeddingBag.from_pretrained|是<br>暂不支持<term>Ascend 950DT</term>|支持int64|
 |torch.nn.L1Loss|是|支持fp16，fp32，int64|
 |torch.nn.MSELoss|是|支持fp16，fp32|
 |torch.nn.CrossEntropyLoss|是|支持fp16，fp32|
-|torch.nn.CTCLoss|是|支持fp32，fp64<br>不支持log_probs 2D输入|
+|torch.nn.CTCLoss|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32，fp64<br>不支持log_probs 2D输入|
 |torch.nn.NLLLoss|是|支持fp16，fp32<br>target中的每个元素值应大于等于0且小于input的类别数|
 |torch.nn.PoissonNLLLoss|是|支持bf16，fp16，fp32，int64|
 |torch.nn.GaussianNLLLoss|是|支持bf16，fp16，fp32，int16，int32，int64|
 |torch.nn.KLDivLoss|是|支持bf16，fp16，fp32<br>当前log_target参数仅支持False|
 |torch.nn.BCELoss|是|支持fp16，fp32|
-|torch.nn.BCEWithLogitsLoss|是|支持bf16，fp16，fp32<br>入参target不支持反向计算|
+|torch.nn.BCEWithLogitsLoss|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32<br>入参target不支持反向计算|
 |torch.nn.MarginRankingLoss|是|支持bf16，fp16，fp32，int8，int32，int64|
 |torch.nn.HingeEmbeddingLoss|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64|
 |torch.nn.MultiLabelMarginLoss|否|-|
 |torch.nn.HuberLoss|是|input支持fp32，fp64<br>target支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool<br>可能回退至CPU执行|
 |torch.nn.SmoothL1Loss|是|支持bf16，fp16，fp32|
-|torch.nn.MultiLabelSoftMarginLoss|是|支持fp16，fp32|
+|torch.nn.MultiLabelSoftMarginLoss|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
 |torch.nn.CosineEmbeddingLoss|否|-|
 |torch.nn.MultiMarginLoss|是|input支持fp32，fp64<br>target支持int64<br>可能回退至CPU执行|
 |torch.nn.TripletMarginLoss|是|支持fp16，fp32，uint8，int8，int16，int32，int64<br>可能回退至CPU执行|
@@ -245,91 +245,91 @@
 |torch.nn.ChannelShuffle|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |torch.nn.DataParallel|否|-|
 |torch.nn.parallel.DistributedDataParallel|是|-|
-|torch.nn.parallel.DistributedDataParallel.join|是|-|
-|torch.nn.parallel.DistributedDataParallel.join_hook|是|-|
-|torch.nn.parallel.DistributedDataParallel.no_sync|是|-|
-|torch.nn.parallel.DistributedDataParallel.register_comm_hook|是|-|
+|torch.nn.parallel.DistributedDataParallel.join|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.parallel.DistributedDataParallel.join_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.parallel.DistributedDataParallel.no_sync|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.parallel.DistributedDataParallel.register_comm_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.nn.utils.clip_grad_norm_|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |torch.nn.utils.clip_grad_norm|否|-|
 |torch.nn.utils.clip_grad_value_|是|支持bf16，fp16，fp32|
-|torch.nn.utils.vector_to_parameters|是|支持bf16，fp16，fp32，fp64，complex64|
+|torch.nn.utils.vector_to_parameters|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32，fp64，complex64|
 |torch.nn.utils.weight_norm|是|-|
 |torch.nn.utils.spectral_norm|是|-|
 |torch.nn.utils.remove_spectral_norm|是|-|
 |torch.nn.utils.skip_init|是|-|
-|torch.nn.utils.prune.BasePruningMethod|是|-|
-|torch.nn.utils.prune.BasePruningMethod.apply|是|-|
-|torch.nn.utils.prune.BasePruningMethod.apply_mask|是|支持fp32|
-|torch.nn.utils.prune.BasePruningMethod.compute_mask|是|-|
-|torch.nn.utils.prune.BasePruningMethod.prune|是|支持fp32|
-|torch.nn.utils.prune.BasePruningMethod.remove|是|支持fp32|
-|torch.nn.utils.prune.PruningContainer|是|-|
-|torch.nn.utils.prune.PruningContainer.add_pruning_method|是|-|
-|torch.nn.utils.prune.PruningContainer.apply|是|-|
-|torch.nn.utils.prune.PruningContainer.apply_mask|是|-|
-|torch.nn.utils.prune.PruningContainer.compute_mask|是|支持fp32|
-|torch.nn.utils.prune.PruningContainer.prune|是|支持fp32|
-|torch.nn.utils.prune.PruningContainer.remove|是|支持fp32|
-|torch.nn.utils.prune.Identity|是|支持fp32|
-|torch.nn.utils.prune.Identity.apply|是|支持fp32|
-|torch.nn.utils.prune.Identity.apply_mask|是|支持fp32|
-|torch.nn.utils.prune.Identity.prune|是|支持fp32|
-|torch.nn.utils.prune.Identity.remove|是|支持fp32|
-|torch.nn.utils.prune.RandomUnstructured|是|支持fp32|
-|torch.nn.utils.prune.RandomUnstructured.apply|是|支持fp32|
-|torch.nn.utils.prune.RandomUnstructured.apply_mask|是|支持fp32|
-|torch.nn.utils.prune.RandomUnstructured.prune|是|支持fp32|
-|torch.nn.utils.prune.RandomUnstructured.remove|是|-|
-|torch.nn.utils.prune.L1Unstructured|是|支持fp32|
-|torch.nn.utils.prune.L1Unstructured.apply|是|支持fp32|
-|torch.nn.utils.prune.L1Unstructured.apply_mask|是|支持fp32|
-|torch.nn.utils.prune.L1Unstructured.prune|是|支持fp32|
-|torch.nn.utils.prune.L1Unstructured.remove|是|支持fp32|
-|torch.nn.utils.prune.RandomStructured|是|支持fp32|
-|torch.nn.utils.prune.RandomStructured.apply|是|支持fp32|
-|torch.nn.utils.prune.RandomStructured.apply_mask|是|支持fp32|
-|torch.nn.utils.prune.RandomStructured.compute_mask|是|支持fp32|
-|torch.nn.utils.prune.RandomStructured.prune|是|-|
-|torch.nn.utils.prune.RandomStructured.remove|是|-|
-|torch.nn.utils.prune.LnStructured|是|支持fp32|
-|torch.nn.utils.prune.LnStructured.apply|是|支持fp32|
-|torch.nn.utils.prune.LnStructured.apply_mask|是|支持fp32|
-|torch.nn.utils.prune.LnStructured.compute_mask|是|支持fp32|
-|torch.nn.utils.prune.LnStructured.prune|是|支持fp32|
-|torch.nn.utils.prune.LnStructured.remove|是|支持fp32|
-|torch.nn.utils.prune.CustomFromMask|是|支持int64|
-|torch.nn.utils.prune.CustomFromMask.apply|是|支持int64|
-|torch.nn.utils.prune.CustomFromMask.apply_mask|是|-|
-|torch.nn.utils.prune.CustomFromMask.prune|是|-|
-|torch.nn.utils.prune.CustomFromMask.remove|是|-|
-|torch.nn.utils.prune.random_unstructured|是|-|
-|torch.nn.utils.prune.l1_unstructured|是|-|
-|torch.nn.utils.prune.random_structured|是|-|
-|torch.nn.utils.prune.ln_structured|是|-|
-|torch.nn.utils.prune.global_unstructured|是|-|
-|torch.nn.utils.prune.identity|是|-|
-|torch.nn.utils.prune.custom_from_mask|是|支持int64|
-|torch.nn.utils.prune.remove|是|-|
-|torch.nn.utils.prune.is_pruned|是|-|
-|torch.nn.utils.parametrizations.orthogonal|是|-|
-|torch.nn.utils.parametrizations.spectral_norm|是|-|
+|torch.nn.utils.prune.BasePruningMethod|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.utils.prune.BasePruningMethod.apply|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.utils.prune.BasePruningMethod.apply_mask|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.utils.prune.BasePruningMethod.compute_mask|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.utils.prune.BasePruningMethod.prune|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.utils.prune.BasePruningMethod.remove|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.utils.prune.PruningContainer|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.utils.prune.PruningContainer.add_pruning_method|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.utils.prune.PruningContainer.apply|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.utils.prune.PruningContainer.apply_mask|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.utils.prune.PruningContainer.compute_mask|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.utils.prune.PruningContainer.prune|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.utils.prune.PruningContainer.remove|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.utils.prune.Identity|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.utils.prune.Identity.apply|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.utils.prune.Identity.apply_mask|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.utils.prune.Identity.prune|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.utils.prune.Identity.remove|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.utils.prune.RandomUnstructured|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.utils.prune.RandomUnstructured.apply|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.utils.prune.RandomUnstructured.apply_mask|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.utils.prune.RandomUnstructured.prune|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.utils.prune.RandomUnstructured.remove|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.utils.prune.L1Unstructured|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.utils.prune.L1Unstructured.apply|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.utils.prune.L1Unstructured.apply_mask|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.utils.prune.L1Unstructured.prune|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.utils.prune.L1Unstructured.remove|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.utils.prune.RandomStructured|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.utils.prune.RandomStructured.apply|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.utils.prune.RandomStructured.apply_mask|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.utils.prune.RandomStructured.compute_mask|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.utils.prune.RandomStructured.prune|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.utils.prune.RandomStructured.remove|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.utils.prune.LnStructured|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.utils.prune.LnStructured.apply|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.utils.prune.LnStructured.apply_mask|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.utils.prune.LnStructured.compute_mask|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.utils.prune.LnStructured.prune|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.utils.prune.LnStructured.remove|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.utils.prune.CustomFromMask|是<br>暂不支持<term>Ascend 950DT</term>|支持int64|
+|torch.nn.utils.prune.CustomFromMask.apply|是<br>暂不支持<term>Ascend 950DT</term>|支持int64|
+|torch.nn.utils.prune.CustomFromMask.apply_mask|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.utils.prune.CustomFromMask.prune|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.utils.prune.CustomFromMask.remove|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.utils.prune.random_unstructured|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.utils.prune.l1_unstructured|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.utils.prune.random_structured|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.utils.prune.ln_structured|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.utils.prune.global_unstructured|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.utils.prune.identity|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.utils.prune.custom_from_mask|是<br>暂不支持<term>Ascend 950DT</term>|支持int64|
+|torch.nn.utils.prune.remove|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.utils.prune.is_pruned|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.utils.parametrizations.orthogonal|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.utils.parametrizations.spectral_norm|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.nn.utils.parametrize.register_parametrization|是|-|
 |torch.nn.utils.parametrize.remove_parametrizations|是|-|
 |torch.nn.utils.parametrize.cached|是|-|
-|torch.nn.utils.parametrize.is_parametrized|是|-|
-|torch.nn.utils.parametrize.ParametrizationList|是|-|
-|torch.nn.utils.parametrize.ParametrizationList.right_inverse|是|支持fp32|
-|torch.nn.utils.stateless.functional_call|是|-|
+|torch.nn.utils.parametrize.is_parametrized|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.utils.parametrize.ParametrizationList|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.utils.parametrize.ParametrizationList.right_inverse|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.utils.stateless.functional_call|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.nn.utils.rnn.PackedSequence|是|支持fp32，int64|
-|torch.nn.utils.rnn.PackedSequence.batch_sizes|是|-|
-|torch.nn.utils.rnn.PackedSequence.count|是|支持fp32|
-|torch.nn.utils.rnn.PackedSequence.data|是|-|
-|torch.nn.utils.rnn.PackedSequence.index|是|支持fp32|
+|torch.nn.utils.rnn.PackedSequence.batch_sizes|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.utils.rnn.PackedSequence.count|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.utils.rnn.PackedSequence.data|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.utils.rnn.PackedSequence.index|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
 |torch.nn.utils.rnn.PackedSequence.is_cuda|否|-|
-|torch.nn.utils.rnn.PackedSequence.is_pinned|是|-|
-|torch.nn.utils.rnn.PackedSequence.sorted_indices|是|-|
-|torch.nn.utils.rnn.PackedSequence.to|是|支持fp32，int64|
-|torch.nn.utils.rnn.PackedSequence.unsorted_indices|是|-|
+|torch.nn.utils.rnn.PackedSequence.is_pinned|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.utils.rnn.PackedSequence.sorted_indices|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.utils.rnn.PackedSequence.to|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32，int64|
+|torch.nn.utils.rnn.PackedSequence.unsorted_indices|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.nn.utils.rnn.pack_padded_sequence|否|-|
 |torch.nn.utils.rnn.pad_packed_sequence|否|-|
 |torch.nn.utils.rnn.pad_sequence|是|支持fp16，fp32|
@@ -337,8 +337,8 @@
 |torch.nn.utils.rnn.unpack_sequence|否|-|
 |torch.nn.utils.rnn.unpad_sequence|否|-|
 |torch.nn.Flatten|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|torch.nn.Unflatten|是|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
-|torch.nn.Unflatten.NamedShape|是|-|
+|torch.nn.Unflatten|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
+|torch.nn.Unflatten.NamedShape|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.nn.modules.lazy.LazyModuleMixin|是|支持fp32|
-|torch.nn.modules.lazy.LazyModuleMixin.has_uninitialized_params|是|支持fp32|
-|torch.nn.modules.lazy.LazyModuleMixin.initialize_parameters|是|支持fp32|
+|torch.nn.modules.lazy.LazyModuleMixin.has_uninitialized_params|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.modules.lazy.LazyModuleMixin.initialize_parameters|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|

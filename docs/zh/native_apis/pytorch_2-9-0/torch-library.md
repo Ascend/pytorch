@@ -6,6 +6,6 @@
 |API名称|是否支持|限制与说明|
 |--|--|--|
 |torch.library.Library|是|-|
-|torch.library.Library.define|是|-|
-|torch.library.Library.impl|是|-|
-|torch.library.fallthrough_kernel|是|-|
+|torch.library.Library.define|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.library.Library.impl|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.library.fallthrough_kernel|是<br>暂不支持<term>Ascend 950DT</term>|-|

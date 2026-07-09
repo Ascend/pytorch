@@ -12,11 +12,11 @@
 |torch.nn.init.ones_|是|支持fp32|
 |torch.nn.init.zeros_|是|支持fp32|
 |torch.nn.init.eye_|是|支持fp32|
-|torch.nn.init.dirac_|是|支持fp32|
+|torch.nn.init.dirac_|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
 |torch.nn.init.xavier_uniform_|是|支持fp32|
 |torch.nn.init.xavier_normal_|是|支持fp32|
 |torch.nn.init.kaiming_uniform_|是|支持fp32|
 |torch.nn.init.kaiming_normal_|是|支持fp32|
-|torch.nn.init.trunc_normal_|是|-|
-|torch.nn.init.orthogonal_|是|支持fp32|
-|torch.nn.init.sparse_|是|支持fp32|
+|torch.nn.init.trunc_normal_|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.nn.init.orthogonal_|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|torch.nn.init.sparse_|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|

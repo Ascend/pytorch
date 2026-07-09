@@ -5,10 +5,10 @@
 
 |API名称|是否支持|限制与说明|
 |--|--|--|
-|torch.hub.list|是|-|
-|torch.hub.help|是|-|
-|torch.hub.load|是|-|
-|torch.hub.download_url_to_file|是|-|
-|torch.hub.load_state_dict_from_url|是|-|
-|torch.hub.get_dir|是|-|
-|torch.hub.set_dir|是|-|
+|torch.hub.list|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.hub.help|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.hub.load|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.hub.download_url_to_file|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.hub.load_state_dict_from_url|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.hub.get_dir|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.hub.set_dir|是<br>暂不支持<term>Ascend 950DT</term>|-|

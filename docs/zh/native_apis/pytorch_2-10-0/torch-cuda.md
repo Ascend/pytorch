@@ -21,7 +21,7 @@
 |torch.cuda.get_device_capability|torch_npu.npu.get_device_capability|是|通过环境变量TORCH_NPU_DEVICE_CAPABILITY配置`torch_npu.npu.get_device_capability()`的返回值，仅用于兼容原生PyTorch，不代表NPU硬件实际能力|
 |torch.cuda.get_device_name|torch_npu.npu.get_device_name|是|-|
 |torch.cuda.get_device_properties|torch_npu.npu.get_device_properties|是|仅支持name、total_memory、L2_cache_size、cube_core_num和vector_core_num属性，原CUDA上支持的其余属性均返回空字段|
-|torch.cuda.get_sync_debug_mode|torch_npu.npu.get_sync_debug_mode|是|-|
+|torch.cuda.get_sync_debug_mode|torch_npu.npu.get_sync_debug_mode|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.cuda.init|torch_npu.npu.init|是|-|
 |torch.cuda.ipc_collect|torch_npu.npu.ipc_collect|是|-|
 |torch.cuda.is_available|torch_npu.npu.is_available|是|-|
@@ -29,7 +29,7 @@
 |torch.cuda.memory_usage|-|否|-|
 |torch.cuda.set_device|torch_npu.npu.set_device|是|-|
 |torch.cuda.set_stream|torch_npu.npu.set_stream|是|-|
-|torch.cuda.set_sync_debug_mode|torch_npu.npu.set_sync_debug_mode|是|-|
+|torch.cuda.set_sync_debug_mode|torch_npu.npu.set_sync_debug_mode|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.cuda.stream|torch_npu.npu.stream|是|-|
 |torch.cuda.synchronize|torch_npu.npu.synchronize|是|-|
 |torch.cuda.utilization|torch_npu.npu.utilization|是|-|
@@ -46,9 +46,9 @@
 |torch.cuda.Stream|torch_npu.npu.Stream|是|-|
 |torch.cuda.Stream.wait_stream|torch_npu.npu.Stream.wait_stream|是|-|
 |torch.cuda.Event|torch_npu.npu.Event|是|-|
-|torch.cuda.Event.elapsed_time|torch_npu.npu.Event.elapsed_time|是|-|
-|torch.cuda.Event.from_ipc_handle|torch_npu.npu.Event.from_ipc_handle|是|-|
-|torch.cuda.Event.ipc_handle|torch_npu.npu.Event.ipc_handle|是|-|
+|torch.cuda.Event.elapsed_time|torch_npu.npu.Event.elapsed_time|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.cuda.Event.from_ipc_handle|torch_npu.npu.Event.from_ipc_handle|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.cuda.Event.ipc_handle|torch_npu.npu.Event.ipc_handle|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.cuda.Event.query|torch_npu.npu.Event.query|是|-|
 |torch.cuda.Event.wait|torch_npu.npu.Event.wait|是|-|
 |torch.cuda.is_current_stream_capturing|torch.npu.is_current_stream_capturing|是|-|
@@ -62,27 +62,27 @@
 |torch.cuda.CUDAGraph.reset|torch.npu.NPUGraph.reset|是|当前仅支持推理场景，不支持训练场景|
 |torch.cuda.graph|torch.npu.graph|是|当前仅支持推理场景，不支持训练场景|
 |torch.cuda.make_graphed_callables|torch.npu.make_graphed_callables|是|当前仅支持推理场景，不支持训练场景|
-|torch.cuda.memory.empty_cache|torch_npu.npu.empty_cache|是|-|
-|torch.cuda.memory.mem_get_info|torch_npu.npu.mem_get_info|是|-|
-|torch.cuda.memory.memory_stats|torch_npu.npu.memory_stats|是|-|
-|torch.cuda.memory.memory_summary|torch_npu.npu.memory_summary|是|-|
-|torch.cuda.memory.memory_allocated|torch_npu.npu.memory_allocated|是|-|
-|torch.cuda.memory.max_memory_allocated|torch_npu.npu.max_memory_allocated|是|-|
-|torch.cuda.memory.reset_max_memory_allocated|torch_npu.npu.reset_max_memory_allocated|是|-|
-|torch.cuda.memory.memory_reserved|torch_npu.npu.memory_reserved|是|-|
-|torch.cuda.memory.max_memory_reserved|torch_npu.npu.max_memory_reserved|是|-|
-|torch.cuda.memory.set_per_process_memory_fraction|torch_npu.npu.set_per_process_memory_fraction|是|-|
-|torch.cuda.memory.memory_cached|torch_npu.npu.memory_cached|是|-|
-|torch.cuda.memory.max_memory_cached|torch_npu.npu.max_memory_cached|是|-|
-|torch.cuda.memory.reset_max_memory_cached|torch_npu.npu.reset_max_memory_cached|是|-|
-|torch.cuda.memory.reset_peak_memory_stats|torch_npu.npu.reset_peak_memory_stats|是|-|
-|torch.cuda.memory.caching_allocator_alloc|torch_npu.npu.caching_allocator_alloc|是|-|
-|torch.cuda.memory.caching_allocator_delete|torch_npu.npu.caching_allocator_delete|是|-|
-|torch.cuda.memory.get_allocator_backend|torch_npu.npu.get_allocator_backend|是|-|
-|torch.cuda.memory.CUDAPluggableAllocator|torch_npu.npu.NPUPluggableAllocator|是|该接口涉及高危操作，使用请参考《自定义API》中的“torch_npu.npu.NPUPluggableAllocator”章节。|
-|torch.cuda.memory.change_current_allocator|torch_npu.npu.change_current_allocator|是|该接口涉及高危操作，使用请参考《自定义API》中的“torch_npu.npu.change_current_allocator”章节。|
-|torch.cuda._sanitizer.enable_cuda_sanitizer|torch_npu.npu._sanitizer.enable_npu_sanitizer|是|-|
-|torch.cuda.memory.reset_accumulated_host_memory_stats| torch_npu.npu.reset_accumulated_host_memory_stats|是|-|
-|torch.cuda.memory.reset_peak_host_memory_stats|torch_npu.npu.reset_peak_host_memory_stats|是|-|
-|torch.cuda.memory.host_memory_stats_as_nested_dict|torch_npu.npu.host_memory_stats_as_nested_dict|是|-|
-|torch.cuda.memory.host_memory_stats|torch_npu.npu.host_memory_stats|是|-|
+|torch.cuda.memory.empty_cache|torch_npu.npu.empty_cache|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.cuda.memory.mem_get_info|torch_npu.npu.mem_get_info|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.cuda.memory.memory_stats|torch_npu.npu.memory_stats|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.cuda.memory.memory_summary|torch_npu.npu.memory_summary|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.cuda.memory.memory_allocated|torch_npu.npu.memory_allocated|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.cuda.memory.max_memory_allocated|torch_npu.npu.max_memory_allocated|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.cuda.memory.reset_max_memory_allocated|torch_npu.npu.reset_max_memory_allocated|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.cuda.memory.memory_reserved|torch_npu.npu.memory_reserved|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.cuda.memory.max_memory_reserved|torch_npu.npu.max_memory_reserved|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.cuda.memory.set_per_process_memory_fraction|torch_npu.npu.set_per_process_memory_fraction|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.cuda.memory.memory_cached|torch_npu.npu.memory_cached|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.cuda.memory.max_memory_cached|torch_npu.npu.max_memory_cached|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.cuda.memory.reset_max_memory_cached|torch_npu.npu.reset_max_memory_cached|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.cuda.memory.reset_peak_memory_stats|torch_npu.npu.reset_peak_memory_stats|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.cuda.memory.caching_allocator_alloc|torch_npu.npu.caching_allocator_alloc|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.cuda.memory.caching_allocator_delete|torch_npu.npu.caching_allocator_delete|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.cuda.memory.get_allocator_backend|torch_npu.npu.get_allocator_backend|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.cuda.memory.CUDAPluggableAllocator|torch_npu.npu.NPUPluggableAllocator|是<br>暂不支持<term>Ascend 950DT</term>|该接口涉及高危操作，使用请参考《自定义API》中的“torch_npu.npu.NPUPluggableAllocator”章节。|
+|torch.cuda.memory.change_current_allocator|torch_npu.npu.change_current_allocator|是<br>暂不支持<term>Ascend 950DT</term>|该接口涉及高危操作，使用请参考《自定义API》中的“torch_npu.npu.change_current_allocator”章节。|
+|torch.cuda._sanitizer.enable_cuda_sanitizer|torch_npu.npu._sanitizer.enable_npu_sanitizer|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.cuda.memory.reset_accumulated_host_memory_stats| torch_npu.npu.reset_accumulated_host_memory_stats|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.cuda.memory.reset_peak_host_memory_stats|torch_npu.npu.reset_peak_host_memory_stats|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.cuda.memory.host_memory_stats_as_nested_dict|torch_npu.npu.host_memory_stats_as_nested_dict|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.cuda.memory.host_memory_stats|torch_npu.npu.host_memory_stats|是<br>暂不支持<term>Ascend 950DT</term>|-|
