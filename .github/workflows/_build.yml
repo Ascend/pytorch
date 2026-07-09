@@ -339,7 +339,6 @@ jobs:
   # ======================================================================
   a3_test:
     needs: [fetch, pytorch_and_torch-npu_build]
-    if: always()
     runs-on: linux-aarch64-a3-16
     permissions:
       id-token: write
