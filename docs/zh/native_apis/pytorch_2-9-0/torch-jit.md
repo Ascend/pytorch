@@ -12,7 +12,7 @@
 |[torch.jit.fork](https://pytorch.org/docs/2.9/generated/torch.jit.fork.html)|是|-|
 |[torch.jit.wait](https://pytorch.org/docs/2.9/generated/torch.jit.wait.html)|是|-|
 |[torch.jit.ScriptModule](https://pytorch.org/docs/2.9/generated/torch.jit.ScriptModule.html)|是|支持fp32|
-|[torch.jit.ScriptModule.add_module](https://pytorch.org/docs/2.9/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.add_module)|否|-|
+|[torch.jit.ScriptModule.add_module](https://pytorch.org/docs/2.9/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.add_module)|是|-|
 |[torch.jit.ScriptModule.apply](https://pytorch.org/docs/2.9/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.apply)|是|支持fp32|
 |[torch.jit.ScriptModule.bfloat16](https://pytorch.org/docs/2.9/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.bfloat16)|是|-|
 |[torch.jit.ScriptModule.buffers](https://pytorch.org/docs/2.9/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.buffers)|是|支持fp32|
