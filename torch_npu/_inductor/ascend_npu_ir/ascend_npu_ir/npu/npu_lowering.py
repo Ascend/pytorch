@@ -34,7 +34,12 @@ def _register_npu_inductor_fallbacks():
                 "[npu|inductor|lowering|fallback] invalid identifier name: %s", op_name
             )
 
-    if env_fallback_list:
+    if config.fallback_to_aten_mode not in {"off", "include", "exclude", "all"}:
+        raise AssertionError(
+            f"Error! Unsupported fallback_to_aten_mode: {config.fallback_to_aten_mode} was set!"
+        )
+
+    if env_fallback_list and config.fallback_to_aten_mode != 'all':
         for op_name in env_fallback_list.split(","):
             op_name = op_name.strip()
             op = _resolve_op_from_name(op_name)
@@ -111,11 +116,6 @@ def _register_npu_inductor_fallbacks():
             make_fallback(op)
 
         _fallback_ops_with_meta()
-
-    if config.fallback_to_aten_mode not in {"off", "include", "exclude", "all"}:
-        raise AssertionError(
-            f"Error! Unsupported fallback_to_aten_mode: {config.fallback_to_aten_mode} was set!"
-        )
 
     if get_anir_mode() == "O0":
         fallback_except_gen_set(gen_set=[])
