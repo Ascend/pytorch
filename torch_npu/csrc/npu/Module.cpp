@@ -1,6 +1,9 @@
 #include <chrono>
+#include <cstdlib>
 #include <future>
+#include <linux/limits.h>
 #include <sstream>
+#include <sys/stat.h>
 #include <thread>
 #include <unordered_map>
 
@@ -2085,6 +2088,55 @@ PyObject* THNPModule_aclnn_reselect_static_kernel(
   END_HANDLE_TH_ERRORS
 }
 
+PyObject* THNPModule_aclnn_reselect_static_kernel_with_path(
+    PyObject* self,
+    PyObject* arg) {
+  HANDLE_TH_ERRORS
+  TORCH_CHECK(THPUtils_checkString(arg),
+              "path must be a string",
+              PTA_ERROR(ErrCode::PARAM));
+  std::string path = THPUtils_unpackString(arg);
+  TORCH_CHECK(path.find('\0') == std::string::npos,
+              "path must not contain null byte",
+              PTA_ERROR(ErrCode::PARAM));
+  char abs_path[PATH_MAX] = {'\0'};
+  TORCH_CHECK(realpath(path.c_str(), abs_path) != nullptr,
+              "failed to resolve path: ", path,
+              PTA_ERROR(ErrCode::NOT_FOUND));
+  struct stat st;
+  TORCH_CHECK(stat(abs_path, &st) == 0 && S_ISDIR(st.st_mode),
+              "path must be a directory: ", abs_path,
+              PTA_ERROR(ErrCode::PARAM));
+  std::string resolved_path(abs_path);
+
+  NPUStatus ret = c10_npu::emptyAllNPUStream();
+  TORCH_CHECK(
+      ret == NPU_STATUS_SUCCESS,
+      "Failed to empty NPU task queue, ret:",
+      ret,
+      PTA_ERROR(ErrCode::INTERNAL));
+
+  static const auto task_queue_enable =
+      c10_npu::option::OptionsManager::GetTaskQueueEnable();
+  if (task_queue_enable == 2) {
+    auto acl_call = [resolved_path]() -> int {
+      return c10_npu::opapi::ReselectStaticKernelWithPath(resolved_path);
+    };
+    at_npu::native::OpCommand::RunOpApiV2("reselect_static_kernel_with_path", acl_call);
+    NPUStatus ret = c10_npu::emptyAllNPUStream();
+    TORCH_CHECK(
+        ret == NPU_STATUS_SUCCESS,
+        "Failed to empty NPU task queue, ret:",
+        ret,
+        PTA_ERROR(ErrCode::INTERNAL));
+  } else {
+    NPU_CHECK_ERROR(c10_npu::opapi::ReselectStaticKernelWithPath(resolved_path));
+  }
+
+  Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
 PyObject* THNPModule_npu_set_thread_affinity(PyObject* self, PyObject* args) {
   HANDLE_TH_ERRORS
   int core_start, core_end;
@@ -2710,6 +2762,10 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_aclnn_reselect_static_kernel",
      (PyCFunction)THNPModule_aclnn_reselect_static_kernel,
      METH_NOARGS,
+     nullptr},
+    {"_aclnn_reselect_static_kernel_with_path",
+     (PyCFunction)THNPModule_aclnn_reselect_static_kernel_with_path,
+     METH_O,
      nullptr},
     {"_npu_set_thread_affinity",
      (PyCFunction)THNPModule_npu_set_thread_affinity,

@@ -1,13 +1,10 @@
-import os
-import subprocess
-import datetime
-from pathlib import Path
 import stat
+import unittest
+from pathlib import Path
+
 import torch_npu
-from torch_npu._inductor.config import log
-from torch_npu._inductor.npu_static_kernel import StaticKernelCompiler
+from torch_npu._inductor.npu_static_kernel import StaticKernelCompiler, safe_resolve_output_dir
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu._inductor.npu_static_kernel import safe_resolve_output_dir
 
 
 class TestNpuStaticKernel(TestCase):
@@ -41,13 +38,12 @@ class TestNpuStaticKernel(TestCase):
                 safe_resolve_output_dir(build_path)
 
     def test_uninstall_static_kernel_no_path(self):
-        from torch_npu._inductor.npu_static_kernel import _uninstall_path, uninstall_static_kernel
-        _uninstall_path = None
-        uninstall_static_kernel()
+        from torch_npu._inductor.npu_static_kernel import uninstall_static_kernel
+        with unittest.mock.patch("torch_npu._inductor.npu_static_kernel._uninstall_path", None):
+            uninstall_static_kernel()
 
     def test_safe_resolve_output_dir_absolute_path(self):
         import tempfile
-        import shutil
         with tempfile.TemporaryDirectory() as tmpdir:
             abs_dir = Path(tmpdir) / "test_build"
             abs_dir.mkdir()
@@ -55,6 +51,23 @@ class TestNpuStaticKernel(TestCase):
             self.assertTrue(result.exists())
             self.assertIn("kernel_aot_optimization_build_outputs", str(result))
 
+    def test_reselect_static_kernel_with_path_not_string(self):
+        with self.assertRaisesRegex(RuntimeError, "path must be a string"):
+            torch_npu._C._aclnn_reselect_static_kernel_with_path(123)
+
+    def test_reselect_static_kernel_with_path_null_byte(self):
+        with self.assertRaisesRegex(RuntimeError, "null byte"):
+            torch_npu._C._aclnn_reselect_static_kernel_with_path("test\x00dir")
+
+    def test_reselect_static_kernel_with_path_non_existent(self):
+        with self.assertRaisesRegex(RuntimeError, "failed to resolve path"):
+            torch_npu._C._aclnn_reselect_static_kernel_with_path("/nonexistent/path")
+
+    def test_reselect_static_kernel_with_path_is_file(self):
+        import tempfile
+        with tempfile.NamedTemporaryFile() as f:
+            with self.assertRaisesRegex(RuntimeError, "must be a directory"):
+                torch_npu._C._aclnn_reselect_static_kernel_with_path(f.name)
 
 if __name__ == "__main__":
     run_tests()
