@@ -240,7 +240,7 @@ jobs:
             exit ${BUILD_STATUS}
           fi
 
-          pip install dist/torch_npu*.whl
+          pip install --no-deps dist/torch_npu*.whl
           cp dist/torch_npu*.whl /tmp/wheels/
 
       - name: Capture torch_npu wheel info
