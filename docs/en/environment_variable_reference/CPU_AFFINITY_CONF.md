@@ -96,10 +96,10 @@ export CPU_AFFINITY_CONF=2,force:1,npu0:0-3
 
 ## Usage Constraints
 
-Affinity binding only supports <term>Atlas A2 training products</term>.
+Affinity binding only supports Atlas A2 training products.
 
 ## Supported Products
 
-- <term>Atlas training series</term>
-- <term>Atlas A2 training series</term>
-- <term>Atlas A3 training series</term>
+- <term>Atlas training products</term>
+- <term>Atlas A2 training products</term>
+- <term>Atlas A3 training products</term>

@@ -8,15 +8,13 @@ This environment variable controls the AI processor's handling of Inf/NaN input 
 
 - 0: Saturation mode. When an overflow occurs during computation (Inf), the computation result saturates to the floating-point extreme value (+-MAX); when an uncomputable value occurs (NaN), the computation result becomes 0.
 - 1: INF_NAN mode. The computation result of Inf/NaN is output according to its definition.
-For the <term>Atlas training products</term>/<term>Atlas inference products</term>/<term>Atlas 200I/500 A2 inference products</term>, only saturation mode is supported, and this environment variable does not take effect.
+For the Atlas training products/Atlas inference products/Atlas 200I/500 A2 inference products, only saturation mode is supported, and this environment variable does not take effect.
 
-For the <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>, the default value is "1" INF_NAN mode, and it can be configured to "0" saturation mode.
-
-For the <term>Atlas 350 accelerator card</term>, only INF_NAN mode is supported, and this environment variable does not take effect.
+For the Atlas A2 training products/Atlas A3 training products, the default value is "1" INF_NAN mode, and it can be configured to "0" saturation mode.
 
 > [!NOTICE]  
 >
-> For the <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>, if precision alignment with the <term>Atlas training products</term> is required, you can configure it to "0" saturation mode. In saturation mode, Inf and NaN are converted to the maximum value and 0 of the corresponding data type during computation, which may cause differences in subsequent calculation results. It is not recommended to configure this unless under special circumstances. The <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term> have an interception mechanism for the saturation mode configuration. If you need to forcibly enable saturation mode, you must configure [INF_NAN_MODE_FORCE_DISABLE](INF_NAN_MODE_FORCE_DISABLE.md)=1.
+> For the Atlas A2 training products/Atlas A3 training products, if precision alignment with the Atlas training products is required, you can configure it to "0" saturation mode. In saturation mode, Inf and NaN are converted to the maximum value and 0 of the corresponding data type during computation, which may cause differences in subsequent calculation results. It is not recommended to configure this unless under special circumstances. The Atlas A2 training products/Atlas A3 training products have an interception mechanism for the saturation mode configuration. If you need to forcibly enable saturation mode, you must configure [INF_NAN_MODE_FORCE_DISABLE](INF_NAN_MODE_FORCE_DISABLE.md)=1.
 
 Saturation mode: Inf is set to max, NaN is set to 0.
 
@@ -62,5 +60,5 @@ None
 
 ## Supported Products
 
-- <term>Atlas A2 training series</term>
-- <term>Atlas A3 training series</term>
+- <term>Atlas A2 training products</term>
+- <term>Atlas A3 training products</term>

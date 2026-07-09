@@ -29,6 +29,6 @@ export P2P_HCCL_BUFFSIZE=20
 
 ## Supported Models
 
-- <term>Atlas training series</term>
-- <term>Atlas A2 training series</term>
-- <term>Atlas A3 training series</term>
+- <term>Atlas training products</term>
+- <term>Atlas A2 training products</term>
+- <term>Atlas A3 training products</term>

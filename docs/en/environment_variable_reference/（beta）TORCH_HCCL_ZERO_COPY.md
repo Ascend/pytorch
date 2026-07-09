@@ -33,4 +33,4 @@ export TORCH_HCCL_ZERO_COPY=1
 
 ## Supported Products
 
-<term>Atlas A3 training series</term>
+<term>Atlas A3 training products</term>

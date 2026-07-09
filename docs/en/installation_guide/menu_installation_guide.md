@@ -3,7 +3,7 @@
 - [Installation Instructions](installation_description.md)
 - [Preparing for Installation](preparing_installation.md)
 - [Installing PyTorch](installing_PyTorch.md)
-  - [Method 1: Offline Installation (whl)](installation_via_binary_package.md)
+  - [Method 1: Offline Installation (Whl)](installation_via_binary_package.md)
   - [Method 2: Installation from Source Code](compilation_installation_using_source_code.md)
 
 - [(Optional) Installing Extension Modules](Optional_installing_extension_modules.md)

@@ -28,6 +28,6 @@ When this environment variable is configured, its value must be greater than the
 
 ## Supported Products
 
-- <term>Atlas training series</term>
-- <term>Atlas A2 training series</term>
-- <term>Atlas A3 training series</term>
+- <term>Atlas training products</term>
+- <term>Atlas A2 training products</term>
+- <term>Atlas A3 training products</term>

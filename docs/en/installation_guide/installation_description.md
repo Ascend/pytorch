@@ -37,4 +37,4 @@ This document covers installation of drivers, firmware, CANN software, the PyTor
 
 ## Installation Methods
 
-This guide provides offline installation (whl) and source code installation methods. You can choose the method for installing the PyTorch framework and the torch_npu plugin based on actual requirements, and the two installation methods are not required to be the same.
+This guide provides offline installation (Whl) and source code installation methods. You can choose the method for installing the PyTorch framework and the torch_npu plugin based on actual requirements, and the two installation methods are not required to be the same.

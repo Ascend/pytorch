@@ -10,8 +10,6 @@ This environment variable controls whether to enable the compatibility configura
 
 - When set to "1", the compatibility configuration is enabled.
 
-On the <term>Atlas 350 Accelerator Card</term>, the default is "1" (enable compatibility configuration, aligning with GPU behavior). On other models, the default is "0" (disable compatibility configuration).
-
 ## Configuration Example
 
 ``` bash
@@ -32,12 +30,10 @@ status. Setting `TORCH_NPU_USE_COMPATIBLE_IMPL=1` automatically configures `torc
 
 ## Supported Products
 
-- <term>Atlas training series</term>
+- <term>Atlas training products</term>
 
-- <term>Atlas A2 training series</term>
+- <term>Atlas A2 training products</term>
 
-- <term>Atlas A3 training series</term>
+- <term>Atlas A3 training products</term>
 
-- <term>Atlas inference series</term>
-
-- <term>Atlas 350 accelerator cards</term>
+- <term>Atlas inference products</term>

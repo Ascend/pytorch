@@ -39,7 +39,7 @@ If you need to use torch_npu.npu.check_uce_in_memory, this environment variable 
 
 ## Supported Products
 
-- <term>Atlas training series</term>
-- <term>Atlas A2 training series</term>
-- <term>Atlas A3 training series</term>
-- <term>Atlas inference series</term>
+- <term>Atlas training products</term>
+- <term>Atlas A2 training products</term>
+- <term>Atlas A3 training products</term>
+- <term>Atlas inference products</term>

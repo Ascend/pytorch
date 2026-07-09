@@ -47,5 +47,5 @@ export INDUCTOR_ASCEND_CHECK_ACCURACY_RTOL_ATOL="rtol=1e-6,atol=1e-7"
 
 ## Supported Products
 
-- <term>Atlas A2 training series</term>
-- <term>Atlas A3 training series</term>
+- <term>Atlas A2 training products</term>
+- <term>Atlas A3 training products</term>

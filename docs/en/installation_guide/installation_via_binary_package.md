@@ -1,4 +1,4 @@
-# Method 1: Offline Installation (whl)
+# Method 1: Offline Installation (Whl)
 
 <!-- md-trans-meta sourceCommit=unknown translatedAt=2026-06-15T03:38:54.415Z pushedAt=2026-06-15T07:27:21.222Z -->
 

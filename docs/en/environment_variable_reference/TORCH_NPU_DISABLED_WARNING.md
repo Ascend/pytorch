@@ -35,8 +35,8 @@ This environment variable takes effect only in PyTorch 2.1.0 and later versions.
 
 ## Supported Products
 
-- <term>Atlas training series</term>
-- <term>Atlas A2 training series</term>
-- <term>Atlas A3 training series</term>
-- <term>Atlas 800I A2 inference series</term>
-- <term>Atlas inference series</term>
+- <term>Atlas training products</term>
+- <term>Atlas A2 training products</term>
+- <term>Atlas A3 training products</term>
+- <term>Atlas 800I A2 inference products</term>
+- <term>Atlas inference products</term>

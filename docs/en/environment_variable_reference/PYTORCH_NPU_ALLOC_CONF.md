@@ -171,9 +171,9 @@ export PYTORCH_NPU_ALLOC_CONF=per_process_memory_fraction:0.5
 
 - The `page_size` feature requires Ascend HDK 25.0.RC1 and later versions, and CANN commercial 8.1.RC1 and later versions. It supports the following products:
 
-    - <term>Atlas A2 training products</term>
+    - Atlas A2 training products
 
-    - <term>Atlas A3 training products</term>
+    - Atlas A3 training products
 
 - When the `page_size` feature is configured simultaneously with other features, only the `page_size` configuration takes effect, and the memory allocation notes are as follows:
 
@@ -203,7 +203,7 @@ export PYTORCH_NPU_ALLOC_CONF=per_process_memory_fraction:0.5
 
 ## Supported Products
 
-- <term>Atlas training series</term>
-- <term>Atlas A2 training series</term>
-- <term>Atlas A3 training series</term>
-- <term>Atlas inference series</term>
+- <term>Atlas training products</term>
+- <term>Atlas A2 training products</term>
+- <term>Atlas A3 training products</term>
+- <term>Atlas inference products</term>

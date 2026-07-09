@@ -9,7 +9,7 @@ This manual describes the environment variables that developers can use during t
 |Environment Variable Type|Environment Variable Name|Introduction|
 |--|--|--|
 |Operator Execution|[INF_NAN_MODE_ENABLE](INF_NAN_MODE_ENABLE.md)|Controls the AI processor's handling capability for input data that is Inf/NaN, i.e., controls whether the AI processor uses saturation mode or INF_NAN mode.|
-|Operator Execution|[INF_NAN_MODE_FORCE_DISABLE](INF_NAN_MODE_FORCE_DISABLE.md)|Applicable to <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>, forces the INF_NAN mode to be disabled.|
+|Operator Execution|[INF_NAN_MODE_FORCE_DISABLE](INF_NAN_MODE_FORCE_DISABLE.md)|Applicable to Atlas A2 training products/Atlas A3 training products, forces the INF_NAN mode to be disabled.|
 |Operator Execution|[COMBINED_ENABLE](COMBINED_ENABLE.md)|Sets the combined flag.|
 |Operator Execution|[ASCEND_LAUNCH_BLOCKING](ASCEND_LAUNCH_BLOCKING.md)|Controls whether to enable synchronous mode during operator execution.|
 |Operator Execution|[TASK_QUEUE_ENABLE](TASK_QUEUE_ENABLE.md)|Configures whether to enable the task_queue operator dispatch queue and its optimization level.|

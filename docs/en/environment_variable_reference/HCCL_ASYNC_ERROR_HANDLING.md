@@ -26,7 +26,7 @@ When enabling asynchronous error handling through this environment variable, to 
 
 ## Supported Products
 
-- <term>Atlas training series</term>
-- <term>Atlas A2 training series</term>
-- <term>Atlas A3 training series</term>
-- <term>Atlas inference series</term>
+- <term>Atlas training products</term>
+- <term>Atlas A2 training products</term>
+- <term>Atlas A3 training products</term>
+- <term>Atlas inference products</term>
