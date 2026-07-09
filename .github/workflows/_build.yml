@@ -223,7 +223,7 @@ jobs:
           echo "============================================"
 
           set +o pipefail
-          bash ci/build.sh --python=3.10 --disable_torchair --disable_rpc 2>&1 | tee /tmp/build-torchnpu.log
+          bash ci/build.sh --python=3.10 --torch=2.14.0 --disable_torchair --disable_rpc 2>&1 | tee /tmp/build-torchnpu.log
           BUILD_STATUS=${PIPESTATUS[0]}
           set -o pipefail
 
