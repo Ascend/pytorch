@@ -578,6 +578,11 @@ def _aclnn_reselect_static_kernel():
     torch_npu._C._aclnn_reselect_static_kernel()
 
 
+def _aclnn_reselect_static_kernel_with_path(path):
+    torch_npu.npu._lazy_init()
+    torch_npu._C._aclnn_reselect_static_kernel_with_path(path)
+
+
 from .random import *  # noqa: F403
 from .memory import *  # noqa: F403
 
