@@ -28,7 +28,7 @@ When the PyTorch version is 1.11.0, this environment variable must be used toget
 
 ## Supported Models
 
-- <term>Atlas training series products</term>
-- <term>Atlas A2 training series products</term>
-- <term>Atlas A3 training series products</term>
-- <term>Atlas inference series products</term>
+- <term>Atlas training products</term>
+- <term>Atlas A2 training products</term>
+- <term>Atlas A3 training products</term>
+- <term>Atlas inference products</term>
