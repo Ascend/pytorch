@@ -79,6 +79,9 @@ The branch name of **Ascend Extension for PyTorch** follows the naming conventio
 
 | PyTorch Version | Python Version                                            |
 |-----------------|:----------------------------------------------------------|
+| PyTorch 2.13.0  | Python3.10.x, Python3.11.x, Python 3.12.x, Python 3.13.x  |
+| PyTorch 2.12.0  | Python3.10.x, Python3.11.x, Python 3.12.x, Python 3.13.x  |
+| PyTorch 2.11.0  | Python3.10.x, Python3.11.x, Python 3.12.x, Python 3.13.x  |
 | PyTorch 2.10.0  | Python3.10.x, Python3.11.x, Python 3.12.x, Python 3.13.x  |
 | PyTorch 2.9.0   | Python3.10.x, Python3.11.x, Python 3.12.x, Python 3.13.x  |
 | PyTorch 2.8.0   | Python3.9.x, Python3.10.x, Python 3.11.x, Python 3.12.x, Python 3.13.x |
@@ -104,13 +107,13 @@ Provide users with wheel package to quickly install **torch_npu**. Before instal
    **For Aarch64:**
 
    ```shell
-   pip3 install torch==2.1.0
+   pip3 install torch==2.13.0
    ```
 
    **For x86:**
 
    ```shell
-   pip3 install torch==2.1.0+cpu  --index-url https://download.pytorch.org/whl/cpu
+   pip3 install torch==2.13.0+cpu  --index-url https://download.pytorch.org/whl/cpu
    ```
 
 2. **Install torch-npu dependencies**
@@ -126,19 +129,19 @@ Provide users with wheel package to quickly install **torch_npu**. Before instal
 
    | OS arch | Python version | link                                                                                                                                                                                          |
    |---------|----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-   | x86     | Python3.8      | [link](https://download.pytorch.org/whl/cpu/torch-2.1.0%2Bcpu-cp38-cp38-linux_x86_64.whl#sha256=9e5cfd931a65b38d222755a45dabb53b836be31bc620532bc66fee77e3ff67dc)                             |
-   | x86     | Python3.9      | [link](https://download.pytorch.org/whl/cpu/torch-2.1.0%2Bcpu-cp39-cp39-linux_x86_64.whl#sha256=86cc28df491fa84738affe752f9870791026565342f69e4ab63e5b935f00a495)                             |
-   | x86     | Python3.10     | [link](https://download.pytorch.org/whl/cpu/torch-2.1.0%2Bcpu-cp310-cp310-linux_x86_64.whl#sha256=5077921fc2b54e69a534f3a9c0b98493c79a5547c49d46f5e77e42da3610e011)                           |
-   | x86     | Python3.11     | [link](https://download.pytorch.org/whl/cpu/torch-2.1.0%2Bcpu-cp311-cp311-linux_x86_64.whl#sha256=5954924ce74bc7e6a6c811e3fa4bdda9936d9889f6369fd068420c444bfd1cae)                           |
-   | aarch64 | Python3.8      | [link](https://download.pytorch.org/whl/cpu/torch-2.1.0-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl#sha256=761822761fffaa1c18a62c5deb13abaa780862577d3eadc428f1daa632536905)   |
-   | aarch64 | Python3.9      | [link](https://download.pytorch.org/whl/cpu/torch-2.1.0-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl#sha256=de7d63c6ecece118684415a3dbd4805af4a4c1ee1490cccf7405d8c240a481b4)   |
-   | aarch64 | Python3.10     | [link](https://download.pytorch.org/whl/cpu/torch-2.1.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl#sha256=a04a0296d47f28960f51c18c5489a8c3472f624ec3b5bcc8e2096314df8c3342) |
-   | aarch64 | Python3.11     | [link](https://download.pytorch.org/whl/cpu/torch-2.1.0-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl#sha256=8132efb782cd181cc2dcca5e58effbe4217cdb2581206ac71466d535bf778867) |
+   | x86     | Python3.13     | [link](https://download-r2.pytorch.org/whl/cpu/torch-2.13.0%2Bcpu-cp313-cp313-manylinux_2_28_x86_64.whl#sha256=3fbf9c9d1f3c10c2d59d04aca426dee9ccc6ceb32d255c61e93acc3b4f75fae6) |
+   | x86     | Python3.12     | [link](https://download-r2.pytorch.org/whl/cpu/torch-2.13.0%2Bcpu-cp312-cp312-manylinux_2_28_x86_64.whl#sha256=4ca4a9394b0c771238a4f73590fdbbc4debad85ed0fa63d026ae1b085da7d6e2) |
+   | x86     | Python3.11     | [link](https://download-r2.pytorch.org/whl/cpu/torch-2.13.0%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl#sha256=6746dbcbeb526eb61330b76b41ff1b4eb848951103a892eeb080dfa2b264667b) |
+   | x86     | Python3.10     | [link](https://download-r2.pytorch.org/whl/cpu/torch-2.13.0%2Bcpu-cp310-cp310-manylinux_2_28_x86_64.whl#sha256=f5cbb61180a9793d9e12fe115a2310d2600bd449dfb9a01ec5640e21359fa5ea) |
+   | aarch64 | Python3.13     | [link](https://download-r2.pytorch.org/whl/cpu/torch-2.13.0%2Bcpu-cp313-cp313-manylinux_2_28_aarch64.whl#sha256=0b8f7d0423027ae8b90c7977c627f3379f325363a08224dffad9b4b2d684a83d) |
+   | aarch64 | Python3.12     | [link](https://download-r2.pytorch.org/whl/cpu/torch-2.13.0%2Bcpu-cp312-cp312-manylinux_2_28_aarch64.whl#sha256=6f307c2c32d764ffc6ff6893b801fad6d4752f3e67966cb8abf1843427c02604) |
+   | aarch64 | Python3.11     | [link](https://download-r2.pytorch.org/whl/cpu/torch-2.13.0%2Bcpu-cp311-cp311-manylinux_2_28_aarch64.whl#sha256=84453b69508ec79902f899c5ed9495acb9e2bbe9fda5f1d5d6f19e3c3842e1a7) |
+   | aarch64 | Python3.10     | [link](https://download-r2.pytorch.org/whl/cpu/torch-2.13.0%2Bcpu-cp310-cp310-manylinux_2_28_aarch64.whl#sha256=f028e428bddee95cdb86e2470254e95c9af629362488550c200ed4793125a817) |
 
 3. **Install torch-npu**
 
    ```shell
-   pip3 install torch-npu==2.1.0.post17
+   pip3 install torch-npu==2.13.0
    ```
 
 ### From Source
@@ -148,7 +151,7 @@ In some special scenarios, users may need to compile **torch-npu** by themselves
 1. **Clone torch-npu**
 
    ```shell
-   git clone https://github.com/ascend/pytorch.git -b 2.1.0-7.2.0 --depth 1
+   git clone https://github.com/ascend/pytorch.git -b 2.13.0 --depth 1
    ```
 
 2. **Build Docker Image**
@@ -273,13 +276,17 @@ The version branches of AscendPyTorch have the following maintenance phases:
 
 | **PyTorch** | **Maintenance Policies** | **Status**  | **Launch Date** | **Subsequent Status**                                             | **EOL Date** |
 |-------------|--------------------------|-------------|-----------------|-------------------------------------------------------------------|--------------|
-| 2.9.0         | Regular Release        | Development       | 2026/01/15 | Expected to enter maintenance status from July 15, 2026  | -         | 
-| 2.8.0         | Regular Release        | Development       | 2025/10/15 | Expected to enter maintenance status from March 15, 2026  | -         | 
+| 2.13.0        | Regular Release        | Development       | 2026/07/09 | Expected to enter maintenance status from January 9, 2027  | -         |
+| 2.12.0        | Regular Release        | Development       | 2026/05/10 | Expected to enter maintenance status from November 23, 2026  | -         |
+| 2.11.0        | Regular Release        | Development       | 2026/03/23 | Expected to enter maintenance status from September 23, 2026  | -         |
+| 2.10.0        | Regular Release        | Development       | 2026/01/22 | Expected to enter maintenance status from July 22, 2026  | -         |
+| 2.9.0         | Regular Release        | Development       | 2026/01/15 | Expected to enter maintenance status from July 15, 2026  | -         |
+| 2.8.0         | Regular Release        | Maintained        | 2025/10/15 | Expected to enter maintenance free status from March 15, 2027  | -         |
 | 2.7.1       | Long Term Support          | Development | 2025/10/15      | Expected to enter maintenance status from October 15, 2026           |              |
-| 2.6.0         | Regular Release        | Development       | 2025/07/25 | Expected to enter maintenance status from January 15, 2026  | -         | 
+| 2.6.0         | Regular Release        | Maintained        | 2025/07/25 | Expected to enter maintenance free status from January 25, 2027  | -         |
 | 2.5.1       | Regular Release          | Maintained | 2024/11/08      | Expected to enter maintenance  free status from August 8, 2026           |              |
-| 2.4.0       | Regular Release          | Maintained | 2024/10/15      | Expected to enter maintenance free status from June 15, 2026           |              |
-| 2.3.1       | Regular Release          | Maintained | 2024/06/06      | Expected to enter maintenance free status from June 7, 2026            |              |
+| 2.4.0       | Regular Release          | EOL         | 2024/10/15      |                                                                   | 2026/06/15    |
+| 2.3.1       | Regular Release          | EOL         | 2024/06/06      |                                                                   | 2026/06/07    |
 | 2.2.0       | Regular Release          | EOL         | 2024/04/01      |                                                                   | 2025/10/14    |
 | 2.1.0       | Long Term Support        | Maintained  | 2023/10/15      | Expected to enter maintenance free status from December 30, 2026   |              |
 | 2.0.1       | Regular Release          | EOL         | 2023/7/19       |                                                                   | 2024/3/14    |
@@ -293,10 +300,10 @@ For more detailed information on installation guides, model migration, training/
 
 | Document Name                            | Document Link                                                                                                           |
 |------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|
-| Installation Guide                       | [link](https://www.hiascend.com/document/detail/zh/Pytorch/720/configandinstg/instg/insg_0001.html)                                      |
-| Network Model Migration and Training     | [link](https://www.hiascend.com/document/detail/zh/Pytorch/720/ptmoddevg/trainingmigrguide/PT_LMTMOG_0003.html)       |
+| Installation Guide                       | [link](https://www.hiascend.com/document/detail/zh/Pytorch/2600/configandinstg/instg/insg_0001.html)                                      |
+| Network Model Migration and Training     | [link](https://www.hiascend.com/document/detail/zh/Pytorch/2600/ptmoddevg/trainingmigrguide/PT_LMTMOG_0003.html)       |
 | Operator Adaptation                      | [link](https://www.hiascend.com/document/detail/zh/canncommercial/81RC1/operatordev/tbeaicpudevg/atlasopdev_10_0086.html) |
-| API List (PyTorch and Custom Interfaces) | [link](https://www.hiascend.com/document/detail/zh/Pytorch/720/apiref/apilist/ptaoplist_000002.html)                  |
+| API List (PyTorch and Custom Interfaces) | [link](https://www.hiascend.com/document/detail/zh/Pytorch/2600/apiref/apilist/ptaoplist_000002.html)                  |
 
 ## License
 

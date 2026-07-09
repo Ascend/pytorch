@@ -1,4 +1,4 @@
---extra-index-url https://download.pytorch.org/whl/nightly/cpu
+--extra-index-url https://download.pytorch.org/whl/cpu
 
 coverage
 beartype==0.17.0
@@ -15,6 +15,6 @@ requests==2.32.0
 transformers==4.40.0
 pytest==8.3.2
 parameterized==0.9.0
-torchvision==0.28.0.dev20260611
+torchvision==0.28.0
 ml-dtypes==0.5.1
 protobuf==6.33.5
