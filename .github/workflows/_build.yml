@@ -362,6 +362,7 @@ jobs:
     steps:
       # Step 0: Report in_progress
       - name: Report in_progress
+        continue-on-error: true
         uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@main
         with:
           status: in_progress
