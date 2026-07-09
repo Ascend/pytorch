@@ -406,7 +406,7 @@ jobs:
       - name: Install wheels
         run: |
           pip install /tmp/wheels/torch*.whl
-          pip install /tmp/wheels/torch_npu*.whl
+          pip install --no-deps /tmp/wheels/torch_npu*.whl
 
       # Step 3: Checkout this repo for test scripts
       - name: Checkout test scripts
