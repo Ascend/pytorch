@@ -218,7 +218,13 @@ class MetaCompiler:
             for out1, out2 in zip(actual_outputs, args[-num_outputs:]):
                 if isinstance(out1, torch.Tensor) and not out1.is_contiguous():
                     out1 = out1.contiguous()
-                out2.set_(out1)
+                if out1.dtype == out2.dtype:
+                    out2.set_(out1)
+                else:
+                    # clone_for_accuracy upcasts bfloat16 outputs to float32, while the model
+                    # forward still produces bfloat16. set_ fails due to dtype mismatch,
+                    # fall back to copy_ for cross-dtype copy.
+                    out2.copy_(out1)
         return module_call
 
     def _load_traced_graph_model(self) -> torch.nn.Module:
