@@ -22,4 +22,4 @@ jobs:
       upstream_repo: pytorch/pytorch
       upstream_ref: main
       torch_npu_repo: Ascend/pytorch
-      torch_npu_ref: ci-test
+      torch_npu_ref: master
