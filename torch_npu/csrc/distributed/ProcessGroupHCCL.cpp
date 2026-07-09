@@ -2679,12 +2679,16 @@ void ProcessGroupHCCL::createHCCLCommOrigin(
     std::vector<c10_npu::NPUStream> &streamVal,
     int p2pRank)
 {
-    bool isSub = !options_->global_ranks_in_group.empty();
-    if (isSub) {
-        if (createHCCLCommSub(devicesKey, devices, commType, commConfig, hcclComms, streamVal, p2pRank, true)) {
-            return;
+    if (c10_npu::option::OptionsManager::IsSubCommRootInfoEnable()) {
+        bool isSub = !options_->global_ranks_in_group.empty();
+        if (isSub) {
+            if (createHCCLCommSub(devicesKey, devices, commType, commConfig, hcclComms, streamVal, p2pRank, true)) {
+                TORCH_NPU_HCCL_LOGW(
+                    "Sub-communicator is an internal experimental feature and is incompatible with resume mode.");
+                return;
+            }
+            TORCH_NPU_HCCL_LOGI("Sub comm derivation failed in createHCCLCommOrigin, fallback to rootinfo.");
         }
-        TORCH_NPU_HCCL_LOGI("Sub comm derivation failed in createHCCLCommOrigin, fallback to rootinfo.");
     }
 
     HcclRootInfo hcclID;
