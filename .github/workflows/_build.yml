@@ -215,9 +215,9 @@ jobs:
       - name: Patch generate_code.sh for aoti_c_shim
         working-directory: torch_npu
         run: |
-          sed -i '/--impl_path=.*torch_npu\/csrc\/aten/a\  --update_aoti_c_shim \\' ci/generate_code.sh
+          sed -i '/--impl_path=.*torch_npu\/csrc\/aten/a\  --update_aoti_c_shim \\' generate_code.sh
           echo "Patched generate_code.sh:"
-          grep -A1 'update_aoti_c_shim' ci/generate_code.sh || echo "Warning: patch may have failed"
+          grep -A1 'update_aoti_c_shim' generate_code.sh || echo "Warning: patch may have failed"
 
       # Step 4: Build and install torch_npu
       - name: Build and install torch_npu
