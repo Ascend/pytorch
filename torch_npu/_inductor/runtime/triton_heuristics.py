@@ -2621,6 +2621,28 @@ def brutal_prune_tiling_configs_if_fast_run(configs, inductor_meta) -> List[Conf
     return configs
 
 
+def set_reduction_runtime_blocks_to_numel(configs, split_axis, axis_names, size_hints, runtime_block_arg_names):
+    runtime_block_arg_names = set(runtime_block_arg_names)
+    if not runtime_block_arg_names:
+        return
+
+    for cfg in configs:
+        for axis in split_axis:
+            axis_name = axis_names[axis]
+            if not axis_name.startswith("r"):
+                continue
+            block_name = f"{axis_name.upper()}BLOCK"
+            if block_name not in runtime_block_arg_names:
+                continue
+            cfg.kwargs[block_name] = size_hints[axis]
+
+        if "split_blocks" in cfg.kwargs:
+            cfg.kwargs["split_blocks"] = tuple(
+                cfg.kwargs[f"{axis_names[axis].upper()}BLOCK"]
+                for axis in split_axis
+            )
+
+
 # split:sizeof split, xblock:axis1 length, rblock:axis2 length
 def triton_config_npu_index(
     size_hints,
@@ -3086,6 +3108,9 @@ def _triton_config_npu_index_legacy(
                 if isinstance(tiling, str) and tiling.endswith(
                         "SUB") and tiling.startswith("R"):
                     tiling_cfg.kwargs[tiling.rstrip("_SUB")] = tling_value
+
+    set_reduction_runtime_blocks_to_numel(configs, split_axis, axis_names, size_hints,
+                                          inductor_meta.get("runtime_block_arg_names", ()))
 
     logging.debug("[%s], generate candidate tiling count: [%s]",
                 inductor_meta["kernel_name"],

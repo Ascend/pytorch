@@ -7,6 +7,7 @@ import torch_npu
 class TestSum(TestUtils):
     def op_calc(self, input_element, dim):
         return torch.sum(input_element, dim)
+
     # 规约轴和非规约轴对齐用例 float32 XBLOCK_SUB>=8:shape=(8,32)
     # non-persistent reduction 用例 规约轴>1024:shape=(8,8,8,2048) dim=-1
     _reduction_extest_shape4d_all = [(8, 32), (8, 8, 8, 2048)]
@@ -35,6 +36,18 @@ class TestSum(TestUtils):
             inductor_sum = inductor_sum_tmp
 
         self.assertEqual(std_sum, inductor_sum, atol=1e-1, rtol=1e-1)
+
+    @parametrize('shape', [(8193, 1)])
+    @parametrize('dim', [None])
+    @parametrize('dtype', ['int32'])
+    def test_sum_all_reduction_runtime_rblock(self, shape, dim, dtype):
+        input_element = torch.ones(shape, dtype=eval('torch.' + dtype), device=torch.device("npu"))
+        std_sum = self.op_calc(input_element, dim)
+        compiled_op_calc = torch.compile(self.op_calc, backend="inductor", dynamic=False)
+        compiled_op_calc(input_element, dim)
+        inductor_sum = compiled_op_calc(input_element, dim)
+
+        self.assertEqual(std_sum, inductor_sum)
 
     @parametrize('shape', [(32, 16, 64, 128)])
     @parametrize('dim', _reduction_extest_dim4d_all)
