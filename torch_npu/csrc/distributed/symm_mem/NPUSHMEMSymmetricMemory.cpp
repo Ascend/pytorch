@@ -207,7 +207,17 @@ void* NPUSHMEMSymmetricMemoryAllocator::alloc(
 void NPUSHMEMSymmetricMemoryAllocator::free(void* ptr)
 {
     TORCH_NPU_SYMMEM_LOGD("NPUSHMEMSymmetricMemoryAllocator free start, ptr is %p", ptr);
-    allocations_.erase(ptr);
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        allocations_.erase(ptr);
+        for (auto it = symm_mems_.begin(); it != symm_mems_.end();) {
+            if (std::get<0>(it->first) == ptr) {
+                it = symm_mems_.erase(it);
+            } else {
+                ++it;
+            }
+        }
+    }
     TORCH_NPU_SYMMEM_LOGD("NPUSHMEMSymmetricMemoryAllocator free end, ptr is %p", ptr);
 }
 
@@ -224,8 +234,9 @@ c10::intrusive_ptr<SymmetricMemory> NPUSHMEMSymmetricMemoryAllocator::rendezvous
     void* ptr,
     const std::optional<std::string>& group_name)
 {
-    TORCH_NPU_SYMMEM_LOGD("NPUSHMEMSymmetricMemoryAllocator rendezvous start, ptr is %p, group_name is %s", ptr, (*group_name).c_str());
     TORCH_CHECK(group_name.has_value(), "rendezvous, group_name is invalid.", DIST_ERROR(ErrCode::PARAM));
+    TORCH_NPU_SYMMEM_LOGD("NPUSHMEMSymmetricMemoryAllocator rendezvous start, ptr is %p, group_name is %s", ptr, (*group_name).c_str());
+    std::lock_guard<std::mutex> lock(mutex_);
     {
         auto it = symm_mems_.find(std::make_tuple(ptr, *group_name));
         if (it != symm_mems_.end()) {

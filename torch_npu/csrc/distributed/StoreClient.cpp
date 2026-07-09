@@ -96,13 +96,15 @@ int Client::TryConnect(int family) noexcept
         return -1;
     }
 
+    int ret = -1;
     for (::addrinfo* addr = result; addr != nullptr; addr = addr->ai_next) {
-        int ret = TryConnectCore(*addr);
+        ret = TryConnectCore(*addr);
         if (ret == 0) {
-            return 0;
+            break;
         }
     }
-    return -1;
+    ::freeaddrinfo(result);
+    return ret;
 }
 
 int Client::Connect() noexcept
@@ -151,6 +153,8 @@ int Client::LocalConnect() noexcept
     auto ret = SetReceiveTimeout(timeout_);
     if (ret < 0) {
         LOG(ERROR) << "set socket timeout failed. " << errno << " : " << strerror(errno);
+        close(socketFd_);
+        socketFd_ = -1;
         return -1;
     }
     struct sockaddr_un servAddr {};
@@ -183,6 +187,8 @@ int Client::LocalConnect() noexcept
         }
     }
 
+    close(socketFd_);
+    socketFd_ = -1;
     return -1;
 }
 
