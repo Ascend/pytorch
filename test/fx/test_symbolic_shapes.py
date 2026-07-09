@@ -16,9 +16,13 @@ from torch._guards import ShapeGuard, SLoc
 from torch._subclasses.fake_tensor import FakeTensorMode
 from torch.fx import Graph, Interpreter, symbolic_trace
 from torch.fx.experimental.symbolic_shapes import (
+    DivideByKey,
+    EqualityConstraint,
     PropagateUnbackedSymInts,
     ShapeEnv,
     Source,
+    guard_size_oblivious,
+    has_free_symbols,
     is_accessor_node,
     is_concrete_bool,
     is_concrete_float,
@@ -377,6 +381,52 @@ class TestShapeEnvNPU(TestCase):
             sympy.Le(s0, s1, evaluate=False)))
         self.assertIn(sympy.Le(s0, s1, evaluate=False), impl_le)
         self.assertIn(sympy.Lt(s0, s1 + 1, evaluate=False), impl_le)
+
+    @unittest.skipUnless(torch.npu.is_available(), "requires npu")
+    def test_divide_by_key(self):
+        """Check DivideByKey string representation."""
+        key = DivideByKey(4)
+        self.assertEqual(str(key), ".__floordiv__(4)")
+
+    @unittest.skipUnless(torch.npu.is_available(), "requires npu")
+    def test_divide_by_key_get(self):
+        """Check DivideByKey.get performs floor division."""
+        key = DivideByKey(4)
+        self.assertEqual(key.get(17), 4)
+
+    @unittest.skipUnless(torch.npu.is_available(), "requires npu")
+    def test_equality_constraint_init(self):
+        """Check EqualityConstraint initializes with empty constraints."""
+        kwargs = {
+            "source_pairs": [],
+            "derived_equalities": [],
+            "phantom_symbols": [],
+            "relaxed_sources": set(),
+            "warn_only": False,
+        }
+        fields = getattr(EqualityConstraint, "__dataclass_fields__", {})
+        kwargs = {k: v for k, v in kwargs.items() if k in fields}
+
+        eq = EqualityConstraint(**kwargs)
+
+        self.assertEqual(eq.source_pairs, [])
+        self.assertEqual(eq.phantom_symbols, [])
+        if hasattr(eq, "relaxed_sources"):
+            self.assertEqual(eq.relaxed_sources, set())
+        if hasattr(eq, "warn_only"):
+            self.assertFalse(eq.warn_only)
+
+    @unittest.skipUnless(torch.npu.is_available(), "requires npu")
+    def test_has_free_symbols(self):
+        """Check has_free_symbols detects symbolic expressions."""
+        self.assertFalse(has_free_symbols(sympy.sympify("1")))
+        self.assertTrue(has_free_symbols(sympy.sympify("a")))
+
+    @unittest.skipUnless(torch.npu.is_available(), "requires npu")
+    def test_guard_size_oblivious(self):
+        """Check guard_size_oblivious passes through boolean values."""
+        self.assertTrue(guard_size_oblivious(True))
+        self.assertFalse(guard_size_oblivious(False))
 
 
     @unittest.skipUnless(torch.npu.is_available(), "requires npu")
