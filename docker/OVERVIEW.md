@@ -80,6 +80,7 @@ See dockerfile:[dockerfile](https://gitcode.com/Ascend/pytorch/blob/master/docke
 | ARCH                      | Host hardware architecture                                | Yes      | Environment hardware      | arm / x86                                               |
 | PY_TAG                    | Python package ABI tag (cp + version number)              | Yes      | Strictly match PY_VERSION | cp311                                                   |
 | TORCH_NPU_RELEASE_VERSION | Official TorchNPU release tag (including PyTorch version) | Yes      | TorchNPU repo releases    | v26.0.0-pytorch2.10.0                                   |
+| TORCH_NPU_PATCH_TAG       | TorchNPU version number in the release package name       | Yes      | TorchNPU repo releases    | 2.10.0                                                  |
 | MANYLINUX_VER             | PyPI package compatible system version                    | No       | torch official wheel spec | manylinux_2_28                                          |
 | PIP_MIRROR_URL            | pip installation source URL (Tsinghua mirror by default)  | No       | PyPI mirror sources       | https://pypi.tuna.tsinghua.edu.cn/simple                |
 
@@ -87,11 +88,12 @@ See dockerfile:[dockerfile](https://gitcode.com/Ascend/pytorch/blob/master/docke
 
 1. Image tags, operating systems, and version information:[CANN Base Image Repository](https://quay.io/repository/ascend/cann?tab=tags) tag
 
-2. TORCH_NPU_RELEASE_VERSION parameter reference:[TorchNPU Official Release Versions](https://gitcode.com/Ascend/pytorch/releases) 
+2. TORCH_NPU_RELEASE_VERSION and TORCH_NPU_PATCH_TAG parameter values are from [TorchNPU Official Release Versions](https://gitcode.com/Ascend/pytorch/releases). Example with a wheel download URL:
 
-3. TORCH_VERSION parameter:
 https://gitcode.com/Ascend/pytorch/releases/download/v26.0.0-pytorch2.10.0/torch_npu-2.10.0-cp310-cp310-manylinux_2_28_aarch64.whl
-Extract all content between torch_npu- and -cp310
+
+- TORCH_NPU_RELEASE_VERSION is the part between `download/` and `/torch_npu-`, e.g. `v26.0.0-pytorch2.10.0`.
+- TORCH_NPU_PATCH_TAG is the part between `torch_npu-` and `-cp310`, e.g. `2.10.0`.
 
 ## Quick Start
 
@@ -101,7 +103,6 @@ Taking the construction of the 2.10.0-a3-ubuntu22.04-py3.11 image as an example:
 
 ```bash
 docker build \
-  --build-arg TORCH_VERSION=2.10.0 \
   --build-arg CHIP_ARCH=a3 \
   --build-arg OS=ubuntu \
   --build-arg OS_VERSION=22.04 \
@@ -110,9 +111,23 @@ docker build \
   --build-arg ARCH=arm \
   --build-arg PY_TAG=cp311 \
   --build-arg TORCH_NPU_RELEASE_TAG=v26.0.0-pytorch2.10.0 \
+  --build-arg TORCH_NPU_PATCH_TAG=2.10.0 \
   -t image_name:tag \
   -f Dockerfile .
 ```
+
+**Note**: If your build environment requires a proxy, pass proxy variables via `--build-arg`, for example:
+
+```bash
+docker build \
+  --build-arg HTTP_PROXY=http://proxy.example.com:8080 \
+  --build-arg HTTPS_PROXY=http://proxy.example.com:8080 \
+  --build-arg NO_PROXY=localhost,127.0.0.1 \
+  ... \
+  -f Dockerfile .
+```
+
+Replace the proxy address and port with your actual environment values.
 
 ### Run TorchNPU Container
 
