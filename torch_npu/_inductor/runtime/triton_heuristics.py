@@ -361,24 +361,41 @@ class TritonCompileResultNpu(TritonCompileResult):
         none_args = none_args.difference(OrderedSet(compile_meta["signature"].keys()))
 
         if triton_version_uses_attrs_dict():
-            call_args = fn.arg_names
-            def_args = fn.arg_names
-            if (
-                "num_warps" in compile_meta["constants"]
-                or "num_stages" in compile_meta["constants"]
-            ):
-                # num_warps/num_stages are special implicit args that are not in the signature
-                # see test_triton_kernel_special_params
-                def_args = [
-                    arg
-                    for arg in def_args
-                    if arg not in ("num_warps", "num_stages")
-                ]
-                repl = {
-                    k: str(compile_meta["constants"].get(k))
-                    for k in ("num_warps", "num_stages")
-                }
-                call_args = [repl.get(arg, arg) for arg in call_args]
+            runtime_block_names = tuple(
+                self.inductor_meta.get("runtime_block_arg_names", ())
+            )
+            runtime_block_set = set(runtime_block_names)
+            cfg_dict = config_to_dict(cfg)
+
+            # 构造 constexpr 参数的字面量替换字典（保留 runtime block 参数）
+            repl = {}
+            for i in fn.constexprs:
+                arg = fn.arg_names[i]
+                if arg in runtime_block_set:
+                    continue
+                if arg in compile_meta["constants"]:
+                    repl[arg] = str(compile_meta["constants"][arg])
+                elif arg in cfg_dict:
+                    repl[arg] = str(cfg_dict[arg])
+
+            # def_args: 过滤 constexpr 参数（保留 runtime block 参数），
+            # 因为调用 launcher 时不传 constexpr 参数
+            def_args = [
+                arg
+                for i, arg in enumerate(fn.arg_names)
+                if i not in fn.constexprs or arg in runtime_block_set
+            ]
+            # call_args: 过滤不在 signature 里的参数（如 X0BLOCK_SUB），
+            # constexpr 参数用字面量替换（因为 make_launcher 生成 wrapper 时
+            # 期望所有 signature 参数，包括 constexpr）
+            call_args = []
+            for arg in fn.arg_names:
+                if arg not in compile_meta["signature"]:
+                    continue
+                if arg in repl:
+                    call_args.append(repl[arg])
+                else:
+                    call_args.append(arg)
         else:
             call_args = [
                 arg
