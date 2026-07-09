@@ -1,3 +1,11 @@
+@@ -34,6 +34,7 @@
+ import numpy as np
+ 
+ import torch
++import torch_npu
+ import torch._dynamo.testing
+ import torch._inductor.config
+ import torch._inductor.test_case
 diff --git a/test/dynamo/test_misc.py b/test/dynamo/test_misc.py
 index 1a9d8e8..cdc6bc7 100644
 --- a/test/dynamo/test_misc.py

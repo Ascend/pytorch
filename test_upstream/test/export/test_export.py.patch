@@ -1,0 +1,12 @@
+diff --git a/test/export/test_export.py b/test/export/test_export.py
+--- a/test/export/test_export.py
++++ b/test/export/test_export.py
+@@ -20,6 +20,7 @@
+ from unittest.mock import MagicMock, patch
+ 
+ import torch
++import torch_npu
+ import torch._dynamo as torchdynamo
+ import torch.nn.functional as F
+ import torch.utils._pytree as pytree
+
