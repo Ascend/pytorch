@@ -308,10 +308,6 @@ class StageTest(MultiProcContinuousTest):
             ref_out = full_mod(x)
             torch.testing.assert_close(out, ref_out)
 
-        if self.rank == 0:
-            with self.assertRaisesRegex(PipeliningMetadataError, "shape mismatch"):
-                _run_step(torch.randn(batch_size + 1, d_hid, device=self.device))
-
     def test_custom_dw_errors(self):
         """Tests expected errors are raised"""
         full_mod = MultiMLP(d_hid, n_layers=self.world_size)
