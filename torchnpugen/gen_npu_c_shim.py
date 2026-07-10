@@ -220,6 +220,60 @@ def gen_npu_c_shim(
         )
 
 
+def _check_c_shim_header_unchanged(
+    expected_path: str,
+    header_content: str,
+    update_hint: str,
+) -> None:
+    """Watchdog: compare the committed header against the freshly generated one.
+
+    On mismatch this raises a RuntimeError describing the ABI breakage; on a
+    missing expected file it prints a notice and returns (so a brand new track
+    can be bootstrapped with --update-aoti-c-shim). See
+    docs/proposal_c_shim_multi_version.md (scheme 2) for the versioned layout.
+    """
+    try:
+        with open(expected_path) as old_file:
+            old_header = old_file.read()
+    except FileNotFoundError:
+        print(
+            f"[torchnpugen] {expected_path} not found; skipping ABI watchdog. "
+            f"Run codegen with --update-aoti-c-shim to create the tracked snapshot."
+        )
+        return
+    if old_header == header_content:
+        return
+    diff = "\n".join(
+        difflib.unified_diff(
+            old_header.splitlines(),
+            header_content.splitlines(),
+            fromfile=f"expected ({expected_path})",
+            tofile="actual",
+            lineterm="",
+        )
+    )
+    raise RuntimeError(f"""
+The generated AOTInductor C shim header has unexpectedly changed. This
+indicates an AOTInductor fallback operator ABI backward compatibility breakage!!!
+
+Expected (committed): {expected_path}
+
+1. You added a fallback op to the inductor_fallback_ops list in
+torchgen/aoti/fallback_ops.py. If that's the case, run codegen with
+--update-aoti-c-shim to add a new entry to the C shim header file.
+
+2. You added a new default argument to an existing fallback op. This is clearly
+a BC breaking change in the AOTInductor land. You need to annotate the new
+default argument in torchgen/aoti/fallback_ops.py, and then run codegen with
+--update-aoti-c-shim to update the C shim header file by creating different
+versions of the fallback op.
+
+{update_hint}
+
+{diff}
+                    """)
+
+
 def gen_npu_c_shim_files(
     aoti_fm: FileManager,
     native_functions: Sequence[NativeFunction],
@@ -227,6 +281,7 @@ def gen_npu_c_shim_files(
     dispatch_keys: Sequence[DispatchKey],
     structured_native_functions: Sequence[NativeFunctionsGroup],
     update_aoti_c_shim: bool,
+    pytorch_version_dir: str | None = None,
 ) -> None:
     global NPU_DISPATCH_KEYS
     NPU_DISPATCH_KEYS = dispatch_keys
@@ -286,39 +341,37 @@ def gen_npu_c_shim_files(
     header_filename = f"c_shim_{NPU_DEVICE}.h"
     cpp_filename = f"c_shim_{NPU_DEVICE}.cpp"
 
-    if update_aoti_c_shim:
-        aoti_fm.write(header_filename, lambda: header_content)
+    if pytorch_version_dir:
+        # Scheme 2: per-torch-version tracked snapshots live under
+        # generated/<pytorch_version_dir>/. The versioned header is the ABI
+        # source of truth (watchdog-validated, only updated via
+        # --update-aoti-c-shim); the canonical generated/c_shim_npu.h is a
+        # build-time copy matching the torch version being compiled, so the
+        # shipped wheel keeps a single stable include path regardless of
+        # which version was built.
+        versioned_filename = f"{pytorch_version_dir}/{header_filename}"
+        versioned_path = os.path.join(aoti_fm.install_dir, versioned_filename)
+        if update_aoti_c_shim:
+            aoti_fm.write(versioned_filename, lambda: header_content)
+            print(f"[torchnpugen] Updated {versioned_filename}")
+        else:
+            _check_c_shim_header_unchanged(
+                versioned_path,
+                header_content,
+                f"Update the {versioned_filename} snapshot for the "
+                f"{pytorch_version_dir} track.",
+            )
     else:
-        try:
-            with open(os.path.join(aoti_fm.install_dir, header_filename)) as old_file:
-                old_header = old_file.read()
-                if old_header != header_content:
-                    diff = "\n".join(
-                        difflib.unified_diff(
-                            old_header.splitlines(),
-                            header_content.splitlines(),
-                            fromfile="expected",
-                            tofile="actual",
-                            lineterm="",
-                        )
-                    )
-                    raise RuntimeError(f"""
-The generated AOTInductor C shim header files have unexpectedly changed. This
-indicates an AOTInductor fallback operator ABI backward compatibility breakage!!!
+        # Legacy path (no --pytorch_version_dir): a single canonical header
+        # is the tracked source of truth and is validated in place.
+        canonical_path = os.path.join(aoti_fm.install_dir, header_filename)
+        if not update_aoti_c_shim:
+            _check_c_shim_header_unchanged(canonical_path, header_content, "")
 
-1. You added a fallback op to the inductor_fallback_ops list in torchgen/aoti/fallback_ops.py.
-If that's the case, run codegen with --update-aoti-c-shim to add a new entry to
-existing C shim header files.
-
-2. You added a new default argument to an existing fallback op. This is clearly a BC breaking
-change in the AOTInductor land. You need to annotate the new default argument in
-torchgen/aoti/fallback_ops.py, and then run codegen with --update-aoti-c-shim to
-update the C shim header files by creating different versions of the fallback op.
-
-{diff}
-                    """)
-        except FileNotFoundError:
-            print(f"{os.path.join(aoti_fm.install_dir, header_filename)} not found")
+    # Always materialize the canonical build header for this torch version.
+    # In versioned mode this is the per-build copy; in legacy mode this is a
+    # no-op refresh when the watchdog already validated an identical file.
+    aoti_fm.write(header_filename, lambda: header_content)
 
     aoti_fm.write(cpp_filename, lambda: cpp_content)
 

@@ -160,6 +160,12 @@ cmake-build-debug
 #
 # Below files are not deleted by "setup.py clean".
 
+# AOTInductor NPU C shim: canonical header is a build-time copy of the
+# versioned snapshot in aoti_torch/generated/<v2rXX>/. The versioned snapshots
+# are git-tracked; this canonical copy is regenerated per build. See
+# docs/proposal_c_shim_multi_version.md (scheme 2).
+torch_npu/csrc/inductor/aoti_torch/generated/c_shim_npu.h
+
 # Visual Studio Code files
 .vscode
 .vs

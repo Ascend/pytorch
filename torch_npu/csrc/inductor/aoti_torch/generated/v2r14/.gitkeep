@@ -1,0 +1,7 @@
+# v2r14 (PyTorch 2.14) AOTInductor C shim snapshot — under development.
+#
+# The c_shim_npu.h ABI snapshot for this track has not been seeded yet.
+# Until it is, building against torch 2.14 soft-skips the ABI watchdog
+# (see torchnpugen/gen_npu_c_shim.py). Seed it by running codegen in a
+# torch 2.14 environment with --update-aoti-c-shim, then commit the
+# generated v2r14/c_shim_npu.h and delete this placeholder.

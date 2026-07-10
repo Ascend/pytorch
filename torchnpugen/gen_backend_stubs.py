@@ -704,6 +704,15 @@ def main() -> None:
         help="Update AOTInductor C shim after adding an entry to inductor_fallback_ops in torchgen/aoti/fallback_ops.py. "
         "WARNING: Do not use this unless you are sure what you are doing!!!",
     )
+    parser.add_argument(
+        "--pytorch_version_dir",
+        type=str,
+        default=None,
+        help="PyTorch version directory tag (e.g. v2r13) used to select/store the "
+        "versioned AOTInductor C shim header under aoti_torch/generated/<tag>/. "
+        "When omitted, the legacy single-header layout "
+        "(aoti_torch/generated/c_shim_npu.h) is used.",
+    )
     options = parser.parse_args()
 
     run(
@@ -714,6 +723,7 @@ def main() -> None:
         options.op_plugin_impl_path,
         options.op_plugin_yaml_path,
         options.update_aoti_c_shim,
+        options.pytorch_version_dir,
     )
 
 
@@ -1600,6 +1610,7 @@ def run(
     op_plugin_impl_path: str | None,
     op_plugin_yaml_path: str | None,
     update_aoti_c_shim: bool,
+    pytorch_version_dir: str | None,
 ) -> None:
     rename_privateuse1_dispatch_key()
     torchgen_path = get_torchgen_dir()
@@ -1806,6 +1817,7 @@ def run(
             [backend_dispatch_key],
             structured_native_functions,
             update_aoti_c_shim,
+            pytorch_version_dir,
         )
 
 
