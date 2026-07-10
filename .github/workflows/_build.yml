@@ -172,7 +172,7 @@ jobs:
             exit ${BUILD_STATUS}
           fi
 
-          pip install /tmp/wheels/torch*.whl
+          pip install /tmp/wheels/torch-*.whl
 
           # Must NOT run from pytorch/ source dir: Python would find
           # the local torch/ source tree instead of the installed package.
@@ -406,7 +406,7 @@ jobs:
 
       - name: Install wheels
         run: |
-          pip install /tmp/wheels/torch*.whl
+          pip install /tmp/wheels/torch-*.whl
           pip install --no-deps /tmp/wheels/torch_npu*.whl
 
       # Step 3: Checkout this repo for test scripts
