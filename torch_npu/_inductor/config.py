@@ -31,6 +31,7 @@ enable_flex_attention_dq_before_scale_materialize = os.environ.get(
     "FLEX_ATTENTION_DQ_BEFORE_SCALE_MATERIALIZE", "1"
 ).lower() in ("1", "true", "yes")
 
+
 device = torch.npu.current_device()
 prop = torch.npu.get_device_properties(device)
 
@@ -306,8 +307,7 @@ FLEX_ATTENTION_NPU_COMPILE_HINT_KEYS = (
     "set_workspace_multibuffer",
     "tile_mix_vector_loop",
     "tile_mix_cube_loop",
-    "disable_auto_inject_block_sync",
-    "enable_mixed_cv",
+    "enable_dynamic_cv_pipeline",
 )
 
 
@@ -333,8 +333,24 @@ class flex_attention:
     set_workspace_multibuffer = 4
     tile_mix_vector_loop = 4
     tile_mix_cube_loop = 4
-    disable_auto_inject_block_sync = False
-    enable_mixed_cv = False
+    enable_dynamic_cv_pipeline = False
+
+    bwd_dq_limit_auto_multi_buffer_of_local_buffer = "no-l0c"
+    bwd_dkdv_limit_auto_multi_buffer_of_local_buffer = "no-l0c"
+
+    @classmethod
+    def _filter_compile_options_for_soc(cls, options: dict) -> dict:
+        options = options.copy()
+        if is_ascend950:
+            options.pop("enable_dynamic_cv_pipeline", None)
+        return options
+
+    @classmethod
+    def _compile_options(cls, keys, overrides: Optional[dict] = None) -> dict:
+        options = {key: getattr(cls, key) for key in keys}
+        if overrides:
+            options.update(overrides)
+        return cls._filter_compile_options_for_soc(options)
 
     @classmethod
     def get_npu_compile_hint_params(cls) -> dict:
@@ -343,10 +359,61 @@ class flex_attention:
         Returns:
             Dictionary containing all NPU compile hint parameter values
         """
-        return {
-            key: getattr(cls, key)
-            for key in FLEX_ATTENTION_NPU_COMPILE_HINT_KEYS
-        }
+        return cls._compile_options(FLEX_ATTENTION_NPU_COMPILE_HINT_KEYS)
+
+    @classmethod
+    def get_sparse_mask_cvpipeline_compile_options(
+        cls,
+        *,
+        enabled: bool,
+        tile_mix_loop: int,
+        enable_compile_hint: bool,
+    ) -> dict:
+        return cls._compile_options(
+            (
+                "enable_ubuf_saving",
+                "unit_flag",
+                "set_workspace_multibuffer",
+            ),
+            overrides={
+                "multibuffer": enabled,
+                "limit_auto_multi_buffer_only_for_local_buffer": not enabled,
+                "tile_mix_vector_loop": tile_mix_loop,
+                "tile_mix_cube_loop": tile_mix_loop,
+                "ENABLE_COMPILE_HINT": enable_compile_hint if enabled else False,
+            },
+        )
+
+    @classmethod
+    def get_bwd_dq_compile_options(cls) -> dict:
+        return cls._compile_options(
+            (
+                "limit_auto_multi_buffer_buffer",
+                "hfusion_enable_multiple_consumer_fusion",
+                "enable_select_analysis",
+            ),
+            overrides={
+                "limit_auto_multi_buffer_of_local_buffer": (
+                    cls.bwd_dq_limit_auto_multi_buffer_of_local_buffer
+                ),
+            },
+        )
+
+    @classmethod
+    def get_bwd_dkdv_compile_options(cls) -> dict:
+        return cls._compile_options(
+            (
+                "limit_auto_multi_buffer_buffer",
+                "hfusion_enable_multiple_consumer_fusion",
+                "unit_flag",
+                "enable_dynamic_cv_pipeline",
+            ),
+            overrides={
+                "limit_auto_multi_buffer_of_local_buffer": (
+                    cls.bwd_dkdv_limit_auto_multi_buffer_of_local_buffer
+                ),
+            },
+        )
 
 
 def apply_flex_attention_npu_params(config: dict, *, enable: bool) -> dict:

@@ -78,6 +78,8 @@ def _gen_npu_template_triton_imports() -> str:
         + textwrap.dedent("""
         import torch
         import torch_npu
+        if not torch_npu.npu.is_initialized() and torch_npu.npu._is_in_bad_fork():
+            torch_npu.npu._initialized = True
         from torch_npu._inductor.runtime import triton_heuristics as triton_heuristics
         from torch_npu._inductor.runtime import triton_helpers
         from torch_npu._inductor.runtime.triton_helpers import libdevice, extension, math as tl_math

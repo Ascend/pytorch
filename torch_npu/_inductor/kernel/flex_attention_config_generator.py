@@ -513,21 +513,11 @@ def _build_single_fwd_config(
 
 
 def get_bwd_dq_compile_options() -> dict:
-    return {
-        "limit_auto_multi_buffer_buffer": "no-limit",
-        "hfusion_enable_multiple_consumer_fusion": True,
-        "enable_select_analysis": False,
-        "limit_auto_multi_buffer_of_local_buffer": "no-l0c",
-    }
+    return npu_config.flex_attention.get_bwd_dq_compile_options()
 
 
 def get_bwd_dkdv_compile_options() -> dict:
-    return {
-        "limit_auto_multi_buffer_buffer": "no-limit",
-        "hfusion_enable_multiple_consumer_fusion": True,
-        "unit_flag": True,
-        "limit_auto_multi_buffer_of_local_buffer": "no-l0c",
-    }
+    return npu_config.flex_attention.get_bwd_dkdv_compile_options()
 
 
 def generate_fwd_candidate_configs(
@@ -721,20 +711,13 @@ def _sparse_mask_attention_cvpipeline_options(
     *,
     enabled: bool,
     enable_compile_hint: bool = False,
-) -> dict[str, Union[int, bool]]:
+) -> dict[str, Union[int, bool, str]]:
     tile_mix_loop = _sparse_mask_attention_tile_mix_loop(block_n) if enabled else 0
-    return {
-        "enable_ubuf_saving": bool(
-            getattr(npu_config.flex_attention, "enable_ubuf_saving", True)
-        ),
-        "multibuffer": enabled,
-        "unit_flag": True,
-        "limit_auto_multi_buffer_only_for_local_buffer": not enabled,
-        "set_workspace_multibuffer": 4,
-        "tile_mix_vector_loop": tile_mix_loop,
-        "tile_mix_cube_loop": tile_mix_loop,
-        "ENABLE_COMPILE_HINT": enable_compile_hint if enabled else False,
-    }
+    return npu_config.flex_attention.get_sparse_mask_cvpipeline_compile_options(
+        enabled=enabled,
+        tile_mix_loop=tile_mix_loop,
+        enable_compile_hint=enable_compile_hint,
+    )
 
 
 def sparse_mask_attention_cvpipeline_config_variants(
