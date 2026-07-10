@@ -1,4 +1,5 @@
 #include <ATen/ATen.h>
+#include <ATen/native/ResizeCommon.h>
 
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
@@ -26,7 +27,14 @@ const at::Tensor& NPUNativeFunctions::resize_(
         }
     }
     auto* self_ = self.unsafeGetTensorImpl();
+    auto old_storage_nbytes = self_->unsafe_storage() ? self_->unsafe_storage().nbytes() : 0;
     resize_impl_npu_(self_, size, c10::nullopt);
+    // Keep deterministic resize behavior aligned with upstream:
+    // fill newly added storage section with NaN/MAX_INT when requested.
+    if (C10_UNLIKELY(at::globalContext().deterministicAlgorithms() &&
+                     at::globalContext().deterministicFillUninitializedMemory())) {
+        at::native::fill_resize_deterministic_(self, static_cast<int64_t>(old_storage_nbytes));
+    }
     return self;
 }
 
