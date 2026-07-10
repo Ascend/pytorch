@@ -299,7 +299,7 @@
 |Tensor.multiply|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.multiply_|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.multinomial|是|支持fp16，fp32|
-|Tensor.nansum|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
+|Tensor.nansum|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool<br><term>Ascend 950DT</term>：不支持uint8，int8，int16，int32，int64，bool|
 |Tensor.narrow|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.narrow_copy|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |Tensor.ndimension|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
