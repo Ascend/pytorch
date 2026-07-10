@@ -19,7 +19,7 @@
 |[torch.jit.ScriptModule.children](https://pytorch.org/docs/2.10/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.children)|是|-|
 |[torch.jit.ScriptModule.code](https://pytorch.org/docs/2.10/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.code)|是|-|
 |[torch.jit.ScriptModule.code_with_constants](https://pytorch.org/docs/2.10/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.code_with_constants)|否|-|
-|[torch.jit.ScriptModule.compile](https://pytorch.org/docs/2.10/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.compile)|否|-|
+|[torch.jit.ScriptModule.compile](https://pytorch.org/docs/2.10/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.compile)|是|-|
 |[torch.jit.ScriptModule.cpu](https://pytorch.org/docs/2.10/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.cpu)|是|支持fp32|
 |[torch.jit.ScriptModule.cuda](https://pytorch.org/docs/2.10/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.cuda)|是|支持fp32|
 |[torch.jit.ScriptModule.double](https://pytorch.org/docs/2.10/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.double)|是|支持fp32|
