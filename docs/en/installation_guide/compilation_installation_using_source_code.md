@@ -60,17 +60,11 @@ The following example is based on PyTorch 2.7.1.
 
         Change the torch_npu package name in the command based on your actual situation.
 
-    6. Install the dependency file requirements.txt from the pytorch directory in the runtime environment.
-
-        ```bash
-        pip3 install -r requirements.txt
-        ```
-
 - **Method 2: Physical Machine and Virtual Machine Scenarios**
 
     1. Install system dependencies.
 
-        1. Based on the operating system type, select the corresponding command to install the required dependencies.
+        Based on the operating system type, select the corresponding command to install the required dependencies.
 
             - openEuler, CentOS, Kylin, BCLinux, UOS V20, AntOS, AliOS, CTyunOS, CULinux, Tlinux, MTOS, vesselOS:
 
@@ -112,16 +106,6 @@ The following example is based on PyTorch 2.7.1.
             > [!NOTE]
             > For installation instructions, see [Installing gcc 11.2.0](installing_gcc_11-2-0.md) and [Installing cmake 3.18.4](installing_cmake_3-18-4.md).
 
-        2. Install environment dependencies.
-
-            ```bash
-            pip install pyyaml
-            pip install setuptools
-            pip install auditwheel
-            ```
-
-            If you are installing as a non-root user, you need to add `--user` to the command, for example: **pip3 install pyyaml --user**
-
     2. Compile and generate the Whl installation package for the torch_npu plugin.
         1. Taking v2.7.1-26.0.0 as an example, download the corresponding Ascend Extension for PyTorch branch code and enter the plugin root directory.
 
@@ -147,12 +131,6 @@ The following example is based on PyTorch 2.7.1.
         ```
 
         Change the torch_npu package name in the command based on your actual situation.
-
-    4. Install the dependency file `requirements.txt` in the pytorch directory.
-
-        ```bash
-        pip3 install -r requirements.txt
-        ```
 
 ## Post-Installation Verification
 

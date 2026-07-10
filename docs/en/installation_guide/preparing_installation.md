@@ -14,10 +14,10 @@ If you are performing training or online inference, complete the following pre-i
 
 CANN provides a process-level environment variable setting script. This script must be called before using the NPU to execute service code in training or inference scenarios; otherwise, the service code will fail to run.
 
-    ```bash
-    source /usr/local/Ascend/cann/set_env.sh
-    source /usr/local/Ascend/nnal/atb/set_env.sh
-    ```
+```bash
+source /usr/local/Ascend/cann/set_env.sh
+source /usr/local/Ascend/nnal/atb/set_env.sh
+```
 
 The above command uses the default installation path for the root user as an example. Replace it with the actual path of `set_env.sh`.
 
