@@ -300,7 +300,7 @@
 |[Tensor.multiply](https://pytorch.org/docs/2.10/generated/torch.Tensor.multiply.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.multiply_](https://pytorch.org/docs/2.10/generated/torch.Tensor.multiply_.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.multinomial](https://pytorch.org/docs/2.10/generated/torch.Tensor.multinomial.html)|是|支持fp16，fp32|
-|[Tensor.nansum](https://pytorch.org/docs/2.10/generated/torch.Tensor.nansum.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
+|[Tensor.nansum](https://pytorch.org/docs/2.10/generated/torch.Tensor.nansum.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool<br><term>Ascend 950DT</term>：不支持uint8，int8，int16，int32，int64，bool|
 |[Tensor.narrow](https://pytorch.org/docs/2.10/generated/torch.Tensor.narrow.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.narrow_copy](https://pytorch.org/docs/2.10/generated/torch.Tensor.narrow_copy.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.ndimension](https://pytorch.org/docs/2.10/generated/torch.Tensor.ndimension.html)|是|支持fp32|
