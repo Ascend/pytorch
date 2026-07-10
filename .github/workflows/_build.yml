@@ -462,8 +462,8 @@ jobs:
           stats = {'passed': 0, 'failed': 0, 'errors': 0, 'skipped': 0, 'total': 0}
           try:
               # Find cases.json produced by run_npu_test_shard.py
-              candidates = glob.glob('test-reports/**/cases*.json', recursive=True) + \
-                           glob.glob('test-reports/cases*.json')
+              candidates = glob.glob('test-reports/**/*cases*.json', recursive=True) + \
+                           glob.glob('test-reports/*cases*.json')
               cases_file = candidates[0] if candidates else 'test-reports/cases.json'
               with open(cases_file) as f:
                   data = json.load(f)
