@@ -230,7 +230,7 @@ NON_POINTWISE_OPS = [
     aten.unsqueeze,
     aten.expand,
     aten.repeat,
-    aten.clone,
+    # aten.clone,
     aten.reshape,
     aten.var_mean,
     aten.sum,
