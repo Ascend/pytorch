@@ -1,21 +1,21 @@
 # Quick Start
 
-<!-- md-trans-meta sourceCommit=unknown translatedAt=2026-06-14T00:44:21.195Z pushedAt=2026-06-14T07:51:04.574Z -->
+<!-- md-trans-meta sourceCommit=e6dd39e7131a89f72cf49d80d53002e4cc645bbf translatedAt=2026-07-08T10:24:07.374Z pushedAt=2026-07-08T10:47:16.885Z -->
 
 ## Environment Preparation
 
 This quick start uses the Atlas 800T A2 training server as an example.
 
-- Install the matching versions of the NPU driver, firmware, and CANN software (Toolkit, ops, and NNAL). For details, see the [CANN Software Installation Guide](https://www.hiascend.com/document/detail/en/canncommercial/900/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum) (commercial version) or [CANN Software Installation Guide](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/900/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum) (community version):
-  - Operating system (OS): Select an available OS (for compatibility details, check with the [Compatibility Checker](https://www.hiascend.com/en/hardware/compatibility/))
-  - Installation type: Select "Offline Installation".
-- Install the PyTorch framework and the torch_npu plugin. For details, see the [Ascend Extension for PyTorch Software Installation Guide](../installation_guide/installation_description.md).
+- Install the matching versions of NPU driver firmware and CANN software (Toolkit, ops, and NNAL). For details, see [CANN Software Installation](https://www.hiascend.com/document/detail/en/canncommercial/900/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum) (Commercial Edition) or [CANN Software Installation](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/900/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum) (Community Edition):
+  - Operating system: Select an available operating system (for compatibility, see the [Compatibility Query Assistant](https://www.hiascend.com/hardware/compatibility))
+  - Installation type: Select "Offline Installation"
+- Install the PyTorch framework and the torch_npu plugin. For details, see [Ascend Extension for PyTorch Software Installation Guide](../installation_guide/installation_description.md).
 
 ## Model Migration Training
 
-This section provides a simple model migration example using the most straightforward automatic migration method. It helps users quickly experience the process of migrating a GPU model script to the Ascend NPU. It guides you through modifying a GPU-based CNN handwritten digit recognition script to train on the Ascend NPU.
+This section provides a simple model migration example using the simplest automatic migration method, helping users quickly experience the process of migrating GPU model scripts to Ascend NPUs. This example is based on a CNN model script for recognizing handwritten digits. The original GPU training code is modified so that it can be migrated to Ascend NPUs for training.
 
-1. Create a new script `train.py` and write the following original GPU script code into it.
+1. Create a new script train.py and write the following original GPU script code into it.
 
     ```python
     # Import modules
@@ -44,7 +44,7 @@ This section provides a simple model migration example using the most straightfo
                 nn.Conv2d(16, 32, 3, 1, 1),
                 # Pooling layer
                 nn.MaxPool2d(2),
-                # Flatten multi-dimensional input to one dimension
+                # Flatten multi-dimensional input
                 nn.Flatten(),
                 nn.Linear(32*7*7, 16),
                 # Activation function
@@ -62,13 +62,13 @@ This section provides a simple model migration example using the most straightfo
         transform=torchvision.transforms.ToTensor()
     )
     
-    # Define training-related parameters
+    # Define training parameters
     batch_size = 64   
-    model = CNN().to(device)  # Define the model
-    train_dataloader = DataLoader(train_data, batch_size=batch_size)    # Define the DataLoader
-    loss_func = nn.CrossEntropyLoss().to(device)    # Define the loss function
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)    # Define the optimizer
-    epochs = 10  # Set the number of loops
+    model = CNN().to(device)  # Define model
+    train_dataloader = DataLoader(train_data, batch_size=batch_size)    # Define DataLoader
+    loss_func = nn.CrossEntropyLoss().to(device)    # Define loss function
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)    # Define optimizer
+    epochs = 10  # Set the number of epochs
     
     # Set up the loop
     for epoch in range(epochs):
@@ -76,11 +76,11 @@ This section provides a simple model migration example using the most straightfo
             start_time = time.time()    # Record the training start time
             imgs = imgs.to(device)    # Place the image data on the specified NPU
             labels = labels.to(device)    # Place the label data on the specified NPU
-            outputs = model(imgs)    # Forward Computation
-            loss = loss_func(outputs, labels)    # Loss Function Computation
+            outputs = model(imgs)    # Forward computation
+            loss = loss_func(outputs, labels)    # Loss function calculation
             optimizer.zero_grad()
-            loss.backward()    # Loss Function Backward Computation
-            optimizer.step()    # Update Optimizer
+            loss.backward()    # Loss function backward computation
+            optimizer.step()    # Update optimizer
     
     # Define model saving
     torch.save({
@@ -91,36 +91,35 @@ This section provides a simple model migration example using the most straightfo
                 },'checkpoint.pth.tar')
     ```
 
-2. Add the following code to `train.py`.
+2. Add the following code to train.py.
 
-    - If you are using Atlas training products, due to their architectural characteristics, you need to enable mixed precision after migration is complete and before training begins.
-
-    - If you are using Atlas A2 or A3 training products, you can either enable mixed precision or not.
+    - If you are using Atlas training products, you need to enable mixed precision after migration is complete and before training begins, due to their architectural characteristics.
+    - If you are using Atlas A2 training or Atlas A3 training products, you can choose whether to enable mixed precision.
 
     > [!NOTE]
     >
-    > For details, see the [Mixed Precision Adaptation](https://gitcode.com/Ascend/docs/blob/master/FrameworkPTAdapter/26.0.0/en/pytorch_model_migration_fine_tuning/adaptation_introduction.md) chapter in the *PyTorch Model Migration Tuning Guide*.
+    > For details, see the "[Mixed Precision Adaptation](https://gitcode.com/Ascend/docs/blob/master/FrameworkPTAdapter/26.0.0/en/pytorch_model_migration_fine_tuning/adaptation_introduction.md)" section in *PyTorch Training Model Migration and Tuning Guide*.
 
     ```diff
         import time
         import torch
         ......
     +   import torch_npu
-    +   from torch_npu.npu import amp # Import the AMP module
-    +   from torch_npu.contrib import transfer_to_npu    # Enable Automatic Migration
+    +   from torch_npu.npu import amp # Import AMP module
+    +   from torch_npu.contrib import transfer_to_npu    # Enable automatic migration
     ```
 
-    If automatic migration is not enabled, refer to the [Manual Migration](https://gitcode.com/Ascend/docs/blob/master/FrameworkPTAdapter/26.0.0/en/pytorch_model_migration_fine_tuning/manual_migration.md) section in the *PyTorch Model Migration Tuning Guide for related operations.
+    If automatic migration is not enabled, refer to the "[Manual Migration](https://gitcode.com/Ascend/docs/blob/master/FrameworkPTAdapter/26.0.0/en/pytorch_model_migration_fine_tuning/manual_migration.md)" section in the *PyTorch Training Model Migration and Tuning Guide*.
 
-3. Enable automatic mixed precision (AMP) computation. This step can be skipped on Atlas A2/A3 training products.
+3. Enable AMP mixed precision computation. If you are using Atlas A2 training or Atlas A3 training products, you may skip this step.
 
-    After defining the model and optimizer, define the GradScaler in the AMP feature.
+    After defining the model and optimizer, define the GradScaler for AMP functionality.
 
     ```python
     ......
-    loss_func = nn.CrossEntropyLoss().to(device)    # Define the loss function
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)    # Define the optimizer
-    scaler = amp.GradScaler()    # After defining the model and optimizer, define the GradScaler
+    loss_func = nn.CrossEntropyLoss().to(device)    # Define loss function
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)    # Define optimizer
+    scaler = amp.GradScaler()    # After defining the model and optimizer, define GradScaler
     epochs = 10
     ```
 
@@ -130,8 +129,8 @@ This section provides a simple model migration example using the most straightfo
     ......
     for epoch in range(epochs):
         for imgs, labels in train_dataloader:
-            start_time = time.time()    # Record the training start time
-            imgs = imgs.to(device)    # Place the image data on the specified NPU
+            start_time = time.time()    # Record training start time
+            imgs = imgs.to(device)    # Place image data on the specified NPU
             labels = labels.to(device)    # Place label data on the specified NPU
             outputs = model(imgs)    # Forward computation
             loss = loss_func(outputs, labels)    # Loss function computation
@@ -150,35 +149,34 @@ This section provides a simple model migration example using the most straightfo
             labels = labels.to(device)
     +        with amp.autocast():
                 outputs = model(imgs)    # Forward computation
-                loss = loss_func(outputs, labels)    # Loss function computation
+                loss = loss_func(outputs, labels)    # Loss function calculation
             optimizer.zero_grad()
-    +        # Loss scaling and parameter update before and after backpropagation
-    +        scaler.scale(loss).backward()    # Scale loss and perform backpropagation
-    +        scaler.step(optimizer)    # Update parameters (automatic unscaling)
-    +        scaler.update()    # Update the loss_scaling coefficient based on the dynamic Loss Scale
+    +        # Perform loss scaling and parameter update before and after backpropagation
+    +        scaler.scale(loss).backward()    # Loss scaling and backpropagation
+    +        scaler.step(optimizer)    # Update parameters (auto unscaling)
+    +        scaler.update()    # Update the loss_scaling factor based on dynamic loss scale
     ```
 
-4. Execute the command to start the training script. Use the actual script name in the command.
+4. Run the command to start the training script (the script name can be modified as needed).
 
     ```bash
     python3 train.py
     ```
 
-    After the training is complete, a weight file as shown in the following figure is generated, indicating that the migration training is successful.
+    After training completes, a weight file as shown below is generated, indicating that the migration training is successful.
 
-    ![illustration](../figures/illustration.png)
+    ![figure](../figures/illustration.png)
 
 ## Advanced Development
 
-- To explore richer features for PyTorch model training migration, refer to the [PyTorch Model Migration Tuning Guide](https://gitcode.com/Ascend/docs/blob/master/FrameworkPTAdapter/26.0.0/en/pytorch_model_migration_fine_tuning/overview.md).
+- If you want to explore more features of PyTorch model training migration, please refer to the *[PyTorch Training Model Migration and Tuning Guide](https://gitcode.com/Ascend/docs/blob/master/FrameworkPTAdapter/26.0.0/en/pytorch_model_migration_fine_tuning/overview.md)* document.
+- If you want to explore more features of large model training, see Table 1.
 
-- To explore richer features for large model training, see [Table 1](#model-migration-guide) for details.
+    **Table 1** Model migration guide
 
-    **Table 1**  Model migration guide<a id="model-migration-guide"></a>    
-
-    |Large Model|Component|Migration Guide|
-    |--|--|--|
-    |Megatron-LM distributed large model|MindSpeed Core affinity acceleration module|For details, see [Distributed Training Acceleration Library Migration Guide](https://gitcode.com/Ascend/MindSpeed/blob/26.0.0_core_r0.12.1/docs/zh/user-guide/model-migration.md).|
-    |Megatron-LM large language model|MindSpeed LLM Suite|For details, see [MindSpeed LLM Documentation Guide](https://gitcode.com/Ascend/MindSpeed-LLM/blob/26.0.0/docs/zh/docs_guide.md).|
-    |Megatron-LM multimodal model|MindSpeed MM Suite|For details, see [MindSpeed MM Migration and Tuning Guide](https://gitcode.com/Ascend/MindSpeed-MM/blob/26.0.0/docs/zh/pytorch/model-migration.md).|
-    |Large language model or multimodal model|MindSpeed RL Suite|For details, see [MindSpeed RL User Guide](https://gitcode.com/Ascend/MindSpeed-RL/tree/master/docs/solutions).|
+    | Large Model | Component | Migration Guide |
+    | -- | -- | -- |
+    | Megatron-LM distributed large model | MindSpeed Core affinity acceleration module | See the [Distributed Training Acceleration Library Migration Guide](https://gitcode.com/Ascend/MindSpeed/blob/26.0.0_core_r0.12.1/docs/en/user-guide/model-migration.md). |
+    | Megatron-LM large language model | MindSpeed LLM Suite | See the [MindSpeed LLM Documentation Guide](https://gitcode.com/Ascend/MindSpeed-LLM/blob/26.0.0/docs/en/docs_guide.md). |
+    | Megatron-LM multimodal model | MindSpeed MM Suite | See the [MindSpeed MM Migration and Tuning Guide](https://gitcode.com/Ascend/MindSpeed-MM/blob/26.0.0/docs/zh/pytorch/model-migration.md). |
+    | Large language model or multimodal model | MindSpeed RL Suite | See the [MindSpeed RL User Guide](https://gitcode.com/Ascend/MindSpeed-RL/tree/master/docs/en/solutions). |

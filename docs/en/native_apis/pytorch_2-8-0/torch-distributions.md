@@ -1,0 +1,486 @@
+# torch.distributions
+
+<!-- md-trans-meta sourceCommit=e6dd39e7131a89f72cf49d80d53002e4cc645bbf translatedAt=2026-07-09T08:31:52.502Z pushedAt=2026-07-09T08:44:08.291Z -->
+
+> [!NOTE]
+> If the "Supported" column of an API is "Yes" and "Restrictions and Notes" is "-", it means the API support is consistent with the native API.
+
+| API Name | Supported | Restrictions and Notes |
+| -- | -- | -- |
+| torch.distributions.distribution.Distribution.arg_constraints | Yes | - |
+| torch.distributions.distribution.Distribution.batch_shape | Yes | - |
+| torch.distributions.distribution.Distribution.event_shape | Yes | - |
+| torch.distributions.distribution.Distribution.mean | Yes | - |
+| torch.distributions.distribution.Distribution.mode | Yes | - |
+| torch.distributions.distribution.Distribution.set_default_validate_args | Yes | - |
+| torch.distributions.distribution.Distribution.stddev | Yes | - |
+| torch.distributions.distribution.Distribution.support | Yes | - |
+| torch.distributions.distribution.Distribution.variance | Yes | - |
+| torch.distributions.exp_family.ExponentialFamily.entropy | Yes | - |
+| torch.distributions.bernoulli.Bernoulli | Yes | - |
+| torch.distributions.bernoulli.Bernoulli.arg_constraints | Yes | - |
+| torch.distributions.bernoulli.Bernoulli.entropy | Yes | - |
+| torch.distributions.bernoulli.Bernoulli.expand | Yes | - |
+| torch.distributions.bernoulli.Bernoulli.has_enumerate_support | Yes | - |
+| torch.distributions.bernoulli.Bernoulli.log_prob | Yes | - |
+| torch.distributions.bernoulli.Bernoulli.logits | Yes | - |
+| torch.distributions.bernoulli.Bernoulli.mean | Yes | - |
+| torch.distributions.bernoulli.Bernoulli.mode | Yes | - |
+| torch.distributions.bernoulli.Bernoulli.param_shape | Yes | - |
+| torch.distributions.bernoulli.Bernoulli.probs | Yes | - |
+| torch.distributions.bernoulli.Bernoulli.sample | Yes | - |
+| torch.distributions.bernoulli.Bernoulli.support | Yes | - |
+| torch.distributions.bernoulli.Bernoulli.variance | Yes | - |
+| torch.distributions.beta.Beta | Yes | - |
+| torch.distributions.beta.Beta.arg_constraints | Yes | - |
+| torch.distributions.beta.Beta.concentration0 | Yes | - |
+| torch.distributions.beta.Beta.concentration1 | Yes | - |
+| torch.distributions.beta.Beta.entropy | Yes | - |
+| torch.distributions.beta.Beta.expand | Yes | - |
+| torch.distributions.beta.Beta.has_rsample | Yes | - |
+| torch.distributions.beta.Beta.log_prob | Yes | - |
+| torch.distributions.beta.Beta.mean | Yes | - |
+| torch.distributions.beta.Beta.mode | Yes | - |
+| torch.distributions.beta.Beta.rsample | Yes | - |
+| torch.distributions.beta.Beta.support | Yes | - |
+| torch.distributions.beta.Beta.variance | Yes | - |
+| torch.distributions.binomial.Binomial | Yes | May Fall Back to CPU Execution |
+| torch.distributions.binomial.Binomial.arg_constraints | Yes | - |
+| torch.distributions.binomial.Binomial.entropy | Yes | - |
+| torch.distributions.binomial.Binomial.expand | Yes | - |
+| torch.distributions.binomial.Binomial.has_enumerate_support | Yes | - |
+| torch.distributions.binomial.Binomial.log_prob | Yes | May Fall Back to CPU Execution |
+| torch.distributions.binomial.Binomial.logits | Yes | - |
+| torch.distributions.binomial.Binomial.mean | Yes | - |
+| torch.distributions.binomial.Binomial.mode | Yes | - |
+| torch.distributions.binomial.Binomial.param_shape | Yes | - |
+| torch.distributions.binomial.Binomial.probs | Yes | - |
+| torch.distributions.binomial.Binomial.sample | Yes | - |
+| torch.distributions.binomial.Binomial.support | Yes | - |
+| torch.distributions.binomial.Binomial.variance | Yes | - |
+| torch.distributions.categorical.Categorical | Yes | - |
+| torch.distributions.categorical.Categorical.arg_constraints | Yes | - |
+| torch.distributions.categorical.Categorical.entropy | Yes | - |
+| torch.distributions.categorical.Categorical.expand | Yes | - |
+| torch.distributions.categorical.Categorical.has_enumerate_support | Yes | - |
+| torch.distributions.categorical.Categorical.log_prob | Yes | - |
+| torch.distributions.categorical.Categorical.logits | Yes | - |
+| torch.distributions.categorical.Categorical.mean | Yes | - |
+| torch.distributions.categorical.Categorical.mode | Yes | - |
+| torch.distributions.categorical.Categorical.param_shape | Yes | - |
+| torch.distributions.categorical.Categorical.probs | Yes | - |
+| torch.distributions.categorical.Categorical.sample | Yes | - |
+| torch.distributions.categorical.Categorical.support | Yes | - |
+| torch.distributions.categorical.Categorical.variance | Yes | - |
+| torch.distributions.cauchy.Cauchy | Yes | - |
+| torch.distributions.cauchy.Cauchy.arg_constraints | Yes | - |
+| torch.distributions.cauchy.Cauchy.cdf | Yes | - |
+| torch.distributions.cauchy.Cauchy.entropy | Yes | - |
+| torch.distributions.cauchy.Cauchy.expand | Yes | - |
+| torch.distributions.cauchy.Cauchy.has_rsample | Yes | - |
+| torch.distributions.cauchy.Cauchy.icdf | Yes | - |
+| torch.distributions.cauchy.Cauchy.log_prob | Yes | May Fall Back to CPU Execution |
+| torch.distributions.cauchy.Cauchy.mean | Yes | - |
+| torch.distributions.cauchy.Cauchy.mode | Yes | - |
+| torch.distributions.cauchy.Cauchy.rsample | Yes | May Fall Back to CPU Execution |
+| torch.distributions.cauchy.Cauchy.support | Yes | - |
+| torch.distributions.cauchy.Cauchy.variance | Yes | - |
+| torch.distributions.chi2.Chi2 | Yes | May Fall Back to CPU Execution |
+| torch.distributions.chi2.Chi2.arg_constraints | Yes | - |
+| torch.distributions.chi2.Chi2.df | Yes | - |
+| torch.distributions.chi2.Chi2.expand | Yes | - |
+| torch.distributions.continuous_bernoulli.ContinuousBernoulli | Yes | - |
+| torch.distributions.continuous_bernoulli.ContinuousBernoulli.arg_constraints | Yes | - |
+| torch.distributions.continuous_bernoulli.ContinuousBernoulli.cdf | Yes | - |
+| torch.distributions.continuous_bernoulli.ContinuousBernoulli.entropy | Yes | - |
+| torch.distributions.continuous_bernoulli.ContinuousBernoulli.expand | Yes | - |
+| torch.distributions.continuous_bernoulli.ContinuousBernoulli.has_rsample | Yes | - |
+| torch.distributions.continuous_bernoulli.ContinuousBernoulli.icdf | Yes | - |
+| torch.distributions.continuous_bernoulli.ContinuousBernoulli.log_prob | Yes | - |
+| torch.distributions.continuous_bernoulli.ContinuousBernoulli.logits | Yes | - |
+| torch.distributions.continuous_bernoulli.ContinuousBernoulli.mean | Yes | - |
+| torch.distributions.continuous_bernoulli.ContinuousBernoulli.param_shape | Yes | - |
+| torch.distributions.continuous_bernoulli.ContinuousBernoulli.probs | Yes | - |
+| torch.distributions.continuous_bernoulli.ContinuousBernoulli.rsample | Yes | - |
+| torch.distributions.continuous_bernoulli.ContinuousBernoulli.sample | Yes | - |
+| torch.distributions.continuous_bernoulli.ContinuousBernoulli.stddev | Yes | - |
+| torch.distributions.continuous_bernoulli.ContinuousBernoulli.support | Yes | - |
+| torch.distributions.continuous_bernoulli.ContinuousBernoulli.variance | Yes | - |
+| torch.distributions.dirichlet.Dirichlet | Yes | May Fall Back to CPU Execution |
+| torch.distributions.dirichlet.Dirichlet.arg_constraints | Yes | - |
+| torch.distributions.dirichlet.Dirichlet.entropy | Yes | - |
+| torch.distributions.dirichlet.Dirichlet.expand | Yes | - |
+| torch.distributions.dirichlet.Dirichlet.has_rsample | Yes | - |
+| torch.distributions.dirichlet.Dirichlet.log_prob | Yes | May Fall Back to CPU Execution |
+| torch.distributions.dirichlet.Dirichlet.mean | Yes | - |
+| torch.distributions.dirichlet.Dirichlet.mode | Yes | - |
+| torch.distributions.dirichlet.Dirichlet.rsample | Yes | May Fall Back to CPU Execution |
+| torch.distributions.dirichlet.Dirichlet.support | Yes | - |
+| torch.distributions.dirichlet.Dirichlet.variance | Yes | - |
+| torch.distributions.exponential.Exponential | Yes | - |
+| torch.distributions.exponential.Exponential.arg_constraints | Yes | - |
+| torch.distributions.exponential.Exponential.cdf | Yes | - |
+| torch.distributions.exponential.Exponential.entropy | Yes | - |
+| torch.distributions.exponential.Exponential.expand | Yes | - |
+| torch.distributions.exponential.Exponential.has_rsample | Yes | - |
+| torch.distributions.exponential.Exponential.icdf | Yes | - |
+| torch.distributions.exponential.Exponential.log_prob | Yes | - |
+| torch.distributions.exponential.Exponential.mean | Yes | - |
+| torch.distributions.exponential.Exponential.mode | Yes | - |
+| torch.distributions.exponential.Exponential.rsample | Yes | - |
+| torch.distributions.exponential.Exponential.stddev | Yes | - |
+| torch.distributions.exponential.Exponential.support | Yes | - |
+| torch.distributions.exponential.Exponential.variance | Yes | - |
+| torch.distributions.fishersnedecor.FisherSnedecor | Yes | May Fall Back to CPU Execution |
+| torch.distributions.fishersnedecor.FisherSnedecor.arg_constraints | Yes | - |
+| torch.distributions.fishersnedecor.FisherSnedecor.expand | Yes | - |
+| torch.distributions.fishersnedecor.FisherSnedecor.has_rsample | Yes | - |
+| torch.distributions.fishersnedecor.FisherSnedecor.log_prob | Yes | - |
+| torch.distributions.fishersnedecor.FisherSnedecor.mean | Yes | - |
+| torch.distributions.fishersnedecor.FisherSnedecor.mode | Yes | - |
+| torch.distributions.fishersnedecor.FisherSnedecor.rsample | Yes | - |
+| torch.distributions.fishersnedecor.FisherSnedecor.support | Yes | - |
+| torch.distributions.fishersnedecor.FisherSnedecor.variance | Yes | - |
+| torch.distributions.gamma.Gamma | Yes | May Fall Back to CPU Execution |
+| torch.distributions.gamma.Gamma.arg_constraints | Yes | - |
+| torch.distributions.gamma.Gamma.cdf | Yes | May Fall Back to CPU Execution |
+| torch.distributions.gamma.Gamma.entropy | Yes | - |
+| torch.distributions.gamma.Gamma.expand | Yes | - |
+| torch.distributions.gamma.Gamma.has_rsample | Yes | - |
+| torch.distributions.gamma.Gamma.log_prob | Yes | May Fall Back to CPU Execution |
+| torch.distributions.gamma.Gamma.mean | Yes | - |
+| torch.distributions.gamma.Gamma.mode | Yes | - |
+| torch.distributions.gamma.Gamma.rsample | Yes | - |
+| torch.distributions.gamma.Gamma.support | Yes | - |
+| torch.distributions.gamma.Gamma.variance | Yes | - |
+| torch.distributions.geometric.Geometric | Yes | - |
+| torch.distributions.geometric.Geometric.arg_constraints | Yes | - |
+| torch.distributions.geometric.Geometric.entropy | Yes | - |
+| torch.distributions.geometric.Geometric.expand | Yes | - |
+| torch.distributions.geometric.Geometric.log_prob | Yes | - |
+| torch.distributions.geometric.Geometric.logits | Yes | - |
+| torch.distributions.geometric.Geometric.mean | Yes | - |
+| torch.distributions.geometric.Geometric.mode | Yes | - |
+| torch.distributions.geometric.Geometric.probs | Yes | - |
+| torch.distributions.geometric.Geometric.sample | Yes | - |
+| torch.distributions.geometric.Geometric.support | Yes | - |
+| torch.distributions.geometric.Geometric.variance | Yes | - |
+| torch.distributions.gumbel.Gumbel | Yes | - |
+| torch.distributions.gumbel.Gumbel.arg_constraints | Yes | - |
+| torch.distributions.gumbel.Gumbel.entropy | Yes | - |
+| torch.distributions.gumbel.Gumbel.expand | Yes | - |
+| torch.distributions.gumbel.Gumbel.log_prob | Yes | - |
+| torch.distributions.gumbel.Gumbel.mean | Yes | - |
+| torch.distributions.gumbel.Gumbel.mode | Yes | - |
+| torch.distributions.gumbel.Gumbel.stddev | Yes | - |
+| torch.distributions.gumbel.Gumbel.support | Yes | - |
+| torch.distributions.gumbel.Gumbel.variance | Yes | - |
+| torch.distributions.half_cauchy.HalfCauchy | Yes | May Fall Back to CPU Execution |
+| torch.distributions.half_cauchy.HalfCauchy.arg_constraints | Yes | - |
+| torch.distributions.half_cauchy.HalfCauchy.cdf | Yes | - |
+| torch.distributions.half_cauchy.HalfCauchy.entropy | Yes | - |
+| torch.distributions.half_cauchy.HalfCauchy.expand | Yes | - |
+| torch.distributions.half_cauchy.HalfCauchy.has_rsample | Yes | - |
+| torch.distributions.half_cauchy.HalfCauchy.icdf | Yes | - |
+| torch.distributions.half_cauchy.HalfCauchy.log_prob | Yes | - |
+| torch.distributions.half_cauchy.HalfCauchy.mean | Yes | - |
+| torch.distributions.half_cauchy.HalfCauchy.mode | Yes | - |
+| torch.distributions.half_cauchy.HalfCauchy.scale | Yes | - |
+| torch.distributions.half_cauchy.HalfCauchy.support | Yes | - |
+| torch.distributions.half_cauchy.HalfCauchy.variance | Yes | - |
+| torch.distributions.half_normal.HalfNormal | Yes | May Fall Back to CPU Execution |
+| torch.distributions.half_normal.HalfNormal.arg_constraints | Yes | - |
+| torch.distributions.half_normal.HalfNormal.cdf | Yes | - |
+| torch.distributions.half_normal.HalfNormal.entropy | Yes | - |
+| torch.distributions.half_normal.HalfNormal.expand | Yes | - |
+| torch.distributions.half_normal.HalfNormal.has_rsample | Yes | - |
+| torch.distributions.half_normal.HalfNormal.icdf | Yes | - |
+| torch.distributions.half_normal.HalfNormal.log_prob | Yes | - |
+| torch.distributions.half_normal.HalfNormal.mean | Yes | - |
+| torch.distributions.half_normal.HalfNormal.mode | Yes | - |
+| torch.distributions.half_normal.HalfNormal.scale | Yes | - |
+| torch.distributions.half_normal.HalfNormal.support | Yes | - |
+| torch.distributions.half_normal.HalfNormal.variance | Yes | - |
+| torch.distributions.independent.Independent | Yes | - |
+| torch.distributions.independent.Independent.arg_constraints | Yes | - |
+| torch.distributions.independent.Independent.entropy | Yes | - |
+| torch.distributions.independent.Independent.expand | Yes | - |
+| torch.distributions.independent.Independent.has_enumerate_support | Yes | - |
+| torch.distributions.independent.Independent.has_rsample | Yes | - |
+|torch.distributions.independent.Independent.log_prob|Yes|-|
+|torch.distributions.independent.Independent.mean|Yes|-|
+|torch.distributions.independent.Independent.mode|Yes|-|
+|torch.distributions.independent.Independent.rsample|Yes|-|
+|torch.distributions.independent.Independent.sample|Yes|-|
+|torch.distributions.independent.Independent.support|Yes|-|
+|torch.distributions.independent.Independent.variance|Yes|-|
+|torch.distributions.kumaraswamy.Kumaraswamy|Yes|-|
+|torch.distributions.kumaraswamy.Kumaraswamy.arg_constraints|Yes|-|
+|torch.distributions.kumaraswamy.Kumaraswamy.entropy|Yes|May Fall Back to CPU Execution|
+|torch.distributions.kumaraswamy.Kumaraswamy.expand|Yes|-|
+|torch.distributions.kumaraswamy.Kumaraswamy.has_rsample|Yes|-|
+|torch.distributions.kumaraswamy.Kumaraswamy.mean|Yes|-|
+|torch.distributions.kumaraswamy.Kumaraswamy.mode|Yes|-|
+|torch.distributions.kumaraswamy.Kumaraswamy.support|Yes|-|
+|torch.distributions.kumaraswamy.Kumaraswamy.variance|Yes|-|
+|torch.distributions.lkj_cholesky.LKJCholesky|Yes|May Fall Back to CPU Execution|
+|torch.distributions.lkj_cholesky.LKJCholesky.arg_constraints|Yes|-|
+|torch.distributions.lkj_cholesky.LKJCholesky.expand|Yes|-|
+|torch.distributions.lkj_cholesky.LKJCholesky.log_prob|Yes|-|
+|torch.distributions.lkj_cholesky.LKJCholesky.sample|Yes|-|
+|torch.distributions.lkj_cholesky.LKJCholesky.support|Yes|-|
+|torch.distributions.laplace.Laplace|Yes|-|
+|torch.distributions.laplace.Laplace.arg_constraints|Yes|-|
+|torch.distributions.laplace.Laplace.cdf|Yes|-|
+|torch.distributions.laplace.Laplace.entropy|Yes|-|
+|torch.distributions.laplace.Laplace.expand|Yes|-|
+|torch.distributions.laplace.Laplace.has_rsample|Yes|-|
+|torch.distributions.laplace.Laplace.icdf|Yes|May Fall Back to CPU Execution|
+|torch.distributions.laplace.Laplace.log_prob|Yes|-|
+|torch.distributions.laplace.Laplace.mean|Yes|-|
+|torch.distributions.laplace.Laplace.mode|Yes|-|
+|torch.distributions.laplace.Laplace.rsample|Yes|-|
+|torch.distributions.laplace.Laplace.stddev|Yes|-|
+|torch.distributions.laplace.Laplace.support|Yes|-|
+|torch.distributions.laplace.Laplace.variance|Yes|-|
+|torch.distributions.log_normal.LogNormal|Yes|-|
+|torch.distributions.log_normal.LogNormal.arg_constraints|Yes|-|
+|torch.distributions.log_normal.LogNormal.entropy|Yes|May Fall Back to CPU Execution|
+|torch.distributions.log_normal.LogNormal.expand|Yes|-|
+|torch.distributions.log_normal.LogNormal.has_rsample|Yes|-|
+|torch.distributions.log_normal.LogNormal.loc|Yes|-|
+|torch.distributions.log_normal.LogNormal.mean|Yes|-|
+|torch.distributions.log_normal.LogNormal.mode|Yes|-|
+|torch.distributions.log_normal.LogNormal.scale|Yes|-|
+|torch.distributions.log_normal.LogNormal.support|Yes|-|
+|torch.distributions.log_normal.LogNormal.variance|Yes|-|
+|torch.distributions.lowrank_multivariate_normal.LowRankMultivariateNormal|Yes|-|
+|torch.distributions.lowrank_multivariate_normal.LowRankMultivariateNormal.arg_constraints|Yes|-|
+|torch.distributions.lowrank_multivariate_normal.LowRankMultivariateNormal.covariance_matrix|Yes|-|
+|torch.distributions.lowrank_multivariate_normal.LowRankMultivariateNormal.entropy|Yes|-|
+|torch.distributions.lowrank_multivariate_normal.LowRankMultivariateNormal.expand|Yes|-|
+|torch.distributions.lowrank_multivariate_normal.LowRankMultivariateNormal.has_rsample|Yes|-|
+|torch.distributions.lowrank_multivariate_normal.LowRankMultivariateNormal.log_prob|Yes|-|
+|torch.distributions.lowrank_multivariate_normal.LowRankMultivariateNormal.mean|Yes|-|
+|torch.distributions.lowrank_multivariate_normal.LowRankMultivariateNormal.mode|Yes|-|
+|torch.distributions.lowrank_multivariate_normal.LowRankMultivariateNormal.precision_matrix|Yes|-|
+|torch.distributions.lowrank_multivariate_normal.LowRankMultivariateNormal.rsample|Yes|-|
+|torch.distributions.lowrank_multivariate_normal.LowRankMultivariateNormal.scale_tril|Yes|-|
+|torch.distributions.lowrank_multivariate_normal.LowRankMultivariateNormal.support|Yes|-|
+|torch.distributions.lowrank_multivariate_normal.LowRankMultivariateNormal.variance|Yes|-|
+|torch.distributions.mixture_same_family.MixtureSameFamily|Yes|-|
+|torch.distributions.mixture_same_family.MixtureSameFamily.arg_constraints|Yes|-|
+|torch.distributions.mixture_same_family.MixtureSameFamily.cdf|Yes|-|
+|torch.distributions.mixture_same_family.MixtureSameFamily.component_distribution|Yes|-|
+|torch.distributions.mixture_same_family.MixtureSameFamily.expand|Yes|-|
+|torch.distributions.mixture_same_family.MixtureSameFamily.has_rsample|Yes|-|
+|torch.distributions.mixture_same_family.MixtureSameFamily.log_prob|Yes|-|
+|torch.distributions.mixture_same_family.MixtureSameFamily.mean|Yes|-|
+|torch.distributions.mixture_same_family.MixtureSameFamily.mixture_distribution|Yes|-|
+|torch.distributions.mixture_same_family.MixtureSameFamily.sample|Yes|-|
+|torch.distributions.mixture_same_family.MixtureSameFamily.support|Yes|-|
+|torch.distributions.mixture_same_family.MixtureSameFamily.variance|Yes|-|
+|torch.distributions.multinomial.Multinomial|Yes|-|
+|torch.distributions.multinomial.Multinomial.arg_constraints|Yes|-|
+|torch.distributions.multinomial.Multinomial.entropy|Yes|-|
+|torch.distributions.multinomial.Multinomial.expand|Yes|-|
+|torch.distributions.multinomial.Multinomial.log_prob|Yes|-|
+|torch.distributions.multinomial.Multinomial.logits|Yes|-|
+|torch.distributions.multinomial.Multinomial.mean|Yes|-|
+|torch.distributions.multinomial.Multinomial.param_shape|Yes|-|
+|torch.distributions.multinomial.Multinomial.probs|Yes|-|
+|torch.distributions.multinomial.Multinomial.sample|Yes|-|
+|torch.distributions.multinomial.Multinomial.support|Yes|-|
+|torch.distributions.multinomial.Multinomial.total_count|Yes|-|
+|torch.distributions.multinomial.Multinomial.variance|Yes|-|
+|torch.distributions.multivariate_normal.MultivariateNormal|Yes|-|
+|torch.distributions.multivariate_normal.MultivariateNormal.arg_constraints|Yes|-|
+|torch.distributions.multivariate_normal.MultivariateNormal.covariance_matrix|Yes|-|
+|torch.distributions.multivariate_normal.MultivariateNormal.entropy|Yes|-|
+|torch.distributions.multivariate_normal.MultivariateNormal.expand|Yes|-|
+|torch.distributions.multivariate_normal.MultivariateNormal.has_rsample|Yes|-|
+|torch.distributions.multivariate_normal.MultivariateNormal.log_prob|Yes|May Fall Back to CPU Execution|
+|torch.distributions.multivariate_normal.MultivariateNormal.mean|Yes|-|
+|torch.distributions.multivariate_normal.MultivariateNormal.mode|Yes|-|
+|torch.distributions.multivariate_normal.MultivariateNormal.precision_matrix|Yes|-|
+|torch.distributions.multivariate_normal.MultivariateNormal.rsample|Yes|May Fall Back to CPU Execution|
+|torch.distributions.multivariate_normal.MultivariateNormal.scale_tril|Yes|-|
+|torch.distributions.multivariate_normal.MultivariateNormal.support|Yes|-|
+|torch.distributions.multivariate_normal.MultivariateNormal.variance|Yes|-|
+|torch.distributions.negative_binomial.NegativeBinomial|Yes|May Fall Back to CPU Execution|
+|torch.distributions.negative_binomial.NegativeBinomial.arg_constraints|Yes|-|
+|torch.distributions.negative_binomial.NegativeBinomial.expand|Yes|-|
+|torch.distributions.negative_binomial.NegativeBinomial.log_prob|Yes|-|
+|torch.distributions.negative_binomial.NegativeBinomial.logits|Yes|-|
+|torch.distributions.negative_binomial.NegativeBinomial.mean|Yes|-|
+|torch.distributions.negative_binomial.NegativeBinomial.mode|Yes|-|
+|torch.distributions.negative_binomial.NegativeBinomial.param_shape|Yes|-|
+|torch.distributions.negative_binomial.NegativeBinomial.probs|Yes|-|
+|torch.distributions.negative_binomial.NegativeBinomial.sample|Yes|May Fall Back to CPU Execution|
+|torch.distributions.negative_binomial.NegativeBinomial.support|Yes|-|
+|torch.distributions.negative_binomial.NegativeBinomial.variance|Yes|-|
+|torch.distributions.normal.Normal.arg_constraints|Yes|-|
+|torch.distributions.normal.Normal.cdf|Yes|-|
+|torch.distributions.normal.Normal.entropy|Yes|-|
+|torch.distributions.normal.Normal.expand|Yes|-|
+|torch.distributions.normal.Normal.has_rsample|Yes|-|
+|torch.distributions.normal.Normal.icdf|Yes|-|
+|torch.distributions.normal.Normal.log_prob|Yes|-|
+|torch.distributions.normal.Normal.mean|Yes|-|
+|torch.distributions.normal.Normal.mode|Yes|-|
+|torch.distributions.normal.Normal.rsample|Yes|-|
+|torch.distributions.normal.Normal.sample|Yes|-|
+|torch.distributions.normal.Normal.stddev|Yes|-|
+|torch.distributions.normal.Normal.support|Yes|-|
+|torch.distributions.normal.Normal.variance|Yes|-|
+|torch.distributions.one_hot_categorical.OneHotCategorical|Yes|-|
+|torch.distributions.one_hot_categorical.OneHotCategorical.arg_constraints|Yes|-|
+|torch.distributions.one_hot_categorical.OneHotCategorical.entropy|Yes|-|
+|torch.distributions.one_hot_categorical.OneHotCategorical.expand|Yes|-|
+|torch.distributions.one_hot_categorical.OneHotCategorical.has_enumerate_support|Yes|-|
+|torch.distributions.one_hot_categorical.OneHotCategorical.log_prob|Yes|-|
+|torch.distributions.one_hot_categorical.OneHotCategorical.logits|Yes|-|
+|torch.distributions.one_hot_categorical.OneHotCategorical.mean|Yes|-|
+|torch.distributions.one_hot_categorical.OneHotCategorical.mode|Yes|-|
+|torch.distributions.one_hot_categorical.OneHotCategorical.param_shape|Yes|-|
+|torch.distributions.one_hot_categorical.OneHotCategorical.probs|Yes|-|
+|torch.distributions.one_hot_categorical.OneHotCategorical.sample|Yes|-|
+|torch.distributions.one_hot_categorical.OneHotCategorical.support|Yes|-|
+|torch.distributions.one_hot_categorical.OneHotCategorical.variance|Yes|-|
+|torch.distributions.pareto.Pareto|Yes|-|
+|torch.distributions.pareto.Pareto.arg_constraints|Yes|-|
+|torch.distributions.pareto.Pareto.entropy|Yes|-|
+|torch.distributions.pareto.Pareto.expand|Yes|-|
+|torch.distributions.pareto.Pareto.mean|Yes|-|
+|torch.distributions.pareto.Pareto.mode|Yes|-|
+|torch.distributions.pareto.Pareto.support|Yes|-|
+|torch.distributions.pareto.Pareto.variance|Yes|-|
+|torch.distributions.poisson.Poisson|Yes|May Fall Back to CPU Execution|
+|torch.distributions.poisson.Poisson.arg_constraints|Yes|-|
+|torch.distributions.poisson.Poisson.expand|Yes|-|
+|torch.distributions.poisson.Poisson.log_prob|Yes|-|
+|torch.distributions.poisson.Poisson.mean|Yes|-|
+|torch.distributions.poisson.Poisson.mode|Yes|-|
+|torch.distributions.poisson.Poisson.sample|Yes|-|
+|torch.distributions.poisson.Poisson.support|Yes|-|
+|torch.distributions.poisson.Poisson.variance|Yes|-|
+|torch.distributions.relaxed_bernoulli.RelaxedBernoulli|Yes|-|
+|torch.distributions.relaxed_bernoulli.RelaxedBernoulli.arg_constraints|Yes|-|
+|torch.distributions.relaxed_bernoulli.RelaxedBernoulli.expand|Yes|-|
+|torch.distributions.relaxed_bernoulli.RelaxedBernoulli.has_rsample|Yes|-|
+|torch.distributions.relaxed_bernoulli.RelaxedBernoulli.logits|Yes|-|
+|torch.distributions.relaxed_bernoulli.RelaxedBernoulli.probs|Yes|-|
+|torch.distributions.relaxed_bernoulli.RelaxedBernoulli.support|Yes|-|
+|torch.distributions.relaxed_bernoulli.RelaxedBernoulli.temperature|Yes|-|
+|torch.distributions.relaxed_bernoulli.LogitRelaxedBernoulli|Yes|-|
+|torch.distributions.relaxed_bernoulli.LogitRelaxedBernoulli.arg_constraints|Yes|-|
+|torch.distributions.relaxed_bernoulli.LogitRelaxedBernoulli.expand|Yes|-|
+|torch.distributions.relaxed_bernoulli.LogitRelaxedBernoulli.log_prob|Yes|-|
+|torch.distributions.relaxed_bernoulli.LogitRelaxedBernoulli.logits|Yes|-|
+|torch.distributions.relaxed_bernoulli.LogitRelaxedBernoulli.param_shape|Yes|-|
+|torch.distributions.relaxed_bernoulli.LogitRelaxedBernoulli.probs|Yes|-|
+|torch.distributions.relaxed_bernoulli.LogitRelaxedBernoulli.rsample|Yes|-|
+|torch.distributions.relaxed_bernoulli.LogitRelaxedBernoulli.support|Yes|-|
+|torch.distributions.relaxed_categorical.RelaxedOneHotCategorical|Yes|May Fall Back to CPU Execution|
+|torch.distributions.relaxed_categorical.RelaxedOneHotCategorical.arg_constraints|Yes|-|
+|torch.distributions.relaxed_categorical.RelaxedOneHotCategorical.expand|Yes|-|
+|torch.distributions.relaxed_categorical.RelaxedOneHotCategorical.has_rsample|Yes|-|
+|torch.distributions.relaxed_categorical.RelaxedOneHotCategorical.logits|Yes|-|
+|torch.distributions.relaxed_categorical.RelaxedOneHotCategorical.probs|Yes|-|
+|torch.distributions.relaxed_categorical.RelaxedOneHotCategorical.support|Yes|-|
+|torch.distributions.relaxed_categorical.RelaxedOneHotCategorical.temperature|Yes|-|
+|torch.distributions.studentT.StudentT|Yes|May Fall Back to CPU Execution|
+|torch.distributions.studentT.StudentT.arg_constraints|Yes|-|
+|torch.distributions.studentT.StudentT.entropy|Yes|-|
+|torch.distributions.studentT.StudentT.expand|Yes|-|
+|torch.distributions.studentT.StudentT.has_rsample|Yes|-|
+|torch.distributions.studentT.StudentT.log_prob|Yes|-|
+|torch.distributions.studentT.StudentT.mean|Yes|-|
+|torch.distributions.studentT.StudentT.mode|Yes|-|
+|torch.distributions.studentT.StudentT.rsample|Yes|-|
+|torch.distributions.studentT.StudentT.support|Yes|-|
+|torch.distributions.studentT.StudentT.variance|Yes|-|
+|torch.distributions.transformed_distribution.TransformedDistribution|Yes|-|
+|torch.distributions.transformed_distribution.TransformedDistribution.arg_constraints|Yes|-|
+|torch.distributions.transformed_distribution.TransformedDistribution.cdf|Yes|-|
+|torch.distributions.transformed_distribution.TransformedDistribution.expand|Yes|-|
+|torch.distributions.transformed_distribution.TransformedDistribution.has_rsample|Yes|-|
+|torch.distributions.transformed_distribution.TransformedDistribution.icdf|Yes|-|
+|torch.distributions.transformed_distribution.TransformedDistribution.log_prob|Yes|-|
+|torch.distributions.transformed_distribution.TransformedDistribution.rsample|Yes|-|
+|torch.distributions.transformed_distribution.TransformedDistribution.sample|Yes|-|
+|torch.distributions.transformed_distribution.TransformedDistribution.support|Yes|-|
+|torch.distributions.uniform.Uniform.arg_constraints|Yes|-|
+|torch.distributions.uniform.Uniform.cdf|Yes|-|
+|torch.distributions.uniform.Uniform.entropy|Yes|-|
+|torch.distributions.uniform.Uniform.expand|Yes|-|
+|torch.distributions.uniform.Uniform.has_rsample|Yes|-|
+|torch.distributions.uniform.Uniform.icdf|Yes|-|
+|torch.distributions.uniform.Uniform.log_prob|Yes|-|
+|torch.distributions.uniform.Uniform.mean|Yes|-|
+|torch.distributions.uniform.Uniform.mode|Yes|-|
+|torch.distributions.uniform.Uniform.rsample|Yes|-|
+|torch.distributions.uniform.Uniform.stddev|Yes|-|
+|torch.distributions.uniform.Uniform.support|Yes|-|
+|torch.distributions.uniform.Uniform.variance|Yes|-|
+|torch.distributions.von_mises.VonMises|Yes|-|
+|torch.distributions.von_mises.VonMises.arg_constraints|Yes|-|
+|torch.distributions.von_mises.VonMises.expand|Yes|-|
+|torch.distributions.von_mises.VonMises.has_rsample|Yes|-|
+|torch.distributions.von_mises.VonMises.log_prob|Yes|-|
+|torch.distributions.von_mises.VonMises.mean|Yes|-|
+|torch.distributions.von_mises.VonMises.mode|Yes|-|
+|torch.distributions.von_mises.VonMises.sample|Yes|-|
+|torch.distributions.von_mises.VonMises.support|Yes|-|
+|torch.distributions.von_mises.VonMises.variance|Yes|-|
+|torch.distributions.weibull.Weibull|Yes|-|
+|torch.distributions.weibull.Weibull.arg_constraints|Yes|-|
+|torch.distributions.weibull.Weibull.entropy|Yes|-|
+|torch.distributions.weibull.Weibull.expand|Yes|-|
+|torch.distributions.weibull.Weibull.mean|Yes|-|
+|torch.distributions.weibull.Weibull.mode|Yes|-|
+|torch.distributions.weibull.Weibull.support|Yes|-|
+|torch.distributions.weibull.Weibull.variance|Yes|-|
+|torch.distributions.wishart.Wishart|Yes|-|
+|torch.distributions.wishart.Wishart.arg_constraints|Yes|-|
+|torch.distributions.wishart.Wishart.covariance_matrix|Yes|-|
+|torch.distributions.wishart.Wishart.entropy|Yes|-|
+|torch.distributions.wishart.Wishart.expand|Yes|-|
+|torch.distributions.wishart.Wishart.has_rsample|Yes|-|
+|torch.distributions.wishart.Wishart.log_prob|Yes|-|
+|torch.distributions.wishart.Wishart.mean|Yes|-|
+|torch.distributions.wishart.Wishart.mode|Yes|-|
+|torch.distributions.wishart.Wishart.precision_matrix|Yes|-|
+|torch.distributions.wishart.Wishart.rsample|Yes|-|
+|torch.distributions.wishart.Wishart.scale_tril|Yes|-|
+|torch.distributions.wishart.Wishart.support|Yes|-|
+|torch.distributions.wishart.Wishart.variance|Yes|-|
+|torch.distributions.kl.kl_divergence|Yes|-|
+|torch.distributions.transforms.AbsTransform|Yes|-|
+|torch.distributions.transforms.AffineTransform|Yes|-|
+|torch.distributions.transforms.CatTransform|Yes|-|
+|torch.distributions.transforms.CorrCholeskyTransform|Yes|-|
+|torch.distributions.transforms.ExpTransform|Yes|-|
+|torch.distributions.transforms.LowerCholeskyTransform|Yes|-|
+|torch.distributions.transforms.PositiveDefiniteTransform|Yes|-|
+|torch.distributions.transforms.PowerTransform|Yes|-|
+|torch.distributions.transforms.ReshapeTransform|Yes|-|
+|torch.distributions.transforms.SigmoidTransform|Yes|-|
+|torch.distributions.transforms.SoftplusTransform|Yes|-|
+|torch.distributions.transforms.TanhTransform|Yes|-|
+|torch.distributions.transforms.SoftmaxTransform|Yes|-|
+|torch.distributions.transforms.StackTransform|Yes|-|
+|torch.distributions.transforms.StickBreakingTransform|Yes|-|
+|torch.distributions.transforms.Transform.inv|Yes|-|
+|torch.distributions.transforms.Transform.sign|Yes|-|
+|torch.distributions.transforms.Transform.log_abs_det_jacobian|Yes|-|
+|torch.distributions.transforms.Transform.forward_shape|Yes|-|
+|torch.distributions.transforms.Transform.inverse_shape|Yes|-|
+|torch.distributions.constraints.cat|Yes|-|
+|torch.distributions.constraints.dependent_property|Yes|-|
+|torch.distributions.constraints.greater_than|Yes|-|
+|torch.distributions.constraints.less_than|Yes|-|
+|torch.distributions.constraints.multinomial|Yes|-|
+|torch.distributions.constraints.stack|Yes|-|
+|torch.distributions.constraint_registry.ConstraintRegistry|Yes|-|
+|torch.distributions.constraint_registry.ConstraintRegistry.register|Yes|-|

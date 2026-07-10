@@ -1,38 +1,38 @@
-# Sample Call
+# Calling Example
 
-<!-- md-trans-meta sourceCommit=unknown translatedAt=2026-06-15T07:52:20.861Z pushedAt=2026-06-15T12:00:44.107Z -->
+<!-- md-trans-meta sourceCommit=e6dd39e7131a89f72cf49d80d53002e4cc645bbf translatedAt=2026-07-08T10:22:15.960Z pushedAt=2026-07-08T10:47:16.865Z -->
 
-After completing the adaptation plugin development for the PyTorch framework, you can call Ascend C custom operators from the PyTorch framework. The following uses the custom npu\_add\_custom operator as an example to introduce the operator adaptation development process under the PyTorch 2.7.1 framework.
+After completing the development of the adaptation plugin for the PyTorch framework, you can call Ascend C custom operators from the PyTorch framework. The following uses the custom npu_add_custom operator as an example to introduce the operator adaptation development process under the PyTorch 2.7.1 framework.
 
 ## Preparation Before Adaptation
 
-1. Install the PyTorch framework. For details, see the [Ascend Extension for PyTorch Software Installation Guide](../installation_guide/menu_installation_guide.md).
+1. Install the PyTorch framework. For details, see *[Ascend Extension for PyTorch Software Installation Guide](../installation_guide/menu_installation_guide.md)*.
 
-2. (Optional) When you install the torch\_npu plugin using "Binary Package Installation" or "Binary Package Installation (abi1 version)", you need to run the following commands before adaptation to pull the code of the corresponding branch of the torch\_npu repository and enter the OpPlugin directory to complete the torch_npu source code download.
+2. (Optional) If you installed the torch_npu plugin using "Binary Package Installation" or "Binary Package Installation (abi1 version)", you need to run the following commands before adaptation to pull the code of the corresponding branch from the torch_npu repository and enter the OpPlugin directory to download the torch_npu source code.
 
     ```bash
     git clone https://gitcode.com/ascend/pytorch.git -b v2.7.1-26.0.0 --recursive
     cd pytorch/third_party/op-plugin
     ```
 
-    - *2.7.1* is the PyTorch version. Users need to specify the PyTorch version based on their actual situation.
-    - *26.0.0* is the version of Ascend Extension for PyTorch.
+    - *2.7.1* is the PyTorch version. Users should specify the PyTorch version according to their actual environment.
+    - *26.0.0* is the Ascend Extension for PyTorch software version.
 
-3. Before adapting the framework operator, ensure that the corresponding operator has been implemented in CANN. For details, refer to the [CANN Operator Library](https://www.hiascend.com/document/detail/en/canncommercial/900/API/aolapi/operatorlist_00001.html).
-    > [!NOTE]
+3. Before adapting the framework operator, ensure that the corresponding operator has already been implemented in CANN. For details, refer to the [CANN Operator Library](https://www.hiascend.com/document/detail/zh/canncommercial/900/API/aolapi/operatorlist_00001.html).
+    > [!NOTE]  
     >
-    > The CANN operator corresponding to this example is aclnnAdd. Refer to the [NN Operator Interface](https://www.hiascend.com/document/detail/zh/canncommercial/900/API/aolapi/context/ops-math/aclnnAdd&aclnnInplaceAdd.md) in the [CANN Operator Library Interface].
+    > The corresponding CANN operator for this example is aclnnAdd. Refer to the [operator interface](https://www.hiascend.com/document/detail/zh/canncommercial/900/API/aolapi/context/ops-math/aclnnAdd&aclnnInplaceAdd.md) in the [CANN Operator Library].
 
 ## Adaptation Development
 
-1. Configure the YAML for the custom operator.
-   1. Run the following command to open the op\_plugin\_functions.yaml file for operator YAML configuration.
+1. Configure the YAML file for the custom operator.
+   1. Run the following command to open the op_plugin_functions.yaml file for operator YAML configuration.
 
         ```yaml
         vi op_plugin/config/op_plugin_functions.yaml
         ```
 
-        Copy the following information to the custom node in op\_plugin\_functions.yaml.
+        Copy the following information to the custom node in op_plugin_functions.yaml.
 
         ```yaml
         - func: npu_add_custom(Tensor x, Tensor y, *, Scalar alpha=1) -> Tensor 
@@ -41,7 +41,7 @@ After completing the adaptation plugin development for the PyTorch framework, yo
           op_api: v2.7
         ```
 
-        The sample code after copying is as follows:
+        The copied sample code is as follows:
 
         ```yaml
         custom: 
@@ -57,7 +57,7 @@ After completing the adaptation plugin development for the PyTorch framework, yo
         vi op_plugin/config/derivatives.yaml
         ```
 
-        Copy the following information to the backward node in the derivatives.yaml file.
+        Copy the following information into the backward node of the derivatives.yaml file.
 
         ```yaml
         - name: npu_add_custom(Tensor x, Tensor y, *, Scalar alpha=1) -> Tensor
@@ -65,7 +65,7 @@ After completing the adaptation plugin development for the PyTorch framework, yo
           version: v2.7
         ```
 
-        The sample code after copying is as follows:
+        The copied sample code is as follows:
 
         ```yaml
         backward: 
@@ -74,11 +74,11 @@ After completing the adaptation plugin development for the PyTorch framework, yo
           version: v2.7
         ```
 
-2. The following two methods are provided for code adaptation of custom operators. Users can choose based on their actual situation.
-   - Perform structured operator adaptation in op\_plugin\_functions.yaml.
+2. The following two methods are provided for code adaptation of custom operators. Users may choose based on their actual situation.
+   - Perform structured operator adaptation in op_plugin_functions.yaml.
 
       > [!NOTE]  
-      > npu\_add\_custom is a forward interface. Since the corresponding adaptation code structure is simple, structured adaptation can be used to automatically generate the adaptation code.
+      > npu_add_custom is a forward operator interface. Since the corresponding adaptation code has a simple structure, structured adaptation can be used to automatically generate the adaptation code.
 
         ```yaml
         custom: 
@@ -93,14 +93,15 @@ After completing the adaptation plugin development for the PyTorch framework, yo
             op_api: v2.7
         ```
 
-   - Generalized operator adaptation.
-      1. In the `op_plugin/ops/opapi` directory, create the `AddCustomKernelNpuOpApi.cpp` file and implement the main operator adaptation functions `npu_add_custom` and `npu_add_custom_backward`. The core logic is to call the `EXEC_NPU_CMD` interface to compute the output result. The first parameter of `EXEC_NPU_CMD` follows the format `aclnn+Optype` (operator type), and the subsequent parameters are the inputs and outputs respectively. Since the backward computation of the add operation is relatively simple, there is no need to call an operator for the computation.
+- General operator adaptation.
+
+1. In the `op_plugin/ops/opapi` directory, create the `AddCustomKernelNpuOpApi.cpp` file and implement the main operator adaptation functions `npu_add_custom` and `npu_add_custom_backward`. The core logic is to call the `EXEC_NPU_CMD` interface to compute the output results. The first argument of `EXEC_NPU_CMD` follows the format `aclnn+Optype` (operator type), and the subsequent arguments are the inputs and outputs. Since the backward computation of the add operation is relatively simple, there is no need to call an operator for the computation.
 
           ```bash
           vi op_plugin/ops/opapi/AddCustomKernelNpuOpApi.cpp
           ```
 
-      2. After completing the operator adaptation, the full `AddCustomKernelNpuOpApi.cpp` file is as follows.
+2. After completing the operator adaptation, the full `AddCustomKernelNpuOpApi.cpp` file is as follows.
 
           ```cpp
           #include "op_plugin/OpApiInterface.h" 
@@ -112,11 +113,11 @@ After completing the adaptation plugin development for the PyTorch framework, yo
           // Forward interface
           at::Tensor npu_add_custom(const at::Tensor& x, const at::Tensor& y, const at::Scalar &alpha)
           { 
-              // Construct the output tensor
+              // Construct output tensor
               at::Tensor result = npu_preparation::apply_tensor_without_format(x);
               // Compute the output result
-              // Call the EXEC_NPU_CMD interface to compute the output result
-              // The first argument format is aclnn+Optype, and the subsequent arguments are inputs and outputs respectively
+              // Call the EXEC_NPU_CMD interface to complete the computation of the output result
+              // The first argument follows the format aclnn+Optype, and the subsequent arguments are inputs and outputs respectively
               EXEC_NPU_CMD(aclnnAdd, x, y, alpha, result); 
               return result; 
           }
@@ -127,7 +128,7 @@ After completing the adaptation plugin development for the PyTorch framework, yo
               // Construct the output tensor
               at::Tensor result = npu_preparation::apply_tensor_without_format(grad);
               result.copy_(grad);
-              // compute the output result
+              // Compute the output result
               return {result, result};
           }
           }  // namespace op_api
@@ -135,9 +136,9 @@ After completing the adaptation plugin development for the PyTorch framework, yo
 
 3. Operator auxiliary adaptation implementation.
 
-   1. Supplement the operator interface documentation in the following file.
+   1. Add the operator interface documentation in the following file.
 
-      Add the following content in codegen/templates/_op_plugin_docs.py:
+      In codegen/templates/\_op\_plugin\_docs.py, add the following content:
 
       ```python
       _add_torch_npu_docstr(
@@ -145,13 +146,13 @@ After completing the adaptation plugin development for the PyTorch framework, yo
           """
       torch_npu.npu_add_custom(self, other, alpha=1) -> Tensor
 
-      Function Description
-      Performs a custom addition operation on two tensors, supporting scaling the second input tensor by a coefficient before addition. Supports FakeTensor mode.
+      Description
+      Performs a custom addition operation on two tensors, supporting scaling of the second input tensor by a coefficient before addition. Supports FakeTensor mode.
 
-      Parameter Description
+      Parameters
       self (Tensor) - The first input tensor.
-      other (Tensor) - The second input tensor, must be broadcastable with the shape of self.
-      alpha (float, default value is 1) - The scaling coefficient applied to other, calculated as self + alpha * other.
+      other (Tensor) - The second input tensor, must be broadcastable with self.
+      alpha (float, default 1) - The scaling coefficient applied to other. The computation is self + alpha * other.
 
       Example
       >>> x = torch.tensor([1.0, 2.0, 3.0]).npu()
@@ -163,9 +164,9 @@ After completing the adaptation plugin development for the PyTorch framework, yo
       )
       ```
 
-   2. The public interface must be configured in the following documentation.
+   2. The public operator interface must be configured in the following documentation.
 
-      - Add the following entry in test/allowlist_for_publicAPI.json:
+      - Add the following entry in `test/allowlist_for_publicAPI.json`:
 
           ```json
           {
@@ -176,7 +177,7 @@ After completing the adaptation plugin development for the PyTorch framework, yo
           }
           ```
 
-      - Add the following entry in test/core_tests/torch_npu_OpApi_schema_all.json:
+      - Add the following entry in `test/core_tests/torch_npu_OpApi_schema_all.json`:
 
           ```json
           {
@@ -191,23 +192,23 @@ After completing the adaptation plugin development for the PyTorch framework, yo
 
    3. Register the meta implementation of the operator interface in the following file.
 
-      Add the following entry in op_plugin/python/meta/_meta_registrations.py:
+      Add the following entry in `op_plugin/python/meta/_meta_registrations.py`:
 
         ```python
         @impl(m, "npu_add_custom")
         def npu_add_custom_meta(self, other, alpha=1):
-            # Simulate the computation logic of the custom addition for FakeTensor mode
+            # Simulate the computation logic of the custom addition, used for FakeTensor mode
             output = self + alpha * other
             return torch.empty_like(output, dtype=self.dtype)
         ```
 
 ## Compilation and Verification
 
-1. Compile and install the Ascend Extension for PyTorch plugin. It is recommended to compile in a container scenario. For detailed operations, refer to the "[Method 2: Source Code Compilation and Installation](../installation_guide/compilation_installation_using_source_code.md)" section in the *Ascend Extension for PyTorch Software Installation Guide*, specifically "Method 1 (Recommended): Container Scenario".
+1. Compile and install the Ascend Extension for PyTorch plugin. It is recommended to compile in a container scenario. For details, refer to the "Method 1 (Recommended): Container Scenario" section in the "[Method 2: Source Code Compilation and Installation](../installation_guide/compilation_installation_using_source_code.md)" chapter of the *Ascend Extension for PyTorch Software Installation Guide*.
 
-2. After completing the above development process, invoke the developer test script to verify whether the basic functionality is normal.
+2. After completing the above development process, call the developer test script to verify whether the basic functionality is normal.
 
-   1. In the `test/test_custom_ops` directory, create a new developer test file `test_npu_add_custom.py` and add the following content:
+   1. In the test/test\_custom\_ops directory, create a new developer test file test\_npu\_add\_custom.py and add the following content:
 
       ```Python
       import torch

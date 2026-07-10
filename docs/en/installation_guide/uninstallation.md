@@ -1,6 +1,6 @@
 # Uninstallation
 
-<!-- md-trans-meta sourceCommit=unknown translatedAt=2026-06-15T03:38:38.197Z pushedAt=2026-06-15T07:27:21.220Z -->
+<!-- md-trans-meta sourceCommit=e6dd39e7131a89f72cf49d80d53002e4cc645bbf translatedAt=2026-07-08T10:23:08.991Z pushedAt=2026-07-08T10:47:16.877Z -->
 
 ## Uninstalling Ascend Extension for PyTorch
 
@@ -24,18 +24,18 @@
 
 > [!NOTE]
 >
-> If you need to save the uninstall log, add the parameter `--log <path>` after the `pip3 uninstall` command, and implement proper permission control for the directory you specify as `<path>`.
+> To save the uninstallation log, add the parameter `--log <path\>` after the `pip3 uninstall` command, and ensure proper access control on the directory `<path\>` you specify.
 
 ## Uninstalling CANN Software
 
-After installing CANN software offline in the `_xxx_.run` format, you can uninstall it by referring to the following method.
+After installing CANN software offline using the _xxx_.run format, you can uninstall it by referring to the following method.
 
 > [!NOTICE]
 >
 > - After ops is installed along with Toolkit, ops will be automatically uninstalled when Toolkit is uninstalled.
-> - If you only uninstall CANN software packages (such as Toolkit), the uninstall order does not matter. However, if you also need to uninstall the driver and firmware, you must uninstall other software packages before uninstalling the driver and firmware.
+> - If you only uninstall CANN software packages (such as Toolkit), the uninstallation order does not matter. However, if you also need to uninstall the driver and firmware, you must uninstall other software packages before uninstalling the driver and firmware.
 
-Go to the path where the uninstall script is located and run the uninstall command.
+Navigate to the path where the uninstallation script is located and execute the uninstallation command.
 
 - Toolkit
 
@@ -60,48 +60,48 @@ Go to the path where the uninstall script is located and run the uninstall comma
 
 Where _<path\>_ is the installation path of the software package, _<version\>_ is the software package version, and \{arch\}-linux is the CPU architecture. Replace them based on the actual situation.
 
-After the uninstallation is complete, if the following information is displayed, the software has been successfully uninstalled:
+After the uninstallation is complete, if the following information is displayed, the software has been uninstalled successfully:
 
-```text
+```bash
 [INFO] xxx uninstall success
 ```
 
 _xxx_ indicates the actual software package name to be uninstalled.
 
-## Uninstalling Driver and Firmware
+## Uninstalling the Driver and Firmware
 
-There is no specific order requirement for uninstalling the driver and firmware. The steps are as follows:
+There is no required order for uninstalling the driver and firmware. The procedure is as follows:
 
-1. Use PuTTY to log in to the server's OS command line.
+1. Log in to the server's OS command line using PuTTY.
 2. Run the following command to switch to the root user.
 
     ```bash
     su - root
     ```
 
-3. Run the following command in any path to uninstall the software package.
+3. Run the following command in any path to uninstall the package.
 
-    - Uninstall the firmware.
+    - Uninstall the firmware
 
         ```bash
         <install_path>/firmware/script/uninstall.sh
         ```
 
-        If the following key echo information is displayed, the firmware is uninstalled successfully.
+        If the following key information is displayed, the firmware has been uninstalled successfully.
 
-        ```text
+        ```ColdFusion
         Firmware package uninstalled successfully! 
         ```
 
-    - Uninstall the driver.
+    - Uninstall the driver
 
         ```bash
         <install_path>/driver/script/uninstall.sh
         ```
 
-        If the following key information is output, the driver is uninstalled successfully.
+        If the following key information is displayed, the driver has been uninstalled successfully.
 
-         ```text
+         ```bash
         Driver package uninstalled successfully!
         ```
 

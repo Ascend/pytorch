@@ -1,34 +1,34 @@
 # Feature Value Detection
 
-<!-- md-trans-meta sourceCommit=unknown translatedAt=2026-06-15T07:50:02.116Z pushedAt=2026-06-15T12:00:44.079Z -->
+<!-- md-trans-meta sourceCommit=e6dd39e7131a89f72cf49d80d53002e4cc645bbf translatedAt=2026-07-08T10:22:21.585Z pushedAt=2026-07-08T10:47:16.866Z -->
 
 ## Introduction
 
-Feature value detection, fully named "online feature value detection during training," is primarily designed for long-duration stable training scenarios to detect high-bit flips. It performs anomaly detection on feature values based on gradients to identify precision issues.
+Feature value detection, fully named "online feature value detection during training," is primarily designed for long-duration stable training scenarios and targets high-bit flips. It performs anomaly detection based on gradient feature values to identify precision issues.
 
 The detection principle and process are as follows:
 
 1. During training, collect the tensors that need to be detected and compute their feature values.
-2. An asynchronous thread receives the feature values and performs anomaly detection.
-3. Use "**cooldown suppression**" to determine whether a new gradient anomaly has occurred. If so, print "A grad-norm spike may happen" once.
+2. The feature values are received by an asynchronous thread for anomaly detection.
+3. "**Cooldown suppression**" is used to determine whether a new gradient anomaly has occurred. If so, "A grad-norm spike may happen" is printed once.
 
-    Cooldown suppression: Since the current solution does not perform fault suppression, anomalous gradients on activation values can affect multiple parameters, leading to multiple anomalies on a single card within a short period. Therefore, a cooldown mechanism is needed: any new anomaly occurring within a certain period after the first anomaly is considered the same anomaly and is not counted in the "three strikes and out" check. A single anomaly prints the Event log "A grad-norm spike may happen" at the INFO level. This log is disabled by default and can be enabled by setting `export TORCH_NPU_LOGS=silent`.
+    Cooldown suppression: Since the current solution does not perform fault suppression, anomalous gradients on activation values can affect multiple parameters, leading to multiple anomalies on a single card within a short period. Therefore, a cooldown mechanism is introduced: for a certain period after the first anomaly, any new anomalies are treated as the same anomaly and are not counted toward the "three strikes and out" check. A single anomaly prints the "A grad-norm spike may happen" event log at the INFO level, which is disabled by default and can be enabled by setting "export TORCH_NPU_LOGS=silent".
 
-    The "cooldown suppression time window" is controlled by the configuration item cooldown, which defaults to 5 min.
+    The "cooldown suppression time window" is controlled by the configuration item `cooldown`, with a default value of 5 minutes.
 
-4. Use "**three strikes and out**" to determine whether a feature value anomaly has occurred. If so, print "feature detection detects abnormal results" once.
+4. "**Three strikes and out**" is used to determine whether a feature value anomaly has occurred. If so, "feature detection detects abnormal results" is printed once.
 
-    Three strikes and out: After cooldown suppression, if an anomaly is confirmed as new, a further "three strikes and out" check is performed to determine whether the total number of anomalies within the current three-strikes time window has reached the limit. If the limit is reached, a feature value anomaly is determined to have occurred, and the Warning log "feature detection detects abnormal results" is printed.
+    Three strikes and out: After cooldown suppression, if the event is confirmed as a new anomaly, it must further undergo the "three strikes and out" check to determine whether the total number of anomalies within the current three-strikes time window has reached the count limit. If the limit is reached, a feature value anomaly is determined to have occurred, and a Warning log reading "feature detection detects abnormal results" is printed.
 
-    The "three strikes and out time window" is controlled by the configuration item `strikes_window`, which defaults to 480 min. The limit on the "number of three strikes and out anomalies" is configured via the configuration item `strikes_num`, which defaults to 3 times.
+    The "three strikes and out time window" is controlled by the configuration item `strikes_window`, with a default value of 480 min. The "three strikes and out anomaly count" limit is configured via the configuration item `strikes_num`, with a default value of 3.
 
-5. When a feature value anomaly occurs, if with\_checksum is configured to true, all cards are notified to synchronously enable "**checksum linkage**".
+5. When a feature value anomaly occurs, if `with_checksum` is configured as true, all cards are notified and "**checksum linkage**" is synchronously enabled.
 
-    checksum linkage: When a feature value anomaly is generated by the three strikes and out mechanism, if the checksum linkage function is enabled in the configuration, checksum linkage detection will be synchronously enabled on all cards. Additional performance overhead will be incurred during the detection period. The specific principle is to perform checksum API verification on the inputs and outputs of torch.matmul and torch.Tensor.matmul. If a verification result of True exists within the enabled time window, a Warning log stating "The result of Matmul checksum is abnormal" will be printed.
+    Checksum linkage: When a feature value anomaly is triggered by the three-strikes-and-out mechanism, if the checksum linkage function is enabled in the configuration, checksum linkage detection is synchronously enabled on all cards. Additional performance overhead is incurred during the detection period. The specific principle is to perform checksum API verification on the inputs and outputs of torch.matmul and torch.Tensor.matmul. If a verification result of True exists within the enabled time window, a Warning log reading "The result of Matmul checksum is abnormal" is printed.
 
-    The "single checksum linkage enable time window" reuses the "cooldown suppression time window", which defaults to 5 min. Checksum is allowed to be enabled only once within the "checksum linkage cooldown time window". The "checksum linkage cooldown time window" is controlled by `checksum_cooldown`, which defaults to 180 min.
+    The "single checksum linkage enable time window" reuses the "cooldown suppression time window," with a default value of 5 min. Checksum is allowed to be enabled only once within the "checksum linkage cooldown time window." The "checksum linkage cooldown time window" is controlled by checksum\_cooldown, with a default value of 180 min.
 
-## Use Scenario
+## Use Cases
 
 Detects whether gradient feature values are abnormal during model training.
 
@@ -36,17 +36,17 @@ Detects whether gradient feature values are abnormal during model training.
 
 Use the `NPU_ASD_CONFIG` environment variable to enable or disable feature value detection and the checksum linkage function.
 
-- `enable`: optional configuration, true or false. Default value is false. Whether to enable feature value detection.
-- `with_checksum`: optional configuration, true or false. Default value is false. Whether to enable the checksum linkage function.
-- `cooldown`: positive integer, minimum value is 1, default value is 5, unit: minutes. Cooldown suppression time window. A single checksum linkage activation time window reuses the cooldown suppression time window. Configure as needed.
-- `strikes_num`: positive integer, minimum value is 1, default value is 3. Three strikes and out anomaly count limit. Configure as needed.
-- `strikes_window`: positive integer, minimum value is 1, default value is 480, unit: minutes. Three strikes and out time window. Configure as needed.
-- `checksum_cooldown`: positive integer, minimum value is 1, default value is 180, unit: minutes. Checksum linkage cooldown time window. Configure as needed.
-- `upper_thresh1`: positive integer, minimum value is 3, default value is 1000000. Level-1 threshold. A feature value exceeding this absolute threshold is considered a gradient anomaly. The default detection threshold requires no configuration. If the threshold needs to be modified, it can be changed by configuring the environment variable.
-- `upper_thresh2`: positive integer, minimum value is 3, default value is 100. Secondary threshold. A feature value exceeding the secondary threshold is considered a suspected anomaly and will not be updated into the historical mean. The default detection threshold requires no configuration. If you need to modify the threshold, you can do so through this environment variable.
-- `grad_sample_interval`: positive integer, minimum value is 1, default value is 3. The interval for gradient detection, specifying how many gradients to skip between each detection. A smaller configuration yields a higher detection rate, but performance degradation will be more severe, potentially exceeding 2%.
+- `enable`: Can be configured as true or false, with a default value of false. Whether feature value detection is enabled.
+- `with_checksum`: Optional configuration, which can be set to true or false. The default value is false. Whether to enable the checksum linkage function.
+- `cooldown`: Positive integer, with a minimum value of 1 and a default value of 5, in minutes. Cooldown suppression time window. A single checksum linkage activation time window reuses the cooldown suppression time window. Configure as needed.
+- `strikes_num`: Positive integer, with a minimum value of 1 and a default value of 3. The anomaly count limit for the three strikes and out mechanism. Configure as needed.
+- `strikes_window`: Positive integer, with a minimum value of 1 and a default value of 480, in minutes. The time window for the three strikes and out mechanism. Configure as needed.
+- `checksum_cooldown`: Positive integer, with a minimum value of 1 and a default value of 180, in minutes. The checksum linkage cooldown time window. Configure as needed.
+- `upper_thresh1`: positive integer, minimum value 3, default value 1000000. The first-level threshold. If the feature value exceeds this absolute threshold, it is considered a gradient anomaly. The default detection threshold requires no configuration; if the threshold needs to be modified, it can be changed by configuring this environment variable.
+- `upper_thresh2`: positive integer, minimum value 3, default value 100. The second-level threshold. If the feature value exceeds the second-level threshold, it is considered a suspected anomaly and will not be updated into the historical mean. The default detection threshold requires no configuration; if the threshold needs to be modified, it can be changed via this environment variable.
+- `grad_sample_interval`: positive integer, minimum value 1, default value 3. The interval for gradient detection, indicating how many gradients are skipped between each detection. A smaller value yields a higher detection rate, but performance degradation becomes more severe and may exceed 2%.
 
-For details on using this environment variable, refer to the [NPU_ASD_CONFIG](../environment_variable_reference/NPU_ASD_CONFIG.md) section in the *Environment Variable Reference*.
+For details on using this environment variable, refer to the "[NPU_ASD_CONFIG](../environment_variable_reference/NPU_ASD_CONFIG.md)" section in *Environment Variable Reference*.
 
 ## Usage Example
 
@@ -56,5 +56,5 @@ export NPU_ASD_CONFIG=enable:true,with_checksum:true,cooldown:5,strikes_num:3,st
 
 ## Constraints
 
-- Currently, it can only identify gradient anomalies that occur during model training with data types of **BF16** or **FP32**.
-- The checksum linkage only supports the **BF16** data type.
+- Currently, only gradient anomalies occurring during model training with data types **BF16** or **FP32** can be identified.
+- The checksum linkage function only supports the **BF16** data type.
