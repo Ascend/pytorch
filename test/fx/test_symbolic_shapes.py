@@ -15,6 +15,8 @@ from torch._guards import ShapeGuard, SLoc
 from torch._subclasses.fake_tensor import FakeTensorMode
 from torch.fx import Graph, Interpreter, symbolic_trace
 from torch.fx.experimental.symbolic_shapes import (
+    DivideByKey,
+    EqualityConstraint,
     PropagateUnbackedSymInts,
     ShapeEnv,
     Source,
@@ -389,6 +391,32 @@ class TestShapeEnvNPU(TestCase):
         self.assertIn(sympy.Le(s0, s1, evaluate=False), impl_le)
         self.assertIn(sympy.Lt(s0, s1 + 1, evaluate=False), impl_le)
 
+
+class TestDivideByKeyAndEqualityConstraint(TestCase):
+    """Test DivideByKey and EqualityConstraint APIs on NPU."""
+    @unittest.skipUnless(torch.npu.is_available(), "requires npu")
+    def test_divide_by_key(self):
+        # Verify DivideByKey string representation on NPU.
+        key = DivideByKey(4)
+        self.assertEqual(str(key), ".__floordiv__(4)")
+    @unittest.skipUnless(torch.npu.is_available(), "requires npu")
+    def test_divide_by_key_get(self):
+        # Verify DivideByKey.get returns the expected divisor.
+        key = DivideByKey(4)
+        self.assertEqual(key.get(17), 4)
+    @unittest.skipUnless(torch.npu.is_available(), "requires npu")
+    def test_equality_constraint_init(self):
+        # Verify EqualityConstraint initializes with empty constraints.
+        eq = EqualityConstraint(
+            source_pairs=[],
+            derived_equalities=[],
+            phantom_symbols=[],
+            relaxed_sources=set(),
+            warn_only=False,
+        )
+        self.assertEqual(eq.source_pairs, [])
+        self.assertEqual(eq.phantom_symbols, [])
+        self.assertFalse(eq.warn_only)
 
 if __name__ == "__main__":
     run_tests()

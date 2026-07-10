@@ -1,0 +1,12 @@
+diff --git a/test/test_dynamic_shapes.py b/test/test_dynamic_shapes.py
+index dc48ba1..0d4f015 100644
+--- a/test/test_dynamic_shapes.py
++++ b/test/test_dynamic_shapes.py
+@@ -12,6 +12,7 @@ import pytest
+ import sympy
+ 
+ import torch
++import torch_npu
+ import torch.fx
+ import torch.nn.functional as F
+ from torch import sym_int, SymBool, SymFloat, SymInt

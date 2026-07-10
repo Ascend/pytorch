@@ -1,0 +1,12 @@
+diff --git a/test/export/test_export.py b/test/export/test_export.py
+index 7b51cda..145598c 100755
+--- a/test/export/test_export.py
++++ b/test/export/test_export.py
+@@ -23,6 +23,7 @@ from typing import Dict, List, Union
+ from unittest.mock import MagicMock, patch
+ 
+ import torch
++import torch_npu
+ import torch._dynamo as torchdynamo
+ import torch.fx.traceback as fx_traceback
+ import torch.nn.functional as F
