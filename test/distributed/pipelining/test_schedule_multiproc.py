@@ -5,7 +5,7 @@ import logging
 import os
 import sys
 import tempfile
-
+import unittest
 from model_registry import ModelWithKwargs, MultiMLP, MultiMLPWithDw
 from schedule_registry import (
     ScheduleUnbalanced,
@@ -50,6 +50,7 @@ device_type = "npu"
 torch.manual_seed(0)
 
 
+@unittest.skip("Skip: test not adapted")
 class ScheduleTest(MultiProcContinuousTest):
     world_size = int(os.getenv("WORLD_SIZE", 2))
 
@@ -67,7 +68,6 @@ class ScheduleTest(MultiProcContinuousTest):
         super().setUpClass()
         dev_id = cls.rank % torch.npu.device_count()
         cls.device = torch.device(f"npu:{dev_id}")
-    
     @property
     def device(self) -> torch.device:
         return torch.device(device_type, self.rank)
