@@ -17,7 +17,7 @@ base        manylinux + Python 软链接 + pip 源 + 基础系统包（curl/wget
 
 > Dockerfile会自动根据当前架构（ARM/X86）拉取对应镜像。
 > Driver 不包含在镜像中，用户需在宿主机自行安装。镜像仅提供 CANN 编译环境，运行时需宿主机已安装匹配的 NPU 驱动。
-> 镜像中预装的 PyTorch CPU 版本默认为 master 分支对应的 nightly 版本（`torch==2.13.0.dev20260610+cpu`）。可通过构建参数 `TORCH_VERSION` 指定稳定版本（如 `2.7.1`），详见 [构建参数参考](#构建参数参考)。
+> 镜像中预装的 PyTorch CPU 版本默认为 v2.13.0 分支对应的版本（`torch==2.13.0`）。可通过构建参数 `TORCH_VERSION` 指定稳定版本（如 `2.7.1`），详见 [构建参数参考](#构建参数参考)。
 
 ## 2 镜像构建
 
@@ -33,7 +33,7 @@ export DOCKER_BUILDKIT=1
 | ARG | 默认值 | 说明 | 适用阶段 |
 |-----|--------|------|---------|
 | `PY_VERSION` | `3.10` | Python 版本，仅安装对应版本依赖 | all |
-| `TORCH_VERSION` | `2.13.0.dev20260610` | PyTorch 版本，格式 `x.x.x`（如 `2.7.1`）或 dev 版本（如 `2.13.0.dev20260610`）；dev 版本从 nightly 源安装 | all |
+| `TORCH_VERSION` | `2.13.0` | PyTorch 版本，格式 `x.x.x`（如 `2.13.0`）或 dev 版本（如 `2.13.0.dev20260610`）；dev 版本从 nightly 源安装 | all |
 | `DEVTOOLSET_VERSION` | `13` | GCC toolset 版本 | builder |
 | `CANN_VERSION` | `9.1.0_beta.1` | CANN 版本号 | dev |
 | `CANN_PRODUCT` | `910b` | CANN 算子包产品类型 | dev |

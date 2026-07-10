@@ -79,9 +79,9 @@
 
 | PyTorch版本      | Python版本                                                               |
 |----------------|:-----------------------------------------------------------------------|
-| PyTorch 2.13.0 | Python3.10.x, Python3.11.x, Python 3.12.x, Python 3.13.x               |
-| PyTorch 2.12.0 | Python3.10.x, Python3.11.x, Python 3.12.x, Python 3.13.x               |
-| PyTorch 2.11.0 | Python3.10.x, Python3.11.x, Python 3.12.x, Python 3.13.x               |
+| PyTorch 2.13.0 | Python3.10.x, Python3.11.x, Python 3.12.x, Python 3.13.x, Python 3.14.x               |
+| PyTorch 2.12.0 | Python3.10.x, Python3.11.x, Python 3.12.x, Python 3.13.x, Python 3.14.x               |
+| PyTorch 2.11.0 | Python3.10.x, Python3.11.x, Python 3.12.x, Python 3.13.x, Python 3.14.x               |
 | PyTorch 2.10.0 | Python3.10.x, Python3.11.x, Python 3.12.x, Python 3.13.x               |
 | PyTorch 2.9.0  | Python3.10.x, Python3.11.x, Python 3.12.x, Python 3.13.x               |
 | PyTorch 2.8.0  | Python3.9.x, Python3.10.x, Python 3.11.x, Python 3.12.x, Python 3.13.x |

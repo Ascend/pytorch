@@ -15,15 +15,15 @@ INSTALL_NNAL=0
 NO_CACHE=0
 CANN_RELEASE_TRAIN=""
 IMAGE_TARGET="builder"
-TORCH_VERSION="2.13.0.dev20260610"
+TORCH_VERSION="2.13.0"
 
 function usage() {
     cat <<EOF
 Usage: $0 [OPTIONS]
 
 Options:
-  -p, --python VERSION      Python version: 3.10 3.11 3.12 3.13 (default: 3.10)
-  --torch-version VER       PyTorch version: x.x.x (e.g. 2.7.1, 2.12.0) or dev version (e.g. 2.13.0.dev20260610) (default: 2.13.0.dev20260610)
+  -p, --python VERSION      Python version: 3.10 3.11 3.12 3.13 3.14 (default: 3.10)
+  --torch-version VER       PyTorch version: x.x.x (e.g. 2.7.1, 2.12.0) or dev version (e.g. 2.13.0.dev20260610) (default: 2.13.0)
   --no-cache                Build docker image without cache
   -h, --help                Show this help message
 
