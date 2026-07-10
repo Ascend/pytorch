@@ -2,7 +2,8 @@
 Add validation cases for torch.jit.ScriptModule APIs on NPU:
 
 PyTorch community lacks sufficient and direct API validations for some APIs, so this file is added.
-This file validates torch.jit.ScriptModule.bfloat16, torch.jit.ScriptModule.buffers, torch.jit.ScriptModule.children, torch.jit.ScriptModule.code
+This file validates torch.jit.ScriptModule.bfloat16, torch.jit.ScriptModule.buffers, torch.jit.ScriptModule.children, torch.jit.ScriptModule.code,
+torch.jit.ScriptModule.add_module, torch.jit.ScriptModule.apply
 """
 
 import torch
@@ -11,6 +12,7 @@ from torch.testing._internal.common_utils import TestCase, run_tests
 import torch.nn as nn
 import torch.nn.functional as F
 
+device_type = acc.type if (acc := torch.accelerator.current_accelerator()) else "cpu"
 
 class Model(nn.Module):
     def __init__(self) -> None:
@@ -169,6 +171,118 @@ class TestJitScriptModuleCompile(TestCase):
         # run inference validation
         self._run_infer(compiled_model, torch.device("npu"))
 
+
+
+class TestScriptModuleAddModule(TestCase):
+    def test_add_module_on_scriptmodule(self):
+        class SimpleModel(nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.linear = nn.Linear(5, 3)
+            def forward(self, x):
+                return self.linear(x)
+
+        model = SimpleModel()
+        extra_layer = nn.Linear(3, 2)
+        model.add_module('sub_module', extra_layer)
+
+        scripted_model = torch.jit.script(model)
+        self.assertIsInstance(scripted_model, torch.jit.ScriptModule)
+
+        scripted_model.to(device_type)
+
+        self.assertTrue(hasattr(scripted_model, 'sub_module'))
+        self.assertIsInstance(scripted_model.sub_module, torch.jit.ScriptModule)
+        self.assertIn('sub_module', scripted_model._modules)
+
+        params = list(scripted_model.sub_module.parameters())
+        self.assertEqual(len(params), 2)
+        self.assertEqual(params[0].shape, (2, 3))
+        self.assertEqual(params[0].device.type, 'npu')
+        self.assertEqual(params[1].device.type, 'npu')
+
+        dummy_input = torch.randn(1, 5, device=device_type)
+        output = scripted_model(dummy_input)
+        self.assertEqual(output.shape, (1, 3))
+        self.assertEqual(output.device.type, 'npu')
+
+
+class TestScriptModuleApply(TestCase):
+    def test_apply_modify_parameters(self):
+        class SimpleModel(nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.conv = nn.Conv2d(1, 2, 3)
+                self.fc = nn.Linear(2 * 26 * 26, 5)
+            def forward(self, x):
+                x = self.conv(x)
+                x = x.view(x.size(0), -1)
+                return self.fc(x)
+
+        model = SimpleModel().to(device_type)
+        scripted = torch.jit.script(model)
+        self.assertIsInstance(scripted, torch.jit.ScriptModule)
+
+        def zero_params(module):
+            if hasattr(module, 'weight') and module.weight is not None:
+                module.weight.data.fill_(0.0)
+            if hasattr(module, 'bias') and module.bias is not None:
+                module.bias.data.fill_(0.0)
+
+        scripted.apply(zero_params)
+
+        for param in scripted.parameters():
+            self.assertTrue(torch.all(param == 0))
+            self.assertEqual(param.device.type, "npu")
+
+        dummy = torch.randn(1, 1, 28, 28, device=device_type)
+        out = scripted(dummy)
+        self.assertTrue(torch.all(out == 0))
+        self.assertEqual(out.shape, (1, 5))
+        self.assertEqual(out.device.type, "npu")
+
+    def test_apply_recursively_visits_all_modules(self):
+        class Leaf(nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.param = nn.Parameter(torch.randn(2,2))
+            def forward(self, x):
+                return x
+
+        class Container(nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.leaf1 = Leaf()
+                self.leaf2 = Leaf()
+            def forward(self, x):
+                return x
+
+        model = Container().to(device_type)
+        scripted = torch.jit.script(model)
+
+        visited = set()
+        def record(module):
+            visited.add(id(module))
+
+        scripted.apply(record)
+
+        expected = {id(scripted), id(scripted.leaf1), id(scripted.leaf2)}
+        self.assertEqual(visited, expected)
+
+
+    def test_apply_returns_self(self):
+        class Dummy(nn.Module):
+            def forward(self, x):
+                return x
+
+        model = Dummy().to(device_type)
+        scripted = torch.jit.script(model)
+
+        def noop(module):
+            pass
+
+        ret = scripted.apply(noop)
+        self.assertIs(ret, scripted)
 
 
 if __name__ == "__main__":
