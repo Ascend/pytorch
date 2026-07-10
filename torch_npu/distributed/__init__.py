@@ -2,6 +2,8 @@ __all__ = [
     "is_hccl_available", "reinit_process_group", "reduce_scatter_tensor_uneven", "all_gather_into_tensor_uneven"
 ]
 
+from importlib import import_module
+
 from torch.distributed import _make_nccl_premul_sum as _make_hccl_premul_sum
 
 import torch_npu
@@ -25,6 +27,35 @@ from torch_npu._C._distributed_c10d import (
     _is_support_hccl_comm_name,
 )
 
+from .distributed_c10d import (
+    is_hccl_available,
+    reinit_process_group,
+    _reduce_scatter_tensor_uneven as reduce_scatter_tensor_uneven,
+    _all_gather_into_tensor_uneven as all_gather_into_tensor_uneven,
+)
 
-from torch_npu.distributed import tensor, nn
-from .distributed_c10d import is_hccl_available, reinit_process_group, _reduce_scatter_tensor_uneven as reduce_scatter_tensor_uneven, _all_gather_into_tensor_uneven as all_gather_into_tensor_uneven
+
+_LAZY_SUBMODULES = {
+    "fsdp": "torch_npu.distributed.fsdp",
+    "nn": "torch_npu.distributed.nn",
+    "pipelining": "torch_npu.distributed.pipelining",
+    "rendezvous": "torch_npu.distributed.rendezvous",
+    "rpc": "torch_npu.distributed.rpc",
+    "run": "torch_npu.distributed.run",
+    "tensor": "torch_npu.distributed.tensor",
+}
+
+
+def __getattr__(name):
+    try:
+        module_name = _LAZY_SUBMODULES[name]
+    except KeyError as exc:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}") from exc
+
+    value = import_module(module_name)
+    globals()[name] = value
+    return value
+
+
+def __dir__():
+    return sorted(set(globals()) | set(_LAZY_SUBMODULES))
