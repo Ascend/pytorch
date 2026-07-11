@@ -24,6 +24,7 @@ from torch.testing._internal.common_utils import (
     parametrize,
 )
 from torch.testing._internal.inductor_utils import requires_triton
+from unittest import skip
 
 
 DEVICES = ("npu", "cpu")
@@ -135,6 +136,7 @@ class TestCachingPrecompileCodeCache(TestCase):
 
 
 class TestCodeCache(TestCase):
+    @skip("torch.distributed error")
     def test_codecache(self):
         device_properties = torch_npu.npu.get_device_properties(
             torch_npu.npu.current_device()

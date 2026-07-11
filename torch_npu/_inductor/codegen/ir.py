@@ -1145,8 +1145,7 @@ def transform_dims_in_indexing(self, indices):
             self.var_ranges,
         )
         # Set SIMT_ONLY compile option for dynamic shapes on A5
-        V.kernel.npu_kernel_type = NPUKernelType.SIMT_ONLY
-        return  # Early return, skip linearization on A5 with dynamic shapes
+        raise ValueError(f"fallback to community simt for SIMT_ONLY compile option for dynamic shapes on A5")
 
     # Step 3: Perform memory access linearization
     log.debug(
