@@ -551,4 +551,5 @@ inductor_fallback_ops_npu_not_support: dict[str, dict[str, list[str]]] = {
     "aten.scatter_reduce_": {},
     "aten.scatter_reduce_.two": {},
     "aten.native_layer_norm.default": {},
+    "aten.segment_reduce.default": {},
 }
