@@ -323,6 +323,16 @@ class CppWrapperNpu(CppWrapperGpu):
             # Lazy-load the .so on first call, then invoke through the
             # function pointer.
             self.writeline(f"load_{kernel_name}();")
+            # Synchronize the stream before launching the catlass kernel.
+            # Catlass kernels read input tensors (e.g., offsets/group_list
+            # produced by aten ops like cumsum) directly from device memory.
+            # Aten ops in cpp_wrapper use the implicit "current stream" which
+            # may differ from the explicit stream used by catlass, or the
+            # AscendC <<<>>> launch may not fully respect stream ordering with
+            # preceding aten ops.  This sync ensures all prior operations
+            # (including aten ops that produce catlass inputs) have completed
+            # before the catlass kernel reads them.
+            self.writeline(f"aclrtSynchronizeStream({stream});")
             self.writeline(f"{kernel_name}({call_args_str}, {stream});")
             return
 
