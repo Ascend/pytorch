@@ -80,7 +80,7 @@ def activation_min_max(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
 class Model(torch.nn.Module):
     def __init__(self, dim=32):
         super().__init__()
-        self.fc1 = torch.nn.Linear(dim, dim, dtype=torch.float16)
+        self.fc1 = torch.nn.Linear(dim, dim, dtype=torch.float32)
         self.sigmoid = torch.nn.Sigmoid()
 
     def forward(self, x, y, z):
@@ -117,11 +117,11 @@ class Model(torch.nn.Module):
 class TestAotiUserDefinedOp(TestUtils):
     def generate_input_tensor(self, batch_size=8, dim=32, device="npu"):
         x_input = torch.arange(0, batch_size * dim, 1, device=device).reshape([batch_size, dim])
-        x_input = 1.0 / x_input.to(torch.float16)
+        x_input = 1.0 / x_input.to(torch.float32)
         y_input = torch.arange(batch_size * dim, 0, -1, device=device).reshape([batch_size, dim])
-        y_input = 1.0 / y_input.to(torch.float16)
+        y_input = 1.0 / y_input.to(torch.float32)
         # z_input is a cpu input tensor
-        z_input = torch.ones(batch_size * dim, device="cpu", dtype=torch.float16).reshape([batch_size, dim])
+        z_input = torch.ones(batch_size * dim, device="cpu", dtype=torch.float32).reshape([batch_size, dim])
         return x_input, y_input, z_input
 
 
