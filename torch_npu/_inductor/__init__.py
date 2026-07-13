@@ -12,7 +12,13 @@ import os
 
 # all backends need register npu/cpu/mps device_op_overrides
 from .graph import patch_codegen_with_cpp_wrapper
-from .utils import patch_has_triton, patch_device_supports_tma, patch_is_gpu, get_current_raw_stream
+from .utils import (
+    patch_has_triton,
+    patch_device_supports_tma,
+    patch_is_gpu,
+    get_current_raw_stream,
+    disable_graph_partition_for_allfallback,
+)
 # All backends need npu/cpu/mps device_op_overrides.
 from .codegen.common import register_device_op_overrides_npu, patch_cache_base_get_system
 from torch._inductor.lowering import make_fallback as _ori_make_fallback
@@ -317,6 +323,8 @@ _BACKEND_LOADERS = {
 
 
 def _load_backend():
+    disable_graph_partition_for_allfallback()
+
     backend = _get_backend()
     loader = _BACKEND_LOADERS.get(backend, _load_triton_backend)
     loader()
