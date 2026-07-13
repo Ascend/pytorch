@@ -6,30 +6,18 @@ import dataclasses
 import functools
 import itertools
 import logging
-import math
 import operator
 import os
 import textwrap
 import warnings
 from collections import defaultdict
-from copy import deepcopy
 from collections.abc import Iterable, Sequence
-from typing import Any, Callable, cast, Optional, TYPE_CHECKING, TypeVar, Union
+from typing import Any, Callable, cast, List, Optional, TYPE_CHECKING, TypeVar, Union
 from typing_extensions import ParamSpec
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    List,
-    Optional,
-    Set,
-    Tuple,
-    Union,
-    )
 from unittest.mock import patch
 
 import sympy
-from sympy.core import Expr, Integer, Symbol
+from sympy.core import Expr
 
 import torch
 import torch.ao.quantization.fx._decomposed
@@ -85,7 +73,6 @@ from torch._inductor.utils import (
     ceildiv,
     decode_device,
     is_dynamic,
-    is_gpu,
     is_pointwise_use,
     is_view,
     needs_fallback_due_to_atomic_add_limitations,
@@ -136,18 +123,15 @@ quantized_decomposed = torch.ops.quantized_decomposed
 from torch_npu._inductor.lowering_common import (
     TracedGraph,
     MLIR_OPERATOR_MAPPING,
-    create_fake_input,
     create_sym_inputs as _create_sym_inputs,
     fetch_graphs as _fetch_graphs,
     get_reduction_type_to_aten_fn,
     map_operators_to_strings as _map_operators_to_strings,
     map_strings_to_operators as _map_strings_to_operators,
-    merge_fx_graphs,
     merge_traced_graphs as _merge_traced_graphs,
     process_ir_constant as _process_ir_constant,
     register_fn_to_aten_fn as _register_fn_to_aten_fn,
     register_to_aten as _register_to_aten,
-    subtract_graph,
 )
 
 fn_to_aten_fn = {}
@@ -1227,6 +1211,7 @@ def expand_as(x, y):
 
 @register_lowering(aten.repeat)
 def repeat(x, repeats):
+    from torch.fx.experimental.symbolic_shapes import free_unbacked_symbols
 
     input_graphs = fetch_graphs([x, repeats])
     node_name = f'repeat_{next(node_id)}'
@@ -2704,7 +2689,7 @@ def sdpa_constraint(fx_node, *args, **kwargs):
 
         def is_aligned(x):
             return V.graph.sizevars.guard_or_false(
-                sympy.Eq(Mod(x.get_size()[-1], ALIGNMENT), 0)
+                sympy.Eq(sympy.Mod(x.get_size()[-1], ALIGNMENT), 0)
             )
 
         if isinstance(arg.data, ir.BaseView):
@@ -2845,7 +2830,7 @@ make_fallback(torch._prims.rng_prims.run_with_rng_state)
 make_fallback(torch._prims.rng_prims.graphsafe_run_with_rng_state)
 
 
-# Implmented / Half implemented
+# Implemented / Half implemented
 # Scans. Implemented for CUDA, missing CPU
 make_fallback(aten.masked_scatter)
 make_fallback(aten.masked_scatter_backward)
@@ -2861,9 +2846,6 @@ make_fallback(aten._efficientzerotensor)
 make_fallback(aten._sparse_coo_tensor_with_dims_and_tensors)
 make_fallback(aten.to_sparse)
 make_fallback(aten._to_sparse)
-
-# Needs dimname support
-make_fallback(aten.zeros.names)
 
 # 6) Pattern-matched
 make_fallback(
@@ -2995,10 +2977,12 @@ def iota(
         return ops.index_expr(step * index[0] + start, dtype=dtype)
 
     node_name = f'iota_{next(node_id)}'
-    new_graph = merge_traced_graphs([length], prims.iota, node_name, \
-                                    start=start, step=step, \
-                                    dtype=dtype, device=device, \
-                                    requires_grad=requires_grad)
+    new_graph = merge_traced_graphs(
+        [length], prims.iota, node_name,
+        start=start, step=step,
+        dtype=dtype, device=device,
+        requires_grad=requires_grad,
+    )
     return Pointwise.create(
         device=decode_device(device),
         dtype=dtype,
@@ -3049,11 +3033,13 @@ def slice_scatter(x, src, dim=0, start=None, end=None, step=1):
     assert x.get_dtype() == src.get_dtype()
     input_graphs = fetch_graphs([x, src])
     node_name = f'slice_scatter_{next(node_id)}'
-    new_graph = merge_traced_graphs(input_graphs, aten.slice_scatter, node_name, \
-                                    dim=dim,
-                                    start=start,
-                                    end=end,
-                                    step=step)
+    new_graph = merge_traced_graphs(
+        input_graphs, aten.slice_scatter, node_name,
+        dim=dim,
+        start=start,
+        end=end,
+        step=step,
+    )
     x_loader = x.make_loader()
     dim = _validate_dim(x, dim, 0)
     dim_size = x.get_size()[dim]
@@ -3133,10 +3119,12 @@ def tensor(data, *, dtype=None, device=None, layout=None, pin_memory=False):
     assert_nyi(not pin_memory, "pin_memory")
     input_graphs = fetch_graphs([data])
     node_name = f'tensor_{next(node_id)}'
-    new_graph = merge_traced_graphs(input_graphs, torch.tensor, node_name, \
-                                    dtype=dtype,
-                                    device='npu',
-                                    pin_memory=False)
+    new_graph = merge_traced_graphs(
+        input_graphs, torch.tensor, node_name,
+        dtype=dtype,
+        device='npu',
+        pin_memory=False,
+    )
     if isinstance(_unwrap(data), int):
         dtype = dtype or torch.int64
     else:
@@ -3296,8 +3284,10 @@ def _full(fill_value, device, dtype, size):
 
     node_name = f'full_{next(node_id)}'
     # [wtd#18] Use passed-in device param instead of hardcoded 'npu' to avoid device mismatch
-    new_graph = merge_traced_graphs([size, fill_value], aten.full.default, node_name, \
-                                    device=device, dtype=dtype, layout = torch.strided, pin_memory = False)
+    new_graph = merge_traced_graphs(
+        [size, fill_value], aten.full.default, node_name,
+        device=device, dtype=dtype, layout=torch.strided, pin_memory=False,
+    )
 
     return Pointwise.create(
         device=device,
@@ -3547,10 +3537,12 @@ def embedding(weight, indices, padding_idx=-1, scale_grad_by_freq=False, sparse=
 
     input_graphs = fetch_graphs([weight, indices])
     node_name = f'embedding_{next(node_id)}'
-    new_graph = merge_traced_graphs(input_graphs, aten.embedding, node_name, \
-                                    padding_idx=padding_idx,
-                                    scale_grad_by_freq=scale_grad_by_freq,
-                                    sparse=sparse)
+    new_graph = merge_traced_graphs(
+        input_graphs, aten.embedding, node_name,
+        padding_idx=padding_idx,
+        scale_grad_by_freq=scale_grad_by_freq,
+        sparse=sparse,
+    )
 
     return Pointwise.create(
         device=weight.get_device(),
@@ -4629,7 +4621,7 @@ def max_pool2d_with_indices(
         x, kernel_size, stride, padding, dilation, ceil_mode
     )
 
-    indices = _low_memory_max_pool2d_offsets_to_indices(
+    indices = _low_memory_max_pool2d_offsets_to_indices(  # noqa: F821
         offsets, kernel_size[-1], x.shape[-1], stride, padding
     )
 
@@ -6606,7 +6598,7 @@ def neg(a):
     return make_pointwise(fn)(a)
 
 
-rsqrt = register_pointwise_numeric(aten.rsqrt)
+rsqrt = register_pointwise_numeric(aten.rsqrt)  # noqa: F811
 exp = register_pointwise_numeric_ldf64(aten.exp)
 exp2 = register_pointwise_numeric(aten.exp2)
 expm1 = register_pointwise_numeric(aten.expm1)
@@ -7185,7 +7177,7 @@ def prepare_softmax_online(x, dim):
         # Note: [Split online_softmax_reduce]
         # We don't split reduction for online_softmax_reduce for now.
         # On one hand, supporting split reduction makes things complex since
-        # the splitted out reuctions requires 2 inputs rather than one.
+        # the split out reductions requires 2 inputs rather than one.
         # On the other hand, during training the online_softmax_reduce should
         # usually don't requires a split due to large batch size
         # (more specifically batch size times sequence length).

@@ -1,41 +1,28 @@
-import traceback
 from unittest.mock import patch
 
 from typing import (
     Any,
     Callable,
-    ClassVar,
-    Dict,
-    Iterable,
     List,
     Optional,
-    Sequence,
-    Set,
-    Tuple,
-    TYPE_CHECKING,
-    Union,
 )
 
-import functools
-
 import sympy
-from sympy import Expr, Integer
+from sympy import Expr
 
 import torch
 from torch._inductor import ir
 from torch._inductor import config
 
 from torch._inductor.virtualized import ops, V
-from torch._subclasses import FakeTensor
 from torch.utils._ordered_set import OrderedSet
+
+from torch_npu._inductor.lowering_common import create_fake_input, subtract_graph
 
 from .lowering import (
     fetch_graphs,
     merge_traced_graphs,
     node_id,
-    clone,
-    create_fake_input,
-    subtract_graph,
 )
 
 
@@ -288,9 +275,9 @@ def _patch_baseview_realize_hint(self):
         return self.data.realize_hint()
 
 
-def _patch_mark_reuse(self, users):
+def _patch_mark_reuse(self, users, **kwargs):
     if hasattr(self, "traced_graph") and self.traced_graph is not None:
-        r = self.data.mark_reuse(users)
+        r = self.data.mark_reuse(users, **kwargs)
         buffer = try_get_buffer(self)
         if not buffer:
             return r
@@ -312,7 +299,7 @@ def _patch_mark_reuse(self, users):
         self._post_init_setattr("traced_graph", new_traced_graph)
         return r
     else:
-        return self.data.mark_reuse(users)
+        return self.data.mark_reuse(users, **kwargs)
 
 
 ir.BaseView.realize = _patch_baseview_realize

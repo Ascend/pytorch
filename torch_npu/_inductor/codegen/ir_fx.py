@@ -1,13 +1,10 @@
-import traceback
 import typing
 from typing import (
     Any,
     Callable,
-    List,
     Optional,
     Union
 )
-from typing import Optional
 from unittest.mock import patch
 import sympy
 import torch
@@ -17,13 +14,13 @@ from torch._inductor import ir
 from torch._inductor.virtualized import ops, V
 from torch.utils._ordered_set import OrderedSet
 
+from torch_npu._inductor.lowering_common import create_fake_input, subtract_graph
+
 from ..lowering import (
     fetch_graphs,
     merge_traced_graphs,
     node_id,
     clone,
-    create_fake_input,
-    subtract_graph
 )
 
 
@@ -323,7 +320,7 @@ def _patch_baseview_realize_hint(self):
         return self.data.realize_hint()
 
 
-def _patch_mark_reuse(self, users):
+def _patch_mark_reuse(self, users, **kwargs):
     if isinstance(self.data, ir.StorageBox):
         if self.data.should_realize_on_reuse(users):
             if hasattr(self, 'traced_graph') and self.traced_graph is not None:
@@ -347,7 +344,7 @@ def _patch_mark_reuse(self, users):
             else:
                 return self.data.realize()
     else:
-        return self.data.mark_reuse(users)
+        return self.data.mark_reuse(users, **kwargs)
 
 
 @classmethod
@@ -572,12 +569,12 @@ def _patch_concatkernel_create(cls, inputs, dim):
         raise RuntimeError("assert fx_node_args must be a list")
     # If any of the inputs has meta tensor and the meta tensor is in CL format, use CL format for the output
     if any_input_is_storage_and_layout is False and any(
-            "val" in arg.meta
-            and (
-                    arg.meta["val"].is_contiguous(memory_format=torch.channels_last)
-                    or arg.meta["val"].is_contiguous(memory_format=torch.channels_last_3d)
-            )
-            for arg in fx_node_args
+        "val" in arg.meta
+        and (
+            arg.meta["val"].is_contiguous(memory_format=torch.channels_last)
+            or arg.meta["val"].is_contiguous(memory_format=torch.channels_last_3d)
+        )
+        for arg in fx_node_args
     ):
         output_stride = ir.make_channels_last_strides_for(new_size)
 
@@ -708,13 +705,13 @@ def _patch_externkernel_convert_to_reinterpret_view(cls, x):
             and "val" in x_unwrap_view_fx_node.meta
             and isinstance(x_unwrap_view.layout, ir.FlexibleLayout)
             and (
-            x_unwrap_view_fx_node.meta["val"].is_contiguous(
-                memory_format=torch.channels_last
+                x_unwrap_view_fx_node.meta["val"].is_contiguous(
+                    memory_format=torch.channels_last
+                )
+                or x_unwrap_view_fx_node.meta["val"].is_contiguous(
+                    memory_format=torch.channels_last_3d
+                )
             )
-            or x_unwrap_view_fx_node.meta["val"].is_contiguous(
-        memory_format=torch.channels_last_3d
-    )
-    )
     ):
         x_unwrap_view.freeze_layout_with_same_order(
             ir.make_channels_last_strides_for(x_unwrap_view.get_size())

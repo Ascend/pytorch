@@ -438,7 +438,6 @@ def add_dynamo_methods_init():
     patch_stream_event_variable_python_type()
     patch_builtin_variable()
     patch_npu_stream_context()
-    patch_user_defined_class_variable()
 
 
 def add_dynamo_methods():
