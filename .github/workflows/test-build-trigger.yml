@@ -23,3 +23,13 @@ jobs:
       upstream_ref: main
       torch_npu_repo: Ascend/pytorch
       torch_npu_ref: master
+      report_to_upstream: true
+
+  test:
+    needs: build
+    uses: ./.github/workflows/_test-single.yml
+    secrets: inherit
+    with:
+      resolved_short: ${{ needs.build.outputs.resolved_short }}
+      test_files: test_functionalization.py
+      report_to_upstream: true

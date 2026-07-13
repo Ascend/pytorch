@@ -1,0 +1,46 @@
+name: Nightly Build and Test
+
+on:
+  schedule:
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+    inputs:
+      test_files:
+        description: 'Comma-separated test files (e.g. test_functionalization.py,test_nn.py)'
+        required: false
+        default: 'test_functionalization.py'
+        type: string
+      num_shards:
+        description: 'Number of parallel machines'
+        required: false
+        default: '5'
+        type: string
+
+concurrency:
+  group: nightly-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build:
+    uses: ./.github/workflows/_build.yml
+    secrets: inherit
+    with:
+      upstream_repo: pytorch/pytorch
+      upstream_ref: main
+      torch_npu_repo: Ascend/pytorch
+      torch_npu_ref: master
+      report_to_upstream: false
+
+  test:
+    needs: build
+    uses: ./.github/workflows/_test-parallel.yml
+    secrets: inherit
+    with:
+      resolved_short: ${{ needs.build.outputs.resolved_short }}
+      test_files: ${{ inputs.test_files || 'test_functionalization.py' }}
+      num_shards: ${{ inputs.num_shards || '5' }}
+      report_to_upstream: false
