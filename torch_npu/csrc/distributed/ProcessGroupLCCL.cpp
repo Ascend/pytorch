@@ -2,6 +2,7 @@
 
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/npu/DeviceUtils.h"
+#include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "torch_npu/csrc/core/npu/NPUStreamUtils.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
