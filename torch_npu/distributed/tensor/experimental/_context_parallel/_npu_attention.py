@@ -545,9 +545,12 @@ def _npu_fa_v3_handler(op_call, args, kwargs):
 
     # Push (step_caches, is_causal, merged_out, merged_lse) for backward handler.
     # Backward needs merged_out to compute D = sum(dout * O_merged); per-step raw output is not enough.
-    _step_cache_stack.append(
-        (step_caches, is_causal, attn_output.detach(), merged_lse.detach())
-    )
+    # These forward intermediates need transformation before backward consumes them, so save them here.
+    # Skip this during recompute forward: no need to preserve them for the recompute pass.
+    if torch._C._current_graph_task_id() < 0:
+        _step_cache_stack.append(
+            (step_caches, is_causal, attn_output.detach(), merged_lse.detach())
+        )
 
     # Build v3 6-tuple. softmax_max/sum come from the final step; op_plugin typically only uses attn_output.
     B, N, S, D = attn_output.shape
