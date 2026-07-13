@@ -16,7 +16,7 @@ on:
         required: false
         type: string
         default: '5'
-        description: Number of parallel machines to shard tests across
+        description: Number of parallel machines to shard tests across (per type)
       report_to_upstream:
         required: false
         type: boolean
@@ -25,7 +25,7 @@ on:
 
 jobs:
   # ======================================================================
-  # Job 1: Collect and shard test cases on a single machine
+  # Job 1: Collect and shard test cases (separate distributed/regular)
   # ======================================================================
   collect:
     runs-on: linux-aarch64-a3-8
@@ -41,7 +41,10 @@ jobs:
     env:
       PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
     outputs:
-      shard_matrix: ${{ steps.build_matrix.outputs.shard_matrix }}
+      distributed_matrix: ${{ steps.build_matrix.outputs.distributed_matrix }}
+      regular_matrix: ${{ steps.build_matrix.outputs.regular_matrix }}
+      has_distributed: ${{ steps.collect_cases.outputs.has_distributed }}
+      has_regular: ${{ steps.collect_cases.outputs.has_regular }}
       total_cases: ${{ steps.collect_cases.outputs.total_cases }}
     steps:
       # Step 1: Download PyTorch source
@@ -82,7 +85,7 @@ jobs:
           path: ci-scripts
           ref: ci-test
 
-      # Step 4: Collect and shard test cases
+      # Step 4: Collect and shard test cases (distributed + regular)
       - name: Collect and shard test cases
         id: collect_cases
         run: |
@@ -101,6 +104,7 @@ jobs:
 
           test_dir = Path('${GITHUB_WORKSPACE}/pytorch/test')
           test_files_str = '${{ inputs.test_files }}'
+          num_shards = int('${{ inputs.num_shards }}')
 
           # Parse and normalize test file paths (adds 'test/' prefix)
           planned_tests = parse_test_files_input(test_files_str, test_dir)
@@ -108,44 +112,91 @@ jobs:
           for tf in planned_tests:
               print(f'  - {tf}')
 
-          # Collect all cases
-          error_log_dir = Path('${GITHUB_WORKSPACE}/collection_errors')
-          all_cases = collect_all_cases(planned_tests, test_dir, error_log_dir, parallel=16)
-          print(f'Total cases collected: {len(all_cases)}')
+          # Separate distributed and regular files
+          distributed_files = [f for f in planned_tests if f.startswith('test/distributed/')]
+          regular_files = [f for f in planned_tests if not f.startswith('test/distributed/')]
+          print(f'Distributed files: {len(distributed_files)}')
+          print(f'Regular files: {len(regular_files)}')
 
-          # Shard cases
-          num_shards = int('${{ inputs.num_shards }}')
-          shards = split_cases_into_shards(all_cases, num_shards)
-
-          # Save shard JSON files
           output_dir = Path('${GITHUB_WORKSPACE}/cases-shards')
           output_dir.mkdir(parents=True, exist_ok=True)
 
-          for i, shard_cases in enumerate(shards, 1):
-              shard_file = output_dir / f'regular_cases_shard_{i}.json'
-              shard_data = {
-                  'shard': i,
-                  'num_shards': num_shards,
-                  'test_type': 'regular',
-                  'total_cases': len(shard_cases),
-                  'cases': shard_cases,
-              }
-              shard_file.write_text(json.dumps(shard_data, indent=2), encoding='utf-8')
-              print(f'  Shard {i}: {len(shard_cases)} cases -> {shard_file}')
+          # --- Collect and shard distributed cases ---
+          dist_cases = []
+          if distributed_files:
+              error_log_dir = Path('${GITHUB_WORKSPACE}/collection_errors/distributed')
+              dist_cases = collect_all_cases(distributed_files, test_dir, error_log_dir, parallel=16)
+              print(f'Total distributed cases: {len(dist_cases)}')
 
-          # Output total cases
+              dist_shards = split_cases_into_shards(dist_cases, num_shards)
+              for i, shard_cases in enumerate(dist_shards, 1):
+                  shard_file = output_dir / f'distributed_cases_shard_{i}.json'
+                  shard_data = {
+                      'shard': i,
+                      'num_shards': num_shards,
+                      'test_type': 'distributed',
+                      'total_cases': len(shard_cases),
+                      'cases': shard_cases,
+                  }
+                  shard_file.write_text(json.dumps(shard_data, indent=2), encoding='utf-8')
+                  print(f'  Distributed Shard {i}: {len(shard_cases)} cases -> {shard_file}')
+          else:
+              print('No distributed test files found, skipping distributed sharding')
+
+          # --- Collect and shard regular cases ---
+          reg_cases = []
+          if regular_files:
+              error_log_dir = Path('${GITHUB_WORKSPACE}/collection_errors/regular')
+              reg_cases = collect_all_cases(regular_files, test_dir, error_log_dir, parallel=16)
+              print(f'Total regular cases: {len(reg_cases)}')
+
+              reg_shards = split_cases_into_shards(reg_cases, num_shards)
+              for i, shard_cases in enumerate(reg_shards, 1):
+                  shard_file = output_dir / f'regular_cases_shard_{i}.json'
+                  shard_data = {
+                      'shard': i,
+                      'num_shards': num_shards,
+                      'test_type': 'regular',
+                      'total_cases': len(shard_cases),
+                      'cases': shard_cases,
+                  }
+                  shard_file.write_text(json.dumps(shard_data, indent=2), encoding='utf-8')
+                  print(f'  Regular Shard {i}: {len(shard_cases)} cases -> {shard_file}')
+          else:
+              print('No regular test files found, skipping regular sharding')
+
+          total_cases = len(dist_cases) + len(reg_cases)
+
           with open('${GITHUB_OUTPUT}', 'a') as f:
-              f.write(f'total_cases={len(all_cases)}\n')
+              f.write(f'total_cases={total_cases}\n')
+              f.write(f'has_distributed={\"true\" if dist_cases else \"false\"}\n')
+              f.write(f'has_regular={\"true\" if reg_cases else \"false\"}\n')
           "
 
-      # Step 5: Build shard matrix
-      - name: Build shard matrix
+      # Step 5: Build shard matrices
+      - name: Build shard matrices
         id: build_matrix
         run: |
           NUM_SHARDS='${{ inputs.num_shards }}'
-          MATRIX=$(seq 1 ${NUM_SHARDS} | jq -cs '.')
-          echo "shard_matrix=${MATRIX}" >> "$GITHUB_OUTPUT"
-          echo "Shard matrix: ${MATRIX}"
+          HAS_DIST='${{ steps.collect_cases.outputs.has_distributed }}'
+          HAS_REG='${{ steps.collect_cases.outputs.has_regular }}'
+
+          if [ "${HAS_DIST}" = "true" ]; then
+            DIST_MATRIX=$(seq 1 ${NUM_SHARDS} | jq -cs '.')
+          else
+            DIST_MATRIX='[]'
+          fi
+
+          if [ "${HAS_REG}" = "true" ]; then
+            REG_MATRIX=$(seq 1 ${NUM_SHARDS} | jq -cs '.')
+          else
+            REG_MATRIX='[]'
+          fi
+
+          echo "distributed_matrix=${DIST_MATRIX}" >> "$GITHUB_OUTPUT"
+          echo "regular_matrix=${REG_MATRIX}" >> "$GITHUB_OUTPUT"
+          echo "Distributed matrix: ${DIST_MATRIX}"
+          echo "Regular matrix: ${REG_MATRIX}"
 
       # Step 6: Upload cases shard JSONs
       - name: Upload cases shard JSONs
@@ -156,9 +207,9 @@ jobs:
           retention-days: 7
 
   # ======================================================================
-  # Job 2: Run test shards in parallel (one machine per shard)
+  # Job 2: Run distributed test shards (serial execution, 1 worker)
   # ======================================================================
-  test:
+  test_distributed:
     needs: collect
     runs-on: linux-aarch64-a3-16
     permissions:
@@ -174,10 +225,10 @@ jobs:
       PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
     strategy:
       matrix:
-        shard: ${{ fromJson(needs.collect.outputs.shard_matrix) }}
+        shard: ${{ fromJson(needs.collect.outputs.distributed_matrix) }}
       fail-fast: false
     steps:
-      # Step 0: Report in_progress
+      # Step 0: Report in_progress (only first shard)
       - name: Report in_progress
         if: ${{ inputs.report_to_upstream && matrix.shard == 1 }}
         continue-on-error: true
@@ -249,20 +300,20 @@ jobs:
           print(f'NPU count: {torch.npu.device_count()}')
           "
 
-      # Step 6: Run test shard
-      - name: Run test shard ${{ matrix.shard }}/${{ inputs.num_shards }}
+      # Step 6: Run distributed test shard (serial execution)
+      - name: Run distributed shard ${{ matrix.shard }}/${{ inputs.num_shards }}
         id: run_tests
         run: |
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
           source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
 
-          CASES_JSON="cases-shards/regular_cases_shard_${{ matrix.shard }}.json"
+          CASES_JSON="cases-shards/distributed_cases_shard_${{ matrix.shard }}.json"
           TOTAL_CASES=$(python3 -c "import json; d=json.load(open('${CASES_JSON}')); print(d['total_cases'])")
 
-          echo "=== Shard ${{ matrix.shard }}/${{ inputs.num_shards }} ==="
+          echo "=== Distributed Shard ${{ matrix.shard }}/${{ inputs.num_shards }} ==="
           echo "Total cases: ${TOTAL_CASES}"
           echo "Runner: linux-aarch64-a3-16 (16-card NPU)"
-          echo "Execution mode: CONCURRENT (16 workers)"
+          echo "Execution mode: SERIAL (distributed tests use all NPU devices)"
 
           set +e
           python ci-scripts/.github/scripts/run_npu_test_shard.py \
@@ -272,7 +323,7 @@ jobs:
             --max-workers 16 \
             --timeout 1200 \
             --verbose \
-            2>&1 | tee /tmp/test_shard_${{ matrix.shard }}.log
+            2>&1 | tee /tmp/test_dist_${{ matrix.shard }}.log
 
           TEST_STATUS=${PIPESTATUS[0]}
           set -e
@@ -305,7 +356,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-reports-shard-${{ matrix.shard }}
+          name: test-reports-dist-${{ matrix.shard }}
           path: test-reports/
           retention-days: 7
 
@@ -314,16 +365,16 @@ jobs:
         if: failure()
         run: |
           mkdir -p error-logs
-          cp /tmp/test_shard_${{ matrix.shard }}.log error-logs/ 2>/dev/null || true
-          tar -czf error-logs-shard-${{ matrix.shard }}.tar.gz error-logs/
-          echo "Error logs compressed: $(ls -lh error-logs-shard-${{ matrix.shard }}.tar.gz)"
+          cp /tmp/test_dist_${{ matrix.shard }}.log error-logs/ 2>/dev/null || true
+          tar -czf error-logs-dist-${{ matrix.shard }}.tar.gz error-logs/
+          echo "Error logs compressed: $(ls -lh error-logs-dist-${{ matrix.shard }}.tar.gz)"
 
       - name: Upload error logs
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: error-logs-shard-${{ matrix.shard }}
-          path: error-logs-shard-${{ matrix.shard }}.tar.gz
+          name: error-logs-dist-${{ matrix.shard }}
+          path: error-logs-dist-${{ matrix.shard }}.tar.gz
           retention-days: 7
 
       # Step 10: Summary
@@ -331,31 +382,227 @@ jobs:
         if: always()
         run: |
           {
-            echo "## Test Shard ${{ matrix.shard }}/${{ inputs.num_shards }}"
+            echo "## Distributed Shard ${{ matrix.shard }}/${{ inputs.num_shards }}"
             echo ""
             echo "| Item | Value |"
             echo "|------|-------|"
             echo "| Shard | ${{ matrix.shard }}/${{ inputs.num_shards }} |"
+            echo "| Type | Distributed (serial) |"
             echo "| Status | ${{ steps.run_tests.outputs.status || 'N/A' }} |"
           } >> "$GITHUB_STEP_SUMMARY"
 
   # ======================================================================
-  # Job 3: Report overall results
+  # Job 3: Run regular test shards (concurrent execution, 16 workers)
+  # ======================================================================
+  test_regular:
+    needs: collect
+    runs-on: linux-aarch64-a3-16
+    permissions:
+      id-token: write
+      contents: read
+    defaults:
+      run:
+        shell: bash
+    container:
+      image: quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly
+      options: --network host
+    env:
+      PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
+    strategy:
+      matrix:
+        shard: ${{ fromJson(needs.collect.outputs.regular_matrix) }}
+      fail-fast: false
+    steps:
+      # Step 0: Report in_progress (only first shard, only if no distributed tests)
+      - name: Report in_progress
+        if: ${{ inputs.report_to_upstream && matrix.shard == 1 && needs.collect.outputs.has_distributed != 'true' }}
+        continue-on-error: true
+        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@main
+        with:
+          status: in_progress
+
+      # Step 1: Download PyTorch source
+      - name: Compute SHAs
+        id: sha
+        run: |
+          UPSTREAM_SHORT="${{ inputs.resolved_short }}"
+          echo "source_tarball=pytorch-source-${UPSTREAM_SHORT}.tar.gz" >> "$GITHUB_OUTPUT"
+
+      - name: Download PyTorch source artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ steps.sha.outputs.source_tarball }}
+          path: .
+
+      - name: Extract PyTorch source
+        run: |
+          tar -xzf ${{ steps.sha.outputs.source_tarball }}
+          rm ${{ steps.sha.outputs.source_tarball }}
+          echo "PyTorch source extracted: $(du -sh pytorch/ | cut -f1)"
+
+      # Step 2: Download and install built wheels
+      - name: Download wheel artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: packages-pytorch-${{ inputs.resolved_short }}
+          path: /tmp/wheels
+
+      - name: Install wheels
+        run: |
+          pip install /tmp/wheels/torch-*.whl
+          pip install --no-deps /tmp/wheels/torch_npu*.whl
+
+      # Step 3: Download cases shard JSONs
+      - name: Download cases shard JSONs
+        uses: actions/download-artifact@v4
+        with:
+          name: cases-shards
+          path: cases-shards
+
+      # Step 4: Checkout this repo for test scripts
+      - name: Checkout test scripts
+        uses: actions/checkout@v6
+        with:
+          path: ci-scripts
+          ref: ci-test
+
+      # Step 5: Verify NPU environment
+      - name: Verify NPU environment
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          echo "=== NPU Device Information ==="
+          npu-smi info
+          echo "=== End of NPU Device Information ==="
+
+          python -c "
+          import torch
+          print(f'torch: {torch.__version__}')
+          import torch_npu
+          print(f'torch_npu: {torch_npu.__version__}')
+          print(f'NPU available: {torch.npu.is_available()}')
+          print(f'NPU count: {torch.npu.device_count()}')
+          "
+
+      # Step 6: Run regular test shard (concurrent execution)
+      - name: Run regular shard ${{ matrix.shard }}/${{ inputs.num_shards }}
+        id: run_tests
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          CASES_JSON="cases-shards/regular_cases_shard_${{ matrix.shard }}.json"
+          TOTAL_CASES=$(python3 -c "import json; d=json.load(open('${CASES_JSON}')); print(d['total_cases'])")
+
+          echo "=== Regular Shard ${{ matrix.shard }}/${{ inputs.num_shards }} ==="
+          echo "Total cases: ${TOTAL_CASES}"
+          echo "Runner: linux-aarch64-a3-16 (16-card NPU)"
+          echo "Execution mode: CONCURRENT (16 workers)"
+
+          set +e
+          python ci-scripts/.github/scripts/run_npu_test_shard.py \
+            --cases-json "${CASES_JSON}" \
+            --test-dir pytorch/test \
+            --report-dir test-reports \
+            --max-workers 16 \
+            --timeout 1200 \
+            --verbose \
+            2>&1 | tee /tmp/test_reg_${{ matrix.shard }}.log
+
+          TEST_STATUS=${PIPESTATUS[0]}
+          set -e
+          echo "status=${TEST_STATUS}" >> "$GITHUB_OUTPUT"
+
+      # Step 7: Package reports to save artifact space
+      - name: Package test reports
+        if: always()
+        run: |
+          if [ -d "test-reports/junit_xmls" ]; then
+            echo "=== Compressing junit XMLs ==="
+            XML_COUNT=$(find test-reports/junit_xmls -type f -name "*.xml" | wc -l)
+            echo "Found ${XML_COUNT} XML files"
+            tar -czf test-reports/junit_xmls.tar.gz -C test-reports junit_xmls
+            rm -rf test-reports/junit_xmls
+            echo "JUnit XMLs compressed: $(ls -lh test-reports/junit_xmls.tar.gz)"
+          fi
+
+          if [ -d "test-reports/cases_logs" ]; then
+            echo "=== Compressing cases logs ==="
+            LOGS_COUNT=$(find test-reports/cases_logs -type f | wc -l)
+            echo "Found ${LOGS_COUNT} case log files"
+            tar -czf test-reports/cases_logs.tar.gz -C test-reports cases_logs
+            rm -rf test-reports/cases_logs
+            echo "Cases logs compressed: $(ls -lh test-reports/cases_logs.tar.gz)"
+          fi
+
+      # Step 8: Upload test reports
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-reg-${{ matrix.shard }}
+          path: test-reports/
+          retention-days: 7
+
+      # Step 9: Upload error logs on failure
+      - name: Compress and upload error logs
+        if: failure()
+        run: |
+          mkdir -p error-logs
+          cp /tmp/test_reg_${{ matrix.shard }}.log error-logs/ 2>/dev/null || true
+          tar -czf error-logs-reg-${{ matrix.shard }}.tar.gz error-logs/
+          echo "Error logs compressed: $(ls -lh error-logs-reg-${{ matrix.shard }}.tar.gz)"
+
+      - name: Upload error logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: error-logs-reg-${{ matrix.shard }}
+          path: error-logs-reg-${{ matrix.shard }}.tar.gz
+          retention-days: 7
+
+      # Step 10: Summary
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Regular Shard ${{ matrix.shard }}/${{ inputs.num_shards }}"
+            echo ""
+            echo "| Item | Value |"
+            echo "|------|-------|"
+            echo "| Shard | ${{ matrix.shard }}/${{ inputs.num_shards }} |"
+            echo "| Type | Regular (concurrent, 16 workers) |"
+            echo "| Status | ${{ steps.run_tests.outputs.status || 'N/A' }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ======================================================================
+  # Job 4: Report overall results (aggregate distributed + regular)
   # ======================================================================
   report:
-    needs: [collect, test]
+    needs: [collect, test_distributed, test_regular]
     runs-on: ubuntu-latest
     if: always()
     steps:
-      # Step 1: Download all shard reports
-      - name: Download all shard reports
+      # Step 1: Download all distributed shard reports
+      - name: Download distributed shard reports
         uses: actions/download-artifact@v4
         with:
-          pattern: test-reports-shard-*
+          pattern: test-reports-dist-*
           path: all-test-reports
           merge-multiple: true
+        continue-on-error: true
 
-      # Step 2: Aggregate results
+      # Step 2: Download all regular shard reports
+      - name: Download regular shard reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-reports-reg-*
+          path: all-test-reports
+          merge-multiple: true
+        continue-on-error: true
+
+      # Step 3: Aggregate results
       - name: Aggregate results
         id: aggregate
         run: |
@@ -370,8 +617,11 @@ jobs:
               try:
                   with open(cases_file) as f:
                       data = json.load(f)
+                  shard_type = data.get('shard_type', data.get('test_type', 'unknown'))
+                  shard_num = data.get('shard', '?')
+                  shard_label = f'{\"dist\" if shard_type == \"distributed\" else \"reg\"}-{shard_num}'
                   shard_stats = {
-                      'shard': data.get('shard', '?'),
+                      'shard': shard_label,
                       'passed': data.get('passed', 0),
                       'failed': data.get('failed', 0),
                       'errors': data.get('errors', 0),
@@ -398,12 +648,11 @@ jobs:
                 f'{stats[\"errors\"]} errors, {stats[\"skipped\"]} skipped, '
                 f'{stats[\"total\"]} total')
 
-          # Write shard summaries for GITHUB_STEP_SUMMARY
           with open('/tmp/shard_summaries.json', 'w') as f:
               json.dump(shard_summaries, f)
           "
 
-      # Step 3: Report completed to dashboard
+      # Step 4: Report completed to dashboard
       - name: Report completed
         if: always() && inputs.report_to_upstream
         continue-on-error: true
@@ -419,7 +668,7 @@ jobs:
               "total": ${{ steps.aggregate.outputs.total }}
             }
 
-      # Step 4: Summary
+      # Step 5: Summary
       - name: Summary
         if: always()
         run: |
