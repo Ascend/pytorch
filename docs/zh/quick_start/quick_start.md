@@ -4,7 +4,7 @@
 
 本快速入门以在Atlas 800T A2 训练服务器上运行为例。
 
-- 安装配套版本的NPU驱动固件、CANN软件（Toolkit、ops和NNAL），具体请参考《[CANN 软件安装](https://www.hiascend.com/document/detail/zh/canncommercial/900/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum)》（商用版）或《[CANN 软件安装](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/900/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum)》（社区版）：
+- 安装配套版本的NPU驱动固件、CANN软件（Toolkit、ops和NNAL），具体请参考《[CANN 软件安装](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/900/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum)》：
     - 操作系统：选择可用的操作系统（兼容性请参考[兼容性查询助手](https://www.hiascend.com/hardware/compatibility)）
     - 安装类型：选择“离线安装”
 - 安装PyTorch框架及TorchNPU插件，具体请参考《[软件安装](../installation_guide/installation_description.md)》。
