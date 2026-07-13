@@ -10,8 +10,13 @@ on:
         required: false
         default: 'test_functionalization.py'
         type: string
-      num_shards:
-        description: 'Number of parallel machines'
+      distributed_shards:
+        description: 'Number of parallel machines for distributed tests'
+        required: false
+        default: '5'
+        type: string
+      regular_shards:
+        description: 'Number of parallel machines for regular tests'
         required: false
         default: '5'
         type: string
@@ -42,5 +47,6 @@ jobs:
     with:
       resolved_short: ${{ needs.build.outputs.resolved_short }}
       test_files: ${{ inputs.test_files || 'test_functionalization.py' }}
-      num_shards: ${{ inputs.num_shards || '5' }}
+      distributed_shards: ${{ inputs.distributed_shards || '5' }}
+      regular_shards: ${{ inputs.regular_shards || '5' }}
       report_to_upstream: false
