@@ -7,5 +7,5 @@
 
 |API Name|Supported|Restrictions and Notes|
 |--|--|--|
-|[torch.\_\_config\_\_.show](https://pytorch.org/docs/2.7/config_mod.html#torch.__config__.show)|Yes|-|
-|[torch.\_\_config\_\_.parallel_info](https://pytorch.org/docs/2.7/config_mod.html#torch.__config__.parallel_info)|Yes|-|
+|torch.\_\_config\_\_.show|Yes|-|
+|torch.\_\_config\_\_.parallel_info|Yes|-|

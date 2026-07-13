@@ -7,46 +7,46 @@
 
 |API Name|Supported|Restrictions and Notes|
 |--|--|--|
-|[torch.autograd.Function](https://pytorch.org/docs/2.7/autograd.html#torch.autograd.Function)|Yes|-|
-|[torch.autograd.profiler.profile](https://pytorch.org/docs/2.7/autograd.html#torch.autograd.profiler.profile)|Yes|When collecting profiling data on the NPU, "use_device" must be set to "npu"|
-|[torch.autograd.profiler.emit_nvtx](https://pytorch.org/docs/2.7/autograd.html#torch.autograd.profiler.emit_nvtx)|No|-|
-|[torch.autograd.profiler.emit_itt](https://pytorch.org/docs/2.7/autograd.html#torch.autograd.profiler.emit_itt)|No|-|
-|[torch.autograd.detect_anomaly](https://pytorch.org/docs/2.7/autograd.html#torch.autograd.detect_anomaly)|Yes|-|
-|[torch.autograd.set_detect_anomaly](https://pytorch.org/docs/2.7/autograd.html#torch.autograd.set_detect_anomaly)|Yes|-|
-|[torch.autograd.graph.saved_tensors_hooks](https://pytorch.org/docs/2.7/autograd.html#torch.autograd.graph.saved_tensors_hooks)|Yes|-|
-|[torch.autograd.graph.save_on_cpu](https://pytorch.org/docs/2.7/autograd.html#torch.autograd.graph.save_on_cpu)|Yes|-|
-|[torch.autograd.graph.disable_saved_tensors_hooks](https://pytorch.org/docs/2.7/autograd.html#torch.autograd.graph.disable_saved_tensors_hooks)|Yes|-|
-|[torch.autograd.graph.register_multi_grad_hook](https://pytorch.org/docs/2.7/autograd.html#torch.autograd.graph.register_multi_grad_hook)|Yes|-|
-|[torch.autograd.graph.allow_mutation_on_saved_tensors](https://pytorch.org/docs/2.7/autograd.html#torch.autograd.graph.allow_mutation_on_saved_tensors)|Yes|Supports FP32|
-|[torch.autograd.backward](https://pytorch.org/docs/2.7/generated/torch.autograd.backward.html)|Yes|Supports BF16, FP16, FP32, FP64<br>Sparse tensors are not supported|
-|[torch.autograd.grad](https://pytorch.org/docs/2.7/generated/torch.autograd.grad.html)|Yes|-|
-|[torch.autograd.forward_ad.dual_level](https://pytorch.org/docs/2.7/generated/torch.autograd.forward_ad.dual_level.html)|Yes|-|
-|[torch.autograd.forward_ad.make_dual](https://pytorch.org/docs/2.7/generated/torch.autograd.forward_ad.make_dual.html)|Yes|Supports FP32|
-|[torch.autograd.forward_ad.unpack_dual](https://pytorch.org/docs/2.7/generated/torch.autograd.forward_ad.unpack_dual.html)|Yes|Supports FP32|
-|[torch.autograd.functional.jacobian](https://pytorch.org/docs/2.7/generated/torch.autograd.functional.jacobian.html)|Yes|Supports FP32|
-|[torch.autograd.functional.hessian](https://pytorch.org/docs/2.7/generated/torch.autograd.functional.hessian.html)|Yes|Supports FP32|
-|[torch.autograd.functional.vjp](https://pytorch.org/docs/2.7/generated/torch.autograd.functional.vjp.html)|Yes|Supports FP32|
-|[torch.autograd.functional.jvp](https://pytorch.org/docs/2.7/generated/torch.autograd.functional.jvp.html)|Yes|Supports FP32|
-|[torch.autograd.functional.vhp](https://pytorch.org/docs/2.7/generated/torch.autograd.functional.vhp.html)|Yes|Supports FP32|
-|[torch.autograd.functional.hvp](https://pytorch.org/docs/2.7/generated/torch.autograd.functional.hvp.html)|Yes|Supports FP32|
-|[Function.forward](https://pytorch.org/docs/2.7/generated/torch.autograd.Function.forward.html)|Yes|-|
-|[Function.backward](https://pytorch.org/docs/2.7/generated/torch.autograd.Function.backward.html)|Yes|-|
-|[Function.jvp](https://pytorch.org/docs/2.7/generated/torch.autograd.Function.jvp.html)|Yes|-|
-|[Function.vmap](https://pytorch.org/docs/2.7/generated/torch.autograd.Function.vmap.html)|Yes|-|
-|[FunctionCtx.mark_dirty](https://pytorch.org/docs/2.7/generated/torch.autograd.function.FunctionCtx.mark_dirty.html)|Yes|-|
-|[FunctionCtx.mark_non_differentiable](https://pytorch.org/docs/2.7/generated/torch.autograd.function.FunctionCtx.mark_non_differentiable.html)|Yes|-|
-|[FunctionCtx.save_for_backward](https://pytorch.org/docs/2.7/generated/torch.autograd.function.FunctionCtx.save_for_backward.html)|Yes|-|
-|[FunctionCtx.set_materialize_grads](https://pytorch.org/docs/2.7/generated/torch.autograd.function.FunctionCtx.set_materialize_grads.html)|Yes|-|
-|[torch.autograd.gradcheck.gradcheck](https://pytorch.org/docs/2.7/generated/torch.autograd.gradcheck.gradcheck.html)|Yes|-|
-|[torch.autograd.gradcheck.gradgradcheck](https://pytorch.org/docs/2.7/generated/torch.autograd.gradcheck.gradgradcheck.html)|Yes|-|
-|[profile.export_chrome_trace](https://pytorch.org/docs/2.7/generated/torch.autograd.profiler.profile.export_chrome_trace.html)|Yes|-|
-|[profile.key_averages](https://pytorch.org/docs/2.7/generated/torch.autograd.profiler.profile.key_averages.html)|Yes|-|
-|[profile.self_cpu_time_total](https://pytorch.org/docs/2.7/generated/torch.autograd.profiler.profile.self_cpu_time_total.html)|Yes|-|
-|[profile.total_average](https://pytorch.org/docs/2.7/generated/torch.autograd.profiler.profile.total_average.html)|Yes|-|
-|[torch.autograd.profiler.load_nvprof](https://pytorch.org/docs/2.7/generated/torch.autograd.profiler.load_nvprof.html)|No|-|
-|[torch.autograd.grad_mode.set_multithreading_enabled](https://pytorch.org/docs/2.7/generated/torch.autograd.grad_mode.set_multithreading_enabled.html)|Yes|-|
-|[Node.name](https://pytorch.org/docs/2.7/generated/torch.autograd.graph.Node.name.html)|Yes|-|
-|[Node.metadata](https://pytorch.org/docs/2.7/generated/torch.autograd.graph.Node.metadata.html)|Yes|-|
-|[Node.next_functions](https://pytorch.org/docs/2.7/generated/torch.autograd.graph.Node.next_functions.html)|Yes|-|
-|[Node.register_hook](https://pytorch.org/docs/2.7/generated/torch.autograd.graph.Node.register_hook.html)|Yes|-|
-|[Node.register_prehook](https://pytorch.org/docs/2.7/generated/torch.autograd.graph.Node.register_prehook.html)|Yes|-|
+|torch.autograd.Function|Yes|-|
+|torch.autograd.profiler.profile|Yes|When collecting profiling data on the NPU, "use_device" must be set to "npu"|
+|torch.autograd.profiler.emit_nvtx|No|-|
+|torch.autograd.profiler.emit_itt|No|-|
+|torch.autograd.detect_anomaly|Yes|-|
+|torch.autograd.set_detect_anomaly|Yes|-|
+|torch.autograd.graph.saved_tensors_hooks|Yes|-|
+|torch.autograd.graph.save_on_cpu|Yes|-|
+|torch.autograd.graph.disable_saved_tensors_hooks|Yes|-|
+|torch.autograd.graph.register_multi_grad_hook|Yes|-|
+|torch.autograd.graph.allow_mutation_on_saved_tensors|Yes|Supports FP32|
+|torch.autograd.backward|Yes|Supports BF16, FP16, FP32, FP64<br>Sparse tensors are not supported|
+|torch.autograd.grad|Yes|-|
+|torch.autograd.forward_ad.dual_level|Yes|-|
+|torch.autograd.forward_ad.make_dual|Yes|Supports FP32|
+|torch.autograd.forward_ad.unpack_dual|Yes|Supports FP32|
+|torch.autograd.functional.jacobian|Yes|Supports FP32|
+|torch.autograd.functional.hessian|Yes|Supports FP32|
+|torch.autograd.functional.vjp|Yes|Supports FP32|
+|torch.autograd.functional.jvp|Yes|Supports FP32|
+|torch.autograd.functional.vhp|Yes|Supports FP32|
+|torch.autograd.functional.hvp|Yes|Supports FP32|
+|Function.forward|Yes|-|
+|Function.backward|Yes|-|
+|Function.jvp|Yes|-|
+|Function.vmap|Yes|-|
+|FunctionCtx.mark_dirty|Yes|-|
+|FunctionCtx.mark_non_differentiable|Yes|-|
+|FunctionCtx.save_for_backward|Yes|-|
+|FunctionCtx.set_materialize_grads|Yes|-|
+|torch.autograd.gradcheck.gradcheck|Yes|-|
+|torch.autograd.gradcheck.gradgradcheck|Yes|-|
+|profile.export_chrome_trace|Yes|-|
+|profile.key_averages|Yes|-|
+|profile.self_cpu_time_total|Yes|-|
+|profile.total_average|Yes|-|
+|torch.autograd.profiler.load_nvprof|No|-|
+|torch.autograd.grad_mode.set_multithreading_enabled|Yes|-|
+|Node.name|Yes|-|
+|Node.metadata|Yes|-|
+|Node.next_functions|Yes|-|
+|Node.register_hook|Yes|-|
+|Node.register_prehook|Yes|-|

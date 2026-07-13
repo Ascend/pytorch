@@ -7,6 +7,6 @@
 
 |API Name|Supported|Restrictions and Notes|
 |--|--|--|
-|[torch.dtype](https://pytorch.org/docs/2.9/tensor_attributes.html#torch.dtype)|Yes|-|
-|[torch.device](https://pytorch.org/docs/2.9/tensor_attributes.html#torch.device)|Yes|-|
-|[torch.layout](https://pytorch.org/docs/2.9/tensor_attributes.html#torch.layout)|Yes|-|
+|torch.dtype|Yes|-|
+|torch.device|Yes|-|
+|torch.layout|Yes|-|

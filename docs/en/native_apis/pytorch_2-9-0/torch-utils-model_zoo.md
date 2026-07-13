@@ -7,4 +7,4 @@
 
 |API Name|Supported|Restrictions and Notes|
 |--|--|--|
-|[torch.utils.model_zoo.load_url](https://pytorch.org/docs/2.9/model_zoo.html#torch.utils.model_zoo.load_url)|Yes|-|
+|torch.utils.model_zoo.load_url|Yes|-|

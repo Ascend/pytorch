@@ -7,18 +7,18 @@
 
 |API Name|Supported|Restrictions and Notes|
 |--|--|--|
-|[torch.distributed.optim.DistributedOptimizer](https://pytorch.org/docs/2.9/distributed.optim.html#torch.distributed.optim.DistributedOptimizer)|No|-|
-|[torch.distributed.optim.DistributedOptimizer.step](https://pytorch.org/docs/2.9/distributed.optim.html#torch.distributed.optim.DistributedOptimizer.step)|No|-|
-|[torch.distributed.optim.PostLocalSGDOptimizer](https://pytorch.org/docs/2.9/distributed.optim.html#torch.distributed.optim.PostLocalSGDOptimizer)|Yes|-|
-|[torch.distributed.optim.PostLocalSGDOptimizer.load_state_dict](https://pytorch.org/docs/2.9/distributed.optim.html#torch.distributed.optim.PostLocalSGDOptimizer.load_state_dict)|Yes|-|
-|[torch.distributed.optim.PostLocalSGDOptimizer.state_dict](https://pytorch.org/docs/2.9/distributed.optim.html#torch.distributed.optim.PostLocalSGDOptimizer.state_dict)|Yes|-|
-|[torch.distributed.optim.PostLocalSGDOptimizer.step](https://pytorch.org/docs/2.9/distributed.optim.html#torch.distributed.optim.PostLocalSGDOptimizer.step)|Yes|-|
-|[torch.distributed.optim.ZeroRedundancyOptimizer](https://pytorch.org/docs/2.9/distributed.optim.html#torch.distributed.optim.ZeroRedundancyOptimizer)|Yes|The supported input type is the torch.nn.Optimizer object<br>NPU fused optimizer objects are not supported|
-|[torch.distributed.optim.ZeroRedundancyOptimizer.add_param_group](https://pytorch.org/docs/2.9/distributed.optim.html#torch.distributed.optim.ZeroRedundancyOptimizer.add_param_group)|Yes|-|
-|[torch.distributed.optim.ZeroRedundancyOptimizer.consolidate_state_dict](https://pytorch.org/docs/2.9/distributed.optim.html#torch.distributed.optim.ZeroRedundancyOptimizer.consolidate_state_dict)|Yes|-|
-|[torch.distributed.optim.ZeroRedundancyOptimizer.join_device](https://pytorch.org/docs/2.9/distributed.optim.html#torch.distributed.optim.ZeroRedundancyOptimizer.join_device)|Yes|-|
-|[torch.distributed.optim.ZeroRedundancyOptimizer.join_hook](https://pytorch.org/docs/2.9/distributed.optim.html#torch.distributed.optim.ZeroRedundancyOptimizer.join_hook)|Yes|-|
-|[torch.distributed.optim.ZeroRedundancyOptimizer.join_process_group](https://pytorch.org/docs/2.9/distributed.optim.html#torch.distributed.optim.ZeroRedundancyOptimizer.join_process_group)|Yes|-|
-|[torch.distributed.optim.ZeroRedundancyOptimizer.load_state_dict](https://pytorch.org/docs/2.9/distributed.optim.html#torch.distributed.optim.ZeroRedundancyOptimizer.load_state_dict)|Yes|-|
-|[torch.distributed.optim.ZeroRedundancyOptimizer.state_dict](https://pytorch.org/docs/2.9/distributed.optim.html#torch.distributed.optim.ZeroRedundancyOptimizer.state_dict)|Yes|-|
-|[torch.distributed.optim.ZeroRedundancyOptimizer.step](https://pytorch.org/docs/2.9/distributed.optim.html#torch.distributed.optim.ZeroRedundancyOptimizer.step)|Yes|-|
+|torch.distributed.optim.DistributedOptimizer|No|-|
+|torch.distributed.optim.DistributedOptimizer.step|No|-|
+|torch.distributed.optim.PostLocalSGDOptimizer|Yes|-|
+|torch.distributed.optim.PostLocalSGDOptimizer.load_state_dict|Yes|-|
+|torch.distributed.optim.PostLocalSGDOptimizer.state_dict|Yes|-|
+|torch.distributed.optim.PostLocalSGDOptimizer.step|Yes|-|
+|torch.distributed.optim.ZeroRedundancyOptimizer|Yes|The supported input type is the torch.nn.Optimizer object<br>NPU fused optimizer objects are not supported|
+|torch.distributed.optim.ZeroRedundancyOptimizer.add_param_group|Yes|-|
+|torch.distributed.optim.ZeroRedundancyOptimizer.consolidate_state_dict|Yes|-|
+|torch.distributed.optim.ZeroRedundancyOptimizer.join_device|Yes|-|
+|torch.distributed.optim.ZeroRedundancyOptimizer.join_hook|Yes|-|
+|torch.distributed.optim.ZeroRedundancyOptimizer.join_process_group|Yes|-|
+|torch.distributed.optim.ZeroRedundancyOptimizer.load_state_dict|Yes|-|
+|torch.distributed.optim.ZeroRedundancyOptimizer.state_dict|Yes|-|
+|torch.distributed.optim.ZeroRedundancyOptimizer.step|Yes|-|

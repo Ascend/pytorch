@@ -7,10 +7,10 @@
 
 |API Name|Supported|Restrictions and Notes|
 |--|--|--|
-|[torch.export.export](https://pytorch.org/docs/2.9/export.html#torch.export.export)|No|-|
-|[torch.export.save](https://pytorch.org/docs/2.9/export.html#torch.export.save)|No|-|
-|[torch.export.load](https://pytorch.org/docs/2.9/export.html#torch.export.load)|No|-|
-|[torch.export.ExportedProgram](https://pytorch.org/docs/2.9/export.html#torch.export.ExportedProgram)|No|-|
-|[torch.export.ExportedProgram.module](https://pytorch.org/docs/2.9/export.html#torch.export.ExportedProgram.module)|No|-|
-|[torch.export.exported_program.ModuleCallSignature](https://pytorch.org/docs/2.9/export.html#torch.export.exported_program.ModuleCallSignature)|No|-|
-|[torch.export.exported_program.ModuleCallEntry](https://pytorch.org/docs/2.9/export.html#torch.export.exported_program.ModuleCallEntry)|No|-|
+|torch.export.export|No|-|
+|torch.export.save|No|-|
+|torch.export.load|No|-|
+|torch.export.ExportedProgram|No|-|
+|torch.export.ExportedProgram.module|No|-|
+|torch.export.exported_program.ModuleCallSignature|No|-|
+|torch.export.exported_program.ModuleCallEntry|No|-|

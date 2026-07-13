@@ -7,10 +7,10 @@
 
 |API Name|Supported|Restrictions and Notes|
 |--|--|--|
-|[torch.cpu.current_stream](https://pytorch.org/docs/2.7/generated/torch.cpu.current_stream.html)|Yes|-|
-|[torch.cpu.is_available](https://pytorch.org/docs/2.7/generated/torch.cpu.is_available.html)|Yes|-|
-|[torch.cpu.synchronize](https://pytorch.org/docs/2.7/generated/torch.cpu.synchronize.html)|Yes|-|
-|[torch.cpu.stream](https://pytorch.org/docs/2.7/generated/torch.cpu.stream.html)|Yes|-|
-|[torch.cpu.device_count](https://pytorch.org/docs/2.7/generated/torch.cpu.device_count.html)|Yes|-|
-|[torch.cpu.StreamContext](https://pytorch.org/docs/2.7/generated/torch.cpu.StreamContext.html)|Yes|-|
-|[torch.cpu.Stream](https://pytorch.org/docs/2.7/cpu.html#torch.cpu.Stream)|Yes|-|
+|torch.cpu.current_stream|Yes|-|
+|torch.cpu.is_available|Yes|-|
+|torch.cpu.synchronize|Yes|-|
+|torch.cpu.stream|Yes|-|
+|torch.cpu.device_count|Yes|-|
+|torch.cpu.StreamContext|Yes|-|
+|torch.cpu.Stream|Yes|-|

@@ -7,13 +7,13 @@
 
 |API Name|Supported|Restrictions and Notes|
 |--|--|--|
-|[torch.export.export](https://pytorch.org/docs/2.7/export.html#torch.export.export)|No|-|
-|[torch.export.save](https://pytorch.org/docs/2.7/export.html#torch.export.save)|No|-|
-|[torch.export.load](https://pytorch.org/docs/2.7/export.html#torch.export.load)|No|-|
-|[torch.export.Constraint](https://pytorch.org/docs/2.7/export.html#torch.export.Constraint)|No|-|
-|[torch.export.ExportedProgram](https://pytorch.org/docs/2.7/export.html#torch.export.ExportedProgram)|No|-|
-|[torch.export.ExportedProgram.module](https://pytorch.org/docs/2.7/export.html#torch.export.ExportedProgram.module)|No|-|
-|[torch.export.ExportBackwardSignature](https://pytorch.org/docs/2.7/export.html#torch.export.ExportBackwardSignature)|No|-|
-|[torch.export.ExportGraphSignature](https://pytorch.org/docs/2.7/export.html#torch.export.ExportGraphSignature)|No|-|
-|[torch.export.ModuleCallSignature](https://pytorch.org/docs/2.7/export.html#torch.export.ModuleCallSignature)|No|-|
-|[torch.export.ModuleCallEntry](https://pytorch.org/docs/2.7/export.html#torch.export.ModuleCallEntry)|No|-|
+|torch.export.export|No|-|
+|torch.export.save|No|-|
+|torch.export.load|No|-|
+|torch.export.Constraint|No|-|
+|torch.export.ExportedProgram|No|-|
+|torch.export.ExportedProgram.module|No|-|
+|torch.export.ExportBackwardSignature|No|-|
+|torch.export.ExportGraphSignature|No|-|
+|torch.export.ModuleCallSignature|No|-|
+|torch.export.ModuleCallEntry|No|-|

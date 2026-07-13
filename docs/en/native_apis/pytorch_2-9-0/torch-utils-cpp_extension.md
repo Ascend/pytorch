@@ -7,12 +7,12 @@
 
 |API Name|Supported|Restrictions and Notes|
 |--|--|--|
-|[torch.utils.cpp_extension.CppExtension](https://pytorch.org/docs/2.9/cpp_extension.html#torch.utils.cpp_extension.CppExtension)|Yes|-|
-|[torch.utils.cpp_extension.CUDAExtension](https://pytorch.org/docs/2.9/cpp_extension.html#torch.utils.cpp_extension.CUDAExtension)|Yes|-|
-|[torch.utils.cpp_extension.BuildExtension](https://pytorch.org/docs/2.9/cpp_extension.html#torch.utils.cpp_extension.BuildExtension)|Yes|-|
-|[torch.utils.cpp_extension.load](https://pytorch.org/docs/2.9/cpp_extension.html#torch.utils.cpp_extension.load)|No|-|
-|[torch.utils.cpp_extension.load_inline](https://pytorch.org/docs/2.9/cpp_extension.html#torch.utils.cpp_extension.load_inline)|Yes|-|
-|[torch.utils.cpp_extension.include_paths](https://pytorch.org/docs/2.9/cpp_extension.html#torch.utils.cpp_extension.include_paths)|Yes|-|
-|[torch.utils.cpp_extension.get_compiler_abi_compatibility_and_version](https://pytorch.org/docs/2.9/cpp_extension.html#torch.utils.cpp_extension.get_compiler_abi_compatibility_and_version)|Yes|-|
-|[torch.utils.cpp_extension.verify_ninja_availability](https://pytorch.org/docs/2.9/cpp_extension.html#torch.utils.cpp_extension.verify_ninja_availability)|Yes|-|
-|[torch.utils.cpp_extension.is_ninja_available](https://pytorch.org/docs/2.9/cpp_extension.html#torch.utils.cpp_extension.is_ninja_available)|Yes|-|
+|torch.utils.cpp_extension.CppExtension|Yes|-|
+|torch.utils.cpp_extension.CUDAExtension|Yes|-|
+|torch.utils.cpp_extension.BuildExtension|Yes|-|
+|torch.utils.cpp_extension.load|No|-|
+|torch.utils.cpp_extension.load_inline|Yes|-|
+|torch.utils.cpp_extension.include_paths|Yes|-|
+|torch.utils.cpp_extension.get_compiler_abi_compatibility_and_version|Yes|-|
+|torch.utils.cpp_extension.verify_ninja_availability|Yes|-|
+|torch.utils.cpp_extension.is_ninja_available|Yes|-|

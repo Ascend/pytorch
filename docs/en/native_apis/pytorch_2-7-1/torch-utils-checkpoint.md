@@ -7,9 +7,9 @@
 
 |API Name|Supported|Restrictions and Notes|
 |--|--|--|
-|[torch.utils.checkpoint.checkpoint](https://pytorch.org/docs/2.7/checkpoint.html#torch.utils.checkpoint.checkpoint)|Yes|-|
-|[torch.utils.checkpoint.CheckpointPolicy](https://pytorch.org/docs/2.7/checkpoint.html#torch.utils.checkpoint.CheckpointPolicy)|Yes|-|
-|[torch.utils.checkpoint.SelectiveCheckpointContext](https://pytorch.org/docs/2.7/checkpoint.html#torch.utils.checkpoint.SelectiveCheckpointContext)|Yes|-|
-|[torch.utils.checkpoint.create_selective_checkpoint_contexts](https://pytorch.org/docs/2.7/checkpoint.html#torch.utils.checkpoint.create_selective_checkpoint_contexts)|Yes|-|
-|[torch.utils.checkpoint.set_checkpoint_debug_enabled](https://pytorch.org/docs/2.7/checkpoint.html#torch.utils.checkpoint.set_checkpoint_debug_enabled)|Yes|-|
-|[torch.utils.checkpoint.checkpoint_sequential](https://pytorch.org/docs/2.7/checkpoint.html#torch.utils.checkpoint.checkpoint_sequential)|Yes|Supports fp32|
+|torch.utils.checkpoint.checkpoint|Yes|-|
+|torch.utils.checkpoint.CheckpointPolicy|Yes|-|
+|torch.utils.checkpoint.SelectiveCheckpointContext|Yes|-|
+|torch.utils.checkpoint.create_selective_checkpoint_contexts|Yes|-|
+|torch.utils.checkpoint.set_checkpoint_debug_enabled|Yes|-|
+|torch.utils.checkpoint.checkpoint_sequential|Yes|Supports fp32|

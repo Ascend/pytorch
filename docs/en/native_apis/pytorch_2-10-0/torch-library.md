@@ -7,7 +7,7 @@
 
 |API Name|Supported|Restrictions and Notes|
 |--|--|--|
-|[torch.library.Library](https://pytorch.org/docs/2.10/library.html#torch.library.Library)|Yes|-|
-|[torch.library.Library.define](https://pytorch.org/docs/2.10/library.html#torch.library.Library.define)|Yes|-|
-|[torch.library.Library.impl](https://pytorch.org/docs/2.10/library.html#torch.library.Library.impl)|Yes|-|
-|[torch.library.fallthrough_kernel](https://pytorch.org/docs/2.10/library.html#torch.library.fallthrough_kernel)|Yes|-|
+|torch.library.Library|Yes|-|
+|torch.library.Library.define|Yes|-|
+|torch.library.Library.impl|Yes|-|
+|torch.library.fallthrough_kernel|Yes|-|

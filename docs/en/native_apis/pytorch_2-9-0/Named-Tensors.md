@@ -7,11 +7,11 @@
 
 |API Name|Supported|Restrictions and Notes|
 |--|--|--|
-|[torch.Tensor](https://pytorch.org/docs/2.9/named_tensor.html#torch.Tensor)|Yes|fp32 supported|
-|[names](https://pytorch.org/docs/2.9/named_tensor.html#torch.Tensor.names)|Yes|fp32 supported|
-|[rename](https://pytorch.org/docs/2.9/named_tensor.html#torch.Tensor.rename)|Yes|fp32 supported|
-|[rename_](https://pytorch.org/docs/2.9/named_tensor.html#torch.Tensor.rename_)|Yes|fp32 supported|
-|[refine_names](https://pytorch.org/docs/2.9/named_tensor.html#torch.Tensor.refine_names)|Yes|fp32 supported|
-|[align_as](https://pytorch.org/docs/2.9/named_tensor.html#torch.Tensor.align_as)|Yes|fp32 supported|
-|[align_to](https://pytorch.org/docs/2.9/named_tensor.html#torch.Tensor.align_to)|Yes|fp32 supported|
-|[flatten](https://pytorch.org/docs/2.9/named_tensor.html#torch.Tensor.flatten)|Yes|fp32 supported|
+|torch.Tensor|Yes|fp32 supported|
+|names|Yes|fp32 supported|
+|rename|Yes|fp32 supported|
+|rename_|Yes|fp32 supported|
+|refine_names|Yes|fp32 supported|
+|align_as|Yes|fp32 supported|
+|align_to|Yes|fp32 supported|
+|flatten|Yes|fp32 supported|

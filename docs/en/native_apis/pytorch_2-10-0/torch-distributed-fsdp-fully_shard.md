@@ -7,4 +7,4 @@
 
 |API Name|Supported|Restrictions and Notes|
 |--|--|--|
-|[torch.distributed.fsdp.fully_shard](https://pytorch.org/docs/2.10/distributed.fsdp.fully_shard.html#torch.distributed.fsdp.fully_shard)|Yes|Supports bf16, fp16, fp32|
+|torch.distributed.fsdp.fully_shard|Yes|Supports bf16, fp16, fp32|

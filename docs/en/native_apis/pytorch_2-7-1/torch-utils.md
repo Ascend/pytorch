@@ -7,6 +7,6 @@
 
 |API Name|Supported|Restrictions and Notes|
 |--|--|--|
-|[torch.utils.rename_privateuse1_backend](https://pytorch.org/docs/2.7/generated/torch.utils.rename_privateuse1_backend.html)|Yes|-|
-|[torch.utils.generate_methods_for_privateuse1_backend](https://pytorch.org/docs/2.7/generated/torch.utils.generate_methods_for_privateuse1_backend.html)|No|-|
-|[torch.utils.get_cpp_backtrace](https://pytorch.org/docs/2.7/generated/torch.utils.get_cpp_backtrace.html)|No|-|
+|torch.utils.rename_privateuse1_backend|Yes|-|
+|torch.utils.generate_methods_for_privateuse1_backend|No|-|
+|torch.utils.get_cpp_backtrace|No|-|

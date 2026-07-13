@@ -8,6 +8,6 @@
 
 |API Name|Supported|Restrictions and Notes|
 |--|--|--|
-|[torch.testing.assert_close](https://pytorch.org/docs/2.10/testing.html#torch.testing.assert_close)|Yes|Supports FP32|
-|[torch.testing.make_tensor](https://pytorch.org/docs/2.10/testing.html#torch.testing.make_tensor)|Yes|Supports FP32, bool|
-|[torch.testing.assert_allclose](https://pytorch.org/docs/2.10/testing.html#torch.testing.assert_allclose)|Yes|Supports FP32|
+|torch.testing.assert_close|Yes|Supports FP32|
+|torch.testing.make_tensor|Yes|Supports FP32, bool|
+|torch.testing.assert_allclose|Yes|Supports FP32|

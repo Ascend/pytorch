@@ -8,5 +8,5 @@
 
 |API Name|Supported|Restrictions and Notes|
 |--|--|--|
-|[torch.utils.dlpack.from_dlpack](https://pytorch.org/docs/2.10/dlpack.html#torch.utils.dlpack.from_dlpack)|No|-|
-|[torch.utils.dlpack.to_dlpack](https://pytorch.org/docs/2.10/dlpack.html#torch.utils.dlpack.to_dlpack)|No|-|
+|torch.utils.dlpack.from_dlpack|No|-|
+|torch.utils.dlpack.to_dlpack|No|-|

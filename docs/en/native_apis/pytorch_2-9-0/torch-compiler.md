@@ -7,9 +7,9 @@
 
 |API Name|Supported|Restrictions and Notes|
 |--|--|--|
-|[torch.compiler.compile](https://pytorch.org/docs/2.9/generated/torch.compiler.compile.html)|No|-|
-|[torch.compiler.reset](https://pytorch.org/docs/2.9/generated/torch.compiler.reset.html)|No|-|
-|[torch.compiler.allow_in_graph](https://pytorch.org/docs/2.9/generated/torch.compiler.allow_in_graph.html)|No|-|
-|[torch.compiler.assume_constant_result](https://pytorch.org/docs/2.9/generated/torch.compiler.assume_constant_result.html)|No|-|
-|[torch.compiler.list_backends](https://pytorch.org/docs/2.9/generated/torch.compiler.list_backends.html)|No|-|
-|[torch.compiler.disable](https://pytorch.org/docs/2.9/generated/torch.compiler.disable.html)|No|-|
+|torch.compiler.compile|No|-|
+|torch.compiler.reset|No|-|
+|torch.compiler.allow_in_graph|No|-|
+|torch.compiler.assume_constant_result|No|-|
+|torch.compiler.list_backends|No|-|
+|torch.compiler.disable|No|-|

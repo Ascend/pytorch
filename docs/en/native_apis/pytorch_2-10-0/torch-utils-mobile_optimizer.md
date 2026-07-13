@@ -8,4 +8,4 @@
 
 |API Name|Supported|Restrictions and Notes|
 |--|--|--|
-|[torch.utils.mobile_optimizer.optimize_for_mobile](https://pytorch.org/docs/2.10/mobile_optimizer.html#torch.utils.mobile_optimizer.optimize_for_mobile)|No|-|
+|torch.utils.mobile_optimizer.optimize_for_mobile|No|-|

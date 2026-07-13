@@ -7,5 +7,5 @@
 
 |API Name|Supported|Limitations and Notes|
 |--|--|--|
-|[torch.finfo](https://pytorch.org/docs/2.10/type_info.html#torch.torch.finfo)|Yes|-|
-|[torch.iinfo](https://pytorch.org/docs/2.10/type_info.html#torch.torch.iinfo)|Yes|-|
+|torch.finfo|Yes|-|
+|torch.iinfo|Yes|-|
