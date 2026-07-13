@@ -62,22 +62,6 @@ jobs:
           echo "Package size: $(du -h ${TARBALL} | cut -f1)"
           echo "TARBALL=${TARBALL}" >> "$GITHUB_ENV"
 
-      - name: Authenticate to Huawei Cloud
-        uses: huaweicloud/auth-action@v1.1.0
-        with:
-          access_key_id: ${{ secrets.ACCESSKEY }}
-          secret_access_key: ${{ secrets.SECRETACCESSKEY }}
-          region: cn-north-4
-
-      - name: Upload PyTorch source to OBS
-        uses: huaweicloud/obs-helper@v1.0.1
-        with:
-          region: cn-north-4
-          bucket_name: pytorch-cache
-          local_file_path: ./${{ env.TARBALL }}
-          obs_file_path: 7day-cache/${{ env.TARBALL }}
-          operation_type: upload
-
       - name: Upload PyTorch source as artifact
         uses: actions/upload-artifact@v4
         with:
@@ -117,13 +101,6 @@ jobs:
           status: in_progress
 
       # Step 1: Download and extract pre-fetched PyTorch source
-      - name: Authenticate to Huawei Cloud
-        uses: huaweicloud/auth-action@v1.1.0
-        with:
-          access_key_id: ${{ secrets.ACCESSKEY }}
-          secret_access_key: ${{ secrets.SECRETACCESSKEY }}
-          region: cn-north-4
-
       - name: Compute SHAs
         id: sha
         run: |
@@ -131,14 +108,11 @@ jobs:
           echo "upstream_short=${UPSTREAM_SHORT}" >> "$GITHUB_OUTPUT"
           echo "source_tarball=pytorch-source-${UPSTREAM_SHORT}.tar.gz" >> "$GITHUB_OUTPUT"
 
-      - name: Download PyTorch source from OBS
-        uses: huaweicloud/obs-helper@v1.0.1
+      - name: Download PyTorch source artifact
+        uses: actions/download-artifact@v4
         with:
-          region: cn-north-4
-          bucket_name: pytorch-cache
-          local_file_path: ./${{ steps.sha.outputs.source_tarball }}
-          obs_file_path: 7day-cache/${{ steps.sha.outputs.source_tarball }}
-          operation_type: download
+          name: ${{ steps.sha.outputs.source_tarball }}
+          path: .
 
       - name: Extract PyTorch source
         run: |
@@ -186,15 +160,6 @@ jobs:
           wheel=$(ls /tmp/wheels/torch-*.whl | head -1)
           echo "path=${wheel}" >> "$GITHUB_OUTPUT"
           echo "name=$(basename ${wheel})" >> "$GITHUB_OUTPUT"
-
-      - name: Upload PyTorch wheel to OBS
-        uses: huaweicloud/obs-helper@v1.0.1
-        with:
-          region: cn-north-4
-          bucket_name: pytorch-cache
-          local_file_path: ${{ steps.pytorch_wheel.outputs.path }}
-          obs_file_path: 7day-cache/${{ steps.pytorch_wheel.outputs.name }}
-          operation_type: upload
 
       # Step 3: Checkout downstream torch_npu
       - name: Checkout downstream repo (torch_npu)
@@ -249,15 +214,6 @@ jobs:
           wheel=$(ls /tmp/wheels/torch_npu*.whl | head -1)
           echo "path=${wheel}" >> "$GITHUB_OUTPUT"
           echo "name=$(basename ${wheel})" >> "$GITHUB_OUTPUT"
-
-      - name: Upload torch_npu wheel to OBS
-        uses: huaweicloud/obs-helper@v1.0.1
-        with:
-          region: cn-north-4
-          bucket_name: pytorch-cache
-          local_file_path: ${{ steps.torchnpu_wheel.outputs.path }}
-          obs_file_path: 7day-cache/${{ steps.torchnpu_wheel.outputs.name }}
-          operation_type: upload
 
       # Step 5: Upload wheel artifacts
       - name: Upload wheel artifacts
@@ -368,13 +324,6 @@ jobs:
           status: in_progress
 
       # Step 1: Download PyTorch source (contains test files)
-      - name: Authenticate to Huawei Cloud
-        uses: huaweicloud/auth-action@v1.1.0
-        with:
-          access_key_id: ${{ secrets.ACCESSKEY }}
-          secret_access_key: ${{ secrets.SECRETACCESSKEY }}
-          region: cn-north-4
-
       - name: Compute SHAs
         id: sha
         run: |
@@ -382,14 +331,11 @@ jobs:
           echo "upstream_short=${UPSTREAM_SHORT}" >> "$GITHUB_OUTPUT"
           echo "source_tarball=pytorch-source-${UPSTREAM_SHORT}.tar.gz" >> "$GITHUB_OUTPUT"
 
-      - name: Download PyTorch source from OBS
-        uses: huaweicloud/obs-helper@v1.0.1
+      - name: Download PyTorch source artifact
+        uses: actions/download-artifact@v4
         with:
-          region: cn-north-4
-          bucket_name: pytorch-cache
-          local_file_path: ./${{ steps.sha.outputs.source_tarball }}
-          obs_file_path: 7day-cache/${{ steps.sha.outputs.source_tarball }}
-          operation_type: download
+          name: ${{ steps.sha.outputs.source_tarball }}
+          path: .
 
       - name: Extract PyTorch source
         run: |
