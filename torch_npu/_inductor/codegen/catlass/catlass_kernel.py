@@ -382,7 +382,6 @@ class CATLASSTemplateKernel(Kernel):
                 wrapper.generate_kernel_call(
                     name,
                     second_call_args,
-                    origin_node=None,
                     triton=False,
                     arg_types=second_arg_types,
                 )
@@ -397,6 +396,7 @@ class CATLASSTemplateKernel(Kernel):
             call_args.append("nullptr" if V.graph.cpp_wrapper else "None")
             if V.graph.cpp_wrapper:
                 arg_types.append("size_t*")
+                wrapper.kernel_autotune_defs.splice("from torch import empty_strided")
 
             if node.get_workspace_size() > 0:
                 ws = WorkspaceArg(
@@ -432,7 +432,6 @@ class CATLASSTemplateKernel(Kernel):
                 wrapper.generate_kernel_call(
                     name,
                     call_args,
-                    origin_node=None,
                     triton=False,
                     arg_types=arg_types,
                 )

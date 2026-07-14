@@ -336,6 +336,13 @@ def patch_scheduler():
 
             # Start compiling choices in parallel
             future_choices: list[tuple[Any, Optional[LambdaFuture], ModuleType]] = []
+            # Track orphan CATLASS buffers created during benchmarking so they
+            # can be cleaned up afterwards.  Each output_node() call registers a
+            # new buffer in V.graph.operations / V.graph.buffers; only the winning
+            # choice is later moved into the correct slot by replace_operation_buffer.
+            # The remaining buffers would otherwise linger as duplicate-name entries
+            # that break the cpp_wrapper second-pass scheduler initialisation.
+            benchmark_catlass_orphans: list[tuple[Any, str, str]] = []
             template_choices = 0
             for choice, unfused_time in sorted(
                 choice_timings.items(), key=lambda x: x[1]
@@ -369,8 +376,15 @@ def patch_scheduler():
                     assert isinstance(out_storage, ir.StorageBox)
                     out_buffer = out_storage.data
                     assert isinstance(out_buffer, ir.OperationBuffer)
+                    # Save original names before hacking, for later cleanup
+                    _orig_buf_name = out_buffer.get_name()
+                    _orig_op_name = out_buffer.get_operation_name()
                     # hack out_buffer's name to judge if can fuse
                     out_buffer.name = multi_node.get_name()
+                    # Track this buffer as a potential orphan
+                    benchmark_catlass_orphans.append(
+                        (out_buffer, _orig_buf_name, _orig_op_name)
+                    )
 
                     # Since current can_fuse does not check CATLASSScheduling.can_fuse
                     # for MultiTemplateBuffer, we hack here to check if can_fuse again
@@ -401,7 +415,37 @@ def patch_scheduler():
                         (choice, *compile_kernel(new_node_list_fused))
                     )
 
+            def _cleanup_catlass_orphan_buffers(
+                orphans: list[tuple[Any, str, str]],
+            ) -> None:
+                """Remove orphan CATLASS buffers created during benchmarking.
+
+                Each output_node() call in the benchmarking loop registers a
+                new buffer in V.graph.operations / V.graph.buffers.  Only the
+                winning choice's buffer (created separately in
+                benchmark_when_ready) is properly placed by
+                replace_operation_buffer.  The remaining buffers linger as
+                duplicate-name entries that break the cpp_wrapper second-pass
+                scheduler initialisation (validate_unique_buffer_names).
+                """
+                for orphan_buf, orig_name, orig_op_name in orphans:
+                    if orphan_buf in V.graph.operations:
+                        V.graph.operations.remove(orphan_buf)
+                    if orphan_buf in V.graph.buffers:
+                        V.graph.buffers.remove(orphan_buf)
+                    if (
+                        orig_name in V.graph.name_to_buffer
+                        and V.graph.name_to_buffer[orig_name] is orphan_buf
+                    ):
+                        del V.graph.name_to_buffer[orig_name]
+                    if (
+                        orig_op_name in V.graph.name_to_op
+                        and V.graph.name_to_op[orig_op_name] is orphan_buf
+                    ):
+                        del V.graph.name_to_op[orig_op_name]
+
             if len(future_choices) == 0:
+                _cleanup_catlass_orphan_buffers(benchmark_catlass_orphans)
                 return False
 
             def benchmark_when_ready() -> bool:
@@ -475,8 +519,10 @@ def patch_scheduler():
                         # update workspace_size
                         choice.fbmreq = ms_fused_mod.bmreq
                         out_buffer.workspace_size = ms_fused_mod.bmreq.workspace_size
+                    _cleanup_catlass_orphan_buffers(benchmark_catlass_orphans)
                     return True
                 else:
+                    _cleanup_catlass_orphan_buffers(benchmark_catlass_orphans)
                     return False
 
             return benchmark_when_ready

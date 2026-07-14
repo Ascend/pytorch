@@ -189,6 +189,7 @@ class CATLASSCodeCache:
         output_path: str
 
     cache: Dict[str, CacheEntry] = {}
+    aot_kernels_o: list[str] = []
     cache_clear = staticmethod(cache.clear)
     _SOURCE_CODE_SUFFIX = "cpp"
 

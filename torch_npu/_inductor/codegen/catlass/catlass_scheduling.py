@@ -99,6 +99,17 @@ class CATLASSScheduling(BaseScheduling):
 
         return False
 
+    def can_fuse_horizontal(
+        self, node1: BaseSchedulerNode, node2: BaseSchedulerNode
+    ) -> bool:
+        # CATLASS does not support horizontal fusion at the moment.
+        # This method is required because NPUCombinedScheduling delegates
+        # can_fuse_horizontal to the CATLASS backend when a catlass template
+        # node is involved. Without this override, the base class
+        # BaseScheduling.can_fuse_horizontal raises NotImplementedError,
+        # which breaks the cpp_wrapper two-pass codegen path.
+        return False
+
     def define_kernel(self, src_code: str, node_schedule) -> str:
         wrapper = V.graph.wrapper_code
         if src_code in wrapper.src_to_kernel:
@@ -136,6 +147,15 @@ class CATLASSScheduling(BaseScheduling):
             wrapper.define_kernel(
                 kernel_name, compile_wrapper.getvalue(), metadata_comment
             )
+
+            # Store is_mix per kernel_name so that CppWrapperNpu.finalize_prefix()
+            # can compute the correct .so path (the compile command hash depends
+            # on is_mix).  This mirrors how the community CUTLASS flow stores
+            # kernel metadata for later use in cpp_wrapper codegen.
+            if not hasattr(wrapper, "_catlass_kernel_is_mix"):
+                wrapper._catlass_kernel_is_mix = {}
+            wrapper._catlass_kernel_is_mix[kernel_name] = is_mix
+
         return kernel_name
 
     def codegen_template(

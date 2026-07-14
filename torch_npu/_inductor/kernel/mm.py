@@ -139,7 +139,7 @@ def _register_npu_inductor_addmm():
     def tuned_addmm(inp, mat1, mat2, *, alpha=1, beta=1, layout=None):
 
         # Fallback addmm using fallback handler before mm_args(), if there is no valid catlass template.
-        # In case, aten_addmm.bind would decompose to broadcast + mm + add
+        # In case, aten_addmm.bind would decompose addmm to broadcast + mm + add.
         shape1 = mat1.shape
         shape2 = mat2.shape
         bias_shape = inp.shape

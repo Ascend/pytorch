@@ -352,7 +352,7 @@ class TestMultiStreamPass(TestUtils):
             # kernel call
             wrapper.generate_kernel_call.assert_called_once()
             _, kwargs = wrapper.generate_kernel_call.call_args
-            self.assertEqual(kwargs["origin_node"], None)
+            self.assertEqual(kwargs.get("origin_node", None), None)
             self.assertEqual(kwargs["triton"], False)
             # workspace deallocation
             wrapper.generate_workspace_deallocation.assert_called_once()
