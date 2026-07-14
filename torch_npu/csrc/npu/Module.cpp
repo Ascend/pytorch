@@ -806,6 +806,15 @@ void THNPModule_setDevice(int device) {
 PyObject* THNPModule_setDevice_wrap(PyObject* self, PyObject* arg) {
   HANDLE_TH_ERRORS
   int device = THPUtils_unpackLong(arg);
+  const auto soc_version = c10_npu::GetSocVersion();
+  // On the 310P series, perform one extra device initialization to avoid npu_lazy_init() claiming Device 0.
+  if (soc_version >= c10_npu::SocVersion::Ascend310P1 && soc_version < c10_npu::SocVersion::Ascend910B1) {
+    pybind11::gil_scoped_release no_gil;
+    c10_npu::NpuSysCtrl::SysStatus status = c10_npu::NpuSysCtrl::GetInstance().Initialize(device);
+    if (status != c10_npu::NpuSysCtrl::SysStatus::INIT_SUCC) {
+      ASCEND_LOGE("Npu init fail.");
+    }
+  }
   torch_npu::utils::npu_lazy_init();
   NPU_CHECK_ERROR_WITHOUT_UCE(
       c10_npu::NpuSysCtrl::GetInstance().ExchangeDevice(device));
