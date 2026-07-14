@@ -28,9 +28,14 @@ log = logging.getLogger("torch._inductor")
 
 cexpr = CppPrinter().doprint
 
-# NB: for catlass bf16 type
+# NB: for catlass bf16/fp16 type
+# catlass kernels are compiled with the Ascend toolchain (not ATen), so the
+# upstream DTYPE_TO_CPP values that reference the `at::` namespace
+# (e.g. at::Half for float16, at::BFloat16 for bfloat16) are unavailable.
+# Map them to the catlass-native type names instead.
 _DTYPE_TO_CPP = copy.deepcopy(DTYPE_TO_CPP)
 _DTYPE_TO_CPP[torch.bfloat16] = "bfloat16_t"
+_DTYPE_TO_CPP[torch.float16] = "half"
 
 
 def _normalize_idx(index: int, total_length: int) -> int:
@@ -79,24 +84,14 @@ class CATLASSTemplateBuffer(TemplateBuffer):
 
 
 class CATLASSKernelArgs(KernelArgs):
-    @staticmethod
-    def replace_bf16(s: str) -> str:
-        return s.replace("bfloat16", "bfloat16_t")
 
-    # HACK for catlass's bfloat16 type
-    # torch.bfloat16 is "bfloat16_t" in catlass while "bfloat16" in other place
-    # so we can not modify the DTYPE_TO_CPP dict
+    # catlass kernels are compiled with the Ascend toolchain, not ATen, so the
+    # upstream DTYPE_TO_CPP values (at::Half, at::BFloat16) are unavailable.
+    # Pass the catlass-native _DTYPE_TO_CPP mapping (half, bfloat16_t) to the
+    # parent so arg types are generated correctly.
     def cpp_argdefs(self):
-        arg_defs, call_args, arg_types = super().cpp_argdefs()
-
-        if any("bfloat16" in s for s in arg_types):
-            return (
-                [self.replace_bf16(s) for s in arg_defs],
-                call_args,
-                [self.replace_bf16(s) for s in arg_types],
-            )
-        else:
-            return arg_defs, call_args, arg_types
+        arg_defs, call_args, arg_types = super().cpp_argdefs(_DTYPE_TO_CPP)
+        return arg_defs, call_args, arg_types
 
 
 class CATLASSTemplateKernel(Kernel):
