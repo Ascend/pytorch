@@ -83,7 +83,7 @@ def _load_triton_backend():
 
     from . import codegen, config as npu_config
     from .async_compile import patch_async_compile
-    from .codecache import patch_aot_code_compiler_compile
+    from .codecache import patch_get_cpp_wrapper_header
     from .codegen._sizevars import patch_simplify
     from .codegen.ir import patch_indexing, patch_loop_body
     from .codegen.triton import (
@@ -109,7 +109,7 @@ def _load_triton_backend():
         pre_grad_custom_pass_fuc,
     )
     from .fx_passes.joint_graph import patch_constant_fold_uniform_value
-    from .ir import patch_fallback_kernel_codegen, patch_num_splits
+    from .ir import patch_num_splits
     from .kernel import (
         _register_npu_inductor_addmm,
         _register_npu_inductor_bmm,
@@ -134,7 +134,7 @@ def _load_triton_backend():
     flex_attention._validate_device = _validate_device
 
     def _inductor_register_backend_for_device():
-        from .codegen.cpp_wrapper import CppWrapperNpu
+        from .codegen.cpp_wrapper_npu import CppWrapperNpu
         from .codegen.npu_combined_scheduling import NPUCombinedScheduling
         from .codegen.wrapper import NPUPythonWrapperCodeGen
 
@@ -148,10 +148,9 @@ def _load_triton_backend():
 
     inductor_lowering.make_reduction = make_reduction
 
+    patch_get_cpp_wrapper_header()
     patch_get_cpp_torch_device_options()
     patch_constant_fold_uniform_value()
-    patch_fallback_kernel_codegen()
-    patch_aot_code_compiler_compile()
     patch_device_to_aten()
 
     if npu_config.dump_fx_graph:
@@ -287,12 +286,6 @@ def _load_triton_backend():
 
     add_additional_op()
     torch._inductor.config.comprehensive_padding = False
-
-    compile_threads = int(
-        os.environ.get("TORCHINDUCTOR_COMPILE_THREADS") or "1"
-    )
-    os.environ["TORCHINDUCTOR_COMPILE_THREADS"] = str(compile_threads)
-    torch._inductor.config.compile_threads = compile_threads
 
     _fasta_autotune = os.environ.get("FASTAUTOTUNE", "0") == "1"
     _fasta_autotune_method = os.getenv("AUTOTUNE_METHOD", "Expert")

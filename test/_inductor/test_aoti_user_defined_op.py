@@ -1,0 +1,178 @@
+import os
+import torch
+from torch._inductor.pattern_matcher import register_graph_pattern, CallFunction, Arg, PatternMatcherPass, Match
+
+from torch.library import custom_op, triton_op, wrap_triton
+from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
+
+import triton
+import triton.language as tl
+
+from testutils import TestUtils
+
+import torch_npu
+import torch_npu._inductor
+
+@triton.jit
+def triton_fused_add_sin(in_ptr0, in_ptr1, out_ptr, n_elements, BLOCK_SIZE: tl.constexpr):
+    block_start = tl.program_id(0) * BLOCK_SIZE
+    offsets = block_start + tl.arange(0, BLOCK_SIZE)
+    mask = offsets < n_elements
+    tmp0 = tl.load(in_ptr0 + offsets, mask)
+    tmp1 = tl.load(in_ptr1 + offsets, mask)
+    tmp2 = tl.sin(tmp1)
+    tmp3 = tl.add(tmp0, tmp2)
+    tl.store(out_ptr + offsets, tmp3, mask)
+
+
+@register_graph_pattern(
+    CallFunction(torch.add, Arg(), CallFunction(torch.sin, Arg())),
+    pass_dict=PatternMatcherPass(pass_name="test"),
+)
+def add_sin_replacement(match: Match, x, y):
+    z = torch.zeros_like(x)
+    n_element = x.numel()
+    BLOCK_SIZE = 16
+    grid = (triton.cdiv(n_element, BLOCK_SIZE),)
+    triton_fused_add_sin[grid](x, y, z, n_element, BLOCK_SIZE=BLOCK_SIZE)
+    return z
+
+
+@custom_op("my_custom::cpu_add", mutates_args={})
+def cpu_add(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+    x_cpu = x.cpu()
+    y_cpu = y.cpu()
+    z_cpu = x_cpu + y_cpu
+    return z_cpu.to("npu")
+
+
+@cpu_add.register_fake
+def _(x, y):
+    return torch.zeros_like(x)
+
+
+@triton.jit
+def triton_fused_activation_min_max(in_ptr0, in_ptr1, out_ptr, n_elements, BLOCK_SIZE: tl.constexpr):
+    block_id = tl.program_id(0)
+    block_start = block_id * BLOCK_SIZE
+    offsets = block_start + tl.arange(0, BLOCK_SIZE)
+    mask = offsets < n_elements
+    tmp0 = tl.load(in_ptr0 + offsets, mask)
+    tmp1 = tl.load(in_ptr1 + offsets, mask)
+    tmp2 = tl.sigmoid(tmp0)
+    tmp3 = tl.softmax(tmp1)
+    tmp4 = tl.min(tmp2, axis=0)
+    tmp5 = tl.max(tmp3, axis=0)
+    tmp6 = tmp4 + tmp5
+    tl.store(out_ptr + block_id, tmp6)
+
+
+@triton_op("my_triton::activation_min_max", mutates_args={})
+def activation_min_max(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+    n_element = x.numel()
+    BLOCK_SIZE = 16
+    grid = (triton.cdiv(n_element, BLOCK_SIZE),)
+    z = torch.zeros([1, x.shape[1]], dtype=x.dtype, device=x.device)
+    wrap_triton(triton_fused_activation_min_max)[grid](x, y, z, n_element, BLOCK_SIZE=BLOCK_SIZE)
+    return z
+
+
+class Model(torch.nn.Module):
+    def __init__(self, dim=32):
+        super().__init__()
+        self.fc1 = torch.nn.Linear(dim, dim, dtype=torch.float32)
+        self.sigmoid = torch.nn.Sigmoid()
+
+    def forward(self, x, y, z):
+        # test fused kernel with weights
+        x = self.fc1(x + 1)
+        x = self.sigmoid(x)
+        y = torch.abs(y)
+
+        # test alloc kernel
+        z1 = torch.zeros_like(x)
+
+        # z2 is a cpu kernel with cpu input
+        z2 = (z + 1).npu()
+
+        # test register_graph_pattern
+        z3 = torch.cos(x) + torch.sin(y)
+
+        # test to cpu
+        z4_cpu = x.cpu() + y.cpu()
+        z4 = z4_cpu.npu()
+
+        # test user defined triton_op, output shape is [1, dim]
+        z5 = torch.ops.my_triton.activation_min_max(x, y)
+
+        # test op_plugin ascendC kernel
+        z6, z7 = torch_npu.npu_rms_norm(x, y)
+
+        # sum of all result, auto broadcast z4
+        z8 = z1 + z2 + z3 + z4 + z5 + z6
+
+        return z8
+
+
+class TestAotiUserDefinedOp(TestUtils):
+    def generate_input_tensor(self, batch_size=8, dim=32, device="npu"):
+        x_input = torch.arange(0, batch_size * dim, 1, device=device).reshape([batch_size, dim])
+        x_input = 1.0 / x_input.to(torch.float32)
+        y_input = torch.arange(batch_size * dim, 0, -1, device=device).reshape([batch_size, dim])
+        y_input = 1.0 / y_input.to(torch.float32)
+        # z_input is a cpu input tensor
+        z_input = torch.ones(batch_size * dim, device="cpu", dtype=torch.float32).reshape([batch_size, dim])
+        return x_input, y_input, z_input
+
+
+    @parametrize('shape_x', [8])
+    @parametrize('shape_y', [32])
+    @parametrize('use_cpp_wrapper', [True, False])
+    def test_compile(self, shape_x, shape_y, use_cpp_wrapper):
+        with torch._inductor.config.patch("cpp_wrapper", use_cpp_wrapper):
+            with torch.no_grad():
+                model = Model().to("npu")
+                x_input, y_input, z_input = self.generate_input_tensor(shape_x, shape_y)
+                eager_res = model.forward(x_input, y_input, z_input)
+
+                model_c = torch.compile(model, backend="inductor", dynamic=False)
+                compile_res = model_c(x_input, y_input, z_input)
+                self.assertEqual(eager_res, compile_res, atol=1e-3, rtol=1e-3)
+
+
+    @parametrize('shape_x', [8])
+    @parametrize('shape_y', [32])
+    @parametrize('autotune_at_compile', [True, False])
+    @parametrize('dynamic', [True, False])
+    def test_aoti_export_and_load(self, shape_x, shape_y, autotune_at_compile, dynamic):
+        model = Model().to("npu")
+        with torch._inductor.config.patch("triton.autotune_at_compile_time", autotune_at_compile):
+            x_input, y_input, z_input = self.generate_input_tensor(shape_x, shape_y)
+            eager_res = model(x_input, y_input, z_input)
+
+            model_name = f"model_{os.getpid()}_{shape_x}_{shape_y}_{int(autotune_at_compile)}_{int(dynamic)}.pt2"
+
+            if dynamic:
+                batch_dim = torch.export.Dim("batch", min=1, max=128)
+                exported = torch.export.export(model, (x_input, y_input, z_input),
+                                               dynamic_shapes={"x": {0: batch_dim}, "y": {0: batch_dim}, "z": {0: batch_dim}})
+            else:
+                exported = torch.export.export(model, (x_input, y_input, z_input))
+
+            output_path = torch._inductor.aoti_compile_and_package(
+                exported,
+                package_path=os.path.join(os.getcwd(), model_name),
+            )
+            self.assertTrue(
+                os.path.exists(output_path),
+                f"could not find target {output_path} generated by test_aoti_export",
+            )
+
+            model_loaded = torch._inductor.aoti_load_package(os.path.join(os.getcwd(), model_name))
+            load_res = model_loaded(x_input, y_input, z_input)
+            self.assertEqual(eager_res, load_res, atol=1e-3, rtol=1e-3)
+
+instantiate_parametrized_tests(TestAotiUserDefinedOp)
+
+if __name__ == "__main__":
+    run_tests()

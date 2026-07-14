@@ -426,7 +426,7 @@ public:
             aoti_torch_get_storage_size(tensor, &constant_size);
 #if defined(USE_NPU)
             AOTI_RUNTIME_DEVICE_CHECK(aclrtMemcpy(internal_constants_ptr, constant_size, user_constant_ptr,
-                                                  constant_size, ACL_MEMCPY_HOST_TO_DEVICE));
+                                                  constant_size, ACL_MEMCPY_DEFAULT));
 #else
             memcpy(internal_constants_ptr, user_constant_ptr, constant_size);
 #endif

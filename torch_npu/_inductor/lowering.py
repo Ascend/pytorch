@@ -226,6 +226,7 @@ def _register_npu_inductor_fallbacks():
                 f"len(FALLBACK_LIST): {len(FALLBACK_LIST)}, make_fallback finished.")
     log.info(f"[npu|inductor|lowering|fallback] len(NPU_EXTRA_FALLBACK_LIST): {len(NPU_EXTRA_FALLBACK_LIST)}")
 
+    _add_fallback_ops_for_torchgen()
     # register the reductions useing custom make_reduction
     reduce_amax = register_lowering(aten.amax)(make_reduction("max"))
     reduce_amin = register_lowering(aten.amin)(make_reduction("min"))
@@ -496,7 +497,6 @@ def _register_npu_inductor_fallbacks():
             inner_fn=fn,
             ranges=index.get_size(),
         )
-
 
     def index_put_impl_(self, indices, values, accumulate, check, may_realize=False):
         if may_realize:
@@ -950,6 +950,9 @@ def _register_npu_inductor_fallbacks():
         if len(inputs) == 1:
             return clone(inputs[0])
 
+        if not is_ascend950 or len(inputs) > torch._inductor.config.max_pointwise_cat_inputs:
+            return fallback_handler(aten.cat.default)(inputs, dim)
+
         dim = _validate_dim(inputs[0], dim, 0)
         dtype = get_promoted_dtype(
             *inputs, type_promotion_kind=ELEMENTWISE_TYPE_PROMOTION_KIND.DEFAULT
@@ -1071,3 +1074,9 @@ def _enable_full_lowering_fallback():
         make_fallback(op)
         FALLBACK_LIST.append(op)
     _fallback_ops_with_meta()
+
+def _add_fallback_ops_for_torchgen():
+    import torchgen.aoti.fallback_ops as fallback_ops
+    from torchnpugen.aoti.fallback_ops import inductor_fallback_ops_npu, inductor_fallback_ops_npu_not_support
+    fallback_ops.inductor_fallback_ops = \
+        {k: v for k, v in (fallback_ops.inductor_fallback_ops | inductor_fallback_ops_npu).items() if k not in inductor_fallback_ops_npu_not_support}

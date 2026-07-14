@@ -142,8 +142,10 @@ class NPUPythonWrapperCodeGen(_NPUKernelCodegenMixin, PythonWrapperCodegen):
         super().write_triton_header_once()
         import_str = f"""
             import torch_npu
+            torch_npu.npu._initialized = torch_npu.npu.is_initialized()
             has_initialized = False
         """
+
         if config.triton.autotune_at_compile_time:
             self.kernel_autotune_calls.splice(import_str)
             self.kernel_autotune_calls.splice(
@@ -392,7 +394,7 @@ class NPUPythonWrapperCodeGen(_NPUKernelCodegenMixin, PythonWrapperCodegen):
             with debug_printer_manager:
                 self.writeline(f"{multi_stream_intent}{kernel_name}.run({call_args_str}, stream={stream_name})")
         else:
-            super().generate_kernel_call(kernel_name, call_args, device=device, triton=triton, arg_types=arg_types, raw_args=raw_args, triton_meta=triton_meta)
+            super().generate_kernel_call(kernel_name, call_args, device=device, triton=triton, arg_types=arg_types, raw_keys=raw_keys, raw_args=raw_args, triton_meta=triton_meta, debug_handle=debug_handle)
 
 
     def _generate_kernel_call_helper(
