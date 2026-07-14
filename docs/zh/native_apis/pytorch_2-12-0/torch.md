@@ -243,7 +243,7 @@
 |[torch.sum](https://pytorch.org/docs/2.12/generated/torch.sum.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool<br>不支持dtype参数|
 |[torch.unique](https://pytorch.org/docs/2.12/generated/torch.unique.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool<br>带dim场景不支持fp16<br>在输入包含0的情况下，输出中可能会包含正0和负0，而非只输出一个0|
 |[torch.unique_consecutive](https://pytorch.org/docs/2.12/generated/torch.unique_consecutive.html)|否|-|
-|[torch.var](https://pytorch.org/docs/2.12/generated/torch.var.html)|是|支持fp16，fp32|
+|[torch.var](https://pytorch.org/docs/2.12/generated/torch.var.html)|是|支持bf16，fp16，fp32|
 |[torch.var_mean](https://pytorch.org/docs/2.12/generated/torch.var_mean.html)|否|-|
 |[torch.count_nonzero](https://pytorch.org/docs/2.12/generated/torch.count_nonzero.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[torch.allclose](https://pytorch.org/docs/2.12/generated/torch.allclose.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
