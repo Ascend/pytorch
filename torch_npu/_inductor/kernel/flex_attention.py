@@ -3745,7 +3745,7 @@ def _register_npu_inductor_flex_attention():
                 {
                     "BLOCK_M2": cfg["BLOCK_M2"],
                     "BLOCK_N2": cfg["BLOCK_N2"],
-                    "num_stages": 1,
+                    "num_stages": 2,
                     "num_warps": 4,
                 }
             )

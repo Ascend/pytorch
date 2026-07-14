@@ -308,6 +308,9 @@ FLEX_ATTENTION_NPU_COMPILE_HINT_KEYS = (
     "tile_mix_vector_loop",
     "tile_mix_cube_loop",
     "enable_dynamic_cv_pipeline",
+    "intra_cache_num",
+    "inter_cache_num",
+    "enable_cross_if_fusion",
 )
 
 
@@ -334,6 +337,9 @@ class flex_attention:
     tile_mix_vector_loop = 4
     tile_mix_cube_loop = 4
     enable_dynamic_cv_pipeline = False
+    intra_cache_num = 3
+    inter_cache_num = 2
+    enable_cross_if_fusion = True
 
     bwd_dq_limit_auto_multi_buffer_of_local_buffer = "no-l0c"
     bwd_dkdv_limit_auto_multi_buffer_of_local_buffer = "no-l0c"
@@ -374,6 +380,8 @@ class flex_attention:
                 "enable_ubuf_saving",
                 "unit_flag",
                 "set_workspace_multibuffer",
+                "limit_auto_multi_buffer_buffer",
+                "hfusion_enable_multiple_consumer_fusion",
             ),
             overrides={
                 "multibuffer": enabled,
@@ -381,6 +389,9 @@ class flex_attention:
                 "tile_mix_vector_loop": tile_mix_loop,
                 "tile_mix_cube_loop": tile_mix_loop,
                 "ENABLE_COMPILE_HINT": enable_compile_hint if enabled else False,
+                "intra_cache_num": 3,
+                "inter_cache_num": 2,
+                "enable_cross_if_fusion": True,
             },
         )
 
@@ -396,6 +407,8 @@ class flex_attention:
                 "limit_auto_multi_buffer_of_local_buffer": (
                     cls.bwd_dq_limit_auto_multi_buffer_of_local_buffer
                 ),
+                "intra_cache_num": 3,
+                "inter_cache_num": 2,
             },
         )
 
