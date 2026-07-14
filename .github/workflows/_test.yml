@@ -1,0 +1,96 @@
+name: Test Parallel
+
+on:
+  workflow_call:
+    inputs:
+      resolved_short:
+        required: true
+        type: string
+        description: Short SHA of upstream PyTorch (from _build.yml outputs)
+      case_paths_config:
+        required: false
+        type: string
+        default: '.github/config/test_whitelist.yml'
+        description: Path to whitelist config file (YAML with whitelist/blacklist entries)
+      distributed_shards:
+        required: false
+        type: string
+        default: '5'
+        description: Number of parallel machines for distributed tests (serial execution per shard)
+      regular_shards:
+        required: false
+        type: string
+        default: '5'
+        description: Number of parallel machines for regular tests (16 concurrent workers per shard)
+      docker_image:
+        required: false
+        type: string
+        default: 'quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly'
+        description: Docker image for running tests
+      report_to_upstream:
+        required: false
+        type: boolean
+        default: false
+        description: Whether to report test status to upstream dashboard
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  # ============================================================================
+  # 1. Collect and shard test cases
+  # ============================================================================
+  collect:
+    uses: ./.github/workflows/_test-collect.yml
+    with:
+      resolved_short: ${{ inputs.resolved_short }}
+      case_paths_config: ${{ inputs.case_paths_config }}
+      distributed_shards: ${{ inputs.distributed_shards }}
+      regular_shards: ${{ inputs.regular_shards }}
+      docker_image: ${{ inputs.docker_image }}
+
+  # ============================================================================
+  # 2. Run distributed test shards (serial execution)
+  # ============================================================================
+  test_distributed:
+    needs: collect
+    if: ${{ needs.collect.outputs.has_distributed == 'true' }}
+    uses: ./.github/workflows/_test-distributed.yml
+    with:
+      resolved_short: ${{ inputs.resolved_short }}
+      distributed_shards: ${{ inputs.distributed_shards }}
+      distributed_matrix: ${{ needs.collect.outputs.distributed_matrix }}
+      docker_image: ${{ inputs.docker_image }}
+      report_to_upstream: ${{ inputs.report_to_upstream }}
+
+  # ============================================================================
+  # 3. Run regular test shards (concurrent execution, 16 workers)
+  # ============================================================================
+  test_regular:
+    needs: collect
+    if: ${{ needs.collect.outputs.has_regular == 'true' }}
+    uses: ./.github/workflows/_test-regular.yml
+    with:
+      resolved_short: ${{ inputs.resolved_short }}
+      regular_shards: ${{ inputs.regular_shards }}
+      regular_matrix: ${{ needs.collect.outputs.regular_matrix }}
+      has_distributed: ${{ needs.collect.outputs.has_distributed }}
+      docker_image: ${{ inputs.docker_image }}
+      report_to_upstream: ${{ inputs.report_to_upstream }}
+
+  # ============================================================================
+  # 4. Generate consolidated test report
+  # ============================================================================
+  report:
+    needs:
+      - collect
+      - test_distributed
+      - test_regular
+    if: always() && needs.collect.result == 'success'
+    uses: ./.github/workflows/_test-report.yml
+    with:
+      distributed_matrix: ${{ needs.collect.outputs.distributed_matrix }}
+      regular_matrix: ${{ needs.collect.outputs.regular_matrix }}
+      docker_image: ${{ inputs.docker_image }}
+      report_to_upstream: ${{ inputs.report_to_upstream }}

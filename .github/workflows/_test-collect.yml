@@ -1,0 +1,177 @@
+name: Test Collect
+
+on:
+  workflow_call:
+    inputs:
+      resolved_short:
+        required: true
+        type: string
+        description: Short SHA of upstream PyTorch (from _build.yml outputs)
+      case_paths_config:
+        required: false
+        type: string
+        default: '.github/config/test_whitelist.yml'
+        description: Path to whitelist config file (YAML with whitelist/blacklist entries)
+      distributed_shards:
+        required: false
+        type: string
+        default: '5'
+        description: Number of parallel machines for distributed tests
+      regular_shards:
+        required: false
+        type: string
+        default: '5'
+        description: Number of parallel machines for regular tests
+      docker_image:
+        required: false
+        type: string
+        default: 'quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly'
+        description: Docker image for running tests
+    outputs:
+      distributed_matrix:
+        description: Distributed shard matrix JSON
+        value: ${{ jobs.collect.outputs.distributed_matrix }}
+      regular_matrix:
+        description: Regular shard matrix JSON
+        value: ${{ jobs.collect.outputs.regular_matrix }}
+      has_distributed:
+        description: Whether distributed cases exist
+        value: ${{ jobs.collect.outputs.has_distributed }}
+      has_regular:
+        description: Whether regular cases exist
+        value: ${{ jobs.collect.outputs.has_regular }}
+      total_cases:
+        description: Total number of test cases
+        value: ${{ jobs.collect.outputs.total_cases }}
+
+jobs:
+  collect:
+    runs-on: linux-aarch64-a3-8
+    permissions:
+      id-token: write
+      contents: read
+    defaults:
+      run:
+        shell: bash
+    container:
+      image: ${{ inputs.docker_image }}
+      options: --network host
+    env:
+      PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
+    outputs:
+      distributed_matrix: ${{ steps.build_matrix.outputs.distributed_matrix }}
+      regular_matrix: ${{ steps.build_matrix.outputs.regular_matrix }}
+      has_distributed: ${{ steps.collect_cases.outputs.has_distributed }}
+      has_regular: ${{ steps.collect_cases.outputs.has_regular }}
+      total_cases: ${{ steps.collect_cases.outputs.total_cases }}
+
+    steps:
+      - name: Compute SHAs
+        id: sha
+        run: |
+          UPSTREAM_SHORT="${{ inputs.resolved_short }}"
+          echo "source_tarball=pytorch-source-${UPSTREAM_SHORT}.tar.gz" >> "$GITHUB_OUTPUT"
+
+      - name: Download PyTorch source artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ steps.sha.outputs.source_tarball }}
+          path: .
+
+      - name: Extract PyTorch source
+        run: |
+          tar -xzf ${{ steps.sha.outputs.source_tarball }}
+          rm ${{ steps.sha.outputs.source_tarball }}
+          echo "PyTorch source extracted: $(du -sh pytorch/ | cut -f1)"
+
+      - name: Download wheel artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: packages-pytorch-${{ inputs.resolved_short }}
+          path: /tmp/wheels
+
+      - name: Install wheels
+        run: |
+          pip install /tmp/wheels/torch-*.whl
+          pip install --no-deps /tmp/wheels/torch_npu*.whl
+
+      - name: Checkout test scripts
+        uses: actions/checkout@v6
+        with:
+          path: ci-scripts
+          ref: ${{ github.ref_name }}
+
+      - name: Collect and shard test cases
+        id: collect_cases
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          export PYTHONPATH="${GITHUB_WORKSPACE}/ci-scripts/.github/scripts:${PYTHONPATH}"
+
+          DISTRIBUTED_SHARDS='${{ inputs.distributed_shards }}'
+          REGULAR_SHARDS='${{ inputs.regular_shards }}'
+          CASE_PATHS_CONFIG='${{ inputs.case_paths_config }}'
+
+          echo "=== Collecting all test cases ==="
+          echo "Distributed shards: ${DISTRIBUTED_SHARDS}"
+          echo "Regular shards: ${REGULAR_SHARDS}"
+          echo "Whitelist config: ${CASE_PATHS_CONFIG}"
+
+          CONFIG_PATH="${GITHUB_WORKSPACE}/ci-scripts/${CASE_PATHS_CONFIG}"
+
+          python3 ${GITHUB_WORKSPACE}/ci-scripts/.github/scripts/collect_all_cases.py \
+            --test-dir ${GITHUB_WORKSPACE}/pytorch/test \
+            --case-paths-config "${CONFIG_PATH}" \
+            --distributed-shards ${DISTRIBUTED_SHARDS} \
+            --regular-shards ${REGULAR_SHARDS} \
+            --output-dir ${GITHUB_WORKSPACE}/cases-shards \
+            --error-log-dir ${GITHUB_WORKSPACE}/collection_errors \
+            --parallel 16 \
+            2>&1 | tee /tmp/collect_cases.log
+
+          echo "=== Generated shard files ==="
+          ls -la ${GITHUB_WORKSPACE}/cases-shards/
+
+          echo "=== Collection summary ==="
+          cat ${GITHUB_WORKSPACE}/cases-shards/cases_collection_summary.json
+
+          TOTAL_CASES=$(python3 -c "import json; d=json.load(open('${GITHUB_WORKSPACE}/cases-shards/cases_collection_summary.json')); print(d['total_cases'])")
+          HAS_DIST=$(python3 -c "import json; d=json.load(open('${GITHUB_WORKSPACE}/cases-shards/cases_collection_summary.json')); print('true' if d['distributed']['cases_summary']['total_cases'] > 0 else 'false')")
+          HAS_REG=$(python3 -c "import json; d=json.load(open('${GITHUB_WORKSPACE}/cases-shards/cases_collection_summary.json')); print('true' if d['regular']['cases_summary']['total_cases'] > 0 else 'false')")
+
+          echo "total_cases=${TOTAL_CASES}" >> "$GITHUB_OUTPUT"
+          echo "has_distributed=${HAS_DIST}" >> "$GITHUB_OUTPUT"
+          echo "has_regular=${HAS_REG}" >> "$GITHUB_OUTPUT"
+
+      - name: Build shard matrices
+        id: build_matrix
+        run: |
+          DIST_SHARDS='${{ inputs.distributed_shards }}'
+          REG_SHARDS='${{ inputs.regular_shards }}'
+          HAS_DIST='${{ steps.collect_cases.outputs.has_distributed }}'
+          HAS_REG='${{ steps.collect_cases.outputs.has_regular }}'
+
+          if [ "${HAS_DIST}" = "true" ]; then
+            DIST_MATRIX=$(seq 1 ${DIST_SHARDS} | jq -cs '.')
+          else
+            DIST_MATRIX='[]'
+          fi
+
+          if [ "${HAS_REG}" = "true" ]; then
+            REG_MATRIX=$(seq 1 ${REG_SHARDS} | jq -cs '.')
+          else
+            REG_MATRIX='[]'
+          fi
+
+          echo "distributed_matrix=${DIST_MATRIX}" >> "$GITHUB_OUTPUT"
+          echo "regular_matrix=${REG_MATRIX}" >> "$GITHUB_OUTPUT"
+          echo "Distributed matrix: ${DIST_MATRIX}"
+          echo "Regular matrix: ${REG_MATRIX}"
+
+      - name: Upload cases shard JSONs
+        uses: actions/upload-artifact@v4
+        with:
+          name: cases-shards
+          path: cases-shards/
+          retention-days: 7

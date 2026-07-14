@@ -1,0 +1,190 @@
+name: Test Regular
+
+on:
+  workflow_call:
+    inputs:
+      resolved_short:
+        required: true
+        type: string
+        description: Short SHA of upstream PyTorch (from _build.yml outputs)
+      regular_shards:
+        required: true
+        type: string
+        description: Number of regular shards
+      regular_matrix:
+        required: true
+        type: string
+        description: Regular shard matrix JSON
+      has_distributed:
+        required: false
+        type: string
+        default: 'false'
+        description: Whether distributed tests exist (affects upstream report timing)
+      docker_image:
+        required: false
+        type: string
+        default: 'quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly'
+        description: Docker image for running tests
+      report_to_upstream:
+        required: false
+        type: boolean
+        default: false
+        description: Whether to report test status to upstream dashboard
+
+jobs:
+  test_regular:
+    runs-on: linux-aarch64-a3-16
+    permissions:
+      id-token: write
+      contents: read
+    defaults:
+      run:
+        shell: bash
+    container:
+      image: ${{ inputs.docker_image }}
+      options: --network host
+    env:
+      PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
+    strategy:
+      matrix:
+        shard: ${{ fromJson(inputs.regular_matrix) }}
+      fail-fast: false
+    steps:
+      - name: Report in_progress
+        if: ${{ inputs.report_to_upstream && matrix.shard == 1 && inputs.has_distributed != 'true' }}
+        continue-on-error: true
+        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@main
+        with:
+          status: in_progress
+
+      - name: Compute SHAs
+        id: sha
+        run: |
+          UPSTREAM_SHORT="${{ inputs.resolved_short }}"
+          echo "source_tarball=pytorch-source-${UPSTREAM_SHORT}.tar.gz" >> "$GITHUB_OUTPUT"
+
+      - name: Download PyTorch source artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ steps.sha.outputs.source_tarball }}
+          path: .
+
+      - name: Extract PyTorch source
+        run: |
+          tar -xzf ${{ steps.sha.outputs.source_tarball }}
+          rm ${{ steps.sha.outputs.source_tarball }}
+          echo "PyTorch source extracted: $(du -sh pytorch/ | cut -f1)"
+
+      - name: Download wheel artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: packages-pytorch-${{ inputs.resolved_short }}
+          path: /tmp/wheels
+
+      - name: Install wheels
+        run: |
+          pip install /tmp/wheels/torch-*.whl
+          pip install --no-deps /tmp/wheels/torch_npu*.whl
+
+      - name: Download cases shard JSONs
+        uses: actions/download-artifact@v4
+        with:
+          name: cases-shards
+          path: cases-shards
+
+      - name: Checkout test scripts
+        uses: actions/checkout@v6
+        with:
+          path: ci-scripts
+          ref: ${{ github.ref_name }}
+
+      - name: Verify NPU environment
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          echo "=== NPU Device Information ==="
+          npu-smi info
+          echo "=== End of NPU Device Information ==="
+
+          python -c "
+          import torch
+          print(f'torch: {torch.__version__}')
+          import torch_npu
+          print(f'torch_npu: {torch_npu.__version__}')
+          print(f'NPU available: {torch.npu.is_available()}')
+          print(f'NPU count: {torch.npu.device_count()}')
+          "
+
+      - name: Run regular shard ${{ matrix.shard }}/${{ inputs.regular_shards }}
+        id: run_tests
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          CASES_JSON="cases-shards/regular_cases_shard_${{ matrix.shard }}.json"
+          TOTAL_CASES=$(python3 -c "import json; d=json.load(open('${CASES_JSON}')); print(d['total_cases'])")
+
+          echo "=== Regular Shard ${{ matrix.shard }}/${{ inputs.regular_shards }} ==="
+          echo "Total cases: ${TOTAL_CASES}"
+          echo "Runner: linux-aarch64-a3-16 (16-card NPU)"
+          echo "Execution mode: CONCURRENT (16 workers)"
+
+          set +e
+          python ci-scripts/.github/scripts/run_npu_test_shard.py \
+            --cases-json "${CASES_JSON}" \
+            --test-dir pytorch/test \
+            --report-dir test-reports \
+            --max-workers 16 \
+            --timeout 1200 \
+            --verbose \
+            2>&1 | tee /tmp/test_reg_${{ matrix.shard }}.log
+
+          TEST_STATUS=${PIPESTATUS[0]}
+          set -e
+          echo "status=${TEST_STATUS}" >> "$GITHUB_OUTPUT"
+
+      - name: Package test reports
+        if: always()
+        run: |
+          if [ -d "test-reports/junit_xmls" ]; then
+            echo "=== Compressing junit XMLs ==="
+            XML_COUNT=$(find test-reports/junit_xmls -type f -name "*.xml" | wc -l)
+            echo "Found ${XML_COUNT} XML files"
+            tar -czf test-reports/junit_xmls.tar.gz -C test-reports junit_xmls
+            rm -rf test-reports/junit_xmls
+            echo "JUnit XMLs compressed: $(ls -lh test-reports/junit_xmls.tar.gz)"
+          fi
+
+          if [ -d "test-reports/cases_logs" ]; then
+            echo "=== Compressing cases logs ==="
+            LOGS_COUNT=$(find test-reports/cases_logs -type f | wc -l)
+            echo "Found ${LOGS_COUNT} case log files"
+            tar -czf test-reports/cases_logs.tar.gz -C test-reports cases_logs
+            rm -rf test-reports/cases_logs
+            echo "Cases logs compressed: $(ls -lh test-reports/cases_logs.tar.gz)"
+          fi
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-reg-${{ matrix.shard }}
+          path: test-reports/
+          retention-days: 7
+
+      - name: Compress and upload error logs
+        if: failure()
+        run: |
+          mkdir -p error-logs
+          cp /tmp/test_reg_${{ matrix.shard }}.log error-logs/ 2>/dev/null || true
+          tar -czf error-logs-reg-${{ matrix.shard }}.tar.gz error-logs/
+          echo "Error logs compressed: $(ls -lh error-logs-reg-${{ matrix.shard }}.tar.gz)"
+
+      - name: Upload error logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: error-logs-reg-${{ matrix.shard }}
+          path: error-logs-reg-${{ matrix.shard }}.tar.gz
+          retention-days: 7

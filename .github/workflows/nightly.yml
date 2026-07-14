@@ -1,15 +1,15 @@
 name: Nightly Build and Test
 
 on:
-  schedule:
-    - cron: '0 4 * * *'
+  push:
+    branches:
+      - ci-test
+    paths:
+      - '.github/workflows/**'
+      - '.github/config/**'
+      - '.github/scripts/**'
   workflow_dispatch:
     inputs:
-      test_files:
-        description: 'Comma-separated test files (e.g. test_functionalization.py,test_nn.py)'
-        required: false
-        default: 'test_functionalization.py'
-        type: string
       distributed_shards:
         description: 'Number of parallel machines for distributed tests'
         required: false
@@ -42,11 +42,11 @@ jobs:
 
   test:
     needs: build
-    uses: ./.github/workflows/_test-parallel.yml
+    uses: ./.github/workflows/_test.yml
     secrets: inherit
     with:
       resolved_short: ${{ needs.build.outputs.resolved_short }}
-      test_files: ${{ inputs.test_files || 'test_functionalization.py' }}
+      case_paths_config: .github/config/test_whitelist.yml
       distributed_shards: ${{ inputs.distributed_shards || '5' }}
       regular_shards: ${{ inputs.regular_shards || '5' }}
       report_to_upstream: false
