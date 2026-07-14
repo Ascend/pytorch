@@ -30,6 +30,12 @@ class TestMgr:
             'ut_files': [],
             'op_ut_files': []
         }
+        # test_classes 用于存储类级拆分信息
+        # 格式: {'ut_files': {file_path: [class_name, ...]}, 'op_ut_files': {}}
+        self.test_classes = {
+            'ut_files': {},
+            'op_ut_files': {}
+        }
 
     def load(self, modify_files, world_size):
         with open(modify_files) as f:
