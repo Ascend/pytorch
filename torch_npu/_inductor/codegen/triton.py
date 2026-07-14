@@ -3640,23 +3640,33 @@ class NPUIndexTritonKernel(TritonKernel):
         return sizes
 
     def is_contiguous_reduction(self):
-        def is_contiguous_axis(axis_list):
-            axis_set = set(axis_list)  # noqa: set_linter
-            return len(axis_set) == (max(axis_set) - min(axis_set) + 1)
+        if self.numof_reduction_axis() != 2:
+             return False
+        stride_sorted_var_list = self.parse_golden_from_load_store_index()
+        reduction_dim_list = []
+        if not stride_sorted_var_list:
+            if not self.golden_var_list:
+                self.select_golden_varlist()
+            stride_sorted_var_list = (
+                list(self.golden_var_list) if self.golden_var_list else []
+            )
 
-        if self.numof_reduction_axis() > 1:
-            stride_sorted_var_list = self.parse_golden_from_load_store_index()
-            reduction_dim_list = []
-            if not stride_sorted_var_list:
-                if not self.golden_var_list:
-                    self.select_golden_varlist()
-                stride_sorted_var_list = (
-                    list(self.golden_var_list) if self.golden_var_list else []
-                )
-            for i, x in enumerate(reversed(stride_sorted_var_list)):
-                if x.name[0] == "r":
-                    reduction_dim_list.append(i)
-            return is_contiguous_axis(reduction_dim_list)
+        # Reduction largest axis count: 2
+        # Reduction may have sacalr between reduction axis
+        inner_reduction_list = []
+        reduction_status = "reduction_start"
+        for x in reversed(stride_sorted_var_list):
+            if x.name[0] == "r" and reduction_status == "reduction_start":
+                reduction_status = "reduction_first"
+                continue
+            if x.name[0] == "r" and reduction_status == "reduction_first":
+                reduction_status = "reduction_end"
+                return True
+            if reduction_status == "reduction_first":
+                axis_is_tiling = any([axis.name == x.name for axis in V.kernel.tiling_axis])
+                if axis_is_tiling:
+                    return False
+
         return False
 
     def dense_size_str(self):

@@ -27,25 +27,20 @@ class SplitTiling:
 
         self.find_lowest_dimension()
         self.should_outer_reduce = False
-        self.contiguous_reduction = self.is_contiguous_reduction()
 
+    def axis_between_reduction(self, axis):
+        stride_sorted_axes = self.kernel.parse_golden_from_load_store_index()
+        if not stride_sorted_axes:
+            return True
+        if axis not in stride_sorted_axes:
+            return True
+        axis_index = stride_sorted_axes.index(axis)
 
-    def is_contiguous_reduction(self):
-        def is_contiguous_axis(axis_list):
-            axis_set = set(axis_list)
-            return len(axis_set) == (max(axis_set) - min(axis_set) + 1)
-
-        if self.kernel.numof_reduction_axis() > 1:
-            stride_sorted_var_list = self.kernel.parse_golden_from_load_store_index()
-            if not stride_sorted_var_list:
-                if not self.kernel.golden_var_list:
-                    self.kernel.select_golden_varlist()
-                stride_sorted_var_list = list(self.kernel.golden_var_list) if self.kernel.golden_var_list else []
-            reduction_dim_list = []
-            for i, x in enumerate(reversed(stride_sorted_var_list)):
-                if x.name[0] == 'r':
-                    reduction_dim_list.append(i)
-            return is_contiguous_axis(reduction_dim_list)
+        from torch._inductor.codegen.triton import prefix_is_reduction
+        left_have_reduction = any([prefix_is_reduction(str(axis)) for axis in stride_sorted_axes[:axis_index]])
+        right_have_reduction = any([prefix_is_reduction(str(axis)) for axis in stride_sorted_axes[axis_index:]])
+        if left_have_reduction and right_have_reduction:
+            return True
         return False
 
     @classmethod
@@ -131,41 +126,9 @@ class SplitTiling:
     # Tiling 原则1：load / store 中索引表达式的中的低维轴都要成为tiling轴.
     # Tiling 原则2：对于规约算子，规约轴要成为tiling轴。
     # Tiling 原则3: 多维规约， 只有规约轴可以被选择为tiling轴
-    # Tiling 原则4: tiling轴 要覆盖 total numel 的 80%
-
     # two tiling axis might be insufficient when there're 3 or more low-dims in indexing
     def select_tiling_axis(self):
         self.kernel.tiling_axis.clear()
-
-        #  cover the biggest axis and not exceed 3 axis
-        def meet_stop_condition():
-            total_numel = (
-                reduce(
-                    lambda x, y: x + y,
-                    map(lambda x: self.get_length_val(x), self.kernel.sorted_axis),
-                )
-                if self.kernel.sorted_axis
-                else 1
-            )
-            tiling_numel = (
-                reduce(
-                    lambda x, y: x + y,
-                    map(lambda x: self.get_length_val(x), self.kernel.tiling_axis),
-                )
-                if self.kernel.tiling_axis
-                else 1
-            )
-
-            # currently, the maximum dim that triton-ascend support is 2
-            def can_stop():
-                return self.kernel.numof_reduction_axis() > 1 and all(
-                    self.kernel.range_tree_nodes[var].is_tiling_axis
-                    for var in self.kernel.reduction_axis_list()
-                ) and not self.contiguous_reduction
-
-            if can_stop():
-                return True
-            return False
 
         def select_tiling(low_dim=True, reduction=True):
             for axis in reversed(self.kernel.sorted_axis):
@@ -185,21 +148,17 @@ class SplitTiling:
                     self.kernel.tiling_axis.append(axis)
                 if low_dim or reduction:
                     continue
-                    # using principle 4, select one longest
+
+                if self.axis_between_reduction(axis.symbol()):
+                    continue
+
                 longest = axis  # self.find_longest_dimension(check_in_tiling = True)
                 if longest and longest not in self.kernel.tiling_axis:
                     self.kernel.tiling_axis.append(longest)
                     longest.is_tiling_axis = True
-                if meet_stop_condition():
-                    break
 
         select_tiling(low_dim=True, reduction=True)
-        count = 0
-        while not meet_stop_condition():
-            select_tiling(low_dim=False, reduction=False)
-            count += 1
-            if count > 10:
-                break
+        select_tiling(low_dim=False, reduction=False)
         self.kernel.tiling_axis.sort(reverse=True, key=self.key)
         for i, x in enumerate(self.kernel.tiling_axis):
             x.tiling_order = i
