@@ -95,10 +95,10 @@
 | torch.nn.modules.module.register_module_module_registration_hook | No | - |
 | torch.nn.modules.module.register_module_parameter_registration_hook | No | - |
 | torch.nn.Conv1d | Yes | Supports fp16, fp32 |
-| torch.nn.Conv2d | Yes | Supports bf16, fp16, fp32<br><term>Atlas A2 Training Series</term>, in default scenarios, if compilation is triggered frequently, it is recommended to manually set torch.npu.config.allow_internal_format to False to disable internal format for input parameters and avoid online compilation |
+| torch.nn.Conv2d | Yes | Supports bf16, fp16, fp32<br>Atlas A2 Training Series, in default scenarios, if compilation is triggered frequently, it is recommended to manually set torch.npu.config.allow_internal_format to False to disable internal format for input parameters and avoid online compilation |
 | torch.nn.Conv3d | Yes | Supports bf16, fp16, fp32 |
 | torch.nn.ConvTranspose1d | Yes | Supports fp32 |
-| torch.nn.ConvTranspose2d | Yes | Supports fp16, fp32<br><term>Atlas Training Series</term>/<term>Atlas A2 Training Series</term>, torch.npu.config.allow_internal_format must be manually set to False to support 3-dimensional input |
+| torch.nn.ConvTranspose2d | Yes | Supports fp16, fp32<br>Atlas Training Series/Atlas A2 Training Series, torch.npu.config.allow_internal_format must be manually set to False to support 3-dimensional input |
 | torch.nn.ConvTranspose3d | Yes | Supports bf16, fp16, fp32 |
 | torch.nn.LazyConv1d | Yes | Supports fp16, fp32 |
 | torch.nn.LazyConv1d.cls_to_become | Yes | - |

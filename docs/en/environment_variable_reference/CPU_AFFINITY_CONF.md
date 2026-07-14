@@ -73,7 +73,7 @@ export CPU_AFFINITY_CONF=1,npu_affine:1
 
 ## Usage Constraints
 
-Affinity binding is only supported on <term>Atlas A2 training series</term>.
+Affinity binding is only supported on <term>Atlas A2 training products</term>.
 
 ## Supported Products
 

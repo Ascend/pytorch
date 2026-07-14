@@ -55,7 +55,7 @@
 | torch.distributed.scatter | Yes | Supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool<br>By setting `torch_npu.npu.use_compatible_impl(True)`, `torch.distributed.scatter` switches to be consistent with the Native Implementation |
 | torch.distributed.scatter_object_list | Yes | Does not involve the dtype parameter |
 | torch.distributed.reduce_scatter | Yes | Supports bf16, fp16, fp32, int8, int32 |
-| torch.distributed.reduce_scatter_tensor | Yes | Supports bf16, fp16, fp32, int8, int32<br>world size does not support 3, 5, 6, 7<br>For <term>Atlas A2 Training Series</term>, the "prod" operation does not support int16 and bf16 data types in the current version |
+| torch.distributed.reduce_scatter_tensor | Yes | Supports bf16, fp16, fp32, int8, int32<br>world size does not support 3, 5, 6, 7<br>For Atlas A2 Training Series, the "prod" operation does not support int16 and bf16 data types in the current version |
 | torch.distributed.all_to_all_single | Yes | Supports fp32 |
 | torch.distributed.all_to_all | Yes | Supports fp32<br>By setting `torch_npu.npu.use_compatible_impl(True)`, `torch.distributed.all_to_all` switches to be consistent with the Native Implementation |
 | torch.distributed.barrier | Yes | - |

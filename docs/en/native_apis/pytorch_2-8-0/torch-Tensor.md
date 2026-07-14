@@ -40,9 +40,9 @@
 |Tensor.addbmm|Yes|Supports fp16, fp32|
 |Tensor.addbmm_|Yes|Supports fp16, fp32|
 |Tensor.addcdiv|Yes|Supports bf16, fp16, fp32, int64<br>int64 type does not support simultaneous broadcasting of three tensors|
-|Tensor.addcdiv_|Yes|<term>Atlas A2 Training Series</term>/<term>Atlas A3 Training Series</term>: Supports bf16, fp16, fp32, fp64<br><term>Atlas Training Series</term>: Supports fp16, fp32, fp64<br>int64 type does not support simultaneous broadcasting of three tensors|
+|Tensor.addcdiv_|Yes|Atlas A2 Training Series/Atlas A3 Training Series: Supports bf16, fp16, fp32, fp64<br>Atlas Training Series: Supports fp16, fp32, fp64<br>int64 type does not support simultaneous broadcasting of three tensors|
 |Tensor.addcmul|Yes|Supports fp16, fp32, int64<br>int64 type does not support simultaneous broadcasting of three tensors|
-|Tensor.addcmul_|Yes|<term>Atlas A2 Training Series</term>/<term>Atlas A3 Training Series</term>: Supports bf16, fp16, fp32, fp64, uint8, int8, int32, int64<br><term>Atlas Training Series</term>: Supports fp16, fp32, fp64, uint8, int8, int32, int64<br>int64 type does not support simultaneous broadcasting of three tensors|
+|Tensor.addcmul_|Yes|Atlas A2 Training Series/Atlas A3 Training Series: Supports bf16, fp16, fp32, fp64, uint8, int8, int32, int64<br>Atlas Training Series: Supports fp16, fp32, fp64, uint8, int8, int32, int64<br>int64 type does not support simultaneous broadcasting of three tensors|
 |Tensor.addmm|Yes|Supports fp16, fp32|
 |Tensor.addmm_|Yes|Supports fp16, fp32|
 |Tensor.sspaddmm|No|-|
@@ -411,7 +411,7 @@
 |Tensor.t_|Yes|Supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool, complex64|
 |Tensor.tensor_split|Yes|CPU Only|
 |Tensor.tile|Yes|Supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool, complex64, complex128<br>If the length of the dims argument is less than the length of Tensor.shape, 1s are automatically prepended to dims to align its length with Tensor.shape. The padded dims must satisfy the following constraints:<br>- When repeating along the first axis, a maximum of 4 dimensions can be repeated simultaneously (i.e., the number of elements greater than 1 in dims ≤ 4). For example: Tensor.tile([2, 3, 4, 5, 6]) is not supported, while Tensor.tile([2, 3, 1, 5, 6]) is supported.<br>- When not repeating along the first axis, a maximum of 3 dimensions can be repeated simultaneously (i.e., the number of elements greater than 1 in dims ≤ 3). For example: Tensor.tile([1, 3, 4, 5, 6]) is not supported, while Tensor.tile([1, 3, 1, 5, 6]) is supported.<br>- If backpropagation is performed, the sum of the number of Tensor dimensions and the number of elements greater than 1 in dims must not exceed 8|
-|Tensor.to|Yes|Supports bf16, fp16, fp32, uint8, int8, int16, int32, int64, bool, complex64, complex128<br>Currently, the NPU device only supports setting memory_format to torch.contiguous_format or torch.preserve_format<br><term>Atlas Inference Series</term> does not support cross-NPU copying|
+|Tensor.to|Yes|Supports bf16, fp16, fp32, uint8, int8, int16, int32, int64, bool, complex64, complex128<br>Currently, the NPU device only supports setting memory_format to torch.contiguous_format or torch.preserve_format<br>Atlas Inference Series does not support cross-NPU copying|
 |to|Yes|-|
 |Tensor.to_mkldnn|No|-|
 |Tensor.take|Yes|Supports fp16, fp32, int16, int32, bool|
