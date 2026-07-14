@@ -126,7 +126,7 @@
   - [Named Tensors](./pytorch_2-9-0/Named-Tensors.md)
   - [torch.\_\_config\_\_](./pytorch_2-9-0/torch-__config__.md)
 
-- [PyTorch 2.8.0](./pytorch_2-8-0/PyTorch-2-8-0.md)
+- [PyTorch 2.8.0 version](./pytorch_2-8-0/PyTorch-2-8-0.md)
   - [Overview](./pytorch_2-8-0/overview.md)
   - [torch](./pytorch_2-8-0/torch.md)
   - [torch.nn](./pytorch_2-8-0/torch-nn.md)

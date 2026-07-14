@@ -72,65 +72,65 @@ The default value is False. If set to True, this setting instructs the pin_memor
 
 Example 1:
 
-    ```bash
-    export PYTORCH_NPU_ALLOC_CONF=max_split_size_mb:32,garbage_collection_threshold:0.6
-    ```
+```bash
+export PYTORCH_NPU_ALLOC_CONF=max_split_size_mb:32,garbage_collection_threshold:0.6
+```
 
 Example 2:
 
-    ```bash
-    export PYTORCH_NPU_ALLOC_CONF=expandable_segments:True,base_addr_aligned_kb:16
-    ```
+```bash
+export PYTORCH_NPU_ALLOC_CONF=expandable_segments:True,base_addr_aligned_kb:16
+```
 
 Example 3:
 
-    ```bash
-    export PYTORCH_NPU_ALLOC_CONF=page_size:1g
-    ```
+```bash
+export PYTORCH_NPU_ALLOC_CONF=page_size:1g
+```
 
 Example 4:
 
-    ```bash
-    export PYTORCH_NPU_ALLOC_CONF=expandable_segments:True,segment_size_mb:40
-    ```
+```bash
+export PYTORCH_NPU_ALLOC_CONF=expandable_segments:True,segment_size_mb:40
+```
 
 Example 5:
 
 - Single value example:
 
-        ```bash
-        export PYTORCH_NPU_ALLOC_CONF="roundup_power2_divisions:4"
-        ```
+    ```bash
+    export PYTORCH_NPU_ALLOC_CONF="roundup_power2_divisions:4"
+    ```
 
 - Array of key-value pairs example:
 
-        ```bash
-        export PYTORCH_NPU_ALLOC_CONF="roundup_power2_divisions:[256:1,512:2,1024:4,>:8]"
-        ```
+    ```bash
+    export PYTORCH_NPU_ALLOC_CONF="roundup_power2_divisions:[256:1,512:2,1024:4,>:8]"
+    ```
 
 Example 6:
 
-    ```bash
-    export PYTORCH_NPU_ALLOC_CONF=multi_stream_lazy_reclaim:True
-    ```
+```bash
+export PYTORCH_NPU_ALLOC_CONF=multi_stream_lazy_reclaim:True
+```
 
 Example 7:
 
-    ```bash
-    export PYTORCH_NPU_ALLOC_CONF=pinned_use_background_threads:True
-    ```
+```bash
+export PYTORCH_NPU_ALLOC_CONF=pinned_use_background_threads:True
+```
 
 Example 8:
 
-    ```bash
-    export PYTORCH_NPU_ALLOC_CONF=pin_memory_expandable_segments:True
-    ```
+```bash
+export PYTORCH_NPU_ALLOC_CONF=pin_memory_expandable_segments:True
+```
 
 Example 9:
 
-    ```bash
-    export PYTORCH_NPU_ALLOC_CONF=pinned_mem_register:True
-    ```
+```bash
+export PYTORCH_NPU_ALLOC_CONF=pinned_mem_register:True
+```
 
 ## Usage Constraints
 

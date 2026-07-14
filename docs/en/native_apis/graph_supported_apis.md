@@ -6,7 +6,7 @@ For the list of Ascend-supported APIs for graph capture, see [Table 1](#ascend-s
 
 > [!NOTE]  
 >
-> - APIs marked as "Supported for graph capture" indicate that the API can be used normally in the computational graph compiled by `torch.compile`, and can be captured by the graph and participate in optimization. For instructions on graph mode, refer to [PyTorch Graph Mode](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.0.0/docs/zh/framework_feature_guide_pytorch/pytorch_graph_mode.md).
+> - APIs marked as "Supported for graph capture" indicate that the API can be used normally in the computational graph compiled by `torch.compile`, and can be captured by the graph and participate in optimization. For instructions on graph mode, refer to [PyTorch Graph Mode](../framework_feature_guide_pytorch/pytorch_graph_mode.md).
 > - The list shown in this document includes APIs that have been verified as supported for graph capture. Some unverified APIs may also support graph capture. However, use them with caution in the Ascend NPU environment. We will continue to verify more APIs and update this document regularly.
 
 **Table 1**  Ascend-supported API list for graph capture<a id="ascend-supported-api-list-for-graph-capture"></a>
