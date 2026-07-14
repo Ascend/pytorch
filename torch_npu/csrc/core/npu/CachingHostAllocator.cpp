@@ -184,6 +184,18 @@ public:
         return c10_npu::NPUCachingAllocator::NPUAllocatorConfig::pinned_use_background_threads();
     }
 
+    // Override to delegate pinned memory thresholds through NPUAllocatorConfig,
+    // ensuring settings from PYTORCH_NPU_ALLOC_CONF are correctly resolved.
+    size_t pinned_max_round_threshold() const override
+    {
+        return c10_npu::NPUCachingAllocator::NPUAllocatorConfig::pinned_max_round_threshold();
+    }
+
+    size_t pinned_max_cached_size() const override
+    {
+        return c10_npu::NPUCachingAllocator::NPUAllocatorConfig::pinned_max_cached_size();
+    }
+
     c10_npu::NPUStream get_current_stream() const override
     {
         if (c10_npu::GetLocalDevice() < 0) {

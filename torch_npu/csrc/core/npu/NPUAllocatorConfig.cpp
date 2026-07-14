@@ -40,7 +40,9 @@ const std::unordered_set<std::string> kNPUSupportAccKeys = {
     "expandable_segments",
     "pinned_use_background_threads",
     "large_segment_size_mb",
-    "max_non_split_rounding_mb"
+    "max_non_split_rounding_mb",
+    "pinned_max_round_threshold_mb",
+    "pinned_max_cached_size_mb"
 };
 }
 
@@ -312,6 +314,20 @@ void NPUAllocatorConfig::parseArgs(const std::string& env, std::set<std::string>
         }
     }
 
+    // pin_memory_expandable_segments uses a dedicated expandable allocator whose
+    // allocate/free path does not consult pinned_max_round_threshold_mb or
+    // pinned_max_cached_size_mb. Warn so users know the thresholds are inert in
+    // this mode. Defaults to size_t::max when unset, so a value below max means
+    // the user set it.
+    if (m_pin_memory_expandable_segments &&
+        (acc_alloc_conf_ins.pinned_max_round_threshold() != std::numeric_limits<size_t>::max() ||
+         acc_alloc_conf_ins.pinned_max_cached_size() != std::numeric_limits<size_t>::max())) {
+        TORCH_NPU_WARN_ONCE(
+            "`pinned_max_round_threshold_mb` and `pinned_max_cached_size_mb` do not take effect "
+            "when `pin_memory_expandable_segments` is enabled. To use these options, set "
+            "`pin_memory_expandable_segments` to `False`.");
+    }
+
     if (c10::CachingAllocator::AcceleratorAllocatorConfig::large_segment_size() != kLargeBuffer && m_segment_size_mb != 0) {
         TORCH_NPU_WARN_ONCE("Both `segment_size_mb` and `large_segment_size_mb` are set. "
             "`segment_size_mb` is deprecated. It is recommended to use only `large_segment_size_mb`.");
@@ -354,14 +370,18 @@ void NPUAllocatorConfig::parseArgs(const std::string& env, std::set<std::string>
         "roundup_power2_divisions: %zu, "
         "expandable_segments: %d, "
         "pinned_use_background_threads: %d, "
-        "large_segment_size: %zu.",
+        "large_segment_size: %zu, "
+        "pinned_max_round_threshold_mb: %zu, "
+        "pinned_max_cached_size_mb: %zu.",
         acc_alloc_conf_ins.max_non_split_rounding_size(),
         acc_alloc_conf_ins.max_split_size(),
         acc_alloc_conf_ins.garbage_collection_threshold(),
         acc_alloc_conf_ins.roundup_power2_divisions(),
         acc_alloc_conf_ins.use_expandable_segments(),
         acc_alloc_conf_ins.pinned_use_background_threads(),
-        acc_alloc_conf_ins.large_segment_size());
+        acc_alloc_conf_ins.large_segment_size(),
+        acc_alloc_conf_ins.pinned_max_round_threshold(),
+        acc_alloc_conf_ins.pinned_max_cached_size());
 }
 REGISTER_ALLOCATOR_CONFIG_PARSE_HOOK(NPUAllocatorConfig)
 } // namespace NPUCachingAllocator

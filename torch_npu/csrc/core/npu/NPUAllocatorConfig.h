@@ -127,6 +127,20 @@ public:
         return c10::CachingAllocator::AcceleratorAllocatorConfig::max_non_split_rounding_size();
     }
 
+    // Pinned memory allocator thresholds for rounding and caching control.
+    // Delegate to AcceleratorAllocatorConfig which handles env var parsing.
+    static size_t pinned_max_round_threshold()
+    {
+        instance();
+        return c10::CachingAllocator::AcceleratorAllocatorConfig::pinned_max_round_threshold();
+    }
+
+    static size_t pinned_max_cached_size()
+    {
+        instance();
+        return c10::CachingAllocator::AcceleratorAllocatorConfig::pinned_max_cached_size();
+    }
+
     static NPUAllocatorConfig &instance();
 
     // Required by REGISTER_ALLOCATOR_CONFIG_PARSE_HOOK macro

@@ -914,7 +914,9 @@ void setAllocatorSettings(const std::string& settings)
         "max_non_split_rounding_mb",
         "release_lock_on_npumalloc",
         "throw_on_npumalloc_oom",
-        "per_process_memory_fraction"
+        "per_process_memory_fraction",
+        "pinned_max_round_threshold_mb",
+        "pinned_max_cached_size_mb"
     });
 }
 
