@@ -1,3 +1,4 @@
+import contextlib
 import os
 import shutil
 import threading
@@ -281,14 +282,17 @@ class TestPluggableAllocator(TestCase):
 
 class TestMemPool(TestCase):
     _saved_allocator_settings = None
+    _saved_fraction = None
 
     @classmethod
     def setUpClass(cls):
         cls._saved_allocator_settings = os.environ.get("PYTORCH_NPU_ALLOC_CONF", "")
+        cls._saved_fraction = torch_npu.npu.get_per_process_memory_fraction()
         torch.npu.memory._set_allocator_settings("expandable_segments:False")
 
     @classmethod
     def tearDownClass(cls):
+        torch_npu.npu.set_per_process_memory_fraction(cls._saved_fraction)
         torch.npu.memory._set_allocator_settings(cls._saved_allocator_settings)
 
     def test_mempool_id(self):
@@ -563,6 +567,131 @@ class TestMemPool(TestCase):
         for p in pools:
             self.assertEqual(len(p.snapshot()), 1, "expected a single cached segment")
 
+    def _setup_mempool_limited_memory(self, additional_allowed_mb):
+        # Limit memory for mempool tests.
+        torch_npu.npu.empty_cache()
+        mb = 1024 * 1024
+        _, all_memory = torch_npu.npu.mem_get_info()
+        pre_reserved = torch_npu.npu.memory_reserved()
+        total_allowed = additional_allowed_mb * mb + pre_reserved
+        fraction = total_allowed / all_memory
+        torch_npu.npu.set_per_process_memory_fraction(fraction)
+        return torch_npu.npu.current_device(), torch.int8
+
+    def _teardown_mempool_limited_memory(self):
+        torch_npu.npu.empty_cache()
+        torch_npu.npu.set_per_process_memory_fraction(self._saved_fraction)
+
+    def _alloc_record_free_sync(self, pool_ctx, s2, nbytes):
+        # Helper for block_free_not_deferred test.
+        with pool_ctx:
+            a = torch.empty(nbytes, dtype=torch.uint8, device="npu")
+            original_ptr = a.data_ptr()
+
+            with torch_npu.npu.stream(s2):
+                a.record_stream(s2)
+                _ = a + 1
+
+            del a
+            torch_npu.npu.synchronize()
+
+            b = torch.empty(nbytes, dtype=torch.uint8, device="npu")
+            new_ptr = b.data_ptr()
+            del b
+        return original_ptr, new_ptr
+
+    @serialTest()
+    def test_mempool_release_cached_blocks_during_diversion(self):
+        # Regression: release_cached_blocks during mempool diversion.
+        # `torch_npu.npu.use_mem_pool(...)` would skip the OOM-time
+        # release_cached_blocks() retry, because the gate read
+        # `captures_underway.empty()` — which is non-empty during any
+        # private-pool diversion, even when no real stream capture
+        # is active. The fix uses a separate `num_active_captures_` counter
+        # tracked by NPUGraph::capture_begin/end, so default-pool cached
+        # blocks can still be reclaimed during plain mempool diversion.
+        nelem_1mb = 1024 * 1024  # int8 elements per MiB
+        device, dtype = self._setup_mempool_limited_memory(80)
+        try:
+            # Reserve 60 MB on the default pool, then free -> cached but not
+            # returned to the driver. memory_reserved stays at 60 MB.
+            a = torch.empty(60 * nelem_1mb, device=device, dtype=dtype)
+            del a
+
+            pool = torch_npu.npu.MemPool()
+            with torch_npu.npu.use_mem_pool(pool):
+                # 60 MB into the private pool. Reservation budget remaining
+                # is only 20 MB (80 cap - 60 cached), so aclrtMalloc must
+                # fail. The OOM retry needs to call release_cached_blocks()
+                # on the default pool to free the 60 MB and retry. Pre-fix,
+                # that path was gated off and this would raise.
+                b = torch.empty(60 * nelem_1mb, device=device, dtype=dtype)
+            self.assertEqual(b.numel(), 60 * nelem_1mb)
+            del b
+            del pool
+        finally:
+            self._teardown_mempool_limited_memory()
+
+    def test_mempool_oom_recovery_releases_cached_blocks(self):
+        # OOM recovery releases cached blocks with user mempool active.
+        MB = 1024 * 1024
+
+        def align_down_2mb(n):
+            return n & ~(2 * MB - 1)
+
+        for label, make_ctx in [
+            ("default pool", lambda: contextlib.nullcontext()),
+            ("user mempool",
+             lambda: torch_npu.npu.use_mem_pool(torch_npu.npu.MemPool())),
+        ]:
+            with self.subTest(label=label):
+                torch_npu.npu.empty_cache()
+                free_before = torch_npu.npu.mem_get_info()[0]
+
+                fill_size = align_down_2mb(free_before // 2)
+                if fill_size < 64 * MB:
+                    self.skipTest("Not enough NPU memory for this test")
+
+                filler = torch.empty(fill_size, dtype=torch.uint8, device="npu")
+                del filler
+
+                alloc_size = align_down_2mb(free_before - free_before // 8)
+                oom = False
+                try:
+                    with make_ctx():
+                        big = torch.empty(alloc_size, dtype=torch.uint8, device="npu")
+                        del big
+                except torch.OutOfMemoryError:
+                    oom = True
+
+                self.assertFalse(
+                    oom,
+                    f"[{label}] OOM even though the default pool had "
+                    f"{fill_size // MB} MiB of freeable cached blocks "
+                    "-- release_cached_blocks was likely skipped",
+                )
+
+    def test_mempool_block_free_not_deferred(self):
+        # Multi-stream block free NOT deferred during user mempool.
+        torch_npu.npu.empty_cache()
+        s2 = torch_npu.npu.Stream()
+        nbytes = 1024 * 1024
+
+        for label, pool_ctx in [
+            ("default pool", contextlib.nullcontext()),
+            ("user mempool",
+             torch_npu.npu.use_mem_pool(torch_npu.npu.MemPool())),
+        ]:
+            with self.subTest(label=label):
+                torch_npu.npu.empty_cache()
+                orig, new = self._alloc_record_free_sync(pool_ctx, s2, nbytes)
+                self.assertEqual(
+                    new,
+                    orig,
+                    lambda msg: f"{msg}\n[{label}] Block not reused after multi-stream free "
+                    "-- free was likely deferred as if under graph capture",
+                )
+
 
 class TestMemPoolUseOnOOM(TestCase):
     """Behavioral tests for MemPool use_on_oom.
@@ -573,17 +702,19 @@ class TestMemPoolUseOnOOM(TestCase):
     must NOT be reused.
     """
 
+    _saved_allocator_settings = None
     _saved_fraction = None
 
     @classmethod
     def setUpClass(cls):
+        cls._saved_allocator_settings = os.environ.get("PYTORCH_NPU_ALLOC_CONF", "")
         cls._saved_fraction = torch_npu.npu.get_per_process_memory_fraction()
         torch.npu.memory._set_allocator_settings("expandable_segments:False")
 
     @classmethod
     def tearDownClass(cls):
         torch_npu.npu.set_per_process_memory_fraction(cls._saved_fraction)
-        torch.npu.memory._set_allocator_settings("expandable_segments:False")
+        torch.npu.memory._set_allocator_settings(cls._saved_allocator_settings)
 
     def _setup_limited_memory(self, additional_allowed_mb):
         # Limit the caching allocator to (already_reserved + additional_allowed_mb).

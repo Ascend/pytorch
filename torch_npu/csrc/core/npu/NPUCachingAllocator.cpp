@@ -998,6 +998,8 @@ private:
     // device statistics
     DeviceStats stats;
 
+    c10::DeviceIndex device_id;
+
     // unallocated cached blocks larger than 1 MB
     BlockPool large_blocks;
 
@@ -1007,11 +1009,28 @@ private:
     // allocated or in use by a stream
     ska::flat_hash_set<Block *> active_blocks;
 
-    // captures_underway tracks if we are diverting some
-    // allocations to a specific pool.
-    // Most of the time it's empty, in which case malloc can avoid calling
-    // aclrtStreamGetCaptureInfo in the hot path.
-    std::vector<std::pair<MempoolId_t, std::function<bool(aclrtStream)>>> captures_underway;
+    // Active pool-diversion scopes. Each entry routes allocations matching
+    // its filter into a private mempool. Populated by beginAllocateToPool /
+    // endAllocateToPool from any caller that wants such routing — including
+    // NPUGraph capture, torch_npu.npu.use_mem_pool, ProcessGroupHCCL
+    // registration, inductor npugraph_trees warmup, and the allocator's own
+    // try_mempool_fallback. Note: a non-empty list does NOT imply an active
+    // NPU stream capture; for that, see num_active_captures_ below.
+    // Most of the time it's empty, so malloc can short-circuit on the hot path.
+    std::vector<std::pair<MempoolId_t, std::function<bool(aclrtStream)>>> allocation_scopes_;
+
+    // Count of in-progress NPU stream captures on this device. Bumped by
+    // NPUGraph's capture_begin / capture_end (and conditional-node helpers)
+    // around AclmdlRICaptureBegin / AclmdlRICaptureEnd. Distinct from
+    // allocation_scopes_, which tracks pool routing — the latter can be
+    // populated without an active capture (e.g. torch_npu.npu.use_mem_pool,
+    // HCCL registration, inductor npugraph_trees warmup, internal
+    // try_mempool_fallback).
+    //
+    // Plain int because all access is serialized through `mutex`. Promote to
+    // std::atomic<int> (relaxed) if begin/end ever need to race or if any
+    // reader wants lock-free access.
+    int num_active_captures_ = 0;
 
     // See free() for this thing's purpose
     std::vector<Block *> needs_events_deferred_until_no_capture;
@@ -1064,7 +1083,9 @@ private:
     std::unordered_map<Block *, stream_set> block_to_npugraph_stream_uses;
 
 public:
-    DeviceCachingAllocator() : large_blocks(false), small_blocks(true), alloc_trace(new std::vector<TraceEntry>())
+    DeviceCachingAllocator(c10::DeviceIndex device)
+        : device_id(device), large_blocks(false), small_blocks(true),
+        alloc_trace(new std::vector<TraceEntry>())
     {
         setMemoryFraction(NPUAllocatorConfig::per_process_memory_fraction());
         stats.max_split_size = static_cast<int64_t>(NPUAllocatorConfig::max_split_size());
@@ -1219,7 +1240,7 @@ public:
             TORCH_NPU_MEMORY_LOGD("Using device: %d", device);
         }
 
-        if (!NPUAllocatorConfig::multi_stream_lazy_reclaim() && C10_LIKELY(captures_underway.empty())) {
+        if (!NPUAllocatorConfig::multi_stream_lazy_reclaim() && C10_LIKELY(!is_capture_context())) {
             // Processes end-of-life events for outstanding allocations used on
             // multiple streams (checks if their NPU-side uses are complete and
             // recycles their memory if so)
@@ -1251,7 +1272,7 @@ public:
             get_free_block(params) ||
             // Trigger callbacks and retry search
             (trigger_free_memory_callbacks(params) && get_free_block(params));
-        if (NPUAllocatorConfig::multi_stream_lazy_reclaim() && C10_LIKELY(captures_underway.empty())) {
+        if (NPUAllocatorConfig::multi_stream_lazy_reclaim() && C10_LIKELY(!is_capture_context())) {
             // Lazy process events and free memory
             size_t sum = 0;
             for (auto it = npu_events.begin(); it != npu_events.end(); ++it) {
@@ -1293,7 +1314,7 @@ public:
             }
         }
 
-        if (!block_found && !params.oom_rejection_info.rejected && C10_LIKELY(captures_underway.empty())) {
+        if (!block_found && !params.oom_rejection_info.rejected && C10_LIKELY(!is_capture_context())) {
             const char* const allocRetryMsg = "Get a block from the existing pool failed. Try to free cached blocks and reallocate. This error log can be ignored.";
             // torch_npu will try to free cached blocks and reallocate memory, so this error can be ignored.
             // write error message to plog, and tell users that this error log can be ignored.
@@ -1574,7 +1595,7 @@ public:
         }
 
         if (!block->stream_uses.empty() && c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
-            if (C10_UNLIKELY(!captures_underway.empty())) {
+            if (C10_UNLIKELY(is_capture_context())) {
                 // It's forbidden to npuEventQuery an event recorded during NPU graph
                 // capture. We conservatively defer recording end-of-life events until
                 // the next call to process_events() (which won't happen until no
@@ -1663,7 +1684,7 @@ public:
     {
         std::lock_guard<std::recursive_mutex> lock(mutex);
         block->stream_uses.insert(stream);
-        if (C10_UNLIKELY(!captures_underway.empty())) {
+        if (C10_UNLIKELY(is_capture_context())) {
             block_to_npugraph_stream_uses[block].insert(stream);
         }
     }
@@ -2292,19 +2313,19 @@ public:
     {
         std::lock_guard<std::recursive_mutex> lock(mutex);
         create_or_incref_pool(mempool_id);
-        for (auto it2 = captures_underway.begin(); it2 != captures_underway.end(); ++it2) {
+        for (auto it2 = allocation_scopes_.begin(); it2 != allocation_scopes_.end(); ++it2) {
             TORCH_CHECK(it2->first != mempool_id, "beginAllocateToPool: already recording to mempool_id");
         }
-        captures_underway.emplace_back(mempool_id, std::move(filter));
+        allocation_scopes_.emplace_back(mempool_id, std::move(filter));
     }
 
     // Called by NPUGraph::capture_end
     void endAllocateToPool(MempoolId_t mempool_id)
     {
         std::lock_guard<std::recursive_mutex> lock(mutex);
-        for (auto it = captures_underway.begin(); it != captures_underway.end(); ++it) {
+        for (auto it = allocation_scopes_.begin(); it != allocation_scopes_.end(); ++it) {
             if (it->first == mempool_id) {
-                captures_underway.erase(it);
+                allocation_scopes_.erase(it);
                 TORCH_NPU_MEMORY_LOGD("NPUCachingAllocator endAllocateToPool: mempool_id=(%lu,%lu)",
                                       mempool_id.first, mempool_id.second);
                 return;
@@ -2313,10 +2334,64 @@ public:
         TORCH_CHECK(false, "endAllocatePool: not currently recording to mempool_id");
     }
 
+    // Called by NPUGraph after AclmdlRICaptureBegin succeeds. Tracks real
+    // captures separately from the pool-routing list `allocation_scopes_`, so
+    // that allocator paths gated on "is a capture in progress" can distinguish
+    // a real capture (where aclrtEventQuery / aclrtStreamSynchronize are illegal)
+    // from a private mempool diversion (where they are fine). Assumes
+    // begin/end for one capture are not racing each other.
+    void markCaptureBegin()
+    {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+        num_active_captures_++;
+    }
+
+    // Called by NPUGraph after AclmdlRICaptureEnd.
+    void markCaptureEnd()
+    {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+        TORCH_INTERNAL_ASSERT(num_active_captures_ > 0);
+        num_active_captures_--;
+    }
+
     bool hasCapturesUnderway()
     {
         std::lock_guard<std::recursive_mutex> lock(mutex);
-        return !captures_underway.empty();
+        return is_capture_context();
+    }
+
+    // Returns true iff the calling thread's current stream is in an active
+    // NPU stream capture. Allocator paths that gate on capture safety
+    // (event insertion, deferred-free, OOM-time release_cached_blocks, ...)
+    // use this in place of a bare allocation_scopes_.empty() check, so that
+    // a private mempool diversion (use_mem_pool, HCCL register, warmup) is
+    // not mistaken for a real capture.
+    //
+    // Two layers, from cheapest to most expensive:
+    //   1. Device-wide counter: num_active_captures_ == 0 means no capture is
+    //      in progress anywhere on this device, so the answer is trivially
+    //      false. This is the common case and the hot path.
+    //   2. Per-stream syscall: AclmdlRICaptureGetInfo on the current stream.
+    //      Costs one TLS lookup + one driver call, only paid when some capture
+    //      is active on this device. Distinguishes a non-capturing stream on a
+    //      device that has another stream capturing (eager-eligible) from the
+    //      capturing stream itself (must follow capture rules).
+    //
+    // The counter read is safe because all callers hold `mutex`
+    // (see num_active_captures_).
+    bool is_capture_context()
+    {
+        if (C10_LIKELY(num_active_captures_ == 0)) {
+            return false;
+        }
+        aclrtStream stream = c10_npu::getCurrentNPUStream(device_id).stream(false);
+        aclmdlRICaptureStatus status{ACL_MODEL_RI_CAPTURE_STATUS_NONE};
+        aclmdlRI model_ri;
+        aclError err = c10_npu::acl::AclmdlRICaptureGetInfo(stream, &status, &model_ri);
+        if (err != ACL_ERROR_NONE) {
+            return false;
+        }
+        return status != aclmdlRICaptureStatus::ACL_MODEL_RI_CAPTURE_STATUS_NONE;
     }
 
     // Called by NPUGraph::reset
@@ -2344,7 +2419,7 @@ public:
             TORCH_NPU_MEMORY_LOGD("NPUCachingAllocator releasePool: mempool_id=(%lu,%lu), "
                                   "use_count reached 0, pool marked freeable",
                                   mempool_id.first, mempool_id.second);
-            if (c10_npu::option::OptionsManager::CheckForceUncached() && captures_underway.empty()) {
+            if (c10_npu::option::OptionsManager::CheckForceUncached() && !is_capture_context()) {
                 c10_npu::npuSynchronizeDevice(true);
                 std::shared_ptr<c10::GatheredContext> context = maybeGatherContext(RecordContext::ALL);
                 release_cached_blocks(true, context, true);
@@ -2626,12 +2701,13 @@ private:
 
     BlockPool &get_pool(size_t size, aclrtStream stream)
     {
-        // captures_underway is a conservative guess that the current stream may be
-        // capturing. It's only non-empty if some thread has begun and not yet ended
-        // a capture, so it's usually 0, and we can short-circuit
-        // npuStreamCaptureStatus (which does a TLS lookup).
-        if (C10_UNLIKELY(!captures_underway.empty())) {
-            for (auto it = captures_underway.rbegin(); it != captures_underway.rend(); ++it) {
+        // allocation_scopes_ tracks active mempool diversions (real captures or
+        // user-managed pools via use_mem_pool / HCCL registration / inductor
+        // warmup). When non-empty we route allocations into the matching private
+        // pool. It is usually empty, so we can short-circuit on the common path.
+        if (C10_UNLIKELY(!allocation_scopes_.empty())) {
+            // Search allocation_scopes_ in LIFO order.
+            for (auto it = allocation_scopes_.rbegin(); it != allocation_scopes_.rend(); ++it) {
                 if (it->second(stream)) {
                     auto it1 = graph_pools.find(it->first);
                     TORCH_INTERNAL_ASSERT(it1 != graph_pools.end());
@@ -3062,8 +3138,9 @@ private:
         bool free_physical,
         MempoolId_t mempool_id = {0, 0})
     {
-        if (mempool_id.first == 0 && mempool_id.second == 0 && captures_underway.empty()) {
-            // If there is no active mempool, we work on releasing *all* blocks.
+        if (mempool_id.first == 0 && mempool_id.second == 0 && !is_capture_context()) {
+            // If no graph capture is underway, we can release *all* default pool
+            // blocks.
 
             // First ensure that all blocks that can't currently be allocated due to
             // outstanding events are returned to the pool.
@@ -3271,7 +3348,7 @@ private:
         stats.num_sync_all_streams++;
         // This function syncs, so capture should not be underway. Might as well
         // make sure capture-deferred end of life events get processed too.
-        TORCH_INTERNAL_ASSERT(captures_underway.empty());
+        TORCH_INTERNAL_ASSERT(!is_capture_context());
         insert_events_deferred_until_no_capture(context);
 
         // Synchronize on outstanding events and then free associated blocks.
@@ -3510,7 +3587,7 @@ public:
         if (size < device_count) {
             device_allocator.resize(device_count);
             for (const auto i : c10::irange(size, device_count)) {
-                device_allocator[i] = std::make_unique<DeviceCachingAllocator>();
+                device_allocator[i] = std::make_unique<DeviceCachingAllocator>(i);
             }
         }
     }
@@ -3976,6 +4053,18 @@ public:
     {
         assertValidDevice(device);
         return device_allocator[device]->hasCapturesUnderway();
+    }
+
+    void markCaptureBegin(c10::DeviceIndex device) override
+    {
+        assertValidDevice(device);
+        device_allocator[device]->markCaptureBegin();
+    }
+
+    void markCaptureEnd(c10::DeviceIndex device) override
+    {
+        assertValidDevice(device);
+        device_allocator[device]->markCaptureEnd();
     }
 
     c10::DataPtr allocate(size_t size) override

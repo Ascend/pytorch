@@ -249,6 +249,7 @@ void NPUGraph::capture_begin(MempoolId_t pool, aclmdlRICaptureMode capture_mode,
     // cudaStreamCaptureModeGlobal is the most conservative option to
     // prevent potentially unsafe CUDA API calls during capture.
     NPU_CHECK_ERROR(c10_npu::acl::AclmdlRICaptureBegin(capture_stream_, capture_mode));
+    c10_npu::NPUCachingAllocator::markCaptureBegin(capture_dev_);
 
     aclmdlRICaptureStatus status;
     NPU_CHECK_ERROR(c10_npu::acl::AclmdlRICaptureGetInfo(stream, &status, &model_ri_));
@@ -279,7 +280,11 @@ void NPUGraph::capture_end()
     apply_cache_op_info(stream, false);
 
     aclmdlRI model_ri;
-    NPU_CHECK_ERROR(c10_npu::acl::AclmdlRICaptureEnd(capture_stream_, &model_ri));
+    // Capture is over once AclmdlRICaptureEnd returns (success or failure).
+    // Clear bookkeeping before propagating the return status so watchdog-side
+    // checks cannot observe stale "capture active" state on error paths.
+    aclError endCaptureErr = c10_npu::acl::AclmdlRICaptureEnd(capture_stream_, &model_ri);
+    c10_npu::NPUCachingAllocator::markCaptureEnd(capture_dev_);
     {
         std::unique_lock<std::mutex> lock(_currently_capturing_graphs_mutex);
         TORCH_CHECK(
@@ -288,8 +293,14 @@ void NPUGraph::capture_end()
         _currently_capturing_graphs.erase(model_ri_);
     }
 
+    // End pool allocation before checking the capture error. This ensures
+    // allocation_scopes_ is cleaned up even if AclmdlRICaptureEnd failed
+    // (e.g. due to an illegal operation during capture). These calls are
+    // safe regardless of whether the capture succeeded — they simply
+    // remove the pool routing entry added by beginAllocateToPool.
     c10_npu::NPUCachingAllocator::endAllocateToPool(capture_dev_, mempool_id_);
     at::getHostAllocator(at::kPrivateUse1)->end_allocate_to_pool(mempool_id_);
+    NPU_CHECK_ERROR(endCaptureErr);
 
     TORCH_CHECK(model_ri == model_ri_, "Invalid end capture model id: ", model_ri);
 
@@ -543,6 +554,7 @@ void NPUGraph::begin_capture_to_if_node(const at::Tensor& scalar_npu_pred_tensor
                   static_cast<void*>(child_model_ri), static_cast<void*>(child_stream.stream(false)),
                   mempool_id_.first, mempool_id_.second);
     NPU_CHECK_ERROR(c10_npu::acl::AclmdlRICaptureToModelRIBegin(child_stream, child_model_ri, capture_mode_));
+    c10_npu::NPUCachingAllocator::markCaptureBegin(capture_dev_);
     aclmdlRICaptureStatus child_status;
     aclmdlRI capturing_child_model_ri;
     NPU_CHECK_ERROR(c10_npu::acl::AclmdlRICaptureGetInfo(child_stream, &child_status, &capturing_child_model_ri));
@@ -580,6 +592,7 @@ void NPUGraph::end_capture_to_conditional_node()
     auto stream = conditional_node_streams_.top().current_stream();
     aclmdlRI ended_model_ri = nullptr;
     NPU_CHECK_ERROR(c10_npu::acl::AclmdlRICaptureEnd(stream, &ended_model_ri));
+    c10_npu::NPUCachingAllocator::markCaptureEnd(capture_dev_);
     TORCH_CHECK(ended_model_ri == child_model_ri,
                 "Invalid conditional capture end modelRI.",
                 PTA_ERROR(ErrCode::PARAM));

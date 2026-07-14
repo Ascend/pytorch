@@ -262,6 +262,13 @@ public:
     }
 
     virtual bool hasCapturesUnderway(c10::DeviceIndex device) { return false; }
+    // Notify the allocator that a NPU stream capture has actually started /
+    // ended. Distinct from begin/endAllocateToPool, which only routes
+    // allocations into a private mempool and can be invoked without an active
+    // npuStreamBeginCapture (e.g. from torch.npu.use_mem_pool, HCCL
+    // registration, or inductor npugraph_trees warmup).
+    virtual void markCaptureBegin(c10::DeviceIndex device) {}
+    virtual void markCaptureEnd(c10::DeviceIndex device) {}
     virtual void FreeDeviceCachedMemory(int device) = 0;
     virtual std::string name() = 0;
     virtual bool checkPoolLiveAllocations(
@@ -485,6 +492,16 @@ inline void releasePool(c10::DeviceIndex device, MempoolId_t mempool_id)
 inline bool hasCapturesUnderway(c10::DeviceIndex device)
 {
     return get()->hasCapturesUnderway(device);
+}
+
+inline void markCaptureBegin(c10::DeviceIndex device)
+{
+    get()->markCaptureBegin(device);
+}
+
+inline void markCaptureEnd(c10::DeviceIndex device)
+{
+    get()->markCaptureEnd(device);
 }
 
 inline std::shared_ptr<void> getIpcDevPtr(std::string handle)
