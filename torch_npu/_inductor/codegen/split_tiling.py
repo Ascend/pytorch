@@ -10,7 +10,9 @@ from torch._inductor.virtualized import V
 
 from .kernel_analysis import IndexAnalysis
 from .triton_utils import get_byte_per_numel
+from .. import config as npu_config
 from ..config import num_vector_core, log
+from ..runtime.symbolic_grouping import GroupFeatureSpec, GroupedKernelMeta
 
 
 # split and tiling axis selector
@@ -247,6 +249,115 @@ class SplitTiling:
     def select_split_tiling_axis(self):
         self.select_split_axis()
         self.select_tiling_axis()
+        self.apply_grouped_rewrite_if_needed()
+
+    def apply_grouped_rewrite_if_needed(self):
+        if not npu_config.enable_symbolic_shape_group_autotune:
+            self.kernel.grouped_autotune_meta = None
+            return
+        if not self._is_grouped_template_enabled():
+            self.kernel.grouped_autotune_meta = None
+            return
+        self.kernel.grouped_autotune_meta = self._build_grouped_meta()
+
+    def _grouped_template_name(self):
+        if self.kernel.persistent_reduction:
+            return "persistent_reduction"
+        if self.kernel.inside_reduction:
+            return "reduction"
+        return "pointwise"
+
+    def _is_grouped_template_enabled(self):
+        template = self._grouped_template_name()
+        return template in npu_config.symbolic_group_allow_templates
+
+    def _classify_split_axes(self):
+        dynamic_split_axes = []
+        static_split_axes = []
+        for axis in self.kernel.split_axis:
+            if isinstance(axis.length, sympy.Integer):
+                static_split_axes.append(axis)
+            else:
+                dynamic_split_axes.append(axis)
+        return dynamic_split_axes, static_split_axes
+
+    def _select_primary_group_axis(self, dynamic_split_axes):
+        if not dynamic_split_axes:
+            return None
+        for axis in self.kernel.sorted_axis:
+            if axis in dynamic_split_axes:
+                return axis
+        return dynamic_split_axes[0]
+
+    def non_reduction_axis_names(self):
+        return tuple(axis.name for axis in self.kernel.sorted_axis if axis.prefix != "r")
+
+    def all_axis_names(self):
+        return tuple(axis.name for axis in self.kernel.sorted_axis)
+
+    def reduction_axis_names(self):
+        return tuple(axis.name for axis in self.kernel.sorted_axis if axis.prefix == "r")
+
+    def _build_group_features(self, primary_axis):
+        if self.kernel.persistent_reduction or self.kernel.inside_reduction:
+            return (
+                GroupFeatureSpec(
+                    "outer",
+                    "outer_product",
+                    self.non_reduction_axis_names(),
+                    (256,),
+                ),
+                GroupFeatureSpec(
+                    "reduction",
+                    "reduction_product",
+                    self.reduction_axis_names(),
+                    (8192,),
+                ),
+            )
+        return (
+            GroupFeatureSpec(
+                "pointwise",
+                "outer_product",
+                self.all_axis_names(),
+                (num_vector_core * 4096,),
+            ),
+        )
+
+    def _build_grouped_meta(self):
+        dynamic_split_axes, static_split_axes = self._classify_split_axes()
+        if not dynamic_split_axes:
+            return None
+        primary_axis = self._select_primary_group_axis(dynamic_split_axes)
+        if primary_axis is None:
+            return None
+        secondary_axes = [axis for axis in dynamic_split_axes if axis is not primary_axis]
+        self._downgrade_secondary_runtime_split_axes(secondary_axes)
+        feature_specs = self._build_group_features(primary_axis)
+        return GroupedKernelMeta(
+            enabled=True,
+            template=self._grouped_template_name(),
+            primary_group_axis=primary_axis.name,
+            static_split_axes=tuple(axis.name for axis in static_split_axes),
+            secondary_runtime_symbolic_axes=tuple(axis.name for axis in secondary_axes),
+            group_features=tuple(feature_specs),
+            runtime_block_arg_names=tuple(
+                f"{axis.name.upper()}BLOCK" for axis in self.kernel.split_axis
+            ),
+        )
+
+    def _downgrade_secondary_runtime_split_axes(self, secondary_axes):
+        if not secondary_axes:
+            return
+        retained = []
+        for axis in self.kernel.split_axis:
+            if axis in secondary_axes:
+                axis.is_split_axis = False
+                continue
+            retained.append(axis)
+        self.kernel.split_axis = retained
+        self.kernel.split_axis.sort(reverse=True, key=self.key)
+        for i, axis in enumerate(self.kernel.split_axis):
+            axis.split_order = i
 
     # the below logic doesn't work when there're two reduction axis, but only one need outer reduction
     def should_outer_reduce_me(self, x):

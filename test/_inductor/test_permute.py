@@ -20,6 +20,11 @@ class TestPermute(TestUtils):
         y = a + b
         return y
 
+    @staticmethod
+    def transpose_clone_square(x):
+        y = x.view(-1, 80, 80, 8)
+        return y.permute(0, 2, 1, 3).clone()
+
     @parametrize('shape', [(8, 8, 512, 128)])
     @parametrize('dtype', ['float32', 'int32', 'float16', 'bfloat16', 'int64'])
     def test_view_cases(self, shape, dtype):
@@ -32,6 +37,15 @@ class TestPermute(TestUtils):
             inductor_permute = compiled_op_calc(a, b, dim)
 
             self.assertEqual(std_permute, inductor_permute, atol=1e-3, rtol=1e-3)
+
+    def test_transpose_clone_square(self):
+        x = self._generate_tensor((381, 80, 640), "float32")
+        eager = self.transpose_clone_square(x)
+        compiled = torch.compile(
+            self.transpose_clone_square, backend="inductor", dynamic=False
+        )
+        actual = compiled(x)
+        torch.testing.assert_close(actual, eager, rtol=1e-4, atol=1e-4)
 
 instantiate_parametrized_tests(TestPermute)
 

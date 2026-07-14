@@ -226,6 +226,19 @@ aggresive_autotune = os.getenv("INDUCTOR_ASCEND_AGGRESSIVE_AUTOTUNE", "0").lower
     "1",
     "true",
 )
+enable_symbolic_shape_group_autotune = os.getenv(
+    "INDUCTOR_ASCEND_SYMBOLIC_GROUP_AUTOTUNE", "0"
+).lower() in ("1", "true", "yes")
+
+# Temporary rollout-only switch. Remove after grouped autotune is fully enabled.
+symbolic_group_allow_templates = tuple(
+    x.strip()
+    for x in os.getenv(
+        "INDUCTOR_ASCEND_SYMBOLIC_GROUP_TEMPLATES",
+        "pointwise,reduction,persistent_reduction",
+    ).split(",")
+    if x.strip()
+)
 
 profile_path = "./profile_result/"
 
@@ -269,3 +282,5 @@ if "TORCHNPU_PRECOMPILE_THREADS" in os.environ:
 
 lowering_axis_count = None
 inductor_ascend_linear_mode = "linear"
+
+autotune_continue_on_failure = os.environ.get('TORCHINDUCTOR_NPU_BACKEND') == "default"
