@@ -321,4 +321,5 @@ decomps_to_exclude_npu = [
     aten.grid_sampler_2d,
     aten.grid_sampler_2d_backward,
     aten.expm1,
+    aten._safe_softmax,
 ]
