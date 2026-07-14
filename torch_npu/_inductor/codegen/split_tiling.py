@@ -88,7 +88,7 @@ class SplitTiling:
                 val = sv.size_hint(current_numels)
             except TypeError:
                 return len(self.kernel.split_axis) >= 3
-            if val >= num_vector_core:
+            if val >= num_vector_core and val // ( ( val + num_vector_core - 1) // num_vector_core) > num_vector_core * 0.8:
                 return True
             if len(self.kernel.split_axis) == 3:
                 return True
