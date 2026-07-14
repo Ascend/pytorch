@@ -1,3 +1,4 @@
+import os
 import functools
 from typing import Optional, Tuple
 import torch
@@ -81,7 +82,10 @@ def _register_triton_decompositions():
     _register_npu_triton_decompositions()
 
 def _register_mlir_dvm_decompositions():
-    remove_decompositions(inductor_decomp.decompositions, anir_config.decomps_to_exclude_npu)
+    exclude_list = anir_config.decomps_to_exclude_npu
+    if os.getenv("TORCHINDUCTOR_NPU_BACKEND", "default") == "mlir":
+        exclude_list.append(torch.ops.aten._safe_softmax)
+    remove_decompositions(inductor_decomp.decompositions, exclude_list)
 
     # Batch_norm_decomposition function registered to fix dynamic shape dynamo tracing issue.
     @aten.batch_norm.default.py_impl(DispatchKey.Autograd)
