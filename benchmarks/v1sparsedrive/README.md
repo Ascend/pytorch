@@ -1,4 +1,4 @@
-# SimpleV1SparseDrive (torch-npu / Ascend)
+# SimpleV1SparseDrive (TorchNPU / Ascend)
 
 ---
 

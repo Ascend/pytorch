@@ -1,6 +1,6 @@
 # TorchNPU 开发镜像
 
-本目录提供 Dockerfile 及构建脚本，用于生成 TorchNPU 的构建与开发镜像：`builder` 镜像提供 torch_npu 编译环境（不含 CANN），`dev` 镜像在此基础上叠加 CANN 运行环境。
+本目录提供 Dockerfile 及构建脚本，用于生成 TorchNPU 的构建与开发镜像：`builder` 镜像提供 TorchNPU 编译环境（不含 CANN），`dev` 镜像在此基础上叠加 CANN 运行环境。
 
 ## 1 镜像介绍
 
@@ -12,7 +12,7 @@ base        manylinux + Python 软链接 + pip 源 + 基础系统包（curl/wget
         └── dev     builder + CANN（Toolkit + Ops + NNAL 可选）  ← 运行环境
 ```
 
-- **builder**（默认）：用于编译 torch_npu wheel，不含 CANN
+- **builder**（默认）：用于编译 TorchNPU wheel，不含 CANN
 - **dev**：基于 builder，叠加 CANN 运行环境；继承全部编译工具链，可在容器内直接重新编译
 
 > Dockerfile会自动根据当前架构（ARM/X86）拉取对应镜像。
@@ -111,7 +111,7 @@ bash builder.sh --cann --no-cache                        # 含 CANN 且不使用
 
 ## 3 启动容器
 
-> torch_npu **编译**无需 CANN/驱动；CANN 与 NPU 驱动仅在**运行时**（`import torch_npu`、调用 NPU 算子）需要。因此根据镜像类型选择不同的启动方式。
+> TorchNPU **编译**无需 CANN/驱动；CANN 与 NPU 驱动仅在**运行时**（`import torch_npu`、调用 NPU 算子）需要。因此根据镜像类型选择不同的启动方式。
 >
 > 若已通过 `builder.sh` 构建，脚本会自动构建镜像并启动容器，可直接执行下方的 `docker exec` 命令进入容器；本节其余命令仅适用于手动执行 `docker build` 后需自行启动容器的场景。
 

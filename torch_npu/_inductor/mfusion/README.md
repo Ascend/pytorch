@@ -11,12 +11,12 @@ MFusion 包含如下核心组件：
 | subgraph_registry | 子图注册表     | 管理融合子图的元数据，包括 FX GraphModule 和动态/静态标记                      |
 | decomp            | 算子分解       | 提供 Inductor 融合前的算子预处理，确保融合路径的正确性                         |
 
-# 使用指导
+## 使用指导
 
 ## 环境配置
 
 * mfusion：MFusion 组件的 Python wheel 包
-* torch_npu：2.7.1 和 2.9.0 支持 MFusion 功能
+* TorchNPU：2.7.1 和 2.9.0 支持 MFusion 功能
 * torch-mlir：MFusion 依赖 torch-mlir 进行 MLIR 代码生成，用户可从 [LINK](https://repo.oepkgs.net/ascend/pytorch/vllm/torch/) 获取
 
 ## 环境变量

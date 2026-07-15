@@ -2,9 +2,9 @@
 
 ## 环境约束
 
-1）**torch_npu 和 CANN 环境**
+1）**TorchNPU 和 CANN 环境**
 
-本样例依赖 torch_npu 运行环境，推荐 torch_npu 26.1.0 及配套 CANN 9.1.0 版本。
+本样例依赖 TorchNPU 运行环境，推荐 TorchNPU 26.1.0 及配套 CANN 9.1.0 版本。
 
 2）**triton-ascend >= 3.2.2**
 
