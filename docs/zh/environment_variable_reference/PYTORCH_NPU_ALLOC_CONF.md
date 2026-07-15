@@ -6,7 +6,7 @@
 
 > [!CAUTION]  
 >
-> 从Ascend Extension for PyTorch 26.2.0版本且PyTorch 2.10.0及以上版本开始，torch\_npu也支持通过PYTORCH\_ALLOC\_CONF环境变量配置缓存分配器参数，配置方式、支持的参数和PYTORCH\_NPU\_ALLOC\_CONF相同，二者选其一配置即可，同时配置会报错并退出程序。建议优先使用PYTORCH\_ALLOC\_CONF环境变量配置缓存分配器行为。
+> 从TorchNPU 26.2.0版本且PyTorch 2.10.0及以上版本开始，torch\_npu也支持通过PYTORCH\_ALLOC\_CONF环境变量配置缓存分配器参数，配置方式、支持的参数和PYTORCH\_NPU\_ALLOC\_CONF相同，二者选其一配置即可，同时配置会报错并退出程序。建议优先使用PYTORCH\_ALLOC\_CONF环境变量配置缓存分配器行为。
 
 缓存分配器会根据申请内存的大小使用不同内存池，小于1MB使用小块内存池，反之使用大块内存池；虚拟内存特性下，大块内存池申请的物理内存粒度（segment\_size\_mb）默认为20MB，小块内存池默认为2MB（不可配置）；大模型场景下小块内存池内存使用通常较少，因此部分环境配置项（page\_size、segment\_size\_mb）只作用于大块内存池。
 
@@ -87,6 +87,16 @@
     取值范围为\[0.0,1.0\]，表示可用的设备显存比例，默认值为1.0，即不限制进程显存使用。配置后，框架在初始化时会根据设备总显存和配置的比例计算当前进程可使用的最大显存，超出限制的内存申请将触发OOM（Out of Memory，内存不足）错误。
 
     该配置项适用于多进程共享同一NPU设备的场景，通过限制进程的可用显存的比例，避免单个进程占用过多显存导致其他进程OOM。
+
+- pinned\_max\_round\_threshold\_mb:<value\>，pinned memory分配大小是否向上取整到2的幂次的判别阈值。
+
+    取值为正整数，单位为MB。默认不开启，即对所有pinned memory分配都执行power-of-2向上取整。设置后，分配大小若小于等于此阈值，仍执行向上取整；若大于此阈值，则跳过取整并按精确请求大小分配，从而减少大块pinned memory因取整带来的内存浪费。例如阈值设为128MB时，129MB的分配请求将使用129MB而非向上取整到256MB。
+
+    向上取整是为了让内存块便于后续复用，不进入缓存的块无需对齐，所以无论本选项如何设置，超过pinned\_max\_cached\_size\_mb的分配始终不会执行向上取整。
+
+- pinned\_max\_cached\_size\_mb:<value\>，pinned memory释放后是否缓存到free list复用的判别阈值。
+
+    取值为正整数，单位为MB。默认不开启，即所有释放的pinned memory块都进入free list缓存复用。设置后，块大小若大于此阈值，则在释放时立即归还给OS，不再进入free list缓存（也不再执行向上取整），从而降低大块pinned memory使用频率较低场景下的峰值内存占用。
 
 > [!NOTE]  
 >
@@ -174,6 +184,12 @@ export PYTORCH_NPU_ALLOC_CONF=per_process_memory_fraction:0.5
 export PYTORCH_ALLOC_CONF=max_split_size_mb:32,garbage_collection_threshold:0.6
 ```
 
+示例十三：
+
+```bash
+export PYTORCH_NPU_ALLOC_CONF=pinned_max_round_threshold_mb:128,pinned_max_cached_size_mb:256
+```
+
 ## 使用约束
 
 - expandable\_segments特性需在Ascend HDK 23.0.0及以上版本上使用。
@@ -196,9 +212,10 @@ export PYTORCH_ALLOC_CONF=max_split_size_mb:32,garbage_collection_threshold:0.6
 - multi_stream_lazy_reclaim使用注意事项：
     - 特性要求在TorchNPU 7.3.0以上版本上使用。
     - 该特性主要解决多流场景下，Host侧存在下发性能瓶颈时的系统效率问题。单流、少流场景或者非Host性能瓶颈时，该功能收益不大。
-- large\_segment\_size\_mb特性需在Ascend Extension for PyTorch 26.1.0及以上版本、PyTorch 2.11.0 及以版本上使用。
-- per\_process\_memory\_fraction特性需在Ascend Extension for PyTorch 26.1.0及以上版本、PyTorch 2.10.0 及以上版本使用。
-- 通过PYTORCH\_ALLOC\_CONF环境变量配置缓存分配器参数，需在Ascend Extension for PyTorch 26.2.0版本且PyTorch 2.10.0及以上版本使用。
+- large\_segment\_size\_mb特性需在TorchNPU 26.1.0及以上版本、PyTorch 2.11.0 及以版本上使用。
+- per\_process\_memory\_fraction特性需在TorchNPU 26.1.0及以上版本、PyTorch 2.10.0 及以上版本使用。
+- pinned\_max\_round\_threshold\_mb和pinned\_max\_cached\_size\_mb特性需在TorchNPU 26.2.0及以上版本、PyTorch 2.13.0及以上版本使用。两者仅作用于默认（非expandable）pinned memory分配器路径。与pin\_memory\_expandable\_segments同时配置时，这两个阈值不生效，框架会输出一次告警提示，但进程仍可正常启动；如需启用这两个阈值，请将pin\_memory\_expandable\_segments设置为False。
+- 通过PYTORCH\_ALLOC\_CONF环境变量配置缓存分配器参数，需在TorchNPU 26.2.0版本且PyTorch 2.10.0及以上版本使用。
 
 ## 支持的型号
 
