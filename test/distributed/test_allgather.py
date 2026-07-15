@@ -1,16 +1,15 @@
-import unittest
 import os
 from random import randint
-
 import numpy as np
+
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
-import torch_npu
 
+import torch_npu
 import torch_npu.distributed
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.common_utils import create_common_tensor
+from torch_npu.testing.common_utils import create_common_tensor, SupportedDevices
 from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
 
 
@@ -155,6 +154,7 @@ class HcclAllGatherTest(HcclAllGatherTestBase):
         pg.barrier()
         p2c.get()
 
+    @SupportedDevices(['Ascend910A', 'Ascend910B', 'Ascend910_93'])
     @skipIfUnsupportMultiNPU(2)
     def test_all_gather_dist(self):
         ranks = [2]
@@ -174,6 +174,7 @@ class HcclAllGatherTest(HcclAllGatherTestBase):
                 self._test_multiprocess(HcclAllGatherTest._test_all_gather,
                                         HcclAllGatherTest._init_dist_hccl, expected, input1, world_size)
 
+    @SupportedDevices(['Ascend910A', 'Ascend910B', 'Ascend910_93'])
     @skipIfUnsupportMultiNPU(2)
     def test_all_gather_dist_different_shape(self):
         ranks = [2]
