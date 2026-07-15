@@ -429,6 +429,12 @@ def _dynamo_register_interface_for_device():
 
         register_interface_for_device(f"npu:{i}", NpuInterface)
 
+def register_npu_graphsafe_rng():
+    """Register NPU for upstream GraphSafe RNG (same contract as CUDA)."""
+    from torch._functorch._aot_autograd.utils import register_graphsafe_rng_device_type
+
+    register_graphsafe_rng_device_type("npu")
+
 @run_once
 def add_dynamo_methods_init():
     _dynamo_register_interface_for_device()
@@ -443,3 +449,4 @@ def add_dynamo_methods_init():
 def add_dynamo_methods():
     patch_dynamo_optimize()
     patch_inductor_wrapper()
+    register_npu_graphsafe_rng()

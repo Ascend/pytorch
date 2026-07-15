@@ -88,6 +88,8 @@ anir_config.GENERATE_LIST = [
     # aten.copy,
     # aten.copy_,
     # aten.clone,
+    torch.ops.higher_order.while_loop,
+    torch.ops.higher_order.while_loop_stack_output,
 ]
 
 def _is_node_supported_by_dvm_rule(node, allow_common_rule=False):

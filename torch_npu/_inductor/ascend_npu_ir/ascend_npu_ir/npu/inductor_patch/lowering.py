@@ -6307,18 +6307,6 @@ def fmod(a, b):
     return make_pointwise(fn)(a, b)
 
 
-@register_lowering(aten.rsqrt)
-def rsqrt(x):
-    dtype = x.get_dtype()
-    if is_integer_dtype(dtype) or is_boolean_dtype(dtype):
-        x = to_dtype(x, torch.get_default_dtype())
-
-    def _rsqrt(x):
-        return ops.rsqrt(x)
-
-    register_fn_to_aten_fn(_rsqrt, aten.rsqrt)
-    return make_pointwise(_rsqrt)(x)
-
 def split_last_continuous(lst):
     n = len(lst)
     if n == 1:
@@ -7035,7 +7023,9 @@ def cond(pred, true_fn, false_fn, operands):
 
 
 @register_lowering(torch.ops.higher_order.while_loop, type_promotion_kind=None)
-def while_loop(cond_fn, body_fn, carried_inputs, additional_inputs):
+def while_loop(
+    cond_fn, body_fn, carried_inputs, additional_inputs, stack_output=False
+):
     if any(
         isinstance(x, IRNode) and is_triton(x)
         for x in carried_inputs + additional_inputs
@@ -7045,8 +7035,16 @@ def while_loop(cond_fn, body_fn, carried_inputs, additional_inputs):
             msg = f"{msg} Found from : \n {stack_trace}"
         V.graph.disable_cudagraphs_reason = msg
 
-    result = ir.WhileLoop.create(cond_fn, body_fn, carried_inputs, additional_inputs)
-    return list(map(TensorBox.create, result))
+    result = ir.WhileLoop.create(
+        cond_fn, body_fn, carried_inputs, additional_inputs, stack_output
+    )
+    assert isinstance(result, Sequence)
+    return list(map(ir.WhileLoop._maybe_wrap_as_tensor_box, result))
+
+
+register_lowering(
+    torch.ops.higher_order.while_loop_stack_output, type_promotion_kind=None
+)(functools.partial(while_loop, stack_output=True))
 
 
 @register_lowering(torch.ops.higher_order.invoke_subgraph, type_promotion_kind=None)
