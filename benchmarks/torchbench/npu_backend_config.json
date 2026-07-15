@@ -1,0 +1,170 @@
+[
+    {
+        "model": "BERT_pytorch",
+        "hardware": "npu",
+        "mode": "mlir",
+        "E2E_speed_up_rate": 4.697522816166884
+    },
+    {
+        "model": "LearningToPaint",
+        "hardware": "npu",
+        "mode": "mlir",
+        "E2E_speed_up_rate": 2.2519754170324844
+    },
+    {
+        "model": "alexnet",
+        "hardware": "npu",
+        "mode": "mlir",
+        "E2E_speed_up_rate": 1.544836956521739
+    },
+    {
+        "model": "dcgan",
+        "hardware": "npu",
+        "mode": "dvm",
+        "E2E_speed_up_rate": 1.6366279069767442
+    },
+    {
+        "model": "densenet121",
+        "hardware": "npu",
+        "mode": "dvm",
+        "E2E_speed_up_rate": 4.018036529680366
+    },
+    {
+        "model": "hf_Albert",
+        "hardware": "npu",
+        "mode": "mlir",
+        "E2E_speed_up_rate": 3.03486083778465
+    },
+    {
+        "model": "hf_Bart",
+        "hardware": "npu",
+        "mode": "dvm",
+        "E2E_speed_up_rate": 2.1046712802768166
+    },
+    {
+        "model": "hf_Bert",
+        "hardware": "npu",
+        "mode": "mlir",
+        "E2E_speed_up_rate": 2.2436246595692
+    },
+    {
+        "model": "hf_DistilBert",
+        "hardware": "npu",
+        "mode": "dvm",
+        "E2E_speed_up_rate": 2.006595218466612
+    },
+    {
+        "model": "hf_T5_large",
+        "hardware": "npu",
+        "mode": "dvm",
+        "E2E_speed_up_rate": 1.9116852286789403
+    },
+    {
+        "model": "lennard_jones",
+        "hardware": "npu",
+        "mode": "dvm",
+        "E2E_speed_up_rate": 1.3333333333333333
+    },
+    {
+        "model": "mobilenet_v2",
+        "hardware": "npu",
+        "mode": "dvm",
+        "E2E_speed_up_rate": 2.623713305375524
+    },
+    {
+        "model": "nvidia_deeprecommender",
+        "hardware": "npu",
+        "mode": "dvm",
+        "E2E_speed_up_rate": 1.2717948717948715
+    },
+    {
+        "model": "phlippe_densenet",
+        "hardware": "npu",
+        "mode": "dvm",
+        "E2E_speed_up_rate": 4.225296442687747
+    },
+    {
+        "model": "phlippe_resnet",
+        "hardware": "npu",
+        "mode": "dvm",
+        "E2E_speed_up_rate": 2.7964743589743586
+    },
+    {
+        "model": "pytorch_stargan",
+        "hardware": "npu",
+        "mode": "dvm",
+        "E2E_speed_up_rate": 1.235414534288639
+    },
+    {
+        "model": "pytorch_unet",
+        "hardware": "npu",
+        "mode": "mlir",
+        "E2E_speed_up_rate": 1.0518394648829432
+    },
+    {
+        "model": "resnet152",
+        "hardware": "npu",
+        "mode": "mlir",
+        "E2E_speed_up_rate": 4.565473209814722
+    },
+    {
+        "model": "resnet18",
+        "hardware": "npu",
+        "mode": "dvm",
+        "E2E_speed_up_rate": 2.358640636297903
+    },
+    {
+        "model": "resnet50",
+        "hardware": "npu",
+        "mode": "dvm",
+        "E2E_speed_up_rate": 2.446224256292906
+    },
+    {
+        "model": "resnext50_32x4d",
+        "hardware": "npu",
+        "mode": "mlir",
+        "E2E_speed_up_rate": 6.718421052631579
+    },
+    {
+        "model": "shufflenet_v2_x1_0",
+        "hardware": "npu",
+        "mode": "dvm",
+        "E2E_speed_up_rate": 3.387612387612388
+    },
+    {
+        "model": "squeezenet1_1",
+        "hardware": "npu",
+        "mode": "mlir",
+        "E2E_speed_up_rate": 2.1103965702036445
+    },
+    {
+        "model": "timm_resnest",
+        "hardware": "npu",
+        "mode": "dvm",
+        "E2E_speed_up_rate": 2.334689134224288
+    },
+    {
+        "model": "timm_vision_transformer",
+        "hardware": "npu",
+        "mode": "dvm",
+        "E2E_speed_up_rate": 3.878102189781022
+    },
+    {
+        "model": "timm_vovnet",
+        "hardware": "npu",
+        "mode": "dvm",
+        "E2E_speed_up_rate": 2.2661481230977345
+    },
+    {
+        "model": "tts_angular",
+        "hardware": "npu",
+        "mode": "mlir",
+        "E2E_speed_up_rate": 0.9578480310593456
+    },
+    {
+        "model": "vgg16",
+        "hardware": "npu",
+        "mode": "dvm",
+        "E2E_speed_up_rate": 1.1957267211817464
+    }
+]
