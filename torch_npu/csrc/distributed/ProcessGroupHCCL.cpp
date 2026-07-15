@@ -6223,6 +6223,7 @@ void ProcessGroupHCCL::startCoalescing()
     coalescedDevice_.set_index(-1);
     coalescedComm_ = nullptr;
     coalescedTensors_.clear();
+    coalescedP2PFormatCasts_.clear();
     coalescing_state_ |= CoalActive;
     c10_npu::OptionalNPUGuard npuGuard;
     // Infer device from the global rank to support sub process groups.
@@ -6280,6 +6281,18 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::endCoalescing(c10d::OpType opty
     // Set device before hcclGroupEnd
     NPU_CHECK_ERROR(c10_npu::SetDevice(device.index()));
     groupEnd();
+
+    // Apply deferred recv format conversions now that the grouped HCCL recv ops
+    // have been submitted by hcclGroupEnd(). Enqueue on the comm stream so each
+    // copy is ordered after its receive and before the end event is recorded.
+    if (!coalescedP2PFormatCasts_.empty()) {
+        c10_npu::NPUStreamGuard guard(hcclStream);
+        for (auto& cast_pair : coalescedP2PFormatCasts_) {
+            c10_npu::NPUCachingAllocator::recordStream(cast_pair.second.storage().data_ptr(), hcclStream);
+            cast_pair.first.copy_(cast_pair.second, true);
+        }
+        coalescedP2PFormatCasts_.clear();
+    }
 
     // Record end after hcclGroupEnd
     (*(work->hcclEndEvents_))[0].record(hcclStream);
@@ -6798,6 +6811,17 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::recv(std::vector<at::Tensor>& t
                 }
             }
         });
+    // In coalescing mode pointToPoint skips the post callback, so the format
+    // conversion back into a private-format recv tensor never runs. The recv data
+    // is only valid after endCoalescing() submits the grouped HCCL ops, so record
+    // the {user_tensor, base_format_buffer} pairs and defer the copy until then.
+    if (coalescing_state_) {
+        for (size_t i = 0; i < tensors.size(); ++i) {
+            if (!at_npu::native::FormatHelper::IsBaseFormatType(tensors[i])) {
+                coalescedP2PFormatCasts_.emplace_back(tensors[i], tensors_[i]);
+            }
+        }
+    }
     return ret;
 }
 
