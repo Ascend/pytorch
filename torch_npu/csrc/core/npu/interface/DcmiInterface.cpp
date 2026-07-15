@@ -19,6 +19,7 @@ TORCH_NPU_LOAD_FUNC(dcmi_get_affinity_cpu_info_by_device_id)
 TORCH_NPU_LOAD_FUNC(dcmi_init)
 TORCH_NPU_LOAD_FUNC(dcmi_get_device_id_in_card)
 TORCH_NPU_LOAD_FUNC(dcmi_get_card_num_list)
+TORCH_NPU_LOAD_FUNC(dcmi_get_device_pcie_info_v2)
 
 // dcmiv2 functions
 TORCH_NPU_LOAD_FUNC(dcmiv2_init)
@@ -116,6 +117,26 @@ int DcmiGetDeviceIdInCard(int card_id, int *device_id_max, int *mcu_id, int *cpu
     return func(card_id, device_id_max, mcu_id, cpu_id);
 }
 
-}
+int DcmiGetDevicePcieInfoV2(int card_id, int device_id, DcmiPcieInfo *pcie_info)
+{
 
+    TORCH_CHECK(pcie_info != nullptr, "pcie_info is null, please check input param.", PTA_ERROR(ErrCode::PARAM))
+    using dcmiGetDevicePcieInfoV2Func = int(*)(int, int, DcmiPcieInfo *);
+    static dcmiGetDevicePcieInfoV2Func func = nullptr;
+    if (func == nullptr) {
+        func = (dcmiGetDevicePcieInfoV2Func)TORCH_NPU_GET_FUNC(dcmi_get_device_pcie_info_v2);
+    }
+    if (func == nullptr) {
+        TORCH_CHECK(false, "Failed to find function dcmi_get_device_pcie_info_v2, "
+                    " maybe your hdk version is too low, please upgrade it.", PTA_ERROR(ErrCode::NOT_FOUND))
+    }
+
+    DcmiPcieInfo info_value = {};
+    int ret = func(card_id, device_id, &info_value);
+    if (ret == 0) {
+        *pcie_info = info_value;
+    }
+    return ret;
+}
+}
 }
