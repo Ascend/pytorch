@@ -528,12 +528,18 @@ class AkgCompiler(MetaCompiler):
             clone_preserve_strides(arg) if isinstance(arg, torch.Tensor) else arg
             for arg in args
         ]
-        _, accuracy_passed = self.acc_compare_and_dump(*cloned_args, dump_data=False, **kwargs)
-        if accuracy_passed:
-            return
+        try:
+            _, accuracy_passed = self.acc_compare_and_dump(
+                *cloned_args, dump_data=False, **kwargs
+            )
+            if accuracy_passed:
+                return
+            reason = "accuracy_failed"
+        except Exception as e:
+            reason = f"runtime_error: {e}"
 
-        logger.warning(
-            f"AKG accuracy compare failed for {self.kernel_name}: kernel_compile_failed"
+        logger.error(
+            f"AKG {reason} for {self.kernel_name}, fallback to FX."
         )
         self.launchers.clear()
         self.kernel_paths.clear()
