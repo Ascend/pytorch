@@ -72,7 +72,6 @@ from .symbolic_grouping import (
 from torch._inductor.runtime.triton_heuristics import ( # noqa: F401
     fixed_config,
     user_autotune,
-    template
 )
 
 from torch._inductor.runtime.runtime_utils import triton_hash_to_path_key
@@ -2585,6 +2584,31 @@ def cached_autotune(
         )
 
     return decorator
+
+
+def template(
+    num_stages,
+    num_warps,
+    triton_meta,
+    filename=None,
+    inductor_meta=None,
+    npu_compile_options=None,
+):
+    """Compile an NPU Triton template with backend-specific options."""
+    return cached_autotune(
+        None,
+        [
+            triton.Config(
+                dict(npu_compile_options or {}),
+                num_stages=num_stages,
+                num_warps=num_warps,
+            )
+        ],
+        triton_meta=triton_meta,
+        inductor_meta=inductor_meta,
+        heuristic_type=HeuristicType.TEMPLATE,
+        filename=filename,
+    )
 
 
 def patch_triton_heuristics_cached_autotune():

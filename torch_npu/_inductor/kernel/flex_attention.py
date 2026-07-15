@@ -1907,6 +1907,9 @@ def _register_npu_inductor_flex_attention():
                     *joint_outputs.mutated_grads,
                 ],
                 call_sizes=query.get_size() + key.get_size()[1:3],
+                npu_compile_options={
+                    "enable_auto_bind_sub_block": False,
+                },
                 **cur_kernel_options,
             )
         inputs_for_autotuning = (
