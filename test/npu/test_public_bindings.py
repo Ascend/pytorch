@@ -672,6 +672,7 @@ class TestPublicBindings(TestCase):
             "torch_npu._inductor.dvm.graph_fusion",
             "torch_npu._inductor.dvm.mlir_fusion",
             "torch_npu._inductor.dvm.op_emitter",
+            "torch_npu._inductor.dvm.util",
             # MFusion FX<->Torch-MLIR: optional torch_mlir + AKG mfusion; gate CI omits them.
             "torch_npu._inductor.mfusion",
             "torch_npu._inductor.mfusion._mfusion_log",
@@ -707,6 +708,13 @@ class TestPublicBindings(TestCase):
             "torch_npu._inductor.fx_passes.parallelism_strategy_default",
             "torch_npu._inductor.fx_passes.parallelism_strategy_framework",
             "torch_npu._inductor.fx_passes.utils.schedule_node_utils",
+            "torch_npu._inductor.experimental",
+            "torch_npu._inductor.experimental.dynamic_filter.autotune_stats",
+            "torch_npu._inductor.experimental.dynamic_filter.config_optimizer",
+            "torch_npu._inductor.experimental.dynamic_filter.dynamic_filter_algo",
+            "torch_npu._inductor.experimental.dynamic_filter.dynamic_filter_if",
+            "torch_npu._inductor.experimental.dynamic_filter.dynamic_filter_scheduler",
+            "torch_npu._inductor.experimental.dynamic_filter.dynamic_filter_config",
         }
 
         # No new entries should be added to this list.

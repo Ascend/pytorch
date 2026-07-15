@@ -78,7 +78,6 @@ from torch._inductor.runtime.triton_heuristics import ( # noqa: F401
 from torch._inductor.runtime.runtime_utils import triton_hash_to_path_key
 from triton.compiler import CompiledKernel
 from torch._inductor.triton_bundler import TritonBundler
-
 try:
     from triton.backends.compiler import GPUTarget
     from triton.runtime.autotuner import OutOfResources
@@ -97,6 +96,8 @@ from ..codegen.triton_utils import NPUKernelType
 from ..config import log, autotune_continue_on_failure
 from .. import config as npu_config
 from ..profiler import simple_trace_handler, mspti_batch_benchmark
+from ..experimental.dynamic_filter.dynamic_filter_config import fasta_autotune_stats
+from ..experimental.dynamic_filter.autotune_stats import AutotuneStatsManager
 
 kernel_idx = count()
 
@@ -124,6 +125,11 @@ class CompileThreadPool:
 
 
 compile_thread_pool = CompileThreadPool()
+
+
+stats = AutotuneStatsManager(
+    enabled=fasta_autotune_stats, log=log
+)
 
 
 @contextmanager
@@ -667,7 +673,7 @@ class NPUCachingAutotuner(CachingAutotuner):
     def precompile(
         self,
         warm_cache_only=False,
-        reload_kernel: Optional[Callable[[], CachingAutotuner]] = None,
+        reload_kernel: Optional[Callable[[], CachingAutotuner]] = None
     ):
         runtime_args, runtime_kwargs = self._resolve_costmodel_runtime_inputs()
         self._apply_costmodel_to_configs(*runtime_args, **runtime_kwargs)
@@ -1489,7 +1495,8 @@ class NPUCachingAutotuner(CachingAutotuner):
                     for active_index in range(ACTIVE):
                         row_index = kernel_index + kernel_count * active_index
                         time_cost[kernel_index] += triton_rows.iloc[row_index]['Duration(us)']
-                delete_file(autotune_path)
+                if not stats.enabled:
+                    delete_file(autotune_path)
                 return [cost / ACTIVE for cost in time_cost]
 
         delete_file(autotune_path)
@@ -1708,6 +1715,24 @@ class NPUCachingAutotuner(CachingAutotuner):
             )
         timings = self._benchmark_candidate_entries(*args, **kwargs)
         benchmark_time_taken_ns = time.time_ns() - start_time
+        if stats.enabled:
+            benchmark_time_taken_ms = benchmark_time_taken_ns / 1e6
+            stats.write(
+                "duration-stats",
+                [
+                    self.get_fn_name(),
+                    "Benchmark configs",
+                    benchmark_time_taken_ms,
+                    len(self.launchers),
+                    None,
+                    None,
+                ],
+            )
+            log.info(
+                "%s - Duration time of benchmarking all configs (ms): %.6f",
+                self.get_fn_name(),
+                benchmark_time_taken_ms,
+            )
         candidate_map = {
             candidate["candidate_id"]: candidate
             for candidate in self.candidate_plan["candidate_entries"]
@@ -1797,6 +1822,11 @@ class NPUCachingAutotuner(CachingAutotuner):
     def run(
         self, *args, stream, benchmark_run=False, **kwargs
     ):  # type:ignore[override]
+
+        if stats.enabled:
+            self.cache_hit = True
+            start_time = time.perf_counter()
+
         if self.triton_interpret:
             cfg = self.best_candidate_config or self.configs[0]
             runtime_blocks = self.best_runtime_blocks
@@ -1820,7 +1850,11 @@ class NPUCachingAutotuner(CachingAutotuner):
                 **kwargs,
             )
 
-        self.autotuner(*args, stream=stream, benchmark_run=benchmark_run, **kwargs)
+        if getattr(self, 'dynamic_filter', False) and \
+                self.dynamic_filter_scheduler.phase.name not in 'DONE':
+            self.dynamic_filter_scheduler.compile_and_benchmark(self, *args, **kwargs)
+        else:
+            self.autotuner(*args, stream=stream, benchmark_run=benchmark_run, **kwargs)
         launcher = self.best_launcher if self.best_launcher is not None else self.launchers[0]
         runtime_blocks = self.best_runtime_blocks
 
@@ -1828,7 +1862,7 @@ class NPUCachingAutotuner(CachingAutotuner):
             self.save_gpu_kernel(stream, launcher)
 
         if self.dump_launch_params:
-            _dump_launch_params(args, kwargs, launcher, self.fn.__name__)
+            _dump_launch_params(args, kwargs, launcher, self.fn.__name__, "")
 
         launch_args = self._build_runtime_launch_args(args, runtime_blocks)
         if self.is_run_debug() and not self.heuristic_type == HeuristicType.USER_AUTOTUNE:
@@ -1858,6 +1892,26 @@ class NPUCachingAutotuner(CachingAutotuner):
                     stream=stream,
                 )
         else:
+            if stats.enabled:
+                duration_ms = (time.perf_counter() - start_time) * 1000
+                log.info(
+                    "%s - Duration time of autotuning process (no tile gen): %.6f ms. cache hit: %s",
+                    self.get_fn_name(),
+                    duration_ms,
+                    self.cache_hit,
+                )
+                if not self.cache_hit:
+                    stats.write(
+                        "duration-stats",
+                        [
+                            self.get_fn_name(),
+                            "Autotuning (no tile gen)",
+                            duration_ms,
+                            len(self.launchers),
+                            None,
+                            None,
+                        ],
+                    )
             return launcher(
                 *launch_args,
                 **kwargs,
@@ -1907,6 +1961,8 @@ class NPUCachingAutotuner(CachingAutotuner):
                 self.save_cache_hook(best_config, 0)
         else:
             self.autotune_to_one_config(*args, **kwargs)
+            if stats.enabled:
+                self.cache_hit = False
         log.info(f"{self.get_fn_name()} benchmark elapsed time {time.perf_counter() - autotune_start_time}s")
 
     def _interpret_args_grid(
@@ -2537,7 +2593,7 @@ def cached_autotune(
             )
 
         if npu_config.fasta_autotune:
-            from .fasta_autotune import NPUFastAutotuner
+            from ..fasta_autotune import NPUFastAutotuner
             return NPUFastAutotuner(
                 fn,
                 triton_meta=triton_meta,
@@ -2601,7 +2657,7 @@ def brutal_prune_tiling_configs_if_fast_run(configs, inductor_meta) -> List[Conf
 
     if max_num > 0 and len(configs) > max_num:
         configs = configs[-1 * max_num:]
-        logging.debug("[%s], prune tiling configs to [%s]",
+        log.debug("[%s], prune tiling configs to [%s]",
                     inductor_meta["kernel_name"],
                     len(configs))
     return configs
@@ -3013,8 +3069,10 @@ def _triton_config_npu_index_legacy(
     npu_kernel_type = NPUKernelType(inductor_meta.get("npu_kernel_type", "simd"))
     size_hints = [size_hints.get(axis_name, 1) for axis_name in axis_names]
 
+    if stats.enabled:
+        start_split_tiling = time.perf_counter()
     if npu_config.fasta_autotune:
-        from .fasta_autotune import FastATileGenerator
+        from ..fasta_autotune import FastATileGenerator
         tile_generator = FastATileGenerator(size_hints, axis_names, tiling_axis, no_loop_axis, split_axis, low_dims,
                                             persistent_reduction=is_persistent_reduction,
                                             dtype=split_axis_dtype,
@@ -3073,12 +3131,33 @@ def _triton_config_npu_index_legacy(
                         "SUB") and tiling.startswith("R"):
                     tiling_cfg.kwargs[tiling.rstrip("_SUB")] = tling_value
 
-    logging.debug("[%s], generate candidate tiling count: [%s]",
+    log.debug("[%s], generate candidate tiling count: [%s]",
                 inductor_meta["kernel_name"],
                 len(configs))
 
     # if fast run, we prune the configs to the last max_num configs
     configs = brutal_prune_tiling_configs_if_fast_run(configs, inductor_meta)
+
+    if stats.enabled:
+        end_split_tiling = time.perf_counter()
+        duration_split_tiling_ms = (end_split_tiling - start_split_tiling) * 1000
+        stats.write(
+            "duration-stats",
+            [
+                inductor_meta['kernel_name'],
+                "Tile generation",
+                duration_split_tiling_ms,
+                len(configs),
+                start_split_tiling,
+                end_split_tiling
+            ]
+        )
+        log.info(
+            "%s - Tile generation - Duration time (ms): %.6f",
+            inductor_meta["kernel_name"],
+            duration_split_tiling_ms,
+        )
+
     return configs
 
 
@@ -3262,13 +3341,17 @@ def _benchmark_all_configs(self, *args, **kwargs):
 def precompile_parallel(
     self,
     warm_cache_only=False,
-    reload_kernel: Optional[Callable[[], CachingAutotuner]] = None,
+    reload_kernel: Optional[Callable[[], CachingAutotuner]] = None
 ):
     if reload_kernel is not None:
         self._reload_kernel = reload_kernel
-    start_time = time.perf_counter()
+
+    precompile_start_time = time.perf_counter()
+    log.info("kernel: %s enter precompile", self.get_fn_name())
+
     if hasattr(self, "skip_precompile"):
         if self.skip_precompile:
+            log.info("kernel: %s self.skip_precompile", self.get_fn_name())
             return
 
     runtime_args, runtime_kwargs = self._resolve_costmodel_runtime_inputs()
@@ -3277,7 +3360,7 @@ def precompile_parallel(
     if warm_cache_only:
         self.kernel_name = self.get_fn_name()
         self._precompile_worker_parallel()
-        log.info(f"kernel: {self.get_fn_name()} precompile elapsed time: {time.perf_counter() - start_time}s")
+        log.info("kernel: %s precompile elapsed time: %ss", self.get_fn_name(), (time.perf_counter() - precompile_start_time))
         return
 
     if self.compile_results:
@@ -3290,7 +3373,43 @@ def precompile_parallel(
         self._refresh_variant_launchers()
         return
 
-    self._precompile_worker_parallel()
+    if reload_kernel is not None and getattr(self.fn, 'fn', None) is None:
+        fresh_jit_fn = reload_kernel()
+        # patch ONLY the two dead fields onto the hollow object
+        # everything else (hash, cache, params...) stays from hollow
+        self.fn.fn = fresh_jit_fn.fn
+        self.fn.__globals__ = fresh_jit_fn.__globals__
+
+    try:
+        self._precompile_worker_parallel()
+    except NoTritonConfigsError as e:
+        if getattr(self, 'dynamic_filter', False):
+            self.dynamic_filter_scheduler.catch_no_valid_triton_configs(self.get_fn_name(), e)
+        else:
+            raise e
+
     self._make_launchers()
     self._refresh_variant_launchers()
-    log.info(f"kernel: {self.get_fn_name()} precompile elapsed time: {time.perf_counter() - start_time}s")
+    precompile_end_time = time.perf_counter()
+    precompile_duration = precompile_end_time - precompile_start_time
+
+    if getattr(self, 'dynamic_filter', False):
+        self.dynamic_filter_scheduler.store_precompile_duration(precompile_duration)
+
+    log.info(f"kernel: {self.get_fn_name()} - precompile elapsed time: {precompile_duration}s.")
+    if stats.enabled:
+        if getattr(self, 'dynamic_filter', False):
+            stage = self.dynamic_filter_scheduler.get_compilation_desc()
+        else:
+            stage = "Precompile configs"
+        stats.write(
+            "duration-stats",
+            [
+                self.get_fn_name(),
+                stage,
+                (precompile_duration * 1000),
+                len(self.compile_results),
+                precompile_start_time,
+                precompile_end_time,
+            ],
+        )

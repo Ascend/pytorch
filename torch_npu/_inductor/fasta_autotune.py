@@ -24,10 +24,18 @@ from torch._inductor import config
 import torch_npu
 from .codegen.tile_generator import TileGenerator
 from .config import log
-from .runtime.triton_heuristics import NPUCachingAutotuner
 from . import config as npu_config
 from .codegen.triton_utils import get_byte_per_numel, NPUKernelType
 from .profiler import simple_trace_handler
+from .runtime.triton_heuristics import NPUCachingAutotuner, stats
+from .experimental.dynamic_filter.dynamic_filter_config import fasta_dynamic_filter, fasta_mspti_en
+from .experimental.dynamic_filter.config_optimizer import optimize_configs
+from .experimental.dynamic_filter.dynamic_filter_scheduler import DynamicFilterScheduler
+
+KernelMonitor = None
+
+_BENCH_ACCUMULATOR = {"n_kernels": 0, "total_wall_ns": 0, "total_func_ns": 0}
+_BENCH_FAILURES = []  # list of (kernel_name, expected, got, backend) for timing/launcher mismatches
 
 
 def fast_a_log_message(content, tag='autotuner', level='debug'):
@@ -130,6 +138,7 @@ class FastASetting:
 
 
 FASTA_SETTING = FastASetting()
+FASTA_EVENT_BENCHMARK = os.environ.get("FASTA_EVENT_BENCHMARK", "0") == "1"
 
 
 def get_ub_size():
@@ -163,8 +172,8 @@ class FastAConfig(Config):
 
     def get_config_info(self):
         return "config: {}, core num {}, UB usage ratio {:.5f}, from expert {}".format(
-            self.kwargs, self.vector_core_num, self.ub_usage, self.from_expert)
-
+            self.kwargs, self.vector_core_num, self.ub_usage, self.from_expert
+        )
 
 class TileConfig:
     def __init__(self):
@@ -920,9 +929,14 @@ class NPUFastAutotuner(NPUCachingAutotuner):
             self.skip_precompile = False
             return
 
+        self.dynamic_filter = fasta_dynamic_filter
+        if self.dynamic_filter:
+            self.dynamic_filter_scheduler = DynamicFilterScheduler(FASTA_SETTING)
+
         if FASTA_SETTING.autotune_method == "Expert":
             self.skip_precompile = False
-            self._precompile_for_expert()
+            self._precompile_for_expert(reload_kernel=None)
+
 
     def _config_separation(self, configs):
         self.expert_configs = []
@@ -940,13 +954,27 @@ class NPUFastAutotuner(NPUCachingAutotuner):
                     self.origin_configs.append(cfg)
 
     def add_mutibuffer_config(self):
-        new_cfg = []
-        for self_config in self.configs:
-            self_config.kwargs['multibuffer'] = False
-            config_copied = copy.deepcopy(self_config)
-            config_copied.kwargs['multibuffer'] = True
-            new_cfg.append(config_copied)
-        self.configs.extend(new_cfg)
+        expanded = []
+        for c in self.configs:
+            if 'multibuffer' in c.kwargs:
+                expanded.append(c)
+                continue
+            c.kwargs['multibuffer'] = False
+            twin = copy.deepcopy(c)
+            twin.kwargs['multibuffer'] = True
+            expanded.append(c)
+            expanded.append(twin)
+
+        seen = set()
+        out = []
+        for c in expanded:
+            k = (tuple(sorted(c.kwargs.items())), c.num_warps, c.num_stages,
+                 getattr(c, 'num_ctas', 1))
+            if k in seen:
+                continue
+            seen.add(k)
+            out.append(c)
+        self.configs = out
 
     def print_profile_value(self, this_pv: ProfileValue, full_info=False):
         if not this_pv:
@@ -982,10 +1010,10 @@ class NPUFastAutotuner(NPUCachingAutotuner):
                         this_pv.config.circle_num,
                         this_pv.config.from_expert), tag="autotuner")
 
-    def _precompile_for_expert(self):
+    def _precompile_for_expert(self, reload_kernel=None):
         fast_a_log_message(content='enter precompile for expert')
         self.bucket_dict = self._make_bucket_and_filter_with_binary()
-        self._expert_configs_precompile()
+        self._expert_configs_precompile(reload_kernel=reload_kernel)
 
     def autotuner(self, *args, stream, benchmark_run=False, **kwargs):
         if self.use_origin_autotuner:
@@ -998,6 +1026,8 @@ class NPUFastAutotuner(NPUCachingAutotuner):
             self.launchers = [self.best_launcher]
             return
 
+        if stats.enabled:
+            self.cache_hit = False
         self.skip_precompile = False
         best_launcher = self.auto_tune_by_fasta_parallel(*args, **kwargs)
         best_launcher_time = time.perf_counter() - self.autotune_start_time
@@ -1299,7 +1329,7 @@ class NPUFastAutotuner(NPUCachingAutotuner):
 
         self.expert_method_choose_core_num_list = this_core_num_list[:FASTA_SETTING.expert_min_bucket_num]
 
-    def _expert_configs_precompile(self):
+    def _expert_configs_precompile(self, reload_kernel=None):
         need_compile_configs = copy.deepcopy(self.expert_configs)
 
         core_num_list = sorted(list(self.bucket_dict.keys()), reverse=True)
@@ -1315,19 +1345,32 @@ class NPUFastAutotuner(NPUCachingAutotuner):
                 get_circle_num=tiling_axis_num))
 
         self.configs = need_compile_configs
+
+        log.info(f"%s - Configs len before optimization = %s", self.get_fn_name(), len(self.configs))
+        self.configs = optimize_configs(self.configs)
+        log.info(f"%s - Configs len after optimization = %s", self.get_fn_name(), len(self.configs))
         self.add_mutibuffer_config()
+
+        if self.dynamic_filter:
+            self.dynamic_filter_scheduler.prepare_r1_configs(self)
+
         self.profiling_config_num += len(self.configs)
-        self.precompile()
+        self.precompile(reload_kernel=reload_kernel)
 
     def profiling_and_get_best_config(self, *args, **kwargs):
         timings = self.benchmark_all_configs_with_std(*args, **kwargs)
-        profile_values = self.make_profile_values(timings)
+        self.profile_values = self.make_profile_values(timings)
         best_profile = None
-        best_profile = self.find_best_launcher(profile_values, best_profile)
+        best_profile = self.find_best_launcher(self.profile_values, best_profile)
+        self._last_launchers = list(self.launchers)
         self.clear_last_record()
-        self.get_result_config_num += len(profile_values)
+        self.get_result_config_num += len(self.profile_values)
         fast_a_log_message(content="now our best profile is", tag='expert')
         self.print_profile_value(best_profile)
+        log.info(
+            f"{self.get_fn_name()} - config:{best_profile.config.kwargs}, cost time:{best_profile.profiler_time}, "
+            f"sem:{best_profile.profiler_time_sem}, expert: {best_profile.config.from_expert}"
+        )
         return best_profile
 
     def auto_tune_by_fasta_parallel(self, *args, **kwargs):
@@ -1357,6 +1400,9 @@ class NPUFastAutotuner(NPUCachingAutotuner):
                 break
 
             self.configs = need_compile_configs
+            log.info(f"%s - Configs len before optimization = %s", self.get_fn_name(), len(self.configs))
+            self.configs = optimize_configs(self.configs)
+            log.info(f"%s - Configs len after optimization = %s", self.get_fn_name(), len(self.configs))
             self.add_mutibuffer_config()
             self.profiling_config_num += len(self.configs)
             ans = self.precompile()
@@ -1442,7 +1488,10 @@ class NPUFastAutotuner(NPUCachingAutotuner):
         return False
 
     def benchmark_all_configs_with_std(self, *args, **kwargs):
-        fast_a_log_message(content=f"candidate launcher count = {len(self.launchers)}", tag='benchmark profiling')
+
+        # Event-based benchmark: bypasses NPU profiler, time proportional to config count
+        if FASTA_EVENT_BENCHMARK:
+            return self._benchmark_all_configs_event(*args, **kwargs)
 
         tilling_kernel_list = []
 
@@ -1486,6 +1535,9 @@ class NPUFastAutotuner(NPUCachingAutotuner):
         md5_hash = hashlib.md5(random_uuid.encode()).hexdigest()
 
         def do_batch_benchmark_kernel_isolate(this_tilling_kernel_list, this_active_num):
+            log.info(f"Running do_batch_benchmark_kernel_isolate")
+            t0 = time.perf_counter_ns()
+            exp_timing = {'func_total_ns': 0}
             this_stream = torch.npu.current_stream()
 
             tiling_length = len(this_tilling_kernel_list)
@@ -1536,19 +1588,168 @@ class NPUFastAutotuner(NPUCachingAutotuner):
                         time_cost[tiling_index] = np.mean(data_list)
                         time_std[tiling_index] = np.std(data_list)
                         time_sem[tiling_index] = time_std[tiling_index] / math.sqrt(len(data_list))
-
-                    delete_file(torch_path)
-                    return time_cost, time_sem, time_std
+                    if not stats.enabled:
+                        delete_file(torch_path)
+                    else:
+                        exp_timing['func_total_ns'] = time.perf_counter_ns() - t0
+                    return time_cost, time_sem, time_std, exp_timing
 
             delete_file(torch_path)
-            return [], [], []
+            return [], [], [], {}
+
+        def do_batch_benchmark_mspti(this_tilling_kernel_list, this_active_num):
+            """mspti-based benchmarking, same return type as do_batch_benchmark_kernel_isolate."""
+            from collections import defaultdict
+
+            fn_name = self.get_fn_name() if hasattr(self, 'get_fn_name') else 'unknown'
+            tiling_length = len(this_tilling_kernel_list)
+            WARMUP = 2
+            ACTIVE = this_active_num
+            exp_timing = {'func_total_ns': 0}
+
+            raw_records = []
+            def callback(data):
+                raw_records.append((data.name, data.start, data.end))
+
+            t0 = time.perf_counter_ns()
+            monitor = KernelMonitor()
+            torch.npu.synchronize()
+            monitor.start(callback)
+
+
+            l2_cache_size = 192 * (1 << 20)
+            buffer = torch.empty(l2_cache_size // 4, dtype=torch.int, device="npu")
+
+            _failed_positions = set()
+            for _pos, fn in enumerate(this_tilling_kernel_list):
+                buffer.zero_()
+                try:
+                    for _ in range(WARMUP + ACTIVE):
+                        fn()
+                except Exception as _e:
+                    _failed_positions.add(_pos)
+                    fast_a_log_message(
+                        content=f"[BENCH_FAIL] {fn_name} config {_pos}/{tiling_length}: {type(_e).__name__}",
+                        tag='benchmark profiling', level='warning')
+            torch.npu.synchronize()
+            monitor.stop()
+
+
+            # group by unique kernel name
+            durations_by_name = defaultdict(list)
+            ordered_triton_names = []
+            for name, start_ns, end_ns in raw_records:
+                if name.startswith('triton_'):
+                    if name not in durations_by_name:
+                        ordered_triton_names.append(name)
+                    durations_by_name[name].append(end_ns - start_ns)
+
+            # compute per-config stats from the names that produced callbacks
+            time_cost = []
+            time_sem = []
+            time_std = []
+            for name in ordered_triton_names:
+                durs = durations_by_name[name]
+                active_ns = durs[WARMUP:] if len(durs) > WARMUP else durs
+                active_us = [d / 1000.0 for d in active_ns]
+                avg = np.mean(active_us)
+                std = np.std(active_us) if len(active_us) > 1 else 0.0
+                sem = std / math.sqrt(len(active_us)) if len(active_us) > 1 else 0.0
+                time_cost.append(float(avg))
+                time_sem.append(float(sem))
+                time_std.append(float(std))
+
+            # track mismatches: caught exceptions + silent drops
+            n_failed = len(_failed_positions)
+            n_got = len(ordered_triton_names)
+            if n_got != tiling_length:
+                _BENCH_FAILURES.append((fn_name, tiling_length, n_got, 'mspti'))
+                fast_a_log_message(
+                    content=f"[BENCH_MISMATCH] {fn_name}: expected={tiling_length} got={n_got} "
+                            f"exceptions={n_failed}",
+                    tag='benchmark profiling', level='warning')
+
+            exp_timing['func_total_ns'] = time.perf_counter_ns() - t0
+            return time_cost, time_sem, time_std, exp_timing
 
         try:
-            this_benchmark_fun = do_batch_benchmark_kernel_isolate
-            timing_list, timing_sem_list, timing_std_list = this_benchmark_fun(tilling_kernel_list,
-                                                                               this_active_num=profiler_active_num)
+            if stats.enabled:
+                # wall time measurement
+                _bench_wall_start = time.perf_counter_ns()
+
+                # select benchmark backend
+            if fasta_mspti_en:
+                global KernelMonitor
+                if KernelMonitor is None:
+                    try:
+                        from mspti import KernelMonitor
+                    except ImportError:
+                        pass
+            if fasta_mspti_en and KernelMonitor is not None:
+                this_benchmark_fun = do_batch_benchmark_mspti
+            else:
+                this_benchmark_fun = do_batch_benchmark_kernel_isolate
+
+            if stats.enabled:
+                bench_start_time = time.perf_counter()
+
+            result = this_benchmark_fun(tilling_kernel_list, this_active_num=profiler_active_num)
+
+            if stats.enabled:
+                stage = "Benchmark configs"
+                if self.dynamic_filter:
+                    stage = self.dynamic_filter_scheduler.get_benchmark_desc()
+                bench_duration = time.perf_counter() - bench_start_time
+                log.info(f"{self.get_fn_name()} {stage} elapsed time {bench_duration}s")
+                stats.write(
+                    "duration-stats",
+                    [
+                        self.get_fn_name(),
+                        stage,
+                        bench_duration * 1000,
+                        len(self.launchers),
+                        None,
+                        None,
+                    ],
+                )
+
+            timing_list = result[0] if isinstance(result, tuple) and len(result) >= 4 else result[0]
+            timing_sem_list = result[1] if isinstance(result, tuple) and len(result) >= 4 else result[1]
+            timing_std_list = result[2] if isinstance(result, tuple) and len(result) >= 4 else result[2]
+            _bench_exp_timing = result[3] if isinstance(result, tuple) and len(result) >= 4 else {}
+
+            if len(timing_list) != len(self.launchers):
+                _BENCH_FAILURES.append((self.get_fn_name(), len(self.launchers), len(timing_list),
+                                        'mspti' if (fasta_mspti_en and KernelMonitor is not None) else 'msprof'))
+                fast_a_log_message(
+                    content=f"[BENCH_MISMATCH] {self.get_fn_name()}: launchers={len(self.launchers)} "
+                            f"timings={len(timing_list)}",
+                    tag='benchmark profiling', level='warning')
+                # truncate to shorter length so zip doesn't silently drop
+                _min_len = min(len(timing_list), len(self.launchers))
+                timing_list = timing_list[:_min_len]
+                timing_sem_list = timing_sem_list[:_min_len]
+                timing_std_list = timing_std_list[:_min_len]
+                self.launchers = self.launchers[:_min_len]
+            if stats.enabled:
+                # accumulate benchmark wall time
+                _bench_wall_ns = time.perf_counter_ns() - _bench_wall_start
+                _BENCH_ACCUMULATOR['n_kernels'] += 1
+                _BENCH_ACCUMULATOR['total_wall_ns'] += _bench_wall_ns
+                if _bench_exp_timing:
+                    _BENCH_ACCUMULATOR['total_func_ns'] += _bench_exp_timing.get('func_total_ns', 0)
+
+                # log per-kernel benchmark stats
+                _backend = 'mspti' if (fasta_mspti_en and KernelMonitor is not None) else 'msprof'
+                fast_a_log_message(
+                    content=f"[STATS] benchmark kernel={self.get_fn_name()} backend={_backend} "
+                            f"launchers={len(timing_list)} wall={_bench_wall_ns/1e6:.1f}ms",
+                    tag='stats', level='info')
+
+
             if not len(timing_list) == len(self.launchers):
                 raise RuntimeError(f"not {len(timing_list)} == {len(self.launchers)}")
+
             timing_infos = {}
             for launcher, timing, sem, std in zip(self.launchers, timing_list, timing_sem_list, timing_std_list):
                 timing_infos[launcher] = [timing, sem, std]
@@ -1570,7 +1771,7 @@ class NPUFastAutotuner(NPUCachingAutotuner):
                         need_test_index.append(idx)
                 if need_test_index:
                     need_test_times = min(10 * (need_test_times + 10 - 1) // 10,
-                                          FASTA_SETTING.re_profiling_max_times)
+                                        FASTA_SETTING.re_profiling_max_times)
                     fast_a_log_message(
                         content="need re_profiling times is ({}) for index {}".format(
                             need_test_times, need_test_index), tag='re_profiling')
@@ -1581,7 +1782,7 @@ class NPUFastAutotuner(NPUCachingAutotuner):
                                                                                                 this_active_num=profiler_active_num)
                     for idx, re_i in enumerate(need_test_index):
                         timing_infos[self.launchers[re_i]] = [re_timing_list[idx], re_timing_sem_list[idx],
-                                                              re_timing_std_list[idx]]
+                                                            re_timing_std_list[idx]]
 
         except Exception as e:
             fast_a_log_message(
@@ -1596,6 +1797,51 @@ class NPUFastAutotuner(NPUCachingAutotuner):
                     fast_a_log_message(content=f"the case ({launcher.config}) is error and we ignore it\n" +
                                        f"error msg is {f}", tag='benchmark profiling', level='warning')
 
+        for k, v in timing_infos.items():
+            self.coordesc_tuner.cache_benchmark_result(k.config, v[0])
+
+        return timing_infos
+
+
+    def _benchmark_all_configs_event(self, *args, **kwargs):
+        """Event-based benchmark: no NPU profiler overhead, time proportional to config count.
+
+        Activated by FASTA_EVENT_BENCHMARK=1. Uses NPU events (start/end record)
+        instead of torch_npu.profiler, eliminating ~34s fixed overhead per kernel.
+        """
+        fast_a_log_message(
+            content=f"event-based benchmark for {len(self.launchers)} configs",
+            tag='benchmark event')
+
+        if stats.enabled:
+            bench_start_time = time.perf_counter()
+
+        timing_infos = {}
+        for launcher in self.launchers:
+            try:
+                timing_infos[launcher] = self.bench_event(launcher, *args, **kwargs)
+            except Exception as e:
+                fast_a_log_message(
+                    content=f"event bench config ({launcher.config}) error: {e}",
+                    tag='benchmark event', level='warning')
+
+        if stats.enabled:
+            stage = "Benchmark configs"
+            if self.dynamic_filter:
+                stage = self.dynamic_filter_scheduler.get_benchmark_desc()
+            stats.write(
+                "duration-stats",
+                [
+                    self.get_fn_name(),
+                    stage,
+                    (time.perf_counter() - bench_start_time) * 1000,
+                    len(self.launchers),
+                    None,
+                    None,
+                ],
+            )
+
+        # Common post-processing: cache results for coordinate descent tuner
         for k, v in timing_infos.items():
             self.coordesc_tuner.cache_benchmark_result(k.config, v[0])
 
@@ -1623,7 +1869,7 @@ class NPUFastAutotuner(NPUCachingAutotuner):
         return self._do_bench_with_event(kernel_call)
 
     @staticmethod
-    def _do_bench_with_event(fn, warmup_times=1, rep_times=2):
+    def _do_bench_with_event(fn, warmup_times=1, rep_times=10):
         """
         Benchmark the runtime of the provided function. By default, return the median runtime of :code:`fn` along with
         the 20-th and 80-th performance percentile.

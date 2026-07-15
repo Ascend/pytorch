@@ -1,8 +1,7 @@
 import copy
 import functools
-import math
-import os
 import sys
+
 from torch._inductor.runtime.runtime_utils import next_power_of_2
 from torch._inductor.runtime.triton_heuristics import Config
 
@@ -65,7 +64,7 @@ class TileGenerator:
                 continue
             if self.axis_name[tiling_axis][0] == "r" and self.persistent_reduction:
                 continue
-            self.real_tiling_axis.append(tiling_axis)   
+            self.real_tiling_axis.append(tiling_axis)
         self.split_axis_num = len(self.split_axis)
 
     def reset_configs(self):
@@ -83,7 +82,7 @@ class TileGenerator:
                 continue
             if self.axis_name[tiling_axis][0] == "r" and self.persistent_reduction:
                 continue
-            self.real_tiling_axis.append(tiling_axis)   
+            self.real_tiling_axis.append(tiling_axis)
         self.split_axis_num = len(self.split_axis)
 
     def calcu_last_split_blocks(self, axis):
@@ -97,9 +96,6 @@ class TileGenerator:
         last_splits = config.num_vector_core // splits
         last_blocks = (self.numels[axis] + last_splits - 1) // last_splits
         return last_blocks
-
-
-
 
     def valid_tile_numel(self, total_numel):
         max_numel = self.max_numel_threshold
@@ -327,7 +323,6 @@ class TileGenerator:
 
         return reached_stop_numel
 
-
     def descend_all_low_dims(self):
         low_dim_numels = [self.sub_blocks[x] for x in self.low_dims]
         if not low_dim_numels:
@@ -393,7 +388,7 @@ class TileGenerator:
             self.tune_multibuffer()
         if self.npu_kernel_type == NPUKernelType.SIMT_ONLY:
             self.tune_simt_num_warps()
-    
+
     def set_kernel_type(self, npu_kernel_type):
         self.npu_kernel_type = npu_kernel_type
 
@@ -402,7 +397,6 @@ class TileGenerator:
         tiling_not_low_dims = [x for x in self.tiling_axis if x not in self.low_dims]
 
         def descend_split_axis():
-
             for axis_index in range(len(self.split_axis)):
                 if self.descend_split_axis_inner(axis_index):
                     return True
@@ -437,7 +431,7 @@ class TileGenerator:
         self.add_extra_options()
         # do config filter for simt kernel, if there're configs with 0 remain programs others can be dropped because:
         # 1. for simt kernel, numels do not need to too detailed tiling
-        # 2. for kernel, loop with no mask which means numel can be divisible by tiling blocksub is preferrable
+        # 2. for kernel, loop with no mask which means numel can be divisible by tiling blocksub is preferable
         if self.npu_kernel_type == NPUKernelType.SIMT_ONLY and len(self.configs) > 0:
             ranked_configs = sorted(
                 (
