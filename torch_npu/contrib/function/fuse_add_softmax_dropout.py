@@ -13,11 +13,10 @@ def fuse_add_softmax_dropout(training, dropout, attn_mask, attn_scores, attn_hea
     >>> dropout = torch_npu.contrib.module.DropoutWithByteMask(0.1)
     >>> npu_input1 = torch.rand(96, 12, 384, 384).half().npu()
     >>> npu_input2 = torch.rand(96, 12, 384, 384).half().npu()
-    >>> alpha = 0.125
+    >>> attn_head_size = 64
     >>> axis = -1
-    >>> output = fuse_add_softmax_dropout(training, dropout, npu_input1, npu_input2, alpha, p=axis)
+    >>> output = fuse_add_softmax_dropout(training, dropout, npu_input1, npu_input2, attn_head_size, p=0.1, dim=axis)
 
-        
     Args:
         training (bool): Whether it is training mode.
         dropout (nn.Module): the dropout layer
@@ -30,7 +29,7 @@ def fuse_add_softmax_dropout(training, dropout, attn_mask, attn_scores, attn_hea
     Returns:
         torch.Tensor: The result of the mask operation
     """
-    
+
     high_performance_support_hw = [128, 256, 384, 512]
     n, c, h, w = attn_scores.size()
     if h in high_performance_support_hw and (n * c) % 32 == 0:
@@ -39,7 +38,7 @@ def fuse_add_softmax_dropout(training, dropout, attn_mask, attn_scores, attn_hea
         else:
             drop_p = 0.
         _, _, attn_probs = torch_npu.npu_dropout_with_add_softmax(attn_scores, attn_mask,
-                                                                1 / math.sqrt(attn_head_size), drop_p, -1)
+                                                                  1 / math.sqrt(attn_head_size), drop_p, -1)
     else:                  
         # Apply the attention mask is (precomputed for all layers in BertModel forward() function)
         attn_scores = torch.add(attn_mask, attn_scores, alpha=(1 / math.sqrt(attn_head_size)))
@@ -50,5 +49,5 @@ def fuse_add_softmax_dropout(training, dropout, attn_mask, attn_scores, attn_hea
         # This is actually dropping out entire tokens to attend to, which might
         # seem a bit unusual, but is taken from the original Transformer paper.
         attn_probs = dropout(attn_probs)    
-    
+
     return attn_probs
