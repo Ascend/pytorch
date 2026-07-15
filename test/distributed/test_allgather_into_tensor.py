@@ -57,6 +57,7 @@ class HcclAllGatherIntoTensorTest(HcclAllGatherTestBase):
         with test_case.assertRaisesRegex(RuntimeError, error_expect):
             pg.all_gather_into_tensor(gather_tensor, input1)
 
+    @SupportedDevices(['Ascend910A', 'Ascend910B', 'Ascend910_93'])
     @skipIfUnsupportMultiNPU(2)
     def test_all_gather_into_tensor_dist(self):
         ranks = [2]
@@ -74,7 +75,6 @@ class HcclAllGatherIntoTensorTest(HcclAllGatherTestBase):
                 self._test_multiprocess(HcclAllGatherIntoTensorTest._test_all_gather_into_tensor,
                                         HcclAllGatherIntoTensorTest._init_dist_hccl, expected, input1, world_size)
 
-    @SupportedDevices(['Ascend910A', 'Ascend910B', 'Ascend910_93'])
     @skipIfUnsupportMultiNPU(2)
     def test_all_gather_into_tensor_dist_with_input_internal_format_and_offset(self):
         ranks = [2]
