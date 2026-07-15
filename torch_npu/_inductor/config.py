@@ -31,7 +31,7 @@ config.triton.mix_order_reduction = False
 
 device = torch.npu.current_device()
 prop = torch.npu.get_device_properties(device)
-
+enable_fast_gelu = os.getenv("TORCHINDUCTOR_ENABLE_FAST_GELU", "0") == "1"
 num_cube_core = prop.cube_core_num
 num_vector_core = prop.vector_core_num
 
