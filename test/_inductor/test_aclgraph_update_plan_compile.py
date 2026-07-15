@@ -23,7 +23,6 @@ from torch_npu._inductor.codegen.wrapper import (
 from torch.testing._internal.common_utils import run_tests
 
 import torch_npu
-import torch_npu._inductor
 from torch_npu.testing.common_utils import SupportedDevices
 
 from testutils import TestUtils
