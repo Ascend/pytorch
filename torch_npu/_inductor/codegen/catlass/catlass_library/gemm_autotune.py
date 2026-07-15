@@ -39,7 +39,7 @@ class TileAutotune:
 
     _supported_archs = [
         Arch.AtlasA2,
-        Arch.AtlasA5,
+        Arch.Ascend950,
     ]
 
     def __init__(self, arch_type):
@@ -65,7 +65,7 @@ class TileAutotune:
             self.L0CSize = 128 * 1024
             self.L0ASize = 64 * 1024
             self.L0BSize = 64 * 1024
-        if arch_type == Arch.AtlasA5:
+        if arch_type == Arch.Ascend950:
             self.L1Size = 512 * 1024
             self.L0CSize = 256 * 1024
             self.L0ASize = 64 * 1024
