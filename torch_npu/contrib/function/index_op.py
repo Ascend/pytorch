@@ -1,5 +1,4 @@
 import torch
-import torch_npu
 from torch_npu.utils._error_code import ErrCode, ops_error
 
 __all__ = ['npu_fast_condition_index_put']
@@ -12,7 +11,8 @@ def npu_fast_condition_index_put(x, condition, value):
     >>> x = torch.randn(128, 8192)
     >>> condition = x < 0.5
     >>> value = 0.
-    >>> x1 = copy.deepcopy(x)[condition] = value
+    >>> x1 = copy.deepcopy(x)
+    >>> x1[condition] = value
     >>> x1_opt = npu_fast_condition_index_put(x, condition, value)
 
     .. note::
