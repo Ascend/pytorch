@@ -184,6 +184,13 @@ jobs:
           submodules: false
           path: torch_npu
 
+      - name: Rewrite gitee submodule URLs to gitcode mirrors
+        run: |
+          git config --global url."https://gitcode.com/GitHub_Trending/go/googletest.git".insteadOf "https://gitee.com/mirrors/googletest.git"
+          git config --global url."https://gitcode.com/gh_mirrors/li/libnop.git".insteadOf "https://gitee.com/mirrors/libnop.git"
+          git config --global url."https://gitcode.com/gh_mirrors/py/pybind11.git".insteadOf "https://gitee.com/mirrors/pybind11.git"
+          git config --global url."https://gitcode.com/openeuler/libboundscheck.git".insteadOf "https://gitee.com/openeuler/libboundscheck.git"
+
       - name: Init submodules
         working-directory: torch_npu
         run: |
