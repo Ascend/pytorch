@@ -23,9 +23,9 @@
 -   [Parameter Configuration](./parameter_setting.md)
     -   [Configuring HCCL Communication Domain Parameters Through pg_options](./setting_HCCL_communicator_parameter.md)
 
-- [PyTorch Graph Mode](./pytorch_graph_mode.md)
-  - [PyTorch Compilation Mode (torch.compile)](./pytorch_compilation_mode.md)
-  - [NPUGraph](./pytorch_npugraph_desc.md)    
+-   [PyTorch Graph Mode](./pytorch_graph_mode.md)
+    -   [PyTorch Compilation Mode (torch.compile)](./pytorch_compilation_mode.md)
+    -   [NPUGraph](./pytorch_npugraph_desc.md)    
 
 -   [Custom Operator Adaptation](./custom_operator_adaptation.md)
     -   [OpPlugin Operator Adaptation](./opplugin_operator_adaptation.md)
