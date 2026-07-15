@@ -122,7 +122,7 @@ public:
     static uint32_t CheckUseHcclAsyncErrorHandleEnable();
     static uint32_t CheckUseDesyncDebugEnable();
     C10_NPU_API static bool isACLGlobalLogOn(aclLogLevel level);
-    static int64_t GetRankId();
+    C10_NPU_API static int64_t GetRankId();
     static char *GetNslbPath();
     static bool CheckStatusSaveEnable();
     static std::string GetStatusSavePath() noexcept;
