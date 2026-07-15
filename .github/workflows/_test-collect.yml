@@ -175,3 +175,12 @@ jobs:
           name: cases-shards
           path: cases-shards/
           retention-days: 7
+
+      - name: Upload collection error logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: collection-errors
+          path: collection_errors/
+          if-no-files-found: ignore
+          retention-days: 7
