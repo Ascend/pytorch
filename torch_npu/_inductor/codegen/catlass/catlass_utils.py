@@ -116,7 +116,7 @@ def _normalize_npu_arch_to_atlas(arch: str) -> str:
     if "910B" in arch or arch.startswith("Ascend910_93"):
         return Arch.AtlasA2
     elif arch.startswith("Ascend950"):
-        return Arch.AtlasA5
+        return Arch.Ascend950
     else:
         raise NotImplementedError(f"Unsupported npu arch: {arch}")
 
