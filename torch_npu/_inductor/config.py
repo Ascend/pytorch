@@ -286,3 +286,10 @@ lowering_axis_count = None
 inductor_ascend_linear_mode = "linear"
 
 autotune_continue_on_failure = os.environ.get('TORCHINDUCTOR_NPU_BACKEND') == "default"
+
+# permute_continous_reduction: when enabled, detects the "permute contiguous reduction"
+# pattern (a non-reduction axis sitting between two reduction axes in stride order)
+# and applies special handling: selects the permute axis as a tiling axis, uses NDDMA
+# for non-contiguous data access, and merges the two reduction axes into one dimension.
+# This optimizes kernels like LayerNorm-after-permute where data layout is transposed.
+permute_continous_reduction = _parse_bool_env("PERMUTE_CONTINOUS_REDUCTION", False)

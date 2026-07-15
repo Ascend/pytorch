@@ -1448,6 +1448,7 @@ class NPUIndexTritonKernel(TritonKernel):
         # Uses append() instead of IndentedBuffer.writeline() to avoid _indent
         # inconsistency issues across static/dynamic modes.
         self._deferred_reduction_stores: list[str] = []
+        self.permute_continous_reduction = False
         self.decide_codegen_dims_in_kernel()
 
     def should_use_persistent_reduction(self) -> bool:
@@ -3600,7 +3601,9 @@ class NPUIndexTritonKernel(TritonKernel):
         } or None
 
         self.different_expansions = different_expansions
-        if different_expansions:
+        if self.permute_continous_reduction:
+            self.golden_var_list = tuple(reversed([axis.symbol() for axis in self.tiling_axis]))
+        elif different_expansions:
             self._apply_guarded_expansions(guarded_expansions)
         else:
             self._select_golden_varlist_normal_case()
@@ -3640,33 +3643,26 @@ class NPUIndexTritonKernel(TritonKernel):
         return sizes
 
     def is_contiguous_reduction(self):
-        if self.numof_reduction_axis() != 2:
-             return False
-        stride_sorted_var_list = self.parse_golden_from_load_store_index()
-        reduction_dim_list = []
-        if not stride_sorted_var_list:
-            if not self.golden_var_list:
-                self.select_golden_varlist()
-            stride_sorted_var_list = (
-                list(self.golden_var_list) if self.golden_var_list else []
-            )
+        def is_contiguous_axis(axis_list):
+            axis_set = set(axis_list)  # noqa: set_linter
+            return len(axis_set) == (max(axis_set) - min(axis_set) + 1)
 
-        # Reduction largest axis count: 2
-        # Reduction may have sacalr between reduction axis
-        inner_reduction_list = []
-        reduction_status = "reduction_start"
-        for x in reversed(stride_sorted_var_list):
-            if x.name[0] == "r" and reduction_status == "reduction_start":
-                reduction_status = "reduction_first"
-                continue
-            if x.name[0] == "r" and reduction_status == "reduction_first":
-                reduction_status = "reduction_end"
-                return True
-            if reduction_status == "reduction_first":
-                axis_is_tiling = any([axis.name == x.name for axis in V.kernel.tiling_axis])
-                if axis_is_tiling:
-                    return False
+        if self.permute_continous_reduction:
+            return True
 
+        if self.numof_reduction_axis() > 1:
+            stride_sorted_var_list = self.parse_golden_from_load_store_index()
+            reduction_dim_list = []
+            if not stride_sorted_var_list:
+                if not self.golden_var_list:
+                    self.select_golden_varlist()
+                stride_sorted_var_list = (
+                    list(self.golden_var_list) if self.golden_var_list else []
+                )
+            for i, x in enumerate(reversed(stride_sorted_var_list)):
+                if x.name[0] == "r":
+                    reduction_dim_list.append(i)
+            return is_contiguous_axis(reduction_dim_list)
         return False
 
     def dense_size_str(self):

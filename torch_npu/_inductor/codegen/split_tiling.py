@@ -8,7 +8,7 @@ from torch._inductor.runtime.runtime_utils import next_power_of_2
 from torch._inductor.utils import ModularIndexing, sympy_subs
 from torch._inductor.virtualized import V
 
-from .kernel_analysis import IndexAnalysis
+from .kernel_analysis import IndexAnalysis, find_permute_axis_in_reduction
 from .triton_utils import get_byte_per_numel
 from .. import config as npu_config
 from ..config import num_vector_core, log
@@ -27,20 +27,29 @@ class SplitTiling:
 
         self.find_lowest_dimension()
         self.should_outer_reduce = False
+        self.contiguous_reduction = self.is_contiguous_reduction()
 
-    def axis_between_reduction(self, axis):
-        stride_sorted_axes = self.kernel.parse_golden_from_load_store_index()
-        if not stride_sorted_axes:
-            return True
-        if axis not in stride_sorted_axes:
-            return True
-        axis_index = stride_sorted_axes.index(axis)
 
-        from torch._inductor.codegen.triton import prefix_is_reduction
-        left_have_reduction = any([prefix_is_reduction(str(axis)) for axis in stride_sorted_axes[:axis_index]])
-        right_have_reduction = any([prefix_is_reduction(str(axis)) for axis in stride_sorted_axes[axis_index:]])
-        if left_have_reduction and right_have_reduction:
-            return True
+    def is_contiguous_reduction(self):
+        def is_contiguous_axis(axis_list):
+            axis_set = set(axis_list)
+            return len(axis_set) == (max(axis_set) - min(axis_set) + 1)
+
+        if self.kernel.numof_reduction_axis() > 1:
+            if npu_config.permute_continous_reduction:
+                if find_permute_axis_in_reduction(self.kernel, self.indexing):
+                    return True
+
+            stride_sorted_var_list = self.kernel.parse_golden_from_load_store_index()
+            if not stride_sorted_var_list:
+                if not self.kernel.golden_var_list:
+                    self.kernel.select_golden_varlist()
+                stride_sorted_var_list = list(self.kernel.golden_var_list) if self.kernel.golden_var_list else []
+            reduction_dim_list = []
+            for i, x in enumerate(reversed(stride_sorted_var_list)):
+                if x.name[0] == 'r':
+                    reduction_dim_list.append(i)
+            return is_contiguous_axis(reduction_dim_list)
         return False
 
     @classmethod
@@ -130,6 +139,19 @@ class SplitTiling:
     def select_tiling_axis(self):
         self.kernel.tiling_axis.clear()
 
+        #  cover the biggest axis and not exceed 3 axis
+        def meet_stop_condition():
+            # currently, the maximum dim that triton-ascend support is 2
+            def can_stop():
+                return self.kernel.numof_reduction_axis() > 1 and all(
+                    self.kernel.range_tree_nodes[var].is_tiling_axis
+                    for var in self.kernel.reduction_axis_list()
+                ) and not self.contiguous_reduction
+
+            if can_stop():
+                return True
+            return False
+
         def select_tiling(low_dim=True, reduction=True):
             for axis in reversed(self.kernel.sorted_axis):
                 if (
@@ -148,17 +170,21 @@ class SplitTiling:
                     self.kernel.tiling_axis.append(axis)
                 if low_dim or reduction:
                     continue
-
-                if self.axis_between_reduction(axis.symbol()):
-                    continue
-
+                    # using principle 4, select one longest
                 longest = axis  # self.find_longest_dimension(check_in_tiling = True)
                 if longest and longest not in self.kernel.tiling_axis:
                     self.kernel.tiling_axis.append(longest)
                     longest.is_tiling_axis = True
+                if meet_stop_condition():
+                    break
 
         select_tiling(low_dim=True, reduction=True)
-        select_tiling(low_dim=False, reduction=False)
+        count = 0
+        while not meet_stop_condition():
+            select_tiling(low_dim=False, reduction=False)
+            count += 1
+            if count > 10:
+                break
         self.kernel.tiling_axis.sort(reverse=True, key=self.key)
         for i, x in enumerate(self.kernel.tiling_axis):
             x.tiling_order = i

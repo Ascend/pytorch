@@ -141,8 +141,8 @@ class TileGenerator:
                     tiling_numel = tiling_numel // 2
             else:
                 tiling_numel = min(self.sub_blocks[axis], blocks[axis])
-            align_blocksub = aligned_numel_32byte(tiling_numel, self.dtype_bytes)
-            cfg[self.sub_block_name[axis]] = align_blocksub if align_blocksub <= blocks[axis] else align_blocksub // 2
+            align_numel = aligned_numel_32byte(tiling_numel, self.dtype_bytes)
+            cfg[self.sub_block_name[axis]] = align_numel
         cfg["compile_mode"] = self.npu_kernel_type.compile_mode()
 
     def cal_cfg_remain_programs(self, cfg):
@@ -166,7 +166,7 @@ class TileGenerator:
         newcfg = {}
         self.fill_config(newcfg, candi_block)
         total_numel = self.calculate_config_numel(newcfg)
-        stop_numel_threshold = 0 if self.tiny_kernel else self.stop_numel + 100
+        stop_numel_threshold = 0 if len(self.configs) < 10 or self.tiny_kernel else self.stop_numel + 100
         if not self.valid_tile_numel(total_numel):
             return False
         if self.find_config(newcfg):

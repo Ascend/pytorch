@@ -7,6 +7,8 @@ from torch._inductor.utils import sympy_index_symbol
 from torch._inductor.virtualized import V
 from torch.utils._sympy.symbol import SymT
 
+from .. import config as npu_config
+
 
 def _append_stride_info(index, current_entry, symbol_stride_map):
     for var, stride in index.as_coefficients_dict().items():
@@ -50,6 +52,75 @@ def collect_stride_sorted_vars_from_nodes(node_schedule: Iterable, skipped_nodes
             _append_stride_info(index, current_entry, symbol_stride_map)
     return _finalize_stride_collection(symbol_stride_map)
 
+
+def find_permute_axis_in_reduction(kernel, indexing_list):
+    """Detect the "permute contiguous reduction" pattern.
+
+    When a kernel has exactly 2 reduction axes and a non-reduction axis
+    sits between them in stride order (e.g. index = 1024*r3 + r4 + 16*x1 + 65536*y0
+    where stride order is [r4, x1, r3, y0]), return that non-reduction axis
+    (x1 in the example) so the caller can apply special tiling / NDDMA handling.
+
+    Returns the sympy symbol of the permute axis, or None if the pattern
+    is not present.
+    """
+    if kernel.numof_reduction_axis() != 2:
+        return None
+
+    if not indexing_list:
+        return None
+
+    # 1. find longest index entries (most variables in the index expression)
+    longest_index_entry = []
+    axis_count = -1
+    for index in indexing_list:
+        current_entry = {
+            "index_expr": str(index),
+            "var_stride": [],
+            "stride_map": {}
+        }
+        _append_stride_info(index, current_entry, current_entry["stride_map"])
+        if len(current_entry["var_stride"]) > axis_count:
+            longest_index_entry.clear()
+            axis_count = len(current_entry["var_stride"])
+        if len(current_entry["var_stride"]) < axis_count:
+            continue
+        current_entry['stride_map'] = _finalize_stride_collection(current_entry["stride_map"])
+        longest_index_entry.append(current_entry)
+
+    if len(longest_index_entry) <= 1:
+        return None
+
+    from torch._inductor.codegen.triton import prefix_is_reduction
+    # 2. assume last entry is the store axis, check whether it has two
+    #    adjacent reduction axes in stride order
+    store_axis_entry = longest_index_entry[-1]
+    if len(store_axis_entry["stride_map"]) <= 2:
+        return None
+
+    # 3. Last two entry axis is reduction
+    reduction_axis_a, reduction_axis_b = store_axis_entry["stride_map"][0], store_axis_entry["stride_map"][1]
+    if not prefix_is_reduction(str(reduction_axis_a)):
+        return None
+    if not prefix_is_reduction(str(reduction_axis_b)):
+        return None
+    for index_entry in longest_index_entry[:-1]:
+        axis_list = index_entry["stride_map"]
+        for i, axis in enumerate(axis_list):
+            if prefix_is_reduction(str(axis)):
+                continue
+            left_is_reduction = any(
+                prefix_is_reduction(str(left_axis))
+                for left_axis in axis_list[:i]
+            )
+            right_is_reduction = any(
+                prefix_is_reduction(str(right_axis))
+                for right_axis in axis_list[i+1:]
+            )
+            if left_is_reduction and right_is_reduction:
+                kernel.permute_continous_reduction = True
+                return axis
+    return None
 
 class IndexAnalysis:
     def __init__(self, kernel, raw_index, is_store_index=False, is_index_expr=False):
@@ -123,6 +194,8 @@ class IndexAnalysis:
         if self.gold == self.similar:
             self.need_permute = False
             return
+        if self.kernel.permute_continous_reduction:
+            return
 
         similar = tuple(reversed(self.similar))
         gold = tuple(reversed(self.gold))
@@ -171,6 +244,8 @@ class IndexAnalysis:
             self.reshape_sizes[index] = f"{x.name.upper()}BLOCK_SUB"
 
     def analyze_var_direction(self, nddma=False, materialize_var_directions=True):
+        if self.kernel.permute_continous_reduction:
+            return
         if self.var_list == self.gold:
             return
         var_list = self.var_list if len(self.var_list) == len(self.gold) else self.similar
@@ -319,6 +394,13 @@ class ReductionAnalysis:
     def dense_post_reduction_list(self) -> List[str]:
         reduction_list_str = f"{' * '.join(self.dense_reduction_list())}"
         no_reduction_list = []
+        if self.kernel.permute_continous_reduction:
+            for axis in self.kernel.tiling_axis:
+                if axis.prefix != "r":
+                    no_reduction_list.append(f"{axis.name.upper()}BLOCK_SUB")
+            no_reduction_list.append(reduction_list_str)
+            return no_reduction_list
+
         # ensure order
         for dense_size in self.dense_size_list():
             if dense_size not in self.dense_reduction_list():
@@ -360,6 +442,10 @@ class ReductionAnalysis:
             if not reduction_layout_var_list:
                 reduction_layout_var_list = self.kernel.parse_golden_from_load_store_index()
         else:
+            if self.kernel.permute_continous_reduction:
+                post_reduction_sizes = self.dense_post_reduction_list()
+                self.reduced_dim = len(post_reduction_sizes) - 1
+                return self.reduced_dim
             reduction_layout_var_list = self.kernel.parse_golden_from_load_store_index()
             if not reduction_layout_var_list or not any(x.name[0] == 'r' for x in reduction_layout_var_list):
                 if not self.kernel.golden_var_list:
