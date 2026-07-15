@@ -219,6 +219,7 @@ simt_default_warp_stacksize = 256 * 32
 # nddma switch
 default_nddma_switch = "1" if is_ascend950 else "0"
 nddma_switch = os.getenv("TORCHINDUCTOR_NDDMA", default_nddma_switch) == "1"
+enable_fast_gelu = os.getenv("TORCHINDUCTOR_ENABLE_FAST_GELU", "0") == "1"
 
 log_level_env = os.getenv("INDUCTOR_ASCEND_LOG_LEVEL", "WARNING").upper()
 log_level_mapping = {
