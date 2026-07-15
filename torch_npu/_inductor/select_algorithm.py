@@ -28,11 +28,8 @@ from torch._inductor import config, ir
 from torch._inductor.ir import ChoiceCaller
 from torch._inductor.utils import restore_stdout_stderr, sympy_product, unique, Placeholder
 from torch._inductor.virtualized import V
-from torch._inductor.codegen.triton import (
-    texpr,
-    TritonScheduling,
-    gen_common_triton_imports,
-)
+from torch._inductor.codegen import triton as inductor_triton_codegen
+from torch._inductor.codegen.triton import texpr, TritonScheduling
 from torch._inductor.codecache import PyCodeCache
 from torch._inductor.autotune_process import (
     TensorMeta,
@@ -102,8 +99,10 @@ class NPUTritonTemplate(TritonTemplate):
         mutated_inputs: Optional[list[ir.IRNode]] = None,
         call_sizes: Optional[list[sympy.Expr]] = None,
         workspace_arg: Optional[Any] = None,
+        npu_compile_options: Optional[dict[str, Any]] = None,
         **kwargs: Any,
     ) -> Optional[ir.ChoiceCaller]:
+        npu_compile_options = dict(npu_compile_options or {})
         defines = StringIO()
         kwargs["ALLOW_TF32"] = "False"
         for name, val in kwargs.items():
@@ -135,6 +134,7 @@ class NPUTritonTemplate(TritonTemplate):
             "suffix_args": suffix_args,
             "epilogue_fn": epilogue_fn,
             "subgraphs": subgraphs,
+            "npu_compile_options": npu_compile_options,
         }
 
         with (
@@ -176,6 +176,7 @@ class NPUTritonTemplate(TritonTemplate):
                         ],
                         f"num_stages={num_stages}",
                         f"num_warps={num_warps}",
+                        f"npu_compile_options={npu_compile_options!r}",
                     ]
                 )
                 + "-"
@@ -299,6 +300,7 @@ class NPUTritonTemplateKernel(TritonTemplateKernel):
         workspace_arg: Optional[Any] = None,
         prologue_loads_all_inputs: bool = False,
         hint_override: Optional[int] = None,
+        npu_compile_options: Optional[dict[str, Any]] = None,
     ) -> None:
         """Initialize NPU Triton template kernel.
 
@@ -318,7 +320,9 @@ class NPUTritonTemplateKernel(TritonTemplateKernel):
             epilogue_fn: Epilogue function
             subgraphs: List of subgraph buffers
             workspace_arg: Workspace argument
+            npu_compile_options: Options forwarded to the Triton Ascend backend
         """
+        self.npu_compile_options = dict(npu_compile_options or {})
         super().__init__(
             kernel_name=kernel_name,
             input_nodes=input_nodes,
@@ -340,6 +344,24 @@ class NPUTritonTemplateKernel(TritonTemplateKernel):
             prologue_loads_all_inputs=prologue_loads_all_inputs,
             hint_override=hint_override,
         )
+
+    def jit_lines(self) -> str:
+        code = super().jit_lines()
+        if not self.npu_compile_options:
+            return code
+
+        lines = code.splitlines()
+        triton_meta_lines = [
+            index for index, line in enumerate(lines) if "triton_meta=" in line
+        ]
+        assert len(triton_meta_lines) == 1, triton_meta_lines
+        index = triton_meta_lines[0]
+        indent = lines[index][: len(lines[index]) - len(lines[index].lstrip())]
+        lines.insert(
+            index,
+            f"{indent}npu_compile_options={self.npu_compile_options!r},",
+        )
+        return "\n".join(lines)
 
     def def_kernel(self, *argnames: str) -> str:
         """Hook called from template code to generate function def and needed args.
@@ -405,7 +427,7 @@ class NPUTritonTemplateKernel(TritonTemplateKernel):
             # python_argdefs() cannot be run until after the rest of the template lazily adds more args
             arg_defs, *_ = self.args.python_argdefs()
             code = IndentedBuffer()
-            code.splice(gen_common_triton_imports())
+            code.splice(inductor_triton_codegen.gen_common_triton_imports())
             code.splice(self.jit_lines())
             code.writeline(
                 f"def {self.kernel_name}({', '.join(x.full_name() for x in arg_defs)}):"
