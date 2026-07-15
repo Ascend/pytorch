@@ -1,0 +1,22 @@
+--- CTR_Algorithm/pytorch/model/DCNv2.py	2026-03-31 11:09:49.207077300 +0800
++++ dcn/CTR_Algorithm/pytorch/model/DCNv2.py	2026-03-31 11:12:56.799077300 +0800
+@@ -120,7 +120,8 @@
+         """
+         super(DeepCrossNetv2, self).__init__()
+         self.feature_fields = feature_fields
+-        self.offsets = np.array((0, *np.cumsum(feature_fields)[:-1]), dtype = np.long)
++        self.offsets = np.array((0, *np.cumsum(feature_fields)[:-1]), dtype = np.int64)
++        self.register_buffer("offsets_tensor", torch.as_tensor(self.offsets, dtype=torch.int64))
+         self.model_method = model_method
+         
+         # Embedding layer
+@@ -157,7 +158,7 @@
+             raise NotImplementedError
+         
+     def forward(self, x):
+-        tmp = x + x.new_tensor(self.offsets).unsqueeze(0)
++        tmp = x + self.offsets_tensor.unsqueeze(0)
+         
+         # embeded dense vector
+         embeded_x = self.embedding(tmp).view(-1, self.embedding_out_dim)
+        

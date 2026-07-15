@@ -1,0 +1,5 @@
+AlbertForMaskedLM,8
+BartForCausalLM,8
+BertForMaskedLM,32
+DistilBertForMaskedLM,256
+T5ForConditionalGeneration,8
