@@ -25,6 +25,8 @@
 #include "torch_npu/csrc/utils/TensorType.h"
 #include "torch_npu/csrc/utils/AutocastMode.h"
 #include "torch_npu/csrc/core/npu/NPURecovery.h"
+#include "torch_npu/csrc/core/npu/NPUFunctions.h"
+#include "torch_npu/csrc/core/npu/NPUInterruptAffinity.h"
 #include "torch_npu/csrc/profiler/python/combined_traceback.h"
 #ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/sanitizer/NPUTrace.h"
@@ -88,6 +90,12 @@ PyObject* THPModule_npu_shutdown(PyObject* self, PyObject* arg)
         c10_npu::NPUSwappedMemoryAllocator::emptyCache();
     } catch (...) {
         ASCEND_LOGE("NPUSwappedMemoryAllocator::emptyCache failed");
+    }
+
+    // Restart irqbalance service on rank 0 before the process exits.
+    const auto rank_id = c10_npu::option::OptionsManager::GetRankId();
+    if (rank_id == 0 || rank_id == -1) {
+        c10_npu::restartIrqbalance();
     }
 
     ASCEND_LOGI("NPU shutdown NpuSysCtrl Finalize.");
