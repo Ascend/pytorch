@@ -1227,6 +1227,7 @@ def expand_as(x, y):
 
 @register_lowering(aten.repeat)
 def repeat(x, repeats):
+    from torch.fx.experimental.symbolic_shapes import free_unbacked_symbols
 
     input_graphs = fetch_graphs([x, repeats])
     node_name = f'repeat_{next(node_id)}'
