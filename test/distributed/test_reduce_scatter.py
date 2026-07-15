@@ -1,15 +1,14 @@
-import unittest
 import os
 from random import randint
-
 import numpy as np
+
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
-import torch_npu
 
+import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.common_utils import create_common_tensor
+from torch_npu.testing.common_utils import create_common_tensor, SupportedDevices
 from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
 
 
@@ -62,7 +61,8 @@ class HcclReduceScatterTestBase(TestCase):
 
 
     def _construct_excepted_result(self, inputs, world_size, op=dist.all_gather, reduce_op=dist.ReduceOp.SUM):
-        if op not in [dist.reduce_scatter, dist._reduce_scatter_base, dist.reduce_scatter_tensor, torch_npu.distributed.reduce_scatter_tensor_uneven]:
+        if op not in [dist.reduce_scatter, dist._reduce_scatter_base, dist.reduce_scatter_tensor,
+                      torch_npu.distributed.reduce_scatter_tensor_uneven]:
             raise ValueError("Unsupported op `{}`" % (str(op)))
         if reduce_op == dist.ReduceOp.AVG:
             return [input.cpu() for input in inputs]
@@ -114,6 +114,7 @@ class HcclReduceScatterTest(HcclReduceScatterTestBase):
         with test_case.assertRaisesRegex(RuntimeError, error_expect):
             pg.reduce_scatter(output, input_list_npu)
 
+    @SupportedDevices(['Ascend910A', 'Ascend910B', 'Ascend910_93'])
     @skipIfUnsupportMultiNPU(2)
     def test_reduce_scatter(self):
         ranks = [2]
@@ -135,6 +136,7 @@ class HcclReduceScatterTest(HcclReduceScatterTestBase):
                 self._test_multiprocess(HcclReduceScatterTest._test_reduce_scatter,
                                         HcclReduceScatterTest._init_dist_hccl, expected, input_list, world_size)
 
+    @SupportedDevices(['Ascend910A', 'Ascend910B', 'Ascend910_93'])
     @skipIfUnsupportMultiNPU(2)
     def test_reduce_scatter_with_different_shape(self):
         ranks = [2]
@@ -244,9 +246,11 @@ class HcclReduceScatterTest(HcclReduceScatterTestBase):
                 for _ in range(world_size):
                     _, npu_input = get_random_input(randint(1, 5), randint(1, 10), input_dtype)
                     input_list.append(npu_input.cpu())
-                cpu_excepted_result = self._construct_excepted_result(input_list, world_size, dist.reduce_scatter, dist.ReduceOp.AVG)
+                cpu_excepted_result = self._construct_excepted_result(
+                    input_list, world_size, dist.reduce_scatter, dist.ReduceOp.AVG)
                 self._test_multiprocess(HcclReduceScatterTest._test_reduce_scatter,
-                                        HcclReduceScatterTest._init_dist_hccl, cpu_excepted_result, input_list, world_size, dist.ReduceOp.AVG)
+                                        HcclReduceScatterTest._init_dist_hccl, cpu_excepted_result,
+                                        input_list, world_size, dist.ReduceOp.AVG)
 
 
 if __name__ == '__main__':
