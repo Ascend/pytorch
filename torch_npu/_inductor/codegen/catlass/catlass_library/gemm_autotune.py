@@ -39,7 +39,7 @@ class TileAutotune:
 
     _supported_archs = [
         Arch.AtlasA2,
-        Arch.AtlasA5,
+        Arch.Ascend950,
     ]
 
     def __init__(self, arch_type):
@@ -65,7 +65,7 @@ class TileAutotune:
             self.L0CSize = 128 * 1024
             self.L0ASize = 64 * 1024
             self.L0BSize = 64 * 1024
-        if arch_type == Arch.AtlasA5:
+        if arch_type == Arch.Ascend950:
             self.L1Size = 512 * 1024
             self.L0CSize = 256 * 1024
             self.L0ASize = 64 * 1024
@@ -79,7 +79,7 @@ class TileAutotune:
             return 1 << (n.bit_length() - 1)
         except AttributeError:
             import sympy
-            
+
             exp = sympy.floor(sympy.log(n, 2))
             return 2 ** exp
 
@@ -300,7 +300,7 @@ class GemmAutotune:
         if tile[1].k > tile[0].k:
             tile[1].k = tile[0].k
 
-    
+
     def may_adjust_l1_tile_for_bias(self, dtype_size, tile):
         # default l1 stages & size
         l1_stages = 2

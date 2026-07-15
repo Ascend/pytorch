@@ -134,11 +134,12 @@ def _bisheng_compiler_options(is_mix: bool = False) -> List[str]:
         "-std=c++17",
         "-xcce",
         "-DL2_CACHE_HINT",
+        "-DCATLASS_EPILOGUE_BLOCK_EPILOGUE_DEQUANT_HPP"
     ]
     if npu_arch == "910D":
-        options.append("-DCATLASS_ARCH_A5_ENABLED")
+        options.append("-DCATLASS_ARCH=3510")
     elif npu_arch == "910B":
-        options.append("-DCATLASS_ARCH_A2_ENABLED")
+        options.append("-DCATLASS_ARCH=2201")
 
     if npu_config.catlass.enable_debug_info:
         options.extend(["--lineinfo", "-g"])
