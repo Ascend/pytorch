@@ -14,9 +14,11 @@ inert (process still starts normally); see TestPinnedThresholdExpandableHost.
 
 Most tests run in-process: pinned_max_* are overwrite-assign (not min), so each
 test setting its own threshold does not interfere with others, and each test
-clears the host cache on entry/exit. Only env-var validation and
-pin_memory_expandable_segments tests use a subprocess, because those options are
-read at process startup.
+clears the host cache on entry/exit. Env-var validation and
+pin_memory_expandable_segments tests use a subprocess to get a clean
+PYTORCH_NPU_ALLOC_CONF context per case (env var reads are sticky --
+std::call_once in NPUAllocatorConfig::instance() only parses once per process)
+and to assert on the one-time warning that parseArgs emits.
 """
 
 import gc
@@ -39,11 +41,13 @@ ACTIVE_BYTES_CURRENT = "active_bytes.current"
 def _expandable_runtime_supported():
     """pin_memory_expandable_segments requires CANN >= 8.5.0 and driver >= 25.5.0
     (see NPUAllocatorConfig.cpp: pinMemoryExpandableMinCannVersion /
-    pinMemoryExpandableMinDriverVersion). Skip the expandable-path tests when the
-    runtime would itself downgrade the option back to False.
+    pinMemoryExpandableMinDriverVersion). The warning-only expandable tests are
+    skipped when the runtime would itself downgrade the option back to False,
+    because then m_pin_memory_expandable_segments never becomes true and the
+    warning never fires.
 
-    Returns False on any probe error; the expandable tests will be skipped
-    rather than crash the suite. The skip is visible in pytest's skip count.
+    Returns False on any probe error; those tests will be skipped rather than
+    crash the suite. The skip is visible in pytest's skip count.
     """
     try:
         if not _is_gte_cann_version("8.5.0", "CANN"):
@@ -62,12 +66,23 @@ def _expandable_runtime_supported():
         return False
 
 
-def _run_subprocess(env_conf: str, timeout: int = 60) -> subprocess.CompletedProcess:
-    """Run a child python process with PYTORCH_NPU_ALLOC_CONF set. The child
-    imports torch_npu to force config parsing and prints 'ok' on success."""
+_SUBPROCESS_SCRIPT = (
+    "import torch\n"
+    "torch.empty(1024, dtype=torch.uint8, device='cpu').pin_memory()\n"
+    "print('ok')\n"
+)
+
+
+def _run_subprocess(env_conf: str, script: str = _SUBPROCESS_SCRIPT,
+                    timeout: int = 60) -> subprocess.CompletedProcess:
+    """Run a child python process with PYTORCH_NPU_ALLOC_CONF set. The default
+    script allocates a pinned tensor to trigger NPUAllocatorConfig::instance()
+    call_once -> parseArgs(env_str). On a parse error the child raises
+    (non-zero returncode); the one-time warning that parseArgs emits on the
+    expandable+threshold combo lands in stderr. Pass `script` to drive
+    env-var-only behavior assertions from the parent."""
     env = os.environ.copy()
     env["PYTORCH_NPU_ALLOC_CONF"] = env_conf
-    script = "import torch_npu\nprint('ok')"
     return subprocess.run(
         [sys.executable, "-c", script],
         env=env,
@@ -172,18 +187,37 @@ class TestPinnedMaxCachedSizeCachingHost(TestCase):
         self.assertEqual(torch_npu.npu.host_memory_stats()[ALLOCATED_BYTES_CURRENT], 0)
 
     def test_env_var_pinned_max_round_threshold(self):
-        """pinned_max_round_threshold_mb is accepted via PYTORCH_NPU_ALLOC_CONF."""
-        result = _run_subprocess("pinned_max_round_threshold_mb:64")
+        """pinned_max_round_threshold_mb via PYTORCH_NPU_ALLOC_CONF drives
+        allocator behavior (no _set_allocator_settings call in the child).
+        80 MB > 64 MB threshold -> no power-of-2 rounding (would be 128 MB)."""
+        script = (
+            "import gc, torch, torch_npu\n"
+            "t = torch.empty(80 * 1024 * 1024, dtype=torch.uint8, device='cpu').pin_memory()\n"
+            "print(torch_npu.npu.host_memory_stats()['allocated_bytes.current'])\n"
+        )
+        result = _run_subprocess("pinned_max_round_threshold_mb:64", script=script)
         self.assertEqual(result.returncode, 0,
                          f"Process failed: stdout={result.stdout}\nstderr={result.stderr}")
-        self.assertIn("ok", result.stdout)
+        allocated_mb = int(result.stdout.strip()) / (1024 * 1024)
+        self.assertLess(allocated_mb, 128, f"Expected <128 MB (no rounding), got {allocated_mb} MB")
+        self.assertGreaterEqual(allocated_mb, 80, f"Expected >=80 MB, got {allocated_mb} MB")
 
     def test_env_var_pinned_max_cached_size(self):
-        """pinned_max_cached_size_mb is accepted via PYTORCH_NPU_ALLOC_CONF."""
-        result = _run_subprocess("pinned_max_cached_size_mb:32")
+        """pinned_max_cached_size_mb via PYTORCH_NPU_ALLOC_CONF drives
+        allocator behavior (no _set_allocator_settings call in the child).
+        64 MB > 32 MB threshold -> block released on free, not cached."""
+        script = (
+            "import gc, torch, torch_npu\n"
+            "t = torch.empty(64 * 1024 * 1024, dtype=torch.uint8, device='cpu').pin_memory()\n"
+            "t = None\n"
+            "gc.collect()\n"
+            "print(torch_npu.npu.host_memory_stats()['allocated_bytes.current'])\n"
+        )
+        result = _run_subprocess("pinned_max_cached_size_mb:32", script=script)
         self.assertEqual(result.returncode, 0,
                          f"Process failed: stdout={result.stdout}\nstderr={result.stderr}")
-        self.assertIn("ok", result.stdout)
+        self.assertEqual(int(result.stdout.strip()), 0,
+                         "Block > pinned_max_cached_size_mb should be released on free, not cached")
 
 
 class TestPinnedThresholdConsistency(TestCase):
@@ -239,16 +273,23 @@ class TestPinnedThresholdConsistency(TestCase):
         self.assertEqual(torch_npu.npu.host_memory_stats()[ALLOCATED_BYTES_CURRENT], 0)
 
 
-@unittest.skipIf(not _expandable_runtime_supported(),
-                 "pin_memory_expandable_segments not supported by current CANN/driver")
 class TestPinnedThresholdExpandableHost(TestCase):
     """pin_memory_expandable_segments uses a dedicated expandable allocator path
     that does not consult pinned_max_round_threshold_mb or
     pinned_max_cached_size_mb. Setting either option together with
     pin_memory_expandable_segments emits a one-time warning and the thresholds
     stay inert (process still starts normally).
+
+    The warning-only tests are skipped when the runtime would downgrade
+    pin_memory_expandable_segments back to False (CANN < 8.5 or driver < 25.5),
+    because in that case m_pin_memory_expandable_segments never becomes true and
+    the warning never fires. test_expandable_without_threshold_accepted does
+    not depend on the warning and runs on all environments.
     """
 
+    @unittest.skipIf(not _expandable_runtime_supported(),
+                     "pin_memory_expandable_segments downgraded to False by runtime "
+                     "(CANN < 8.5 or driver < 25.5); warning never fires")
     def test_expandable_with_round_threshold_warns(self):
         """pin_memory_expandable_segments:True + pinned_max_round_threshold_mb
         emits a warning and the process starts normally."""
@@ -262,6 +303,9 @@ class TestPinnedThresholdExpandableHost(TestCase):
         self.assertIn("pinned_max_round_threshold_mb", combined)
         self.assertIn("pin_memory_expandable_segments", combined)
 
+    @unittest.skipIf(not _expandable_runtime_supported(),
+                     "pin_memory_expandable_segments downgraded to False by runtime "
+                     "(CANN < 8.5 or driver < 25.5); warning never fires")
     def test_expandable_with_cached_size_warns(self):
         """pin_memory_expandable_segments:True + pinned_max_cached_size_mb
         emits a warning and the process starts normally."""
@@ -276,7 +320,10 @@ class TestPinnedThresholdExpandableHost(TestCase):
         self.assertIn("pin_memory_expandable_segments", combined)
 
     def test_expandable_without_threshold_accepted(self):
-        """pin_memory_expandable_segments:True alone works without warning."""
+        """pin_memory_expandable_segments:True alone starts normally and emits
+        no pinned_max_* threshold warning. On runtimes that downgrade
+        pin_memory_expandable_segments to False, the downgrade warning may
+        appear but it does not mention the threshold options."""
         result = _run_subprocess("pin_memory_expandable_segments:True")
         self.assertEqual(result.returncode, 0,
                          f"Process failed: stdout={result.stdout}\nstderr={result.stderr}")
