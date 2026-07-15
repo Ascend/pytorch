@@ -131,6 +131,7 @@ TORCH_NPU_LOAD_FUNC(aclrtRepairError)
 TORCH_NPU_LOAD_FUNC(aclrtGetDeviceInfo)
 TORCH_NPU_LOAD_FUNC(aclrtMemset)
 TORCH_NPU_LOAD_FUNC(aclmdlRICaptureThreadExchangeMode)
+TORCH_NPU_LOAD_FUNC(aclrtGetLogicDevIdByUserDevId)
 
 aclprofStepInfoPtr init_stepinfo() {
     typedef aclprofStepInfoPtr(*npdInitFunc)();
@@ -1850,5 +1851,15 @@ aclError AclmdlRICaptureThreadExchangeMode(aclmdlRICaptureMode* mode)
     return func(mode);
 }
 
+aclError AclrtGetLogicDevIdByUserDevId(const int32_t userDevid, int32_t *const logicDevId)
+{
+    typedef aclError (*AclrtGetLogicDevIdByUserDevId)(const int32_t, int32_t *const);
+    static AclrtGetLogicDevIdByUserDevId func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtGetLogicDevIdByUserDevId) TORCH_NPU_GET_FUNC(aclrtGetLogicDevIdByUserDevId);
+    }
+    TORCH_CHECK(func, "Failed to find function aclrtGetLogicDevIdByUserDevId", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(userDevid, logicDevId);
+}
 } // namespace acl
 } // namespace c10

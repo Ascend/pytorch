@@ -386,6 +386,8 @@ bool IsExistAclrtGetDeviceInfo();
 
 aclError AclrtGetDeviceInfo(uint32_t deviceId, aclrtDevAttr attr, int64_t *value);
 
+aclError AclrtGetLogicDevIdByUserDevId(const int32_t userDevid, int32_t *const logicDevId);
+
 aclError AclrtMemSet(void *devPtr, size_t maxCount, int32_t value, size_t count);
 
 } // namespace acl
