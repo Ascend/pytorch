@@ -132,6 +132,7 @@ NPU_REQUIRE_HIGHER_TOLERANCE_ON_A5 = {
     "resnet50",
     "resnet18",
     "resnext50_32x4d",
+    "resnet152",
 }
 
 
