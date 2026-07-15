@@ -4749,8 +4749,13 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce(
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
             if (opts.reduceOp == c10d::ReduceOp::AVG) {
                 c10_npu::NPUStreamGuard guard(hcclStreams[0]);
+                bool is_atlas_a5 = c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend950;
                 for (auto& tensor : tensors_cp) {
-                    tensor.div_(getSize());
+                    if (is_atlas_a5 && at::isIntegralType(tensor.scalar_type(), /*includeBool=*/false)) {
+                        tensor.div_(getSize(), "trunc");
+                    } else {
+                        tensor.div_(getSize());
+                    }
                 }
             }
             if (tensors_cp[0].scalar_type() != tensors[0].scalar_type()) {
@@ -5087,8 +5092,13 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce(
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
             if (opts.reduceOp == c10d::ReduceOp::AVG) {
                 c10_npu::NPUStreamGuard guard(hcclStreams[0]);
+                bool is_atlas_a5 = c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend950;
                 for (auto& tensor : tensors_cp) {
-                    tensor.div_(getSize());
+                    if (is_atlas_a5 && at::isIntegralType(tensor.scalar_type(), /*includeBool=*/false)) {
+                        tensor.div_(getSize(), "trunc");
+                    } else {
+                        tensor.div_(getSize());
+                    }
                 }
             }
             if (tensors_cp[0].scalar_type() != tensors[0].scalar_type()) {
@@ -5915,8 +5925,13 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
             if (opts.reduceOp == c10d::ReduceOp::AVG) {
                 c10_npu::NPUStreamGuard guard(hcclStreams[0]);
+                bool is_atlas_a5 = c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend950;
                 for (auto& tensor : outputTensors) {
-                    tensor.div_(getSize());
+                    if (is_atlas_a5 && at::isIntegralType(tensor.scalar_type(), /*includeBool=*/false)) {
+                        tensor.div_(getSize(), "trunc");
+                    } else {
+                        tensor.div_(getSize());
+                    }
                 }
             }
         },
@@ -6022,8 +6037,13 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
                 }
                 if (opts.reduceOp == c10d::ReduceOp::AVG) {
                     c10_npu::NPUStreamGuard guard(hcclStreams[0]);
+                    bool is_atlas_a5 = c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend950;
                     for (auto& tensor : outputTensors) {
-                        tensor.div_(getSize());
+                        if (is_atlas_a5 && at::isIntegralType(tensor.scalar_type(), /*includeBool=*/false)) {
+                            tensor.div_(getSize(), "trunc");
+                        } else {
+                            tensor.div_(getSize());
+                        }
                     }
                 }
             },

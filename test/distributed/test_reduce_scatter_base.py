@@ -1,14 +1,11 @@
-import unittest
-import os
-
 import numpy as np
+
 import torch
 import torch.distributed as dist
-import torch.multiprocessing as mp
-import torch_npu
 
-from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.common_utils import create_common_tensor
+import torch_npu
+from torch_npu.testing.testcase import run_tests
+from torch_npu.testing.common_utils import create_common_tensor, SupportedDevices
 from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
 
 from test_reduce_scatter import HcclReduceScatterTestBase
@@ -28,6 +25,7 @@ class HcclReduceScatterBaseTest(HcclReduceScatterTestBase):
         pg.barrier()
         p2c.get()
 
+    @SupportedDevices(['Ascend910A', 'Ascend910B', 'Ascend910_93'])
     @skipIfUnsupportMultiNPU(2)
     def test_reduce_scatter_base(self):
         ranks = [2]
