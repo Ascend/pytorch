@@ -243,7 +243,7 @@ def _print_npugraph_tensor_impl(input, tensor_name=None):
     with torch.npu.stream(save_stream):
         # Wait for the original stream to complete before D2H
         event1.wait()
-        cpu_tensor = input.to("cpu", non_blocking=True)
+        cpu_tensor = input.to("cpu", non_blocking=True, memory_format=torch.contiguous_format)
         cpu_arg = _make_npugraph_tensor_ptr_spec(cpu_tensor)
         # Get current stream inside context (which is save_stream)
         current_stream = torch.npu.current_stream()
@@ -283,7 +283,7 @@ def _save_npugraph_tensor_impl(input, save_path=None, overwrite=False):
     with torch.npu.stream(save_stream):
         # Wait for the original stream to complete before D2H
         event1.wait()
-        cpu_tensor = input.to("cpu", non_blocking=True)
+        cpu_tensor = input.to("cpu", non_blocking=True, memory_format=torch.contiguous_format)
         cpu_arg = _make_npugraph_tensor_ptr_spec(cpu_tensor)
         # Get current stream inside context (which is save_stream)
         current_stream = torch.npu.current_stream()
@@ -320,7 +320,7 @@ def _save_npugraph_tensor_tensor_list_impl(input, save_path=None, overwrite=Fals
     with torch.npu.stream(save_stream):
         # Wait for the original stream to complete before D2H
         event1.wait()
-        cpu_tensors = [tensor.to("cpu", non_blocking=True) for tensor in input]
+        cpu_tensors = [tensor.to("cpu", non_blocking=True, memory_format=torch.contiguous_format) for tensor in input]
         cpu_args = [_make_npugraph_tensor_ptr_spec(tensor) for tensor in cpu_tensors]
         # Get current stream inside context (which is save_stream)
         current_stream = torch.npu.current_stream()
