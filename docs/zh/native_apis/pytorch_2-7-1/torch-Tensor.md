@@ -30,9 +30,9 @@
 |[Tensor.absolute](https://pytorch.org/docs/2.7/generated/torch.Tensor.absolute.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |[Tensor.absolute_](https://pytorch.org/docs/2.7/generated/torch.Tensor.absolute_.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64|
 |[Tensor.acos](https://pytorch.org/docs/2.7/generated/torch.Tensor.acos.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool<br>可能回退至CPU执行|
-|[Tensor.acos_](https://pytorch.org/docs/2.7/generated/torch.Tensor.acos_.html)|是|支持fp16，fp32|
+|[Tensor.acos_](https://pytorch.org/docs/2.7/generated/torch.Tensor.acos_.html)|是|支持fp16，fp32, fp64<br><term>Atlas A3 训练系列产品</term>额外支持bf16|
 |[Tensor.arccos](https://pytorch.org/docs/2.7/generated/torch.Tensor.arccos.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
-|[Tensor.arccos_](https://pytorch.org/docs/2.7/generated/torch.Tensor.arccos_.html)|是|支持fp16，fp32|
+|[Tensor.arccos_](https://pytorch.org/docs/2.7/generated/torch.Tensor.arccos_.html)|是|支持fp16，fp32, fp64<br><term>Atlas A3 训练系列产品</term>额外支持bf16|
 |[Tensor.add](https://pytorch.org/docs/2.7/generated/torch.Tensor.add.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |[Tensor.add_](https://pytorch.org/docs/2.7/generated/torch.Tensor.add_.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |[Tensor.addbmm](https://pytorch.org/docs/2.7/generated/torch.Tensor.addbmm.html)|是|支持fp16，fp32|
