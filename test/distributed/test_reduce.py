@@ -1,14 +1,13 @@
-import unittest
 import os
-
 import numpy as np
+
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
-import torch_npu
 
+import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.common_utils import create_common_tensor
+from torch_npu.testing.common_utils import create_common_tensor, SupportedDevices
 from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
 
 
@@ -73,6 +72,7 @@ class HcclReduceTest(TestCase):
 
         return expected
 
+    @SupportedDevices(['Ascend910A', 'Ascend910B', 'Ascend910_93'])
     @skipIfUnsupportMultiNPU(2)
     def test_reduce_dist(self):
         ranks = [2, 4, 8]
