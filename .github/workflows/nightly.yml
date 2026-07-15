@@ -26,6 +26,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
+  id-token: write
   contents: read
 
 jobs:
