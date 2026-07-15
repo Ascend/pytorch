@@ -27,7 +27,7 @@ if not enable_inplace_buffers:
 config.trace.enabled = True
 
 config.triton.coalesce_tiling_analysis = False
-
+enable_fast_gelu = os.getenv("TORCHINDUCTOR_ENABLE_FAST_GELU", "0") == "1"
 device = torch.npu.current_device()
 prop = torch.npu.get_device_properties(device)
 
