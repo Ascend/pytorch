@@ -165,11 +165,11 @@ class _NpuBackendScope:
 
 
 def patch_dynamo_optimize():
-    from torch._dynamo import optimize
     from torch_npu.dynamo import _get_global_npu_backend
-    src_optimize = optimize
+    src_optimize = torch._dynamo.optimize
 
     def npu_optimize(*args, **kwargs):
+        add_dynamo_methods_init()
         backend = None
         if "backend" in kwargs:
             backend = kwargs["backend"]
@@ -349,8 +349,6 @@ def add_dynamo_methods_init():
     patch_user_defined_class_variable()
     patch_record_stream()
     patch_event_variable_python_type()
-    patch_variable_builder()
-    patch_builtin_variable()
 
 
 def patch_inductor_wrapper():
@@ -428,4 +426,6 @@ def patch_inductor_wrapper():
 
 def add_dynamo_methods():
     patch_dynamo_optimize()
+    patch_variable_builder()
+    patch_builtin_variable()
     patch_inductor_wrapper()
