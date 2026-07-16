@@ -1,4 +1,10 @@
+#include <algorithm>
+#include <cctype>
 #include <climits>
+#include <cstdlib>
+#include <map>
+#include <set>
+#include <string>
 #include "torch_npu/csrc/core/npu/NPUException.h"
 
 #include "third_party/acl/inc/acl/acl_mdl.h"
@@ -14,6 +20,128 @@
 namespace at_npu {
 namespace native {
 namespace env {
+namespace {
+struct CompatibleConfig {
+    std::set<CompatibleKey> compatible_impl_black_list;
+};
+
+const std::map<std::string, CompatibleKey>& GetCompatibleKeyMap()
+{
+    static const std::map<std::string, CompatibleKey> compatible_key_map = {
+        {"randomness", CompatibleKey::Randomness},
+    };
+    return compatible_key_map;
+}
+
+bool ParseCompatibleKey(const std::string& config_key, CompatibleKey& compatible_key)
+{
+    const auto& compatible_key_map = GetCompatibleKeyMap();
+    auto iter = compatible_key_map.find(config_key);
+    if (iter == compatible_key_map.end()) {
+        return false;
+    }
+    compatible_key = iter->second;
+    return true;
+}
+
+std::string TrimCompatibleConfigToken(const std::string& token)
+{
+    auto begin = std::find_if_not(token.begin(), token.end(), [](unsigned char ch) {
+        return std::isspace(ch);
+    });
+    auto end = std::find_if_not(token.rbegin(), token.rend(), [](unsigned char ch) {
+        return std::isspace(ch);
+    }).base();
+    if (begin >= end) {
+        return "";
+    }
+    return std::string(begin, end);
+}
+
+std::string CompatibleKeyOptionsToString()
+{
+    std::string result;
+    const auto& compatible_key_map = GetCompatibleKeyMap();
+    for (const auto& item : compatible_key_map) {
+        if (!result.empty()) {
+            result += ",";
+        }
+        result += item.first;
+    }
+    return result;
+}
+
+std::set<CompatibleKey> ParseCompatibleImplBlackListEnv()
+{
+    std::set<CompatibleKey> result;
+    const char* env_value = std::getenv("TORCH_NPU_LEGACY_IMPL_LIST");
+    if (env_value == nullptr || env_value[0] == '\0') {
+        return result;
+    }
+
+    const std::string config(env_value);
+    std::string unsupported_config_keys;
+    size_t start = 0;
+    while (start <= config.size()) {
+        size_t end = config.find(',', start);
+        std::string token = config.substr(start, end == std::string::npos ? std::string::npos : end - start);
+        std::string config_key = TrimCompatibleConfigToken(token);
+        if (!config_key.empty()) {
+            CompatibleKey compatible_key;
+            if (ParseCompatibleKey(config_key, compatible_key)) {
+                result.insert(compatible_key);
+            } else {
+                if (!unsupported_config_keys.empty()) {
+                    unsupported_config_keys += ", ";
+                }
+                unsupported_config_keys += config_key;
+            }
+        }
+        if (end == std::string::npos) {
+            break;
+        }
+        start = end + 1;
+    }
+    if (!unsupported_config_keys.empty()) {
+        TORCH_CHECK(false, "Invalid TORCH_NPU_LEGACY_IMPL_LIST value: \"", config,
+                    "\". Unsupported key(s): ", unsupported_config_keys,
+                    ". Supported key(s): ", CompatibleKeyOptionsToString(), ".",
+                    PTA_ERROR(ErrCode::VALUE));
+    }
+
+    return result;
+}
+
+std::string CompatibleKeySetToString(const std::set<CompatibleKey>& compatible_keys)
+{
+    std::string result;
+    const auto& compatible_key_map = GetCompatibleKeyMap();
+    for (const auto& compatible_key : compatible_keys) {
+        for (const auto& item : compatible_key_map) {
+            if (item.second == compatible_key) {
+                if (!result.empty()) {
+                    result += ",";
+                }
+                result += item.first;
+                break;
+            }
+        }
+    }
+    return result;
+}
+
+CompatibleConfig InitCompatibleConfig()
+{
+    CompatibleConfig compatible_config;
+    compatible_config.compatible_impl_black_list = ParseCompatibleImplBlackListEnv();
+
+    auto compatible_impl_black_list = CompatibleKeySetToString(compatible_config.compatible_impl_black_list);
+    ASCEND_LOGI("Compatible config initialized during first compatible config query, "
+                "TORCH_NPU_LEGACY_IMPL_LIST environment variable compatible_impl_black_list=[%s].",
+                compatible_impl_black_list.c_str());
+    return compatible_config;
+}
+} // namespace
 
 void ValidPathCheck(const std::string& file_path)
 {
@@ -171,6 +299,26 @@ REGISTER_OPTION_BOOL_FUNCTION(CheckStrongConsistency, STRONG_CONSISTENCY, "disab
 
 REGISTER_OPTION_INIT_BY_ENV(TORCH_NPU_USE_COMPATIBLE_IMPL)
 REGISTER_OPTION_BOOL_FUNCTION(CheckCompatibleImpl, TORCH_NPU_USE_COMPATIBLE_IMPL, "0", "1")
+
+static const CompatibleConfig& GetCompatibleConfig()
+{
+    static const CompatibleConfig compatible_config = InitCompatibleConfig();
+    return compatible_config;
+}
+
+bool CheckCompatibleImplBlackListFor(CompatibleKey compatible_key)
+{
+    const auto& compatible_config = GetCompatibleConfig();
+    return compatible_config.compatible_impl_black_list.count(compatible_key) > 0;
+}
+
+bool CheckCompatibleImplFor(CompatibleKey compatible_key)
+{
+    if (CheckCompatibleImplBlackListFor(compatible_key)) {
+        return false;
+    }
+    return CheckCompatibleImpl();
+}
 
 REGISTER_OPTION_HOOK(ALLOW_CONV_HF32, [](const std::string &val) {
   static const std::string mm_hf32_option_name = "ALLOW_MATMUL_HF32";
