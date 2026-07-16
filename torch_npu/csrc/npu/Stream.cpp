@@ -76,6 +76,8 @@ static PyObject *THNPStream_pynew(
 static void THNPStream_dealloc(THNPStream *self)
 {
     self->npu_stream.~NPUStream();
+    PyObject_ClearWeakRefs((PyObject*)self);
+    Py_CLEAR(self->context);
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
@@ -192,7 +194,7 @@ PyTypeObject THNPStreamType = {
   nullptr,                               /* tp_traverse */
   nullptr,                               /* tp_clear */
   nullptr,                               /* tp_richcompare */
-  0,                                     /* tp_weaklistoffset */
+  0,                                     /* tp_weaklistoffset (inherited from THPStreamType via tp_base) */
   nullptr,                               /* tp_iter */
   nullptr,                               /* tp_iternext */
   THNPStream_methods,                    /* tp_methods */
