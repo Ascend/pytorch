@@ -17,7 +17,6 @@ from .utils import patch_has_triton, patch_device_supports_tma, patch_is_gpu, ge
 from .codegen.common import register_device_op_overrides_npu, patch_cache_base_get_system
 from .shape_handling import NPUShapeHandling, patch_shape_handling
 from ._npu_meta_registration import npu_patch_meta
-
 # 顶层 patch：所有 inductor backend（triton / mlir / dvm / ascendc）都需要的 NPU 设备级patch，
 # 与 codegen 后端选择无关，在任何 backend loader 之前无条件执行
 npu_patch_meta()
@@ -124,7 +123,7 @@ def _load_triton_backend():
         patch_get_optimization_cflags,
     )
     from .codegen.cpp_utils import patch_device_to_aten
-    from .decomposition import _register_npu_inductor_decompositions
+    from .decomposition import _register_triton_decompositions
     from .dependencies import patch_extract_read_writes
     from .fx_passes import patch_pattern_mm_plus_mm, register_fav3_partition_pass
     from .fx_passes.graph_match_pass import (
@@ -186,7 +185,7 @@ def _load_triton_backend():
         _register_npu_inductor_fallbacks,
     )
 
-    _register_npu_inductor_decompositions(backend="triton")
+    _register_triton_decompositions()
 
     if npu_config.enable_full_lowering_fallback.strip() == "allfallback":
         _enable_full_lowering_fallback()

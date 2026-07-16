@@ -4,10 +4,9 @@ import torch
 import torch._ops
 from torch import Tensor
 from torch._inductor import decomposition as inductor_decomp
-from torch._inductor.decomposition import decompositions, pw_cast_for_opmath, register_decomposition
+from torch._inductor.decomposition import decompositions, register_decomposition
 from torch._C import DispatchKey
 from torch._decomp import remove_decompositions
-from torch._prims_common.wrappers import out_wrapper
 import torch.nn.functional as F
 import torch_npu._inductor.config as npu_config
 from .lowering_common import add_overload
@@ -165,10 +164,12 @@ def _register_mlir_dvm_decompositions():
         output = (x * rsqrt * weight).to(dtype)
         return output, rsqrt
 
-    def npu_rms_norm_backward(grad_output: torch.Tensor,
-                              x: torch.Tensor,
-                              weight: torch.Tensor,
-                              rsqrt: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def npu_rms_norm_backward(
+        grad_output: torch.Tensor,
+        x: torch.Tensor,
+        weight: torch.Tensor,
+        rsqrt: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         dx = (grad_output * weight - x * rsqrt * (grad_output * weight * x * rsqrt).mean(-1, keepdim=True)) * rsqrt
         dgamma = (grad_output * x * rsqrt).sum(0, keepdim=False)
         return dx, dgamma
@@ -255,10 +256,3 @@ def _register_mlir_dvm_decompositions():
     # register_decomposition(torch.ops.npu.npu_swiglu_backward.default)(npu_swiglu_backward)
     # register_decomposition(torch.ops.npu.npu_rotary_mul.default)(npu_rotary_mul)
     # register_decomposition(torch.ops.npu.npu_rotary_mul_backward.default)(npu_rotary_mul_backward)
-
-
-def _register_npu_inductor_decompositions(backend=None):
-    if backend == "triton":
-        _register_triton_decompositions()
-    elif backend in ["mlir_dvm"]:
-        _register_mlir_dvm_decompositions()
