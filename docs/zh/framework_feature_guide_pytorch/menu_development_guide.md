@@ -1,44 +1,41 @@
 
-# 框架特性指南
+# 开发指南
 
--   [概述](overview.md)
--   [内存资源优化](./memory_resource_optimization.md)
+-   [内存管理](./menu_memory_management.md)
     -   [虚拟内存](./virtual_memory.md)
     -   [内存快照](./memory_snapshot.md)
     -   [自定义内存分配器](./custom_memory_allocator.md)
     -   [多流内存复用](./multistream_memory_reuse.md)
     -   [内存共享（IPC）](./memory_sharing_ipc.md)
 
-
--   [通信性能优化](./communication_performance_optimization.md)
+-   [分布式](./menu_distributed.md)
     -   [torch\_npu\_run](torch_npu_run.md)
     -   [ranktable建链](./ranktable_link_setup.md)
+    -   [参数配置](./parameter_setting.md)
+        -   [通过pg\_options配置HCCL通信域参数](./setting_HCCL_communicator_parameter.md)
 
--   [计算性能优化](./computing_performance_optimization.md)
+-   [算子下发](./menu_operator_delivery.md)
     -   [自动绑核](./automatic_core_binding.md)
     -   [Stream级TaskQueue并行下发](./stream_taskqueue_parallel_delivery.md)
-    -   [编译优化](comp_opt.md)
-        -   [编译优化技术介绍](comp_opt_intro.md)
-        -   [安装毕昇编译器](install_bisheng_comp.md)
-        -   [编译优化（Python）](comp_opt_py.md)
-        -   [编译优化（PyTorch）](pytorch_comp_opt.md)
-        -   [编译优化（TorchNPU）](torch_npu_comp_opt.md)
-        -   [编译优化常见问题](comp_opt_faq.md)
+    -   [编译优化](compile_optimize.md)
+        -   [编译优化技术介绍](compile_optimize_intro.md)
+        -   [安装毕昇编译器](install_bisheng_compiler.md)
+        -   [Python编译优化](compile_optimize_python.md)
+        -   [PyTorch编译优化](pytorch_compile_optimize.md)
+        -   [TorchNPU编译优化](torch_npu_compile_optimize.md)
+        -   [编译优化常见问题](compile_optimize_faq.md)
 
--   [辅助报错定位](./assisted_error_locating.md)
+-   [故障诊断](./menu_assisted_error_locating.md)
     -   [特征值检测](./feature_value_detection.md)
     -   [WatchDog](./watchdog.md)
 
--   [参数配置](./parameter_setting.md)
-    -   [通过pg\_options配置HCCL通信域参数](./setting_HCCL_communicator_parameter.md)
-
 -   [torch_npu.npu.NPUGraph](./pytorch_npugraph_desc.md)
 
--   [自定义算子适配开发](./custom_operator_adaptation.md)
+-   [自定义算子适配开发](./menu_custom_operator_adaptation.md)
     -   [基于OpPlugin算子适配开发](./opplugin_operator_adaptation.md)
         -   [概述](./adaptation_overview_opplugin.md)
         -   [算子适配流程](./adaptation_flow_opplugin.md)
-        -   [OpPlugin算子适配]()
+        -   [OpPlugin算子适配](adaptation_opplugin.md)
             -   [适配前准备](./adaptation_preparation_opplugin.md)
             -   [适配开发](./adaptation_development_opplugin.md)
             -   [编译验证](./adaptation_compile_opplugin.md)

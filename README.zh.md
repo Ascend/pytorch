@@ -38,7 +38,7 @@ TorchNPU插件的安装操作，具体请参见《[TorchNPU 软件安装](docs/z
 
 ## 特性介绍
 
-TorchNPU插件从内存资源优化、通信性能优化、计算性能优化、辅助报错定位等方面精心打造了一系列独特的特性，具体特性指导请参见《[PyTorch 框架特性指南](docs/zh/framework_feature_guide_pytorch/menu_framework_feature.md)》。
+TorchNPU插件从内存资源优化、通信性能优化、计算性能优化、辅助报错定位等方面精心打造了一系列独特的特性，具体特性指导请参见《[PyTorch 开发指南](docs/zh/framework_feature_guide_pytorch/menu_development_guide.md)》。
 
 ## API参考
 

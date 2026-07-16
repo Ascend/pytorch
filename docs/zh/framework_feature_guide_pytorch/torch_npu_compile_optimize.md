@@ -1,4 +1,4 @@
-# 编译优化（TorchNPU）
+# TorchNPU编译优化
 
 > [!NOTE]
 >
@@ -6,11 +6,11 @@
 
 1. 依赖安装。
 
-    TorchNPU构建依赖PyTorch，目前需要参考[编译优化（PyTorch）](pytorch_comp_opt.md)用毕昇编译器构建PyTorch之后，在环境里重新安装PyTorch，然后再编译TorchNPU。
+    TorchNPU构建依赖PyTorch，目前需要参考[PyTorch编译优化](pytorch_compile_optimize.md)用毕昇编译器构建PyTorch之后，在环境里重新安装PyTorch，然后再编译TorchNPU。
 
     TorchNPU推荐在容器里进行编译，具体请参考[源码安装](../installation_guide/compilation_installation_using_source_code.md)。以下描述均以TorchNPU v2.7.1版为例。
 
-    参考[安装毕昇编译器](install_bisheng_comp.md)配置毕昇编译器环境。
+    参考[安装毕昇编译器](install_bisheng_compiler.md)配置毕昇编译器环境。
 
 2. 获取源码。
 
@@ -24,7 +24,7 @@
 
     > [!NOTE]
     > 
-    > 使用毕昇编译TorchNPU之前需要先参照[编译优化（PyTorch）](pytorch_comp_opt.md)，用毕昇重新编译PyTorch并安装，然后再编译TorchNPU。
+    > 使用毕昇编译TorchNPU之前需要先参照[PyTorch编译优化](pytorch_compile_optimize.md)，用毕昇重新编译PyTorch并安装，然后再编译TorchNPU。
 
     - LTO优化
         1. 配置编译参数，设置环境变量。

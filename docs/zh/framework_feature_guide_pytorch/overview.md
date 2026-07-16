@@ -20,7 +20,7 @@ TorchNPU插件是基于昇腾的深度学习适配框架，使昇腾NPU可以支
   </tr></thead>
 <tbody>
   <tr>
-    <td rowspan="5">内存资源优化</td>
+    <td rowspan="5">内存管理</td>
     <td><a href="./virtual_memory.md">虚拟内存</a></td>
     <td>动态调整内存块的大小，减少内存碎片的产生。</td>
   </tr>
@@ -41,7 +41,7 @@ TorchNPU插件是基于昇腾的深度学习适配框架，使昇腾NPU可以支
     <td>支持跨进程共享内存，有效减少内存消耗。</td>
   </tr>
   <tr>
-    <td rowspan="2">通信性能优化</td>
+    <td rowspan="3">分布式</td>
     <td><a href="./torch_npu_run.md">torch_npu_run</a></td>
     <td>torch_npu_run是torchrun在大集群场景的改进版，提升集群建链性能。</td>
   </tr>
@@ -50,7 +50,11 @@ TorchNPU插件是基于昇腾的深度学习适配框架，使昇腾NPU可以支
     <td>支持以ranktable文件配置方式建立通信域。</td>
   </tr>
   <tr>
-    <td rowspan="2">计算性能优化</td>
+    <td><a href="./setting_HCCL_communicator_parameter.md" target="_blank" rel="noopener noreferrer">通过pg_options配置HCCL通信域参数</a></td>
+    <td>可以针对不同的通信域配置不同的HCCL参数。</td>
+  </tr>
+  <tr>
+    <td rowspan="2">算子下发</td>
     <td><a href="./automatic_core_binding.md">自动绑核</a></td>
     <td>通过设置粗/细粒度绑核，优化TorchNPU下发性能。</td>
   </tr>
@@ -59,18 +63,13 @@ TorchNPU插件是基于昇腾的深度学习适配框架，使昇腾NPU可以支
     <td>每个Stream会初始化独立的TaskQueue和对应的Dequeue线程，实现真正的二级流水并行下发机制。</td>
   </tr>
   <tr>
-    <td rowspan="2">辅助报错定位</td>
+    <td rowspan="2">故障诊断</td>
     <td><a href="./feature_value_detection.md">特征值检测</a></td>
     <td>基于通信流做静默数据错误的特征值检测，识别精度问题。</td>
   </tr>
   <tr>
     <td><a href="./watchdog.md">WatchDog</a></td>
     <td>在不影响大模型训练性能和精度的前提下，能快速稳定发现错误。</td>
-  </tr>
-  <tr>
-    <td>参数配置</td>
-    <td><a href="./setting_HCCL_communicator_parameter.md" target="_blank" rel="noopener noreferrer">通过pg_options配置HCCL通信域参数</a></td>
-    <td>可以针对不同的通信域配置不同的HCCL参数。</td>
   </tr>
   <tr>
     <td>torch_npu.npu.NPUGraph</td>

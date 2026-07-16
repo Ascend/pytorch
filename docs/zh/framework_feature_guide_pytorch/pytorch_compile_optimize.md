@@ -1,16 +1,16 @@
-# 编译优化（PyTorch）
+# PyTorch编译优化
 
 以PyTorch 2.7.1为例进行编译优化。
 
 > [!NOTE]
 >
-> <term>Ascend 950DT</term>暂不支持编译优化（PyTorch）。
+> <term>Ascend 950DT</term>暂不支持PyTorch编译优化。
 
 1. 依赖安装。
 
     PyTorch推荐在容器里进行编译，具体请参考[源码安装](../installation_guide/compilation_installation_using_source_code.md)。
 
-    毕昇环境变量配置，详情请参见[安装毕昇编译器](install_bisheng_comp.md)。
+    毕昇环境变量配置，详情请参见[安装毕昇编译器](install_bisheng_compiler.md)。
 
 2. 获取源码。
     - Git下载：
@@ -106,7 +106,7 @@
 
                 > [!NOTE]
                 > 
-                > 毕昇编译的PyTorch须与毕昇编译的TorchNPU配套使用，其他兼容性可参考[表1](comp_opt_intro.md#custom-anchor)。
+                > 毕昇编译的PyTorch须与毕昇编译的TorchNPU配套使用，其他兼容性可参考[表1](compile_optimize_introduction.md#custom-anchor)。
 
             - 模型跑完之后，程序停止执行，在第一次编译时指定的对应目录下可以生成profraw格式文件。亦可通过在运行机器上配置环境变量LLVM\_PROFILE\_FILE指定profraw文件生成位置，参考命令中的%m允许在线合并profile数据，改为%p将按pid记录数据。
 
