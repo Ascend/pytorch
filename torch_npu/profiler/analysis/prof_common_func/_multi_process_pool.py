@@ -1,7 +1,15 @@
 import atexit
+import gc
 from concurrent import futures
 
 from ._singleton import Singleton
+
+
+def _init_worker():
+     """
+     To avoid conflicts between fork and GC
+     """
+     gc.disable()
 
 
 @Singleton
@@ -12,7 +20,7 @@ class MultiProcessPool:
 
     def init_pool(self, max_workers=4):
         if not self._pool:
-            self._pool = futures.ProcessPoolExecutor(max_workers=max_workers)
+            self._pool = futures.ProcessPoolExecutor(max_workers=max_workers, initializer=_init_worker)
         return self._pool
 
     def close_pool(self, wait: bool = True):
