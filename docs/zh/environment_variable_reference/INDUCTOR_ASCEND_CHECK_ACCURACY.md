@@ -50,7 +50,7 @@ CHECK ACCURACY FAILED! Kernel: <kernel_name>, Output idx: <idx>, Mismatched: <m>
 
 - 此环境变量仅可在PyTorch2.7.1和PyTorch2.9.0版本使用。
 
-- 在torch.compile图编译后端为“inductor”时可使用此环境变量。
+- 在torch.compile图编译后端为“inductor”时可使用此环境变量。<term>Ascend 950DT</term>暂不支持MLIR模式。
 
 - 此环境变量开启时,Triton后端会自动将`torch._inductor.config.split_reductions`设置为`False`。
 
@@ -58,4 +58,4 @@ CHECK ACCURACY FAILED! Kernel: <kernel_name>, Output idx: <idx>, Mismatched: <m>
 
 - <term>Atlas A2 训练系列产品</term>
 - <term>Atlas A3 训练系列产品</term>
-- <term>Ascend 950DT</term>
+- <term>Ascend 950DT</term>（仅支持Triton模式和DVM模式）

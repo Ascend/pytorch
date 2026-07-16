@@ -26,7 +26,7 @@ os.environ["NPU_INDUCTOR_FALLBACK_LIST"] = "allfallback"
 
 ## 使用约束
 
-- 该环境变量仅在Inductor后端场景下生效。
+- 该环境变量仅在Inductor后端场景下生效。<term>Ascend 950DT</term>暂不支持MLIR模式。
 - 算子名称需使用完整的aten算子命名格式（如`aten.div.Tensor`、`aten.add.Tensor`）。
 - 多算子使用逗号进行分隔，不支持空格。
 - 回退操作会导致相应算子失去NPU硬件加速能力，请谨慎使用。
@@ -38,4 +38,4 @@ os.environ["NPU_INDUCTOR_FALLBACK_LIST"] = "allfallback"
 - <term>Atlas A2 训练系列产品</term>
 - <term>Atlas A3 训练系列产品</term>
 - <term>Atlas 800I A2 推理产品</term>
-- <term>Ascend 950DT</term>
+- <term>Ascend 950DT</term>（仅支持Triton模式和DVM模式）

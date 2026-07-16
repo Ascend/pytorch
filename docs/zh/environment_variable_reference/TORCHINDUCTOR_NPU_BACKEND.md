@@ -33,10 +33,11 @@ export TORCHINDUCTOR_NPU_BACKEND="dvm"
 ## 使用约束
 
 - 此环境变量必须在`import torch`之前设置，否则不生效。
+- <term>Ascend 950DT</term>暂不支持MLIR模式。
 
 ## 支持的型号
 
 - <term>Atlas 训练系列产品</term>
 - <term>Atlas A2 训练系列产品</term>
 - <term>Atlas A3 训练系列产品</term>
-- <term>Ascend 950DT</term>
+- <term>Ascend 950DT</term>（仅支持Triton模式和DVM模式）

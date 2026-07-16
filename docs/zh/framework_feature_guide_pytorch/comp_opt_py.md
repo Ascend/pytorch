@@ -2,7 +2,7 @@
 
 > [!NOTE]
 >
-> 编译优化（Python）不支持<term>Ascend 950DT</term>。
+> <term>Ascend 950DT</term>暂不支持编译优化（Python）。
 
 Python从3.6及以上版本开始支持LTO（链接时优化）与PGO（剖面导向优化）优化，可以在编译时开启。
 
