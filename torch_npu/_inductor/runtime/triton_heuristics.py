@@ -1766,7 +1766,14 @@ class NPUCachingAutotuner(CachingAutotuner):
                     "Please disable aclgraph before enabling INDUCTOR_ASCEND_CHECK_ACCURACY "
                     "/ INDUCTOR_ASCEND_DUMP_FX_GRAPH, or unset these environment variables."
                 )
-            _ = self.data_dump(*args)
+            # Strip runtime_block args from the end before saving for replay.
+            # data_dump receives *launch_args (= kernel_args + runtime_blocks),
+            # but the replayed script will call run() which re-appends runtime_blocks
+            # via _build_runtime_launch_args.  Saving only kernel_args avoids a
+            # double-append that overflows positional parameters into "stream".
+            num_rb = len(self.runtime_block_arg_names or ())
+            args_for_dump = args[:-num_rb] if num_rb else args
+            _ = self.data_dump(*args_for_dump)
 
         if npu_config.check_accuracy:
             if check_accuracy_triton(
