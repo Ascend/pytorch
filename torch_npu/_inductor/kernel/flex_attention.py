@@ -41,7 +41,12 @@ from torch._inductor.lowering import (
     register_lowering,
     to_dtype,
 )
-from torch._inductor.select_algorithm import autotune_select_algorithm, realize_inputs, TritonTemplate
+from torch._inductor.select_algorithm import (
+    autotune_select_algorithm,
+    realize_inputs,
+    SymbolicGridFn,
+    TritonTemplate,
+)
 from torch._inductor.kernel.flex.flex_decoding import create_flex_decoding_kernel
 from torch._inductor.kernel.flex.flex_attention import (
     lower_cpu,
@@ -49,9 +54,7 @@ from torch._inductor.kernel.flex.flex_attention import (
     create_placeholder,
     set_head_dim_values,
     create_indices_fake,
-    flex_attention_backward_grid,
     create_num_blocks_fake_generator,
-    flex_attention_grid,
     infer_dense_strides,
     validate_joint_graph,
     process_joint_outputs,
@@ -608,9 +611,37 @@ def forward_block_mn(
 del TritonTemplate.all_templates["flex_attention"]
 del TritonTemplate.all_templates["flex_attention_backward"]
 
+
+@SymbolicGridFn
+def _npu_flex_attention_grid(
+    batch_size, q_heads, num_queries, d_model, meta, *, cdiv
+):
+    return (cdiv(num_queries, meta["BLOCK_M"]), batch_size * q_heads, 1)
+
+
+@SymbolicGridFn
+def _npu_flex_attention_backward_grid(
+    batch_size,
+    q_heads,
+    num_queries,
+    d_model,
+    kv_heads,
+    num_key_value,
+    meta,
+    *,
+    cdiv,
+):
+    return (
+        cdiv(num_queries, meta["BLOCK_M2"]) * (q_heads // kv_heads)
+        + cdiv(num_key_value, meta["BLOCK_N1"]),
+        1,
+        batch_size * kv_heads,
+    )
+
+
 flex_attention_template = NPUTritonTemplate(
     name="flex_attention",
-    grid=flex_attention_grid,
+    grid=_npu_flex_attention_grid,
     source=compute_flex_attention
     + compute_forward_inner
     + compute_next_offset_func
@@ -650,7 +681,7 @@ def _get_default_config_bwd(query) -> tuple[int, int, int, int]:
 
 flex_attention_backward_template = NPUTritonTemplate(
     name="flex_attention_backward",
-    grid=flex_attention_backward_grid,
+    grid=_npu_flex_attention_backward_grid,
     source=r"""
 {{def_kernel("Q", "K", "V", "LSE", "DELTA", "DO", "DQ", "DV", "KV_NUM_BLKS", "KV_IDX", "Q_NUM_BLKS", "Q_IDX", "FULL_KV_NUM_BLKS", "FULL_KV_IDX", "FULL_Q_NUM_BLKS", "FULL_Q_IDX")}}
     # Sub notation for this kernel:
