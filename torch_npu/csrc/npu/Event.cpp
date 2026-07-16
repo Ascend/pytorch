@@ -118,7 +118,7 @@ static PyObject* THNPEvent_from_ipc_handle(
 static void THNPEvent_dealloc(THNPEvent *self)
 {
     self->npu_event.~NPUEvent();
-    Py_TYPE(self)->tp_free((PyObject*)self);
+    THPEvent_dealloc_common(reinterpret_cast<THPEvent*>(self));
 }
 
 static PyObject* THNPEvent_get_npu_event(THNPEvent *self, void *unused)
@@ -262,7 +262,7 @@ PyTypeObject THNPEventType = {
     nullptr,                               /* tp_traverse */
     nullptr,                               /* tp_clear */
     nullptr,                               /* tp_richcompare */
-    0,                                     /* tp_weaklistoffset */
+    0,                                     /* tp_weaklistoffset (inherited from THPStreamType via tp_base) */
     nullptr,                               /* tp_iter */
     nullptr,                               /* tp_iternext */
     THNPEvent_methods,                     /* tp_methods */

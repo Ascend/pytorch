@@ -76,7 +76,7 @@ static PyObject *THNPStream_pynew(
 static void THNPStream_dealloc(THNPStream *self)
 {
     self->npu_stream.~NPUStream();
-    Py_TYPE(self)->tp_free((PyObject*)self);
+    THPStream_dealloc_common(reinterpret_cast<THPStream*>(self));
 }
 
 static PyObject* THNPStream_get_device(THNPStream *self, void *unused)
@@ -192,7 +192,7 @@ PyTypeObject THNPStreamType = {
   nullptr,                               /* tp_traverse */
   nullptr,                               /* tp_clear */
   nullptr,                               /* tp_richcompare */
-  0,                                     /* tp_weaklistoffset */
+  0,                                     /* tp_weaklistoffset (inherited from THPStreamType via tp_base) */
   nullptr,                               /* tp_iter */
   nullptr,                               /* tp_iternext */
   THNPStream_methods,                    /* tp_methods */
