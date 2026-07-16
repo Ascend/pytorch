@@ -1300,9 +1300,14 @@ class NPUIndexTritonKernel(TritonKernel):
             return False
         if not config.triton.persistent_reductions:
             return False
-        threshold = {ReductionHint.INNER: 4096, ReductionHint.DEFAULT: 4096}.get(
-            self.features.get_reduction_hint(), 64
-        )
+        if npu_config.is_ascend950 :
+            threshold = {ReductionHint.INNER: 4096, ReductionHint.DEFAULT: 4096}.get(
+                self.features.get_reduction_hint(), 64
+            )
+        else:
+            threshold = {ReductionHint.INNER: 1024, ReductionHint.DEFAULT: 1024}.get(
+                self.features.get_reduction_hint(), 64
+            )
         if self.cooperative_reduction:
             # The RSPLIT of cooperative reductions means each thread block is operating on fewer elements
             try:
@@ -2571,7 +2576,7 @@ class NPUIndexTritonKernel(TritonKernel):
                     indexing_code = None
                 if not range_val.is_no_loop_axis:
                     do_indent = True
-                    if is_first_reduction_tiling or self.numof_reduction_axis() <= 1:
+                    if is_first_reduction_tiling:
                         self.body.splice(self.prefix)
                     self.body.writeline(
                         f"for loop_{range_val.name} in range(loops_{range_val.name}):"
