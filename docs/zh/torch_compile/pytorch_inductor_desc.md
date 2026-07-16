@@ -9,7 +9,7 @@ Inductor后端支持三种算子编译器，可根据场景选择：
 | 编译器 | 模式 | 开启方法 | 说明 |
 | - | - | - | - |
 | Triton | 默认模式 |`torch.compile(backend="inductor")`| 基于Triton生成融合算子，是Inductor后端的默认选择，适用于大多数场景。详细介绍参见[Triton-Ascend 官方仓库](https://gitcode.com/Ascend/triton-ascend)。|
-| Torch-MLIR | MLIR模式 |`torch.compile(backend="inductor", options={"npu_backend": "mlir"})` | 基于Torch-MLIR生成融合算子，详细介绍参见[Torch-MLIR 官方仓库](https://github.com/llvm/torch-mlir)。|
+| Torch-MLIR | MLIR模式 |`torch.compile(backend="inductor", options={"npu_backend": "mlir"})` | 基于Torch-MLIR生成融合算子，详细介绍参见[Torch-MLIR 官方仓库](https://github.com/llvm/torch-mlir)。<br><term>Ascend 950DT</term>暂不支持MLIR模式。|
 | DVM | DVM模式 |`torch.compile(backend="inductor", options={"npu_backend": "dvm"})` | 基于DVM生成融合算子。详细介绍参见[DVM 官方仓库](https://gitcode.com/mindspore/dvm/tree/master)。|
 
 > [!NOTICE]

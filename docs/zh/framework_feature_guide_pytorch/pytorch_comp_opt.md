@@ -4,7 +4,7 @@
 
 > [!NOTE]
 >
-> 编译优化（PyTorch）不支持<term>Ascend 950DT</term>。
+> <term>Ascend 950DT</term>暂不支持编译优化（PyTorch）。
 
 1. 依赖安装。
 
