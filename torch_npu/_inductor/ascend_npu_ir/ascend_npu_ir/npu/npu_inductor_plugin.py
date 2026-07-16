@@ -96,6 +96,9 @@ register_interface_for_device("npu", NewNpuInterface)
 
 # npu patch
 from torch._C import DispatchKey
+from torch_npu._inductor.decomposition import _register_mlir_dvm_decompositions
+
+_register_mlir_dvm_decompositions()
 
 def disable_implicit_decomposition():
     '''
