@@ -42,10 +42,10 @@ export INDUCTOR_ASCEND_CHECK_ACCURACY_RTOL_ATOL="rtol=1e-6,atol=1e-7"
 
 - 此环境变量仅可在PyTorch2.7.1和PyTorch2.9.0版本使用。
 
-- 在torch.compile图编译后端为“inductor”时可使用此环境变量。<term>Ascend 950DT</term>暂不支持MLIR模式。
+- 在torch.compile图编译后端为“inductor”时可使用此环境变量。
 
 ## 支持的型号
 
 - <term>Atlas A2 训练系列产品</term>
 - <term>Atlas A3 训练系列产品</term>
-- <term>Ascend 950DT</term>（仅支持Triton模式和DVM模式）
+- <term>Ascend 950DT</term>（仅支持Inductor后端编译器中的Triton模式和DVM模式，不支持MLIR模式）
