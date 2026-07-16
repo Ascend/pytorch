@@ -9,7 +9,6 @@ from torch._C import DispatchKey
 from torch._decomp import remove_decompositions
 from torch._prims_common.wrappers import out_wrapper
 import torch.nn.functional as F
-import torch_npu._inductor.config as npu_config
 from .lowering_common import add_overload
 from .ascend_npu_ir.ascend_npu_ir import config as anir_config
 from .lowering_common import run_once
@@ -25,7 +24,7 @@ def _register_shared_decompositions():
         return tensor
 
 def _register_triton_decompositions():
-    from .config import is_ascend950
+    from .config import is_ascend950, enable_fast_gelu
     from .lowering import _add_overload
     DECOMPOSITION_OVERLOAD_OP = [
         aten.nll_loss_forward,
@@ -54,7 +53,7 @@ def _register_triton_decompositions():
             tensor = torch.ones_like(x) - torch.erf(x)
             return tensor
 
-        if npu_config.enable_fast_gelu:
+        if enable_fast_gelu:
             @register_decomposition([aten.gelu])
             def gelu(x):
                 two_sqrt_2_over_pi = 1.5957691216057308
