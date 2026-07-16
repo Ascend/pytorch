@@ -1,8 +1,8 @@
-# 方式二：源码安装
+# 源码编译
 
 源码安装适用于二次开发场景，如自定义算子适配开发后，用户可以选择需要的分支版本自行编译PyTorch框架和TorchNPU插件。
 
-执行安装命令前，请参见[安装前准备](preparing_installation.md)完成环境变量配置及其他环境准备。
+执行安装命令前，请参见[快速安装](quick_install.md)中的安装前准备章节完成环境变量配置及其他环境准备。
 
 ## 安装PyTorch框架
 
@@ -10,10 +10,14 @@
 
 ## 安装TorchNPU插件
 
+容器场景下源码安装TorchNPU插件，涉及从外部网络获取社区提供基础镜像、Python第三方库以及编译使用源码，代理配置等相关网络问题请参考[Docker官方文档](https://docs.docker.com/engine/cli/proxy/)。
+
+在安装不同类型操作系统所需依赖前，请在安装用户下检查源是否可用。以配置华为镜像源为例，可参考[华为开源镜像站](https://mirrors.huaweicloud.com/)中镜像源对应的配置方法操作。
+
 以下操作步骤以安装PyTorch 2.7.1版本为例。
 
 - **方式一（推荐）：容器场景**
-
+    
     1. 下载TorchNPU源码。
 
         ```bash
@@ -51,7 +55,10 @@
         ```
 
         如需指定其他Python版本，请使用--python=3.9、--python=3.11、--python=3.12或--python=3.13。
-
+        > [!NOTE]
+        > 
+        > 默认编译Release版本。如需编译Debug版本，请在执行构建命令时设置环境变量`DEBUG=1`。
+        
     5. 在运行环境中安装生成的TorchNPU插件包，如果使用非root用户进行安装，需要在命令后加`--user`。
 
         ```bash
@@ -139,6 +146,9 @@
             ```
 
             如需指定其他Python版本，请使用--python=3.9、--python=3.11、--python=3.12或--python=3.13。
+            > [!NOTE]
+            > 
+            > 默认编译Release版本。如需编译Debug版本，请在执行构建命令时设置环境变量`DEBUG=1`。
 
     3. 安装pytorch/dist目录下生成的插件TorchNPU包，如果使用非root用户安装，需要在命令后加`--user`。
 
@@ -154,40 +164,9 @@
         pip3 install -r requirements.txt
         ```
 
-## 版本查询
-
-执行以下命令可检查安装的Python、PyTorch框架和TorchNPU插件版本。
-
-- 查看已安装的Pyhton版本。
-
-    ```bash
-    python --version
-    ```
-
-    输出如下Python版本。
-
-    ```text
-    Python 3.13.0
-    ```
-
-- 查看已安装的PyTorch框架和TorchNPU插件版本。
-
-    ```bash
-    pip list | grep torch
-    ```
-
-    输出如下PyTorch框架和TorchNPU插件版本。
-
-    ```text
-    torch     2.10.0
-    torch_npu      26.0.0 
-    ```
-
-    > [!NOTE]
-    >
-    > 如果需要查询TorchNPU安装包版本，请单击[相关产品版本配套说明](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.0.0/docs/zh/release_notes/release_notes.md#%E7%9B%B8%E5%85%B3%E4%BA%A7%E5%93%81%E7%89%88%E6%9C%AC%E9%85%8D%E5%A5%97%E8%AF%B4%E6%98%8E)查看。
-
 ## 安装后验证
+
+如需查看当前环境中已安装的Python、PyTorch和TorchNPU版本，请参见[查询版本](check_installed_versions.md)。
 
 执行以下命令可检查PyTorch框架和TorchNPU插件是否已成功安装。
 

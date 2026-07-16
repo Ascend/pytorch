@@ -1,21 +1,15 @@
-# 软件安装指南 
+# 软件安装指南
 
-- [安装说明](installation_description.md)
-- [安装前准备](preparing_installation.md)
-- [安装PyTorch](installing_PyTorch.md)
-  - [方式一：离线安装（Whl）](installation_via_binary_package.md)
-  - [方式二：源码安装](compilation_installation_using_source_code.md)
-
-- [（可选）安装扩展模块](Optional_installing_extension_modules.md)
-  - [编译libtorch\_npu](building_libtorch_npu.md)
-  - [安装APEX模块](https://gitcode.com/Ascend/apex/blob/master/docs/zh/installing_apex.md)
-  - [安装torchvision](installing_torchvision.md)
-
-- [卸载](uninstallation.md)
-- [升级](upgrade.md)
-- [参考信息](references.md)
-  - [配置pip源](configuring_pip_source.md)
-  - [安装11.2.0版本gcc](installing_gcc_11-2-0.md)
-  - [安装3.18.4版本cmake](installing_cmake_3-18-4.md)
-
+- [快速安装](quick_install.md)
+- [卸载与升级](uninstallation_upgrade.md)
 - [FAQ](FAQ.md)
+- [附录](appendix.md)
+  - [源码编译](compilation_installation_using_source_code.md)
+  - [（可选）安装扩展模块](optional_installing_extension_modules.md)
+    - [编译libtorch\_npu](building_libtorch_npu.md)
+    - [安装torchvision](installing_torchvision.md)
+  - [参考信息](references.md)
+    - [配置pip源](configuring_pip_source.md)
+    - [查询版本](check_installed_versions.md)
+    - [安装11.2.0版本gcc](installing_gcc_11-2-0.md)
+    - [安装3.18.4版本cmake](installing_cmake_3-18-4.md)

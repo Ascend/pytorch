@@ -4,7 +4,7 @@ libtorch\_npu是TorchNPU插件的C++版本，包含运行TorchNPU插件所需的
 
 ## 编译操作
 
-1. 参见[安装前准备](preparing_installation.md)、[安装PyTorch](installing_PyTorch.md)完成依赖与PyTorch的安装。
+1. 参见[快速安装](quick_install.md)完成依赖、PyTorch和TorchNPU的安装。
 2. 获取libtorch\_npu源码。
 
     ```bash
@@ -43,7 +43,7 @@ libtorch\_npu是TorchNPU插件的C++版本，包含运行TorchNPU插件所需的
 以TorchNPU源码仓v2.7.1-26.0.0分支下“pytorch/examples/libtorch\_resnet”模型为例，介绍libtorch推理的快速使用。
 
 1. 需提前安装torch、TorchNPU、torchvision、hypothesis、expecttest以及packaging。
-    - torch与TorchNPU、torchvision安装请参见[安装PyTorch](installing_PyTorch.md)以及[安装torchvision](installing_torchvision.md)。
+    - torch与TorchNPU、torchvision安装请参见[快速安装](quick_install.md)以及[安装torchvision](installing_torchvision.md)。
     - hypothesis、expecttest、packaging安装可执行如下命令。如果使用非root用户进行安装，需要在命令后加`--user`，例如：**pip3 install expecttest --user**。
 
         ```bash

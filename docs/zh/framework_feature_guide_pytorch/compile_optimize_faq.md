@@ -14,7 +14,7 @@
 
 - “fatal error: 'filesystem' file not found.”
 
-    gcc版本过低，请执行命令gcc --version查询版本，并参考《[软件安装](../installation_guide/installation_description.md)》安装GCC 8以上版本。
+    gcc版本过低，请执行命令gcc --version查询版本，并参考《[安装GCC 11.2.0版本](../installation_guide/installing_gcc_11-2-0.md)》安装GCC 8以上版本。
 
 - “Error while loading shared libraries: libomp.so: cannot open shared object file: No such file or directory.”
 

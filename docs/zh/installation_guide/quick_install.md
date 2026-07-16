@@ -1,8 +1,6 @@
-# 方式一：离线安装（Whl）
+﻿# 快速安装
 
-通过Whl包直接安装PyTorch和TorchNPU插件。
-
-执行安装命令前，请参见[安装前准备](preparing_installation.md)完成环境变量配置及其他环境准备。
+请在执行安装操作前，仔细阅读[安装前准备](#安装前准备)文档，并确认已满足所有安装前置要求。
 
 ## 安装PyTorch框架和TorchNPU插件
 
@@ -57,38 +55,44 @@
 > - 更多TorchNPU插件版本请参考[PyTorch Release](https://gitcode.com/Ascend/pytorch/releases)。
 > - Triton-Ascend插件用于支持图模式Inductor后端，且仅支持PyTorch2.7.1和2.9.0版本。
 
-## 版本查询
+## 安装前准备
 
-执行以下命令可检查安装的Python、PyTorch框架和TorchNPU插件版本。
+### 硬件配套
 
-- 查看已安装的Pyhton版本。
+**表 1**  产品硬件支持列表
+
+|产品|是否支持（训练场景）|
+|--|:-:|
+|<term>Atlas A3 训练系列产品</term>|√|
+|<term>Atlas A3 推理系列产品</term>|x|
+|<term>Atlas A2 训练系列产品</term>|√|
+|<term>Atlas A2 推理系列产品</term>|x|
+|<term>Atlas 200I/500 A2 推理产品</term>|x|
+|<term>Atlas 推理系列产品</term>|x|
+|<term>Atlas 训练系列产品</term>|√|
+
+> [!NOTE]
+>
+> 本节表格中“√”代表支持，“x”代表不支持。
+
+### 环境准备
+
+> [!NOTICE]
+>
+> 安装运行程序建议使用非root用户，且建议对安装程序的目录文件做好权限管控：文件夹权限设置为750，文件权限设置为640。可以通过设置umask控制安装后文件的权限，如设置umask为0027。更多安全相关内容请参见《[安全声明](../security_statement/security_statement.md)》中各组件关于“文件权限控制”的说明。
+
+- 安装配套版本的NPU驱动固件、CANN软件（Toolkit、ops和NNAL）并配置CANN环境变量，具体请参考《[CANN 软件安装](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/900/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum)》。
+
+    CANN软件提供进程级环境变量设置脚本，训练或推理场景下使用NPU执行业务代码前需要调用该脚本，否则业务代码将无法执行。
 
     ```bash
-    python --version
+    source /usr/local/Ascend/cann/set_env.sh
+    source /usr/local/Ascend/nnal/atb/set_env.sh
     ```
 
-    输出如下Python版本。
+    以上命令以root用户安装后的默认路径为例，请用户根据set\_env.sh的实际路径进行替换。
 
-    ```text
-    Python 3.13.0
-    ```
-
-- 查看已安装的PyTorch框架和TorchNPU插件版本。
-
-    ```bash
-    pip list | grep torch
-    ```
-
-    输出如下PyTorch框架和TorchNPU插件版本。
-
-    ```text
-    torch     2.10.0
-    torch_npu      26.0.0 
-    ```
-
-    > [!NOTE]
-    >
-    > 如果需要查询TorchNPU安装包版本，请单击[相关产品版本配套说明](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.0.0/docs/zh/release_notes/release_notes.md#%E7%9B%B8%E5%85%B3%E4%BA%A7%E5%93%81%E7%89%88%E6%9C%AC%E9%85%8D%E5%A5%97%E8%AF%B4%E6%98%8E)查看。
+Python3.11的调度（即下发）性能优于Python3.10，建议用Python3.11及以上。
 
 ## 安装后验证
 
@@ -127,3 +131,13 @@
     tensor([[-0.0515,  0.3664],
             [-0.1258, -0.5425]], device='npu:0')
     ```
+
+如需查看当前环境中已安装的Python、PyTorch和TorchNPU版本，请参见[查询版本](check_installed_versions.md)。
+
+## 源码编译
+
+对于大多数用户，推荐直接使用预编译的Whl包安装PyTorch框架和TorchNPU插件，以简化安装流程并获得更稳定的使用体验。如需进行功能测试、二次开发或自定义构建，请参见[源码编译](compilation_installation_using_source_code.md)，从源代码完成编译并获取所需的Whl包。
+
+## 安装拓展模块
+
+对于大多数用户，安装PyTorch框架和TorchNPU插件后即可满足基本的训练与推理需求。但是，在特定开发场景下，您可能还需要安装相应的扩展模块。例如，如需使用C++接口进行开发，请参见[编译libtorch_npu](building_libtorch_npu.md)；如需开展计算机视觉任务，请参见[安装torchvision](installing_torchvision.md)。
