@@ -6,6 +6,10 @@ import argparse
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.testing._internal.common_utils import (
+    parametrize,
+    instantiate_parametrized_tests,
+)
 
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
@@ -94,6 +98,31 @@ class TestSerialization(TestCase):
             x_loaded = torch.load(path, map_location=torch.device("npu:0"), weights_only=False)
             self.assertExpectedInline(f'{x_loaded.device.type}:{x_loaded.device.index}', 'npu:0')
             self.assertRtolEqual(x, x_loaded.cpu())
+
+    @parametrize("map_kind", ["none", "callable", "dict"])
+    def test_legacy_load_maplocation(self, map_kind):
+        """legacy + weights_only=False: cover None / Callable / Dict map_location."""
+        if map_kind == "none":
+            x = torch.randn(5).npu()
+            map_location = None
+        elif map_kind == "callable":
+            x = torch.randn(5)
+            map_location = lambda storage, loc: storage.to(device="npu:0")
+        else:
+            x = torch.randn(5)
+            map_location = {"cpu": "npu:0"}
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, "data.pt")
+            torch.serialization.save(x, path, _use_new_zipfile_serialization=False)
+            y = torch.load(
+                path,
+                map_location=map_location,
+                weights_only=False,
+                mmap=False,
+            )
+            self.assertEqual(str(y.device), "npu:0")
+            self.assertRtolEqual(x.cpu() if x.is_npu else x, y.cpu())
 
     def test_save_npu_format(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -273,6 +302,9 @@ class TestSerialization(TestCase):
                 save_load_check(a.storage(), s)
                 b = torch.tensor([], dtype=other_dtype, device='npu')
                 save_load_check(a, b)
+
+
+instantiate_parametrized_tests(TestSerialization)
 
 
 if __name__ == "__main__":
