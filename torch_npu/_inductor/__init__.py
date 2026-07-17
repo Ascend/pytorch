@@ -106,6 +106,7 @@ def _load_triton_backend():
     from . import codegen, config as npu_config
     from .async_compile import patch_async_compile
     from .codecache import patch_get_cpp_wrapper_header
+    from .export import patch_aot_load
     from .codegen._sizevars import patch_simplify
     from .codegen.ir import patch_indexing, patch_loop_body
     from .codegen.triton import (
@@ -171,6 +172,7 @@ def _load_triton_backend():
     inductor_lowering.make_reduction = make_reduction
 
     patch_get_cpp_wrapper_header()
+    patch_aot_load()
     patch_get_cpp_torch_device_options()
     patch_constant_fold_uniform_value()
     patch_device_to_aten()
