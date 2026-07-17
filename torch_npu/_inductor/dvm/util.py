@@ -7,6 +7,7 @@ from typing import Sequence
 import torch
 from torch._inductor.virtualized import V
 
+from .config import view_fusion_level
 from .op_emitter import load, view_load
 
 
@@ -41,7 +42,6 @@ def codegen_maybe_view_load(
     stride: Sequence,
     dtype: torch.dtype,
     *,
-    view_fusion_level: int,
     is_symbolic: bool,
 ) -> tuple[str, bool]:
     """Return (expr, skip_cont).
