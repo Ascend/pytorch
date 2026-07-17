@@ -102,9 +102,12 @@ class TestTransferToNpu(TestCase):
         self.assertEqual(device.type, 'meta')
 
     def test_set_default_device(self):
-        torch.set_default_device("cuda")
-        a = torch.tensor(1)
-        self.assertEqual(a.device.type, 'npu')
+        try:
+            torch.set_default_device("cuda")
+            a = torch.tensor(1)
+            self.assertEqual(a.device.type, 'npu')
+        finally:
+            torch.set_default_device(None)
 
     def test_device_context(self):
         device = torch.device('cuda')
@@ -405,6 +408,21 @@ class TestTransferToNpu(TestCase):
         self.assertEqual(torch.cuda.default_generators, torch_npu.npu.default_generators)
         self.assertNotEqual(torch.cuda.default_generators, ())
         
+
+    def test_wrapper_cuda_device_ids_tuple(self):
+        @transfer_to_npu._wrapper_cuda
+        def mock_function(*args, **kwargs):
+            return kwargs
+
+        kwargs_input = {'device_ids': ('cuda:0', 'cuda:1')}
+        expected_kwargs_output = {'device_ids': ('npu:0', 'npu:1')}
+        kwargs_output = mock_function(**kwargs_input)
+        self.assertEqual(kwargs_output, expected_kwargs_output)
+
+        kwargs_input = {'device_ids': ['cuda:0', 'cuda:1']}
+        expected_kwargs_output = {'device_ids': ['npu:0', 'npu:1']}
+        kwargs_output = mock_function(**kwargs_input)
+        self.assertEqual(kwargs_output, expected_kwargs_output)
 
 if __name__ == "__main__":
     run_tests()
