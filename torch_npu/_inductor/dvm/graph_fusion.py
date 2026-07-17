@@ -1,4 +1,3 @@
-import os
 from collections import defaultdict
 from types import SimpleNamespace
 
@@ -20,6 +19,7 @@ from torch.fx.passes.utils.fuser_utils import (
     erase_nodes,
 )
 
+from .config import dump_fx_test
 from .graph_build import DvmCodegenInterpreter, is_fx_dynamic
 from .util import patch_gm_placeholder_strides_from_codegen_args
 from .fx_test import generate_dvm_fx_case
@@ -31,10 +31,6 @@ from .fx_pass import (
     expand_to_reshape,
     need_fallback_gm,
 )
-
-dump_fx_test = os.environ.get("INDUCTOR_DVM_DUMP_FX_TEST", "0") == "1"
-
-view_fusion_level = int(os.environ.get("INDUCTOR_DVM_VIEW_FUSION_LEVEL", "1"))
 
 aten = torch.ops.aten
 prims = torch.ops.prims
@@ -86,10 +82,9 @@ GRAPH_FUSION_SUPPORT_OP = [
     aten.addmm.default,
     aten.where.default,
     aten.where.self,
-    # aten.expand.default,
     aten.full.default,
-    # aten.reshape.default,
 ]
+
 
 class UnionFind:
     def __init__(self) -> None:
@@ -167,9 +162,7 @@ class _FusedMeta:
         """
         if dump_fx_test:
             generate_dvm_fx_case(self.gm, fusion_type="graph")
-        cg = DvmCodegenInterpreter(
-            self.gm, ktype="split", view_fusion_level=view_fusion_level
-        )
+        cg = DvmCodegenInterpreter(self.gm, ktype="split")
         cg.run()
         code = cg.code.getvalue().replace(cg.KERNEL_NAME_PLACEHOLDER, self.name)
         return cg, code

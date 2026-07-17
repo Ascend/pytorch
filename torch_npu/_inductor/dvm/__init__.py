@@ -1,4 +1,3 @@
-import os
 import sys
 from functools import partial, wraps
 
@@ -15,9 +14,8 @@ from torch_npu._C.dvm import (
 from torch_npu.npu._backends import get_soc_version
 from torch_npu._inductor.npu_compare import check_accuracy_dvm
 
+from .config import bf16_vector_keep_promoted, debug_mode
 
-debug_mode = os.environ.get("INDUCTOR_DVM_DEBUG_MODE", "0") == "1"
-bf16_vector_keep_promoted = False
 
 bool_ = DataType.bool
 float16 = DataType.float16
