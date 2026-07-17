@@ -41,7 +41,7 @@ from torch._inductor.codegen.triton import (
     TritonKernelOverrides,
     TritonScheduling,
     upcast_acc_dtype,
-    TMACompatibilityChecker,
+    TMACompatibilityChecker, maybe_upcast_float32,
 )
 from torch._inductor.codegen.triton_utils import (
     config_of,
@@ -285,40 +285,9 @@ class NPUTritonKernelOverrides(TritonKernelOverrides):
     """
 
     @staticmethod
-    def exp(x):
-        return f"tl_math.exp({x})"
-
-    @staticmethod
-    def sqrt(x):
-        return f"tl_math.sqrt({x})"
-
-    @staticmethod
-    def maximum(a, b):
-        return f"tl.maximum({a}, {b}, tl.PropagateNan.ALL)"
-
-    @staticmethod
-    def minimum(a, b):
-        return f"tl.minimum({a}, {b}, tl.PropagateNan.ALL)"
-
-    @staticmethod
+    @maybe_upcast_float32()
     def tanh(x):
         return f"tl_math.tanh({x})"
-
-    @staticmethod
-    def rsqrt(x):
-        return f"tl.rsqrt({x})"
-
-    @staticmethod
-    def floor(x):
-        return f"tl_math.floor({x})"
-
-    @staticmethod
-    def erf(x):
-        return f"tl_math.erf({x})"
-
-    @staticmethod
-    def ceil(x):
-        return f"tl_math.ceil({x})"
 
     @staticmethod
     def masked(mask, body, other):
