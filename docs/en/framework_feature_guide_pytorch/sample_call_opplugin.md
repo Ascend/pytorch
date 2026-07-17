@@ -97,42 +97,42 @@ After completing the development of the adaptation plugin for the PyTorch framew
 
 1. In the `op_plugin/ops/opapi` directory, create the `AddCustomKernelNpuOpApi.cpp` file and implement the main operator adaptation functions `npu_add_custom` and `npu_add_custom_backward`. The core logic is to call the `EXEC_NPU_CMD` interface to compute the output results. The first argument of `EXEC_NPU_CMD` follows the format `aclnn+Optype` (operator type), and the subsequent arguments are the inputs and outputs. Since the backward computation of the add operation is relatively simple, there is no need to call an operator for the computation.
 
-          ```bash
-          vi op_plugin/ops/opapi/AddCustomKernelNpuOpApi.cpp
-          ```
+    ```bash
+    vi op_plugin/ops/opapi/AddCustomKernelNpuOpApi.cpp
+    ```
 
 2. After completing the operator adaptation, the full `AddCustomKernelNpuOpApi.cpp` file is as follows.
 
-          ```cpp
-          #include "op_plugin/OpApiInterface.h" 
-          #include "op_plugin/utils/op_api_common.h" 
+    ```cpp
+    #include "op_plugin/OpApiInterface.h" 
+    #include "op_plugin/utils/op_api_common.h" 
           
-          namespace op_api { 
-          using npu_preparation = at_npu::native::OpPreparation;
+    namespace op_api { 
+    using npu_preparation = at_npu::native::OpPreparation;
           
-          // Forward interface
-          at::Tensor npu_add_custom(const at::Tensor& x, const at::Tensor& y, const at::Scalar &alpha)
-          { 
-              // Construct output tensor
-              at::Tensor result = npu_preparation::apply_tensor_without_format(x);
-              // Compute the output result
-              // Call the EXEC_NPU_CMD interface to complete the computation of the output result
-              // The first argument follows the format aclnn+Optype, and the subsequent arguments are inputs and outputs respectively
-              EXEC_NPU_CMD(aclnnAdd, x, y, alpha, result); 
-              return result; 
-          }
+    // Forward interface
+    at::Tensor npu_add_custom(const at::Tensor& x, const at::Tensor& y, const at::Scalar &alpha)
+    { 
+        // Construct output tensor
+        at::Tensor result = npu_preparation::apply_tensor_without_format(x);
+        // Compute the output result
+        // Call the EXEC_NPU_CMD interface to complete the computation of the output result
+        // The first argument follows the format aclnn+Optype, and the subsequent arguments are inputs and outputs respectively
+        EXEC_NPU_CMD(aclnnAdd, x, y, alpha, result); 
+        return result; 
+    }
           
-          // Backward interface
-          std::tuple<at::Tensor, at::Tensor> npu_add_custom_backward(const at::Tensor& grad)
-          {
-              // Construct the output tensor
-              at::Tensor result = npu_preparation::apply_tensor_without_format(grad);
-              result.copy_(grad);
-              // Compute the output result
-              return {result, result};
-          }
-          }  // namespace op_api
-          ```
+    // Backward interface
+    std::tuple<at::Tensor, at::Tensor> npu_add_custom_backward(const at::Tensor& grad)
+    {
+        // Construct the output tensor
+        at::Tensor result = npu_preparation::apply_tensor_without_format(grad);
+        result.copy_(grad);
+        // Compute the output result
+        return {result, result};
+    }
+    }  // namespace op_api
+    ```
 
 3. Operator auxiliary adaptation implementation.
 

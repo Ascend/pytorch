@@ -15,12 +15,12 @@ The default threshold is 100000,5000.
 > The factory default thresholds are the optimal values, and users are not recommended to modify them. If the following situations occur, you can adjust the thresholds based on the actual scenario and pay attention to the related impacts.
 >
 > - Scenarios requiring larger thresholds: If an alarm occurs and you confirm that the value fluctuation is normal and does not affect training, increase the thresholds.
-> - If the `val` exceeds `NPU_ASD_UPPER_THRESH` and triggers an alarm, increase the threshold `NPU_ASD_UPPER_THRESH` based on the `val` value (recommended: `val`\*2);
-> - If the jump amplitude exceeds `NPU_ASD_SIGMA_THRESH` and triggers an alarm, increase the threshold `NPU_ASD_SIGMA_THRESH` based on the ratio of `(val-pre_val)` to `(max-min)` (recommended: `(val-pre_val)`/`(max-min)`*2).
+>   - If the `val` exceeds `NPU_ASD_UPPER_THRESH` and triggers an alarm, increase the threshold `NPU_ASD_UPPER_THRESH` based on the `val` value (recommended: `val`\*2);
+>   - If the jump amplitude exceeds `NPU_ASD_SIGMA_THRESH` and triggers an alarm, increase the threshold `NPU_ASD_SIGMA_THRESH` based on the ratio of `(val-pre_val)` to `(max-min)` (recommended: `(val-pre_val)`/`(max-min)`*2).
 >
-> - Related impact: Increasing the thresholds will reduce the detection rate to some extent, but the false positive rate will also decrease.
+>   Related impact: Increasing the thresholds will reduce the detection rate to some extent, but the false positive rate will also decrease.
 > - Scenarios requiring smaller thresholds: If frequent loss spikes/grad norm spikes affect training, and spikes still occur after restarting but no alarm is triggered, gradually decrease the thresholds by a certain ratio (for example, 10).  
-> - Related impact: Decreasing the thresholds can improve the detection rate, but it is also prone to causing false positives.
+>   Related impact: Decreasing the thresholds can improve the detection rate, but it is also prone to causing false positives.
 
 ## Configuration Example
 

@@ -8,9 +8,9 @@
 |API Name|Supported|Restrictions and Notes|
 |--|--|--|
 |torch.default_generator|Yes|-|
-|torch.SymInt|Yes|fp32 Support|
-|torch.SymFloat|Yes|fp32 Support|
-|torch.SymBool|Yes|fp32 Support|
+|torch.SymInt|Yes|Supports fp32|
+|torch.SymFloat|Yes|Supports fp32|
+|torch.SymBool|Yes|Supports fp32|
 |torch.Tag|Yes|-|
 |torch.Tag.name|Yes|-|
 |torch.is_tensor|Yes|-|
@@ -34,7 +34,7 @@
 |torch.sparse_bsc_tensor|No|-|
 |torch.asarray|Yes|Supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool|
 |torch.as_tensor|Yes|Supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool|
-|torch.as_strided|Yes|fp32 Support|
+|torch.as_strided|Yes|Supports fp32|
 |torch.from_numpy|Yes|Supports output of fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool|
 |torch.from_dlpack|No|-|
 |torch.frombuffer|Yes|Supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool|
@@ -55,7 +55,7 @@
 |torch.quantize_per_channel|No|-|
 |torch.dequantize|Yes|Supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool, complex64, complex128|
 |torch.complex|Yes|-|
-|torch.polar|Yes|fp32 Support<br>The dimensions of input arguments abs and angle must be equal|
+|torch.polar|Yes|Supports fp32<br>The dimensions of input arguments abs and angle must be equal|
 |torch.heaviside|No|-|
 |torch.argwhere|Yes|Supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool|
 |torch.cat|Yes|Supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool|
@@ -69,7 +69,7 @@
 |torch.hsplit|Yes|Supports bf16, fp16, fp32, uint8, int8, int16, int32, int64, bool, complex64, complex128|
 |torch.hstack|Yes|Supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool, complex64|
 |torch.index_add|Yes|Supports fp16, fp32, int64, bool|
-|torch.index_copy|Yes|fp32 Support|
+|torch.index_copy|Yes|Supports fp32|
 |torch.index_reduce|Yes|May Fall Back to CPU Execution|
 |torch.index_select|Yes|Supports bf16, fp16, fp32, int16, int32, int64, bool|
 |torch.masked_select|Yes|Supports fp16, fp32, int16, int32, int64, bool|
@@ -93,7 +93,7 @@
 |torch.swapdims|Yes|Supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool|
 |torch.t|Yes|Supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool|
 |torch.take|Yes|Supports fp16, fp32, int16, int32, int64, bool|
-|torch.take_along_dim|Yes|fp32 Support|
+|torch.take_along_dim|Yes|Supports fp32|
 |torch.tensor_split|Yes|Supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool, complex64, complex128|
 |torch.tile|Yes|Supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool, complex64, complex128<br>If the length of the input argument dims is less than the length of input.shape, ones are automatically prepended to dims to align its length with input.shape. The padded dims must satisfy the following constraints:<br>- When repeating along the first axis, a maximum of 4 dimensions may be repeated simultaneously (i.e., the Number of Elements Greater Than 1 in dims ≤ 4). For example: torch.tile(input, [2, 3, 4, 5, 6]) is Not Supported, while torch.tile(input, [2, 3, 1, 5, 6]) is supported.<br>- When not repeating along the first axis, a maximum of 3 dimensions may be repeated simultaneously (i.e., the Number of Elements Greater Than 1 in dims ≤ 3). For example: torch.tile(input, [1, 3, 4, 5, 6]) is Not Supported, while torch.tile(input, [1, 3, 1, 5, 6]) is supported.<br>- If backward computation is performed, the sum of the Number of Dimensions of the input Tensor and the Number of Elements Greater Than 1 in the input argument dims must not exceed 8|
 |torch.transpose|Yes|Supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool, complex64, complex128|

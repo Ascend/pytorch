@@ -35,9 +35,9 @@ During model training, if you need to analyze NPU memory allocation (for example
 - When not configured, memory data is saved to the current path by default.
 - When configured, memory data is saved to the specified path.
 
-For details on using this environment variable, refer to the "[OOM_SNAPSHOT_ENABLE](../environment_variable_reference/OOM_SNAPSHOT_ENABLE.md)" section in *Environment Variable Reference* and the "[OOM_SNAPSHOT_PATH](../environment_variable_reference/OOM_SNAPSHOT_PATH.md)" section in *Environment Variable Reference*.
+For details on using this environment variable, refer to the "[OOM_SNAPSHOT_ENABLE](../environment_variable_reference/OOM_SNAPSHOT_ENABLE.md)" section in Environment Variable Reference and the "[OOM_SNAPSHOT_PATH](../environment_variable_reference/OOM_SNAPSHOT_PATH.md)" section in Environment Variable Reference.
 
-For usage methods and examples of memory snapshots, refer to the [community documentation](https://pytorch.org/docs/2.7/torch_cuda_memory.html#understanding-cuda-memory-usage). For detailed usage of the community memory snapshot API, see the[reference](https://pytorch.org/docs/2.7/torch_cuda_memory.html#snapshot-api-reference).
+For usage methods and examples of memory snapshots, refer to the [community documentation](https://pytorch.org/docs/2.7/torch_cuda_memory.html#understanding-cuda-memory-usage). For detailed usage of the community memory snapshot API, see the [reference](https://pytorch.org/docs/2.7/torch_cuda_memory.html#snapshot-api-reference).
 
 ## Usage Example
 

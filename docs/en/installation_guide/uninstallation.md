@@ -24,7 +24,7 @@
 
 > [!NOTE]
 >
-> To save the uninstallation log, add the parameter `--log <path\>` after the `pip3 uninstall` command, and ensure proper access control on the directory `<path\>` you specify.
+> To save the uninstallation log, add the parameter `--log <path>` after the `pip3 uninstall` command, and ensure proper access control on the directory `<path>` you specify.
 
 ## Uninstalling CANN Software
 

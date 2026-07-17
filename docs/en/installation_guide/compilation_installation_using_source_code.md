@@ -66,45 +66,46 @@ The following example is based on PyTorch 2.7.1.
 
         Based on the operating system type, select the corresponding command to install the required dependencies.
 
-            - openEuler, CentOS, Kylin, BCLinux, UOS V20, AntOS, AliOS, CTyunOS, CULinux, Tlinux, MTOS, vesselOS:
+        - openEuler, CentOS, Kylin, BCLinux, UOS V20, AntOS, AliOS, CTyunOS, CULinux, Tlinux, MTOS, vesselOS:
 
-                1. Install dependencies (excluding gcc and cmake).
+            1. Install dependencies (excluding gcc and cmake).
 
-                    ```bash
-                    yum install -y patch libjpeg-turbo-devel dos2unix openblas git
-                    ```
+                ```bash
+                yum install -y patch libjpeg-turbo-devel dos2unix openblas git
+                ```
 
-                2. Install GCC and cmake.
+            2. Install GCC and cmake.
 
-                    Install the corresponding gcc and cmake versions based on your actual situation. For version information and installation instructions, see [Table 1](#gcc_cmake).
+                Install the corresponding gcc and cmake versions based on your actual situation. For version information and installation instructions, see [Table 1](#gcc_cmake).
 
-            - Debian, Ubuntu, veLinux:
+        - Debian, Ubuntu, veLinux:
 
-                1. Install dependencies (excluding GCC and cmake).
+            1. Install dependencies (excluding GCC and cmake).
 
-                    ```bash
-                    apt-get install -y patch build-essential libbz2-dev libreadline-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev liblzma-dev m4 dos2unix libopenblas-dev git
-                    ```
+                ```bash
+                apt-get install -y patch build-essential libbz2-dev libreadline-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev liblzma-dev m4 dos2unix libopenblas-dev git
+                ```
 
-                2. Install gcc and cmake.
+            2. Install gcc and cmake.
 
-                    Install the corresponding gcc and cmake versions based on your actual situation. For version information and installation instructions, see [Table 1](#gcc_cmake).
+                Install the corresponding gcc and cmake versions based on your actual situation. For version information and installation instructions, see [Table 1](#gcc_cmake).
 
-            **Table 1**  GCC and CMake version requirements<a id="gcc_cmake"></a>
+                **Table 1**  GCC and CMake version requirements<a id="gcc_cmake"></a>
 
-            |PyTorch Version|System Architecture|GCC Version|CMake Version|
-            |--|--|--|--|
-            |2.7.1|X86_64|11.2.0|3.18.4|
-            |2.7.1|AArch64|11.2.0|3.31.1|
-            |2.8.0|X86_64|13.3.0|3.18.4|
-            |2.8.0|AArch64|13.3.0|4.0.3|
-            |2.9.0|X86_64|13.3.0|3.18.4|
-            |2.9.0|AArch64|13.3.0|4.0.3|
-            |2.10.0|X86_64|13.3.0|3.18.4|
-            |2.10.0|AArch64|13.3.0|4.0.3|
+                |PyTorch Version|System Architecture|GCC Version|CMake Version|
+                |--|--|--|--|
+                |2.7.1|X86_64|11.2.0|3.18.4|
+                |2.7.1|AArch64|11.2.0|3.31.1|
+                |2.8.0|X86_64|13.3.0|3.18.4|
+                |2.8.0|AArch64|13.3.0|4.0.3|
+                |2.9.0|X86_64|13.3.0|3.18.4|
+                |2.9.0|AArch64|13.3.0|4.0.3|
+                |2.10.0|X86_64|13.3.0|3.18.4|
+                |2.10.0|AArch64|13.3.0|4.0.3|
 
-            > [!NOTE]
-            > For installation instructions, see [Installing gcc 11.2.0](installing_gcc_11-2-0.md) and [Installing cmake 3.18.4](installing_cmake_3-18-4.md).
+                > [!NOTE]
+                >
+                > For installation instructions, see [Installing gcc 11.2.0](installing_gcc_11-2-0.md) and [Installing cmake 3.18.4](installing_cmake_3-18-4.md).
 
     2. Compile and generate the Whl installation package for the torch_npu plugin.
         1. Taking v2.7.1-26.0.0 as an example, download the corresponding Ascend Extension for PyTorch branch code and enter the plugin root directory.

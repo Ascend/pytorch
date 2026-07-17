@@ -24,3 +24,12 @@ The above command uses the default installation path for the root user as an exa
 - When installing the torch_npu plugin from source in a container scenario, this involves obtaining community-provided base images and third-party Python libraries from external networks, as well as compiling and using source code. For network issues such as proxy configuration, refer to the [Docker official documentation](https://docs.docker.com/engine/cli/proxy/).
 - Before installing the dependencies required for different types of operating systems, check whether the repository is available under the installation user. For example, to configure a Huawei mirror repository, refer to the configuration method for the corresponding mirror repository on the [Huawei Open Source Mirror Site](https://mirrors.huaweicloud.com/).
 - Python 3.11 offers better scheduling (that is, dispatch) performance than Python 3.10. Python 3.11 or later is recommended.
+- When installing the PyTorch framework and the torch_npu plugin from source code, you must install the following dependencies:
+
+    ```bash
+    pip3 install pyyaml
+    pip3 install wheel
+    pip3 install setuptools
+    ```
+
+    When you install them as a non-root user, add `--user` to the end of the command(for example, `pip3 install pyyaml ​​--user`).
