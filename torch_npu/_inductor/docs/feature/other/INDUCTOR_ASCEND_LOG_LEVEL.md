@@ -24,4 +24,4 @@ export INDUCTOR_ASCEND_LOG_LEVEL=DEBUG
 
 ## 支持的型号
 
--   <term>Atlas A5 系列产品</term>
+- <term>Atlas A5 系列产品</term>

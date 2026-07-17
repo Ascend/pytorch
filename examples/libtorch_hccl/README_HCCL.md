@@ -15,10 +15,12 @@
 CMakeLists.txt会自动从Python环境检测libtorch的安装路径。
 
 **自动检测**（推荐）:
+
 - 确保Python环境中已安装torch
 - CMake会自动从Python获取路径
 
 **手动指定**（可选）:
+
 ```bash
 # 如果自动检测失败，可以手动设置环境变量
 export TORCH_INSTALL_DIR=/path/to/torch  # 通常在 site-packages/torch
@@ -36,7 +38,7 @@ make
 
 ## 运行
 
-### 方法:
+### 方法
 
 ```bash
 cd examples/libtorch_hccl
@@ -45,13 +47,14 @@ chmod +x libtorch_hccl.sh
 ```
 
 自定义进程数:
+
 ```bash
 NUM_PROCESSES=4 ./libtorch_hccl.sh
 ```
 
 ## 预期输出
 
-```
+```text
 启动HCCL allreduce示例: rank=0, size=2
 NPU设备 0 初始化完成
 在NPU设备 0 上创建了 10 个张量

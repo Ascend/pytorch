@@ -22,4 +22,4 @@ export INDUCTOR_ASCEND_DUMP_FX_GRAPH=1
 
 ## 支持的型号
 
--   <term>Atlas A5 系列产品</term>
+- <term>Atlas A5 系列产品</term>

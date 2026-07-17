@@ -16,7 +16,7 @@
 
 按照如下方法设置环境变量开启飞行记录器
 
-```
+```bash
 export TORCH_HCCL_ENABLE_MONITORING=1 #用于检测是否开启卡住问题检测
 export TORCH_HCCL_DUMP_ON_TIMEOUT=1 # 用于控制是否保存诊断信息
 export TORCH_HCCL_TRACE_BUFFER_SIZE=1 # 用于控制保存的集合通信状态数量
@@ -26,7 +26,7 @@ export TORCH_HCCL_DEBUG_INFO_TEMP_FILE=/tmp/  #保存诊断信息的文件路径
 
 ### 2 工具使用方法
 
-```
+```bash
 python analysis_flight.py --path /tmp/ --world_size 8
 ```
 
@@ -42,7 +42,7 @@ python analysis_flight.py --path /tmp/ --world_size 8
 
 ### 3 输出示例
 
-```
+```text
 2025-02-19 08:10:07,160 - INFO - Path: /tmp/
 2025-02-19 08:10:07,160 - INFO - World Size: 8
 2025-02-19 08:10:07,162 - INFO - The pg_id 0's rank 0's Computational task took too long, causing the other ranks' HCCL task to time out.
