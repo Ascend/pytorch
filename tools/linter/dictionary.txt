@@ -67,6 +67,6 @@ supercede
 supercedes
 tbe
 te
-THW
+thw
 tne
 WONT
