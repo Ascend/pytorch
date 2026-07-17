@@ -185,8 +185,10 @@ def _wrapper_cuda(fn):
                 if device is not None:
                     _replace_cuda_to_npu_in_kwargs(kwargs, device_arg, device)
             device_ids = kwargs.get('device_ids', None)
-            if type(device_ids) is list:
-                device_ids = _replace_cuda_to_npu_in_list(device_ids, replace_int)
+            if isinstance(device_ids, list):
+                kwargs["device_ids"] = _replace_cuda_to_npu_in_list(device_ids, replace_int)
+            elif isinstance(device_ids, tuple):
+                kwargs["device_ids"] = tuple(_replace_cuda_to_npu_in_list(list(device_ids), replace_int))
         return fn(*args, **kwargs)
 
     return decorated
@@ -418,7 +420,9 @@ def _patch_nametuple(nametuple):
                     _replace_cuda_to_npu_in_kwargs(kwargs, device_arg, device)
             device_ids = kwargs.get('device_ids', None)
             if isinstance(device_ids, list):
-                device_ids = _replace_cuda_to_npu_in_list(device_ids, False)
+                kwargs["device_ids"] = _replace_cuda_to_npu_in_list(device_ids, False)
+            elif isinstance(device_ids, tuple):
+                kwargs["device_ids"] = tuple(_replace_cuda_to_npu_in_list(list(device_ids), False))
         return original__new__(cls, *args, **kwargs)
     nametuple.__new__ = new_nametuple__new__
 
