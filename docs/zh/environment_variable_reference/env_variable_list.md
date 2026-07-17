@@ -1,6 +1,7 @@
 # 环境变量列表
 
-本手册描述开发者在TorchNPU训练和在线推理过程中可使用的环境变量。基于CANN构建AI应用和业务过程中使用的环境变量请参考《[CANN 环境变量参考](https://www.hiascend.com/document/detail/zh/canncommercial/900/maintenref/envvar/envref_07_0001.html)》。
+本手册描述开发者在TorchNPU训练和在线推理过程中可使用的环境变量。基于CANN构建AI应用和业务过程中使用的环境变量请参考《CANN 环境变量参考》。
+<!-- 《[CANN环境变量参考](https://www.hiascend.com/document/detail/zh/canncommercial/900/maintenref/envvar/envref_07_0001.html)》。 -->
 
 **表 1**  算子执行环境变量列表
 

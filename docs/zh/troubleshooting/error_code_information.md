@@ -217,7 +217,8 @@ Calling the ACL API returns some errors.
 Check CANN-related errors in logs and find the CANN Error Code.
 
 > [!NOTE]  
-> CANN软件相关报错的详细介绍请参见《[CANN 故障处理](https://www.hiascend.com/document/detail/zh/canncommercial/900/maintenref/troubleshooting/troubleshooting_0001.html)》。
+> CANN软件相关报错的详细介绍请参见《CANN 故障处理》。
+<!-- 《[CANN故障处理](https://www.hiascend.com/document/detail/zh/canncommercial/900/maintenref/troubleshooting/troubleshooting_0001.html)》。 -->
 
 ## ERR\*\*200
 
@@ -236,7 +237,8 @@ Calling the HCCL API returns some errors.
 Check CANN-related errors in logs and find the CANN Error Code.
 
 > [!NOTE]  
-> CANN软件相关报错的详细介绍请参见《[CANN 故障处理](https://www.hiascend.com/document/detail/zh/canncommercial/900/maintenref/troubleshooting/troubleshooting_0001.html)》。
+> CANN软件相关报错的详细介绍请参见《CANN 故障处理》。
+<!-- 《[CANN故障处理](https://www.hiascend.com/document/detail/zh/canncommercial/900/maintenref/troubleshooting/troubleshooting_0001.html)》。 -->
 
 ## ERR\*\*300
 
@@ -255,7 +257,8 @@ Calling the GE API returns some errors.
 Check CANN-related errors in logs and find the CANN Error Code.
 
 > [!NOTE]  
-> CANN软件相关报错的详细介绍请参见《[CANN 故障处理](https://www.hiascend.com/document/detail/zh/canncommercial/900/maintenref/troubleshooting/troubleshooting_0001.html)》。
+> CANN软件相关报错的详细介绍请参见《CANN 故障处理》。
+<!-- 《[CANN故障处理](https://www.hiascend.com/document/detail/zh/canncommercial/900/maintenref/troubleshooting/troubleshooting_0001.html)》。 -->
 
 ## ERR\*\*999
 

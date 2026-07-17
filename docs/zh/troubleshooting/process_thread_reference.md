@@ -2,7 +2,8 @@
 
 本文档帮助用户在运行torch及TorchNPU训练或推理任务时，快速识别和理解系统中出现的各类进程与线程。当用户需要排查性能瓶颈、诊断异常进程/线程、了解系统资源占用情况或评估程序行为是否符合预期时，可通过本文档查询各进程/线程的归属、触发条件与生命周期。
 
-基于CANN构建AI应用过程中CANN自身启动的进程/线程请参考《[CANN 环境变量参考](https://www.hiascend.com/document/detail/zh/canncommercial/900/maintenref/envvar/envref_07_0001.html)》。
+基于CANN构建AI应用过程中CANN自身启动的进程/线程请参考《CANN 环境变量参考》。
+<!-- 《[CANN环境变量参考](https://www.hiascend.com/document/detail/zh/canncommercial/900/maintenref/envvar/envref_07_0001.html)》。 -->
 
 ## 主要进程与线程
 

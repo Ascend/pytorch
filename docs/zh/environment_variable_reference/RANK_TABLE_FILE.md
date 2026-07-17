@@ -34,7 +34,8 @@ unset RANK_TABLE_FILE
 ## 使用约束
 
 - 配置的文件路径不能为软链接，且具有读取权限。
-- 配置的文件需要为JSON格式，具体可参考《[CANN HCCL集合通信库](https://www.hiascend.com/document/detail/zh/canncommercial/900/API/hcclug/hcclug_000001.html)》中对应的“rank table配置资源信息”章节。
+- 配置的文件需要为JSON格式，具体可参考《CANN HCCL集合通信库》中对应的“rank table配置资源信息”章节。
+<!-- 《[CANN HCCL集合通信库](https://www.hiascend.com/document/detail/zh/canncommercial/900/API/hcclug/hcclug_000001.html)》 -->
 
 ## 支持的型号
 
