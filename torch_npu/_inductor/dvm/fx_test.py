@@ -95,14 +95,16 @@ def generate_dvm_fx_case(
 
     test_code = f"""import os
 
-os.environ["INDUCTOR_DVM_DUMP_FX_TEST"] = "0"
 {env_lines}
 
 import torch
 import torch_npu
+from torch_npu._inductor.dvm import config
 from torch import device, tensor
 from math import inf, nan
 from torch.utils._pytree import tree_flatten
+
+config.dump_fx_test = False
 
 
 class {class_name}(torch.nn.Module):

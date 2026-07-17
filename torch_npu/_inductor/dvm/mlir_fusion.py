@@ -2,16 +2,19 @@ import os
 
 import torch
 from torch._inductor import config
-from torch._inductor.codegen.common import IndentedBuffer
+from torch._inductor.codegen.common import IndentedBuffer, register_backend_for_device
 from torch._inductor.codegen.simd import code_hash, SIMDKernel
 from torch._inductor.scheduler import WhyNoFuse
 from torch._inductor.utils import get_fused_kernel_name
 from torch._inductor.virtualized import V
-
+from torch._higher_order_ops.triton_kernel_wrap import triton_kernel_wrapper_mutation
 from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir import config as anir_config
 from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.codegen.mlir import (
     NpuMlirKernel,
     NpuMlirScheduling,
+)
+from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.codegen.wrapper import (
+    NpuMlirWrapperCodeGen,
 )
 from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.inductor_patch import (
     lowering as npu_lowering,
@@ -21,22 +24,19 @@ from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.utils import (
     to_folder,
 )
 
+from .config import disable_post_reduce_fusion, dump_fx_test
 from .decomp import patch_decomp
 from .fx_test import generate_dvm_fx_case
 from .graph_build import DvmCodegenInterpreter
-from .op_emitter import common_rule, DVM_OP_REGISTRY, DVM_SUPPORT_TYPE, _extra_int_types
-from torch._higher_order_ops.triton_kernel_wrap import triton_kernel_wrapper_mutation
-
-dump_fx_test = os.environ.get("INDUCTOR_DVM_DUMP_FX_TEST", "0") == "1"
-view_fusion_level = int(os.environ.get("INDUCTOR_DVM_VIEW_FUSION_LEVEL", "1"))
-disable_post_reduce_fusion = (
-    os.environ.get("INDUCTOR_DVM_DISABLE_POST_REDUCE_FUSION", "0") == "1"
+from .op_emitter import (
+    common_rule,
+    DVM_OP_REGISTRY,
+    DVM_SUPPORT_TYPE,
+    _extra_int_types,
 )
+
 aten = torch.ops.aten
 prims = torch.ops.prims
-quantized = torch.ops.quantized
-_quantized = torch.ops._quantized
-
 
 anir_config.GENERATE_LIST = [
     aten._assert_scalar,
@@ -97,23 +97,22 @@ def _is_node_supported_by_dvm_rule(node, allow_common_rule=False):
     return allow_common_rule and common_rule(node)
 
 
-def _codegen_dvm_kernel(self, Name=None):
-    def is_node_dvm_supported(node):
-        if node.op == "placeholder":
-            meta = node.meta["val"]
-            if isinstance(meta, torch._subclasses.FakeTensor):
-                return meta.dtype in [*DVM_SUPPORT_TYPE, *_extra_int_types]
-        if node.op == "call_function":
-            return _is_node_supported_by_dvm_rule(node)
-        return True
+class NpuDvmKernel(NpuMlirKernel):
+    def codegen_kernel(self, name=None):
+        def is_node_dvm_supported(node):
+            if node.op == "placeholder":
+                meta = node.meta["val"]
+                if isinstance(meta, torch._subclasses.FakeTensor):
+                    return meta.dtype in [*DVM_SUPPORT_TYPE, *_extra_int_types]
+            if node.op == "call_function":
+                return _is_node_supported_by_dvm_rule(node)
+            return True
 
-    if all(is_node_dvm_supported(node) for node in self._gm.graph.nodes):
-        self.dvm_codegen = DvmCodegenInterpreter(
-            self._gm, ktype="vector", view_fusion_level=view_fusion_level
-        )
-        self.dvm_codegen.run()
-        return self.dvm_codegen.code.getvalue()
-    else:
+        if all(is_node_dvm_supported(node) for node in self._gm.graph.nodes):
+            self.dvm_codegen = DvmCodegenInterpreter(self._gm, ktype="vector")
+            self.dvm_codegen.run()
+            return self.dvm_codegen.code.getvalue()
+
         self.dvm_codegen = None
         return self._gm.print_readable(print_output=False)
 
@@ -128,132 +127,129 @@ def _kernel_layout_key(mlir_kernel):
     return non_contiguous_key, cont_flag_input
 
 
-def _define_dvm_kernel(self, src_code, mlir_kernel, traced_graph, mode=None):
-    kernel_key = (src_code, _kernel_layout_key(mlir_kernel))
-    wrapper = V.graph.wrapper_code
+def _dump_traced_graph_once(gm, current_device, traced_graph_hash):
+    dump_path = os.path.join(
+        os.getenv("TORCHINDUCTOR_CACHE_DIR"),
+        anir_config.traced_graph_cache,
+        str(current_device.index),
+        traced_graph_hash,
+    )
+    if os.path.exists(dump_path):
+        return
+    os.makedirs(dump_path, exist_ok=True)
+    to_folder(
+        gm,
+        dump_path,
+        graph_hash=traced_graph_hash,
+        module_name=traced_graph_hash,
+    )
 
-    if kernel_key in wrapper.src_to_kernel:
-        kernel_name = wrapper.src_to_kernel[kernel_key]
-    else:
-        fused_kernel_name = "dvm_" + get_fused_kernel_name(
-            mlir_kernel._snodes, config.triton.descriptive_names
-        )
-        kernel_suffix = V.graph.wrapper_code.next_kernel_suffix()
-        kernel_name = "_".join([fused_kernel_name, kernel_suffix])
 
-        traced_graph_hash = code_hash(
-            traced_graph.print_readable(print_output=False) + kernel_name
-        )
+class NpuDvmScheduling(NpuMlirScheduling):
+    meta_kernel_type = NpuDvmKernel
 
-        kernel_info = {}
+    def define_kernel(self, src_code, mlir_kernel, traced_graph, mode=None):
+        kernel_key = (src_code, _kernel_layout_key(mlir_kernel))
+        wrapper = V.graph.wrapper_code
 
-        wrapper.src_to_kernel[kernel_key] = kernel_name
-        current_device = V.graph.get_current_device_or_throw()
-
-        compile_wrapper = IndentedBuffer()
-        if (
-            mlir_kernel.dvm_codegen is None
-            or kernel_name in anir_config.force_fallback_kernel_names
-        ):
-            num_call_functions = get_num_call_functions(mlir_kernel._gm)
-            kernel_meta = {
-                "device_str": current_device.type,
-                "device_index": current_device.index,
-                "num_outputs": mlir_kernel.num_outputs,
-                "non_contiguous_indices": mlir_kernel.non_contiguous_indices,
-                "dynamic": mlir_kernel._is_dynamic,
-                "mutated_indices": mlir_kernel.mutated_indices,
-                "traced_graph_cache": anir_config.traced_graph_cache,
-                "traced_graph_hash": traced_graph_hash,
-                "num_call_functions": num_call_functions,
-                **kernel_info,
-            }
-            compile_wrapper.writeline(
-                f"async_compile.import_fx({kernel_name!r}, kernel_meta={kernel_meta})"
-            )
-            metadata_comment = (
-                f'"""\n{mlir_kernel._gm.print_readable(print_output=False)}\n"""'
-            )
-            wrapper.define_kernel(
-                kernel_name, compile_wrapper.getvalue(), metadata_comment
-            )
-            dump_path = os.path.join(
-                os.getenv("TORCHINDUCTOR_CACHE_DIR"),
-                anir_config.traced_graph_cache,
-                str(current_device.index),
-                traced_graph_hash,
-            )
-            if not os.path.exists(dump_path):
-                os.makedirs(dump_path, exist_ok=True)
-                to_folder(
-                    mlir_kernel._gm,
-                    dump_path,
-                    graph_hash=traced_graph_hash,
-                    module_name=traced_graph_hash,
-                )
+        if kernel_key in wrapper.src_to_kernel:
+            kernel_name = wrapper.src_to_kernel[kernel_key]
         else:
-            wrapper.add_import_once("from torch_npu._inductor import dvm")
-            if dump_fx_test:
-                generate_dvm_fx_case(mlir_kernel._gm, fusion_type="mlir")
-            kernel_meta = {
-                "kernel_name": fused_kernel_name,
-                "kernel_fullname": kernel_name,
-            }
-            code = mlir_kernel.dvm_codegen.code
-            code.splice(
-                f"""
-                k.set_kernel_info(
-                    {kernel_meta.get("kernel_name")!r},  # kernel_name
-                    {kernel_meta.get("kernel_fullname")!r},  # kernel_fullname
-                )
-                """,
-                strip=True,
+            fused_kernel_name = "dvm_" + get_fused_kernel_name(
+                mlir_kernel._snodes, config.triton.descriptive_names
             )
-            func_name = kernel_name + "_build"
-            func_code = code.getvalue().replace(
-                mlir_kernel.dvm_codegen.KERNEL_NAME_PLACEHOLDER, func_name
-            )
-            compile_wrapper.writeline(func_name)
+            kernel_suffix = V.graph.wrapper_code.next_kernel_suffix()
+            kernel_name = "_".join([fused_kernel_name, kernel_suffix])
 
-            if anir_config.online_acc_comp:
-                dump_path = os.path.join(
-                    os.getenv("TORCHINDUCTOR_CACHE_DIR"),
-                    anir_config.traced_graph_cache,
-                    str(current_device.index),
-                    traced_graph_hash,
-                )
-                if not os.path.exists(dump_path):
-                    os.makedirs(dump_path, exist_ok=True)
-                    to_folder(
-                        mlir_kernel._gm,
-                        dump_path,
-                        graph_hash=traced_graph_hash,
-                        module_name=traced_graph_hash,
-                    )
+            traced_graph_hash = code_hash(
+                traced_graph.print_readable(print_output=False) + kernel_name
+            )
+
+            wrapper.src_to_kernel[kernel_key] = kernel_name
+            current_device = V.graph.get_current_device_or_throw()
+
+            compile_wrapper = IndentedBuffer()
+            if (
+                mlir_kernel.dvm_codegen is None
+                or kernel_name in anir_config.force_fallback_kernel_names
+            ):
+                kernel_meta = {
+                    "device_str": current_device.type,
+                    "device_index": current_device.index,
+                    "num_outputs": mlir_kernel.num_outputs,
+                    "non_contiguous_indices": mlir_kernel.non_contiguous_indices,
+                    "dynamic": mlir_kernel._is_dynamic,
+                    "mutated_indices": mlir_kernel.mutated_indices,
+                    "traced_graph_cache": anir_config.traced_graph_cache,
+                    "traced_graph_hash": traced_graph_hash,
+                    "num_call_functions": get_num_call_functions(mlir_kernel._gm),
+                }
                 compile_wrapper.writeline(
-                    f"{kernel_name}._acc_meta = {{"
-                    f"'traced_graph_hash': {traced_graph_hash!r}, "
-                    f"'traced_graph_cache': {anir_config.traced_graph_cache!r}, "
-                    f"'device_index': {current_device.index}, "
-                    f"'num_outputs': {mlir_kernel.num_outputs}}}"
+                    f"async_compile.import_fx({kernel_name!r}, kernel_meta={kernel_meta})"
+                )
+                metadata_comment = (
+                    f'"""\n{mlir_kernel._gm.print_readable(print_output=False)}\n"""'
+                )
+                wrapper.define_kernel(
+                    kernel_name,
+                    compile_wrapper.getvalue(),
+                    metadata_comment,
+                )
+                _dump_traced_graph_once(
+                    mlir_kernel._gm, current_device, traced_graph_hash
+                )
+            else:
+                wrapper.add_import_once("from torch_npu._inductor import dvm")
+                if dump_fx_test:
+                    generate_dvm_fx_case(mlir_kernel._gm, fusion_type="mlir")
+                code = mlir_kernel.dvm_codegen.code
+                code.splice(
+                    f"""
+                    k.set_kernel_info(
+                        {fused_kernel_name!r},  # kernel_name
+                        {kernel_name!r},  # kernel_fullname
+                    )
+                    """,
+                    strip=True,
+                )
+                func_name = kernel_name + "_build"
+                func_code = code.getvalue().replace(
+                    mlir_kernel.dvm_codegen.KERNEL_NAME_PLACEHOLDER, func_name
+                )
+                compile_wrapper.writeline(func_name)
+
+                if anir_config.online_acc_comp:
+                    _dump_traced_graph_once(
+                        mlir_kernel._gm, current_device, traced_graph_hash
+                    )
+                    compile_wrapper.writeline(
+                        f"{kernel_name}._acc_meta = {{"
+                        f"'traced_graph_hash': {traced_graph_hash!r}, "
+                        f"'traced_graph_cache': {anir_config.traced_graph_cache!r}, "
+                        f"'device_index': {current_device.index}, "
+                        f"'num_outputs': {mlir_kernel.num_outputs}}}"
+                    )
+
+                wrapper.define_kernel(
+                    kernel_name, compile_wrapper.getvalue(), func_code
                 )
 
-            wrapper.define_kernel(kernel_name, compile_wrapper.getvalue(), func_code)
+        return kernel_name
 
-    return kernel_name
+    def can_fuse_vertical(self, node1, node2):
+        if not disable_post_reduce_fusion:
+            return super().can_fuse_vertical(node1, node2)
 
+        _, (numel1, rnumel1) = node1.group
+        _, (numel2, rnumel2) = node2.group
+        why = WhyNoFuse(node1, node2)
 
-def _dvm_can_fuse_vertical(self, node1, node2):
-    _, (numel1, rnumel1) = node1.group
-    _, (numel2, rnumel2) = node2.group
-    why = WhyNoFuse(node1, node2)
+        if node1.is_reduction():
+            return False
 
-    if node1.is_reduction():
-        return False
+        if not node2.is_reduction():
+            return numel1 == numel2 and rnumel1 == rnumel2
 
-    if not node2.is_reduction():
-        return numel1 == numel2 and rnumel1 == rnumel2
-    else:
         if numel1 == numel2 * rnumel2:
             if not all(
                 SIMDKernel.is_compatible((numel2, rnumel2), n.get_ranges())
@@ -267,9 +263,10 @@ def _dvm_can_fuse_vertical(self, node1, node2):
             why("nodes numel incompatibility")
         return numel1 == numel2
 
-
-def _dvm_can_fuse_horizontal(self, node1, node2):
-    return False
+    def can_fuse_horizontal(self, node1, node2):
+        if not disable_post_reduce_fusion:
+            return super().can_fuse_horizontal(node1, node2)
+        return False
 
 
 def _patch_lowering_type_checks():
@@ -375,21 +372,20 @@ class DvmMlirFusionPatch:
         from torch._dynamo import config as dynamo_config
         from torch._inductor import config as inductor_config
 
-        dynamo_config.specialize_float = True  # enable float specialization until launch with scalar supported
-        inductor_config.unroll_reductions_threshold = 1  # disable unroll reductions
-        inductor_config.size_asserts = (
-            False  # npu ops always return contiguous tensors which maybe different from meta outputs
-        )
+        # Enable float specialization until launch with scalar is supported.
+        dynamo_config.specialize_float = True
+        # Disable unroll reductions.
+        inductor_config.unroll_reductions_threshold = 1
+        # NPU ops always return contiguous tensors, which can differ from meta outputs.
+        inductor_config.size_asserts = False
         inductor_config.allow_buffer_reuse = False
         inductor_config.comprehensive_padding = False
         patch_decomp()
         _patch_lowering_type_checks()
         _patch_lowering()
-        NpuMlirKernel.codegen_kernel = _codegen_dvm_kernel
-        NpuMlirScheduling.define_kernel = _define_dvm_kernel
-        if disable_post_reduce_fusion:
-            NpuMlirScheduling.can_fuse_horizontal = _dvm_can_fuse_horizontal
-            NpuMlirScheduling.can_fuse_vertical = _dvm_can_fuse_vertical
+        register_backend_for_device(
+            "npu", NpuDvmScheduling, NpuMlirWrapperCodeGen
+        )
         DvmMlirFusionPatch._enabled = True
 
 
