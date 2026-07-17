@@ -83,12 +83,12 @@
 
     ```text
     torch     2.10.0
-    torch_npu      26.0.0 
+    torch_npu      26.1.0 
     ```
 
     > [!NOTE]
     >
-    > 如果需要查询TorchNPU安装包版本，请单击[相关产品版本配套说明](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.0.0/docs/zh/release_notes/release_notes.md#%E7%9B%B8%E5%85%B3%E4%BA%A7%E5%93%81%E7%89%88%E6%9C%AC%E9%85%8D%E5%A5%97%E8%AF%B4%E6%98%8E)查看。
+    > 如果需要查询TorchNPU安装包版本，请单击[相关产品版本配套说明](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.1.0/docs/zh/release_notes/release_notes.md#%E7%9B%B8%E5%85%B3%E4%BA%A7%E5%93%81%E7%89%88%E6%9C%AC%E9%85%8D%E5%A5%97%E8%AF%B4%E6%98%8E)查看。
 
 ## 安装后验证
 

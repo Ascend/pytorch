@@ -8,12 +8,12 @@ libtorch\_npu是TorchNPU插件的C++版本，包含运行TorchNPU插件所需的
 2. 获取libtorch\_npu源码。
 
     ```bash
-    git clone -b v2.7.1-26.0.0 https://gitcode.com/Ascend/pytorch.git
+    git clone -b v2.7.1-26.1.0 https://gitcode.com/Ascend/pytorch.git
     cd pytorch
     git submodule update --init --recursive
     ```
 
-    以v2.7.1-26.0.0为例，拉取对应TorchNPU分支代码。请参见《版本说明》中的“[相关产品版本配套说明](../release_notes/release_notes.md#相关产品版本配套说明)”章节下载TorchNPU其他版本的分支代码。
+    以v2.7.1-26.1.0为例，拉取对应TorchNPU分支代码。请参见《版本说明》中的“[相关产品版本配套说明](../release_notes/release_notes.md#相关产品版本配套说明)”章节下载TorchNPU其他版本的分支代码。
 
 3. 执行编译生成libtorch\_npu安装包。
     > [!NOTE]
@@ -40,7 +40,7 @@ libtorch\_npu是TorchNPU插件的C++版本，包含运行TorchNPU插件所需的
 
 ## libtorch推理测试
 
-以TorchNPU源码仓v2.7.1-26.0.0分支下“pytorch/examples/libtorch\_resnet”模型为例，介绍libtorch推理的快速使用。
+以TorchNPU源码仓v2.7.1-26.1.0分支下“pytorch/examples/libtorch\_resnet”模型为例，介绍libtorch推理的快速使用。
 
 1. 需提前安装torch、TorchNPU、torchvision、hypothesis、expecttest以及packaging。
     - torch与TorchNPU、torchvision安装请参见[安装PyTorch](installing_PyTorch.md)以及[安装torchvision](installing_torchvision.md)。

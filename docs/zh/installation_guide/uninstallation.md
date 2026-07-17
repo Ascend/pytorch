@@ -14,12 +14,6 @@
     pip3 uninstall torch_npu
     ```
 
-- 卸载APEX模块需执行如下命令：
-
-    ```bash
-    pip3 uninstall apex
-    ```
-
 > [!NOTE]
 >
 > 如需要保存卸载日志，可在pip3 uninstall命令后面加上参数--log <path\>，并对您指定的目录<path\>做好权限管控。

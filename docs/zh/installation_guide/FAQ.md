@@ -247,7 +247,8 @@ ImportError: libhccl.so: cannot open shared object file: No such file or directo
 
 **处理方法**
 
-请检查是否已安装配套版本的 NPU 驱动固件、CANN 软件（Toolkit、ops 和 NNAL）并正确配置 CANN 环境变量，具体请参考《[CANN 软件安装](https://www.hiascend.com/document/detail/zh/canncommercial/900/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum)》（商用版）或《[CANN 软件安装](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/900/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum)》（社区版）。
+请检查是否已安装配套版本的NPU驱动固件、CANN软件（Toolkit、ops 和 NNAL）并正确配置CANN环境变量，具体请参考《CANN 软件安装》。
+<!-- 《[CANN 软件安装](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/900/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum)》。 -->
 
 ### 导入torch_npu时，系统报错core dump
 

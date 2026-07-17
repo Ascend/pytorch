@@ -1,4 +1,4 @@
-# 安装PyTorch
+# 安装TorchNPU
 
 - **[方式一：离线安装（Whl）](installation_via_binary_package.md)**  
 

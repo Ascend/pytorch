@@ -17,10 +17,10 @@
     1. 下载TorchNPU源码。
 
         ```bash
-        git clone https://gitcode.com/Ascend/pytorch.git -b v2.7.1-26.0.0 --depth 1
+        git clone https://gitcode.com/Ascend/pytorch.git -b v2.7.1-26.1.0 --depth 1
         ```
 
-        以v2.7.1-26.0.0为例，下载对应的TorchNPU分支代码。请参见《版本说明》中的“[相关产品版本配套说明](../release_notes/release_notes.md#相关产品版本配套说明)”章节下载TorchNPU其他版本的分支代码。
+        以v2.7.1-26.1.0为例，下载对应的TorchNPU分支代码。请参见《版本说明》中的“[相关产品版本配套说明](../release_notes/release_notes.md#相关产品版本配套说明)”章节下载TorchNPU其他版本的分支代码。
 
     2. 构建镜像。
 
@@ -100,12 +100,14 @@
                     |--|--|--|--|
                     |2.7.1|X86_64|11.2.0|3.18.4|
                     |2.7.1|AArch64|11.2.0|3.31.1|
-                    |2.8.0|X86_64|13.3.0|3.18.4|
-                    |2.8.0|AArch64|13.3.0|4.0.3|
                     |2.9.0|X86_64|13.3.0|3.18.4|
                     |2.9.0|AArch64|13.3.0|4.0.3|
                     |2.10.0|X86_64|13.3.0|3.18.4|
                     |2.10.0|AArch64|13.3.0|4.0.3|
+                    |2.11.0|X86_64|13.3.1|3.18.4|
+                    |2.11.0|AArch64|13.3.1|4.3.2|
+                    |2.12.0|X86_64|13.3.1|3.18.4|
+                    |3.12.0|AArch64|13.3.1|4.3.2|
 
                     > [!NOTE]<br>
                     > 安装指导可参见[安装11.2.0版本gcc](installing_gcc_11-2-0.md)和[安装3.18.4版本cmake](installing_cmake_3-18-4.md)。
@@ -121,10 +123,10 @@
             如果使用非root用户安装，需要在命令后加`--user`，例如：**pip3 install pyyaml --user**。
 
     2. 编译生成TorchNPU插件的Whl安装包。
-        1. 以v2.7.1-26.0.0为例，下载对应的TorchNPU分支代码并进入插件根目录。
+        1. 以v2.7.1-26.1.0为例，下载对应的TorchNPU分支代码并进入插件根目录。
 
             ```bash
-            git clone -b v2.7.1-26.0.0 https://gitcode.com/Ascend/pytorch.git
+            git clone -b v2.7.1-26.1.0 https://gitcode.com/Ascend/pytorch.git
             cd pytorch
             ```
 
@@ -178,12 +180,12 @@
 
     ```text
     torch     2.10.0
-    torch_npu      26.0.0 
+    torch_npu      26.1.0 
     ```
 
     > [!NOTE]
     >
-    > 如果需要查询TorchNPU安装包版本，请单击[相关产品版本配套说明](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.0.0/docs/zh/release_notes/release_notes.md#%E7%9B%B8%E5%85%B3%E4%BA%A7%E5%93%81%E7%89%88%E6%9C%AC%E9%85%8D%E5%A5%97%E8%AF%B4%E6%98%8E)查看。
+    > 如果需要查询TorchNPU安装包版本，请单击[相关产品版本配套说明](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.1.0/docs/zh/release_notes/release_notes.md#%E7%9B%B8%E5%85%B3%E4%BA%A7%E5%93%81%E7%89%88%E6%9C%AC%E9%85%8D%E5%A5%97%E8%AF%B4%E6%98%8E)查看。
 
 ## 安装后验证
 

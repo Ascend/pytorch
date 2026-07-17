@@ -2,13 +2,12 @@
 
 - [安装说明](installation_description.md)
 - [安装前准备](preparing_installation.md)
-- [安装PyTorch](installing_PyTorch.md)
+- [安装TorchNPU](installing_PyTorch.md)
   - [方式一：离线安装（Whl）](installation_via_binary_package.md)
   - [方式二：源码安装](compilation_installation_using_source_code.md)
 
 - [（可选）安装扩展模块](Optional_installing_extension_modules.md)
   - [编译libtorch\_npu](building_libtorch_npu.md)
-  - [安装APEX模块](https://gitcode.com/Ascend/apex/blob/master/docs/zh/installing_apex.md)
   - [安装torchvision](installing_torchvision.md)
 
 - [卸载](uninstallation.md)

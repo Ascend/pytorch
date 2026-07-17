@@ -1,7 +1,7 @@
 # 升级
 
 1. 需要先手动卸载旧版本，具体可参见[卸载](uninstallation.md)。
-2. 安装新版本，具体可参见[安装PyTorch](installing_PyTorch.md)进行操作。
+2. 安装新版本，具体可参见[安装TorchNPU](installing_PyTorch.md)进行操作。
 
 > [!NOTE]
 >
