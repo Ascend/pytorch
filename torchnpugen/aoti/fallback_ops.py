@@ -482,7 +482,6 @@ inductor_fallback_ops_npu = {
     "aten.nll_loss_forward.default",
     "aten.nll_loss_backward.default",
     "aten._log_softmax_backward_data.default",
-    "aten.addmm.default",
     "aten.gelu.default",
     "aten.native_layer_norm.default",
 }
