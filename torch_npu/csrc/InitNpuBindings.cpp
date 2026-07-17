@@ -1,9 +1,14 @@
 #include <Python.h>
+#include <ATen/ATen.h>
 #include <ATen/Parallel.h>
+#include <c10/util/SmallVector.h>
+#include <torch/csrc/Dtype.h>
 #include <torch/csrc/Exceptions.h>
 #include <torch/csrc/Generator.h>
+#include <torch/csrc/autograd/python_variable.h>
 #include <torch/csrc/profiler/python/combined_traceback.h>
 
+#include "torch_npu/csrc/aten/common/TensorFactories.h"
 #include "torch_npu/csrc/npu/Event.h"
 #include "torch_npu/csrc/npu/DataParallelComm.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
@@ -51,12 +56,12 @@ void AddPyMethodDefs(std::vector<PyMethodDef>& vector, PyMethodDef* methods)
 
 PyObject* THPModule_npu_shutdown(PyObject* self, PyObject* arg)
 {
-    int check_error;
     if (!PyBool_Check(arg)) {
         PyErr_SetString(PyExc_TypeError, "Expected a boolean value");
         return NULL;
     }
-    check_error = PyObject_IsTrue(arg);
+    int check_error = PyObject_IsTrue(arg);
+    (void)check_error; // Suppress unused variable warning
 
     // cudaFree is blocking and will synchronize across all kernels executing
     // on the current device, while aclrtFree Free device memory immediately.
@@ -137,10 +142,56 @@ PyObject* THPModule_npu_shutdown_synchronize(PyObject* /* unused */)
     }
 }
 
+// Low-overhead NPU allocation for inductor-generated wrappers.
+//
+// at::empty_strided (and the device='npu' factory path) is dispatched through
+// the operator dispatcher, which upstream measured as "surprisingly slow"
+// (~2us/allocation, see torch/csrc/dynamo/guards.cpp). Inductor backward graphs
+// allocate dozens-to-hundreds of buffers per step, so that overhead dominates
+// the host side. This mirrors upstream's _empty_strided_<device> fast path
+// (CUDA/XPU/MTIA): parse the (sizes, strides, dtype) 3-tuple directly and call
+// the NPU-native factory, bypassing the dispatcher while still running the
+// required NPU storage-descriptor setup inside NPUNativeFunctions::empty_strided.
+static void _npu_unwrap_size_tuple(PyObject* obj, c10::SmallVector<int64_t, 8>& out)
+{
+    TORCH_CHECK(PyTuple_CheckExact(obj), "expected a tuple of ints");
+    Py_ssize_t len = PyTuple_GET_SIZE(obj);
+    out.reserve(len);
+    for (Py_ssize_t i = 0; i < len; ++i) {
+        // PyTuple_GET_ITEM returns a borrowed ref, no refcount needed.
+        auto val = PyLong_AsSsize_t(PyTuple_GET_ITEM(obj, i));
+        if (PyErr_Occurred()) {
+            return;
+        }
+        out.emplace_back(val);
+    }
+}
+
+PyObject* THPModule_empty_strided_npu(PyObject* /* unused */, PyObject* args)
+{
+    HANDLE_TH_ERRORS;
+    TORCH_CHECK(PyTuple_CheckExact(args) && PyTuple_GET_SIZE(args) == 3,
+        "_empty_strided_npu expects exactly 3 args: (sizes, strides, dtype)");
+
+    c10::SmallVector<int64_t, 8> sizes;
+    c10::SmallVector<int64_t, 8> strides;
+    _npu_unwrap_size_tuple(PyTuple_GET_ITEM(args, 0), sizes);
+    _npu_unwrap_size_tuple(PyTuple_GET_ITEM(args, 1), strides);
+
+    PyObject* py_dtype = PyTuple_GET_ITEM(args, 2);
+    TORCH_CHECK(THPDtype_Check(py_dtype), "_empty_strided_npu: arg 3 must be a torch.dtype");
+    at::ScalarType dtype = reinterpret_cast<THPDtype*>(py_dtype)->scalar_type;
+
+    return THPVariable_Wrap(
+        at_npu::native::empty_strided_npu(sizes, strides, dtype));
+    END_HANDLE_TH_ERRORS;
+}
+
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays, modernize-avoid-c-arrays)
 static PyMethodDef TorchNpuMethods[] = {
     {"_npu_shutdown", (PyCFunction)THPModule_npu_shutdown, METH_O, nullptr},
     {"_npu_shutdown_synchronize", (PyCFunction)THPModule_npu_shutdown_synchronize, METH_NOARGS, nullptr},
+    {"_empty_strided_npu", (PyCFunction)THPModule_empty_strided_npu, METH_VARARGS, nullptr},
     {nullptr, nullptr, 0, nullptr}
 };
 
