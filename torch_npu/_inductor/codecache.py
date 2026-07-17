@@ -1,47 +1,28 @@
 import dataclasses
 import os
 import contextlib
-import hashlib
-import json
 import logging
 import subprocess
-import sys
 import sysconfig
-from time import time, time_ns
+from time import time
 from typing import (
-    Any,
-    Callable,
-    cast,
     Dict,
-    Generator,
     List,
-    NoReturn,
     Optional,
-    Sequence,
     Tuple,
-    TYPE_CHECKING,
-    TypeVar,
-    Union,
 )
 
-import torch
-from torch._inductor import config
 from torch._inductor.exc import CppCompileError
 from torch._inductor.codecache import (
-    CacheBase,
     get_lock_dir,
     write,
     LOCK_TIMEOUT,
     DLLWrapper,
 )
-from torch._inductor.graph import GraphLowering
 from torch._inductor.utils import (
     clear_on_fresh_inductor_cache,
     is_linux,
-    is_windows,
 )
-import torch_npu
-from torch_npu.utils._error_code import ErrCode, pta_error
 
 from .cpp_builder import library_paths
 from . import config as npu_config
@@ -50,16 +31,6 @@ from .codegen.catlass.catlass_utils import get_npu_arch, _normalize_npu_arch
 empty_json = "{}"
 
 log = logging.getLogger("torch._inductor")
-
-
-@contextlib.contextmanager
-def lock_context(key):
-    from filelock import FileLock
-    lock_dir = get_lock_dir()
-    lock = FileLock(os.path.join(lock_dir, key + ".lock"), timeout=LOCK_TIMEOUT)
-    with lock:
-        yield
-
 
 def _catlass_include_paths() -> List[str]:
     from .cpp_builder import get_ascend_home
