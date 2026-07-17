@@ -10,8 +10,13 @@ on:
       case_paths_config:
         required: false
         type: string
-        default: '.github/config/test_whitelist.yml'
-        description: Path to whitelist config file (YAML with whitelist/blacklist entries)
+        default: ''
+        description: '(Deprecated) Path to whitelist config file. No longer used; kept for backward compatibility.'
+      hw_classification:
+        required: false
+        type: string
+        default: 'ACCELERATOR'
+        description: 'Hardware classification filter passed to pytest --collect-only (e.g., ACCELERATOR)'
       distributed_shards:
         required: false
         type: string
@@ -111,18 +116,21 @@ jobs:
 
           DISTRIBUTED_SHARDS='${{ inputs.distributed_shards }}'
           REGULAR_SHARDS='${{ inputs.regular_shards }}'
-          CASE_PATHS_CONFIG='${{ inputs.case_paths_config }}'
+          HW_CLASSIFICATION='${{ inputs.hw_classification }}'
 
           echo "=== Collecting all test cases ==="
           echo "Distributed shards: ${DISTRIBUTED_SHARDS}"
           echo "Regular shards: ${REGULAR_SHARDS}"
-          echo "Whitelist config: ${CASE_PATHS_CONFIG}"
+          echo "Hardware classification: ${HW_CLASSIFICATION}"
 
-          CONFIG_PATH="${GITHUB_WORKSPACE}/ci-scripts/${CASE_PATHS_CONFIG}"
+          HW_ARGS=""
+          if [ -n "${HW_CLASSIFICATION}" ]; then
+            HW_ARGS="--hw-classification ${HW_CLASSIFICATION}"
+          fi
 
           python3 ${GITHUB_WORKSPACE}/ci-scripts/.github/scripts/collect_all_cases.py \
             --test-dir ${GITHUB_WORKSPACE}/pytorch/test \
-            --case-paths-config "${CONFIG_PATH}" \
+            ${HW_ARGS} \
             --distributed-shards ${DISTRIBUTED_SHARDS} \
             --regular-shards ${REGULAR_SHARDS} \
             --output-dir ${GITHUB_WORKSPACE}/cases-shards \

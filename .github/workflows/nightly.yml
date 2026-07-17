@@ -46,7 +46,6 @@ jobs:
     secrets: inherit
     with:
       resolved_short: ${{ needs.build.outputs.resolved_short }}
-      case_paths_config: .github/config/test_whitelist.yml
       distributed_shards: ${{ inputs.distributed_shards || '5' }}
       regular_shards: ${{ inputs.regular_shards || '5' }}
       report_to_upstream: false

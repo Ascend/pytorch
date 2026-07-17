@@ -10,8 +10,13 @@ on:
       case_paths_config:
         required: false
         type: string
-        default: '.github/config/test_whitelist.yml'
-        description: Path to whitelist config file (YAML with whitelist/blacklist entries)
+        default: ''
+        description: '(Deprecated) Path to whitelist config file. No longer used; kept for backward compatibility.'
+      hw_classification:
+        required: false
+        type: string
+        default: 'ACCELERATOR'
+        description: 'Hardware classification filter passed to pytest --collect-only (e.g., ACCELERATOR)'
       distributed_shards:
         required: false
         type: string
@@ -45,7 +50,7 @@ jobs:
     uses: ./.github/workflows/_test-collect.yml
     with:
       resolved_short: ${{ inputs.resolved_short }}
-      case_paths_config: ${{ inputs.case_paths_config }}
+      hw_classification: ${{ inputs.hw_classification }}
       distributed_shards: ${{ inputs.distributed_shards }}
       regular_shards: ${{ inputs.regular_shards }}
       docker_image: ${{ inputs.docker_image }}

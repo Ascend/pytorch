@@ -12,7 +12,7 @@ This script runs in prepare job (once) to:
 Usage:
     python collect_all_cases.py \
         --test-dir /path/to/pytorch/test \
-        --case-paths-config /path/to/case_paths_ci.yml \
+        --hw-classification ACCELERATOR \
         --distributed-shards 2 \
         --regular-shards 5 \
         --output-dir /path/to/output \
@@ -27,7 +27,7 @@ import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 # Import discover_test_files module
 import discover_test_files
@@ -67,12 +67,25 @@ def get_test_file_parent_dir(test_file: str, test_dir: Path) -> Path:
     return test_dir / test_file_path.parent
 
 
-def collect_cases_for_file(test_file: str, test_dir: Path) -> Tuple[str, str, List[str], bool, str]:
+def collect_cases_for_file(
+    test_file: str,
+    test_dir: Path,
+    hw_classification: Optional[List[str]] = None,
+) -> Tuple[str, str, List[str], bool, str]:
     """
     Collect test cases from a single file.
 
     Adds test file's parent directory to PYTHONPATH to enable
     imports of sibling modules (e.g., 'from model_registry import MLPModule').
+
+    Args:
+        test_file: Test file path (e.g., "test/distributed/test_c10d.py")
+        test_dir: Path to PyTorch test directory
+        hw_classification: Optional list of hardware classification filters
+            (e.g., ["ACCELERATOR"]). When set, --hw-classification is passed
+            to pytest --collect-only so only tests with matching hw_classification
+            class attributes are collected. Files with no matching tests return
+            exit code 5, which is treated as success (0 cases) in this mode.
 
     Returns:
         Tuple of (test_file, display_name, nodeids, success, error_message)
@@ -105,6 +118,12 @@ def collect_cases_for_file(test_file: str, test_dir: Path) -> Tuple[str, str, Li
         "--quiet",
         test_file_rel,
     ]
+    # --hw-classification must come AFTER the test file path because
+    # conftest.py defines it with nargs="+" (greedy), which would consume
+    # the file path as a classification value if placed before it.
+    if hw_classification:
+        command.append("--hw-classification")
+        command.extend(hw_classification)
 
     try:
         result = subprocess.run(
@@ -141,11 +160,15 @@ def collect_cases_for_file(test_file: str, test_dir: Path) -> Tuple[str, str, Li
         #   2: pytest error (includes collection errors like ImportError)
         #   3: all skipped (success)
         #   4: command line error (error)
-        #   5: no tests collected (ERROR - test file should have cases)
-        # Key insight: if a test file is selected for execution, it should have cases.
-        # returncode 5 means 0 cases collected, which indicates a problem.
+        #   5: no tests collected
+        # When hw_classification is active, exit code 5 is expected for files
+        # that have no test classes matching the requested classification —
+        # this is normal because most files are not yet annotated.
+        # Without hw_classification, exit code 5 means a selected file has 0
+        # cases, which indicates a problem.
         if result.returncode in (0, 3):
-            # Normal: passed or skipped
+            return (test_file, display_name, nodeids, True, "")
+        elif hw_classification and result.returncode == 5:
             return (test_file, display_name, nodeids, True, "")
         else:
             # returncode 2, 4, 5: real collection error
@@ -186,6 +209,7 @@ def collect_all_cases(
     test_dir: Path,
     error_log_dir: Path,
     parallel: int = 16,
+    hw_classification: Optional[List[str]] = None,
 ) -> List[Dict]:
     """
     Collect all cases from all files.
@@ -195,6 +219,8 @@ def collect_all_cases(
         test_dir: Path to PyTorch test directory
         error_log_dir: Directory to save error logs for failed collections
         parallel: Number of parallel workers
+        hw_classification: Optional hardware classification filter
+            (e.g., ["ACCELERATOR"])
 
     Returns:
         List of dicts with nodeid and file for each collected case
@@ -202,7 +228,11 @@ def collect_all_cases(
     all_cases = []
     failed_files = []  # Track files with collection errors for logging
 
-    print(f"Collecting cases from {len(test_files)} files with {parallel} workers...")
+    if hw_classification:
+        print(f"Collecting cases from {len(test_files)} files with {parallel} workers "
+              f"(hw_classification={hw_classification})...")
+    else:
+        print(f"Collecting cases from {len(test_files)} files with {parallel} workers...")
     print("=" * 60)
 
     # Create error log directory
@@ -210,7 +240,7 @@ def collect_all_cases(
 
     with ThreadPoolExecutor(max_workers=parallel) as executor:
         futures = {
-            executor.submit(collect_cases_for_file, f, test_dir): f
+            executor.submit(collect_cases_for_file, f, test_dir, hw_classification): f
             for f in test_files
         }
 
@@ -426,6 +456,8 @@ def main():
     error_log_dir = Path(args.error_log_dir).resolve() if args.error_log_dir else output_dir / "collection_errors"
     error_log_dir.mkdir(parents=True, exist_ok=True)
 
+    hw_classification = args.hw_classification if args.hw_classification else None
+
     # ========================================
     # Step 1: Collect distributed test cases
     # ========================================
@@ -433,14 +465,18 @@ def main():
     print("Collecting distributed test cases")
     print("=" * 80)
 
+    # case_paths_config=None: scan all test_*.py files without whitelist filtering
     dist_files, dist_meta = discover_test_files.discover_test_files(
         test_dir=test_dir,
         test_type="distributed",
-        case_paths_config=args.case_paths_config,
+        case_paths_config=None,
     )
     print(f"Found {len(dist_files)} distributed test files")
 
-    dist_cases = collect_all_cases(dist_files, test_dir, error_log_dir / "distributed", args.parallel)
+    dist_cases = collect_all_cases(
+        dist_files, test_dir, error_log_dir / "distributed",
+        args.parallel, hw_classification,
+    )
     print(f"Total distributed cases: {len(dist_cases)}")
 
     dist_summary = save_shards(dist_cases, args.distributed_shards, "distributed", output_dir)
@@ -456,11 +492,14 @@ def main():
     reg_files, reg_meta = discover_test_files.discover_test_files(
         test_dir=test_dir,
         test_type="regular",
-        case_paths_config=args.case_paths_config,
+        case_paths_config=None,
     )
     print(f"Found {len(reg_files)} regular test files")
 
-    reg_cases = collect_all_cases(reg_files, test_dir, error_log_dir / "regular", args.parallel)
+    reg_cases = collect_all_cases(
+        reg_files, test_dir, error_log_dir / "regular",
+        args.parallel, hw_classification,
+    )
     print(f"Total regular cases: {len(reg_cases)}")
 
     reg_summary = save_shards(reg_cases, args.regular_shards, "regular", output_dir)
@@ -489,22 +528,43 @@ def main():
         "distributed_files": dist_selected,
         "regular_files": reg_selected,
     }
+    if hw_classification:
+        overall_summary["hw_classification"] = hw_classification
     summary_file = output_dir / "cases_collection_summary.json"
     summary_file.write_text(json.dumps(overall_summary, indent=2), encoding="utf-8")
     print(f"\nOverall summary saved to {summary_file}")
+
+    # ========================================
+    # Step 4: Global validation
+    # ========================================
+    total_cases = len(dist_cases) + len(reg_cases)
+    if hw_classification and total_cases == 0:
+        print(f"\nERROR: --hw-classification {hw_classification} was specified but "
+              f"0 cases collected from {total_files} files.")
+        print("This likely means the conftest.py hw_classification plugin is not "
+              "active or no test classes are annotated with the requested classification.")
+        sys.exit(1)
 
     print("\n" + "=" * 80)
     print("Collection Complete")
     print("=" * 80)
     print(f"Distributed: {len(dist_cases)} cases -> {args.distributed_shards} shards (serial execution)")
     print(f"Regular: {len(reg_cases)} cases -> {args.regular_shards} shards (parallel execution)")
-    print(f"Total: {len(dist_cases) + len(reg_cases)} cases")
+    print(f"Total: {total_cases} cases")
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Collect and shard test cases")
     parser.add_argument("--test-dir", required=True, help="PyTorch test directory")
-    parser.add_argument("--case-paths-config", help="case_paths_ci.yml path")
+    parser.add_argument(
+        "--hw-classification",
+        nargs="+",
+        default=None,
+        help="Filter test cases by hardware classification (e.g., ACCELERATOR). "
+             "When set, --hw-classification is passed to pytest --collect-only "
+             "so only tests with matching hw_classification class attributes "
+             "are collected.",
+    )
     parser.add_argument("--distributed-shards", type=int, default=5, help="Distributed test shards")
     parser.add_argument("--regular-shards", type=int, default=5, help="Regular test shards")
     parser.add_argument("--output-dir", required=True, help="Output directory for shard JSONs")
