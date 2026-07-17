@@ -4,7 +4,7 @@ import numpy as np
 import sympy
 from sympy import Integer
 from torch._inductor import config
-from torch._inductor.codegen.common import ArgName, ConstexprArg
+from torch._inductor.codegen.common import ArgName, ConstexprArg, SizeArg
 from torch._inductor.codegen.simd_kernel_features import SIMDKernelFeatures
 from torch._inductor.codegen.triton import TritonKernel
 from torch._inductor.codegen.triton_combo_kernel import ComboKernel
@@ -12,7 +12,7 @@ from torch._inductor.codegen.triton_utils import signature_to_meta, config_of
 from torch._inductor.runtime.hints import DeviceProperties
 from torch._inductor.runtime.runtime_utils import next_power_of_2
 from torch._inductor.runtime.triton_heuristics import SequentialComboKernelGrid
-from torch._inductor.utils import IndentedBuffer, Placeholder
+from torch._inductor.utils import IndentedBuffer, Placeholder, triton_version_uses_attrs_dict
 from torch._inductor.virtualized import V
 
 from ..codegen.triton import NPUIndexTritonKernel
@@ -209,17 +209,22 @@ class NPUComboKernel(ComboKernel):
                     code.splice(f"num_blocks_{i} = num_blocks_{i - 1} + {block_str}")
 
     # BLOCK and SUB_BLOCK definitions
-    def add_autotune_args(self, kernel, argdefs):
-        if self.enable_autotune:
-            for axis in kernel.split_axis:
-                argdefs.append(ArgName(f"{axis.name.upper()}BLOCK", is_constexpr=True))
+    def add_autotune_args(self, kernel, argdefs, signature):
+        def add_constexpr_arg(arg_name):
+            if triton_version_uses_attrs_dict():
+                signature.append(ConstexprArg(arg_name))
+            argdefs.append(ArgName(arg_name, is_constexpr=True))
+
+        for block_arg in self.get_block_args():
+            signature.append(block_arg)
+            argdefs.append(ArgName(block_arg.name))
 
         for axis in kernel.tiling_axis:
             if axis.name[0] == 'r' and kernel.persistent_reduction:
                 continue
             if axis.is_no_loop_axis:
                 continue
-            argdefs.append(ArgName(f"{axis.name.upper()}BLOCK_SUB", is_constexpr=True))
+            add_constexpr_arg(f"{axis.name.upper()}BLOCK_SUB")
 
     def codegen_blocks(self, code: IndentedBuffer) -> None:
         for block in self.block_args:
@@ -228,7 +233,7 @@ class NPUComboKernel(ComboKernel):
             if block.startswith("Y"):
                 code.splice(f"{block}: tl.constexpr = {self.block_size_1d}")
 
-    def get_block_args(self) -> list[ConstexprArg]:
+    def get_block_args(self) -> list[SizeArg]:
         block_names = {}
         for sub_kernel in self.sub_kernels:
             # TODO: we assume all sub_kernels have the same block size
@@ -239,10 +244,10 @@ class NPUComboKernel(ComboKernel):
                     continue
                 if tree.prefix == "x" and sub_kernel.no_x_dim:
                     continue
-                block_names[f"{tree.name.upper()}BLOCK"] = tree.name
+                block_names[f"{tree.name.upper()}BLOCK"] = tree.length
         self.block_args = list(block_names.keys())
 
-        return [ConstexprArg(x) for x in block_names.keys()]
+        return [SizeArg(name, length) for name, length in block_names.items()]
 
     def codegen_kernel(self, name: Optional[str] = None) -> str:
         # TODO: is it correct to use the first sub kernel's heuristics?
@@ -269,9 +274,8 @@ class NPUComboKernel(ComboKernel):
 
         argdefs, _, signature, _ = self.args.python_argdefs()
         argdefs = self.add_numel_to_args(argdefs, signature)
-        block_args = self.get_block_args()
         # remove enable_autotune condition and add autotune args
-        self.add_autotune_args(self.sub_kernels[0], argdefs)
+        self.add_autotune_args(self.sub_kernels[0], argdefs, signature)
 
         code.splice(
             self.jit_line(
@@ -289,8 +293,6 @@ class NPUComboKernel(ComboKernel):
 
         with code.indent():
             code.splice("pid = tl.program_id(0)")
-            if not self.enable_autotune:
-                self.codegen_blocks(code)
 
             for num, sub_kernel in enumerate(self.sub_kernels):
                 assert self.dispatch_class is not None
@@ -324,11 +326,9 @@ class NPUComboKernel(ComboKernel):
             max(self.min_x_blocks_list) * num_kernels if not dynamic_shape else None
         )
 
-        if not self.enable_autotune:
-            block_prim_args = {f"{block_arg[0]}BLOCK" for block_arg in self.block_args}
-            default_config = {block_arg: self.block_size_1d for block_arg in block_prim_args}
-        else:
-            default_config = None
+        default_config = {
+            f"{block_arg[0]}BLOCK": block_arg for block_arg in self.block_args
+        } or None
 
         meta = {
             "num_kernels": num_kernels,
