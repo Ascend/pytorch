@@ -58,14 +58,6 @@ static bool ShouldFallbackNzToNd(const at::Tensor& self, int64_t acl_format)
     if (src_desc.base_sizes_.size() < 2) {
         return true;
     }
-    if (src_desc.base_sizes_.size() != self.sizes().size()) {
-        return true;
-    }
-    for (size_t i = 0; i < src_desc.base_sizes_.size(); ++i) {
-        if (src_desc.base_sizes_[i] != self.sizes()[i]) {
-            return true;
-        }
-    }
     return false;
 }
 
