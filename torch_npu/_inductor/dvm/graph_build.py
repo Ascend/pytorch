@@ -32,7 +32,6 @@ class DvmCodegenInterpreter(torch.fx.Interpreter):
         self,
         gm: torch.fx.GraphModule,
         ktype: str,
-        view_fusion_level=1,
         is_dynamic: bool | None = None,
     ):
         super().__init__(gm)
@@ -48,7 +47,6 @@ class DvmCodegenInterpreter(torch.fx.Interpreter):
         self.current_node = None
         self.cont_flag_input = []
         self.need_trans_input = []
-        self.view_fusion_level = view_fusion_level
         self.code = IndentedBuffer()
 
         self.spec_nodes = set()
@@ -125,7 +123,6 @@ class DvmCodegenInterpreter(torch.fx.Interpreter):
                 shape,
                 stride,
                 dtype,
-                view_fusion_level=self.view_fusion_level,
                 is_symbolic=is_symbolic,
             )
         self.cont_flag_input.append(skip_cont)
@@ -167,5 +164,5 @@ class DvmCodegenInterpreter(torch.fx.Interpreter):
     def append_mfusion_kernel_profiling_metadata(
         self, kernel_name: str, num_outputs: int
     ) -> None:
-        """Emit ``k.set_kernel_info`` so Ascend profiler shows ``kernel_name`` instead of UnnamedDvmOp."""
+        """Emit ``k.set_kernel_info`` for stable Ascend profiler names."""
         self.code.splice(f"k.set_kernel_info({kernel_name!r}, {kernel_name!r})")
