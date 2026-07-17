@@ -199,7 +199,7 @@
 |Tensor.greater|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |Tensor.greater_|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |Tensor.half|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|Tensor.hardshrink|是|支持fp16，fp32|
+|Tensor.hardshrink|是|支持bf16，fp16，fp32|
 |Tensor.heaviside|是|可能回退至CPU执行|
 |Tensor.histc|是|支持fp16，fp32|
 |Tensor.hsplit|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
