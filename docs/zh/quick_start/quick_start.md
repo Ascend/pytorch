@@ -8,6 +8,7 @@
     - 操作系统：选择可用的操作系统（兼容性请参考[兼容性查询助手](https://www.hiascend.com/hardware/compatibility)）
     - 安装类型：选择“离线安装”
 - 安装PyTorch框架及TorchNPU插件，具体请参考《[软件安装](../installation_guide/installation_description.md)》。
+- 安装与PyTorch版本配套的torchvision，具体请参考[安装torchvision](../installation_guide/installing_torchvision.md)。
 
 ## 模型迁移训练
 
