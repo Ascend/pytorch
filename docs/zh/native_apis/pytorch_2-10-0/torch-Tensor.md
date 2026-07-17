@@ -200,7 +200,7 @@
 |[Tensor.greater](https://pytorch.org/docs/2.10/generated/torch.Tensor.greater.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |[Tensor.greater_](https://pytorch.org/docs/2.10/generated/torch.Tensor.greater_.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |[Tensor.half](https://pytorch.org/docs/2.10/generated/torch.Tensor.half.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|[Tensor.hardshrink](https://pytorch.org/docs/2.10/generated/torch.Tensor.hardshrink.html)|是|支持fp16，fp32|
+|[Tensor.hardshrink](https://pytorch.org/docs/2.10/generated/torch.Tensor.hardshrink.html)|是|支持bf16，fp16，fp32|
 |[Tensor.heaviside](https://pytorch.org/docs/2.10/generated/torch.Tensor.heaviside.html)|是|可能回退至CPU执行|
 |[Tensor.histc](https://pytorch.org/docs/2.10/generated/torch.Tensor.histc.html)|是|支持fp16，fp32|
 |[Tensor.hsplit](https://pytorch.org/docs/2.10/generated/torch.Tensor.hsplit.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
