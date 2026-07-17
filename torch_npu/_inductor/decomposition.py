@@ -45,7 +45,6 @@ def _register_triton_decompositions():
         aten.nll_loss_forward,
         aten.nll_loss_backward,
         aten._log_softmax_backward_data,
-        aten.addmm,
         aten.gelu,
         aten.native_layer_norm,
         aten.expm1,

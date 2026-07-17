@@ -67,7 +67,6 @@ AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu_add_Tensor(AtenTensorHandle self
 AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu_add__Scalar(AtenTensorHandle self, double other, double alpha);
 AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu_add__Tensor(AtenTensorHandle self, AtenTensorHandle other, double alpha);
 AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu_addbmm(AtenTensorHandle self, AtenTensorHandle batch1, AtenTensorHandle batch2, double beta, double alpha, AtenTensorHandle* ret0);
-AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu_addmm(AtenTensorHandle self, AtenTensorHandle mat1, AtenTensorHandle mat2, double beta, double alpha, AtenTensorHandle* ret0);
 AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu_addmm_out(AtenTensorHandle out, AtenTensorHandle self, AtenTensorHandle mat1, AtenTensorHandle mat2, double beta, double alpha);
 AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu_addmv(AtenTensorHandle self, AtenTensorHandle mat, AtenTensorHandle vec, double beta, double alpha, AtenTensorHandle* ret0);
 AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu_alias(AtenTensorHandle self, AtenTensorHandle* ret0);
