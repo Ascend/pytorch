@@ -1,6 +1,7 @@
 import logging
 import os  # noqa: C101
 import re
+import sys
 
 import torch
 import torch._inductor.config as inductor_config
@@ -10,7 +11,128 @@ from torch_npu.npu._backends import get_soc_version
 from .utils import classproperty
 
 
-log = logging.getLogger(__name__)
+# init inductor log
+def _init_inductor_log():
+    log_level_env = os.getenv("INDUCTOR_ASCEND_LOG_LEVEL", "WARNING").upper()
+    log_level_mapping = {
+        "DEBUG": logging.DEBUG,
+        "INFO": logging.INFO,
+        "WARNING": logging.WARNING,
+        "ERROR": logging.ERROR,
+        "CRITICAL": logging.CRITICAL,
+    }
+    log_level = log_level_mapping.get(log_level_env, logging.INFO)
+    logging.basicConfig(level=log_level, format="%(asctime)s - %(levelname)s - %(message)s")
+    return logging.getLogger(__name__)
+
+log = _init_inductor_log()
+
+
+Ascend910B1 = 220
+Ascend310B1 = 240
+Ascend910_9391 = 250
+Ascend950 = 260
+is_ascend950 = get_soc_version() >= Ascend950
+
+ub_size = 192 * 1024
+if is_ascend950:
+    ub_size = 256 * 1024
+
+def _obtain_and_limit_cube_vector_core_num():
+    # by default, obtain cube and vector core num from device properties
+    device = torch.npu.current_device()
+    prop = torch.npu.get_device_properties(device)
+    cube_core_num, vector_core_num = prop.cube_core_num, prop.vector_core_num
+    log.info(
+        "[_obtain_and_limit_cube_vector_core_num] obtain from device properties, "
+        "cube_core_num=%s, vector_core_num=%s",
+        cube_core_num, vector_core_num,
+    )
+
+    # obtain cube and vector core num from env (if env is set)
+    npu_device_limit = os.environ.get("NPU_DEVICE_LIMIT", "")
+    orig_npu_device_limit = npu_device_limit
+    if npu_device_limit.strip():
+        parts = [p.strip() for p in npu_device_limit.split(",") if p.strip()]
+        if len(parts) != 2:
+            log.error(
+                "NPU_DEVICE_LIMIT=%r, which has invalid format:, "
+                "It should be like '14,28' (cube_core_num,vector_core_num)",
+                orig_npu_device_limit,
+            )
+            sys.exit(1)
+        else:
+            cube_str, vector_str = parts
+            try:
+                parsed_cube = int(cube_str)
+                parsed_vector = int(vector_str)
+            except ValueError:
+                log.error(
+                    "NPU_DEVICE_LIMIT=%r, which has invalid value, "
+                    "Both cube_core_num and vector_core_num must be integers.",
+                    orig_npu_device_limit,
+                )
+                sys.exit(1)
+            else:
+                if parsed_cube <= 0 or parsed_vector <= 0:
+                    log.error(
+                        "NPU_DEVICE_LIMIT=%r, which has non-positive value, "
+                        "Both cube_core_num and vector_core_num must be positive.",
+                        orig_npu_device_limit,
+                    )
+                    sys.exit(1)
+                elif parsed_cube > cube_core_num or parsed_vector > vector_core_num:
+                    log.error(
+                        "NPU_DEVICE_LIMIT=%r, both cube_core_num and vector_core_num must "
+                        "be less than or equal to device properties (%s, %s).",
+                        orig_npu_device_limit, cube_core_num, vector_core_num,
+                    )
+                    sys.exit(1)
+                else:
+                    cube_core_num = parsed_cube
+                    vector_core_num = parsed_vector
+                    log.info(
+                        "[_obtain_and_limit_cube_vector_core_num] NPU_DEVICE_LIMIT from env: "
+                        "cube_core_num=%s, vector_core_num=%s.",
+                        cube_core_num, vector_core_num,
+                    )
+
+    # rectification
+    soc = get_soc_version()
+    if (Ascend910B1 <= soc < Ascend310B1 or soc >= Ascend910_9391) and (
+        vector_core_num != cube_core_num * 2
+    ):
+        vector_core_num = cube_core_num * 2
+        log.warning(
+            "[_obtain_and_limit_cube_vector_core_num] vector_core_num != cube_core_num * 2, "
+            "after rectified, cube_core_num=%s, vector_core_num=%s",
+            cube_core_num, vector_core_num,
+        )
+
+    # set_device_limit (limit cube and vector core num)
+    if cube_core_num < prop.cube_core_num or vector_core_num < prop.vector_core_num:
+        try:
+            torch.npu.set_device(device)
+            torch.npu.set_device_limit(device, cube_core_num, vector_core_num)
+            log.info(
+                "[_obtain_and_limit_cube_vector_core_num] set_device_limit() success, "
+                "cube_core_num=%s, vector_core_num=%s",
+                cube_core_num, vector_core_num,
+            )
+        except RuntimeError as e:
+            log.error(
+                "[_obtain_and_limit_cube_vector_core_num] set_device_limit() failed: %s", e
+            )
+            sys.exit(1)
+
+    log.info(
+        "[_obtain_and_limit_cube_vector_core_num] finished, "
+        "cube_core_num=%s, vector_core_num=%s",
+        cube_core_num, vector_core_num,
+    )
+    return prop, cube_core_num, vector_core_num
+
+prop, num_cube_core, num_vector_core = _obtain_and_limit_cube_vector_core_num()
 
 
 # By default, native Torch/inductor set 'inplace_buffers = True', while it will disable NPU-IR's multi-buffer.
@@ -29,18 +151,7 @@ config.trace.enabled = True
 config.triton.coalesce_tiling_analysis = False
 config.triton.mix_order_reduction = False
 
-device = torch.npu.current_device()
-prop = torch.npu.get_device_properties(device)
 enable_fast_gelu = os.getenv("TORCHINDUCTOR_ENABLE_FAST_GELU", "0") == "1"
-num_cube_core = prop.cube_core_num
-num_vector_core = prop.vector_core_num
-
-Ascend910B1 = 220
-Ascend310B1 = 240
-Ascend910_9391 = 250
-Ascend950 = 260
-is_ascend950 = get_soc_version() >= Ascend950
-
 
 class catlass:
     # Whether to enable debug info, e.g., line number
@@ -179,16 +290,6 @@ acc_comp_tol = {
     "default": {"rtol": rtol_default, "atol": atol_default},
 }
 
-ub_size = 192 * 1024
-if is_ascend950:
-    ub_size = 256 * 1024
-
-if (
-    Ascend910B1 <= get_soc_version() < Ascend310B1
-    or get_soc_version() >= Ascend910_9391
-):
-    num_vector_core = num_cube_core * 2
-
 inductor_indirect_memory_mode = None
 if is_ascend950:
     # A5 INDUCTOR_INDIRECT_MEMORY_MODE: fallback, simt_template, simt_only, simd_simt_mix
@@ -211,18 +312,6 @@ simt_default_warp_stacksize = 256 * 32
 # nddma switch
 default_nddma_switch = "1" if is_ascend950 else "0"
 nddma_switch = os.getenv("TORCHINDUCTOR_NDDMA", default_nddma_switch) == "1"
-
-log_level_env = os.getenv("INDUCTOR_ASCEND_LOG_LEVEL", "WARNING").upper()
-log_level_mapping = {
-    "DEBUG": logging.DEBUG,
-    "INFO": logging.INFO,
-    "WARNING": logging.WARNING,
-    "ERROR": logging.ERROR,
-    "CRITICAL": logging.CRITICAL,
-}
-log_level = log_level_mapping.get(log_level_env.upper(), logging.INFO)
-logging.basicConfig(level=log_level, format="%(asctime)s - %(levelname)s - %(message)s")
-log = logging.getLogger(__name__)
 
 aggresive_autotune = os.getenv("INDUCTOR_ASCEND_AGGRESSIVE_AUTOTUNE", "0").lower() in (
     "1",
