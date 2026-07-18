@@ -21,4 +21,4 @@ As shown in [Figure 3](#plog-log-example-hccl), users can view the log level (fo
 ![figure 4](../figures/plog_log_OOM.png)
 
 > [!NOTE] Note
-> For details about more logs, see the [CANN Log Reference](https://www.hiascend.com/document/detail/en/canncommercial/900/maintenref/logreference/logreference_0001.html).
+> For details about more logs, see the [CANN Log Reference](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/900/maintenref/logreference/logreference_0001.html).

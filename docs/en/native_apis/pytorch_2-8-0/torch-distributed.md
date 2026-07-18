@@ -8,7 +8,7 @@
 | API Name | Supported | Restrictions and Notes |
 | -- | -- | -- |
 | torch.distributed.is_available | Yes | - |
-| torch.distributed.init_process_group | Yes | When the `pg_options` parameter is of type `torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()`, configuring the `hccl_config` attribute of this variable controls the HCCL communication domain buffer size. For a specific example, see the "[hccl_buffer_size](https://gitcode.com/Ascend/docs/blob/master/FrameworkPTAdapter/26.0.0/zh/pytorch_model_migration_fine_tuning/hccl_buffer_size.md)" section of *PyTorch Training Model Migration and Tuning Guide*. Configuring the `group_name` field of the `hccl_config` attribute sets a custom name for the communication group of the HCCL communication domain, with a value that is a string no longer than 32 characters. |
+| torch.distributed.init_process_group | Yes | When the `pg_options` parameter is of type `torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()`, configuring the `hccl_config` attribute of this variable controls the HCCL communication domain buffer size. For a specific example, see the "[hccl_buffer_size](https://gitcode.com/Ascend/docs/blob/master/FrameworkPTAdapter/26.0.0/en/pytorch_model_migration_fine_tuning/hccl_buffer_size.md)" section of *PyTorch Training Model Migration and Tuning Guide*. Configuring the `group_name` field of the `hccl_config` attribute sets a custom name for the communication group of the HCCL communication domain, with a value that is a string no longer than 32 characters. |
 | torch.distributed.is_initialized | Yes | - |
 | torch.distributed.is_mpi_available | Yes | - |
 | torch.distributed.is_nccl_available | Yes | - |
@@ -32,7 +32,7 @@
 | torch.distributed.Store.num_keys | Yes | - |
 | torch.distributed.Store.delete_key | Yes | - |
 | torch.distributed.Store.set_timeout | Yes | - |
-| torch.distributed.new_group | Yes | When the `pg_options` parameter is of type `torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()`, configuring the `hccl_config` attribute of this variable controls the HCCL communication domain buffer size. For a specific example, see the "[hccl_buffer_size](https://gitcode.com/Ascend/docs/blob/master/FrameworkPTAdapter/26.0.0/zh/pytorch_model_migration_fine_tuning/hccl_buffer_size.md)" section of *PyTorch Training Model Migration and Tuning Guide*. Configuring the `group_name` field of the `hccl_config` attribute sets a custom name for the communication group of the HCCL communication domain, with a value that is a string no longer than 32 characters. |
+| torch.distributed.new_group | Yes | When the `pg_options` parameter is of type `torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()`, configuring the `hccl_config` attribute of this variable controls the HCCL communication domain buffer size. For a specific example, see the "[hccl_buffer_size](https://gitcode.com/Ascend/docs/blob/master/FrameworkPTAdapter/26.0.0/en/pytorch_model_migration_fine_tuning/hccl_buffer_size.md)" section of *PyTorch Training Model Migration and Tuning Guide*. Configuring the `group_name` field of the `hccl_config` attribute sets a custom name for the communication group of the HCCL communication domain, with a value that is a string no longer than 32 characters. |
 | torch.distributed.get_group_rank | Yes | - |
 | torch.distributed.get_global_rank | Yes | - |
 | torch.distributed.get_process_group_ranks | Yes | - |

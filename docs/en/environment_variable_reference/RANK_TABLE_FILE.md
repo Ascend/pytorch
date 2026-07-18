@@ -36,7 +36,7 @@ unset RANK_TABLE_FILE
 ## Usage Constraints
 
 - The configured file path cannot be a symbolic link and must have read permission.
-- The configured file must be in JSON format. For details, see the "Rank Table Configuration Resource Information" section in [CANN HCCL Library](https://www.hiascend.com/document/detail/en/canncommercial/900/API/hcclug/hcclug_000001.html).
+- The configured file must be in JSON format. For details, see the "Rank Table Configuration" section in [CANN Huawei Collective Communication Library (HCCL)](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/900/API/hcclug/hcclug_000001.html).
 
 ## Supported Products
 

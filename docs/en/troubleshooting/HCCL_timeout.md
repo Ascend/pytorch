@@ -23,4 +23,4 @@ An abnormal exit of one card causes other cards to report an error after a timeo
 
 ## Solution
 
-Based on the error code **EI0002**, for details, see the [Communication Operation Timeout (EI0002)](https://www.hiascend.com/document/detail/en/canncommercial/83RC1/hccl/hcclug/hcclug_000031.html) section in the *HCCL User Guide* for troubleshooting guidance.
+Based on the error code **EI0002**, for details, see the [Notify Wait Timeout (EI0002)](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/900/API/hcclug/hcclug_000059.html) section in the *CANN Huawei Collective Communication Library (HCCL)* for troubleshooting guidance.

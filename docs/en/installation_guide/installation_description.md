@@ -33,7 +33,7 @@ This document covers installation of drivers, firmware, CANN software, the PyTor
 
 - For the operating systems supported by each hardware product in physical machine deployment scenarios, refer to the [Compatibility Query Assistant](https://www.hiascend.com/en/hardware/compatibility/).
 
-- For the operating systems supported by each hardware product in virtual machine and container deployment scenarios, refer to the [OS Compatibility](https://www.hiascend.com/document/detail/en/canncommercial/900/softwareinst/instg/instg_0101.html?OS=openEuler&InstallType=netyum) section in *CANN Software Installation* (commercial version) or the [OS Compatibility](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/900/softwareinst/instg/instg_0101.html?OS=openEuler&InstallType=netyum) section (community version).
+- For the operating systems supported by each hardware product in virtual machine and container deployment scenarios, refer to the [OS Compatibility](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/900/softwareinst/instg/instg_0101.html?OS=openEuler&InstallType=netyum) section in *CANN Software Installation*.
 
 ## Installation Methods
 

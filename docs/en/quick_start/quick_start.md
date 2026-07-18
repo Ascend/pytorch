@@ -6,7 +6,7 @@
 
 This quick start uses the Atlas 800T A2 training server as an example.
 
-- Install the matching versions of NPU driver firmware and CANN software (Toolkit, ops, and NNAL). For details, see [CANN Software Installation](https://www.hiascend.com/document/detail/en/canncommercial/900/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum) (Commercial Edition) or [CANN Software Installation](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/900/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum) (Community Edition):
+- Install the matching versions of NPU driver firmware and CANN software (Toolkit, ops, and NNAL). For details, see [CANN Software Installation](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/900/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum):
   - Operating system: Select an available operating system (for compatibility, see the [Compatibility Query Assistant](https://www.hiascend.com/hardware/compatibility))
   - Installation type: Select "Offline Installation"
 - Install the PyTorch framework and the torch_npu plugin. For details, see [Ascend Extension for PyTorch Software Installation Guide](../installation_guide/installation_description.md).

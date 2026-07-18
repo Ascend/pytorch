@@ -10,7 +10,7 @@ If you are performing training or online inference, complete the following pre-i
 >
 > It is recommended to use a non-root user for installation and running programs, and to properly manage permissions for the installation directory: set folder permissions to 750 and file permissions to 640. You can control the permissions of installed files by setting umask, for example, setting umask to 0027. For more security-related information, see the "File Permission Control" description for each component in the [Security Statement](../security_statement/security_statement.md).
 
-- Install the matching versions of the NPU driver, firmware, and CANN software (Toolkit, ops, and NNAL) and configure CANN environment variables. For details, see the [CANN Software Installation Guide](https://www.hiascend.com/document/detail/en/canncommercial/900/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum) (commercial version) or [CANN Software Installation Guide](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/900/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum) (community version).
+- Install the matching versions of the NPU driver, firmware, and CANN software (Toolkit, ops, and NNAL) and configure CANN environment variables. For details, see the [CANN Software Installation](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/900/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum).
 
 CANN provides a process-level environment variable setting script. This script must be called before using the NPU to execute service code in training or inference scenarios; otherwise, the service code will fail to run.
 

@@ -30,7 +30,7 @@ The representation of error codes in the output is as follows:
 
 ## CANN Error Codes
 
-Due to different scenarios, use cases, and causes of failures, the printed error code information varies. Therefore, in the examples, the \[%s\] variable is used to replace the actual printed logs. The actual logs replaced by \[%s\] are subject to the screen printout. For detailed information about CANN software error codes, see the [Error Code Reference](https://www.hiascend.com/document/detail/en/canncommercial/900/maintenref/troubleshooting/troubleshooting_0225.html) section in *CANN Troubleshooting*.
+Due to different scenarios, use cases, and causes of failures, the printed error code information varies. Therefore, in the examples, the \[%s\] variable is used to replace the actual printed logs. The actual logs replaced by \[%s\] are subject to the screen printout. For detailed information about CANN software error codes, see the [Error Codes](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/900/maintenref/troubleshooting/troubleshooting_0225.html) section in *CANN Troubleshooting*.
 
 For example, the representation of the E10035 error code in the manual is as follows:
 

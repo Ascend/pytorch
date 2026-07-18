@@ -32,4 +32,4 @@ Operator adaptation is not merely a technical retrofit, but a critical initiativ
 ## How to Perform Operator Adaptation
 
 - For detailed operations on single-operator adaptation, refer to the subsequent sections.
-- For graph-mode operator development, refer to the "[Custom Operator Graph Integration](https://gitcode.com/Ascend/torchair/blob/26.0.0/docs/zh/custom_op_graph/overview.md)" section in *PyTorch Graph Mode Usage Guide (TorchAir)*.
+- For graph-mode operator development, refer to the "[Custom Operator Graph Integration](https://gitcode.com/Ascend/torchair/blob/26.0.0/docs/en/custom_op_graph/overview.md)" section in *PyTorch Graph Mode Usage Guide (TorchAir)*.

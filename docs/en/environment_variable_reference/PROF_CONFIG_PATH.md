@@ -14,7 +14,7 @@ export PROF_CONFIG_PATH="/path/to/profiler_config_path"
 
 - After configuring the environment variable and starting training, `dynamic_profile` will automatically create a template file `profiler_config.json` under `profiler_config_path`. You can customize the configuration items based on the template file.
 - The path specified by `PROF_CONFIG_PATH` can be customized (read and write permissions are required). The path format only supports strings consisting of letters, digits, and underscores. Soft links are not supported, for example, `/home/xxx/profiler_config_path`.
-- For a detailed introduction to the dynamic_profile feature and the `profiler_config.json` file, see the [dynamic_profile](https://www.hiascend.com/document/detail/en/canncommercial/900/devaids/Profiling/atlasprofiling_16_0033.html#EN-US_TOPIC_0000002562454081__en-us_topic_0000002521150870_section17272160135118)" section in the *CANN Performance Tuning Tool*.
+- For a detailed introduction to the dynamic_profile feature and the `profiler_config.json` file, see the [dynamic_profile](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/900/devaids/Profiling/atlasprofiling_16_0033.html)" section in the *CANN Performance Tuning Tool*.
 
 ## Usage Constraints
 

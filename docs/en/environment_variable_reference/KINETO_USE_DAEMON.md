@@ -12,7 +12,7 @@ This environment variable is used to set whether to enable dynamic\_profile coll
 export KINETO_USE_DAEMON=1
 ```
 
-For detailed usage, see the "[dynamic\_profile](https://www.hiascend.com/document/detail/en/canncommercial/900/devaids/Profiling/atlasprofiling_16_0033.html)" section in the *CANN Performance Tuning Tool*.
+For detailed usage, see the "[dynamic\_profile](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/900/devaids/Profiling/atlasprofiling_16_0033.html)" section in the *CANN Performance Tuning Tool*.
 
 ## Usage Constraints
 

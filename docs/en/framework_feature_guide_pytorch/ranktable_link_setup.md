@@ -24,7 +24,7 @@ The environment variable RANK\_TABLE\_FILE controls whether to establish collect
 
 This environment variable is not configured by default.
 
-For the ranktable file configuration instructions, refer to the "rank table configuration resource information" section in the [CANN HCCL Library](https://www.hiascend.com/document/detail/en/canncommercial/900/API/hcclug/hcclug_000001.html).
+For the ranktable file configuration instructions, refer to the "rank table configuration resource information" section in the [CANN Huawei Collective Communication Library (HCCL)](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/900/API/hcclug/hcclug_000001.html).
 
 > [!CAUTION]
 >

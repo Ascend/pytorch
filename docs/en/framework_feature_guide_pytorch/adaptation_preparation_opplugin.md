@@ -19,4 +19,4 @@
 
       - *2.7.1* is the PyTorch version. Users need to specify the PyTorch version based on the actual situation.
       - *26.0.0* is the Ascend Extension for PyTorch software version.
-   3. Before OpPlugin operator adaptation, ensure that the corresponding operators are already implemented in CANN. For details, see [CANN Operator Library](https://www.hiascend.com/document/detail/en/canncommercial/900/API/aolapi/operatorlist_00001.html).
+   3. Before OpPlugin operator adaptation, ensure that the corresponding operators are already implemented in CANN. For details, see [CANN Operator Library](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/900/API/aolapi/operatorlist_00001.html).

@@ -18,10 +18,10 @@ After completing the development of the adaptation plugin for the PyTorch framew
     - *2.7.1* is the PyTorch version. Users should specify the PyTorch version according to their actual environment.
     - *26.0.0* is the Ascend Extension for PyTorch software version.
 
-3. Before adapting the framework operator, ensure that the corresponding operator has already been implemented in CANN. For details, refer to the [CANN Operator Library](https://www.hiascend.com/document/detail/zh/canncommercial/900/API/aolapi/operatorlist_00001.html).
+3. Before adapting the framework operator, ensure that the corresponding operator has already been implemented in CANN. For details, refer to the [CANN Operator Library](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/900/API/aolapi/operatorlist_00001.html).
     > [!NOTE]  
     >
-    > The corresponding CANN operator for this example is aclnnAdd. Refer to the [operator interface](https://www.hiascend.com/document/detail/zh/canncommercial/900/API/aolapi/context/ops-math/aclnnAdd&aclnnInplaceAdd.md) in the [CANN Operator Library].
+    > The corresponding CANN operator for this example is aclnnAdd. Refer to the [operator interface](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/900/API/aolapi/context/ops-math/aclnnAdd&aclnnInplaceAdd.md) in the [CANN Operator Library].
 
 ## Adaptation Development
 

@@ -12,9 +12,9 @@ The unit is second (s), the value range is [0, 2147483647], and the default valu
 
 > [!NOTE]
 >
-> - For details about the `acl.init` API, see the "[Function: init](https://www.hiascend.com/document/detail/en/canncommercial/900/others/fvsearch/aclpythondevg_01_0823.html)" section in *CANN Feature Vector Retrieval*.
-> - For details about the `acl.rt.set_op_wait_timeout` API, see the "[Function: set\_op\_wait\_timeout](https://www.hiascend.com/document/detail/en/canncommercial/900/API/runtimeapi/aclpythondevg_01_0102.html)" section in *CANN Runtime API*.
-> - For details about the `acl.rt.stream_wait_event` API, see the "[Function: stream\_wait\_event](https://www.hiascend.com/document/detail/en/canncommercial/900/API/runtimeapi/aclpythondevg_01_0101.html)" section in *CANN Runtime API*.
+> - For details about the `acl.init` API, see the "[Function: init](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/900/others/fvsearch/aclpythondevg_01_0823.html)" section in *CANN Feature Vector Search*.
+> - For details about the `acl.rt.set_op_wait_timeout` API, see the "[Function: set\_op\_wait\_timeout](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/900/API/runtimeapi/aclpythondevg_01_0102.html)" section in *CANN Runtime APIs*.
+> - For details about the `acl.rt.stream_wait_event` API, see the "[Function: stream\_wait\_event](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/900/API/runtimeapi/aclpythondevg_01_0101.html)" section in *CANN Runtime APIs*.
 
 ## Configuration Example
 
@@ -24,7 +24,7 @@ export HCCL_EVENT_TIMEOUT=1800
 
 ## Usage Constraints
 
-When this environment variable is configured, its value must be greater than the value of `HCCL_EXEC_TIMEOUT`. For details about `HCCL_EXEC_TIMEOUT`, see the "[HCCL\_EXEC\_TIMEOUT](https://www.hiascend.com/document/detail/en/canncommercial/900/maintenref/envvar/envref_07_0078.html)" section in *CANN Environment Variable Reference*.
+When this environment variable is configured, its value must be greater than the value of `HCCL_EXEC_TIMEOUT`. For details about `HCCL_EXEC_TIMEOUT`, see the "[HCCL\_EXEC\_TIMEOUT](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/900/maintenref/envvar/envref_07_0078.html)" section in *CANN Description of Environment Variables*.
 
 ## Supported Products
 

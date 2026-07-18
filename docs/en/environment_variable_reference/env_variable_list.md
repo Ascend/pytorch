@@ -2,7 +2,7 @@
 
 <!-- md-trans-meta sourceCommit=e6dd39e7131a89f72cf49d80d53002e4cc645bbf translatedAt=2026-07-08T10:23:52.483Z pushedAt=2026-07-08T10:47:16.883Z -->
 
-This manual describes the environment variables that developers can use during training and online inference with Ascend Extension for PyTorch. For environment variables used in building AI apps and services based on CANN, refer to [CANN Environment Variable Reference](https://www.hiascend.com/document/detail/zh/canncommercial/900/maintenref/envvar/envref_07_0001.html).
+This manual describes the environment variables that developers can use during training and online inference with Ascend Extension for PyTorch. For environment variables used in building AI apps and services based on CANN, refer to [CANN Description of Environment Variables](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/900/maintenref/envvar/envref_07_0001.html).
 
 **Table 1**  Environment variables
 

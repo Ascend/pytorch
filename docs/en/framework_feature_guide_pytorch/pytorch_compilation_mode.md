@@ -57,7 +57,7 @@ Parameter description:
       - trace.enabled
       - enable\_shape\_handling
       - npu\_backend
-    - For parameters supported by npugraph_ex and detailed usage guidance, refer to the [npugraph_ex backend](https://gitcode.com/Ascend/torchair/blob/26.0.0/docs/zh/npugraph_ex/npugraph_ex.md) in *PyTorch Graph Mode Usage (TorchAir)*.
+    - For parameters supported by npugraph_ex and detailed usage guidance, refer to the [npugraph_ex backend](https://gitcode.com/Ascend/torchair/blob/26.0.0/docs/en/npugraph_ex/npugraph_ex.md) in *PyTorch Graph Mode Usage (TorchAir)*.
 
 - **disable**: optional parameter. Whether to disable the torch.compile capability. The default value is False.
 

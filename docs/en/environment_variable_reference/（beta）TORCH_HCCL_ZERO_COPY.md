@@ -29,7 +29,7 @@ export TORCH_HCCL_ZERO_COPY=1
     ```
 
 - This environment variable is not supported in PyTorch graph mode (TorchAir) scenarios.
-- For other constraints, see "Zero-Copy Function" > "[Before You Start](https://www.hiascend.com/document/detail/en/canncommercial/900/API/hcclug/hcclcpp_07_0053.html)" section in the *CANN HCCL Library*.
+- For other constraints, see "Zero-Copy" > "[Before You Start](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/900/API/hcclug/hcclcpp_07_0053.html)" section in the *CANN Huawei Collective Communication Library (HCCL)*.
 
 ## Supported Products
 
