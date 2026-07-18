@@ -312,6 +312,8 @@ FLEX_ATTENTION_NPU_COMPILE_HINT_KEYS = (
     "intra_cache_num",
     "inter_cache_num",
     "enable_cross_if_fusion",
+    "enable_buffer_insert_optimization",
+    "enable_ub_refine_opt"
 )
 
 
@@ -344,6 +346,9 @@ class flex_attention:
 
     bwd_dq_limit_auto_multi_buffer_of_local_buffer = "no-l0c"
     bwd_dkdv_limit_auto_multi_buffer_of_local_buffer = "no-l0c"
+
+    enable_buffer_insert_optimization = False
+    enable_ub_refine_opt = False
 
     @classmethod
     def _filter_compile_options_for_soc(cls, options: dict) -> dict:
@@ -393,6 +398,8 @@ class flex_attention:
                 "intra_cache_num": 3,
                 "inter_cache_num": 2,
                 "enable_cross_if_fusion": True,
+                "enable_buffer_insert_optimization": True,
+                "enable_ub_refine_opt": True,
             },
         )
 
@@ -426,6 +433,8 @@ class flex_attention:
                 "limit_auto_multi_buffer_of_local_buffer": (
                     cls.bwd_dkdv_limit_auto_multi_buffer_of_local_buffer
                 ),
+                "intra_cache_num": 2,
+                "inter_cache_num": 1,
             },
         )
 

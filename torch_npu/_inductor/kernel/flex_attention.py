@@ -1104,7 +1104,7 @@ compute_flex_attention_sparse_mask_normal_in_loop_no_load_balance = r"""
         stride_kv_idx_h = {{stride("KV_IDX", 1)}}
         stride_kv_idx_m = {{stride("KV_IDX", 2)}}
 
-        m_i = tl.zeros([BLOCK_M], dtype=tl.float32) - float("inf")
+        m_i = tl.full([BLOCK_M], float("-inf"), dtype=tl.float32)
         l_i = tl.zeros([BLOCK_M], dtype=tl.float32)
         acc = tl.zeros([BLOCK_M, V_HEAD_DIM_ROUNDED], dtype=tl.float32)
 
@@ -1360,7 +1360,7 @@ compute_flex_attention_sparse_mask_in_loop_no_load_balance = r"""
         stride_kv_idx_h = {{stride("KV_IDX", 1)}}
         stride_kv_idx_m = {{stride("KV_IDX", 2)}}
 
-        m_i = tl.zeros([BLOCK_M], dtype=tl.float32) - float("inf")
+        m_i = tl.full([BLOCK_M], float("-inf"), dtype=tl.float32)
         l_i = tl.zeros([BLOCK_M], dtype=tl.float32)
         acc = tl.zeros([BLOCK_M, V_HEAD_DIM_ROUNDED], dtype=tl.float32)
 
@@ -1508,9 +1508,6 @@ def forward_block_mn_full(
         n="n",
         out="qk"
     ) | indent_except_first(1) }}
-
-    if CHECK_BLOCK_BOUNDARY:
-        post_mod_scores = tl.where(offs_n < KV_LEN, post_mod_scores, float("-inf"))
 
     m_ij = tl.maximum(
         m_i,
@@ -1936,7 +1933,8 @@ flex_attention_backward_qmajor_dq_source = r"""
 {% if not BWD_GRAD_SCORE_MOD_IS_IDENTITY %}
                 pre_mod_scores = qk
 {% endif %}
-                qk = tl.where(offs_n[None, :] < KV_LEN, qk, float("-inf"))
+                # full block don't need
+                # qk = tl.where(offs_n[None, :] < KV_LEN, qk, float("-inf"))
                 p = tl.math.exp(qk - lse[:, None])
 {% else %}
                 pre_mod_scores = qk
@@ -2167,7 +2165,7 @@ flex_attention_backward_dkdv_only_source = r"""
                         stride_qm, stride_qd, stride_dom, stride_dod,
                         stride_dvm, stride_dvd, stride_kz, stride_kh, stride_kn, stride_kd,
                         MATMUL_PRECISION,
-                        CHECK_BLOCK_BOUNDARY=not IS_DIVISIBLE,
+                        CHECK_BLOCK_BOUNDARY=False,
                     )
 {% else %}
                     bwd_dkdv_block_mn(
@@ -2932,7 +2930,7 @@ def _register_npu_inductor_flex_attention():
 
             try:
                 forward_kernel_options = cur_kernel_options.copy()
-                forward_kernel_options["num_stages"] = 2
+                forward_kernel_options["num_stages"] = 1
                 choice_count = len(choices)
                 forward_errors = []
                 for forward_variant_options in sparse_mask_attention_cvpipeline_config_variants(
@@ -3745,7 +3743,7 @@ def _register_npu_inductor_flex_attention():
                 {
                     "BLOCK_M2": cfg["BLOCK_M2"],
                     "BLOCK_N2": cfg["BLOCK_N2"],
-                    "num_stages": 2,
+                    "num_stages": 1,
                     "num_warps": 4,
                 }
             )
