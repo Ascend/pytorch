@@ -91,7 +91,7 @@ def check_submodules():
             end = time.time()
             print(f" --- Submodule initialization took {end - start:.2f} sec")
         except Exception:
-            print(" --- Submodule initalization failed")
+            print(" --- Submodule initialization failed")
             print("Please run:\n\tgit submodule init && git submodule update")
             sys.exit(1)
 
@@ -244,7 +244,7 @@ def generate_dbg_files_and_strip():
     library_files = [Path(i) for i in library_dir.rglob('*.so')]
     for library_file in library_files:
         subprocess.check_call(["eu-strip", library_file, "-f",
-                                str(dbg_dir.joinpath(library_file.name)) + ".debug"], cwd=BASE_DIR)  # Compliant
+                               str(dbg_dir.joinpath(library_file.name)) + ".debug"], cwd=BASE_DIR)  # Compliant
 
 
 def patchelf_dynamic_library():
@@ -556,8 +556,8 @@ def get_src_py_and_dst():
         for src in codegen_files:
             # 仅过滤指定目录下的根级__init__.py
             if (exclude_root_init is not None and
-                os.path.basename(src) == '__init__.py' and
-                os.path.dirname(src) == exclude_root_init):
+                    os.path.basename(src) == '__init__.py' and
+                    os.path.dirname(src) == exclude_root_init):
                 continue  # 跳过op-plugin/codegen根目录的__init__.py
 
             # 计算目标路径（保留原目录层级）
@@ -660,7 +660,7 @@ extra_link_args = []
 DEBUG = (os.getenv('DEBUG', default='').upper() in ['ON', '1', 'YES', 'TRUE', 'Y'])
 
 extra_compile_args = [
-    '-std=c++17',
+    '-std=c++20',
     '-Wno-sign-compare',
     '-Wno-deprecated-declarations',
     '-Wno-return-type'
@@ -750,7 +750,10 @@ setup(
                 extra_compile_args=extra_compile_args + ['-fstack-protector-all'] + ['-D__FILENAME__=\"InitNpuBindings.cpp\"'],
                 library_dirs=["lib"],
                 extra_link_args=extra_link_args + ['-Wl,-rpath,$ORIGIN/lib', '-Wl,-Bsymbolic-functions'],
-                define_macros=[('_GLIBCXX_USE_CXX11_ABI', '1' if USE_CXX11_ABI else '0'), ('GLIBCXX_USE_CXX11_ABI', '1' if USE_CXX11_ABI else '0')]
+                define_macros=[
+                    ('_GLIBCXX_USE_CXX11_ABI', '1' if USE_CXX11_ABI else '0'),
+                    ('GLIBCXX_USE_CXX11_ABI', '1' if USE_CXX11_ABI else '0'),
+                ]
             ),
     ],
     install_requires=[
