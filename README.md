@@ -1,310 +1,152 @@
-# Ascend Extension for PyTorch
+<h1 align="center">TorchNPU</h1>
+
+<p align="center">
+  <strong>PyTorch Adapter Plugin for Ascend NPU</strong>
+</p>
+
+<p align="center">
+  English · <a href="./README.zh.md">中文</a>
+</p>
+
+<p align="center">
+  <a href="#installation">Installation</a> ·
+  <a href="#quick-start">Quick Start</a> ·
+  <a href="./COMPATIBILITY.md">Compatibility</a> ·
+  <a href="./SUPPORT.md">Support</a> ·
+  <a href="./CONTRIBUTING.md">Contributing</a> ·
+  <a href="https://www.hiascend.com/developer/software/ai-frameworks/pytorch/document">Docs</a> ·
+  <a href="https://www.hiascend.com/cn/developer/software/ai-frameworks/pytorch">Community</a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white" alt="version">
+  <img src="https://img.shields.io/badge/C++-00599C?style=flat&logo=cplusplus&logoColor=white" alt="rust">
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/License-BSD--3--clause-8A2BE2" alt="license"></a>
+  <a href="https://pypi.org/project/torch-npu/"><img src="https://img.shields.io/pypi/v/torch-npu?label=PyPI&color=blue" alt="pypi"></a>
+  <img src="https://img.shields.io/badge/Platform-Ascend%20NPU-C31D20" alt="platform">
+  <a href="https://gitcode.com/Ascend/pytorch"><img src="https://img.shields.io/badge/Repo-blue?labelColor=white&logo=gitcode&logoColor=D71D3A" alt="license"></a>
+  <a href="https://github.com/Ascend/pytorch"><img src="https://img.shields.io/badge/Mirror%20Repo-blue?labelColor=white&logo=github&logoColor=black" alt="license"></a>
+  <img src="https://gitcode.com/Ascend/pytorch/star/badge.svg" alt="GitCode Star"/>
+  <img src="https://gitcode.com/Ascend/pytorch/download/badge.svg" alt="download">
+  <img src="https://github.com/Ascend/pytorch/actions/workflows/pytorch_ci_trigger.yml/badge.svg" alt="ci">
+</p>
+
+---
 
 ## Overview
 
-**Ascend Extension for PyTorch** is the Ascend plugin for PyTorch, adapting Ascend NPU to the PyTorch framework and providing developers who use PyTorch with the powerful compute capabilities of Ascend AI processors.
+As the core component of the Ascend for PyTorch community, **TorchNPU** is a deep learning adapter plugin built by Ascend for PyTorch, enabling the PyTorch framework to directly invoke Ascend NPU and providing developers with the powerful compute capabilities of Ascend AI processors.
 
-The software is distributed as the Python package **torch_npu**. Throughout this documentation, **torch_npu** is used as the short name for **Ascend Extension for PyTorch** — both refer to the same software.
+Ascend is a full-stack AI computing infrastructure for industry applications and services based on Huawei Ascend AI processors and software. For more information about Ascend, see [Ascend Community](https://www.hiascend.com/en/).
 
-Ascend is a full-stack AI computing infrastructure for industry applications and services based on Huawei Ascend processors and software. For more information about Ascend, see [Ascend Community](https://www.hiascend.com/en/).
+## Key Features
 
-## Version
+TorchNPU fully inherits and reuses extensive mature capabilities from upstream PyTorch, and on this foundation provides deep adaptation and optimization for Ascend NPU. The diagram below illustrates the main functional modules of TorchNPU:
 
-### Ascend Extension for PyTorch Version Matching Table
+<div align="center">
+  <img src="docs/en/figures/architecture.svg" alt="TorchNPU Architecture" width="900">
+</div>
 
-The branch name of **Ascend Extension for PyTorch** follows the naming convention `{PyTorch version}-{Ascend version}`, where the former represents the compatible PyTorch version, and the latter represents the **Ascend Extension for PyTorch** version. The detailed matching is as follows:
+**Key Modules:**
 
-| Ascend Extension for PyTorch Version | GitCode Branch    | PyTorch Version | CANN Version    |
-|--------------------------------------|-------------------|-----------------|-----------------|
-| 2.10.0                               | v2.10.0-26.0.0    | 2.10.0          | CANN 9.0.0      |
-| 2.9.0.post2                          | v2.9.0-26.0.0     | 2.9.0           |                 |
-| 2.8.0.post4                          | v2.8.0-26.0.0     | 2.8.0           |                 |
-| 2.7.1.post4                          | v2.7.1-26.0.0     | 2.7.1           |                 |
-| 2.9.0                                | v2.9.0-7.3.0      | 2.9.0           | CANN 8.5.0      |
-| 2.8.0.post2                          | v2.8.0-7.3.0      | 2.8.0           |                 |
-| 2.7.1.post2                          | v2.7.1-7.3.0      | 2.7.1           |                 |
-| 2.6.0.post5                          | v2.6.0-7.3.0      | 2.6.0           |                 |
-| 2.8.0                                | v2.8.0-7.2.0      | 2.8.0           | CANN 8.3.RC1    |
-| 2.7.1                                | v2.7.1-7.2.0      | 2.7.1           |                 |
-| 2.6.0.post3                          | v2.6.0-7.2.0      | 2.6.0           |                 |
-| 2.1.0.post17                         | v2.1.0-7.2.0      | 2.1.0           |                 |
-| 2.6.0                                | v2.6.0-7.1.0      | 2.6.0           | CANN 8.2.RC1    |
-| 2.5.1.post1                          | v2.5.1-7.1.0      | 2.5.1           |                 |
-| 2.1.0.post13                         | v2.1.0-7.1.0      | 2.1.0           |                 |
-| 2.5.1                                | v2.5.1-7.0.0      | 2.5.1           | CANN 8.1.RC1    |
-| 2.4.0.post4                          | v2.4.0-7.0.0      | 2.4.0           |                 |
-| 2.3.1.post6                          | v2.3.1-7.0.0      | 2.3.1           |                 |
-| 2.1.0.post12                         | v2.1.0-7.0.0      | 2.1.0           |                 |
-| 2.4.0.post2                          | v2.4.0-6.0.0      | 2.4.0           | CANN 8.0.0      |
-| 2.3.1.post4                          | v2.3.1-6.0.0      | 2.3.1           |                 |
-| 2.1.0.post10                         | v2.1.0-6.0.0      | 2.1.0           |                 |
-| 2.4.0                                | v2.4.0-6.0.rc3    | 2.4.0           | CANN 8.0.RC3    |
-| 2.3.1.post2                          | v2.3.1-6.0.rc3    | 2.3.1           |                 |
-| 2.1.0.post8                          | v2.1.0-6.0.rc3    | 2.1.0           |                 |
-| 2.3.1                                | v2.3.1-6.0.rc2    | 2.3.1           | CANN 8.0.RC2    |
-| 2.2.0.post2                          | v2.2.0-6.0.rc2    | 2.2.0           |                 |
-| 2.1.0.post6                          | v2.1.0-6.0.rc2    | 2.1.0           |                 |
-| 1.11.0.post14                        | v1.11.0-6.0.rc2   | 1.11.0          |                 |
-| 2.2.0                                | v2.2.0-6.0.rc1    | 2.2.0           | CANN 8.0.RC1    |
-| 2.1.0.post4                          | v2.1.0-6.0.rc1    | 2.1.0           |                 |
-| 1.11.0.post11                        | v1.11.0-6.0.rc1   | 1.11.0          |                 |
-| 2.1.0                                | v2.1.0-5.0.0      | 2.1.0           | CANN 7.0.0      |
-| 2.0.1.post1                          | v2.0.1-5.0.0      | 2.0.1           |                 |
-| 1.11.0.post8                         | v1.11.0-5.0.0     | 1.11.0          |                 |
-| 2.1.0.rc1                            | v2.1.0-5.0.rc3    | 2.1.0           | CANN 7.0.RC1    |
-| 2.0.1                                | v2.0.1-5.0.rc3    | 2.0.1           |                 |
-| 1.11.0.post4                         | v1.11.0-5.0.rc3   | 1.11.0          |                 |
-| 1.11.0.post3                         | v1.11.0-5.0.rc2.2 | 1.11.0          | CANN 6.3.RC3.1  |
-| 1.11.0.post2                         | v1.11.0-5.0.rc2.1 | 1.11.0          | CANN 6.3.RC3    |
-| 2.0.1.rc1                            | v2.0.1-5.0.rc2    | 2.0.1           | CANN 6.3.RC2    |
-| 1.11.0.post1                         | v1.11.0-5.0.rc2   | 1.11.0          |                 |
-| 1.8.1.post2                          | v1.8.1-5.0.rc2    | 1.8.1           |                 |
-| 1.11.0                               | v1.11.0-5.0.rc1   | 1.11.0          | CANN 6.3.RC1    |
-| 1.8.1.post1                          | v1.8.1-5.0.rc1    | 1.8.1           |                 |
-| 1.5.0.post8                          | v1.5.0-3.0.0      | 1.5.0           | CANN 6.0.1      |
-| 1.8.1                                | v1.8.1-3.0.0      | 1.8.1           |                 |
-| 1.11.0.rc2（beta）                    | v1.11.0-3.0.0     | 1.11.0          |                 |
-| 1.5.0.post7                          | v1.5.0-3.0.rc3    | 1.5.0           | CANN 6.0.RC1    |
-| 1.8.1.rc3                            | v1.8.1-3.0.rc3    | 1.8.1           |                 |
-| 1.11.0.rc1（beta）                    | v1.11.0-3.0.rc3   | 1.11.0          |                 |
-| 1.5.0.post6                          | v1.5.0-3.0.rc2    | 1.5.0           | CANN 5.1.RC2    |
-| 1.8.1.rc2                            | v1.8.1-3.0.rc2    | 1.8.1           |                 |
-| 1.5.0.post5                          | v1.5.0-3.0.rc1    | 1.5.0           | CANN 5.1.RC1    |
-| 1.8.1.rc1                            | v1.8.1-3.0.rc1    | 1.8.1           |                 |
-| 1.5.0.post4                          | 2.0.4.tr5         | 1.5.0           | CANN 5.0.4      |
-| 1.5.0.post3                          | 2.0.3.tr5         | 1.8.1           | CANN 5.0.3      |
-| 1.5.0.post2                          | 2.0.2.tr5         | 1.5.0           | CANN 5.0.2      |
+- **Basic Compute:** Extensive support for PyTorch native APIs and custom APIs, covering mainstream AI scenarios with a consistent experience, enabling rapid model and algorithm implementation.
+- **Distributed:** Supports accelerating distributed training via FSDP2. Core compute APIs support DTensor, along with collective communication primitives such as AllGather, AllReduce, and AllToAll, as well as point-to-point primitives like Send and Recv.
+- **Graph Mode:** Significantly accelerates model training and inference through "dynamic graph capture + static graph optimization + efficient code generation," and supports offloading execution via NPUGraph. Supported in v2.6.0 and above.
+- **Debug & Tuning:** Supports profiling analysis of compute, communication, and memory usage, with real-time communication anomaly monitoring via WatchDog.
+- **TorchNPU Core:** Supports virtual memory management to reduce memory fragmentation, cross-stream memory reuse optimization in distributed scenarios, and integrates operators and device resources into PyTorch via PrivateUse1.
 
-### PyTorch and Python Version Matching Table
+## Latest News
 
-| PyTorch Version | Python Version                                            |
-|-----------------|:----------------------------------------------------------|
-| PyTorch 2.13.0  | Python3.10.x, Python3.11.x, Python 3.12.x, Python 3.13.x, Python 3.14.x  |
-| PyTorch 2.12.0  | Python3.10.x, Python3.11.x, Python 3.12.x, Python 3.13.x, Python 3.14.x  |
-| PyTorch 2.11.0  | Python3.10.x, Python3.11.x, Python 3.12.x, Python 3.13.x, Python 3.14.x  |
-| PyTorch 2.10.0  | Python3.10.x, Python3.11.x, Python 3.12.x, Python 3.13.x  |
-| PyTorch 2.9.0   | Python3.10.x, Python3.11.x, Python 3.12.x, Python 3.13.x  |
-| PyTorch 2.8.0   | Python3.9.x, Python3.10.x, Python 3.11.x, Python 3.12.x, Python 3.13.x |
-| PyTorch 2.7.1   | Python3.9.x, Python3.10.x, Python 3.11.x, Python 3.12.x, Python 3.13.x |
-| PyTorch 2.6.0   | Python3.9.x, Python3.10.x, Python 3.11.x                  |
-| PyTorch 2.5.1   | Python3.9.x, Python3.10.x, Python 3.11.x                  |
-| PyTorch 2.4.0   | Python3.8.x, Python3.9.x, Python3.10.x, Python3.11.x      |
-| PyTorch 2.3.1   | Python3.8.x, Python3.9.x, Python3.10.x, Python3.11.x      |
-| PyTorch 2.2.0   | Python3.8.x, Python3.9.x, Python3.10.x                    |
-| PyTorch 2.1.0   | Python3.8.x, Python3.9.x, Python3.10.x, Python3.11.x      |
-| PyTorch 1.11.0  | Python3.7.x(>=3.7.5), Python3.8.x, Python3.9.x, Python3.10.x |
+- 📢 [2026-06-30] Advance notice on standardized naming conventions for Ascend for PyTorch community components. [🔗 Learn more](https://www.hiascend.com/productbulletins/detail/791)
+- 📢 [2026-04-30] TorchNPU 26.0.0 released, adding support for PyTorch 2.10.0, Python 3.13, P2P communication group dispatch, DTensor strategy extensions, and more. [🔗 Learn more](https://www.hiascend.com/productbulletins/detail/779)
 
 ## Installation
 
 ### From Binary
 
-Provide users with wheel package to quickly install **torch_npu**. Before installing **torch_npu**, complete the installation of **CANN**. To obtain the **CANN** installation package, refer to the [CANN Installation](https://www.hiascend.com/cann).
+Take installing TorchNPU 2.10.0.post2 as an example. Run the following commands for installation. For other versions, please refer to the community download page: [TorchNPU Download](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download).
 
-1. **Install PyTorch**
+#### Install CANN
 
-   Install **PyTorch** through pip.
+Install CANN 9.0.0. For detailed steps, please refer to the [CANN Installation Guide](https://www.hiascend.com/cann/download).
 
-   **For Aarch64:**
+#### Install PyTorch
 
-   ```shell
-   pip3 install torch==2.13.0
-   ```
+Run the following command to install PyTorch 2.10.0:
 
-   **For x86:**
+```bash
+pip install torch==2.10.0 --index-url https://download.pytorch.org/whl/cpu
+```
 
-   ```shell
-   pip3 install torch==2.13.0+cpu  --index-url https://download.pytorch.org/whl/cpu
-   ```
+#### Install TorchNPU
 
-2. **Install torch-npu dependencies**
+Run the following command to install TorchNPU 2.10.0.post2:
 
-   Run the following command to install dependencies.
-
-   ```shell
-   pip3 install pyyaml
-   pip3 install setuptools
-   ```
-
-   If the installation fails, use the download link or visit the [PyTorch official website](https://pytorch.org/) to download the installation package of the corresponding version.
-
-   | OS arch | Python version | link                                                                                                                                                                                          |
-   |---------|----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-   | x86     | Python3.13     | [link](https://download-r2.pytorch.org/whl/cpu/torch-2.13.0%2Bcpu-cp313-cp313-manylinux_2_28_x86_64.whl#sha256=3fbf9c9d1f3c10c2d59d04aca426dee9ccc6ceb32d255c61e93acc3b4f75fae6) |
-   | x86     | Python3.12     | [link](https://download-r2.pytorch.org/whl/cpu/torch-2.13.0%2Bcpu-cp312-cp312-manylinux_2_28_x86_64.whl#sha256=4ca4a9394b0c771238a4f73590fdbbc4debad85ed0fa63d026ae1b085da7d6e2) |
-   | x86     | Python3.11     | [link](https://download-r2.pytorch.org/whl/cpu/torch-2.13.0%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl#sha256=6746dbcbeb526eb61330b76b41ff1b4eb848951103a892eeb080dfa2b264667b) |
-   | x86     | Python3.10     | [link](https://download-r2.pytorch.org/whl/cpu/torch-2.13.0%2Bcpu-cp310-cp310-manylinux_2_28_x86_64.whl#sha256=f5cbb61180a9793d9e12fe115a2310d2600bd449dfb9a01ec5640e21359fa5ea) |
-   | aarch64 | Python3.13     | [link](https://download-r2.pytorch.org/whl/cpu/torch-2.13.0%2Bcpu-cp313-cp313-manylinux_2_28_aarch64.whl#sha256=0b8f7d0423027ae8b90c7977c627f3379f325363a08224dffad9b4b2d684a83d) |
-   | aarch64 | Python3.12     | [link](https://download-r2.pytorch.org/whl/cpu/torch-2.13.0%2Bcpu-cp312-cp312-manylinux_2_28_aarch64.whl#sha256=6f307c2c32d764ffc6ff6893b801fad6d4752f3e67966cb8abf1843427c02604) |
-   | aarch64 | Python3.11     | [link](https://download-r2.pytorch.org/whl/cpu/torch-2.13.0%2Bcpu-cp311-cp311-manylinux_2_28_aarch64.whl#sha256=84453b69508ec79902f899c5ed9495acb9e2bbe9fda5f1d5d6f19e3c3842e1a7) |
-   | aarch64 | Python3.10     | [link](https://download-r2.pytorch.org/whl/cpu/torch-2.13.0%2Bcpu-cp310-cp310-manylinux_2_28_aarch64.whl#sha256=f028e428bddee95cdb86e2470254e95c9af629362488550c200ed4793125a817) |
-
-3. **Install torch-npu**
-
-   ```shell
-   pip3 install torch-npu==2.13.0
-   ```
+```bash
+pip install torch-npu==2.10.0.post2
+```
 
 ### From Source
 
-In some special scenarios, users may need to compile **torch-npu** by themselves. Select a branch in the [Ascend Extension for PyTorch Version Matching Table](#ascend-extension-for-pytorch-version-matching-table) and a Python version in the [PyTorch and Python Version Matching Table](#pytorch-and-python-version-matching-table) first. The docker image is recommended for compiling torch-npu through the following steps(It is recommended to mount the working path only and avoid the system path to reduce security risks.), the generated .whl file path is ./dist/. Note that gcc version has the following constraints if you try to compile without using docker image: we recommend to use gcc 10.2 for ARM and gcc 9.3.1 for X86.
+For detailed steps on compiling TorchNPU, please refer to the [TorchNPU Source Installation Guide](https://www.hiascend.com/document/detail/zh/Pytorch/latest/configandinstg/instg/docs/zh/installation_guide/compilation_installation_using_source_code.md).
 
-1. **Clone torch-npu**
+## Quick Start
 
-   ```shell
-   git clone https://github.com/ascend/pytorch.git -b 2.13.0 --depth 1
-   ```
+### Initialize Environment
 
-2. **Build Docker Image**
-
-   ```shell
-   cd pytorch/ci/docker/{arch} # {arch} for X86 or ARM
-   docker build -t manylinux-builder:v1 .
-   ```
-
-3. **Enter Docker Container**
-
-   ```shell
-   docker run -it -v /{code_path}/pytorch:/home/pytorch manylinux-builder:v1 bash
-   # {code_path} is the torch_npu source code path
-   ```
-
-4. **Compile torch-npu**
-
-   Take **Python 3.8** as an example.
-
-   ```shell
-   cd /home/pytorch
-   bash ci/build.sh --python=3.8
-   ```
-
-   Use `--torch=<version>` to build against a specific PyTorch version (supported: 2.10.0, 2.11.0, 2.12.0). The installed PyTorch must match the specified version.
-
-   ```shell
-   bash ci/build.sh --python=3.8 --torch=2.10.0
-   ```
-
-**Tips**
-
-   If you would like to compile with new C++ ABI, then first run this command, at this point, the recommended compilation environment is same to community torch package: glibc 2.28, gcc 11.2.1
-   
-   ```shell
-   export _GLIBCXX_USE_CXX11_ABI=1
-   ```
-
-   Meanwhile, we support configuring -fabi-version using the following variables，require consistency with the community torch package
-
-   ```shell
-   export _ABI_VERSION=16
-   ```
-
-## Getting Started
-
-### Prerequisites
-
-Initialize **CANN** environment variable by running the command as shown below.
-
-```Shell
-# Default path, change it if needed.
+```shell
+# Default path, modify according to your actual installation location
 source /usr/local/Ascend/ascend-toolkit/set_env.sh
 ```
 
-### Quick Verification
+### Run Example
 
-You can quickly experience **Ascend NPU** by the following simple examples.
-
-```diff
+```python
 import torch
-- import torch_npu # No longer needed in torch_npu 2.5.1 and later versions
+import torch_npu
 
 x = torch.randn(2, 2).npu()
 y = torch.randn(2, 2).npu()
 z = x.mm(y)
-
 print(z)
 ```
 
-## User Manual
+> Starting from TorchNPU 2.5.1, `import torch_npu` is no longer mandatory (auto-registration occurs), but explicit import is still recommended to ensure device initialization.
 
-Refer to [API of Ascend Extension for PyTorch](docs/api/torch_npu_apis.md) for more detailed information.
+If the following output appears, the execution is successful:
 
-## Hardware support
+```text
+tensor([[-0.0515,  0.3664],
+        [-0.1258, -0.5425]], device='npu:0')
+```
 
-The Ascend training device includes the following models, all of which can be used as training environments for PyTorch models
+For complete model migration and training tutorials, please refer to the [TorchNPU Quick Start Guide](https://www.hiascend.com/document/detail/zh/Pytorch/latest/fastexperience/docs/en/quick_start/quick_start.md).
 
-| Product series        | Product model                    |
-|-----------------------|----------------------------------|
-| Atlas Training series products     | Atlas 800（model: 9000） |
-|                       | Atlas 800（model：9010）          |
-|                       | Atlas 900 PoD（model：9000）      |
-|                       | Atlas 300T（model：9000）         |
-|                       | Atlas 300T Pro（model：9000）     |
-| Atlas A2 Training series products  | Atlas 800T A2       |
-|                       | Atlas 900 A2 PoD                 |
-|                       | Atlas 200T A2 Box16              |
-|                       | Atlas 300T A2                    |
+## Community
 
-The Ascend inference device includes the following models, all of which can be used as inference environments for large models
+The Ascend for PyTorch community consists of multiple Special Interest Groups (SIGs), each responsible for development, maintenance, and community collaboration in specific technical areas. Below is a list of all current SIGs. Click the corresponding links for detailed descriptions.
 
-| Product series        | Product model                        |
-|-----------------------|----------------------------------|
-| Atlas 800I A2 Inference product  | Atlas 800I A2         |
+|    SIG Name     | Description                                                                                                                                                                                                                                                                                        |                                                 Link                                                  |
+|:---------------:|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:-----------------------------------------------------------------------------------------------------:|
+|    Core SIG     | Focuses on the development of the PyTorch core adaptation layer on the Ascend NPU platform, responsible for the design, implementation, and maintenance of the `TorchNPU` extension library and its operator plugin `OpPlugin`.                                                                    |    [🔗 Learn more](https://gitcode.com/Ascend/community/tree/master/FrameworkPTAdapter/sigs/core)     |
+| Distributed SIG | Dedicated to building efficient, easy-to-use, and scalable parallel training capabilities based on the PyTorch distributed training framework (torch.distributed) on the Ascend NPU hardware foundation, delivering extreme performance for LLM, multimodal, and reinforcement learning scenarios. | [🔗 Learn more](https://gitcode.com/Ascend/community/tree/master/FrameworkPTAdapter/sigs/distributed) |
+| Graph Mode SIG  | Focuses on core technologies such as Dynamo, Inductor, and NPUGraph, aiming to bridge the gap between "ease of use" and "high performance" through automated graph capture and compilation optimization.                                                                                           | [🔗 Learn more](https://gitcode.com/Ascend/community/tree/master/FrameworkPTAdapter/sigs/graph-mode)  |
+|  Usability SIG  | Dedicated to improving the usability experience of Ascend for PyTorch, including documentation, tutorials, examples, and more.                                                                                                                                                                     |  [🔗 Learn more](https://gitcode.com/Ascend/community/tree/master/FrameworkPTAdapter/sigs/usability)  |
 
-## Pipeline Status
+Each SIG holds regular meetings, mailing lists, and contribution guides. Click the corresponding SIG links to view detailed contact information, goals, and participation guidelines. Everyone is welcome to contribute to the community. If you have any questions or suggestions, please submit [GitHub Issues](https://github.com/Ascend/pytorch/issues). We will reply as soon as possible. Thank you for your support.
 
-Due to the asynchronous development mechanism of upstream and downstream, incompatible modifications in upstream may cause some functions of **torch_npu** to be unavailable (only upstream and downstream development branches are involved, excluding stable branches). Therefore, we built a set of daily tasks that make it easy to detect relevant issues in time and fix them within 48 hours (under normal circumstances), providing users with the latest features and stable quality.
+## Security Note
 
-| **OS** | **CANN Version(Docker Image)** | **Upstream Branch** | **Downstream Branch** | **Period** | **Status** |
-| :---: | :---: | :---: | :---: | :---: | :---: |
-| openEuler 22.03 SP2 | [CANN 7.1](https://hub.docker.com/r/ascendai/cann/tags) | [main](https://github.com/pytorch/pytorch/tree/main) | [master](https://github.com/Ascend/pytorch/tree/master) | UTC 1200 daily | [![Ascend NPU](https://github.com/Ascend/pytorch/actions/workflows/periodic.yml/badge.svg)](https://github.com/Ascend/pytorch/actions/workflows/periodic.yml) |
+For system security hardening, recommended user configurations, and file permission controls for TorchNPU, please refer to the [Security Note](SECURITYNOTE.md).
 
-## Suggestions and Communication
+## Disclaimer
 
-Everyone is welcome to contribute to the community. If you have any questions or suggestions, you can submit [Github Issues](https://github.com/Ascend/pytorch/issues). We will reply to you as soon as possible. Thank you very much.
-
-## Branch Maintenance Policies
-
-The version branches of AscendPyTorch have the following maintenance phases:
-
-| **Status**        | **Duration** | **Description**                                                                                                                |
-|-------------------|--------------|--------------------------------------------------------------------------------------------------------------------------------|
-| Planning          | 1-3 months   | Plan features.                                                                                                                 |
-| Development       | 6-12 months     | Develop new features and fix issues, regularly release new versions. Different strategies are adopted for different versions of PyTorch, with a regular branch development cycle of 6 months and a long-term support branch development cycle of 12 months.                                                                                                             |
-| Maintained        | 1 year/3.5 years | Regular Release branch for 1 year, Long Term Support branch maintenance for 3.5 years. Fix major issues, do not incorporate new features, and release patch versions based on the impact of fixed bugs. |
-| End Of Life (EOL) | N/A          | Do not accept any modification to a branch.                                                                                    |
-
-## PyTorch Maintenance Policies
-
-| **PyTorch** | **Maintenance Policies** | **Status**  | **Launch Date** | **Subsequent Status**                                             | **EOL Date** |
-|-------------|--------------------------|-------------|-----------------|-------------------------------------------------------------------|--------------|
-| 2.13.0        | Regular Release        | Development       | 2026/07/09 | Expected to enter maintenance status from January 9, 2027  | -         |
-| 2.12.0        | Regular Release        | Development       | 2026/05/10 | Expected to enter maintenance status from November 23, 2026  | -         |
-| 2.11.0        | Regular Release        | Development       | 2026/03/23 | Expected to enter maintenance status from September 23, 2026  | -         |
-| 2.10.0        | Regular Release        | Development       | 2026/01/22 | Expected to enter maintenance status from July 22, 2026  | -         |
-| 2.9.0         | Regular Release        | Development       | 2026/01/15 | Expected to enter maintenance status from July 15, 2026  | -         |
-| 2.8.0         | Regular Release        | Maintained        | 2025/10/15 | Expected to enter maintenance free status from March 15, 2027  | -         |
-| 2.7.1       | Long Term Support          | Development | 2025/10/15      | Expected to enter maintenance status from October 15, 2026           |              |
-| 2.6.0         | Regular Release        | Maintained        | 2025/07/25 | Expected to enter maintenance free status from January 25, 2027  | -         |
-| 2.5.1       | Regular Release          | Maintained | 2024/11/08      | Expected to enter maintenance  free status from August 8, 2026           |              |
-| 2.4.0       | Regular Release          | EOL         | 2024/10/15      |                                                                   | 2026/06/15    |
-| 2.3.1       | Regular Release          | EOL         | 2024/06/06      |                                                                   | 2026/06/07    |
-| 2.2.0       | Regular Release          | EOL         | 2024/04/01      |                                                                   | 2025/10/14    |
-| 2.1.0       | Long Term Support        | Maintained  | 2023/10/15      | Expected to enter maintenance free status from December 30, 2026   |              |
-| 2.0.1       | Regular Release          | EOL         | 2023/7/19       |                                                                   | 2024/3/14    |
-| 1.11.0      | Long Term Support        | EOL         | 2023/4/19       |                                                                   | 2025/10/25   |
-| 1.8.1       | Long Term Support        | EOL         | 2022/4/10       |                                                                   | 2023/4/10    |
-| 1.5.0       | Long Term Support        | EOL         | 2021/7/29       |                                                                   | 2022/7/29    |
-
-## Reference Documents
-
-For more detailed information on installation guides, model migration, training/inference tutorials, and API lists, please refer to the [Ascend Extension for PyTorch on the HiAI Community](https://www.hiascend.com/software/ai-frameworks?framework=pytorch).
-
-| Document Name                            | Document Link                                                                                                           |
-|------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|
-| Installation Guide                       | [link](https://www.hiascend.com/document/detail/zh/Pytorch/2600/configandinstg/instg/insg_0001.html)                                      |
-| Network Model Migration and Training     | [link](https://www.hiascend.com/document/detail/zh/Pytorch/2600/ptmoddevg/trainingmigrguide/PT_LMTMOG_0003.html)       |
-| Operator Adaptation                      | [link](https://www.hiascend.com/document/detail/zh/canncommercial/81RC1/operatordev/tbeaicpudevg/atlasopdev_10_0086.html) |
-| API List (PyTorch and Custom Interfaces) | [link](https://www.hiascend.com/document/detail/zh/Pytorch/2600/apiref/apilist/ptaoplist_000002.html)                  |
+This plugin is for debugging and development purposes only. Users are responsible for ensuring the security of input commands and properly controlling access to data generated during use. By using this plugin, you agree to and accept the above statement.
 
 ## License
 
-Ascend Extension for PyTorch has a BSD-style license, as found in the [LICENSE](LICENSE) file.
+For the license of TorchNPU, please refer to the [LICENSE](LICENSE) file. For the license of TorchNPU documentation, please refer to the [LICENSE](./docs/LICENSE) file.
+
+## Acknowledgments
+
+Thanks for every PR from the community! We welcome developers to contribute code to the TorchNPU plugin!
