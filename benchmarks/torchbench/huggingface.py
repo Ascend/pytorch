@@ -120,13 +120,15 @@ imports = [
 
 try:
     mod = importlib.import_module("transformers")
+    for cls in imports:
+        if not hasattr(mod, cls):
+            raise ModuleNotFoundError
 except ModuleNotFoundError:
     print("Please install transformers.")
     raise
 
 for cls in imports:
-    if not hasattr(mod, cls):
-        raise ModuleNotFoundError(f"Missing transformers symbol: {cls}")
+    exec(f"from transformers import {cls}")
 
 
 # These models contain the models present in huggingface_models_list. It is a
@@ -441,7 +443,40 @@ def rand_int_tensor(device, low, high, shape):
     )
 
 
-EXTRA_MODELS = {}
+EXTRA_MODELS = {
+    "AllenaiLongformerBase": (
+        AutoConfig.from_pretrained("allenai/longformer-base-4096"),
+        AutoModelForMaskedLM,
+    ),
+    "Reformer": (
+        ReformerConfig(),
+        AutoModelForMaskedLM,
+    ),
+    "T5Small": (
+        AutoConfig.from_pretrained("t5-small"),
+        AutoModelForSeq2SeqLM,
+    ),
+    # "BigBird": (
+    #     BigBirdConfig(attention_type="block_sparse"),
+    #     AutoModelForMaskedLM,
+    # ),
+    "DistillGPT2": (
+        AutoConfig.from_pretrained("distilgpt2"),
+        AutoModelForCausalLM,
+    ),
+    "GoogleFnet": (
+        AutoConfig.from_pretrained("google/fnet-base"),
+        AutoModelForMaskedLM,
+    ),
+    "YituTechConvBert": (
+        AutoConfig.from_pretrained("YituTech/conv-bert-base"),
+        AutoModelForMaskedLM,
+    ),
+    "CamemBert": (
+        AutoConfig.from_pretrained("camembert-base"),
+        AutoModelForMaskedLM,
+    ),
+}
 
 NPU_REQUIRE_LEARNING_RATE = {
     "T5ForConditionalGeneration",
