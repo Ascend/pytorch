@@ -38,6 +38,11 @@ on:
         type: string
         default: ''
         description: Test files to run directly (comma-separated)
+      pytorch_commit:
+        required: false
+        type: string
+        default: 'fad74248e78716152917a729adb2b44ba2bab16e'
+        description: PyTorch commit to checkout for test source
 
 defaults:
   run:
@@ -51,6 +56,7 @@ jobs:
     uses: ./.github/workflows/_torch-npu-upstream-prepare.yml
     with:
       prepared_test_src_artifact: pytorch-test-src-${{ inputs.pytorch_version }}-patched
+      pytorch_commit: ${{ inputs.pytorch_commit }}
 
   # ============================================================================
   # 2. Build torch_npu Wheel
