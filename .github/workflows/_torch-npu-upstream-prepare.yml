@@ -20,7 +20,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref_name == 'master' && 'v2.7.1' || github.sha }}
+          ref: ${{ github.ref_name == 'master' && 'v2.7.1' || github.ref }}
           fetch-depth: 1
 
       - name: Clone PyTorch (for test source)
