@@ -124,6 +124,7 @@ jobs:
           import json, os, sys, glob
 
           stats = {'passed': 0, 'failed': 0, 'errors': 0, 'skipped': 0, 'total': 0}
+          parse_ok = False
           try:
               # Find cases.json produced by run_npu_test_shard.py
               candidates = glob.glob('test-reports/**/*cases*.json', recursive=True) + \
@@ -136,6 +137,7 @@ jobs:
               stats['errors'] = data.get('errors', 0)
               stats['skipped'] = data.get('skipped', 0)
               stats['total'] = data.get('total_cases', 0)
+              parse_ok = True
           except Exception as e:
               print(f'Warning: Could not parse results: {e}', file=sys.stderr)
 
@@ -145,6 +147,7 @@ jobs:
               for k, v in stats.items():
                   f.write(f'{k}={v}\n')
               f.write(f'total_failed={total_failed}\n')
+              f.write(f'parse_ok={str(parse_ok).lower()}\n')
 
           print(f'Results: {stats[\"passed\"]} passed, {stats[\"failed\"]} failed, '
                 f'{stats[\"errors\"]} errors, {stats[\"skipped\"]} skipped, '
@@ -158,7 +161,7 @@ jobs:
         uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@main
         with:
           status: completed
-          conclusion: ${{ steps.parse_results.outputs.total_failed == '0' && 'success' || 'failure' }}
+          conclusion: ${{ steps.parse_results.outputs.parse_ok == 'true' && steps.parse_results.outputs.total_failed == '0' && 'success' || 'failure' }}
           test-results: >-
             {
               "passed": ${{ steps.parse_results.outputs.passed }},
