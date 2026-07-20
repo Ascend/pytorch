@@ -385,14 +385,25 @@ bool IsSupportIpcEvent(bool ignore_error)
 {
     static string dbg_msg = "";
     const static bool is_support = []() -> bool {
-        constexpr long supported_page_size = 4096;
-        long size = sysconf(_SC_PAGE_SIZE);
-        if (size != supported_page_size) {
-            dbg_msg = "IPC Event is not support because IPC event requires page size " +
-                      std::to_string(supported_page_size) +
-                      " but current page size is " + std::to_string(size) +
-                      ", which is not supported by the current HDK(driver).";
-            return false;
+        const std::string kMinDriverVersionForNon4KPage = "26.0.RC1";
+        bool skip_page_size_check = IsGteDriverVersion(kMinDriverVersionForNon4KPage);
+
+        // Record page-size context once; appended to later failure/success messages so the
+        // "skipped 4K check" context is not lost when a downstream check overwrites dbg_msg.
+        if (!skip_page_size_check) {
+            constexpr long supported_page_size = 4096;
+            long size = sysconf(_SC_PAGE_SIZE);
+            if (size != supported_page_size) {
+                dbg_msg = "IPC Event is not support because IPC event requires page size " +
+                          std::to_string(supported_page_size) +
+                          " but current page size is " + std::to_string(size) +
+                          ", which is not supported by the current HDK(driver).";
+                return false;
+            }
+        } else {
+            long size = sysconf(_SC_PAGE_SIZE);
+            ASCEND_LOGD("skip page size check (driver >= %s, current page size is %ld)",
+                        kMinDriverVersionForNon4KPage.c_str(), size);
         }
 
         if (!IsExistCreateEventExWithFlag()) {
