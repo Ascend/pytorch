@@ -14,11 +14,12 @@ Among them, plog logs can be viewed in `$HOME/ascend/log/debug/plog`, as shown i
 
 As shown in [Figure 3](#plog-log-example-hccl), users can view the log level (for example, **ERROR**) and the name of the module that generated the log (for example, **HCCL**).
 
-**Figure 3**  plog example (HCCL)<a id="plog-log-example-hccl"></a>  
+**Figure 3** plog example (HCCL)<a id="plog-log-example-hccl"></a>  
 ![figure 3](../figures/plog_log_HCCL.png)
 
 **Figure 4**  plog example (OOM error reported at the lower layer)
 ![figure 4](../figures/plog_log_OOM.png)
 
-> [!NOTE] Note
+> [!NOTE]
+>
 > For details about more logs, see the [CANN Log Reference](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/900/maintenref/logreference/logreference_0001.html).

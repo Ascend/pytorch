@@ -179,4 +179,4 @@ This section provides a simple model migration example using the simplest automa
     | Megatron-LM distributed large model | MindSpeed Core affinity acceleration module | See the [Distributed Training Acceleration Library Migration Guide](https://gitcode.com/Ascend/MindSpeed/blob/26.0.0_core_r0.12.1/docs/en/user-guide/model-migration.md). |
     | Megatron-LM large language model | MindSpeed LLM Suite | See the [MindSpeed LLM Documentation Guide](https://gitcode.com/Ascend/MindSpeed-LLM/blob/26.0.0/docs/en/docs_guide.md). |
     | Megatron-LM multimodal model | MindSpeed MM Suite | See the [MindSpeed MM Migration and Tuning Guide](https://gitcode.com/Ascend/MindSpeed-MM/blob/26.0.0/docs/en/pytorch/model_migration.md). |
-    | Large language model or multimodal model | MindSpeed RL Suite | For detail see [MindSpeed RL](https://gitcode.com/Ascend/MindSpeed-RL/tree/master). |
+    | Large language model or multimodal model | MindSpeed RL Suite | For detail, see [MindSpeed RL](https://gitcode.com/Ascend/MindSpeed-RL/tree/master). |

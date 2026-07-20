@@ -13,7 +13,7 @@
 
 |API Name|Supported|Restrictions and Notes|
 |--|--|--|
-|torch.fft.rfftn|Yes|Supports fp32<br>Value range: each element must be within [-100, 100]<br>Supports 1-8 dimensions. 2D dimensions are (batch, n), 1D dimensions are (n)<br>1. Batch dimension: [1, 8, 16, 24, 32, 64]<br>2. n dimension restrictions (meeting any one is sufficient):<br>- $2^n$, where n is within 23<br>- Arbitrary product of 2, 3, 5, 7, e.g.: 2\*2\*2\*3\*3\*5\*7\*7, but the result must be within 1000000<br>- Arbitrary product of primes within 200, result must be within 100000|
+|torch.fft.rfftn|Yes|Supports fp32<br>Value range: each element must be within [-100, 100]<br>Supports 1-8 dimensions. 2D dimensions are (batch, n), 1D dimensions are (n)<br>1. Batch dimension: [1, 8, 16, 24, 32, 64]<br>2. n dimension restrictions (meeting any one is sufficient):<br>- $2^n$, where n is within 23<br>- Arbitrary product of 2, 3, 5, 7, for example: 2\*2\*2\*3\*3\*5\*7\*7, but the result must be within 1000000<br>- Arbitrary product of primes within 200, result must be within 100000|
 |torch.fft.hfft|Yes|-|
 |torch.fft.ihfft|Yes|-|
 |torch.fft.hfft2|Yes|-|

@@ -268,12 +268,12 @@ This section covers API changes, including additions, modifications, deprecation
 </tr>
 <tr id="row1298318191109"><th class="firstcol" valign="top" width="14.469999999999999%" id="mcps1.1.3.4.1"><p id="p1798321961013">Solution</p>
 </th>
-<td class="cellrowborder" valign="top" width="85.53%" headers="mcps1.1.3.4.1 "><p id="p119831219181019">The get_device_properties API is aligned with the aclrtGetMenInfo API.</p>
+<td class="cellrowborder" valign="top" width="85.53%" headers="mcps1.1.3.4.1 "><p id="p119831219181019">The get_device_properties API is aligned with the aclrtGetMemInfo API.</p>
 </td>
 </tr>
 <tr id="row1198341919103"><th class="firstcol" valign="top" width="14.469999999999999%" id="mcps1.1.3.5.1"><p id="p9983219181017">Modification Impact</p>
 </th>
-<td class="cellrowborder" valign="top" width="85.53%" headers="mcps1.1.3.5.1 "><p id="p15983119101017">After the fix, the get_device_properties API is aligned with the aclrtGetMenInfo API, eliminating the potential risk of resource occupation.</p>
+<td class="cellrowborder" valign="top" width="85.53%" headers="mcps1.1.3.5.1 "><p id="p15983119101017">After the fix, the get_device_properties API is aligned with the aclrtGetMemInfo API, eliminating the potential risk of resource occupation.</p>
 </td>
 </tr>
 </tbody>

@@ -7,7 +7,7 @@
 
 |API Name|Supported|Restrictions and Notes|
 |--|--|--|
-|torch.distributed.rpc.init_rpc|Yes|When enabling RPC on NPU devices, specific settings are required in init_rpc: bind the backend to rpc.backend_registry.BackendType.NPU_TENSORPIPE;<br>bind options to NPUTensorPipeRpcBackendOptions, requiring `from torch_npu.distributed.rpc.options import NPUTensorPipeRpcBackendOptions` and setting the option parameters. The parameter format is the same as the original TensorPipeRpcBackendOptions.|
+|torch.distributed.rpc.init_rpc|Yes|When enabling RPC on NPU devices, specific settings are required in init_rpc: bind the backend to rpc.backend_registry.BackendType.NPU_TENSORPIPE;<br>bind options to NPUTensorPipeRpcBackendOptions, requiring from torch_npu.distributed.rpc.options import NPUTensorPipeRpcBackendOptions and setting the option parameters. The parameter format is the same as the original TensorPipeRpcBackendOptions.|
 |torch.distributed.rpc.rpc_sync|Yes|-|
 |torch.distributed.rpc.rpc_async|Yes|-|
 |torch.distributed.rpc.remote|Yes|-|

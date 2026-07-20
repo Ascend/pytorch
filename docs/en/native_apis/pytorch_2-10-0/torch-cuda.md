@@ -81,8 +81,8 @@
 |torch.cuda.caching_allocator_alloc|torch_npu.npu.caching_allocator_alloc|Yes|-|
 |torch.cuda.caching_allocator_delete|torch_npu.npu.caching_allocator_delete|Yes|-|
 |torch.cuda.get_allocator_backend|torch_npu.npu.get_allocator_backend|Yes|-|
-|torch.cuda.CUDAPluggableAllocator|torch_npu.npu.NPUPluggableAllocator|Yes|This API involves high-risk operations. For details, refer to "torch_npu.npu.NPUPluggableAllocator" in the *Ascend Extension for PyTorch Custom API Reference*.|
-|torch.cuda.change_current_allocator|torch_npu.npu.change_current_allocator|Yes|This API involves high-risk operations. For details, refer to "torch_npu.npu.change_current_allocator" in the *Ascend Extension for PyTorch Custom API Reference*.|
+|torch.cuda.CUDAPluggableAllocator|torch_npu.npu.NPUPluggableAllocator|Yes|This API involves high-risk operations. For details, refer to "[torch_npu.npu.NPUPluggableAllocator](https://gitcode.com/Ascend/op-plugin/blob/26.0.0/docs/en/custom_APIs/torch_npu-npu/torch-npu-npu-NPUPluggableAllocator.md)" in the *Ascend Extension for PyTorch Custom API Reference*.|
+|torch.cuda.change_current_allocator|torch_npu.npu.change_current_allocator|Yes|This API involves high-risk operations. For details, refer to "[torch_npu.npu.change_current_allocator](https://gitcode.com/Ascend/op-plugin/blob/26.0.0/docs/en/custom_APIs/torch_npu-npu/torch-npu-npu-change_current_allocator.md)" in the *Ascend Extension for PyTorch Custom API Reference*.|
 |torch.cuda._sanitizer.enable_cuda_sanitizer|torch_npu.npu._sanitizer.enable_npu_sanitizer|Yes|-|
 |torch.cuda.reset_accumulated_host_memory_stats|torch_npu.npu.reset_accumulated_host_memory_stats|Yes|-|
 |torch.cuda.reset_peak_host_memory_stats|torch_npu.npu.reset_peak_host_memory_stats|Yes|-|

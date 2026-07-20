@@ -28,7 +28,7 @@ After completing the development of the adaptation plugin for the PyTorch framew
 1. Configure the YAML file for the custom operator.
    1. Run the following command to open the op_plugin_functions.yaml file for operator YAML configuration.
 
-        ```yaml
+        ```bash
         vi op_plugin/config/op_plugin_functions.yaml
         ```
 
@@ -255,7 +255,7 @@ After completing the development of the adaptation plugin for the PyTorch framew
 
       The following output indicates successful execution:
 
-      ```coldfusion
+      ```text
       test_add_custom (__main__.TestCustomAdd) ... ok
       test_add_custom_backward (__main__.TestCustomAdd) ... ok
 

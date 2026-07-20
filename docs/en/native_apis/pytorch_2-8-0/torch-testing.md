@@ -7,6 +7,6 @@
 
 |API Name|Supported|Restrictions and Notes|
 |--|--|--|
-|torch.testing.assert_close|Yes|fp32 support|
-|torch.testing.make_tensor|Yes|fp32 support, bool|
-|torch.testing.assert_allclose|Yes|fp32 support|
+|torch.testing.assert_close|Yes|supports fp32|
+|torch.testing.make_tensor|Yes|supports fp32, bool|
+|torch.testing.assert_allclose|Yes|supports fp32|

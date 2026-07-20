@@ -35,8 +35,8 @@ The following HCCL communication domain parameters are supported for configurati
 
   - 0: Represents the default arrangement expansion position of the communication algorithm.
   - 1: Represents the arrangement expansion position of the communication algorithm on the host-side CPU.
-  - 2: represents that the arrangement expansion position of the communication algorithm encoding is on the AI CPU compute unit on the device side.
-  - 3: represents that the arrangement expansion position of the communication algorithm encoding is on the AI Vector Core compute unit on the device side.
+  - 2: Represents that the arrangement expansion position of the communication algorithm encoding is on the AI CPU compute unit on the device side.
+  - 3: Represents that the arrangement expansion position of the communication algorithm encoding is on the AI Vector Core compute unit on the device side.
 
     For details about the environment variable **HCCL\_OP\_EXPANSION\_MODE**, see the "[HCCL\_OP\_EXPANSION\_MODE](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/900/maintenref/envvar/envref_07_0096.html)" section in the *CANN Description of Environment Variables*.
 

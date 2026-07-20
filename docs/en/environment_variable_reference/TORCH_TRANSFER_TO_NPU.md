@@ -29,7 +29,7 @@ export TORCH_TRANSFER_TO_NPU=0
 ## Usage Constraints
 
 - This environment variable must be set before importing torch; otherwise, it will not take effect.
-- For more constraints related to transfer_to_npu, refer to the "[Recommended) Automatic Migration](https://gitcode.com/Ascend/docs/blob/master/FrameworkPTAdapter/26.0.0/en/pytorch_model_migration_fine_tuning/recommended_auto_migration.md)" section in the *PyTorch Model Migration and Tuning Guide*.
+- For more constraints related to transfer_to_npu, refer to the "[(Recommended) Automatic Migration](https://gitcode.com/Ascend/docs/blob/master/FrameworkPTAdapter/26.0.0/en/pytorch_model_migration_fine_tuning/recommended_auto_migration.md)" section in the *PyTorch Model Migration and Tuning Guide*.
 
 ## Supported Products
 

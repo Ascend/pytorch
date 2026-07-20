@@ -140,12 +140,12 @@
 |torch.ao.ns._numeric_suite.OutputLogger.forward|Yes|-|
 |torch.ao.ns._numeric_suite.Shadow|Yes|-|
 |torch.ao.ns._numeric_suite.Shadow.forward|Yes|-|
-|torch.ao.ns._numeric_suite.Shadow.add|Yes|Supports bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
-|torch.ao.ns._numeric_suite.Shadow.add_scalar|Yes|Supports bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
-|torch.ao.ns._numeric_suite.Shadow.mul|Yes|Supports bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
-|torch.ao.ns._numeric_suite.Shadow.mul_scalar|Yes|Supports bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
-|torch.ao.ns._numeric_suite.Shadow.cat|Yes|Supports bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
-|torch.ao.ns._numeric_suite.Shadow.add_relu|Yes|Supports bf16，fp16，fp32，uint8，int8，int32，int64|
+|torch.ao.ns._numeric_suite.Shadow.add|Yes|Supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool|
+|torch.ao.ns._numeric_suite.Shadow.add_scalar|Yes|Supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool|
+|torch.ao.ns._numeric_suite.Shadow.mul|Yes|Supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool|
+|torch.ao.ns._numeric_suite.Shadow.mul_scalar|Yes|Supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool|
+|torch.ao.ns._numeric_suite.Shadow.cat|Yes|Supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool|
+|torch.ao.ns._numeric_suite.Shadow.add_relu|Yes|Supports bf16, fp16, fp32, uint8, int8, int32, int64|
 |torch.ao.ns._numeric_suite.prepare_model_with_stubs|Yes|-|
 |torch.ao.ns._numeric_suite.compare_model_stub|Yes|-|
 |torch.ao.ns._numeric_suite.get_matching_activations|Yes|-|

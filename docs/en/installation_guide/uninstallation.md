@@ -62,7 +62,7 @@ Where _<path\>_ is the installation path of the software package, _<version\>_ i
 
 After the uninstallation is complete, if the following information is displayed, the software has been uninstalled successfully:
 
-```bash
+```text
 [INFO] xxx uninstall success
 ```
 
@@ -89,7 +89,7 @@ There is no required order for uninstalling the driver and firmware. The procedu
 
         If the following key information is displayed, the firmware has been uninstalled successfully.
 
-        ```ColdFusion
+        ```text
         Firmware package uninstalled successfully! 
         ```
 
@@ -101,7 +101,7 @@ There is no required order for uninstalling the driver and firmware. The procedu
 
         If the following key information is displayed, the driver has been uninstalled successfully.
 
-         ```bash
+         ```text
         Driver package uninstalled successfully!
         ```
 

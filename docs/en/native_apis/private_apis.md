@@ -37,7 +37,7 @@
 |--|--|--|
 |torch.distributed._functional_collectives.reduce_scatter_tensor|Yes|Supports bf16, fp16, fp32, int8, int32, int64|
 |torch.distributed._reduce_scatter_base|Yes|Supports fp16, fp32, int8, int32, int64|
-|torch.distributed.all_reduce_coalesced |Yes|Supports fp16, fp32, uint8, int8, int32, int64, bool, complex64|
+|torch.distributed.all_reduce_coalesced|Yes|Supports fp16, fp32, uint8, int8, int32, int64, bool, complex64|
 |torch.distributed._functional_collectives.AsyncCollectiveTensor|Yes|Supports bf16, fp16, fp32, fp64, uint8, int8, int32, int64, bool, complex64, complex128|
 
 ## torch.distributed.nn
