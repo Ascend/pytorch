@@ -233,6 +233,15 @@ if __name__ == "__main__":
     parser.add_argument('--world_size', default=0, type=int, help='Number of ut nodes')
     parser.add_argument('--npu_core', help='Run core testcases in npu')
     parser.add_argument('--network_ops', action="store_true", help='Run network_ops testcases in the op-plugin repo')
+    parser.add_argument('--between_version', nargs='+', metavar='VERSION',
+                        help='Filter testcases by version. '
+                             'min=X means [X, +inf); max=Y means (-inf, Y]; '
+                             'two bare values mean a closed range. '
+                             'Examples: --between_version min=2.10; '
+                             '--between_version max=2.9; '
+                             '--between_version min=2.10 max=2.12; '
+                             '--between_version 2.10 2.12')
+
     options = parser.parse_args()
     print(f"options: {options}")
     fetch_acl_headers()
@@ -287,6 +296,34 @@ if __name__ == "__main__":
             else:
                 cur_test_files[ut_type] = [f for f in cur_test_files[ut_type]
                                            if not str(Path(f)).startswith(npu_dir)]
+
+    if options.between_version:
+        ci_min, ci_max = None, None
+        try:
+            for arg in options.between_version:
+                if arg.startswith("min="):
+                    ci_min = tuple(int(x) for x in arg[4:].split("."))
+                elif arg.startswith("max="):
+                    ci_max = tuple(int(x) for x in arg[4:].split("."))
+                else:
+                    # Bare value: first one is min, second is max.
+                    if ci_min is None:
+                        ci_min = tuple(int(x) for x in arg.split("."))
+                    else:
+                        ci_max = tuple(int(x) for x in arg.split("."))
+        except ValueError:
+            print(f"Error: invalid version in --between_version "
+                  f"{' '.join(options.between_version)}\n"
+                  f"Expected format: --between_version min=2.10 max=2.12 "
+                  f"or --between_version 2.10 2.12")
+            sys.exit(1)
+        if ci_min is None and ci_max is None:
+            raise ValueError("--between_version requires at least one version")
+        min_desc = ".".join(map(str, ci_min)) if ci_min else "-inf"
+        max_desc = ".".join(map(str, ci_max)) if ci_max else "+inf"
+        print(f"Filtering testcases by version range: [{min_desc}, {max_desc}]")
+        test_mgr.filter_by_version(ci_min, ci_max)
+        cur_test_files = test_mgr.get_test_files()
 
     test_mgr.print_modify_files()
     test_mgr.print_ut_files()
