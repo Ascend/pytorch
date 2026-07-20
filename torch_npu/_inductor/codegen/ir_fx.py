@@ -1,36 +1,36 @@
 import typing
+from collections.abc import Sequence
 from typing import (
     Any,
     Callable,
+    Union,
     Optional,
-    Union
 )
 from unittest.mock import patch
+
 import sympy
 import torch
 from sympy import Expr
 from torch._inductor import config
 from torch._inductor import ir
-from torch._inductor.virtualized import ops, V
+from torch._inductor.ir import TensorBox
+from torch._inductor.virtualized import ops, OpsValue, V
 from torch.utils._ordered_set import OrderedSet
-
-from torch_npu._inductor.lowering_common import create_fake_input, subtract_graph
 
 from ..lowering import (
     fetch_graphs,
     merge_traced_graphs,
     node_id,
     clone,
+    create_fake_input,
+    subtract_graph
 )
-
 
 def _patch_loops_get_name(self):
     return self.node_name
 
-
 def _patch_loops_get_traced_graph(self):
     return self.traced_graph
-
 
 @classmethod
 def _patch_loops_create(cls, *args, **kwargs):
@@ -48,7 +48,6 @@ def _patch_loops_create(cls, *args, **kwargs):
     r._post_init_setattr("node_name", node_name)
     return ir.TensorBox.create(r)
 
-
 def _patch_pointwise_constant_to_device(self, device, traced_graph=None, node_name=None):
     """Move this to a given device. Requires that all reads are to constants."""
     loader = self.make_loader()
@@ -58,7 +57,6 @@ def _patch_pointwise_constant_to_device(self, device, traced_graph=None, node_na
     r._post_init_setattr("traced_graph", traced_graph)
     r._post_init_setattr("node_name", node_name)
     return r
-
 
 @classmethod
 def _patch_reduction_create(
@@ -137,7 +135,8 @@ def _patch_reduction_create(
 
     if (
             isinstance(reduction_numel, ir.Integer)
-            and int(reduction_numel) < config.unroll_reductions_threshold
+            and V.graph.sizevars.optimization_hint(reduction_numel)
+            < config.unroll_reductions_threshold
             and (ir.sympy_product(ranges) != 1 or ir.is_gpu(device.type))
     ):
         # NB: This works around pytorch issues 140457
@@ -209,6 +208,8 @@ def _patch_reduction_create(
             reduction_type,
             split,
             reduction_hint,
+            traced_graph=traced_graph,
+            node_name=node_name,
         )
         r._post_init_setattr("traced_graph", traced_graph)
         r._post_init_setattr("node_name", node_name)
@@ -231,12 +232,10 @@ def _patch_reduction_create(
 
     return ir.TensorBox.create(r)
 
-
 def _patch_baseview_get_traced_graph(self):
     if hasattr(self, 'traced_graph') and self.traced_graph is not None:
         return self.traced_graph
     return self.data.get_traced_graph()
-
 
 def _patch_base_view_get_reads(self):
     with patch.object(ir.FlexibleLayout, "allow_indexing", True):
@@ -257,7 +256,6 @@ def _patch_base_view_get_reads(self):
                             return r
     return r
 
-
 def has_buffer(inp):
     if not hasattr(inp, 'data'):
         return False
@@ -265,18 +263,20 @@ def has_buffer(inp):
         return True
     return has_buffer(inp.data)
 
-
-def get_buffer(inp):
+def try_get_buffer(inp):
+    if not hasattr(inp, 'data'):
+        return False
     if isinstance(inp.data, ir.Buffer):
         return inp.data
-    return get_buffer(inp.data)
-
+    return try_get_buffer(inp.data)
 
 def _patch_baseview_realize(self):
     if hasattr(self, 'traced_graph') and self.traced_graph is not None:
         r = self.data.realize()
-        buffer = get_buffer(self)
-        if isinstance(buffer, (ir.MultiOutput, ir.InputBuffer, ir.ConcatKernel)):
+        buffer = try_get_buffer(self)
+        if not buffer:
+            return r
+        if isinstance(buffer, (ir.MultiOutput, ir.InputBuffer, ir.ConcatKernel, ir.ExternKernelOut, ir.MultiTemplateBuffer)):
             return r
         traced_graph = buffer.data.get_traced_graph()
         buf_name = buffer.get_name()
@@ -294,14 +294,13 @@ def _patch_baseview_realize(self):
     else:
         return self.data.realize()
 
-
 def _patch_baseview_realize_hint(self):
     if hasattr(self, 'traced_graph') and self.traced_graph is not None:
         r = self.data.realize_hint()
-        if not has_buffer(self):
+        buffer = try_get_buffer(self)
+        if not buffer:
             return r
-        buffer = get_buffer(self)
-        if isinstance(buffer, (ir.MultiOutput, ir.InputBuffer, ir.ConcatKernel)):
+        if isinstance(buffer, (ir.MultiOutput, ir.InputBuffer, ir.ConcatKernel, ir.ExternKernelOut)):
             return r
         traced_graph = buffer.data.get_traced_graph()
         buf_name = buffer.get_name()
@@ -319,33 +318,29 @@ def _patch_baseview_realize_hint(self):
     else:
         return self.data.realize_hint()
 
-
-def _patch_mark_reuse(self, users, **kwargs):
-    if isinstance(self.data, ir.StorageBox):
-        if self.data.should_realize_on_reuse(users):
-            if hasattr(self, 'traced_graph') and self.traced_graph is not None:
-                r = self.data.realize()
-                buffer = get_buffer(self)
-                if isinstance(buffer, (ir.MultiOutput, ir.InputBuffer, ir.ConcatKernel)):
-                    return r
-                traced_graph = buffer.data.get_traced_graph()
-                buf_name = buffer.get_name()
-                new_traced_graph, placeholder = subtract_graph(self.traced_graph, traced_graph, node_name=buf_name)
-                if placeholder is not None:
-                    placeholder.name = buf_name
-                    device = buffer.get_device()
-                    dtype = buffer.get_dtype()
-                    size = buffer.get_size()
-                    stride = buffer.get_stride()
-                    fake_input = create_fake_input(size, stride, device, dtype)
-                    placeholder.meta['val'] = fake_input
-                self._post_init_setattr("traced_graph", new_traced_graph)
-                return r
-            else:
-                return self.data.realize()
+def _patch_mark_reuse(self, users):
+    if hasattr(self, 'traced_graph') and self.traced_graph is not None:
+        r = self.data.mark_reuse(users)
+        buffer = try_get_buffer(self)
+        if not buffer:
+            return r
+        if isinstance(buffer, (ir.MultiOutput, ir.InputBuffer, ir.ConcatKernel, ir.ExternKernelOut)):
+            return r
+        traced_graph = buffer.data.get_traced_graph()
+        buf_name = buffer.get_name()
+        new_traced_graph, placeholder = subtract_graph(self.traced_graph, traced_graph, node_name=buf_name)
+        if placeholder is not None:
+            placeholder.name = buf_name
+            device = buffer.get_device()
+            dtype = buffer.get_dtype()
+            size = buffer.get_size()
+            stride = buffer.get_stride()
+            fake_input = create_fake_input(size, stride, device, dtype)
+            placeholder.meta['val'] = fake_input
+        self._post_init_setattr("traced_graph", new_traced_graph)
+        return r
     else:
-        return self.data.mark_reuse(users, **kwargs)
-
+        return self.data.mark_reuse(users)
 
 @classmethod
 def _patch_expandview_create(cls, x, new_size, traced_graph=None, node_name=None):
@@ -384,7 +379,6 @@ def _patch_expandview_create(cls, x, new_size, traced_graph=None, node_name=None
 
     return r
 
-
 @classmethod
 def _patch_permuteview_create(cls, x, dims, traced_graph=None, node_name=None):
     dims = cls._map_neg_dims(dims)
@@ -408,7 +402,6 @@ def _patch_permuteview_create(cls, x, dims, traced_graph=None, node_name=None):
     r._post_init_setattr("traced_graph", traced_graph)
     r._post_init_setattr("node_name", node_name)
     return r
-
 
 @classmethod
 def _patch_view_create(cls, x, new_size, traced_graph=None, node_name=None):
@@ -465,7 +458,6 @@ def _patch_view_create(cls, x, new_size, traced_graph=None, node_name=None):
     r._post_init_setattr("node_name", node_name)
     return r
 
-
 @classmethod
 def _patch_sliceview_create(cls, x, dim, start, end, step=1, clamp=True, traced_graph=None,
                             node_name=None):  # next: crm, clamp=True
@@ -515,10 +507,8 @@ def _patch_sliceview_create(cls, x, dim, start, end, step=1, clamp=True, traced_
     r._post_init_setattr("node_name", node_name)
     return r
 
-
 def _patch_buffer_get_traced_graph(self):
     return self.traced_graph
-
 
 @classmethod
 def _patch_concatkernel_create(cls, inputs, dim):
@@ -544,12 +534,17 @@ def _patch_concatkernel_create(cls, inputs, dim):
             if j == dim:
                 new_size[j] = new_size[j] + input_size[j]
             else:
-                new_size[j] = V.graph.sizevars.guard_equals(
+                new_size[j] = V.graph.sizevars.check_equals_and_simplify(
                     new_size[j], input_size[j]
                 )
         offsets_end.append(new_size[dim])
 
     output_stride = ir.FlexibleLayout.contiguous_strides(new_size)
+    if config.comprehensive_padding:
+        # Ensure the output stride matches the alignment requirements
+        output_stride = ir.Layout._pad_strides(
+            output_stride, new_size, inputs[0].dtype
+        )
     # If any of the inputs is in CL format, use CL format for the output
     for i in range(len(inputs)):
         x = inputs[i]
@@ -569,15 +564,18 @@ def _patch_concatkernel_create(cls, inputs, dim):
         raise RuntimeError("assert fx_node_args must be a list")
     # If any of the inputs has meta tensor and the meta tensor is in CL format, use CL format for the output
     if any_input_is_storage_and_layout is False and any(
-        "val" in arg.meta
-        and (
-            arg.meta["val"].is_contiguous(memory_format=torch.channels_last)
-            or arg.meta["val"].is_contiguous(memory_format=torch.channels_last_3d)
-        )
-        for arg in fx_node_args
+            "val" in arg.meta
+            and (
+                arg.meta["val"].is_contiguous(memory_format=torch.channels_last)
+                or arg.meta["val"].is_contiguous(memory_format=torch.channels_last_3d)
+            )
+            for arg in fx_node_args
     ):
         output_stride = ir.make_channels_last_strides_for(new_size)
 
+    is_pinned = all(
+        ir.is_storage_and_layout(x) and x.get_layout().is_pinned for x in inputs
+    )
     concat_kernel = ir.ConcatKernel(
         name=None,
         layout=ir.FixedLayout(
@@ -585,6 +583,7 @@ def _patch_concatkernel_create(cls, inputs, dim):
             dtype=dtype,
             size=new_size,
             stride=output_stride,
+            is_pinned=is_pinned,
         ),
         inputs=[],
     )
@@ -606,8 +605,10 @@ def _patch_concatkernel_create(cls, inputs, dim):
             input_unwrapped = inputs[i].data
 
         if (
-                input_unwrapped.is_input_buffer()
-                and ir.is_gpu(inputs[i].get_device().type)
+                isinstance(input_unwrapped, ir.StorageBox)
+                and input_unwrapped.is_input_buffer()
+                and (dev := inputs[i].get_device()) is not None
+                and ir.is_gpu(dev.type)
                 and not ir.is_dynamic(input_buffer)
         ):
             op_names.append(input_buffer.get_operation_name())
@@ -628,10 +629,8 @@ def _patch_concatkernel_create(cls, inputs, dim):
 
     return kernel
 
-
 def _patch_concatkernel_get_traced_graph(self):
     return self.traced_graph
-
 
 @classmethod
 def _patch_concatkernel_realize_into(cls, src, dst):
@@ -658,7 +657,6 @@ def _patch_concatkernel_realize_into(cls, src, dst):
     pw = clone(src, memory_format=torch.contiguous_format)
     return cls.realize_into(pw, dst)
 
-
 def _patch_externkernel_copy_input(x):
     traced_graph = x.get_traced_graph()
     node_name = x.get_name()
@@ -678,7 +676,6 @@ def _patch_externkernel_copy_input(x):
     )
     pw.realize()
     return pw
-
 
 @classmethod
 def _patch_externkernel_convert_to_reinterpret_view(cls, x):
@@ -701,17 +698,17 @@ def _patch_externkernel_convert_to_reinterpret_view(cls, x):
     x_unwrap_view_fx_node = buf.get_origin_node()
     # Prefer channels last format according to how the format is set from eager.
     if (
-            x_unwrap_view_fx_node is not None
-            and "val" in x_unwrap_view_fx_node.meta
-            and isinstance(x_unwrap_view.layout, ir.FlexibleLayout)
-            and (
-                x_unwrap_view_fx_node.meta["val"].is_contiguous(
-                    memory_format=torch.channels_last
-                )
-                or x_unwrap_view_fx_node.meta["val"].is_contiguous(
-                    memory_format=torch.channels_last_3d
-                )
+        x_unwrap_view_fx_node is not None
+        and "val" in x_unwrap_view_fx_node.meta
+        and isinstance(x_unwrap_view.layout, ir.FlexibleLayout)
+        and (
+            x_unwrap_view_fx_node.meta["val"].is_contiguous(
+                memory_format=torch.channels_last
             )
+            or x_unwrap_view_fx_node.meta["val"].is_contiguous(
+                memory_format=torch.channels_last_3d
+            )
+        )
     ):
         x_unwrap_view.freeze_layout_with_same_order(
             ir.make_channels_last_strides_for(x_unwrap_view.get_size())
@@ -753,7 +750,6 @@ def _patch_externkernel_convert_to_reinterpret_view(cls, x):
     r._post_init_setattr("node_name", x.get_name())
     return r
 
-
 @classmethod
 def _patch_devicecopy_create(cls, x, device, non_blocking, traced_graph=None, node_name=None):
     if (
@@ -781,25 +777,19 @@ def _patch_devicecopy_create(cls, x, device, non_blocking, traced_graph=None, no
     r._post_init_setattr("node_name", node_name)
     return r
 
-
 def _patch_devicecopy_get_traced_graph(self):
     return self.traced_graph
-
 
 def _patch_multioutput_get_traced_graph(self):
     return None
 
-
 ir.MultiOutput.get_traced_graph = _patch_multioutput_get_traced_graph
-
 
 def _patch_mutablebox_get_name(self):
     return self.data.get_name()
 
-
 def _patch_mutablebox_get_traced_graph(self):
     return self.data.get_traced_graph()
-
 
 @classmethod
 def _patch_mutationlayout_realize_into(cls, src, dst, unsafe_alias=False):
@@ -830,7 +820,7 @@ def _patch_mutationlayout_realize_into(cls, src, dst, unsafe_alias=False):
             dtype=src.get_dtype(),
             inner_fn=src.make_loader(),
             ranges=[
-                V.graph.sizevars.check_equals(a, b)
+                V.graph.sizevars.check_equals_and_simplify(a, b)
                 for a, b in zip(src.get_size(), dst.get_size())
             ],
             traced_graph=new_graph,
@@ -843,6 +833,117 @@ def _patch_mutationlayout_realize_into(cls, src, dst, unsafe_alias=False):
     src.data.layout = ir.MutationLayoutSHOULDREMOVE(dst)
     return src.data
 
+@classmethod
+def _patch_Reduction_create_multilayer_helper(
+    cls,
+    device: torch.device,
+    dst_dtype: torch.dtype,
+    src_dtype: torch.dtype,
+    wrapper_fn: Callable[..., Any],
+    original_ranges: Sequence[Expr],
+    original_reduction_ranges: Sequence[Expr],
+    new_ranges: list[Expr],
+    new_reduction_ranges: list[ir.Integer],
+    reduction_type: ir.ReductionType,
+    split: ir._IntLike,
+    reduction_hint: ir.ReductionHint,
+    traced_graph=None,
+    node_name=None,
+) -> ir.TensorBox:
+    """
+    Break a large reduction up into multiple smaller reductions
+    recursively
+    """
+    intermediate_dtype = (
+        dst_dtype
+        if dst_dtype not in (torch.float16, torch.bfloat16)
+        else torch.float
+    )
+    intermediate = ir.Reduction.create(
+        device,
+        intermediate_dtype,
+        src_dtype,
+        wrapper_fn,
+        new_ranges,
+        new_reduction_ranges,
+        reduction_type,
+        reduction_hint,
+        traced_graph=traced_graph,
+        node_name=node_name,
+    )
+    intermediate.realize()
+    intermediate_loader = intermediate.make_loader()
+
+    def intermediate_fn(
+        index: Sequence[ir._IntLike], reduction_index: Sequence[ir._IntLike]
+    ) -> OpsValue:
+        return intermediate_loader([*index, *reduction_index])
+
+    numel_hint = V.graph.sizevars.optimization_hint(ir.sympy_product(original_ranges))
+    reduction_hint = cls._multilayer_second_step_hint(
+        split, numel_hint, reduction_hint
+    )
+
+    if not (len(new_ranges) >= len(original_ranges) and
+            all(a == b for a, b in zip(original_ranges, new_ranges))):
+        raise ValueError(
+            f"Ranges prefix mismatch: expected {original_ranges}, "
+            f"got {new_ranges[:len(original_ranges)]}"
+        )
+    return TensorBox.create(
+        ir.Reduction(
+            device=device,
+            dtype=dst_dtype,
+            inner_fn=intermediate_fn,
+            ranges=original_ranges,
+            reduction_ranges=new_ranges[len(original_ranges) :],
+            reduction_type=reduction_type,
+            src_dtype=src_dtype,
+            reduction_hint=reduction_hint,
+        )
+    )
+
+@classmethod
+def _patch_Reduction_create_multilayer(
+    cls,
+    device: torch.device,
+    dst_dtype: torch.dtype,
+    src_dtype: torch.dtype,
+    inner_fn: Callable[..., Any],
+    ranges: Sequence[Expr],
+    reduction_ranges: Sequence[Expr],
+    reduction_type: ir.ReductionType,
+    split: ir._IntLike,
+    reduction_hint: ir.ReductionHint,
+    traced_graph=None,
+    node_name=None,
+) -> ir.TensorBox:
+    """
+    Break a large reduction up into multiple smaller reductions
+    recursively
+    """
+    reduction_numel = ir.sympy_product(reduction_ranges)
+    block_size = ir.FloorDiv(reduction_numel + (split - 1), split)
+    default = cls.default_value(reduction_type, dst_dtype)
+    wrapper_fn = cls._multilayer_wrap_loader(
+        inner_fn, reduction_ranges, reduction_numel, split, block_size, default
+    )
+
+    return cls.create_multilayer_helper(
+        device,
+        dst_dtype,
+        src_dtype,
+        wrapper_fn,
+        ranges,
+        reduction_ranges,
+        [*ranges, split],
+        [block_size],
+        reduction_type,
+        split,
+        reduction_hint,
+        traced_graph=traced_graph,
+        node_name=node_name,
+    )
 
 def _patch_npu_inductor_ir():
     ir.Reduction.create = _patch_reduction_create
@@ -871,3 +972,5 @@ def _patch_npu_inductor_ir():
     ir.Loops.create = _patch_loops_create
     ir.Pointwise.constant_to_device = _patch_pointwise_constant_to_device
     ir.MutationLayoutSHOULDREMOVE.realize_into = _patch_mutationlayout_realize_into
+    ir.Reduction.create_multilayer_helper = _patch_Reduction_create_multilayer_helper
+    ir.Reduction.create_multilayer = _patch_Reduction_create_multilayer

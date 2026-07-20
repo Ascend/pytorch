@@ -17,13 +17,15 @@ contiguity
 coo
 DEPENDEES
 deser
+deviceC
 din
 dout
 ElementE
 followings
 fro
 froms
-Halfs
+GemmKernelBase
+Halfssort
 hsa
 indexT
 inH

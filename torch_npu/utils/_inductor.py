@@ -1,28 +1,29 @@
 from typing import Optional
-
+from functools import reduce
 import torch
-from torch._inductor.codegen.common import DeviceOpOverrides, register_device_op_overrides
+import operator
+from torch._prims_common import TensorLike
+from torch._inductor.codegen.common import DeviceOpOverrides, register_device_op_overrides  # noqa: F401
 from torch._prims.rng_prims import register_rng_prim
 
+aten = torch.ops.aten
+def _max_unpoolnd_patch(
+    self: TensorLike, indices: TensorLike, output_size: list[int], dim: int
+):
+    nc = reduce(operator.mul, self.shape[:-dim])
+    hw = reduce(operator.mul, output_size)
+    indices_nc_shape = [1] * self.ndim
+    indices_nc_shape[:-dim] = self.shape[:-dim]
+    indices_flat = (
+        indices + aten.arange(nc, device=self.device).view(indices_nc_shape) * hw
+    ).reshape(-1)
 
-class NPUDeviceOpOverrides(DeviceOpOverrides):
-    def import_get_raw_stream_as(self, name):
-        return f"from torch_npu._C import _npu_getCurrentRawStream as {name}"
+    output = self.new_zeros(list(self.shape[:-dim]) + list(output_size))
+    return aten._unsafe_index_put(
+        output.reshape(-1), [indices_flat], self.reshape(-1), accumulate=False
+    ).view(output.shape)
 
-    def set_device(self, device_idx):
-        return f"torch_npu.npu.set_device({device_idx})"
-
-    def synchronize(self):
-        return "torch_npu.npu.synchronize()"
-
-    def device_guard(self, device_idx):
-        return f"torch_npu.npu._DeviceGuard({device_idx})"
-
-
-def _inductor_register_device_op_overrides():
-    from torch._inductor.codegen import cpu_device_op_overrides, mps_device_op_overrides
-    register_device_op_overrides('npu', NPUDeviceOpOverrides())
-
+torch._decomp.decompositions._max_unpoolnd = _max_unpoolnd_patch
 
 def patch_philox_rand_offset():
     def get_philox_rand_offset_patch(shape):
@@ -34,7 +35,6 @@ def patch_philox_rand_offset():
         return numel
     torch._prims.rng_prims.philox_rand_offset = get_philox_rand_offset_patch
 
-
 def patch_register_philox_rand():
     rng_prims = torch._prims.rng_prims
     philox_rand_offset_meta = rng_prims.philox_rand_offset_meta
@@ -45,11 +45,9 @@ def patch_register_philox_rand():
     _dtype = rng_prims._dtype
     CUDARngStateHelper = rng_prims.CUDARngStateHelper
 
-
     def get_register_philox_rand_patch():
         name = "philox_rand"
         schema = "(SymInt[] size, Tensor seed, Tensor offset, int[]? stride, Device? device=None, ScalarType? dtype=None) -> (Tensor, Tensor)"  # noqa: B950
-
 
         def _philox_rand_meta(
             shape: torch.Size,
@@ -65,7 +63,6 @@ def patch_register_philox_rand():
             )
             offset = philox_rand_offset_meta(shape)
             return (random_values, offset)
-
 
         def _philox_rand(
             shape: torch.Size,
@@ -86,7 +83,6 @@ def patch_register_philox_rand():
 
             return random_values, philox_rand_offset(shape)
 
-
         register_rng_prim(
             name=name,
             schema=schema,
@@ -98,7 +94,6 @@ def patch_register_philox_rand():
 
     torch._prims.rng_prims.register_philox_rand = get_register_philox_rand_patch
     torch._prims.rng_prims.register_philox_rand()
-
 
 def patch_register_run_and_save_rng_state_op():
     from torch._prims import rng_prims
@@ -112,12 +107,10 @@ def patch_register_run_and_save_rng_state_op():
     if getattr(run_and_save_rng_state, "_npu_patched", False):
         return
 
-
     @run_and_save_rng_state.py_impl(DispatchKey.PrivateUse1)
     def impl_npu(op, *args, **kwargs):
         import torch_npu
         return torch_npu.npu.get_rng_state(), op(*args, **kwargs)
-
 
     backend_select_impl = run_and_save_rng_state.py_kernels.get(
         DispatchKey.BackendSelect, None
@@ -126,7 +119,6 @@ def patch_register_run_and_save_rng_state_op():
     fake_tensor_mode_impl = run_and_save_rng_state.python_key_table.get(
         FakeTensorMode, None
     )
-
 
     def backend_select_with_npu(op, *args, **kwargs):
         from torch._prims.rng_prims import get_device
@@ -137,7 +129,6 @@ def patch_register_run_and_save_rng_state_op():
             return impl_npu(op, *args, **kwargs)
 
         return backend_select_impl(op, *args, **kwargs)
-
 
     def fake_tensor_mode_with_npu(mode, op, *args, **kwargs):
         from torch._prims.rng_prims import get_device
@@ -157,7 +148,6 @@ def patch_register_run_and_save_rng_state_op():
         FakeTensorMode
     ] = fake_tensor_mode_with_npu
 
-
 def patch_register_run_with_rng_state_op():
     from torch._prims import rng_prims
     from torch._C import DispatchKey
@@ -170,7 +160,6 @@ def patch_register_run_with_rng_state_op():
     if getattr(run_with_rng_state, "_npu_patched", False):
         return
 
-
     @run_with_rng_state.py_impl(DispatchKey.PrivateUse1)
     def impl_npu(rng_state, op, *args, **kwargs):
         import torch_npu
@@ -182,7 +171,6 @@ def patch_register_run_with_rng_state_op():
             torch_npu.npu.set_rng_state(current_state)
         return out
 
-
     backend_select_impl = run_with_rng_state.py_kernels.get(
         DispatchKey.BackendSelect, None
     )
@@ -190,7 +178,6 @@ def patch_register_run_with_rng_state_op():
     fake_tensor_mode_impl = run_with_rng_state.python_key_table.get(
         FakeTensorMode, None
     )
-
 
     def backend_select_with_npu(rng_state, op, *args, **kwargs):
         from torch._prims.rng_prims import get_device
@@ -201,7 +188,6 @@ def patch_register_run_with_rng_state_op():
             return impl_npu(rng_state, op, *args, **kwargs)
 
         return backend_select_impl(rng_state, op, *args, **kwargs)
-
 
     def fake_tensor_mode_with_npu(mode, rng_state, op, *args, **kwargs):
         from torch._prims.rng_prims import get_device
@@ -221,7 +207,6 @@ def patch_register_run_with_rng_state_op():
         FakeTensorMode
     ] = fake_tensor_mode_with_npu
 
-
 def patch_rng_prims_device():
     from torch._prims import rng_prims
     src_get_device = rng_prims.get_device
@@ -234,7 +219,6 @@ def patch_rng_prims_device():
                 return "npu"
         return device
     rng_prims.get_device = new_patch_device
-
 
 patch_register_run_and_save_rng_state_op()
 patch_register_run_with_rng_state_op()

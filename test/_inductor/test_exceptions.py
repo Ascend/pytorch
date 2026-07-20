@@ -1,11 +1,9 @@
 import functools
-from functools import partial
-
 from testutils import TestUtils
-import torch
+import torch  # noqa: F401
 from torch._inductor.codecache import _load_triton_kernel_from_source
 from torch.testing._internal.common_utils import run_tests
-import torch_npu
+import torch_npu  # noqa: F401
 
 
 src_code_1 = '''
@@ -18,23 +16,21 @@ from torch._inductor.runtime.triton_helpers import libdevice, math as tl_math
 from torch._inductor.runtime.hints import AutotuneHint, ReductionHint, TileHint, DeviceProperties
 
 from torch._inductor.runtime import triton_helpers
-from torch_npu._inductor import npu_triton_heuristics
-from torch_npu._inductor import npu_triton_helpers
-from torch_npu._inductor.runtime import NPUDeviceProperties
-from torch_npu._inductor.npu_triton_helpers import libdevice, math as tl_math
+from torch_npu._inductor.runtime import triton_heuristics
+from torch_npu._inductor.runtime.triton_helpers import libdevice, math as tl_math
 import torch
 import torch_npu
 
-@npu_triton_heuristics.pointwise_npu_index(
-    size_hints=[16384, 32], tile_hint=TileHint.DEFAULT,
+@triton_heuristics.pointwise(
+    size_hints={'y0': 16384, 'x1': 32}, tile_hint=TileHint.DEFAULT,
     filename=__file__,
     triton_meta={'signature': {'in_ptr0': '*fp16', 'in_ptr1': '*fp16', 'out_ptr0': '*fp16', 'y0_numel': 'i32', 'x1_numel': 'i32'},
-    'device': NPUDeviceProperties(type='npu', index=0, multi_processor_count=40, cc='Ascend910B3',
+    'device': DeviceProperties(type='npu', index=0, multi_processor_count=40, cc='Ascend910B3',
                                   major=None, regs_per_multiprocessor=None, max_threads_per_multi_processor=None, warp_size=32),
                                   'constants': {}, 'mix_mode': 'aiv'},
     inductor_meta={'autotune_hints': set(), 'kernel_name': 'triton_unk_fused_add_0', 'mutated_arg_names': [],
                    'backend_hash': 'bc71dba4086164e7ac2b0779fa861dbf7467f0265d4a57b8f48cf6dda02b150f', 'split_axis': [0],
-                   'tiling_axis': [0, 1], 'axis_names': ['y0', 'x1'], 'low_dims': {1}, 'numof_reduction_axis': 0,
+                   'tiling_axis': [0, 1], 'no_loop_axis': [1], 'axis_names': ['y0', 'x1'], 'low_dims': {1}, 'numof_reduction_axis': 0, 'inductor_ascend_linear_mode': 'linear',
                    'split_axis_dtype': torch.float16, 'dual_reduction': False, 'traced_graph_hash': 'TRACED_GRAPH_HASH',
                    'traced_graph_dir': 'TRACED_GRAPH_DIR'},
     min_elem_per_thread=0
@@ -56,8 +52,7 @@ def triton_unk_fused_add_0(in_ptr0, in_ptr1, out_ptr0, y0_numel, x1_numel, Y0BLO
             # Not define tmp1 and make error manually for triton: 'tmp1 is not defined'
             tmp2 = tmp0 + tmp1
             tl.store(out_ptr0 + (x1 + 32*y0), tmp2, x1_mask & y0_mask)
-'''
-
+'''  # noqa: B950
 
 class TestExceptions(TestUtils):
     def test_triton_kernel_failed(self):

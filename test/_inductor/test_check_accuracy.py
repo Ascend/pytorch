@@ -19,7 +19,7 @@ class TestCheckAccuracy(TestUtils):
         def run(x, y):
             return F.relu(x) - y
 
-        from torch_npu._inductor.npu_triton_heuristics import NPUCachingAutotuner
+        from torch_npu._inductor.runtime.triton_heuristics import NPUCachingAutotuner
         src_data_dump = NPUCachingAutotuner.data_dump
 
         def wrap_data_dump(self, *args, **kwargs):
@@ -47,7 +47,7 @@ class TestCheckAccuracy(TestUtils):
         _ = run(x, y)
 
         with patch.object(NPUCachingAutotuner, "data_dump", wrap_data_dump), \
-            patch.object(torch_npu._inductor.npu_triton_heuristics, "check_accuracy_triton", wrap_check_accuracy):
+                patch.object(torch_npu._inductor.runtime.triton_heuristics, "check_accuracy_triton", wrap_check_accuracy):
             self.assertTrue(torch_npu._inductor.config.dump_fx_graph)
             self.assertTrue(torch_npu._inductor.config.check_accuracy)
 

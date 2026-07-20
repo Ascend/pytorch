@@ -1,40 +1,46 @@
-import torch
 from typing import Optional, Tuple
-from torch._inductor.decomposition import decompositions, register_decomposition
-import torch.nn.functional as F
-from torch._C import DispatchKey
+import torch
+import torch._ops
 from torch import Tensor
+from torch._inductor import decomposition as inductor_decomp
+from torch._inductor.decomposition import decompositions, register_decomposition
+from torch._C import DispatchKey
 from torch._decomp import remove_decompositions
+from torch._prims_common.wrappers import out_wrapper  # noqa: F401
+import torch.nn.functional as F
+
+from .lowering_common import add_overload
 from .ascend_npu_ir.ascend_npu_ir import config as anir_config
+from .lowering_common import run_once
+
 
 aten = torch.ops.aten
 npu = torch.ops.npu
 
+@run_once
 def _register_shared_decompositions():
     @register_decomposition([aten.expm1])
     def expm1(x):
         tensor = torch.exp(x) - torch.ones_like(x)
         return tensor
 
-def _register_triton_decompositions():
 
+def _register_triton_decompositions():
+    from .config import is_ascend950
+    from .lowering import _add_overload  # noqa: F401
     DECOMPOSITION_OVERLOAD_OP = [
-        aten._log_softmax,
         aten.nll_loss_forward,
-        # aten.gelu_backward,
-        # aten.gelu,
         aten.nll_loss_backward,
         aten._log_softmax_backward_data,
-        aten.embedding_dense_backward,
         aten.addmm,
         aten.gelu,
-        aten.expm1,
-        aten.erfc
+        aten.native_layer_norm,
     ]
 
-    from .lowering_common import add_overload
+    if is_ascend950:
+        DECOMPOSITION_OVERLOAD_OP.append(aten.max_pool2d_with_indices)
 
-    def _register_npu_inductor_decompositions():
+    def _register_npu_triton_decompositions():
         overload_op_set = set()
         add_overload(DECOMPOSITION_OVERLOAD_OP, overload_op_set)
 
@@ -47,10 +53,21 @@ def _register_triton_decompositions():
             tensor = torch.ones_like(x) - torch.erf(x)
             return tensor
 
-    _register_npu_inductor_decompositions()
+        @register_decomposition([aten.gelu])
+        def gelu(x):
+            two_sqrt_2_over_pi = 1.5957691216057308
+            coeff = 0.044715
+            x_cubed = x * x * x
+            z = two_sqrt_2_over_pi * (x + coeff * x_cubed)
+            sigmoid_z = torch.sigmoid(z)
+            result = x * sigmoid_z
+            return result
+
+
+    _register_npu_triton_decompositions()
 
 def _register_mlir_dvm_decompositions():
-    remove_decompositions(decompositions, anir_config.decomps_to_exclude_npu)
+    remove_decompositions(inductor_decomp.decompositions, anir_config.decomps_to_exclude_npu)
 
     # Batch_norm_decomposition function registered to fix dynamic shape dynamo tracing issue.
     @aten.batch_norm.default.py_impl(DispatchKey.Autograd)

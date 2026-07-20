@@ -1,8 +1,7 @@
-import torch
+﻿import torch
 from torch.utils.checkpoint import DefaultDeviceType
 
 import torch_npu
-
 
 def _register_npu_backend():
     """
@@ -27,7 +26,6 @@ def _register_npu_backend():
             "torch.npu is not registered after privateuse1 backend registration"
         )
 
-
 def _register_distributed():
     """
     Register distributed backend for NPU.
@@ -48,7 +46,6 @@ def _register_distributed():
     # init and register distributed backend
     register_distributed_backend_for_npu()
 
-
 def _register_dynamo():
     """
     Register Dynamo integration:
@@ -67,7 +64,6 @@ def _register_dynamo():
     # Dynamo's global rules maps.
     register_dynamo_trace_rules()
 
-
 def _register_rpc():
     """
     Register and init RPC NPU backend.
@@ -76,7 +72,6 @@ def _register_rpc():
 
     _rpc_backend_registry()
 
-
 def _register_inductor():
     """
     Register lightweight NPU device op overrides for Inductor.
@@ -84,17 +79,13 @@ def _register_inductor():
     Inductor backend loading and heavy global patches lazily when torch.compile
     and Inductor path is actually used.
     """
-    from torch_npu.utils._inductor import _inductor_register_device_op_overrides
-
-    _inductor_register_device_op_overrides()
-
+    from torch_npu.utils._inductor import _max_unpoolnd_patch  # noqa: F401
 
 def _register_default_gradient_device_type():
     """
     Set default device type for gradient checkpointing.
     """
     DefaultDeviceType.set_device_type("npu")
-
 
 def _register_components():
     """

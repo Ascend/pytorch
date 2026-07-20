@@ -1,0 +1,764 @@
+import contextlib
+import copy
+import itertools
+import logging
+import math
+from types import ModuleType
+from typing import Any, Callable, Optional, Sequence, Union
+
+import torch
+from torch._inductor import config, ir, dependencies
+from torch._inductor.codecache import LambdaFuture, PyCodeCache
+from torch._inductor.metrics import get_metric_table, is_metric_table_enabled
+from torch._inductor.runtime.runtime_utils import green_text, red_text
+from torch._inductor.scheduler import (
+    BaseSchedulerNode,
+    Scheduler,
+    WhyNoFuse,
+    fusion_log,
+    GraphPartitionSignature,
+    PartitionType,
+)
+from torch._inductor.ir import ChoiceCaller, MultiTemplateBuffer, NoneLayout
+from torch._inductor.virtualized import V
+from torch.utils._ordered_set import OrderedSet
+
+from .codegen.catlass.catlass_kernel import CATLASSTemplateCaller
+from .config import is_ascend950
+
+def patch_scheduler():
+    @classmethod
+    def are_long_distant_nodes(
+            self, node1: BaseSchedulerNode, node2: BaseSchedulerNode
+    ) -> bool:
+        proximity_score = max(
+            abs(node1.min_order - node2.max_order),
+            abs(node2.min_order - node1.max_order),
+        )
+        # GPU default score is 64, A5 use 20 to avoiding runtime errors in large kernels.
+        return proximity_score > 20
+
+    if is_ascend950:
+        Scheduler.are_long_distant_nodes = are_long_distant_nodes
+
+    def patch_multi_template_buffer():
+
+        @contextlib.contextmanager
+        def swap_as_caller(self, caller: ChoiceCaller):  # type: ignore[no-untyped-def]
+            assert isinstance(
+                caller, (
+                    torch._inductor.select_algorithm.TritonTemplateCaller,
+                    CATLASSTemplateCaller,
+                )
+            ), type(caller)
+            assert self.layout == caller.layout
+
+            render = self.make_kernel_render
+            self.make_kernel_render = caller.get_make_kernel_render()
+            try:
+                yield
+            finally:
+                self.make_kernel_render = render
+
+        def finalize_as_caller(self, caller: ChoiceCaller) -> None:
+            assert isinstance(
+                caller, (
+                    torch._inductor.select_algorithm.TritonTemplateCaller,
+                    CATLASSTemplateCaller,
+                )
+            ), type(caller)
+            assert self.get_size() == caller.layout.size
+            assert self.get_stride() == caller.layout.stride
+            self.make_kernel_render = caller.get_make_kernel_render()
+
+        MultiTemplateBuffer.swap_as_caller = swap_as_caller
+        MultiTemplateBuffer.finalize_as_caller = finalize_as_caller
+
+    patch_multi_template_buffer()
+
+    def fuse_nodes_once(
+        self, nodes: list[BaseSchedulerNode], is_reorder_round: bool,
+    ) -> list[BaseSchedulerNode]:
+        """
+        Combine eligible nodes into FusedSchedulerNodes.
+
+        This relies on two key functions to control the logic:
+            - self.can_fuse(): checks if a fusion is legal
+            - self.score_fusion(): assigns priority to a given fusion
+        """
+        fused_nodes = OrderedSet(nodes)
+        if fusion_log.isEnabledFor(logging.DEBUG):
+            fusion_log.debug("fuse_nodes_once, candidates:")
+            for node in fused_nodes:
+                fusion_log.debug("  " + node.debug_str_short())  # noqa: G003
+
+        # These are potential fusions which we are async compiling,
+        # and which we will benchmark profitability of.
+        pending_fusions: dict[
+            BaseSchedulerNode,
+            tuple[Callable[[], bool], BaseSchedulerNode, BaseSchedulerNode],
+        ] = {}
+
+        def fuse_two_nodes(
+            node1: BaseSchedulerNode, node2: BaseSchedulerNode
+        ) -> BaseSchedulerNode:
+            fusion_log.debug("fusing %s with %s", node1.get_name(), node2.get_name())
+
+            device = node1.get_device()
+            assert node2.get_device() == device
+
+            # in case the node has been modified
+            may_new_node1 = self.get_fused_node(node1)
+            may_new_node2 = self.get_fused_node(node2)
+            node3 = self.get_backend(device).fuse(may_new_node1, may_new_node2)
+            fused_nodes.remove(node1)
+            fused_nodes.remove(node2)
+            fused_nodes.add(node3)
+            self.name_to_fused_node.update(
+                {n.get_name(): node3 for n in node3.get_nodes()}
+            )
+            return node3
+
+        def resolve_pending_fusions(
+            node1: BaseSchedulerNode, node2: BaseSchedulerNode
+        ) -> None:
+            while (
+                self.get_fused_node(node1) in pending_fusions
+                or self.get_fused_node(node2) in pending_fusions
+            ):
+                pending_fusion = pending_fusions.get(
+                    self.get_fused_node(node1),
+                    pending_fusions.get(self.get_fused_node(node2), None),
+                )
+                assert pending_fusion is not None
+
+                is_speedup, node_key1, node_key2 = pending_fusion
+                pending_fusions.pop(node_key1, None)
+                pending_fusions.pop(node_key2, None)
+
+                assert self.get_fused_node(node_key1) is node_key1
+                assert self.get_fused_node(node_key2) is node_key2
+
+                if not is_speedup() or self.will_fusion_create_cycle(node1, node2):
+                    continue
+
+                fuse_two_nodes(node_key1, node_key2)
+
+        for node1, node2 in self.get_possible_fusions(nodes, is_reorder_round):
+            # if either node is in a pending fusion, resolve it.
+            # since we iterate on potential fusions based on profitability
+            # the first potential fusion should take precedence.
+            resolve_pending_fusions(node1, node2)
+            node1 = self.get_fused_node(node1)
+            node2 = self.get_fused_node(node2)
+
+            if self.can_fuse(node1, node2) and not self.will_fusion_create_cycle(
+                node1, node2
+            ):
+                speedup = self.speedup_by_fusion(node1, node2)
+                if callable(speedup):
+                    pending_fusions[node1] = (speedup, node1, node2)
+                    pending_fusions[node2] = (speedup, node1, node2)
+                    continue
+
+                if not speedup:
+                    continue
+
+                fuse_two_nodes(node1, node2)
+
+        seen_pair_speedup_fn: OrderedSet[Callable[[], bool]] = OrderedSet()
+        for is_speedup_fn, node_key1, node_key2 in pending_fusions.values():
+            if is_speedup_fn in seen_pair_speedup_fn:
+                continue
+
+            seen_pair_speedup_fn.add(is_speedup_fn)
+
+            assert self.get_fused_node(node_key1) is node_key1
+            assert self.get_fused_node(node_key2) is node_key2
+
+            if is_speedup_fn() and not self.will_fusion_create_cycle(
+                node_key1, node_key2
+            ):
+                fuse_two_nodes(node_key1, node_key2)
+
+        nodes = sorted(fused_nodes, key=lambda x: x.min_order)
+        nodes = self.topological_sort_schedule(nodes)
+        self.prune_redundant_deps(nodes)
+        return nodes
+
+    def speedup_by_fusion(
+        self, node1: BaseSchedulerNode, node2: BaseSchedulerNode
+    ) -> Union[bool, Callable[[], bool]]:
+        """
+        If config.benchmark_fusion is False, always return True.
+        Otherwise, return True if fusion can brings speedup.
+        """
+
+        is_multi_template = any(
+            n.is_template()
+            and isinstance(n.get_template_node(), ir.MultiTemplateBuffer)
+            for n in (node1, node2)
+        )
+        if not config.benchmark_fusion and not is_multi_template:
+            return True
+
+        if (
+            node1.is_template()
+            and not isinstance(node1.get_template_node(), ir.TritonTemplateBuffer)
+            or node1.is_foreach()
+            or node2.is_foreach()
+        ):
+            return True
+
+        node_list_1 = node1.get_nodes()
+        device = node_list_1[0].get_device()
+        assert device
+
+        # don't support benchmark fusion for CPU right now.
+        if device.type == "cpu":
+            return True
+
+        node_list_2 = node2.get_nodes()
+        node_list_fused = list(itertools.chain(node_list_1, node_list_2))
+
+        # We can not accurately benchmark kernel using atomic_add
+        # due to how we generate random integer inputs.
+        # Skip benchmarking them by allowing fusion.
+        if self._any_atomic_add(node_list_fused):
+            return True
+
+        from triton.compiler.errors import CompilationError
+
+        why = WhyNoFuse(node1, node2)
+
+        device = node_list_fused[0].get_device()
+        assert device is not None
+
+        def log_fusion(ms_fused: float, ms1: float, ms2: float, choice_name="") -> None:
+            if fusion_log.isEnabledFor(logging.DEBUG):
+                if ms_fused < ms1 + ms2:
+                    fusion_log.debug(
+                        "choice: [%s], can fuse (benchmark): fusing %s with %s cause %sx speedup, %s",
+                        choice_name,
+                        node1.get_buffer_names(),
+                        node2.get_buffer_names(),
+                        green_text(f"{(ms1 + ms2) / ms_fused:.3f}"),
+                        f"ms1: {ms1}, ms2: {ms2}, ms_fused:{ms_fused}",
+                    )
+                else:
+                    fusion_log.debug(
+                        "choice: [%s], cannot fuse (benchmark): fusing %s with %s cause %sx slowdown, %s",
+                        choice_name,
+                        node1.get_buffer_names(),
+                        node2.get_buffer_names(),
+                        red_text(f"{ms_fused / (ms1 + ms2):.3f}"),
+                        f"ms1: {ms1}, ms2: {ms2}, ms_fused:{ms_fused}",
+                    )
+
+        async_compile = torch._inductor.async_compile.AsyncCompile()
+
+        def replace_operation_buffer(
+            orig_node: ir.MultiTemplateBuffer, new_node: ir.OperationBuffer
+        ) -> None:
+            replaced_buf_name = new_node.get_name()
+            orig_buf_name = orig_node.get_name()
+            assert isinstance(orig_buf_name, str) and isinstance(replaced_buf_name, str)
+
+            replaced_op_name = new_node.get_operation_name()
+            orig_op_name = orig_node.get_operation_name()
+            assert isinstance(orig_op_name, str) and isinstance(replaced_op_name, str)
+
+            del V.graph.name_to_buffer[replaced_buf_name]
+            new_node.name = orig_buf_name
+
+            del V.graph.name_to_op[replaced_op_name]
+            new_node.operation_name = orig_op_name
+
+            orig = V.graph.buffers.index(orig_node)
+            V.graph.buffers.remove(new_node)
+            V.graph.buffers[orig] = new_node
+            V.graph.name_to_buffer[orig_buf_name] = new_node
+
+            orig = V.graph.operations.index(orig_node)
+            V.graph.operations.remove(new_node)
+            V.graph.operations[orig] = new_node
+            V.graph.name_to_op[orig_op_name] = new_node
+
+        def compile_kernel(
+            nodes: Sequence[BaseSchedulerNode]
+        ) -> tuple[Optional[LambdaFuture], ModuleType]:
+            src_code_or_mod = self.generate_kernel_code_from_nodes(
+                nodes, benchmark_kernel=True
+            )
+
+            if self.get_backend(device)._catlass_scheduling.is_catlass_template(
+                nodes[0]
+            ):
+                return None, src_code_or_mod
+
+            if not async_compile.use_process_pool():
+                fut = None
+            else:
+                mod = PyCodeCache.load(src_code_or_mod)
+                fut = async_compile.triton(
+                    kernel_name="triton_", source_code=src_code_or_mod
+                )
+                assert isinstance(fut, LambdaFuture)
+
+            return (fut, mod)
+
+        # After the successful fusion with Template, we finalize its config.
+        # Subsequently we benchmark but dont update. Checking for SchedulerNode, instead of FusedSchedulerNode
+        # accomplishes this.
+        if is_multi_template and any(
+            n.get_template_node() is not None for n in (node1, node2)
+        ):
+            epilogue_fusion = node1.get_template_node() is not None
+            multi_node = (
+                node1.get_template_node()
+                if epilogue_fusion
+                else node2.get_template_node()
+            )
+            assert isinstance(multi_node, ir.MultiTemplateBuffer)
+            choice_timings = multi_node.choice_timings()
+            _, ms1 = multi_node.get_min_choice()
+
+            # Eagerly compile and benchmark non-template nodes
+            ms1_choice, ms1 = multi_node.get_min_choice()
+
+            ms2, path2 = (
+                self.benchmark_fused_nodes(node_list_2)
+                if epilogue_fusion
+                else self.benchmark_fused_nodes(node_list_1)
+            )
+
+            # Start compiling choices in parallel
+            future_choices: list[tuple[Any, Optional[LambdaFuture], ModuleType]] = []
+            # Track orphan CATLASS buffers created during benchmarking so they
+            # can be cleaned up afterwards.  Each output_node() call registers a
+            # new buffer in V.graph.operations / V.graph.buffers; only the winning
+            # choice is later moved into the correct slot by replace_operation_buffer.
+            # The remaining buffers would otherwise linger as duplicate-name entries
+            # that break the cpp_wrapper second-pass scheduler initialisation.
+            benchmark_catlass_orphans: list[tuple[Any, str, str]] = []
+            template_choices = 0
+            for choice, unfused_time in sorted(
+                choice_timings.items(), key=lambda x: x[1]
+            ):
+                if not (
+                    isinstance(choice, torch._inductor.ir.TritonTemplateCallerBase)
+                    or (
+                        isinstance(choice, CATLASSTemplateCaller)
+                        and multi_node == node1.get_template_node()
+                    )
+                ):
+                    continue
+
+                # For prologue fusion we check if the underlying template of the choice
+                # supports all allowed prologue inputs. If not, we skip this choice in
+                # the fusion benchmark.
+                # Currently, persistent+TMA Triton template does not due to the TMA-based loads.
+                if (
+                    not epilogue_fusion
+                    and hasattr(choice, "allowed_prologue_inps")
+                    and choice.allowed_prologue_inps != multi_node.allowed_prologue_inps
+                ):
+                    continue
+
+                if unfused_time >= ms1 + ms2:
+                    break
+
+                if isinstance(choice, CATLASSTemplateCaller):
+                    out_tensorbox = choice.output_node()
+                    out_storage = out_tensorbox.data
+                    assert isinstance(out_storage, ir.StorageBox)
+                    out_buffer = out_storage.data
+                    assert isinstance(out_buffer, ir.OperationBuffer)
+                    # Save original names before hacking, for later cleanup
+                    _orig_buf_name = out_buffer.get_name()
+                    _orig_op_name = out_buffer.get_operation_name()
+                    # hack out_buffer's name to judge if can fuse
+                    out_buffer.name = multi_node.get_name()
+                    # Track this buffer as a potential orphan
+                    benchmark_catlass_orphans.append(
+                        (out_buffer, _orig_buf_name, _orig_op_name)
+                    )
+
+                    # Since current can_fuse does not check CATLASSScheduling.can_fuse
+                    # for MultiTemplateBuffer, we hack here to check if can_fuse again
+                    if not self.get_backend(
+                        device
+                    )._catlass_scheduling._can_fuse_epilogue_impl(
+                        out_buffer, [], node2
+                    ):
+                        del out_buffer
+                        continue
+
+                template_choices += 1
+                if template_choices > config.max_epilogue_benchmarked_choices:
+                    break
+
+                with multi_node.swap_as_caller(choice):
+                    new_node_list_fused = node_list_fused
+                    if isinstance(choice, CATLASSTemplateCaller):
+                        # hack for the template node
+                        new_node = self.create_scheduler_node(out_buffer)
+                        for new_out, old_out in zip(
+                            new_node.get_outputs(), node1.get_outputs()
+                        ):
+                            new_out.users = old_out.users
+                        new_node_list_fused = copy.copy(node_list_fused)
+                        new_node_list_fused[0] = new_node
+                    future_choices.append(
+                        (choice, *compile_kernel(new_node_list_fused))
+                    )
+
+            def _cleanup_catlass_orphan_buffers(
+                orphans: list[tuple[Any, str, str]],
+            ) -> None:
+                """Remove orphan CATLASS buffers created during benchmarking.
+
+                Each output_node() call in the benchmarking loop registers a
+                new buffer in V.graph.operations / V.graph.buffers.  Only the
+                winning choice's buffer (created separately in
+                benchmark_when_ready) is properly placed by
+                replace_operation_buffer.  The remaining buffers linger as
+                duplicate-name entries that break the cpp_wrapper second-pass
+                scheduler initialisation (validate_unique_buffer_names).
+                """
+                for orphan_buf, orig_name, orig_op_name in orphans:
+                    if orphan_buf in V.graph.operations:
+                        V.graph.operations.remove(orphan_buf)
+                    if orphan_buf in V.graph.buffers:
+                        V.graph.buffers.remove(orphan_buf)
+                    if (
+                        orig_name in V.graph.name_to_buffer
+                        and V.graph.name_to_buffer[orig_name] is orphan_buf
+                    ):
+                        del V.graph.name_to_buffer[orig_name]
+                    if (
+                        orig_op_name in V.graph.name_to_op
+                        and V.graph.name_to_op[orig_op_name] is orphan_buf
+                    ):
+                        del V.graph.name_to_op[orig_op_name]
+
+            if len(future_choices) == 0:
+                _cleanup_catlass_orphan_buffers(benchmark_catlass_orphans)
+                return False
+
+            def benchmark_when_ready() -> bool:
+                min_ms_fused = float("inf")
+                ms_fused_choice = None
+                ms_fused_mod = None
+
+                new_timings = {}
+                # Benchmark each choice after compilation completes
+                for choice, future, mod_fused in future_choices:
+                    try:
+                        if future is not None:
+                            future.result()
+
+                    # Ideally we would more narrowly catch Exceptions here but
+                    # triton  will unpredictably error with valid prologue fusions
+                    except Exception as e:
+                        if fusion_log.isEnabledFor(logging.DEBUG):
+                            fusion_log.debug(  # noqa: G200
+                                "Exception in compiling %s: %s",
+                                "prologue" if not epilogue_fusion else "epilogue",
+                                str(e),
+                            )
+                        continue
+                    with multi_node.swap_as_caller(choice):
+                        ms_fused, path = self.benchmark_codegened_module(
+                            mod_fused, device
+                        )
+                        new_timings[choice] = ms_fused
+                        if ms_fused < min_ms_fused:
+                            min_ms_fused = ms_fused
+                            ms_fused_choice = choice
+                            ms_fused_mod = mod_fused
+
+                if ms_fused_choice:
+                    log_fusion(min_ms_fused, ms1, ms2, ms_fused_choice.name)
+
+                if min_ms_fused < (ms1 + ms2) and ms_fused_choice is not None:
+                    multi_node.finalize_as_caller(ms_fused_choice)
+                    multi_node._choice_timings = new_timings
+                    if isinstance(ms_fused_choice, CATLASSTemplateCaller):
+                        out_tensorbox = ms_fused_choice.output_node()
+                        out_storage = out_tensorbox.data
+                        assert isinstance(out_storage, ir.StorageBox)
+                        out_buffer = out_storage.data
+                        assert isinstance(out_buffer, ir.OperationBuffer)
+                        # hack out_buffer's name to judge if can fuse
+                        out_buffer.name = multi_node.get_name()
+                        replace_operation_buffer(multi_node, out_buffer)
+                        # NB: We have created a new scheduler node that replaced the original node,
+                        # but the outer loop that called fuse_two_nodes(node1, node2) use the original
+                        # node, so we have modified fuse_two_nodes
+                        new_scheduler_node = self.create_scheduler_node(out_buffer)
+                        idx = self.nodes.index(node1)
+                        self.nodes[idx] = new_scheduler_node
+                        self.name_to_node[node1.get_name()] = new_scheduler_node
+                        self.name_to_fused_node[node1.get_name()] = new_scheduler_node
+
+                        for new_out, old_out in zip(
+                            new_scheduler_node.get_outputs(), node1.get_outputs()
+                        ):
+                            self.name_to_buf[old_out.get_name()] = new_out
+                            new_out.users = old_out.users
+
+                        new_scheduler_node.min_order = node1.min_order
+                        new_scheduler_node.max_order = node1.max_order
+                        new_scheduler_node.last_usage = node1.last_usage
+                        # update workspace_size
+                        choice.fbmreq = ms_fused_mod.bmreq
+                        out_buffer.workspace_size = ms_fused_mod.bmreq.workspace_size
+                    _cleanup_catlass_orphan_buffers(benchmark_catlass_orphans)
+                    return True
+                else:
+                    _cleanup_catlass_orphan_buffers(benchmark_catlass_orphans)
+                    return False
+
+            return benchmark_when_ready
+
+        else:
+            # Start parallel compilation for all three kernels
+            future_and_mod_l1 = compile_kernel(node_list_1)
+            future_and_mod_l2 = compile_kernel(node_list_2)
+            future_and_mod_l1_fused = compile_kernel(node_list_fused)
+
+            def benchmark_when_ready() -> bool:
+                from torch._inductor.runtime.triton_heuristics import (
+                    NoTritonConfigsError,
+                )
+
+                try:
+                    # Wait for all compilations to complete
+                    for fut in (
+                        future_and_mod_l1[0],
+                        future_and_mod_l2[0],
+                        future_and_mod_l1_fused[0],
+                    ):
+                        if fut is not None:
+                            fut.result()
+
+                    ms1, path1 = self.benchmark_codegened_module(
+                        future_and_mod_l1[1], device
+                    )
+                    if math.isinf(ms1):
+                        why("register spilling of the first kernel")
+                        return False
+
+                    ms2, path2 = self.benchmark_codegened_module(
+                        future_and_mod_l2[1], device
+                    )
+                    if math.isinf(ms2):
+                        why("register spilling of the second kernel")
+                        return False
+
+                    ms_fused, path_fused = self.benchmark_codegened_module(
+                        future_and_mod_l1_fused[1], device
+                    )
+                    if math.isinf(ms_fused):
+                        why("register spilling of the fused kernel")
+                        return False
+
+                    log_fusion(ms_fused, ms1, ms2)
+
+                    if (
+                        is_metric_table_enabled("slow_fusion")
+                        and ms_fused >= ms1 + ms2
+                        and (path1, path2) not in self.logged_slow_fusion
+                    ):
+                        self.logged_slow_fusion.add((path1, path2))
+                        get_metric_table("slow_fusion").add_row(
+                            lambda: {
+                                "kernel1_path": path1,
+                                "kernel1_latency": ms1,
+                                "kernel2_path": path2,
+                                "kernel2_latency": ms2,
+                                "fused_kernel_path": path_fused,
+                                "fused_kernel_latency": ms_fused,
+                                "slow_down_ratio": ms_fused / (ms1 + ms2),
+                            }
+                        )
+
+                    return ms_fused < ms1 + ms2
+
+                except NoTritonConfigsError:
+                    return False
+
+                except CompilationError as e:
+                    if "Loop-carried variable" in str(e):
+                        return True
+                    raise
+
+            return benchmark_when_ready
+
+    Scheduler.speedup_by_fusion = speedup_by_fusion
+    Scheduler.fuse_nodes_once = fuse_nodes_once
+
+def patch_get_graph_partition_signature():
+    """
+    Backport upstream PR #165815 to PyTorch 2.9.
+
+    Symptom on 2.9: with graph_partition enabled, the outer Runner.call
+    emits `del buf0; del buf1` referencing buffers that only exist inside
+    partition_0, raising UnboundLocalError. Failing test:
+    test_graph_partition_view_fallback.
+
+    Root cause: a partition's `last_usage` may include buffers allocated
+    in *previous* partitions (e.g. via aliasing chains: outer code holds
+    buf2 -> buf1 -> buf0). When the next partition (or the outer scope)
+    runs, the scheduler tries to free those upstream buffers, but they
+    were never returned, so they don't exist in the outer scope.
+
+    Fix: when computing a partition's input signature, also include
+    names from buffer_names_to_free that originate from a previous
+    partition. This makes them inputs of the current partition (and
+    outputs of the previous one), so the outer scope holds variables
+    for them and `del` is valid.
+    """
+
+    def get_graph_partition_signature(
+        self, partitions: list[PartitionType], skip_cudagraphs: list[bool]
+    ) -> list[GraphPartitionSignature]:
+        """
+        Gets signature for each graph partition, including input nodes, output nodes, and
+        whether deallocating an input within graph partition.
+        """
+        signatures = []
+
+        unmet_output_names = OrderedSet(V.graph.get_output_names())
+        name_to_node = self.get_name_to_nodes()
+
+        def is_none_layout(buf_name: str) -> bool:
+            """
+            Checks if buf_name is NoneLayout. Buffers with NoneLayout is not allocated
+            so graph partition should not take it as inputs or outputs.
+            """
+            buf = self.name_to_buf.get(buf_name, None)
+
+            if buf is None:
+                return False
+
+            if isinstance(buf.node.layout, NoneLayout):
+                if isinstance(buf.node, ir.MutationOutput) and (
+                    real_name := self.mutation_real_name.get(buf_name, None)
+                ):
+                    return is_none_layout(real_name)
+
+                return True
+
+            return False
+
+        for partition, skip_cudagraph in zip(
+            reversed(partitions), reversed(skip_cudagraphs)
+        ):
+            output_names: OrderedSet[str] = OrderedSet()
+
+            for node in partition:
+                output_names.update(node.outputs_by_name.keys())
+
+            returned_output_names = output_names.intersection(unmet_output_names)
+
+            # all reads/writes are partition inputs except those generated
+            # within the partition and tensor constants
+            read_writes = dependencies.ReadWrites.merge_list(
+                [node.read_writes for node in partition]
+            )
+
+            # WeakDep is fake dependency on unused buffer. It should not appear
+            # in partition_input_names for inputs that are actually read or written.
+            partition_input_names = (
+                OrderedSet(
+                    [
+                        x.name
+                        for x in read_writes.reads | read_writes.writes
+                        if not is_none_layout(x.name)
+                    ]
+                )
+                - output_names
+            )
+
+            partition_input_names = OrderedSet(
+                self.mutation_real_name.get(name, name)
+                for name in partition_input_names
+            )
+
+            buffer_names_to_free: OrderedSet[str] = OrderedSet()
+            for node in partition:
+                buffer_names_to_free.update(node.last_usage)
+
+            # PR #165815: buffer_names_to_free may contain buffers
+            # allocated in previous graph partitions. Make them inputs of
+            # the current partition so they are returned-and-passed and
+            # the outer wrapper has variables to del.
+            extra_input_names = [
+                name
+                for name in (buffer_names_to_free - output_names)
+                if name in name_to_node
+            ]
+            partition_input_names.update(extra_input_names)
+
+            input_nodes = {
+                name: name_to_node[name]
+                for name in partition_input_names
+                if name in name_to_node
+            }
+            input_deallocation = {
+                name: True if name in buffer_names_to_free else False
+                for name in partition_input_names
+                if name in name_to_node
+            }
+
+            # if an input tensor is not freed in the partition function, it should
+            # also be returned as an output. This brings benefits to cudagraph
+            # since the returned output tensor is a cudagraph managed tensor with
+            # a static tensor address.
+            extra_output_names = [
+                name
+                for name in partition_input_names
+                if name in name_to_node and name not in buffer_names_to_free
+            ]
+
+            returned_output_names.update(extra_output_names)
+
+            returned_output_names = OrderedSet(
+                self.mutation_real_name.get(name, name)
+                for name in returned_output_names
+            )
+
+            output_nodes = [
+                name_to_node[name]
+                for name in returned_output_names
+                if not is_none_layout(name)
+            ]
+
+            constant_names = [
+                name for name in partition_input_names if name in V.graph.constants
+            ]
+
+            symbol_inputs = self.get_graph_partition_symbol_inputs(
+                partition, input_nodes
+            )
+
+            partition_signature = GraphPartitionSignature(
+                symbol_inputs,
+                input_nodes,
+                output_nodes,
+                input_deallocation,
+                skip_cudagraph,
+                constant_names,
+            )
+
+            signatures.append(partition_signature)
+
+            unmet_output_names = partition_input_names.union(
+                unmet_output_names - returned_output_names
+            )
+
+        return signatures[::-1]
+
+    Scheduler.get_graph_partition_signature = get_graph_partition_signature

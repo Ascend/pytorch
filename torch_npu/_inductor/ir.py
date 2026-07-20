@@ -1,28 +1,123 @@
-from torch._inductor.virtualized import V
+﻿#!/usr/bin/env python3
+from collections.abc import Callable, Sequence
+from typing_extensions import Never
+
+from sympy import Expr, Integer
+
 from torch._inductor import config
+from torch._inductor.codegen.common import BackendFeature
+from torch._inductor.ir import Reduction, ReductionHint, Scatter, sympy_product
+from torch._inductor.utils import ir_dataclass
+from torch._inductor.virtualized import ops, V
 
+@ir_dataclass
+class IndexputTemplate(Scatter):
+    boundary: int | None = None
 
-def patch_extern_kernel_codegen_size_asserts():
-    from torch._inductor.ir import ExternKernel
-    from . import config as npu_config
-    original_codegen_size_asserts = ExternKernel.codegen_size_asserts
+    def store_output(
+        self,
+        output_name: str | None,
+        indexer: Callable[[Sequence[Expr]], Never],
+        store_vars: Sequence[Expr],
+    ) -> None:
+        loader = self.make_loader()
+        if output_name is None:
+            output_name = "unnamed"
+        output_indexer = self.output_indexer(store_vars)
+        indirect_indexer = None
+        for var in output_indexer:
+            if str(var).startswith("indirect"):
+                indirect_indexer = var
+                break
 
-    def npu_codegen_size_asserts(self, wrapper):
-        fx_node = getattr(self, 'fx_node', None)
-        should_skip = False
-        if fx_node and fx_node.target:
-            skip_config = getattr(npu_config, 'skip_specific_stride_asserts', [])
-            if isinstance(skip_config, (list, tuple)):
-                should_skip = fx_node.target in skip_config
-        if should_skip:
-            if config.size_asserts and not V.graph.cpp_wrapper:
-                from torch._inductor.utils import sympy_product
-                if sympy_product(self.get_size()) == 0:
-                    return
-                wrapper.writeline(
-                    f"# NPU: Skipping stride assertion for {fx_node.target}"
-                )
-        else:
-            original_codegen_size_asserts(self, wrapper)
+        return ops.indexput_template(
+            output_name,
+            indexer(output_indexer),
+            loader(store_vars),
+            indirect_indexer,
+            self.boundary,
+        )
 
-    ExternKernel.codegen_size_asserts = npu_codegen_size_asserts
+class ScatterTemplate(Scatter):
+    def store_output(
+        self,
+        output_name: str | None,
+        indexer: Callable[[Sequence[Expr]], Never],
+        store_vars: Sequence[Expr],
+    ) -> None:
+        loader = self.make_loader()
+        if output_name is None:
+            output_name = "unnamed"
+        output_indexer, boundary = self.output_indexer(store_vars)
+        indirect_indexer = None
+        for var in output_indexer:
+            if str(var).startswith("indirect"):
+                indirect_indexer = var
+                break
+
+        return ops.scatter_template(
+            output_name,
+            indexer(output_indexer),
+            loader(store_vars),
+            indirect_indexer,
+            int(boundary),
+        )
+
+def reduction_split_factor(reduction_ranges):
+    def get_hint(x):
+        if isinstance(x, (int, float)):
+            return x
+        try:
+            return int(V.graph.sizevars.optimization_hint(x))
+        except Exception:
+            return 1
+
+    ranges = [h for num in reduction_ranges if (h := get_hint(num)) > 1]
+    if not ranges:
+        return 1
+    return min(ranges)
+
+def num_splits(
+    device,
+    dst_dtype,
+    src_dtype,
+    inner_fn,
+    ranges,
+    reduction_ranges,
+    reduction_type,
+    reduction_numel,
+    input_node=None,
+):
+    def _is_static(x: object) -> bool:
+        return isinstance(x, (int, Integer))
+
+    reduction_numel_hint = V.graph.sizevars.optimization_hint(reduction_numel)
+    numel_hint = V.graph.sizevars.optimization_hint(sympy_product(ranges))
+    if not (_is_static(reduction_numel_hint) and _is_static(numel_hint)):
+        # We don't support unbacked symints
+        return ReductionHint.DEFAULT, 1
+
+    should_split = reduction_type == "scan" or (
+        not V.graph.has_feature(device, BackendFeature.REDUCE_TO_SINGLE_ELEMENT)
+        and reduction_type
+        not in (
+            "argmax",
+            "argmin",
+        )
+        and config.split_reductions
+    )
+
+    if should_split:
+        inner_reduction_splits = reduction_split_factor
+    else:
+
+        def inner_reduction_splits(reduction_ranges):
+            return 1
+
+    if numel_hint == 1:
+        split = inner_reduction_splits(reduction_ranges)
+        return ReductionHint.INNER, split
+    return ReductionHint.DEFAULT, 1
+
+def patch_num_splits():
+    Reduction.num_splits = num_splits

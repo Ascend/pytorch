@@ -1,20 +1,26 @@
 import os
+import sys
+import platform
 from typing import List, Tuple
 
 import torch
-from torch.utils.cpp_extension import _TORCH_PATH, TORCH_LIB_PATH
+import torch._inductor.cpp_builder as cpp_builder
+from torch.utils.cpp_extension import _TORCH_PATH
 
 from torch_npu.utils.cpp_extension import PYTORCH_NPU_INSTALL_PATH
 from torch_npu.utils._error_code import ErrCode, pta_error
 
 if "ASCEND_HOME_PATH" not in os.environ:
     def lazy_error():
-        raise RuntimeError("Could not find ASCEND_HOME_PATH in env. Please run set_env.sh first." + pta_error(ErrCode.NOT_FOUND))
+        raise RuntimeError("Could not find ASCEND_HOME_PATH in env. Please run set_env.sh first."
+                           + pta_error(ErrCode.NOT_FOUND))
     get_ascend_home = lazy_error
 else:
     def get_ascend_home_from_env():
         return os.environ["ASCEND_HOME_PATH"]
     get_ascend_home = get_ascend_home_from_env
+
+TORCH_LIB_PATH = os.path.join(_TORCH_PATH, 'lib')
 
 
 def include_paths(npu: bool = False) -> List[str]:
@@ -103,7 +109,7 @@ def get_cpp_torch_device_options(
         libraries += ["torch_npu", "runtime", "ascendcl"]
 
         # Could not add BUILD_LIBTORCH=ON to definitions because it cannot
-        # process definitions include "=" like -DXXX=xx.
+        # process definition include "=" like -DXXX=xx.
         passthough_args += ["-DBUILD_LIBTORCH=ON -Wno-unused-function"]
 
     return (
@@ -117,5 +123,44 @@ def get_cpp_torch_device_options(
     )
 
 
+def _get_optimization_cflags(
+    cpp_compiler: str, min_optimize: bool = False
+) -> list[str]:
+    from torch._inductor.cpp_builder import _get_ffast_math_flags, _is_gcc
+    from torch._inductor import config
+    from torch._inductor.utils import _IS_WINDOWS
+    cflags: list[str] = []
+    ldflags: list[str] = []
+    if _IS_WINDOWS:
+        ldflags = ["DEBUG", "ASSEMBLYDEBUG ", "OPT:REF", "OPT:ICF"]
+        return ["O1" if min_optimize else "O2"], ldflags
+    else:
+        cflags = (
+            ["O0", "g"]
+            if config.aot_inductor.debug_compile
+            else ["O1" if min_optimize else "O3", "DNDEBUG"]
+        )
+        cflags += _get_ffast_math_flags()
+        cflags.append("fno-finite-math-only")
+        if not config.cpp.enable_unsafe_math_opt_flag:
+            cflags.append("fno-unsafe-math-optimizations")
+        cflags.append(f"ffp-contract={config.cpp.enable_floating_point_contract_flag}")
+
+        if sys.platform != "darwin":
+            # on macos, unknown argument: '-fno-tree-loop-vectorize'
+            if _is_gcc(cpp_compiler):
+                cflags.append("fno-tree-loop-vectorize")
+            # -march=native is unrecognized option on M1
+            if not config.is_fbcode():
+                if platform.machine() == "ppc64le":
+                    cflags.append("mcpu=native")
+
+        return cflags, ldflags
+
+
 def patch_get_cpp_torch_device_options():
     torch._inductor.cpp_builder.get_cpp_torch_device_options = get_cpp_torch_device_options
+
+
+def patch_get_optimization_cflags():
+    cpp_builder._get_optimization_cflags = _get_optimization_cflags

@@ -4,22 +4,31 @@ from torch._inductor.codecache import CacheBase
 import hashlib
 import json
 import torch_npu
+from typing import (
+    Dict,
+    Any,
+)
 
 
 def register_device_op_overrides_npu():
     if not device_op_overrides_dict:
         # remove cuda, xpu device_op_override, add npu device_op_override
-        from torch._inductor.codegen import cpu_device_op_overrides, mps_device_op_overrides # noqa: F401
-        from torch_npu._inductor import npu_device # noqa: F401
+        from torch._inductor.codegen import cpu_device_op_overrides, mps_device_op_overrides  # noqa: F401
+        from .npu import device_op_overrides  # noqa: F401
     elif "npu" not in device_op_overrides_dict:
-        from torch_npu._inductor import npu_device
+        from .npu import device_op_overrides  # noqa: F401
 
 def patch_cache_base_get_system():
     # patch function CacheBase.get_system with get_system_npu, add logic to support CANN
     @staticmethod
     def get_system():
         try:
-            from triton.compiler.compiler import triton_key
+            try:
+                from triton.runtime.cache import triton_key  # type: ignore[attr-defined]
+            except ImportError:
+                from triton.compiler.compiler import (
+                    triton_key,  # type: ignore[attr-defined,no-redef]
+                )
 
             # Use triton_key instead of triton.__version__ as the version
             # is not updated with each code change
@@ -47,7 +56,7 @@ def patch_cache_base_get_system():
                 system["device"]["name"] = device_properties.gcnArchName
                 system["version"]["hip"] = torch.version.hip
         except (AssertionError, RuntimeError):
-            # If deivce is not installed, none of the above config is relevant.
+            # If devisce is not installed, none of the above config is relevant.
             system = {}
 
         system["hash"] = hashlib.sha256(

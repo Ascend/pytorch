@@ -1,7 +1,7 @@
 import importlib
 import os
 import sys
-from typing import Any, Iterable, Mapping, Optional
+from typing import Any, Iterable, Mapping
 
 import torch
 from torch._inductor.compile_fx import clone_preserve_strides
@@ -19,6 +19,7 @@ def compare_outputs(
     expected_outputs: Iterable[Any],
     kernel_name: str,
     tolerances: Mapping[Any, Mapping[str, float]],
+    dump_path: str = "",
 ):
     failed_indices = []
     for idx, (actual, expected) in enumerate(zip(actual_outputs, expected_outputs)):
@@ -31,14 +32,14 @@ def compare_outputs(
         rtol, atol = tol["rtol"], tol["atol"]
         matches = torch.isclose(actual, expected, rtol=rtol, atol=atol, equal_nan=True)
         if not matches.all():
-            _report_mismatch(idx, actual, expected, matches, rtol, atol, kernel_name)
+            _report_mismatch(idx, actual, expected, matches, rtol, atol, kernel_name, dump_path=dump_path)
             failed_indices.append(idx)
         del matches
 
     return not failed_indices
 
 
-def _report_mismatch(idx, actual, expected, matches, rtol, atol, kernel_name):
+def _report_mismatch(idx, actual, expected, matches, rtol, atol, kernel_name, dump_path=""):
     try:
         abs_diff = torch.abs(actual - expected)
     except RuntimeError:
@@ -59,50 +60,54 @@ def _report_mismatch(idx, actual, expected, matches, rtol, atol, kernel_name):
         f"Greatest Abs Diff: {abs_diff.max().item()}, "
         f"rtol: {rtol}, atol: {atol}"
     )
+    if dump_path:
+        msg += f", dump_path: {dump_path}"
     print(msg, flush=True)
     del abs_diff, rel_diff
 
 
 def get_triton_fx_graph_call(inductor_meta, auto_fallback=False):
-        kernel_name = inductor_meta.get("kernel_name", "triton_")
-        traced_graph_hash = inductor_meta.get("traced_graph_hash")
-        dump_dir = inductor_meta.get("traced_graph_dir", "")
-        dump_path = os.path.join(dump_dir, traced_graph_hash)
-        if dump_dir == "" or not os.path.exists(dump_path):
-            return None, None, None, None
-        sys.path.append(dump_path)
-        fx_module = importlib.import_module(traced_graph_hash)
-        sys.path.remove(dump_path)
+    kernel_name = inductor_meta.get("kernel_name", "triton_")
+    traced_graph_hash = inductor_meta.get("traced_graph_hash")
+    if not traced_graph_hash:
+        return None, None, None, None
+    dump_dir = inductor_meta.get("traced_graph_dir", "")
+    dump_path = os.path.join(dump_dir, traced_graph_hash)
+    if dump_dir == "" or not os.path.exists(dump_path):
+        return None, None, None, None
+    sys.path.append(dump_path)
+    fx_module = importlib.import_module(traced_graph_hash)
+    sys.path.remove(dump_path)
 
-        model = fx_module.model
-        num_inputs = fx_module.num_inputs
-        num_outputs = fx_module.num_outputs
-        non_contiguous_indices = fx_module.non_contiguous_indices
-        mismatch_indices_shapes = fx_module.mismatch_indices_shapes
+    model = fx_module.model
+    num_inputs = fx_module.num_inputs
+    num_outputs = fx_module.num_outputs
+    non_contiguous_indices = fx_module.non_contiguous_indices
+    mismatch_indices_shapes = fx_module.mismatch_indices_shapes
 
-        def fx_graph_call(*fx_args):
-            fx_inputs = [fx_args[idx].contiguous() if idx in non_contiguous_indices['inputs'] else \
-                             fx_args[idx] for idx in range(num_inputs)]
-            if len(mismatch_indices_shapes):
-                for ind, shape in mismatch_indices_shapes.items():
-                    if ind >= num_inputs:
-                        break
-                    fx_inputs[ind] = fx_inputs[ind].reshape(shape)
-            model_outputs = model.forward(*fx_inputs)
-            for idx, (out1, out2) in enumerate(zip(model_outputs, fx_args[num_inputs:(num_inputs + num_outputs)])):
-                out1 = out1.reshape(out2.shape)
-                if idx in non_contiguous_indices['outputs']:
-                    out2.copy_(out1)
-                else:
-                    out2.data = out1.data
+    def fx_graph_call(*fx_args):
+        fx_inputs = [fx_args[idx].contiguous() if idx in non_contiguous_indices['inputs'] else
+                     fx_args[idx] for idx in range(num_inputs)]
+        if len(mismatch_indices_shapes):
+            for ind, shape in mismatch_indices_shapes.items():
+                if ind >= num_inputs:
+                    break
+                fx_inputs[ind] = fx_inputs[ind].reshape(shape)
+        model_outputs = model.forward(*fx_inputs)
+        for idx, (out1, out2) in enumerate(zip(model_outputs, fx_args[num_inputs:(num_inputs + num_outputs)])):
+            out1 = out1.reshape(out2.shape)
+            if idx in non_contiguous_indices['outputs']:
+                out2.copy_(out1)
+            else:
+                out2.data = out1.data
 
-        def fallback_call(*args):
-            fx_args = [args[idx] for idx in fx_module.call_args_mapping]
-            return fx_graph_call(*fx_args)
+    def fallback_call(*args):
+        fx_args = [args[idx] for idx in fx_module.call_args_mapping]
+        return fx_graph_call(*fx_args)
 
-        if auto_fallback:
-            return fallback_call, kernel_name, None, None
-        return fx_graph_call, kernel_name, dump_path, fx_module
+    if auto_fallback:
+        return fallback_call, kernel_name, None, None
+    return fx_graph_call, kernel_name, dump_path, fx_module
 
 
 def check_accuracy_triton(*args, launcher, grid, stream, inductor_meta, **kwargs):
@@ -115,8 +120,15 @@ def check_accuracy_triton(*args, launcher, grid, stream, inductor_meta, **kwargs
     fx_args = []
     for idx in fx_module.call_args_mapping:
         arg = args[idx]
-        if isinstance(arg, torch.Tensor):
-            fx_args.append(clone_for_accuracy(arg))
+        if isinstance(arg, int):
+            fx_args.append(arg)
+            continue
+
+        if not isinstance(arg, torch.Tensor):
+            arg = torch.tensor(arg).npu()
+        fx_arg = clone_preserve_strides(arg).float() if arg.dtype == torch.bfloat16 else clone_preserve_strides(
+            arg)
+        fx_args.append(fx_arg)
 
     fx_graph_call(*fx_args)
 
@@ -127,6 +139,7 @@ def check_accuracy_triton(*args, launcher, grid, stream, inductor_meta, **kwargs
         fx_args[fx_module.num_inputs:],
         kernel_name=kernel_name,
         tolerances=npu_config.acc_comp_tol,
+        dump_path=dump_path,
     )
 
     for arg in fx_args:

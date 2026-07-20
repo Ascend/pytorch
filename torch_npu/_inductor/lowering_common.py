@@ -16,8 +16,8 @@ from __future__ import annotations
 
 import inspect
 import sympy
-import functools
 from functools import reduce
+import functools
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
@@ -29,16 +29,6 @@ from sympy.core.numbers import Number as SympyNumber
 from torch._inductor import ir
 from torch._inductor.ir import ExpandView, IndexingConstant, TensorBox
 from torch._inductor.virtualized import V
-
-LOWERING_REGISTRY_ATTRS: tuple[str, ...] = (
-    "lowerings",
-    "_maybe_layout_constraints",
-    "fallbacks",
-    "needs_realized_inputs",
-    "foreach_ops",
-    "inplace_foreach_ops",
-    "inplaceable_foreach_ops",
-)
 
 
 def run_once(f):
@@ -54,6 +44,18 @@ def run_once(f):
         return None
     wrapper.has_run = False
     return wrapper
+
+
+LOWERING_REGISTRY_ATTRS: tuple[str, ...] = (
+    "lowerings",
+    "_maybe_layout_constraints",
+    "fallbacks",
+    "needs_realized_inputs",
+    "foreach_ops",
+    "inplace_foreach_ops",
+    "inplaceable_foreach_ops",
+)
+
 
 def get_module_functions(module: Any) -> dict[str, Callable[..., Any]]:
     functions: dict[str, Callable[..., Any]] = {}

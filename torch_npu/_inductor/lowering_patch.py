@@ -1,6 +1,10 @@
 # Copyright (c) 2026, Huawei Technologies Co., Ltd
 #
 # Lowering snapshot / restore for multi-backend (Triton vs MLIR/DVM) switching.
+#
+# Kept in a dedicated module so ``__init__.py`` only orchestrates *when* to
+# patch; the mechanics of capture/restore/apply live here and can be tested
+# independently.
 
 from __future__ import annotations
 

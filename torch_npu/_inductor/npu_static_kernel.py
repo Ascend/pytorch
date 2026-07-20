@@ -6,7 +6,11 @@ import datetime
 from pathlib import Path
 
 import torch_npu
-from .config import log
+
+if os.getenv('TORCHINDUCTOR_NPU_BACKEND', 'default') == 'mlir':
+    from .ascend_npu_ir.ascend_npu_ir.npu.utils import logger as log
+else:
+    from .config import log
 
 _uninstall_path = None
 
@@ -32,7 +36,7 @@ def safe_resolve_output_dir(build_dir: str):
         try:
             script_dir = script_dir.resolve(strict=False)
         except Exception as e:
-            raise ValueError(f"cannot resolve path {script_dir}: {e}")
+            raise ValueError(f"cannot resolve path {script_dir}: {e}") from e
     else:
         script_dir = base_dir
 
@@ -41,7 +45,7 @@ def safe_resolve_output_dir(build_dir: str):
 
     try:
         result_root.mkdir(exist_ok=True)
-    except (PermissionError, OSError) as e:
+    except OSError as e:
         raise RuntimeError(f"failed to create output directory {result_root}: {e}") from e
 
     return result_root
@@ -67,7 +71,7 @@ def save_uninstall_info(filename: str):
     match = next(root.glob(pattern), None)
     if match is None:
         _uninstall_path = None
-        log.debug(f"can not find uninstall path, pattern: {pattern}")
+        log.debug("can not find uninstall path, pattern: %s", pattern)
     else:
         _uninstall_path = str(match)
 
@@ -75,32 +79,32 @@ def save_uninstall_info(filename: str):
 class StaticKernelCompiler:
     def __init__(self, build_dir=None):
         self.result_root = safe_resolve_output_dir(build_dir)
-        log.debug(f"StaticKernelCompiler initialized. Build directory: {self.result_root}")
+        log.debug("StaticKernelCompiler initialized. Build directory: %s", self.result_root)
 
     def __enter__(self):
-        log.info(f"Starting operator dump...")
+        log.info("Starting operator dump...")
         torch_npu._C._aclop_start_dump(str(self.result_root))
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         torch_npu._C._aclop_stop_dump()
-        log.info(f"Stopping operator dump.")
+        log.info("Stopping operator dump.")
 
         if exc_type:
-            log.error(f"An exception occurred during model execution: {exc_val}")
-            log.info(f"Skipping static kernel compilation due to the error.")
+            log.error("An exception occurred during model execution: %s", exc_val)
+            log.info("Skipping static kernel compilation due to the error.")
             return
 
-        log.info(f"Starting static kernel compilation process...")
+        log.info("Starting static kernel compilation process...")
         debug_dirs = [d for d in self.result_root.iterdir() if d.is_dir() and d.name.endswith("_debug")]
         if not debug_dirs:
-            log.error(f"Can not find json of ops, skipping op_compiler.")
+            log.error("Can not find json of ops, skipping op_compiler.")
             return
 
         debug_dir = max(debug_dirs, key=lambda d: d.stat().st_mtime)
         json_files = list(debug_dir.glob("*.json"))
         if not json_files:
-            log.error(f"No json files in {debug_dir}, skipping op_compiler.")
+            log.error("No json files in %s, skipping op_compiler.", debug_dir)
             return
 
         cmd = [
@@ -112,29 +116,29 @@ class StaticKernelCompiler:
             "-o", str(self.result_root),
         ]
         try:
-            log.debug(f"Executing op_compiler command: {' '.join(cmd)}")
+            log.debug("Executing op_compiler command: %s", ' '.join(cmd))
             res = subprocess.run(cmd, check=True, capture_output=True, text=True)
-            log.debug(f"op_compiler execution successful, msg: {res.stdout}")
+            log.debug("op_compiler execution successful, msg: %s", res.stdout)
         except subprocess.CalledProcessError as e:
-            log.error(f"op_compiler execution failed, msg: {e.stderr}")
+            log.error("op_compiler execution failed, msg: %s", e.stderr)
             return
 
         for run_pkg in self.result_root.glob("*.run"):
             filename = run_pkg.name
             try:
-                log.info(f"Installing static kernel package: {filename}")
+                log.info("Installing static kernel package: %s", filename)
                 result = subprocess.run([str(run_pkg)], check=True, capture_output=True, text=True)
-                log.info(f"{filename} install successful, msg: {result.stdout}")
+                log.info("%s install successful, msg: %s", filename, result.stdout)
                 save_uninstall_info(filename[:-4])
                 torch_npu.npu._aclnn_reselect_static_kernel()
             except subprocess.CalledProcessError as e:
-                log.error(f" {filename} install failed, msg: {e.stderr}")
+                log.error(" %s install failed, msg: %s", filename, e.stderr)
 
 
 def uninstall_static_kernel():
     global _uninstall_path
     if not _uninstall_path:
-        log.debug(f"uninstall_path is none, skip uninstall static kernel")
+        log.debug("uninstall_path is none, skip uninstall static kernel")
         return
 
     try:
@@ -144,8 +148,8 @@ def uninstall_static_kernel():
             capture_output=True,
             text=True,
         )
-        log.debug(f"{_uninstall_path} uninstall success, msg: \n{result.stdout}")
+        log.debug("%s uninstall success, msg: \n%s", _uninstall_path, result.stdout)
     except subprocess.CalledProcessError as e:
-        log.error(f"{_uninstall_path} uninstall failed, msg: \n{e.stderr}")
+        log.error("%s uninstall failed, msg: \n%s", _uninstall_path, e.stderr)
     finally:
         _uninstall_path = None
