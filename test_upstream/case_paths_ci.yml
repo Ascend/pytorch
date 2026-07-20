@@ -1,0 +1,161 @@
+# Test file blacklist configuration for NPU CI
+#
+# This file defines test files/directories to exclude from collection.
+# Rules support:
+#   - Exact path match: "distributed/test_c10d_nccl"
+#   - Directory prefix match: "dynamo/cpython/3_13" (matches all files in that directory)
+#   - Glob patterns: "distributed/*nccl*"
+#
+# Rule paths are relative to the test directory (e.g., "test/distributed/...")
+# The "test/" prefix is automatically added if missing.
+
+blacklist:
+  # ==============================================================================
+  # Python version specific tests (Python 3.13 syntax, incompatible with 3.11)
+  # ==============================================================================
+  - dynamo/cpython/3_13
+
+  # ==============================================================================
+  # Platform-specific tests (CUDA/XPU/MPS - not supported on NPU)
+  # ==============================================================================
+  # CUDA specific tests
+  - test_cuda_multigpu
+  - test_cuda_nvml_based_avail
+  - test_cuda_primary_ctx
+  - test_cuda_sanitizer
+  - test_cuda_trace
+  - test_jiterator
+  - test_varlen_attention
+
+  # CUDA inductor tests
+  - inductor/test_cuda_repro
+  - inductor/test_cudagraph_trees
+  - inductor/test_cudagraph_trees_expandable_segments
+  - inductor/test_gpu_select_algorithm
+  - inductor/test_triton_cpu_backend
+  - inductor/test_triton_heuristics
+  - inductor/test_pallas
+  - inductor/test_layout_optim
+  - inductor/test_op_dtype_prop
+  - inductor/test_autoheuristic
+  - inductor/test_b2b_gemm
+  - inductor/test_best_config
+  - inductor/test_coordinate_descent_tuner
+
+  # JIT CUDA tests
+  - jit/test_cuda
+
+  # Flash Attention tests (CUDA only)
+  - nn/attention/test_fa3
+  - nn/attention/test_fa4
+
+  # XPU (Intel) tests
+  - test_xpu
+  - test_xpu_expandable_segments
+  - xpu/test_conv
+  - xpu/test_fusion
+  - xpu/test_gemm
+
+  # MPS (Apple Metal) tests
+  - test_mps
+
+  # ==============================================================================
+  # ONNX tests with heavy/optional dependencies
+  # ==============================================================================
+  # HuggingFace transformers tests
+  # Issue: Test requires transformers package (HuggingFace) with no graceful import handling
+  # Problem: Test file directly imports `import transformers` without try-import or skipif
+  # - transformers package: ~10 MB + dependencies (tokenizers, safetensors, huggingface-hub)
+  # - Test downloads model: hf-internal-testing/tiny-random-gptj (small, but needs network)
+  # - PyTorch CI excludes all ONNX tests by default (only runs with --onnx flag)
+  # Impact: ModuleNotFoundError: No module named 'transformers'
+  # Note: PyTorch run_test.py: options.exclude.extend(onnx_tests) in default behavior
+  - onnx/exporter/test_hf_models_e2e
+
+  # ==============================================================================
+  # Tests requiring specific compiled libraries not available in NPU build
+  # ==============================================================================
+  - custom_operator/test_custom_ops  # requires libcustom_ops.so
+
+  # ==============================================================================
+  # Custom device extension tests (require separate compilation)
+  # ==============================================================================
+  # torch_openreg tests
+  # Issue: torch_openreg is a separate extension that must be compiled AFTER PyTorch is installed
+  # Problem: PyTorch run_test.py calls install_cpp_extensions() before running these tests
+  # - Requires CMake build linking against installed PyTorch
+  # - setup.py shows: "-DPYTORCH_INSTALL_DIR=" + get_pytorch_dir()
+  # - By default, PyTorch CI EXCLUDES test_openreg (only runs with --openreg flag)
+  # Impact: ModuleNotFoundError: No module named 'torch_openreg'
+  # See: run_test.py - options.exclude.append("test_openreg") in default behavior
+  - cpp_extensions/open_registration_extension/torch_openreg/tests/test_memory
+
+  # ==============================================================================
+  # Architecture-specific tests (x86_64 only, no ARM64/aarch64 support)
+  # ==============================================================================
+  # TorchRec tests
+  # Issue: torchrec depends on fbgemm-gpu, which only has x86_64 wheels on PyPI
+  # Problem: fbgemm-gpu provides pre-built wheels for x86_64 only:
+  #   - fbgemm_gpu-1.6.0-cp311-cp311-manylinux_2_28_x86_64.whl
+  #   - No aarch64/ARM64 wheels available
+  # Impact: Cannot install fbgemm-gpu on ARM64 NPU runner (linux-aarch64-a3-16)
+  # Test uses graceful handling (NoTest fallback), but we blacklist for clarity
+  - dynamo/test_torchrec
+
+  # ==============================================================================
+  # PyTorch upstream design issues (missing __init__.py or internal API changes)
+  # ==============================================================================
+  # Quantization experimental tests
+  # Issue: torch/ao/quantization/experimental/ directory exists but has NO __init__.py
+  # Python cannot recognize it as a package, causing ModuleNotFoundError on import
+  # See: https://github.com/pytorch/pytorch/tree/main/torch/ao/quantization/experimental
+  # Files exist: adaround_optimization.py, linear.py, observer.py, etc.
+  # Missing: __init__.py (required for package import)
+  # Impact: 6 test files fail with "No module named 'torch.ao.quantization.experimental'"
+  - quantization/core/experimental/test_adaround_eager
+  - quantization/core/experimental/test_fake_quantize
+  - quantization/core/experimental/test_linear
+  - quantization/core/experimental/test_nonuniform_observer
+  - quantization/core/experimental/test_quantized_tensor
+  - quantization/core/experimental/test_quantizer
+
+  # numpy internal private module dependency
+  # Issue: Test imports private function from numpy's internal module structure
+  # Code: `from numpy.linalg.linalg import _multi_dot_matrix_chain_order`
+  # Problem: numpy 2.0+ restructured internal modules, `numpy.linalg.linalg` no longer exists
+  # - Private APIs (_ prefix) have no stability guarantee, can be moved/removed anytime
+  # - numpy 2.0 moved _multi_dot_matrix_chain_order to numpy.linalg._linalg or removed it
+  # - PyTorch test code uses private API instead of stable public API
+  # Impact: ModuleNotFoundError: No module named 'numpy.linalg.linalg'
+  - torch_np/numpy_tests/linalg/test_linalg
+
+  # PyTorch test directory structure issue (test/ has no __init__.py)
+  # Issue: Test imports using package path `from test.jit.fixtures_srcs.generate_models import ...`
+  # Problem: PyTorch test/ directory is NOT a Python package (missing __init__.py files)
+  # - test/__init__.py does not exist
+  # - test/jit/__init__.py does not exist
+  # - Without __init__.py, Python cannot recognize `test.jit` as a valid package path
+  # - PyTorch CI works via special PYTHONPATH setup that our collection script doesn't replicate
+  # Impact: ModuleNotFoundError: No module named 'test.jit'
+  - jit/fixtures_srcs/test_upgrader_models_generation
+
+  # ==============================================================================
+  # Tests with torch_npu compatibility issues
+  # ==============================================================================
+  # RPC tests fail due to torch_npu serialization.py 'object' type annotation
+  # (TorchScript incompatible) - these are handled by BACKEND=hccl skip
+  # Uncomment if needed:
+  # - distributed/rpc/test_tensorpipe_agent
+  # - distributed/rpc/test_faulty_agent
+  # - distributed/rpc/cuda/test_tensorpipe_agent
+
+  # ==============================================================================
+  # Tests with environment variable requirements (handled by BACKEND=hccl)
+  # ==============================================================================
+  # These tests require BACKEND=gloo/nccl environment variable
+  # Setting BACKEND=hccl causes them to define no test classes
+  # - distributed/algorithms/quantization/test_quantization
+  # - distributed/test_distributed_spawn
+
+# Whitelist is empty - collect all tests except blacklist
+whitelist: []
