@@ -25,6 +25,23 @@ class TestReduction(TestUtils):
         view: "f32[9600, 2304]" = torch.ops.aten.view.default(add_3, [9600, 2304])
         return [None, primals_5, getitem_3, rsqrt, add_2, view, primals_2]
 
+    def rms_norm_weight_grad(self, grad_out_base, q, q_square_sum, permute_order):
+        grad_out = grad_out_base.permute(*permute_order)
+        inv_rms = torch.rsqrt(q_square_sum.unsqueeze(-1) / q.shape[-1] + 1e-6)
+        grad_weight = (grad_out * q.float() * inv_rms).sum(dim=(0, 1, 2))
+        return grad_weight.to(torch.bfloat16)
+
+    def check_rms_norm_weight_grad(self, grad_out_base, q, q_square_sum, permute_order):
+        expected = self.rms_norm_weight_grad(
+            grad_out_base, q, q_square_sum, permute_order
+        )
+        compiled = torch.compile(
+            self.rms_norm_weight_grad, backend="inductor", dynamic=False
+        )
+        actual = compiled(grad_out_base, q, q_square_sum, permute_order)
+
+        self.assertEqual(expected, actual, atol=1e-3, rtol=1e-3)
+
     def test_reduction_cases_shapes(self):
         device = 'npu'
         primals_2: "f32[32, 2304]" = torch.randn((32, 2304), device=device, dtype=torch.float32)
@@ -42,6 +59,22 @@ class TestReduction(TestUtils):
         self.assertEqual(add_2_ref, add_2, atol=1e-3, rtol=1e-3, equal_nan=True)
         self.assertEqual(view_ref, view, atol=1e-3, rtol=1e-3, equal_nan=True)
         self.assertEqual(primals_2_ref, primals_2, atol=1e-3, rtol=1e-3, equal_nan=True)
+
+    def test_rms_norm_weight_grad_head_seq_permute(self):
+        device = "npu"
+        grad_out_base = torch.randn((2, 3, 4, 8), device=device, dtype=torch.bfloat16)
+        q = torch.randn((2, 4, 3, 8), device=device, dtype=torch.bfloat16)
+        q_square_sum = torch.rand((2, 4, 3), device=device, dtype=torch.float32)
+
+        self.check_rms_norm_weight_grad(grad_out_base, q, q_square_sum, (0, 2, 1, 3))
+
+    def test_rms_norm_weight_grad_batch_seq_permute(self):
+        device = "npu"
+        grad_out_base = torch.randn((4, 2, 3, 8), device=device, dtype=torch.bfloat16)
+        q = torch.randn((2, 4, 3, 8), device=device, dtype=torch.bfloat16)
+        q_square_sum = torch.rand((2, 4, 3), device=device, dtype=torch.float32)
+
+        self.check_rms_norm_weight_grad(grad_out_base, q, q_square_sum, (1, 0, 2, 3))
 
 
 if __name__ == "__main__":
