@@ -69,15 +69,15 @@ void Logger::log(LoggingLevel level, const int log_buffer_size, const char* file
         return;
     }
 
-    char buffer[log_buffer_size] = {0};
-    int buffer_len = vsnprintf(buffer, log_buffer_size, format, args);
+    std::vector<char> buffer(log_buffer_size, 0);
+    int buffer_len = vsnprintf(buffer.data(), log_buffer_size, format, args);
     if (buffer_len < 0 || buffer_len >= log_buffer_size) {
         TORCH_NPU_WARN_ONCE("Failed to generate log message.");
         return;
     }
 
     std::ostringstream oss;
-    oss << prefix << buffer << std::endl;
+    oss << prefix << buffer.data() << std::endl;
     std::string s = oss.str();
 
     if (!npu_logging::should_log(s)) {
