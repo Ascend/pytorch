@@ -256,7 +256,6 @@ NON_POINTWISE_OPS = [
     aten.permute,
     aten.amax,
     aten.scalar_tensor,
-    aten.slice_scatter,
     aten.constant_pad_nd,
     aten.unbind,
     aten.lift_fresh_copy,
