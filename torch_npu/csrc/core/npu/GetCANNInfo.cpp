@@ -424,6 +424,16 @@ int64_t DriverVersionToNum(std::string versionStr)
                 bVersion = 1;
             }
         }
+        if (!parsed && isDigits(tokens[index2]) && StartsWith(tokens[index3], "b") && !StartsWith(tokens[index3], "beta") && tokens[index3].length() > validLength1) {
+            std::string buildNumStr = tokens[index3].substr(1);   // estrip the "b" prefix
+            int64_t buildNum = ExtractNumFromStr(buildNumStr);
+            if (buildNum != -1) {
+                patch = buildNum;
+                parsed = true;
+            } else {
+                patch = 0;
+            }
+        }
     }
 
     if (!parsed) {
