@@ -497,6 +497,7 @@ def run_tests_with_tasks_concurrent(
     max_workers: int,
     result_module,
     quick_test: int = None,
+    max_cases_per_batch: int = 100,
 ) -> Tuple[int, float, List[Dict]]:
     """
     Execute pre-collected test cases with concurrent per-case isolation.
@@ -574,8 +575,8 @@ def run_tests_with_tasks_concurrent(
 
     total_cases = len(tasks)
 
-    # Sort and batch tasks: group same-file cases, max 100 per batch
-    batches = sort_and_batch_tasks(tasks, max_cases_per_batch=100)
+    # Sort and batch tasks: group same-file cases, max max_cases_per_batch per batch
+    batches = sort_and_batch_tasks(tasks, max_cases_per_batch=max_cases_per_batch)
 
     print(f"\n{'=' * 80}", flush=True)
     print(f"Pre-collected cases: {total_cases} cases", flush=True)
@@ -895,6 +896,9 @@ def _execute_worker_batch(
         timeout, verbose, shard, shard_type, npu_device_id,
     )
 
+    unexpected_stdout_dir = report_dir / "unexpected_stdout"
+    unexpected_stdout_dir.mkdir(parents=True, exist_ok=True)
+
     while remaining_cases:
         batch_input["cases"] = [
             {
@@ -928,17 +932,47 @@ def _execute_worker_batch(
 
             last_output_time = monotonic()
 
+            unexpected_log_path = unexpected_stdout_dir / f"batch_{batch_id}.log"
+            unexpected_count = 0
+            unexpected_lock = threading.Lock()
+
             def _read_stdout():
-                nonlocal last_output_time
+                nonlocal last_output_time, unexpected_count
                 if proc.stdout:
                     for line in proc.stdout:
                         last_output_time = monotonic()
-                        line = line.strip()
-                        if not line:
+                        raw_line = line.strip()
+                        if not raw_line:
                             continue
                         try:
-                            case_result = json.loads(line)
+                            case_result = json.loads(raw_line)
                         except json.JSONDecodeError:
+                            continue
+
+                        if not isinstance(case_result, dict):
+                            with unexpected_lock:
+                                unexpected_count += 1
+                                count = unexpected_count
+                            ts = datetime.now().isoformat()
+                            json_type = type(case_result).__name__
+                            line_preview = raw_line[:10000]
+                            try:
+                                with open(unexpected_log_path, "a", encoding="utf-8") as uf:
+                                    uf.write(
+                                        f"[{ts}] #{count} type={json_type}"
+                                        f" len={len(raw_line)}\n"
+                                        f"{line_preview}\n"
+                                        f"{'-' * 80}\n"
+                                    )
+                            except OSError:
+                                pass
+                            if count == 1:
+                                print(
+                                    f"  [Batch {batch_id}] Unexpected non-dict JSON line"
+                                    f" (type={json_type}, len={len(raw_line)}),"
+                                    f" full details saved to {unexpected_log_path}",
+                                    flush=True,
+                                )
                             continue
 
                         nodeid = case_result.get("nodeid", "")
@@ -1549,6 +1583,13 @@ def parse_args():
         default=4,
         help="Maximum concurrent workers for regular tests (default: 4). Each worker handles one batch of cases.",
     )
+    parser.add_argument(
+        "--max-cases-per-batch",
+        type=int,
+        default=100,
+        help="Maximum cases per batch (default: 100). Set to 1 for true per-case process isolation "
+             "(each test case runs in its own independent subprocess).",
+    )
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
     parser.add_argument("--quick-test", type=int, default=None, help="Quick test mode: execute only N cases for fast verification (default: None, run all cases)")
     parser.add_argument("--worker", type=str, default=None, help=argparse.SUPPRESS)
@@ -1709,6 +1750,7 @@ def main():
                 effective_workers,
                 result_module,
                 None,  # quick_test already applied above
+                args.max_cases_per_batch,
             )
             info["per_case_isolation"] = True
             info["concurrent_workers"] = effective_workers
@@ -1829,6 +1871,7 @@ def main():
                 effective_workers,
                 result_module,
                 args.quick_test,
+                args.max_cases_per_batch,
             )
             info["execution_mode"] = "serial" if effective_workers == 1 else "concurrent"
             info["concurrent_workers"] = effective_workers

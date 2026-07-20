@@ -67,7 +67,7 @@ jobs:
     steps:
 
       - name: Setup NPU test environment
-        uses: Ascend/pytorch/.github/actions/setup-npu-test-env@v2.7.1
+        uses: kerer-ai/pytorch/.github/actions/setup-npu-test-env@v2.7.1_image
         with:
           python_version: ${{ inputs.python_version }}
           torch_npu_wheel_artifact: ${{ inputs.torch_npu_wheel_artifact }}
@@ -122,8 +122,8 @@ jobs:
           echo "total_cases=${TOTAL_CASES}" >> $GITHUB_OUTPUT
 
           echo "=== Shard configuration ==="
-          echo "Distributed tests: ${DISTRIBUTED_SHARDS} shards (case-level, serial execution, linux-aarch64-a3-16)"
-          echo "Regular tests: ${REGULAR_SHARDS} shards (case-level, 64 workers, linux-aarch64-a3-16)"
+          echo "Distributed tests: ${DISTRIBUTED_SHARDS} shards (case-level, serial execution, linux-aarch64-a3-8)"
+          echo "Regular tests: ${REGULAR_SHARDS} shards (case-level, 16 workers, linux-aarch64-a3-16)"
           echo "Total cases: ${TOTAL_CASES}"
 
           # Package error logs if any (place at workspace root for flat artifact layout)
