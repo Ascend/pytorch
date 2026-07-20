@@ -42,7 +42,7 @@ class Test_ipc_event(TestCase):
         b = a.to('npu:1', non_blocking=True)
         self.assertEqual(a.cpu(), b.cpu())
 
-    @SupportedDevices(['Ascend910B'])
+    @SupportedDevices(['Ascend910B', 'Ascend910C'])
     def test_ipc_event_pickle(self):
         if skip_ipc_event_case:
             return
@@ -60,7 +60,7 @@ class Test_ipc_event(TestCase):
         ev.wait()
         ev.synchronize()
 
-    @SupportedDevices(['Ascend910B'])
+    @SupportedDevices(['Ascend910B', 'Ascend910C'])
     def test_ipc_event_1(self):
         if skip_ipc_event_case:
             return
@@ -94,7 +94,7 @@ class Test_ipc_event(TestCase):
                 q2.put('x')
                 assert q1.get() == 'y'
 
-    @SupportedDevices(['Ascend910B'])
+    @SupportedDevices(['Ascend910B', 'Ascend910C'])
     def test_ipc_event_2(self):
         if skip_ipc_event_case:
             return
@@ -120,7 +120,7 @@ class Test_ipc_event(TestCase):
         p.join()
 
     @skipIfUnsupportMultiNPU(2)
-    @SupportedDevices(['Ascend910B'])
+    @SupportedDevices(['Ascend910B', 'Ascend910C'])
     def test_event_handle_multi_npu(self):
         if skip_ipc_event_case:
             return
@@ -152,7 +152,7 @@ class Test_ipc_event(TestCase):
         c2p.put(1)  # notify synchronization is done in child
         p2c.get()  # wait for parent to finish before destructing child event
 
-    @SupportedDevices(['Ascend910B'])
+    @SupportedDevices(['Ascend910B', 'Ascend910C'])
     def test_event_handle_importer(self):
         if skip_ipc_event_case:
             return
@@ -189,7 +189,7 @@ class Test_ipc_event(TestCase):
             # destructing e1
             p2c.get()
 
-    @SupportedDevices(['Ascend910B'])
+    @SupportedDevices(['Ascend910B', 'Ascend910C'])
     def test_event_handle_exporter(self):
         if skip_ipc_event_case:
             return
