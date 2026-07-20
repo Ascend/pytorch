@@ -369,6 +369,11 @@ class ReductionAnalysis:
         if not reduction_layout_var_list:
             raise RuntimeError("assert reduction_layout_var_list is not empty")
 
+        if self.numof_reduction_axis() > 1 and self.contiguous_reduction:
+            if not self.kernel.golden_var_list:
+                self.kernel.select_golden_varlist()
+            return sum(1 for x in self.kernel.golden_var_list if x.name[0] != 'r')
+
         dim = -1
         for i, x in enumerate(reversed(reduction_layout_var_list)):
             if x.name[0] == 'r':
