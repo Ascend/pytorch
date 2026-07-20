@@ -280,6 +280,11 @@ def _patch_model_7():
     Solving the problem by adding  .contiguous() in soft_actor_critic/net.py line:242 SquashedNormal.__init__
     This patch would be removed in the near future.
     """
+    from torchbenchmark.models.soft_actor_critic import Model
+
+    Model.DEFAULT_TRAIN_BSIZE = 32768
+    Model.DEFAULT_EVAL_BSIZE = 32768
+
     import torch.nn.functional as F
     from torchbenchmark.models.soft_actor_critic.nets import (
         BetaDist,
