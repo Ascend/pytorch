@@ -94,7 +94,7 @@ class TestAclgraphRngState(TestCase):
         def fn(x):
             return x * torch.sigmoid(torch.randn(1, device="npu"))
 
-        # Warm up the random op before capture, mirroring the CUDA coverage.
+        # Warm up the random op before capture.
         fn(torch.ones(1, device="npu"))
 
         torch.npu.manual_seed(42)
@@ -155,6 +155,124 @@ class TestAclgraphRngState(TestCase):
         torch.npu.synchronize()
 
         self.assertEqual(graph_out, eager_ref)
+
+    @SupportedDevices(["Ascend910B", "Ascend910_93"])
+    def test_graph_rng_after_failed_capture(self):
+        """Test RNG capture after an operation is rejected during capture."""
+        stream = torch.npu.Stream()
+        graph = torch.npu.NPUGraph()
+        x = torch.ones(1, device="npu")
+
+        with torch.npu.stream(stream):
+            graph.capture_begin()
+            with self.assertRaises(RuntimeError):
+                (x + 1).item()
+            # NPU rejects the stream synchronization without invalidating capture.
+            graph.capture_end()
+
+        torch.npu.current_stream().wait_stream(stream)
+
+        result = torch.randn(4, device="npu")
+        self.assertEqual(result.shape, (4,))
+
+        # Capture again on the same stream to verify recovery.
+        new_graph = torch.npu.NPUGraph()
+        buf = torch.empty(4, device="npu")
+        with torch.npu.stream(stream):
+            new_graph.capture_begin()
+            buf.copy_(torch.randn_like(buf))
+            new_graph.capture_end()
+        torch.npu.current_stream().wait_stream(stream)
+        buf.zero_()
+        new_graph.replay()
+        torch.npu.synchronize()
+        self.assertFalse(torch.allclose(buf, torch.zeros_like(buf)))
+
+    @SupportedDevices(["Ascend910B", "Ascend910_93"])
+    def test_graph_rng_concurrent_replay_on_different_streams(self):
+        torch.npu.set_device(0)
+        seed = 1234
+        shape = (64,)
+
+        torch.npu.manual_seed(seed)
+        ref0 = torch.randn(shape, device="npu")
+        ref1 = torch.randn(shape, device="npu")
+
+        torch.npu.manual_seed(seed)
+        g0 = torch.npu.NPUGraph()
+        g1 = torch.npu.NPUGraph()
+        s_cap = torch.npu.Stream()
+        buf0 = torch.empty(shape, device="npu")
+        buf1 = torch.empty(shape, device="npu")
+
+        with torch.npu.stream(s_cap):
+            g0.capture_begin()
+            buf0.copy_(torch.randn_like(buf0))
+            g0.capture_end()
+
+        torch.npu.current_stream().wait_stream(s_cap)
+
+        with torch.npu.stream(s_cap):
+            g1.capture_begin()
+            buf1.copy_(torch.randn_like(buf1))
+            g1.capture_end()
+
+        torch.npu.current_stream().wait_stream(s_cap)
+
+        s0 = torch.npu.Stream()
+        s1 = torch.npu.Stream()
+
+        buf0.zero_()
+        buf1.zero_()
+
+        s0.wait_stream(torch.npu.current_stream())
+        s1.wait_stream(torch.npu.current_stream())
+
+        with torch.npu.stream(s0):
+            g0.replay()
+        with torch.npu.stream(s1):
+            g1.replay()
+
+        torch.npu.synchronize()
+
+        self.assertEqual(buf0, ref0)
+        self.assertEqual(buf1, ref1)
+
+    @SupportedDevices(["Ascend910B", "Ascend910_93"])
+    def test_graph_rng_reset_recapture(self):
+        torch.npu.set_device(0)
+        seed = 4321
+        shape = (8,)
+
+        torch.npu.manual_seed(seed)
+        ref = torch.randn(shape, device="npu")
+
+        torch.npu.manual_seed(seed)
+        graph = torch.npu.NPUGraph()
+        stream = torch.npu.Stream()
+        buf = torch.empty(shape, device="npu")
+
+        with torch.npu.stream(stream):
+            graph.capture_begin()
+            buf.copy_(torch.randn_like(buf))
+            graph.capture_end()
+        torch.npu.current_stream().wait_stream(stream)
+
+        graph.reset()
+
+        torch.npu.manual_seed(seed)
+        graph = torch.npu.NPUGraph()
+        with torch.npu.stream(stream):
+            graph.capture_begin()
+            buf.copy_(torch.randn_like(buf))
+            graph.capture_end()
+        torch.npu.current_stream().wait_stream(stream)
+
+        buf.zero_()
+        graph.replay()
+        torch.npu.synchronize()
+
+        self.assertEqual(buf, ref)
 
 
 if __name__ == "__main__":
