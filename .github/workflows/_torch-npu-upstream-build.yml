@@ -25,6 +25,11 @@ on:
         type: string
         default: ''
         description: PyTorch commit to compile if dev env is missing
+      torch_npu_ref:
+        required: false
+        type: string
+        default: 'master'
+        description: Branch/ref of ascend-pytorch to checkout for building torch_npu
     outputs:
       wheel_name:
         description: Name of the built wheel file
@@ -51,7 +56,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref_name == 'master' && 'v2.7.1' || github.ref }}
+          ref: ${{ inputs.torch_npu_ref != '' && inputs.torch_npu_ref || (github.ref_name == 'master' && 'v2.7.1' || github.ref) }}
           fetch-depth: 1
           submodules: true
 

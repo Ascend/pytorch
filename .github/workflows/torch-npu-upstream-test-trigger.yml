@@ -14,6 +14,11 @@ on:
         required: false
         type: string
         default: '0545bb23f54b26001534a83f25f2729ad8770b68'
+      torch_npu_ref:
+        description: 'Branch/ref of ascend-pytorch to build (empty = current branch)'
+        required: false
+        type: string
+        default: ''
 
 jobs:
   trigger_test:
@@ -24,3 +29,4 @@ jobs:
       regular_shards: '5'
       test_files: ''
       pytorch_commit: ${{ inputs.pytorch_commit || '0545bb23f54b26001534a83f25f2729ad8770b68' }}
+      torch_npu_ref: ${{ inputs.torch_npu_ref || '' }}

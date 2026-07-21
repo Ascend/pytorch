@@ -43,6 +43,11 @@ on:
         type: string
         default: 'fad74248e78716152917a729adb2b44ba2bab16e'
         description: PyTorch commit to checkout for test source
+      torch_npu_ref:
+        required: false
+        type: string
+        default: ''
+        description: Branch/ref of ascend-pytorch to checkout for building torch_npu (empty = current branch)
 
 defaults:
   run:
@@ -70,6 +75,7 @@ jobs:
       torch_npu_wheel_artifact: torch-npu-wheel-${{ inputs.pytorch_version }}-source
       max_jobs: '40'
       pytorch_commit: ${{ inputs.pytorch_commit }}
+      torch_npu_ref: ${{ inputs.torch_npu_ref }}
 
   # ============================================================================
   # 3. Collect Test Cases (only when test_files is empty)
