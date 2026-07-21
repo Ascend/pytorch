@@ -7,6 +7,7 @@
 #include <stack>
 #include <vector>
 #include <functional>
+#include <limits>
 
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
@@ -55,7 +56,7 @@ namespace at_npu {
 }
 namespace c10_npu {
 // Standalone way to get a unique mempool id usable as a pool=... argument
-// to CUDAGraph::capture_begin
+// to NPUGraph::capture_begin
 TORCH_NPU_API MempoolId_t graph_pool_handle();
 
 struct TORCH_NPU_API NPUTaskGroupHandle {
@@ -113,11 +114,11 @@ protected:
     // Set to true in capture_end if NPU graph is captured succeeded
     bool has_graph_exec_ = false;
 
-    // the ID assigned by cuda during graph capture,
+    // the ID assigned by NPU runtime during graph capture,
     // used to identify when a stream is participating in capture
-    CaptureId_t capture_id_ = -1;
+    CaptureId_t capture_id_ = std::numeric_limits<CaptureId_t>::max();
 
-    // uuid used to request a particular private mempool from CUDACachingAllocator.
+    // uuid used to request a particular private mempool from NPUCachingAllocator.
     // By default, this will be set to {id_, 0}.
     //
     // If capture_begin is called with "pool=other_graph.pool()", this graph's mempool_id_
@@ -137,13 +138,10 @@ protected:
 
     std::stack<NPUStreamGuard> conditional_node_streams_;
     std::stack<aclmdlRI> conditional_model_ri_stack_;
-    std::stack<
-        ska::flat_hash_map<c10::intrusive_ptr<at_npu::NPUGeneratorState>, uint64_t>>
-        conditional_rng_snapshots_;
 
     // Device where capture occurred. Right now, for simplicity, we require all ops
-    // in a capture to run on the same device, but this is a limitation of CUDAGraph,
-    // not CUDA itself.  We can straightforwardly modify CUDAGraph to support multi-device
+    // in a capture to run on the same device, but this is a limitation of NPUGraph,
+    // not NPU itself. We can straightforwardly modify NPUGraph to support multi-device
     // captures if needed.
     int capture_dev_;
 

@@ -79,6 +79,7 @@ TORCH_NPU_LOAD_FUNC(aclrtSynchronizeDeviceWithTimeout)
 TORCH_NPU_LOAD_FUNC(aclrtEventGetTimestamp)
 TORCH_NPU_LOAD_FUNC(aclmdlRICaptureBegin)
 TORCH_NPU_LOAD_FUNC(aclmdlRICaptureGetInfo)
+TORCH_NPU_LOAD_FUNC(aclmdlRIGetId)
 TORCH_NPU_LOAD_FUNC(aclmdlRICaptureEnd)
 TORCH_NPU_LOAD_FUNC(aclmdlRICondHandleCreate)
 TORCH_NPU_LOAD_FUNC(aclmdlRICondHandleGetCondPtr)
@@ -1085,6 +1086,18 @@ aclError AclmdlRICaptureGetInfo(aclrtStream stream, aclmdlRICaptureStatus *statu
 
     TORCH_CHECK(func, "Failed to find function aclmdlRICaptureGetInfo", PTA_ERROR(ErrCode::NOT_FOUND));
     return func(stream, status, modelRI);
+}
+
+bool TryAclmdlRIGetId(aclmdlRI modelRI, uint32_t *modelRIId)
+{
+    ACL_CALL_LOG("aclmdlRIGetId", "modelRI=" << modelRI << ", modelRIId=" << modelRIId);
+    typedef aclError (*AclmdlRIGetId)(aclmdlRI, uint32_t *);
+    static AclmdlRIGetId func = (AclmdlRIGetId) TORCH_NPU_GET_FUNC(aclmdlRIGetId);
+    if (func == nullptr) {
+        return false;
+    }
+    NPU_CHECK_ERROR(func(modelRI, modelRIId));
+    return true;
 }
 
 aclError AclmdlRICaptureEnd(aclrtStream stream, aclmdlRI *modelRI)

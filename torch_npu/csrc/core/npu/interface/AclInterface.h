@@ -235,6 +235,8 @@ aclError AclmdlRICaptureBegin(aclrtStream stream, aclmdlRICaptureMode mode);
 
 aclError AclmdlRICaptureGetInfo(aclrtStream stream, aclmdlRICaptureStatus *status, aclmdlRI *modelRI);
 
+bool TryAclmdlRIGetId(aclmdlRI modelRI, uint32_t *modelRIId);
+
 aclError AclmdlRICaptureEnd(aclrtStream stream, aclmdlRI *modelRI);
 
 aclError AclmdlRICondHandleCreate(aclmdlRI modelRI, unsigned int defaultLaunchValue, uint32_t flag,

@@ -23,7 +23,7 @@ namespace c10_npu {
 
 static bool _npu_graphs_debug = false;
 static std::mutex _currently_capturing_graphs_mutex;
-static ska::flat_hash_map<aclmdlRI, NPUGraph*> _currently_capturing_graphs;
+static ska::flat_hash_map<CaptureId_t, NPUGraph*> _currently_capturing_graphs;
 
 namespace {
 void apply_cache_op_info(aclrtStream stream, bool enabled)
@@ -130,15 +130,15 @@ void unsubscribe_report(uint64_t threadId, c10_npu::NPUStream stream)
 }
 
 /**
- * Note [CUDA Graph Wrapper Class]
+ * Note [NPU Graph Wrapper Class]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * Q: Why do we need graph capture and launch bindings in Pytorch?
  *    Why can't they live in a user extension, for example?
  *
  * A1: Convenience.
- * A2: To ensure valid numerics on replay, some native CUDA ops (like RNG ops with
+ * A2: To ensure valid numerics on replay, some native NPU ops (like RNG ops with
  *     CPU statefulness) need cooperation from the capture and replay bindings
- *     (see Note [CUDA Graph-safe RNG states] in CUDAGeneratorImpl.h).
+ *     (see Note [NPU Graph-safe RNG states] in NPUGeneratorImpl.h).
  *
  *     We can't expect users to know about this cooperation.  If users write capture
  *     bindings naively in an extension, they likely won't interact with the native
@@ -146,7 +146,7 @@ void unsubscribe_report(uint64_t threadId, c10_npu::NPUStream stream)
  */
 
 /**
- * Note [Interaction with CUDA graph capture] in CUDACachingAllocator.cpp
+ * Note [Interaction with NPU graph capture] in NPUCachingAllocator.cpp
  * describes memory management for captures.
  */
 
@@ -208,10 +208,6 @@ void NPUGraph::capture_begin(MempoolId_t pool, aclmdlRICaptureMode capture_mode,
     gen->register_graph(this);
     gen->set_secondary_stream_capture_state(false);
 
-    for (auto& [generator_state, wholegraph_increments] : captured_generator_states_) {
-        generator_state->capture_prologue();
-    }
-
     capture_stream_ = stream;
     capture_dev_ = c10_npu::current_device();
 
@@ -231,8 +227,8 @@ void NPUGraph::capture_begin(MempoolId_t pool, aclmdlRICaptureMode capture_mode,
 
     auto filter = create_allocate_filter();
 
-    // Addendum: beginAllocateStreamToPool is now called before cudaStreamBeginCapture to prevent an
-    // autograd thread's free() call triggering an invalid cudaEventRecord in the caching allocator
+    // Addendum: beginAllocateToPool is now called before AclmdlRICaptureBegin to prevent an
+    // autograd thread's free() call from interacting with the caching allocator
     // due to the capture status being updated _after_ a capture had already started.
     c10_npu::NPUCachingAllocator::beginAllocateToPool(capture_dev_, mempool_id_, filter);
 
@@ -245,17 +241,22 @@ void NPUGraph::capture_begin(MempoolId_t pool, aclmdlRICaptureMode capture_mode,
             return filter(c10_npu::NPUStream(c10_npu::NPUStream::UNCHECKED, stream).stream(false));
         });
 
-    // cudaStreamCaptureModeGlobal is the most conservative option to
-    // prevent potentially unsafe CUDA API calls during capture.
+    // ACL_MODEL_RI_CAPTURE_MODE_GLOBAL is the most conservative option to
+    // prevent potentially unsafe NPU API calls during capture.
     NPU_CHECK_ERROR(c10_npu::acl::AclmdlRICaptureBegin(capture_stream_, capture_mode));
 
     aclmdlRICaptureStatus status;
     NPU_CHECK_ERROR(c10_npu::acl::AclmdlRICaptureGetInfo(stream, &status, &model_ri_));
     TORCH_INTERNAL_ASSERT(status == aclmdlRICaptureStatus::ACL_MODEL_RI_CAPTURE_STATUS_ACTIVE);
+    capture_id_ = c10_npu::captureIdFromModelRI(model_ri_);
 
     {
-        std::unique_lock<std::mutex> lock(_currently_capturing_graphs_mutex);
-        _currently_capturing_graphs.emplace(model_ri_, this);
+        std::lock_guard<std::mutex> lock(_currently_capturing_graphs_mutex);
+        _currently_capturing_graphs.emplace(capture_id_, this);
+    }
+
+    for (auto& [generator_state, wholegraph_increments] : captured_generator_states_) {
+        generator_state->init_capture_state(capture_id_);
     }
 
     NPUGRAPH_LOGD("NPUGRAPH Capture begin done: model_ri=%p, capture_dev=%d, "
@@ -278,33 +279,28 @@ void NPUGraph::capture_end()
     apply_cache_op_info(stream, false);
 
     aclmdlRI model_ri;
-    NPU_CHECK_ERROR(c10_npu::acl::AclmdlRICaptureEnd(capture_stream_, &model_ri));
+    auto ret = c10_npu::acl::AclmdlRICaptureEnd(capture_stream_, &model_ri);
     {
         std::unique_lock<std::mutex> lock(_currently_capturing_graphs_mutex);
         TORCH_CHECK(
-          _currently_capturing_graphs.count(model_ri_),
+          _currently_capturing_graphs.count(capture_id_),
           "capture_end() called before capture_begin().");
-        _currently_capturing_graphs.erase(model_ri_);
+        _currently_capturing_graphs.erase(capture_id_);
     }
 
     c10_npu::NPUCachingAllocator::endAllocateToPool(capture_dev_, mempool_id_);
     at::getHostAllocator(at::kPrivateUse1)->end_allocate_to_pool(mempool_id_);
 
+    NPU_CHECK_ERROR(ret);
     TORCH_CHECK(model_ri == model_ri_, "Invalid end capture model id: ", model_ri);
 
-    // In typical graph usage some tensors (e.g. the tensors used for graph IO) are not freed
-    // between replays.
-    // If Pytorch compiles and runs with a CUDA 11.4+ toolkit, there's a chance the allocator backend
-    // is cudaMallocAsync.
-    // cudaMallocAsync is generally graph-safe, but if some tensors are not freed between replays,
-    // the graph's internal bookkeeping requires that we instantiate with
-    // cudaGraphInstantiateFlagAutoFreeOnLaunch. See
-    // cudaGraphLaunch
-    // cudaGraphInstantiateWithFlags
+    // In typical graph usage some tensors (e.g. the tensors used for graph IO)
+    // are not freed between replays. Keep graph-owned allocator bookkeeping
+    // alive until reset releases the private pool.
     has_graph_exec_ = true;
 
     for (auto& [generator_state, wholegraph_increments] : captured_generator_states_) {
-        wholegraph_increments = generator_state->capture_epilogue();
+        wholegraph_increments = generator_state->capture_epilogue(capture_id_);
     }
 
     uint32_t num_graph_nodes = 0;
@@ -322,7 +318,7 @@ void NPUGraph::replay()
     c10::OptionalDeviceGuard device_guard{capture_stream_.device()};
 
     for (auto& [generator_state, wholegraph_increments] : captured_generator_states_) {
-        generator_state->replay_prologue(wholegraph_increments);
+        generator_state->replay_prologue(capture_id_, wholegraph_increments);
     }
 
     // model_ri_ may be replayed in any stream.
@@ -378,6 +374,16 @@ void NPUGraph::reset()
     // and the allocator could end up in all kinds of weird states depending where failure occurred.
     // If the user catches the failure exception in a script, or is running in REPL or (god forbid)
     // a Jupyter notebook, I don't see an easy way for reset() to gracefully fix all such possible error states.
+    if (capture_id_ != std::numeric_limits<CaptureId_t>::max()) {
+        {
+            std::unique_lock<std::mutex> lock(_currently_capturing_graphs_mutex);
+            _currently_capturing_graphs.erase(capture_id_);
+        }
+        for (auto& [generator_state, wholegraph_increments] : captured_generator_states_) {
+            generator_state->remove_capture_state(capture_id_);
+        }
+    }
+
     if (has_graph_exec_) {
         NPUGRAPH_LOGD("NPUGRAPH Reset releasing graph: model_ri=%p, capture_dev=%d, "
                       "mempool_id=(%lu,%lu)",
@@ -391,6 +397,7 @@ void NPUGraph::reset()
         }
         has_graph_exec_ = false;
     }
+    capture_id_ = std::numeric_limits<CaptureId_t>::max();
 }
 
 // Returns an id another graph's capture_begin can use to share the same memory pool as this graph.
@@ -404,49 +411,40 @@ MempoolId_t NPUGraph::pool()
 NPUGraph* NPUGraph::get_currently_capturing_graph()
 {
     std::unique_lock<std::mutex> lock(_currently_capturing_graphs_mutex);
-
-    aclmdlRICaptureStatus status;
-    aclmdlRI model_ri;
-    auto stream = c10_npu::getCurrentNPUStream();
-    NPU_CHECK_ERROR(c10_npu::acl::AclmdlRICaptureGetInfo(stream, &status, &model_ri));
-    TORCH_CHECK(status == aclmdlRICaptureStatus::ACL_MODEL_RI_CAPTURE_STATUS_ACTIVE,
+    auto capture_id = c10_npu::currentStreamCaptureIdMayInitCtx();
+    TORCH_CHECK(capture_id.has_value(),
                 "The current NPU stream is not currently capturing.",
                 PTA_ERROR(ErrCode::PARAM));
-    TORCH_CHECK(_currently_capturing_graphs.count(model_ri),
+    TORCH_CHECK(_currently_capturing_graphs.count(capture_id.value()),
                 "get_currently_capturing_graph() can be used only between capture_begin() and capture_end(). "
                 "Did you use a stream without making it depend upon the original stream used for capture?",
                 PTA_ERROR(ErrCode::PARAM));
-    return _currently_capturing_graphs.at(model_ri);
+    return _currently_capturing_graphs.at(capture_id.value());
 }
 
 std::function<bool(aclrtStream)> NPUGraph::create_allocate_filter() const
 {
     return [this](aclrtStream stream) -> bool {
-        aclmdlRICaptureStatus status;
-        aclmdlRI capturing_model_ri;
-        NPU_CHECK_ERROR(c10_npu::acl::AclmdlRICaptureGetInfo(stream, &status, &capturing_model_ri));
-        NPUGRAPH_LOGD("NPUGRAPH AllocateToPool filter: stream=%p, status=%d, model_ri=%p, expected_model_ri=%p, "
+        auto capturing_id = c10_npu::captureIdMayInitCtx(stream);
+        NPUGRAPH_LOGD("NPUGRAPH AllocateToPool filter: stream=%p, capture_id=%llu, expected_capture_id=%llu, "
                       "mempool_id=(%lu,%lu)",
-                      static_cast<void*>(stream), static_cast<int>(status), static_cast<void*>(capturing_model_ri),
-                      static_cast<void*>(model_ri_), mempool_id_.first, mempool_id_.second);
-        return status == aclmdlRICaptureStatus::ACL_MODEL_RI_CAPTURE_STATUS_ACTIVE
-            && capturing_model_ri == model_ri_;
+                      static_cast<void*>(stream), capturing_id.value_or(0),
+                      capture_id_, mempool_id_.first, mempool_id_.second);
+        return capturing_id.has_value() && capturing_id.value() == capture_id_;
     };
 }
 
 std::function<bool(aclrtStream)> NPUGraph::create_child_allocate_filter(aclmdlRI child_model_ri) const
 {
     TORCH_INTERNAL_ASSERT(child_model_ri != nullptr, "Child modelRI allocate filter requires a non-null modelRI.");
-    return [this, child_model_ri](aclrtStream stream) -> bool {
-        aclmdlRICaptureStatus status;
-        aclmdlRI capturing_model_ri;
-        NPU_CHECK_ERROR(c10_npu::acl::AclmdlRICaptureGetInfo(stream, &status, &capturing_model_ri));
-        NPUGRAPH_LOGD("NPUGRAPH Child AllocateToPool filter: stream=%p, status=%d, model_ri=%p, "
-                      "expected_child_model_ri=%p, mempool_id=(%lu,%lu)",
-                      static_cast<void*>(stream), static_cast<int>(status), static_cast<void*>(capturing_model_ri),
-                      static_cast<void*>(child_model_ri), mempool_id_.first, mempool_id_.second);
-        return status == aclmdlRICaptureStatus::ACL_MODEL_RI_CAPTURE_STATUS_ACTIVE
-            && capturing_model_ri == child_model_ri;
+    auto child_capture_id = c10_npu::captureIdFromModelRI(child_model_ri);
+    return [this, child_capture_id](aclrtStream stream) -> bool {
+        auto capturing_id = c10_npu::captureIdMayInitCtx(stream);
+        NPUGRAPH_LOGD("NPUGRAPH Child AllocateToPool filter: stream=%p, capture_id=%llu, "
+                      "expected_child_capture_id=%llu, mempool_id=(%lu,%lu)",
+                      static_cast<void*>(stream), capturing_id.value_or(0),
+                      child_capture_id, mempool_id_.first, mempool_id_.second);
+        return capturing_id.has_value() && capturing_id.value() == child_capture_id;
     };
 }
 
@@ -530,12 +528,6 @@ void NPUGraph::begin_capture_to_if_node(const at::Tensor& scalar_npu_pred_tensor
     at::getHostAllocator(at::kPrivateUse1)->end_allocate_to_pool(mempool_id_);
     begin_allocate_to_pool(capture_dev_, mempool_id_, create_child_allocate_filter(child_model_ri));
 
-    ska::flat_hash_map<c10::intrusive_ptr<at_npu::NPUGeneratorState>, uint64_t> rng_snapshot;
-    for (const auto& [generator_state, wholegraph_increment] : captured_generator_states_) {
-        rng_snapshot[generator_state] = generator_state->offset_intragraph_;
-    }
-    conditional_rng_snapshots_.push(std::move(rng_snapshot));
-
     auto child_stream = c10_npu::getStreamFromPool(false, capture_dev_);
     NPUGRAPH_LOGD("NPUGRAPH Conditional capture to child modelRI: child_model_ri=%p, child_stream=%p, "
                   "mempool_id=(%lu,%lu)",
@@ -554,7 +546,8 @@ void NPUGraph::begin_capture_to_if_node(const at::Tensor& scalar_npu_pred_tensor
 
     {
         std::unique_lock<std::mutex> lock(_currently_capturing_graphs_mutex);
-        _currently_capturing_graphs.emplace(child_model_ri, this);
+        auto child_capture_id = c10_npu::captureIdFromModelRI(child_model_ri);
+        _currently_capturing_graphs.emplace(child_capture_id, this);
     }
 }
 
@@ -564,16 +557,15 @@ void NPUGraph::end_capture_to_conditional_node()
                           "Missing modelRI for conditional node.");
     TORCH_INTERNAL_ASSERT(!conditional_node_streams_.empty(),
                           "Missing stream for conditional node.");
-    TORCH_INTERNAL_ASSERT(!conditional_rng_snapshots_.empty(),
-                          "Missing RNG snapshot for conditional node.");
 
     aclmdlRI child_model_ri = conditional_model_ri_stack_.top();
+    auto child_capture_id = c10_npu::captureIdFromModelRI(child_model_ri);
     {
         std::unique_lock<std::mutex> lock(_currently_capturing_graphs_mutex);
-        TORCH_CHECK(_currently_capturing_graphs.count(child_model_ri),
+        TORCH_CHECK(_currently_capturing_graphs.count(child_capture_id),
                     "capture_end() called before capture_begin().",
                     PTA_ERROR(ErrCode::PARAM));
-        _currently_capturing_graphs.erase(child_model_ri);
+        _currently_capturing_graphs.erase(child_capture_id);
     }
 
     auto stream = conditional_node_streams_.top().current_stream();
@@ -602,27 +594,19 @@ void NPUGraph::end_capture_to_conditional_node()
     }
 
     bool rng_or_generators_changed = false;
-    auto rng_snapshot = std::move(conditional_rng_snapshots_.top());
-    conditional_rng_snapshots_.pop();
-    for (const auto& [generator_state, offset_intragraph] : rng_snapshot) {
-        if (generator_state->offset_intragraph_ != offset_intragraph) {
+    for (const auto& [generator_state, wholegraph_increment] : captured_generator_states_) {
+        if (generator_state->get_capture_state(child_capture_id) != nullptr) {
             rng_or_generators_changed = true;
             break;
         }
     }
-    // Data-dependent conditional nodes cannot yet safely model branch-local RNG
-    // offset changes across graph replay.
     TORCH_CHECK(!rng_or_generators_changed,
                 "RNG within data-dependent conditional nodes is not supported yet.",
                 PTA_ERROR(ErrCode::NOT_SUPPORT));
-
 }
 
 NPUGraph::~NPUGraph()
 {
-    for (auto& [generator_state, wholegraph_increments] : captured_generator_states_) {
-        generator_state->unregister_graph(this);
-    }
     reset();
 }
 

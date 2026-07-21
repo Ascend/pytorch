@@ -90,7 +90,53 @@ at::Generator createNPUGenerator(c10::DeviceIndex device_index)
  */
 c10::intrusive_ptr<NPUGeneratorState> NPUGeneratorState::clone()
 {
-    return c10::make_intrusive<NPUGeneratorState>(seed_, philox_offset_per_thread_, offset_intragraph_);
+    return c10::make_intrusive<NPUGeneratorState>(seed_, philox_offset_per_thread_);
+}
+
+bool NPUGeneratorCaptureState::is_initialized() const
+{
+    return seed_extragraph_.defined() && offset_extragraph_.defined();
+}
+
+void NPUGeneratorCaptureState::initialize(uint64_t seed)
+{
+    (void)seed;
+    if (is_initialized()) {
+        return;
+    }
+
+    auto options = at::TensorOptions().device(at::kPrivateUse1).dtype(at::kLong);
+    c10::InferenceMode guard(false);
+    c10_npu::NPUStreamGuard stream_guard(c10_npu::getDefaultNPUStream());
+    seed_extragraph_ = at::empty({1}, options);
+    offset_extragraph_ = at::empty({1}, options);
+    c10_npu::getDefaultNPUStream().synchronize();
+
+    offset_intragraph_ = 0;
+}
+
+void NPUGeneratorCaptureState::increase(uint64_t increment)
+{
+    TORCH_INTERNAL_ASSERT(
+        offset_intragraph_ % 4 == 0, "RNG offset must be a multiple of 4.");
+    TORCH_INTERNAL_ASSERT(
+        offset_intragraph_ <= std::numeric_limits<uint64_t>::max() - increment,
+        "Increment causes overflow in the offset value.");
+    offset_intragraph_ += increment;
+}
+
+uint64_t NPUGeneratorCaptureState::finalize()
+{
+    auto result = offset_intragraph_;
+    offset_intragraph_ = 0;
+    return result;
+}
+
+void NPUGeneratorCaptureState::setup_for_replay(uint64_t seed, uint64_t philox_offset)
+{
+    TORCH_INTERNAL_ASSERT(is_initialized(), "Capture state should be initialized before replay.");
+    seed_extragraph_.fill_(int64_t(seed));
+    offset_extragraph_.fill_(int64_t(philox_offset));
 }
 
 /**
@@ -103,25 +149,16 @@ void NPUGeneratorState::increase(uint64_t increment)
     // see Note [Why enforce RNG offset % 4 == 0?]
     increment = ((increment + 3) / 4) * 4;
     // Handling different behaviors based on whether capturing is active.
-    if (c10_npu::currentStreamCaptureStatus() != c10_npu::CaptureStatus::None) {
-        // Ensures that the state is actually capturing.
+    auto capture_id = c10_npu::currentStreamCaptureId();
+    if (capture_id.has_value()) {
+        auto capture_state = get_capture_state(capture_id.value());
         TORCH_CHECK(
-            capturing_,
-            "Attempt to increase offset for a NPU generator not in capture mode.");
-        // Ensures the offset is a multiple of 4
-        // see Note [Why enforce RNG offset % 4 == 0?]
-        TORCH_INTERNAL_ASSERT(
-            offset_intragraph_ % 4 == 0, "RNG offset must be a multiple of 4.");
-        // Ensures the increment does not cause overflow.
-        TORCH_INTERNAL_ASSERT(
-            offset_intragraph_ <= std::numeric_limits<uint64_t>::max() - increment,
-            "Increment causes overflow in the offset value.");
-        offset_intragraph_ += increment;
+            capture_state != nullptr,
+            "RNG op during graph capture but generator is not registered with "
+            "the capturing graph. Call graph.register_generator_state() before "
+            "capture_begin().");
+        capture_state->increase(increment);
     } else {
-        // Checks that the increment is expected outside graph capturing.
-        TORCH_CHECK(
-            !capturing_,
-            "Offset increment outside graph capture encountered unexpectedly.");
         // Ensures the offset is a multiple of 4
         // see Note [Why enforce RNG offset % 4 == 0?]
         TORCH_INTERNAL_ASSERT(
@@ -131,90 +168,74 @@ void NPUGeneratorState::increase(uint64_t increment)
     }
 }
 
-/**
- * Registers this state to a NPU graph to manage within the graph.
- */
-void NPUGeneratorState::register_graph(c10_npu::NPUGraph* graph)
+NPUGeneratorCaptureState* NPUGeneratorState::get_capture_state(c10_npu::CaptureId_t capture_id)
 {
-    // Ensures that the RNG state is not currently being captured.
-    c10_npu::assertNotCapturing("Cannot register the state during capturing stage.");
-
-    // If this is the first graph to be registered, allocate memory for the seed
-    // and offset on the GPU.
-    if (registered_graphs_.empty()) {
-        auto options = at::TensorOptions().device(at::kPrivateUse1).dtype(at::kLong);
-        // Keep these tensors mutable outside inference mode. Replay prologue
-        // updates them in-place with fill_().
-        c10::InferenceMode guard(false);
-        seed_extragraph_ = at::empty({1}, options);
-        offset_extragraph_ = at::empty({1}, options);
+    std::lock_guard<std::mutex> lock(capture_states_mutex_);
+    auto it = capture_states_.find(capture_id);
+    if (it != capture_states_.end()) {
+        return it->second.get();
     }
-
-    // Insert the graph into the set of registered graphs if it's not already
-    // registered.
-    if (registered_graphs_.find(graph) == registered_graphs_.end()) {
-        registered_graphs_.insert(graph);
-    }
-}
-
-/**
- * Unregisters a NPU graph from the RNG state.
- */
-void NPUGeneratorState::unregister_graph(c10_npu::NPUGraph* graph)
-{
-    // Verify the graph was previously registered.
-    TORCH_CHECK(registered_graphs_.find(graph) != registered_graphs_.end(),
-                "The graph should be registered to the state");
-
-    // Remove the graph from the set of registered graphs.
-    registered_graphs_.erase(graph);
-
-    // If no more graphs are registered, deallocate the GPU memory for the seed
-    // and offset.
-    if (registered_graphs_.empty()) {
-        seed_extragraph_.reset();
-        offset_extragraph_.reset();
-    }
+    return nullptr;
 }
 
 /**
  * Performs the prologue steps for capturing a NPU graph state.
  * This method is intended to reset graph-related state variables before capturing begins.
  */
-void NPUGeneratorState::capture_prologue()
+void NPUGeneratorState::init_capture_state(c10_npu::CaptureId_t capture_id)
 {
-    capturing_ = true;
-    offset_intragraph_ = 0;
-    seed_extragraph_.fill_(int64_t(seed_));
-    offset_extragraph_.fill_(int64_t(0));
+    {
+        std::lock_guard<std::mutex> lock(capture_states_mutex_);
+        if (capture_states_.count(capture_id)) {
+            return;
+        }
+    }
+
+    auto capture_state = c10::make_intrusive<NPUGeneratorCaptureState>();
+    capture_state->initialize(seed_);
+
+    std::lock_guard<std::mutex> lock(capture_states_mutex_);
+    if (!capture_states_.count(capture_id)) {
+        capture_states_.emplace(capture_id, std::move(capture_state));
+    }
 }
 
 /**
  * Ends the capturing phase and resets related variables, returning the whole
  * graph increment.
  */
-uint64_t NPUGeneratorState::capture_epilogue()
+uint64_t NPUGeneratorState::capture_epilogue(c10_npu::CaptureId_t capture_id)
 {
-    capturing_ = false;
-    return offset_intragraph_;
+    auto capture_state = get_capture_state(capture_id);
+    if (capture_state) {
+        return capture_state->finalize();
+    }
+    return 0;
 }
 
 /**
  * Prepares the state for replay by setting initial state tensors and applying
  * total increment.
  */
-void NPUGeneratorState::replay_prologue(uint64_t wholegraph_increment)
+void NPUGeneratorState::replay_prologue(c10_npu::CaptureId_t capture_id, uint64_t wholegraph_increment)
 {
     // Ensures the generator is not in capturing mode.
     c10_npu::assertNotCapturing(
         "Cannot prepare for replay during capturing stage.");
     if (wholegraph_increment) {
-        seed_extragraph_.fill_(int64_t(seed_));
-        offset_extragraph_.fill_(int64_t(philox_offset_per_thread_));
+        auto capture_state = get_capture_state(capture_id);
+        TORCH_INTERNAL_ASSERT(capture_state != nullptr, "Capture state should exist before replay.");
+        capture_state->setup_for_replay(seed_, philox_offset_per_thread_);
         // Applies the total increment achieved during previous captures to update the
         // offset.
-        increase(wholegraph_increment);
+        philox_offset_per_thread_ += wholegraph_increment;
     }
+}
+
+void NPUGeneratorState::remove_capture_state(c10_npu::CaptureId_t capture_id)
+{
+    std::lock_guard<std::mutex> lock(capture_states_mutex_);
+    capture_states_.erase(capture_id);
 }
 
 /**
@@ -255,7 +276,7 @@ NPUGeneratorImpl::NPUGeneratorImpl(c10::DeviceIndex device_index, c10::intrusive
  */
 void NPUGeneratorImpl::set_current_seed(uint64_t seed)
 {
-    if (C10_LIKELY(c10_npu::currentStreamCaptureStatus() == c10_npu::CaptureStatus::None)) {
+    if (C10_LIKELY(!c10_npu::currentStreamCaptureId().has_value())) {
         state_->seed_ = seed;
         state_->philox_offset_per_thread_ = 0;
     } else {
@@ -400,10 +421,15 @@ void NPUGeneratorImpl::set_philox_offset_per_thread(uint64_t offset)
 {
     // see Note [Why enforce RNG offset % 4 == 0?]
     TORCH_CHECK(offset % 4 == 0, "offset must be a multiple of 4", PTA_ERROR(ErrCode::VALUE));
-    if (C10_LIKELY(c10_npu::currentStreamCaptureStatus() == c10_npu::CaptureStatus::None)) {
+    auto capture_id = c10_npu::currentStreamCaptureId();
+    if (C10_LIKELY(!capture_id.has_value())) {
         state_->philox_offset_per_thread_ = offset;
     } else {
-        state_->offset_intragraph_ = offset;
+        auto capture_state = state_->get_capture_state(capture_id.value());
+        TORCH_CHECK(
+            capture_state != nullptr,
+            "Generator not registered with the capturing graph.");
+        capture_state->offset_intragraph_ = offset;
     }
 }
 
@@ -412,10 +438,15 @@ void NPUGeneratorImpl::set_philox_offset_per_thread(uint64_t offset)
  */
 uint64_t NPUGeneratorImpl::philox_offset_per_thread() const
 {
-    if (C10_LIKELY(c10_npu::currentStreamCaptureStatus() == c10_npu::CaptureStatus::None)) {
+    auto capture_id = c10_npu::currentStreamCaptureId();
+    if (C10_LIKELY(!capture_id.has_value())) {
         return state_->philox_offset_per_thread_;
     } else {
-        return state_->offset_intragraph_;
+        auto capture_state = state_->get_capture_state(capture_id.value());
+        TORCH_CHECK(
+            capture_state != nullptr,
+            "Generator not registered with the capturing graph.");
+        return capture_state->offset_intragraph_;
     }
 }
 
@@ -425,15 +456,6 @@ uint64_t NPUGeneratorImpl::philox_offset_per_thread() const
 void NPUGeneratorImpl::register_graph(c10_npu::NPUGraph* graph)
 {
     graph->register_generator_state(state_);
-    state_->register_graph(graph);
-}
-
-/**
- * Unregisters a NPU graph from the RNG state.
- */
-void NPUGeneratorImpl::unregister_graph(c10_npu::NPUGraph* graph)
-{
-    state_->unregister_graph(graph);
 }
 
 void NPUGeneratorImpl::set_secondary_stream_capture_state(bool secondary_stream_capture_state)
@@ -464,12 +486,19 @@ void NPUGeneratorImpl::set_secondary_stream_capture_state(bool secondary_stream_
  */
 PhiloxNpuState NPUGeneratorImpl::philox_npu_state(uint64_t increment)
 {
-    if (c10_npu::currentStreamCaptureStatus() != c10_npu::CaptureStatus::None) {
-        uint64_t offset = state_->offset_intragraph_;
+    auto capture_id = c10_npu::currentStreamCaptureId();
+    if (capture_id.has_value()) {
+        auto capture_state = state_->get_capture_state(capture_id.value());
+        TORCH_CHECK(
+            capture_state != nullptr,
+            "RNG op during graph capture but generator is not registered with "
+            "the capturing graph. Call graph.register_generator_state() before "
+            "capture_begin().");
+        uint64_t offset = capture_state->offset_intragraph_;
         state_->increase(increment);
         return PhiloxNpuState(
-            &state_->seed_extragraph_,
-            &state_->offset_extragraph_,
+            &capture_state->seed_extragraph_,
+            &capture_state->offset_extragraph_,
             offset,
             state_->secondary_stream_capture_state_);
     } else {

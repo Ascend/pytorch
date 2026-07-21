@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iostream>
+#include <optional>
 #include <utility>
 
 #include "torch_npu/csrc/core/npu/NPUException.h"
@@ -14,7 +15,7 @@ namespace c10_npu {
 using CaptureId_t = unsigned long long;
 
 // first is set if the instance is created by NPUGraph::capture_begin.
-// second is set if the instance is created by at::cuda::graph_pool_handle.
+// second is set if the instance is created by graph_pool_handle.
 using MempoolId_t = std::pair<CaptureId_t, CaptureId_t>;
 
 // RAII guard for "aclmdlRICaptureMode", a thread-local value
@@ -65,10 +66,15 @@ inline std::ostream &operator<<(std::ostream &os, CaptureStatus status)
     return os;
 }
 
-// Use this version where you're sure a CUDA context exists already.
+// Use this version where you're sure an NPU context exists already.
 C10_NPU_API CaptureStatus currentStreamCaptureStatusMayInitCtx();
+C10_NPU_API CaptureStatus captureStatusMayInitCtx(aclrtStream stream);
+C10_NPU_API bool isStreamCapturingMayInitCtx(aclrtStream stream);
+C10_NPU_API std::optional<CaptureId_t> currentStreamCaptureIdMayInitCtx();
+C10_NPU_API std::optional<CaptureId_t> captureIdMayInitCtx(aclrtStream stream);
+C10_NPU_API CaptureId_t captureIdFromModelRI(aclmdlRI modelRI);
 
-// Use this version where you don't want to create a CUDA context if none exists.
+// Use this version where you don't want to create an NPU context if none exists.
 inline CaptureStatus currentStreamCaptureStatus()
 {
     // don't create a context if we don't have to
@@ -82,6 +88,20 @@ inline CaptureStatus currentStreamCaptureStatus()
         }
     }
     return CaptureStatus::None;
+}
+
+inline std::optional<CaptureId_t> currentStreamCaptureId()
+{
+    if (at_npu::native::env::CheckCompatibleImpl()) {
+        if (c10_npu::isDeviceCtxActive(c10_npu::current_device())) {
+            return currentStreamCaptureIdMayInitCtx();
+        }
+    } else {
+        if (c10_npu::IsContextInitialized()) {
+            return currentStreamCaptureIdMayInitCtx();
+        }
+    }
+    return std::nullopt;
 }
 
 inline void assertNotCapturing(const std::string &attempt)
