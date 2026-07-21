@@ -456,7 +456,6 @@ void ParallelTcpServer::ProcessClientEvent(int epFd, int fd, uint32_t event,
     if ((event & (EPOLLRDHUP | EPOLLHUP)) != 0) {
         epoll_ctl(epFd, EPOLL_CTL_DEL, fd, nullptr);
         close(fd);
-        fd = -1;
         ctx.erase(fd);
         return;
     }
