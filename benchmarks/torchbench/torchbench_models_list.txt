@@ -32,3 +32,10 @@ timm_vovnet
 torch_multimodal_clip
 tts_angular
 vgg16
+nanogpt
+pyhpc_equation_of_state
+resnet50_quantized_qat
+Super_SloMo
+timm_efficientnet
+timm_nfnet
+timm_vision_transformer_large
