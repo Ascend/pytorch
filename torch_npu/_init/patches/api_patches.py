@@ -11,6 +11,7 @@ def apply_torch_api_patches():
     from torch_npu.utils.serialization import _add_serialization_methods
     from torch_npu.utils.storage import _add_storage_methods
     from torch_npu.utils.tensor_methods import _add_tensor_methods
+    from torch_npu.utils._deterministic import _add_deterministic_patch
 
     _add_storage_methods()
     _apply_dlpack_patch()
@@ -20,3 +21,4 @@ def apply_torch_api_patches():
     _add_collect_env_methods()
     add_optim_method()
     _add_reductions_methods()
+    _add_deterministic_patch()

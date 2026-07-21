@@ -32,7 +32,8 @@ const at::Tensor& NPUNativeFunctions::resize_(
     // Keep deterministic resize behavior aligned with upstream:
     // fill newly added storage section with NaN/MAX_INT when requested.
     if (C10_UNLIKELY(at::globalContext().deterministicAlgorithms() &&
-                     at::globalContext().deterministicFillUninitializedMemory())) {
+                     at::globalContext().deterministicFillUninitializedMemory() &&
+                     at_npu::native::env::CheckFillUninitializedMemory())) {
         at::native::fill_resize_deterministic_(self, static_cast<int64_t>(old_storage_nbytes));
     }
     return self;

@@ -118,7 +118,8 @@ void npu_quantized_clone_write_int_repr_payload(
 inline bool should_fill_empty_deterministic()
 {
     return at::globalContext().deterministicAlgorithms() &&
-           at::globalContext().deterministicFillUninitializedMemory();
+           at::globalContext().deterministicFillUninitializedMemory() &&
+           at_npu::native::env::CheckFillUninitializedMemory();
 }
 
 void window_function_checks(
