@@ -151,15 +151,17 @@ jobs:
               passed = totals.get('passed', 0)
               failed = totals.get('failed', 0)
               errors = totals.get('errors', 0)
+              timeout = totals.get('timeout', 0)
               skipped = totals.get('skipped', 0)
               total = totals.get('total', 0)
-              total_failed = failed + errors
+              total_failed = failed + errors + timeout
               parse_ok = 'true'
           except Exception as e:
               print(f'WARNING: Failed to parse summary JSON: {e}', file=sys.stderr)
               passed = 0
               failed = 0
               errors = 0
+              timeout = 0
               skipped = 0
               total = 0
               total_failed = 1
@@ -167,11 +169,12 @@ jobs:
           with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
               f.write(f'passed={passed}\n')
               f.write(f'failed={failed}\n')
+              f.write(f'timeout={timeout}\n')
               f.write(f'skipped={skipped}\n')
               f.write(f'total={total}\n')
               f.write(f'total_failed={total_failed}\n')
               f.write(f'parse_ok={parse_ok}\n')
-          print(f'Results: {passed} passed, {failed} failed, {errors} errors, {skipped} skipped, {total} total')
+          print(f'Results: {passed} passed, {failed} failed, {errors} errors, {timeout} timeout, {skipped} skipped, {total} total')
           "
 
       - name: Report completed
@@ -185,7 +188,7 @@ jobs:
           test-results: >-
             {
               "passed": ${{ steps.parse.outputs.passed }},
-              "failed": ${{ steps.parse.outputs.failed }},
+              "failed": ${{ steps.parse.outputs.total_failed }},
               "skipped": ${{ steps.parse.outputs.skipped }},
               "total": ${{ steps.parse.outputs.total }}
             }
