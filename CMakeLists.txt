@@ -311,61 +311,72 @@ else()
   set(CPP_SRCS ${ATEN_SRCS} ${INDUCTOR_SRCS} ${CORE_SRCS} ${OPS_PLUGIN_SRCS} ${DIST_SRCS} ${FLOP_SRCS} ${CUS_DTYPE_SRCS} ${LOGGING_SRCS} ${FRAMEWORK_SRCS} ${NPU_SRCS} ${PROF_SRCS} ${IPC_SRCS} ${UTILS_SRCS} ${SAN_SRCS} ${AFD_SRCS})
 endif()
 
-add_library(${PLUGIN_NAME} SHARED ${CPP_SRCS})
+add_library(torch_npu_objs OBJECT ${CPP_SRCS})
 include(CheckCXXCompilerFlag)
 check_cxx_compiler_flag("-fvisibility=hidden" COMPILER_SUPPORTS_HIDDEN_VISIBILITY)
 if(${COMPILER_SUPPORTS_HIDDEN_VISIBILITY})
-  target_compile_options(${PLUGIN_NAME} PRIVATE "-fvisibility=hidden")
+  target_compile_options(torch_npu_objs PRIVATE "-fvisibility=hidden")
 endif()
-
-target_link_options(${PLUGIN_NAME} PRIVATE "-Wl,-Bsymbolic-functions,--no-as-needed")
 
 if (DEFINED BUILD_TORCHAIR)
   add_subdirectory(${TORCHNPU_THIRD_PARTY_ROOT}/torchair)
-  add_dependencies(${PLUGIN_NAME} copy_torchair_pyfiles)
 endif()
 
 add_subdirectory(${TORCHNPU_THIRD_PARTY_ROOT}/fmt EXCLUDE_FROM_ALL)
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/dvm)
-add_dependencies(${PLUGIN_NAME} dvm_build)
-target_link_libraries(${PLUGIN_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/third_party/dvm/dvm/libdvm.a)
 
-link_directories(${PYTORCH_INSTALL_DIR}/lib)
-link_directories(${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs)
-
-target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libhccl.so)
-
-if (NOT DEFINED BUILD_LIBTORCH)
-  target_link_libraries(${PLUGIN_NAME} PUBLIC ${PYTORCH_INSTALL_DIR}/lib/libtorch_python.so)
-endif()
-
-target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libascendcl.so)
-target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libacl_op_compiler.so)
-target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libge_runner.so)
-target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libgraph.so)
-
-if (DEFINED BUILD_TENSORPIPE)
-  target_link_libraries(${PLUGIN_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/build/packages/torch_npu/lib/libtensorpipe.so)
-endif()
-
-target_link_libraries(${PLUGIN_NAME} PUBLIC torch torch_cpu c10 fmt::fmt-header-only)
+# Propagate compile definitions and include dirs from PyTorch to the object library
+target_link_libraries(torch_npu_objs PUBLIC torch torch_cpu c10 fmt::fmt-header-only)
 
 if (NOT DEFINED BUILD_LIBTORCH)
   set(ATEN_THREADING "OMP" CACHE STRING "ATen parallel backend")
   message(STATUS "Using ATen parallel backend: ${ATEN_THREADING}")
   if ("${ATEN_THREADING}" STREQUAL "OMP")
-    target_compile_definitions(${PLUGIN_NAME} PUBLIC "-DAT_PARALLEL_OPENMP=1")
+    target_compile_definitions(torch_npu_objs PUBLIC "-DAT_PARALLEL_OPENMP=1")
   elseif ("${ATEN_THREADING}" STREQUAL "NATIVE")
-    target_compile_definitions(${PLUGIN_NAME} PUBLIC "-DAT_PARALLEL_NATIVE=1")
+    target_compile_definitions(torch_npu_objs PUBLIC "-DAT_PARALLEL_NATIVE=1")
   elseif ("${ATEN_THREADING}" STREQUAL "TBB")
-    target_compile_definitions(${PLUGIN_NAME} PUBLIC "-DAT_PARALLEL_NATIVE_TBB=1")
+    target_compile_definitions(torch_npu_objs PUBLIC "-DAT_PARALLEL_NATIVE_TBB=1")
   else()
     message(FATAL_ERROR "Unknown ATen parallel backend: ${ATEN_THREADING}")
   endif()
 
+  target_compile_options(torch_npu_objs PRIVATE "-DC10_BUILD_MAIN_LIB")
+endif()
+
+add_library(${PLUGIN_NAME} SHARED $<TARGET_OBJECTS:torch_npu_objs>)
+target_link_libraries(${PLUGIN_NAME} PUBLIC torch_npu_objs)
+target_link_options(${PLUGIN_NAME} PRIVATE "-Wl,-Bsymbolic-functions,--no-as-needed")
+
+# Shared library: link step, dvm / torchair deps only gate linking, not compilation.
+add_dependencies(${PLUGIN_NAME} dvm_build)
+if (DEFINED BUILD_TORCHAIR)
+  add_dependencies(${PLUGIN_NAME} copy_torchair_pyfiles)
+endif()
+
+target_link_libraries(${PLUGIN_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/third_party/dvm/dvm/libdvm.a)
+
+link_directories(${PYTORCH_INSTALL_DIR}/lib)
+link_directories(${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs)
+
+target_link_libraries(${PLUGIN_NAME} PUBLIC
+  ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libhccl.so
+  ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libascendcl.so
+  ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libacl_op_compiler.so
+  ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libge_runner.so
+  ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libgraph.so)
+
+if (NOT DEFINED BUILD_LIBTORCH)
+  target_link_libraries(${PLUGIN_NAME} PUBLIC ${PYTORCH_INSTALL_DIR}/lib/libtorch_python.so)
+endif()
+
+if (DEFINED BUILD_TENSORPIPE)
+  target_link_libraries(${PLUGIN_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/build/packages/torch_npu/lib/libtensorpipe.so)
+endif()
+
+if (NOT DEFINED BUILD_LIBTORCH)
   include(GNUInstallDirs)
-  target_compile_options(${PLUGIN_NAME} PRIVATE "-DC10_BUILD_MAIN_LIB")
   install(TARGETS ${PLUGIN_NAME} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 endif()
 
