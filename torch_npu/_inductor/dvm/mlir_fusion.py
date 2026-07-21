@@ -1,6 +1,5 @@
-import os
-
 import torch
+from torch._higher_order_ops.triton_kernel_wrap import triton_kernel_wrapper_mutation
 from torch._inductor import config
 from torch._inductor.fx_passes.control_dependencies import control_deps
 from torch._inductor.codegen.common import IndentedBuffer, register_backend_for_device
@@ -8,11 +7,12 @@ from torch._inductor.codegen.simd import code_hash, SIMDKernel
 from torch._inductor.scheduler import WhyNoFuse
 from torch._inductor.utils import get_fused_kernel_name
 from torch._inductor.virtualized import V
-from torch._higher_order_ops.triton_kernel_wrap import triton_kernel_wrapper_mutation
 from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir import config as anir_config
 from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.codegen.mlir import (
     NpuMlirKernel,
-    NpuMlirScheduling,
+)
+from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.codegen.meta_kernel import (
+    NpuMetaScheduling,
 )
 from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.codegen.wrapper import (
     NpuMlirWrapperCodeGen,
@@ -22,7 +22,6 @@ from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.inductor_patch import (
 )
 from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.utils import (
     get_num_call_functions,
-    to_folder,
 )
 
 from .config import disable_post_reduce_fusion, dump_fx_test
@@ -88,6 +87,8 @@ anir_config.GENERATE_LIST = [
     aten.reshape,
     torch.ops.higher_order.while_loop,
     torch.ops.higher_order.while_loop_stack_output,
+    aten.copy,
+    aten.copy_,
     aten.lift_fresh_copy,
     aten.lift_fresh_copy.default,
     triton_kernel_wrapper_mutation,
@@ -130,25 +131,7 @@ def _kernel_layout_key(mlir_kernel):
     return non_contiguous_key, cont_flag_input
 
 
-def _dump_traced_graph_once(gm, current_device, traced_graph_hash):
-    dump_path = os.path.join(
-        os.getenv("TORCHINDUCTOR_CACHE_DIR"),
-        anir_config.traced_graph_cache,
-        str(current_device.index),
-        traced_graph_hash,
-    )
-    if os.path.exists(dump_path):
-        return
-    os.makedirs(dump_path, exist_ok=True)
-    to_folder(
-        gm,
-        dump_path,
-        graph_hash=traced_graph_hash,
-        module_name=traced_graph_hash,
-    )
-
-
-class NpuDvmScheduling(NpuMlirScheduling):
+class NpuDvmScheduling(NpuMetaScheduling):
     meta_kernel_type = NpuDvmKernel
 
     def define_kernel(self, src_code, mlir_kernel, traced_graph, mode=None):
@@ -187,19 +170,20 @@ class NpuDvmScheduling(NpuMlirScheduling):
                     "traced_graph_hash": traced_graph_hash,
                     "num_call_functions": get_num_call_functions(mlir_kernel._gm),
                 }
-                compile_wrapper.writeline(
-                    f"async_compile.import_fx({kernel_name!r}, kernel_meta={kernel_meta})"
+                self._handle_complete_fallback_mode(
+                    compile_wrapper,
+                    kernel_name,
+                    kernel_meta,
+                    wrapper,
+                    "",
+                    mlir_kernel,
                 )
-                metadata_comment = (
-                    f'"""\n{mlir_kernel._gm.print_readable(print_output=False)}\n"""'
-                )
-                wrapper.define_kernel(
+                self._dump_fx_graph_for_fallback(
+                    mlir_kernel,
+                    current_device,
+                    traced_graph_hash,
                     kernel_name,
                     compile_wrapper.getvalue(),
-                    metadata_comment,
-                )
-                _dump_traced_graph_once(
-                    mlir_kernel._gm, current_device, traced_graph_hash
                 )
             else:
                 wrapper.add_import_once("from torch_npu._inductor import dvm")
@@ -222,15 +206,19 @@ class NpuDvmScheduling(NpuMlirScheduling):
                 compile_wrapper.writeline(func_name)
 
                 if anir_config.online_acc_comp:
-                    _dump_traced_graph_once(
-                        mlir_kernel._gm, current_device, traced_graph_hash
-                    )
                     compile_wrapper.writeline(
                         f"{kernel_name}._acc_meta = {{"
                         f"'traced_graph_hash': {traced_graph_hash!r}, "
                         f"'traced_graph_cache': {anir_config.traced_graph_cache!r}, "
                         f"'device_index': {current_device.index}, "
                         f"'num_outputs': {mlir_kernel.num_outputs}}}"
+                    )
+                    self._dump_fx_graph_for_fallback(
+                        mlir_kernel,
+                        current_device,
+                        traced_graph_hash,
+                        kernel_name,
+                        compile_wrapper.getvalue(),
                     )
 
                 wrapper.define_kernel(
