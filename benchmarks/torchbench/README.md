@@ -32,6 +32,7 @@
     ```text
     INPUT_TARBALLS:
         # index file for S3 storage of the input data
+        - Super_SloMo_inputs.tar.gz
         - pytorch_stargan_inputs.tar.gz
         - LearningToPaint_inputs.tar.gz
         - speech_transformer_inputs.tar.gz
@@ -41,6 +42,7 @@
 
     ```text
     # 直接访问，即可下载数据集
+    https://ossci-datasets.s3.amazonaws.com/torchbench/data/Super_SloMo_inputs.tar.gz
     https://ossci-datasets.s3.amazonaws.com/torchbench/data/pytorch_stargan_inputs.tar.gz
     https://ossci-datasets.s3.amazonaws.com/torchbench/data/LearningToPaint_inputs.tar.gz
     https://ossci-datasets.s3.amazonaws.com/torchbench/data/speech_transformer_inputs.tar.gz
@@ -53,6 +55,7 @@
     mkdir ./dataset
 
     # 将数据集移动到./dataset目录下后，解压数据集
+    tar -xvzf Super_SloMo_inputs.tar.gz
     tar -xvzf pytorch_stargan_inputs.tar.gz
     tar -xvzf LearningToPaint_inputs.tar.gz
     tar -xvzf speech_transformer_inputs.tar.gz
