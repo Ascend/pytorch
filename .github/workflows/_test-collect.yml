@@ -116,7 +116,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           path: ci-scripts
-          ref: ${{ github.ref_name }}
+          ref: ci-test
 
       - name: Collect and shard test cases
         id: collect_cases

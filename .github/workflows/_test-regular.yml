@@ -96,7 +96,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           path: ci-scripts
-          ref: ${{ github.ref_name }}
+          ref: ci-test
 
       - name: Verify NPU environment
         run: |
