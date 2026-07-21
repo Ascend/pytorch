@@ -13,13 +13,14 @@ on:
         description: 'PyTorch commit to checkout for test source'
         required: false
         type: string
-        default: 'fad74248e78716152917a729adb2b44ba2bab16e'
+        default: '0545bb23f54b26001534a83f25f2729ad8770b68'
 
 jobs:
   trigger_test:
     uses: ./.github/workflows/_torch-npu-upstream-test.yml
     with:
+      docker_image_build: 'swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260704'
       distributed_shards: '5'
       regular_shards: '5'
       test_files: ''
-      pytorch_commit: ${{ inputs.pytorch_commit || 'fad74248e78716152917a729adb2b44ba2bab16e' }}
+      pytorch_commit: ${{ inputs.pytorch_commit || '0545bb23f54b26001534a83f25f2729ad8770b68' }}
