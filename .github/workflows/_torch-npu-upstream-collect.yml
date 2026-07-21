@@ -72,7 +72,25 @@ jobs:
           python_version: ${{ inputs.python_version }}
           torch_npu_wheel_artifact: ${{ inputs.torch_npu_wheel_artifact }}
           prepared_test_src_artifact: ${{ inputs.prepared_test_src_artifact }}
-          patch_log_suffix: collect
+
+
+      - name: Update whitelist from Excel
+        run: |
+          echo "=== Updating whitelist from Excel ==="
+          pip install openpyxl pyyaml
+
+          # Update case_paths_ci.yml in the repo checkout
+          python ../ascend_pytorch/.github/scripts/update_whitelist_from_excel.py \
+            "../ascend_pytorch/.github/scripts/Test Class Refactoring Tracker.xlsx" \
+            "../ascend_pytorch/test_upstream/case_paths_ci.yml" \
+            --status Done
+
+          # Copy updated file to pytorch-test-src
+          cp ../ascend_pytorch/test_upstream/case_paths_ci.yml \
+            pytorch-test-src/test_upstream/case_paths_ci.yml
+
+          echo "=== Updated whitelist ==="
+          head -20 pytorch-test-src/test_upstream/case_paths_ci.yml
 
       - name: Collect all test cases and shard
         id: collect_and_shard
@@ -137,7 +155,7 @@ jobs:
           # Stage logs to a flat directory for clean artifact layout
           mkdir -p ../collect-logs-staging
           cp /tmp/collect_cases.log ../collect-logs-staging/ 2>/dev/null || true
-          cp /tmp/torch_env_patch_collect.log ../collect-logs-staging/ 2>/dev/null || true
+
           if [ -f ../collection_errors.tar.gz ]; then
             cp ../collection_errors.tar.gz ../collect-logs-staging/
           fi

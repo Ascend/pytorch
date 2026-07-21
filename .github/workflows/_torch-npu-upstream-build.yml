@@ -20,6 +20,16 @@ on:
         type: string
         default: '40'
         description: Maximum number of parallel build jobs
+      pytorch_commit:
+        required: false
+        type: string
+        default: ''
+        description: PyTorch commit to compile if dev env is missing
+      torch_npu_ref:
+        required: false
+        type: string
+        default: 'master'
+        description: Branch/ref of ascend-pytorch to checkout for building torch_npu
     outputs:
       wheel_name:
         description: Name of the built wheel file
@@ -46,11 +56,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref_name == 'master' && 'v2.7.1' || github.sha }}
+          ref: ${{ inputs.torch_npu_ref != '' && inputs.torch_npu_ref || (github.ref_name == 'master' && 'v2.7.1' || github.ref) }}
           fetch-depth: 1
-          submodules: recursive
+          submodules: true
 
       - name: Check image dependencies
+        id: check_dev_env
         run: |
           echo "=== Python Version ==="
           python${{ inputs.python_version }} --version
@@ -69,6 +80,85 @@ jobs:
           nproc
 
           echo "=== PyTorch Version ==="
+          python${{ inputs.python_version }} -c "import torch; print(torch.__version__)"
+
+          echo "=== PyTorch Dev Environment ==="
+          TORCH_DIR=$(python${{ inputs.python_version }} -c "import torch, os; print(os.path.dirname(os.path.realpath(torch.__file__)))")
+          echo "Torch dir: ${TORCH_DIR}"
+
+          DEV_ENV_OK="true"
+
+          if [ -d "${TORCH_DIR}/include" ] && [ -f "${TORCH_DIR}/include/torch/extension.h" ]; then
+            echo "  include/torch/extension.h  OK"
+          else
+            echo "  include/torch/extension.h  MISSING"
+            DEV_ENV_OK="false"
+          fi
+
+          if [ -d "${TORCH_DIR}/lib" ] && [ "$(find ${TORCH_DIR}/lib -maxdepth 1 -name 'libtorch*' 2>/dev/null | wc -l)" -gt 0 ]; then
+            echo "  lib/  OK"
+          else
+            echo "  lib/  MISSING"
+            DEV_ENV_OK="false"
+          fi
+
+          if [ -f "${TORCH_DIR}/share/cmake/Torch/TorchConfig.cmake" ]; then
+            echo "  cmake config  OK"
+          else
+            echo "  cmake config  MISSING"
+            DEV_ENV_OK="false"
+          fi
+
+          echo "dev_env_ok=${DEV_ENV_OK}" >> $GITHUB_OUTPUT
+          echo "torch_dir=${TORCH_DIR}" >> $GITHUB_OUTPUT
+
+      - name: Build PyTorch from source (dev env missing)
+        if: steps.check_dev_env.outputs.dev_env_ok == 'false' && inputs.pytorch_commit != ''
+        run: |
+          echo "=== PyTorch dev environment is missing, building from source ==="
+          echo "PyTorch commit: ${{ inputs.pytorch_commit }}"
+
+          git clone --depth 1 --branch master https://github.com/pytorch/pytorch.git /tmp/pytorch-src
+          cd /tmp/pytorch-src
+          git fetch origin ${{ inputs.pytorch_commit }}
+          git checkout ${{ inputs.pytorch_commit }}
+          git submodule sync
+          git submodule update --init --recursive --depth 1
+
+          echo "=== Building PyTorch (this may take a while) ==="
+          export MAX_JOBS=${{ inputs.max_jobs }}
+          python${{ inputs.python_version }} setup.py develop 2>&1 | tee /tmp/build_pytorch.log
+          BUILD_STATUS=${PIPESTATUS[0]}
+
+          if [ ${BUILD_STATUS} -ne 0 ]; then
+            echo "PyTorch build failed!"
+            exit ${BUILD_STATUS}
+          fi
+
+          echo "=== PyTorch build complete ==="
+          python${{ inputs.python_version }} -c "import torch; print(torch.__version__)"
+
+      - name: Build PyTorch from source (dev env missing, no commit)
+        if: steps.check_dev_env.outputs.dev_env_ok == 'false' && inputs.pytorch_commit == ''
+        run: |
+          echo "=== PyTorch dev environment is missing, building from source (default branch) ==="
+
+          git clone --depth 1 --branch main https://github.com/pytorch/pytorch.git /tmp/pytorch-src
+          cd /tmp/pytorch-src
+          git submodule sync
+          git submodule update --init --recursive --depth 1
+
+          echo "=== Building PyTorch (this may take a while) ==="
+          export MAX_JOBS=${{ inputs.max_jobs }}
+          python${{ inputs.python_version }} setup.py develop 2>&1 | tee /tmp/build_pytorch.log
+          BUILD_STATUS=${PIPESTATUS[0]}
+
+          if [ ${BUILD_STATUS} -ne 0 ]; then
+            echo "PyTorch build failed!"
+            exit ${BUILD_STATUS}
+          fi
+
+          echo "=== PyTorch build complete ==="
           python${{ inputs.python_version }} -c "import torch; print(torch.__version__)"
 
       - name: Collect repository metadata

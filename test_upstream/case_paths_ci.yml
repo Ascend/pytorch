@@ -1,201 +1,365 @@
 whitelist:
-  - test/export
-  - test/quantization
-  - test/test_binary_ufuncs.py
-  - test/test_foreach.py
-  - test/test_nestedtensor.py
-  - test/test_transformers.py
-  - test/test_utils.py
-  - test/torch_np
-  - test/distributed
-  - test/inductor
-  - test/distributions
-  - test/functorch
-  - test/nn
-  - test/onnx
-  - test/test_ao_sparsity.py
-  - test/test_mobile_optimizer.py
-  - test/test_modules.py
-  - test/test_nn.py
-  - test/test_ops.py
-  - test/test_optim.py
-  - test/test_quantization.py
-  - test/test_sparse.py
-  - test/test_sparse_csr.py
-  - test/test_sparse_semi_structured.py
-  - test/dynamo
-  - test/fx
-  - test/test_fx_passes.py
-  - test/test_fx_experimental.py
-  - test/test_fx.py
-  - test/test_fx_reinplace_pass.py
-  - test/test_jit_fuser_te.py
-  - test/test_autograd.py
-  - test/test_package.py
-  - test/test_accelerator.py
-  - test/test_appending_byte_serializer.py
-  - test/test_autocast.py
-  - test/test_autoload.py
-  - test/test_bundled_images.py
-  - test/test_bundled_inputs.py
-  - test/test_ci_sanity_check_fail.py
-  - test/test_comparison_utils.py
-  - test/test_compile_benchmark_util.py
-  - test/test_complex.py
-  - test/test_content_store.py
-  - test/test_cpp_extensions_aot.py
-  - test/test_cpp_extensions_mtia_backend.py
-  - test/test_cpp_extensions_open_device_registration.py
-  - test/test_cpp_extensions_stream_and_event.py
-  - test/test_dispatch.py
-  - test/profiler
-  - test/test_functionalization_of_rng_ops.py
-  - test/test_futures.py
-  - test/test_throughput_benchmark.py
-  - test/test_typing.py
-  - test/test_type_hints.py
-  - test/test_transformers_privateuse1.py
-  - test/test_extension_utils.py
-  - test/test_dlpack.py
-  - test/test_cuda.py
-  - test/test_cuda_multigpu.py
-  - test/test_cuda_nvml_based_avail.py
-  - test/test_cuda_primary_ctx.py
-  - test/test_dataloader.py
-  - test/test_deploy.py
-  - test/test_determination.py
-  - test/test_function_schema.py
-  - test/test_functional_optim.py
-  - test/test_functionalization.py
-  - test/backends
-  - test/benchmark_utils
-  - test/test_cpp_api_parity.py
-  - test/custom_backend
-  - test/custom_operator
-  - test/lazy
-  - test/mobile
-  - test/test_fake_tensor.py
-  - test/higher_order_ops
-  - test/test_decomp.py
-  - test/test_schema_check.py
-  - test/test_cuda_sanitizer.py
-  - test/test_cuda_trace.py
-  - test/test_show_pickle.py
-  - test/test_sympy_utils.py
-  - test/test_stateless.py
-  - test/test_subclass.py
-  - test/test_static_runtime.py
-  - test/test_tensorboard.py
-  - test/test_sort_and_select.py
-  - test/test_spectral_ops.py
-  - test/test_tensor_creation_ops.py
-  - test/test_torch.py
-  - test/test_type_promotion.py
-  - test/test_type_info.py
-  - test/test_tensorexpr_pybind.py
-  - test/test_reductions.py
-  - test/test_scatter_gather_ops.py
-  - test/test_segment_reductions.py
-  - test/test_serialization.py
-  - test/test_set_default_mobile_cpu_allocator.py
-  - test/test_shape_ops.py
-  - test/test_unary_ufuncs.py
-  - test/test_meta.py
-  - test/test_ops_fwd_gradients.py
-  - test/test_numba_integration.py
-  - test/test_numpy_interop.py
-  - test/test_pytree.py
-  - test/test_per_overload_api.py
-  - test/test_prims.py
-  - test/test_pruning_op.py
-  - test/test_python_dispatch.py
-  - test/test_hop_infra.py
-  - test/test_hub.py
-  - test/test_import_stats.py
-  - test/test_indexing.py
-  - test/test_itt.py
-  - test/test_jit_disabled.py
-  - test/test_jit_llga_fuser.py
-  - test/test_jit_string.py
-  - test/test_jiterator.py
-  - test/test_kernel_launch_checks.py
-  - test/test_legacy_vmap.py
-  - test/test_license.py
-  - test/test_linalg.py
-  - test/test_logging.py
-  - test/test_metal.py
-  - test/test_mkl_verbose.py
-  - test/test_mkldnn.py
-  - test/test_mkldnn_fusion.py
-  - test/test_mkldnn_verbose.py
-  - test/test_model_exports_to_core_aten.py
-  - test/test_module_tracker.py
-  - test/test_monitor.py
-  - test/test_mps.py
-  - test/test_multiprocessing.py
-  - test/test_multiprocessing_spawn.py
-  - test/test_namedtensor.py
-  - test/test_namedtuple_return_api.py
-  - test/test_native_functions.py
-  - test/test_native_mha.py
-  - test/test_custom_ops.py
-  - test/test_datapipe.py
-  - test/test_dynamic_shapes.py
-  - test/test_expanded_weights.py
-  - test/test_masked.py
-  - test/test_matmul_cuda.py
-  - test/test_view_ops.py
-  - test/test_testing.py
-  - test/test_utils_config_module.py
-  - test/test_utils_filelock.py
-  - test/test_vulkan.py
-  - test/test_weak.py
-  - test/test_xnnpack_integration.py
-  - test/test_xpu.py
-  - test/xpu
-  - test/test_nnapi.py
-  - test/test_openmp.py
-  - test/test_ops_gradients.py
-  - test/test_out_dtype_op.py
-  - test/test_overrides.py
-  - test/test_proxy_tensor.py
-  - test/test_public_bindings.py
-  - test/test_ops_jit.py
-  - test/test_jit.py
-blacklist:
-  - test/export/test_export_legacy.py
-  - test/distributed/launcher
-  - test/distributed/test_nccl.py
-  - test/distributed/test_c10d_ucc.py
-  - test/distributed/rpc/cuda/test_tensorpipe_agent.py
-  - test/distributed/test_symmetric_memory.py
-  - test/distributed/_composable/fsdp/test_fully_shard_mixed_precision.py
-  - test/distributed/fsdp/test_fsdp_mixed_precision.py
-  - test/distributed/test_distributed_spawn.py
-  - test/distributed/test_c10d_functional_native.py
-  - test/distributed/fsdp/test_fsdp_comm_hooks.py
-  - test/distributed/test_c10d_nccl.py
-  - test/distributed/tensor/test_matrix_ops.py
-  - test/distributed/algorithms/quantization/test_quantization.py
-  - test/distributed/bin/test_script.py
-  - test/distributed/elastic/multiprocessing/bin/test_script.py
-  - test/distributed/_composable/fsdp/test_fully_shard_logging.py
-  - test/distributed/test_c10d_spawn.py
-  - test/fx/test_shape_inference.py
-  - test/fx/test_future.py
-  - test/dynamo/test_torchrec.py
-  - test/custom_operator/test_custom_ops.py
-  - test/mobile/test_lite_script_module.py
-  - test/test_bundled_images.py
-  - test/test_cpp_extensions_aot.py
-  - test/test_cuda_trace.py
-  - test/test_cuda_sanitizer.py
-  - test/xpu/test_gemm.py
-  - test/xpu/test_conv.py
-  - test/test_mps.py
-  - test/inductor/test_torchinductor_opinfo.py
-  - test/inductor/test_compile_subprocess.py
-  - test/inductor/test_torchinductor_codegen_dynamic_shapes.py
-  - test/inductor/test_fused_attention.py
-  - test/inductor/test_aot_inductor_utils.py
-  - test/inductor/test_cpu_cpp_wrapper.py
+- test/ao/sparsity/test_structured_sparsifier.py
+- test/autograd/test_complex.py
+- test/autograd/test_node_lifecycle.py
+- test/cpp/jit/tests_setup.py
+- test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_autocast.py
+- test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_autograd.py
+- test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_device.py
+- test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_distributed.py
+- test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_event.py
+- test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_memory.py
+- test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_misc.py
+- test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_ops.py
+- test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_profiler.py
+- test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_rng.py
+- test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_storage.py
+- test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_streams.py
+- test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_testing.py
+- test/cpp_extensions/open_registration_extension/torch_openreg/tests/test_utils.py
+- test/cpython/v3_13/test_baseexception.py
+- test/cpython/v3_13/test_binop.py
+- test/cpython/v3_13/test_bool.py
+- test/cpython/v3_13/test_builtin.py
+- test/cpython/v3_13/test_class.py
+- test/cpython/v3_13/test_cmath.py
+- test/cpython/v3_13/test_collections.py
+- test/cpython/v3_13/test_complex.py
+- test/cpython/v3_13/test_contextlib.py
+- test/cpython/v3_13/test_defaultdict.py
+- test/cpython/v3_13/test_deque.py
+- test/cpython/v3_13/test_descr.py
+- test/cpython/v3_13/test_dict.py
+- test/cpython/v3_13/test_enum.py
+- test/cpython/v3_13/test_exception_variations.py
+- test/cpython/v3_13/test_exceptions.py
+- test/cpython/v3_13/test_float.py
+- test/cpython/v3_13/test_funcattrs.py
+- test/cpython/v3_13/test_functools.py
+- test/cpython/v3_13/test_generator_stop.py
+- test/cpython/v3_13/test_generators.py
+- test/cpython/v3_13/test_heapq.py
+- test/cpython/v3_13/test_int.py
+- test/cpython/v3_13/test_int_literal.py
+- test/cpython/v3_13/test_isinstance.py
+- test/cpython/v3_13/test_iter.py
+- test/cpython/v3_13/test_itertools.py
+- test/cpython/v3_13/test_list.py
+- test/cpython/v3_13/test_math.py
+- test/cpython/v3_13/test_numeric_tower.py
+- test/cpython/v3_13/test_operator.py
+- test/cpython/v3_13/test_ordered_dict.py
+- test/cpython/v3_13/test_patma.py
+- test/cpython/v3_13/test_raise.py
+- test/cpython/v3_13/test_range.py
+- test/cpython/v3_13/test_set.py
+- test/cpython/v3_13/test_slice.py
+- test/cpython/v3_13/test_sort.py
+- test/cpython/v3_13/test_sys.py
+- test/cpython/v3_13/test_tuple.py
+- test/cpython/v3_13/test_types.py
+- test/cpython/v3_13/test_unittest/test_assertions.py
+- test/cpython/v3_13/test_userdict.py
+- test/cpython/v3_13/test_userlist.py
+- test/cpython/v3_13/test_with.py
+- test/distributed/bin/test_script.py
+- test/distributed/tensor/test_api.py
+- test/distributed/tensor/test_common_rules.py
+- test/distributed/tensor/test_compile_on_one_rank.py
+- test/distributed/tensor/test_convolution_ops.py
+- test/distributed/tensor/test_decompositions.py
+- test/distributed/tensor/test_dtensor_logging.py
+- test/distributed/tensor/test_dtensor_ops.py
+- test/distributed/tensor/test_dtensor_testbase.py
+- test/distributed/tensor/test_dynamic.py
+- test/distributed/tensor/test_embedding_ops.py
+- test/distributed/tensor/test_experimental_ops.py
+- test/distributed/tensor/test_init.py
+- test/distributed/tensor/test_math_ops.py
+- test/distributed/test_backends.py
+- test/distributed/test_c10d_nccl.py
+- test/distributed/test_c10d_ops_nccl.py
+- test/distributed/test_c10d_spawn_nccl.py
+- test/distributed/test_c10d_spawn_ucc.py
+- test/distributed/test_c10d_torchcomms.py
+- test/distributed/test_c10d_ucc.py
+- test/distributed/test_inductor_compile_collectives.py
+- test/distributed/test_multi_threaded_pg.py
+- test/distributed/test_nccl.py
+- test/distributed/test_nvshmem.py
+- test/distributed/test_processgroup_jit.py
+- test/distributed/test_shmem_triton.py
+- test/distributed/test_store.py
+- test/dynamo/test_fx_graph_runnable.py
+- test/dynamo/test_fx_passes_pre_grad.py
+- test/dynamo/test_generator.py
+- test/dynamo/test_getitem.py
+- test/dynamo/test_global.py
+- test/dynamo/test_graph_deduplication.py
+- test/dynamo/test_graph_region_tracker.py
+- test/dynamo/test_guard_exclusion.py
+- test/dynamo/test_guard_manager.py
+- test/dynamo/test_guard_serialization.py
+- test/dynamo/test_reconstruct.py
+- test/export/test_cpp_serdes.py
+- test/export/test_db.py
+- test/export/test_dynamic_shapes.py
+- test/export/test_export_strict.py
+- test/export/test_export_training_ir_to_run_decomp.py
+- test/export/test_functionalized_assertions.py
+- test/export/test_hop.py
+- test/export/test_lift_unlift.py
+- test/export/test_package.py
+- test/export/test_pass_infra.py
+- test/export/test_retraceability.py
+- test/export/test_schema.py
+- test/export/test_serdes.py
+- test/inductor/test_aot_inductor_arrayref.py
+- test/inductor/test_augmented_graph_helper.py
+- test/inductor/test_auto_functionalize.py
+- test/inductor/test_block_analysis.py
+- test/inductor/test_block_ptr_store_dtype.py
+- test/inductor/test_cache.py
+- test/inductor/test_cache_dir_utils.py
+- test/inductor/test_caching.py
+- test/inductor/test_ck_backend.py
+- test/inductor/test_compile.py
+- test/inductor/test_compiled_fx_graph_serialization.py
+- test/inductor/test_cpp_wrapper_hipify.py
+- test/inductor/test_cpu_cpp_wrapper.py
+- test/inductor/test_cpu_repro.py
+- test/inductor/test_cpu_select_algorithm.py
+- test/inductor/test_cudacodecache.py
+- test/inductor/test_cudagraph_trees.py
+- test/inductor/test_cudagraph_trees_expandable_segments.py
+- test/inductor/test_custom_post_grad_passes.py
+- test/inductor/test_cutedsl_grouped_mm.py
+- test/inductor/test_cutedsl_template.py
+- test/inductor/test_cutlass_backend.py
+- test/inductor/test_cutlass_evt.py
+- test/inductor/test_cutlass_fallback.py
+- test/inductor/test_debug_graph_dump.py
+- test/inductor/test_exc_lowering_stack_trace.py
+- test/inductor/test_extension_backend.py
+- test/inductor/test_fx_fusion.py
+- test/inductor/test_halide.py
+- test/inductor/test_low_contention_collectives.py
+- test/inductor/test_max_autotune_blackwell.py
+- test/inductor/test_mps_basic.py
+- test/inductor/test_nv_universal_gemm.py
+- test/inductor/test_op_completeness.py
+- test/inductor/test_ordered_set.py
+- test/inductor/test_pad_mm_utils.py
+- test/inductor/test_pallas.py
+- test/inductor/test_remote_cache.py
+- test/inductor/test_segmented_tree.py
+- test/inductor/test_simd_range_trees.py
+- test/inductor/test_triton_cpu_backend.py
+- test/inductor/test_xpu_basic.py
+- test/jit/fixtures_srcs/test_upgrader_models_generation.py
+- test/jit/test_alias_analysis.py
+- test/jit/test_async.py
+- test/jit/test_aten_pow.py
+- test/jit/test_attr.py
+- test/jit/test_autodiff.py
+- test/jit/test_autodiff_subgraph_slicing.py
+- test/jit/test_await.py
+- test/jit/test_backend_nnapi.py
+- test/jit/test_backends.py
+- test/jit/test_batch_mm.py
+- test/jit/test_builtins.py
+- test/jit/test_class_type.py
+- test/jit/test_complex.py
+- test/jit/test_complexity.py
+- test/jit/test_concrete_module_type.py
+- test/jit/test_convert_activation.py
+- test/jit/test_cuda.py
+- test/jit/test_custom_operators.py
+- test/jit/test_data_parallel.py
+- test/jit/test_dataclasses.py
+- test/jit/test_dce.py
+- test/jit/test_decorator.py
+- test/jit/test_device_analysis.py
+- test/jit/test_dtype_analysis.py
+- test/jit/test_enum.py
+- test/jit/test_exception.py
+- test/jit/test_freezing.py
+- test/jit/test_functional_blocks.py
+- test/jit/test_fuser_common.py
+- test/jit/test_generator.py
+- test/jit/test_graph_rewrite_passes.py
+- test/jit/test_hash.py
+- test/jit/test_hooks.py
+- test/jit/test_hooks_modules.py
+- test/jit/test_ignorable_args.py
+- test/jit/test_ignore_context_manager.py
+- test/jit/test_isinstance.py
+- test/jit/test_jit_utils.py
+- test/jit/test_list_dict.py
+- test/jit/test_logging.py
+- test/jit/test_misc.py
+- test/jit/test_models.py
+- test/jit/test_module_apis.py
+- test/jit/test_module_containers.py
+- test/jit/test_module_interface.py
+- test/jit/test_modules.py
+- test/jit/test_op_decompositions.py
+- test/jit/test_optimize_for_mobile_preserve_debug_info.py
+- test/jit/test_parametrization.py
+- test/jit/test_pdt.py
+- test/jit/test_peephole.py
+- test/jit/test_profiler.py
+- test/jit/test_python_bindings.py
+- test/jit/test_python_builtins.py
+- test/jit/test_python_ir.py
+- test/jit/test_recursive_script.py
+- test/jit/test_remove_mutation.py
+- test/jit/test_save_load.py
+- test/jit/test_save_load_for_op_version.py
+- test/jit/test_script_profile.py
+- test/jit/test_scriptmod_ann.py
+- test/jit/test_slice.py
+- test/jit/test_sparse.py
+- test/jit/test_string_formatting.py
+- test/jit/test_symbolic_shape_analysis.py
+- test/jit/test_tensor_creation_ops.py
+- test/jit/test_tensor_methods.py
+- test/jit/test_torchbind.py
+- test/jit/test_tracer.py
+- test/jit/test_type_sharing.py
+- test/jit/test_types.py
+- test/jit/test_typing.py
+- test/jit/test_union.py
+- test/jit/test_union_pep604.py
+- test/jit/test_unsupported_ops.py
+- test/jit/test_upgraders.py
+- test/jit/test_warn.py
+- test/jit/test_with.py
+- test/jit/xnnpack/test_xnnpack_delegate.py
+- test/lazy/test_bindings.py
+- test/lazy/test_debug_util.py
+- test/lazy/test_extract_compiled_graph.py
+- test/lazy/test_functionalization.py
+- test/lazy/test_generator.py
+- test/lazy/test_meta_kernel.py
+- test/lazy/test_reuse_ir.py
+- test/lazy/test_step_closures.py
+- test/lazy/test_ts_opinfo.py
+- test/nn/attention/test_fa3.py
+- test/nn/attention/test_fa4.py
+- test/nn/attention/test_open_registry.py
+- test/nn/test_convolution.py
+- test/nn/test_dropout.py
+- test/nn/test_embedding.py
+- test/nn/test_init.py
+- test/nn/test_lazy_modules.py
+- test/nn/test_load_state_dict.py
+- test/nn/test_module_hooks.py
+- test/nn/test_parametrization.py
+- test/nn/test_pruning.py
+- test/onnx/test_lazy_import.py
+- test/onnx/test_models.py
+- test/onnx/test_models_onnxruntime.py
+- test/onnx/test_models_quantized_onnxruntime.py
+- test/onnx/test_onnx_opset.py
+- test/onnx/test_onnxscript_no_runtime.py
+- test/onnx/test_onnxscript_runtime.py
+- test/onnx/test_op_consistency.py
+- test/onnx/test_pytorch_onnx_onnxruntime.py
+- test/onnx/test_pytorch_onnx_shape_inference.py
+- test/onnx/test_symbolic_helper.py
+- test/onnx/torchlib/test_ops.py
+- test/optim/test_lrscheduler.py
+- test/optim/test_optim.py
+- test/optim/test_stateless.py
+- test/optim/test_swa_utils.py
+- test/profiler/test_cpp_thread.py
+- test/profiler/test_execution_trace.py
+- test/profiler/test_kineto.py
+- test/profiler/test_memory_profiler.py
+- test/profiler/test_python_tracer.py
+- test/profiler/test_record_function.py
+- test/profiler/test_torch_tidy.py
+- test/profiler/test_trace_validator.py
+- test/profiler/test_xpu_profiler.py
+- test/test_accelerator.py
+- test/test_as_strided.py
+- test/test_autograd_fallback.py
+- test/test_binary_ufuncs.py
+- test/test_comparison_utils.py
+- test/test_cpp_extensions_jit.py
+- test/test_file_check.py
+- test/test_foreach.py
+- test/test_function_schema.py
+- test/test_functional_autograd_benchmark.py
+- test/test_functional_optim.py
+- test/test_itt.py
+- test/test_jit.py
+- test/test_jit_autocast.py
+- test/test_jit_disabled.py
+- test/test_jit_fuser.py
+- test/test_jit_fuser_legacy.py
+- test/test_jit_fuser_te.py
+- test/test_jit_legacy.py
+- test/test_jit_llga_fuser.py
+- test/test_jit_profiling.py
+- test/test_jit_simple.py
+- test/test_jit_string.py
+- test/test_jiterator.py
+- test/test_linalg.py
+- test/test_matmul_cuda.py
+- test/test_namedtensor.py
+- test/test_namedtuple_return_api.py
+- test/test_native_functions.py
+- test/test_nestedtensor.py
+- test/test_nnapi.py
+- test/test_numa_binding.py
+- test/test_ops_fwd_gradients.py
+- test/test_ops_gradients.py
+- test/test_ops_jit.py
+- test/test_ops_unbacked.py
+- test/test_segment_reductions.py
+- test/test_sympy_utils.py
+- test/test_tensorboard.py
+- test/test_tensorexpr.py
+- test/test_tensorexpr_pybind.py
+- test/test_throughput_benchmark.py
+- test/test_type_info.py
+- test/test_type_promotion.py
+- test/torch_np/numpy_tests/core/test_dlpack.py
+- test/torch_np/numpy_tests/core/test_dtype.py
+- test/torch_np/numpy_tests/core/test_einsum.py
+- test/torch_np/numpy_tests/core/test_getlimits.py
+- test/torch_np/numpy_tests/core/test_indexing.py
+- test/torch_np/numpy_tests/core/test_multiarray.py
+- test/torch_np/numpy_tests/core/test_numeric.py
+- test/torch_np/numpy_tests/core/test_numerictypes.py
+- test/torch_np/numpy_tests/core/test_scalar_ctors.py
+- test/torch_np/numpy_tests/core/test_scalar_methods.py
+- test/torch_np/numpy_tests/core/test_scalarinherit.py
+- test/torch_np/numpy_tests/core/test_scalarmath.py
+- test/torch_np/numpy_tests/core/test_shape_base.py
+- test/torch_np/numpy_tests/fft/test_helper.py
+- test/torch_np/numpy_tests/fft/test_pocketfft.py
+- test/torch_np/numpy_tests/lib/test_arraypad.py
+- test/torch_np/numpy_tests/lib/test_arraysetops.py
+- test/torch_np/numpy_tests/lib/test_function_base.py
+- test/torch_np/numpy_tests/lib/test_histograms.py
+- test/torch_np/numpy_tests/lib/test_index_tricks.py
+- test/torch_np/numpy_tests/lib/test_shape_base_.py
+- test/torch_np/numpy_tests/lib/test_twodim_base.py
+- test/torch_np/numpy_tests/lib/test_type_check.py
+- test/torch_np/numpy_tests/linalg/test_linalg.py
+- test/torch_np/test_basic.py
+- test/torch_np/test_binary_ufuncs.py
+- test/torch_np/test_dtype.py
+- test/torch_np/test_function_base.py
+- test/torch_np/test_indexing.py
+- test/torch_np/test_ndarray_methods.py
+- test/torch_np/test_nep50_examples.py
+- test/torch_np/test_random.py
+- test/torch_np/test_reductions.py
+- test/torch_np/test_scalars_0D_arrays.py
+- test/torch_np/test_ufuncs_basic.py
+- test/torch_np/test_unary_ufuncs.py
+blacklist: []
