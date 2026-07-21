@@ -72,14 +72,6 @@ def _register_rpc():
 
     _rpc_backend_registry()
 
-def _register_inductor():
-    """
-    Register lightweight NPU device op overrides for Inductor.
-    Do not import toch_npu._inductor here: toch_npu._inductor performs full NPU
-    Inductor backend loading and heavy global patches lazily when torch.compile
-    and Inductor path is actually used.
-    """
-    from torch_npu.utils._inductor import _max_unpoolnd_patch  # noqa: F401
 
 def _register_default_gradient_device_type():
     """
@@ -106,5 +98,4 @@ def _register_components():
     _register_distributed()
     _register_dynamo()
     _register_rpc()
-    _register_inductor()
     _register_default_gradient_device_type()

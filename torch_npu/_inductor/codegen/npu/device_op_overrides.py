@@ -22,6 +22,9 @@ class NewNPUDeviceOpOverrides(DeviceOpOverrides):
     def device_guard(self, device_idx):
         return f"torch.npu.utils.device({device_idx})"
 
+    def current_stream(self) -> str:
+        return "torch.npu.current_stream()"
+
     def cpp_aoti_device_guard(self):
         return "AOTINpuGuard"
 
