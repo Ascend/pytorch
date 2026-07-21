@@ -4,13 +4,14 @@
 
 Inductor是`torch.compile()`的默认后端编译器，通过 "Dynamo前端图捕获 + Inductor后端优化 + 高性能算子生成" 的协同方式，在不改变模型逻辑的前提下自动进行算子融合和代码生成，显著提升训练或推理的吞吐量。
 
-Inductor后端支持三种算子编译器，可根据场景选择：
+Inductor后端支持四种算子编译器，可根据场景选择：
 
 | 编译器 | 模式 | 开启方法 | 说明 |
 | - | - | - | - |
 | Triton | 默认模式 |`torch.compile(backend="inductor")`| 基于Triton生成融合算子，是Inductor后端的默认选择，适用于大多数场景。详细介绍参见[Triton-Ascend 官方仓库](https://gitcode.com/Ascend/triton-ascend)。|
 | Torch-MLIR | MLIR模式 |`torch.compile(backend="inductor", options={"npu_backend": "mlir"})` | 基于Torch-MLIR生成融合算子，详细介绍参见[Torch-MLIR 官方仓库](https://github.com/llvm/torch-mlir)。<br><term>Ascend 950DT</term>暂不支持MLIR模式。|
 | DVM | DVM模式 |`torch.compile(backend="inductor", options={"npu_backend": "dvm"})` | 基于DVM生成融合算子。详细介绍参见[DVM 官方仓库](https://gitcode.com/mindspore/dvm/tree/master)。|
+| Ascend C | Ascend C模式 |`torch.compile(backend="inductor", options={"npu_backend": "ascendc"})` | 基于Ascend C生成融合算子，详细介绍参见[Autofuse官方仓库](https://gitcode.com/cann/graph-autofusion/blob/master/autofuse/README.md)。|
 
 > [!NOTICE]
 >
@@ -221,6 +222,65 @@ def dvm_graph_fused_0(k):
 buf0 = dvm_graph_fused_0(arg4_1, reinterpret_tensor(arg3_1, (s1, s0, s2), (s2, s1*s2, 1), 0), arg5_1)
 ```
 
+### Ascend C
+
+Ascend C是Inductor的可选算子编译器，基于Ascend C生成融合算子。
+
+#### 调用示例
+
+```python
+import os
+os.environ['TORCHINDUCTOR_NPU_BACKEND'] = 'ascendc'
+
+import torch
+import torch_npu
+from torch._inductor.utils import run_and_get_code
+import torch_npu._inductor
+
+# 定义模型
+def op_calc(x, y):
+    return x * y
+
+x = torch.randn((3,), requires_grad=False, dtype=torch.float32, device="npu")
+y = torch.randn((3,), requires_grad=False, dtype=torch.float32, device="npu")
+std_out = op_calc(x, y)
+
+compile_func = torch.compile(op_calc, options={"npu_backend": "ascendc"})
+compile_out, codes = run_and_get_code(compile_func, x, y)
+print(codes[0])
+```
+
+#### 输出Ascend C融合算子
+
+Ascend C编译后会在内部生成融合算子代码，通过`codes[0]`可以进行查看：
+
+```python
+def call(self, args):
+    arg0_1, arg1_1 = args
+    args.clear()
+    # Topologically Sorted Source Nodes: [mul], Original ATen: [aten.mul]
+    # Source node to ATen node mapping:
+    #   mul => mul
+    # Graph fragment:
+    #   %arg0_1 : Tensor "f32[3][1]npu:0" = PlaceHolder[target=arg0_1]
+    #   %arg1_1 : Tensor "f32[3][1]npu:0" = PlaceHolder[target=arg1_1]
+    #   %mul : Tensor "f32[3][1]npu:0"[num_users=1] = call_function[target=torch.ops.aten.mul.Tensor](args = (%arg0_1, %arg1_1), kwargs = {})
+    #   return %mul
+    buf0 = empty_strided((3, ), (1, ), device='npu', dtype=torch.float32)
+    from torch_npu._inductor.ascendc.common.fused_layout_check import check_fused_layout
+    _enable_layout_check = os.getenv("TORCH_COMPILE_DEBUG", "0") == "1" or os.getenv("TORCHINDUCTOR_NPU_EXT_LAYOUT_CHECK", "0") == "1"
+    if _enable_layout_check:
+        kernel_name='autofused_mul_da488cd9dfe43526f023de214ab2ff6a'
+        check_fused_layout(kernel_name, 'arg0_1', arg0_1, (3,), (1,), torch.float32, 'npu')
+        check_fused_layout(kernel_name, 'arg1_1', arg1_1, (3,), (1,), torch.float32, 'npu')
+    autofused_mul_da488cd9dfe43526f023de214ab2ff6a(arg0_1, arg1_1, buf0)
+    del arg0_1
+    del arg1_1
+    return (buf0, )
+```
+
+其中`autofused_mul_da488cd9dfe43526f023de214ab2ff6a`是Ascend C编译生成的核心执行接口，用于在指定NPU设备和计算流上执行融合算子计算。
+
 ## 编译模式
 
 `mode="reduce-overhead"` 是降低开销的优化策略，核心对应**NPUGraph Tree**的逻辑：
@@ -250,7 +310,7 @@ Inductor支持的编译选项（`options`参数）：
 | `triton.cudagraphs` | Triton相关配置 |
 | `trace.enabled` | 跟踪开关 |
 | `enable_shape_handling` | 形状处理配置 |
-| `npu_backend` | 指定算子编译器（`"mlir"`或`"dvm"`，默认Triton） |
+| `npu_backend` | 指定算子编译器（`"mlir"`、`"dvm"`或`"ascendc"`，默认Triton） |
 
 ## 约束说明
 

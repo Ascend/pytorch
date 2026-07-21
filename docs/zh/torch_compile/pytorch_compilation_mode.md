@@ -38,7 +38,7 @@ torch.compile(model, *, fullgraph=False, dynamic=None, backend="inductor",
 
 | 后端 | 开启方式 | 核心机制 | 适用场景 |
 |------|----------|---------|---------|
-| Inductor（默认） | `backend="inductor"` | 算子融合 + 代码生成（Triton/MLIR/DVM） | 大多数场景，不确定时首选 |
+| Inductor（默认） | `backend="inductor"` | 算子融合 + 代码生成（Triton/MLIR/DVM/Ascend C） | 大多数场景，不确定时首选 |
 | NPUGraphs | `backend="npugraphs"` | ACLGraph图下沉，一次捕获多次重放，消除kernel启动开销 | kernel调用频繁、CPU调度密集 |
 | NPUGraph_EX | `backend="npugraph_ex"` | ACLGraph图下沉 + FX图优化 + 编译缓存复用 | 大模型推理部署 |
 | AOT_Eager | `backend="aot_eager"` | 不做优化，仅验证图捕获正确性 | 调试、基线性能对比 |

@@ -6,7 +6,7 @@
 
 AOT_Eager特点如下：
 
-- 不做算子融合，不生成Triton/MLIR/DVM融合内核。
+- 不做算子融合，不生成Triton/MLIR/DVM/Ascend C融合内核。
 - 保留完整的图结构和自动微分信息。
 - 性能与原生Eager模式相近，无明显优化收益。
 

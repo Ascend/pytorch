@@ -58,4 +58,4 @@ CHECK ACCURACY FAILED! Kernel: <kernel_name>, Output idx: <idx>, Mismatched: <m>
 
 - <term>Atlas A2 训练系列产品</term>
 - <term>Atlas A3 训练系列产品</term>
-- <term>Ascend 950DT</term>（仅支持Inductor后端编译器中的Triton模式和DVM模式，不支持MLIR模式）
+- <term>Ascend 950DT</term>（仅支持Inductor后端编译器中的Triton模式、DVM模式和Ascend C模式，不支持MLIR模式）

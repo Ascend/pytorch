@@ -24,7 +24,7 @@ compiled_model = torch.compile(model, backend="npugraphs", options=None)
 | `triton.cudagraphs` | Triton相关配置 |
 | `trace.enabled` | 跟踪开关 |
 | `enable_shape_handling` | 形状处理配置 |
-| `npu_backend` | 指定算子编译器（`"mlir"`或`"dvm"`，默认Triton） |
+| `npu_backend` | 指定算子编译器（`"mlir"`、`"dvm"`或`"ascendc"`，默认Triton） |
 
 ## 调用样例
 
