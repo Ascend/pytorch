@@ -107,6 +107,7 @@ def collect_cases_for_file(
 
     # Build environment with test file directory in PYTHONPATH
     env = os.environ.copy()
+    env["PYTORCH_TESTING_DEVICE_ONLY_FOR"] = "privateuse1"
     existing_pythonpath = env.get("PYTHONPATH", "")
     env["PYTHONPATH"] = str(test_file_dir) + (":" + existing_pythonpath if existing_pythonpath else "")
 
@@ -161,14 +162,16 @@ def collect_cases_for_file(
         #   3: all skipped (success)
         #   4: command line error (error)
         #   5: no tests collected
-        # When hw_classification is active, exit code 5 is expected for files
-        # that have no test classes matching the requested classification —
-        # this is normal because most files are not yet annotated.
-        # Without hw_classification, exit code 5 means a selected file has 0
+        # When hw_classification or device filtering (PYTORCH_TESTING_DEVICE_ONLY_FOR)
+        # is active, exit code 5 is expected for files that have no test classes
+        # matching the requested device/classification — this is normal because
+        # many files only contain CPU tests or are not yet annotated.
+        # Without any filtering, exit code 5 means a selected file has 0
         # cases, which indicates a problem.
+        device_filtered = bool(env.get("PYTORCH_TESTING_DEVICE_ONLY_FOR"))
         if result.returncode in (0, 3):
             return (test_file, display_name, nodeids, True, "")
-        elif hw_classification and result.returncode == 5:
+        elif (hw_classification or device_filtered) and result.returncode == 5:
             return (test_file, display_name, nodeids, True, "")
         else:
             # returncode 2, 4, 5: real collection error
