@@ -84,6 +84,12 @@ class CopyInplaceModel(torch.nn.Module):
         return ()
 
 
+class CopyModel(torch.nn.Module):
+    def forward(self, dst, src):
+        copied = torch.ops.aten.copy.default(dst, src)
+        return torch.ops.aten.add.Tensor(copied, 1.0)
+
+
 class Int64AddModel(torch.nn.Module):
     def forward(self, x, y):
         return x + y
@@ -311,9 +317,22 @@ class TestDvmByMlir(TestCase):
 
         with torch.no_grad():
             model(expect_dst, src)
-            self._run_and_get_code_with_dvm(model, actual_dst, src)
+            _, codes = self._run_and_get_code_with_dvm(model, actual_dst, src)
 
         self.assertEqual(expect_dst, actual_dst)
+        self.assertIn("@dvm.kernel", "\n".join(codes))
+
+    def test_copy_codegen(self):
+        src = torch.randn((128,), dtype=torch.float32, device="npu")
+        dst = torch.zeros((128,), dtype=torch.float32, device="npu")
+        model = CopyModel()
+
+        with torch.no_grad():
+            expect = model(dst, src)
+            result, codes = self._run_and_get_code_with_dvm(model, dst, src)
+
+        self.assertEqual(expect, result)
+        self.assertIn("@dvm.kernel", "\n".join(codes))
 
 
 instantiate_parametrized_tests(TestDvmByMlir)
