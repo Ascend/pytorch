@@ -32,6 +32,7 @@ enum class CompatibleKey {
 bool CheckCompatibleImpl();
 bool CheckCompatibleImplFor(CompatibleKey compatible_key);
 bool CheckCompatibleImplBlackListFor(CompatibleKey compatible_key);
+bool CheckFillUninitializedMemory();
 
 bool IsAllowFP32ToFP16();
 bool IsAllowConvHF32();
