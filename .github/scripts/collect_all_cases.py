@@ -457,6 +457,7 @@ def main():
     error_log_dir.mkdir(parents=True, exist_ok=True)
 
     hw_classification = args.hw_classification if args.hw_classification else None
+    case_paths_config = args.case_paths_config if args.case_paths_config else None
 
     # ========================================
     # Step 1: Collect distributed test cases
@@ -465,11 +466,11 @@ def main():
     print("Collecting distributed test cases")
     print("=" * 80)
 
-    # case_paths_config=None: scan all test_*.py files without whitelist filtering
+    # case_paths_config: optional whitelist YAML; None = scan all test_*.py files
     dist_files, dist_meta = discover_test_files.discover_test_files(
         test_dir=test_dir,
         test_type="distributed",
-        case_paths_config=None,
+        case_paths_config=case_paths_config,
     )
     print(f"Found {len(dist_files)} distributed test files")
 
@@ -492,7 +493,7 @@ def main():
     reg_files, reg_meta = discover_test_files.discover_test_files(
         test_dir=test_dir,
         test_type="regular",
-        case_paths_config=None,
+        case_paths_config=case_paths_config,
     )
     print(f"Found {len(reg_files)} regular test files")
 
@@ -556,6 +557,13 @@ def main():
 def parse_args():
     parser = argparse.ArgumentParser(description="Collect and shard test cases")
     parser.add_argument("--test-dir", required=True, help="PyTorch test directory")
+    parser.add_argument(
+        "--case-paths-config",
+        default=None,
+        help="Path to whitelist/blacklist YAML (e.g., test_whitelist.yml). "
+             "When set, only whitelisted files are collected; when omitted, "
+             "all test_*.py files are scanned.",
+    )
     parser.add_argument(
         "--hw-classification",
         nargs="+",

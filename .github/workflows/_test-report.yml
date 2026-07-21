@@ -18,11 +18,6 @@ on:
         type: string
         default: 'quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly'
         description: Docker image used for test execution
-      report_to_upstream:
-        required: false
-        type: boolean
-        default: false
-        description: Whether to report test status to upstream dashboard
 
 jobs:
   report:
@@ -99,21 +94,6 @@ jobs:
               f.write(f'total_failed={total_failed}\n')
           " || true
           fi
-
-      - name: Report completed
-        if: always() && inputs.report_to_upstream
-        continue-on-error: true
-        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@main
-        with:
-          status: completed
-          conclusion: ${{ steps.generate_report.outputs.total_failed == '0' && 'success' || 'failure' }}
-          test-results: >-
-            {
-              "passed": ${{ steps.generate_report.outputs.passed || 0 }},
-              "failed": ${{ steps.generate_report.outputs.failed || 0 }},
-              "skipped": ${{ steps.generate_report.outputs.skipped || 0 }},
-              "total": ${{ steps.generate_report.outputs.total || 0 }}
-            }
 
       - name: Upload consolidated summary
         if: always()
