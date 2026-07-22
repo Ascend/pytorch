@@ -128,14 +128,14 @@ jobs:
           echo "=== Regular Shard ${{ matrix.shard }}/${{ inputs.regular_shards }} ==="
           echo "Total cases: ${TOTAL_CASES}"
           echo "Runner: linux-aarch64-a3-8 (8-card NPU)"
-          echo "Execution mode: CONCURRENT (16 workers)"
+          echo "Execution mode: CONCURRENT (32 workers)"
 
           set +e
           python ci-scripts/.github/scripts/run_npu_test_shard.py \
             --cases-json "${CASES_JSON}" \
             --test-dir pytorch/test \
             --report-dir test-reports \
-            --max-workers 16 \
+            --max-workers 32 \
             --timeout 1200 \
             --verbose \
             2>&1 | tee /tmp/test_reg_${{ matrix.shard }}.log
