@@ -38,6 +38,7 @@ jobs:
   # ============================================================================
   collect:
     uses: ./.github/workflows/_test-collect.yml
+    secrets: inherit
     with:
       resolved_short: ${{ inputs.resolved_short }}
       case_paths_config: ${{ inputs.case_paths_config }}
@@ -52,6 +53,7 @@ jobs:
     needs: collect
     if: ${{ needs.collect.outputs.has_distributed == 'true' }}
     uses: ./.github/workflows/_test-distributed.yml
+    secrets: inherit
     with:
       resolved_short: ${{ inputs.resolved_short }}
       distributed_shards: ${{ inputs.distributed_shards }}
@@ -65,6 +67,7 @@ jobs:
     needs: collect
     if: ${{ needs.collect.outputs.has_regular == 'true' }}
     uses: ./.github/workflows/_test-regular.yml
+    secrets: inherit
     with:
       resolved_short: ${{ inputs.resolved_short }}
       regular_shards: ${{ inputs.regular_shards }}

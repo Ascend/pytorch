@@ -42,18 +42,29 @@ jobs:
           status: in_progress
 
       # Step 1: Download PyTorch source (contains test files)
+      - name: Authenticate to Huawei Cloud
+        uses: huaweicloud/auth-action@v1.1.0
+        with:
+          access_key_id: ${{ secrets.ACCESSKEY }}
+          secret_access_key: ${{ secrets.SECRETACCESSKEY }}
+          region: ap-southeast-1
+
       - name: Compute SHAs
         id: sha
         run: |
           UPSTREAM_SHORT="${{ inputs.resolved_short }}"
           echo "upstream_short=${UPSTREAM_SHORT}" >> "$GITHUB_OUTPUT"
           echo "source_tarball=pytorch-source-${UPSTREAM_SHORT}.tar.gz" >> "$GITHUB_OUTPUT"
+          echo "wheels_tarball=wheels-${UPSTREAM_SHORT}.tar.gz" >> "$GITHUB_OUTPUT"
 
-      - name: Download PyTorch source artifact
-        uses: actions/download-artifact@v4
+      - name: Download PyTorch source from OBS
+        uses: huaweicloud/obs-helper@v1.0.1
         with:
-          name: ${{ steps.sha.outputs.source_tarball }}
-          path: .
+          region: ap-southeast-1
+          bucket_name: pytorch-ci-cache
+          local_file_path: ./${{ steps.sha.outputs.source_tarball }}
+          obs_file_path: 7day-cache/${{ steps.sha.outputs.source_tarball }}
+          operation_type: download
 
       - name: Extract PyTorch source
         run: |
@@ -62,14 +73,20 @@ jobs:
           echo "PyTorch source extracted: $(du -sh pytorch/ | cut -f1)"
 
       # Step 2: Download and install built wheels
-      - name: Download wheel artifacts
-        uses: actions/download-artifact@v4
+      - name: Download wheels from OBS
+        uses: huaweicloud/obs-helper@v1.0.1
         with:
-          name: packages-pytorch-${{ inputs.resolved_short }}
-          path: /tmp/wheels
+          region: ap-southeast-1
+          bucket_name: pytorch-ci-cache
+          local_file_path: ./${{ steps.sha.outputs.wheels_tarball }}
+          obs_file_path: 7day-cache/${{ steps.sha.outputs.wheels_tarball }}
+          operation_type: download
 
-      - name: Install wheels
+      - name: Extract and install wheels
         run: |
+          mkdir -p /tmp/wheels
+          tar -xzf ${{ steps.sha.outputs.wheels_tarball }} -C /tmp/wheels
+          rm ${{ steps.sha.outputs.wheels_tarball }}
           pip install /tmp/wheels/torch-*.whl
           pip install --no-deps /tmp/wheels/torch_npu*.whl
 
