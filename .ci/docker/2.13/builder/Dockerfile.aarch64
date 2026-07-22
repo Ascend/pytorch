@@ -1,0 +1,65 @@
+FROM pytorch/manylinux2_28_aarch64-builder:cpu-aarch64-v2.13.0-rc15
+
+ARG PYTORCH_VERSION=2.13.0
+
+ENV PATH=/usr/local/bin:$PATH
+ENV AUDITWHEEL_PLAT=manylinux_2_28_aarch64
+ENV ETCD_UNSUPPORTED_ARCH=arm64
+ENV PYTORCH_VERSION=${PYTORCH_VERSION}
+
+COPY requirements-builder.txt /opt/buildtools/
+
+# Set pip & python symlinks
+RUN cd /usr/local/bin \
+    && ln -sf /opt/_internal/cpython-3.10.20/bin/pip3.10 pip3.10 \
+    && ln -sf /opt/_internal/cpython-3.11.15/bin/pip3.11 pip3.11 \
+    && ln -sf /opt/_internal/cpython-3.12.13/bin/pip3.12 pip3.12 \
+    && ln -sf /opt/_internal/cpython-3.13.14/bin/pip3.13 pip3.13 \
+    && ln -sf /opt/_internal/cpython-3.14.6/bin/pip3.14 pip3.14 \
+    && ln -sf /opt/_internal/cpython-3.10.20/bin/pip3.10 pip3 \
+    && ln -sf /opt/_internal/cpython-3.10.20/bin/python3.10 python3.10 \
+    && ln -sf /opt/_internal/cpython-3.11.15/bin/python3.11 python3.11 \
+    && ln -sf /opt/_internal/cpython-3.12.13/bin/python3.12 python3.12 \
+    && ln -sf /opt/_internal/cpython-3.13.14/bin/python3.13 python3.13 \
+    && ln -sf /opt/_internal/cpython-3.14.6/bin/python3.14 python3.14 \
+    && ln -sf /opt/_internal/cpython-3.10.20/bin/python3.10 python3
+
+# Install PyTorch from official source, then build requirements from PyPI for each python version
+RUN pip3.10 install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==${PYTORCH_VERSION}+cpu \
+        && pip3.10 install --no-cache-dir -r /opt/buildtools/requirements-builder.txt \
+    && pip3.11 install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==${PYTORCH_VERSION}+cpu \
+        && pip3.11 install --no-cache-dir -r /opt/buildtools/requirements-builder.txt \
+    && pip3.12 install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==${PYTORCH_VERSION}+cpu \
+        && pip3.12 install --no-cache-dir -r /opt/buildtools/requirements-builder.txt \
+    && pip3.13 install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==${PYTORCH_VERSION}+cpu \
+        && pip3.13 install --no-cache-dir -r /opt/buildtools/requirements-builder.txt \
+    && pip3.14 install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==${PYTORCH_VERSION}+cpu \
+        && pip3.14 install --no-cache-dir -r /opt/buildtools/requirements-builder.txt \
+        && pip3.14 install --no-cache-dir auditwheel==5.4.0 \
+    && ln -sf /opt/_internal/cpython-3.14.6/bin/auditwheel /usr/local/bin/auditwheel
+
+# Install system build tools
+RUN echo "alias ll='ls -l --color=auto'" >> /root/.bashrc \
+    && yum install -y ninja-build binutils lld mold dos2unix gcc gcc-c++ make cmake3 wget tar unzip elfutils java-1.8.0-openjdk-devel sqlite-devel \
+    && cd /tmp \
+    && wget https://github.com/ccache/ccache/releases/download/v4.10/ccache-4.10.tar.gz \
+    && tar -xzf ccache-4.10.tar.gz \
+    && cd ccache-4.10 \
+    && mkdir build \
+    && cd build \
+    && cmake3 .. \
+    && make -j$(nproc) \
+    && make install \
+    && cd /tmp \
+    && rm -rf ccache-4.10* \
+    && ccache --version \
+    && yum update -y \
+    && yum clean all
+
+# Set timezone
+RUN rm -f /etc/localtime \
+    && cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
+    && echo 'Asia/Shanghai' >/etc/timezone \
+    && echo "export TZ='Asia/Shanghai'" >>/etc/profile
+
+WORKDIR /home
