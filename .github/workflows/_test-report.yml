@@ -100,7 +100,8 @@ jobs:
           with open('${REPORT_JSON}') as f:
               d = json.load(f)
           totals = d.get('totals', {})
-          total_failed = totals.get('failed', 0) + totals.get('errors', 0) + totals.get('timeout', 0)
+          total_failed = totals.get('failed', 0) + totals.get('errors', 0)
+          report_total_failed = total_failed + totals.get('timeout', 0)
           with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
               f.write(f'passed={totals.get(\"passed\", 0)}\n')
               f.write(f'failed={totals.get(\"failed\", 0)}\n')
@@ -108,6 +109,7 @@ jobs:
               f.write(f'skipped={totals.get(\"skipped\", 0)}\n')
               f.write(f'total={totals.get(\"total\", 0)}\n')
               f.write(f'total_failed={total_failed}\n')
+              f.write(f'report_total_failed={report_total_failed}\n')
           " || true
           fi
 
@@ -130,12 +132,12 @@ jobs:
         uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
         with:
           status: completed
-          conclusion: ${{ steps.generate_report.outputs.total_failed == '0' && 'success' || 'failure' }}
+          conclusion: ${{ steps.generate_report.outputs.report_total_failed == '0' && 'success' || 'failure' }}
           job-name: test
           test-results: >-
             {
               "passed": ${{ steps.generate_report.outputs.passed }},
-              "failed": ${{ steps.generate_report.outputs.total_failed }},
+              "failed": ${{ steps.generate_report.outputs.report_total_failed }},
               "skipped": ${{ steps.generate_report.outputs.skipped }},
               "total": ${{ steps.generate_report.outputs.total }}
             }
