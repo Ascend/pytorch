@@ -21,7 +21,7 @@ npu_backend = torchair.get_npu_backend(compiler_config=config)
 compiled_model = torch.compile(model, backend=npu_backend)
 ```
 
-TorchAir-GE后端支持的编译选项（`compiler_config`参数）和详细使用指导请参考《PyTorch图模式使用(TorchAir)》中的 [GE图模式](https://gitcode.com/Ascend/torchair/blob/26.1.0/docs/zh/ascend_ir/quick_start.md)。
+TorchAir-GE后端支持的编译选项（`compiler_config`参数）和详细使用指导请参考《TorchAir》中的 [GE图模式](https://gitcode.com/Ascend/torchair/blob/26.1.0/docs/zh/ascend_ir/quick_start.md)。
 
 ## 调用样例
 

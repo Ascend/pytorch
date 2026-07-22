@@ -34,7 +34,7 @@
 
 ### 相关产品版本配套说明
 
-TorchNPU代码分支名称采用 **\{PyTorch版本\}-\{昇腾版本\}** 的命名规则，前者为TorchNPU匹配的PyTorch版本，后者为TorchNPU版本，详细匹配如下表：
+TorchNPU代码分支名称采用 **\{PyTorch版本\}-\{TorchNPU版本\}** 的命名规则，前者为TorchNPU匹配的PyTorch版本，详细匹配如下表：
 
 |CANN版本|PyTorch版本|TorchNPU版本|TorchNPU代码分支名称|TorchNPU安装包版本|Python版本|
 |--|--|--|--|--|--|

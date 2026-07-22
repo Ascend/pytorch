@@ -4,7 +4,7 @@
 
 通过此环境变量可配置算子编译磁盘缓存的目录。
 
-优先级：ACL\_OP\_COMPILER\_CACHE\_DIR \> ASCEND\_CACHE\_PATH   \> 默认路径（$HOME/atc\_data）
+优先级：ACL\_OP\_COMPILER\_CACHE\_DIR \> ASCEND\_CACHE\_PATH \> 默认路径（$HOME/atc\_data）
 
 如果设置了该环境变量，则按照该环境变量指定路径落盘算子编译缓存；未设置则使用ASCEND\_CACHE\_PATH指定路径；若未设置该环境变量且未使用ASCEND\_CACHE\_PATH指定路径，则使用默认路径（$HOME/atc\_data）。
 

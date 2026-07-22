@@ -103,7 +103,7 @@ ci/build.sh: line 11: syntax error near unexpected token `$'{\r''
 
 **报错原因**
 
-Windows换行符问题 。文件使用了Windows风格的换行符（CRLF: \r\n ），而Linux bash只认Unix风格的换行符（LF: \n ），导致“\r”被当作命令的一部分执行。
+Windows换行符问题。文件使用了Windows风格的换行符（CRLF: \r\n），而Linux bash只认Unix风格的换行符（LF: \n），导致“\r”被当作命令的一部分执行。
 
 **处理方法**
 

@@ -45,7 +45,7 @@
   - [Quantization](./pytorch_2-12-0/Quantization.md)
   - [Distributed RPC Framework](./pytorch_2-12-0/Distributed-RPC-Framework.md)
   - [torch.random](./pytorch_2-12-0/torch-random.md)
-  - [torch.nested](./pytorch_2-12-0/torch-nested.md)    
+  - [torch.nested](./pytorch_2-12-0/torch-nested.md)
   - [torch.sparse](./pytorch_2-12-0/torch-sparse.md)
   - [torch.Storage](./pytorch_2-12-0/torch-Storage.md)
   - [torch.testing](./pytorch_2-12-0/torch-testing.md)

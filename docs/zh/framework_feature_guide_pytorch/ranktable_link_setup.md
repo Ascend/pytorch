@@ -30,7 +30,7 @@ PyTorch通过rank table文件建立全局通信域。子通信域的建立通过
 >- 配置的文件路径存在，但配置信息有误时，不会通过默认的协商流程进行集合通信域建链，而是在实际通信时会进行相应的报错。
 >- 配置的文件路径不能为软链接，且具有读取权限。
 
-此环境变量使用详情请参考《环境变量参考》中的“[RANK\_TABLE\_FILE](../environment_variable_reference/RANK_TABLE_FILE.md)”章节。
+此环境变量使用详情请参考《环境变量》中的“[RANK\_TABLE\_FILE](../environment_variable_reference/RANK_TABLE_FILE.md)”章节。
 
 ## 使用样例
 

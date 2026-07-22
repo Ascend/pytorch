@@ -26,7 +26,7 @@ TORCH\_HCCL\_ASYNC\_ERROR\_HANDLING取值情况：
 
 当PyTorch版本为1.11.0时，默认值为0；当PyTorch版本大于等于2.1.0时，默认值为1。
 
-此环境变量使用详情请参考《环境变量参考》中的“[TORCH\_HCCL\_ASYNC\_ERROR\_HANDLING](../environment_variable_reference/TORCH_HCCL_ASYNC_ERROR_HANDLING.md)”章节。
+此环境变量使用详情请参考《环境变量》中的“[TORCH\_HCCL\_ASYNC\_ERROR\_HANDLING](../environment_variable_reference/TORCH_HCCL_ASYNC_ERROR_HANDLING.md)”章节。
 
 ## 使用样例
 

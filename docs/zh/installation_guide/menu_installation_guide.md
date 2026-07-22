@@ -1,4 +1,4 @@
-# 软件安装指南
+# 软件安装
 
 - [快速安装](quick_install.md)
 - [卸载与升级](uninstallation_upgrade.md)

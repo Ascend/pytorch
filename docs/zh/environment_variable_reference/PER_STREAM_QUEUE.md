@@ -20,7 +20,7 @@ export PER_STREAM_QUEUE=1
 
 ## 使用约束
 
-当[TASK\_QUEUE\_ENABLE](TASK_QUEUE_ENABLE.md)配置为“1“/“2“时，此环境变量才能生效。
+当[TASK\_QUEUE\_ENABLE](TASK_QUEUE_ENABLE.md)配置为“1”/“2”时，此环境变量才能生效。
 
 ## 支持的型号
 
