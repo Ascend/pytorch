@@ -35,7 +35,7 @@ RUN pip3.10 install --no-cache-dir --index-url https://download.pytorch.org/whl/
     && pip3.14 install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==${PYTORCH_VERSION} \
         && pip3.14 install --no-cache-dir -r /opt/buildtools/requirements-builder.txt \
         && pip3.14 install --no-cache-dir auditwheel==5.4.0 \
-    && ln -sf /opt/_internal/cpython-3.14.3/bin/auditwheel /usr/local/bin/auditwheel-3.14
+    && ln -sf /opt/_internal/cpython-3.14.3/bin/auditwheel /usr/local/bin/auditwheel
 
 # Install system build tools
 RUN echo "alias ll='ls -l --color=auto'" >> /root/.bashrc \

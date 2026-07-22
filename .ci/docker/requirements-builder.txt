@@ -1,5 +1,5 @@
 numpy==1.26.4
 pybind11==3.0.1
-pyyaml
-setuptools==75.3.2
-wheel
+pyyaml==6.0.3
+setuptools==81.0.0
+wheel==0.45.1

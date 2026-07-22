@@ -89,6 +89,6 @@ torch-npu-test-<ARCH>-cann<CHIP>-py<PYTHON_VERSION>-torch<PYTORCH_VERSION>
 
 | CANN_CHIP | 芯片 | CANN 版本 |
 |-----------|------|----------|
-| A1 | Ascend 910 | 9.1.0 |
-| A2 | Ascend 910b | 8.5.0 (x86_64) / 9.1.0 (aarch64) |
-| A3 | Ascend A3 | 9.0.0-beta.1 (x86_64) / 9.0.0-beta.2 (aarch64) |
+| A1 | Ascend 910 | 9.1.0-beta.3 |
+| A2 | Ascend 910b | 9.1.0-beta.3 |
+| A3 | Ascend A3 | 9.1.0-beta.3 |
