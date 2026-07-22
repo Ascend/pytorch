@@ -95,3 +95,4 @@ jobs:
       distributed_matrix: ${{ needs.collect.outputs.distributed_matrix }}
       regular_matrix: ${{ needs.collect.outputs.regular_matrix }}
       docker_image: ${{ inputs.docker_image }}
+      report_to_upstream: ${{ inputs.report_to_upstream }}

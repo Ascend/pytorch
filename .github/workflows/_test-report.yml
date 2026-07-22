@@ -18,11 +18,27 @@ on:
         type: string
         default: 'quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly'
         description: Docker image used for test execution
+      report_to_upstream:
+        required: false
+        type: boolean
+        default: false
+        description: Whether to report test status to upstream dashboard
 
 jobs:
   report:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     steps:
+      - name: Report test in_progress
+        if: ${{ inputs.report_to_upstream }}
+        continue-on-error: true
+        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
+        with:
+          status: in_progress
+          job-name: test
+
       - name: Checkout this repo for report scripts
         uses: actions/checkout@v6
         with:
@@ -84,7 +100,7 @@ jobs:
           with open('${REPORT_JSON}') as f:
               d = json.load(f)
           totals = d.get('totals', {})
-          total_failed = totals.get('failed', 0) + totals.get('errors', 0)
+          total_failed = totals.get('failed', 0) + totals.get('errors', 0) + totals.get('timeout', 0)
           with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
               f.write(f'passed={totals.get(\"passed\", 0)}\n')
               f.write(f'failed={totals.get(\"failed\", 0)}\n')
@@ -107,3 +123,19 @@ jobs:
             regular_cases_results_by_file.jsonl
           if-no-files-found: warn
           retention-days: 60
+
+      - name: Report test completed
+        if: always() && inputs.report_to_upstream
+        continue-on-error: true
+        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
+        with:
+          status: completed
+          conclusion: ${{ steps.generate_report.outputs.total_failed == '0' && 'success' || 'failure' }}
+          job-name: test
+          test-results: >-
+            {
+              "passed": ${{ steps.generate_report.outputs.passed }},
+              "failed": ${{ steps.generate_report.outputs.total_failed }},
+              "skipped": ${{ steps.generate_report.outputs.skipped }},
+              "total": ${{ steps.generate_report.outputs.total }}
+            }
