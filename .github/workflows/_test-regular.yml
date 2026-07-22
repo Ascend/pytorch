@@ -23,7 +23,7 @@ on:
 
 jobs:
   test_regular:
-    runs-on: linux-aarch64-a3-16
+    runs-on: linux-aarch64-a3-8
     permissions:
       id-token: write
       contents: read
@@ -127,7 +127,7 @@ jobs:
 
           echo "=== Regular Shard ${{ matrix.shard }}/${{ inputs.regular_shards }} ==="
           echo "Total cases: ${TOTAL_CASES}"
-          echo "Runner: linux-aarch64-a3-16 (16-card NPU)"
+          echo "Runner: linux-aarch64-a3-8 (8-card NPU)"
           echo "Execution mode: CONCURRENT (16 workers)"
 
           set +e

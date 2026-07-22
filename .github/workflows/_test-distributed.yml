@@ -23,7 +23,7 @@ on:
 
 jobs:
   test_distributed:
-    runs-on: linux-aarch64-a3-16
+    runs-on: linux-aarch64-a3-8
     permissions:
       id-token: write
       contents: read
@@ -127,7 +127,7 @@ jobs:
 
           echo "=== Distributed Shard ${{ matrix.shard }}/${{ inputs.distributed_shards }} ==="
           echo "Total cases: ${TOTAL_CASES}"
-          echo "Runner: linux-aarch64-a3-16 (16-card NPU)"
+          echo "Runner: linux-aarch64-a3-8 (8-card NPU)"
           echo "Execution mode: SERIAL (distributed tests use all NPU devices)"
 
           set +e
