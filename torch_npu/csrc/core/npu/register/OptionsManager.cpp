@@ -526,8 +526,9 @@ uint32_t OptionsManager::GetAclOpInitMode()
 {
     const static uint32_t acl_op_init_mode = []() -> uint32_t {
         const auto soc_version = c10_npu::GetSocVersion();
+        // default mode 1: 310P, 910B, 910C, 950
         const bool is_default_mode_1_soc =
-            ((soc_version >= c10_npu::SocVersion::Ascend910B1) &&
+            ((soc_version >= c10_npu::SocVersion::Ascend310P1) &&
              (soc_version < c10_npu::SocVersion::Ascend310B1)) ||
             (soc_version >= c10_npu::SocVersion::Ascend910_9391);
         const bool is_cann_version_gte_base = IsGteCANNVersion("8.3.RC1", "CANN");
