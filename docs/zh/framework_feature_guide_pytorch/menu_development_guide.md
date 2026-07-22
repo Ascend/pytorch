@@ -7,6 +7,7 @@
     -   [自定义内存分配器](./custom_memory_allocator.md)
     -   [多流内存复用](./multistream_memory_reuse.md)
     -   [内存共享（IPC）](./memory_sharing_ipc.md)
+    -   [FAQ](./memory_faq.md) 
 
 -   [分布式](./menu_distributed.md)
     -   [torch\_npu\_run](torch_npu_run.md)

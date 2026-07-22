@@ -11,3 +11,5 @@
 - **[内存共享（IPC）](./memory_sharing_ipc.md)**  
 
 - **[Stream级TaskQueue并行下发](./stream_taskqueue_parallel_delivery.md)**  
+
+- **[FAQ](./memory_faq.md)** 
