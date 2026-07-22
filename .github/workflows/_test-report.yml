@@ -26,7 +26,7 @@ jobs:
       - name: Checkout this repo for report scripts
         uses: actions/checkout@v6
         with:
-          ref: ${{ github.ref_name }}
+          ref: ci-test
 
       - name: Download distributed shard reports
         uses: actions/download-artifact@v4
