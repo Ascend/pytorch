@@ -3,8 +3,7 @@ from torch.testing._internal.common_utils import run_tests, parametrize, instant
 from testutils import TestUtils
 from torch._inductor.utils import run_and_get_code
 import torch_npu
-
-
+import torch_npu._inductor  # noqa: F401
 
 class TestAdd(TestUtils):
 
