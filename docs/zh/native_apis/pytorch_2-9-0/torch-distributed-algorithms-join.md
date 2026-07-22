@@ -5,12 +5,12 @@
 
 |API名称|是否支持|限制与说明|
 |--|--|--|
-|[torch.distributed.algorithms.Join](https://pytorch.org/docs/2.9/distributed.algorithms.join.html#torch.distributed.algorithms.Join)|是|-|
-|[torch.distributed.algorithms.Join.notify_join_context](https://pytorch.org/docs/2.9/distributed.algorithms.join.html#torch.distributed.algorithms.Join.notify_join_context)|是|-|
-|[torch.distributed.algorithms.Joinable](https://pytorch.org/docs/2.9/distributed.algorithms.join.html#torch.distributed.algorithms.Joinable)|是|-|
-|[torch.distributed.algorithms.Joinable.join_device](https://pytorch.org/docs/2.9/distributed.algorithms.join.html#torch.distributed.algorithms.Joinable.join_device)|是|-|
-|[torch.distributed.algorithms.Joinable.join_hook](https://pytorch.org/docs/2.9/distributed.algorithms.join.html#torch.distributed.algorithms.Joinable.join_hook)|是|-|
-|[torch.distributed.algorithms.Joinable.join_process_group](https://pytorch.org/docs/2.9/distributed.algorithms.join.html#torch.distributed.algorithms.Joinable.join_process_group)|是|-|
-|[torch.distributed.algorithms.JoinHook](https://pytorch.org/docs/2.9/distributed.algorithms.join.html#torch.distributed.algorithms.JoinHook)|是|-|
-|[torch.distributed.algorithms.JoinHook.main_hook](https://pytorch.org/docs/2.9/distributed.algorithms.join.html#torch.distributed.algorithms.JoinHook.main_hook)|是|-|
-|[torch.distributed.algorithms.JoinHook.post_hook](https://pytorch.org/docs/2.9/distributed.algorithms.join.html#torch.distributed.algorithms.JoinHook.post_hook)|是|-|
+|[torch.distributed.algorithms.Join](https://pytorch.org/docs/2.9/distributed.algorithms.join.html#torch.distributed.algorithms.Join)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.distributed.algorithms.Join.notify_join_context](https://pytorch.org/docs/2.9/distributed.algorithms.join.html#torch.distributed.algorithms.Join.notify_join_context)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.distributed.algorithms.Joinable](https://pytorch.org/docs/2.9/distributed.algorithms.join.html#torch.distributed.algorithms.Joinable)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.distributed.algorithms.Joinable.join_device](https://pytorch.org/docs/2.9/distributed.algorithms.join.html#torch.distributed.algorithms.Joinable.join_device)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.distributed.algorithms.Joinable.join_hook](https://pytorch.org/docs/2.9/distributed.algorithms.join.html#torch.distributed.algorithms.Joinable.join_hook)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.distributed.algorithms.Joinable.join_process_group](https://pytorch.org/docs/2.9/distributed.algorithms.join.html#torch.distributed.algorithms.Joinable.join_process_group)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.distributed.algorithms.JoinHook](https://pytorch.org/docs/2.9/distributed.algorithms.join.html#torch.distributed.algorithms.JoinHook)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.distributed.algorithms.JoinHook.main_hook](https://pytorch.org/docs/2.9/distributed.algorithms.join.html#torch.distributed.algorithms.JoinHook.main_hook)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.distributed.algorithms.JoinHook.post_hook](https://pytorch.org/docs/2.9/distributed.algorithms.join.html#torch.distributed.algorithms.JoinHook.post_hook)|是<br>暂不支持<term>Ascend 950DT</term>|-|

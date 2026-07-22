@@ -5,4 +5,4 @@
 
 |API名称|是否支持|限制与说明|
 |--|--|--|
-|[torch.utils.model_zoo.load_url](https://pytorch.org/docs/2.9/model_zoo.html#torch.utils.model_zoo.load_url)|是|-|
+|[torch.utils.model_zoo.load_url](https://pytorch.org/docs/2.9/model_zoo.html#torch.utils.model_zoo.load_url)|是<br>暂不支持<term>Ascend 950DT</term>|-|

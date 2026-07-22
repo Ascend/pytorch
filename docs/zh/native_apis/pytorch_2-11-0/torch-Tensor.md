@@ -6,26 +6,26 @@
 
 |API名称|是否支持|限制与说明|
 |--|--|--|
-|[torch.Tensor](https://pytorch.org/docs/2.11/tensors.html)|是|-|
-|[Tensor.T](https://pytorch.org/docs/2.11/tensors.html#torch.Tensor.T)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|[Tensor.H](https://pytorch.org/docs/2.11/tensors.html#torch.Tensor.H)|是|-|
+|[torch.Tensor](https://pytorch.org/docs/2.11/tensors.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[Tensor.T](https://pytorch.org/docs/2.11/tensors.html#torch.Tensor.T)|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|[Tensor.H](https://pytorch.org/docs/2.11/tensors.html#torch.Tensor.H)|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |[Tensor.mT](https://pytorch.org/docs/2.11/tensors.html#torch.Tensor.mT)|是|-|
-|[Tensor.mH](https://pytorch.org/docs/2.11/tensors.html#torch.Tensor.mH)|是|-|
+|[Tensor.mH](https://pytorch.org/docs/2.11/tensors.html#torch.Tensor.mH)|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |[Tensor.new_tensor](https://pytorch.org/docs/2.11/generated/torch.Tensor.new_tensor.html)|是|-|
-|[Tensor.new_full](https://pytorch.org/docs/2.11/generated/torch.Tensor.new_full.html)|是|支持int64|
+|[Tensor.new_full](https://pytorch.org/docs/2.11/generated/torch.Tensor.new_full.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持int64|
 |[Tensor.new_empty](https://pytorch.org/docs/2.11/generated/torch.Tensor.new_empty.html)|是|支持fp32|
-|[Tensor.new_ones](https://pytorch.org/docs/2.11/generated/torch.Tensor.new_ones.html)|是|支持fp32|
+|[Tensor.new_ones](https://pytorch.org/docs/2.11/generated/torch.Tensor.new_ones.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
 |[Tensor.new_zeros](https://pytorch.org/docs/2.11/generated/torch.Tensor.new_zeros.html)|是|支持fp32|
-|[Tensor.is_cuda](https://pytorch.org/docs/2.11/generated/torch.Tensor.is_cuda.html)|是|-|
-|[Tensor.is_quantized](https://pytorch.org/docs/2.11/generated/torch.Tensor.is_quantized.html)|是|-|
-|[Tensor.is_meta](https://pytorch.org/docs/2.11/generated/torch.Tensor.is_meta.html)|是|-|
+|[Tensor.is_cuda](https://pytorch.org/docs/2.11/generated/torch.Tensor.is_cuda.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[Tensor.is_quantized](https://pytorch.org/docs/2.11/generated/torch.Tensor.is_quantized.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[Tensor.is_meta](https://pytorch.org/docs/2.11/generated/torch.Tensor.is_meta.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |[Tensor.device](https://pytorch.org/docs/2.11/generated/torch.Tensor.device.html)|是|-|
 |[Tensor.grad](https://pytorch.org/docs/2.11/generated/torch.Tensor.grad.html)|是|支持fp32|
-|[Tensor.ndim](https://pytorch.org/docs/2.11/generated/torch.Tensor.ndim.html)|是|支持fp32|
-|[Tensor.real](https://pytorch.org/docs/2.11/generated/torch.Tensor.real.html)|是|-|
-|[Tensor.imag](https://pytorch.org/docs/2.11/generated/torch.Tensor.imag.html)|是|-|
-|[Tensor.nbytes](https://pytorch.org/docs/2.11/generated/torch.Tensor.nbytes.html)|是|-|
-|[Tensor.itemsize](https://pytorch.org/docs/2.11/generated/torch.Tensor.itemsize.html)|是|-|
+|[Tensor.ndim](https://pytorch.org/docs/2.11/generated/torch.Tensor.ndim.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[Tensor.real](https://pytorch.org/docs/2.11/generated/torch.Tensor.real.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[Tensor.imag](https://pytorch.org/docs/2.11/generated/torch.Tensor.imag.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[Tensor.nbytes](https://pytorch.org/docs/2.11/generated/torch.Tensor.nbytes.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[Tensor.itemsize](https://pytorch.org/docs/2.11/generated/torch.Tensor.itemsize.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |[Tensor.abs](https://pytorch.org/docs/2.11/generated/torch.Tensor.abs.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |[Tensor.abs_](https://pytorch.org/docs/2.11/generated/torch.Tensor.abs_.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64|
 |[Tensor.absolute](https://pytorch.org/docs/2.11/generated/torch.Tensor.absolute.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
@@ -36,30 +36,30 @@
 |[Tensor.arccos_](https://pytorch.org/docs/2.11/generated/torch.Tensor.arccos_.html)|是|支持fp16，fp32, fp64<br><term>Atlas A3 训练系列产品</term>额外支持bf16|
 |[Tensor.add](https://pytorch.org/docs/2.11/generated/torch.Tensor.add.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |[Tensor.add_](https://pytorch.org/docs/2.11/generated/torch.Tensor.add_.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
-|[Tensor.addbmm](https://pytorch.org/docs/2.11/generated/torch.Tensor.addbmm.html)|是|支持fp16，fp32|
-|[Tensor.addbmm_](https://pytorch.org/docs/2.11/generated/torch.Tensor.addbmm_.html)|是|支持fp16，fp32|
+|[Tensor.addbmm](https://pytorch.org/docs/2.11/generated/torch.Tensor.addbmm.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
+|[Tensor.addbmm_](https://pytorch.org/docs/2.11/generated/torch.Tensor.addbmm_.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
 |[Tensor.addcdiv](https://pytorch.org/docs/2.11/generated/torch.Tensor.addcdiv.html)|是|支持bf16，fp16，fp32，int64<br>int64类型不支持三个tensor同时广播|
 |[Tensor.addcdiv_](https://pytorch.org/docs/2.11/generated/torch.Tensor.addcdiv_.html)|是|<term>Atlas A2 训练系列产品</term>、<term>Atlas A3 训练系列产品</term>：支持bf16，fp16，fp32，fp64<br><term>Atlas 训练系列产品</term>：支持fp16，fp32，fp64<br>int64类型不支持三个tensor同时广播|
 |[Tensor.addcmul](https://pytorch.org/docs/2.11/generated/torch.Tensor.addcmul.html)|是|支持fp16，fp32，int64<br>int64类型不支持三个tensor同时广播|
 |[Tensor.addcmul_](https://pytorch.org/docs/2.11/generated/torch.Tensor.addcmul_.html)|是|<term>Atlas A2 训练系列产品</term>、<term>Atlas A3 训练系列产品</term>：支持bf16，fp16，fp32，fp64，uint8，int8，int32，int64<br><term>Atlas 训练系列产品</term>：支持fp16，fp32，fp64，uint8，int8，int32，int64<br>int64类型不支持三个tensor同时广播|
-|[Tensor.addmm](https://pytorch.org/docs/2.11/generated/torch.Tensor.addmm.html)|是|支持fp16，fp32|
+|[Tensor.addmm](https://pytorch.org/docs/2.11/generated/torch.Tensor.addmm.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
 |[Tensor.addmm_](https://pytorch.org/docs/2.11/generated/torch.Tensor.addmm_.html)|是|支持fp16，fp32|
 |[Tensor.sspaddmm](https://pytorch.org/docs/2.11/generated/torch.Tensor.sspaddmm.html)|否|-|
 |[Tensor.addmv](https://pytorch.org/docs/2.11/generated/torch.Tensor.addmv.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64|
 |[Tensor.addmv_](https://pytorch.org/docs/2.11/generated/torch.Tensor.addmv_.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64|
 |[Tensor.addr](https://pytorch.org/docs/2.11/generated/torch.Tensor.addr.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
-|[Tensor.addr_](https://pytorch.org/docs/2.11/generated/torch.Tensor.addr_.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
+|[Tensor.addr_](https://pytorch.org/docs/2.11/generated/torch.Tensor.addr_.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |[Tensor.adjoint](https://pytorch.org/docs/2.11/generated/torch.Tensor.adjoint.html)|是|-|
 |[Tensor.allclose](https://pytorch.org/docs/2.11/generated/torch.Tensor.allclose.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |[Tensor.amax](https://pytorch.org/docs/2.11/generated/torch.Tensor.amax.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |[Tensor.amin](https://pytorch.org/docs/2.11/generated/torch.Tensor.amin.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
-|[Tensor.aminmax](https://pytorch.org/docs/2.11/generated/torch.Tensor.aminmax.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
-|[Tensor.angle](https://pytorch.org/docs/2.11/generated/torch.Tensor.angle.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64|
+|[Tensor.aminmax](https://pytorch.org/docs/2.11/generated/torch.Tensor.aminmax.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
+|[Tensor.angle](https://pytorch.org/docs/2.11/generated/torch.Tensor.angle.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64|
 |[Tensor.apply_](https://pytorch.org/docs/2.11/generated/torch.Tensor.apply_.html)|是|仅CPU支持|
 |[Tensor.argmax](https://pytorch.org/docs/2.11/generated/torch.Tensor.argmax.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64|
 |[Tensor.argmin](https://pytorch.org/docs/2.11/generated/torch.Tensor.argmin.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64|
-|[Tensor.argsort](https://pytorch.org/docs/2.11/generated/torch.Tensor.argsort.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64|
-|[Tensor.argwhere](https://pytorch.org/docs/2.11/generated/torch.Tensor.argwhere.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
+|[Tensor.argsort](https://pytorch.org/docs/2.11/generated/torch.Tensor.argsort.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64<br>针对<term>Ascend 950DT</term>，由于底层实现限制，"stable"仅支持True，设置为False在执行时会自动修改为True|
+|[Tensor.argwhere](https://pytorch.org/docs/2.11/generated/torch.Tensor.argwhere.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |[Tensor.asin](https://pytorch.org/docs/2.11/generated/torch.Tensor.asin.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |[Tensor.asin_](https://pytorch.org/docs/2.11/generated/torch.Tensor.asin_.html)|是|支持fp16，fp32|
 |[Tensor.arcsin](https://pytorch.org/docs/2.11/generated/torch.Tensor.arcsin.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
@@ -77,19 +77,19 @@
 |[Tensor.any](https://pytorch.org/docs/2.11/generated/torch.Tensor.any.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |[Tensor.backward](https://pytorch.org/docs/2.11/generated/torch.Tensor.backward.html)|是|支持fp32|
 |[Tensor.baddbmm](https://pytorch.org/docs/2.11/generated/torch.Tensor.baddbmm.html)|是|支持fp16，fp32|
-|[Tensor.baddbmm_](https://pytorch.org/docs/2.11/generated/torch.Tensor.baddbmm_.html)|是|支持fp16，fp32|
+|[Tensor.baddbmm_](https://pytorch.org/docs/2.11/generated/torch.Tensor.baddbmm_.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
 |[Tensor.bernoulli](https://pytorch.org/docs/2.11/generated/torch.Tensor.bernoulli.html)|是|支持fp16，fp32<br>可能回退至CPU执行|
 |[Tensor.bernoulli_](https://pytorch.org/docs/2.11/generated/torch.Tensor.bernoulli_.html)|是|可能回退至CPU执行|
 |[Tensor.bfloat16](https://pytorch.org/docs/2.11/generated/torch.Tensor.bfloat16.html)|是|支持fp16，fp32|
 |[Tensor.bincount](https://pytorch.org/docs/2.11/generated/torch.Tensor.bincount.html)|是|支持uint8，int8，int16，int32，int64<br>weights维度需与input维度一致|
 |[Tensor.bitwise_not](https://pytorch.org/docs/2.11/generated/torch.Tensor.bitwise_not.html)|是|支持uint8，int8，int16，int32，int64，bool|
-|[Tensor.bitwise_not_](https://pytorch.org/docs/2.11/generated/torch.Tensor.bitwise_not_.html)|是|支持uint8，int8，int16，int32，int64，bool|
+|[Tensor.bitwise_not_](https://pytorch.org/docs/2.11/generated/torch.Tensor.bitwise_not_.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持uint8，int8，int16，int32，int64，bool|
 |[Tensor.bitwise_and](https://pytorch.org/docs/2.11/generated/torch.Tensor.bitwise_and.html)|是|支持uint8，int8，int16，int32，int64，bool|
-|[Tensor.bitwise_and_](https://pytorch.org/docs/2.11/generated/torch.Tensor.bitwise_and_.html)|是|支持uint8，int8，int16，int32，int64，bool|
+|[Tensor.bitwise_and_](https://pytorch.org/docs/2.11/generated/torch.Tensor.bitwise_and_.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持uint8，int8，int16，int32，int64，bool|
 |[Tensor.bitwise_or](https://pytorch.org/docs/2.11/generated/torch.Tensor.bitwise_or.html)|是|支持uint8，int8，int16，int32，int64，bool|
-|[Tensor.bitwise_or_](https://pytorch.org/docs/2.11/generated/torch.Tensor.bitwise_or_.html)|是|支持uint8，int8，int16，int32，int64，bool|
+|[Tensor.bitwise_or_](https://pytorch.org/docs/2.11/generated/torch.Tensor.bitwise_or_.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持uint8，int8，int16，int32，int64，bool|
 |[Tensor.bitwise_xor](https://pytorch.org/docs/2.11/generated/torch.Tensor.bitwise_xor.html)|是|支持uint8，int8，int16，int32，int64，bool|
-|[Tensor.bitwise_xor_](https://pytorch.org/docs/2.11/generated/torch.Tensor.bitwise_xor_.html)|是|支持uint8，int8，int16，int32，int64，bool|
+|[Tensor.bitwise_xor_](https://pytorch.org/docs/2.11/generated/torch.Tensor.bitwise_xor_.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持uint8，int8，int16，int32，int64，bool|
 |[Tensor.bmm](https://pytorch.org/docs/2.11/generated/torch.Tensor.bmm.html)|是|支持fp16，fp32|
 |[Tensor.bool](https://pytorch.org/docs/2.11/generated/torch.Tensor.bool.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.byte](https://pytorch.org/docs/2.11/generated/torch.Tensor.byte.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
@@ -111,8 +111,8 @@
 |[Tensor.copysign](https://pytorch.org/docs/2.11/generated/torch.Tensor.copysign.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool<br>可能回退至CPU执行|
 |[Tensor.cos](https://pytorch.org/docs/2.11/generated/torch.Tensor.cos.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.cos_](https://pytorch.org/docs/2.11/generated/torch.Tensor.cos_.html)|是|支持bf16，fp16，fp32，complex64，complex128|
-|[Tensor.cosh](https://pytorch.org/docs/2.11/generated/torch.Tensor.cosh.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|[Tensor.cosh_](https://pytorch.org/docs/2.11/generated/torch.Tensor.cosh_.html)|是|支持bf16，fp16，fp32，fp64，complex64，complex128|
+|[Tensor.cosh](https://pytorch.org/docs/2.11/generated/torch.Tensor.cosh.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|[Tensor.cosh_](https://pytorch.org/docs/2.11/generated/torch.Tensor.cosh_.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32，fp64，complex64，complex128|
 |[Tensor.count_nonzero](https://pytorch.org/docs/2.11/generated/torch.Tensor.count_nonzero.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.cov](https://pytorch.org/docs/2.11/generated/torch.Tensor.cov.html)|是|支持fp16，fp32，int16，int32，int64|
 |[Tensor.acosh](https://pytorch.org/docs/2.11/generated/torch.Tensor.acosh.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>可能回退至CPU执行|
@@ -121,40 +121,40 @@
 |[Tensor.arccosh_](https://pytorch.org/docs/2.11/generated/torch.Tensor.arccosh_.html)|是|支持bf16，fp16，fp32，fp64，complex64，complex128|
 |[Tensor.cpu](https://pytorch.org/docs/2.11/generated/torch.Tensor.cpu.html)|是|-|
 |[Tensor.cross](https://pytorch.org/docs/2.11/generated/torch.Tensor.cross.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，complex64，complex128<br>两个输入的shape要保持一致|
-|[Tensor.cuda](https://pytorch.org/docs/2.11/generated/torch.Tensor.cuda.html)|是|NPU对应接口为Tensor.npu，其memory_format参数仅支持传入torch.contiguous_format|
+|[Tensor.cuda](https://pytorch.org/docs/2.11/generated/torch.Tensor.cuda.html)|是<br>暂不支持<term>Ascend 950DT</term>|NPU对应接口为Tensor.npu，其memory_format参数仅支持传入torch.contiguous_format|
 |[Tensor.cummax](https://pytorch.org/docs/2.11/generated/torch.Tensor.cummax.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool<br>可能回退至CPU执行|
 |[Tensor.cummin](https://pytorch.org/docs/2.11/generated/torch.Tensor.cummin.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |[Tensor.cumsum](https://pytorch.org/docs/2.11/generated/torch.Tensor.cumsum.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>支持Named Tensor|
-|[Tensor.cumsum_](https://pytorch.org/docs/2.11/generated/torch.Tensor.cumsum_.html)|是|支持fp16，fp32，int64，bool|
+|[Tensor.cumsum_](https://pytorch.org/docs/2.11/generated/torch.Tensor.cumsum_.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，int64，bool|
 |[Tensor.chalf](https://pytorch.org/docs/2.11/generated/torch.Tensor.chalf.html)|否|-|
-|[Tensor.cfloat](https://pytorch.org/docs/2.11/generated/torch.Tensor.cfloat.html)|是|-|
-|[Tensor.cdouble](https://pytorch.org/docs/2.11/generated/torch.Tensor.cdouble.html)|是|-|
+|[Tensor.cfloat](https://pytorch.org/docs/2.11/generated/torch.Tensor.cfloat.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[Tensor.cdouble](https://pytorch.org/docs/2.11/generated/torch.Tensor.cdouble.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |[Tensor.data_ptr](https://pytorch.org/docs/2.11/generated/torch.Tensor.data_ptr.html)|是|支持fp32|
 |[Tensor.deg2rad](https://pytorch.org/docs/2.11/generated/torch.Tensor.deg2rad.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
-|[Tensor.dequantize](https://pytorch.org/docs/2.11/generated/torch.Tensor.dequantize.html)|是|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
-|[Tensor.dense_dim](https://pytorch.org/docs/2.11/generated/torch.Tensor.dense_dim.html)|是|-|
+|[Tensor.dequantize](https://pytorch.org/docs/2.11/generated/torch.Tensor.dequantize.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
+|[Tensor.dense_dim](https://pytorch.org/docs/2.11/generated/torch.Tensor.dense_dim.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |[Tensor.detach](https://pytorch.org/docs/2.11/generated/torch.Tensor.detach.html)|是|支持fp32|
 |[Tensor.detach_](https://pytorch.org/docs/2.11/generated/torch.Tensor.detach_.html)|是|支持fp32|
 |[Tensor.diag](https://pytorch.org/docs/2.11/generated/torch.Tensor.diag.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64|
 |[Tensor.diag_embed](https://pytorch.org/docs/2.11/generated/torch.Tensor.diag_embed.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
-|[Tensor.diagflat](https://pytorch.org/docs/2.11/generated/torch.Tensor.diagflat.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64|
+|[Tensor.diagflat](https://pytorch.org/docs/2.11/generated/torch.Tensor.diagflat.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64|
 |[Tensor.diagonal](https://pytorch.org/docs/2.11/generated/torch.Tensor.diagonal.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|[Tensor.diagonal_scatter](https://pytorch.org/docs/2.11/generated/torch.Tensor.diagonal_scatter.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
+|[Tensor.diagonal_scatter](https://pytorch.org/docs/2.11/generated/torch.Tensor.diagonal_scatter.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |[Tensor.fill_diagonal_](https://pytorch.org/docs/2.11/generated/torch.Tensor.fill_diagonal_.html)|是|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |[Tensor.diff](https://pytorch.org/docs/2.11/generated/torch.Tensor.diff.html)|是|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |[Tensor.dim](https://pytorch.org/docs/2.11/generated/torch.Tensor.dim.html)|是|支持fp32|
-|[Tensor.dim_order](https://pytorch.org/docs/2.11/generated/torch.Tensor.dim_order.html)|是|-|
-|[Tensor.dist](https://pytorch.org/docs/2.11/generated/torch.Tensor.dist.html)|是|-|
+|[Tensor.dim_order](https://pytorch.org/docs/2.11/generated/torch.Tensor.dim_order.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[Tensor.dist](https://pytorch.org/docs/2.11/generated/torch.Tensor.dist.html)|是|<term>Ascend 950DT</term>：不支持fp64，complex64，complex128|
 |[Tensor.div](https://pytorch.org/docs/2.11/generated/torch.Tensor.div.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |[Tensor.div_](https://pytorch.org/docs/2.11/generated/torch.Tensor.div_.html)|是|支持bf16，fp16，fp32，fp64|
-|[Tensor.divide](https://pytorch.org/docs/2.11/generated/torch.Tensor.divide.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
+|[Tensor.divide](https://pytorch.org/docs/2.11/generated/torch.Tensor.divide.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |[Tensor.divide_](https://pytorch.org/docs/2.11/generated/torch.Tensor.divide_.html)|是|支持fp16，fp32|
 |[Tensor.dot](https://pytorch.org/docs/2.11/generated/torch.Tensor.dot.html)|是|支持fp16，fp32|
 |[Tensor.double](https://pytorch.org/docs/2.11/generated/torch.Tensor.double.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>当前NPU上部分接口暂不支持double类型，出于兼容性考虑默认返回fp32，后续完成支持后将正常返回fp64<br>可能回退至CPU执行|
-|[Tensor.dsplit](https://pytorch.org/docs/2.11/generated/torch.Tensor.dsplit.html)|是|支持fp32|
+|[Tensor.dsplit](https://pytorch.org/docs/2.11/generated/torch.Tensor.dsplit.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
 |[Tensor.element_size](https://pytorch.org/docs/2.11/generated/torch.Tensor.element_size.html)|是|支持fp32|
 |[Tensor.eq](https://pytorch.org/docs/2.11/generated/torch.Tensor.eq.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|[Tensor.eq_](https://pytorch.org/docs/2.11/generated/torch.Tensor.eq_.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|[Tensor.eq_](https://pytorch.org/docs/2.11/generated/torch.Tensor.eq_.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.equal](https://pytorch.org/docs/2.11/generated/torch.Tensor.equal.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |[Tensor.erf](https://pytorch.org/docs/2.11/generated/torch.Tensor.erf.html)|是|支持fp16，fp32，int64，bool|
 |[Tensor.erf_](https://pytorch.org/docs/2.11/generated/torch.Tensor.erf_.html)|是|支持fp16，fp32|
@@ -168,55 +168,55 @@
 |[Tensor.expm1_](https://pytorch.org/docs/2.11/generated/torch.Tensor.expm1_.html)|是|支持fp16，fp32|
 |[Tensor.expand](https://pytorch.org/docs/2.11/generated/torch.Tensor.expand.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.expand_as](https://pytorch.org/docs/2.11/generated/torch.Tensor.expand_as.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|[Tensor.exponential_](https://pytorch.org/docs/2.11/generated/torch.Tensor.exponential_.html)|是|支持bf16，fp16，fp32，fp64|
-|[Tensor.fix](https://pytorch.org/docs/2.11/generated/torch.Tensor.fix.html)|是|支持fp16，fp32|
-|[Tensor.fix_](https://pytorch.org/docs/2.11/generated/torch.Tensor.fix_.html)|是|支持fp16，fp32|
+|[Tensor.exponential_](https://pytorch.org/docs/2.11/generated/torch.Tensor.exponential_.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32，fp64|
+|[Tensor.fix](https://pytorch.org/docs/2.11/generated/torch.Tensor.fix.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
+|[Tensor.fix_](https://pytorch.org/docs/2.11/generated/torch.Tensor.fix_.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
 |[Tensor.fill_](https://pytorch.org/docs/2.11/generated/torch.Tensor.fill_.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.flatten](https://pytorch.org/docs/2.11/generated/torch.Tensor.flatten.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.flip](https://pytorch.org/docs/2.11/generated/torch.Tensor.flip.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.fliplr](https://pytorch.org/docs/2.11/generated/torch.Tensor.fliplr.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|[Tensor.flipud](https://pytorch.org/docs/2.11/generated/torch.Tensor.flipud.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|[Tensor.flipud](https://pytorch.org/docs/2.11/generated/torch.Tensor.flipud.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.float](https://pytorch.org/docs/2.11/generated/torch.Tensor.float.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|[Tensor.float_power](https://pytorch.org/docs/2.11/generated/torch.Tensor.float_power.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex128|
-|[Tensor.float_power_](https://pytorch.org/docs/2.11/generated/torch.Tensor.float_power_.html)|是|支持double|
+|[Tensor.float_power](https://pytorch.org/docs/2.11/generated/torch.Tensor.float_power.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex128|
+|[Tensor.float_power_](https://pytorch.org/docs/2.11/generated/torch.Tensor.float_power_.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持double|
 |[Tensor.floor](https://pytorch.org/docs/2.11/generated/torch.Tensor.floor.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64|
 |[Tensor.floor_](https://pytorch.org/docs/2.11/generated/torch.Tensor.floor_.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64|
 |[Tensor.floor_divide](https://pytorch.org/docs/2.11/generated/torch.Tensor.floor_divide.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64|
-|[Tensor.floor_divide_](https://pytorch.org/docs/2.11/generated/torch.Tensor.floor_divide_.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64|
+|[Tensor.floor_divide_](https://pytorch.org/docs/2.11/generated/torch.Tensor.floor_divide_.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，uint8，int8，int16，int32，int64|
 |[Tensor.fmod](https://pytorch.org/docs/2.11/generated/torch.Tensor.fmod.html)|是|支持fp16，fp32，uint8，int8，int32，int64|
-|[Tensor.fmod_](https://pytorch.org/docs/2.11/generated/torch.Tensor.fmod_.html)|是|支持fp16，fp32，uint8，int8，int32，int64|
-|[Tensor.frac](https://pytorch.org/docs/2.11/generated/torch.Tensor.frac.html)|是|支持fp16，fp32|
-|[Tensor.frac_](https://pytorch.org/docs/2.11/generated/torch.Tensor.frac_.html)|是|支持fp16，fp32|
-|[Tensor.gather](https://pytorch.org/docs/2.11/generated/torch.Tensor.gather.html)|是|支持fp16，fp32，int64<br>index维度需与input维度一致|
+|[Tensor.fmod_](https://pytorch.org/docs/2.11/generated/torch.Tensor.fmod_.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，uint8，int8，int32，int64|
+|[Tensor.frac](https://pytorch.org/docs/2.11/generated/torch.Tensor.frac.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
+|[Tensor.frac_](https://pytorch.org/docs/2.11/generated/torch.Tensor.frac_.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
+|[Tensor.gather](https://pytorch.org/docs/2.11/generated/torch.Tensor.gather.html)|是|支持fp16，fp32，int64<br>index维度需与input维度一致<br>针对<term>Ascend 950DT</term>，由于硬件差异，在索引存在重复的情况下，精度可能和<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>存在差异|
 |[Tensor.ge](https://pytorch.org/docs/2.11/generated/torch.Tensor.ge.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
-|[Tensor.ge_](https://pytorch.org/docs/2.11/generated/torch.Tensor.ge_.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
+|[Tensor.ge_](https://pytorch.org/docs/2.11/generated/torch.Tensor.ge_.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |[Tensor.greater_equal](https://pytorch.org/docs/2.11/generated/torch.Tensor.greater_equal.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
-|[Tensor.greater_equal_](https://pytorch.org/docs/2.11/generated/torch.Tensor.greater_equal_.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
-|[Tensor.geometric_](https://pytorch.org/docs/2.11/generated/torch.Tensor.geometric_.html)|是|-|
-|[Tensor.ger](https://pytorch.org/docs/2.11/generated/torch.Tensor.ger.html)|是|-|
+|[Tensor.greater_equal_](https://pytorch.org/docs/2.11/generated/torch.Tensor.greater_equal_.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
+|[Tensor.geometric_](https://pytorch.org/docs/2.11/generated/torch.Tensor.geometric_.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[Tensor.ger](https://pytorch.org/docs/2.11/generated/torch.Tensor.ger.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |[Tensor.get_device](https://pytorch.org/docs/2.11/generated/torch.Tensor.get_device.html)|是|-|
 |[Tensor.gt](https://pytorch.org/docs/2.11/generated/torch.Tensor.gt.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
-|[Tensor.gt_](https://pytorch.org/docs/2.11/generated/torch.Tensor.gt_.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
+|[Tensor.gt_](https://pytorch.org/docs/2.11/generated/torch.Tensor.gt_.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |[Tensor.greater](https://pytorch.org/docs/2.11/generated/torch.Tensor.greater.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |[Tensor.greater_](https://pytorch.org/docs/2.11/generated/torch.Tensor.greater_.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |[Tensor.half](https://pytorch.org/docs/2.11/generated/torch.Tensor.half.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.hardshrink](https://pytorch.org/docs/2.11/generated/torch.Tensor.hardshrink.html)|是|支持fp16，fp32|
 |[Tensor.heaviside](https://pytorch.org/docs/2.11/generated/torch.Tensor.heaviside.html)|是|可能回退至CPU执行|
 |[Tensor.histc](https://pytorch.org/docs/2.11/generated/torch.Tensor.histc.html)|是|支持fp16，fp32|
-|[Tensor.hsplit](https://pytorch.org/docs/2.11/generated/torch.Tensor.hsplit.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|[Tensor.hsplit](https://pytorch.org/docs/2.11/generated/torch.Tensor.hsplit.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.index_add_](https://pytorch.org/docs/2.11/generated/torch.Tensor.index_add_.html)|是|支持fp16，fp32，int64，bool|
 |[Tensor.index_add](https://pytorch.org/docs/2.11/generated/torch.Tensor.index_add.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64|
 |[Tensor.index_copy_](https://pytorch.org/docs/2.11/generated/torch.Tensor.index_copy_.html)|是|支持fp16，fp32，int16，int32，bool|
 |[Tensor.index_copy](https://pytorch.org/docs/2.11/generated/torch.Tensor.index_copy.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.index_fill_](https://pytorch.org/docs/2.11/generated/torch.Tensor.index_fill_.html)|是|支持fp16，fp32，int32，int64，bool|
 |[Tensor.index_fill](https://pytorch.org/docs/2.11/generated/torch.Tensor.index_fill.html)|是|支持fp16，fp32，int32，bool|
-|[Tensor.index_put_](https://pytorch.org/docs/2.11/generated/torch.Tensor.index_put_.html)|是|支持int64|
-|[Tensor.index_put](https://pytorch.org/docs/2.11/generated/torch.Tensor.index_put.html)|是|支持int64|
+|[Tensor.index_put_](https://pytorch.org/docs/2.11/generated/torch.Tensor.index_put_.html)|是|支持int64<br>针对<term>Ascend 950DT</term>，由于硬件差异，在索引存在重复的情况下，精度可能和<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>存在差异|
+|[Tensor.index_put](https://pytorch.org/docs/2.11/generated/torch.Tensor.index_put.html)|是|支持int64<br>针对<term>Ascend 950DT</term>，由于硬件差异，在索引存在重复的情况下，精度可能和<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>存在差异|
 |[Tensor.index_reduce_](https://pytorch.org/docs/2.11/generated/torch.Tensor.index_reduce_.html)|是|可能回退至CPU执行|
 |[Tensor.index_reduce](https://pytorch.org/docs/2.11/generated/torch.Tensor.index_reduce.html)|是|可能回退至CPU执行|
 |[Tensor.index_select](https://pytorch.org/docs/2.11/generated/torch.Tensor.index_select.html)|是|支持fp16，fp32，int16，int32，int64，bool|
-|[Tensor.indices](https://pytorch.org/docs/2.11/generated/torch.Tensor.indices.html)|是|-|
-|[Tensor.inner](https://pytorch.org/docs/2.11/generated/torch.Tensor.inner.html)|是|支持fp16，fp32|
+|[Tensor.indices](https://pytorch.org/docs/2.11/generated/torch.Tensor.indices.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[Tensor.inner](https://pytorch.org/docs/2.11/generated/torch.Tensor.inner.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
 |[Tensor.int](https://pytorch.org/docs/2.11/generated/torch.Tensor.int.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.int_repr](https://pytorch.org/docs/2.11/generated/torch.Tensor.int_repr.html)|否|-|
 |[Tensor.isclose](https://pytorch.org/docs/2.11/generated/torch.Tensor.isclose.html)|是|支持fp16，fp32，uint8，int32，int64，bool|
@@ -229,22 +229,22 @@
 |[Tensor.is_complex](https://pytorch.org/docs/2.11/generated/torch.Tensor.is_complex.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.is_conj](https://pytorch.org/docs/2.11/generated/torch.Tensor.is_conj.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.is_floating_point](https://pytorch.org/docs/2.11/generated/torch.Tensor.is_floating_point.html)|是|支持fp32|
-|[Tensor.is_inference](https://pytorch.org/docs/2.11/generated/torch.Tensor.is_inference.html)|是|支持fp32|
-|[Tensor.is_leaf](https://pytorch.org/docs/2.11/generated/torch.Tensor.is_leaf.html)|是|-|
-|[Tensor.is_pinned](https://pytorch.org/docs/2.11/generated/torch.Tensor.is_pinned.html)|是|支持fp32|
-|[Tensor.is_set_to](https://pytorch.org/docs/2.11/generated/torch.Tensor.is_set_to.html)|是|支持fp32|
+|[Tensor.is_inference](https://pytorch.org/docs/2.11/generated/torch.Tensor.is_inference.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[Tensor.is_leaf](https://pytorch.org/docs/2.11/generated/torch.Tensor.is_leaf.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[Tensor.is_pinned](https://pytorch.org/docs/2.11/generated/torch.Tensor.is_pinned.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[Tensor.is_set_to](https://pytorch.org/docs/2.11/generated/torch.Tensor.is_set_to.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
 |[Tensor.is_shared](https://pytorch.org/docs/2.11/generated/torch.Tensor.is_shared.html)|否|-|
-|[Tensor.is_signed](https://pytorch.org/docs/2.11/generated/torch.Tensor.is_signed.html)|是|支持fp32|
-|[Tensor.is_sparse](https://pytorch.org/docs/2.11/generated/torch.Tensor.is_sparse.html)|是|支持fp32|
-|[Tensor.isreal](https://pytorch.org/docs/2.11/generated/torch.Tensor.isreal.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|[Tensor.is_signed](https://pytorch.org/docs/2.11/generated/torch.Tensor.is_signed.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[Tensor.is_sparse](https://pytorch.org/docs/2.11/generated/torch.Tensor.is_sparse.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[Tensor.isreal](https://pytorch.org/docs/2.11/generated/torch.Tensor.isreal.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.item](https://pytorch.org/docs/2.11/generated/torch.Tensor.item.html)|是|支持fp32|
 |[Tensor.kthvalue](https://pytorch.org/docs/2.11/generated/torch.Tensor.kthvalue.html)|是|支持fp16，fp32，int32|
 |[Tensor.ldexp](https://pytorch.org/docs/2.11/generated/torch.Tensor.ldexp.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|[Tensor.ldexp_](https://pytorch.org/docs/2.11/generated/torch.Tensor.ldexp_.html)|是|支持fp16，fp32，complex64，complex128|
+|[Tensor.ldexp_](https://pytorch.org/docs/2.11/generated/torch.Tensor.ldexp_.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，complex64，complex128|
 |[Tensor.le](https://pytorch.org/docs/2.11/generated/torch.Tensor.le.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
-|[Tensor.le_](https://pytorch.org/docs/2.11/generated/torch.Tensor.le_.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
+|[Tensor.le_](https://pytorch.org/docs/2.11/generated/torch.Tensor.le_.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |[Tensor.less_equal](https://pytorch.org/docs/2.11/generated/torch.Tensor.less_equal.html)|是|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
-|[Tensor.less_equal_](https://pytorch.org/docs/2.11/generated/torch.Tensor.less_equal_.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
+|[Tensor.less_equal_](https://pytorch.org/docs/2.11/generated/torch.Tensor.less_equal_.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |[Tensor.lerp](https://pytorch.org/docs/2.11/generated/torch.Tensor.lerp.html)|是|支持fp16，fp32|
 |[Tensor.lerp_](https://pytorch.org/docs/2.11/generated/torch.Tensor.lerp_.html)|是|支持fp16，fp32|
 |[Tensor.log](https://pytorch.org/docs/2.11/generated/torch.Tensor.log.html)|是|支持bf16，fp16，fp32，int64，bool，complex64，complex128|
@@ -252,9 +252,9 @@
 |[Tensor.log10](https://pytorch.org/docs/2.11/generated/torch.Tensor.log10.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.log10_](https://pytorch.org/docs/2.11/generated/torch.Tensor.log10_.html)|是|支持bf16，fp16，fp32，fp64，complex64，complex128|
 |[Tensor.log1p](https://pytorch.org/docs/2.11/generated/torch.Tensor.log1p.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
-|[Tensor.log1p_](https://pytorch.org/docs/2.11/generated/torch.Tensor.log1p_.html)|是|支持fp16，fp32|
+|[Tensor.log1p_](https://pytorch.org/docs/2.11/generated/torch.Tensor.log1p_.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
 |[Tensor.log2](https://pytorch.org/docs/2.11/generated/torch.Tensor.log2.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|[Tensor.log2_](https://pytorch.org/docs/2.11/generated/torch.Tensor.log2_.html)|是|支持fp16，fp32，complex64，complex128|
+|[Tensor.log2_](https://pytorch.org/docs/2.11/generated/torch.Tensor.log2_.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，complex64，complex128|
 |[Tensor.logaddexp](https://pytorch.org/docs/2.11/generated/torch.Tensor.logaddexp.html)|是|支持fp16，fp32，int16，int32，int64，bool|
 |[Tensor.logaddexp2](https://pytorch.org/docs/2.11/generated/torch.Tensor.logaddexp2.html)|是|支持fp16，fp32|
 |[Tensor.logsumexp](https://pytorch.org/docs/2.11/generated/torch.Tensor.logsumexp.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
@@ -263,25 +263,25 @@
 |[Tensor.logical_not](https://pytorch.org/docs/2.11/generated/torch.Tensor.logical_not.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |[Tensor.logical_not_](https://pytorch.org/docs/2.11/generated/torch.Tensor.logical_not_.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |[Tensor.logical_or](https://pytorch.org/docs/2.11/generated/torch.Tensor.logical_or.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|[Tensor.logical_or_](https://pytorch.org/docs/2.11/generated/torch.Tensor.logical_or_.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|[Tensor.logical_or_](https://pytorch.org/docs/2.11/generated/torch.Tensor.logical_or_.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.logical_xor](https://pytorch.org/docs/2.11/generated/torch.Tensor.logical_xor.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>可能回退至CPU执行|
-|[Tensor.logical_xor_](https://pytorch.org/docs/2.11/generated/torch.Tensor.logical_xor_.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|[Tensor.logical_xor_](https://pytorch.org/docs/2.11/generated/torch.Tensor.logical_xor_.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.logit](https://pytorch.org/docs/2.11/generated/torch.Tensor.logit.html)|是|支持bf16，fp16，fp32<br>eps取值大于1时输出为nan，eps取值为1时输出为inf|
 |[Tensor.logit_](https://pytorch.org/docs/2.11/generated/torch.Tensor.logit_.html)|是|支持bf16，fp16，fp32<br>eps取值大于1时输出为nan，eps取值为1时输出为inf|
 |[Tensor.long](https://pytorch.org/docs/2.11/generated/torch.Tensor.long.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.lt](https://pytorch.org/docs/2.11/generated/torch.Tensor.lt.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
-|[Tensor.lt_](https://pytorch.org/docs/2.11/generated/torch.Tensor.lt_.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
+|[Tensor.lt_](https://pytorch.org/docs/2.11/generated/torch.Tensor.lt_.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |[Tensor.less](https://pytorch.org/docs/2.11/generated/torch.Tensor.less.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
-|[Tensor.less_](https://pytorch.org/docs/2.11/generated/torch.Tensor.less_.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
+|[Tensor.less_](https://pytorch.org/docs/2.11/generated/torch.Tensor.less_.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |[Tensor.as_subclass](https://pytorch.org/docs/2.11/generated/torch.Tensor.as_subclass.html)|是|-|
-|[Tensor.map_](https://pytorch.org/docs/2.11/generated/torch.Tensor.map_.html)|是|仅CPU支持|
+|[Tensor.map_](https://pytorch.org/docs/2.11/generated/torch.Tensor.map_.html)|是<br>暂不支持<term>Ascend 950DT</term>|仅CPU支持|
 |[Tensor.masked_scatter_](https://pytorch.org/docs/2.11/generated/torch.Tensor.masked_scatter_.html)|是|支持fp32，int64，bool|
 |[Tensor.masked_scatter](https://pytorch.org/docs/2.11/generated/torch.Tensor.masked_scatter.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |[Tensor.masked_fill_](https://pytorch.org/docs/2.11/generated/torch.Tensor.masked_fill_.html)|是|支持bf16，fp16，fp32，int8，int32，int64，bool|
 |[Tensor.masked_fill](https://pytorch.org/docs/2.11/generated/torch.Tensor.masked_fill.html)|是|支持fp16，fp32，int64，bool|
 |[Tensor.masked_select](https://pytorch.org/docs/2.11/generated/torch.Tensor.masked_select.html)|是|支持fp32，bool|
 |[Tensor.matmul](https://pytorch.org/docs/2.11/generated/torch.Tensor.matmul.html)|是|支持bf16，fp16，fp32<br>支持Named Tensor|
-|[Tensor.matrix_power](https://pytorch.org/docs/2.11/generated/torch.Tensor.matrix_power.html)|是|支持fp16，fp32|
+|[Tensor.matrix_power](https://pytorch.org/docs/2.11/generated/torch.Tensor.matrix_power.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
 |[Tensor.max](https://pytorch.org/docs/2.11/generated/torch.Tensor.max.html)|是|支持bf16，fp16，fp32，int64，bool|
 |[Tensor.maximum](https://pytorch.org/docs/2.11/generated/torch.Tensor.maximum.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |[Tensor.mean](https://pytorch.org/docs/2.11/generated/torch.Tensor.mean.html)|是|支持bf16，fp16，fp32，complex64，complex128|
@@ -289,36 +289,36 @@
 |[Tensor.median](https://pytorch.org/docs/2.11/generated/torch.Tensor.median.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64<br>input为bf16时，dim不取input轴值为1的维度|
 |[Tensor.min](https://pytorch.org/docs/2.11/generated/torch.Tensor.min.html)|是|支持bf16，fp16，fp32，int64，bool|
 |[Tensor.minimum](https://pytorch.org/docs/2.11/generated/torch.Tensor.minimum.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
-|[Tensor.mm](https://pytorch.org/docs/2.11/generated/torch.Tensor.mm.html)|是|支持fp16，fp32|
+|[Tensor.mm](https://pytorch.org/docs/2.11/generated/torch.Tensor.mm.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
 |[Tensor.smm](https://pytorch.org/docs/2.11/generated/torch.Tensor.smm.html)|否|-|
 |[Tensor.mode](https://pytorch.org/docs/2.11/generated/torch.Tensor.mode.html)|否|-|
 |[Tensor.movedim](https://pytorch.org/docs/2.11/generated/torch.Tensor.movedim.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|[Tensor.moveaxis](https://pytorch.org/docs/2.11/generated/torch.Tensor.moveaxis.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|[Tensor.moveaxis](https://pytorch.org/docs/2.11/generated/torch.Tensor.moveaxis.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.msort](https://pytorch.org/docs/2.11/generated/torch.Tensor.msort.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64|
 |[Tensor.mul](https://pytorch.org/docs/2.11/generated/torch.Tensor.mul.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.mul_](https://pytorch.org/docs/2.11/generated/torch.Tensor.mul_.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |[Tensor.multiply](https://pytorch.org/docs/2.11/generated/torch.Tensor.multiply.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|[Tensor.multiply_](https://pytorch.org/docs/2.11/generated/torch.Tensor.multiply_.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|[Tensor.multiply_](https://pytorch.org/docs/2.11/generated/torch.Tensor.multiply_.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.multinomial](https://pytorch.org/docs/2.11/generated/torch.Tensor.multinomial.html)|是|支持fp16，fp32|
 |[Tensor.nansum](https://pytorch.org/docs/2.11/generated/torch.Tensor.nansum.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool<br><term>Ascend 950DT</term>：不支持uint8，int8，int16，int32，int64，bool|
 |[Tensor.narrow](https://pytorch.org/docs/2.11/generated/torch.Tensor.narrow.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.narrow_copy](https://pytorch.org/docs/2.11/generated/torch.Tensor.narrow_copy.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|[Tensor.ndimension](https://pytorch.org/docs/2.11/generated/torch.Tensor.ndimension.html)|是|支持fp32|
-|[Tensor.nan_to_num](https://pytorch.org/docs/2.11/generated/torch.Tensor.nan_to_num.html)|是|-|
+|[Tensor.ndimension](https://pytorch.org/docs/2.11/generated/torch.Tensor.ndimension.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[Tensor.nan_to_num](https://pytorch.org/docs/2.11/generated/torch.Tensor.nan_to_num.html)|是|<term>Ascend 950DT</term>：不支持fp64，complex64，complex128|
 |[Tensor.nan_to_num_](https://pytorch.org/docs/2.11/generated/torch.Tensor.nan_to_num_.html)|是|-|
 |[Tensor.ne](https://pytorch.org/docs/2.11/generated/torch.Tensor.ne.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|[Tensor.ne_](https://pytorch.org/docs/2.11/generated/torch.Tensor.ne_.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|[Tensor.ne_](https://pytorch.org/docs/2.11/generated/torch.Tensor.ne_.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.nextafter_](https://pytorch.org/docs/2.11/generated/torch.Tensor.nextafter_.html)|是|回退至CPU执行|
 |[Tensor.not_equal](https://pytorch.org/docs/2.11/generated/torch.Tensor.not_equal.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>可能回退至CPU执行|
-|[Tensor.not_equal_](https://pytorch.org/docs/2.11/generated/torch.Tensor.not_equal_.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|[Tensor.not_equal_](https://pytorch.org/docs/2.11/generated/torch.Tensor.not_equal_.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.neg](https://pytorch.org/docs/2.11/generated/torch.Tensor.neg.html)|是|支持fp16，fp32，int8，int32，int64，complex64，complex128|
 |[Tensor.neg_](https://pytorch.org/docs/2.11/generated/torch.Tensor.neg_.html)|是|支持bf16，fp16，fp32，int8，int32，int64，complex64，complex128<br>可能回退至CPU执行|
-|[Tensor.negative](https://pytorch.org/docs/2.11/generated/torch.Tensor.negative.html)|是|支持fp16，fp32，int8，int32，int64，complex64，complex128|
+|[Tensor.negative](https://pytorch.org/docs/2.11/generated/torch.Tensor.negative.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，int8，int32，int64，complex64，complex128|
 |[Tensor.negative_](https://pytorch.org/docs/2.11/generated/torch.Tensor.negative_.html)|是|支持fp16，fp32，int8，int32，int64，complex64，complex128|
-|[Tensor.nelement](https://pytorch.org/docs/2.11/generated/torch.Tensor.nelement.html)|是|支持fp32|
-|[Tensor.nonzero](https://pytorch.org/docs/2.11/generated/torch.Tensor.nonzero.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool<br>不支持nan场景|
-|[Tensor.norm](https://pytorch.org/docs/2.11/generated/torch.Tensor.norm.html)|是|支持bf16，fp16，fp32，fp64|
-|[Tensor.normal_](https://pytorch.org/docs/2.11/generated/torch.Tensor.normal_.html)|是|支持bf16，fp16，fp32<br>可能回退至CPU执行|
+|[Tensor.nelement](https://pytorch.org/docs/2.11/generated/torch.Tensor.nelement.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[Tensor.nonzero](https://pytorch.org/docs/2.11/generated/torch.Tensor.nonzero.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，uint8，int8，int16，int32，int64，bool<br>不支持nan场景|
+|[Tensor.norm](https://pytorch.org/docs/2.11/generated/torch.Tensor.norm.html)|是|支持bf16，fp16，fp32，fp64<br><term>Ascend 950DT</term>：不支持fp64|
+|[Tensor.normal_](https://pytorch.org/docs/2.11/generated/torch.Tensor.normal_.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32<br>可能回退至CPU执行|
 |[Tensor.numel](https://pytorch.org/docs/2.11/generated/torch.Tensor.numel.html)|是|支持fp32|
 |[Tensor.numpy](https://pytorch.org/docs/2.11/generated/torch.Tensor.numpy.html)|是|支持fp32|
 |[Tensor.outer](https://pytorch.org/docs/2.11/generated/torch.Tensor.outer.html)|是|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
@@ -330,98 +330,98 @@
 |[Tensor.put_](https://pytorch.org/docs/2.11/generated/torch.Tensor.put_.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，complex64，complex128|
 |[Tensor.qscheme](https://pytorch.org/docs/2.11/generated/torch.Tensor.qscheme.html)|否|-|
 |[Tensor.quantile](https://pytorch.org/docs/2.11/generated/torch.Tensor.quantile.html)|是|-|
-|[Tensor.rad2deg](https://pytorch.org/docs/2.11/generated/torch.Tensor.rad2deg.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
+|[Tensor.rad2deg](https://pytorch.org/docs/2.11/generated/torch.Tensor.rad2deg.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |[Tensor.random_](https://pytorch.org/docs/2.11/generated/torch.Tensor.random_.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |[Tensor.ravel](https://pytorch.org/docs/2.11/generated/torch.Tensor.ravel.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.reciprocal](https://pytorch.org/docs/2.11/generated/torch.Tensor.reciprocal.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.reciprocal_](https://pytorch.org/docs/2.11/generated/torch.Tensor.reciprocal_.html)|是|支持fp16，fp32，complex64，complex128|
-|[Tensor.record_stream](https://pytorch.org/docs/2.11/generated/torch.Tensor.record_stream.html)|是|支持fp32|
+|[Tensor.record_stream](https://pytorch.org/docs/2.11/generated/torch.Tensor.record_stream.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
 |[Tensor.register_hook](https://pytorch.org/docs/2.11/generated/torch.Tensor.register_hook.html)|是|支持fp32|
-|[Tensor.register_post_accumulate_grad_hook](https://pytorch.org/docs/2.11/generated/torch.Tensor.register_post_accumulate_grad_hook.html)|是|-|
+|[Tensor.register_post_accumulate_grad_hook](https://pytorch.org/docs/2.11/generated/torch.Tensor.register_post_accumulate_grad_hook.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |[Tensor.remainder](https://pytorch.org/docs/2.11/generated/torch.Tensor.remainder.html)|是|支持fp16，fp32，int32，int64|
-|[Tensor.remainder_](https://pytorch.org/docs/2.11/generated/torch.Tensor.remainder_.html)|是|支持fp16，fp32，int32，int64|
+|[Tensor.remainder_](https://pytorch.org/docs/2.11/generated/torch.Tensor.remainder_.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，int32，int64|
 |[Tensor.repeat](https://pytorch.org/docs/2.11/generated/torch.Tensor.repeat.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.repeat_interleave](https://pytorch.org/docs/2.11/generated/torch.Tensor.repeat_interleave.html)|是|支持fp16，fp32，int16，int32，bool<br>输入张量在重复后得到输出，输出中元素个数需小于$2^{22}$|
 |[Tensor.requires_grad](https://pytorch.org/docs/2.11/generated/torch.Tensor.requires_grad.html)|是|-|
-|[Tensor.requires_grad_](https://pytorch.org/docs/2.11/generated/torch.Tensor.requires_grad_.html)|是|支持fp32|
+|[Tensor.requires_grad_](https://pytorch.org/docs/2.11/generated/torch.Tensor.requires_grad_.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
 |[Tensor.reshape](https://pytorch.org/docs/2.11/generated/torch.Tensor.reshape.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.reshape_as](https://pytorch.org/docs/2.11/generated/torch.Tensor.reshape_as.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.resize_](https://pytorch.org/docs/2.11/generated/torch.Tensor.resize_.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>memory_format仅支持torch.contiguous_format和torch.preserve_format|
 |[Tensor.resize_as_](https://pytorch.org/docs/2.11/generated/torch.Tensor.resize_as_.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>memory_format仅支持torch.contiguous_format和torch.preserve_format|
-|[Tensor.retain_grad](https://pytorch.org/docs/2.11/generated/torch.Tensor.retain_grad.html)|是|支持fp32|
-|[Tensor.retains_grad](https://pytorch.org/docs/2.11/generated/torch.Tensor.retains_grad.html)|是|支持fp32|
+|[Tensor.retain_grad](https://pytorch.org/docs/2.11/generated/torch.Tensor.retain_grad.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[Tensor.retains_grad](https://pytorch.org/docs/2.11/generated/torch.Tensor.retains_grad.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
 |[Tensor.roll](https://pytorch.org/docs/2.11/generated/torch.Tensor.roll.html)|是|支持fp16，fp32，int32，int64，bool|
 |[Tensor.rot90](https://pytorch.org/docs/2.11/generated/torch.Tensor.rot90.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.round](https://pytorch.org/docs/2.11/generated/torch.Tensor.round.html)|是|支持fp16，fp32|
 |[Tensor.round_](https://pytorch.org/docs/2.11/generated/torch.Tensor.round_.html)|是|支持fp16，fp32|
 |[Tensor.rsqrt](https://pytorch.org/docs/2.11/generated/torch.Tensor.rsqrt.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.rsqrt_](https://pytorch.org/docs/2.11/generated/torch.Tensor.rsqrt_.html)|是|支持fp16，fp32，complex64，complex128|
-|[Tensor.scatter](https://pytorch.org/docs/2.11/generated/torch.Tensor.scatter.html)|是|支持fp16，fp32，int16，int32，bool|
-|[Tensor.scatter_](https://pytorch.org/docs/2.11/generated/torch.Tensor.scatter_.html)|是|tensor、index、src参数不能为空且不能为scalar<br>可能回退至CPU执行|
-|[Tensor.scatter_add_](https://pytorch.org/docs/2.11/generated/torch.Tensor.scatter_add_.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
-|[Tensor.scatter_add](https://pytorch.org/docs/2.11/generated/torch.Tensor.scatter_add.html)|是|支持fp32|
+|[Tensor.scatter](https://pytorch.org/docs/2.11/generated/torch.Tensor.scatter.html)|是|支持fp16，fp32，int16，int32，bool<br>针对<term>Ascend 950DT</term>，由于硬件差异，在索引存在重复的情况下，精度可能和<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>存在差异|
+|[Tensor.scatter_](https://pytorch.org/docs/2.11/generated/torch.Tensor.scatter_.html)|是|tensor、index、src参数不能为空且不能为scalar<br>可能回退至CPU执行<br>针对<term>Ascend 950DT</term>，由于硬件差异，在索引存在重复的情况下，精度可能和<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>存在差异|
+|[Tensor.scatter_add_](https://pytorch.org/docs/2.11/generated/torch.Tensor.scatter_add_.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool<br>针对<term>Ascend 950DT</term>，由于硬件差异，在索引存在重复的情况下，精度可能和<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>存在差异|
+|[Tensor.scatter_add](https://pytorch.org/docs/2.11/generated/torch.Tensor.scatter_add.html)|是|支持fp32<br>针对<term>Ascend 950DT</term>，由于硬件差异，在索引存在重复的情况下，精度可能和<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>存在差异|
 |[Tensor.scatter_reduce](https://pytorch.org/docs/2.11/generated/torch.Tensor.scatter_reduce.html)|是|支持fp32，int64<br>可能回退至CPU执行|
 |[Tensor.select](https://pytorch.org/docs/2.11/generated/torch.Tensor.select.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.select_scatter](https://pytorch.org/docs/2.11/generated/torch.Tensor.select_scatter.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool<br>可能回退至CPU执行|
-|[Tensor.set_](https://pytorch.org/docs/2.11/generated/torch.Tensor.set_.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|[Tensor.set_](https://pytorch.org/docs/2.11/generated/torch.Tensor.set_.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.share_memory_](https://pytorch.org/docs/2.11/generated/torch.Tensor.share_memory_.html)|否|-|
 |[Tensor.short](https://pytorch.org/docs/2.11/generated/torch.Tensor.short.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.sigmoid_](https://pytorch.org/docs/2.11/generated/torch.Tensor.sigmoid_.html)|是|支持bf16，fp16，fp32，fp64，complex64，complex128|
-|[Tensor.sign](https://pytorch.org/docs/2.11/generated/torch.Tensor.sign.html)|是|支持bf16，fp16，fp32，int32，int64，bool|
+|[Tensor.sign](https://pytorch.org/docs/2.11/generated/torch.Tensor.sign.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32，int32，int64，bool|
 |[Tensor.sign_](https://pytorch.org/docs/2.11/generated/torch.Tensor.sign_.html)|是|支持fp16，fp32，int32，int64，bool|
 |[Tensor.sgn](https://pytorch.org/docs/2.11/generated/torch.Tensor.sgn.html)|是|支持fp16，fp32，int32，int64，bool，complex64，complex128|
 |[Tensor.sgn_](https://pytorch.org/docs/2.11/generated/torch.Tensor.sgn_.html)|是|支持fp16，fp32，fp64，int32，int64，bool|
-|[Tensor.sin](https://pytorch.org/docs/2.11/generated/torch.Tensor.sin.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|[Tensor.sin_](https://pytorch.org/docs/2.11/generated/torch.Tensor.sin_.html)|是|支持bf16，fp16，fp32，complex64，complex128|
+|[Tensor.sin](https://pytorch.org/docs/2.11/generated/torch.Tensor.sin.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|[Tensor.sin_](https://pytorch.org/docs/2.11/generated/torch.Tensor.sin_.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32，complex64，complex128|
 |[Tensor.sinh](https://pytorch.org/docs/2.11/generated/torch.Tensor.sinh.html)|是|支持fp16，fp32，fp64|
-|[Tensor.sinh_](https://pytorch.org/docs/2.11/generated/torch.Tensor.sinh_.html)|是|支持fp16，fp32，fp64|
+|[Tensor.sinh_](https://pytorch.org/docs/2.11/generated/torch.Tensor.sinh_.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，fp64|
 |[Tensor.asinh](https://pytorch.org/docs/2.11/generated/torch.Tensor.asinh.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.asinh_](https://pytorch.org/docs/2.11/generated/torch.Tensor.asinh_.html)|是|支持fp16，fp32，complex64，complex128|
 |[Tensor.arcsinh](https://pytorch.org/docs/2.11/generated/torch.Tensor.arcsinh.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.arcsinh_](https://pytorch.org/docs/2.11/generated/torch.Tensor.arcsinh_.html)|是|支持fp16，fp32，complex64，complex128|
-|[Tensor.shape](https://pytorch.org/docs/2.11/generated/torch.Tensor.shape.html)|是|-|
-|[Tensor.size](https://pytorch.org/docs/2.11/generated/torch.Tensor.size.html)|是|支持fp32|
-|[Tensor.slogdet](https://pytorch.org/docs/2.11/generated/torch.Tensor.slogdet.html)|是|支持fp32，complex64，complex128|
+|[Tensor.shape](https://pytorch.org/docs/2.11/generated/torch.Tensor.shape.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[Tensor.size](https://pytorch.org/docs/2.11/generated/torch.Tensor.size.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[Tensor.slogdet](https://pytorch.org/docs/2.11/generated/torch.Tensor.slogdet.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32，complex64，complex128|
 |[Tensor.slice_scatter](https://pytorch.org/docs/2.11/generated/torch.Tensor.slice_scatter.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |[Tensor.softmax](https://pytorch.org/docs/2.11/generated/torch.Tensor.softmax.html)|是|支持fp16，fp32，fp64|
-|[Tensor.sort](https://pytorch.org/docs/2.11/generated/torch.Tensor.sort.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64|
+|[Tensor.sort](https://pytorch.org/docs/2.11/generated/torch.Tensor.sort.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64<br>针对<term>Ascend 950DT</term>，由于底层实现限制，"stable"仅支持True，设置为False在执行时会自动修改为True|
 |[Tensor.split](https://pytorch.org/docs/2.11/generated/torch.Tensor.split.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.sparse_mask](https://pytorch.org/docs/2.11/generated/torch.Tensor.sparse_mask.html)|否|-|
-|[Tensor.sparse_dim](https://pytorch.org/docs/2.11/generated/torch.Tensor.sparse_dim.html)|是|-|
+|[Tensor.sparse_dim](https://pytorch.org/docs/2.11/generated/torch.Tensor.sparse_dim.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |[Tensor.sqrt](https://pytorch.org/docs/2.11/generated/torch.Tensor.sqrt.html)|是|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |[Tensor.sqrt_](https://pytorch.org/docs/2.11/generated/torch.Tensor.sqrt_.html)|是|支持bf16，fp16，fp32，fp64，complex64，complex128|
 |[Tensor.square](https://pytorch.org/docs/2.11/generated/torch.Tensor.square.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.square_](https://pytorch.org/docs/2.11/generated/torch.Tensor.square_.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，complex64，complex128|
 |[Tensor.squeeze](https://pytorch.org/docs/2.11/generated/torch.Tensor.squeeze.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|[Tensor.squeeze_](https://pytorch.org/docs/2.11/generated/torch.Tensor.squeeze_.html)|是|支持fp32|
+|[Tensor.squeeze_](https://pytorch.org/docs/2.11/generated/torch.Tensor.squeeze_.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
 |[Tensor.std](https://pytorch.org/docs/2.11/generated/torch.Tensor.std.html)|是|支持bf16，fp16，fp32<br>input不支持标量tensor<br>correction参数值不能超过int32的最大值|
 |[Tensor.storage](https://pytorch.org/docs/2.11/generated/torch.Tensor.storage.html)|是|支持fp32|
 |[Tensor.untyped_storage](https://pytorch.org/docs/2.11/generated/torch.Tensor.untyped_storage.html)|是|支持fp32|
 |[Tensor.storage_offset](https://pytorch.org/docs/2.11/generated/torch.Tensor.storage_offset.html)|是|支持fp32|
-|[Tensor.storage_type](https://pytorch.org/docs/2.11/generated/torch.Tensor.storage_type.html)|是|支持fp32|
-|[Tensor.stride](https://pytorch.org/docs/2.11/generated/torch.Tensor.stride.html)|是|支持fp32|
+|[Tensor.storage_type](https://pytorch.org/docs/2.11/generated/torch.Tensor.storage_type.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[Tensor.stride](https://pytorch.org/docs/2.11/generated/torch.Tensor.stride.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
 |[Tensor.sub](https://pytorch.org/docs/2.11/generated/torch.Tensor.sub.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64|
 |[Tensor.sub_](https://pytorch.org/docs/2.11/generated/torch.Tensor.sub_.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，complex64，complex128|
 |[Tensor.subtract_](https://pytorch.org/docs/2.11/generated/torch.Tensor.subtract_.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64|
 |[Tensor.sum](https://pytorch.org/docs/2.11/generated/torch.Tensor.sum.html)|是|支持bf16，fp16，fp32，int32|
 |[Tensor.sum_to_size](https://pytorch.org/docs/2.11/generated/torch.Tensor.sum_to_size.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|[Tensor.swapaxes](https://pytorch.org/docs/2.11/generated/torch.Tensor.swapaxes.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|[Tensor.swapdims](https://pytorch.org/docs/2.11/generated/torch.Tensor.swapdims.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|[Tensor.t](https://pytorch.org/docs/2.11/generated/torch.Tensor.t.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，complex64，complex128|
+|[Tensor.swapaxes](https://pytorch.org/docs/2.11/generated/torch.Tensor.swapaxes.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|[Tensor.swapdims](https://pytorch.org/docs/2.11/generated/torch.Tensor.swapdims.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|[Tensor.t](https://pytorch.org/docs/2.11/generated/torch.Tensor.t.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，complex64，complex128|
 |[Tensor.t_](https://pytorch.org/docs/2.11/generated/torch.Tensor.t_.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64|
 |[Tensor.tensor_split](https://pytorch.org/docs/2.11/generated/torch.Tensor.tensor_split.html)|是|仅CPU支持|
 |[Tensor.tile](https://pytorch.org/docs/2.11/generated/torch.Tensor.tile.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>若入参dims的长度小于Tensor.shape的长度，则会在dims前自动补全1，使其长度与 Tensor.shape对齐。补全后的dims，需要满足如下限制：<br>- 当需要对第一根轴进行重复时，最多允许同时对4个维度进行重复操作（即dims中大于1的元素个数 ≤ 4），例如：不支持Tensor.tile([2, 3, 4, 5, 6]) ，支持Tensor.tile([2, 3, 1, 5, 6])<br>- 当不需要对第一根轴进行重复时，最多允许同时对3个维度进行重复操作（即dims中大于1的元素个数 ≤ 3），例如：不支持Tensor.tile([1, 3, 4, 5, 6]) ，支持Tensor.tile([1, 3, 1, 5, 6])<br>- 若执行反向计算，Tensor的维度数加上dims中大于1的元素个数之和不得超过8|
 |[Tensor.to](https://pytorch.org/docs/2.11/generated/torch.Tensor.to.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>当前NPU设备仅支持设置memory_format为torch.contiguous_format或torch.preserve_format<br><term>Atlas 推理系列产品</term>不支持跨NPU拷贝|
 |[to](https://pytorch.org/docs/2.11/generated/torch.Tensor.to.html)|是|-|
 |[Tensor.to_mkldnn](https://pytorch.org/docs/2.11/generated/torch.Tensor.to_mkldnn.html)|否|-|
-|[Tensor.take](https://pytorch.org/docs/2.11/generated/torch.Tensor.take.html)|是|支持fp16，fp32，int16，int32，bool|
+|[Tensor.take](https://pytorch.org/docs/2.11/generated/torch.Tensor.take.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，int16，int32，bool|
 |[Tensor.take_along_dim](https://pytorch.org/docs/2.11/generated/torch.Tensor.take_along_dim.html)|是|支持fp16，fp32，int16，int32，int64，bool|
 |[Tensor.tan](https://pytorch.org/docs/2.11/generated/torch.Tensor.tan.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128取值范围[-65504,65504]|
 |[Tensor.tan_](https://pytorch.org/docs/2.11/generated/torch.Tensor.tan_.html)|是|支持fp16，fp32，complex64，complex128|
-|[Tensor.tanh](https://pytorch.org/docs/2.11/generated/torch.Tensor.tanh.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64|
+|[Tensor.tanh](https://pytorch.org/docs/2.11/generated/torch.Tensor.tanh.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64<br><term>Ascend 950DT</term>：不支持fp64|
 |[Tensor.tanh_](https://pytorch.org/docs/2.11/generated/torch.Tensor.tanh_.html)|是|支持fp16，fp32|
-|[Tensor.atanh](https://pytorch.org/docs/2.11/generated/torch.Tensor.atanh.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|[Tensor.atanh_](https://pytorch.org/docs/2.11/generated/torch.Tensor.atanh_.html)|是|支持fp16，fp32，complex64，complex128|
+|[Tensor.atanh](https://pytorch.org/docs/2.11/generated/torch.Tensor.atanh.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|[Tensor.atanh_](https://pytorch.org/docs/2.11/generated/torch.Tensor.atanh_.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，complex64，complex128|
 |[Tensor.arctanh](https://pytorch.org/docs/2.11/generated/torch.Tensor.arctanh.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.arctanh_](https://pytorch.org/docs/2.11/generated/torch.Tensor.arctanh_.html)|是|支持fp16，fp32，complex64，complex128|
 |[Tensor.tolist](https://pytorch.org/docs/2.11/generated/torch.Tensor.tolist.html)|是|支持fp32|
@@ -449,16 +449,16 @@
 |[Tensor.unflatten](https://pytorch.org/docs/2.11/generated/torch.Tensor.unflatten.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.unfold](https://pytorch.org/docs/2.11/generated/torch.Tensor.unfold.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |[Tensor.uniform_](https://pytorch.org/docs/2.11/generated/torch.Tensor.uniform_.html)|是|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64<br>遵循PyTorch社区规范，不再支持对bool类型数据进行处理。针对存量bool类型数据可以通过如下方案进行替换：如果需要输出全True，可以采用Tensor.bernoulli_(p=1.0)。如果需要输出均匀分布的bool类型，则采用Tensor.bernoulli_(p=0.5)|
-|[Tensor.unique](https://pytorch.org/docs/2.11/generated/torch.Tensor.unique.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool<br>在输入包含0的情况下，输出中可能会包含正0和负0，而非只输出一个0|
+|[Tensor.unique](https://pytorch.org/docs/2.11/generated/torch.Tensor.unique.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool<br>在输入包含0的情况下，输出中可能会包含正0和负0，而非只输出一个0|
 |[Tensor.unique_consecutive](https://pytorch.org/docs/2.11/generated/torch.Tensor.unique_consecutive.html)|否|-|
 |[Tensor.unsqueeze](https://pytorch.org/docs/2.11/generated/torch.Tensor.unsqueeze.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|[Tensor.unsqueeze_](https://pytorch.org/docs/2.11/generated/torch.Tensor.unsqueeze_.html)|是|支持fp32|
-|[Tensor.values](https://pytorch.org/docs/2.11/generated/torch.Tensor.values.html)|是|依赖稀疏tensor|
+|[Tensor.unsqueeze_](https://pytorch.org/docs/2.11/generated/torch.Tensor.unsqueeze_.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[Tensor.values](https://pytorch.org/docs/2.11/generated/torch.Tensor.values.html)|是<br>暂不支持<term>Ascend 950DT</term>|依赖稀疏tensor|
 |[Tensor.var](https://pytorch.org/docs/2.11/generated/torch.Tensor.var.html)|是|支持bf16，fp16，fp32<br>correction参数值不能超过int32的最大值|
 |[Tensor.view](https://pytorch.org/docs/2.11/generated/torch.Tensor.view.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|[view](https://pytorch.org/docs/2.11/generated/torch.Tensor.view.html)|是|-|
+|[view](https://pytorch.org/docs/2.11/generated/torch.Tensor.view.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |[Tensor.view_as](https://pytorch.org/docs/2.11/generated/torch.Tensor.view_as.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|[Tensor.vsplit](https://pytorch.org/docs/2.11/generated/torch.Tensor.vsplit.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
+|[Tensor.vsplit](https://pytorch.org/docs/2.11/generated/torch.Tensor.vsplit.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.where](https://pytorch.org/docs/2.11/generated/torch.Tensor.where.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[Tensor.xlogy](https://pytorch.org/docs/2.11/generated/torch.Tensor.xlogy.html)|是|支持fp16，fp32|
 |[Tensor.xlogy_](https://pytorch.org/docs/2.11/generated/torch.Tensor.xlogy_.html)|是|支持fp16，fp32|

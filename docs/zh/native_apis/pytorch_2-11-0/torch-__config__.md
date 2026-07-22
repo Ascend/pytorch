@@ -6,5 +6,5 @@
 
 |API名称|是否支持|限制与说明|
 |--|--|--|
-|[torch.\_\_config\_\_.show](https://pytorch.org/docs/2.11/config_mod.html#torch.__config__.show)|是|-|
-|[torch.\_\_config\_\_.parallel_info](https://pytorch.org/docs/2.11/config_mod.html#torch.__config__.parallel_info)|是|-|
+|[torch.\_\_config\_\_.show](https://pytorch.org/docs/2.11/config_mod.html#torch.__config__.show)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.\_\_config\_\_.parallel_info](https://pytorch.org/docs/2.11/config_mod.html#torch.__config__.parallel_info)|是<br>暂不支持<term>Ascend 950DT</term>|-|

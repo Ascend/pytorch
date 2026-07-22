@@ -8,128 +8,128 @@
 |[torch.nn.parameter.Parameter](https://pytorch.org/docs/2.7/generated/torch.nn.parameter.Parameter.html)|是|支持fp32|
 |[torch.nn.parameter.Buffer](https://pytorch.org/docs/2.7/generated/torch.nn.parameter.Buffer.html)|是|支持fp32|
 |[torch.nn.parameter.UninitializedParameter](https://pytorch.org/docs/2.7/generated/torch.nn.parameter.UninitializedParameter.html)|是|-|
-|[torch.nn.parameter.UninitializedParameter.cls_to_become](https://pytorch.org/docs/2.7/generated/torch.nn.parameter.UninitializedParameter.html#torch.nn.parameter.UninitializedParameter.cls_to_become)|是|-|
+|[torch.nn.parameter.UninitializedParameter.cls_to_become](https://pytorch.org/docs/2.7/generated/torch.nn.parameter.UninitializedParameter.html#torch.nn.parameter.UninitializedParameter.cls_to_become)|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |[torch.nn.parameter.UninitializedBuffer](https://pytorch.org/docs/2.7/generated/torch.nn.parameter.UninitializedBuffer.html)|是|-|
 |[torch.nn.Module](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html)|是|支持fp32|
-|[torch.nn.Module.add_module](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.add_module)|是|支持fp32|
-|[torch.nn.Module.apply](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.apply)|是|支持fp32|
-|[torch.nn.Module.bfloat16](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.bfloat16)|是|-|
+|[torch.nn.Module.add_module](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.add_module)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.Module.apply](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.apply)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.Module.bfloat16](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.bfloat16)|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |[torch.nn.Module.buffers](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.buffers)|是|-|
-|[torch.nn.Module.children](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.children)|是|支持fp32|
-|[torch.nn.Module.compile](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.compile)|是|-|
-|[torch.nn.Module.cpu](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.cpu)|是|支持fp32|
-|[torch.nn.Module.cuda](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.cuda)|是|支持fp32|
-|[torch.nn.Module.double](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.double)|是|-|
-|[torch.nn.Module.eval](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.eval)|是|支持fp32，int64|
-|[torch.nn.Module.extra_repr](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.extra_repr)|是|支持fp32|
-|[torch.nn.Module.float](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.float)|是|支持fp16，fp32|
-|[torch.nn.Module.forward](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.forward)|是|支持fp32|
-|[torch.nn.Module.get_buffer](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.get_buffer)|是|-|
-|[torch.nn.Module.get_extra_state](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.get_extra_state)|是|-|
-|[torch.nn.Module.get_parameter](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.get_parameter)|是|支持fp32|
-|[torch.nn.Module.get_submodule](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.get_submodule)|是|支持fp32|
-|[torch.nn.Module.half](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.half)|是|支持fp16，fp32|
+|[torch.nn.Module.children](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.children)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.Module.compile](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.compile)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.Module.cpu](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.cpu)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.Module.cuda](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.cuda)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.Module.double](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.double)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.Module.eval](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.eval)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32，int64|
+|[torch.nn.Module.extra_repr](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.extra_repr)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.Module.float](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.float)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
+|[torch.nn.Module.forward](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.forward)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.Module.get_buffer](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.get_buffer)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.Module.get_extra_state](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.get_extra_state)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.Module.get_parameter](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.get_parameter)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.Module.get_submodule](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.get_submodule)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.Module.half](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.half)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
 |[torch.nn.Module.ipu](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.ipu)|否|-|
-|[torch.nn.Module.load_state_dict](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.load_state_dict)|是|支持fp32|
+|[torch.nn.Module.load_state_dict](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.load_state_dict)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
 |[torch.nn.Module.modules](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.modules)|是|支持fp32|
-|[torch.nn.Module.named_buffers](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.named_buffers)|是|-|
-|[torch.nn.Module.named_children](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.named_children)|是|支持fp32|
+|[torch.nn.Module.named_buffers](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.named_buffers)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.Module.named_children](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.named_children)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
 |[torch.nn.Module.named_modules](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.named_modules)|是|支持fp32|
 |[torch.nn.Module.named_parameters](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.named_parameters)|是|-|
-|[torch.nn.Module.parameters](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.parameters)|是|-|
-|[torch.nn.Module.register_backward_hook](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.register_backward_hook)|是|支持fp32|
-|[torch.nn.Module.register_buffer](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.register_buffer)|是|支持fp32|
+|[torch.nn.Module.parameters](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.parameters)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.Module.register_backward_hook](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.register_backward_hook)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.Module.register_buffer](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.register_buffer)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
 |[torch.nn.Module.register_forward_hook](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.register_forward_hook)|是|支持fp32|
 |[torch.nn.Module.register_forward_pre_hook](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.register_forward_pre_hook)|是|支持fp32|
-|[torch.nn.Module.register_full_backward_hook](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.register_full_backward_hook)|是|支持fp32|
-|[torch.nn.Module.register_full_backward_pre_hook](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.register_full_backward_pre_hook)|是|支持fp32|
+|[torch.nn.Module.register_full_backward_hook](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.register_full_backward_hook)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.Module.register_full_backward_pre_hook](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.register_full_backward_pre_hook)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
 |[torch.nn.Module.register_load_state_dict_post_hook](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.register_load_state_dict_post_hook)|是|支持fp32|
-|[torch.nn.Module.register_module](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.register_module)|是|支持fp32|
-|[torch.nn.Module.register_parameter](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.register_parameter)|是|-|
-|[torch.nn.Module.register_state_dict_pre_hook](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.register_state_dict_pre_hook)|是|-|
-|[torch.nn.Module.requires_grad_](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.requires_grad_)|是|-|
-|[torch.nn.Module.set_extra_state](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.set_extra_state)|是|-|
-|[torch.nn.Module.set_submodule](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.set_submodule)|是|-|
+|[torch.nn.Module.register_module](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.register_module)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.Module.register_parameter](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.register_parameter)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.Module.register_state_dict_pre_hook](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.register_state_dict_pre_hook)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.Module.requires_grad_](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.requires_grad_)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.Module.set_extra_state](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.set_extra_state)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.Module.set_submodule](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.set_submodule)|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |[torch.nn.Module.share_memory](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.share_memory)|否|-|
 |[torch.nn.Module.state_dict](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.state_dict)|是|支持fp32|
-|[torch.nn.Module.to](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.to)|是|支持fp32|
-|[torch.nn.Module.to_empty](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.to_empty)|是|支持fp32|
-|[torch.nn.Module.train](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.train)|是|支持fp32|
-|[torch.nn.Module.type](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.type)|是|支持fp16，fp32，int64|
-|[torch.nn.Module.xpu](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.xpu)|是|NPU形式名称为torch.nn.Module.npu|
+|[torch.nn.Module.to](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.to)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.Module.to_empty](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.to_empty)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.Module.train](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.train)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.Module.type](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.type)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，int64|
+|[torch.nn.Module.xpu](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.xpu)|是<br>暂不支持<term>Ascend 950DT</term>|NPU形式名称为torch.nn.Module.npu|
 |[torch.nn.Module.npu](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html)|否|-|
-|[torch.nn.Module.zero_grad](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.zero_grad)|是|支持fp32|
+|[torch.nn.Module.zero_grad](https://pytorch.org/docs/2.7/generated/torch.nn.Module.html#torch.nn.Module.zero_grad)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
 |[torch.nn.Sequential](https://pytorch.org/docs/2.7/generated/torch.nn.Sequential.html)|是|支持fp32|
-|[torch.nn.Sequential.append](https://pytorch.org/docs/2.7/generated/torch.nn.Sequential.html#torch.nn.Sequential.append)|是|支持fp32|
+|[torch.nn.Sequential.append](https://pytorch.org/docs/2.7/generated/torch.nn.Sequential.html#torch.nn.Sequential.append)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
 |[torch.nn.ModuleList](https://pytorch.org/docs/2.7/generated/torch.nn.ModuleList.html)|是|支持fp32|
-|[torch.nn.ModuleList.append](https://pytorch.org/docs/2.7/generated/torch.nn.ModuleList.html#torch.nn.ModuleList.append)|是|支持fp32|
-|[torch.nn.ModuleList.extend](https://pytorch.org/docs/2.7/generated/torch.nn.ModuleList.html#torch.nn.ModuleList.extend)|是|支持fp32|
-|[torch.nn.ModuleList.insert](https://pytorch.org/docs/2.7/generated/torch.nn.ModuleList.html#torch.nn.ModuleList.insert)|是|支持fp32|
+|[torch.nn.ModuleList.append](https://pytorch.org/docs/2.7/generated/torch.nn.ModuleList.html#torch.nn.ModuleList.append)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.ModuleList.extend](https://pytorch.org/docs/2.7/generated/torch.nn.ModuleList.html#torch.nn.ModuleList.extend)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.ModuleList.insert](https://pytorch.org/docs/2.7/generated/torch.nn.ModuleList.html#torch.nn.ModuleList.insert)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
 |[torch.nn.ModuleDict](https://pytorch.org/docs/2.7/generated/torch.nn.ModuleDict.html)|是|支持fp32|
-|[torch.nn.ModuleDict.clear](https://pytorch.org/docs/2.7/generated/torch.nn.ModuleDict.html#torch.nn.ModuleDict.clear)|是|支持fp32|
-|[torch.nn.ModuleDict.items](https://pytorch.org/docs/2.7/generated/torch.nn.ModuleDict.html#torch.nn.ModuleDict.items)|是|支持fp32|
-|[torch.nn.ModuleDict.keys](https://pytorch.org/docs/2.7/generated/torch.nn.ModuleDict.html#torch.nn.ModuleDict.keys)|是|支持fp32|
-|[torch.nn.ModuleDict.pop](https://pytorch.org/docs/2.7/generated/torch.nn.ModuleDict.html#torch.nn.ModuleDict.pop)|是|支持fp32|
-|[torch.nn.ModuleDict.update](https://pytorch.org/docs/2.7/generated/torch.nn.ModuleDict.html#torch.nn.ModuleDict.update)|是|支持fp32|
-|[torch.nn.ModuleDict.values](https://pytorch.org/docs/2.7/generated/torch.nn.ModuleDict.html#torch.nn.ModuleDict.values)|是|支持fp32|
+|[torch.nn.ModuleDict.clear](https://pytorch.org/docs/2.7/generated/torch.nn.ModuleDict.html#torch.nn.ModuleDict.clear)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.ModuleDict.items](https://pytorch.org/docs/2.7/generated/torch.nn.ModuleDict.html#torch.nn.ModuleDict.items)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.ModuleDict.keys](https://pytorch.org/docs/2.7/generated/torch.nn.ModuleDict.html#torch.nn.ModuleDict.keys)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.ModuleDict.pop](https://pytorch.org/docs/2.7/generated/torch.nn.ModuleDict.html#torch.nn.ModuleDict.pop)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.ModuleDict.update](https://pytorch.org/docs/2.7/generated/torch.nn.ModuleDict.html#torch.nn.ModuleDict.update)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.ModuleDict.values](https://pytorch.org/docs/2.7/generated/torch.nn.ModuleDict.html#torch.nn.ModuleDict.values)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
 |[torch.nn.ParameterList](https://pytorch.org/docs/2.7/generated/torch.nn.ParameterList.html)|是|支持fp32|
-|[torch.nn.ParameterList.append](https://pytorch.org/docs/2.7/generated/torch.nn.ParameterList.html#torch.nn.ParameterList.append)|是|支持fp32|
-|[torch.nn.ParameterList.extend](https://pytorch.org/docs/2.7/generated/torch.nn.ParameterList.html#torch.nn.ParameterList.extend)|是|支持fp32|
+|[torch.nn.ParameterList.append](https://pytorch.org/docs/2.7/generated/torch.nn.ParameterList.html#torch.nn.ParameterList.append)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.ParameterList.extend](https://pytorch.org/docs/2.7/generated/torch.nn.ParameterList.html#torch.nn.ParameterList.extend)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
 |[torch.nn.ParameterDict](https://pytorch.org/docs/2.7/generated/torch.nn.ParameterDict.html)|是|支持fp32|
-|[torch.nn.ParameterDict.clear](https://pytorch.org/docs/2.7/generated/torch.nn.ParameterDict.html#torch.nn.ParameterDict.clear)|是|支持fp32|
-|[torch.nn.ParameterDict.copy](https://pytorch.org/docs/2.7/generated/torch.nn.ParameterDict.html#torch.nn.ParameterDict.copy)|是|支持fp32|
-|[torch.nn.ParameterDict.fromkeys](https://pytorch.org/docs/2.7/generated/torch.nn.ParameterDict.html#torch.nn.ParameterDict.fromkeys)|是|支持fp32|
-|[torch.nn.ParameterDict.get](https://pytorch.org/docs/2.7/generated/torch.nn.ParameterDict.html#torch.nn.ParameterDict.get)|是|支持fp32|
-|[torch.nn.ParameterDict.items](https://pytorch.org/docs/2.7/generated/torch.nn.ParameterDict.html#torch.nn.ParameterDict.items)|是|支持fp32|
-|[torch.nn.ParameterDict.keys](https://pytorch.org/docs/2.7/generated/torch.nn.ParameterDict.html#torch.nn.ParameterDict.keys)|是|支持fp32|
-|[torch.nn.ParameterDict.pop](https://pytorch.org/docs/2.7/generated/torch.nn.ParameterDict.html#torch.nn.ParameterDict.pop)|是|支持fp32|
-|[torch.nn.ParameterDict.popitem](https://pytorch.org/docs/2.7/generated/torch.nn.ParameterDict.html#torch.nn.ParameterDict.popitem)|是|支持fp32|
-|[torch.nn.ParameterDict.setdefault](https://pytorch.org/docs/2.7/generated/torch.nn.ParameterDict.html#torch.nn.ParameterDict.setdefault)|是|支持fp32|
-|[torch.nn.ParameterDict.update](https://pytorch.org/docs/2.7/generated/torch.nn.ParameterDict.html#torch.nn.ParameterDict.update)|是|支持fp32|
-|[torch.nn.ParameterDict.values](https://pytorch.org/docs/2.7/generated/torch.nn.ParameterDict.html#torch.nn.ParameterDict.values)|是|支持fp32|
-|[torch.nn.modules.module.register_module_forward_pre_hook](https://pytorch.org/docs/2.7/generated/torch.nn.modules.module.register_module_forward_pre_hook.html)|是|-|
-|[torch.nn.modules.module.register_module_forward_hook](https://pytorch.org/docs/2.7/generated/torch.nn.modules.module.register_module_forward_hook.html)|是|-|
-|[torch.nn.modules.module.register_module_backward_hook](https://pytorch.org/docs/2.7/generated/torch.nn.modules.module.register_module_backward_hook.html)|是|-|
-|[torch.nn.modules.module.register_module_full_backward_pre_hook](https://pytorch.org/docs/2.7/generated/torch.nn.modules.module.register_module_full_backward_pre_hook.html)|是|-|
-|[torch.nn.modules.module.register_module_full_backward_hook](https://pytorch.org/docs/2.7/generated/torch.nn.modules.module.register_module_full_backward_hook.html)|是|-|
-|[torch.nn.modules.module.register_module_buffer_registration_hook](https://pytorch.org/docs/2.7/generated/torch.nn.modules.module.register_module_buffer_registration_hook.html)|是|-|
-|[torch.nn.modules.module.register_module_module_registration_hook](https://pytorch.org/docs/2.7/generated/torch.nn.modules.module.register_module_module_registration_hook.html)|是|-|
-|[torch.nn.modules.module.register_module_parameter_registration_hook](https://pytorch.org/docs/2.7/generated/torch.nn.modules.module.register_module_parameter_registration_hook.html)|是|-|
+|[torch.nn.ParameterDict.clear](https://pytorch.org/docs/2.7/generated/torch.nn.ParameterDict.html#torch.nn.ParameterDict.clear)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.ParameterDict.copy](https://pytorch.org/docs/2.7/generated/torch.nn.ParameterDict.html#torch.nn.ParameterDict.copy)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.ParameterDict.fromkeys](https://pytorch.org/docs/2.7/generated/torch.nn.ParameterDict.html#torch.nn.ParameterDict.fromkeys)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.ParameterDict.get](https://pytorch.org/docs/2.7/generated/torch.nn.ParameterDict.html#torch.nn.ParameterDict.get)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.ParameterDict.items](https://pytorch.org/docs/2.7/generated/torch.nn.ParameterDict.html#torch.nn.ParameterDict.items)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.ParameterDict.keys](https://pytorch.org/docs/2.7/generated/torch.nn.ParameterDict.html#torch.nn.ParameterDict.keys)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.ParameterDict.pop](https://pytorch.org/docs/2.7/generated/torch.nn.ParameterDict.html#torch.nn.ParameterDict.pop)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.ParameterDict.popitem](https://pytorch.org/docs/2.7/generated/torch.nn.ParameterDict.html#torch.nn.ParameterDict.popitem)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.ParameterDict.setdefault](https://pytorch.org/docs/2.7/generated/torch.nn.ParameterDict.html#torch.nn.ParameterDict.setdefault)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.ParameterDict.update](https://pytorch.org/docs/2.7/generated/torch.nn.ParameterDict.html#torch.nn.ParameterDict.update)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.ParameterDict.values](https://pytorch.org/docs/2.7/generated/torch.nn.ParameterDict.html#torch.nn.ParameterDict.values)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.modules.module.register_module_forward_pre_hook](https://pytorch.org/docs/2.7/generated/torch.nn.modules.module.register_module_forward_pre_hook.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.modules.module.register_module_forward_hook](https://pytorch.org/docs/2.7/generated/torch.nn.modules.module.register_module_forward_hook.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.modules.module.register_module_backward_hook](https://pytorch.org/docs/2.7/generated/torch.nn.modules.module.register_module_backward_hook.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.modules.module.register_module_full_backward_pre_hook](https://pytorch.org/docs/2.7/generated/torch.nn.modules.module.register_module_full_backward_pre_hook.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.modules.module.register_module_full_backward_hook](https://pytorch.org/docs/2.7/generated/torch.nn.modules.module.register_module_full_backward_hook.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.modules.module.register_module_buffer_registration_hook](https://pytorch.org/docs/2.7/generated/torch.nn.modules.module.register_module_buffer_registration_hook.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.modules.module.register_module_module_registration_hook](https://pytorch.org/docs/2.7/generated/torch.nn.modules.module.register_module_module_registration_hook.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.modules.module.register_module_parameter_registration_hook](https://pytorch.org/docs/2.7/generated/torch.nn.modules.module.register_module_parameter_registration_hook.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |[torch.nn.Conv1d](https://pytorch.org/docs/2.7/generated/torch.nn.Conv1d.html)|是|支持fp16，fp32|
 |[torch.nn.Conv2d](https://pytorch.org/docs/2.7/generated/torch.nn.Conv2d.html)|是|支持bf16，fp16，fp32<br><term>Atlas A2 训练系列产品</term>，默认场景下，如果频繁触发编译，建议手动设置torch.npu.config.allow_internal_format为False，控制入参不开启内部格式，避免在线编译|
 |[torch.nn.Conv3d](https://pytorch.org/docs/2.7/generated/torch.nn.Conv3d.html)|是|支持bf16，fp16，fp32|
 |[torch.nn.ConvTranspose1d](https://pytorch.org/docs/2.7/generated/torch.nn.ConvTranspose1d.html)|是|支持fp32|
 |[torch.nn.ConvTranspose2d](https://pytorch.org/docs/2.7/generated/torch.nn.ConvTranspose2d.html)|是|支持fp16，fp32<br><term>Atlas 训练系列产品</term>/<term>Atlas A2 训练系列产品</term>，需手动设置torch.npu.config.allow_internal_format为False，才可支持3维输入|
 |[torch.nn.ConvTranspose3d](https://pytorch.org/docs/2.7/generated/torch.nn.ConvTranspose3d.html)|是|支持bf16，fp16，fp32|
-|[torch.nn.LazyConv1d](https://pytorch.org/docs/2.7/generated/torch.nn.LazyConv1d.html)|是|支持fp16，fp32|
+|[torch.nn.LazyConv1d](https://pytorch.org/docs/2.7/generated/torch.nn.LazyConv1d.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
 |[torch.nn.LazyConv1d.cls_to_become](https://pytorch.org/docs/2.7/generated/torch.nn.LazyConv1d.html#torch.nn.LazyConv1d.cls_to_become)|是|-|
 |[torch.nn.LazyConv2d](https://pytorch.org/docs/2.7/generated/torch.nn.LazyConv2d.html)|是|支持fp16，fp32|
 |[torch.nn.LazyConv2d.cls_to_become](https://pytorch.org/docs/2.7/generated/torch.nn.LazyConv2d.html#torch.nn.LazyConv2d.cls_to_become)|是|-|
 |[torch.nn.LazyConv3d.cls_to_become](https://pytorch.org/docs/2.7/generated/torch.nn.LazyConv3d.html#torch.nn.LazyConv3d.cls_to_become)|是|-|
-|[torch.nn.LazyConvTranspose1d](https://pytorch.org/docs/2.7/generated/torch.nn.LazyConvTranspose1d.html)|是|支持fp16|
-|[torch.nn.LazyConvTranspose1d.cls_to_become](https://pytorch.org/docs/2.7/generated/torch.nn.LazyConvTranspose1d.html#torch.nn.LazyConvTranspose1d.cls_to_become)|是|-|
+|[torch.nn.LazyConvTranspose1d](https://pytorch.org/docs/2.7/generated/torch.nn.LazyConvTranspose1d.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16|
+|[torch.nn.LazyConvTranspose1d.cls_to_become](https://pytorch.org/docs/2.7/generated/torch.nn.LazyConvTranspose1d.html#torch.nn.LazyConvTranspose1d.cls_to_become)|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |[torch.nn.LazyConvTranspose2d](https://pytorch.org/docs/2.7/generated/torch.nn.LazyConvTranspose2d.html)|是|支持fp16，fp32|
 |[torch.nn.LazyConvTranspose2d.cls_to_become](https://pytorch.org/docs/2.7/generated/torch.nn.LazyConvTranspose2d.html#torch.nn.LazyConvTranspose2d.cls_to_become)|是|-|
-|[torch.nn.LazyConvTranspose3d.cls_to_become](https://pytorch.org/docs/2.7/generated/torch.nn.LazyConvTranspose3d.html#torch.nn.LazyConvTranspose3d.cls_to_become)|是|-|
+|[torch.nn.LazyConvTranspose3d.cls_to_become](https://pytorch.org/docs/2.7/generated/torch.nn.LazyConvTranspose3d.html#torch.nn.LazyConvTranspose3d.cls_to_become)|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |[torch.nn.Unfold](https://pytorch.org/docs/2.7/generated/torch.nn.Unfold.html)|是|支持bf16，fp16，fp32|
 |[torch.nn.Fold](https://pytorch.org/docs/2.7/generated/torch.nn.Fold.html)|是|支持fp16|
 |[torch.nn.MaxPool1d](https://pytorch.org/docs/2.7/generated/torch.nn.MaxPool1d.html)|否|-|
 |[torch.nn.MaxPool2d](https://pytorch.org/docs/2.7/generated/torch.nn.MaxPool2d.html)|是|支持bf16，fp16，fp32<br>通过设置torch_npu.npu.use_compatible_impl(True)，保证与社区同名接口在内存一致性上对齐|
 |[torch.nn.MaxPool3d](https://pytorch.org/docs/2.7/generated/torch.nn.MaxPool3d.html)|否|-|
-|[torch.nn.MaxUnpool1d](https://pytorch.org/docs/2.7/generated/torch.nn.MaxUnpool1d.html)|是|支持fp16，fp32|
+|[torch.nn.MaxUnpool1d](https://pytorch.org/docs/2.7/generated/torch.nn.MaxUnpool1d.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
 |[torch.nn.MaxUnpool2d](https://pytorch.org/docs/2.7/generated/torch.nn.MaxUnpool2d.html)|是|支持fp16，fp32|
 |[torch.nn.MaxUnpool3d](https://pytorch.org/docs/2.7/generated/torch.nn.MaxUnpool3d.html)|否|-|
 |[torch.nn.AvgPool1d](https://pytorch.org/docs/2.7/generated/torch.nn.AvgPool1d.html)|是|支持bf16，fp16，fp32|
 |[torch.nn.AvgPool2d](https://pytorch.org/docs/2.7/generated/torch.nn.AvgPool2d.html)|是|支持bf16，fp16，fp32|
 |[torch.nn.AvgPool3d](https://pytorch.org/docs/2.7/generated/torch.nn.AvgPool3d.html)|否|-|
-|[torch.nn.LPPool1d](https://pytorch.org/docs/2.7/generated/torch.nn.LPPool1d.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
-|[torch.nn.LPPool2d](https://pytorch.org/docs/2.7/generated/torch.nn.LPPool2d.html)|是|支持fp16，fp32，int16，int32，int64，bool|
+|[torch.nn.LPPool1d](https://pytorch.org/docs/2.7/generated/torch.nn.LPPool1d.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
+|[torch.nn.LPPool2d](https://pytorch.org/docs/2.7/generated/torch.nn.LPPool2d.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，int16，int32，int64，bool|
 |[torch.nn.AdaptiveMaxPool1d](https://pytorch.org/docs/2.7/generated/torch.nn.AdaptiveMaxPool1d.html)|否|-|
 |[torch.nn.AdaptiveMaxPool2d](https://pytorch.org/docs/2.7/generated/torch.nn.AdaptiveMaxPool2d.html)|否|-|
 |[torch.nn.AdaptiveMaxPool3d](https://pytorch.org/docs/2.7/generated/torch.nn.AdaptiveMaxPool3d.html)|是|支持fp32，fp64|
 |[torch.nn.AdaptiveAvgPool1d](https://pytorch.org/docs/2.7/generated/torch.nn.AdaptiveAvgPool1d.html)|是|支持fp16，fp32|
 |[torch.nn.AdaptiveAvgPool2d](https://pytorch.org/docs/2.7/generated/torch.nn.AdaptiveAvgPool2d.html)|是|支持fp16，fp32|
-|[torch.nn.AdaptiveAvgPool3d](https://pytorch.org/docs/2.7/generated/torch.nn.AdaptiveAvgPool3d.html)|是|支持bf16，fp16，fp32|
+|[torch.nn.AdaptiveAvgPool3d](https://pytorch.org/docs/2.7/generated/torch.nn.AdaptiveAvgPool3d.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32|
 |[torch.nn.ReflectionPad1d](https://pytorch.org/docs/2.7/generated/torch.nn.ReflectionPad1d.html)|是|支持fp16，fp32|
 |[torch.nn.ReflectionPad2d](https://pytorch.org/docs/2.7/generated/torch.nn.ReflectionPad2d.html)|是|支持fp16，fp32|
 |[torch.nn.ReflectionPad3d](https://pytorch.org/docs/2.7/generated/torch.nn.ReflectionPad3d.html)|否|-|
@@ -144,25 +144,25 @@
 |[torch.nn.ConstantPad3d](https://pytorch.org/docs/2.7/generated/torch.nn.ConstantPad3d.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>在输入x为六维以上时可能会出现性能下降问题|
 |[torch.nn.ELU](https://pytorch.org/docs/2.7/generated/torch.nn.ELU.html)|是|支持bf16，fp16，fp32，fp64|
 |[torch.nn.Hardshrink](https://pytorch.org/docs/2.7/generated/torch.nn.Hardshrink.html)|是|支持fp16，fp32<br>可能回退至CPU执行|
-|[torch.nn.Hardsigmoid](https://pytorch.org/docs/2.7/generated/torch.nn.Hardsigmoid.html)|是|支持fp16，fp32，int32<br>可能回退至CPU执行|
+|[torch.nn.Hardsigmoid](https://pytorch.org/docs/2.7/generated/torch.nn.Hardsigmoid.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，int32<br>可能回退至CPU执行|
 |[torch.nn.Hardtanh](https://pytorch.org/docs/2.7/generated/torch.nn.Hardtanh.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64|
 |[torch.nn.Hardswish](https://pytorch.org/docs/2.7/generated/torch.nn.Hardswish.html)|是|支持fp16，fp32|
 |[torch.nn.LeakyReLU](https://pytorch.org/docs/2.7/generated/torch.nn.LeakyReLU.html)|是|支持bf16，fp16，fp32，fp64|
 |[torch.nn.LogSigmoid](https://pytorch.org/docs/2.7/generated/torch.nn.LogSigmoid.html)|是|支持fp16，fp32|
-|[torch.nn.MultiheadAttention](https://pytorch.org/docs/2.7/generated/torch.nn.MultiheadAttention.html)|是|支持bf16，fp16，fp32|
-|[torch.nn.MultiheadAttention.forward](https://pytorch.org/docs/2.7/generated/torch.nn.MultiheadAttention.html#torch.nn.MultiheadAttention.forward)|是|支持bf16，fp16，fp32|
+|[torch.nn.MultiheadAttention](https://pytorch.org/docs/2.7/generated/torch.nn.MultiheadAttention.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32|
+|[torch.nn.MultiheadAttention.forward](https://pytorch.org/docs/2.7/generated/torch.nn.MultiheadAttention.html#torch.nn.MultiheadAttention.forward)|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32|
 |[torch.nn.PReLU](https://pytorch.org/docs/2.7/generated/torch.nn.PReLU.html)|是|支持fp32|
 |[torch.nn.ReLU](https://pytorch.org/docs/2.7/generated/torch.nn.ReLU.html)|是|支持bf16，fp16，fp32，uint8，int8，int32，int64|
 |[torch.nn.ReLU6](https://pytorch.org/docs/2.7/generated/torch.nn.ReLU6.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64|
 |[torch.nn.RReLU](https://pytorch.org/docs/2.7/generated/torch.nn.RReLU.html)|否|-|
 |[torch.nn.SELU](https://pytorch.org/docs/2.7/generated/torch.nn.SELU.html)|是|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
-|[torch.nn.CELU](https://pytorch.org/docs/2.7/generated/torch.nn.CELU.html)|是|支持fp16，fp32|
+|[torch.nn.CELU](https://pytorch.org/docs/2.7/generated/torch.nn.CELU.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
 |[torch.nn.GELU](https://pytorch.org/docs/2.7/generated/torch.nn.GELU.html)|是|支持bf16，fp16，fp32<br>approximate参数仅支持设置为tanh|
 |[torch.nn.Sigmoid](https://pytorch.org/docs/2.7/generated/torch.nn.Sigmoid.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[torch.nn.SiLU](https://pytorch.org/docs/2.7/generated/torch.nn.SiLU.html)|是|支持bf16，fp16，fp32|
 |[torch.nn.Mish](https://pytorch.org/docs/2.7/generated/torch.nn.Mish.html)|是|支持fp16，fp32|
-|[torch.nn.Softplus](https://pytorch.org/docs/2.7/generated/torch.nn.Softplus.html)|是|支持bf16，fp16，fp32|
-|[torch.nn.Softshrink](https://pytorch.org/docs/2.7/generated/torch.nn.Softshrink.html)|是|支持bf16，fp16，fp32|
+|[torch.nn.Softplus](https://pytorch.org/docs/2.7/generated/torch.nn.Softplus.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32|
+|[torch.nn.Softshrink](https://pytorch.org/docs/2.7/generated/torch.nn.Softshrink.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32|
 |[torch.nn.Softsign](https://pytorch.org/docs/2.7/generated/torch.nn.Softsign.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64|
 |[torch.nn.Tanh](https://pytorch.org/docs/2.7/generated/torch.nn.Tanh.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |[torch.nn.Tanhshrink](https://pytorch.org/docs/2.7/generated/torch.nn.Tanhshrink.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64<br>可能回退至CPU执行|
@@ -170,7 +170,7 @@
 |[torch.nn.GLU](https://pytorch.org/docs/2.7/generated/torch.nn.GLU.html)|是|支持fp16，fp32|
 |[torch.nn.Softmin](https://pytorch.org/docs/2.7/generated/torch.nn.Softmin.html)|是|支持bf16，fp16，fp32|
 |[torch.nn.Softmax](https://pytorch.org/docs/2.7/generated/torch.nn.Softmax.html)|是|支持bf16，fp16，fp32，fp64|
-|[torch.nn.Softmax2d](https://pytorch.org/docs/2.7/generated/torch.nn.Softmax2d.html)|是|支持bf16，fp16，fp32|
+|[torch.nn.Softmax2d](https://pytorch.org/docs/2.7/generated/torch.nn.Softmax2d.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32|
 |[torch.nn.LogSoftmax](https://pytorch.org/docs/2.7/generated/torch.nn.LogSoftmax.html)|是|支持bf16，fp16，fp32|
 |[torch.nn.AdaptiveLogSoftmaxWithLoss](https://pytorch.org/docs/2.7/generated/torch.nn.AdaptiveLogSoftmaxWithLoss.html)|否|-|
 |[torch.nn.AdaptiveLogSoftmaxWithLoss.log_prob](https://pytorch.org/docs/2.7/generated/torch.nn.AdaptiveLogSoftmaxWithLoss.html#torch.nn.AdaptiveLogSoftmaxWithLoss.log_prob)|否|-|
@@ -184,18 +184,18 @@
 |[torch.nn.GroupNorm](https://pytorch.org/docs/2.7/generated/torch.nn.GroupNorm.html)|是|支持fp32<br>eps参数需大于0<br>不支持jit_compile=True的场景<br>该API仅支持2维及以上的输入input。该API反向传播时，不支持输入维度不为4维，或输入num_groups非32整除，或C轴维度非(10 * num_groups)整除的场景|
 |[torch.nn.SyncBatchNorm](https://pytorch.org/docs/2.7/generated/torch.nn.SyncBatchNorm.html)|是|支持fp16，fp32|
 |[torch.nn.SyncBatchNorm.convert_sync_batchnorm](https://pytorch.org/docs/2.7/generated/torch.nn.SyncBatchNorm.html#torch.nn.SyncBatchNorm.convert_sync_batchnorm)|是|-|
-|[torch.nn.LazyInstanceNorm1d.cls_to_become](https://pytorch.org/docs/2.7/generated/torch.nn.LazyInstanceNorm1d.html#torch.nn.LazyInstanceNorm1d.cls_to_become)|是|-|
+|[torch.nn.LazyInstanceNorm1d.cls_to_become](https://pytorch.org/docs/2.7/generated/torch.nn.LazyInstanceNorm1d.html#torch.nn.LazyInstanceNorm1d.cls_to_become)|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |[torch.nn.LazyInstanceNorm2d.cls_to_become](https://pytorch.org/docs/2.7/generated/torch.nn.LazyInstanceNorm2d.html#torch.nn.LazyInstanceNorm2d.cls_to_become)|是|-|
 |[torch.nn.LazyInstanceNorm3d.cls_to_become](https://pytorch.org/docs/2.7/generated/torch.nn.LazyInstanceNorm3d.html#torch.nn.LazyInstanceNorm3d.cls_to_become)|是|-|
 |[torch.nn.LayerNorm](https://pytorch.org/docs/2.7/generated/torch.nn.LayerNorm.html)|是|支持bf16，fp16，fp32<br>通过torch_npu.npu.use_compatible_impl(True)，设置该接口从aclnnLayerNorm算子切换为aclnnFastLayerNorm算子，保证与社区同名接口在内存一致性上对齐。|
 |[torch.nn.RNNBase](https://pytorch.org/docs/2.7/generated/torch.nn.RNNBase.html)|否|-|
 |[torch.nn.RNNBase.flatten_parameters](https://pytorch.org/docs/2.7/generated/torch.nn.RNNBase.html#torch.nn.RNNBase.flatten_parameters)|否|-|
 |[torch.nn.RNN](https://pytorch.org/docs/2.7/generated/torch.nn.RNN.html)|否|-|
-|[torch.nn.LSTM](https://pytorch.org/docs/2.7/generated/torch.nn.LSTM.html)|是|支持fp32<br>不支持proj_size参数<br>不支持dropout参数<br>入参input不支持2维|
+|[torch.nn.LSTM](https://pytorch.org/docs/2.7/generated/torch.nn.LSTM.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32<br>不支持proj_size参数<br>不支持dropout参数<br>入参input不支持2维|
 |[torch.nn.GRU](https://pytorch.org/docs/2.7/generated/torch.nn.GRU.html)|否|-|
 |[torch.nn.RNNCell](https://pytorch.org/docs/2.7/generated/torch.nn.RNNCell.html)|否|-|
-|[torch.nn.LSTMCell](https://pytorch.org/docs/2.7/generated/torch.nn.LSTMCell.html)|是|接口暂不支持jit_compile=False，需要在该模式下使用时请将"DynamicGRUV2"添加至"NPU_FUZZY_COMPILE_BLACKLIST"选项内，具体操作可参考[添加二进制黑名单示例](../example_of_adding_a_binary_blocklist.md)|
-|[torch.nn.GRUCell](https://pytorch.org/docs/2.7/generated/torch.nn.GRUCell.html)|是|支持fp16，fp32|
+|[torch.nn.LSTMCell](https://pytorch.org/docs/2.7/generated/torch.nn.LSTMCell.html)|是<br>暂不支持<term>Ascend 950DT</term>|接口暂不支持jit_compile=False，需要在该模式下使用时请将"DynamicGRUV2"添加至"NPU_FUZZY_COMPILE_BLACKLIST"选项内，具体操作可参考[添加二进制黑名单示例](../example_of_adding_a_binary_blocklist.md)|
+|[torch.nn.GRUCell](https://pytorch.org/docs/2.7/generated/torch.nn.GRUCell.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
 |[torch.nn.Transformer](https://pytorch.org/docs/2.7/generated/torch.nn.Transformer.html)|是|支持fp16，fp32|
 |[torch.nn.Transformer.forward](https://pytorch.org/docs/2.7/generated/torch.nn.Transformer.html#torch.nn.Transformer.forward)|否|-|
 |[torch.nn.TransformerEncoder](https://pytorch.org/docs/2.7/generated/torch.nn.TransformerEncoder.html)|否|-|
@@ -205,7 +205,7 @@
 |[torch.nn.TransformerEncoderLayer.forward](https://pytorch.org/docs/2.7/generated/torch.nn.TransformerEncoderLayer.html#torch.nn.TransformerEncoderLayer.forward)|否|-|
 |[torch.nn.TransformerDecoderLayer.forward](https://pytorch.org/docs/2.7/generated/torch.nn.TransformerDecoderLayer.html#torch.nn.TransformerDecoderLayer.forward)|否|-|
 |[torch.nn.Identity](https://pytorch.org/docs/2.7/generated/torch.nn.Identity.html)|是|支持fp32|
-|[torch.nn.Linear](https://pytorch.org/docs/2.7/generated/torch.nn.Linear.html)|是|支持fp16，fp32|
+|[torch.nn.Linear](https://pytorch.org/docs/2.7/generated/torch.nn.Linear.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
 |[torch.nn.Bilinear](https://pytorch.org/docs/2.7/generated/torch.nn.Bilinear.html)|是|支持bf16，fp16，fp32|
 |[torch.nn.LazyLinear](https://pytorch.org/docs/2.7/generated/torch.nn.LazyLinear.html)|是|支持fp16，fp32|
 |[torch.nn.LazyLinear.cls_to_become](https://pytorch.org/docs/2.7/generated/torch.nn.LazyLinear.html#torch.nn.LazyLinear.cls_to_become)|否|-|
@@ -213,27 +213,27 @@
 |[torch.nn.Dropout2d](https://pytorch.org/docs/2.7/generated/torch.nn.Dropout2d.html)|是|支持fp16，fp32，int64，bool|
 |[torch.nn.AlphaDropout](https://pytorch.org/docs/2.7/generated/torch.nn.AlphaDropout.html)|是|支持fp16，fp32|
 |[torch.nn.FeatureAlphaDropout](https://pytorch.org/docs/2.7/generated/torch.nn.FeatureAlphaDropout.html)|是|支持fp16，fp32|
-|[torch.nn.Embedding](https://pytorch.org/docs/2.7/generated/torch.nn.Embedding.html)|是|支持int32，int64<br>属性max_norm不支持nan，仅支持非负值|
-|[torch.nn.Embedding.from_pretrained](https://pytorch.org/docs/2.7/generated/torch.nn.Embedding.html#torch.nn.Embedding.from_pretrained)|是|支持fp64|
+|[torch.nn.Embedding](https://pytorch.org/docs/2.7/generated/torch.nn.Embedding.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持int32，int64<br>属性max_norm不支持nan，仅支持非负值|
+|[torch.nn.Embedding.from_pretrained](https://pytorch.org/docs/2.7/generated/torch.nn.Embedding.html#torch.nn.Embedding.from_pretrained)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp64|
 |[torch.nn.EmbeddingBag](https://pytorch.org/docs/2.7/generated/torch.nn.EmbeddingBag.html)|是|支持int32，int64<br>仅支持max_norm大于等于0|
-|[torch.nn.EmbeddingBag.forward](https://pytorch.org/docs/2.7/generated/torch.nn.EmbeddingBag.html#torch.nn.EmbeddingBag.forward)|是|支持int64|
-|[torch.nn.EmbeddingBag.from_pretrained](https://pytorch.org/docs/2.7/generated/torch.nn.EmbeddingBag.html#torch.nn.EmbeddingBag.from_pretrained)|是|支持int64|
+|[torch.nn.EmbeddingBag.forward](https://pytorch.org/docs/2.7/generated/torch.nn.EmbeddingBag.html#torch.nn.EmbeddingBag.forward)|是<br>暂不支持<term>Ascend 950DT</term>|支持int64|
+|[torch.nn.EmbeddingBag.from_pretrained](https://pytorch.org/docs/2.7/generated/torch.nn.EmbeddingBag.html#torch.nn.EmbeddingBag.from_pretrained)|是<br>暂不支持<term>Ascend 950DT</term>|支持int64|
 |[torch.nn.L1Loss](https://pytorch.org/docs/2.7/generated/torch.nn.L1Loss.html)|是|支持fp16，fp32，int64|
 |[torch.nn.MSELoss](https://pytorch.org/docs/2.7/generated/torch.nn.MSELoss.html)|是|支持fp16，fp32|
 |[torch.nn.CrossEntropyLoss](https://pytorch.org/docs/2.7/generated/torch.nn.CrossEntropyLoss.html)|是|支持fp16，fp32|
-|[torch.nn.CTCLoss](https://pytorch.org/docs/2.7/generated/torch.nn.CTCLoss.html)|是|支持fp32，fp64<br>不支持log_probs 2D输入|
+|[torch.nn.CTCLoss](https://pytorch.org/docs/2.7/generated/torch.nn.CTCLoss.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32，fp64<br>不支持log_probs 2D输入|
 |[torch.nn.NLLLoss](https://pytorch.org/docs/2.7/generated/torch.nn.NLLLoss.html)|是|支持fp16，fp32<br>target中的每个元素值应大于等于0且小于input的类别数|
 |[torch.nn.PoissonNLLLoss](https://pytorch.org/docs/2.7/generated/torch.nn.PoissonNLLLoss.html)|是|支持bf16，fp16，fp32，int64|
 |[torch.nn.GaussianNLLLoss](https://pytorch.org/docs/2.7/generated/torch.nn.GaussianNLLLoss.html)|是|支持bf16，fp16，fp32，int16，int32，int64|
 |[torch.nn.KLDivLoss](https://pytorch.org/docs/2.7/generated/torch.nn.KLDivLoss.html)|是|支持bf16，fp16，fp32<br>当前log_target参数仅支持False|
 |[torch.nn.BCELoss](https://pytorch.org/docs/2.7/generated/torch.nn.BCELoss.html)|是|支持fp16，fp32|
-|[torch.nn.BCEWithLogitsLoss](https://pytorch.org/docs/2.7/generated/torch.nn.BCEWithLogitsLoss.html)|是|支持bf16，fp16，fp32<br>入参target不支持反向计算|
+|[torch.nn.BCEWithLogitsLoss](https://pytorch.org/docs/2.7/generated/torch.nn.BCEWithLogitsLoss.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32<br>入参target不支持反向计算|
 |[torch.nn.MarginRankingLoss](https://pytorch.org/docs/2.7/generated/torch.nn.MarginRankingLoss.html)|是|支持bf16，fp16，fp32，int8，int32，int64|
 |[torch.nn.HingeEmbeddingLoss](https://pytorch.org/docs/2.7/generated/torch.nn.HingeEmbeddingLoss.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64|
 |[torch.nn.MultiLabelMarginLoss](https://pytorch.org/docs/2.7/generated/torch.nn.MultiLabelMarginLoss.html)|否|-|
 |[torch.nn.HuberLoss](https://pytorch.org/docs/2.7/generated/torch.nn.HuberLoss.html)|是|input支持fp32，fp64<br>target支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool<br>可能回退至CPU执行|
 |[torch.nn.SmoothL1Loss](https://pytorch.org/docs/2.7/generated/torch.nn.SmoothL1Loss.html)|是|支持bf16，fp16，fp32|
-|[torch.nn.MultiLabelSoftMarginLoss](https://pytorch.org/docs/2.7/generated/torch.nn.MultiLabelSoftMarginLoss.html)|是|支持fp16，fp32|
+|[torch.nn.MultiLabelSoftMarginLoss](https://pytorch.org/docs/2.7/generated/torch.nn.MultiLabelSoftMarginLoss.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
 |[torch.nn.CosineEmbeddingLoss](https://pytorch.org/docs/2.7/generated/torch.nn.CosineEmbeddingLoss.html)|否|-|
 |[torch.nn.MultiMarginLoss](https://pytorch.org/docs/2.7/generated/torch.nn.MultiMarginLoss.html)|是|input支持fp32，fp64<br>target支持int64<br>可能回退至CPU执行|
 |[torch.nn.TripletMarginLoss](https://pytorch.org/docs/2.7/generated/torch.nn.TripletMarginLoss.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64<br>可能回退至CPU执行|
@@ -245,91 +245,91 @@
 |[torch.nn.ChannelShuffle](https://pytorch.org/docs/2.7/generated/torch.nn.ChannelShuffle.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[torch.nn.DataParallel](https://pytorch.org/docs/2.7/generated/torch.nn.DataParallel.html)|否|-|
 |[torch.nn.parallel.DistributedDataParallel](https://pytorch.org/docs/2.7/generated/torch.nn.parallel.DistributedDataParallel.html)|是|-|
-|[torch.nn.parallel.DistributedDataParallel.join](https://pytorch.org/docs/2.7/generated/torch.nn.parallel.DistributedDataParallel.html#torch.nn.parallel.DistributedDataParallel.join)|是|-|
-|[torch.nn.parallel.DistributedDataParallel.join_hook](https://pytorch.org/docs/2.7/generated/torch.nn.parallel.DistributedDataParallel.html#torch.nn.parallel.DistributedDataParallel.join_hook)|是|-|
-|[torch.nn.parallel.DistributedDataParallel.no_sync](https://pytorch.org/docs/2.7/generated/torch.nn.parallel.DistributedDataParallel.html#torch.nn.parallel.DistributedDataParallel.no_sync)|是|-|
-|[torch.nn.parallel.DistributedDataParallel.register_comm_hook](https://pytorch.org/docs/2.7/generated/torch.nn.parallel.DistributedDataParallel.html#torch.nn.parallel.DistributedDataParallel.register_comm_hook)|是|-|
+|[torch.nn.parallel.DistributedDataParallel.join](https://pytorch.org/docs/2.7/generated/torch.nn.parallel.DistributedDataParallel.html#torch.nn.parallel.DistributedDataParallel.join)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.parallel.DistributedDataParallel.join_hook](https://pytorch.org/docs/2.7/generated/torch.nn.parallel.DistributedDataParallel.html#torch.nn.parallel.DistributedDataParallel.join_hook)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.parallel.DistributedDataParallel.no_sync](https://pytorch.org/docs/2.7/generated/torch.nn.parallel.DistributedDataParallel.html#torch.nn.parallel.DistributedDataParallel.no_sync)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.parallel.DistributedDataParallel.register_comm_hook](https://pytorch.org/docs/2.7/generated/torch.nn.parallel.DistributedDataParallel.html#torch.nn.parallel.DistributedDataParallel.register_comm_hook)|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |[torch.nn.utils.clip_grad_norm_](https://pytorch.org/docs/2.7/generated/torch.nn.utils.clip_grad_norm_.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |[torch.nn.utils.clip_grad_norm](https://pytorch.org/docs/2.7/generated/torch.nn.utils.clip_grad_norm.html)|否|-|
 |[torch.nn.utils.clip_grad_value_](https://pytorch.org/docs/2.7/generated/torch.nn.utils.clip_grad_value_.html)|是|支持bf16，fp16，fp32|
-|[torch.nn.utils.vector_to_parameters](https://pytorch.org/docs/2.7/generated/torch.nn.utils.vector_to_parameters.html)|是|支持bf16，fp16，fp32，fp64，complex64|
+|[torch.nn.utils.vector_to_parameters](https://pytorch.org/docs/2.7/generated/torch.nn.utils.vector_to_parameters.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32，fp64，complex64|
 |[torch.nn.utils.weight_norm](https://pytorch.org/docs/2.7/generated/torch.nn.utils.weight_norm.html)|是|-|
 |[torch.nn.utils.spectral_norm](https://pytorch.org/docs/2.7/generated/torch.nn.utils.spectral_norm.html)|是|-|
 |[torch.nn.utils.remove_spectral_norm](https://pytorch.org/docs/2.7/generated/torch.nn.utils.remove_spectral_norm.html)|是|-|
 |[torch.nn.utils.skip_init](https://pytorch.org/docs/2.7/generated/torch.nn.utils.skip_init.html)|是|-|
-|[torch.nn.utils.prune.BasePruningMethod](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.BasePruningMethod.html)|是|-|
-|[torch.nn.utils.prune.BasePruningMethod.apply](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.BasePruningMethod.html#torch.nn.utils.prune.BasePruningMethod.apply)|是|-|
-|[torch.nn.utils.prune.BasePruningMethod.apply_mask](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.BasePruningMethod.html#torch.nn.utils.prune.BasePruningMethod.apply_mask)|是|支持fp32|
-|[torch.nn.utils.prune.BasePruningMethod.compute_mask](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.BasePruningMethod.html#torch.nn.utils.prune.BasePruningMethod.compute_mask)|是|-|
-|[torch.nn.utils.prune.BasePruningMethod.prune](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.BasePruningMethod.html#torch.nn.utils.prune.BasePruningMethod.prune)|是|支持fp32|
-|[torch.nn.utils.prune.BasePruningMethod.remove](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.BasePruningMethod.html#torch.nn.utils.prune.BasePruningMethod.remove)|是|支持fp32|
-|[torch.nn.utils.prune.PruningContainer](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.PruningContainer.html)|是|-|
-|[torch.nn.utils.prune.PruningContainer.add_pruning_method](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.PruningContainer.html#torch.nn.utils.prune.PruningContainer.add_pruning_method)|是|-|
-|[torch.nn.utils.prune.PruningContainer.apply](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.PruningContainer.html#torch.nn.utils.prune.PruningContainer.apply)|是|-|
-|[torch.nn.utils.prune.PruningContainer.apply_mask](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.PruningContainer.html#torch.nn.utils.prune.PruningContainer.apply_mask)|是|-|
-|[torch.nn.utils.prune.PruningContainer.compute_mask](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.PruningContainer.html#torch.nn.utils.prune.PruningContainer.compute_mask)|是|支持fp32|
-|[torch.nn.utils.prune.PruningContainer.prune](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.PruningContainer.html#torch.nn.utils.prune.PruningContainer.prune)|是|支持fp32|
-|[torch.nn.utils.prune.PruningContainer.remove](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.PruningContainer.html#torch.nn.utils.prune.PruningContainer.remove)|是|支持fp32|
-|[torch.nn.utils.prune.Identity](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.Identity.html#torch.nn.utils.prune.Identity)|是|支持fp32|
-|[torch.nn.utils.prune.Identity.apply](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.Identity.html#torch.nn.utils.prune.Identity.apply)|是|支持fp32|
-|[torch.nn.utils.prune.Identity.apply_mask](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.Identity.html#torch.nn.utils.prune.Identity.apply_mask)|是|支持fp32|
-|[torch.nn.utils.prune.Identity.prune](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.Identity.html#torch.nn.utils.prune.Identity.prune)|是|支持fp32|
-|[torch.nn.utils.prune.Identity.remove](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.Identity.html#torch.nn.utils.prune.Identity.remove)|是|支持fp32|
-|[torch.nn.utils.prune.RandomUnstructured](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.RandomUnstructured.html)|是|支持fp32|
-|[torch.nn.utils.prune.RandomUnstructured.apply](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.RandomUnstructured.html#torch.nn.utils.prune.RandomUnstructured.apply)|是|支持fp32|
-|[torch.nn.utils.prune.RandomUnstructured.apply_mask](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.RandomUnstructured.html#torch.nn.utils.prune.RandomUnstructured.apply_mask)|是|支持fp32|
-|[torch.nn.utils.prune.RandomUnstructured.prune](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.RandomUnstructured.html#torch.nn.utils.prune.RandomUnstructured.prune)|是|支持fp32|
-|[torch.nn.utils.prune.RandomUnstructured.remove](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.RandomUnstructured.html#torch.nn.utils.prune.RandomUnstructured.remove)|是|-|
-|[torch.nn.utils.prune.L1Unstructured](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.L1Unstructured.html)|是|支持fp32|
-|[torch.nn.utils.prune.L1Unstructured.apply](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.L1Unstructured.html#torch.nn.utils.prune.L1Unstructured.apply)|是|支持fp32|
-|[torch.nn.utils.prune.L1Unstructured.apply_mask](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.L1Unstructured.html#torch.nn.utils.prune.L1Unstructured.apply_mask)|是|支持fp32|
-|[torch.nn.utils.prune.L1Unstructured.prune](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.L1Unstructured.html#torch.nn.utils.prune.L1Unstructured.prune)|是|支持fp32|
-|[torch.nn.utils.prune.L1Unstructured.remove](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.L1Unstructured.html#torch.nn.utils.prune.L1Unstructured.remove)|是|支持fp32|
-|[torch.nn.utils.prune.RandomStructured](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.RandomStructured.html)|是|支持fp32|
-|[torch.nn.utils.prune.RandomStructured.apply](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.RandomStructured.html#torch.nn.utils.prune.RandomStructured.apply)|是|支持fp32|
-|[torch.nn.utils.prune.RandomStructured.apply_mask](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.RandomStructured.html#torch.nn.utils.prune.RandomStructured.apply_mask)|是|支持fp32|
-|[torch.nn.utils.prune.RandomStructured.compute_mask](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.RandomStructured.html#torch.nn.utils.prune.RandomStructured.compute_mask)|是|支持fp32|
-|[torch.nn.utils.prune.RandomStructured.prune](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.RandomStructured.html#torch.nn.utils.prune.RandomStructured.prune)|是|-|
-|[torch.nn.utils.prune.RandomStructured.remove](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.RandomStructured.html#torch.nn.utils.prune.RandomStructured.remove)|是|-|
-|[torch.nn.utils.prune.LnStructured](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.LnStructured.html)|是|支持fp32|
-|[torch.nn.utils.prune.LnStructured.apply](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.LnStructured.html#torch.nn.utils.prune.LnStructured.apply)|是|支持fp32|
-|[torch.nn.utils.prune.LnStructured.apply_mask](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.LnStructured.html#torch.nn.utils.prune.LnStructured.apply_mask)|是|支持fp32|
-|[torch.nn.utils.prune.LnStructured.compute_mask](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.LnStructured.html#torch.nn.utils.prune.LnStructured.compute_mask)|是|支持fp32|
-|[torch.nn.utils.prune.LnStructured.prune](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.LnStructured.html#torch.nn.utils.prune.LnStructured.prune)|是|支持fp32|
-|[torch.nn.utils.prune.LnStructured.remove](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.LnStructured.html#torch.nn.utils.prune.LnStructured.remove)|是|支持fp32|
-|[torch.nn.utils.prune.CustomFromMask](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.CustomFromMask.html)|是|支持int64|
-|[torch.nn.utils.prune.CustomFromMask.apply](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.CustomFromMask.html#torch.nn.utils.prune.CustomFromMask.apply)|是|支持int64|
-|[torch.nn.utils.prune.CustomFromMask.apply_mask](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.CustomFromMask.html#torch.nn.utils.prune.CustomFromMask.apply_mask)|是|-|
-|[torch.nn.utils.prune.CustomFromMask.prune](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.CustomFromMask.html#torch.nn.utils.prune.CustomFromMask.prune)|是|-|
-|[torch.nn.utils.prune.CustomFromMask.remove](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.CustomFromMask.html#torch.nn.utils.prune.CustomFromMask.remove)|是|-|
-|[torch.nn.utils.prune.random_unstructured](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.random_unstructured.html)|是|-|
-|[torch.nn.utils.prune.l1_unstructured](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.l1_unstructured.html)|是|-|
-|[torch.nn.utils.prune.random_structured](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.random_structured.html)|是|-|
-|[torch.nn.utils.prune.ln_structured](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.ln_structured.html)|是|-|
-|[torch.nn.utils.prune.global_unstructured](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.global_unstructured.html)|是|-|
-|[torch.nn.utils.prune.identity](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.identity.html)|是|-|
-|[torch.nn.utils.prune.custom_from_mask](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.custom_from_mask.html)|是|支持int64|
-|[torch.nn.utils.prune.remove](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.remove.html)|是|-|
-|[torch.nn.utils.prune.is_pruned](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.is_pruned.html)|是|-|
-|[torch.nn.utils.parametrizations.orthogonal](https://pytorch.org/docs/2.7/generated/torch.nn.utils.parametrizations.orthogonal.html)|是|-|
-|[torch.nn.utils.parametrizations.spectral_norm](https://pytorch.org/docs/2.7/generated/torch.nn.utils.parametrizations.spectral_norm.html)|是|-|
+|[torch.nn.utils.prune.BasePruningMethod](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.BasePruningMethod.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.utils.prune.BasePruningMethod.apply](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.BasePruningMethod.html#torch.nn.utils.prune.BasePruningMethod.apply)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.utils.prune.BasePruningMethod.apply_mask](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.BasePruningMethod.html#torch.nn.utils.prune.BasePruningMethod.apply_mask)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.utils.prune.BasePruningMethod.compute_mask](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.BasePruningMethod.html#torch.nn.utils.prune.BasePruningMethod.compute_mask)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.utils.prune.BasePruningMethod.prune](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.BasePruningMethod.html#torch.nn.utils.prune.BasePruningMethod.prune)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.utils.prune.BasePruningMethod.remove](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.BasePruningMethod.html#torch.nn.utils.prune.BasePruningMethod.remove)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.utils.prune.PruningContainer](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.PruningContainer.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.utils.prune.PruningContainer.add_pruning_method](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.PruningContainer.html#torch.nn.utils.prune.PruningContainer.add_pruning_method)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.utils.prune.PruningContainer.apply](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.PruningContainer.html#torch.nn.utils.prune.PruningContainer.apply)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.utils.prune.PruningContainer.apply_mask](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.PruningContainer.html#torch.nn.utils.prune.PruningContainer.apply_mask)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.utils.prune.PruningContainer.compute_mask](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.PruningContainer.html#torch.nn.utils.prune.PruningContainer.compute_mask)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.utils.prune.PruningContainer.prune](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.PruningContainer.html#torch.nn.utils.prune.PruningContainer.prune)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.utils.prune.PruningContainer.remove](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.PruningContainer.html#torch.nn.utils.prune.PruningContainer.remove)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.utils.prune.Identity](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.Identity.html#torch.nn.utils.prune.Identity)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.utils.prune.Identity.apply](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.Identity.html#torch.nn.utils.prune.Identity.apply)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.utils.prune.Identity.apply_mask](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.Identity.html#torch.nn.utils.prune.Identity.apply_mask)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.utils.prune.Identity.prune](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.Identity.html#torch.nn.utils.prune.Identity.prune)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.utils.prune.Identity.remove](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.Identity.html#torch.nn.utils.prune.Identity.remove)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.utils.prune.RandomUnstructured](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.RandomUnstructured.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.utils.prune.RandomUnstructured.apply](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.RandomUnstructured.html#torch.nn.utils.prune.RandomUnstructured.apply)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.utils.prune.RandomUnstructured.apply_mask](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.RandomUnstructured.html#torch.nn.utils.prune.RandomUnstructured.apply_mask)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.utils.prune.RandomUnstructured.prune](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.RandomUnstructured.html#torch.nn.utils.prune.RandomUnstructured.prune)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.utils.prune.RandomUnstructured.remove](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.RandomUnstructured.html#torch.nn.utils.prune.RandomUnstructured.remove)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.utils.prune.L1Unstructured](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.L1Unstructured.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.utils.prune.L1Unstructured.apply](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.L1Unstructured.html#torch.nn.utils.prune.L1Unstructured.apply)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.utils.prune.L1Unstructured.apply_mask](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.L1Unstructured.html#torch.nn.utils.prune.L1Unstructured.apply_mask)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.utils.prune.L1Unstructured.prune](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.L1Unstructured.html#torch.nn.utils.prune.L1Unstructured.prune)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.utils.prune.L1Unstructured.remove](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.L1Unstructured.html#torch.nn.utils.prune.L1Unstructured.remove)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.utils.prune.RandomStructured](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.RandomStructured.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.utils.prune.RandomStructured.apply](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.RandomStructured.html#torch.nn.utils.prune.RandomStructured.apply)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.utils.prune.RandomStructured.apply_mask](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.RandomStructured.html#torch.nn.utils.prune.RandomStructured.apply_mask)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.utils.prune.RandomStructured.compute_mask](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.RandomStructured.html#torch.nn.utils.prune.RandomStructured.compute_mask)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.utils.prune.RandomStructured.prune](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.RandomStructured.html#torch.nn.utils.prune.RandomStructured.prune)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.utils.prune.RandomStructured.remove](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.RandomStructured.html#torch.nn.utils.prune.RandomStructured.remove)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.utils.prune.LnStructured](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.LnStructured.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.utils.prune.LnStructured.apply](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.LnStructured.html#torch.nn.utils.prune.LnStructured.apply)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.utils.prune.LnStructured.apply_mask](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.LnStructured.html#torch.nn.utils.prune.LnStructured.apply_mask)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.utils.prune.LnStructured.compute_mask](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.LnStructured.html#torch.nn.utils.prune.LnStructured.compute_mask)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.utils.prune.LnStructured.prune](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.LnStructured.html#torch.nn.utils.prune.LnStructured.prune)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.utils.prune.LnStructured.remove](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.LnStructured.html#torch.nn.utils.prune.LnStructured.remove)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.utils.prune.CustomFromMask](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.CustomFromMask.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持int64|
+|[torch.nn.utils.prune.CustomFromMask.apply](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.CustomFromMask.html#torch.nn.utils.prune.CustomFromMask.apply)|是<br>暂不支持<term>Ascend 950DT</term>|支持int64|
+|[torch.nn.utils.prune.CustomFromMask.apply_mask](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.CustomFromMask.html#torch.nn.utils.prune.CustomFromMask.apply_mask)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.utils.prune.CustomFromMask.prune](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.CustomFromMask.html#torch.nn.utils.prune.CustomFromMask.prune)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.utils.prune.CustomFromMask.remove](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.CustomFromMask.html#torch.nn.utils.prune.CustomFromMask.remove)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.utils.prune.random_unstructured](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.random_unstructured.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.utils.prune.l1_unstructured](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.l1_unstructured.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.utils.prune.random_structured](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.random_structured.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.utils.prune.ln_structured](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.ln_structured.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.utils.prune.global_unstructured](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.global_unstructured.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.utils.prune.identity](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.identity.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.utils.prune.custom_from_mask](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.custom_from_mask.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持int64|
+|[torch.nn.utils.prune.remove](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.remove.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.utils.prune.is_pruned](https://pytorch.org/docs/2.7/generated/torch.nn.utils.prune.is_pruned.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.utils.parametrizations.orthogonal](https://pytorch.org/docs/2.7/generated/torch.nn.utils.parametrizations.orthogonal.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.utils.parametrizations.spectral_norm](https://pytorch.org/docs/2.7/generated/torch.nn.utils.parametrizations.spectral_norm.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |[torch.nn.utils.parametrize.register_parametrization](https://pytorch.org/docs/2.7/generated/torch.nn.utils.parametrize.register_parametrization.html)|是|-|
 |[torch.nn.utils.parametrize.remove_parametrizations](https://pytorch.org/docs/2.7/generated/torch.nn.utils.parametrize.remove_parametrizations.html)|是|-|
 |[torch.nn.utils.parametrize.cached](https://pytorch.org/docs/2.7/generated/torch.nn.utils.parametrize.cached.html)|是|-|
-|[torch.nn.utils.parametrize.is_parametrized](https://pytorch.org/docs/2.7/generated/torch.nn.utils.parametrize.is_parametrized.html)|是|-|
-|[torch.nn.utils.parametrize.ParametrizationList](https://pytorch.org/docs/2.7/generated/torch.nn.utils.parametrize.ParametrizationList.html)|是|-|
-|[torch.nn.utils.parametrize.ParametrizationList.right_inverse](https://pytorch.org/docs/2.7/generated/torch.nn.utils.parametrize.ParametrizationList.html#torch.nn.utils.parametrize.ParametrizationList.right_inverse)|是|支持fp32|
-|[torch.nn.utils.stateless.functional_call](https://pytorch.org/docs/2.7/generated/torch.nn.utils.stateless.functional_call.html)|是|-|
+|[torch.nn.utils.parametrize.is_parametrized](https://pytorch.org/docs/2.7/generated/torch.nn.utils.parametrize.is_parametrized.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.utils.parametrize.ParametrizationList](https://pytorch.org/docs/2.7/generated/torch.nn.utils.parametrize.ParametrizationList.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.utils.parametrize.ParametrizationList.right_inverse](https://pytorch.org/docs/2.7/generated/torch.nn.utils.parametrize.ParametrizationList.html#torch.nn.utils.parametrize.ParametrizationList.right_inverse)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.utils.stateless.functional_call](https://pytorch.org/docs/2.7/generated/torch.nn.utils.stateless.functional_call.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |[torch.nn.utils.rnn.PackedSequence](https://pytorch.org/docs/2.7/generated/torch.nn.utils.rnn.PackedSequence.html)|是|支持fp32，int64|
-|[torch.nn.utils.rnn.PackedSequence.batch_sizes](https://pytorch.org/docs/2.7/generated/torch.nn.utils.rnn.PackedSequence.html#torch.nn.utils.rnn.PackedSequence.batch_sizes)|是|-|
-|[torch.nn.utils.rnn.PackedSequence.count](https://pytorch.org/docs/2.7/generated/torch.nn.utils.rnn.PackedSequence.html#torch.nn.utils.rnn.PackedSequence.count)|是|支持fp32|
-|[torch.nn.utils.rnn.PackedSequence.data](https://pytorch.org/docs/2.7/generated/torch.nn.utils.rnn.PackedSequence.html#torch.nn.utils.rnn.PackedSequence.data)|是|-|
-|[torch.nn.utils.rnn.PackedSequence.index](https://pytorch.org/docs/2.7/generated/torch.nn.utils.rnn.PackedSequence.html#torch.nn.utils.rnn.PackedSequence.index)|是|支持fp32|
+|[torch.nn.utils.rnn.PackedSequence.batch_sizes](https://pytorch.org/docs/2.7/generated/torch.nn.utils.rnn.PackedSequence.html#torch.nn.utils.rnn.PackedSequence.batch_sizes)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.utils.rnn.PackedSequence.count](https://pytorch.org/docs/2.7/generated/torch.nn.utils.rnn.PackedSequence.html#torch.nn.utils.rnn.PackedSequence.count)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.utils.rnn.PackedSequence.data](https://pytorch.org/docs/2.7/generated/torch.nn.utils.rnn.PackedSequence.html#torch.nn.utils.rnn.PackedSequence.data)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.utils.rnn.PackedSequence.index](https://pytorch.org/docs/2.7/generated/torch.nn.utils.rnn.PackedSequence.html#torch.nn.utils.rnn.PackedSequence.index)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
 |[torch.nn.utils.rnn.PackedSequence.is_cuda](https://pytorch.org/docs/2.7/generated/torch.nn.utils.rnn.PackedSequence.html#torch.nn.utils.rnn.PackedSequence.is_cuda)|否|-|
-|[torch.nn.utils.rnn.PackedSequence.is_pinned](https://pytorch.org/docs/2.7/generated/torch.nn.utils.rnn.PackedSequence.html#torch.nn.utils.rnn.PackedSequence.is_pinned)|是|-|
-|[torch.nn.utils.rnn.PackedSequence.sorted_indices](https://pytorch.org/docs/2.7/generated/torch.nn.utils.rnn.PackedSequence.html#torch.nn.utils.rnn.PackedSequence.sorted_indices)|是|-|
-|[torch.nn.utils.rnn.PackedSequence.to](https://pytorch.org/docs/2.7/generated/torch.nn.utils.rnn.PackedSequence.html#torch.nn.utils.rnn.PackedSequence.to)|是|支持fp32，int64|
-|[torch.nn.utils.rnn.PackedSequence.unsorted_indices](https://pytorch.org/docs/2.7/generated/torch.nn.utils.rnn.PackedSequence.html#torch.nn.utils.rnn.PackedSequence.unsorted_indices)|是|-|
+|[torch.nn.utils.rnn.PackedSequence.is_pinned](https://pytorch.org/docs/2.7/generated/torch.nn.utils.rnn.PackedSequence.html#torch.nn.utils.rnn.PackedSequence.is_pinned)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.utils.rnn.PackedSequence.sorted_indices](https://pytorch.org/docs/2.7/generated/torch.nn.utils.rnn.PackedSequence.html#torch.nn.utils.rnn.PackedSequence.sorted_indices)|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|[torch.nn.utils.rnn.PackedSequence.to](https://pytorch.org/docs/2.7/generated/torch.nn.utils.rnn.PackedSequence.html#torch.nn.utils.rnn.PackedSequence.to)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32，int64|
+|[torch.nn.utils.rnn.PackedSequence.unsorted_indices](https://pytorch.org/docs/2.7/generated/torch.nn.utils.rnn.PackedSequence.html#torch.nn.utils.rnn.PackedSequence.unsorted_indices)|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |[torch.nn.utils.rnn.pack_padded_sequence](https://pytorch.org/docs/2.7/generated/torch.nn.utils.rnn.pack_padded_sequence.html)|否|-|
 |[torch.nn.utils.rnn.pad_packed_sequence](https://pytorch.org/docs/2.7/generated/torch.nn.utils.rnn.pad_packed_sequence.html)|否|-|
 |[torch.nn.utils.rnn.pad_sequence](https://pytorch.org/docs/2.7/generated/torch.nn.utils.rnn.pad_sequence.html)|是|支持fp16，fp32|
@@ -337,8 +337,8 @@
 |[torch.nn.utils.rnn.unpack_sequence](https://pytorch.org/docs/2.7/generated/torch.nn.utils.rnn.unpack_sequence.html)|否|-|
 |[torch.nn.utils.rnn.unpad_sequence](https://pytorch.org/docs/2.7/generated/torch.nn.utils.rnn.unpad_sequence.html)|否|-|
 |[torch.nn.Flatten](https://pytorch.org/docs/2.7/generated/torch.nn.Flatten.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|[torch.nn.Unflatten](https://pytorch.org/docs/2.7/generated/torch.nn.Unflatten.html)|是|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
-|[torch.nn.Unflatten.NamedShape](https://pytorch.org/docs/2.7/generated/torch.nn.Unflatten.html#torch.nn.Unflatten.NamedShape)|是|-|
+|[torch.nn.Unflatten](https://pytorch.org/docs/2.7/generated/torch.nn.Unflatten.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
+|[torch.nn.Unflatten.NamedShape](https://pytorch.org/docs/2.7/generated/torch.nn.Unflatten.html#torch.nn.Unflatten.NamedShape)|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |[torch.nn.modules.lazy.LazyModuleMixin](https://pytorch.org/docs/2.7/generated/torch.nn.modules.lazy.LazyModuleMixin.html)|是|支持fp32|
-|[torch.nn.modules.lazy.LazyModuleMixin.has_uninitialized_params](https://pytorch.org/docs/2.7/generated/torch.nn.modules.lazy.LazyModuleMixin.html#torch.nn.modules.lazy.LazyModuleMixin.has_uninitialized_params)|是|支持fp32|
-|[torch.nn.modules.lazy.LazyModuleMixin.initialize_parameters](https://pytorch.org/docs/2.7/generated/torch.nn.modules.lazy.LazyModuleMixin.html#torch.nn.modules.lazy.LazyModuleMixin.initialize_parameters)|是|支持fp32|
+|[torch.nn.modules.lazy.LazyModuleMixin.has_uninitialized_params](https://pytorch.org/docs/2.7/generated/torch.nn.modules.lazy.LazyModuleMixin.html#torch.nn.modules.lazy.LazyModuleMixin.has_uninitialized_params)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
+|[torch.nn.modules.lazy.LazyModuleMixin.initialize_parameters](https://pytorch.org/docs/2.7/generated/torch.nn.modules.lazy.LazyModuleMixin.html#torch.nn.modules.lazy.LazyModuleMixin.initialize_parameters)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|

@@ -5,4 +5,4 @@
 
 |API名称|是否支持|限制与说明|
 |--|--|--|
-|[torch.distributed.fsdp.fully_shard](https://pytorch.org/docs/2.12/distributed.fsdp.fully_shard.html#torch.distributed.fsdp.fully_shard)|是|支持bf16，fp16，fp32|
+|[torch.distributed.fsdp.fully_shard](https://pytorch.org/docs/2.12/distributed.fsdp.fully_shard.html#torch.distributed.fsdp.fully_shard)|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32|

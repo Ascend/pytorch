@@ -7,31 +7,31 @@
 |--|--|--|
 |[torch.nn.functional.conv1d](https://pytorch.org/docs/2.11/generated/torch.nn.functional.conv1d.html)|是|支持fp16，fp32|
 |[torch.nn.functional.conv2d](https://pytorch.org/docs/2.11/generated/torch.nn.functional.conv2d.html)|是|支持bf16，fp16，fp32|
-|[torch.nn.functional.conv3d](https://pytorch.org/docs/2.11/generated/torch.nn.functional.conv3d.html)|是|支持bf16，fp16，fp32，complex64|
+|[torch.nn.functional.conv3d](https://pytorch.org/docs/2.11/generated/torch.nn.functional.conv3d.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32，complex64|
 |[torch.nn.functional.conv_transpose1d](https://pytorch.org/docs/2.11/generated/torch.nn.functional.conv_transpose1d.html)|是|支持fp32|
 |[torch.nn.functional.conv_transpose2d](https://pytorch.org/docs/2.11/generated/torch.nn.functional.conv_transpose2d.html)|是|支持fp16，fp32|
-|[torch.nn.functional.conv_transpose3d](https://pytorch.org/docs/2.11/generated/torch.nn.functional.conv_transpose3d.html)|是|支持bf16，fp16，fp32|
+|[torch.nn.functional.conv_transpose3d](https://pytorch.org/docs/2.11/generated/torch.nn.functional.conv_transpose3d.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32|
 |[torch.nn.functional.unfold](https://pytorch.org/docs/2.11/generated/torch.nn.functional.unfold.html)|是|支持bf16，fp16，fp32|
 |[torch.nn.functional.fold](https://pytorch.org/docs/2.11/generated/torch.nn.functional.fold.html)|是|支持fp16，fp32|
 |[torch.nn.functional.avg_pool1d](https://pytorch.org/docs/2.11/generated/torch.nn.functional.avg_pool1d.html)|是|支持bf16，fp16，fp32|
 |[torch.nn.functional.avg_pool2d](https://pytorch.org/docs/2.11/generated/torch.nn.functional.avg_pool2d.html)|是|支持bf16，fp16，fp32|
 |[torch.nn.functional.avg_pool3d](https://pytorch.org/docs/2.11/generated/torch.nn.functional.avg_pool3d.html)|否|-|
-|[torch.nn.functional.max_pool1d](https://pytorch.org/docs/2.11/generated/torch.nn.functional.max_pool1d.html)|是|支持fp16，fp32<br>dilation仅支持1<br>通过设置torch_npu.npu.use_compatible_impl(True)，保证与社区同名接口在内存一致性上对齐<br>return_indices为True时，返回的argmax的数据类型为int32|
+|[torch.nn.functional.max_pool1d](https://pytorch.org/docs/2.11/generated/torch.nn.functional.max_pool1d.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32<br>dilation仅支持1<br>通过设置torch_npu.npu.use_compatible_impl(True)，保证与社区同名接口在内存一致性上对齐<br>return_indices为True时，返回的argmax的数据类型为int32|
 |[torch.nn.functional.max_pool2d](https://pytorch.org/docs/2.11/generated/torch.nn.functional.max_pool2d.html)|是|支持bf16，fp16，fp32<br>dilation的值目前在NPU上仅支持设置为1或(1,1)<br>通过设置torch_npu.npu.use_compatible_impl(True)，保证与社区同名接口在内存一致性上对齐<br>return_indices为True时，返回的argmax的数据类型为int32|
 |[torch.nn.functional.max_pool3d](https://pytorch.org/docs/2.11/generated/torch.nn.functional.max_pool3d.html)|是|支持bf16，fp16，fp32<br>dilation的值目前在NPU上仅支持设置为1或(1,1,1)<br>return_indices为True时，返回的argmax的数据类型为int32|
-|[torch.nn.functional.max_unpool1d](https://pytorch.org/docs/2.11/generated/torch.nn.functional.max_unpool1d.html)|是|支持fp16，fp32，fp64，uint8，int8，int32，int64|
-|[torch.nn.functional.max_unpool2d](https://pytorch.org/docs/2.11/generated/torch.nn.functional.max_unpool2d.html)|是|支持fp16，fp32，fp64，uint8，int8，int32，int64<br>jit_compile=False即二进制模式时，output_size的乘积需要大于等于input的H，W的乘积|
+|[torch.nn.functional.max_unpool1d](https://pytorch.org/docs/2.11/generated/torch.nn.functional.max_unpool1d.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，fp64，uint8，int8，int32，int64|
+|[torch.nn.functional.max_unpool2d](https://pytorch.org/docs/2.11/generated/torch.nn.functional.max_unpool2d.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，fp64，uint8，int8，int32，int64<br>jit_compile=False即二进制模式时，output_size的乘积需要大于等于input的H，W的乘积|
 |[torch.nn.functional.max_unpool3d](https://pytorch.org/docs/2.11/generated/torch.nn.functional.max_unpool3d.html)|否|-|
-|[torch.nn.functional.lp_pool1d](https://pytorch.org/docs/2.11/generated/torch.nn.functional.lp_pool1d.html)|是|支持fp16，fp32|
-|[torch.nn.functional.lp_pool2d](https://pytorch.org/docs/2.11/generated/torch.nn.functional.lp_pool2d.html)|是|支持fp16，fp32|
+|[torch.nn.functional.lp_pool1d](https://pytorch.org/docs/2.11/generated/torch.nn.functional.lp_pool1d.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
+|[torch.nn.functional.lp_pool2d](https://pytorch.org/docs/2.11/generated/torch.nn.functional.lp_pool2d.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
 |[torch.nn.functional.adaptive_max_pool1d](https://pytorch.org/docs/2.11/generated/torch.nn.functional.adaptive_max_pool1d.html)|否|-|
 |[torch.nn.functional.adaptive_max_pool2d](https://pytorch.org/docs/2.11/generated/torch.nn.functional.adaptive_max_pool2d.html)|否|-|
-|[torch.nn.functional.adaptive_max_pool3d](https://pytorch.org/docs/2.11/generated/torch.nn.functional.adaptive_max_pool3d.html)|是|支持fp32，fp64|
-|[torch.nn.functional.adaptive_avg_pool1d](https://pytorch.org/docs/2.11/generated/torch.nn.functional.adaptive_avg_pool1d.html)|是|支持fp16，fp32|
-|[torch.nn.functional.adaptive_avg_pool2d](https://pytorch.org/docs/2.11/generated/torch.nn.functional.adaptive_avg_pool2d.html)|是|支持bf16，fp16，fp32|
-|[torch.nn.functional.adaptive_avg_pool3d](https://pytorch.org/docs/2.11/generated/torch.nn.functional.adaptive_avg_pool3d.html)|是|支持bf16，fp16，fp32|
+|[torch.nn.functional.adaptive_max_pool3d](https://pytorch.org/docs/2.11/generated/torch.nn.functional.adaptive_max_pool3d.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32，fp64|
+|[torch.nn.functional.adaptive_avg_pool1d](https://pytorch.org/docs/2.11/generated/torch.nn.functional.adaptive_avg_pool1d.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
+|[torch.nn.functional.adaptive_avg_pool2d](https://pytorch.org/docs/2.11/generated/torch.nn.functional.adaptive_avg_pool2d.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32|
+|[torch.nn.functional.adaptive_avg_pool3d](https://pytorch.org/docs/2.11/generated/torch.nn.functional.adaptive_avg_pool3d.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32|
 |[torch.nn.functional.fractional_max_pool2d](https://pytorch.org/docs/2.11/generated/torch.nn.functional.fractional_max_pool2d.html)|是|可能回退至CPU执行|
-|[torch.nn.functional.fractional_max_pool3d](https://pytorch.org/docs/2.11/generated/torch.nn.functional.fractional_max_pool3d.html)|是|-|
+|[torch.nn.functional.fractional_max_pool3d](https://pytorch.org/docs/2.11/generated/torch.nn.functional.fractional_max_pool3d.html)|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |[torch.nn.functional.scaled_dot_product_attention](https://pytorch.org/docs/2.11/generated/torch.nn.functional.scaled_dot_product_attention)<br>在当前版本中，sdpa（scaled_dot_product_attention）接口仅作为一项试用特性，此功能在后续版本中可能会有所调整或改进。请用户在使用过程中关注后续版本的迭代。|<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>：是|支持bf16、fp16和fp32。所有参数输入均符合以下约束<br>**约束**：<br>所有参数输入符合规格：<br>&#8226; 输入query、key、value的N：batch size，当前只支持[N，head_num, S(L), E(Ev)]的排布方式，取值范围1~2K<br>&#8226; 输入query的head num和key/value的head num必须成比例关系，即Nq/Nkv必须是非0整数，取值范围1~256<br>&#8226; 输入query的L：Target sequence length，取值范围1~512K<br>&#8226; 输入key、value的S：Source sequence length，取值范围1~512K<br>输入query、key、value的E：Embedding dimension of the query and key，取值范围1~512<br>&#8226; 输入value的Ev：Embedding dimension of the value，必须与E相等<br>&#8226; 输入attn_mask：当前支持[N, 1, L, S]、[N, head_num, L, S]、[1, 1, L, S]、[L, S]，以及可广播到[N, head_num, L, S]的bool类型mask，例如[L, 1]、[1, S]、[1, 1]等排布方式<br>&#8226; 在开启is_causal计算时，attn_mask必须为None；不开启is_causal时，若attn_mask输入有效数据，输入数据类型必须是bool类型<br>&#8226; 输入query、key、value的数据类型为bf16、fp16、fp32<br>&#8226; 通过设置torch_npu.npu.use_compatible_impl(True)，支持按SDPA后端选择上下文指定MATH后端<br>与原接口除了规格限制之外的差异点：<br>&#8226; NPU的随机算法部分用DSA硬件实现，算法在DSA引擎固化与GPU算法实现存在差异，导致dropout功能和GPU结果不一致<br>&#8226; 当前接口支持输入query的head num和key/value的head num不等长，而原生PyTorch接口不支持|
 |[torch.nn.functional.threshold](https://pytorch.org/docs/2.11/generated/torch.nn.functional.threshold.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64<br>当输入为超过16,777,216（即2<sup>24</sup>）的int32类型时，精度会有损失|
 |[torch.nn.functional.threshold_](https://pytorch.org/docs/2.11/generated/torch.nn.functional.threshold_.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64<br>当输入为超过16,777,216（即2<sup>24</sup>）的int32类型时，精度会有损失|
@@ -44,37 +44,37 @@
 |[torch.nn.functional.elu](https://pytorch.org/docs/2.11/generated/torch.nn.functional.elu.html)|是|支持bf16，fp16，fp32，fp64|
 |[torch.nn.functional.elu_](https://pytorch.org/docs/2.11/generated/torch.nn.functional.elu_.html)|是|支持fp16，fp32|
 |[torch.nn.functional.selu](https://pytorch.org/docs/2.11/generated/torch.nn.functional.selu.html)|是|支持fp16，fp32<br>fp16的反向场景下对比GPU存在精度累加误差，可以通过如下方式进行规避：<br>将正向调用的torch.nn.functional.selu替换成torch.ops.aten.elu，例如：将torch.nn.functional.selu(input_x)替换为torch.ops.aten.elu(input_x, 1.6732632423543772848170429916717, 1.0507009873554804934193349852946)|
-|[torch.nn.functional.celu](https://pytorch.org/docs/2.11/generated/torch.nn.functional.celu.html)|是|支持fp16，fp32|
-|[torch.nn.functional.leaky_relu](https://pytorch.org/docs/2.11/generated/torch.nn.functional.leaky_relu.html)|是|支持bf16，fp16，fp32，fp64|
+|[torch.nn.functional.celu](https://pytorch.org/docs/2.11/generated/torch.nn.functional.celu.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
+|[torch.nn.functional.leaky_relu](https://pytorch.org/docs/2.11/generated/torch.nn.functional.leaky_relu.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32，fp64|
 |[torch.nn.functional.leaky_relu_](https://pytorch.org/docs/2.11/generated/torch.nn.functional.leaky_relu_.html)|是|支持fp16，fp32，fp64|
 |[torch.nn.functional.prelu](https://pytorch.org/docs/2.11/generated/torch.nn.functional.prelu.html)|是|支持fp16，fp32<br>input仅支持1-8维|
-|[torch.nn.functional.rrelu](https://pytorch.org/docs/2.11/generated/torch.nn.functional.rrelu.html)|是|支持bf16，fp16，fp32|
+|[torch.nn.functional.rrelu](https://pytorch.org/docs/2.11/generated/torch.nn.functional.rrelu.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32|
 |[torch.nn.functional.glu](https://pytorch.org/docs/2.11/generated/torch.nn.functional.glu.html)|是|支持bf16，fp16，fp32，fp64|
 |[torch.nn.functional.gelu](https://pytorch.org/docs/2.11/generated/torch.nn.functional.gelu.html)|是|支持bf16，fp16，fp32<br>approximate参数仅支持设置为tanh|
 |[torch.nn.functional.logsigmoid](https://pytorch.org/docs/2.11/generated/torch.nn.functional.logsigmoid.html)|是|支持fp16，fp32|
 |[torch.nn.functional.hardshrink](https://pytorch.org/docs/2.11/generated/torch.nn.functional.hardshrink.html)|是|支持fp16，fp32|
 |[torch.nn.functional.softsign](https://pytorch.org/docs/2.11/generated/torch.nn.functional.softsign.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64|
-|[torch.nn.functional.softplus](https://pytorch.org/docs/2.11/generated/torch.nn.functional.softplus.html)|是|支持bf16，fp16，fp32|
+|[torch.nn.functional.softplus](https://pytorch.org/docs/2.11/generated/torch.nn.functional.softplus.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32|
 |[torch.nn.functional.softmax](https://pytorch.org/docs/2.11/generated/torch.nn.functional.softmax.html)|是|支持bf16，fp16，fp32，fp64|
-|[torch.nn.functional.softshrink](https://pytorch.org/docs/2.11/generated/torch.nn.functional.softshrink.html)|是|支持fp16，fp32|
+|[torch.nn.functional.softshrink](https://pytorch.org/docs/2.11/generated/torch.nn.functional.softshrink.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
 |[torch.nn.functional.gumbel_softmax](https://pytorch.org/docs/2.11/generated/torch.nn.functional.gumbel_softmax.html)|否|-|
 |[torch.nn.functional.log_softmax](https://pytorch.org/docs/2.11/generated/torch.nn.functional.log_softmax.html)|是|支持bf16，fp16，fp32|
 |[torch.nn.functional.tanh](https://pytorch.org/docs/2.11/generated/torch.nn.functional.tanh.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |[torch.nn.functional.sigmoid](https://pytorch.org/docs/2.11/generated/torch.nn.functional.sigmoid.html)|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|[torch.nn.functional.hardsigmoid](https://pytorch.org/docs/2.11/generated/torch.nn.functional.hardsigmoid.html)|是|支持fp16，fp32|
+|[torch.nn.functional.hardsigmoid](https://pytorch.org/docs/2.11/generated/torch.nn.functional.hardsigmoid.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
 |[torch.nn.functional.silu](https://pytorch.org/docs/2.11/generated/torch.nn.functional.silu.html)|是|支持fp16，fp32|
 |[torch.nn.functional.mish](https://pytorch.org/docs/2.11/generated/torch.nn.functional.mish.html)|是|支持fp16，fp32|
 |[torch.nn.functional.batch_norm](https://pytorch.org/docs/2.11/generated/torch.nn.functional.batch_norm.html)|是|支持fp16，fp32<br>weight和bias仅支持一维场景<br>bias的shape为1维，长度与input入参中channel轴的长度相等|
-|[torch.nn.functional.group_norm](https://pytorch.org/docs/2.11/generated/torch.nn.functional.group_norm.html)|是|支持bf16，fp16，fp32<br>该API仅支持2维及以上的输入input<br>eps参数需大于0|
+|[torch.nn.functional.group_norm](https://pytorch.org/docs/2.11/generated/torch.nn.functional.group_norm.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32<br>该API仅支持2维及以上的输入input<br>eps参数需大于0|
 |[torch.nn.functional.layer_norm](https://pytorch.org/docs/2.11/generated/torch.nn.functional.layer_norm.html)|是|支持bf16，fp16，fp32|
 |[torch.nn.functional.normalize](https://pytorch.org/docs/2.11/generated/torch.nn.functional.normalize.html)|是|支持bf16，fp16，fp32，fp64|
-|[torch.nn.functional.linear](https://pytorch.org/docs/2.11/generated/torch.nn.functional.linear.html)|是|支持bf16，fp16，fp32|
-|[torch.nn.functional.bilinear](https://pytorch.org/docs/2.11/generated/torch.nn.functional.bilinear.html)|是|支持bf16，fp16，fp32|
+|[torch.nn.functional.linear](https://pytorch.org/docs/2.11/generated/torch.nn.functional.linear.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32|
+|[torch.nn.functional.bilinear](https://pytorch.org/docs/2.11/generated/torch.nn.functional.bilinear.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32|
 |[torch.nn.functional.dropout](https://pytorch.org/docs/2.11/generated/torch.nn.functional.dropout.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[torch.nn.functional.alpha_dropout](https://pytorch.org/docs/2.11/generated/torch.nn.functional.alpha_dropout.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[torch.nn.functional.feature_alpha_dropout](https://pytorch.org/docs/2.11/generated/torch.nn.functional.feature_alpha_dropout.html)|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|[torch.nn.functional.dropout2d](https://pytorch.org/docs/2.11/generated/torch.nn.functional.dropout2d.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|[torch.nn.functional.embedding](https://pytorch.org/docs/2.11/generated/torch.nn.functional.embedding.html)|是|支持bf16，fp16，fp32，int32，int64<br>属性max_norm仅支持非负值|
+|[torch.nn.functional.dropout2d](https://pytorch.org/docs/2.11/generated/torch.nn.functional.dropout2d.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128<br><term>Ascend 950DT</term>：不支持complex64，complex128|
+|[torch.nn.functional.embedding](https://pytorch.org/docs/2.11/generated/torch.nn.functional.embedding.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32，int32，int64<br>属性max_norm仅支持非负值|
 |[torch.nn.functional.embedding_bag](https://pytorch.org/docs/2.11/generated/torch.nn.functional.embedding_bag.html)|否|-|
 |[torch.nn.functional.one_hot](https://pytorch.org/docs/2.11/generated/torch.nn.functional.one_hot.html)|是|支持int32，int64|
 |[torch.nn.functional.cosine_similarity](https://pytorch.org/docs/2.11/generated/torch.nn.functional.cosine_similarity.html)|是|支持fp16，fp32|
@@ -89,22 +89,22 @@
 |[torch.nn.functional.l1_loss](https://pytorch.org/docs/2.11/generated/torch.nn.functional.l1_loss.html)|是|支持bf16，fp16，fp32，int64|
 |[torch.nn.functional.mse_loss](https://pytorch.org/docs/2.11/generated/torch.nn.functional.mse_loss.html)|是|支持fp16，fp32|
 |[torch.nn.functional.margin_ranking_loss](https://pytorch.org/docs/2.11/generated/torch.nn.functional.margin_ranking_loss.html)|是|支持bf16，fp16，fp32|
-|[torch.nn.functional.multilabel_margin_loss](https://pytorch.org/docs/2.11/generated/torch.nn.functional.multilabel_margin_loss.html)|是|支持fp16，fp32<br>输入tensor的元素个数不能超过10万|
+|[torch.nn.functional.multilabel_margin_loss](https://pytorch.org/docs/2.11/generated/torch.nn.functional.multilabel_margin_loss.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32<br>输入tensor的元素个数不能超过10万|
 |[torch.nn.functional.multilabel_soft_margin_loss](https://pytorch.org/docs/2.11/generated/torch.nn.functional.multilabel_soft_margin_loss.html)|否|-|
 |[torch.nn.functional.nll_loss](https://pytorch.org/docs/2.11/generated/torch.nn.functional.nll_loss.html)|是|支持fp32<br>target中的每个元素值应大于等于0且小于input的类别数|
 |[torch.nn.functional.smooth_l1_loss](https://pytorch.org/docs/2.11/generated/torch.nn.functional.smooth_l1_loss.html)|是|支持bf16，fp16，fp32|
-|[torch.nn.functional.soft_margin_loss](https://pytorch.org/docs/2.11/generated/torch.nn.functional.soft_margin_loss.html)|是|支持bf16，fp16，fp32，不支持double，complex64，complex128数据类型|
+|[torch.nn.functional.soft_margin_loss](https://pytorch.org/docs/2.11/generated/torch.nn.functional.soft_margin_loss.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32，不支持double，complex64，complex128数据类型|
 |[torch.nn.functional.triplet_margin_loss](https://pytorch.org/docs/2.11/generated/torch.nn.functional.triplet_margin_loss.html)|否|-|
 |[torch.nn.functional.triplet_margin_with_distance_loss](https://pytorch.org/docs/2.11/generated/torch.nn.functional.triplet_margin_with_distance_loss.html)|否|-|
 |[torch.nn.functional.pixel_shuffle](https://pytorch.org/docs/2.11/generated/torch.nn.functional.pixel_shuffle.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |[torch.nn.functional.pixel_unshuffle](https://pytorch.org/docs/2.11/generated/torch.nn.functional.pixel_unshuffle.html)|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
 |[torch.nn.functional.pad](https://pytorch.org/docs/2.11/generated/torch.nn.functional.pad.html)|是|属性mode为constant时，支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool<br>属性mode非constant时，支持fp16，fp32，fp64<br>在输入x为六维以上时可能会出现性能下降问题|
-|[torch.nn.functional.interpolate](https://pytorch.org/docs/2.11/generated/torch.nn.functional.interpolate.html)|是|支持bf16，fp16，fp32，fp64<br>支持nearest，linear，bilinear，bicubic，trilinear，area<br>不支持scale_factor|
-|[torch.nn.functional.upsample](https://pytorch.org/docs/2.11/generated/torch.nn.functional.upsample.html)|是|支持fp16，fp32，fp64<br>只支持mode = nearest|
+|[torch.nn.functional.interpolate](https://pytorch.org/docs/2.11/generated/torch.nn.functional.interpolate.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32，fp64<br>支持nearest，linear，bilinear，bicubic，trilinear，area<br>不支持scale_factor|
+|[torch.nn.functional.upsample](https://pytorch.org/docs/2.11/generated/torch.nn.functional.upsample.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，fp64<br>只支持mode = nearest|
 |[torch.nn.functional.upsample_nearest](https://pytorch.org/docs/2.11/generated/torch.nn.functional.upsample_nearest.html)|是|支持fp16，fp32，fp64<br>只支持3-5维|
 |[torch.nn.functional.upsample_bilinear](https://pytorch.org/docs/2.11/generated/torch.nn.functional.upsample_bilinear.html)|是|支持fp16，fp32|
-|[torch.nn.functional.grid_sample](https://pytorch.org/docs/2.11/generated/torch.nn.functional.grid_sample.html)|是|支持fp16，fp32，fp64|
+|[torch.nn.functional.grid_sample](https://pytorch.org/docs/2.11/generated/torch.nn.functional.grid_sample.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，fp64|
 |[torch.nn.functional.affine_grid](https://pytorch.org/docs/2.11/generated/torch.nn.functional.affine_grid.html)|是|支持fp16，fp32|
-|[torch.nn.functional.scaled_mm](https://docs.pytorch.org/docs/2.11/generated/torch.nn.functional.scaled_mm.html)|是|支持fp8模式下ScalingType为tensorwise，rowwise和BlockWise1x128，mxfp8模式下ScalingType为BlockWise1x32的排布，mxfp8遵循[aclnnQuantMatmulV5](https://gitcode.com/cann/ops-nn/blob/master/matmul/quant_batch_matmul_v4/docs/aclnnQuantMatmulV5.md)要求（scale_a和scale_b详见约束说明）|
-|[torch.nn.functional.scaled_grouped_mm](https://docs.pytorch.org/docs/2.11/generated/torch.nn.functional.scaled_grouped_mm.html)|是|支持fp8模式下ScalingType为rowwise，mxfp8模式的排布，mxfp8遵循[aclnnGroupedMatmulV5](https://gitcode.com/cann/ops-transformer/blob/master/gmm/grouped_matmul/docs/aclnnGroupedMatmulV5.md)要求（scale_a和scale_b详见约束说明）|
+|[torch.nn.functional.scaled_mm](https://docs.pytorch.org/docs/2.11/generated/torch.nn.functional.scaled_mm.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp8模式下ScalingType为tensorwise，rowwise和BlockWise1x128，mxfp8模式下ScalingType为BlockWise1x32的排布，mxfp8遵循[aclnnQuantMatmulV5](https://gitcode.com/cann/ops-nn/blob/master/matmul/quant_batch_matmul_v4/docs/aclnnQuantMatmulV5.md)要求（scale_a和scale_b详见约束说明）|
+|[torch.nn.functional.scaled_grouped_mm](https://docs.pytorch.org/docs/2.11/generated/torch.nn.functional.scaled_grouped_mm.html)|是<br>暂不支持<term>Ascend 950DT</term>|支持fp8模式下ScalingType为rowwise，mxfp8模式的排布，mxfp8遵循[aclnnGroupedMatmulV5](https://gitcode.com/cann/ops-transformer/blob/master/gmm/grouped_matmul/docs/aclnnGroupedMatmulV5.md)要求（scale_a和scale_b详见约束说明）|
 |[torch.nn.parallel.data_parallel](https://pytorch.org/docs/2.11/generated/torch.nn.functional.torch.nn.parallel.data_parallel.html#torch.nn.parallel.data_parallel)|否|-|

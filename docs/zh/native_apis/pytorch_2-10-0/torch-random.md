@@ -10,5 +10,5 @@
 |[torch.random.get_rng_state](https://pytorch.org/docs/2.10/random.html#torch.random.get_rng_state)|是|-|
 |[torch.random.initial_seed](https://pytorch.org/docs/2.10/random.html#torch.random.initial_seed)|是|-|
 |[torch.random.manual_seed](https://pytorch.org/docs/2.10/random.html#torch.random.manual_seed)|是|-|
-|[torch.random.seed](https://pytorch.org/docs/2.10/random.html#torch.random.seed)|是|-|
+|[torch.random.seed](https://pytorch.org/docs/2.10/random.html#torch.random.seed)|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |[torch.random.set_rng_state](https://pytorch.org/docs/2.10/random.html#torch.random.set_rng_state)|是|-|
