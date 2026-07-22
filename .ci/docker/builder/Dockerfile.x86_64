@@ -34,7 +34,8 @@ RUN pip3.10 install --no-cache-dir --index-url https://download.pytorch.org/whl/
         && pip3.13 install --no-cache-dir -r /opt/buildtools/requirements-builder.txt \
     && pip3.14 install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==${PYTORCH_VERSION}+cpu \
         && pip3.14 install --no-cache-dir -r /opt/buildtools/requirements-builder.txt \
-    && ln -sf /opt/_internal/cpython-3.14.4/bin/auditwheel /usr/local/bin/auditwheel-3.14
+        && pip3.14 install --no-cache-dir auditwheel==5.4.0 \
+    && ln -sf /opt/_internal/cpython-3.14.4/bin/auditwheel /usr/local/bin/auditwheel
 
 # Install system build tools
 RUN yum remove -y ius-release epel-release 2>/dev/null || true \
