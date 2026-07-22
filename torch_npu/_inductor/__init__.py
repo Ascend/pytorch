@@ -5,14 +5,14 @@ from .codegen.common import register_device_op_overrides_npu, patch_cache_base_g
 from .graph import patch_codegen_with_cpp_wrapper
 from .utils import patch_has_triton, patch_device_supports_tma, patch_is_gpu, get_current_raw_stream
 from ._npu_meta_registration import npu_patch_meta
-
+from .lowering_common import run_once
 # 顶层 patch：所有 inductor backend（triton / mlir / dvm / ascendc）都需要的 NPU 设备级patch，
 # 与 codegen 后端选择无关，在任何 backend loader 之前无条件执行
 npu_patch_meta()
 _dynamo_register_interface_for_device()
 register_device_op_overrides_npu()
 
-
+@run_once
 def _apply_common_patches():
     # triton / mlir 后端共用的 patch
     patch_has_triton()
