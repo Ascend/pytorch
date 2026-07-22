@@ -119,7 +119,7 @@ jobs:
           conclusion: ${{ needs.build.result == 'success' && 'success' || 'failure' }}
           job-name: pytorch_and_torch-npu_build
 
-  report_start:
+  report_test_start:
     needs: [extract, build]
     if: ${{ needs.extract.outputs.should_build == 'true' && needs.build.result == 'success' }}
     runs-on: ubuntu-latest
@@ -127,7 +127,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - name: Report in_progress
+      - name: Report test in_progress
         continue-on-error: true
         uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@main
         with:
@@ -135,7 +135,7 @@ jobs:
           job-name: test
 
   test:
-    needs: [extract, build, report_start]
+    needs: [extract, build, report_test_start]
     if: ${{ needs.extract.outputs.should_build == 'true' && needs.build.result == 'success' }}
     uses: ./.github/workflows/_test.yml
     secrets: inherit
@@ -143,7 +143,7 @@ jobs:
       resolved_short: ${{ needs.build.outputs.resolved_short }}
       case_paths_config: .github/config/test_whitelist.yml
 
-  report_end:
+  report_test_end:
     needs: [extract, build, test]
     if: ${{ always() && needs.extract.outputs.should_build == 'true' && needs.build.result == 'success' }}
     runs-on: ubuntu-latest
@@ -208,7 +208,7 @@ jobs:
           print(f'Results: {passed} passed, {failed} failed, {errors} errors, {timeout} timeout, {skipped} skipped, {total} total')
           "
 
-      - name: Report completed
+      - name: Report test completed
         if: always()
         continue-on-error: true
         uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@main
