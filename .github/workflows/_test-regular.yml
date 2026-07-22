@@ -51,7 +51,7 @@ jobs:
         uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
         with:
           status: in_progress
-          job-name: test
+          job-name: test-reg-${{ matrix.shard }}
 
       - name: Authenticate to Huawei Cloud
         uses: huaweicloud/auth-action@v1.1.0
@@ -239,7 +239,7 @@ jobs:
         with:
           status: completed
           conclusion: ${{ steps.parse_results.outputs.parse_ok == 'true' && steps.parse_results.outputs.total_failed == '0' && 'success' || 'failure' }}
-          job-name: test
+          job-name: test-reg-${{ matrix.shard }}
           test-results: >-
             {
               "passed": ${{ steps.parse_results.outputs.passed }},
