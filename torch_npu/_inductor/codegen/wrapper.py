@@ -165,6 +165,12 @@ class NPUPythonWrapperCodeGen(_NPUKernelCodegenMixin, PythonWrapperCodegen):
         self.pre_define_buffer = []
 
 
+    @classmethod
+    def _get_triton_info_kernel_cls(cls):
+        from torch_npu._inductor.codegen.triton import NPUTritonKernel
+
+        return NPUTritonKernel
+
     @staticmethod
     def create(
         is_subgraph: bool,
