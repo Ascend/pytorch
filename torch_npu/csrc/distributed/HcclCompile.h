@@ -323,7 +323,7 @@ bool hcclAllGatherVExist()
         auto func = TORCH_NPU_GET_FUNC(HcclAllGatherV)
         const auto soc_version = c10_npu::GetSocVersion();
         const bool is_atlas_a3 = (soc_version >= c10_npu::SocVersion::Ascend910_9391) &&
-            (soc_version <= c10_npu::SocVersion::Ascend910_9362);
+            (soc_version < c10_npu::SocVersion::Ascend950);
         if (func != nullptr &&
             (((soc_version >= c10_npu::SocVersion::Ascend310P1) &&
               (soc_version < c10_npu::SocVersion::Ascend310B1)) ||
@@ -342,7 +342,7 @@ bool hcclReduceScatterVExist()
         auto func = TORCH_NPU_GET_FUNC(HcclReduceScatterV)
         const auto soc_version = c10_npu::GetSocVersion();
         const bool is_atlas_a3 = (soc_version >= c10_npu::SocVersion::Ascend910_9391) &&
-            (soc_version <= c10_npu::SocVersion::Ascend910_9362);
+            (soc_version < c10_npu::SocVersion::Ascend950);
         if (func != nullptr &&
             (((soc_version >= c10_npu::SocVersion::Ascend310P1) &&
               (soc_version < c10_npu::SocVersion::Ascend310B1)) ||
