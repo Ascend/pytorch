@@ -1222,25 +1222,45 @@ public:
         TORCH_NPU_MEMORY_LOGD("Rounded size: %zu, alloc size: %zu, using %s pool on device %d",
             size, alloc_size, pool.is_small ? "small" : "large", device);
 
+        // Lazy reclaim: bound the pending-event backlog BEFORE selecting a block.
+        // The original code ran process_events() AFTER get_free_block(): the block
+        // returned by get_free_block() is removed from the pool but not yet marked
+        // allocated (that happens later in alloc_found_block()), so it still looks
+        // free (allocated == false, event_count == 0, empty stream_uses). If
+        // process_events() then free_block()'d an adjacent reaped block,
+        // try_merge_blocks() would coalesce and delete the block we were about to
+        // hand out -> allocator corruption under large backlogs (sum > kLazyQuerySize).
+        // Reap first, then select, so process_events() never runs while an
+        // un-finalized block is held. Call-count is kept identical to the original
+        // via the `reaped` guard, so the lazy fast path (skip when sum <= threshold
+        // and a block is found) is preserved.
+        const bool lazy_reclaim =
+            CachingAllocatorConfig::multi_stream_lazy_reclaim() && C10_LIKELY(captures_underway.empty());
+        bool reaped = false;
+        if (lazy_reclaim) {
+            size_t sum = 0;
+            for (auto it = npu_events.begin(); it != npu_events.end(); ++it) {
+                sum += it->second.size();
+            }
+            if (sum > kLazyQuerySize) {
+                process_events(context);
+                reaped = true;
+            }
+        }
+
         // First, try to get a block from the existing pool.
         bool block_found =
             // Search pool
             get_free_block(params) ||
             // Trigger callbacks and retry search
             (trigger_free_memory_callbacks(params) && get_free_block(params));
-        if (CachingAllocatorConfig::multi_stream_lazy_reclaim() && C10_LIKELY(captures_underway.empty())) {
-             // Lazy process events and free memory
-             size_t sum = 0;
-             for (auto it = npu_events.begin(); it != npu_events.end(); ++it) {
-                 sum += it->second.size();
-             }
-             if (!block_found || sum > kLazyQuerySize) {
-                 process_events(context);
-             }
-             if (!block_found) {
-                 block_found = get_free_block(params);
-             }
-         }
+
+        // Out of blocks: it is safe to reap now (no un-finalized block is held yet).
+        // Guard with `reaped` so we never process events twice in one malloc.
+        if (lazy_reclaim && !block_found && !reaped) {
+            process_events(context);
+            block_found = get_free_block(params);
+        }
         // Can't reuse an existing block; try to get a new one.
         if (!block_found) {
             TORCH_NPU_MEMORY_LOGD("No existing block found on device %d, attempting to allocate new block", device);
