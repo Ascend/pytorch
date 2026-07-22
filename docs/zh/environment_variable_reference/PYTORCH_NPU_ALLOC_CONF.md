@@ -88,6 +88,16 @@
 
     该配置项适用于多进程共享同一NPU设备的场景，通过限制进程的可用显存的比例，避免单个进程占用过多显存导致其他进程OOM。
 
+- throw\_on\_npumalloc\_oom:<value\>，在发生内存OOM之前预防式拒绝内存申请，跳过内存分配重试流程。
+
+    取值为True或False，默认为False。默认或设置为False时，如果调用底层ACL接口分配内存失败则释放部分空闲内存并进行必要的Host-Device同步，然后尝试重新分配内存，该重试流程对性能有一定的影响。设置为True时，缓存分配器在调用底层ACL接口分配内存之前，先校验“当前进程已分配的内存大小+本次的申请大小”是否超出设备内存上限；超出则直接拒绝本次申请并抛出OutOfMemoryError异常，不再进入内存分配重试流程。
+
+    以下二种情况throw\_on\_npumalloc\_oom不生效：
+    - 使用环境变量PYTORCH\_NPU\_ALLOC\_CONF或PYTORCH\_ALLOC\_CONF配置per\_process\_memory\_fraction小于1.0。
+    - 调用torch\_npu.npu.set\_per\_process\_memory\_fraction\(\)接口设置fraction小于1.0。
+
+    throw\_on\_npumalloc\_oom设置为True且拒绝内存申请时，内存申请的拒绝次数会累加到torch\_npu.npu.memory\_stats\(\)\[\'num\_oom\_rejections\'\]字段，可通过torch\_npu.npu.reset\_accumulated\_memory\_stats\(\)接口清零。这种情况下环境变量OOM\_SNAPSHOT\_ENABLE不生效。
+
 - pinned\_max\_round\_threshold\_mb:<value\>，pinned memory分配大小是否向上取整到2的幂次的判别阈值。
 
     取值为正整数，单位为MB。默认不开启，即对所有pinned memory分配都执行power-of-2向上取整。设置后，分配大小若小于等于此阈值，仍执行向上取整；若大于此阈值，则跳过取整并按精确请求大小分配，从而减少大块pinned memory因取整带来的内存浪费。例如阈值设为128MB时，129MB的分配请求将使用129MB而非向上取整到256MB。
@@ -187,6 +197,12 @@ export PYTORCH_ALLOC_CONF=max_split_size_mb:32,garbage_collection_threshold:0.6
 示例十三：
 
 ```bash
+export PYTORCH_NPU_ALLOC_CONF=throw_on_npumalloc_oom:True
+```
+
+示例十四：
+
+```bash
 export PYTORCH_NPU_ALLOC_CONF=pinned_max_round_threshold_mb:128,pinned_max_cached_size_mb:256
 ```
 
@@ -214,6 +230,7 @@ export PYTORCH_NPU_ALLOC_CONF=pinned_max_round_threshold_mb:128,pinned_max_cache
     - 该特性主要解决多流场景下，Host侧存在下发性能瓶颈时的系统效率问题。单流、少流场景或者非Host性能瓶颈时，该功能收益不大。
 - large\_segment\_size\_mb特性需在TorchNPU 26.1.0及以上版本、PyTorch 2.11.0 及以版本上使用。
 - per\_process\_memory\_fraction特性需在TorchNPU 26.1.0及以上版本、PyTorch 2.10.0 及以上版本使用。
+- throw\_on\_npumalloc\_oom特性需在TorchNPU 26.2.0及以上版本、PyTorch 2.13.0及以上版本使用。
 - pinned\_max\_round\_threshold\_mb和pinned\_max\_cached\_size\_mb特性需在TorchNPU 26.2.0及以上版本、PyTorch 2.13.0及以上版本使用。两者仅作用于默认（非expandable）pinned memory分配器路径。与pin\_memory\_expandable\_segments同时配置时，这两个阈值不生效，框架会输出一次告警提示，但进程仍可正常启动；如需启用这两个阈值，请将pin\_memory\_expandable\_segments设置为False。
 - 通过PYTORCH\_ALLOC\_CONF环境变量配置缓存分配器参数，需在TorchNPU 26.2.0版本且PyTorch 2.10.0及以上版本使用。
 
