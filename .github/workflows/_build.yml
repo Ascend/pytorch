@@ -125,7 +125,7 @@ jobs:
       - name: Report build in_progress
         if: ${{ inputs.report_to_upstream }}
         continue-on-error: true
-        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@main
+        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
         with:
           status: in_progress
           job-name: pytorch_and_torch-npu_build
@@ -348,7 +348,7 @@ jobs:
       - name: Report build completed
         if: always() && inputs.report_to_upstream
         continue-on-error: true
-        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@main
+        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
         with:
           status: completed
           conclusion: ${{ (steps.build_pytorch.outcome == 'success' && steps.build_torchnpu.outcome == 'success') && 'success' || 'failure' }}
