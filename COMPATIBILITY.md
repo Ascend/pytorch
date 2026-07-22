@@ -1,5 +1,7 @@
 # 版本配套
 
+TorchNPU 需与特定版本的 PyTorch、CANN、Python 及固件与驱动配合使用。各版本间的匹配关系由昇腾社区统一维护，建议优先使用推荐版本组合以确保最佳兼容性和性能。固件与驱动的版本配套与所使用的昇腾硬件及 CANN 版本相关，具体选择请参考 [固件与驱动安装页面](https://www.hiascend.com/hardware/firmware-drivers/commercial)。
+
 ## 推荐版本组合
 
 |    组件    |               推荐版本               |
