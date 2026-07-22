@@ -64,13 +64,13 @@ jobs:
       - name: Init submodules
         working-directory: pytorch
         run: |
-          git submodule update --init --recursive --jobs=$(nproc)
+          git submodule update --init --recursive --depth 1 --jobs=$(nproc)
 
       - name: Package PyTorch source
         run: |
           TARBALL="pytorch-source-${{ steps.resolve.outputs.short }}.tar.gz"
           echo "Packaging pytorch/ into ${TARBALL} ..."
-          tar -czf "${TARBALL}" pytorch/
+          tar -czf "${TARBALL}" --exclude='.git' --exclude='*.git' pytorch/
           echo "Package size: $(du -h ${TARBALL} | cut -f1)"
           echo "TARBALL=${TARBALL}" >> "$GITHUB_ENV"
 
