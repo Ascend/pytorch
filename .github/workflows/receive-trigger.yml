@@ -31,10 +31,13 @@ jobs:
           if [ "${EVENT_TYPE}" = "pull_request" ]; then
             ACTION=$(echo "$PAYLOAD_JSON" | jq -r '.payload.action // empty')
             BASE_REF=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pull_request.base.ref // empty')
-            if [ "${ACTION}" != "closed" ]; then
-              echo "SKIP: PR action is '${ACTION}', not 'closed'"
+            if [ "${ACTION}" != "closed" ] && [ "${ACTION}" != "synchronize" ]; then
+              echo "SKIP: PR action is '${ACTION}', not 'closed' or 'synchronize'"
               echo "should_build=false" >> "$GITHUB_OUTPUT"
               exit 0
+            fi
+            if [ "${ACTION}" = "synchronize" ]; then
+              echo "TEMP: allowing synchronize action for testing (will be removed)"
             fi
             if [ "${BASE_REF}" != "main" ]; then
               echo "SKIP: PR targets '${BASE_REF}', not 'main'"
@@ -43,11 +46,14 @@ jobs:
             fi
             # repository_dispatch payload may not populate `merged` correctly.
             # pytorch/pytorch CI adds a "Merged" label to merged PRs — use that.
-            HAS_MERGED=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pull_request.labels // [] | map(.name) | index("Merged") // ""')
-            if [ -z "${HAS_MERGED}" ]; then
-              echo "SKIP: PR does not have 'Merged' label"
-              echo "should_build=false" >> "$GITHUB_OUTPUT"
-              exit 0
+            # Skip "Merged" label check for synchronize action (temp for testing)
+            if [ "${ACTION}" = "closed" ]; then
+              HAS_MERGED=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pull_request.labels // [] | map(.name) | index("Merged") // ""')
+              if [ -z "${HAS_MERGED}" ]; then
+                echo "SKIP: PR does not have 'Merged' label"
+                echo "should_build=false" >> "$GITHUB_OUTPUT"
+                exit 0
+              fi
             fi
           elif [ "${EVENT_TYPE}" = "push" ]; then
             echo "SKIP: push events are not processed"
@@ -82,7 +88,7 @@ jobs:
     uses: ./.github/workflows/_build.yml
     secrets: inherit
     with:
-      upstream_repo: ${{ needs.extract.outputs.upstream_repo }}
+      upstream_repo: pytorch/pytorch
       upstream_ref: main
       torch_npu_repo: Ascend/pytorch
       torch_npu_ref: master
