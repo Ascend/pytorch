@@ -1,5 +1,8 @@
 import os
 import math
+import subprocess
+import sys
+import textwrap
 import torch
 import torch_npu
 
@@ -95,6 +98,48 @@ class TestAllocator(TestCase):
         except Exception as e:
             set_config = False
         self.assertTrue(set_config)
+
+    def test_multi_stream_lazy_reclaim_trigger_event(self):
+        code = textwrap.dedent("""\
+            import os
+            os.environ["PYTORCH_NPU_ALLOC_CONF"] = "multi_stream_lazy_reclaim:True"
+
+            import time
+            import torch
+            import torch_npu
+
+            max_event_lazy_num = 512
+            shared_stream = torch.npu.Stream()
+            x_list = []
+            for i in range(max_event_lazy_num):
+                x_list.append(torch.empty(16, 16, device="npu", dtype=torch.bfloat16))
+                x_list[i].record_stream(shared_stream)
+
+            x = torch.empty(16, 16, device="npu", dtype=torch.bfloat16)
+            x.record_stream(shared_stream)
+
+            with torch.npu.stream(shared_stream):
+                y = x + 0.1
+
+            del x_list
+            del x
+
+            time.sleep(0.1)
+            dumb = torch.empty(16, 16, device="npu", dtype=torch.bfloat16)
+            del dumb
+        """)
+
+        result = subprocess.run(
+            [sys.executable, "-c", code],
+            capture_output=True,
+            text=True,
+        )
+
+        assert result.returncode == 0, (
+            f"Subprocess failed with return code {result.returncode}.\\n"
+            f"stdout: {result.stdout}\\n"
+            f"stderr: {result.stderr}"
+        )
 
 
 if __name__ == '__main__':
