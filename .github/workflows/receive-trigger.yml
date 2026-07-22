@@ -76,23 +76,8 @@ jobs:
           echo "upstream_repo: ${UPSTREAM_REPO}"
           echo "upstream_ref:  main  (latest upstream main branch)"
 
-  report_build_start:
-    needs: [extract]
-    if: ${{ needs.extract.outputs.should_build == 'true' }}
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Report build in_progress
-        continue-on-error: true
-        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@main
-        with:
-          status: in_progress
-          job-name: pytorch_and_torch-npu_build
-
   build:
-    needs: [extract, report_build_start]
+    needs: [extract]
     if: ${{ needs.extract.outputs.should_build == 'true' }}
     uses: ./.github/workflows/_build.yml
     secrets: inherit
@@ -103,123 +88,12 @@ jobs:
       torch_npu_ref: master
       report_to_upstream: true
 
-  report_build_end:
-    needs: [extract, build]
-    if: ${{ always() && needs.extract.outputs.should_build == 'true' }}
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Report build completed
-        continue-on-error: true
-        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@main
-        with:
-          status: completed
-          conclusion: ${{ needs.build.result == 'success' && 'success' || 'failure' }}
-          job-name: pytorch_and_torch-npu_build
-
-  report_test_start:
-    needs: [extract, build]
-    if: ${{ needs.extract.outputs.should_build == 'true' && needs.build.result == 'success' }}
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Report test in_progress
-        continue-on-error: true
-        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@main
-        with:
-          status: in_progress
-          job-name: test
-
   test:
-    needs: [extract, build, report_test_start]
+    needs: [extract, build]
     if: ${{ needs.extract.outputs.should_build == 'true' && needs.build.result == 'success' }}
     uses: ./.github/workflows/_test.yml
     secrets: inherit
     with:
       resolved_short: ${{ needs.build.outputs.resolved_short }}
       case_paths_config: .github/config/test_whitelist.yml
-
-  report_test_end:
-    needs: [extract, build, test]
-    if: ${{ always() && needs.extract.outputs.should_build == 'true' && needs.build.result == 'success' }}
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Download consolidated test summary
-        continue-on-error: true
-        uses: actions/download-artifact@v4
-        with:
-          name: npu-full-test-summary
-          path: summary
-
-      - name: Parse test results
-        id: parse
-        run: |
-          SUMMARY_JSON="summary/npu-full-test-summary.json"
-          if [ ! -f "${SUMMARY_JSON}" ]; then
-            echo "WARNING: summary JSON not found (test may have failed before reporting)"
-            echo "passed=0" >> "$GITHUB_OUTPUT"
-            echo "failed=0" >> "$GITHUB_OUTPUT"
-            echo "skipped=0" >> "$GITHUB_OUTPUT"
-            echo "total=0" >> "$GITHUB_OUTPUT"
-            echo "total_failed=1" >> "$GITHUB_OUTPUT"
-            echo "parse_ok=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          python3 -c "
-          import json, os, sys
-          try:
-              with open('${SUMMARY_JSON}') as f:
-                  d = json.load(f)
-              totals = d.get('totals', {})
-              passed = totals.get('passed', 0)
-              failed = totals.get('failed', 0)
-              errors = totals.get('errors', 0)
-              timeout = totals.get('timeout', 0)
-              skipped = totals.get('skipped', 0)
-              total = totals.get('total', 0)
-              total_failed = failed + errors + timeout
-              parse_ok = 'true'
-          except Exception as e:
-              print(f'WARNING: Failed to parse summary JSON: {e}', file=sys.stderr)
-              passed = 0
-              failed = 0
-              errors = 0
-              timeout = 0
-              skipped = 0
-              total = 0
-              total_failed = 1
-              parse_ok = 'false'
-          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-              f.write(f'passed={passed}\n')
-              f.write(f'failed={failed}\n')
-              f.write(f'timeout={timeout}\n')
-              f.write(f'skipped={skipped}\n')
-              f.write(f'total={total}\n')
-              f.write(f'total_failed={total_failed}\n')
-              f.write(f'parse_ok={parse_ok}\n')
-          print(f'Results: {passed} passed, {failed} failed, {errors} errors, {timeout} timeout, {skipped} skipped, {total} total')
-          "
-
-      - name: Report test completed
-        if: always()
-        continue-on-error: true
-        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@main
-        with:
-          status: completed
-          conclusion: ${{ steps.parse.outputs.parse_ok == 'true' && steps.parse.outputs.total_failed == '0' && 'success' || 'failure' }}
-          job-name: test
-          test-results: >-
-            {
-              "passed": ${{ steps.parse.outputs.passed }},
-              "failed": ${{ steps.parse.outputs.total_failed }},
-              "skipped": ${{ steps.parse.outputs.skipped }},
-              "total": ${{ steps.parse.outputs.total }}
-            }
+      report_to_upstream: true

@@ -20,6 +20,11 @@ on:
         type: string
         default: 'quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly'
         description: Docker image for running tests
+      report_to_upstream:
+        required: false
+        type: boolean
+        default: false
+        description: Whether to report test status to upstream dashboard
 
 jobs:
   test_regular:
@@ -40,6 +45,14 @@ jobs:
         shard: ${{ fromJson(inputs.regular_matrix) }}
       fail-fast: false
     steps:
+      - name: Report test in_progress
+        if: ${{ inputs.report_to_upstream }}
+        continue-on-error: true
+        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@main
+        with:
+          status: in_progress
+          job-name: test
+
       - name: Authenticate to Huawei Cloud
         uses: huaweicloud/auth-action@v1.1.0
         with:
@@ -144,6 +157,36 @@ jobs:
           set -e
           echo "status=${TEST_STATUS}" >> "$GITHUB_OUTPUT"
 
+      - name: Parse test results
+        id: parse_results
+        if: always()
+        run: |
+          CASES_FILE="test-reports/shard_reg-${{ matrix.shard }}_cases.json"
+          python3 -c "
+          import json, os, sys
+          stats = {'passed': 0, 'failed': 0, 'errors': 0, 'timeout': 0, 'skipped': 0, 'total': 0}
+          parse_ok = False
+          try:
+              with open('${CASES_FILE}') as f:
+                  d = json.load(f)
+              stats['passed'] = d.get('passed', 0)
+              stats['failed'] = d.get('failed', 0)
+              stats['errors'] = d.get('errors', 0)
+              stats['timeout'] = d.get('timeout', 0)
+              stats['skipped'] = d.get('skipped', 0)
+              stats['total'] = d.get('total_cases', 0)
+              parse_ok = True
+          except Exception as e:
+              print(f'Warning: Could not parse results: {e}', file=sys.stderr)
+          total_failed = stats['failed'] + stats['errors'] + stats['timeout']
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              for k, v in stats.items():
+                  f.write(f'{k}={v}\n')
+              f.write(f'total_failed={total_failed}\n')
+              f.write(f'parse_ok={str(parse_ok).lower()}\n')
+          print(f'Regular shard ${{ matrix.shard }}: {stats[\"passed\"]} passed, {stats[\"failed\"]} failed, {stats[\"errors\"]} errors, {stats[\"timeout\"]} timeout, {stats[\"skipped\"]} skipped, {stats[\"total\"]} total')
+          "
+
       - name: Package test reports
         if: always()
         run: |
@@ -188,3 +231,19 @@ jobs:
           name: error-logs-reg-${{ matrix.shard }}
           path: error-logs-reg-${{ matrix.shard }}.tar.gz
           retention-days: 7
+
+      - name: Report test completed
+        if: always() && inputs.report_to_upstream
+        continue-on-error: true
+        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@main
+        with:
+          status: completed
+          conclusion: ${{ steps.parse_results.outputs.parse_ok == 'true' && steps.parse_results.outputs.total_failed == '0' && 'success' || 'failure' }}
+          job-name: test
+          test-results: >-
+            {
+              "passed": ${{ steps.parse_results.outputs.passed }},
+              "failed": ${{ steps.parse_results.outputs.total_failed }},
+              "skipped": ${{ steps.parse_results.outputs.skipped }},
+              "total": ${{ steps.parse_results.outputs.total }}
+            }
