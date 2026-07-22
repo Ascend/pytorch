@@ -121,14 +121,6 @@ jobs:
       BUILD_WITHOUT_SHA: 1
       PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
     steps:
-      # Step 0: Report CI started to dashboard
-      - name: Report CI started
-        if: ${{ inputs.report_to_upstream }}
-        continue-on-error: true
-        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@main
-        with:
-          status: in_progress
-
       # Step 1: Download and extract pre-fetched PyTorch source
       - name: Authenticate to Huawei Cloud
         uses: huaweicloud/auth-action@v1.1.0
@@ -342,13 +334,4 @@ jobs:
             echo "| torch_npu commit | \`${TORCH_NPU_SHA}\` |"
             echo "| Max jobs | ${MAX_JOBS} |"
           } >> "$GITHUB_STEP_SUMMARY"
-
-      # Step 9: Report CI completed to dashboard
-      - name: Report CI completed
-        if: always() && inputs.report_to_upstream
-        continue-on-error: true
-        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@main
-        with:
-          status: completed
-          conclusion: ${{ job.status == 'success' && 'success' || 'failure' }}
 
