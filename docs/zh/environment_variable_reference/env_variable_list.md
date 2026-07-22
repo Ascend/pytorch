@@ -13,6 +13,7 @@
 |[TASK_QUEUE_ENABLE](TASK_QUEUE_ENABLE.md)|通过此环境变量可配置task_queue算子下发队列是否开启和优化等级。|
 |[PER_STREAM_QUEUE](PER_STREAM_QUEUE.md)|通过此环境变量可配置是否开启一个stream一个task_queue算子下发队列。|
 |[TORCH_NPU_USE_COMPATIBLE_IMPL](TORCH_NPU_USE_COMPATIBLE_IMPL.md)|该环境变量用于控制API的实现是否与PyTorch原生社区完全对齐。|
+|[TORCH_NPU_LEGACY_IMPL_LIST](TORCH_NPU_LEGACY_IMPL_LIST.md)|通过此环境变量可指定需要使用旧版本实现的配置项。|
 |[TORCH_ACL_INIT_CONFIG_PATH](TORCH_ACL_INIT_CONFIG_PATH.md)|通过此环境变量可指定aclInit初始化配置文件的路径，用于在NPU初始化阶段传入自定义ACL JSON配置。|
 
 **表 2**  算子编译环境变量列表
