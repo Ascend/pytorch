@@ -61,7 +61,7 @@
 
 执行以下命令可检查安装的Python、PyTorch框架和TorchNPU插件版本。
 
-- 查看已安装的Pyhton版本。
+- 查看已安装的Python版本。
 
     ```bash
     python --version

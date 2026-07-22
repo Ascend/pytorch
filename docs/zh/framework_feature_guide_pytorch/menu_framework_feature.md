@@ -1,5 +1,5 @@
 
-# 框架特性指南
+# 框架特性
 
 -   [概述](overview.md)
 -   [内存资源优化](./memory_resource_optimization.md)

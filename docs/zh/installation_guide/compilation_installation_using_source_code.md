@@ -109,7 +109,8 @@
                     |2.12.0|X86_64|13.3.1|3.18.4|
                     |3.12.0|AArch64|13.3.1|4.3.2|
 
-                    > [!NOTE]<br>
+                    > [!NOTE]
+                    >
                     > 安装指导可参见[安装11.2.0版本gcc](installing_gcc_11-2-0.md)和[安装3.18.4版本cmake](installing_cmake_3-18-4.md)。
 
         2. 安装环境依赖。
@@ -158,7 +159,7 @@
 
 执行以下命令可检查安装的Python、PyTorch框架和TorchNPU插件版本。
 
-- 查看已安装的Pyhton版本。
+- 查看已安装的Python版本。
 
     ```bash
     python --version

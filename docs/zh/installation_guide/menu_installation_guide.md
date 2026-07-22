@@ -1,4 +1,4 @@
-# 软件安装指南 
+# 软件安装
 
 - [安装说明](installation_description.md)
 - [安装前准备](preparing_installation.md)

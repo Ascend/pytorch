@@ -33,7 +33,7 @@
     - 未配置时，内存数据默认保存至当前路径。
     - 配置时，内存数据保存至指定路径。
 
-此环境变量使用详情请参考《环境变量参考》中的“[OOM\_SNAPSHOT\_ENABLE](../environment_variable_reference/OOM_SNAPSHOT_ENABLE.md)”章节和《环境变量参考》中的“[OOM\_SNAPSHOT\_PATH](../environment_variable_reference/OOM_SNAPSHOT_PATH.md)”章节。
+此环境变量使用详情请参考《环境变量》中的“[OOM\_SNAPSHOT\_ENABLE](../environment_variable_reference/OOM_SNAPSHOT_ENABLE.md)”章节和《环境变量》中的“[OOM\_SNAPSHOT\_PATH](../environment_variable_reference/OOM_SNAPSHOT_PATH.md)”章节。
 
 内存快照的使用方法和案例还可参考社区的相关说明[LINK](https://pytorch.org/docs/2.7/torch_cuda_memory.html#understanding-cuda-memory-usage)。社区内存快照的API具体用法请参考[LINK](https://pytorch.org/docs/2.7/torch_cuda_memory.html#snapshot-api-reference)。
 
