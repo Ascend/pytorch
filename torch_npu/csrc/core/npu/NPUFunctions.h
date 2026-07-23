@@ -109,6 +109,26 @@ C10_NPU_API uint32_t GetResInCurrentThread(int32_t type);
 
 void SetDeterministicLevel(uint32_t level);
 
+enum class DeterministicBackend {
+    Legacy,
+    V2
+};
+
+struct DeterministicSnapshot {
+    bool deterministic_algorithms_enabled = false;
+    uint32_t requested_level = 0;
+    uint32_t effective_level = 0;
+    DeterministicBackend backend = DeterministicBackend::Legacy;
+};
+
+uint32_t GetEffectiveDeterministicLevel();
+
+DeterministicSnapshot CaptureDeterministicSnapshot();
+
+DeterministicBackend GetDeterministicBackend();
+
+bool IsSupportDeterministicLevel3();
+
 uint32_t GetDeterministicLevel();
 
 enum class SyncDebugMode { L_DISABLED = 0, L_WARN, L_ERROR };
