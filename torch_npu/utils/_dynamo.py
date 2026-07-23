@@ -150,6 +150,12 @@ class _NpuBackendScope:
         self._old_env = os.environ.get("TORCHINDUCTOR_NPU_BACKEND")
         os.environ["TORCHINDUCTOR_NPU_BACKEND"] = self.backend
         register_inductor_npu()
+        if self.backend == "ascendc":
+            from torch_npu._inductor.deterministic_cache import (
+                patch_npu_deterministic_level_cache_keys,
+            )
+
+            patch_npu_deterministic_level_cache_keys()
         return self
 
     def __exit__(self, exc_type, exc, tb):
@@ -173,6 +179,12 @@ def patch_inductor_wrapper():
     def new_call(self, model_, inputs_):
         backend = _resolve_npu_backend_from_wrapper(self)
         with _NpuBackendScope(backend):
+            if backend == "ascendc":
+                from torch_npu.dynamo._deterministic_guard import (
+                    install_npu_deterministic_level_guard,
+                )
+
+                install_npu_deterministic_level_guard()
             return src_call(self, model_, inputs_)
 
     def new_get_config_copy(self) -> dict[str, Any]:
