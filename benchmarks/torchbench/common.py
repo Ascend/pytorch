@@ -1504,7 +1504,7 @@ def parse_args(args=None):
     parser.add_argument(
         "--aclgraph-mode",
         choices=["max-autotune", "reduce-overhead"],
-        default="max-autotune",
+        default="reduce-overhead",
         help="Specifies aclgraph mode for NPU Inductor (only effective when --disable-aclgraph is not set)",
     )
     parser.add_argument(
@@ -2044,10 +2044,10 @@ def configure_compile_options(args):
         NPU_MFUSION_NO_ACLGRAPH = set()
     npu_backend = args.npu_backend
     # mode Config
-    if not args.disable_aclgraph:
-        mode = args.aclgraph_mode
-    else:
+    if args.disable_aclgraph or args.dynamic_shapes or args.dynamic_batch_only:
         mode = None
+    else:
+        mode = args.aclgraph_mode
     if args.only is not None:
         if npu_backend == "dvm" and args.only in NPU_DVM_NO_ACLGRAPH:
             mode = None
