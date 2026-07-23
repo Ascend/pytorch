@@ -140,7 +140,7 @@
 |torch.nn.ConstantPad2d|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>在输入x为六维以上时可能会出现性能下降问题|
 |torch.nn.ConstantPad3d|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>在输入x为六维以上时可能会出现性能下降问题|
 |torch.nn.ELU|是|支持bf16，fp16，fp32，fp64|
-|torch.nn.Hardshrink|是|支持fp16，fp32<br>可能回退至CPU执行|
+|torch.nn.Hardshrink|是|支持bf16，fp16，fp32<br>可能回退至CPU执行|
 |torch.nn.Hardsigmoid|是|支持fp16，fp32，int32<br>可能回退至CPU执行|
 |torch.nn.Hardtanh|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64|
 |torch.nn.Hardswish|是|支持fp16，fp32|
