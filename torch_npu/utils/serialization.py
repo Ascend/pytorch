@@ -336,7 +336,7 @@ def load(
                 return _remap_result(cpu_result, map_location)
             else:
                 return _legacy_load(
-                    opened_file, map_location, pickle_module, **pickle_load_args
+                    opened_file, "cpu", pickle_module, **pickle_load_args
                 )
 
 
