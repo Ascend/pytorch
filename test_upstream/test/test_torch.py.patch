@@ -1,0 +1,20 @@
+diff --git a/test/test_torch.py b/test/test_torch.py
+index fa25454..ea06c08 100644
+--- a/test/test_torch.py
++++ b/test/test_torch.py
+@@ -9671,10 +9671,12 @@ tensor([[[1.+1.j, 1.+1.j, 1.+1.j,  ..., 1.+1.j, 1.+1.j, 1.+1.j],
+         self.assertEqual(cfloat.dtype, torch.complex64)
+         self.assertEqual(cfloat.real, x.float())
+         self.assertEqual(cfloat.imag, torch.zeros_like(cfloat.imag))
+-        cdouble = x.cdouble()
++        x_npu = x.npu()
++        cdouble = x_npu.cdouble()
++        self.assertEqual(cdouble.device.type, "npu")
+         self.assertEqual(cdouble.dtype, torch.complex128)
+-        self.assertEqual(cdouble.real, x.double())
+-        self.assertEqual(cdouble.imag, torch.zeros_like(cdouble.imag))
++        self.assertEqual(cdouble.real.cpu(), x.double())
++        self.assertEqual(cdouble.imag.cpu(), torch.zeros_like(x.double()))
+         chalf = x.chalf()
+         self.assertEqual(chalf.dtype, torch.complex32)
+         self.assertEqual(chalf.real, x.half())
