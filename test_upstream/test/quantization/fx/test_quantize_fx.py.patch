@@ -1,28 +1,29 @@
 diff --git a/test/quantization/fx/test_quantize_fx.py b/test/quantization/fx/test_quantize_fx.py
-index 8f94dfa..8a9a1f1 100644
+index 8f94dfaf716..f5ddcc7219d 100644
 --- a/test/quantization/fx/test_quantize_fx.py
 +++ b/test/quantization/fx/test_quantize_fx.py
-@@ -1,9 +1,19 @@
-+
- # Owner(s): ["oncall: quantization"]
- # ruff: noqa: F841
- 
+@@ -4,6 +4,20 @@
  from collections import OrderedDict
  import contextlib
  import torch
 +import torch_npu
-+# from torch_npu.contrib import transfer_to_npu
-+torch._C._cuda_setStream = torch_npu._C._npu_setStream
-+torch.cuda.get_device_capability = lambda *args, **kwargs:(10,0)
-+torch._C._cuda_setDevice = torch_npu._C._npu_setDevice
-+torch._C._cuda_getCompiledVersion = lambda:11080
-+torch.version.cuda = '11.8'
-+CUDA_VERSION = 11080
++
++_NPU_AVAILABLE = torch_npu.npu.is_available()
++
++if _NPU_AVAILABLE:
++    torch._C._cuda_setStream = torch_npu._C._npu_setStream
++    torch.cuda.get_device_capability = lambda *args, **kwargs: (10, 0)
++    torch._C._cuda_setDevice = torch_npu._C._npu_setDevice
++    torch._C._cuda_getCompiledVersion = lambda: 11080
++    torch.version.cuda = '11.8'
++    CUDA_VERSION = 11080
++else:
++    CUDA_VERSION = torch._C._cuda_getCompiledVersion() if torch.cuda.is_available() else 0
 +
  import torch.nn.functional as F
  import torch.nn as nn
  import torch.ao.nn.quantized as nnq
-@@ -1818,7 +1828,7 @@ class TestQuantizeFx(QuantizationTestCase):
+@@ -1818,7 +1832,7 @@ class TestQuantizeFx(QuantizationTestCase):
          model = Model()
          qengine = torch.backends.quantized.engine
          qconfig_dict = {'': torch.ao.quantization.get_default_qat_qconfig(qengine)}
@@ -31,16 +32,59 @@ index 8f94dfa..8a9a1f1 100644
          model.to(device)
  
          example_inputs = (torch.randn(4, 1, 4, 4, device=device),)
-@@ -9277,7 +9287,7 @@ class TestQuantizeFxOps(QuantizationTestCase):
+@@ -6071,6 +6085,42 @@ class TestQuantizeFx(QuantizationTestCase):
+             with self.assertRaisesRegex(AssertionError, "not supported"):
+                 qconfig_mapping = get_default_qat_qconfig_mapping(invalid_backend)
+ 
++    def test_get_default_qconfig_backends(self):
++        """Validate get_default_qconfig returns QConfig with HistogramObserver for all backends."""
++        for backend in ["fbgemm", "x86", "qnnpack", "onednn"]:
++            with self.subTest(backend=backend):
++                qconfig = get_default_qconfig(backend, version=0)
++                self.assertIsInstance(qconfig, QConfig)
++                self.assertEqual(qconfig.activation.p.func, HistogramObserver)
++
++    def test_get_default_qconfig_invalid_version(self):
++        """Validate get_default_qconfig raises for version != 0."""
++        with self.assertRaisesRegex(AssertionError, "not supported"):
++            get_default_qconfig("fbgemm", version=1)
++
++    def test_get_default_qat_qconfig_backends(self):
++        """Validate get_default_qat_qconfig returns correct observer types for all backends and versions."""
++        backends = ["fbgemm", "x86", "qnnpack", "onednn"]
++        # version=0 uses FakeQuantize + MovingAverageMinMaxObserver
++        for backend in backends:
++            with self.subTest(backend=backend, version=0):
++                qconfig = get_default_qat_qconfig(backend, version=0)
++                self.assertIsInstance(qconfig, QConfig)
++                self.assertEqual(qconfig.activation.p.func, FakeQuantize)
++                self.assertEqual(qconfig.activation.p.keywords.get("observer"), MovingAverageMinMaxObserver)
++        # version=1 uses FusedMovingAvgObsFakeQuantize + MovingAverageMinMaxObserver
++        for backend in backends:
++            with self.subTest(backend=backend, version=1):
++                qconfig = get_default_qat_qconfig(backend, version=1)
++                self.assertIsInstance(qconfig, QConfig)
++                self.assertEqual(qconfig.activation.p.func, FusedMovingAvgObsFakeQuantize)
++                self.assertEqual(qconfig.activation.p.keywords.get("observer"), MovingAverageMinMaxObserver)
++
++    def test_get_default_qat_qconfig_invalid_version(self):
++        """Validate get_default_qat_qconfig raises for version not in {0, 1}."""
++        with self.assertRaisesRegex(AssertionError, "not supported"):
++            get_default_qat_qconfig("fbgemm", version=2)
++
+     def test__convert_to_reference_decomposed_fx(self):
+         class M(torch.nn.Module):
+             def __init__(self) -> None:
+@@ -9277,7 +9327,7 @@ class TestQuantizeFxOps(QuantizationTestCase):
  
  class TestQuantizeFxModels(QuantizationTestCase):
      @skipIfNoFBGEMM
 -    @unittest.skipIf(not TEST_CUDA, "gpu is not available.")
-+    # @unittest.skipIf(not TEST_CUDA, "gpu is not available.")
++    @unittest.skipIf(not _NPU_AVAILABLE, "npu is not available.")
      def test_static_gpu_convert_basic(self):
  
          class Net(nn.Module):
-@@ -9292,18 +9302,18 @@ class TestQuantizeFxModels(QuantizationTestCase):
+@@ -9292,18 +9342,18 @@ class TestQuantizeFxModels(QuantizationTestCase):
                  y = self.linear1(x.view(-1))
                  return y
  
@@ -59,11 +103,11 @@ index 8f94dfa..8a9a1f1 100644
  
      @skipIfNoFBGEMM
 -    @unittest.skipIf(not TEST_CUDA, "gpu is not available.")
-+    # @unittest.skipIf(not TEST_CUDA, "gpu is not available.")
++    @unittest.skipIf(not _NPU_AVAILABLE, "npu is not available.")
      def test_switch_device_prepare_convert(self):
  
          class Net(nn.Module):
-@@ -9318,8 +9328,8 @@ class TestQuantizeFxModels(QuantizationTestCase):
+@@ -9318,8 +9368,8 @@ class TestQuantizeFxModels(QuantizationTestCase):
                  y = self.linear1(x.view(-1))
                  return y
  
@@ -74,16 +118,16 @@ index 8f94dfa..8a9a1f1 100644
              input = torch.randn((5, 1, 6, 6)).to(device)
              model = Net().to(device).eval()
              qconfig_dict = {"": torch.ao.quantization.get_default_qconfig('fbgemm')}
-@@ -9331,7 +9341,7 @@ class TestQuantizeFxModels(QuantizationTestCase):
+@@ -9331,7 +9381,7 @@ class TestQuantizeFxModels(QuantizationTestCase):
              self.assertEqual(out.device.type, device_after)
  
      @skipIfNoFBGEMM
 -    @unittest.skipIf(not TEST_CUDA, "gpu is not available.")
-+    # @unittest.skipIf(not TEST_CUDA, "gpu is not available.")
++    @unittest.skipIf(not _NPU_AVAILABLE, "npu is not available.")
      def test_prepare_serialize_switch_device_convert(self):
          class Net(nn.Module):
              def __init__(self) -> None:
-@@ -9344,8 +9354,8 @@ class TestQuantizeFxModels(QuantizationTestCase):
+@@ -9344,8 +9394,8 @@ class TestQuantizeFxModels(QuantizationTestCase):
                  y = self.linear1(x.view(-1))
                  return y
  
@@ -94,12 +138,12 @@ index 8f94dfa..8a9a1f1 100644
                  input = torch.randn((5, 1, 6, 6)).to(device)
                  model = Net().to(device).eval()
                  qconfig_dict = {"": torch.ao.quantization.get_default_qconfig('fbgemm')}
-@@ -9713,7 +9723,7 @@ class TestQuantizeFxModels(QuantizationTestCase):
+@@ -9713,7 +9763,7 @@ class TestQuantizeFxModels(QuantizationTestCase):
  
      @given(
          device=st.sampled_from(
 -            ["cpu", "cuda"] if torch.cuda.is_available() else ["cpu"]
-+            ["cpu", "npu"] if torch_npu.npu.is_available() else ["cpu"]
++            ["cpu", "npu"] if _NPU_AVAILABLE else ["cpu"]
          )
      )
      @settings(deadline=None)
