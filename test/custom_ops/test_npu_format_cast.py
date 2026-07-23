@@ -227,6 +227,28 @@ class TestNpuFormatCastAclnn(TestCase):
         with self.assertRaises(RuntimeError):
             torch_npu.npu_format_cast(nz_t, ACL_FORMAT_ND)
 
+    # ------------------------------------------------------------------ #
+    # Group 7: View guard — 2D column-vector (Nx1) fallback to aclop
+    # ------------------------------------------------------------------ #
+    # When a 2D contiguous tensor is a view (storage shape != current shape)
+    # and the target is FRACTAL_NZ, the aclnn path is skipped to avoid
+    # downstream precision issues. The aclop fallback is exercised here.
+    # Example: storage [1, N] viewed as [N, 1] (Nx1 column vector).
+
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
+    def test_2d_view_nx1_nd_to_nz_format_id(self):
+        """View [1, N] -> [N, 1]: format cast to NZ still succeeds."""
+        # Create storage [1, N], then view as [N, 1]
+        N = 16
+        t = torch.rand(1, N).half().npu()
+        t_view = t.t()  # contiguous, Nx1 column vector
+        self.assertTrue(t_view.is_contiguous())
+
+        out = torch_npu.npu_format_cast(t_view, ACL_FORMAT_FRACTAL_NZ)
+        self.assertEqual(torch_npu.get_npu_format(out), ACL_FORMAT_FRACTAL_NZ)
+        self.assertEqual(out.shape, (N, 1))
+        self.assertEqual(out.storage()[1], t_view.storage()[1])
+
 
 class TestNpuFormatCastDtypeParam(TestCase):
     """
