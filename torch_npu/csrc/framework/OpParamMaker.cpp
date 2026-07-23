@@ -1,8 +1,11 @@
 #include <unistd.h>
+#include <mutex>
+#include <unordered_map>
 #include <ATen/record_function.h>
 
 #include "torch_npu/csrc/core/npu/CachingHostAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUEventManager.h"
+#include "torch_npu/csrc/core/npu/GetCANNInfo.h"
 #include "torch_npu/csrc/core/npu/NPUQueue.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/distributed/HCCLUtils.hpp"
@@ -14,6 +17,7 @@
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/logging/LogContext.h"
 #include "torch_npu/csrc/framework/OpCommand.h"
+#include "torch_npu/csrc/core/npu/NPUFunctions.h"
 
 #ifndef BUILD_LIBTORCH
 #include <Python.h>
@@ -22,8 +26,16 @@
 namespace at_npu {
 namespace native {
 
-static bool deterministicaclnn_oldstatus = false;
-static bool aclop_deterministicaclnn_oldstatus = false;
+struct CachedDeterministicRuntimeState {
+    bool valid = false;
+    c10_npu::DeterministicBackend backend = c10_npu::DeterministicBackend::Legacy;
+    uint32_t effective_level = 0;
+    bool aclop_compileopt_valid = false;
+    uint32_t aclop_compileopt_level = 0;
+};
+
+std::recursive_mutex deterministic_launch_mutex;
+static std::unordered_map<aclrtContext, CachedDeterministicRuntimeState> deterministic_runtime_cache;
 
 void OpAttrMaker::Set(aclopAttr *attr, const string &name, bool value)
 {
@@ -102,34 +114,130 @@ void OpCommandImpl::SetEnginePriority()
     }
 }
 
-inline void SetDeterministicOption(bool deterministicAlgorithmsStatus, bool isOpapi)
+aclrtContext GetCurrentContextForDeterministicCache()
 {
-    // Determine whether it is truly necessary to use this interface to set the deterministic calculation of the aclop operator.
-    if (!isOpapi && aclop_deterministicaclnn_oldstatus != deterministicAlgorithmsStatus && g_used_aclop) {
-        NPU_CHECK_ERROR(
-            AclSetCompileopt(aclCompileOpt::ACL_OP_DETERMINISTIC, deterministicAlgorithmsStatus ? "1" : "0"));
-        aclop_deterministicaclnn_oldstatus = deterministicAlgorithmsStatus;
+    aclrtContext context = nullptr;
+    aclError ret = aclrtGetCurrentContext(&context);
+    if (ret != ACL_ERROR_NONE) {
+        return nullptr;
+
     }
-    if (deterministicaclnn_oldstatus != deterministicAlgorithmsStatus) {
+    return context;
+}
+
+bool IsAclStrongConsistencyExist()
+{
+    static const bool isAclStrongConsistencyExist = []() {
+        const std::string kMinRuntimeVersion = "8.5.0";
+        return IsGteCANNVersion(kMinRuntimeVersion, "RUNTIME");
+    }();
+    return isAclStrongConsistencyExist;
+}
+
+void ApplyLegacyDeterministicSnapshotLocked(
+    const c10_npu::DeterministicSnapshot& snapshot,
+    bool isOpapi,
+    CachedDeterministicRuntimeState& cached_state)
+{
+    uint32_t level = snapshot.effective_level;
+    TORCH_CHECK(level <= 2,
+        "level=3 requires newer CANN runtime and operator packages that support batch consistency.",
+        PTA_ERROR(ErrCode::VALUE));
+
+    bool deterministic = level >= 1;
+    bool strong_consistency = level == 2;
+    bool need_runtime_update = !cached_state.valid ||
+        cached_state.backend != c10_npu::DeterministicBackend::Legacy ||
+        cached_state.effective_level != level;
+
+    if (!isOpapi && g_used_aclop &&
+        (!cached_state.aclop_compileopt_valid || cached_state.aclop_compileopt_level != level)) {
         NPU_CHECK_ERROR(
-            AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, deterministicAlgorithmsStatus ? 1 : 0));
+            AclSetCompileopt(aclCompileOpt::ACL_OP_DETERMINISTIC, deterministic ? "1" : "0"));
+        cached_state.aclop_compileopt_valid = true;
+        cached_state.aclop_compileopt_level = level;
+    }
+
+    if (!need_runtime_update) {
+        return;
+    }
+
+    if (!IsAclStrongConsistencyExist()) {
+        NPU_CHECK_ERROR(AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, 0));
+    } else {
         NPU_CHECK_ERROR(
-            AclrtSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, deterministicAlgorithmsStatus ? 1 : 0));
-        HcclConfigValue configValue = {deterministicAlgorithmsStatus ? 1 : 0};
+            AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, deterministic ? 1 : 0));
+        NPU_CHECK_ERROR(
+            AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_STRONG_CONSISTENCY, strong_consistency ? 1 : 0));
+        NPU_CHECK_ERROR(
+            AclrtSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, deterministic ? 1 : 0));
+        HcclConfigValue configValue = {deterministic ? 1 : 0};
         HCCL_CHECK_ERROR(hccl::HcclSetConfig(HcclConfig::HCCL_DETERMINISTIC, configValue));
-        deterministicaclnn_oldstatus = deterministicAlgorithmsStatus;
+
     }
+
+    cached_state.valid = true;
+    cached_state.backend = c10_npu::DeterministicBackend::Legacy;
+    cached_state.effective_level = level;
+}
+
+void ApplyDeterministicSnapshotLocked(
+    const c10_npu::DeterministicSnapshot& snapshot,
+    bool isOpapi)
+{
+    auto context = GetCurrentContextForDeterministicCache();
+    auto& cached_state = deterministic_runtime_cache[context];
+    if (snapshot.backend == c10_npu::DeterministicBackend::V2) {
+        if (cached_state.valid &&
+            cached_state.backend == c10_npu::DeterministicBackend::V2 &&
+            cached_state.effective_level == snapshot.effective_level) {
+            return;
+        }
+        NPU_CHECK_ERROR(AclrtCtxSetSysParamOpt(
+            aclSysParamOpt::ACL_OPT_DETERMINISTIC,
+            static_cast<int64_t>(snapshot.effective_level)));
+        cached_state.valid = true;
+        cached_state.backend = c10_npu::DeterministicBackend::V2;
+        cached_state.effective_level = snapshot.effective_level;
+        cached_state.aclop_compileopt_valid = false;
+        cached_state.aclop_compileopt_level = 0;
+        return;
+    }
+
+    ApplyLegacyDeterministicSnapshotLocked(snapshot, isOpapi, cached_state);
+}
+
+template <typename LaunchFunc>
+aclError RunWithDeterministicSnapshot(
+    const c10_npu::DeterministicSnapshot& snapshot,
+    bool isOpapi,
+    LaunchFunc&& launch)
+{
+    {
+        std::lock_guard<std::recursive_mutex> lock(deterministic_launch_mutex);
+        ApplyDeterministicSnapshotLocked(snapshot, isOpapi);
+    }
+    return launch();
+}
+
+void ApplyDeterministicSnapshot(const c10_npu::DeterministicSnapshot& snapshot, bool isOpapi)
+{
+    std::lock_guard<std::recursive_mutex> lock(deterministic_launch_mutex);
+    ApplyDeterministicSnapshotLocked(snapshot, isOpapi);
 }
 
 void SetDeterministic(bool isOpapi)
 {
-    auto deterministicAlgorithmsStatus = at::globalContext().deterministicAlgorithms();
-    SetDeterministicOption(deterministicAlgorithmsStatus, isOpapi);
+    ApplyDeterministicSnapshot(c10_npu::CaptureDeterministicSnapshot(), isOpapi);
 }
 
 void SetDeterministicOps(bool deterministicAlgorithmsStatus)
 {
-    SetDeterministicOption(deterministicAlgorithmsStatus, true);
+    auto snapshot = c10_npu::CaptureDeterministicSnapshot();
+    snapshot.deterministic_algorithms_enabled = deterministicAlgorithmsStatus;
+    snapshot.effective_level = deterministicAlgorithmsStatus ?
+        (snapshot.requested_level == 0 ? 1 : snapshot.requested_level) : 0;
+    ApplyDeterministicSnapshot(snapshot, true);
 }
 
 void OpCommandImpl::Run(
@@ -187,87 +295,89 @@ aclError OpCommandImpl::InnerRun(
     auto inputSize = params.inBuffer.size();
     auto outputSize = params.outBuffer.size();
     // open the deterministicAlgorithms config
-    SetDeterministic(false);
-    bool reset_flag = false;
-    if (ForceJitCompileList::GetInstance().Inlist(name) && env::CheckJitDisable()) {
-        NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "enable"));
-        reset_flag = true;
-    }
-    int index = 0;
-    do {
-        if (params.customHandler) {
-            ret = params.customHandler();
-            OPS_CHECK_ERROR(ret, name.c_str());
-            index++;
-            continue;
-        }
-
-        if (at_npu::native::aoe::aoe_manager().IsAoeEnabled() &&
-            at_npu::native::aoe::aoe_manager().IsInWhitelist(name)) {
-            ret = at_npu::native::AclGenGraphAndDumpForOp(
-                name.c_str(),
-                inputSize,
-                params.inDesc.data(),
-                params.inBuffer.data(),
-                outputSize,
-                params.outDesc.data(),
-                params.outBuffer.data(),
-                params.attr,
-                ACL_ENGINE_SYS,
-                at_npu::native::aoe::aoe_manager().GetDumpGraphPath().c_str(),
-                nullptr);
-            if (ret != ACL_ERROR_NONE) {
-                CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(ret);
-                C10_NPU_SHOW_ERR_MSG();
-                TORCH_CHECK(false, "In aoe mode, AclGenGraphAndDumpForOp failed!", PTA_ERROR(ErrCode::ACL));
+    auto snapshot = c10_npu::CaptureDeterministicSnapshot();
+    return RunWithDeterministicSnapshot(snapshot, false, [&]() -> aclError {
+        bool reset_flag = false;
+            if (ForceJitCompileList::GetInstance().Inlist(name) && env::CheckJitDisable()) {
+                NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "enable"));
+                reset_flag = true;
             }
-        }
-        if (!sync) {
-            ret = aclopCompileAndExecute(
-                name.c_str(),
-                inputSize,
-                params.inDesc.data(),
-                params.inBuffer.data(),
-                outputSize,
-                params.outDesc.data(),
-                params.outBuffer.data(),
-                params.attr,
-                ACL_ENGINE_SYS,
-                ACL_COMPILE_SYS,
-                nullptr,
-                stream);
-            OPS_CHECK_ERROR(ret, name.c_str());
-        } else {
-            int64_t dimSize;
-            ret = AclopCompileAndExecuteV2(
-                name.c_str(),
-                inputSize,
-                const_cast<aclTensorDesc **>(params.inDesc.data()),
-                const_cast<aclDataBuffer **>(params.inBuffer.data()),
-                outputSize,
-                const_cast<aclTensorDesc **>(params.outDesc.data()),
-                params.outBuffer.data(),
-                params.attr,
-                ACL_ENGINE_SYS,
-                ACL_COMPILE_SYS,
-                nullptr,
-                stream);
-            OPS_CHECK_ERROR(ret, name.c_str());
-            for (size_t i = 0; i < sync_index.size(); i++) {
-                c10::SmallVector<int64_t, N> real_shape;
-                for (int64_t j = 0; j < outputTensor[sync_index[i]].dim(); j++) {
-                    NPU_CHECK_ERROR(aclGetTensorDescDimV2(params.outDesc[sync_index[i]], j, &dimSize));
-                    real_shape.emplace_back(dimSize);
+            int index = 0;
+            do {
+                if (params.customHandler) {
+                    ret = params.customHandler();
+                    OPS_CHECK_ERROR(ret, name.c_str());
+                    index++;
+                    continue;
                 }
-                outputTensor[sync_index[i]].resize_(real_shape);
+
+                if (at_npu::native::aoe::aoe_manager().IsAoeEnabled() &&
+                    at_npu::native::aoe::aoe_manager().IsInWhitelist(name)) {
+                    ret = at_npu::native::AclGenGraphAndDumpForOp(
+                        name.c_str(),
+                        inputSize,
+                        params.inDesc.data(),
+                        params.inBuffer.data(),
+                        outputSize,
+                        params.outDesc.data(),
+                        params.outBuffer.data(),
+                        params.attr,
+                        ACL_ENGINE_SYS,
+                        at_npu::native::aoe::aoe_manager().GetDumpGraphPath().c_str(),
+                        nullptr);
+                    if (ret != ACL_ERROR_NONE) {
+                        CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(ret);
+                        C10_NPU_SHOW_ERR_MSG();
+                        TORCH_CHECK(false, "In aoe mode, AclGenGraphAndDumpForOp failed!", PTA_ERROR(ErrCode::ACL));
+                    }
+                }
+            if (!sync) {
+                    ret = aclopCompileAndExecute(
+                        name.c_str(),
+                        inputSize,
+                        params.inDesc.data(),
+                        params.inBuffer.data(),
+                        outputSize,
+                        params.outDesc.data(),
+                        params.outBuffer.data(),
+                        params.attr,
+                        ACL_ENGINE_SYS,
+                        ACL_COMPILE_SYS,
+                        nullptr,
+                        stream);
+                    OPS_CHECK_ERROR(ret, name.c_str());
+                } else {
+                    int64_t dimSize;
+                    ret = AclopCompileAndExecuteV2(
+                        name.c_str(),
+                        inputSize,
+                        const_cast<aclTensorDesc **>(params.inDesc.data()),
+                        const_cast<aclDataBuffer **>(params.inBuffer.data()),
+                        outputSize,
+                        const_cast<aclTensorDesc **>(params.outDesc.data()),
+                        params.outBuffer.data(),
+                        params.attr,
+                        ACL_ENGINE_SYS,
+                        ACL_COMPILE_SYS,
+                        nullptr,
+                        stream);
+                    OPS_CHECK_ERROR(ret, name.c_str());
+                    for (size_t i = 0; i < sync_index.size(); i++) {
+                        c10::SmallVector<int64_t, N> real_shape;
+                        for (int64_t j = 0; j < outputTensor[sync_index[i]].dim(); j++) {
+                            NPU_CHECK_ERROR(aclGetTensorDescDimV2(params.outDesc[sync_index[i]], j, &dimSize));
+                            real_shape.emplace_back(dimSize);
+                        }
+                        outputTensor[sync_index[i]].resize_(real_shape);
+                    }
+                }
+                ++index;
+            } while (NpuUtils::IsOomError(ret, index) && (index < NPU_MAX_OP_EXEC_TRY_NUM));
+            if (reset_flag) {
+                NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "disable"));
             }
-        }
-        ++index;
-    } while (NpuUtils::IsOomError(ret, index) && (index < NPU_MAX_OP_EXEC_TRY_NUM));
-    if (reset_flag) {
-        NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "disable"));
-    }
-    return ret;
+            return ret;
+        });
 }
 
 aclError OpCommandImpl::InnerRunOpApi(const string &op_name, PROC_FUNC func)
@@ -279,14 +389,16 @@ aclError OpCommandImpl::InnerRunOpApi(const string &op_name, PROC_FUNC func)
         throw std::runtime_error("FORCE STOP." + PTA_ERROR(ErrCode::ACL));
     }
     // open the deterministicAlgorithms config
-    SetDeterministic();
-    int index = 0;
-    do {
-        ret = func();
-        OPS_CHECK_ERROR(ret, op_name.c_str());
-        index++;
-    } while (NpuUtils::IsOomError(ret, index) && (index < NPU_MAX_OP_EXEC_TRY_NUM));
-    return ret;
+    auto snapshot = c10_npu::CaptureDeterministicSnapshot();
+    return RunWithDeterministicSnapshot(snapshot, true, [&]() -> aclError {
+        int index = 0;
+        do {
+            ret = func();
+            OPS_CHECK_ERROR(ret, op_name.c_str());
+            index++;
+        } while (NpuUtils::IsOomError(ret, index) && (index < NPU_MAX_OP_EXEC_TRY_NUM));
+        return ret;
+    });
 }
 
 void printErrorLog(ExecuteParas *cur_paras)
@@ -335,7 +447,6 @@ int ExecFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
     TORCH_NPU_DISPATCH_LOGD("ExecFunc: Op %s Run.", cur_paras->opType);
     aclError ret;
     // open the deterministicAlgorithms config
-    SetDeterministic(false);
     if (cur_paras->customHandler) {
         ASCEND_LOGD("Exec Op %s with custom handle", cur_paras->opType);
         try {
