@@ -12,7 +12,13 @@ import os
 from torch_npu.utils._dynamo import _dynamo_register_interface_for_device, patch_SkipFunctionVariable, patch_TensorVariable_call_method
 # all backends need register npu/cpu/mps device_op_overrides
 from .graph import patch_codegen_with_cpp_wrapper
-from .utils import patch_has_triton, patch_device_supports_tma, patch_is_gpu, get_current_raw_stream
+from .utils import (
+    patch_has_triton,
+    patch_device_supports_tma,
+    patch_is_gpu,
+    get_current_raw_stream,
+    disable_graph_partition_for_allfallback,
+)
 # All backends need npu/cpu/mps device_op_overrides.
 from .codegen.common import register_device_op_overrides_npu, patch_cache_base_get_system
 from .shape_handling import NPUShapeHandling, patch_shape_handling
@@ -348,6 +354,7 @@ def _load_backend():
 
     # Reset Inductor globals before each backend switch (mlir <-> triton in one process).
     restore_inductor_baseline()
+    disable_graph_partition_for_allfallback()
 
     backend = _get_backend()
     loader = _BACKEND_LOADERS.get(backend, _load_triton_backend)

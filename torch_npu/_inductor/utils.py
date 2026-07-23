@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import functools
 import logging
+import os
 
 import torch
 import torch_npu
@@ -270,3 +271,11 @@ def triton_support_ffts():
 
     arch = get_ascend_arch_from_env()
     return is_ffts_supported(arch) and (not force_disable_ffts())
+
+
+def disable_graph_partition_for_allfallback() -> None:
+    if (
+        os.getenv("NPU_INDUCTOR_FALLBACK_LIST", "").strip().lower()
+        == "allfallback"
+    ):
+        inductor_config.graph_partition = False
