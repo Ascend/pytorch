@@ -510,6 +510,60 @@ at::Tensor NPUNativeFunctions::new_empty_strided_symint(
     return at::native::new_empty_strided_symint(self, size, stride, dtype, layout, device, pin_memory);
 }
 
+// Exported, dispatcher-free strided NPU allocation (see TensorFactories.h).
+// Defined in the same TU as NPUNativeFunctions::empty_strided so it links to
+// that (hidden) symbol internally, while TORCH_NPU_API re-exports THIS wrapper
+// for torch_npu._C to call without going through the operator dispatcher.
+at::Tensor empty_strided_npu(
+    c10::IntArrayRef size,
+    c10::IntArrayRef stride,
+    at::ScalarType dtype)
+{
+    // Low-overhead strided NPU allocation for inductor wrappers.
+    //
+    // NPUNativeFunctions::empty_strided goes empty({0}) -> SetDesc ->
+    // resize_impl_npu_, where empty() additionally runs RECORD_FUNCTION + an
+    // NPURecordFunction profiler guard and allocates a 0-byte storage that is
+    // then resized. For the hot inductor allocation path none of that is
+    // needed, so we inline the essential steps once: compute the storage byte
+    // size from (size, stride), allocate exactly that, build the tensor, set
+    // sizes/strides, and set the NPU format descriptor a single time. This
+    // mirrors the dispatcher-free intent of upstream empty_strided_cuda while
+    // keeping the NPU-required descriptor setup.
+    check_size_nonnegative(size);
+
+    // storage_size in elements: 1 + sum_d (size[d]-1)*stride[d], or 0 if any
+    // dim is empty (matches resize_impl_npu_).
+    int64_t storage_nelem = 1;
+    for (size_t d = 0; d < size.size(); ++d) {
+        if (size[d] == 0) {
+            storage_nelem = 0;
+            break;
+        }
+        storage_nelem += (size[d] - 1) * stride[d];
+    }
+
+    auto device = at::Device(c10::DeviceType::PrivateUse1, c10_npu::current_device());
+    torch_npu::utils::maybe_initialize_npu(device);
+    c10_npu::NPUGuard guard_(device);
+
+    auto dtype_meta = c10::scalarTypeToTypeMeta(dtype);
+    int64_t size_bytes = storage_nelem * dtype_meta.itemsize();
+    c10::Allocator* allocator = c10_npu::NPUCachingAllocator::get();
+    c10::intrusive_ptr<c10::StorageImpl> storage_impl = torch_npu::make_npu_storage_impl(
+        c10::StorageImpl::use_byte_size_t(),
+        c10::SymInt(size_bytes),
+        allocator->allocate(size_bytes),
+        allocator,
+        true);
+
+    auto tensor = at::detail::make_tensor<torch_npu::NPUTensorImpl>(storage_impl, dtype_meta);
+    tensor.unsafeGetTensorImpl()->set_sizes_and_strides(size, stride);
+    StorageDescHelper::SetDesc(tensor, size, stride);
+
+    return tensor;
+}
+
 at::Tensor &empty_out_npu(
     at::Tensor &result,
     c10::IntArrayRef size,
