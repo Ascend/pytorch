@@ -560,6 +560,125 @@ def get_dynamo_stats():
     )
 
 
+def _iter_accuracy_leaves(ref, res, path="root"):
+    if isinstance(ref, dict):
+        if not isinstance(res, dict):
+            yield path, ref, res
+            return
+        for key in sorted(set(ref.keys()) | set(res.keys())):
+            if key in ref and key in res:
+                yield from _iter_accuracy_leaves(ref[key], res[key], f"{path}.{key}")
+            else:
+                yield f"{path}.{key}", ref.get(key), res.get(key)
+    elif isinstance(ref, (list, tuple)):
+        if not isinstance(res, (list, tuple)):
+            yield path, ref, res
+            return
+        for idx in range(max(len(ref), len(res))):
+            if idx < len(ref) and idx < len(res):
+                yield from _iter_accuracy_leaves(ref[idx], res[idx], f"{path}[{idx}]")
+            else:
+                yield f"{path}[{idx}]", None, None
+    else:
+        yield path, ref, res
+
+
+def _accuracy_leaf_name(path, is_training):
+    if not is_training:
+        return path.replace("root", "prediction", 1)
+
+    if not path.startswith("root["):
+        return path
+
+    bracket = path.find("]")
+    if bracket < 0:
+        return path
+
+    root_idx = int(path[5:bracket])
+    if root_idx == 0:
+        return path.replace("root[0]", "prediction", 1)
+    if root_idx == 1:
+        return "loss"
+    if root_idx == 2:
+        return "grads"
+    if root_idx == 3:
+        return "params_after_step"
+    if root_idx == 4:
+        return "buffers"
+    if root_idx >= 5:
+        return path.replace(f"root[{root_idx}]", f"input_grad[{root_idx - 5}]", 1)
+    return path
+
+
+def _accuracy_tensor_stats(ref, res, tol, equal_nan):
+    if not isinstance(ref, torch.Tensor) or not isinstance(res, torch.Tensor):
+        is_same = ref == res
+        return {
+            "ok": is_same,
+            "max_abs": 0.0 if is_same else float("inf"),
+            "sum_abs": 0.0 if is_same else float("inf"),
+            "numel": 1,
+            "mean_abs": 0.0 if is_same else float("inf"),
+        }
+    if ref.numel() == 0:
+        return {"ok": True, "max_abs": 0.0, "sum_abs": 0.0, "numel": 0, "mean_abs": 0.0}
+
+    ok = torch.allclose(ref, res, atol=tol, rtol=tol, equal_nan=equal_nan)
+    if ref.is_floating_point() or res.is_floating_point():
+        diff = (ref.detach().to(torch.float64) - res.detach().to(torch.float64)).abs()
+    else:
+        diff = (ref.detach() != res.detach()).to(torch.float64)
+    sum_abs = float(diff.sum().item())
+    numel = ref.numel()
+    return {
+        "ok": bool(ok),
+        "max_abs": float(diff.max().item()),
+        "sum_abs": sum_abs,
+        "numel": numel,
+        "mean_abs": sum_abs / numel,
+    }
+
+
+def print_accuracy_diff_summary(ref, res, tol, equal_nan, is_training):
+    print(f"accuracy diff summary (tol={tol}):")
+    grouped = collections.OrderedDict()
+    for path, ref_leaf, res_leaf in _iter_accuracy_leaves(ref, res):
+        name = _accuracy_leaf_name(path, is_training)
+        stats = _accuracy_tensor_stats(ref_leaf, res_leaf, tol, equal_nan)
+
+        if name.startswith("prediction") or name == "loss" or name.startswith("input_grad"):
+            grouped[name] = stats
+            continue
+
+        group = grouped.setdefault(
+            name,
+            {"ok": True, "max_abs": 0.0, "sum_abs": 0.0, "numel": 0, "fail": 0, "total": 0},
+        )
+        group["total"] += 1
+        group["ok"] = group["ok"] and stats["ok"]
+        group["max_abs"] = max(group["max_abs"], stats["max_abs"])
+        group["sum_abs"] += stats["sum_abs"]
+        group["numel"] += stats["numel"]
+        if not stats["ok"]:
+            group["fail"] += 1
+
+    for name, stats in grouped.items():
+        status = "pass" if stats["ok"] else "fail"
+        if "total" in stats:
+            mean_abs = stats["sum_abs"] / stats["numel"] if stats["numel"] else 0.0
+            print(
+                f"{name:28s}: {status}, max_abs = {stats['max_abs']:.8g}, "
+                f"mean_abs = {mean_abs:.8g}, failed = {stats['fail']}/{stats['total']}"
+            )
+        elif name == "loss":
+            print(f"{name:28s}: {status}, diff = {stats['max_abs']:.8g}")
+        else:
+            print(
+                f"{name:28s}: {status}, max_abs = {stats['max_abs']:.8g}, "
+                f"mean_abs = {stats['mean_abs']:.8g}"
+            )
+
+
 class BenchmarkRunner:
     def __init__(self):
         self.model_iter_fn = None
@@ -972,6 +1091,13 @@ class BenchmarkRunner:
             except Exception:
                 # Sometimes torch.allclose may throw RuntimeError
                 is_same = False
+            if self.args.accu_summary:
+                try:
+                    print_accuracy_diff_summary(
+                        correct_result, new_result, tolerance, self.equal_nan, self.args.training
+                    )
+                except Exception as e:
+                    log.warning("Failed to print accuracy diff summary: %s", exc_info=True)
 
             if not is_same:
                 accuracy_status = "fail_accuracy"
@@ -1432,6 +1558,11 @@ def parse_args(args=None):
         "--dump-compile-time",
         action="store_true",
         help="dump compile time",
+    )
+    parser.add_argument(
+        "--accu-summary",
+        action="store_true",
+        help="print accuracy diff summary between eager and compiled results",
     )
     group_prec = parser.add_mutually_exclusive_group()
     group_prec.add_argument("--float16", action="store_true", help="cast model to fp16")
