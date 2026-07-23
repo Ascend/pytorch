@@ -88,11 +88,10 @@ struct TORCH_NPU_API NPUGraph {
     static NPUGraph* get_currently_capturing_graph();
 
     void register_generator_state(c10::intrusive_ptr<at_npu::NPUGeneratorState> state);
-    void register_generator_state(const at::Generator& generator);
     void capture_begin(
         MempoolId_t pool = {0, 0},
         aclmdlRICaptureMode capture_mode = aclmdlRICaptureMode::ACL_MODEL_RI_CAPTURE_MODE_GLOBAL,
-		bool report_shape = true);
+        bool report_shape = true);
     void capture_end();
     void replay();
     void reset();

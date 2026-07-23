@@ -743,7 +743,7 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
             [](c10_npu::NPUGraph& self,
                std::optional<c10_npu::MempoolId_t> pool_opt,
                std::string capture_error_mode,
-			   bool report_shape) {
+               bool report_shape) {
                 aclmdlRICaptureMode capture_mode;
                 c10_npu::MempoolId_t pool = pool_opt.has_value()
                     ? pool_opt.value() : c10_npu::MempoolId_t{0, 0};
@@ -770,12 +770,13 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
             torch::wrap_pybind_function_no_gil(&c10_npu::NPUGraph::capture_end))
         .def(
             "register_generator_state",
-            [](c10_npu::NPUGraph& self, py::handle raw_generator) {
-                auto generator = THPGenerator_Unwrap(raw_generator.ptr());
-                // We've unwrapped Python object to C++ object,
-                // so we could release GIL before calling into C++
-                py::gil_scoped_release release;
-                return self.register_generator_state(generator);
+            [](c10_npu::NPUGraph& /*self*/, py::handle /*raw_generator*/) {
+                TORCH_WARN_DEPRECATION(
+                    "NPUGraph.register_generator_state() is deprecated, "
+                    "and will be removed in a future torch_npu release. "
+                    "It is now a no-op and can be safely removed from your code. "
+                    "Generator states are automatically registered when RNG ops "
+                    "first execute during graph capture.");
             },
             py::arg("generator"))
         .def(
