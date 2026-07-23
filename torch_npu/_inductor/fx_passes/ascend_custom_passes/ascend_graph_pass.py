@@ -1,4 +1,3 @@
-import math
 import operator
 
 import torch
@@ -41,6 +40,18 @@ from ..utils.get_binary_fold_result import (
     has_storage_or_layout,
     propagate_fake_tensor,
 )
+from ..utils.symbolic_shape_util import (
+    is_statically_one,
+    materialize_shape,
+    refresh_fake_meta,
+    resolve_size_arg,
+    resolve_size_list,
+    shapes_statically_equal,
+    statically_fits_int32,
+    statically_known_eq,
+    statically_known_geq,
+    statically_known_leq,
+)
 from .register_custom_pass import register_custom_pass
 
 
@@ -60,7 +71,7 @@ def cat_slice_cat_fold_pass(graph: torch.fx.Graph) -> None:
         cat2_node = node
         cat2_inputs = cat2_node.args[0]
         cat2_dim = cat2_node.kwargs.get("dim", -1)
-        cat2_shape = get_node_shape(cat2_node)
+        cat2_shape = get_node_shape(cat2_node, allow_symbolic=True)
         if not cat2_shape:
             continue
         cat2_rank = len(cat2_shape)
@@ -95,26 +106,40 @@ def cat_slice_cat_fold_pass(graph: torch.fx.Graph) -> None:
             continue
         cat1_inputs = cat1_node.args[0]
         cat1_dim = cat1_node.kwargs.get("dim", -1)
-        cat1_shape = get_node_shape(cat1_node)
+        cat1_shape = get_node_shape(cat1_node, allow_symbolic=True)
         if not cat1_shape:
             continue
         cat1_rank = len(cat1_shape)
         cat1_dim = cat1_dim + cat1_rank if cat1_dim == -1 else cat1_dim
-        if cat1_dim != cat2_dim or cat1_shape != cat2_shape:
+        if cat1_dim != cat2_dim or not shapes_statically_equal(cat1_shape, cat2_shape):
             continue
-        sorted_ranges = [
-            (sl.start, sl.stop, sl.step)
-            for sl in slice_ranges
-            if isinstance(sl.start, int) and isinstance(sl.stop, int)
-        ]
+        # Normalize each slice's (start, stop), allowing symbolic bounds (step must be 1).
+        resolved_ranges = []
+        valid_ranges = True
+        for sl in slice_ranges:
+            if sl.step not in (1, None):
+                valid_ranges = False
+                break
+            start = resolve_size_arg(0 if sl.start is None else sl.start)
+            stop = resolve_size_arg(sl.stop) if sl.stop is not None else None
+            if start is None or stop is None:
+                valid_ranges = False
+                break
+            resolved_ranges.append((start, stop))
+        if not valid_ranges or len(resolved_ranges) != len(cat1_inputs):
+            continue
+        # Chained coverage proof: start_0==0, start_i==stop_{i-1}, last stop covers the full dim length.
         ranges_match = True
         expected_start = 0
-        for start, stop, step in sorted_ranges:
-            if start != expected_start or step not in (1, None):
+        for start, stop in resolved_ranges:
+            if not statically_known_eq(start, expected_start):
                 ranges_match = False
                 break
             expected_start = stop
-        ranges_match = ranges_match and len(sorted_ranges) == len(cat1_inputs)
+        if ranges_match and not statically_known_eq(
+            expected_start, cat2_shape[cat2_dim]
+        ):
+            ranges_match = False
 
         if not ranges_match:
             continue
@@ -140,7 +165,7 @@ def pad_slice_fold(graph: torch.fx.Graph) -> None:
         # 获取 pad 节点的输入和参数
         input_tensor = node.args[0]
         pad = node.args[1]
-        input_shape = get_node_shape(input_tensor)
+        input_shape = get_node_shape(input_tensor, allow_symbolic=True)
         if input_shape is None:
             continue
         pad_dim, _ = get_pad_dim_and_size(pad, input_shape)
@@ -162,15 +187,16 @@ def pad_slice_fold(graph: torch.fx.Graph) -> None:
             start = idx[pad_dim].start
             end = idx[pad_dim].stop
             step = idx[pad_dim].step
-            slice_start = start if isinstance(start, int) else 0
-            slice_end = end if isinstance(end, int) else None
+            slice_start = 0 if start is None else resolve_size_arg(start)
+            slice_end = None if end is None else resolve_size_arg(end)
             slice_step = step if isinstance(step, int) else 1
-            # 检查是否在维度上发生的切片，且切片范围不包含填充部分
+            # The slice upper bound must be provably within the valid pre-pad data region (not touching padding).
             is_valid_prefix = (
-                isinstance(slice_end, int)
-                and slice_end <= input_shape[pad_dim]
+                slice_start is not None
+                and slice_end is not None
                 and slice_step in (1, None)
-                and slice_start <= slice_end
+                and statically_known_leq(slice_end, input_shape[pad_dim])
+                and statically_known_leq(slice_start, slice_end)
             )
             if not is_valid_prefix:
                 all_slices_valid = False
@@ -274,7 +300,7 @@ def fold_cat(graph: torch.fx.Graph) -> None:
             is_cat, cat_axis = check_cat_op(node)
             if not is_cat:
                 continue
-            node_shape = get_node_shape(node)
+            node_shape = get_node_shape(node, allow_symbolic=True)
             if not node_shape:
                 continue
             if cat_axis == len(node_shape) - 1:
@@ -285,7 +311,7 @@ def fold_cat(graph: torch.fx.Graph) -> None:
                 is_input_cat, input_cat_axis = check_cat_op(inp)
                 if is_input_cat:
                     if len(inp.users) == 1:
-                        inp_shape = get_node_shape(inp)
+                        inp_shape = get_node_shape(inp, allow_symbolic=True)
                         effective_input_axis = input_cat_axis
                         if inp_shape and input_cat_axis == len(inp_shape) - 1:
                             effective_input_axis = -1
@@ -392,16 +418,21 @@ def fold_expand(graph: torch.fx.Graph) -> None:
         if len(org_shape) != len(target_shape):
             return False
         for os, ts in zip(org_shape, target_shape):
-            if os != ts and ts != -1:
+            if isinstance(ts, int) and ts == -1:
+                continue
+            if not statically_known_eq(os, ts):
                 return False
         return True
 
     for expand in candidates:
         inp = expand.args[0]
         target_shape = expand.args[1]
-        if not isinstance(target_shape, list):
+        if not isinstance(target_shape, (list, tuple)):
             continue
-        inp_shape = get_node_shape(inp)
+        target_shape = resolve_size_list(target_shape)
+        if target_shape is None:
+            continue
+        inp_shape = get_node_shape(inp, allow_symbolic=True)
         if inp_shape is None:
             continue
         org_shape = list(inp_shape)
@@ -427,14 +458,14 @@ def fold_reduce(graph: torch.fx.Graph) -> None:
 
     for reduce in reversed(candidates):
         inp = get_input_node(reduce, 0)
-        shape = get_node_shape(inp)
+        shape = get_node_shape(inp, allow_symbolic=True)
         if shape is None:
             continue
         dims = get_input_kw_node(reduce, "dim") or list(range(len(shape)))
         if not isinstance(dims, list):
             dims = [dims]
         keep_dim = get_input_kw_node(reduce, "keepdim") or False
-        if all(shape[dim] == 1 for dim in dims):
+        if all(is_statically_one(shape[dim]) for dim in dims):
             with graph.inserting_before(reduce):
                 fold_res = _get_fold_result(graph, inp, dims, keep_dim)
             if fold_res:
@@ -454,7 +485,7 @@ def fold_sink_view(graph: torch.fx.Graph) -> None:
             continue
         if len(node.users) != 1:
             continue
-        view_shape = get_node_shape(node)
+        view_shape = get_node_shape(node, allow_symbolic=True)
         if view_shape is None:
             continue
         user = next(iter(node.users))
@@ -490,10 +521,10 @@ def fold_sink_view(graph: torch.fx.Graph) -> None:
                 other_shape = []
                 other_val = other_node
             else:
-                other_shape = get_node_shape(other_node)
+                other_shape = get_node_shape(other_node, allow_symbolic=True)
                 other_val = get_node_meta(other_node)
-            result_shape = get_node_shape(user)
-            orig_shape = get_node_shape(node.args[0])
+            result_shape = get_node_shape(user, allow_symbolic=True)
+            orig_shape = get_node_shape(node.args[0], allow_symbolic=True)
             if (
                 other_shape is not None
                 and result_shape is not None
@@ -501,10 +532,12 @@ def fold_sink_view(graph: torch.fx.Graph) -> None:
                 and orig_shape is not None
             ):
                 no_broadcast_dims = min(len(other_shape), len(orig_shape))
-                if result_shape == view_shape and (
+                if shapes_statically_equal(result_shape, view_shape) and (
                     len(other_shape) == 0
-                    or orig_shape[-no_broadcast_dims:]
-                    == view_shape[-no_broadcast_dims:]
+                    or shapes_statically_equal(
+                        orig_shape[-no_broadcast_dims:],
+                        view_shape[-no_broadcast_dims:],
+                    )
                 ):
                     with graph.inserting_before(user):
                         new_args = list(user.args)
@@ -700,11 +733,14 @@ def view_fold_pass(graph) -> None:
             changed = True
         else:
             target_shape = view.args[1]
-            if not isinstance(target_shape, list):
+            if not isinstance(target_shape, (list, tuple)):
                 continue
-            inp_shape = get_node_shape(inp)
+            target_shape = resolve_size_list(target_shape)
+            if target_shape is None:
+                continue
+            inp_shape = get_node_shape(inp, allow_symbolic=True)
             if inp_shape is not None:
-                if target_shape == list(inp_shape):
+                if shapes_statically_equal(target_shape, list(inp_shape)):
                     view.replace_all_uses_with(inp)
                     propagate_fake_tensor(inp, view, lambda x: x)
                     graph.erase_node(view)
@@ -775,13 +811,13 @@ def fold_redundant_ops(graph: torch.fx.Graph):
                     continue
                 in_meta = _get_tensor_meta(first_arg)
                 squeeze_out_meta = _get_tensor_meta(squeeze_node)
-                in_shape = get_node_shape(first_arg)
-                squeeze_out_shape = get_node_shape(squeeze_node)
+                in_shape = get_node_shape(first_arg, allow_symbolic=True)
+                squeeze_out_shape = get_node_shape(squeeze_node, allow_symbolic=True)
                 if in_meta is None or squeeze_out_meta is None:
                     continue
                 if in_shape is None or squeeze_out_shape is None:
                     continue
-                if in_shape != squeeze_out_shape:
+                if not shapes_statically_equal(in_shape, squeeze_out_shape):
                     continue
                 if in_meta.dtype != squeeze_out_meta.dtype:
                     continue
@@ -807,7 +843,6 @@ def fold_redundant_ops(graph: torch.fx.Graph):
 def dtype_optimal_pass(graph: torch.fx.Graph) -> None:
     """将不必要的 int64 优化为 int32：若 torch.arange 或 to(int64) 的取值
     可被 int32 安全表示，则降级 dtype 以减少访存与计算开销。"""
-    int32_min, int32_max = -(2**31), 2**31 - 1
     cast_dtype_limit = [torch.float32, torch.int32, torch.bool, torch.int16, torch.int8]
     changed = False
     for node in list(graph.nodes):  # 使用list避免修改时迭代问题
@@ -837,24 +872,18 @@ def dtype_optimal_pass(graph: torch.fx.Graph) -> None:
             # 如果 end 为 None，假设无限或跳过 (罕见，但安全)
             if end is None:
                 continue
-            # 静态范围检查 (所有参数是常量)
-            if all(isinstance(p, (int, float)) for p in [start, step, end]):
-                if step == 0:
-                    continue
-                # 如果 step 非整数且 dtype 是 int，警告 (arange 会自动转为 float)
-                if not isinstance(step, int):
-                    continue
-                # 计算序列长度和 min/max 值
-                num_elements = (
-                    math.ceil((end - start) / step)
-                    if step > 0
-                    else math.ceil((start - end) / -step)
-                )
-                seq_min = min(start, start + (num_elements - 1) * step)
-                seq_max = max(start, start + (num_elements - 1) * step)
-                if seq_min > int32_min and seq_max < int32_max:
-                    node.kwargs = {**node.kwargs, "dtype": torch.int32}
-                    changed = True
+            # Normalize start/end/step (symbolic allowed); elements always lie in
+            # [start, end), so downgrade is safe once both bounds provably fit int32; step must be a nonzero int.
+            r_start = resolve_size_arg(start)
+            r_end = resolve_size_arg(end)
+            r_step = resolve_size_arg(step)
+            if r_start is None or r_end is None or r_step is None:
+                continue
+            if not isinstance(r_step, int) or r_step == 0:
+                continue
+            if statically_fits_int32(r_start, r_end):
+                node.kwargs = {**node.kwargs, "dtype": torch.int32}
+                changed = True
         if node.op == "call_method":
             input_node = node.args[0]
             input_fake = (
@@ -922,7 +951,7 @@ def cat_to_view_pass(graph: torch.fx.Graph) -> None:
         cat_inputs = cat.args[0]
         if not isinstance(cat_inputs, (list, tuple)) or len(cat_inputs) < 2:
             continue
-        cat_shape = get_node_shape(cat)
+        cat_shape = get_node_shape(cat, allow_symbolic=True)
         if cat_shape is None:
             continue
         rank = len(cat_shape)
@@ -934,6 +963,7 @@ def cat_to_view_pass(graph: torch.fx.Graph) -> None:
         parent = None
         intervals = []
         valid = True
+        all_static = True
         for inp in cat_inputs:
             if not (
                 isinstance(inp, torch.fx.Node)
@@ -958,30 +988,58 @@ def cat_to_view_pass(graph: torch.fx.Graph) -> None:
                 break
             sl_start = inp.args[2] if len(inp.args) > 2 else 0
             sl_end = inp.args[3] if len(inp.args) > 3 else None
-            if not isinstance(sl_start, int):
+            r_start = resolve_size_arg(0 if sl_start is None else sl_start)
+            r_end = None if sl_end is None else resolve_size_arg(sl_end)
+            if r_start is None or (sl_end is not None and r_end is None):
                 valid = False
                 break
-            if sl_end is not None and not isinstance(sl_end, int):
-                valid = False
-                break
+            if not isinstance(r_start, int) or (
+                r_end is not None and not isinstance(r_end, int)
+            ):
+                all_static = False
             if parent is None:
                 parent = p
             elif parent is not p:
                 valid = False
                 break
-            intervals.append((sl_start, sl_end))
+            intervals.append((r_start, r_end))
 
         if not valid or parent is None:
             continue
-        parent_shape = get_node_shape(parent)
+        parent_shape = get_node_shape(parent, allow_symbolic=True)
         if parent_shape is None or len(parent_shape) != rank:
             continue
-        if list(parent_shape) != list(cat_shape):
+        if not shapes_statically_equal(parent_shape, cat_shape):
             continue
-        dim_size_raw = parent_shape[cat_dim]
-        if isinstance(dim_size_raw, torch.SymInt):
+        dim_size = parent_shape[cat_dim]
+
+        if not (all_static and isinstance(dim_size, int)):
+            # Symbolic path: negative indices cannot be reliably normalized under
+            # symbols; only fold when the slices, in cat input order, contiguously
+            # cover the full dim length from 0 (identity view); skip rotation cases.
+            expected = 0
+            ok_sym = True
+            for s, e in intervals:
+                e_eff = dim_size if e is None else e
+                if not statically_known_geq(s, 0) or not statically_known_eq(
+                    s, expected
+                ):
+                    ok_sym = False
+                    break
+                expected = e_eff
+            if ok_sym and statically_known_eq(expected, dim_size):
+                cat.replace_all_uses_with(parent)
+                changed = True
+                log.info(
+                    "cat_to_view_pass: collapsed cat(%d slices, dim=%d) of %s "
+                    "→ identity view (dynamic full cover)",
+                    len(cat_inputs),
+                    cat_dim,
+                    parent.name,
+                )
             continue
-        dim_size = int(dim_size_raw)
+
+        dim_size = int(dim_size)
 
         normalised = []
         ok = True
@@ -1128,21 +1186,27 @@ def repeat_to_expand_pass(graph: torch.fx.Graph) -> None:
         if not isinstance(repeats, (list, tuple)):
             continue
 
-        in_shape = get_node_shape(inp)
+        in_shape = get_node_shape(inp, allow_symbolic=True)
         if in_shape is None:
             continue
         if len(repeats) != len(in_shape):
             continue
 
+        # Only broadcast (no physical copy) can be rewritten: each dim either is
+        # not repeated (r==1, output keeps the original dim, may be symbolic) or the
+        # original dim is provably 1 (output dim is r). repeats must be int constants.
         valid = True
+        out_shape = []
         for r, s in zip(repeats, in_shape):
-            if isinstance(r, torch.SymInt) or isinstance(s, torch.SymInt):
+            r = resolve_size_arg(r)
+            if not isinstance(r, int):
                 valid = False
                 break
-            if not (isinstance(r, int) and isinstance(s, int)):
-                valid = False
-                break
-            if r != 1 and s != 1:
+            if r == 1:
+                out_shape.append(s)
+            elif is_statically_one(s):
+                out_shape.append(r)
+            else:
                 valid = False
                 break
         if not valid:
@@ -1155,17 +1219,19 @@ def repeat_to_expand_pass(graph: torch.fx.Graph) -> None:
         if not users_ok or not list(rpt.users):
             continue
 
-        out_shape = [int(r) * int(s) for r, s in zip(repeats, in_shape)]
-
         inp_fake = inp.meta.get("val")
         fake_mode = (
             getattr(inp_fake, "fake_mode", None) if inp_fake is not None else None
         )
 
         with graph.inserting_before(rpt):
+            # Symbolic dims in the output shape all come from inp itself; materialize as sym_size refs.
+            expand_shape = materialize_shape(graph, out_shape, inp)
+            if expand_shape is None:
+                continue
             exp = graph.call_function(
                 torch.ops.aten.expand.default,
-                args=(inp, list(out_shape)),
+                args=(inp, expand_shape),
             )
         if "val" in rpt.meta:
             exp.meta["val"] = rpt.meta["val"]
@@ -1237,28 +1303,24 @@ _IOTA_DTYPE_CLOSING_OPS = frozenset(
 )
 
 
-def _prims_iota_value_range(node):
-    """计算 prims.iota 节点产生序列的 [lo, hi) 取值范围；
-    若参数非常量整数则返回 None。"""
+def _prims_iota_endpoints(node):
+    """Return the two endpoints (start, last) of a prims.iota sequence (may be symbolic);
+    all elements lie within [min(start,last), max(start,last)]. None if args are unresolvable."""
     if not (
         node.op == "call_function"
         and node.target is torch.ops.prims.iota.default
         and node.args
     ):
         return None
-    length = node.args[0]
-    start = node.kwargs.get("start", 0)
-    step = node.kwargs.get("step", 1)
-    if not (
-        isinstance(length, int) and isinstance(start, int) and isinstance(step, int)
-    ):
+    length = resolve_size_arg(node.args[0])
+    start = resolve_size_arg(node.kwargs.get("start", 0))
+    step = resolve_size_arg(node.kwargs.get("step", 1))
+    if length is None or start is None or step is None:
         return None
-    if length <= 0:
+    if isinstance(length, int) and length <= 0:
         return (start, start)
     last = start + (length - 1) * step
-    lo = min(start, last)
-    hi = max(start, last)
-    return (lo, hi + 1)
+    return (start, last)
 
 
 def _collect_iota_downcast_closure(iota_node):
@@ -1282,31 +1344,6 @@ def _collect_iota_downcast_closure(iota_node):
                 continue
             return None
     return middle_ids
-
-
-def _refresh_fake_meta(node, fake_mode):
-    """基于当前 args/kwargs 在 fake_mode 下重新执行算子，刷新节点的 meta['val'] FakeTensor。"""
-
-    def resolve(arg):
-        if isinstance(arg, torch.fx.Node):
-            return arg.meta.get("val", arg)
-        if isinstance(arg, (list, tuple)):
-            return type(arg)(resolve(x) for x in arg)
-        return arg
-
-    try:
-        with fake_mode:
-            new_val = node.target(
-                *[resolve(a) for a in node.args],
-                **{k: resolve(v) for k, v in node.kwargs.items()},
-            )
-        node.meta["val"] = new_val
-    except Exception:
-        pass
-
-
-_INT32_MIN = -(1 << 31)
-_INT32_MAX = (1 << 31) - 1
 
 
 def _hashable_const_key(value):
@@ -1412,11 +1449,10 @@ def fold_iota_arithmetic_pass(graph: torch.fx.Graph) -> None:
             continue
         if iota.kwargs.get("dtype") is not torch.int64:
             continue
-        rng = _prims_iota_value_range(iota)
-        if rng is None:
+        endpoints = _prims_iota_endpoints(iota)
+        if endpoints is None:
             continue
-        lo, hi_exc = rng
-        if lo < _INT32_MIN or hi_exc - 1 > _INT32_MAX:
+        if not statically_fits_int32(*endpoints):
             continue
 
         fake = iota.meta.get("val")
@@ -1431,30 +1467,28 @@ def fold_iota_arithmetic_pass(graph: torch.fx.Graph) -> None:
         new_kwargs = dict(iota.kwargs)
         new_kwargs["dtype"] = torch.int32
         iota.kwargs = new_kwargs
-        _refresh_fake_meta(iota, fake_mode)
+        refresh_fake_meta(iota, fake_mode)
         if iota.meta.get("val") is None or iota.meta["val"].dtype is not torch.int32:
             new_kwargs["dtype"] = torch.int64
             iota.kwargs = new_kwargs
-            _refresh_fake_meta(iota, fake_mode)
+            refresh_fake_meta(iota, fake_mode)
             continue
 
         middle_nodes_in_topo = [n for n in graph.nodes if id(n) in middle_ids]
         for n in middle_nodes_in_topo:
-            _refresh_fake_meta(n, fake_mode)
+            refresh_fake_meta(n, fake_mode)
         for n in list(graph.nodes):
             if (
                 n.op == "call_function"
                 and n.target in _IOTA_DTYPE_CLOSING_OPS
                 and any(u is iota or id(u) in middle_ids for u in n.all_input_nodes)
             ):
-                _refresh_fake_meta(n, fake_mode)
+                refresh_fake_meta(n, fake_mode)
 
         changed = True
         log.info(
-            "fold_iota_arithmetic_pass: downcast iota[%d,%d) int64 → int32"
+            "fold_iota_arithmetic_pass: downcast iota int64 → int32"
             " (%d transparent user%s in closure)",
-            lo,
-            hi_exc,
             len(middle_ids),
             "" if len(middle_ids) == 1 else "s",
         )
@@ -1620,7 +1654,7 @@ def broadcast_const_mask_compress(graph: torch.fx.Graph) -> None:
             f_val,
             replacement_kind,
             action,
-            get_node_shape(w),
+            get_node_shape(w, allow_symbolic=True),
         )
 
     eliminate_dead_code(graph, changed, broadcast_const_mask_compress.__name__)
@@ -1938,7 +1972,7 @@ def bool_cast_mul_to_where_pass(graph: torch.fx.Graph) -> None:
             cast_target_dtype,
             cast_src.name,
             chain_desc,
-            get_node_shape(other),
+            get_node_shape(other, allow_symbolic=True),
         )
 
     eliminate_dead_code(graph, changed, bool_cast_mul_to_where_pass.__name__)
@@ -2040,7 +2074,7 @@ def sign_diff_hamming_fuse_pass(graph: torch.fx.Graph) -> None:
 
         if fake_mode is not None:
             for n in (gt_x, gt_y, ne_node, new_sum):
-                _refresh_fake_meta(n, fake_mode)
+                refresh_fake_meta(n, fake_mode)
         if "val" not in new_sum.meta and "val" in sum_node.meta:
             new_sum.meta["val"] = sum_node.meta["val"]
 
@@ -2079,8 +2113,18 @@ def _has_default_embedding_args(node):
 
 
 def _symbolic_shape_key(shape):
-    """生成可哈希的 shape key：SymInt 维度转字符串，其它维度转 int，便于 embedding 分组。"""
-    return tuple(str(d) if isinstance(d, torch.SymInt) else int(d) for d in shape)
+    """Build a hashable shape key: SymInt dims use the canonical sympy expr string
+    (so s0+s0 and 2*s0 group together), other dims become int, for embedding grouping."""
+
+    def _dim_key(d):
+        if isinstance(d, torch.SymInt):
+            try:
+                return f"sym:{d.node.expr}"
+            except Exception:
+                return f"sym:{d}"
+        return int(d)
+
+    return tuple(_dim_key(d) for d in shape)
 
 
 def _weight_node_key(w):
@@ -2192,10 +2236,11 @@ def _detect_indices_parent(nodes):
             return None, None
         slices_info.append((int(start) if start is not None else 0, end))
 
-    parent_shape = get_node_shape(parent)
+    parent_shape = get_node_shape(parent, allow_symbolic=True)
     if parent_shape is None or slice_dim >= len(parent_shape):
         return None, None
     dim_size = parent_shape[slice_dim]
+    # The sliced field dim must be static (the N*L coverage proof needs a concrete length); batch dim may be symbolic.
     if isinstance(dim_size, torch.SymInt):
         return None, None
     dim_size = int(dim_size)
@@ -2351,7 +2396,7 @@ def _apply_pattern_c_reshape_first(
     再做一次 embedding + reduce，最后用 select（或 cat 折叠）接回原下游使用者。"""
     N = len(nodes)
 
-    parent_shape = get_node_shape(parent_node)
+    parent_shape = get_node_shape(parent_node, allow_symbolic=True)
     if parent_shape is None:
         return False
     if slice_dim >= len(parent_shape):
@@ -2405,9 +2450,16 @@ def _apply_pattern_c_reshape_first(
         return False
 
     with graph.inserting_before(ordered_emb_nodes[0]):
+        # Symbolic dims of new_idx_shape (e.g. batch dim) all come from parent;
+        # materialize as sym_size refs to parent instead of writing raw SymInt into node args.
+        materialized_idx_shape = materialize_shape(
+            graph, list(new_idx_shape), parent_node
+        )
+        if materialized_idx_shape is None:
+            return False
         reshaped_parent = graph.call_function(
             torch.ops.aten.reshape.default,
-            args=(parent_node, list(new_idx_shape)),
+            args=(parent_node, materialized_idx_shape),
         )
         reshaped_parent.meta["val"] = new_idx_fake
 
@@ -2512,8 +2564,9 @@ def batch_embedding_fusion_pass(graph: torch.fx.Graph) -> None:
         weight = node.args[0]
         indices = node.args[1]
 
+        # The weight table (V, D) must be static; indices may contain symbolic dims (e.g. dynamic batch).
         w_shape = get_node_shape(weight)
-        idx_shape = get_node_shape(indices)
+        idx_shape = get_node_shape(indices, allow_symbolic=True)
         if w_shape is None or idx_shape is None or len(w_shape) != 2:
             continue
         if len(idx_shape) < 1:

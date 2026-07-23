@@ -3,6 +3,16 @@ import torch
 from torch import fx
 from torch.multiprocessing.reductions import StorageWeakRef
 
+from .symbolic_shape_util import (
+    has_free_symbols,
+    materialize_shape,
+    resolve_size_arg,
+    shapes_statically_equal,
+    statically_known_eq,
+    statically_known_geq,
+    statically_known_gt,
+)
+
 
 MAX_INT64 = 9223372036854775807
 
@@ -22,7 +32,7 @@ def get_val_meta_info(target_meta: Dict[str, Any]):
     return None
 
 
-def get_node_shape(node: torch.fx.Node):
+def get_node_shape(node: torch.fx.Node, allow_symbolic: bool = False):
     if (node.meta == {}) or ('example_value' not in node.meta and 'tensor_meta' not in node.meta and 'val' not in node.meta):
         return None
     shape = None
@@ -34,7 +44,10 @@ def get_node_shape(node: torch.fx.Node):
             shape = example_value.size()
     elif 'tensor_meta' in node.meta:
         shape = node.meta['tensor_meta'].shape
-    if any(isinstance(s, torch.SymInt) for s in shape):
+    if shape is None:
+        return None
+    # allow_symbolic=False keeps legacy behavior (None if any symbolic dim); True returns the symbolic shape as-is.
+    if not allow_symbolic and any(isinstance(s, torch.SymInt) for s in shape):
         return None
     return shape
 
@@ -73,7 +86,7 @@ def get_binary_fold_result(
     if isinstance(inp, fx.Node):
         val_meta = get_val_meta_info(target_meta)
         node_meta = get_node_meta(inp)
-        node_meta_shape = get_node_shape(inp)
+        node_meta_shape = get_node_shape(inp, allow_symbolic=True)
         if node_meta_shape is None:
             return None
         if val_meta is None:
@@ -93,16 +106,22 @@ def get_binary_fold_result(
             )
             propagate_fake_tensor(new_node, inp, lambda fake: fake.full(val_meta.shape))
         else:
-            if node_meta_shape == val_meta.shape:
+            if shapes_statically_equal(node_meta_shape, val_meta.shape):
                 expand = inp
             else:
-                if any(isinstance(s, torch.SymInt) for s in val_meta.shape):
-                    return None
+                target_shape = list(val_meta.shape)
+                if has_free_symbols(target_shape):
+                    # Symbolic target shape must be materialized as sym_size refs on
+                    # inp's own dims; abandon fold if unmaterializable (e.g. a
+                    # broadcast dim originating from the other operand).
+                    target_shape = materialize_shape(graph, target_shape, inp)
+                    if target_shape is None:
+                        return None
                 expand = graph.call_function(
                     torch.ops.aten.expand.default,
                     args=(
                         inp,
-                        val_meta.shape
+                        target_shape
                     )
                 )
                 propagate_fake_tensor(expand, inp, lambda fake: fake.expand(val_meta.shape))
@@ -126,7 +145,7 @@ def get_binary_fold_result(
 
 
 def _get_fold_result(graph: torch.fx.Graph, src, dims: List[int], keep_dim: bool) -> fx.Node:
-    # 检查 src 是否被原地操作引用
+    # Skip if src is referenced by an in-place op
     for user in src.users:
         if user.op == "call_function" and user.target in [torch.ops.aten.add_.Tensor, torch.ops.aten.add_.Scalar, torch.ops.aten.copy_.default]:
             return None
@@ -174,21 +193,25 @@ def _fold_slice(node: torch.fx.Node, graph: torch.fx.Graph) -> bool:
     if len(node.args) < 4:
         return False
     src_node, dim, start, end = node.args[0], node.args[1], node.args[2], node.args[3]
-    if not isinstance(dim, int) or not isinstance(start, int):
+    if not isinstance(dim, int):
         return False
-    if start != 0:
+    # start / end may be symbolic (e.g. slicing to a symbolic dim length); normalize to int/SymInt.
+    start = resolve_size_arg(start)
+    if start is None or not statically_known_eq(start, 0):
         return False
-    if end is not None and not isinstance(end, int):
-        return False
-    src_shape = get_node_shape(src_node)
+    if end is not None:
+        end = resolve_size_arg(end)
+        if end is None:
+            return False
+    src_shape = get_node_shape(src_node, allow_symbolic=True)
     if src_shape is None:
         return False
 
-    node_shape = get_node_shape(node)
+    node_shape = get_node_shape(node, allow_symbolic=True)
     if node_shape is None:
         return False
 
-    if src_shape != node_shape:
+    if not shapes_statically_equal(src_shape, node_shape):
         return False
 
     if dim >= len(src_shape):
@@ -197,8 +220,9 @@ def _fold_slice(node: torch.fx.Node, graph: torch.fx.Graph) -> bool:
     dim_length = src_shape[dim]
 
     is_full_slice = (
-        isinstance(start, int) and start == 0 and
-        (end is None or end >= MAX_INT64 or end >= dim_length)
+        end is None
+        or statically_known_geq(end, MAX_INT64)
+        or statically_known_geq(end, dim_length)
     )
 
     if is_full_slice:
@@ -214,21 +238,28 @@ def _fold_slice_scatter(node: torch.fx.Node, graph: torch.fx.Graph) -> bool:
         return False
     base_node, view_node, dim, start, end = node.args[:5]
 
-    if not isinstance(dim, int) or not isinstance(start, int) or not isinstance(end, int):
+    if not isinstance(dim, int):
         return False
-    base_shape = get_node_shape(base_node)
-    view_shape = get_node_shape(view_node)
+    start = resolve_size_arg(start)
+    end = resolve_size_arg(end)
+    if start is None or end is None:
+        return False
+    base_shape = get_node_shape(base_node, allow_symbolic=True)
+    view_shape = get_node_shape(view_node, allow_symbolic=True)
     if (base_shape is None) or (view_shape is None):
         return False
 
-    if base_shape != view_shape:
+    if not shapes_statically_equal(base_shape, view_shape):
         return False
 
-    if start != 0:
+    if not statically_known_eq(start, 0):
+        return False
+
+    if dim >= len(view_shape):
         return False
 
     dim_length = view_shape[dim]
-    if end != dim_length:
+    if not statically_known_eq(end, dim_length):
         return False
 
     node.replace_all_uses_with(view_node)
@@ -238,28 +269,32 @@ def _fold_slice_scatter(node: torch.fx.Node, graph: torch.fx.Graph) -> bool:
 
 
 def get_pad_dim_and_size(pad, input_shape):
-    """
-    从 pad 参数和输入张量形状中提取填充的维度和填充量。
+    """Extract the padded dim and pad amount from pad args and input shape.
+
     Args:
-        pad: 填充参数列表，例如 [0, 0, 0, max_seq_len]。
-        input_shape: 输入张量的形状，例如 [128, 50, 128]。
+        pad: pad list, e.g. [0, 0, 0, max_seq_len].
+        input_shape: input tensor shape, e.g. [128, 50, 128].
     Returns:
-        pad_dim: 填充的维度索引（从 0 开始）。
-        pad_size: 右侧填充量。
+        pad_dim: padded dim index (0-based).
+        pad_size: right-side pad amount.
     """
-    N = len(input_shape)  # 张量维度数
+    N = len(input_shape)  # tensor rank
     pad_dim = None
     pad_size = 0
     for i in range(len(pad) // 2):
         left, right = pad[2 * i], pad[2 * i + 1]
-        dim = N - 1 - i  # 从后向前映射维度
-        if left == 0 and right > 0:
+        dim = N - 1 - i  # map back-to-front to dims
+        # left/right may be symbolic (e.g. pad to a fixed max_len - s0); use three-valued checks.
+        left_zero = statically_known_eq(left, 0)
+        if left_zero and statically_known_gt(right, 0):
             if pad_dim is not None:
-                return None, 0  # 多个维度填充，复杂情况，跳过
+                return None, 0  # multiple padded dims, complex case -> skip
             pad_dim = dim
             pad_size = right
-        elif left != 0 or right != 0:
-            return None, 0  # 复杂填充，跳过
+        elif left_zero and statically_known_eq(right, 0):
+            continue  # no padding on this dim
+        else:
+            return None, 0  # complex or undecidable padding -> skip
     return pad_dim, pad_size
 
 
