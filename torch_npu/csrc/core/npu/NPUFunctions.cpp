@@ -1,6 +1,10 @@
+#include <atomic>
 #include <mutex>
+#include <sstream>
 #include <unistd.h>
 #include <unordered_map>
+#include <vector>
+#include <ATen/Context.h>
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/NPUAffinityController.h"
@@ -19,7 +23,118 @@ static thread_local int local_device = -1;
 static std::unordered_map<int8_t, aclrtContext> used_devices;
 std::recursive_mutex mtx;
 thread_local int targetDeviceIndex = -1;
-static uint32_t deterministic_level = 0;
+static std::atomic<uint32_t> deterministic_level = {0};
+static std::mutex deterministic_state_mutex;
+
+namespace {
+constexpr uint32_t kMaxDeterministicLevel = 3;
+constexpr const char* kLevel3MinRuntimeVersion = "9.2.0";
+constexpr const char* kLevel3MinOppVersion = "9.2.0";
+constexpr const char* kLevel3MinOppKernelVersion = "9.2.0";
+constexpr const char* kLevel3MinOpsPkgVersion = "9.2.0";
+
+struct DeterministicVersionFailure {
+    std::string module;
+    std::string current_version;
+    std::string required_version;
+};
+
+struct DeterministicLevel3VersionCheck {
+    bool supported = false;
+    std::vector<DeterministicVersionFailure> failures;
+};
+
+bool IsModuleVersionGt(const std::string& module, const std::string& required_version)
+{
+    return IsGteCANNVersion(required_version, module);
+}
+
+void RecordVersionFailure(
+    std::vector<DeterministicVersionFailure>& failures,
+    const std::string& module,
+    const std::string& required_version)
+{
+    failures.push_back({module, GetCANNVersion(module), required_version});
+}
+
+bool CheckVersionGroup(
+    const std::vector<std::pair<std::string, std::string>>& requirements,
+    std::vector<DeterministicVersionFailure>& failures)
+{
+    bool supported = true;
+    for (const auto& requirement : requirements) {
+        if (!IsModuleVersionGt(requirement.first, requirement.second)) {
+            RecordVersionFailure(failures, requirement.first, requirement.second);
+            supported = false;
+        }
+    }
+    return supported;
+}
+
+DeterministicLevel3VersionCheck CheckDeterministicLevel3Version()
+{
+    DeterministicLevel3VersionCheck check;
+    std::vector<DeterministicVersionFailure> runtime_failures;
+    const bool runtime_supported = CheckVersionGroup(
+        {{"RUNTIME", kLevel3MinRuntimeVersion}},
+        runtime_failures);
+
+    std::vector<DeterministicVersionFailure> legacy_pkg_failures;
+    const bool legacy_pkg_supported = CheckVersionGroup(
+        {
+            {"OPP", kLevel3MinOppVersion},
+            {"OPP_KERNEL", kLevel3MinOppKernelVersion},
+        },
+        legacy_pkg_failures);
+
+    std::vector<DeterministicVersionFailure> split_pkg_failures;
+    const bool split_pkg_supported = CheckVersionGroup(
+        {
+            {"ops_math", kLevel3MinOpsPkgVersion},
+            {"ops_nn", kLevel3MinOpsPkgVersion},
+            {"ops_transformer", kLevel3MinOpsPkgVersion},
+            {"ops_cv", kLevel3MinOpsPkgVersion},
+            {"ops_legacy", kLevel3MinOpsPkgVersion},
+        },
+        split_pkg_failures);
+
+    check.supported = runtime_supported && (legacy_pkg_supported || split_pkg_supported);
+    if (check.supported) {
+        return check;
+    }
+
+    check.failures.insert(check.failures.end(), runtime_failures.begin(), runtime_failures.end());
+    if (!legacy_pkg_supported && !split_pkg_supported) {
+        check.failures.insert(check.failures.end(), legacy_pkg_failures.begin(), legacy_pkg_failures.end());
+        check.failures.insert(check.failures.end(), split_pkg_failures.begin(), split_pkg_failures.end());
+    }
+    return check;
+}
+
+const DeterministicLevel3VersionCheck& GetDeterministicLevel3VersionCheck()
+{
+    static const DeterministicLevel3VersionCheck check = CheckDeterministicLevel3Version();
+    return check;
+}
+
+void ThrowLevel3UnsupportedError()
+{
+    const auto& check = GetDeterministicLevel3VersionCheck();
+    std::ostringstream oss;
+    oss << "'torch_npu.npu.set_deterministic_level(3)' requires CANN runtime and operator packages "
+        << "that support batch consistency. Please upgrade CANN runtime and operator packages.";
+    if (!check.failures.empty()) {
+        oss << " Unsatisfied versions:";
+        for (const auto& failure : check.failures) {
+            oss << " " << failure.module << "(current="
+                << (failure.current_version.empty() ? "unavailable" : failure.current_version)
+                << ", required>" << failure.required_version << ");";
+        }
+    }
+    TORCH_CHECK(false, oss.str(), PTA_ERROR(ErrCode::VALUE));
+}
+} //
+
 
 bool is_lazy_set_device()
 {
@@ -476,11 +591,47 @@ uint32_t GetResInCurrentThread(int32_t type)
 
 void SetDeterministicLevel(uint32_t level)
 {
-    deterministic_level = level;
+    TORCH_CHECK(level <= kMaxDeterministicLevel,
+        "'torch_npu.npu.set_deterministic_level' supports configuring 0/1/2/3.",
+        PTA_ERROR(ErrCode::VALUE));
+    if (level == kMaxDeterministicLevel && !IsSupportDeterministicLevel3()) {
+        ThrowLevel3UnsupportedError();
+    }
+
+    std::lock_guard<std::mutex> lock(deterministic_state_mutex);
+    deterministic_level.store(level, std::memory_order_release);
 }
 
 uint32_t GetDeterministicLevel()
 {
-    return deterministic_level;
+    return deterministic_level.load(std::memory_order_acquire);
+}
+
+DeterministicSnapshot CaptureDeterministicSnapshot()
+{
+    DeterministicSnapshot snapshot;
+    snapshot.deterministic_algorithms_enabled = at::globalContext().deterministicAlgorithms();
+    snapshot.requested_level = GetDeterministicLevel();
+    snapshot.effective_level = 0;
+    if (snapshot.deterministic_algorithms_enabled) {
+        snapshot.effective_level = snapshot.requested_level == 0 ? 1 : snapshot.requested_level;
+    }
+    snapshot.backend = GetDeterministicBackend();
+    return snapshot;
+}
+
+uint32_t GetEffectiveDeterministicLevel()
+{
+    return CaptureDeterministicSnapshot().effective_level;
+}
+
+DeterministicBackend GetDeterministicBackend()
+{
+    return IsSupportDeterministicLevel3() ? DeterministicBackend::V2 : DeterministicBackend::Legacy;
+}
+
+bool IsSupportDeterministicLevel3()
+{
+    return GetDeterministicLevel3VersionCheck().supported;
 }
 } // namespace c10_npu

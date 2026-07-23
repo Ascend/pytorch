@@ -14,6 +14,7 @@
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/framework/NPUDefine.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
+#include "torch_npu/csrc/core/npu/NPUFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -437,8 +438,11 @@ private:
     c10::SmallVector<OpCommandImpl, N> objs;
 }; // class OpCommandImpls
 
+void ApplyDeterministicSnapshotLocked(const c10_npu::DeterministicSnapshot& snapshot, bool isOpapi);
 void SetDeterministic(bool isOpapi = true);
-void SetDeterministicOps(bool deterministicAlgorithmsStatus);
+void SetDeterministicOps(bool deterministicAlgorithmsStatus = false);
+void ApplyDeterministicSnapshot(const c10_npu::DeterministicSnapshot& snapshot, bool isOpapi = true);
+extern std::recursive_mutex deterministic_launch_mutex;
 
 } // namespace native
 } // namespace at_npu
