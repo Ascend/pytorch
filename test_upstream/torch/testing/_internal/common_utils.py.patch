@@ -1,5 +1,5 @@
 diff --git a/torch/testing/_internal/common_utils.py b/torch/testing/_internal/common_utils.py
-index afbd569..dfcfa1f 100644
+index afbd569b34..f48af8b7e2 100644
 --- a/torch/testing/_internal/common_utils.py
 +++ b/torch/testing/_internal/common_utils.py
 @@ -37,6 +37,7 @@ import time
@@ -79,7 +79,23 @@ index afbd569..dfcfa1f 100644
  
  class CudaMemoryLeakCheck:
      def __init__(self, testcase, name=None):
-@@ -3011,8 +3038,8 @@ class TestCase(expecttest.TestCase):
+@@ -2957,6 +2984,15 @@ class TestCase(expecttest.TestCase):
+ 
+     # checker to early terminate test suite if unrecoverable failure occurs.
+     def _should_stop_test_suite(self):
++        if torch.npu.is_initialized():
++            # NPU device side error will cause subsequent test cases to fail.
++            try:
++                torch.npu.synchronize()
++            except RuntimeError as e:
++                print("TEST SUITE EARLY TERMINATION due to torch.npu.synchronize() failure", file=sys.stderr)
++                print(e, file=sys.stderr)
++                return True
++
+         if torch.cuda.is_initialized():
+             # CUDA device side error will cause subsequence test cases to fail.
+             # stop entire test suite if catches RuntimeError during torch.cuda.synchronize().
+@@ -3011,8 +3047,8 @@ class TestCase(expecttest.TestCase):
  
              # Wraps the tested method if we should enforce non default CUDA stream.
              self._do_cuda_non_default_stream &= getattr(test_method, '_do_cuda_non_default_stream', True)
@@ -90,7 +106,7 @@ index afbd569..dfcfa1f 100644
  
              if self._ignore_not_implemented_error:
                  self.wrap_with_policy(method_name, lambda: skip_exception_type(NotImplementedError))
-@@ -3949,7 +3976,6 @@ class TestCase(expecttest.TestCase):
+@@ -3949,7 +3985,6 @@ class TestCase(expecttest.TestCase):
  
          actual = torch_fn(t_inp, *t_args, **t_kwargs)
          expected = ref_fn(n_inp, *n_args, **n_kwargs)
@@ -98,7 +114,7 @@ index afbd569..dfcfa1f 100644
          self.assertEqual(actual, expected, exact_device=False, **kwargs)
  
      # Compares the given Torch and NumPy functions on the given tensor-like object.
-@@ -4702,7 +4728,10 @@ def random_hermitian_pd_matrix(matrix_size, *batch_dims, dtype, device):
+@@ -4702,7 +4737,10 @@ def random_hermitian_pd_matrix(matrix_size, *batch_dims, dtype, device):
  def make_fullrank_matrices_with_distinct_singular_values(*shape, device, dtype, requires_grad=False):
      with torch.no_grad():
          t = make_tensor(shape, device=device, dtype=dtype)
