@@ -315,11 +315,36 @@ def _load_triton_backend():
             os.environ["TORCHINDUCTOR_COMPILE_THREADS"] = "1"
             torch._inductor.config.compile_threads = 1
 
+def _load_triton_experimental_backend():
+    # Physically-isolated experimental Triton backend (own codegen + heuristics).
+    # Its activation is deferred behind triton_experimental._activate() so importing
+    # the subpackage (e.g. when a generated kernel imports its npu_triton_heuristics)
+    # does not re-register the backend or re-apply monkeypatches.
+    _apply_common_patches()
+    import torch
+
+    has_triton = torch.utils._triton.has_triton()
+    if not has_triton:
+        import warnings
+        warnings.warn("triton-ascend is not installed, install it first.")
+        return
+    # Decomposition / dispatcher / SDPA overrides live in the shared
+    # decomposition.py alongside the other backends' registrars; call it directly
+    # (mirrors _load_triton_backend -> _register_triton_decompositions). Must run
+    # after restore_inductor_baseline() (done by _load_backend before this loader)
+    # and can precede _activate(): is_a5() only queries soc version, and decomp
+    # registration is independent of backend/codegen registration order.
+    from .decomposition import _register_triton_experimental_decompositions
+    _register_triton_experimental_decompositions()
+    from .triton_experimental import _activate
+    _activate()
+
 _BACKEND_LOADERS = {
     "mlir": _load_mlir_backend,
     "dvm": _load_dvm_backend,
     "ascendc": _load_ascendc_backend,
     "default": _load_triton_backend,
+    "triton_experimental": _load_triton_experimental_backend,
 }
 
 def _load_backend():

@@ -680,6 +680,21 @@ class TestPublicBindings(TestCase):
             "torch_npu._inductor.dvm.graph_fusion",
             "torch_npu._inductor.dvm.mlir_fusion",
             "torch_npu._inductor.dvm.op_emitter",
+            "torch_npu._inductor.triton_experimental",
+            "torch_npu._inductor.triton_experimental.config",
+            "torch_npu._inductor.triton_experimental.device",
+            "torch_npu._inductor.triton_experimental.device_props",
+            "torch_npu._inductor.triton_experimental.fx_passes",
+            "torch_npu._inductor.triton_experimental.ir",
+            "torch_npu._inductor.triton_experimental.lowering",
+            "torch_npu._inductor.triton_experimental.lowering_override_list",
+            "torch_npu._inductor.triton_experimental.npu_triton_helpers",
+            "torch_npu._inductor.triton_experimental.npu_triton_heuristics",
+            "torch_npu._inductor.triton_experimental.overrides",
+            "torch_npu._inductor.triton_experimental.codegen",
+            "torch_npu._inductor.triton_experimental.codegen.npu_header",
+            "torch_npu._inductor.triton_experimental.codegen.triton",
+            "torch_npu._inductor.triton_experimental.codegen.wrapper",
         }
 
         # No new entries should be added to this list.
