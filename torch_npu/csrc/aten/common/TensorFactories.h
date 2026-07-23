@@ -1,10 +1,21 @@
 #pragma once
 
+#include <ATen/ATen.h>
 #include <c10/core/TensorOptions.h>
 #include "torch_npu/csrc/core/npu/NPUException.h"
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 namespace at_npu {
 namespace native {
+
+// Exported, dispatcher-free NPU strided allocation for inductor-generated
+// wrappers. Wraps NPUNativeFunctions::empty_strided (whose symbol is hidden in
+// libtorch_npu.so) and re-exports it via TORCH_NPU_API so torch_npu._C can call
+// it directly, mirroring upstream's at::detail::empty_strided_<device> fast path.
+TORCH_NPU_API at::Tensor empty_strided_npu(
+    c10::IntArrayRef size,
+    c10::IntArrayRef stride,
+    at::ScalarType dtype);
 
 inline void check_size_nonnegative(c10::IntArrayRef& size)
 {
