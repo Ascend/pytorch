@@ -165,7 +165,7 @@ def check_accuracy_mlir(*args, kernel_name, launchers, num_outputs, dynamic, **k
             if not torch.is_tensor(arg):
                 args_new = args_new + (arg,)
                 continue
-            args_new = args_new + (arg, arg, 0) + arg.size() + arg.stride()
+            args_new = args_new + (arg, arg, 0) + tuple(arg.size()) + tuple(arg.stride())
     else:
         args_new = args
     
