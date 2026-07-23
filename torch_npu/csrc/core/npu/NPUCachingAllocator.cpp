@@ -1214,24 +1214,32 @@ public:
         TORCH_NPU_MEMORY_LOGD("Rounded size: %zu, alloc size: %zu, using %s pool on device %d",
             size, alloc_size, pool.is_small ? "small" : "large", device);
 
+        const bool lazy_reclaim =
+            CachingAllocatorConfig::multi_stream_lazy_reclaim() && C10_LIKELY(captures_underway.empty());
+        bool reaped = false;
+        if (lazy_reclaim) {
+            size_t sum = 0;
+            for (auto it = npu_events.begin(); it != npu_events.end(); ++it) {
+                sum += it->second.size();
+            }
+            if (sum > kLazyQuerySize) {
+                process_events(context);
+                reaped = true;
+            }
+        }
+
         // First, try to get a block from the existing pool.
         bool block_found =
             // Search pool
             get_free_block(params) ||
             // Trigger callbacks and retry search
             (trigger_free_memory_callbacks(params) && get_free_block(params));
-        if (CachingAllocatorConfig::multi_stream_lazy_reclaim() && C10_LIKELY(captures_underway.empty())) {
-            // Lazy process events and free memory
-            size_t sum = 0;
-            for (auto it = npu_events.begin(); it != npu_events.end(); ++it) {
-                sum += it->second.size();
-            }
-            if (!block_found || sum > kLazyQuerySize) {
-                process_events(context);
-            }
-            if (!block_found) {
-                block_found = get_free_block(params);
-            }
+
+        // Out of blocks: it is safe to reap now (no un-finalized block is held yet).
+        // Guard with `reaped` so we never process events twice in one malloc.
+        if (lazy_reclaim && !block_found && !reaped) {
+            process_events(context);
+            block_found = get_free_block(params);
         }
         // Can't reuse an existing block; try to get a new one.
         if (!block_found) {
