@@ -123,6 +123,18 @@ std::tuple<bool, int64_t, c10::SmallVector<int64_t, SIZE>> MaybeUseAclnnNpuForma
     if (!FormatHelper::IsBaseFormatType(src) && !src.is_contiguous()) {
         return std::make_tuple(false, dstFormat, outputShape);
     }
+    // Guard: when casting a 2D contiguous tensor from ND to FRACTAL_NZ, if the
+    // tensor's current shape differs from its storage shape (base_sizes_), it means
+    // it is a view (e.g. transpose). Downstream ops may encounter precision
+    // issues, so the aclnn path is not supported for this case.
+    // Fall back to the aclop path to stay safe.
+    // Example: storage [1, N] viewed as [N, 1] (Nx1 column vector).
+    auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_;
+    if (src_desc.npu_format_ == ACL_FORMAT_ND && acl_format == ACL_FORMAT_FRACTAL_NZ &&
+        src.is_contiguous() && src.sizes().size() == 2 && src_desc.base_sizes_.size() == 2 && src.sizes()[1] == 1 &&
+        (src_desc.base_sizes_[0] != src.sizes()[0] || src_desc.base_sizes_[1] != src.sizes()[1])) {
+        return std::make_tuple(false, dstFormat, outputShape);
+    }
     if (IsAclnnFormatCastSupported() && aclnnNpuFormatCastExist) {
         auto acl_src = ConvertType(srcWrapper);
         auto api_ret = GetFormat(acl_src, acl_format, customizeAcltype, &dstStorageShape,
