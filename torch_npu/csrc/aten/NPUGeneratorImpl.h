@@ -156,8 +156,7 @@ struct NPUGeneratorState : public c10::intrusive_ptr_target {
         philox_offset_per_thread_(philox_offset_per_thread) {}
 
     void increase(uint64_t increment);
-    NPUGeneratorCaptureState* get_capture_state(c10_npu::CaptureId_t capture_id);
-    void init_capture_state(c10_npu::CaptureId_t capture_id);
+    NPUGeneratorCaptureState* get_capture_state(c10_npu::CaptureId_t capture_id, bool create_if_not_found = false);
     // capture_epilogue returns the wholegraph_increment
     uint64_t capture_epilogue(c10_npu::CaptureId_t capture_id);
     void replay_prologue(c10_npu::CaptureId_t capture_id, uint64_t wholegraph_increment);
@@ -187,7 +186,6 @@ struct TORCH_NPU_API NPUGeneratorImpl : public c10::GeneratorImpl {
     // For aclgraph
     void graphsafe_set_state(const c10::intrusive_ptr<GeneratorImpl>& state) override;
     c10::intrusive_ptr<c10::GeneratorImpl> graphsafe_get_state() const override;
-    void register_graph(c10_npu::NPUGraph* graph);
     void set_secondary_stream_capture_state(bool secondary_stream_capture_state);
     // Temporarily accommodates call sites that use philox_engine_inputs.
     // Allows incremental refactor of call sites to use philox_npu_state.

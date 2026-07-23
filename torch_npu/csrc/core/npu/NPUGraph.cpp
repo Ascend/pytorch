@@ -161,13 +161,6 @@ void NPUGraph::register_generator_state(c10::intrusive_ptr<at_npu::NPUGeneratorS
     captured_generator_states_[std::move(state)] = 0;
 }
 
-void NPUGraph::register_generator_state(const at::Generator& generator)
-{
-    c10::intrusive_ptr<at_npu::NPUGeneratorImpl> npu_gen =
-        c10::dynamic_intrusive_pointer_cast<at_npu::NPUGeneratorImpl>(generator.getIntrusivePtr());
-    npu_gen->register_graph(this);
-}
-
 void NPUGraph::capture_begin(MempoolId_t pool, aclmdlRICaptureMode capture_mode, bool report_shape)
 {
     NPUGRAPH_LOGD("NPUGRAPH Capture begin");
@@ -204,10 +197,8 @@ void NPUGraph::capture_begin(MempoolId_t pool, aclmdlRICaptureMode capture_mode,
 
     apply_cache_op_info(stream, report_shape);
 
-    // default generator is always registered
-    auto* gen = at::get_generator_or_default<at_npu::NPUGeneratorImpl>(c10::nullopt, at_npu::detail::getDefaultNPUGenerator());
-    gen->register_graph(this);
-    gen->set_secondary_stream_capture_state(false);
+    // Generator states are lazily registered by get_capture_state()
+    // on first RNG op call during capture. No explicit registration is needed.
 
     capture_stream_ = stream;
     capture_dev_ = c10_npu::current_device();
@@ -255,10 +246,6 @@ void NPUGraph::capture_begin(MempoolId_t pool, aclmdlRICaptureMode capture_mode,
     {
         std::lock_guard<std::mutex> lock(_currently_capturing_graphs_mutex);
         _currently_capturing_graphs.emplace(capture_id_, this);
-    }
-
-    for (auto& [generator_state, wholegraph_increments] : captured_generator_states_) {
-        generator_state->init_capture_state(capture_id_);
     }
 
     NPUGRAPH_LOGD("NPUGRAPH Capture begin done: model_ri=%p, capture_dev=%d, "
