@@ -362,6 +362,16 @@ def _patch_cuda():
     _apply_patches(patches)
 
 
+def _patch_triton_nvidia_driver():
+    try:
+        from triton.backends.nvidia.driver import CudaDriver
+        # Triton uses is_active() (not is_available()) to determine active drivers.
+        # See triton/runtime/driver.py: active_drivers = [x.driver for x in backends.values() if x.driver.is_active()]
+        CudaDriver.is_active = staticmethod(lambda: False)
+    except (ImportError, AttributeError):
+        pass
+
+
 def _patch_profiler():
     patches = [
         ['profiler.profile', torch_npu.profiler.profile],
@@ -528,6 +538,8 @@ def _init():
     torch._dynamo.trace_rules._disallowed_callable_ids.function_ids = None
 
     _do_wrapper_libraries_func(_load_json_file(config_path))
+
+    _patch_triton_nvidia_driver()
 
     setattr(torch.utils._triton, 'has_triton', _patch_has_triton)
     setattr(torch._dynamo.utils, 'has_triton', _patch_has_triton)

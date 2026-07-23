@@ -422,5 +422,43 @@ class TestTransferToNpu(TestCase):
         kwargs_output = mock_function(**kwargs_input)
         self.assertEqual(kwargs_output, expected_kwargs_output)
 
+    def test_transfer_to_npu_works_without_triton(self):
+        # 验证：当前环境未安装 triton / triton_ascend 时，
+        # _patch_triton_nvidia_driver() 的 try/except 容错能保证
+        # transfer_to_npu 整个文件依旧可被 import 且核心功能（cuda -> npu）正常。
+        import importlib.util
+
+        # 1. 确认当前环境确实没有 triton 和 triton_ascend
+        triton_spec = importlib.util.find_spec("triton")
+        triton_ascend_spec = importlib.util.find_spec("triton_ascend")
+        if triton_spec is not None or triton_ascend_spec is not None:
+            import unittest
+            raise unittest.SkipTest(
+                "triton or triton_ascend installed, skip"
+            )
+
+        # 2. 验证 _patch_triton_nvidia_driver 可被调用且不抛异常
+        # （transfer_to_npu 在 import 时已调用过一次，这里再显式调用一次验证幂等性）
+        transfer_to_npu._patch_triton_nvidia_driver()
+
+        # 3. 验证 transfer_to_npu 的核心 patch 已生效（说明 _init() 完整跑完，没有因 triton 缺失而中断）
+        # 3.1 cuda.is_available 被替换为 npu.is_available
+        self.assertTrue(torch.cuda.is_available())
+
+        # 3.2 tensor.cuda() 实际创建在 npu 上
+        t = torch.tensor([1.0, 2.0, 3.0]).cuda()
+        self.assertEqual(t.device.type, "npu")
+
+        # 3.3 eager 计算正常
+        y = t + t
+        self.assertEqual(y.device.type, "npu")
+        self.assertTrue(torch.allclose(y, torch.tensor([2.0, 4.0, 6.0], device="npu")))
+
+        # 3.4 nn.Module.cuda() 转换正常
+        linear = torch.nn.Linear(3, 1).cuda()
+        self.assertEqual(next(linear.parameters()).device.type, "npu")
+        out = linear(t)
+        self.assertEqual(out.device.type, "npu")
+
 if __name__ == "__main__":
     run_tests()
