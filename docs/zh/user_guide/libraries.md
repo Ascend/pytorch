@@ -1,0 +1,10 @@
+# 配套软件库
+
+为扩展TorchNPU能力，昇腾提供如下自研插件。
+
+|名称|介绍|版本要求|适配说明|
+|--|--|--|--|
+|TorchAir|TorchAir是为TorchNPU提供图模式能力的扩展库，支持用户使用PyTorch和TorchNPU在昇腾设备上进行图模式的训练和推理。TorchAir对外提供昇腾设备的图模式编译后端，对接PyTorch的dynamo特性，将PyTorch的FX计算图转换为昇腾的GE计算图，并提供在昇腾设备上启动GE计算图编译和执行的能力。|PyTorch版本为2.6.0及以上。<br>TorchNPU插件版本为26.1.0。|具体使用方法请参考《[TorchAir](https://gitcode.com/Ascend/torchair/blob/26.1.0/docs/zh/_menu_torchair.md)》。|
+|OpPlugin|OpPlugin插件提供了将PyTorch算子映射到昇腾AI处理器的功能，为使用PyTorch框架的开发者提供了便捷的NPU算子库调用能力。|OpPlugin的版本为26.1.0。|请参考[LINK](https://gitcode.com/Ascend/op-plugin/tree/26.1.0)安装该库，基于OpPlugin插件进行自定义算子的适配开发流程和使用样例具体可参考《框架特性》中的“[基于OpPlugin算子适配开发](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.1.0/docs/zh/framework_feature_guide_pytorch/adaptation_overview_opplugin.md)”章节。<br>PyTorch官方提供了C++ extensions的方式供用户编写并调用自定义算子，用户可选择使用C++ extensions进行自定义算子开发适配，具体可参考《框架特性》中的“[基于C++ extensions算子适配开发](https://gitcode.com/Ascend/op-plugin/blob/26.1.0/examples/README.md)”章节。|
+|HyperParallel|HyperParallel是昇腾超节点亲和的分布式并行加速库，为昇腾NPU提供全场景分布式并行加速能力，简化超节点编程，释放算力潜能。核心特性包括：<br>1. **声明式编程接口**：采用模型与系统优化解耦的设计理念，通过声明式编程接口（`shard_module`、`parallelize_module`）隐式注入并行、重计算、Offload等系统优化，用户无需修改模型代码即可获得分布式并行加速，大幅降低大模型分布式训练的开发门槛。<br>2. **FSDP/HSDP数据并行**：支持参数、梯度、优化器状态全切分（`fully_shard`），提供HSDP混合分片数据并行模块（`HSDPModule`）及全Overlap通信与计算并发模式，大幅降低单卡内存占用，提升训练吞吐。<br>3. **全范式并行**：覆盖TP（声明式Colwise/Rowwise/SequenceParallel）、EP（ExpertParallel/ExpertTensorParallel）、CP（ContextParallel/AsyncContextParallel/DSA系列）、PP（1F1B/VPP/GPipe及通算掩盖）等并行范式，支持PP+FSDP+TP+CP+EP多维混合并行。|HyperParallel版本为1.0.0。<br>PyTorch版本为2.6.0及以上。|具体使用方法请参考《[HyperParallel 使用指南](https://gitcode.com/mindspore/hyper-parallel/blob/master/README.md)》和《[HyperParallel 文档中心](https://gitcode.com/mindspore/hyper-parallel/blob/master/docs/index.md)》。|
+|AKG|AKG（Auto Kernel Generator）是基于MLIR的自动算子生成组件，为Inductor后端提供算子级编译和执行能力。AKG可将PyTorch侧下发的Torch MLIR转换并编译为适配昇腾AI处理器的高性能Kernel，通过编译缓存、自动优化和运行时加载能力，减少手工算子适配成本，大幅缩短编译时间并提升模型执行性能。|PyTorch版本为2.7.1及以上。<br>TorchNPU插件版本为26.1.0。|具体使用方法请参考《[AKG使用指南](https://gitcode.com/mindspore/akg/blob/br_schedule/akg-mlir/README.md)》|

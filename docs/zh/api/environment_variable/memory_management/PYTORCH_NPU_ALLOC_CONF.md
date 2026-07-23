@@ -1,0 +1,242 @@
+# PYTORCH\_NPU\_ALLOC\_CONF
+
+## 功能描述
+
+通过此环境变量可控制缓存分配器行为。配置此环境变量会改变内存占用量，可能造成性能波动。
+
+> [!CAUTION]  
+>
+> 从TorchNPU 26.2.0版本且PyTorch 2.10.0及以上版本开始，torch\_npu也支持通过PYTORCH\_ALLOC\_CONF环境变量配置缓存分配器参数，配置方式、支持的参数和PYTORCH\_NPU\_ALLOC\_CONF相同，二者选其一配置即可，同时配置会报错并退出程序。建议优先使用PYTORCH\_ALLOC\_CONF环境变量配置缓存分配器行为。
+
+缓存分配器会根据申请内存的大小使用不同内存池，小于1MB使用小块内存池，反之使用大块内存池；虚拟内存特性下，大块内存池申请的物理内存粒度（segment\_size\_mb）默认为20MB，小块内存池默认为2MB（不可配置）；大模型场景下小块内存池内存使用通常较少，因此部分环境配置项（page\_size、segment\_size\_mb）只作用于大块内存池。
+
+> [!NOTICE]
+>
+> <term>Ascend 950DT</term>仅支持expandable\_segments、pinned\_use\_background\_threads、pin\_memory\_expandable\_segments和pinned\_mem\_register四个参数，其余参数均不支持。
+
+可选参数：
+
+- max\_split\_size\_mb:<value\>，内存块允许切分上限。
+
+    大于设定值的内存块在使用过程中不会进行切分，这有助于减少内存碎片。此选项主要用于当模型由于OOM（Out of Memory，内存不足）而中断，并出现大量非活动的切分内存块场景时的优化。<value\>默认值为无限大，单位MB，即所有大小的内存块都可以切分，最小设置值大于20MB。
+
+- garbage\_collection\_threshold:<value\>，垃圾回收阈值。
+
+    主动回收未使用的NPU内存块。在设置value阈值（例如0.8）后，如果NPU内存容量使用超过阈值（即分配给NPU应用程序的总内存的80%），缓存分配器将开始回收NPU内存块，优先释放最先申请和长时间未复用的内存块，避免释放积极复用的内存块。其中<value\>取值范围为\(0.0,1.0\)。默认不开启该功能。垃圾回收阈值需与内存因子配合使用，内存因子可参考《[自定义API](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/overview.md)》的“torch\_npu.npu.set\_per\_process\_memory\_fraction”。
+
+- expandable\_segments:<value\>，开启内存池扩展段功能，即虚拟内存特性。
+
+    默认为False。如果设置为True，此设置将指示缓存分配器创建特定的内存块分配，这些内存块后续可以扩展，以便能更好地处理内存使用中频繁变更使用内存大小的情况。如果设置为False，关闭内存池扩展段功能，使用原有的内存申请方式。
+
+- base\_addr\_aligned\_kb:<value\>，内存基地址对齐粒度。
+
+    取值范围为0\~16，设置值需为整数，单位KB，默认值为16。仅在expandable\_segments设置为True的时候生效。若此参数配置为16，在申请大块内存（大于等于2MB）的时候，会尽量保持申请内存的基地址16KB对齐；若配置为0时，申请内存的基地址512B对齐。
+
+- page\_size:<value\>，设置申请大页内存的大小。
+
+    取值仅支持1GB，参考[配置示例](#配置示例)。内存申请粒度为1GB，不足1GB的向上对齐到1GB，始终为1GB的整数倍。在虚拟内存特性下，该配置项只作用于缓存分配器的大块内存池。
+
+    未配置该选项时，内存申请粒度为2MB，如需申请1GB的大页内存，会占用1024/2=512个页表；设置该选项后，内存申请粒度为1GB，1GB大页内存只占用1个页表，能有效降低页表数量，有效扩大TLB（Translation Lookaside Buffer）缓存的地址范围，从而提升离散访问的性能。
+
+    TLB是昇腾AI处理器中用于高速缓存的硬件模块，用于存储最近使用的虚拟地址到物理地址的映射。
+
+- segment\_size\_mb:<value\>，虚拟内存特性下，设置物理内存的申请粒度。
+
+    取值范围20\~512，设置值需为整数，单位MB，不配置时默认为20。仅在expandable\_segments设置为True的时候生效，该配置项只作用于缓存分配器的大块内存池。与page\_size同时配置时，仅page\_size生效。与large\_segment\_size\_mb同时配置时，仅large\_segment\_size\_mb生效。
+    增大segment\_size\_mb可以减少内存申请及内存映射接口的调用次数，从而提升内存申请效率，但也可能带来更多的内存碎片。因此，在内存使用极限的场景下，请谨慎调大此值。
+
+    > [!NOTE]
+    >
+    > segment\_size\_mb已废弃，建议使用large\_segment\_size\_mb。large\_segment\_size\_mb同时支持虚拟内存特性和非虚拟内存特性场景，功能更全面。
+
+- roundup\_power2\_divisions:<value\> 或 roundup\_power2\_divisions:\[<size1\>:<value1\>,<size2\>:<value2\>,...\]，将请求的分配大小向上舍入到最近的2的幂次分段，从而更高效地复用内存块。
+
+    不配置时分配大小会以512字节为单位向上对齐，这对较小的分配尺寸效果良好；对于较大的、尺寸相近的分配请求，这种策略可能效率低下。因为每个请求会被分配到不同大小的内存块中，导致这些内存块难以被复用，继而产生大量未被充分复用的内存块，浪费内存容量。
+
+    支持两种配置方式：
+
+    - **单一值**：为每个内存块设置相同的分段数量，例如配置为“4”。
+    - **键值对数组**：为每个2的幂区间单独设置分段数量。例如配置为“\[256:1,512:2,1024:4,\>:8\]”时，表示为256MB以下的所有分配设置1个分段，256MB到512MB之间的分配设置2个分段，512MB到1GB之间的分配设置4个分段，以及更大的分配设置8个分段。
+
+- multi\_stream\_lazy\_reclaim:<value\>，多流场景下，内存申请时延迟查询Events。
+
+    默认值为False，即每次内存申请时都执行Events查询。当设置为True时，每次内存申请优先使用空闲内存块，当Events数量超过阈值512或者找不到可用内存块时，才触发Events查询。通过减少Events查询次数，降低CPU资源占用，提升Host侧性能。该配置仅影响Events状态查询的频率，不改变内存释放的条件，也不改变内存峰值，内存块仍需等待所有相关Events完成后才会被释放。
+
+- pinned\_use\_background\_threads:<value\>，是否启用后台线程来处理events。
+
+    默认值为False，不启用后台线程。当设置为True时，启用后台线程，在后台线程执行查询和处理events操作，减少主线程的阻塞时间。
+
+- pin\_memory\_expandable\_segments:<value\>，开启pin_memory内存池扩展段功能，即虚拟内存特性。
+
+    默认为False。如果设置为True，此设置将指示pin_memory缓存分配器内存池物理内存申请粒度为20MB（不可配置），创建的内存块后续可以扩展，以便能更好地处理内存使用中频繁变更内存大小的情况，同时pin_memory内存块计数相关统计指标不参与统计（默认值：0）。如果设置为False，关闭pin_memory内存池扩展段功能，使用原有的内存申请方式。
+
+- pinned\_mem\_register:<value\>，设置pin_memory内存是否启用host register功能。
+
+    默认为False。如果设置为True，此设置将指示pin_memory内存启用host register功能，将pin_memory内存映射注册为Device可访问的内存地址。如果设置为False，关闭host register功能。
+
+- large\_segment\_size\_mb:<value\>，设置大块内存池的段分配粒度。
+
+    取值需大于10，设置值需为整数，单位MB，不配置时默认为20。该配置项同时作用于虚拟内存特性和非虚拟内存特性场景。在虚拟内存特性下，控制物理内存的申请粒度；在非虚拟内存特性下，控制1~10MB区间内存申请的段大小。
+
+    增大large\_segment\_size\_mb可以减少内存申请及内存映射接口的调用次数，从而提升内存申请效率，但也可能带来更多的内存碎片。因此，在内存使用极限的场景下，请谨慎调大此值。
+
+    与segment\_size\_mb同时配置时，仅large\_segment\_size\_mb生效。与page\_size同时配置时，仅page\_size生效。与max\_split\_size\_mb同时配置时，要求max\_split\_size\_mb >= large\_segment\_size\_mb。
+
+- per\_process\_memory\_fraction:<value\>，限制当前进程可使用的NPU显存比例。
+
+    取值范围为\[0.0,1.0\]，表示可用的设备显存比例，默认值为1.0，即不限制进程显存使用。配置后，框架在初始化时会根据设备总显存和配置的比例计算当前进程可使用的最大显存，超出限制的内存申请将触发OOM（Out of Memory，内存不足）错误。
+
+    该配置项适用于多进程共享同一NPU设备的场景，通过限制进程的可用显存的比例，避免单个进程占用过多显存导致其他进程OOM。
+
+- throw\_on\_npumalloc\_oom:<value\>，在发生内存OOM之前预防式拒绝内存申请，跳过内存分配重试流程。
+
+    取值为True或False，默认为False。默认或设置为False时，如果调用底层ACL接口分配内存失败则释放部分空闲内存并进行必要的Host-Device同步，然后尝试重新分配内存，该重试流程对性能有一定的影响。设置为True时，缓存分配器在调用底层ACL接口分配内存之前，先校验“当前进程已分配的内存大小+本次的申请大小”是否超出设备内存上限；超出则直接拒绝本次申请并抛出OutOfMemoryError异常，不再进入内存分配重试流程。
+
+    以下二种情况throw\_on\_npumalloc\_oom不生效：
+    - 使用环境变量PYTORCH\_NPU\_ALLOC\_CONF或PYTORCH\_ALLOC\_CONF配置per\_process\_memory\_fraction小于1.0。
+    - 调用torch\_npu.npu.set\_per\_process\_memory\_fraction\(\)接口设置fraction小于1.0。
+
+    throw\_on\_npumalloc\_oom设置为True且拒绝内存申请时，内存申请的拒绝次数会累加到torch\_npu.npu.memory\_stats\(\)\[\'num\_oom\_rejections\'\]字段，可通过torch\_npu.npu.reset\_accumulated\_memory\_stats\(\)接口清零。这种情况下环境变量OOM\_SNAPSHOT\_ENABLE不生效。
+
+- pinned\_max\_round\_threshold\_mb:<value\>，pinned memory分配大小是否向上取整到2的幂次的判别阈值。
+
+    取值为正整数，单位为MB。默认不开启，即对所有pinned memory分配都执行power-of-2向上取整。设置后，分配大小若小于等于此阈值，仍执行向上取整；若大于此阈值，则跳过取整并按精确请求大小分配，从而减少大块pinned memory因取整带来的内存浪费。例如阈值设为128MB时，129MB的分配请求将使用129MB而非向上取整到256MB。
+
+    向上取整是为了让内存块便于后续复用，不进入缓存的块无需对齐，所以无论本选项如何设置，超过pinned\_max\_cached\_size\_mb的分配始终不会执行向上取整。
+
+- pinned\_max\_cached\_size\_mb:<value\>，pinned memory释放后是否缓存到free list复用的判别阈值。
+
+    取值为正整数，单位为MB。默认不开启，即所有释放的pinned memory块都进入free list缓存复用。设置后，块大小若大于此阈值，则在释放时立即归还给OS，不再进入free list缓存（也不再执行向上取整），从而降低大块pinned memory使用频率较低场景下的峰值内存占用。
+
+> [!NOTE]  
+>
+> 用户使用TorchNPU 6.0.RC3及以上版本配套的驱动（Ascend HDK 24.1.RC3及以上），开启虚拟内存特性时，可以使用单进程多卡特性；用户使用TorchNPU 6.0.RC3以下版本配套的驱动（Ascend HDK 24.1.RC3以下版本），开启虚拟内存特性时，不能使用单进程多卡特性。
+
+## 配置示例<a id="配置示例"></a> 
+
+示例一：
+
+```bash
+export PYTORCH_NPU_ALLOC_CONF=max_split_size_mb:32,garbage_collection_threshold:0.6
+```
+
+示例二：
+
+```bash
+export PYTORCH_NPU_ALLOC_CONF=expandable_segments:True,base_addr_aligned_kb:16
+```
+
+示例三：
+
+```bash
+export PYTORCH_NPU_ALLOC_CONF=page_size:1g
+```
+
+示例四：
+
+```bash
+export PYTORCH_NPU_ALLOC_CONF=expandable_segments:True,segment_size_mb:40
+```
+
+示例五：
+
+- 单一值示例：
+
+    ```bash
+    export PYTORCH_NPU_ALLOC_CONF="roundup_power2_divisions:4"
+    ```
+
+- 键值对数组示例：
+
+    ```bash
+    export PYTORCH_NPU_ALLOC_CONF="roundup_power2_divisions:[256:1,512:2,1024:4,>:8]"
+    ```
+
+示例六：
+
+```bash
+export PYTORCH_NPU_ALLOC_CONF=multi_stream_lazy_reclaim:True
+```
+
+示例七：
+
+```bash
+export PYTORCH_NPU_ALLOC_CONF=pinned_use_background_threads:True
+```
+
+示例八：
+
+```bash
+export PYTORCH_NPU_ALLOC_CONF=pin_memory_expandable_segments:True
+```
+
+示例九：
+
+```bash
+export PYTORCH_NPU_ALLOC_CONF=pinned_mem_register:True
+```
+
+示例十：
+
+```bash
+export PYTORCH_NPU_ALLOC_CONF=large_segment_size_mb:50
+```
+
+示例十一：
+
+```bash
+export PYTORCH_NPU_ALLOC_CONF=per_process_memory_fraction:0.5
+```
+
+示例十二：
+
+```bash
+export PYTORCH_ALLOC_CONF=max_split_size_mb:32,garbage_collection_threshold:0.6
+```
+
+示例十三：
+
+```bash
+export PYTORCH_NPU_ALLOC_CONF=throw_on_npumalloc_oom:True
+```
+
+示例十四：
+
+```bash
+export PYTORCH_NPU_ALLOC_CONF=pinned_max_round_threshold_mb:128,pinned_max_cached_size_mb:256
+```
+
+## 使用约束
+
+- expandable\_segments特性需在Ascend HDK 23.0.0及以上版本上使用。
+- max\_split\_size\_mb和garbage\_collection\_threshold中任意一个为非默认值时，expandable\_segments必须设置为False。
+- page\_size特性要求在Ascend HDK 25.0.RC1及以上版本、CANN商用8.1.RC1及以上版本使用，支持如下产品：
+    - <term>Atlas A2 训练系列产品</term>
+    - <term>Atlas A3 训练系列产品</term>
+
+- page\_size特性与其他特性同时配置时，仅page\_size配置生效，且申请内存注意事项如下：
+    - 当申请内存大于1MB时：
+        - 若配置page\_size，内存申请粒度为1GB。
+        - 若未配置page\_size，内存申请粒度为2MB。
+
+    - 当申请内存小于等于1MB时：配置page\_size也不生效，内存申请粒度为2MB。
+- pin_memory_expandable_segments特性要求TorchNPU 7.3.0及以上版本、Ascend HDK 25.5.0及以上版本、CANN商用8.5.0及以上版本使用。
+- pinned_use_background_threads特性要求在TorchNPU 26.0.0及以上版本且PyTorch 2.8.0及以上版本使用。
+- pinned_mem_register使用注意事项如下：
+    - 特性要求TorchNPU 26.0.0及以上版本、Ascend HDK 26.0.RC1及以上版本、CANN商用8.5.0及以上版本使用。
+    - 与pin_memory_expandable_segments特性不支持同时配置。
+- multi_stream_lazy_reclaim使用注意事项：
+    - 特性要求在TorchNPU 7.3.0以上版本上使用。
+    - 该特性主要解决多流场景下，Host侧存在下发性能瓶颈时的系统效率问题。单流、少流场景或者非Host性能瓶颈时，该功能收益不大。
+- large\_segment\_size\_mb特性需在TorchNPU 26.1.0及以上版本、PyTorch 2.11.0 及以版本上使用。
+- per\_process\_memory\_fraction特性需在TorchNPU 26.1.0及以上版本、PyTorch 2.10.0 及以上版本使用。
+- throw\_on\_npumalloc\_oom特性需在TorchNPU 26.2.0及以上版本、PyTorch 2.13.0及以上版本使用。
+- pinned\_max\_round\_threshold\_mb和pinned\_max\_cached\_size\_mb特性需在TorchNPU 26.2.0及以上版本、PyTorch 2.13.0及以上版本使用。两者仅作用于默认（非expandable）pinned memory分配器路径。与pin\_memory\_expandable\_segments同时配置时，这两个阈值不生效，框架会输出一次告警提示，但进程仍可正常启动；如需启用这两个阈值，请将pin\_memory\_expandable\_segments设置为False。
+- 通过PYTORCH\_ALLOC\_CONF环境变量配置缓存分配器参数，需在TorchNPU 26.2.0版本且PyTorch 2.10.0及以上版本使用。
+
+## 支持的型号
+
+- <term>Atlas 训练系列产品</term>
+- <term>Atlas A2 训练系列产品</term>
+- <term>Atlas A3 训练系列产品</term>
+- <term>Atlas 推理系列产品</term>

@@ -1,0 +1,31 @@
+# torch.utils.dlpack
+
+> [!NOTE]
+>
+> 若API“是否支持”为“是”，“限制与说明”为“-”，说明此API和原生API支持度保持一致。
+
+## 目录
+
+- [base API](#base-api)
+
+## base API
+
+### torch.utils.dlpack.from_dlpack
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.utils.dlpack.from_dlpack](https://pytorch.org/docs/2.10/dlpack.html#torch.utils.dlpack.from_dlpack)
+
+**是否支持**：否
+
+</div>
+
+### torch.utils.dlpack.to_dlpack
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.utils.dlpack.to_dlpack](https://pytorch.org/docs/2.10/dlpack.html#torch.utils.dlpack.to_dlpack)
+
+**是否支持**：否
+
+</div>

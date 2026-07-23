@@ -1,0 +1,15 @@
+# 软件安装
+
+- [快速安装](quick_install.md)
+- [卸载与升级](uninstallation_upgrade.md)
+- [FAQ](FAQ.md)
+- [附录](appendix.md)
+  - [源码编译](compilation_installation_using_source_code.md)
+  - [（可选）安装扩展模块](optional_installing_extension_modules.md)
+    - [编译libtorch\_npu](building_libtorch_npu.md)
+    - [安装torchvision](installing_torchvision.md)
+  - [参考信息](references.md)
+    - [配置pip源](configuring_pip_source.md)
+    - [查询版本](check_installed_versions.md)
+    - [安装11.2.0版本gcc](installing_gcc_11-2-0.md)
+    - [安装3.18.4版本cmake](installing_cmake_3-18-4.md)
