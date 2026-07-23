@@ -2303,6 +2303,9 @@
   "torch_npu.npu.npugraph_ex.scope.limit_core_num": {
     "signature": "(op_aicore_num: int, op_vectorcore_num: int, stream=None)"
   },
+  "torch_npu.npu.npugraph_ex.scope.deterministic": {
+    "signature": "(level: int)"
+  },
   "torch_npu.npu.npugraph_ex.compile_fx": {
     "signature": "(gm, example_inputs=None, options=None)"
   },
