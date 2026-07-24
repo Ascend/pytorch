@@ -280,6 +280,8 @@ class MetaCompiler:
             runtime_args = self.prepare_runtime_args(
                 args_list,
             )
+        if is_fallback_kernel:
+            kwargs = {k: v for k, v in kwargs.items() if k != "stream"}
         ret = launcher(*tuple(runtime_args), **kwargs)
         self._copy_back_non_contiguous_outputs(args_list, original_outputs)
         return ret

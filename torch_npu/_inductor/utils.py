@@ -42,6 +42,12 @@ def patch_is_gpu():
     torch._inductor.scheduler.device_need_guard = _return_false
 
 
+def resolve_npu_device_index(device_idx=None) -> int:
+    from torch._inductor.utils import decode_device
+
+    return decode_device(torch.device("npu", device_idx)).index
+
+
 def patch_has_triton():
     from torch.utils._triton import has_triton_package
 
