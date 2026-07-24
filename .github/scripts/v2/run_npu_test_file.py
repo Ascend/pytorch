@@ -68,14 +68,11 @@ def get_npu_device_count() -> int:
 # failed/error case. When poisoning is detected, the plugin calls
 # pytest.exit(returncode=70) to stop the session immediately.
 #
-# This module only handles the exit code 70 from the plugin:
-#   - rc == 70: NPU poisoning detected by plugin (per-case precision)
-#   - rc < 0:   Signal death (SIGSEGV/SIGABRT) — crash recovery
-#   - rc == 124: Timeout — crash recovery
-#   - rc >= 0 and rc != 70 and rc != 124: Orderly exit (0/1/2/5)
-#
-# The _check_npu_poisoned() probe below is kept as a fallback for signal
-# crashes (rc < 0) where the plugin couldn't run (process killed instantly).
+# This module handles exit codes from pytest subprocess:
+#   - rc == 70:  NPU poisoning detected by plugin → skip case, continue
+#   - rc < 0:    Signal death (SIGSEGV/SIGABRT) → skip case, continue
+#   - rc == 124: Timeout → skip case, continue
+#   - rc >= 0:   Orderly exit (0/1/2/5) → done
 
 NPU_POISONING_EXIT_CODE = 70
 
@@ -220,13 +217,16 @@ def run_test_file_with_retry(
     shard_type: str,
     env_updates: Optional[Dict[str, str]] = None,
 ) -> List[Path]:
-    """Execute a single test file.
+    """Execute a single test file with crash skip via StepcurrentPlugin.
 
-    - NPU poisoning (exit code 70): retry with --scs up to 3 times
-    - Crash/timeout (rc < 0 or 124): no retry, take whatever XML was produced
-    - Orderly exit (0/1/2/5): done
+    Execution strategy:
+    - Attempt 0 (--sc): run all cases from the beginning
+    - Crash/timeout/NPU-poisoning: use --scs to skip the crashed case and
+      continue with the remaining cases. No retry of the crashed case itself.
+    - Orderly exit (0/1/2/5): done, results are final
+    - Max 20 skip iterations per file (safety bound)
 
-    Returns list of JUnit XML file paths (may be multiple from poisoning retries).
+    Returns list of JUnit XML file paths (one per iteration, merged later).
     """
     junit_dir = report_dir / "junit_xmls"
     junit_dir.mkdir(parents=True, exist_ok=True)
@@ -236,7 +236,7 @@ def run_test_file_with_retry(
     if env_updates:
         merged_env.update(env_updates)
 
-    # SUBPROCESS_FILES: single execution, no retry (aligned with upstream run_test.py:637)
+    # SUBPROCESS_FILES: single execution, no skip (aligned with upstream run_test.py:637)
     if base_name in SUBPROCESS_FILES:
         xml_file = junit_dir / f"{base_name}.xml"
         cmd = build_pytest_command(
@@ -256,15 +256,15 @@ def run_test_file_with_retry(
             print(f"    WARNING: XML not generated", flush=True)
         return [xml_file] if xml_file.exists() else []
 
-    # Normal files: run once, only retry on NPU poisoning
+    # Normal files: crash skip via StepcurrentPlugin
     sc_key = f"{base_name}_{os.urandom(8).hex()}"
     sc_cmd = f"--sc={sc_key}"
-    poison_count = 0
+    max_iterations = 20
+    iteration = 0
     xml_files = []
 
-    while True:
-        attempt = poison_count
-        xml_file = junit_dir / f"{base_name}_attempt{attempt}.xml"
+    while iteration < max_iterations:
+        xml_file = junit_dir / f"{base_name}_attempt{iteration}.xml"
         xml_files.append(xml_file)
 
         cmd = build_pytest_command(
@@ -276,31 +276,40 @@ def run_test_file_with_retry(
         )
         command_str = " ".join(cmd)
 
-        if attempt == 0:
+        if iteration == 0:
             print(f"  [{test_file}]", flush=True)
         else:
-            print(f"  [{test_file}] Retry (NPU poisoning recovery, attempt {attempt})", flush=True)
+            print(f"  [{test_file}] Skip iteration {iteration} (continuing after crash)", flush=True)
         print(f"    Command: {command_str}", flush=True)
 
         rc, output = run_subprocess_with_timeout(cmd, timeout, test_dir, merged_env)
 
-        # NPU poisoning detected by plugin (exit code 70)
-        if rc == NPU_POISONING_EXIT_CODE:
-            print(f"    Exit code: {rc} (NPU poisoning detected by plugin)", flush=True)
-            poison_count += 1
-            if poison_count >= 3:
-                print(f"    NPU poisoning persists after {poison_count} attempts, abandoning", flush=True)
-                break
-            print(f"    Retrying with --scs (skip poisoned case, attempt {poison_count + 1}/3)", flush=True)
-            sc_cmd = f"--scs={sc_key}"
-            continue
+        # Orderly exit (0=pass, 1=failures, 2=interrupted, 5=no tests collected)
+        # Results are final, no more iterations needed
+        if rc >= 0 and rc != 124:
+            print(f"    Exit code: {rc} (done)", flush=True)
+            break
 
-        # All other exit codes: no retry
-        if rc >= 0:
-            print(f"    Exit code: {rc} (orderly exit)", flush=True)
+        # Crash (rc < 0) or timeout (124) or NPU poisoning (70)
+        # StepcurrentPlugin has already written lastrun to .pytest_cache
+        # before the crash. Use --scs to skip the crashed case and continue
+        # with remaining cases in a fresh process.
+        if rc == NPU_POISONING_EXIT_CODE:
+            print(f"    Exit code: {rc} (NPU poisoning, skipping case)", flush=True)
         else:
-            print(f"    Exit code: {rc} (crash, no retry)", flush=True)
-        break
+            signal_name = ""
+            if rc < 0:
+                try:
+                    signal_name = f" ({signal.Signals(-rc).name})"
+                except (ValueError, AttributeError):
+                    signal_name = f" (signal {-rc})"
+            print(f"    Exit code: {rc}{signal_name} (crash/timeout, skipping case)", flush=True)
+
+        sc_cmd = f"--scs={sc_key}"
+        iteration += 1
+
+    if iteration >= max_iterations:
+        print(f"    Max iterations ({max_iterations}) reached for {test_file}", flush=True)
 
     return [f for f in xml_files if f.exists()]
 
