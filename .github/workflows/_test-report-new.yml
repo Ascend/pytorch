@@ -165,3 +165,29 @@ jobs:
             npu-full-test-summary.json
           if-no-files-found: warn
           retention-days: 60
+
+      - name: Generate updated test-times.json
+        if: always()
+        run: |
+          export PYTHONPATH="${GITHUB_WORKSPACE}/.github/scripts/v2:${PYTHONPATH}"
+          python3 .github/scripts/v2/generate_test_times.py \
+            --reports-root all-test-reports \
+            --output test-times.json
+          echo "=== test-times.json preview ==="
+          python3 -c "
+          import json
+          d = json.load(open('test-times.json'))
+          for cat in sorted(k for k in d if k != 'default'):
+              files = d[cat]
+              total = sum(files.values())
+              print(f'  {cat}: {len(files)} files, {total:.0f}s ({total/60:.1f}min)')
+          "
+
+      - name: Upload updated test-times.json
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-times-updated
+          path: test-times.json
+          if-no-files-found: warn
+          retention-days: 30

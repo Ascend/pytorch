@@ -224,7 +224,7 @@ def run_test_file_with_retry(
     env_updates: Optional[Dict[str, str]] = None,
     shard_id: int = 1,
     num_shards: int = 1,
-) -> List[Path]:
+) -> Tuple[List[Path], int, str]:
     """Execute a single test file with crash skip via StepcurrentPlugin.
 
     Execution strategy:
@@ -234,7 +234,10 @@ def run_test_file_with_retry(
     - Orderly exit (0/1/2/5): done, results are final
     - Max 20 skip iterations per file (safety bound)
 
-    Returns list of JUnit XML file paths (one per iteration, merged later).
+    Returns ``(xml_files, attempts, status)``:
+      - xml_files: list of JUnit XML file paths (one per iteration)
+      - attempts: number of pytest subprocess invocations
+      - status: "completed" | "crashed" | "max_iterations"
     """
     junit_dir = report_dir / "junit_xmls"
     junit_dir.mkdir(parents=True, exist_ok=True)
@@ -267,7 +270,8 @@ def run_test_file_with_retry(
             print(f"    Exit code: {rc}", flush=True)
         if not xml_file.exists():
             print(f"    WARNING: XML not generated", flush=True)
-        return [xml_file] if xml_file.exists() else []
+        status = "completed" if rc >= 0 and rc != 124 else "crashed"
+        return ([xml_file] if xml_file.exists() else []), 1, status
 
     # Normal files: crash skip via StepcurrentPlugin
     sc_key = f"{base_name}_{os.urandom(8).hex()}"
@@ -324,10 +328,16 @@ def run_test_file_with_retry(
         sc_cmd = f"--scs={sc_key}"
         iteration += 1
 
+    total_attempts = iteration + 1
     if iteration >= max_iterations:
         print(f"    Max iterations ({max_iterations}) reached for {test_file}", flush=True)
+        status = "max_iterations"
+    elif iteration > 0:
+        status = "crashed"
+    else:
+        status = "completed"
 
-    return [f for f in xml_files if f.exists()]
+    return [f for f in xml_files if f.exists()], total_attempts, status
 
 
 # ==============================================================================
@@ -467,8 +477,10 @@ def _worker_loop(
       1. Sets ASCEND_RT_VISIBLE_DEVICES once at startup (stable binding).
       2. Pulls (idx, (file, shard_id, num_shards)) from task_queue.
       3. Spawns pytest subprocess for that file (process-level isolation).
-      4. Puts results back to result_queue.
+      4. Puts results back to result_queue with wall-clock timing.
       5. Repeats until sentinel (None) is received.
+
+    Result tuple: (idx, test_file, xml_files, err, wall_time, attempts, status)
     """
     os.environ["ASCEND_RT_VISIBLE_DEVICES"] = str(device_id)
     print(f"  [Worker device={device_id}] started", flush=True)
@@ -483,14 +495,17 @@ def _worker_loop(
         print(f"  [device {device_id}] [{idx}] {test_file}{sub_info}", flush=True)
 
         try:
-            xml_files = run_test_file_with_retry(
+            file_start = monotonic()
+            xml_files, attempts, status = run_test_file_with_retry(
                 test_file, test_dir, report_dir, timeout, verbose,
                 shard, shard_type, env_updates, shard_id, num_shards,
             )
-            result_queue.put((idx, test_file, xml_files, None))
+            wall_time = monotonic() - file_start
+            result_queue.put((idx, test_file, xml_files, None, wall_time, attempts, status))
         except Exception as e:
+            wall_time = monotonic() - file_start
             print(f"  [device {device_id}] [{idx}] ERROR: {e}", flush=True)
-            result_queue.put((idx, test_file, [], str(e)))
+            result_queue.put((idx, test_file, [], str(e), wall_time, 0, "error"))
 
 
 # ==============================================================================
@@ -512,7 +527,11 @@ def run_shard(
     """Execute all test files in a shard.
 
     - serial mode (max_workers=1): sequential execution
-    - concurrent mode (max_workers>1): spawn Pool with N workers
+    - concurrent mode (max_workers>1): task-queue workers, one per NPU card
+
+    Writes ``file_execution_times.json`` to *report_dir* with per-file
+    wall-clock timing (including all crash-retry attempts, NPU init,
+    collection, and fixture overhead).
     """
     start = monotonic()
 
@@ -553,6 +572,7 @@ def run_shard(
     env_updates = build_execution_env(test_dir, script_dir)
 
     all_cases_results: List[Dict] = []
+    file_times: List[Dict] = []
 
     if max_workers <= 1:
         # Serial execution (distributed tests)
@@ -560,11 +580,13 @@ def run_shard(
         for i, (test_file, sub_shard_id, sub_num_shards) in enumerate(file_entries, 1):
             sub_info = f" (sub-shard {sub_shard_id}/{sub_num_shards})" if sub_num_shards > 1 else ""
             print(f"\n[{i}/{total_files}] Processing: {test_file}{sub_info}", flush=True)
-            xml_files = run_test_file_with_retry(
+            file_start = monotonic()
+            xml_files, attempts, status = run_test_file_with_retry(
                 test_file, test_dir, report_dir, timeout, verbose,
                 shard, shard_type, env_updates,
                 shard_id=sub_shard_id, num_shards=sub_num_shards,
             )
+            wall_time = monotonic() - file_start
             # Merge XMLs and parse
             merged = merge_junit_xmls(xml_files, test_file)
             cmd_str = f"python {normalize_test_file(test_file)} --shard-id={sub_shard_id} --num-shards={sub_num_shards} ..."
@@ -575,7 +597,16 @@ def run_shard(
             errors = sum(1 for c in case_results if c["status"] == "error")
             skipped = sum(1 for c in case_results if c["status"] == "skipped")
             print(f"  Result: {len(case_results)} cases ({passed} passed, {failed} failed, "
-                  f"{errors} errors, {skipped} skipped)", flush=True)
+                  f"{errors} errors, {skipped} skipped), wall {wall_time:.1f}s, attempts {attempts}", flush=True)
+            file_times.append({
+                "file": test_file,
+                "shard_id": sub_shard_id,
+                "num_shards": sub_num_shards,
+                "wall_time": round(wall_time, 1),
+                "case_count": len(case_results),
+                "status": status,
+                "attempts": attempts,
+            })
     else:
         # Concurrent execution via task-queue workers
         num_npu = get_npu_device_count()
@@ -610,10 +641,11 @@ def run_shard(
         collected = 0
         total_entries = len(file_entries)
         while collected < total_entries:
-            idx, test_file, xml_files, err = result_queue.get()
-            results_by_idx[idx] = (test_file, xml_files, err)
+            idx, test_file, xml_files, err, wall_time, attempts, status = result_queue.get()
+            results_by_idx[idx] = (test_file, xml_files, err, wall_time, attempts, status)
             collected += 1
-            print(f"  [Completed {collected}/{total_entries}] device finished {test_file}", flush=True)
+            print(f"  [Completed {collected}/{total_entries}] {test_file} "
+                  f"({wall_time:.0f}s, {attempts} attempts)", flush=True)
 
         for p in workers:
             p.join()
@@ -621,7 +653,8 @@ def run_shard(
         # Merge XMLs and parse results in original order
         for i, idx in enumerate(range(total_entries)):
             test_file, sub_shard_id, sub_num_shards = file_entries[idx]
-            _, xml_files, err = results_by_idx.get(idx, (test_file, [], "missing result"))
+            entry = results_by_idx.get(idx, (test_file, [], "missing result", 0.0, 0, "error"))
+            _, xml_files, err, wall_time, attempts, status = entry
             if err:
                 print(f"  [{i+1}/{total_entries}] {test_file}: ERROR ({err})", flush=True)
             merged = merge_junit_xmls(xml_files, test_file)
@@ -634,9 +667,32 @@ def run_shard(
             skipped = sum(1 for c in case_results if c["status"] == "skipped")
             sub_info = f" (sub {sub_shard_id}/{sub_num_shards})" if sub_num_shards > 1 else ""
             print(f"  [{i+1}/{total_entries}] {test_file}{sub_info}: {len(case_results)} cases "
-                  f"({passed}P {failed}F {errors}E {skipped}S)", flush=True)
+                  f"({passed}P {failed}F {errors}E {skipped}S), wall {wall_time:.0f}s", flush=True)
+            file_times.append({
+                "file": test_file,
+                "shard_id": sub_shard_id,
+                "num_shards": sub_num_shards,
+                "wall_time": round(wall_time, 1),
+                "case_count": len(case_results),
+                "status": status,
+                "attempts": attempts,
+            })
 
     duration = monotonic() - start
+
+    # Save per-file execution times (wall-clock, including all overhead)
+    exec_times_data = {
+        "shard": shard,
+        "shard_type": shard_type,
+        "num_shards": num_shards,
+        "concurrent_workers": max_workers,
+        "timestamp": datetime.now().isoformat(),
+        "shard_wall_time": round(duration, 1),
+        "file_times": file_times,
+    }
+    exec_times_path = report_dir / "file_execution_times.json"
+    exec_times_path.write_text(json.dumps(exec_times_data, indent=2, ensure_ascii=False), encoding="utf-8")
+    print(f"\nFile execution times saved to {exec_times_path}", flush=True)
 
     # Calculate stats
     passed_count = sum(1 for c in all_cases_results if c["status"] == "passed")
