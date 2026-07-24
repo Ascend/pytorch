@@ -132,10 +132,15 @@ def build_pytest_command(
     subprocess_flag: bool = False,
     verbose: bool = False,
     timeout: int = 1800,
+    shard_id: int = 1,
+    num_shards: int = 1,
 ) -> List[str]:
     """Build pytest command for a single test file.
 
-    Uses upstream conftest.py's --num-shards=1 (no file-internal sharding).
+    Passes --shard-id and --num-shards to upstream's PytestShardPlugin
+    (registered by conftest.py).  When num_shards > 1 the plugin filters
+    cases via sha256(nodeid) % num_shards == shard_id - 1, so only the
+    sub-shard's cases run.
     """
     rel = normalize_test_file(test_file)
     cmd = [
@@ -143,7 +148,8 @@ def build_pytest_command(
         "-p", "no:xdist",
         "-p", "npu_poisoning_plugin",
         "--use-pytest",
-        "--num-shards=1",
+        f"--shard-id={shard_id}",
+        f"--num-shards={num_shards}",
         "-ra", "--tb=short", "--color=no",
         f"--junitxml={xml_file}",
         f"--timeout={timeout}",
@@ -216,6 +222,8 @@ def run_test_file_with_retry(
     shard: int,
     shard_type: str,
     env_updates: Optional[Dict[str, str]] = None,
+    shard_id: int = 1,
+    num_shards: int = 1,
 ) -> List[Path]:
     """Execute a single test file with crash skip via StepcurrentPlugin.
 
@@ -232,6 +240,8 @@ def run_test_file_with_retry(
     junit_dir.mkdir(parents=True, exist_ok=True)
 
     base_name = get_base_name(test_file)
+    if num_shards > 1:
+        base_name = f"{base_name}_sub{shard_id}of{num_shards}"
     merged_env = os.environ.copy()
     if env_updates:
         merged_env.update(env_updates)
@@ -245,9 +255,12 @@ def run_test_file_with_retry(
             subprocess_flag=True,
             verbose=verbose,
             timeout=timeout,
+            shard_id=shard_id,
+            num_shards=num_shards,
         )
         command_str = " ".join(cmd)
-        print(f"  [SUBPROCESS] {test_file}", flush=True)
+        sub_info = f" (sub-shard {shard_id}/{num_shards})" if num_shards > 1 else ""
+        print(f"  [SUBPROCESS] {test_file}{sub_info}", flush=True)
         print(f"    Command: {command_str}", flush=True)
         rc, output = run_subprocess_with_timeout(cmd, timeout, test_dir, merged_env)
         if rc != 0:
@@ -273,13 +286,16 @@ def run_test_file_with_retry(
             marker="(not serial)",
             verbose=verbose,
             timeout=timeout,
+            shard_id=shard_id,
+            num_shards=num_shards,
         )
         command_str = " ".join(cmd)
 
+        sub_info = f" (sub-shard {shard_id}/{num_shards})" if num_shards > 1 else ""
         if iteration == 0:
-            print(f"  [{test_file}]", flush=True)
+            print(f"  [{test_file}]{sub_info}", flush=True)
         else:
-            print(f"  [{test_file}] Skip iteration {iteration} (continuing after crash)", flush=True)
+            print(f"  [{test_file}]{sub_info} Skip iteration {iteration} (continuing after crash)", flush=True)
         print(f"    Command: {command_str}", flush=True)
 
         rc, output = run_subprocess_with_timeout(cmd, timeout, test_dir, merged_env)
@@ -446,10 +462,11 @@ def _execute_file_in_worker(args_tuple):
 
     Args are passed as a tuple because Pool.apply_async doesn't accept kwargs well.
     """
-    (test_file, test_dir, report_dir, timeout, verbose, shard, shard_type, env_updates) = args_tuple
+    (test_file, test_dir, report_dir, timeout, verbose, shard, shard_type,
+     env_updates, shard_id, num_shards) = args_tuple
     return run_test_file_with_retry(
         test_file, test_dir, report_dir, timeout, verbose,
-        shard, shard_type, env_updates,
+        shard, shard_type, env_updates, shard_id, num_shards,
     )
 
 
@@ -478,13 +495,25 @@ def run_shard(
 
     # Load files
     data = json.loads(Path(files_json).read_text(encoding="utf-8"))
-    files = data["files"]
+    raw_files = data["files"]
     num_shards = data["num_shards"]
-    total_files = len(files)
+    total_files = len(raw_files)
+
+    # Parse mixed-format entries: strings (whole file) or dicts (sub-shard)
+    file_entries = []
+    for entry in raw_files:
+        if isinstance(entry, dict):
+            file_entries.append((
+                entry["file"],
+                entry.get("shard_id", 1),
+                entry.get("num_shards", 1),
+            ))
+        else:
+            file_entries.append((entry, 1, 1))
 
     print(f"{'=' * 80}", flush=True)
     print(f"Shard {shard}/{num_shards} ({shard_type})", flush=True)
-    print(f"Total files: {total_files}", flush=True)
+    print(f"Total entries: {total_files}", flush=True)
     print(f"Max workers: {max_workers}", flush=True)
     if max_workers == 1:
         print(f"Execution mode: SERIAL", flush=True)
@@ -493,7 +522,7 @@ def run_shard(
     print(f"Timeout per file: {timeout}s", flush=True)
     print(f"{'=' * 80}", flush=True)
 
-    if not files:
+    if not file_entries:
         print("No files to execute.", flush=True)
         return [], 0.0, 0
 
@@ -504,16 +533,18 @@ def run_shard(
 
     if max_workers <= 1:
         # Serial execution (distributed tests)
-        print(f"\nExecuting {total_files} files serially...", flush=True)
-        for i, test_file in enumerate(files, 1):
-            print(f"\n[{i}/{total_files}] Processing: {test_file}", flush=True)
+        print(f"\nExecuting {total_files} entries serially...", flush=True)
+        for i, (test_file, sub_shard_id, sub_num_shards) in enumerate(file_entries, 1):
+            sub_info = f" (sub-shard {sub_shard_id}/{sub_num_shards})" if sub_num_shards > 1 else ""
+            print(f"\n[{i}/{total_files}] Processing: {test_file}{sub_info}", flush=True)
             xml_files = run_test_file_with_retry(
                 test_file, test_dir, report_dir, timeout, verbose,
                 shard, shard_type, env_updates,
+                shard_id=sub_shard_id, num_shards=sub_num_shards,
             )
             # Merge XMLs and parse
             merged = merge_junit_xmls(xml_files, test_file)
-            cmd_str = f"python {normalize_test_file(test_file)} --num-shards=1 ..."
+            cmd_str = f"python {normalize_test_file(test_file)} --shard-id={sub_shard_id} --num-shards={sub_num_shards} ..."
             case_results = parse_testcases(merged, test_file, cmd_str)
             all_cases_results.extend(case_results)
             passed = sum(1 for c in case_results if c["status"] == "passed")
@@ -526,12 +557,13 @@ def run_shard(
         # Concurrent execution via spawn Pool
         num_npu = get_npu_device_count()
         print(f"\nNPU devices detected: {num_npu}", flush=True)
-        print(f"Executing {total_files} files concurrently with {max_workers} workers...", flush=True)
+        print(f"Executing {total_files} entries concurrently with {max_workers} workers...", flush=True)
 
         # Prepare args for each file
         worker_args = [
-            (f, test_dir, report_dir, timeout, verbose, shard, shard_type, env_updates)
-            for f in files
+            (f, test_dir, report_dir, timeout, verbose, shard, shard_type, env_updates,
+             sid, ns)
+            for f, sid, ns in file_entries
         ]
 
         ctx = get_context("spawn")
@@ -546,22 +578,23 @@ def run_shard(
             results = pool.map(_execute_file_in_worker, worker_args)
         except Exception as e:
             print(f"Pool execution error: {e}", flush=True)
-            results = [[] for _ in files]
+            results = [[] for _ in file_entries]
         finally:
             pool.close()
             pool.join()
 
         # Merge XMLs and parse results for each file
-        for i, (test_file, xml_files) in enumerate(zip(files, results), 1):
+        for i, ((test_file, sub_shard_id, sub_num_shards), xml_files) in enumerate(zip(file_entries, results), 1):
             merged = merge_junit_xmls(xml_files, test_file)
-            cmd_str = f"python {normalize_test_file(test_file)} --num-shards=1 ..."
+            cmd_str = f"python {normalize_test_file(test_file)} --shard-id={sub_shard_id} --num-shards={sub_num_shards} ..."
             case_results = parse_testcases(merged, test_file, cmd_str)
             all_cases_results.extend(case_results)
             passed = sum(1 for c in case_results if c["status"] == "passed")
             failed = sum(1 for c in case_results if c["status"] == "failed")
             errors = sum(1 for c in case_results if c["status"] == "error")
             skipped = sum(1 for c in case_results if c["status"] == "skipped")
-            print(f"  [{i}/{total_files}] {test_file}: {len(case_results)} cases "
+            sub_info = f" (sub {sub_shard_id}/{sub_num_shards})" if sub_num_shards > 1 else ""
+            print(f"  [{i}/{total_files}] {test_file}{sub_info}: {len(case_results)} cases "
                   f"({passed}P {failed}F {errors}E {skipped}S)", flush=True)
 
     duration = monotonic() - start
@@ -634,7 +667,7 @@ def run_shard(
     result_module.print_stats_summary(shard, stats, shard_type)
 
     # Save test plan
-    result_module.save_test_plan_file(str(report_dir), shard, files, shard_type)
+    result_module.save_test_plan_file(str(report_dir), shard, raw_files, shard_type)
 
     return all_cases_results, duration, worst_returncode
 

@@ -122,6 +122,8 @@ jobs:
           python3 ${GITHUB_WORKSPACE}/ci-scripts/.github/scripts/v2/shard_test_files.py \
             --test-dir ${GITHUB_WORKSPACE}/pytorch/test \
             --categories-config ${GITHUB_WORKSPACE}/ci-scripts/.github/config/test_categories.yml \
+            --test-times ${GITHUB_WORKSPACE}/ci-scripts/.github/config/test-times.json \
+            --max-shard-duration 3600 \
             --output-dir ${GITHUB_WORKSPACE}/cases-shards
 
           echo "=== Generated shard files ==="
