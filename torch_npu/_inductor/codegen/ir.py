@@ -1132,6 +1132,54 @@ def should_skip_linearization_on_a5(var_ranges, indexing):
     return False
 
 
+# Reduction types that produce an index or are multi-output/Welford. They have
+# never been validated on simt_template and miscompute there (e.g. wrong argmax
+# index for a dynamic-length reduction axis), so they must fall back to the
+# community SIMT_ONLY path (same as static SIMD and the community dynamic
+# fallback). reduction_type is recorded as a bare string arg on the reduction
+# node, so match by value rather than a fragile positional index.
+_SIMT_TEMPLATE_UNSAFE_REDUCTION_TYPES = {
+    "argmax",
+    "argmin",
+    "welford_reduce",
+    "welford_combine",
+}
+
+
+def _loop_body_has_unsafe_reduction(loop_body):
+    graphs = [loop_body.root_block.graph]
+    graphs.extend(sub.graph for sub in getattr(loop_body, "subblocks", {}).values())
+    for graph in graphs:
+        for node in graph.nodes:
+            if "reduction" not in node.name:
+                continue
+            for arg in node.args:
+                if isinstance(arg, str) and arg in _SIMT_TEMPLATE_UNSAFE_REDUCTION_TYPES:
+                    return True
+    return False
+
+
+def is_linear_dynamic_reduction(loop_body):
+    """Keep a dynamic reduction on simt_template only when it is safe to do so.
+    Bail (fall back to community SIMT_ONLY) when an index carries a SYMBOLIC bound
+    in ModularIndexing/FloorDiv (breaks linearization), or when the reduction
+    produces an index / is Welford (argmax/argmin from max.dim/min.dim, var/std).
+    Static-bound modular/floordiv from folding static dims are fine; the step-3
+    can_split_all check is the final fallback."""
+    kernel = V.kernel
+    if kernel is None or not getattr(kernel, "inside_reduction", False):
+        return False
+    indexing = loop_body.indexing
+    if not indexing:
+        return False
+    for index_expr in indexing.values():
+        if check_subexpr_for_dynamic_symbols(index_expr):
+            return False
+    if _loop_body_has_unsafe_reduction(loop_body):
+        return False
+    return True
+
+
 def transform_dims_in_indexing(self, indices):
     # Step 1: Generate basic indexing (always executed)
     if self.indexing is None:
@@ -1140,12 +1188,16 @@ def transform_dims_in_indexing(self, indices):
 
     # Step 2: Check for dynamic shapes (only skip on A5 platform)
     if should_skip_linearization_on_a5(self.var_ranges, self.indexing):
-        log.info(
-            "Skip memory access linearization due to dynamic shape on A5, var_ranges: %s",
-            self.var_ranges,
-        )
-        # Set SIMT_ONLY compile option for dynamic shapes on A5
-        raise ValueError(f"fallback to community simt for SIMT_ONLY compile option for dynamic shapes on A5")
+        # A linearizable plain-value dynamic reduction stays on simt_template
+        # (full UB tile); indexed/Welford reductions and everything else fall
+        # back below.
+        if not is_linear_dynamic_reduction(self):
+            log.info(
+                "Skip memory access linearization due to dynamic shape on A5, var_ranges: %s",
+                self.var_ranges,
+            )
+            # Set SIMT_ONLY compile option for dynamic shapes on A5
+            raise ValueError(f"fallback to community simt for SIMT_ONLY compile option for dynamic shapes on A5")
 
     # Step 3: Perform memory access linearization
     log.debug(

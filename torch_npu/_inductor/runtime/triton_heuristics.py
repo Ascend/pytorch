@@ -2742,10 +2742,11 @@ def _triton_config_npu_index_grouped(
     if primary_group_axis is None:
         raise RuntimeError("grouped autotune plan is missing primary_group_axis")
     primary_block_name = f"{primary_group_axis.upper()}BLOCK"
-    if runtime_block_arg_names and primary_block_name not in runtime_block_arg_names:
-        raise RuntimeError(
-            f"runtime_block_arg_names is missing primary block {primary_block_name}"
-        )
+    # primary_block_name may legitimately be absent from runtime_block_arg_names
+    # when the primary group axis is a reduction TILING axis (bucketed via
+    # R0BLOCK_SUB per variant, no grid block); in that case any grid comes from
+    # the static non-reduction split axes. build_grouped_launch_policy handles
+    # both shapes, so no guard is needed here.
 
     def benchmark_axis_env(group_id: int) -> dict[str, int]:
         axis_values = group_representatives["benchmark_axis_values_by_group"][group_id]
@@ -2979,14 +2980,20 @@ def build_grouped_launch_policy(
 ) -> dict[str, object]:
     primary_block_name = f"{primary_group_axis.upper()}BLOCK"
     runtime_blocks = extract_runtime_blocks_from_cfg(cfg, runtime_block_arg_names)
-    if primary_block_name not in runtime_blocks:
-        if runtime_block_arg_names:
-            raise RuntimeError(
-                f"legacy grouped config is missing primary block {primary_block_name}"
-            )
+    if primary_block_name not in runtime_block_arg_names:
+        # Primary is a reduction TILING axis (bucketed via R0BLOCK_SUB per variant),
+        # not a grid split axis, so it has no grid block. Grid==1 over it; any grid
+        # parallelism comes from the STATIC non-reduction split axes, whose blocks
+        # are emitted as static_blocks (no runtime rule for the absent primary
+        # block). Covers both the pure scalar reduction (no split axes -> empty
+        # static_blocks) and the partial reduction (static split axes present).
         return {
             "group_id": group_id,
-            "static_blocks": (),
+            "static_blocks": tuple(
+                (block_name, runtime_blocks[block_name])
+                for block_name in runtime_block_arg_names
+                if block_name in runtime_blocks
+            ),
             "runtime_block_rules": (),
             "grid_target": 1,
         }

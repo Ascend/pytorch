@@ -119,6 +119,15 @@ def num_splits(
             return 1
 
     if numel_hint == 1:
+        # A reduction whose reduction group has exactly ONE dynamic axis (any other
+        # reduction axes static): keep a single Reduction node (split==1) instead of
+        # a degenerate multilayer split; grid is forced to 1 in select_split_axis so
+        # it loops the runtime numel with a tail mask. Covers pure 1D
+        # (reduction_ranges == [n]) and full reduce with extra static reduction dims
+        # (e.g. [n, 1024] -> reduction_ranges == [n, 1024]).
+        num_dynamic_reduction = sum(1 for r in reduction_ranges if not _is_static(r))
+        if num_dynamic_reduction == 1:
+            return ReductionHint.INNER, 1
         split = inner_reduction_splits(reduction_ranges)
         return ReductionHint.INNER, split
     return ReductionHint.DEFAULT, 1

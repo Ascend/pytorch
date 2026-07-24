@@ -128,8 +128,24 @@ class SplitTiling:
                 break
 
         if not self.kernel.split_axis and self.kernel.sorted_axis:
-            self.kernel.split_axis.append(self.kernel.sorted_axis[0])
-            self.kernel.sorted_axis[0].is_split_axis = True
+            only_axis = self.kernel.sorted_axis[0]
+            # A dynamic full reduction (every axis is a reduction axis, at least one
+            # dynamic) must keep grid==1: making a reduction axis a grid split axis
+            # gives grid>1 with no cross-core combine (A5), which overwrites the
+            # scalar output. Leave split_axis empty (loop the runtime numel with a
+            # tail mask). Covers pure 1D ([n]) and full reduce with extra static
+            # reduction dims ([n, 1024]).
+            all_reduction = all(
+                axis.prefix == "r" for axis in self.kernel.sorted_axis
+            )
+            any_dynamic = any(
+                not isinstance(axis.length, sympy.Integer)
+                for axis in self.kernel.sorted_axis
+            )
+            is_dynamic_full_reduction = all_reduction and any_dynamic
+            if not is_dynamic_full_reduction:
+                self.kernel.split_axis.append(only_axis)
+                only_axis.is_split_axis = True
 
         self.kernel.split_axis.sort(reverse=True, key=self.key)
         for i, x in enumerate(self.kernel.split_axis):
@@ -277,6 +293,23 @@ class SplitTiling:
                 return axis
         return dynamic_split_axes[0]
 
+    def _dynamic_reduction_tiling_axis(self):
+        """Sole dynamic reduction axis to bucket by runtime size while it stays a
+        tiling axis (grid==1 over it). The reduction axis must NOT itself be a grid
+        split axis (A5 has no cross-core combine -> grid>1 would overwrite the
+        output); static non-reduction split axes are fine and drive the grid."""
+        reduction_dynamic = [
+            axis
+            for axis in self.kernel.sorted_axis
+            if axis.prefix == "r" and not isinstance(axis.length, sympy.Integer)
+        ]
+        if len(reduction_dynamic) != 1:
+            return None
+        axis = reduction_dynamic[0]
+        if axis in self.kernel.split_axis:
+            return None
+        return axis
+
     def non_reduction_axis_names(self):
         return tuple(axis.name for axis in self.kernel.sorted_axis if axis.prefix != "r")
 
@@ -286,22 +319,49 @@ class SplitTiling:
     def reduction_axis_names(self):
         return tuple(axis.name for axis in self.kernel.sorted_axis if axis.prefix == "r")
 
+    def _has_dynamic_axis(self, axis_names):
+        names = set(axis_names)
+        for axis in self.kernel.sorted_axis:
+            if axis.name in names and not isinstance(axis.length, sympy.Integer):
+                return True
+        return False
+
+    # Bucket boundaries on the group PRODUCT (reduction_product / outer_product).
+    # A closed bucket tunes at its upper bound and the open tail at (max boundary *
+    # 2). Kept to a single coarse boundary each. Adding closed buckets to the OUTER
+    # (grid) axis backfires: the outer axis bakes XBLOCK from the representative, so
+    # a mid-of-bucket runtime size (e.g. 257 in (256, 4096]) gets an XBLOCK tuned
+    # for 4096 -> too few programs -> core underutilization. The single (256,) tail
+    # (representative 512) is a better all-round compromise. Reduction likewise
+    # stays a single boundary; the ~1e6 1D corner is out of scope.
+    _REDUCTION_BUCKETS = (8192,)
+    _OUTER_BUCKETS = (256,)
+
     def _build_group_features(self, primary_axis):
         if self.kernel.persistent_reduction or self.kernel.inside_reduction:
-            return (
-                GroupFeatureSpec(
-                    "outer",
-                    "outer_product",
-                    self.non_reduction_axis_names(),
-                    (256,),
-                ),
-                GroupFeatureSpec(
-                    "reduction",
-                    "reduction_product",
-                    self.reduction_axis_names(),
-                    (8192,),
-                ),
-            )
+            outer_names = self.non_reduction_axis_names()
+            reduction_names = self.reduction_axis_names()
+            # Emit a feature only for a group with a dynamic axis: a static group
+            # has a constant product (one reachable bucket), so bucketing it just
+            # adds unreachable group ids. Works for the symbolic dim on either
+            # side. Reduction axis stays grid==1; grid comes from outer split axes.
+            features = []
+            if outer_names and self._has_dynamic_axis(outer_names):
+                features.append(
+                    GroupFeatureSpec(
+                        "outer", "outer_product", outer_names, self._OUTER_BUCKETS
+                    )
+                )
+            if reduction_names and self._has_dynamic_axis(reduction_names):
+                features.append(
+                    GroupFeatureSpec(
+                        "reduction",
+                        "reduction_product",
+                        reduction_names,
+                        self._REDUCTION_BUCKETS,
+                    )
+                )
+            return tuple(features)
         return (
             GroupFeatureSpec(
                 "pointwise",
@@ -313,24 +373,42 @@ class SplitTiling:
 
     def _build_grouped_meta(self):
         dynamic_split_axes, static_split_axes = self._classify_split_axes()
-        if not dynamic_split_axes:
-            return None
-        primary_axis = self._select_primary_group_axis(dynamic_split_axes)
-        if primary_axis is None:
-            return None
-        secondary_axes = [axis for axis in dynamic_split_axes if axis is not primary_axis]
-        self._downgrade_secondary_runtime_split_axes(secondary_axes)
+        if dynamic_split_axes:
+            primary_axis = self._select_primary_group_axis(dynamic_split_axes)
+            if primary_axis is None:
+                return None
+            secondary_axes = [axis for axis in dynamic_split_axes if axis is not primary_axis]
+            self._downgrade_secondary_runtime_split_axes(secondary_axes)
+            static_names = tuple(axis.name for axis in static_split_axes)
+            secondary_names = tuple(axis.name for axis in secondary_axes)
+            runtime_block_arg_names = tuple(
+                f"{axis.name.upper()}BLOCK" for axis in self.kernel.split_axis
+            )
+        else:
+            # No dynamic grid split axis: bucket the reduction tiling axis by its
+            # runtime size (grid==1 over it). Grid parallelism, if any, comes from
+            # the STATIC non-reduction split axes; their blocks are passed so the
+            # grid is computed from them (build_grouped_launch_policy treats a
+            # reduction-tiling primary specially -- no runtime rule for it).
+            primary_axis = self._dynamic_reduction_tiling_axis()
+            if primary_axis is None:
+                return None
+            static_names = tuple(axis.name for axis in static_split_axes)
+            secondary_names = ()
+            runtime_block_arg_names = tuple(
+                f"{axis.name.upper()}BLOCK" for axis in self.kernel.split_axis
+            )
         feature_specs = self._build_group_features(primary_axis)
+        if not feature_specs:
+            return None
         return GroupedKernelMeta(
             enabled=True,
             template=self._grouped_template_name(),
             primary_group_axis=primary_axis.name,
-            static_split_axes=tuple(axis.name for axis in static_split_axes),
-            secondary_runtime_symbolic_axes=tuple(axis.name for axis in secondary_axes),
+            static_split_axes=static_names,
+            secondary_runtime_symbolic_axes=secondary_names,
             group_features=tuple(feature_specs),
-            runtime_block_arg_names=tuple(
-                f"{axis.name.upper()}BLOCK" for axis in self.kernel.split_axis
-            ),
+            runtime_block_arg_names=runtime_block_arg_names,
         )
 
     def _downgrade_secondary_runtime_split_axes(self, secondary_axes):
