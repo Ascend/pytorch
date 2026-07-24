@@ -692,7 +692,8 @@ class NPUTritonKernel(TritonKernel):
             inductor_meta["inductor_ascend_linear_mode"] = "no_linear"
         else:
             inductor_meta["inductor_ascend_linear_mode"] = inductor_ascend_linear_mode
-        inductor_meta["npu_kernel_type"] = str(NPUKernelType.SIMD_SIMT_MIX)
+        if npu_config.is_ascend950:
+            inductor_meta["npu_kernel_type"] = str(NPUKernelType.SIMD_SIMT_MIX)
         inductor_meta["split_axis"] = split_axis
         inductor_meta["tiling_axis"] = tiling_axis
         inductor_meta["low_dims"] = [tiling_axis[-1]]

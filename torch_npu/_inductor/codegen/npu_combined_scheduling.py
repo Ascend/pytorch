@@ -12,7 +12,7 @@ from torch._inductor.scheduler import (
 )
 
 from ..autotune_process import FusedCATLASSBenchmarkRequest
-from ..config import is_ascend950, log
+from ..config import log
 from .catlass.catlass_scheduling import CATLASSScheduling
 from .scheduling import NPUNoLinearTritonScheduling, NPUTritonScheduling
 
@@ -80,9 +80,6 @@ class NPUCombinedScheduling(CUDACombinedScheduling):
         return True
 
     def codegen_node(self, node: Union[FusedSchedulerNode, SchedulerNode]):
-        if not is_ascend950:
-            return self._triton_scheduling.codegen_node(node)
-
         if self.node_can_linear():
             try:
                 return self._triton_scheduling.codegen_node(node)
