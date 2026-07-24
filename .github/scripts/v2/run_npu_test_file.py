@@ -80,22 +80,6 @@ def get_npu_device_count() -> int:
 NPU_POISONING_EXIT_CODE = 70
 
 
-def _check_npu_poisoned() -> bool:
-    """Fallback probe for signal crashes (rc < 0) where plugin couldn't run.
-
-    When a pytest process is killed by signal (SIGSEGV/SIGABRT), the
-    poisoning plugin has no chance to execute. This probe runs in the
-    parent process to check if the NPU device is poisoned before deciding
-    recovery strategy.
-    """
-    try:
-        import torch
-        probe = torch.ones(4, device="npu")
-        return probe.sum().item() != 4.0
-    except Exception:
-        return True
-
-
 # ==============================================================================
 # SUBPROCESS_FILES (from upstream CUSTOM_HANDLERS, intersected with whitelist)
 # ==============================================================================
@@ -162,7 +146,6 @@ def build_pytest_command(
         "-p", "no:xdist",
         "-p", "npu_poisoning_plugin",
         "--use-pytest",
-        "--use-main-module",
         "--num-shards=1",
         "-ra", "--tb=short", "--color=no",
         f"--junitxml={xml_file}",
@@ -237,9 +220,13 @@ def run_test_file_with_retry(
     shard_type: str,
     env_updates: Optional[Dict[str, str]] = None,
 ) -> List[Path]:
-    """Execute a single test file with crash recovery via StepcurrentPlugin.
+    """Execute a single test file.
 
-    Returns list of JUnit XML file paths (may be multiple from retry attempts).
+    - NPU poisoning (exit code 70): retry with --scs up to 3 times
+    - Crash/timeout (rc < 0 or 124): no retry, take whatever XML was produced
+    - Orderly exit (0/1/2/5): done
+
+    Returns list of JUnit XML file paths (may be multiple from poisoning retries).
     """
     junit_dir = report_dir / "junit_xmls"
     junit_dir.mkdir(parents=True, exist_ok=True)
@@ -269,16 +256,14 @@ def run_test_file_with_retry(
             print(f"    WARNING: XML not generated", flush=True)
         return [xml_file] if xml_file.exists() else []
 
-    # Normal files: crash recovery path
+    # Normal files: run once, only retry on NPU poisoning
     sc_key = f"{base_name}_{os.urandom(8).hex()}"
     sc_cmd = f"--sc={sc_key}"
-    max_restarts = 20
-    restart_count = 0
     poison_count = 0
     xml_files = []
 
-    while restart_count < max_restarts:
-        attempt = restart_count
+    while True:
+        attempt = poison_count
         xml_file = junit_dir / f"{base_name}_attempt{attempt}.xml"
         xml_files.append(xml_file)
 
@@ -292,55 +277,30 @@ def run_test_file_with_retry(
         command_str = " ".join(cmd)
 
         if attempt == 0:
-            print(f"  [{test_file}] Attempt {attempt}", flush=True)
+            print(f"  [{test_file}]", flush=True)
         else:
-            print(f"  [{test_file}] Retry attempt {attempt} (crash recovery)", flush=True)
+            print(f"  [{test_file}] Retry (NPU poisoning recovery, attempt {attempt})", flush=True)
         print(f"    Command: {command_str}", flush=True)
 
         rc, output = run_subprocess_with_timeout(cmd, timeout, test_dir, merged_env)
 
-        # NPU poisoning detected by plugin (per-case precision, exit code 70)
-        # The plugin detected poisoning after a specific case and stopped
-        # the session. lastrun points to the poisoning case.
-        # --scs will skip all executed cases + the poisoning case, resuming
-        # from the next case with a fresh NPU device context.
+        # NPU poisoning detected by plugin (exit code 70)
         if rc == NPU_POISONING_EXIT_CODE:
             print(f"    Exit code: {rc} (NPU poisoning detected by plugin)", flush=True)
             poison_count += 1
             if poison_count >= 3:
                 print(f"    NPU poisoning persists after {poison_count} attempts, abandoning", flush=True)
                 break
-            print(f"    NPU poisoning (attempt {poison_count}/3), retrying with --scs", flush=True)
+            print(f"    Retrying with --scs (skip poisoned case, attempt {poison_count + 1}/3)", flush=True)
             sc_cmd = f"--scs={sc_key}"
-            restart_count += 1
             continue
 
-        # Orderly exit (0=pass, 1=failures, 2=interrupted, 5=no tests)
-        # No poisoning detected by plugin — results are trustworthy
-        if rc >= 0 and rc != 124:
+        # All other exit codes: no retry
+        if rc >= 0:
             print(f"    Exit code: {rc} (orderly exit)", flush=True)
-            break
-
-        # Crash recovery (rc < 0 = signal death, rc == 124 = timeout)
-        # The plugin couldn't run (process killed instantly or timed out)
-        print(f"    Exit code: {rc} (crash/timeout), entering recovery", flush=True)
-
-        # Fallback: check NPU poisoning for signal crashes
-        if _check_npu_poisoned():
-            poison_count += 1
-            if poison_count >= 3:
-                print(f"    NPU poisoning persists after {poison_count} attempts, abandoning", flush=True)
-                break
-            print(f"    NPU device poisoned (attempt {poison_count}/3), retrying with --scs", flush=True)
         else:
-            poison_count = 0
-
-        # Switch to skip mode for next attempt (skip already-executed + crashed cases)
-        sc_cmd = f"--scs={sc_key}"
-        restart_count += 1
-
-    if restart_count >= max_restarts:
-        print(f"    Max restarts ({max_restarts}) reached for {test_file}", flush=True)
+            print(f"    Exit code: {rc} (crash, no retry)", flush=True)
+        break
 
     return [f for f in xml_files if f.exists()]
 
