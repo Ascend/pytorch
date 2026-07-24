@@ -162,6 +162,7 @@ def build_pytest_command(
         "-p", "no:xdist",
         "-p", "npu_poisoning_plugin",
         "--use-pytest",
+        "--use-main-module",
         "--num-shards=1",
         "-ra", "--tb=short", "--color=no",
         f"--junitxml={xml_file}",
