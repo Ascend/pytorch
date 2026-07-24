@@ -16,7 +16,6 @@ from torch._inductor.bounds import ValueRangeAnalysis
 from torch._inductor.codegen.common import (
     ArgName,
     DeferredLine,
-    free_symbol_is_type,
     IndentedBuffer,
     SizeArg,
     TensorArg,
@@ -50,7 +49,7 @@ from torch._inductor.codegen.triton_utils import (
     signature_to_meta,
 )
 from torch._inductor.dtype_propagation import DtypePropagationOpsHandler
-from torch._inductor.shape_propagation import ShapePropagationOpsHandler
+from torch._inductor.shape_propagation import ShapePropagationOpsHandler, get_broadcasted_shape
 from torch._inductor.ir import IRNode
 from torch._inductor.runtime import triton_heuristics
 from torch._inductor.runtime.hints import DeviceProperties, ReductionHint
@@ -70,7 +69,7 @@ from torch.utils import _pytree as pytree
 from torch.utils._ordered_set import OrderedSet
 from torch.utils._sympy.functions import FloorDiv, Identity, ModularIndexing
 from torch.utils._sympy.numbers import int_oo
-from torch.utils._sympy.symbol import symbol_is_type, SymT
+from torch.utils._sympy.symbol import SymT
 from torch.utils._sympy.value_ranges import bound_sympy, ValueRanges
 
 from .. import config as npu_config
@@ -152,6 +151,18 @@ prefix_str = {
     NPUSymT.VIEW: "view",
     NPUSymT.HALIDE: "h",
 }
+
+def symbol_is_type(sym: sympy.Basic, prefix: NPUSymT | Iterable[NPUSymT]) -> bool:
+    if not isinstance(sym, sympy.Symbol):
+        raise AssertionError("expected sympy.Symbol")
+    name_str = sym.name.lower()  # Match capitalized names like XBLOCK, RBLOCK
+    if isinstance(prefix, NPUSymT):
+        return name_str.startswith(prefix_str[prefix])
+    else:
+        return name_str.startswith(tuple(prefix_str[p] for p in prefix))
+
+def free_symbol_is_type(e: sympy.Expr, prefix: NPUSymT | Iterable[NPUSymT]) -> bool:
+    return any(symbol_is_type(v, prefix) for v in e.free_symbols)
 
 class NPUTritonSymbols:
     """
@@ -385,7 +396,7 @@ class NPUTritonKernelOverrides(TritonKernelOverrides):
             # Trying to avoid
             dtype = index_dtype
             for index_var in expr.free_symbols:
-                if symbol_is_type(index_var, SymT.TMP):
+                if symbol_is_type(index_var, NPUSymT.TMP):
                     dtype = torch.promote_types(
                         dtype, V.kernel.cse.varname_map[index_var.name].dtype
                     )
@@ -635,7 +646,7 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
             if not isinstance(arg, (sympy.Integer, sympy.Symbol)):
                 symbols = arg.free_symbols
                 if len(symbols) > 0 and all(
-                    symbol_is_type(s, SymT.SIZE) for s in symbols
+                    symbol_is_type(s, NPUSymT.SIZE) for s in symbols
                 ):
                     precomputed_args.append(arg)
         return precomputed_args
@@ -3018,7 +3029,7 @@ class NPUIndexTritonKernel(TritonKernel):
         reshape_type = ""
 
         for axis_key in reversed(analyzer.all_var_list):
-            if symbol_is_type(axis_key, SymT.TMP):
+            if symbol_is_type(axis_key, NPUSymT.TMP):
                 axis_start_offset.append("0")
                 continue
             axis = self.range_tree_nodes[axis_key]
@@ -4191,7 +4202,7 @@ class NPUIndexTritonKernel(TritonKernel):
                 # so if everything goes fine, lower level replacements will come up empty
                 symbols = a.free_symbols
                 if len(symbols) > 0 and all(
-                    symbol_is_type(s, (SymT.SIZE, SymT.PRECOMPUTED_SIZE))
+                    symbol_is_type(s, (NPUSymT.SIZE, NPUSymT.PRECOMPUTED_SIZE))
                     for s in symbols
                 ):
                     replacements = {a: V.graph.sizevars.lookup_precomputed_size(a)}
@@ -4810,7 +4821,7 @@ class NPUIndexTritonKernel(TritonKernel):
                     # A load from an invalidated store requires us to
                     # keep the actual buffer around
                     V.kernel.must_keep_buffers.add(name)
-                if free_symbol_is_type(index, SymT.TMP):
+                if free_symbol_is_type(index, NPUSymT.TMP):
                     return self.indirect_load(name, index)
                 store_cache = self.cse.store_cache
                 if name in store_cache:
@@ -4991,7 +5002,7 @@ class NPUIndexTritonKernel(TritonKernel):
                     (
                         dim
                         for dim, var in enumerate(indirect_output_vars)
-                        if symbol_is_type(var, SymT.TMP)
+                        if symbol_is_type(var, NPUSymT.TMP)
                     ),
                     None,
                 )
@@ -5088,7 +5099,7 @@ class NPUIndexTritonKernel(TritonKernel):
                     (
                         dim
                         for dim, var in enumerate(indirect_output_vars)
-                        if symbol_is_type(var, SymT.TMP)
+                        if symbol_is_type(var, NPUSymT.TMP)
                     ),
                     None,
                 )
@@ -5143,7 +5154,7 @@ class NPUIndexTritonKernel(TritonKernel):
                     (
                         (dim, var)
                         for dim, var in enumerate(indirect_output_vars)
-                        if symbol_is_type(var, SymT.TMP)
+                        if symbol_is_type(var, NPUSymT.TMP)
                     ),
                     None,
                 )  # noqa: B950
@@ -5194,7 +5205,7 @@ class NPUIndexTritonKernel(TritonKernel):
                     (
                         (dim, var)
                         for dim, var in enumerate(indirect_output_vars)
-                        if symbol_is_type(var, SymT.TMP)
+                        if symbol_is_type(var, NPUSymT.TMP)
                     ),
                     None,
                 )
