@@ -60,35 +60,34 @@ def get_npu_device_count() -> int:
 
 
 # ==============================================================================
-# NPU Poisoning Detection (migrated from run_npu_test_shard.py:785-859)
+# NPU Poisoning Detection
 # ==============================================================================
+#
+# Per-case NPU poisoning detection is handled by npu_poisoning_plugin.py,
+# which runs inside the pytest process and detects poisoning after each
+# failed/error case. When poisoning is detected, the plugin calls
+# pytest.exit(returncode=70) to stop the session immediately.
+#
+# This module only handles the exit code 70 from the plugin:
+#   - rc == 70: NPU poisoning detected by plugin (per-case precision)
+#   - rc < 0:   Signal death (SIGSEGV/SIGABRT) — crash recovery
+#   - rc == 124: Timeout — crash recovery
+#   - rc >= 0 and rc != 70 and rc != 124: Orderly exit (0/1/2/5)
+#
+# The _check_npu_poisoned() probe below is kept as a fallback for signal
+# crashes (rc < 0) where the plugin couldn't run (process killed instantly).
 
-NPU_QUEUE_FATAL_EXIT_CODE = 70
-
-NPU_QUEUE_FATAL_SIGNATURES = [
-    "The process exits for this inner error",
-    "UCE ERROR",
-    "HBM MULTI BIT ECC ERROR",
-    "SUSPECT MEM ERROR",
-    "HCCS LINK ERROR",
-    "HCCL OP RETRY FAILED",
-    "SUSPECT REMOTE ERROR",
-    "EZ9999",
-    "EE9999",
-    "EZ1009",
-]
-
-
-def _check_fatal_npu_error(status, message, stdout, stderr) -> bool:
-    """Layer 1: Check if a case result contains a known fatal NPU error signature."""
-    if status not in ("failed", "error"):
-        return False
-    combined = (message or "") + "\n" + (stdout or "") + "\n" + (stderr or "")
-    return any(sig in combined for sig in NPU_QUEUE_FATAL_SIGNATURES)
+NPU_POISONING_EXIT_CODE = 70
 
 
 def _check_npu_poisoned() -> bool:
-    """Layer 2: Probe NPU device health by running a trivial computation."""
+    """Fallback probe for signal crashes (rc < 0) where plugin couldn't run.
+
+    When a pytest process is killed by signal (SIGSEGV/SIGABRT), the
+    poisoning plugin has no chance to execute. This probe runs in the
+    parent process to check if the NPU device is poisoned before deciding
+    recovery strategy.
+    """
     try:
         import torch
         probe = torch.ones(4, device="npu")
@@ -161,6 +160,7 @@ def build_pytest_command(
     cmd = [
         sys.executable, "-u", rel,
         "-p", "no:xdist",
+        "-p", "npu_poisoning_plugin",
         "--use-pytest",
         "--num-shards=1",
         "-ra", "--tb=short", "--color=no",
@@ -298,26 +298,33 @@ def run_test_file_with_retry(
 
         rc, output = run_subprocess_with_timeout(cmd, timeout, test_dir, merged_env)
 
-        # P0-2: >= 0 and != 124 = orderly exit (0=pass, 1=failures, 2=interrupted, 5=no tests)
+        # NPU poisoning detected by plugin (per-case precision, exit code 70)
+        # The plugin detected poisoning after a specific case and stopped
+        # the session. lastrun points to the poisoning case.
+        # --scs will skip all executed cases + the poisoning case, resuming
+        # from the next case with a fresh NPU device context.
+        if rc == NPU_POISONING_EXIT_CODE:
+            print(f"    Exit code: {rc} (NPU poisoning detected by plugin)", flush=True)
+            poison_count += 1
+            if poison_count >= 3:
+                print(f"    NPU poisoning persists after {poison_count} attempts, abandoning", flush=True)
+                break
+            print(f"    NPU poisoning (attempt {poison_count}/3), retrying with --scs", flush=True)
+            sc_cmd = f"--scs={sc_key}"
+            restart_count += 1
+            continue
+
+        # Orderly exit (0=pass, 1=failures, 2=interrupted, 5=no tests)
+        # No poisoning detected by plugin — results are trustworthy
         if rc >= 0 and rc != 124:
             print(f"    Exit code: {rc} (orderly exit)", flush=True)
-
-            # Check NPU poisoning even on orderly exit (exit code 1 may hide poisoning)
-            if rc == 1 and _check_npu_poisoned():
-                poison_count += 1
-                if poison_count >= 3:
-                    print(f"    NPU poisoning persists after {poison_count} attempts, abandoning", flush=True)
-                    break
-                print(f"    NPU device poisoned (attempt {poison_count}/3), retrying with --scs", flush=True)
-                sc_cmd = f"--scs={sc_key}"
-                restart_count += 1
-                continue
             break
 
         # Crash recovery (rc < 0 = signal death, rc == 124 = timeout)
+        # The plugin couldn't run (process killed instantly or timed out)
         print(f"    Exit code: {rc} (crash/timeout), entering recovery", flush=True)
 
-        # Check NPU poisoning
+        # Fallback: check NPU poisoning for signal crashes
         if _check_npu_poisoned():
             poison_count += 1
             if poison_count >= 3:
