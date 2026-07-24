@@ -117,7 +117,8 @@ def _bisheng_compiler_options(is_mix: bool = False) -> List[str]:
         "-std=c++17",
         "-xcce",
         "-DL2_CACHE_HINT",
-        "-DCATLASS_EPILOGUE_BLOCK_EPILOGUE_DEQUANT_HPP"
+        "-DCATLASS_EPILOGUE_BLOCK_EPILOGUE_DEQUANT_HPP",
+        "-DCATLASS_GEMM_BLOCK_MX_A8W4_PROLOGUE_HPP"
     ]
     if npu_arch == "910D":
         options.append("-DCATLASS_ARCH=3510")
