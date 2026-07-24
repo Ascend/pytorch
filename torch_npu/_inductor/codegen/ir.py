@@ -115,9 +115,19 @@ def detect_flattened_dims(kernel, index):
                 pass
             # FloorDiv not inplace
             elif not pair[0]:
-                _, _, length = pair[1]
-                expr = FloorDiv(var, length)
-                new_vars[var][divisor][0] = (expr, length, parent_axis.length // length)
+                # _, _, length = pair[1]
+                mod_expr, divisor_value, length = pair[1]
+                floor_divisor = length
+                if isinstance(divisor_value, sympy.Integer) and divisor_value == 1:
+                    floor_divisor = length
+                elif isinstance(divisor_value, sympy.Symbol) and isinstance(length, sympy.Symbol):
+                    floor_divisor =  sympy.expand(divisor_value * length)
+                expr = FloorDiv(var, floor_divisor)
+                parent_axis_length = parent_axis.length
+                if isinstance(parent_axis.length, sympy.core.mul.Mul) and str(parent_axis.length) in kernel.axioms_index_map.keys() and str(length) not in str(parent_axis.length):
+                    if kernel.axioms_index_map.get(str(parent_axis.length)).lhs == parent_axis.length:
+                        parent_axis_length = kernel.axioms_index_map.get(str(parent_axis.length)).rhs
+                new_vars[var][divisor][0] = (expr, floor_divisor, parent_axis_length // floor_divisor)
             # ModularIndexing not inplace
             elif not pair[1]:
                 expr = ModularIndexing(var, 1, divisor)
@@ -128,13 +138,17 @@ def detect_flattened_dims(kernel, index):
     return new_vars
 
 
-def _should_skip_store_substitution(key, index, var, has_multiple_expansions, kernel):
+def _should_skip_store_substitution(key, index, var, has_multiple_expansions, kernel, has_multi_symbol_divisor):
     if not (hasattr(kernel, "store_index_keys") and key in kernel.store_index_keys):
+        if has_multi_symbol_divisor:
+            return True
         return False
     if not has_multiple_expansions:
         return False
     if var not in index.free_symbols:
         return False
+    if has_multi_symbol_divisor:
+        return True
 
     prefix = str(var)[0]
     same_prefix_symbols = sorted(
@@ -175,8 +189,6 @@ def rebuild_flattened_dims(indexing):
                 new_node = old_node.parent.lookup(divisor, length)
 
                 # 4. substitute div/mod expression in indexing
-                index = index.subs(expr, new_node.symbol())
-                indexing[key] = index
                 if isinstance(expr, FloorDiv):
                     new_var_expr = new_var_expr + new_node.symbol() * divisor
                     origin_axis_length = divisor * length
@@ -198,7 +210,27 @@ def rebuild_flattened_dims(indexing):
             )
 
     def find_index_in_substitute(index, kernel):
-        return any(index.find(key) for key in kernel.expr_substituted)
+        from collections import defaultdict
+        divisors = defaultdict(set)
+
+        for key in kernel.expr_substituted.keys():
+            if isinstance(key, ModularIndexing):
+                dividend = key.args[0]
+                divisor = key.args[2]
+                divisors[dividend].add(divisor)
+            elif isinstance(key, FloorDiv):
+                dividend = key.args[0]
+                divisor = key.args[1]
+                divisors[dividend].add(divisor)
+        for key in kernel.expr_substituted:
+            if len(divisors) > 0:
+                for dividend, ds in divisors.items():
+                    if str(dividend) in str(key) and index.find(key) and len(ds) == 1:
+                        return True
+            else:
+                if index.find(key):
+                    return True
+        return False
 
     kernel = V.kernel
 
@@ -233,6 +265,7 @@ def rebuild_flattened_dims(indexing):
 
             rebuild_flattened_dim(key, index, old_node, flatten_dim)
 
+    for key, index in indexing.items():
         if find_index_in_substitute(index, kernel):
             new_index = sympy_subs(index, kernel.expr_substituted)
             indexing[key] = new_index
@@ -302,7 +335,23 @@ def substituted_dims_in_indexing(self, indexing, kernel, range_tree_nodes_substi
     for var, candidates in range_tree_nodes_substituted.items():
         if not (len(candidates) > 0):
             raise RuntimeError("assert len(candidates) > 0, candidates")
-        exprs = sorted(candidates, reverse=True, key=lambda x: x[0])
+        exprs = []
+        has_multi_symbol_divisor = False
+        remaining = list(candidates)
+        while remaining:
+            max_item = remaining[0]
+            max_idx = 0
+            for i in range(1, len(remaining)):
+                if isinstance(remaining[i][0], sympy.core.mul.Mul) and isinstance(max_item[0], sympy.core.mul.Mul) and all(isinstance(arg, sympy.Symbol) for arg in remaining[i][0].args) and all(isinstance(arg, sympy.Symbol) for arg in max_item[0].args):
+                    if (str(max_item[0]) in kernel.axioms_index_map.keys()) or (str(remaining[i][0]) in kernel.axioms_index_map.keys()):
+                        if kernel.axioms_index_map.get(str(max_item[0])).lhs == remaining[i][0] or kernel.axioms_index_map.get(str(max_item[0])).rhs == remaining[i][0] or kernel.axioms_index_map.get(str(remaining[i][0])).lhs == max_item[0] or kernel.axioms_index_map.get(str(remaining[i][0])).rhs == max_item[0]:
+                            has_multi_symbol_divisor = True
+                            continue
+                elif remaining[i][0] > max_item[0]:
+                    max_item = remaining[i]
+                    max_idx = i
+            exprs.append(max_item)
+            remaining.pop(max_idx)
         numel = exprs[0][0]
         expr = exprs[0][1]
         node = kernel.range_tree_nodes[var]
@@ -320,7 +369,7 @@ def substituted_dims_in_indexing(self, indexing, kernel, range_tree_nodes_substi
 
         for key, index in indexing.items():
             if _should_skip_store_substitution(
-                key, index, var, has_multiple_expansions, kernel
+                key, index, var, has_multiple_expansions, kernel, has_multi_symbol_divisor
             ):
                 log.info(
                     "Skip Store substitution for key=%s var=%s because Store unified anchor is preserved",
@@ -1100,6 +1149,39 @@ def check_subexpr_for_dynamic_symbols(expr):
 
     return False
 
+def get_subexpr_for_dynamic_symbols(expr, range_tree_nodes, dim_symbol_index_map):
+    """
+    构建符号变量length
+    """
+    if isinstance(expr, ModularIndexing):
+        args = expr.args
+        if len(args) == 3:
+            expr_to_mod, lower, upper = args
+            build_symbol_index_map(range_tree_nodes, expr_to_mod, dim_symbol_index_map)
+            build_symbol_index_map(range_tree_nodes, lower, dim_symbol_index_map)
+            build_symbol_index_map(range_tree_nodes, upper, dim_symbol_index_map)
+    elif isinstance(expr, FloorDiv):
+        args = expr.args
+        if len(args) == 2:
+            dividend, divisor = args
+            build_symbol_index_map(range_tree_nodes, dividend, dim_symbol_index_map)
+            build_symbol_index_map(range_tree_nodes, divisor, dim_symbol_index_map)
+    elif isinstance(expr, sympy.Symbol):
+        build_symbol_index_map(range_tree_nodes, expr, dim_symbol_index_map)
+
+    if hasattr(expr, "args"):
+        for arg in expr.args:
+            get_subexpr_for_dynamic_symbols(arg, range_tree_nodes, dim_symbol_index_map)
+
+
+
+def build_symbol_index_map(range_tree_nodes, symbol_val, dim_symbol_index_map):
+    if symbol_val not in dim_symbol_index_map and isinstance(symbol_val, sympy.Symbol) and symbol_val in range_tree_nodes:
+        range_node = range_tree_nodes[symbol_val]
+        length = range_node.length
+        name = symbol_val.name
+        dim_symbol_index_map[name] = length
+
 
 def should_skip_linearization_on_a5(var_ranges, indexing):
     """
@@ -1205,8 +1287,13 @@ def transform_dims_in_indexing(self, indices):
         self.indexing,
         V.kernel.range_tree_nodes,
     )
-
+    dim_symbol_index_map, axioms_index_map, symbol_range_map = build_symbolvar_data(self.indexing)
+    V.kernel.dim_symbol_index_map = dim_symbol_index_map
+    V.kernel.axioms_index_map = axioms_index_map
+    V.kernel.symbol_range_map = symbol_range_map
     for key, index_expr in self.indexing.items():
+        self.indexing[key] = simplify_index_max_and_mod(index_expr)
+        index_expr = self.indexing[key]
         analyse_res = analyze_expression(index_expr, V.kernel.range_tree_nodes)
         log.debug("[Linear] linear analyse res: %s", analyse_res)
 
@@ -1234,6 +1321,62 @@ def transform_dims_in_indexing(self, indices):
     if V.kernel is not None and isinstance(V.kernel, NPUIndexTritonKernel):
         rebuild_flattened_dims(self.indexing)
 
+def simplify_index_max_and_mod(index_expr):
+    '''
+    解析索引表达式中的Max运算，根据符号变量的上下界值简化Max运算
+    '''
+    if isinstance(index_expr, sympy.Add):
+        new_args = [simplify_index_max_and_mod(arg) for arg in index_expr.args]
+        return sympy.Add(*new_args)
+
+    elif isinstance(index_expr, sympy.Mul):
+        new_args = [simplify_index_max_and_mod(arg) for arg in index_expr.args]
+        return sympy.Mul(*new_args)
+    elif isinstance(index_expr, torch.utils._sympy.functions.Max):
+        arg_0, arg_1 = index_expr.args
+        if isinstance(arg_0, sympy.Symbol) and isinstance(arg_1, sympy.Integer) and str(arg_0) in V.kernel.symbol_range_map.keys():
+            lower_value = V.kernel.symbol_range_map.get(str(arg_0)).lower
+            if arg_1 >= lower_value:
+                return arg_1
+            else:
+                return arg_0
+        elif isinstance(arg_1, sympy.Symbol) and isinstance(arg_0, sympy.Integer) and str(arg_1) in V.kernel.symbol_range_map.keys():
+            lower_value = V.kernel.symbol_range_map.get(str(arg_1)).lower
+            if arg_0 >= lower_value:
+                return arg_0
+            else:
+                return arg_1
+    else:
+        return index_expr
+
+
+def build_symbolvar_data(indexings):
+    '''
+    构建符号变量(dim和动态shape的符号变量)length、以及符号变量运算(Mul等)恒等式
+    '''
+    shape_env = V.graph.sizevars.shape_env
+    dim_symbol_index_map = {} # 索引表达式中轴的带有符号变量的范围值，例如{'x1':s23*s24}
+    axioms_index_map = {} # 符号变量的恒等式，例如{'s21*s24': Eq(s21*s24, s31*s79)}
+    symbol_range_map = {} # 符号变量的范围值，例如{'s21': [2, int_oo]}
+    for key, index_expr in indexings.items():
+        get_subexpr_for_dynamic_symbols(index_expr, V.kernel.range_tree_nodes, dim_symbol_index_map)
+
+    axioms = shape_env.get_axioms()
+    for range in axioms:
+        if isinstance(range, sympy.core.relational.Equality):
+            for _, symbol_value in dim_symbol_index_map.items():
+                if str(range.lhs) == str(symbol_value) or str(range.rhs) == str(symbol_value):
+                    axioms_index_map[str(symbol_value)] = range
+    for _, dim_symbol_value in dim_symbol_index_map.items():
+        if hasattr(dim_symbol_value, "args") and len(dim_symbol_value.args) > 0:
+            for arg in dim_symbol_value.args:
+                if isinstance(arg, sympy.Symbol):
+                    value_range = shape_env.var_to_range[arg]
+                    symbol_range_map[str(arg)] = value_range
+        elif isinstance(dim_symbol_value, sympy.Symbol):
+            value_range = shape_env.var_to_range[dim_symbol_value]
+            symbol_range_map[str(dim_symbol_value)] = value_range
+    return dim_symbol_index_map, axioms_index_map, symbol_range_map
 
 # subsititude indirct var with real axis var
 def substitube_indirect_index(self, index):

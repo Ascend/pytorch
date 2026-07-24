@@ -714,7 +714,13 @@ class IterationRangesRootNPUIndex(IterationRangesRoot):
         """
         Lookup a given RangeTreeEntry, creating it if needed
         """
-        if V.graph.sizevars.statically_known_equals(divisor * length, self.numel):
+        numel_length = self.numel
+        if isinstance(self.numel, sympy.core.mul.Mul) and str(self.numel) in V.kernel.axioms_index_map.keys() and str(divisor) not in str(self.numel):
+            if V.kernel.axioms_index_map.get(str(self.numel)).lhs == self.numel:
+                numel_length = V.kernel.axioms_index_map.get(str(self.numel)).rhs
+            if V.kernel.axioms_index_map.get(str(self.numel)).rhs == self.numel:
+                numel_length = V.kernel.axioms_index_map.get(str(self.numel)).lhs
+        if V.graph.sizevars.statically_known_equals(divisor * length, numel_length) or V.graph.sizevars.statically_known_equals(length * divisor, numel_length):
             expr = FloorDiv(sympy_index_symbol(f"{self.prefix}index"), divisor)
         else:
             expr = ModularIndexing(
@@ -727,7 +733,13 @@ class IterationRangesRootNPUIndex(IterationRangesRoot):
         """
         Lookup a given RangeTreeEntry, creating it if needed
         """
-        if V.graph.sizevars.statically_known_equals(divisor * length, self.numel):
+        numel_length = self.numel
+        if isinstance(self.numel, sympy.core.mul.Mul) and str(self.numel) in V.kernel.axioms_index_map.keys() and str(divisor) not in str(self.numel):
+            if V.kernel.axioms_index_map.get(str(self.numel)).lhs == self.numel:
+                numel_length = V.kernel.axioms_index_map.get(str(self.numel)).rhs
+            if V.kernel.axioms_index_map.get(str(self.numel)).rhs == self.numel:
+                numel_length = V.kernel.axioms_index_map.get(str(self.numel)).lhs
+        if V.graph.sizevars.statically_known_equals(divisor * length, numel_length):
             expr = FloorDiv(sympy_index_symbol(f"{self.prefix}index"), divisor)
         else:
             expr = ModularIndexing(
@@ -1410,6 +1422,10 @@ class NPUIndexTritonKernel(TritonKernel):
         self.range_tree_nodes_removed: dict[sympy.Symbol, IterationRangesEntry] = {}
         self.range_tree_nodes_substituted = {}
         self.expr_substituted = {}
+        self.axioms_index_map = {}
+        self.dim_symbol_index_map = {}
+        self.dim_up_temp = set()
+        self.symbol_range_map = {}
         self.sorted_axis = []
         self.prefix: IndentedBuffer = IndentedBuffer()
         self.index_analysis = {}  # var_list -> indexAnalysis
@@ -1661,11 +1677,11 @@ class NPUIndexTritonKernel(TritonKernel):
                 ]
             else:
                 log.warning(
-                    "sub nodes (expr%s, numel:%d) can not make up parent node(%s:%d)",
-                    new_var_expr,
-                    numel,
-                    node.symbol(),
-                    node.length,
+                    "sub nodes (expr%s, numel:%s) can not make up parent node(%s:%s)",
+                    str(new_var_expr),
+                    str(numel),
+                    str(node.symbol()),
+                    str(node.length),
                 )
 
     def scan(
