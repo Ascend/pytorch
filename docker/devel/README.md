@@ -12,7 +12,7 @@ base        manylinux + Python 软链接 + pip 源 + 基础系统包（curl/wget
         └── dev     builder + CANN（Toolkit + Ops + NNAL 可选）  ← 运行环境
 ```
 
-- **builder**（默认）：用于编译 torch_npu wheel，不含 CANN
+- **builder**（默认）：用于编译 TorchNPU wheel，不含 CANN
 - **dev**：基于 builder，叠加 CANN 运行环境；继承全部编译工具链，可在容器内直接重新编译
 
 > Dockerfile会自动根据当前架构（ARM/X86）拉取对应镜像。

@@ -1,13 +1,13 @@
-# torch-npu CI Docker Images
+# TorchNPU CI Docker Images
 
-本目录管理 torch-npu 项目的 CI Docker 镜像，包括**构建镜像 (builder)** 和**测试镜像 (test)** 两类，每类分别支持 x86_64 和 aarch64 架构。
+本目录管理 TorchNPU 项目的 CI Docker 镜像，包括**构建镜像 (builder)** 和**测试镜像 (test)** 两类，每类分别支持 x86_64 和 aarch64 架构。
 
 ## 镜像类型
 
 | 类型 | 基座 | 用途 |
 |------|------|------|
-| **builder (x86_64)** | `pytorch/manylinux2_28-builder:cpu-v2.12.0-rc9` | 编译构建 torch-npu wheel 包，包含完整编译工具链 |
-| **builder (aarch64)** | `pytorch/manylinux2_28_aarch64-builder:cpu-aarch64-v2.12.0-rc9` | 编译构建 torch-npu wheel 包，包含完整编译工具链 |
+| **builder (x86_64)** | `pytorch/manylinux2_28-builder:cpu-v2.12.0-rc9` | 编译构建 TorchNPU wheel 包，包含完整编译工具链 |
+| **builder (aarch64)** | `pytorch/manylinux2_28_aarch64-builder:cpu-aarch64-v2.12.0-rc9` | 编译构建 TorchNPU wheel 包，包含完整编译工具链 |
 | **test** | `ubuntu:22.04` | CI 单元测试运行环境，包含 PyTorch CPU、CANN runtime、triton-ascend 和测试框架 |
 
 ## 目录结构
