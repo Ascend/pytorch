@@ -25,6 +25,7 @@ from torch_npu._inductor._aclgraph_update_plan import (
     append_inductor_aclgraph_update_plan_for_codegen_node,
     emit_inductor_aclgraph_update_plan_for_wrapper,
 )
+from torch_npu._inductor.utils import resolve_npu_device_index
 
 
 def _is_codegen_graph_partition_subgraph(wrapper) -> bool:
@@ -124,6 +125,21 @@ class _NPUKernelCodegenMixin:
             graph_name=graph_name,
             original_fxnode_name=original_fxnode_name,
             current_stream_idx=current_stream_idx,
+        )
+
+    def write_get_raw_stream(self, device_idx, *args, **kwargs):
+        device_idx = resolve_npu_device_index(device_idx)
+        return super().write_get_raw_stream(device_idx, *args, **kwargs)
+
+    def generate_kernel_call(self, kernel_name, call_args, *args, **kwargs):
+        triton = kwargs.get("triton", True)
+        if len(args) >= 4:
+            triton = args[3]
+        if not triton and str(kernel_name).startswith("cpp_"):
+            self.writeline(self.wrap_kernel_call(kernel_name, call_args))
+            return None
+        return super().generate_kernel_call(
+            kernel_name, call_args, *args, **kwargs
         )
 
 
