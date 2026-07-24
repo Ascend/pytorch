@@ -1,14 +1,25 @@
 diff --git a/test/package/test_dependency_api.py b/test/package/test_dependency_api.py
-index 7dc317e..e9d73e5 100644
+index 7dc317e9b5..72a891f786 100644
 --- a/test/package/test_dependency_api.py
 +++ b/test/package/test_dependency_api.py
-@@ -10,6 +10,9 @@ from torch.package import EmptyMatchError, Importer, PackageExporter, PackageImp
+@@ -10,6 +10,8 @@ from torch.package import EmptyMatchError, Importer, PackageExporter, PackageImp
  from torch.package.package_exporter import PackagingError
  from torch.testing._internal.common_utils import IS_WINDOWS, run_tests
  
 +import torch_npu
-+from torch_npu.contrib import transfer_to_npu
 +
  
  try:
      from .common import PackageTestCase
+@@ -362,9 +364,10 @@ class TestDependencyAPI(PackageTestCase):
+             batch_first=True,
+             activation="gelu",
+             norm_first=True,
+-        )
++        ).npu()
+         with PackageExporter(buffer) as e:
+             e.extern("torch.**")
++            e.extern("torch_npu.**")
+             e.intern("**")
+ 
+             e.save_pickle("model", "model.pkl", model)
