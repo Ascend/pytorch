@@ -1,0 +1,356 @@
+name: Build PyTorch and torch_npu
+
+on:
+  workflow_call:
+    inputs:
+      upstream_repo:
+        required: true
+        type: string
+        description: The upstream repository full name (owner/repo)
+      upstream_ref:
+        required: true
+        type: string
+        description: Git ref to build — branch name (main), tag, or commit SHA
+      torch_npu_repo:
+        required: true
+        type: string
+        description: The torch_npu repository full name (owner/repo)
+      torch_npu_ref:
+        required: false
+        type: string
+        default: 'master'
+        description: The torch_npu repository branch, tag, or SHA to build
+      report_to_upstream:
+        required: false
+        type: boolean
+        default: true
+        description: Whether to report CI status to upstream dashboard
+    outputs:
+      resolved_sha:
+        description: Full resolved SHA of upstream PyTorch
+        value: ${{ jobs.fetch.outputs.resolved_sha }}
+      resolved_short:
+        description: Short SHA (first 10 chars) of upstream PyTorch
+        value: ${{ jobs.fetch.outputs.resolved_short }}
+
+jobs:
+  # ======================================================================
+  # Job 1: Fetch PyTorch source on GitHub free runner (no proxy needed)
+  # ======================================================================
+  fetch:
+    runs-on: ubuntu-latest
+    outputs:
+      resolved_sha: ${{ steps.resolve.outputs.sha }}
+      resolved_short: ${{ steps.resolve.outputs.short }}
+    steps:
+      - name: Checkout upstream PyTorch
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ inputs.upstream_repo }}
+          ref: ${{ inputs.upstream_ref }}
+          fetch-depth: 1
+          submodules: false
+          path: pytorch
+
+      - name: Resolve actual HEAD SHA
+        id: resolve
+        working-directory: pytorch
+        run: |
+          SHA=$(git rev-parse HEAD)
+          echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
+          echo "short=${SHA:0:10}" >> "$GITHUB_OUTPUT"
+          echo "Resolved ${{ inputs.upstream_ref }} -> ${SHA}"
+
+      - name: Init submodules
+        working-directory: pytorch
+        run: |
+          git submodule update --init --recursive --depth 1 --jobs=$(nproc)
+
+      - name: Package PyTorch source
+        run: |
+          TARBALL="pytorch-source-${{ steps.resolve.outputs.short }}.tar.gz"
+          echo "Packaging pytorch/ into ${TARBALL} ..."
+          tar -czf "${TARBALL}" --exclude='.git' --exclude='*.git' pytorch/
+          echo "Package size: $(du -h ${TARBALL} | cut -f1)"
+          echo "TARBALL=${TARBALL}" >> "$GITHUB_ENV"
+
+      - name: Upload PyTorch source as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.TARBALL }}
+          path: ./${{ env.TARBALL }}
+          retention-days: 7
+
+      - name: Authenticate to Huawei Cloud
+        uses: huaweicloud/auth-action@v1.1.0
+        with:
+          access_key_id: ${{ secrets.ACCESSKEY }}
+          secret_access_key: ${{ secrets.SECRETACCESSKEY }}
+          region: ap-southeast-1
+
+      - name: Upload PyTorch source to OBS
+        uses: huaweicloud/obs-helper@v1.0.1
+        with:
+          region: ap-southeast-1
+          bucket_name: pytorch-ci-cache
+          local_file_path: ./${{ env.TARBALL }}
+          obs_file_path: 7day-cache/${{ env.TARBALL }}
+          operation_type: upload
+
+  # ======================================================================
+  # Job 2: Build PyTorch + torch_npu on self-hosted ARM64 runner
+  # ======================================================================
+  pytorch_and_torch-npu_build:
+    needs: fetch
+    runs-on: linux-aarch64-a3-8
+    permissions:
+      id-token: write
+      contents: read
+    defaults:
+      run:
+        shell: bash
+    container:
+      image: quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly
+      options: --network host
+    env:
+      MAX_JOBS: 64
+      USE_CUDA: 0
+      USE_XNNPACK: 0
+      _GLIBCXX_USE_CXX11_ABI: 1
+      BUILD_IGNORE_SVE_UNAVAILABLE: 1
+      BUILD_WITHOUT_SHA: 1
+      PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
+    steps:
+      # Step 0: Report build in_progress to upstream (same job as completed)
+      - name: Report build in_progress
+        if: ${{ inputs.report_to_upstream }}
+        continue-on-error: true
+        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
+        with:
+          status: in_progress
+          job-name: pytorch_and_torch-npu_build
+
+      # Step 1: Download and extract pre-fetched PyTorch source
+      - name: Authenticate to Huawei Cloud
+        uses: huaweicloud/auth-action@v1.1.0
+        with:
+          access_key_id: ${{ secrets.ACCESSKEY }}
+          secret_access_key: ${{ secrets.SECRETACCESSKEY }}
+          region: ap-southeast-1
+
+      - name: Compute SHAs
+        id: sha
+        run: |
+          UPSTREAM_SHORT="${{ needs.fetch.outputs.resolved_short }}"
+          echo "upstream_short=${UPSTREAM_SHORT}" >> "$GITHUB_OUTPUT"
+          echo "source_tarball=pytorch-source-${UPSTREAM_SHORT}.tar.gz" >> "$GITHUB_OUTPUT"
+          echo "wheels_tarball=wheels-${UPSTREAM_SHORT}.tar.gz" >> "$GITHUB_OUTPUT"
+
+      - name: Download PyTorch source from OBS
+        uses: huaweicloud/obs-helper@v1.0.1
+        with:
+          region: ap-southeast-1
+          bucket_name: pytorch-ci-cache
+          local_file_path: ./${{ steps.sha.outputs.source_tarball }}
+          obs_file_path: 7day-cache/${{ steps.sha.outputs.source_tarball }}
+          operation_type: download
+
+      - name: Extract PyTorch source
+        run: |
+          tar -xzf ${{ steps.sha.outputs.source_tarball }}
+          rm ${{ steps.sha.outputs.source_tarball }}
+          echo "PyTorch source extracted: $(du -sh pytorch/ | cut -f1)"
+
+      # Step 2: Build and install PyTorch
+      - name: Build and install PyTorch
+        id: build_pytorch
+        working-directory: pytorch
+        run: |
+          echo "============================================"
+          echo "Building PyTorch from ${{ inputs.upstream_repo }} @ ${{ inputs.upstream_ref }}"
+          echo "Resolved commit: ${{ needs.fetch.outputs.resolved_sha }}"
+          echo "MAX_JOBS: ${MAX_JOBS}"
+          echo "============================================"
+
+          pip install -r requirements.txt
+
+          # Build wheel first, then install from it.
+          # This produces an artifact we can upload for downstream use.
+          mkdir -p /tmp/wheels
+          set +o pipefail
+          python -m pip wheel --no-build-isolation -w /tmp/wheels/ . 2>&1 | tee /tmp/build-pytorch.log
+          BUILD_STATUS=${PIPESTATUS[0]}
+          set -o pipefail
+
+          if [ ${BUILD_STATUS} -ne 0 ]; then
+            echo "PyTorch build failed!"
+            exit ${BUILD_STATUS}
+          fi
+
+          pip install /tmp/wheels/torch-*.whl
+
+          # Must NOT run from pytorch/ source dir: Python would find
+          # the local torch/ source tree instead of the installed package.
+          cd /tmp
+          python -c "import torch; print(f'PyTorch version: {torch.__version__}')"
+          cd "${GITHUB_WORKSPACE}"
+
+      - name: Capture PyTorch wheel info
+        id: pytorch_wheel
+        run: |
+          wheel=$(ls /tmp/wheels/torch-*.whl | head -1)
+          echo "path=${wheel}" >> "$GITHUB_OUTPUT"
+          echo "name=$(basename ${wheel})" >> "$GITHUB_OUTPUT"
+
+      # Step 3: Checkout downstream torch_npu
+      - name: Checkout downstream repo (torch_npu)
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ inputs.torch_npu_repo }}
+          ref: ${{ inputs.torch_npu_ref }}
+          fetch-depth: 1
+          submodules: false
+          path: torch_npu
+
+      - name: Rewrite gitee submodule URLs to gitcode mirrors
+        run: |
+          git config --global url."https://gitcode.com/GitHub_Trending/go/googletest.git".insteadOf "https://gitee.com/mirrors/googletest.git"
+          git config --global url."https://gitcode.com/gh_mirrors/li/libnop.git".insteadOf "https://gitee.com/mirrors/libnop.git"
+          git config --global url."https://gitcode.com/gh_mirrors/py/pybind11.git".insteadOf "https://gitee.com/mirrors/pybind11.git"
+          git config --global url."https://gitcode.com/openeuler/libboundscheck.git".insteadOf "https://gitee.com/openeuler/libboundscheck.git"
+
+      - name: Init submodules
+        working-directory: torch_npu
+        run: |
+          git submodule update --init --recursive --jobs=$(nproc)
+
+      # Step 4: Build and install torch_npu
+      - name: Build and install torch_npu
+        id: build_torchnpu
+        working-directory: torch_npu
+        run: |
+          echo "============================================"
+          echo "Building torch_npu..."
+          echo "Repository: ${{ inputs.torch_npu_repo }}"
+          echo "Ref: ${{ inputs.torch_npu_ref }}"
+          echo "============================================"
+
+          set +o pipefail
+          bash ci/build.sh --python=3.10 --torch=2.14.0 --disable_torchair --disable_rpc 2>&1 | tee /tmp/build-torchnpu.log
+          BUILD_STATUS=${PIPESTATUS[0]}
+          set -o pipefail
+
+          if [ ${BUILD_STATUS} -ne 0 ]; then
+            echo "torch_npu build failed!"
+            exit ${BUILD_STATUS}
+          fi
+
+          pip install --no-deps dist/torch_npu*.whl
+          cp dist/torch_npu*.whl /tmp/wheels/
+
+      - name: Capture torch_npu wheel info
+        id: torchnpu_wheel
+        run: |
+          wheel=$(ls /tmp/wheels/torch_npu*.whl | head -1)
+          echo "path=${wheel}" >> "$GITHUB_OUTPUT"
+          echo "name=$(basename ${wheel})" >> "$GITHUB_OUTPUT"
+
+      # Step 5: Package and upload wheel artifacts
+      - name: Package wheels into tarball
+        run: |
+          TARBALL="${{ steps.sha.outputs.wheels_tarball }}"
+          tar -czf "${TARBALL}" -C /tmp/wheels .
+          echo "Wheels tarball size: $(du -h ${TARBALL} | cut -f1)"
+
+      - name: Upload wheels to OBS
+        uses: huaweicloud/obs-helper@v1.0.1
+        with:
+          region: ap-southeast-1
+          bucket_name: pytorch-ci-cache
+          local_file_path: ./${{ steps.sha.outputs.wheels_tarball }}
+          obs_file_path: 7day-cache/${{ steps.sha.outputs.wheels_tarball }}
+          operation_type: upload
+
+      - name: Upload wheel artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: packages-pytorch-${{ steps.sha.outputs.upstream_short }}
+          path: /tmp/wheels/*.whl
+          retention-days: 7
+
+      # Step 6: Verify NPU environment and imports
+      - name: Verify NPU device
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          echo "=== NPU Device Information ==="
+          npu-smi info
+          echo "=== End of NPU Device Information ==="
+
+      - name: Verify NPU availability
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          python -c "
+          import torch
+          print(f'torch: {torch.__version__}')
+          import torch_npu
+          print(f'torch_npu: {torch_npu.__version__}')
+          print(f'NPU available: {torch.npu.is_available()}')
+          print(f'NPU count: {torch.npu.device_count()}')
+          "
+
+      # Step 7: Upload build artifacts (always, for debugging failures)
+      - name: Upload build artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts-${{ github.run_number }}
+          path: |
+            /tmp/build-pytorch.log
+            /tmp/build-torchnpu.log
+            torch_npu/torch_npu/csrc/inductor/aoti_torch/generated/c_shim_npu.h
+          if-no-files-found: warn
+
+      # Step 8: Summary
+      - name: Summary
+        if: always()
+        run: |
+          TORCH_NPU_SHA=$(git -C torch_npu rev-parse HEAD)
+
+          echo "============================================"
+          echo "             Build Summary"
+          echo "============================================"
+          echo "PyTorch upstream: ${{ inputs.upstream_repo }}"
+          echo "PyTorch ref     : ${{ inputs.upstream_ref }}"
+          echo "PyTorch commit  : ${{ needs.fetch.outputs.resolved_sha }}"
+          echo "torch_npu repo  : ${{ inputs.torch_npu_repo }}"
+          echo "torch_npu commit: ${TORCH_NPU_SHA}"
+          echo "Max jobs        : ${MAX_JOBS}"
+          echo "============================================"
+
+          {
+            echo "## Build Summary"
+            echo ""
+            echo "| Item | Value |"
+            echo "|------|-------|"
+            echo "| PyTorch upstream | ${{ inputs.upstream_repo }} |"
+            echo "| PyTorch commit | \`${{ needs.fetch.outputs.resolved_sha }}\` |"
+            echo "| torch_npu repo | ${{ inputs.torch_npu_repo }} |"
+            echo "| torch_npu commit | \`${TORCH_NPU_SHA}\` |"
+            echo "| Max jobs | ${MAX_JOBS} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Step 9: Report build completed to upstream (same job as in_progress)
+      - name: Report build completed
+        if: always() && inputs.report_to_upstream
+        continue-on-error: true
+        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
+        with:
+          status: completed
+          conclusion: ${{ (steps.build_pytorch.outcome == 'success' && steps.build_torchnpu.outcome == 'success') && 'success' || 'failure' }}
+          job-name: pytorch_and_torch-npu_build
+

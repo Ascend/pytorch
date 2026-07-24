@@ -1,0 +1,167 @@
+name: Test Report (v2)
+
+on:
+  workflow_call:
+    inputs:
+      core_matrix:
+        required: true
+        type: string
+        description: Core shard matrix JSON
+      tensor_matrix:
+        required: true
+        type: string
+        description: Tensor shard matrix JSON
+      distributed_matrix:
+        required: true
+        type: string
+        description: Distributed shard matrix JSON
+      graph_matrix:
+        required: true
+        type: string
+        description: Graph shard matrix JSON
+      math_matrix:
+        required: true
+        type: string
+        description: Math shard matrix JSON
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout this repo for report scripts
+        uses: actions/checkout@v6
+        with:
+          ref: ci-test
+
+      - name: Download core test reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-reports-core-*
+          path: all-test-reports
+          merge-multiple: true
+        continue-on-error: true
+
+      - name: Download tensor test reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-reports-tensor-*
+          path: all-test-reports
+          merge-multiple: true
+        continue-on-error: true
+
+      - name: Download distributed test reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-reports-distributed-*
+          path: all-test-reports
+          merge-multiple: true
+        continue-on-error: true
+
+      - name: Download graph test reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-reports-graph-*
+          path: all-test-reports
+          merge-multiple: true
+        continue-on-error: true
+
+      - name: Download math test reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-reports-math-*
+          path: all-test-reports
+          merge-multiple: true
+        continue-on-error: true
+
+      - name: Download cases collection summary
+        uses: actions/download-artifact@v4
+        with:
+          name: cases-shards-v2
+          path: cases-shards
+        continue-on-error: true
+
+      - name: Generate consolidated summary
+        id: generate_report
+        run: |
+          REPORT_MD=npu-full-test-summary.md
+          REPORT_JSON=npu-full-test-summary.json
+
+          # Build combined matrix from all categories
+          python3 -c "
+          import json
+          matrices = {
+              'core': '${{ inputs.core_matrix }}',
+              'tensor': '${{ inputs.tensor_matrix }}',
+              'distributed': '${{ inputs.distributed_matrix }}',
+              'graph': '${{ inputs.graph_matrix }}',
+              'math': '${{ inputs.math_matrix }}',
+          }
+          prefix_map = {
+              'core': 'core',
+              'tensor': 'tensor',
+              'distributed': 'dist',
+              'graph': 'graph',
+              'math': 'math',
+          }
+          combined = []
+          for cat, mat_str in matrices.items():
+              nums = json.loads(mat_str)
+              prefix = prefix_map[cat]
+              for n in nums:
+                  combined.append(f'{prefix}-{n}')
+          print(json.dumps(combined))
+          " > /tmp/combined_matrix.json
+
+          COMBINED_MATRIX=$(cat /tmp/combined_matrix.json)
+          echo "Combined matrix: ${COMBINED_MATRIX}"
+
+          export PYTHONPATH="${GITHUB_WORKSPACE}/.github/scripts/v2:${PYTHONPATH}"
+
+          python3 .github/scripts/v2/generate_npu_full_test_report.py \
+            --reports-root all-test-reports \
+            --output-markdown ${REPORT_MD} \
+            --output-json ${REPORT_JSON} \
+            --pytorch-version "nightly" \
+            --torch-npu-whl "source-build" \
+            --patch-count "0" \
+            --shard-matrix-json "${COMBINED_MATRIX}" \
+            --docker-image "quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly" \
+            --runner "ubuntu-latest (collect), linux-aarch64-a3-8 (exec: 8-card NPU)" \
+            --cases-summary cases-shards/cases_collection_summary.json \
+            --cases-by-file-dir cases-shards
+
+          cat ${REPORT_MD} >> $GITHUB_STEP_SUMMARY
+
+          # Extract totals
+          if [ -f "${REPORT_JSON}" ]; then
+            python3 -c "
+          import json, os
+          with open('${REPORT_JSON}') as f:
+              d = json.load(f)
+          totals = d.get('totals', {})
+          total_failed = totals.get('failed', 0) + totals.get('errors', 0)
+          report_total_failed = total_failed + totals.get('timeout', 0)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f'passed={totals.get(\"passed\", 0)}\n')
+              f.write(f'failed={totals.get(\"failed\", 0)}\n')
+              f.write(f'errors={totals.get(\"errors\", 0)}\n')
+              f.write(f'skipped={totals.get(\"skipped\", 0)}\n')
+              f.write(f'total={totals.get(\"total\", 0)}\n')
+              f.write(f'total_failed={total_failed}\n')
+              f.write(f'report_total_failed={report_total_failed}\n')
+          " || true
+          fi
+
+      - name: Upload consolidated summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: npu-full-test-summary-v2
+          path: |
+            npu-full-test-summary.md
+            npu-full-test-summary.json
+          if-no-files-found: warn
+          retention-days: 60

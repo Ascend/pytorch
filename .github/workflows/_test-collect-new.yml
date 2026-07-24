@@ -1,0 +1,169 @@
+name: Test Collect (v2)
+
+on:
+  workflow_call:
+    inputs:
+      resolved_short:
+        required: true
+        type: string
+        description: Short SHA of upstream PyTorch
+    outputs:
+      core_matrix:
+        description: Core shard matrix JSON
+        value: ${{ jobs.collect.outputs.core_matrix }}
+      tensor_matrix:
+        description: Tensor shard matrix JSON
+        value: ${{ jobs.collect.outputs.tensor_matrix }}
+      distributed_matrix:
+        description: Distributed shard matrix JSON
+        value: ${{ jobs.collect.outputs.distributed_matrix }}
+      graph_matrix:
+        description: Graph shard matrix JSON
+        value: ${{ jobs.collect.outputs.graph_matrix }}
+      math_matrix:
+        description: Math shard matrix JSON
+        value: ${{ jobs.collect.outputs.math_matrix }}
+      core_num_shards:
+        description: Number of core shards
+        value: ${{ jobs.collect.outputs.core_num_shards }}
+      tensor_num_shards:
+        description: Number of tensor shards
+        value: ${{ jobs.collect.outputs.tensor_num_shards }}
+      distributed_num_shards:
+        description: Number of distributed shards
+        value: ${{ jobs.collect.outputs.distributed_num_shards }}
+      graph_num_shards:
+        description: Number of graph shards
+        value: ${{ jobs.collect.outputs.graph_num_shards }}
+      math_num_shards:
+        description: Number of math shards
+        value: ${{ jobs.collect.outputs.math_num_shards }}
+      has_core:
+        description: Whether core cases exist
+        value: ${{ jobs.collect.outputs.has_core }}
+      has_tensor:
+        description: Whether tensor cases exist
+        value: ${{ jobs.collect.outputs.has_tensor }}
+      has_distributed:
+        description: Whether distributed cases exist
+        value: ${{ jobs.collect.outputs.has_distributed }}
+      has_graph:
+        description: Whether graph cases exist
+        value: ${{ jobs.collect.outputs.has_graph }}
+      has_math:
+        description: Whether math cases exist
+        value: ${{ jobs.collect.outputs.has_math }}
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    defaults:
+      run:
+        shell: bash
+    outputs:
+      core_matrix: ${{ steps.build_matrix.outputs.core_matrix }}
+      tensor_matrix: ${{ steps.build_matrix.outputs.tensor_matrix }}
+      distributed_matrix: ${{ steps.build_matrix.outputs.distributed_matrix }}
+      graph_matrix: ${{ steps.build_matrix.outputs.graph_matrix }}
+      math_matrix: ${{ steps.build_matrix.outputs.math_matrix }}
+      core_num_shards: ${{ steps.build_matrix.outputs.core_num_shards }}
+      tensor_num_shards: ${{ steps.build_matrix.outputs.tensor_num_shards }}
+      distributed_num_shards: ${{ steps.build_matrix.outputs.distributed_num_shards }}
+      graph_num_shards: ${{ steps.build_matrix.outputs.graph_num_shards }}
+      math_num_shards: ${{ steps.build_matrix.outputs.math_num_shards }}
+      has_core: ${{ steps.collect.outputs.has_core }}
+      has_tensor: ${{ steps.collect.outputs.has_tensor }}
+      has_distributed: ${{ steps.collect.outputs.has_distributed }}
+      has_graph: ${{ steps.collect.outputs.has_graph }}
+      has_math: ${{ steps.collect.outputs.has_math }}
+    steps:
+      - name: Authenticate to Huawei Cloud
+        uses: huaweicloud/auth-action@v1.1.0
+        with:
+          access_key_id: ${{ secrets.ACCESSKEY }}
+          secret_access_key: ${{ secrets.SECRETACCESSKEY }}
+          region: ap-southeast-1
+
+      - name: Compute SHAs
+        id: sha
+        run: |
+          UPSTREAM_SHORT="${{ inputs.resolved_short }}"
+          echo "source_tarball=pytorch-source-${UPSTREAM_SHORT}.tar.gz" >> "$GITHUB_OUTPUT"
+
+      - name: Download PyTorch source from OBS
+        uses: huaweicloud/obs-helper@v1.0.1
+        with:
+          region: ap-southeast-1
+          bucket_name: pytorch-ci-cache
+          local_file_path: ./${{ steps.sha.outputs.source_tarball }}
+          obs_file_path: 7day-cache/${{ steps.sha.outputs.source_tarball }}
+          operation_type: download
+
+      - name: Extract PyTorch source
+        run: |
+          tar -xzf ${{ steps.sha.outputs.source_tarball }}
+          rm ${{ steps.sha.outputs.source_tarball }}
+          echo "PyTorch source extracted: $(du -sh pytorch/ | cut -f1)"
+
+      - name: Checkout CI scripts
+        uses: actions/checkout@v6
+        with:
+          path: ci-scripts
+          ref: ci-test
+
+      - name: Discover and shard test files
+        id: collect
+        run: |
+          export PYTHONPATH="${GITHUB_WORKSPACE}/ci-scripts/.github/scripts/v2:${PYTHONPATH}"
+
+          python3 ${GITHUB_WORKSPACE}/ci-scripts/.github/scripts/v2/shard_test_files.py \
+            --test-dir ${GITHUB_WORKSPACE}/pytorch/test \
+            --categories-config ${GITHUB_WORKSPACE}/ci-scripts/.github/config/test_categories.yml \
+            --output-dir ${GITHUB_WORKSPACE}/cases-shards
+
+          echo "=== Generated shard files ==="
+          ls -la ${GITHUB_WORKSPACE}/cases-shards/
+
+          echo "=== Collection summary ==="
+          cat ${GITHUB_WORKSPACE}/cases-shards/cases_collection_summary.json
+
+          # Read has_* and num_shards outputs from summary
+          python3 -c "
+          import json
+          d = json.load(open('${GITHUB_WORKSPACE}/cases-shards/cases_collection_summary.json'))
+          cats = d.get('categories', {})
+          for cat in ['core','tensor','distributed','graph','math']:
+              cat_data = cats.get(cat, {})
+              has = 'true' if cat_data.get('total_files', 0) > 0 else 'false'
+              num = str(cat_data.get('num_shards', 0))
+              print(f'has_{cat}={has}')
+              print(f'{cat}_num_shards={num}')
+          " >> "$GITHUB_OUTPUT"
+
+      - name: Build shard matrices
+        id: build_matrix
+        run: |
+          python3 -c "
+          import json
+          d = json.load(open('${GITHUB_WORKSPACE}/cases-shards/cases_collection_summary.json'))
+          cats = d.get('categories', {})
+          for cat in ['core','tensor','distributed','graph','math']:
+              cat_data = cats.get(cat, {})
+              n = cat_data.get('num_shards', 0)
+              if n > 0:
+                  matrix = json.dumps(list(range(1, n + 1)))
+              else:
+                  matrix = '[]'
+              print(f'{cat}_matrix={matrix}')
+              print(f'{cat}_num_shards={n}')
+          " >> "$GITHUB_OUTPUT"
+
+      - name: Upload cases shard JSONs
+        uses: actions/upload-artifact@v4
+        with:
+          name: cases-shards-v2
+          path: cases-shards/
+          retention-days: 7

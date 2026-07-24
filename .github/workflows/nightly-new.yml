@@ -1,0 +1,42 @@
+name: Nightly Build and Test (v2)
+
+on:
+  push:
+    branches:
+      - ci-test
+    paths:
+      - '.github/workflows/nightly-new.yml'
+      - '.github/workflows/_build-new.yml'
+      - '.github/workflows/_test-new.yml'
+      - '.github/workflows/_test-collect-new.yml'
+      - '.github/workflows/_test-exec-new.yml'
+      - '.github/workflows/_test-report-new.yml'
+      - '.github/config/test_categories.yml'
+      - '.github/scripts/v2/**'
+  workflow_dispatch:
+
+concurrency:
+  group: nightly-new-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build:
+    uses: ./.github/workflows/_build-new.yml
+    secrets: inherit
+    with:
+      upstream_repo: pytorch/pytorch
+      upstream_ref: main
+      torch_npu_repo: Ascend/pytorch
+      torch_npu_ref: master
+      report_to_upstream: false
+
+  test:
+    needs: build
+    uses: ./.github/workflows/_test-new.yml
+    secrets: inherit
+    with:
+      resolved_short: ${{ needs.build.outputs.resolved_short }}

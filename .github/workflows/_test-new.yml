@@ -1,0 +1,98 @@
+name: Test Parallel (v2)
+
+on:
+  workflow_call:
+    inputs:
+      resolved_short:
+        required: true
+        type: string
+        description: Short SHA of upstream PyTorch (from _build-new.yml outputs)
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  collect:
+    uses: ./.github/workflows/_test-collect-new.yml
+    secrets: inherit
+    with:
+      resolved_short: ${{ inputs.resolved_short }}
+
+  test_core:
+    needs: collect
+    if: ${{ needs.collect.outputs.has_core == 'true' }}
+    uses: ./.github/workflows/_test-exec-new.yml
+    secrets: inherit
+    with:
+      resolved_short: ${{ inputs.resolved_short }}
+      category: core
+      num_shards: ${{ needs.collect.outputs.core_num_shards }}
+      max_workers: 3
+      matrix_json: ${{ needs.collect.outputs.core_matrix }}
+
+  test_tensor:
+    needs: collect
+    if: ${{ needs.collect.outputs.has_tensor == 'true' }}
+    uses: ./.github/workflows/_test-exec-new.yml
+    secrets: inherit
+    with:
+      resolved_short: ${{ inputs.resolved_short }}
+      category: tensor
+      num_shards: ${{ needs.collect.outputs.tensor_num_shards }}
+      max_workers: 3
+      matrix_json: ${{ needs.collect.outputs.tensor_matrix }}
+
+  test_distributed:
+    needs: collect
+    if: ${{ needs.collect.outputs.has_distributed == 'true' }}
+    uses: ./.github/workflows/_test-exec-new.yml
+    secrets: inherit
+    with:
+      resolved_short: ${{ inputs.resolved_short }}
+      category: distributed
+      num_shards: ${{ needs.collect.outputs.distributed_num_shards }}
+      max_workers: 1
+      matrix_json: ${{ needs.collect.outputs.distributed_matrix }}
+
+  test_graph:
+    needs: collect
+    if: ${{ needs.collect.outputs.has_graph == 'true' }}
+    uses: ./.github/workflows/_test-exec-new.yml
+    secrets: inherit
+    with:
+      resolved_short: ${{ inputs.resolved_short }}
+      category: graph
+      num_shards: ${{ needs.collect.outputs.graph_num_shards }}
+      max_workers: 3
+      matrix_json: ${{ needs.collect.outputs.graph_matrix }}
+
+  test_math:
+    needs: collect
+    if: ${{ needs.collect.outputs.has_math == 'true' }}
+    uses: ./.github/workflows/_test-exec-new.yml
+    secrets: inherit
+    with:
+      resolved_short: ${{ inputs.resolved_short }}
+      category: math
+      num_shards: ${{ needs.collect.outputs.math_num_shards }}
+      max_workers: 3
+      matrix_json: ${{ needs.collect.outputs.math_matrix }}
+
+  report:
+    needs:
+      - collect
+      - test_core
+      - test_tensor
+      - test_distributed
+      - test_graph
+      - test_math
+    if: always() && needs.collect.result == 'success'
+    uses: ./.github/workflows/_test-report-new.yml
+    secrets: inherit
+    with:
+      core_matrix: ${{ needs.collect.outputs.core_matrix }}
+      tensor_matrix: ${{ needs.collect.outputs.tensor_matrix }}
+      distributed_matrix: ${{ needs.collect.outputs.distributed_matrix }}
+      graph_matrix: ${{ needs.collect.outputs.graph_matrix }}
+      math_matrix: ${{ needs.collect.outputs.math_matrix }}
