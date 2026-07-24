@@ -1,7 +1,8 @@
 categories:
   core:
-    shards: 2
+    shards: 1
     execution: concurrent
+    workers: 8
     files:
       - test/nn/attention/test_fa3.py
       - test/nn/attention/test_fa4.py
@@ -40,6 +41,7 @@ categories:
   tensor:
     shards: 1
     execution: concurrent
+    workers: 8
     files:
       - test/test_as_strided.py
       - test/test_binary_ufuncs.py
@@ -55,6 +57,7 @@ categories:
   distributed:
     shards: 3
     execution: serial
+    workers: 1
     files:
       - test/distributed/test_c10d_gloo.py
       - test/distributed/test_c10d_nccl.py
@@ -115,8 +118,9 @@ categories:
       - test/distributed/test_dist2.py
 
   graph:
-    shards: 5
+    shards: 1
     execution: concurrent
+    workers: 8
     files:
       - test/higher_order_ops/test_debug_log.py
       - test/higher_order_ops/test_local_map.py
@@ -250,5 +254,6 @@ categories:
   math:
     shards: 1
     execution: concurrent
+    workers: 8
     files:
       - test/test_linalg.py

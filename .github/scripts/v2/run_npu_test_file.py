@@ -30,7 +30,7 @@ import subprocess
 import sys
 import xml.etree.ElementTree as ET
 from datetime import datetime
-from multiprocessing import get_context, current_process
+from multiprocessing import get_context, Process, Queue as MPQueue
 from pathlib import Path
 from time import monotonic
 from typing import Dict, List, Optional, Tuple
@@ -445,29 +445,52 @@ def build_execution_env(test_dir: Path, script_dir: Path) -> Dict[str, str]:
 
 
 # ==============================================================================
-# Pool Worker
+# Task-Queue Worker (persistent, one NPU card per worker)
 # ==============================================================================
 
 
-def worker_init(num_npu_devices: int):
-    """Pool worker initializer: assign NPU device round-robin."""
-    p = current_process()
-    if p.name != "MainProcess":
-        device_id = (p._identity[0] - 1) % num_npu_devices
-        os.environ["ASCEND_RT_VISIBLE_DEVICES"] = str(device_id)
+def _worker_loop(
+    device_id: int,
+    task_queue: MPQueue,
+    result_queue: MPQueue,
+    test_dir: Path,
+    report_dir: Path,
+    timeout: int,
+    verbose: bool,
+    shard: int,
+    shard_type: str,
+    env_updates: Dict[str, str],
+):
+    """Persistent worker: binds a fixed NPU card, processes files from queue.
 
-
-def _execute_file_in_worker(args_tuple):
-    """Worker function for Pool: execute a single test file.
-
-    Args are passed as a tuple because Pool.apply_async doesn't accept kwargs well.
+    Each worker:
+      1. Sets ASCEND_RT_VISIBLE_DEVICES once at startup (stable binding).
+      2. Pulls (idx, (file, shard_id, num_shards)) from task_queue.
+      3. Spawns pytest subprocess for that file (process-level isolation).
+      4. Puts results back to result_queue.
+      5. Repeats until sentinel (None) is received.
     """
-    (test_file, test_dir, report_dir, timeout, verbose, shard, shard_type,
-     env_updates, shard_id, num_shards) = args_tuple
-    return run_test_file_with_retry(
-        test_file, test_dir, report_dir, timeout, verbose,
-        shard, shard_type, env_updates, shard_id, num_shards,
-    )
+    os.environ["ASCEND_RT_VISIBLE_DEVICES"] = str(device_id)
+    print(f"  [Worker device={device_id}] started", flush=True)
+
+    while True:
+        item = task_queue.get()
+        if item is None:
+            break
+
+        idx, (test_file, shard_id, num_shards) = item
+        sub_info = f" (sub {shard_id}/{num_shards})" if num_shards > 1 else ""
+        print(f"  [device {device_id}] [{idx}] {test_file}{sub_info}", flush=True)
+
+        try:
+            xml_files = run_test_file_with_retry(
+                test_file, test_dir, report_dir, timeout, verbose,
+                shard, shard_type, env_updates, shard_id, num_shards,
+            )
+            result_queue.put((idx, test_file, xml_files, None))
+        except Exception as e:
+            print(f"  [device {device_id}] [{idx}] ERROR: {e}", flush=True)
+            result_queue.put((idx, test_file, [], str(e)))
 
 
 # ==============================================================================
@@ -515,10 +538,10 @@ def run_shard(
     print(f"Shard {shard}/{num_shards} ({shard_type})", flush=True)
     print(f"Total entries: {total_files}", flush=True)
     print(f"Max workers: {max_workers}", flush=True)
-    if max_workers == 1:
+    if max_workers <= 1:
         print(f"Execution mode: SERIAL", flush=True)
     else:
-        print(f"Execution mode: CONCURRENT ({max_workers} workers, spawn Pool)", flush=True)
+        print(f"Execution mode: CONCURRENT (task-queue workers)", flush=True)
     print(f"Timeout per file: {timeout}s", flush=True)
     print(f"{'=' * 80}", flush=True)
 
@@ -554,37 +577,53 @@ def run_shard(
             print(f"  Result: {len(case_results)} cases ({passed} passed, {failed} failed, "
                   f"{errors} errors, {skipped} skipped)", flush=True)
     else:
-        # Concurrent execution via spawn Pool
+        # Concurrent execution via task-queue workers
         num_npu = get_npu_device_count()
+        num_workers = min(max_workers, num_npu, len(file_entries))
         print(f"\nNPU devices detected: {num_npu}", flush=True)
-        print(f"Executing {total_files} entries concurrently with {max_workers} workers...", flush=True)
-
-        # Prepare args for each file
-        worker_args = [
-            (f, test_dir, report_dir, timeout, verbose, shard, shard_type, env_updates,
-             sid, ns)
-            for f, sid, ns in file_entries
-        ]
+        print(f"Launching {num_workers} workers (each bound to a dedicated NPU card)...", flush=True)
 
         ctx = get_context("spawn")
-        pool = ctx.Pool(
-            max_workers,
-            maxtasksperchild=1,
-            initializer=worker_init,
-            initargs=(num_npu,),
-        )
+        task_queue: MPQueue = ctx.Queue()
+        result_queue: MPQueue = ctx.Queue()
 
-        try:
-            results = pool.map(_execute_file_in_worker, worker_args)
-        except Exception as e:
-            print(f"Pool execution error: {e}", flush=True)
-            results = [[] for _ in file_entries]
-        finally:
-            pool.close()
-            pool.join()
+        # Fill task queue: (index, (file, shard_id, num_shards))
+        for idx, entry in enumerate(file_entries):
+            task_queue.put((idx, entry))
+        # Sentinels: one per worker
+        for _ in range(num_workers):
+            task_queue.put(None)
 
-        # Merge XMLs and parse results for each file
-        for i, ((test_file, sub_shard_id, sub_num_shards), xml_files) in enumerate(zip(file_entries, results), 1):
+        # Launch persistent workers — each binds a fixed NPU card
+        workers = []
+        for device_id in range(num_workers):
+            p = Process(
+                target=_worker_loop,
+                args=(device_id, task_queue, result_queue, test_dir, report_dir,
+                      timeout, verbose, shard, shard_type, env_updates),
+            )
+            p.start()
+            workers.append(p)
+
+        # Collect results in completion order (not submission order)
+        results_by_idx: Dict[int, Tuple] = {}
+        collected = 0
+        total_entries = len(file_entries)
+        while collected < total_entries:
+            idx, test_file, xml_files, err = result_queue.get()
+            results_by_idx[idx] = (test_file, xml_files, err)
+            collected += 1
+            print(f"  [Completed {collected}/{total_entries}] device finished {test_file}", flush=True)
+
+        for p in workers:
+            p.join()
+
+        # Merge XMLs and parse results in original order
+        for i, idx in enumerate(range(total_entries)):
+            test_file, sub_shard_id, sub_num_shards = file_entries[idx]
+            _, xml_files, err = results_by_idx.get(idx, (test_file, [], "missing result"))
+            if err:
+                print(f"  [{i+1}/{total_entries}] {test_file}: ERROR ({err})", flush=True)
             merged = merge_junit_xmls(xml_files, test_file)
             cmd_str = f"python {normalize_test_file(test_file)} --shard-id={sub_shard_id} --num-shards={sub_num_shards} ..."
             case_results = parse_testcases(merged, test_file, cmd_str)
@@ -594,7 +633,7 @@ def run_shard(
             errors = sum(1 for c in case_results if c["status"] == "error")
             skipped = sum(1 for c in case_results if c["status"] == "skipped")
             sub_info = f" (sub {sub_shard_id}/{sub_num_shards})" if sub_num_shards > 1 else ""
-            print(f"  [{i}/{total_files}] {test_file}{sub_info}: {len(case_results)} cases "
+            print(f"  [{i+1}/{total_entries}] {test_file}{sub_info}: {len(case_results)} cases "
                   f"({passed}P {failed}F {errors}E {skipped}S)", flush=True)
 
     duration = monotonic() - start

@@ -28,7 +28,7 @@ jobs:
       resolved_short: ${{ inputs.resolved_short }}
       category: core
       num_shards: ${{ needs.collect.outputs.core_num_shards }}
-      max_workers: 3
+      max_workers: 8
       matrix_json: ${{ needs.collect.outputs.core_matrix }}
 
   test_tensor:
@@ -40,7 +40,7 @@ jobs:
       resolved_short: ${{ inputs.resolved_short }}
       category: tensor
       num_shards: ${{ needs.collect.outputs.tensor_num_shards }}
-      max_workers: 3
+      max_workers: 8
       matrix_json: ${{ needs.collect.outputs.tensor_matrix }}
 
   test_distributed:
@@ -64,7 +64,7 @@ jobs:
       resolved_short: ${{ inputs.resolved_short }}
       category: graph
       num_shards: ${{ needs.collect.outputs.graph_num_shards }}
-      max_workers: 3
+      max_workers: 8
       matrix_json: ${{ needs.collect.outputs.graph_matrix }}
 
   test_math:
@@ -76,7 +76,7 @@ jobs:
       resolved_short: ${{ inputs.resolved_short }}
       category: math
       num_shards: ${{ needs.collect.outputs.math_num_shards }}
-      max_workers: 3
+      max_workers: 8
       matrix_json: ${{ needs.collect.outputs.math_matrix }}
 
   report:

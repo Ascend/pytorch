@@ -158,6 +158,7 @@ def split_greedy(
     durations: Dict[str, float],
     max_shard_duration: float,
     min_shards: int,
+    num_workers: int = 1,
 ) -> Tuple[List[List[Dict]], int, List[float]]:
     """Greedy LPT (Longest Processing Time) bin-packing with sub-sharding.
 
@@ -171,22 +172,33 @@ def split_greedy(
     cases within that file — so different sub-shards of the same file
     can be assigned to different CI machines safely.
 
+    *num_workers* models the parallelism within a single shard (like
+    upstream's ``NUM_PROCS_FOR_SHARDING_CALC``).  The wall-clock time
+    of a shard is estimated as ``sum(durations) / num_workers``,
+    so the effective per-shard budget is ``max_shard_duration * num_workers``.
+
     Algorithm:
       1. Expand each known-duration file into one or more sub-shard
          entries (like upstream ``get_with_pytest_shard``).  A file
          with ``duration > max_shard_duration`` is split into
          ``ceil(duration / max_shard_duration)`` entries.
       2. Sort entries by estimated duration descending (LPT).
-      3. Calculate ``num_shards = max(min_shards, ceil(total / max))``.
+      3. Calculate ``num_shards = max(min_shards,
+         ceil(total / (max * num_workers)))``.
       4. Greedily assign each entry to the shard with the smallest
          accumulated time.
       5. Distribute unknown-duration files round-robin.
-      6. If any shard still exceeds *max_shard_duration* and has >1
-         entry, increment ``num_shards`` and retry.
+      6. If any shard's wall-clock estimate (accumulated / num_workers)
+         still exceeds *max_shard_duration* and has >1 entry, increment
+         ``num_shards`` and retry.
 
     Returns ``(shards, num_shards, shard_times)`` where each shard is a
     list of dicts: ``{"file", "shard_id", "num_shards", "estimated_duration"}``.
+    ``shard_times`` holds the raw accumulated time (not divided by
+    num_workers); callers should divide by ``num_workers`` for wall-clock
+    estimates.
     """
+    nw = max(num_workers, 1)
     known_entries: List[Dict] = []
     unknown_files: List[str] = []
 
@@ -215,8 +227,9 @@ def split_greedy(
     known_entries.sort(key=lambda e: e["estimated_duration"], reverse=True)
     total_known = sum(e["estimated_duration"] for e in known_entries)
 
+    effective_budget = max_shard_duration * nw
     if total_known > 0:
-        num_shards = max(min_shards, math.ceil(total_known / max_shard_duration))
+        num_shards = max(min_shards, math.ceil(total_known / effective_budget))
     else:
         num_shards = min_shards
 
@@ -236,11 +249,11 @@ def split_greedy(
         if not shard_times:
             break
 
-        max_time = max(shard_times)
-        if max_time <= max_shard_duration:
+        max_wall = max(shard_times) / nw
+        if max_wall <= max_shard_duration:
             break
 
-        max_idx = shard_times.index(max_time)
+        max_idx = shard_times.index(max(shard_times))
         if len(shards[max_idx]) <= 1:
             break
 
@@ -337,12 +350,14 @@ def main():
     for cat_name, cat_config in categories.items():
         config_shards = cat_config.get("shards", 1)
         execution = cat_config.get("execution", "concurrent")
+        num_workers = cat_config.get("workers", 1 if execution == "serial" else 8)
         raw_files = cat_config.get("files", [])
 
         print(f"--- Category: {cat_name} ---")
         print(f"  Configured files: {len(raw_files)}")
         print(f"  Configured shards: {config_shards}")
         print(f"  Execution: {execution}")
+        print(f"  Workers: {num_workers}")
 
         valid_files, skipped_files = validate_files(raw_files, test_dir)
 
@@ -361,6 +376,7 @@ def main():
                 "shard_sizes": [],
                 "shard_durations": [],
                 "total_duration": 0.0,
+                "workers": num_workers,
             }
             continue
 
@@ -371,8 +387,10 @@ def main():
                 cat_durations = test_times.get("default", {})
             found = sum(1 for f in valid_files if f in cat_durations)
             total_dur = sum(cat_durations.get(f, 0) for f in valid_files)
+            wall = total_dur / num_workers if num_workers > 0 else total_dur
             print(f"  Duration data: {found}/{len(valid_files)} files, "
-                  f"total {total_dur:.1f}s ({total_dur / 60:.1f}min)")
+                  f"total {total_dur:.1f}s ({total_dur / 60:.1f}min), "
+                  f"est wall {wall:.1f}s ({wall / 60:.1f}min) with {num_workers} workers")
 
         if use_greedy and cat_durations:
             shards, num_shards, shard_times = split_greedy(
@@ -380,6 +398,7 @@ def main():
                 {f: cat_durations.get(f, 0) for f in valid_files},
                 max_shard_duration,
                 config_shards,
+                num_workers,
             )
             shard_durations = shard_times
         else:
@@ -401,10 +420,11 @@ def main():
 
         shard_sizes = []
         for i, shard_files in enumerate(shards, 1):
-            dur = shard_durations[i - 1] if i - 1 < len(shard_durations) else 0.0
-            save_shard_json(output_dir, cat_name, i, num_shards, shard_files, dur)
+            raw_dur = shard_durations[i - 1] if i - 1 < len(shard_durations) else 0.0
+            save_shard_json(output_dir, cat_name, i, num_shards, shard_files, raw_dur)
             shard_sizes.append(len(shard_files))
-            dur_str = f", ~{dur:.0f}s ({dur / 60:.1f}min)" if dur > 0 else ""
+            wall_dur = raw_dur / num_workers if num_workers > 0 else raw_dur
+            dur_str = f", ~{wall_dur:.0f}s ({wall_dur / 60:.1f}min) wall" if raw_dur > 0 else ""
             print(f"  Shard {i}/{num_shards}: {len(shard_files)} entries{dur_str}")
 
         total_dur = sum(shard_durations)
@@ -415,6 +435,7 @@ def main():
             "shard_sizes": shard_sizes,
             "shard_durations": [round(d, 1) for d in shard_durations],
             "total_duration": round(total_dur, 1),
+            "workers": num_workers,
         }
         print()
 
