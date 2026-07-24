@@ -1,0 +1,80 @@
+diff --git a/test/test_testing.py b/test/test_testing.py
+index c712071bda..4255217ec9 100644
+--- a/test/test_testing.py
++++ b/test/test_testing.py
+@@ -26,13 +26,14 @@ from torch.testing._internal.common_utils import (
+ )
+ from torch.testing._internal.common_device_type import \
+     (PYTORCH_TESTING_DEVICE_EXCEPT_FOR_KEY, PYTORCH_TESTING_DEVICE_ONLY_FOR_KEY, dtypes,
+-     get_device_type_test_bases, instantiate_device_type_tests, onlyCPU, onlyCUDA, onlyNativeDeviceTypes,
++     get_device_type_test_bases, instantiate_device_type_tests, onlyCPU, onlyCUDA, onlyPRIVATEUSE1, onlyNativeDeviceTypes,
+      deviceCountAtLeast, ops, expectedFailureMeta, OpDTypes)
+ from torch.testing._internal.common_methods_invocations import op_db
+ from torch.testing._internal import opinfo
+ from torch.testing._internal.common_dtype import all_types_and_complex_and, floating_types
+ from torch.testing._internal.common_modules import modules, module_db, ModuleInfo
+ from torch.testing._internal.opinfo.core import SampleInput, DecorateInfo, OpInfo
++import torch_npu
+ import operator
+ import string
+ 
+@@ -286,44 +287,38 @@ class TestTesting(TestCase):
+     # when CUDA assert was thrown. Because all subsequent test will fail if that happens.
+     # These tests are slow because it spawn another process to run test suite.
+     # See: https://github.com/pytorch/pytorch/issues/49019
+-    @onlyCUDA
++    @onlyPRIVATEUSE1
+     @slowTest
+     def test_cuda_assert_should_stop_common_utils_test_suite(self, device):
+-        # test to ensure common_utils.py override has early termination for CUDA.
++        # test to ensure common_utils.py override has early termination for NPU.
+         stderr = TestCase.runWithPytorchAPIUsageStderr("""\
+ #!/usr/bin/env python3
+ 
+ import torch
+ from torch.testing._internal.common_utils import (TestCase, run_tests, slowTest)
+ 
+-class TestThatContainsCUDAAssertFailure(TestCase):
++class TestThatContainsNPUAssertFailure(TestCase):
+ 
+     @slowTest
+-    def test_throw_unrecoverable_cuda_exception(self):
+-        x = torch.rand(10, device='cuda')
+-        # cause unrecoverable CUDA exception, recoverable on CPU
+-        y = x[torch.tensor([25])].cpu()
++    def test_throw_unrecoverable_npu_exception(self):
++        probs = torch.tensor([1., -1., 1.], device='npu')
++        # cause unrecoverable NPU exception, recoverable on CPU
++        torch.multinomial(probs, 2, replacement=True)
++        torch.npu.synchronize()
+ 
+     @slowTest
+-    def test_trivial_passing_test_case_on_cpu_cuda(self):
+-        x1 = torch.tensor([0., 1.], device='cuda')
+-        x2 = torch.tensor([0., 1.], device='cpu')
++    def test_trivial_passing_test_case_on_cpu_npu(self):
++        x1 = torch.tensor([0., 1.], device='npu')
++        x2 = torch.tensor([0., 1.], device='npu')
+         self.assertEqual(x1, x2)
+ 
+ if __name__ == '__main__':
+     run_tests()
+ """)
+-        # CUDA says "device-side assert triggered"
+-        # ROCm says "unspecified launch failure" or HSA_STATUS_ERROR_EXCEPTION
+-        has_cuda_assert = 'CUDA error: device-side assert triggered' in stderr
+-        has_hip_assert = 'launch failure' in stderr or 'HSA_STATUS_ERROR_EXCEPTION' in stderr
+-        self.assertTrue(
+-            has_cuda_assert or has_hip_assert,
+-            f"Expected device assert error in stderr, got: {stderr}",
+-        )
+-        if torch.version.cuda:
+-            # should run only 1 test because it throws unrecoverable error.
+-            self.assertIn('errors=1', stderr)
++        # should capture NPU early termination
++        self.assertIn('TEST SUITE EARLY TERMINATION due to torch.npu.synchronize() failure', stderr)
++        # should run only 1 test because it throws unrecoverable error.
++        self.assertIn('errors=1', stderr)
+ 
+ 
+     @onlyCUDA
