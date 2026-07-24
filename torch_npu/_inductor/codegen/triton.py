@@ -209,7 +209,8 @@ class NPUTritonKernelOverrides(TritonKernelOverrides):
         V.kernel.current_subblock_axis = before_subblock_axis | current_subblock_axis
         if mask is not None:
             for sub_axis in current_subblock_axis:
-                mask = ops.logical_and(mask, sympy_index_symbol(sub_axis + "_mask"))
+                if sub_axis[0] != "s":
+                    mask = ops.logical_and(mask, sympy_index_symbol(sub_axis + "_mask"))
         with V.kernel.mask_loads(mask, value=value) as new_mask:
             result = body()
         V.kernel.current_subblock_axis = before_subblock_axis
@@ -693,7 +694,8 @@ class NPUTritonKernel(TritonKernel):
             inductor_meta["inductor_ascend_linear_mode"] = "no_linear"
         else:
             inductor_meta["inductor_ascend_linear_mode"] = inductor_ascend_linear_mode
-        inductor_meta["npu_kernel_type"] = str(NPUKernelType.SIMD_SIMT_MIX)
+        if npu_config.is_ascend950:
+            inductor_meta["npu_kernel_type"] = str(NPUKernelType.SIMD_SIMT_MIX)
         inductor_meta["split_axis"] = split_axis
         inductor_meta["tiling_axis"] = tiling_axis
         inductor_meta["low_dims"] = [tiling_axis[-1]]

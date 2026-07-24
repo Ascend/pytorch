@@ -49,6 +49,7 @@ def _register_triton_decompositions():
         aten.native_layer_norm,
         aten.expm1,
         aten.erfc,
+        aten.slice_backward,
     ]
 
     if is_ascend950:

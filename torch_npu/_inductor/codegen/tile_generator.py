@@ -41,7 +41,8 @@ class TileGenerator:
         self.npu_kernel_type = npu_kernel_type
         self.max_total_numel = functools.reduce(lambda x, y: x * y, self.blocks) if self.blocks else 1
         self.tiny_kernel = self.max_total_numel < 128 * 1024
-        self.input_ptr_num = 3 if input_ptr_num == 0 else min(input_ptr_num, 3)
+        min_input_ptr_num = min(input_ptr_num, 3) if config.is_ascend950 else input_ptr_num
+        self.input_ptr_num = 3 if input_ptr_num == 0 else min_input_ptr_num
 
         local_mem_size = 128 * 1024 if self.npu_kernel_type == NPUKernelType.SIMT_ONLY else config.ub_size
         self.max_numel_threshold = local_mem_size // self.input_ptr_num // self.dtype_bytes
