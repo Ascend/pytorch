@@ -33,6 +33,7 @@ def _register_triton_decompositions():
         aten._log_softmax_backward_data,
         aten.gelu,
         aten.native_layer_norm,
+        aten.slice_backward,
     ]
 
     if is_ascend950:
