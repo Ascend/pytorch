@@ -1820,16 +1820,6 @@ class NPUCachingAutotuner(CachingAutotuner):
         launcher = self.best_launcher if self.best_launcher is not None else self.launchers[0]
         runtime_blocks = self.best_runtime_blocks
 
-        if not getattr(
-                launcher.config, "found_by_coordesc", False
-        ) and self.inductor_meta.get("coordinate_descent_tuning", False):
-            launcher = self.coordinate_descent_tuning(
-                launcher, *args, **kwargs
-            )
-            self.launchers = [launcher]
-            if self.best_launcher is not None:
-                self.best_launcher = launcher
-
         if launcher.store_cubin and (not benchmark_run or not self.cuda_kernel_saved):
             self.save_gpu_kernel(stream, launcher)
 
