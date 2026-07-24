@@ -454,6 +454,7 @@ def build_execution_env(test_dir: Path, script_dir: Path) -> Dict[str, str]:
         "TORCH_DEVICE_BACKEND_AUTOLOAD": "1",
         "NO_TD": "1",
         "PYTHONUNBUFFERED": "1",
+        "PYTORCH_TESTING_DEVICE_ONLY_FOR": "privateuse1",
     }
 
 
