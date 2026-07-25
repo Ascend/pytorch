@@ -630,6 +630,8 @@ class TestPublicBindings(TestCase):
             "torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.inductor_patch.lowering",
             "torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.inductor_patch.scheduler",
             "torch_npu._inductor.dvm",
+            "torch_npu._inductor.dvm.config",
+            "torch_npu._inductor.dvm.template",
             "torch_npu._inductor.dvm.decomp",
             "torch_npu._inductor.dvm.fx_pass",
             "torch_npu._inductor.dvm.fx_test",

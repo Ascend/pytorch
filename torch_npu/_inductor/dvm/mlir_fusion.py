@@ -1,9 +1,11 @@
+from typing import List
+
 import torch
 from torch._higher_order_ops.triton_kernel_wrap import triton_kernel_wrapper_mutation
 from torch._inductor import config
 from torch._inductor.codegen.common import IndentedBuffer, register_backend_for_device
 from torch._inductor.codegen.simd import code_hash, SIMDKernel
-from torch._inductor.scheduler import WhyNoFuse
+from torch._inductor.scheduler import SchedulerNode, WhyNoFuse
 from torch._inductor.utils import get_fused_kernel_name
 from torch._inductor.virtualized import V
 from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir import config as anir_config
@@ -12,6 +14,7 @@ from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.codegen.mlir import (
 )
 from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.codegen.meta_kernel import (
     NpuMetaScheduling,
+    create_fx_from_snodes_by_traced_graph,
 )
 from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.codegen.wrapper import (
     NpuMlirWrapperCodeGen,
@@ -23,7 +26,11 @@ from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.utils import (
     get_num_call_functions,
 )
 
-from .config import disable_post_reduce_fusion, dump_fx_test
+from .config import (
+    disable_post_reduce_fusion,
+    dump_fx_test,
+    enable_matmul_fusion,
+)
 from .decomp import patch_decomp
 from .fx_test import generate_dvm_fx_case
 from .graph_build import DvmCodegenInterpreter
@@ -32,6 +39,11 @@ from .op_emitter import (
     DVM_OP_REGISTRY,
     DVM_SUPPORT_TYPE,
     _extra_int_types,
+)
+from .template import (
+    can_fuse_dvm_epilogue,
+    DvmTemplateBuffer,
+    patch_dvm_matmul_template_fusion,
 )
 
 aten = torch.ops.aten
@@ -225,6 +237,12 @@ class NpuDvmScheduling(NpuMetaScheduling):
         return kernel_name
 
     def can_fuse_vertical(self, node1, node2):
+        template1 = node1.get_template_node()
+        template2 = node2.get_template_node()
+        if isinstance(template1, DvmTemplateBuffer):
+            return can_fuse_dvm_epilogue(node1, node2)
+        if isinstance(template2, DvmTemplateBuffer):
+            return False
         if not disable_post_reduce_fusion:
             return super().can_fuse_vertical(node1, node2)
 
@@ -252,9 +270,74 @@ class NpuDvmScheduling(NpuMetaScheduling):
         return numel1 == numel2
 
     def can_fuse_horizontal(self, node1, node2):
+        template1 = node1.get_template_node()
+        template2 = node2.get_template_node()
+        if isinstance(template1, DvmTemplateBuffer) or isinstance(
+            template2, DvmTemplateBuffer
+        ):
+            return False
         if not disable_post_reduce_fusion:
             return super().can_fuse_horizontal(node1, node2)
         return False
+
+    def codegen_template(
+        self,
+        template_node: SchedulerNode,
+        epilogue_nodes: List[SchedulerNode],
+        prologue_nodes: List[SchedulerNode] = (),
+    ):
+        template_buffer = template_node.get_template_node()
+        if not isinstance(template_buffer, DvmTemplateBuffer):
+            return super().codegen_template(
+                template_node, epilogue_nodes, prologue_nodes
+            )
+        if prologue_nodes:
+            raise RuntimeError(
+                "DVM matmul template only supports pointwise epilogue fusion"
+            )
+
+        snodes = [template_node, *epilogue_nodes]
+        fused_node_names = set()
+        for snode in snodes:
+            fused_node_names.update(snode.get_operation_names())
+        removed_buffers = {
+            name
+            for snode in snodes
+            for name in snode.get_buffer_names()
+            if self.scheduler.can_buffer_be_removed_through_fusion(
+                name, fused_node_names
+            )
+        }
+        V.graph.removed_buffers |= removed_buffers
+
+        traced_graph, call_args, compile_kwargs = (
+            create_fx_from_snodes_by_traced_graph(snodes, None)
+        )
+        mlir_kernel = self.meta_kernel_type(
+            traced_graph, snodes, call_args, **compile_kwargs
+        )
+        with V.set_kernel_handler(mlir_kernel):
+            src_code = mlir_kernel.codegen_kernel()
+
+        need_trans_input = getattr(
+            mlir_kernel.dvm_codegen, "need_trans_input", ()
+        )
+        for index, arg in enumerate(call_args):
+            if arg in template_buffer.input_bindings:
+                arg = V.graph.wrapper_code.val_to_arg_str(
+                    template_buffer.input_bindings[arg]
+                )
+            if index < len(need_trans_input) and need_trans_input[index]:
+                arg += ".mT"
+            call_args[index] = arg
+
+        kernel_name = self.define_kernel(src_code, mlir_kernel, traced_graph)
+        with V.set_kernel_handler(mlir_kernel):
+            for node in snodes:
+                node.mark_run()
+        self.codegen_comment(snodes)
+        mlir_kernel.call_kernel(kernel_name, template_node.node)
+        self.free_buffers_in_scheduler()
 
 
 def _patch_lowering_type_checks():
@@ -371,6 +454,8 @@ class DvmMlirFusionPatch:
         patch_decomp()
         _patch_lowering_type_checks()
         _patch_lowering()
+        if enable_matmul_fusion:
+            patch_dvm_matmul_template_fusion()
         register_backend_for_device(
             "npu", NpuDvmScheduling, NpuMlirWrapperCodeGen
         )
