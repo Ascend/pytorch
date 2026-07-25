@@ -229,7 +229,7 @@ class MetaCompiler:
             for out1, out2 in zip(actual_outputs, args[-num_outputs:]):
                 if isinstance(out1, torch.Tensor) and not out1.is_contiguous():
                     out1 = out1.contiguous()
-                if out1.dtype == out2.dtype:
+                if out1.device == out2.device and out1.dtype == out2.dtype:
                     out2.set_(out1)
                 else:
                     # clone_for_accuracy upcasts bfloat16 outputs to float32, while the model
