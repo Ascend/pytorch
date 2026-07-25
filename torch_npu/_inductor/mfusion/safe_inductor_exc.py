@@ -11,7 +11,8 @@ Each ``arg`` is turned into a string via ``f"{arg}"``. For large graphs whose ``
 hundreds of ``permute``/custom nodes, IR objects may stringify with deep recursion and mask the real
 exception with ``RecursionError``.
 
-Applied from ``torch_npu._inductor`` on import; disable with
+Installed process-wide and idempotently by ``MFusionPatch.enable()``. It is not
+restored by ``MFusionPatch.disable()``; disable it before first installation with
 ``TORCH_NPU_SAFE_INDUCTOR_ERROR_STR=0``.
 """
 

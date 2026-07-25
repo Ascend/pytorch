@@ -937,6 +937,9 @@ class MFusionPatch:
             )
             inductor_config.post_grad_custom_post_pass = mfusion_graph_fusion
             _patch_mfusion_symbol_fastpath()
+            from .safe_inductor_exc import apply_safe_operator_str_patch_if_enabled
+
+            apply_safe_operator_str_patch_if_enabled()
             MFusionPatch._enabled = True
 
     @staticmethod

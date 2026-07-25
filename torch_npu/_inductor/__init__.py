@@ -45,9 +45,6 @@ def _load_ascendc_backend():
 def _load_mlir_backend():
     _apply_common_patches()
     import torch
-    # Prevent RecursionError when formatting LoweringException for huge output tuples (e.g. many permute nodes).
-    from .mfusion.safe_inductor_exc import apply_safe_operator_str_patch_if_enabled
-    apply_safe_operator_str_patch_if_enabled()
     try:
         import torch_mlir
         from torch_mlir import ir
