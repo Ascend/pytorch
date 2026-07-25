@@ -83,12 +83,12 @@ def annotate_mm_transpose_flags(gm: torch.fx.GraphModule):
             lhs = node.args[0]
             rhs = node.args[1]
             flag = True
-        elif node.target is aten.addmm.default:
-            add = node.args[0]
+        elif node.target in (aten.addmm.default, aten.baddbmm.default):
             lhs = node.args[1]
             rhs = node.args[2]
+            bias = node.args[0]
             if (
-                add.meta["val"].dim() == 1
+                bias.meta["val"].dim() == 1
                 and node.kwargs.get("beta", 1) == 1
                 and node.kwargs.get("alpha", 1) == 1
             ):
