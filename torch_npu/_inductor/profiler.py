@@ -1,6 +1,7 @@
 import os
 import shutil
 import subprocess
+import sys
 from datetime import datetime, timezone
 import glob
 from typing import List, Callable
@@ -50,7 +51,7 @@ class SimpleProfilingAnalyzer:
         mindstudio_profiler_output_dir = os.path.join(prof_dir, "mindstudio_profiler_output")
         if os.path.exists(mindstudio_profiler_output_dir):
             shutil.rmtree(mindstudio_profiler_output_dir)
-        export_cmd = ['python', msprof_py_script_path, "export", "summary", "-dir", prof_dir]
+        export_cmd = [sys.executable, msprof_py_script_path, "export", "summary", "-dir", prof_dir]
         completed_analysis = subprocess.run(export_cmd, capture_output=True)
         if completed_analysis.returncode != 0:
             raise RuntimeError("subprocess return code is not 0.")
