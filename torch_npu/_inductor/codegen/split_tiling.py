@@ -315,6 +315,80 @@ class SplitTiling:
             return None
         return axis
 
+    def _dynamic_pointwise_tiling_axis(self):
+        """Return the sole dynamic pointwise axis when it is tiled, not split.
+
+        Transpose and broadcast kernels commonly keep the dynamic inner axis in
+        the tiling space while a static outer axis drives the grid.  That axis can
+        still select grouped compile variants even though it has no grid block.
+        """
+        if self.kernel.persistent_reduction or self.kernel.inside_reduction:
+            return None
+        dynamic_axes = [
+            axis
+            for axis in self.kernel.sorted_axis
+            if not isinstance(axis.length, sympy.Integer)
+        ]
+        if len(dynamic_axes) != 1:
+            return None
+        axis = dynamic_axes[0]
+        if axis in self.kernel.split_axis or axis not in self.kernel.tiling_axis:
+            return None
+        if self._pointwise_layout_kind() is None:
+            return None
+        return axis
+
+    def _pointwise_layout_kind(self):
+        """Classify transpose/broadcast from the kernel's memory indexings."""
+        axis_symbols = tuple(axis.symbol() for axis in self.kernel.sorted_axis)
+        if not axis_symbols or not self.indexing:
+            return None
+
+        stride_orders = set()
+        has_broadcast = False
+        for index in self.indexing:
+            axis_strides = []
+            unsupported_index = False
+            for axis in axis_symbols:
+                stride = sympy.expand(index).coeff(axis)
+                if stride == 0 and axis in index.free_symbols:
+                    unsupported_index = True
+                    break
+                if stride != 0:
+                    axis_strides.append((axis, stride))
+            if unsupported_index:
+                continue
+
+            present = [axis for axis, _ in axis_strides]
+            if len(present) < len(axis_symbols):
+                has_broadcast = True
+                continue
+
+            strides = []
+            for axis, stride in axis_strides:
+                try:
+                    stride = int(stride)
+                except (TypeError, ValueError):
+                    try:
+                        stride = int(V.graph.sizevars.size_hint(stride))
+                    except (AttributeError, KeyError, TypeError, ValueError):
+                        strides = []
+                        break
+                strides.append((stride, axis))
+            if strides:
+                stride_orders.add(
+                    tuple(axis for _, axis in sorted(strides, key=lambda x: x[0]))
+                )
+
+        has_transpose = len(stride_orders) > 1
+        if has_transpose and has_broadcast:
+            return "transpose_broadcast"
+        if has_transpose:
+            return "transpose"
+        if has_broadcast:
+            return "broadcast"
+        return None
+
     def non_reduction_axis_names(self):
         return tuple(axis.name for axis in self.kernel.sorted_axis if axis.prefix != "r")
 
@@ -342,7 +416,7 @@ class SplitTiling:
     _REDUCTION_BUCKETS = (8192,)
     _OUTER_BUCKETS = (256,)
 
-    def _build_group_features(self, workload, primary_axis):
+    def _build_group_features(self, workload, primary_axis, pointwise_layout=None):
         if self.kernel.persistent_reduction or self.kernel.inside_reduction:
             outer_names = self.non_reduction_axis_names()
             reduction_names = self.reduction_axis_names()
@@ -374,6 +448,24 @@ class SplitTiling:
                     "outer_product",
                     self.all_axis_names(),
                     (num_vector_core * 4096,),
+                ),
+            )
+        if pointwise_layout in ("broadcast", "transpose_broadcast"):
+            return (
+                GroupFeatureSpec(
+                    "pointwise_broadcast_axis",
+                    "axis",
+                    (primary_axis.name,),
+                    (16, 64, 256, 1024, 4096),
+                ),
+            )
+        if pointwise_layout == "transpose":
+            return (
+                GroupFeatureSpec(
+                    "pointwise_transpose_axis",
+                    "axis",
+                    (primary_axis.name,),
+                    (64, 128, 256, 512),
                 ),
             )
         return (
@@ -538,6 +630,7 @@ class SplitTiling:
         dynamic_split_axes, static_split_axes = self._classify_split_axes()
         template = self._grouped_template_name()
         workload = self._classify_group_workload(template)
+        pointwise_layout = None
         if dynamic_split_axes:
             primary_axis = self._select_primary_group_axis(dynamic_split_axes)
             if primary_axis is None:
@@ -550,12 +643,11 @@ class SplitTiling:
                 f"{axis.name.upper()}BLOCK" for axis in self.kernel.split_axis
             )
         else:
-            # No dynamic grid split axis: bucket the reduction tiling axis by its
-            # runtime size (grid==1 over it). Grid parallelism, if any, comes from
-            # the STATIC non-reduction split axes; their blocks are passed so the
-            # grid is computed from them (build_grouped_launch_policy treats a
-            # reduction-tiling primary specially -- no runtime rule for it).
-            primary_axis = self._dynamic_reduction_tiling_axis()
+            if template in ("persistent_reduction", "reduction"):
+                primary_axis = self._dynamic_reduction_tiling_axis()
+            else:
+                primary_axis = self._dynamic_pointwise_tiling_axis()
+                pointwise_layout = self._pointwise_layout_kind()
             if primary_axis is None:
                 return None
             static_names = tuple(axis.name for axis in static_split_axes)
@@ -563,7 +655,9 @@ class SplitTiling:
             runtime_block_arg_names = tuple(
                 f"{axis.name.upper()}BLOCK" for axis in self.kernel.split_axis
             )
-        feature_specs = self._build_group_features(workload, primary_axis)
+        feature_specs = self._build_group_features(
+            workload, primary_axis, pointwise_layout
+        )
         if not feature_specs:
             return None
         return GroupedKernelMeta(
