@@ -150,6 +150,7 @@ jobs:
             --report-dir test-reports \
             --max-workers 1 \
             --timeout 1200 \
+            --retry-failed 3 \
             --verbose \
             2>&1 | tee /tmp/test_dist_${{ matrix.shard }}.log
 

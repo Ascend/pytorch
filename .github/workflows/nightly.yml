@@ -21,10 +21,6 @@ on:
         default: '5'
         type: string
 
-concurrency:
-  group: nightly-${{ github.ref }}
-  cancel-in-progress: false
-
 permissions:
   id-token: write
   contents: read
