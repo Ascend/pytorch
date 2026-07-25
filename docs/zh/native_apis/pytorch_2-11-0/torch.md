@@ -263,7 +263,7 @@
 |torch.isnan|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |torch.kthvalue|是|支持fp16，fp32，int32|
 |torch.le|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
-|torch.less_equal|是|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64|
+|torch.less_equal|是|支持bf16，fp16，fp32，fp64，uint8，uint16，int8，int16，int32，int64，bool|
 |torch.lt|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |torch.less|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
 |torch.maximum|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
