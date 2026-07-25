@@ -10,60 +10,58 @@
 #include "third_party/acl/inc/acl/super_kernel.h"
 
 struct PendingTensorData {
-    PendingTensorData(uintptr_t dataPtr, Py_ssize_t nbytes, PyObject* shape, PyObject* dtype)
-        : dataPtr(dataPtr), nbytes(nbytes), shape(shape), dtype(dtype)
-    {
-        Py_XINCREF(shape);
-        Py_XINCREF(dtype);
-    }
+  PendingTensorData(
+      uintptr_t dataPtr,
+      Py_ssize_t nbytes,
+      PyObject* shape,
+      PyObject* dtype)
+      : dataPtr(dataPtr), nbytes(nbytes), shape(shape), dtype(dtype) {
+    Py_XINCREF(shape);
+    Py_XINCREF(dtype);
+  }
 
-    uintptr_t dataPtr = 0;
-    Py_ssize_t nbytes = 0;
-    PyObject* shape = nullptr;
-    PyObject* dtype = nullptr;
+  uintptr_t dataPtr = 0;
+  Py_ssize_t nbytes = 0;
+  PyObject* shape = nullptr;
+  PyObject* dtype = nullptr;
 };
 
 struct PyFuncStruct {
-    PyFuncStruct(PyObject *pyFunc, PyObject *pyFuncArgs)
-        : pyFunc(pyFunc), pyFuncArgs(pyFuncArgs)
-        {
-            Py_XINCREF(pyFunc);
-            Py_XINCREF(pyFuncArgs);
-        }
+  PyFuncStruct(PyObject* pyFunc, PyObject* pyFuncArgs)
+      : pyFunc(pyFunc), pyFuncArgs(pyFuncArgs) {
+    Py_XINCREF(pyFunc);
+    Py_XINCREF(pyFuncArgs);
+  }
 
-    ~PyFuncStruct()
-    {
-        Py_XDECREF(pyFunc);
-        Py_XDECREF(pyFuncArgs);
-    }
+  ~PyFuncStruct() {
+    Py_XDECREF(pyFunc);
+    Py_XDECREF(pyFuncArgs);
+  }
 
-    PyObject* pyFunc = nullptr;
-    PyObject* pyFuncArgs = nullptr;
+  PyObject* pyFunc = nullptr;
+  PyObject* pyFuncArgs = nullptr;
 };
 
 struct PendingCallPayload {
-    PendingCallPayload(PyObject* pyFunc, PyObject* pyFuncArgs)
-        : pyFuncData(pyFunc, pyFuncArgs)
-    {
-    }
+  PendingCallPayload(PyObject* pyFunc, PyObject* pyFuncArgs)
+      : pyFuncData(pyFunc, pyFuncArgs) {}
 
-    ~PendingCallPayload()
-    {
-        Py_CLEAR(pyFuncData.pyFuncArgs);
-        for (auto& tensorData : pendingTensorData) {
-            Py_XDECREF(tensorData.shape);
-            Py_XDECREF(tensorData.dtype);
-        }
+  ~PendingCallPayload() {
+    Py_CLEAR(pyFuncData.pyFuncArgs);
+    for (auto& tensorData : pendingTensorData) {
+      Py_XDECREF(tensorData.shape);
+      Py_XDECREF(tensorData.dtype);
     }
+  }
 
-    PyFuncStruct pyFuncData;
-    std::vector<PendingTensorData> pendingTensorData;
+  PyFuncStruct pyFuncData;
+  std::vector<PendingTensorData> pendingTensorData;
 };
 
 struct ThreadArgs {
-    ThreadArgs(aclrtContext context, bool exitFlag)
-        : context(context), exitFlag(exitFlag) {}
+  ThreadArgs(aclrtContext context, bool exitFlag)
+      : context(context), exitFlag(exitFlag) {}
 
-    aclrtContext context;
-    bool exitFlag;
+  aclrtContext context;
+  bool exitFlag;
 };

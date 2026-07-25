@@ -55,7 +55,8 @@ std::string getThreadName() {
 
   // Use 16 bytes to store thread name.
   char thread_name[16] = {0};
-  int ret = pthread_getname_np(pthread_self(), thread_name, sizeof(thread_name));
+  int ret =
+      pthread_getname_np(pthread_self(), thread_name, sizeof(thread_name));
   if (ret != 0) {
     ASCEND_LOGE("Failed to get thread name, ret: %d", ret);
     return "";
@@ -193,7 +194,10 @@ void parseBindIrqMode(
       kDevicesIrqCores[i] = subset;
       devices_aff_cores[i].erase(devices_aff_cores[i].begin(), it);
     } else {
-      ASCEND_LOGW("Device-%d has %d cpu cores, irq will not be bound for this device.", i, cores);
+      ASCEND_LOGW(
+          "Device-%d has %d cpu cores, irq will not be bound for this device.",
+          i,
+          cores);
     }
   }
 }
@@ -451,8 +455,7 @@ CoreIdList getCoreList(c10::DeviceIndex device_id, ThreadType type) {
     core_list = kDevicesAffCores[device_id];
   } else {
     std::lock_guard<std::mutex> lock(kCoreMapMutex);
-    if (kDeviceThreadCoreMaps.find(device_id) ==
-        kDeviceThreadCoreMaps.end()) {
+    if (kDeviceThreadCoreMaps.find(device_id) == kDeviceThreadCoreMaps.end()) {
       kDeviceThreadCoreMaps.emplace(
           device_id, getCpuAffinityMap(device_id, kDevicesAffCores));
     }
@@ -580,7 +583,8 @@ void StartMainThreadBind(c10::DeviceIndex device_id) {
   if (!needToSetThreadAffinity() || kLocalThread == ThreadType::USER_THREAD) {
     return;
   }
-  // Make sure that the bind is only executed once per thread, otherwise, it will impact the performance of NPUGuardImpl::uncheckedSetDevice
+  // Make sure that the bind is only executed once per thread, otherwise, it
+  // will impact the performance of NPUGuardImpl::uncheckedSetDevice
   static thread_local bool bind_main_executed = false;
   if (bind_main_executed) {
     return;
@@ -601,15 +605,17 @@ void StartMainThreadBind(c10::DeviceIndex device_id) {
     NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
     if (!kDevicesIrqCores[device].empty()) {
       if (!c10_npu::bindIrqAffinity(device, kDevicesIrqCores[device])) {
-        ASCEND_LOGW("Failed to bind IRQ affinity for device %d. "
-          "This will result in 2 CPU cores remaining unused, potentially causing performance degradation. "
-          "Please set 'bind_irq=0' in the CPU_AFFINITY_CONF environment variable to disable IRQ binding.",
-          device);
+        ASCEND_LOGW(
+            "Failed to bind IRQ affinity for device %d. "
+            "This will result in 2 CPU cores remaining unused, potentially causing performance degradation. "
+            "Please set 'bind_irq=0' in the CPU_AFFINITY_CONF environment variable to disable IRQ binding.",
+            device);
       } else {
         ASCEND_LOGI("IRQ affinity for device %d bound successfully.", device);
       }
     } else {
-      ASCEND_LOGI("IRQ cpu cores for device %d is empty, skip binding.", device);
+      ASCEND_LOGI(
+          "IRQ cpu cores for device %d is empty, skip binding.", device);
     }
   });
 
@@ -623,7 +629,8 @@ void StartMainThreadBind(c10::DeviceIndex device_id) {
   if (!std::regex_match(thread_name, std::regex("pt_autograd_[0-9]+"))) {
     return;
   }
-  // During the first step, main thread sets affinity by autograd thread to avoid polluting child thread affinity
+  // During the first step, main thread sets affinity by autograd thread to
+  // avoid polluting child thread affinity
   CoreIdList core_list = getCoreList(device_id, ThreadType::MAIN_THREAD);
   cpu_set_t mask;
   CPU_ZERO(&mask);

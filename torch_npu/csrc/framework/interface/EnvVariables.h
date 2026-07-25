@@ -23,7 +23,7 @@ bool CheckStrongConsistency();
  Compatible configuration key.
  */
 enum class CompatibleKey {
-    Randomness,
+  Randomness,
 };
 
 /**

@@ -9,8 +9,8 @@ namespace at_npu {
 namespace native {
 namespace aoe {
 
-class AoeDumpGraphManager  {
-public:
+class AoeDumpGraphManager {
+ public:
   void SetDumpGraphPath(const std::string& dump_path);
   std::string GetDumpGraphPath() const;
 
@@ -19,7 +19,7 @@ public:
 
   void EnableAoe();
   bool IsAoeEnabled() const;
-  bool IsInWhitelist(const std::string &opName) const;
+  bool IsInWhitelist(const std::string& opName) const;
 
   bool aoe_enable = false;
   // to save graph for autotune, default path is ./
@@ -138,7 +138,7 @@ public:
       "LogSoftmaxV2",
       "SoftmaxGrad",
       "SoftmaxV2",
-    };
+  };
 };
 
 AoeDumpGraphManager& aoe_manager();

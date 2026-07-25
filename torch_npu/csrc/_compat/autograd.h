@@ -27,9 +27,8 @@ template <typename T>
 using GradFnPtr = c10::intrusive_ptr<T>;
 
 template <typename Op, typename... Args>
-inline GradFnPtr<Op> make_grad_fn(Args&&... args)
-{
-    return c10::make_intrusive<Op>(std::forward<Args>(args)...);
+inline GradFnPtr<Op> make_grad_fn(Args&&... args) {
+  return c10::make_intrusive<Op>(std::forward<Args>(args)...);
 }
 
 #else
@@ -38,10 +37,9 @@ template <typename T>
 using GradFnPtr = std::shared_ptr<T>;
 
 template <typename Op, typename... Args>
-inline GradFnPtr<Op> make_grad_fn(Args&&... args)
-{
-    return std::shared_ptr<Op>(
-        new Op(std::forward<Args>(args)...), torch::autograd::deleteNode);
+inline GradFnPtr<Op> make_grad_fn(Args&&... args) {
+  return std::shared_ptr<Op>(
+      new Op(std::forward<Args>(args)...), torch::autograd::deleteNode);
 }
 
 #endif
@@ -49,5 +47,5 @@ inline GradFnPtr<Op> make_grad_fn(Args&&... args)
 // Type used by SavedVariable::unpack() — see comment at top of file.
 using SavedForPtr = GradFnPtr<torch::autograd::Node>;
 
-}  // namespace compat
-}  // namespace torch_npu
+} // namespace compat
+} // namespace torch_npu

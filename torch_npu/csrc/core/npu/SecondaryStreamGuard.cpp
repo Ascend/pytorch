@@ -19,11 +19,10 @@
 
 namespace c10_npu {
 
-SecondaryStreamGuard::~SecondaryStreamGuard()
-{
-    c10_npu::NPUEvent npu_event;
-    npu_event.record(guard_.current_stream());
-    npu_event.block(guard_.original_stream());
+SecondaryStreamGuard::~SecondaryStreamGuard() {
+  c10_npu::NPUEvent npu_event;
+  npu_event.record(guard_.current_stream());
+  npu_event.block(guard_.original_stream());
 }
 
-}  // namespace c10_npu
+} // namespace c10_npu

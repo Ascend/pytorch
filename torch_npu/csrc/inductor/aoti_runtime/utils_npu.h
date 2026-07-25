@@ -13,7 +13,7 @@ namespace torch::aot_inductor {
 
 inline void delete_npu_guard(void* ptr) {
   AOTI_TORCH_ERROR_CODE_CHECK(
-    aoti_torch_delete_npu_guard(reinterpret_cast<NPUGuardHandle>(ptr)));
+      aoti_torch_delete_npu_guard(reinterpret_cast<NPUGuardHandle>(ptr)));
 }
 
 inline void delete_npu_stream_guard(void* ptr) {

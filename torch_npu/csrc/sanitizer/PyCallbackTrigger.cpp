@@ -4,9 +4,8 @@
 namespace c10_npu {
 namespace impl {
 
-PyCallbackTrigger* getPyCallbackTrigger(const int mode)
-{
-    return PyCallbackTrigger::instance(mode);
+PyCallbackTrigger* getPyCallbackTrigger(const int mode) {
+  return PyCallbackTrigger::instance(mode);
 }
 
 } // namespace impl

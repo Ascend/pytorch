@@ -45,75 +45,39 @@ command = [
 ]
 
 
-# [[linter]]
-# code = 'CLANGFORMAT'
-# include_patterns = [
-#     'aten/src/ATen/*.h',
-#     'aten/src/ATen/cpu/vec/**/*.h',
-#     'aten/src/ATen/accelerator/**/*.h',
-#     'aten/src/ATen/accelerator/**/*.cpp',
-#     'aten/src/ATen/mps/**/*.mm',
-#     'aten/src/ATen/mps/**/*.h',
-#     'aten/src/ATen/xpu/**/*.h',
-#     'aten/src/ATen/xpu/**/*.cpp',
-#     'aten/src/ATen/core/boxing/**/*.h',
-#     'aten/src/ATen/core/dispatch/**/*.h',
-#     'aten/src/ATen/core/Formatting.cpp',
-#     'aten/src/ATen/native/mps/**/*.metal',
-#     'aten/src/ATen/native/mps/**/*.mm',
-#     'aten/src/ATen/native/mps/**/*.h',
-#     'aten/src/ATen/native/vulkan/**/*.h',
-#     'aten/src/ATen/native/vulkan/**/*.cpp',
-#     'aten/src/ATen/native/cuda/MultiTensorApply.cuh',
-#     'aten/src/ATen/native/**/Foreach*.*',
-#     'aten/src/ATen/native/cuda/fused*.*',
-#     'aten/src/ATen/native/cuda/Fused*.cu',
-#     'aten/src/ATen/native/cudnn/*.h',
-#     'aten/src/ATen/native/cudnn/*.cpp',
-#     'aten/src/ATen/native/mkldnn/xpu/**/*.h',
-#     'aten/src/ATen/native/mkldnn/xpu/**/*.cpp',
-#     'aten/src/ATen/native/Tensor*.h',
-#     'aten/src/ATen/native/Tensor*.cpp',
-#     'c10/**/*.h',
-#     'c10/**/*.cpp',
-#     'torch_npu/csrc/**/*.h',
-#     'torch_npu/csrc/**/*.hpp',
-#     'torch_npu/csrc/**/*.cpp',
-#     'torch_npu/nativert/**/*.h',
-#     'torch_npu/nativert/**/*.cpp',
-#     'torch_npu/headeronly/**/*.h',
-#     'test/cpp/**/*.h',
-#     'test/cpp/**/*.cpp',
-# ]
-# exclude_patterns = [
-#     'aten/src/ATen/native/vulkan/api/vk_mem_alloc.h',
-#     'aten/src/ATen/native/mps/kernels/Quantized.metal',
-#     'c10/util/strong_type.h',
-#     '**/fb/**',
-#     'torch_npu/csrc/inductor/aoti_torch/generated/**',
-#     'torch_npu/csrc/jit/serialization/mobile_bytecode_generated.h',
-#     'torch_npu/csrc/utils/pythoncapi_compat.h',
-#     'torch_npu/csrc/core/npu/NPUCachingAllocator.cpp',
-#     'torch_npu/csrc/core/npu/NPUWorkspaceAllocator.cpp',
-#     'aten/src/ATen/dlpack.h',
-# ]
-# init_command = [
-#     'python3',
-#     'tools/linter/adapters/s3_init.py',
-#     '--config-json=tools/linter/adapters/s3_init_config.json',
-#     '--linter=clang-format',
-#     '--dry-run={{DRYRUN}}',
-#     '--output-dir=.lintbin',
-#     '--output-name=clang-format',
-# ]
-# command = [
-#     'python3',
-#     'tools/linter/adapters/clangformat_linter.py',
-#     '--binary=.lintbin/clang-format',
-#     '--',
-#     '@{{PATHSFILE}}'
-# ]
-# is_formatter = true
+[[linter]]
+code = 'CLANGFORMAT'
+include_patterns = [
+    'torch_npu/csrc/**/*.h',
+    'torch_npu/csrc/**/*.hpp',
+    'torch_npu/csrc/**/*.cpp',
+    'torch_npu/nativert/**/*.h',
+    'test/cpp/**/*.h',
+    'test/cpp/**/*.cpp',
+]
+exclude_patterns = [
+    '**/fb/**',
+    'torch_npu/csrc/inductor/aoti_torch/generated/**',
+    'torch_npu/csrc/jit/serialization/mobile_bytecode_generated.h',
+    'torch_npu/csrc/utils/pythoncapi_compat.h',
+]
+init_command = [
+    'python3',
+    'tools/linter/adapters/s3_init.py',
+    '--config-json=tools/linter/adapters/s3_init_config.json',
+    '--linter=clang-format',
+    '--dry-run={{DRYRUN}}',
+    '--output-dir=.lintbin',
+    '--output-name=clang-format',
+]
+command = [
+    'python3',
+    'tools/linter/adapters/clangformat_linter.py',
+    '--binary=.lintbin/clang-format',
+    '--',
+    '@{{PATHSFILE}}'
+]
+is_formatter = true
 
 
 # [[linter]]

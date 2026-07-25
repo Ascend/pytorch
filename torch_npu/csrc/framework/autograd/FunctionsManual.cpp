@@ -13,143 +13,135 @@ namespace autograd {
 namespace generated {
 namespace details {
 
-using at::Tensor;
-using at::Scalar;
-using at::IntArrayRef;
-using at::TensorList;
 using at::areAnyTensorSubclassLike;
+using at::IntArrayRef;
+using at::Scalar;
+using at::Tensor;
+using at::TensorList;
 
-Tensor apply_loss_reduction(const Tensor& unreduced, int64_t reduction)
-{
-    if (reduction == at::Reduction::Mean) {
-        return unreduced.mean();
-    } else if (reduction == at::Reduction::Sum) {
-        return unreduced.sum();
+Tensor apply_loss_reduction(const Tensor& unreduced, int64_t reduction) {
+  if (reduction == at::Reduction::Mean) {
+    return unreduced.mean();
+  } else if (reduction == at::Reduction::Sum) {
+    return unreduced.sum();
+  }
+  return unreduced;
+}
+
+bool any_variable_defined(const variable_list& variables) {
+  for (const auto& variable : variables) {
+    if (variable.defined()) {
+      return true;
     }
-    return unreduced;
+  }
+  return false;
 }
 
-bool any_variable_defined(const variable_list& variables)
-{
-    for (const auto& variable : variables) {
-        if (variable.defined()) {
-            return true;
-        }
-    }
-    return false;
+bool isDefined(const c10::optional<Tensor>& t) {
+  return t.has_value() && t->defined();
 }
 
-bool isDefined(const c10::optional<Tensor>& t)
-{
-    return t.has_value() && t->defined();
+Tensor toNonOptTensor(const c10::optional<Tensor>& t) {
+  return t.has_value() ? *t : Tensor();
 }
 
-Tensor toNonOptTensor(const c10::optional<Tensor>& t)
-{
-    return t.has_value() ? *t : Tensor();
+Tensor toNonOptFwGrad(const c10::optional<Tensor>& t) {
+  return (t.has_value() && t->defined()) ? t->_fw_grad(/* level */ 0)
+                                         : Tensor();
 }
 
-Tensor toNonOptFwGrad(const c10::optional<Tensor>& t)
-{
-    return (t.has_value() && t->defined()) ? t->_fw_grad(/* level */ 0) : Tensor();
+Tensor toNonOptPrimal(const c10::optional<Tensor>& t) {
+  return (t.has_value() && t->defined()) ? t->_fw_primal(/* level */ 0)
+                                         : Tensor();
 }
 
-Tensor toNonOptPrimal(const c10::optional<Tensor>& t)
-{
-    return (t.has_value() && t->defined()) ? t->_fw_primal(/* level */ 0) : Tensor();
+void update_wrapped_number(Tensor& input, Tensor& output) {
+  if (input.unsafeGetTensorImpl()->is_wrapped_number()) {
+    output.unsafeGetTensorImpl()->set_wrapped_number(true);
+  }
 }
 
-void update_wrapped_number(Tensor& input, Tensor& output)
-{
-    if (input.unsafeGetTensorImpl()->is_wrapped_number()) {
-        output.unsafeGetTensorImpl()->set_wrapped_number(true);
-    }
+void copy_range(variable_list& out, IndexRange range, const Tensor& t) {
+  AT_ASSERT(range.second <= out.size(), OPS_ERROR(ErrCode::PARAM));
+  AT_ASSERTM(
+      range.second - range.first == 1,
+      "inconsistent range for Tensor output",
+      OPS_ERROR(ErrCode::PARAM));
+  out[range.first] = t;
 }
 
-void copy_range(variable_list& out, IndexRange range, const Tensor& t)
-{
-    AT_ASSERT(range.second <= out.size(), OPS_ERROR(ErrCode::PARAM));
-    AT_ASSERTM(range.second - range.first == 1,
-               "inconsistent range for Tensor output",
-               OPS_ERROR(ErrCode::PARAM));
-    out[range.first] = t;
-}
-
-void copy_range(variable_list& out, IndexRange range, at::ArrayRef<Tensor> t)
-{
-    AT_ASSERT(range.second <= out.size(), OPS_ERROR(ErrCode::PARAM));
-    AT_ASSERTM(range.second - range.first == t.size(),
-               "inconsistent range for TensorList output",
-               OPS_ERROR(ErrCode::PARAM));
-    std::copy(t.begin(), t.end(), out.begin() + range.first);
+void copy_range(variable_list& out, IndexRange range, at::ArrayRef<Tensor> t) {
+  AT_ASSERT(range.second <= out.size(), OPS_ERROR(ErrCode::PARAM));
+  AT_ASSERTM(
+      range.second - range.first == t.size(),
+      "inconsistent range for TensorList output",
+      OPS_ERROR(ErrCode::PARAM));
+  std::copy(t.begin(), t.end(), out.begin() + range.first);
 }
 
 template <typename T>
-T not_implemented_base(const char* name, const char* reason)
-{
-    std::string msg = c10::str("the derivative for '", name, "' is not implemented.");
-    if (strlen(reason) > 0) {
-        msg = c10::str(msg, " ", reason);
-    };
-    TORCH_CHECK_NOT_IMPLEMENTED(false, msg);
+T not_implemented_base(const char* name, const char* reason) {
+  std::string msg =
+      c10::str("the derivative for '", name, "' is not implemented.");
+  if (strlen(reason) > 0) {
+    msg = c10::str(msg, " ", reason);
+  };
+  TORCH_CHECK_NOT_IMPLEMENTED(false, msg);
 }
 
-Tensor not_implemented(const char* name, const char* reason)
-{
-    return not_implemented_base<Tensor>(name, reason);
+Tensor not_implemented(const char* name, const char* reason) {
+  return not_implemented_base<Tensor>(name, reason);
 }
 
-std::vector<Tensor> not_implemented_list(const char* name, const char* reason)
-{
-    return not_implemented_base<std::vector<Tensor>>(name, reason);
+std::vector<Tensor> not_implemented_list(const char* name, const char* reason) {
+  return not_implemented_base<std::vector<Tensor>>(name, reason);
 }
 
-Tensor maybe_multiply(const Tensor& t, const Scalar& s)
-{
-    bool is_one = false;
-    if (s.isFloatingPoint()) {
-        is_one = s.toSymFloat() == 1;
-    } else if (s.isIntegral(true)) {
-        is_one = s.toSymInt() == 1;
-    }
+Tensor maybe_multiply(const Tensor& t, const Scalar& s) {
+  bool is_one = false;
+  if (s.isFloatingPoint()) {
+    is_one = s.toSymFloat() == 1;
+  } else if (s.isIntegral(true)) {
+    is_one = s.toSymInt() == 1;
+  }
 
-    if (is_one) {
-        return t;
-    } else {
-        return t * s;
-    }
+  if (is_one) {
+    return t;
+  } else {
+    return t * s;
+  }
 }
 
-Tensor cholesky_jvp(const Tensor& dA, const Tensor& L, bool upper)
-{
-    constexpr int64_t kDiagonalOffsetZero = 0;          // 对角线偏移量（主对角线）
-    constexpr int64_t kMatrixDimMinusTwo = -2;          // 矩阵倒数第二维（行维度）
-    constexpr int64_t kMatrixDimMinusOne = -1;          // 矩阵最后一维（列维度）
-    constexpr double kDiagonalScalingFactor = 0.5;      // 对角线元素缩放系数（1/2）
-    at::NoTF32Guard disable_tf32;
-    auto L_ = upper ? L.mH() : L;
-    auto dL = at::linalg_solve_triangular(L_, dA, false, true);
-    dL = at::linalg_solve_triangular(L_.mH(), dL, true, false);
-    dL = dL.tril() - dL.diagonal(kDiagonalOffsetZero, kMatrixDimMinusTwo, kMatrixDimMinusOne)
-                     .mul(kDiagonalScalingFactor)
-                     .diag_embed();
-    dL = L_.matmul(dL);
-    return upper ? dL.mH() : std::move(dL);
+Tensor cholesky_jvp(const Tensor& dA, const Tensor& L, bool upper) {
+  constexpr int64_t kDiagonalOffsetZero = 0; // 对角线偏移量（主对角线）
+  constexpr int64_t kMatrixDimMinusTwo = -2; // 矩阵倒数第二维（行维度）
+  constexpr int64_t kMatrixDimMinusOne = -1; // 矩阵最后一维（列维度）
+  constexpr double kDiagonalScalingFactor = 0.5; // 对角线元素缩放系数（1/2）
+  at::NoTF32Guard disable_tf32;
+  auto L_ = upper ? L.mH() : L;
+  auto dL = at::linalg_solve_triangular(L_, dA, false, true);
+  dL = at::linalg_solve_triangular(L_.mH(), dL, true, false);
+  dL = dL.tril() -
+      dL.diagonal(kDiagonalOffsetZero, kMatrixDimMinusTwo, kMatrixDimMinusOne)
+          .mul(kDiagonalScalingFactor)
+          .diag_embed();
+  dL = L_.matmul(dL);
+  return upper ? dL.mH() : std::move(dL);
 }
 
-Tensor cholesky_backward(const Tensor& gL, bool upper, const Tensor& L)
-{
-    constexpr double kSymmetrizeScalingFactor = 0.5;  // 对称化权重系数（1/2）
-    constexpr int64_t kSubdiagonalOffset = -1;        // 次对角线偏移量（表示严格下三角部分）
-    at::NoTF32Guard disable_tf32;
-    auto L_ = upper ? L.mH() : L;
-    auto gL_ = upper ? gL.mH() : gL;
+Tensor cholesky_backward(const Tensor& gL, bool upper, const Tensor& L) {
+  constexpr double kSymmetrizeScalingFactor = 0.5; // 对称化权重系数（1/2）
+  constexpr int64_t kSubdiagonalOffset =
+      -1; // 次对角线偏移量（表示严格下三角部分）
+  at::NoTF32Guard disable_tf32;
+  auto L_ = upper ? L.mH() : L;
+  auto gL_ = upper ? gL.mH() : gL;
 
-    auto gA = L_.mH().matmul(gL_).tril();
-    gA = kSymmetrizeScalingFactor * (gA + gA.tril(kSubdiagonalOffset).mH());
-    gA = at::linalg_solve_triangular(L_.mH(), gA, true, true);
-    gA = at::linalg_solve_triangular(L_, gA, false, false);
-    return gA;
+  auto gA = L_.mH().matmul(gL_).tril();
+  gA = kSymmetrizeScalingFactor * (gA + gA.tril(kSubdiagonalOffset).mH());
+  gA = at::linalg_solve_triangular(L_.mH(), gA, true, true);
+  gA = at::linalg_solve_triangular(L_, gA, false, false);
+  return gA;
 }
 
 } // namespace details

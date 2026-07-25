@@ -346,12 +346,15 @@ using RAIIDataPtr = std::unique_ptr<void, std::function<void(void*)>>;
 using torch::aot_inductor::RAIIAtenTensorHandle;
 
 #ifdef USE_NPU
-RAIIDataPtr RAII_npuMalloc(size_t num_bytes)
-{
+RAIIDataPtr RAII_npuMalloc(size_t num_bytes) {
 #ifdef AOT_INDUCTOR_USE_CACHING_ALLOCATOR
   void* data_ptr = nullptr;
-  AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_npu_caching_allocator_raw_alloc(num_bytes, &data_ptr));
-  auto deleter = [](void* ptr) { AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_npu_caching_allocator_raw_delete(ptr)); };
+  AOTI_TORCH_ERROR_CODE_CHECK(
+      aoti_torch_npu_caching_allocator_raw_alloc(num_bytes, &data_ptr));
+  auto deleter = [](void* ptr) {
+    AOTI_TORCH_ERROR_CODE_CHECK(
+        aoti_torch_npu_caching_allocator_raw_delete(ptr));
+  };
   return RAIIDataPtr(data_ptr, deleter);
 #else
   void* data_ptr;
@@ -359,8 +362,9 @@ RAIIDataPtr RAII_npuMalloc(size_t num_bytes)
   // e.g, model has no weight, we should do padding.
   size_t padding_bytes = 32;
   if (num_bytes == 0)
-      num_bytes = padding_bytes;
-  AOTI_RUNTIME_DEVICE_CHECK(aclrtMalloc((void**)&data_ptr, num_bytes, ACL_MEM_MALLOC_HUGE_FIRST));
+    num_bytes = padding_bytes;
+  AOTI_RUNTIME_DEVICE_CHECK(
+      aclrtMalloc((void**)&data_ptr, num_bytes, ACL_MEM_MALLOC_HUGE_FIRST));
   auto deleter = [](void* ptr) { AOTI_RUNTIME_DEVICE_CHECK(aclrtFree(ptr)); };
   return RAIIDataPtr(data_ptr, deleter);
 #endif
@@ -421,8 +425,10 @@ using ConstantMap =
 
 // valid device strs are: cpu, npu, npu:0, npu:1, ...
 // Update the list here if more devices are supported in the future
-inline void parse_device_str(const std::string& device_str, int32_t& device_type, int32_t& device_idx)
-{
+inline void parse_device_str(
+    const std::string& device_str,
+    int32_t& device_type,
+    int32_t& device_idx) {
   if (device_str.empty()) {
     AOTI_RUNTIME_CHECK(false, "Invalid device: " + device_str);
   }
@@ -453,7 +459,7 @@ inline void parse_device_str(const std::string& device_str, int32_t& device_type
     }
     for (char c : index_str) {
       if (!std::isdigit(c)) {
-          AOTI_RUNTIME_CHECK(false, "Invalid device: " + device_str);
+        AOTI_RUNTIME_CHECK(false, "Invalid device: " + device_str);
       }
     }
     try {
@@ -489,24 +495,26 @@ class AOTInductorModelBase {
     parse_device_str(device_str, device_type_, device_idx_);
 
 #ifdef USE_NPU
-        if (device_idx_ == -1) {
-            AOTI_RUNTIME_DEVICE_CHECK(aclrtSetDevice(0));
-            AOTI_RUNTIME_DEVICE_CHECK(aclrtGetDevice(&device_idx_));
-        } else {
-            AOTI_RUNTIME_DEVICE_CHECK(aclrtSetDevice(device_idx_));
-        }
+    if (device_idx_ == -1) {
+      AOTI_RUNTIME_DEVICE_CHECK(aclrtSetDevice(0));
+      AOTI_RUNTIME_DEVICE_CHECK(aclrtGetDevice(&device_idx_));
+    } else {
+      AOTI_RUNTIME_DEVICE_CHECK(aclrtSetDevice(device_idx_));
+    }
 #endif // USE_NPU
   }
 
   // NOLINTNEXTLINE(modernize-use-equals-default)
   ~AOTInductorModelBase() {
 #ifdef USE_NPU
-        if (run_finished_) {
-            auto code = aclrtDestroyEvent(*run_finished_);
-            if (code != ACL_SUCCESS) {
-                std::cerr << "Failed to destroy NPU event in AOTInductor model error code: " << code << std::endl;
-            }
-        }
+    if (run_finished_) {
+      auto code = aclrtDestroyEvent(*run_finished_);
+      if (code != ACL_SUCCESS) {
+        std::cerr
+            << "Failed to destroy NPU event in AOTInductor model error code: "
+            << code << std::endl;
+      }
+    }
 #endif // USE_NPU
   }
 
@@ -516,17 +524,16 @@ class AOTInductorModelBase {
   AOTInductorModelBase& operator=(const AOTInductorModelBase&) = delete;
 
 #if defined(USE_NPU)
-    DeviceStreamType normalize_run_stream(DeviceStreamType stream) const
-    {
-        if (stream != nullptr) {
-            return stream;
-        }
-
-        DeviceStreamType current_stream = nullptr;
-        AOTI_TORCH_ERROR_CODE_CHECK(
-            aoti_torch_get_current_npu_stream(device_idx_, reinterpret_cast<void**>(&current_stream)));
-        return current_stream;
+  DeviceStreamType normalize_run_stream(DeviceStreamType stream) const {
+    if (stream != nullptr) {
+      return stream;
     }
+
+    DeviceStreamType current_stream = nullptr;
+    AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_get_current_npu_stream(
+        device_idx_, reinterpret_cast<void**>(&current_stream)));
+    return current_stream;
+  }
 #endif
 
   void run(
@@ -540,15 +547,15 @@ class AOTInductorModelBase {
       DeviceStreamType stream,
       AOTIProxyExecutorHandle proxy_executor) {
 #if defined(USE_NPU)
-        auto run_stream = normalize_run_stream(stream);
-        if (!run_finished_) {
-            aclrtEvent run_finished;
-            AOTI_RUNTIME_DEVICE_CHECK(aclrtCreateEvent(&run_finished));
-            run_finished_.emplace(run_finished);
-        }
+    auto run_stream = normalize_run_stream(stream);
+    if (!run_finished_) {
+      aclrtEvent run_finished;
+      AOTI_RUNTIME_DEVICE_CHECK(aclrtCreateEvent(&run_finished));
+      run_finished_.emplace(run_finished);
+    }
 #else
-        auto run_stream = stream;
-        run_finished_ = false;
+    auto run_stream = stream;
+    run_finished_ = false;
 #endif
 
     auto* model = static_cast<Model*>(this);
@@ -576,9 +583,9 @@ class AOTInductorModelBase {
     // don't bother with any of the run_finished stuff; this is unsafe to call
     // in a threaded context
 #if defined(USE_NPU)
-        auto run_stream = normalize_run_stream(stream);
+    auto run_stream = normalize_run_stream(stream);
 #else
-        auto run_stream = stream;
+    auto run_stream = stream;
 #endif
     auto* model = static_cast<Model*>(this);
     model->run_impl(input_handles, output_handles, run_stream, proxy_executor);
@@ -591,9 +598,9 @@ class AOTInductorModelBase {
 #ifdef USE_NPU
     auto run_stream = normalize_run_stream(stream);
     if (!run_finished_) {
-        aclrtEvent run_finished;
-        AOTI_RUNTIME_DEVICE_CHECK(aclrtCreateEvent(&run_finished));
-        run_finished_.emplace(run_finished);
+      aclrtEvent run_finished;
+      AOTI_RUNTIME_DEVICE_CHECK(aclrtCreateEvent(&run_finished));
+      run_finished_.emplace(run_finished);
     }
 #else
     auto run_stream = stream;
@@ -701,8 +708,7 @@ class AOTInductorModelBase {
               constants_internal_offset[main_blob_idx],
               bytes_read,
               data_size,
-              /* skip_copy = */ false
-          );
+              /* skip_copy = */ false);
         } else {
           auto* aux_cpu_constants_ptr =
               static_cast<uint8_t*>(aux_cpu_constant_blob_.get());
@@ -784,15 +790,18 @@ class AOTInductorModelBase {
       size_t constant_offset,
       size_t bytes_read,
       size_t data_size,
-      bool skip_copy
-  ) {
+      bool skip_copy) {
     auto* constants_ptr = static_cast<uint8_t*>(constant_blob_.get());
     uint8_t* internal_ptr = constants_ptr + constant_offset;
     // TODO: Handle shared storage case.
     if (!skip_copy) {
 #if defined(USE_NPU)
-      AOTI_RUNTIME_DEVICE_CHECK(aclrtMemcpy(internal_ptr, data_size, _get_constants_start() + bytes_read,
-                                                  data_size, ACL_MEMCPY_HOST_TO_DEVICE));
+      AOTI_RUNTIME_DEVICE_CHECK(aclrtMemcpy(
+          internal_ptr,
+          data_size,
+          _get_constants_start() + bytes_read,
+          data_size,
+          ACL_MEMCPY_HOST_TO_DEVICE));
 #else
       memcpy(internal_ptr, _get_constants_start() + bytes_read, data_size);
 #endif
@@ -980,15 +989,16 @@ class AOTInductorModelBase {
   bool is_finished() {
 #if defined(USE_NPU)
     if (!run_finished_) {
-        throw std::runtime_error{"Model NPU event was not initialized"};
+      throw std::runtime_error{"Model NPU event was not initialized"};
     }
     aclrtEventRecordedStatus recordStatus = ACL_EVENT_RECORDED_STATUS_NOT_READY;
-    AOTI_RUNTIME_DEVICE_CHECK(aclrtQueryEventStatus(*run_finished_, &recordStatus));
+    AOTI_RUNTIME_DEVICE_CHECK(
+        aclrtQueryEventStatus(*run_finished_, &recordStatus));
 
     if (recordStatus == ACL_EVENT_RECORDED_STATUS_COMPLETE) {
-        return true;
+      return true;
     } else {
-        return false;
+      return false;
     }
 #else
     return run_finished_;

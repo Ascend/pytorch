@@ -191,7 +191,6 @@ void RegisterNPUDeviceProperties(PyObject* module) {
   });
 
   torch::inductor::initAOTIRunnerBindingsNpu(module);
-
 }
 
 std::string GetDeviceName() {
@@ -220,7 +219,8 @@ void initDeviceProperty(int64_t deviceid) {
     device_properties[deviceid].name = std::string(device_name);
   }
   static const bool is_cann_900beta2 = IsGteCANNVersion("9.0.0.beta2", "CANN");
-  bool device_info_avail = is_cann_900beta2 && c10_npu::acl::IsExistAclrtGetDeviceInfo();
+  bool device_info_avail =
+      is_cann_900beta2 && c10_npu::acl::IsExistAclrtGetDeviceInfo();
   if (device_info_avail) {
     int64_t tmp_device_total = 0;
     aclError acl_ret = c10_npu::acl::AclrtGetDeviceInfo(
@@ -230,8 +230,11 @@ void initDeviceProperty(int64_t deviceid) {
     if (acl_ret == ACL_ERROR_NONE) {
       device_total = static_cast<size_t>(tmp_device_total);
     } else {
-      TORCH_NPU_WARN_ONCE("AclrtGetDeviceInfo failed to get total global memory, "
-          "error code is ", acl_ret, ". The possible cause is that the driver version "
+      TORCH_NPU_WARN_ONCE(
+          "AclrtGetDeviceInfo failed to get total global memory, "
+          "error code is ",
+          acl_ret,
+          ". The possible cause is that the driver version "
           "is too old or does not match CANN. Fall back to aclrtGetMemInfo. "
           "Please upgrade the driver to the matching version.");
       NPU_CHECK_ERROR_WITHOUT_UCE(
@@ -465,7 +468,8 @@ void RegisterNpuPluggableAllocator(PyObject* module) {
           "set_get_device_stats_fn",
           [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self,
              uint64_t func_ptr) {
-            using FuncType = c10_npu::NPUCachingAllocator::DeviceStats(c10::DeviceIndex);
+            using FuncType =
+                c10_npu::NPUCachingAllocator::DeviceStats(c10::DeviceIndex);
             std::function<FuncType> func =
                 reinterpret_cast<FuncType*>(func_ptr);
             self.set_get_device_stats_fn(func);
@@ -591,11 +595,11 @@ void RegisterNpuPluggableAllocator(PyObject* module) {
           }
         }
         if (c10_npu::option::OptionsManager::CheckForceUncached()) {
-            TORCH_CHECK(
-                false,
-                "checkpoint do not support enabling PYTORCH_NO_NPU_MEMORY_CACHING, "
-                "Use torch_npu._C._npu_setCheckpointPoolState, ensure PYTORCH_NO_NPU_MEMORY_CACHING is disabled",
-                PTA_ERROR(ErrCode::PARAM));
+          TORCH_CHECK(
+              false,
+              "checkpoint do not support enabling PYTORCH_NO_NPU_MEMORY_CACHING, "
+              "Use torch_npu._C._npu_setCheckpointPoolState, ensure PYTORCH_NO_NPU_MEMORY_CACHING is disabled",
+              PTA_ERROR(ErrCode::PARAM));
         }
         auto delta = c10_npu::NPUCachingAllocator::setCheckpointPoolState(
             device, std::move(pps));
@@ -897,7 +901,8 @@ PyObject* THNPModule_restart_device_wrap(PyObject* self, PyObject* arg) {
   int device = THPUtils_unpackLong(arg);
   TORCH_NPU_RECOVERY_LOGI("NPU restart device start, device is %d.", device);
   if (!c10_npu::acl::IsExistAclrtRepairError()) {
-    // If aclrtRepairError is not exist in CANN (older version), only repair UCE memory.
+    // If aclrtRepairError is not exist in CANN (older version), only repair UCE
+    // memory.
     auto memUceInfo_ = c10_npu::get_mem_uce_info();
     if (memUceInfo_.retSize > 0) {
       TORCH_NPU_RECOVERY_LOGI(
@@ -914,11 +919,17 @@ PyObject* THNPModule_restart_device_wrap(PyObject* self, PyObject* arg) {
     c10_npu::clear_mem_uce_info();
   } else {
     auto error_info = c10_npu::get_device_error_info();
-    TORCH_NPU_RECOVERY_LOGI("get_device_error_info device is %d, errorType is %d.", error_info.device, error_info.info.errorType);
+    TORCH_NPU_RECOVERY_LOGI(
+        "get_device_error_info device is %d, errorType is %d.",
+        error_info.device,
+        error_info.info.errorType);
     if (error_info.is_valid && error_info.info.tryRepair) {
-      TORCH_NPU_RECOVERY_LOGI("NPU repair error start, device is %d.", error_info.device);
-      NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::acl::AclrtRepairError(error_info.device, &error_info.info));
-      TORCH_NPU_RECOVERY_LOGI("NPU repair error end, device is %d.", error_info.device);
+      TORCH_NPU_RECOVERY_LOGI(
+          "NPU repair error start, device is %d.", error_info.device);
+      NPU_CHECK_ERROR_WITHOUT_UCE(
+          c10_npu::acl::AclrtRepairError(error_info.device, &error_info.info));
+      TORCH_NPU_RECOVERY_LOGI(
+          "NPU repair error end, device is %d.", error_info.device);
     }
     c10_npu::clear_device_error_info();
   }
@@ -1482,7 +1493,9 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* arg) {
   if (arg && !Py_IsNone(arg)) {
     TORCH_CHECK(PyTuple_Check(arg), "Expected tuple or None");
     Py_ssize_t size = PyTuple_Size(arg);
-    TORCH_CHECK(size == 2, "Expected tuple of size 2 (mempool_id_first, mempool_id_second)");
+    TORCH_CHECK(
+        size == 2,
+        "Expected tuple of size 2 (mempool_id_first, mempool_id_second)");
     auto id1 = THPObjectPtr(PyTuple_GetItem(arg, 0));
     auto id2 = THPObjectPtr(PyTuple_GetItem(arg, 1));
     TORCH_CHECK(
@@ -2115,21 +2128,27 @@ PyObject* THNPModule_aclnn_reselect_static_kernel_with_path(
     PyObject* self,
     PyObject* arg) {
   HANDLE_TH_ERRORS
-  TORCH_CHECK(THPUtils_checkString(arg),
-              "path must be a string",
-              PTA_ERROR(ErrCode::PARAM));
+  TORCH_CHECK(
+      THPUtils_checkString(arg),
+      "path must be a string",
+      PTA_ERROR(ErrCode::PARAM));
   std::string path = THPUtils_unpackString(arg);
-  TORCH_CHECK(path.find('\0') == std::string::npos,
-              "path must not contain null byte",
-              PTA_ERROR(ErrCode::PARAM));
+  TORCH_CHECK(
+      path.find('\0') == std::string::npos,
+      "path must not contain null byte",
+      PTA_ERROR(ErrCode::PARAM));
   char abs_path[PATH_MAX] = {'\0'};
-  TORCH_CHECK(realpath(path.c_str(), abs_path) != nullptr,
-              "failed to resolve path: ", path,
-              PTA_ERROR(ErrCode::NOT_FOUND));
+  TORCH_CHECK(
+      realpath(path.c_str(), abs_path) != nullptr,
+      "failed to resolve path: ",
+      path,
+      PTA_ERROR(ErrCode::NOT_FOUND));
   struct stat st;
-  TORCH_CHECK(stat(abs_path, &st) == 0 && S_ISDIR(st.st_mode),
-              "path must be a directory: ", abs_path,
-              PTA_ERROR(ErrCode::PARAM));
+  TORCH_CHECK(
+      stat(abs_path, &st) == 0 && S_ISDIR(st.st_mode),
+      "path must be a directory: ",
+      abs_path,
+      PTA_ERROR(ErrCode::PARAM));
   std::string resolved_path(abs_path);
 
   NPUStatus ret = c10_npu::emptyAllNPUStream();
@@ -2145,7 +2164,8 @@ PyObject* THNPModule_aclnn_reselect_static_kernel_with_path(
     auto acl_call = [resolved_path]() -> int {
       return c10_npu::opapi::ReselectStaticKernelWithPath(resolved_path);
     };
-    at_npu::native::OpCommand::RunOpApiV2("reselect_static_kernel_with_path", acl_call);
+    at_npu::native::OpCommand::RunOpApiV2(
+        "reselect_static_kernel_with_path", acl_call);
     NPUStatus ret = c10_npu::emptyAllNPUStream();
     TORCH_CHECK(
         ret == NPU_STATUS_SUCCESS,
@@ -2153,7 +2173,8 @@ PyObject* THNPModule_aclnn_reselect_static_kernel_with_path(
         ret,
         PTA_ERROR(ErrCode::INTERNAL));
   } else {
-    NPU_CHECK_ERROR(c10_npu::opapi::ReselectStaticKernelWithPath(resolved_path));
+    NPU_CHECK_ERROR(
+        c10_npu::opapi::ReselectStaticKernelWithPath(resolved_path));
   }
 
   Py_RETURN_NONE;

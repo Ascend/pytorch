@@ -50,11 +50,11 @@ struct ConstantBufferSet {
 
   void* ensure_blob(size_t blob_size) {
     if (!blob) {
-      #if defined(USE_NPU)
-            blob = RAII_npuMalloc(blob_size);
-      #else
-            blob = RAII_cpuMalloc(blob_size);
-      #endif
+#if defined(USE_NPU)
+      blob = RAII_npuMalloc(blob_size);
+#else
+      blob = RAII_cpuMalloc(blob_size);
+#endif
     }
     return blob.get();
   }
@@ -675,7 +675,12 @@ class AOTInductorModelContainer {
             constants_blob_ptr + constants_internal_offset_[this_main_idx];
 
 #ifdef USE_NPU
-        aclrtMemcpy(internal_constants_ptr, constant_size, user_constant_ptr, constant_size, ACL_MEMCPY_DEFAULT);
+        aclrtMemcpy(
+            internal_constants_ptr,
+            constant_size,
+            user_constant_ptr,
+            constant_size,
+            ACL_MEMCPY_DEFAULT);
 #else
         memcpy(internal_constants_ptr, user_constant_ptr, constant_size);
 #endif
@@ -830,7 +835,6 @@ class AOTInductorModelContainer {
         pending_models_.end(),
         [](AOTInductorModel* m) { return !m->is_finished(); });
 #endif
-
     if (it != pending_models_.end()) {
       // We have finished model instances that can be pushed into
       // available_models_ so that we don't have to be blocked on waiting

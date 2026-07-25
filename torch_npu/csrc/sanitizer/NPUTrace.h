@@ -7,22 +7,21 @@ namespace c10_npu {
 namespace impl {
 
 struct NPUTrace {
-    static std::atomic<const PyCallbackTrigger*> npu_trace_state;
-    static bool have_state;
+  static std::atomic<const PyCallbackTrigger*> npu_trace_state;
+  static bool have_state;
 
-    // This function will only register the first interpreter that tries to invoke
-    // it. For all of the next ones it will be a no-op.
-    static void setTrace(const PyCallbackTrigger*);
-    static const PyCallbackTrigger* getTrace()
-    {
-        if (!have_state) {
-            return nullptr;
-        }
-        return npu_trace_state.load(std::memory_order_acquire);
+  // This function will only register the first interpreter that tries to invoke
+  // it. For all of the next ones it will be a no-op.
+  static void setTrace(const PyCallbackTrigger*);
+  static const PyCallbackTrigger* getTrace() {
+    if (!have_state) {
+      return nullptr;
     }
+    return npu_trace_state.load(std::memory_order_acquire);
+  }
 };
 
 C10_NPU_API void activateNPUTrace(const int);
 
 } // namespace impl
-} // namespace c10
+} // namespace c10_npu

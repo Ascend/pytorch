@@ -6,11 +6,13 @@
 
 namespace torch_npu {
 
-// NPUTensorImpl class is derived from c10::TensorImpl, and it is only used to handle an NPU tensor.
-// Its scope is just to handle an NPUTensor.
+// NPUTensorImpl class is derived from c10::TensorImpl, and it is only used to
+// handle an NPU tensor. Its scope is just to handle an NPUTensor.
 class NPUTensorImpl : public c10::TensorImpl {
-public:
-  explicit NPUTensorImpl(c10::Storage&& storage, const caffe2::TypeMeta& data_type);
+ public:
+  explicit NPUTensorImpl(
+      c10::Storage&& storage,
+      const caffe2::TypeMeta& data_type);
 
   void shallow_copy_from(const c10::intrusive_ptr<TensorImpl>& impl) final;
 
@@ -27,7 +29,7 @@ public:
       c10::VariableVersion&& version_counter,
       bool allow_tensor_metadata_change) const final;
 
-public:
+ public:
   NPUTensorImpl(const NPUTensorImpl&) = delete;
   NPUTensorImpl& operator=(const NPUTensorImpl&) = delete;
   NPUTensorImpl(NPUTensorImpl&&) = default;
@@ -35,4 +37,4 @@ public:
   ~NPUTensorImpl();
 };
 
-}  // namespace torch_npu
+} // namespace torch_npu

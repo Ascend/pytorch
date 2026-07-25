@@ -29,14 +29,16 @@ std::vector<at::Tensor>& scatter_out(
     const at::Tensor& tensor,
     std::vector<at::Tensor>& out_tensors,
     int64_t dim = 0,
-    const c10::optional<std::vector<c10::optional<c10_npu::NPUStream>>>& streams = c10::nullopt);
+    const c10::optional<std::vector<c10::optional<c10_npu::NPUStream>>>&
+        streams = c10::nullopt);
 
 std::vector<at::Tensor> scatter(
     const at::Tensor& tensor,
     at::IntArrayRef devices,
     const c10::optional<std::vector<int64_t>>& chunk_sizes = c10::nullopt,
     int64_t dim = 0,
-    const c10::optional<std::vector<c10::optional<c10_npu::NPUStream>>>& streams = c10::nullopt);
+    const c10::optional<std::vector<c10::optional<c10_npu::NPUStream>>>&
+        streams = c10::nullopt);
 
 at::Tensor& gather_out(
     at::TensorList tensors,
@@ -47,5 +49,5 @@ at::Tensor gather(
     at::TensorList tensors,
     int64_t dim,
     c10::optional<int32_t> destination_index);
-}
+} // namespace data_parallel
 } // namespace torch_npu

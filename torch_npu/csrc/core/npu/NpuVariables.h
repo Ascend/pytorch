@@ -44,5 +44,5 @@ bool IsSupportInfNan();
 bool IsBF16Supported();
 
 bool IsAclnnOnly();
-}  // namespace c10_npu
+} // namespace c10_npu
 #endif
