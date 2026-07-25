@@ -2,6 +2,8 @@ alexnet
 BERT_pytorch
 dcgan
 densenet121
+dlrm
+fastNLP_Bert
 hf_Albert
 hf_Bart
 hf_Bert
@@ -34,6 +36,7 @@ tts_angular
 vgg16
 nanogpt
 pyhpc_equation_of_state
+pyhpc_isoneutral_mixing
 resnet50_quantized_qat
 Super_SloMo
 timm_efficientnet

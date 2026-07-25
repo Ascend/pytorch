@@ -684,6 +684,41 @@ def _patch_model_27():
     )
 
 
+@register_patch("fastNLP_Bert")
+def _patch_fastNLP_Bert():
+    """Match upstream torchbenchmark fastNLP_Bert install patch.
+
+    The model creates an empty chinese_wwm_pytorch.bin for structure-only
+    benchmarking. Without this patch, BertModel.from_pretrained loads that
+    empty file and raises EOFError.
+    """
+    try:
+        from fastNLP.modules.encoder.bert import BertConfig, BertModel
+    except ImportError:
+        log.warning(
+            "Import fastNLP failed or could not get BertModel/BertConfig; "
+            "skip fastNLP_Bert patch"
+        )
+        return
+
+    original_from_pretrained = BertModel.from_pretrained.__func__
+
+    @classmethod
+    def from_pretrained_no_weights(cls, pretrained_model_dir_or_name, *args, **kwargs):
+        config_path = os.environ.get("TORCHBENCH_FASTNLP_CONFIG_PATH")
+        if not config_path:
+            candidate = os.path.join(pretrained_model_dir_or_name, "bert_config.json")
+            if os.path.isfile(candidate):
+                config_path = candidate
+        if config_path and os.path.isfile(config_path):
+            return cls(config=BertConfig.from_json_file(config_path))
+        return original_from_pretrained(
+            cls, pretrained_model_dir_or_name, *args, **kwargs
+        )
+
+    BertModel.from_pretrained = from_pretrained_no_weights
+
+
 def patch_model(model_name):
     if model_name not in _patch_table:
         return

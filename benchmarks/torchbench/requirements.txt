@@ -8,6 +8,8 @@ opencv-python-headless
 torchvision==0.27.0
 transformers==4.36.0
 timm
+fastNLP==0.6.0
+onnx
 
 # 语音处理
 kaldi_io
