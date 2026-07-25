@@ -250,9 +250,13 @@ def build_file_to_shards_map(cases_shards_dir: Path) -> Dict[str, List[str]]:
             shard_id = f"{shard_prefix}-{shard_num}"
 
             # Extract file paths from either "files" (v2 format) or "cases" (v1 format)
+            # v2 files can contain plain strings or dicts (sub-shard entries)
             file_paths = set()
             for f in data.get("files", []):
-                file_paths.add(f)
+                if isinstance(f, dict):
+                    file_paths.add(f.get("file", ""))
+                elif isinstance(f, str):
+                    file_paths.add(f)
             for case in data.get("cases", []):
                 file_paths.add(case.get("file", ""))
 
@@ -753,7 +757,9 @@ def main():
                 try:
                     shard_data = load_json_file(shard_file)
                     test_type = shard_data.get("test_type", "regular")
-                    for file_path in shard_data.get("files", []):
+                    for f in shard_data.get("files", []):
+                        # Handle both string entries and dict entries (sub-shard)
+                        file_path = f.get("file", "") if isinstance(f, dict) else f
                         if file_path and file_path not in all_files_from_jsonl:
                             all_files_from_jsonl[file_path] = {
                                 "file": file_path,
