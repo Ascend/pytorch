@@ -269,7 +269,18 @@ def rebuild_flattened_dims(indexing):
         if find_index_in_substitute(index, kernel):
             new_index = sympy_subs(index, kernel.expr_substituted)
             indexing[key] = new_index
+    # 删除kernel.expr_substituted中未使用的升维轴
+    for key, index in indexing.items():
+        index_symbols = index.free_symbols
+        remaining_del = [v for v in kernel.expr_substituted.values() if v not in index_symbols]
+        kernel.dim_up_temp.update(remaining_del)
 
+    if len(kernel.dim_up_temp) > 0:
+        keys_to_remove = [k for k, v in kernel.expr_substituted.items() if v in kernel.dim_up_temp]
+        for expr in keys_to_remove:
+            del kernel.expr_substituted[expr]
+        for var in kernel.dim_up_temp:
+            del kernel.range_tree_nodes[var]
     log.debug(
         "rebuild_flattened_dims: range_tree_nodes_substituted=%s, store_items=%s",
         kernel.range_tree_nodes_substituted,
@@ -1267,19 +1278,6 @@ def transform_dims_in_indexing(self, indices):
     if self.indexing is None:
         remove_zero_terms(self.indexing_exprs, self.var_ranges)
         generate_body_indexing(self, indices)
-
-    # Step 2: Check for dynamic shapes (only skip on A5 platform)
-    if should_skip_linearization_on_a5(self.var_ranges, self.indexing):
-        # A linearizable plain-value dynamic reduction stays on simt_template
-        # (full UB tile); indexed/Welford reductions and everything else fall
-        # back below.
-        if not is_linear_dynamic_reduction(self):
-            log.info(
-                "Skip memory access linearization due to dynamic shape on A5, var_ranges: %s",
-                self.var_ranges,
-            )
-            # Set SIMT_ONLY compile option for dynamic shapes on A5
-            raise ValueError(f"fallback to community simt for SIMT_ONLY compile option for dynamic shapes on A5")
 
     # Step 3: Perform memory access linearization
     log.debug(

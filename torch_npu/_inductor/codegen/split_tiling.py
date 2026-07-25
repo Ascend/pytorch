@@ -719,12 +719,15 @@ class SplitTiling:
                 for key, value in coefficients_dict.items():
                     if not key.free_symbols:
                         continue
-                    key = list(key.free_symbols)[0]
-                    if key not in self.kernel.range_tree_nodes:
+                    origin_key_free_symbols_len = len(list(key.free_symbols))
+                    axis = None
+                    for symbol_val in list(key.free_symbols):
+                        if symbol_val in self.kernel.range_tree_nodes:
+                            axis = self.kernel.range_tree_nodes[symbol_val]
+                            break
+                    if axis is None:
                         continue
-
-                    axis = self.kernel.range_tree_nodes[key]
-                    if value == sympy.Integer(1):
+                    if value == sympy.Integer(1) and origin_key_free_symbols_len == 1:
                         low_dims.add(axis.sorted_order)
                     else:
                         high_dims.add(axis.sorted_order)
