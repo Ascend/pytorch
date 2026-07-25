@@ -59,7 +59,14 @@ from .symbolic_grouping import (
 from torch._inductor.runtime.triton_heuristics import (  # noqa: F401
     fixed_config,
     user_autotune,
-    template
+    template,
+    FixedGrid,
+    SequentialComboKernelGrid,
+    PrecomputedGrid,
+    Grid1D,
+    Grid2D,
+    Grid2DWithYZOverflow,
+    Grid3D
 )
 
 from torch._inductor.runtime.runtime_utils import triton_hash_to_path_key

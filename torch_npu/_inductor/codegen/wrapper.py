@@ -9,7 +9,6 @@ from torch._inductor.codegen.wrapper import (
     SymbolicCallArg,
     pexpr,
 )
-from torch._inductor.runtime import triton_heuristics
 from torch._inductor.utils import (
     cache_on_self,
 )
@@ -223,22 +222,6 @@ class NPUPythonWrapperCodeGen(_NPUKernelCodegenMixin, PythonWrapperCodegen):
             self.imports.splice(
                 "import torch_npu._inductor.runtime.triton_heuristics as triton_heuristics"
             )
-
-    def generate_save_uncompiled_kernels(self):
-        # remove incorrect grid=(0,0,0) param
-        self.wrapper_call.splice(
-            f"""
-            for kernel in globals().values():
-                if isinstance(kernel, {triton_heuristics.__name__}.CachingAutotuner):
-                    if not kernel.cuda_kernel_saved:
-                        if len(kernel.launchers) == 0:
-                            kernel.precompile()
-                        kernel.save_gpu_kernel(
-                            stream="stream",  # use dummy stream
-                            launcher=kernel.launchers[0],
-                        )
-            """
-        )
 
     def write_prefix(self) -> None:
         super().write_prefix()

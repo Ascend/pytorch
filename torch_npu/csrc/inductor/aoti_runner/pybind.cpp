@@ -2,38 +2,18 @@
 #include <torch/csrc/utils/pybind.h>
 
 #ifdef USE_NPU
+#include <torch_npu/csrc/inductor/aoti_runner/pybind.h>
 #include <torch_npu/csrc/inductor/aoti_runner/model_container_runner_npu.h>
 #endif
 #include <torch/csrc/inductor/aoti_runner/model_container_runner_cpu.h>
-#include <torch/csrc/inductor/aoti_runner/pybind.h>
 #include <torch/csrc/inductor/aoti_torch/utils.h>
 #include <torch/csrc/inductor/aoti_torch/tensor_converter.h>
 
 namespace torch::inductor {
 
-void initAOTIRunnerBindings(PyObject* module) {
+void initAOTIRunnerBindingsNpu(PyObject* module) {
   auto rootModule = py::handle(module).cast<py::module>();
   auto m = rootModule.def_submodule("_aoti");
-
-  py::class_<AOTIModelContainerRunnerCpu>(m, "AOTIModelContainerRunnerCpu")
-      .def(py::init<const std::string&, int>())
-      .def(
-          "run",
-          &AOTIModelContainerRunnerCpu::run,
-          py::arg("inputs"),
-          py::arg("stream_handle") = nullptr)
-      .def("get_call_spec", &AOTIModelContainerRunnerCpu::get_call_spec)
-      .def(
-          "get_constant_names_to_original_fqns",
-          &AOTIModelContainerRunnerCpu::getConstantNamesToOriginalFQNs)
-      .def(
-          "get_constant_names_to_dtypes",
-          &AOTIModelContainerRunnerCpu::getConstantNamesToDtypes)
-      .def(
-          "update_constant_buffer",
-          static_cast<void (AOTIModelContainerRunnerCpu::*)(
-              std::unordered_map<std::string, at::Tensor>&, bool, bool, bool)>(
-              &AOTIModelContainerRunnerCpu::update_constant_buffer));
 
 #ifdef USE_NPU
   py::class_<AOTIModelContainerRunnerNpu>(m, "AOTIModelContainerRunnerNpu")

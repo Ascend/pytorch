@@ -1,5 +1,4 @@
 import dataclasses
-import os
 from contextlib import contextmanager
 from itertools import zip_longest
 from typing import Any, Optional, Union
@@ -102,7 +101,9 @@ class DeferredNpuTritonCallWrapper(DeferredTritonCallWrapper):
 
     def generate(self, wrapper: CppWrapperGpu):
         with self._patch_runtime_block_params() as params:
-            super().generate(wrapper)
+            # todo: support lazy compile for cpp_wrapper_npu
+            with config.patch("triton.autotune_at_compile_time", not V.graph.aot_mode):
+                super().generate(wrapper)
             cubin_path = params[get_cpp_wrapper_cubin_path_name()]
             if cubin_path not in V.graph.wrapper_code.additional_files:
                 V.graph.wrapper_code.additional_files.append(cubin_path)
@@ -133,14 +134,26 @@ class DeferredNpuTritonCallWrapper(DeferredTritonCallWrapper):
     def generate_load_kernel(self, prefix, kernel_var_name, params):
         prefix.writeline(f"if ({kernel_var_name} == nullptr) {{")
         with prefix.indent():
-            load_kernel_args = [
-                cpp_string_literal(params[get_cpp_wrapper_cubin_path_name()]),
-                cpp_string_literal(params["mangled_name"]),
-                # add mix_mode into kernel load param
-                cpp_string_literal(params["mix_mode"]),
-                str(params["shared_mem"]),
-                "cubin_dir_",
-            ]
+            embed_kernel_args = [f"__{params['inductor_meta']['kernel_name']}_start"]
+
+            if V.graph.aot_mode and config.aot_inductor.embed_kernel_binary:
+                load_kernel_args = [
+                    *embed_kernel_args,
+                    cpp_string_literal(params["mangled_name"]),
+                    # add mix_mode into kernel load param
+                    cpp_string_literal(params["mix_mode"]),
+                    str(params["shared_mem"]),
+                ]
+            else:
+                load_kernel_args = [
+                    cpp_string_literal(params[get_cpp_wrapper_cubin_path_name()]),
+                    cpp_string_literal(params["mangled_name"]),
+                    # add mix_mode into kernel load param
+                    cpp_string_literal(params["mix_mode"]),
+                    str(params["shared_mem"]),
+                    "cubin_dir_",
+                ]
+
             prefix.writeline(
                 f"{kernel_var_name} = loadKernel({', '.join(load_kernel_args)}); "
             )
@@ -171,6 +184,7 @@ class DeferredNpuTritonCallWrapper(DeferredTritonCallWrapper):
         prefix.writeline(
             r"launchKernel({}, {});".format("launch_call", f'"{kernel_var_name}"')
         )
+        # todo: add support for enable_kernel_profile
 
 
 class CppWrapperNpu(CppWrapperGpu):
@@ -194,80 +208,17 @@ class CppWrapperNpu(CppWrapperGpu):
         return CppWrapperNpu()
 
     def write_header(self):
-        if V.graph.is_const_graph:
-            # We do not write header for constant graph, it will be written by main module.
-            return
-
-        self.header.splice("#include <torch_npu/csrc/inductor/aoti_runtime/model.h>")
-        self.header.splice("#include <torch_npu/csrc/inductor/aoti_runtime/device_utils.h>")
-        self.header.splice("#include <torch_npu/csrc/inductor/aoti_runtime/utils_npu.h>")
-        self.header.splice(f"#include <torch_npu/csrc/inductor/aoti_torch/generated/c_shim_{self.device}.h>")
-
-        if not V.graph.aot_mode:
-            self.header.splice(
-                """
-                import torch
-                from torch._inductor.codecache import CppWrapperCodeCache
-
-                cpp_wrapper_src = (
-                r'''
-                """
-            )
-
-        for device in V.graph.device_types:
-            if device != "meta":
-                self.add_device_include(device)
-
-        if V.graph.aot_mode:
-            if config.aot_inductor.dynamic_linkage:
-                self.header.splice(self._adapt_community_interface_cpp())
-                self.header.splice("\n")
-            else:
-                # we produce a separate model header for each model in static linkage
-                self.header.splice(f"""#include \"{self.model_class_name_suffix}.h\"""")
-            self.header.splice("\n")
-
-        if config.cpp.enable_kernel_profile:
-            self.header.splice(
-                "#include <torch/csrc/inductor/aoti_runtime/kernel_context_tls.h>"
-            )
-            self.header.splice(
-                """
-                namespace torch::aot_inductor {
-                thread_local KernelContext* tls_kernel_context = nullptr;
-                }
-                """
-            )
-
-        self.header.splice(
-            maybe_hipify_code_wrapper(self.device_codegen.kernel_driver())
-        )
-
-    @staticmethod
-    def _adapt_community_interface_cpp() -> str:
-        """Reuse the upstream interface.cpp from torch and adapt it for NPU.
-
-        Instead of maintaining a duplicated copy, read the community
-        interface.cpp and apply the minimal NPU-specific transformations:
-        - Redirect model_container.h include to the torch_npu variant, since
-          NPU ships its own model container implementation.
-        - Default to "npu" instead of "cuda" in AOTInductorModelContainerCreate.
-        """
-        community_interface_path = os.path.join(
-            os.path.dirname(torch.__file__),
-            "_inductor",
-            "codegen",
-            "aoti_runtime",
-            "interface.cpp",
-        )
-        with open(community_interface_path) as f:
-            content = f.read()
-        content = content.replace(
-            "<torch/csrc/inductor/aoti_runtime/model_container.h>",
-            "<torch_npu/csrc/inductor/aoti_runtime/model_container.h>",
-        )
-        content = content.replace("cuda", "npu")
-        return content
+        self.header.splice(f"""
+            #include <torch_npu/csrc/inductor/aoti_runtime/model.h>
+            #include <torch_npu/csrc/inductor/aoti_runtime/device_utils.h>
+            #include <torch_npu/csrc/inductor/aoti_runtime/utils_npu.h>
+            #include <torch_npu/csrc/inductor/aoti_torch/generated/c_shim_{self.device}.h>
+        """)
+        super().write_header()
+        self.header = self.header.map(
+            lambda line: line.replace(
+                "<torch/csrc/inductor/aoti_include/common.h>",
+                "<torch_npu/csrc/inductor/aoti_include/common.h>") if isinstance(line, str) else line)
 
     def generate_node_numel_expr(self, kernel_name: str, node, numel_expr):
         expr = f"{kernel_name}_{node.name}_numel"
@@ -280,6 +231,12 @@ class CppWrapperNpu(CppWrapperGpu):
             self.writeline(f"{expr} = {cexpr(numel_expr)};")
         return SymbolicCallArg(expr, numel_expr)
 
+    @classmethod
+    def _get_triton_info_kernel_cls(cls):
+        from torch_npu._inductor.codegen.triton import NPUTritonKernel
+
+        return NPUTritonKernel
+
     def _generate_kernel_call_helper(
         self,
         kernel_name: str,
@@ -291,8 +248,10 @@ class CppWrapperNpu(CppWrapperGpu):
         raw_keys=None,
         raw_args=None,
         triton_meta=None,
+        inductor_meta=None,
         graph_name="",
         original_fxnode_name=None,
+        current_stream_idx=None,
     ):
         if (
             not triton
@@ -346,63 +305,56 @@ class CppWrapperNpu(CppWrapperGpu):
             raw_keys=raw_keys,
             raw_args=raw_args,
             triton_meta=triton_meta,
+            inductor_meta=inductor_meta,
             graph_name=graph_name,
             original_fxnode_name=original_fxnode_name,
+            current_stream_idx=current_stream_idx,
         )
         wrapper_name = f"call_{kernel_name}"
         if wrapper_name in self._triton_call_wrappers:
             # trans DeferredTritonCallWrapper to DeferredNpuTritonCallWrapper
             wrapper = self._triton_call_wrappers[wrapper_name]
-            current_kernel_id = next(self.kernel_callsite_id)
             npu_wrapper = DeferredNpuTritonCallWrapper(
                 wrapper_name=wrapper.wrapper_name,
                 kernel_name=wrapper.kernel_name,
-                arg_types=wrapper.arg_types,
                 kernel_name_to_body=self._kernel_name_to_body,
-                kernel_id=current_kernel_id,
+                arg_types=wrapper.arg_types,
+                triton_meta=wrapper.triton_meta,
+                inductor_meta=wrapper.inductor_meta,
+                tma_tensor_args=wrapper.tma_tensor_args,
             )
             self._triton_call_wrappers[wrapper_name] = npu_wrapper
 
     @staticmethod
-    def get_device_include_path(device: str) -> str:
-        common_include = """
-        #include <fstream>
-        #include <acl/acl.h>
-        #include <acl/acl_rt.h>
-        #include <runtime/runtime/rt.h>
-        #include <torch_npu/csrc/core/npu/NPUStream.h>
-        #include <torch_npu/csrc/framework/OpCommand.h>
-        """
-        if V.graph.aot_mode:
-            return f"""
-        {common_include}
-        #include <torch_npu/csrc/inductor/aoti_runtime/model_container.h>
-        #include <torch_npu/csrc/inductor/aoti_include/{device}.h>
-        """
-        return f"""
-        {common_include}
-        #include <torch_npu/csrc/inductor/cpp_wrapper/{device}.h>
-        """
+    def get_device_include_path_jit(device: str) -> str:
+        return f"#include <torch_npu/csrc/inductor/cpp_wrapper/{device}.h>"
+
+    @staticmethod
+    def get_device_include_path_aot(device: str) -> str:
+        return f"#include <torch_npu/csrc/inductor/aoti_include/{device}.h>"
 
     def add_device_include(self, device: str) -> None:
-        if device in self.included_devices:
-            return
+        # add acl, rt and torch_npu include
+        self.header.splice("""
+            #include <fstream>
+            #include <acl/acl.h>
+            #include <acl/acl_rt.h>
+            #include <runtime/runtime/rt.h>
+            #include <torch_npu/csrc/core/npu/NPUStream.h>
+            #include <torch_npu/csrc/framework/OpCommand.h>
+        """)
+        super().add_device_include(device)
 
-        self.included_devices.add(device)
-
-        # Add the default header for this device, plus any C-shim extensions that are
-        # present.
-        self.header.splice(self.get_device_include_path(device))
-        extend_aoti_c_shim_include = (
-            f"torch_npu/csrc/inductor/aoti_torch/generated/extend/c_shim_{self.device}.h"
-        )
-        extend_aoti_c_shim_path = os.path.join(
-            os.path.dirname(torch.__file__),
-            "include",
-            extend_aoti_c_shim_include,
-        )
-        if os.path.exists(extend_aoti_c_shim_path):
-            self.header.splice(f"#include <{extend_aoti_c_shim_include}>")
+    def _write_aoti_interface_header(self):
+        super()._write_aoti_interface_header()
+        self.header = self.header.map(
+            lambda line: line.replace(
+                "<torch/csrc/inductor/aoti_runtime/model_container.h>",
+                "<torch_npu/csrc/inductor/aoti_runtime/model_container.h>") if isinstance(line, str) else line)
+        self.header = self.header.map(
+            lambda line: line.replace(
+                "cuda",
+                "npu") if isinstance(line, str) else line)
 
     def generate(self, is_inference):
         with dynamo_timed("CppWrapperNpu.generate", log_pt2_compile_event=True):
@@ -521,7 +473,7 @@ static inline void load_{kernel_name}() {{
         self.prefix.writeline("\n")
         self.prefix.splice(old_prefix)
 
-    def codegen_tensor_item_npu(
+    def codegen_tensor_item(
         self, dtype: torch.dtype, tensor: str, scalar: str, indented_buffer=None
     ):
         dtype_str = str(dtype).split(".")[-1]
@@ -608,7 +560,7 @@ static inline void load_{kernel_name}() {{
             # ignore nvTmaDesc, as host-side TMA descriptors need
             # to be passed to the compiled Triton kernel by value
             if isinstance(arg_type, UnwrapUnspecArg) and arg_signature != "nvTmaDesc":
-                struct_data, arg_data = self.codegen_tensor_item_npu(
+                struct_data, arg_data = self.codegen_tensor_item(
                     arg_type.dtype,
                     arg,
                     var_name,

@@ -3,11 +3,12 @@
 #include <c10/core/DeviceType.h>
 #include <torch/extension.h>
 
+#include <torch/csrc/inductor/aoti_torch/utils.h>
 #include <torch_npu/csrc/core/npu/NPUFunctions.h>
 #include <torch_npu/csrc/core/npu/NPUGuard.h>
 #include <torch_npu/csrc/core/npu/NPUStream.h>
 #include <torch_npu/csrc/inductor/aoti_torch/c/shim.h>
-#include <torch_npu/csrc/inductor/aoti_torch/utils.h>
+#include <torch_npu/csrc/inductor/aoti_torch/c/shim_npu.h>
 
 #include <mutex>
 #include <optional>

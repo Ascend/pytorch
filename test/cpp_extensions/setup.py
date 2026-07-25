@@ -8,7 +8,7 @@ from torch_npu.testing.common_utils import set_npu_device
 
 set_npu_device()
 
-CXX_FLAGS = ['-g']
+CXX_FLAGS = ['-g', '-DUSE_NPU']
 
 USE_NINJA = os.getenv('USE_NINJA') == '1'
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

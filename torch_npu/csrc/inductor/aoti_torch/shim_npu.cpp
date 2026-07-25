@@ -77,77 +77,82 @@ AOTITorchError aoti_torch_create_tensor_from_blob_npu_v2(void* data, int64_t ndi
     });
 }
 
-AOTITorchError aoti_torch_create_npu_guard(int32_t device_index, NPUGuardHandle* ret_guard)
-{
-    AOTI_TORCH_CONVERT_EXCEPTION_TO_ERROR_CODE({
-        TORCH_CHECK(ret_guard != nullptr, "ret_guard is nullptr");
-        *ret_guard = nullptr;
-        c10_npu::NPUGuard* guard = new c10_npu::NPUGuard(static_cast<c10::DeviceIndex>(device_index));
-        *ret_guard = reinterpret_cast<NPUGuardHandle>(guard);
-    });
+AOTITorchError aoti_torch_create_npu_guard(
+    int32_t device_index,
+    NPUGuardHandle* ret_guard // returns new reference
+) {
+  AOTI_TORCH_CONVERT_EXCEPTION_TO_ERROR_CODE({
+    c10_npu::NPUGuard* guard = new c10_npu::NPUGuard(static_cast<c10::DeviceIndex>(device_index));
+    *ret_guard = reinterpret_cast<NPUGuardHandle>(guard);
+  });
 }
 
-AOTITorchError aoti_torch_delete_npu_guard(NPUGuardHandle guard)
-{
-    AOTI_TORCH_CONVERT_EXCEPTION_TO_ERROR_CODE({ delete reinterpret_cast<c10_npu::NPUGuard*>(guard); });
+AOTITorchError aoti_torch_delete_npu_guard(NPUGuardHandle guard) {
+  AOTI_TORCH_CONVERT_EXCEPTION_TO_ERROR_CODE(
+      { delete reinterpret_cast<c10_npu::NPUGuard*>(guard); });
 }
 
-AOTITorchError aoti_torch_npu_guard_set_index(NPUGuardHandle guard, int32_t device_index)
-{
-    AOTI_TORCH_CONVERT_EXCEPTION_TO_ERROR_CODE({
-        reinterpret_cast<c10_npu::NPUGuard*>(guard)->set_index(static_cast<c10::DeviceIndex>(device_index));
-    });
+AOTITorchError aoti_torch_npu_guard_set_index(
+    NPUGuardHandle guard,
+    int32_t device_index) {
+  AOTI_TORCH_CONVERT_EXCEPTION_TO_ERROR_CODE({
+    reinterpret_cast<c10_npu::NPUGuard*>(guard)->set_index(static_cast<c10::DeviceIndex>(device_index));
+  });
 }
 
-AOTITorchError aoti_torch_create_npu_stream_guard(void* stream, int32_t device_index, NPUStreamGuardHandle* ret_guard)
-{
-    AOTI_TORCH_CONVERT_EXCEPTION_TO_ERROR_CODE({
-        TORCH_CHECK(ret_guard != nullptr, "ret_guard is nullptr");
-        *ret_guard = nullptr;
-
-        auto raw_stream = static_cast<aclrtStream>(stream);
-        auto managed_stream = c10_npu::getNPUStreamFromManagedAclrtStream(
-            raw_stream, static_cast<c10::DeviceIndex>(device_index));
-        auto* guard = new c10_npu::NPUStreamGuard(static_cast<c10::Stream>(managed_stream));
-        *ret_guard = reinterpret_cast<NPUStreamGuardHandle>(guard);
-    });
+AOTITorchError aoti_torch_create_npu_stream_guard(
+    void* stream,
+    int32_t device_index,
+    NPUStreamGuardHandle* ret_guard) {
+  AOTI_TORCH_CONVERT_EXCEPTION_TO_ERROR_CODE({
+    auto raw_stream = static_cast<aclrtStream>(stream);
+    auto managed_stream = c10_npu::getNPUStreamFromManagedAclrtStream(
+        raw_stream, static_cast<c10::DeviceIndex>(device_index));
+    auto* guard = new c10_npu::NPUStreamGuard(static_cast<c10::Stream>(managed_stream));
+    *ret_guard = reinterpret_cast<NPUStreamGuardHandle>(guard);
+  });
 }
 
-AOTITorchError aoti_torch_delete_npu_stream_guard(NPUStreamGuardHandle guard)
-{
-    AOTI_TORCH_CONVERT_EXCEPTION_TO_ERROR_CODE({ delete reinterpret_cast<c10_npu::NPUStreamGuard*>(guard); });
+AOTITorchError aoti_torch_delete_npu_stream_guard(
+    NPUStreamGuardHandle guard) {
+  AOTI_TORCH_CONVERT_EXCEPTION_TO_ERROR_CODE(
+      { delete reinterpret_cast<c10_npu::NPUStreamGuard*>(guard); });
 }
 
-AOTITorchError aoti_torch_get_current_npu_stream(int32_t device_index, void** ret_stream)
-{
-    AOTI_TORCH_CONVERT_EXCEPTION_TO_ERROR_CODE({
-        TORCH_CHECK(ret_stream != nullptr, "ret_stream is nullptr");
-        *ret_stream = reinterpret_cast<void*>(
-            c10_npu::getCurrentNPUStream(static_cast<c10::DeviceIndex>(device_index)).stream());
-    });
+AOTITorchError aoti_torch_get_current_npu_stream(
+    int32_t device_index,
+    void** ret_stream) {
+  AOTI_TORCH_CONVERT_EXCEPTION_TO_ERROR_CODE({
+    *ret_stream = reinterpret_cast<void*>(
+      c10_npu::getCurrentNPUStream(static_cast<c10::DeviceIndex>(device_index)).stream());
+  });
 }
 
-AOTITorchError aoti_torch_npu_caching_allocator_raw_alloc(uint64_t nbytes, void** ret_ptr)
-{
-    AOTI_TORCH_CONVERT_EXCEPTION_TO_ERROR_CODE({
-        TORCH_CHECK(ret_ptr != nullptr, "ret_ptr is nullptr");
-        *ret_ptr = nullptr;
-        if (nbytes == 0) {
-            return AOTI_TORCH_SUCCESS;
-        }
+AOTITorchError aoti_torch_npu_caching_allocator_raw_alloc(
+    uint64_t nbytes,
+    void** ret_ptr) {
+  AOTI_TORCH_CONVERT_EXCEPTION_TO_ERROR_CODE({
+    if (nbytes == 0) {
+      *ret_ptr = nullptr;
+      return AOTI_TORCH_SUCCESS;
+    }
 
-        *ret_ptr = c10_npu::NPUCachingAllocator::raw_alloc(nbytes);
+    *ret_ptr = c10_npu::NPUCachingAllocator::raw_alloc(nbytes);
 
-        TORCH_CHECK(
-            *ret_ptr != nullptr, "Failed to allocate ", nbytes, " bytes from NPU caching allocator");
-    });
+    if (*ret_ptr == nullptr) {
+      TORCH_CHECK(
+          false,
+          "Failed to allocate ",
+          nbytes,
+          " bytes from NPU caching allocator");
+    }
+  });
 }
 
-AOTITorchError aoti_torch_npu_caching_allocator_raw_delete(void* ptr)
-{
-    AOTI_TORCH_CONVERT_EXCEPTION_TO_ERROR_CODE({
-        if (ptr != nullptr) {
-            c10_npu::NPUCachingAllocator::raw_delete(ptr);
-        }
-    });
+AOTITorchError aoti_torch_npu_caching_allocator_raw_delete(void* ptr) {
+  AOTI_TORCH_CONVERT_EXCEPTION_TO_ERROR_CODE({
+    if (ptr != nullptr) {
+      c10_npu::NPUCachingAllocator::raw_delete(ptr);
+    }
+  });
 }

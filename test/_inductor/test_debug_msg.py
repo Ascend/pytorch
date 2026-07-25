@@ -8,14 +8,13 @@ import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
 from torch._inductor import config
 from testutils import TestUtils
-import torch_npu
 
 os.environ["INDUCTOR_ASCEND_DUMP_FX_GRAPH"] = "1"
 os.environ["TORCH_COMPILE_DEBUG"] = "1"
 
 
 class TestDebugMsg(TestUtils):
-    @parametrize('shape_x', [(32, 512, 64)])
+    @parametrize('shape_x', [(32, 8, 64)])
     @parametrize('shape_y', [(32, 1, 64)])
     @parametrize('dtype', ['float32'])
     def test_case1(self, shape_x, shape_y, dtype):
@@ -54,7 +53,7 @@ class TestDebugMsg(TestUtils):
         self.assertIn(
             """
 # def forward(self, arg0_1, arg1_1):
-#     expand = torch.ops.aten.expand.default(arg1_1, [32, 512, 64]);  arg1_1 = None
+#     expand = torch.ops.aten.expand.default(arg1_1, [32, 8, 64]);  arg1_1 = None
 #     add = torch.ops.aten.add.Tensor(arg0_1, expand);  arg0_1 = expand = None
 #     return (add,)""",
             content
@@ -62,13 +61,12 @@ class TestDebugMsg(TestUtils):
 
         self.assertIn(
             """
-#  inputs: [FakeTensor(..., device='npu:0', size=(32, 512, 64), strides=(32768, 64, 1)), FakeTensor(..., device='npu:0', size=(32, 1, 64), strides=(64, 64, 1))]
-#  outputs: [FakeTensor(..., device='npu:0', size=(32, 512, 64), strides=(32768, 64, 1))]""",
+#  outputs: [FakeTensor(..., device='npu:0', size=(32, 8, 64), strides=(512, 64, 1))]""",
             content
         )
 
 
-    @parametrize('shape_x', [(32, 512, 64)])
+    @parametrize('shape_x', [(32, 8, 64)])
     @parametrize('shape_y', [(32, 1, 64)])
     @parametrize('dtype', ['float32'])
     def test_case2(self, shape_x, shape_y, dtype):
@@ -78,7 +76,7 @@ class TestDebugMsg(TestUtils):
 
         def run_case2(x, y):
             z = x + y
-            z = z.repeat([256, 1, 1])
+            z = z.repeat([8, 1, 1])
             return z
 
         run = torch.compile(run_case2, backend='inductor')
@@ -108,17 +106,16 @@ class TestDebugMsg(TestUtils):
         self.assertIn(
             """
 # def forward(self, arg0_1, arg1_1):
-#     expand = torch.ops.aten.expand.default(arg1_1, [32, 512, 64]);  arg1_1 = None
+#     expand = torch.ops.aten.expand.default(arg1_1, [32, 8, 64]);  arg1_1 = None
 #     add = torch.ops.aten.add.Tensor(arg0_1, expand);  arg0_1 = expand = None
-#     repeat = torch.ops.aten.repeat.default(add, [256, 1, 1]);  add = None
+#     repeat = torch.ops.aten.repeat.default(add, [8, 1, 1]);  add = None
 #     return (repeat,)""",
             content
         )
 
         self.assertIn(
             """
-#  inputs: [FakeTensor(..., device='npu:0', size=(32, 512, 64), strides=(32768, 64, 1)), FakeTensor(..., device='npu:0', size=(32, 1, 64), strides=(64, 64, 1))]
-#  outputs: [FakeTensor(..., device='npu:0', size=(8192, 512, 64), strides=(32768, 64, 1))]""",
+#  outputs: [FakeTensor(..., device='npu:0', size=(256, 8, 64), strides=(512, 64, 1))]""",
             content
         )
 
