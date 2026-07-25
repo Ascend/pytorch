@@ -92,6 +92,7 @@ def _load_triton_backend():
         patch_get_cpp_torch_device_options,
         patch_get_optimization_cflags,
     )
+    from .codegen.cpp_utils import patch_device_to_aten
     from .decomposition import _register_triton_decompositions
     from .dependencies import patch_extract_read_writes
     from .fx_passes import patch_pattern_mm_plus_mm
@@ -141,6 +142,7 @@ def _load_triton_backend():
     patch_get_cpp_wrapper_header()
     patch_get_cpp_torch_device_options()
     patch_constant_fold_uniform_value()
+    patch_device_to_aten()
 
     if npu_config.dump_fx_graph:
         from .codegen.ir_fx import _patch_npu_inductor_ir
