@@ -414,7 +414,14 @@ def patch_algorithm_selector() -> None:
     specific to NPU hardware.
     """
 
-    def __call__(
+    from torch._inductor.select_algorithm import AlgorithmSelectorCache
+
+    original_call = AlgorithmSelectorCache.__call__
+    original_make_benchmark_fn = AlgorithmSelectorCache.__dict__[
+        "make_benchmark_fn"
+    ].__func__
+
+    def npu_call(
         self,
         name: str,
         choices: List[ChoiceCaller],
@@ -454,7 +461,7 @@ def patch_algorithm_selector() -> None:
         if len(choices) == 1:
             if not isinstance(choices[0], CATLASSTemplateCaller):
                 # CATLASSTemplateCaller still needs to go through autotuning process to retrieve workspace size.
-                return choices[0].output_node()
+                return choices[0].output_node(), choices[0]
 
         @functools.lru_cache(None)
         def make_benchmark_fn():
@@ -674,27 +681,29 @@ def patch_algorithm_selector() -> None:
                 if isinstance(c, TritonTemplateCaller):
                     allowed_prologue_inps |= c.allowed_prologue_inps
 
-            return torch._inductor.ir.TensorBox.create(
-                torch._inductor.ir.MultiTemplateBuffer(
-                    layout,
-                    input_nodes,
-                    get_timings,
-                    choices,
-                    allowed_prologue_inps,
-                )
+            return (
+                torch._inductor.ir.TensorBox.create(
+                    torch._inductor.ir.MultiTemplateBuffer(
+                        layout,
+                        input_nodes,
+                        get_timings,
+                        choices,
+                        allowed_prologue_inps,
+                    )
+                ),
+                None,
             )
 
         timings = do_autotuning(precompile_fn)
         if timings == {} or choices[0] not in timings:
-            return choices[0].output_node()
+            return choices[0].output_node(), choices[0]
 
         selected_key = builtins.min(timings, key=timings.__getitem__)
-        selected_choice = selected_key.output_node()
-        log.debug("selected choice: %s", str(selected_choice))
-        return selected_choice
+        selected_node = selected_key.output_node()
+        log.debug("selected choice: %s", str(selected_node))
+        return selected_node, selected_key
 
-    @classmethod
-    def make_benchmark_fn(
+    def npu_make_benchmark_fn(
         cls,
         choices: List[ChoiceCaller],
         input_nodes: list[ir.IRNode],
@@ -978,7 +987,78 @@ def patch_algorithm_selector() -> None:
 
         return benchmark
 
-    from torch._inductor.select_algorithm import AlgorithmSelectorCache
+    @functools.wraps(original_call, assigned=(), updated=())
+    def __call__(
+        self,
+        name,
+        choices,
+        input_nodes,
+        layout,
+        input_gen_fns=None,
+        precompilation_timeout_seconds=60 * 60,
+        return_multi_template=False,
+        best_config_future=None,
+        is_collective=False,
+        min_speedup_threshold=1.0,
+        benchmark_with_cudagraphs=False,
+    ):
+        args = (
+            self,
+            name,
+            choices,
+            input_nodes,
+            layout,
+            input_gen_fns,
+            precompilation_timeout_seconds,
+            return_multi_template,
+            best_config_future,
+            is_collective,
+            min_speedup_threshold,
+            benchmark_with_cudagraphs,
+        )
+        if layout.device.type != "npu":
+            return original_call(*args)
+        return npu_call(
+            self,
+            name,
+            choices,
+            input_nodes,
+            layout,
+            input_gen_fns,
+            precompilation_timeout_seconds,
+            return_multi_template,
+        )
+
+    @classmethod
+    @functools.wraps(
+        original_make_benchmark_fn, assigned=(), updated=()
+    )
+    def make_benchmark_fn(
+        cls,
+        choices,
+        input_nodes,
+        layout,
+        input_gen_fns,
+        hint_override=None,
+        is_collective=False,
+    ):
+        if layout.device.type != "npu":
+            return original_make_benchmark_fn(
+                cls,
+                choices,
+                input_nodes,
+                layout,
+                input_gen_fns,
+                hint_override,
+                is_collective,
+            )
+        return npu_make_benchmark_fn(
+            cls,
+            choices,
+            input_nodes,
+            layout,
+            input_gen_fns,
+        )
 
     AlgorithmSelectorCache.__call__ = __call__
     AlgorithmSelectorCache.make_benchmark_fn = make_benchmark_fn

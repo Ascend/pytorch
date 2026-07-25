@@ -27,7 +27,7 @@ from torch.utils._ordered_set import OrderedSet
 from torch._inductor.codegen.simd import CandidateTiling
 
 from .npu_kernel_features import NumelList, NPUKernelFeatures
-from .triton import NPUIndexTritonKernel, NPUTritonKernel, NPUTritonKernelWithLoop, flatten
+from .triton import NPUIndexTritonKernel, NPUTritonKernel, flatten
 from .triton_combo_kernel import NPUComboKernel
 from .. import config as npu_config
 from ..lowering_fx import (
@@ -51,12 +51,7 @@ def flatten_groups(nums):
     return res
 
 class NPUNoLinearTritonScheduling(TritonScheduling):
-    def __init__(self, input_scheduler):
-        super().__init__(input_scheduler)
-        from ..config import inductor_ascend_linear_mode
-        self.kernel_type = NPUTritonKernel
-        if inductor_ascend_linear_mode == 'no_linear_loop':
-            self.kernel_type = NPUTritonKernelWithLoop
+    kernel_type = NPUTritonKernel
 
 class NPUTritonScheduling(TritonScheduling):
     kernel_type = NPUIndexTritonKernel

@@ -7,11 +7,10 @@ from torch._inductor.async_compile import AsyncCompile
 AsyncCompile.warm_pool()
 os.environ["TORCH_DEVICE_BACKEND_AUTOLOAD"] = ORG_AUTOLOAD
 
-import os
-from torch_npu.utils._dynamo import _dynamo_register_interface_for_device, patch_SkipFunctionVariable, patch_TensorVariable_call_method  # noqa: B950
+from torch_npu.utils._dynamo import _dynamo_register_interface_for_device
 # all backends need register npu/cpu/mps device_op_overrides
 from .graph import patch_codegen_with_cpp_wrapper
-from .utils import patch_has_triton, patch_device_supports_tma, patch_is_gpu, get_current_raw_stream
+from .utils import patch_has_triton, patch_device_supports_tma, patch_is_gpu
 # All backends need npu/cpu/mps device_op_overrides.
 from .codegen.common import register_device_op_overrides_npu, patch_cache_base_get_system
 from ._npu_meta_registration import npu_patch_meta
@@ -39,13 +38,12 @@ def _load_ascendc_backend():
 
 def _load_mlir_backend():
     _apply_common_patches()
-    import torch
     try:
         import torch_mlir
         from torch_mlir import ir
     except ImportError as e:
         raise ImportError("torch_mlir is not installed, install it first.") from e
-    from .ascend_npu_ir.ascend_npu_ir.npu import npu_inductor_plugin, torch_mlir_patch
+    from .ascend_npu_ir.ascend_npu_ir.npu import torch_mlir_patch
     from .lowering_patch import apply_mlir_inductor_patch
     from .ascend_npu_ir.ascend_npu_ir.npu.npu_inductor_plugin import (
         register_mlir_codegen_backend,
@@ -57,7 +55,6 @@ def _load_mlir_backend():
 def _load_dvm_backend():
     _apply_common_patches()
     import torch
-    from .ascend_npu_ir.ascend_npu_ir.npu import npu_inductor_plugin
     from .lowering_patch import apply_mlir_inductor_patch
     from .ascend_npu_ir.ascend_npu_ir.npu.npu_inductor_plugin import (
         register_mlir_codegen_backend,
@@ -67,14 +64,11 @@ def _load_dvm_backend():
     from .dvm import mlir_fusion
     has_triton = torch.utils._triton.has_triton()
     if has_triton:
-        from .codegen.triton import patch_triton_scheduling
         from .runtime import patch_triton_heuristics_cached_autotune
-        patch_triton_scheduling()
         patch_triton_heuristics_cached_autotune()
 
 def _load_triton_backend():
     _apply_common_patches()
-    import os
     import torch
     has_triton = torch.utils._triton.has_triton()
     if not has_triton:
@@ -84,34 +78,20 @@ def _load_triton_backend():
     import logging
     log = logging.getLogger(__name__)
 
-    import torch
     from torch._dynamo.device_interface import get_interface_for_device
     from torch._inductor import lowering as inductor_lowering
-    from torch._inductor.codegen.common import (
-        register_backend_for_device,
-        register_device_op_overrides,
-    )
+    from torch._inductor.codegen.common import register_backend_for_device
     from torch.nn.attention import flex_attention
 
-    from . import codegen, config as npu_config
+    from . import config as npu_config
     from .async_compile import patch_async_compile
     from .codecache import patch_get_cpp_wrapper_header
     from .codegen._sizevars import patch_simplify
     from .codegen.ir import patch_indexing, patch_loop_body
-    from .codegen.triton import (
-        patch_triton_scheduling,
-    )
-    from .config import (
-        aggresive_autotune,
-        log as npulog,
-        max_precompiled_thread_num,
-        num_vector_core,
-    )
     from .cpp_builder import (
         patch_get_cpp_torch_device_options,
         patch_get_optimization_cflags,
     )
-    from .codegen.cpp_utils import patch_device_to_aten
     from .decomposition import _register_triton_decompositions
     from .dependencies import patch_extract_read_writes
     from .fx_passes import patch_pattern_mm_plus_mm
@@ -135,12 +115,12 @@ def _load_triton_backend():
         patch_load_cached_autotuning,
         patch_triton_heuristics_cached_autotune,
     )
-    from .scheduler import patch_scheduler, patch_get_graph_partition_signature
+    from .scheduler import patch_scheduler
     from .select_algorithm import patch_algorithm_selector
     from .utils import patch_get_first_incompatible_cudagraph_node
 
     from .graph import patch_count_bytes
-    from .autotune_process import patch_tuning_process, patch_tuning_process_pool
+    from .autotune_process import patch_tuning_process
     flex_attention._validate_device = _validate_device
 
     def _inductor_register_backend_for_device():
@@ -154,14 +134,13 @@ def _load_triton_backend():
 
     _inductor_register_backend_for_device()
 
-    device = get_interface_for_device("npu")
+    get_interface_for_device("npu")
 
     inductor_lowering.make_reduction = make_reduction
 
     patch_get_cpp_wrapper_header()
     patch_get_cpp_torch_device_options()
     patch_constant_fold_uniform_value()
-    patch_device_to_aten()
 
     if npu_config.dump_fx_graph:
         from .codegen.ir_fx import _patch_npu_inductor_ir
@@ -169,9 +148,11 @@ def _load_triton_backend():
         _patch_npu_inductor_ir()
 
     from .lowering import (
+        LOWERING_OVERRIDE_OP,
         _enable_full_lowering_fallback,
         _register_npu_inductor_fallbacks,
     )
+    from .lowering_patch import install_device_lowering_dispatch
 
     _register_triton_decompositions()
 
@@ -185,6 +166,7 @@ def _load_triton_backend():
         _register_npu_inductor_grouped_mm()
 
     _register_npu_inductor_flex_attention()
+    install_device_lowering_dispatch(LOWERING_OVERRIDE_OP)
 
     patch_pattern_mm_plus_mm()
     patch_algorithm_selector()
@@ -194,8 +176,6 @@ def _load_triton_backend():
     patch_num_splits()
     patch_loop_body()
     patch_indexing()
-    patch_triton_scheduling()
-
     patch_create_device_properties()
     patch_load_cached_autotuning()
     patch_triton_heuristics_cached_autotune()
@@ -207,36 +187,11 @@ def _load_triton_backend():
 
         parallel_scheduler()
 
-    # register fx_pass should be put behind of _register_triton_decompositions
-    def _replace_benchmark_all_configs():
-        from torch._inductor.runtime.triton_heuristics import CachingAutotuner
-
-        from .runtime.triton_heuristics import (
-            _benchmark_all_configs,
-            benchmark_all_configs,
-        )
-
-        CachingAutotuner._benchmark_all_configs = _benchmark_all_configs
-        CachingAutotuner.benchmark_all_configs = benchmark_all_configs
-
-    def _replace_precompile():
-        from .runtime.triton_heuristics import NPUCachingAutotuner, precompile_parallel
-
-        NPUCachingAutotuner.precompile = precompile_parallel
-
-    if aggresive_autotune:
-        _replace_benchmark_all_configs()
-
-    if max_precompiled_thread_num > 1:
-        _replace_precompile()
-
     patch_get_first_incompatible_cudagraph_node()
-    patch_get_graph_partition_signature()
     patch_get_optimization_cflags()
     patch_extract_read_writes()
     patch_count_bytes()
     patch_tuning_process()
-    patch_tuning_process_pool()
 
     def add_additional_op():
         from torch._inductor.ops_handler import OpsHandler

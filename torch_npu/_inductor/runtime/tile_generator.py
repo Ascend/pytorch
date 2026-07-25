@@ -4,8 +4,8 @@ import sys
 from torch._inductor.runtime.runtime_utils import next_power_of_2
 from torch._inductor.runtime.triton_heuristics import Config
 
-from .triton_utils import get_byte_per_numel, NPUKernelType
 from .. import config
+from ..codegen.triton_utils import get_byte_per_numel, NPUKernelType
 
 
 def aligned_numel_32byte(numel, dtype_bytes):

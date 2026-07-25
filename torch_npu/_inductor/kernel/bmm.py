@@ -122,4 +122,7 @@ def _register_npu_inductor_bmm():
             log.warning("No choices for GEMM, using ATen backend as fallback")
             choices.append(aten_bmm.bind((mat1, mat2), layout))
 
-        return autotune_select_algorithm("bmm", choices, [mat1, mat2], layout)
+        node, _ = autotune_select_algorithm(
+            "bmm", choices, [mat1, mat2], layout
+        )
+        return node

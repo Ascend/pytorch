@@ -9,7 +9,6 @@ import torch_npu  # noqa: F401
 src_code_1 = '''
 import triton
 import triton.language as tl
-from triton.compiler.compiler import AttrsDescriptor
 
 from torch._inductor.runtime import triton_helpers, triton_heuristics
 from torch._inductor.runtime.triton_helpers import libdevice, math as tl_math
@@ -28,11 +27,12 @@ import torch_npu
     'device': DeviceProperties(type='npu', index=0, multi_processor_count=40, cc='Ascend910B3',
                                   major=None, regs_per_multiprocessor=None, max_threads_per_multi_processor=None, warp_size=32),
                                   'constants': {}, 'mix_mode': 'aiv'},
-    inductor_meta={'autotune_hints': set(), 'kernel_name': 'triton_unk_fused_add_0', 'mutated_arg_names': [],
+    inductor_meta={'grid_type': 'GridNpu', 'autotune_hints': set(), 'kernel_name': 'triton_unk_fused_add_0', 'mutated_arg_names': [],
                    'backend_hash': 'bc71dba4086164e7ac2b0779fa861dbf7467f0265d4a57b8f48cf6dda02b150f', 'split_axis': [0],
-                   'tiling_axis': [0, 1], 'no_loop_axis': [1], 'axis_names': ['y0', 'x1'], 'low_dims': {1}, 'numof_reduction_axis': 0, 'inductor_ascend_linear_mode': 'linear',
+                   'tiling_axis': [0, 1], 'no_loop_axis': [1], 'axis_names': ['y0', 'x1'],
+                   'axis_static_values': (('y0', 16384), ('x1', 32)), 'low_dims': {1}, 'numof_reduction_axis': 0,
                    'split_axis_dtype': torch.float16, 'dual_reduction': False, 'traced_graph_hash': 'TRACED_GRAPH_HASH',
-                   'traced_graph_dir': 'TRACED_GRAPH_DIR'},
+                   'traced_graph_dir': 'TRACED_GRAPH_DIR', 'runtime_block_arg_names': ('Y0BLOCK',)},
     min_elem_per_thread=0
 )
 @triton.jit

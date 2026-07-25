@@ -13,7 +13,7 @@ from torch._inductor.scheduler import (
 )
 
 from ..autotune_process import FusedCATLASSBenchmarkRequest
-from ..config import is_ascend950, log
+from ..config import log
 from .catlass.catlass_scheduling import CATLASSScheduling
 from .scheduling import NPUNoLinearTritonScheduling, NPUTritonScheduling
 
@@ -74,31 +74,20 @@ class NPUCombinedScheduling(CUDACombinedScheduling, TritonScheduling):
                 template_node, epilogue_nodes, prologue_nodes
             )
 
-    def node_can_linear(self):
-        # user config use linear scheduling for ascend.
-        from ..config import inductor_ascend_linear_mode
-
-        if inductor_ascend_linear_mode != "linear":
-            return False
-        return True
-
     def codegen_node(self, node: FusedSchedulerNode | SchedulerNode):
-        if not is_ascend950:
+        try:
             return self._triton_scheduling.codegen_node(node)
-
-        if self.node_can_linear():
-            try:
-                return self._triton_scheduling.codegen_node(node)
-            except Exception:
-                log.debug(
-                    "linear codegen for node %s raise error, fallback to origin codegen",
-                    node,
-                    exc_info=True,
-                )
-        # regroup snode
+        except Exception:
+            log.debug(
+                "index codegen for node %s failed, falling back to no-linear codegen",
+                node,
+                exc_info=True,
+            )
         for snode in node.get_nodes():
-            group_fn = self._nolinear_triton_scheduling.group_fn
-            snode.group = (snode.group[0], group_fn(snode._sizes))
+            snode.group = (
+                snode.group[0],
+                self._nolinear_triton_scheduling.group_fn(snode._sizes),
+            )
         return self._nolinear_triton_scheduling.codegen_node(node)
 
     def benchmark_codegened_module(self, module):

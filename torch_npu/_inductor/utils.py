@@ -14,9 +14,11 @@ def get_current_raw_stream(device):
 
 
 def patch_is_gpu():
-    from torch._inductor.utils import GPU_TYPES
+    from torch._inductor.utils import GPU_TYPES, get_gpu_type
 
-    GPU_TYPES.append("npu")
+    if "npu" not in GPU_TYPES:
+        GPU_TYPES.append("npu")
+    get_gpu_type.cache_clear()
 
 
 def resolve_npu_device_index(device_idx=None) -> int:

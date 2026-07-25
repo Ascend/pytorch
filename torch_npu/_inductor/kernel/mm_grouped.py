@@ -266,7 +266,7 @@ def _tuned_grouped_mm_common(
         ),
     }
 
-    tb = autotune_select_algorithm(
+    tb, _ = autotune_select_algorithm(
         algorithm_name, choices, input_nodes, layout, input_gen_fns=input_gen_fns
     )
     return [tb]

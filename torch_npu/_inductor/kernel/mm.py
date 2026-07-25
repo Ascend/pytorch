@@ -111,7 +111,10 @@ def _register_npu_inductor_mm():
             choices.append(lazy_register_extern_choice(k).bind((mat1, mat2), layout))
 
         try:
-            return autotune_select_algorithm(name, choices, [mat1, mat2], layout)
+            node, _ = autotune_select_algorithm(
+                name, choices, [mat1, mat2], layout
+            )
+            return node
         except NoValidChoicesError:
             if not inductor_config.autotune_fallback_to_aten:
                 raise
@@ -182,9 +185,10 @@ def _register_npu_inductor_addmm():
                 if use_aten_gemm_kernels()
                 else []
             )
-            return autotune_select_algorithm(
+            node, _ = autotune_select_algorithm(
                 "addmm", choices, [inp, mat1, mat2], layout
             )
+            return node
 
         choices = (
             [
@@ -261,9 +265,10 @@ def _register_npu_inductor_addmm():
             )
 
         try:
-            return autotune_select_algorithm(
+            node, _ = autotune_select_algorithm(
                 "addmm", choices, [inp_expanded, mat1, mat2], layout
             )
+            return node
         except NoValidChoicesError:
             if not inductor_config.autotune_fallback_to_aten:
                 raise

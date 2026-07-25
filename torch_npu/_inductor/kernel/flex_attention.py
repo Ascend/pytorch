@@ -1586,16 +1586,14 @@ def _register_npu_inductor_flex_attention():
             6: create_num_blocks_fake_generator(full_kv_indices),
             7: create_indices_fake,
         }
-        return (
-            autotune_select_algorithm(
-                "flex_attention",
-                choices,
-                inputs_for_autotuning,
-                layout,
-                input_gen_fns=input_gen_fns,
-            ),
-            logsumexp,
+        selected, _ = autotune_select_algorithm(
+            "flex_attention",
+            choices,
+            inputs_for_autotuning,
+            layout,
+            input_gen_fns=input_gen_fns,
         )
+        return selected, logsumexp
 
     @register_lowering(torch.ops.higher_order.flex_attention_backward, type_promotion_kind=None)
     def flex_attention_backward(*args, **kwargs):
@@ -1908,7 +1906,7 @@ def _register_npu_inductor_flex_attention():
             15: create_indices_fake,
         }
 
-        broadcasted_grad_key = autotune_select_algorithm(
+        broadcasted_grad_key, _ = autotune_select_algorithm(
             "flex_attention_backward",
             choices,
             inputs_for_autotuning,

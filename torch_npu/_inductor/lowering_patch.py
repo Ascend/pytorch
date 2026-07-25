@@ -9,14 +9,22 @@
 from __future__ import annotations
 
 import copy
+import functools
 import importlib
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import Any, Callable, Optional
+
+import torch
+import torch.utils._pytree as pytree
 
 from .lowering_common import LOWERING_REGISTRY_ATTRS, get_module_functions
 
 _BASELINE: Optional["LoweringSnapshot"] = None
 _INDUCTOR_ATTR_BASELINE = None
+_DEVICE_DISPATCH_MARKER = "_torch_npu_device_lowering_dispatch"
+_UPSTREAM_HANDLER_ATTR = "_torch_npu_upstream_handler"
+_DEVICE_HANDLER_ATTR = "_torch_npu_device_handler"
 
 
 @dataclass
@@ -72,6 +80,91 @@ def capture_lowering_baseline() -> LoweringSnapshot:
         make_reduction=getattr(lowering, "make_reduction", None),
     )
     return _BASELINE
+
+
+def _expand_lowering_targets(ops: Iterable[Any]) -> list[Any]:
+    targets = []
+    seen = set()
+    for op in ops:
+        candidates = [op]
+        if isinstance(op, torch._ops.OpOverloadPacket):
+            candidates.extend(op.op_overloads())
+        for target in candidates:
+            if target not in seen:
+                seen.add(target)
+                targets.append(target)
+    return targets
+
+
+def _iter_ir_device_types(value: Any):
+    for leaf in pytree.tree_leaves(value):
+        get_device = getattr(leaf, "get_device", None)
+        if not callable(get_device):
+            continue
+        try:
+            device = get_device()
+        except NotImplementedError:
+            continue
+        device_type = getattr(device, "type", None)
+        if device_type is not None:
+            yield device_type
+
+
+def _uses_device_lowering(
+    args: tuple[Any, ...],
+    kwargs: dict[str, Any],
+    device_type: str,
+) -> bool:
+    layout = kwargs.get("layout")
+    layout_device_type = getattr(
+        getattr(layout, "device", None), "type", None
+    )
+    if layout_device_type is not None:
+        return layout_device_type == device_type
+    return device_type in _iter_ir_device_types((args, kwargs))
+
+
+def _make_device_lowering_dispatcher(
+    upstream_handler: Callable[..., Any],
+    device_handler: Callable[..., Any],
+    device_type: str,
+) -> Callable[..., Any]:
+    @functools.wraps(device_handler)
+    def dispatcher(*args, **kwargs):
+        handler = (
+            device_handler
+            if _uses_device_lowering(args, kwargs, device_type)
+            else upstream_handler
+        )
+        return handler(*args, **kwargs)
+
+    setattr(dispatcher, _DEVICE_DISPATCH_MARKER, True)
+    setattr(dispatcher, _UPSTREAM_HANDLER_ATTR, upstream_handler)
+    setattr(dispatcher, _DEVICE_HANDLER_ATTR, device_handler)
+    return dispatcher
+
+
+def install_device_lowering_dispatch(
+    ops: Iterable[Any], device_type: str = "npu"
+) -> None:
+    baseline = capture_lowering_baseline()
+    lowering = _get_inductor_lowering()
+
+    for target in _expand_lowering_targets(ops):
+        upstream_handler = baseline.lowerings_copy.get(target)
+        device_handler = lowering.lowerings.get(target)
+        if (
+            upstream_handler is None
+            or device_handler is None
+            or device_handler is upstream_handler
+            or getattr(device_handler, _DEVICE_DISPATCH_MARKER, False)
+        ):
+            continue
+        lowering.lowerings[target] = _make_device_lowering_dispatcher(
+            upstream_handler,
+            device_handler,
+            device_type,
+        )
 
 
 def restore_lowering_baseline() -> None:

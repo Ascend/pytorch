@@ -1,29 +1,36 @@
-import torch
-from torch._inductor.pattern_matcher import CallFunction, KeywordArg, LoweringPatternEntry
-from torch._inductor.fx_passes.post_grad import pass_patterns, is_valid_mm_plus_mm
+import functools
 
-aten = torch.ops.aten
+import torch.utils._pytree as pytree
+from torch._inductor.fx_passes import post_grad
+from torch._inductor.pattern_matcher import LoweringPatternEntry
+
+
+def _is_npu_match(match):
+    return any(
+        getattr(getattr(value, "device", None), "type", None) == "npu"
+        for node in pytree.tree_leaves((match.args, match.kwargs))
+        for value in pytree.tree_leaves(getattr(node, "meta", {}).get("val"))
+    )
+
+
+def _npu_aware_extra_check(src_check):
+    @functools.wraps(src_check)
+    def extra_check(match):
+        return not _is_npu_match(match) and src_check(match)
+
+    return extra_check
 
 
 def patch_pattern_mm_plus_mm():
-
-    def is_mm_plus_mm(entry) -> bool:
-        if isinstance(entry, LoweringPatternEntry):
-            handler_name = getattr(entry.handler, '__name__', '')
-            return handler_name == 'mm_plus_mm'
-        return False
-
-    pattern = CallFunction(
-        aten.add,
-        CallFunction(aten.mm, KeywordArg("mat1"), KeywordArg("mat2")),
-        CallFunction(aten.mm, KeywordArg("mat3"), KeywordArg("mat4")),
-        extra_check=is_valid_mm_plus_mm
-    )
-
-    # currently, torch_npu does not support mm_plus_mm fusion
-    for fn in pattern.fns:
-        index = None
-        for i, pattern_entry in enumerate(pass_patterns[1].patterns[(pattern.op, fn)]):
-            if is_mm_plus_mm(pattern_entry):
-                pass_patterns[1].patterns[(pattern.op, fn)].pop(i)
-                break
+    # Keep the shared pattern registered for other devices. NPU does not yet
+    # support this lowering, so only narrow its applicability predicate.
+    seen_entries = set()
+    for entries in post_grad.pass_patterns[1].patterns.values():
+        for entry in entries:
+            if (
+                id(entry) not in seen_entries
+                and isinstance(entry, LoweringPatternEntry)
+                and entry.handler is post_grad.mm_plus_mm
+            ):
+                seen_entries.add(id(entry))
+                entry.extra_check = _npu_aware_extra_check(entry.extra_check)

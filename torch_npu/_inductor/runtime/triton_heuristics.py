@@ -14,13 +14,12 @@ import csv
 import uuid
 import threading
 from itertools import count
-from typing import Any, Callable, Dict, Literal, Optional, Union, List
+from typing import Any, Dict, Literal, Optional, Union, List
 from contextlib import contextmanager
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 import torch
 import triton
 from torch._dynamo.testing import rand_strided
-from torch._dynamo.utils import dynamo_timed
 from torch._inductor import config
 from torch._inductor.runtime.autotune_cache import AutotuneCache
 from torch._inductor.runtime.benchmarking import TritonBenchmarker
@@ -32,6 +31,8 @@ from torch._inductor.utils import triton_version_uses_attrs_dict
 from torch.utils._ordered_set import OrderedSet
 from torch._inductor.runtime.triton_heuristics import (
     CachingAutotuner,
+    CachingAutotunerPlugin,
+    DEFER,
     HeuristicType,
     unique_configs,
     hash_configs,
@@ -89,7 +90,7 @@ import torch_npu
 
 from torch_npu._inductor.npu_compare import check_accuracy_triton
 
-from ..codegen.tile_generator import TileGenerator
+from .tile_generator import TileGenerator
 from ..codegen.triton_utils import NPUKernelType
 from ..config import log, autotune_continue_on_failure
 from .. import config as npu_config
@@ -243,6 +244,8 @@ class GridExprNpu(GridExpr):
         grid_type = inductor_meta["grid_type"]
 
         grid_cls = globals().get(grid_type)
+        if grid_cls is None:
+            return GridExpr.from_meta(inductor_meta, cfg, mode)
         if not issubclass(grid_cls, GridNpu):
             grid = grid_cls(inductor_meta=inductor_meta, mode=mode)
             if isinstance(cfg, Config):
@@ -324,6 +327,23 @@ class GridExprNpu(GridExpr):
         grid.y_grid = grouped_grid_fn(1)
         grid.z_grid = grouped_grid_fn(2)
         return grid
+
+
+def _create_launcher_grid(
+    inductor_meta,
+    cfg,
+    numels,
+    runtime_block_names,
+):
+    if inductor_meta.get("group_enabled", False):
+        return GridExprNpu.from_grouped_meta_and_numel(
+            inductor_meta,
+            cfg,
+            numels,
+            runtime_block_names=runtime_block_names,
+        )
+    return GridExprNpu.from_meta_and_set_numel(inductor_meta, cfg, numels)
+
 
 class TritonCompileResultNpu(TritonCompileResult):
     def make_launcher(self):
@@ -497,22 +517,15 @@ class TritonCompileResultNpu(TritonCompileResult):
             for arg in fn.arg_names
             if "_numel" in arg
         ]
-        linear_mode = self.inductor_meta.get('inductor_ascend_linear_mode', 'no_linear')
         runtime_block_names = tuple(
             self.inductor_meta.get("runtime_block_arg_names", ())
         )
-        grid = None
-        if self.inductor_meta.get("group_enabled", False):
-            grid = GridExprNpu.from_grouped_meta_and_numel(
-                self.inductor_meta,
-                cfg,
-                numels,
-                runtime_block_names=runtime_block_names,
-            )
-        elif linear_mode == 'no_linear' and not runtime_block_names:
-            grid = GridExpr.from_meta(self.inductor_meta, cfg)
-        else:
-            grid = GridExprNpu.from_meta_and_set_numel(self.inductor_meta, cfg, numels)
+        grid = _create_launcher_grid(
+            self.inductor_meta,
+            cfg,
+            numels,
+            runtime_block_names,
+        )
         # grid.prefix is usually empty, grid.x_grid is something like `-(xnumel//-1024)`
         lines = [
             f"def launcher({', '.join(def_args)}, stream):",
@@ -549,6 +562,14 @@ class TritonCompileResultNpu(TritonCompileResult):
             launcher.call_args = call_args
         return launcher
 
+
+class _NPUSkipPrecompilePlugin(CachingAutotunerPlugin):
+    def pre_compile(self, autotuner):
+        if getattr(autotuner, "skip_precompile", False):
+            return None
+        return DEFER
+
+
 class NPUCachingAutotuner(CachingAutotuner):
     def __init__(
             self,
@@ -569,6 +590,7 @@ class NPUCachingAutotuner(CachingAutotuner):
         super().__init__(fn, triton_meta, configs, save_cache_hook, mutated_arg_names, optimize_mem, heuristic_type,
                          size_hints, inductor_meta, custom_kernel, filename, reset_to_zero_arg_names,
                          autotune_cache_info)
+        self._plugins.insert(0, _NPUSkipPrecompilePlugin())
 
         self.exceptions = []
         self.fn_name = None
@@ -607,6 +629,11 @@ class NPUCachingAutotuner(CachingAutotuner):
 
     def _build_runtime_launch_args(self, args, runtime_blocks: tuple[int, ...]):
         return (*args, *runtime_blocks)
+
+    def _diagnostic_runtime_blocks(self, candidate, args) -> tuple[int, ...]:
+        return tuple(
+            value for _, value in candidate.get("runtime_blocks", ())
+        )
 
     def _first_compiled_candidate_entry(self):
         if not self.compiled_candidate_entries:
@@ -675,32 +702,24 @@ class NPUCachingAutotuner(CachingAutotuner):
             if candidate["variant_id"] in self.variant_launcher_map
         )
 
-    def precompile(
-        self,
-        warm_cache_only=False,
-        reload_kernel: Optional[Callable[[], CachingAutotuner]] = None,
-        static_triton_bundle_key: Optional[str] = None,
-    ):
+    def _build_candidate_plan(self, configs):
+        return build_candidate_plan(configs, self.runtime_block_arg_names)
+
+    def _prepare_precompile(self):
         runtime_args, runtime_kwargs = self._resolve_costmodel_runtime_inputs()
         self._apply_costmodel_to_configs(*runtime_args, **runtime_kwargs)
-        if self.candidate_plan is None:
-            self.candidate_plan = build_candidate_plan(
-                self.configs, self.runtime_block_arg_names
-            )
-        if warm_cache_only:
-            self.kernel_name = self.get_fn_name()
-            self._precompile_worker()
+        self.candidate_plan = self._build_candidate_plan(self.configs)
+
+    def _precompile_worker(self):
+        if getattr(self, "skip_precompile", False):
             return
-        with self.lock:
-            # Helper function for reloading a kernel generated in a worker
-            # in the parent class. Normally we don't need to reload the kernel
-            # in the parent process, but in certain cases (coordesc tuning, dynamic_scale_rblock),
-            # we need to actually run compilation on the parent process
-            if reload_kernel is not None:
-                self._reload_kernel = reload_kernel
-            self._precompile_worker()
-            self._make_launchers()
-        self._refresh_variant_launchers()
+        if self.compile_results:
+            return self._precompile_worker_serial()
+        self._prepare_precompile()
+        if npu_config.max_precompiled_thread_num > 1:
+            self._precompile_worker_parallel()
+        else:
+            self._precompile_worker_serial()
 
     def _make_ttir_module_from_cfg(self, cfg):
         """Compile one config to TTIR module only (no backend lowering/launch)."""
@@ -1048,27 +1067,70 @@ class NPUCachingAutotuner(CachingAutotuner):
             self.configs = ranked_cfgs[:selected_count]
             self._costmodel_fallback_configs = ranked_cfgs[selected_count:] or None
 
-    def _precompile_configs(self, configs):
+    def _precompile_configs_once(self, configs):
+        compile_results = [None] * len(configs)
+        compile_exceptions = [None] * len(configs)
+        compile_exception_stacks = [""] * len(configs)
+        for index, candidate_config in enumerate(configs):
+            try:
+                compile_results[index] = self._precompile_config(candidate_config)
+            except Exception as exc:
+                import traceback
+                compile_exception_stacks[index] = traceback.format_exc()
+                compile_exceptions[index] = exc
+        return compile_results, compile_exceptions, compile_exception_stacks
+
+    def _configs_with_vf_fusion(self, configs):
+        retry_configs = []
+        for candidate_config in configs:
+            retry_config = copy.deepcopy(candidate_config)
+            retry_config.kwargs["enable_vf_fusion"] = True
+            retry_configs.append(retry_config)
+        return retry_configs
+
+    def _precompile_configs_with_vf_retry(self, configs, compile_once):
         if not configs:
             raise NoTritonConfigsError("No triton configs are available")
 
-        compile_results = []
-        exc = None
-        exc_stack = ""
         compile_start_time = time.perf_counter()
-        for c in configs:
-            try:
-                compile_results.append(self._precompile_config(c))
-            except Exception as e:
-                import traceback
-                exc_stack = traceback.format_exc()
-                exc = e
-        if len(compile_results) == 0:
-            raise NoTritonConfigsError(
-                f"No valid triton configs. {type(exc).__name__}: {exc} \nStack trace:{exc_stack}"
+        compile_results, exceptions, exception_stacks = compile_once(configs)
+        successful_results = [
+            result for result in compile_results if result is not None
+        ]
+        if not successful_results:
+            retry_results, retry_exceptions, retry_exception_stacks = compile_once(
+                self._configs_with_vf_fusion(configs)
             )
-        log.info("kernel: %s compile cost time: %ss", self.get_fn_name(), time.perf_counter() - compile_start_time)
-        return compile_results
+            successful_results = [
+                result for result in retry_results if result is not None
+            ]
+            exceptions = retry_exceptions + exceptions
+            exception_stacks = retry_exception_stacks + exception_stacks
+
+        if not successful_results:
+            exc, exc_stack = next(
+                (
+                    (exc, stack)
+                    for exc, stack in zip(exceptions, exception_stacks)
+                    if exc is not None
+                ),
+                (None, ""),
+            )
+            raise NoTritonConfigsError(
+                f"No valid triton configs for kernel {self.get_fn_name()}. "
+                f"{type(exc).__name__}: {exc} \nStack trace:{exc_stack}"
+            )
+        log.debug(
+            "kernel: %s config compile elapsed time: %ss",
+            self.get_fn_name(),
+            time.perf_counter() - compile_start_time,
+        )
+        return successful_results
+
+    def _precompile_configs(self, configs):
+        return self._precompile_configs_with_vf_retry(
+            configs, self._precompile_configs_once
+        )
 
     def _precompile_with_costmodel_fallback(self, compile_fn):
         primary_configs = self.configs
@@ -1110,7 +1172,7 @@ class NPUCachingAutotuner(CachingAutotuner):
                     f"Primary error: {primary_exc}. Fallback error: {fallback_exc}"
                 ) from fallback_exc
 
-    def _precompile_worker(self):
+    def _precompile_worker_with(self, compile_fn):
         if self.compile_results:
             for result in self.compile_results:
                 TritonBundler.put(
@@ -1121,8 +1183,11 @@ class NPUCachingAutotuner(CachingAutotuner):
         if self.launchers:
             raise AssertionError("Before _precompile_worker, launchers must bt empty")
 
-        self._precompile_with_costmodel_fallback(self._precompile_configs)
+        self._precompile_with_costmodel_fallback(compile_fn)
         self._costmodel_fallback_configs = None
+
+    def _precompile_worker_serial(self):
+        self._precompile_worker_with(self._precompile_configs)
 
     def parse_triton_ascend_options(self, tiling_kwargs, options):
         from triton.backends.ascend.compiler import NPUOptions
@@ -1199,14 +1264,14 @@ class NPUCachingAutotuner(CachingAutotuner):
         }
 
         options = self.parse_triton_ascend_options(cfg_kwargs, options)
-        if self.inductor_meta.get("enable_auto_blockify", False):
+        if (
+            bool(self.inductor_meta.get("enable_auto_blockify", False))
+            or self.inductor_meta.get("requires_no_linear_block_remap") is True
+        ):
             options["enable_auto_blockify"] = True
         # pure simt stack overflow check
         if compile_meta['compile_mode'] == NPUKernelType.SIMT_ONLY.compile_mode():
             options['simt_stack_limit'] = npu_config.simt_default_warp_stacksize
-
-        if self.inductor_meta.get("inductor_ascend_linear_mode", "no_linear") == "no_linear":
-            options['enable_auto_blockify'] = True
 
         compile_kwargs = {
             "target": target,
@@ -1275,6 +1340,7 @@ class NPUCachingAutotuner(CachingAutotuner):
             raise RuntimeError(f"No valid triton configs. {type(exc).__name__}: {exc}\n"
                                f"Stack trace: {exc_stack}")
         self.launchers = launchers
+        self._refresh_variant_launchers()
 
     def save_gpu_kernel(self, stream, launcher):
         self.save_npu_kernel(stream, launcher)
@@ -1328,85 +1394,41 @@ class NPUCachingAutotuner(CachingAutotuner):
 
         self.cuda_kernel_saved = True
 
-    def _precompile_configs_parallel(self, configs):
-        if not configs:
-            raise NoTritonConfigsError("No triton configs are available")
+    def _precompile_configs_parallel_once(self, configs):
+        compile_results = [None] * len(configs)
+        compile_exceptions = [None] * len(configs)
+        compile_exception_stacks = [""] * len(configs)
 
-        config_len = len(configs)
-        compile_exc_results = [None for _ in range(config_len)]
-        compile_exc_stack_results = ["" for _ in range(config_len)]
-
-        def worker(i, kernel_config):
+        def worker(index, config):
             try:
-                return self._precompile_config(kernel_config)
-            except Exception as e:
+                return self._precompile_config(config)
+            except Exception as exc:
                 import traceback
-                compile_exc_stack_results[i] = traceback.format_exc()
-                compile_exc_results[i] = e
+                compile_exception_stacks[index] = traceback.format_exc()
+                compile_exceptions[index] = exc
                 return None
 
-        tasks = []
-        for i, c in enumerate(configs):
-            task_handler = compile_thread_pool.submit(worker, i, c)
-            tasks.append(task_handler)
+        tasks = [
+            compile_thread_pool.submit(worker, index, config)
+            for index, config in enumerate(configs)
+        ]
 
         from torch._dynamo.device_interface import DeviceGuard
         device_interface = self.get_device_interface()
-        # load binary to the correct device
-        compile_results = []
         with DeviceGuard(device_interface, self.triton_meta["device"]):
-            # need to initialize context
             device_interface.synchronize(device_interface.current_device())
-            for future in as_completed(tasks):
-                compiled_kernel = future.result()
-                if compiled_kernel is None:
-                    continue
-                compile_results.append(compiled_kernel)
+            for index, future in enumerate(tasks):
+                compile_results[index] = future.result()
 
-        # first try but return no valid configs
-        # so we try tuning more options
-        if len(compile_results) == 0:
-            # set up new configs
-            for i in range(len(configs)):
-                # in future, adjust more options
-                configs[i].kwargs["enable_vf_fusion"] = True
-            # start compilation tasks
-            tasks = []
-            for i, c in enumerate(configs):
-                task_handler = compile_thread_pool.submit(worker, i, c)
-                tasks.append(task_handler)
-            # collect compiled results
-            with DeviceGuard(device_interface, self.triton_meta["device"]):
-                # need to initialize context
-                device_interface.synchronize(device_interface.current_device())
-                for future in as_completed(tasks):
-                    compiled_kernel = future.result()
-                    if compiled_kernel is None:
-                        continue
-                    compile_results.append(compiled_kernel)
+        return compile_results, compile_exceptions, compile_exception_stacks
 
-        if len(compile_results) == 0:
-            raise NoTritonConfigsError(
-                f"No valid triton configs for kernel {self.get_fn_name()}. "
-                f"{type(compile_exc_results[0]).__name__}: {compile_exc_results[0]} "
-                f"\nStack trace:{compile_exc_stack_results[0]}"
-            )
-        return compile_results
+    def _precompile_configs_parallel(self, configs):
+        return self._precompile_configs_with_vf_retry(
+            configs, self._precompile_configs_parallel_once
+        )
 
     def _precompile_worker_parallel(self):
-        if self.compile_results:
-            for result in self.compile_results:
-                TritonBundler.put(
-                    triton_hash_to_path_key(result.kernel.hash),
-                    self.triton_meta.get("device", 0),
-                )
-            return
-
-        if self.launchers:
-            raise AssertionError("Before _precompile_worker, launchers must bt empty")
-
-        self._precompile_with_costmodel_fallback(self._precompile_configs_parallel)
-        self._costmodel_fallback_configs = None
+        self._precompile_worker_with(self._precompile_configs_parallel)
 
     # bench method is called by torch, grid can not be modified
     def bench(self, launcher, *args, with_profiler=False, runtime_blocks=None, **kwargs):
@@ -1418,9 +1440,16 @@ class NPUCachingAutotuner(CachingAutotuner):
             return float("inf")
 
         if runtime_blocks is None:
-            runtime_blocks = (
-                self.best_runtime_blocks if launcher is self.best_launcher else ()
-            )
+            if launcher is self.best_launcher:
+                runtime_blocks = self.best_runtime_blocks
+            else:
+                runtime_blocks = ()
+                for entry in self.compiled_candidate_entries:
+                    if entry["launcher"] is launcher:
+                        runtime_blocks = self._diagnostic_runtime_blocks(
+                            entry["candidate"], args
+                        )
+                        break
         launch_args = self._build_runtime_launch_args(args, tuple(runtime_blocks))
         return self._bench_with_launch_args(
             launcher,
@@ -2039,6 +2068,9 @@ class NPUSymbolicGroupedAutotuner(NPUCachingAutotuner):
         self._grouped_runtime_args_snapshot = ()
         self._grouped_variant_launchers_initialized = False
 
+    def _build_candidate_plan(self, configs):
+        return self.candidate_plan
+
     def _set_group_best_candidate(self, group_id, candidate, launcher):
         self.best_candidate_map[group_id] = candidate
         self.best_launcher_map[group_id] = launcher
@@ -2046,17 +2078,18 @@ class NPUSymbolicGroupedAutotuner(NPUCachingAutotuner):
     def _precompile_variants(self):
         if self._grouped_variant_launchers_initialized:
             return
-        if len(self.launchers) == 0:
-            start_time = time.time_ns()
-            self.kernel_name = self.get_fn_name()
-            if getattr(self, "_precompile_worker_parallel", None) is not None:
-                self._precompile_worker_parallel()
-            else:
+        with self.lock:
+            if self._grouped_variant_launchers_initialized:
+                return
+            if len(self.launchers) == 0:
+                start_time = time.time_ns()
+                self.kernel_name = self.get_fn_name()
                 self._precompile_worker()
-            self._make_launchers()
-            self.precompile_time_taken_ns = time.time_ns() - start_time
-        self._refresh_variant_launchers()
-        self._grouped_variant_launchers_initialized = True
+                self._make_launchers()
+                self.precompile_time_taken_ns = time.time_ns() - start_time
+            else:
+                self._refresh_variant_launchers()
+            self._grouped_variant_launchers_initialized = True
 
     def _runtime_feature_inputs(self, args) -> tuple[int, ...]:
         if "feature_arg_indices" not in self.candidate_plan:
@@ -2144,6 +2177,9 @@ class NPUSymbolicGroupedAutotuner(NPUCachingAutotuner):
                 f"{missing_runtime_block_names}"
             )
         return tuple(resolved_blocks[name] for name in runtime_block_names)
+
+    def _diagnostic_runtime_blocks(self, candidate, args) -> tuple[int, ...]:
+        return self._materialize_runtime_blocks(candidate, args)
 
     def _benchmark_feature_inputs_for_group(self, group_id: int) -> tuple[int, ...]:
         if "benchmark_feature_inputs_by_group" not in self.candidate_plan:
@@ -2413,10 +2449,10 @@ class NPUSymbolicGroupedAutotuner(NPUCachingAutotuner):
         )
 
     def ensure_grouped_autotune_ready(self, *args, **kwargs):
+        self._precompile_variants()
         with self.lock:
             if self._all_reachable_groups_tuned():
                 return
-            self._precompile_variants()
             self._autotune_all_groups(*args, **kwargs)
 
     def run(
@@ -3091,23 +3127,7 @@ def _triton_config_npu_index_legacy(
         cfg.kwargs["split_axis"] = tuple(split_axis)
         cfg.kwargs["split_blocks"] = tuple(split_blocks)
 
-    inductor_ascend_linear_mode = inductor_meta.get(
-        "inductor_ascend_linear_mode", "no_linear"
-    )
-    if inductor_ascend_linear_mode == "no_linear":
-        for tiling_cfg in configs:
-            tiling_kwargs = copy.deepcopy(tiling_cfg.kwargs)
-            for tiling, tling_value in tiling_kwargs.items():
-                if isinstance(tiling, str) and tiling.endswith("SUB"):
-                    tiling_cfg.kwargs[tiling.rstrip("_SUB")] = tling_value
-                    tiling_cfg.kwargs.pop(tiling)
-    elif inductor_ascend_linear_mode == "no_linear_loop":
-        for tiling_cfg in configs:
-            tiling_kwargs = copy.deepcopy(tiling_cfg.kwargs)
-            for tiling, tling_value in tiling_kwargs.items():
-                if isinstance(tiling, str) and tiling.endswith(
-                        "SUB") and tiling.startswith("R"):
-                    tiling_cfg.kwargs[tiling.rstrip("_SUB")] = tling_value
+    _remap_fallback_block_subs(configs, inductor_meta)
 
     set_reduction_runtime_blocks_to_numel(configs, split_axis, axis_names, size_hints,
                                           inductor_meta.get("runtime_block_arg_names", ()))
@@ -3119,6 +3139,16 @@ def _triton_config_npu_index_legacy(
     # if fast run, we prune the configs to the last max_num configs
     configs = brutal_prune_tiling_configs_if_fast_run(configs, inductor_meta)
     return configs
+
+def _remap_fallback_block_subs(configs, inductor_meta):
+    if inductor_meta.get("requires_no_linear_block_remap") is not True:
+        return
+    for tiling_cfg in configs:
+        for name, value in list(tiling_cfg.kwargs.items()):
+            if isinstance(name, str) and name.endswith("_SUB"):
+                tiling_cfg.kwargs[name.removesuffix("_SUB")] = value
+                tiling_cfg.kwargs.pop(name)
+
 
 def strip_runtime_blocks_from_cfg(
     cfg: Config,
@@ -3240,10 +3270,6 @@ def foreach(size_hints, triton_meta, num_warps, filename=None, inductor_meta=Non
         filename=filename,
     )
 
-def benchmark_all_configs(self, *args, **kwargs):
-    with dynamo_timed("benchmark_all_configs"):
-        return self._benchmark_all_configs(*args, **kwargs)
-
 def _measure_prerun_ms(kernel_call_fn):
     start_event = torch.npu.Event(enable_timing=True)
     end_event = torch.npu.Event(enable_timing=True)
@@ -3275,47 +3301,3 @@ def _select_prerun_top_candidates(
         total_ms += cost_ms
 
     return selected
-
-def _benchmark_all_configs(self, *args, **kwargs):
-    if getattr(self, "candidate_plan", None) is None:
-        self.candidate_plan = build_candidate_plan(
-            self.configs, getattr(self, "runtime_block_arg_names", ())
-        )
-    return self._benchmark_candidate_entries(*args, **kwargs)
-
-def precompile_parallel(
-    self,
-    warm_cache_only=False,
-    reload_kernel: Optional[Callable[[], CachingAutotuner]] = None,
-    static_triton_bundle_key: Optional[str] = None,
-):
-    if reload_kernel is not None:
-        self._reload_kernel = reload_kernel
-    start_time = time.perf_counter()
-    if hasattr(self, "skip_precompile"):
-        if self.skip_precompile:
-            return
-
-    runtime_args, runtime_kwargs = self._resolve_costmodel_runtime_inputs()
-    self._apply_costmodel_to_configs(*runtime_args, **runtime_kwargs)
-
-    if warm_cache_only:
-        self.kernel_name = self.get_fn_name()
-        self._precompile_worker_parallel()
-        log.info("kernel: %s precompile elapsed time: %ss", self.get_fn_name(), time.perf_counter() - start_time)
-        return
-
-    if self.compile_results:
-        for result in self.compile_results:
-            TritonBundler.put(
-                triton_hash_to_path_key(result.kernel.hash),
-                self.triton_meta.get("device", 0),
-            )
-        self._make_launchers()
-        self._refresh_variant_launchers()
-        return
-
-    self._precompile_worker_parallel()
-    self._make_launchers()
-    self._refresh_variant_launchers()
-    log.info("kernel: %s precompile elapsed time: %ss", self.get_fn_name(), time.perf_counter() - start_time)

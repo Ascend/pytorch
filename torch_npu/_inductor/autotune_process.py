@@ -3,14 +3,12 @@ from __future__ import annotations
 import copy
 import functools
 import logging
-import os
 from ctypes import byref, c_size_t, c_void_p
 from typing import (Any, Callable, Iterable, List,
-                    Optional, Sequence, Union)
+                    Optional, Union)
 
 import torch
 import torch._inductor.async_compile  # noqa: F401 required to warm up AsyncCompile pools
-from torch._inductor import config
 from torch._inductor.autotune_process import (
     BenchmarkRequest, NonzeroWorkspaceNotSupportedError, TensorMeta)
 from torch._inductor.codecache import DLLWrapper
@@ -29,31 +27,6 @@ def patch_tuning_process():
     from torch._inductor import autotune_process
 
     autotune_process.CUDA_VISIBLE_DEVICES = ASCEND_VISIBLE_DEVICES
-
-
-def patch_tuning_process_pool():
-    from torch._inductor.autotune_process import TuningProcessPool
-
-    def get_device_list(self) -> Sequence[Optional[int]]:
-        """
-        Gather the list of devices to be used in the pool.
-        """
-        if not config.autotune_multi_device:
-            # Don't use multiple devices
-            return [None]
-
-        count = torch.npu.device_count()
-
-        # If the user specified the visible devices in the env, use those.
-        if ASCEND_VISIBLE_DEVICES in os.environ:
-            devices = [int(d) for d in os.environ[ASCEND_VISIBLE_DEVICES].split(",")]
-            if len(devices) > count:
-                raise ValueError(f"Specified visible devices exceed the number of total devices: {devices}")
-            return devices
-
-        return list(range(count))
-
-    TuningProcessPool.get_device_list = get_device_list
 
 
 class NPUDeviceBenchmarkMixin:

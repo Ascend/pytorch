@@ -22,12 +22,12 @@ from torch._inductor.runtime.runtime_utils import next_power_of_2
 from torch._inductor import config
 
 import torch_npu
-from .codegen.tile_generator import TileGenerator
-from .config import log
-from .runtime.triton_heuristics import NPUCachingAutotuner
-from . import config as npu_config
-from .codegen.triton_utils import get_byte_per_numel, NPUKernelType
-from .profiler import simple_trace_handler
+from .tile_generator import TileGenerator
+from .triton_heuristics import NPUCachingAutotuner
+from .. import config as npu_config
+from ..codegen.triton_utils import get_byte_per_numel, NPUKernelType
+from ..config import log
+from ..profiler import simple_trace_handler
 
 
 def fast_a_log_message(content, tag='autotuner', level='debug'):
