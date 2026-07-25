@@ -548,6 +548,8 @@ def main():
 
     dist_cases = filter_skipped_cases(dist_cases, skip_set)
 
+    dist_cases.sort(key=lambda c: (c.get("file", ""), c.get("nodeid", "")))
+
     dist_summary = save_shards(dist_cases, args.distributed_shards, "distributed", output_dir)
     save_cases_by_file(dist_cases, dist_files, "distributed", output_dir)
 
@@ -572,6 +574,8 @@ def main():
     print(f"Total regular cases: {len(reg_cases)}")
 
     reg_cases = filter_skipped_cases(reg_cases, skip_set)
+
+    reg_cases.sort(key=lambda c: (c.get("file", ""), c.get("nodeid", "")))
 
     reg_summary = save_shards(reg_cases, args.regular_shards, "regular", output_dir)
     save_cases_by_file(reg_cases, reg_files, "regular", output_dir)
