@@ -300,17 +300,18 @@ if __name__ == "__main__":
     if options.between_version:
         ci_min, ci_max = None, None
         try:
-            for arg in options.between_version:
-                if arg.startswith("min="):
-                    ci_min = tuple(int(x) for x in arg[4:].split("."))
-                elif arg.startswith("max="):
-                    ci_max = tuple(int(x) for x in arg[4:].split("."))
-                else:
-                    # Bare value: first one is min, second is max.
-                    if ci_min is None:
-                        ci_min = tuple(int(x) for x in arg.split("."))
+            for raw_arg in options.between_version:
+                for arg in raw_arg.split():
+                    if arg.startswith("min="):
+                        ci_min = tuple(int(x) for x in arg[4:].split("."))
+                    elif arg.startswith("max="):
+                        ci_max = tuple(int(x) for x in arg[4:].split("."))
                     else:
-                        ci_max = tuple(int(x) for x in arg.split("."))
+                        # Bare value: first one is min, second is max.
+                        if ci_min is None:
+                            ci_min = tuple(int(x) for x in arg.split("."))
+                        else:
+                            ci_max = tuple(int(x) for x in arg.split("."))
         except ValueError:
             print(f"Error: invalid version in --between_version "
                   f"{' '.join(options.between_version)}\n"
