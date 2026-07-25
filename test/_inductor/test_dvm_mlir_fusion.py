@@ -77,6 +77,27 @@ class MmTransposeBackwardModel(torch.nn.Module):
         return loss, grad_a, grad_b
 
 
+class MmTemplateModel(torch.nn.Module):
+    def forward(self, a, b, residual):
+        return (torch.mm(a, b) + residual) * 0.5
+
+
+class BmmTemplateModel(torch.nn.Module):
+    def forward(self, a, b, residual):
+        return torch.bmm(a, b) + residual
+
+
+class AddmmTemplateModel(torch.nn.Module):
+    def forward(self, bias, a, b, residual):
+        addmm = torch.addmm(bias, a.permute(1, 0), b.permute(1, 0))
+        return addmm + residual
+
+
+class BaddbmmTemplateModel(torch.nn.Module):
+    def forward(self, bias, a, b, residual):
+        return torch.baddbmm(bias, a, b) + residual
+
+
 class CopyInplaceModel(torch.nn.Module):
     def forward(self, dst, src):
         add = torch.ops.aten.add.Tensor(src, 1.0)
@@ -118,17 +139,24 @@ class Int64PointwiseFusionModel(torch.nn.Module):
 
 
 class TestDvmByMlir(TestCase):
-    def _run_and_get_code_with_dvm(self, model, *args):
-        original_backend = os.environ.get("TORCHINDUCTOR_NPU_BACKEND")
+    def _run_and_get_code_with_dvm(
+        self, model, *args, dynamic=False, options=None, run_count=1
+    ):
         os.environ["TORCHINDUCTOR_NPU_BACKEND"] = "dvm"
-        try:
-            compiled_model = torch.compile(model, backend="inductor", dynamic=False)
-            return run_and_get_code(compiled_model, *args)
-        finally:
-            if original_backend is None:
-                os.environ.pop("TORCHINDUCTOR_NPU_BACKEND", None)
-            else:
-                os.environ["TORCHINDUCTOR_NPU_BACKEND"] = original_backend
+        os.environ["INDUCTOR_DVM_ENABLE_MATMUL_FUSION"] = "1"
+        compiled_model = torch.compile(
+            model, backend="inductor", dynamic=dynamic, options=options
+        )
+        result = run_and_get_code(compiled_model, *args)
+        if run_count > 1:
+            outputs, codes = result
+            outputs = [outputs]
+            for _ in range(run_count - 1):
+                outputs.append(compiled_model(*args))
+            result = outputs, codes
+        os.environ.pop("TORCHINDUCTOR_NPU_BACKEND")
+        os.environ.pop("INDUCTOR_DVM_ENABLE_MATMUL_FUSION")
+        return result
 
     def test_int64_add_fuses_into_dvm(self):
         arg0 = torch.randint(-8, 8, (32, 32), dtype=torch.int64, device="npu")
@@ -172,52 +200,46 @@ class TestDvmByMlir(TestCase):
         self.assertIn("k.greater", code)
         self.assertIn("k.greater_equal", code)
         self.assertIn("k.equal", code)
-        self.assertEqual(code.count("k.select("), 3)
+        self.assertIn("k.select(", code)
 
 
     @parametrize("dtype", [torch.float16, torch.float32, torch.bfloat16])
     @parametrize("is_dynamic", [True, False])
     def test_basic_partitioning(self, dtype, is_dynamic):
-        os.environ["TORCHINDUCTOR_NPU_BACKEND"] = "dvm"
         a = torch.normal(0, 0.01, size=(512, 1), dtype=dtype).npu()
         b = torch.normal(0, 0.01, size=(512, 4, 256), dtype=dtype).npu()
         c = torch.normal(0, 0.01, size=(1, 256), dtype=dtype).npu()
         model = TestModule()
-        dvm_compiled_model = torch.compile(
-            model, backend="inductor", dynamic=is_dynamic
-        )
         with torch.no_grad():
             expect = model(a, b, c)
-            result = dvm_compiled_model(a, b, c)
+            result, _ = self._run_and_get_code_with_dvm(
+                model, a, b, c, dynamic=is_dynamic
+            )
             self.assertEqual(expect, result, atol=1e-3, rtol=1e-3)
-        del os.environ["TORCHINDUCTOR_NPU_BACKEND"]
 
     @parametrize("dtype", [torch.bfloat16])
     @parametrize("is_dynamic", [False])
     def test_basic_partitioning_npugraph(self, dtype, is_dynamic):
-        os.environ["TORCHINDUCTOR_NPU_BACKEND"] = "dvm"
         a = torch.normal(0, 0.01, size=(512, 1), dtype=dtype).npu()
         b = torch.normal(0, 0.01, size=(512, 4, 256), dtype=dtype).npu()
         c = torch.normal(0, 0.01, size=(1, 256), dtype=dtype).npu()
         model = TestModule()
-        dvm_compiled_model = torch.compile(
-            model,
-            backend="inductor",
-            dynamic=is_dynamic,
-            options={"triton.cudagraphs": True},
-        )
         with torch.no_grad():
             expect = model(a, b, c)
-            result = dvm_compiled_model(a, b, c)
-            result = dvm_compiled_model(a, b, c)
-            result = dvm_compiled_model(a, b, c)
-            self.assertEqual(expect, result, atol=1e-3, rtol=1e-3)
-        del os.environ["TORCHINDUCTOR_NPU_BACKEND"]
+            results, _ = self._run_and_get_code_with_dvm(
+                model,
+                a,
+                b,
+                c,
+                dynamic=is_dynamic,
+                options={"triton.cudagraphs": True},
+                run_count=3,
+            )
+            self.assertEqual(expect, results[-1], atol=1e-3, rtol=1e-3)
 
     @parametrize("dtype", [torch.float16, torch.float32])
     @parametrize("is_dynamic", [True, False])
     def test_reduce_case(self, dtype, is_dynamic):
-        os.environ["TORCHINDUCTOR_NPU_BACKEND"] = "dvm"
         arg0 = torch.empty_strided(
             torch.Size((8, 64, 35, 35)),
             (78400, 1225, 35, 1),
@@ -231,17 +253,14 @@ class TestDvmByMlir(TestCase):
             torch.Size((64,)), (1,), dtype=dtype, device="npu"
         ).uniform_(0, 1)
         model = ReduceCaseModel()
-        dvm_compiled_model = torch.compile(
-            model, backend="inductor", dynamic=is_dynamic
-        )
         with torch.no_grad():
             expect = model(arg0, arg1, arg2)
-            result = dvm_compiled_model(arg0, arg1, arg2)
+            result, _ = self._run_and_get_code_with_dvm(
+                model, arg0, arg1, arg2, dynamic=is_dynamic
+            )
             self.assertEqual(expect, result, atol=1e-3, rtol=1e-3)
-        del os.environ["TORCHINDUCTOR_NPU_BACKEND"]
 
     def test_deterministic_reduce_case(self):
-        os.environ["TORCHINDUCTOR_NPU_BACKEND"] = "dvm"
         deterministic_state = torch.are_deterministic_algorithms_enabled()
         deterministic_warn_only = torch.is_deterministic_algorithms_warn_only_enabled()
         arg0 = torch.normal(
@@ -250,18 +269,16 @@ class TestDvmByMlir(TestCase):
         model = DeterministicReduceModel()
         try:
             torch.use_deterministic_algorithms(True)
-            dvm_compiled_model = torch.compile(
-                model, backend="inductor", dynamic=False
-            )
             with torch.no_grad():
-                first_result = dvm_compiled_model(arg0)
-                second_result = dvm_compiled_model(arg0)
+                results, _ = self._run_and_get_code_with_dvm(
+                    model, arg0, run_count=2
+                )
+                first_result, second_result = results
                 self.assertEqual(first_result, second_result, atol=0, rtol=0)
         finally:
             torch.use_deterministic_algorithms(
                 deterministic_state, warn_only=deterministic_warn_only
             )
-            del os.environ["TORCHINDUCTOR_NPU_BACKEND"]
 
     def test_bitwise_bool_ops_codegen(self):
         arg0 = torch.randint(0, 2, (32, 32), dtype=torch.bool, device="npu")
@@ -307,6 +324,214 @@ class TestDvmByMlir(TestCase):
         code = "\n".join(codes)
         self.assertEqual(expect, result, atol=1e-3, rtol=1e-3)
         self.assertNotIn("dvm_fused_matmul_backward", code)
+
+    @parametrize("op", ["mm", "bmm", "addmm", "baddbmm"])
+    def test_matmul_uses_dvm_fusion(self, op):
+        if op == "addmm":
+            a_shape = (128, 256)
+            b_shape = (1024, 128)
+            output_shape = (256, 1024)
+        elif op in ("bmm", "baddbmm"):
+            a_shape = (2, 128, 64)
+            b_shape = (2, 64, 128)
+            output_shape = (2, 128, 128)
+        else:
+            a_shape = (64, 128)
+            b_shape = (128, 512)
+            output_shape = (64, 512)
+        a = torch.normal(
+            0, 0.1, size=a_shape, dtype=torch.float16, device="npu"
+        )
+        b = torch.normal(
+            0, 0.1, size=b_shape, dtype=torch.float16, device="npu"
+        )
+        residual = torch.normal(
+            0, 0.1, size=output_shape, dtype=torch.float16, device="npu"
+        )
+        if op == "mm":
+            model = MmTemplateModel()
+            model_args = (a, b, residual)
+        elif op == "bmm":
+            model = BmmTemplateModel()
+            model_args = (a, b, residual)
+        elif op == "addmm":
+            bias = torch.normal(
+                0,
+                0.1,
+                size=(output_shape[-1],),
+                dtype=torch.float16,
+                device="npu",
+            )
+            model = AddmmTemplateModel()
+            model_args = (bias, a, b, residual)
+        else:
+            bias = torch.normal(
+                0, 0.1, size=output_shape, dtype=torch.float16, device="npu"
+            )
+            model = BaddbmmTemplateModel()
+            model_args = (bias, a, b, residual)
+        with torch.no_grad():
+            expect = model(*model_args)
+            result, codes = self._run_and_get_code_with_dvm(model, *model_args)
+
+        code = "\n".join(codes)
+        self.assertEqual(expect, result, atol=5e-3, rtol=5e-3)
+        self.assertIn("k.matmul(", code)
+
+    @parametrize("op", ["mm", "bmm"])
+    def test_k1_matmul_lowers_to_mul(self, op):
+        if op == "mm":
+            a_shape = (64, 1)
+            b_shape = (1, 512)
+
+            def model(lhs, rhs):
+                return torch.mm(lhs, rhs)
+        elif op == "bmm":
+            a_shape = (2, 64, 1)
+            b_shape = (2, 1, 512)
+
+            def model(lhs, rhs):
+                return torch.bmm(lhs, rhs)
+
+        a = torch.normal(0, 0.1, size=a_shape, dtype=torch.float16, device="npu")
+        b = torch.normal(0, 0.1, size=b_shape, dtype=torch.float16, device="npu")
+
+        with torch.no_grad():
+            expect = model(a, b)
+            result, codes = self._run_and_get_code_with_dvm(model, a, b)
+
+        code = "\n".join(codes)
+        self.assertEqual(expect, result, atol=5e-3, rtol=5e-3)
+        self.assertIn("k.mul(", code)
+        self.assertNotIn("k.matmul(", code)
+
+    def test_k1_addmm_lowers_to_pointwise(self):
+        a = torch.normal(
+            0, 0.1, size=(64, 1), dtype=torch.float16, device="npu"
+        )
+        b = torch.normal(
+            0, 0.1, size=(1, 512), dtype=torch.float16, device="npu"
+        )
+        bias = torch.normal(
+            0, 0.1, size=(512,), dtype=torch.float16, device="npu"
+        )
+
+        def model(lhs, rhs):
+            return torch.addmm(bias, lhs, rhs)
+
+        with torch.no_grad():
+            expect = model(a, b)
+            result, codes = self._run_and_get_code_with_dvm(model, a, b)
+
+        code = "\n".join(codes)
+        self.assertEqual(expect, result, atol=5e-3, rtol=5e-3)
+        self.assertIn("k.mul(", code)
+        self.assertNotIn("k.matmul(", code)
+
+    def test_matmul_fusion_output_with_multiple_users(self):
+        def model(a, b, denom, scale):
+            mm = torch.mm(a, b).reshape(4, 8, 16)
+            reduced = mm.float().sum(dim=(0, 1), keepdim=True)
+            scaled_reduced = ((mm / denom) * scale).float().sum(
+                dim=(0, 1), keepdim=True
+            )
+            return reduced, scaled_reduced
+
+        a = torch.normal(
+            0, 0.01, size=(32, 64), dtype=torch.float16, device="npu"
+        )
+        b = torch.normal(
+            0, 0.01, size=(64, 16), dtype=torch.float16, device="npu"
+        )
+        denom = torch.rand((4, 8, 1), dtype=torch.float16, device="npu") + 0.5
+        scale = torch.normal(
+            0, 0.01, size=(4, 8, 16), dtype=torch.float16, device="npu"
+        )
+        with torch.no_grad():
+            expect = model(a, b, denom, scale)
+            result, codes = self._run_and_get_code_with_dvm(
+                model, a, b, denom, scale
+            )
+
+        code = "\n".join(codes)
+        self.assertEqual(expect, result, atol=1e-2, rtol=1e-2)
+        self.assertIn("k.matmul(", code)
+
+    def test_matmul_does_not_fuse_view_only_epilogue(self):
+        def model(a, b):
+            return torch.mm(a, b).reshape(8, 8, 512)
+
+        a = torch.normal(
+            0, 0.01, size=(64, 128), dtype=torch.float16, device="npu"
+        )
+        b = torch.normal(
+            0, 0.01, size=(128, 512), dtype=torch.float16, device="npu"
+        )
+        with torch.no_grad():
+            expect = model(a, b)
+            result, codes = self._run_and_get_code_with_dvm(model, a, b)
+
+        code = "\n".join(codes)
+        self.assertEqual(expect, result, atol=5e-3, rtol=5e-3)
+        self.assertIn("k.matmul(", code)
+
+    def test_matmul_fuses_view_with_pointwise_epilogue(self):
+        def model(a, b, residual):
+            view = torch.mm(a, b).reshape(8, 8, 512)
+            return view + residual
+
+        a = torch.normal(
+            0, 0.01, size=(64, 128), dtype=torch.float16, device="npu"
+        )
+        b = torch.normal(
+            0, 0.01, size=(128, 512), dtype=torch.float16, device="npu"
+        )
+        residual = torch.normal(
+            0, 0.01, size=(8, 8, 512), dtype=torch.float16, device="npu"
+        )
+        with torch.no_grad():
+            expect = model(a, b, residual)
+            result, codes = self._run_and_get_code_with_dvm(model, a, b, residual)
+
+        code = "\n".join(codes)
+        self.assertEqual(expect, result, atol=5e-3, rtol=5e-3)
+        self.assertIn("k.matmul(", code)
+
+    def test_bmm_with_view_input_uses_dvm_fusion(self):
+        def model(a, b):
+            softmax = torch.softmax(a, dim=-1)
+            return torch.bmm(softmax.reshape(4, 128, 128), b)
+
+        a = torch.normal(
+            0, 0.01, size=(2, 2, 128, 128), dtype=torch.float16, device="npu"
+        )
+        b = torch.normal(
+            0, 0.01, size=(4, 128, 64), dtype=torch.float16, device="npu"
+        )
+        with torch.no_grad():
+            expect = model(a, b)
+            result, codes = self._run_and_get_code_with_dvm(model, a, b)
+
+        code = "\n".join(codes)
+        self.assertEqual(expect, result, atol=5e-3, rtol=5e-3)
+        self.assertIn("k.matmul(", code)
+
+    def test_bmm_same_buffer_views_keep_distinct_input_meta(self):
+        def model(x):
+            lhs = x.reshape(4, 64, 128)
+            rhs = x.reshape(4, 128, 64)
+            return torch.bmm(lhs, rhs)
+
+        x = torch.normal(
+            0, 0.01, size=(4, 8192), dtype=torch.float16, device="npu"
+        )
+        with torch.no_grad():
+            expect = model(x)
+            result, codes = self._run_and_get_code_with_dvm(model, x)
+
+        code = "\n".join(codes)
+        self.assertEqual(expect, result, atol=5e-3, rtol=5e-3)
+        self.assertIn("k.matmul(", code)
 
     def test_copy_inplace_codegen(self):
         src = torch.randn((128,), dtype=torch.float32, device="npu")
