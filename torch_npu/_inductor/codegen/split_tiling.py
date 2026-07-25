@@ -3,6 +3,7 @@ import sympy as sympy
 import torch
 from torch._inductor.codegen.simd import EnableReduction, DisableReduction
 from torch._inductor.codegen.triton import TritonKernel
+from torch._inductor.dependencies import MemoryDep
 from torch._inductor.loop_body import MemoryUsageType
 from torch._inductor.runtime.runtime_utils import next_power_of_2
 from torch._inductor.utils import ModularIndexing, sympy_subs
@@ -13,6 +14,10 @@ from .triton_utils import get_byte_per_numel
 from .. import config as npu_config
 from ..config import num_vector_core, log
 from ..runtime.symbolic_grouping import GroupFeatureSpec, GroupedKernelMeta
+
+
+_ELEMENTWISE_UNSUPPORTED_OPS = ("masked", "scan", "sort", "rand", "randn", "load_seed")
+_NEUTRAL_CONSTANT_OPS = frozenset(("constant", "store", "output"))
 
 
 # split and tiling axis selector
@@ -337,7 +342,7 @@ class SplitTiling:
     _REDUCTION_BUCKETS = (8192,)
     _OUTER_BUCKETS = (256,)
 
-    def _build_group_features(self, primary_axis):
+    def _build_group_features(self, workload, primary_axis):
         if self.kernel.persistent_reduction or self.kernel.inside_reduction:
             outer_names = self.non_reduction_axis_names()
             reduction_names = self.reduction_axis_names()
@@ -362,6 +367,15 @@ class SplitTiling:
                     )
                 )
             return tuple(features)
+        if workload == "elementwise":
+            return (
+                GroupFeatureSpec(
+                    "elementwise_numel",
+                    "outer_product",
+                    self.all_axis_names(),
+                    (num_vector_core * 4096,),
+                ),
+            )
         return (
             GroupFeatureSpec(
                 "pointwise",
@@ -371,8 +385,159 @@ class SplitTiling:
             ),
         )
 
+    @staticmethod
+    def _alpha_rename_access_vars(dep):
+        replacements = {
+            var: sympy.Symbol(f"elementwise_dim_{idx}", integer=True, nonnegative=True)
+            for idx, var in enumerate(dep.var_names)
+        }
+        return replacements
+
+    def _make_access_signature(self, dep):
+        if dep.is_indirect() or dep.mode is not None:
+            return None
+        normalized = dep.normalize()
+        replacements = self._alpha_rename_access_vars(normalized)
+        index = sympy_subs(
+            normalized.index - normalized.get_offset(),
+            replacements,
+        )
+        sizes = tuple(sympy_subs(size, replacements) for size in normalized.size)
+        return (
+            V.graph.sizevars.simplify(index),
+            tuple(V.graph.sizevars.simplify(size) for size in sizes),
+        )
+
+    @staticmethod
+    def _same_access_signature(left, right):
+        left_index, left_sizes = left
+        right_index, right_sizes = right
+        if len(left_sizes) != len(right_sizes):
+            return False
+        sizevars = V.graph.sizevars
+        return sizevars.statically_known_equals(left_index, right_index) and all(
+            sizevars.statically_known_equals(left_size, right_size)
+            for left_size, right_size in zip(left_sizes, right_sizes)
+        )
+
+    def _all_access_signatures_equal(self, signatures):
+        if not signatures:
+            return False
+        reference = signatures[0]
+        return all(
+            self._same_access_signature(reference, signature)
+            for signature in signatures[1:]
+        )
+
+    @staticmethod
+    def _has_unsupported_elementwise_semantics(node):
+        return any(node._body.has_op(op) for op in _ELEMENTWISE_UNSUPPORTED_OPS)
+
+    @staticmethod
+    def _is_constant_only_body(node):
+        op_names = set(node._body.op_counts)
+        return bool(node._body.op_counts.get("constant")) and op_names <= _NEUTRAL_CONSTANT_OPS
+
+    def _classify_elementwise_node(self, node):
+        if node.has_side_effects() or node.has_aliasing_or_mutation():
+            return None
+        if self._has_unsupported_elementwise_semantics(node):
+            return None
+
+        reads = tuple(node.read_writes.reads)
+        writes = tuple(node.read_writes.writes)
+        if not writes or node.read_writes.index_exprs:
+            return None
+        if not all(isinstance(dep, MemoryDep) for dep in writes):
+            return None
+
+        write_signatures = tuple(self._make_access_signature(dep) for dep in writes)
+        if any(signature is None for signature in write_signatures):
+            return None
+        if not self._all_access_signatures_equal(write_signatures):
+            return None
+        reference = write_signatures[0]
+
+        if not reads:
+            # Constant-only producers are neutral only when the kernel also has
+            # a direct external tensor read.
+            if self._is_constant_only_body(node):
+                return "neutral_constant", reference
+            return None
+
+        if not all(isinstance(dep, MemoryDep) for dep in reads):
+            return None
+        read_signatures = tuple(self._make_access_signature(dep) for dep in reads)
+        if any(signature is None for signature in read_signatures):
+            return None
+        if not all(
+            self._same_access_signature(reference, signature)
+            for signature in read_signatures
+        ):
+            return None
+        return "direct", reference
+
+    @staticmethod
+    def _neutral_outputs_are_consumed(classifications):
+        # A neutral node must represent an internal value, not an independent
+        # generated output fused horizontally into the same kernel.
+        consumed_names = {
+            dep.name
+            for node, _, _ in classifications
+            for dep in node.read_writes.reads
+            if isinstance(dep, MemoryDep)
+        }
+        return all(
+            dep.name in consumed_names
+            for node, kind, _ in classifications
+            if kind == "neutral_constant"
+            for dep in node.read_writes.writes
+        )
+
+    @staticmethod
+    def _has_external_direct_read(classifications):
+        produced_names = {
+            dep.name
+            for node, _, _ in classifications
+            for dep in node.read_writes.writes
+            if isinstance(dep, MemoryDep)
+        }
+        return any(
+            dep.name not in produced_names
+            for node, kind, _ in classifications
+            if kind == "direct"
+            for dep in node.read_writes.reads
+            if isinstance(dep, MemoryDep)
+        )
+
+    def _classify_group_workload(self, template):
+        if template != "pointwise":
+            return None
+        nodes = tuple(self.kernel.features.scheduler_nodes())
+        if not nodes:
+            return None
+
+        classifications = []
+        for node in nodes:
+            result = self._classify_elementwise_node(node)
+            if result is None:
+                return None
+            kind, reference = result
+            classifications.append((node, kind, reference))
+
+        references = tuple(reference for _, _, reference in classifications)
+        if not self._all_access_signatures_equal(references):
+            return None
+        if not self._neutral_outputs_are_consumed(classifications):
+            return None
+        if not self._has_external_direct_read(classifications):
+            return None
+        return "elementwise"
+
     def _build_grouped_meta(self):
         dynamic_split_axes, static_split_axes = self._classify_split_axes()
+        template = self._grouped_template_name()
+        workload = self._classify_group_workload(template)
         if dynamic_split_axes:
             primary_axis = self._select_primary_group_axis(dynamic_split_axes)
             if primary_axis is None:
@@ -398,12 +563,13 @@ class SplitTiling:
             runtime_block_arg_names = tuple(
                 f"{axis.name.upper()}BLOCK" for axis in self.kernel.split_axis
             )
-        feature_specs = self._build_group_features(primary_axis)
+        feature_specs = self._build_group_features(workload, primary_axis)
         if not feature_specs:
             return None
         return GroupedKernelMeta(
             enabled=True,
-            template=self._grouped_template_name(),
+            template=template,
+            workload=workload,
             primary_group_axis=primary_axis.name,
             static_split_axes=static_names,
             secondary_runtime_symbolic_axes=secondary_names,
