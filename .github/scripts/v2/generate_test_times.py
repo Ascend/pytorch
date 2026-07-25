@@ -27,7 +27,7 @@ from typing import Dict
 def load_file_execution_times(reports_root: Path) -> list:
     """Find and load all file_execution_times.json files."""
     results = []
-    for p in sorted(reports_root.rglob("file_execution_times.json")):
+    for p in sorted(reports_root.rglob("file_execution_times_*.json")):
         try:
             data = json.loads(p.read_text(encoding="utf-8"))
             results.append(data)

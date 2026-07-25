@@ -681,6 +681,17 @@ def run_shard(
     duration = monotonic() - start
 
     # Save per-file execution times (wall-clock, including all overhead)
+    # Filename includes shard type and number to avoid collisions when
+    # artifacts are merged with merge-multiple: true in the report workflow.
+    _TYPE_TO_PREFIX = {
+        "distributed": "dist",
+        "regular": "reg",
+        "core": "core",
+        "tensor": "tensor",
+        "graph": "graph",
+        "math": "math",
+    }
+    shard_prefix = _TYPE_TO_PREFIX.get(shard_type, "reg")
     exec_times_data = {
         "shard": shard,
         "shard_type": shard_type,
@@ -690,7 +701,7 @@ def run_shard(
         "shard_wall_time": round(duration, 1),
         "file_times": file_times,
     }
-    exec_times_path = report_dir / "file_execution_times.json"
+    exec_times_path = report_dir / f"file_execution_times_{shard_prefix}-{shard}.json"
     exec_times_path.write_text(json.dumps(exec_times_data, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"\nFile execution times saved to {exec_times_path}", flush=True)
 
