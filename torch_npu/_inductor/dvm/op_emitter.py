@@ -95,7 +95,6 @@ def mm_rule(node: torch.fx.Node):
     UINT16_MAX = (1 << 16) - 1
     UINT8_MAX = (1 << 8) - 1
     MAX_INNER = UINT16_MAX - UINT8_MAX
-    SMALL_OUTPUT_MAX = 256
 
     def inner_axis_length(t: torch._subclasses.FakeTensor):
         if _is_last2_transpose_tensor(t):
@@ -114,15 +113,6 @@ def mm_rule(node: torch.fx.Node):
                 return False
         return True
 
-    def check_output(output_node):
-        t = output_node.meta["val"]
-        last_two_dims = t.shape[-2:]
-        if all(not isinstance(dim, torch.SymInt) for dim in last_two_dims) and all(
-            dim <= SMALL_OUTPUT_MAX for dim in last_two_dims
-        ):
-            return False
-        return True
-
     def check_k1_fusion(lhs_node, rhs_node):
         lhs_t = lhs_node.meta["val"]
         rhs_t = rhs_node.meta["val"]
@@ -136,10 +126,10 @@ def mm_rule(node: torch.fx.Node):
             )
         return True
 
-    if node.target in [aten.mm.default, aten.bmm.default]:
+    if node.target in (aten.mm.default, aten.bmm.default):
         lhs = node.args[0]
         rhs = node.args[1]
-    elif node.target is aten.addmm.default:
+    elif node.target in (aten.addmm.default, aten.baddbmm.default):
         lhs = node.args[1]
         rhs = node.args[2]
     else:
@@ -147,9 +137,7 @@ def mm_rule(node: torch.fx.Node):
     if node.meta["val"].dtype not in (torch.float16, torch.bfloat16):
         return False
 
-    return (
-        check(lhs) and check(rhs) and check_output(node) and check_k1_fusion(lhs, rhs)
-    )
+    return check(lhs) and check(rhs) and check_k1_fusion(lhs, rhs)
 
 
 class DvmOpInfo:
@@ -544,20 +532,20 @@ def matmul(x, y, trans_a, trans_b):
     return f"k.matmul({x}, {y}, {trans_a}, {trans_b})"
 
 
-def matmul_bias(bias, x, y, trans_a, trans_b, beta=1, alpha=1):
-    return f"k.matmul({x}, {y}, {trans_a}, {trans_b},{bias})"
+def matmul_bias(bias, mat1, mat2, trans_a, trans_b):
+    return f"k.matmul({mat1}, {mat2}, {trans_a}, {trans_b},{bias})"
 
 
-@register_dvm_op(aten.addmm.default, rule=mm_rule)
-def addmm(z, x, y, trans_a, trans_b, use_bias, beta=1, alpha=1):
+@register_dvm_op(aten.addmm.default, aten.baddbmm.default, rule=mm_rule)
+def addmm(inp, mat1, mat2, trans_a, trans_b, use_bias, beta=1, alpha=1):
     if use_bias:
-        return matmul_bias(z, x, y, trans_a, trans_b)
-    if beta != 1:
-        z = mul(z, beta)
-    mm = matmul(x, y, trans_a, trans_b)
+        return matmul_bias(inp, mat1, mat2, trans_a, trans_b)
+    acc = matmul(mat1, mat2, trans_a, trans_b)
     if alpha != 1:
-        mm = mul(mm, alpha)
-    return add(mm, z)
+        acc = mul(acc, alpha)
+    if beta != 1:
+        inp = mul(inp, beta)
+    return add(acc, inp)
 
 
 def load(shape, dtype):

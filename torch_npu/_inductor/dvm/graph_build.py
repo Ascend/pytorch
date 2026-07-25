@@ -36,7 +36,6 @@ class DvmCodegenInterpreter(torch.fx.Interpreter):
     ):
         super().__init__(gm)
         self.gm = gm
-        self.ktype = ktype
         self.is_mix_kernel = annotate_mm_transpose_flags(gm)
         if is_dynamic is None:
             self.is_dynamic = is_fx_dynamic(gm)
@@ -50,8 +49,7 @@ class DvmCodegenInterpreter(torch.fx.Interpreter):
         self.code = IndentedBuffer()
 
         self.spec_nodes = set()
-        if self.ktype == "vector" and self.need_spec():
-            self.ktype = "spec"
+        self.set_kernel_ktype(ktype)
         self.code.splice(f'\n"""\n{self.gm.print_readable(print_output=False)}\n"""')
         decorator = (
             f"{chr(64)}dvm.kernel(ktype={self.ktype!r}, dyn_shape={self.is_dynamic})"
@@ -59,6 +57,13 @@ class DvmCodegenInterpreter(torch.fx.Interpreter):
         self.code.splice(decorator)
         self.code.splice(f"def {self.KERNEL_NAME_PLACEHOLDER}(k):")
         self.code.do_indent()
+
+    def set_kernel_ktype(self, ktype: str) -> None:
+        self.ktype = ktype
+        if self.ktype != "split" and self.is_mix_kernel:
+            self.ktype = "mix"
+        elif self.ktype == "vector" and self.need_spec():
+            self.ktype = "spec"
 
     def need_spec(self) -> bool:
         self.spec_nodes.clear()
@@ -139,7 +144,7 @@ class DvmCodegenInterpreter(torch.fx.Interpreter):
         if target in (aten.mm.default, aten.bmm.default):
             args = (*args, meta.get("trans_a", False), meta.get("trans_b", False))
 
-        elif target is aten.addmm.default:
+        elif target in (aten.addmm.default, aten.baddbmm.default):
             args = (
                 *args,
                 meta.get("trans_a", False),
