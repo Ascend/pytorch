@@ -33,6 +33,66 @@ from typing import Dict, List, Optional, Tuple
 import discover_test_files
 
 
+# ==============================================================================
+# Skip List Loading & Filtering
+# ==============================================================================
+
+
+def load_skip_list(skip_list_path: Optional[str]) -> set:
+    """Load skip list JSON and return a set of nodeids to skip.
+
+    Supports two JSON formats:
+      - {"version": 1, "skip_nodeids": ["nodeid1", ...]}
+      - ["nodeid1", ...]  (plain array)
+
+    Returns empty set if path is None, file not found, or empty.
+    Never raises — all errors fall back to empty set with a warning so
+    that collection proceeds normally (backward compatible).
+    """
+    if not skip_list_path:
+        return set()
+
+    p = Path(skip_list_path)
+    if not p.exists():
+        print(f"  WARNING: skip list file not found: {p}, skipping filter")
+        return set()
+
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as e:
+        print(f"  WARNING: Failed to load skip list {p}: {e}")
+        return set()
+
+    if isinstance(data, dict):
+        nodeids = data.get("skip_nodeids", [])
+    elif isinstance(data, list):
+        nodeids = data
+    else:
+        print(f"  WARNING: skip list JSON is neither object nor array: {p}")
+        return set()
+
+    skip_set = set(n for n in nodeids if isinstance(n, str) and n)
+    print(f"  Loaded skip list: {len(skip_set)} nodeids from {p}")
+    return skip_set
+
+
+def filter_skipped_cases(cases: List[Dict], skip_nodeids: set) -> List[Dict]:
+    """Remove cases whose nodeid matches the skip set.
+
+    Prints before/after counts. If skip_nodeids is empty, returns cases
+    unchanged (zero overhead, backward compatible).
+    """
+    if not skip_nodeids:
+        return cases
+
+    original_count = len(cases)
+    filtered = [c for c in cases if c.get("nodeid", "") not in skip_nodeids]
+    skipped_count = original_count - len(filtered)
+    print(f"  Skip list filter: {original_count} -> {len(filtered)} cases "
+          f"(removed {skipped_count})")
+    return filtered
+
+
 def _normalize_test_file_path(test_file: str) -> str:
     """
     Remove 'test/' prefix from test file path if present.
@@ -462,6 +522,9 @@ def main():
     hw_classification = args.hw_classification if args.hw_classification else None
     case_paths_config = args.case_paths_config if args.case_paths_config else None
 
+    # Load skip list once (reused for both distributed and regular)
+    skip_set = load_skip_list(args.skip_list)
+
     # ========================================
     # Step 1: Collect distributed test cases
     # ========================================
@@ -482,6 +545,8 @@ def main():
         args.parallel, hw_classification,
     )
     print(f"Total distributed cases: {len(dist_cases)}")
+
+    dist_cases = filter_skipped_cases(dist_cases, skip_set)
 
     dist_summary = save_shards(dist_cases, args.distributed_shards, "distributed", output_dir)
     save_cases_by_file(dist_cases, dist_files, "distributed", output_dir)
@@ -505,6 +570,8 @@ def main():
         args.parallel, hw_classification,
     )
     print(f"Total regular cases: {len(reg_cases)}")
+
+    reg_cases = filter_skipped_cases(reg_cases, skip_set)
 
     reg_summary = save_shards(reg_cases, args.regular_shards, "regular", output_dir)
     save_cases_by_file(reg_cases, reg_files, "regular", output_dir)
@@ -581,6 +648,13 @@ def parse_args():
     parser.add_argument("--output-dir", required=True, help="Output directory for shard JSONs")
     parser.add_argument("--error-log-dir", help="Output directory for collection error logs (default: output-dir/collection_errors)")
     parser.add_argument("--parallel", type=int, default=16, help="Parallel collection workers")
+    parser.add_argument(
+        "--skip-list",
+        default=None,
+        help="Path to skip list JSON file. When set, matching nodeids are "
+             "removed after collection and before sharding. When omitted or "
+             "file not found, no filtering is applied (backward compatible).",
+    )
     return parser.parse_args()
 
 

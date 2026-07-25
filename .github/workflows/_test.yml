@@ -32,6 +32,11 @@ on:
         type: boolean
         default: false
         description: Whether to report test status to upstream dashboard
+      skip_list:
+        required: false
+        type: string
+        default: ''
+        description: 'Path to skip list JSON (relative to repo root). Empty = no filtering.'
 
 defaults:
   run:
@@ -50,6 +55,7 @@ jobs:
       distributed_shards: ${{ inputs.distributed_shards }}
       regular_shards: ${{ inputs.regular_shards }}
       docker_image: ${{ inputs.docker_image }}
+      skip_list: ${{ inputs.skip_list }}
 
   # ============================================================================
   # 2. Run distributed test shards (serial execution)

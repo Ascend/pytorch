@@ -97,3 +97,4 @@ jobs:
       resolved_short: ${{ needs.build.outputs.resolved_short }}
       case_paths_config: .github/config/test_whitelist.yml
       report_to_upstream: true
+      skip_list: .github/config/skip_list.json
