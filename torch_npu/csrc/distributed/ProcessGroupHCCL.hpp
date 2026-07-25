@@ -1208,7 +1208,7 @@ protected:
 
     static std::unordered_map<std::string, StatusStruct> StatusOutput_;
 
-    std::mutex StatusMapmutex_;
+    static std::mutex StatusMapmutex_;
 
     void updateStatusOutput();
 
