@@ -173,6 +173,7 @@ def save_case_log(
     npu_device_id: Optional[int] = None,
     retry_count: int = 0,
     retry_history: Optional[List[Dict]] = None,
+    suffix: str = "",
 ) -> Path:
     """
     Save complete execution log for all test cases.
@@ -182,6 +183,9 @@ def save_case_log(
     - Full stdout and stderr output
     - Execution command
     - Retry history (if any retries were attempted)
+
+    Args:
+        suffix: Optional suffix appended to filename (e.g. "_retry").
 
     Returns:
         Path to the saved log file
@@ -193,7 +197,7 @@ def save_case_log(
     # Generate safe filename
     safe_name = sanitize_nodeid_for_filename(nodeid)
     prefix = "dist" if shard_type == "distributed" else "reg"
-    log_filename = f"{prefix}-{shard}_{case_idx}_{safe_name}.log"
+    log_filename = f"{prefix}-{shard}_{case_idx}_{safe_name}{suffix}.log"
     log_path = cases_logs_dir / log_filename
 
     # Write log content
@@ -528,7 +532,6 @@ def run_tests_with_tasks_concurrent(
     max_workers: int,
     result_module,
     quick_test: int = None,
-    retry_failed: int = 0,
 ) -> Tuple[int, float, List[Dict]]:
     """
     Execute pre-collected test cases with concurrent per-case isolation.
@@ -662,7 +665,6 @@ def run_tests_with_tasks_concurrent(
                 result_aggregator,
                 progress_tracker,
                 log_queue,
-                retry_failed,
             )
             futures.append((future, batch_id))
 
@@ -769,7 +771,6 @@ def _build_batch_input_json(
     shard: int,
     shard_type: str,
     npu_device_id: Optional[int],
-    retry_failed: int = 0,
 ) -> Dict:
     """Build the JSON input dict for a worker subprocess."""
     return {
@@ -782,7 +783,6 @@ def _build_batch_input_json(
         "shard": shard,
         "shard_type": shard_type,
         "npu_device_id": npu_device_id,
-        "retry_failed": retry_failed,
         "cases": [
             {
                 "case_idx": t.case_idx,
@@ -908,7 +908,6 @@ def _execute_worker_batch(
     result_aggregator: ConcurrentResultAggregator,
     progress_tracker: ProgressTracker,
     log_queue: Queue,
-    retry_failed: int = 0,
 ) -> None:
     """
     Execute one batch in a worker subprocess using pytest.main().
@@ -929,7 +928,6 @@ def _execute_worker_batch(
         batch, batch_id, test_dir, report_dir,
         {},  # env_updates already merged by caller
         timeout, verbose, shard, shard_type, npu_device_id,
-        retry_failed,
     )
 
     while remaining_cases:
@@ -1240,7 +1238,6 @@ def _worker_main(worker_input_file: str) -> None:
     shard_type = batch_input.get("shard_type", "regular")
     batch_id = batch_input.get("batch_id", 0)
     npu_device_id = batch_input.get("npu_device_id", None)
-    retry_failed = batch_input.get("retry_failed", 0)
 
     # Apply environment
     for key, value in env_updates.items():
@@ -1304,118 +1301,85 @@ def _worker_main(worker_input_file: str) -> None:
         )
         print(f"[{case['case_idx']}] Starting: {display_nodeid}", flush=True)
 
-        retry_count = 0
-        retry_history = []
+        # Capture stdout/stderr
+        stdout_buf = io.StringIO()
+        stderr_buf = io.StringIO()
 
-        while True:
-            # Clear previous XML for retry attempts
-            if retry_count > 0 and xml_file.exists():
-                xml_file.unlink()
+        start_time = time_mod.monotonic()
 
-            # Capture stdout/stderr
-            stdout_buf = io.StringIO()
-            stderr_buf = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(stdout_buf), contextlib.redirect_stderr(stderr_buf):
+                try:
+                    returncode = pytest.main(args=pytest_args)
+                    if not isinstance(returncode, int):
+                        returncode = int(returncode) if returncode is not None else 1
+                except SystemExit as e:
+                    returncode = int(e.code) if e.code is not None else 1
+        except BaseException as e:
+            returncode = -1
+            print(f"  Fatal worker error: {type(e).__name__}: {str(e)[:200]}", file=sys.stderr, flush=True)
 
-            start_time = time_mod.monotonic()
+        duration = time_mod.monotonic() - start_time
 
-            try:
-                with contextlib.redirect_stdout(stdout_buf), contextlib.redirect_stderr(stderr_buf):
-                    try:
-                        returncode = pytest.main(args=pytest_args)
-                        if not isinstance(returncode, int):
-                            returncode = int(returncode) if returncode is not None else 1
-                    except SystemExit as e:
-                        returncode = int(e.code) if e.code is not None else 1
-            except BaseException as e:
-                returncode = -1
-                print(f"  Fatal worker error: {type(e).__name__}: {str(e)[:200]}", file=sys.stderr, flush=True)
+        captured_stdout = stdout_buf.getvalue()
+        captured_stderr = stderr_buf.getvalue()
 
-            duration = time_mod.monotonic() - start_time
+        # Parse JUnit XML for status
+        xml_result = parse_junit_xml_status(xml_file)
+        if xml_result["status"] == "no_xml":
+            status = "error"
+            message = xml_result.get("message", "")
+        else:
+            status = xml_result["status"]
+            message = xml_result.get("message", "")
 
-            captured_stdout = stdout_buf.getvalue()
-            captured_stderr = stderr_buf.getvalue()
-
-            # Parse JUnit XML for status
-            xml_result = parse_junit_xml_status(xml_file)
-            if xml_result["status"] == "no_xml":
-                status = "error"
-                message = xml_result.get("message", "")
-            else:
-                status = xml_result["status"]
-                message = xml_result.get("message", "")
-
-            # Check for NPU fatal errors — do NOT retry, exit worker immediately
-            if status in ("failed", "error"):
-                poisoned = _check_fatal_npu_error(
-                    status, message, captured_stdout, captured_stderr
+        # Check for NPU fatal errors — exit worker immediately to trigger
+        # process-level restart for remaining cases.
+        if status in ("failed", "error"):
+            poisoned = _check_fatal_npu_error(
+                status, message, captured_stdout, captured_stderr
+            )
+            if not poisoned:
+                poisoned = _check_npu_poisoned()
+            if poisoned:
+                # NPU fatal: save result and exit
+                save_case_log(
+                    report_dir=report_dir,
+                    shard=shard,
+                    shard_type=shard_type,
+                    nodeid=original_nodeid,
+                    case_idx=case["case_idx"],
+                    status=status,
+                    stdout=captured_stdout,
+                    stderr=captured_stderr,
+                    duration=duration,
+                    returncode=returncode,
+                    command=command_str,
+                    npu_device_id=npu_device_id,
                 )
-                if not poisoned:
-                    poisoned = _check_npu_poisoned()
-                if poisoned:
-                    # NPU fatal: save result with retry info and exit
-                    save_case_log(
-                        report_dir=report_dir,
-                        shard=shard,
-                        shard_type=shard_type,
-                        nodeid=original_nodeid,
-                        case_idx=case["case_idx"],
-                        status=status,
-                        stdout=captured_stdout,
-                        stderr=captured_stderr,
-                        duration=duration,
-                        returncode=returncode,
-                        command=command_str,
-                        npu_device_id=npu_device_id,
-                        retry_count=retry_count,
-                        retry_history=retry_history,
-                    )
-                    case_result = {
-                        "case_idx": case["case_idx"],
-                        "nodeid": original_nodeid,
-                        "status": status,
-                        "duration": duration,
-                        "returncode": returncode,
-                        "message": message,
-                        "command": command_str,
-                        "file": case["test_file"],
-                        "retry_count": retry_count,
-                        "retry_history": retry_history,
-                    }
-                    all_results.append(case_result)
-                    print(json.dumps(case_result, ensure_ascii=False), flush=True)
-                    print(
-                        f"[{case['case_idx']}] NPU fatal error detected, "
-                        f"exiting worker (code {NPU_QUEUE_FATAL_EXIT_CODE}) "
-                        f"to trigger restart for remaining cases",
-                        flush=True,
-                    )
-                    sys.stdout.flush()
-                    sys.stderr.flush()
-                    os._exit(NPU_QUEUE_FATAL_EXIT_CODE)
-
-            # Check if we should retry
-            if status in ("failed", "error") and retry_count < retry_failed:
-                retry_count += 1
-                retry_history.append({
-                    "attempt": retry_count,
+                case_result = {
+                    "case_idx": case["case_idx"],
+                    "nodeid": original_nodeid,
                     "status": status,
-                    "message": message[:1000],
                     "duration": duration,
                     "returncode": returncode,
-                    "stdout": captured_stdout,
-                    "stderr": captured_stderr,
-                })
+                    "message": message,
+                    "command": command_str,
+                    "file": case["test_file"],
+                }
+                all_results.append(case_result)
+                print(json.dumps(case_result, ensure_ascii=False), flush=True)
                 print(
-                    f"[{case['case_idx']}] Attempt {retry_count} failed ({status}), "
-                    f"retrying ({retry_count}/{retry_failed})...",
+                    f"[{case['case_idx']}] NPU fatal error detected, "
+                    f"exiting worker (code {NPU_QUEUE_FATAL_EXIT_CODE}) "
+                    f"to trigger restart for remaining cases",
                     flush=True,
                 )
-                continue
+                sys.stdout.flush()
+                sys.stderr.flush()
+                os._exit(NPU_QUEUE_FATAL_EXIT_CODE)
 
-            # Final result (passed, or exhausted retries)
-            break
-
-        # Save case log with retry history
+        # Save case log
         save_case_log(
             report_dir=report_dir,
             shard=shard,
@@ -1429,8 +1393,6 @@ def _worker_main(worker_input_file: str) -> None:
             returncode=returncode,
             command=command_str,
             npu_device_id=npu_device_id,
-            retry_count=retry_count,
-            retry_history=retry_history,
         )
 
         case_result = {
@@ -1442,19 +1404,11 @@ def _worker_main(worker_input_file: str) -> None:
             "message": message,
             "command": command_str,
             "file": case["test_file"],
-            "retry_count": retry_count,
-            "retry_history": retry_history,
         }
         all_results.append(case_result)
 
         # Print JSON line to stdout (parent reads in real-time)
         print(json.dumps(case_result, ensure_ascii=False), flush=True)
-
-        if retry_count > 0 and status == "passed":
-            print(
-                f"[{case['case_idx']}] PASSED after {retry_count} retry attempt(s)",
-                flush=True,
-            )
 
     # Write batch results file as fallback
     results_file = report_dir / f"batch_results_{batch_id}.json"
@@ -1650,7 +1604,6 @@ def parse_args():
     )
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
     parser.add_argument("--quick-test", type=int, default=None, help="Quick test mode: execute only N cases for fast verification (default: None, run all cases)")
-    parser.add_argument("--retry-failed", type=int, default=0, help="Number of retry attempts for failed/error cases (default: 0, no retry)")
     parser.add_argument("--worker", type=str, default=None, help=argparse.SUPPRESS)
     args = parser.parse_args()
 
@@ -1809,7 +1762,6 @@ def main():
                 effective_workers,
                 result_module,
                 None,  # quick_test already applied above
-                args.retry_failed,
             )
             info["per_case_isolation"] = True
             info["concurrent_workers"] = effective_workers
@@ -1930,7 +1882,6 @@ def main():
                 effective_workers,
                 result_module,
                 args.quick_test,
-                args.retry_failed,
             )
             info["execution_mode"] = "serial" if effective_workers == 1 else "concurrent"
             info["concurrent_workers"] = effective_workers
