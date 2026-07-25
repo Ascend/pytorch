@@ -16,7 +16,8 @@ import csv
 import uuid
 import threading
 from itertools import count
-from typing import Any, Callable, Literal, Optional, TYPE_CHECKING, Union, List
+from typing import Any, Literal, Optional, TYPE_CHECKING, Union, List  # noqa: UP035
+from collections.abc import Callable
 from contextlib import contextmanager
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import torch
@@ -107,7 +108,7 @@ kernel_idx = count()
 
 class CompileThreadPool:
     def __init__(self):
-        self.pool = ThreadPoolExecutor(max_workers=npu_config.max_precompiled_thread_num)
+        self.pool = ThreadPoolExecutor(max_workers=npu_config.precompile_thread_num)
         self.warmup()
 
     def warmup(self):
@@ -117,7 +118,7 @@ class CompileThreadPool:
             event.wait()
 
         tasks = []
-        for _ in range(npu_config.max_precompiled_thread_num):
+        for _ in range(npu_config.precompile_thread_num):
             tasks.append(self.submit(worker))
         event.set()
         for future in tasks:
@@ -697,6 +698,18 @@ class NPUCachingAutotuner(CachingAutotuner):
         reload_kernel: Optional[Callable[[], CachingAutotuner]] = None,
         static_triton_bundle_key: Optional[str] = None,
     ):
+        if npu_config.precompile_thread_num > 1:
+            self._precompile_parallel(warm_cache_only, reload_kernel)
+        else:
+            self._precompile_sequential(warm_cache_only, reload_kernel)
+
+    def _precompile_sequential(
+        self,
+        warm_cache_only=False,
+        reload_kernel: Optional[Callable[[], CachingAutotuner]] = None,
+        static_triton_bundle_key: Optional[str] = None,
+    ):
+        start_time = time.perf_counter()
         runtime_args, runtime_kwargs = self._resolve_costmodel_runtime_inputs()
         self._apply_costmodel_to_configs(*runtime_args, **runtime_kwargs)
         if self.candidate_plan is None:
@@ -717,6 +730,59 @@ class NPUCachingAutotuner(CachingAutotuner):
             self._precompile_worker()
             self._make_launchers()
         self._refresh_variant_launchers()
+        log.debug(
+            f"[_precompile_sequential] kernel: {self.get_fn_name()}, "
+            f"precompile_timecost: {time.perf_counter() - start_time:.3f}s"
+        )
+
+    def _precompile_parallel(
+        self,
+        warm_cache_only=False,
+        reload_kernel: Optional[Callable[[], CachingAutotuner]] = None,
+        static_triton_bundle_key: Optional[str] = None,
+    ):
+        if reload_kernel is not None:
+            self._reload_kernel = reload_kernel
+
+        start_time = time.perf_counter()
+
+        if hasattr(self, "skip_precompile"):
+            if self.skip_precompile:
+                return
+
+        runtime_args, runtime_kwargs = self._resolve_costmodel_runtime_inputs()
+        self._apply_costmodel_to_configs(*runtime_args, **runtime_kwargs)
+
+        if warm_cache_only:
+            self.kernel_name = self.get_fn_name()
+            self._precompile_worker_parallel()
+            log.debug(
+                f"[_precompile_parallel] warm_cache_only, after _precompile_worker_parallel, "
+                f"kernel: {self.get_fn_name()}, precompile_timecost: {time.perf_counter() - start_time:.3f}s"
+            )
+            return
+
+        if self.compile_results:
+            for result in self.compile_results:
+                TritonBundler.put(
+                    triton_hash_to_path_key(result.kernel.hash),
+                    self.triton_meta.get("device", 0),
+                )
+            self._make_launchers()
+            self._refresh_variant_launchers()
+            log.debug(
+                f"[_precompile_parallel] compile_results is ready, kernel: {self.get_fn_name()}, "
+                f"precompile_timecost: {time.perf_counter() - start_time:.3f}s"
+            )
+            return
+
+        self._precompile_worker_parallel()
+        self._make_launchers()
+        self._refresh_variant_launchers()
+        log.debug(
+            f"[_precompile_parallel] after _precompile_worker_parallel, kernel: {self.get_fn_name()}, "
+            f"precompile_timecost: {time.perf_counter() - start_time:.3f}s"
+        )
 
     def _make_ttir_module_from_cfg(self, cfg):
         """Compile one config to TTIR module only (no backend lowering/launch)."""
@@ -1702,6 +1768,15 @@ class NPUCachingAutotuner(CachingAutotuner):
                 )
         return timings
 
+    def benchmark_all_configs(self, *args, **kwargs):
+        with dynamo_timed("benchmark_all_configs"):
+            if getattr(self, "candidate_plan", None) is None:
+                self.candidate_plan = build_candidate_plan(
+                    self.configs, getattr(self, "runtime_block_arg_names", ())
+                )
+            return self._benchmark_candidate_entries(*args, **kwargs)
+
+
     def _should_skip_autotune_for_determinism(self):
         """
         When deterministic algorithms are enabled, skip benchmarking for
@@ -1728,6 +1803,7 @@ class NPUCachingAutotuner(CachingAutotuner):
             )
         timings = self._benchmark_candidate_entries(*args, **kwargs)
         benchmark_time_taken_ns = time.time_ns() - start_time
+
         candidate_map = {
             candidate["candidate_id"]: candidate
             for candidate in self.candidate_plan["candidate_entries"]
@@ -1817,7 +1893,6 @@ class NPUCachingAutotuner(CachingAutotuner):
     def run(
         self, *args, stream, benchmark_run=False, **kwargs
     ):  # type:ignore[override]
-
         if self.triton_interpret:
             cfg = self.best_candidate_config or self.configs[0]
             runtime_blocks = self.best_runtime_blocks
@@ -1841,7 +1916,7 @@ class NPUCachingAutotuner(CachingAutotuner):
                 **kwargs,
             )
 
-        self.autotuner(*args, stream=stream, benchmark_run=benchmark_run, **kwargs)
+        self.autotune(*args, stream=stream, benchmark_run=benchmark_run, **kwargs)
         launcher = self.best_launcher if self.best_launcher is not None else self.launchers[0]
         runtime_blocks = self.best_runtime_blocks
 
@@ -1885,20 +1960,27 @@ class NPUCachingAutotuner(CachingAutotuner):
                 stream=stream,
             )
 
-    def autotuner(self, *args, stream, benchmark_run=False, **kwargs):
+    def autotune(self, *args, stream, benchmark_run=False, **kwargs):
         if self.best_launcher is not None:
             return
         if self.candidate_plan is None:
             self.candidate_plan = build_candidate_plan(
                 self.configs, self.runtime_block_arg_names
             )
+
         autotune_start_time = time.perf_counter()
+
+        # precompile if no launchers are available
         if len(self.launchers) == 0:
             self._costmodel_runtime_args = args
             self._costmodel_runtime_kwargs = kwargs
             start_time = time.time_ns()
             self.precompile()
             self.precompile_time_taken_ns = time.time_ns() - start_time
+            log.debug(
+                f"[autotune] kernel: {self.get_fn_name()}, "
+                f"precompile_timecost: {self.precompile_time_taken_ns / 1e9:.3f}s"
+            )
 
         candidate_count = len(self.candidate_plan["candidate_entries"])
         if not self.variant_launcher_map:
@@ -1910,7 +1992,10 @@ class NPUCachingAutotuner(CachingAutotuner):
             launcher = entry["launcher"]
             self._set_best_candidate(candidate, launcher)
             self.launchers = [launcher]
-            log.info(f"{self.get_fn_name()} benchmark elapsed time {time.perf_counter() - autotune_start_time}s")
+            log.debug(
+                f"[autotune] kernel: {self.get_fn_name()}, candidate_count == 1, "
+                f"autotune_timecost: {time.perf_counter() - autotune_start_time:.3f}s"
+            )
             return
 
         if self._should_skip_autotune_for_determinism():
@@ -1928,7 +2013,14 @@ class NPUCachingAutotuner(CachingAutotuner):
                 self.save_cache_hook(best_config, 0)
         else:
             self.autotune_to_one_config(*args, **kwargs)
-        log.info(f"{self.get_fn_name()} benchmark elapsed time {time.perf_counter() - autotune_start_time}s")
+        log.debug(
+            f"[autotune] kernel: {self.get_fn_name()}, "
+            f"best_config: {self.launchers[0].config.kwargs}"
+        )
+        log.debug(
+            f"[autotune] kernel: {self.get_fn_name()}, "
+            f"autotune_timecost: {time.perf_counter() - autotune_start_time:.3f}s"
+        )
 
     def _interpret_args_grid(
             self, args: tuple[Any, ...], cfg: Config, runtime_blocks=None
@@ -3259,11 +3351,6 @@ def foreach(size_hints, triton_meta, num_warps, filename=None, inductor_meta=Non
     )
 
 
-def benchmark_all_configs(self, *args, **kwargs):
-    with dynamo_timed("benchmark_all_configs"):
-        return self._benchmark_all_configs(*args, **kwargs)
-
-
 def _measure_prerun_ms(kernel_call_fn):
     start_event = torch.npu.Event(enable_timing=True)
     end_event = torch.npu.Event(enable_timing=True)
@@ -3296,49 +3383,3 @@ def _select_prerun_top_candidates(
         total_ms += cost_ms
 
     return selected
-
-
-def _benchmark_all_configs(self, *args, **kwargs):
-    if getattr(self, "candidate_plan", None) is None:
-        self.candidate_plan = build_candidate_plan(
-            self.configs, getattr(self, "runtime_block_arg_names", ())
-        )
-    return self._benchmark_candidate_entries(*args, **kwargs)
-
-
-def precompile_parallel(
-    self,
-    warm_cache_only=False,
-    reload_kernel: Optional[Callable[[], CachingAutotuner]] = None,
-    static_triton_bundle_key: Optional[str] = None,
-):
-    if reload_kernel is not None:
-        self._reload_kernel = reload_kernel
-    start_time = time.perf_counter()
-    if hasattr(self, "skip_precompile"):
-        if self.skip_precompile:
-            return
-
-    runtime_args, runtime_kwargs = self._resolve_costmodel_runtime_inputs()
-    self._apply_costmodel_to_configs(*runtime_args, **runtime_kwargs)
-
-    if warm_cache_only:
-        self.kernel_name = self.get_fn_name()
-        self._precompile_worker_parallel()
-        log.info(f"kernel: {self.get_fn_name()} precompile elapsed time: {time.perf_counter() - start_time}s")
-        return
-
-    if self.compile_results:
-        for result in self.compile_results:
-            TritonBundler.put(
-                triton_hash_to_path_key(result.kernel.hash),
-                self.triton_meta.get("device", 0),
-            )
-        self._make_launchers()
-        self._refresh_variant_launchers()
-        return
-
-    self._precompile_worker_parallel()
-    self._make_launchers()
-    self._refresh_variant_launchers()
-    log.info(f"kernel: {self.get_fn_name()} precompile elapsed time: {time.perf_counter() - start_time}s")

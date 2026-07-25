@@ -878,7 +878,7 @@ class NPUFastAutotuner(NPUCachingAutotuner):
 
         self.bucket_dict = {}
         self.max_ub_usage_each_core = {}
-        self.precompiled_thread_num = npu_config.max_precompiled_thread_num
+        self.precompiled_thread_num = npu_config.precompile_thread_num
         self.ub_max_valid_usage = 1.
         self.ub_all_ok = False
 
@@ -1023,7 +1023,7 @@ class NPUFastAutotuner(NPUCachingAutotuner):
             need_compile_configs = [need_compile_configs]
 
         config_len = len(need_compile_configs)
-        thread_num = min(config_len, npu_config.max_precompiled_thread_num)
+        thread_num = min(config_len, npu_config.precompile_thread_num)
         compile_results = [None] * config_len
         exc_results = [None] * config_len
         exc_stack_results = [None] * config_len

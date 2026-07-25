@@ -116,9 +116,7 @@ def _load_triton_backend():
     )
     from .config import (
         aggresive_autotune,
-        log as npulog,
-        max_precompiled_thread_num,
-        num_vector_core,
+        log,
     )
     from .cpp_builder import (
         patch_get_cpp_torch_device_options,
@@ -218,33 +216,12 @@ def _load_triton_backend():
 
     pre_grad_custom_pass_fuc()
     post_grad_custom_pass_fuc()
+
+
     if os.environ.get("ENABLE_PARALLEL_SCHEDULER", "false").lower() == "true":
         from .fx_passes.parallel_scheduler_pass import parallel_scheduler
-
         parallel_scheduler()
 
-    # register fx_pass should be put behind of _register_npu_inductor_decompositions
-    def _replace_benchmark_all_configs():
-        from torch._inductor.runtime.triton_heuristics import CachingAutotuner
-
-        from .runtime.triton_heuristics import (
-            _benchmark_all_configs,
-            benchmark_all_configs,
-        )
-
-        CachingAutotuner._benchmark_all_configs = _benchmark_all_configs
-        CachingAutotuner.benchmark_all_configs = benchmark_all_configs
-
-    def _replace_precompile():
-        from .runtime.triton_heuristics import NPUCachingAutotuner, precompile_parallel
-
-        NPUCachingAutotuner.precompile = precompile_parallel
-
-    if aggresive_autotune:
-        _replace_benchmark_all_configs()
-
-    if max_precompiled_thread_num > 1:
-        _replace_precompile()
 
     register_fav3_partition_pass()
     patch_get_first_incompatible_cudagraph_node()

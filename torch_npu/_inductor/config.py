@@ -2,10 +2,10 @@ import logging
 import os  # noqa: C101
 import re
 import sys
+import math
 
 import torch
 import torch._inductor.config as inductor_config
-from torch._inductor import config
 from torch_npu.npu._backends import get_soc_version
 
 from .utils import classproperty
@@ -37,6 +37,7 @@ is_ascend950 = get_soc_version() >= Ascend950
 ub_size = 192 * 1024
 if is_ascend950:
     ub_size = 256 * 1024
+
 
 def _obtain_and_limit_cube_vector_core_num():
     # by default, obtain cube and vector core num from device properties
@@ -102,6 +103,8 @@ def _obtain_and_limit_cube_vector_core_num():
     if (Ascend910B1 <= soc < Ascend310B1 or soc >= Ascend910_9391) and (
         vector_core_num != cube_core_num * 2
     ):
+        if cube_core_num * 2 < vector_core_num:
+            cube_core_num = math.ceil(vector_core_num / 2)
         vector_core_num = cube_core_num * 2
         log.warning(
             "[_obtain_and_limit_cube_vector_core_num] vector_core_num != cube_core_num * 2, "
@@ -135,6 +138,37 @@ def _obtain_and_limit_cube_vector_core_num():
 prop, num_cube_core, num_vector_core = _obtain_and_limit_cube_vector_core_num()
 
 
+def _obtain_precompile_thread_num() -> int:
+    """
+    in torch/inductor/config.py, compile_threads is introduced with default value or
+    by env TORCHINDUCTOR_COMPILE_THREADS; here, we obtain precompile_thread_num
+    via default_value or env TORCHNPU_PRECOMPILE_THREADS.
+    """
+    # by default, inductor_config.compile_threads = 32 in torch/inductor/config.py
+    precompile_thread_num = os.cpu_count() // max(inductor_config.compile_threads, 2)
+    # by default, we set maximum of precompile_thread_num = 32
+    precompile_thread_num = max(precompile_thread_num, 32)
+
+    thread_num_str = os.environ.get("TORCHNPU_PRECOMPILE_THREADS", "")
+    if thread_num_str.strip():
+        try:
+            precompile_thread_num = int(thread_num_str.strip())
+        except ValueError as e:
+            log.error(
+                "TORCHNPU_PRECOMPILE_THREADS=%s with wrong value, %s", thread_num_str, e,
+            )
+            sys.exit(1)
+
+    log.info(
+        "for torch/inductor, compile_threads=%s; "
+        "for torch_npu/inductor, precompile_thread_num=%s",
+        inductor_config.compile_threads, precompile_thread_num,
+    )
+    return precompile_thread_num
+
+precompile_thread_num = _obtain_precompile_thread_num()
+
+
 # By default, native Torch/inductor set 'inplace_buffers = True', while it will disable NPU-IR's multi-buffer.
 # Here, we add this env variable as a switch to decide whether or not to reuse a kernel input as its output.
 enable_inplace_buffers = os.environ.get("ENABLE_INPLACE_BUFFERS", "1").lower() in (
@@ -146,10 +180,10 @@ if not enable_inplace_buffers:
     inductor_config.inplace_buffers = False
 
 # inductor debug switch
-config.trace.enabled = True
+inductor_config.trace.enabled = True
 
-config.triton.coalesce_tiling_analysis = False
-config.triton.mix_order_reduction = False
+inductor_config.triton.coalesce_tiling_analysis = False
+inductor_config.triton.mix_order_reduction = False
 
 enable_fast_gelu = os.getenv("TORCHINDUCTOR_ENABLE_FAST_GELU", "0") == "1"
 
@@ -365,11 +399,6 @@ def _parse_float_env(name: str, default: float = 0.25, min_value: float = 0.0, m
 enable_costmodel_backend = _parse_bool_env("INDUCTOR_ASCEND_ENABLE_COSTMODEL", False)
 costmodel_ratio = _parse_float_env("INDUCTOR_ASCEND_COSTMODEL_RATIO", 0.25, 0.0, 1.0)
 
-max_precompiled_thread_num = (
-    os.cpu_count() // 2
-)  # default precompile max thread num is half of the cpu count
-if "TORCHNPU_PRECOMPILE_THREADS" in os.environ:
-    max_precompiled_thread_num = int(os.environ["TORCHNPU_PRECOMPILE_THREADS"])
 
 lowering_axis_count = None
 inductor_ascend_linear_mode = "linear"
