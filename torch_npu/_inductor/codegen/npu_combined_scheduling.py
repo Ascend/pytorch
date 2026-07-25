@@ -98,6 +98,23 @@ class NPUCombinedScheduling(CUDACombinedScheduling, TritonScheduling):
             snode.group = (snode.group[0], group_fn(snode._sizes))
         return self._nolinear_triton_scheduling.codegen_node(node)
 
+    def benchmark_fused_nodes(self, nodes):
+        if self.node_can_linear():
+            try:
+                return self._triton_scheduling.benchmark_fused_nodes(nodes)
+            except Exception:
+                log.debug(
+                    "linear benchmark_fused_nodes for nodes %s raise error, fallback to origin benchmark_fused_nodes",
+                    {n.get_name() for n in nodes},
+                    exc_info=True,
+                )
+        # regroup snode
+        for node in nodes:
+            for snode in node.get_nodes():
+                group_fn = self._nolinear_triton_scheduling.group_fn
+                snode.group = (snode.group[0], group_fn(snode._sizes))
+        return self._nolinear_triton_scheduling.benchmark_fused_nodes(nodes)
+
     def benchmark_codegened_module(self, module):
         if isinstance(module, FusedCATLASSBenchmarkRequest):
             return module.benchmark()
