@@ -9,7 +9,7 @@ from torch.testing._internal.common_utils import run_tests, parametrize, instant
 from torch._inductor import config
 from testutils import TestUtils
 import torch_npu
-from unittest import skip
+
 
 os.environ["INDUCTOR_ASCEND_DUMP_FX_GRAPH"] = "1"
 os.environ["TORCH_COMPILE_DEBUG"] = "1"
@@ -68,7 +68,7 @@ class TestDebugMsg(TestUtils):
             content
         )
 
-    @skip("dynamic linear skip")
+
     @parametrize('shape_x', [(32, 8, 64)])
     @parametrize('shape_y', [(32, 1, 64)])
     @parametrize('dtype', ['float32'])

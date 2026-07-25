@@ -269,18 +269,7 @@ def rebuild_flattened_dims(indexing):
         if find_index_in_substitute(index, kernel):
             new_index = sympy_subs(index, kernel.expr_substituted)
             indexing[key] = new_index
-    # 删除kernel.expr_substituted中未使用的升维轴
-    for key, index in indexing.items():
-        index_symbols = index.free_symbols
-        remaining_del = [v for v in kernel.expr_substituted.values() if v not in index_symbols]
-        kernel.dim_up_temp.update(remaining_del)
 
-    if len(kernel.dim_up_temp) > 0:
-        keys_to_remove = [k for k, v in kernel.expr_substituted.items() if v in kernel.dim_up_temp]
-        for expr in keys_to_remove:
-            del kernel.expr_substituted[expr]
-        for var in kernel.dim_up_temp:
-            del kernel.range_tree_nodes[var]
     log.debug(
         "rebuild_flattened_dims: range_tree_nodes_substituted=%s, store_items=%s",
         kernel.range_tree_nodes_substituted,

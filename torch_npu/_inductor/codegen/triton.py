@@ -1,3 +1,4 @@
+import collections
 import contextlib
 import dataclasses
 import functools
@@ -1505,9 +1506,105 @@ class NPUIndexTritonKernel(TritonKernel):
         with self:
             self._mark_store_index_keys()
             self._transform_schedule_indexing()
+            self._remove_unused_dim_up_axes()
             self._record_store_unified_indexing()
             self._remove_substituted_dims_from_kernel()
             self._finalize_kernel_codegen_dims()
+
+
+    def _index_symbol_users(self):
+        """
+        Map every symbol the scheduled nodes' indices reference to the index keys
+        using it, or None when a node has no transformed indexing yet.
+
+        indexing_exprs are still expressed in loop-body vars instead of kernel
+        axes, so a node without transformed indexing carries no usable axis
+        information and a partial map would make the missing axes look unused.
+        """
+        axis_users = collections.defaultdict(list)
+        for node in self._iter_schedule_nodes(self.node_schedule):
+            indexing = node._body.indexing
+            if indexing is None:
+                log.warning("%s has no transformed indexing", node)
+                return None
+            for key, index in indexing.items():
+                for sym in getattr(index, "free_symbols", set()):
+                    axis_users[sym].append(key)
+        return axis_users
+
+
+    def _drop_dead_substitution_candidates(self, removed_axes):
+        """
+        Forget parent expansions that rebuild a removed axis.
+
+        Their axes no longer exist in the kernel, so substituting such an
+        expansion into an index would reference a variable codegen never defines.
+        """
+        for var in list(self.range_tree_nodes_substituted):
+            candidates = self.range_tree_nodes_substituted[var]
+            alive = [
+                candidate
+                for candidate in candidates
+                if not getattr(candidate[1], "free_symbols", set()) & removed_axes
+            ]
+            if len(alive) == len(candidates):
+                continue
+            if alive:
+                self.range_tree_nodes_substituted[var] = alive
+            else:
+                del self.range_tree_nodes_substituted[var]
+            log.info(
+                "Dropped expansion candidates of %s rebuilding removed axes: %s",
+                var,
+                [candidate for candidate in candidates if candidate not in alive],
+            )
+
+
+    def _remove_unused_dim_up_axes(self):
+        """
+        Drop rebuilt (dim-up) axes that no index expression references any more.
+
+        An axis survives exactly when some index still references it, so codegen
+        always defines the axes the generated index expressions use, and nothing
+        else. Must run after substituted_dims_in_indexing has expanded the parent
+        axes: a rebuilt axis may only show up once its parent is expanded, e.g. a
+        broadcast dim that the Store index alone uses. Judging it any earlier
+        drops an axis that is still needed, and codegen then emits no definition
+        for a variable the Store index already references.
+        """
+        axis_users = self._index_symbol_users()
+        if axis_users is None:
+            log.warning("Keep all dim-up axes, transformed indexing is incomplete")
+            return
+
+        unused_dims = {
+            v for v in self.expr_substituted.values() if v not in axis_users
+        }
+        log.debug(
+            "dim-up axes: unused=%s, kept=%s",
+            sorted(unused_dims, key=str),
+            {
+                str(v): axis_users[v]
+                for v in self.expr_substituted.values()
+                if v in axis_users
+            },
+        )
+        if not unused_dims:
+            return
+
+        self.dim_up_temp.update(unused_dims)
+        keys_to_remove = [
+            k for k, v in self.expr_substituted.items() if v in unused_dims
+        ]
+        for expr in keys_to_remove:
+            del self.expr_substituted[expr]
+        for var in unused_dims:
+            node = self.range_tree_nodes.get(var)
+            if node is not None:
+                node.parent.remove_entry(var)
+        self._drop_dead_substitution_candidates(unused_dims)
+        log.info("Removed unused dim-up axes: %s", sorted(unused_dims, key=str))
+
 
     def _store_keeps_unified_anchor(self, var, index):
         """
