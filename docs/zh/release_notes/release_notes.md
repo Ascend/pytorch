@@ -34,6 +34,8 @@
 
 ### 相关产品版本配套说明
 
+固件和驱动的版本配套表与所有的昇腾硬件及CANN版本相关，具体选择请参考[CANN版本说明](https://gitcode.com/cann/release-management/blob/master/9.1.0/release-notes.md)。
+
 TorchNPU代码分支名称采用 **\{PyTorch版本\}-\{TorchNPU版本\}** 的命名规则，前者为TorchNPU匹配的PyTorch版本，详细匹配如下表：
 
 |TorchNPU代码分支名称|PyTorch版本|TorchNPU版本|TorchNPU安装包版本|CANN版本|Python版本|
@@ -48,7 +50,7 @@ TorchNPU代码分支名称采用 **\{PyTorch版本\}-\{TorchNPU版本\}** 的命
 
 > [!NOTE]
 >
-> 表格中“Y”代表兼容，“/”代表不兼容。
+> 表格中“Y”表示兼容。
 
 <p style="display:none">
 <style type="text/css">
@@ -65,25 +67,25 @@ TorchNPU代码分支名称采用 **\{PyTorch版本\}-\{TorchNPU版本\}** 的命
     <th class="tg-amwm" colspan="3">CANN版本</th>
   </tr>
   <tr>
-    <th class="tg-c3ow">8.5.0</th>
-    <th class="tg-c3ow">9.0.0</th>
-    <th class="tg-c3ow">9.1.0</th>
+    <th class="tg-c3ow">8.5.X</th>
+    <th class="tg-c3ow">9.0.X</th>
+    <th class="tg-c3ow">9.1.X</th>
   </tr></thead>
 <tbody>
   <tr>
-    <td class="tg-c3ow">7.3.0</td>
+    <td class="tg-c3ow">7.3.X</td>
     <td class="tg-c3ow">Y</td>
-    <td class="tg-c3ow">/</td>
-    <td class="tg-c3ow">/</td>
+    <td class="tg-c3ow">Y</td>
+    <td class="tg-c3ow">Y</td>
   </tr>
   <tr>
-    <td class="tg-baqh">26.0.0</td>
+    <td class="tg-baqh">26.0.X</td>
     <td class="tg-baqh">Y</td>
     <td class="tg-baqh">Y</td>
-    <td class="tg-baqh">/</td>
+    <td class="tg-baqh">Y</td>
   </tr>
     <tr>
-    <td class="tg-baqh">26.1.0</td>
+    <td class="tg-baqh">26.1.X</td>
     <td class="tg-baqh">Y</td>
     <td class="tg-baqh">Y</td>
     <td class="tg-baqh">Y</td>
@@ -130,7 +132,7 @@ TorchNPU代码分支名称采用 **\{PyTorch版本\}-\{TorchNPU版本\}** 的命
       <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.2">将已有的TorchNPU能力在<term>Ascend 950DT</term>中进行适配。</td>
     </tr>
     <tr>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.1">将原torch_npu和Ascend Extension for PyTorch统一更名为TorchNPU。</td>
+      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.1">将原Ascend Extension for PyTorch和torch_npu统一更名为TorchNPU。</td>
       <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.2">除导入名和Whl包名前缀保持不变外，其余部分均修改为TorchNPU。</td>
     </tr>
   </tbody>
