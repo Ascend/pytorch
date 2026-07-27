@@ -1,8 +1,8 @@
-# Ascend Extension for PyTorch
+# TorchNPU
 
 ## Overview
 
-This repository develops the **Ascend Extension for PyTorch** named **torch_npu** to adapt **Ascend NPU** to **PyTorch** so that developers who use the **PyTorch** can obtain powerful compute capabilities of **Ascend AI Processors**.
+**TorchNPU** is a PyTorch adapter plugin that brings **Ascend NPU** support into the **PyTorch** ecosystem, enabling developers to harness the high-performance computing power of Ascend AI processors.
 
 Ascend is a full-stack AI computing infrastructure for industry applications and services based on Huawei Ascend processors and software. For more information about Ascend, see [Ascend Community](https://www.hiascend.com/en/).
 
@@ -10,93 +10,92 @@ Ascend is a full-stack AI computing infrastructure for industry applications and
 
 ### From Binary
 
-Provide users with wheel package to quickly install **torch_npu**. Before installing **torch_npu**, complete the installation of **CANN** according to [Ascend Auxiliary Software](#ascend-auxiliary-software). To obtain the **CANN** installation package, refer to the [CANN Installation](https://www.hiascend.com/cann).
+Provide users with wheel package to quickly install **TorchNPU**. Before installing **TorchNPU**, complete the installation of **CANN** according to [Ascend Auxiliary Software](#ascend-auxiliary-software). To obtain the **CANN** installation package, refer to the [CANN Installation](https://www.hiascend.com/cann).
 
 1. **Install PyTorch**
 
-Install **PyTorch** through pip.
+    Install **PyTorch** through pip.
 
-**For Aarch64:**
+    **For Aarch64:**
 
-```bash
-pip3 install torch==2.9.0
-```
+    ```bash
+    pip3 install torch==2.9.0
+    ```
 
-**For x86:**
+    **For x86:**
 
-```bash
-pip3 install torch==2.9.0+cpu  --index-url https://download.pytorch.org/whl/cpu
-```
+    ```bash
+    pip3 install torch==2.9.0+cpu  --index-url https://download.pytorch.org/whl/cpu
+    ```
 
-2. **Install torch-npu dependencies**
+2. **Install TorchNPU dependencies**
 
-Run the following command to install dependencies.
+    Run the following command to install dependencies.
 
-```bash
-pip3 install pyyaml
-pip3 install setuptools
-```
+    ```bash
+    pip3 install pyyaml
+    pip3 install setuptools
+    ```
 
-If the installation fails, use the download link or visit the [PyTorch official website](https://pytorch.org/) to download the installation package of the corresponding version.
+    If the installation fails, use the download link or visit the [PyTorch official website](https://pytorch.org/) to download the installation package of the corresponding version.
 
-| OS arch | Python version | link                                                                                                                                                                          |
-|---------|----------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| x86     | Python3.10     | [link](https://download.pytorch.org/whl/cpu/torch-2.9.0%2Bcpu-cp310-cp310-manylinux_2_28_x86_64.whl#sha256=bd2a257e670ede9fc01c6d76dccdc473040913b8e9328169bf177dbdc38e2484)  |
-| x86     | Python3.11     | [link](https://download.pytorch.org/whl/cpu/torch-2.9.0%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl#sha256=add3e93ecc1eeaa6853f6a973ce60ffb3cb14ed2e80f5055e139b09385dce0a7)  |
-| aarch64 | Python3.10     | [link](https://download.pytorch.org/whl/cpu/torch-2.9.0%2Bcpu-cp310-cp310-manylinux_2_28_aarch64.whl#sha256=b224792ea567b52c7f1ce1d789567f6920e06fd3b339fa1e1b05948845f783ad) |
-| aarch64 | Python3.11     | [link](https://download.pytorch.org/whl/cpu/torch-2.9.0%2Bcpu-cp311-cp311-manylinux_2_28_aarch64.whl#sha256=da77341ccaba31762d9238b0942c165c4582a26818f3045b052b39cebdd7ad9d) |
+    | OS arch | Python version | link                                                                                                                                                                          |
+    |---------|----------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+    | x86     | Python3.10     | [link](https://download.pytorch.org/whl/cpu/torch-2.9.0%2Bcpu-cp310-cp310-manylinux_2_28_x86_64.whl#sha256=bd2a257e670ede9fc01c6d76dccdc473040913b8e9328169bf177dbdc38e2484)  |
+    | x86     | Python3.11     | [link](https://download.pytorch.org/whl/cpu/torch-2.9.0%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl#sha256=add3e93ecc1eeaa6853f6a973ce60ffb3cb14ed2e80f5055e139b09385dce0a7)  |
+    | aarch64 | Python3.10     | [link](https://download.pytorch.org/whl/cpu/torch-2.9.0%2Bcpu-cp310-cp310-manylinux_2_28_aarch64.whl#sha256=b224792ea567b52c7f1ce1d789567f6920e06fd3b339fa1e1b05948845f783ad) |
+    | aarch64 | Python3.11     | [link](https://download.pytorch.org/whl/cpu/torch-2.9.0%2Bcpu-cp311-cp311-manylinux_2_28_aarch64.whl#sha256=da77341ccaba31762d9238b0942c165c4582a26818f3045b052b39cebdd7ad9d) |
 
-3. **Install torch-npu**
+3. **Install TorchNPU**
 
-```
-pip3 install torch-npu==2.9.0rc1
-
-```
+    ```bash
+    pip3 install torch-npu==2.9.0rc1
+    ```
 
 ### From Source
 
-In some special scenarios, users may need to compile **torch-npu** by themselves.Select a branch in table [Ascend Auxiliary Software](#ascend-auxiliary-software) and a Python version in table [PyTorch and Python Version Matching Table](#pytorch-and-python-version-matching-table) first. The docker image is recommended for compiling torch-npu through the following steps(It is recommended to mount the working path only and avoid the system path to reduce security risks.), the generated .whl file path is ./dist/. Note that gcc version has the following constraints if you try to compile without using docker image: we recommend to use gcc 13.3 for both ARM and X86.
+In some special scenarios, users may need to compile **TorchNPU** by themselves.Select a branch in table [Ascend Auxiliary Software](#ascend-auxiliary-software) and a Python version in table [PyTorch and Python Version Matching Table](#pytorch-and-python-version-matching-table) first. The docker image is recommended for compiling TorchNPU through the following steps(It is recommended to mount the working path only and avoid the system path to reduce security risks.), the generated .whl file path is ./dist/. Note that gcc version has the following constraints if you try to compile without using docker image: we recommend to use gcc 13.3 for both ARM and X86.
 
-1. **Clone torch-npu**
+1. **Clone TorchNPU**
 
-   ```
-   git clone https://gitcode.com/Ascend/pytorch.git -b v2.9.0 --depth 1
-   ```
+    ```bash
+    git clone https://gitcode.com/Ascend/pytorch.git -b v2.9.0 --depth 1
+    ```
 
 2. **Build Docker Image**
 
-   ```
-   cd pytorch/ci/docker/{arch} # {arch} for X86 or ARM
-   docker build -t manylinux-builder:v1 .
-   ```
+    ```bash
+    cd pytorch/ci/docker/{arch} # {arch} for X86 or ARM
+    docker build -t manylinux-builder:v1 .
+    ```
 
 3. **Enter Docker Container**
 
-   ```
-   docker run -it -v /{code_path}/pytorch:/home/pytorch manylinux-builder:v1 bash
-   # {code_path} is the torch_npu source code path
-   ```
+    ```bash
+    docker run -it -v /{code_path}/pytorch:/home/pytorch manylinux-builder:v1 bash
+    # {code_path} is the torch_npu source code path
+    ```
 
-4. **Compile torch-npu**
+4. **Compile TorchNPU**
 
-   Take **Python 3.10** as an example.
+    Take **Python 3.10** as an example.
 
-   ```
-   cd /home/pytorch
-   bash ci/build.sh --python=3.10
-   ```
+    ```bash
+    cd /home/pytorch
+    bash ci/build.sh --python=3.10
+    ```
 
 **Tips**
 
    If you would like to compile with new C++ ABI, then first run this command, at this point, the recommended compilation environment is same to community torch package: glibc 2.28, gcc 13.3
    
-   ```
+   ```bash
    export _GLIBCXX_USE_CXX11_ABI=1
    ```
 
    Meanwhile, we support configuring -fabi-version using the following variables，require consistency with the community torch package
 
-   ```
+   ```bash
    export _ABI_VERSION=18
    ```
 
@@ -128,7 +127,7 @@ print(z)
 
 ## User Manual
 
-Refer to [API of Ascend Extension for PyTorch](docs/api/torch_npu_apis.md) for more detailed information.
+Refer to [API of TorchNPU](docs/api/torch_npu_apis.md) for more detailed information.
 
 ## PyTorch and Python Version Matching Table
 
@@ -144,7 +143,6 @@ Refer to [API of Ascend Extension for PyTorch](docs/api/torch_npu_apis.md) for m
 | PyTorch2.7.1    | Python3.9.x,Python3.10.x,Python3.11.x                     |
 | PyTorch2.8.0    | Python3.9.x,Python3.10.x,Python3.11.x                     |
 | PyTorch2.9.0    | Python3.10.x,Python3.11.x                                 |
-
 
 ## Ascend Auxiliary Software
 
@@ -210,6 +208,7 @@ Refer to [API of Ascend Extension for PyTorch](docs/api/torch_npu_apis.md) for m
 ## Hardware support
 
 The Ascend training device includes the following models, all of which can be used as training environments for PyTorch models
+
 | Product series        | Product model                    |
 |-----------------------|----------------------------------|
 | Atlas Training series products     | Atlas 800（model: 9000） |
@@ -223,13 +222,14 @@ The Ascend training device includes the following models, all of which can be us
 |                       | Atlas 300T A2                    |
 
 The Ascend inference device includes the following models, all of which can be used as inference environments for large models
+
 | Product series        | Product model                        |
 |-----------------------|----------------------------------|
 | Atlas 800I A2 Inference product  | Atlas 800I A2         |
 
 ## Pipeline Status
 
-Due to the asynchronous development mechanism of upstream and downstream, incompatible modifications in upstream may cause some functions of **torch_npu** to be unavailable (only upstream and downstream development branches are involved, excluding stable branches). Therefore, we built a set of daily tasks that make it easy to detect relevant issues in time and fix them within 48 hours (under normal circumstances), providing users with the latest features and stable quality.
+Due to the asynchronous development mechanism of upstream and downstream, incompatible modifications in upstream may cause some functions of **TorchNPU** to be unavailable (only upstream and downstream development branches are involved, excluding stable branches). Therefore, we built a set of daily tasks that make it easy to detect relevant issues in time and fix them within 48 hours (under normal circumstances), providing users with the latest features and stable quality.
 
 | **OS** | **CANN Version(Docker Image)** | **Upstream Branch** | **Downstream Branch** | **Period** | **Status** |
 | :---: | :---: | :---: | :---: | :---: | :---: |
@@ -250,9 +250,9 @@ The version branches of AscendPyTorch have the following maintenance phases:
 | Maintained        | 1 year/3.5 years | Regular Release branch for 1 year, Long Term Support branch maintenance for 3.5 years. Fix major issues, do not incorporate new features, and release patch versions based on the impact of fixed bugs. |
 | End Of Life (EOL) | N/A          | Do not accept any modification to a branch.                                                                                    |
 
-##  PyTorch Maintenance Policies
+## TorchNPU Maintenance Policies
 
-| **PyTorch** | **Maintenance Policies** | **Status**  | **Launch Date** | **Subsequent Status**                                             | **EOL Date** |
+ | **TorchNPU** | **Maintenance Policies** | **Status**  | **Launch Date** | **Subsequent Status**                                             | **EOL Date** |
 |-------------|--------------------------|-------------|-----------------|-------------------------------------------------------------------|--------------|
 | 2.9.0         | Regular Release        | Development       | 2026/01/15 | Expected to enter maintenance status from July 15, 2026  | -         | 
 | 2.8.0         | Regular Release        | Development       | 2025/10/15 | Expected to enter maintenance status from March 15, 2026  | -         | 
@@ -270,7 +270,7 @@ The version branches of AscendPyTorch have the following maintenance phases:
 
 ## Reference Documents
 
-For more detailed information on installation guides, model migration, training/inference tutorials, and API lists, please refer to the [Ascend Extension for PyTorch on the HiAI Community](https://www.hiascend.com/software/ai-frameworks?framework=pytorch).
+For more detailed information on installation guides, model migration, training/inference tutorials, and API lists, please refer to the [Ascend for PyTorch Community](https://www.hiascend.com/software/ai-frameworks?framework=pytorch).
 
 | Document Name                            | Document Link                                                                                                           |
 |------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|
@@ -281,4 +281,4 @@ For more detailed information on installation guides, model migration, training/
 
 ## License
 
-Ascend Extension for PyTorch has a BSD-style license, as found in the [LICENSE](LICENSE) file.
+TorchNPU has a BSD-style license, as found in the [LICENSE](LICENSE) file.

@@ -4,7 +4,7 @@
 
 Inductor-Ascend在继承Pytorch社区Inductor能力的基础上，针对昇腾Ascend硬件，进行了亲和性改进和优化。其目标是：提供昇腾亲和的torch.compile图模式后端；生成昇腾亲和的Triton DSL，支持基于triton的算子自动融合；支持动态shape。
 
-如图1（推荐场景-图模式-软件栈）所示，Inductor-Ascend和社区Inductor的执行流程类似，其内嵌于PyTorch-Adapter（torch-npu）中，当用户开启图模式后端torch.compile(backend="inductor")时，Inductor-Ascend承接Dynamo抓取的FX Graph，进行编译、融合，生成昇腾亲和融合算子Triton DSL；最后由Triton-Ascend、AscendNPU-IR编译优化，生成昇腾指令机器码（二进制）。
+如图1（推荐场景-图模式-软件栈）所示，Inductor-Ascend和社区Inductor的执行流程类似，其内嵌于TorchNPU中，当用户开启图模式后端torch.compile(backend="inductor")时，Inductor-Ascend承接Dynamo抓取的FX Graph，进行编译、融合，生成昇腾亲和融合算子Triton DSL；最后由Triton-Ascend、AscendNPU-IR编译优化，生成昇腾指令机器码（二进制）。
 
 和社区类似，对于无法参与融合的算子（AtenOp），Inductor-Ascend会将其作fallback处理，即fallback到ACLNN算子、手写算子等。
 

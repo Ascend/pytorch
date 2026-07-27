@@ -1,7 +1,7 @@
 # 环境变量列表
 
 本手册描述开发者在使用inductor-ascend过程中可使用的环境变量。
-Ascend Extension for PyTorch环境变量请参考《[Ascend Extension for PyTorch环境变量参考](https://www.hiascend.com/document/detail/zh/Pytorch/730/comref/Envvariables/docs/zh/environment_variable_reference/env_variable_list.md)》。
+Ascend Extension for PyTorch环境变量请参考《[TorchNPU环境变量参考](https://www.hiascend.com/document/detail/zh/Pytorch/730/comref/Envvariables/docs/zh/environment_variable_reference/env_variable_list.md)》。
 基于CANN构建AI应用和业务过程中使用的环境变量请参考《[CANN 环境变量参考](https://www.hiascend.com/document/detail/zh/canncommercial/850/maintenref/envvar/envref_07_0001.html)》。
 
 **表 1**  环境变量列表
