@@ -564,7 +564,7 @@ class NPUPythonWrapperCodeGen(_NPUKernelCodegenMixin, PythonWrapperCodegen):
                         break
                 # At this point, we shouldn't generate any new memory planning lines.
                 # Override writeline to point at the wrapper call, in case it gets called.
-                with self.set_writeline(self.wrapper_call.writeline):
+                with self.set_writeline(self.wrapper_call, self.wrapper_call.writeline):
                     if stream_line == -1:
                         for line in self.lines:
                             if isinstance(line, WrapperLine):
@@ -593,6 +593,9 @@ class NPUPythonWrapperCodeGen(_NPUKernelCodegenMixin, PythonWrapperCodegen):
 
                 if config.profile_bandwidth:
                     self.generate_end_graph()
+
+                if config.triton.proton_profiling:
+                    self.generate_proton_finalize()
 
                 if config.triton.store_cubin and not config.triton.autotune_at_compile_time:
                     self.generate_save_uncompiled_kernels()
