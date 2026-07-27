@@ -1,10 +1,10 @@
-# 确定性计算API支持清单
+# 确定性计算API清单
 
 ## 简介
 
-在使用PyTorch框架进行训练时，若需要输出结果排除随机性，则需要设置确定性计算开关。在开启确定性计算时，当使用相同的输入在相同的硬件和软件上执行相同的操作，输出的结果每次都是相同的。
+在使用PyTorch框架进行训练时，部分算子在计算时可能存在随机性，若需要输出结果排除随机性，则需要设置确定性计算开关。在开启确定性计算时，当使用相同的输入在相同的硬件和软件上执行相同的操作，输出的结果每次都是相同的。
 
-> [!NOTE]  
+> [!NOTE]
 >
 >- 确定性计算设置方法都必须与待设置的网络、算子等在同一个主进程，部分模型脚本中main\(\)与训练网络并不在一个进程中。
 >- 当前同一线程中只能设置一次确定性状态，多次设置以第一次有效设置为准，后续设置不会生效。<br>
@@ -42,59 +42,86 @@
 
     执行训练时，当接口返回值为True时，表示当前已开启确定性计算开关，返回值为False则表示未开启。
 
-## API支持清单
+## API清单
 
-昇腾支持的确定性计算API列表请参见[表1](#昇腾支持的确定性计算API列表)。
+当使用<term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>或<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>时，[表1](#可开启确定性计算的API列表-1)所示API计算存在随机性，开启确定性计算开关可以保持计算结果的确定性。
 
-**表 1**  昇腾支持的确定性计算API列表<a id="昇腾支持的确定性计算API列表"></a>
+**表 1** API列表<a id="可开启确定性计算的API列表-1"></a>
 
-|API名称|
-|--|
-|torch.nn.functional.batch_norm|
-|torch.nn.functional.binary_cross_entropy|
-|torch.nn.functional.ctc_loss|
-|torch.cumsum|
-|torch.dot|
-|torch.matmul|
-|torch.nn.functional.embedding|
-|torch.nn.functional.nll_loss|
-|torch.nn.functional.prelu|
-|torch.mean|
-|torch.nn.functional.adaptive_avg_pool2d|
-|torch.nn.functional.avg_pool2d|
-|torch.nn.functional.binary_cross_entropy_with_logits|
-|torch.nn.functional.mse_loss|
-|torch.addbmm|
-|torch.Tensor.addbmm_|
-|torch.addmv|
-|torch.Tensor.addmv_|
-|torch.nn.functional.l1_loss|
-|torch.nn.functional.smooth_l1_loss|
-|torch.addmm|
-|torch.Tensor.addmm|
-|torch.mm|
-|torch.bmm|
-|torch.nn.functional.layer_norm|
-|Tensor.put_|
-|torch.Tensor.index_put|
-|torch.Tensor.index_put_|
-|torch_npu.npu_convolution_transpose|
-|torch_npu.npu_convolution|
-|torch_npu.npu_linear|
-|torch_npu.npu_deformable_conv2d|
-|torch.ops.aten.convolution_backward|
-|torch.nn.NLLLoss2d|
-|torch_npu.npu_ps_roi_pooling|
-|torch.nn.functional.fold|
-|torch.nn.functional.unfold|
-|torch.nn.functional.kl_div|
-|torch.nn.functional.multilabel_margin_loss|
-|torch.std_mean|
-|torch.std|
-|torch.var_mean|
-|torch.var|
-|torch.sum|
-|torch.nn.functional.interpolate|
-|torch.nn.functional.soft_margin_loss|
-|torch.trace|
-|torch.mv|
+| API |
+|-----|
+| `torch.nn.functional.batch_norm` |
+| `torch.nn.functional.binary_cross_entropy` |
+| `torch.nn.functional.ctc_loss` |
+| `torch.cumsum` |
+| `torch.dot` |
+| `torch.matmul` |
+| `torch.nn.functional.embedding` |
+| `torch.nn.functional.nll_loss` |
+| `torch.nn.functional.prelu` |
+| `torch.mean` |
+| `torch.nn.functional.adaptive_avg_pool2d` |
+| `torch.nn.functional.avg_pool2d` |
+| `torch.nn.functional.binary_cross_entropy_with_logits` |
+| `torch.nn.functional.mse_loss` |
+| `torch.addbmm` |
+| `torch.Tensor.addbmm_` |
+| `torch.addmv` |
+| `torch.Tensor.addmv_` |
+| `torch.nn.functional.l1_loss` |
+| `torch.nn.functional.smooth_l1_loss` |
+| `torch.addmm` |
+| `torch.Tensor.addmm` |
+| `torch.mm` |
+| `torch.bmm` |
+| `torch.nn.functional.layer_norm` |
+| `Tensor.put_` |
+| `torch.Tensor.index_put` |
+| `torch.Tensor.index_put_` |
+| `torch.ops.aten.convolution_backward` |
+| `torch.nn.NLLLoss2d` |
+| `torch.nn.functional.fold` |
+| `torch.nn.functional.unfold` |
+| `torch.nn.functional.kl_div` |
+| `torch.nn.functional.multilabel_margin_loss` |
+| `torch.std_mean` |
+| `torch.std` |
+| `torch.var_mean` |
+| `torch.var` |
+| `torch.sum` |
+| `torch.nn.functional.interpolate` |
+| `torch.nn.functional.soft_margin_loss` |
+| `torch.trace` |
+| `torch.mv` |
+
+当使用<term>Ascend 950DT</term>时，[表2](#可开启确定性计算的API列表-2)所示API计算存在随机性，开启确定性计算开关可以保持计算结果的确定性。
+
+**表 2** API列表<a id="可开启确定性计算的API列表-2"></a>
+
+| API |
+|-----|
+| `torch.Tensor.put_` |
+| `torch.max_unpool2d` |
+| `torch.max_unpool3d` |
+| `torch._unique` |
+| `torch._unique2` |
+| `torch.scatter_add` |
+| `torch.Tensor.scatter_add_` |
+| `torch.scatter` |
+| `torch.Tensor.scatter_` |
+| `torch.index_add` |
+| `torch.bincount` |
+| `torch.index_copy` |
+| `torch.index_copy_` |
+| `torch.Tensor.index_put_` |
+| `torch.linalg.vector_norm` |
+| `torch.ops.aten.upsample_bicubic2d` 反向 |
+| `torch.ops.aten.upsample_bilinear2d` 反向 |
+| `torch.ops.aten.upsample_linear1d` 反向 |
+| `torch.ops.aten._upsample_bilinear2d_aa` 反向 |
+| `torch.ops.aten._upsample_bicubic2d_aa` 反向 |
+| `torch.nn.functional.adaptive_max_pool3d` 反向 |
+| `torch.nn.functional.batch_norm` |
+| `torch.Tensor.coalesce` |
+| `torch.grid_sampler_2d` 反向 |
+| `torch.grid_sampler_3d` 反向 |
