@@ -125,7 +125,7 @@
 |torch.save|是|-|
 |torch.load|是|-|
 |torch.get_num_threads|是|-|
-|torch.set_num_threads|是|-|
+|torch.set_num_threads|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.get_num_interop_threads|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.set_num_interop_threads|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.no_grad|是|-|

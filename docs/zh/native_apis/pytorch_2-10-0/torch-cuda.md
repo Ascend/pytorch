@@ -25,7 +25,7 @@
 |torch.cuda.init|torch_npu.npu.init|是|-|
 |torch.cuda.ipc_collect|torch_npu.npu.ipc_collect|是|-|
 |torch.cuda.is_available|torch_npu.npu.is_available|是|-|
-|torch.cuda.is_initialized|torch_npu.npu.is_initialized|是|-|
+|torch.cuda.is_initialized|torch_npu.npu.is_initialized|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.cuda.memory_usage|-|否|-|
 |torch.cuda.set_device|torch_npu.npu.set_device|是|-|
 |torch.cuda.set_stream|torch_npu.npu.set_stream|是|-|
@@ -44,7 +44,7 @@
 |torch.cuda.comm.scatter|-|否|-|
 |torch.cuda.comm.gather|-|否|-|
 |torch.cuda.Stream|torch_npu.npu.Stream|是|-|
-|torch.cuda.Stream.wait_stream|torch_npu.npu.Stream.wait_stream|是|-|
+|torch.cuda.Stream.wait_stream|torch_npu.npu.Stream.wait_stream|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.cuda.Event|torch_npu.npu.Event|是|-|
 |torch.cuda.Event.elapsed_time|torch_npu.npu.Event.elapsed_time|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.cuda.Event.from_ipc_handle|torch_npu.npu.Event.from_ipc_handle|是<br>暂不支持<term>Ascend 950DT</term>|-|
@@ -56,8 +56,8 @@
 |torch.cuda.CUDAGraph|torch.npu.NPUGraph|是|当前仅支持推理场景，不支持训练场景|
 |torch.cuda.CUDAGraph.capture_begin|torch.npu.NPUGraph.capture_begin|是|当前仅支持推理场景，不支持训练场景|
 |torch.cuda.CUDAGraph.capture_end|torch.npu.NPUGraph.capture_end|是|当前仅支持推理场景，不支持训练场景|
-|torch.cuda.CUDAGraph.debug_dump|torch.npu.NPUGraph.debug_dump|是|当前仅支持推理场景，不支持训练场景<br>导出文件内容为json格式|
-|torch.cuda.CUDAGraph.pool|torch.npu.NPUGraph.pool|是|当前仅支持推理场景，不支持训练场景|
+|torch.cuda.CUDAGraph.debug_dump|torch.npu.NPUGraph.debug_dump|是<br>暂不支持<term>Ascend 950DT</term>|当前仅支持推理场景，不支持训练场景<br>导出文件内容为json格式|
+|torch.cuda.CUDAGraph.pool|torch.npu.NPUGraph.pool|是<br>暂不支持<term>Ascend 950DT</term>|当前仅支持推理场景，不支持训练场景|
 |torch.cuda.CUDAGraph.replay|torch.npu.NPUGraph.replay|是|当前仅支持推理场景，不支持训练场景|
 |torch.cuda.CUDAGraph.reset|torch.npu.NPUGraph.reset|是|当前仅支持推理场景，不支持训练场景|
 |torch.cuda.graph|torch.npu.graph|是|当前仅支持推理场景，不支持训练场景|

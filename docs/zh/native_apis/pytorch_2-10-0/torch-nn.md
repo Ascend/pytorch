@@ -120,7 +120,7 @@
 |torch.nn.MaxUnpool1d|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
 |torch.nn.MaxUnpool2d|是|支持fp16，fp32|
 |torch.nn.MaxUnpool3d|否|-|
-|torch.nn.AvgPool1d|是|支持bf16，fp16，fp32|
+|torch.nn.AvgPool1d|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32|
 |torch.nn.AvgPool2d|是|支持bf16，fp16，fp32|
 |torch.nn.AvgPool3d|否|-|
 |torch.nn.LPPool1d|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|

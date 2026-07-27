@@ -18,6 +18,6 @@
 |torch.distributed.algorithms.ddp_comm_hooks.default_hooks.fp16_compress_wrapper|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
 |torch.distributed.algorithms.ddp_comm_hooks.default_hooks.bf16_compress_wrapper|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.distributed.algorithms.ddp_comm_hooks.powerSGD_hook.PowerSGDState|是|支持bf16，fp16，fp32|
-|torch.distributed.algorithms.ddp_comm_hooks.powerSGD_hook.powerSGD_hook|是|-|
+|torch.distributed.algorithms.ddp_comm_hooks.powerSGD_hook.powerSGD_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.distributed.algorithms.ddp_comm_hooks.powerSGD_hook.batched_powerSGD_hook|是|-|
 |torch.distributed.algorithms.ddp_comm_hooks.debugging_hooks.noop_hook|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|

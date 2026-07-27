@@ -13,7 +13,7 @@
 |torch.ao.quantization.qconfig_mapping.QConfigMapping|是|-|
 |torch.ao.quantization.qconfig_mapping.QConfigMapping.from_dict|是|-|
 |torch.ao.quantization.qconfig_mapping.QConfigMapping.set_global|是|-|
-|torch.ao.quantization.qconfig_mapping.QConfigMapping.set_module_name|是|-|
+|torch.ao.quantization.qconfig_mapping.QConfigMapping.set_module_name|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.ao.quantization.qconfig_mapping.QConfigMapping.set_module_name_object_type_order|是|-|
 |torch.ao.quantization.qconfig_mapping.QConfigMapping.set_module_name_regex|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.ao.quantization.qconfig_mapping.QConfigMapping.set_object_type|是|-|

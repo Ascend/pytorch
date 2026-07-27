@@ -13,10 +13,10 @@
 |torch.distributed.optim.PostLocalSGDOptimizer.step|是|-|
 |torch.distributed.optim.ZeroRedundancyOptimizer|是|支持的输入类型为torch.nn.Optimizer对象<br>不支持NPU融合优化器对象|
 |torch.distributed.optim.ZeroRedundancyOptimizer.add_param_group|是|-|
-|torch.distributed.optim.ZeroRedundancyOptimizer.consolidate_state_dict|是|-|
-|torch.distributed.optim.ZeroRedundancyOptimizer.join_device|是|-|
-|torch.distributed.optim.ZeroRedundancyOptimizer.join_hook|是|-|
-|torch.distributed.optim.ZeroRedundancyOptimizer.join_process_group|是|-|
-|torch.distributed.optim.ZeroRedundancyOptimizer.load_state_dict|是|-|
+|torch.distributed.optim.ZeroRedundancyOptimizer.consolidate_state_dict|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.optim.ZeroRedundancyOptimizer.join_device|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.optim.ZeroRedundancyOptimizer.join_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.optim.ZeroRedundancyOptimizer.join_process_group|是<br>暂不支持<term>Ascend 950DT</term>|-|
+|torch.distributed.optim.ZeroRedundancyOptimizer.load_state_dict|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.distributed.optim.ZeroRedundancyOptimizer.state_dict|是|-|
-|torch.distributed.optim.ZeroRedundancyOptimizer.step|是|-|
+|torch.distributed.optim.ZeroRedundancyOptimizer.step|是<br>暂不支持<term>Ascend 950DT</term>|-|

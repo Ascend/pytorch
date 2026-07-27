@@ -9,5 +9,5 @@
 |torch.distributed.tensor.parallel.ColwiseParallel|是|支持bf16，fp16，fp32|
 |torch.distributed.tensor.parallel.RowwiseParallel|否|-|
 |torch.distributed.tensor.parallel.PrepareModuleInput|否|-|
-|torch.distributed.tensor.parallel.PrepareModuleOutput|是|-|
+|torch.distributed.tensor.parallel.PrepareModuleOutput|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.distributed.tensor.parallel.loss_parallel|是|支持bf16，fp16，fp32，int64<br>针对<term>Ascend 950DT</term>，当logits数值特别大时，精度可能和<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>存在差异|
