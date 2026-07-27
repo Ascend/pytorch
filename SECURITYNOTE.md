@@ -1,4 +1,4 @@
-# Ascend Extension for PyTorch插件 安全声明
+# TorchNPU插件 安全声明
 
 ## 系统安全加固
 
@@ -8,13 +8,13 @@
 
 ## 运行用户建议
 
-出于安全性及权限最小化角度考虑，不建议使用root等管理员类型账户使用torch_npu。
+出于安全性及权限最小化角度考虑，不建议使用root等管理员类型账户使用TorchNPU。
 
 ## 文件权限控制
 
 1. 建议用户对训练所需文件、训练过程中保存的文件、用户个人的隐私数据、商业资产等敏感文件做好权限控制等安全措施，例如多用户共享数据集场景下的数据集文件写权限控制、profiler等场景产生数据文件权限控制等，设定的权限建议参见[文件权限参考](#文件权限参考)进行设置。
 
-2. torch_npu中profiler工具会生成性能记录文件，生成的文件权限为640，文件夹权限为750，用户可根据需要自行对生成后的相关文件进行权限控制。
+2. TorchNPU中profiler工具会生成性能记录文件，生成的文件权限为640，文件夹权限为750，用户可根据需要自行对生成后的相关文件进行权限控制。
 
 3. 用户安装和使用过程需要做好权限控制，建议参见[文件权限参考](#文件权限参考)进行设置。如需要保存安装/卸载日志，可在安装/卸载命令后面加上参数--log FILE， 注意对FILE文件及目录做好权限管控。
 
@@ -44,30 +44,30 @@
 
 ## 调试工具声明
 
-torch_npu内集成性能分析工具profiler：
+TorchNPU内集成性能分析工具profiler：
 
  - 集成原因：对标PyTorch原生支持能力，提供NPU PyTorch框架开发性能分析能力，加速性能分析调试过程。
- - 使用场景：默认不采集，如用户需要进行性能分析时，可在模型训练脚本中添加Ascend Extension for PyTorch Profiler接口，执行训练的同时采集性能数据，完成训练后直接输出可视化的性能数据文件。
+ - 使用场景：默认不采集，如用户需要进行性能分析时，可在模型训练脚本中添加TorchNPU Profiler接口，执行训练的同时采集性能数据，完成训练后直接输出可视化的性能数据文件。
  - 风险提示：使用该功能会在本地生成性能数据，用户需加强对相关性能数据的保护，请在需要模型性能分析时使用，分析完成后及时关闭。Profiler工具具体细节请参考[《PyTorch 性能分析工具介绍》](https://www.hiascend.com/document/detail/zh/Pytorch/710/ptmoddevg/trainingmigrguide/performance_tuning_0014.html)。
 
 ## 数据安全声明
 
 1. PyTorch使用过程中需要加载和保存数据，部分接口使用风险模块pickle，可能存在数据风险，如torch.load、torch.jit.load、torch.distributed.scatter_object_list等接口，可参考[torch.load](https://pytorch.org/docs/main/generated/torch.load.html#torch.load)、[collective-functions](https://pytorch.org/docs/main/distributed.html#collective-functions)了解具体风险。
-2. Ascend Extension for PyTorch依赖CANN的基础能力实现AOE性能调优、算子dump、日志记录等功能，用户需要关注上述功能生成文件的权限控制，加强对相关数据的保护。
+2. TorchNPU依赖CANN的基础能力实现AOE性能调优、算子dump、日志记录等功能，用户需要关注上述功能生成文件的权限控制，加强对相关数据的保护。
 
 ## 构建安全声明
 
-torch_npu支持源码编译安装，在编译时会下载依赖第三方库并执行构建shell脚本，在编译过程中会产生临时程序文件和编译目录。用户可根据需要自行对源代码目录内的文件进行权限管控降低安全风险。
+TorchNPU支持源码编译安装，在编译时会下载依赖第三方库并执行构建shell脚本，在编译过程中会产生临时程序文件和编译目录。用户可根据需要自行对源代码目录内的文件进行权限管控降低安全风险。
 
 ## 运行安全声明
 
 1. 建议用户结合运行环境资源状况编写对应训练脚本。若训练脚本与资源状况不匹配，如数据集加载内存大小超出内存容量限制、训练脚本在本地生成数据超过磁盘空间大小等情况，可能引发错误并导致进程意外退出。
-2. PyTorch和torch_npu在运行异常时会退出进程并打印报错信息，属于正常现象。建议用户根据报错提示定位具体错误原因，包括设定算子同步执行、查看CANN日志、解析生成的Core Dump文件等方式。
-3. PyTorch和torch_npu的分布式特性仅适用于内部通信。出于性能考虑，这些分布式特性不包含任何授权协议，并且会发送未加密的消息。关于PyTorch分布式特性的详细说明及安全注意事项，可参考[using-distributed-features](https://github.com/pytorch/pytorch/security#using-distributed-features)。
+2. PyTorch和TorchNPU在运行异常时会退出进程并打印报错信息，属于正常现象。建议用户根据报错提示定位具体错误原因，包括设定算子同步执行、查看CANN日志、解析生成的Core Dump文件等方式。
+3. PyTorch和TorchNPU的分布式特性仅适用于内部通信。出于性能考虑，这些分布式特性不包含任何授权协议，并且会发送未加密的消息。关于PyTorch分布式特性的详细说明及安全注意事项，可参考[using-distributed-features](https://github.com/pytorch/pytorch/security#using-distributed-features)。
 
 ## 公网地址声明
 
-在torch_npu的配置文件和脚本中存在[公网地址](#公网地址)
+在TorchNPU的配置文件和脚本中存在[公网地址](#公网地址)
 
 ### 公网地址
 
@@ -91,8 +91,8 @@ torch_npu支持源码编译安装，在编译时会下载依赖第三方库并�
 | 自研   | 不涉及                                                                                                                                                                                                                            | .github\workflows\\_build-and-test.yml | https://mirrors.huaweicloud.com/repository/pypi/simple                         | workflow配置文件，用于配置pip源          |
 | 自研   | 不涉及                                                                                                                                                                                                                            | setup.cfg                              | https://gitcode.com/ascend/pytorch                                             | 用于打包whl的url入参                  |
 | 自研   | 不涉及                                                                                                                                                                                                                            | setup.cfg                              | https://gitcode.com/ascend/pytorch/tags                                        | 用于打包whl的download_url入参         |
-| 自研   | 不涉及                                                                                                                                                                                                                            | third_party\op-plugin\ci\build.sh      | https://gitcode.com/ascend/pytorch.git                                         | 编译脚本根据torch_npu仓库地址拉取代码进行编译    |
-| 自研   | 不涉及                                                                                                                                                                                                                            | third_party\op-plugin\ci\exec_ut.sh    | https://gitcode.com/ascend/pytorch.git                                         | UT脚本根据torch_npu仓库地址拉取代码进行UT测试 |
+| 自研   | 不涉及                                                                                                                                                                                                                            | third_party\op-plugin\ci\build.sh      | https://gitcode.com/ascend/pytorch.git                                         | 编译脚本根据TorchNPU仓库地址拉取代码进行编译    |
+| 自研   | 不涉及                                                                                                                                                                                                                            | third_party\op-plugin\ci\exec_ut.sh    | https://gitcode.com/ascend/pytorch.git                                         | UT脚本根据TorchNPU仓库地址拉取代码进行UT测试 |
 | 开源引入 | https://github.com/pytorch/pytorch/blob/v2.8.0/test/nn/test_convolution.py <br> https://github.com/pytorch/pytorch/blob/v2.8.0/test/test_mps.py <br> https://github.com/pytorch/pytorch/blob/v2.8.0/test/test_serialization.py | test\url.ini                           | https://download.pytorch.org/test_data/legacy_conv2d.pt                        | 用于test脚本下载相关pt文件               |
 | 开源引入 | https://github.com/pytorch/pytorch/blob/v2.8.0/test/test_serialization.py                                                                                                                                                      | test\url.ini                           | https://download.pytorch.org/test_data/legacy_serialized.pt                    | 用于test脚本下载相关pt文件               |
 | 开源引入 | https://github.com/pytorch/pytorch/blob/v2.8.0/test/test_serialization.py                                                                                                                                                      | test\url.ini                           | https://download.pytorch.org/test_data/gpu_tensors.pt                          | 用于test脚本下载相关pt文件               |
@@ -106,11 +106,11 @@ torch_npu支持源码编译安装，在编译时会下载依赖第三方库并�
 
 ## 公开接口声明
 
-Ascend Extension for PyTorch是PyTorch适配插件，支持用户使用PyTorch在昇腾设备上进行训练和推理。Ascend Extension for PyTorch适配后支持用户使用PyTorch原生接口。除了原生PyTorch接口外，Ascend Extension for PyTorch提供了部分自定义接口，包括自定义算子、亲和库和其他接口，支持PyTorch接口和自定义接口连接，具体可参见[《Ascend Extension for PyTorch自定义API参考》](https://www.hiascend.com/document/detail/zh/Pytorch/710/apiref/torchnpuCustomsapi/context/%E6%A6%82%E8%BF%B0.md)以及[《PyTorch原生接口清单》](https://www.hiascend.com/document/detail/zh/Pytorch/710/apiref/PyTorchNativeapi/ptaoplist_000003.html)。
+TorchNPU是PyTorch适配插件，支持用户使用PyTorch在昇腾设备上进行训练和推理。TorchNPU适配后支持用户使用PyTorch原生接口。除了原生PyTorch接口外，TorchNPU提供了部分自定义接口，包括自定义算子、亲和库和其他接口，支持PyTorch接口和自定义接口连接，具体可参见[《TorchNPU自定义API参考》](https://www.hiascend.com/document/detail/zh/Pytorch/710/apiref/torchnpuCustomsapi/context/%E6%A6%82%E8%BF%B0.md)以及[《PyTorch原生接口清单》](https://www.hiascend.com/document/detail/zh/Pytorch/710/apiref/PyTorchNativeapi/ptaoplist_000003.html)。
 
-参考[PyTorch社区公开接口规范](https://github.com/pytorch/pytorch/wiki/Public-API-definition-and-documentation)，Ascend Extension for PyTorch提供了对外的自定义接口。如果一个函数看起来符合公开接口的标准且在文档中有展示，则该接口是公开接口。否则，使用该功能前可以在社区询问该功能是否确实是公开的或意外暴露的接口，因为这些未暴露接口将来可能会被修改或者删除。
+参考[PyTorch社区公开接口规范](https://github.com/pytorch/pytorch/wiki/Public-API-definition-and-documentation)，TorchNPU提供了对外的自定义接口。如果一个函数看起来符合公开接口的标准且在文档中有展示，则该接口是公开接口。否则，使用该功能前可以在社区询问该功能是否确实是公开的或意外暴露的接口，因为这些未暴露接口将来可能会被修改或者删除。
 
-Ascend Extension for PyTorch项目采用C++和Python联合开发，当前除Libtorch场景外正式接口只提供Python接口，在torch_npu的二进制包中动态库不直接提供服务，暴露的接口为内部使用，不建议用户使用。
+TorchNPU项目采用C++和Python联合开发，当前除Libtorch场景外正式接口只提供Python接口，在TorchNPU的二进制包中动态库不直接提供服务，暴露的接口为内部使用，不建议用户使用。
 
 ## 通信安全加固
 
@@ -210,7 +210,7 @@ PyTorch分布式训练服务需要在设备间进行通信，通信开启的端�
 
 ## 通信矩阵
 
-PyTorch提供分布式训练能力，支持在单机和多机场景下进行训练，需要进行网络通信。其中PyTorch需要使用TCP进行通信，torch_npu使用CANN中HCCL在NPU设备间通信，通信端口见[通信矩阵信息](#通信矩阵信息)。用户需要注意并保障节点间通信网络安全，可以使用iptables等方式消减安全风险，可参考[通信安全加固](#通信安全加固)进行网络安全加固。
+PyTorch提供分布式训练能力，支持在单机和多机场景下进行训练，需要进行网络通信。其中PyTorch需要使用TCP进行通信，TorchNPU使用CANN中HCCL在NPU设备间通信，通信端口见[通信矩阵信息](#通信矩阵信息)。用户需要注意并保障节点间通信网络安全，可以使用iptables等方式消减安全风险，可参考[通信安全加固](#通信安全加固)进行网络安全加固。
 
 ### 通信矩阵信息
 
@@ -230,15 +230,15 @@ PyTorch提供分布式训练能力，支持在单机和多机场景下进行训�
 | 所属平面              | 不涉及                                | 不涉及                                 |
 | 版本                  | 所有版本                              | 所有版本                               |
 | 特殊场景              | 无                                    | 无                                     |
-| 备注                  | 该通信过程由开源软件PyTorch控制，配置为PyTorch原生设置，可参考[PyTorch文档](https://pytorch.org/docs/stable/distributed.html#launch-utility)。源端口由操作系统自动分配，分配范围由操作系统的配置决定，例如ubuntu：采用/proc/sys/net/ipv4/ipv4_local_port_range文件指定，可通过cat /proc/sys/net/ipv4/ipv4_local_port_range或sysctl net.ipv4.ip_local_port_range查看       | 该通信过程由CANN中HCCL组件控制，torch_npu不进行控制，端口范围可参考[《环境变量参考》](https://www.hiascend.com/document/detail/zh/canncommercial/82RC1/maintenref/envvar/envref_07_0001.html)的“执行相关 > 集合通信 >HCCL_IF_BASE_PORT”          |
+| 备注                  | 该通信过程由开源软件PyTorch控制，配置为PyTorch原生设置，可参考[PyTorch文档](https://pytorch.org/docs/stable/distributed.html#launch-utility)。源端口由操作系统自动分配，分配范围由操作系统的配置决定，例如ubuntu：采用/proc/sys/net/ipv4/ipv4_local_port_range文件指定，可通过cat /proc/sys/net/ipv4/ipv4_local_port_range或sysctl net.ipv4.ip_local_port_range查看       | 该通信过程由CANN中HCCL组件控制，TorchNPU不进行控制，端口范围可参考[《环境变量参考》](https://www.hiascend.com/document/detail/zh/canncommercial/82RC1/maintenref/envvar/envref_07_0001.html)的“执行相关 > 集合通信 >HCCL_IF_BASE_PORT”          |
 
 ## 漏洞机制说明
 
-Ascend Extension for PyTorch 社区非常重视社区版本的安全性，专门设置了漏洞管理专员负责处理漏洞相关的事务，同时为了构建更安全的AI全流程工具链，我们也欢迎您一起参与。
+Ascend for PyTorch 社区非常重视社区版本的安全性，专门设置了漏洞管理专员负责处理漏洞相关的事务，同时为了构建更安全的AI全流程工具链，我们也欢迎您一起参与。
 
 ### 漏洞处理流程
 
-对于每一个安全漏洞，Ascend Extension for PyTorch 社区会安排人员进行跟踪和处理，漏洞处理的端到端流程如下图所示。
+对于每一个安全漏洞，Ascend for PyTorch 社区会安排人员进行跟踪和处理，漏洞处理的端到端流程如下图所示。
 
 ![漏洞处理流程](./figures/cve.png)
 
@@ -246,22 +246,22 @@ Ascend Extension for PyTorch 社区非常重视社区版本的安全性，专门
 
 ### 漏洞上报
 
-您可以通过提交issue的方式联系 Ascend Extension for PyTorch 社区团队，我们将会第一时间安排安全漏洞专项人员向您联系。
+您可以通过提交issue的方式联系 Ascend for PyTorch 社区团队，我们将会第一时间安排安全漏洞专项人员向您联系。
 注意，为了确保安全性，请不要在issue中描述涉及安全隐私的具体信息。
 
 #### 上报响应
 
-1. Ascend Extension for PyTorch 社区会在3个工作日内确认、分析、上报安全漏洞问题，同时启动安全处理流程。
-2. Ascend Extension for PyTorch 安全团队在确认安全漏洞问题后，会对问题进行分发和跟进。
+1. Ascend for PyTorch 社区会在3个工作日内确认、分析、上报安全漏洞问题，同时启动安全处理流程。
+2. TorchNPU 安全团队在确认安全漏洞问题后，会对问题进行分发和跟进。
 3. 在安全漏洞问题从分类、确定、修复和发布的过程中，我们会及时更新报告。
 
 ### 漏洞评估
 
-业界普遍使用 CVSS 标准评估漏洞的严重性，Ascend Extension for PyTorch 在使用 CVSS v3.1 进行漏洞评估时，需要设定漏洞攻击场景，基于在该攻击场景下的实际影响进行评估。漏洞严重等级评估是指针对漏洞利用难易程度，以及利用后对机密性、完整性、可用性的影响进行评估，并生成一个评分值。
+业界普遍使用 CVSS 标准评估漏洞的严重性，TorchNPU 在使用 CVSS v3.1 进行漏洞评估时，需要设定漏洞攻击场景，基于在该攻击场景下的实际影响进行评估。漏洞严重等级评估是指针对漏洞利用难易程度，以及利用后对机密性、完整性、可用性的影响进行评估，并生成一个评分值。
 
 #### 漏洞评估标准
 
-Ascend Extension for PyTorch 通过以下向量评估一个漏洞的严重等级：
+TorchNPU 通过以下向量评估一个漏洞的严重等级：
 
 - 攻击向量（AV）：表示攻击的“远程性”以及如何利用此漏洞。
 - 攻击复杂性（AC）：讲述攻击执行的难度以及成功进行攻击需要哪些因素。
@@ -304,8 +304,8 @@ Ascend Extension for PyTorch 通过以下向量评估一个漏洞的严重等级
 
 ### 漏洞披露
 
-安全漏洞修复后 Ascend Extension for PyTorch 社区会发布安全公告 （SA）以及安全说明（SN） ，安全公告内容包括该漏洞的技术细节、类型、上报人、CVE ID 以及受到该漏洞影响的版本和修复版本等信息。
-为了保护 Ascend Extension for PyTorch 用户的安全，在进行调查、修复和发布安全公告之前， Ascend Extension for PyTorch 社区不会公开披露、讨论或确认 Ascend Extension for PyTorch 产品的安全问题。
+安全漏洞修复后 Ascend for PyTorch 社区会发布安全公告 （SA）以及安全说明（SN） ，安全公告内容包括该漏洞的技术细节、类型、上报人、CVE ID 以及受到该漏洞影响的版本和修复版本等信息。
+为了保护 TorchNPU 用户的安全，在进行调查、修复和发布安全公告之前， Ascend for PyTorch 社区不会公开披露、讨论或确认 TorchNPU 产品的安全问题。
 
 ### 附录
 

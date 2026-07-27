@@ -2,7 +2,7 @@
 
 ## 图优化特性简介
 
-在CANN（华为计算加速网络）异构计算架构中支持多种AI框架。该架构基于开源的PyTorch，并通过torch_npu适配昇腾AI处理器。torch_npu 利用 PyTorch 中的 Inductor 编译器能力，实现模型的加速编译。由于开源 PyTorch 对昇腾的适配性较弱，且对不同模型的图优化能力不足，需要通过自定义的优化 pass（优化步骤）来增强图优化能力，从而进一步提升模型性能。
+在CANN（华为计算加速网络）异构计算架构中支持多种AI框架。该架构基于开源的PyTorch，并通过TorchNPU适配昇腾AI处理器。TorchNPU 利用 PyTorch 中的 Inductor 编译器能力，实现模型的加速编译。由于开源 PyTorch 对昇腾的适配性较弱，且对不同模型的图优化能力不足，需要通过自定义的优化 pass（优化步骤）来增强图优化能力，从而进一步提升模型性能。
 
 ![Alt text](image.png)
 
@@ -46,7 +46,7 @@ batch_embedding_fusion_pass
 
 **前置条件**：
 
-- 已在系统上安装 `torch_npu` 包（对应的版本需匹配所使用的 PyTorch 版本）。
+- 已在系统上安装 `TorchNPU` 包（对应的版本需匹配所使用的 PyTorch 版本）。
 - 机器配备 Ascend NPU 并已正确安装驱动和运行时环境。
 - 确认 PyTorch 版本 >= 2.0，以支持 `torch.compile`。
 

@@ -83,7 +83,7 @@ print(model(torch.randn(8, 10, device=device)))
 
 #### 加载并运行 AOTI 模型（C++ 接口）
 
-可以使用C++接口加载并运行AOTI模型。Inductor NPU对比GPU需要额外依赖```libtorch_npu.so```，该so由PTA的编译脚本```build_libtorch_npu.py```生成。
+可以使用C++接口加载并运行AOTI模型。Inductor NPU对比GPU需要额外依赖```libtorch_npu.so```，该so由TorchNPU的编译脚本```build_libtorch_npu.py```生成。
 
 ```C++
 #include <iostream>
