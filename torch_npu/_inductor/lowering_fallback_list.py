@@ -414,6 +414,8 @@ NPU_EXTRA_FALLBACK_LIST = [
     aten.sinh.float,
     aten.sinh.int,
     aten.sinh.out,
+    aten.slice_backward,
+    aten.slice_backward.default,
     aten.special_bessel_j0.default,
     aten.special_bessel_j0.out,
     aten.special_bessel_j1.default,
