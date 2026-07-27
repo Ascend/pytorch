@@ -283,7 +283,7 @@ jobs:
         uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
         with:
           status: completed
-          conclusion: ${{ job.status }}
+          conclusion: ${{ steps.parse_results.outputs.parse_ok == 'true' && steps.parse_results.outputs.total_failed == '0' && 'success' || 'failure' }}
           job-name: test-reg-${{ matrix.shard }}
           test-results: >-
             {
