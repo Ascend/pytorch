@@ -1,4 +1,4 @@
-## TORCHINDUCTOR_NPU_CATLASS_DIR （同社区TORCHINDUCTOR_CUTLASS_DIR）
+# TORCHINDUCTOR_NPU_CATLASS_DIR （同社区TORCHINDUCTOR_CUTLASS_DIR）
 
 ## 功能描述
 
@@ -22,4 +22,4 @@ export TORCHINDUCTOR_NPU_CATLASS_DIR="/path/to/catlass/dir"
 
 ## 支持的型号
 
--   <term>Atlas A5 系列产品</term>
+- <term>Atlas A5 系列产品</term>

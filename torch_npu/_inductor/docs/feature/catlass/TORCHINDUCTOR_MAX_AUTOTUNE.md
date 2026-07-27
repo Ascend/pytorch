@@ -1,4 +1,4 @@
-## TORCHINDUCTOR_MAX_AUTOTUNE （同社区）
+# TORCHINDUCTOR_MAX_AUTOTUNE （同社区）
 
 ## 功能描述
 
@@ -28,4 +28,4 @@ export TORCHINDUCTOR_MAX_AUTOTUNE=0
 
 ## 支持的设备
 
--   <term>Atlas A5 系列产品</term>
+- <term>Atlas A5 系列产品</term>

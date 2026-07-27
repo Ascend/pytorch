@@ -14,46 +14,46 @@ Provide users with wheel package to quickly install **torch_npu**. Before instal
 
 1. **Install PyTorch**
 
-Install **PyTorch** through pip.
+   Install **PyTorch** through pip.
 
-**For Aarch64:**
+   **For Aarch64:**
 
-```bash
-pip3 install torch==2.7.1
-```
+   ```bash
+   pip3 install torch==2.7.1
+   ```
 
-**For x86:**
+   **For x86:**
 
-```bash
-pip3 install torch==2.7.1+cpu  --index-url https://download.pytorch.org/whl/cpu
-```
+   ```bash
+   pip3 install torch==2.7.1+cpu  --index-url https://download.pytorch.org/whl/cpu
+   ```
 
 2. **Install torch-npu dependencies**
 
-Run the following command to install dependencies.
+   Run the following command to install dependencies.
 
-```bash
-pip3 install pyyaml
-pip3 install setuptools
-```
+   ```bash
+   pip3 install pyyaml
+   pip3 install setuptools
+   ```
 
-If the installation fails, use the download link or visit the [PyTorch official website](https://pytorch.org/) to download the installation package of the corresponding version.
+   If the installation fails, use the download link or visit the [PyTorch official website](https://pytorch.org/) to download the installation package of the corresponding version.
 
-| OS arch | Python version | link                                                                                                                                                                          |
-|---------|----------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| x86     | Python3.9      | [link](https://download.pytorch.org/whl/cpu/torch-2.7.1%2Bcpu-cp39-cp39-manylinux_2_28_x86_64.whl#sha256=d205cac087d60bc176bdc0b63a1d00dc7a4ee5ac76fd20a2ca318ac65674167e)    |
-| x86     | Python3.10     | [link](https://download.pytorch.org/whl/cpu/torch-2.7.1%2Bcpu-cp310-cp310-manylinux_2_28_x86_64.whl#sha256=1f04a373a3f643821f721da9898ef77dce73b5b6bfc64486f0976f7fb5f90e83)  |
-| x86     | Python3.11     | [link](https://download.pytorch.org/whl/cpu/torch-2.7.1%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl#sha256=a1684793e352f03fa14f78857e55d65de4ada8405ded1da2bf4f452179c4b779)  |
-| aarch64 | Python3.9      | [link](https://download.pytorch.org/whl/cpu/torch-2.7.1%2Bcpu-cp39-cp39-manylinux_2_28_aarch64.whl#sha256=a4551cb97b83df5f93fc0d7538332535828581e1db2f179afc287027afbdd6e8)   |
-| aarch64 | Python3.10     | [link](https://download.pytorch.org/whl/cpu/torch-2.7.1%2Bcpu-cp310-cp310-manylinux_2_28_aarch64.whl#sha256=c0df17cee97653d09a4e84488a33d21217f9b24208583c55cf28f0045aab0766) |
-| aarch64 | Python3.11     | [link](https://download.pytorch.org/whl/cpu/torch-2.7.1%2Bcpu-cp311-cp311-manylinux_2_28_aarch64.whl#sha256=5fe6045b8f426bf2d0426e4fe009f1667a954ec2aeb82f1bd0bf60c6d7a85445) |
+   | OS arch | Python version | link                                                                                                                                                                          |
+   |---------|----------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+   | x86     | Python3.9      | [link](https://download.pytorch.org/whl/cpu/torch-2.7.1%2Bcpu-cp39-cp39-manylinux_2_28_x86_64.whl#sha256=d205cac087d60bc176bdc0b63a1d00dc7a4ee5ac76fd20a2ca318ac65674167e)    |
+   | x86     | Python3.10     | [link](https://download.pytorch.org/whl/cpu/torch-2.7.1%2Bcpu-cp310-cp310-manylinux_2_28_x86_64.whl#sha256=1f04a373a3f643821f721da9898ef77dce73b5b6bfc64486f0976f7fb5f90e83)  |
+   | x86     | Python3.11     | [link](https://download.pytorch.org/whl/cpu/torch-2.7.1%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl#sha256=a1684793e352f03fa14f78857e55d65de4ada8405ded1da2bf4f452179c4b779)  |
+   | aarch64 | Python3.9      | [link](https://download.pytorch.org/whl/cpu/torch-2.7.1%2Bcpu-cp39-cp39-manylinux_2_28_aarch64.whl#sha256=a4551cb97b83df5f93fc0d7538332535828581e1db2f179afc287027afbdd6e8)   |
+   | aarch64 | Python3.10     | [link](https://download.pytorch.org/whl/cpu/torch-2.7.1%2Bcpu-cp310-cp310-manylinux_2_28_aarch64.whl#sha256=c0df17cee97653d09a4e84488a33d21217f9b24208583c55cf28f0045aab0766) |
+   | aarch64 | Python3.11     | [link](https://download.pytorch.org/whl/cpu/torch-2.7.1%2Bcpu-cp311-cp311-manylinux_2_28_aarch64.whl#sha256=5fe6045b8f426bf2d0426e4fe009f1667a954ec2aeb82f1bd0bf60c6d7a85445) |
 
 3. **Install torch-npu**
 
-```
-pip3 install torch-npu==2.7.1
+   ```shell
+   pip3 install torch-npu==2.7.1
 
-```
+   ```
 
 ### From Source
 
@@ -61,20 +61,20 @@ In some special scenarios, users may need to compile **torch-npu** by themselves
 
 1. **Clone torch-npu**
 
-   ```
+   ```shell
    git clone https://github.com/ascend/pytorch.git -b 2.7.1-7.2.0 --depth 1
    ```
 
 2. **Build Docker Image**
 
-   ```
+   ```shell
    cd pytorch/ci/docker/{arch} # {arch} for X86 or ARM
    docker build -t manylinux-builder:v1 .
    ```
 
 3. **Enter Docker Container**
 
-   ```
+   ```shell
    docker run -it -v /{code_path}/pytorch:/home/pytorch manylinux-builder:v1 bash
    # {code_path} is the torch_npu source code path
    ```
@@ -92,13 +92,13 @@ In some special scenarios, users may need to compile **torch-npu** by themselves
 
    If you would like to compile with new C++ ABI, then first run this command, at this point, the recommended compilation environment is same to community torch package: glibc 2.28, gcc 11.2.1
    
-   ```
+   ```shell
    export _GLIBCXX_USE_CXX11_ABI=1
    ```
 
    Meanwhile, we support configuring -fabi-version using the following variables，require consistency with the community torch package
 
-   ```
+   ```shell
    export _ABI_VERSION=16
    ```
 
@@ -130,7 +130,7 @@ print(z)
 
 ## User Manual
 
-Refer to [API of Ascend Extension for PyTorch](docs/api/torch_npu_apis.md) for more detailed information.
+Refer to [API of Ascend Extension for PyTorch](docs/zh/native_apis/menu_pt_native_apis.md) for more detailed information.
 
 ## PyTorch and Python Version Matching Table
 
@@ -145,7 +145,6 @@ Refer to [API of Ascend Extension for PyTorch](docs/api/torch_npu_apis.md) for m
 | PyTorch2.6.0    | Python3.9.x,Python3.10.x,Python3.11.x                     |
 | PyTorch2.7.1    | Python3.9.x,Python3.10.x,Python3.11.x                     |
 | PyTorch2.8.0    | Python3.9.x,Python3.10.x,Python3.11.x                     |
-
 
 ## Ascend Auxiliary Software
 
@@ -212,6 +211,7 @@ Refer to [API of Ascend Extension for PyTorch](docs/api/torch_npu_apis.md) for m
 ## Hardware support
 
 The Ascend training device includes the following models, all of which can be used as training environments for PyTorch models
+
 | Product series        | Product model                    |
 |-----------------------|----------------------------------|
 | Atlas Training series products     | Atlas 800（model: 9000） |
@@ -225,6 +225,7 @@ The Ascend training device includes the following models, all of which can be us
 |                       | Atlas 300T A2                    |
 
 The Ascend inference device includes the following models, all of which can be used as inference environments for large models
+
 | Product series        | Product model                        |
 |-----------------------|----------------------------------|
 | Atlas 800I A2 Inference product  | Atlas 800I A2         |
@@ -252,7 +253,7 @@ The version branches of AscendPyTorch have the following maintenance phases:
 | Maintained        | 1 year/3.5 years | Regular Release branch for 1 year, Long Term Support branch maintenance for 3.5 years. Fix major issues, do not incorporate new features, and release patch versions based on the impact of fixed bugs. |
 | End Of Life (EOL) | N/A          | Do not accept any modification to a branch.                                                                                    |
 
-##  PyTorch Maintenance Policies
+## PyTorch Maintenance Policies
 
 | **PyTorch** | **Maintenance Policies** | **Status**  | **Launch Date** | **Subsequent Status**                                             | **EOL Date** |
 |-------------|--------------------------|-------------|-----------------|-------------------------------------------------------------------|--------------|

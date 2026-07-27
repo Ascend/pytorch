@@ -23,4 +23,4 @@ export TORCHINDUCTOR_NDDMA=1
 
 ## 支持的型号
 
--   <term>Atlas A5 系列产品</term>
+- <term>Atlas A5 系列产品</term>
