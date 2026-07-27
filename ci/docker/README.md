@@ -2,9 +2,9 @@
 
 This folder hosts the `Dockerfile` to build docker images with various platforms.
 
-## Build torch_npu from Docker container
+## Build TorchNPU from Docker container
 
-**Clone torch-npu**
+**Clone TorchNPU**
 
 ```shell
 git clone https://gitcode.com/ascend/pytorch.git --depth 1

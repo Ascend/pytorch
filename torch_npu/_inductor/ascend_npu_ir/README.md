@@ -1,19 +1,20 @@
 # 简介
 
 Torch 的 Inductor-MLIR 编译优化是基于 torch.compile 接口、融合 MLIR（Multi-Level Intermediate Representation）技术的新一代后端优化方案。Inductor-MLIR 是 PyTorch 编译体系对原生 Inductor 后端的扩展升级，在保留 torch.compile 动态图捕获 + 静态图优化 + 高效代码生成的核心逻辑的基础上，借助 MLIR 的多层级、跨架构编译能力，适配多类硬件架构的深度优化需求，显著提升不同算力平台下模型训练与推理的编译灵活性和性能上限。
+
 Inductor-MLIR 包含如下核心组件：
 
-|组件|    定位    |作用|
-|-|-|-|
-|Dynamo    |前端编译器（代码转换器）    |延续 TorchDynamo 的核心能力，JIT 将用户的 eager（动态图）代码编译为 FX Graph，完成动态图到静态中间表示的捕获，为 Inductor-MLIR 后端提供统一的输入，保证前端编译逻辑的一致性|
-|Inductor-MLIR |核心编译器（多层级 IR 优化器）    |作为 Inductor-MLIR 的核心层，将 FX Graph 转换为 MLIR 多层级中间表示（IR）；通过跨层级的优化策略（如算子拆分与融合、数据类型优化、计算图化简），兼顾编译灵活性与优化深度，适配不同硬件的编译特性|
-|MLIR CodeGen    |代码生成器（硬件感知代码生成器）    |接收优化后的 MLIR IR，针对目标硬件生成专属的高性能底层代码|
+| 组件 | 定位 | 作用 |
+| --- | --- | --- |
+| Dynamo | 前端编译器（代码转换器） | 延续 TorchDynamo 的核心能力，JIT 将用户的 eager（动态图）代码编译为 FX Graph，完成动态图到静态中间表示的捕获，为 Inductor-MLIR 后端提供统一的输入，保证前端编译逻辑的一致性 |
+| Inductor-MLIR | 核心编译器（多层级 IR 优化器） | 作为 Inductor-MLIR 的核心层，将 FX Graph 转换为 MLIR 多层级中间表示（IR）；通过跨层级的优化策略（如算子拆分与融合、数据类型优化、计算图化简），兼顾编译灵活性与优化深度，适配不同硬件的编译特性 |
+| MLIR CodeGen | 代码生成器（硬件感知代码生成器） | 接收优化后的 MLIR IR，针对目标硬件生成专属的高性能底层代码 |
 
 # 使用指导
 
 ## 环境配置
 
-* torch_npu：2.6.0或之后版本的torch_npu支持torch.compile接口；
+* TorchNPU：2.6.0或之后版本的TorchNPU支持torch.compile接口；
 * torch-mlir：Inductor后端的MLIR模式依赖torch-mlir。用户可以从[LINK](https://repo.oepkgs.net/ascend/pytorch/vllm/torch/)获取torch-mlir软件包;
 
 ## 使用方式

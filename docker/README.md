@@ -2,9 +2,9 @@
 
 This folder hosts the `Dockerfile` to build docker images with various platforms.
 
-## Build torch_npu from Docker container
+## Build TorchNPU from Docker container
 
-**Clone torch-npu**
+**Clone TorchNPU**
 
 ```Shell
 git clone https://gitcode.com/ascend/pytorch.git --depth 1
@@ -28,10 +28,10 @@ docker build -t manylinux-builder:v1 --build-arg CONFIG_FOR_LCOV=1 .
 
 ```Shell
 docker run -it -v /{code_path}/pytorch:/home/pytorch manylinux-builder:v1 bash
-# {code_path} is the torch_npu source code path
+# {code_path} is the TorchNPU source code path
 ```
 
-**Compile torch_npu**
+**Compile TorchNPU**
 
 Take Python 3.9 as an example
 
