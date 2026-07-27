@@ -4,20 +4,20 @@
 
 ## Quick Reference
 
-- PTA is maintained by the [Ascend PyTorch community](https://www.hiascend.com/developer/software/ai-frameworks/pytorch)
+- TorchNPU is maintained by the [Ascend for PyTorch community](https://www.hiascend.com/developer/software/ai-frameworks/pytorch)
 
 - Where to get help
 
    - [AscendHub Image Repository](https://www.hiascend.com/developer/ascendhub)
-   - [PTA Documentation](https://www.hiascend.com/document/detail/zh/Pytorch/730/index/index.html)
+   - [TorchNPU Documentation](https://www.hiascend.com/document/detail/zh/Pytorch/730/index/index.html)
    - [Ascend Developer Community](https://www.hiascend.com/developer)
    - [Issue Feedback](https://gitcode.com/Ascend/pytorch/issues)
 
 ---
 
-## Ascend PyTorch
+## TorchNPU
 
-The Ascend Extension for PyTorch plugin is a deep learning adaptation framework based on Ascend, enabling Ascend NPUs to support the PyTorch framework and providing users of the PyTorch framework with the powerful computing power of Ascend AI processors.
+The TorchNPU plugin is a deep learning adaptation framework based on Ascend, enabling Ascend NPUs to support the PyTorch framework and providing users of the PyTorch framework with the powerful computing power of Ascend AI processors.
 
 ---
 
@@ -27,13 +27,13 @@ The Ascend Extension for PyTorch plugin is a deep learning adaptation framework 
 
 Tags follow the format:
 
-```
-<PTA_version>-<chip>-<os>-<python_version>
+```text
+<TorchNPU_version>-<chip>-<os>-<python_version>
 ```
 
 | Field          | Example Value              | Description                                              |
 |----------------|----------------------------|----------------------------------------------------------|
-| PTA Version    | v26.0.0-beta.1-torch2.10.0 | Version identifier in the official torch_npu release tag |
+| TorchNPU Version    | v26.0.0-beta.1-torch2.10.0 | Version identifier in the official TorchNPU release tag |
 | Chip           | 910b / 310p / a3           | Ascend chip model identifier                             |
 | OS             | ubuntu / openeuler         | OS distribution used for the base image                  |
 | Python Version | py3.11                     | Major Python version pre-installed in the image          |
@@ -42,7 +42,7 @@ Tags follow the format:
 
 ### Build Argument Reference Links
 
-1. Check torch_npu official releases / patch releases
+1. Check TorchNPU official releases / patch releases
 
     https://gitcode.com/Ascend/pytorch/releases
 
@@ -61,8 +61,8 @@ Tags follow the format:
 | PY_VERSION                | Python version pre-installed in base image                 | Yes      | CANN image tag rules      | 3.11                                     |
 | ARCH                      | Host hardware architecture                                 | Yes      | Environment hardware      | arm / x86                                |
 | PY_TAG                    | Python package ABI tag (cp + version number)               | Yes      | Strictly match PY_VERSION | cp311 (PY3.11)                           |
-| TORCH_NPU_RELEASE_VERSION | Official torch_npu release tag (including PyTorch version) | Yes      | PTA repo releases         | v26.0.0-beta.1-pytorch2.10.0             |
-| TORCH_VERSION             | Full torch_npu version number                              | Yes      | PTA repo releases         | 2.10.0rc3                                |
+| TORCH_NPU_RELEASE_VERSION | Official TorchNPU release tag (including PyTorch version) | Yes      | TorchNPU repo releases         | v26.0.0-beta.1-pytorch2.10.0             |
+| TORCH_VERSION             | Full TorchNPU version number                              | Yes      | TorchNPU repo releases         | 2.10.0rc3                                |
 | MANYLINUX_VER             | PyPI package compatible system version                     | No       | torch official wheel spec | manylinux_2_28                           |
 | PIP_MIRROR_URL            | pip installation source URL (Tsinghua mirror by default)   | No       | PyPI mirror sources       | https://pypi.tuna.tsinghua.edu.cn/simple |
 
@@ -74,7 +74,7 @@ Tags follow the format:
 
 ## Quick Start
 
-### Build PTA Image
+### Build TorchNPU Image
 
 ```bash
 docker build \
@@ -92,7 +92,7 @@ docker build \
   -f Dockerfile .
 ```
 
-### Run PTA Container
+### Run TorchNPU Container
 
 ```bash
 docker run \
@@ -118,7 +118,7 @@ docker buildx build -t {your_repo}/pta:latest -f Dockerfile .
 ### Secondary Development
 
 ```bash
-# Use PTA image as base image and add user software
+# Use TorchNPU image as base image and add user software
 FROM quay.io/ascend/ascend-pytorch:v26.0.0-beta.1-torch2.10.0-910b-ubuntu-py3.11-arm # Not yet published, example only, subject to change.
 
 RUN apt update -y && \
@@ -141,6 +141,6 @@ RUN apt update -y && \
 
 ## License
 
-See the [license information](https://gitcode.com/Ascend/pytorch/blob/master/LICENSE) for PTA included in these images.
+See the [license information](https://gitcode.com/Ascend/pytorch/blob/master/LICENSE) for TorchNPU included in these images.
 
 Like all container images, pre-installed software packages (Python, system libraries, etc.) may be subject to their own licenses.

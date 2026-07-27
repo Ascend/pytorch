@@ -4,20 +4,20 @@
 
 ## 快速参考
 
-- PTA 由 [Ascend PyTorch community](https://www.hiascend.com/developer/software/ai-frameworks/pytorch) 维护
+- TorchNPU 由 [Ascend for PyTorch community](https://www.hiascend.com/developer/software/ai-frameworks/pytorch) 维护
 
 - 从哪里获取帮助
 
    - [AscendHub 镜像仓库](https://www.hiascend.com/developer/ascendhub)
-   - [PTA 文档](https://www.hiascend.com/document/detail/zh/Pytorch/730/index/index.html)
+   - [TorchNPU 文档](https://www.hiascend.com/document/detail/zh/Pytorch/730/index/index.html)
    - [昇腾开发者社区](https://www.hiascend.com/developer)
    - [问题反馈](https://gitcode.com/Ascend/pytorch/issues)
 
 ---
 
-## Ascend PyTorch
+## TorchNPU
 
-Ascend Extension for PyTorch插件是基于昇腾的深度学习适配框架，使昇腾NPU可以支持PyTorch框架，为PyTorch框架的使用者提供昇腾AI处理器的超强算力。
+TorchNPU插件是基于昇腾的深度学习适配框架，使昇腾NPU可以支持PyTorch框架，为PyTorch框架的使用者提供昇腾AI处理器的超强算力。
 
 ---
 
@@ -27,13 +27,13 @@ Ascend Extension for PyTorch插件是基于昇腾的深度学习适配框架，�
 
 Tag 遵循以下格式：
 
-```
-<PTA版本号>-<硬件信息（芯片）>-<操作系统>-<Python版本>
+```text
+<TorchNPU版本号>-<硬件信息（芯片）>-<操作系统>-<Python版本>
 ```
 
 | 字段        | 示例值                        | 说明                           |
 |-----------|----------------------------|------------------------------|
-| PTA 版本号   | v26.0.0-beta.1-torch2.10.0 | 对应 torch_npu 官方发布 Tag 中的版本标识 |
+| TorchNPU 版本号   | v26.0.0-beta.1-torch2.10.0 | 对应 TorchNPU 官方发布 Tag 中的版本标识 |
 | 硬件信息（芯片）  | 910b / 310p / a3           | 昇腾芯片型号标识                     |
 | 操作系统      | ubuntu / openeuler         | 基础镜像所使用的操作系统发行版              |
 | Python 版本 | py3.11                     | 镜像内置 Python 大版本号             |
@@ -42,7 +42,7 @@ Tag 遵循以下格式：
 
 ### 构建参数选择参考地址
 
-1. torch_npu 官方发布版本 / 补丁版本查询
+1. TorchNPU 官方发布版本 / 补丁版本查询
 
     https://gitcode.com/Ascend/pytorch/releases
 
@@ -61,8 +61,8 @@ Tag 遵循以下格式：
 | PY_VERSION                | 基础镜像内置 Python 版本                 | 是  | CANN 镜像标签规则       | 3.11                                     |
 | ARCH                      | 宿主机硬件架构                          | 是  | 环境硬件              | arm / x86                                |
 | PY_TAG                    | Python 包 ABI 标签（cp + 版本号）        | 是  | 与 PY_VERSION 严格匹配 | cp311 (PY3.11)                           |
-| TORCH_NPU_RELEASE_VERSION | torch_npu 官方发布 Tag（含 pytorch 版本） | 是  | PTA 仓库发行版         | v26.0.0-beta.1-pytorch2.10.0             |
-| TORCH_VERSION             | torch_npu 完整版本号                  | 是  | PTA 仓库发行版         | 2.10.0rc3                                |
+| TORCH_NPU_RELEASE_VERSION | TorchNPU 官方发布 Tag（含 pytorch 版本） | 是  | TorchNPU 仓库发行版         | v26.0.0-beta.1-pytorch2.10.0             |
+| TORCH_VERSION             | TorchNPU 完整版本号                  | 是  | TorchNPU 仓库发行版         | 2.10.0rc3                                |
 | MANYLINUX_VER             | PyPI 包兼容系统版本                     | 否  | torch 官方 whl 规范   | manylinux_2_28                           |
 | PIP_MIRROR_URL            | pip 安装源地址（默认清华源）                 | 否  | PyPI 镜像源          | https://pypi.tuna.tsinghua.edu.cn/simple |
 
@@ -74,7 +74,7 @@ Tag 遵循以下格式：
 
 ## 快速开始
 
-### 构建 PTA 镜像
+### 构建 TorchNPU 镜像
 
 ```bash
 docker build \
@@ -92,7 +92,7 @@ docker build \
   -f Dockerfile .
 ```
 
-### 运行 PTA 容器
+### 运行 TorchNPU 容器
 
 ```bash
 docker run \
@@ -119,7 +119,7 @@ docker buildx build -t {your_repo}/pta:latest -f Dockerfile .
 ### 如何二次开发
 
 ```bash
-# 以 PTA 镜像为基础镜像，叠加用户软件
+# 以 TorchNPU 镜像为基础镜像，叠加用户软件
 FROM quay.io/ascend/ascend-pytorch:v26.0.0-beta.1-torch2.10.0-910b-ubuntu-py3.11 # 暂未发布，仅示例地址，仍需修改。
 
 RUN apt update -y && \
@@ -142,6 +142,6 @@ RUN apt update -y && \
 
 ## 许可证
 
-查看这些镜像中包含的 PTA 的[许可证信息](https://gitcode.com/Ascend/pytorch/blob/master/LICENSE)。
+查看这些镜像中包含的 TorchNPU 的[许可证信息](https://gitcode.com/Ascend/pytorch/blob/master/LICENSE)。
 
 与所有容器镜像一样，预装软件包（Python、系统库等）可能受其自身许可证约束。
