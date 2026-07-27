@@ -46,4 +46,3 @@ jobs:
       distributed_shards: ${{ inputs.distributed_shards || '5' }}
       regular_shards: ${{ inputs.regular_shards || '5' }}
       report_to_upstream: false
-      skip_list: .github/config/skip_list.json
