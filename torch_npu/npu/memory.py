@@ -5,7 +5,6 @@ import ctypes
 import pickle
 import sys
 import os
-import stat
 from typing import Optional, Tuple
 
 import torch_npu
@@ -989,7 +988,7 @@ def _dump_snapshot(filename="dump_snapshot.pickle"):
         filename (str, optional): Name of the file to create. Defaults to "dump_snapshot.pickle".
     """
     s = _snapshot()
-    with os.fdopen(os.open(filename, os.O_WRONLY | os.O_CREAT, stat.S_IWUSR), "wb") as f:
+    with open(filename, "wb") as f:
         pickle.dump(s, f)
 
     device = torch_npu.npu.current_device()
@@ -1010,12 +1009,12 @@ def _dump_snapshot(filename="dump_snapshot.pickle"):
 def _save_segment_usage(filename="output.svg", snapshot=None):
     if snapshot is None:
         snapshot = _snapshot()
-    with os.fdopen(os.open(filename, os.O_WRONLY | os.O_CREAT, stat.S_IWUSR), "w") as f:
+    with open(filename, "w") as f:
         f.write(_segments(snapshot))
 
 
 def _save_memory_usage(filename="output.svg", snapshot=None):
     if snapshot is None:
         snapshot = _snapshot()
-    with os.fdopen(os.open(filename, os.O_WRONLY | os.O_CREAT, stat.S_IWUSR), "w") as f:
+    with open(filename, "w") as f:
         f.write(_memory(snapshot))
