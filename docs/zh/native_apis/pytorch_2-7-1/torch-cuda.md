@@ -79,8 +79,8 @@
 |torch.cuda.caching_allocator_alloc|torch_npu.npu.caching_allocator_alloc|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.cuda.caching_allocator_delete|torch_npu.npu.caching_allocator_delete|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.cuda.get_allocator_backend|torch_npu.npu.get_allocator_backend|是|-|
-|torch.cuda.CUDAPluggableAllocator|torch_npu.npu.NPUPluggableAllocator|是<br>暂不支持<term>Ascend 950DT</term>|该接口涉及高危操作，使用请参考《自定义API》中的“torch_npu.npu.NPUPluggableAllocator”章节。|
-|torch.cuda.change_current_allocator|torch_npu.npu.change_current_allocator|是<br>暂不支持<term>Ascend 950DT</term>|该接口涉及高危操作，使用请参考《自定义API》中的“torch_npu.npu.change_current_allocator”章节。|
+|torch.cuda.CUDAPluggableAllocator|torch_npu.npu.NPUPluggableAllocator|是<br>暂不支持<term>Ascend 950DT</term>|该接口涉及高危操作，使用请参考《自定义API》中的“[torch_npu.npu.NPUPluggableAllocator](https://gitcode.com/Ascend/op-plugin/blob/26.1.0/docs/zh/custom_APIs/torch_npu-npu/torch-npu-npu-NPUPluggableAllocator.md)”章节。|
+|torch.cuda.change_current_allocator|torch_npu.npu.change_current_allocator|是<br>暂不支持<term>Ascend 950DT</term>|该接口涉及高危操作，使用请参考《自定义API》中的“[torch_npu.npu.change_current_allocator](https://gitcode.com/Ascend/op-plugin/blob/26.1.0/docs/zh/custom_APIs/torch_npu-npu/torch-npu-npu-change_current_allocator.md)”章节。|
 |torch.cuda._sanitizer.enable_cuda_sanitizer|torch_npu.npu._sanitizer.enable_npu_sanitizer|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.cuda.reset_peak_host_memory_stats|torch_npu.npu.reset_peak_host_memory_stats|是<br>暂不支持<term>Ascend 950DT</term>|-|
 |torch.cuda.host_memory_stats|torch_npu.npu.host_memory_stats|是<br>暂不支持<term>Ascend 950DT</term>|-|

@@ -23,7 +23,7 @@ compiled_model = torch.compile(model, backend="npugraph_ex")
 
 NPUGraph_EX支持的编译选项（`options`参数）和详细使用指导请参考《TorchAir》中的 [npugraph_ex后端](https://gitcode.com/Ascend/torchair/blob/26.1.0/docs/zh/npugraph_ex/npugraph_ex.md)。
 
-## 调用样例
+## 调用示例
 
 ```Python
 import torch

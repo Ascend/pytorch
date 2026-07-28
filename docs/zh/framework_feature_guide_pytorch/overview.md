@@ -50,13 +50,17 @@ TorchNPU插件是基于昇腾的深度学习适配框架，使昇腾NPU可以支
     <td>支持以ranktable文件配置方式建立通信域。</td>
   </tr>
   <tr>
-    <td rowspan="2">计算性能优化</td>
+    <td rowspan="3">计算性能优化</td>
     <td><a href="./automatic_core_binding.md">自动绑核</a></td>
     <td>通过设置粗/细粒度绑核，优化TorchNPU下发性能。</td>
   </tr>
   <tr>
     <td><a href="./stream_taskqueue_parallel_delivery.md">Stream级TaskQueue并行下发</a></td>
     <td>每个Stream会初始化独立的TaskQueue和对应的Dequeue线程，实现真正的二级流水并行下发机制。</td>
+  </tr>
+  <tr>
+    <td><a href="./comp_opt.md">编译优化</a></td>
+    <td>使用毕昇编译器的LTO和PGO编译优化技术，对Python、PyTorch、TorchNPU三个组件进行编译，可以有效提升程序性能。</td>
   </tr>
   <tr>
     <td rowspan="2">辅助报错定位</td>
