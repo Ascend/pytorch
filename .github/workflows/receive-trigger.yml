@@ -95,6 +95,6 @@ jobs:
     secrets: inherit
     with:
       resolved_short: ${{ needs.build.outputs.resolved_short }}
-      case_paths_config: .github/config/test_whitelist.yml
+      case_paths_config: .github/config/pr_test_whitelist.yml
       report_to_upstream: true
-      skip_list: .github/config/skip_list.json
+      skip_list: .github/config/pr_skip_list.jsonl

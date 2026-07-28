@@ -31,7 +31,7 @@ on:
         required: false
         type: string
         default: ''
-        description: 'Path to skip list JSON (relative to ci-scripts checkout root). Empty = no filtering.'
+        description: 'Path to skip list JSON/JSONL (relative to ci-scripts checkout root). Empty = no filtering.'
     outputs:
       distributed_matrix:
         description: Distributed shard matrix JSON

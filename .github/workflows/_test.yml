@@ -36,7 +36,7 @@ on:
         required: false
         type: string
         default: ''
-        description: 'Path to skip list JSON (relative to repo root). Empty = no filtering.'
+        description: 'Path to skip list JSON/JSONL (relative to repo root). Empty = no filtering.'
 
 defaults:
   run:

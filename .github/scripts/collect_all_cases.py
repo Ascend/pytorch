@@ -39,11 +39,14 @@ import discover_test_files
 
 
 def load_skip_list(skip_list_path: Optional[str]) -> set:
-    """Load skip list JSON and return a set of nodeids to skip.
+    """Load skip list and return a set of nodeids to skip.
 
-    Supports two JSON formats:
-      - {"version": 1, "skip_nodeids": ["nodeid1", ...]}
-      - ["nodeid1", ...]  (plain array)
+    Supports three formats:
+      - JSONL (.jsonl): line 1 is {"_meta": {...}}, subsequent lines are
+        {"nodeid": "...", "reason": "..."}.  Only the ``nodeid`` value is
+        consumed; ``reason`` is for human review and discarded at load time.
+      - JSON object: {"version": 1, "skip_nodeids": ["nodeid1", ...]}
+      - JSON array: ["nodeid1", ...]
 
     Returns empty set if path is None, file not found, or empty.
     Never raises — all errors fall back to empty set with a warning so
@@ -56,6 +59,9 @@ def load_skip_list(skip_list_path: Optional[str]) -> set:
     if not p.exists():
         print(f"  WARNING: skip list file not found: {p}, skipping filter")
         return set()
+
+    if p.suffix == ".jsonl":
+        return _load_skip_list_jsonl(p)
 
     try:
         data = json.loads(p.read_text(encoding="utf-8"))
@@ -73,6 +79,37 @@ def load_skip_list(skip_list_path: Optional[str]) -> set:
 
     skip_set = set(n for n in nodeids if isinstance(n, str) and n)
     print(f"  Loaded skip list: {len(skip_set)} nodeids from {p}")
+    return skip_set
+
+
+def _load_skip_list_jsonl(p: Path) -> set:
+    """Load a JSONL skip list (one JSON object per line).
+
+    Line 1 is expected to be a ``{"_meta": {...}}`` metadata record and is
+    skipped.  Every subsequent line must be a JSON object with at least a
+    ``nodeid`` key; the ``reason`` key (if present) is ignored.
+    """
+    skip_set: set = set()
+    meta_seen = False
+    try:
+        with open(p, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                obj = json.loads(line)
+                if isinstance(obj, dict) and "_meta" in obj:
+                    meta_seen = True
+                    continue
+                nodeid = obj.get("nodeid") if isinstance(obj, dict) else None
+                if isinstance(nodeid, str) and nodeid:
+                    skip_set.add(nodeid)
+    except (json.JSONDecodeError, OSError) as e:
+        print(f"  WARNING: Failed to load JSONL skip list {p}: {e}")
+        return set()
+
+    print(f"  Loaded skip list: {len(skip_set)} nodeids from {p}"
+          f"{' (meta line found)' if meta_seen else ''}")
     return skip_set
 
 
