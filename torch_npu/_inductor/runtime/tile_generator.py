@@ -32,6 +32,7 @@ class TileGenerator:
         self.low_dims = low_dims
         self.configs = []
         self.dtype_bytes = get_byte_per_numel(dtype)
+        self.rebuild_dynamic_axis()
         self.block_name = {}
         self.sub_block_name = {}
         self.persistent_reduction = persistent_reduction
@@ -69,6 +70,19 @@ class TileGenerator:
                 continue
             self.real_tiling_axis.append(tiling_axis)
         self.split_axis_num = len(self.split_axis)
+
+
+    def rebuild_dynamic_axis(self):
+        if len(self.tiling_axis) > 3 and not self.no_loop_axis:
+            current_numels = 1
+            for low_dim in self.low_dims:
+                if self.axis_name[low_dim] == 'r':
+                    continue
+                current_numels *= self.numels[low_dim]
+                if current_numels * self.dtype_bytes > 4 * 1024:
+                    return
+                self.no_loop_axis.append(low_dim)
+
 
     def reset_configs(self):
         self.config = []

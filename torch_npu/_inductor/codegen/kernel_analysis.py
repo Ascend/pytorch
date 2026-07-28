@@ -7,29 +7,70 @@ from torch._inductor.virtualized import V
 from torch.utils._sympy.symbol import SymT
 
 
-def _append_stride_info(index, current_entry, symbol_stride_map):
-    for var, stride in index.as_coefficients_dict().items():
+def extract_axis_strides(index, axis_vars, sizevars=None):
+    if sizevars is None:
+        sizevars = V.graph.sizevars
+    axis_vars = [
+        var
+        for var in axis_vars
+        if isinstance(var, sympy.Symbol) and var in index.free_symbols
+    ]
+    if not axis_vars:
+        return []
+    result = []
+    strides = sizevars.stride_vars(index, axis_vars)
+    stride_hints = sizevars.stride_hints(index, axis_vars)
+    for position, (var, stride, hint) in enumerate(zip(axis_vars, strides, stride_hints)):
+        if stride == 0:
+            continue
+        if sizevars.simplify(index - var * stride).has(var):
+            continue
+        result.append((var, stride, hint, position))
+    result.sort(key=lambda item: (item[2] == 0, abs(item[2]), item[3]))
+    return result
+
+
+def _append_stride_info(index, current_entry, symbol_stride_map, axis_vars):
+    axis_strides = extract_axis_strides(index, axis_vars)
+    for (var, stride, hint, position) in axis_strides:
         if var.is_Symbol and var not in symbol_stride_map and not free_symbol_is_type(var, SymT.INDIRECT):
             symbol_stride_map[var] = stride
         if var.is_Symbol and not free_symbol_is_type(var, SymT.INDIRECT):
             current_entry["var_stride"].append((str(var), str(stride)))
 
 
-def _finalize_stride_collection(symbol_stride_map):
-    sorted_items = sorted(symbol_stride_map.items(), key=lambda x: x[1], reverse=False)
-    sorted_keys = [key for key, _ in sorted_items]
+def _finalize_stride_collection(symbol_stride_map, axis_vars):
+    axis_order = {var: i for i, var in enumerate(axis_vars)}
+
+    def sort_key(item):
+        var, stride = item
+        try:
+            hint = V.graph.sizevars.size_hint(stride)
+        except TypeError:
+            hint = 0
+        return (
+            hint == 0,
+            abs(hint),
+            axis_order.get(var, len(axis_order)),
+            str(var),
+        )
+
+    sorted_keys = [var for var, _ in sorted(symbol_stride_map.items(), key=sort_key)]
     return sorted_keys
 
 
 def collect_stride_sorted_vars_from_indexings(indexings: Iterable):
     symbol_stride_map = {}
+    kernel = V.kernel
+    axis_vars = _kernel_axis_vars(kernel)
     for index in indexings:
         current_entry = {
             "index_expr": str(index),
             "var_stride": [],
         }
-        _append_stride_info(index, current_entry, symbol_stride_map)
-    return _finalize_stride_collection(symbol_stride_map)
+        _append_stride_info(index, current_entry, symbol_stride_map, axis_vars)
+    result = _finalize_stride_collection(symbol_stride_map, axis_vars)
+    return result
 
 
 def collect_stride_sorted_vars_from_nodes(node_schedule: Iterable, skipped_nodes: Tuple):
@@ -41,21 +82,54 @@ def collect_stride_sorted_vars_from_nodes(node_schedule: Iterable, skipped_nodes
         indexing_list = getattr(body, "indexing", None)
         if not indexing_list:
             continue
+        kernel = V.kernel
+        axis_vars = _kernel_axis_vars(kernel)
         for _, index in indexing_list.items():
             current_entry = {
                 "index_expr": str(index),
                 "var_stride": [],
             }
-            _append_stride_info(index, current_entry, symbol_stride_map)
-    return _finalize_stride_collection(symbol_stride_map)
+            _append_stride_info(index, current_entry, symbol_stride_map, axis_vars)
+    result = _finalize_stride_collection(symbol_stride_map, axis_vars)
+    return result
+
+
+def _kernel_axis_vars(kernel):
+    nodes = dict(getattr(kernel, "range_tree_nodes", {}))
+    for var, node in getattr(kernel, "range_tree_nodes_removed", {}).items():
+        nodes.setdefault(var, node)
+    insertion_order = {var: position for position, var in enumerate(nodes)}
+
+    def sort_key(item):
+        var, node = item
+        sorted_order = getattr(node, "sorted_order", None)
+        if sorted_order is None:
+            return (True, insertion_order[var])
+        return (False, sorted_order, insertion_order[var])
+
+    axis_vars = [var for var, _ in sorted(nodes.items(), key=sort_key)]
+    return axis_vars
+
 
 from torch_npu._compat.inductor import get_sizevars_backed_var_to_val
 class IndexAnalysis:
     def __init__(self, kernel, raw_index, is_store_index=False, is_index_expr=False):
-        self.index = raw_index.subs(get_sizevars_backed_var_to_val(V.graph.sizevars))
         self.kernel = kernel
-        self.tiling_axis = [x.symbol() for x in self.kernel.tiling_axis]
         self.stride_list = None  # stride list [1,2,4,24]
+        self.tiling_axis = [x.symbol() for x in self.kernel.tiling_axis]
+        self.var_stride = extract_axis_strides(raw_index, _kernel_axis_vars(self.kernel))
+        # only contains tiling axis vars
+        self.var_list = tuple(x[0] for x in self.var_stride if x[0] in self.tiling_axis)
+        self.stride_list = tuple(x[1] for x in self.var_stride if x[0] in self.tiling_axis)
+        self.index = raw_index.subs(get_sizevars_backed_var_to_val(V.graph.sizevars))
+        all_var_stride = [
+            (key, coeff)
+            for key, coeff in self.index.as_coefficients_dict().items()
+            if not isinstance(key, sympy.Integer)
+        ]
+        all_var_stride.sort(key=lambda item: item[1])
+        self.all_var_list = tuple(x[0] for x in all_var_stride)
+        self.all_stride_list = tuple(x[1] for x in all_var_stride)
         self.reshape_sizes = []  # [RBLOCK, 1, 1, XBLOCK_SUB]
         self.broadcast_sizes = []  # [RBLOCK, XBLOCK_SUB]
         self.permute_shape = []  # [0,2,1,3]
@@ -69,18 +143,6 @@ class IndexAnalysis:
         self.need_broadcast = False
         self.need_reshape = False
         self.gold = kernel.golden_var_list  # tuple([x.symbol() for x in reversed(kernel.tiling_axis)])
-        self.var_stride = [
-            (key, coeff)
-            for key, coeff in self.index.as_coefficients_dict().items()
-            if not isinstance(key, sympy.Integer)
-        ]
-        # sort by stride
-        self.var_stride.sort(key=lambda x: x[1])
-        # only contains tiling axis var
-        self.var_list = tuple([x[0] for x in self.var_stride if x[0] in self.tiling_axis])
-        self.stride_list = tuple([x[1] for x in self.var_stride if x[0] in self.tiling_axis])
-        self.all_var_list = tuple([x[0] for x in self.var_stride])
-        self.all_stride_list = tuple([x[1] for x in self.var_stride])
         self.is_store_index = is_store_index
         self.is_index_expr = is_index_expr
 
