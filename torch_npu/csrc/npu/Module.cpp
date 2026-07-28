@@ -47,6 +47,7 @@
 #include <torch_npu/csrc/core/npu/NpuVariables.h>
 #include <torch_npu/csrc/core/npu/interface/AclInterface.h>
 #include <torch_npu/csrc/core/npu/interface/OpInterface.h>
+#include <torch_npu/csrc/npu/NpuSleep.h>
 #include <torch_npu/csrc/core/npu/register/OptionRegister.h>
 #include <torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h>
 #include <torch_npu/csrc/framework/StorageDescHelper.h>
@@ -791,6 +792,19 @@ PyObject* THNPModule_npuSynchronize(PyObject* _unused, PyObject* noargs) {
   HANDLE_TH_ERRORS
   pybind11::gil_scoped_release no_gil;
   c10_npu::npuSynchronizeDevice();
+  Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_npuSleep(PyObject* _unused, PyObject* cycles) {
+  HANDLE_TH_ERRORS
+  TORCH_CHECK(
+      THPUtils_checkLong(cycles), "torch.npu._sleep(): expected 'int'");
+  int64_t unpacked_cycles = THPUtils_unpackLong(cycles);
+  {
+      pybind11::gil_scoped_release no_gil;
+      c10_npu::npu_sleep(unpacked_cycles);
+  }
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
 }
@@ -2840,6 +2854,10 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_get_deterministic_level",
      (PyCFunction)THNPModule_get_deterministic_level,
      METH_NOARGS,
+     nullptr},
+    {"_npu_sleep",
+     (PyCFunction)THNPModule_npuSleep,
+     METH_O,
      nullptr},
     {nullptr}};
 
