@@ -21,12 +21,14 @@
     1. 下载TorchNPU源码。
 
         ```bash
-        git clone https://gitcode.com/Ascend/pytorch.git -b v2.7.1-26.0.0 --depth 1
+        git clone https://gitcode.com/Ascend/pytorch.git -b v2.7.1-26.1.0 --depth 1
         ```
 
-        以v2.7.1-26.0.0为例，下载对应的TorchNPU分支代码。请参见《版本说明》中的“[相关产品版本配套说明](../release_notes.md#相关产品版本配套说明)”章节下载TorchNPU其他版本的分支代码。
+        以v2.7.1-26.1.0为例，下载对应的TorchNPU分支代码。请参见《版本说明》中的“[相关产品版本配套说明](../release_notes.md#相关产品版本配套说明)”章节下载TorchNPU其他版本的分支代码。
 
     2. 构建镜像。
+
+        我们已提供了可用的Dockerfile，可以自动检测架构来拉取镜像。你可以阅览该目录（pytorch/docker/devel）下的README文件，获取更多信息，并根据其指导构建自己的开发环境。或者您可以直接通过devcontainer工具来构建开发环境。
 
         ```bash
         cd pytorch/docker/devel
@@ -35,17 +37,21 @@
         ```
 
         > [!NOTE]
+        >
         > - Dockerfile会自动根据当前架构（ARM/X86）拉取对应镜像。
         > - 如果需要指定更具体的构建参数，可参考该目录（pytorch/docker/devel）下README。
         > - 注意不要遗漏命令结尾的“.”。
 
-    3. 进入Docker容器，并将TorchNPU源代码挂载至容器内。
+    3. 启动并进入Docker容器，并将TorchNPU源代码挂载至容器内。
 
         ```bash
         docker run -it -v /{code_path}/pytorch:/home/pytorch manylinux-builder:v1 bash
         ```
 
         _{code_path}_ 表示TorchNPU源代码路径，请根据实际情况进行替换。
+        > [!NOTE]
+        >
+        > - 如果您已通过 `npu-smi` 确保宿主机存在驱动（driver），也可以在启动容器时将其挂载。可参考该目录（pytorch/docker/devel）下README。
 
     4. 编译生成Whl安装包。
 
@@ -131,10 +137,10 @@
             如果使用非root用户安装，需要在命令后加`--user`，例如：**pip3 install pyyaml --user**。
 
     2. 编译生成TorchNPU插件的Whl安装包。
-        1. 以v2.7.1-26.0.0为例，下载对应的TorchNPU分支代码并进入插件根目录。
+        1. 以v2.7.1-26.1.0为例，下载对应的TorchNPU分支代码并进入插件根目录。
 
             ```bash
-            git clone -b v2.7.1-26.0.0 https://gitcode.com/Ascend/pytorch.git
+            git clone -b v2.7.1-26.1.0 https://gitcode.com/Ascend/pytorch.git
             cd pytorch
             ```
 

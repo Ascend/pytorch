@@ -88,7 +88,7 @@ pip install torch-npu==2.10.0.post2
 
 ### From Source
 
-For detailed steps on compiling TorchNPU, please refer to the [TorchNPU Source Installation Guide](https://www.hiascend.com/document/detail/zh/Pytorch/latest/configandinstg/instg/docs/zh/installation_guide/compilation_installation_using_source_code.md).
+For detailed steps on compiling TorchNPU, please refer to the [Source Installation Guide](docs/zh/installation_guide/compilation_installation_using_source_code.md).
 
 ## Quick Start
 
@@ -120,7 +120,7 @@ tensor([[-0.0515,  0.3664],
         [-0.1258, -0.5425]], device='npu:0')
 ```
 
-For complete model migration and training tutorials, please refer to the [TorchNPU Quick Start Guide](https://www.hiascend.com/document/detail/zh/Pytorch/latest/fastexperience/docs/en/quick_start/quick_start.md).
+For complete model migration and training tutorials, please refer to the [Quick Start Guide](https://www.hiascend.com/document/detail/zh/Pytorch/latest/fastexperience/docs/en/quick_start/quick_start.md).
 
 ## Community
 

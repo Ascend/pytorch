@@ -88,7 +88,7 @@ pip install torch-npu==2.10.0.post2
 
 ### 源码编译安装
 
-编译 TorchNPU 的详细步骤请参见 [TorchNPU 源码安装指南](https://www.hiascend.com/document/detail/zh/Pytorch/latest/configandinstg/instg/docs/zh/installation_guide/compilation_installation_using_source_code.md)。
+编译 TorchNPU 的详细步骤请参见 [源码安装指南](docs/zh/installation_guide/compilation_installation_using_source_code.md)。
 
 ## 快速开始
 
@@ -120,7 +120,7 @@ tensor([[-0.0515,  0.3664],
         [-0.1258, -0.5425]], device='npu:0')
 ```
 
-完整的模型迁移和训练教程，请参见 [TorchNPU 快速入门](https://www.hiascend.com/document/detail/zh/Pytorch/latest/fastexperience/docs/zh/quick_start/quick_start.md)。
+完整的模型迁移和训练教程，请参见 [快速入门](https://www.hiascend.com/document/detail/zh/Pytorch/latest/fastexperience/docs/zh/quick_start/quick_start.md)。
 
 ## 社区交流
 
