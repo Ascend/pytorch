@@ -624,6 +624,12 @@ def _aclnn_reselect_static_kernel_with_path(path):
     torch_npu._C._aclnn_reselect_static_kernel_with_path(path)
 
 
+def _sleep(cycles):
+    r"""Sleep for the specified number of cycles on the current stream.
+    """
+    torch_npu._C._npu_sleep(cycles)
+
+
 from .random import *  # noqa: F403
 from .memory import *  # noqa: F403
 
