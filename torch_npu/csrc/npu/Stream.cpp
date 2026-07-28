@@ -57,11 +57,25 @@ static PyObject* THNPStream_pynew(
     return nullptr;
   }
 
+  if (stream_ptr) {
+    TORCH_CHECK(
+        priority == 0,
+        "Priority was explicitly set for an external stream",
+        PTA_ERROR(ErrCode::PARAM));
+    TORCH_CHECK(
+        is_sync_launch == 0,
+        "is_sync_launch was explicitly set for an external stream",
+        PTA_ERROR(ErrCode::PARAM));
+  }
+
   c10_npu::NPUStream stream = (stream_id || device_index || device_type)
       ? c10_npu::NPUStream::unpack3(
             stream_id, device_index, static_cast<c10::DeviceType>(device_type))
-      : (is_sync_launch ? c10_npu::getNPUStreamFromSyncLaunchPool()
-                        : c10_npu::getStreamFromPool(priority));
+      : (stream_ptr
+             ? c10_npu::getStreamFromExternal(
+                   reinterpret_cast<aclrtStream>(stream_ptr), current_device)
+             : (is_sync_launch ? c10_npu::getNPUStreamFromSyncLaunchPool()
+                               : c10_npu::getStreamFromPool(priority)));
 
   THNPStream* self = (THNPStream*)ptr.get();
   self->stream_id = static_cast<int64_t>(stream.id());
