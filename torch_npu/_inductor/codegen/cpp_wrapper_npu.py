@@ -473,6 +473,21 @@ static inline void load_{kernel_name}() {{
         self.prefix.writeline("\n")
         self.prefix.splice(old_prefix)
 
+    def codegen_initialized_kernel_decls(self):
+        # In AOT mode, CATLASS .o files are linked into model.so, so the
+        # parent's `extern "C"` declarations are required — same as the
+        # community CUTLASS flow.
+        # In JIT cpp_wrapper mode, CATLASS kernels are loaded dynamically
+        # via dlopen/dlsym through function pointers emitted in
+        # finalize_prefix().  An `extern "C"` function declaration here
+        # would conflict with the `static <name>_t <name> = nullptr;`
+        # pointer variable (C++ forbids a function and a variable sharing
+        # the same identifier), so we skip it.  In JIT mode
+        # initialized_kernels only contains CATLASS kernels on NPU.
+        if not V.graph.aot_mode:
+            return
+        super().codegen_initialized_kernel_decls()
+
     def codegen_tensor_item(
         self, dtype: torch.dtype, tensor: str, scalar: str, indented_buffer=None
     ):
