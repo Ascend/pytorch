@@ -164,6 +164,19 @@ AclrtCtxSetSysParamOpt(aclSysParamOpt opt, int64_t value);
 ACL_FUNC_VISIBILITY aclError
 AclrtSetSysParamOpt(aclSysParamOpt opt, int64_t value);
 
+/**
+ * @ingroup AscendCL
+ * @brief get system param option value
+ *
+ * @param aclCompileOpt [IN]      system option
+ * @param value [OUT]             value of system option
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError
+AclrtGetSysParamOpt(aclSysParamOpt opt, int64_t* value);
+
 ACL_FUNC_VISIBILITY aclError AclDestroyAclOpExecutor(aclOpExecutor* executor);
 } // namespace native
 } // namespace at_npu

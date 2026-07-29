@@ -26,17 +26,7 @@
 namespace at_npu {
 namespace native {
 
-struct CachedDeterministicRuntimeState {
-  bool valid = false;
-  c10_npu::DeterministicBackend backend = c10_npu::DeterministicBackend::Legacy;
-  uint32_t effective_level = 0;
-  bool aclop_compileopt_valid = false;
-  uint32_t aclop_compileopt_level = 0;
-};
-
 std::recursive_mutex deterministic_launch_mutex;
-static std::unordered_map<aclrtContext, CachedDeterministicRuntimeState>
-    deterministic_runtime_cache;
 
 void OpAttrMaker::Set(aclopAttr* attr, const string& name, bool value) {
   aclopSetAttrBool(attr, name.c_str(), value);
@@ -124,15 +114,6 @@ void OpCommandImpl::SetEnginePriority() {
   }
 }
 
-aclrtContext GetCurrentContextForDeterministicCache() {
-  aclrtContext context = nullptr;
-  aclError ret = aclrtGetCurrentContext(&context);
-  if (ret != ACL_ERROR_NONE) {
-    return nullptr;
-  }
-  return context;
-}
-
 bool IsAclStrongConsistencyExist() {
   static const bool isAclStrongConsistencyExist = []() {
     const std::string kMinRuntimeVersion = "8.5.0";
@@ -144,30 +125,20 @@ bool IsAclStrongConsistencyExist() {
 void ApplyLegacyDeterministicSnapshotLocked(
     const c10_npu::DeterministicSnapshot& snapshot,
     bool isOpapi,
-    CachedDeterministicRuntimeState& cached_state) {
+    int64_t cur_level) {
   uint32_t level = snapshot.effective_level;
   TORCH_CHECK(
       level <= 2,
       "level=3 requires newer CANN runtime and operator packages that support batch consistency.",
       PTA_ERROR(ErrCode::VALUE));
-
+  ASCEND_LOGI(
+      "Apply deterministic level in the legacy backend, level: %d", level);
   bool deterministic = level >= 1;
   bool strong_consistency = level == 2;
-  bool need_runtime_update = !cached_state.valid ||
-      cached_state.backend != c10_npu::DeterministicBackend::Legacy ||
-      cached_state.effective_level != level;
 
-  if (!isOpapi && g_used_aclop &&
-      (!cached_state.aclop_compileopt_valid ||
-       cached_state.aclop_compileopt_level != level)) {
+  if (!isOpapi && g_used_aclop && cur_level != level) {
     NPU_CHECK_ERROR(AclSetCompileopt(
         aclCompileOpt::ACL_OP_DETERMINISTIC, deterministic ? "1" : "0"));
-    cached_state.aclop_compileopt_valid = true;
-    cached_state.aclop_compileopt_level = level;
-  }
-
-  if (!need_runtime_update) {
-    return;
   }
 
   if (!IsAclStrongConsistencyExist()) {
@@ -185,35 +156,28 @@ void ApplyLegacyDeterministicSnapshotLocked(
     HCCL_CHECK_ERROR(
         hccl::HcclSetConfig(HcclConfig::HCCL_DETERMINISTIC, configValue));
   }
-
-  cached_state.valid = true;
-  cached_state.backend = c10_npu::DeterministicBackend::Legacy;
-  cached_state.effective_level = level;
 }
 
 void ApplyDeterministicSnapshotLocked(
     const c10_npu::DeterministicSnapshot& snapshot,
     bool isOpapi) {
-  auto context = GetCurrentContextForDeterministicCache();
-  auto& cached_state = deterministic_runtime_cache[context];
+  int64_t cur_level = 0;
+  NPU_CHECK_ERROR(
+      AclrtGetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, &cur_level));
   if (snapshot.backend == c10_npu::DeterministicBackend::V2) {
-    if (cached_state.valid &&
-        cached_state.backend == c10_npu::DeterministicBackend::V2 &&
-        cached_state.effective_level == snapshot.effective_level) {
+    ASCEND_LOGI(
+        "Apply deterministic level in the V2 backend, level: %d",
+        snapshot.effective_level);
+    if (snapshot.effective_level == cur_level) {
       return;
     }
-    NPU_CHECK_ERROR(AclrtCtxSetSysParamOpt(
+    NPU_CHECK_ERROR(AclrtSetSysParamOpt(
         aclSysParamOpt::ACL_OPT_DETERMINISTIC,
         static_cast<int64_t>(snapshot.effective_level)));
-    cached_state.valid = true;
-    cached_state.backend = c10_npu::DeterministicBackend::V2;
-    cached_state.effective_level = snapshot.effective_level;
-    cached_state.aclop_compileopt_valid = false;
-    cached_state.aclop_compileopt_level = 0;
     return;
   }
 
-  ApplyLegacyDeterministicSnapshotLocked(snapshot, isOpapi, cached_state);
+  ApplyLegacyDeterministicSnapshotLocked(snapshot, isOpapi, cur_level);
 }
 
 template <typename LaunchFunc>
