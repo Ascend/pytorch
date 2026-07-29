@@ -1,0 +1,15 @@
+diff --git a/test/distributed/test_fake_pg.py b/test/distributed/test_fake_pg.py
+index ad233bcdba..9db175408f 100644
+--- a/test/distributed/test_fake_pg.py
++++ b/test/distributed/test_fake_pg.py
+@@ -61,8 +61,8 @@ class TestFakePG(TestCase):
+         store = FakeStore()
+         dist.init_process_group(backend="fake", rank=1, world_size=2, store=store)
+ 
+-        to_reduce_scatter = [torch.ones(3, 3) * rank for rank in range(2)]
+-        output_tensor = torch.empty(3, 3)
++        to_reduce_scatter = [torch.ones(3, 3).npu() * rank for rank in range(2)]
++        output_tensor = torch.empty(3, 3).npu()
+ 
+         dist.reduce_scatter(output_tensor, to_reduce_scatter)
+         self.assertEqual(tuple(output_tensor.shape), (3, 3))
