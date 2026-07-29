@@ -165,7 +165,7 @@ TorchNPU代码分支名称采用 **\{PyTorch版本\}-\{TorchNPU版本\}** 的命
   </thead>
   <tbody>
     <tr>
-      <td class="cellrowborder" rowspan="36" valign="top" width="11.53%" headers="mcps1.2.6.1.1">v2.7.1</td>
+      <td class="cellrowborder" rowspan="35" valign="top" width="11.53%" headers="mcps1.2.6.1.1">v2.7.1</td>
       <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.1">torch_npu.print_npugraph_tensor</td>
       <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.2">自定义接口</td>
       <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3">新增</td>
@@ -329,12 +329,6 @@ TorchNPU代码分支名称采用 **\{PyTorch版本\}-\{TorchNPU版本\}** 的命
     </tr>
     <tr>
       <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.1">（beta）torch_npu.npu.set_dump</td>
-      <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.2">自定义接口</td>
-      <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3">修改</td>
-      <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.4">依赖CANN 9.1.0版本</td>
-    </tr>
-    <tr>
-      <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.1">torch_npu.apply_rotary_pos_emb</td>
       <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.2">自定义接口</td>
       <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3">修改</td>
       <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.4">依赖CANN 9.1.0版本</td>
