@@ -713,6 +713,9 @@
   "torch_npu.npu.graphs.make_graphed_callables": {
     "signature": "(callables, sample_args, num_warmup_iters=3, allow_unused_input=False, pool=None)"
   },
+  "torch_npu.npu.streams.ExternalStream": {
+    "signature": "(stream_ptr, device=None, **kwargs)"
+  },
   "torch_npu.npu.streams.ExternalEvent": {
     "signature": "()"
   },
@@ -856,6 +859,9 @@
   },
   "torch_npu.npu.Event.ipc_handle": {
     "signature": "(self)"
+  },
+  "torch_npu.npu.ExternalStream": {
+    "signature": "(stream_ptr, device=None, **kwargs)"
   },
   "torch_npu.npu.ExternalEvent": {
     "signature": "()"
