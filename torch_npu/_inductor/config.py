@@ -410,6 +410,12 @@ inductor_ascend_linear_mode = "linear"
 
 autotune_continue_on_failure = os.environ.get('TORCHINDUCTOR_NPU_BACKEND') == "default"
 
+# fused_matmul_relu_pass: fuse relu(addmm) into npu_fused_matmul (A5-only op).
+# Still under validation, so it is off by default; set the env var to 1 to enable.
+enable_fused_matmul_relu = _parse_bool_env(
+    "TORCHINDUCTOR_ENABLE_FUSED_MATMUL_RELU", False
+)
+
 # permute_continous_reduction: when enabled, detects the "permute contiguous reduction"
 # pattern (a non-reduction axis sitting between two reduction axes in stride order)
 # and applies special handling: selects the permute axis as a tiling axis, uses NDDMA
