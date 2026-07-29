@@ -79,6 +79,16 @@
 
 </div>
 
+### torch.accelerator.get_device_capability
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.accelerator.get_device_capability](https://pytorch.org/docs/2.11/generated/torch.accelerator.get_device_capability.html)
+
+**是否支持**：是
+
+</div>
+
 ### torch.accelerator.set_stream
 
 <div style="margin-left: 2em">
@@ -104,6 +114,16 @@
 <div style="margin-left: 2em">
 
 **原生文档**：[torch.accelerator.synchronize](https://pytorch.org/docs/2.11/generated/torch.accelerator.synchronize.html)
+
+**是否支持**：是
+
+</div>
+
+### _`class`_ torch.accelerator.device_index
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.accelerator.device_index](https://pytorch.org/docs/2.11/generated/torch.accelerator.device_index.html)
 
 **是否支持**：是
 
