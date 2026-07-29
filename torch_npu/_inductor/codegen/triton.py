@@ -4137,8 +4137,12 @@ class NPUIndexTritonKernel(TritonKernel):
                     self.post_loop_combine, result_var, accumulator, accumulator_index
                 )
             elif is_welford_reduction(reduction_type):
+                # This path is not expected to be reached for NPUIndexTritonKernel.
+                # Welford reductions fall back to NPUNoLinearTritonScheduling
+                # (NPUTritonKernelWithLoop), which inherits upstream TritonKernel's
+                # native welford support. Raise as a safety net.
                 raise RuntimeError(
-                    "assert False, welford_reduction and is not supported now.."
+                    "welford_reduction in NPUIndexTritonKernel loop path not expected"
                 )
             else:
                 combine_fn = ir.get_reduction_combine_fn(reduction_type, src_dtype)

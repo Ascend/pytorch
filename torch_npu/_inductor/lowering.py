@@ -860,6 +860,63 @@ def _register_npu_inductor_fallbacks():
         x_mean = x_mean if keepdim else squeeze(x_mean, axis)
         return x_var, x_mean
 
+    def use_two_step_variance(x, axis, keepdim):
+        # Instead of unrolling welford, just unroll the simpler two-step var
+        axis = _validate_reduction_axis(x, axis)
+        kwargs = _make_reduction_inner(
+            x, axis=axis, keepdims=keepdim, dtype=None, override_return_dtype=None
+        )
+
+        ranges = kwargs["ranges"]
+        reduction_numel = sympy_product(kwargs["reduction_ranges"])
+        return (
+            isinstance(reduction_numel, sympy.Integer)
+            and int(reduction_numel) < torch._inductor.config.unroll_reductions_threshold
+            and sympy_product(ranges) != 1
+        )
+
+    def var_mean_welford_(x, axis, *, correction, keepdim, return_mean):
+        if correction is None:
+            correction = 1
+
+        kwargs = _make_reduction_inner(
+            x, axis=axis, keepdims=keepdim, dtype=None, override_return_dtype=None
+        )
+        loader = kwargs.pop("inner_fn")
+        kwargs.pop("dst_dtype")
+        kwargs.pop("src_dtype")
+
+        mean, m2, _ = ir.WelfordReduction.create(
+            inner_fns=(loader,),
+            reduction_type="welford_reduce",
+            dtype=x.get_dtype(),
+            **kwargs,
+        )
+        m2.realize()
+
+        dtype = x.get_dtype()
+        size = x.get_size()
+        axis = _validate_reduction_axis(x, axis)
+        rnumel = sympy_product(size[i] for i in axis)
+
+        def get_constant_or_index_expr(x, dtype):
+            if isinstance(x, sympy.Expr) and not x.is_number:
+                return ops.to_dtype(ops.index_expr(x, torch.int64), dtype)
+            return ops.constant(x, dtype)
+
+        def scale_fn(data):
+            c = get_constant_or_index_expr(correction, dtype)
+            N = get_constant_or_index_expr(rnumel, dtype)
+            zero = ops.constant(0, dtype)
+            return data / ops.maximum(zero, N - c)
+
+        var = make_pointwise(scale_fn)(m2)
+
+        if return_mean:
+            mean.realize()
+            return var, mean
+        return (var,)
+
     def var_mean_helper_(x, *, axis, correction, keepdim, return_mean):
         out_dtype = x.get_dtype()
         compute_dtype = get_computation_dtype(out_dtype)
@@ -871,9 +928,11 @@ def _register_npu_inductor_fallbacks():
             keepdim=keepdim,
             return_mean=return_mean,
         )
-        # todo: support welford var mean
         output = (
             var_mean_sum_(**kwargs)
+            if not npu_config.enable_welford
+            or use_two_step_variance(x, axis=axis, keepdim=keepdim)
+            else var_mean_welford_(**kwargs)
         )
         output = tuple(to_dtype(x, out_dtype, copy=False) for x in output)
         return output[0] if not return_mean else output
