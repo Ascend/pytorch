@@ -3,7 +3,7 @@ import ctypes
 import torch_npu
 import torch_npu._C
 
-__all__ = ["Stream", "Event", "SyncLaunchStream", "ExternalEvent"]
+__all__ = ["Stream", "Event", "SyncLaunchStream", "ExternalStream", "ExternalEvent"]
 
 
 class Stream(torch_npu._C._NPUStreamBase):
@@ -108,6 +108,72 @@ class Stream(torch_npu._C._NPUStreamBase):
     def __repr__(self):
         return ('<torch_npu.npu.Stream device={0} npu_stream={1:#x}>'
                 .format(self.device, self.npu_stream))
+
+
+class ExternalStream(Stream):
+    r"""Wrapper around an externally allocated NPU stream.
+
+    This class is used to wrap streams allocated in other libraries in order
+    to facilitate data exchange and multi-library interactions.
+
+    .. note:: This class doesn't manage the stream life-cycle, it is the user
+       responsibility to keep the referenced stream alive while this class is
+       being used.
+
+    .. note:: ``priority`` and ``is_sync_launch`` must keep their defaults
+       (``0``) when wrapping an external stream; passing non-default values
+       raises a ``RuntimeError``.
+
+    Args:
+        stream_ptr(int): Integer representation of the `aclrtStream` value.
+            allocated externally.
+        device(torch.device or int, optional): the device where the stream
+            was originally allocated. If device is specified incorrectly,
+            subsequent launches using this stream may fail.
+
+    Unsupported scenarios (raise ``RuntimeError``):
+
+    .. list-table::
+        :widths: 35 65
+        :header-rows: 1
+
+        * - API
+          - Description
+        * - ``synchronize()``
+          - Caller must synchronize the external stream externally.
+        * - ``query()``
+          - Caller must track stream completion externally.
+        * - ``record_event()`` / ``Event.record(ext)`` /
+            ``ExternalEvent.record(ext)``
+          - Event recording on an external stream is not supported.
+        * - ``wait_event(event)`` / ``wait_stream(stream)`` /
+            ``Event.wait(ext)`` / ``ExternalEvent.wait(ext)``
+          - Event waiting on an external stream is not supported.
+        * - ``Tensor.record_stream(ext)``
+          - Caching allocator stream tracking is not supported.
+        * - ``NPUGraph.capture_begin()`` / ``capture_end()``
+          - Graph capture on an external stream is not supported.
+        * - ``graph_task_group_begin`` / ``end`` /
+            ``graph_task_update_begin`` / ``end``
+          - Graph task group APIs are not supported.
+        * - ``super_kernel_scope_begin`` / ``end``
+          - Super kernel scope is not supported.
+        * - ``launch_callback``
+          - Host callback launch is not supported.
+        * - ``subscribe_report`` / ``unsubscribe_report``
+          - Task report subscribe/unsubscribe is not supported.
+        * - ``LaunchRecordEventTask`` / ``LaunchWaitEventTask``
+          - Async task queue event ops are not supported.
+
+    The root cause: the NPU backend routes the above APIs through torch_npu's
+    internal ``AsyncTaskQueue`` (taskqueue), which only tracks streams it
+    created itself. An external stream is outside the taskqueue's tracking
+    scope. For full capabilities, use a torch_npu-managed ``Stream`` instead.
+    """
+
+    def __new__(cls, stream_ptr, device=None, **kwargs):
+        with torch_npu.npu.device(device):
+            return super().__new__(cls, stream_ptr=stream_ptr, **kwargs)
 
 
 class Event(torch_npu._C._NPUEventBase):
