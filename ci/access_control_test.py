@@ -18,6 +18,9 @@ from access_control import (
 )
 from split_by_time import load_and_validate_time_data, split_by_time, get_test_key
 
+sys.path.insert(0, str(TEST_DIR))
+from utils.version_mark import set_ci_version_range
+
 
 def fetch_acl_headers():
     acl_dest = BASE_DIR / 'third_party' / 'acl' / 'inc' / 'acl'
@@ -325,6 +328,13 @@ if __name__ == "__main__":
         print(f"Filtering testcases by version range: [{min_desc}, {max_desc}]")
         test_mgr.filter_by_version(ci_min, ci_max)
         cur_test_files = test_mgr.get_test_files()
+
+        # Synchronise the runtime decorator so per-test-case skip works.
+        set_ci_version_range(ci_min, ci_max)
+        if ci_min is not None:
+            os.environ["CI_VERSION_MIN"] = ".".join(map(str, ci_min))
+        if ci_max is not None:
+            os.environ["CI_VERSION_MAX"] = ".".join(map(str, ci_max))
 
     test_mgr.print_modify_files()
     test_mgr.print_ut_files()
