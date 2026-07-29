@@ -15,7 +15,7 @@
 
 **原生文档**：[torch.compiler.compile](https://pytorch.org/docs/2.11/generated/torch.compiler.compile.html)
 
-**是否支持**：否
+**是否支持**：是
 
 </div>
 
