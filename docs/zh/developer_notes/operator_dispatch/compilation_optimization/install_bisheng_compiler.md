@@ -2,7 +2,7 @@
 
 ## 下载毕昇编译器
 
-毕昇编译器可以从鲲鹏社区官网下载获取。请单击[LINK](https://kunpeng-repo.obs.cn-north-4.myhuaweicloud.com/BiSheng%20Enterprise/BiSheng%20Enterprise%20203.0.0/BiShengCompiler-4.1.0-aarch64-linux.tar.gz)下载毕昇编译器4.1.0版本。
+毕昇编译器可以从鲲鹏社区官网下载获取。请单击<a href="https://kunpeng-repo.obs.cn-north-4.myhuaweicloud.com/BiSheng Enterprise/BiSheng Enterprise 203.0.0/BiShengCompiler-4.1.0-aarch64-linux.tar.gz">LINK</a>下载毕昇编译器4.1.0版本。
 
 ## 安装毕昇编译器
 
