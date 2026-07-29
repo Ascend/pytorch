@@ -8,6 +8,7 @@
     - 操作系统：选择可用的操作系统（兼容性请参考[兼容性查询助手](https://www.hiascend.com/hardware/compatibility)）
     - 安装类型：选择“离线安装”
 - 安装PyTorch框架及TorchNPU插件，具体请参考《[快速安装](../installation_guide/quick_install.md)》。
+- 安装与PyTorch版本配套的torchvision，具体请参考[安装torchvision](../installation_guide/installing_torchvision.md)。
 
 ## 模型迁移训练
 
@@ -96,7 +97,7 @@
 
     > [!NOTE]
     >
-    > 具体介绍可参见《PyTorch 训练模型迁移调优指南》中的“[混合精度适配](https://gitcode.com/Ascend/docs/blob/master/FrameworkPTAdapter/26.0.0/zh/pytorch_model_migration_fine_tuning/adaptation_introduction.md)”章节。
+    > 具体介绍可参见[混合精度适配](https://gitcode.com/Ascend/ModelZoo-PyTorch/blob/master/PyTorch/docs/zh/mixed_precision_adaptation/adaptation_introduction.md)。
 
     ```diff
         import time
@@ -107,7 +108,7 @@
     +   from torch_npu.contrib import transfer_to_npu    # 开启自动迁移
     ```
 
-    若未开启自动迁移，用户可参考《PyTorch 训练模型迁移调优指南》中的“[手工迁移](https://gitcode.com/Ascend/docs/blob/master/FrameworkPTAdapter/26.0.0/zh/pytorch_model_migration_fine_tuning/manual_migration.md)”章节进行相关操作。
+    若未开启自动迁移，用户可参考[手工迁移](https://gitcode.com/Ascend/ModelZoo-PyTorch/blob/master/PyTorch/docs/zh/model_migration/manual_migration.md)进行相关操作。
 
 3. 开启AMP混合精度计算。若用户使用<term>Atlas A2 训练系列产品</term>、<term>Atlas A3 训练系列产品</term>或<term>Ascend 950DT</term>，则可以选择跳过此步骤。
 
@@ -167,7 +168,7 @@
 
 ## 进阶开发
 
-- 如果您想体验PyTorch模型训练迁移更丰富的功能，请前往《[PyTorch 训练模型迁移调优指南](https://gitcode.com/Ascend/docs/blob/master/FrameworkPTAdapter/26.0.0/zh/pytorch_model_migration_fine_tuning/overview.md)》文档阅读了解。
+- 如果您想体验PyTorch模型训练迁移更丰富的功能，请前往《[PyTorch训练模型迁移调优指南](https://gitcode.com/Ascend/ModelZoo-PyTorch/blob/master/PyTorch/docs/zh/README.md)》文档阅读了解。
 - 如果您想体验大模型训练更丰富的功能，请参见[表1](#模型迁移指导)了解。
 
     **表 1**  模型迁移指导<a id="模型迁移指导"></a>    
@@ -177,4 +178,3 @@
     |Megatron-LM分布式大模型|MindSpeed Core亲和加速模块|请参见《[分布式训练加速库迁移指南](https://gitcode.com/Ascend/MindSpeed/blob/master/docs/zh/user-guide/model-migration.md)》。|
     |Megatron-LM大语言模型|MindSpeed LLM套件|请参见《[MindSpeed LLM文档导读](https://gitcode.com/Ascend/MindSpeed-LLM/blob/master/docs/zh/docs_guide.md)》。|
     |Megatron-LM多模态模型|MindSpeed MM套件|请参见《[MindSpeed MM迁移调优指南](https://gitcode.com/Ascend/MindSpeed-MM/blob/master/docs/zh/pytorch/model-migration.md)》。|
-    |大语言模型或多模态模型|MindSpeed RL套件|请参见《[MindSpeed RL使用指南](https://gitcode.com/Ascend/MindSpeed-RL/tree/master/docs/solutions)》。|
