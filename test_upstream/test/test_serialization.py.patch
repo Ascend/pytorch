@@ -1,0 +1,13 @@
+diff --git a/test/test_serialization.py b/test/test_serialization.py
+index 51ff9182fa..22ae05b61f 100644
+--- a/test/test_serialization.py
++++ b/test/test_serialization.py
+@@ -4967,3 +4967,3 @@ class TestSubclassSerialization(TestCase):
+     def test_tensor_subclass_wrapper_serialization(self):
+-        wrapped_tensor = torch.rand(2)
++        wrapped_tensor = torch.rand(2).npu()
+         my_tensor = TestWrapperSubclass(wrapped_tensor)
+@@ -4982,2 +4982,3 @@ class TestSubclassSerialization(TestCase):
+         self.assertEqual(new_tensor.elem, my_tensor.elem)
++        self.assertEqual(new_tensor.elem.device.type, "npu")
+         self.assertEqual(new_tensor.foo, foo_val)
