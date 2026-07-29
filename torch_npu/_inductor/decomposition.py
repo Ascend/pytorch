@@ -26,7 +26,7 @@ def _register_shared_decompositions():
 
 
 def _register_triton_decompositions():
-    from .config import is_ascend950
+    from .config import is_ascend950, enable_fast_gelu
     from .lowering import _add_overload  # noqa: F401
     DECOMPOSITION_OVERLOAD_OP = [
         aten.nll_loss_forward,
@@ -53,15 +53,16 @@ def _register_triton_decompositions():
             tensor = torch.ones_like(x) - torch.erf(x)
             return tensor
 
-        @register_decomposition([aten.gelu])
-        def gelu(x):
-            two_sqrt_2_over_pi = 1.5957691216057308
-            coeff = 0.044715
-            x_cubed = x * x * x
-            z = two_sqrt_2_over_pi * (x + coeff * x_cubed)
-            sigmoid_z = torch.sigmoid(z)
-            result = x * sigmoid_z
-            return result
+        if enable_fast_gelu:
+            @register_decomposition([aten.gelu])
+            def gelu(x):
+                two_sqrt_2_over_pi = 1.5957691216057308
+                coeff = 0.044715
+                x_cubed = x * x * x
+                z = two_sqrt_2_over_pi * (x + coeff * x_cubed)
+                sigmoid_z = torch.sigmoid(z)
+                result = x * sigmoid_z
+                return result
 
 
     _register_npu_triton_decompositions()
