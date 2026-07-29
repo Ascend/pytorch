@@ -2,6 +2,7 @@ from types import SimpleNamespace
 from unittest import mock
 
 import torch
+from torch._inductor.virtualized import V
 from torch.testing._internal.common_utils import TestCase, run_tests
 
 import torch_npu._inductor.lowering_patch as lowering_patch
@@ -9,11 +10,19 @@ from torch_npu._inductor.lowering_common import LOWERING_REGISTRY_ATTRS
 
 
 class _IRValue:
-    def __init__(self, device_type):
+    def __init__(self, device_type, dtype=torch.float32, size=(1,)):
         self.device = torch.device(device_type)
+        self.dtype = dtype
+        self.size = size
 
     def get_device(self):
         return self.device
+
+    def get_dtype(self):
+        return self.dtype
+
+    def get_size(self):
+        return self.size
 
 
 class TestLoweringDeviceDispatch(TestCase):
@@ -71,13 +80,113 @@ class TestLoweringDeviceDispatch(TestCase):
         self.get_lowering_patch.stop()
         super().tearDown()
 
-    def install(self, targets=None):
+    def install(self, targets=None, extra_device_predicates=None):
+        targets = targets or [self.target]
         registry_id = id(self.registry)
         lowering_patch.install_device_lowering_dispatch(
-            targets or [self.target]
+            targets,
+            extra_device_predicates=extra_device_predicates,
         )
         self.assertEqual(id(self.registry), registry_id)
-        return self.registry[self.target]
+        return self.registry[targets[0]]
+
+    def _register_handlers(self, target):
+        self.baseline.lowerings_copy[target] = self.upstream
+        self.registry[target] = self.device_handler
+
+    def _dispatch_cpu_cast(
+        self,
+        *,
+        source_dtype=torch.float64,
+        source_size=(),
+        destination_dtype=torch.float32,
+        graph_device_types=("cpu", "npu"),
+        layout_device_type=None,
+    ):
+        target = torch.ops.prims.convert_element_type
+        self._register_handlers(target)
+        kwargs = {}
+        if layout_device_type is not None:
+            kwargs["layout"] = SimpleNamespace(
+                device=torch.device(layout_device_type)
+            )
+
+        with V.set_graph_handler(
+            SimpleNamespace(device_types=graph_device_types)
+        ):
+            dispatcher = self.install([target])
+            return dispatcher(
+                _IRValue("cpu", dtype=source_dtype, size=source_size),
+                destination_dtype,
+                **kwargs,
+            )
+
+    def test_cpu_scalar_fp64_cast_in_npu_graph_uses_device_handler(self):
+        result = self._dispatch_cpu_cast()
+
+        self.assertEqual(result, "npu")
+        self.device_call.assert_called_once()
+        self.upstream_call.assert_not_called()
+
+    def test_cpu_scalar_fp64_cast_in_cpu_graph_uses_upstream_handler(self):
+        result = self._dispatch_cpu_cast(graph_device_types=("cpu",))
+
+        self.assertEqual(result, "upstream")
+        self.upstream_call.assert_called_once()
+        self.device_call.assert_not_called()
+
+    def test_custom_predicates_are_merged_with_defaults(self):
+        convert = torch.ops.prims.convert_element_type
+        custom_target = "custom_target"
+        self._register_handlers(convert)
+        self._register_handlers(custom_target)
+
+        def custom_predicate(*args, **kwargs):
+            return True
+
+        with V.set_graph_handler(SimpleNamespace(device_types=("cpu", "npu"))):
+            self.install(
+                [convert, custom_target],
+                extra_device_predicates={custom_target: custom_predicate},
+            )
+            convert_result = self.registry[convert](
+                _IRValue("cpu", dtype=torch.float64, size=()), torch.float32
+            )
+            custom_result = self.registry[custom_target](_IRValue("cpu"))
+
+        self.assertEqual(convert_result, "npu")
+        self.assertEqual(custom_result, "npu")
+
+    def test_cpu_non_scalar_fp64_cast_in_npu_graph_uses_upstream_handler(self):
+        result = self._dispatch_cpu_cast(source_size=(1,))
+
+        self.assertEqual(result, "upstream")
+        self.upstream_call.assert_called_once()
+        self.device_call.assert_not_called()
+
+    def test_cpu_scalar_non_fp64_cast_in_npu_graph_uses_upstream_handler(self):
+        result = self._dispatch_cpu_cast(
+            source_dtype=torch.float32,
+            destination_dtype=torch.bfloat16,
+        )
+
+        self.assertEqual(result, "upstream")
+        self.upstream_call.assert_called_once()
+        self.device_call.assert_not_called()
+
+    def test_cpu_scalar_fp64_noop_in_npu_graph_uses_upstream_handler(self):
+        result = self._dispatch_cpu_cast(destination_dtype=torch.float64)
+
+        self.assertEqual(result, "upstream")
+        self.upstream_call.assert_called_once()
+        self.device_call.assert_not_called()
+
+    def test_non_npu_layout_overrides_extra_device_predicate(self):
+        result = self._dispatch_cpu_cast(layout_device_type="cpu")
+
+        self.assertEqual(result, "upstream")
+        self.upstream_call.assert_called_once()
+        self.device_call.assert_not_called()
 
     def test_non_npu_layout_uses_upstream_handler(self):
         dispatcher = self.install()
@@ -180,6 +289,9 @@ class TestLoweringDeviceDispatch(TestCase):
         packet = torch.ops.aten.mm
         overload = packet.default
 
+        def predicate(*args, **kwargs):
+            return True
+
         def packet_upstream(*args, **kwargs):
             return "packet_upstream"
 
@@ -205,7 +317,9 @@ class TestLoweringDeviceDispatch(TestCase):
             }
         )
 
-        lowering_patch.install_device_lowering_dispatch([packet])
+        lowering_patch.install_device_lowering_dispatch(
+            [packet], extra_device_predicates={packet: predicate}
+        )
 
         self.assertTrue(
             getattr(
@@ -221,6 +335,7 @@ class TestLoweringDeviceDispatch(TestCase):
                 False,
             )
         )
+        self.assertEqual(self.registry[overload](_IRValue("cpu")), "overload_npu")
 
     def test_restore_removes_dispatcher_in_place(self):
         registry_id = id(self.registry)
