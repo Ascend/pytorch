@@ -29,6 +29,7 @@ namespace at_npu
     TORCH_NPU_LOAD_FUNC(aclopCompileAndExecuteV2)
     TORCH_NPU_LOAD_FUNC(aclrtCtxSetSysParamOpt)
     TORCH_NPU_LOAD_FUNC(aclrtSetSysParamOpt)
+    TORCH_NPU_LOAD_FUNC(aclrtGetSysParamOpt)
 
 aclError AclSetCompileopt(aclCompileOpt opt, const char *value)
 {
@@ -162,6 +163,21 @@ aclError AclrtSetSysParamOpt(aclSysParamOpt opt, int64_t value)
     if (func == nullptr) {
         TORCH_WARN("Failed to find this aclrtSetSysParamOpt function!");
         return ACL_ERROR_NONE;
+    }
+    auto ret = func(opt, value);
+    return ret;
+}
+
+aclError AclrtGetSysParamOpt(aclSysParamOpt opt, int64_t *value)
+{
+    typedef aclError (*AclrtGetSysParamOptFunc)(aclSysParamOpt opt, int64_t *value);
+    static AclrtGetSysParamOptFunc func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtGetSysParamOptFunc)TORCH_NPU_GET_FUNC(aclrtGetSysParamOpt);
+    }
+    if (func == nullptr) {
+        TORCH_WARN("Failed to find this aclrtGetSysParamOpt function!");
+        return ACL_ERROR_INTERNAL_ERROR;
     }
     auto ret = func(opt, value);
     return ret;
