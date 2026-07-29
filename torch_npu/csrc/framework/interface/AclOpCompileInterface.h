@@ -144,6 +144,8 @@ ACL_FUNC_VISIBILITY aclError AclrtCtxSetSysParamOpt(aclSysParamOpt opt, int64_t 
  */
 ACL_FUNC_VISIBILITY  aclError AclrtSetSysParamOpt(aclSysParamOpt opt, int64_t value);
 
+ACL_FUNC_VISIBILITY  aclError AclrtGetSysParamOpt(aclSysParamOpt opt, int64_t *value);
+
 ACL_FUNC_VISIBILITY  aclError AclDestroyAclOpExecutor(aclOpExecutor *executor);
 } // namespace native
 } // namespace at_npu
