@@ -1,0 +1,14 @@
+diff --git a/test/test_fake_tensor.py b/test/test_fake_tensor.py
+index 1ee0668c9d..56992a5895 100644
+--- a/test/test_fake_tensor.py
++++ b/test/test_fake_tensor.py
+@@ -1405,3 +1405,3 @@ class FakeTensorConverterTest(TestCase):
+     def test_dead_weak_ref(self):
+-        x = torch.rand(2, 2, 2)
++        x = torch.rand(2, 2, 2).npu()
+         y = x[0]
+@@ -1418,3 +1418,3 @@ class FakeTensorConverterTest(TestCase):
+     def test_dead_key(self):
+-        x = torch.rand(2, 2, 2)
++        x = torch.rand(2, 2, 2).npu()
+         mode = FakeTensorMode()
