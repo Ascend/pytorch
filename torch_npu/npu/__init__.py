@@ -115,6 +115,7 @@ __all__ = [
     "is_current_stream_capturing",
     "make_graphed_callables",
     "ExternalEvent",
+    "ExternalStream",
     "graph_task_group_begin",
     "graph_task_group_end",
     "graph_task_update_begin",
@@ -164,7 +165,7 @@ from .utils import (obfuscation_initialize, obfuscation_calculate, obfuscation_f
                     finalize_dump, set_dump, get_npu_overflow_flag, clear_npu_overflow_flag,
                     check_uce_in_memory, stress_detect, _get_uce_addr, ipc_collect, set_op_timeout_ms)
 from ._recovery import restart_device, stop_device
-from .streams import Stream, Event, SyncLaunchStream, ExternalEvent
+from .streams import Stream, Event, SyncLaunchStream, ExternalStream, ExternalEvent
 from .mstx import mstx
 from .npu_config import *  # noqa: F403
 from .autocast_utils import *  # noqa: F403

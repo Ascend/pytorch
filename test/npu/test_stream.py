@@ -1,3 +1,6 @@
+import contextlib
+import ctypes
+
 import torch
 
 import torch_npu
@@ -45,6 +48,72 @@ class TestNpuStream(TestCase):
         self.assertTrue((s.stream_id >> 5) == 4)
         s = torch.npu.Stream(priority=-2)
         self.assertTrue((s.stream_id >> 5) == 4)
+
+
+class TestExternalStream(TestCase):
+
+    @contextlib.contextmanager
+    def _get_external_stream(self, device=None):
+        rt = torch_npu.npu.npurt()
+        stream = ctypes.c_void_p(0)
+        with torch_npu.npu.device(device):
+            try:
+                ret = rt.npuStreamCreate(ctypes.addressof(stream))
+                self.assertEqual(int(ret), 0)
+                self.assertNotEqual(stream.value, 0)
+                yield stream.value
+            finally:
+                if stream.value:
+                    ret = rt.npuStreamDestroy(stream.value)
+                    self.assertEqual(int(ret), 0)
+
+    def test_external_stream_creation(self):
+        with self._get_external_stream() as stream_v:
+            ext_stream = torch_npu.npu.ExternalStream(stream_v)
+            self.assertEqual(stream_v, ext_stream.npu_stream)
+            self.assertEqual(ext_stream.device.index, torch_npu.npu.current_device())
+
+    def test_external_stream_as_current(self):
+        with self._get_external_stream() as stream_v:
+            ext_stream = torch_npu.npu.ExternalStream(stream_v)
+            with torch_npu.npu.stream(ext_stream):
+                self.assertEqual(
+                    torch_npu.npu.current_stream().npu_stream,
+                    ext_stream.npu_stream)
+
+    def test_external_stream_op(self):
+        with self._get_external_stream() as stream_v:
+            ext_stream = torch_npu.npu.ExternalStream(stream_v)
+            with torch_npu.npu.stream(ext_stream):
+                x = torch.randn(10, device='npu')
+                y = x + 1
+            torch_npu.npu.synchronize()
+            self.assertEqual(y.sum().item(), x.sum().item() + x.numel())
+
+    def test_external_stream_same_ptr(self):
+        with self._get_external_stream() as stream_v:
+            ext1 = torch_npu.npu.ExternalStream(stream_v)
+            ext2 = torch_npu.npu.ExternalStream(stream_v)
+            self.assertEqual(ext1.npu_stream, ext2.npu_stream)
+            self.assertEqual(ext1, ext2)
+
+    def test_external_stream_isinstance(self):
+        with self._get_external_stream() as stream_v:
+            ext_stream = torch_npu.npu.ExternalStream(stream_v)
+            self.assertIsInstance(ext_stream, torch_npu.npu.Stream)
+            self.assertIsInstance(ext_stream, torch_npu.npu.ExternalStream)
+
+    def test_external_stream_synchronize_restriction(self):
+        with self._get_external_stream() as stream_v:
+            ext_stream = torch_npu.npu.ExternalStream(stream_v)
+            with self.assertRaisesRegex(RuntimeError, "NPUStream::synchronize"):
+                ext_stream.synchronize()
+
+    def test_external_stream_query_restriction(self):
+        with self._get_external_stream() as stream_v:
+            ext_stream = torch_npu.npu.ExternalStream(stream_v)
+            with self.assertRaisesRegex(RuntimeError, "Cannot query"):
+                ext_stream.query()
 
 
 if __name__ == "__main__":
