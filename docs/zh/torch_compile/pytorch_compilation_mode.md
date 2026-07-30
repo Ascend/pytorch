@@ -26,7 +26,7 @@ torch.compile(model, *, fullgraph=False, dynamic=None, backend="inductor",
 |------|------|--------|------|
 | model | nn.Module | 必填 | 待编译的模型 |
 | fullgraph | bool | False | 是否强制整图编译 |
-| dynamic | bool | None | 是否启用动态 shape 编译 |
+| dynamic | bool | None | 是否启用动态shape编译 |
 | backend | str/Callable | `"inductor"` | 编译后端：`inductor`、`npugraphs`、`npugraph_ex`、`aot_eager`、`TorchAir-GE后端(Callable)` |
 | mode | str | None | 编译模式：`None` 或 `"reduce-overhead"` （仅`inductor`后端支持）|
 | options | dict | None | 编译选项|
