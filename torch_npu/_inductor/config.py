@@ -44,6 +44,7 @@ def _obtain_and_limit_cube_vector_core_num():
     device = torch.npu.current_device()
     prop = torch.npu.get_device_properties(device)
     cube_core_num, vector_core_num = prop.cube_core_num, prop.vector_core_num
+    vector_cube_ratio = vector_core_num // cube_core_num
     log.info(
         "[_obtain_and_limit_cube_vector_core_num] obtain from device properties, "
         "cube_core_num=%s, vector_core_num=%s",
@@ -78,39 +79,31 @@ def _obtain_and_limit_cube_vector_core_num():
                 if parsed_cube <= 0 or parsed_vector <= 0:
                     log.error(
                         "NPU_DEVICE_LIMIT=%r, which has non-positive value, "
-                        "Both cube_core_num and vector_core_num must be positive.",
+                        "Both cube_core_num and vector_core_num must be positive value.",
                         orig_npu_device_limit,
                     )
                     sys.exit(1)
-                elif parsed_cube > cube_core_num or parsed_vector > vector_core_num:
+                if parsed_cube > cube_core_num or parsed_vector > vector_core_num:
                     log.error(
                         "NPU_DEVICE_LIMIT=%r, both cube_core_num and vector_core_num must "
                         "be less than or equal to device properties (%s, %s).",
                         orig_npu_device_limit, cube_core_num, vector_core_num,
                     )
                     sys.exit(1)
-                else:
-                    cube_core_num = parsed_cube
-                    vector_core_num = parsed_vector
-                    log.info(
-                        "[_obtain_and_limit_cube_vector_core_num] NPU_DEVICE_LIMIT from env: "
-                        "cube_core_num=%s, vector_core_num=%s.",
-                        cube_core_num, vector_core_num,
+                if parsed_vector != parsed_cube * vector_cube_ratio:
+                    log.error(
+                        "NPU_DEVICE_LIMIT=%r, vector_core_num should be cube_core_num * %s",
+                        orig_npu_device_limit, vector_cube_ratio,
                     )
+                    sys.exit(1)
 
-    # rectification
-    soc = get_soc_version()
-    if (Ascend910B1 <= soc < Ascend310B1 or soc >= Ascend910_9391) and (
-        vector_core_num != cube_core_num * 2
-    ):
-        if cube_core_num * 2 < vector_core_num:
-            cube_core_num = math.ceil(vector_core_num / 2)
-        vector_core_num = cube_core_num * 2
-        log.warning(
-            "[_obtain_and_limit_cube_vector_core_num] vector_core_num != cube_core_num * 2, "
-            "after rectified, cube_core_num=%s, vector_core_num=%s",
-            cube_core_num, vector_core_num,
-        )
+                cube_core_num = parsed_cube
+                vector_core_num = parsed_vector
+                log.info(
+                    "[_obtain_and_limit_cube_vector_core_num] NPU_DEVICE_LIMIT from env: "
+                    "cube_core_num=%s, vector_core_num=%s.",
+                    cube_core_num, vector_core_num,
+                )
 
     # set_device_limit (limit cube and vector core num)
     if cube_core_num < prop.cube_core_num or vector_core_num < prop.vector_core_num:
