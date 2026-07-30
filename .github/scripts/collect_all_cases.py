@@ -22,6 +22,7 @@ Usage:
 
 import argparse
 import json
+import math
 import os
 import subprocess
 import sys
@@ -29,8 +30,107 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-# Import discover_test_files module
-import discover_test_files
+try:
+    import yaml
+except ImportError:
+    yaml = None
+
+
+
+# ==============================================================================
+# Category Configuration Loading
+# ==============================================================================
+
+
+def load_categories_config(config_path: Optional[str]) -> Dict[str, Dict]:
+    """Load category-driven configuration from YAML.
+
+    Supports two formats:
+
+    **New format** (category-driven):
+        categories:
+          core:
+            workers: 32
+            execution: concurrent
+            files: [...]
+          distributed:
+            workers: 1
+            execution: serial
+            files: [...]
+
+    **Legacy format** (flat whitelist, backward compatible):
+        whitelist: [...]
+        blacklist: []
+
+    For the legacy format, files are split into "distributed" (paths
+    starting with ``test/distributed/``) and "regular" (everything else)
+    to preserve existing behaviour.
+
+    Returns:
+        Dict mapping category name to {files, workers, execution}.
+    """
+    if not config_path:
+        raise ValueError("No config path provided; cannot load categories.")
+
+    p = Path(config_path)
+    if not p.exists():
+        raise FileNotFoundError(f"Config file not found: {p}")
+
+    raw = p.read_text(encoding="utf-8")
+
+    if yaml is not None:
+        data = yaml.safe_load(raw) or {}
+    else:
+        raise RuntimeError("PyYAML is required for category config parsing.")
+
+    if not isinstance(data, dict):
+        raise ValueError(f"Expected YAML object, got {type(data).__name__}")
+
+    # New format: categories key present
+    if "categories" in data:
+        result = {}
+        for cat_name, cat_cfg in data["categories"].items():
+            if not isinstance(cat_cfg, dict):
+                raise ValueError(
+                    f"Category '{cat_name}' must be a dict, got {type(cat_cfg).__name__}"
+                )
+            files = cat_cfg.get("files", [])
+            if not isinstance(files, list):
+                raise ValueError(
+                    f"Category '{cat_name}' files must be a list, got {type(files).__name__}"
+                )
+            result[cat_name] = {
+                "files": list(dict.fromkeys(files)),  # deduplicate
+                "workers": int(cat_cfg.get("workers", 32)),
+                "execution": cat_cfg.get("execution", "concurrent"),
+            }
+        return result
+
+    # Legacy format: flat whitelist
+    if "whitelist" in data:
+        whitelist = data.get("whitelist", [])
+        if not isinstance(whitelist, list):
+            raise ValueError(f"Expected 'whitelist' to be a list")
+        dist_files = [f for f in whitelist if f.startswith("test/distributed/")]
+        reg_files = [f for f in whitelist if not f.startswith("test/distributed/")]
+        result = {}
+        if dist_files:
+            result["distributed"] = {
+                "files": dist_files,
+                "workers": 1,
+                "execution": "serial",
+            }
+        if reg_files:
+            result["regular"] = {
+                "files": reg_files,
+                "workers": 32,
+                "execution": "concurrent",
+            }
+        return result
+
+    raise ValueError(
+        f"Unknown config format in {p}: expected 'categories' or 'whitelist' key"
+    )
 
 
 # ==============================================================================
@@ -521,7 +621,18 @@ def save_shards(
     test_type: str,
     output_dir: Path,
 ) -> Dict:
-    """Save shard JSONs and return summary."""
+    """Save shard JSONs and return summary.
+
+    When num_shards is 0 (no cases), no shard files are written.
+    """
+    if num_shards == 0:
+        return {
+            "test_type": test_type,
+            "num_shards": 0,
+            "total_cases": len(cases),
+            "shard_sizes": [],
+        }
+
     shards = split_cases_into_shards(cases, num_shards)
 
     print(f"\nSaving {test_type} shards...")
@@ -559,97 +670,104 @@ def main():
     hw_classification = args.hw_classification if args.hw_classification else None
     case_paths_config = args.case_paths_config if args.case_paths_config else None
 
-    # Load skip list once (reused for both distributed and regular)
+    # Load skip list once (reused for all categories)
     skip_set = load_skip_list(args.skip_list)
 
+    # Load categories from config (supports new "categories:" and legacy "whitelist:" formats)
+    if case_paths_config:
+        categories = load_categories_config(case_paths_config)
+    else:
+        # No config: fall back to scanning all test_*.py files via discover_test_files
+        import discover_test_files
+        all_files, _ = discover_test_files.discover_test_files(test_dir, "regular", None)
+        categories = {"regular": {"files": all_files, "workers": 32, "execution": "concurrent"}}
+
+    print("Categories loaded:")
+    for cat_name, cat_cfg in categories.items():
+        print(f"  {cat_name}: {len(cat_cfg['files'])} files, workers={cat_cfg['workers']}, "
+              f"execution={cat_cfg['execution']}")
+
+    # Determine thresholds
+    regular_threshold = getattr(args, 'regular_threshold', 10000)
+    distributed_threshold = getattr(args, 'distributed_threshold', 1000)
+
+    summary_categories = {}
+    total_cases = 0
+    total_files = 0
+
+    for cat_name, cat_config in categories.items():
+        print("\n" + "=" * 80)
+        print(f"Collecting {cat_name} test cases")
+        print("=" * 80)
+
+        files = cat_config["files"]
+
+        # Defensive filter: only collect test_*.py files
+        files = [f for f in files if Path(f).name.startswith("test_") and f.endswith(".py")]
+        print(f"Files for {cat_name}: {len(files)} (after test_*.py filter)")
+
+        if not files:
+            print(f"  No test files for category '{cat_name}', skipping.")
+            summary_categories[cat_name] = {
+                "test_type": cat_name,
+                "num_shards": 0,
+                "total_cases": 0,
+                "total_files": len(files),
+                "workers": cat_config.get("workers", 32),
+                "execution": cat_config.get("execution", "concurrent"),
+                "shard_sizes": [],
+            }
+            continue
+
+        cases = collect_all_cases(
+            files, test_dir, error_log_dir / cat_name,
+            args.parallel, hw_classification,
+        )
+        print(f"Total {cat_name} cases: {len(cases)}")
+
+        cases = filter_skipped_cases(cases, skip_set)
+
+        cases.sort(key=lambda c: (c.get("file", ""), c.get("nodeid", "")))
+
+        # Threshold-based shard count
+        threshold = distributed_threshold if cat_name == "distributed" else regular_threshold
+        if len(cases) > 0:
+            num_shards = max(1, math.ceil(len(cases) / threshold))
+        else:
+            num_shards = 0
+
+        print(f"  Threshold: {threshold}, Cases: {len(cases)} -> Shards: {num_shards}")
+
+        cat_summary = save_shards(cases, num_shards, cat_name, output_dir)
+        cat_summary["total_files"] = len(files)
+        cat_summary["workers"] = cat_config.get("workers", 32)
+        cat_summary["execution"] = cat_config.get("execution", "concurrent")
+        save_cases_by_file(cases, files, cat_name, output_dir)
+        summary_categories[cat_name] = cat_summary
+
+        total_cases += len(cases)
+        total_files += len(files)
+
     # ========================================
-    # Step 1: Collect distributed test cases
+    # Save overall summary
     # ========================================
-    print("=" * 80)
-    print("Collecting distributed test cases")
-    print("=" * 80)
-
-    # case_paths_config: optional whitelist YAML; None = scan all test_*.py files
-    dist_files, dist_meta = discover_test_files.discover_test_files(
-        test_dir=test_dir,
-        test_type="distributed",
-        case_paths_config=case_paths_config,
-    )
-    print(f"Found {len(dist_files)} distributed test files")
-
-    dist_cases = collect_all_cases(
-        dist_files, test_dir, error_log_dir / "distributed",
-        args.parallel, hw_classification,
-    )
-    print(f"Total distributed cases: {len(dist_cases)}")
-
-    dist_cases = filter_skipped_cases(dist_cases, skip_set)
-
-    dist_cases.sort(key=lambda c: (c.get("file", ""), c.get("nodeid", "")))
-
-    dist_summary = save_shards(dist_cases, args.distributed_shards, "distributed", output_dir)
-    save_cases_by_file(dist_cases, dist_files, "distributed", output_dir)
-
-    # ========================================
-    # Step 2: Collect regular test cases
-    # ========================================
-    print("\n" + "=" * 80)
-    print("Collecting regular test cases")
-    print("=" * 80)
-
-    reg_files, reg_meta = discover_test_files.discover_test_files(
-        test_dir=test_dir,
-        test_type="regular",
-        case_paths_config=case_paths_config,
-    )
-    print(f"Found {len(reg_files)} regular test files")
-
-    reg_cases = collect_all_cases(
-        reg_files, test_dir, error_log_dir / "regular",
-        args.parallel, hw_classification,
-    )
-    print(f"Total regular cases: {len(reg_cases)}")
-
-    reg_cases = filter_skipped_cases(reg_cases, skip_set)
-
-    reg_cases.sort(key=lambda c: (c.get("file", ""), c.get("nodeid", "")))
-
-    reg_summary = save_shards(reg_cases, args.regular_shards, "regular", output_dir)
-    save_cases_by_file(reg_cases, reg_files, "regular", output_dir)
-
-    # ========================================
-    # Step 3: Save overall summary
-    # ========================================
-    # Calculate file counts (distributed + regular = total_files, no overlap)
-    dist_selected = dist_meta.get("type_selected", 0)
-    reg_selected = reg_meta.get("type_selected", 0)
-    # total_files is same for both (all test_*.py files), use dist_meta
-    total_files = dist_meta.get("total_files", 0)
-
     overall_summary = {
-        "distributed": {
-            "cases_summary": dist_summary,
-            "discovery_metadata": dist_meta,
-        },
-        "regular": {
-            "cases_summary": reg_summary,
-            "discovery_metadata": reg_meta,
-        },
-        "total_cases": len(dist_cases) + len(reg_cases),
-        "total_files_scanned": total_files,
-        "distributed_files": dist_selected,
-        "regular_files": reg_selected,
+        "categories": summary_categories,
+        "total_cases": total_cases,
+        "total_files": total_files,
     }
     if hw_classification:
         overall_summary["hw_classification"] = hw_classification
+    if case_paths_config:
+        overall_summary["case_paths_config"] = case_paths_config
+
     summary_file = output_dir / "cases_collection_summary.json"
     summary_file.write_text(json.dumps(overall_summary, indent=2), encoding="utf-8")
     print(f"\nOverall summary saved to {summary_file}")
 
     # ========================================
-    # Step 4: Global validation
+    # Global validation
     # ========================================
-    total_cases = len(dist_cases) + len(reg_cases)
     if hw_classification and total_cases == 0:
         print(f"\nERROR: --hw-classification {hw_classification} was specified but "
               f"0 cases collected from {total_files} files.")
@@ -660,10 +778,12 @@ def main():
     print("\n" + "=" * 80)
     print("Collection Complete")
     print("=" * 80)
-    print(f"Distributed: {len(dist_cases)} cases -> {args.distributed_shards} shards (serial execution)")
-    print(f"Regular: {len(reg_cases)} cases -> {args.regular_shards} shards (parallel execution)")
-    print(f"Total: {total_cases} cases")
-
+    for cat_name, cat_summary in summary_categories.items():
+        n_shards = cat_summary.get("num_shards", 0)
+        n_cases = cat_summary.get("total_cases", 0)
+        exec_mode = categories[cat_name].get("execution", "concurrent")
+        print(f"  {cat_name}: {n_cases} cases -> {n_shards} shards ({exec_mode})")
+    print(f"  Total: {total_cases} cases")
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Collect and shard test cases")
@@ -684,8 +804,26 @@ def parse_args():
              "so only tests with matching hw_classification class attributes "
              "are collected.",
     )
-    parser.add_argument("--distributed-shards", type=int, default=5, help="Distributed test shards")
-    parser.add_argument("--regular-shards", type=int, default=5, help="Regular test shards")
+    parser.add_argument(
+        "--distributed-shards", type=int, default=None,
+        help="[DEPRECATED] Use --distributed-threshold instead. "
+             "This argument is ignored when categories config is used.",
+    )
+    parser.add_argument(
+        "--regular-shards", type=int, default=None,
+        help="[DEPRECATED] Use --regular-threshold instead. "
+             "This argument is ignored when categories config is used.",
+    )
+    parser.add_argument(
+        "--regular-threshold", type=int, default=10000,
+        help="Max cases per shard for non-distributed categories (default: 10000). "
+             "num_shards = ceil(total_cases / threshold).",
+    )
+    parser.add_argument(
+        "--distributed-threshold", type=int, default=1000,
+        help="Max cases per shard for distributed category (default: 1000). "
+             "num_shards = ceil(total_cases / threshold).",
+    )
     parser.add_argument("--output-dir", required=True, help="Output directory for shard JSONs")
     parser.add_argument("--error-log-dir", help="Output directory for collection error logs (default: output-dir/collection_errors)")
     parser.add_argument("--parallel", type=int, default=16, help="Parallel collection workers")

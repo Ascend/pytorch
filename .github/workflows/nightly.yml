@@ -9,17 +9,6 @@ on:
       - '.github/config/**'
       - '.github/scripts/**'
   workflow_dispatch:
-    inputs:
-      distributed_shards:
-        description: 'Number of parallel machines for distributed tests'
-        required: false
-        default: '5'
-        type: string
-      regular_shards:
-        description: 'Number of parallel machines for regular tests'
-        required: false
-        default: '5'
-        type: string
 
 permissions:
   id-token: write
@@ -43,6 +32,4 @@ jobs:
     with:
       resolved_short: ${{ needs.build.outputs.resolved_short }}
       case_paths_config: .github/config/nightly_test_whitelist.yml
-      distributed_shards: ${{ inputs.distributed_shards || '5' }}
-      regular_shards: ${{ inputs.regular_shards || '5' }}
       report_to_upstream: false

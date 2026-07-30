@@ -89,7 +89,9 @@ def run_single_case_retry(
     nodeid = original_nodeid[5:] if original_nodeid.startswith("test/") else original_nodeid
 
     # XML filename with _retry suffix to avoid overwriting original
-    prefix = "dist" if shard_type == "distributed" else "reg"
+    prefix = {"distributed": "dist", "core": "core", "tensor": "tensor",
+              "graph": "graph", "others": "others",
+              "regular": "reg", "custom": "custom"}.get(shard_type, "reg")
     safe_name = runner.sanitize_nodeid_for_filename(original_nodeid)
     junit_xml_dir = report_dir / "junit_xmls"
     junit_xml_dir.mkdir(parents=True, exist_ok=True)
@@ -252,8 +254,8 @@ def main():
     )
     parser.add_argument(
         "--shard-type", required=True,
-        choices=["distributed", "regular"],
-        help="Test type (affects concurrency and NPU allocation)",
+        choices=["distributed", "regular", "core", "tensor", "graph", "others", "custom"],
+        help="Test type / category name (affects concurrency and NPU allocation)",
     )
     parser.add_argument(
         "--timeout", type=int, default=1200,
@@ -294,9 +296,9 @@ def main():
     else:
         max_workers = args.max_workers or 32
 
-    # Detect NPU device count for regular test allocation
+    # Detect NPU device count for non-distributed tests (round-robin device allocation)
     npu_device_count = 0
-    if args.shard_type == "regular":
+    if args.shard_type != "distributed":
         npu_device_count = runner.get_npu_device_count()
 
     print(f"{'=' * 80}")

@@ -62,14 +62,20 @@ def create_shard_info(shard: int, num_shards: int, timestamp: str) -> Dict:
 # ==============================================================================
 
 
+_TYPE_TO_PREFIX = {
+    "distributed": "dist",
+    "core": "core",
+    "tensor": "tensor",
+    "graph": "graph",
+    "others": "others",
+    "regular": "reg",
+    "custom": "custom",
+}
+
+
 def get_shard_type_prefix(shard_type: str) -> str:
     """Convert shard type to short prefix for file naming."""
-    if shard_type == "distributed":
-        return "dist"
-    elif shard_type == "custom":
-        return "custom"
-    else:
-        return "reg"
+    return _TYPE_TO_PREFIX.get(shard_type, "reg")
 
 
 def get_shard_log_file(report_dir: Path, shard: int, shard_type: str = "regular") -> Path:

@@ -12,16 +12,6 @@ on:
         type: string
         default: ''
         description: 'Path (relative to repo root) to whitelist YAML. Empty = scan all test_*.py files.'
-      distributed_shards:
-        required: false
-        type: string
-        default: '5'
-        description: Number of parallel machines for distributed tests (serial execution per shard)
-      regular_shards:
-        required: false
-        type: string
-        default: '5'
-        description: Number of parallel machines for regular tests (16 concurrent workers per shard)
       docker_image:
         required: false
         type: string
@@ -44,7 +34,7 @@ defaults:
 
 jobs:
   # ============================================================================
-  # 1. Collect and shard test cases
+  # 1. Collect and shard test cases (category-driven)
   # ============================================================================
   collect:
     uses: ./.github/workflows/_test-collect.yml
@@ -52,53 +42,112 @@ jobs:
     with:
       resolved_short: ${{ inputs.resolved_short }}
       case_paths_config: ${{ inputs.case_paths_config }}
-      distributed_shards: ${{ inputs.distributed_shards }}
-      regular_shards: ${{ inputs.regular_shards }}
       docker_image: ${{ inputs.docker_image }}
       skip_list: ${{ inputs.skip_list }}
 
   # ============================================================================
-  # 2. Run distributed test shards (serial execution)
+  # 2. Core tests (nn, optim, autograd, profiler)
+  # ============================================================================
+  test_core:
+    needs: collect
+    if: ${{ needs.collect.outputs.has_core == 'true' }}
+    uses: ./.github/workflows/_test-category.yml
+    secrets: inherit
+    with:
+      resolved_short: ${{ inputs.resolved_short }}
+      category: core
+      num_shards: ${{ needs.collect.outputs.core_num_shards }}
+      matrix_json: ${{ needs.collect.outputs.core_matrix }}
+      max_workers: ${{ needs.collect.outputs.core_workers }}
+      docker_image: ${{ inputs.docker_image }}
+      report_to_upstream: ${{ inputs.report_to_upstream }}
+
+  # ============================================================================
+  # 3. Tensor tests (tensor ops, ufuncs)
+  # ============================================================================
+  test_tensor:
+    needs: collect
+    if: ${{ needs.collect.outputs.has_tensor == 'true' }}
+    uses: ./.github/workflows/_test-category.yml
+    secrets: inherit
+    with:
+      resolved_short: ${{ inputs.resolved_short }}
+      category: tensor
+      num_shards: ${{ needs.collect.outputs.tensor_num_shards }}
+      matrix_json: ${{ needs.collect.outputs.tensor_matrix }}
+      max_workers: ${{ needs.collect.outputs.tensor_workers }}
+      docker_image: ${{ inputs.docker_image }}
+      report_to_upstream: ${{ inputs.report_to_upstream }}
+
+  # ============================================================================
+  # 4. Distributed tests (c10d, nccl, tensor parallel)
   # ============================================================================
   test_distributed:
     needs: collect
     if: ${{ needs.collect.outputs.has_distributed == 'true' }}
-    uses: ./.github/workflows/_test-distributed.yml
+    uses: ./.github/workflows/_test-category.yml
     secrets: inherit
     with:
       resolved_short: ${{ inputs.resolved_short }}
-      distributed_shards: ${{ inputs.distributed_shards }}
-      distributed_matrix: ${{ needs.collect.outputs.distributed_matrix }}
+      category: distributed
+      num_shards: ${{ needs.collect.outputs.distributed_num_shards }}
+      matrix_json: ${{ needs.collect.outputs.distributed_matrix }}
+      max_workers: ${{ needs.collect.outputs.distributed_workers }}
       docker_image: ${{ inputs.docker_image }}
       report_to_upstream: ${{ inputs.report_to_upstream }}
 
   # ============================================================================
-  # 3. Run regular test shards (concurrent execution, 16 workers)
+  # 5. Graph tests (fx, dynamo, inductor, export, functorch)
   # ============================================================================
-  test_regular:
+  test_graph:
     needs: collect
-    if: ${{ needs.collect.outputs.has_regular == 'true' }}
-    uses: ./.github/workflows/_test-regular.yml
+    if: ${{ needs.collect.outputs.has_graph == 'true' }}
+    uses: ./.github/workflows/_test-category.yml
     secrets: inherit
     with:
       resolved_short: ${{ inputs.resolved_short }}
-      regular_shards: ${{ inputs.regular_shards }}
-      regular_matrix: ${{ needs.collect.outputs.regular_matrix }}
+      category: graph
+      num_shards: ${{ needs.collect.outputs.graph_num_shards }}
+      matrix_json: ${{ needs.collect.outputs.graph_matrix }}
+      max_workers: ${{ needs.collect.outputs.graph_workers }}
       docker_image: ${{ inputs.docker_image }}
       report_to_upstream: ${{ inputs.report_to_upstream }}
 
   # ============================================================================
-  # 4. Generate consolidated test report
+  # 6. Others tests (linalg, sparsity, etc.)
+  # ============================================================================
+  test_others:
+    needs: collect
+    if: ${{ needs.collect.outputs.has_others == 'true' }}
+    uses: ./.github/workflows/_test-category.yml
+    secrets: inherit
+    with:
+      resolved_short: ${{ inputs.resolved_short }}
+      category: others
+      num_shards: ${{ needs.collect.outputs.others_num_shards }}
+      matrix_json: ${{ needs.collect.outputs.others_matrix }}
+      max_workers: ${{ needs.collect.outputs.others_workers }}
+      docker_image: ${{ inputs.docker_image }}
+      report_to_upstream: ${{ inputs.report_to_upstream }}
+
+  # ============================================================================
+  # 7. Generate consolidated test report
   # ============================================================================
   report:
     needs:
       - collect
+      - test_core
+      - test_tensor
       - test_distributed
-      - test_regular
+      - test_graph
+      - test_others
     if: always() && needs.collect.result == 'success'
     uses: ./.github/workflows/_test-report.yml
     with:
+      core_matrix: ${{ needs.collect.outputs.core_matrix }}
+      tensor_matrix: ${{ needs.collect.outputs.tensor_matrix }}
       distributed_matrix: ${{ needs.collect.outputs.distributed_matrix }}
-      regular_matrix: ${{ needs.collect.outputs.regular_matrix }}
+      graph_matrix: ${{ needs.collect.outputs.graph_matrix }}
+      others_matrix: ${{ needs.collect.outputs.others_matrix }}
       docker_image: ${{ inputs.docker_image }}
       report_to_upstream: ${{ inputs.report_to_upstream }}

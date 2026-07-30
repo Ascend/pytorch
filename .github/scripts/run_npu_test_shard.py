@@ -196,7 +196,9 @@ def save_case_log(
 
     # Generate safe filename
     safe_name = sanitize_nodeid_for_filename(nodeid)
-    prefix = "dist" if shard_type == "distributed" else "reg"
+    prefix = {"distributed": "dist", "core": "core", "tensor": "tensor",
+              "graph": "graph", "others": "others",
+              "regular": "reg", "custom": "custom"}.get(shard_type, "reg")
     log_filename = f"{prefix}-{shard}_{case_idx}_{safe_name}{suffix}.log"
     log_path = cases_logs_dir / log_filename
 
@@ -1271,7 +1273,9 @@ def _worker_main(worker_input_file: str) -> None:
             case_nodeid = case_nodeid[5:]
 
         # Generate XML filename
-        prefix = "dist" if shard_type == "distributed" else "reg"
+        prefix = {"distributed": "dist", "core": "core", "tensor": "tensor",
+                  "graph": "graph", "others": "others",
+                  "regular": "reg", "custom": "custom"}.get(shard_type, "reg")
         safe_name = sanitize_nodeid_for_filename(original_nodeid)
         xml_filename = f"{prefix}-{shard}_{case['case_idx']}_{safe_name}.xml"
         xml_file = junit_xml_dir / xml_filename

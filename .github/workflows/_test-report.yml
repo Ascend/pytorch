@@ -3,16 +3,31 @@ name: Test Report
 on:
   workflow_call:
     inputs:
+      core_matrix:
+        required: false
+        type: string
+        default: '[]'
+        description: Core shard matrix JSON
+      tensor_matrix:
+        required: false
+        type: string
+        default: '[]'
+        description: Tensor shard matrix JSON
       distributed_matrix:
         required: false
         type: string
         default: '[]'
         description: Distributed shard matrix JSON
-      regular_matrix:
+      graph_matrix:
         required: false
         type: string
         default: '[]'
-        description: Regular shard matrix JSON
+        description: Graph shard matrix JSON
+      others_matrix:
+        required: false
+        type: string
+        default: '[]'
+        description: Others shard matrix JSON
       docker_image:
         required: false
         type: string
@@ -44,6 +59,22 @@ jobs:
         with:
           ref: ci-test
 
+      - name: Download core shard reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-reports-core-*
+          path: all-test-reports
+          merge-multiple: true
+        continue-on-error: true
+
+      - name: Download tensor shard reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-reports-tensor-*
+          path: all-test-reports
+          merge-multiple: true
+        continue-on-error: true
+
       - name: Download distributed shard reports
         uses: actions/download-artifact@v4
         with:
@@ -52,10 +83,18 @@ jobs:
           merge-multiple: true
         continue-on-error: true
 
-      - name: Download regular shard reports
+      - name: Download graph shard reports
         uses: actions/download-artifact@v4
         with:
-          pattern: test-reports-reg-*
+          pattern: test-reports-graph-*
+          path: all-test-reports
+          merge-multiple: true
+        continue-on-error: true
+
+      - name: Download others shard reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-reports-others-*
           path: all-test-reports
           merge-multiple: true
         continue-on-error: true
@@ -73,10 +112,28 @@ jobs:
           REPORT_MD=npu-full-test-summary.md
           REPORT_JSON=npu-full-test-summary.json
 
-          DIST_MATRIX='${{ inputs.distributed_matrix }}'
-          REG_MATRIX='${{ inputs.regular_matrix }}'
+          # Build combined matrix with category prefixes
+          COMBINED_MATRIX=$(python3 -c "
+          import json
+          mats = {
+              'core': '${{ inputs.core_matrix }}',
+              'tensor': '${{ inputs.tensor_matrix }}',
+              'distributed': '${{ inputs.distributed_matrix }}',
+              'graph': '${{ inputs.graph_matrix }}',
+              'others': '${{ inputs.others_matrix }}',
+          }
+          pfx = {
+              'core': 'core', 'tensor': 'tensor',
+              'distributed': 'dist', 'graph': 'graph', 'others': 'others',
+          }
+          combined = []
+          for cat, ms in mats.items():
+              for n in json.loads(ms):
+                  combined.append(f'{pfx[cat]}-{n}')
+          print(json.dumps(combined))
+          ")
 
-          COMBINED_MATRIX=$(python3 -c "import sys,json; dist=json.loads('${DIST_MATRIX}'); reg=json.loads('${REG_MATRIX}'); print(json.dumps(['dist-'+str(s) for s in dist]+['reg-'+str(s) for s in reg]))")
+          echo "Combined matrix: ${COMBINED_MATRIX}"
 
           python3 .github/scripts/generate_npu_full_test_report.py \
             --reports-root all-test-reports \
@@ -87,7 +144,7 @@ jobs:
             --patch-count "0" \
             --shard-matrix-json "${COMBINED_MATRIX}" \
             --docker-image "${{ inputs.docker_image }}" \
-            --runner "linux-aarch64-a3-8 (collect), linux-aarch64-a3-8 (distributed, serial), linux-aarch64-a3-8 (regular, 32 workers)" \
+            --runner "linux-aarch64-a3-8 (collect), linux-aarch64-a3-8 (distributed: serial), linux-aarch64-a3-8 (core/tensor/graph/others: 32 workers)" \
             --cases-summary cases-shards/cases_collection_summary.json \
             --cases-by-file-dir cases-shards
 
@@ -121,8 +178,11 @@ jobs:
           path: |
             npu-full-test-summary.md
             npu-full-test-summary.json
+            core_cases_results_by_file.jsonl
+            tensor_cases_results_by_file.jsonl
             distributed_cases_results_by_file.jsonl
-            regular_cases_results_by_file.jsonl
+            graph_cases_results_by_file.jsonl
+            others_cases_results_by_file.jsonl
           if-no-files-found: warn
           retention-days: 60
 

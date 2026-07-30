@@ -4,8 +4,8 @@ Generate a consolidated markdown/json report for the NPU full test workflow.
 
 Output files:
 - npu-full-test-summary.json: Lightweight summary with aggregated stats only
-- distributed_cases_results_by_file.jsonl: Case-level results grouped by file
-- regular_cases_results_by_file.jsonl: Case-level results grouped by file
+- {category}_cases_results_by_file.jsonl: Case-level results grouped by file
+  (one file per category: distributed, core, tensor, graph, others, regular, custom)
 """
 
 import argparse
@@ -100,6 +100,14 @@ def parse_requested_shards(raw: str) -> List[Tuple[str, int]]:
                         shard_type = "regular"
                     elif type_prefix == "custom":
                         shard_type = "custom"
+                    elif type_prefix == "core":
+                        shard_type = "core"
+                    elif type_prefix == "tensor":
+                        shard_type = "tensor"
+                    elif type_prefix == "graph":
+                        shard_type = "graph"
+                    elif type_prefix == "others":
+                        shard_type = "others"
                     else:
                         # Unknown prefix, skip
                         continue
@@ -167,7 +175,7 @@ def discover_shard_files(
         """
         stem = path.stem  # filename without extension
         # Match pattern: shard_{type}-{number}_{suffix}
-        match = re.match(r"shard_(dist|reg|custom)-(\d+)_" + suffix_pattern, stem)
+        match = re.match(r"shard_(core|tensor|dist|graph|others|reg|custom)-(\d+)_" + suffix_pattern, stem)
         if match:
             type_prefix = match.group(1)
             shard_num = int(match.group(2))
@@ -177,6 +185,14 @@ def discover_shard_files(
                 return ("regular", shard_num)
             elif type_prefix == "custom":
                 return ("custom", shard_num)
+            elif type_prefix == "core":
+                return ("core", shard_num)
+            elif type_prefix == "tensor":
+                return ("tensor", shard_num)
+            elif type_prefix == "graph":
+                return ("graph", shard_num)
+            elif type_prefix == "others":
+                return ("others", shard_num)
         return None
 
     for path in reports_root.rglob("shard_*_stats.json"):
@@ -224,8 +240,12 @@ def build_file_to_shards_map(cases_shards_dir: Path) -> Dict[str, List[str]]:
             test_type = data.get("test_type", "regular")
             shard_num = data.get("shard", 0)
 
-            # Build shard ID: "dist-1" or "reg-2"
-            shard_prefix = "dist" if test_type == "distributed" else "reg"
+            # Build shard ID: e.g., "dist-1" or "core-2"
+            _TYPE_TO_PREFIX = {
+                "distributed": "dist", "core": "core", "tensor": "tensor",
+                "graph": "graph", "others": "others", "regular": "reg", "custom": "custom",
+            }
+            shard_prefix = _TYPE_TO_PREFIX.get(test_type, "reg")
             shard_id = f"{shard_prefix}-{shard_num}"
 
             # Extract file paths from cases
@@ -395,7 +415,7 @@ def generate_cases_results_jsonl(
     Line 2+: {"file_path":"xxx","case_count":xxx,"cases":[{"nodeid":"xxx","status":"passed",...},...]}
 
     Args:
-        test_type: "distributed" or "regular"
+        test_type: Category name (e.g., "distributed", "core", "tensor", "graph", "others", "regular", "custom")
         file_data_list: List of file data dicts from *_cases_by_file.jsonl
         summary_dict: Summary dict from *_cases_by_file.jsonl
         nodeid_to_case: Mapping from nodeid to case execution result
@@ -470,17 +490,25 @@ def main():
     file_discovery_stats = {
         "total_files_scanned": 0,
         "distributed_files": 0,
+        "core_files": 0,
+        "tensor_files": 0,
+        "graph_files": 0,
+        "others_files": 0,
         "regular_files": 0,
+        "custom_files": 0,
     }
     if args.cases_summary:
         cases_summary_path = Path(args.cases_summary)
         if cases_summary_path.exists():
             cases_summary_data = load_json_file(cases_summary_path)
-            # Extract file discovery stats (正交: total = distributed + regular)
+            # Extract file discovery stats
             if cases_summary_data:
-                file_discovery_stats["total_files_scanned"] = cases_summary_data.get("total_files_scanned", 0)
-                file_discovery_stats["distributed_files"] = cases_summary_data.get("distributed_files", 0)
-                file_discovery_stats["regular_files"] = cases_summary_data.get("regular_files", 0)
+                file_discovery_stats["total_files_scanned"] = cases_summary_data.get("total_files", 0)
+                cats = cases_summary_data.get("categories", {})
+                for cat_name, cat_cfg in cats.items():
+                    key = f"{cat_name}_files"
+                    if key in file_discovery_stats:
+                        file_discovery_stats[key] = cat_cfg.get("total_files", 0)
 
     stats_files, info_files, cases_files = discover_shard_files(reports_root)
     special_test_files = discover_special_test_files(special_reports_root)
@@ -541,13 +569,12 @@ def main():
         status = get_shard_status(stats, present)
         status_counts[status] += 1
 
-        # Convert shard_type to display prefix ("distributed" -> "dist", "regular" -> "reg", "custom" -> "custom")
-        if shard_type == "distributed":
-            shard_prefix = "dist"
-        elif shard_type == "custom":
-            shard_prefix = "custom"
-        else:
-            shard_prefix = "reg"
+        # Convert shard_type to display prefix
+        _PREFIX_MAP = {
+            "distributed": "dist", "core": "core", "tensor": "tensor",
+            "graph": "graph", "others": "others", "regular": "reg", "custom": "custom",
+        }
+        shard_prefix = _PREFIX_MAP.get(shard_type, "reg")
         shard_rows.append(
             {
                 "shard": f"{shard_prefix}-{shard_num}",  # "dist-1", "reg-1", or "custom-1"
@@ -600,11 +627,16 @@ def main():
     if cases_summary_data:
         # Use file discovery stats from cases_collection_summary.json
         total_scanned = file_discovery_stats["total_files_scanned"]
-        dist_files = file_discovery_stats["distributed_files"]
-        reg_files = file_discovery_stats["regular_files"]
+        category_parts = []
+        for key in ("distributed_files", "core_files", "tensor_files", "graph_files",
+                     "others_files", "regular_files", "custom_files"):
+            cat_name = key.replace("_files", "")
+            count = file_discovery_stats.get(key, 0)
+            if count > 0:
+                category_parts.append(f"{cat_name}: {count}")
+        categories_str = ", ".join(category_parts) if category_parts else "none"
         selection_content = (
-            f"扫描发现 {total_scanned} 个测试文件 "
-            f"(distributed: {dist_files}, regular: {reg_files})"
+            f"扫描发现 {total_scanned} 个测试文件 ({categories_str})"
         )
     else:
         # Fallback to original selection mode display
@@ -612,12 +644,13 @@ def main():
 
     # Extract planned cases count from cases_collection_summary.json
     planned_total_cases = 0
-    planned_dist_cases = 0
-    planned_reg_cases = 0
+    planned_cases_by_category = {}
     if cases_summary_data:
         planned_total_cases = cases_summary_data.get("total_cases", 0)
-        planned_dist_cases = cases_summary_data.get("distributed", {}).get("cases_summary", {}).get("total_cases", 0)
-        planned_reg_cases = cases_summary_data.get("regular", {}).get("cases_summary", {}).get("total_cases", 0)
+        cats = cases_summary_data.get("categories", {})
+        for category in ("distributed", "core", "tensor", "graph", "others", "regular", "custom"):
+            cat_cases = cats.get(category, {}).get("total_cases", 0)
+            planned_cases_by_category[category] = cat_cases
 
     overview_rows = [
         ["Overall result", overall_status],
@@ -639,9 +672,11 @@ def main():
     ]
     # Add planned cases count row if available
     if planned_total_cases > 0:
+        planned_parts = [f"{cat}: {count}" for cat, count in planned_cases_by_category.items() if count > 0]
+        planned_str = ", ".join(planned_parts) if planned_parts else "none"
         overview_rows.append([
             "规划用例总数",
-            f"{planned_total_cases} (distributed: {planned_dist_cases}, regular: {planned_reg_cases})",
+            f"{planned_total_cases} ({planned_str})",
         ])
     overview_rows.append(["Duration", format_duration(totals["duration"])])
     if include_special_tests:
@@ -687,30 +722,20 @@ def main():
 
         # Load all files from jsonl (includes files with 0 cases that weren't executed)
         all_files_from_jsonl = {}
+        _ALL_CATEGORIES = ["distributed", "core", "tensor", "graph", "others", "regular", "custom"]
         if args.cases_by_file_dir:
             cases_by_file_dir = Path(args.cases_by_file_dir)
-            dist_jsonl_path = cases_by_file_dir / "distributed_cases_by_file.jsonl"
-            reg_jsonl_path = cases_by_file_dir / "regular_cases_by_file.jsonl"
-
-            if dist_jsonl_path.exists():
-                _, dist_file_data = load_cases_by_file_jsonl(dist_jsonl_path)
-                for fd in dist_file_data:
-                    file_path = fd.get("file_path", "")
-                    all_files_from_jsonl[file_path] = {
-                        "file": file_path,
-                        "case_count": fd.get("case_count", 0),
-                        "test_type": "distributed",
-                    }
-
-            if reg_jsonl_path.exists():
-                _, reg_file_data = load_cases_by_file_jsonl(reg_jsonl_path)
-                for fd in reg_file_data:
-                    file_path = fd.get("file_path", "")
-                    all_files_from_jsonl[file_path] = {
-                        "file": file_path,
-                        "case_count": fd.get("case_count", 0),
-                        "test_type": "regular",
-                    }
+            for category in _ALL_CATEGORIES:
+                jsonl_path = cases_by_file_dir / f"{category}_cases_by_file.jsonl"
+                if jsonl_path.exists():
+                    _, file_data = load_cases_by_file_jsonl(jsonl_path)
+                    for fd in file_data:
+                        file_path = fd.get("file_path", "")
+                        all_files_from_jsonl[file_path] = {
+                            "file": file_path,
+                            "case_count": fd.get("case_count", 0),
+                            "test_type": category,
+                        }
 
         # Merge execution results with full file set
         merged_file_stats = {}
@@ -818,28 +843,28 @@ def main():
         "status_counts": dict(status_counts),
         "totals": totals,
         "file_discovery_stats": file_discovery_stats,
-        "planned_cases": {
-            "total": planned_total_cases,
-            "distributed": planned_dist_cases,
-            "regular": planned_reg_cases,
-        },
+        "planned_cases": dict(
+            total=planned_total_cases,
+            **planned_cases_by_category,
+        ),
         "shards": shard_rows,
     }
 
     # Add cases collection summary (lightweight metadata only for md rendering)
     if cases_summary_data:
-        report_json["cases_collection_summary"] = {
+        cats = cases_summary_data.get("categories", {})
+        summary_entry = {
             "total_cases": cases_summary_data.get("total_cases", 0),
-            "total_files_scanned": cases_summary_data.get("total_files_scanned", 0),
-            "distributed_files": cases_summary_data.get("distributed_files", 0),
-            "regular_files": cases_summary_data.get("regular_files", 0),
-            "distributed": {
-                "total_cases": cases_summary_data.get("distributed", {}).get("cases_summary", {}).get("total_cases", 0),
-            },
-            "regular": {
-                "total_cases": cases_summary_data.get("regular", {}).get("cases_summary", {}).get("total_cases", 0),
-            },
+            "total_files_scanned": cases_summary_data.get("total_files", 0),
         }
+        for cat_name, cat_cfg in cats.items():
+            key = f"{cat_name}_files"
+            summary_entry[key] = cat_cfg.get("total_files", 0)
+        for category in ("distributed", "core", "tensor", "graph", "others", "regular", "custom"):
+            summary_entry[category] = {
+                "total_cases": cats.get(category, {}).get("total_cases", 0),
+            }
+        report_json["cases_collection_summary"] = summary_entry
 
     # Generate JSONL files with case-level results grouped by file
     if cases_results and args.cases_by_file_dir:
@@ -849,29 +874,19 @@ def main():
         # Build nodeid to case result mapping
         nodeid_to_case = build_nodeid_to_case_map(cases_results)
 
-        # Process distributed cases
-        dist_jsonl_path = cases_by_file_dir / "distributed_cases_by_file.jsonl"
-        if dist_jsonl_path.exists():
-            dist_summary, dist_file_data = load_cases_by_file_jsonl(dist_jsonl_path)
-            generate_cases_results_jsonl(
-                "distributed",
-                dist_file_data,
-                dist_summary,
-                nodeid_to_case,
-                output_dir,
-            )
-
-        # Process regular cases
-        reg_jsonl_path = cases_by_file_dir / "regular_cases_by_file.jsonl"
-        if reg_jsonl_path.exists():
-            reg_summary, reg_file_data = load_cases_by_file_jsonl(reg_jsonl_path)
-            generate_cases_results_jsonl(
-                "regular",
-                reg_file_data,
-                reg_summary,
-                nodeid_to_case,
-                output_dir,
-            )
+        # Process all categories
+        _ALL_CATEGORIES = ["distributed", "core", "tensor", "graph", "others", "regular", "custom"]
+        for category in _ALL_CATEGORIES:
+            jsonl_path = cases_by_file_dir / f"{category}_cases_by_file.jsonl"
+            if jsonl_path.exists():
+                cat_summary, cat_file_data = load_cases_by_file_jsonl(jsonl_path)
+                generate_cases_results_jsonl(
+                    category,
+                    cat_file_data,
+                    cat_summary,
+                    nodeid_to_case,
+                    output_dir,
+                )
 
     # Add special tests if applicable
     if include_special_tests:
