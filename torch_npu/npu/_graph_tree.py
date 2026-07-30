@@ -107,6 +107,7 @@ from torch_npu._C import (
     _set_cached_tensors_enabled as _set_cached_tensors_enabled)
 from torch_npu.npu._aclgraph_update_plan.resolver import (
     ACLGRAPH_UPDATE_PLAN_GLOBAL,
+    collect_aclgraph_update_plan_input_indices,
     resolve_aclgraph_update_plan,
     update_aclgraph_records_for_graph,
     validate_aclgraph_update_plan_for_graph,
@@ -345,9 +346,15 @@ def npugraphify_impl(
     **kwargs: Any,
 ) -> ModelType:
     fn_cache: Dict[Tuple[int, ...], Callable[..., Any]] = {}
+    aclgraph_update_input_idxs = collect_aclgraph_update_plan_input_indices(
+        getattr(model, ACLGRAPH_UPDATE_PLAN_GLOBAL, None) or []
+    )
 
-    # Detect int inputs: we need to index on these
-    int_key = [i for i, v in enumerate(inputs) if isinstance(v, int)]
+    # Detect int inputs: key on them unless ACLGraph can update them before replay.
+    int_key = [
+        i for i, v in enumerate(inputs)
+        if isinstance(v, int) and i not in aclgraph_update_input_idxs
+    ]
     get_ints: Any = operator.itemgetter(*int_key) if int_key else lambda _: None
 
     has_warn = False
