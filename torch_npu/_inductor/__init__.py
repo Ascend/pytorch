@@ -128,6 +128,7 @@ def _load_triton_backend():
         pre_grad_custom_pass_fuc,
     )
     from .fx_passes.joint_graph import patch_constant_fold_uniform_value
+    from .experimental.python_wrapper_fast_launch.patch import patch_fast_launch
     from .ir import patch_num_splits
     from .kernel import (
         _register_npu_inductor_addmm,
@@ -210,6 +211,7 @@ def _load_triton_backend():
     patch_create_device_properties()
     patch_load_cached_autotuning()
     patch_triton_heuristics_cached_autotune()
+    patch_fast_launch()
 
     pre_grad_custom_pass_fuc()
     post_grad_custom_pass_fuc()
