@@ -914,7 +914,7 @@ def patch_algorithm_selector() -> None:
                     target_file = os.path.join(root, file)
                     df = pd.read_csv(target_file)
                     # filter out l2 cache clear operation
-                    filter_cond = ~df["Name"].str.contains(r"^ReduceSum$", case=False, na=False)
+                    filter_cond = ~df["Name"].str.contains(r"ReduceSum", case=False, na=False)
                     filter_df = df[filter_cond]
                     if key is not None:
                         key_rows = filter_df[filter_df["Name"].str.contains(key, na=False)]
