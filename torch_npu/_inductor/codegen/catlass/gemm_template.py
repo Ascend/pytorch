@@ -898,7 +898,7 @@ class CATLASS1xGemmTemplate(CATLASSGemmTemplate):
         examples = create_example_tensors(
             var_name_to_buffer_name,
             name_to_buffer,  # type: ignore[arg-type]
-            V.graph.sizevars.size_hint,
+            V.graph.sizevars.optimization_hint,
         )
 
         evg_config = {

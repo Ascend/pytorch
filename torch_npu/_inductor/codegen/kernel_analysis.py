@@ -45,7 +45,7 @@ def _finalize_stride_collection(symbol_stride_map, axis_vars):
     def sort_key(item):
         var, stride = item
         try:
-            hint = V.graph.sizevars.size_hint(stride)
+            hint = V.graph.sizevars.optimization_hint(stride)
         except TypeError:
             hint = 0
         return (

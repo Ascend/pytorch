@@ -28,6 +28,18 @@ def patch_tuning_process():
 
     autotune_process.CUDA_VISIBLE_DEVICES = ASCEND_VISIBLE_DEVICES
 
+    # Replace GPUDeviceBenchmarkMixin with NPUDeviceBenchmarkMixin in
+    # ExternKernelGPUBenchmarkRequest so that extern kernel benchmarks
+    # (aten::mm, aten::addmm, etc.) use torch.npu instead of torch.cuda.
+    from torch._inductor.autotune_process import (
+        ExternKernelGPUBenchmarkRequest,
+        ExternKernelBenchmarkRequest,
+    )
+    ExternKernelGPUBenchmarkRequest.__bases__ = (
+        NPUDeviceBenchmarkMixin,
+        ExternKernelBenchmarkRequest,
+    )
+
 
 class NPUDeviceBenchmarkMixin:
     def do_bench(
