@@ -49,6 +49,21 @@ def resolve_aclgraph_update_plan(
     return cpu_update_input
 
 
+def collect_aclgraph_update_plan_input_indices(
+    plan: Sequence[Dict[str, Any]],
+) -> set:
+    input_indices = set()
+    for entry in plan or []:
+        if not isinstance(entry, dict):
+            continue
+        updates = entry.get("updates", {})
+        if not isinstance(updates, dict):
+            continue
+        for source in updates.values():
+            _collect_source_input_indices(source, input_indices)
+    return input_indices
+
+
 def validate_aclgraph_update_plan(
     plan: Sequence[Dict[str, Any]],
     graph_dispatch_records: Sequence[Any],
@@ -194,6 +209,22 @@ def _resolve_source(
         f"has unsupported source kind {kind!r}",
         pta_error(ErrCode.PARAM),
     )
+
+
+def _collect_source_input_indices(source: Dict[str, Any], input_indices: set) -> None:
+    if not isinstance(source, dict):
+        return
+    kind = source.get("kind")
+    if kind == "input":
+        index = source.get("index")
+        if isinstance(index, int) and index >= 0:
+            input_indices.add(index)
+        return
+    if kind == "list":
+        items = source.get("items")
+        if isinstance(items, list):
+            for item in items:
+                _collect_source_input_indices(item, input_indices)
 
 
 def _validate_literal_constant(value: Any) -> None:
