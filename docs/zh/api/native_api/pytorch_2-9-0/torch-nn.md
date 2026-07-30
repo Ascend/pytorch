@@ -2278,7 +2278,12 @@
 
 **原生文档**：[torch.nn.GRU](https://pytorch.org/docs/2.9/generated/torch.nn.GRU.html)
 
-**是否支持**：否
+**是否支持**：是
+
+**限制与说明**：
+
+- 不支持dropout参数
+- 不支持变长序列输入
 
 </div>
 
