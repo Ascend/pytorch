@@ -27,10 +27,13 @@ def run_register_pre_custom_passes(gm):
 
 def run_register_post_custom_passes(gm):
     log.debug("before post_grad graph optimizer pass, graph is: %s", gm)
-    if is_inference_check():
+    inference = is_inference_check()
+    if inference:
         stable_topological_sort(gm)
-        for level in sorted(FxPassLevel):
-            for fn in ASCEND_CUSTOME_PASS_REGISTER[PassType.POST][level]:
+    for level in sorted(FxPassLevel):
+        for fn in ASCEND_CUSTOME_PASS_REGISTER[PassType.POST][level]:
+            # 标记了 ignore_inference_check 的 pass 在训练图下也执行。
+            if inference or getattr(fn, "ignore_inference_check", False):
                 fn(gm)
 
-        log.debug("after post_grad graph optimizer pass, graph is: %s", gm)
+    log.debug("after post_grad graph optimizer pass, graph is: %s", gm)

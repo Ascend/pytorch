@@ -1,10 +1,11 @@
+import functools
 import operator
 
 import torch
 import torch.fx
 from torch.utils._ordered_set import OrderedSet
 
-from ...config import log
+from ...config import is_ascend950, log
 from ..utils.check_op_util import (
     _get_tensor_meta,
     check_act_op,
@@ -2589,6 +2590,311 @@ def batch_embedding_fusion_pass(graph: torch.fx.Graph) -> None:
             changed = True
 
     eliminate_dead_code(graph, changed, batch_embedding_fusion_pass.__name__)
+
+
+# post_grad 图已被 AOT 规范化成 aten 形态：linear 早已分解为 permute+addmm，
+# 因此这里只认 addmm / mm / mm+add，权重天然是 (K, N)，不需要任何转置。
+_FMM_ADDMM_TARGETS = (torch.ops.aten.addmm.default,)
+_FMM_MATMUL_TARGETS = (torch.ops.aten.mm.default,)
+_FMM_ADD_TARGETS = (torch.ops.aten.add.Tensor,)
+_FMM_RELU_TARGETS = (torch.ops.aten.relu.default,)
+
+# fp32 需调用时已开启 HF32，pass 无法保证该前提，故只放开 fp16/bf16。
+_FMM_RELU_SUPPORTED_DTYPES = (torch.float16, torch.bfloat16)
+_FMM_RELU_OP_TYPE = "relu"
+_FMM_REQUIRED_RANK = 2
+
+
+def _is_relu_node(node):
+    return (
+        isinstance(node, torch.fx.Node)
+        and node.op == "call_function"
+        and node.target in _FMM_RELU_TARGETS
+    )
+
+
+@functools.lru_cache(maxsize=1)
+def _resolve_npu_fused_matmul():
+    """解析 npu_fused_matmul 的 OpOverload，不可用时返回 None 让 pass 退化为不融合。
+
+    post_grad 图里必须放 OpOverload（torch.ops.npu.*）而不是 torch_npu 下的 Python
+    包装，否则 inductor 无法按 fallback 走 extern 调用。
+    """
+    if not is_ascend950:
+        return None
+    op = getattr(torch.ops.npu, "npu_fused_matmul", None)
+    op = getattr(op, "default", None)
+    if op is None:
+        log.warning(
+            "fused_matmul_relu_pass disabled: "
+            "torch.ops.npu.npu_fused_matmul unavailable"
+        )
+    return op
+
+
+def _fmm_node_meta(node):
+    """读取节点的张量元信息。post_grad 图用 val，pre_grad(dynamo) 用 example_value。"""
+    if not isinstance(node, torch.fx.Node):
+        return None
+    for key in ("val", "example_value", "tensor_meta"):
+        meta = node.meta.get(key, None)
+        if meta is not None and hasattr(meta, "dtype") and hasattr(meta, "shape"):
+            return meta
+    return None
+
+
+def _is_provably_contiguous(meta):
+    """无法判定时返回 False；npu_fused_matmul 的 bias 不支持非连续输入。"""
+    if meta is None or not hasattr(meta, "is_contiguous"):
+        return False
+    try:
+        return bool(meta.is_contiguous())
+    except Exception:
+        return False
+
+
+def _fused_matmul_form(node):
+    """识别节点属于哪种可融合形态：addmm / mm / add(mm)，否则 None。"""
+    if not (isinstance(node, torch.fx.Node) and node.op == "call_function"):
+        return None
+    if node.target in _FMM_ADDMM_TARGETS:
+        return "addmm"
+    if node.target in _FMM_MATMUL_TARGETS:
+        return "mm"
+    if node.target in _FMM_ADD_TARGETS:
+        return "add"
+    return None
+
+
+def _is_matmul_node(node):
+    return (
+        isinstance(node, torch.fx.Node)
+        and node.op == "call_function"
+        and node.target in _FMM_MATMUL_TARGETS
+    )
+
+
+def _fmm_reject(node, reason):
+    """记录未命中原因。用 INDUCTOR_ASCEND_LOG_LEVEL=DEBUG 查看。"""
+    log.debug("fused_matmul_relu_pass: skip %s, %s", node, reason)
+    return None
+
+
+def _fmm_is_mutation_node(node):
+    """是否为原地写节点。名字判据与 _collect_mutation_buffer_ids 保持一致，另外按
+    schema 的写别名兜住不以下划线结尾的可变算子。"""
+    if not (isinstance(node, torch.fx.Node) and node.op == "call_function"):
+        return False
+    target = node.target
+    name = getattr(target, "__name__", "") or ""
+    if name.startswith("triton_kernel_wrapper") or name.endswith("_"):
+        return True
+    if not isinstance(target, torch._ops.OpOverload):
+        return False
+    try:
+        schema = target._schema
+        if schema.name.endswith("_"):
+            return True
+        return any(
+            arg.alias_info is not None and arg.alias_info.is_write
+            for arg in schema.arguments
+        )
+    except Exception:
+        # schema 读不到时无法判定，按最坏情况当作有 mutation。
+        return True
+
+
+def _has_mutation_between(start, end):
+    """start 与 end 之间（不含两端）是否存在原地写。
+
+    融合节点插在 end 处，但读的是 start 的输入；若窗口内有人原地改写了这些输入，
+    融合后读到的就是改写后的值。end 不在 start 之后时顺序异常，按最坏情况返回 True。
+    """
+    node = start.next
+    while node is not end:
+        # 节点链是环形的，正向走到哨兵 root 即说明 end 不在 start 之后；node 为 None
+        # 只在链表被破坏时出现。两者都判定不了窗口，按最坏情况处理。
+        if node is None or node.op == "root":
+            return True
+        if _fmm_is_mutation_node(node):
+            return True
+        node = node.next
+    return False
+
+
+def _match_fused_matmul_relu_operands(node, form):
+    """匹配可融合的节点，返回 (x1, x2, bias)，bias 为 None 表示无 bias。
+
+    addmm(b, x, w) 与 mm(x, w) + b 都是 b + x @ w，mm(x, w) 则是无 bias 的情形；
+    w 已是 (K, N)，与算子的 x1 @ x2 + bias 直接对应，无需转置权重。
+    """
+    if form == "addmm":
+        if len(node.args) != 3:
+            return _fmm_reject(node, "addmm operands passed as kwargs")
+        # 仅融合默认 beta/alpha，否则与 relu(x1@x2+bias) 语义不等价。
+        if node.kwargs.get("beta", 1) != 1 or node.kwargs.get("alpha", 1) != 1:
+            return _fmm_reject(node, "addmm beta/alpha != 1")
+        bias, x1, x2 = node.args
+    elif form == "mm":
+        if len(node.args) != 2:
+            return _fmm_reject(node, "mm operands passed as kwargs")
+        x1, x2 = node.args
+        # 算子的 bias 可选，无 bias 时保持默认 None。
+        bias = None
+    else:
+        # add 可交换，matmul 可能在任一侧；两侧都不是 matmul 的 add 与本 pass 无关，
+        # 静默跳过（relu(a + b) 很常见，不该刷诊断日志）。
+        if len(node.args) != 2:
+            return None
+        lhs, rhs = node.args
+        if _is_matmul_node(lhs):
+            mm_node, bias = lhs, rhs
+        elif _is_matmul_node(rhs):
+            mm_node, bias = rhs, lhs
+        else:
+            return None
+        if node.kwargs.get("alpha", 1) != 1:
+            return _fmm_reject(node, "add alpha != 1")
+        if len(mm_node.users) != 1:
+            return _fmm_reject(
+                mm_node, f"has {len(mm_node.users)} users, expect only add"
+            )
+        if len(mm_node.args) != 2:
+            return _fmm_reject(mm_node, "matmul operands passed as kwargs")
+        # 融合节点插在 add 处，若窗口内有原地写会读到改写后的 x1/x2。
+        if _has_mutation_between(mm_node, node):
+            return _fmm_reject(node, "in-place write between mm and add")
+        x1, x2 = mm_node.args
+
+    if not (isinstance(x1, torch.fx.Node) and isinstance(x2, torch.fx.Node)):
+        return _fmm_reject(node, "x1/x2 are not tensor nodes")
+    x1_meta = _fmm_node_meta(x1)
+    x2_meta = _fmm_node_meta(x2)
+    if x1_meta is None or x2_meta is None:
+        return _fmm_reject(node, "missing tensor meta on x1/x2")
+
+    if x1_meta.dtype not in _FMM_RELU_SUPPORTED_DTYPES:
+        return _fmm_reject(node, f"x1 dtype {x1_meta.dtype} not in fp16/bf16")
+    if x2_meta.dtype != x1_meta.dtype:
+        return _fmm_reject(
+            node, f"dtype mismatch x1={x1_meta.dtype} x2={x2_meta.dtype}"
+        )
+    if len(x1_meta.shape) != _FMM_REQUIRED_RANK:
+        return _fmm_reject(node, f"x1 shape {tuple(x1_meta.shape)} is not 2-D")
+    if len(x2_meta.shape) != _FMM_REQUIRED_RANK:
+        return _fmm_reject(node, f"weight shape {tuple(x2_meta.shape)} is not 2-D")
+
+    if bias is None:
+        return x1, x2, None
+    if not isinstance(bias, torch.fx.Node):
+        return _fmm_reject(node, "bias is not a tensor node")
+    bias_meta = _fmm_node_meta(bias)
+    if bias_meta is None:
+        return _fmm_reject(node, "missing tensor meta on bias")
+    if bias_meta.dtype != x1_meta.dtype:
+        return _fmm_reject(
+            node, f"dtype mismatch x1={x1_meta.dtype} bias={bias_meta.dtype}"
+        )
+    if len(bias_meta.shape) != 1:
+        return _fmm_reject(node, f"bias shape {tuple(bias_meta.shape)} is not 1-D")
+    if not _is_provably_contiguous(bias_meta):
+        return _fmm_reject(node, "bias is not provably contiguous")
+    return x1, x2, bias
+
+
+def _fmm_peel_view(relu_node):
+    """剥掉 relu 与 matmul 之间的一层 view，返回 (view_node, mm_node)。
+
+    3 维 linear 被 AOT 拆成 view→addmm→view→relu→view，relu 作用在 view 上而不是
+    addmm 上。relu 是逐元素的，relu(view(t)) == view(relu(t))，因此可以把 relu 吸进
+    融合算子、再让原来的 view 承接输出。无 view 时返回 (None, relu 的输入)。
+    """
+    inner = relu_node.args[0]
+    if not check_view(inner):
+        return None, inner
+    if len(inner.users) != 1 or not inner.args:
+        return None, inner
+    return inner, inner.args[0]
+
+
+@register_custom_pass(PassType.POST, ignore_inference_check=True)
+def fused_matmul_relu_pass(graph: torch.fx.Graph) -> None:
+    """将 relu(addmm) 融合为 npu_fused_matmul，对应 aclnnFusedMatmul 的
+    fusedOpType="relu"（y = relu(x1@x2 + bias)）。
+
+    Pattern1: relu(addmm(bias, x, w))       → npu_fused_matmul(x, w, bias, "relu")
+    Pattern2: view(relu(view(addmm(...))))  → view(npu_fused_matmul(...))
+              3 维 linear 被 AOT 拆成这个形状，relu 落在 view 上；relu 逐元素，
+              可以把它吸进算子再让原 view 承接输出。
+    Pattern3: relu(mm(x, w) + bias)         → npu_fused_matmul(x, w, bias, "relu")
+              inductor 未把 mm+add 合成 addmm 时的形态。
+    Pattern4: relu(mm(x, w))                → npu_fused_matmul(x, w, "relu")
+              无 bias 的 linear/matmul，算子的 bias 可选，保持默认 None。
+
+    放在 POST：post_grad 图里 linear 已被分解，addmm 的 w 天然是 (K, N)，与算子的
+    x2 直接对应，不需要插入任何转置或形变节点。
+
+    默认关闭，置 TORCHINDUCTOR_ENABLE_FUSED_MATMUL_RELU=1 打开；关闭时本 pass 不注册。
+
+    门控（从严）：仅 A5（Ascend 950）提供该算子；x1 与 w 均须 2 维（x2 的 rank 需
+    与 x1 一致且不支持 broadcast）、dtype 全一致且为 fp16/bf16、有 bias 时须 1 维且
+    连续、被替换节点须是单使用者。不满足时保持原图，未命中原因走 debug 日志。
+    """
+    fused_op = _resolve_npu_fused_matmul()
+    if fused_op is None:
+        return
+
+    changed = False
+    for relu_node in list(graph.nodes):
+        if not _is_relu_node(relu_node):
+            continue
+        if not relu_node.args or not isinstance(relu_node.args[0], torch.fx.Node):
+            continue
+        view_node, mm_node = _fmm_peel_view(relu_node)
+        form = _fused_matmul_form(mm_node)
+        if form is None:
+            continue
+        if len(mm_node.users) != 1:
+            _fmm_reject(mm_node, f"has {len(mm_node.users)} users, expect one")
+            continue
+
+        matched = _match_fused_matmul_relu_operands(mm_node, form)
+        if matched is None:
+            continue
+        x1, x2, bias = matched
+
+        # bias 与 fused_op_type 在 schema 的 * 之后，必须以关键字传入；bias 可选，
+        # 无 bias 时不传；relu 模式下 x3 必须为 None，同样保持默认不传。
+        kwargs = {"fused_op_type": _FMM_RELU_OP_TYPE}
+        if bias is not None:
+            kwargs["bias"] = bias
+        with graph.inserting_before(mm_node):
+            fused_node = graph.call_function(
+                fused_op,
+                args=(x1, x2),
+                kwargs=kwargs,
+                name=f"{mm_node.name}_fused_relu",
+            )
+            # 融合结果与被替换的 matmul 输出同形同类型，复用其 meta 以保留符号维度。
+            fused_node.meta.update(mm_node.meta)
+
+        if view_node is None:
+            relu_node.replace_all_uses_with(fused_node)
+        else:
+            # 让原来的 view 从融合结果取数，它的输出即等价于原 relu 的输出。
+            view_node.replace_input_with(mm_node, fused_node)
+            relu_node.replace_all_uses_with(view_node)
+        graph.erase_node(relu_node)
+        changed = True
+        log.info(
+            "fused_matmul_relu_pass: fused relu(%s) into "
+            'npu_fused_matmul(fused_op_type="relu") (form=%s, through_view=%s)',
+            mm_node.name,
+            form,
+            view_node is not None,
+        )
+
+    eliminate_dead_code(graph, changed, fused_matmul_relu_pass.__name__)
 
 
 def eliminate_dead_code(graph, changed, fn_name, POST=True):

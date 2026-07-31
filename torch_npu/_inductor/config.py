@@ -287,3 +287,9 @@ if "TORCHNPU_PRECOMPILE_THREADS" in os.environ:
 lowering_axis_count = None
 
 autotune_continue_on_failure = os.environ.get('TORCHINDUCTOR_NPU_BACKEND') == "default"
+
+# fused_matmul_relu_pass: fuse relu(addmm) into npu_fused_matmul (A5-only op).
+# Still under validation, so it is off by default; set the env var to 1 to enable.
+enable_fused_matmul_relu = _parse_bool_env(
+    "TORCHINDUCTOR_ENABLE_FUSED_MATMUL_RELU", False
+)
