@@ -5883,8 +5883,11 @@ def make_reduction(reduction_type: ReductionType, override_return_dtype=None):
         else:
             node_name = f'reduction_{next(node_id)}'
             input_graphs = fetch_graphs([x, axis if axis is not None else list(range(len(x.get_size())))])
+            reduction_kwargs = {"keepdim": keepdims}
+            if dtype is not None:
+                reduction_kwargs["dtype"] = dtype
             new_graph = merge_traced_graphs(input_graphs, reduction_type_to_aten_fn[reduction_type],
-                                            node_name, keepdim=keepdims)
+                                            node_name, **reduction_kwargs)
         result = Reduction.create(reduction_type=reduction_type,
                                   input_node=x,
                                   node_name=node_name,

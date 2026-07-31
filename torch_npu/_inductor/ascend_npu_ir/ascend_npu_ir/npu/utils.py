@@ -351,6 +351,60 @@ def npu_optimize_fx_graph(gm: torch.fx.GraphModule):
     gm.recompile()
 
 
+def fold_sum_cast_to_dtype(gm: torch.fx.GraphModule) -> torch.fx.GraphModule:
+    graph = gm.graph
+    changed = False
+    aten = torch.ops.aten
+    prims = torch.ops.prims
+
+    for cast_node in list(graph.nodes):
+        if cast_node.op != "call_function":
+            continue
+        if cast_node.target != prims.convert_element_type.default:
+            continue
+        if len(cast_node.args) < 2:
+            continue
+
+        sum_node, target_dtype = cast_node.args[:2]
+        if not isinstance(sum_node, torch.fx.Node) or not isinstance(target_dtype, torch.dtype):
+            continue
+        if sum_node.op != "call_function":
+            continue
+        if sum_node.target not in (aten.sum.default, aten.sum.dim_IntList):
+            continue
+        if len(sum_node.users) != 1:
+            continue
+        if sum_node.kwargs.get("dtype") is not None:
+            continue
+
+        if not sum_node.args or not isinstance(sum_node.args[0], torch.fx.Node):
+            continue
+        input_val = sum_node.args[0].meta.get("val", None)
+        sum_val = sum_node.meta.get("val", None)
+        cast_val = cast_node.meta.get("val", None)
+        if (
+            not isinstance(input_val, torch.Tensor)
+            or not isinstance(sum_val, torch.Tensor)
+            or not isinstance(cast_val, torch.Tensor)
+        ):
+            continue
+        if input_val.dtype != target_dtype or cast_val.dtype != target_dtype:
+            continue
+
+        sum_node.kwargs = {**sum_node.kwargs, "dtype": target_dtype}
+        sum_node.meta["val"] = cast_val
+        if "tensor_meta" in cast_node.meta:
+            sum_node.meta["tensor_meta"] = cast_node.meta["tensor_meta"]
+        cast_node.replace_all_uses_with(sum_node)
+        graph.erase_node(cast_node)
+        changed = True
+
+    if changed:
+        graph.lint()
+        gm.recompile()
+    return gm
+
+
 def fold_expand(gm: torch.fx.GraphModule) -> None:
     changed = False
     graph = gm.graph
