@@ -128,3 +128,10 @@ class NPUCombinedScheduling(CUDACombinedScheduling, TritonScheduling):
         return self._triton_scheduling.generate_kernel_code_from_nodes(
             nodes, benchmark_kernel, hint_override
         )
+
+    def codegen_combo_kernel(self, node) -> None:
+        for snode, subkernel_node in zip(node.get_nodes(), node.get_subkernel_nodes()):
+            group_fn = self._nolinear_triton_scheduling.group_fn
+            snode.group = (snode.group[0], group_fn(snode._sizes))
+            subkernel_node.group = snode.group
+        return self._triton_scheduling.codegen_combo_kernel(node)

@@ -77,7 +77,7 @@ class NPUComboKernel(ComboKernel):
                 assert f"{tree.name}_numel_{num}" in self.dynamic_shape_args
                 uniquify_block_sizes.append(f"{tree.prefix}numel")
 
-            if tree.is_no_loop_axis:
+            if tree.is_no_loop_axis or (tree.is_reduction and sub_kernel.persistent_reduction):
                 if isinstance(simplified_tree_numel, (sympy.Integer, int)):
                     val = int(simplified_tree_numel)
                 else:
@@ -86,6 +86,8 @@ class NPUComboKernel(ComboKernel):
                     code.writeline(f"{tree.name.upper()}BLOCK_SUB: tl.constexpr = {next_power_of_2(val)}")
                 else:
                     code.writeline(f"{tree.name.upper()}BLOCK_SUB: tl.constexpr = {val}")
+
+        return uniquify_block_sizes
 
 
     def jit_line(
