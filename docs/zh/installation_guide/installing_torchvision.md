@@ -2,6 +2,8 @@
 
 torchvision为PyTorch的扩展库，主要用于计算机视觉任务。它包括许多常用的模型、数据集，使得处理图像数据变得更加简单高效。
 
+## 配套说明
+
 安装PyTorch框架和TorchNPU插件后，需安装对应框架版本的torchvision，具体请参见下表。
 
 **表 1**  torchvision版本配套<a id="torchvision_version"></a>
@@ -13,6 +15,8 @@ torchvision为PyTorch的扩展库，主要用于计算机视觉任务。它包�
 |2.10.0|0.25.0|
 |2.11.0|0.26.0|
 |2.12.0|0.27.0|
+
+## 安装torchvision
 
 以0.22.1版本为例，介绍如何安装torchvision。
 
@@ -49,21 +53,20 @@ torchvision为PyTorch的扩展库，主要用于计算机视觉任务。它包�
         pip3 install torchvision-0.22.*.whl
         ```
 
-  4. 安装后验证。
+## 安装后验证
 
-        ```Python
-        python3
-        import torchvision
-        print(torchvision.__version__)
-        ```
+```Python
+python3
+import torchvision
+print(torchvision.__version__)
+```
 
-        如果输出版本号，则表示安装成功。
+如果输出版本号，则表示安装成功。
 
-        ```Python
-        Python 3.10.17 (main, Nov 4 2025, 17:12:04) [GCC 9.4.0] on linux
-        Type "help", "copyright", "credits" or "license" for more information.
-        >>> import torchvision
-        >>> print(torchvision.__version__)
-        0.22.1
-        >>>
-        ```
+```Python
+Python 3.10.17 (main, Nov 4 2025, 17:12:04) [GCC 9.4.0] on linux
+Type "help", "copyright", "credits" or "license" for more information.
+>>> import torchvision
+>>> print(torchvision.__version__)
+0.22.1
+```

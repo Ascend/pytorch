@@ -107,7 +107,7 @@
                     |2.11.0|X86_64|13.3.1|3.18.4|
                     |2.11.0|AArch64|13.3.1|4.3.2|
                     |2.12.0|X86_64|13.3.1|3.18.4|
-                    |3.12.0|AArch64|13.3.1|4.3.2|
+                    |2.12.0|AArch64|13.3.1|4.3.2|
 
                     > [!NOTE]
                     >
@@ -155,9 +155,9 @@
         pip3 install -r requirements.txt
         ```
 
-## 版本查询
+## 查询版本
 
-执行以下命令可检查安装的Python、PyTorch框架和TorchNPU插件版本。
+执行以下命令可检查安装的Python、PyTorch框架和TorchNPU安装包版本。
 
 - 查看已安装的Python版本。
 
@@ -171,22 +171,22 @@
     Python 3.13.0
     ```
 
-- 查看已安装的PyTorch框架和TorchNPU插件版本。
+- 查看已安装的PyTorch框架和TorchNPU安装包版本。
 
     ```bash
     pip list | grep torch
     ```
 
-    输出如下PyTorch框架和TorchNPU插件版本。
+    输出如下PyTorch框架和TorchNPU安装包版本。
 
     ```text
-    torch     2.10.0
-    torch_npu      26.1.0 
+    torch     2.12.0+cpu
+    torch_npu      2.12.0
     ```
 
     > [!NOTE]
     >
-    > 如果需要查询TorchNPU安装包版本，请单击[相关产品版本配套说明](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.1.0/docs/zh/release_notes/release_notes.md#%E7%9B%B8%E5%85%B3%E4%BA%A7%E5%93%81%E7%89%88%E6%9C%AC%E9%85%8D%E5%A5%97%E8%AF%B4%E6%98%8E)查看。
+    > 由于每个TorchNPU版本会配套多个PyTorch版本发布安装包，因此配套发布的安装包版本号和TorchNPU版本号采取不同命名规则。如果需要查询版本号对应关系，请单击[相关产品版本配套说明](https://gitcode.com/Ascend/pytorch/blob/master/docs/zh/release_notes.md#%E7%9B%B8%E5%85%B3%E4%BA%A7%E5%93%81%E7%89%88%E6%9C%AC%E9%85%8D%E5%A5%97%E8%AF%B4%E6%98%8E)查看。
 
 ## 安装后验证
 

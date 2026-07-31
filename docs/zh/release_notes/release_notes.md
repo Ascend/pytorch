@@ -107,7 +107,7 @@ TorchNPU代码分支名称采用 **\{PyTorch版本\}-\{TorchNPU版本\}** 的命
   </thead>
   <tbody>
     <tr>
-      <td class="cellrowborder" rowspan="7" valign="top" width="18.801880188018803%" headers="mcps1.1.4.1.1">TorchNPU</td>
+      <td class="cellrowborder" rowspan="6" valign="top" width="18.801880188018803%" headers="mcps1.1.4.1.1">TorchNPU</td>
       <td class="cellrowborder" valign="top" width="32.603260326032604%" headers="mcps1.1.4.1.2">Eager模式使能DVM无图融合算子。</td>
       <td class="cellrowborder" valign="top" width="48.5948594859486%" headers="mcps1.1.4.1.3">Eager模式支持DVM（Device Virtual Machine）算子融合，减小调度执行开销，加速网络执行。</td>
     </tr>
@@ -118,10 +118,6 @@ TorchNPU代码分支名称采用 **\{PyTorch版本\}-\{TorchNPU版本\}** 的命
     <tr>
       <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.1">关键计算类API支持异构输入。</td>
       <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.2">关键计算类API支持输入为CPU上标量Tensor和NPU上非标量Tensor进行计算，提升API一致性。</td>
-    </tr>
-    <tr>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.1">fsdp2动态图性能优化。</td>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.2">提升fsdp2特性的整体性能。</td>
     </tr>
     <tr>
       <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.1">支持输入张量全轴动态场景下的算子编译。</td>
