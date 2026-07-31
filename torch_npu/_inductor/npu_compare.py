@@ -1,10 +1,16 @@
 import importlib
+import logging
 import os
 import sys
+from collections import defaultdict
 from typing import Any, Iterable, Mapping, Optional
 
 import torch
 from torch._inductor.compile_fx import clone_preserve_strides
+
+log = logging.getLogger(__name__)
+
+_call_counter: dict = defaultdict(int)
 
 
 def clone_for_accuracy(arg):
@@ -51,14 +57,27 @@ def _report_mismatch(idx, actual, expected, matches, rtol, atol, kernel_name, du
     rel_diff.masked_fill_(matches, 0)
     number_of_elements = matches.numel()
     total_mismatches = number_of_elements - int(torch.sum(matches))
+    mismatch_mask = ~matches
+    mismatch_indices = torch.nonzero(mismatch_mask.flatten())[:5].reshape(-1)
+    sample_info = ""
+    if mismatch_indices.numel() > 0:
+        idx_flat = mismatch_indices[:3].tolist()
+        idx_unflat = [list(torch.unravel_index(torch.tensor(i), actual.shape)) for i in idx_flat]
+        samples = "; ".join(
+            f"pos{idx_unflat[j]}: actual={actual.flatten()[i].item():.6e}, expected={expected.flatten()[i].item():.6e}"
+            for j, i in enumerate(idx_flat)
+        )
+        sample_info = f", Sample values: [{samples}]"
     msg = (
         "CHECK ACCURACY FAILED! "
         f"Kernel: {kernel_name}, Output idx: {idx}, "
+        f"actual_shape={list(actual.shape)}, actual_dtype={actual.dtype}, "
+        f"expected_shape={list(expected.shape)}, expected_dtype={expected.dtype}, "
         f"Mismatched: {total_mismatches}/{number_of_elements} "
         f"({total_mismatches / number_of_elements:.1%}), "
         f"Greatest Rel Diff: {rel_diff.max().item()}, "
         f"Greatest Abs Diff: {abs_diff.max().item()}, "
-        f"rtol: {rtol}, atol: {atol}"
+        f"rtol: {rtol}, atol: {atol}{sample_info}"
     )
     if dump_path:
         msg += f", dump_path: {dump_path}"
@@ -117,6 +136,9 @@ def check_accuracy_triton(*args, launcher, grid, stream, inductor_meta, **kwargs
         return None
     call_outputs_indices = fx_module.call_args_mapping[fx_module.num_inputs:]
 
+    _call_counter[kernel_name] += 1
+    invocation = _call_counter[kernel_name]
+
     fx_args = []
     for idx in fx_module.call_args_mapping:
         arg = args[idx]
@@ -130,17 +152,39 @@ def check_accuracy_triton(*args, launcher, grid, stream, inductor_meta, **kwargs
                 arg)
         fx_args.append(fx_arg)
 
+    input_indices = fx_module.call_args_mapping[:fx_module.num_inputs]
+    input_shapes = {f"args[{i}]": list(args[i].shape) if isinstance(args[i], torch.Tensor) else type(args[i]).__name__
+                    for i in input_indices}
+    output_indices = call_outputs_indices
+    output_shapes = {f"args[{i}]": list(args[i].shape) if isinstance(args[i], torch.Tensor) else type(args[i]).__name__
+                     for i in output_indices}
+    log.debug(f"[ACC_DEBUG] kernel={kernel_name} invocation=#{invocation} "
+              f"inputs={input_shapes} outputs={output_shapes}")
+    _input_snapshot = {}
+    for idx in fx_module.call_args_mapping[:fx_module.num_inputs]:
+        if isinstance(args[idx], torch.Tensor):
+            _input_snapshot[idx] = args[idx].cpu()
+
     fx_graph_call(*fx_args)
 
     launcher(*args, **kwargs, stream=stream)
 
-    compare_outputs(
+    passed = compare_outputs(
         [args[i] for i in call_outputs_indices],
         fx_args[fx_module.num_inputs:],
         kernel_name=kernel_name,
         tolerances=npu_config.acc_comp_tol,
         dump_path=dump_path,
     )
+
+    if not passed and dump_path:
+        fail_path = os.path.join(dump_path, f'data_fail_{invocation}.pth')
+        fail_args = list(args)
+        for idx, cpu_tensor in _input_snapshot.items():
+            fail_args[idx] = cpu_tensor
+        torch.save(fail_args, fail_path)
+        log.warning(f"[ACC_DEBUG] kernel={kernel_name} invocation=#{invocation} "
+                    f"FAIL: saved input snapshot to data_fail_{invocation}.pth")
 
     for arg in fx_args:
         del arg

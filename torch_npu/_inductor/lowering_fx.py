@@ -504,6 +504,10 @@ def create_compile_kwargs(final_kernel, fx_call_args, fx_args):
     def is_dynamic_shape_dim(d):
         if str(type(d)).find("torch.fx.expermental.symbolic_shapes") != -1:
             return True
+        if str(type(d)).find("torch.SymInt") != -1:
+            return True
+        if str(type(d)).find("sympy") != -1:
+            return True
         s = str(d).strip()
         if s.startswith("u") or s.startswith("i") or s in ("-1", "?"):
             return True
@@ -662,7 +666,7 @@ def clone(x, *, memory_format=None):
 
 
 def make_pointwise(
-        fn,
+        fn=None,
         override_return_dtype=None,
         override_device=None,
         override_fn_when_input_bool=None,
@@ -671,6 +675,18 @@ def make_pointwise(
         triton_fallback=None,
         **kwargs
 ):
+    if fn is None:
+        return functools.partial(
+            make_pointwise,
+            override_return_dtype=override_return_dtype,
+            override_device=override_device,
+            override_fn_when_input_bool=override_fn_when_input_bool,
+            override_fn_when_gpu_float64=override_fn_when_gpu_float64,
+            allow_alpha=allow_alpha,
+            triton_fallback=triton_fallback,
+            **kwargs,
+        )
+
     def inner(*inputs: TensorBox, alpha=None):
         if triton_fallback is not None and any(
                 isinstance(inp, IRNode) and is_triton(inp) for inp in inputs
@@ -1980,10 +1996,12 @@ def _register_npu_inductor_fallbacks_fx(make_reduction):
         return mutate_to(dst, src)
 
     @make_pointwise
+    @register_to_aten(aten_fn=aten.floor_divide)
     def floordiv(a, b):
         return ops.floordiv(a, b)
 
-    @make_pointwise
+    @make_pointwise(rounding_mode='trunc')
+    @register_to_aten(aten_fn=aten.div.Tensor_mode)
     def truncdiv(a, b):
         return ops.truncdiv(a, b)
 
