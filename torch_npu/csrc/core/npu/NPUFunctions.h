@@ -126,7 +126,7 @@ DeterministicBackend GetDeterministicBackend();
 
 bool IsSupportDeterministicLevel3();
 
-uint32_t GetDeterministicLevel();
+C10_NPU_API uint32_t GetDeterministicLevel();
 
 enum class SyncDebugMode { L_DISABLED = 0, L_WARN, L_ERROR };
 

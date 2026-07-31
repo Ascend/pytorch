@@ -439,6 +439,10 @@ class OpCommandImpls {
 void ApplyDeterministicSnapshotLocked(
     const c10_npu::DeterministicSnapshot& snapshot,
     bool isOpapi);
+TORCH_NPU_API void ApplyDeterministicLevel(
+    int64_t level,
+    bool deterministicAlgorithmsStatus,
+    bool isOpapi);
 void SetDeterministic(bool isOpapi = true);
 void SetDeterministicOps(bool deterministicAlgorithmsStatus = false);
 void ApplyDeterministicSnapshot(
