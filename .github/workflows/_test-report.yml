@@ -33,12 +33,6 @@ on:
         type: string
         default: 'quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly'
         description: Docker image used for test execution
-      report_to_upstream:
-        required: false
-        type: boolean
-        default: false
-        description: Whether to report test status to upstream dashboard
-
 jobs:
   report:
     runs-on: ubuntu-latest

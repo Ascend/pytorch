@@ -150,4 +150,3 @@ jobs:
       graph_matrix: ${{ needs.collect.outputs.graph_matrix }}
       others_matrix: ${{ needs.collect.outputs.others_matrix }}
       docker_image: ${{ inputs.docker_image }}
-      report_to_upstream: ${{ inputs.report_to_upstream }}
