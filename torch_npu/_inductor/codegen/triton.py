@@ -491,6 +491,7 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
         self.codegen = self._codegen
         self.is_no_loop_axis = False
         self.is_sub_kernel = False
+        self.is_vectorized_split = False
 
     # axis mask
     def _codegen_mask(self):
@@ -500,6 +501,8 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
         )
         if V.kernel.is_unified_simt_kernel():
             codegen_mask = self.is_tiling_axis
+        if self.is_vectorized_split:
+            codegen_mask = True
         if codegen_mask:
             BLOCK_NAME = f"{self.name.upper()}BLOCK"
             upper = (
@@ -507,8 +510,27 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
                 if self.is_split_axis
                 else f"{self.name}_numel"
             )
-            line = f"{self.name}_mask = {self.name} < {upper}"
-            self.writeline(line)
+            static_length = V.graph.sizevars.simplify(self.length)
+            use_static_vector_mask = (
+                self.is_vectorized_split
+                and not self.is_split_axis
+                and getattr(V.kernel, "full_static_welford_reduction", False)
+                and isinstance(static_length, (int, sympy.Integer))
+            )
+            if use_static_vector_mask:
+                # XnBLOCK_SUB is constexpr.  Divisible configs compile without
+                # a mask; non-divisible configs retain the existing tail path.
+                self.writeline(f"{self.name}_mask = True")
+                self.writeline(
+                    f"if {int(static_length)} % {BLOCK_NAME}_SUB != 0:"
+                )
+                with self.indexing_code.indent():
+                    self.writeline(
+                        f"{self.name}_mask = {self.name} < {int(static_length)}"
+                    )
+            else:
+                line = f"{self.name}_mask = {self.name} < {upper}"
+                self.writeline(line)
             for var in self.var_directions:
                 line = f"{var.name}_mask = {var.name} < {upper}"
                 self.writeline(line)
@@ -517,6 +539,12 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
 
     def get_axis_direction(self):
         # assume self.golden_var_list is to be correct axis order
+        if self.is_vectorized_split:
+            return (
+                "["
+                + ",".join([":"] + ["None"] * len(self.kernel.tiling_axis))
+                + "]"
+            )
 
         if self.directions:
             return f"[{','.join(self.directions)}]"
@@ -541,6 +569,11 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
         index = None
         # for multiple reduce dims, don't need this
         if not self.is_tiling_axis:
+            if self.is_vectorized_split:
+                direction = self.get_axis_direction()
+                index = f"{self.name} = {self.codegen_index(direction)}"
+                self.writeline(index)
+                self._codegen_mask()
             return self.name
 
         direction = self.get_axis_direction()
@@ -585,6 +618,8 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
         else:
             if self.is_no_loop_axis:
                 index = f"base_{self.name}"
+            elif self.is_vectorized_split:
+                index = f"{self.name}_loop_offset + base_{self.name}"
             elif self.is_split_axis:
                 offset = f"{self.symbol()}_offset"
                 index = f"{offset} + (loop_{self.name} * {BLOCK_NAME_SUB}) + base_{self.name}"
@@ -615,6 +650,15 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
                 lines.append(
                     f"{self.symbol()}_offset = tl.program_id({self.split_order}){dtype_cast_str} * {BLOCK_NAME}"
                 )
+            if self.is_vectorized_split:
+                lines.append(
+                    f"base_{self.name}= tl.arange(0, {BLOCK_NAME_SUB}){dtype_cast_str}"
+                )
+
+        if self.is_vectorized_split and not self.is_split_axis:
+            lines.append(
+                f"base_{self.name}= tl.arange(0, {BLOCK_NAME_SUB}){dtype_cast_str}"
+            )
 
         if self.is_no_loop_axis:
             lines.append(
@@ -624,10 +668,20 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
             lines.append(
                 f"base_{self.name}= tl.arange(0, {BLOCK_NAME_SUB}){dtype_cast_str}"
             )
-            block = f"{BLOCK_NAME}" if self.is_split_axis else f"{self.symbol()}_numel"
-            lines.append(
-                f"loops_{self.name} = ({block} + {BLOCK_NAME_SUB} - 1) // {BLOCK_NAME_SUB}"
+            elide_full_reduction_loop = (
+                getattr(V.kernel, "full_static_welford_reduction", False)
+                and self.prefix == "r"
             )
+            if not elide_full_reduction_loop:
+                block = (
+                    f"{BLOCK_NAME}"
+                    if self.is_split_axis
+                    else f"{self.symbol()}_numel"
+                )
+                lines.append(
+                    f"loops_{self.name} = "
+                    f"({block} + {BLOCK_NAME_SUB} - 1) // {BLOCK_NAME_SUB}"
+                )
 
         else:
             pass
@@ -1448,7 +1502,42 @@ class NPUIndexTritonKernel(TritonKernel):
         # inconsistency issues across static/dynamic modes.
         self._deferred_reduction_stores: list[str] = []
         self.permute_continous_reduction = False
+        self.post_reduction_loads: IndentedBuffer = IndentedBuffer()
+        self.post_reduction_compute: IndentedBuffer = IndentedBuffer()
+        self.post_reduction_stores: IndentedBuffer = IndentedBuffer()
+        self._original_loads_buf: IndentedBuffer | None = None
+        self._original_compute_buf: IndentedBuffer | None = None
+        self._original_stores_buf: IndentedBuffer | None = None
+        self.vectorized_welford_axis = None
+        self.full_static_welford_reduction = False
         self.decide_codegen_dims_in_kernel()
+
+    def _activate_post_reduction_codegen(self):
+        if (
+            self.vectorized_welford_axis is None
+            or self._original_compute_buf is not None
+            or not self.post_loop_combine._lines
+        ):
+            return
+
+        self.cse.invalidate(self.outside_loop_vars)
+        self._original_loads_buf = self.loads
+        self._original_compute_buf = self.compute
+        self._original_stores_buf = self.stores
+        self.loads = self.post_reduction_loads
+        self.compute = self.post_reduction_compute
+        self.stores = self.post_reduction_stores
+
+    def disable_reduction(self):
+        parent_context = super().disable_reduction()
+
+        @contextlib.contextmanager
+        def ctx():
+            with parent_context:
+                self._activate_post_reduction_codegen()
+                yield
+
+        return ctx()
 
     def should_use_persistent_reduction(self) -> bool:
         """
@@ -1751,6 +1840,60 @@ class NPUIndexTritonKernel(TritonKernel):
                     self.persistent_reduction = False
 
         split_tiling.select_no_loop_axis()
+        self._select_vectorized_welford_axis()
+
+    def _select_vectorized_welford_axis(self):
+        if (
+            not npu_config.enable_welford
+            or not self.persistent_reduction
+        ):
+            return
+
+        reduction_node = self.find_reduction_node()
+        if getattr(reduction_node, "reduction_type", None) != "welford_reduce":
+            return
+        if any(
+            not isinstance(
+                self.range_tree_nodes[axis].length, (int, sympy.Integer)
+            )
+            for axis in self.reduction_axis_list()
+        ):
+            return
+
+        # The default A5 path is SIMT_TEMPLATE. The Welford rollout switch
+        # selects this SIMD implementation explicitly.
+        self.npu_kernel_type = NPUKernelType.SIMD
+
+        candidates = [
+            axis
+            for axis in self.sorted_axis
+            if axis.prefix != "r" and not axis.is_no_loop_axis
+        ]
+        if not candidates:
+            return
+
+        # Vectorize the split axis nearest to the reduction dimensions. This
+        # keeps adjacent LayerNorm rows in one SIMD tile (x1 in y0/x1/r3/r4).
+        axis = max(candidates, key=lambda candidate: candidate.sorted_order)
+        axis.is_vectorized_split = True
+        self.vectorized_welford_axis = axis
+        # A persistent SIMD tile covers every static reduction element.  With
+        # no mutation, its loads can safely remain live for post-reduction use.
+        self.full_static_welford_reduction = (
+            not self.mutations
+            and all(
+                int(self.range_tree_nodes[reduction_axis].length) > 0
+                for reduction_axis in self.reduction_axis_list()
+            )
+        )
+
+    def _static_welford_reduction_numel(self):
+        if not self.full_static_welford_reduction:
+            return None
+        return math.prod(
+            int(self.range_tree_nodes[axis].length)
+            for axis in self.reduction_axis_list()
+        )
 
     def additional_nodes_to_be_subs(self):
         for node in self.range_tree_nodes.values():
@@ -2057,6 +2200,11 @@ class NPUIndexTritonKernel(TritonKernel):
                 mutated_args.add(self.args.output_buffers[mutation])
         mutated_args = sorted(mutated_args)
         tiling_axis = [x.sorted_order for x in self.tiling_axis]
+        if (
+            self.vectorized_welford_axis is not None
+            and self.vectorized_welford_axis.sorted_order not in tiling_axis
+        ):
+            tiling_axis.append(self.vectorized_welford_axis.sorted_order)
         no_loop_axis = [x.sorted_order for x in self.tiling_axis if x.is_no_loop_axis]
         split_axis = [x.sorted_order for x in self.split_axis]
         axis_names = [x.name for x in self.sorted_axis]
@@ -2098,6 +2246,18 @@ class NPUIndexTritonKernel(TritonKernel):
             "runtime_block_arg_names": runtime_block_arg_names,
             **TritonKernel.inductor_meta_common(),
         }
+        vector_axis_length = (
+            self.vectorized_welford_axis.length
+            if self.vectorized_welford_axis is not None
+            else None
+        )
+        if (
+            self.full_static_welford_reduction
+            and isinstance(vector_axis_length, (int, sympy.Integer))
+        ):
+            inductor_meta["vectorized_welford_axis"] = (
+                self.vectorized_welford_axis.sorted_order
+            )
         grouped_meta = getattr(self, "grouped_autotune_meta", None)
         if grouped_meta is not None:
             inductor_meta.update(
@@ -2203,6 +2363,17 @@ class NPUIndexTritonKernel(TritonKernel):
                     continue  # Static length: handled by codegen_static_numels
                 # Dynamic length: need to pass as parameter
             argdefs.append(ArgName(f"{axis.name.upper()}BLOCK_SUB", is_constexpr=True))
+
+        if (
+            self.vectorized_welford_axis is not None
+            and self.vectorized_welford_axis not in self.tiling_axis
+        ):
+            argdefs.append(
+                ArgName(
+                    f"{self.vectorized_welford_axis.name.upper()}BLOCK_SUB",
+                    is_constexpr=True,
+                )
+            )
 
     def _disable_grouped_autotune(self, inductor_meta, reason: str):
         log.debug(
@@ -2616,13 +2787,28 @@ class NPUIndexTritonKernel(TritonKernel):
         )
 
     def _iter_codegen_lines(self):
-        for line in self.loads._lines:
+        loads = (
+            self._original_loads_buf
+            if self._original_loads_buf is not None
+            else self.loads
+        )
+        for line in loads._lines:
             yield line
-        for line in self.compute._lines:
+        compute = (
+            self._original_compute_buf
+            if self._original_compute_buf is not None
+            else self.compute
+        )
+        for line in compute._lines:
             yield line
         for line in self.post_loop_store._lines:
             yield line.line if isinstance(line, DeferredLine) else line
-        for line in self.stores._lines:
+        stores = (
+            self._original_stores_buf
+            if self._original_stores_buf is not None
+            else self.stores
+        )
+        for line in stores._lines:
             yield line.line if isinstance(line, DeferredLine) else line
 
     def _emit_coordinate_transforms(self):
@@ -2673,7 +2859,15 @@ class NPUIndexTritonKernel(TritonKernel):
         codegen triton kernel body
         """
 
-        if not (self.loads or self.stores or self.compute or self.post_loop_store):
+        if not (
+            self.loads
+            or self.stores
+            or self.compute
+            or self.post_loop_store
+            or self._original_loads_buf
+            or self._original_compute_buf
+            or self._original_stores_buf
+        ):
             return
 
         def write_pointwise(allow_stores=None):
@@ -2681,10 +2875,25 @@ class NPUIndexTritonKernel(TritonKernel):
                 allow_stores = self.numof_reduction_axis() <= 1
             self._emit_coordinate_transforms()
             self.body.splice(self.indexing_code)
-            self.body.splice(self.loads)
-            self.body.splice(self.compute)
+            loads = (
+                self._original_loads_buf
+                if self._original_loads_buf is not None
+                else self.loads
+            )
+            self.body.splice(loads)
+            compute = (
+                self._original_compute_buf
+                if self._original_compute_buf is not None
+                else self.compute
+            )
+            self.body.splice(compute)
             if allow_stores:
-                self.body.splice(self.stores)
+                stores = (
+                    self._original_stores_buf
+                    if self._original_stores_buf is not None
+                    else self.stores
+                )
+                self.body.splice(stores)
 
         def collect_store_unified_vars():
             """
@@ -2742,6 +2951,17 @@ class NPUIndexTritonKernel(TritonKernel):
 
         store_unified_vars = collect_store_unified_vars()
         sub_axis_to_unified_var = build_sub_axis_to_unified_var(store_unified_vars)
+
+        def write_post_reduction_indexing():
+            if not (
+                self.post_reduction_loads
+                or self.post_reduction_compute
+                or self.post_reduction_stores
+            ):
+                return
+            for axis in self.sorted_axis:
+                if axis.prefix == "r":
+                    self.body.splice(axis.indexing_code)
 
         def codegen_range(index):
             def is_1d_reduction():
@@ -2807,7 +3027,10 @@ class NPUIndexTritonKernel(TritonKernel):
             use_outer_reduction_post_loop = (
                 self.numof_reduction_axis() > 1
                 and range_val.prefix == "r"
-                and bool(self.prefix._lines)
+                and (
+                    bool(self.prefix._lines)
+                    or self._original_compute_buf is not None
+                )
             )
 
             # tiling axis and last tiling
@@ -2832,6 +3055,10 @@ class NPUIndexTritonKernel(TritonKernel):
                 else:
                     if self.numof_reduction_axis() <= 1 or range_val.prefix != "r":
                         self.body.splice(self.post_loop_combine)
+                    write_post_reduction_indexing()
+                    self.body.splice(self.post_reduction_loads)
+                    self.body.splice(self.post_reduction_compute)
+                    self.body.splice(self.post_reduction_stores)
                     self.body.splice(self.post_loop_store)
                     # Output deferred reduction stores here (outside the loop).
                     # body.writeline() controls indentation uniformly, keeping
@@ -2841,8 +3068,16 @@ class NPUIndexTritonKernel(TritonKernel):
                         self.body.writeline(store_line)
                     self._deferred_reduction_stores.clear()
                     if self.numof_reduction_axis() > 1 and range_val.prefix == "r":
-                        self.body.splice(self.stores)
+                        stores = (
+                            self._original_stores_buf
+                            if self._original_stores_buf is not None
+                            else self.stores
+                        )
+                        self.body.splice(stores)
                         self.stores.clear()
+                    self.post_reduction_loads.clear()
+                    self.post_reduction_compute.clear()
+                    self.post_reduction_stores.clear()
                     self.post_loop_combine.clear()
                     self.post_loop_store.clear()
 
@@ -2853,7 +3088,13 @@ class NPUIndexTritonKernel(TritonKernel):
                 if not have_load_store:
                     do_indent = False
                     indexing_code = None
-                if not range_val.is_no_loop_axis:
+                elide_full_reduction_loop = (
+                    self.full_static_welford_reduction
+                    and range_val.prefix == "r"
+                )
+                if elide_full_reduction_loop and is_first_reduction_tiling:
+                    self.body.splice(self.prefix)
+                if not range_val.is_no_loop_axis and not elide_full_reduction_loop:
                     do_indent = True
                     if is_first_reduction_tiling:
                         self.body.splice(self.prefix)
@@ -2863,20 +3104,47 @@ class NPUIndexTritonKernel(TritonKernel):
                 loop_body(index, indexing_code, is_last_axis, do_indent=do_indent)
                 if is_first_reduction_tiling and use_outer_reduction_post_loop:
                     self.body.splice(self.post_loop_combine)
+                    write_post_reduction_indexing()
+                    self.body.splice(self.post_reduction_loads)
+                    self.body.splice(self.post_reduction_compute)
+                    self.body.splice(self.post_reduction_stores)
                     for store_line in self.post_loop_store._lines:
                         self.body.writeline(store_line)
-                    for store_line in self.stores._lines:
+                    stores = (
+                        self._original_stores_buf
+                        if self._original_stores_buf is not None
+                        else self.stores
+                    )
+                    for store_line in stores._lines:
                         self.body.writeline(store_line)
                     for store_line in self._deferred_reduction_stores:
                         self.body.writeline(store_line)
                     self._deferred_reduction_stores.clear()
                     self.stores.clear()
+                    self.post_reduction_loads.clear()
+                    self.post_reduction_compute.clear()
+                    self.post_reduction_stores.clear()
                     self.post_loop_combine.clear()
                     self.post_loop_store.clear()
 
             elif not is_last_axis:
                 do_indent = True
-                if range_val.is_split_axis:
+                if range_val.is_vectorized_split:
+                    block_sub = f"{range_val.name.upper()}BLOCK_SUB"
+                    if range_val.is_split_axis:
+                        offset = f"{range_val.name}_offset"
+                        upper = (
+                            f"min({offset} + {range_val.name.upper()}BLOCK, "
+                            f"{range_val.name}_numel)"
+                        )
+                    else:
+                        offset = "0"
+                        upper = f"{range_val.name}_numel"
+                    self.body.writeline(
+                        f"for {range_val.name}_loop_offset in range("
+                        f"{offset}, {upper}, {block_sub}):"
+                    )
+                elif range_val.is_split_axis:
                     offset = f"{range_val.name}_offset"
                     self.body.writeline(
                         f"for {range_val.name} in range({offset}, "
@@ -2887,7 +3155,14 @@ class NPUIndexTritonKernel(TritonKernel):
                         f"for {range_val.name} in range({range_val.name}_numel):"
                     )
 
-                if not reduction_1d and self.persistent_reduction:
+                is_last_outer_axis = range_val.prefix != "r" and not any(
+                    axis.prefix != "r" for axis in self.sorted_axis[index + 1 :]
+                )
+                if (
+                    not reduction_1d
+                    and self.persistent_reduction
+                    and is_last_outer_axis
+                ):
                     self.body.do_indent()
                     self.body.splice(self.prefix)
                     self.prefix.clear()
@@ -2931,6 +3206,15 @@ class NPUIndexTritonKernel(TritonKernel):
                 self.body.do_unindent()
 
         self.cse.invalidate(self.outside_loop_vars)
+        if self._original_loads_buf is not None:
+            self.loads = self._original_loads_buf
+            self._original_loads_buf = None
+        if self._original_compute_buf is not None:
+            self.compute = self._original_compute_buf
+            self._original_compute_buf = None
+        if self._original_stores_buf is not None:
+            self.stores = self._original_stores_buf
+            self._original_stores_buf = None
         self.loads.clear()
         self.compute.clear()
         self.stores.clear()
@@ -2978,7 +3262,7 @@ class NPUIndexTritonKernel(TritonKernel):
             if not isinstance(indexing, IndexingOptions):
                 raise RuntimeError("assert isinstance(indexing, IndexingOptions)")
             line = f"tl.store({var} + ({indexing.index_str} ), {value}, {indexing.mask_str})"
-            if self.numof_reduction_axis() > 1:
+            if self.numof_reduction_axis() > 1 and not self.persistent_reduction:
                 line = f"tl.store({var} + ({indexing.index_str} + tl.arange(0,1) ), {value}, {indexing.mask_str})"
             self.post_loop_store.writeline(DeferredLine(name, line))
 
@@ -3042,7 +3326,7 @@ class NPUIndexTritonKernel(TritonKernel):
             )
         elif mode is None:
             line = f"tl.store({var} + ({index_str}), {value_str}, {mask_str})"
-            if self.numof_reduction_axis() > 1:
+            if self.numof_reduction_axis() > 1 and not self.persistent_reduction:
                 line = f"tl.store({var} + ({index_str} + tl.arange(0,1) ), {value_str}, {selected_indexing.mask_str})"
 
         elif mode == "atomic_add":
@@ -3820,6 +4104,11 @@ class NPUIndexTritonKernel(TritonKernel):
 
     # and add to shape to value
     def reduction_resize(self, value, dim):
+        if self.vectorized_welford_axis is not None:
+            block_sub = f"{self.vectorized_welford_axis.name.upper()}BLOCK_SUB"
+            broadcast_dims = [block_sub] + ["1"] * len(self.tiling_axis)
+            return f"{value}.reshape([{', '.join(broadcast_dims)}])"
+
         ndims = self.triton_tensor_ndim()
         if ndims == 1:
             return f"triton_helpers.promote_to_tensor({value})"
@@ -3851,6 +4140,13 @@ class NPUIndexTritonKernel(TritonKernel):
         if not self.reduce_analysis:
             self.reduce_analysis = ReductionAnalysis(self)
         return self.reduce_analysis.reduced_dim
+
+    def _reduction_tile_size(self):
+        reduction_blocks = [
+            f"{self.range_tree_nodes[axis].name.upper()}BLOCK_SUB"
+            for axis in self.reduction_axis_list()
+        ]
+        return " * ".join(reduction_blocks) if reduction_blocks else "1"
 
     def is_unified_simt_kernel(self):
         return (
@@ -3884,6 +4180,9 @@ class NPUIndexTritonKernel(TritonKernel):
             is_persistent_reduction_axis = (
                 self.persistent_reduction and node.is_reduction
             )
+            if node.is_vectorized_split:
+                masked_axis_name.append(node.name)
+                continue
             if self.is_unified_simt_kernel():
                 if not node.is_tiling_axis:
                     continue
@@ -3979,7 +4278,28 @@ class NPUIndexTritonKernel(TritonKernel):
                 ),
                 value,
             )
-        if (
+
+        if self.vectorized_welford_axis is not None and self.persistent_reduction:
+            vector_block = (
+                f"{self.vectorized_welford_axis.name.upper()}BLOCK_SUB"
+            )
+            reduction_blocks = [
+                f"{self.range_tree_nodes[axis].name.upper()}BLOCK_SUB"
+                for axis in self.reduction_axis_list()
+            ]
+            reduction_size = " * ".join(reduction_blocks)
+            vectorized_shape = f"[{vector_block}, {reduction_size}]"
+            vectorized_value_shape = (vector_block, reduction_size)
+            value = self._map_tuple_or_scalar(
+                lambda v: self.cse.generate(
+                    self.compute,
+                    f"tl.reshape({v}, {vectorized_shape})",
+                    dtype=v.dtype,
+                    shape=vectorized_value_shape,
+                ),
+                value,
+            )
+        elif (
             len(dense_size_str) > 2
             and (
                 not self.persistent_reduction or self.numof_reduction_axis() != 1
@@ -4093,9 +4413,130 @@ class NPUIndexTritonKernel(TritonKernel):
                         shape=masked_value.shape,
                     )
             elif reduction_type == "welford_reduce":
-                raise RuntimeError(
-                    "assert False, welford_reduction and is not supported now.."
+                acc_sum = f"{result_var}_acc_sum"
+                acc_sum_sq = f"{result_var}_acc_sum_sq"
+                acc_count = f"{result_var}_acc_count"
+                vector_axis = self.vectorized_welford_axis
+                static_count = self._static_welford_reduction_numel()
+
+                if vector_axis is not None:
+                    block_sub = f"{vector_axis.name.upper()}BLOCK_SUB"
+                    acc_shape = f"[{block_sub}, 1]"
+                    accumulator_shape = (block_sub, "1")
+                    resized_shape = tuple(
+                        [block_sub] + ["1"] * len(self.tiling_axis)
+                    )
+                    reduce_dim = 1
+                    keep_dims = ", keep_dims=True"
+                    if static_count is None:
+                        if vector_axis.is_split_axis:
+                            vector_upper = (
+                                f"min({vector_axis.name}_offset + "
+                                f"{vector_axis.name.upper()}BLOCK, "
+                                f"{vector_axis.name}_numel)"
+                            )
+                        else:
+                            vector_upper = f"{vector_axis.name}_numel"
+                        valid_row = (
+                            f"{vector_axis.name}_loop_offset + base_{vector_axis.name}"
+                            f" < {vector_upper}"
+                        )
+                        count_increment = (
+                            f"tl.where(({valid_row})[:, None], "
+                            f"{self._reduction_tile_size()}, 0)"
+                        )
+                else:
+                    acc_shape = "[1]"
+                    accumulator_shape = ("1",)
+                    resized_shape = tuple(result_shape)
+                    reduce_dim = dim
+                    keep_dims = ""
+                    count_increment = self._reduction_tile_size()
+
+                self.prefix.writeline(
+                    f"{acc_sum} = tl.zeros({acc_shape}, {acc_type})"
                 )
+                self.prefix.writeline(
+                    f"{acc_sum_sq} = tl.zeros({acc_shape}, {acc_type})"
+                )
+                if static_count is None:
+                    self.prefix.writeline(
+                        f"{acc_count} = tl.zeros({acc_shape}, {acc_type})"
+                    )
+                self.compute.writeline(
+                    f"{acc_sum} += tl.sum({masked_value}, axis={reduce_dim}{keep_dims})"
+                )
+                self.compute.writeline(
+                    f"{acc_sum_sq} += tl.sum({masked_value} * {masked_value}, "
+                    f"axis={reduce_dim}{keep_dims})"
+                )
+                if static_count is None:
+                    self.compute.writeline(f"{acc_count} += {count_increment}")
+
+                self.outside_loop_vars |= {acc_sum, acc_sum_sq}
+                self.reduction_result_vars |= {acc_sum, acc_sum_sq}
+                if static_count is None:
+                    self.outside_loop_vars.add(acc_count)
+                    self.reduction_result_vars.add(acc_count)
+
+                mean = self.cse.newvar(
+                    dtype=torch_acc_type, shape=accumulator_shape
+                )
+                m2 = self.cse.newvar(
+                    dtype=torch_acc_type, shape=accumulator_shape
+                )
+                weight = self.cse.newvar(
+                    dtype=torch_acc_type, shape=accumulator_shape
+                )
+                if static_count is None:
+                    count_value = acc_count
+                    self.post_loop_combine.writeline(
+                        f"{mean} = tl.where({acc_count} == 0.0, 0.0, "
+                        f"{acc_sum} / {acc_count})"
+                    )
+                else:
+                    count_value = f"{static_count}.0"
+                    self.post_loop_combine.writeline(
+                        f"{mean} = {acc_sum} / {count_value}"
+                    )
+                self.post_loop_combine.writeline(
+                    f"{m2} = {acc_sum_sq} - {acc_sum} * {acc_sum} / {count_value}"
+                )
+                if static_count is None:
+                    self.post_loop_combine.writeline(f"{weight} = {count_value}")
+                else:
+                    self.post_loop_combine.writeline(
+                        f"{weight} = tl.full({acc_shape}, {count_value}, {acc_type})"
+                    )
+
+                result_mean = self.cse.newvar(
+                    dtype=torch_acc_type, shape=resized_shape
+                )
+                result_m2 = self.cse.newvar(
+                    dtype=torch_acc_type, shape=resized_shape
+                )
+                result_weight = self.cse.newvar(
+                    dtype=torch_acc_type, shape=resized_shape
+                )
+                self.post_loop_combine.writeline(
+                    f"{result_mean} = {self.reduction_resize(mean, reduce_dim)}"
+                )
+                self.post_loop_combine.writeline(
+                    f"{result_m2} = {self.reduction_resize(m2, reduce_dim)}"
+                )
+                self.post_loop_combine.writeline(
+                    f"{result_weight} = {self.reduction_resize(weight, reduce_dim)}"
+                )
+                self.outside_loop_vars |= {
+                    mean,
+                    m2,
+                    weight,
+                    result_mean,
+                    result_m2,
+                    result_weight,
+                }
+
+                result_var = (result_mean, result_m2, result_weight)
             elif reduction_type == "welford_combine":
                 raise RuntimeError(
                     "assert False, welford_combine and is not supported now.."
@@ -4298,7 +4739,11 @@ class NPUIndexTritonKernel(TritonKernel):
         if advance_block_ptr:
             load_buffer.writeline(advance_block_ptr)
 
-        if not self.inside_reduction or (not indexing.has_rmask() and not has_rindex):
+        if (
+            (self.full_static_welford_reduction and not indirect_indexing)
+            or not self.inside_reduction
+            or (not indexing.has_rmask() and not has_rindex)
+        ):
             self.outside_loop_vars.add(result_var)
 
         return result_var
