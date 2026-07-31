@@ -41,6 +41,7 @@ import functools
 import gc
 import itertools
 import operator
+import os
 import sys
 import threading
 import traceback
@@ -124,6 +125,20 @@ StorageDataPtr = int
 NBytes = int
 S = TypeVar("S", bound="StorageWeakRefWrapper")
 log = torch._logging.getArtifactLogger("torch_npu.npugraph", "cudagraphs")
+
+
+def _npu_launch_blocking_enabled() -> bool:
+    return os.getenv("ASCEND_LAUNCH_BLOCKING", None) == "1"
+
+
+def _can_defer_aclgraph_update_after_replay(graph: Any, cpu_update_input: Any) -> bool:
+    if graph is None or not getattr(graph, "auto_dispatch_capture", False):
+        return False
+    if not cpu_update_input:
+        return False
+    if _npu_launch_blocking_enabled():
+        return False
+    return True
 
 
 @dataclasses.dataclass(frozen=True)
@@ -1082,13 +1097,26 @@ class NPUGraphNode:
     def run(self, new_inputs: List[InputType]) -> OutputType:
         log.debug("NPUGRAPH-TREE Node Run node=%s", self.id)
         self.check_static_inputs_are_stable(new_inputs)
-        aclgraph_update_submitted = update_aclgraph_records_for_graph(
-            resolve_aclgraph_update_plan(self.aclgraph_update_plan, new_inputs),
-            self.graph,
+        aclgraph_cpu_update_input = resolve_aclgraph_update_plan(
+            self.aclgraph_update_plan, new_inputs
         )
-        self._copy_inputs_and_remove_from_src(self.reconstructed_inputs, new_inputs)
-
-        self.run_graph()
+        if _can_defer_aclgraph_update_after_replay(self.graph, aclgraph_cpu_update_input):
+            log.debug("NPUGRAPH-TREE ACLGraph update deferred until after replay")
+            self._copy_inputs_and_remove_from_src(self.reconstructed_inputs, new_inputs)
+            self.run_graph()
+            aclgraph_update_submitted = update_aclgraph_records_for_graph(
+                aclgraph_cpu_update_input,
+                self.graph,
+            )
+        else:
+            if aclgraph_cpu_update_input:
+                log.debug("NPUGRAPH-TREE ACLGraph update before replay")
+            aclgraph_update_submitted = update_aclgraph_records_for_graph(
+                aclgraph_cpu_update_input,
+                self.graph,
+            )
+            self._copy_inputs_and_remove_from_src(self.reconstructed_inputs, new_inputs)
+            self.run_graph()
         if aclgraph_update_submitted:
             # Ensure the next ACLGraph update does not record reusable external events before this replay resets them.
             self.graph.graph_dispatch_mode.update_stream.wait_stream(
