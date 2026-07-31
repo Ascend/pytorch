@@ -1844,8 +1844,21 @@ class NPUCachingAutotuner(CachingAutotuner):
         if dump_path is None:
             log.warning(f"data dump for kernel {self.get_fn_name()} failed, no valid dump_path is supplied.")
             return False
+        if not hasattr(self, '_dump_counter'):
+            self._dump_counter = 0
+
         data_dump_path = os.path.join(dump_path, 'data.pth')
-        torch.save(args, data_dump_path)
+        input_info = {i: list(arg.shape) if isinstance(arg, torch.Tensor) else type(arg).__name__
+                      for i, arg in enumerate(args)}
+
+        if self._dump_counter == 0:
+            log.info(f"[ACC_DEBUG] {self.get_fn_name()} invocation=#1 "
+                     f"saving args={input_info} to data.pth")
+            torch.save(args, data_dump_path)
+            self._dump_counter += 1
+        else:
+            log.debug(f"[ACC_DEBUG] {self.get_fn_name()} invocation=#{self._dump_counter + 1} "
+                      f"skip save (data.pth preserved from invocation #1, args={input_info})")
         return True
 
     def get_fn_name(self):
