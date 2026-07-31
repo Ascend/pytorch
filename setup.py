@@ -418,6 +418,12 @@ def add_ops_files(base_dir, file_list):
     plugin_utils_path = os.path.join(base_dir, 'third_party/op-plugin/op_plugin/utils')
     if os.path.exists(plugin_utils_path):
         file_list.append('third_party/op-plugin/op_plugin/utils/*.h')
+    plugin_dvm_path = os.path.join(base_dir, 'third_party/op-plugin/op_plugin/ops/dvm')
+    if os.path.exists(plugin_dvm_path):
+        file_list.append('third_party/op-plugin/op_plugin/ops/dvm/*.h')
+    plugin_dvm_include_path = os.path.join(base_dir, 'third_party/dvm/dvm/include')
+    if os.path.exists(plugin_dvm_include_path):
+        file_list.append('third_party/dvm/dvm/include/*.h')
     return
 
 
