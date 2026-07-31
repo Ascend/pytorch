@@ -141,7 +141,7 @@
 |torch.acosh|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>可能回退至CPU执行|
 |torch.arccosh|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128|
 |torch.add|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
-|torch.addcdiv|是|支持fp16，fp32，int64<br>在int64类型下不支持三个tensor同时广播|
+|torch.addcdiv|是|支持fp16，fp32|
 |torch.addcmul|是|支持bf16，fp16，fp32，fp64，uint8，int8，int32，int64<br>在fp64，uint8，int8，int64类型下不支持三个tensor同时广播|
 |torch.angle|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64|
 |torch.asin|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
