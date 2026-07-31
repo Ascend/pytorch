@@ -188,6 +188,74 @@ void ApplyDeterministicSnapshot(const c10_npu::DeterministicSnapshot& snapshot, 
     ApplyDeterministicSnapshotLocked(snapshot, isOpapi);
 }
 
+void ApplyLegacyDeterministicLevelLocked(
+    const int64_t level,
+    bool isOpapi,
+    int64_t cur_level) {
+  TORCH_CHECK(
+      level <= 2,
+      "level=3 requires newer CANN runtime and operator packages that support batch consistency.",
+      PTA_ERROR(ErrCode::VALUE));
+  ASCEND_LOGI(
+      "Apply deterministic level in the legacy backend, level: %d", level);
+  bool deterministic = level >= 1;
+  bool strong_consistency = level == 2;
+
+  if (!isOpapi && g_used_aclop && cur_level != level) {
+    NPU_CHECK_ERROR(AclSetCompileopt(
+        aclCompileOpt::ACL_OP_DETERMINISTIC, deterministic ? "1" : "0"));
+  }
+
+  if (!IsAclStrongConsistencyExist()) {
+    NPU_CHECK_ERROR(
+        AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, 0));
+  } else {
+    NPU_CHECK_ERROR(AclrtCtxSetSysParamOpt(
+        aclSysParamOpt::ACL_OPT_DETERMINISTIC, deterministic ? 1 : 0));
+    NPU_CHECK_ERROR(AclrtCtxSetSysParamOpt(
+        aclSysParamOpt::ACL_OPT_STRONG_CONSISTENCY,
+        strong_consistency ? 1 : 0));
+    NPU_CHECK_ERROR(AclrtSetSysParamOpt(
+        aclSysParamOpt::ACL_OPT_DETERMINISTIC, deterministic ? 1 : 0));
+    HcclConfigValue configValue = {deterministic ? 1 : 0};
+    HCCL_CHECK_ERROR(
+        hccl::HcclSetConfig(HcclConfig::HCCL_DETERMINISTIC, configValue));
+  }
+}
+
+void ApplyDeterministicLevelLocked(const int64_t level, bool isOpapi) {
+  int64_t cur_level = 0;
+  NPU_CHECK_ERROR(
+      AclrtGetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, &cur_level));
+  auto backend = c10_npu::GetDeterministicBackend();
+  if (backend == c10_npu::DeterministicBackend::V2) {
+    ASCEND_LOGI(
+        "Apply deterministic level in the V2 backend, level: %d", level);
+    if (level == cur_level) {
+      return;
+    }
+    NPU_CHECK_ERROR(AclrtSetSysParamOpt(
+        aclSysParamOpt::ACL_OPT_DETERMINISTIC,
+        static_cast<int64_t>(level)));
+    return;
+  }
+
+  ApplyLegacyDeterministicLevelLocked(level, isOpapi, cur_level);
+}
+
+void ApplyDeterministicLevel(
+    int64_t level,
+    bool deterministicAlgorithmsStatus,
+    bool isOpapi) {
+  if (deterministicAlgorithmsStatus) {
+    level = (level == 0) ? 1 : level;
+  } else {
+    level = 0;
+  }
+  std::lock_guard<std::recursive_mutex> lock(deterministic_launch_mutex);
+  ApplyDeterministicLevelLocked(level, isOpapi);
+}
+
 void SetDeterministic(bool isOpapi)
 {
     ApplyDeterministicSnapshot(c10_npu::CaptureDeterministicSnapshot(), isOpapi);
