@@ -49,43 +49,8 @@ def resolve_npu_device_index(device_idx=None) -> int:
 
 
 def patch_has_triton():
-    from torch.utils._triton import has_triton_package
+    from torch_npu.utils._dynamo import has_triton
 
-    @functools.lru_cache(None)
-    def has_triton() -> bool:
-        if not has_triton_package():
-            return False
-
-        from torch._dynamo.device_interface import get_interface_for_device
-
-        def cuda_extra_check(device_interface):
-            return True
-
-        def cpu_extra_check(device_interface):
-            import triton.backends
-
-            return "cpu" in triton.backends.backends
-
-        def _return_true(device_interface):
-            return True
-
-        triton_supported_devices = {
-            "cuda": cuda_extra_check,
-            "xpu": _return_true,
-            "cpu": cpu_extra_check,
-            "npu": _return_true,
-        }
-
-        def is_device_compatible_with_triton():
-            for device, extra_check in triton_supported_devices.items():
-                device_interface = get_interface_for_device(device)
-                if device_interface.is_available() and extra_check(device_interface):
-                    return True
-            return False
-
-        return is_device_compatible_with_triton()
-
-    torch.utils._triton.has_triton = has_triton
     torch._inductor.scheduler.has_triton = has_triton
     torch._inductor.compile_fx.has_triton = has_triton
 
