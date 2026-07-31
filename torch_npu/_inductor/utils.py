@@ -20,6 +20,12 @@ def patch_is_gpu():
     GPU_TYPES.append("npu")
 
 
+def resolve_npu_device_index(device_idx=None) -> int:
+    from torch._inductor.utils import decode_device
+
+    return decode_device(torch.device("npu", device_idx)).index
+
+
 def patch_has_triton():
     from torch_npu.utils._dynamo import has_triton
 
