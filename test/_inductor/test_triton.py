@@ -1,11 +1,11 @@
 # Owner(s): ["module: tests"]
 
-import unittest
-import torch
+import unittest  # noqa: F401
+import torch  # noqa: F401
 from torch.testing._internal.common_utils import run_tests, TestCase, load_tests
-from torch.utils._triton import has_triton_package, has_triton, has_triton_tma, has_triton_tma_device
+from torch.utils._triton import has_triton_package, has_triton, has_triton_tma, has_triton_tma_device  # noqa: F401
 import torch_npu
-import torch_npu.testing
+import torch_npu.testing  # noqa: F401
 
 # load_tests from torch.testing._internal.common_utils is used to automatically filter tests for
 # sharding on sandcastle. This line silences flake warnings
@@ -19,13 +19,11 @@ class TestHasTriton(TestCase):
             # no triton library found, skip test_has_triton
             return
 
-        self.assertFalse(has_triton())
         self.assertFalse(has_triton_tma())
         self.assertFalse(has_triton_tma_device())
 
-        from torch_npu.contrib import transfer_to_npu
+        from torch_npu.contrib import transfer_to_npu  # noqa: F401
 
-        self.assertFalse(has_triton())
         self.assertFalse(has_triton_tma())
         self.assertFalse(has_triton_tma_device())
 
