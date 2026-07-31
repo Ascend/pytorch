@@ -46,14 +46,6 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - name: Report test in_progress
-        if: ${{ inputs.report_to_upstream }}
-        continue-on-error: true
-        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
-        with:
-          status: in_progress
-          job-name: test
-
       - name: Checkout this repo for report scripts
         uses: actions/checkout@v6
         with:
@@ -150,26 +142,6 @@ jobs:
 
           cat ${REPORT_MD} >> $GITHUB_STEP_SUMMARY
 
-          # Extract totals for upstream report
-          if [ -f "${REPORT_JSON}" ]; then
-            python3 -c "
-          import json, os
-          with open('${REPORT_JSON}') as f:
-              d = json.load(f)
-          totals = d.get('totals', {})
-          total_failed = totals.get('failed', 0) + totals.get('errors', 0)
-          report_total_failed = total_failed + totals.get('timeout', 0)
-          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-              f.write(f'passed={totals.get(\"passed\", 0)}\n')
-              f.write(f'failed={totals.get(\"failed\", 0)}\n')
-              f.write(f'errors={totals.get(\"errors\", 0)}\n')
-              f.write(f'skipped={totals.get(\"skipped\", 0)}\n')
-              f.write(f'total={totals.get(\"total\", 0)}\n')
-              f.write(f'total_failed={total_failed}\n')
-              f.write(f'report_total_failed={report_total_failed}\n')
-          " || true
-          fi
-
       - name: Upload consolidated summary
         if: always()
         uses: actions/upload-artifact@v4
@@ -186,18 +158,3 @@ jobs:
           if-no-files-found: warn
           retention-days: 60
 
-      - name: Report test completed
-        if: always() && inputs.report_to_upstream
-        continue-on-error: true
-        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
-        with:
-          status: completed
-          conclusion: ${{ steps.generate_report.outputs.report_total_failed == '0' && 'success' || 'failure' }}
-          job-name: test
-          test-results: >-
-            {
-              "passed": ${{ steps.generate_report.outputs.passed }},
-              "failed": ${{ steps.generate_report.outputs.report_total_failed }},
-              "skipped": ${{ steps.generate_report.outputs.skipped }},
-              "total": ${{ steps.generate_report.outputs.total }}
-            }
