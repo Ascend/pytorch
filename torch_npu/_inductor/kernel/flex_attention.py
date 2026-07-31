@@ -19,6 +19,11 @@ from torch.utils._pytree import tree_map
 from torch._inductor import config
 from torch_npu._inductor import config as npu_config
 from torch_npu._inductor.config import log
+from torch_npu._inductor.flex_attention_tasklist import (
+    FlexAttentionDkdvDispatchSpec,
+    RuntimeTemplateArg,
+    is_dkdv_tasklist_codegen_compatible,
+)
 
 from torch._inductor.ir import (
     Buffer,
@@ -101,6 +106,8 @@ def _tag_choice_attr(new_choices, attr_name: str, value: Any) -> None:
 
 _COMPACT_SPARSE_MASK_TOTAL_BLOCKS_OPTION = "COMPACT_SPARSE_MASK_TOTAL_BLOCKS"
 _COMPACT_SPARSE_MASK_ATTR = "_npu_compact_sparse_mask_metadata"
+_STREAMING_BLOCK_MASK_TARGET_BYTES = 256 * 1024 * 1024
+_STREAMING_BLOCK_MASK_BYTES_PER_ELEMENT = 8
 
 
 def _make_closure_cell(value):
@@ -383,6 +390,117 @@ def _is_grad_score_mod_identity_graph(joint_graph) -> bool:
     return False
 
 
+def _is_npu_device(device: Any) -> bool:
+    try:
+        return torch.device(device).type == "npu"
+    except (RuntimeError, TypeError):
+        return False
+
+
+def _create_block_mask_streaming(
+    mask_mod,
+    B: Optional[int],
+    H: Optional[int],
+    Q_LEN: int,
+    KV_LEN: int,
+    device: str = "cuda",
+    BLOCK_SIZE: Union[int, tuple[int, int]] = 128,
+    _compile: bool = False,
+):
+    """Create an NPU BlockMask without materializing its full dense mask.
+
+    ``create_mask`` is evaluated in Q-block stripes and each stripe is converted
+    to the standard partial/full block representation immediately. The final
+    BlockMask is assembled with PyTorch's existing helper, so all downstream
+    Inductor consumers keep the original BlockMask layout and semantics.
+    """
+    mod_type = flex_attention_module._get_mod_type(mask_mod)
+    assert (
+        mod_type == flex_attention_module._ModificationType.MASK_MOD
+    ), f"create-block_mask requires a mask_mod function! Got {mask_mod}"
+
+    if B is None:
+        B = 1
+    if H is None:
+        H = 1
+    if isinstance(BLOCK_SIZE, int):
+        Q_BLOCK_SIZE = BLOCK_SIZE
+        KV_BLOCK_SIZE = BLOCK_SIZE
+    else:
+        Q_BLOCK_SIZE, KV_BLOCK_SIZE = BLOCK_SIZE
+
+    max_rows_per_stripe = max(
+        1,
+        _STREAMING_BLOCK_MASK_TARGET_BYTES
+        // (B * H * KV_LEN * _STREAMING_BLOCK_MASK_BYTES_PER_ELEMENT),
+    )
+    stripe_q_blocks = max(1, max_rows_per_stripe // Q_BLOCK_SIZE)
+
+    partial_block_masks = []
+    full_block_masks = []
+    for q_start in range(0, Q_LEN, stripe_q_blocks * Q_BLOCK_SIZE):
+        stripe_q_len = min(stripe_q_blocks * Q_BLOCK_SIZE, Q_LEN - q_start)
+
+        def shifted_mask_mod(
+            b,
+            h,
+            q_idx,
+            kv_idx,
+            _mask_mod=mask_mod,
+            _q_start=q_start,
+        ):
+            return _mask_mod(b, h, q_idx + _q_start, kv_idx)
+
+        stripe_mask = flex_attention_module.create_mask(
+            shifted_mask_mod,
+            B,
+            H,
+            stripe_q_len,
+            KV_LEN,
+            device,
+        )
+        partial_blocks, full_blocks = (
+            flex_attention_module._convert_mask_to_block_mask(
+                stripe_mask,
+                Q_BLOCK_SIZE=Q_BLOCK_SIZE,
+                KV_BLOCK_SIZE=KV_BLOCK_SIZE,
+                separate_full_blocks=True,
+            )
+        )
+        partial_block_masks.append(partial_blocks)
+        full_block_masks.append(full_blocks)
+        del stripe_mask
+
+    partial_block_mask = torch.cat(partial_block_masks, dim=2)
+    full_block_mask = torch.cat(full_block_masks, dim=2)
+    return flex_attention_module._create_sparse_block_from_block_mask(
+        (partial_block_mask, full_block_mask),
+        mask_mod,
+        (Q_LEN, KV_LEN),
+        Q_BLOCK_SIZE,
+        KV_BLOCK_SIZE,
+    )
+
+
+def _should_use_streaming_block_mask(args, kwargs) -> bool:
+    if (
+        torch.compiler.is_dynamo_compiling()
+        or kwargs.get("_compile", False)
+        or (len(args) > 7 and args[7])
+    ):
+        return False
+    device = kwargs.get("device", args[5] if len(args) > 5 else "cuda")
+    q_len = kwargs.get("Q_LEN", args[3] if len(args) > 3 else None)
+    kv_len = kwargs.get("KV_LEN", args[4] if len(args) > 4 else None)
+    return (
+        _is_npu_device(device)
+        and isinstance(q_len, int)
+        and isinstance(kv_len, int)
+        and q_len > 0
+        and kv_len > 0
+    )
+
+
 def patch_flex_attention() -> None:
     """Patch the Python flex_attention entry so eager block-mask metadata is injected transparently."""
     current_flex_attention = flex_attention_module.flex_attention
@@ -450,7 +568,19 @@ def patch_flex_attention() -> None:
                     kwargs = dict(kwargs)
                     kwargs["mask_mod"] = converted_mask_mod
 
-            block_mask = current_create_block_mask(*args, **kwargs)
+            if _should_use_streaming_block_mask(args, kwargs):
+                try:
+                    block_mask = _create_block_mask_streaming(*args, **kwargs)
+                except Exception as exc:
+                    log.warning(
+                        "NPU streaming create_block_mask failed; falling back to "
+                        "the PyTorch implementation: %s: %s",
+                        type(exc).__name__,
+                        exc,
+                    )
+                    block_mask = current_create_block_mask(*args, **kwargs)
+            else:
+                block_mask = current_create_block_mask(*args, **kwargs)
             try:
                 kernel_options = infer_eager_block_mask_kernel_options(block_mask)
                 merged_kernel_options = dict(kernel_options) if kernel_options else {}
@@ -2543,6 +2673,257 @@ def load_checked_2d(
         return tl.load(ptr)
 """
 
+_FLEX_ATTENTION_BACKWARD_DKDV_HELPERS_MARKER = (
+    "\n@triton.jit\ndef bwd_dkdv_block_mn("
+)
+_FLEX_ATTENTION_BACKWARD_DKDV_HELPERS_SOURCE = (
+    flex_attention_backward_dkdv_only_source[
+        flex_attention_backward_dkdv_only_source.index(
+            _FLEX_ATTENTION_BACKWARD_DKDV_HELPERS_MARKER
+        ) :
+    ]
+)
+
+flex_attention_backward_dkdv_tasklist_source = (
+    r"""
+{{def_kernel("Q", "K", "V", "LSE", "DELTA", "DO", "DV", "DK", "SPARSE_MASK", "Q_OFFSETS", "SPARSE_MASK_BLOCK_POS", "KV_NUM_BLKS", "KV_IDX", "Q_NUM_BLKS", "Q_IDX", "FULL_KV_NUM_BLKS", "FULL_KV_IDX", "FULL_Q_NUM_BLKS", "FULL_Q_IDX", "WORK_ITEMS", "TASK_OFFSETS", "DK_PARTIAL", "DV_PARTIAL")}}
+    stride_qz, stride_qh, stride_qm, stride_qd = {{stride("Q")}}
+    stride_kz, stride_kh, stride_kn, stride_kd = {{stride("K")}}
+    stride_vz, stride_vh, stride_vn, stride_vd = {{stride("V")}}
+    stride_doz, stride_doh, stride_dom, stride_dod = {{stride("DO")}}
+    stride_dvz, stride_dvh, stride_dvm, stride_dvd = {{stride("DV")}}
+
+    stride_q_num_blks_z = {{stride("Q_NUM_BLKS", 0)}}
+    stride_q_num_blks_h = {{stride("Q_NUM_BLKS", 1)}}
+    stride_q_idx_z = {{stride("Q_IDX", 0)}}
+    stride_q_idx_h = {{stride("Q_IDX", 1)}}
+    stride_q_idx_n = {{stride("Q_IDX", 2)}}
+    stride_full_q_num_blks_z = {{stride("FULL_Q_NUM_BLKS", 0)}}
+    stride_full_q_num_blks_h = {{stride("FULL_Q_NUM_BLKS", 1)}}
+    stride_full_q_idx_z = {{stride("FULL_Q_IDX", 0)}}
+    stride_full_q_idx_h = {{stride("FULL_Q_IDX", 1)}}
+    stride_full_q_idx_n = {{stride("FULL_Q_IDX", 2)}}
+
+    ZQ = {{size("Q", 0)}}
+    HQ = {{size("Q", 1)}}
+    HKV = {{size("K", 1)}}
+    Q_LEN = {{size("Q", 2)}}
+    ZKV = {{size("K", 0)}}
+    KV_LEN = {{size("K", 2)}}
+    SPARSE_Z = {{size("KV_NUM_BLKS", 0)}}
+    SPARSE_HQ = {{size("KV_NUM_BLKS", 1)}}
+
+    MATMUL_PRECISION = Q.dtype.element_ty
+    SPARSE_Q_MULTIPLE = SPARSE_Q_BLOCK_SIZE // BLOCK_M1
+    SPARSE_KV_MULTIPLE = SPARSE_KV_BLOCK_SIZE // BLOCK_N1
+    offs_k = tl.arange(0, QK_HEAD_DIM_ROUNDED)
+    offs_v = tl.arange(0, V_HEAD_DIM_ROUNDED)
+
+    meta_id = tl.program_id(0).to(tl.int32)
+    work_start = tl.load(TASK_OFFSETS + meta_id)
+    work_end = tl.load(TASK_OFFSETS + meta_id + 1)
+    for work_idx in range(work_start, work_end):
+        off_zq = tl.load(WORK_ITEMS + work_idx * 6 + 0).to(tl.int64)
+        off_hkv = tl.load(WORK_ITEMS + work_idx * 6 + 1).to(tl.int64)
+        kv_start_block = tl.load(WORK_ITEMS + work_idx * 6 + 2)
+        sub_id = tl.load(WORK_ITEMS + work_idx * 6 + 3)
+        split_count = tl.load(WORK_ITEMS + work_idx * 6 + 4)
+        is_split = tl.load(WORK_ITEMS + work_idx * 6 + 5)
+
+        off_zkv = off_zq % ZKV
+        sparse_idx_z = off_zq % SPARSE_Z
+        pid_mask = kv_start_block // SPARSE_KV_MULTIPLE
+        start_n1 = kv_start_block * BLOCK_N1
+        offs_n1 = start_n1 + tl.arange(0, BLOCK_N1)
+
+        k_adj = (stride_kh * off_hkv + stride_kz * off_zkv).to(tl.int64)
+        v_adj = (stride_vh * off_hkv + stride_vz * off_zkv).to(tl.int64)
+        dv_adj = (stride_dvh * off_hkv + stride_dvz * off_zq).to(tl.int64)
+        K1 = K + k_adj
+        V1 = V + v_adj
+        DK_OUT = DK_PARTIAL + sub_id * PARTIAL_DK_STRIDE
+        DV_OUT = DV_PARTIAL + sub_id * PARTIAL_DV_STRIDE + dv_adj
+
+        k = load_checked_2d(
+            K1, offs_n1, offs_k, stride_kn, stride_kd,
+            IS_DIVISIBLE, SAFE_HEAD_DIM, KV_LEN, QK_HEAD_DIM,
+        )
+        if PRESCALE_QK:
+            k = (k * SM_SCALE).to(MATMUL_PRECISION)
+        v = load_checked_2d(
+            V1, offs_n1, offs_v, stride_vn, stride_vd,
+            IS_DIVISIBLE, SAFE_HEAD_DIM, KV_LEN, V_HEAD_DIM,
+        )
+
+        for off_g in range(0, GQA_SHARED_HEADS):
+            off_hq1 = off_hkv * GQA_SHARED_HEADS + off_g
+            sparse_idx_hq1 = off_hq1 % SPARSE_HQ
+            q_adj1 = (stride_qh * off_hq1 + stride_qz * off_zq).to(tl.int64)
+            do_adj1 = (stride_doh * off_hq1 + stride_doz * off_zq).to(tl.int64)
+            off_chz1 = ((off_zq * HQ + off_hq1) * Q_LEN).to(tl.int64)
+            Q1 = Q + q_adj1
+            DO1 = DO + do_adj1
+            LSE1 = LSE + off_chz1
+            DELTA1 = DELTA + off_chz1
+
+            q_num_offset = (
+                sparse_idx_z * stride_q_num_blks_z
+                + sparse_idx_hq1 * stride_q_num_blks_h
+                + pid_mask
+            )
+            q_idx_offset = (
+                sparse_idx_z * stride_q_idx_z
+                + sparse_idx_hq1 * stride_q_idx_h
+                + pid_mask * stride_q_idx_n
+            )
+            q_indices = Q_IDX + q_idx_offset
+            q_count = tl.load(Q_NUM_BLKS + q_num_offset)
+            q_hi = tl.minimum(
+                q_count * SPARSE_Q_MULTIPLE,
+                tl.maximum(tl.cdiv(Q_LEN, BLOCK_M1), 1),
+            )
+            q_begin = sub_id * q_hi // split_count
+            q_end = (sub_id + 1) * q_hi // split_count
+            for start_m in range(q_begin, q_end):
+                blk_idx_in_list = start_m // SPARSE_Q_MULTIPLE
+                q_block = tl.load(q_indices + blk_idx_in_list)
+                q_start = (
+                    q_block * SPARSE_Q_BLOCK_SIZE
+                    + (start_m % SPARSE_Q_MULTIPLE) * BLOCK_M1
+                )
+                offs_m1 = q_start + tl.arange(0, BLOCK_M1)
+                bwd_dkdv_block_mn(
+                    {{gen_argdefs()}},
+                    Q1, DO1, DK_OUT, DELTA1, LSE1, DV_OUT,
+                    k, v, Q_LEN, KV_LEN,
+                    off_zq, off_hq1, off_hkv, offs_n1, offs_m1,
+                    q_start, q_block, pid_mask, offs_k, offs_v,
+                    stride_qm, stride_qd, stride_dom, stride_dod,
+                    stride_dvm, stride_dvd, stride_kz, stride_kh,
+                    stride_kn, stride_kd, MATMUL_PRECISION,
+                    False, CHECK_BLOCK_BOUNDARY=not IS_DIVISIBLE,
+                )
+
+            if HAS_FULL_BLOCKS:
+                full_q_num_offset = (
+                    sparse_idx_z * stride_full_q_num_blks_z
+                    + sparse_idx_hq1 * stride_full_q_num_blks_h
+                    + pid_mask
+                )
+                full_q_idx_offset = (
+                    sparse_idx_z * stride_full_q_idx_z
+                    + sparse_idx_hq1 * stride_full_q_idx_h
+                    + pid_mask * stride_full_q_idx_n
+                )
+                full_q_indices = FULL_Q_IDX + full_q_idx_offset
+                full_q_count = tl.load(FULL_Q_NUM_BLKS + full_q_num_offset)
+                full_q_hi = tl.minimum(
+                    full_q_count * SPARSE_Q_MULTIPLE,
+                    tl.maximum(tl.cdiv(Q_LEN, BLOCK_M1), 1),
+                )
+                full_q_begin = sub_id * full_q_hi // split_count
+                full_q_end = (sub_id + 1) * full_q_hi // split_count
+                for start_m in range(full_q_begin, full_q_end):
+                    blk_idx_in_list = start_m // SPARSE_Q_MULTIPLE
+                    q_block = tl.load(full_q_indices + blk_idx_in_list)
+                    q_start = (
+                        q_block * SPARSE_Q_BLOCK_SIZE
+                        + (start_m % SPARSE_Q_MULTIPLE) * BLOCK_M1
+                    )
+                    offs_m1 = q_start + tl.arange(0, BLOCK_M1)
+{% if not PRESCALE_QK %}
+                    bwd_dkdv_full_block_mn(
+                        {{gen_argdefs()}},
+                        Q1, DO1, DK_OUT, DELTA1, LSE1, DV_OUT,
+                        k, v, Q_LEN, KV_LEN,
+                        off_zq, off_hq1, off_hkv, offs_n1, offs_m1,
+                        q_start, offs_k, offs_v,
+                        stride_qm, stride_qd, stride_dom, stride_dod,
+                        stride_dvm, stride_dvd, stride_kz, stride_kh,
+                        stride_kn, stride_kd, MATMUL_PRECISION,
+                        CHECK_BLOCK_BOUNDARY=False,
+                    )
+{% else %}
+                    bwd_dkdv_block_mn(
+                        {{gen_argdefs()}},
+                        Q1, DO1, DK_OUT, DELTA1, LSE1, DV_OUT,
+                        k, v, Q_LEN, KV_LEN,
+                        off_zq, off_hq1, off_hkv, offs_n1, offs_m1,
+                        q_start, q_block, pid_mask, offs_k, offs_v,
+                        stride_qm, stride_qd, stride_dom, stride_dod,
+                        stride_dvm, stride_dvd, stride_kz, stride_kh,
+                        stride_kn, stride_kd, MATMUL_PRECISION,
+                        True, CHECK_BLOCK_BOUNDARY=not IS_DIVISIBLE,
+                    )
+{% endif %}
+"""
+    + _FLEX_ATTENTION_BACKWARD_DKDV_HELPERS_SOURCE
+)
+
+flex_attention_backward_dkdv_reduce_source = r"""
+{{def_kernel("DK", "DV", "DK_PARTIAL", "DV_PARTIAL", "SPLIT_BASES")}}
+    stride_dkz, stride_dkh, stride_dkn, stride_dkd = {{stride("DK")}}
+    stride_dvz, stride_dvh, stride_dvn, stride_dvd = {{stride("DV")}}
+    KV_LEN = {{size("DK", 2)}}
+
+    split_base_id = tl.program_id(0).to(tl.int32)
+    off_z = tl.load(SPLIT_BASES + split_base_id * 4 + 0).to(tl.int64)
+    off_hkv = tl.load(SPLIT_BASES + split_base_id * 4 + 1).to(tl.int64)
+    kv_block = tl.load(SPLIT_BASES + split_base_id * 4 + 2)
+    split_count = tl.load(SPLIT_BASES + split_base_id * 4 + 3)
+
+    start_n = kv_block * BLOCK_N1
+    offs_n = start_n + tl.arange(0, BLOCK_N1)
+    offs_k = tl.arange(0, QK_HEAD_DIM_ROUNDED)
+    offs_v = tl.arange(0, V_HEAD_DIM_ROUNDED)
+    dk_base = off_z * stride_dkz + off_hkv * stride_dkh
+    dv_base = off_z * stride_dvz + off_hkv * stride_dvh
+
+    dk_sum = tl.zeros([BLOCK_N1, QK_HEAD_DIM_ROUNDED], tl.float32)
+    for sub_id in range(split_count):
+        dk_sum += tl.load(
+            DK_PARTIAL
+            + sub_id * PARTIAL_DK_STRIDE
+            + dk_base
+            + offs_n[:, None] * stride_dkn
+            + offs_k[None, :] * stride_dkd,
+            mask=(offs_n[:, None] < KV_LEN)
+            & (offs_k[None, :] < QK_HEAD_DIM),
+            other=0.0,
+        )
+    tl.store(
+        DK
+        + dk_base
+        + offs_n[:, None] * stride_dkn
+        + offs_k[None, :] * stride_dkd,
+        dk_sum,
+        mask=(offs_n[:, None] < KV_LEN)
+        & (offs_k[None, :] < QK_HEAD_DIM),
+    )
+
+    dv_sum = tl.zeros([BLOCK_N1, V_HEAD_DIM_ROUNDED], tl.float32)
+    for sub_id in range(split_count):
+        dv_sum += tl.load(
+            DV_PARTIAL
+            + sub_id * PARTIAL_DV_STRIDE
+            + dv_base
+            + offs_n[:, None] * stride_dvn
+            + offs_v[None, :] * stride_dvd,
+            mask=(offs_n[:, None] < KV_LEN)
+            & (offs_v[None, :] < V_HEAD_DIM),
+            other=0.0,
+        )
+    tl.store(
+        DV
+        + dv_base
+        + offs_n[:, None] * stride_dvn
+        + offs_v[None, :] * stride_dvd,
+        dv_sum,
+        mask=(offs_n[:, None] < KV_LEN)
+        & (offs_v[None, :] < V_HEAD_DIM),
+    )
+"""
+
 flex_attention_backward_qmajor_dq_template = NPUTritonTemplate(
     name="flex_attention_backward_qmajor_dq",
     grid=flex_attention_backward_dq_grid,
@@ -2553,6 +2934,18 @@ flex_attention_backward_dkdv_only_template = NPUTritonTemplate(
     name="flex_attention_backward_dkdv_only",
     grid=flex_attention_backward_dkdv_grid,
     source=flex_attention_backward_dkdv_only_source,
+)
+
+flex_attention_backward_dkdv_tasklist_template = NPUTritonTemplate(
+    name="flex_attention_backward_dkdv_tasklist",
+    grid=flex_attention_backward_dkdv_grid,
+    source=flex_attention_backward_dkdv_tasklist_source,
+)
+
+flex_attention_backward_dkdv_reduce_template = NPUTritonTemplate(
+    name="flex_attention_backward_dkdv_reduce",
+    grid=flex_attention_backward_dkdv_grid,
+    source=flex_attention_backward_dkdv_reduce_source,
 )
 
 
@@ -2969,6 +3362,12 @@ def _register_npu_inductor_flex_attention():
                     "forward",
                     cfg,
                 )
+                if prefer_max_tiling_without_benchmark():
+                    _tag_choice_attr(
+                        choices[choice_count:],
+                        "_nobench_select_first_compilable",
+                        True,
+                    )
             except Exception as e:
                 # Catch compilation errors and skip this config
                 log.warning("Config %s compilation failed: %s: %s", cfg, type(e).__name__, str(e)[:200])
@@ -3493,7 +3892,12 @@ def _register_npu_inductor_flex_attention():
             bwd_num_queries_hint,
             _,
         ) = bwd_query_call_size_hints
-        _, bwd_kv_heads_hint, bwd_num_key_value_hint, _ = bwd_key_call_size_hints
+        (
+            bwd_kv_batch_size_hint,
+            bwd_kv_heads_hint,
+            bwd_num_key_value_hint,
+            _,
+        ) = bwd_key_call_size_hints
         bwd_num_cube_core = _get_num_cube_core()
 
         log.debug(
@@ -3868,6 +4272,137 @@ def _register_npu_inductor_flex_attention():
             full_q_indices,
         ]
 
+        def make_dkdv_composite_choice_options(
+            dkdv_kernel_options,
+            dkdv_subgraphs,
+        ):
+            if not npu_config.flex_attention.bwd_dkdv_tasklist:
+                return {}
+
+            try:
+                compatible = is_dkdv_tasklist_codegen_compatible(
+                    cpp_wrapper=V.graph.cpp_wrapper,
+                    aot_mode=getattr(V.graph, "aot_mode", False),
+                    bq=bwd_batch_size_hint,
+                    bkv=bwd_kv_batch_size_hint,
+                    sparse_z=sparse_z_val,
+                    sparse_hq=sparse_mask_hq_val,
+                    sparse_kv_block_size=SPARSE_KV_BLOCK_SIZE,
+                    block_n1=dkdv_kernel_options["BLOCK_N1"],
+                    q_num_blocks_dtype=q_num_blocks.get_dtype(),
+                    full_q_num_blocks_dtype=full_q_num_blocks.get_dtype(),
+                    q_num_blocks_contiguous=(
+                        q_num_blocks.get_layout().is_contiguous()
+                    ),
+                    full_q_num_blocks_contiguous=(
+                        full_q_num_blocks.get_layout().is_contiguous()
+                    ),
+                    accum_dtype=broadcasted_grad_key_accum.get_dtype(),
+                )
+                if not compatible:
+                    return {}
+
+                partial_dk_stride = V.graph.sizevars.evaluate_static_shape(
+                    layout_broadcasted_k_accum.storage_size()
+                )
+                partial_dv_stride = V.graph.sizevars.evaluate_static_shape(
+                    broadcasted_grad_value.get_layout().storage_size()
+                )
+            except (AssertionError, NotImplementedError, TypeError, ValueError):
+                log.info(
+                    "dK/dV task-list codegen disabled for non-static metadata",
+                    exc_info=True,
+                )
+                return {}
+
+            block_n1 = dkdv_kernel_options["BLOCK_N1"]
+            call_sizes = query.get_size() + key.get_size()[1:3]
+            common_meta = dict(dkdv_kernel_options)
+            num_stages = common_meta.pop("num_stages")
+            num_warps = common_meta.pop("num_warps")
+            common_meta.update(
+                {
+                    "PARTIAL_DK_STRIDE": partial_dk_stride,
+                    "PARTIAL_DV_STRIDE": partial_dv_stride,
+                }
+            )
+
+            tasklist_renderer_factory = (
+                flex_attention_backward_dkdv_tasklist_template.make_runtime_renderer_factory(
+                    input_nodes=dkdv_input_nodes,
+                    runtime_args=(
+                        RuntimeTemplateArg(
+                            "WORK_ITEMS", torch.int32, 2, "work_items_t"
+                        ),
+                        RuntimeTemplateArg(
+                            "TASK_OFFSETS", torch.int32, 1, "task_offsets_t"
+                        ),
+                        RuntimeTemplateArg(
+                            "DK_PARTIAL", torch.float32, 5, "dk_partial"
+                        ),
+                        RuntimeTemplateArg(
+                            "DV_PARTIAL", torch.float32, 5, "dv_partial"
+                        ),
+                    ),
+                    layout=layout_broadcasted_k_accum,
+                    num_stages=num_stages,
+                    num_warps=num_warps,
+                    call_sizes=call_sizes,
+                    subgraphs=dkdv_subgraphs,
+                    reset_to_zero_arg_names=["arg_DV", "arg_DK"],
+                    **common_meta,
+                )
+            )
+            reduce_renderer_factory = (
+                flex_attention_backward_dkdv_reduce_template.make_runtime_renderer_factory(
+                    input_nodes=[
+                        broadcasted_grad_key_accum,
+                        broadcasted_grad_value,
+                    ],
+                    runtime_args=(
+                        RuntimeTemplateArg(
+                            "DK_PARTIAL", torch.float32, 5, "dk_partial"
+                        ),
+                        RuntimeTemplateArg(
+                            "DV_PARTIAL", torch.float32, 5, "dv_partial"
+                        ),
+                        RuntimeTemplateArg(
+                            "SPLIT_BASES", torch.int32, 2, "split_bases_t"
+                        ),
+                    ),
+                    layout=layout_broadcasted_k_accum,
+                    num_stages=1,
+                    num_warps=num_warps,
+                    call_sizes=call_sizes,
+                    **common_meta,
+                )
+            )
+
+            def runtime_renderer_factory(out_node):
+                return {
+                    "tasklist": tasklist_renderer_factory(out_node),
+                    "reduce": reduce_renderer_factory(out_node),
+                }
+
+            dispatch_spec = FlexAttentionDkdvDispatchSpec(
+                launch_programs=dkdv_kernel_options["LAUNCH_PROGRAMS"],
+                batch_size=bwd_batch_size_hint,
+                num_kv_heads=bwd_kv_heads_hint,
+                num_kv_blocks=(
+                    bwd_num_key_value_hint + block_n1 - 1
+                )
+                // block_n1,
+                sparse_kv_multiple=SPARSE_KV_BLOCK_SIZE // block_n1,
+                sparse_kv_block_size=SPARSE_KV_BLOCK_SIZE,
+                block_n1=block_n1,
+                partial_dk_stride=partial_dk_stride,
+                partial_dv_stride=partial_dv_stride,
+            )
+            return {
+                "runtime_renderer_factory": runtime_renderer_factory,
+                "dispatch_spec": dispatch_spec,
+            }
+
         for cfg in bwd_dict_configs:
             if not is_bwd_config_compatible(
                 cfg, SPARSE_Q_BLOCK_SIZE, SPARSE_KV_BLOCK_SIZE
@@ -3903,6 +4438,12 @@ def _register_npu_inductor_flex_attention():
                         "backward_dq",
                         cfg,
                     )
+                    if prefer_max_tiling_without_benchmark():
+                        _tag_choice_attr(
+                            dq_choices[prev_dq_choice_count:],
+                            "_nobench_select_first_compilable",
+                            True,
+                        )
             else:
                 log.debug(
                     "skip bwd-dq choice requiring full sparse block: cfg=%s SPARSE_Q=%s SPARSE_KV=%s",
@@ -3920,6 +4461,10 @@ def _register_npu_inductor_flex_attention():
             )
             dkdv_kernel_options["RUN_CAPTURED_GRADS"] = dkdv_run_captured
             log_bwd_choice("dkdv", cfg, dkdv_kernel_options)
+            dkdv_composite_choice_options = make_dkdv_composite_choice_options(
+                dkdv_kernel_options,
+                dkdv_subgraphs,
+            )
 
             prev_dkdv_choice_count = len(dkdv_choices)
             flex_attention_backward_dkdv_only_template.maybe_append_choice(
@@ -3931,6 +4476,7 @@ def _register_npu_inductor_flex_attention():
                 reset_to_zero_arg_names=["arg_DV", "arg_DK"],
                 large_input_buffers=bwd_mask_out_input_nodes,
                 call_sizes=query.get_size() + key.get_size()[1:3],
+                **dkdv_composite_choice_options,
                 **dkdv_kernel_options,
             )
             if len(dkdv_choices) > prev_dkdv_choice_count:
@@ -3939,6 +4485,12 @@ def _register_npu_inductor_flex_attention():
                     "backward_dkdv",
                     cfg,
                 )
+                if prefer_max_tiling_without_benchmark():
+                    _tag_choice_attr(
+                        dkdv_choices[prev_dkdv_choice_count:],
+                        "_nobench_select_first_compilable",
+                        True,
+                    )
 
         dq_inputs_for_autotuning = (
             dq_input_nodes

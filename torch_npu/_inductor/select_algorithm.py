@@ -136,10 +136,23 @@ def _tiling_sort_key(choice: ChoiceCaller):
     if isinstance(config_info, dict):
         block_m = config_info.get("MASK_BLOCK_M", config_info.get("BLOCK_M"))
         block_n = config_info.get("MASK_BLOCK_N", config_info.get("BLOCK_N"))
+        block_m2 = config_info.get("BLOCK_M2")
+        block_n2 = config_info.get("BLOCK_N2")
         if block_m is not None or block_n is not None:
+            block_m = int(block_m) if block_m is not None else 1
+            block_n = int(block_n) if block_n is not None else 1
+            if block_m2 is None or block_n2 is None:
+                return (block_m * block_n, block_m, block_n)
+            block_m2 = int(block_m2)
+            block_n2 = int(block_n2)
             return (
-                int(block_m) if block_m is not None else 1 << 30,
-                int(block_n) if block_n is not None else 1 << 30,
+                block_m * block_n + block_m2 * block_n2,
+                block_m * block_n,
+                block_m2 * block_n2,
+                block_m,
+                block_n,
+                block_m2,
+                block_n2,
             )
     return None
 
@@ -161,7 +174,7 @@ def _select_first_usable_choice_in_order(
         if (tiling_key := _tiling_sort_key(choice)) is not None
     ]
     if tiling_choices:
-        return min(tiling_choices, key=lambda item: item[0])[1]
+        return max(tiling_choices, key=lambda item: item[0])[1]
     return None
 
 
@@ -171,6 +184,105 @@ def get_last_selected_choice() -> Optional[ChoiceCaller]:
 
 class NPUCompileError(CppCompileError):
     pass
+
+
+class NPUFlexAttentionDkdvTemplateBuffer(ir.TritonTemplateBuffer):
+    def __init__(
+        self,
+        layout,
+        inputs,
+        make_kernel_render,
+        runtime_renderer_factory,
+        dispatch_spec,
+        mutated_inputs=None,
+        allowed_prologue_inps=None,
+    ):
+        super().__init__(
+            layout=layout,
+            inputs=inputs,
+            make_kernel_render=make_kernel_render,
+            mutated_inputs=mutated_inputs,
+            allowed_prologue_inps=allowed_prologue_inps,
+        )
+        self.runtime_renderer_factory = runtime_renderer_factory
+        self.dispatch_spec = dispatch_spec
+
+
+class NPUFlexAttentionDkdvTemplateCaller(TritonTemplateCaller):
+    def __init__(
+        self,
+        *args,
+        runtime_renderer_factory,
+        dispatch_spec,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self.runtime_renderer_factory = runtime_renderer_factory
+        self.dispatch_spec = dispatch_spec
+
+    def output_node(self):
+        buffer = NPUFlexAttentionDkdvTemplateBuffer(
+            layout=self.layout,
+            inputs=self.input_nodes,
+            make_kernel_render=self.make_kernel_render,
+            runtime_renderer_factory=self.runtime_renderer_factory,
+            dispatch_spec=self.dispatch_spec,
+            mutated_inputs=self.mutated_inputs,
+            allowed_prologue_inps=self.allowed_prologue_inps,
+        )
+        return ir.TensorBox.create(buffer)
+
+
+@dataclasses.dataclass(frozen=True)
+class NPUTritonRuntimeRenderer:
+    kernel: Any
+    render: Callable
+    runtime_arg_names: dict[str, str]
+    runtime_arg_dtypes: dict[str, torch.dtype]
+    runtime_arg_buffers: dict[str, ir.Buffer]
+
+    @contextlib.contextmanager
+    def patch_runtime_args(self):
+        graph_get_dtype = V.graph.get_dtype
+        graph_get_buffer = V.graph.get_buffer
+        scheduler = getattr(V.graph, "scheduler", None)
+        scheduler_get_buffer_layout = (
+            getattr(scheduler, "get_buffer_layout", None)
+            if scheduler is not None
+            else None
+        )
+
+        def get_dtype(name):
+            if name in self.runtime_arg_dtypes:
+                return self.runtime_arg_dtypes[name]
+            return graph_get_dtype(name)
+
+        def get_buffer(name):
+            if name in self.runtime_arg_buffers:
+                return self.runtime_arg_buffers[name]
+            return graph_get_buffer(name)
+
+        def get_buffer_layout(name):
+            if name in self.runtime_arg_buffers:
+                return self.runtime_arg_buffers[name].get_layout()
+            return scheduler_get_buffer_layout(name)
+
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(patch.object(V.graph, "get_dtype", get_dtype))
+            stack.enter_context(patch.object(V.graph, "get_buffer", get_buffer))
+            if scheduler_get_buffer_layout is not None:
+                stack.enter_context(
+                    patch.object(
+                        scheduler,
+                        "get_buffer_layout",
+                        get_buffer_layout,
+                    )
+                )
+            yield
+
+    def python_argdefs(self):
+        with self.patch_runtime_args():
+            return self.kernel.args.python_argdefs()
 
 
 class NPUTritonTemplate(TritonTemplate):
@@ -201,6 +313,92 @@ class NPUTritonTemplate(TritonTemplate):
         super().__init__(name, grid, source, debug)
         self.manual_output_buffer = manual_output_buffer
 
+    def make_runtime_renderer_factory(
+        self,
+        *,
+        input_nodes,
+        runtime_args,
+        layout,
+        num_stages,
+        num_warps,
+        call_sizes=None,
+        subgraphs=None,
+        reset_to_zero_arg_names=None,
+        **kwargs,
+    ):
+        runtime_args = tuple(runtime_args)
+        call_sizes = list(call_sizes or layout.size)
+        meta = dict(kwargs)
+        meta["ALLOW_TF32"] = "False"
+        defines = StringIO()
+        for name, value in meta.items():
+            if name not in _NPU_COMPILE_ONLY_META_FIELDS:
+                defines.write(f"{name} : tl.constexpr = {value}\n")
+        kernel_options = {
+            "defines": defines.getvalue(),
+            "num_stages": num_stages,
+            "num_warps": num_warps,
+            "grid_fn": self.grid,
+            "meta": meta,
+            "call_sizes": call_sizes,
+            "prefix_args": 0,
+            "suffix_args": 0,
+            "epilogue_fn": identity,
+            "subgraphs": subgraphs,
+            "manual_output_buffer": self.manual_output_buffer,
+            "reset_to_zero_arg_names": reset_to_zero_arg_names,
+        }
+
+        def create_renderer(out_node):
+            runtime_nodes = [
+                ir.Buffer(
+                    name=f"__npu_runtime_{runtime_arg.name.lower()}",
+                    layout=ir.FixedLayout(
+                        out_node.get_device(),
+                        runtime_arg.dtype,
+                        [1] * runtime_arg.rank,
+                    ),
+                )
+                for runtime_arg in runtime_args
+            ]
+            all_input_nodes = [*input_nodes, *runtime_nodes]
+            runtime_arg_names = {
+                node.get_name(): runtime_arg.wrapper_name
+                for node, runtime_arg in zip(runtime_nodes, runtime_args)
+            }
+            runtime_arg_dtypes = {
+                node.get_name(): runtime_arg.dtype
+                for node, runtime_arg in zip(runtime_nodes, runtime_args)
+            }
+            kernel = NPUTritonTemplateKernel(
+                kernel_name=str(Placeholder.KERNEL_NAME),
+                input_nodes=all_input_nodes,
+                output_node=out_node,
+                workspace_arg=None,
+                use_jit=False,
+                **kernel_options,
+            )
+
+            def render():
+                with patch.object(
+                    V.graph,
+                    "get_dtype",
+                    self._fake_get_dtype([out_node, *runtime_nodes]),
+                ):
+                    return kernel.render(self.template, meta)
+
+            return NPUTritonRuntimeRenderer(
+                kernel=kernel,
+                render=render,
+                runtime_arg_names=runtime_arg_names,
+                runtime_arg_dtypes=runtime_arg_dtypes,
+                runtime_arg_buffers={
+                    node.get_name(): node for node in runtime_nodes
+                },
+            )
+
+        return create_renderer
+
     def generate(
         self,
         input_nodes: list[ir.IRNode],
@@ -216,6 +414,8 @@ class NPUTritonTemplate(TritonTemplate):
         workspace_arg: Optional[Any] = None,
         reset_to_zero_arg_names: Optional[list[str]] = None,
         large_input_buffers: Optional[list[ir.IRNode]] = None,
+        runtime_renderer_factory: Optional[Callable] = None,
+        dispatch_spec: Optional[Any] = None,
         **kwargs: Any,
     ) -> Optional[ir.ChoiceCaller]:
         defines = StringIO()
@@ -388,7 +588,17 @@ class NPUTritonTemplate(TritonTemplate):
         if hasattr(bmreq, "kernel_has_output_arg"):
             bmreq.kernel_has_output_arg = kernel_has_output_arg
 
-        return TritonTemplateCaller(
+        caller_type = TritonTemplateCaller
+        caller_kwargs = {}
+        if runtime_renderer_factory is not None:
+            assert dispatch_spec is not None
+            caller_type = NPUFlexAttentionDkdvTemplateCaller
+            caller_kwargs = {
+                "runtime_renderer_factory": runtime_renderer_factory,
+                "dispatch_spec": dispatch_spec,
+            }
+
+        return caller_type(
             kernel_hash_name,
             full_input_nodes,
             layout,
@@ -414,6 +624,7 @@ class NPUTritonTemplate(TritonTemplate):
             mutated_inputs=mutated_inputs,
             workspace_arg=workspace_arg,
             allowed_prologue_inps=kernel.prologue_supported_inputs.copy(),
+            **caller_kwargs,
         )
 
 
@@ -929,18 +1140,24 @@ def patch_algorithm_selector() -> None:
 
             return timings
 
-        precompile_fn = precompile(choices)
-
         if select_first_compilable_only:
-            precompile_fn()
-            selected_choice = next(
-                (
-                    choice
-                    for choice in choices
-                    if choice.hash_key() in successful_precompile_choice_hashes
-                ),
-                None,
-            )
+            counters["inductor"]["select_algorithm_precompile"] += 1
+            selected_choice = None
+            for choice in choices:
+                try:
+                    with restore_stdout_stderr():
+                        choice.precompile()
+                    successful_precompile_choice_hashes.add(choice.hash_key())
+                    counters["inductor"]["select_algorithm_num_precompiles"] += 1
+                    selected_choice = choice
+                    break
+                except Exception as e:
+                    log.error(
+                        "Exception %s for no-benchmark choice %s "
+                        "during ordered precompile",
+                        e,
+                        _format_choice_debug_label(choice),
+                    )
             if selected_choice is None:
                 raise NoValidChoicesError(
                     f"No compilable choices found for {name} in no-benchmark mode."
@@ -951,6 +1168,8 @@ def patch_algorithm_selector() -> None:
                 _format_choice_debug_label(selected_choice),
             )
             return selected_choice.output_node()
+
+        precompile_fn = precompile(choices)
 
         if return_multi_template and (config.max_autotune or config.max_autotune_gemm):
 
