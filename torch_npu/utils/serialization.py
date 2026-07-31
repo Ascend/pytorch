@@ -336,7 +336,7 @@ def load(
                 return _remap_result(cpu_result, map_location)
             else:
                 return _legacy_load(
-                    opened_file, "cpu", pickle_module, **pickle_load_args
+                    opened_file, map_location, pickle_module, **pickle_load_args
                 )
 
 
@@ -420,7 +420,7 @@ def _npu_save(
 
     class PyTorchPickler(pickle_module.Pickler):  # type: ignore[name-defined]
         def persistent_id(self, obj):
-            return persistent_id(obj)
+            return persistent_id(obj)  # noqa: F821
 
     pickler = PyTorchPickler(data_buf, protocol=pickle_protocol)
     pickler.dump(obj)
