@@ -29,6 +29,10 @@ from torch._inductor.async_compile import shutdown_compile_workers
 from torch._inductor.codegen.common import register_backend_for_device, register_device_op_overrides
 from torch._inductor.virtualized import V
 from torch._inductor import decomposition as inductor_decomp
+from torch._inductor.custom_graph_pass import (
+    CustomGraphPass,
+    get_hash_for_files,
+)
 from torch._inductor import scheduler
 from torch._inductor.scheduler import (
     Dep,
@@ -56,7 +60,9 @@ from ..npu.codegen.akg import AkgScheduling
 from ..npu.codegen.mlir import NpuMlirScheduling
 from ..npu.codegen.wrapper import NpuMlirWrapperCodeGen
 from ..npu.npu_lowering import _register_npu_inductor_fallbacks
+from ..npu import utils as npu_utils
 from ..npu.utils import (
+    fold_sum_cast_to_dtype,
     npu_optimize_fx_graph,
     logger,
 )
@@ -157,6 +163,57 @@ def wrap_aot_autograd(fn):
     return npu_aot_autograd
 
 AotAutograd.__call__ = wrap_aot_autograd(AotAutograd.__call__)
+
+
+def _iter_custom_graph_passes(custom_pass):
+    if custom_pass is None:
+        return ()
+    if isinstance(custom_pass, (list, tuple)):
+        return tuple(custom_pass)
+    return (custom_pass,)
+
+
+class DvmMlirPostGradPass(CustomGraphPass):
+    def __init__(self, previous_pass=None) -> None:
+        self.previous_pass = previous_pass
+
+    def __call__(self, graph: torch.fx.Graph) -> None:
+        for pass_ in _iter_custom_graph_passes(self.previous_pass):
+            pass_(graph)
+        fold_sum_cast_to_dtype(graph.owning_module)
+
+    def uuid(self):
+        previous_uuids = []
+        for pass_ in _iter_custom_graph_passes(self.previous_pass):
+            if not isinstance(pass_, CustomGraphPass):
+                return None
+            uuid = pass_.uuid()
+            if uuid is None:
+                return None
+            previous_uuids.append(uuid)
+        return get_hash_for_files(
+            (__file__, npu_utils.__file__),
+            extra=f"DvmMlirPostGradPass:{previous_uuids!r}",
+        )
+
+
+def patch_dvm_mlir_post_grad_pass(inductor_config=None) -> None:
+    if inductor_config is None:
+        from torch._inductor import config as inductor_config
+
+    post_grad_custom_post_pass = inductor_config.post_grad_custom_post_pass
+    if isinstance(post_grad_custom_post_pass, DvmMlirPostGradPass):
+        return
+    if any(
+        isinstance(pass_, DvmMlirPostGradPass)
+        for pass_ in _iter_custom_graph_passes(post_grad_custom_post_pass)
+    ):
+        return
+    inductor_config.post_grad_custom_post_pass = DvmMlirPostGradPass(
+        post_grad_custom_post_pass
+    )
+
+patch_dvm_mlir_post_grad_pass(config)
 
 # recompute last usage for inductor scheduler
 
