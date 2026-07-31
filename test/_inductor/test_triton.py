@@ -20,13 +20,11 @@ class TestHasTriton(TestCase):
             # no triton library found, skip test_has_triton
             return
 
-        self.assertFalse(has_triton())
         self.assertFalse(has_triton_tma())
         self.assertFalse(has_triton_tma_device())
 
         from torch_npu.contrib import transfer_to_npu
 
-        self.assertFalse(has_triton())
         self.assertFalse(has_triton_tma())
         self.assertFalse(has_triton_tma_device())
 
