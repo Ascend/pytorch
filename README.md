@@ -129,7 +129,7 @@ print(z)
 
 ## User Manual
 
-Refer to [API of TorchNPU](docs/zh/native_apis/menu_pt_native_apis.md) for more detailed information.
+Refer to [API of TorchNPU](https://gitcode.com/Ascend/pytorch/blob/master/docs/zh/api/native_api/_menu_pt_native_apis.md) for more detailed information.
 
 ## PyTorch and Python Version Matching Table
 
