@@ -202,7 +202,7 @@ Python3.11的调度（即下发）性能优于Python3.10，建议用Python3.11�
             [-0.1258, -0.5425]], device='npu:0')
     ```
 
-如需查看当前环境中已安装的Python、PyTorch和TorchNPU版本，请参见[查询版本](check_installed_versions.md)。
+如需查看当前环境中已安装的Python、PyTorch和TorchNPU安装包版本，请参见[查询版本](check_installed_versions.md)。
 
 ## 源码编译
 
