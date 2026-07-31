@@ -42,25 +42,28 @@ void *process_callback(void *arg)
 
 void LaunchCallFunc(void *userData)
 {
-    PyGILState_STATE state = PyGILState_Ensure();
     if (userData == nullptr) {
         return;
     }
-    auto data = (PyFuncStruct *)(userData);
+    auto* data = static_cast<PyFuncStruct*>(userData);
+    PyGILState_STATE state = PyGILState_Ensure();
     PyObject *argslist = Py_BuildValue("(O)", data->pyFuncArgs);
     if (argslist == nullptr) {
+        PyErr_WriteUnraisable(data->pyFunc);
+        PyErr_Clear();
+        PyGILState_Release(state);
         return;
     }
+
     PyObject *result = PyObject_CallObject(data->pyFunc, argslist);
     if (result == nullptr) {
-        return;
+        PyErr_WriteUnraisable(data->pyFunc);
+        PyErr_Clear();
+    } else {
+        Py_DECREF(result);
     }
-    if (argslist != nullptr) {
-        Py_XDECREF(argslist);
-    }
-    if (result != nullptr) {
-        Py_XDECREF(result);
-    }
+
+    Py_DECREF(argslist);
     PyGILState_Release(state);
 }
 
@@ -584,18 +587,26 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
         })
         .def("_unsubscribe_report", [](py::object py_stream) {
             auto stream = THNPUtils_PyObject_to_NPUStream((*py_stream).ptr());
-            c10_npu::unsubscribe_report(threadId, stream);
+
+            {
+                // The callback needs the GIL. Do not hold it while waiting for
+                // the stream and its callbacks to complete.
+                pybind11::gil_scoped_release no_gil;
+                stream.synchronize();
+                c10_npu::unsubscribe_report(threadId, stream);
+            }
+
+            // PyFuncStruct destruction decrefs Python objects, so it must run
+            // after gil_scoped_release has reacquired the GIL.
             auto it = callbacks.find(stream);
             if (it != callbacks.end()) {
                 std::vector<PyFuncStruct *>& funcs = it->second;
                 for (PyFuncStruct* func : funcs) {
                     delete func;
-                    func = nullptr;
                 }
-                funcs.clear();
                 callbacks.erase(it);
             }
-            if (callbacks.empty()) {
+            if (callbacks.empty() && threadArgs != nullptr) {
                 threadArgs->exitFlag = true;
                 threadId = -1;
             }
