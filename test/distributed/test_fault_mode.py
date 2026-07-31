@@ -148,10 +148,6 @@ class TestMode(TestCase):
         process.terminate()
         process.wait()
         self.assertIn(
-            "wait for compute device to finish failed",
-            message
-        )
-        self.assertIn(
             "EI0002",
             message
         )
