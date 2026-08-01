@@ -52,6 +52,76 @@ def flatten_groups(nums):
             res.append(i)
     return res
 
+
+def _specialize_flex_attention_dkdv_no_split(source: str) -> str:
+    lines = source.splitlines(keepends=True)
+    specialized = []
+    index = 0
+    replaced = 0
+    while index < len(lines):
+        line = lines[index]
+        if line.strip() != "if is_split == 0:":
+            specialized.append(line)
+            index += 1
+            continue
+
+        indent = len(line) - len(line.lstrip())
+        direct_lines = []
+        index += 1
+        while index < len(lines):
+            branch_line = lines[index]
+            branch_indent = len(branch_line) - len(branch_line.lstrip())
+            if branch_line.strip() == "else:" and branch_indent == indent:
+                break
+            if branch_line.strip() and branch_indent <= indent:
+                raise RuntimeError(
+                    "dK/dV no-split specialization missing else branch"
+                )
+            direct_lines.append(branch_line)
+            index += 1
+        if index == len(lines):
+            raise RuntimeError(
+                "dK/dV no-split specialization reached end of source"
+            )
+
+        index += 1
+        while index < len(lines):
+            branch_line = lines[index]
+            if not branch_line.strip():
+                next_index = index + 1
+                while (
+                    next_index < len(lines)
+                    and not lines[next_index].strip()
+                ):
+                    next_index += 1
+                if next_index == len(lines):
+                    break
+                next_line = lines[next_index]
+                next_indent = len(next_line) - len(next_line.lstrip())
+                if next_indent <= indent:
+                    break
+                index = next_index
+                continue
+            branch_indent = len(branch_line) - len(branch_line.lstrip())
+            if branch_indent <= indent:
+                break
+            index += 1
+
+        for direct_line in direct_lines:
+            if direct_line.strip():
+                specialized.append(
+                    direct_line[:indent] + direct_line[indent + 4 :]
+                )
+            else:
+                specialized.append(direct_line)
+        replaced += 1
+
+    if replaced != 4:
+        raise RuntimeError(
+            f"expected 4 dK/dV split branches, specialized {replaced}"
+        )
+    return "".join(specialized)
+
 class NPUNoLinearTritonScheduling(TritonScheduling):
     def __init__(self, input_scheduler):
         super().__init__(input_scheduler)
@@ -340,8 +410,14 @@ class NPUTritonScheduling(TritonScheduling):
             tasklist_source = render_source(
                 tasklist_renderer.kernel, tasklist_renderer.render
             )
+        direct_source = _specialize_flex_attention_dkdv_no_split(
+            tasklist_source
+        )
         tasklist_kernel_name, _ = self.define_kernel(
             tasklist_source, [template_node], tasklist_renderer.kernel, None
+        )
+        direct_kernel_name, _ = self.define_kernel(
+            direct_source, [template_node], tasklist_renderer.kernel, None
         )
 
         reduce_renderer = runtime_renderers["reduce"]
@@ -369,6 +445,8 @@ class NPUTritonScheduling(TritonScheduling):
             legacy_call_args=legacy_call_args,
             tasklist_kernel_name=tasklist_kernel_name,
             tasklist_call_args=tasklist_call_args,
+            direct_kernel_name=direct_kernel_name,
+            direct_call_args=tasklist_call_args,
             reduce_kernel_name=reduce_kernel_name,
             reduce_call_args=reduce_call_args,
             q_num_blocks_name=legacy_kernel.named_input_nodes[

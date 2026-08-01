@@ -114,6 +114,8 @@ class NPUWrapperCodeGen(_NPUKernelCodegenMixin, PythonWrapperCodegen):
         legacy_call_args,
         tasklist_kernel_name,
         tasklist_call_args,
+        direct_kernel_name,
+        direct_call_args,
         reduce_kernel_name,
         reduce_call_args,
         q_num_blocks_name,
@@ -125,11 +127,7 @@ class NPUWrapperCodeGen(_NPUKernelCodegenMixin, PythonWrapperCodegen):
         self.write_flex_attention_dkdv_tasklist_helpers_once()
         suffix = self.next_kernel_suffix()
         prefix = f"dkdv_tasklist_{suffix}"
-        weights = f"{prefix}_weights"
         use_tasklist = f"{prefix}_use_tasklist"
-        work_items = f"{prefix}_work_items"
-        task_offsets = f"{prefix}_task_offsets"
-        split_bases = f"{prefix}_split_bases"
         max_sub = f"{prefix}_max_sub"
         work_items_tensor = f"{prefix}_work_items_t"
         task_offsets_tensor = f"{prefix}_task_offsets_t"
@@ -143,38 +141,18 @@ class NPUWrapperCodeGen(_NPUKernelCodegenMixin, PythonWrapperCodegen):
             self, device.index, V.graph
         )
         self.writeline(
-            f"{weights} = _compute_dkdv_sparse_weights("
-            f"{q_num_blocks_name}, {full_q_num_blocks_name})"
-        )
-        self.writeline(
-            f"{use_tasklist} = _should_use_dkdv_tasklist("
-            f"{weights}, {dispatch_spec.batch_size}, "
+            f"{use_tasklist}, {work_items_tensor}, {task_offsets_tensor}, "
+            f"{split_bases_tensor}, {max_sub} = "
+            f"_get_or_build_dkdv_task_list("
+            f"{q_num_blocks_name}, {full_q_num_blocks_name}, "
+            f"{dispatch_spec.batch_size}, "
             f"{dispatch_spec.num_kv_heads}, {dispatch_spec.num_kv_blocks}, "
             f"{dispatch_spec.sparse_kv_multiple}, "
-            f"{dispatch_spec.launch_programs})"
+            f"{dispatch_spec.launch_programs}, {dk_name}.device)"
         )
         self.writeline(f"if {use_tasklist}:")
-        self.writeline(
-            f"    {work_items}, {task_offsets}, {split_bases}, {max_sub} = "
-            f"_build_dkdv_task_list({weights}, {dispatch_spec.batch_size}, "
-            f"{dispatch_spec.num_kv_heads}, {dispatch_spec.num_kv_blocks}, "
-            f"{dispatch_spec.sparse_kv_multiple}, "
-            f"{dispatch_spec.launch_programs})"
-        )
-        self.writeline(
-            f"    {work_items_tensor} = torch.tensor({work_items}, "
-            f"dtype=torch.int32, device={dk_name}.device)"
-        )
-        self.writeline(
-            f"    {task_offsets_tensor} = torch.tensor({task_offsets}, "
-            f"dtype=torch.int32, device={dk_name}.device)"
-        )
-        self.writeline(f"    {num_split_bases} = len({split_bases})")
+        self.writeline(f"    {num_split_bases} = {split_bases_tensor}.size(0)")
         self.writeline(f"    if {num_split_bases} > 0:")
-        self.writeline(
-            f"        {split_bases_tensor} = torch.tensor({split_bases}, "
-            f"dtype=torch.int32, device={dk_name}.device)"
-        )
         self.writeline(
             f"        {dk_partial} = torch.empty_strided("
             f"({max_sub}, *{dk_name}.size()), "
@@ -214,8 +192,21 @@ class NPUWrapperCodeGen(_NPUKernelCodegenMixin, PythonWrapperCodegen):
         tasklist_args_text = ", ".join(
             self.prepare_triton_kernel_call([*tasklist_args, *tasklist_grid])
         )
+        direct_args = replace_runtime_args(direct_call_args)
+        direct_args_text = ", ".join(
+            self.prepare_triton_kernel_call([*direct_args, *tasklist_grid])
+        )
         self.writeline(
-            f"    {tasklist_kernel_name}.run({tasklist_args_text}, stream={stream})"
+            f"    if {num_split_bases} > 0:"
+        )
+        self.writeline(
+            f"        {tasklist_kernel_name}.run("
+            f"{tasklist_args_text}, stream={stream})"
+        )
+        self.writeline("    else:")
+        self.writeline(
+            f"        {direct_kernel_name}.run("
+            f"{direct_args_text}, stream={stream})"
         )
 
         reduce_args = replace_runtime_args(reduce_call_args)

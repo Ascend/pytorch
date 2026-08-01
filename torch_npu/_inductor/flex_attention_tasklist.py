@@ -1,5 +1,6 @@
 import inspect
 import math
+import re
 import textwrap
 from dataclasses import dataclass
 
@@ -48,6 +49,7 @@ def is_dkdv_tasklist_codegen_compatible(
         not cpp_wrapper
         and not aot_mode
         and all(isinstance(value, int) for value in static_dimensions)
+        and bq == 1
         and bq == bkv
         and sparse_z == bq
         and sparse_hq == 1
@@ -77,33 +79,46 @@ def should_use_dkdv_tasklist(
     sparse_kv_multiple,
     num_core,
 ):
-    if not w_sparse or num_core <= 0 or sparse_kv_multiple <= 0:
+    if (
+        not w_sparse
+        or batch_size != 1
+        or num_core <= 0
+        or sparse_kv_multiple <= 0
+    ):
         return False
 
-    base_weights = []
-    sparse_blocks_per_batch = len(w_sparse) // max(batch_size, 1)
-    for batch_idx in range(batch_size):
-        sparse_base = batch_idx * sparse_blocks_per_batch
-        for _ in range(num_kv_heads):
-            for kv_block in range(num_kv_blocks):
-                sparse_idx = sparse_base + kv_block // sparse_kv_multiple
-                if sparse_idx >= len(w_sparse):
-                    return False
-                base_weights.append(w_sparse[sparse_idx])
-
-    total_weight = sum(base_weights)
-    if not base_weights or total_weight == 0:
+    total_base = batch_size * num_kv_heads * num_kv_blocks
+    total_weight = num_kv_heads * sum(w_sparse)
+    if total_base == 0 or total_weight == 0:
         return False
 
-    mean_weight = total_weight / len(base_weights)
-    full_rounds, tail_cores = divmod(len(base_weights), num_core)
+    mean_weight = total_weight / total_base
+    full_rounds, tail_cores = divmod(total_base, num_core)
     has_significant_tail = (
         tail_cores > 0 and full_rounds <= 2 and tail_cores / num_core < 0.5
     )
     has_weight_imbalance = (
-        tail_cores == 0 and max(base_weights) / mean_weight > 1.5
+        tail_cores == 0 and max(w_sparse) / mean_weight > 1.5
     )
     return has_significant_tail or has_weight_imbalance
+
+
+def bin_pack_dkdv_hkv_continuous(work_items, num_core):
+    bins = [[] for _ in range(num_core)]
+    bin_weights = [0.0] * num_core
+    groups = {}
+    for item in work_items:
+        groups.setdefault((item[0], item[1]), []).append(item)
+
+    for batch_head in sorted(groups):
+        group = sorted(
+            groups[batch_head], key=lambda item: item[6], reverse=True
+        )
+        for item in group:
+            lightest = bin_weights.index(min(bin_weights))
+            bins[lightest].append(item)
+            bin_weights[lightest] += item[6]
+    return bins
 
 
 def build_dkdv_task_list(
@@ -114,66 +129,49 @@ def build_dkdv_task_list(
     sparse_kv_multiple,
     num_core,
 ):
-    sparse_blocks_per_batch = len(w_sparse) // max(batch_size, 1)
-    weighted_bases = []
-    for batch_idx in range(batch_size):
-        sparse_base = batch_idx * sparse_blocks_per_batch
-        for kv_head in range(num_kv_heads):
-            for kv_block in range(num_kv_blocks):
-                weight = int(
-                    w_sparse[sparse_base + kv_block // sparse_kv_multiple]
-                )
-                weighted_bases.append((batch_idx, kv_head, kv_block, weight))
-
     target = max(
-        sum(base[3] for base in weighted_bases) / max(num_core, 1),
+        num_kv_heads * sum(w_sparse) / max(num_core, 1),
         1.0,
     )
     target_int = max(int(target), 1)
-    weighted_items = []
-    split_bases = []
+    weights_per_kv_block = [
+        int(w_sparse[kv_block // sparse_kv_multiple])
+        for kv_block in range(num_kv_blocks)
+    ]
+    template_items = []
+    template_split_bases = []
     max_sub = 1
-    for batch_idx, kv_head, kv_block, weight in weighted_bases:
+    for kv_block, weight in enumerate(weights_per_kv_block):
         if weight == 0:
             continue
         if weight <= target:
-            split_bases.append((batch_idx, kv_head, kv_block, 1))
-            weighted_items.append(
-                (batch_idx, kv_head, kv_block, 0, 1, 1, float(weight))
+            template_items.append(
+                (kv_block, 0, 1, 0, float(weight))
             )
             continue
 
         split_count = max(1, math.ceil(weight / target_int))
-        split_bases.append((batch_idx, kv_head, kv_block, split_count))
+        template_split_bases.append((kv_block, split_count))
         max_sub = max(max_sub, split_count)
         split_weight = weight / split_count
         for sub_id in range(split_count):
-            weighted_items.append(
-                (
-                    batch_idx,
-                    kv_head,
-                    kv_block,
-                    sub_id,
-                    split_count,
-                    1,
-                    split_weight,
-                )
+            template_items.append(
+                (kv_block, sub_id, split_count, 1, split_weight)
             )
 
-    weighted_items.sort(key=lambda item: item[6], reverse=True)
-    bins = [[] for _ in range(num_core)]
-    bin_weights = [0.0] * num_core
-    for item in weighted_items:
-        for bin_id in range(num_core):
-            if bin_weights[bin_id] + item[6] <= target:
-                bins[bin_id].append(item)
-                bin_weights[bin_id] += item[6]
-                break
-        else:
-            lightest = min(range(num_core), key=bin_weights.__getitem__)
-            bins[lightest].append(item)
-            bin_weights[lightest] += item[6]
+    weighted_items = []
+    split_bases = []
+    for batch_idx in range(batch_size):
+        for kv_head in range(num_kv_heads):
+            weighted_items.extend(
+                (batch_idx, kv_head, *item) for item in template_items
+            )
+            split_bases.extend(
+                (batch_idx, kv_head, *item)
+                for item in template_split_bases
+            )
 
+    bins = bin_pack_dkdv_hkv_continuous(weighted_items, num_core)
     work_items = []
     task_offsets = [0]
     for bin_items in bins:
@@ -182,10 +180,115 @@ def build_dkdv_task_list(
     return work_items, task_offsets, split_bases, max_sub
 
 
-def _generated_helper_source(function, generated_name):
+def get_or_build_dkdv_task_list(
+    q_num_blks,
+    full_q_num_blks,
+    batch_size,
+    num_kv_heads,
+    num_kv_blocks,
+    sparse_kv_multiple,
+    num_core,
+    device,
+):
+    cache_key = (
+        batch_size,
+        num_kv_heads,
+        num_kv_blocks,
+        sparse_kv_multiple,
+        num_core,
+        device,
+    )
+    try:
+        q_num_blks_version = q_num_blks._version
+        full_q_num_blks_version = full_q_num_blks._version
+    except RuntimeError:
+        q_num_blks_version = None
+        full_q_num_blks_version = None
+
+    cache = getattr(q_num_blks, "_npu_dkdv_tasklist_cache", None)
+    if cache is not None:
+        entry = cache.get(cache_key)
+        if (
+            entry is not None
+            and entry[0] is full_q_num_blks
+            and entry[1] == q_num_blks_version
+            and entry[2] == full_q_num_blks_version
+        ):
+            return entry[3]
+
+    weights = compute_dkdv_sparse_weights(q_num_blks, full_q_num_blks)
+    use_tasklist = should_use_dkdv_tasklist(
+        weights,
+        batch_size,
+        num_kv_heads,
+        num_kv_blocks,
+        sparse_kv_multiple,
+        num_core,
+    )
+    if use_tasklist:
+        work_items, task_offsets, split_bases, max_sub = (
+            build_dkdv_task_list(
+                weights,
+                batch_size,
+                num_kv_heads,
+                num_kv_blocks,
+                sparse_kv_multiple,
+                num_core,
+            )
+        )
+        if work_items:
+            work_items_tensor = torch.tensor(
+                work_items, dtype=torch.int32, device=device
+            )
+        else:
+            work_items_tensor = torch.zeros(
+                (0, 6), dtype=torch.int32, device=device
+            )
+        task_offsets_tensor = torch.tensor(
+            task_offsets, dtype=torch.int32, device=device
+        )
+        if split_bases:
+            split_bases_tensor = torch.tensor(
+                split_bases, dtype=torch.int32, device=device
+            )
+        else:
+            split_bases_tensor = torch.zeros(
+                (0, 4), dtype=torch.int32, device=device
+            )
+        result = (
+            True,
+            work_items_tensor,
+            task_offsets_tensor,
+            split_bases_tensor,
+            max_sub,
+        )
+    else:
+        result = (False, None, None, None, 1)
+
+    if q_num_blks_version is not None and full_q_num_blks_version is not None:
+        if cache is None:
+            cache = {}
+            setattr(q_num_blks, "_npu_dkdv_tasklist_cache", cache)
+        cache[cache_key] = (
+            full_q_num_blks,
+            q_num_blks_version,
+            full_q_num_blks_version,
+            result,
+        )
+    return result
+
+
+def _generated_helper_source(function, generated_name, replacements=()):
     source = textwrap.dedent(inspect.getsource(function))
     definition = f"def {function.__name__}("
-    return source.replace(definition, f"def {generated_name}(", 1)
+    source = source.replace(definition, f"def {generated_name}(", 1)
+    for old_name, new_name in replacements:
+        source = re.sub(
+            rf"(?<![\w]){re.escape(old_name)}\(",
+            f"{new_name}(",
+            source,
+        )
+    return source
 
 
 DKDV_TASKLIST_HELPER_SOURCE = "\n\n".join(
@@ -196,6 +299,31 @@ DKDV_TASKLIST_HELPER_SOURCE = "\n\n".join(
         _generated_helper_source(
             should_use_dkdv_tasklist, "_should_use_dkdv_tasklist"
         ),
-        _generated_helper_source(build_dkdv_task_list, "_build_dkdv_task_list"),
+        _generated_helper_source(
+            bin_pack_dkdv_hkv_continuous,
+            "_bin_pack_dkdv_hkv_continuous",
+        ),
+        _generated_helper_source(
+            build_dkdv_task_list,
+            "_build_dkdv_task_list",
+            (
+                (
+                    "bin_pack_dkdv_hkv_continuous",
+                    "_bin_pack_dkdv_hkv_continuous",
+                ),
+            ),
+        ),
+        _generated_helper_source(
+            get_or_build_dkdv_task_list,
+            "_get_or_build_dkdv_task_list",
+            (
+                (
+                    "compute_dkdv_sparse_weights",
+                    "_compute_dkdv_sparse_weights",
+                ),
+                ("should_use_dkdv_tasklist", "_should_use_dkdv_tasklist"),
+                ("build_dkdv_task_list", "_build_dkdv_task_list"),
+            ),
+        ),
     )
 )
