@@ -317,7 +317,8 @@ def load(
                 'Warning: since the loaded file is not a zipfile, only "torch.device" and "str" type parameters '
                 "are currently supported for parameter types of map_location. If parameter types of map_location is "
                 '"Callable[[torch.Tensor, str], torch.Tensor]" or "Dict[str, str]", which is only support for '
-                "zipfile, all tensors are currently loaded onto the CPU, which may introduce problems."
+                "zipfile, all tensors are currently loaded onto the CPU, which may introduce problems. "
+                "When map_location is None, inductor compile cache may cause issues during model execution."
             )
             _warn_legacy_serialization(warn_massage, "load")
 
