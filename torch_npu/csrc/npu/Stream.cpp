@@ -77,6 +77,8 @@ static PyObject* THNPStream_pynew(
              : (is_sync_launch ? c10_npu::getNPUStreamFromSyncLaunchPool()
                                : c10_npu::getStreamFromPool(priority)));
 
+  stream.validate();
+
   THNPStream* self = (THNPStream*)ptr.get();
   self->stream_id = static_cast<int64_t>(stream.id());
   self->device_index = static_cast<int64_t>(stream.device_index());

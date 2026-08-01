@@ -66,6 +66,11 @@ class C10_NPU_API NPUStream {
 
   bool query() const;
 
+  // Validate that the stream_id, device_index, and device_type
+  // correspond to a legitimately initialized stream from the pool.
+  // Throws on invalid stream. Used for fail-fast validation.
+  void validate() const;
+
   void synchronize() const;
 
   // Explicit conversion to rtStream_t.
@@ -86,8 +91,9 @@ class C10_NPU_API NPUStream {
       c10::StreamId stream_id,
       c10::DeviceIndex device_index,
       c10::DeviceType device_type) {
-    return NPUStream(
-        c10::Stream::unpack3(stream_id, device_index, device_type));
+    NPUStream s(c10::Stream::unpack3(stream_id, device_index, device_type));
+    s.validate();
+    return s;
   }
 
   void setDataPreprocessStream(bool is_data_preprocess_stream);

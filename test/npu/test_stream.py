@@ -49,6 +49,99 @@ class TestNpuStream(TestCase):
         s = torch.npu.Stream(priority=-2)
         self.assertTrue((s.stream_id >> 5) == 4)
 
+    def test_reconstruct_stream_by_unpack3(self):
+        """Reconstruct an existing stream via stream_id/device_index/device_type (valid unpack3 path)."""
+        s1 = torch.npu.Stream()
+        s2 = torch.npu.Stream(
+            stream_id=s1.stream_id,
+            device_index=s1.device_index,
+            device_type=s1.device_type,
+        )
+        self.assertEqual(s1.stream_id, s2.stream_id)
+        self.assertEqual(s1.device_index, s2.device_index)
+        self.assertEqual(s1.device_type, s2.device_type)
+        # Reconstructed stream should be usable
+        s2.synchronize()
+
+    def test_fake_stream_id_fail_fast(self):
+        """Fake stream_id should fail at construction (fail-fast)."""
+        with self.assertRaises(RuntimeError):
+            torch.npu.Stream(stream_id=99999, device_index=0, device_type=20)
+
+    def test_fake_device_index_fail_fast(self):
+        """Fake device_index should fail at construction (fail-fast)."""
+        with self.assertRaises(RuntimeError):
+            torch.npu.Stream(stream_id=0, device_index=999, device_type=20)
+
+    def test_fake_device_type_fail_fast(self):
+        """Fake device_type should fail at construction (fail-fast)."""
+        with self.assertRaises(RuntimeError):
+            torch.npu.Stream(stream_id=0, device_index=0, device_type=999)
+
+    def test_negative_device_index_fail_fast(self):
+        """Negative device_index should fail at construction.
+        Note: PyArg format "L" (unsigned) intercepts negative values as
+        OverflowError before reaching C++ validation; accept both types."""
+        with self.assertRaises((RuntimeError, OverflowError)):
+            torch.npu.Stream(stream_id=0, device_index=-1, device_type=20)
+
+    def test_negative_stream_id_fail_fast(self):
+        """Negative stream_id should fail at construction.
+        Note: PyArg format "L" (unsigned) intercepts negative values as
+        OverflowError before reaching C++ validation; accept both types."""
+        with self.assertRaises((RuntimeError, OverflowError)):
+            torch.npu.Stream(stream_id=-1, device_index=0, device_type=20)
+
+    def test_negative_device_type_fail_fast(self):
+        """Negative device_type should fail at construction.
+        Note: PyArg format "L" (unsigned) intercepts negative values as
+        OverflowError before reaching C++ validation; accept both types."""
+        with self.assertRaises((RuntimeError, OverflowError)):
+            torch.npu.Stream(stream_id=0, device_index=0, device_type=-1)
+
+    def test_sync_launch_stream_index_bounds(self):
+        """SYNCLAUNCH stream index out of bounds should fail at construction.
+
+        kSyncLaunchStreamsPerPool = 4, so valid indices are 0-3.
+        Adding 4 to a valid SYNCLAUNCH stream_id creates an out-of-bounds index
+        (>= 4) while keeping the SYNCLAUNCH type, which should be caught by the
+        bounds check in NPUStream_internals.
+        """
+        s = torch.npu.Stream(is_sync_launch=True)
+        fake_stream_id = s.stream_id + 4
+        with self.assertRaises(RuntimeError):
+            torch.npu.Stream(
+                stream_id=fake_stream_id,
+                device_index=s.device_index,
+                device_type=s.device_type,
+            )
+
+    def test_reconstruct_sync_launch_stream(self):
+        """Reconstruct a valid SYNCLAUNCH stream via unpack3 (valid path)."""
+        s1 = torch.npu.Stream(is_sync_launch=True)
+        s2 = torch.npu.Stream(
+            stream_id=s1.stream_id,
+            device_index=s1.device_index,
+            device_type=s1.device_type,
+        )
+        self.assertEqual(s1.stream_id, s2.stream_id)
+        self.assertEqual(s1.device_index, s2.device_index)
+        self.assertEqual(s1.device_type, s2.device_type)
+        s2.synchronize()
+
+    def test_reconstruct_default_stream(self):
+        """Reconstruct the default stream via unpack3 (valid path)."""
+        s1 = torch.npu.default_stream()
+        s2 = torch.npu.Stream(
+            stream_id=s1.stream_id,
+            device_index=s1.device_index,
+            device_type=s1.device_type,
+        )
+        self.assertEqual(s1.stream_id, s2.stream_id)
+        self.assertEqual(s1.device_index, s2.device_index)
+        self.assertEqual(s1.device_type, s2.device_type)
+        s2.synchronize()
+
 
 class TestExternalStream(TestCase):
 

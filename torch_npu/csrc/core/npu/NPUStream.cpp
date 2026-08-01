@@ -350,6 +350,18 @@ static uint32_t get_sync_launch_stream_idx(std::atomic<uint32_t>& counter) {
 
 LeakyStreamInternals* NPUStream_internals(NPUStream s) {
   c10::DeviceIndex device_index = s.device_index();
+  // Use C10_COMPILE_TIME_MAX_NPUS instead of check_npu() because
+  // num_npus may not be initialized yet when called from unpack3().
+  // Note: device_type is already validated in NPUStream(c10::Stream)
+  // constructor.
+  TORCH_CHECK(
+      device_index >= 0 && device_index < C10_COMPILE_TIME_MAX_NPUS,
+      "Invalid device_index: ",
+      static_cast<int>(device_index),
+      ", valid range is [0, ",
+      C10_COMPILE_TIME_MAX_NPUS,
+      ")",
+      PTA_ERROR(ErrCode::VALUE));
   StreamIdType st = streamIdType(s.unwrap().id());
   size_t si = streamIdIndex(s.unwrap().id());
   switch (st) {
@@ -378,17 +390,65 @@ LeakyStreamInternals* NPUStream_internals(NPUStream s) {
           si,
           ").",
           " Did you manufacture the StreamId yourself?  Don't do that; use the",
-          " official API like c10::cuda::getStreamFromPool() to get a new stream.",
+          " official API like c10_npu::getStreamFromPool() to get a new stream.",
+          PTA_ERROR(ErrCode::PARAM));
+      TORCH_CHECK(
+          default_streams[device_index].stream != nullptr,
+          "Uninitialized default NPU stream for device ",
+          device_index,
           PTA_ERROR(ErrCode::PARAM));
       return &default_streams[device_index];
     case StreamIdType::NORMAL:
-    case StreamIdType::HIGH:
-      return &npu_streams
-          [static_cast<uint8_t>(st) -
-           static_cast<uint8_t>(StreamIdType::NORMAL)][device_index][si];
-    case StreamIdType::SECONDARY:
-      return &secondary_streams[device_index];
+    case StreamIdType::HIGH: {
+      auto priority_idx =
+          static_cast<uint8_t>(st) - static_cast<uint8_t>(StreamIdType::NORMAL);
+      TORCH_CHECK(
+          si < kStreamsPerPool,
+          "Invalid stream index ",
+          si,
+          " for NPU stream ",
+          s.unwrap(),
+          " (pool size is ",
+          kStreamsPerPool,
+          ")",
+          PTA_ERROR(ErrCode::PARAM));
+      auto* ptr = &npu_streams[priority_idx][device_index][si];
+      TORCH_CHECK(
+          ptr->stream != nullptr,
+          "Uninitialized NPU stream ",
+          s.unwrap(),
+          " Did you manufacture the StreamId yourself?  Don't do that; use the",
+          " official API like c10_npu::getStreamFromPool() to get a new stream.",
+          PTA_ERROR(ErrCode::PARAM));
+      return ptr;
+    }
+    case StreamIdType::SECONDARY: {
+      auto* ptr = &secondary_streams[device_index];
+      TORCH_CHECK(
+          ptr->stream != nullptr,
+          "Uninitialized secondary NPU stream for device ",
+          device_index,
+          PTA_ERROR(ErrCode::PARAM));
+      return ptr;
+    }
     case StreamIdType::SYNCLAUNCH:
+      TORCH_CHECK(
+          si < kSyncLaunchStreamsPerPool,
+          "Invalid sync launch stream index ",
+          si,
+          " for NPU stream ",
+          s.unwrap(),
+          " (pool size is ",
+          kSyncLaunchStreamsPerPool,
+          ")",
+          PTA_ERROR(ErrCode::PARAM));
+      TORCH_CHECK(
+          sync_launch_streams[device_index][si].stream != nullptr,
+          "Uninitialized sync launch NPU stream for device ",
+          device_index,
+          ", index ",
+          si,
+          PTA_ERROR(ErrCode::PARAM));
       return &sync_launch_streams[device_index][si];
     default:
       AT_ASSERTM(
@@ -425,6 +485,10 @@ bool NPUStream::query() const {
     return true;
   }
   return false;
+}
+
+void NPUStream::validate() const {
+  NPUStream_internals(*this);
 }
 
 void NPUStream::synchronize() const {
