@@ -866,7 +866,7 @@ compute_sparse_mask_kernel_compact = r"""
         mask_mod_output = mask_mod_output & store_mask
         mask_base = SPARSE_MASK + expected_flat_blk * SPARSE_MASK_STRIDE_BLK
         mask_offsets = offs_m_local[:, None] * SPARSE_MASK_STRIDE_M + offs_n_local[None, :]
-        tl.store(mask_base + mask_offsets, mask_mod_output.to(tl.int8), mask=store_mask)
+        tl.store(mask_base + mask_offsets, mask_mod_output.to(tl.int8))
 """
 
 
@@ -1074,11 +1074,7 @@ def forward_block_mn_sparse_mask(
         flat_blk = tl.load(arg_Q_OFFSETS + q_offsets_idx) + blk_idx_in_list
         mask_base = arg_SPARSE_MASK + flat_blk * SPARSE_MASK_STRIDE_BLK
         mask_offsets = offs_m_local * SPARSE_MASK_STRIDE_M + offs_n_local
-        mask_bounds = (offs_m < Q_LEN) & (offs_n < KV_LEN)
-        mask_mod_output = tl.load(mask_base + mask_offsets, mask=mask_bounds, other=0) != 0
-
-        if CHECK_BLOCK_BOUNDARY:
-            mask_mod_output = mask_mod_output & (offs_n < KV_LEN)
+        mask_mod_output = tl.load(mask_base + mask_offsets) != 0
         # apply mask for partially unmasked blocks
         post_mod_scores = tl.where(mask_mod_output, post_mod_scores, float("-inf"))
     elif CHECK_BLOCK_BOUNDARY:
