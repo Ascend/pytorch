@@ -174,6 +174,9 @@ void ApplyDeterministicSnapshotLocked(
     NPU_CHECK_ERROR(AclrtSetSysParamOpt(
         aclSysParamOpt::ACL_OPT_DETERMINISTIC,
         static_cast<int64_t>(snapshot.effective_level)));
+    NPU_CHECK_ERROR(AclrtCtxSetSysParamOpt(
+        aclSysParamOpt::ACL_OPT_DETERMINISTIC,
+        static_cast<int64_t>(snapshot.effective_level)));
     return;
   }
 
@@ -246,6 +249,8 @@ void ApplyDeterministicLevelLocked(const int64_t level, bool isOpapi) {
       return;
     }
     NPU_CHECK_ERROR(AclrtSetSysParamOpt(
+        aclSysParamOpt::ACL_OPT_DETERMINISTIC, static_cast<int64_t>(level)));
+    NPU_CHECK_ERROR(AclrtCtxSetSysParamOpt(
         aclSysParamOpt::ACL_OPT_DETERMINISTIC, static_cast<int64_t>(level)));
     return;
   }
