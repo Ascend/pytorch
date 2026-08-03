@@ -170,17 +170,24 @@ class _NpuBackendScope:
 
 
 def patch_inductor_wrapper():
-    from typing import Any
+    from typing import Any, Optional
 
     from torch import _TorchCompileInductorWrapper
     from torch.utils._config_module import Config, ConfigModule
 
     from torch_npu._compat.utils import make_config_entry
 
-
+    src_apply_options = _TorchCompileInductorWrapper.apply_options
     src_init = _TorchCompileInductorWrapper.__init__
     src_get_config_copy = ConfigModule.get_config_copy
     src_call = _TorchCompileInductorWrapper.__call__
+
+    def new_apply_options(self, options: Optional[dict[str, Any]]):
+        if options is not None and options.get("enable_shape_handling", False):
+            if not is_inductor_npu_initialized():
+                register_inductor_npu()
+            torch_npu._inductor.patch_shape_handling()
+        return src_apply_options(self, options)
 
     def new_get_config_copy(self) -> dict[str, Any]:
         ori_dict = src_get_config_copy(self)
@@ -191,6 +198,27 @@ def patch_inductor_wrapper():
             self._config["npu_backend"] = make_config_entry(
                 Config(default="default", value_type=str),
                 name="npu_backend",
+            )
+
+        if "enable_shape_handling" not in ori_dict:
+            ori_dict["enable_shape_handling"] = False
+            self._config["enable_shape_handling"] = make_config_entry(
+                Config(default=False, value_type=bool),
+                name="enable_shape_handling",
+            )
+
+        if "shape_handling_configs" not in ori_dict:
+            ori_dict["shape_handling_configs"] = []
+            self._config["shape_handling_configs"] = make_config_entry(
+                Config(default=[], value_type=list),
+                name="shape_handling_configs",
+            )
+
+        if "shape_handling_dict" not in ori_dict:
+            ori_dict["shape_handling_dict"] = None
+            self._config["shape_handling_dict"] = make_config_entry(
+                Config(default=None, value_type=dict),
+                name="shape_handling_dict",
             )
         return ori_dict
 
@@ -222,6 +250,7 @@ def patch_inductor_wrapper():
             return src_call(self, model_, inputs_)
 
     _TorchCompileInductorWrapper.__call__ = new_call
+    _TorchCompileInductorWrapper.apply_options = new_apply_options
     _TorchCompileInductorWrapper.__init__ = new_init
     ConfigModule.get_config_copy = new_get_config_copy
     torch._inductor.config.get_config_copy()

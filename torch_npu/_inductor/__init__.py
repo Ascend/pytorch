@@ -14,6 +14,7 @@ from .utils import patch_has_triton, patch_device_supports_tma, patch_is_gpu
 # All backends need npu/cpu/mps device_op_overrides.
 from .codegen.common import register_device_op_overrides_npu, patch_cache_base_get_system
 from ._npu_meta_registration import npu_patch_meta
+from .shape_handling import NPUShapeHandling, patch_shape_handling
 from .lowering_common import run_once
 # 顶层 patch：所有 inductor backend（triton / mlir / dvm / ascendc）都需要的 NPU 设备级patch，
 # 与 codegen 后端选择无关，在任何 backend loader 之前无条件执行
