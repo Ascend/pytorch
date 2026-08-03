@@ -6,24 +6,21 @@
 
 1. 安装PyTorch框架，具体请参见《[软件安装](../installation_guide/menu_installation_guide.md)》。
 
-2. （可选）当用户使用“二进制软件包安装”或“二进制软件包安装（abi1版本）”安装TorchNPU插件时，适配前需执行如下命令拉取TorchNPU仓对应分支的代码并进入OpPlugin目录，完成TorchNPU源码下载。
+2. （适配前需执行如下命令拉取TorchNPU仓对应分支的代码并进入OpPlugin目录。
 
     ```bash
-    git clone https://gitcode.com/ascend/pytorch.git -b v2.7.1-26.0.0 --recursive
+    git clone https://gitcode.com/ascend/pytorch.git -b v2.7.1-26.1.0 --recursive
     cd pytorch/third_party/op-plugin
     ```
 
     - *2.7.1*为PyTorch版本，用户需根据实际情况指定PyTorch版本。
-    - *26.0.0*为TorchNPU软件版本。
+    - *26.1.0*为TorchNPU软件版本。
 
-3. 在框架算子适配前，请先确保CANN已有相关算子实现，具体可查询CANN算子库接口。
-    <!-- [CANN 算子库接口](https://www.hiascend.com/document/detail/zh/canncommercial/900/API/aolapi/operatorlist_00001.html)。 -->
+3. 在框架算子适配前，请先确保CANN已有相关算子实现，具体可查询[CANN 算子库](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/API/aolapi/operatorlist_00001.html)。
 
     > [!NOTE]
     >
-    > 本示例对应CANN算子为aclnnAdd，可参考《CANN 算子库接口》中的“NN算子接口”章节。
-
-  <!-- [NN算子接口](https://www.hiascend.com/document/detail/zh/canncommercial/900/API/aolapi/context/ops-math/aclnnAdd&aclnnInplaceAdd.md)。 -->
+    > 本示例对应CANN算子为aclnnAdd，可参考《CANN 算子库》中的“[NN算子接口](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/API/aolapi/context/ops-math/aclnnAdd&aclnnInplaceAdd.md)”章节。
 
 ## 适配开发
 
