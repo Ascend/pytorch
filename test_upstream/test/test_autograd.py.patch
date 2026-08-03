@@ -1,5 +1,5 @@
 diff --git a/test/test_autograd.py b/test/test_autograd.py
-index cdb4f9e..3267d28 100644
+index cdb4f9e..9559fb5 100644
 --- a/test/test_autograd.py
 +++ b/test/test_autograd.py
 @@ -28,6 +28,8 @@ from operator import mul
@@ -54,6 +54,24 @@ index cdb4f9e..3267d28 100644
  
          with self.assertRaisesRegex(
              Exception, "torch.utils.checkpoint is incompatible"
+@@ -8239,7 +8241,7 @@ for shape in [(1,), ()]:
+                 Variable._execution_engine.queue_callback(callback_adds_callback)
+                 return grad
+ 
+-        a = torch.rand((3, 3), requires_grad=True)
++        a = torch.rand((3, 3), requires_grad=True).npu()
+         b = MyFunc.apply(a)
+         b.sum().backward()
+ 
+@@ -8304,7 +8306,7 @@ for shape in [(1,), ()]:
+                 tmp_out.backward()
+                 return input
+ 
+-        t1 = torch.rand((3, 3), requires_grad=True)
++        t1 = torch.rand((3, 3), requires_grad=True).npu()
+         t2 = MyReentrantFunc.apply(t1)
+         t3 = t2.sum()
+         torch.autograd.backward([t3])
 @@ -15386,8 +15388,8 @@ class TestSelectiveActivationCheckpoint(TestCase):
          def fn(x, y):
              return x.view(-1), y.sin().cos()
