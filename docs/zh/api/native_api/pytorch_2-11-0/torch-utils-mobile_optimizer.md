@@ -2,7 +2,7 @@
 
 > [!NOTE]
 >
-> 若API“是否支持”为“是”，“限制与说明”为“-”，说明此API和原生API支持度保持一致。
+> API的**支持情况**中，&#10004;表示API支持在对应硬件环境上运行，&#10007;表示暂不支持。<br>
 
 ## 目录
 
@@ -16,6 +16,12 @@
 
 **原生文档**：[torch.utils.mobile_optimizer.optimize_for_mobile](https://pytorch.org/docs/2.11/mobile_optimizer.html#torch.utils.mobile_optimizer.optimize_for_mobile)
 
-**是否支持**：否
+**产品支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>

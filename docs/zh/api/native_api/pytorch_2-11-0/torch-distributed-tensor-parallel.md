@@ -1,7 +1,8 @@
 # torch.distributed.tensor.parallel
 
-> [!NOTE]  
-> 如果API没有"限制与说明"，说明此API和原生API支持度保持一致。<br>
+> [!NOTE]
+>
+> API的**支持情况**中，&#10004;表示API支持在对应硬件环境上运行，&#10007;表示暂不支持。<br>
 
 ## 目录
 
@@ -15,7 +16,13 @@
 
 **原生文档**：[torch.distributed.tensor.parallel.parallelize_module](https://pytorch.org/docs/2.11/distributed.tensor.parallel.html#torch.distributed.tensor.parallel.parallelize_module)
 
-**是否支持**：否
+**产品支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -25,7 +32,13 @@
 
 **原生文档**：[torch.distributed.tensor.parallel.ColwiseParallel](https://pytorch.org/docs/2.11/distributed.tensor.parallel.html#torch.distributed.tensor.parallel.ColwiseParallel)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 **限制与说明**： 支持bf16，fp16，fp32
 
@@ -37,7 +50,13 @@
 
 **原生文档**：[torch.distributed.tensor.parallel.RowwiseParallel](https://pytorch.org/docs/2.11/distributed.tensor.parallel.html#torch.distributed.tensor.parallel.RowwiseParallel)
 
-**是否支持**：否
+**产品支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -47,7 +66,13 @@
 
 **原生文档**：[torch.distributed.tensor.parallel.PrepareModuleInput](https://pytorch.org/docs/2.11/distributed.tensor.parallel.html#torch.distributed.tensor.parallel.PrepareModuleInput)
 
-**是否支持**：否
+**产品支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -57,7 +82,13 @@
 
 **原生文档**：[torch.distributed.tensor.parallel.PrepareModuleOutput](https://pytorch.org/docs/2.11/distributed.tensor.parallel.html#torch.distributed.tensor.parallel.PrepareModuleOutput)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -67,7 +98,13 @@
 
 **原生文档**：[torch.distributed.tensor.parallel.loss_parallel](https://pytorch.org/docs/2.11/distributed.tensor.parallel.html#torch.distributed.tensor.parallel.loss_parallel)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 **限制与说明**：
 

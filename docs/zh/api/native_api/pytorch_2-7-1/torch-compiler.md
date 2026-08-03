@@ -1,7 +1,8 @@
 # torch.compiler
 
-> [!NOTE]  
-> 如果API没有"限制与说明"，说明此API和原生API支持度保持一致。<br>
+> [!NOTE]
+>
+> API的**支持情况**中，&#10004;表示API支持在对应硬件环境上运行，&#10007;表示暂不支持。<br>
 
 ## 目录
 
@@ -15,7 +16,13 @@
 
 **原生文档**：[torch.compiler.compile](https://pytorch.org/docs/2.7/generated/torch.compiler.compile.html)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 </div>
 
@@ -25,7 +32,13 @@
 
 **原生文档**：[torch.compiler.reset](https://pytorch.org/docs/2.7/generated/torch.compiler.reset.html)
 
-**是否支持**：否
+**产品支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -35,7 +48,13 @@
 
 **原生文档**：[torch.compiler.allow_in_graph](https://pytorch.org/docs/2.7/generated/torch.compiler.allow_in_graph.html)
 
-**是否支持**：否
+**产品支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -45,7 +64,13 @@
 
 **原生文档**：[torch.compiler.assume_constant_result](https://pytorch.org/docs/2.7/generated/torch.compiler.assume_constant_result.html)
 
-**是否支持**：否
+**产品支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -55,7 +80,13 @@
 
 **原生文档**：[torch.compiler.list_backends](https://pytorch.org/docs/2.7/generated/torch.compiler.list_backends.html)
 
-**是否支持**：否
+**产品支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -65,6 +96,12 @@
 
 **原生文档**：[torch.compiler.disable](https://pytorch.org/docs/2.7/generated/torch.compiler.disable.html)
 
-**是否支持**：否
+**产品支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>

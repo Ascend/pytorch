@@ -1,7 +1,8 @@
 # torch.distributed.elastic
 
-> [!NOTE]  
-> 如果API没有"限制与说明"，说明此API和原生API支持度保持一致。<br>
+> [!NOTE]
+>
+> API的**支持情况**中，&#10004;表示API支持在对应硬件环境上运行，&#10007;表示暂不支持。<br>
 
 ## 目录
 
@@ -19,7 +20,13 @@
 
 **原生文档**：[torch.distributed.elastic.agent.server.ElasticAgent](https://pytorch.org/docs/2.11/elastic/agent.html#torch.distributed.elastic.agent.server.ElasticAgent)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 > <font size="3">get_worker_group()</font>
 
@@ -27,7 +34,13 @@
 
 **原生文档**：[torch.distributed.elastic.agent.server.ElasticAgent.get_worker_group](https://pytorch.org/docs/2.11/elastic/agent.html#torch.distributed.elastic.agent.server.ElasticAgent.get_worker_group)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -37,7 +50,13 @@
 
 **原生文档**：[torch.distributed.elastic.agent.server.ElasticAgent.run](https://pytorch.org/docs/2.11/elastic/agent.html#torch.distributed.elastic.agent.server.ElasticAgent.run)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -49,7 +68,13 @@
 
 **原生文档**：[torch.distributed.elastic.agent.server.WorkerSpec](https://pytorch.org/docs/2.11/elastic/agent.html#torch.distributed.elastic.agent.server.WorkerSpec)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 > <font size="3">get_entrypoint_name()</font>
 
@@ -57,7 +82,13 @@
 
 **原生文档**：[torch.distributed.elastic.agent.server.WorkerSpec.get_entrypoint_name](https://pytorch.org/docs/2.11/elastic/agent.html#torch.distributed.elastic.agent.server.WorkerSpec.get_entrypoint_name)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -69,7 +100,13 @@
 
 **原生文档**：[torch.distributed.elastic.agent.server.WorkerState](https://pytorch.org/docs/2.11/elastic/agent.html#torch.distributed.elastic.agent.server.WorkerState)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 > <font size="3">is_running()</font>
 
@@ -77,7 +114,13 @@
 
 **原生文档**：[torch.distributed.elastic.agent.server.WorkerState.is_running](https://pytorch.org/docs/2.11/elastic/agent.html#torch.distributed.elastic.agent.server.WorkerState.is_running)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -89,7 +132,13 @@
 
 **原生文档**：[torch.distributed.elastic.control_plane.worker_main](https://pytorch.org/docs/2.11/elastic/control_plane.html#torch.distributed.elastic.control_plane.worker_main)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -99,7 +148,13 @@
 
 **原生文档**：[torch.distributed.elastic.agent.server.Worker](https://pytorch.org/docs/2.11/elastic/agent.html#torch.distributed.elastic.agent.server.Worker)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -109,7 +164,13 @@
 
 **原生文档**：[torch.distributed.elastic.agent.server.WorkerGroup](https://pytorch.org/docs/2.11/elastic/agent.html#torch.distributed.elastic.agent.server.WorkerGroup)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -119,7 +180,13 @@
 
 **原生文档**：[torch.distributed.elastic.agent.server.local_elastic_agent.LocalElasticAgent](https://pytorch.org/docs/2.11/elastic/agent.html#torch.distributed.elastic.agent.server.local_elastic_agent.LocalElasticAgent)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -129,7 +196,13 @@
 
 **原生文档**：[torch.distributed.elastic.agent.server.SimpleElasticAgent](https://pytorch.org/docs/2.11/elastic/agent.html#torch.distributed.elastic.agent.server.SimpleElasticAgent)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 > <font size="3">_assign_worker_ranks()</font>
 
@@ -137,7 +210,13 @@
 
 **原生文档**：[torch.distributed.elastic.agent.server.SimpleElasticAgent._assign_worker_ranks](https://pytorch.org/docs/2.11/elastic/agent.html#torch.distributed.elastic.agent.server.SimpleElasticAgent._assign_worker_ranks)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -147,7 +226,13 @@
 
 **原生文档**：[torch.distributed.elastic.agent.server.SimpleElasticAgent._exit_barrier](https://pytorch.org/docs/2.11/elastic/agent.html#torch.distributed.elastic.agent.server.SimpleElasticAgent._exit_barrier)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -157,7 +242,13 @@
 
 **原生文档**：[torch.distributed.elastic.agent.server.SimpleElasticAgent._initialize_workers](https://pytorch.org/docs/2.11/elastic/agent.html#torch.distributed.elastic.agent.server.SimpleElasticAgent._initialize_workers)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -167,7 +258,13 @@
 
 **原生文档**：[torch.distributed.elastic.agent.server.SimpleElasticAgent._monitor_workers](https://pytorch.org/docs/2.11/elastic/agent.html#torch.distributed.elastic.agent.server.SimpleElasticAgent._monitor_workers)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -177,7 +274,13 @@
 
 **原生文档**：[torch.distributed.elastic.agent.server.SimpleElasticAgent._rendezvous](https://pytorch.org/docs/2.11/elastic/agent.html#torch.distributed.elastic.agent.server.SimpleElasticAgent._rendezvous)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -187,7 +290,13 @@
 
 **原生文档**：[torch.distributed.elastic.agent.server.SimpleElasticAgent._restart_workers](https://pytorch.org/docs/2.11/elastic/agent.html#torch.distributed.elastic.agent.server.SimpleElasticAgent._restart_workers)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -197,7 +306,13 @@
 
 **原生文档**：[torch.distributed.elastic.agent.server.SimpleElasticAgent._shutdown](https://pytorch.org/docs/2.11/elastic/agent.html#torch.distributed.elastic.agent.server.SimpleElasticAgent._shutdown)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -207,7 +322,13 @@
 
 **原生文档**：[torch.distributed.elastic.agent.server.SimpleElasticAgent._start_workers](https://pytorch.org/docs/2.11/elastic/agent.html#torch.distributed.elastic.agent.server.SimpleElasticAgent._start_workers)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -217,7 +338,13 @@
 
 **原生文档**：[torch.distributed.elastic.agent.server.SimpleElasticAgent._stop_workers](https://pytorch.org/docs/2.11/elastic/agent.html#torch.distributed.elastic.agent.server.SimpleElasticAgent._stop_workers)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -229,7 +356,13 @@
 
 **原生文档**：[torch.distributed.elastic.agent.server.api.RunResult](https://pytorch.org/docs/2.11/elastic/agent.html#torch.distributed.elastic.agent.server.api.RunResult)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -239,7 +372,13 @@
 
 **原生文档**：[torch.distributed.elastic.agent.server.health_check_server.create_healthcheck_server](https://pytorch.org/docs/2.11/elastic/agent.html#torch.distributed.elastic.agent.server.health_check_server.create_healthcheck_server)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -249,7 +388,13 @@
 
 **原生文档**：[torch.distributed.elastic.agent.server.health_check_server.HealthCheckServer](https://pytorch.org/docs/2.11/elastic/agent.html#torch.distributed.elastic.agent.server.health_check_server.HealthCheckServer)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 > <font size="3">start()</font>
 
@@ -257,7 +402,13 @@
 
 **原生文档**：[torch.distributed.elastic.agent.server.health_check_server.HealthCheckServer.start](https://pytorch.org/docs/2.11/elastic/agent.html#torch.distributed.elastic.agent.server.health_check_server.HealthCheckServer.start)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -267,7 +418,13 @@
 
 **原生文档**：[torch.distributed.elastic.agent.server.health_check_server.HealthCheckServer.stop](https://pytorch.org/docs/2.11/elastic/agent.html#torch.distributed.elastic.agent.server.health_check_server.HealthCheckServer.stop)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -279,7 +436,13 @@
 
 **原生文档**：[torch.distributed.elastic.multiprocessing.start_processes](https://pytorch.org/docs/2.11/elastic/multiprocessing.html#torch.distributed.elastic.multiprocessing.start_processes)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -289,7 +452,13 @@
 
 **原生文档**：[torch.distributed.elastic.multiprocessing.api.PContext](https://pytorch.org/docs/2.11/elastic/multiprocessing.html#torch.distributed.elastic.multiprocessing.api.PContext)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -299,7 +468,13 @@
 
 **原生文档**：[torch.distributed.elastic.multiprocessing.api.MultiprocessContext](https://pytorch.org/docs/2.11/elastic/multiprocessing.html#torch.distributed.elastic.multiprocessing.api.MultiprocessContext)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -309,7 +484,13 @@
 
 **原生文档**：[torch.distributed.elastic.multiprocessing.api.SubprocessContext](https://pytorch.org/docs/2.11/elastic/multiprocessing.html#torch.distributed.elastic.multiprocessing.api.SubprocessContext)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -319,7 +500,13 @@
 
 **原生文档**：[torch.distributed.elastic.multiprocessing.api.RunProcsResult](https://pytorch.org/docs/2.11/elastic/multiprocessing.html#torch.distributed.elastic.multiprocessing.api.RunProcsResult)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -329,7 +516,13 @@
 
 **原生文档**：[torch.distributed.elastic.multiprocessing.api.DefaultLogsSpecs](https://pytorch.org/docs/2.11/elastic/multiprocessing.html#torch.distributed.elastic.multiprocessing.api.DefaultLogsSpecs)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 > <font size="3">reify()</font>
 
@@ -337,7 +530,13 @@
 
 **原生文档**：[torch.distributed.elastic.multiprocessing.api.DefaultLogsSpecs.reify](https://pytorch.org/docs/2.11/elastic/multiprocessing.html#torch.distributed.elastic.multiprocessing.api.DefaultLogsSpecs.reify)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -349,7 +548,13 @@
 
 **原生文档**：[torch.distributed.elastic.multiprocessing.api.LogsDest](https://pytorch.org/docs/2.11/elastic/multiprocessing.html#torch.distributed.elastic.multiprocessing.api.LogsDest)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -359,7 +564,13 @@
 
 **原生文档**：[torch.distributed.elastic.multiprocessing.api.LogsSpecs](https://pytorch.org/docs/2.11/elastic/multiprocessing.html#torch.distributed.elastic.multiprocessing.api.LogsSpecs)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 > <font size="3">reify()</font>
 
@@ -367,7 +578,13 @@
 
 **原生文档**：[torch.distributed.elastic.multiprocessing.api.LogsSpecs.reify](https://pytorch.org/docs/2.11/elastic/multiprocessing.html#torch.distributed.elastic.multiprocessing.api.LogsSpecs.reify)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -379,7 +596,13 @@
 
 **原生文档**：[torch.distributed.elastic.multiprocessing.errors.record](https://pytorch.org/docs/2.11/elastic/errors.html#torch.distributed.elastic.multiprocessing.errors.record)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -389,7 +612,13 @@
 
 **原生文档**：[torch.distributed.elastic.multiprocessing.errors.ChildFailedError](https://pytorch.org/docs/2.11/elastic/errors.html#torch.distributed.elastic.multiprocessing.errors.ChildFailedError)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -399,7 +628,13 @@
 
 **原生文档**：[torch.distributed.elastic.multiprocessing.errors.ErrorHandler](https://pytorch.org/docs/2.11/elastic/errors.html#torch.distributed.elastic.multiprocessing.errors.ErrorHandler)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -409,7 +644,13 @@
 
 **原生文档**：[torch.distributed.elastic.multiprocessing.errors.ProcessFailure](https://pytorch.org/docs/2.11/elastic/errors.html#torch.distributed.elastic.multiprocessing.errors.ProcessFailure)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -419,7 +660,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.RendezvousParameters](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.RendezvousParameters)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 > <font size="3">get()</font>
 
@@ -427,7 +674,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.RendezvousParameters.get](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.RendezvousParameters.get)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -437,7 +690,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.RendezvousParameters.get_as_bool](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.RendezvousParameters.get_as_bool)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -447,7 +706,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.RendezvousParameters.get_as_int](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.RendezvousParameters.get_as_int)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -459,7 +724,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.RendezvousHandlerRegistry](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.RendezvousHandlerRegistry)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -469,7 +740,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.api.RendezvousError](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.api.RendezvousError)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -479,7 +756,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.api.RendezvousGracefulExitError](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.api.RendezvousGracefulExitError)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -489,7 +772,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.dynamic_rendezvous.create_handler](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.dynamic_rendezvous.create_handler)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -499,7 +788,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.c10d_rendezvous_backend.create_backend](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.c10d_rendezvous_backend.create_backend)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -509,7 +804,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.create_backend](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.create_backend)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -519,7 +820,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.etcd_rendezvous.EtcdRendezvousHandler](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_rendezvous.EtcdRendezvousHandler)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -529,7 +836,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.etcd_store.EtcdStore](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_store.EtcdStore)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 > <font size="3">add()</font>
 
@@ -537,7 +850,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.add](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.add)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -547,7 +866,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.check](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.check)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -557,7 +882,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.get](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.get)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -567,7 +898,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.set](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.set)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -577,7 +914,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.wait](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.wait)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -589,7 +932,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.etcd_server.EtcdServer](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_server.EtcdServer)
 
-**是否支持**：否
+**产品支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -599,7 +948,13 @@
 
 **原生文档**：[torch.distributed.elastic.timer.configure](https://pytorch.org/docs/2.11/elastic/timer.html#torch.distributed.elastic.timer.configure)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -609,7 +964,13 @@
 
 **原生文档**：[torch.distributed.elastic.timer.debug_info_logging.log_debug_info_for_expired_timers](https://pytorch.org/docs/2.11/elastic/timer.html#torch.distributed.elastic.timer.debug_info_logging.log_debug_info_for_expired_timers)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -619,7 +980,13 @@
 
 **原生文档**：[torch.distributed.elastic.timer.expires](https://pytorch.org/docs/2.11/elastic/timer.html#torch.distributed.elastic.timer.expires)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -629,7 +996,13 @@
 
 **原生文档**：[torch.distributed.elastic.timer.LocalTimerServer](https://pytorch.org/docs/2.11/elastic/timer.html#torch.distributed.elastic.timer.LocalTimerServer)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -639,7 +1012,13 @@
 
 **原生文档**：[torch.distributed.elastic.timer.LocalTimerClient](https://pytorch.org/docs/2.11/elastic/timer.html#torch.distributed.elastic.timer.LocalTimerClient)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -649,7 +1028,13 @@
 
 **原生文档**：[torch.distributed.elastic.timer.FileTimerServer](https://pytorch.org/docs/2.11/elastic/timer.html#torch.distributed.elastic.timer.FileTimerServer)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -659,7 +1044,13 @@
 
 **原生文档**：[torch.distributed.elastic.timer.FileTimerClient](https://pytorch.org/docs/2.11/elastic/timer.html#torch.distributed.elastic.timer.FileTimerClient)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -669,7 +1060,13 @@
 
 **原生文档**：[torch.distributed.elastic.timer.TimerRequest](https://pytorch.org/docs/2.11/elastic/timer.html#torch.distributed.elastic.timer.TimerRequest)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -679,7 +1076,13 @@
 
 **原生文档**：[torch.distributed.elastic.timer.TimerServer](https://pytorch.org/docs/2.11/elastic/timer.html#torch.distributed.elastic.timer.TimerServer)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 > <font size="3">clear_timers()</font>
 
@@ -687,7 +1090,13 @@
 
 **原生文档**：[torch.distributed.elastic.timer.TimerServer.clear_timers](https://pytorch.org/docs/2.11/elastic/timer.html#torch.distributed.elastic.timer.TimerServer.clear_timers)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -697,7 +1106,13 @@
 
 **原生文档**：[torch.distributed.elastic.timer.TimerServer.get_expired_timers](https://pytorch.org/docs/2.11/elastic/timer.html#torch.distributed.elastic.timer.TimerServer.get_expired_timers)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -707,7 +1122,13 @@
 
 **原生文档**：[torch.distributed.elastic.timer.TimerServer.register_timers](https://pytorch.org/docs/2.11/elastic/timer.html#torch.distributed.elastic.timer.TimerServer.register_timers)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -719,7 +1140,13 @@
 
 **原生文档**：[torch.distributed.elastic.timer.TimerClient](https://pytorch.org/docs/2.11/elastic/timer.html#torch.distributed.elastic.timer.TimerClient)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 > <font size="3">acquire()</font>
 
@@ -727,7 +1154,13 @@
 
 **原生文档**：[torch.distributed.elastic.timer.TimerClient.acquire](https://pytorch.org/docs/2.11/elastic/timer.html#torch.distributed.elastic.timer.TimerClient.acquire)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -737,7 +1170,13 @@
 
 **原生文档**：[torch.distributed.elastic.timer.TimerClient.release](https://pytorch.org/docs/2.11/elastic/timer.html#torch.distributed.elastic.timer.TimerClient.release)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -749,7 +1188,13 @@
 
 **原生文档**：[torch.distributed.elastic.metrics.api.MetricHandler](https://pytorch.org/docs/2.11/elastic/metrics.html#torch.distributed.elastic.metrics.api.MetricHandler)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -759,7 +1204,13 @@
 
 **原生文档**：[torch.distributed.elastic.metrics.api.ConsoleMetricHandler](https://pytorch.org/docs/2.11/elastic/metrics.html#torch.distributed.elastic.metrics.api.ConsoleMetricHandler)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -769,7 +1220,13 @@
 
 **原生文档**：[torch.distributed.elastic.metrics.api.NullMetricHandler](https://pytorch.org/docs/2.11/elastic/metrics.html#torch.distributed.elastic.metrics.api.NullMetricHandler)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -779,7 +1236,13 @@
 
 **原生文档**：[torch.distributed.elastic.metrics.configure](https://pytorch.org/docs/2.11/elastic/metrics.html#torch.distributed.elastic.metrics.configure)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -789,7 +1252,13 @@
 
 **原生文档**：[torch.distributed.elastic.metrics.prof](https://pytorch.org/docs/2.11/elastic/metrics.html#torch.distributed.elastic.metrics.prof)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -799,7 +1268,13 @@
 
 **原生文档**：[torch.distributed.elastic.metrics.put_metric](https://pytorch.org/docs/2.11/elastic/metrics.html#torch.distributed.elastic.metrics.put_metric)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -809,7 +1284,13 @@
 
 **原生文档**：[torch.distributed.elastic.events.record](https://pytorch.org/docs/2.11/elastic/events.html#torch.distributed.elastic.events.record)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -819,7 +1300,13 @@
 
 **原生文档**：[torch.distributed.elastic.events.get_logging_handler](https://pytorch.org/docs/2.11/elastic/events.html#torch.distributed.elastic.events.get_logging_handler)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -829,7 +1316,13 @@
 
 **原生文档**：[torch.distributed.elastic.events.api.Event](https://pytorch.org/docs/2.11/elastic/events.html#torch.distributed.elastic.events.api.Event)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -839,7 +1332,13 @@
 
 **原生文档**：[torch.distributed.elastic.events.api.EventSource](https://pytorch.org/docs/2.11/elastic/events.html#torch.distributed.elastic.events.api.EventSource)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -849,7 +1348,13 @@
 
 **原生文档**：[torch.distributed.elastic.events.api.EventMetadataValue](https://pytorch.org/docs/2.11/elastic/events.html#torch.distributed.elastic.events.api.EventMetadataValue)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -859,7 +1364,13 @@
 
 **原生文档**：[torch.distributed.elastic.events.construct_and_record_rdzv_event](https://pytorch.org/docs/2.11/elastic/events.html#torch.distributed.elastic.events.construct_and_record_rdzv_event)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -871,7 +1382,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.RendezvousHandler](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.RendezvousHandler)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 > <font size="3">get_backend()</font>
 
@@ -879,7 +1396,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.RendezvousHandler.get_backend](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.RendezvousHandler.get_backend)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -889,7 +1412,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.RendezvousHandler.get_run_id](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.RendezvousHandler.get_run_id)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -899,7 +1428,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.RendezvousHandler.is_closed](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.RendezvousHandler.is_closed)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -909,7 +1444,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.RendezvousHandler.next_rendezvous](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.RendezvousHandler.next_rendezvous)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -919,7 +1460,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.RendezvousHandler.num_nodes_waiting](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.RendezvousHandler.num_nodes_waiting)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -929,7 +1476,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.RendezvousHandler.set_closed](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.RendezvousHandler.set_closed)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -939,7 +1492,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.RendezvousHandler.shutdown](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.RendezvousHandler.shutdown)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -949,7 +1508,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.RendezvousHandler.use_agent_store](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.RendezvousHandler.use_agent_store)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -963,7 +1528,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.RendezvousInfo](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.RendezvousInfo)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -973,7 +1544,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.api.RendezvousClosedError](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.api.RendezvousClosedError)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -983,7 +1560,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.api.RendezvousTimeoutError](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.api.RendezvousTimeoutError)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -993,7 +1576,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.api.RendezvousConnectionError](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.api.RendezvousConnectionError)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -1003,7 +1592,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.api.RendezvousStateError](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.api.RendezvousStateError)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -1015,7 +1610,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.api.RendezvousStoreInfo](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.api.RendezvousStoreInfo)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 > <font size="3">build()</font>
 
@@ -1023,7 +1624,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.api.RendezvousStoreInfo.build](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.api.RendezvousStoreInfo.build)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -1037,7 +1644,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.dynamic_rendezvous.DynamicRendezvousHandler](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.dynamic_rendezvous.DynamicRendezvousHandler)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 > <font size="3">from_backend()</font>
 
@@ -1045,7 +1658,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.dynamic_rendezvous.DynamicRendezvousHandler.from_backend](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.dynamic_rendezvous.DynamicRendezvousHandler.from_backend)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -1057,7 +1676,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousBackend](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousBackend)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 > <font size="3">get_state()</font>
 
@@ -1065,7 +1690,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousBackend.get_state](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousBackend.get_state)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -1075,7 +1706,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousBackend.name](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousBackend.name)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -1085,7 +1722,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousBackend.set_state](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousBackend.set_state)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -1097,7 +1740,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousTimeout](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousTimeout)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 > <font size="3">close()</font>
 
@@ -1105,7 +1754,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousTimeout.close](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousTimeout.close)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -1115,7 +1770,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousTimeout.heartbeat](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousTimeout.heartbeat)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -1125,7 +1786,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousTimeout.join](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousTimeout.join)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -1135,7 +1802,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousTimeout.last_call](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousTimeout.last_call)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -1147,7 +1820,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.c10d_rendezvous_backend.C10dRendezvousBackend](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.c10d_rendezvous_backend.C10dRendezvousBackend)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 > <font size="3">get_state()</font>
 
@@ -1155,7 +1834,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.c10d_rendezvous_backend.C10dRendezvousBackend.get_state](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.c10d_rendezvous_backend.C10dRendezvousBackend.get_state)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -1165,7 +1850,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.c10d_rendezvous_backend.C10dRendezvousBackend.name](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.c10d_rendezvous_backend.C10dRendezvousBackend.name)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -1175,7 +1866,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.c10d_rendezvous_backend.C10dRendezvousBackend.set_state](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.c10d_rendezvous_backend.C10dRendezvousBackend.set_state)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -1187,7 +1884,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 > <font size="3">get_state()</font>
 
@@ -1195,7 +1898,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend.get_state](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend.get_state)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -1205,7 +1914,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend.name](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend.name)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -1215,7 +1930,13 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend.set_state](https://pytorch.org/docs/2.11/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend.set_state)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 

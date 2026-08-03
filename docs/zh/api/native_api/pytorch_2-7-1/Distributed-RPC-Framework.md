@@ -1,7 +1,8 @@
 # Distributed RPC Framework
 
-> [!NOTE]  
-> 如果API没有"限制与说明"，说明此API和原生API支持度保持一致。<br>
+> [!NOTE]
+>
+> API的**支持情况**中，&#10004;表示API支持在对应硬件环境上运行，&#10007;表示暂不支持。<br>
 
 ## 目录
 
@@ -19,7 +20,13 @@
 
 **原生文档**：[torch.distributed.rpc.shutdown](https://pytorch.org/docs/2.7/rpc.html#torch.distributed.rpc.shutdown)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 </div>
 
@@ -29,7 +36,13 @@
 
 **原生文档**：[torch.distributed.rpc.functions.async_execution](https://pytorch.org/docs/2.7/rpc.html#torch.distributed.rpc.functions.async_execution)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -39,7 +52,13 @@
 
 **原生文档**：[torch.distributed.rpc.TensorPipeRpcBackendOptions](https://pytorch.org/docs/2.7/rpc.html#torch.distributed.rpc.TensorPipeRpcBackendOptions)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 **限制与说明**： 建议使用已适配的torch_npu.distributed.rpc.options.NPUTensorPipeRpcBackendOptions
 
@@ -49,7 +68,13 @@
 
 **原生文档**：[torch.distributed.rpc.TensorPipeRpcBackendOptions.set_device_map](https://pytorch.org/docs/2.7/rpc.html#torch.distributed.rpc.TensorPipeRpcBackendOptions.set_device_map)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 **限制与说明**： 建议使用已适配的torch_npu.distributed.rpc.options.NPUTensorPipeRpcBackendOptions.set_device_map
 
@@ -61,7 +86,13 @@
 
 **原生文档**：[torch.distributed.rpc.TensorPipeRpcBackendOptions.set_devices](https://pytorch.org/docs/2.7/rpc.html#torch.distributed.rpc.TensorPipeRpcBackendOptions.set_devices)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 **限制与说明**： 建议使用已适配的torch_npu.distributed.rpc.options.NPUTensorPipeRpcBackendOptions.set_devices
 
@@ -75,7 +106,13 @@
 
 **原生文档**：[torch.distributed.rpc.PyRRef](https://pytorch.org/docs/2.7/rpc.html#torch.distributed.rpc.PyRRef)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -85,7 +122,13 @@
 
 **原生文档**：[torch.distributed.nn.api.remote_module.RemoteModule](https://pytorch.org/docs/2.7/rpc.html#torch.distributed.nn.api.remote_module.RemoteModule)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 > <font size="3">get_module_rref()</font>
 
@@ -93,7 +136,13 @@
 
 **原生文档**：[torch.distributed.nn.api.remote_module.RemoteModule.get_module_rref](https://pytorch.org/docs/2.7/rpc.html#torch.distributed.nn.api.remote_module.RemoteModule.get_module_rref)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -103,7 +152,13 @@
 
 **原生文档**：[torch.distributed.nn.api.remote_module.RemoteModule.remote_parameters](https://pytorch.org/docs/2.7/rpc.html#torch.distributed.nn.api.remote_module.RemoteModule.remote_parameters)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -117,7 +172,13 @@
 
 **原生文档**：[torch.distributed.rpc.init_rpc](https://pytorch.org/docs/2.7/rpc.html#torch.distributed.rpc.init_rpc)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 **限制与说明**：
 
@@ -132,7 +193,13 @@
 
 **原生文档**：[torch.distributed.rpc.get_worker_info](https://pytorch.org/docs/2.7/rpc.html#torch.distributed.rpc.get_worker_info)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 </div>
 
@@ -142,7 +209,13 @@
 
 **原生文档**：[torch.distributed.rpc.WorkerInfo](https://pytorch.org/docs/2.7/rpc.html#torch.distributed.rpc.WorkerInfo)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -152,7 +225,13 @@
 
 **原生文档**：[torch.distributed.rpc.BackendType](https://pytorch.org/docs/2.7/rpc.html#torch.distributed.rpc.BackendType)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -162,7 +241,13 @@
 
 **原生文档**：[torch.distributed.rpc.RpcBackendOptions](https://pytorch.org/docs/2.7/rpc.html#torch.distributed.rpc.RpcBackendOptions)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -174,7 +259,13 @@
 
 **原生文档**：[torch.distributed.rpc.rpc_sync](https://pytorch.org/docs/2.7/rpc.html#torch.distributed.rpc.rpc_sync)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 </div>
 
@@ -184,7 +275,13 @@
 
 **原生文档**：[torch.distributed.rpc.rpc_async](https://pytorch.org/docs/2.7/rpc.html#torch.distributed.rpc.rpc_async)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 </div>
 
@@ -194,7 +291,13 @@
 
 **原生文档**：[torch.distributed.rpc.remote](https://pytorch.org/docs/2.7/rpc.html#torch.distributed.rpc.remote)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 </div>
 
@@ -206,7 +309,13 @@
 
 **原生文档**：[torch.distributed.autograd.backward](https://pytorch.org/docs/2.7/rpc.html#torch.distributed.autograd.backward)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -216,7 +325,13 @@
 
 **原生文档**：[torch.distributed.autograd.context](https://pytorch.org/docs/2.7/rpc.html#torch.distributed.autograd.context)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -228,6 +343,12 @@
 
 **原生文档**：[torch.distributed.autograd.get_gradients](https://pytorch.org/docs/2.7/rpc.html#torch.distributed.autograd.get_gradients)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>

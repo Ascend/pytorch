@@ -1,7 +1,8 @@
 # torch.distributed.pipelining
 
-> [!NOTE]  
-> 如果API没有"限制与说明"，说明此API和原生API支持度保持一致。<br>
+> [!NOTE]
+>
+> API的**支持情况**中，&#10004;表示API支持在对应硬件环境上运行，&#10007;表示暂不支持。<br>
 
 ## 目录
 
@@ -16,7 +17,13 @@
 
 **原生文档**：[torch.distributed.pipelining.pipeline](https://pytorch.org/docs/2.11/distributed.pipelining.html#torch.distributed.pipelining.pipeline)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 </div>
 
@@ -26,7 +33,13 @@
 
 **原生文档**：[torch.distributed.pipelining.Pipe](https://pytorch.org/docs/2.11/distributed.pipelining.html#torch.distributed.pipelining.Pipe)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 </div>
 
@@ -36,7 +49,13 @@
 
 **原生文档**：[torch.distributed.pipelining.pipe_split](https://pytorch.org/docs/2.11/distributed.pipelining.html#torch.distributed.pipelining.pipe_split)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 </div>
 
@@ -46,7 +65,13 @@
 
 **原生文档**：[torch.distributed.pipelining.microbatch.split_args_kwargs_into_chunks](https://pytorch.org/docs/2.11/distributed.pipelining.html#torch.distributed.pipelining.microbatch.split_args_kwargs_into_chunks)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 </div>
 
@@ -56,7 +81,13 @@
 
 **原生文档**：[torch.distributed.pipelining.microbatch.merge_chunks](https://pytorch.org/docs/2.11/distributed.pipelining.html#torch.distributed.pipelining.microbatch.merge_chunks)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 </div>
 
@@ -66,7 +97,13 @@
 
 **原生文档**：[torch.distributed.pipelining.stage.PipelineStage](https://pytorch.org/docs/2.11/distributed.pipelining.html#torch.distributed.pipelining.stage.PipelineStage)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 </div>
 
@@ -76,7 +113,13 @@
 
 **原生文档**：[torch.distributed.pipelining.stage.build_stage](https://pytorch.org/docs/2.11/distributed.pipelining.html#torch.distributed.pipelining.stage.build_stage)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 </div>
 
@@ -86,7 +129,13 @@
 
 **原生文档**：[torch.distributed.pipelining.schedules.ScheduleGPipe](https://pytorch.org/docs/2.11/distributed.pipelining.html#torch.distributed.pipelining.schedules.ScheduleGPipe)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 </div>
 
@@ -96,7 +145,13 @@
 
 **原生文档**：[torch.distributed.pipelining.schedules.Schedule1F1B](https://pytorch.org/docs/2.11/distributed.pipelining.html#torch.distributed.pipelining.schedules.Schedule1F1B)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 </div>
 
@@ -106,7 +161,13 @@
 
 **原生文档**：[torch.distributed.pipelining.schedules.ScheduleInterleaved1F1B](https://pytorch.org/docs/2.11/distributed.pipelining.html#torch.distributed.pipelining.schedules.ScheduleInterleaved1F1B)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 </div>
 
@@ -116,7 +177,13 @@
 
 **原生文档**：[torch.distributed.pipelining.schedules.ScheduleLoopedBFS](https://pytorch.org/docs/2.11/distributed.pipelining.html#torch.distributed.pipelining.schedules.ScheduleLoopedBFS)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 </div>
 
@@ -126,7 +193,13 @@
 
 **原生文档**：[torch.distributed.pipelining.schedules.PipelineScheduleSingle](https://pytorch.org/docs/2.11/distributed.pipelining.html#torch.distributed.pipelining.schedules.PipelineScheduleSingle)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 > <font size="3">step()</font>
 
@@ -134,7 +207,13 @@
 
 **原生文档**：[torch.distributed.pipelining.schedules.PipelineScheduleSingle.step](https://pytorch.org/docs/2.11/distributed.pipelining.html#torch.distributed.pipelining.schedules.PipelineScheduleSingle.step)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 </div>
 
@@ -146,7 +225,13 @@
 
 **原生文档**：[torch.distributed.pipelining.schedules.PipelineScheduleMulti](https://pytorch.org/docs/2.11/distributed.pipelining.html#torch.distributed.pipelining.schedules.PipelineScheduleMulti)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 > <font size="3">step()</font>
 
@@ -154,7 +239,13 @@
 
 **原生文档**：[torch.distributed.pipelining.schedules.PipelineScheduleMulti.step](https://pytorch.org/docs/2.11/distributed.pipelining.html#torch.distributed.pipelining.schedules.PipelineScheduleMulti.step)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 </div>
 
@@ -166,7 +257,13 @@
 
 **原生文档**：[torch.distributed.pipelining.schedules.ScheduleInterleavedZeroBubble](https://pytorch.org/docs/2.11/distributed.pipelining.html#torch.distributed.pipelining.schedules.ScheduleInterleavedZeroBubble)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 </div>
 
@@ -178,7 +275,13 @@
 
 **原生文档**：[torch.distributed.pipelining.SplitPoint](https://pytorch.org/docs/2.11/distributed.pipelining.html#torch.distributed.pipelining.SplitPoint)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 </div>
 
@@ -188,6 +291,12 @@
 
 **原生文档**：[torch.distributed.pipelining.microbatch.TensorChunkSpec](https://pytorch.org/docs/2.11/distributed.pipelining.html#torch.distributed.pipelining.microbatch.TensorChunkSpec)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 </div>

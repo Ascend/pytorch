@@ -1,7 +1,8 @@
 # torch.package
 
-> [!NOTE]  
-> 如果API没有"限制与说明"，说明此API和原生API支持度保持一致。<br>
+> [!NOTE]
+>
+> API的**支持情况**中，&#10004;表示API支持在对应硬件环境上运行，&#10007;表示暂不支持。<br>
 
 ## 目录
 
@@ -17,7 +18,13 @@
 
 **原生文档**：[torch.package.EmptyMatchError](https://pytorch.org/docs/2.7/package.html#torch.package.EmptyMatchError)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -29,7 +36,13 @@
 
 **原生文档**：[torch.package.PackagingError](https://pytorch.org/docs/2.7/package.html#torch.package.PackagingError)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -41,15 +54,27 @@
 
 **原生文档**：[torch.package.PackageExporter](https://pytorch.org/docs/2.7/package.html#torch.package.PackageExporter)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
 
-> <font size="3">__init__()</font>
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+> <font size="3">\_\_init\_\_()</font>
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.package.PackageExporter.__init__](https://pytorch.org/docs/2.7/package.html#torch.package.PackageExporter.__init__)
+**原生文档**：[torch.package.PackageExporter.\_\_init\_\_](https://pytorch.org/docs/2.7/package.html#torch.package.PackageExporter.__init__)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -59,7 +84,13 @@
 
 **原生文档**：[torch.package.PackageExporter.add_dependency](https://pytorch.org/docs/2.7/package.html#torch.package.PackageExporter.add_dependency)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -69,7 +100,13 @@
 
 **原生文档**：[torch.package.PackageExporter.all_paths](https://pytorch.org/docs/2.7/package.html#torch.package.PackageExporter.all_paths)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -79,7 +116,13 @@
 
 **原生文档**：[torch.package.PackageExporter.close](https://pytorch.org/docs/2.7/package.html#torch.package.PackageExporter.close)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -89,7 +132,13 @@
 
 **原生文档**：[torch.package.PackageExporter.denied_modules](https://pytorch.org/docs/2.7/package.html#torch.package.PackageExporter.denied_modules)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -99,7 +148,13 @@
 
 **原生文档**：[torch.package.PackageExporter.deny](https://pytorch.org/docs/2.7/package.html#torch.package.PackageExporter.deny)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -109,7 +164,13 @@
 
 **原生文档**：[torch.package.PackageExporter.dependency_graph_string](https://pytorch.org/docs/2.7/package.html#torch.package.PackageExporter.dependency_graph_string)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -119,7 +180,13 @@
 
 **原生文档**：[torch.package.PackageExporter.extern](https://pytorch.org/docs/2.7/package.html#torch.package.PackageExporter.extern)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -129,7 +196,13 @@
 
 **原生文档**：[torch.package.PackageExporter.externed_modules](https://pytorch.org/docs/2.7/package.html#torch.package.PackageExporter.externed_modules)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -139,7 +212,13 @@
 
 **原生文档**：[torch.package.PackageExporter.get_rdeps](https://pytorch.org/docs/2.7/package.html#torch.package.PackageExporter.get_rdeps)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -149,7 +228,13 @@
 
 **原生文档**：[torch.package.PackageExporter.get_unique_id](https://pytorch.org/docs/2.7/package.html#torch.package.PackageExporter.get_unique_id)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -159,7 +244,13 @@
 
 **原生文档**：[torch.package.PackageExporter.intern](https://pytorch.org/docs/2.7/package.html#torch.package.PackageExporter.intern)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -169,7 +260,13 @@
 
 **原生文档**：[torch.package.PackageExporter.interned_modules](https://pytorch.org/docs/2.7/package.html#torch.package.PackageExporter.interned_modules)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -179,7 +276,13 @@
 
 **原生文档**：[torch.package.PackageExporter.mock](https://pytorch.org/docs/2.7/package.html#torch.package.PackageExporter.mock)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -189,7 +292,13 @@
 
 **原生文档**：[torch.package.PackageExporter.mocked_modules](https://pytorch.org/docs/2.7/package.html#torch.package.PackageExporter.mocked_modules)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -199,7 +308,13 @@
 
 **原生文档**：[torch.package.PackageExporter.register_extern_hook](https://pytorch.org/docs/2.7/package.html#torch.package.PackageExporter.register_extern_hook)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -209,7 +324,13 @@
 
 **原生文档**：[torch.package.PackageExporter.register_intern_hook](https://pytorch.org/docs/2.7/package.html#torch.package.PackageExporter.register_intern_hook)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -219,7 +340,13 @@
 
 **原生文档**：[torch.package.PackageExporter.register_mock_hook](https://pytorch.org/docs/2.7/package.html#torch.package.PackageExporter.register_mock_hook)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -229,7 +356,13 @@
 
 **原生文档**：[torch.package.PackageExporter.save_binary](https://pytorch.org/docs/2.7/package.html#torch.package.PackageExporter.save_binary)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -239,7 +372,13 @@
 
 **原生文档**：[torch.package.PackageExporter.save_module](https://pytorch.org/docs/2.7/package.html#torch.package.PackageExporter.save_module)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -249,7 +388,13 @@
 
 **原生文档**：[torch.package.PackageExporter.save_pickle](https://pytorch.org/docs/2.7/package.html#torch.package.PackageExporter.save_pickle)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -259,7 +404,13 @@
 
 **原生文档**：[torch.package.PackageExporter.save_source_file](https://pytorch.org/docs/2.7/package.html#torch.package.PackageExporter.save_source_file)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -269,7 +420,13 @@
 
 **原生文档**：[torch.package.PackageExporter.save_source_string](https://pytorch.org/docs/2.7/package.html#torch.package.PackageExporter.save_source_string)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -279,7 +436,13 @@
 
 **原生文档**：[torch.package.PackageExporter.save_text](https://pytorch.org/docs/2.7/package.html#torch.package.PackageExporter.save_text)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -291,15 +454,27 @@
 
 **原生文档**：[torch.package.PackageImporter](https://pytorch.org/docs/2.7/package.html#torch.package.PackageImporter)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
 
-> <font size="3">__init__()</font>
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+> <font size="3">\_\_init\_\_()</font>
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.package.PackageImporter.__init__](https://pytorch.org/docs/2.7/package.html#torch.package.PackageImporter.__init__)
+**原生文档**：[torch.package.PackageImporter.\_\_init\_\_](https://pytorch.org/docs/2.7/package.html#torch.package.PackageImporter.__init__)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -309,7 +484,13 @@
 
 **原生文档**：[torch.package.PackageImporter.file_structure](https://pytorch.org/docs/2.7/package.html#torch.package.PackageImporter.file_structure)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -319,7 +500,13 @@
 
 **原生文档**：[torch.package.PackageImporter.id](https://pytorch.org/docs/2.7/package.html#torch.package.PackageImporter.id)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -329,7 +516,13 @@
 
 **原生文档**：[torch.package.PackageImporter.import_module](https://pytorch.org/docs/2.7/package.html#torch.package.PackageImporter.import_module)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -339,7 +532,13 @@
 
 **原生文档**：[torch.package.PackageImporter.load_binary](https://pytorch.org/docs/2.7/package.html#torch.package.PackageImporter.load_binary)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -349,7 +548,13 @@
 
 **原生文档**：[torch.package.PackageImporter.load_pickle](https://pytorch.org/docs/2.7/package.html#torch.package.PackageImporter.load_pickle)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -359,7 +564,13 @@
 
 **原生文档**：[torch.package.PackageImporter.load_text](https://pytorch.org/docs/2.7/package.html#torch.package.PackageImporter.load_text)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -369,7 +580,13 @@
 
 **原生文档**：[torch.package.PackageImporter.python_version](https://pytorch.org/docs/2.7/package.html#torch.package.PackageImporter.python_version)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -381,7 +598,13 @@
 
 **原生文档**：[torch.package.Directory](https://pytorch.org/docs/2.7/package.html#torch.package.Directory)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 > <font size="3">has_file()</font>
 
@@ -389,7 +612,13 @@
 
 **原生文档**：[torch.package.Directory.has_file](https://pytorch.org/docs/2.7/package.html#torch.package.Directory.has_file)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 

@@ -1,7 +1,8 @@
 # torch.futures
 
-> [!NOTE]  
-> 如果API没有"限制与说明"，说明此API和原生API支持度保持一致。<br>
+> [!NOTE]
+>
+> API的**支持情况**中，&#10004;表示API支持在对应硬件环境上运行，&#10007;表示暂不支持。<br>
 
 ## 目录
 
@@ -15,7 +16,13 @@
 
 **原生文档**：[torch.futures.Future](https://pytorch.org/docs/2.7/futures.html#torch.futures.Future)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 > <font size="3">add_done_callback()</font>
 
@@ -23,7 +30,13 @@
 
 **原生文档**：[torch.futures.Future.add_done_callback](https://pytorch.org/docs/2.7/futures.html#torch.futures.Future.add_done_callback)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -33,7 +46,13 @@
 
 **原生文档**：[torch.futures.Future.done](https://pytorch.org/docs/2.7/futures.html#torch.futures.Future.done)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -43,7 +62,13 @@
 
 **原生文档**：[torch.futures.Future.set_exception](https://pytorch.org/docs/2.7/futures.html#torch.futures.Future.set_exception)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -53,7 +78,13 @@
 
 **原生文档**：[torch.futures.Future.set_result](https://pytorch.org/docs/2.7/futures.html#torch.futures.Future.set_result)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -63,7 +94,13 @@
 
 **原生文档**：[torch.futures.Future.then](https://pytorch.org/docs/2.7/futures.html#torch.futures.Future.then)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -73,7 +110,13 @@
 
 **原生文档**：[torch.futures.Future.value](https://pytorch.org/docs/2.7/futures.html#torch.futures.Future.value)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -83,7 +126,13 @@
 
 **原生文档**：[torch.futures.Future.wait](https://pytorch.org/docs/2.7/futures.html#torch.futures.Future.wait)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -95,7 +144,13 @@
 
 **原生文档**：[torch.futures.collect_all](https://pytorch.org/docs/2.7/futures.html#torch.futures.collect_all)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -105,6 +160,12 @@
 
 **原生文档**：[torch.futures.wait_all](https://pytorch.org/docs/2.7/futures.html#torch.futures.wait_all)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 </div>

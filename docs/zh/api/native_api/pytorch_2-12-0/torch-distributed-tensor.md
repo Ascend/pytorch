@@ -1,7 +1,8 @@
 # torch.distributed.tensor
 
-> [!NOTE]  
-> 如果API没有"限制与说明"，说明此API和原生API支持度保持一致。<br>
+> [!NOTE]
+>
+> API的**支持情况**中，&#10004;表示API支持在对应硬件环境上运行，&#10007;表示暂不支持。<br>
 
 ## 目录
 
@@ -15,7 +16,13 @@
 
 **原生文档**：[torch.distributed.tensor.distribute_module](https://pytorch.org/docs/2.12/distributed.tensor.html#torch.distributed.tensor.distribute_module)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 **限制与说明**： 支持bf16，fp16，fp32
 
@@ -27,7 +34,13 @@
 
 **原生文档**：[torch.distributed.tensor.distribute_tensor](https://pytorch.org/docs/2.12/distributed.tensor.html#torch.distributed.tensor.distribute_tensor)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 **限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int32，int64，bool
 
@@ -39,7 +52,13 @@
 
 **原生文档**：[torch.distributed.tensor.DTensor](https://pytorch.org/docs/2.12/distributed.tensor.html#torch.distributed.tensor.DTensor)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 **限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
@@ -49,7 +68,13 @@
 
 **原生文档**：[torch.distributed.tensor.DTensor.from_local](https://pytorch.org/docs/2.12/distributed.tensor.html#torch.distributed.tensor.DTensor.from_local)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 **限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
@@ -61,7 +86,13 @@
 
 **原生文档**：[torch.distributed.tensor.DTensor.redistribute](https://pytorch.org/docs/2.12/distributed.tensor.html#torch.distributed.tensor.DTensor.redistribute)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 **限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int32，int64，bool
 
@@ -75,7 +106,13 @@
 
 **原生文档**：[torch.distributed.tensor.placement_types.Shard](https://pytorch.org/docs/2.12/distributed.tensor.html#torch.distributed.tensor.placement_types.Shard)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 **限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int32，int64，bool，complex64，complex128
 
@@ -87,7 +124,13 @@
 
 **原生文档**：[torch.distributed.tensor.placement_types._StridedShard](https://pytorch.org/docs/2.12/distributed.tensor.html#torch.distributed.tensor.placement_types._StridedShard)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 **限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int32，int64，bool
 
@@ -99,7 +142,13 @@
 
 **原生文档**：[torch.distributed.tensor.experimental.context_parallel](https://pytorch.org/docs/2.12/distributed.tensor.html#torch.distributed.tensor.experimental.context_parallel)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 **限制与说明**： 仅支持NPU fused SDPA路径；q/k/v仅支持BNSD布局；暂不支持pse、padding_mask、prefix、actual_seq_qlen、actual_seq_kvlen、sink以及任意非causal attention mask；load balance要求causal attention；暂不支持通过 torch.compile 编译为计算图
 

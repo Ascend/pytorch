@@ -1,7 +1,8 @@
 # torch.fft
 
-> [!NOTE]  
-> 如果API没有"限制与说明"，说明此API和原生API支持度保持一致。<br>
+> [!NOTE]
+>
+> API的**支持情况**中，&#10004;表示API支持在对应硬件环境上运行，&#10007;表示暂不支持。<br>
 > 
 > 使用以下接口，需要配置以下信息：
 >
@@ -22,7 +23,13 @@
 
 **原生文档**：[torch.fft.rfftn](https://pytorch.org/docs/2.11/generated/torch.fft.rfftn.html)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 **限制与说明**：
 
@@ -43,7 +50,13 @@
 
 **原生文档**：[torch.fft.hfft](https://pytorch.org/docs/2.11/generated/torch.fft.hfft.html)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -53,7 +66,13 @@
 
 **原生文档**：[torch.fft.ihfft](https://pytorch.org/docs/2.11/generated/torch.fft.ihfft.html)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -63,7 +82,13 @@
 
 **原生文档**：[torch.fft.hfft2](https://pytorch.org/docs/2.11/generated/torch.fft.hfft2.html)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -73,7 +98,13 @@
 
 **原生文档**：[torch.fft.ihfft2](https://pytorch.org/docs/2.11/generated/torch.fft.ihfft2.html)
 
-**是否支持**：否
+**产品支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -83,7 +114,13 @@
 
 **原生文档**：[torch.fft.hfftn](https://pytorch.org/docs/2.11/generated/torch.fft.hfftn.html)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -93,7 +130,13 @@
 
 **原生文档**：[torch.fft.ihfftn](https://pytorch.org/docs/2.11/generated/torch.fft.ihfftn.html)
 
-**是否支持**：否
+**产品支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -105,7 +148,13 @@
 
 **原生文档**：[torch.fft.fftfreq](https://pytorch.org/docs/2.11/generated/torch.fft.fftfreq.html)
 
-**是否支持**：否
+**产品支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -115,7 +164,13 @@
 
 **原生文档**：[torch.fft.rfftfreq](https://pytorch.org/docs/2.11/generated/torch.fft.rfftfreq.html)
 
-**是否支持**：否
+**产品支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -125,7 +180,13 @@
 
 **原生文档**：[torch.fft.fftshift](https://pytorch.org/docs/2.11/generated/torch.fft.fftshift.html)
 
-**是否支持**：否
+**产品支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -135,7 +196,13 @@
 
 **原生文档**：[torch.fft.ifftshift](https://pytorch.org/docs/2.11/generated/torch.fft.ifftshift.html)
 
-**是否支持**：否
+**产品支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 **限制与说明**： <term>Ascend 950DT</term>：不支持fp64，complex64，complex128
 

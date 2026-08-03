@@ -2,7 +2,7 @@
 
 > [!NOTE]
 >
-> 若API“是否支持”为“是”，“限制与说明”为“-”，说明此API和原生API支持度保持一致。
+> API的**支持情况**中，&#10004;表示API支持在对应硬件环境上运行，&#10007;表示暂不支持。<br>
 
 ## 目录
 
@@ -16,7 +16,13 @@
 
 **原生文档**：[torch.utils.cpp_extension.CppExtension](https://pytorch.org/docs/2.12/cpp_extension.html#torch.utils.cpp_extension.CppExtension)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -26,7 +32,13 @@
 
 **原生文档**：[torch.utils.cpp_extension.CUDAExtension](https://pytorch.org/docs/2.12/cpp_extension.html#torch.utils.cpp_extension.CUDAExtension)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 </div>
 
@@ -36,7 +48,13 @@
 
 **原生文档**：[torch.utils.cpp_extension.BuildExtension](https://pytorch.org/docs/2.12/cpp_extension.html#torch.utils.cpp_extension.BuildExtension)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -46,7 +64,13 @@
 
 **原生文档**：[torch.utils.cpp_extension.load](https://pytorch.org/docs/2.12/cpp_extension.html#torch.utils.cpp_extension.load)
 
-**是否支持**：否
+**产品支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -56,7 +80,13 @@
 
 **原生文档**：[torch.utils.cpp_extension.load_inline](https://pytorch.org/docs/2.12/cpp_extension.html#torch.utils.cpp_extension.load_inline)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -66,7 +96,13 @@
 
 **原生文档**：[torch.utils.cpp_extension.include_paths](https://pytorch.org/docs/2.12/cpp_extension.html#torch.utils.cpp_extension.include_paths)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -76,7 +112,13 @@
 
 **原生文档**：[torch.utils.cpp_extension.get_compiler_abi_compatibility_and_version](https://pytorch.org/docs/2.12/cpp_extension.html#torch.utils.cpp_extension.get_compiler_abi_compatibility_and_version)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -86,7 +128,13 @@
 
 **原生文档**：[torch.utils.cpp_extension.verify_ninja_availability](https://pytorch.org/docs/2.12/cpp_extension.html#torch.utils.cpp_extension.verify_ninja_availability)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -96,6 +144,12 @@
 
 **原生文档**：[torch.utils.cpp_extension.is_ninja_available](https://pytorch.org/docs/2.12/cpp_extension.html#torch.utils.cpp_extension.is_ninja_available)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>

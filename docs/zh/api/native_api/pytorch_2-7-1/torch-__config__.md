@@ -1,7 +1,8 @@
 # torch.\_\_config\_\_
 
-> [!NOTE]  
-> 如果API没有"限制与说明"，说明此API和原生API支持度保持一致。<br>
+> [!NOTE]
+>
+> API的**支持情况**中，&#10004;表示API支持在对应硬件环境上运行，&#10007;表示暂不支持。<br>
 
 ## 目录
 
@@ -9,22 +10,34 @@
 
 ## base API
 
-### torch.__config__.show
+### torch.\_\_config\_\_.show
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.__config__.show](https://pytorch.org/docs/2.7/config_mod.html#torch.__config__.show)
+**原生文档**：[torch.\_\_config\_\_.show](https://pytorch.org/docs/2.7/config_mod.html#torch.__config__.show)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
-### torch.__config__.parallel_info
+### torch.\_\_config\_\_.parallel_info
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.__config__.parallel_info](https://pytorch.org/docs/2.7/config_mod.html#torch.__config__.parallel_info)
+**原生文档**：[torch.\_\_config\_\_.parallel_info](https://pytorch.org/docs/2.7/config_mod.html#torch.__config__.parallel_info)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>

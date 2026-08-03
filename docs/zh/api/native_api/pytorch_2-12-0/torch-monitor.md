@@ -1,7 +1,8 @@
 # torch.monitor
 
-> [!NOTE]  
-> 如果API没有"限制与说明"，说明此API和原生API支持度保持一致。<br>
+> [!NOTE]
+>
+> API的**支持情况**中，&#10004;表示API支持在对应硬件环境上运行，&#10007;表示暂不支持。<br>
 
 ## 目录
 
@@ -16,7 +17,13 @@
 
 **原生文档**：[torch.monitor.Aggregation](https://pytorch.org/docs/2.12/monitor.html#torch.monitor.Aggregation)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 > <font size="3">name()</font>
 
@@ -24,7 +31,13 @@
 
 **原生文档**：[torch.monitor.Aggregation.name](https://pytorch.org/docs/2.12/monitor.html#torch.monitor.Aggregation.name)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -36,15 +49,27 @@
 
 **原生文档**：[torch.monitor.Stat](https://pytorch.org/docs/2.12/monitor.html#torch.monitor.Stat)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
 
-> <font size="3">__init__()</font>
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+> <font size="3">\_\_init\_\_()</font>
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.monitor.Stat.__init__](https://pytorch.org/docs/2.12/monitor.html#torch.monitor.Stat.__init__)
+**原生文档**：[torch.monitor.Stat.\_\_init\_\_](https://pytorch.org/docs/2.12/monitor.html#torch.monitor.Stat.__init__)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -54,7 +79,13 @@
 
 **原生文档**：[torch.monitor.Stat.add](https://pytorch.org/docs/2.12/monitor.html#torch.monitor.Stat.add)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -64,7 +95,13 @@
 
 **原生文档**：[torch.monitor.Stat.count](https://pytorch.org/docs/2.12/monitor.html#torch.monitor.Stat.count)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -74,7 +111,13 @@
 
 **原生文档**：[torch.monitor.Stat.get](https://pytorch.org/docs/2.12/monitor.html#torch.monitor.Stat.get)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -84,7 +127,13 @@
 
 **原生文档**：[torch.monitor.Stat.name](https://pytorch.org/docs/2.12/monitor.html#torch.monitor.Stat.name)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -96,15 +145,27 @@
 
 **原生文档**：[torch.monitor.Event](https://pytorch.org/docs/2.12/monitor.html#torch.monitor.Event)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
 
-> <font size="3">__init__()</font>
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+> <font size="3">\_\_init\_\_()</font>
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.monitor.Event.__init__](https://pytorch.org/docs/2.12/monitor.html#torch.monitor.Event.__init__)
+**原生文档**：[torch.monitor.Event.\_\_init\_\_](https://pytorch.org/docs/2.12/monitor.html#torch.monitor.Event.__init__)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -114,7 +175,13 @@
 
 **原生文档**：[torch.monitor.Event.data](https://pytorch.org/docs/2.12/monitor.html#torch.monitor.Event.data)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -124,7 +191,13 @@
 
 **原生文档**：[torch.monitor.Event.name](https://pytorch.org/docs/2.12/monitor.html#torch.monitor.Event.name)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -134,7 +207,13 @@
 
 **原生文档**：[torch.monitor.Event.timestamp](https://pytorch.org/docs/2.12/monitor.html#torch.monitor.Event.timestamp)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -146,7 +225,13 @@
 
 **原生文档**：[torch.monitor.EventHandlerHandle](https://pytorch.org/docs/2.12/monitor.html#torch.monitor.EventHandlerHandle)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -156,7 +241,13 @@
 
 **原生文档**：[torch.monitor.log_event](https://pytorch.org/docs/2.12/monitor.html#torch.monitor.log_event)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -166,7 +257,13 @@
 
 **原生文档**：[torch.monitor.register_event_handler](https://pytorch.org/docs/2.12/monitor.html#torch.monitor.register_event_handler)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -176,7 +273,13 @@
 
 **原生文档**：[torch.monitor.unregister_event_handler](https://pytorch.org/docs/2.12/monitor.html#torch.monitor.unregister_event_handler)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -186,15 +289,27 @@
 
 **原生文档**：[torch.monitor.TensorboardEventHandler](https://pytorch.org/docs/2.12/monitor.html#torch.monitor.TensorboardEventHandler)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
 
-> <font size="3">__init__()</font>
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+> <font size="3">\_\_init\_\_()</font>
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.monitor.TensorboardEventHandler.__init__](https://pytorch.org/docs/2.12/monitor.html#torch.monitor.TensorboardEventHandler.__init__)
+**原生文档**：[torch.monitor.TensorboardEventHandler.\_\_init\_\_](https://pytorch.org/docs/2.12/monitor.html#torch.monitor.TensorboardEventHandler.__init__)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -208,6 +323,12 @@
 
 **原生文档**：[torch.monitor.data_value_t](https://pytorch.org/docs/2.12/monitor.html#torch.monitor.data_value_t)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>

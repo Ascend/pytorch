@@ -2,7 +2,7 @@
 
 > [!NOTE]
 >
-> 若API“是否支持”为“是”，“限制与说明”为“-”，说明此API和原生API支持度保持一致。
+> API的**支持情况**中，&#10004;表示API支持在对应硬件环境上运行，&#10007;表示暂不支持。<br>
 
 ## 目录
 
@@ -17,7 +17,13 @@
 
 **原生文档**：[torch.special.erf](https://pytorch.org/docs/2.11/special.html#torch.special.erf)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 **限制与说明**： 支持fp16，fp32，int64，bool
 
@@ -29,7 +35,13 @@
 
 **原生文档**：[torch.special.erfc](https://pytorch.org/docs/2.11/special.html#torch.special.erfc)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 **限制与说明**： 支持fp16，fp32，int64，bool
 
@@ -41,7 +53,13 @@
 
 **原生文档**：[torch.special.erfinv](https://pytorch.org/docs/2.11/special.html#torch.special.erfinv)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 **限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
@@ -53,7 +71,13 @@
 
 **原生文档**：[torch.special.exp2](https://pytorch.org/docs/2.11/special.html#torch.special.exp2)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 **限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
@@ -65,7 +89,13 @@
 
 **原生文档**：[torch.special.expit](https://pytorch.org/docs/2.11/special.html#torch.special.expit)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 **限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
@@ -77,7 +107,13 @@
 
 **原生文档**：[torch.special.ndtr](https://pytorch.org/docs/2.11/special.html#torch.special.ndtr)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 </div>
 
@@ -87,7 +123,13 @@
 
 **原生文档**：[torch.special.xlogy](https://pytorch.org/docs/2.11/special.html#torch.special.xlogy)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 **限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
@@ -101,7 +143,13 @@
 
 **原生文档**：[torch.special.log1p](https://pytorch.org/docs/2.11/special.html#torch.special.log1p)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 **限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
@@ -113,7 +161,13 @@
 
 **原生文档**：[torch.special.logsumexp](https://pytorch.org/docs/2.11/special.html#torch.special.logsumexp)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 **限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 

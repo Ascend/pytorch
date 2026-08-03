@@ -1,7 +1,8 @@
 # torch.export
 
-> [!NOTE]  
-> 如果API没有"限制与说明"，说明此API和原生API支持度保持一致。<br>
+> [!NOTE]
+>
+> API的**支持情况**中，&#10004;表示API支持在对应硬件环境上运行，&#10007;表示暂不支持。<br>
 
 ## 目录
 
@@ -15,7 +16,13 @@
 
 **原生文档**：[torch.export.export](https://pytorch.org/docs/2.11/user_guide/torch_compiler/export/api_reference.html#torch.export.export)
 
-**是否支持**：否
+**产品支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -25,7 +32,13 @@
 
 **原生文档**：[torch.export.save](https://pytorch.org/docs/2.11/user_guide/torch_compiler/export/api_reference.html#torch.export.save)
 
-**是否支持**：否
+**产品支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -35,7 +48,13 @@
 
 **原生文档**：[torch.export.load](https://pytorch.org/docs/2.11/user_guide/torch_compiler/export/api_reference.html#torch.export.load)
 
-**是否支持**：否
+**产品支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -45,7 +64,13 @@
 
 **原生文档**：[torch.export.ExportedProgram](https://pytorch.org/docs/2.11/user_guide/torch_compiler/export/api_reference.html#torch.export.ExportedProgram)
 
-**是否支持**：否
+**产品支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 > <font size="3">module()</font>
 
@@ -53,7 +78,13 @@
 
 **原生文档**：[torch.export.ExportedProgram.module](https://pytorch.org/docs/2.11/user_guide/torch_compiler/export/api_reference.html#torch.export.ExportedProgram.module)
 
-**是否支持**：否
+**产品支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -65,7 +96,13 @@
 
 **原生文档**：[torch.export.exported_program.ModuleCallSignature](https://pytorch.org/docs/2.11/user_guide/torch_compiler/export/api_reference.html#torch.export.exported_program.ModuleCallSignature)
 
-**是否支持**：否
+**产品支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -75,6 +112,12 @@
 
 **原生文档**：[torch.export.exported_program.ModuleCallEntry](https://pytorch.org/docs/2.11/user_guide/torch_compiler/export/api_reference.html#torch.export.exported_program.ModuleCallEntry)
 
-**是否支持**：否
+**产品支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>

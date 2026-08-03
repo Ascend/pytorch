@@ -1,7 +1,8 @@
 # torch.linalg
 
-> [!NOTE]   
-> 如果API没有"限制与说明"，说明此API和原生API支持度保持一致。<br>
+> [!NOTE]
+>
+> API的**支持情况**中，&#10004;表示API支持在对应硬件环境上运行，&#10007;表示暂不支持。<br>
 
 ## 目录
 
@@ -19,7 +20,13 @@
 
 **原生文档**：[torch.linalg.cholesky](https://pytorch.org/docs/2.11/generated/torch.linalg.cholesky.html)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 **限制与说明**： 支持fp32
 
@@ -31,7 +38,13 @@
 
 **原生文档**：[torch.linalg.qr](https://pytorch.org/docs/2.11/generated/torch.linalg.qr.html)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 **限制与说明**： 支持fp32，fp64，complex64，complex128
 
@@ -45,7 +58,13 @@
 
 **原生文档**：[torch.linalg.norm](https://pytorch.org/docs/2.11/generated/torch.linalg.norm.html)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 **限制与说明**： 支持bf16，fp16，fp32
 
@@ -59,7 +78,13 @@
 
 **原生文档**：[torch.linalg.lstsq](https://pytorch.org/docs/2.11/generated/torch.linalg.lstsq.html)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 **限制与说明**： 可能回退至CPU执行
 
@@ -71,7 +96,13 @@
 
 **原生文档**：[torch.linalg.solve_triangular](https://pytorch.org/docs/2.11/generated/torch.linalg.solve_triangular.html)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 **限制与说明**： 支持fp32，fp64，complex64，complex128
 
@@ -85,7 +116,13 @@
 
 **原生文档**：[torch.linalg.matmul](https://pytorch.org/docs/2.11/generated/torch.linalg.matmul.html)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 **限制与说明**：
 
@@ -102,6 +139,12 @@
 
 **原生文档**：[torch.linalg.ldl_factor](https://pytorch.org/docs/2.11/generated/torch.linalg.ldl_factor.html)
 
-**是否支持**：否
+**产品支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>

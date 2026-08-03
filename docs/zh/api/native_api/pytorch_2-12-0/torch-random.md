@@ -2,7 +2,7 @@
 
 > [!NOTE]
 >
-> 若API“是否支持”为“是”，“限制与说明”为“-”，说明此API和原生API支持度保持一致。
+> API的**支持情况**中，&#10004;表示API支持在对应硬件环境上运行，&#10007;表示暂不支持。<br>
 
 ## 目录
 
@@ -16,7 +16,13 @@
 
 **原生文档**：[torch.random.fork_rng](https://pytorch.org/docs/2.12/random.html#torch.random.fork_rng)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 </div>
 
@@ -26,7 +32,13 @@
 
 **原生文档**：[torch.random.get_rng_state](https://pytorch.org/docs/2.12/random.html#torch.random.get_rng_state)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 </div>
 
@@ -36,7 +48,13 @@
 
 **原生文档**：[torch.random.initial_seed](https://pytorch.org/docs/2.12/random.html#torch.random.initial_seed)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 </div>
 
@@ -46,7 +64,13 @@
 
 **原生文档**：[torch.random.manual_seed](https://pytorch.org/docs/2.12/random.html#torch.random.manual_seed)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 </div>
 
@@ -56,7 +80,13 @@
 
 **原生文档**：[torch.random.seed](https://pytorch.org/docs/2.12/random.html#torch.random.seed)
 
-**是否支持**：是，暂不支持<term>Ascend 950DT</term>
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
 
@@ -66,6 +96,12 @@
 
 **原生文档**：[torch.random.set_rng_state](https://pytorch.org/docs/2.12/random.html#torch.random.set_rng_state)
 
-**是否支持**：是
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
 
 </div>
