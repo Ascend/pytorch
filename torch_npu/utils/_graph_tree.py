@@ -103,7 +103,13 @@ def npugraphify(
     constants: Tuple[torch.Tensor, ...] = (),
     placeholders: Sequence[PlaceholderInfo] = (),
     mutated_input_idxs: Tuple[int, ...] = (),
+    kernel_free_cudagraph: bool = False,
+    user_visible_output_idxs: Tuple[int, ...] = (),
 ) -> Callable[..., Any]:
+    # torch 2.14's inductor cudagraph-partition path passes kernel_free_cudagraph /
+    # user_visible_output_idxs to the registered cudagraphify fn. The NPU graph-tree
+    # backend does not implement the kernel-free optimization yet, so we accept these
+    # arguments for signature compatibility and otherwise ignore them.
     from torch_npu.npu._graph_tree import npugraphify_impl as new_npugraphify_impl
 
     npugraphify_fn: Callable[..., Any]

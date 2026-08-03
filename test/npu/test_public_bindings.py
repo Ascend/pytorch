@@ -821,6 +821,10 @@ class TestPublicBindings(TestCase):
             if mod.startswith("torch._vendor.quack"):
                 continue
 
+            # Skip the CUPTI python bindings, which require a CUDA/CUPTI runtime
+            if mod.startswith("torch.profiler._cupti"):
+                continue
+
             errors.append(f"{mod} failed to import with error {excep_type}")
         self.assertEqual("", "\n".join(errors))
 
