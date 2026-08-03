@@ -67,17 +67,17 @@ jobs:
       max_workers: 8
       matrix_json: ${{ needs.collect.outputs.graph_matrix }}
 
-  test_math:
+  test_others:
     needs: collect
-    if: ${{ needs.collect.outputs.has_math == 'true' }}
+    if: ${{ needs.collect.outputs.has_others == 'true' }}
     uses: ./.github/workflows/_test-exec-new.yml
     secrets: inherit
     with:
       resolved_short: ${{ inputs.resolved_short }}
-      category: math
-      num_shards: ${{ needs.collect.outputs.math_num_shards }}
+      category: others
+      num_shards: ${{ needs.collect.outputs.others_num_shards }}
       max_workers: 8
-      matrix_json: ${{ needs.collect.outputs.math_matrix }}
+      matrix_json: ${{ needs.collect.outputs.others_matrix }}
 
   report:
     needs:
@@ -86,7 +86,7 @@ jobs:
       - test_tensor
       - test_distributed
       - test_graph
-      - test_math
+      - test_others
     if: always() && needs.collect.result == 'success'
     uses: ./.github/workflows/_test-report-new.yml
     secrets: inherit
@@ -95,4 +95,4 @@ jobs:
       tensor_matrix: ${{ needs.collect.outputs.tensor_matrix }}
       distributed_matrix: ${{ needs.collect.outputs.distributed_matrix }}
       graph_matrix: ${{ needs.collect.outputs.graph_matrix }}
-      math_matrix: ${{ needs.collect.outputs.math_matrix }}
+      others_matrix: ${{ needs.collect.outputs.others_matrix }}

@@ -10,7 +10,7 @@ on:
       category:
         required: true
         type: string
-        description: Test category (core/tensor/distributed/graph/math)
+        description: Test category (core/tensor/distributed/graph/others)
       num_shards:
         required: true
         type: string
@@ -147,7 +147,6 @@ jobs:
             --timeout 1800 \
             --shard-type ${{ inputs.category }} \
             --shard ${{ matrix.shard }} \
-            --verbose \
             2>&1 | tee /tmp/test_${{ inputs.category }}_${{ matrix.shard }}.log
 
           TEST_STATUS=${PIPESTATUS[0]}
@@ -165,7 +164,7 @@ jobs:
               'tensor': 'tensor',
               'distributed': 'dist',
               'graph': 'graph',
-              'math': 'math',
+              'others': 'others',
           }
           prefix = prefix_map.get('${{ inputs.category }}', 'reg')
           cases_file = f'test-reports/shard_{prefix}-${{ matrix.shard }}_cases.json'

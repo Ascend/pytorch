@@ -7,7 +7,7 @@ One pytest session per file, with crash recovery via
 StepcurrentPlugin (--sc/--scs) and NPU poisoning detection.
 
 Execution modes:
-    - concurrent (regular/core/tensor/graph/math): spawn Pool with N workers
+    - concurrent (regular/core/tensor/graph/others): spawn Pool with N workers
     - serial (distributed): single-process, all NPU devices
 
 Usage:
@@ -18,8 +18,7 @@ Usage:
         --max-workers 3 \
         --timeout 1800 \
         --shard-type core \
-        --shard 1 \
-        --verbose
+        --shard 1
 """
 
 import argparse
@@ -130,7 +129,6 @@ def build_pytest_command(
     stepcurrent: Optional[str] = None,
     marker: Optional[str] = None,
     subprocess_flag: bool = False,
-    verbose: bool = False,
     timeout: int = 1800,
     shard_id: int = 1,
     num_shards: int = 1,
@@ -161,10 +159,8 @@ def build_pytest_command(
         cmd.extend(["-m", marker])
     if subprocess_flag:
         cmd.append("--subprocess")
-    if verbose:
-        cmd.append("-vv")
-    else:
-        cmd.append("-v")
+    # Always use -vv for per-case PASSED/FAILED/SKIPPED output in logs
+    cmd.append("-vv")
     return cmd
 
 
@@ -219,7 +215,6 @@ def run_test_file_with_retry(
     test_dir: Path,
     report_dir: Path,
     timeout: int,
-    verbose: bool,
     shard: int,
     shard_type: str,
     env_updates: Optional[Dict[str, str]] = None,
@@ -257,7 +252,6 @@ def run_test_file_with_retry(
             test_file, xml_file,
             marker="(not serial)",
             subprocess_flag=True,
-            verbose=verbose,
             timeout=timeout,
             shard_id=shard_id,
             num_shards=num_shards,
@@ -267,6 +261,8 @@ def run_test_file_with_retry(
         print(f"  [SUBPROCESS] {test_file}{sub_info}", flush=True)
         print(f"    Command: {command_str}", flush=True)
         rc, output = run_subprocess_with_timeout(cmd, timeout, test_dir, merged_env)
+        if output:
+            print(output, flush=True)
         if rc != 0:
             print(f"    Exit code: {rc}", flush=True)
         if not xml_file.exists():
@@ -290,7 +286,6 @@ def run_test_file_with_retry(
             test_file, xml_file,
             stepcurrent=sc_cmd,
             marker="(not serial)",
-            verbose=verbose,
             timeout=timeout,
             shard_id=shard_id,
             num_shards=num_shards,
@@ -305,6 +300,10 @@ def run_test_file_with_retry(
         print(f"    Command: {command_str}", flush=True)
 
         rc, output = run_subprocess_with_timeout(cmd, timeout, test_dir, merged_env)
+
+        # Print pytest stdout for per-case PASSED/FAILED/SKIPPED visibility
+        if output:
+            print(output, flush=True)
 
         # Orderly exit (0=pass, 1=failures, 2=interrupted, 5=no tests collected)
         # Results are final, no more iterations needed.
@@ -476,7 +475,6 @@ def _worker_loop(
     test_dir: Path,
     report_dir: Path,
     timeout: int,
-    verbose: bool,
     shard: int,
     shard_type: str,
     env_updates: Dict[str, str],
@@ -507,7 +505,7 @@ def _worker_loop(
         try:
             file_start = monotonic()
             xml_files, attempts, status = run_test_file_with_retry(
-                test_file, test_dir, report_dir, timeout, verbose,
+                test_file, test_dir, report_dir, timeout,
                 shard, shard_type, env_updates, shard_id, num_shards,
             )
             wall_time = monotonic() - file_start
@@ -531,7 +529,6 @@ def run_shard(
     timeout: int,
     shard_type: str,
     shard: int,
-    verbose: bool,
     script_dir: Path,
 ):
     """Execute all test files in a shard.
@@ -592,7 +589,7 @@ def run_shard(
             print(f"\n[{i}/{total_files}] Processing: {test_file}{sub_info}", flush=True)
             file_start = monotonic()
             xml_files, attempts, status = run_test_file_with_retry(
-                test_file, test_dir, report_dir, timeout, verbose,
+                test_file, test_dir, report_dir, timeout,
                 shard, shard_type, env_updates,
                 shard_id=sub_shard_id, num_shards=sub_num_shards,
             )
@@ -641,7 +638,7 @@ def run_shard(
             p = Process(
                 target=_worker_loop,
                 args=(device_id, task_queue, result_queue, test_dir, report_dir,
-                      timeout, verbose, shard, shard_type, env_updates),
+                      timeout, shard, shard_type, env_updates),
             )
             p.start()
             workers.append(p)
@@ -700,6 +697,7 @@ def run_shard(
         "tensor": "tensor",
         "graph": "graph",
         "math": "math",
+        "others": "others",
     }
     shard_prefix = _TYPE_TO_PREFIX.get(shard_type, "reg")
     exec_times_data = {
@@ -802,9 +800,8 @@ def parse_args():
     parser.add_argument("--report-dir", default="test-reports", help="Report output directory")
     parser.add_argument("--max-workers", type=int, default=3, help="Max concurrent workers (regular: 3, distributed: 1)")
     parser.add_argument("--timeout", type=int, default=1800, help="Per-file timeout in seconds")
-    parser.add_argument("--shard-type", default="regular", help="Shard type (core/tensor/distributed/graph/math)")
+    parser.add_argument("--shard-type", default="regular", help="Shard type (core/tensor/distributed/graph/others)")
     parser.add_argument("--shard", type=int, default=1, help="Shard number")
-    parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
     return parser.parse_args()
 
 
@@ -832,7 +829,6 @@ def main():
         args.timeout,
         args.shard_type,
         args.shard,
-        args.verbose,
         script_dir,
     )
 

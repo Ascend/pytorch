@@ -71,6 +71,7 @@ def get_shard_type_prefix(shard_type: str) -> str:
         "tensor": "tensor",
         "graph": "graph",
         "math": "math",
+        "others": "others",
     }
     return mapping.get(shard_type, "reg")
 

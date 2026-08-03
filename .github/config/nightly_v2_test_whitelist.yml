@@ -92,6 +92,7 @@ categories:
       - test/distributed/tensor/parallel/test_parallelize_api.py
       - test/distributed/tensor/parallel/test_tp_examples.py
       - test/distributed/pipelining/test_pipe.py
+      - test/distributed/rpc/test_share_memory.py
       - test/distributed/checkpoint/_experimental/test_barriers.py
       - test/distributed/checkpoint/_experimental/test_builder.py
       - test/distributed/checkpoint/_experimental/test_checkpointer.py
@@ -122,6 +123,35 @@ categories:
     execution: concurrent
     workers: 8
     files:
+      - test/fx/test_common_passes.py
+      - test/fx/test_cse_pass.py
+      - test/fx/test_dce_pass.py
+      - test/fx/test_dynamism.py
+      - test/fx/test_future.py
+      - test/fx/test_fx_const_fold.py
+      - test/fx/test_fx_node_hook.py
+      - test/fx/test_fx_param_shape_control_flow.py
+      - test/fx/test_fx_split.py
+      - test/fx/test_fx_split_node_finder.py
+      - test/fx/test_fx_traceback.py
+      - test/fx/test_fx_xform_observer.py
+      - test/fx/test_gradual_type.py
+      - test/fx/test_graph_pickler.py
+      - test/fx/test_lazy_graph_module.py
+      - test/fx/test_matcher_utils.py
+      - test/fx/test_net_min_base.py
+      - test/fx/test_opaque_infrastructure.py
+      - test/fx/test_partitioner_order.py
+      - test/fx/test_pass_infra.py
+      - test/fx/test_shape_inference.py
+      - test/fx/test_source_matcher_utils.py
+      - test/fx/test_subgraph_rewriter.py
+      - test/fx/test_z3_gradual_types.py
+      - test/test_fx.py
+      - test/test_fx_experimental.py
+      - test/test_fx_graph_print.py
+      - test/test_fx_passes.py
+      - test/test_fx_reinplace_pass.py
       - test/higher_order_ops/test_debug_log.py
       - test/higher_order_ops/test_local_map.py
       - test/higher_order_ops/test_print.py
@@ -251,9 +281,15 @@ categories:
       - test/test_prims.py
       - test/inductor/test_aot_inductor_arrayref.py
 
-  math:
+  others:
     shards: 1
     execution: concurrent
     workers: 8
     files:
       - test/test_linalg.py
+      - test/ao/sparsity/test_structured_sparsifier.py
+      - test/test_accelerator.py
+      - test/test_matmul_cuda.py
+      - test/test_numa_binding.py
+      - test/test_comparison_utils.py
+      - test/test_tensorboard.py

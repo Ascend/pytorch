@@ -75,7 +75,7 @@ def parse_requested_shards(raw: str) -> List[Tuple[str, int]]:
 
     Supports formats:
     - Integers: [1, 2, 3] -> [("regular", 1), ("regular", 2), ("regular", 3)]
-    - Type-prefixed: ["dist-1", "reg-2", "custom-1", "core-1", "tensor-1", "graph-1", "math-1"]
+    - Type-prefixed: ["dist-1", "reg-2", "custom-1", "core-1", "tensor-1", "graph-1", "others-1"]
 
     Returns list of (shard_type, shard_number) tuples.
     """
@@ -87,6 +87,7 @@ def parse_requested_shards(raw: str) -> List[Tuple[str, int]]:
         "tensor": "tensor",
         "graph": "graph",
         "math": "math",
+        "others": "others",
     }
     try:
         value = json.loads(raw)
@@ -179,10 +180,11 @@ def discover_shard_files(
             "tensor": "tensor",
             "graph": "graph",
             "math": "math",
+        "others": "others",
         }
         stem = path.stem  # filename without extension
         # Match pattern: shard_{type}-{number}_{suffix}
-        match = re.match(r"shard_(dist|reg|custom|core|tensor|graph|math)-(\d+)_" + suffix_pattern, stem)
+        match = re.match(r"shard_(dist|reg|custom|core|tensor|graph|math|others)-(\d+)_" + suffix_pattern, stem)
         if match:
             type_prefix = match.group(1)
             shard_num = int(match.group(2))
@@ -245,6 +247,7 @@ def build_file_to_shards_map(cases_shards_dir: Path) -> Dict[str, List[str]]:
                 "tensor": "tensor",
                 "graph": "graph",
                 "math": "math",
+        "others": "others",
             }
             shard_prefix = _TYPE_TO_PREFIX.get(test_type, "reg")
             shard_id = f"{shard_prefix}-{shard_num}"
@@ -589,6 +592,7 @@ def main():
             "tensor": "tensor",
             "graph": "graph",
             "math": "math",
+        "others": "others",
         }
         shard_prefix = _TYPE_TO_PREFIX.get(shard_type, "reg")
         shard_rows.append(

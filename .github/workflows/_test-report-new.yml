@@ -19,10 +19,10 @@ on:
         required: true
         type: string
         description: Graph shard matrix JSON
-      math_matrix:
+      others_matrix:
         required: true
         type: string
-        description: Math shard matrix JSON
+        description: Others shard matrix JSON
 
 jobs:
   report:
@@ -68,10 +68,10 @@ jobs:
           merge-multiple: true
         continue-on-error: true
 
-      - name: Download math test reports
+      - name: Download others test reports
         uses: actions/download-artifact@v4
         with:
-          pattern: test-reports-math-*
+          pattern: test-reports-others-*
           path: all-test-reports
           merge-multiple: true
         continue-on-error: true
@@ -97,14 +97,14 @@ jobs:
               'tensor': '${{ inputs.tensor_matrix }}',
               'distributed': '${{ inputs.distributed_matrix }}',
               'graph': '${{ inputs.graph_matrix }}',
-              'math': '${{ inputs.math_matrix }}',
+              'others': '${{ inputs.others_matrix }}',
           }
           prefix_map = {
               'core': 'core',
               'tensor': 'tensor',
               'distributed': 'dist',
               'graph': 'graph',
-              'math': 'math',
+              'others': 'others',
           }
           combined = []
           for cat, mat_str in matrices.items():
