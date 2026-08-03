@@ -15,21 +15,22 @@
 
 **表 1**  产品硬件支持列表
 
-|产品|是否支持（训练场景）|
+|产品|是否支持|
 |--|:-:|
 |<term>Ascend 950DT</term>|√|
 |<term>Atlas A3 训练系列产品</term>|√|
 |<term>Atlas A3 推理系列产品</term>|x|
 |<term>Atlas A2 训练系列产品</term>|√|
 |<term>Atlas A2 推理系列产品</term>|x|
-|<term>Atlas 200I/500 A2 推理产品</term>|x|
-|<term>Atlas 推理系列产品</term>|x|
 |<term>Atlas 训练系列产品</term>|√|
+|<term>Atlas 推理系列产品</term>|x|
+|<term>Atlas 200I/500 A2 推理产品</term>|x|
 
 > [!NOTE]
 >
 > 本节表格中“√”代表支持，“x”代表不支持。
 
+- 更具体的昇腾产品形态说明请参考[昇腾产品形态说明](https://www.hiascend.com/document/detail/zh/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html)。
 - 各硬件产品对应物理机部署场景支持的操作系统请参考[兼容性查询助手](https://www.hiascend.com/hardware/compatibility)。
 - 各硬件产品对应虚拟机及容器部署场景支持的操作系统请参考《CANN 软件安装》的“操作系统兼容性说明”章节。
 <!-- [操作系统兼容性说明](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/900/softwareinst/instg/instg_0101.html?OS=openEuler&InstallType=netyum) -->
