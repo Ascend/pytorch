@@ -3,8 +3,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <mutex>
-#include "torch_npu/csrc/logging/Logger.h"
-#include "torch_npu/csrc/core/npu/npu_log.h"
 
 namespace torch_npu {
 namespace acl_log {
@@ -18,19 +16,11 @@ void InitFilter()
 {
     const char* v = std::getenv("TORCH_NPU_LOGS_FILTER");
     g_filter_disabled = (v != nullptr);
-    // Log gate resolved once: check PTA acl-logger level.
-    auto& logger = GetAclLogger();
-    bool pta_on = (logger && logger->getAllowLevel() <= npu_logging::LoggingLevel::INFO);
-    bool asc_on = false;
-    try {
-        asc_on = c10_npu::option::OptionsManager::isACLGlobalLogOn(ACL_INFO);
-    } catch (...) {
-        asc_on = false;
-    }
-    g_log_enabled = pta_on || asc_on;
+
+    const char* logs = std::getenv("TORCH_NPU_LOGS");
+    g_log_enabled = (logs != nullptr);
 }
 }  // anonymous namespace
-
 
 bool ShouldLogAclApi(const char* api_name)
 {
