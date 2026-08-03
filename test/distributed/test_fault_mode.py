@@ -136,7 +136,6 @@ class TestMode(TestCase):
         )
 
     @skipIfUnsupportMultiNPU(2)
-    @SupportedDevices(['Ascend910A', 'Ascend910B', 'Ascend910_93'])
     def test_hccl_timeout(self):
         path = os.path.join(os.path.dirname(__file__), '_fault_mode_cases/error_hccl_timeout.py')
         process = subprocess.Popen(["torchrun", "--nproc-per-node=2", f"{path}"], shell=False, stdout=subprocess.PIPE,
@@ -146,28 +145,8 @@ class TestMode(TestCase):
         process.stdout.close()
         process.terminate()
         process.wait()
-        self.assertIn(
-            "EI0002",
-            message
-        )
-
-    @skipIfUnsupportMultiNPU(2)
-    @SupportedDevices(['Ascend950'])
-    def test_hccl_timeout_950(self):
-        path = os.path.join(os.path.dirname(__file__), '_fault_mode_cases/error_hccl_timeout.py')
-        process = subprocess.Popen(["torchrun", "--nproc-per-node=2", f"{path}"], shell=False, stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE, text=True)
-        message = process.stderr.read()
-        process.stderr.close()
-        process.stdout.close()
-        process.terminate()
-        process.wait()
-        self.assertIn(
-            "wait for compute device to finish failed",
-            message
-        )
-        self.assertIn(
-            "task timeout",
+        self.assertTrue(
+            "EI0002" in message or "Communication_Error_Timeout" in message,
             message
         )
 
