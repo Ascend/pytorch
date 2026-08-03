@@ -238,7 +238,7 @@ def run_test_file_with_retry(
     Returns ``(xml_files, attempts, status)``:
       - xml_files: list of JUnit XML file paths (one per iteration)
       - attempts: number of pytest subprocess invocations
-      - status: "completed" | "crashed" | "max_iterations"
+      - status: "completed" | "crashed" | "max_iterations" | "poisoned"
     """
     junit_dir = report_dir / "junit_xmls"
     junit_dir.mkdir(parents=True, exist_ok=True)
@@ -280,6 +280,7 @@ def run_test_file_with_retry(
     max_iterations = 20
     iteration = 0
     xml_files = []
+    was_poisoned = False
 
     while iteration < max_iterations:
         xml_file = junit_dir / f"{base_name}_attempt{iteration}.xml"
@@ -306,17 +307,22 @@ def run_test_file_with_retry(
         rc, output = run_subprocess_with_timeout(cmd, timeout, test_dir, merged_env)
 
         # Orderly exit (0=pass, 1=failures, 2=interrupted, 5=no tests collected)
-        # Results are final, no more iterations needed
-        if rc >= 0 and rc != 124:
+        # Results are final, no more iterations needed.
+        # NPU poisoning (70) is NOT an orderly exit — it means the device
+        # context is corrupted and must not be reused. The plugin already
+        # wrote lastrun to .pytest_cache before calling pytest.exit(70),
+        # so --scs will skip the poisoned case and continue in a fresh
+        # subprocess (which re-initializes the NPU runtime).
+        if rc >= 0 and rc not in (124, NPU_POISONING_EXIT_CODE):
             print(f"    Exit code: {rc} (done)", flush=True)
             break
 
         # Crash (rc < 0) or timeout (124) or NPU poisoning (70)
-        # StepcurrentPlugin has already written lastrun to .pytest_cache
-        # before the crash. Use --scs to skip the crashed case and continue
-        # with remaining cases in a fresh process.
+        # Use --scs to skip the crashed/poisoned case and continue with
+        # remaining cases in a fresh process.
         if rc == NPU_POISONING_EXIT_CODE:
             print(f"    Exit code: {rc} (NPU poisoning, skipping case)", flush=True)
+            was_poisoned = True
         else:
             signal_name = ""
             if rc < 0:
@@ -333,6 +339,8 @@ def run_test_file_with_retry(
     if iteration >= max_iterations:
         print(f"    Max iterations ({max_iterations}) reached for {test_file}", flush=True)
         status = "max_iterations"
+    elif was_poisoned:
+        status = "poisoned"
     elif iteration > 0:
         status = "crashed"
     else:
