@@ -8,5 +8,6 @@ def simplify(self, expr: Expr):
         return [sympy.expand(s).xreplace(self.replacements) for s in expr]
     return sympy.expand(expr).xreplace(self.replacements)
 
+
 def patch_simplify():
     sizevars.SizeVarAllocator.simplify = simplify

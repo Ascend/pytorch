@@ -3,6 +3,7 @@ import os  # noqa: C101
 import re
 import sys
 import math
+from typing import Optional
 
 import torch
 import torch._inductor.config as inductor_config
@@ -179,6 +180,27 @@ inductor_config.triton.coalesce_tiling_analysis = False
 inductor_config.triton.mix_order_reduction = False
 
 enable_fast_gelu = os.getenv("TORCHINDUCTOR_ENABLE_FAST_GELU", "0") == "1"
+enable_flex_attention_dq_before_scale_materialize = os.environ.get(
+    "FLEX_ATTENTION_DQ_BEFORE_SCALE_MATERIALIZE", "1"
+).lower() in ("1", "true", "yes")
+
+device = torch.npu.current_device()
+prop = torch.npu.get_device_properties(device)
+
+num_cube_core = prop.cube_core_num
+num_vector_core = prop.vector_core_num
+
+Ascend910B1 = 220
+Ascend310B1 = 240
+Ascend910_9391 = 250
+Ascend950 = 260
+is_ascend950 = get_soc_version() >= Ascend950
+
+
+def _read_env_bool(name: str, default: str = "False") -> bool:
+    value = os.environ.get(name, default)
+    return value.strip().lower() in ("1", "true", "yes", "on")
+
 
 # Enable the SIMT Welford lowering for variance and layer normalization.
 # Keep it disabled by default while the new path is being rolled out.
@@ -201,7 +223,7 @@ class catlass:
     # Configures the maximum number of CATLASS configs to profile in max_autotune.
     # By default it's None, so that all CATLASS configs are tuned.
     # This is mainly used to reduce test time in CI.
-    catlass_max_profiling_configs: int | None = None
+    catlass_max_profiling_configs: Optional[int] = None
 
     catlass_backend_min_gemm_size: int = 1
 
@@ -420,3 +442,142 @@ enable_fused_matmul_relu = _parse_bool_env(
 # for non-contiguous data access, and merges the two reduction axes into one dimension.
 # This optimizes kernels like LayerNorm-after-permute where data layout is transposed.
 permute_continous_reduction = _parse_bool_env("PERMUTE_CONTINOUS_REDUCTION", False)
+
+FLEX_ATTENTION_NPU_COMPILE_HINT_KEYS = (
+    "limit_auto_multi_buffer_buffer",
+    "multibuffer",
+    "unit_flag",
+    "enable_ubuf_saving",
+    "hfusion_enable_multiple_consumer_fusion",
+    "enable_select_analysis",
+    "limit_auto_multi_buffer_only_for_local_buffer",
+    "limit_auto_multi_buffer_of_local_buffer",
+    "set_workspace_multibuffer",
+    "tile_mix_vector_loop",
+    "tile_mix_cube_loop",
+    "enable_dynamic_cv_pipeline",
+    "intra_cache_num",
+    "inter_cache_num",
+    "enable_cross_if_fusion",
+    "enable_buffer_insert_optimization",
+    "enable_ub_refine_opt",
+)
+
+
+class flex_attention:
+    enable_npu_optimization = False
+    use_config_generator = True
+    metadata_auto_infer = True
+    bwd_mask_out = True
+
+    multibuffer = True
+    unit_flag = True
+    enable_ubuf_saving = True
+    limit_auto_multi_buffer_buffer = "no-limit"
+    hfusion_enable_multiple_consumer_fusion = True
+    enable_select_analysis = False
+    limit_auto_multi_buffer_only_for_local_buffer = False
+    limit_auto_multi_buffer_of_local_buffer = "no-limit"
+    set_workspace_multibuffer = 4
+    tile_mix_vector_loop = 4
+    tile_mix_cube_loop = 4
+    enable_dynamic_cv_pipeline = False
+
+    bwd_dq_limit_auto_multi_buffer_of_local_buffer = "no-l0c"
+    bwd_dkdv_limit_auto_multi_buffer_of_local_buffer = "no-l0c"
+
+    enable_buffer_insert_optimization = False
+    enable_ub_refine_opt = False
+
+    @classmethod
+    def _filter_compile_options_for_soc(cls, options: dict) -> dict:
+        options = options.copy()
+        if is_ascend950:
+            options.pop("enable_dynamic_cv_pipeline", None)
+        return options
+
+    @classmethod
+    def _compile_options(cls, keys, overrides: Optional[dict] = None) -> dict:
+        options = {key: getattr(cls, key) for key in keys}
+        if overrides:
+            options.update(overrides)
+        return cls._filter_compile_options_for_soc(options)
+
+    @classmethod
+    def get_npu_compile_hint_params(cls) -> dict:
+        return cls._compile_options(FLEX_ATTENTION_NPU_COMPILE_HINT_KEYS)
+
+    @classmethod
+    def get_sparse_mask_cvpipeline_compile_options(
+        cls,
+        *,
+        enabled: bool,
+        tile_mix_loop: int,
+        enable_compile_hint: bool,
+    ) -> dict:
+        return cls._compile_options(
+            (
+                "enable_ubuf_saving",
+                "unit_flag",
+                "set_workspace_multibuffer",
+                "limit_auto_multi_buffer_buffer",
+                "hfusion_enable_multiple_consumer_fusion",
+            ),
+            overrides={
+                "multibuffer": enabled,
+                "limit_auto_multi_buffer_only_for_local_buffer": not enabled,
+                "tile_mix_vector_loop": tile_mix_loop,
+                "tile_mix_cube_loop": tile_mix_loop,
+                "ENABLE_COMPILE_HINT": enable_compile_hint if enabled else False,
+                "intra_cache_num": 3,
+                "inter_cache_num": 2,
+                "enable_cross_if_fusion": True,
+                "enable_buffer_insert_optimization": True,
+                "enable_ub_refine_opt": True,
+            },
+        )
+
+    @classmethod
+    def get_bwd_dq_compile_options(cls) -> dict:
+        return cls._compile_options(
+            (
+                "limit_auto_multi_buffer_buffer",
+                "hfusion_enable_multiple_consumer_fusion",
+                "enable_select_analysis",
+            ),
+            overrides={
+                "limit_auto_multi_buffer_of_local_buffer": (
+                    cls.bwd_dq_limit_auto_multi_buffer_of_local_buffer
+                ),
+                "intra_cache_num": 3,
+                "inter_cache_num": 2,
+            },
+        )
+
+    @classmethod
+    def get_bwd_dkdv_compile_options(cls) -> dict:
+        return cls._compile_options(
+            (
+                "limit_auto_multi_buffer_buffer",
+                "hfusion_enable_multiple_consumer_fusion",
+                "unit_flag",
+                "enable_dynamic_cv_pipeline",
+            ),
+            overrides={
+                "limit_auto_multi_buffer_of_local_buffer": (
+                    cls.bwd_dkdv_limit_auto_multi_buffer_of_local_buffer
+                ),
+                "intra_cache_num": 2,
+                "inter_cache_num": 1,
+            },
+        )
+
+
+def apply_flex_attention_npu_params(config: dict, *, enable: bool) -> dict:
+    config = config.copy()
+    if enable:
+        config.update(flex_attention.get_npu_compile_hint_params())
+        config["ENABLE_COMPILE_HINT"] = True
+    else:
+        config["ENABLE_COMPILE_HINT"] = False
+    return config

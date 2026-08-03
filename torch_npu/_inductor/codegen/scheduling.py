@@ -248,21 +248,42 @@ class NPUTritonScheduling(TritonScheduling):
                 for node in [template_node, *epilogue_nodes]:
                     node.mark_run()
             partial_code = render()
-            with kernel.set_subgraph_body("<STORE_OUTPUT>"):
-                for node in epilogue_nodes:
-                    node.codegen(kernel.split_and_set_ranges(node.get_ranges()))
+            # Handle both legacy "<STORE_OUTPUT>" (without index) and torch
+            # 2.10's "<STORE_OUTPUT_N>" (with index) subgraph body naming.
+            if "<STORE_OUTPUT>" in kernel.subgraph_bodies:
+                with kernel.set_subgraph_body("<STORE_OUTPUT>"):
+                    for node in epilogue_nodes:
+                        node.codegen(kernel.split_and_set_ranges(node.get_ranges()))
+            # torch 2.10+ creates indexed store_output subgraphs.
+            if hasattr(kernel, "get_store_output_count"):
+                num_store_subgraphs = kernel.get_store_output_count()
+                for i in range(num_store_subgraphs):
+                    subgraph_name = kernel._get_store_output_subgraph_name(i)
+                    if subgraph_name in kernel.subgraph_bodies:
+                        with kernel.set_subgraph_body(subgraph_name):
+                            for node in epilogue_nodes:
+                                node.codegen(kernel.split_and_set_ranges(node.get_ranges()))
 
         if not isinstance(partial_code, str):
             partial_code.finalize_hook("<DEF_KERNEL>")
             partial_code.finalize_hook("<ARGDEFS>", strict=False)
         # finalize must be called after adding epilogue above
         with V.set_kernel_handler(kernel):
-            with kernel.set_subgraph_body("<STORE_OUTPUT>"):
-                if isinstance(partial_code, str):
-                    src_code = partial_code
-                else:
+            # Finalize legacy "<STORE_OUTPUT>" (without index) if present.
+            has_store_output = "<STORE_OUTPUT>" in kernel.subgraph_bodies
+            if has_store_output and not isinstance(partial_code, str):
+                with kernel.set_subgraph_body("<STORE_OUTPUT>"):
                     partial_code.finalize_hook("<STORE_OUTPUT>")
-                    src_code = partial_code.code
+            # Now safe to extract the final source code.
+            # Use finalize_remaining() to catch any leftover hooks (e.g.
+            # torch 2.10's indexed "<STORE_OUTPUT_N>" hooks).
+            if isinstance(partial_code, str):
+                src_code = partial_code
+            elif hasattr(partial_code, "finalize_remaining"):
+                src_code = partial_code.finalize_remaining()
+            else:
+                src_code = partial_code.code
+            node_schedule = [template_node, *epilogue_nodes]
             node_schedule = [template_node, *epilogue_nodes]
 
             if config.benchmark_kernel:
