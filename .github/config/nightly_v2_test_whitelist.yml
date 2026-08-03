@@ -55,7 +55,7 @@ categories:
       - test/test_type_promotion.py
 
   distributed:
-    shards: 3
+    shards: 1
     execution: serial
     workers: 1
     files:

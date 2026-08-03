@@ -145,6 +145,7 @@ def build_pytest_command(
     rel = normalize_test_file(test_file)
     cmd = [
         sys.executable, "-u", rel,
+        "--hw-classification", "ACCELERATOR",
         "-p", "no:xdist",
         "-p", "npu_poisoning_plugin",
         "--use-pytest",
@@ -451,6 +452,7 @@ def build_execution_env(test_dir: Path, script_dir: Path) -> Dict[str, str]:
         "NO_TD": "1",
         "PYTHONUNBUFFERED": "1",
         "PYTORCH_TESTING_DEVICE_ONLY_FOR": "privateuse1",
+        "PYTORCH_TESTING_DEVICE_FOR_CUSTOM": "privateuse1",
     }
 
 
