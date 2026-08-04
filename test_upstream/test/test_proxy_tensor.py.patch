@@ -1,22 +1,24 @@
 diff --git a/test/test_proxy_tensor.py b/test/test_proxy_tensor.py
-index 26131d5..02704bb 100644
+index 26131d5..e24bb47 100644
 --- a/test/test_proxy_tensor.py
 +++ b/test/test_proxy_tensor.py
-@@ -32,7 +32,7 @@ import re
+@@ -1821,7 +1821,7 @@ def forward(self, x_1):
+         def f(a, b):
+             assert a.shape[0] == b.shape[0] * 2
+             return a.cos()
+-        fx_g = make_fx(f, tracing_mode="symbolic")(torch.randn(16), torch.randn(8))
++        fx_g = make_fx(f, tracing_mode="symbolic")(torch.randn(16).npu(), torch.randn(8).npu())
+         from torch._dynamo.source import LocalSource
+         self.assertExpectedInline(
+             str(fx_g.shape_env.produce_guards(fx_placeholder_vals(fx_g), [LocalSource("a"), LocalSource("b")], ignore_static=False))
+@@ -1889,6 +1889,10 @@ L['a'].size()[1] <= 18""")
  
- import functools
- import itertools
--
-+from torch_npu.contrib import transfer_to_npu
- aten = torch.ops.aten
+         # NB: Numbers are carefully chosen to avoid duck shaping from applying
  
- HAS_CUDA = torch.cuda.is_available()
-@@ -2148,7 +2148,7 @@ class TestProxyTensorOpInfo(TestCase):
-         _test_make_fx_helper(self, device, dtype, op, "symbolic", out=True)
- 
- 
--only_for = ("cpu")
-+only_for = ("cpu",)
- instantiate_device_type_tests(TestProxyTensorOpInfo, globals(), only_for=only_for)
- 
++        def _trace(f, *args):
++            inps = [torch.randn(arg).npu() for arg in args]
++            return make_fx(f, tracing_mode="symbolic")(*inps)
++
+         fx_g = _trace(f, (5, 6), (5, 6))
+         self._assert_no_guards(fx_g, 2)
  
