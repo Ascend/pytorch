@@ -122,7 +122,7 @@ class TorchFillUninitializedMemoryTestCase(TestCase):
                 self.assertTrue(res.eq(max_val).all())
 
 
-instantiate_device_type_tests(TorchFillUninitializedMemoryTestCase, globals(), only_for='privateuse1')
+instantiate_device_type_tests(TorchFillUninitializedMemoryTestCase, globals(), only_for=('privateuse1',))
 
 
 if __name__ == '__main__':
