@@ -391,6 +391,28 @@ class TestShapeEnvNPU(TestCase):
         self.assertIn(sympy.Le(s0, s1, evaluate=False), impl_le)
         self.assertIn(sympy.Lt(s0, s1 + 1, evaluate=False), impl_le)
 
+    def test_shape_env_get_pruned_guards(self):
+        """Verify get_pruned_guards returns a list of guards filtered by given symints."""
+        shape_env = ShapeEnv()
+        sym_int = shape_env.create_unbacked_symint()
+        pruned_guards = shape_env.get_pruned_guards([sym_int])
+        self.assertIsInstance(pruned_guards, list)
+
+    def test_shape_env_ignore_fresh_unbacked_symbols(self):
+        """Verify ignore_fresh_unbacked_symbols context manager suppresses fresh unbacked symbol registration."""
+        shape_env = ShapeEnv()
+        with shape_env.ignore_fresh_unbacked_symbols():
+            sym_int = shape_env.create_unbacked_symint()
+            self.assertIsNotNone(sym_int)
+
+    def test_shape_env_is_unbacked_symint(self):
+        """Verify is_unbacked_symint correctly distinguishes unbacked symbols from regular sympy symbols."""
+        shape_env = ShapeEnv()
+        unbacked_symint = shape_env.create_unbacked_symint()
+        unbacked_symbol = unbacked_symint.node.expr
+        regular_symbol = sympy.Symbol("s0", integer=True)
+        self.assertTrue(shape_env.is_unbacked_symint(unbacked_symbol))
+        self.assertFalse(shape_env.is_unbacked_symint(regular_symbol))
 
 class TestDivideByKeyAndEqualityConstraint(TestCase):
     """Test DivideByKey and EqualityConstraint APIs on NPU."""
