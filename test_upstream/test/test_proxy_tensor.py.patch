@@ -1,0 +1,24 @@
+diff --git a/test/test_proxy_tensor.py b/test/test_proxy_tensor.py
+index 8296f38..9720b9d 100644
+--- a/test/test_proxy_tensor.py
++++ b/test/test_proxy_tensor.py
+@@ -1867,7 +1867,7 @@ def forward(self, x_1):
+             if a.shape[0] != b.shape[0] * 2:
+                 raise AssertionError("a.shape[0] should equal b.shape[0] * 2")
+             return a.cos()
+-        fx_g = make_fx(f, tracing_mode="symbolic")(torch.randn(16), torch.randn(8))
++        fx_g = make_fx(f, tracing_mode="symbolic")(torch.randn(16).npu(), torch.randn(8).npu())
+         from torch._dynamo.source import LocalSource
+         self.assertExpectedInline(
+             str(fx_g.shape_env.produce_guards(fx_placeholder_vals(fx_g), [LocalSource("a"), LocalSource("b")], ignore_static=False))
+@@ -1941,6 +1941,10 @@ L['a'].size()[1] <= 18""")
+         def f(a, b):
+             return a * b
+ 
++        def _trace(f, *args):
++            inps = [torch.randn(arg).npu() for arg in args]
++            return make_fx(f, tracing_mode="symbolic")(*inps)
++
+         # NB: Numbers are carefully chosen to avoid duck shaping from applying
+ 
+         fx_g = _trace(f, (5, 6), (5, 6))

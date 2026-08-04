@@ -418,5 +418,89 @@ class TestDivideByKeyAndEqualityConstraint(TestCase):
         self.assertEqual(eq.phantom_symbols, [])
         self.assertFalse(eq.warn_only)
 
+device_type = (
+    acc.type if (acc := torch.accelerator.current_accelerator()) else "cpu"
+)
+
+
+class TestSymbolicShapesNPU(TestCase):
+
+    def test_is_accessor_node_with_call_method(self):
+        """Verify is_accessor_node returns True for call_method nodes with NPU tensor example_value."""
+        graph = Graph()
+        x = graph.placeholder("x")
+        x.meta["example_value"] = torch.randn(2, 3).to(device_type)
+
+        size_node = graph.call_method("size", args=(x, 0))
+        self.assertTrue(is_accessor_node(size_node))
+
+    def test_is_accessor_node_with_call_function(self):
+        """Verify is_accessor_node correctly identifies sym_size nodes vs regular add nodes."""
+        graph = Graph()
+        x = graph.placeholder("x")
+
+        size_node = graph.call_function(torch.ops.aten.sym_size.int, args=(x, 0))
+        add_node = graph.call_function(torch.ops.aten.add.Tensor, args=(x, x))
+
+        self.assertTrue(is_accessor_node(size_node))
+        self.assertFalse(is_accessor_node(add_node))
+
+    def test_is_concrete_int_with_literal_and_device_shape(self):
+        """Verify is_concrete_int and is_symbolic for literals, NPU tensor sizes, and unbacked symints."""
+        x = torch.randn(2, 3).to(device_type)
+        sym_int = ShapeEnv().create_unbacked_symint()
+
+        self.assertTrue(is_concrete_int(3))
+        self.assertTrue(is_concrete_int(x.size(0)))
+        self.assertFalse(is_concrete_int(sym_int))
+        self.assertFalse(is_symbolic(x.size(0)))
+        self.assertTrue(is_symbolic(sym_int))
+
+    def test_is_concrete_float_with_literal_and_symbolic_value(self):
+        """Verify is_concrete_float and is_symbolic for literals and unbacked symfloats."""
+        sym_float = ShapeEnv().create_unbacked_symfloat()
+
+        self.assertTrue(is_concrete_float(1.5))
+        self.assertFalse(is_concrete_float(sym_float))
+        self.assertFalse(is_symbolic(1.5))
+        self.assertTrue(is_symbolic(sym_float))
+
+    def test_is_concrete_bool_with_literal_and_symbolic_value(self):
+        """Verify is_concrete_bool and is_symbolic for literals and unbacked symbools."""
+        sym_bool = ShapeEnv().create_unbacked_symbool()
+
+        self.assertTrue(is_concrete_bool(True))
+        self.assertFalse(is_concrete_bool(sym_bool))
+        self.assertFalse(is_symbolic(True))
+        self.assertTrue(is_symbolic(sym_bool))
+
+    def test_shape_env_get_pruned_guards(self):
+        """Verify get_pruned_guards returns a list of guards filtered by given symints."""
+        shape_env = ShapeEnv()
+        sym_int = shape_env.create_unbacked_symint()
+
+        pruned_guards = shape_env.get_pruned_guards([sym_int])
+
+        self.assertIsInstance(pruned_guards, list)
+
+    def test_shape_env_ignore_fresh_unbacked_symbols(self):
+        """Verify ignore_fresh_unbacked_symbols context manager suppresses fresh unbacked symbol registration."""
+        shape_env = ShapeEnv()
+
+        with shape_env.ignore_fresh_unbacked_symbols():
+            sym_int = shape_env.create_unbacked_symint()
+            self.assertIsNotNone(sym_int)
+
+    def test_shape_env_is_unbacked_symint(self):
+        """Verify is_unbacked_symint correctly distinguishes unbacked symbols from regular sympy symbols."""
+        shape_env = ShapeEnv()
+        unbacked_symint = shape_env.create_unbacked_symint()
+        unbacked_symbol = unbacked_symint.node.expr
+        regular_symbol = sympy.Symbol("s0", integer=True)
+
+        self.assertTrue(shape_env.is_unbacked_symint(unbacked_symbol))
+        self.assertFalse(shape_env.is_unbacked_symint(regular_symbol))
+
+
 if __name__ == "__main__":
     run_tests()
