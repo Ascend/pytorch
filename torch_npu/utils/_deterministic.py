@@ -2,7 +2,7 @@ def _add_deterministic_patch():
     """
     Patch torch.utils.deterministic.fill_uninitialized_memory setter so that
     setting it also synchronizes the NPU-side option
-    TORCH_NPU_FILL_UNINITIALIZED_MEMORY via torch_npu._C._npu_setOption.
+    _npu_fill_uninitialized_memory via torch_npu._C._npu_set_fill_uninitialized_memory.
     """
     import torch_npu
     import torch.utils.deterministic as det_mod
@@ -19,7 +19,6 @@ def _add_deterministic_patch():
         # 1. call original setter: torch._C._set_deterministic_fill_uninitialized_memory(mode)
         _orig_fset(self, mode)
         # 2. sync NPU-side option
-        option = {"TORCH_NPU_FILL_UNINITIALIZED_MEMORY": "1" if mode else "0"}
-        torch_npu._C._npu_setOption(option)
+        torch_npu._C._npu_set_fill_uninitialized_memory(mode)
 
     _Deterministic.fill_uninitialized_memory = property(_orig_fget, _new_fset)
