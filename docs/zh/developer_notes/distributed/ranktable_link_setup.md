@@ -22,9 +22,9 @@ PyTorch通过rank table文件建立全局通信域。子通信域的建立通过
 
 此环境变量默认为未配置。
 
- rank table文件配置说明请参考《[CANN HCCL集合通信库](https://www.hiascend.com/document/detail/zh/canncommercial/900/API/hcclug/hcclug_000001.html)》中对应的“rank table配置资源信息”章节。
+ rank table文件配置说明请参考《CANN HCCL集合通信库》中对应的“[集群信息配置](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/commlib/hcclug/docs/zh/user_guide/cluster_info_config/intro.md)”章节。
 
-> [!CAUTION] 
+> [!CAUTION]
 >
 >- 配置的文件路径不存在时，会通过默认的协商流程进行集合通信域建链。
 >- 配置的文件路径存在，但配置信息有误时，不会通过默认的协商流程进行集合通信域建链，而是在实际通信时会进行相应的报错。

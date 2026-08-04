@@ -20,7 +20,7 @@
 
 ## 卸载CANN软件与驱动固件
 
-当需要切换CANN版本、重新安装Ascend运行环境，或因环境配置异常需要清理现有组件时，可前往[CANN官网](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910beta3/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netconda)，选择对应版本，参考官方指导卸载CANN软件、驱动或固件。
+当需要切换CANN版本、重新安装Ascend运行环境，或因环境配置异常需要清理现有组件时，可前往[CANN官网](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netconda)，选择对应版本，参考官方指导卸载CANN软件、驱动或固件。
 
 ## 升级TorchNPU
 

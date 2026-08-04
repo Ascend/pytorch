@@ -1,4 +1,4 @@
-# torch_npu.npu.NPUGraph
+# NPUGraph
 
 ## 简介
 
