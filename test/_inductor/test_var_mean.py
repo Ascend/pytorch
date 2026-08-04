@@ -49,6 +49,35 @@ class TestVarMean(TestUtils):
             npu_config.enable_welford = previous
             torch._dynamo.reset()
 
+    def test_welford_does_not_change_standalone_var_codegen(self):
+        previous = npu_config.enable_welford
+        npu_config.enable_welford = True
+        torch._dynamo.reset()
+        try:
+            input_element = self._generate_tensor((8, 16, 128), "float32")
+
+            def normalize(x):
+                mean = torch.mean(x, dim=-1, keepdim=True)
+                var = torch.var(x, dim=-1, correction=0, keepdim=True)
+                return (x - mean) / torch.sqrt(var + 1e-6)
+
+            expected = normalize(input_element)
+            compiled = torch.compile(
+                normalize,
+                backend="inductor",
+                dynamic=False,
+                options={"unroll_reductions_threshold": 1},
+            )
+            actual, codes = run_and_get_code(compiled, input_element)
+
+            self.assertEqual(expected, actual, atol=1e-1, rtol=1e-1)
+            code = "\n".join(codes)
+            self.assertNotIn("triton_helpers.welford_reduce", code)
+            self.assertNotIn("triton_helpers.welford(", code)
+        finally:
+            npu_config.enable_welford = previous
+            torch._dynamo.reset()
+
     def test_welford_simd_codegen(self):
         previous = npu_config.enable_welford
         npu_config.enable_welford = True
@@ -98,6 +127,41 @@ class TestVarMean(TestUtils):
             self.assertLess(
                 code.index("axis=1, keep_dims=True"), min(rsqrt_positions)
             )
+        finally:
+            npu_config.enable_welford = previous
+            torch._dynamo.reset()
+
+    @parametrize("dtype", ["float16", "bfloat16"])
+    def test_welford_simd_low_precision_codegen(self, dtype):
+        if not npu_config.is_ascend950:
+            self.skipTest("low-precision Welford fallback is Ascend 950-specific")
+
+        previous = npu_config.enable_welford
+        npu_config.enable_welford = True
+        torch._dynamo.reset()
+        try:
+            input_element = self._generate_tensor((8, 16, 64), dtype)
+            weight = self._generate_tensor((64,), dtype)
+            bias = self._generate_tensor((64,), dtype)
+
+            def layer_norm(x, gamma, beta):
+                return F.layer_norm(x, (64,), gamma, beta, 1e-6)
+
+            expected = layer_norm(input_element, weight, bias)
+            compiled = torch.compile(
+                layer_norm,
+                backend="inductor",
+                dynamic=False,
+                options={"unroll_reductions_threshold": 1},
+            )
+            actual, codes = run_and_get_code(
+                compiled, input_element, weight, bias
+            )
+
+            self.assertEqual(expected, actual, atol=1e-1, rtol=1e-1)
+            code = "\n".join(codes)
+            self.assertIn("'vectorized_welford_axis':", code)
+            self.assertIn("npu_kernel_type': 'simd'", code)
         finally:
             npu_config.enable_welford = previous
             torch._dynamo.reset()
