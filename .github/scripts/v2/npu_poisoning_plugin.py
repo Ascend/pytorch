@@ -81,22 +81,30 @@ def _check_npu_poisoned() -> bool:
 
     Cost: ~1ms per call. Only invoked on failed/error cases where Layer 1
     did not match, so zero overhead for passing tests.
+
+    A 10-second alarm guards the probe: if the NPU stream is hung (e.g.
+    MakeSureQueueEmpty blocks indefinitely in CAN_EXIT state), the probe
+    is interrupted and the device is considered poisoned. This prevents
+    pytest-timeout from killing the entire session via internal error.
     """
     try:
         import torch
-        # torch.ones on NPU calls fill_ -> aclnnInplaceFillScalar -> Enqueue
-        # If CAN_EXIT: no-op, output is uninitialized memory
-        # sum() similarly no-op
-        # .item() triggers sync (MakeSureQueueEmpty), which does NOT throw
-        # in CAN_EXIT state, returns garbage from uninitialized memory
-        probe = torch.ones(4, device="npu")
-        result = probe.sum().item()
+        import signal as _signal
+
+        old_handler = _signal.signal(_signal.SIGALRM, _signal.SIG_IGN)
+        _signal.alarm(10)
+        try:
+            probe = torch.ones(4, device="npu")
+            result = probe.sum().item()
+        finally:
+            _signal.alarm(0)
+            _signal.signal(_signal.SIGALRM, old_handler)
+
         if result != 4.0:
             print(f"  [NPU POISONING] Probe failed: torch.ones(4).sum() = {result} (expected 4.0)", flush=True)
             return True
         return False
     except Exception as e:
-        # Any exception means the device context is unhealthy
         print(f"  [NPU POISONING] Probe raised exception: {type(e).__name__}: {e}", flush=True)
         return True
 
