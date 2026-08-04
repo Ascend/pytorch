@@ -1017,7 +1017,7 @@ def patch_algorithm_selector() -> None:
 
         if return_multi_template and (config.max_autotune or config.max_autotune_gemm):
 
-            def get_timings():
+            def get_timings(hint_override=None):
                 timings = do_autotuning(precompile_fn)
                 min_extern_choice = float("inf")
                 for choice, timing in timings.items():
