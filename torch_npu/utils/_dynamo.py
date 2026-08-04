@@ -516,6 +516,7 @@ def has_triton() -> bool:
     }
 
     def is_device_compatible_with_triton():
+        _dynamo_register_interface_for_device()
         for device, extra_check in triton_supported_devices.items():
             device_interface = get_interface_for_device(device)
             if device_interface.is_available() and extra_check(device_interface):
