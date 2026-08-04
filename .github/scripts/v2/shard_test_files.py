@@ -2,9 +2,14 @@
 """
 Shard test files by business category using round-robin distribution.
 
-Reads category config YAML, validates file existence, then distributes
-files across shards using round-robin. The number of shards per category
-is defined by the `shards` field in nightly_v2_test_whitelist.yml (default: 1).
+Scans all test_*.py files under test_dir, classifies each file into a
+category based on the classification rules in the config YAML, then
+distributes files across shards using round-robin.
+
+Classification priority (3 passes):
+    1. files:  exact file match across all categories (first match wins)
+    2. paths:  directory prefix match for remaining files
+    3. others: catch-all for any test_*.py not matched above
 
 Usage:
     python shard_test_files.py \
@@ -17,7 +22,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Set, Tuple
 
 try:
     import yaml
@@ -25,8 +30,13 @@ except ImportError:
     yaml = None
 
 
+# ==============================================================================
+# Config Loading
+# ==============================================================================
+
+
 def load_categories_config(config_path: str) -> Dict:
-    """Load nightly_v2_test_whitelist.yml and return the categories dict."""
+    """Load categories config YAML and return the categories dict."""
     config_file = Path(config_path).resolve()
     if not config_file.exists():
         raise FileNotFoundError(f"Categories config not found: {config_file}")
@@ -45,10 +55,14 @@ def load_categories_config(config_path: str) -> Dict:
 
 
 def parse_simple_categories_yaml(raw_text: str) -> Dict:
-    """Parse categories YAML without yaml library (minimal parser)."""
+    """Parse categories YAML without yaml library (minimal parser).
+
+    Supports 'paths' and 'files' list fields under each category.
+    Handles 4-space key-value and 6-space list items.
+    """
     result = {"categories": {}}
     current_category = None
-    current_field = None
+    current_list_key = None
 
     for raw_line in raw_text.splitlines():
         without_comment = raw_line.split("#", 1)[0].rstrip()
@@ -59,46 +73,127 @@ def parse_simple_categories_yaml(raw_text: str) -> Dict:
         indent = len(without_comment) - len(stripped)
 
         if indent == 0 and stripped.endswith(":"):
-            key = stripped[:-1].strip()
-            if key == "categories":
-                current_field = "categories"
             continue
 
-        if current_field == "categories":
-            if indent == 2 and stripped.endswith(":"):
-                current_category = stripped[:-1].strip()
-                result["categories"][current_category] = {"files": []}
-            elif indent == 4 and current_category:
-                if stripped.startswith("- "):
-                    value = stripped[2:].strip().strip("\"'")
-                    if value:
-                        result["categories"][current_category].setdefault("files", []).append(value)
-                elif ":" in stripped:
-                    key, val = stripped.split(":", 1)
-                    key = key.strip()
-                    val = val.strip()
+        if indent == 2 and stripped.endswith(":"):
+            current_category = stripped[:-1].strip()
+            result["categories"][current_category] = {}
+            current_list_key = None
+            continue
+
+        if current_category and indent == 4:
+            current_list_key = None
+            if ":" in stripped:
+                key, val = stripped.split(":", 1)
+                key = key.strip()
+                val = val.strip()
+                cat = result["categories"][current_category]
+                if key in ("files", "paths"):
+                    current_list_key = key
+                    cat[key] = []
+                else:
                     try:
                         val = int(val)
                     except ValueError:
                         pass
-                    result["categories"][current_category][key] = val
+                    cat[key] = val
+            continue
+
+        if current_category and indent == 6 and current_list_key:
+            if stripped.startswith("- "):
+                value = stripped[2:].strip().strip("\"'")
+                if value:
+                    cat = result["categories"][current_category]
+                    cat[current_list_key].append(value)
+            continue
 
     return result
 
 
-def validate_files(files: List[str], test_dir: Path) -> Tuple[List[str], List[str]]:
-    """Check files exist in test_dir, skip non-test files."""
-    valid = []
-    skipped = []
-    for f in files:
-        rel = f[5:] if f.startswith("test/") else f
-        full_path = test_dir / rel
-        filename = Path(rel).name
-        if full_path.exists() and filename.startswith("test_") and filename.endswith(".py"):
-            valid.append(f)
-        else:
-            skipped.append(f)
-    return valid, skipped
+# ==============================================================================
+# File Scanning
+# ==============================================================================
+
+
+def scan_all_test_files(test_dir: Path) -> Set[str]:
+    """Recursively scan test_dir for all test_*.py files.
+
+    Returns a set of relative paths prefixed with 'test/', e.g. 'test/nn/test_convolution.py'.
+    """
+    all_files = set()
+    for path in test_dir.rglob("test_*.py"):
+        if path.is_file():
+            rel = path.relative_to(test_dir.parent)
+            all_files.add(str(rel))
+    return all_files
+
+
+# ==============================================================================
+# Classification
+# ==============================================================================
+
+
+def classify_files(
+    all_files: Set[str],
+    categories: Dict,
+) -> Dict[str, List[str]]:
+    """Classify files into categories using 3-pass priority matching.
+
+    Pass 1 — files: exact file match across all categories (first match wins)
+    Pass 2 — paths: directory prefix match for remaining files
+    Pass 3 — others: catch-all for unclassified files
+
+    Returns dict mapping category_name -> sorted list of file paths.
+    """
+    classified: Dict[str, List[str]] = {name: [] for name in categories}
+    unclassified = set(all_files)
+
+    # Pass 1: exact file match (first category wins)
+    for cat_name, cat_config in categories.items():
+        exact_files = cat_config.get("files", [])
+        for f in exact_files:
+            if f in unclassified:
+                classified[cat_name].append(f)
+                unclassified.discard(f)
+
+    # Pass 2: directory prefix match
+    for cat_name, cat_config in categories.items():
+        paths = cat_config.get("paths", [])
+        if not paths:
+            continue
+        remaining = list(unclassified)
+        for f in remaining:
+            for dir_path in paths:
+                # Normalize: ensure both have 'test/' prefix
+                prefix = dir_path if dir_path.endswith("/") else dir_path + "/"
+                if f.startswith(prefix):
+                    classified[cat_name].append(f)
+                    unclassified.discard(f)
+                    break
+
+    # Pass 3: catch-all into 'others' category
+    if "others" in classified and unclassified:
+        classified["others"].extend(sorted(unclassified))
+        unclassified.clear()
+    elif unclassified:
+        # No 'others' category defined — warn
+        print(f"  WARNING: {len(unclassified)} files unclassified (no 'others' category):",
+              file=sys.stderr)
+        for f in sorted(unclassified)[:10]:
+            print(f"    {f}", file=sys.stderr)
+        if len(unclassified) > 10:
+            print(f"    ... and {len(unclassified) - 10} more", file=sys.stderr)
+
+    # Sort each category's file list
+    for cat_name in classified:
+        classified[cat_name].sort()
+
+    return classified
+
+
+# ==============================================================================
+# Sharding
+# ==============================================================================
 
 
 def split_round_robin(files: List[str], num_shards: int) -> List[List[str]]:
@@ -116,12 +211,9 @@ def save_shard_json(
     category: str,
     shard_num: int,
     num_shards: int,
-    files: List,
+    files: List[str],
 ) -> Path:
-    """Save {category}_files_shard_{n}.json.
-
-    *files* items are plain strings (whole file, shard_id=1, num_shards=1).
-    """
+    """Save {category}_files_shard_{n}.json."""
     data = {
         "shard": shard_num,
         "num_shards": num_shards,
@@ -132,6 +224,11 @@ def save_shard_json(
     path = output_dir / f"{category}_files_shard_{shard_num}.json"
     path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
     return path
+
+
+# ==============================================================================
+# Main
+# ==============================================================================
 
 
 def main():
@@ -153,6 +250,15 @@ def main():
     print(f"Categories: {len(categories)}")
     print()
 
+    # Step 1: scan all test files
+    all_files = scan_all_test_files(test_dir)
+    print(f"Scanned {len(all_files)} test_*.py files under {test_dir}")
+    print()
+
+    # Step 2: classify files into categories
+    classified = classify_files(all_files, categories)
+
+    # Step 3: shard each category
     summary_categories = {}
     total_files_all = 0
 
@@ -160,34 +266,33 @@ def main():
         config_shards = cat_config.get("shards", 1)
         execution = cat_config.get("execution", "concurrent")
         num_workers = cat_config.get("workers", 1 if execution == "serial" else 8)
-        raw_files = cat_config.get("files", [])
+        cat_files = classified.get(cat_name, [])
 
+        # Print classification details
+        paths = cat_config.get("paths", [])
+        files = cat_config.get("files", [])
         print(f"--- Category: {cat_name} ---")
-        print(f"  Configured files: {len(raw_files)}")
-        print(f"  Configured shards: {config_shards}")
+        if paths:
+            print(f"  Paths: {paths}")
+        if files:
+            print(f"  Configured files: {len(files)}")
+        print(f"  Matched files: {len(cat_files)}")
+        print(f"  Shards: {config_shards}")
         print(f"  Execution: {execution}")
         print(f"  Workers: {num_workers}")
 
-        valid_files, skipped_files = validate_files(raw_files, test_dir)
-
-        if skipped_files:
-            print(f"  Skipped (not found or not test_*.py): {len(skipped_files)}")
-            for sf in skipped_files:
-                print(f"    - {sf}")
-
-        print(f"  Valid files: {len(valid_files)}")
-
-        if not valid_files:
-            print(f"  WARNING: No valid files for category '{cat_name}'")
+        if not cat_files:
+            print(f"  WARNING: No files matched for category '{cat_name}'")
             summary_categories[cat_name] = {
                 "num_shards": config_shards,
                 "total_files": 0,
                 "shard_sizes": [],
                 "workers": num_workers,
             }
+            print()
             continue
 
-        shards = split_round_robin(valid_files, config_shards)
+        shards = split_round_robin(cat_files, config_shards)
         num_shards = config_shards
 
         shard_sizes = []
@@ -196,19 +301,20 @@ def main():
             shard_sizes.append(len(shard_files))
             print(f"  Shard {i}/{num_shards}: {len(shard_files)} files")
 
-        total_files_all += len(valid_files)
+        total_files_all += len(cat_files)
         summary_categories[cat_name] = {
             "num_shards": num_shards,
-            "total_files": len(valid_files),
+            "total_files": len(cat_files),
             "shard_sizes": shard_sizes,
             "workers": num_workers,
         }
         print()
 
+    # Save summary
     summary = {
         "categories": summary_categories,
         "total_cases": None,
-        "total_files_scanned": total_files_all,
+        "total_files_scanned": len(all_files),
     }
     summary_file = output_dir / "cases_collection_summary.json"
     summary_file.write_text(json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -222,13 +328,13 @@ def main():
         sizes = cat_summary['shard_sizes']
         print(f"  {cat_name}: {cat_summary['total_files']} files -> {cat_summary['num_shards']} shards "
               f"(sizes: {sizes})")
-    print(f"  Total: {total_files_all} files")
+    print(f"  Total: {total_files_all} files (scanned: {len(all_files)})")
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Shard test files by business category")
     parser.add_argument("--test-dir", required=True, help="PyTorch test directory")
-    parser.add_argument("--categories-config", required=True, help="Path to nightly_v2_test_whitelist.yml")
+    parser.add_argument("--categories-config", required=True, help="Path to categories config YAML")
     parser.add_argument("--output-dir", required=True, help="Output directory for shard JSONs")
     return parser.parse_args()
 
