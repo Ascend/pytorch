@@ -32,11 +32,21 @@ enum class CompatibleKey {
 bool CheckCompatibleImpl();
 bool CheckCompatibleImplFor(CompatibleKey compatible_key);
 bool CheckCompatibleImplBlackListFor(CompatibleKey compatible_key);
-bool CheckFillUninitializedMemory();
 
 bool IsAllowFP32ToFP16();
 bool IsAllowConvHF32();
 bool IsAllowMatmulHF32();
+
+class NpuContext {
+ public:
+  bool npuFillUninitializedMemory() const;
+  void setNpuFillUninitializedMemory(bool /*b*/);
+
+ private:
+  bool _npu_fill_uninitialized_memory = false;
+};
+
+NpuContext& globalNpuContext();
 
 } // namespace env
 } // namespace native

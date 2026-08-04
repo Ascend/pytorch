@@ -2525,6 +2525,27 @@ PyObject* THNPModule_get_deterministic_level(PyObject* self, PyObject* noargs) {
   END_HANDLE_TH_ERRORS
 }
 
+static PyObject* THNPModule_setNpuFillUninitializedMemory(
+    PyObject* _unused,
+    PyObject* arg) {
+  HANDLE_TH_ERRORS
+  TORCH_CHECK(
+      PyBool_Check(arg), "expected a bool, but got ", THPUtils_typename(arg));
+  at_npu::native::env::globalNpuContext().setNpuFillUninitializedMemory(
+      arg == Py_True);
+  Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
+static PyObject* THNPModule_npuFillUninitializedMemory(
+    PyObject* _unused,
+    PyObject* noargs) {
+  if (at_npu::native::env::globalNpuContext().npuFillUninitializedMemory())
+    Py_RETURN_TRUE;
+  else
+    Py_RETURN_FALSE;
+}
+
 PyObject* THNPModule_hasPrimaryContext_wrap(PyObject* self, PyObject* arg) {
   HANDLE_TH_ERRORS
   TORCH_CHECK(
@@ -2853,6 +2874,14 @@ static struct PyMethodDef THNPModule_methods[] = {
      nullptr},
     {"_npu_get_deterministic_level",
      (PyCFunction)THNPModule_get_deterministic_level,
+     METH_NOARGS,
+     nullptr},
+    {"_npu_set_fill_uninitialized_memory",
+     (PyCFunction)THNPModule_setNpuFillUninitializedMemory,
+     METH_O,
+     nullptr},
+    {"_npu_get_fill_uninitialized_memory",
+     (PyCFunction)THNPModule_npuFillUninitializedMemory,
      METH_NOARGS,
      nullptr},
     {"_npu_sleep",
