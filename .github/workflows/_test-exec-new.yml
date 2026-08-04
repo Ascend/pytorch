@@ -145,6 +145,7 @@ jobs:
             --report-dir test-reports \
             --max-workers ${{ inputs.max_workers }} \
             --timeout 1800 \
+            --case-timeout 300 \
             --shard-type ${{ inputs.category }} \
             --shard ${{ matrix.shard }} \
             2>&1 | tee /tmp/test_${{ inputs.category }}_${{ matrix.shard }}.log

@@ -70,7 +70,7 @@ def get_npu_device_count() -> int:
 # This module handles exit codes from pytest subprocess:
 #   - rc == 70:  NPU poisoning detected by plugin → skip case, continue
 #   - rc < 0:    Signal death (SIGSEGV/SIGABRT) → skip case, continue
-#   - rc == 124: Timeout → skip case, continue
+#   - rc == 124: File-level timeout → abort file immediately (no retry)
 #   - rc >= 0:   Orderly exit (0/1/2/5) → done
 
 NPU_POISONING_EXIT_CODE = 70
@@ -129,7 +129,7 @@ def build_pytest_command(
     stepcurrent: Optional[str] = None,
     marker: Optional[str] = None,
     subprocess_flag: bool = False,
-    timeout: int = 1800,
+    case_timeout: int = 300,
     shard_id: int = 1,
     num_shards: int = 1,
 ) -> List[str]:
@@ -139,6 +139,10 @@ def build_pytest_command(
     (registered by conftest.py).  When num_shards > 1 the plugin filters
     cases via sha256(nodeid) % num_shards == shard_id - 1, so only the
     sub-shard's cases run.
+
+    ``case_timeout`` is passed to pytest-timeout (--timeout=N) and controls
+    per-case execution time.  File-level timeout is handled by the parent
+    process via run_subprocess_with_timeout().
     """
     rel = normalize_test_file(test_file)
     cmd = [
@@ -151,7 +155,7 @@ def build_pytest_command(
         f"--num-shards={num_shards}",
         "-ra", "--tb=short", "--color=no",
         f"--junitxml={xml_file}",
-        f"--timeout={timeout}",
+        f"--timeout={case_timeout}",
     ]
     if stepcurrent:
         cmd.append(stepcurrent)
@@ -215,6 +219,7 @@ def run_test_file_with_retry(
     test_dir: Path,
     report_dir: Path,
     timeout: int,
+    case_timeout: int,
     shard: int,
     shard_type: str,
     env_updates: Optional[Dict[str, str]] = None,
@@ -225,15 +230,18 @@ def run_test_file_with_retry(
 
     Execution strategy:
     - Attempt 0 (--sc): run all cases from the beginning
-    - Crash/timeout/NPU-poisoning: use --scs to skip the crashed case and
+    - Crash/NPU-poisoning: use --scs to skip the crashed case and
       continue with the remaining cases. No retry of the crashed case itself.
+    - File-level timeout (124): abort immediately, no retry. The file is
+      marked as "timeout" — retrying won't help since the whole process
+      was hung (likely collection-stage import issue or systemic hang).
     - Orderly exit (0/1/2/5): done, results are final
     - Max 20 skip iterations per file (safety bound)
 
     Returns ``(xml_files, attempts, status)``:
       - xml_files: list of JUnit XML file paths (one per iteration)
       - attempts: number of pytest subprocess invocations
-      - status: "completed" | "crashed" | "max_iterations" | "poisoned"
+      - status: "completed" | "crashed" | "max_iterations" | "poisoned" | "timeout"
     """
     junit_dir = report_dir / "junit_xmls"
     junit_dir.mkdir(parents=True, exist_ok=True)
@@ -252,7 +260,7 @@ def run_test_file_with_retry(
             test_file, xml_file,
             marker="(not serial)",
             subprocess_flag=True,
-            timeout=timeout,
+            case_timeout=case_timeout,
             shard_id=shard_id,
             num_shards=num_shards,
         )
@@ -286,7 +294,7 @@ def run_test_file_with_retry(
             test_file, xml_file,
             stepcurrent=sc_cmd,
             marker="(not serial)",
-            timeout=timeout,
+            case_timeout=case_timeout,
             shard_id=shard_id,
             num_shards=num_shards,
         )
@@ -307,16 +315,20 @@ def run_test_file_with_retry(
 
         # Orderly exit (0=pass, 1=failures, 2=interrupted, 5=no tests collected)
         # Results are final, no more iterations needed.
-        # NPU poisoning (70) is NOT an orderly exit — it means the device
-        # context is corrupted and must not be reused. The plugin already
-        # wrote lastrun to .pytest_cache before calling pytest.exit(70),
-        # so --scs will skip the poisoned case and continue in a fresh
-        # subprocess (which re-initializes the NPU runtime).
         if rc >= 0 and rc not in (124, NPU_POISONING_EXIT_CODE):
             print(f"    Exit code: {rc} (done)", flush=True)
             break
 
-        # Crash (rc < 0) or timeout (124) or NPU poisoning (70)
+        # File-level timeout (124): abort immediately, no retry.
+        # A file-level timeout means the entire process was hung for
+        # `timeout` seconds — typically a collection-stage import issue
+        # or systemic hang. --scs cannot help because lastrun was never
+        # set (crash happened before any test case ran).
+        if rc == 124:
+            print(f"    Exit code: {rc} (file-level timeout, aborting)", flush=True)
+            break
+
+        # Crash (rc < 0) or NPU poisoning (70)
         # Use --scs to skip the crashed/poisoned case and continue with
         # remaining cases in a fresh process.
         if rc == NPU_POISONING_EXIT_CODE:
@@ -329,7 +341,7 @@ def run_test_file_with_retry(
                     signal_name = f" ({signal.Signals(-rc).name})"
                 except (ValueError, AttributeError):
                     signal_name = f" (signal {-rc})"
-            print(f"    Exit code: {rc}{signal_name} (crash/timeout, skipping case)", flush=True)
+            print(f"    Exit code: {rc}{signal_name} (crash, skipping case)", flush=True)
 
         sc_cmd = f"--scs={sc_key}"
         iteration += 1
@@ -338,6 +350,8 @@ def run_test_file_with_retry(
     if iteration >= max_iterations:
         print(f"    Max iterations ({max_iterations}) reached for {test_file}", flush=True)
         status = "max_iterations"
+    elif rc == 124:
+        status = "timeout"
     elif was_poisoned:
         status = "poisoned"
     elif iteration > 0:
@@ -475,6 +489,7 @@ def _worker_loop(
     test_dir: Path,
     report_dir: Path,
     timeout: int,
+    case_timeout: int,
     shard: int,
     shard_type: str,
     env_updates: Dict[str, str],
@@ -505,7 +520,7 @@ def _worker_loop(
         try:
             file_start = monotonic()
             xml_files, attempts, status = run_test_file_with_retry(
-                test_file, test_dir, report_dir, timeout,
+                test_file, test_dir, report_dir, timeout, case_timeout,
                 shard, shard_type, env_updates, shard_id, num_shards,
             )
             wall_time = monotonic() - file_start
@@ -527,6 +542,7 @@ def run_shard(
     report_dir: Path,
     max_workers: int,
     timeout: int,
+    case_timeout: int,
     shard_type: str,
     shard: int,
     script_dir: Path,
@@ -589,7 +605,7 @@ def run_shard(
             print(f"\n[{i}/{total_files}] Processing: {test_file}{sub_info}", flush=True)
             file_start = monotonic()
             xml_files, attempts, status = run_test_file_with_retry(
-                test_file, test_dir, report_dir, timeout,
+                test_file, test_dir, report_dir, timeout, case_timeout,
                 shard, shard_type, env_updates,
                 shard_id=sub_shard_id, num_shards=sub_num_shards,
             )
@@ -638,7 +654,7 @@ def run_shard(
             p = Process(
                 target=_worker_loop,
                 args=(device_id, task_queue, result_queue, test_dir, report_dir,
-                      timeout, shard, shard_type, env_updates),
+                      timeout, case_timeout, shard, shard_type, env_updates),
             )
             p.start()
             workers.append(p)
@@ -799,7 +815,8 @@ def parse_args():
     parser.add_argument("--test-dir", required=True, help="PyTorch test directory")
     parser.add_argument("--report-dir", default="test-reports", help="Report output directory")
     parser.add_argument("--max-workers", type=int, default=3, help="Max concurrent workers (regular: 3, distributed: 1)")
-    parser.add_argument("--timeout", type=int, default=1800, help="Per-file timeout in seconds")
+    parser.add_argument("--timeout", type=int, default=1800, help="Per-file timeout in seconds (subprocess wall-clock)")
+    parser.add_argument("--case-timeout", type=int, default=300, help="Per-case timeout in seconds (pytest-timeout)")
     parser.add_argument("--shard-type", default="regular", help="Shard type (core/tensor/distributed/graph/others)")
     parser.add_argument("--shard", type=int, default=1, help="Shard number")
     return parser.parse_args()
@@ -827,6 +844,7 @@ def main():
         report_dir,
         args.max_workers,
         args.timeout,
+        args.case_timeout,
         args.shard_type,
         args.shard,
         script_dir,
