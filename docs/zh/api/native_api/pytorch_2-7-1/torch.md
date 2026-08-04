@@ -6282,7 +6282,10 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 同时设置HCCL_DETERMINISTIC和torch.use_deterministic_algorithms时，若HCCL_DETERMINISTIC开启确定性则HCCL接口启用确定性，否则HCCL确定性由torch.use_deterministic_algorithms接口控制
+**限制与说明**：
+
+- 同时设置HCCL_DETERMINISTIC和torch.use_deterministic_algorithms时，若HCCL_DETERMINISTIC开启确定性则HCCL接口启用确定性，否则HCCL确定性由torch.use_deterministic_algorithms接口控制
+- 设置torch.use_deterministic_algorithms时，由于torch.utils.deterministic.fill_uninitialized_memory默认值True，社区会进行填充，NPU上默认不填充，需要手动设置torch.utils.deterministic.fill_uninitialized_memory后NPU上填充才能生效
 
 </div>
 
