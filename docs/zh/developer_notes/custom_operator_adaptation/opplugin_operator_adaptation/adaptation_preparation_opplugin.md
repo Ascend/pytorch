@@ -6,7 +6,7 @@
 
 - OpPlugin算子适配前，需确保已完成如下环境准备。
   
-   1. 安装PyTorch框架，具体请参见《[软件安装](../../../installation_guide/menu_installation_guide.md)》。
+   1. 安装PyTorch框架，具体请参见《[软件安装](../../../installation_guide/_menu_installation_guide.md)》。
 
    2. 适配前需执行如下命令拉取TorchNPU仓对应分支的代码并进入OpPlugin目录。
 
