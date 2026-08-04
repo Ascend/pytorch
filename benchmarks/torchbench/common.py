@@ -1702,7 +1702,7 @@ def run(runner, args, original_dir=None):
     optimize_ctx = contextlib.nullcontext()
 
     if args.backend:
-        optimize_ctx = configure_compile_options(args)
+        optimize_ctx = configure_compile_options(args, runner)
         experiment = speedup_experiment
         if args.accuracy:
             output_filename = f"accuracy_{args.backend}.csv"
@@ -2031,17 +2031,14 @@ def get_npu_backend(args):
     return "dvm"
 
 
-def configure_compile_options(args):
-    try:
-        from torchbench import (
-            NPU_DVM_NO_ACLGRAPH,
-            NPU_MFUSION_NO_ACLGRAPH,
-            NPU_MLIR_NO_ACLGRAPH,
-        )
-    except ImportError:
-        NPU_DVM_NO_ACLGRAPH = set()
-        NPU_MLIR_NO_ACLGRAPH = set()
-        NPU_MFUSION_NO_ACLGRAPH = set()
+def configure_compile_options(args, runner):
+    runner_module = sys.modules.get(runner.__class__.__module__)
+    NPU_DVM_NO_ACLGRAPH = getattr(runner_module, "NPU_DVM_NO_ACLGRAPH", set())
+    NPU_AKG_NO_ACLGRAPH = getattr(runner_module, "NPU_AKG_NO_ACLGRAPH", set())
+    NPU_MLIR_NO_ACLGRAPH = getattr(runner_module, "NPU_MLIR_NO_ACLGRAPH", set())
+    NPU_MFUSION_NO_ACLGRAPH = getattr(
+        runner_module, "NPU_MFUSION_NO_ACLGRAPH", set()
+    )
     npu_backend = args.npu_backend
     # mode Config
     if args.disable_aclgraph or args.dynamic_shapes or args.dynamic_batch_only:
@@ -2050,6 +2047,8 @@ def configure_compile_options(args):
         mode = args.aclgraph_mode
     if args.only is not None:
         if npu_backend == "dvm" and args.only in NPU_DVM_NO_ACLGRAPH:
+            mode = None
+        elif npu_backend == "akg" and args.only in NPU_AKG_NO_ACLGRAPH:
             mode = None
         elif npu_backend == "mlir" and args.only in NPU_MLIR_NO_ACLGRAPH:
             mode = None

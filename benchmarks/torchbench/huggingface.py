@@ -120,13 +120,15 @@ imports = [
 
 try:
     mod = importlib.import_module("transformers")
+    for cls in imports:
+        if not hasattr(mod, cls):
+            raise ModuleNotFoundError
 except ModuleNotFoundError:
     print("Please install transformers.")
     raise
 
 for cls in imports:
-    if not hasattr(mod, cls):
-        raise ModuleNotFoundError(f"Missing transformers symbol: {cls}")
+    exec(f"from transformers import {cls}")
 
 
 # These models contain the models present in huggingface_models_list. It is a
@@ -254,6 +256,20 @@ REQUIRE_HIGHER_TOLERANCE_TRAINING = {
 }
 REQUIRE_HIGHER_TOLERANCE_INFERENCE = {
     "RobertaForQuestionAnswering",
+}
+
+NPU_DVM_NO_ACLGRAPH = {
+    "DebertaForMaskedLM",
+    "DebertaForQuestionAnswering",
+    "DebertaV2ForMaskedLM",
+    "DebertaV2ForQuestionAnswering",
+}
+
+NPU_AKG_NO_ACLGRAPH = {
+    "DebertaForMaskedLM",
+    "DebertaForQuestionAnswering",
+    "DebertaV2ForMaskedLM",
+    "DebertaV2ForQuestionAnswering",
 }
 
 
@@ -444,7 +460,19 @@ def rand_int_tensor(device, low, high, shape):
 EXTRA_MODELS = {}
 
 NPU_REQUIRE_LEARNING_RATE = {
+    "OPTForCausalLM",
+    "AlbertForQuestionAnswering",
+}
+
+NPU_REQUIRE_SMALLER_LEARNING_RATE = {
     "T5ForConditionalGeneration",
+    "MT5ForConditionalGeneration",
+}
+
+NPU_REQUIRE_SMALLEST_LEARNING_RATE = {
+    "MobileBertForMaskedLM",
+    "GPTNeoForCausalLM",
+    "GPTNeoForSequenceClassification",
 }
 
 PAD_TOKEN_MODEL_CLASS_NAMES = {
@@ -571,7 +599,11 @@ class HuggingfaceRunner(BenchmarkRunner):
         if is_training and current_device == "npu":
             learning_rate = 1e-2
         if is_training and name in NPU_REQUIRE_LEARNING_RATE:
-            learning_rate = 1e-4
+            learning_rate = 1e-3
+        if is_training and name in NPU_REQUIRE_SMALLER_LEARNING_RATE:
+            learning_rate = 1e-5
+        if is_training and name in NPU_REQUIRE_SMALLEST_LEARNING_RATE:
+            learning_rate = 1e-7
         return learning_rate
 
     def get_tolerance_and_cosine_flag(self, is_training, current_device, name):
