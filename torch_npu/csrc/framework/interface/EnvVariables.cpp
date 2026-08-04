@@ -320,9 +320,6 @@ bool CheckCompatibleImplFor(CompatibleKey compatible_key)
     return CheckCompatibleImpl();
 }
 
-TORCH_NPU_REGISTER_OPTION(TORCH_NPU_FILL_UNINITIALIZED_MEMORY)
-REGISTER_OPTION_BOOL_FUNCTION(CheckFillUninitializedMemory, TORCH_NPU_FILL_UNINITIALIZED_MEMORY, "0", "1")
-
 REGISTER_OPTION_HOOK(ALLOW_CONV_HF32, [](const std::string &val) {
   static const std::string mm_hf32_option_name = "ALLOW_MATMUL_HF32";
   auto mm_hf32_val = c10_npu::option::GetOption(mm_hf32_option_name);
@@ -362,6 +359,19 @@ REGISTER_OPTION_HOOK(ACL_OP_DEBUG_OPTION, [](const std::string &val) {
 })
 
 TORCH_NPU_REGISTER_OPTION(CUBE_MATH_TYPE)
+
+NpuContext& globalNpuContext() {
+  static NpuContext globalNpuContext_;
+  return globalNpuContext_;
+}
+
+bool NpuContext::npuFillUninitializedMemory() const {
+  return _npu_fill_uninitialized_memory;
+}
+
+void NpuContext::setNpuFillUninitializedMemory(bool b) {
+  _npu_fill_uninitialized_memory = b;
+}
 
 } // namespace env
 } // namespace native
