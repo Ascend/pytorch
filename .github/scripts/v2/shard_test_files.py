@@ -36,7 +36,12 @@ except ImportError:
 
 
 def load_categories_config(config_path: str) -> Dict:
-    """Load categories config YAML and return the categories dict."""
+    """Load categories config YAML and return the full config dict.
+
+    Returns a dict with:
+        'exclude':    list of paths to exclude from scanning
+        'categories': dict of category_name -> category config
+    """
     config_file = Path(config_path).resolve()
     if not config_file.exists():
         raise FileNotFoundError(f"Categories config not found: {config_file}")
@@ -51,18 +56,22 @@ def load_categories_config(config_path: str) -> Dict:
     if not isinstance(data, dict):
         raise ValueError(f"Expected a YAML object in {config_file}, got {type(data).__name__}")
 
-    return data.get("categories", {})
+    return {
+        "exclude": data.get("exclude", []),
+        "categories": data.get("categories", {}),
+    }
 
 
 def parse_simple_categories_yaml(raw_text: str) -> Dict:
     """Parse categories YAML without yaml library (minimal parser).
 
-    Supports 'paths' and 'files' list fields under each category.
-    Handles 4-space key-value and 6-space list items.
+    Supports top-level 'exclude' list and 'paths'/'files' list fields
+    under each category. Handles 0/2/4/6-space indents.
     """
-    result = {"categories": {}}
+    result = {"categories": {}, "exclude": []}
     current_category = None
     current_list_key = None
+    in_exclude = False
 
     for raw_line in raw_text.splitlines():
         without_comment = raw_line.split("#", 1)[0].rstrip()
@@ -72,15 +81,30 @@ def parse_simple_categories_yaml(raw_text: str) -> Dict:
         stripped = without_comment.lstrip()
         indent = len(without_comment) - len(stripped)
 
+        # Top-level key (indent 0)
         if indent == 0 and stripped.endswith(":"):
+            key = stripped[:-1].strip()
+            in_exclude = (key == "exclude")
+            current_category = None
+            current_list_key = None
             continue
 
+        # Top-level list items (indent 2) — for exclude
+        if indent == 2 and in_exclude and stripped.startswith("- "):
+            value = stripped[2:].strip().strip("\"'")
+            if value:
+                result["exclude"].append(value)
+            continue
+
+        # Category name (indent 2)
         if indent == 2 and stripped.endswith(":"):
             current_category = stripped[:-1].strip()
             result["categories"][current_category] = {}
             current_list_key = None
+            in_exclude = False
             continue
 
+        # Category key-value (indent 4)
         if current_category and indent == 4:
             current_list_key = None
             if ":" in stripped:
@@ -99,6 +123,7 @@ def parse_simple_categories_yaml(raw_text: str) -> Dict:
                     cat[key] = val
             continue
 
+        # Category list items (indent 6)
         if current_category and indent == 6 and current_list_key:
             if stripped.startswith("- "):
                 value = stripped[2:].strip().strip("\"'")
@@ -136,8 +161,12 @@ def scan_all_test_files(test_dir: Path) -> Set[str]:
 def classify_files(
     all_files: Set[str],
     categories: Dict,
+    exclude: List[str] = None,
 ) -> Dict[str, List[str]]:
     """Classify files into categories using 3-pass priority matching.
+
+    Excluded paths are removed from the file set before classification,
+    so they never enter any category (not even others).
 
     Pass 1 — files: exact file match across all categories (first match wins)
     Pass 2 — paths: directory prefix match for remaining files
@@ -146,7 +175,22 @@ def classify_files(
     Returns dict mapping category_name -> sorted list of file paths.
     """
     classified: Dict[str, List[str]] = {name: [] for name in categories}
-    unclassified = set(all_files)
+    working_set = set(all_files)
+
+    # Pass 0: remove excluded paths
+    if exclude:
+        excluded_count = 0
+        for f in list(working_set):
+            for excl_path in exclude:
+                prefix = excl_path if excl_path.endswith("/") else excl_path + "/"
+                if f.startswith(prefix):
+                    working_set.discard(f)
+                    excluded_count += 1
+                    break
+        if excluded_count:
+            print(f"  Excluded {excluded_count} files matching exclude paths: {exclude}")
+
+    unclassified = working_set
 
     # Pass 1: exact file match (first category wins)
     for cat_name, cat_config in categories.items():
@@ -241,13 +285,17 @@ def main():
     output_dir = Path(args.output_dir).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    categories = load_categories_config(args.categories_config)
+    config = load_categories_config(args.categories_config)
+    exclude = config.get("exclude", [])
+    categories = config.get("categories", {})
 
     print("=" * 80)
     print("Sharding test files by business category (round-robin)")
     print("=" * 80)
     print(f"Test directory: {test_dir}")
     print(f"Categories: {len(categories)}")
+    if exclude:
+        print(f"Exclude paths: {exclude}")
     print()
 
     # Step 1: scan all test files
@@ -256,7 +304,7 @@ def main():
     print()
 
     # Step 2: classify files into categories
-    classified = classify_files(all_files, categories)
+    classified = classify_files(all_files, categories, exclude)
 
     # Step 3: shard each category
     summary_categories = {}

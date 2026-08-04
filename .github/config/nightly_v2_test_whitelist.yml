@@ -13,6 +13,13 @@
 #   3. others: catch-all for any test_*.py not matched above
 #
 # Categories without paths/files (e.g. others) act as catch-all buckets.
+#
+# Top-level 'exclude' lists directories/files to skip entirely — they are
+# removed from the scan set before classification, so they never enter
+# any category (not even others).
+
+exclude:
+  - test/cpython
 
 categories:
   core:
@@ -100,7 +107,6 @@ categories:
     workers: 8
     paths:
       - test/dynamo
-      - test/cpython
     files:
       - test/higher_order_ops/test_invoke_subgraph.py
 
