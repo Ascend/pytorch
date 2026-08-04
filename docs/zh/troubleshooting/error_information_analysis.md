@@ -45,7 +45,7 @@
     **图 4**  plog日志中查找报错组件  
     ![](../figures/locate_component_reports_error_plog.png "plog日志中查找报错组件")
 
-    上述打印信息中的报错组件为ASCENDCL，报错信息为算子DynamicGRUV2，可据此找到对应异常组件，如果仍然不能根据报错信息明确故障组件，可联系华为技术支持获取帮助。
+    上述打印信息中的报错组件为ASCENDCL，报错信息为算子DynamicGRUV2，可据此找到对应异常组件，如果仍然不能根据报错信息明确故障组件，请提交[GitCode Issues](https://gitcode.com/Ascend/pytorch/issues)获取帮助。
 
 > [!NOTE]  
 > 如果回显信息出现原生框架报错，请根据报错信息指向进行解决，如果涉及昇腾相关，可查看除此之外的昇腾首报错信息。
