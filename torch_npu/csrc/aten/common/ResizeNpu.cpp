@@ -3,6 +3,7 @@
 #include <ATen/native/ResizeCommon.h>
 
 #include "torch_npu/csrc/framework/FormatHelper.h"
+#include "torch_npu/csrc/framework/interface/EnvVariables.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/common/ResizeNpu.h"
 
@@ -62,7 +63,7 @@ const at::Tensor& NPUNativeFunctions::resize_(
     // fill newly added storage section with NaN/MAX_INT when requested.
     if (C10_UNLIKELY(at::globalContext().deterministicAlgorithms() &&
                      at::globalContext().deterministicFillUninitializedMemory() &&
-                     at_npu::native::env::CheckFillUninitializedMemory())) {
+                     at_npu::native::env::globalNpuContext().npuFillUninitializedMemory())) {
         at::native::fill_resize_deterministic_(self, static_cast<int64_t>(old_storage_nbytes));
     }
     return self;
