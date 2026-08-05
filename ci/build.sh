@@ -119,8 +119,11 @@ function check_torch_version() {
 
 function check_torch_installed() {
     local installed
-    installed=$(python"${PY_VERSION}" -c "import torch; print(torch.__version__)" 2>/dev/null)
-    if [ -z "${installed}" ]; then
+    # Disable torch_npu autoload so an installed torch_npu doesn't sideload the
+    # in-tree package and confuse the version probe.
+    if ! installed=$(TORCH_DEVICE_BACKEND_AUTOLOAD=0 \
+            python"${PY_VERSION}" -c "import torch; print(torch.__version__)" 2>/dev/null) \
+        || [ -z "${installed}" ]; then
         echo "PyTorch is not installed for python${PY_VERSION}. Please install it before building."
         exit 1
     fi
