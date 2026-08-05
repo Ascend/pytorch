@@ -1,0 +1,30 @@
+diff --git a/test/test_sparse.py b/test/test_sparse.py
+index b444c71..14b0ca6 100644
+--- a/test/test_sparse.py
++++ b/test/test_sparse.py
+@@ -21,7 +21,7 @@ from packaging import version
+ from torch.testing._internal.common_cuda import \
+     (SM80OrLater, TEST_MULTIGPU)
+ from torch.testing._internal.common_device_type import \
+-    (instantiate_device_type_tests, ops, dtypes, dtypesIfCUDA, dtypesIfMPS, onlyCPU, onlyCUDA, precisionOverride,
++    (instantiate_device_type_tests, ops, dtypes, dtypesIfCUDA, dtypesIfMPS, dtypesIfPRIVATEUSE1, onlyCPU, onlyCUDA, precisionOverride,
+      deviceCountAtLeast, OpDTypes, onlyNativeDeviceTypes, skipCUDAIf, expectedFailureMPS,
+      largeTensorTest)
+ from torch.testing._internal.common_methods_invocations import \
+@@ -37,6 +37,8 @@ from torch.testing._internal.opinfo.refs import (
+     ReductionPythonRefInfo
+ )
+ 
++from torch_npu.contrib import transfer_to_npu  # noqa: F401
++
+ def _op_supports_any_sparse(op):
+     return (op.supports_sparse
+             or op.supports_sparse_csr
+@@ -355,6 +357,7 @@ class TestSparse(TestSparseBase):
+     @coalescedonoff
+     @dtypes(torch.double, torch.cdouble)
+     @dtypesIfMPS(torch.float32, torch.complex64)
++    @dtypesIfPRIVATEUSE1(torch.float)
+     def test_basic(self, device, dtype, coalesced):
+         def test_shape(sparse_dims, nnz, with_size):
+             if isinstance(with_size, Number):
