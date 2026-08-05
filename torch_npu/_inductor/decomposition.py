@@ -36,6 +36,7 @@ def _register_triton_decompositions():
         aten.addmm,
         aten.gelu,
         aten.native_layer_norm,
+        aten.repeat_interleave.Tensor,  # perf issue
     ]
 
     if is_ascend950:
