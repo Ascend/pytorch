@@ -5,14 +5,14 @@
 支持训练过程中内存溢出（OOM）时或用户调用`torch.npu.memory._dump_snapshot`接口时，生成设备内存快照，并通过交互式查看器（[memory\_viz](https://pytorch.org/memory_viz)）进行可视化分析。快照能够记录分配的NPU内存在任意时间点的状态，并且可以选择性地记录该快照分配情况的历史记录。该特性基于社区内存快照特性（[LINK](https://pytorch.org/docs/2.1/torch_cuda_memory.html#understanding-cuda-memory-usage)）开发，支持社区内存快照的使用方式。内存快照效果图如下所示：
 
 **图 1**  内存占用状态示意图  
-![](../../../figures/memory_usage.png)
+![](../../figures/memory_usage.png)
 
 横轴为时间轴，纵轴为当前占用设备内存大小。通过上图，可以直观看到随着时间推移正在使用的内存状态。支持平移放大操作来查看图中较小的内存分配块，对于分配的每个内存块，可以查看相应的堆栈以及分配信息。
 
 同时，支持查看内存分配器状态的历史记录。通过选择左侧时间轴显示的各个内存分配器执行的事件，可以查看执行该事件操作时，内存分配器状态的可视化摘要。此摘要显示了程序申请返回的每个单独内存段，以及根据实际申请使用内存大小，将其分割为单独分配或者空闲的内存块。同样，也支持查看分配内存时的堆栈信息。效果如下图所示：
 
 **图 2**  内存分配器状态历史记录示意图  
-![](../../../figures/memory_allocator_status_history.png)
+![](../../figures/memory_allocator_status_history.png)
 
 另外，在保存内存快照的同时，内存溢出（OOM）时各组件当前实时占用的内存（curMemSize）和运行过程中的最大占用内存（memPeakSize）都被保存到OOM\_SNAPSHOT\_PATH路径下的csv文件中，用户可以将csv文件下载后用excel等工具查看。
 
@@ -33,7 +33,7 @@
     - 未配置时，内存数据默认保存至当前路径。
     - 配置时，内存数据保存至指定路径。
 
-此环境变量使用详情请参考《环境变量》中的“[OOM\_SNAPSHOT\_ENABLE](../../../api/environment_variable/memory_management/OOM_SNAPSHOT_ENABLE.md)”章节和《环境变量》中的“[OOM\_SNAPSHOT\_PATH](../../../api/environment_variable/memory_management/OOM_SNAPSHOT_PATH.md)”章节。
+此环境变量使用详情请参考《环境变量》中的“[OOM\_SNAPSHOT\_ENABLE](../../api/environment_variable/memory_management/OOM_SNAPSHOT_ENABLE.md)”章节和《环境变量》中的“[OOM\_SNAPSHOT\_PATH](../../api/environment_variable/memory_management/OOM_SNAPSHOT_PATH.md)”章节。
 
 内存快照的使用方法和案例还可参考社区的相关说明[LINK](https://pytorch.org/docs/2.7/torch_cuda_memory.html#understanding-cuda-memory-usage)。社区内存快照的API具体用法请参考[LINK](https://pytorch.org/docs/2.7/torch_cuda_memory.html#snapshot-api-reference)。
 

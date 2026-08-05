@@ -1,4 +1,4 @@
-# 内存资源优化概述
+# 概述
 
 ## 简介
 
@@ -31,12 +31,12 @@ TorchNPU自身提供的内存管理功能如下表所示，涵盖内存分配、
 </thead>
 <tbody>
   <tr>
-    <td><a href="./memory_resource_optimization/virtual_memory.md">虚拟内存</a></td>
+    <td><a href="./virtual_memory.md">虚拟内存</a></td>
     <td>通过可扩展内存段机制，将虚拟地址与物理内存分离，允许多次申请连续内存并动态调整内存块大小，有效减少内存碎片。</td>
     <td>训练过程中频繁出现内存碎片导致OOM，或模型内存占用率高时。</td>
   </tr>
   <tr>
-    <td><a href="./memory_resource_optimization/memory_snapshot.md">内存快照</a></td>
+    <td><a href="./memory_snapshot.md">内存快照</a></td>
     <td>在OOM时或通过API主动生成设备内存快照，记录内存分配状态和历史记录，支持通过memory_viz进行可视化分析。</td>
     <td>需要分析NPU内存分配情况、排查OOM原因时。</td>
   </tr>
@@ -214,6 +214,6 @@ TorchNPU自身提供的内存管理功能如下表所示，涵盖内存分配、
 
 ## 相关参考
 
-- 环境变量配置请参考《环境变量参考》中的[内存管理](../../api/environment_variable/memory_management/_menu_memory_management.md)章节。
+- 环境变量配置请参考《环境变量参考》中的“[内存管理](../../api/environment_variable/memory_management/_menu_memory_management.md)”章节。
 - 各特性的详细使用说明请参考本节的子章节。
 - 更多NPU内存API请参考 [PyTorch CUDA内存管理文档](https://pytorch.org/docs/stable/torch_cuda_memory.html)（NPU接口与CUDA接口一一对应）。

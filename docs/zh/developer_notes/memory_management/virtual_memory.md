@@ -7,7 +7,7 @@
 如[图1](#虚拟地址与物理内存映射)所示，通过底层提供的接口，可以预先预留大块的虚拟地址空间作为一个内存块。用户不断申请内存时，可以得到在连续地址上的内存块，分别与不同地址的物理内存映射，释放内存时，连续地址的内存块可以合并成为一个内存块。
 
 **图 1**  虚拟地址与物理内存映射  <a id="虚拟地址与物理内存映射"></a>  
-![](../../../figures/mapping_between_virtual_addresses_and_physical_memory.png)
+![](../../figures/mapping_between_virtual_addresses_and_physical_memory.png)
 
 ## 使用场景
 
@@ -17,7 +17,7 @@
 
 可选择如下任一方式：
 
-- 设置环境变量PYTORCH\_NPU\_ALLOC\_CONF=expandable\_segments:<value\>，此环境变量使用详情请参考《环境变量》中的“[PYTORCH\_NPU\_ALLOC\_CONF](../../../api/environment_variable/memory_management/PYTORCH_NPU_ALLOC_CONF.md)”章节。
+- 设置环境变量PYTORCH\_NPU\_ALLOC\_CONF=expandable\_segments:<value\>，此环境变量使用详情请参考《环境变量》中的“[PYTORCH\_NPU\_ALLOC\_CONF](../../api/environment_variable/memory_management/PYTORCH_NPU_ALLOC_CONF.md)”章节。
 - 修改torch.npu.memory.\_set\_allocator\_settings（“expandable\_segments: <value\>”）接口中的“expandable\_segments”属性值。
 
     value可以取值为True或False。默认为False。
