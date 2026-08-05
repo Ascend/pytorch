@@ -1,6 +1,5 @@
-import unittest
+from unittest import mock
 from dataclasses import dataclass
-from itertools import chain
 import math
 import os
 
@@ -329,11 +328,52 @@ class TestIFAAclgraphUpdate(TestCase):
             static_y_pred = model(static_input)
 
         file_path = os.path.join(os.getcwd(), "jsonPrint.json")
+        aligned_file_path = os.path.join(os.getcwd(), "jsonPrint.aligned.json")
         if os.path.exists(file_path) and os.path.isfile(file_path):
             os.remove(file_path)
+        if os.path.exists(aligned_file_path) and os.path.isfile(aligned_file_path):
+            os.remove(aligned_file_path)
 
         g.debug_dump(file_path)
+        self.assertTrue(os.path.exists(file_path), "npugraph debug dump file does not exist")
         self.assertTrue(os.path.getsize(file_path) > 0, "npugraph debug dump assert error")
+        self.assertTrue(os.path.exists(aligned_file_path), "npugraph aligned debug dump file does not exist")
+        self.assertTrue(
+            os.path.getsize(aligned_file_path) > 0,
+            "npugraph aligned debug dump assert error",
+        )
+
+        os.remove(aligned_file_path)
+        failure_graph = torch.npu.NPUGraph()
+        with torch.npu.graph(failure_graph):
+            static_y_pred = model(static_input)
+        failure_file_path = os.path.join(os.getcwd(), "jsonPrint.failure.json")
+        failure_aligned_file_path = os.path.join(os.getcwd(), "jsonPrint.failure.aligned.json")
+        if os.path.exists(failure_file_path) and os.path.isfile(failure_file_path):
+            os.remove(failure_file_path)
+        if os.path.exists(failure_aligned_file_path) and os.path.isfile(failure_aligned_file_path):
+            os.remove(failure_aligned_file_path)
+        with mock.patch(
+            "torch_npu.npu._npugraph_utils.align_trace_json",
+            side_effect=RuntimeError("alignment failed"),
+        ) as mock_align:
+            result = failure_graph.debug_dump(failure_file_path)
+        self.assertIsNone(result)
+        mock_align.assert_called_once_with(failure_file_path, None)
+        self.assertTrue(os.path.exists(failure_file_path), "original graph dump file does not exist")
+        self.assertTrue(os.path.getsize(failure_file_path) > 0, "original graph dump was not preserved")
+        self.assertFalse(os.path.exists(failure_aligned_file_path))
+        os.remove(failure_file_path)
+
+        with mock.patch(
+            "torch_npu.npu._npugraph_utils.align_trace_json",
+        ) as mock_align:
+            result = torch.npu.NPUGraph().debug_dump(file_path)
+        self.assertIsNone(result)
+        mock_align.assert_not_called()
+        self.assertTrue(os.path.exists(file_path), "existing graph dump file does not exist")
+        self.assertTrue(os.path.getsize(file_path) > 0, "existing graph dump was not preserved")
+
         os.remove(file_path)
 
     @SupportedDevices(['Ascend910B', 'Ascend910_93'])
