@@ -194,7 +194,7 @@ NPUGeneratorCaptureState* NPUGeneratorState::get_capture_state(c10_npu::CaptureI
 
     auto capture_state = c10::make_intrusive<NPUGeneratorCaptureState>();
     capture_state->initialize(seed_for_init);
-
+    secondary_stream_capture_state_ = false;
     // Register the generator state with the capturing graph so that
     // capture_epilogue and replay_prologue can track the per-capture
     // offset for replay.
