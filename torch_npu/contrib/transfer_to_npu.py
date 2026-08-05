@@ -465,6 +465,7 @@ def _init():
     _device_wrapper(torch.npu.memory, ['_record_memory_history', '_snapshot'])
     torch.cuda.memory._record_memory_history = torch.npu.memory._record_memory_history
     torch.cuda.memory._snapshot = torch.npu.memory._snapshot
+    torch.cuda.memory._dump_snapshot = torch.npu.memory._dump_snapshot
     torch._C._host_emptyCache = torch_npu._C._npu_hostEmptyCache
 
     # torch.profiler.*
