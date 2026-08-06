@@ -426,13 +426,6 @@ def _patch_lowering():
     anir_config.disable_any_pbr = False
     ops = get_overloads([aten.sum, prims.sum])
     npu_lowering.register_lowering(ops)(sum_)
-    npu_lowering.make_fallback(
-        aten.matmul_backward.default,
-        layout_constraint=None,
-        warn=False,
-        override_decomp=True,
-    )
-    npu_lowering.add_layout_constraint(aten.matmul_backward.default, None)
 
 
 class DvmMlirFusionPatch:
