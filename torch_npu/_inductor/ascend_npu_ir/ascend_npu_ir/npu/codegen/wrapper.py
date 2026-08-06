@@ -171,6 +171,9 @@ class NpuMlirWrapperCodeGen(PythonWrapperCodegen):
         grid_extra_kwargs="",
         device=None,
         debug_handle: Optional[int] = None,
+        raw_keys=None,
+        inductor_meta=None,
+        original_fxnode_name=None,
     ):
         """
         Generates kernel call code.
@@ -189,8 +192,11 @@ class NpuMlirWrapperCodeGen(PythonWrapperCodegen):
                 device=device,
                 triton=triton,
                 arg_types=arg_types,
+                raw_keys=raw_keys,
                 raw_args=raw_args,
                 triton_meta=triton_meta,
+                inductor_meta=inductor_meta,
+                original_fxnode_name=original_fxnode_name,
             )
             return
 
