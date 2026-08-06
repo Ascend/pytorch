@@ -2,7 +2,6 @@
 # Owner(s): ["oncall: distributed"]
 import os
 import sys
-import tempfile
 
 from model_registry import ExampleCode, ModelWithKwargs, MultiMLP
 
@@ -10,7 +9,7 @@ import functools
 
 import torch
 import torch.distributed as dist
-import torch_npu
+import torch_npu  # noqa: F401
 from torch.distributed.pipelining import (
     build_stage,
     pipeline,
@@ -18,15 +17,11 @@ from torch.distributed.pipelining import (
     ScheduleGPipe,
 )
 from torch.distributed.pipelining._utils import PipeliningMetadataError
-from torch.testing._internal.common_distributed import (
-    MultiProcContinuousTest,
-    requires_nccl,
-)
+from torch.testing._internal.common_distributed import MultiProcContinuousTest
 from torch.testing._internal.common_utils import (
     instantiate_parametrized_tests,
     parametrize,
     run_tests,
-    skip_but_pass_in_sandcastle_if,
 )
 from torch.utils._pytree import tree_map_only
 
@@ -78,6 +73,7 @@ def get_flatten_hook():
 
 class StageTest(MultiProcContinuousTest):
     world_size = int(os.getenv("WORLD_SIZE", 2))
+
     @classmethod
     def backend_str(cls) -> str:
         # Testing with HCCL backend
@@ -90,6 +86,9 @@ class StageTest(MultiProcContinuousTest):
         Set up the device.
         """
         super().setUpClass()
+        os.environ["TORCH_DISTRIBUTED_DEBUG"] = "DETAIL"
+        if hasattr(dist, "set_debug_level_from_env"):
+            dist.set_debug_level_from_env()
         dev_id = cls.rank % torch.npu.device_count()
         cls.device = torch.device(f"npu:{dev_id}")
 
