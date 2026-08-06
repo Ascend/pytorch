@@ -5,6 +5,7 @@ import functools
 import itertools
 import math
 import operator
+import os
 import re
 from collections.abc import Callable, Iterable, Sequence
 from typing import Any, cast, Optional
@@ -4351,6 +4352,11 @@ class NPUIndexTritonKernel(TritonKernel):
                     return sympy_var
 
                 if var.bounds.lower < 0:  # type: ignore[operator]
+                    if (
+                        os.environ.get("INDUCTOR_ASCEND_DUMP_FX_GRAPH")
+                        or os.environ.get("INDUCTOR_ASCEND_CHECK_ACCURACY")
+                    ):
+                        wrap_neg = False
                     if wrap_neg:
                         stm = ops.add(var, ops.index_expr(size, torch.long))
                         # Mixed negative and non-negative

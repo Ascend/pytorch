@@ -323,7 +323,8 @@ def fetch_graphs(
     *,
     use_npu_meta: bool = False,
 ):
-    if isinstance(inputs, (TensorBox, ir.StorageBox, ir.View, sympy.Symbol, ir.Constant, ir.ReinterpretView)):
+    if isinstance(inputs, (TensorBox, ir.StorageBox, ir.View, ir.ExpandView, ir.PermuteView, ir.SliceView,
+                           sympy.Symbol, ir.Constant, ir.ReinterpretView)):
         inputs = [inputs]
     input_graphs = []
     for inp in inputs:
@@ -351,7 +352,19 @@ def fetch_graphs(
                 continue
         name = inp.get_name()
         traced_graph = inp.get_traced_graph()
-        if traced_graph is not None:
+        if (
+            traced_graph is not None
+            and not isinstance(inp, ir.ConcatKernel)
+            and not (
+                hasattr(inp, 'data')
+                and isinstance(inp.data, ir.ConcatKernel)
+            )
+            and not (
+                hasattr(inp, 'data')
+                and hasattr(inp.data, 'data')
+                and isinstance(inp.data.data, ir.ConcatKernel)
+            )
+        ):
             input_graphs.append(traced_graph)
             continue
         traced_graph = TracedGraph()

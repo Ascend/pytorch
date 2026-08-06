@@ -72,8 +72,10 @@ from torch._inductor.scheduler import Scheduler
 
 from .codegen.triton_utils import NPUKernelType
 from .ir import IndexputTemplate, ScatterTemplate
-from .lowering_common import (
+from .lowering_common import (  # noqa: F401  re-export for codegen/ir_fx.py
     add_overload as _add_overload,
+    create_fake_input,
+    subtract_graph,
     enable_full_lowering_fallback as enable_full_lowering_fallback_common,
     resolve_op_from_name,
 )
@@ -83,10 +85,15 @@ from .config import inductor_indirect_memory_mode, log, is_ascend950, enable_ful
 from .lowering_fallback_list import FALLBACK_LIST, NPU_EXTRA_FALLBACK_LIST
 
 from . import config as npu_config
-from .lowering_fx import (
+from .lowering_fx import (  # noqa: F401  re-export for codegen/scheduling.py & ir_fx.py
     fetch_graphs,
     merge_traced_graphs,
     node_id,
+    create_fx_from_snodes_by_traced_graph,
+    create_compile_kwargs,
+    generate_fx_graph_code,
+    dump_fx_graph_code,
+    snodes_to_fx,
 )
 
 def npu_make_fallback(op, layout_constraint=None, warn=True, override_decomp=False):

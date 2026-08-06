@@ -159,6 +159,7 @@ class NPUTritonScheduling(TritonScheduling):
             V.graph.inplaced_to_remove |= kernel.inplaced_to_remove
 
             traced_graph_hash = None
+            kernel_graph_hash = None
             if npu_config.dump_fx_graph:
                 if not npu_config.traced_fx_graph_cache:
                     npu_config.traced_fx_graph_cache = os.path.join(os.getenv("TORCHINDUCTOR_CACHE_DIR"),
@@ -168,9 +169,11 @@ class NPUTritonScheduling(TritonScheduling):
                 if traced_graph is None:
                     log.warning("For nodes %s, could not gen fx graph while dump-graph.", nodes)
                 else:
-                    traced_graph_hash = code_hash(src_code + traced_graph.code)
+                    fx_arg_shapes_str = str([getattr(a, "shape", a) for a in fx_args])
+                    traced_graph_hash = code_hash(src_code + traced_graph.code + fx_arg_shapes_str)
+                    kernel_graph_hash = code_hash(src_code + traced_graph.code)
 
-            kernel_name, src_code = self.define_kernel(src_code, node_schedule, kernel, traced_graph_hash)
+            kernel_name, src_code = self.define_kernel(src_code, node_schedule, kernel, traced_graph_hash, kernel_graph_hash)
 
             kernel.kernel_name = kernel_name
             kernel.code_hash = code_hash(src_code)
@@ -366,10 +369,11 @@ class NPUTritonScheduling(TritonScheduling):
             kernel_code_list.append((src_code, kernel, node_group))
         return kernel_code_list
 
-    def define_kernel(self, src_code, node_schedule, kernel, traced_graph_hash: str):
+    def define_kernel(self, src_code, node_schedule, kernel, traced_graph_hash: str, kernel_graph_hash: str = None):
         wrapper = V.graph.wrapper_code
-        if (src_code, traced_graph_hash) in wrapper.src_to_kernel:
-            kernel_name = wrapper.src_to_kernel[(src_code, traced_graph_hash)]
+        kernel_cache_key = (src_code, kernel_graph_hash)
+        if kernel_cache_key in wrapper.src_to_kernel:
+            kernel_name = wrapper.src_to_kernel[kernel_cache_key]
             if npu_config.dump_fx_graph:
                 src_code = src_code.replace(str(Placeholder.DESCRIPTIVE_NAME), kernel_name)
                 subs_name = kernel_name if config.triton.unique_kernel_names else "triton_"
@@ -390,7 +394,7 @@ class NPUTritonScheduling(TritonScheduling):
                 ["triton", kernel_category, fused_name, wrapper.next_kernel_suffix()]
             )
             # use the original src_code as the key
-            wrapper.src_to_kernel[(src_code, traced_graph_hash)] = kernel_name
+            wrapper.src_to_kernel[kernel_cache_key] = kernel_name
             subs_name = kernel_name if config.triton.unique_kernel_names else "triton_"
 
             # DESCRIPTIVE_NAME is used for profiling purposes; it shows the full kernel name

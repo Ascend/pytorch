@@ -318,9 +318,9 @@ def _patch_baseview_realize_hint(self):
     else:
         return self.data.realize_hint()
 
-def _patch_mark_reuse(self, users):
+def _patch_mark_reuse(self, users, **kwargs):
     if hasattr(self, 'traced_graph') and self.traced_graph is not None:
-        r = self.data.mark_reuse(users)
+        r = self.data.mark_reuse(users, **kwargs)
         buffer = try_get_buffer(self)
         if not buffer:
             return r
@@ -340,7 +340,7 @@ def _patch_mark_reuse(self, users):
         self._post_init_setattr("traced_graph", new_traced_graph)
         return r
     else:
-        return self.data.mark_reuse(users)
+        return self.data.mark_reuse(users, **kwargs)
 
 @classmethod
 def _patch_expandview_create(cls, x, new_size, traced_graph=None, node_name=None):

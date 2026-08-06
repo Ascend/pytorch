@@ -7,10 +7,10 @@
 # independently.
 
 from __future__ import annotations
-
 import copy
 import functools
 import importlib
+import os
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from typing import Any, Callable, Optional
@@ -156,6 +156,15 @@ def _uses_device_lowering(
     )
     if layout_device_type is not None:
         return layout_device_type == device_type
+    if os.environ.get("INDUCTOR_ASCEND_DUMP_FX_GRAPH") or os.environ.get("INDUCTOR_ASCEND_CHECK_ACCURACY"):
+        device_kwarg = kwargs.get("device")
+        if isinstance(device_kwarg, (torch.device, str)):
+            try:
+                kwarg_device_type = torch.device(device_kwarg).type
+            except Exception:
+                kwarg_device_type = None
+            if kwarg_device_type is not None:
+                return kwarg_device_type in ("npu", "cpu")
     if device_type in _iter_ir_device_types((args, kwargs)):
         return True
     return extra_device_predicate is not None and extra_device_predicate(
