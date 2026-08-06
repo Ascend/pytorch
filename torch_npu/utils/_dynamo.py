@@ -398,6 +398,80 @@ def patch_npu_stream_context():
     ] = _handle_npu_device_interface_stream
 
 
+def register_npu_current_stream_handler():
+    """
+    Register torch.npu.current_stream into Dynamo's handler table by
+    aliasing it to torch.accelerator.current_stream's handler.
+
+    Background
+    ----------
+    Starting from PyTorch 2.12 (PR #179164), stream operations became
+    first-class compilation primitives rather than discardable side
+    effects. The Inductor IR now carries an explicit stream_idx field,
+    and AOTAutograd no longer strips stream ops from the FX graph.
+
+    torch.npu.current_stream() was never registered in Dynamo's handler
+    table (TorchInGraphFunctionVariable._get_handlers()). Before 2.12
+    this was harmless because:
+    - AOTAutograd discarded stream ops from the FX graph
+    - Execution fell back to eager, calling the real C++ API at runtime
+
+    After 2.12 this causes a TypeError/C++ assertion failure because:
+    - The FX graph passes stream ops to Inductor as (SymInt, SymInt)
+    - Without a handler, the returned StreamVariable has
+        user_object_index=None  →  None is passed as SymInt
+    - C++ dispatch fails with "Expected 'int' but found 'NoneType'"
+
+    Fix
+    ---
+    torch.accelerator.current_stream already has a handler registered
+    (handle_current_stream, defined in TorchInGraphFunctionVariable).
+    This function is fully device-agnostic — it only orchestrates:
+    args/kwargs parsing → SymbolicStreamState.cur_stream(device)
+    → StreamVariable construction
+    No CUDA/XPU-specific logic is involved.
+
+    By aliasing torch.npu.current_stream to this same handler, Dynamo
+    can trace NPU stream operations correctly without requiring a
+    separate NPU-specific handler implementation.
+
+    Safety
+    ------
+    If torch.accelerator.current_stream is not in the handler table
+    (e.g., older PyTorch version without compiled streams support),
+    this function falls back to registering a dedicated handler that
+    delegates to handle_current_stream by value lookup.
+
+    Must be called after torch._dynamo is imported so that the handler
+    table has been populated by the @register decorators in
+    TorchInGraphFunctionVariable's class body.
+    """
+    from torch._dynamo.variables.torch import TorchInGraphFunctionVariable
+    handlers = TorchInGraphFunctionVariable._get_handlers()
+
+    accelerator_handler = handlers.get(torch.accelerator.current_stream)
+    if accelerator_handler is not None:
+        handlers[torch.npu.current_stream] = accelerator_handler
+        return
+
+    # Fallback: torch.accelerator.current_stream not in handler table
+    # (e.g., PyTorch version without compiled streams support).
+    # Walk the handler table to find handle_current_stream by identity.
+    stream_handler = None
+    for fn, handler in handlers.items():
+        if fn is torch.cuda.current_stream:
+            stream_handler = handler
+            break
+
+    if stream_handler is not None:
+        handlers[torch.npu.current_stream] = stream_handler
+    else:
+        log.warning(
+            "No existing current_stream handler found in Dynamo table; "
+            "torch.npu.current_stream will not be traced in graph"
+        )
+
+
 def patch_user_defined_class_variable():
     import functools
     from torch._dynamo.variables.user_defined import UserDefinedClassVariable
@@ -469,6 +543,8 @@ def _dynamo_register_interface_for_device():
     for i in range(32):
 
         register_interface_for_device(f"npu:{i}", NpuInterface)
+
+    register_npu_current_stream_handler()
 
 def register_npu_graphsafe_rng():
     """Register NPU for upstream GraphSafe RNG (same contract as CUDA)."""
