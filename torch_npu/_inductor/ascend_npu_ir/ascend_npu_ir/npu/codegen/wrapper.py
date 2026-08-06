@@ -193,8 +193,11 @@ class NpuMlirWrapperCodeGen(PythonWrapperCodegen):
                 device=device,
                 triton=triton,
                 arg_types=arg_types,
+                raw_keys=raw_keys,
                 raw_args=raw_args,
                 triton_meta=triton_meta,
+                original_fxnode_name=original_fxnode_name,
+                debug_handle=debug_handle,
             )
             return
 
