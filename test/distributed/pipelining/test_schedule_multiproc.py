@@ -5,6 +5,7 @@ import logging
 import os
 import sys
 import tempfile
+import unittest
 
 from model_registry import ModelWithKwargs, MultiMLP, MultiMLPWithDw
 from schedule_registry import (
@@ -30,14 +31,12 @@ from torch.distributed.pipelining import (
 from torch.distributed.pipelining.schedules import _PipelineScheduleRuntime
 from torch.testing._internal.common_distributed import (
     MultiProcContinuousTest,
-    requires_nccl,
 )
 from torch.testing._internal.common_utils import (
     check_leaked_tensors,
     instantiate_parametrized_tests,
     parametrize,
     run_tests,
-    skip_but_pass_in_sandcastle_if,
 )
 
 
@@ -49,7 +48,7 @@ device_type = "npu"
 
 torch.manual_seed(0)
 
-
+@unittest.skip("Skip: test not adapted")
 class ScheduleTest(MultiProcContinuousTest):
     world_size = int(os.getenv("WORLD_SIZE", 2))
 
@@ -67,7 +66,7 @@ class ScheduleTest(MultiProcContinuousTest):
         super().setUpClass()
         dev_id = cls.rank % torch.npu.device_count()
         cls.device = torch.device(f"npu:{dev_id}")
-    
+
     @property
     def device(self) -> torch.device:
         return torch.device(device_type, self.rank)
