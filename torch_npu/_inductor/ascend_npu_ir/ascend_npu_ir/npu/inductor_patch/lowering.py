@@ -2763,6 +2763,17 @@ make_fallback(aten._histogramdd_from_bin_cts.default)
 make_fallback(aten.addbmm)
 make_fallback(aten._addmm_activation, warn=False)
 
+# Keep matmul_backward as an extern boundary and accept its input layout
+# directly. Requiring contiguous creates a layout-copy SchedulerNode whose
+# traced graph currently loses the copy semantics during MLIR fusion.
+make_fallback(
+    aten.matmul_backward.default,
+    layout_constraint=None,
+    warn=False,
+    override_decomp=True,
+)
+add_layout_constraint(aten.matmul_backward.default, None)
+
 # Need templated kernel. Probably impossible to write efficiently
 make_fallback(aten.convolution_backward, constrain_to_fx_strides)
 make_fallback(aten._cudnn_rnn, require_dense)
