@@ -20,6 +20,7 @@ from torch_npu._inductor._aclgraph_update_plan import (
     append_inductor_aclgraph_update_plan_for_codegen_node,
     emit_inductor_aclgraph_update_plan_for_wrapper,
 )
+from torch_npu._inductor.codegen.triton import NPUIndexTritonKernel
 from torch_npu._inductor.utils import resolve_npu_device_index
 
 
@@ -157,6 +158,36 @@ class NpuMlirWrapperCodeGen(PythonWrapperCodegen):
         self.header.writeline(f"torch_npu.npu.set_device({device_idx})")
         return name
 
+    def define_kernel(
+        self,
+        kernel_name: str,
+        kernel_body: str,
+        metadata: Optional[str] = None,
+        gpu: bool = True,
+        cpp_definition: Optional[str] = None,
+    ):
+        # Adapt user-defined Triton kernels to NPU by replacing the autotuner and
+        # grid types with their NPU variants, then injecting NPU Triton imports.
+        if "user_autotune" in kernel_body and "user_autotune_npu" not in kernel_body:
+            kernel_body = kernel_body.replace(
+                "triton_heuristics.user_autotune(",
+                "npu_triton_heuristics.user_autotune_npu("
+            )
+            kernel_body = kernel_body.replace(
+                "PrecomputedGrid",
+                "PrecomputedGridNpu"
+            )
+            kernel_body = kernel_body.replace(
+                "FixedGrid",
+                "FixedGridNpu"
+            )
+            # import headers related to npu_triton_heuristics
+            kernel_body = kernel_body.replace(
+                "'''\n",
+                "'''\n" + NPUIndexTritonKernel.gen_triton_ext_imports() + "\n"
+            )
+        super().define_kernel(kernel_name, kernel_body, metadata, gpu, cpp_definition)
+
     def generate_kernel_call(
         self,
         kernel_name,
@@ -173,6 +204,9 @@ class NpuMlirWrapperCodeGen(PythonWrapperCodegen):
         grid_extra_kwargs="",
         device=None,
         debug_handle: Optional[int] = None,
+        raw_keys=None,
+        inductor_meta=None,
+        original_fxnode_name=None,
     ):
         """
         Generates kernel call code.
@@ -191,8 +225,11 @@ class NpuMlirWrapperCodeGen(PythonWrapperCodegen):
                 device=device,
                 triton=triton,
                 arg_types=arg_types,
+                raw_keys=raw_keys,
                 raw_args=raw_args,
                 triton_meta=triton_meta,
+                inductor_meta=inductor_meta,
+                original_fxnode_name=original_fxnode_name,
             )
             return
 
