@@ -63,6 +63,14 @@ test_npu_execute() {
     local category="$1"
     setup_npu_env
 
+    # Resolve pytorch source root once (used by both Step 1 and run_test.py).
+    # TEST_DIR is e.g. ${GITHUB_WORKSPACE}/pytorch/test, so parent = pytorch/.
+    local pytorch_root
+    pytorch_root="$(cd "${TEST_DIR}/.." && pwd)" || {
+        echo "ERROR: TEST_DIR not found: ${TEST_DIR}" >&2
+        return 1
+    }
+
     echo "============================================"
     echo "NPU Test Execution: ${category}"
     echo "Shard: ${SHARD_NUMBER}/${NUM_TEST_SHARDS}"
@@ -83,10 +91,33 @@ print(f'NPU count: {torch.npu.device_count()}')
     # ---- Discover, classify, and shard test files ----
     # All done in a single Python invocation using shard_test_files.py functions.
     # No intermediate JSON files — the file list goes directly to --include.
+
+    # Step 1: Get the complete set of valid --include choices from run_test.py.
+    # run_test.py uses argparse choices=TESTS, where TESTS is built by
+    # discover_tests() which excludes some directories (autograd/, fx/, jit/
+    # are executed by their parent test file).  Any file not in TESTS would
+    # be rejected with "invalid choice".
+    echo "=== Fetching valid --include choices from run_test.py ==="
+    VALID_TESTS_FILE="/tmp/valid_tests_${SHARD_NUMBER}.txt"
+    python3 -c "
+import sys
+sys.path.insert(0, '${pytorch_root}')
+from tools.testing.discover_tests import TESTS
+for t in TESTS:
+    print(t)
+" > "${VALID_TESTS_FILE}"
+    local valid_count=$(wc -l < "${VALID_TESTS_FILE}")
+    echo "run_test.py accepts ${valid_count} test modules via --include"
+
+    # Step 2: Scan, classify, shard files → intersect with valid TESTS.
     echo "=== Discovering test files for ${category} shard ${SHARD_NUMBER}/${NUM_TEST_SHARDS} ==="
 
-    local files
-    files=$(python3 -c "
+    # Expected files list (also used as source of truth for --include).
+    # run_test.py --include expects module-style paths: 'nn/test_convolution'
+    # NOT file paths: 'test/nn/test_convolution.py'.
+    EXPECTED_FILES="/tmp/test_npu_expected_${category}_${SHARD_NUMBER}.txt"
+
+    python3 -c "
 import sys
 sys.path.insert(0, '${PYTHONPATH_BASE}')
 
@@ -112,13 +143,33 @@ shard_idx = int(${SHARD_NUMBER}) - 1
 shards = split_round_robin(cat_files, num_shards)
 my_files = shards[shard_idx] if shard_idx < len(shards) else []
 
-for f in my_files:
-    print(f)
-" 2>&1 | tee /tmp/test_npu_discover_${category}_${SHARD_NUMBER}.log)
+# Load the valid TESTS set fetched in step 1
+valid_tests = set()
+with open('${VALID_TESTS_FILE}') as vf:
+    for line in vf:
+        line = line.strip()
+        if line:
+            valid_tests.add(line)
 
-    # Re-read files from the discovery output (last line may be from stderr)
-    files=$(grep -E '^test/' /tmp/test_npu_discover_${category}_${SHARD_NUMBER}.log | tr '\n' ' ')
-    local file_count=$(echo "$files" | wc -w)
+# Convert 'test/nn/test_convolution.py' -> 'nn/test_convolution'
+# Intersect with run_test.py's valid choices.
+included = 0
+skipped = 0
+with open('${EXPECTED_FILES}', 'w') as fh:
+    for f in sorted(my_files):
+        converted = f.removeprefix('test/').removesuffix('.py')
+        if converted not in valid_tests:
+            skipped += 1
+            print(f'SKIPPED (not in TESTS): {converted}', file=sys.stderr)
+            continue
+        fh.write(converted + '\n')
+        print(converted)
+        included += 1
+print(f'Included: {included}, skipped: {skipped} (not in run_test.py TESTS)', file=sys.stderr)
+" 2>&1 | tee /tmp/test_npu_discover_${category}_${SHARD_NUMBER}.log
+
+    files=$(tr '\n' ' ' < "${EXPECTED_FILES}")
+    local file_count=$(wc -w < "${EXPECTED_FILES}")
 
     echo "Files in this shard: ${file_count}"
     if [ "${file_count}" -eq 0 ]; then
@@ -135,10 +186,6 @@ for f in my_files:
     echo "NPU cards: ${npu_count}, devices/proc: ${devices_per_proc}, concurrency: ${num_procs}"
 
     mkdir -p "${REPORTS_DIR}"
-
-    # Save expected file list (for generate_shard_jsonl.py to cross-reference)
-    EXPECTED_FILES="/tmp/test_npu_expected_${category}_${SHARD_NUMBER}.txt"
-    echo "${files}" | tr ' ' '\n' > "${EXPECTED_FILES}"
 
     # Reset NPU device counter (used by npu_poisoning_plugin pytest_configure)
     echo 0 > /tmp/npu_device_counter.lock

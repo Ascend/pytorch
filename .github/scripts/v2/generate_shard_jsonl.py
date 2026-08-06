@@ -10,9 +10,9 @@ Replaces parse_junit_xmls.py.  Outputs JSONL (one JSON object per line):
        "passed":400,"failed":12,"errors":8,"skipped":60}
 
     Line 2+ — per-file records:
-      {"test_file":"test/nn/test_convolution.py","duration":150.0,"return_code":0,
+      {"test_file":"nn/test_convolution.py","duration":150.0,"return_code":0,
        "message":"","cases":[{...}]}
-      {"test_file":"test/nn/test_broken.py","duration":null,"return_code":-11,
+      {"test_file":"nn/test_broken.py","duration":null,"return_code":-11,
        "message":"SIGSEGV: segmentation fault","cases":[]}
 
 File-level status is derived from two sources:
@@ -132,11 +132,11 @@ def _match_stderr_to_expected(raw: str) -> str | None:
     """Match a run_test.py stderr test name to an expected file path.
 
     run_test.py may print names in module form (``test_nn``) or path form
-    (``test/nn/test_convolution``).  Expected files from shard_test_files.py are
-    always in path form with ``.py``: ``test/nn/test_convolution.py``.
+    (``nn/test_convolution``).  Expected files are always module-style paths
+    without ``test/`` prefix or ``.py``: ``nn/test_convolution``.
 
     Matching strategy (first match wins):
-      1. Exact match (with or without ``.py``)
+      1. Exact match
       2. Match by last path component (handles module names like ``test_nn``)
     """
     raw = raw.strip()
@@ -144,7 +144,7 @@ def _match_stderr_to_expected(raw: str) -> str | None:
     if not pool:
         return None
 
-    # 1) Exact match
+    # 1) Exact match (with or without .py)
     if raw in pool:
         return raw
     if raw + ".py" in pool:
@@ -152,10 +152,10 @@ def _match_stderr_to_expected(raw: str) -> str | None:
     if raw.endswith(".py") and raw[:-3] in pool:
         return raw[:-3]
 
-    # 2) Match by trailing filename: "test_nn" ↔ "test/nn/test_nn.py"
+    # 2) Match by trailing filename: "test_nn" ↔ "nn/test_nn"
     for expected in pool:
-        base = expected.rsplit("/", 1)[-1] if "/" in expected else expected  # "test_nn.py"
-        if base == raw + ".py" or base == raw:
+        base = expected.rsplit("/", 1)[-1] if "/" in expected else expected  # "test_nn"
+        if base == raw or base == raw + ".py":
             return expected
         if base.endswith(".py") and base[:-3] == raw:
             return expected
@@ -228,10 +228,23 @@ def parse_xml_testcases(xml_files):
                 status = "passed"
                 message = ""
 
-            # Determine test file from classname
+            # Determine test file from classname.
+            # JUnit XML classnames are dotted Python module paths.  pytest's
+            # default xunit2 format includes the test class name:
+            #   'test.nn.test_convolution.TestClass'
+            # Legacy xunit1 format omits it:
+            #   'test.nn.test_convolution'
+            # Normalize to module-style: 'nn/test_convolution'.
             test_file = classname.split("::")[0] if classname else ""
-            if test_file and not test_file.startswith("test/"):
-                test_file = "test/" + test_file
+            if test_file.startswith("test."):
+                test_file = test_file[5:]  # remove 'test.' prefix
+            # If the last dot-segment starts with uppercase, it is a class
+            # name (Python convention), not part of the module path.  Strip
+            # it so the result matches expected_files keys.
+            parts = test_file.split(".")
+            if parts and parts[-1][0].isupper():
+                parts = parts[:-1]
+            test_file = "/".join(parts)
 
             if test_file not in files_cases:
                 files_cases[test_file] = []
