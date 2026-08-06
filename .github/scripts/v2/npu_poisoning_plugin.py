@@ -152,9 +152,10 @@ def _assign_npu_device():
         os.lseek(fd, 0, os.SEEK_SET)
         data = os.read(fd, 10)
         count = int(data) if data.strip() else 0
+        new_value = str(count + 1).encode()
         os.lseek(fd, 0, os.SEEK_SET)
-        os.write(fd, str(count + 1).encode())
-        os.ftruncate(fd)
+        os.write(fd, new_value)
+        os.ftruncate(fd, len(new_value))
 
         devices_per_proc = _NPU_DEVICES_PER_PROC
         npu_count = int(os.environ.get("NPU_COUNT", "8"))
