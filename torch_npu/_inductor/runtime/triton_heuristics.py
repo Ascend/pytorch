@@ -3349,6 +3349,36 @@ def persistent_reduction(
         heuristic_type=HeuristicType.PERSISTENT_REDUCTION,
     )
 
+
+def template(
+    num_stages,
+    num_warps,
+    triton_meta,
+    num_consumer_groups=0,
+    num_buffers_warp_spec=0,
+    filename=None,
+    inductor_meta=None,
+    **kwargs,
+):
+    """
+    Compile a triton template
+    """
+    # Prepare the base configuration
+    config_args = {
+        "num_stages": num_stages,
+        "num_warps": num_warps,
+    }
+
+    return cached_autotune(
+        None,
+        [triton.Config({}, **config_args)],
+        triton_meta=triton_meta,
+        inductor_meta=inductor_meta,
+        heuristic_type=HeuristicType.TEMPLATE,
+        filename=filename,
+    )
+
+
 def foreach(size_hints, triton_meta, num_warps, filename=None, inductor_meta=None):
     """
     Compile a triton foreach kernel

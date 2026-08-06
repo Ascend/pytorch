@@ -300,6 +300,7 @@ def patch_scheduler():
 
             if not async_compile.use_process_pool():
                 fut = None
+                mod = PyCodeCache.load(src_code_or_mod)
             else:
                 mod = PyCodeCache.load(src_code_or_mod)
                 fut = async_compile.triton(

@@ -26,7 +26,6 @@ from torch._inductor.virtualized import V
 from torch._inductor.codegen.triton import (
     texpr,
     TritonScheduling,
-    gen_common_triton_imports,
 )
 from torch._inductor.codecache import PyCodeCache
 from torch._inductor.autotune_process import (
@@ -55,6 +54,7 @@ from torch._inductor.exc import CppCompileError
 from torch.utils._ordered_set import OrderedSet
 
 from ..profiler import tensorboard_trace_handler
+from .codegen.triton import gen_common_triton_imports
 from . import config as npu_config
 
 
@@ -279,7 +279,6 @@ class NPUTritonTemplate(TritonTemplate):
             if name in _NPU_COMPILE_ONLY_META_FIELDS:
                 continue
             defines.write(f"{name} : tl.constexpr = {val}\n")
-        defines = defines.getvalue()
 
         fake_out = ir.Buffer(name="buf_out", layout=layout)
         kernel_name = f"triton_{self.name}"
@@ -302,6 +301,10 @@ class NPUTritonTemplate(TritonTemplate):
             raise NotImplementedError(
                 "64-bit indexing is not yet implemented for triton templates"
             )
+
+        # Add INDEX_DTYPE to defines so it's available in the template
+        defines.write("INDEX_DTYPE : tl.constexpr = tl.int32\n")
+        defines = defines.getvalue()
 
         if call_sizes is None:
             call_sizes = layout.size
@@ -630,6 +633,17 @@ class NPUTritonTemplateKernel(TritonTemplateKernel):
         if len(argnames) == 0 and len(self.input_nodes) == 0:
             self._register_output_buffer("out_ptr0")
         return "<DEF_KERNEL>"
+
+
+    def _get_store_output_subgraph_name(self, i: int) -> str:
+        """Override to use a fixed name without index suffix.
+
+        The NPU codegen (scheduling.py codegen_template and generate method)
+        expects the store_output subgraph body to be named ``<STORE_OUTPUT>``
+        (without the ``_{i}`` suffix used by the upstream SIMDKernel).
+        """
+        return "<STORE_OUTPUT>"
+
 
     def jit_lines(self) -> str:
         from torch._inductor.codegen.triton import TritonKernel

@@ -295,7 +295,7 @@ class NPUTritonScheduling(TritonScheduling):
                 src_code = (
                     f"{kernel.imports_for_benchmark_kernel()}\n"
                     f"{src_code}\n"
-                    f"{kernel.codegen_kernel_benchmark(num_gb, grid).getvalue()}"
+                    f"{kernel.codegen_kernel_benchmark(num_gb).getvalue()}"
                 )
 
             if only_gen_src_code:
