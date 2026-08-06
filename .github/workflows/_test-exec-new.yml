@@ -11,22 +11,35 @@ on:
         required: true
         type: string
         description: Test category (core/tensor/distributed/graph/others)
+      shard:
+        required: false
+        type: number
+        default: 1
+        description: Shard index (1-based)
       num_shards:
-        required: true
+        required: false
+        type: number
+        default: 1
+        description: Total number of shards for this category
+      runner:
+        required: false
         type: string
-        description: Number of shards for this category
-      max_workers:
-        required: true
-        type: string
-        description: Max concurrent workers (3 for concurrent, 1 for serial)
-      matrix_json:
-        required: true
-        type: string
-        description: Shard matrix JSON array
+        default: linux-aarch64-a3-8
+        description: Runner label for this category
+      npu_count:
+        required: false
+        type: number
+        default: 8
+        description: Number of NPU cards (derived from runner label)
+      devices_per_proc:
+        required: false
+        type: number
+        default: 1
+        description: NPU cards per pytest process
 
 jobs:
   test:
-    runs-on: linux-aarch64-a3-8
+    runs-on: ${{ inputs.runner }}
     permissions:
       id-token: write
       contents: read
@@ -38,10 +51,6 @@ jobs:
       options: --network host
     env:
       PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
-    strategy:
-      matrix:
-        shard: ${{ fromJson(inputs.matrix_json) }}
-      fail-fast: false
     steps:
       - name: Authenticate to Huawei Cloud
         uses: huaweicloud/auth-action@v1.1.0
@@ -89,70 +98,29 @@ jobs:
           pip install /tmp/wheels/torch-*.whl
           pip install --no-deps /tmp/wheels/torch_npu*.whl
 
-      - name: Download cases shard JSONs
-        uses: actions/download-artifact@v4
-        with:
-          name: cases-shards-v2
-          path: cases-shards
-
       - name: Checkout CI scripts
         uses: actions/checkout@v6
         with:
           path: ci-scripts
           ref: ci-test
 
-      - name: Verify NPU environment
+      # ── Single step: discover → classify → shard → execute → parse ─────
+      # test-npu.sh imports shard_test_files, classifies files in memory,
+      # round-robins them into shards, then calls upstream run_test.py
+      # with --include <this shard's files>.
+      - name: Run ${{ inputs.category }} shard ${{ inputs.shard }}/${{ inputs.num_shards }} via test-npu.sh
         run: |
-          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
-          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
-
-          echo "=== NPU Device Information ==="
-          npu-smi info
-          echo "=== End of NPU Device Information ==="
-
-          python -c "
-          import torch
-          print(f'torch: {torch.__version__}')
-          import torch_npu
-          print(f'torch_npu: {torch_npu.__version__}')
-          print(f'NPU available: {torch.npu.is_available()}')
-          print(f'NPU count: {torch.npu.device_count()}')
-          "
-
-      - name: Run ${{ inputs.category }} shard ${{ matrix.shard }}/${{ inputs.num_shards }}
-        run: |
-          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
-          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
-
-          export PYTHONPATH="${GITHUB_WORKSPACE}/ci-scripts/.github/scripts/v2:${PYTHONPATH}"
-
-          CASES_JSON="cases-shards/${{ inputs.category }}_files_shard_${{ matrix.shard }}.json"
-          TOTAL_FILES=$(python3 -c "import json; d=json.load(open('${CASES_JSON}')); print(d['total_files'])")
-
-          echo "=== ${{ inputs.category }} Shard ${{ matrix.shard }}/${{ inputs.num_shards }} ==="
-          echo "Total files: ${TOTAL_FILES}"
-          echo "Runner: linux-aarch64-a3-8 (8-card NPU)"
-          if [ "${{ inputs.max_workers }}" = "1" ]; then
-            echo "Execution mode: SERIAL (file-level, 1 worker)"
-          else
-            echo "Execution mode: CONCURRENT (file-level, ${{ inputs.max_workers }} workers, spawn Pool)"
-          fi
-
-          set +e
-          python ci-scripts/.github/scripts/v2/run_npu_test_file.py \
-            --files-json "${CASES_JSON}" \
-            --test-dir pytorch/test \
-            --report-dir test-reports \
-            --max-workers ${{ inputs.max_workers }} \
-            --timeout 1800 \
-            --case-timeout 300 \
-            --shard-type ${{ inputs.category }} \
-            --shard ${{ matrix.shard }} \
-            2>&1 | tee /tmp/test_${{ inputs.category }}_${{ matrix.shard }}.log
-
-          TEST_STATUS=${PIPESTATUS[0]}
-          set -e
-          echo "status=${TEST_STATUS}" >> "$GITHUB_OUTPUT"
+          TEST_CONFIG=${{ inputs.category }} \
+          SHARD_NUMBER=${{ inputs.shard }} \
+          NUM_TEST_SHARDS=${{ inputs.num_shards }} \
+          TEST_DIR="${GITHUB_WORKSPACE}/pytorch/test" \
+          REPORTS_DIR="${GITHUB_WORKSPACE}/test-reports" \
+          PYTHONPATH_BASE="${GITHUB_WORKSPACE}/ci-scripts/.github/scripts/v2" \
+          CLASSIFICATION_CONFIG="${GITHUB_WORKSPACE}/ci-scripts/.github/config/nightly_v2_test_whitelist.yml" \
+          RUNNER="${{ inputs.runner }}" \
+          NPU_COUNT="${{ inputs.npu_count }}" \
+          DEVICES_PER_PROC="${{ inputs.devices_per_proc }}" \
+          bash "${GITHUB_WORKSPACE}/ci-scripts/.github/scripts/v2/test-npu.sh"
 
       - name: Parse test results
         id: parse_results
@@ -168,62 +136,96 @@ jobs:
               'others': 'others',
           }
           prefix = prefix_map.get('${{ inputs.category }}', 'reg')
-          cases_file = f'test-reports/shard_{prefix}-${{ matrix.shard }}_cases.json'
-          stats = {'passed': 0, 'failed': 0, 'errors': 0, 'timeout': 0, 'skipped': 0, 'total': 0}
+          shard = ${{ inputs.shard }}
+          jsonl_file = f'test-reports/shard_{prefix}-{shard}_cases.jsonl'
+          stats = {'passed': 0, 'failed': 0, 'errors': 0, 'skipped': 0, 'total': 0}
           parse_ok = False
           try:
-              with open(cases_file) as f:
-                  d = json.load(f)
+              with open(jsonl_file) as f:
+                  first_line = f.readline()
+                  d = json.loads(first_line)
               stats['passed'] = d.get('passed', 0)
               stats['failed'] = d.get('failed', 0)
               stats['errors'] = d.get('errors', 0)
-              stats['timeout'] = d.get('timeout', 0)
               stats['skipped'] = d.get('skipped', 0)
               stats['total'] = d.get('total_cases', 0)
               parse_ok = True
           except Exception as e:
               print(f'Warning: Could not parse results: {e}', file=sys.stderr)
-          total_failed = stats['failed'] + stats['errors'] + stats['timeout']
+          total_failed = stats['failed'] + stats['errors']
           with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
               for k, v in stats.items():
                   f.write(f'{k}={v}\n')
               f.write(f'total_failed={total_failed}\n')
               f.write(f'parse_ok={str(parse_ok).lower()}\n')
-          print(f'${{ inputs.category }} shard ${{ matrix.shard }}: {stats[\"passed\"]} passed, {stats[\"failed\"]} failed, {stats[\"errors\"]} errors, {stats[\"timeout\"]} timeout, {stats[\"skipped\"]} skipped, {stats[\"total\"]} total')
+          print(f'${{ inputs.category }} shard {shard}: {stats[\"passed\"]} passed, {stats[\"failed\"]} failed, {stats[\"errors\"]} errors, {stats[\"skipped\"]} skipped, {stats[\"total\"]} total')
           "
 
-      - name: Package test reports
+      - name: Package and upload test reports
         if: always()
         run: |
+          # Compress JUnit XML directory
           if [ -d "test-reports/junit_xmls" ]; then
             echo "=== Compressing junit XMLs ==="
             XML_COUNT=$(find test-reports/junit_xmls -type f -name "*.xml" | wc -l)
             echo "Found ${XML_COUNT} XML files"
             tar -czf test-reports/junit_xmls.tar.gz -C test-reports junit_xmls
             rm -rf test-reports/junit_xmls
-            echo "JUnit XMLs compressed: $(ls -lh test-reports/junit_xmls.tar.gz)"
           fi
+
+          # Collect CANN runtime logs
+          CANN_LOG_DIR="/var/log/npu/slog"
+          if [ -d "${CANN_LOG_DIR}" ]; then
+            echo "=== Collecting CANN runtime logs ==="
+            mkdir -p test-reports/cann-logs
+            find "${CANN_LOG_DIR}" -name "*.log" -type f 2>/dev/null | while read -r f; do
+              rel="${f#${CANN_LOG_DIR}/"}
+              mkdir -p "test-reports/cann-logs/$(dirname "${rel}")"
+              tail -n 1000 "${f}" > "test-reports/cann-logs/${rel}" 2>/dev/null || true
+            done
+            CANN_COUNT=$(find test-reports/cann-logs -name "*.log" -type f | wc -l)
+            echo "CANN logs collected: ${CANN_COUNT} files"
+          fi
+
+          # Compress entire test-reports/ into a single tarball for upload
+          TARBALL="test-reports-${{ inputs.category }}-${{ inputs.shard }}.tar.gz"
+          tar -czf "${TARBALL}" test-reports/
+          echo "Test reports compressed: $(ls -lh "${TARBALL}")"
 
       - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-reports-${{ inputs.category }}-${{ matrix.shard }}
-          path: test-reports/
+          name: test-reports-${{ inputs.category }}-${{ inputs.shard }}
+          path: test-reports-${{ inputs.category }}-${{ inputs.shard }}.tar.gz
           retention-days: 7
 
-      - name: Compress and upload error logs
+      # ── Failure diagnostics: collect all logs that help root-cause NPU issues ──
+      - name: Collect diagnostics on failure
         if: failure()
         run: |
-          mkdir -p error-logs
-          cp /tmp/test_${{ inputs.category }}_${{ matrix.shard }}.log error-logs/ 2>/dev/null || true
-          tar -czf error-logs-${{ inputs.category }}-${{ matrix.shard }}.tar.gz error-logs/
-          echo "Error logs compressed: $(ls -lh error-logs-${{ inputs.category }}-${{ matrix.shard }}.tar.gz)"
+          mkdir -p diagnostics
 
-      - name: Upload error logs
+          # 1. run_test.py execution log (stdout + stderr)
+          cp /tmp/test_npu_${{ inputs.category }}_${{ inputs.shard }}.log diagnostics/ 2>/dev/null || true
+
+          # 2. File discovery log (which files were selected for this shard)
+          cp /tmp/test_npu_discover_${{ inputs.category }}_${{ inputs.shard }}.log diagnostics/ 2>/dev/null || true
+
+          # 3. NPU device snapshot (device health at time of failure)
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          npu-smi info > diagnostics/npu-smi-info.log 2>&1 || true
+
+          # 4. dmesg tail (kernel-level errors: OOM kills, driver panics, PCIe faults)
+          dmesg | tail -n 200 > diagnostics/dmesg-tail.log 2>/dev/null || true
+
+          tar -czf diagnostics-${{ inputs.category }}-${{ inputs.shard }}.tar.gz diagnostics/
+          echo "Diagnostics compressed: $(ls -lh diagnostics-${{ inputs.category }}-${{ inputs.shard }}.tar.gz)"
+
+      - name: Upload diagnostics on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: error-logs-${{ inputs.category }}-${{ matrix.shard }}
-          path: error-logs-${{ inputs.category }}-${{ matrix.shard }}.tar.gz
+          name: diagnostics-${{ inputs.category }}-${{ inputs.shard }}
+          path: diagnostics-${{ inputs.category }}-${{ inputs.shard }}.tar.gz
           retention-days: 7

@@ -8,7 +8,6 @@ on:
       - '.github/workflows/nightly-new.yml'
       - '.github/workflows/_build-new.yml'
       - '.github/workflows/_test-new.yml'
-      - '.github/workflows/_test-collect-new.yml'
       - '.github/workflows/_test-exec-new.yml'
       - '.github/workflows/_test-report-new.yml'
       - '.github/config/nightly_v2_test_whitelist.yml'
@@ -17,7 +16,7 @@ on:
 
 concurrency:
   group: nightly-new-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 permissions:
   id-token: write
@@ -29,7 +28,7 @@ jobs:
     secrets: inherit
     with:
       upstream_repo: pytorch/pytorch
-      upstream_ref: ded277f2531d5d5c4ee20116a9a58e1ed0161441
+      upstream_ref: main
       torch_npu_repo: Ascend/pytorch
       torch_npu_ref: master
       report_to_upstream: false

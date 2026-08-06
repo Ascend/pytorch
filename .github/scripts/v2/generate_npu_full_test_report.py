@@ -4,8 +4,6 @@ Generate a consolidated markdown/json report for the NPU full test workflow.
 
 Output files:
 - npu-full-test-summary.json: Lightweight summary with aggregated stats only
-- distributed_cases_results_by_file.jsonl: Case-level results grouped by file
-- regular_cases_results_by_file.jsonl: Case-level results grouped by file
 """
 
 import argparse
@@ -14,10 +12,6 @@ import re
 from collections import Counter
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
-
-# Import aggregation function from parse_test_results.py
-import parse_test_results
-
 
 # ==============================================================================
 # Status Constants
@@ -36,17 +30,14 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Generate consolidated NPU full test report")
     parser.add_argument("--reports-root", required=True, help="Root directory containing shard report files")
     parser.add_argument("--output-markdown", required=True, help="Path to write markdown report")
-    parser.add_argument("--output-json", required=True, help="Path to write JSON summary")
+    parser.add_argument("--output-jsonl", required=True, help="Path to write aggregated JSONL summary")
     parser.add_argument("--pytorch-version", required=True, help="PyTorch version string")
     parser.add_argument("--torch-npu-whl", required=True, help="torch_npu wheel URL")
     parser.add_argument("--patch-count", default="N/A", help="Applied patch count")
     parser.add_argument("--shard-matrix-json", required=True, help="JSON array of requested shard ids")
     parser.add_argument("--docker-image", default="N/A", help="Docker image used for test execution")
-    parser.add_argument("--runner", default="N/A", help="Runner machine type")
     parser.add_argument("--special-reports-root", help="Root directory containing special test report files")
     parser.add_argument("--expected-special-tests-json", default="[]", help="JSON array of expected special test names")
-    parser.add_argument("--cases-summary", help="Path to cases_collection_summary.json for file discovery stats")
-    parser.add_argument("--cases-by-file-dir", help="Directory containing *_cases_by_file.jsonl files")
     return parser.parse_args()
 
 
@@ -140,11 +131,8 @@ def parse_expected_special_tests(raw: str) -> List[str]:
 
 def discover_shard_files(
     reports_root: Path,
-) -> Tuple[
-    Dict[Tuple[str, int], Path],  # stats_files
-    Dict[Tuple[str, int], Path],  # info_files
-    Dict[Tuple[str, int], Path],  # cases_files
-]:
+) -> Dict[Tuple[str, int], Path]:
+    # returns cases_files
     """
     Discover all shard report files in the reports directory.
 
@@ -156,8 +144,6 @@ def discover_shard_files(
     - shard_reg-1_info.json
     - shard_dist-1_cases.json  (case-level results)
     """
-    stats_files = {}
-    info_files = {}
     cases_files = {}
 
     def parse_shard_filename(path: Path, suffix_pattern: str) -> Optional[Tuple[str, int]]:
@@ -193,98 +179,12 @@ def discover_shard_files(
                 return (shard_type, shard_num)
         return None
 
-    for path in reports_root.rglob("shard_*_stats.json"):
-        key = parse_shard_filename(path, "stats")
-        if key:
-            stats_files[key] = path
-
-    for path in reports_root.rglob("shard_*_info.json"):
-        key = parse_shard_filename(path, "info")
-        if key:
-            info_files[key] = path
-
-    # Discover case-level results files
-    for path in reports_root.rglob("shard_*_cases.json"):
+    for path in reports_root.rglob("shard_*_cases.jsonl"):
         key = parse_shard_filename(path, "cases")
         if key:
             cases_files[key] = path
 
-    return stats_files, info_files, cases_files
-
-
-def build_file_to_shards_map(cases_shards_dir: Path) -> Dict[str, List[str]]:
-    """
-    Build a mapping from test file path to shard IDs.
-
-    Scans all shard JSON files in cases_shards_dir and extracts file->shard mapping.
-
-    Args:
-        cases_shards_dir: Directory containing shard JSON files like
-                          distributed_cases_shard_1.json, regular_cases_shard_2.json
-
-    Returns:
-        Dict mapping file path (e.g., "test/test_ops.py") to list of shard IDs
-        (e.g., ["dist-1", "reg-2", "reg-3"])
-    """
-    file_to_shards = {}
-
-    if not cases_shards_dir or not cases_shards_dir.exists():
-        return file_to_shards
-
-    # Pattern: {test_type}_cases_shard_{num}.json or {test_type}_files_shard_{num}.json
-    for shard_file in cases_shards_dir.glob("*_*_shard_*.json"):
-        try:
-            data = load_json_file(shard_file)
-            test_type = data.get("test_type", "regular")
-            shard_num = data.get("shard", 0)
-
-            # Build shard ID from test_type
-            _TYPE_TO_PREFIX = {
-                "distributed": "dist",
-                "regular": "reg",
-                "custom": "custom",
-                "core": "core",
-                "tensor": "tensor",
-                "graph": "graph",
-                "math": "math",
-        "others": "others",
-            }
-            shard_prefix = _TYPE_TO_PREFIX.get(test_type, "reg")
-            shard_id = f"{shard_prefix}-{shard_num}"
-
-            # Extract file paths from either "files" (v2 format) or "cases" (v1 format)
-            # v2 files can contain plain strings or dicts (sub-shard entries)
-            file_paths = set()
-            for f in data.get("files", []):
-                if isinstance(f, dict):
-                    file_paths.add(f.get("file", ""))
-                elif isinstance(f, str):
-                    file_paths.add(f)
-            for case in data.get("cases", []):
-                file_paths.add(case.get("file", ""))
-
-            for file_path in file_paths:
-                if not file_path:
-                    continue
-                # Normalize file path (remove leading "test/" if present for consistency)
-                normalized_file = file_path
-                if normalized_file.startswith("test/"):
-                    normalized_file = normalized_file[5:]
-
-                if normalized_file not in file_to_shards:
-                    file_to_shards[normalized_file] = []
-                if shard_id not in file_to_shards[normalized_file]:
-                    file_to_shards[normalized_file].append(shard_id)
-        except Exception as e:
-            print(f"Warning: Failed to parse shard file {shard_file}: {e}")
-            continue
-
-    # Sort shard IDs for each file
-    for file_path in file_to_shards:
-        # Sort by type (dist first) then number
-        file_to_shards[file_path].sort(key=lambda x: (0 if x.startswith("dist") else 1, int(x.split("-")[1])))
-
-    return file_to_shards
+    return cases_files
 
 
 def get_shard_status(stats: Dict, present: bool) -> str:
@@ -355,182 +255,19 @@ def discover_special_test_files(reports_root: Path | None) -> Dict[str, Path]:
     return special_files
 
 
-def load_cases_by_file_jsonl(jsonl_path: Path) -> Tuple[Dict, List[Dict]]:
-    """
-    Load cases_by_file.jsonl file.
-
-    Returns:
-        Tuple of (summary_dict, file_data_list)
-        - summary_dict: {"total_file": xxx, "total_cases": xxx}
-        - file_data_list: [{"file_path": xxx, "case_count": xxx, "cases": [nodeid1, ...]}, ...]
-    """
-    if not jsonl_path or not jsonl_path.exists():
-        return {}, []
-
-    summary_dict = {}
-    file_data_list = []
-
-    try:
-        with open(jsonl_path, 'r', encoding='utf-8') as f:
-            for i, line in enumerate(f):
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    obj = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
-
-                if i == 0 and "total_file" in obj:
-                    # First line is summary
-                    summary_dict = obj
-                elif "file_path" in obj:
-                    # File data line
-                    file_data_list.append(obj)
-    except Exception as e:
-        print(f"Warning: Failed to load {jsonl_path}: {e}")
-
-    return summary_dict, file_data_list
-
-
-def build_nodeid_to_case_map(cases_results: Dict) -> Dict[str, Dict]:
-    """
-    Build a mapping from nodeid to case execution result.
-
-    Args:
-        cases_results: Dict from shard_key -> cases_data
-
-    Returns:
-        Dict mapping nodeid -> case result dict
-    """
-    nodeid_to_case = {}
-    for shard_key, cases_data in cases_results.items():
-        cases_list = cases_data.get("cases", [])
-        for case in cases_list:
-            nodeid = case.get("nodeid", "")
-            if nodeid:
-                nodeid_to_case[nodeid] = case
-    return nodeid_to_case
-
-
-def generate_cases_results_jsonl(
-    test_type: str,
-    file_data_list: List[Dict],
-    summary_dict: Dict,
-    nodeid_to_case: Dict,
-    output_dir: Path,
-) -> Path:
-    """
-    Generate JSONL file with case execution results grouped by file.
-
-    Format:
-    Line 1: {"total_file":xxx,"total_cases":xxx}
-    Line 2+: {"file_path":"xxx","case_count":xxx,"cases":[{"nodeid":"xxx","status":"passed",...},...]}
-
-    Args:
-        test_type: "distributed" or "regular"
-        file_data_list: List of file data dicts from *_cases_by_file.jsonl
-        summary_dict: Summary dict from *_cases_by_file.jsonl
-        nodeid_to_case: Mapping from nodeid to case execution result
-        output_dir: Output directory
-
-    Returns:
-        Path to generated JSONL file
-    """
-    output_file = output_dir / f"{test_type}_cases_results_by_file.jsonl"
-
-    with open(output_file, 'w', encoding='utf-8') as f:
-        # Line 1: summary (use compact JSON)
-        summary_line = json.dumps(summary_dict, separators=(',', ':'))
-        f.write(summary_line + '\n')
-
-        # Line 2+: file data with enriched case results
-        for file_data in file_data_list:
-            file_path = file_data.get("file_path", "")
-            nodeids = file_data.get("cases", [])
-
-            # Enrich nodeids with execution results
-            enriched_cases = []
-            for nodeid in nodeids:
-                case_result = nodeid_to_case.get(nodeid, {})
-                if case_result:
-                    # Case has execution result
-                    enriched_cases.append({
-                        "nodeid": case_result.get("nodeid", nodeid),
-                        "status": case_result.get("status", "unknown"),
-                        "duration": case_result.get("duration", 0.0),
-                        "returncode": case_result.get("returncode", 0),
-                        "message": case_result.get("message", ""),
-                        "command": case_result.get("command", ""),
-                        "file": case_result.get("file", file_path),
-                        "case_idx": case_result.get("case_idx", 0),
-                    })
-                else:
-                    # Case not executed (missing from results)
-                    enriched_cases.append({
-                        "nodeid": nodeid,
-                        "status": "not_executed",
-                        "duration": 0.0,
-                        "returncode": 0,
-                        "message": "",
-                        "command": "",
-                        "file": file_path,
-                        "case_idx": 0,
-                    })
-
-            file_line = json.dumps({
-                "file_path": file_path,
-                "case_count": len(enriched_cases),
-                "cases": enriched_cases,
-            }, separators=(',', ':'))
-            f.write(file_line + '\n')
-
-    print(f"Generated {test_type}_cases_results_by_file.jsonl: {len(file_data_list)} files -> {output_file}")
-    return output_file
-
 
 def main():
     args = parse_args()
     reports_root = Path(args.reports_root)
     output_markdown = Path(args.output_markdown)
-    output_json = Path(args.output_json)
+    output_jsonl = Path(args.output_jsonl)
     requested_shards = parse_requested_shards(args.shard_matrix_json)
     expected_special_tests = parse_expected_special_tests(args.expected_special_tests_json)
     special_reports_root = Path(args.special_reports_root) if args.special_reports_root else None
 
-    # Load cases collection summary for file discovery stats
-    cases_summary_data = None
-    file_discovery_stats = {
-        "total_files_scanned": 0,
-        "distributed_files": 0,
-        "regular_files": 0,
-    }
-    if args.cases_summary:
-        cases_summary_path = Path(args.cases_summary)
-        if cases_summary_path.exists():
-            cases_summary_data = load_json_file(cases_summary_path)
-            # Extract file discovery stats
-            # v2 format: { "categories": { "core": {...}, "tensor": {...}, ... }, "total_files_scanned": N }
-            # v1 format: { "distributed": {...}, "regular": {...}, "total_files_scanned": N, "distributed_files": N, "regular_files": N }
-            if cases_summary_data:
-                file_discovery_stats["total_files_scanned"] = cases_summary_data.get("total_files_scanned", 0)
-                if "categories" in cases_summary_data:
-                    # v2 format
-                    categories = cases_summary_data["categories"]
-                    for cat_name, cat_data in categories.items():
-                        file_discovery_stats[f"{cat_name}_files"] = cat_data.get("total_files", 0)
-                else:
-                    # v1 format
-                    file_discovery_stats["distributed_files"] = cases_summary_data.get("distributed_files", 0)
-                    file_discovery_stats["regular_files"] = cases_summary_data.get("regular_files", 0)
-
-    stats_files, info_files, cases_files = discover_shard_files(reports_root)
+    cases_files = discover_shard_files(reports_root)
     special_test_files = discover_special_test_files(special_reports_root)
-    shard_ids = requested_shards or sorted(set(stats_files) | set(info_files) | set(cases_files))
-
-    # Build file to shards mapping from cases-shards directory
-    cases_shards_dir = Path(args.cases_summary).parent if args.cases_summary else None
-    file_to_shards_map = build_file_to_shards_map(cases_shards_dir)
+    shard_ids = requested_shards or sorted(set(cases_files))
 
     status_counts = Counter()
     totals = {
@@ -539,46 +276,56 @@ def main():
         "failed": 0,
         "errors": 0,
         "skipped": 0,
-        "timeout": 0,
         "duration": 0.0,
     }
     shard_rows = []
-    selection_modes = set()
-    cases_results = {}  # Store case-level results for each shard
+    all_file_records = []
+    execution_modes = set()
+    runners = set()
 
     for shard_type, shard_num in shard_ids:
         shard_key = (shard_type, shard_num)
-        stats_path = stats_files.get(shard_key)
-        info_path = info_files.get(shard_key)
         cases_path = cases_files.get(shard_key)
-        stats = load_json_file(stats_path) if stats_path else {}
-        info = load_json_file(info_path) if info_path else {}
+        stats = {}
 
-        # Load case-level results if available
-        cases_data = load_json_file(cases_path) if cases_path else {}
+        # Read JSONL: first line = shard summary, lines 2+ = per-file records
+        cases_data = {}
+        if cases_path:
+            try:
+                with open(cases_path, encoding="utf-8") as f:
+                    first_line = f.readline().strip()
+                    if first_line:
+                        cases_data = json.loads(first_line)
+                    for line in f:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        rec = json.loads(line)
+                        rec["shard_type"] = shard_type
+                        rec["shard"] = shard_num
+                        all_file_records.append(rec)
+            except Exception:
+                pass
         if cases_data:
-            cases_results[shard_key] = cases_data
-            # Override stats with case-level data
             stats["total"] = cases_data.get("total_cases", 0)
             stats["passed"] = cases_data.get("passed", 0)
             stats["failed"] = cases_data.get("failed", 0)
             stats["errors"] = cases_data.get("errors", 0)
             stats["skipped"] = cases_data.get("skipped", 0)
-            stats["timeout"] = cases_data.get("timeout", 0)
             stats["duration"] = cases_data.get("duration", 0.0)
-            # Update totals (正交累加: total = passed + failed + errors + skipped + timeout)
             totals["total"] += cases_data.get("total_cases", 0)
             totals["passed"] += cases_data.get("passed", 0)
             totals["failed"] += cases_data.get("failed", 0)
             totals["errors"] += cases_data.get("errors", 0)
             totals["skipped"] += cases_data.get("skipped", 0)
-            totals["timeout"] += cases_data.get("timeout", 0)
             totals["duration"] += cases_data.get("duration", 0.0)
 
-        present = bool(stats_path or cases_path)
+        present = bool(cases_path)
 
-        if info.get("selection_mode"):
-            selection_modes.add(str(info.get("selection_mode")))
+        if cases_data.get("execution_mode"):
+            execution_modes.add(str(cases_data["execution_mode"]))
+        if cases_data.get("runner"):
+            runners.add(str(cases_data["runner"]))
 
         status = get_shard_status(stats, present)
         status_counts[status] += 1
@@ -606,16 +353,16 @@ def main():
                 "failed": int(stats.get("failed", 0)),
                 "skipped": int(stats.get("skipped", 0)),
                 "errors": int(stats.get("errors", 0)),
-                "timeout": int(stats.get("timeout", 0)),
                 "duration": float(stats.get("duration", 0.0)),
             }
         )
 
     overall_status = get_overall_status(status_counts)
     whl_name = Path(args.torch_npu_whl).name
-    received_reports = len(stats_files)
+    received_reports = len(cases_files)
     expected_reports = len(shard_ids)
-    selection_mode_display = ", ".join(sorted(selection_modes)) if selection_modes else "-"
+    selection_mode_display = ", ".join(sorted(execution_modes)) if execution_modes else "-"
+    runner_display = ", ".join(sorted(runners)) if runners else "-"
 
     # Show all shards in the detail table
     sorted_shards = sorted(shard_rows, key=lambda row: (row["shard_type"], row["shard_num"]))
@@ -642,47 +389,7 @@ def main():
         overall_status = STATUS_FAILED
 
     include_special_tests = bool(special_test_names or special_test_rows)
-
-    # Build Selection row content based on available data
-    if cases_summary_data:
-        # Use file discovery stats from cases_collection_summary.json
-        total_scanned = file_discovery_stats["total_files_scanned"]
-        if "categories" in cases_summary_data:
-            # v2 format: show per-category file counts
-            cat_parts = []
-            for cat_name, cat_data in cases_summary_data["categories"].items():
-                cat_files = cat_data.get("total_files", 0)
-                if cat_files > 0:
-                    cat_parts.append(f"{cat_name}: {cat_files}")
-            selection_content = (
-                f"扫描发现 {total_scanned} 个测试文件 "
-                f"({', '.join(cat_parts)})"
-            )
-        else:
-            # v1 format
-            dist_files = file_discovery_stats.get("distributed_files", 0)
-            reg_files = file_discovery_stats.get("regular_files", 0)
-            selection_content = (
-                f"扫描发现 {total_scanned} 个测试文件 "
-                f"(distributed: {dist_files}, regular: {reg_files})"
-            )
-    else:
-        # Fallback to original selection mode display
-        selection_content = selection_mode_display
-
-    # Extract planned cases count from cases_collection_summary.json
-    planned_total_cases = 0
-    planned_dist_cases = 0
-    planned_reg_cases = 0
-    if cases_summary_data:
-        if "categories" in cases_summary_data:
-            # v2 format: total_cases is null (no collect-only), use file counts
-            planned_total_cases = cases_summary_data.get("total_cases") or 0
-        else:
-            # v1 format
-            planned_total_cases = cases_summary_data.get("total_cases", 0)
-            planned_dist_cases = cases_summary_data.get("distributed", {}).get("cases_summary", {}).get("total_cases", 0)
-            planned_reg_cases = cases_summary_data.get("regular", {}).get("cases_summary", {}).get("total_cases", 0)
+    selection_content = selection_mode_display
 
     overview_rows = [
         ["Overall result", overall_status],
@@ -690,24 +397,17 @@ def main():
         ["torch_npu", f"`{whl_name}`"],
         ["Patches applied", str(args.patch_count)],
         ["Docker image", f"`{args.docker_image}`"],
-        ["Runner", f"`{args.runner}`"],
+        ["Runner", f"`{runner_display}`"],
         ["Shards", f"{received_reports} / {expected_reports} reported"],
         ["Selection", selection_content],
         [
             "实际执行用例",
             (
                 f"{totals['total']} total; {totals['passed']} passed; {totals['failed']} failed; "
-                f"{totals['errors']} errors; {totals['skipped']} skipped; "
-                f"{totals['timeout']} timeout"
+                f"{totals['errors']} errors; {totals['skipped']} skipped"
             ),
         ],
     ]
-    # Add planned cases count row if available
-    if planned_total_cases > 0:
-        overview_rows.append([
-            "规划用例总数",
-            f"{planned_total_cases} (distributed: {planned_dist_cases}, regular: {planned_reg_cases})",
-        ])
     overview_rows.append(["Duration", format_duration(totals["duration"])])
     if include_special_tests:
         overview_rows.append(["Special tests expected", str(len(special_test_names))])
@@ -724,12 +424,12 @@ def main():
         )
     )
 
-    # Add case-level statistics table if available
-    if cases_results:
+    # Add shard-level statistics table
+    if sorted_shards:
         markdown_lines.extend(["", "## 用例级执行统计"])
         markdown_lines.extend(
             render_table(
-                ["Shard", "总用例", "通过", "失败", "错误", "跳过", "超时", "Duration"],
+                ["Shard", "总用例", "通过", "失败", "错误", "跳过", "Duration"],
                 [
                     [
                         f"{row['shard']}",
@@ -738,99 +438,30 @@ def main():
                         str(row["failed"]),
                         str(row["errors"]),
                         str(row.get("skipped", 0)),
-                        str(row.get("timeout", 0)),
                         format_duration(row["duration"]),
                     ]
                     for row in sorted_shards
-                    if (row["shard_type"], row["shard_num"]) in cases_results
                 ],
             )
         )
 
-        # Build file-level statistics from jsonl (full file set) + execution results
-        file_stats = parse_test_results.aggregate_all_cases_by_file(cases_results)
-
-        # Load all files from shard JSONs (v2: {category}_files_shard_*.json)
-        # Falls back to jsonl (v1: *_cases_by_file.jsonl) if available
-        all_files_from_jsonl = {}
-        if args.cases_by_file_dir:
-            cases_by_file_dir = Path(args.cases_by_file_dir)
-
-            # v2: Load from shard files (files list format)
-            for shard_file in cases_by_file_dir.glob("*_files_shard_*.json"):
-                try:
-                    shard_data = load_json_file(shard_file)
-                    test_type = shard_data.get("test_type", "regular")
-                    for f in shard_data.get("files", []):
-                        # Handle both string entries and dict entries (sub-shard)
-                        file_path = f.get("file", "") if isinstance(f, dict) else f
-                        if file_path and file_path not in all_files_from_jsonl:
-                            all_files_from_jsonl[file_path] = {
-                                "file": file_path,
-                                "case_count": 0,  # Unknown in v2 (no collect-only)
-                                "test_type": test_type,
-                            }
-                except Exception:
-                    continue
-
-            # v1 fallback: Load from jsonl if present
-            dist_jsonl_path = cases_by_file_dir / "distributed_cases_by_file.jsonl"
-            reg_jsonl_path = cases_by_file_dir / "regular_cases_by_file.jsonl"
-
-            if dist_jsonl_path.exists():
-                _, dist_file_data = load_cases_by_file_jsonl(dist_jsonl_path)
-                for fd in dist_file_data:
-                    file_path = fd.get("file_path", "")
-                    if file_path and file_path not in all_files_from_jsonl:
-                        all_files_from_jsonl[file_path] = {
-                            "file": file_path,
-                            "case_count": fd.get("case_count", 0),
-                            "test_type": "distributed",
-                        }
-
-            if reg_jsonl_path.exists():
-                _, reg_file_data = load_cases_by_file_jsonl(reg_jsonl_path)
-                for fd in reg_file_data:
-                    file_path = fd.get("file_path", "")
-                    if file_path and file_path not in all_files_from_jsonl:
-                        all_files_from_jsonl[file_path] = {
-                            "file": file_path,
-                            "case_count": fd.get("case_count", 0),
-                            "test_type": "regular",
-                        }
-
-        # Merge execution results with full file set
+        # Build file-level statistics from collected JSONL per-file records
         merged_file_stats = {}
-        for file_path, file_info in all_files_from_jsonl.items():
-            exec_stats = file_stats.get(file_path, {})
-            merged_file_stats[file_path] = {
-                "file": file_path,
-                "total": exec_stats.get("total", 0),
-                "passed": exec_stats.get("passed", 0),
-                "failed": exec_stats.get("failed", 0),
-                "errors": exec_stats.get("errors", 0),
-                "timeout": exec_stats.get("timeout", 0),
-                "skipped": exec_stats.get("skipped", 0),
-                "duration": exec_stats.get("duration", 0.0),
-                "case_count": file_info.get("case_count", 0),  # 规划用例数（可能 > 执行用例数）
-                "test_type": file_info.get("test_type", "unknown"),
-            }
-
-        # Also add files that were executed but not in jsonl (edge case)
-        for file_path, exec_stats in file_stats.items():
-            if file_path not in merged_file_stats:
-                merged_file_stats[file_path] = {
-                    "file": file_path,
-                    "total": exec_stats.get("total", 0),
-                    "passed": exec_stats.get("passed", 0),
-                    "failed": exec_stats.get("failed", 0),
-                    "errors": exec_stats.get("errors", 0),
-                    "timeout": exec_stats.get("timeout", 0),
-                    "skipped": exec_stats.get("skipped", 0),
-                    "duration": exec_stats.get("duration", 0.0),
-                    "case_count": exec_stats.get("total", 0),
-                    "test_type": "unknown",
+        for rec in all_file_records:
+            test_file = rec.get("test_file", "")
+            if test_file not in merged_file_stats:
+                merged_file_stats[test_file] = {
+                    "file": test_file,
+                    "total": 0, "passed": 0, "failed": 0, "errors": 0, "skipped": 0,
+                    "duration": 0.0, "case_count": len(rec.get("cases", [])),
+                    "test_type": rec.get("shard_type", "unknown"),
                 }
+            fs = merged_file_stats[test_file]
+            for c in rec.get("cases", []):
+                st = c.get("status", "error")
+                fs["total"] += 1
+                fs[st] = fs.get(st, 0) + 1
+            fs["duration"] += rec.get("duration") or 0.0
 
         if merged_file_stats:
             # Sort files by total cases descending
@@ -844,32 +475,24 @@ def main():
             file_rows = []
             for fs in sorted_files:
                 # Calculate fail rate based on executed cases
-                failed_total = fs["failed"] + fs["errors"] + fs["timeout"]
+                failed_total = fs["failed"] + fs["errors"]
                 fail_rate = f"{(failed_total / fs['total'] * 100):.1f}%" if fs["total"] > 0 else "0%"
-                # Get shard info for this file
-                file_path = fs["file"]
-                # Normalize file path for lookup (remove leading "test/")
-                lookup_path = file_path
-                if lookup_path.startswith("test/"):
-                    lookup_path = lookup_path[5:]
-                shards_for_file = file_to_shards_map.get(lookup_path, [])
-                # If case_count is 0, no shard executed this file
-                shard_info = ", ".join(shards_for_file) if shards_for_file else "-"
+                # Shard info from test_type (each file belongs to one category)
+                shard_info = fs.get("test_type", "-")
                 file_rows.append([
                     sanitize_markdown_cell(fs["file"]),
                     shard_info,
-                    str(fs["case_count"]),  # 规划用例数
+                    str(fs["case_count"]),
                     str(fs["passed"]),
                     str(fs["failed"]),
                     str(fs["errors"]),
                     str(fs["skipped"]),
-                    str(fs["timeout"]),
                     fail_rate,
                 ])
 
             markdown_lines.extend(
                 render_table(
-                    ["测试文件", "分片", "规划用例", "通过", "失败", "错误", "跳过", "超时", "失败率"],
+                    ["测试文件", "分片", "规划用例", "通过", "失败", "错误", "跳过", "失败率"],
                     file_rows,
                 )
             )
@@ -893,101 +516,31 @@ def main():
             )
         )
 
-    report_json = {
-        "overall_status": overall_status,
-        "requested_shards": shard_ids,
-        "reports_collected": received_reports,
-        "patch_count": args.patch_count,
-        "pytorch_version": args.pytorch_version,
-        "torch_npu_whl": whl_name,
-        "docker_image": args.docker_image,
-        "runner": args.runner,
-        "status_counts": dict(status_counts),
-        "totals": totals,
-        "file_discovery_stats": file_discovery_stats,
-        "planned_cases": {
-            "total": planned_total_cases,
-            "distributed": planned_dist_cases,
-            "regular": planned_reg_cases,
-        },
-        "shards": shard_rows,
-    }
-
-    # Add cases collection summary (lightweight metadata only for md rendering)
-    if cases_summary_data:
-        if "categories" in cases_summary_data:
-            # v2 format
-            report_json["cases_collection_summary"] = {
-                "total_cases": cases_summary_data.get("total_cases"),
-                "total_files_scanned": cases_summary_data.get("total_files_scanned", 0),
-                "categories": {
-                    cat_name: {
-                        "total_files": cat_data.get("total_files", 0),
-                        "num_shards": cat_data.get("num_shards", 0),
-                    }
-                    for cat_name, cat_data in cases_summary_data.get("categories", {}).items()
-                },
-            }
-        else:
-            # v1 format
-            report_json["cases_collection_summary"] = {
-                "total_cases": cases_summary_data.get("total_cases", 0),
-                "total_files_scanned": cases_summary_data.get("total_files_scanned", 0),
-                "distributed_files": cases_summary_data.get("distributed_files", 0),
-                "regular_files": cases_summary_data.get("regular_files", 0),
-                "distributed": {
-                    "total_cases": cases_summary_data.get("distributed", {}).get("cases_summary", {}).get("total_cases", 0),
-                },
-                "regular": {
-                    "total_cases": cases_summary_data.get("regular", {}).get("cases_summary", {}).get("total_cases", 0),
-                },
-            }
-
-    # Generate JSONL files with case-level results grouped by file
-    if cases_results and args.cases_by_file_dir:
-        cases_by_file_dir = Path(args.cases_by_file_dir)
-        output_dir = output_json.parent
-
-        # Build nodeid to case result mapping
-        nodeid_to_case = build_nodeid_to_case_map(cases_results)
-
-        # Process distributed cases
-        dist_jsonl_path = cases_by_file_dir / "distributed_cases_by_file.jsonl"
-        if dist_jsonl_path.exists():
-            dist_summary, dist_file_data = load_cases_by_file_jsonl(dist_jsonl_path)
-            generate_cases_results_jsonl(
-                "distributed",
-                dist_file_data,
-                dist_summary,
-                nodeid_to_case,
-                output_dir,
-            )
-
-        # Process regular cases
-        reg_jsonl_path = cases_by_file_dir / "regular_cases_by_file.jsonl"
-        if reg_jsonl_path.exists():
-            reg_summary, reg_file_data = load_cases_by_file_jsonl(reg_jsonl_path)
-            generate_cases_results_jsonl(
-                "regular",
-                reg_file_data,
-                reg_summary,
-                nodeid_to_case,
-                output_dir,
-            )
-
-    # Add special tests if applicable
-    if include_special_tests:
-        report_json["special_tests"] = {
-            "expected": special_test_names,
-            "status_counts": dict(special_status_counts),
-            "results": special_test_rows,
-        }
-
+    # Write Markdown report
     output_markdown.write_text("\n".join(markdown_lines) + "\n", encoding="utf-8")
-    output_json.write_text(json.dumps(report_json, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-
     print(f"Generated markdown report: {output_markdown}")
-    print(f"Generated json report: {output_json}")
+
+    # Write aggregated JSONL
+    with open(output_jsonl, "w", encoding="utf-8") as f:
+        # Line 1: global summary
+        summary = {
+            "shard_type": "all",
+            "execution_mode": ", ".join(sorted(execution_modes)) if execution_modes else "file_level_upstream",
+            "runner": runner_display,
+            "total_files": len(all_file_records),
+            "total_cases": totals["total"],
+            "passed": totals["passed"],
+            "failed": totals["failed"],
+            "errors": totals["errors"],
+            "skipped": totals["skipped"],
+            "shards_reported": f"{received_reports} / {expected_reports}",
+        }
+        f.write(json.dumps(summary, ensure_ascii=False) + "\n")
+        # Lines 2+: per-file records
+        for rec in sorted(all_file_records, key=lambda r: r.get("test_file", "")):
+            f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+
+    print(f"Generated aggregated JSONL: {output_jsonl} ({len(all_file_records)} files)")
 
 
 if __name__ == "__main__":

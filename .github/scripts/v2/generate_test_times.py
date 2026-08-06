@@ -3,14 +3,10 @@
 Aggregate per-file wall-clock execution times from all shard artifacts
 and generate an updated test-times.json for the next pipeline run.
 
-Reads ``file_execution_times.json`` files from the ``all-test-reports/``
-directory (downloaded from all test-reports-* artifacts via
-``merge-multiple: true``).  Each file was written by ``run_npu_test_file.py``
-and contains real wall-clock timing including process startup, NPU init,
-collection, fixture setup, and all crash-retry attempts.
-
-For sub-sharded files (num_shards > 1), the wall times from each
-sub-shard are summed to reconstruct the full file duration.
+Reads ``shard_*_cases.jsonl`` files from the ``all-test-reports/`` directory.
+Each JSONL line (after the first summary line) contains per-file wall-clock
+duration measured by run_test.py (``Finished ... took X.XXmin`` on stderr).
+For sub-sharded files, durations from each sub-shard are summed.
 
 Usage:
     python generate_test_times.py \
@@ -25,16 +21,32 @@ from typing import Dict
 
 
 def load_file_execution_times(reports_root: Path) -> list:
-    """Find and load all file_execution_times.json files."""
+    """Find and load all shard_*_cases.jsonl files, extracting per-file durations."""
     results = []
-    for p in sorted(reports_root.rglob("file_execution_times_*.json")):
+    for p in sorted(reports_root.rglob("shard_*_cases.jsonl")):
         try:
-            data = json.loads(p.read_text(encoding="utf-8"))
-            results.append(data)
-            shard = data.get("shard", "?")
-            shard_type = data.get("shard_type", "?")
-            num_files = len(data.get("file_times", []))
-            print(f"  Loaded {p.name}: shard {shard_type}-{shard}, {num_files} files", flush=True)
+            with open(p, encoding="utf-8") as f:
+                first_line = json.loads(f.readline().strip())
+                shard_type = first_line.get("shard_type", "?")
+                shard = first_line.get("shard", "?")
+                file_times = []
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    rec = json.loads(line)
+                    if rec.get("duration") is not None:
+                        file_times.append({
+                            "file": rec["test_file"],
+                            "wall_time": rec["duration"],
+                            "num_shards": 1,
+                        })
+                results.append({
+                    "shard": shard,
+                    "shard_type": shard_type,
+                    "file_times": file_times,
+                })
+                print(f"  Loaded {p.name}: shard {shard_type}-{shard}, {len(file_times)} files", flush=True)
         except (json.JSONDecodeError, OSError) as e:
             print(f"  WARNING: Failed to load {p}: {e}", flush=True)
     return results

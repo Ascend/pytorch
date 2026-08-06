@@ -1,22 +1,50 @@
-# Nightly v2 test whitelist — category-driven classification rules.
+# Nightly v2 test whitelist — category-driven classification + execution rules.
 #
-# Each category specifies:
-#   shards:     number of shards for round-robin distribution
-#   execution:  concurrent | serial
-#   workers:    max concurrent workers (NPU cards)
-#   paths:      directories to recursively scan for test_*.py files
-#   files:      exact file paths to include (takes priority over paths)
+# ==============================================================================
+# Test file classification (used by shard_test_files.py)
+# ==============================================================================
 #
-# Classification priority (3 passes):
-#   1. files:  exact file match across all categories (first match wins)
+#   paths:      directories under pytorch/test/ to recursively scan for test_*.py.
+#               e.g. [test/nn, test/optim] → all test_*.py under those dirs.
+#   files:      exact file paths under pytorch/test/ to include.
+#               Takes priority over paths (first match wins).
+#
+# Classification is 3-pass, first-match-wins:
+#   1. files:  exact match across all categories
 #   2. paths:  directory prefix match for remaining files
-#   3. others: catch-all for any test_*.py not matched above
+#   3. others: any unmatched test_*.py (catch-all)
 #
-# Categories without paths/files (e.g. others) act as catch-all buckets.
+# ==============================================================================
+# Sharding & execution (used by _test-new.yml config job)
+# ==============================================================================
 #
-# Top-level 'exclude' lists directories/files to skip entirely — they are
-# removed from the scan set before classification, so they never enter
-# any category (not even others).
+#   shards:        number of matrix entries to fan out for this category.
+#                  Each entry runs as an independent GitHub Actions job.
+#                  e.g. shards=4 → 4 parallel test jobs, files split round-robin.
+#
+#   runner:        GitHub Actions runner label for this category.
+#                  Naming convention: linux-aarch64-{chip}-{npu_count}
+#                  e.g. linux-aarch64-a3-8  → 8-card Ascend 910B machine.
+#                       linux-aarch64-b2-16 → 16-card Ascend 910C machine.
+#                  The trailing -{npu_count} is parsed to derive npu_count
+#                  (see devices_per_proc below).
+#
+#   devices_per_proc: number of NPU cards visible to each pytest process.
+#                     Controls ASCEND_RT_VISIBLE_DEVICES granularity.
+#                       1  → each pytest process binds 1 card. 8 cards → 8-way
+#                            parallel (one file per card concurrently).
+#                       2  → each pytest process binds 2 cards. 8 cards → 4-way
+#                            parallel.
+#                       8  → all cards visible. For distributed tests that need
+#                            multi-card communication (nccl, hccl, etc).
+#                     NUM_PROCS = npu_count / devices_per_proc (automatically
+#                     set by test-npu.sh as the run_test.py Pool size).
+#
+# ==============================================================================
+# Global
+# ==============================================================================
+#
+#   exclude:       directories/files to skip entirely (never enter any category)
 
 exclude:
   - test/cpython
@@ -24,8 +52,8 @@ exclude:
 categories:
   core:
     shards: 1
-    execution: concurrent
-    workers: 8
+    runner: linux-aarch64-a3-8
+    devices_per_proc: 1
     paths:
       - test/nn
       - test/optim
@@ -54,8 +82,8 @@ categories:
 
   tensor:
     shards: 1
-    execution: concurrent
-    workers: 8
+    runner: linux-aarch64-a3-8
+    devices_per_proc: 1
     paths:
       - test/torch_np
     files:
@@ -96,15 +124,15 @@ categories:
 
   distributed:
     shards: 1
-    execution: serial
-    workers: 1
+    runner: linux-aarch64-a3-8
+    devices_per_proc: 8
     paths:
       - test/distributed
 
   graph:
     shards: 1
-    execution: concurrent
-    workers: 8
+    runner: linux-aarch64-a3-8
+    devices_per_proc: 1
     paths:
       - test/dynamo
     files:
@@ -112,5 +140,5 @@ categories:
 
   others:
     shards: 1
-    execution: concurrent
-    workers: 8
+    runner: linux-aarch64-a3-8
+    devices_per_proc: 1
