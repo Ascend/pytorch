@@ -51,6 +51,7 @@ class UnsupportedGroupedPlan(RuntimeError):
 class GroupedKernelMeta:
     enabled: bool
     template: str
+    workload: str | None
     primary_group_axis: str | None
     static_split_axes: tuple[str, ...]
     secondary_runtime_symbolic_axes: tuple[str, ...]
@@ -61,6 +62,7 @@ class GroupedKernelMeta:
         return {
             "enabled": self.enabled,
             "template": self.template,
+            "workload": self.workload,
             "primary_group_axis": self.primary_group_axis,
             "static_split_axes": list(self.static_split_axes),
             "secondary_runtime_symbolic_axes": list(
@@ -83,6 +85,7 @@ class GroupedKernelMeta:
         return GroupedKernelMeta(
             enabled=_require_bool(payload.get("enabled"), "enabled"),
             template=_require_str(payload.get("template"), "template"),
+            workload=_require_group_workload(payload.get("workload")),
             primary_group_axis=_require_optional_str(
                 payload.get("primary_group_axis"), "primary_group_axis"
             ),
@@ -382,6 +385,13 @@ def _require_optional_str(value: object, field_name: str) -> str | None:
     if value is None:
         return None
     return _require_str(value, field_name)
+
+
+def _require_group_workload(value: object) -> str | None:
+    workload = _require_optional_str(value, "workload")
+    if workload not in (None, "elementwise"):
+        raise ValueError(f"unsupported group workload: {workload}")
+    return workload
 
 
 def _require_bool(value: object, field_name: str) -> bool:

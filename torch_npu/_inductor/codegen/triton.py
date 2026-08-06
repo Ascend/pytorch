@@ -1572,6 +1572,7 @@ class NPUIndexTritonKernel(TritonKernel):
                 {
                     "group_enabled": bool(grouped_meta.enabled),
                     "group_template": grouped_meta.template,
+                    "group_workload": grouped_meta.workload,
                     "primary_group_axis": grouped_meta.primary_group_axis,
                     "static_split_axes": grouped_meta.static_split_axes,
                     "secondary_runtime_symbolic_axes": grouped_meta.secondary_runtime_symbolic_axes,
@@ -1586,6 +1587,7 @@ class NPUIndexTritonKernel(TritonKernel):
                 {
                     "group_enabled": False,
                     "group_template": None,
+                    "group_workload": None,
                     "primary_group_axis": None,
                     "static_split_axes": (),
                     "secondary_runtime_symbolic_axes": (),
@@ -1678,6 +1680,7 @@ class NPUIndexTritonKernel(TritonKernel):
         )
         inductor_meta["group_enabled"] = False
         inductor_meta["group_template"] = None
+        inductor_meta["group_workload"] = None
         inductor_meta["primary_group_axis"] = None
         inductor_meta["static_split_axes"] = ()
         inductor_meta["secondary_runtime_symbolic_axes"] = ()
