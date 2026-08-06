@@ -151,7 +151,7 @@ for f in my_files:
     NUM_PROCS="${num_procs}" \
     NPU_DEVICES_PER_PROC="${devices_per_proc}" \
     NPU_COUNT="${npu_count}" \
-    time python pytorch/test/run_test.py \
+    python pytorch/test/run_test.py \
         --include ${files} \
         --hw-classification ACCELERATOR \
         --continue-through-error \

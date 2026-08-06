@@ -25,6 +25,11 @@ jobs:
 
       - name: Extract test report tarballs
         run: |
+          if [ ! -d all-test-reports ]; then
+            echo "No test reports downloaded (all shards may have failed)"
+            mkdir -p all-test-reports
+            exit 0
+          fi
           cd all-test-reports
           for f in *.tar.gz; do
             [ -f "$f" ] || continue
