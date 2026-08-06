@@ -318,6 +318,9 @@ def _load_backend():
     loader()
     from .decomposition import _register_shared_decompositions
     _register_shared_decompositions()
+    # Invalidate cached decompositions after loading the selected backend.
+    from torch._inductor.decomposition import fast_random_decomps
+    fast_random_decomps.cache_clear()
     from ..utils._dynamo import _InductorNpuRegistry
     _InductorNpuRegistry._loaded_backend = backend
 
