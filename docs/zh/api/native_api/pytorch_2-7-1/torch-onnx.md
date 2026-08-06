@@ -18,7 +18,7 @@
 
 **原生文档**：[torch.onnx.enable_fake_mode](https://pytorch.org/docs/2.7/onnx_dynamo.html#torch.onnx.enable_fake_mode)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -34,7 +34,7 @@
 
 **原生文档**：[torch.onnx.OnnxExporterError](https://pytorch.org/docs/2.7/onnx_dynamo.html#torch.onnx.OnnxExporterError)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -184,7 +184,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持bool
+**限制与说明**： `input`仅支持bool
 
 </div>
 
@@ -202,7 +202,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持bool
+**限制与说明**： `input`仅支持bool
 
 </div>
 
@@ -320,7 +320,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -344,7 +344,7 @@
 
 **原生文档**：[torch.onnx.ONNXProgram.model_proto](https://pytorch.org/docs/2.7/onnx_dynamo.html#torch.onnx.ONNXProgram.model_proto)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -412,7 +412,7 @@
 
 **原生文档**：[torch.onnx.OnnxRegistry](https://pytorch.org/docs/2.7/onnx_dynamo.html#torch.onnx.OnnxRegistry)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -426,7 +426,7 @@
 
 **原生文档**：[torch.onnx.OnnxRegistry.get_op_functions](https://pytorch.org/docs/2.7/onnx_dynamo.html#torch.onnx.OnnxRegistry.get_op_functions)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -442,7 +442,7 @@
 
 **原生文档**：[torch.onnx.OnnxRegistry.is_registered_op](https://pytorch.org/docs/2.7/onnx_dynamo.html#torch.onnx.OnnxRegistry.is_registered_op)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -458,7 +458,7 @@
 
 **原生文档**：[torch.onnx.OnnxRegistry.opset_version](https://pytorch.org/docs/2.7/onnx_dynamo.html#torch.onnx.OnnxRegistry.opset_version)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -474,7 +474,7 @@
 
 **原生文档**：[torch.onnx.OnnxRegistry.register_op](https://pytorch.org/docs/2.7/onnx_dynamo.html#torch.onnx.OnnxRegistry.register_op)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -492,7 +492,7 @@
 
 **原生文档**：[torch.onnx.DiagnosticOptions](https://pytorch.org/docs/2.7/onnx_dynamo.html#torch.onnx.DiagnosticOptions)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |

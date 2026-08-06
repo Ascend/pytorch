@@ -1719,7 +1719,7 @@
 
 **原生文档**：[torch.ao.nn.intrinsic.LinearReLU](https://pytorch.org/docs/2.7/generated/torch.ao.nn.intrinsic.LinearReLU.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -1735,7 +1735,7 @@
 
 **原生文档**：[torch.ao.nn.intrinsic.qat.LinearReLU](https://pytorch.org/docs/2.7/generated/torch.ao.nn.intrinsic.qat.LinearReLU.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -1751,7 +1751,7 @@
 
 **原生文档**：[torch.ao.nn.intrinsic.qat.ConvBn1d](https://pytorch.org/docs/2.7/generated/torch.ao.nn.intrinsic.qat.ConvBn1d.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -1767,7 +1767,7 @@
 
 **原生文档**：[torch.ao.nn.intrinsic.qat.ConvBnReLU1d](https://pytorch.org/docs/2.7/generated/torch.ao.nn.intrinsic.qat.ConvBnReLU1d.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -1783,7 +1783,7 @@
 
 **原生文档**：[torch.ao.nn.intrinsic.qat.ConvBnReLU2d](https://pytorch.org/docs/2.7/generated/torch.ao.nn.intrinsic.qat.ConvBnReLU2d.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -1833,7 +1833,7 @@
 
 **原生文档**：[torch.ao.nn.qat.Linear](https://pytorch.org/docs/2.7/generated/torch.ao.nn.qat.Linear.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -1849,7 +1849,7 @@
 
 **原生文档**：[torch.ao.nn.quantizable.LSTM](https://pytorch.org/docs/2.7/generated/torch.ao.nn.quantizable.LSTM.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -1865,7 +1865,7 @@
 
 **原生文档**：[torch.ao.nn.quantized.dynamic.Linear](https://pytorch.org/docs/2.7/generated/torch.ao.nn.quantized.dynamic.Linear.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -1889,7 +1889,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -1907,7 +1907,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -1925,7 +1925,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -1943,7 +1943,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -1961,7 +1961,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -2137,7 +2137,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -2155,7 +2155,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -2173,7 +2173,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -2191,7 +2191,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -2209,7 +2209,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -2227,7 +2227,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int32，int64
+**限制与说明**： `input`仅支持bf16，fp16，fp32，uint8，int8，int32，int64
 
 </div>
 
@@ -2607,7 +2607,7 @@
 
 **原生文档**：[torch.ao.ns.fx.utils.compute_sqnr](https://pytorch.org/docs/2.7/torch.ao.ns._numeric_suite_fx.html#torch.ao.ns.fx.utils.compute_sqnr)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |

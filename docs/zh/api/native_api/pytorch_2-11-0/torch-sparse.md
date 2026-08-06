@@ -185,7 +185,7 @@
 
 **原生文档**：[torch.sparse.check_sparse_tensor_invariants.disable](https://pytorch.org/docs/2.11/generated/torch.sparse.check_sparse_tensor_invariants.html#torch.sparse.check_sparse_tensor_invariants.disable)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -201,7 +201,7 @@
 
 **原生文档**：[torch.sparse.check_sparse_tensor_invariants.enable](https://pytorch.org/docs/2.11/generated/torch.sparse.check_sparse_tensor_invariants.html#torch.sparse.check_sparse_tensor_invariants.enable)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -217,7 +217,7 @@
 
 **原生文档**：[torch.sparse.check_sparse_tensor_invariants.is_enabled](https://pytorch.org/docs/2.11/generated/torch.sparse.check_sparse_tensor_invariants.html#torch.sparse.check_sparse_tensor_invariants.is_enabled)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -253,7 +253,7 @@
 
 **原生文档**：[torch.sparse.check_sparse_tensor_invariants](https://pytorch.org/docs/2.11/generated/torch.sparse.check_sparse_tensor_invariants.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -271,7 +271,7 @@
 
 **原生文档**：[torch.sparse.as_sparse_gradcheck](https://pytorch.org/docs/2.11/generated/torch.sparse.as_sparse_gradcheck.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |

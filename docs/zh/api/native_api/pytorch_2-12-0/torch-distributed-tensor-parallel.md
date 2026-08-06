@@ -16,7 +16,7 @@
 
 **原生文档**：[torch.distributed.tensor.parallel.parallelize_module](https://pytorch.org/docs/2.12/distributed.tensor.parallel.html#torch.distributed.tensor.parallel.parallelize_module)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -40,7 +40,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32
+**限制与说明**： `input`仅支持bf16，fp16，fp32
 
 </div>
 
@@ -50,7 +50,7 @@
 
 **原生文档**：[torch.distributed.tensor.parallel.RowwiseParallel](https://pytorch.org/docs/2.12/distributed.tensor.parallel.html#torch.distributed.tensor.parallel.RowwiseParallel)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -66,7 +66,7 @@
 
 **原生文档**：[torch.distributed.tensor.parallel.PrepareModuleInput](https://pytorch.org/docs/2.12/distributed.tensor.parallel.html#torch.distributed.tensor.parallel.PrepareModuleInput)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -108,7 +108,7 @@
 
 **限制与说明**：
 
-- 支持bf16，fp16，fp32，int64
+- `input`仅支持bf16，fp16，fp32，int64
 - 针对<term>Ascend 950DT</term>，当logits数值特别大时，精度可能和<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>存在差异
 
 </div>

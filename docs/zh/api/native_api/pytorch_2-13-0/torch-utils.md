@@ -32,7 +32,7 @@
 
 **原生文档**：[torch.utils.generate_methods_for_privateuse1_backend](https://pytorch.org/docs/2.13/generated/torch.utils.generate_methods_for_privateuse1_backend.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -48,7 +48,7 @@
 
 **原生文档**：[torch.utils.get_cpp_backtrace](https://pytorch.org/docs/2.13/generated/torch.utils.get_cpp_backtrace.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |

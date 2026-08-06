@@ -26,8 +26,8 @@
 
 **限制与说明**：
 
-- 支持bf16，fp16，fp32
-- 在昇腾NPU场景中使用FSDP，推荐传入“device_id=torch.device("npu:0")”设备相关参数
+- `input`仅支持bf16，fp16，fp32
+- 在昇腾NPU场景中使用FSDP，推荐传入`device_id=torch.device("npu:0")`设备相关参数
 
 > <font size="3">apply()</font>
 
@@ -83,7 +83,7 @@
 
 **原生文档**：[torch.distributed.fsdp.FullyShardedDataParallel.flatten_sharded_optim_state_dict](https://pytorch.org/docs/2.11/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel.flatten_sharded_optim_state_dict)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -147,7 +147,7 @@
 
 **原生文档**：[torch.distributed.fsdp.FullyShardedDataParallel.get_state_dict_type](https://pytorch.org/docs/2.11/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel.get_state_dict_type)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -163,7 +163,7 @@
 
 **原生文档**：[torch.distributed.fsdp.FullyShardedDataParallel.module](https://pytorch.org/docs/2.11/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel.module)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -227,7 +227,7 @@
 
 **原生文档**：[torch.distributed.fsdp.FullyShardedDataParallel.optim_state_dict](https://pytorch.org/docs/2.11/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel.optim_state_dict)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -275,7 +275,7 @@
 
 **原生文档**：[torch.distributed.fsdp.FullyShardedDataParallel.rekey_optim_state_dict](https://pytorch.org/docs/2.11/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel.rekey_optim_state_dict)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -291,7 +291,7 @@
 
 **原生文档**：[torch.distributed.fsdp.FullyShardedDataParallel.scatter_full_optim_state_dict](https://pytorch.org/docs/2.11/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel.scatter_full_optim_state_dict)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -307,7 +307,7 @@
 
 **原生文档**：[torch.distributed.fsdp.FullyShardedDataParallel.set_state_dict_type](https://pytorch.org/docs/2.11/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel.set_state_dict_type)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -323,7 +323,7 @@
 
 **原生文档**：[torch.distributed.fsdp.FullyShardedDataParallel.shard_full_optim_state_dict](https://pytorch.org/docs/2.11/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel.shard_full_optim_state_dict)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -339,7 +339,7 @@
 
 **原生文档**：[torch.distributed.fsdp.FullyShardedDataParallel.sharded_optim_state_dict](https://pytorch.org/docs/2.11/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel.sharded_optim_state_dict)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -371,7 +371,7 @@
 
 **原生文档**：[torch.distributed.fsdp.FullyShardedDataParallel.summon_full_params](https://pytorch.org/docs/2.11/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel.summon_full_params)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |

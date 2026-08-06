@@ -24,6 +24,6 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**: torch.utils.deterministic.fill_uninitialized_memory默认值True，设置torch.use_deterministic_algorithms开启确定性后社区行为是填充，NPU上默认不填充，需要手动设置torch.utils.deterministic.fill_uninitialized_memory后NPU上填充才能生效
+**限制与说明**：`torch.utils.deterministic.fill_uninitialized_memory`默认值为True。设置`torch.use_deterministic_algorithms`开启确定性后，PyTorch行为是填充未初始化内存，而TorchNPU默认不填充。如需填充生效，需手动将`torch.utils.deterministic.fill_uninitialized_memory`设置为True
 
 </div>

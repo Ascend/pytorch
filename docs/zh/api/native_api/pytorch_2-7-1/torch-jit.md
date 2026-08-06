@@ -91,7 +91,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -109,7 +109,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -127,7 +127,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -177,7 +177,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 > <font size="3">add_module()</font>
 
@@ -209,7 +209,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -243,7 +243,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -285,7 +285,7 @@
 
 **原生文档**：[torch.jit.ScriptModule.code_with_constants](https://pytorch.org/docs/2.7/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.code_with_constants)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -325,7 +325,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -343,7 +343,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -361,7 +361,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -379,7 +379,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -397,7 +397,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -415,7 +415,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -433,7 +433,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -443,7 +443,7 @@
 
 **原生文档**：[torch.jit.ScriptModule.get_extra_state](https://pytorch.org/docs/2.7/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.get_extra_state)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -467,7 +467,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -485,7 +485,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -495,7 +495,7 @@
 
 **原生文档**：[torch.jit.ScriptModule.graph](https://pytorch.org/docs/2.7/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.graph)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -519,7 +519,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -529,7 +529,7 @@
 
 **原生文档**：[torch.jit.ScriptModule.inlined_graph](https://pytorch.org/docs/2.7/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.inlined_graph)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -553,7 +553,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -571,7 +571,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -589,7 +589,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -607,7 +607,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -625,7 +625,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -643,7 +643,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -661,7 +661,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -679,7 +679,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -697,7 +697,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -707,7 +707,7 @@
 
 **原生文档**：[torch.jit.ScriptModule.register_buffer](https://pytorch.org/docs/2.7/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.register_buffer)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -731,7 +731,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -749,7 +749,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -767,7 +767,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -785,7 +785,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -803,7 +803,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -821,7 +821,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -831,7 +831,7 @@
 
 **原生文档**：[torch.jit.ScriptModule.register_module](https://pytorch.org/docs/2.7/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.register_module)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -847,7 +847,7 @@
 
 **原生文档**：[torch.jit.ScriptModule.register_parameter](https://pytorch.org/docs/2.7/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.register_parameter)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -871,7 +871,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -889,7 +889,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -907,7 +907,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -925,7 +925,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -935,7 +935,7 @@
 
 **原生文档**：[torch.jit.ScriptModule.set_extra_state](https://pytorch.org/docs/2.7/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.set_extra_state)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -951,7 +951,7 @@
 
 **原生文档**：[torch.jit.ScriptModule.set_submodule](https://pytorch.org/docs/2.7/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.set_submodule)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -967,7 +967,7 @@
 
 **原生文档**：[torch.jit.ScriptModule.share_memory](https://pytorch.org/docs/2.7/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.share_memory)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -991,7 +991,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -1009,7 +1009,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -1027,7 +1027,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -1045,7 +1045,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -1063,7 +1063,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `input`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -1081,7 +1081,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -1099,7 +1099,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -1119,7 +1119,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 > <font size="3">get_debug_state()</font>
 
@@ -1135,7 +1135,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -1153,7 +1153,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -1365,7 +1365,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 > <font size="3">count()</font>
 
@@ -1381,7 +1381,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -1399,7 +1399,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -1409,7 +1409,7 @@
 
 **原生文档**：[torch.jit.Attribute.type](https://pytorch.org/docs/2.7/generated/torch.jit.Attribute.html#torch.jit.Attribute.type)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -1425,7 +1425,7 @@
 
 **原生文档**：[torch.jit.Attribute.value](https://pytorch.org/docs/2.7/generated/torch.jit.Attribute.html#torch.jit.Attribute.value)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -1451,6 +1451,6 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>

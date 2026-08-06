@@ -16,7 +16,7 @@
 
 **原生文档**：[torch.utils.mobile_optimizer.optimize_for_mobile](https://pytorch.org/docs/2.12/mobile_optimizer.html#torch.utils.mobile_optimizer.optimize_for_mobile)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |

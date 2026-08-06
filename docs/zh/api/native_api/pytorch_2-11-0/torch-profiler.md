@@ -73,7 +73,7 @@
 
 **原生文档**：[torch.profiler._KinetoProfile.events](https://pytorch.org/docs/2.11/profiler.html#torch.profiler._KinetoProfile.events)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -143,7 +143,7 @@
 
 **原生文档**：[torch.profiler._KinetoProfile.key_averages](https://pytorch.org/docs/2.11/profiler.html#torch.profiler._KinetoProfile.key_averages)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -229,7 +229,7 @@
 
 **原生文档**：[torch.profiler.ProfilerActivity.name](https://pytorch.org/docs/2.11/profiler.html#torch.profiler.ProfilerActivity.name)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -247,7 +247,7 @@
 
 **原生文档**：[torch.profiler.itt.is_available](https://pytorch.org/docs/2.11/profiler.html#torch.profiler.itt.is_available)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -263,7 +263,7 @@
 
 **原生文档**：[torch.profiler.itt.mark](https://pytorch.org/docs/2.11/profiler.html#torch.profiler.itt.mark)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -279,7 +279,7 @@
 
 **原生文档**：[torch.profiler.itt.range_push](https://pytorch.org/docs/2.11/profiler.html#torch.profiler.itt.range_push)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -295,7 +295,7 @@
 
 **原生文档**：[torch.profiler.itt.range_pop](https://pytorch.org/docs/2.11/profiler.html#torch.profiler.itt.range_pop)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |

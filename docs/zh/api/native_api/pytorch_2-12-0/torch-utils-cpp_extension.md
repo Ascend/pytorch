@@ -64,7 +64,7 @@
 
 **原生文档**：[torch.utils.cpp_extension.load](https://pytorch.org/docs/2.12/cpp_extension.html#torch.utils.cpp_extension.load)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |

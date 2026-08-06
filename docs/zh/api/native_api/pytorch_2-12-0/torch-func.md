@@ -33,7 +33,7 @@
 
 **原生文档**：[torch.func.jvp](https://pytorch.org/docs/2.12/generated/torch.func.jvp.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -65,7 +65,7 @@
 
 **原生文档**：[torch.func.jacrev](https://pytorch.org/docs/2.12/generated/torch.func.jacrev.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -81,7 +81,7 @@
 
 **原生文档**：[torch.func.jacfwd](https://pytorch.org/docs/2.12/generated/torch.func.jacfwd.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -97,7 +97,7 @@
 
 **原生文档**：[torch.func.hessian](https://pytorch.org/docs/2.12/generated/torch.func.hessian.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -113,7 +113,7 @@
 
 **原生文档**：[torch.func.functionalize](https://pytorch.org/docs/2.12/generated/torch.func.functionalize.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -161,7 +161,7 @@
 
 **原生文档**：[torch.func.replace_all_batch_norm_modules_](https://pytorch.org/docs/2.12/generated/torch.func.replace_all_batch_norm_modules_.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -179,7 +179,7 @@
 
 **原生文档**：[torch.func.vmap](https://pytorch.org/docs/2.12/generated/torch.func.vmap.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -211,7 +211,7 @@
 
 **原生文档**：[torch.func.vjp](https://pytorch.org/docs/2.12/generated/torch.func.vjp.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |

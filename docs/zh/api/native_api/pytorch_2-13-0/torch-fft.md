@@ -33,7 +33,7 @@
 
 **限制与说明**：
 
-- 支持fp32
+- `input`仅支持fp32
 - 数值范围：每个元素必须在[-100, 100]内
 - 支持1-8维。2维维度为(batch, n)，1维维度为(n)
     1. batch维度：[1, 8, 16, 24, 32, 64]
@@ -98,7 +98,7 @@
 
 **原生文档**：[torch.fft.ihfft2](https://pytorch.org/docs/2.13/generated/torch.fft.ihfft2.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -130,7 +130,7 @@
 
 **原生文档**：[torch.fft.ihfftn](https://pytorch.org/docs/2.13/generated/torch.fft.ihfftn.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -148,7 +148,7 @@
 
 **原生文档**：[torch.fft.fftfreq](https://pytorch.org/docs/2.13/generated/torch.fft.fftfreq.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -164,7 +164,7 @@
 
 **原生文档**：[torch.fft.rfftfreq](https://pytorch.org/docs/2.13/generated/torch.fft.rfftfreq.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -180,7 +180,7 @@
 
 **原生文档**：[torch.fft.fftshift](https://pytorch.org/docs/2.13/generated/torch.fft.fftshift.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -196,7 +196,7 @@
 
 **原生文档**：[torch.fft.ifftshift](https://pytorch.org/docs/2.13/generated/torch.fft.ifftshift.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |

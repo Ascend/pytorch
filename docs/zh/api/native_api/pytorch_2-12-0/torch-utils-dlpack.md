@@ -16,7 +16,7 @@
 
 **原生文档**：[torch.utils.dlpack.from_dlpack](https://pytorch.org/docs/2.12/dlpack.html#torch.utils.dlpack.from_dlpack)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -32,7 +32,7 @@
 
 **原生文档**：[torch.utils.dlpack.to_dlpack](https://pytorch.org/docs/2.12/dlpack.html#torch.utils.dlpack.to_dlpack)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |

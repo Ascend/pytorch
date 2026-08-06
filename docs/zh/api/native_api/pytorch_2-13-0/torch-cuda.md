@@ -89,7 +89,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 未设置device时，调用该接口会隐式地初始化当前device（默认0卡）
+**限制与说明**： 未设置`device`时，调用该接口会隐式地初始化当前`device`（默认0卡）
 
 </div>
 
@@ -109,7 +109,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 未设置device时，调用该接口会隐式地初始化当前device（默认0卡）
+**限制与说明**： 未设置`device`时，调用该接口会隐式地初始化当前`device`（默认0卡）
 
 </div>
 
@@ -303,7 +303,7 @@
 
 **原生文档**：[torch.cuda.memory_usage](https://pytorch.org/docs/2.13/generated/torch.cuda.memory_usage.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -1049,7 +1049,7 @@
 
 **原生文档**：[torch.cuda.comm.scatter](https://pytorch.org/docs/2.13/generated/torch.cuda.comm.scatter.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -1065,7 +1065,7 @@
 
 **原生文档**：[torch.cuda.comm.gather](https://pytorch.org/docs/2.13/generated/torch.cuda.comm.gather.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |

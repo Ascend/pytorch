@@ -338,7 +338,7 @@
 
 **原生文档**：[torch.QUInt8Storage](https://pytorch.org/docs/2.7/storage.html#torch.QUInt8Storage)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -352,7 +352,7 @@
 
 **原生文档**：[torch.QUInt8Storage.dtype](https://pytorch.org/docs/2.7/storage.html#torch.QUInt8Storage.dtype)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -370,7 +370,7 @@
 
 **原生文档**：[torch.QInt8Storage](https://pytorch.org/docs/2.7/storage.html#torch.QInt8Storage)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -392,7 +392,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持int8
+**限制与说明**： `self`仅支持int8
 
 </div>
 
@@ -404,7 +404,7 @@
 
 **原生文档**：[torch.QInt32Storage](https://pytorch.org/docs/2.7/storage.html#torch.QInt32Storage)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -426,7 +426,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持int32
+**限制与说明**： `self`仅支持int32
 
 </div>
 
@@ -438,7 +438,7 @@
 
 **原生文档**：[torch.QUInt4x2Storage](https://pytorch.org/docs/2.7/storage.html#torch.QUInt4x2Storage)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -460,7 +460,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持uint8
+**限制与说明**： `self`仅支持uint8
 
 </div>
 
@@ -472,7 +472,7 @@
 
 **原生文档**：[torch.QUInt2x4Storage](https://pytorch.org/docs/2.7/storage.html#torch.QUInt2x4Storage)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -494,7 +494,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持uint8
+**限制与说明**： `self`仅支持uint8
 
 </div>
 
@@ -810,7 +810,7 @@
 
 **原生文档**：[torch.TypedStorage.float8_e4m3fn](https://pytorch.org/docs/2.7/storage.html#torch.TypedStorage.float8_e4m3fn)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -826,7 +826,7 @@
 
 **原生文档**：[torch.TypedStorage.float8_e5m2](https://pytorch.org/docs/2.7/storage.html#torch.TypedStorage.float8_e5m2)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -906,7 +906,7 @@
 
 **原生文档**：[torch.TypedStorage.hpu](https://pytorch.org/docs/2.7/storage.html#torch.TypedStorage.hpu)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -938,7 +938,7 @@
 
 **原生文档**：[torch.TypedStorage.is_cuda](https://pytorch.org/docs/2.7/storage.html#torch.TypedStorage.is_cuda)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -954,7 +954,7 @@
 
 **原生文档**：[torch.TypedStorage.is_hpu](https://pytorch.org/docs/2.7/storage.html#torch.TypedStorage.is_hpu)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -1098,7 +1098,7 @@
 
 **原生文档**：[torch.TypedStorage.share_memory_](https://pytorch.org/docs/2.7/storage.html#torch.TypedStorage.share_memory_)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -1564,7 +1564,7 @@
 
 **原生文档**：[torch.UntypedStorage.float8_e4m3fn](https://pytorch.org/docs/2.7/storage.html#torch.UntypedStorage.float8_e4m3fn)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -1580,7 +1580,7 @@
 
 **原生文档**：[torch.UntypedStorage.float8_e5m2](https://pytorch.org/docs/2.7/storage.html#torch.UntypedStorage.float8_e5m2)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -1612,7 +1612,7 @@
 
 **原生文档**：[torch.UntypedStorage.from_file](https://pytorch.org/docs/2.7/storage.html#torch.UntypedStorage.from_file)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -1660,7 +1660,7 @@
 
 **原生文档**：[torch.UntypedStorage.hpu](https://pytorch.org/docs/2.7/storage.html#torch.UntypedStorage.hpu)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -1692,7 +1692,7 @@
 
 **原生文档**：[torch.UntypedStorage.is_cuda](https://pytorch.org/docs/2.7/storage.html#torch.UntypedStorage.is_cuda)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -1708,7 +1708,7 @@
 
 **原生文档**：[torch.UntypedStorage.is_hpu](https://pytorch.org/docs/2.7/storage.html#torch.UntypedStorage.is_hpu)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -1804,7 +1804,7 @@
 
 **原生文档**：[torch.UntypedStorage.mps](https://pytorch.org/docs/2.7/storage.html#torch.UntypedStorage.mps)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |

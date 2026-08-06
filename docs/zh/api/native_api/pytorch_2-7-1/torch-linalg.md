@@ -24,7 +24,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -42,7 +42,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32
+**限制与说明**： `input`仅支持bf16，fp16，fp32
 
 </div>
 
@@ -60,7 +60,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32
+**限制与说明**： `input`仅支持bf16，fp16，fp32
 
 </div>
 
@@ -98,7 +98,7 @@
 
 **限制与说明**：
 
-- 支持fp16，fp32
+- `input`仅支持fp16，fp32
 - 输入最大支持6维
 
 </div>
@@ -109,7 +109,7 @@
 
 **原生文档**：[torch.linalg.ldl_factor](https://pytorch.org/docs/2.7/generated/torch.linalg.ldl_factor.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -133,7 +133,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp32，fp64，complex64，complex128
+**限制与说明**： `input`仅支持fp32，fp64，complex64，complex128
 
 </div>
 
@@ -151,6 +151,6 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32，fp64，complex64，complex128
+**限制与说明**： `input`仅支持fp32，fp64，complex64，complex128
 
 </div>

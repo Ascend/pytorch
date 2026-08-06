@@ -256,7 +256,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -274,7 +274,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `tensor`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -294,8 +294,8 @@
 
 **限制与说明**：
 
-- 支持bf16，fp16，fp32，int8，int32，bool
-- world size不支持3，5，6，7
+- `output_tensor`仅支持bf16，fp16，fp32，int8，int32，bool
+- `world_size`不支持3，5，6，7
 
 </div>
 
@@ -313,7 +313,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，int8，int32
+**限制与说明**： `output`仅支持bf16，fp16，fp32，int8，int32
 
 </div>
 
@@ -333,8 +333,8 @@
 
 **限制与说明**：
 
-- 支持bf16，fp16，fp32，int8，int32
-- world size不支持3，5，6，7
+- `output`仅支持bf16，fp16，fp32，int8，int32
+- `world_size`不支持3，5，6，7
 - 针对<term>Atlas A2 训练系列产品</term>，当前版本“prod”操作不支持int16、bf16数据类型
 
 </div>
@@ -353,7 +353,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `output`仅支持fp32
 
 </div>
 
@@ -373,8 +373,13 @@
 
 **限制与说明**：
 
-- 支持fp32
-- 通过设置torch_npu.npu.use_compatible_impl(True)，torch.distributed.all_to_all切换为与原生实现保持一致
+- `input`仅支持fp32
+- 通过设置`torch_npu.npu.use_compatible_impl(True)`，`torch.distributed.all_to_all`切换为与原生实现保持一致，例如：
+
+  ```python
+  import torch_npu
+  torch_npu.npu.use_compatible_impl(True)
+  ```
 
 </div>
 
@@ -392,7 +397,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int32，int64
+**限制与说明**： `input`仅支持bf16，fp16，fp32，uint8，int8，int32，int64
 
 </div>
 
@@ -428,7 +433,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**：当pg_options参数传入类型为torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()时，配置该变量属性hccl_config可控制HCCL通信域缓冲区大小。具体示例可参考[hccl_buffer_size](https://www.hiascend.com/document/detail/zh/ModelZoo/traditional_model_train/PyTorch/docs/zh/performance_tuning/performance_tuning_methods/communication_basics_overview.md#hccl_buffer_size)。配置变量属性hccl_config的group_name字段可以设置HCCL通信域的通信组自定义名称，取值为长度不超过32的字符串。
+**限制与说明**： 当`pg_options`参数传入类型为`torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()`时，可通过配置该变量的`hccl_config`属性控制HCCL通信域缓冲区大小。具体示例可参考《PyTorch 训练模型迁移调优指南》的“[hccl_buffer_size](https://www.hiascend.com/document/detail/zh/ModelZoo/traditional_model_train/PyTorch/docs/zh/performance_tuning/performance_tuning_methods/communication_basics_overview.md#hccl_buffer_size)”章节。可通过配置变量`hccl_config`的`group_name`字段设置HCCL通信域的通信组自定义名称，取值为长度不超过32的字符串。
 
 </div>
 
@@ -1030,7 +1035,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**：当pg_options参数传入类型为torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()时，配置该变量属性hccl_config可控制HCCL通信域缓冲区大小。具体示例可参考[hccl_buffer_size](https://www.hiascend.com/document/detail/zh/ModelZoo/traditional_model_train/PyTorch/docs/zh/performance_tuning/performance_tuning_methods/communication_basics_overview.md#hccl_buffer_size)。配置变量属性hccl_config的group_name字段可以设置HCCL通信域的通信组自定义名称，取值为长度不超过32的字符串。
+**限制与说明**： 当`pg_options`参数传入类型为`torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()`时，可通过配置该变量的`hccl_config`属性控制HCCL通信域缓冲区大小。具体示例可参考《PyTorch 训练模型迁移调优指南》的“[hccl_buffer_size](https://www.hiascend.com/document/detail/zh/ModelZoo/traditional_model_train/PyTorch/docs/zh/performance_tuning/performance_tuning_methods/communication_basics_overview.md#hccl_buffer_size)”章节。可通过配置变量`hccl_config`的`group_name`字段设置HCCL通信域的通信组自定义名称，取值为长度不超过32的字符串。
 
 </div>
 
@@ -1050,7 +1055,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `tensor`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -1068,7 +1073,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `tensor`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -1086,7 +1091,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `tensor`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -1104,7 +1109,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `tensor`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -1124,7 +1129,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `tensor`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -1158,7 +1163,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int32，int64，bool
+**限制与说明**： `tensor`仅支持bf16，fp16，fp32，uint8，int8，int32，int64，bool
 
 </div>
 
@@ -1176,7 +1181,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，int8，int32，bool
+**限制与说明**： `tensor`仅支持bf16，fp16，fp32，int8，int32，bool
 
 </div>
 
@@ -1212,8 +1217,13 @@
 
 **限制与说明**：
 
-- 支持bf16，fp16，fp32，int8，int32，bool
-- 通过设置torch_npu.npu.use_compatible_impl(True)，torch.distributed.gather切换为与原生实现保持一致
+- `tensor`仅支持bf16，fp16，fp32，int8，int32，bool
+- 通过设置`torch_npu.npu.use_compatible_impl(True)`，`torch.distributed.gather`切换为与原生实现保持一致，例如：
+
+  ```python
+  import torch_npu
+  torch_npu.npu.use_compatible_impl(True)
+  ```
 
 </div>
 
@@ -1251,8 +1261,13 @@
 
 **限制与说明**：
 
-- 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
-- 通过设置torch_npu.npu.use_compatible_impl(True)，torch.distributed.scatter切换为与原生实现保持一致
+- `tensor`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+- 通过设置`torch_npu.npu.use_compatible_impl(True)`，`torch.distributed.scatter`切换为与原生实现保持一致，例如：
+
+  ```python
+  import torch_npu
+  torch_npu.npu.use_compatible_impl(True)
+  ```
 
 </div>
 
@@ -1270,7 +1285,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 不涉及dtype参数
+**限制与说明**： 不涉及`dtype`参数
 
 </div>
 
@@ -1288,7 +1303,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int32，int64，bool
+**限制与说明**： `input`仅支持bf16，fp16，fp32，uint8，int8，int32，int64，bool
 
 </div>
 
@@ -1308,7 +1323,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持bf16，fp16，fp32，int32，int64，bool
+**限制与说明**： `tensor`仅支持bf16，fp16，fp32，int32，int64，bool
 
 </div>
 

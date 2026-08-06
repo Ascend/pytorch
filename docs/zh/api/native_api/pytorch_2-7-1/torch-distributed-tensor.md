@@ -24,7 +24,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32
+**限制与说明**： `input`仅支持bf16，fp16，fp32
 
 </div>
 
@@ -42,7 +42,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int32，int64，bool
+**限制与说明**： `tensor`仅支持bf16，fp16，fp32，fp64，uint8，int8，int32，int64，bool
 
 </div>
 
@@ -60,7 +60,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 > <font size="3">from_local()</font>
 
@@ -76,7 +76,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `local_tensor`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -94,7 +94,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int32，int64，bool
+**限制与说明**： `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int32，int64，bool
 
 </div>
 
@@ -114,7 +114,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int32，int64，bool，complex64，complex128
+**限制与说明**： `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -132,6 +132,6 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 仅支持NPU fused SDPA路径；q/k/v仅支持BNSD布局；暂不支持pse、padding_mask、prefix、actual_seq_qlen、actual_seq_kvlen、sink以及任意非causal attention mask；load balance要求causal attention；暂不支持通过torch.compile编译为计算图
+**限制与说明**： 仅支持NPU fused SDPA路径；`q`/`k`/`v`仅支持BNSD布局；暂不支持`pse`、`padding_mask`、`prefix`、`actual_seq_qlen`、`actual_seq_kvlen`、`sink`以及任意非causal的attention mask；启用load balance时要求使用causal attention；暂不支持通过`torch.compile`编译为计算图
 
 </div>

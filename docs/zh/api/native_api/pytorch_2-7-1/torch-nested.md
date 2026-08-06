@@ -52,7 +52,7 @@
 
 **原生文档**：[torch.nested.to_padded_tensor](https://pytorch.org/docs/2.7/nested.html#torch.nested.to_padded_tensor)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -68,7 +68,7 @@
 
 **原生文档**：[torch.nested.nested_tensor_from_jagged](https://pytorch.org/docs/2.7/nested.html#torch.nested.nested_tensor_from_jagged)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -84,7 +84,7 @@
 
 **原生文档**：[torch.nested.masked_select](https://pytorch.org/docs/2.7/nested.html#torch.nested.masked_select)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -100,7 +100,7 @@
 
 **原生文档**：[torch.nested.narrow](https://pytorch.org/docs/2.7/nested.html#torch.nested.narrow)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |

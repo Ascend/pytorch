@@ -125,7 +125,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持int64
+**限制与说明**： `batch`仅支持int64
 
 </div>
 
@@ -207,7 +207,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `data_source`仅支持fp32
 
 </div>
 
@@ -225,7 +225,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `data_source`仅支持fp32
 
 </div>
 
@@ -243,7 +243,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `indices`仅支持fp32
 
 </div>
 
@@ -261,7 +261,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `weights`仅支持fp32
 
 </div>
 
@@ -295,7 +295,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持int32
+**限制与说明**： `dataset`仅支持int32
 
 </div>
 
@@ -317,8 +317,8 @@
 
 **限制与说明**：
 
-- 支持fp32
-- 不支持多进程加载NPU数据，num_workers仅支持0
+- `dataset`仅支持fp32
+- 不支持多进程加载NPU数据，`num_workers`仅支持0
 
 </div>
 
@@ -336,7 +336,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，fp64，uint8，int8，int16，int32，int64
+**限制与说明**： `input`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64
 
 </div>
 
@@ -372,7 +372,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持int64
+**限制与说明**： `dataset`仅支持int64
 
 </div>
 
@@ -392,7 +392,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp64，int64，bool
+**限制与说明**： `batch`仅支持fp64，int64，bool
 
 </div>
 
@@ -430,6 +430,6 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持int64
+**限制与说明**： `data_source`仅支持int64
 
 </div>

@@ -932,7 +932,7 @@
 
 **原生文档**：[torch.distributed.elastic.rendezvous.etcd_server.EtcdServer](https://pytorch.org/docs/2.13/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_server.EtcdServer)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |

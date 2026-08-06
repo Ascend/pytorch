@@ -18,7 +18,7 @@
 
 **原生文档**：[torch.onnx.OnnxExporterError](https://pytorch.org/docs/2.11/onnx_export.html#torch.onnx.OnnxExporterError)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -114,7 +114,7 @@
 
 **原生文档**：[torch.onnx.ONNXProgram.model_proto](https://pytorch.org/docs/2.11/onnx.html#torch-onnx-apis)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |

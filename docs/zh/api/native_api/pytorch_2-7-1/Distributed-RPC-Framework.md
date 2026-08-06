@@ -60,7 +60,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 建议使用已适配的torch_npu.distributed.rpc.options.NPUTensorPipeRpcBackendOptions
+**限制与说明**： 建议使用已适配的`torch_npu.distributed.rpc.options.NPUTensorPipeRpcBackendOptions`
 
 > <font size="3">set_device_map()</font>
 
@@ -76,7 +76,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 建议使用已适配的torch_npu.distributed.rpc.options.NPUTensorPipeRpcBackendOptions.set_device_map
+**限制与说明**： 建议使用已适配的`torch_npu.distributed.rpc.options.NPUTensorPipeRpcBackendOptions.set_device_map`
 
 </div>
 
@@ -94,7 +94,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 建议使用已适配的torch_npu.distributed.rpc.options.NPUTensorPipeRpcBackendOptions.set_devices
+**限制与说明**： 建议使用已适配的`torch_npu.distributed.rpc.options.NPUTensorPipeRpcBackendOptions.set_devices`
 
 </div>
 
@@ -182,8 +182,8 @@
 
 **限制与说明**：
 
-- NPU设备启用rpc时需要在init_rpc中进行特定的设置：backend绑定rpc.backend_registry.BackendType.NPU_TENSORPIPE；
-- options绑定NPUTensorPipeRpcBackendOptions，需要from torch_npu.distributed.rpc.options import NPUTensorPipeRpcBackendOptions并设置option选项，参数格式和原版TensorPipeRpcBackendOptions相同。
+- NPU设备启用rpc时需要在`init_rpc`中进行特定的设置：`backend`绑定`rpc.backend_registry.BackendType.NPU_TENSORPIPE`；
+- options绑定`NPUTensorPipeRpcBackendOptions`，需要`from torch_npu.distributed.rpc.options import NPUTensorPipeRpcBackendOptions`并设置option选项，参数格式和原版`TensorPipeRpcBackendOptions`相同。
 
 </div>
 

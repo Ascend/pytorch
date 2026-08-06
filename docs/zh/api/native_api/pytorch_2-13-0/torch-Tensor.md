@@ -34,7 +34,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -116,7 +116,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持int64
+**限制与说明**： `self`仅支持int64
 
 </div>
 
@@ -134,7 +134,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `self`仅支持fp32
 
 </div>
 
@@ -152,7 +152,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `self`仅支持fp32
 
 </div>
 
@@ -170,7 +170,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `self`仅支持fp32
 
 </div>
 
@@ -252,7 +252,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `self`仅支持fp32
 
 </div>
 
@@ -270,7 +270,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `self`仅支持fp32
 
 </div>
 
@@ -352,7 +352,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -370,7 +370,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64
 
 </div>
 
@@ -388,7 +388,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -406,7 +406,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64
 
 </div>
 
@@ -426,7 +426,7 @@
 
 **限制与说明**：
 
-- 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+- `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 - 可能回退至CPU执行
 
 </div>
@@ -447,7 +447,7 @@
 
 **限制与说明**：
 
-- 支持fp16，fp32, fp64
+- `self`仅支持fp16，fp32, fp64
 - <term>Atlas A3 训练系列产品</term>额外支持bf16
 
 </div>
@@ -466,7 +466,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -486,7 +486,7 @@
 
 **限制与说明**：
 
-- 支持fp16，fp32, fp64
+- `self`仅支持fp16，fp32, fp64
 - <term>Atlas A3 训练系列产品</term>额外支持bf16
 
 </div>
@@ -505,7 +505,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -523,7 +523,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -541,7 +541,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -559,7 +559,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -579,8 +579,8 @@
 
 **限制与说明**：
 
-- 支持bf16，fp16，fp32，int64
-- int64类型不支持三个tensor同时广播
+- `self`仅支持bf16，fp16，fp32，int64
+- int64类型不支持三个`tensor`同时广播
 
 </div>
 
@@ -600,9 +600,9 @@
 
 **限制与说明**：
 
-- <term>Atlas A2 训练系列产品</term>、<term>Atlas A3 训练系列产品</term>：支持bf16，fp16，fp32，fp64
-- <term>Atlas 训练系列产品</term>：支持fp16，fp32，fp64
-- int64类型不支持三个tensor同时广播
+- <term>Atlas A2 训练系列产品</term>、<term>Atlas A3 训练系列产品</term>：`self`仅支持bf16，fp16，fp32，fp64
+- <term>Atlas 训练系列产品</term>：`self`仅支持fp16，fp32，fp64
+- int64类型不支持三个`tensor`同时广播
 
 </div>
 
@@ -622,8 +622,8 @@
 
 **限制与说明**：
 
-- 支持fp16，fp32，int64
-- int64类型不支持三个tensor同时广播
+- `self`仅支持fp16，fp32，int64
+- int64类型不支持三个`tensor`同时广播
 
 </div>
 
@@ -643,9 +643,9 @@
 
 **限制与说明**：
 
-- <term>Atlas A2 训练系列产品</term>、<term>Atlas A3 训练系列产品</term>：支持bf16，fp16，fp32，fp64，uint8，int8，int32，int64
-- <term>Atlas 训练系列产品</term>：支持fp16，fp32，fp64，uint8，int8，int32，int64
-- int64类型不支持三个tensor同时广播
+- <term>Atlas A2 训练系列产品</term>、<term>Atlas A3 训练系列产品</term>：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int32，int64
+- <term>Atlas 训练系列产品</term>：`self`仅支持fp16，fp32，fp64，uint8，int8，int32，int64
+- int64类型不支持三个`tensor`同时广播
 
 </div>
 
@@ -663,7 +663,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -681,7 +681,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -691,7 +691,7 @@
 
 **原生文档**：[Tensor.sspaddmm](https://pytorch.org/docs/2.13/generated/torch.Tensor.sspaddmm.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -715,7 +715,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64
 
 </div>
 
@@ -733,7 +733,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64
 
 </div>
 
@@ -751,7 +751,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -769,7 +769,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -803,7 +803,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -821,7 +821,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -839,7 +839,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -857,7 +857,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -875,7 +875,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64
 
 </div>
 
@@ -911,7 +911,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64
 
 </div>
 
@@ -929,7 +929,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64
 
 </div>
 
@@ -949,8 +949,8 @@
 
 **限制与说明**：
 
-- 支持fp16，fp32，uint8，int8，int16，int32，int64
-- 针对<term>Ascend 950DT</term>，由于底层实现限制，"stable"仅支持True，设置为False在执行时会自动修改为True
+- `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64
+- 针对<term>Ascend 950DT</term>，由于底层实现限制，`"stable"`仅支持True，若设置为False，执行时会被自动修改为True
 
 </div>
 
@@ -968,7 +968,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -986,7 +986,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -1004,7 +1004,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -1022,7 +1022,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -1040,7 +1040,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -1058,7 +1058,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -1076,7 +1076,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -1094,7 +1094,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -1112,7 +1112,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -1130,7 +1130,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -1148,7 +1148,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -1168,7 +1168,7 @@
 
 **限制与说明**：
 
-- 支持fp16，fp32
+- `self`仅支持fp16，fp32
 - 可能回退至CPU执行
 
 </div>
@@ -1187,7 +1187,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -1205,7 +1205,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -1223,7 +1223,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -1241,7 +1241,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -1259,7 +1259,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `self`仅支持fp32
 
 </div>
 
@@ -1277,7 +1277,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -1295,7 +1295,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -1315,7 +1315,7 @@
 
 **限制与说明**：
 
-- 支持fp16，fp32
+- `self`仅支持fp16，fp32
 - 可能回退至CPU执行
 
 </div>
@@ -1352,7 +1352,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -1372,8 +1372,8 @@
 
 **限制与说明**：
 
-- 支持uint8，int8，int16，int32，int64
-- weights维度需与input维度一致
+- `self`仅支持uint8，int8，int16，int32，int64
+- `weights`维度需与`input`维度一致
 
 </div>
 
@@ -1391,7 +1391,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -1409,7 +1409,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -1427,7 +1427,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -1445,7 +1445,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -1463,7 +1463,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -1481,7 +1481,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -1499,7 +1499,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -1517,7 +1517,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -1535,7 +1535,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -1553,7 +1553,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -1571,7 +1571,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -1589,7 +1589,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -1607,7 +1607,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -1625,7 +1625,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -1643,7 +1643,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -1661,7 +1661,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -1679,7 +1679,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64
 
 </div>
 
@@ -1715,7 +1715,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64
 
 </div>
 
@@ -1733,7 +1733,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64
 
 </div>
 
@@ -1751,7 +1751,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -1769,7 +1769,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -1789,7 +1789,7 @@
 
 **限制与说明**：
 
-- 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+- `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 - int16不支持5维以上
 
 </div>
@@ -1808,7 +1808,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -1826,7 +1826,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -1844,7 +1844,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -1864,7 +1864,7 @@
 
 **限制与说明**：
 
-- 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
+- `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 - 可能回退至CPU执行
 
 </div>
@@ -1883,7 +1883,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -1901,7 +1901,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，complex64，complex128
 
 </div>
 
@@ -1919,7 +1919,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -1937,7 +1937,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，complex64，complex128
 
 </div>
 
@@ -1955,7 +1955,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -1973,7 +1973,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，int16，int32，int64
+**限制与说明**： `self`仅支持fp16，fp32，int16，int32，int64
 
 </div>
 
@@ -1993,7 +1993,7 @@
 
 **限制与说明**：
 
-- 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+- `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 - 可能回退至CPU执行
 
 </div>
@@ -2012,7 +2012,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，complex64，complex128
 
 </div>
 
@@ -2030,7 +2030,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -2048,7 +2048,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，complex64，complex128
 
 </div>
 
@@ -2084,7 +2084,7 @@
 
 **限制与说明**：
 
-- 支持fp16，fp32，uint8，int8，int16，int32，int64，complex64，complex128
+- `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，complex64，complex128
 - 两个输入的shape要保持一致
 
 </div>
@@ -2103,7 +2103,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： NPU对应接口为Tensor.npu，其memory_format参数仅支持传入torch.contiguous_format
+**限制与说明**： NPU对应接口为`Tensor.npu`，其`memory_format`参数仅支持传入torch.contiguous_format
 
 </div>
 
@@ -2123,7 +2123,7 @@
 
 **限制与说明**：
 
-- 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+- `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 - 可能回退至CPU执行
 
 </div>
@@ -2142,7 +2142,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -2162,7 +2162,7 @@
 
 **限制与说明**：
 
-- 支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+- `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 - 支持Named Tensor
 
 </div>
@@ -2181,7 +2181,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，int64，bool
 
 </div>
 
@@ -2191,7 +2191,7 @@
 
 **原生文档**：[Tensor.chalf](https://pytorch.org/docs/2.13/generated/torch.Tensor.chalf.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -2247,7 +2247,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `self`仅支持fp32
 
 </div>
 
@@ -2265,7 +2265,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -2283,7 +2283,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -2317,7 +2317,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `self`仅支持fp32
 
 </div>
 
@@ -2335,7 +2335,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `self`仅支持fp32
 
 </div>
 
@@ -2353,7 +2353,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64
 
 </div>
 
@@ -2371,7 +2371,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -2389,7 +2389,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64
 
 </div>
 
@@ -2407,7 +2407,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -2425,7 +2425,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -2443,7 +2443,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -2461,7 +2461,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -2479,7 +2479,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `self`仅支持fp32
 
 </div>
 
@@ -2531,7 +2531,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -2549,7 +2549,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64
 
 </div>
 
@@ -2567,7 +2567,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -2585,7 +2585,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -2603,7 +2603,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -2623,7 +2623,7 @@
 
 **限制与说明**：
 
-- 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+- `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 - 当前NPU上部分接口暂不支持double类型，出于兼容性考虑默认返回fp32，后续完成支持后将正常返回fp64
 - 可能回退至CPU执行
 
@@ -2643,7 +2643,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `self`仅支持fp32
 
 </div>
 
@@ -2661,7 +2661,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `self`仅支持fp32
 
 </div>
 
@@ -2679,7 +2679,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -2697,7 +2697,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -2715,7 +2715,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -2733,7 +2733,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，int64，bool
 
 </div>
 
@@ -2751,7 +2751,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -2769,7 +2769,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，int64，bool
 
 </div>
 
@@ -2787,7 +2787,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -2805,7 +2805,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -2823,7 +2823,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32
+**限制与说明**： `self`仅支持bf16，fp16，fp32
 
 </div>
 
@@ -2841,7 +2841,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，int64，bool，complex64，complex128
 
 </div>
 
@@ -2859,7 +2859,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，complex64，complex128
 
 </div>
 
@@ -2877,7 +2877,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，int64，bool
 
 </div>
 
@@ -2895,7 +2895,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -2913,7 +2913,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -2931,7 +2931,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -2949,7 +2949,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64
 
 </div>
 
@@ -2967,7 +2967,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -2985,7 +2985,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -3003,7 +3003,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -3021,7 +3021,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -3039,7 +3039,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -3057,7 +3057,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -3075,7 +3075,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -3093,7 +3093,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -3111,7 +3111,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex128
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex128
 
 </div>
 
@@ -3129,7 +3129,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持double
+**限制与说明**： `self`仅支持double
 
 </div>
 
@@ -3147,7 +3147,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64
 
 </div>
 
@@ -3165,7 +3165,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64
 
 </div>
 
@@ -3183,7 +3183,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64
 
 </div>
 
@@ -3201,7 +3201,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64
 
 </div>
 
@@ -3219,7 +3219,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int32，int64
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int32，int64
 
 </div>
 
@@ -3237,7 +3237,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int32，int64
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int32，int64
 
 </div>
 
@@ -3255,7 +3255,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -3273,7 +3273,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -3293,8 +3293,8 @@
 
 **限制与说明**：
 
-- 支持fp16，fp32，int64
-- index维度需与input维度一致
+- `self`仅支持fp16，fp32，int64
+- `index`维度需与`input`维度一致
 - 针对<term>Ascend 950DT</term>，由于硬件差异，在索引存在重复的情况下，精度可能和<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>存在差异
 
 </div>
@@ -3313,7 +3313,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -3331,7 +3331,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -3349,7 +3349,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -3367,7 +3367,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -3433,7 +3433,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -3451,7 +3451,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -3469,7 +3469,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -3487,7 +3487,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -3505,7 +3505,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -3523,7 +3523,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -3559,7 +3559,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -3577,7 +3577,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -3595,7 +3595,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，int64，bool
 
 </div>
 
@@ -3613,7 +3613,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64
 
 </div>
 
@@ -3631,7 +3631,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，int16，int32，bool
+**限制与说明**： `self`仅支持fp16，fp32，int16，int32，bool
 
 </div>
 
@@ -3649,7 +3649,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -3667,7 +3667,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，int32，int64，bool
 
 </div>
 
@@ -3685,7 +3685,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，int32，bool
+**限制与说明**： `self`仅支持fp16，fp32，int32，bool
 
 </div>
 
@@ -3705,7 +3705,7 @@
 
 **限制与说明**：
 
-- 支持int64
+- `self`仅支持int64
 - 针对<term>Ascend 950DT</term>，由于硬件差异，在索引存在重复的情况下，精度可能和<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>存在差异
 
 </div>
@@ -3726,7 +3726,7 @@
 
 **限制与说明**：
 
-- 支持int64
+- `self`仅支持int64
 - 针对<term>Ascend 950DT</term>，由于硬件差异，在索引存在重复的情况下，精度可能和<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>存在差异
 
 </div>
@@ -3781,7 +3781,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，int16，int32，int64，bool
 
 </div>
 
@@ -3815,7 +3815,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -3833,7 +3833,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -3843,7 +3843,7 @@
 
 **原生文档**：[Tensor.int_repr](https://pytorch.org/docs/2.13/generated/torch.Tensor.int_repr.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -3867,7 +3867,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int32，int64，bool
 
 </div>
 
@@ -3885,7 +3885,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -3903,7 +3903,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -3921,7 +3921,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -3939,7 +3939,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -3957,7 +3957,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -3975,7 +3975,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `self`仅支持fp32
 
 </div>
 
@@ -3993,7 +3993,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -4011,7 +4011,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -4029,7 +4029,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `self`仅支持fp32
 
 </div>
 
@@ -4047,7 +4047,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `self`仅支持fp32
 
 </div>
 
@@ -4081,7 +4081,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `self`仅支持fp32
 
 </div>
 
@@ -4099,7 +4099,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `self`仅支持fp32
 
 </div>
 
@@ -4109,7 +4109,7 @@
 
 **原生文档**：[Tensor.is_shared](https://pytorch.org/docs/2.13/generated/torch.Tensor.is_shared.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -4133,7 +4133,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `self`仅支持fp32
 
 </div>
 
@@ -4151,7 +4151,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `self`仅支持fp32
 
 </div>
 
@@ -4169,7 +4169,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -4187,7 +4187,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `self`仅支持fp32
 
 </div>
 
@@ -4205,7 +4205,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，int32
+**限制与说明**： `self`仅支持fp16，fp32，int32
 
 </div>
 
@@ -4223,7 +4223,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -4241,7 +4241,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，complex64，complex128
 
 </div>
 
@@ -4259,7 +4259,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -4277,7 +4277,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -4295,7 +4295,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -4313,7 +4313,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -4331,7 +4331,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -4349,7 +4349,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -4367,7 +4367,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，int64，bool，complex64，complex128
 
 </div>
 
@@ -4385,7 +4385,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，complex64，complex128
 
 </div>
 
@@ -4403,7 +4403,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -4421,7 +4421,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，complex64，complex128
 
 </div>
 
@@ -4439,7 +4439,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -4457,7 +4457,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -4475,7 +4475,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -4493,7 +4493,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，complex64，complex128
 
 </div>
 
@@ -4511,7 +4511,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，int16，int32，int64，bool
 
 </div>
 
@@ -4529,7 +4529,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -4547,7 +4547,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -4565,7 +4565,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -4583,7 +4583,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -4601,7 +4601,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -4619,7 +4619,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -4637,7 +4637,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -4655,7 +4655,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -4675,7 +4675,7 @@
 
 **限制与说明**：
 
-- 支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+- `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 - 可能回退至CPU执行
 
 </div>
@@ -4694,7 +4694,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -4714,8 +4714,8 @@
 
 **限制与说明**：
 
-- 支持bf16，fp16，fp32
-- eps取值大于1时输出为nan，eps取值为1时输出为inf
+- `self`仅支持bf16，fp16，fp32
+- `eps`取值大于1时输出为nan，`eps`取值为1时输出为inf
 
 </div>
 
@@ -4735,8 +4735,8 @@
 
 **限制与说明**：
 
-- 支持bf16，fp16，fp32
-- eps取值大于1时输出为nan，eps取值为1时输出为inf
+- `self`仅支持bf16，fp16，fp32
+- `eps`取值大于1时输出为nan，`eps`取值为1时输出为inf
 
 </div>
 
@@ -4754,7 +4754,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -4772,7 +4772,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -4790,7 +4790,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -4808,7 +4808,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -4826,7 +4826,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -4878,7 +4878,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp32，int64，bool
+**限制与说明**： `self`仅支持fp32，int64，bool
 
 </div>
 
@@ -4896,7 +4896,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -4914,7 +4914,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，int8，int32，int64，bool
+**限制与说明**： `self`仅支持bf16，fp16，fp32，int8，int32，int64，bool
 
 </div>
 
@@ -4932,7 +4932,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，int64，bool
 
 </div>
 
@@ -4950,7 +4950,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp32，bool
+**限制与说明**： `self`仅支持fp32，bool
 
 </div>
 
@@ -4970,7 +4970,7 @@
 
 **限制与说明**：
 
-- 支持bf16，fp16，fp32
+- `self`仅支持bf16，fp16，fp32
 - 支持Named Tensor
 
 </div>
@@ -4989,7 +4989,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -5007,7 +5007,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，int64，bool
+**限制与说明**： `self`仅支持bf16，fp16，fp32，int64，bool
 
 </div>
 
@@ -5025,7 +5025,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -5043,7 +5043,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，complex64，complex128
 
 </div>
 
@@ -5061,7 +5061,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -5081,8 +5081,8 @@
 
 **限制与说明**：
 
-- 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64
-- input为bf16时，dim不取input轴值为1的维度
+- `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64
+- `input`为bf16时，`dim`不取`input`轴值为1的维度
 
 </div>
 
@@ -5100,7 +5100,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，int64，bool
+**限制与说明**： `self`仅支持bf16，fp16，fp32，int64，bool
 
 </div>
 
@@ -5118,7 +5118,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -5136,7 +5136,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -5146,7 +5146,7 @@
 
 **原生文档**：[Tensor.smm](https://pytorch.org/docs/2.13/generated/torch.Tensor.smm.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -5162,7 +5162,7 @@
 
 **原生文档**：[Tensor.mode](https://pytorch.org/docs/2.13/generated/torch.Tensor.mode.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -5186,7 +5186,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -5204,7 +5204,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -5222,7 +5222,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64
 
 </div>
 
@@ -5240,7 +5240,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -5258,7 +5258,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -5276,7 +5276,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -5294,7 +5294,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -5312,7 +5312,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -5332,7 +5332,7 @@
 
 **限制与说明**：
 
-- 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
+- `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 - <term>Ascend 950DT</term>：不支持uint8，int8，int16，int32，int64，bool
 
 </div>
@@ -5351,7 +5351,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -5369,7 +5369,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -5387,7 +5387,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `self`仅支持fp32
 
 </div>
 
@@ -5439,7 +5439,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -5457,7 +5457,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -5495,7 +5495,7 @@
 
 **限制与说明**：
 
-- 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+- `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 - 可能回退至CPU执行
 
 </div>
@@ -5514,7 +5514,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -5532,7 +5532,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，int8，int32，int64，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，int8，int32，int64，complex64，complex128
 
 </div>
 
@@ -5552,7 +5552,7 @@
 
 **限制与说明**：
 
-- 支持bf16，fp16，fp32，int8，int32，int64，complex64，complex128
+- `self`仅支持bf16，fp16，fp32，int8，int32，int64，complex64，complex128
 - 可能回退至CPU执行
 
 </div>
@@ -5571,7 +5571,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32，int8，int32，int64，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，int8，int32，int64，complex64，complex128
 
 </div>
 
@@ -5589,7 +5589,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，int8，int32，int64，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，int8，int32，int64，complex64，complex128
 
 </div>
 
@@ -5607,7 +5607,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `self`仅支持fp32
 
 </div>
 
@@ -5627,7 +5627,7 @@
 
 **限制与说明**：
 
-- 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+- `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 - 不支持nan场景
 
 </div>
@@ -5648,7 +5648,7 @@
 
 **限制与说明**：
 
-- 支持bf16，fp16，fp32，fp64
+- `self`仅支持bf16，fp16，fp32，fp64
 - <term>Ascend 950DT</term>：不支持fp64
 
 </div>
@@ -5669,7 +5669,7 @@
 
 **限制与说明**：
 
-- 支持bf16，fp16，fp32
+- `self`仅支持bf16，fp16，fp32
 - 可能回退至CPU执行
 
 </div>
@@ -5688,7 +5688,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `self`仅支持fp32
 
 </div>
 
@@ -5706,7 +5706,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `self`仅支持fp32
 
 </div>
 
@@ -5724,7 +5724,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -5742,7 +5742,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -5760,7 +5760,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，complex64，complex128
 
 </div>
 
@@ -5778,7 +5778,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，int16，int64
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，int16，int64
 
 </div>
 
@@ -5796,7 +5796,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，int64
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，int64
 
 </div>
 
@@ -5814,7 +5814,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -5832,7 +5832,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，complex64，complex128
 
 </div>
 
@@ -5842,7 +5842,7 @@
 
 **原生文档**：[Tensor.qscheme](https://pytorch.org/docs/2.13/generated/torch.Tensor.qscheme.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -5882,7 +5882,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -5900,7 +5900,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -5918,7 +5918,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -5936,7 +5936,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -5954,7 +5954,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，complex64，complex128
 
 </div>
 
@@ -5972,7 +5972,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `self`仅支持fp32
 
 </div>
 
@@ -5990,7 +5990,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `self`仅支持fp32
 
 </div>
 
@@ -6024,7 +6024,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，int32，int64
+**限制与说明**： `self`仅支持fp16，fp32，int32，int64
 
 </div>
 
@@ -6042,7 +6042,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32，int32，int64
+**限制与说明**： `self`仅支持fp16，fp32，int32，int64
 
 </div>
 
@@ -6060,7 +6060,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -6080,7 +6080,7 @@
 
 **限制与说明**：
 
-- 支持fp16，fp32，int16，int32，bool
+- `self`仅支持fp16，fp32，int16，int32，bool
 - 输入张量在重复后得到输出，输出中元素个数需小于$2^{22}$
 
 </div>
@@ -6115,7 +6115,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `self`仅支持fp32
 
 </div>
 
@@ -6133,7 +6133,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -6151,7 +6151,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -6171,8 +6171,8 @@
 
 **限制与说明**：
 
-- 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
-- memory_format仅支持torch.contiguous_format和torch.preserve_format
+- `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+- `memory_format`仅支持torch.contiguous_format和torch.preserve_format
 
 </div>
 
@@ -6192,8 +6192,8 @@
 
 **限制与说明**：
 
-- 支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
-- memory_format仅支持torch.contiguous_format和torch.preserve_format
+- `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+- `memory_format`仅支持torch.contiguous_format和torch.preserve_format
 
 </div>
 
@@ -6211,7 +6211,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `self`仅支持fp32
 
 </div>
 
@@ -6229,7 +6229,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `self`仅支持fp32
 
 </div>
 
@@ -6247,7 +6247,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，int32，int64，bool
 
 </div>
 
@@ -6265,7 +6265,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -6283,7 +6283,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -6301,7 +6301,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -6319,7 +6319,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -6337,7 +6337,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，complex64，complex128
 
 </div>
 
@@ -6357,7 +6357,7 @@
 
 **限制与说明**：
 
-- 支持fp16，fp32，int16，int32，bool
+- `self`仅支持fp16，fp32，int16，int32，bool
 - 针对<term>Ascend 950DT</term>，由于硬件差异，在索引存在重复的情况下，精度可能和<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>存在差异
 
 </div>
@@ -6378,7 +6378,7 @@
 
 **限制与说明**：
 
-- tensor、index、src参数不能为空且不能为scalar
+- `tensor`、`index`、`src`参数不能为空且不能为scalar
 - 可能回退至CPU执行
 - 针对<term>Ascend 950DT</term>，由于硬件差异，在索引存在重复的情况下，精度可能和<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>存在差异
 
@@ -6400,7 +6400,7 @@
 
 **限制与说明**：
 
-- 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+- `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 - 针对<term>Ascend 950DT</term>，由于硬件差异，在索引存在重复的情况下，精度可能和<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>存在差异
 
 </div>
@@ -6421,7 +6421,7 @@
 
 **限制与说明**：
 
-- 支持fp32
+- `self`仅支持fp32
 - 针对<term>Ascend 950DT</term>，由于硬件差异，在索引存在重复的情况下，精度可能和<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>存在差异
 
 </div>
@@ -6442,7 +6442,7 @@
 
 **限制与说明**：
 
-- 支持fp32，int64
+- `self`仅支持fp32，int64
 - 可能回退至CPU执行
 
 </div>
@@ -6461,7 +6461,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -6481,7 +6481,7 @@
 
 **限制与说明**：
 
-- 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+- `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 - 可能回退至CPU执行
 
 </div>
@@ -6500,7 +6500,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -6510,7 +6510,7 @@
 
 **原生文档**：[Tensor.share_memory_](https://pytorch.org/docs/2.13/generated/torch.Tensor.share_memory_.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -6534,7 +6534,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -6552,7 +6552,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，complex64，complex128
 
 </div>
 
@@ -6570,7 +6570,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持bf16，fp16，fp32，int32，int64，bool
+**限制与说明**： `self`仅支持bf16，fp16，fp32，int32，int64，bool
 
 </div>
 
@@ -6588,7 +6588,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，int32，int64，bool
 
 </div>
 
@@ -6606,7 +6606,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -6624,7 +6624,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，fp64，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，fp64，int32，int64，bool
 
 </div>
 
@@ -6642,7 +6642,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -6660,7 +6660,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持bf16，fp16，fp32，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，complex64，complex128
 
 </div>
 
@@ -6678,7 +6678,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，fp64
+**限制与说明**： `self`仅支持fp16，fp32，fp64
 
 </div>
 
@@ -6696,7 +6696,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32，fp64
+**限制与说明**： `self`仅支持fp16，fp32，fp64
 
 </div>
 
@@ -6714,7 +6714,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -6732,7 +6732,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，complex64，complex128
 
 </div>
 
@@ -6750,7 +6750,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -6768,7 +6768,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，complex64，complex128
 
 </div>
 
@@ -6802,7 +6802,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `self`仅支持fp32
 
 </div>
 
@@ -6820,7 +6820,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32，complex64，complex128
+**限制与说明**： `self`仅支持fp32，complex64，complex128
 
 </div>
 
@@ -6838,7 +6838,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -6856,7 +6856,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，fp64
+**限制与说明**： `self`仅支持fp16，fp32，fp64
 
 </div>
 
@@ -6876,8 +6876,8 @@
 
 **限制与说明**：
 
-- 支持fp16，fp32，uint8，int8，int16，int32，int64
-- 针对<term>Ascend 950DT</term>，由于底层实现限制，"stable"仅支持True，设置为False在执行时会自动修改为True
+- `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64
+- 针对<term>Ascend 950DT</term>，由于底层实现限制，`"stable"`仅支持True，若设置为False，执行时会被自动修改为True
 
 </div>
 
@@ -6895,7 +6895,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -6905,7 +6905,7 @@
 
 **原生文档**：[Tensor.sparse_mask](https://pytorch.org/docs/2.13/generated/torch.Tensor.sparse_mask.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -6945,7 +6945,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -6963,7 +6963,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，complex64，complex128
 
 </div>
 
@@ -6981,7 +6981,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -6999,7 +6999,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，complex64，complex128
 
 </div>
 
@@ -7017,7 +7017,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -7035,7 +7035,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `self`仅支持fp32
 
 </div>
 
@@ -7055,9 +7055,9 @@
 
 **限制与说明**：
 
-- 支持bf16，fp16，fp32
-- input不支持标量tensor
-- correction参数值不能超过int32的最大值
+- `self`仅支持bf16，fp16，fp32
+- `input`不支持标量`tensor`
+- `correction`参数值不能超过int32的最大值
 
 </div>
 
@@ -7075,7 +7075,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `self`仅支持fp32
 
 </div>
 
@@ -7093,7 +7093,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `self`仅支持fp32
 
 </div>
 
@@ -7111,7 +7111,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `self`仅支持fp32
 
 </div>
 
@@ -7129,7 +7129,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `self`仅支持fp32
 
 </div>
 
@@ -7147,7 +7147,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `self`仅支持fp32
 
 </div>
 
@@ -7165,7 +7165,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64
 
 </div>
 
@@ -7183,7 +7183,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，complex64，complex128
 
 </div>
 
@@ -7201,7 +7201,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64
 
 </div>
 
@@ -7219,7 +7219,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，int32
+**限制与说明**： `self`仅支持bf16，fp16，fp32，int32
 
 </div>
 
@@ -7237,7 +7237,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -7255,7 +7255,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -7273,7 +7273,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -7291,7 +7291,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，complex64，complex128
 
 </div>
 
@@ -7309,7 +7309,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64
 
 </div>
 
@@ -7347,11 +7347,11 @@
 
 **限制与说明**：
 
-- 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
-- 若入参dims的长度小于Tensor.shape的长度，则会在dims前自动补全1，使其长度与 Tensor.shape对齐。补全后的dims，需要满足如下限制：
-- - 当需要对第一根轴进行重复时，最多允许同时对4个维度进行重复操作（即dims中大于1的元素个数 ≤ 4），例如：不支持Tensor.tile([2, 3, 4, 5, 6]) ，支持Tensor.tile([2, 3, 1, 5, 6])
-- - 当不需要对第一根轴进行重复时，最多允许同时对3个维度进行重复操作（即dims中大于1的元素个数 ≤ 3），例如：不支持Tensor.tile([1, 3, 4, 5, 6]) ，支持Tensor.tile([1, 3, 1, 5, 6])
-- - 若执行反向计算，Tensor的维度数加上dims中大于1的元素个数之和不得超过8
+- `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+- 若入参`dims`的长度小于`Tensor.shape`的长度，则会在`dims`前自动补全1，使其长度与 `Tensor.shape`对齐。补全后的`dims`，需要满足如下限制：
+- - 当需要对第一根轴进行重复时，最多允许同时对4个维度进行重复操作（即`dims`中大于1的元素个数 ≤ 4），例如：不支持`Tensor.tile([2, 3, 4, 5, 6])` ，支持`Tensor.tile([2, 3, 1, 5, 6])`
+- - 当不需要对第一根轴进行重复时，最多允许同时对3个维度进行重复操作（即`dims`中大于1的元素个数 ≤ 3），例如：不支持`Tensor.tile([1, 3, 4, 5, 6])` ，支持`Tensor.tile([1, 3, 1, 5, 6])`
+- - 若执行反向计算，`Tensor`的维度数加上`dims`中大于1的元素个数之和不得超过8
 
 </div>
 
@@ -7371,8 +7371,8 @@
 
 **限制与说明**：
 
-- 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
-- 当前NPU设备仅支持设置memory_format为torch.contiguous_format或torch.preserve_format
+- `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+- 当前NPU设备仅支持设置`memory_format`为torch.contiguous_format或torch.preserve_format
 - <term>Atlas 推理系列产品</term>不支持跨NPU拷贝
 
 </div>
@@ -7383,7 +7383,7 @@
 
 **原生文档**：[Tensor.to_mkldnn](https://pytorch.org/docs/2.13/generated/torch.Tensor.to_mkldnn.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -7407,7 +7407,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32，int16，int32，bool
+**限制与说明**： `self`仅支持fp16，fp32，int16，int32，bool
 
 </div>
 
@@ -7425,7 +7425,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，int16，int32，int64，bool
 
 </div>
 
@@ -7443,7 +7443,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128取值范围[-65504,65504]
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128取值范围[-65504,65504]
 
 </div>
 
@@ -7461,7 +7461,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，complex64，complex128
 
 </div>
 
@@ -7481,7 +7481,7 @@
 
 **限制与说明**：
 
-- 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64
+- `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64
 - <term>Ascend 950DT</term>：不支持fp64
 
 </div>
@@ -7500,7 +7500,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -7518,7 +7518,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -7536,7 +7536,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，complex64，complex128
 
 </div>
 
@@ -7554,7 +7554,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -7572,7 +7572,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，complex64，complex128
 
 </div>
 
@@ -7590,7 +7590,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `self`仅支持fp32
 
 </div>
 
@@ -7610,9 +7610,9 @@
 
 **限制与说明**：
 
-- 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64
-- 由于硬件差异，npu topk索引结果与GPU/CPU不一致。当前NPU仅支持返回sorted为true的计算结果
-- 不支持标量tensor
+- `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64
+- 由于硬件差异，npu `topk`索引结果与GPU/CPU不一致。当前NPU仅支持返回`sorted`为true的计算结果
+- 不支持标量`tensor`
 
 </div>
 
@@ -7622,7 +7622,7 @@
 
 **原生文档**：[Tensor.to_dense](https://pytorch.org/docs/2.13/generated/torch.Tensor.to_dense.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -7638,7 +7638,7 @@
 
 **原生文档**：[Tensor.to_sparse](https://pytorch.org/docs/2.13/generated/torch.Tensor.to_sparse.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -7654,7 +7654,7 @@
 
 **原生文档**：[Tensor.to_sparse_csr](https://pytorch.org/docs/2.13/generated/torch.Tensor.to_sparse_csr.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -7670,7 +7670,7 @@
 
 **原生文档**：[Tensor.to_sparse_csc](https://pytorch.org/docs/2.13/generated/torch.Tensor.to_sparse_csc.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -7686,7 +7686,7 @@
 
 **原生文档**：[Tensor.to_sparse_bsr](https://pytorch.org/docs/2.13/generated/torch.Tensor.to_sparse_bsr.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -7702,7 +7702,7 @@
 
 **原生文档**：[Tensor.to_sparse_bsc](https://pytorch.org/docs/2.13/generated/torch.Tensor.to_sparse_bsc.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -7726,7 +7726,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -7744,7 +7744,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -7762,7 +7762,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -7780,7 +7780,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -7798,7 +7798,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -7816,7 +7816,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -7834,7 +7834,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -7852,7 +7852,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -7870,7 +7870,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -7888,7 +7888,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -7906,7 +7906,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -7924,7 +7924,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -7942,7 +7942,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -7960,7 +7960,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -7978,7 +7978,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -7998,8 +7998,8 @@
 
 **限制与说明**：
 
-- 支持fp16，fp32，fp64，uint8，int8，int16，int32，int64
-- 遵循PyTorch社区规范，不再支持对bool类型数据进行处理。针对存量bool类型数据可以通过如下方案进行替换：如果需要输出全True，可以采用Tensor.bernoulli_(p=1.0)。如果需要输出均匀分布的bool类型，则采用Tensor.bernoulli_(p=0.5)
+- `self`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64
+- 遵循PyTorch社区规范，不再支持对bool类型数据进行处理。针对存量bool类型数据可以通过如下方案进行替换：如果需要输出全True，可以采用`Tensor.bernoulli_(p=1.0)`。如果需要输出均匀分布的bool类型，则采用`Tensor.bernoulli_(p=0.5)`
 
 </div>
 
@@ -8019,7 +8019,7 @@
 
 **限制与说明**：
 
-- 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+- `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 - 在输入包含0的情况下，输出中可能会包含正0和负0，而非只输出一个0
 
 </div>
@@ -8030,7 +8030,7 @@
 
 **原生文档**：[Tensor.unique_consecutive](https://pytorch.org/docs/2.13/generated/torch.Tensor.unique_consecutive.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -8054,7 +8054,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -8072,7 +8072,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `self`仅支持fp32
 
 </div>
 
@@ -8090,7 +8090,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 依赖稀疏tensor
+**限制与说明**： 依赖稀疏`tensor`
 
 </div>
 
@@ -8110,8 +8110,8 @@
 
 **限制与说明**：
 
-- 支持bf16，fp16，fp32
-- correction参数值不能超过int32的最大值
+- `self`仅支持bf16，fp16，fp32
+- `correction`参数值不能超过int32的最大值
 
 </div>
 
@@ -8129,7 +8129,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -8147,7 +8147,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -8165,7 +8165,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -8183,7 +8183,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -8201,7 +8201,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -8219,7 +8219,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `self`仅支持fp16，fp32
 
 </div>
 
@@ -8237,7 +8237,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 

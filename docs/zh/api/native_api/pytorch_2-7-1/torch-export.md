@@ -19,7 +19,7 @@
 
 **原生文档**：[torch.export.Constraint](https://pytorch.org/docs/2.7/export.html#torch.export.Constraint)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -35,7 +35,7 @@
 
 **原生文档**：[torch.export.ExportBackwardSignature](https://pytorch.org/docs/2.7/export.html#torch.export.ExportBackwardSignature)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -51,7 +51,7 @@
 
 **原生文档**：[torch.export.ModuleCallEntry](https://pytorch.org/docs/2.7/export.html#torch.export.ModuleCallEntry)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -69,7 +69,7 @@
 
 **原生文档**：[torch.export.export](https://pytorch.org/docs/2.7/export.html#torch.export.export)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -87,7 +87,7 @@
 
 **原生文档**：[torch.export.save](https://pytorch.org/docs/2.7/export.html#torch.export.save)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -103,7 +103,7 @@
 
 **原生文档**：[torch.export.load](https://pytorch.org/docs/2.7/export.html#torch.export.load)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -119,7 +119,7 @@
 
 **原生文档**：[torch.export.ExportedProgram](https://pytorch.org/docs/2.7/export.html#torch.export.ExportedProgram)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -133,7 +133,7 @@
 
 **原生文档**：[torch.export.ExportedProgram.module](https://pytorch.org/docs/2.7/export.html#torch.export.ExportedProgram.module)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -151,7 +151,7 @@
 
 **原生文档**：[torch.export.ExportGraphSignature](https://pytorch.org/docs/2.7/export.html#torch.export.ExportGraphSignature)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -169,7 +169,7 @@
 
 **原生文档**：[torch.export.ModuleCallSignature](https://pytorch.org/docs/2.7/export.html#torch.export.ModuleCallSignature)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |

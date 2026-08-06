@@ -128,7 +128,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -386,7 +386,12 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 采集NPU上的profiling数据时，“use_device”需设置为“npu”
+**限制与说明**： 采集NPU上的profiling数据时，“`use_device`”需设置为“npu”，例如：
+
+```python
+with torch.autograd.profiler.profile(use_device="npu") as prof:
+    ...
+```
 
 </div>
 
@@ -396,7 +401,7 @@
 
 **原生文档**：[torch.autograd.profiler.emit_nvtx](https://pytorch.org/docs/2.7/autograd.html#torch.autograd.profiler.emit_nvtx)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -412,7 +417,7 @@
 
 **原生文档**：[torch.autograd.profiler.emit_itt](https://pytorch.org/docs/2.7/autograd.html#torch.autograd.profiler.emit_itt)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -492,7 +497,7 @@
 
 **原生文档**：[torch.autograd.profiler.load_nvprof](https://pytorch.org/docs/2.7/generated/torch.autograd.profiler.load_nvprof.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -520,7 +525,7 @@
 
 **限制与说明**：
 
-- 支持bf16，fp16，fp32，fp64
+- `input`仅支持bf16，fp16，fp32，fp64
 - 不支持稀疏张量
 
 </div>
@@ -575,7 +580,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -593,7 +598,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -613,7 +618,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -631,7 +636,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -649,7 +654,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -667,7 +672,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -685,7 +690,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -703,7 +708,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 

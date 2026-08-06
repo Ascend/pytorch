@@ -16,7 +16,7 @@
 
 **原生文档**：[torch.distributed.optim.DistributedOptimizer](https://pytorch.org/docs/2.12/distributed.optim.html#torch.distributed.optim.DistributedOptimizer)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -30,7 +30,7 @@
 
 **原生文档**：[torch.distributed.optim.DistributedOptimizer.step](https://pytorch.org/docs/2.12/distributed.optim.html#torch.distributed.optim.DistributedOptimizer.step)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -122,7 +122,7 @@
 
 **限制与说明**：
 
-- 支持的输入类型为torch.nn.Optimizer对象
+- 支持的输入类型为`torch.nn.Optimizer`对象
 - 不支持NPU融合优化器对象
 
 > <font size="3">add_param_group()</font>

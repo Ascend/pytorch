@@ -56,7 +56,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -140,7 +140,7 @@
 
 **原生文档**：[torch.backends.cuda.preferred_linalg_library](https://pytorch.org/docs/2.11/backends.html#torch.backends.cuda.preferred_linalg_library)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -156,7 +156,7 @@
 
 **原生文档**：[torch.backends.cuda.flash_sdp_enabled](https://pytorch.org/docs/2.11/backends.html#torch.backends.cuda.flash_sdp_enabled)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -172,7 +172,7 @@
 
 **原生文档**：[torch.backends.cuda.enable_mem_efficient_sdp](https://pytorch.org/docs/2.11/backends.html#torch.backends.cuda.enable_mem_efficient_sdp)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -188,7 +188,7 @@
 
 **原生文档**：[torch.backends.cuda.mem_efficient_sdp_enabled](https://pytorch.org/docs/2.11/backends.html#torch.backends.cuda.mem_efficient_sdp_enabled)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -204,7 +204,7 @@
 
 **原生文档**：[torch.backends.cuda.enable_flash_sdp](https://pytorch.org/docs/2.11/backends.html#torch.backends.cuda.enable_flash_sdp)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -220,7 +220,7 @@
 
 **原生文档**：[torch.backends.cuda.math_sdp_enabled](https://pytorch.org/docs/2.11/backends.html#torch.backends.cuda.math_sdp_enabled)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -236,7 +236,7 @@
 
 **原生文档**：[torch.backends.cuda.enable_math_sdp](https://pytorch.org/docs/2.11/backends.html#torch.backends.cuda.enable_math_sdp)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -252,7 +252,7 @@
 
 **原生文档**：[torch.backends.cuda.sdp_kernel](https://pytorch.org/docs/2.11/backends.html#torch.backends.cuda.sdp_kernel)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -276,7 +276,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -294,7 +294,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -312,7 +312,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -346,7 +346,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -356,7 +356,7 @@
 
 **原生文档**：[torch.backends.cudnn.benchmark_limit](https://pytorch.org/docs/2.11/backends.html#torch.backends.cudnn.benchmark_limit)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -436,7 +436,7 @@
 
 **原生文档**：[torch.backends.mkldnn.is_available](https://pytorch.org/docs/2.11/backends.html#torch.backends.mkldnn.is_available)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -477,7 +477,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -495,7 +495,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -513,7 +513,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -523,7 +523,7 @@
 
 **原生文档**：[torch.backends.opt_einsum.enabled](https://pytorch.org/docs/2.11/backends.html#torch.backends.opt_einsum.enabled)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -539,7 +539,7 @@
 
 **原生文档**：[torch.backends.opt_einsum.strategy](https://pytorch.org/docs/2.11/backends.html#torch.backends.opt_einsum.strategy)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |

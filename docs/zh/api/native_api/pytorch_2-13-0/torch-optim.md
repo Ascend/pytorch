@@ -126,8 +126,13 @@
 
 **限制与说明**：
 
-- 支持bf16，fp16，fp32
-- 优化器在启动foreach的情况下（foreach=None或foreach=True），当被优化的参数分组过多时由于foreach算子的特性会导致性能下降。这种情况建议设置为foreach=False
+- `params`仅支持bf16，fp16，fp32
+- 优化器在启动`foreach`的情况下（`foreach=None`或`foreach=True`），当被优化的参数分组过多时由于`foreach`算子的特性会导致性能下降。这种情况建议设置为`foreach=False`，例如：
+
+  ```python
+  # 参数分组较多时，建议关闭foreach避免性能下降
+  optimizer = torch.optim.Adadelta(model.parameters(), lr=1e-3, foreach=False)
+  ```
 
 > <font size="3">add_param_group()</font>
 
@@ -279,7 +284,7 @@
 
 **原生文档**：[torch.optim.Adadelta.step](https://pytorch.org/docs/2.13/generated/torch.optim.Adadelta.html#torch.optim.Adadelta.step)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -323,8 +328,13 @@
 
 **限制与说明**：
 
-- 支持bf16，fp16，fp32
-- 优化器在启动foreach的情况下（foreach=None或foreach=True），当被优化的参数分组过多时由于foreach算子的特性会导致性能下降。这种情况建议设置为foreach=False
+- `params`仅支持bf16，fp16，fp32
+- 优化器在启动`foreach`的情况下（`foreach=None`或`foreach=True`），当被优化的参数分组过多时由于`foreach`算子的特性会导致性能下降。这种情况建议设置为`foreach=False`，例如：
+
+  ```python
+  # 参数分组较多时，建议关闭foreach避免性能下降
+  optimizer = torch.optim.Adagrad(model.parameters(), lr=1e-3, foreach=False)
+  ```
 
 > <font size="3">add_param_group()</font>
 
@@ -520,8 +530,14 @@
 
 **限制与说明**：
 
-- 支持bf16，fp16，fp32
-- 优化器在启动foreach的情况下（foreach=None或foreach=True），当被优化的参数分组过多时由于foreach算子的特性会导致性能下降。这种情况建议设置为foreach=False
+- `params`仅支持bf16，fp16，fp32
+- 优化器在启动`foreach`的情况下（`foreach=None`或`foreach=True`），当被优化的参数分组过多时由于`foreach`算子的特性会导致性能下降。这种情况建议设置为`foreach=False`，例如：
+
+  ```python
+  # 参数分组较多时，建议关闭foreach避免性能下降
+  optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, foreach=False)
+  ```
+
 - 在某些情况下可能回退至CPU执行
 
 > <font size="3">add_param_group()</font>
@@ -674,7 +690,7 @@
 
 **原生文档**：[torch.optim.Adam.step](https://pytorch.org/docs/2.13/generated/torch.optim.Adam.html#torch.optim.Adam.step)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -718,9 +734,15 @@
 
 **限制与说明**：
 
-- 支持bf16，fp16，fp32，complex64
-- 优化器在启动foreach的情况下（foreach=None或foreach=True），当被优化的参数分组过多时由于foreach算子的特性会导致性能下降。这种情况建议设置为foreach=False
-- 优化器在启动fused的情况下（fused=True），暂不支持grad_scale和found_inf参数。对标_single_tensor_adamw实现，fp32与cpu/cuda一致，fp16和bf16采用升精度实现，与cpu/cuda不一致
+- `params`仅支持bf16，fp16，fp32，complex64
+- 优化器在启动`foreach`的情况下（`foreach=None`或`foreach=True`），当被优化的参数分组过多时由于`foreach`算子的特性会导致性能下降。这种情况建议设置为`foreach=False`，例如：
+
+  ```python
+  # 参数分组较多时，建议关闭foreach避免性能下降
+  optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, foreach=False)
+  ```
+
+- 优化器在启动`fused`的情况下（`fused=True`），暂不支持`grad_scale`和`found_inf`参数。对标`_single_tensor_adamw`实现，fp32与cpu/cuda一致，fp16和bf16采用升精度实现，与cpu/cuda不一致
 
 > <font size="3">add_param_group()</font>
 
@@ -880,7 +902,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `params`仅支持fp16，fp32
 
 </div>
 
@@ -898,7 +920,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `params`仅支持fp16，fp32
 
 </div>
 
@@ -1086,8 +1108,13 @@
 
 **限制与说明**：
 
-- 支持bf16，fp16，fp32
-- 优化器在启动foreach的情况下（foreach=None或foreach=True），当被优化的参数分组过多时由于foreach算子的特性会导致性能下降。这种情况建议设置为foreach=False
+- `params`仅支持bf16，fp16，fp32
+- 优化器在启动`foreach`的情况下（`foreach=None`或`foreach=True`），当被优化的参数分组过多时由于`foreach`算子的特性会导致性能下降。这种情况建议设置为`foreach=False`，例如：
+
+  ```python
+  # 参数分组较多时，建议关闭foreach避免性能下降
+  optimizer = torch.optim.Adamax(model.parameters(), lr=1e-3, foreach=False)
+  ```
 
 > <font size="3">add_param_group()</font>
 
@@ -1103,7 +1130,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `params`仅支持fp16，fp32
 
 </div>
 
@@ -1121,7 +1148,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `params`仅支持fp16，fp32
 
 </div>
 
@@ -1235,7 +1262,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `params`仅支持fp16，fp32
 
 </div>
 
@@ -1253,7 +1280,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `params`仅支持fp16，fp32
 
 </div>
 
@@ -1271,7 +1298,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `params`仅支持fp16，fp32
 
 </div>
 
@@ -1291,7 +1318,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `params`仅支持fp16，fp32
 
 > <font size="3">add_param_group()</font>
 
@@ -1307,7 +1334,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `params`仅支持fp16，fp32
 
 </div>
 
@@ -1325,7 +1352,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `params`仅支持fp16，fp32
 
 </div>
 
@@ -1439,7 +1466,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `params`仅支持fp16，fp32
 
 </div>
 
@@ -1457,7 +1484,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `params`仅支持fp16，fp32
 
 </div>
 
@@ -1475,7 +1502,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `params`仅支持fp16，fp32
 
 </div>
 
@@ -1645,7 +1672,7 @@
 
 **原生文档**：[torch.optim.LBFGS.step](https://pytorch.org/docs/2.13/generated/torch.optim.LBFGS.html#torch.optim.LBFGS.step)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -1689,8 +1716,13 @@
 
 **限制与说明**：
 
-- 支持bf16，fp16，fp32
-- 优化器在启动foreach的情况下（foreach=None或foreach=True），当被优化的参数分组过多时由于foreach算子的特性会导致性能下降。这种情况建议设置为foreach=False
+- `params`仅支持bf16，fp16，fp32
+- 优化器在启动`foreach`的情况下（`foreach=None`或`foreach=True`），当被优化的参数分组过多时由于`foreach`算子的特性会导致性能下降。这种情况建议设置为`foreach=False`，例如：
+
+  ```python
+  # 参数分组较多时，建议关闭foreach避免性能下降
+  optimizer = torch.optim.NAdam(model.parameters(), lr=1e-3, foreach=False)
+  ```
 
 > <font size="3">add_param_group()</font>
 
@@ -1706,7 +1738,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `params`仅支持fp16，fp32
 
 </div>
 
@@ -1724,7 +1756,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `params`仅支持fp16，fp32
 
 </div>
 
@@ -1838,7 +1870,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `params`仅支持fp16，fp32
 
 </div>
 
@@ -1856,7 +1888,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `params`仅支持fp16，fp32
 
 </div>
 
@@ -1874,7 +1906,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `params`仅支持fp16，fp32
 
 </div>
 
@@ -1896,8 +1928,13 @@
 
 **限制与说明**：
 
-- 支持bf16，fp16，fp32
-- 优化器在启动foreach的情况下（foreach=None或foreach=True），当被优化的参数分组过多时由于foreach算子的特性会导致性能下降。这种情况建议设置为foreach=False
+- `params`仅支持bf16，fp16，fp32
+- 优化器在启动`foreach`的情况下（`foreach=None`或`foreach=True`），当被优化的参数分组过多时由于`foreach`算子的特性会导致性能下降。这种情况建议设置为`foreach=False`，例如：
+
+  ```python
+  # 参数分组较多时，建议关闭foreach避免性能下降
+  optimizer = torch.optim.RAdam(model.parameters(), lr=1e-3, foreach=False)
+  ```
 
 > <font size="3">add_param_group()</font>
 
@@ -1913,7 +1950,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `params`仅支持fp16，fp32
 
 </div>
 
@@ -1931,7 +1968,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `params`仅支持fp16，fp32
 
 </div>
 
@@ -2045,7 +2082,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `params`仅支持fp16，fp32
 
 </div>
 
@@ -2063,7 +2100,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `params`仅支持fp16，fp32
 
 </div>
 
@@ -2081,7 +2118,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `params`仅支持fp16，fp32
 
 </div>
 
@@ -2103,8 +2140,13 @@
 
 **限制与说明**：
 
-- 支持bf16，fp16，fp32
-- 优化器在启动foreach的情况下（foreach=None或foreach=True），当被优化的参数分组过多时由于foreach算子的特性会导致性能下降。这种情况建议设置为foreach=False
+- `params`仅支持bf16，fp16，fp32
+- 优化器在启动`foreach`的情况下（`foreach=None`或`foreach=True`），当被优化的参数分组过多时由于`foreach`算子的特性会导致性能下降。这种情况建议设置为`foreach=False`，例如：
+
+  ```python
+  # 参数分组较多时，建议关闭foreach避免性能下降
+  optimizer = torch.optim.RMSprop(model.parameters(), lr=1e-3, foreach=False)
+  ```
 
 > <font size="3">add_param_group()</font>
 
@@ -2312,7 +2354,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `params`仅支持fp16，fp32
 
 </div>
 
@@ -2330,7 +2372,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `params`仅支持fp16，fp32
 
 </div>
 
@@ -2444,7 +2486,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `params`仅支持fp16，fp32
 
 </div>
 
@@ -2462,7 +2504,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `params`仅支持fp16，fp32
 
 </div>
 
@@ -2480,7 +2522,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `params`仅支持fp16，fp32
 
 </div>
 
@@ -2502,8 +2544,13 @@
 
 **限制与说明**：
 
-- 支持bf16，fp16，fp32
-- 优化器在启动foreach的情况下（foreach=None或foreach=True），当被优化的参数分组过多时由于foreach算子的特性会导致性能下降。这种情况建议设置为foreach=False
+- `params`仅支持bf16，fp16，fp32
+- 优化器在启动`foreach`的情况下（`foreach=None`或`foreach=True`），当被优化的参数分组过多时由于`foreach`算子的特性会导致性能下降。这种情况建议设置为`foreach=False`，例如：
+
+  ```python
+  # 参数分组较多时，建议关闭foreach避免性能下降
+  optimizer = torch.optim.SGD(model.parameters(), lr=1e-3, foreach=False)
+  ```
 
 > <font size="3">add_param_group()</font>
 
@@ -2519,7 +2566,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `params`仅支持fp16，fp32
 
 </div>
 
@@ -2537,7 +2584,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `params`仅支持fp16，fp32
 
 </div>
 
@@ -2651,7 +2698,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `params`仅支持fp16，fp32
 
 </div>
 
@@ -2669,7 +2716,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `params`仅支持fp16，fp32
 
 </div>
 
@@ -2687,7 +2734,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `params`仅支持fp16，fp32
 
 </div>
 
@@ -2787,7 +2834,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `lr`仅支持fp32
 
 </div>
 
@@ -2805,7 +2852,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `lr`仅支持fp32
 
 </div>
 
@@ -2823,7 +2870,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `lr`仅支持fp32
 
 </div>
 
@@ -2857,7 +2904,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `lr`仅支持fp16，fp32
 
 </div>
 
@@ -2875,7 +2922,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `lr`仅支持fp16，fp32
 
 </div>
 
@@ -2893,7 +2940,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `lr`仅支持fp16，fp32
 
 </div>
 
@@ -2927,7 +2974,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `lr`仅支持fp16，fp32
 
 </div>
 
@@ -2945,7 +2992,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `lr`仅支持fp16，fp32
 
 </div>
 
@@ -2963,7 +3010,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp16，fp32
+**限制与说明**： `lr`仅支持fp16，fp32
 
 </div>
 
@@ -2997,7 +3044,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `lr`仅支持fp32
 
 </div>
 
@@ -3015,7 +3062,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `lr`仅支持fp32
 
 </div>
 
@@ -3033,7 +3080,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 支持fp32
+**限制与说明**： `lr`仅支持fp32
 
 </div>
 

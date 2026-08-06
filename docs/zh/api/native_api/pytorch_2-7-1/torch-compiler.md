@@ -32,7 +32,7 @@
 
 **原生文档**：[torch.compiler.reset](https://pytorch.org/docs/2.7/generated/torch.compiler.reset.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -48,7 +48,7 @@
 
 **原生文档**：[torch.compiler.allow_in_graph](https://pytorch.org/docs/2.7/generated/torch.compiler.allow_in_graph.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -64,7 +64,7 @@
 
 **原生文档**：[torch.compiler.assume_constant_result](https://pytorch.org/docs/2.7/generated/torch.compiler.assume_constant_result.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -80,7 +80,7 @@
 
 **原生文档**：[torch.compiler.list_backends](https://pytorch.org/docs/2.7/generated/torch.compiler.list_backends.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
@@ -96,7 +96,7 @@
 
 **原生文档**：[torch.compiler.disable](https://pytorch.org/docs/2.7/generated/torch.compiler.disable.html)
 
-**产品支持情况**：
+**支持情况**：
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
