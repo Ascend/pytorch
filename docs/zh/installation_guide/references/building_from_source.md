@@ -2,7 +2,45 @@
 
 源码安装适用于二次开发场景，如自定义算子适配开发后，用户可以选择需要的分支版本自行编译PyTorch框架和TorchNPU插件。
 
-执行安装命令前，请参见[快速安装](../quick_install.md)中的安装前准备章节完成环境变量配置及其他环境准备。
+## 安装前准备
+
+### 硬件配套
+
+**表 1**  产品硬件支持列表
+
+|产品|是否支持|
+|--|:-:|
+|<term>Ascend 950DT</term>|√|
+|<term>Atlas A3 训练系列产品</term>|√|
+|<term>Atlas A3 推理系列产品</term>|x|
+|<term>Atlas A2 训练系列产品</term>|√|
+|<term>Atlas A2 推理系列产品</term>|x|
+|<term>Atlas 训练系列产品</term>|√|
+|<term>Atlas 推理系列产品</term>|x|
+|<term>Atlas 200I/500 A2 推理产品</term>|x|
+
+> [!NOTE]
+>
+> 本节表格中“√”代表支持，“x”代表不支持。
+
+### 环境准备
+
+> [!NOTICE]
+>
+> - 安装运行程序建议使用非root用户，且建议对安装程序的目录文件做好权限管控：文件夹权限设置为750，文件权限设置为640。可以通过设置umask控制安装后文件的权限，如设置umask为0027。更多安全相关内容请参见《[安全声明](../../reference/security_statement.md)》中各组件关于“文件权限控制”的说明。
+
+- 安装配套版本的NPU驱动固件、CANN软件（Toolkit、ops和NNAL）并配置CANN环境变量，具体请参考《[CANN 软件安装](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum)》。
+
+    CANN软件提供进程级环境变量设置脚本，训练或推理场景下使用NPU执行业务代码前需要调用该脚本，否则业务代码将无法执行。
+
+    ```bash
+    source /usr/local/Ascend/cann/set_env.sh
+    source /usr/local/Ascend/nnal/atb/set_env.sh
+    ```
+
+    以上命令以root用户安装后的默认路径为例，请用户根据set\_env.sh的实际路径进行替换。
+
+Python3.11的调度（即下发）性能优于Python3.10，建议用Python3.11及以上。
 
 ## 安装PyTorch框架
 

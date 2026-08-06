@@ -2,7 +2,7 @@
 
 ## 编译问题
 
-### torch.libs/libopenblasp-r0-56e95da7.3.24.so链接报错或libgfortran缺失
+### 问题1：torch.libs/libopenblasp-r0-56e95da7.3.24.so链接报错或libgfortran缺失
 
 **问题描述**
 
@@ -40,7 +40,7 @@ target_link_libraries(libtorch_resnet "${TORCH_LIBRARIES}")
 target_link_libraries(libtorch_resnet "${TORCH_NPU_LIBRARIES}")
 ```
 
-### 编译时third_party目录下项目文件缺失或需切换项目commit ID
+### 问题2：编译时third_party目录下项目文件缺失或需切换项目commit ID
 
 **问题描述**
 
@@ -83,7 +83,7 @@ git submodule update --init --recursive
 git checkout <commit_id>
 ```
 
-### 编译时换行符报错
+### 问题3：编译时换行符报错
 
 **问题描述**
 
@@ -128,7 +128,7 @@ rm -rf /home/pytorch/build
 bash ci/build.sh
 ```
 
-### 编译时报错CMake\_minimum\_required
+### 问题4：编译时报错CMake\_minimum\_required
 
 **问题描述**
 
@@ -149,7 +149,7 @@ CMake Error at third_party/Tensorpipe/third_party/libuv/CMakeLists.txt:1 (cmake_
 
 您可以在setup.py文件中`class CPPLibBuild`的`run`函数里添加`cmake_args.append('-DCMAKE_POLICY_VERSION_MINIMUM=3.5')`来尝试解决，让CMake以兼容模式处理旧版cmake_minimum_required声明。
 
-### 编译时报错链接符问题
+### 问题5：编译时报错链接符问题
 
 **问题描述**
 
@@ -179,7 +179,7 @@ done
 
 譬如，用`third_party\torchair\torchair\third_party\ascend\include\air\external\ge\ge_error_codes.h`中内容替换`third_party\torchair\torchair\third_party\ascend\include\ascend/include/ascendcl/external/acl/error_codes/rt_error_codes.h`中的内容。
 
-### fatal error: 'filesystem' file not found
+### 问题6：fatal error: 'filesystem' file not found
 
 **问题描述**
 
@@ -205,7 +205,7 @@ gcc --version
 
 ## 安装问题
 
-### 构建完成的whl包与当前使用环境不匹配
+### 问题1：构建完成的whl包与当前使用环境不匹配
 
 **问题描述**
 
@@ -229,7 +229,7 @@ ERROR: torch_npuxxx.whl is not a supported wheel on this platform
 bash ci/build.sh --python=3.xx
 ```
 
-### ImportError: libhccl.so: cannot open shared object file: No such file or directory
+### 问题2：ImportError: libhccl.so: cannot open shared object file: No such file or directory
 
 **问题描述**
 
@@ -249,7 +249,7 @@ ImportError: libhccl.so: cannot open shared object file: No such file or directo
 
 请检查是否已安装配套版本的NPU驱动固件、CANN软件（Toolkit、ops 和 NNAL）并正确配置CANN环境变量，具体请参考《[CANN 软件安装](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum)》。
 
-### 导入torch_npu时，系统报错core dump
+### 问题3：导入torch_npu时，系统报错core dump
 
 **问题描述**
 
@@ -270,7 +270,7 @@ Segmentation fault
 
 使用对应的GCC版本进行编译，具体对应版本可参考[GCC和Cmake版本要求](../installation_guide/references/building_from_source.md#gcc_cmake)。
 
-### “import torch_npu”报错找不到torch_npu._C
+### 问题4：“import torch_npu”报错找不到torch_npu._C
 
 **问题描述**
 
