@@ -11,4 +11,4 @@
 
 - **[TorchNPU编译优化](torch_npu_compilation_optimization.md)**  
 
-- **[编译优化常见问题](compilation_optimization_faq.md)**  
+- **[FAQ](compilation_optimization_faq.md)**  

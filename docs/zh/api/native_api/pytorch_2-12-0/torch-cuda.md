@@ -2,11 +2,14 @@
 
 > [!NOTE]
 >
-> API的**支持情况**中，&#10004;表示API支持在对应硬件环境上运行，&#10007;表示暂不支持。<br>
-> 在使用支持的CUDA接口时，需要将API名称中的CUDA替换为NPU形式才能使用：将torch.cuda.替换为torch_npu.npu.或torch.npu.。torch_npu.npu.和torch.npu.两种调用方式，功能一致。举例如下：
+> - API的**支持情况**中，&#10004;表示API支持在对应硬件环境上运行，&#10007;表示暂不支持。<br>
+> - 若API标注有“限制与说明”，表示该API在昇腾NPU上的支持度和原生版本存在差异，请务必查阅具体说明，以确保适配昇腾NPU平台。
+> - 部分API虽在[PyTorch社区文档](https://pytorch.org/docs/2.12/)中存在，但未收录于本支持清单。此类API尚未验证，请谨慎使用。我们将持续进行验证工作，并在验证完成后更新文档。
+> - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
+> - 在使用支持的CUDA接口时，需要将API名称中的CUDA替换为NPU形式才能使用：将torch.cuda.替换为torch_npu.npu.或torch.npu.。torch_npu.npu.和torch.npu.两种调用方式，功能一致。举例如下：
 >
-> `torch.cuda.current_device` --> `torch_npu.npu.current_device`<br>
-> `torch.cuda.current_device` --> `torch.npu.current_device`
+>   `torch.cuda.current_device` --> `torch_npu.npu.current_device`<br>
+>   `torch.cuda.current_device` --> `torch.npu.current_device`
 
 ## 目录
 
