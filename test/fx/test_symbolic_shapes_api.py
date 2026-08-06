@@ -1,3 +1,18 @@
+# Copyright (c) 2026 Huawei Technologies Co., Ltd
+# All rights reserved.
+#
+# Licensed under the BSD 3-Clause License  (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# https://opensource.org/licenses/BSD-3-Clause
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 # Owner(s): ["module: fx"]
 """
 Add validation cases for torch.fx symbolic_shapes related APIs on NPU:
@@ -19,6 +34,7 @@ Add validation cases for torch.fx symbolic_shapes related APIs on NPU:
    - torch.fx.experimental.symbolic_shapes.StatefulSymbolicContext
    - torch.fx.experimental.symbolic_shapes.StatelessSymbolicContext
    - symbolic_shapes._lru_cache
+   - symbolic_shapes.lru_cache
    - symbolic_shapes.CallMethodKey
    - symbolic_shapes.CallMethodKey.get
    - symbolic_shapes.canonicalize_bool_expr
@@ -47,6 +63,7 @@ from torch.utils._sympy.value_ranges import ValueRanges
 importlib.import_module("torch_npu")
 
 device_type = acc.type if (acc := torch.accelerator.current_accelerator()) else "cpu"
+torch.zeros(3, 4).to(device_type)
 
 
 class TestSymbolicShapesAPI(TestCase):
@@ -356,6 +373,27 @@ class TestSymbolicShapesTargetApiNPU(TestCase):
         # maxsize=1 should evict the older argument entry.
         self.assertEqual(limited.cache_info().maxsize, 1)
         self.assertEqual(limited_calls["count"], 3)
+
+    def test_public_lru_cache(self):
+        calls = {"count": 0}
+
+        @symbolic_shapes.lru_cache(128)
+        def cached(value):
+            calls["count"] += 1
+            return value + 1
+
+        self.assertEqual(cached(3), 4)
+        self.assertEqual(cached(3), 4)
+        self.assertEqual(calls["count"], 1)
+
+        cache_info = cached.cumulative_cache_info()
+        self.assertEqual(cache_info.hits, 1)
+        self.assertEqual(cache_info.misses, 1)
+
+        cached.cache_clear()
+        self.assertEqual(cached.cache_info().currsize, 0)
+        self.assertEqual(cached(3), 4)
+        self.assertEqual(calls["count"], 2)
 
     def test_call_method_key_get_on_npu_tensor(self):
         tensor = torch.arange(12, dtype=torch.float32).reshape(3, 4).to(device_type)
