@@ -6,10 +6,7 @@
 
 |组件|地址|
 |:---|:---|
-|TorchNPU|v2.7.1分支请参考《[安全声明](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.0.0/docs/zh/SECURITYNOTE.md)》。|
-|TorchNPU|v2.8.0分支请参考《[安全声明](https://gitcode.com/Ascend/pytorch/blob/v2.8.0-26.0.0/SECURITYNOTE.md)》。|
-|TorchNPU|v2.9.0分支请参考《[安全声明](https://gitcode.com/Ascend/pytorch/blob/v2.9.0-26.0.0/SECURITYNOTE.md)》。|
-|TorchNPU|v2.10.0分支请参考《[安全声明](https://gitcode.com/Ascend/pytorch/blob/v2.10.0-26.0.0/SECURITYNOTE.md)》。|
-|OpPlugin|请参考《[安全声明](https://gitcode.com/Ascend/op-plugin/blob/26.0.0/docs/zh/SECURITYNOTE.md)》。|
-|TorchAir|请参考《[安全声明](https://gitcode.com/Ascend/torchair/blob/26.0.0/SECURITY_README.md)》。|
+|TorchNPU|请参考《[安全声明](../../../SECURITYNOTE.md)》。|
+|OpPlugin|请参考《[安全声明](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/SECURITYNOTE.md)》。|
+|TorchAir|请参考《[安全声明](https://gitcode.com/Ascend/torchair/blob/master/SECURITY_README.md)》。|
 |Ascend Extension for TensorPipe|请参考《[安全声明](https://gitcode.com/Ascend/Tensorpipe/blob/master/docs/zh/SECURITYNOTE.md)》。|

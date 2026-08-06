@@ -10,27 +10,23 @@ torchvision为PyTorch的扩展库，主要用于计算机视觉任务。它包�
 
 |PyTorch版本|torchvision版本|
 |--|--|
-|2.7.1|0.22.1|
-|2.9.0|0.24.0|
-|2.10.0|0.25.0|
-|2.11.0|0.26.0|
-|2.12.0|0.27.0|
+|2.13.0|0.28.0|
 
 ## 安装torchvision
 
-以0.22.1版本为例，介绍如何安装torchvision。
+以0.28.0版本为例，介绍如何安装torchvision。
 
 - 方式一
 
     ```bash
-    pip3 install torchvision==0.22.1 --index-url https://download.pytorch.org/whl/cpu
+    pip3 install torchvision==0.28.0 --index-url https://download.pytorch.org/whl/cpu
     ```
 
 - 方式二
   1. 获取torchvision源码。
 
         ```bash
-        git clone https://github.com/pytorch/vision.git -b v0.22.1 --depth 1
+        git clone https://github.com/pytorch/vision.git -b v0.28.0 --depth 1
         ```
 
         > [!NOTE]
@@ -50,7 +46,7 @@ torchvision为PyTorch的扩展库，主要用于计算机视觉任务。它包�
 
         ```bash
         cd dist
-        pip3 install torchvision-0.22.*.whl
+        pip3 install torchvision-0.28.*.whl
         ```
 
 ## 安装后验证
@@ -68,5 +64,5 @@ Python 3.10.17 (main, Nov 4 2025, 17:12:04) [GCC 9.4.0] on linux
 Type "help", "copyright", "credits" or "license" for more information.
 >>> import torchvision
 >>> print(torchvision.__version__)
-0.22.1
+0.28.0
 ```

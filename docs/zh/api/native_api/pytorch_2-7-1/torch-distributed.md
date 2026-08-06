@@ -410,7 +410,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 当pg_options参数传入类型为torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()时，配置该变量属性hccl_config可控制HCCL通信域缓冲区大小。具体示例可参考《PyTorch 训练模型迁移调优指南》的“[hccl_buffer_size](https://gitcode.com/Ascend/docs/blob/master/FrameworkPTAdapter/26.0.0/zh/pytorch_model_migration_fine_tuning/hccl_buffer_size.md)”章节。配置变量属性hccl_config的group_name字段可以设置HCCL通信域的通信组自定义名称，取值为长度不超过32的字符串。
+**限制与说明**： 当pg_options参数传入类型为torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()时，配置该变量属性hccl_config可控制HCCL通信域缓冲区大小。具体示例可参考[hccl_buffer_size](https://www.hiascend.com/document/detail/zh/ModelZoo/traditional_model_train/PyTorch/docs/zh/performance_tuning/performance_tuning_methods/communication_basics_overview.md#hccl_buffer_size)。配置变量属性hccl_config的group_name字段可以设置HCCL通信域的通信组自定义名称，取值为长度不超过32的字符串。
 
 </div>
 
@@ -1012,7 +1012,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 当pg_options参数传入类型为torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()时，配置该变量属性hccl_config可控制HCCL通信域缓冲区大小。具体示例可参考《PyTorch 训练模型迁移调优指南》的“[hccl_buffer_size](https://gitcode.com/Ascend/docs/blob/master/FrameworkPTAdapter/26.0.0/zh/pytorch_model_migration_fine_tuning/hccl_buffer_size.md)”章节。配置变量属性hccl_config的group_name字段可以设置HCCL通信域的通信组自定义名称，取值为长度不超过32的字符串。
+**限制与说明**：当pg_options参数传入类型为torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()时，配置该变量属性hccl_config可控制HCCL通信域缓冲区大小。具体示例可参考[hccl_buffer_size](https://www.hiascend.com/document/detail/zh/ModelZoo/traditional_model_train/PyTorch/docs/zh/performance_tuning/performance_tuning_methods/communication_basics_overview.md#hccl_buffer_size)。配置变量属性hccl_config的group_name字段可以设置HCCL通信域的通信组自定义名称，取值为长度不超过32的字符串。
 
 </div>
 

@@ -199,7 +199,7 @@
 
 ## 编译验证
 
-1. 编译TorchNPU插件并安装，推荐使用容器场景进行编译，具体操作可参考《软件安装》中的“[源码安装](../../../installation_guide/appendix/building_from_source.md)”章节的“方式一（推荐）：容器场景”。
+1. 编译TorchNPU插件并安装，推荐使用容器场景进行编译，具体操作可参考《软件安装》中的“[源码安装](../../../installation_guide/references/building_from_source.md)”章节的“方式一（推荐）：容器场景”。
 
 2. 上述开发过程完成后，调用开发者测试脚本，验证基本功能是否正常。
 

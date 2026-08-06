@@ -14,17 +14,15 @@
 
 在安装不同类型操作系统所需依赖前，请在安装用户下检查源是否可用。以配置华为镜像源为例，可参考[华为开源镜像站](https://mirrors.huaweicloud.com/)中镜像源对应的配置方法操作。
 
-以下操作步骤以安装PyTorch 2.7.1版本为例。
+以下操作步骤以安装PyTorch 2.13.0版本、Python 2.10.0版本为例。
 
 - **方式一（推荐）：容器场景**
     
     1. 下载TorchNPU源码。
 
         ```bash
-        git clone https://gitcode.com/Ascend/pytorch.git -b v2.7.1-26.1.0 --depth 1
+        git clone https://gitcode.com/Ascend/pytorch.git -b master --depth 1
         ```
-
-        以v2.7.1-26.1.0为例，下载对应的TorchNPU分支代码。请参见《版本说明》中的“[相关产品版本配套说明](../../release_notes.md#相关产品版本配套说明)”章节下载TorchNPU其他版本的分支代码。
 
     2. 构建镜像。
 
@@ -60,7 +58,7 @@
         bash ci/build.sh --python=3.10
         ```
 
-        如需指定其他Python版本，请使用--python=3.9、--python=3.11、--python=3.12或--python=3.13。
+        如需指定其他Python版本，请使用--python=3.10、--python=3.11、--python=3.12、--python=3.13或--python=3.14。
         > [!NOTE]
         > 
         > 默认编译Release版本。如需编译Debug版本，请在执行构建命令时设置环境变量`DEBUG=1`。
@@ -68,7 +66,7 @@
     5. 在运行环境中安装生成的TorchNPU插件包，如果使用非root用户进行安装，需要在命令后加`--user`。
 
         ```bash
-        pip3 install --upgrade dist/torch_npu-2.7.1.post2-cp310-cp310-linux_aarch64.whl
+        pip3 install --upgrade dist/torch_npu-2.13.0.rc1-cp310-cp310-linux_aarch64.whl
         ```
 
         请用户根据实际情况更改命令中的TorchNPU包名。
@@ -113,16 +111,8 @@
 
                     |PyTorch版本|系统架构|gcc版本|cmake版本|
                     |--|--|--|--|
-                    |2.7.1|X86_64|11.2.0|3.18.4|
-                    |2.7.1|AArch64|11.2.0|3.31.1|
-                    |2.9.0|X86_64|13.3.0|3.18.4|
-                    |2.9.0|AArch64|13.3.0|4.0.3|
-                    |2.10.0|X86_64|13.3.0|3.18.4|
-                    |2.10.0|AArch64|13.3.0|4.0.3|
-                    |2.11.0|X86_64|13.3.1|3.18.4|
-                    |2.11.0|AArch64|13.3.1|4.3.2|
-                    |2.12.0|X86_64|13.3.1|3.18.4|
-                    |2.12.0|AArch64|13.3.1|4.3.2|
+                    |2.13.0|X86_64|13.3.1|3.18.4|
+                    |2.13.0|AArch64|13.3.1|4.3.2|
 
                     > [!NOTE]
                     >
@@ -139,14 +129,12 @@
             如果使用非root用户安装，需要在命令后加`--user`，例如：**pip3 install pyyaml --user**。
 
     2. 编译生成TorchNPU插件的Whl安装包。
-        1. 以v2.7.1-26.1.0为例，下载对应的TorchNPU分支代码并进入插件根目录。
+        1. 下载master分支代码并进入TorchNPU插件根目录。
 
             ```bash
-            git clone -b v2.7.1-26.1.0 https://gitcode.com/Ascend/pytorch.git
+            git clone -b master https://gitcode.com/Ascend/pytorch.git
             cd pytorch
             ```
-
-            请参见《版本说明》中的“[相关产品版本配套说明](../../release_notes.md#相关产品版本配套说明)”章节下载TorchNPU其他版本的分支代码。
 
         2. 编译生成Whl安装包。
 
@@ -154,7 +142,7 @@
             bash ci/build.sh --python=3.10
             ```
 
-            如需指定其他Python版本，请使用--python=3.9、--python=3.11、--python=3.12或--python=3.13。
+            如需指定其他Python版本，请使用--python=3.10、--python=3.11、--python=3.12、--python=3.13或--python=3.14。
             > [!NOTE]
             > 
             > 默认编译Release版本。如需编译Debug版本，请在执行构建命令时设置环境变量`DEBUG=1`。
@@ -162,7 +150,7 @@
     3. 安装pytorch/dist目录下生成的插件TorchNPU包，如果使用非root用户安装，需要在命令后加`--user`。
 
         ```bash
-        pip3 install --upgrade dist/torch_npu-2.7.1.post2-cp310-cp310-linux_aarch64.whl
+        pip3 install --upgrade dist/torch_npu-2.13.0.rc1-cp310-cp310-linux_aarch64.whl
         ```
 
         请用户根据实际情况更改命令中的TorchNPU包名。
@@ -175,40 +163,18 @@
 
 ## 安装后验证
 
-如需查看当前环境中已安装的Python、PyTorch和TorchNPU安装包版本，请参见[查询版本](check_installed_versions.md)。
-
 执行以下命令可检查PyTorch框架和TorchNPU插件是否已成功安装。
 
-- 方法一
+```Python
+python3 -c "import torch;import torch_npu; a = torch.randn(3, 4).npu(); print(a + a);"
+```
 
-    ```Python
-    python3 -c "import torch;import torch_npu; a = torch.randn(3, 4).npu(); print(a + a);"
-    ```
+输出如下类似信息说明安装成功。
 
-    输出如下类似信息说明安装成功。
+```text
+tensor([[-0.6066,  6.3385,  0.0379,  3.3356],
+        [ 2.9243,  3.3134, -1.5465,  0.1916],
+        [-2.1807,  0.2008, -1.1431,  2.1523]], device='npu:0')
+```
 
-    ```text
-    tensor([[-0.6066,  6.3385,  0.0379,  3.3356],
-            [ 2.9243,  3.3134, -1.5465,  0.1916],
-            [-2.1807,  0.2008, -1.1431,  2.1523]], device='npu:0')
-    ```
-
-- 方法二
-
-    ```Python
-    import torch
-    import torch_npu
-    
-    x = torch.randn(2, 2).npu()
-    y = torch.randn(2, 2).npu()
-    z = x.mm(y)
-    
-    print(z)
-    ```
-
-    输出如下类似信息说明安装成功。
-
-    ```text
-    tensor([[-0.0515,  0.3664],
-            [-0.1258, -0.5425]], device='npu:0')
-    ```
+如需查看当前环境中已安装的Python、PyTorch和TorchNPU安装包版本，请参见[查询版本](../references/check_installed_versions.md)。

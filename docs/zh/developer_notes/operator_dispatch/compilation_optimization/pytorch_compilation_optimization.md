@@ -8,7 +8,7 @@
 
 1. 依赖安装。
 
-    PyTorch推荐在容器里进行编译，具体请参考[源码安装](../../../installation_guide/appendix/building_from_source.md)。
+    PyTorch推荐在容器里进行编译，具体请参考[源码安装](../../../installation_guide/references/building_from_source.md)。
 
     毕昇环境变量配置，详情请参见[安装毕昇编译器](install_bisheng_compiler.md)。
 

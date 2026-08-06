@@ -1,6 +1,6 @@
 # Docker安装
 
-Docker镜像中已预装PyTorch框架、TorchNPU插件及配套的CANN软件，用户无需再手动安装上述软件，仅需安装NPU驱动及固件即可。
+Docker镜像中已预装PyTorch框架、TorchNPU插件及配套的CANN软件，用户无需再手动安装上述软件，仅需安装NPU驱动及固件即可。适用于需要快速搭建开箱即用的运行环境、避免手动配置依赖或需隔离运行环境的场景。
 
 ## 启动容器
 
@@ -41,7 +41,7 @@ Docker镜像中已预装PyTorch框架、TorchNPU插件及配套的CANN软件，�
     |`quay.io/ascend/torch-npu:<镜像标签>`|指定使用的镜像，`<镜像标签>`需替换为实际标签，例如`2.10.0-310p-ubuntu22.04-py3.11`|
     |`tail -f /dev/null`|保持容器运行的前台占位命令|
 
-    容器启动后，执行以下命令进入容器。
+3. 容器启动后，执行以下命令进入容器。
 
     ```bash
     docker exec -it torch-npu bash
@@ -55,40 +55,18 @@ Docker镜像中已预装PyTorch框架、TorchNPU插件及配套的CANN软件，�
 
 ## 安装后验证
 
-在容器内执行以下命令可检查PyTorch框架和TorchNPU插件是否已成功安装。
+执行以下命令可检查PyTorch框架和TorchNPU插件是否已成功安装。
 
-- 方法一
+```Python
+python3 -c "import torch;import torch_npu; a = torch.randn(3, 4).npu(); print(a + a);"
+```
 
-    ```Python
-    python3 -c "import torch;import torch_npu; a = torch.randn(3, 4).npu(); print(a + a);"
-    ```
+输出如下类似信息说明安装成功。
 
-    输出如下类似信息说明安装成功。
+```text
+tensor([[-0.6066,  6.3385,  0.0379,  3.3356],
+        [ 2.9243,  3.3134, -1.5465,  0.1916],
+        [-2.1807,  0.2008, -1.1431,  2.1523]], device='npu:0')
+```
 
-    ```text
-    tensor([[-0.6066,  6.3385,  0.0379,  3.3356],
-            [ 2.9243,  3.3134, -1.5465,  0.1916],
-            [-2.1807,  0.2008, -1.1431,  2.1523]], device='npu:0')
-    ```
-
-- 方法二
-
-    ```Python
-    import torch
-    import torch_npu
-
-    x = torch.randn(2, 2).npu()
-    y = torch.randn(2, 2).npu()
-    z = x.mm(y)
-
-    print(z)
-    ```
-
-    输出如下类似信息说明安装成功。
-
-    ```text
-    tensor([[-0.0515,  0.3664],
-            [-0.1258, -0.5425]], device='npu:0')
-    ```
-
-如需查看当前环境中已安装的Python、PyTorch和TorchNPU版本，请参见[查询版本](check_installed_versions.md)。
+如需查看当前环境中已安装的Python、PyTorch和TorchNPU安装包版本，请参见[查询版本](../references/check_installed_versions.md)。

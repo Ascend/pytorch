@@ -201,7 +201,7 @@ gcc --version
 
 **处理方法**
 
-如果GCC版本低于8，请参考《[安装GCC 11.2.0版本](appendix/installing_gcc_11-2-0.md)》安装GCC 8及以上版本。
+如果GCC版本低于8，请参考《[安装GCC 11.2.0版本](../installation_guide/references/installing_gcc_11-2-0.md)》安装GCC 8及以上版本。
 
 ## 安装问题
 
@@ -268,7 +268,7 @@ Segmentation fault
 
 **处理方法**
 
-使用对应的GCC版本进行编译，具体对应版本可参考[GCC和Cmake版本要求](appendix/building_from_source.md#gcc_cmake)。
+使用对应的GCC版本进行编译，具体对应版本可参考[GCC和Cmake版本要求](../installation_guide/references/building_from_source.md#gcc_cmake)。
 
 ### “import torch_npu”报错找不到torch_npu._C
 

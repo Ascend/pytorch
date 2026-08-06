@@ -8,7 +8,7 @@
 
     TorchNPU构建依赖PyTorch，目前需要参考[PyTorch编译优化](pytorch_compilation_optimization.md)用毕昇编译器构建PyTorch之后，在环境里重新安装PyTorch，然后再编译TorchNPU。
 
-    TorchNPU推荐在容器里进行编译，具体请参考[源码安装](../../../installation_guide/appendix/building_from_source.md)。以下描述均以TorchNPU v2.7.1版为例。
+    TorchNPU推荐在容器里进行编译，具体请参考[源码安装](../../../installation_guide/references/building_from_source.md)。以下描述均以TorchNPU v2.7.1版为例。
 
     参考[安装毕昇编译器](install_bisheng_compiler.md)配置毕昇编译器环境。
 

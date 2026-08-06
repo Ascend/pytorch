@@ -33,7 +33,7 @@ export TORCH_ACL_INIT_CONFIG_PATH=/path/to/custom_acl.json
 - **CANN >= 8.3.RC1**：用户配置文件必须包含`"defaultDevice": {"default_device": "0"}`，否则会报错。
 - **CANN < 8.3.RC1**：用户配置文件不应包含`defaultDevice`，否则会报错。
 
-支持的详细配置参考CANN aclInit接口说明(https://www.hiascend.com/document/detail/zh/canncommercial/900/API/runtimeapi/aclcppdevg_03_0022.html)。
+支持的详细配置参考《CANN Runtime运行时API》中的“[aclInit](https://www.hiascend.com/document/detail/zh/canncommercial/latest/API/runtimeapi/aclcppdevg_03_0022.html)”。
 
 ## 使用约束
 

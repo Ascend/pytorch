@@ -26,7 +26,7 @@
 </tr>
 <tr id="row954744243418"><th class="firstcol" valign="top" width="26.25%" id="mcps1.1.3.5.1"><p id="p15471742193419">维护周期</p>
 </th>
-<td class="cellrowborder" valign="top" width="73.75%" headers="mcps1.1.3.5.1 "><p id="p1154734212344">参考<a href="https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.1.0/README.zh.md#%E5%88%86%E6%94%AF%E7%BB%B4%E6%8A%A4%E7%AD%96%E7%95%A5">分支维护策略</a></p>
+<td class="cellrowborder" valign="top" width="73.75%" headers="mcps1.1.3.5.1 "><p id="p1154734212344">参考<a href="https://gitcode.com/Ascend/pytorch/blob/master/README.zh.md#%E5%88%86%E6%94%AF%E7%BB%B4%E6%8A%A4%E7%AD%96%E7%95%A5">分支维护策略</a></p>
 </td>
 </tr>
 </tbody>
@@ -479,7 +479,7 @@ TorchNPU代码分支名称采用 **\{PyTorch版本\}-\{TorchNPU版本\}** 的命
 |《[TorchNPU概述](../zh/user_guide/product_overview.md)》|TorchNPU插件是基于昇腾的深度学习适配框架，使昇腾NPU可以支持PyTorch框架，为PyTorch框架的使用者提供昇腾AI处理器的超强算力。|&#8226; 更新软件架构相关内容。<br>&#8226; 新增TorchNPU插件启动阶段的初始化流程相关内容。<br>&#8226; 新增支持<term>Ascend 950DT</term>相关内容。 |
 |《[快速入门](../zh/user_guide/quick_start.md)》|提供了一个简单的模型迁移样例，采用了最简单的自动迁移方法，帮助用户快速体验GPU模型脚本迁移到昇腾NPU上的流程。|新增支持<term>Ascend 950DT</term>相关内容。 |
 |《[Torch.compile](../zh/user_guide/torch_compile/overview.md)》|通过“动态图捕获+静态图优化+高效代码生成”的方式显著加速模型训练和推理任务。| 内容独立且优化。|
-|《[配套软件库](https://gitcode.com/Ascend/docs/blob/master/FrameworkPTAdapter/26.1.0/zh/supported_suites_and_third_party_libraries/supported_suites_and_third_party_libraries.md)》|为TorchNPU提供扩展能力的配套软件库。|&#8226; 仅保留原《套件与三方库支持清单》中的“昇腾自研插件”部分。<br>&#8226; 新增HyperParallel和AKG组件。|
+|《[配套软件库](./user_guide/libraries.md)》|为TorchNPU提供扩展能力的配套软件库。|&#8226; 仅保留原《套件与三方库支持清单》中的“昇腾自研插件”部分。<br>&#8226; 新增HyperParallel和AKG组件。|
 |《[故障处理](../zh/user_guide/troubleshooting/troubleshooting_process.md)》|以开发者在执行推理、训练过程中可能遇到的各类异常故障现象为入口，提供自助式问题定位、问题处理方法，方便开发者快速定位并解决故障。|新增“使用NZ格式后精度异常”相关内容。|
 |《[原生API](../zh/api/native_api/pytorch_2-12-0/overview.md)》|提供PyTorch 2.12.0/2.11.0/2.10.0/2.9.0/2.7.1版本原生API在昇腾设备上的支持情况。|&#8226; 新增PyTorch 2.11.0和PyTorch 2.12.0原生API支持清单。<br>&#8226; 新增支持<term>Ascend 950DT</term>相关内容。 |
 |《[自定义API](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/overview.md)》|提供TorchNPU自定义API的函数原型、功能说明、参数说明与调用示例等。|&#8226; 新增适配PyTorch 2.11.0和PyTorch 2.12.0。<br>&#8226; 新增支持<term>Ascend 950DT</term>相关内容。<br>&#8226; 具体接口变更请参考[接口变更说明](#接口变更说明)。|

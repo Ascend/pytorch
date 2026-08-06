@@ -43,73 +43,20 @@
 > - 更多TorchNPU插件版本请参考[PyTorch Release](https://gitcode.com/Ascend/pytorch/releases)。
 > - Triton-Ascend插件用于支持图模式Inductor后端，且仅支持PyTorch2.7.1和2.9.0版本。
 
-## 版本查询
-
-执行以下命令可检查安装的Python、PyTorch框架和TorchNPU插件版本。
-
-- 查看已安装的Pyhton版本。
-
-    ```bash
-    python --version
-    ```
-
-    输出如下Python版本。
-
-    ```text
-    Python 3.13.0
-    ```
-
-- 查看已安装的PyTorch框架和TorchNPU插件版本。
-
-    ```bash
-    pip list | grep torch
-    ```
-
-    输出如下PyTorch框架和TorchNPU插件版本。
-
-    ```text
-    torch     2.10.0
-    torch_npu      26.0.0 
-    ```
-
-    > [!NOTE]
-    >
-    > 如果需要查询TorchNPU安装包版本，请单击[相关产品版本配套说明](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.0.0/docs/zh/release_notes/release_notes.md#%E7%9B%B8%E5%85%B3%E4%BA%A7%E5%93%81%E7%89%88%E6%9C%AC%E9%85%8D%E5%A5%97%E8%AF%B4%E6%98%8E)查看。
-
 ## 安装后验证
 
 执行以下命令可检查PyTorch框架和TorchNPU插件是否已成功安装。
 
-- 方法一
+```Python
+python3 -c "import torch;import torch_npu; a = torch.randn(3, 4).npu(); print(a + a);"
+```
 
-    ```Python
-    python3 -c "import torch;import torch_npu; a = torch.randn(3, 4).npu(); print(a + a);"
-    ```
+输出如下类似信息说明安装成功。
 
-    输出如下类似信息说明安装成功。
+```text
+tensor([[-0.6066,  6.3385,  0.0379,  3.3356],
+        [ 2.9243,  3.3134, -1.5465,  0.1916],
+        [-2.1807,  0.2008, -1.1431,  2.1523]], device='npu:0')
+```
 
-    ```text
-    tensor([[-0.6066,  6.3385,  0.0379,  3.3356],
-            [ 2.9243,  3.3134, -1.5465,  0.1916],
-            [-2.1807,  0.2008, -1.1431,  2.1523]], device='npu:0')
-    ```
-
-- 方法二
-
-    ```Python
-    import torch
-    import torch_npu
-
-    x = torch.randn(2, 2).npu()
-    y = torch.randn(2, 2).npu()
-    z = x.mm(y)
-
-    print(z)
-    ```
-
-    输出如下类似信息说明安装成功。
-
-    ```text
-    tensor([[-0.0515,  0.3664],
-            [-0.1258, -0.5425]], device='npu:0')
-    ```
+如需查看当前环境中已安装的Python、PyTorch和TorchNPU安装包版本，请参见[查询版本](../references/check_installed_versions.md)。
