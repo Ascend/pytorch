@@ -91,20 +91,27 @@
 
 ## 环境部署
 
-TorchNPU插件的安装操作，具体请参见《[TorchNPU 软件安装](https://gitcode.com/Ascend/pytorch/blob/v2.7.1/docs/zh/installation_guide/menu_installation_guide.md)》。
+TorchNPU插件的安装操作，具体请参见《[软件安装](https://gitcode.com/Ascend/pytorch/blob/master/docs/zh/installation_guide/_menu_installation_guide.md)》。
 
 ## 快速入门
 
-以CNN模型为例，介绍将其迁移至昇腾NPU上进行训练的方法，具体操作请参见《[TorchNPU 快速入门](https://gitcode.com/Ascend/pytorch/blob/v2.7.1/docs/zh/quick_start/quick_start.md)》。
+以CNN模型为例，介绍将其迁移至昇腾NPU上进行训练的方法，具体操作请参见《[快速入门](https://gitcode.com/Ascend/pytorch/blob/master/docs/zh/user_guide/quick_start.md)》。
 
 ## 特性介绍
 
-TorchNPU插件从内存资源优化、通信性能优化、计算性能优化、辅助报错定位等方面精心打造了一系列独特的特性，具体特性指导请参见《[PyTorch 开发指南](https://gitcode.com/Ascend/pytorch/blob/v2.7.1/docs/zh/framework_feature_guide_pytorch/menu_development_guide.md)》。
+TorchNPU插件从内存管理、分布式、算子下发、故障诊断等方面精心打造了一系列独特的特性。为用户提供了一个高效、便捷的开发工具。
+
+- 内存管理：具体请参考[内存管理](https://gitcode.com/Ascend/pytorch/blob/master/docs/zh/developer_notes/memory_management/_menu_memory_management.md)。
+- 分布式：具体请参考[分布式](https://gitcode.com/Ascend/pytorch/blob/master/docs/zh/developer_notes/distributed/_menu_distributed.md)。
+- 算子下发：具体请参考[算子下发](https://gitcode.com/Ascend/pytorch/blob/master/docs/zh/developer_notes/operator_dispatch/_menu_operator_dispatch.md)。
+- 故障诊断：具体请参考[故障诊断](https://gitcode.com/Ascend/pytorch/blob/master/docs/zh/developer_notes/fault_diagnosis/_menu_fault_diagnosis.md)。
+- NPUGraph：具体请参考[NPUGraph](https://gitcode.com/Ascend/pytorch/blob/master/docs/zh/developer_notes/npugraph.md)。
+- 自定义算子适配开发：具体请参考[自定义算子适配开发](https://gitcode.com/Ascend/pytorch/blob/master/docs/zh/developer_notes/custom_operator_adaptation/_menu_custom_operator_adaptation.md)。
 
 ## API参考
 
-- 原生PyTorch API在昇腾NPU设备上的支持情况请参见《[PyTorch 原生API支持度](https://gitcode.com/Ascend/pytorch/blob/v2.7.1/docs/zh/native_apis/menu_pt_native_apis.md)》。
-- TorchNPU插件提供了部分自定义API接口，具体使用请参见《[TorchNPU自定义API](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/menu_Pytorch_API.md)》。
+- 原生PyTorch API在昇腾NPU设备上的支持情况请参见《[原生API](https://gitcode.com/Ascend/pytorch/blob/master/docs/zh/api/native_api/_menu_pt_native_apis.md)》。
+- TorchNPU插件提供了部分自定义API接口，具体使用请参见《[自定义API](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/menu_Pytorch_API.md)》。
 
 ## 建议与交流
 
