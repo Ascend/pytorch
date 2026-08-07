@@ -135,7 +135,7 @@
 
 </div>
 
-### _`class`_ torch.autograd.FunctionCtx
+### <code><i>class</i></code> torch.autograd.FunctionCtx
 
 <div style="margin-left: 2em">
 
@@ -205,7 +205,7 @@
 
 </div>
 
-### _`class`_ torch.autograd.Node
+### <code><i>class</i></code> torch.autograd.Node
 
 <div style="margin-left: 2em">
 
@@ -293,7 +293,7 @@
 
 ## Context method mixins
 
-### _`class`_ torch.autograd.Function
+### <code><i>class</i></code> torch.autograd.Function
 
 <div style="margin-left: 2em">
 

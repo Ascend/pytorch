@@ -94,7 +94,7 @@
 
 </div>
 
-### _`class`_ torch.cpu.StreamContext
+### <code><i>class</i></code> torch.cpu.StreamContext
 
 <div style="margin-left: 2em">
 
@@ -112,7 +112,7 @@
 
 ## Streams and events
 
-### _`class`_ torch.cpu.Stream
+### <code><i>class</i></code> torch.cpu.Stream
 
 <div style="margin-left: 2em">
 

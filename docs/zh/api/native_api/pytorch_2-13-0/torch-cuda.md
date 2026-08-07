@@ -22,7 +22,7 @@
 
 ## base API
 
-### _`class`_ torch.cuda.StreamContext
+### <code><i>class</i></code> torch.cuda.StreamContext
 
 <div style="margin-left: 2em">
 
@@ -786,7 +786,7 @@
 
 </div>
 
-### _`class`_ torch.cuda.CUDAPluggableAllocator
+### <code><i>class</i></code> torch.cuda.CUDAPluggableAllocator
 
 <div style="margin-left: 2em">
 
@@ -1080,7 +1080,7 @@
 
 ## Streams and events
 
-### _`class`_ torch.cuda.Stream
+### <code><i>class</i></code> torch.cuda.Stream
 
 <div style="margin-left: 2em">
 
@@ -1114,7 +1114,7 @@
 
 </div>
 
-### _`class`_ torch.cuda.Event
+### <code><i>class</i></code> torch.cuda.Event
 
 <div style="margin-left: 2em">
 
@@ -1252,7 +1252,7 @@
 
 </div>
 
-### _`class`_ torch.cuda.CUDAGraph
+### <code><i>class</i></code> torch.cuda.CUDAGraph
 
 <div style="margin-left: 2em">
 

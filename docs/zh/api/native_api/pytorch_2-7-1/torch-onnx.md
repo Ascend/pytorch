@@ -31,7 +31,7 @@
 
 </div>
 
-### _`class`_ torch.onnx.OnnxExporterError
+### <code><i>class</i></code> torch.onnx.OnnxExporterError
 
 <div style="margin-left: 2em">
 
@@ -143,7 +143,7 @@
 
 </div>
 
-### _`class`_ torch.onnx.JitScalarType
+### <code><i>class</i></code> torch.onnx.JitScalarType
 
 <div style="margin-left: 2em">
 
@@ -275,7 +275,7 @@
 
 </div>
 
-### _`class`_ torch.onnx.verification.GraphInfo
+### <code><i>class</i></code> torch.onnx.verification.GraphInfo
 
 <div style="margin-left: 2em">
 
@@ -291,7 +291,7 @@
 
 </div>
 
-### _`class`_ torch.onnx.verification.VerificationOptions
+### <code><i>class</i></code> torch.onnx.verification.VerificationOptions
 
 <div style="margin-left: 2em">
 
@@ -327,7 +327,7 @@
 
 </div>
 
-### _`class`_ torch.onnx.ONNXProgram
+### <code><i>class</i></code> torch.onnx.ONNXProgram
 
 <div style="margin-left: 2em">
 
@@ -393,7 +393,7 @@
 
 ## API Reference
 
-### _`class`_ torch.onnx.ExportOptions
+### <code><i>class</i></code> torch.onnx.ExportOptions
 
 <div style="margin-left: 2em">
 
@@ -409,7 +409,7 @@
 
 </div>
 
-### _`class`_ torch.onnx.OnnxRegistry
+### <code><i>class</i></code> torch.onnx.OnnxRegistry
 
 <div style="margin-left: 2em">
 
@@ -489,7 +489,7 @@
 
 </div>
 
-### _`class`_ torch.onnx.DiagnosticOptions
+### <code><i>class</i></code> torch.onnx.DiagnosticOptions
 
 <div style="margin-left: 2em">
 

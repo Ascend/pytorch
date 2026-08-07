@@ -14,7 +14,7 @@
 
 ## Extending custom ops (created from Python or C++)
 
-### _`class`_ torch.library.Library
+### <code><i>class</i></code> torch.library.Library
 
 <div style="margin-left: 2em">
 

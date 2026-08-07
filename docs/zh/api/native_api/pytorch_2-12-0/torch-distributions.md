@@ -27,7 +27,7 @@
 
 ## base API
 
-### _`class`_ torch.distributions.bernoulli.Bernoulli
+### <code><i>class</i></code> torch.distributions.bernoulli.Bernoulli
 
 <div style="margin-left: 2em">
 
@@ -251,7 +251,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.beta.Beta
+### <code><i>class</i></code> torch.distributions.beta.Beta
 
 <div style="margin-left: 2em">
 
@@ -459,7 +459,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.binomial.Binomial
+### <code><i>class</i></code> torch.distributions.binomial.Binomial
 
 <div style="margin-left: 2em">
 
@@ -687,7 +687,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.chi2.Chi2
+### <code><i>class</i></code> torch.distributions.chi2.Chi2
 
 <div style="margin-left: 2em">
 
@@ -753,7 +753,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.continuous_bernoulli.ContinuousBernoulli
+### <code><i>class</i></code> torch.distributions.continuous_bernoulli.ContinuousBernoulli
 
 <div style="margin-left: 2em">
 
@@ -1025,7 +1025,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.dirichlet.Dirichlet
+### <code><i>class</i></code> torch.distributions.dirichlet.Dirichlet
 
 <div style="margin-left: 2em">
 
@@ -1207,7 +1207,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.exponential.Exponential
+### <code><i>class</i></code> torch.distributions.exponential.Exponential
 
 <div style="margin-left: 2em">
 
@@ -1431,7 +1431,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.fishersnedecor.FisherSnedecor
+### <code><i>class</i></code> torch.distributions.fishersnedecor.FisherSnedecor
 
 <div style="margin-left: 2em">
 
@@ -1593,7 +1593,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.independent.Independent
+### <code><i>class</i></code> torch.distributions.independent.Independent
 
 <div style="margin-left: 2em">
 
@@ -1801,7 +1801,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.kumaraswamy.Kumaraswamy
+### <code><i>class</i></code> torch.distributions.kumaraswamy.Kumaraswamy
 
 <div style="margin-left: 2em">
 
@@ -1947,7 +1947,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.lkj_cholesky.LKJCholesky
+### <code><i>class</i></code> torch.distributions.lkj_cholesky.LKJCholesky
 
 <div style="margin-left: 2em">
 
@@ -2045,7 +2045,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.laplace.Laplace
+### <code><i>class</i></code> torch.distributions.laplace.Laplace
 
 <div style="margin-left: 2em">
 
@@ -2271,7 +2271,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.lowrank_multivariate_normal.LowRankMultivariateNormal
+### <code><i>class</i></code> torch.distributions.lowrank_multivariate_normal.LowRankMultivariateNormal
 
 <div style="margin-left: 2em">
 
@@ -2495,7 +2495,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.mixture_same_family.MixtureSameFamily
+### <code><i>class</i></code> torch.distributions.mixture_same_family.MixtureSameFamily
 
 <div style="margin-left: 2em">
 
@@ -2687,7 +2687,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.multinomial.Multinomial
+### <code><i>class</i></code> torch.distributions.multinomial.Multinomial
 
 <div style="margin-left: 2em">
 
@@ -2895,7 +2895,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.multivariate_normal.MultivariateNormal
+### <code><i>class</i></code> torch.distributions.multivariate_normal.MultivariateNormal
 
 <div style="margin-left: 2em">
 
@@ -3125,7 +3125,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.negative_binomial.NegativeBinomial
+### <code><i>class</i></code> torch.distributions.negative_binomial.NegativeBinomial
 
 <div style="margin-left: 2em">
 
@@ -3321,7 +3321,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.one_hot_categorical.OneHotCategorical
+### <code><i>class</i></code> torch.distributions.one_hot_categorical.OneHotCategorical
 
 <div style="margin-left: 2em">
 
@@ -3545,7 +3545,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.poisson.Poisson
+### <code><i>class</i></code> torch.distributions.poisson.Poisson
 
 <div style="margin-left: 2em">
 
@@ -3691,7 +3691,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.studentT.StudentT
+### <code><i>class</i></code> torch.distributions.studentT.StudentT
 
 <div style="margin-left: 2em">
 
@@ -3869,7 +3869,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.uniform.Uniform
+### <code><i>class</i></code> torch.distributions.uniform.Uniform
 
 <div style="margin-left: 2em">
 
@@ -4083,7 +4083,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.von_mises.VonMises
+### <code><i>class</i></code> torch.distributions.von_mises.VonMises
 
 <div style="margin-left: 2em">
 
@@ -4243,7 +4243,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.wishart.Wishart
+### <code><i>class</i></code> torch.distributions.wishart.Wishart
 
 <div style="margin-left: 2em">
 
@@ -4467,7 +4467,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.transforms.AbsTransform
+### <code><i>class</i></code> torch.distributions.transforms.AbsTransform
 
 <div style="margin-left: 2em">
 
@@ -4485,7 +4485,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.transforms.AffineTransform
+### <code><i>class</i></code> torch.distributions.transforms.AffineTransform
 
 <div style="margin-left: 2em">
 
@@ -4501,7 +4501,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.transforms.CatTransform
+### <code><i>class</i></code> torch.distributions.transforms.CatTransform
 
 <div style="margin-left: 2em">
 
@@ -4517,7 +4517,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.transforms.CorrCholeskyTransform
+### <code><i>class</i></code> torch.distributions.transforms.CorrCholeskyTransform
 
 <div style="margin-left: 2em">
 
@@ -4533,7 +4533,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.transforms.ExpTransform
+### <code><i>class</i></code> torch.distributions.transforms.ExpTransform
 
 <div style="margin-left: 2em">
 
@@ -4549,7 +4549,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.transforms.LowerCholeskyTransform
+### <code><i>class</i></code> torch.distributions.transforms.LowerCholeskyTransform
 
 <div style="margin-left: 2em">
 
@@ -4565,7 +4565,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.transforms.PositiveDefiniteTransform
+### <code><i>class</i></code> torch.distributions.transforms.PositiveDefiniteTransform
 
 <div style="margin-left: 2em">
 
@@ -4581,7 +4581,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.transforms.PowerTransform
+### <code><i>class</i></code> torch.distributions.transforms.PowerTransform
 
 <div style="margin-left: 2em">
 
@@ -4597,7 +4597,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.transforms.ReshapeTransform
+### <code><i>class</i></code> torch.distributions.transforms.ReshapeTransform
 
 <div style="margin-left: 2em">
 
@@ -4613,7 +4613,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.transforms.SigmoidTransform
+### <code><i>class</i></code> torch.distributions.transforms.SigmoidTransform
 
 <div style="margin-left: 2em">
 
@@ -4629,7 +4629,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.transforms.SoftplusTransform
+### <code><i>class</i></code> torch.distributions.transforms.SoftplusTransform
 
 <div style="margin-left: 2em">
 
@@ -4645,7 +4645,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.transforms.TanhTransform
+### <code><i>class</i></code> torch.distributions.transforms.TanhTransform
 
 <div style="margin-left: 2em">
 
@@ -4661,7 +4661,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.transforms.StackTransform
+### <code><i>class</i></code> torch.distributions.transforms.StackTransform
 
 <div style="margin-left: 2em">
 
@@ -4743,7 +4743,7 @@
 
 ## ExponentialFamily
 
-### _`class`_ torch.distributions.distribution.Distribution
+### <code><i>class</i></code> torch.distributions.distribution.Distribution
 
 <div style="margin-left: 2em">
 
@@ -4895,7 +4895,7 @@
 
 ## Bernoulli
 
-### _`class`_ torch.distributions.exp_family.ExponentialFamily
+### <code><i>class</i></code> torch.distributions.exp_family.ExponentialFamily
 
 <div style="margin-left: 2em">
 
@@ -4919,7 +4919,7 @@
 
 ## MixtureSameFamily
 
-### _`class`_ torch.distributions.categorical.Categorical
+### <code><i>class</i></code> torch.distributions.categorical.Categorical
 
 <div style="margin-left: 2em">
 
@@ -5145,7 +5145,7 @@
 
 ## HalfCauchy
 
-### _`class`_ torch.distributions.cauchy.Cauchy
+### <code><i>class</i></code> torch.distributions.cauchy.Cauchy
 
 <div style="margin-left: 2em">
 
@@ -5359,7 +5359,7 @@
 
 ## Chi2
 
-### _`class`_ torch.distributions.gamma.Gamma
+### <code><i>class</i></code> torch.distributions.gamma.Gamma
 
 <div style="margin-left: 2em">
 
@@ -5559,7 +5559,7 @@
 
 ## Geometric
 
-### _`class`_ torch.distributions.geometric.Geometric
+### <code><i>class</i></code> torch.distributions.geometric.Geometric
 
 <div style="margin-left: 2em">
 
@@ -5753,7 +5753,7 @@
 
 ## TransformedDistribution
 
-### _`class`_ torch.distributions.gumbel.Gumbel
+### <code><i>class</i></code> torch.distributions.gumbel.Gumbel
 
 <div style="margin-left: 2em">
 
@@ -5913,7 +5913,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.half_cauchy.HalfCauchy
+### <code><i>class</i></code> torch.distributions.half_cauchy.HalfCauchy
 
 <div style="margin-left: 2em">
 
@@ -6123,7 +6123,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.half_normal.HalfNormal
+### <code><i>class</i></code> torch.distributions.half_normal.HalfNormal
 
 <div style="margin-left: 2em">
 
@@ -6333,7 +6333,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.log_normal.LogNormal
+### <code><i>class</i></code> torch.distributions.log_normal.LogNormal
 
 <div style="margin-left: 2em">
 
@@ -6511,7 +6511,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.relaxed_bernoulli.RelaxedBernoulli
+### <code><i>class</i></code> torch.distributions.relaxed_bernoulli.RelaxedBernoulli
 
 <div style="margin-left: 2em">
 
@@ -6639,7 +6639,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.relaxed_categorical.RelaxedOneHotCategorical
+### <code><i>class</i></code> torch.distributions.relaxed_categorical.RelaxedOneHotCategorical
 
 <div style="margin-left: 2em">
 
@@ -6769,7 +6769,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.weibull.Weibull
+### <code><i>class</i></code> torch.distributions.weibull.Weibull
 
 <div style="margin-left: 2em">
 
@@ -6899,7 +6899,7 @@
 
 ## HalfNormal
 
-### _`class`_ torch.distributions.normal.Normal
+### <code><i>class</i></code> torch.distributions.normal.Normal
 
 <div style="margin-left: 2em">
 
@@ -7131,7 +7131,7 @@
 
 ## Pareto
 
-### _`class`_ torch.distributions.pareto.Pareto
+### <code><i>class</i></code> torch.distributions.pareto.Pareto
 
 <div style="margin-left: 2em">
 
@@ -7261,7 +7261,7 @@
 
 ## RelaxedBernoulli
 
-### _`class`_ torch.distributions.relaxed_bernoulli.LogitRelaxedBernoulli
+### <code><i>class</i></code> torch.distributions.relaxed_bernoulli.LogitRelaxedBernoulli
 
 <div style="margin-left: 2em">
 
@@ -7407,7 +7407,7 @@
 
 ## Gumbel
 
-### _`class`_ torch.distributions.transformed_distribution.TransformedDistribution
+### <code><i>class</i></code> torch.distributions.transformed_distribution.TransformedDistribution
 
 <div style="margin-left: 2em">
 
@@ -7587,7 +7587,7 @@
 
 ## ConstraintRegistry
 
-### _`class`_ torch.distributions.transforms.SoftmaxTransform
+### <code><i>class</i></code> torch.distributions.transforms.SoftmaxTransform
 
 <div style="margin-left: 2em">
 
@@ -7603,7 +7603,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.constraint_registry.ConstraintRegistry
+### <code><i>class</i></code> torch.distributions.constraint_registry.ConstraintRegistry
 
 <div style="margin-left: 2em">
 
@@ -7637,7 +7637,7 @@
 
 ## Transforms
 
-### _`class`_ torch.distributions.transforms.StickBreakingTransform
+### <code><i>class</i></code> torch.distributions.transforms.StickBreakingTransform
 
 <div style="margin-left: 2em">
 
@@ -7653,7 +7653,7 @@
 
 </div>
 
-### _`class`_ torch.distributions.transforms.Transform
+### <code><i>class</i></code> torch.distributions.transforms.Transform
 
 <div style="margin-left: 2em">
 

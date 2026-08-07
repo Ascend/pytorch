@@ -13,7 +13,7 @@
 
 ## base API
 
-### _`class`_ torch.futures.Future
+### <code><i>class</i></code> torch.futures.Future
 
 <div style="margin-left: 2em">
 

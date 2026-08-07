@@ -13,7 +13,7 @@
 
 ## base API
 
-### _`class`_ torch.distributed.algorithms.Join
+### <code><i>class</i></code> torch.distributed.algorithms.Join
 
 <div style="margin-left: 2em">
 
@@ -45,7 +45,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.algorithms.Joinable
+### <code><i>class</i></code> torch.distributed.algorithms.Joinable
 
 <div style="margin-left: 2em">
 
@@ -109,7 +109,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.algorithms.JoinHook
+### <code><i>class</i></code> torch.distributed.algorithms.JoinHook
 
 <div style="margin-left: 2em">
 

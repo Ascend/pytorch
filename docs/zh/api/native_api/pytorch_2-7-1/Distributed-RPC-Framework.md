@@ -49,7 +49,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.rpc.TensorPipeRpcBackendOptions
+### <code><i>class</i></code> torch.distributed.rpc.TensorPipeRpcBackendOptions
 
 <div style="margin-left: 2em">
 
@@ -103,7 +103,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.rpc.PyRRef
+### <code><i>class</i></code> torch.distributed.rpc.PyRRef
 
 <div style="margin-left: 2em">
 
@@ -119,7 +119,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.nn.api.remote_module.RemoteModule
+### <code><i>class</i></code> torch.distributed.nn.api.remote_module.RemoteModule
 
 <div style="margin-left: 2em">
 
@@ -206,7 +206,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.rpc.WorkerInfo
+### <code><i>class</i></code> torch.distributed.rpc.WorkerInfo
 
 <div style="margin-left: 2em">
 
@@ -222,7 +222,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.rpc.BackendType
+### <code><i>class</i></code> torch.distributed.rpc.BackendType
 
 <div style="margin-left: 2em">
 
@@ -238,7 +238,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.rpc.RpcBackendOptions
+### <code><i>class</i></code> torch.distributed.rpc.RpcBackendOptions
 
 <div style="margin-left: 2em">
 

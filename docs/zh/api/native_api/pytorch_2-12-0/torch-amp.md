@@ -68,7 +68,7 @@
 
 </div>
 
-### _`class`_ torch.cuda.amp.GradScaler
+### <code><i>class</i></code> torch.cuda.amp.GradScaler
 
 <div style="margin-left: 2em">
 

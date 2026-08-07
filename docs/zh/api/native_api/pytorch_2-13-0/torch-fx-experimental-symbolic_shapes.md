@@ -13,7 +13,7 @@
 
 ## base API
 
-### _`class`_ torch.fx.experimental.symbolic_shapes.ShapeEnv
+### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.ShapeEnv
 
 <div style="margin-left: 2em">
 

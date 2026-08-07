@@ -29,7 +29,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.tensor.parallel.ColwiseParallel
+### <code><i>class</i></code> torch.distributed.tensor.parallel.ColwiseParallel
 
 <div style="margin-left: 2em">
 
@@ -47,7 +47,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.tensor.parallel.RowwiseParallel
+### <code><i>class</i></code> torch.distributed.tensor.parallel.RowwiseParallel
 
 <div style="margin-left: 2em">
 
@@ -63,7 +63,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.tensor.parallel.PrepareModuleInput
+### <code><i>class</i></code> torch.distributed.tensor.parallel.PrepareModuleInput
 
 <div style="margin-left: 2em">
 
@@ -79,7 +79,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.tensor.parallel.PrepareModuleOutput
+### <code><i>class</i></code> torch.distributed.tensor.parallel.PrepareModuleOutput
 
 <div style="margin-left: 2em">
 

@@ -13,7 +13,7 @@
 
 ## base API
 
-### _`class`_ torch.utils.cpp_extension.CppExtension
+### <code><i>class</i></code> torch.utils.cpp_extension.CppExtension
 
 <div style="margin-left: 2em">
 
@@ -29,7 +29,7 @@
 
 </div>
 
-### _`class`_ torch.utils.cpp_extension.CUDAExtension
+### <code><i>class</i></code> torch.utils.cpp_extension.CUDAExtension
 
 <div style="margin-left: 2em">
 
@@ -45,7 +45,7 @@
 
 </div>
 
-### _`class`_ torch.utils.cpp_extension.BuildExtension
+### <code><i>class</i></code> torch.utils.cpp_extension.BuildExtension
 
 <div style="margin-left: 2em">
 

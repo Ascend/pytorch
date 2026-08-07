@@ -149,7 +149,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.PrefixStore
+### <code><i>class</i></code> torch.distributed.PrefixStore
 
 <div style="margin-left: 2em">
 
@@ -386,7 +386,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.DistBackendError
+### <code><i>class</i></code> torch.distributed.DistBackendError
 
 <div style="margin-left: 2em">
 
@@ -442,7 +442,7 @@
 
 ## Initialization
 
-### _`class`_ torch.distributed.Backend
+### <code><i>class</i></code> torch.distributed.Backend
 
 <div style="margin-left: 2em">
 
@@ -474,7 +474,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.Store
+### <code><i>class</i></code> torch.distributed.Store
 
 <div style="margin-left: 2em">
 
@@ -730,7 +730,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.device_mesh.DeviceMesh
+### <code><i>class</i></code> torch.distributed.device_mesh.DeviceMesh
 
 <div style="margin-left: 2em">
 
@@ -844,7 +844,7 @@
 
 ## Distributed Key-Value Store
 
-### _`class`_ torch.distributed.TCPStore
+### <code><i>class</i></code> torch.distributed.TCPStore
 
 <div style="margin-left: 2em">
 
@@ -924,7 +924,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.HashStore
+### <code><i>class</i></code> torch.distributed.HashStore
 
 <div style="margin-left: 2em">
 
@@ -956,7 +956,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.FileStore
+### <code><i>class</i></code> torch.distributed.FileStore
 
 <div style="margin-left: 2em">
 
@@ -1098,7 +1098,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.P2POp
+### <code><i>class</i></code> torch.distributed.P2POp
 
 <div style="margin-left: 2em">
 
@@ -1292,7 +1292,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.ReduceOp
+### <code><i>class</i></code> torch.distributed.ReduceOp
 
 <div style="margin-left: 2em">
 

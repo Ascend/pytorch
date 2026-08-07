@@ -13,7 +13,7 @@
 
 ## base API
 
-### _`class`_ torch.utils.tensorboard.SummaryWriter
+### <code><i>class</i></code> torch.utils.tensorboard.SummaryWriter
 
 <div style="margin-left: 2em">
 
@@ -29,7 +29,7 @@
 
 </div>
 
-### _`class`_ torch.utils.tensorboard.writer.SummaryWriter
+### <code><i>class</i></code> torch.utils.tensorboard.writer.SummaryWriter
 
 <div style="margin-left: 2em">
 

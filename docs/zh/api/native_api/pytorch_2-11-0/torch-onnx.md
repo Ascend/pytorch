@@ -15,7 +15,7 @@
 
 ## base API
 
-### _`class`_ torch.onnx.OnnxExporterError
+### <code><i>class</i></code> torch.onnx.OnnxExporterError
 
 <div style="margin-left: 2em">
 
@@ -97,7 +97,7 @@
 
 ## torch.onnx APIs
 
-### _`class`_ torch.onnx.ONNXProgram
+### <code><i>class</i></code> torch.onnx.ONNXProgram
 
 <div style="margin-left: 2em">
 

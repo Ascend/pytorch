@@ -18,7 +18,7 @@
 
 ## base API
 
-### _`class`_ torch.utils.data.IterDataPipe
+### <code><i>class</i></code> torch.utils.data.IterDataPipe
 
 <div style="margin-left: 2em">
 
@@ -34,7 +34,7 @@
 
 </div>
 
-### _`class`_ torch.utils.data.MapDataPipe
+### <code><i>class</i></code> torch.utils.data.MapDataPipe
 
 <div style="margin-left: 2em">
 
@@ -50,7 +50,7 @@
 
 </div>
 
-### _`class`_ torch.utils.data.TensorDataset
+### <code><i>class</i></code> torch.utils.data.TensorDataset
 
 <div style="margin-left: 2em">
 
@@ -66,7 +66,7 @@
 
 </div>
 
-### _`class`_ torch.utils.data.StackDataset
+### <code><i>class</i></code> torch.utils.data.StackDataset
 
 <div style="margin-left: 2em">
 
@@ -82,7 +82,7 @@
 
 </div>
 
-### _`class`_ torch.utils.data.ConcatDataset
+### <code><i>class</i></code> torch.utils.data.ConcatDataset
 
 <div style="margin-left: 2em">
 
@@ -98,7 +98,7 @@
 
 </div>
 
-### _`class`_ torch.utils.data.ChainDataset
+### <code><i>class</i></code> torch.utils.data.ChainDataset
 
 <div style="margin-left: 2em">
 
@@ -196,7 +196,7 @@
 
 </div>
 
-### _`class`_ torch.utils.data.SequentialSampler
+### <code><i>class</i></code> torch.utils.data.SequentialSampler
 
 <div style="margin-left: 2em">
 
@@ -214,7 +214,7 @@
 
 </div>
 
-### _`class`_ torch.utils.data.RandomSampler
+### <code><i>class</i></code> torch.utils.data.RandomSampler
 
 <div style="margin-left: 2em">
 
@@ -232,7 +232,7 @@
 
 </div>
 
-### _`class`_ torch.utils.data.SubsetRandomSampler
+### <code><i>class</i></code> torch.utils.data.SubsetRandomSampler
 
 <div style="margin-left: 2em">
 
@@ -250,7 +250,7 @@
 
 </div>
 
-### _`class`_ torch.utils.data.WeightedRandomSampler
+### <code><i>class</i></code> torch.utils.data.WeightedRandomSampler
 
 <div style="margin-left: 2em">
 
@@ -268,7 +268,7 @@
 
 </div>
 
-### _`class`_ torch.utils.data.BatchSampler
+### <code><i>class</i></code> torch.utils.data.BatchSampler
 
 <div style="margin-left: 2em">
 
@@ -284,7 +284,7 @@
 
 </div>
 
-### _`class`_ torch.utils.data.distributed.DistributedSampler
+### <code><i>class</i></code> torch.utils.data.distributed.DistributedSampler
 
 <div style="margin-left: 2em">
 
@@ -304,7 +304,7 @@
 
 ## Dataset Types
 
-### _`class`_ torch.utils.data.DataLoader
+### <code><i>class</i></code> torch.utils.data.DataLoader
 
 <div style="margin-left: 2em">
 
@@ -325,7 +325,7 @@
 
 </div>
 
-### _`class`_ torch.utils.data.Dataset
+### <code><i>class</i></code> torch.utils.data.Dataset
 
 <div style="margin-left: 2em">
 
@@ -343,7 +343,7 @@
 
 </div>
 
-### _`class`_ torch.utils.data.IterableDataset
+### <code><i>class</i></code> torch.utils.data.IterableDataset
 
 <div style="margin-left: 2em">
 
@@ -361,7 +361,7 @@
 
 ## Memory Pinning
 
-### _`class`_ torch.utils.data.Subset
+### <code><i>class</i></code> torch.utils.data.Subset
 
 <div style="margin-left: 2em">
 
@@ -419,7 +419,7 @@
 
 ## Data Loading Order and Sampler
 
-### _`class`_ torch.utils.data.Sampler
+### <code><i>class</i></code> torch.utils.data.Sampler
 
 <div style="margin-left: 2em">
 

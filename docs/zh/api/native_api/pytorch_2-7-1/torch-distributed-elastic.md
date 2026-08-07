@@ -17,7 +17,7 @@
 
 ## base API
 
-### _`class`_ torch.distributed.elastic.agent.server.ElasticAgent
+### <code><i>class</i></code> torch.distributed.elastic.agent.server.ElasticAgent
 
 <div style="margin-left: 2em">
 
@@ -65,7 +65,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.agent.server.WorkerSpec
+### <code><i>class</i></code> torch.distributed.elastic.agent.server.WorkerSpec
 
 <div style="margin-left: 2em">
 
@@ -97,7 +97,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.agent.server.WorkerState
+### <code><i>class</i></code> torch.distributed.elastic.agent.server.WorkerState
 
 <div style="margin-left: 2em">
 
@@ -145,7 +145,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.agent.server.Worker
+### <code><i>class</i></code> torch.distributed.elastic.agent.server.Worker
 
 <div style="margin-left: 2em">
 
@@ -161,7 +161,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.agent.server.WorkerGroup
+### <code><i>class</i></code> torch.distributed.elastic.agent.server.WorkerGroup
 
 <div style="margin-left: 2em">
 
@@ -177,7 +177,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.agent.server.local_elastic_agent.LocalElasticAgent
+### <code><i>class</i></code> torch.distributed.elastic.agent.server.local_elastic_agent.LocalElasticAgent
 
 <div style="margin-left: 2em">
 
@@ -193,7 +193,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.agent.server.SimpleElasticAgent
+### <code><i>class</i></code> torch.distributed.elastic.agent.server.SimpleElasticAgent
 
 <div style="margin-left: 2em">
 
@@ -353,7 +353,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.agent.server.api.RunResult
+### <code><i>class</i></code> torch.distributed.elastic.agent.server.api.RunResult
 
 <div style="margin-left: 2em">
 
@@ -385,7 +385,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.agent.server.health_check_server.HealthCheckServer
+### <code><i>class</i></code> torch.distributed.elastic.agent.server.health_check_server.HealthCheckServer
 
 <div style="margin-left: 2em">
 
@@ -449,7 +449,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.multiprocessing.api.PContext
+### <code><i>class</i></code> torch.distributed.elastic.multiprocessing.api.PContext
 
 <div style="margin-left: 2em">
 
@@ -465,7 +465,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.multiprocessing.api.MultiprocessContext
+### <code><i>class</i></code> torch.distributed.elastic.multiprocessing.api.MultiprocessContext
 
 <div style="margin-left: 2em">
 
@@ -481,7 +481,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.multiprocessing.api.SubprocessContext
+### <code><i>class</i></code> torch.distributed.elastic.multiprocessing.api.SubprocessContext
 
 <div style="margin-left: 2em">
 
@@ -497,7 +497,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.multiprocessing.api.RunProcsResult
+### <code><i>class</i></code> torch.distributed.elastic.multiprocessing.api.RunProcsResult
 
 <div style="margin-left: 2em">
 
@@ -513,7 +513,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.multiprocessing.api.DefaultLogsSpecs
+### <code><i>class</i></code> torch.distributed.elastic.multiprocessing.api.DefaultLogsSpecs
 
 <div style="margin-left: 2em">
 
@@ -545,7 +545,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.multiprocessing.api.LogsDest
+### <code><i>class</i></code> torch.distributed.elastic.multiprocessing.api.LogsDest
 
 <div style="margin-left: 2em">
 
@@ -561,7 +561,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.multiprocessing.api.LogsSpecs
+### <code><i>class</i></code> torch.distributed.elastic.multiprocessing.api.LogsSpecs
 
 <div style="margin-left: 2em">
 
@@ -609,7 +609,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.multiprocessing.errors.ChildFailedError
+### <code><i>class</i></code> torch.distributed.elastic.multiprocessing.errors.ChildFailedError
 
 <div style="margin-left: 2em">
 
@@ -625,7 +625,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.multiprocessing.errors.ErrorHandler
+### <code><i>class</i></code> torch.distributed.elastic.multiprocessing.errors.ErrorHandler
 
 <div style="margin-left: 2em">
 
@@ -641,7 +641,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.multiprocessing.errors.ProcessFailure
+### <code><i>class</i></code> torch.distributed.elastic.multiprocessing.errors.ProcessFailure
 
 <div style="margin-left: 2em">
 
@@ -657,7 +657,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.rendezvous.RendezvousParameters
+### <code><i>class</i></code> torch.distributed.elastic.rendezvous.RendezvousParameters
 
 <div style="margin-left: 2em">
 
@@ -721,7 +721,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.rendezvous.RendezvousHandlerRegistry
+### <code><i>class</i></code> torch.distributed.elastic.rendezvous.RendezvousHandlerRegistry
 
 <div style="margin-left: 2em">
 
@@ -737,7 +737,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.rendezvous.api.RendezvousError
+### <code><i>class</i></code> torch.distributed.elastic.rendezvous.api.RendezvousError
 
 <div style="margin-left: 2em">
 
@@ -753,7 +753,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.rendezvous.api.RendezvousGracefulExitError
+### <code><i>class</i></code> torch.distributed.elastic.rendezvous.api.RendezvousGracefulExitError
 
 <div style="margin-left: 2em">
 
@@ -817,7 +817,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.rendezvous.etcd_rendezvous.EtcdRendezvousHandler
+### <code><i>class</i></code> torch.distributed.elastic.rendezvous.etcd_rendezvous.EtcdRendezvousHandler
 
 <div style="margin-left: 2em">
 
@@ -833,7 +833,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.rendezvous.etcd_store.EtcdStore
+### <code><i>class</i></code> torch.distributed.elastic.rendezvous.etcd_store.EtcdStore
 
 <div style="margin-left: 2em">
 
@@ -929,7 +929,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.rendezvous.etcd_server.EtcdServer
+### <code><i>class</i></code> torch.distributed.elastic.rendezvous.etcd_server.EtcdServer
 
 <div style="margin-left: 2em">
 
@@ -993,7 +993,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.timer.LocalTimerServer
+### <code><i>class</i></code> torch.distributed.elastic.timer.LocalTimerServer
 
 <div style="margin-left: 2em">
 
@@ -1009,7 +1009,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.timer.LocalTimerClient
+### <code><i>class</i></code> torch.distributed.elastic.timer.LocalTimerClient
 
 <div style="margin-left: 2em">
 
@@ -1025,7 +1025,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.timer.FileTimerServer
+### <code><i>class</i></code> torch.distributed.elastic.timer.FileTimerServer
 
 <div style="margin-left: 2em">
 
@@ -1041,7 +1041,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.timer.FileTimerClient
+### <code><i>class</i></code> torch.distributed.elastic.timer.FileTimerClient
 
 <div style="margin-left: 2em">
 
@@ -1057,7 +1057,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.timer.TimerRequest
+### <code><i>class</i></code> torch.distributed.elastic.timer.TimerRequest
 
 <div style="margin-left: 2em">
 
@@ -1073,7 +1073,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.timer.TimerServer
+### <code><i>class</i></code> torch.distributed.elastic.timer.TimerServer
 
 <div style="margin-left: 2em">
 
@@ -1137,7 +1137,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.timer.TimerClient
+### <code><i>class</i></code> torch.distributed.elastic.timer.TimerClient
 
 <div style="margin-left: 2em">
 
@@ -1185,7 +1185,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.metrics.api.MetricHandler
+### <code><i>class</i></code> torch.distributed.elastic.metrics.api.MetricHandler
 
 <div style="margin-left: 2em">
 
@@ -1201,7 +1201,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.metrics.api.ConsoleMetricHandler
+### <code><i>class</i></code> torch.distributed.elastic.metrics.api.ConsoleMetricHandler
 
 <div style="margin-left: 2em">
 
@@ -1217,7 +1217,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.metrics.api.NullMetricHandler
+### <code><i>class</i></code> torch.distributed.elastic.metrics.api.NullMetricHandler
 
 <div style="margin-left: 2em">
 
@@ -1313,7 +1313,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.events.api.Event
+### <code><i>class</i></code> torch.distributed.elastic.events.api.Event
 
 <div style="margin-left: 2em">
 
@@ -1329,7 +1329,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.events.api.EventSource
+### <code><i>class</i></code> torch.distributed.elastic.events.api.EventSource
 
 <div style="margin-left: 2em">
 
@@ -1345,7 +1345,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.events.api.EventMetadataValue
+### <code><i>class</i></code> torch.distributed.elastic.events.api.EventMetadataValue
 
 <div style="margin-left: 2em">
 
@@ -1379,7 +1379,7 @@
 
 ## Registry
 
-### _`class`_ torch.distributed.elastic.rendezvous.RendezvousHandler
+### <code><i>class</i></code> torch.distributed.elastic.rendezvous.RendezvousHandler
 
 <div style="margin-left: 2em">
 
@@ -1525,7 +1525,7 @@
 
 ## Handler
 
-### _`class`_ torch.distributed.elastic.rendezvous.RendezvousInfo
+### <code><i>class</i></code> torch.distributed.elastic.rendezvous.RendezvousInfo
 
 <div style="margin-left: 2em">
 
@@ -1541,7 +1541,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.rendezvous.api.RendezvousClosedError
+### <code><i>class</i></code> torch.distributed.elastic.rendezvous.api.RendezvousClosedError
 
 <div style="margin-left: 2em">
 
@@ -1557,7 +1557,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.rendezvous.api.RendezvousTimeoutError
+### <code><i>class</i></code> torch.distributed.elastic.rendezvous.api.RendezvousTimeoutError
 
 <div style="margin-left: 2em">
 
@@ -1573,7 +1573,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.rendezvous.api.RendezvousConnectionError
+### <code><i>class</i></code> torch.distributed.elastic.rendezvous.api.RendezvousConnectionError
 
 <div style="margin-left: 2em">
 
@@ -1589,7 +1589,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.rendezvous.api.RendezvousStateError
+### <code><i>class</i></code> torch.distributed.elastic.rendezvous.api.RendezvousStateError
 
 <div style="margin-left: 2em">
 
@@ -1607,7 +1607,7 @@
 
 ## Dataclasses
 
-### _`class`_ torch.distributed.elastic.rendezvous.api.RendezvousStoreInfo
+### <code><i>class</i></code> torch.distributed.elastic.rendezvous.api.RendezvousStoreInfo
 
 <div style="margin-left: 2em">
 
@@ -1641,7 +1641,7 @@
 
 ## Implementations
 
-### _`class`_ torch.distributed.elastic.rendezvous.dynamic_rendezvous.DynamicRendezvousHandler
+### <code><i>class</i></code> torch.distributed.elastic.rendezvous.dynamic_rendezvous.DynamicRendezvousHandler
 
 <div style="margin-left: 2em">
 
@@ -1673,7 +1673,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousBackend
+### <code><i>class</i></code> torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousBackend
 
 <div style="margin-left: 2em">
 
@@ -1737,7 +1737,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousTimeout
+### <code><i>class</i></code> torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousTimeout
 
 <div style="margin-left: 2em">
 
@@ -1817,7 +1817,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.rendezvous.c10d_rendezvous_backend.C10dRendezvousBackend
+### <code><i>class</i></code> torch.distributed.elastic.rendezvous.c10d_rendezvous_backend.C10dRendezvousBackend
 
 <div style="margin-left: 2em">
 
@@ -1881,7 +1881,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend
+### <code><i>class</i></code> torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend
 
 <div style="margin-left: 2em">
 

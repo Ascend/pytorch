@@ -29,7 +29,7 @@
 
 </div>
 
-### _`class`_ torch.utils.checkpoint.CheckpointPolicy
+### <code><i>class</i></code> torch.utils.checkpoint.CheckpointPolicy
 
 <div style="margin-left: 2em">
 
@@ -45,7 +45,7 @@
 
 </div>
 
-### _`class`_ torch.utils.checkpoint.SelectiveCheckpointContext
+### <code><i>class</i></code> torch.utils.checkpoint.SelectiveCheckpointContext
 
 <div style="margin-left: 2em">
 

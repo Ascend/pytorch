@@ -16,7 +16,7 @@
 
 ## base API
 
-### _`class`_ torch.export.Constraint
+### <code><i>class</i></code> torch.export.Constraint
 
 <div style="margin-left: 2em">
 
@@ -32,7 +32,7 @@
 
 </div>
 
-### _`class`_ torch.export.ExportBackwardSignature
+### <code><i>class</i></code> torch.export.ExportBackwardSignature
 
 <div style="margin-left: 2em">
 
@@ -48,7 +48,7 @@
 
 </div>
 
-### _`class`_ torch.export.ModuleCallEntry
+### <code><i>class</i></code> torch.export.ModuleCallEntry
 
 <div style="margin-left: 2em">
 
@@ -116,7 +116,7 @@
 
 </div>
 
-### _`class`_ torch.export.ExportedProgram
+### <code><i>class</i></code> torch.export.ExportedProgram
 
 <div style="margin-left: 2em">
 
@@ -148,7 +148,7 @@
 
 </div>
 
-### _`class`_ torch.export.ExportGraphSignature
+### <code><i>class</i></code> torch.export.ExportGraphSignature
 
 <div style="margin-left: 2em">
 
@@ -166,7 +166,7 @@
 
 ## API Reference
 
-### _`class`_ torch.export.ModuleCallSignature
+### <code><i>class</i></code> torch.export.ModuleCallSignature
 
 <div style="margin-left: 2em">
 

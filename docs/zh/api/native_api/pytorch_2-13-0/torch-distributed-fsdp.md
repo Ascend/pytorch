@@ -13,7 +13,7 @@
 
 ## base API
 
-### _`class`_ torch.distributed.fsdp.FullyShardedDataParallel
+### <code><i>class</i></code> torch.distributed.fsdp.FullyShardedDataParallel
 
 <div style="margin-left: 2em">
 
@@ -386,7 +386,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.fsdp.BackwardPrefetch
+### <code><i>class</i></code> torch.distributed.fsdp.BackwardPrefetch
 
 <div style="margin-left: 2em">
 
@@ -402,7 +402,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.fsdp.ShardingStrategy
+### <code><i>class</i></code> torch.distributed.fsdp.ShardingStrategy
 
 <div style="margin-left: 2em">
 
@@ -418,7 +418,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.fsdp.MixedPrecision
+### <code><i>class</i></code> torch.distributed.fsdp.MixedPrecision
 
 <div style="margin-left: 2em">
 
@@ -434,7 +434,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.fsdp.CPUOffload
+### <code><i>class</i></code> torch.distributed.fsdp.CPUOffload
 
 <div style="margin-left: 2em">
 
@@ -450,7 +450,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.fsdp.StateDictConfig
+### <code><i>class</i></code> torch.distributed.fsdp.StateDictConfig
 
 <div style="margin-left: 2em">
 
@@ -466,7 +466,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.fsdp.FullStateDictConfig
+### <code><i>class</i></code> torch.distributed.fsdp.FullStateDictConfig
 
 <div style="margin-left: 2em">
 
@@ -482,7 +482,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.fsdp.ShardedStateDictConfig
+### <code><i>class</i></code> torch.distributed.fsdp.ShardedStateDictConfig
 
 <div style="margin-left: 2em">
 
@@ -498,7 +498,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.fsdp.LocalStateDictConfig
+### <code><i>class</i></code> torch.distributed.fsdp.LocalStateDictConfig
 
 <div style="margin-left: 2em">
 
@@ -514,7 +514,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.fsdp.OptimStateDictConfig
+### <code><i>class</i></code> torch.distributed.fsdp.OptimStateDictConfig
 
 <div style="margin-left: 2em">
 
@@ -530,7 +530,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.fsdp.FullOptimStateDictConfig
+### <code><i>class</i></code> torch.distributed.fsdp.FullOptimStateDictConfig
 
 <div style="margin-left: 2em">
 
@@ -546,7 +546,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.fsdp.ShardedOptimStateDictConfig
+### <code><i>class</i></code> torch.distributed.fsdp.ShardedOptimStateDictConfig
 
 <div style="margin-left: 2em">
 
@@ -562,7 +562,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.fsdp.LocalOptimStateDictConfig
+### <code><i>class</i></code> torch.distributed.fsdp.LocalOptimStateDictConfig
 
 <div style="margin-left: 2em">
 
@@ -578,7 +578,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.fsdp.StateDictSettings
+### <code><i>class</i></code> torch.distributed.fsdp.StateDictSettings
 
 <div style="margin-left: 2em">
 

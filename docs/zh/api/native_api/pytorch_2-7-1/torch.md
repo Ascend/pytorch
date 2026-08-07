@@ -39,7 +39,7 @@
 
 </div>
 
-### _`class`_ torch.SymInt
+### <code><i>class</i></code> torch.SymInt
 
 <div style="margin-left: 2em">
 
@@ -57,7 +57,7 @@
 
 </div>
 
-### _`class`_ torch.SymBool
+### <code><i>class</i></code> torch.SymBool
 
 <div style="margin-left: 2em">
 
@@ -75,7 +75,7 @@
 
 </div>
 
-### _`class`_ torch.Tag
+### <code><i>class</i></code> torch.Tag
 
 <div style="margin-left: 2em">
 
@@ -109,7 +109,7 @@
 
 ## Symbolic Numbers
 
-### _`class`_ torch.SymFloat
+### <code><i>class</i></code> torch.SymFloat
 
 <div style="margin-left: 2em">
 
@@ -1743,9 +1743,9 @@
 
 - `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 - 若入参`dims`的长度小于`input`.shape的长度，则会在`dims`前自动补全1，使其长度与`input`.shape对齐。补全后的`dims`，需要满足如下限制：
-- - 当需要对第一根轴进行重复时，最多允许同时对4个维度进行重复操作（即`dims`中大于1的元素个数 ≤ 4），例如：不支持`torch.tile(input, [2, 3, 4, 5, 6])` ，支持`torch.tile(input, [2, 3, 1, 5, 6])`
-- - 当不需要对第一根轴进行重复时，最多允许同时对3个维度进行重复操作（即`dims`中大于1的元素个数 ≤ 3），例如：不支持`torch.tile(input, [1, 3, 4, 5, 6])` ，支持`torch.tile(input, [1, 3, 1, 5, 6])`
-- - 若执行反向计算，输入`Tensor`的维度数与入参`dims`中大于1的元素个数之和不得超过8
+  - 当需要对第一根轴进行重复时，最多允许同时对4个维度进行重复操作（即`dims`中大于1的元素个数 ≤ 4），例如：不支持`torch.tile(input, [2, 3, 4, 5, 6])` ，支持`torch.tile(input, [2, 3, 1, 5, 6])`
+  - 当不需要对第一根轴进行重复时，最多允许同时对3个维度进行重复操作（即`dims`中大于1的元素个数 ≤ 3），例如：不支持`torch.tile(input, [1, 3, 4, 5, 6])` ，支持`torch.tile(input, [1, 3, 1, 5, 6])`
+  - 若执行反向计算，输入`Tensor`的维度数与入参`dims`中大于1的元素个数之和不得超过8
 
 </div>
 
@@ -2019,7 +2019,7 @@
 
 ## Generators
 
-### _`class`_ torch.Generator
+### <code><i>class</i></code> torch.Generator
 
 <div style="margin-left: 2em">
 
@@ -2283,7 +2283,7 @@
 
 </div>
 
-### _`class`_ torch.quasirandom.SobolEngine
+### <code><i>class</i></code> torch.quasirandom.SobolEngine
 
 <div style="margin-left: 2em">
 
@@ -4700,11 +4700,11 @@
 **限制与说明**：
 
 - 双tensor输入的场景约束如下：
-- - `input`仅支持fp16，fp32，uint8，int8，int16，int32，int64
-- - 第一个输入`tensor`维度不能大于7维，第二个输入`tensor`维度不能大于8维
+  - `input`仅支持fp16，fp32，uint8，int8，int16，int32，int64
+  - 第一个输入`tensor`维度不能大于7维，第二个输入`tensor`维度不能大于8维
 - 单tensor输入的场景约束如下：
-- - `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64
-- - 输入`tensor`的维度不大于8维
+  - `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64
+  - 输入`tensor`的维度不大于8维
 
 </div>
 

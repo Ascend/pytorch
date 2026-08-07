@@ -45,7 +45,7 @@
 
 </div>
 
-### _`class`_ torch.ao.quantization.QuantStub
+### <code><i>class</i></code> torch.ao.quantization.QuantStub
 
 <div style="margin-left: 2em">
 
@@ -61,7 +61,7 @@
 
 </div>
 
-### _`class`_ torch.ao.quantization.DeQuantStub
+### <code><i>class</i></code> torch.ao.quantization.DeQuantStub
 
 <div style="margin-left: 2em">
 
@@ -77,7 +77,7 @@
 
 </div>
 
-### _`class`_ torch.ao.quantization.QuantWrapper
+### <code><i>class</i></code> torch.ao.quantization.QuantWrapper
 
 <div style="margin-left: 2em">
 
@@ -93,7 +93,7 @@
 
 </div>
 
-### _`class`_ torch.ao.quantization.qconfig_mapping.QConfigMapping
+### <code><i>class</i></code> torch.ao.quantization.qconfig_mapping.QConfigMapping
 
 <div style="margin-left: 2em">
 
@@ -253,7 +253,7 @@
 
 </div>
 
-### _`class`_ torch.ao.quantization.backend_config.BackendConfig
+### <code><i>class</i></code> torch.ao.quantization.backend_config.BackendConfig
 
 <div style="margin-left: 2em">
 
@@ -365,7 +365,7 @@
 
 </div>
 
-### _`class`_ torch.ao.quantization.backend_config.BackendPatternConfig
+### <code><i>class</i></code> torch.ao.quantization.backend_config.BackendPatternConfig
 
 <div style="margin-left: 2em">
 
@@ -557,7 +557,7 @@
 
 </div>
 
-### _`class`_ torch.ao.quantization.backend_config.DTypeConfig
+### <code><i>class</i></code> torch.ao.quantization.backend_config.DTypeConfig
 
 <div style="margin-left: 2em">
 
@@ -605,7 +605,7 @@
 
 </div>
 
-### _`class`_ torch.ao.quantization.backend_config.DTypeWithConstraints
+### <code><i>class</i></code> torch.ao.quantization.backend_config.DTypeWithConstraints
 
 <div style="margin-left: 2em">
 
@@ -621,7 +621,7 @@
 
 </div>
 
-### _`class`_ torch.ao.quantization.backend_config.ObservationType
+### <code><i>class</i></code> torch.ao.quantization.backend_config.ObservationType
 
 <div style="margin-left: 2em">
 
@@ -685,7 +685,7 @@
 
 </div>
 
-### _`class`_ torch.ao.quantization.fx.custom_config.FuseCustomConfig
+### <code><i>class</i></code> torch.ao.quantization.fx.custom_config.FuseCustomConfig
 
 <div style="margin-left: 2em">
 
@@ -749,7 +749,7 @@
 
 </div>
 
-### _`class`_ torch.ao.quantization.fx.custom_config.PrepareCustomConfig
+### <code><i>class</i></code> torch.ao.quantization.fx.custom_config.PrepareCustomConfig
 
 <div style="margin-left: 2em">
 
@@ -925,7 +925,7 @@
 
 </div>
 
-### _`class`_ torch.ao.quantization.fx.custom_config.ConvertCustomConfig
+### <code><i>class</i></code> torch.ao.quantization.fx.custom_config.ConvertCustomConfig
 
 <div style="margin-left: 2em">
 
@@ -1005,7 +1005,7 @@
 
 </div>
 
-### _`class`_ torch.ao.quantization.fx.custom_config.StandaloneModuleConfigEntry
+### <code><i>class</i></code> torch.ao.quantization.fx.custom_config.StandaloneModuleConfigEntry
 
 <div style="margin-left: 2em">
 
@@ -1021,7 +1021,7 @@
 
 </div>
 
-### _`class`_ torch.ao.quantization.observer.ObserverBase
+### <code><i>class</i></code> torch.ao.quantization.observer.ObserverBase
 
 <div style="margin-left: 2em">
 
@@ -1069,7 +1069,7 @@
 
 </div>
 
-### _`class`_ torch.ao.quantization.observer.MinMaxObserver
+### <code><i>class</i></code> torch.ao.quantization.observer.MinMaxObserver
 
 <div style="margin-left: 2em">
 
@@ -1133,7 +1133,7 @@
 
 </div>
 
-### _`class`_ torch.ao.quantization.observer.MovingAverageMinMaxObserver
+### <code><i>class</i></code> torch.ao.quantization.observer.MovingAverageMinMaxObserver
 
 <div style="margin-left: 2em">
 
@@ -1149,7 +1149,7 @@
 
 </div>
 
-### _`class`_ torch.ao.quantization.observer.PerChannelMinMaxObserver
+### <code><i>class</i></code> torch.ao.quantization.observer.PerChannelMinMaxObserver
 
 <div style="margin-left: 2em">
 
@@ -1181,7 +1181,7 @@
 
 </div>
 
-### _`class`_ torch.ao.quantization.observer.MovingAveragePerChannelMinMaxObserver
+### <code><i>class</i></code> torch.ao.quantization.observer.MovingAveragePerChannelMinMaxObserver
 
 <div style="margin-left: 2em">
 
@@ -1197,7 +1197,7 @@
 
 </div>
 
-### _`class`_ torch.ao.quantization.observer.HistogramObserver
+### <code><i>class</i></code> torch.ao.quantization.observer.HistogramObserver
 
 <div style="margin-left: 2em">
 
@@ -1213,7 +1213,7 @@
 
 </div>
 
-### _`class`_ torch.ao.quantization.observer.PlaceholderObserver
+### <code><i>class</i></code> torch.ao.quantization.observer.PlaceholderObserver
 
 <div style="margin-left: 2em">
 
@@ -1229,7 +1229,7 @@
 
 </div>
 
-### _`class`_ torch.ao.quantization.observer.RecordingObserver
+### <code><i>class</i></code> torch.ao.quantization.observer.RecordingObserver
 
 <div style="margin-left: 2em">
 
@@ -1247,7 +1247,7 @@
 
 </div>
 
-### _`class`_ torch.ao.quantization.observer.NoopObserver
+### <code><i>class</i></code> torch.ao.quantization.observer.NoopObserver
 
 <div style="margin-left: 2em">
 
@@ -1423,7 +1423,7 @@
 
 </div>
 
-### _`class`_ torch.ao.quantization.fake_quantize.FakeQuantize
+### <code><i>class</i></code> torch.ao.quantization.fake_quantize.FakeQuantize
 
 <div style="margin-left: 2em">
 
@@ -1441,7 +1441,7 @@
 
 </div>
 
-### _`class`_ torch.ao.quantization.fake_quantize.FixedQParamsFakeQuantize
+### <code><i>class</i></code> torch.ao.quantization.fake_quantize.FixedQParamsFakeQuantize
 
 <div style="margin-left: 2em">
 
@@ -1457,7 +1457,7 @@
 
 </div>
 
-### _`class`_ torch.ao.quantization.fake_quantize.FusedMovingAvgObsFakeQuantize
+### <code><i>class</i></code> torch.ao.quantization.fake_quantize.FusedMovingAvgObsFakeQuantize
 
 <div style="margin-left: 2em">
 
@@ -1539,7 +1539,7 @@
 
 </div>
 
-### _`class`_ torch.ao.quantization.qconfig.QConfig
+### <code><i>class</i></code> torch.ao.quantization.qconfig.QConfig
 
 <div style="margin-left: 2em">
 
@@ -1747,7 +1747,7 @@
 
 </div>
 
-### _`class`_ torch.ao.nn.intrinsic.LinearReLU
+### <code><i>class</i></code> torch.ao.nn.intrinsic.LinearReLU
 
 <div style="margin-left: 2em">
 
@@ -1763,7 +1763,7 @@
 
 </div>
 
-### _`class`_ torch.ao.nn.intrinsic.qat.LinearReLU
+### <code><i>class</i></code> torch.ao.nn.intrinsic.qat.LinearReLU
 
 <div style="margin-left: 2em">
 
@@ -1779,7 +1779,7 @@
 
 </div>
 
-### _`class`_ torch.ao.nn.intrinsic.qat.ConvBn1d
+### <code><i>class</i></code> torch.ao.nn.intrinsic.qat.ConvBn1d
 
 <div style="margin-left: 2em">
 
@@ -1795,7 +1795,7 @@
 
 </div>
 
-### _`class`_ torch.ao.nn.intrinsic.qat.ConvBnReLU1d
+### <code><i>class</i></code> torch.ao.nn.intrinsic.qat.ConvBnReLU1d
 
 <div style="margin-left: 2em">
 
@@ -1811,7 +1811,7 @@
 
 </div>
 
-### _`class`_ torch.ao.nn.intrinsic.qat.ConvBnReLU2d
+### <code><i>class</i></code> torch.ao.nn.intrinsic.qat.ConvBnReLU2d
 
 <div style="margin-left: 2em">
 
@@ -1861,7 +1861,7 @@
 
 </div>
 
-### _`class`_ torch.ao.nn.qat.Linear
+### <code><i>class</i></code> torch.ao.nn.qat.Linear
 
 <div style="margin-left: 2em">
 
@@ -1877,7 +1877,7 @@
 
 </div>
 
-### _`class`_ torch.ao.nn.quantizable.LSTM
+### <code><i>class</i></code> torch.ao.nn.quantizable.LSTM
 
 <div style="margin-left: 2em">
 
@@ -1893,7 +1893,7 @@
 
 </div>
 
-### _`class`_ torch.ao.nn.quantized.dynamic.Linear
+### <code><i>class</i></code> torch.ao.nn.quantized.dynamic.Linear
 
 <div style="margin-left: 2em">
 
@@ -1909,7 +1909,7 @@
 
 </div>
 
-### _`class`_ torch.ao.nn.quantized.dynamic.LSTM
+### <code><i>class</i></code> torch.ao.nn.quantized.dynamic.LSTM
 
 <div style="margin-left: 2em">
 
@@ -1927,7 +1927,7 @@
 
 </div>
 
-### _`class`_ torch.ao.nn.quantized.dynamic.GRU
+### <code><i>class</i></code> torch.ao.nn.quantized.dynamic.GRU
 
 <div style="margin-left: 2em">
 
@@ -1945,7 +1945,7 @@
 
 </div>
 
-### _`class`_ torch.ao.nn.quantized.dynamic.RNNCell
+### <code><i>class</i></code> torch.ao.nn.quantized.dynamic.RNNCell
 
 <div style="margin-left: 2em">
 
@@ -1963,7 +1963,7 @@
 
 </div>
 
-### _`class`_ torch.ao.nn.quantized.dynamic.LSTMCell
+### <code><i>class</i></code> torch.ao.nn.quantized.dynamic.LSTMCell
 
 <div style="margin-left: 2em">
 
@@ -1981,7 +1981,7 @@
 
 </div>
 
-### _`class`_ torch.ao.nn.quantized.dynamic.GRUCell
+### <code><i>class</i></code> torch.ao.nn.quantized.dynamic.GRUCell
 
 <div style="margin-left: 2em">
 

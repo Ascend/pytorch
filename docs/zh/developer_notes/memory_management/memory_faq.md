@@ -1,6 +1,6 @@
 # 和内存相关的常见问题
 
-## 使用`npu-smi info`命令查看内存占用情况和使用`torch.npu.memory_allocated()`/`torch.npu.memory_reserved()`查看内存占用情况不一致
+## 使用npu-smi info命令查看内存占用情况和使用torch.npu.memory_allocated()/torch.npu.memory_reserved()查看内存占用情况不一致
 
 这三种方式查到的内存占用情况不一致，是正常现象，原因如下：
 

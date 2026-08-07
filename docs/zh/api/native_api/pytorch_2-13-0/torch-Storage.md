@@ -15,7 +15,7 @@
 
 ## base API
 
-### _`class`_ torch.DoubleStorage
+### <code><i>class</i></code> torch.DoubleStorage
 
 <div style="margin-left: 2em">
 
@@ -47,7 +47,7 @@
 
 </div>
 
-### _`class`_ torch.HalfStorage
+### <code><i>class</i></code> torch.HalfStorage
 
 <div style="margin-left: 2em">
 
@@ -79,7 +79,7 @@
 
 </div>
 
-### _`class`_ torch.LongStorage
+### <code><i>class</i></code> torch.LongStorage
 
 <div style="margin-left: 2em">
 
@@ -111,7 +111,7 @@
 
 </div>
 
-### _`class`_ torch.ShortStorage
+### <code><i>class</i></code> torch.ShortStorage
 
 <div style="margin-left: 2em">
 
@@ -143,7 +143,7 @@
 
 </div>
 
-### _`class`_ torch.CharStorage
+### <code><i>class</i></code> torch.CharStorage
 
 <div style="margin-left: 2em">
 
@@ -175,7 +175,7 @@
 
 </div>
 
-### _`class`_ torch.ByteStorage
+### <code><i>class</i></code> torch.ByteStorage
 
 <div style="margin-left: 2em">
 
@@ -207,7 +207,7 @@
 
 </div>
 
-### _`class`_ torch.BoolStorage
+### <code><i>class</i></code> torch.BoolStorage
 
 <div style="margin-left: 2em">
 
@@ -239,7 +239,7 @@
 
 </div>
 
-### _`class`_ torch.BFloat16Storage
+### <code><i>class</i></code> torch.BFloat16Storage
 
 <div style="margin-left: 2em">
 
@@ -271,7 +271,7 @@
 
 </div>
 
-### _`class`_ torch.ComplexDoubleStorage
+### <code><i>class</i></code> torch.ComplexDoubleStorage
 
 <div style="margin-left: 2em">
 
@@ -303,7 +303,7 @@
 
 </div>
 
-### _`class`_ torch.ComplexFloatStorage
+### <code><i>class</i></code> torch.ComplexFloatStorage
 
 <div style="margin-left: 2em">
 
@@ -335,7 +335,7 @@
 
 </div>
 
-### _`class`_ torch.QUInt8Storage
+### <code><i>class</i></code> torch.QUInt8Storage
 
 <div style="margin-left: 2em">
 
@@ -367,7 +367,7 @@
 
 </div>
 
-### _`class`_ torch.QInt8Storage
+### <code><i>class</i></code> torch.QInt8Storage
 
 <div style="margin-left: 2em">
 
@@ -401,7 +401,7 @@
 
 </div>
 
-### _`class`_ torch.QInt32Storage
+### <code><i>class</i></code> torch.QInt32Storage
 
 <div style="margin-left: 2em">
 
@@ -435,7 +435,7 @@
 
 </div>
 
-### _`class`_ torch.QUInt4x2Storage
+### <code><i>class</i></code> torch.QUInt4x2Storage
 
 <div style="margin-left: 2em">
 
@@ -469,7 +469,7 @@
 
 </div>
 
-### _`class`_ torch.QUInt2x4Storage
+### <code><i>class</i></code> torch.QUInt2x4Storage
 
 <div style="margin-left: 2em">
 
@@ -505,7 +505,7 @@
 
 ## Legacy Typed Storage
 
-### _`class`_ torch.TypedStorage
+### <code><i>class</i></code> torch.TypedStorage
 
 <div style="margin-left: 2em">
 
@@ -1193,7 +1193,7 @@
 
 </div>
 
-### _`class`_ torch.FloatStorage
+### <code><i>class</i></code> torch.FloatStorage
 
 <div style="margin-left: 2em">
 
@@ -1225,7 +1225,7 @@
 
 </div>
 
-### _`class`_ torch.IntStorage
+### <code><i>class</i></code> torch.IntStorage
 
 <div style="margin-left: 2em">
 
@@ -1259,7 +1259,7 @@
 
 ## Untyped Storage API
 
-### _`class`_ torch.UntypedStorage
+### <code><i>class</i></code> torch.UntypedStorage
 
 <div style="margin-left: 2em">
 

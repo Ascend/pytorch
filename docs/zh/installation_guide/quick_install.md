@@ -1,8 +1,6 @@
 # 快速安装
 
-> [!NOTE]
->
-> master版本未提供快速安装方式，请使用[源码编译](./references/building_from_source.md)进行安装操作。
+master版本未提供快速安装方式，请使用[源码编译](./references/building_from_source.md)进行安装操作。
 
 ## 安装拓展模块
 

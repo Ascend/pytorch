@@ -14,7 +14,7 @@
 
 ## base API
 
-### _`class`_ torch.monitor.Aggregation
+### <code><i>class</i></code> torch.monitor.Aggregation
 
 <div style="margin-left: 2em">
 
@@ -46,7 +46,7 @@
 
 </div>
 
-### _`class`_ torch.monitor.Stat
+### <code><i>class</i></code> torch.monitor.Stat
 
 <div style="margin-left: 2em">
 
@@ -142,7 +142,7 @@
 
 </div>
 
-### _`class`_ torch.monitor.Event
+### <code><i>class</i></code> torch.monitor.Event
 
 <div style="margin-left: 2em">
 
@@ -222,7 +222,7 @@
 
 </div>
 
-### _`class`_ torch.monitor.EventHandlerHandle
+### <code><i>class</i></code> torch.monitor.EventHandlerHandle
 
 <div style="margin-left: 2em">
 
@@ -286,7 +286,7 @@
 
 </div>
 
-### _`class`_ torch.monitor.TensorboardEventHandler
+### <code><i>class</i></code> torch.monitor.TensorboardEventHandler
 
 <div style="margin-left: 2em">
 

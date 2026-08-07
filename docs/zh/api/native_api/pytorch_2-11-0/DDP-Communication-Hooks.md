@@ -13,7 +13,7 @@
 
 ## base API
 
-### _`class`_ torch.distributed.GradBucket
+### <code><i>class</i></code> torch.distributed.GradBucket
 
 <div style="margin-left: 2em">
 
@@ -219,7 +219,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.algorithms.ddp_comm_hooks.powerSGD_hook.PowerSGDState
+### <code><i>class</i></code> torch.distributed.algorithms.ddp_comm_hooks.powerSGD_hook.PowerSGDState
 
 <div style="margin-left: 2em">
 

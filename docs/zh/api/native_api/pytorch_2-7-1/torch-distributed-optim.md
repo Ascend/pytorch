@@ -13,7 +13,7 @@
 
 ## base API
 
-### _`class`_ torch.distributed.optim.DistributedOptimizer
+### <code><i>class</i></code> torch.distributed.optim.DistributedOptimizer
 
 <div style="margin-left: 2em">
 
@@ -45,7 +45,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.optim.PostLocalSGDOptimizer
+### <code><i>class</i></code> torch.distributed.optim.PostLocalSGDOptimizer
 
 <div style="margin-left: 2em">
 
@@ -109,7 +109,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.optim.ZeroRedundancyOptimizer
+### <code><i>class</i></code> torch.distributed.optim.ZeroRedundancyOptimizer
 
 <div style="margin-left: 2em">
 

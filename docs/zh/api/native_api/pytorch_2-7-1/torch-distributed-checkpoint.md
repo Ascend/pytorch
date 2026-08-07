@@ -62,7 +62,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.checkpoint.stateful.Stateful
+### <code><i>class</i></code> torch.distributed.checkpoint.stateful.Stateful
 
 <div style="margin-left: 2em">
 
@@ -110,7 +110,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.checkpoint.FileSystemReader
+### <code><i>class</i></code> torch.distributed.checkpoint.FileSystemReader
 
 <div style="margin-left: 2em">
 
@@ -126,7 +126,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.checkpoint.FileSystemWriter
+### <code><i>class</i></code> torch.distributed.checkpoint.FileSystemWriter
 
 <div style="margin-left: 2em">
 
@@ -142,7 +142,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.checkpoint.staging.AsyncStager
+### <code><i>class</i></code> torch.distributed.checkpoint.staging.AsyncStager
 
 <div style="margin-left: 2em">
 
@@ -206,7 +206,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.checkpoint.staging.BlockingAsyncStager
+### <code><i>class</i></code> torch.distributed.checkpoint.staging.BlockingAsyncStager
 
 <div style="margin-left: 2em">
 
@@ -254,7 +254,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.checkpoint.DefaultSavePlanner
+### <code><i>class</i></code> torch.distributed.checkpoint.DefaultSavePlanner
 
 <div style="margin-left: 2em">
 
@@ -302,7 +302,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.checkpoint.DefaultLoadPlanner
+### <code><i>class</i></code> torch.distributed.checkpoint.DefaultLoadPlanner
 
 <div style="margin-left: 2em">
 
@@ -446,7 +446,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.checkpoint.format_utils.BroadcastingTorchSaveReader
+### <code><i>class</i></code> torch.distributed.checkpoint.format_utils.BroadcastingTorchSaveReader
 
 <div style="margin-left: 2em">
 
@@ -574,7 +574,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.checkpoint.format_utils.DynamicMetaLoadPlanner
+### <code><i>class</i></code> torch.distributed.checkpoint.format_utils.DynamicMetaLoadPlanner
 
 <div style="margin-left: 2em">
 
@@ -592,7 +592,7 @@
 
 ## Additional resources
 
-### _`class`_ torch.distributed.checkpoint.StorageReader
+### <code><i>class</i></code> torch.distributed.checkpoint.StorageReader
 
 <div style="margin-left: 2em">
 
@@ -720,7 +720,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.checkpoint.StorageWriter
+### <code><i>class</i></code> torch.distributed.checkpoint.StorageWriter
 
 <div style="margin-left: 2em">
 
@@ -864,7 +864,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.checkpoint.LoadPlanner
+### <code><i>class</i></code> torch.distributed.checkpoint.LoadPlanner
 
 <div style="margin-left: 2em">
 
@@ -992,7 +992,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.checkpoint.LoadPlan
+### <code><i>class</i></code> torch.distributed.checkpoint.LoadPlan
 
 <div style="margin-left: 2em">
 
@@ -1008,7 +1008,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.checkpoint.ReadItem
+### <code><i>class</i></code> torch.distributed.checkpoint.ReadItem
 
 <div style="margin-left: 2em">
 
@@ -1024,7 +1024,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.checkpoint.SavePlanner
+### <code><i>class</i></code> torch.distributed.checkpoint.SavePlanner
 
 <div style="margin-left: 2em">
 
@@ -1120,7 +1120,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.checkpoint.SavePlan
+### <code><i>class</i></code> torch.distributed.checkpoint.SavePlan
 
 <div style="margin-left: 2em">
 
@@ -1136,7 +1136,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.checkpoint.planner.WriteItem
+### <code><i>class</i></code> torch.distributed.checkpoint.planner.WriteItem
 
 <div style="margin-left: 2em">
 
@@ -1168,7 +1168,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.checkpoint.state_dict.StateDictOptions
+### <code><i>class</i></code> torch.distributed.checkpoint.state_dict.StateDictOptions
 
 <div style="margin-left: 2em">
 

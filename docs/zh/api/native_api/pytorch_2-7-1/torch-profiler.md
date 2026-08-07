@@ -191,7 +191,7 @@
 
 </div>
 
-### _`class`_ torch.profiler.ProfilerAction
+### <code><i>class</i></code> torch.profiler.ProfilerAction
 
 <div style="margin-left: 2em">
 
@@ -209,7 +209,7 @@
 
 </div>
 
-### _`class`_ torch.profiler.ProfilerActivity
+### <code><i>class</i></code> torch.profiler.ProfilerActivity
 
 <div style="margin-left: 2em">
 

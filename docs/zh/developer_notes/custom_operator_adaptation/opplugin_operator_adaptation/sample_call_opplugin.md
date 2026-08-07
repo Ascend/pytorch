@@ -4,8 +4,7 @@
 
 ## 适配前准备
 
-1. 安装PyTorch框架，具体请参见《[软件安装](../../../installation_guide/_menu_installation_guide.md)》。
-
+1. 安装PyTorch和TorchNPU，具体请参见[源码编译](../../../installation_guide/references/building_from_source.md)。
 2. 适配前需执行如下命令拉取TorchNPU仓对应分支的代码并进入OpPlugin目录。
 
     ```bash
@@ -199,7 +198,7 @@
 
 ## 编译验证
 
-1. 编译TorchNPU插件并安装，推荐使用容器场景进行编译，具体操作可参考《软件安装》中的“[源码安装](../../../installation_guide/references/building_from_source.md)”章节的“方式一（推荐）：容器场景”。
+1. 编译TorchNPU插件并安装，推荐使用容器场景进行编译，具体操作可参考[源码安装](../../../installation_guide/references/building_from_source.md)章节的“方式一（推荐）：容器场景”。
 
 2. 上述开发过程完成后，调用开发者测试脚本，验证基本功能是否正常。
 

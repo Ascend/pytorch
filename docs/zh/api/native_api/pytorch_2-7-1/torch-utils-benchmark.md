@@ -13,7 +13,7 @@
 
 ## base API
 
-### _`class`_ torch.utils.benchmark.Timer
+### <code><i>class</i></code> torch.utils.benchmark.Timer
 
 <div style="margin-left: 2em">
 
@@ -77,7 +77,7 @@
 
 </div>
 
-### _`class`_ torch.utils.benchmark.Measurement
+### <code><i>class</i></code> torch.utils.benchmark.Measurement
 
 <div style="margin-left: 2em">
 
@@ -93,7 +93,7 @@
 
 </div>
 
-### _`class`_ torch.utils.benchmark.CallgrindStats
+### <code><i>class</i></code> torch.utils.benchmark.CallgrindStats
 
 <div style="margin-left: 2em">
 
@@ -173,7 +173,7 @@
 
 </div>
 
-### _`class`_ torch.utils.benchmark.FunctionCounts
+### <code><i>class</i></code> torch.utils.benchmark.FunctionCounts
 
 <div style="margin-left: 2em">
 

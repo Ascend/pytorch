@@ -166,7 +166,7 @@
 
 </div>
 
-### _`class`_ torch.jit.ScriptModule
+### <code><i>class</i></code> torch.jit.ScriptModule
 
 <div style="margin-left: 2em">
 
@@ -1108,7 +1108,7 @@
 
 </div>
 
-### _`class`_ torch.jit.ScriptFunction
+### <code><i>class</i></code> torch.jit.ScriptFunction
 
 <div style="margin-left: 2em">
 
@@ -1354,7 +1354,7 @@
 
 </div>
 
-### _`class`_ torch.jit.Attribute
+### <code><i>class</i></code> torch.jit.Attribute
 
 <div style="margin-left: 2em">
 

@@ -13,7 +13,7 @@
 
 ## base API
 
-### _`class`_ torch.optim.Optimizer
+### <code><i>class</i></code> torch.optim.Optimizer
 
 <div style="margin-left: 2em">
 
@@ -109,7 +109,7 @@
 
 </div>
 
-### _`class`_ torch.optim.Adadelta
+### <code><i>class</i></code> torch.optim.Adadelta
 
 <div style="margin-left: 2em">
 
@@ -311,7 +311,7 @@
 
 </div>
 
-### _`class`_ torch.optim.Adagrad
+### <code><i>class</i></code> torch.optim.Adagrad
 
 <div style="margin-left: 2em">
 
@@ -513,7 +513,7 @@
 
 </div>
 
-### _`class`_ torch.optim.Adam
+### <code><i>class</i></code> torch.optim.Adam
 
 <div style="margin-left: 2em">
 
@@ -717,7 +717,7 @@
 
 </div>
 
-### _`class`_ torch.optim.AdamW
+### <code><i>class</i></code> torch.optim.AdamW
 
 <div style="margin-left: 2em">
 
@@ -925,7 +925,7 @@
 
 </div>
 
-### _`class`_ torch.optim.SparseAdam
+### <code><i>class</i></code> torch.optim.SparseAdam
 
 <div style="margin-left: 2em">
 
@@ -1091,7 +1091,7 @@
 
 </div>
 
-### _`class`_ torch.optim.Adamax
+### <code><i>class</i></code> torch.optim.Adamax
 
 <div style="margin-left: 2em">
 
@@ -1303,7 +1303,7 @@
 
 </div>
 
-### _`class`_ torch.optim.ASGD
+### <code><i>class</i></code> torch.optim.ASGD
 
 <div style="margin-left: 2em">
 
@@ -1507,7 +1507,7 @@
 
 </div>
 
-### _`class`_ torch.optim.LBFGS
+### <code><i>class</i></code> torch.optim.LBFGS
 
 <div style="margin-left: 2em">
 
@@ -1699,7 +1699,7 @@
 
 </div>
 
-### _`class`_ torch.optim.NAdam
+### <code><i>class</i></code> torch.optim.NAdam
 
 <div style="margin-left: 2em">
 
@@ -1911,7 +1911,7 @@
 
 </div>
 
-### _`class`_ torch.optim.RAdam
+### <code><i>class</i></code> torch.optim.RAdam
 
 <div style="margin-left: 2em">
 
@@ -2123,7 +2123,7 @@
 
 </div>
 
-### _`class`_ torch.optim.RMSprop
+### <code><i>class</i></code> torch.optim.RMSprop
 
 <div style="margin-left: 2em">
 
@@ -2325,7 +2325,7 @@
 
 </div>
 
-### _`class`_ torch.optim.Rprop
+### <code><i>class</i></code> torch.optim.Rprop
 
 <div style="margin-left: 2em">
 
@@ -2527,7 +2527,7 @@
 
 </div>
 
-### _`class`_ torch.optim.SGD
+### <code><i>class</i></code> torch.optim.SGD
 
 <div style="margin-left: 2em">
 
@@ -2739,7 +2739,7 @@
 
 </div>
 
-### _`class`_ torch.optim.lr_scheduler.LambdaLR
+### <code><i>class</i></code> torch.optim.lr_scheduler.LambdaLR
 
 <div style="margin-left: 2em">
 
@@ -2803,7 +2803,7 @@
 
 </div>
 
-### _`class`_ torch.optim.lr_scheduler.MultiplicativeLR
+### <code><i>class</i></code> torch.optim.lr_scheduler.MultiplicativeLR
 
 <div style="margin-left: 2em">
 
@@ -2873,7 +2873,7 @@
 
 </div>
 
-### _`class`_ torch.optim.lr_scheduler.StepLR
+### <code><i>class</i></code> torch.optim.lr_scheduler.StepLR
 
 <div style="margin-left: 2em">
 
@@ -2943,7 +2943,7 @@
 
 </div>
 
-### _`class`_ torch.optim.lr_scheduler.MultiStepLR
+### <code><i>class</i></code> torch.optim.lr_scheduler.MultiStepLR
 
 <div style="margin-left: 2em">
 
@@ -3013,7 +3013,7 @@
 
 </div>
 
-### _`class`_ torch.optim.lr_scheduler.ConstantLR
+### <code><i>class</i></code> torch.optim.lr_scheduler.ConstantLR
 
 <div style="margin-left: 2em">
 
@@ -3083,7 +3083,7 @@
 
 </div>
 
-### _`class`_ torch.optim.lr_scheduler.LinearLR
+### <code><i>class</i></code> torch.optim.lr_scheduler.LinearLR
 
 <div style="margin-left: 2em">
 
@@ -3147,7 +3147,7 @@
 
 </div>
 
-### _`class`_ torch.optim.lr_scheduler.ExponentialLR
+### <code><i>class</i></code> torch.optim.lr_scheduler.ExponentialLR
 
 <div style="margin-left: 2em">
 
@@ -3211,7 +3211,7 @@
 
 </div>
 
-### _`class`_ torch.optim.lr_scheduler.PolynomialLR
+### <code><i>class</i></code> torch.optim.lr_scheduler.PolynomialLR
 
 <div style="margin-left: 2em">
 
@@ -3275,7 +3275,7 @@
 
 </div>
 
-### _`class`_ torch.optim.lr_scheduler.CosineAnnealingLR
+### <code><i>class</i></code> torch.optim.lr_scheduler.CosineAnnealingLR
 
 <div style="margin-left: 2em">
 
@@ -3339,7 +3339,7 @@
 
 </div>
 
-### _`class`_ torch.optim.lr_scheduler.ChainedScheduler
+### <code><i>class</i></code> torch.optim.lr_scheduler.ChainedScheduler
 
 <div style="margin-left: 2em">
 
@@ -3403,7 +3403,7 @@
 
 </div>
 
-### _`class`_ torch.optim.lr_scheduler.SequentialLR
+### <code><i>class</i></code> torch.optim.lr_scheduler.SequentialLR
 
 <div style="margin-left: 2em">
 
@@ -3467,7 +3467,7 @@
 
 </div>
 
-### _`class`_ torch.optim.lr_scheduler.ReduceLROnPlateau
+### <code><i>class</i></code> torch.optim.lr_scheduler.ReduceLROnPlateau
 
 <div style="margin-left: 2em">
 
@@ -3483,7 +3483,7 @@
 
 </div>
 
-### _`class`_ torch.optim.lr_scheduler.CyclicLR
+### <code><i>class</i></code> torch.optim.lr_scheduler.CyclicLR
 
 <div style="margin-left: 2em">
 
@@ -3531,7 +3531,7 @@
 
 </div>
 
-### _`class`_ torch.optim.lr_scheduler.OneCycleLR
+### <code><i>class</i></code> torch.optim.lr_scheduler.OneCycleLR
 
 <div style="margin-left: 2em">
 
@@ -3595,7 +3595,7 @@
 
 </div>
 
-### _`class`_ torch.optim.lr_scheduler.CosineAnnealingWarmRestarts
+### <code><i>class</i></code> torch.optim.lr_scheduler.CosineAnnealingWarmRestarts
 
 <div style="margin-left: 2em">
 

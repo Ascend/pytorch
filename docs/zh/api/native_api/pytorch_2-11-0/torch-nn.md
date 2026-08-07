@@ -31,7 +31,7 @@
 
 ## base API
 
-### _`class`_ torch.nn.parameter.Parameter
+### <code><i>class</i></code> torch.nn.parameter.Parameter
 
 <div style="margin-left: 2em">
 
@@ -49,7 +49,7 @@
 
 </div>
 
-### _`class`_ torch.nn.parameter.Buffer
+### <code><i>class</i></code> torch.nn.parameter.Buffer
 
 <div style="margin-left: 2em">
 
@@ -67,7 +67,7 @@
 
 </div>
 
-### _`class`_ torch.nn.parameter.UninitializedParameter
+### <code><i>class</i></code> torch.nn.parameter.UninitializedParameter
 
 <div style="margin-left: 2em">
 
@@ -99,7 +99,7 @@
 
 </div>
 
-### _`class`_ torch.nn.parameter.UninitializedBuffer
+### <code><i>class</i></code> torch.nn.parameter.UninitializedBuffer
 
 <div style="margin-left: 2em">
 
@@ -117,7 +117,7 @@
 
 ## Containers
 
-### _`class`_ torch.nn.Module
+### <code><i>class</i></code> torch.nn.Module
 
 <div style="margin-left: 2em">
 
@@ -965,7 +965,7 @@
 
 </div>
 
-### _`class`_ torch.nn.Sequential
+### <code><i>class</i></code> torch.nn.Sequential
 
 <div style="margin-left: 2em">
 
@@ -1001,7 +1001,7 @@
 
 </div>
 
-### _`class`_ torch.nn.ModuleList
+### <code><i>class</i></code> torch.nn.ModuleList
 
 <div style="margin-left: 2em">
 
@@ -1073,7 +1073,7 @@
 
 </div>
 
-### _`class`_ torch.nn.ModuleDict
+### <code><i>class</i></code> torch.nn.ModuleDict
 
 <div style="margin-left: 2em">
 
@@ -1106,6 +1106,10 @@
 | <term>Ascend 950DT</term> | &#10007; |
 
 **限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">items()</font>
 
 <div style="margin-left: 2em">
 
@@ -1195,9 +1199,7 @@
 
 </div>
 
-</div>
-
-### _`class`_ torch.nn.ParameterList
+### <code><i>class</i></code> torch.nn.ParameterList
 
 <div style="margin-left: 2em">
 
@@ -1251,7 +1253,7 @@
 
 </div>
 
-### _`class`_ torch.nn.ParameterDict
+### <code><i>class</i></code> torch.nn.ParameterDict
 
 <div style="margin-left: 2em">
 
@@ -1597,7 +1599,7 @@
 
 ## Convolution Layers
 
-### _`class`_ torch.nn.Conv1d
+### <code><i>class</i></code> torch.nn.Conv1d
 
 <div style="margin-left: 2em">
 
@@ -1615,7 +1617,7 @@
 
 </div>
 
-### _`class`_ torch.nn.Conv2d
+### <code><i>class</i></code> torch.nn.Conv2d
 
 <div style="margin-left: 2em">
 
@@ -1641,7 +1643,7 @@
 
 </div>
 
-### _`class`_ torch.nn.Conv3d
+### <code><i>class</i></code> torch.nn.Conv3d
 
 <div style="margin-left: 2em">
 
@@ -1659,7 +1661,7 @@
 
 </div>
 
-### _`class`_ torch.nn.ConvTranspose1d
+### <code><i>class</i></code> torch.nn.ConvTranspose1d
 
 <div style="margin-left: 2em">
 
@@ -1677,7 +1679,7 @@
 
 </div>
 
-### _`class`_ torch.nn.ConvTranspose2d
+### <code><i>class</i></code> torch.nn.ConvTranspose2d
 
 <div style="margin-left: 2em">
 
@@ -1698,7 +1700,7 @@
 
 </div>
 
-### _`class`_ torch.nn.ConvTranspose3d
+### <code><i>class</i></code> torch.nn.ConvTranspose3d
 
 <div style="margin-left: 2em">
 
@@ -1716,7 +1718,7 @@
 
 </div>
 
-### _`class`_ torch.nn.LazyConv1d
+### <code><i>class</i></code> torch.nn.LazyConv1d
 
 <div style="margin-left: 2em">
 
@@ -1750,7 +1752,7 @@
 
 </div>
 
-### _`class`_ torch.nn.LazyConv2d
+### <code><i>class</i></code> torch.nn.LazyConv2d
 
 <div style="margin-left: 2em">
 
@@ -1784,7 +1786,7 @@
 
 </div>
 
-### _`class`_ torch.nn.LazyConv3d
+### <code><i>class</i></code> torch.nn.LazyConv3d
 
 <div style="margin-left: 2em">
 
@@ -1806,7 +1808,7 @@
 
 </div>
 
-### _`class`_ torch.nn.LazyConvTranspose1d
+### <code><i>class</i></code> torch.nn.LazyConvTranspose1d
 
 <div style="margin-left: 2em">
 
@@ -1840,7 +1842,7 @@
 
 </div>
 
-### _`class`_ torch.nn.LazyConvTranspose2d
+### <code><i>class</i></code> torch.nn.LazyConvTranspose2d
 
 <div style="margin-left: 2em">
 
@@ -1874,7 +1876,7 @@
 
 </div>
 
-### _`class`_ torch.nn.LazyConvTranspose3d
+### <code><i>class</i></code> torch.nn.LazyConvTranspose3d
 
 <div style="margin-left: 2em">
 
@@ -1896,7 +1898,7 @@
 
 </div>
 
-### _`class`_ torch.nn.Unfold
+### <code><i>class</i></code> torch.nn.Unfold
 
 <div style="margin-left: 2em">
 
@@ -1914,7 +1916,7 @@
 
 </div>
 
-### _`class`_ torch.nn.Fold
+### <code><i>class</i></code> torch.nn.Fold
 
 <div style="margin-left: 2em">
 
@@ -1934,7 +1936,7 @@
 
 ## Pooling layers
 
-### _`class`_ torch.nn.MaxPool1d
+### <code><i>class</i></code> torch.nn.MaxPool1d
 
 <div style="margin-left: 2em">
 
@@ -1950,7 +1952,7 @@
 
 </div>
 
-### _`class`_ torch.nn.MaxPool2d
+### <code><i>class</i></code> torch.nn.MaxPool2d
 
 <div style="margin-left: 2em">
 
@@ -1976,7 +1978,7 @@
 
 </div>
 
-### _`class`_ torch.nn.MaxPool3d
+### <code><i>class</i></code> torch.nn.MaxPool3d
 
 <div style="margin-left: 2em">
 
@@ -1992,7 +1994,7 @@
 
 </div>
 
-### _`class`_ torch.nn.MaxUnpool1d
+### <code><i>class</i></code> torch.nn.MaxUnpool1d
 
 <div style="margin-left: 2em">
 
@@ -2010,7 +2012,7 @@
 
 </div>
 
-### _`class`_ torch.nn.MaxUnpool2d
+### <code><i>class</i></code> torch.nn.MaxUnpool2d
 
 <div style="margin-left: 2em">
 
@@ -2028,7 +2030,7 @@
 
 </div>
 
-### _`class`_ torch.nn.MaxUnpool3d
+### <code><i>class</i></code> torch.nn.MaxUnpool3d
 
 <div style="margin-left: 2em">
 
@@ -2044,7 +2046,7 @@
 
 </div>
 
-### _`class`_ torch.nn.AvgPool1d
+### <code><i>class</i></code> torch.nn.AvgPool1d
 
 <div style="margin-left: 2em">
 
@@ -2062,7 +2064,7 @@
 
 </div>
 
-### _`class`_ torch.nn.AvgPool2d
+### <code><i>class</i></code> torch.nn.AvgPool2d
 
 <div style="margin-left: 2em">
 
@@ -2080,7 +2082,7 @@
 
 </div>
 
-### _`class`_ torch.nn.AvgPool3d
+### <code><i>class</i></code> torch.nn.AvgPool3d
 
 <div style="margin-left: 2em">
 
@@ -2096,7 +2098,7 @@
 
 </div>
 
-### _`class`_ torch.nn.LPPool1d
+### <code><i>class</i></code> torch.nn.LPPool1d
 
 <div style="margin-left: 2em">
 
@@ -2114,7 +2116,7 @@
 
 </div>
 
-### _`class`_ torch.nn.LPPool2d
+### <code><i>class</i></code> torch.nn.LPPool2d
 
 <div style="margin-left: 2em">
 
@@ -2132,7 +2134,7 @@
 
 </div>
 
-### _`class`_ torch.nn.AdaptiveMaxPool1d
+### <code><i>class</i></code> torch.nn.AdaptiveMaxPool1d
 
 <div style="margin-left: 2em">
 
@@ -2148,7 +2150,7 @@
 
 </div>
 
-### _`class`_ torch.nn.AdaptiveMaxPool2d
+### <code><i>class</i></code> torch.nn.AdaptiveMaxPool2d
 
 <div style="margin-left: 2em">
 
@@ -2164,7 +2166,7 @@
 
 </div>
 
-### _`class`_ torch.nn.AdaptiveMaxPool3d
+### <code><i>class</i></code> torch.nn.AdaptiveMaxPool3d
 
 <div style="margin-left: 2em">
 
@@ -2182,7 +2184,7 @@
 
 </div>
 
-### _`class`_ torch.nn.AdaptiveAvgPool1d
+### <code><i>class</i></code> torch.nn.AdaptiveAvgPool1d
 
 <div style="margin-left: 2em">
 
@@ -2200,7 +2202,7 @@
 
 </div>
 
-### _`class`_ torch.nn.AdaptiveAvgPool2d
+### <code><i>class</i></code> torch.nn.AdaptiveAvgPool2d
 
 <div style="margin-left: 2em">
 
@@ -2218,7 +2220,7 @@
 
 </div>
 
-### _`class`_ torch.nn.AdaptiveAvgPool3d
+### <code><i>class</i></code> torch.nn.AdaptiveAvgPool3d
 
 <div style="margin-left: 2em">
 
@@ -2238,7 +2240,7 @@
 
 ## Padding Layers
 
-### _`class`_ torch.nn.ReflectionPad1d
+### <code><i>class</i></code> torch.nn.ReflectionPad1d
 
 <div style="margin-left: 2em">
 
@@ -2256,7 +2258,7 @@
 
 </div>
 
-### _`class`_ torch.nn.ReflectionPad2d
+### <code><i>class</i></code> torch.nn.ReflectionPad2d
 
 <div style="margin-left: 2em">
 
@@ -2274,7 +2276,7 @@
 
 </div>
 
-### _`class`_ torch.nn.ReflectionPad3d
+### <code><i>class</i></code> torch.nn.ReflectionPad3d
 
 <div style="margin-left: 2em">
 
@@ -2290,7 +2292,7 @@
 
 </div>
 
-### _`class`_ torch.nn.ReplicationPad1d
+### <code><i>class</i></code> torch.nn.ReplicationPad1d
 
 <div style="margin-left: 2em">
 
@@ -2308,7 +2310,7 @@
 
 </div>
 
-### _`class`_ torch.nn.ReplicationPad2d
+### <code><i>class</i></code> torch.nn.ReplicationPad2d
 
 <div style="margin-left: 2em">
 
@@ -2326,7 +2328,7 @@
 
 </div>
 
-### _`class`_ torch.nn.ReplicationPad3d
+### <code><i>class</i></code> torch.nn.ReplicationPad3d
 
 <div style="margin-left: 2em">
 
@@ -2342,7 +2344,7 @@
 
 </div>
 
-### _`class`_ torch.nn.ZeroPad1d
+### <code><i>class</i></code> torch.nn.ZeroPad1d
 
 <div style="margin-left: 2em">
 
@@ -2363,7 +2365,7 @@
 
 </div>
 
-### _`class`_ torch.nn.ZeroPad2d
+### <code><i>class</i></code> torch.nn.ZeroPad2d
 
 <div style="margin-left: 2em">
 
@@ -2381,7 +2383,7 @@
 
 </div>
 
-### _`class`_ torch.nn.ZeroPad3d
+### <code><i>class</i></code> torch.nn.ZeroPad3d
 
 <div style="margin-left: 2em">
 
@@ -2402,7 +2404,7 @@
 
 </div>
 
-### _`class`_ torch.nn.ConstantPad1d
+### <code><i>class</i></code> torch.nn.ConstantPad1d
 
 <div style="margin-left: 2em">
 
@@ -2423,7 +2425,7 @@
 
 </div>
 
-### _`class`_ torch.nn.ConstantPad2d
+### <code><i>class</i></code> torch.nn.ConstantPad2d
 
 <div style="margin-left: 2em">
 
@@ -2444,7 +2446,7 @@
 
 </div>
 
-### _`class`_ torch.nn.ConstantPad3d
+### <code><i>class</i></code> torch.nn.ConstantPad3d
 
 <div style="margin-left: 2em">
 
@@ -2467,7 +2469,7 @@
 
 ## Non-linear Activations (weighted sum, nonlinearity)
 
-### _`class`_ torch.nn.ELU
+### <code><i>class</i></code> torch.nn.ELU
 
 <div style="margin-left: 2em">
 
@@ -2485,7 +2487,7 @@
 
 </div>
 
-### _`class`_ torch.nn.Hardshrink
+### <code><i>class</i></code> torch.nn.Hardshrink
 
 <div style="margin-left: 2em">
 
@@ -2506,7 +2508,7 @@
 
 </div>
 
-### _`class`_ torch.nn.Hardsigmoid
+### <code><i>class</i></code> torch.nn.Hardsigmoid
 
 <div style="margin-left: 2em">
 
@@ -2527,7 +2529,7 @@
 
 </div>
 
-### _`class`_ torch.nn.Hardtanh
+### <code><i>class</i></code> torch.nn.Hardtanh
 
 <div style="margin-left: 2em">
 
@@ -2545,7 +2547,7 @@
 
 </div>
 
-### _`class`_ torch.nn.Hardswish
+### <code><i>class</i></code> torch.nn.Hardswish
 
 <div style="margin-left: 2em">
 
@@ -2563,7 +2565,7 @@
 
 </div>
 
-### _`class`_ torch.nn.LeakyReLU
+### <code><i>class</i></code> torch.nn.LeakyReLU
 
 <div style="margin-left: 2em">
 
@@ -2581,7 +2583,7 @@
 
 </div>
 
-### _`class`_ torch.nn.LogSigmoid
+### <code><i>class</i></code> torch.nn.LogSigmoid
 
 <div style="margin-left: 2em">
 
@@ -2599,7 +2601,7 @@
 
 </div>
 
-### _`class`_ torch.nn.MultiheadAttention
+### <code><i>class</i></code> torch.nn.MultiheadAttention
 
 <div style="margin-left: 2em">
 
@@ -2635,7 +2637,7 @@
 
 </div>
 
-### _`class`_ torch.nn.PReLU
+### <code><i>class</i></code> torch.nn.PReLU
 
 <div style="margin-left: 2em">
 
@@ -2653,7 +2655,7 @@
 
 </div>
 
-### _`class`_ torch.nn.ReLU
+### <code><i>class</i></code> torch.nn.ReLU
 
 <div style="margin-left: 2em">
 
@@ -2671,7 +2673,7 @@
 
 </div>
 
-### _`class`_ torch.nn.ReLU6
+### <code><i>class</i></code> torch.nn.ReLU6
 
 <div style="margin-left: 2em">
 
@@ -2689,7 +2691,7 @@
 
 </div>
 
-### _`class`_ torch.nn.RReLU
+### <code><i>class</i></code> torch.nn.RReLU
 
 <div style="margin-left: 2em">
 
@@ -2705,7 +2707,7 @@
 
 </div>
 
-### _`class`_ torch.nn.SELU
+### <code><i>class</i></code> torch.nn.SELU
 
 <div style="margin-left: 2em">
 
@@ -2723,7 +2725,7 @@
 
 </div>
 
-### _`class`_ torch.nn.CELU
+### <code><i>class</i></code> torch.nn.CELU
 
 <div style="margin-left: 2em">
 
@@ -2741,7 +2743,7 @@
 
 </div>
 
-### _`class`_ torch.nn.GELU
+### <code><i>class</i></code> torch.nn.GELU
 
 <div style="margin-left: 2em">
 
@@ -2762,7 +2764,7 @@
 
 </div>
 
-### _`class`_ torch.nn.Sigmoid
+### <code><i>class</i></code> torch.nn.Sigmoid
 
 <div style="margin-left: 2em">
 
@@ -2780,7 +2782,7 @@
 
 </div>
 
-### _`class`_ torch.nn.SiLU
+### <code><i>class</i></code> torch.nn.SiLU
 
 <div style="margin-left: 2em">
 
@@ -2798,7 +2800,7 @@
 
 </div>
 
-### _`class`_ torch.nn.Mish
+### <code><i>class</i></code> torch.nn.Mish
 
 <div style="margin-left: 2em">
 
@@ -2816,7 +2818,7 @@
 
 </div>
 
-### _`class`_ torch.nn.Softplus
+### <code><i>class</i></code> torch.nn.Softplus
 
 <div style="margin-left: 2em">
 
@@ -2834,7 +2836,7 @@
 
 </div>
 
-### _`class`_ torch.nn.Softshrink
+### <code><i>class</i></code> torch.nn.Softshrink
 
 <div style="margin-left: 2em">
 
@@ -2852,7 +2854,7 @@
 
 </div>
 
-### _`class`_ torch.nn.Softsign
+### <code><i>class</i></code> torch.nn.Softsign
 
 <div style="margin-left: 2em">
 
@@ -2870,7 +2872,7 @@
 
 </div>
 
-### _`class`_ torch.nn.Tanh
+### <code><i>class</i></code> torch.nn.Tanh
 
 <div style="margin-left: 2em">
 
@@ -2888,7 +2890,7 @@
 
 </div>
 
-### _`class`_ torch.nn.Tanhshrink
+### <code><i>class</i></code> torch.nn.Tanhshrink
 
 <div style="margin-left: 2em">
 
@@ -2909,7 +2911,7 @@
 
 </div>
 
-### _`class`_ torch.nn.Threshold
+### <code><i>class</i></code> torch.nn.Threshold
 
 <div style="margin-left: 2em">
 
@@ -2927,7 +2929,7 @@
 
 </div>
 
-### _`class`_ torch.nn.GLU
+### <code><i>class</i></code> torch.nn.GLU
 
 <div style="margin-left: 2em">
 
@@ -2947,7 +2949,7 @@
 
 ## Non-linear Activations (other)
 
-### _`class`_ torch.nn.Softmin
+### <code><i>class</i></code> torch.nn.Softmin
 
 <div style="margin-left: 2em">
 
@@ -2965,7 +2967,7 @@
 
 </div>
 
-### _`class`_ torch.nn.Softmax
+### <code><i>class</i></code> torch.nn.Softmax
 
 <div style="margin-left: 2em">
 
@@ -2983,7 +2985,7 @@
 
 </div>
 
-### _`class`_ torch.nn.Softmax2d
+### <code><i>class</i></code> torch.nn.Softmax2d
 
 <div style="margin-left: 2em">
 
@@ -3001,7 +3003,7 @@
 
 </div>
 
-### _`class`_ torch.nn.LogSoftmax
+### <code><i>class</i></code> torch.nn.LogSoftmax
 
 <div style="margin-left: 2em">
 
@@ -3019,7 +3021,7 @@
 
 </div>
 
-### _`class`_ torch.nn.AdaptiveLogSoftmaxWithLoss
+### <code><i>class</i></code> torch.nn.AdaptiveLogSoftmaxWithLoss
 
 <div style="margin-left: 2em">
 
@@ -3069,7 +3071,7 @@
 
 ## Normalization Layers
 
-### _`class`_ torch.nn.BatchNorm1d
+### <code><i>class</i></code> torch.nn.BatchNorm1d
 
 <div style="margin-left: 2em">
 
@@ -3087,7 +3089,7 @@
 
 </div>
 
-### _`class`_ torch.nn.BatchNorm2d
+### <code><i>class</i></code> torch.nn.BatchNorm2d
 
 <div style="margin-left: 2em">
 
@@ -3105,7 +3107,7 @@
 
 </div>
 
-### _`class`_ torch.nn.BatchNorm3d
+### <code><i>class</i></code> torch.nn.BatchNorm3d
 
 <div style="margin-left: 2em">
 
@@ -3123,7 +3125,7 @@
 
 </div>
 
-### _`class`_ torch.nn.LazyBatchNorm1d
+### <code><i>class</i></code> torch.nn.LazyBatchNorm1d
 
 <div style="margin-left: 2em">
 
@@ -3145,7 +3147,7 @@
 
 </div>
 
-### _`class`_ torch.nn.LazyBatchNorm2d
+### <code><i>class</i></code> torch.nn.LazyBatchNorm2d
 
 <div style="margin-left: 2em">
 
@@ -3167,7 +3169,7 @@
 
 </div>
 
-### _`class`_ torch.nn.LazyBatchNorm3d
+### <code><i>class</i></code> torch.nn.LazyBatchNorm3d
 
 <div style="margin-left: 2em">
 
@@ -3189,7 +3191,7 @@
 
 </div>
 
-### _`class`_ torch.nn.GroupNorm
+### <code><i>class</i></code> torch.nn.GroupNorm
 
 <div style="margin-left: 2em">
 
@@ -3212,7 +3214,7 @@
 
 </div>
 
-### _`class`_ torch.nn.SyncBatchNorm
+### <code><i>class</i></code> torch.nn.SyncBatchNorm
 
 <div style="margin-left: 2em">
 
@@ -3246,7 +3248,7 @@
 
 </div>
 
-### _`class`_ torch.nn.LazyInstanceNorm1d
+### <code><i>class</i></code> torch.nn.LazyInstanceNorm1d
 
 <div style="margin-left: 2em">
 
@@ -3268,7 +3270,7 @@
 
 </div>
 
-### _`class`_ torch.nn.LazyInstanceNorm2d
+### <code><i>class</i></code> torch.nn.LazyInstanceNorm2d
 
 <div style="margin-left: 2em">
 
@@ -3290,7 +3292,7 @@
 
 </div>
 
-### _`class`_ torch.nn.LazyInstanceNorm3d
+### <code><i>class</i></code> torch.nn.LazyInstanceNorm3d
 
 <div style="margin-left: 2em">
 
@@ -3312,7 +3314,7 @@
 
 </div>
 
-### _`class`_ torch.nn.LayerNorm
+### <code><i>class</i></code> torch.nn.LayerNorm
 
 <div style="margin-left: 2em">
 
@@ -3340,7 +3342,7 @@
 
 ## Recurrent Layers
 
-### _`class`_ torch.nn.RNNBase
+### <code><i>class</i></code> torch.nn.RNNBase
 
 <div style="margin-left: 2em">
 
@@ -3372,7 +3374,7 @@
 
 </div>
 
-### _`class`_ torch.nn.RNN
+### <code><i>class</i></code> torch.nn.RNN
 
 <div style="margin-left: 2em">
 
@@ -3388,7 +3390,7 @@
 
 </div>
 
-### _`class`_ torch.nn.LSTM
+### <code><i>class</i></code> torch.nn.LSTM
 
 <div style="margin-left: 2em">
 
@@ -3411,7 +3413,7 @@
 
 </div>
 
-### _`class`_ torch.nn.GRU
+### <code><i>class</i></code> torch.nn.GRU
 
 <div style="margin-left: 2em">
 
@@ -3432,7 +3434,7 @@
 
 </div>
 
-### _`class`_ torch.nn.RNNCell
+### <code><i>class</i></code> torch.nn.RNNCell
 
 <div style="margin-left: 2em">
 
@@ -3448,7 +3450,7 @@
 
 </div>
 
-### _`class`_ torch.nn.LSTMCell
+### <code><i>class</i></code> torch.nn.LSTMCell
 
 <div style="margin-left: 2em">
 
@@ -3466,7 +3468,7 @@
 
 </div>
 
-### _`class`_ torch.nn.GRUCell
+### <code><i>class</i></code> torch.nn.GRUCell
 
 <div style="margin-left: 2em">
 
@@ -3486,7 +3488,7 @@
 
 ## Transformer Layers
 
-### _`class`_ torch.nn.Transformer
+### <code><i>class</i></code> torch.nn.Transformer
 
 <div style="margin-left: 2em">
 
@@ -3520,7 +3522,7 @@
 
 </div>
 
-### _`class`_ torch.nn.TransformerEncoder
+### <code><i>class</i></code> torch.nn.TransformerEncoder
 
 <div style="margin-left: 2em">
 
@@ -3554,7 +3556,7 @@
 
 </div>
 
-### _`class`_ torch.nn.TransformerDecoder
+### <code><i>class</i></code> torch.nn.TransformerDecoder
 
 <div style="margin-left: 2em">
 
@@ -3586,7 +3588,7 @@
 
 </div>
 
-### _`class`_ torch.nn.TransformerEncoderLayer
+### <code><i>class</i></code> torch.nn.TransformerEncoderLayer
 
 <div style="margin-left: 2em">
 
@@ -3608,7 +3610,7 @@
 
 </div>
 
-### _`class`_ torch.nn.TransformerDecoderLayer
+### <code><i>class</i></code> torch.nn.TransformerDecoderLayer
 
 <div style="margin-left: 2em">
 
@@ -3632,7 +3634,7 @@
 
 ## Linear Layers
 
-### _`class`_ torch.nn.Identity
+### <code><i>class</i></code> torch.nn.Identity
 
 <div style="margin-left: 2em">
 
@@ -3650,7 +3652,7 @@
 
 </div>
 
-### _`class`_ torch.nn.Linear
+### <code><i>class</i></code> torch.nn.Linear
 
 <div style="margin-left: 2em">
 
@@ -3668,7 +3670,7 @@
 
 </div>
 
-### _`class`_ torch.nn.Bilinear
+### <code><i>class</i></code> torch.nn.Bilinear
 
 <div style="margin-left: 2em">
 
@@ -3686,7 +3688,7 @@
 
 </div>
 
-### _`class`_ torch.nn.LazyLinear
+### <code><i>class</i></code> torch.nn.LazyLinear
 
 <div style="margin-left: 2em">
 
@@ -3722,7 +3724,7 @@
 
 ## Dropout Layers
 
-### _`class`_ torch.nn.Dropout
+### <code><i>class</i></code> torch.nn.Dropout
 
 <div style="margin-left: 2em">
 
@@ -3740,7 +3742,7 @@
 
 </div>
 
-### _`class`_ torch.nn.Dropout2d
+### <code><i>class</i></code> torch.nn.Dropout2d
 
 <div style="margin-left: 2em">
 
@@ -3758,7 +3760,7 @@
 
 </div>
 
-### _`class`_ torch.nn.AlphaDropout
+### <code><i>class</i></code> torch.nn.AlphaDropout
 
 <div style="margin-left: 2em">
 
@@ -3776,7 +3778,7 @@
 
 </div>
 
-### _`class`_ torch.nn.FeatureAlphaDropout
+### <code><i>class</i></code> torch.nn.FeatureAlphaDropout
 
 <div style="margin-left: 2em">
 
@@ -3796,7 +3798,7 @@
 
 ## Sparse Layers
 
-### _`class`_ torch.nn.Embedding
+### <code><i>class</i></code> torch.nn.Embedding
 
 <div style="margin-left: 2em">
 
@@ -3835,7 +3837,7 @@
 
 </div>
 
-### _`class`_ torch.nn.EmbeddingBag
+### <code><i>class</i></code> torch.nn.EmbeddingBag
 
 <div style="margin-left: 2em">
 
@@ -3894,7 +3896,7 @@
 
 ## Loss Functions
 
-### _`class`_ torch.nn.L1Loss
+### <code><i>class</i></code> torch.nn.L1Loss
 
 <div style="margin-left: 2em">
 
@@ -3912,7 +3914,7 @@
 
 </div>
 
-### _`class`_ torch.nn.MSELoss
+### <code><i>class</i></code> torch.nn.MSELoss
 
 <div style="margin-left: 2em">
 
@@ -3930,7 +3932,7 @@
 
 </div>
 
-### _`class`_ torch.nn.CrossEntropyLoss
+### <code><i>class</i></code> torch.nn.CrossEntropyLoss
 
 <div style="margin-left: 2em">
 
@@ -3948,7 +3950,7 @@
 
 </div>
 
-### _`class`_ torch.nn.CTCLoss
+### <code><i>class</i></code> torch.nn.CTCLoss
 
 <div style="margin-left: 2em">
 
@@ -3969,7 +3971,7 @@
 
 </div>
 
-### _`class`_ torch.nn.NLLLoss
+### <code><i>class</i></code> torch.nn.NLLLoss
 
 <div style="margin-left: 2em">
 
@@ -3990,7 +3992,7 @@
 
 </div>
 
-### _`class`_ torch.nn.PoissonNLLLoss
+### <code><i>class</i></code> torch.nn.PoissonNLLLoss
 
 <div style="margin-left: 2em">
 
@@ -4008,7 +4010,7 @@
 
 </div>
 
-### _`class`_ torch.nn.GaussianNLLLoss
+### <code><i>class</i></code> torch.nn.GaussianNLLLoss
 
 <div style="margin-left: 2em">
 
@@ -4026,7 +4028,7 @@
 
 </div>
 
-### _`class`_ torch.nn.KLDivLoss
+### <code><i>class</i></code> torch.nn.KLDivLoss
 
 <div style="margin-left: 2em">
 
@@ -4047,7 +4049,7 @@
 
 </div>
 
-### _`class`_ torch.nn.BCELoss
+### <code><i>class</i></code> torch.nn.BCELoss
 
 <div style="margin-left: 2em">
 
@@ -4065,7 +4067,7 @@
 
 </div>
 
-### _`class`_ torch.nn.BCEWithLogitsLoss
+### <code><i>class</i></code> torch.nn.BCEWithLogitsLoss
 
 <div style="margin-left: 2em">
 
@@ -4086,7 +4088,7 @@
 
 </div>
 
-### _`class`_ torch.nn.MarginRankingLoss
+### <code><i>class</i></code> torch.nn.MarginRankingLoss
 
 <div style="margin-left: 2em">
 
@@ -4104,7 +4106,7 @@
 
 </div>
 
-### _`class`_ torch.nn.HingeEmbeddingLoss
+### <code><i>class</i></code> torch.nn.HingeEmbeddingLoss
 
 <div style="margin-left: 2em">
 
@@ -4122,7 +4124,7 @@
 
 </div>
 
-### _`class`_ torch.nn.MultiLabelMarginLoss
+### <code><i>class</i></code> torch.nn.MultiLabelMarginLoss
 
 <div style="margin-left: 2em">
 
@@ -4138,7 +4140,7 @@
 
 </div>
 
-### _`class`_ torch.nn.HuberLoss
+### <code><i>class</i></code> torch.nn.HuberLoss
 
 <div style="margin-left: 2em">
 
@@ -4160,7 +4162,7 @@
 
 </div>
 
-### _`class`_ torch.nn.SmoothL1Loss
+### <code><i>class</i></code> torch.nn.SmoothL1Loss
 
 <div style="margin-left: 2em">
 
@@ -4178,7 +4180,7 @@
 
 </div>
 
-### _`class`_ torch.nn.MultiLabelSoftMarginLoss
+### <code><i>class</i></code> torch.nn.MultiLabelSoftMarginLoss
 
 <div style="margin-left: 2em">
 
@@ -4196,7 +4198,7 @@
 
 </div>
 
-### _`class`_ torch.nn.CosineEmbeddingLoss
+### <code><i>class</i></code> torch.nn.CosineEmbeddingLoss
 
 <div style="margin-left: 2em">
 
@@ -4212,7 +4214,7 @@
 
 </div>
 
-### _`class`_ torch.nn.MultiMarginLoss
+### <code><i>class</i></code> torch.nn.MultiMarginLoss
 
 <div style="margin-left: 2em">
 
@@ -4234,7 +4236,7 @@
 
 </div>
 
-### _`class`_ torch.nn.TripletMarginLoss
+### <code><i>class</i></code> torch.nn.TripletMarginLoss
 
 <div style="margin-left: 2em">
 
@@ -4255,7 +4257,7 @@
 
 </div>
 
-### _`class`_ torch.nn.TripletMarginWithDistanceLoss
+### <code><i>class</i></code> torch.nn.TripletMarginWithDistanceLoss
 
 <div style="margin-left: 2em">
 
@@ -4275,7 +4277,7 @@
 
 ## Vision Layers
 
-### _`class`_ torch.nn.PixelShuffle
+### <code><i>class</i></code> torch.nn.PixelShuffle
 
 <div style="margin-left: 2em">
 
@@ -4293,7 +4295,7 @@
 
 </div>
 
-### _`class`_ torch.nn.PixelUnshuffle
+### <code><i>class</i></code> torch.nn.PixelUnshuffle
 
 <div style="margin-left: 2em">
 
@@ -4311,7 +4313,7 @@
 
 </div>
 
-### _`class`_ torch.nn.Upsample
+### <code><i>class</i></code> torch.nn.Upsample
 
 <div style="margin-left: 2em">
 
@@ -4329,7 +4331,7 @@
 
 </div>
 
-### _`class`_ torch.nn.UpsamplingNearest2d
+### <code><i>class</i></code> torch.nn.UpsamplingNearest2d
 
 <div style="margin-left: 2em">
 
@@ -4352,7 +4354,7 @@
 
 ## Shuffle Layers
 
-### _`class`_ torch.nn.ChannelShuffle
+### <code><i>class</i></code> torch.nn.ChannelShuffle
 
 <div style="margin-left: 2em">
 
@@ -4372,7 +4374,7 @@
 
 ## DataParallel Layers (multi-GPU, distributed)
 
-### _`class`_ torch.nn.DataParallel
+### <code><i>class</i></code> torch.nn.DataParallel
 
 <div style="margin-left: 2em">
 
@@ -4388,7 +4390,7 @@
 
 </div>
 
-### _`class`_ torch.nn.parallel.DistributedDataParallel
+### <code><i>class</i></code> torch.nn.parallel.DistributedDataParallel
 
 <div style="margin-left: 2em">
 
@@ -4604,7 +4606,7 @@
 
 </div>
 
-### _`class`_ torch.nn.utils.prune.BasePruningMethod
+### <code><i>class</i></code> torch.nn.utils.prune.BasePruningMethod
 
 <div style="margin-left: 2em">
 
@@ -4706,7 +4708,7 @@
 
 </div>
 
-### _`class`_ torch.nn.utils.prune.PruningContainer
+### <code><i>class</i></code> torch.nn.utils.prune.PruningContainer
 
 <div style="margin-left: 2em">
 
@@ -4824,7 +4826,7 @@
 
 </div>
 
-### _`class`_ torch.nn.utils.prune.Identity
+### <code><i>class</i></code> torch.nn.utils.prune.Identity
 
 <div style="margin-left: 2em">
 
@@ -4914,7 +4916,7 @@
 
 </div>
 
-### _`class`_ torch.nn.utils.prune.RandomUnstructured
+### <code><i>class</i></code> torch.nn.utils.prune.RandomUnstructured
 
 <div style="margin-left: 2em">
 
@@ -5002,7 +5004,7 @@
 
 </div>
 
-### _`class`_ torch.nn.utils.prune.L1Unstructured
+### <code><i>class</i></code> torch.nn.utils.prune.L1Unstructured
 
 <div style="margin-left: 2em">
 
@@ -5092,7 +5094,7 @@
 
 </div>
 
-### _`class`_ torch.nn.utils.prune.RandomStructured
+### <code><i>class</i></code> torch.nn.utils.prune.RandomStructured
 
 <div style="margin-left: 2em">
 
@@ -5196,7 +5198,7 @@
 
 </div>
 
-### _`class`_ torch.nn.utils.prune.LnStructured
+### <code><i>class</i></code> torch.nn.utils.prune.LnStructured
 
 <div style="margin-left: 2em">
 
@@ -5304,7 +5306,7 @@
 
 </div>
 
-### _`class`_ torch.nn.utils.prune.CustomFromMask
+### <code><i>class</i></code> torch.nn.utils.prune.CustomFromMask
 
 <div style="margin-left: 2em">
 
@@ -5630,7 +5632,7 @@
 
 </div>
 
-### _`class`_ torch.nn.utils.parametrize.ParametrizationList
+### <code><i>class</i></code> torch.nn.utils.parametrize.ParametrizationList
 
 <div style="margin-left: 2em">
 
@@ -5680,7 +5682,7 @@
 
 </div>
 
-### _`class`_ torch.nn.utils.rnn.PackedSequence
+### <code><i>class</i></code> torch.nn.utils.rnn.PackedSequence
 
 <div style="margin-left: 2em">
 
@@ -5946,7 +5948,7 @@
 
 </div>
 
-### _`class`_ torch.nn.modules.flatten.Flatten
+### <code><i>class</i></code> torch.nn.modules.flatten.Flatten
 
 <div style="margin-left: 2em">
 
@@ -5964,7 +5966,7 @@
 
 </div>
 
-### _`class`_ torch.nn.modules.flatten.Unflatten
+### <code><i>class</i></code> torch.nn.modules.flatten.Unflatten
 
 <div style="margin-left: 2em">
 
@@ -6000,7 +6002,7 @@
 
 ## Lazy Modules Initialization
 
-### _`class`_ torch.nn.modules.lazy.LazyModuleMixin
+### <code><i>class</i></code> torch.nn.modules.lazy.LazyModuleMixin
 
 <div style="margin-left: 2em">
 

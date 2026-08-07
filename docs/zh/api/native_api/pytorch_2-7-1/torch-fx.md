@@ -96,7 +96,7 @@
 
 </div>
 
-### _`class`_ torch.fx.experimental.symbolic_shapes.ShapeEnvSettings
+### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.ShapeEnvSettings
 
 <div style="margin-left: 2em">
 
@@ -112,7 +112,7 @@
 
 </div>
 
-### _`class`_ torch.fx.experimental.symbolic_shapes.StatefulSymbolicContext
+### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.StatefulSymbolicContext
 
 <div style="margin-left: 2em">
 
@@ -128,7 +128,7 @@
 
 </div>
 
-### _`class`_ torch.fx.experimental.symbolic_shapes.StatelessSymbolicContext
+### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.StatelessSymbolicContext
 
 <div style="margin-left: 2em">
 
@@ -210,7 +210,7 @@
 
 </div>
 
-### _`class`_ torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts
+### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts
 
 <div style="margin-left: 2em">
 
@@ -348,7 +348,7 @@
 
 </div>
 
-### _`class`_ torch.fx.experimental.symbolic_shapes.ConvertIntKey
+### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.ConvertIntKey
 
 <div style="margin-left: 2em">
 
@@ -380,7 +380,7 @@
 
 </div>
 
-### _`class`_ torch.fx.experimental.symbolic_shapes.DimConstraints
+### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.DimConstraints
 
 <div style="margin-left: 2em">
 
@@ -450,7 +450,7 @@
 
 </div>
 
-### _`class`_ torch.fx.experimental.symbolic_shapes.DimDynamic
+### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.DimDynamic
 
 <div style="margin-left: 2em">
 
@@ -466,7 +466,7 @@
 
 </div>
 
-### _`class`_ torch.fx.experimental.symbolic_shapes.CallMethodKey
+### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.CallMethodKey
 
 <div style="margin-left: 2em">
 
@@ -594,7 +594,7 @@
 
 </div>
 
-### _`class`_ torch.fx.experimental.symbolic_shapes.ShapeEnv
+### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.ShapeEnv
 
 <div style="margin-left: 2em">
 
@@ -964,7 +964,7 @@
 
 </div>
 
-### _`class`_ torch.fx.experimental.symbolic_shapes.StrictMinMaxConstraint
+### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.StrictMinMaxConstraint
 
 <div style="margin-left: 2em">
 
@@ -996,7 +996,7 @@
 
 </div>
 
-### _`class`_ torch.fx.experimental.symbolic_shapes.SubclassSymbolicContext
+### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.SubclassSymbolicContext
 
 <div style="margin-left: 2em">
 
@@ -1044,7 +1044,7 @@
 
 </div>
 
-### _`class`_ torch.fx.experimental.symbolic_shapes.DivideByKey
+### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.DivideByKey
 
 <div style="margin-left: 2em">
 
@@ -1076,7 +1076,7 @@
 
 </div>
 
-### _`class`_ torch.fx.experimental.symbolic_shapes.EqualityConstraint
+### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.EqualityConstraint
 
 <div style="margin-left: 2em">
 
@@ -1144,7 +1144,7 @@
 
 </div>
 
-### _`class`_ torch.fx.GraphModule
+### <code><i>class</i></code> torch.fx.GraphModule
 
 <div style="margin-left: 2em">
 
@@ -1316,7 +1316,7 @@
 
 </div>
 
-### _`class`_ torch.fx.Graph
+### <code><i>class</i></code> torch.fx.Graph
 
 <div style="margin-left: 2em">
 
@@ -1728,7 +1728,7 @@
 
 </div>
 
-### _`class`_ torch.fx.Tracer
+### <code><i>class</i></code> torch.fx.Tracer
 
 <div style="margin-left: 2em">
 
@@ -1988,7 +1988,7 @@
 
 ## Writing Transformations
 
-### _`class`_ torch.fx.Node
+### <code><i>class</i></code> torch.fx.Node
 
 <div style="margin-left: 2em">
 
@@ -2274,7 +2274,7 @@
 
 </div>
 
-### _`class`_ torch.fx.Proxy
+### <code><i>class</i></code> torch.fx.Proxy
 
 <div style="margin-left: 2em">
 
@@ -2290,7 +2290,7 @@
 
 </div>
 
-### _`class`_ torch.fx.Interpreter
+### <code><i>class</i></code> torch.fx.Interpreter
 
 <div style="margin-left: 2em">
 
@@ -2502,7 +2502,7 @@
 
 </div>
 
-### _`class`_ torch.fx.Transformer
+### <code><i>class</i></code> torch.fx.Transformer
 
 <div style="margin-left: 2em">
 

@@ -30,7 +30,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.pipelining.Pipe
+### <code><i>class</i></code> torch.distributed.pipelining.Pipe
 
 <div style="margin-left: 2em">
 
@@ -94,7 +94,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.pipelining.stage.PipelineStage
+### <code><i>class</i></code> torch.distributed.pipelining.stage.PipelineStage
 
 <div style="margin-left: 2em">
 
@@ -126,7 +126,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.pipelining.schedules.ScheduleGPipe
+### <code><i>class</i></code> torch.distributed.pipelining.schedules.ScheduleGPipe
 
 <div style="margin-left: 2em">
 
@@ -142,7 +142,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.pipelining.schedules.Schedule1F1B
+### <code><i>class</i></code> torch.distributed.pipelining.schedules.Schedule1F1B
 
 <div style="margin-left: 2em">
 
@@ -158,7 +158,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.pipelining.schedules.ScheduleInterleaved1F1B
+### <code><i>class</i></code> torch.distributed.pipelining.schedules.ScheduleInterleaved1F1B
 
 <div style="margin-left: 2em">
 
@@ -174,7 +174,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.pipelining.schedules.ScheduleLoopedBFS
+### <code><i>class</i></code> torch.distributed.pipelining.schedules.ScheduleLoopedBFS
 
 <div style="margin-left: 2em">
 
@@ -190,7 +190,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.pipelining.schedules.PipelineScheduleSingle
+### <code><i>class</i></code> torch.distributed.pipelining.schedules.PipelineScheduleSingle
 
 <div style="margin-left: 2em">
 
@@ -222,7 +222,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.pipelining.schedules.PipelineScheduleMulti
+### <code><i>class</i></code> torch.distributed.pipelining.schedules.PipelineScheduleMulti
 
 <div style="margin-left: 2em">
 
@@ -254,7 +254,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.pipelining.schedules.ScheduleInterleavedZeroBubble
+### <code><i>class</i></code> torch.distributed.pipelining.schedules.ScheduleInterleavedZeroBubble
 
 <div style="margin-left: 2em">
 
@@ -272,7 +272,7 @@
 
 ## API Reference
 
-### _`class`_ torch.distributed.pipelining.SplitPoint
+### <code><i>class</i></code> torch.distributed.pipelining.SplitPoint
 
 <div style="margin-left: 2em">
 
@@ -288,7 +288,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.pipelining.microbatch.TensorChunkSpec
+### <code><i>class</i></code> torch.distributed.pipelining.microbatch.TensorChunkSpec
 
 <div style="margin-left: 2em">
 

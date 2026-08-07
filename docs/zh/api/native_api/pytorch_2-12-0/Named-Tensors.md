@@ -91,7 +91,7 @@
 
 ## Named dimensions
 
-### _`class`_ torch.Tensor
+### <code><i>class</i></code> torch.Tensor
 
 <div style="margin-left: 2em">
 

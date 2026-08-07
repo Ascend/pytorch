@@ -15,7 +15,7 @@
 
 ## base API
 
-### _`class`_ torch.package.EmptyMatchError
+### <code><i>class</i></code> torch.package.EmptyMatchError
 
 <div style="margin-left: 2em">
 
@@ -33,7 +33,7 @@
 
 ## API Reference
 
-### _`class`_ torch.package.PackagingError
+### <code><i>class</i></code> torch.package.PackagingError
 
 <div style="margin-left: 2em">
 
@@ -51,7 +51,7 @@
 
 ## How do I…
 
-### _`class`_ torch.package.PackageExporter
+### <code><i>class</i></code> torch.package.PackageExporter
 
 <div style="margin-left: 2em">
 
@@ -451,7 +451,7 @@
 
 </div>
 
-### _`class`_ torch.package.PackageImporter
+### <code><i>class</i></code> torch.package.PackageImporter
 
 <div style="margin-left: 2em">
 
@@ -595,7 +595,7 @@
 
 </div>
 
-### _`class`_ torch.package.Directory
+### <code><i>class</i></code> torch.package.Directory
 
 <div style="margin-left: 2em">
 

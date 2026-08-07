@@ -16,7 +16,7 @@
 
 ## base API
 
-### _`class`_ torch.sparse.Tensor
+### <code><i>class</i></code> torch.sparse.Tensor
 
 <div style="margin-left: 2em">
 

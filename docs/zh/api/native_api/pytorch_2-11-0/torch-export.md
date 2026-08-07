@@ -61,7 +61,7 @@
 
 </div>
 
-### _`class`_ torch.export.ExportedProgram
+### <code><i>class</i></code> torch.export.ExportedProgram
 
 <div style="margin-left: 2em">
 
@@ -93,7 +93,7 @@
 
 </div>
 
-### _`class`_ torch.export.exported_program.ModuleCallSignature
+### <code><i>class</i></code> torch.export.exported_program.ModuleCallSignature
 
 <div style="margin-left: 2em">
 
@@ -109,7 +109,7 @@
 
 </div>
 
-### _`class`_ torch.export.exported_program.ModuleCallEntry
+### <code><i>class</i></code> torch.export.exported_program.ModuleCallEntry
 
 <div style="margin-left: 2em">
 

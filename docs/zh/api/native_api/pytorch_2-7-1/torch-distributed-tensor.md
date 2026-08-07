@@ -49,7 +49,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.tensor.DTensor
+### <code><i>class</i></code> torch.distributed.tensor.DTensor
 
 <div style="margin-left: 2em">
 
@@ -103,7 +103,7 @@
 
 </div>
 
-### _`class`_ torch.distributed.tensor.placement_types.Shard
+### <code><i>class</i></code> torch.distributed.tensor.placement_types.Shard
 
 <div style="margin-left: 2em">
 
