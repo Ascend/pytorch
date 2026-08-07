@@ -177,10 +177,10 @@ def run_single_file(
 
         try:
             # Stream pytest output to terminal in real-time.
-            # Print a banner so interleaved output from concurrent
-            # workers can be traced back to a specific PID and device.
-            print(f"── [{attempt}/{max_attempts}] {test_file}  "
-                  f"PID={os.getpid()}  device={device_group} ──", flush=True)
+            # Print the full command so the exact invocation is logged.
+            cmd_str = " ".join(cmd)
+            print(f"[device {device_group}] [{test_file}] "
+                  f"Command: {cmd_str}", flush=True)
             proc = subprocess.run(
                 cmd,
                 cwd=str(test_dir.parent),

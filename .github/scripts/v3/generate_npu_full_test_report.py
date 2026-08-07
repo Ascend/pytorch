@@ -215,7 +215,7 @@ def main():
     md_lines.append("")
     md_lines.append("| Test File | Passed | Failed | Errors | Skipped | Total | Status |")
     md_lines.append("|-----------|--------|--------|--------|---------|-------|--------|")
-    for fn in sorted(by_file.keys()):
+    for fn in sorted(by_file.keys(), key=lambda k: -by_file[k]["total"]):
         s = by_file[fn]
         tags = []
         if s["return_code"] < 0:
