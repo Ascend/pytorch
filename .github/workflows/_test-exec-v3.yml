@@ -26,13 +26,13 @@ on:
         description: Runner label for this category (from whitelist config)
       npu_count:
         required: false
-        type: number
-        default: 8
+        type: string
+        default: '8'
         description: Number of NPU cards (derived from runner label suffix)
       devices_per_proc:
         required: false
-        type: number
-        default: 1
+        type: string
+        default: '1'
         description: NPU cards per pytest process (from whitelist config)
 
 jobs:
