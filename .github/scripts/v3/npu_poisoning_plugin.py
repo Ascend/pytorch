@@ -27,6 +27,7 @@ Usage:
 
 import os
 import signal as _signal
+from pathlib import Path
 
 import pytest
 
@@ -36,6 +37,7 @@ import pytest
 # ==============================================================================
 
 NPU_POISONING_EXIT_CODE = 70
+POISONED_CASE_FILE_ENV = "NPU_POISONED_CASE_FILE"
 
 NPU_POISONING_SIGNATURES = [
     # A. NPUQueue ERROR_EXIT (operator bugs, OOM)
@@ -116,6 +118,23 @@ def _check_npu_poisoned() -> bool:
         return True
 
 
+def _write_poisoned_case_file(nodeid: str, reason: str):
+    """Write the poisoned test case nodeid to a marker file.
+
+    The marker file path is read from the NPU_POISONED_CASE_FILE environment
+    variable, set by run_npu_test_file.py before invoking pytest.  This
+    allows the orchestrator to identify exactly which case triggered the
+    poisoning and mark it accordingly in the JSONL output.
+    """
+    marker_path = os.environ.get(POISONED_CASE_FILE_ENV, "")
+    if not marker_path:
+        return
+    try:
+        Path(marker_path).write_text(f"{nodeid}\n{reason}", encoding="utf-8")
+    except OSError:
+        pass
+
+
 # ==============================================================================
 # Pytest Hooks
 # ==============================================================================
@@ -170,6 +189,7 @@ def pytest_runtest_makereport(item, call):
     if _check_fatal_npu_error(message, stdout, stderr):
         _poisoned = True
         _poisoning_reason = f"Layer 1 signature match in {item.nodeid}"
+        _write_poisoned_case_file(item.nodeid, _poisoning_reason)
         print(f"  [NPU POISONING] Detected by Layer 1 (signature) in {item.nodeid}", flush=True)
         return
 
@@ -177,6 +197,7 @@ def pytest_runtest_makereport(item, call):
     if _check_npu_poisoned():
         _poisoned = True
         _poisoning_reason = f"Layer 2 probe failed after {item.nodeid}"
+        _write_poisoned_case_file(item.nodeid, _poisoning_reason)
         print(f"  [NPU POISONING] Detected by Layer 2 (probe) after {item.nodeid}", flush=True)
         return
 

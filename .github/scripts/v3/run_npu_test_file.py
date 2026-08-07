@@ -41,6 +41,18 @@ from typing import Dict, List, Tuple
 
 
 # ==============================================================================
+# Signal Mapping (for core dump / crash detection)
+# ==============================================================================
+
+_SIGNAL_MAP = {
+    -1: "SIGHUP", -2: "SIGINT", -3: "SIGQUIT", -4: "SIGILL",
+    -5: "SIGTRAP", -6: "SIGABRT", -7: "SIGBUS", -8: "SIGFPE",
+    -9: "SIGKILL", -10: "SIGUSR1", -11: "SIGSEGV", -12: "SIGUSR2",
+    -13: "SIGPIPE", -14: "SIGALRM", -15: "SIGTERM",
+}
+
+
+# ==============================================================================
 # Device Groups (same logic as v2 npu_scheduler.py DevicePool)
 # ==============================================================================
 
@@ -81,10 +93,12 @@ def run_single_file(
     timeout: int,
     case_timeout: int,
 ) -> Dict:
-    """Run a single test file via pytest with crash recovery.
+    """Run a single test file via pytest with NPU poisoning recovery.
 
-    Uses StepcurrentPlugin to track completed test cases, so that
-    retries after NPU crashes skip already-passed cases.
+    On NPU poisoning (exit code 70), the poisoned test case is identified
+    via a marker file written by npu_poisoning_plugin, marked as "poisoned"
+    in results, and the JUnit XML is patched so that StepcurrentPlugin's
+    --scs skips it on retry.  Normal test failures are NOT retried.
 
     Args:
         device_group: ASCEND_RT_VISIBLE_DEVICES value, e.g. "0" or "0,1,2,3,4,5,6,7"
@@ -94,9 +108,11 @@ def run_single_file(
         return {
             "file": test_file,
             "status": "file_not_found",
+            "return_code": -2,
+            "message": "Test file not found on disk",
             "passed": 0,
             "failed": 0,
-            "errors": 0,
+            "errors": 1,
             "skipped": 0,
             "elapsed": 0,
             "cases": [],
@@ -113,10 +129,11 @@ def run_single_file(
     junit_dir = report_dir / "junit_xmls"
     junit_dir.mkdir(parents=True, exist_ok=True)
 
-    case_log_dir = report_dir / "cases_logs"
-    case_log_dir.mkdir(parents=True, exist_ok=True)
+    safe = _safe_name(test_file)
+    poisoned_marker = report_dir / f"{safe}_poisoned_case.txt"
+    poisoned_case_nodeid = None  # set after first poisoning, used for retry
 
-    max_attempts = 2
+    max_attempts = 2  # only used for NPU poisoning retries
     all_passed = 0
     all_failed = 0
     all_errors = 0
@@ -124,7 +141,7 @@ def run_single_file(
     cases_detail = []
 
     for attempt in range(1, max_attempts + 1):
-        junit_file = junit_dir / f"{_safe_name(test_file)}_attempt{attempt}.xml"
+        junit_file = junit_dir / f"{safe}_attempt{attempt}.xml"
 
         cmd = [
             sys.executable,
@@ -140,28 +157,43 @@ def run_single_file(
             "--hw-classification", "ACCELERATOR",
         ]
 
-        # Use StepcurrentPlugin to skip previously crashed cases on retry
+        # On retry: use StepcurrentPlugin to skip already-passed (and
+        # now-also-poisoned) cases.  The poisoned case was patched in
+        # the previous attempt's JUnit XML to appear as "skipped" so
+        # that --scs will exclude it.
         if attempt > 1:
-            prev_junit = junit_dir / f"{_safe_name(test_file)}_attempt{attempt - 1}.xml"
+            prev_junit = junit_dir / f"{safe}_attempt{attempt - 1}.xml"
             if prev_junit.exists():
                 cmd.extend(["--scs", str(prev_junit)])
             else:
                 cmd.append("--sc")
 
+        # Pass the poisoned-case marker path to the plugin via env
+        run_env = os.environ.copy()
+        run_env["NPU_POISONED_CASE_FILE"] = str(poisoned_marker)
+        # Clean up stale marker from a previous (different) file run
+        if poisoned_marker.exists():
+            poisoned_marker.unlink()
+
         try:
+            # Stream pytest output to terminal in real-time.
+            # Print a banner so interleaved output from concurrent
+            # workers can be traced back to a specific PID and device.
+            print(f"── [{attempt}/{max_attempts}] {test_file}  "
+                  f"PID={os.getpid()}  device={device_group} ──", flush=True)
             proc = subprocess.run(
                 cmd,
                 cwd=str(test_dir.parent),
-                capture_output=True,
-                text=True,
                 timeout=timeout,
-                env=os.environ.copy(),
+                env=run_env,
             )
         except subprocess.TimeoutExpired:
             elapsed = time.time() - start_time
             return {
                 "file": test_file,
                 "status": "timeout",
+                "return_code": -1,
+                "message": f"File-level timeout after {timeout}s",
                 "passed": all_passed,
                 "failed": all_failed,
                 "errors": all_errors + 1,
@@ -170,16 +202,51 @@ def run_single_file(
                 "cases": cases_detail,
             }
 
-        # Check for NPU poisoning (exit code 70).
-        # Still parse the partial JUnit — StepcurrentPlugin may have
-        # recorded passed cases before the crash.  Those results must
-        # carry forward to the retry.
+        # ── Core dump / signal death ──────────────────────────────
+        if proc.returncode < 0:
+            signal_name = _SIGNAL_MAP.get(proc.returncode,
+                                          f"SIGNAL({abs(proc.returncode)})")
+            partial_passed, partial_failed, partial_errors, partial_skipped, \
+                partial_cases = _parse_junit(junit_file)
+            elapsed = time.time() - start_time
+            return {
+                "file": test_file,
+                "status": "crashed",
+                "return_code": proc.returncode,
+                "message": f"{signal_name}: process killed by signal",
+                "passed": partial_passed,
+                "failed": partial_failed,
+                "errors": partial_errors + 1,
+                "skipped": partial_skipped,
+                "elapsed": elapsed,
+                "cases": partial_cases,
+            }
+
+        # ── NPU poisoning (exit code 70) ──────────────────────────
         if proc.returncode == 70:
-            print(f"  [WARN] NPU poisoning detected on device group {device_group} "
-                  f"for {test_file} (attempt {attempt})", file=sys.stderr)
-            # Parse partial JUnit to capture cases completed before the crash
-            partial_passed, partial_failed, partial_errors, partial_skipped, partial_cases = \
-                _parse_junit(junit_file)
+            # Read which case caused the poisoning
+            nodeid, reason = _read_poisoned_marker(poisoned_marker)
+            if nodeid:
+                poisoned_case_nodeid = nodeid
+                print(f"  [WARN] NPU poisoning by case: {nodeid} "
+                      f"({reason})", file=sys.stderr)
+            else:
+                print(f"  [WARN] NPU poisoning detected on device group "
+                      f"{device_group} for {test_file} (attempt {attempt})",
+                      file=sys.stderr)
+
+            # Parse partial JUnit (cases completed before the crash)
+            partial_passed, partial_failed, partial_errors, partial_skipped, \
+                partial_cases = _parse_junit(junit_file)
+
+            # Mark the poisoned case with a flag (keeps original status,
+            # preserving passed+failed+errors+skipped = total_cases).
+            # Also patch the on-disk JUnit XML so that --scs skips it on retry.
+            if poisoned_case_nodeid:
+                partial_cases = _mark_case_poisoned_in_list(
+                    partial_cases, poisoned_case_nodeid)
+                _mark_junit_case_poisoned(junit_file, poisoned_case_nodeid)
+
             if attempt == 1:
                 all_passed = partial_passed
                 all_failed = partial_failed
@@ -187,65 +254,63 @@ def run_single_file(
                 all_skipped = partial_skipped
                 cases_detail = partial_cases
             else:
-                # Retry: partial results replace failed/errors from previous attempt
                 all_passed += partial_passed
                 all_failed = partial_failed
                 all_errors = partial_errors
                 all_skipped += partial_skipped
                 cases_detail = _merge_cases(cases_detail, partial_cases)
+
             if attempt < max_attempts:
                 time.sleep(5)
                 continue
-            # Last attempt — poisoning after partial JUnit already parsed.
-            # Break to avoid falling into the normal parse below which would
-            # double-count all_passed/all_skipped from the same JUnit file.
             break
 
-        # Parse JUnit XML for case results.
-        # With --scs on retry, the JUnit only contains re-run cases
-        # (previously-passed cases are skipped by StepcurrentPlugin).
-        # So we must accumulate passed/skipped, not overwrite.
+        # ── Normal completion (no more retry for regular failures) ─
         file_passed, file_failed, file_errors, file_skipped, file_cases = \
             _parse_junit(junit_file)
 
         if attempt == 1:
-            # Baseline: first run captures everything
             all_passed = file_passed
             all_failed = file_failed
             all_errors = file_errors
             all_skipped = file_skipped
             cases_detail = file_cases
         else:
-            # Retry with --scs: only re-ran failed/error cases.
-            #   passed  → accumulate (failed→passed conversions from prev attempt)
-            #   failed  → replace  (still failing after retry)
-            #   errors  → replace  (still erroring after retry)
-            #   skipped → accumulate
+            # Retry after NPU poisoning: accumulate passed/skipped,
+            # replace failed/errors with the re-run results
             all_passed += file_passed
             all_failed = file_failed
             all_errors = file_errors
             all_skipped += file_skipped
             cases_detail = _merge_cases(cases_detail, file_cases)
 
-        if file_failed == 0 and file_errors == 0:
-            break
-
-        if attempt < max_attempts:
-            print(f"  [RETRY] {test_file}: {file_failed} failed, {file_errors} errors "
-                  f"→ attempt {attempt + 1}/{max_attempts}", file=sys.stderr)
+        # Do NOT retry for normal failures — always stop after a clean run
+        break
 
     elapsed = time.time() - start_time
 
     # Merge JUnit XMLs across attempts
-    _merge_junit_xmls(junit_dir, _safe_name(test_file), max_attempts)
+    _merge_junit_xmls(junit_dir, safe, max_attempts)
+
+    # Reconstruct final counts from the merged cases_detail.  This
+    # guarantees that passed+failed+errors+skipped == len(cases_detail)
+    # regardless of counting drift across retry attempts (e.g. poisoned
+    # cases skipped via --scs are preserved in cases_detail but would
+    # otherwise be lost from the per-attempt accumulators).
+    final_passed = sum(1 for c in cases_detail if c.get("status") == "passed")
+    final_failed = sum(1 for c in cases_detail if c.get("status") == "failed")
+    final_errors = sum(1 for c in cases_detail if c.get("status") == "error")
+    final_skipped = sum(1 for c in cases_detail if c.get("status") == "skipped")
 
     return {
         "file": test_file,
         "status": "completed",
-        "passed": all_passed,
-        "failed": all_failed,
-        "errors": all_errors,
-        "skipped": all_skipped,
+        "return_code": 0 if final_failed == 0 and final_errors == 0 else 1,
+        "message": "",
+        "passed": final_passed,
+        "failed": final_failed,
+        "errors": final_errors,
+        "skipped": final_skipped,
         "elapsed": elapsed,
         "cases": cases_detail,
     }
@@ -354,6 +419,102 @@ def _merge_cases(prev_cases: List[Dict], new_cases: List[Dict]) -> List[Dict]:
     return list(merged.values())
 
 
+def _read_poisoned_marker(marker_path: Path) -> Tuple[str, str]:
+    """Read the poisoned-case marker file written by npu_poisoning_plugin.
+
+    Returns (nodeid, reason) or ("", "") if the file doesn't exist.
+    """
+    if not marker_path.exists():
+        return "", ""
+    try:
+        lines = marker_path.read_text(encoding="utf-8").strip().split("\n", 1)
+        nodeid = lines[0].strip() if lines else ""
+        reason = lines[1].strip() if len(lines) > 1 else ""
+        return nodeid, reason
+    except OSError:
+        return "", ""
+
+
+def _nodeid_to_junit_key(nodeid: str) -> Tuple[str, str]:
+    """Convert a pytest nodeid to a JUnit XML (classname, name) pair.
+
+    Examples:
+        'test/nn/test_foo.py::test_func'
+            → ('test.nn.test_foo', 'test_func')
+        'test/nn/test_foo.py::TestClass::test_method[x]'
+            → ('test.nn.test_foo.TestClass', 'test_method[x]')
+    """
+    parts = nodeid.split("::")
+    if not parts:
+        return "", ""
+    file_part = parts[0].replace("/", ".").replace(".py", "")
+    if len(parts) >= 3:
+        classname = file_part + "." + parts[1]
+        name = parts[-1]
+    elif len(parts) == 2:
+        classname = file_part
+        name = parts[1]
+    else:
+        classname = file_part
+        name = ""
+    return classname, name
+
+
+def _mark_case_poisoned_in_list(cases: List[Dict], nodeid: str) -> List[Dict]:
+    """Add a 'poisoned' flag to the case that triggered NPU poisoning.
+
+    The case keeps its original JUnit status (passed/failed/error).
+    The poisoned flag is orthogonal — it does not affect the four
+    status counters; the caller (run_single_file) is responsible for
+    maintaining the passed+failed+errors+skipped = len(cases) invariant
+    by reconstructing final counts from the merged cases list.
+    """
+    target_cn, target_name = _nodeid_to_junit_key(nodeid)
+    result = []
+    for c in cases:
+        if c.get("classname") == target_cn and c.get("name") == target_name:
+            c = dict(c)  # shallow copy
+            c["poisoned"] = True
+            if not c.get("message"):
+                c["message"] = f"NPU poisoning detected: {nodeid}"
+        result.append(c)
+    return result
+
+
+def _mark_junit_case_poisoned(junit_path: Path, nodeid: str):
+    """Edit the JUnit XML on disk: change the poisoned case's <failure>/<error>
+    to <skipped type='npu_poisoned'> so that StepcurrentPlugin's --scs will
+    skip it on retry.
+    """
+    if not junit_path.exists():
+        return
+    target_cn, target_name = _nodeid_to_junit_key(nodeid)
+    try:
+        tree = ET.parse(str(junit_path))
+        root = tree.getroot()
+        for tc in root.iter("testcase"):
+            if tc.get("classname") == target_cn and tc.get("name") == target_name:
+                # Remove failure/error children
+                for tag in ("failure", "error"):
+                    elem = tc.find(tag)
+                    if elem is not None:
+                        tc.remove(elem)
+                # Already has a skipped element (shouldn't, but be safe)
+                skip_elem = tc.find("skipped")
+                if skip_elem is not None:
+                    skip_elem.set("type", "npu_poisoned")
+                    skip_elem.set("message", f"NPU poisoning: {nodeid}")
+                else:
+                    skip_elem = ET.SubElement(tc, "skipped")
+                    skip_elem.set("type", "npu_poisoned")
+                    skip_elem.set("message", f"NPU poisoning: {nodeid}")
+                junit_path.write_text(
+                    ET.tostring(root, encoding="unicode"), encoding="utf-8")
+                break
+    except ET.ParseError:
+        pass
+
+
 def _run_one_file_worker(args_tuple: Tuple) -> Dict:
     """Worker for ProcessPoolExecutor.
 
@@ -375,6 +536,64 @@ def _run_one_file_worker(args_tuple: Tuple) -> Dict:
 # ==============================================================================
 # Main Orchestrator
 # ==============================================================================
+
+
+def write_jsonl(report_dir: Path, prefix: str, shard: int,
+                results: List[Dict], test_type: str, runner: str) -> Path:
+    """Write shard results as JSONL — the only output format.
+
+    Line 1: shard summary
+    Lines 2+: per-file records with case details
+
+    Format is compatible with v2's generate_shard_jsonl.py output.
+    """
+    total_passed = sum(r.get("passed", 0) for r in results)
+    total_failed = sum(r.get("failed", 0) for r in results)
+    total_errors = sum(r.get("errors", 0) for r in results)
+    total_skipped = sum(r.get("skipped", 0) for r in results)
+
+    summary = {
+        "shard": shard,
+        "shard_type": test_type,
+        "execution_mode": "file_level_upstream",
+        "runner": runner,
+        "total_files": len(results),
+        "total_cases": total_passed + total_failed + total_errors + total_skipped,
+        "passed": total_passed,
+        "failed": total_failed,
+        "errors": total_errors,
+        "skipped": total_skipped,
+    }
+
+    path = report_dir / f"shard_{prefix}-{shard}_cases.jsonl"
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(json.dumps(summary, ensure_ascii=False) + "\n")
+        for r in results:
+            cases_out = []
+            for c in r.get("cases", []):
+                classname = c.get("classname", "")
+                name = c.get("name", "")
+                case_obj = {
+                    "nodeid": f"{classname}::{name}" if classname else name,
+                    "status": c.get("status", "unknown"),
+                    "duration": c.get("time", 0),
+                    "message": c.get("message", ""),
+                }
+                # Poisoned flag is orthogonal to status
+                if c.get("poisoned"):
+                    case_obj["poisoned"] = True
+                cases_out.append(case_obj)
+
+            record = {
+                "test_file": r.get("file", ""),
+                "duration": r.get("elapsed"),
+                "return_code": r.get("return_code", 0),
+                "message": r.get("message", ""),
+                "cases": cases_out,
+            }
+            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+    return path
 
 
 def main():
@@ -460,6 +679,8 @@ def main():
                     results.append({
                         "file": test_file,
                         "status": "worker_error",
+                        "return_code": -1,
+                        "message": f"Worker exception: {str(e)[:200]}",
                         "passed": 0, "failed": 0, "errors": 1,
                         "skipped": 0, "elapsed": 0, "cases": [],
                     })
@@ -476,42 +697,17 @@ def main():
     total_skipped = sum(r.get("skipped", 0) for r in results)
     total_cases = total_passed + total_failed + total_errors + total_skipped
 
-    # Save shard result JSON
+    # Derive runner name from NPU count for summary metadata
     prefix_map = {
         "core": "core", "tensor": "tensor",
         "distributed": "dist", "graph": "graph", "others": "others",
     }
     prefix = prefix_map.get(test_type, "reg")
+    runner_label = args.runner or f"linux-aarch64-a3-{npu_count}"
 
-    shard_result = {
-        "shard": args.shard,
-        "test_type": test_type,
-        "total_files": total_files,
-        "total_cases": total_cases,
-        "passed": total_passed,
-        "failed": total_failed,
-        "errors": total_errors,
-        "skipped": total_skipped,
-        "elapsed": elapsed_total,
-        "files": [],
-    }
-
-    for r in results:
-        shard_result["files"].append({
-            "file": r.get("file", ""),
-            "status": r.get("status", "unknown"),
-            "passed": r.get("passed", 0),
-            "failed": r.get("failed", 0),
-            "errors": r.get("errors", 0),
-            "skipped": r.get("skipped", 0),
-            "elapsed": r.get("elapsed", 0),
-        })
-
-    result_path = report_dir / f"shard_{prefix}-{args.shard}_cases.json"
-    result_path.write_text(
-        json.dumps(shard_result, indent=2, ensure_ascii=False),
-        encoding="utf-8",
-    )
+    # Write JSONL output (replaces old JSON format)
+    result_path = write_jsonl(report_dir, prefix, args.shard, results,
+                              test_type, runner_label)
 
     # Print summary
     print()
@@ -550,6 +746,8 @@ def parse_args():
                         help="Test category name")
     parser.add_argument("--shard", type=int, default=1,
                         help="Shard index (1-based)")
+    parser.add_argument("--runner", default="",
+                        help="Runner label for this shard (e.g. linux-aarch64-a3-8)")
     return parser.parse_args()
 
 

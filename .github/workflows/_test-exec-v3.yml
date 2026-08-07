@@ -169,6 +169,7 @@ jobs:
             --case-timeout 300 \
             --shard-type ${{ inputs.category }} \
             --shard ${{ matrix.shard }} \
+            --runner ${{ inputs.runner }} \
             2>&1 | tee /tmp/test_${{ inputs.category }}_${{ matrix.shard }}.log
 
           TEST_STATUS=${PIPESTATUS[0]}
@@ -188,28 +189,27 @@ jobs:
               'others': 'others',
           }
           prefix = prefix_map.get('${{ inputs.category }}', 'reg')
-          cases_file = f'test-reports/shard_{prefix}-${{ matrix.shard }}_cases.json'
-          stats = {'passed': 0, 'failed': 0, 'errors': 0, 'timeout': 0, 'skipped': 0, 'total': 0}
+          cases_file = f'test-reports/shard_{prefix}-${{ matrix.shard }}_cases.jsonl'
+          stats = {'passed': 0, 'failed': 0, 'errors': 0, 'skipped': 0, 'total': 0}
           parse_ok = False
           try:
               with open(cases_file) as f:
-                  d = json.load(f)
+                  d = json.loads(f.readline())
               stats['passed'] = d.get('passed', 0)
               stats['failed'] = d.get('failed', 0)
               stats['errors'] = d.get('errors', 0)
-              stats['timeout'] = d.get('timeout', 0)
               stats['skipped'] = d.get('skipped', 0)
               stats['total'] = d.get('total_cases', 0)
               parse_ok = True
           except Exception as e:
               print(f'Warning: Could not parse results: {e}', file=sys.stderr)
-          total_failed = stats['failed'] + stats['errors'] + stats['timeout']
+          total_failed = stats['failed'] + stats['errors']
           with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
               for k, v in stats.items():
                   f.write(f'{k}={v}\n')
               f.write(f'total_failed={total_failed}\n')
               f.write(f'parse_ok={str(parse_ok).lower()}\n')
-          print(f'${{ inputs.category }} shard ${{ matrix.shard }}: {stats[\"passed\"]} passed, {stats[\"failed\"]} failed, {stats[\"errors\"]} errors, {stats[\"timeout\"]} timeout, {stats[\"skipped\"]} skipped, {stats[\"total\"]} total')
+          print(f'${{ inputs.category }} shard ${{ matrix.shard }}: {stats[\"passed\"]} passed, {stats[\"failed\"]} failed, {stats[\"errors\"]} errors, {stats[\"skipped\"]} skipped, {stats[\"total\"]} total')
           "
 
       - name: Package test reports
