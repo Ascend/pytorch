@@ -5,9 +5,18 @@ on:
     branches:
       - ci-test
     paths:
-      - '.github/workflows/**'
-      - '.github/config/**'
-      - '.github/scripts/**'
+      - '.github/workflows/nightly.yml'
+      - '.github/workflows/_build.yml'
+      - '.github/workflows/_test.yml'
+      - '.github/workflows/_test-collect.yml'
+      - '.github/workflows/_test-category.yml'
+      - '.github/workflows/_test-report.yml'
+      - '.github/config/nightly_test_whitelist.yml'
+      - '.github/scripts/collect_all_cases.py'
+      - '.github/scripts/run_npu_test_shard.py'
+      - '.github/scripts/retry_failed_cases.py'
+      - '.github/scripts/parse_test_results.py'
+      - '.github/scripts/generate_npu_full_test_report.py'
   workflow_dispatch:
 
 permissions:
