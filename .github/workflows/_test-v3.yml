@@ -18,7 +18,7 @@ defaults:
     shell: bash
 
 jobs:
-  # ── Collect: scan files → classify → shard (ubuntu-latest, no NPU needed) ──
+  # ── Collect: scan files → classify → shard → build dynamic matrix ──
   collect:
     uses: ./.github/workflows/_test-collect-v3.yml
     secrets: inherit
@@ -26,96 +26,29 @@ jobs:
       resolved_short: ${{ inputs.resolved_short }}
       classification_config: ${{ inputs.classification_config }}
 
-  # ── Core tests (nn, optim, autograd, profiler) ─────────────────────────
-  test_core:
+  # ── Test: single job, matrix-driven fan-out (v2 pattern) ──────────
+  # Each (category, shard) combo becomes a parallel _test-exec-v3.yml
+  # instance.  Adding a new category only requires editing the whitelist
+  # YAML — no workflow changes needed.
+  test:
     needs: collect
-    if: ${{ needs.collect.outputs.has_core == 'true' }}
+    strategy:
+      matrix: ${{ fromJson(needs.collect.outputs.matrix_json) }}
+      fail-fast: false
     uses: ./.github/workflows/_test-exec-v3.yml
     secrets: inherit
     with:
       resolved_short: ${{ inputs.resolved_short }}
-      category: core
-      num_shards: ${{ needs.collect.outputs.core_num_shards }}
-      matrix_json: ${{ needs.collect.outputs.core_matrix }}
-      runner: ${{ needs.collect.outputs.core_runner }}
-      npu_count: ${{ needs.collect.outputs.core_npu_count }}
-      devices_per_proc: ${{ needs.collect.outputs.core_devices_per_proc }}
+      category: ${{ matrix.category }}
+      shard: ${{ matrix.shard }}
+      num_shards: ${{ matrix.num_shards }}
+      runner: ${{ matrix.runner }}
+      npu_count: ${{ matrix.npu_count }}
+      devices_per_proc: ${{ matrix.devices_per_proc }}
 
-  # ── Tensor tests (tensor ops, ufuncs) ────────────────────────────────
-  test_tensor:
-    needs: collect
-    if: ${{ needs.collect.outputs.has_tensor == 'true' }}
-    uses: ./.github/workflows/_test-exec-v3.yml
-    secrets: inherit
-    with:
-      resolved_short: ${{ inputs.resolved_short }}
-      category: tensor
-      num_shards: ${{ needs.collect.outputs.tensor_num_shards }}
-      matrix_json: ${{ needs.collect.outputs.tensor_matrix }}
-      runner: ${{ needs.collect.outputs.tensor_runner }}
-      npu_count: ${{ needs.collect.outputs.tensor_npu_count }}
-      devices_per_proc: ${{ needs.collect.outputs.tensor_devices_per_proc }}
-
-  # ── Distributed tests (c10d, nccl, tensor parallel) ──────────────────
-  test_distributed:
-    needs: collect
-    if: ${{ needs.collect.outputs.has_distributed == 'true' }}
-    uses: ./.github/workflows/_test-exec-v3.yml
-    secrets: inherit
-    with:
-      resolved_short: ${{ inputs.resolved_short }}
-      category: distributed
-      num_shards: ${{ needs.collect.outputs.distributed_num_shards }}
-      matrix_json: ${{ needs.collect.outputs.distributed_matrix }}
-      runner: ${{ needs.collect.outputs.distributed_runner }}
-      npu_count: ${{ needs.collect.outputs.distributed_npu_count }}
-      devices_per_proc: ${{ needs.collect.outputs.distributed_devices_per_proc }}
-
-  # ── Graph tests (dynamo + higher_order_ops; fx/inductor/export/functorch → others) ─
-  test_graph:
-    needs: collect
-    if: ${{ needs.collect.outputs.has_graph == 'true' }}
-    uses: ./.github/workflows/_test-exec-v3.yml
-    secrets: inherit
-    with:
-      resolved_short: ${{ inputs.resolved_short }}
-      category: graph
-      num_shards: ${{ needs.collect.outputs.graph_num_shards }}
-      matrix_json: ${{ needs.collect.outputs.graph_matrix }}
-      runner: ${{ needs.collect.outputs.graph_runner }}
-      npu_count: ${{ needs.collect.outputs.graph_npu_count }}
-      devices_per_proc: ${{ needs.collect.outputs.graph_devices_per_proc }}
-
-  # ── Others tests (linalg, sparsity, etc.) ────────────────────────────
-  test_others:
-    needs: collect
-    if: ${{ needs.collect.outputs.has_others == 'true' }}
-    uses: ./.github/workflows/_test-exec-v3.yml
-    secrets: inherit
-    with:
-      resolved_short: ${{ inputs.resolved_short }}
-      category: others
-      num_shards: ${{ needs.collect.outputs.others_num_shards }}
-      matrix_json: ${{ needs.collect.outputs.others_matrix }}
-      runner: ${{ needs.collect.outputs.others_runner }}
-      npu_count: ${{ needs.collect.outputs.others_npu_count }}
-      devices_per_proc: ${{ needs.collect.outputs.others_devices_per_proc }}
-
-  # ── Report: aggregate all shard artifacts ────────────────────────────
+  # ── Report: aggregate all shard artifacts ──────────────────────────
   report:
-    needs:
-      - collect
-      - test_core
-      - test_tensor
-      - test_distributed
-      - test_graph
-      - test_others
+    needs: [collect, test]
     if: always() && needs.collect.result == 'success'
     uses: ./.github/workflows/_test-report-v3.yml
     secrets: inherit
-    with:
-      core_matrix: ${{ needs.collect.outputs.core_matrix }}
-      tensor_matrix: ${{ needs.collect.outputs.tensor_matrix }}
-      distributed_matrix: ${{ needs.collect.outputs.distributed_matrix }}
-      graph_matrix: ${{ needs.collect.outputs.graph_matrix }}
-      others_matrix: ${{ needs.collect.outputs.others_matrix }}

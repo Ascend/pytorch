@@ -599,20 +599,28 @@ def write_jsonl(report_dir: Path, prefix: str, shard: int,
 def main():
     args = parse_args()
 
-    # Load files JSON
-    files_json = Path(args.files_json)
-    if not files_json.exists():
-        print(f"ERROR: Files JSON not found: {files_json}", file=sys.stderr)
-        sys.exit(1)
-
-    data = json.loads(files_json.read_text(encoding="utf-8"))
-    files = data.get("files", [])
-    test_type = data.get("test_type", args.shard_type)
-    total_files = len(files)
-
     test_dir = Path(args.test_dir).resolve()
     report_dir = Path(args.report_dir).resolve()
     report_dir.mkdir(parents=True, exist_ok=True)
+
+    # ── Classify + shard test files in-memory (no artifact round-trip) ──
+    # Reuses shard_test_files.py functions that are already on PYTHONPATH.
+    from shard_test_files import load_categories_config, scan_all_test_files, \
+        classify_files, split_round_robin
+
+    config = load_categories_config(args.categories_config)
+    exclude = config.get("exclude", [])
+    categories = config.get("categories", {})
+
+    # Scan all test_*.py, classify, shard — same as collect step
+    all_files = scan_all_test_files(test_dir)
+    classified = classify_files(all_files, categories, exclude)
+    category_files = classified.get(args.category, [])
+    shards = split_round_robin(category_files, args.num_shards)
+    files = shards[args.shard - 1] if args.shard <= len(shards) else []
+
+    test_type = args.category
+    total_files = len(files)
 
     # Build device groups (same logic as v2 DevicePool)
     npu_count = args.npu_count
@@ -728,8 +736,12 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="Run NPU tests at file-level with crash recovery"
     )
-    parser.add_argument("--files-json", required=True,
-                        help="Path to {category}_files_shard_{n}.json")
+    parser.add_argument("--categories-config", required=True,
+                        help="Path to whitelist YAML (classification rules)")
+    parser.add_argument("--category", required=True,
+                        help="Test category name (core/tensor/distributed/graph/others)")
+    parser.add_argument("--num-shards", type=int, required=True,
+                        help="Total number of shards for this category")
     parser.add_argument("--test-dir", required=True,
                         help="PyTorch test/ directory")
     parser.add_argument("--report-dir", default="test-reports",
@@ -742,8 +754,6 @@ def parse_args():
                         help="Per-file timeout in seconds")
     parser.add_argument("--case-timeout", type=int, default=300,
                         help="Per-test-case timeout in seconds")
-    parser.add_argument("--shard-type", default="regular",
-                        help="Test category name")
     parser.add_argument("--shard", type=int, default=1,
                         help="Shard index (1-based)")
     parser.add_argument("--runner", default="",

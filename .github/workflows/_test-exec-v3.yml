@@ -11,14 +11,16 @@ on:
         required: true
         type: string
         description: Test category (core/tensor/distributed/graph/others)
+      shard:
+        required: false
+        type: number
+        default: 1
+        description: Shard index (1-based, from dynamic matrix)
       num_shards:
-        required: true
-        type: string
-        description: Number of shards for this category
-      matrix_json:
-        required: true
-        type: string
-        description: Shard matrix JSON array
+        required: false
+        type: number
+        default: 1
+        description: Total number of shards for this category (from dynamic matrix)
       runner:
         required: false
         type: string
@@ -49,10 +51,6 @@ jobs:
       options: --network host
     env:
       PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
-    strategy:
-      matrix:
-        shard: ${{ fromJson(inputs.matrix_json) }}
-      fail-fast: false
     steps:
       - name: Authenticate to Huawei Cloud
         uses: huaweicloud/auth-action@v1.1.0
@@ -100,12 +98,6 @@ jobs:
           pip install /tmp/wheels/torch-*.whl
           pip install --no-deps /tmp/wheels/torch_npu*.whl
 
-      - name: Download cases shard JSONs
-        uses: actions/download-artifact@v4
-        with:
-          name: cases-shards-v3
-          path: cases-shards
-
       - name: Checkout CI scripts
         uses: actions/checkout@v6
         with:
@@ -130,24 +122,20 @@ jobs:
           print(f'NPU count: {torch.npu.device_count()}')
           "
 
-      - name: Run ${{ inputs.category }} shard ${{ matrix.shard }}/${{ inputs.num_shards }}
+      - name: Run ${{ inputs.category }} shard ${{ inputs.shard }}/${{ inputs.num_shards }}
         run: |
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
           source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
 
           export PYTHONPATH="${GITHUB_WORKSPACE}/ci-scripts/.github/scripts/v3:${PYTHONPATH}"
 
-          CASES_JSON="cases-shards/${{ inputs.category }}_files_shard_${{ matrix.shard }}.json"
-          TOTAL_FILES=$(python3 -c "import json; d=json.load(open('${CASES_JSON}')); print(d['total_files'])")
-
           # Derive concurrency from npu_count / devices_per_proc (same as v2)
           NPU_COUNT=${{ inputs.npu_count }}
           DEVICES_PER_PROC=${{ inputs.devices_per_proc }}
           NUM_PROCS=$(( NPU_COUNT / DEVICES_PER_PROC ))
 
-          echo "=== ${{ inputs.category }} Shard ${{ matrix.shard }}/${{ inputs.num_shards }} ==="
+          echo "=== ${{ inputs.category }} Shard ${{ inputs.shard }}/${{ inputs.num_shards }} ==="
           echo "Runner: ${{ inputs.runner }}"
-          echo "Total files: ${TOTAL_FILES}"
           echo "NPU cards: ${NPU_COUNT}, devices/proc: ${DEVICES_PER_PROC}, concurrency: ${NUM_PROCS}"
           echo "Device groups:"
           python3 -c "
@@ -160,17 +148,18 @@ jobs:
 
           set +e
           python ci-scripts/.github/scripts/v3/run_npu_test_file.py \
-            --files-json "${CASES_JSON}" \
+            --categories-config ci-scripts/.github/config/nightly_v3_test_whitelist.yml \
+            --category ${{ inputs.category }} \
+            --num-shards ${{ inputs.num_shards }} \
             --test-dir pytorch \
             --report-dir test-reports \
             --npu-count ${NPU_COUNT} \
             --devices-per-proc ${DEVICES_PER_PROC} \
             --timeout 1800 \
             --case-timeout 300 \
-            --shard-type ${{ inputs.category }} \
-            --shard ${{ matrix.shard }} \
+            --shard ${{ inputs.shard }} \
             --runner ${{ inputs.runner }} \
-            2>&1 | tee /tmp/test_${{ inputs.category }}_${{ matrix.shard }}.log
+            2>&1 | tee /tmp/test_${{ inputs.category }}_${{ inputs.shard }}.log
 
           TEST_STATUS=${PIPESTATUS[0]}
           set -e
@@ -189,7 +178,7 @@ jobs:
               'others': 'others',
           }
           prefix = prefix_map.get('${{ inputs.category }}', 'reg')
-          cases_file = f'test-reports/shard_{prefix}-${{ matrix.shard }}_cases.jsonl'
+          cases_file = f'test-reports/shard_{prefix}-${{ inputs.shard }}_cases.jsonl'
           stats = {'passed': 0, 'failed': 0, 'errors': 0, 'skipped': 0, 'total': 0}
           parse_ok = False
           try:
@@ -209,7 +198,7 @@ jobs:
                   f.write(f'{k}={v}\n')
               f.write(f'total_failed={total_failed}\n')
               f.write(f'parse_ok={str(parse_ok).lower()}\n')
-          print(f'${{ inputs.category }} shard ${{ matrix.shard }}: {stats[\"passed\"]} passed, {stats[\"failed\"]} failed, {stats[\"errors\"]} errors, {stats[\"skipped\"]} skipped, {stats[\"total\"]} total')
+          print(f'${{ inputs.category }} shard ${{ inputs.shard }}: {stats[\"passed\"]} passed, {stats[\"failed\"]} failed, {stats[\"errors\"]} errors, {stats[\"skipped\"]} skipped, {stats[\"total\"]} total')
           "
 
       - name: Package test reports
@@ -219,16 +208,16 @@ jobs:
             echo "=== Compressing junit XMLs ==="
             XML_COUNT=$(find test-reports/junit_xmls -type f -name "*.xml" | wc -l)
             echo "Found ${XML_COUNT} XML files"
-            tar -czf "test-reports/junit_xmls-${{ inputs.category }}-${{ matrix.shard }}.tar.gz" -C test-reports junit_xmls
+            tar -czf "test-reports/junit_xmls-${{ inputs.category }}-${{ inputs.shard }}.tar.gz" -C test-reports junit_xmls
             rm -rf test-reports/junit_xmls
-            echo "JUnit XMLs compressed: $(ls -lh "test-reports/junit_xmls-${{ inputs.category }}-${{ matrix.shard }}.tar.gz")"
+            echo "JUnit XMLs compressed: $(ls -lh "test-reports/junit_xmls-${{ inputs.category }}-${{ inputs.shard }}.tar.gz")"
           fi
 
       - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-reports-${{ inputs.category }}-${{ matrix.shard }}
+          name: test-reports-${{ inputs.category }}-${{ inputs.shard }}
           path: test-reports/
           retention-days: 7
 
@@ -236,14 +225,14 @@ jobs:
         if: failure()
         run: |
           mkdir -p error-logs
-          cp /tmp/test_${{ inputs.category }}_${{ matrix.shard }}.log error-logs/ 2>/dev/null || true
-          tar -czf error-logs-${{ inputs.category }}-${{ matrix.shard }}.tar.gz error-logs/
-          echo "Error logs compressed: $(ls -lh error-logs-${{ inputs.category }}-${{ matrix.shard }}.tar.gz)"
+          cp /tmp/test_${{ inputs.category }}_${{ inputs.shard }}.log error-logs/ 2>/dev/null || true
+          tar -czf error-logs-${{ inputs.category }}-${{ inputs.shard }}.tar.gz error-logs/
+          echo "Error logs compressed: $(ls -lh error-logs-${{ inputs.category }}-${{ inputs.shard }}.tar.gz)"
 
       - name: Upload error logs
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: error-logs-${{ inputs.category }}-${{ matrix.shard }}
-          path: error-logs-${{ inputs.category }}-${{ matrix.shard }}.tar.gz
+          name: error-logs-${{ inputs.category }}-${{ inputs.shard }}
+          path: error-logs-${{ inputs.category }}-${{ inputs.shard }}.tar.gz
           retention-days: 7
