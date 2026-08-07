@@ -1,4 +1,7 @@
+import functools
 import logging
+from pathlib import Path
+from typing import Any, Dict, List
 
 import torch
 from torch._inductor.codegen.rocm.ck_universal_gemm_template import CKGemmTemplate
@@ -8,6 +11,7 @@ from torch._inductor.lowering import fallback_handler
 from torch._inductor.select_algorithm import (
     autotune_select_algorithm,
     ExternKernelChoice,
+    SymbolicGridFn,
     TritonTemplate,
 )
 from torch._inductor.utils import (
@@ -25,6 +29,7 @@ from torch._inductor.kernel.mm_common import (
 )
 
 from .mm import is_contiguous_striding
+from ..select_algorithm import NPUTritonTemplate
 from ..utils import use_catlass_template, use_triton_template
 
 
@@ -33,6 +38,181 @@ aten = torch.ops.aten
 
 aten_bmm = torch._inductor.kernel.bmm.aten_bmm
 aten_baddbmm = torch._inductor.kernel.bmm.aten_baddbmm
+
+
+# ---------------------------------------------------------------------------
+# NPU Triton BMM Template (for CV / epilogue fusion with batch dimension)
+# ---------------------------------------------------------------------------
+# Uses triton_bmm.py.jinja which extends the mm template with a batch
+# dimension (idx_q = tl.program_id(1)).  Grid is (MN_tiles, batch, 1).
+# The {{store_output}} placeholder supports epilogue fusion (e.g. relu).
+
+@SymbolicGridFn
+def npu_bmm_grid(b, m, n, meta, *, cdiv):
+    """Grid function for NPU bmm triton template.
+
+    Returns (num_mn_tiles, batch, 1) where num_mn_tiles covers all M*N blocks.
+    """
+    return (cdiv(m, meta["BLOCK_M"]) * cdiv(n, meta["BLOCK_N"]), b, 1)
+
+
+# Inline template source (previously loaded from templates/triton_bmm.py.jinja).
+# Kept as a string constant so the kernel no longer depends on the external
+# .jinja file at runtime.
+_BMM_TEMPLATE = """{{def_kernel("A", "B")}}
+    M = {{size("A", -2)}}
+    N = {{size("B", -1)}}
+    K = {{size("A", -1)}}
+
+    stride_aq = {{stride("A", 0)}}
+    stride_am = {{stride("A", 1)}}
+    stride_ak = {{stride("A", 2)}}
+
+    stride_bq = {{stride("B", 0)}}
+    stride_bk = {{stride("B", 1)}}
+    stride_bn = {{stride("B", 2)}}
+
+    # based on triton.ops.matmul
+    pid = tl.program_id(0).to(INDEX_DTYPE)
+    grid_m = (M + BLOCK_M - 1) // BLOCK_M
+    grid_n = (N + BLOCK_N - 1) // BLOCK_N
+
+    # re-order program ID for better L2 performance
+    width = GROUP_M * grid_n
+    group_id = pid // width
+    group_size = min(grid_m - group_id * GROUP_M, GROUP_M)
+    pid_m = group_id * GROUP_M + (pid % group_size)
+    pid_n = (pid % width) // group_size
+
+    rm = pid_m * BLOCK_M + tl.arange(0, BLOCK_M)
+    rn = pid_n * BLOCK_N + tl.arange(0, BLOCK_N)
+
+    # batch dimension index — precompute batch offsets before K-loop
+    # to avoid redundant multiply inside the hot loop
+    idx_q = tl.program_id(1).to(INDEX_DTYPE)
+    a_batch_off = idx_q * stride_aq
+    b_batch_off = idx_q * stride_bq
+
+    acc = tl.zeros((BLOCK_M, BLOCK_N), dtype=ACC_TYPE)
+
+    for k_start in range(0, K, BLOCK_K):
+        offs_k = k_start + tl.arange(0, BLOCK_K)
+        {% if EVEN_K %}
+        a = tl.load(A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak + a_batch_off))
+        b = tl.load(B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn + b_batch_off))
+        {% else %}
+        # K is not a multiple of BLOCK_K: mask out-of-bounds elements
+        k_mask = offs_k < K
+        a = tl.load(A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak + a_batch_off), mask=k_mask[None, :], other=0.0)
+        b = tl.load(B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn + b_batch_off), mask=k_mask[:, None], other=0.0)
+        {% endif %}
+        acc += tl.dot(a, b, allow_tf32=ALLOW_TF32, out_dtype=ACC_TYPE)
+
+    # rematerialize rm, rn and idx_q to save registers
+    rm = pid_m * BLOCK_M + tl.arange(0, BLOCK_M)
+    rn = pid_n * BLOCK_N + tl.arange(0, BLOCK_N)
+    idx_q = tl.program_id(1).to(INDEX_DTYPE)
+    idx_m = rm[:, None]
+    idx_n = rn[None, :]
+    mask = (idx_m < M) & (idx_n < N)
+
+    # inductor generates a suffix
+    {{store_output(("idx_q", "idx_m", "idx_n"), "acc", "mask", val_shape=("BLOCK_M", "BLOCK_N"))}}
+"""
+
+npu_triton_bmm_template = NPUTritonTemplate(
+    name="npu_triton_bmm",
+    grid=npu_bmm_grid,
+    source=_BMM_TEMPLATE,
+    debug=False,
+)
+
+
+def _get_npu_bmm_configs(
+    m: int,
+    n: int,
+    k: int,
+) -> List[Dict[str, Any]]:
+    """Generate tiling configs for NPU triton bmm template.
+
+    Same tiling shapes as mm, adapted for batched matmul.
+    """
+    configs: List[Dict[str, Any]] = []
+
+    tile_shapes = [
+        (64, 64, 32),
+        (64, 128, 32),
+        (128, 64, 32),
+        (128, 128, 32),
+        (64, 64, 64),
+        (128, 64, 64),
+        (64, 128, 64),
+        (128, 128, 64),    # large tile for big BMM shapes
+        (32, 64, 32),
+        (64, 32, 32),
+        (32, 32, 32),
+    ]
+
+    for block_m, block_n, block_k in tile_shapes:
+        # Dynamically compute EVEN_K: True only when K is an exact multiple
+        # of BLOCK_K, so the template can skip the K-boundary mask
+        # for performance while staying correct when K is not aligned.
+        even_k = (k % block_k == 0)
+        for group_m in [8]:
+            for num_stages in [2, 3]:
+                for num_warps in [4, 8]:
+                    configs.append({
+                        "BLOCK_M": block_m,
+                        "BLOCK_N": block_n,
+                        "BLOCK_K": block_k,
+                        "GROUP_M": group_m,
+                        "num_stages": num_stages,
+                        "num_warps": num_warps,
+                        "ALLOW_TF32": "False",
+                        "ACC_TYPE": "tl.float32",
+                        "EVEN_K": even_k,
+                    })
+
+    return configs
+
+
+def add_npu_triton_bmm_choices(
+    choices: List[ir.ChoiceCaller],
+    layout: "ir.Layout",
+    mat1: "ir.IRNode",
+    mat2: "ir.IRNode",
+    m: int,
+    n: int,
+    k: int,
+) -> None:
+    """Add NPU Triton bmm template choices to the choices list.
+
+    The bmm template handles the batch dimension via tl.program_id(1) and
+    supports epilogue fusion via {{store_output}}.
+    """
+    input_nodes = [mat1, mat2]
+    configs = _get_npu_bmm_configs(m, n, k)
+
+    for cfg in configs:
+        num_stages = cfg.pop("num_stages")
+        num_warps = cfg.pop("num_warps")
+
+        try:
+            choice = npu_triton_bmm_template.generate(
+                input_nodes=input_nodes,
+                layout=layout,
+                num_stages=num_stages,
+                num_warps=num_warps,
+                **cfg,
+            )
+            if choice is not None:
+                choices.append(choice)
+        except Exception as e:
+            log.debug(
+                "Failed to generate NPU triton bmm choice with config %s: %s",
+                cfg,
+                e,
+            )
 
 
 def is_batch_stride_largest_or_zero(mat1, mat2, layout) -> bool:
@@ -52,7 +232,6 @@ def is_batch_stride_largest_or_zero(mat1, mat2, layout) -> bool:
 def _register_npu_inductor_bmm():
     @L.register_lowering(aten.bmm)
     def tuned_bmm(mat1, mat2, *, layout=None):
-
         if all(x.get_device().type == "cpu" for x in [mat1, mat2]):
             # decompose to small ops when memory bound
             if mat1.get_size()[1] == 1 or mat2.get_size()[2] == 1:
@@ -126,6 +305,25 @@ def _register_npu_inductor_bmm():
             )
         if use_ck_template(layout):
             CKGemmTemplate.add_ck_gemm_choices(choices, layout, [mat1, mat2])
+
+        # Add NPU Triton bmm template choices for CV (Compute/Vector) fusion.
+        # The bmm template handles the batch dimension via tl.program_id(1)
+        # and supports epilogue fusion via {{store_output}}.
+        if is_nonzero and use_triton_template(layout):
+            try:
+                add_npu_triton_bmm_choices(
+                    choices, layout, mat1, mat2, m, n, k
+                )
+                log.debug(
+                    "NPU Triton CV fusion: added triton bmm template choices "
+                    "for bmm(%d, %d, %d), total choices now %d",
+                    m,
+                    n,
+                    k,
+                    len(choices),
+                )
+            except Exception as e:
+                log.warning("Failed to add NPU triton bmm template choices: %s", e)
 
         if len(choices) == 0:
             log.warning("No choices for GEMM, using ATen backend as fallback")
