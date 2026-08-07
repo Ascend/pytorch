@@ -217,6 +217,7 @@ print(f'Included: {included}, skipped: {skipped} (not in run_test.py TESTS)', fi
         --expected-files "${EXPECTED_FILES}" \
         --execution-log "/tmp/test_npu_${category}_${SHARD_NUMBER}.log" \
         --reports-dir "${REPORTS_DIR}" \
+        --pytest-xml-dir "${TEST_DIR}/test-reports/python-pytest" \
         --runner "${RUNNER:-linux-aarch64-a3-8}"
 
     return ${test_status}

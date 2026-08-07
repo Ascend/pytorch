@@ -168,13 +168,21 @@ def _match_stderr_to_expected(raw: str) -> str | None:
 # ==============================================================================
 
 
-def find_xml_files(reports_dir: Path):
-    """Find all JUnit XML files under *reports_dir*."""
+def find_xml_files(reports_dir: Path, pytest_xml_dir: Path | None = None):
+    """Find all JUnit XML files under *reports_dir* and optionally *pytest_xml_dir*.
+
+    *reports_dir/junit_xmls/*.xml* — our own collected XMLs.
+    *reports_dir/*.xml* — top-level spillover.
+    *pytest_xml_dir/**/*.xml* — run_test.py's python-pytest output
+      (e.g. {TEST_DIR}/test-reports/python-pytest/).
+    """
     xml_files = []
     junit_dir = reports_dir / "junit_xmls"
     if junit_dir.is_dir():
         xml_files.extend(sorted(junit_dir.glob("*.xml")))
     xml_files.extend(sorted(reports_dir.glob("*.xml")))
+    if pytest_xml_dir and pytest_xml_dir.is_dir():
+        xml_files.extend(sorted(pytest_xml_dir.rglob("*.xml")))
     return xml_files
 
 
@@ -392,6 +400,9 @@ def main():
     parser.add_argument("--execution-log", default="",
                         help="run_test.py stderr tee log")
     parser.add_argument("--reports-dir", default="test-reports")
+    parser.add_argument("--pytest-xml-dir", default=None,
+                        help="Optional: run_test.py python-pytest XML output dir "
+                             "(e.g. .../pytorch/test/test-reports/python-pytest)")
     parser.add_argument("--runner", default="linux-aarch64-a3-8",
                         help="Runner label for this shard")
     args = parser.parse_args()
@@ -409,7 +420,8 @@ def main():
 
     # Parse JUnit XMLs for per-case results
     reports_dir = Path(args.reports_dir)
-    xml_files = find_xml_files(reports_dir)
+    pytest_xml_dir = Path(args.pytest_xml_dir) if args.pytest_xml_dir else None
+    xml_files = find_xml_files(reports_dir, pytest_xml_dir=pytest_xml_dir)
     print(f"Found {len(xml_files)} JUnit XML files")
     files_cases = parse_xml_testcases(xml_files)
 
