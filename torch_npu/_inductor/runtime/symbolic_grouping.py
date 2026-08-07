@@ -5,6 +5,7 @@ from collections.abc import Mapping, Sequence
 from typing import Literal
 
 import sympy
+import torch
 
 
 JsonScalar = int | float | bool | str | None
@@ -108,6 +109,27 @@ class GroupedKernelMeta:
                 payload.get("runtime_block_arg_names"), "runtime_block_arg_names"
             ),
         )
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class GroupedBenchmarkArgFootprint:
+    group_id: int
+    name: str
+    kind: str
+    dtype: str
+    size: tuple[int, ...]
+    stride: tuple[int, ...]
+    num_bytes: int
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class GroupedBenchmarkFootprint:
+    synthetic_bytes: int
+    mutated_clone_bytes: int
+    total_bytes: int
+    group_bytes: tuple[tuple[int, int], ...]
+    largest_group_id: int | None
+    dominant_arg: GroupedBenchmarkArgFootprint | None
 
 
 def is_runtime_symbolic_length(length) -> bool:
@@ -343,6 +365,170 @@ def build_group_representatives(
         ),
     }
     return plan
+
+
+def evaluate_grouped_benchmark_expr(expr, axis_env) -> int:
+    if isinstance(expr, int):
+        return int(expr)
+    if not isinstance(expr, Mapping):
+        raise UnsupportedGroupedPlan(
+            f"unsupported grouped benchmark expression: {expr}"
+        )
+    if "const" in expr:
+        return int(expr["const"])
+    if "axis_name" in expr:
+        axis_name = expr["axis_name"]
+        if axis_name not in axis_env:
+            raise UnsupportedGroupedPlan(
+                f"benchmark axis environment is missing {axis_name}"
+            )
+        return int(axis_env[axis_name])
+    if "runtime_arg_index" in expr:
+        raise UnsupportedGroupedPlan(
+            "runtime_arg_index cannot be bounded during grouped codegen"
+        )
+    if "mul" in expr:
+        product = 1
+        for operand in expr["mul"]:
+            product *= evaluate_grouped_benchmark_expr(operand, axis_env)
+        return product
+    if "add" in expr:
+        return sum(
+            evaluate_grouped_benchmark_expr(operand, axis_env)
+            for operand in expr["add"]
+        )
+    if "floordiv" in expr:
+        operands = tuple(
+            evaluate_grouped_benchmark_expr(operand, axis_env)
+            for operand in expr["floordiv"]
+        )
+        if len(operands) != 2 or operands[1] == 0:
+            raise UnsupportedGroupedPlan(
+                f"invalid grouped benchmark floordiv expression: {expr}"
+            )
+        return operands[0] // operands[1]
+    raise UnsupportedGroupedPlan(
+        f"unsupported grouped benchmark expression: {expr}"
+    )
+
+
+def required_storage_numel(size, stride) -> int:
+    size = tuple(int(dim) for dim in size)
+    stride = tuple(int(dim_stride) for dim_stride in stride)
+    if len(size) != len(stride):
+        raise UnsupportedGroupedPlan(
+            f"benchmark size/stride rank mismatch: {size} vs {stride}"
+        )
+    if any(dim < 0 for dim in size):
+        raise UnsupportedGroupedPlan(f"negative benchmark tensor size: {size}")
+    if any(dim_stride < 0 for dim_stride in stride):
+        raise UnsupportedGroupedPlan(
+            f"negative benchmark tensor stride: {stride}"
+        )
+    if any(dim == 0 for dim in size):
+        return 0
+    return 1 + sum(
+        (dim - 1) * dim_stride
+        for dim, dim_stride in zip(size, stride)
+    )
+
+
+def _grouped_benchmark_dtype_itemsize(dtype) -> tuple[str, int]:
+    if isinstance(dtype, str):
+        dtype = getattr(torch, dtype.removeprefix("torch."), None)
+    if not isinstance(dtype, torch.dtype):
+        raise UnsupportedGroupedPlan(f"unknown grouped benchmark dtype: {dtype}")
+    return str(dtype), int(dtype.itemsize)
+
+
+def estimate_grouped_benchmark_footprint(
+    group_representatives,
+    ordered_arg_specs,
+    mutated_arg_names=(),
+) -> GroupedBenchmarkFootprint:
+    reachable = tuple(group_representatives["reachable_group_ids"])
+    axis_values = tuple(
+        group_representatives["benchmark_axis_values_by_group"]
+    )
+    ordered_arg_specs = tuple(ordered_arg_specs)
+    mutated_names = set(mutated_arg_names)
+    synthetic_bytes = 0
+    mutated_clone_bytes = 0
+    group_bytes = []
+    dominant_arg = None
+
+    for group_id in reachable:
+        axis_env = dict(axis_values[group_id])
+        current_bytes = 0
+        current_mutated_bytes = 0
+        for spec in ordered_arg_specs:
+            kind = spec.get("kind")
+            source = spec.get("source")
+            if source == "runtime_arg" or kind == "size":
+                continue
+            if kind == "tensor" and source in ("buffer", "constant"):
+                size = tuple(
+                    evaluate_grouped_benchmark_expr(expr, axis_env)
+                    for expr in spec["size_exprs"]
+                )
+                stride = tuple(
+                    evaluate_grouped_benchmark_expr(expr, axis_env)
+                    for expr in spec["stride_exprs"]
+                )
+                dtype_name, itemsize = _grouped_benchmark_dtype_itemsize(
+                    spec["dtype"]
+                )
+                num_bytes = required_storage_numel(size, stride) * itemsize
+            elif kind == "workspace" and source == "workspace":
+                count = evaluate_grouped_benchmark_expr(
+                    spec["count_expr"], axis_env
+                )
+                if count < 0:
+                    raise UnsupportedGroupedPlan(
+                        f"negative grouped benchmark workspace count: {count}"
+                    )
+                dtype_name, itemsize = _grouped_benchmark_dtype_itemsize(
+                    spec["dtype"]
+                )
+                size, stride, num_bytes = (count,), (1,), count * itemsize
+            else:
+                raise UnsupportedGroupedPlan(
+                    f"unsupported grouped benchmark arg: kind={kind}, source={source}"
+                )
+
+            current_bytes += num_bytes
+            if spec.get("name") in mutated_names:
+                current_mutated_bytes += num_bytes
+            if dominant_arg is None or num_bytes > dominant_arg.num_bytes:
+                dominant_arg = GroupedBenchmarkArgFootprint(
+                    group_id=int(group_id),
+                    name=str(spec.get("name", "unknown")),
+                    kind=str(kind),
+                    dtype=dtype_name,
+                    size=size,
+                    stride=stride,
+                    num_bytes=int(num_bytes),
+                )
+
+        group_bytes.append((int(group_id), int(current_bytes)))
+        synthetic_bytes += current_bytes
+        mutated_clone_bytes = max(mutated_clone_bytes, current_mutated_bytes)
+
+    largest_group_id = (
+        max(group_bytes, key=lambda item: item[1])[0]
+        if group_bytes
+        else None
+    )
+    return GroupedBenchmarkFootprint(
+        int(synthetic_bytes),
+        int(mutated_clone_bytes),
+        int(synthetic_bytes + mutated_clone_bytes),
+        tuple(group_bytes),
+        largest_group_id,
+        dominant_arg,
+    )
+
+
 def serialize_grouped_plan(plan: GroupedKernelMeta) -> dict[str, object]:
     return plan.to_payload()
 
