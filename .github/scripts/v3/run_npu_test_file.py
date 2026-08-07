@@ -137,6 +137,7 @@ def run_single_file(
             f"--junit-xml={junit_file}",
             "-v",
             "--tb=short",
+            "--hw-classification", "ACCELERATOR",
         ]
 
         # Use StepcurrentPlugin to skip previously crashed cases on retry
