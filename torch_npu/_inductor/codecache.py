@@ -29,6 +29,30 @@ from .codegen.catlass.catlass_utils import get_npu_arch, _normalize_npu_arch
 
 log = logging.getLogger("torch._inductor")
 
+
+class PersistentDLLWrapper(DLLWrapper):
+    """
+    A DLLWrapper that never dlcloses the underlying .so.
+
+    Kernels (and their CANN runtime dependencies) register profiler
+    callbacks into the CANN profiler via MsprofRegisterCallback when the .so
+    is loaded/executed.  If the .so is later unloaded by dlclose(), the CANN
+    profiler retains dangling raw function pointers into the freed memory.
+    The next torch_npu.profiler.profile() session then invokes those dangling
+    pointers and segfaults inside libprofimpl.so
+    (ProfModuleReprotMgr::GetInstance()).
+
+    To avoid this, we override close() to simply mark the wrapper as closed
+    without actually calling dlclose().  The .so stays mapped for the rest of
+    the process lifetime, which is harmless because CATLASSCodeCache is itself
+    a process-level cache.
+    """
+
+    def close(self) -> None:  # type: ignore[override]
+        # Intentionally do NOT call self._dlclose().
+        # Just flip the flag so repeated close()/__del__ calls are no-ops.
+        self.is_open = False
+
 def patch_get_cpp_wrapper_header():
     origin_get_cpp_wrapper_header = torch._inductor.codecache._get_cpp_wrapper_header
     def _get_cpp_wrapper_header_npu(device: str, aot_mode: bool = False) -> str:
@@ -263,4 +287,7 @@ class CATLASSCodeCache:
         dst_file_path, hash_key, source_code_path = cls.compile(
             source_code, dst_file_ext, is_mix=is_mix
         )
-        return (DLLWrapper(dst_file_path), hash_key, source_code_path)
+        # Use PersistentDLLWrapper (not the base DLLWrapper) so that close()/__del__
+        # skip dlclose() and avoid dangling CANN profiler callback pointers.
+        wrapper = PersistentDLLWrapper(dst_file_path)
+        return (wrapper, hash_key, source_code_path)
