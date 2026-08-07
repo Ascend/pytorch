@@ -43,6 +43,11 @@ Ascend950 = 260
 is_ascend950 = get_soc_version() >= Ascend950
 
 
+# Enable the SIMT Welford lowering for variance and layer normalization.
+# Keep it disabled by default while the new path is being rolled out.
+enable_welford = os.getenv("TORCHINDUCTOR_ENABLE_WELFORD", "0") == "1"
+
+
 class catlass:
     # Whether to enable debug info, e.g., line number
     enable_debug_info: bool = False

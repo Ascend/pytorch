@@ -877,7 +877,66 @@ def _register_npu_inductor_fallbacks():
         x_mean = x_mean if keepdim else squeeze(x_mean, axis)
         return x_var, x_mean
 
-    def var_mean_helper_(x, *, axis, correction, keepdim, return_mean):
+    def use_two_step_variance(x, axis, keepdim):
+        # Instead of unrolling welford, just unroll the simpler two-step var
+        axis = _validate_reduction_axis(x, axis)
+        kwargs = _make_reduction_inner(
+            x, axis=axis, keepdims=keepdim, dtype=None, override_return_dtype=None
+        )
+
+        ranges = kwargs["ranges"]
+        reduction_numel = sympy_product(kwargs["reduction_ranges"])
+        return (
+            isinstance(reduction_numel, sympy.Integer)
+            and int(reduction_numel) < torch._inductor.config.unroll_reductions_threshold
+            and sympy_product(ranges) != 1
+        )
+
+    def var_mean_welford_(x, axis, *, correction, keepdim, return_mean):
+        if correction is None:
+            correction = 1
+
+        kwargs = _make_reduction_inner(
+            x, axis=axis, keepdims=keepdim, dtype=None, override_return_dtype=None
+        )
+        loader = kwargs.pop("inner_fn")
+        kwargs.pop("dst_dtype")
+        kwargs.pop("src_dtype")
+
+        mean, m2, _ = ir.WelfordReduction.create(
+            inner_fns=(loader,),
+            reduction_type="welford_reduce",
+            dtype=x.get_dtype(),
+            **kwargs,
+        )
+        m2.realize()
+
+        dtype = x.get_dtype()
+        size = x.get_size()
+        axis = _validate_reduction_axis(x, axis)
+        rnumel = sympy_product(size[i] for i in axis)
+
+        def get_constant_or_index_expr(x, dtype):
+            if isinstance(x, sympy.Expr) and not x.is_number:
+                return ops.to_dtype(ops.index_expr(x, torch.int64), dtype)
+            return ops.constant(x, dtype)
+
+        def scale_fn(data):
+            c = get_constant_or_index_expr(correction, dtype)
+            N = get_constant_or_index_expr(rnumel, dtype)
+            zero = ops.constant(0, dtype)
+            return data / ops.maximum(zero, N - c)
+
+        var = make_pointwise(scale_fn)(m2)
+
+        if return_mean:
+            mean.realize()
+            return var, mean
+        return (var,)
+
+    def var_mean_helper_(
+        x, *, axis, correction, keepdim, return_mean, allow_welford
+    ):
         out_dtype = x.get_dtype()
         compute_dtype = get_computation_dtype(out_dtype)
         x = to_dtype(x, compute_dtype, copy=False)
@@ -888,9 +947,12 @@ def _register_npu_inductor_fallbacks():
             keepdim=keepdim,
             return_mean=return_mean,
         )
-        # todo: support welford var mean
         output = (
             var_mean_sum_(**kwargs)
+            if not allow_welford
+            or not npu_config.enable_welford
+            or use_two_step_variance(x, axis=axis, keepdim=keepdim)
+            else var_mean_welford_(**kwargs)
         )
         output = tuple(to_dtype(x, out_dtype, copy=False) for x in output)
         return output[0] if not return_mean else output
@@ -898,13 +960,25 @@ def _register_npu_inductor_fallbacks():
     @register_lowering(aten.var_mean)
     def var_mean(x, axis=None, *, correction=None, keepdim=False):
         return var_mean_helper_(
-            x, axis=axis, correction=correction, keepdim=keepdim, return_mean=True
+            x,
+            axis=axis,
+            correction=correction,
+            keepdim=keepdim,
+            return_mean=True,
+            allow_welford=True,
         )
 
     @register_lowering([aten.var, prims.var])
     def var_(x, axis=None, *, correction=None, keepdim=False):
+        # A standalone var can fuse with a separate mean reduction. Welford then
+        # creates a dual-reduction kernel that falls back from the NPU linear path.
         return var_mean_helper_(
-            x, axis=axis, correction=correction, keepdim=keepdim, return_mean=False
+            x,
+            axis=axis,
+            correction=correction,
+            keepdim=keepdim,
+            return_mean=False,
+            allow_welford=False,
         )
 
     @register_lowering(aten.index, type_promotion_kind=None)
@@ -978,9 +1052,13 @@ def _register_npu_inductor_fallbacks():
         bias=None,
         eps=1e-5
     ):
-        # Performance consideration: fallback for bfloat16 and float16
-        if is_ascend950 and \
-                (x.dtype == torch.bfloat16 or x.dtype == torch.float16):
+        # Keep the existing low-precision fallback unless Welford is explicitly
+        # enabled for FP16/BF16 on Ascend 950.
+        if (
+            is_ascend950
+            and x.dtype in (torch.float16, torch.bfloat16)
+            and not npu_config.enable_welford
+        ):
             return fallback_handler(aten.native_layer_norm.default)(x, normalized_shape, weight, bias, eps)
         # Validate input
         if not isinstance(normalized_shape, (list, tuple)):
@@ -998,7 +1076,8 @@ def _register_npu_inductor_fallbacks():
             axis=reduce_dims,
             correction=0,  # Layer normalization uses 0 correction (population variance)
             keepdim=True,  # Keep dimensions for broadcasting
-            return_mean=True
+            return_mean=True,
+            allow_welford=True,
         )
 
         # Calculate normalized result (x - mean) / sqrt(var + eps)
