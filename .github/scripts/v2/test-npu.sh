@@ -48,8 +48,11 @@ setup_npu_env() {
     export PYTORCH_TESTING_DEVICE_ONLY_FOR="privateuse1"
     export PYTORCH_TESTING_DEVICE_FOR_CUSTOM="privateuse1"
 
-    # Load NPU poisoning detection plugin inside pytest subprocesses
-    export PYTEST_ADDOPTS="-p no:xdist -p npu_poisoning_plugin"
+    # Plugins loaded inside pytest subprocesses:
+    #   no:xdist              - disable xdist parallel runner
+    #   npu_poisoning_plugin  - NPU fault detection (Layer 1+2)
+    #   timeout               - per-test-case timeout (10 min default)
+    export PYTEST_ADDOPTS="-p no:xdist -p npu_poisoning_plugin -p timeout --timeout=600"
 
     # Ensure v2 scripts are importable by pytest and inline Python
     export PYTHONPATH="${PYTHONPATH_BASE}:${PYTHONPATH:-}"
@@ -187,27 +190,20 @@ print(f'Included: {included}, skipped: {skipped} (not in run_test.py TESTS)', fi
 
     mkdir -p "${REPORTS_DIR}"
 
-    # Reset NPU device counter (used by npu_poisoning_plugin pytest_configure)
-    echo 0 > /tmp/npu_device_counter.lock
-
-    # ---- Execute via upstream run_test.py ----
-    # NUM_PROCS = npu_count / devices_per_proc.
-    # Each pytest process acquires devices_per_proc cards via npu_poisoning_plugin.
-    echo "=== Running tests ==="
+    # ---- Execute via npu_scheduler.py ----
+    # Per-file scheduling with fcntl device binding, ThreadPoolExecutor concurrency.
+    echo "=== Running tests (scheduler: ${num_procs} workers) ==="
     set +e
-    NUM_PROCS="${num_procs}" \
-    NPU_DEVICES_PER_PROC="${devices_per_proc}" \
-    NPU_COUNT="${npu_count}" \
-    python pytorch/test/run_test.py \
-        --include ${files} \
-        --hw-classification ACCELERATOR \
-        --continue-through-error \
-        --verbose \
-        2>&1 | tee "/tmp/test_npu_${category}_${SHARD_NUMBER}.log"
-    local test_status=${PIPESTATUS[0]}
+    python3 "${PYTHONPATH_BASE}/npu_scheduler.py" \
+        --expected-files "${EXPECTED_FILES}" \
+        --npu-count "${npu_count}" \
+        --devices-per-proc "${devices_per_proc}" \
+        --output-log "/tmp/test_npu_${category}_${SHARD_NUMBER}.log" \
+        --pytorch-root "${pytorch_root}"
+    local test_status=$?
     set -e
 
-    echo "=== run_test.py exit status: ${test_status} ==="
+    echo "=== All files complete ==="
 
     # ---- Parse stderr + JUnit XMLs → JSONL (for report workflow) ----
     echo "=== Generating shard JSONL ==="

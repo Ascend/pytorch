@@ -126,7 +126,7 @@ jobs:
         id: parse_results
         if: always()
         run: |
-          python3 -c "
+          python3 << 'PYEOF'
           import json, os, sys
           prefix_map = {
               'core': 'core',
@@ -158,8 +158,8 @@ jobs:
                   f.write(f'{k}={v}\n')
               f.write(f'total_failed={total_failed}\n')
               f.write(f'parse_ok={str(parse_ok).lower()}\n')
-          print(f'${{ inputs.category }} shard {shard}: {stats[\"passed\"]} passed, {stats[\"failed\"]} failed, {stats[\"errors\"]} errors, {stats[\"skipped\"]} skipped, {stats[\"total\"]} total')
-          "
+          print(f'${{ inputs.category }} shard {shard}: {stats["passed"]} passed, {stats["failed"]} failed, {stats["errors"]} errors, {stats["skipped"]} skipped, {stats["total"]} total')
+          PYEOF
 
       - name: Package and upload test reports
         if: always()

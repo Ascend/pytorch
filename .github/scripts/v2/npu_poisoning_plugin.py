@@ -10,12 +10,9 @@ Two-layer detection (same as v1 run_npu_test_shard.py):
     Layer 1: signature matching on case output (fast, zero overhead for passing)
     Layer 2: probe computation (~1ms, catches unknown patterns)
 
-NPU device binding:
-    On pytest startup (pytest_configure), each pytest process acquires an
-    exclusive NPU card via an atomic file-lock counter.  ASCEND_RT_VISIBLE_DEVICES
-    is set before any torch import, so device_type_test instantiation only sees
-    the bound card.  The caller (test-npu.sh) must ensure NUM_PROCS matches the
-    modulo range used in _assign_npu_device().
+NPU device binding is handled by the shell scheduler (test-npu.sh) via
+ASCEND_RT_VISIBLE_DEVICES before run_test.py starts.  This plugin only
+performs detection — no device assignment is done here.
 
 When poisoning is detected, the plugin calls pytest.exit(returncode=70)
 to stop the session immediately, preventing cascading failures across
@@ -28,7 +25,6 @@ Usage:
     needed — pytest's -p flag handles it.
 """
 
-import fcntl
 import os
 import signal as _signal
 
@@ -121,70 +117,19 @@ def _check_npu_poisoned() -> bool:
 
 
 # ==============================================================================
-# NPU Device Binding (fcntl file-lock counter)
-# ==============================================================================
-
-_COUNTER_FILE = "/tmp/npu_device_counter.lock"
-
-# Number of NPU devices per pytest process.  Must match NUM_PROCS set by the
-# caller (test-npu.sh) so that sum(devices_per_proc × NUM_PROCS) ≤ total NPU
-# cards.  Default: 1 card per process with 8 concurrent processes on an 8-card
-# machine.
-_NPU_DEVICES_PER_PROC = int(os.environ.get("NPU_DEVICES_PER_PROC", "1"))
-
-
-def _assign_npu_device():
-    """Atomically assign NPU device(s) to this pytest process via file-lock counter.
-
-    Called from pytest_configure() BEFORE any test collection (and therefore
-    before any ``import torch`` inside test files).  The fcntl file lock ensures
-    only one process increments the counter at a time.
-
-    Device assignment is ``(count % num_groups) * devices_per_proc`` where
-    ``num_groups = total_cards / devices_per_proc``.
-
-    With NPU_COUNT=8, devices_per_proc=1: count 0→card0, 1→card1, ..., 7→card7.
-    With NPU_COUNT=16, devices_per_proc=2: count 0→(0,1), ..., 7→(14,15).
-    """
-    fd = os.open(_COUNTER_FILE, os.O_RDWR | os.O_CREAT, 0o644)
-    try:
-        fcntl.flock(fd, fcntl.LOCK_EX)
-        os.lseek(fd, 0, os.SEEK_SET)
-        data = os.read(fd, 10)
-        count = int(data) if data.strip() else 0
-        new_value = str(count + 1).encode()
-        os.lseek(fd, 0, os.SEEK_SET)
-        os.write(fd, new_value)
-        os.ftruncate(fd, len(new_value))
-
-        devices_per_proc = _NPU_DEVICES_PER_PROC
-        npu_count = int(os.environ.get("NPU_COUNT", "8"))
-        num_groups = max(1, npu_count // devices_per_proc)
-        group_id = count % num_groups
-        start = group_id * devices_per_proc
-
-        if devices_per_proc == 1:
-            os.environ["ASCEND_RT_VISIBLE_DEVICES"] = str(start)
-        else:
-            ids = ",".join(str(start + i) for i in range(devices_per_proc))
-            os.environ["ASCEND_RT_VISIBLE_DEVICES"] = ids
-    finally:
-        fcntl.flock(fd, fcntl.LOCK_UN)
-        os.close(fd)
-
-
-# ==============================================================================
 # Pytest Hooks
 # ==============================================================================
 
 @pytest.hookimpl(tryfirst=True)
 def pytest_configure(config):
-    """Bind this pytest process to a dedicated NPU card before collection starts.
+    """Log the NPU devices visible to this pytest process.
 
-    Runs before any conftest or test file is imported, so ``torch.npu.device_count()``
-    sees the restricted device set.
+    Device binding is handled by the shell scheduler (test-npu.sh) via
+    ASCEND_RT_VISIBLE_DEVICES before run_test.py starts.  This hook just
+    confirms which devices are visible.
     """
-    _assign_npu_device()
+    devices = os.environ.get("ASCEND_RT_VISIBLE_DEVICES", "?")
+    print(f"[npu_poisoning_plugin] Visible devices: {devices}")
 
 
 @pytest.hookimpl(hookwrapper=True)
@@ -259,16 +204,14 @@ def pytest_runtest_protocol(item, nextitem):
 
 @pytest.hookimpl(trylast=True)
 def pytest_unconfigure(config):
-    """Final safety check: if poisoning was detected but exit didn't fire.
+    """Final safety check: log if poisoning was detected but exit didn't fire.
 
-    This handles edge cases where poisoning was detected on the very last
-    test case (no subsequent pytest_runtest_protocol to trigger exit).
+    Since device binding is handled at the shell layer (one run_test.py per
+    file), we no longer force os._exit(70).  The poisoned session will
+    complete naturally and run_test.py will report the failure.
     """
     global _poisoned
 
     if _poisoned:
-        print(f"  [NPU POISONING] Detected during teardown (reason: {_poisoning_reason})", flush=True)
-        # Force exit — this runs after sessionfinish, so we need os._exit
-        # to ensure the returncode is propagated correctly
-        import os
-        os._exit(NPU_POISONING_EXIT_CODE)
+        print(f"  [NPU POISONING] Session completed with poisoning detected "
+              f"(reason: {_poisoning_reason})", flush=True)
