@@ -120,7 +120,6 @@ def _load_triton_backend():
     )
     from .scheduler import patch_scheduler
     from .select_algorithm import patch_algorithm_selector
-    from .utils import patch_get_first_incompatible_cudagraph_node
 
     from .graph import patch_count_bytes
     from .autotune_process import patch_tuning_process
@@ -192,7 +191,6 @@ def _load_triton_backend():
 
         parallel_scheduler()
 
-    patch_get_first_incompatible_cudagraph_node()
     patch_get_optimization_cflags()
     patch_extract_read_writes()
     patch_count_bytes()
