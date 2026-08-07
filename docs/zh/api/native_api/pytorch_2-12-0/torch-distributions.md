@@ -473,7 +473,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 可能回退至CPU执行
+**限制与说明**：可能回退至CPU执行
 
 > <font size="3">arg_constraints()</font>
 
@@ -553,7 +553,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 可能回退至CPU执行
+**限制与说明**：可能回退至CPU执行
 
 </div>
 
@@ -701,7 +701,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 可能回退至CPU执行
+**限制与说明**：可能回退至CPU执行
 
 > <font size="3">arg_constraints()</font>
 
@@ -1039,7 +1039,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 可能回退至CPU执行
+**限制与说明**：可能回退至CPU执行
 
 > <font size="3">arg_constraints()</font>
 
@@ -1119,7 +1119,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 可能回退至CPU执行
+**限制与说明**：可能回退至CPU执行
 
 </div>
 
@@ -1169,7 +1169,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 可能回退至CPU执行
+**限制与说明**：可能回退至CPU执行
 
 </div>
 
@@ -1445,7 +1445,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 可能回退至CPU执行
+**限制与说明**：可能回退至CPU执行
 
 > <font size="3">arg_constraints()</font>
 
@@ -1845,7 +1845,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 可能回退至CPU执行
+**限制与说明**：可能回退至CPU执行
 
 </div>
 
@@ -1961,7 +1961,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 可能回退至CPU执行
+**限制与说明**：可能回退至CPU执行
 
 > <font size="3">arg_constraints()</font>
 
@@ -2153,7 +2153,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 可能回退至CPU执行
+**限制与说明**：可能回退至CPU执行
 
 </div>
 
@@ -3005,7 +3005,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 可能回退至CPU执行
+**限制与说明**：可能回退至CPU执行
 
 </div>
 
@@ -3071,7 +3071,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 可能回退至CPU执行
+**限制与说明**：可能回退至CPU执行
 
 </div>
 
@@ -3139,7 +3139,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 可能回退至CPU执行
+**限制与说明**：可能回退至CPU执行
 
 > <font size="3">arg_constraints()</font>
 
@@ -3283,7 +3283,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 可能回退至CPU执行
+**限制与说明**：可能回退至CPU执行
 
 </div>
 
@@ -3559,7 +3559,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 可能回退至CPU执行
+**限制与说明**：可能回退至CPU执行
 
 > <font size="3">arg_constraints()</font>
 
@@ -3705,7 +3705,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 可能回退至CPU执行
+**限制与说明**：可能回退至CPU执行
 
 > <font size="3">arg_constraints()</font>
 
@@ -5269,7 +5269,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 可能回退至CPU执行
+**限制与说明**：可能回退至CPU执行
 
 </div>
 
@@ -5319,7 +5319,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 可能回退至CPU执行
+**限制与说明**：可能回退至CPU执行
 
 </div>
 
@@ -5373,7 +5373,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： 可能回退至CPU执行
+**限制与说明**：可能回退至CPU执行
 
 > <font size="3">arg_constraints()</font>
 
@@ -5405,7 +5405,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 可能回退至CPU执行
+**限制与说明**：可能回退至CPU执行
 
 </div>
 
@@ -5471,7 +5471,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 可能回退至CPU执行
+**限制与说明**：可能回退至CPU执行
 
 </div>
 
@@ -5927,7 +5927,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 可能回退至CPU执行
+**限制与说明**：可能回退至CPU执行
 
 > <font size="3">arg_constraints()</font>
 
@@ -6137,7 +6137,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 可能回退至CPU执行
+**限制与说明**：可能回退至CPU执行
 
 > <font size="3">arg_constraints()</font>
 
@@ -6377,7 +6377,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 可能回退至CPU执行
+**限制与说明**：可能回退至CPU执行
 
 </div>
 
@@ -6653,7 +6653,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： 可能回退至CPU执行
+**限制与说明**：可能回退至CPU执行
 
 > <font size="3">arg_constraints()</font>
 

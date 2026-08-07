@@ -6,7 +6,7 @@
 
 - 配置为“0”时：关闭task\_queue算子下发队列优化，算子下发任务如[图1](#关闭task_queue)所示。
 
-    **图 1**  关闭task\_queue<a id="关闭task_queue"></a>    
+    **图 1** 关闭task\_queue<a id="关闭task_queue"></a>    
     ![](../../../figures/stop_task_queue.png)
 
 - 配置为“1”或未配置时：开启task\_queue算子下发队列Level 1优化，算子下发任务如[图2](#Level-1优化)所示。

@@ -12,7 +12,7 @@
 > - 当前版本同时兼容旧名称`HCCL_BLOCKING_WAIT`。
 > - 当`TORCH_HCCL_BLOCKING_WAIT`和`HCCL_BLOCKING_WAIT`同时配置时，优先使用`TORCH_HCCL_BLOCKING_WAIT`。
 > - 开启此环境变量后，`wait()`和`synchronize()`会在主机侧等待本次HCCL通信真正完成、报错或超时后再返回。
-> - 开启此环境变量后，不会创建 watchdog 线程。
+> - 开启此环境变量后，不会创建 `watchdog` 线程。
 
 ## 配置示例
 

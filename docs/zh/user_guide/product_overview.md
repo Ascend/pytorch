@@ -34,19 +34,19 @@ TorchNPU插件的启动遵循严格的6阶段初始化顺序，确保各模块�
 
 ## 数据流
 
-**Eager Mode（动态图模式）端到端数据流:**
+**Eager Mode（动态图模式）端到端数据流：**
 
 ![](../figures/eager_mode_flow.png)
 
 Eager Mode下每个算子独立下发执行，保留了PyTorch动态图的灵活性和即时反馈能力。NPU上支持多Stream并发，通过Stream级TaskQueue实现二级流水并行下发，减少Host与Device之间的调度延迟。
 
-**Graph Mode（图编译模式）端到端数据流:**
+**Graph Mode（图编译模式）端到端数据流：**
 
 ![](../figures/graph_mode_flow.png)
 
 Graph Mode通过`torch.compile()`一键开启，Dynamo前端将Eager代码即时编译为FX Graph，编译后端负责算子融合、内存优化和代码生成。NPUGraphs将捕获的图下沉至NPU侧，支持一次捕获多次重放，消除重复的kernel启动开销；Inductor后端则通过算子融合与代码生成实现计算图级别的深度优化。
 
-**张量数据流:**
+**张量数据流：**
 
 ![](../figures/tensor_flow.png)
 

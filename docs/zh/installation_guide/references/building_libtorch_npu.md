@@ -108,4 +108,4 @@ libtorch\_npu是TorchNPU插件的C++版本，包含运行TorchNPU插件所需的
 
     > [!NOTE]
     >
-    > aarch64环境下报torch.libs/\*.so库不存在，请参见[torch.libs/libopenblasp-r0-56e95da7.3.24.so不存在](../faq.md#torchlibslibopenblasp-r0-56e95da7324so链接报错或libgfortran缺失)。
+    > aarch64环境下报torch.libs/\*.so库不存在，请参见[torch.libs/libopenblasp-r0-56e95da7.3.24.so不存在](../faq.md#问题1torchlibslibopenblasp-r0-56e95da7324so链接报错或libgfortran缺失)。

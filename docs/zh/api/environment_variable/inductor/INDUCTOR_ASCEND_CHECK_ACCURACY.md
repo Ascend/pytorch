@@ -52,7 +52,7 @@ CHECK ACCURACY FAILED! Kernel: <kernel_name>, Output idx: <idx>, Mismatched: <m>
 
 - 在torch.compile图编译后端为“inductor”时可使用此环境变量。
 
-- 此环境变量开启时,Triton后端会自动将`torch._inductor.config.split_reductions`设置为`False`。
+- 此环境变量开启时，Triton后端会自动将`torch._inductor.config.split_reductions`设置为`False`。
 
 ## 支持的型号
 

@@ -607,7 +607,7 @@ add\_metadata和add\_metadata\_json可以配置在torch\_npu.profiler.profile下
 
 - 对于与HTML兼容的绘图，使用后缀`.html`，内存时间线图将作为PNG文件嵌入到HTML文件中。
 - 对于由[timestamp, [sizes by category]]组成的绘图点，其中timestamp是时间戳，sizes是每个类别的内存使用量。内存时间线图将保存为`.json`文件或压缩的`.json.gz`，具体取决于后缀。
-- 对于原始内存信息，使用后缀`raw.json.gz`。每个原始内存事件将由(timestamp, action, numbytes, category)组成，其中action是[PREEXISTING, CREATE, INCREMENT_VERSION, DESTROY]其中之一，category是[PARAMETER，OPTIMIZER_STATE，INPUT，TEMPORARY，ACTIVATION，GRADIENT，AUTOGRAD_DETAIL，UNKNOWN]其中之一。
+- 对于原始内存信息，使用后缀`raw.json.gz`。每个原始内存事件将由(timestamp, action, numbytes, category)组成，其中action是[PREEXISTING, CREATE, INCREMENT_VERSION, DESTROY]其中之一，category是[PARAMETER, OPTIMIZER_STATE, INPUT, TEMPORARY, ACTIVATION, GRADIENT, AUTOGRAD_DETAIL, UNKNOWN]其中之一。
 
 **注意事项**
 
@@ -1360,7 +1360,7 @@ PCIe带宽数据。
 |count|NUMERIC|通信传输次数|
 |total_duration|NUMERIC|数据传输总耗时|
 |step|TEXT|算子所属的step，例：step12|
-|type|TEXT|算子类型，包含：Collective，P2P|
+|type|TEXT|算子类型，包含：Collective、P2P|
 
 **CommAnalyzerTime**
 
@@ -1377,7 +1377,7 @@ PCIe带宽数据。
 |synchronization_time|NUMERIC|同步时长，单位ms。节点之间进行同步需要的时长。|
 |idle_time|NUMERIC|空闲时间，单位ms。空闲时间（idle_time） = 算子的通信总耗时（elapse_time） - 通信时长（transit_time） - 等待时长（wait_time）。|
 |step|TEXT|算子所属的step|
-|type|TEXT|算子类型，包含：Collective，P2P|
+|type|TEXT|算子类型，包含：Collective、P2P|
 
 **CommAnalyzerMatrix**
 
@@ -1394,7 +1394,7 @@ PCIe带宽数据。
 |transit_time|NUMERIC|传输耗时，单位ms|
 |bandwidth|NUMERIC|带宽，单位GB/s|
 |step|TEXT|算子所属的step，例：step12|
-|type|TEXT|算子类型，包含：Collective，P2P|
+|type|TEXT|算子类型，包含：Collective、P2P|
 |op_name|TEXT|算子的原始名字，例：hcom_broadcast__303_1_1|
 
 **StepTraceTime**
@@ -1561,7 +1561,7 @@ experimental\_config参数均为可选参数，支持扩展的采集项如下：
 |data_simplification|数据精简模式，开启后将在导出性能数据后删除多余数据，仅保留profiler_*.json文件、ASCEND_PROFILER_OUTPUT目录、PROF_XXX目录下的原始性能数据、FRAMEWORK目录和logs目录，以节省存储空间，bool类型。取值为：<br/>&#8226; True：开启。<br/>&#8226; False：关闭。<br/>默认开启。|
 |record_op_args|控制算子信息统计功能开关，bool类型。取值为：<br/>&#8226; True：开启。<br/>&#8226; False：关闭。<br/>默认关闭。<br/>开启后会在{worker_name}\_{时间戳}_ascend_pt_op_args目录输出采集到算子信息文件。<br/>该参数在AOE工具执行PyTorch训练场景下调优时使用，且不建议与其他性能数据采集接口同时开启。详细介绍请参见《[AOE调优工具用户指南](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/latest/devaids/aoe/auxiliarydevtool_aoe_0001.html)》。|
 |gc_detect_threshold|GC检测阈值，float类型。取值范围为大于等于0的数值，单位ms。当用户设置的阈值为数字时，表示开启GC检测，只采集超过阈值的GC事件。<br/>配置为0时表示采集所有的GC事件（可能造成采集数据量过大，请谨慎配置），推荐设置为1ms。<br/>默认为None，表示不开启GC检测功能。<br/>**GC**是Python进程对已经销毁的对象进行内存回收。<br/>该参数解析结果为在trace_view.json中生成GC层或在ascend_pytorch_profiler_{Rank_ID}.db中生成GC_RECORD表。|
-|host_sys|Host侧系统数据采集开关，List类型。默认未配置，表示未开启Host侧系统数据采集。取值为：<br/>&#8226; torch_npu.profiler.HostSystem.CPU：进程级别的CPU利用率。<br/>&#8226; torch_npu.profiler.HostSystem.MEM：进程级别的内存利用率。<br/>&#8226; torch_npu.profiler.HostSystem.DISK：进程级别的磁盘I/O利用率。<br/>&#8226; torch_npu.profiler.HostSystem.NETWORK：系统级别的网络I/O利用率。<br/>&#8226; torch_npu.profiler.HostSystem.OSRT：进程级别的syscall和pthreadcall。<br/>配置示例：host_sys=[torch_npu.profiler.HostSystem.CPU, torch_npu.profiler.HostSystem.MEM]<br/>&#8226; 采集Host侧disk性能数据需要安装第三方开源工具iotop，采集osrt性能数据需要安装第三方开源工具perf和ltrace，其安装方法参见[安装perf、iotop、ltrace工具](https://gitcode.com/cann/oam-tools/blob/master/docs/zh/profiling/appendices/install_perf_iotop_ltrace.md)。完成安装后须参见[配置用户权限](https://gitcode.com/cann/oam-tools/blob/master/docs/zh/profiling/appendices/config_user_permission.md)完成用户权限配置，且每次重新安装CANN软件包需要重新配置。<br/>&#8226; 使用开源工具ltrace采集osrt性能数据会导致CPU占用率过高，其与应用工程的pthread加解锁相关，会影响进程运行速度。<br/>&#8226; x86_64架构的KylinV10SP1操作系统支持torch_npu.profiler.HostSystem.OSRT参数， aarch64架构的KylinV10SP1操作系统下不支持torch_npu.profiler.HostSystem.OSRT参数。<br/>&#8226; 虚拟化环境Euler2.9系统下不支持torch_npu.profiler.HostSystem.NETWORK参数。|
+|host_sys|Host侧系统数据采集开关，List类型。默认未配置，表示未开启Host侧系统数据采集。取值为：<br/>&#8226; torch_npu.profiler.HostSystem.CPU：进程级别的CPU利用率。<br/>&#8226; torch_npu.profiler.HostSystem.MEM：进程级别的内存利用率。<br/>&#8226; torch_npu.profiler.HostSystem.DISK：进程级别的磁盘I/O利用率。<br/>&#8226; torch_npu.profiler.HostSystem.NETWORK：系统级别的网络I/O利用率。<br/>&#8226; torch_npu.profiler.HostSystem.OSRT：进程级别的syscall和pthreadcall。<br/>配置示例：host_sys=[torch_npu.profiler.HostSystem.CPU, torch_npu.profiler.HostSystem.MEM]<br/>&#8226; 采集Host侧disk性能数据需要安装第三方开源工具iotop，采集osrt性能数据需要安装第三方开源工具perf和ltrace，其安装方法参见[安装perf、iotop、ltrace工具](https://gitcode.com/cann/oam-tools/blob/master/docs/zh/profiling/appendices/install_perf_iotop_ltrace.md)。完成安装后须参见[配置用户权限](https://gitcode.com/cann/oam-tools/blob/master/docs/zh/profiling/appendices/config_user_permission.md)完成用户权限配置，且每次重新安装CANN软件包需要重新配置。<br/>&#8226; 使用开源工具ltrace采集osrt性能数据会导致CPU占用率过高，其与应用工程的pthread加解锁相关，会影响进程运行速度。<br/>&#8226; x86_64架构的KylinV10SP1操作系统支持torch_npu.profiler.HostSystem.OSRT参数，aarch64架构的KylinV10SP1操作系统下不支持torch_npu.profiler.HostSystem.OSRT参数。<br/>&#8226; 虚拟化环境Euler2.9系统下不支持torch_npu.profiler.HostSystem.NETWORK参数。|
 |sys_io|NIC、ROCE、MAC采集开关，bool类型。取值为：<br/>&#8226; True：开启。<br/>&#8226; False：关闭。<br/>默认关闭。|
 |sys_interconnection|集合通信带宽数据（HCCS）、PCIe数据采集开关、片间传输带宽信息采集开关，bool类型。取值为：<br/>&#8226; True：开启。<br/>&#8226; False：关闭。<br/>默认关闭。|
 

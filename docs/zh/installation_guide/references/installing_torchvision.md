@@ -31,7 +31,7 @@ torchvision为PyTorch的扩展库，主要用于计算机视觉任务。它包�
 
         > [!NOTE]
         >
-        > torchvision版本请参考[表1](#torchvision_version)根据实际场景进行替换。
+        > torchvision版本请参考[表1](#torchvision_version)，根据实际场景进行替换。
   2. 进入vision目录，编译安装torchvision。
 
         ```bash

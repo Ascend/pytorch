@@ -77,7 +77,7 @@ symint:
 - op\_api：表示在该版本支持op\_api调用，如果支持的版本与all\_version表示的版本一致，则可以用"all\_version"表示，可选字段。
 - gen\_opapi：对于支持op\_api调用的算子，如果适配代码简单，可以直接调用底层算子，不需要额外的适配，则可以考虑用结构化适配的方式自动生成适配代码，详见章节[结构化适配介绍(可选)](#结构化适配介绍可选)。
 - exposed：表示商用算子支持的版本，一般只用设置正向算子接口。
-- internal_format_opapi：表示支持昇腾亲和格式NZ数据分发到op_api算子调用的白名单机制。当前对于入参为昇腾亲和格式的数据默认被分发到acl_op调用；只有当算子显示添加internal_format_opapi字段并加入白名单后，才会将NZ格式数据分发到op_api调用路径。
+- internal_format_opapi：表示支持昇腾亲和格式NZ数据分发到op_api算子调用的白名单机制。当前对于入参为昇腾亲和格式的数据默认被分发到acl_op调用；只有当算子显式添加internal_format_opapi字段并加入白名单后，才会将NZ格式数据分发到op_api调用路径。
 
 > [!NOTE]  
 > 如果存在某个算子适配有两个版本不一致，则需要两个都加上，如std.correction在PyTorch 1.11.0版本和PyTorch 2.1.0及以上版本的入参名称不同，则需要分开写成两个，通过version区分。<br>
@@ -127,7 +127,7 @@ backward:
 
 - name：需要前反向绑定的算子接口，同op\_plugin\_functions.yaml中函数声明。
 - self和算子接口输入参数：定义入参的梯度计算方法，对于简单的可以直接用数据公式说明，对于复杂的通过底层实现的反向函数声明。
-- output_differentiability：定义输出的可微行，通过列表的方式定义多个输出中哪些是可微的。
+- output_differentiability：定义输出的可微性，通过列表的方式定义多个输出中哪些是可微的。
 - result：算子接口的返回结果。
 
 > [!NOTE]  

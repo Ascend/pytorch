@@ -111,6 +111,6 @@
 | <term>Atlas A3 训练系列产品</term> | &#10007; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： <term>Ascend 950DT</term>：不支持complex64，complex128
+**限制与说明**：<term>Ascend 950DT</term>：不支持complex64，complex128
 
 </div>

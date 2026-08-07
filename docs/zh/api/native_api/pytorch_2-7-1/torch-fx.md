@@ -158,7 +158,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -594,22 +594,6 @@
 
 </div>
 
-### torch.fx.experimental.symbolic_shapes.is_symbolic
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.experimental.symbolic_shapes.is_symbolic](https://pytorch.org/docs/2.7/generated/torch.fx.experimental.symbolic_shapes.is_symbolic.html)
-
-**支持情况**：
-
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
-
-</div>
-
 ### _`class`_ torch.fx.experimental.symbolic_shapes.ShapeEnv
 
 <div style="margin-left: 2em">
@@ -830,7 +814,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -1156,7 +1140,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -1174,7 +1158,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 > <font size="3">\_\_init\_\_()</font>
 
@@ -1190,7 +1174,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -1208,7 +1192,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -1242,7 +1226,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -1260,7 +1244,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -1326,7 +1310,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -1552,7 +1536,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -1570,7 +1554,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -1588,7 +1572,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -1606,7 +1590,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -1672,7 +1656,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -1722,7 +1706,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -1772,7 +1756,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -1806,7 +1790,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -1840,7 +1824,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -1890,7 +1874,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -1908,7 +1892,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -1942,7 +1926,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -1960,7 +1944,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -1998,7 +1982,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -2018,7 +2002,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 > <font size="3">all_input_nodes()</font>
 
@@ -2050,7 +2034,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -2084,7 +2068,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -2102,7 +2086,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -2216,7 +2200,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -2250,7 +2234,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -2268,7 +2252,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -2334,7 +2318,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -2352,7 +2336,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -2370,7 +2354,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -2388,7 +2372,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -2406,7 +2390,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -2424,7 +2408,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -2442,7 +2426,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -2460,7 +2444,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -2478,7 +2462,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -2512,7 +2496,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -2546,7 +2530,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -2564,7 +2548,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -2582,7 +2566,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -2600,7 +2584,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 

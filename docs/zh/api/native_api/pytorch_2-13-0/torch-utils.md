@@ -17,7 +17,7 @@
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.utils.rename_privateuse1_backend](https://pytorch.org/docs/2.13/generated/torch.utils.rename_privateuse1_backend.html)
+**原生文档**：[torch.utils.backend_registration.rename_privateuse1_backend](https://docs.pytorch.org/docs/2.13/generated/torch.utils.backend_registration.rename_privateuse1_backend.html)
 
 **支持情况**：
 
@@ -33,7 +33,7 @@
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.utils.generate_methods_for_privateuse1_backend](https://pytorch.org/docs/2.13/generated/torch.utils.generate_methods_for_privateuse1_backend.html)
+**原生文档**：[torch.utils.backend_registration.generate_methods_for_privateuse1_backend](https://pytorch.org/docs/2.13/generated/torch.utils.backend_registration.generate_methods_for_privateuse1_backend.html)
 
 **支持情况**：
 

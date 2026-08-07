@@ -121,7 +121,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `img_tensor`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**：`img_tensor`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -139,7 +139,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `img_tensor`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**：`img_tensor`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -173,7 +173,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `vid_tensor`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**：`vid_tensor`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -191,7 +191,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `snd_tensor`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**：`snd_tensor`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -243,7 +243,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `mat`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**：`mat`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -261,7 +261,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `labels`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**：`labels`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 

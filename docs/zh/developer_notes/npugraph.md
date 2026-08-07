@@ -51,7 +51,7 @@ NPUGraph提供了三种方式：
 
 - NPUGraph类（`torch_npu.npu.NPUGraph`）：底层控制，手动管理，捕获整段连续计算图。
 - graph上下文管理器（`torch_npu.npu.graph`）：简化版捕获。简单通用的上下文管理器，可在其作用域内捕获NPU操作。
-- make_graphed_callables（ `torch_npu.npu.make_graphed_callables` ）：高级封装，自动处理细节。若网络部分不适合捕获（例如，由于动态控制流、动态网络拓扑、CPU同步或关键的CPU端逻辑），可使用该高级API。与CUDA Graphs社区一致，自动处理图捕获细节和输入数据的`copy_()`更新。
+- make_graphed_callables（`torch_npu.npu.make_graphed_callables`）：高级封装，自动处理细节。若网络部分不适合捕获（例如，由于动态控制流、动态网络拓扑、CPU同步或关键的CPU端逻辑），可使用该高级API。与CUDA Graphs社区一致，自动处理图捕获细节和输入数据的`copy_()`更新。
 
 三种方式的适用场景和操作方式对比请参见下表。
 

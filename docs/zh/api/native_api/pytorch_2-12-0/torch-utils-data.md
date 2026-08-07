@@ -14,7 +14,7 @@
 - [Memory Pinning](#memory-pinning)
 - [Loading Batched and Non-Batched Data](#loading-batched-and-non-batched-data)
 - [Single- and Multi-process Data Loading](#single--and-multi-process-data-loading)
-- [Data Loading Order andSampler](#data-loading-order-andsampler)
+- [Data Loading Order and Sampler](#data-loading-order-and-sampler)
 
 ## base API
 
@@ -128,7 +128,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `batch`仅支持int64
+**限制与说明**：`batch`仅支持int64
 
 </div>
 
@@ -375,7 +375,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： `dataset`仅支持int64
+**限制与说明**：`dataset`仅支持int64
 
 </div>
 
@@ -417,7 +417,7 @@
 
 </div>
 
-## Data Loading Order andSampler
+## Data Loading Order and Sampler
 
 ### _`class`_ torch.utils.data.Sampler
 
@@ -433,6 +433,6 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： `data_source`仅支持int64
+**限制与说明**：`data_source`仅支持int64
 
 </div>

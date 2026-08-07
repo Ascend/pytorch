@@ -60,7 +60,6 @@
   - [torch.utils.model\_zoo](./pytorch_2-13-0/torch-utils-model_zoo.md)
   - [torch.utils.tensorboard](./pytorch_2-13-0/torch-utils-tensorboard.md)
   - [Type Info](./pytorch_2-13-0/Type-Info.md)
-  - [Named Tensors](./pytorch_2-13-0/Named-Tensors.md)
   - [torch.\_\_config\_\_](./pytorch_2-13-0/torch-__config__.md)
 
 - [PyTorch 2.12.0版本](./pytorch_2-12-0/PyTorch-2-12-0.md)

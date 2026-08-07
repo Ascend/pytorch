@@ -121,7 +121,7 @@ TorchNPU代码分支名称采用 **\{PyTorch版本\}-\{TorchNPU版本\}** 的命
     </tr>
     <tr>
       <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.1">支持输入张量全轴动态场景下的算子编译。</td>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.2">在图模式支持输入张量全轴动态（如 [-1,-1,-1,-1]）场景下的算子编译，增加图模式在动态shape场景的泛化性和性能。</td>
+      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.2">在图模式支持输入张量全轴动态（如[-1,-1,-1,-1]）场景下的算子编译，增加图模式在动态shape场景的泛化性和性能。</td>
     </tr>
     <tr>
       <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.1">支持<term>Ascend 950DT</term>款型。</td>

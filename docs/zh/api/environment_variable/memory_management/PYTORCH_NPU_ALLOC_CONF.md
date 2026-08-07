@@ -228,7 +228,7 @@ export PYTORCH_NPU_ALLOC_CONF=pinned_max_round_threshold_mb:128,pinned_max_cache
 - multi_stream_lazy_reclaim使用注意事项：
     - 特性要求在TorchNPU 7.3.0以上版本上使用。
     - 该特性主要解决多流场景下，Host侧存在下发性能瓶颈时的系统效率问题。单流、少流场景或者非Host性能瓶颈时，该功能收益不大。
-- large\_segment\_size\_mb特性需在TorchNPU 26.1.0及以上版本、PyTorch 2.11.0 及以版本上使用。
+- large\_segment\_size\_mb特性需在TorchNPU 26.1.0及以上版本、PyTorch 2.11.0及以上版本使用。
 - per\_process\_memory\_fraction特性需在TorchNPU 26.1.0及以上版本、PyTorch 2.10.0 及以上版本使用。
 - throw\_on\_npumalloc\_oom特性需在TorchNPU 26.2.0及以上版本、PyTorch 2.13.0及以上版本使用。
 - pinned\_max\_round\_threshold\_mb和pinned\_max\_cached\_size\_mb特性需在TorchNPU 26.2.0及以上版本、PyTorch 2.13.0及以上版本使用。两者仅作用于默认（非expandable）pinned memory分配器路径。与pin\_memory\_expandable\_segments同时配置时，这两个阈值不生效，框架会输出一次告警提示，但进程仍可正常启动；如需启用这两个阈值，请将pin\_memory\_expandable\_segments设置为False。

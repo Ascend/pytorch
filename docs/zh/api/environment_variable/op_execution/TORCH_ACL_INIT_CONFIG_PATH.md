@@ -26,7 +26,7 @@ export TORCH_ACL_INIT_CONFIG_PATH=/path/to/custom_acl.json
 }
 ```
 
-`defaultDevice`配置用于默认Device配置（用于配置默认的计算设备），初始化阶段不会立即执行set_device操作, 从而实现按需延迟执行set_device操作。
+`defaultDevice`配置用于默认Device配置（用于配置默认的计算设备），初始化阶段不会立即执行set_device操作，从而实现按需延迟执行set_device操作。
 
 用户自定义配置文件时：
 

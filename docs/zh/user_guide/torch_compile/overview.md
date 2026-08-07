@@ -30,7 +30,7 @@ torch.compile(model, *, fullgraph=False, dynamic=None, backend="inductor",
 | backend | str/Callable | `"inductor"` | 编译后端：`inductor`、`npugraphs`、`npugraph_ex`、`aot_eager`、`TorchAir-GE后端(Callable)` |
 | mode | str | None | 编译模式：`None` 或 `"reduce-overhead"` （仅`inductor`后端支持）|
 | options | dict | None | 编译选项|
-| disable | bool | False | 关闭 torch.compile |
+| disable | bool | False | 关闭torch.compile |
 
 更多参数详情可参见 [torch.compile](https://docs.pytorch.org/docs/stable/generated/torch.compile.html)。
 

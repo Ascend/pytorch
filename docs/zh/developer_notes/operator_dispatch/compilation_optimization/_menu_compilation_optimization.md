@@ -7,7 +7,7 @@
 
 - **[Python编译优化](python_compilation_optimization.md)**  
 
-- **[Pytorch编译优化](pytorch_compilation_optimization.md)**  
+- **[PyTorch编译优化](pytorch_compilation_optimization.md)**  
 
 - **[TorchNPU编译优化](torch_npu_compilation_optimization.md)**  
 

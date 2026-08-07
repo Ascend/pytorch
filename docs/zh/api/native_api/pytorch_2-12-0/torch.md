@@ -53,7 +53,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -105,7 +105,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -123,7 +123,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -141,7 +141,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -159,7 +159,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -177,7 +177,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -195,7 +195,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -213,7 +213,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -583,7 +583,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -1220,7 +1220,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -1320,7 +1320,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32，int64，complex128
+**限制与说明**：`input`仅支持fp32，int64，complex128
 
 </div>
 
@@ -1675,7 +1675,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -1715,8 +1715,8 @@
 
 - `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 - 若入参`dims`的长度小于`input`.shape的长度，则会在`dims`前自动补全1，使其长度与`input`.shape对齐。补全后的`dims`，需要满足如下限制：
-- - 当需要对第一根轴进行重复时，最多允许同时对4个维度进行重复操作（即`dims`中大于1的元素个数 ≤ 4），例如：不支持`torch.tile(input, [2, 3, 4, 5, 6])` ，支持`torch.tile(input, [2, 3, 1, 5, 6])`
-- - 当不需要对第一根轴进行重复时，最多允许同时对3个维度进行重复操作（即`dims`中大于1的元素个数 ≤ 3），例如：不支持`torch.tile(input, [1, 3, 4, 5, 6])` ，支持`torch.tile(input, [1, 3, 1, 5, 6])`
+- - 当需要对第一根轴进行重复时，最多允许同时对4个维度进行重复操作（即`dims`中大于1的元素个数 ≤ 4），例如：不支持`torch.tile(input, [2, 3, 4, 5, 6])`，支持`torch.tile(input, [2, 3, 1, 5, 6])`
+- - 当不需要对第一根轴进行重复时，最多允许同时对3个维度进行重复操作（即`dims`中大于1的元素个数 ≤ 3），例如：不支持`torch.tile(input, [1, 3, 4, 5, 6])`，支持`torch.tile(input, [1, 3, 1, 5, 6])`
 - - 若执行反向计算，输入`Tensor`的维度数与入参`dims`中大于1的元素个数之和不得超过8
 
 </div>
@@ -1915,7 +1915,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -2273,7 +2273,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： `self`仅支持fp32，fp64
+**限制与说明**：`self`仅支持fp32，fp64
 
 </div>
 
@@ -5231,7 +5231,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -5762,7 +5762,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10004; |
 
-**限制与说明**： `input`仅支持fp32，fp64
+**限制与说明**：`input`仅支持fp32，fp64
 
 </div>
 
@@ -6235,7 +6235,7 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
