@@ -17,11 +17,6 @@ on:
         type: string
         default: 'quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly'
         description: Docker image for running tests
-      skip_list:
-        required: false
-        type: string
-        default: ''
-        description: 'Path to skip list JSON/JSONL (relative to ci-scripts checkout root). Empty = no filtering.'
     outputs:
       core_matrix:
         description: Core shard matrix JSON
@@ -186,32 +181,19 @@ jobs:
           export PYTHONPATH="${GITHUB_WORKSPACE}/ci-scripts/.github/scripts:${PYTHONPATH}"
 
           CASE_PATHS_CONFIG='${{ inputs.case_paths_config }}'
-          SKIP_LIST='${{ inputs.skip_list }}'
 
           echo "=== Collecting all test cases ==="
           echo "Case paths config: ${CASE_PATHS_CONFIG:-<scan all>}"
-          echo "Skip list: ${SKIP_LIST:-<none>}"
 
           CONFIG_ARG=""
           if [ -n "${CASE_PATHS_CONFIG}" ]; then
             CONFIG_ARG="--case-paths-config ${GITHUB_WORKSPACE}/ci-scripts/${CASE_PATHS_CONFIG}"
           fi
 
-          SKIP_LIST_ARG=""
-          if [ -n "${SKIP_LIST}" ]; then
-            SKIP_LIST_PATH="${GITHUB_WORKSPACE}/ci-scripts/${SKIP_LIST}"
-            if [ -f "${SKIP_LIST_PATH}" ]; then
-              SKIP_LIST_ARG="--skip-list ${SKIP_LIST_PATH}"
-              echo "Using skip list: ${SKIP_LIST}"
-            else
-              echo "WARNING: skip list specified but file not found: ${SKIP_LIST_PATH}"
-            fi
-          fi
-
           python3 ${GITHUB_WORKSPACE}/ci-scripts/.github/scripts/collect_all_cases.py \
             --test-dir ${GITHUB_WORKSPACE}/pytorch/test \
+            --hw-classification ACCELERATOR \
             ${CONFIG_ARG} \
-            ${SKIP_LIST_ARG} \
             --regular-threshold 10000 \
             --distributed-threshold 1000 \
             --output-dir ${GITHUB_WORKSPACE}/cases-shards \

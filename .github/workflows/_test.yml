@@ -22,11 +22,6 @@ on:
         type: boolean
         default: false
         description: Whether to report test status to upstream dashboard
-      skip_list:
-        required: false
-        type: string
-        default: ''
-        description: 'Path to skip list JSON/JSONL (relative to repo root). Empty = no filtering.'
 
 defaults:
   run:
@@ -43,7 +38,6 @@ jobs:
       resolved_short: ${{ inputs.resolved_short }}
       case_paths_config: ${{ inputs.case_paths_config }}
       docker_image: ${{ inputs.docker_image }}
-      skip_list: ${{ inputs.skip_list }}
 
   # ============================================================================
   # 2. Core tests (nn, optim, autograd, profiler)
