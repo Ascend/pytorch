@@ -1,6 +1,13 @@
 name: Nightly Build and Test
 
 on:
+  push:
+    branches:
+      - ci-test
+    paths:
+      - '.github/workflows/**'
+      - '.github/config/**'
+      - '.github/scripts/**'
   workflow_dispatch:
 
 permissions:
