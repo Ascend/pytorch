@@ -1,5 +1,8 @@
 import unittest
+from types import SimpleNamespace
+from unittest.mock import patch
 
+import sympy
 import torch
 from torch._inductor.utils import run_and_get_code
 from torch.testing._internal.common_utils import (
@@ -9,12 +12,26 @@ from torch.testing._internal.common_utils import (
 )
 
 import torch_npu
+from torch_npu._inductor.codegen import split_tiling as split_tiling_module
+from torch_npu._inductor.codegen.split_tiling import SplitTiling
+from torch_npu._inductor.config import num_vector_core
+from torch_npu._inductor.runtime import triton_heuristics
 
 
 if not torch_npu.npu.is_available():
     raise unittest.SkipTest("NPU is not available")
 
 device = "npu"
+
+
+def make_axis(name, length):
+    symbol = sympy.Symbol(name)
+    return SimpleNamespace(
+        name=name,
+        prefix=name[0],
+        length=length,
+        symbol=lambda: symbol,
+    )
 
 
 class TestSymbolicGroupElementwise(TestCase):
@@ -118,7 +135,142 @@ class TestSymbolicGroupElementwise(TestCase):
         self._run_and_check(fn, inputs, next_inputs, None)
 
 
+class TestPointwiseSymbolicGrouping(TestCase):
+    def test_static_split_dynamic_tiling_group(self):
+        split_axis = make_axis("x0", sympy.Integer(128))
+        tiling_axis = make_axis("x1", sympy.Symbol("s0", positive=True))
+        kernel = SimpleNamespace(
+            persistent_reduction=False,
+            inside_reduction=False,
+            sorted_axis=[split_axis, tiling_axis],
+            split_axis=[split_axis],
+            tiling_axis=[tiling_axis],
+            features=SimpleNamespace(scheduler_nodes=lambda: ()),
+        )
+        split_tiling = object.__new__(SplitTiling)
+        split_tiling.kernel = kernel
+        x0, x1 = (axis.symbol() for axis in kernel.sorted_axis)
+        dynamic_stride = sympy.Symbol("s1", positive=True)
+        split_tiling.indexing = [x1 + 128 * x0, x0 + dynamic_stride * x1]
+
+        sizevars = SimpleNamespace(size_hint=lambda expr: 64)
+        virtualized = SimpleNamespace(graph=SimpleNamespace(sizevars=sizevars))
+        with patch.object(split_tiling_module, "V", virtualized):
+            self.assertEqual(split_tiling._pointwise_layout_kind(), "transpose")
+            meta = split_tiling._build_grouped_meta()
+
+        self.assertIsNotNone(meta)
+        self.assertEqual(meta.primary_group_axis, "x1")
+        self.assertEqual(meta.static_split_axes, ("x0",))
+        self.assertEqual(meta.runtime_block_arg_names, ("X0BLOCK",))
+        self.assertEqual(meta.group_features[0].source, "axis")
+        self.assertEqual(meta.group_features[0].axis_names, ("x1",))
+        self.assertEqual(meta.group_features[0].buckets, (64, 128, 256, 512))
+
+    def test_static_split_dynamic_tiling_broadcast_group(self):
+        split_axis = make_axis("x0", sympy.Integer(128))
+        tiling_axis = make_axis("x1", sympy.Symbol("s0", positive=True))
+        kernel = SimpleNamespace(
+            persistent_reduction=False,
+            inside_reduction=False,
+            sorted_axis=[split_axis, tiling_axis],
+            split_axis=[split_axis],
+            tiling_axis=[tiling_axis],
+            features=SimpleNamespace(scheduler_nodes=lambda: ()),
+        )
+        split_tiling = object.__new__(SplitTiling)
+        split_tiling.kernel = kernel
+        x0, x1 = (axis.symbol() for axis in kernel.sorted_axis)
+        split_tiling.indexing = [x0, x0 + 128 * x1]
+
+        self.assertEqual(split_tiling._pointwise_layout_kind(), "broadcast")
+        meta = split_tiling._build_grouped_meta()
+
+        self.assertIsNotNone(meta)
+        self.assertEqual(meta.primary_group_axis, "x1")
+        self.assertEqual(meta.group_features[0].name, "pointwise_broadcast_axis")
+        self.assertEqual(meta.group_features[0].source, "axis")
+        self.assertEqual(meta.group_features[0].axis_names, ("x1",))
+        self.assertEqual(meta.group_features[0].buckets, (16, 64, 256, 1024, 4096))
+
+        combined = split_tiling._build_group_features(
+            None, tiling_axis, "transpose_broadcast"
+        )
+        self.assertEqual(combined[0].name, "pointwise_broadcast_axis")
+        self.assertEqual(combined[0].buckets, (16, 64, 256, 1024, 4096))
+
+    def test_existing_pointwise_group_feature_is_unchanged(self):
+        primary_axis = make_axis("x0", sympy.Symbol("s0", positive=True))
+        kernel = SimpleNamespace(
+            persistent_reduction=False,
+            inside_reduction=False,
+            sorted_axis=[primary_axis],
+        )
+        split_tiling = object.__new__(SplitTiling)
+        split_tiling.kernel = kernel
+
+        features = split_tiling._build_group_features(None, primary_axis)
+
+        self.assertEqual(len(features), 1)
+        self.assertEqual(features[0].name, "pointwise")
+        self.assertEqual(features[0].source, "outer_product")
+        self.assertEqual(features[0].axis_names, ("x0",))
+        self.assertEqual(features[0].buckets, (num_vector_core * 4096,))
+
+    def test_plain_pointwise_does_not_use_tiling_fallback(self):
+        split_axis = make_axis("x0", sympy.Integer(128))
+        tiling_axis = make_axis("x1", sympy.Symbol("s0", positive=True))
+        kernel = SimpleNamespace(
+            persistent_reduction=False,
+            inside_reduction=False,
+            sorted_axis=[split_axis, tiling_axis],
+            split_axis=[split_axis],
+            tiling_axis=[tiling_axis],
+            features=SimpleNamespace(scheduler_nodes=lambda: ()),
+        )
+        split_tiling = object.__new__(SplitTiling)
+        split_tiling.kernel = kernel
+        x0, x1 = (axis.symbol() for axis in kernel.sorted_axis)
+        split_tiling.indexing = [x1 + 128 * x0]
+
+        self.assertIsNone(split_tiling._build_grouped_meta())
+
+    def test_tiling_primary_keeps_static_grid_block(self):
+        cfg = {"kwargs": {"X0BLOCK": 32, "X1BLOCK_SUB": 64}}
+        with patch.object(triton_heuristics, "config_to_dict", return_value=cfg):
+            policy = triton_heuristics.build_grouped_launch_policy(
+                group_id=0,
+                cfg=object(),
+                runtime_block_arg_names=("X0BLOCK",),
+                group_features=(),
+                primary_group_axis="x1",
+                primary_feature_index=0,
+                axis_env={"x0": 128, "x1": 64},
+                npu_num_vector_core=32,
+            )
+
+        self.assertEqual(policy["static_blocks"], (("X0BLOCK", 32),))
+        self.assertEqual(policy["runtime_block_rules"], ())
+        self.assertEqual(policy["grid_target"], 1)
+
+    def test_pointwise_tiling_fallback_requires_one_dynamic_axis(self):
+        x0 = make_axis("x0", sympy.Symbol("s0", positive=True))
+        x1 = make_axis("x1", sympy.Symbol("s1", positive=True))
+        kernel = SimpleNamespace(
+            persistent_reduction=False,
+            inside_reduction=False,
+            sorted_axis=[x0, x1],
+            split_axis=[],
+            tiling_axis=[x0, x1],
+        )
+        split_tiling = object.__new__(SplitTiling)
+        split_tiling.kernel = kernel
+
+        self.assertIsNone(split_tiling._dynamic_pointwise_tiling_axis())
+
+
 instantiate_parametrized_tests(TestSymbolicGroupElementwise)
+instantiate_parametrized_tests(TestPointwiseSymbolicGrouping)
 
 
 if __name__ == "__main__":
