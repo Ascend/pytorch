@@ -436,6 +436,23 @@ def _compose_wrappers(*wrappers):
     return compose
 
 
+def _patch_flex_attention_device():
+    try:
+        from torch.nn.attention import flex_attention as fa_mod
+    except ImportError:
+        logger.info("flex_attention module not found in torch.nn.attention")
+        return
+    if getattr(fa_mod, '_npu_device_patched', False):
+        logger.info("flex_attention._validate_device already patched")
+        return
+
+    def _npu_valid_device(query, key, value):
+        return
+
+    fa_mod._validate_device = _npu_valid_device
+    fa_mod._npu_device_patched = True
+
+
 def _init():
     _warning_fn('''
     *************************************************************************************************************
@@ -551,6 +568,8 @@ def _init():
     _device_wrapper(torch.utils.cpp_extension, ['include_paths'])
 
     _patch_nametuple(Kernel)
+
+    _patch_flex_attention_device()
 
 
 _init()
