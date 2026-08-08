@@ -38,6 +38,9 @@ from torch._inductor.kernel.mm_common import (
     mm_args,
     mm_grid,
 )
+# Note: addmm_epilogue is imported above and used to build the epilogue_fn
+# that fuses `beta * bias + alpha * acc` into the template's store_output.
+from torch._inductor.select_algorithm import SymbolicGridFn
 
 from ..codegen.catlass.gemm_template import CATLASS1xGemmTemplate
 from ..select_algorithm import NPUTritonTemplate
@@ -134,49 +137,207 @@ npu_triton_mm_template = NPUTritonTemplate(
 )
 
 
+# ---------------------------------------------------------------------------
+# NPU Persistent Triton MM Template (diagonal core division)
+# ---------------------------------------------------------------------------
+# Uses new_triton_mm.py.jinja which implements a persistent kernel strategy:
+# each program handles multiple tiles via `for block_idx in range(pid, NUM_BLOCKS, num_cores)`.
+# For large matrices (NUM_BLOCKS_M >= 8 and NUM_BLOCKS_N >= 8), a diagonal
+# super-grouping strategy improves L2 cache hit rate.
+# The {{store_output}} placeholder is inside the for loop, so indent_width=8.
+
+# ===================================================================
+# Persistent kernel with super-grouping (diagonal tile traversal)
+# ===================================================================
+# Inspired by the community persistent_tma_mm template but adapted
+# for Ascend NPU (no TMA — uses plain tl.load).
+#
+# Core idea:
+#   * Launch NUM_SMS programs (one per AI Core).
+#   * Each program serially processes multiple output tiles:
+#       tile_id = start_pid, start_pid + NUM_SMS, start_pid + 2*NUM_SMS, ...
+#   * Super-grouping (GROUP_M) reorders tiles so that programs running
+#     concurrently access overlapping rows of A, improving L2 cache
+#     hit rate.
+#
+# Key NPU constraint: GROUP_M is guaranteed to be a factor of
+# NUM_BLOCKS_M (enforced in config generation), so every modulo /
+# division below is (runtime) op (compile-time constant) — safe for
+# the NPU Triton backend.
+# ===================================================================
+
+_PERSISTENT_MM_TEMPLATE = """
+{{def_kernel("A", "B")}}
+    M = {{size("A", 0)}}
+    N = {{size("B", 1)}}
+    K = {{size("A", 1)}}
+    if M * N == 0:
+        # early exit due to zero-size input(s)
+        return
+    stride_am = {{stride("A", 0)}}
+    stride_ak = {{stride("A", 1)}}
+    stride_bk = {{stride("B", 0)}}
+    stride_bn = {{stride("B", 1)}}
+
+    start_pid = tl.program_id(0).to(INDEX_DTYPE)
+
+    # Offsets shared across all tiles handled by this program
+    rk_init = tl.arange(0, BLOCK_K)
+
+    # Iterate over the tiles assigned to this program.
+    # NUM_TILES_PER_PROGRAM is a compile-time constant (= ceil(NUM_BLOCKS / NUM_SMS)).
+    for tile_iter in range(NUM_TILES_PER_PROGRAM):
+        tile_id = start_pid + tile_iter * NUM_SMS
+        if tile_id < NUM_BLOCKS:
+            # ---- Super-grouping tile reordering ----
+            # Map linear tile_id → (pid_m, pid_n) with diagonal traversal.
+            # WIDTH = GROUP_M * NUM_BLOCKS_N (compile-time constant).
+            group_id = tile_id // WIDTH
+            pid_m = group_id * GROUP_M + (tile_id % GROUP_M)
+            pid_n = (tile_id % WIDTH) // GROUP_M
+
+            rm = pid_m * BLOCK_M + tl.arange(0, BLOCK_M)
+            rn = pid_n * BLOCK_N + tl.arange(0, BLOCK_N)
+
+            # ---- K-loop: accumulate matmul ----
+            acc = tl.zeros((BLOCK_M, BLOCK_N), dtype=ACC_TYPE)
+            for k_start in range(0, K, BLOCK_K):
+                offs_k = k_start + rk_init
+                {% if EVEN_K %}
+                a = tl.load(A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak))
+                b = tl.load(B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn))
+                {% else %}
+                k_mask = offs_k < K
+                a = tl.load(A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak), mask=k_mask[None, :], other=0.0)
+                b = tl.load(B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn), mask=k_mask[:, None], other=0.0)
+                {% endif %}
+                acc += tl.dot(a, b, allow_tf32=ALLOW_TF32, out_dtype=ACC_TYPE)
+
+            # ---- Store output (inductor generates epilogue suffix) ----
+            rm = pid_m * BLOCK_M + tl.arange(0, BLOCK_M)
+            rn = pid_n * BLOCK_N + tl.arange(0, BLOCK_N)
+            idx_m = rm[:, None]
+            idx_n = rn[None, :]
+            mask = (idx_m < M) & (idx_n < N)
+            {{store_output(("idx_m", "idx_n"), "acc", "mask", val_shape=("BLOCK_M", "BLOCK_N"), indent_width=12)}}
+"""
+
+
+@SymbolicGridFn
+def npu_persistent_mm_grid(M: int, N: int, meta: Dict[str, Any], *, cdiv, min):
+    """Grid function for persistent mm template.
+
+    Launches min(NUM_BLOCKS, NUM_SMS) programs. Each program iterates
+    over multiple tiles via `tile_id = start_pid + tile_iter * NUM_SMS`.
+    """
+    num_blocks = cdiv(M, meta["BLOCK_M"]) * cdiv(N, meta["BLOCK_N"])
+    return (min(num_blocks, meta["NUM_SMS"]), 1, 1)
+
+
+npu_persistent_mm_template = NPUTritonTemplate(
+    name="npu_persistent_mm",
+    grid=npu_persistent_mm_grid,
+    source=_PERSISTENT_MM_TEMPLATE,
+    debug=False,
+)
+
+
 def _get_npu_mm_configs(
     m: int,
     n: int,
     k: int,
+    *,
+    max_block_dim: int = 256,
 ) -> List[Dict[str, Any]]:
     """Generate tiling configs for NPU triton matmul template.
 
     Generates a set of (BLOCK_M, BLOCK_N, BLOCK_K, GROUP_M, num_stages,
     num_warps) configurations suitable for NPU hardware.
+
+    The config space is designed around the Ascend Cube unit:
+      - Tile dimensions are multiples of 16 (Cube unit granularity).
+      - Larger tiles (256×128, 128×256) increase the
+        compute-to-memory-access ratio, keeping the Cube unit busy.
+      - Larger BLOCK_K (128) reduces loop overhead for big-K problems.
+
+    Args:
+        max_block_dim: Cap BLOCK_M and BLOCK_N at this value.  Set to 128
+            for addmm (the bias epilogue fusion adds register pressure).
     """
     configs: List[Dict[str, Any]] = []
 
     # Core tiling shapes: (BLOCK_M, BLOCK_N, BLOCK_K)
-    # Chosen as powers of 2 and multiples of 16 for NPU matrix unit compatibility.
+    # Organised from large (high arithmetic intensity) to small.
     tile_shapes = [
-        (64, 64, 32),
-        (64, 128, 32),
-        (128, 64, 32),
-        (128, 128, 32),
-        (64, 64, 64),
+        # --- Large tiles: high compute/memory ratio for big matrices ---
+        (256, 128, 64),   # big-M:  e.g. M=12800
+        (128, 256, 64),   # big-N
+        (128, 128, 128),  # big-K:  fewer K-loop iters
+        (128, 64, 128),
+        (64, 128, 128),
+        # --- Medium tiles: balanced ---
+        (128, 128, 64),
         (128, 64, 64),
         (64, 128, 64),
+        (64, 64, 64),
+        # --- Small tiles: for small matrices / tail effects ---
+        (64, 64, 32),
         (32, 64, 32),
         (64, 32, 32),
-        (32, 32, 32),
+        # --- Small-N tiles: for skinny output matrices (e.g. N=32) ---
+        # Larger BLOCK_M/BLOCK_K compensate for the tiny N dimension.
+        (128, 32, 64),
+        (128, 32, 128),
+        (64, 32, 64),
+        (64, 32, 128),
+        # --- Small-M tiles: for skinny A matrices (e.g. M=32) ---
+        (32, 128, 64),
+        (32, 128, 128),
+        (32, 64, 64),
+        (32, 64, 128),
+        # --- Large-K tiles: reduce K-loop iterations for big-K problems.
+        #     Kept small in M*N to stay within the 256 KB register file.
+        (64, 64, 256),
+        (32, 128, 256),
+        (128, 32, 256),
+        (32, 64, 256),
     ]
 
     for block_m, block_n, block_k in tile_shapes:
+        # Skip tiles that exceed the max block dimension (register safety).
+        if block_m > max_block_dim or block_n > max_block_dim:
+            continue
         even_k = (k % block_k == 0)
-        for group_m in [8]:
-            for num_stages in [2, 3]:
-                for num_warps in [4, 8]:
-                    configs.append({
-                        "BLOCK_M": block_m,
-                        "BLOCK_N": block_n,
-                        "BLOCK_K": block_k,
-                        "GROUP_M": group_m,
-                        "num_stages": num_stages,
-                        "num_warps": num_warps,
-                        "ALLOW_TF32": "False",
-                        "ACC_TYPE": "tl.float32",
-                        "EVEN_K": even_k,
-                    })
+        # Choose GROUP_M adaptively: cap at 8, but use smaller values
+        # when grid_m is small to avoid degenerate super-grouping.
+        grid_m = (m + block_m - 1) // block_m
+        if grid_m >= 8:
+            group_m = 8
+        elif grid_m >= 4:
+            group_m = 4
+        else:
+            group_m = 1
+        # Use num_stages=4 for BLOCK_K=128 to improve pipelining.
+        # For BLOCK_K=256, limit to [2] to avoid register overflow.
+        if block_k >= 256:
+            stages_list = [2]
+        elif block_k >= 128:
+            stages_list = [2, 3, 4]
+        else:
+            stages_list = [2, 3]
+        for num_stages in stages_list:
+            for num_warps in [4, 8]:
+                configs.append({
+                    "BLOCK_M": block_m,
+                    "BLOCK_N": block_n,
+                    "BLOCK_K": block_k,
+                    "GROUP_M": group_m,
+                    "num_stages": num_stages,
+                    "num_warps": num_warps,
+                    "ALLOW_TF32": "False",
+                    "ACC_TYPE": "tl.float32",
+                    "EVEN_K": even_k,
+                })
 
     return configs
 
@@ -217,6 +378,230 @@ def add_npu_triton_mm_choices(
         except Exception as e:
             log.debug(
                 "Failed to generate NPU triton mm choice with config %s: %s",
+                cfg,
+                e,
+            )
+
+
+def _choose_group_m(num_blocks_m: int) -> int:
+    """Choose GROUP_M as the largest factor of num_blocks_m not exceeding 8.
+
+    This guarantees num_blocks_m % GROUP_M == 0, so the super-grouping
+    tile assignment never needs runtime % runtime (which hangs the NPU
+    Triton backend).  Falls back to 1 if no larger factor exists.
+    """
+    for g in [8, 4, 2, 1]:
+        if num_blocks_m % g == 0:
+            return g
+    return 1
+
+
+def _get_npu_persistent_mm_configs(
+    m: int,
+    n: int,
+    k: int,
+) -> List[Dict[str, Any]]:
+    """Generate tiling configs for the NPU persistent triton matmul template.
+
+    Each config includes NUM_BLOCKS_M, NUM_BLOCKS_N, NUM_BLOCKS, GROUP_M,
+    WIDTH, NUM_SMS and NUM_TILES_PER_PROGRAM which are required by the
+    persistent + super-grouping kernel strategy.
+
+    Key invariants:
+      * GROUP_M is always a factor of NUM_BLOCKS_M, so all modulo /
+        integer-division operations in the template are
+        (runtime value) % (compile-time constant) — safe for the NPU backend.
+      * NUM_SMS and NUM_TILES_PER_PROGRAM are compile-time constants
+        (required for the outer loop bound).
+    """
+    configs: List[Dict[str, Any]] = []
+
+    # Core tiling shapes — aligned with the Cube-unit-optimised set.
+    tile_shapes = [
+        (256, 128, 64),   # big-M
+        (128, 256, 64),   # big-N
+        (128, 128, 128),  # big-K
+        (128, 64, 128),
+        (64, 128, 128),
+        (128, 128, 64),
+        (128, 64, 64),
+        (64, 128, 64),
+        (64, 64, 64),
+        # --- Small-N tiles: for skinny output matrices (e.g. N=32) ---
+        (128, 32, 64),
+        (128, 32, 128),
+        (64, 32, 64),
+        (64, 32, 128),
+        # --- Small-M tiles: for skinny A matrices (e.g. M=32) ---
+        (32, 128, 64),
+        (32, 128, 128),
+        (32, 64, 64),
+        (32, 64, 128),
+        # --- Large-K tiles: reduce K-loop iterations for big-K problems.
+        (64, 64, 256),
+        (32, 128, 256),
+        (128, 32, 256),
+        (32, 64, 256),
+    ]
+
+    # Number of AI Cores to use for persistent execution.
+    # Ascend 950PR has 56 AI Cores; we try several core counts so the
+    # autotuner can pick the best parallelism vs. per-program work.
+    num_cores_options = [8, 16, 32, 56]
+
+    for block_m, block_n, block_k in tile_shapes:
+        num_blocks_m = (m + block_m - 1) // block_m
+        num_blocks_n = (n + block_n - 1) // block_n
+        num_blocks = num_blocks_m * num_blocks_n
+
+        # Skip if the tile is larger than the matrix (no benefit).
+        if num_blocks == 0:
+            continue
+
+        # Choose GROUP_M as a factor of num_blocks_m (≤ 8) so that
+        # group_size == GROUP_M always holds (no partial last group).
+        group_m = _choose_group_m(num_blocks_m)
+        width = group_m * num_blocks_n
+        even_k = (k % block_k == 0)
+
+        for num_cores in num_cores_options:
+            # Don't launch more programs than there are blocks
+            actual_num_cores = min(num_cores, num_blocks)
+            if actual_num_cores == 0:
+                continue
+            # Compute tiles per program (compile-time constant for loop bound)
+            num_tiles_per_program = (num_blocks + actual_num_cores - 1) // actual_num_cores
+            # Use num_stages=4 for BLOCK_K=128 to improve pipelining.
+            # For BLOCK_K=256, limit to [2] to avoid register overflow.
+            if block_k >= 256:
+                stages_list = [2]
+            elif block_k >= 128:
+                stages_list = [2, 3, 4]
+            else:
+                stages_list = [2, 3]
+            for num_stages in stages_list:
+                for num_warps in [4, 8]:
+                    configs.append({
+                        "BLOCK_M": block_m,
+                        "BLOCK_N": block_n,
+                        "BLOCK_K": block_k,
+                        "GROUP_M": group_m,
+                        "NUM_BLOCKS_M": num_blocks_m,
+                        "NUM_BLOCKS_N": num_blocks_n,
+                        "NUM_BLOCKS": num_blocks,
+                        "WIDTH": width,
+                        "NUM_SMS": actual_num_cores,
+                        "NUM_TILES_PER_PROGRAM": num_tiles_per_program,
+                        "num_stages": num_stages,
+                        "num_warps": num_warps,
+                        "ALLOW_TF32": "False",
+                        "ACC_TYPE": "tl.float32",
+                        "EVEN_K": even_k,
+                    })
+
+    return configs
+
+
+def add_npu_persistent_mm_choices(
+    choices: List[ir.ChoiceCaller],
+    layout: "ir.Layout",
+    mat1: "ir.IRNode",
+    mat2: "ir.IRNode",
+    m: int,
+    n: int,
+    k: int,
+) -> None:
+    """Add NPU persistent Triton matmul template choices to the choices list.
+
+    Uses the diagonal core division template (new_triton_mm.py.jinja) which
+    supports epilogue fusion via {{store_output}}.
+    """
+    input_nodes = [mat1, mat2]
+    configs = _get_npu_persistent_mm_configs(m, n, k)
+
+    for cfg in configs:
+        num_stages = cfg.pop("num_stages")
+        num_warps = cfg.pop("num_warps")
+
+        try:
+            choice = npu_persistent_mm_template.generate(
+                input_nodes=input_nodes,
+                layout=layout,
+                num_stages=num_stages,
+                num_warps=num_warps,
+                **cfg,
+            )
+            if choice is not None:
+                choices.append(choice)
+        except Exception as e:
+            log.debug(
+                "Failed to generate NPU persistent mm choice with config %s: %s",
+                cfg,
+                e,
+            )
+
+
+def add_npu_triton_addmm_choices(
+    choices: List[ir.ChoiceCaller],
+    layout: "ir.Layout",
+    inp: "ir.IRNode",
+    mat1: "ir.IRNode",
+    mat2: "ir.IRNode",
+    m: int,
+    n: int,
+    k: int,
+    alpha: float = 1,
+    beta: float = 1,
+) -> None:
+    """Add NPU Triton addmm template choices to the choices list.
+
+    Reuses the same ``npu_triton_mm_template`` (triton_mm.py.jinja) as plain
+    ``mm``.  The bias term is fused into the kernel epilogue via the
+    ``prefix_args`` + ``epilogue_fn`` mechanism:
+
+      * ``input_nodes = [inp, mat1, mat2]`` — bias (``inp``) is placed first so
+        it becomes a *prefix arg*: it is NOT named in ``{{def_kernel("A", "B")}}``
+        but is automatically loaded inside ``{{store_output}}`` and passed to
+        ``epilogue_fn``.
+      * ``prefix_args=1`` tells the codegen that the first input node is the
+        bias/epilogue input (not a matmul operand).
+      * ``epilogue_fn=addmm_epilogue(dtype, alpha, beta)`` generates
+        ``beta * bias + alpha * acc`` at store time, fusing the addmm bias
+        addition into the matmul kernel's epilogue.
+
+    This mirrors how the community ``tuned_addmm`` reuses ``mm_template`` with
+    ``prefix_args=1`` and ``addmm_epilogue``.
+    """
+    # bias first (prefix arg), then the two matmul operands named A, B in jinja
+    input_nodes = [inp, mat1, mat2]
+    # Use max_block_dim=128 for addmm: the bias epilogue fusion (loading
+    # and broadcasting the bias vector) adds register pressure, so 256-dim
+    # tiles can cause "cc overflow" on the NPU.
+    configs = _get_npu_mm_configs(m, n, k, max_block_dim=128)
+
+    # Build the epilogue function that fuses beta*bias + alpha*acc.
+    epilogue_fn = addmm_epilogue(layout.dtype, alpha, beta)
+
+    for cfg in configs:
+        # Extract kernel launch params (not passed as constexpr defines)
+        num_stages = cfg.pop("num_stages")
+        num_warps = cfg.pop("num_warps")
+
+        try:
+            choice = npu_triton_mm_template.generate(
+                input_nodes=input_nodes,
+                layout=layout,
+                num_stages=num_stages,
+                num_warps=num_warps,
+                prefix_args=1,
+                epilogue_fn=epilogue_fn,
+                **cfg,
+            )
+            if choice is not None:
+                choices.append(choice)
+        except Exception as e:
+            log.debug(
+                "Failed to generate NPU triton addmm choice with config %s: %s",
                 cfg,
                 e,
             )
@@ -303,6 +688,28 @@ def _register_npu_inductor_mm():
             except Exception as e:
                 log.warning("Failed to add NPU triton mm template choices: %s", e)
 
+        # Add NPU persistent Triton matmul template choices.
+        # Uses new_triton_mm.py.jinja with a persistent kernel strategy:
+        # each program serially processes multiple output tiles, improving
+        # L2 cache reuse via super-grouping and reducing launch overhead.
+        # Best for large matrices where num_tiles >> num_cores.
+        # Also supports epilogue fusion via {{store_output}}.
+        if is_nonzero and use_triton_template(layout):
+            try:
+                add_npu_persistent_mm_choices(
+                    choices, layout, mat1, mat2, m, n, k
+                )
+                log.debug(
+                    "NPU persistent mm: added persistent mm template choices "
+                    "for mm(%d, %d, %d), total choices now %d",
+                    m,
+                    n,
+                    k,
+                    len(choices),
+                )
+            except Exception as e:
+                log.warning("Failed to add NPU persistent mm template choices: %s", e)
+
         input_nodes = [mat1, mat2]
 
         if (
@@ -362,10 +769,21 @@ def _register_npu_inductor_addmm():
         except NotImplementedError:
             is_contiguous_input_tmp = False
 
-        if not (
+        # Determine whether the catlass template is available for this problem.
+        # We no longer fall back immediately when catlass is unavailable: the
+        # NPU Triton addmm template (reusing npu_triton_mm_template with
+        # prefix_args=1 + addmm_epilogue) can still be tried below.
+        catlass_available = (
             is_contiguous_input_tmp
             and use_catlass_template("addmm", layout_tmp if layout is None else layout, m0, n0, k0)
-        ):
+        )
+        # Determine whether the NPU Triton template is available.
+        triton_available = is_contiguous_input_tmp and use_triton_template(
+            layout_tmp if layout is None else layout
+        )
+
+        # If neither catlass nor triton templates are available, fall back.
+        if not (catlass_available or triton_available):
             return fallback_handler(aten.addmm.default)(inp, mat1, mat2, alpha=alpha, beta=beta)
 
         ordered_kwargs_for_cpp_kernel = ("beta", "alpha")
@@ -451,6 +869,37 @@ def _register_npu_inductor_addmm():
                 beta=beta,
                 has_bias=True,
             )
+
+        # Add NPU Triton addmm template choices.
+        # Reuses npu_triton_mm_template (triton_mm.py.jinja) with the bias
+        # fused into the epilogue via prefix_args=1 + addmm_epilogue.
+        # This enables the autotuner to try a Triton kernel for addmm and
+        # also supports CV epilogue fusion (e.g. downstream pointwise ops
+        # fused into {{store_output}}).
+        if is_nonzero and use_triton_template(layout):
+            try:
+                add_npu_triton_addmm_choices(
+                    choices,
+                    layout,
+                    inp_expanded,
+                    mat1,
+                    mat2,
+                    m,
+                    n,
+                    k,
+                    alpha=alpha,
+                    beta=beta,
+                )
+                log.debug(
+                    "NPU Triton CV fusion: added triton addmm template choices "
+                    "for addmm(%d, %d, %d), total choices now %d",
+                    m,
+                    n,
+                    k,
+                    len(choices),
+                )
+            except Exception as e:
+                log.warning("Failed to add NPU triton addmm template choices: %s", e)
 
         add_aten_fallback = False
         if len(choices) == 0:

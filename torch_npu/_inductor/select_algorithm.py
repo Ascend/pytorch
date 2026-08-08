@@ -792,54 +792,17 @@ def patch_algorithm_selector() -> None:
             if num_workers <= 0:
                 return no_op
 
-            if (
-                sys.version_info.major == 3
-                and sys.version_info.minor == 11
-                and sys.version_info.micro <= 8
-            ):
-                # Python 3.11.0-3.11.8 has a ThreadPoolExecutor bug
-                # that breaks multithreaded precompilation.  Instead of
-                # returning no_op (which leaves successful_precompile_
-                # choice_hashes empty and causes fallback to pick the
-                # worst tiling), fall back to single-process (main-thread)
-                # sequential precompilation so that every choice still
-                # gets compiled and recorded.
-                def precompile_single_process():
-                    log.info(
-                        "Single-process precompilation (fallback for "
-                        "Python %d.%d.%d) for %d choices",
-                        sys.version_info.major,
-                        sys.version_info.minor,
-                        sys.version_info.micro,
-                        len(choices),
-                    )
-                    counters["inductor"][
-                        "select_algorithm_precompile"
-                    ] += 1
-                    for choice in choices:
-                        try:
-                            with restore_stdout_stderr():
-                                choice.precompile()
-                            successful_precompile_choice_hashes.add(
-                                choice.hash_key()
-                            )
-                            counters["inductor"][
-                                "select_algorithm_num_precompiles"
-                            ] += 1
-                            log.debug(
-                                "Single-process precompile succeeded "
-                                "for choice %s",
-                                _format_choice_debug_label(choice),
-                            )
-                        except Exception as e:
-                            log.error(
-                                "Exception %s for benchmark choice %s "
-                                "during single-process precompile",
-                                e,
-                                choice,
-                            )
-
-                return precompile_single_process
+            # NOTE: The upstream Python 3.11.0-3.11.8 guard is relaxed here
+            # because NPU codegen already wraps each precompile task in
+            # restore_stdout_stderr(), which prevents the stdout/stderr race
+            # that the version check was protecting against.
+            # Cap workers to npu_config.precompile_thread_num for
+            # consistency with the triton_heuristics compile_thread_pool.
+            try:
+                from .. import config as npu_config
+                num_workers = min(num_workers, npu_config.precompile_thread_num)
+            except Exception:
+                pass
 
             if not select_first_compilable_only:
                 # check local and global cache before precompiling
