@@ -301,6 +301,7 @@ class NPUTritonTemplate(TritonTemplate):
         source: str,
         debug: bool = False,
         manual_output_buffer: Optional[str] = None,
+        codegen_kernel_name: Optional[str] = None,
     ) -> None:
         """Initialize NPU Triton template.
 
@@ -312,6 +313,7 @@ class NPUTritonTemplate(TritonTemplate):
         """
         super().__init__(name, grid, source, debug)
         self.manual_output_buffer = manual_output_buffer
+        self.codegen_kernel_name = codegen_kernel_name or f"triton_{name}"
 
     def make_runtime_renderer_factory(
         self,
@@ -378,6 +380,7 @@ class NPUTritonTemplate(TritonTemplate):
                 use_jit=False,
                 **kernel_options,
             )
+            kernel._npu_codegen_kernel_name = self.codegen_kernel_name
 
             def render():
                 with patch.object(
@@ -550,6 +553,7 @@ class NPUTritonTemplate(TritonTemplate):
                 use_jit=False,
                 **kernel_options,
             )
+            kernel._npu_codegen_kernel_name = self.codegen_kernel_name
             render = functools.partial(
                 kernel.render,
                 self.template,
@@ -1152,7 +1156,12 @@ def patch_algorithm_selector() -> None:
                     selected_choice = choice
                     break
                 except Exception as e:
-                    log.error(
+                    log.warning(
+                        "Compile Fail for no-benchmark choice %s "
+                        "during ordered precompile",
+                        _format_choice_debug_label(choice),
+                    )
+                    log.debug(
                         "Exception %s for no-benchmark choice %s "
                         "during ordered precompile",
                         e,

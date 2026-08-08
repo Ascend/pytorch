@@ -114,8 +114,8 @@ class NPUWrapperCodeGen(_NPUKernelCodegenMixin, PythonWrapperCodegen):
         legacy_call_args,
         tasklist_kernel_name,
         tasklist_call_args,
-        direct_kernel_name,
-        direct_call_args,
+        tasklist_no_split_kernel_name,
+        tasklist_no_split_call_args,
         reduce_kernel_name,
         reduce_call_args,
         q_num_blocks_name,
@@ -192,21 +192,23 @@ class NPUWrapperCodeGen(_NPUKernelCodegenMixin, PythonWrapperCodegen):
         tasklist_args_text = ", ".join(
             self.prepare_triton_kernel_call([*tasklist_args, *tasklist_grid])
         )
-        direct_args = replace_runtime_args(direct_call_args)
-        direct_args_text = ", ".join(
-            self.prepare_triton_kernel_call([*direct_args, *tasklist_grid])
+        tasklist_no_split_args = replace_runtime_args(
+            tasklist_no_split_call_args
         )
-        self.writeline(
-            f"    if {num_split_bases} > 0:"
+        tasklist_no_split_args_text = ", ".join(
+            self.prepare_triton_kernel_call(
+                [*tasklist_no_split_args, *tasklist_grid]
+            )
         )
+        self.writeline(f"    if {num_split_bases} > 0:")
         self.writeline(
             f"        {tasklist_kernel_name}.run("
             f"{tasklist_args_text}, stream={stream})"
         )
         self.writeline("    else:")
         self.writeline(
-            f"        {direct_kernel_name}.run("
-            f"{direct_args_text}, stream={stream})"
+            f"        {tasklist_no_split_kernel_name}.run("
+            f"{tasklist_no_split_args_text}, stream={stream})"
         )
 
         reduce_args = replace_runtime_args(reduce_call_args)

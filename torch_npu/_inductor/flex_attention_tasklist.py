@@ -108,16 +108,16 @@ def bin_pack_dkdv_hkv_continuous(work_items, num_core):
     bin_weights = [0.0] * num_core
     groups = {}
     for item in work_items:
-        groups.setdefault((item[0], item[1]), []).append(item)
+        groups.setdefault(item[0], []).append(item)
 
-    for batch_head in sorted(groups):
+    for kv_head in sorted(groups):
         group = sorted(
-            groups[batch_head], key=lambda item: item[6], reverse=True
+            groups[kv_head], key=lambda item: item[5], reverse=True
         )
         for item in group:
             lightest = bin_weights.index(min(bin_weights))
             bins[lightest].append(item)
-            bin_weights[lightest] += item[6]
+            bin_weights[lightest] += item[5]
     return bins
 
 
@@ -164,10 +164,10 @@ def build_dkdv_task_list(
     for batch_idx in range(batch_size):
         for kv_head in range(num_kv_heads):
             weighted_items.extend(
-                (batch_idx, kv_head, *item) for item in template_items
+                (kv_head, *item) for item in template_items
             )
             split_bases.extend(
-                (batch_idx, kv_head, *item)
+                (kv_head, *item)
                 for item in template_split_bases
             )
 
@@ -175,7 +175,7 @@ def build_dkdv_task_list(
     work_items = []
     task_offsets = [0]
     for bin_items in bins:
-        work_items.extend(item[:6] for item in bin_items)
+        work_items.extend(item[:5] for item in bin_items)
         task_offsets.append(len(work_items))
     return work_items, task_offsets, split_bases, max_sub
 
@@ -242,7 +242,7 @@ def get_or_build_dkdv_task_list(
             )
         else:
             work_items_tensor = torch.zeros(
-                (0, 6), dtype=torch.int32, device=device
+                (0, 5), dtype=torch.int32, device=device
             )
         task_offsets_tensor = torch.tensor(
             task_offsets, dtype=torch.int32, device=device
@@ -253,7 +253,7 @@ def get_or_build_dkdv_task_list(
             )
         else:
             split_bases_tensor = torch.zeros(
-                (0, 4), dtype=torch.int32, device=device
+                (0, 3), dtype=torch.int32, device=device
             )
         result = (
             True,

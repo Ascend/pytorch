@@ -104,8 +104,61 @@ def _tag_choice_attr(new_choices, attr_name: str, value: Any) -> None:
         setattr(choice, attr_name, value)
 
 
+def _is_named_ir_node(value: Any) -> bool:
+    return hasattr(value, "get_name") and hasattr(value, "get_size")
+
+
+def _static_numel(node: Any) -> int:
+    numel = 1
+    for dim in node.get_size():
+        numel *= V.graph.sizevars.evaluate_static_shape(dim)
+    return int(numel)
+
+
+def _extract_compact_sparse_mask_metadata_buffers(
+    mask_mod_other_buffers,
+    *,
+    kv_num_blocks,
+    kernel_options,
+    context: str,
+):
+    total_blocks = V.graph.sizevars.evaluate_static_shape(
+        kernel_options[_COMPACT_SPARSE_MASK_TOTAL_BLOCKS_OPTION]
+    )
+    sparse_z = V.graph.sizevars.evaluate_static_shape(
+        kv_num_blocks.get_size()[0]
+    )
+    sparse_hq = V.graph.sizevars.evaluate_static_shape(
+        kernel_options.get("SPARSE_MASK_HQ", kv_num_blocks.get_size()[1])
+    )
+    num_q_blocks = V.graph.sizevars.evaluate_static_shape(
+        kv_num_blocks.get_size()[2]
+    )
+    q_offsets_numel = sparse_z * sparse_hq * (num_q_blocks + 1)
+
+    ir_buffers = [
+        value for value in mask_mod_other_buffers if _is_named_ir_node(value)
+    ]
+    for index in range(len(ir_buffers) - 2):
+        candidates = ir_buffers[index : index + 3]
+        if [_static_numel(node) for node in candidates] == [
+            q_offsets_numel,
+            total_blocks,
+            total_blocks,
+        ]:
+            return tuple(candidates)
+
+    raise RuntimeError(
+        "unable to identify compact sparse mask metadata buffers in "
+        f"{context}: expected numels "
+        f"({q_offsets_numel}, {total_blocks}, {total_blocks}), got "
+        f"{[_static_numel(node) for node in ir_buffers]}"
+    )
+
+
 _COMPACT_SPARSE_MASK_TOTAL_BLOCKS_OPTION = "COMPACT_SPARSE_MASK_TOTAL_BLOCKS"
 _COMPACT_SPARSE_MASK_ATTR = "_npu_compact_sparse_mask_metadata"
+_EXPLICIT_SCORE_MOD_OPTION = "_NPU_EXPLICIT_SCORE_MOD"
 _STREAMING_BLOCK_MASK_TARGET_BYTES = 256 * 1024 * 1024
 _STREAMING_BLOCK_MASK_BYTES_PER_ELEMENT = 8
 
@@ -281,6 +334,11 @@ def _wrap_mask_mod_with_compact_sparse_mask_metadata(mask_mod, metadata: dict[st
 def create_zero_int_tensor_fake(x) -> torch.Tensor:
     size = [V.graph.sizevars.size_hint(i) for i in x.get_size()]
     return torch.zeros(size, dtype=x.get_dtype(), device=x.get_device())
+
+
+def create_minus_one_int_tensor_fake(x) -> torch.Tensor:
+    size = [V.graph.sizevars.size_hint(i) for i in x.get_size()]
+    return torch.full(size, -1, dtype=x.get_dtype(), device=x.get_device())
 
 
 def create_compact_q_offsets_fake(x) -> torch.Tensor:
@@ -529,9 +587,10 @@ def patch_flex_attention() -> None:
             context="py-api",
             allow_tensor_analysis=not torch.compiler.is_dynamo_compiling(),
         )
+        updated_kernel_options = dict(updated_kernel_options)
+        updated_kernel_options[_EXPLICIT_SCORE_MOD_OPTION] = score_mod is not None
         cached_options = getattr(block_mask, "_npu_flex_attention_kernel_options", None)
         if isinstance(cached_options, dict):
-            updated_kernel_options = dict(updated_kernel_options)
             if _COMPACT_SPARSE_MASK_TOTAL_BLOCKS_OPTION in cached_options:
                 updated_kernel_options[_COMPACT_SPARSE_MASK_TOTAL_BLOCKS_OPTION] = (
                     cached_options[_COMPACT_SPARSE_MASK_TOTAL_BLOCKS_OPTION]
@@ -938,7 +997,7 @@ compute_bwd_sparse_mask_kernel_compact = r"""
 """
 
 compute_sparse_mask_block_pos_kernel = r"""
-{{def_kernel("KV_NUM_BLKS", "KV_IDX", "Q_OFFSETS")}}
+{{def_kernel("KV_NUM_BLKS", "KV_IDX", "Q_OFFSETS", "SPARSE_MASK_BLOCK_POS")}}
     SPARSE_MASK_BLOCK_POS = arg_SPARSE_MASK_BLOCK_POS
     stride_kv_num_blks_z = {{stride("KV_NUM_BLKS", 0)}}
     stride_kv_num_blks_h = {{stride("KV_NUM_BLKS", 1)}}
@@ -952,26 +1011,9 @@ compute_sparse_mask_block_pos_kernel = r"""
     stride_block_pos_q = SPARSE_MASK_BLOCK_POS_STRIDE_Q
 
     TOTAL_ENTRIES : tl.constexpr = SPARSE_Z * SPARSE_HQ * NUM_SPARSE_Q_BLOCKS * MAX_NORMAL_BLOCKS
-    TOTAL_POSITIONS : tl.constexpr = SPARSE_Z * SPARSE_HQ * NUM_SPARSE_Q_BLOCKS * NUM_SPARSE_KV_BLOCKS
 
     pid = tl.program_id(0)
     num_programs = tl.num_programs(0)
-
-    for pos_idx in range(pid, TOTAL_POSITIONS, num_programs):
-        kv_block = pos_idx % NUM_SPARSE_KV_BLOCKS
-        tmp = pos_idx // NUM_SPARSE_KV_BLOCKS
-        sq_idx = tmp % NUM_SPARSE_Q_BLOCKS
-        tmp = tmp // NUM_SPARSE_Q_BLOCKS
-        sparse_h = tmp % SPARSE_HQ
-        sparse_z = tmp // SPARSE_HQ
-
-        block_pos_offset = (
-            sparse_z * stride_block_pos_z
-            + sparse_h * stride_block_pos_h
-            + sq_idx * stride_block_pos_q
-            + kv_block
-        )
-        tl.store(SPARSE_MASK_BLOCK_POS + block_pos_offset, -1)
 
     for entry_idx in range(pid, TOTAL_ENTRIES, num_programs):
         blk_pos = entry_idx % MAX_NORMAL_BLOCKS
@@ -1750,7 +1792,6 @@ sparse_mask_block_pos_template = NPUTritonTemplate(
     name="sparse_mask_block_pos",
     grid=sparse_mask_grid,
     source=compute_sparse_mask_block_pos_kernel,
-    manual_output_buffer="arg_SPARSE_MASK_BLOCK_POS",
 )
 
 
@@ -1777,12 +1818,18 @@ def _collect_subgraph_read_names(subgraph_buffer):
 
 def _filter_used_subgraph_buffers(subgraph_buffer, other_buffers):
     read_names = _collect_subgraph_read_names(subgraph_buffer)
-    if not read_names:
-        return list(other_buffers)
 
     used_buffers = []
     unused_buffer_names = []
     for buffer in other_buffers:
+        if isinstance(buffer, sympy.Expr):
+            continue
+        if not _is_named_ir_node(buffer):
+            raise TypeError(
+                "flex attention captured input must be an IR buffer or sympy expression, "
+                f"got {type(buffer).__name__}"
+            )
+
         get_name = getattr(buffer, "get_name", None)
         buffer_name = None
         if get_name is not None:
@@ -1791,7 +1838,7 @@ def _filter_used_subgraph_buffers(subgraph_buffer, other_buffers):
             except (AssertionError, NotImplementedError):
                 buffer_name = None
 
-        if buffer_name is None or buffer_name in read_names:
+        if not read_names or buffer_name is None or buffer_name in read_names:
             used_buffers.append(buffer)
         else:
             unused_buffer_names.append(buffer_name)
@@ -1991,6 +2038,7 @@ flex_attention_backward_qmajor_dq_source = r"""
 
             m = get_bounded_indices(offs_m[:, None], Q_LEN if (not IS_DIVISIBLE or not SAFE_HEAD_DIM) else None)
             n = get_bounded_indices(offs_n[None, :], KV_LEN if (not IS_DIVISIBLE or not SAFE_HEAD_DIM) else None)
+{% if BWD_MASK_OUT %}
             flat_blk = q_offset_base + blk_pos
             offs_m_local = offs_m[:, None] - q_block * SPARSE_Q_BLOCK_SIZE
             offs_n_local = offs_n[None, :] - kv_sparse_idx * SPARSE_KV_BLOCK_SIZE
@@ -2001,6 +2049,18 @@ flex_attention_backward_qmajor_dq_source = r"""
                 mask=mask_bounds,
                 other=0,
             )
+{% else %}
+            {{ modification(
+                subgraph_number=2,
+                output_name="mask_mod_output",
+                score="qk",
+                b="off_zq",
+                h="off_hq",
+                m="m",
+                n="n",
+            ) | indent_except_first(3) }}
+            mask_mod_output = mask_mod_output & (offs_m[:, None] < Q_LEN) & (offs_n[None, :] < KV_LEN)
+{% endif %}
 {% if BWD_SCORE_MOD_IS_IDENTITY %}
 {% if not BWD_GRAD_SCORE_MOD_IS_IDENTITY %}
             pre_mod_scores = qk
@@ -2064,12 +2124,28 @@ flex_attention_backward_qmajor_dq_source = r"""
 
                 m = get_bounded_indices(offs_m[:, None], Q_LEN if (not IS_DIVISIBLE or not SAFE_HEAD_DIM) else None)
                 n = get_bounded_indices(offs_n[None, :], KV_LEN if (not IS_DIVISIBLE or not SAFE_HEAD_DIM) else None)
+{% if not BWD_MASK_OUT %}
+                {{ modification(
+                    subgraph_number=2,
+                    output_name="mask_mod_output",
+                    score="qk",
+                    b="off_zq",
+                    h="off_hq",
+                    m="m",
+                    n="n",
+                ) | indent_except_first(4) }}
+                mask_mod_output = mask_mod_output & (offs_m[:, None] < Q_LEN) & (offs_n[None, :] < KV_LEN)
+{% endif %}
 {% if BWD_SCORE_MOD_IS_IDENTITY %}
 {% if not BWD_GRAD_SCORE_MOD_IS_IDENTITY %}
                 pre_mod_scores = qk
 {% endif %}
+{% if BWD_MASK_OUT %}
                 # full block don't need
                 # qk = tl.where(offs_n[None, :] < KV_LEN, qk, float("-inf"))
+{% else %}
+                qk = tl.where(mask_mod_output, qk, float("-inf"))
+{% endif %}
                 p = tl.math.exp(qk - lse[:, None])
 {% else %}
                 pre_mod_scores = qk
@@ -2083,12 +2159,19 @@ flex_attention_backward_qmajor_dq_source = r"""
                     n="n",
                     out="qk",
                 ) | indent_except_first(4) }}
+{% if BWD_MASK_OUT %}
                 post_mod_scores = tl.where(offs_n[None, :] < KV_LEN, post_mod_scores, float("-inf"))
+{% else %}
+                post_mod_scores = tl.where(mask_mod_output, post_mod_scores, float("-inf"))
+{% endif %}
                 p = tl.math.exp(post_mod_scores - lse[:, None])
 {% endif %}
                 dp = tl.dot(do, tl.trans(v), input_precision="ieee")
                 ds = p * (dp - Di[:, None])
 {% if BWD_GRAD_SCORE_MOD_IS_IDENTITY %}
+{% if not BWD_MASK_OUT %}
+                ds = tl.where(mask_mod_output, ds, 0.0)
+{% endif %}
                 dq += tl.dot(ds.to(MATMUL_PRECISION), k, input_precision="ieee")
 {% else %}
                 {{ modification(
@@ -2101,7 +2184,11 @@ flex_attention_backward_qmajor_dq_source = r"""
                     n="n",
                     grad_score_mod="ds",
                 ) | indent_except_first(4) }}
+{% if BWD_MASK_OUT %}
                 grad_scores = tl.where(offs_n[None, :] < KV_LEN, grad_scores, 0.0)
+{% else %}
+                grad_scores = tl.where(mask_mod_output, grad_scores, 0.0)
+{% endif %}
                 dq += tl.dot(grad_scores.to(MATMUL_PRECISION), k, input_precision="ieee")
 {% endif %}
 
@@ -2726,15 +2813,17 @@ flex_attention_backward_dkdv_tasklist_source = (
     work_start = tl.load(TASK_OFFSETS + meta_id)
     work_end = tl.load(TASK_OFFSETS + meta_id + 1)
     for work_idx in range(work_start, work_end):
-        off_zq = tl.load(WORK_ITEMS + work_idx * 6 + 0).to(tl.int64)
-        off_hkv = tl.load(WORK_ITEMS + work_idx * 6 + 1).to(tl.int64)
-        kv_start_block = tl.load(WORK_ITEMS + work_idx * 6 + 2)
-        sub_id = tl.load(WORK_ITEMS + work_idx * 6 + 3)
-        split_count = tl.load(WORK_ITEMS + work_idx * 6 + 4)
-        is_split = tl.load(WORK_ITEMS + work_idx * 6 + 5)
+        off_hkv = tl.load(WORK_ITEMS + work_idx * 5 + 0).to(tl.int64)
+        kv_start_block = tl.load(WORK_ITEMS + work_idx * 5 + 1)
+{% if not TASKLIST_NO_SPLIT %}
+        sub_id = tl.load(WORK_ITEMS + work_idx * 5 + 2)
+        split_count = tl.load(WORK_ITEMS + work_idx * 5 + 3)
+        is_split = tl.load(WORK_ITEMS + work_idx * 5 + 4)
+{% endif %}
 
-        off_zkv = off_zq % ZKV
-        sparse_idx_z = off_zq % SPARSE_Z
+        off_zq = tl.zeros_like(off_hkv)
+        off_zkv = tl.zeros_like(off_hkv)
+        sparse_idx_z = tl.zeros_like(off_hkv)
         pid_mask = kv_start_block // SPARSE_KV_MULTIPLE
         start_n1 = kv_start_block * BLOCK_N1
         offs_n1 = start_n1 + tl.arange(0, BLOCK_N1)
@@ -2744,6 +2833,13 @@ flex_attention_backward_dkdv_tasklist_source = (
         dv_adj = (stride_dvh * off_hkv + stride_dvz * off_zq).to(tl.int64)
         K1 = K + k_adj
         V1 = V + v_adj
+{% if TASKLIST_NO_SPLIT %}
+        DV_OUT = DV + dv_adj
+{% else %}
+        DV_DIRECT = DV + dv_adj
+        DK_SPLIT = DK_PARTIAL + sub_id * PARTIAL_DK_STRIDE
+        DV_SPLIT = DV_PARTIAL + sub_id * PARTIAL_DV_STRIDE + dv_adj
+{% endif %}
 
         k = load_checked_2d(
             K1, offs_n1, offs_k, stride_kn, stride_kd,
@@ -2783,12 +2879,17 @@ flex_attention_backward_dkdv_tasklist_source = (
                 q_count * SPARSE_Q_MULTIPLE,
                 tl.maximum(tl.cdiv(Q_LEN, BLOCK_M1), 1),
             )
+{% if TASKLIST_NO_SPLIT %}
+            q_begin = 0
+            q_end = q_hi
+{% else %}
             if is_split == 0:
                 q_begin = 0
                 q_end = q_hi
             else:
                 q_begin = sub_id * q_hi // split_count
                 q_end = (sub_id + 1) * q_hi // split_count
+{% endif %}
             for start_m in range(q_begin, q_end):
                 blk_idx_in_list = start_m // SPARSE_Q_MULTIPLE
                 q_block = tl.load(q_indices + blk_idx_in_list)
@@ -2797,10 +2898,23 @@ flex_attention_backward_dkdv_tasklist_source = (
                     + (start_m % SPARSE_Q_MULTIPLE) * BLOCK_M1
                 )
                 offs_m1 = q_start + tl.arange(0, BLOCK_M1)
+{% if TASKLIST_NO_SPLIT %}
+                bwd_dkdv_block_mn(
+                    {{gen_argdefs()}},
+                    Q1, DO1, DK, DELTA1, LSE1, DV_OUT,
+                    k, v, Q_LEN, KV_LEN,
+                    off_zq, off_hq1, off_hkv, offs_n1, offs_m1,
+                    q_start, q_block, pid_mask, offs_k, offs_v,
+                    stride_qm, stride_qd, stride_dom, stride_dod,
+                    stride_dvm, stride_dvd, stride_kz, stride_kh,
+                    stride_kn, stride_kd, MATMUL_PRECISION,
+                    False, CHECK_BLOCK_BOUNDARY=not IS_DIVISIBLE,
+                )
+{% else %}
                 if is_split == 0:
                     bwd_dkdv_block_mn(
                         {{gen_argdefs()}},
-                        Q1, DO1, DK, DELTA1, LSE1, DV + dv_adj,
+                        Q1, DO1, DK, DELTA1, LSE1, DV_DIRECT,
                         k, v, Q_LEN, KV_LEN,
                         off_zq, off_hq1, off_hkv, offs_n1, offs_m1,
                         q_start, q_block, pid_mask, offs_k, offs_v,
@@ -2812,10 +2926,7 @@ flex_attention_backward_dkdv_tasklist_source = (
                 else:
                     bwd_dkdv_block_mn(
                         {{gen_argdefs()}},
-                        Q1, DO1,
-                        DK_PARTIAL + sub_id * PARTIAL_DK_STRIDE,
-                        DELTA1, LSE1,
-                        DV_PARTIAL + sub_id * PARTIAL_DV_STRIDE + dv_adj,
+                        Q1, DO1, DK_SPLIT, DELTA1, LSE1, DV_SPLIT,
                         k, v, Q_LEN, KV_LEN,
                         off_zq, off_hq1, off_hkv, offs_n1, offs_m1,
                         q_start, q_block, pid_mask, offs_k, offs_v,
@@ -2824,6 +2935,7 @@ flex_attention_backward_dkdv_tasklist_source = (
                         stride_kn, stride_kd, MATMUL_PRECISION,
                         False, CHECK_BLOCK_BOUNDARY=not IS_DIVISIBLE,
                     )
+{% endif %}
 
             if HAS_FULL_BLOCKS:
                 full_q_num_offset = (
@@ -2842,12 +2954,17 @@ flex_attention_backward_dkdv_tasklist_source = (
                     full_q_count * SPARSE_Q_MULTIPLE,
                     tl.maximum(tl.cdiv(Q_LEN, BLOCK_M1), 1),
                 )
+{% if TASKLIST_NO_SPLIT %}
+                full_q_begin = 0
+                full_q_end = full_q_hi
+{% else %}
                 if is_split == 0:
                     full_q_begin = 0
                     full_q_end = full_q_hi
                 else:
                     full_q_begin = sub_id * full_q_hi // split_count
                     full_q_end = (sub_id + 1) * full_q_hi // split_count
+{% endif %}
                 for start_m in range(full_q_begin, full_q_end):
                     blk_idx_in_list = start_m // SPARSE_Q_MULTIPLE
                     q_block = tl.load(full_q_indices + blk_idx_in_list)
@@ -2857,10 +2974,23 @@ flex_attention_backward_dkdv_tasklist_source = (
                     )
                     offs_m1 = q_start + tl.arange(0, BLOCK_M1)
 {% if not PRESCALE_QK %}
+{% if TASKLIST_NO_SPLIT %}
+                    bwd_dkdv_full_block_mn(
+                        {{gen_argdefs()}},
+                        Q1, DO1, DK, DELTA1, LSE1, DV_OUT,
+                        k, v, Q_LEN, KV_LEN,
+                        off_zq, off_hq1, off_hkv, offs_n1, offs_m1,
+                        q_start, offs_k, offs_v,
+                        stride_qm, stride_qd, stride_dom, stride_dod,
+                        stride_dvm, stride_dvd, stride_kz, stride_kh,
+                        stride_kn, stride_kd, MATMUL_PRECISION,
+                        CHECK_BLOCK_BOUNDARY=False,
+                    )
+{% else %}
                     if is_split == 0:
                         bwd_dkdv_full_block_mn(
                             {{gen_argdefs()}},
-                            Q1, DO1, DK, DELTA1, LSE1, DV + dv_adj,
+                            Q1, DO1, DK, DELTA1, LSE1, DV_DIRECT,
                             k, v, Q_LEN, KV_LEN,
                             off_zq, off_hq1, off_hkv, offs_n1, offs_m1,
                             q_start, offs_k, offs_v,
@@ -2872,10 +3002,7 @@ flex_attention_backward_dkdv_tasklist_source = (
                     else:
                         bwd_dkdv_full_block_mn(
                             {{gen_argdefs()}},
-                            Q1, DO1,
-                            DK_PARTIAL + sub_id * PARTIAL_DK_STRIDE,
-                            DELTA1, LSE1,
-                            DV_PARTIAL + sub_id * PARTIAL_DV_STRIDE + dv_adj,
+                            Q1, DO1, DK_SPLIT, DELTA1, LSE1, DV_SPLIT,
                             k, v, Q_LEN, KV_LEN,
                             off_zq, off_hq1, off_hkv, offs_n1, offs_m1,
                             q_start, offs_k, offs_v,
@@ -2884,11 +3011,25 @@ flex_attention_backward_dkdv_tasklist_source = (
                             stride_kn, stride_kd, MATMUL_PRECISION,
                             CHECK_BLOCK_BOUNDARY=False,
                         )
+{% endif %}
+{% else %}
+{% if TASKLIST_NO_SPLIT %}
+                    bwd_dkdv_block_mn(
+                        {{gen_argdefs()}},
+                        Q1, DO1, DK, DELTA1, LSE1, DV_OUT,
+                        k, v, Q_LEN, KV_LEN,
+                        off_zq, off_hq1, off_hkv, offs_n1, offs_m1,
+                        q_start, q_block, pid_mask, offs_k, offs_v,
+                        stride_qm, stride_qd, stride_dom, stride_dod,
+                        stride_dvm, stride_dvd, stride_kz, stride_kh,
+                        stride_kn, stride_kd, MATMUL_PRECISION,
+                        True, CHECK_BLOCK_BOUNDARY=not IS_DIVISIBLE,
+                    )
 {% else %}
                     if is_split == 0:
                         bwd_dkdv_block_mn(
                             {{gen_argdefs()}},
-                            Q1, DO1, DK, DELTA1, LSE1, DV + dv_adj,
+                            Q1, DO1, DK, DELTA1, LSE1, DV_DIRECT,
                             k, v, Q_LEN, KV_LEN,
                             off_zq, off_hq1, off_hkv, offs_n1, offs_m1,
                             q_start, q_block, pid_mask, offs_k, offs_v,
@@ -2900,10 +3041,7 @@ flex_attention_backward_dkdv_tasklist_source = (
                     else:
                         bwd_dkdv_block_mn(
                             {{gen_argdefs()}},
-                            Q1, DO1,
-                            DK_PARTIAL + sub_id * PARTIAL_DK_STRIDE,
-                            DELTA1, LSE1,
-                            DV_PARTIAL + sub_id * PARTIAL_DV_STRIDE + dv_adj,
+                            Q1, DO1, DK_SPLIT, DELTA1, LSE1, DV_SPLIT,
                             k, v, Q_LEN, KV_LEN,
                             off_zq, off_hq1, off_hkv, offs_n1, offs_m1,
                             q_start, q_block, pid_mask, offs_k, offs_v,
@@ -2912,6 +3050,7 @@ flex_attention_backward_dkdv_tasklist_source = (
                             stride_kn, stride_kd, MATMUL_PRECISION,
                             True, CHECK_BLOCK_BOUNDARY=not IS_DIVISIBLE,
                         )
+{% endif %}
 {% endif %}
 """
     + _FLEX_ATTENTION_BACKWARD_DKDV_HELPERS_SOURCE
@@ -2924,10 +3063,10 @@ flex_attention_backward_dkdv_reduce_source = r"""
     KV_LEN = {{size("DK", 2)}}
 
     split_base_id = tl.program_id(0).to(tl.int32)
-    off_z = tl.load(SPLIT_BASES + split_base_id * 4 + 0).to(tl.int64)
-    off_hkv = tl.load(SPLIT_BASES + split_base_id * 4 + 1).to(tl.int64)
-    kv_block = tl.load(SPLIT_BASES + split_base_id * 4 + 2)
-    split_count = tl.load(SPLIT_BASES + split_base_id * 4 + 3)
+    off_hkv = tl.load(SPLIT_BASES + split_base_id * 3 + 0).to(tl.int64)
+    kv_block = tl.load(SPLIT_BASES + split_base_id * 3 + 1)
+    split_count = tl.load(SPLIT_BASES + split_base_id * 3 + 2)
+    off_z = tl.zeros_like(off_hkv)
 
     start_n = kv_block * BLOCK_N1
     offs_n = start_n + tl.arange(0, BLOCK_N1)
@@ -2999,6 +3138,12 @@ flex_attention_backward_dkdv_tasklist_template = NPUTritonTemplate(
     source=flex_attention_backward_dkdv_tasklist_source,
 )
 
+flex_attention_backward_dkdv_tasklist_no_split_template = NPUTritonTemplate(
+    name="flex_attention_backward_dkdv_tasklist_no_split",
+    grid=flex_attention_backward_dkdv_grid,
+    source=flex_attention_backward_dkdv_tasklist_source,
+)
+
 flex_attention_backward_dkdv_reduce_template = NPUTritonTemplate(
     name="flex_attention_backward_dkdv_reduce",
     grid=flex_attention_backward_dkdv_grid,
@@ -3064,6 +3209,7 @@ def _register_npu_inductor_flex_attention():
         )
 
         kernel_options = dict(kernel_options)
+        kernel_options.pop(_EXPLICIT_SCORE_MOD_OPTION, None)
         # Mark symbols in custom kernel options as static shapes and add guards.
         kernel_options = {
             k: V.graph.sizevars.evaluate_static_shape(v)
@@ -3159,19 +3305,16 @@ def _register_npu_inductor_flex_attention():
         gqa_shared_heads = Hq // Hkv
         kernel_options.setdefault("GQA_SHARED_HEADS", gqa_shared_heads)
 
-        compact_q_offsets = None
-        compact_flat_to_row = None
-        compact_flat_to_blk = None
-        compact_tail_end = len(mask_mod_other_buffers)
-        compact_tail_start = compact_tail_end - 3
-        assert compact_tail_start >= 0, (
-            "expected captured compact sparse mask metadata in mask_mod_other_buffers"
-        )
         (
             compact_q_offsets,
             compact_flat_to_row,
             compact_flat_to_blk,
-        ) = mask_mod_other_buffers[compact_tail_start:compact_tail_end]
+        ) = _extract_compact_sparse_mask_metadata_buffers(
+            mask_mod_other_buffers,
+            kv_num_blocks=kv_num_blocks,
+            kernel_options=kernel_options,
+            context="forward",
+        )
 
         # HAS_FULL_BLOCKS is supplied by the eager create_block_mask patch and cached on
         # the BlockMask, so lowering only consumes it.
@@ -3707,11 +3850,10 @@ def _register_npu_inductor_flex_attention():
         )
 
         kernel_options = dict(kernel_options)
-        use_bwd_mask_out = npu_config.flex_attention.bwd_mask_out
-        if not use_bwd_mask_out:
-            raise NotImplementedError(
-                "NPU flex attention backward only supports fused compact sparse mask-out."
-            )
+        has_explicit_score_mod = bool(
+            kernel_options.pop(_EXPLICIT_SCORE_MOD_OPTION, False)
+        )
+        configured_bwd_mask_out = bool(npu_config.flex_attention.bwd_mask_out)
         # Mark symbols in custom kernel options as static shapes and add guards.
         kernel_options = {
             k: V.graph.sizevars.evaluate_static_shape(v)
@@ -3739,10 +3881,22 @@ def _register_npu_inductor_flex_attention():
             fwd_placeholder_inps + list(score_mod_other_buffers), fw_graph
         )
         score_mod_is_identity = _is_score_mod_identity_graph(fw_graph)
+        has_score_mod = has_explicit_score_mod or not score_mod_is_identity
+        use_bwd_mask_out = configured_bwd_mask_out and not has_score_mod
         log.debug(
             "flex_attention_backward fw_graph identity_check=%s graph:\n%s",
             score_mod_is_identity,
             fw_graph.graph_module.graph,
+        )
+        log.info(
+            "flex_attention_backward dQ mask route: configured_bwd_mask_out=%s "
+            "has_explicit_score_mod=%s score_mod_is_identity=%s "
+            "has_score_mod=%s use_bwd_mask_out=%s",
+            configured_bwd_mask_out,
+            has_explicit_score_mod,
+            score_mod_is_identity,
+            has_score_mod,
+            use_bwd_mask_out,
         )
 
         joint_placeholder_inps = fwd_placeholder_inps + [
@@ -3863,16 +4017,16 @@ def _register_npu_inductor_flex_attention():
         SPARSE_Q_BLOCK_SIZE = V.graph.sizevars.evaluate_static_shape(SPARSE_Q_BLOCK_SIZE)
         SPARSE_KV_BLOCK_SIZE = V.graph.sizevars.evaluate_static_shape(SPARSE_KV_BLOCK_SIZE)
 
-        compact_tail_end = len(mask_mod_other_buffers)
-        compact_tail_start = compact_tail_end - 3
-        assert compact_tail_start >= 0, (
-            "expected captured compact sparse mask metadata in mask_mod_other_buffers"
-        )
         (
             compact_q_offsets,
             compact_flat_to_row,
             compact_flat_to_blk,
-        ) = mask_mod_other_buffers[compact_tail_start:compact_tail_end]
+        ) = _extract_compact_sparse_mask_metadata_buffers(
+            mask_mod_other_buffers,
+            kv_num_blocks=kv_num_blocks,
+            kernel_options=kernel_options,
+            context="backward",
+        )
 
         sparse_z = kv_num_blocks.get_size()[0]
         metadata_sparse_hq = kv_num_blocks.get_size()[1]
@@ -3933,6 +4087,16 @@ def _register_npu_inductor_flex_attention():
             torch.int32,
             bwd_sparse_mask_block_pos_size,
             stride=[sympy.sympify(s) for s in bwd_sparse_mask_block_pos_strides],
+        )
+        bwd_sparse_mask_block_pos_buffer = empty_strided(
+            bwd_sparse_mask_block_pos_size,
+            stride=bwd_sparse_mask_block_pos_strides,
+            dtype=torch.int32,
+            device=query.get_device(),
+        )
+        bwd_sparse_mask_block_pos_buffer = _force_fixed_layout(
+            lowerings[aten.fill_](bwd_sparse_mask_block_pos_buffer, -1),
+            bwd_sparse_mask_block_pos_strides,
         )
 
         bwd_query_call_size_hints = V.graph.sizevars.size_hints(
@@ -4059,8 +4223,10 @@ def _register_npu_inductor_flex_attention():
                 kv_num_blocks,
                 kv_indices,
                 compact_q_offsets,
+                bwd_sparse_mask_block_pos_buffer,
             ],
             layout=bwd_sparse_mask_block_pos_layout,
+            mutated_inputs=[bwd_sparse_mask_block_pos_buffer],
             call_sizes=[
                 bwd_sparse_mask_block_pos_kernel_options["SPARSE_Z"],
                 bwd_sparse_mask_block_pos_kernel_options["SPARSE_HQ"],
@@ -4126,6 +4292,8 @@ def _register_npu_inductor_flex_attention():
             [
                 kv_num_blocks,
                 kv_indices,
+                compact_q_offsets,
+                bwd_sparse_mask_block_pos_buffer,
             ],
             bwd_sparse_mask_block_pos_layout,
             input_gen_fns={
@@ -4133,6 +4301,8 @@ def _register_npu_inductor_flex_attention():
                     bwd_sparse_mask_base_kernel_options["MAX_NORMAL_BLOCKS"]
                 ),
                 1: _create_sparse_mask_indices_fake_generator(),
+                2: create_compact_q_offsets_fake,
+                3: create_minus_one_int_tensor_fake,
             },
         )
         log.info(
@@ -4162,7 +4332,7 @@ def _register_npu_inductor_flex_attention():
         bwd_mask_out_input_nodes = [
             bwd_sparse_mask_result,
             compact_q_offsets,
-            bwd_sparse_mask_block_pos_result,
+            bwd_sparse_mask_block_pos_buffer,
         ]
 
         def make_bwd_base_kernel_options(cfg: dict) -> dict:
@@ -4205,6 +4375,7 @@ def _register_npu_inductor_flex_attention():
                 {
                     "BLOCK_M2": cfg["BLOCK_M2"],
                     "BLOCK_N2": cfg["BLOCK_N2"],
+                    "BWD_MASK_OUT": use_bwd_mask_out,
                     "num_stages": 1,
                     "num_warps": 4,
                 }
@@ -4382,6 +4553,7 @@ def _register_npu_inductor_flex_attention():
                 {
                     "PARTIAL_DK_STRIDE": partial_dk_stride,
                     "PARTIAL_DV_STRIDE": partial_dv_stride,
+                    "TASKLIST_NO_SPLIT": False,
                 }
             )
 
@@ -4409,6 +4581,34 @@ def _register_npu_inductor_flex_attention():
                     subgraphs=dkdv_subgraphs,
                     reset_to_zero_arg_names=["arg_DV", "arg_DK"],
                     **common_meta,
+                )
+            )
+            no_split_meta = dict(common_meta)
+            no_split_meta["TASKLIST_NO_SPLIT"] = True
+            tasklist_no_split_renderer_factory = (
+                flex_attention_backward_dkdv_tasklist_no_split_template.make_runtime_renderer_factory(
+                    input_nodes=dkdv_input_nodes,
+                    runtime_args=(
+                        RuntimeTemplateArg(
+                            "WORK_ITEMS", torch.int32, 2, "work_items_t"
+                        ),
+                        RuntimeTemplateArg(
+                            "TASK_OFFSETS", torch.int32, 1, "task_offsets_t"
+                        ),
+                        RuntimeTemplateArg(
+                            "DK_PARTIAL", torch.float32, 5, "dk_partial"
+                        ),
+                        RuntimeTemplateArg(
+                            "DV_PARTIAL", torch.float32, 5, "dv_partial"
+                        ),
+                    ),
+                    layout=layout_broadcasted_k_accum,
+                    num_stages=num_stages,
+                    num_warps=num_warps,
+                    call_sizes=call_sizes,
+                    subgraphs=dkdv_subgraphs,
+                    reset_to_zero_arg_names=["arg_DV", "arg_DK"],
+                    **no_split_meta,
                 )
             )
             reduce_renderer_factory = (
@@ -4439,6 +4639,9 @@ def _register_npu_inductor_flex_attention():
             def runtime_renderer_factory(out_node):
                 return {
                     "tasklist": tasklist_renderer_factory(out_node),
+                    "tasklist_no_split": tasklist_no_split_renderer_factory(
+                        out_node
+                    ),
                     "reduce": reduce_renderer_factory(out_node),
                 }
 
@@ -4641,14 +4844,12 @@ def _register_npu_inductor_flex_attention():
         if not kernel_options.get("PRESCALE_QK", False):
             sm_scale = kernel_options["SM_SCALE"]
             grad_key_accum = lowerings[aten.mul](grad_key_accum, sm_scale)
-        grad_value = _force_fixed_layout(
-            _maybe_copy_to_dtype(grad_value_accum, value.get_dtype()),
-            value_strides,
+        grad_key = _maybe_copy_to_dtype(grad_key_accum, key.get_dtype())
+        grad_value = _maybe_copy_to_dtype(
+            grad_value_accum, value.get_dtype()
         )
-        grad_key = _force_fixed_layout(
-            _maybe_copy_to_dtype(grad_key_accum, key.get_dtype()),
-            key_strides,
-        )
+        grad_key = _force_fixed_layout(grad_key, key_strides)
+        grad_value = _force_fixed_layout(grad_value, value_strides)
         grad_query = _force_fixed_layout(
             _maybe_copy_to_dtype(grad_query, query.get_dtype()),
             grad_query_strides,

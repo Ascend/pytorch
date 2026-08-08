@@ -53,75 +53,6 @@ def flatten_groups(nums):
     return res
 
 
-def _specialize_flex_attention_dkdv_no_split(source: str) -> str:
-    lines = source.splitlines(keepends=True)
-    specialized = []
-    index = 0
-    replaced = 0
-    while index < len(lines):
-        line = lines[index]
-        if line.strip() != "if is_split == 0:":
-            specialized.append(line)
-            index += 1
-            continue
-
-        indent = len(line) - len(line.lstrip())
-        direct_lines = []
-        index += 1
-        while index < len(lines):
-            branch_line = lines[index]
-            branch_indent = len(branch_line) - len(branch_line.lstrip())
-            if branch_line.strip() == "else:" and branch_indent == indent:
-                break
-            if branch_line.strip() and branch_indent <= indent:
-                raise RuntimeError(
-                    "dK/dV no-split specialization missing else branch"
-                )
-            direct_lines.append(branch_line)
-            index += 1
-        if index == len(lines):
-            raise RuntimeError(
-                "dK/dV no-split specialization reached end of source"
-            )
-
-        index += 1
-        while index < len(lines):
-            branch_line = lines[index]
-            if not branch_line.strip():
-                next_index = index + 1
-                while (
-                    next_index < len(lines)
-                    and not lines[next_index].strip()
-                ):
-                    next_index += 1
-                if next_index == len(lines):
-                    break
-                next_line = lines[next_index]
-                next_indent = len(next_line) - len(next_line.lstrip())
-                if next_indent <= indent:
-                    break
-                index = next_index
-                continue
-            branch_indent = len(branch_line) - len(branch_line.lstrip())
-            if branch_indent <= indent:
-                break
-            index += 1
-
-        for direct_line in direct_lines:
-            if direct_line.strip():
-                specialized.append(
-                    direct_line[:indent] + direct_line[indent + 4 :]
-                )
-            else:
-                specialized.append(direct_line)
-        replaced += 1
-
-    if replaced != 4:
-        raise RuntimeError(
-            f"expected 4 dK/dV split branches, specialized {replaced}"
-        )
-    return "".join(specialized)
-
 class NPUNoLinearTritonScheduling(TritonScheduling):
     def __init__(self, input_scheduler):
         super().__init__(input_scheduler)
@@ -410,14 +341,21 @@ class NPUTritonScheduling(TritonScheduling):
             tasklist_source = render_source(
                 tasklist_renderer.kernel, tasklist_renderer.render
             )
-        direct_source = _specialize_flex_attention_dkdv_no_split(
-            tasklist_source
-        )
         tasklist_kernel_name, _ = self.define_kernel(
             tasklist_source, [template_node], tasklist_renderer.kernel, None
         )
-        direct_kernel_name, _ = self.define_kernel(
-            direct_source, [template_node], tasklist_renderer.kernel, None
+
+        tasklist_no_split_renderer = runtime_renderers["tasklist_no_split"]
+        with tasklist_no_split_renderer.patch_runtime_args():
+            tasklist_no_split_source = render_source(
+                tasklist_no_split_renderer.kernel,
+                tasklist_no_split_renderer.render,
+            )
+        tasklist_no_split_kernel_name, _ = self.define_kernel(
+            tasklist_no_split_source,
+            [template_node],
+            tasklist_no_split_renderer.kernel,
+            None,
         )
 
         reduce_renderer = runtime_renderers["reduce"]
@@ -434,9 +372,13 @@ class NPUTritonScheduling(TritonScheduling):
         wrapper.write_triton_header_once()
         _, legacy_call_args, _, _ = legacy_kernel.args.python_argdefs()
         _, tasklist_call_args, _, _ = tasklist_renderer.python_argdefs()
+        _, tasklist_no_split_call_args, _, _ = (
+            tasklist_no_split_renderer.python_argdefs()
+        )
         _, reduce_call_args, _, _ = reduce_renderer.python_argdefs()
         runtime_arg_names = {
             **tasklist_renderer.runtime_arg_names,
+            **tasklist_no_split_renderer.runtime_arg_names,
             **reduce_renderer.runtime_arg_names,
         }
         wrapper.generate_flex_attention_dkdv_dispatch(
@@ -445,8 +387,8 @@ class NPUTritonScheduling(TritonScheduling):
             legacy_call_args=legacy_call_args,
             tasklist_kernel_name=tasklist_kernel_name,
             tasklist_call_args=tasklist_call_args,
-            direct_kernel_name=direct_kernel_name,
-            direct_call_args=tasklist_call_args,
+            tasklist_no_split_kernel_name=tasklist_no_split_kernel_name,
+            tasklist_no_split_call_args=tasklist_no_split_call_args,
             reduce_kernel_name=reduce_kernel_name,
             reduce_call_args=reduce_call_args,
             q_num_blocks_name=legacy_kernel.named_input_nodes[
@@ -463,6 +405,7 @@ class NPUTritonScheduling(TritonScheduling):
         for kernel in (
             legacy_kernel,
             tasklist_renderer.kernel,
+            tasklist_no_split_renderer.kernel,
             reduce_renderer.kernel,
         ):
             V.graph.removed_buffers |= kernel.removed_buffers
@@ -563,17 +506,21 @@ class NPUTritonScheduling(TritonScheduling):
                     src_code = src_code.replace('TRACED_GRAPH_HASH', traced_graph_hash)
                     src_code = src_code.replace('TRACED_GRAPH_DIR', npu_config.traced_fx_graph_cache)
         else:
-            fused_name = (
-                get_fused_kernel_name(node_schedule, config.triton.descriptive_names)
-                if config.triton.descriptive_names
-                else ""
-            )
-            if len(fused_name) > 35:
-                fused_name = fused_name[0:35]
-            kernel_category = get_kernel_category_by_source_code(src_code)[:3]
-            kernel_name = "_".join(
-                ["triton", kernel_category, fused_name, wrapper.next_kernel_suffix()]
-            )
+            kernel_name = getattr(kernel, "_npu_codegen_kernel_name", None)
+            if kernel_name is None:
+                fused_name = (
+                    get_fused_kernel_name(node_schedule, config.triton.descriptive_names)
+                    if config.triton.descriptive_names
+                    else ""
+                )
+                if len(fused_name) > 35:
+                    fused_name = fused_name[0:35]
+                kernel_category = get_kernel_category_by_source_code(src_code)[:3]
+                kernel_name = "_".join(
+                    ["triton", kernel_category, fused_name, wrapper.next_kernel_suffix()]
+                )
+            else:
+                wrapper.next_kernel_suffix()
             # use the original src_code as the key
             wrapper.src_to_kernel[(src_code, traced_graph_hash)] = kernel_name
             subs_name = kernel_name if config.triton.unique_kernel_names else "triton_"
