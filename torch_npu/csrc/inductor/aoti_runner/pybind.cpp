@@ -37,10 +37,27 @@ void initAOTIRunnerBindingsNpu(PyObject* module) {
           "get_constant_names_to_dtypes",
           &AOTIModelContainerRunnerNpu::getConstantNamesToDtypes)
       .def(
+          "extract_constants_map",
+          &AOTIModelContainerRunnerNpu::extract_constants_map)
+      .def(
           "update_constant_buffer",
           static_cast<void (AOTIModelContainerRunnerNpu::*)(
               std::unordered_map<std::string, at::Tensor>&, bool, bool, bool)>(
-              &AOTIModelContainerRunnerNpu::update_constant_buffer));
+              &AOTIModelContainerRunnerNpu::update_constant_buffer),
+          py::arg("tensor_map"),
+          py::arg("use_inactive"),
+          py::arg("validate_full_updates"),
+          py::arg("user_managed") = false)
+      .def(
+          "swap_constant_buffer",
+          &AOTIModelContainerRunnerNpu::swap_constant_buffer)
+      .def(
+          "free_inactive_constant_buffer",
+          &AOTIModelContainerRunnerNpu::free_inactive_constant_buffer)
+      .def(
+          "update_constant_buffer_from_blob",
+          &AOTIModelContainerRunnerNpu::update_constant_buffer_from_blob,
+          py::arg("weights_path"));
 #endif
 
   m.def(
