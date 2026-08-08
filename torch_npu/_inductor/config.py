@@ -474,7 +474,10 @@ class flex_attention:
     enable_npu_optimization = False
     use_config_generator = True
     metadata_auto_infer = True
-    bwd_mask_out = True
+    flexattention_mask_out = True
+    # Keep rollout disabled until generated outputcode and NPU numerics have
+    # been reviewed. Unsupported graphs always retain the legacy dK/dV path.
+    bwd_dkdv_tasklist = True
 
     multibuffer = True
     unit_flag = True
@@ -577,6 +580,16 @@ class flex_attention:
                 "inter_cache_num": 1,
             },
         )
+
+
+flex_attention.bwd_dkdv_tasklist = _read_env_bool(
+    "TORCHINDUCTOR_ASCEND_FLEX_ATTENTION_BWD_DKDV_TASKLIST",
+    "1" if flex_attention.bwd_dkdv_tasklist else "0",
+)
+flex_attention.flexattention_mask_out = _read_env_bool(
+    "TORCHINDUCTOR_FLEXATTENTION_MASKOUT",
+    "1" if flex_attention.flexattention_mask_out else "0",
+)
 
 
 def apply_flex_attention_npu_params(config: dict, *, enable: bool) -> dict:

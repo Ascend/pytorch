@@ -40,6 +40,7 @@ from ..lowering import (
 )
 from ..fx_passes.utils.schedule_node_utils import is_multi_stream
 from ..config import log
+from ..select_algorithm import NPUFlexAttentionDkdvTemplateBuffer
 
 
 def flatten_groups(nums):
@@ -51,6 +52,7 @@ def flatten_groups(nums):
         else:
             res.append(i)
     return res
+
 
 class NPUNoLinearTritonScheduling(TritonScheduling):
     def __init__(self, input_scheduler):
@@ -243,6 +245,14 @@ class NPUTritonScheduling(TritonScheduling):
         self.scheduler.free_buffers()
 
     def codegen_template(self, template_node, epilogue_nodes, only_gen_src_code=False):
+        if isinstance(template_node.node, NPUFlexAttentionDkdvTemplateBuffer):
+            if only_gen_src_code:
+                raise NotImplementedError(
+                    "source-only codegen is unsupported for composite dK/dV templates"
+                )
+            return self.codegen_flex_attention_dkdv_template(
+                template_node, epilogue_nodes
+            )
         _, (numel, rnumel) = template_node.group
         assert rnumel == 1
         kernel, render = template_node.node.make_kernel_render(template_node.node)
@@ -311,6 +321,113 @@ class NPUTritonScheduling(TritonScheduling):
 
         V.graph.removed_buffers |= kernel.removed_buffers
         V.graph.inplaced_to_remove |= kernel.inplaced_to_remove
+        self.scheduler.free_buffers()
+        return None
+
+    def codegen_flex_attention_dkdv_template(
+        self, template_node, epilogue_nodes
+    ):
+        if epilogue_nodes:
+            raise NotImplementedError(
+                "epilogue fusion is unsupported for composite dK/dV templates"
+            )
+        composite = template_node.node
+
+        def render_source(kernel, render):
+            with kernel:
+                partial_code = render()
+            if not isinstance(partial_code, str):
+                partial_code.finalize_hook("<DEF_KERNEL>")
+                partial_code.finalize_hook("<ARGDEFS>", strict=False)
+            with V.set_kernel_handler(kernel):
+                if not isinstance(partial_code, str):
+                    if "<STORE_OUTPUT>" in kernel.subgraph_bodies:
+                        partial_code.finalize_hook("<STORE_OUTPUT>")
+                    return partial_code.code
+                return partial_code
+
+        legacy_kernel, legacy_render = composite.make_kernel_render(composite)
+        legacy_source = render_source(legacy_kernel, legacy_render)
+        legacy_kernel_name, _ = self.define_kernel(
+            legacy_source, [template_node], legacy_kernel, None
+        )
+
+        runtime_renderers = composite.runtime_renderer_factory(composite)
+        tasklist_renderer = runtime_renderers["tasklist"]
+        with tasklist_renderer.patch_runtime_args():
+            tasklist_source = render_source(
+                tasklist_renderer.kernel, tasklist_renderer.render
+            )
+        tasklist_kernel_name, _ = self.define_kernel(
+            tasklist_source, [template_node], tasklist_renderer.kernel, None
+        )
+
+        tasklist_no_split_renderer = runtime_renderers["tasklist_no_split"]
+        with tasklist_no_split_renderer.patch_runtime_args():
+            tasklist_no_split_source = render_source(
+                tasklist_no_split_renderer.kernel,
+                tasklist_no_split_renderer.render,
+            )
+        tasklist_no_split_kernel_name, _ = self.define_kernel(
+            tasklist_no_split_source,
+            [template_node],
+            tasklist_no_split_renderer.kernel,
+            None,
+        )
+
+        reduce_renderer = runtime_renderers["reduce"]
+        with reduce_renderer.patch_runtime_args():
+            reduce_source = render_source(
+                reduce_renderer.kernel, reduce_renderer.render
+            )
+        reduce_kernel_name, _ = self.define_kernel(
+            reduce_source, [template_node], reduce_renderer.kernel, None
+        )
+
+        template_node.mark_run()
+        wrapper = V.graph.wrapper_code
+        wrapper.write_triton_header_once()
+        _, legacy_call_args, _, _ = legacy_kernel.args.python_argdefs()
+        _, tasklist_call_args, _, _ = tasklist_renderer.python_argdefs()
+        _, tasklist_no_split_call_args, _, _ = (
+            tasklist_no_split_renderer.python_argdefs()
+        )
+        _, reduce_call_args, _, _ = reduce_renderer.python_argdefs()
+        runtime_arg_names = {
+            **tasklist_renderer.runtime_arg_names,
+            **tasklist_no_split_renderer.runtime_arg_names,
+            **reduce_renderer.runtime_arg_names,
+        }
+        wrapper.generate_flex_attention_dkdv_dispatch(
+            dispatch_spec=composite.dispatch_spec,
+            legacy_kernel_name=legacy_kernel_name,
+            legacy_call_args=legacy_call_args,
+            tasklist_kernel_name=tasklist_kernel_name,
+            tasklist_call_args=tasklist_call_args,
+            tasklist_no_split_kernel_name=tasklist_no_split_kernel_name,
+            tasklist_no_split_call_args=tasklist_no_split_call_args,
+            reduce_kernel_name=reduce_kernel_name,
+            reduce_call_args=reduce_call_args,
+            q_num_blocks_name=legacy_kernel.named_input_nodes[
+                "Q_NUM_BLKS"
+            ].get_name(),
+            full_q_num_blocks_name=legacy_kernel.named_input_nodes[
+                "FULL_Q_NUM_BLKS"
+            ].get_name(),
+            dk_name=legacy_kernel.named_input_nodes["DK"].get_name(),
+            dv_name=legacy_kernel.named_input_nodes["DV"].get_name(),
+            runtime_arg_names=runtime_arg_names,
+        )
+
+        for kernel in (
+            legacy_kernel,
+            tasklist_renderer.kernel,
+            tasklist_no_split_renderer.kernel,
+            reduce_renderer.kernel,
+        ):
+            V.graph.removed_buffers |= kernel.removed_buffers
+            V.graph.inplaced_to_remove |= kernel.inplaced_to_remove
+        self.codegen_comment([template_node])
         self.scheduler.free_buffers()
         return None
 
@@ -407,17 +524,21 @@ class NPUTritonScheduling(TritonScheduling):
                     src_code = src_code.replace('TRACED_GRAPH_HASH', traced_graph_hash)
                     src_code = src_code.replace('TRACED_GRAPH_DIR', npu_config.traced_fx_graph_cache)
         else:
-            fused_name = (
-                get_fused_kernel_name(node_schedule, config.triton.descriptive_names)
-                if config.triton.descriptive_names
-                else ""
-            )
-            if len(fused_name) > 35:
-                fused_name = fused_name[0:35]
-            kernel_category = get_kernel_category_by_source_code(src_code)[:3]
-            kernel_name = "_".join(
-                ["triton", kernel_category, fused_name, wrapper.next_kernel_suffix()]
-            )
+            kernel_name = getattr(kernel, "_npu_codegen_kernel_name", None)
+            if kernel_name is None:
+                fused_name = (
+                    get_fused_kernel_name(node_schedule, config.triton.descriptive_names)
+                    if config.triton.descriptive_names
+                    else ""
+                )
+                if len(fused_name) > 35:
+                    fused_name = fused_name[0:35]
+                kernel_category = get_kernel_category_by_source_code(src_code)[:3]
+                kernel_name = "_".join(
+                    ["triton", kernel_category, fused_name, wrapper.next_kernel_suffix()]
+                )
+            else:
+                wrapper.next_kernel_suffix()
             # use the original src_code as the key
             wrapper.src_to_kernel[kernel_cache_key] = kernel_name
             subs_name = kernel_name if config.triton.unique_kernel_names else "triton_"
@@ -608,6 +729,14 @@ class NPUTritonScheduling(TritonScheduling):
         _, (numel1, rnumel1) = node1.group
         _, (numel2, rnumel2) = node2.group
         why = WhyNoFuse(node1, node2)
+
+        for node in (node1, node2):
+            if node.is_template() and isinstance(
+                node.get_template_node(),
+                NPUFlexAttentionDkdvTemplateBuffer,
+            ):
+                why("composite dK/dV templates do not support fusion")
+                return False
 
         if node1.is_split_scan() and not node2.is_split_scan():
             if node2.is_reduction():

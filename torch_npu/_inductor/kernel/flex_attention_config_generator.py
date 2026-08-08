@@ -449,6 +449,59 @@ def _sort_fwd_candidate_configs_for_nobench(configs: list[dict]) -> list[dict]:
     )
 
 
+_FWD_MASK_IN_TILING_ORDER = (
+    (128, 128),
+    (128, 64),
+    (64, 128),
+    (64, 64),
+    (32, 32),
+)
+
+
+def _build_fwd_mask_in_candidate_configs(
+    configs: list[dict],
+    *,
+    sparse_q_block_size: int,
+    sparse_kv_block_size: int,
+) -> list[dict]:
+    template = configs[0].copy() if configs else {
+        "num_warps": 4,
+        "num_stages": 1,
+    }
+    ordered_configs = []
+
+    for block_m, block_n in _FWD_MASK_IN_TILING_ORDER:
+        if (
+            block_m > sparse_q_block_size
+            or block_n > sparse_kv_block_size
+            or sparse_q_block_size % block_m != 0
+            or sparse_kv_block_size % block_n != 0
+        ):
+            continue
+        cfg = template.copy()
+        cfg.update(
+            {
+                "BLOCK_M": block_m,
+                "BLOCK_N": block_n,
+                "num_warps": cfg.get("num_warps", 4),
+                "num_stages": 1,
+            }
+        )
+        ordered_configs.append(cfg)
+
+    if ordered_configs:
+        return ordered_configs
+
+    return [
+        cfg
+        for cfg in configs
+        if (
+            sparse_q_block_size % int(cfg["BLOCK_M"]) == 0
+            and sparse_kv_block_size % int(cfg["BLOCK_N"]) == 0
+        )
+    ]
+
+
 def _sort_sparse_mask_candidate_configs_for_nobench(
     configs: list[dict[str, int]],
 ) -> list[dict[str, int]]:
@@ -528,6 +581,7 @@ def generate_fwd_candidate_configs(
     sparse_kv_block_size: int,
     num_cube_core: int,
     head_dim: Optional[int] = None,
+    mask_out: bool = True,
 ) -> list[dict]:
     """
     Generate candidate configs for forward flex attention.
@@ -546,16 +600,29 @@ def generate_fwd_candidate_configs(
         )
         if prefer_max_tiling_without_benchmark():
             configs = _sort_fwd_candidate_configs_for_nobench(configs)
+        if not mask_out:
+            configs = _build_fwd_mask_in_candidate_configs(
+                configs,
+                sparse_q_block_size=sparse_q_block_size,
+                sparse_kv_block_size=sparse_kv_block_size,
+            )
         return configs
 
     if head_dim is None:
         head_dim = int(query_shape[-1])
-    return _build_single_fwd_config(
+    configs = _build_single_fwd_config(
         dtype=dtype,
         head_dim=head_dim,
         sparse_q_block_size=sparse_q_block_size,
         sparse_kv_block_size=sparse_kv_block_size,
     )
+    if not mask_out:
+        configs = _build_fwd_mask_in_candidate_configs(
+            configs,
+            sparse_q_block_size=sparse_q_block_size,
+            sparse_kv_block_size=sparse_kv_block_size,
+        )
+    return configs
 
 
 def _flex_attention_sparse_mask_block_candidates(sparse_block_size: int) -> list[int]:
