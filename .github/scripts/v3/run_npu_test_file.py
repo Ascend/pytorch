@@ -244,7 +244,7 @@ def run_single_file(
     poisoned_marker = report_dir / f"{safe}_poisoned_case.txt"
     poisoned_case_nodeid = None  # set after first poisoning, used for retry
 
-    max_attempts = 2  # only used for NPU poisoning retries
+    max_attempts = 3  # supports up to 2 poisonings per file
     all_passed = 0
     all_failed = 0
     all_errors = 0
@@ -272,25 +272,27 @@ def run_single_file(
         ])
 
         # On retry: use skip_executed_plugin to skip ALL cases that
-        # already ran in the previous attempt (passed, failed, skipped,
+        # already ran in ANY previous attempt (passed, failed, skipped,
         # and poisoned).  This allows the remaining cases (after the
         # poisoned one) to execute, instead of re-running failed cases
         # or skipping everything like --scs did.
         if attempt > 1:
-            prev_junit = junit_dir / f"{safe}_attempt{attempt - 1}.xml"
-            if prev_junit.exists():
-                skip_file = report_dir / f"{safe}_skip_list.txt"
-                _write_skip_list(prev_junit, skip_file)
-                run_env_skip = os.environ.copy()
-                run_env_skip["SKIP_EXECUTED_FILE"] = str(skip_file)
-            else:
-                run_env_skip = os.environ.copy()
+            skip_file = report_dir / f"{safe}_skip_list.txt"
+            # Accumulate skip list from ALL previous attempts' JUnit XMLs
+            # so that cases from attempt 1..N-1 are all skipped.
+            prev_pairs = set()
+            for prev_attempt in range(1, attempt):
+                prev_junit = junit_dir / f"{safe}_attempt{prev_attempt}.xml"
+                if prev_junit.exists():
+                    _read_skip_pairs(prev_junit, prev_pairs)
+            with open(skip_file, "w", encoding="utf-8") as f:
+                for classname, name in sorted(prev_pairs):
+                    f.write(f"{classname}\t{name}\n")
 
         # Pass the poisoned-case marker path to the plugin via env
         run_env = os.environ.copy()
         if attempt > 1:
-            run_env["SKIP_EXECUTED_FILE"] = run_env_skip.get(
-                "SKIP_EXECUTED_FILE", "")
+            run_env["SKIP_EXECUTED_FILE"] = str(skip_file)
         if not no_poison_plugin:
             run_env["NPU_POISONED_CASE_FILE"] = str(poisoned_marker)
         # Clean up stale marker from a previous (different) file run
@@ -495,26 +497,21 @@ def _parse_junit(junit_path: Path) -> Tuple[int, int, int, int, List[Dict]]:
     return passed, failed, errors, skipped, cases
 
 
-def _write_skip_list(junit_path: Path, skip_file: Path):
-    """Write (classname, name) pairs from JUnit XML to a skip list file.
+def _read_skip_pairs(junit_path: Path, pairs: set):
+    """Read (classname, name) pairs from JUnit XML into a set.
 
-    Each line is: classname\\tname
-
-    This file is consumed by skip_executed_plugin.py on retry to skip
-    ALL cases that already ran in the previous attempt, regardless of
-    their status (passed, failed, skipped, or poisoned).
+    Accumulates into the provided set so multiple attempts can be merged.
     """
     if not junit_path.exists():
         return
     try:
         tree = ET.parse(str(junit_path))
         root = tree.getroot()
-        with open(skip_file, "w", encoding="utf-8") as f:
-            for tc in root.iter("testcase"):
-                classname = tc.get("classname", "")
-                name = tc.get("name", "")
-                if classname and name:
-                    f.write(f"{classname}\t{name}\n")
+        for tc in root.iter("testcase"):
+            classname = tc.get("classname", "")
+            name = tc.get("name", "")
+            if classname and name:
+                pairs.add((classname, name))
     except ET.ParseError:
         pass
 
