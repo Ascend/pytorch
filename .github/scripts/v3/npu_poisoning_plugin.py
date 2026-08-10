@@ -6,9 +6,13 @@ Provides per-case NPU poisoning detection inside the pytest process,
 replacing the post-process detection that was too late (file-level
 execution would silently fail all remaining cases after poisoning).
 
-Two-layer detection (same as v1 run_npu_test_shard.py):
-    Layer 1: signature matching on case output (fast, zero overhead for passing)
-    Layer 2: probe computation (~1ms, catches unknown patterns)
+Detection uses a single-layer probe: after each failed/error case,
+a trivial NPU computation is executed to verify device health.
+
+When the NPU task queue is in CAN_EXIT state (poisoned by a prior fatal
+error), all operators become silent no-ops — Enqueue() returns without
+executing, output tensors contain uninitialized device memory.  The
+probe creates a tensor with a known value and verifies the result.
 
 NPU device binding is handled by the shell scheduler (test-npu.sh) via
 ASCEND_RT_VISIBLE_DEVICES before run_test.py starts.  This plugin only
@@ -33,27 +37,11 @@ import pytest
 
 
 # ==============================================================================
-# NPU Fatal Error Signatures (migrated from run_npu_test_shard.py:800-814)
+# Constants
 # ==============================================================================
 
 NPU_POISONING_EXIT_CODE = 70
 POISONED_CASE_FILE_ENV = "NPU_POISONED_CASE_FILE"
-
-NPU_POISONING_SIGNATURES = [
-    # A. NPUQueue ERROR_EXIT (operator bugs, OOM)
-    "The process exits for this inner error",
-    # B. deviceErrorMap labels (hardware faults, NPUQueue.cpp:175-183)
-    "UCE ERROR",
-    "HBM MULTI BIT ECC ERROR",
-    "SUSPECT MEM ERROR",
-    "HCCS LINK ERROR",
-    "HCCL OP RETRY FAILED",
-    "SUSPECT REMOTE ERROR",
-    # C. CANN runtime error codes (redundant with B, kept for robustness)
-    "EZ9999",
-    "EE9999",
-    "EZ1009",
-]
 
 
 # ==============================================================================
@@ -65,21 +53,12 @@ _poisoning_reason = ""
 
 
 # ==============================================================================
-# Detection Functions
+# Detection Function
 # ==============================================================================
 
 
-def _check_fatal_npu_error(message: str, stdout: str, stderr: str) -> bool:
-    """Layer 1: Check if case output contains a known fatal NPU error signature.
-
-    Fast string matching, zero overhead for passing cases.
-    """
-    combined = (message or "") + "\n" + (stdout or "") + "\n" + (stderr or "")
-    return any(sig in combined for sig in NPU_POISONING_SIGNATURES)
-
-
 def _check_npu_poisoned() -> bool:
-    """Layer 2: Probe NPU device health by running a trivial computation.
+    """Probe NPU device health by running a trivial computation.
 
     When the NPU task queue is in CAN_EXIT state (poisoned by a prior fatal
     error), all operators become silent no-ops — Enqueue() returns without
@@ -89,8 +68,8 @@ def _check_npu_poisoned() -> bool:
     If the queue is poisoned, the result will be garbage. If the device is
     in error state, the sync will throw.
 
-    Cost: ~1ms per call. Only invoked on failed/error cases where Layer 1
-    did not match, so zero overhead for passing tests.
+    Cost: ~1ms per call. Only invoked on failed/error cases, so zero
+    overhead for passing tests.
 
     A 10-second alarm guards the probe: if the NPU stream is hung (e.g.
     MakeSureQueueEmpty blocks indefinitely in CAN_EXIT state), the probe
@@ -156,7 +135,7 @@ def pytest_runtest_makereport(item, call):
     """After each test case completes, check for NPU poisoning.
 
     Only checks failed or error cases — passing cases have zero overhead.
-    Layer 1 (signature) runs first; if no match, Layer 2 (probe) runs.
+    Runs the NPU probe to verify device health after a failure.
     """
     global _poisoned, _poisoning_reason
 
@@ -171,34 +150,12 @@ def pytest_runtest_makereport(item, call):
     if report.passed:
         return
 
-    # Gather case output for Layer 1 signature matching
-    message = str(report.longrepr) if report.longrepr else ""
-    stdout = ""
-    stderr = ""
-
-    # pytest's capfd/capsys captures per-case output
-    # The captured output is available via item._pytest_capture
-    capstdout = getattr(item.config, "_capstdout", None)
-    if capstdout is not None:
-        try:
-            stdout = capstdout.getvalue()
-        except Exception:
-            pass
-
-    # Layer 1: signature matching (fast)
-    if _check_fatal_npu_error(message, stdout, stderr):
-        _poisoned = True
-        _poisoning_reason = f"Layer 1 signature match in {item.nodeid}"
-        _write_poisoned_case_file(item.nodeid, _poisoning_reason)
-        print(f"  [NPU POISONING] Detected by Layer 1 (signature) in {item.nodeid}", flush=True)
-        return
-
-    # Layer 2: probe computation (~1ms, only if Layer 1 didn't match)
+    # Probe NPU device health (~1ms)
     if _check_npu_poisoned():
         _poisoned = True
-        _poisoning_reason = f"Layer 2 probe failed after {item.nodeid}"
+        _poisoning_reason = f"NPU probe failed after {item.nodeid}"
         _write_poisoned_case_file(item.nodeid, _poisoning_reason)
-        print(f"  [NPU POISONING] Detected by Layer 2 (probe) after {item.nodeid}", flush=True)
+        print(f"  [NPU POISONING] Detected by probe after {item.nodeid}", flush=True)
         return
 
 
