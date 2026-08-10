@@ -242,6 +242,56 @@ npu_persistent_mm_template = NPUTritonTemplate(
 )
 
 
+# ---------------------------------------------------------------------------
+# Dynamic-shape helpers
+# ---------------------------------------------------------------------------
+# When torch.compile(dynamic=True) is used, M / N / K arrive as symbolic
+# sympy expressions (e.g. ``s97``) rather than concrete ints.  The config
+# generation functions below need concrete values for two purposes:
+#
+#   1. GROUP_M selection  (non-persistent template) — a *hint* is safe
+#      because GROUP_M only influences L2 cache super-grouping; the actual
+#      grid is recomputed at runtime inside the kernel.
+#
+#   2. NUM_BLOCKS / NUM_TILES_PER_PROGRAM / WIDTH  (persistent template) —
+#      these are baked into the kernel as ``tl.constexpr`` and **must**
+#      match the real runtime shape, so a hint is *not* safe; the
+#      persistent template is skipped entirely for dynamic shapes.
+# ---------------------------------------------------------------------------
+
+def _is_symbolic_dim(val) -> bool:
+    """Return True if *val* is a symbolic (non-statically-known) dimension.
+
+    Uses the same utility that ``_is_static_problem`` relies on
+    (``PythonWrapperCodegen.statically_known_int_or_none``), so plain
+    ints and sympy integers are considered static, while expressions
+    with free symbols (e.g. ``s97``) are considered symbolic.
+    """
+    return PythonWrapperCodegen.statically_known_int_or_none(val) is None
+
+
+def _hint_int(val, fallback: int = 1) -> int:
+    """Resolve a (possibly symbolic) dimension to a concrete int hint.
+
+    For statically-known dimensions the actual value is returned.
+    For symbolic dimensions ``V.graph.sizevars.size_hint`` is used to
+    obtain a concrete estimate from the tracing context's example
+    inputs (the same mechanism that ``use_catlass_template`` uses for
+    ``size_hint(m * n * k)``).
+
+    This is only safe for **config selection** (choosing GROUP_M, tile
+    sizes, etc.) — never for values that must match the runtime shape
+    exactly (such as the persistent template's NUM_BLOCKS).
+    """
+    static = PythonWrapperCodegen.statically_known_int_or_none(val)
+    if static is not None:
+        return static
+    try:
+        return V.graph.sizevars.size_hint(val)
+    except Exception:
+        return fallback
+
+
 def _get_npu_mm_configs(
     m: int,
     n: int,
@@ -264,6 +314,13 @@ def _get_npu_mm_configs(
         max_block_dim: Cap BLOCK_M and BLOCK_N at this value.  Set to 128
             for addmm (the bias epilogue fusion adds register pressure).
     """
+    # Resolve m to a concrete hint for GROUP_M selection.
+    # GROUP_M only affects L2 cache super-grouping behaviour, not kernel
+    # correctness — the actual grid (grid_m, grid_n) is computed at runtime
+    # inside the kernel from the real M, N values.  Using a hint here simply
+    # picks a reasonable GROUP_M for the expected shape.
+    m_hint = _hint_int(m)
+
     configs: List[Dict[str, Any]] = []
 
     # Core tiling shapes: (BLOCK_M, BLOCK_N, BLOCK_K)
@@ -307,10 +364,15 @@ def _get_npu_mm_configs(
         # Skip tiles that exceed the max block dimension (register safety).
         if block_m > max_block_dim or block_n > max_block_dim:
             continue
+        # EVEN_K: keep using the *original* (possibly symbolic) k.
+        # For dynamic k, (k % block_k == 0) evaluates to False via sympy
+        # structural equality, which correctly selects the masked K-loop
+        # path — safe for any runtime K value.
         even_k = (k % block_k == 0)
         # Choose GROUP_M adaptively: cap at 8, but use smaller values
         # when grid_m is small to avoid degenerate super-grouping.
-        grid_m = (m + block_m - 1) // block_m
+        # Use m_hint (concrete) so the comparison works for dynamic shapes.
+        grid_m = (m_hint + block_m - 1) // block_m
         if grid_m >= 8:
             group_m = 8
         elif grid_m >= 4:
@@ -413,7 +475,38 @@ def _get_npu_persistent_mm_configs(
         (runtime value) % (compile-time constant) — safe for the NPU backend.
       * NUM_SMS and NUM_TILES_PER_PROGRAM are compile-time constants
         (required for the outer loop bound).
+
+    .. note::
+        The persistent kernel bakes ``NUM_BLOCKS``, ``NUM_TILES_PER_PROGRAM``,
+        ``WIDTH``, ``NUM_BLOCKS_M`` and ``NUM_BLOCKS_N`` into the kernel as
+        ``tl.constexpr``.  These **must** match the actual runtime shape:
+
+        * ``NUM_BLOCKS`` too small → output tiles missed → **wrong results**
+        * ``NUM_TILES_PER_PROGRAM`` too small → tiles not covered →
+          **wrong results**
+        * ``WIDTH`` / ``GROUP_M`` derived from wrong ``NUM_BLOCKS_N`` →
+          tiles mapped to wrong ``(pid_m, pid_n)`` → **wrong results**
+
+        For dynamic (symbolic) shapes we cannot guarantee these compile-time
+        constants match the runtime shape, so the persistent template is
+        **skipped** and the non-persistent template (which computes the grid
+        at runtime) is used instead.
     """
+    # --- Dynamic-shape guard ---
+    # If any of M, N, K is symbolic, we cannot safely determine the
+    # compile-time tile constants.  Return an empty config list so that
+    # no persistent-mm choices are added; the non-persistent template
+    # (npu_triton_mm_template) will still be available.
+    if _is_symbolic_dim(m) or _is_symbolic_dim(n) or _is_symbolic_dim(k):
+        log.debug(
+            "NPU persistent mm: skipping for dynamic shape "
+            "(m=%s, n=%s, k=%s) — compile-time tile constants "
+            "cannot be safely determined for symbolic dimensions; "
+            "falling back to non-persistent triton mm template.",
+            m, n, k,
+        )
+        return []
+
     configs: List[Dict[str, Any]] = []
 
     # Core tiling shapes — aligned with the Cube-unit-optimised set.
