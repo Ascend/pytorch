@@ -15,9 +15,9 @@ on:
       - '.github/scripts/v3/**'
   workflow_dispatch:
 
-concurrency:
-  group: nightly-v3-${{ github.ref }}
-  cancel-in-progress: false
+# concurrency:
+#   group: nightly-v3-${{ github.ref }}
+#   cancel-in-progress: false
 
 permissions:
   id-token: write
