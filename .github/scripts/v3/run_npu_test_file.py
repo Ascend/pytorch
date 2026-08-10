@@ -186,7 +186,7 @@ def run_single_file(
                   f"Command: {cmd_str}", flush=True)
             proc = subprocess.run(
                 cmd,
-                cwd=str(test_dir.parent),
+                cwd=str(test_dir),
                 timeout=timeout,
                 env=run_env,
             )
@@ -526,12 +526,12 @@ def _run_one_file_worker(args_tuple: Tuple) -> Dict:
     from contending for the same NPU card(s).
 
     Args tuple: (test_file, test_dir, report_dir, device_queue, timeout, case_timeout,
-                 started_counter, total_files)
+                 started_counter, started_lock, total_files)
     """
     test_file, test_dir, report_dir, device_queue, timeout, case_timeout, \
-        started_counter, total_files = args_tuple
+        started_counter, started_lock, total_files = args_tuple
     device_group = device_queue.get()  # blocks until a device group is free
-    with started_counter.get_lock():
+    with started_lock:
         started_counter.value += 1
         progress = f"[{started_counter.value}/{total_files}]"
     try:
@@ -680,9 +680,10 @@ def main():
 
         print(f"Execution mode: CONCURRENT ({num_workers} device groups, queue-based scheduling)")
         started_counter = manager.Value('i', 0)
+        started_lock = manager.Lock()
         worker_args = [
             (f, test_dir, report_dir, device_queue,
-             args.timeout, args.case_timeout, started_counter, total_files)
+             args.timeout, args.case_timeout, started_counter, started_lock, total_files)
             for f in files
         ]
         with ProcessPoolExecutor(max_workers=num_workers) as executor:
