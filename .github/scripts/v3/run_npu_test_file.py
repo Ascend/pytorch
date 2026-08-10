@@ -3,9 +3,9 @@
 Run NPU tests at file-level granularity with crash recovery.
 
 Executes test files (not individual cases) via pytest, using
-StepcurrentPlugin (--sc/--scs) to skip previously crashed test cases
-on retry. Supports two execution modes derived from npu_count and
-devices_per_proc:
+skip_executed_plugin to skip previously executed cases on retry
+after NPU poisoning. Supports two execution modes derived from
+npu_count and devices_per_proc:
 
   - concurrent: multiple device groups, ProcessPoolExecutor
   - serial:     single device group (devices_per_proc == npu_count)
@@ -189,8 +189,9 @@ def run_single_file(
 
     On NPU poisoning (exit code 70), the poisoned test case is identified
     via a marker file written by npu_poisoning_plugin, marked as "poisoned"
-    in results, and the JUnit XML is patched so that StepcurrentPlugin's
-    --scs skips it on retry.  Normal test failures are NOT retried.
+    in results.  On retry, skip_executed_plugin skips all already-executed
+    cases so the remaining cases can run.  Normal test failures are NOT
+    retried.
 
     Execution follows the same pattern as upstream run_test.py:
       cwd = test_dir (pytorch/test/)
@@ -520,7 +521,7 @@ def _merge_junit_xmls(junit_dir: Path, safe_name: str, max_attempts: int):
     """Merge JUnit XMLs from multiple attempts into a single file.
 
     Deduplicates by (classname, name): later attempts overwrite earlier ones
-    because retry with --scs only re-runs the failed/error subset.
+    because each retry attempt executes a disjoint set of cases.
     """
     merged = junit_dir / f"{safe_name}.xml"
     by_key: Dict[str, ET.Element] = {}
@@ -557,9 +558,9 @@ def _safe_name(test_file: str) -> str:
 def _merge_cases(prev_cases: List[Dict], new_cases: List[Dict]) -> List[Dict]:
     """Merge case details from two attempts. Later attempt wins on status.
 
-    Used when retry with --scs only produces results for the re-run subset.
-    Cases present in new_cases replace their counterparts in prev_cases;
-    cases only in prev_cases are kept as-is.
+    Each retry attempt executes a disjoint set of cases (the ones not yet
+    run).  Cases present in new_cases are added to the result; cases only
+    in prev_cases are kept as-is.
     """
     merged = {c.get("classname", "") + "::" + c.get("name", ""): c for c in prev_cases}
     for c in new_cases:
@@ -634,6 +635,9 @@ def _mark_junit_case_poisoned(junit_path: Path, nodeid: str):
     """Edit the JUnit XML on disk: change the poisoned case's <failure>/<error>
     to <skipped type='npu_poisoned'> so that StepcurrentPlugin's --scs will
     skip it on retry.
+
+    Deprecated: no longer called after switching from --scs to
+    skip_executed_plugin.  Retained for reference only.
     """
     if not junit_path.exists():
         return
@@ -643,12 +647,10 @@ def _mark_junit_case_poisoned(junit_path: Path, nodeid: str):
         root = tree.getroot()
         for tc in root.iter("testcase"):
             if tc.get("classname") == target_cn and tc.get("name") == target_name:
-                # Remove failure/error children
                 for tag in ("failure", "error"):
                     elem = tc.find(tag)
                     if elem is not None:
                         tc.remove(elem)
-                # Already has a skipped element (shouldn't, but be safe)
                 skip_elem = tc.find("skipped")
                 if skip_elem is not None:
                     skip_elem.set("type", "npu_poisoned")
