@@ -81,6 +81,7 @@ def main():
         by_category[cat]["errors"] += int(summary.get("errors", 0))
         by_category[cat]["skipped"] += int(summary.get("skipped", 0))
         by_category[cat]["total"] += int(summary.get("total_cases", 0))
+        by_category[cat]["total_files"] += int(summary.get("total_files", 0))
 
         # Lines 2+: per-file records
         for line in lines[1:]:
@@ -176,15 +177,21 @@ def main():
     md_lines.append(f"| torch_npu wheel | {args.torch_npu_whl} |")
     md_lines.append(f"| Docker image | {args.docker_image} |")
     md_lines.append(f"| Runner | {args.runner} |")
-    md_lines.append(f"| Passed | {totals['passed']} |")
-    md_lines.append(f"| Failed | {totals['failed']} |")
-    md_lines.append(f"| Errors | {totals['errors']} |")
-    md_lines.append(f"| Skipped | {totals['skipped']} |")
-    md_lines.append(f"| **Total** | **{totals['total']}** |")
-    md_lines.append(f"| **Total Failed** | **{total_failed}** |")
-    if totals["total"] > 0:
-        pass_rate = 100 * totals["passed"] / totals["total"]
-        md_lines.append(f"| Pass Rate | {pass_rate:.1f}% |")
+    md_lines.append(
+        f"| result | Passed:{totals['passed']},"
+        f"Failed:{totals['failed']},"
+        f"Errors:{totals['errors']},"
+        f"Skipped:{totals['skipped']},"
+        f"Total:{totals['total']} |"
+    )
+    total_files_discovered = sum(s.get("total_files", 0) for s in by_category.values())
+    cat_breakdown = ", ".join(
+        f"{cat}: {by_category[cat].get('total_files', 0)}"
+        for cat in sorted(by_category.keys())
+    )
+    md_lines.append(
+        f"| Selection | discover {total_files_discovered} test file ({cat_breakdown}) |"
+    )
     md_lines.append("")
 
     # By category
