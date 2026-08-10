@@ -68,6 +68,7 @@ def main():
             continue
 
         cat = summary.get("shard_type", "unknown")
+        shard_id = f"{cat}-{summary.get('shard', '?')}"  # e.g. "core-1"
 
         totals["passed"] += int(summary.get("passed", 0))
         totals["failed"] += int(summary.get("failed", 0))
@@ -107,7 +108,9 @@ def main():
                     "return_code": return_code,
                     "message": rec.get("message", ""),
                     "duration": rec.get("duration"),
+                    "shards": [],
                 }
+            by_file[fn]["shards"].append(shard_id)
 
             # Track crashed files (killed by signal)
             if return_code < 0:
@@ -201,10 +204,12 @@ def main():
     # Top-level per-file summary (crashed/failing files first)
     md_lines.append("## By File")
     md_lines.append("")
-    md_lines.append("| Test File | Passed | Failed | Errors | Skipped | Total | Status |")
-    md_lines.append("|-----------|--------|--------|--------|---------|-------|--------|")
+    md_lines.append("| Test File | Shard | Passed | Failed | Errors | Skipped | Total | Status |")
+    md_lines.append("|-----------|-------|--------|--------|--------|---------|-------|--------|")
     for fn in sorted(by_file.keys(), key=lambda k: -by_file[k]["total"]):
         s = by_file[fn]
+        # Deduplicate and sort shard IDs (e.g. "core-1, core-1" → "core-1")
+        shard_label = ", ".join(sorted(set(s.get("shards", []))))
         tags = []
         if s["return_code"] < 0:
             tags.append(f"CRASHED (rc={s['return_code']})")
@@ -216,7 +221,7 @@ def main():
             tags = ["OK"] if s["total"] > 0 else ["EMPTY"]
         st = ", ".join(tags)
         md_lines.append(
-            f"| {fn} | {s['passed']} | {s['failed']} | {s['errors']} | "
+            f"| {fn} | {shard_label} | {s['passed']} | {s['failed']} | {s['errors']} | "
             f"{s['skipped']} | {s['total']} | {st} |"
         )
 
