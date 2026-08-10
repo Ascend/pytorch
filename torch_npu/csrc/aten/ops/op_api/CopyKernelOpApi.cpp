@@ -26,6 +26,8 @@
 #include "torch_npu/csrc/custom_dtype/Init.h"
 #include "torch_npu/csrc/aten/NPUOpApiNativeFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/framework/FormatHelper.h"
+#include "torch_npu/csrc/aten/common/FormatCastHelper.h"
 #include "third_party/op-plugin/op_plugin/utils/op_api_common.h"
 #ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/sanitizer/NPUTrace.h"
@@ -253,7 +255,10 @@ at::Tensor& NPUNativeOpApiFunctions::copy_(at::Tensor& self, const at::Tensor& s
         }
     } else {
         if (torch_npu::utils::is_npu(src)) {
-            copy_d2h_baseformat_opapi(self, src, non_blocking);
+            // Ascend950: aclnnInplaceCopy rejects internal format. Cast NZ->ND first.
+            at::Tensor src_base = FormatHelper::IsBaseFormatType(src)
+                ? src : FormatCastHelper::ApplyBaseFormatTensorBy(src);
+            copy_d2h_baseformat_opapi(self, src_base, non_blocking);
             if (src.is_complex() && src.is_conj()) {
                 self.conj_physical_();
             }
