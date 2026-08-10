@@ -8,16 +8,57 @@
 
 ## 准备环境
 
-1. 安装requirements.txt中的依赖包
+1. 下载pytorch源码
 
     ```shell
+    git clone https://gitcode.com/Ascend/pytorch.git
+    cd pytorch
+    ```
+
+2. 进入`benchmarks/torchbench`目录，安装requirements.txt中的依赖包
+
+    ```shell
+    cd benchmarks/torchbench
     pip install -r requirements.txt
     ```
 
-2. 下载pytorch/benchmark源码，并切换至指定commit id
+3. 安装torch和torch_npu
 
     ```shell
-    git clone  https://github.com/pytorch/benchmark.git --depth=1
+    pip install torch torch_npu
+    ```
+
+4. 安装triton-ascend（使用triton后端时需要）
+
+    ```shell
+    pip install triton-ascend
+    ```
+
+5. 安装torch_mlir和akg（使用mlir或akg后端时需要）
+
+    torch_mlir获取地址：
+
+    ```text
+    https://repo.oepkgs.net/ascend/pytorch/vllm/torch/Torch-MLIR/
+    ```
+
+    akg获取地址：
+
+    ```text
+    https://repo.mindspore.cn/mindspore/akg/newest/scheduler/
+    ```
+
+    下载完成后安装：
+
+    ```shell
+    pip install torch_mlir
+    pip install akg
+    ```
+
+6. 在`benchmarks/torchbench`目录，下载pytorch/benchmark源码，并切换至指定commit id
+
+    ```shell
+    git clone https://github.com/pytorch/benchmark.git --depth=1
     cd benchmark
     git remote set-branches origin '9910b31cc17d175a781412fd9ca6f18a4ee04610'
     git fetch --depth 1 origin 9910b31cc17d175a781412fd9ca6f18a4ee04610
@@ -114,7 +155,7 @@
 
 4. NPU图模式后端指定
 
-    当前NPU图模式后端通过`--npu-backend`参数指定，支持`mlir`、`dvm`、`akg`、`triton`（triton-ascend）三种模式，不显示指定会默认选择三种模式中端到端时间加速比最大的图模式后端，使用示例如下
+    当前NPU图模式后端通过`--npu-backend`参数指定，支持`mlir`、`dvm`、`akg`、`triton`四种模式，不显示指定会默认选择四种模式中端到端时间加速比最大的图模式后端，使用示例如下
 
     ```shell
     python3 torchbench.py --accuracy --cold-start-latency --train --float32 --backend inductor --npu-backend mlir --only BERT_pytorch --iterations 50
@@ -134,7 +175,7 @@
     python3 torchbench.py --accuracy --cold-start-latency --train --float32 --backend inductor --npu-backend mlir --only BERT_pytorch --iterations 50 --disable-aclgraph
     ```
 
-    aclgraph支持两种模式，分别是`max-autotune`和`reduce-overhead`，默认是`max-autotune`模式。用户可通过参数`--aclgraph-mode`指定aclgraph模式。示例如下
+    aclgraph支持两种模式，分别是`max-autotune`和`reduce-overhead`，默认是`reduce-overhead`模式。用户可通过参数`--aclgraph-mode`指定aclgraph模式。示例如下
 
     ```shell
     python3 torchbench.py --accuracy --cold-start-latency --train --float32 --backend inductor --npu-backend mlir --only BERT_pytorch --iterations 50 --aclgraph-mode reduce-overhead
@@ -142,7 +183,7 @@
 
 6. 动态shape指定
 
-    当前NPU图模式后端默认执行静态shape，用户可用过参数`--dynamic-shapes`开启动态shape模式，或者可以通过参数`--dynamic-batch-only`仅针对输入数据的batch轴开启动态shape。示例如下
+    当前NPU图模式后端默认执行静态shape，用户可通过参数`--dynamic-shapes`开启动态shape模式，或者可以通过参数`--dynamic-batch-only`仅针对输入数据的batch轴开启动态shape。示例如下
 
     ```shell
     # 开启动态shape模式
@@ -194,17 +235,58 @@
 
 ## 准备环境
 
-1. 安装requirements.txt中的依赖包
+1. 下载pytorch源码
 
     ```shell
+    git clone https://gitcode.com/Ascend/pytorch.git
+    cd pytorch
+    ```
+
+2. 进入`benchmarks/torchbench`目录，安装requirements.txt中的依赖包
+
+    ```shell
+    cd benchmarks/torchbench
     pip install -r requirements.txt
+    ```
+
+3. 安装torch和torch_npu
+
+    ```shell
+    pip install torch torch_npu
+    ```
+
+4. 安装triton-ascend（使用triton后端时需要）
+
+    ```shell
+    pip install triton-ascend
+    ```
+
+5. 安装torch_mlir和akg（使用mlir或akg后端时需要）
+
+    torch_mlir获取地址：
+
+    ```text
+    https://repo.oepkgs.net/ascend/pytorch/vllm/torch/Torch-MLIR/
+    ```
+
+    akg获取地址：
+
+    ```text
+    https://repo.mindspore.cn/mindspore/akg/newest/scheduler/
+    ```
+
+    下载完成后安装：
+
+    ```shell
+    pip install torch_mlir
+    pip install akg
     ```
 
 ## 运行测试
 
 1. NPU图模式后端指定
 
-    当前NPU图模式后端通过`--npu-backend`参数指定，支持`mlir`、`dvm`、`triton`（triton-ascend）三种模式，使用示例如下
+    当前NPU图模式后端通过`--npu-backend`参数指定，支持`mlir`、`dvm`、`akg`、`triton`四种模式，使用示例如下
 
     ```shell
     python3 huggingface.py --accuracy --cold-start-latency --train --float32 --backend inductor --npu-backend mlir --only AlbertForMaskedLM --iterations 50
@@ -267,7 +349,7 @@
     python3 huggingface.py --accuracy --cold-start-latency --train --float32 --backend inductor --npu-backend mlir --only AlbertForMaskedLM --iterations 50 --disable-aclgraph
     ```
 
-    aclgraph支持两种模式，分别是`max-autotune`和`reduce-overhead`，默认是`max-autotune`模式。用户可通过参数`--aclgraph-mode`指定aclgraph模式。示例如下
+    aclgraph支持两种模式，分别是`max-autotune`和`reduce-overhead`，默认是`reduce-overhead`模式。用户可通过参数`--aclgraph-mode`指定aclgraph模式。示例如下
 
     ```shell
     python3 huggingface.py --accuracy --cold-start-latency --train --float32 --backend inductor --npu-backend mlir --only AlbertForMaskedLM --iterations 50 --aclgraph-mode reduce-overhead
