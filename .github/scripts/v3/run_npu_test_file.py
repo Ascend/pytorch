@@ -30,8 +30,11 @@ Usage:
 import argparse
 import json
 import os
+import queue
+import signal
 import subprocess
 import sys
+import threading
 import time
 import xml.etree.ElementTree as ET
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -50,6 +53,93 @@ _SIGNAL_MAP = {
     -9: "SIGKILL", -10: "SIGUSR1", -11: "SIGSEGV", -12: "SIGUSR2",
     -13: "SIGPIPE", -14: "SIGALRM", -15: "SIGTERM",
 }
+
+
+# ==============================================================================
+# Subprocess runner with reliable timeout (thread + queue pattern)
+# ==============================================================================
+
+
+def _run_subprocess_with_timeout(
+    cmd: List[str],
+    cwd: str,
+    env: dict,
+    timeout: int,
+    tag: str,
+    start_time: float,
+) -> int:
+    """Run a subprocess with real-time stdout streaming and reliable timeout.
+
+    Uses a reader thread to drain stdout into a queue, preventing pipe
+    buffer deadlock and enabling the main thread to enforce timeout even
+    when the child process is stuck in an uninterruptible kernel call
+    (e.g. NPU driver hang).
+
+    The subprocess is started in a new session (start_new_session=True)
+    so that on timeout the entire process group can be killed with SIGKILL,
+    ensuring no orphaned child processes remain holding NPU resources.
+
+    Args:
+        cmd: Command list to execute.
+        cwd: Working directory.
+        env: Environment variables.
+        timeout: Maximum wall-clock seconds.
+        tag: Prefix tag for each output line (e.g. "[test_file]").
+        start_time: Wall-clock start time (time.time()) for timeout calc.
+
+    Returns:
+        Process return code.
+
+    Raises:
+        subprocess.TimeoutExpired: If the process does not finish within timeout.
+    """
+    proc = subprocess.Popen(
+        cmd,
+        cwd=cwd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        env=env,
+        start_new_session=True,
+    )
+
+    out_q: queue.Queue = queue.Queue()
+
+    def _reader():
+        try:
+            for line in proc.stdout:
+                out_q.put(line)
+        except Exception:
+            pass
+        finally:
+            out_q.put(None)
+
+    reader_thread = threading.Thread(target=_reader, daemon=True)
+    reader_thread.start()
+
+    timed_out = False
+    while True:
+        try:
+            line = out_q.get(timeout=1.0)
+        except queue.Empty:
+            if time.time() - start_time > timeout:
+                timed_out = True
+                break
+            continue
+        if line is None:
+            break
+        print(f"{tag} {line.rstrip()}", flush=True)
+
+    if timed_out:
+        try:
+            os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+        except (ProcessLookupError, OSError):
+            proc.kill()
+        proc.wait()
+        raise subprocess.TimeoutExpired(cmd, timeout)
+
+    proc.wait()
+    return proc.returncode
 
 
 # ==============================================================================
@@ -201,31 +291,19 @@ def run_single_file(
             poisoned_marker.unlink()
 
         try:
-            # Stream pytest output to terminal in real-time, prefixing
-            # each line with the test file name so concurrent workers'
-            # output can be traced back to its origin.
             cmd_str = " ".join(cmd)
             pfx = f"{progress} " if progress else ""
             print(f"{pfx}[device {device_group}] [{test_file}] "
                   f"Command: {cmd_str}", flush=True)
             tag = f"[{test_file}]"
-            proc = subprocess.Popen(
-                cmd,
+            return_code = _run_subprocess_with_timeout(
+                cmd=cmd,
                 cwd=str(test_dir),
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
                 env=run_env,
+                timeout=timeout,
+                tag=tag,
+                start_time=start_time,
             )
-            try:
-                for line in proc.stdout:
-                    print(f"{tag} {line.rstrip()}", flush=True)
-                proc.wait(timeout=timeout)
-            except subprocess.TimeoutExpired:
-                proc.kill()
-                proc.wait()
-                raise
-            return_code = proc.returncode
         except subprocess.TimeoutExpired:
             elapsed = time.time() - start_time
             return {
