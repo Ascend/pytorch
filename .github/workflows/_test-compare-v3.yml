@@ -137,7 +137,7 @@ jobs:
             --report-dir test-reports \
             --npu-count 8 \
             --devices-per-proc 1 \
-            --timeout 3600 \
+            --timeout 900 \
             --case-timeout 300 \
             --no-poison-plugin \
             --shard 1 \
