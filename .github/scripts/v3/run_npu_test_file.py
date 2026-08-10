@@ -196,18 +196,31 @@ def run_single_file(
             poisoned_marker.unlink()
 
         try:
-            # Stream pytest output to terminal in real-time.
-            # Print the full command so the exact invocation is logged.
+            # Stream pytest output to terminal in real-time, prefixing
+            # each line with the test file name so concurrent workers'
+            # output can be traced back to its origin.
             cmd_str = " ".join(cmd)
             pfx = f"{progress} " if progress else ""
             print(f"{pfx}[device {device_group}] [{test_file}] "
                   f"Command: {cmd_str}", flush=True)
-            proc = subprocess.run(
+            tag = f"[{test_file}]"
+            proc = subprocess.Popen(
                 cmd,
                 cwd=str(test_dir),
-                timeout=timeout,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
                 env=run_env,
             )
+            try:
+                for line in proc.stdout:
+                    print(f"{tag} {line.rstrip()}", flush=True)
+                proc.wait(timeout=timeout)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.wait()
+                raise
+            return_code = proc.returncode
         except subprocess.TimeoutExpired:
             elapsed = time.time() - start_time
             return {
@@ -224,16 +237,16 @@ def run_single_file(
             }
 
         # ── Core dump / signal death ──────────────────────────────
-        if proc.returncode < 0:
-            signal_name = _SIGNAL_MAP.get(proc.returncode,
-                                          f"SIGNAL({abs(proc.returncode)})")
+        if return_code < 0:
+            signal_name = _SIGNAL_MAP.get(return_code,
+                                          f"SIGNAL({abs(return_code)})")
             partial_passed, partial_failed, partial_errors, partial_skipped, \
                 partial_cases = _parse_junit(junit_file)
             elapsed = time.time() - start_time
             return {
                 "file": test_file,
                 "status": "crashed",
-                "return_code": proc.returncode,
+                "return_code": return_code,
                 "message": f"{signal_name}: process killed by signal",
                 "passed": partial_passed,
                 "failed": partial_failed,
@@ -244,7 +257,7 @@ def run_single_file(
             }
 
         # ── NPU poisoning (exit code 70) ──────────────────────────
-        if proc.returncode == 70:
+        if return_code == 70:
             # Read which case caused the poisoning
             nodeid, reason = _read_poisoned_marker(poisoned_marker)
             if nodeid:
