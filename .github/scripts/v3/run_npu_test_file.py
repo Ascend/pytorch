@@ -385,8 +385,8 @@ def run_single_file(
                 cases_detail = partial_cases
             else:
                 all_passed += partial_passed
-                all_failed = partial_failed
-                all_errors = partial_errors
+                all_failed += partial_failed
+                all_errors += partial_errors
                 all_skipped += partial_skipped
                 cases_detail = _merge_cases(cases_detail, partial_cases)
 
@@ -406,11 +406,11 @@ def run_single_file(
             all_skipped = file_skipped
             cases_detail = file_cases
         else:
-            # Retry after NPU poisoning: accumulate passed/skipped,
-            # replace failed/errors with the re-run results
+            # Retry after NPU poisoning: each attempt executes a
+            # disjoint set of cases, so all counters accumulate.
             all_passed += file_passed
-            all_failed = file_failed
-            all_errors = file_errors
+            all_failed += file_failed
+            all_errors += file_errors
             all_skipped += file_skipped
             cases_detail = _merge_cases(cases_detail, file_cases)
 
