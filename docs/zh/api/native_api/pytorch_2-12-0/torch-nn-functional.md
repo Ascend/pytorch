@@ -570,27 +570,27 @@
 - `query`、`key`、`value`仅支持bf16、fp16和fp32。所有参数输入均符合以下约束
 - **约束**：
 - 所有参数输入符合规格：
-- &#8226; 输入`query`、`key`、`value`的N：batch size，当前只支持[N，head_num, S(L), E(Ev)]的排布方式，取值范围1~2K
-- &#8226; 输入`query`的head num和`key`/`value`的head num必须成比例关系，即Nq/Nkv必须是非0整数，取值范围1~256
-- &#8226; 输入`query`的L：Target sequence length，取值范围1~512K
-- &#8226; 输入`key`、`value`的S：Source sequence length，取值范围1~512K
+  - 输入`query`、`key`、`value`的N：batch size，当前只支持[N，head_num, S(L), E(Ev)]的排布方式，取值范围1~2K
+  - 输入`query`的head num和`key`/`value`的head num必须成比例关系，即Nq/Nkv必须是非0整数，取值范围1~256
+  - 输入`query`的L：Target sequence length，取值范围1~512K
+  - 输入`key`、`value`的S：Source sequence length，取值范围1~512K
 - 输入`query`、`key`、`value`的E：Embedding dimension of the query and key，取值范围1~512
-- &#8226; 输入`value`的Ev：Embedding dimension of the value，必须与E相等
-- &#8226; 输入`attn_mask`：当前支持[N, 1, L, S]、[N, head_num, L, S]、[1, 1, L, S]、[L, S]，以及可广播到[N, head_num, L, S]的bool类型mask，例如[L, 1]、[1, S]、[1, 1]等排布方式
-- &#8226; 在开启`is_causal`计算时，`attn_mask`必须为None；不开启`is_causal`时，若`attn_mask`输入有效数据，输入数据类型必须是bool类型
-- &#8226; 输入`query`、`key`、`value`的数据类型为bf16、fp16、fp32
-- &#8226; 通过设置`torch_npu.npu.use_compatible_impl(True)`，支持按SDPA后端选择上下文指定MATH后端，例如：
+  - 输入`value`的Ev：Embedding dimension of the value，必须与E相等
+  - 输入`attn_mask`：当前支持[N, 1, L, S]、[N, head_num, L, S]、[1, 1, L, S]、[L, S]，以及可广播到[N, head_num, L, S]的bool类型mask，例如[L, 1]、[1, S]、[1, 1]等排布方式
+  - 在开启`is_causal`计算时，`attn_mask`必须为None；不开启`is_causal`时，若`attn_mask`输入有效数据，输入数据类型必须是bool类型
+  - 输入`query`、`key`、`value`的数据类型为bf16、fp16、fp32
+  - 通过设置`torch_npu.npu.use_compatible_impl(True)`，支持按SDPA后端选择上下文指定MATH后端，例如：
 
-  ```python
-  import torch_npu
-  torch_npu.npu.use_compatible_impl(True)
-  with torch.nn.attention.sdpa_kernel(backends=[torch.nn.attention.SDPBackend.MATH]):
-      out = torch.nn.functional.scaled_dot_product_attention(query, key, value)
-  ```
+    ```python
+    import torch_npu
+    torch_npu.npu.use_compatible_impl(True)
+    with torch.nn.attention.sdpa_kernel(backends=[torch.nn.attention.SDPBackend.MATH]):
+        out = torch.nn.functional.scaled_dot_product_attention(query, key, value)
+    ```
 
 - 与原接口除了规格限制之外差异点：
-- &#8226; NPU的随机算法部分用DSA硬件实现，算法在DSA引擎固化与GPU算法实现存在差异，导致dropout功能和GPU结果不一致
-- &#8226; 当前接口支持输入`query`的head num和`key`/`value`的head num不等长，而原生PyTorch接口不支持
+  - NPU的随机算法部分用DSA硬件实现，算法在DSA引擎固化与GPU算法实现存在差异，导致dropout功能和GPU结果不一致
+  - 当前接口支持输入`query`的head num和`key`/`value`的head num不等长，而原生PyTorch接口不支持
 
 </div>
 
