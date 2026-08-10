@@ -4,9 +4,9 @@
 
 > [!NOTICE]
 >
-> 如果您希望使用基于最新Pytorch 2.13.0发布的即时适配版本，可前往[下载](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download?versionId=174&ids=89dda9ba9de741349efa03687a487678%2C202%2C200%2C1%2C6%2C177%2C)页面获取。
+> 如果您希望使用基于最新PyTorch 2.13.0发布的即时适配版本，可前往[下载](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download?versionId=174&ids=89dda9ba9de741349efa03687a487678%2C202%2C200%2C1%2C6%2C177%2C)页面获取。
 >
-> 请注意，该版本是基于master分支的较早快照，文档中部分新特性可能赞不可用，具体支持情况请参考[Release](https://gitcode.com/Ascend/pytorch/releases)。
+> 请注意，该版本是基于master分支的较早快照，文档中部分新特性可能暂不可用，具体支持情况请参考[Release](https://gitcode.com/Ascend/pytorch/releases)。
 >
 > 如果使用最新的master版本，仍需通过[源码编译](./references/building_from_source.md)安装。
 
