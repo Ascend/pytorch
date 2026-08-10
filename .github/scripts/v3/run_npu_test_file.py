@@ -613,7 +613,21 @@ def main():
     categories = config.get("categories", {})
 
     # Scan all test_*.py, classify, shard — same as collect step
-    all_files = scan_all_test_files(test_dir)
+    raw_files = scan_all_test_files(test_dir)
+
+    # scan_all_test_files returns paths relative to test_dir.parent (e.g.
+    # "pytorch/test/nn/test_foo.py"), but classify_files expects paths
+    # relative to test_dir (e.g. "test/nn/test_foo.py"), and run_single_file
+    # computes file_path = test_dir / test_file.  Strip the leading
+    # "<test_dir.name>/" prefix so both match.
+    td_prefix = test_dir.name + "/"
+    all_files = set()
+    for f in raw_files:
+        if f.startswith(td_prefix):
+            all_files.add(f[len(td_prefix):])
+        else:
+            all_files.add(f)
+
     classified = classify_files(all_files, categories, exclude)
     category_files = classified.get(args.category, [])
     shards = split_round_robin(category_files, args.num_shards)

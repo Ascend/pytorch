@@ -198,19 +198,7 @@ def main():
         )
     md_lines.append("")
 
-    # Crashed files (core dumps / signal kills)
-    if crashed_files:
-        md_lines.append("## Crashed Files (Core Dumps / Signal Kills)")
-        md_lines.append("")
-        md_lines.append("| Test File | Signal | Return Code | Duration | Message |")
-        md_lines.append("|-----------|--------|-------------|----------|---------|")
-        for fn, rc, msg, dur in crashed_files:
-            signal_name = msg.split(":")[0] if ":" in msg else msg
-            dur_str = f"{dur:.1f}s" if dur is not None else "N/A"
-            md_lines.append(f"| {fn} | {signal_name} | {rc} | {dur_str} | {msg} |")
-        md_lines.append("")
-
-    # Top-level per-file summary (failing/crashed files first)
+    # Top-level per-file summary (crashed/failing files first)
     md_lines.append("## By File")
     md_lines.append("")
     md_lines.append("| Test File | Passed | Failed | Errors | Skipped | Total | Status |")

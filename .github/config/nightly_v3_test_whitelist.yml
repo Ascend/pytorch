@@ -25,6 +25,11 @@
 
 exclude:
   - test/cpython
+  - .ci
+  - .github
+  - third_party
+  - benchmarks
+  - scripts
 
 categories:
   core:
