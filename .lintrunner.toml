@@ -1144,6 +1144,7 @@ exclude_patterns = [
     'torch_npu/_inductor/kernel/vendored_templates/cutedsl/kernels/**',
     'torch_npu/_inductor/kernel/vendored_templates/cutedsl/dense_blockscaled_gemm_persistent.py',
     'torch_npu/utils/model_dump/preact.mjs',
+    'torch_npu/_inductor/docs/**/*.svg',
 ]
 is_formatter = true
 
