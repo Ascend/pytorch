@@ -106,7 +106,7 @@ _BMM_TEMPLATE = """{{def_kernel("A", "B")}}
         a = tl.load(A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak + a_batch_off), mask=k_mask[None, :], other=0.0)
         b = tl.load(B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn + b_batch_off), mask=k_mask[:, None], other=0.0)
         {% endif %}
-        acc += tl.dot(a, b, allow_tf32=ALLOW_TF32, out_dtype=ACC_TYPE)
+        acc = tl.dot(a, b, acc=acc, allow_tf32=ALLOW_TF32, out_dtype=ACC_TYPE)
 
     # rematerialize rm, rn and idx_q to save registers
     rm = pid_m * BLOCK_M + tl.arange(0, BLOCK_M)
@@ -148,6 +148,20 @@ def _get_npu_bmm_configs(
         (128, 64, 64),
         (64, 128, 64),
         (128, 128, 64),    # large tile for big BMM shapes
+        # --- added by performance optimization (autotune-discovered) ---
+        # These configs were found to be significantly faster on ascend950PR
+        # for large BMM shapes (e.g. B=80, M=200, N=1280, K=640).
+        # BLOCK_N=256 improves N-dimension tiling for wide output matrices.
+        (128, 256, 64),
+        (64, 256, 64),
+        # BLOCK_K=128 reduces K-loop iterations for large K dimensions.
+        (128, 128, 128),
+        (64, 128, 128),
+        # BLOCK_K=256 further reduces K-loop iterations (e.g. K=1280 → 5 iters
+        # instead of 10 with BLOCK_K=128). Best config for large K on ascend950PR.
+        (128, 256, 256),
+        (128, 128, 256),
+        # --- end of performance optimization additions ---
         (32, 64, 32),
         (64, 32, 32),
         (32, 32, 32),
@@ -158,7 +172,14 @@ def _get_npu_bmm_configs(
         # of BLOCK_K, so the template can skip the K-boundary mask
         # for performance while staying correct when K is not aligned.
         even_k = (k % block_k == 0)
-        for group_m in [8]:
+        # Use GROUP_M=[1, 8] for large tiles (BLOCK_M>=128 and BLOCK_N>=128),
+        # GROUP_M=[8] for small tiles. GROUP_M=1 (row-major traversal) is
+        # better for shapes with small grid_m (e.g. M=200, BLOCK_M=128 → grid_m=2).
+        if block_m >= 128 and block_n >= 128:
+            group_m_values = [1, 8]
+        else:
+            group_m_values = [8]
+        for group_m in group_m_values:
             for num_stages in [2, 3]:
                 for num_warps in [4, 8]:
                     configs.append({
