@@ -11,6 +11,7 @@ on:
       - '.github/workflows/_test-collect-v3.yml'
       - '.github/workflows/_test-exec-v3.yml'
       - '.github/workflows/_test-report-v3.yml'
+      - '.github/workflows/_test-compare-v3.yml'
       - '.github/config/nightly_v3_test_whitelist.yml'
       - '.github/scripts/v3/**'
   workflow_dispatch:
@@ -37,6 +38,17 @@ jobs:
   test:
     needs: build
     uses: ./.github/workflows/_test-v3.yml
+    secrets: inherit
+    with:
+      resolved_short: ${{ needs.build.outputs.resolved_short }}
+
+  # ── Compare: run 3 high-failure files WITHOUT npu_poisoning_plugin ──
+  # Independent debugging task: does NOT participate in report aggregation.
+  # Uploads results as "test-compare-v3" (excluded from test-reports-* pattern).
+  # TODO: remove this job after crash-vs-poison comparison is verified.
+  compare:
+    needs: build
+    uses: ./.github/workflows/_test-compare-v3.yml
     secrets: inherit
     with:
       resolved_short: ${{ needs.build.outputs.resolved_short }}

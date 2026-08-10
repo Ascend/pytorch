@@ -1,4 +1,4 @@
-name: Test Execution (v3)
+name: Test Compare (v3) — No Poison Plugin
 
 on:
   workflow_call:
@@ -6,40 +6,15 @@ on:
       resolved_short:
         required: true
         type: string
-        description: Short SHA of upstream PyTorch
-      category:
-        required: true
-        type: string
-        description: Test category (core/tensor/distributed/graph/others)
-      shard:
-        required: false
-        type: number
-        default: 1
-        description: Shard index (1-based, from dynamic matrix)
-      num_shards:
-        required: false
-        type: number
-        default: 1
-        description: Total number of shards for this category (from dynamic matrix)
-      runner:
-        required: false
-        type: string
-        default: linux-aarch64-a3-8
-        description: Runner label for this category (from whitelist config)
-      npu_count:
-        required: false
-        type: string
-        default: '8'
-        description: Number of NPU cards (derived from runner label suffix)
-      devices_per_proc:
-        required: false
-        type: string
-        default: '1'
-        description: NPU cards per pytest process (from whitelist config)
+        description: Short SHA of upstream PyTorch (from _build-v3.yml outputs)
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
-  test:
-    runs-on: ${{ inputs.runner }}
+  compare:
+    runs-on: linux-aarch64-a3-8
     permissions:
       id-token: write
       contents: read
@@ -51,6 +26,7 @@ jobs:
       options: --network host
     env:
       PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
+
     steps:
       - name: Authenticate to Huawei Cloud
         uses: huaweicloud/auth-action@v1.1.0
@@ -122,72 +98,63 @@ jobs:
           print(f'NPU count: {torch.npu.device_count()}')
           "
 
-      - name: Clean CANN logs before test
-        run: |
-          if [ -d /root/ascend ]; then
-            echo "Cleaning CANN logs in /root/ascend"
-            rm -rf /root/ascend/* 2>/dev/null || true
-          fi
-
-      - name: Run ${{ inputs.category }} shard ${{ inputs.shard }}/${{ inputs.num_shards }}
+      - name: Run compare tests (no poison plugin)
+        id: compare_tests
         run: |
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
           source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
 
           export PYTHONPATH="${GITHUB_WORKSPACE}/ci-scripts/.github/scripts/v3:${PYTHONPATH}"
 
-          # Derive concurrency from npu_count / devices_per_proc (same as v2)
-          NPU_COUNT=${{ inputs.npu_count }}
-          DEVICES_PER_PROC=${{ inputs.devices_per_proc }}
-          NUM_PROCS=$(( NPU_COUNT / DEVICES_PER_PROC ))
+          COMPARE_FILES=(
+            "test/test_binary_ufuncs.py"
+            "test/nn/test_convolution.py"
+            "test/test_ops.py"
+          )
 
-          echo "=== ${{ inputs.category }} Shard ${{ inputs.shard }}/${{ inputs.num_shards }} ==="
-          echo "Runner: ${{ inputs.runner }}"
-          echo "NPU cards: ${NPU_COUNT}, devices/proc: ${DEVICES_PER_PROC}, concurrency: ${NUM_PROCS}"
-          echo "Device groups:"
+          echo "=== Compare Test: Running without npu_poisoning_plugin ==="
+          echo "Files: ${COMPARE_FILES[*]}"
+          echo "Device groups: 8 cards × 1 device/proc = 8 workers"
+          echo ""
+
           python3 -c "
           import sys; sys.path.insert(0, '${GITHUB_WORKSPACE}/ci-scripts/.github/scripts/v3')
           from run_npu_test_file import build_device_groups
-          groups = build_device_groups(${NPU_COUNT}, ${DEVICES_PER_PROC})
+          groups = build_device_groups(8, 1)
           for i, g in enumerate(groups):
               print(f'  group {i}: ASCEND_RT_VISIBLE_DEVICES={g}')
           "
 
           set +e
           python ci-scripts/.github/scripts/v3/run_npu_test_file.py \
-            --categories-config ci-scripts/.github/config/nightly_v3_test_whitelist.yml \
-            --category ${{ inputs.category }} \
-            --num-shards ${{ inputs.num_shards }} \
+            --files "${COMPARE_FILES[@]}" \
             --test-dir pytorch/test \
             --report-dir test-reports \
-            --npu-count ${NPU_COUNT} \
-            --devices-per-proc ${DEVICES_PER_PROC} \
-            --timeout 1800 \
+            --npu-count 8 \
+            --devices-per-proc 1 \
+            --timeout 3600 \
             --case-timeout 300 \
-            --shard ${{ inputs.shard }} \
-            --runner ${{ inputs.runner }} \
-            2>&1 | tee /tmp/test_${{ inputs.category }}_${{ inputs.shard }}.log
+            --no-poison-plugin \
+            --shard 1 \
+            --num-shards 1 \
+            --category compare \
+            --runner linux-aarch64-a3-8 \
+            2>&1 | tee /tmp/test_compare.log
 
           TEST_STATUS=${PIPESTATUS[0]}
+          echo "compare_status=${TEST_STATUS}" >> "$GITHUB_OUTPUT"
           set -e
 
-      - name: Parse test results
-        id: parse_results
+          # Always succeed — this is a comparison task, not a gate
+          echo "Compare test finished with status: ${TEST_STATUS}"
+
+      - name: Parse compare test results
         if: always()
         run: |
           python3 -c "
           import json, os, sys
-          prefix_map = {
-              'core': 'core',
-              'tensor': 'tensor',
-              'distributed': 'dist',
-              'graph': 'graph',
-              'others': 'others',
-          }
-          prefix = prefix_map.get('${{ inputs.category }}', 'reg')
-          cases_file = f'test-reports/shard_{prefix}-${{ inputs.shard }}_cases.jsonl'
+          cases_file = 'test-reports/shard_compare-1_cases.jsonl'
           stats = {'passed': 0, 'failed': 0, 'errors': 0, 'skipped': 0, 'total': 0}
-          parse_ok = False
           try:
               with open(cases_file) as f:
                   d = json.loads(f.readline())
@@ -196,64 +163,41 @@ jobs:
               stats['errors'] = d.get('errors', 0)
               stats['skipped'] = d.get('skipped', 0)
               stats['total'] = d.get('total_cases', 0)
-              parse_ok = True
           except Exception as e:
               print(f'Warning: Could not parse results: {e}', file=sys.stderr)
           total_failed = stats['failed'] + stats['errors']
           with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
               for k, v in stats.items():
                   f.write(f'{k}={v}\n')
-              f.write(f'total_failed={total_failed}\n')
-              f.write(f'parse_ok={str(parse_ok).lower()}\n')
-          print(f'${{ inputs.category }} shard ${{ inputs.shard }}: {stats[\"passed\"]} passed, {stats[\"failed\"]} failed, {stats[\"errors\"]} errors, {stats[\"skipped\"]} skipped, {stats[\"total\"]} total')
+          print(f'Compare: {stats[\"passed\"]} passed, {stats[\"failed\"]} failed, '
+                f'{stats[\"errors\"]} errors, {stats[\"skipped\"]} skipped, '
+                f'{stats[\"total\"]} total')
           "
 
-      - name: Package test reports
+      - name: Package compare test reports
         if: always()
         run: |
           if [ -d "test-reports/junit_xmls" ]; then
-            echo "=== Compressing junit XMLs ==="
+            echo "=== Compressing JUnit XMLs ==="
             XML_COUNT=$(find test-reports/junit_xmls -type f -name "*.xml" | wc -l)
             echo "Found ${XML_COUNT} XML files"
-            tar -czf "test-reports/junit_xmls-${{ inputs.category }}-${{ inputs.shard }}.tar.gz" -C test-reports junit_xmls
+            tar -czf "test-reports/junit_xmls-compare-1.tar.gz" -C test-reports junit_xmls
             rm -rf test-reports/junit_xmls
-            echo "JUnit XMLs compressed: $(ls -lh "test-reports/junit_xmls-${{ inputs.category }}-${{ inputs.shard }}.tar.gz")"
+            echo "JUnit XMLs compressed: $(ls -lh test-reports/junit_xmls-compare-1.tar.gz)"
           fi
 
-      - name: Collect CANN logs
-        if: always()
-        run: |
-          mkdir -p test-reports
-          if [ -d /root/ascend ] && [ -n "$(ls -A /root/ascend 2>/dev/null)" ]; then
-            echo "=== Collecting CANN logs from /root/ascend ==="
-            du -sh /root/ascend || true
-            tar -czf "test-reports/cann-logs-${{ inputs.category }}-${{ inputs.shard }}.tar.gz" \
-              -C /root ascend
-            echo "CANN logs compressed: $(ls -lh "test-reports/cann-logs-${{ inputs.category }}-${{ inputs.shard }}.tar.gz")"
-          else
-            echo "=== No CANN logs found in /root/ascend, skipping ==="
-          fi
-
-      - name: Upload test reports
+      - name: Upload compare test reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-reports-${{ inputs.category }}-${{ inputs.shard }}
+          name: test-compare-v3
           path: test-reports/
           retention-days: 7
 
-      - name: Collect error logs on failure
-        if: failure()
-        run: |
-          mkdir -p error-logs
-          cp /tmp/test_${{ inputs.category }}_${{ inputs.shard }}.log error-logs/ 2>/dev/null || true
-          tar -czf error-logs-${{ inputs.category }}-${{ inputs.shard }}.tar.gz error-logs/
-          echo "Error logs compressed: $(ls -lh error-logs-${{ inputs.category }}-${{ inputs.shard }}.tar.gz)"
-
-      - name: Upload error logs
-        if: failure()
+      - name: Upload compare test log
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: error-logs-${{ inputs.category }}-${{ inputs.shard }}
-          path: error-logs-${{ inputs.category }}-${{ inputs.shard }}.tar.gz
+          name: test-compare-v3-log
+          path: /tmp/test_compare.log
           retention-days: 7

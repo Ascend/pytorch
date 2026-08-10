@@ -93,6 +93,7 @@ def run_single_file(
     timeout: int,
     case_timeout: int,
     progress: str = "",
+    no_poison_plugin: bool = False,
 ) -> Dict:
     """Run a single test file via pytest with NPU poisoning recovery.
 
@@ -167,15 +168,18 @@ def run_single_file(
             sys.executable, "-bb",
             rel_no_ext + ".py",     # relative to cwd, same as run_test.py
             "--use-pytest",         # trigger run_tests() pytest path in common_utils
+        ]
+        if not no_poison_plugin:
+            cmd.extend(["-p", "npu_poisoning_plugin"])
+        cmd.extend([
             "-p", "no:xdist",
-            "-p", "npu_poisoning_plugin",
             "-p", "timeout",
             f"--timeout={case_timeout}",
             f"--junit-xml={junit_file}",
             "-v",
             "--tb=short",
             "--hw-classification", "ACCELERATOR",
-        ]
+        ])
 
         # On retry: use StepcurrentPlugin to skip already-passed (and
         # now-also-poisoned) cases.  The poisoned case was patched in
@@ -190,7 +194,8 @@ def run_single_file(
 
         # Pass the poisoned-case marker path to the plugin via env
         run_env = os.environ.copy()
-        run_env["NPU_POISONED_CASE_FILE"] = str(poisoned_marker)
+        if not no_poison_plugin:
+            run_env["NPU_POISONED_CASE_FILE"] = str(poisoned_marker)
         # Clean up stale marker from a previous (different) file run
         if poisoned_marker.exists():
             poisoned_marker.unlink()
@@ -557,17 +562,18 @@ def _run_one_file_worker(args_tuple: Tuple) -> Dict:
     from contending for the same NPU card(s).
 
     Args tuple: (test_file, test_dir, report_dir, device_queue, timeout, case_timeout,
-                 started_counter, started_lock, total_files)
+                 started_counter, started_lock, total_files, no_poison_plugin)
     """
     test_file, test_dir, report_dir, device_queue, timeout, case_timeout, \
-        started_counter, started_lock, total_files = args_tuple
+        started_counter, started_lock, total_files, no_poison_plugin = args_tuple
     device_group = device_queue.get()  # blocks until a device group is free
     with started_lock:
         started_counter.value += 1
         progress = f"[{started_counter.value}/{total_files}]"
     try:
         return run_single_file(test_file, test_dir, report_dir, device_group,
-                               timeout, case_timeout, progress=progress)
+                               timeout, case_timeout, progress=progress,
+                               no_poison_plugin=no_poison_plugin)
     finally:
         device_queue.put(device_group)  # return device group to pool
 
@@ -638,31 +644,43 @@ def write_jsonl(report_dir: Path, prefix: str, shard: int,
 def main():
     args = parse_args()
 
+    if not args.files and not args.categories_config:
+        print("ERROR: Either --files or --categories-config must be provided",
+              file=sys.stderr)
+        sys.exit(2)
+
     test_dir = Path(args.test_dir).resolve()
     report_dir = Path(args.report_dir).resolve()
     report_dir.mkdir(parents=True, exist_ok=True)
 
-    # ── Classify + shard test files in-memory (no artifact round-trip) ──
-    # Reuses shard_test_files.py functions that are already on PYTHONPATH.
-    from shard_test_files import load_categories_config, scan_all_test_files, \
-        classify_files, split_round_robin
+    # ── Determine file list ──
+    # --files mode: explicit list, bypasses classification config
+    if args.files:
+        files = list(args.files)
+        test_type = "compare"
+        print("File list mode: using explicit --files (bypasses classification config)")
+    else:
+        # ── Classify + shard test files in-memory (no artifact round-trip) ──
+        # Reuses shard_test_files.py functions that are already on PYTHONPATH.
+        from shard_test_files import load_categories_config, scan_all_test_files, \
+            classify_files, split_round_robin
 
-    config = load_categories_config(args.categories_config)
-    exclude = config.get("exclude", [])
-    categories = config.get("categories", {})
+        config = load_categories_config(args.categories_config)
+        exclude = config.get("exclude", [])
+        categories = config.get("categories", {})
 
-    # Scan all test_*.py under test_dir (e.g. pytorch/test/), classify,
-    # shard — same as collect step.  Paths are relative to test_dir.parent
-    # (e.g. "test/nn/test_foo.py"), which matches the whitelist config and
-    # run_single_file uses test_dir.parent / test_file for resolution.
-    all_files = scan_all_test_files(test_dir)
+        # Scan all test_*.py under test_dir (e.g. pytorch/test/), classify,
+        # shard — same as collect step.  Paths are relative to test_dir.parent
+        # (e.g. "test/nn/test_foo.py"), which matches the whitelist config and
+        # run_single_file uses test_dir.parent / test_file for resolution.
+        all_files = scan_all_test_files(test_dir)
 
-    classified = classify_files(all_files, categories, exclude)
-    category_files = classified.get(args.category, [])
-    shards = split_round_robin(category_files, args.num_shards)
-    files = shards[args.shard - 1] if args.shard <= len(shards) else []
+        classified = classify_files(all_files, categories, exclude)
+        category_files = classified.get(args.category, [])
+        shards = split_round_robin(category_files, args.num_shards)
+        files = shards[args.shard - 1] if args.shard <= len(shards) else []
 
-    test_type = args.category
+        test_type = args.category
     total_files = len(files)
 
     # Build device groups (same logic as v2 DevicePool)
@@ -681,6 +699,7 @@ def main():
     print(f"Concurrency: {num_workers} workers")
     print(f"File timeout: {args.timeout}s")
     print(f"Case timeout: {args.case_timeout}s")
+    print(f"Poison plugin: {'DISABLED' if args.no_poison_plugin else 'ENABLED'}")
     print()
 
     start_time = time.time()
@@ -695,6 +714,7 @@ def main():
                 f, test_dir, report_dir, device_groups[group_idx],
                 args.timeout, args.case_timeout,
                 progress=f"[{i}/{total_files}]",
+                no_poison_plugin=args.no_poison_plugin,
             )
             results.append(result)
             p, fe, e, s = result.get("passed", 0), result.get("failed", 0), result.get("errors", 0), result.get("skipped", 0)
@@ -714,7 +734,8 @@ def main():
         started_lock = manager.Lock()
         worker_args = [
             (f, test_dir, report_dir, device_queue,
-             args.timeout, args.case_timeout, started_counter, started_lock, total_files)
+             args.timeout, args.case_timeout, started_counter, started_lock, total_files,
+             args.no_poison_plugin)
             for f in files
         ]
         with ProcessPoolExecutor(max_workers=num_workers) as executor:
@@ -784,8 +805,9 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="Run NPU tests at file-level with crash recovery"
     )
-    parser.add_argument("--categories-config", required=True,
-                        help="Path to whitelist YAML (classification rules)")
+    parser.add_argument("--categories-config", default="",
+                        help="Path to whitelist YAML (classification rules). "
+                             "Required unless --files is used.")
     parser.add_argument("--category", required=True,
                         help="Test category name (core/tensor/distributed/graph/others)")
     parser.add_argument("--num-shards", type=int, required=True,
@@ -806,6 +828,10 @@ def parse_args():
                         help="Shard index (1-based)")
     parser.add_argument("--runner", default="",
                         help="Runner label for this shard (e.g. linux-aarch64-a3-8)")
+    parser.add_argument("--no-poison-plugin", action="store_true",
+                        help="Do not load npu_poisoning_plugin (for crash comparison)")
+    parser.add_argument("--files", nargs="+", default=[],
+                        help="Explicit test file list (bypasses classification config)")
     return parser.parse_args()
 
 
