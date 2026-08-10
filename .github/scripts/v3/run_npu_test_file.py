@@ -92,6 +92,7 @@ def run_single_file(
     device_group: str,
     timeout: int,
     case_timeout: int,
+    progress: str = "",
 ) -> Dict:
     """Run a single test file via pytest with NPU poisoning recovery.
 
@@ -102,6 +103,7 @@ def run_single_file(
 
     Args:
         device_group: ASCEND_RT_VISIBLE_DEVICES value, e.g. "0" or "0,1,2,3,4,5,6,7"
+        progress: optional progress prefix e.g. "[5/123]" for log output
     """
     file_path = test_dir / test_file
     if not file_path.exists():
@@ -179,7 +181,8 @@ def run_single_file(
             # Stream pytest output to terminal in real-time.
             # Print the full command so the exact invocation is logged.
             cmd_str = " ".join(cmd)
-            print(f"[device {device_group}] [{test_file}] "
+            pfx = f"{progress} " if progress else ""
+            print(f"{pfx}[device {device_group}] [{test_file}] "
                   f"Command: {cmd_str}", flush=True)
             proc = subprocess.run(
                 cmd,
@@ -522,13 +525,18 @@ def _run_one_file_worker(args_tuple: Tuple) -> Dict:
     releases it after completion.  This prevents multiple processes
     from contending for the same NPU card(s).
 
-    Args tuple: (test_file, test_dir, report_dir, device_queue, timeout, case_timeout)
+    Args tuple: (test_file, test_dir, report_dir, device_queue, timeout, case_timeout,
+                 started_counter, total_files)
     """
-    test_file, test_dir, report_dir, device_queue, timeout, case_timeout = args_tuple
+    test_file, test_dir, report_dir, device_queue, timeout, case_timeout, \
+        started_counter, total_files = args_tuple
     device_group = device_queue.get()  # blocks until a device group is free
+    with started_counter.get_lock():
+        started_counter.value += 1
+        progress = f"[{started_counter.value}/{total_files}]"
     try:
         return run_single_file(test_file, test_dir, report_dir, device_group,
-                               timeout, case_timeout)
+                               timeout, case_timeout, progress=progress)
     finally:
         device_queue.put(device_group)  # return device group to pool
 
@@ -662,12 +670,14 @@ def main():
         print("Execution mode: SERIAL (1 device group, all cards visible)")
         for i, f in enumerate(files, 1):
             group_idx = 0  # only one group
-            print(f"  [{i}/{total_files}] {f} (ASCEND_RT_VISIBLE_DEVICES={device_groups[group_idx]})")
             result = run_single_file(
                 f, test_dir, report_dir, device_groups[group_idx],
                 args.timeout, args.case_timeout,
+                progress=f"[{i}/{total_files}]",
             )
             results.append(result)
+            p, fe, e, s = result.get("passed", 0), result.get("failed", 0), result.get("errors", 0), result.get("skipped", 0)
+            print(f"  [{i}/{total_files}] {f} ({p} passed, {fe} failed, {e} errors, {s} skipped)")
     else:
         # Concurrent mode: managed device queue prevents NPU card contention.
         # Each worker acquires a device group from the queue before running,
@@ -679,9 +689,10 @@ def main():
             device_queue.put(g)
 
         print(f"Execution mode: CONCURRENT ({num_workers} device groups, queue-based scheduling)")
+        started_counter = manager.Value('i', 0)
         worker_args = [
             (f, test_dir, report_dir, device_queue,
-             args.timeout, args.case_timeout)
+             args.timeout, args.case_timeout, started_counter, total_files)
             for f in files
         ]
         with ProcessPoolExecutor(max_workers=num_workers) as executor:
@@ -706,7 +717,8 @@ def main():
                         "passed": 0, "failed": 0, "errors": 1,
                         "skipped": 0, "elapsed": 0, "cases": [],
                     })
-                print(f"  [{completed}/{total_files}] {test_file}")
+                p, fe, e, s = result.get("passed", 0), result.get("failed", 0), result.get("errors", 0), result.get("skipped", 0)
+                print(f"  [{completed}/{total_files}] {test_file} ({p} passed, {fe} failed, {e} errors, {s} skipped)")
 
         manager.shutdown()
 
