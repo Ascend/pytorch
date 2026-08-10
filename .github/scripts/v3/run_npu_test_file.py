@@ -105,7 +105,7 @@ def run_single_file(
         device_group: ASCEND_RT_VISIBLE_DEVICES value, e.g. "0" or "0,1,2,3,4,5,6,7"
         progress: optional progress prefix e.g. "[5/123]" for log output
     """
-    file_path = test_dir / test_file
+    file_path = test_dir.parent / test_file
     if not file_path.exists():
         return {
             "file": test_file,
@@ -620,21 +620,11 @@ def main():
     exclude = config.get("exclude", [])
     categories = config.get("categories", {})
 
-    # Scan all test_*.py, classify, shard — same as collect step
-    raw_files = scan_all_test_files(test_dir)
-
-    # scan_all_test_files returns paths relative to test_dir.parent (e.g.
-    # "pytorch/test/nn/test_foo.py"), but classify_files expects paths
-    # relative to test_dir (e.g. "test/nn/test_foo.py"), and run_single_file
-    # computes file_path = test_dir / test_file.  Strip the leading
-    # "<test_dir.name>/" prefix so both match.
-    td_prefix = test_dir.name + "/"
-    all_files = set()
-    for f in raw_files:
-        if f.startswith(td_prefix):
-            all_files.add(f[len(td_prefix):])
-        else:
-            all_files.add(f)
+    # Scan all test_*.py under test_dir (e.g. pytorch/test/), classify,
+    # shard — same as collect step.  Paths are relative to test_dir.parent
+    # (e.g. "test/nn/test_foo.py"), which matches the whitelist config and
+    # run_single_file uses test_dir.parent / test_file for resolution.
+    all_files = scan_all_test_files(test_dir)
 
     classified = classify_files(all_files, categories, exclude)
     category_files = classified.get(args.category, [])

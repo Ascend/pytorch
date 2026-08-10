@@ -151,7 +151,7 @@ jobs:
             --categories-config ci-scripts/.github/config/nightly_v3_test_whitelist.yml \
             --category ${{ inputs.category }} \
             --num-shards ${{ inputs.num_shards }} \
-            --test-dir pytorch \
+            --test-dir pytorch/test \
             --report-dir test-reports \
             --npu-count ${NPU_COUNT} \
             --devices-per-proc ${DEVICES_PER_PROC} \
