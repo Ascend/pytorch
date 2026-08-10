@@ -141,17 +141,39 @@ def _parse_simple_categories_yaml(raw_text: str) -> Dict:
 
 
 def scan_all_test_files(test_dir: Path) -> Set[str]:
-    """Recursively scan test_dir for all test_*.py files.
+    """Recursively scan test_dir for executable test_*.py files.
+
+    Only files that contain a test entry point (``run_tests()`` or
+    ``unittest.main()``) are returned.  Sub-files that are imported by
+    a parent file (e.g. ``jit/test_tracer.py`` imported by
+    ``test_jit.py``) are skipped — they call ``raise_on_run_directly()``
+    or ``raise RuntimeError(...)`` in their ``__main__`` block and would
+    fail if executed directly.
 
     Returns a set of relative paths prefixed with 'test/', e.g.
     'test/nn/test_convolution.py'.
     """
     all_files = set()
     for path in test_dir.rglob("test_*.py"):
-        if path.is_file():
+        if path.is_file() and _is_executable_test_file(path):
             rel = path.relative_to(test_dir.parent)
             all_files.add(str(rel))
     return all_files
+
+
+def _is_executable_test_file(path: Path) -> bool:
+    """Check whether a test file can be executed directly.
+
+    Executable files call ``run_tests()`` or ``unittest.main()`` in
+    their ``__main__`` block.  Non-executable files (sub-modules,
+    helpers, disabled tests) raise ``RuntimeError`` or have no
+    ``__main__`` block at all.
+    """
+    try:
+        content = path.read_text(encoding="utf-8")
+    except OSError:
+        return False
+    return "run_tests(" in content or "unittest.main(" in content
 
 
 # ==============================================================================
