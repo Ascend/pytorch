@@ -37,15 +37,6 @@ rewrite_int1_cast_as_ne: bool = True
 select_extract_slice: bool = True
 select_extract_slice_strided: bool = True
 
-# Route a step-1 slice_scatter through the cat_loop sub-region store instead of
-# the upstream where-blend. slice_scatter(x, src, dim, A, B) == cat([x[:A], src,
-# x[B:]]); upstream blends src at index (idx-A), whose negative base offset the
-# NPU backend miscompiles once the scattered axis splits across blocks (wrong
-# numerics / "not runnable"). cat_loop stores each input at output coord lo_i+c
-# from a 0-based local load under mask c<size_i, avoiding the negative base. Only
-# the buggy shape (step==1, start>0, backed bounds) is rerouted.
-slice_scatter_via_cat_loop: bool = True
-
 # A5 (910_95) ONLY: lower aten.embedding as a CANN register row gather
 # (``extension.custom("__builtin_index_select", ...)``) via ops.index_select,
 # instead of the upstream indirect ``tl.load(weight + H*idx + h)``. The extension

@@ -18,25 +18,22 @@ import logging
 import sympy
 from . import config as ncfg
 from . import device_props as _device_props
-from .ir import NPUCatLoopKernel
 from .lowering_override_list import GENERATE_LIST, KEEP_UPSTREAM_LOWERING
 import torch
 from torch._inductor.lowering import (
     lowerings,
     make_fallback,
     register_lowering,
-    _validate_dim,
     to_dtype,
     var_mean_sum_,
     fallback_handler,
     Pointwise,
     _convert_element_type,
 )
-from torch.utils._sympy.functions import Identity
 from torch._inductor import ir
 
 from torch._inductor.decomposition import decompositions
-from torch._prims_common import get_computation_dtype, ELEMENTWISE_TYPE_PROMOTION_KIND
+from torch._prims_common import get_computation_dtype
 from torch._inductor.virtualized import ops, V
 
 import torch._ops
@@ -187,65 +184,8 @@ def npu_embedding(weight, indices, padding_idx=-1, scale_grad_by_freq=False, spa
 overwrite_lowering(aten.embedding, npu_embedding, type_promotion_kind=None)
 
 
-def npu_cat_loop(inputs, dim):
-    """Build the concat (see NPUCatLoopKernel)."""
-    inputs_ranges = []
-    prev_end = 0
-    for inp in inputs:
-        size = inp.get_size()[dim]
-        inputs_ranges.append((prev_end, prev_end + size))
-        prev_end = inputs_ranges[-1][1]
-
-    inputs_loaders = [inp.make_loader() for inp in inputs]
-
-    def inner_fn(idx):
-        # Representative value fn for dtype/read-dep tracking; the real per-input
-        # stores are emitted by store_output. Mirror the in-bounds loads.
-        acc = None
-        for i, inp in enumerate(inputs):
-            lo, _ = inputs_ranges[i]
-            idx_load = list(idx)
-            local = sympy.Mod(idx_load[dim] - lo, inp.get_size()[dim])
-            idx_load[dim] = Identity(local)
-            v = inputs_loaders[i](idx_load)
-            acc = v if acc is None else ops.add(acc, v)
-        return acc
-
-    new_size = list(inputs[0].get_size())
-    new_size[dim] = inputs_ranges[-1][1]
-
-    box = NPUCatLoopKernel.create(
-        device=inputs[0].get_device(),
-        dtype=inputs[0].get_dtype(),
-        inner_fn=inner_fn,
-        ranges=new_size,
-        cat_inputs=tuple(inputs),
-        cat_dim=dim,
-        cat_ranges=tuple(inputs_ranges),
-    )
-    # Pin against fusion: output is written by cat_store side effects, not a
-    # returned value; a fused consumer would re-load before the stores run.
-    name = box.realize()
-    if name:
-        V.graph.no_fuse_buffer_names.add(name)
-    return box
-
-
 def npu_cat(inputs, dim=0):
-    """NPU cat: every concat routes to cat_loop (see NPUCatLoopKernel) so the
-    concat axis tiles freely and scales to any axis/extent and dynamic shapes."""
-    if len(inputs) == 1:
-        from torch._inductor.lowering import clone
-        return clone(inputs[0])
-
-    dim = _validate_dim(inputs[0], dim, 0)
-    from torch._inductor.lowering import get_promoted_dtype
-    dtype = get_promoted_dtype(
-        *inputs, type_promotion_kind=ELEMENTWISE_TYPE_PROMOTION_KIND.DEFAULT
-    )
-    inputs = [to_dtype(inp, dtype) for inp in inputs]
-
-    return npu_cat_loop(inputs, dim)
+    return fallback_handler(aten.cat.default)(inputs, dim)
 
 
 overwrite_lowering(aten.cat, npu_cat, type_promotion_kind=None)
@@ -302,15 +242,6 @@ _upstream_slice_scatter = torch._inductor.lowering.slice_scatter
 
 
 def npu_slice_scatter(x, src, dim=0, start=None, end=None, step=1):
-    """NPU slice_scatter, two structural departures:
-
-    1. Unbacked bounds -> eager fallback (upstream's ``u0 < 0`` is an unguardable
-       data-dependent branch; select_scatter guards it, slice_scatter doesn't).
-    2. step==1, start>0 -> route as cat([x[:A], src, x[B:]]) via npu_cat_loop:
-       upstream's blend at ``FloorDiv(idx-start, step)`` has a negative base
-       ``(-start)+x0`` that miscompiles once the axis splits across blocks (wrong
-       numerics, or fails to compile). Gated on slice_scatter_via_cat_loop.
-    """
     from torch.fx.experimental.symbolic_shapes import free_unbacked_symbols
 
     def _has_unbacked(v):
@@ -323,48 +254,7 @@ def npu_slice_scatter(x, src, dim=0, start=None, end=None, step=1):
             x, src, dim, start, end, step
         )
 
-    if ncfg.slice_scatter_via_cat_loop and step == 1:
-        maybe = _npu_slice_scatter_via_cat(x, src, dim, start, end)
-        if maybe is not None:
-            return maybe
-
     return _upstream_slice_scatter(x, src, dim=dim, start=start, end=end, step=step)
-
-
-def _npu_slice_scatter_via_cat(x, src, dim, start, end):
-    """Route a step-1 slice_scatter to npu_cat_loop as cat([x[:A], src, x[B:]]).
-    Returns None (use upstream) for start==0 / full replace / non-static bounds;
-    only start>0 with statically-known bounds is rerouted."""
-    from torch._inductor.lowering import slice_ as _slice, expand
-
-    dim = _validate_dim(x, dim, 0)
-    dim_size = x.get_size()[dim]
-    start, end = ir.SliceView.normalize_start_end(x, dim, start, end)
-
-    sv = V.graph.sizevars
-    if sv.statically_known_equals(start, 0):
-        return None
-    if not sv.statically_known_lt(start, end):
-        return None
-    band_len = end - start
-    if not sv.statically_known_lt(0, band_len):
-        return None
-
-    # Pieces: x[:start], src, x[end:] (dropped if band reaches the end); total
-    # extent == dim_size, reproducing x with the band replaced by src.
-    src = to_dtype(src, x.get_dtype())
-    band = list(x.get_size())
-    band[dim] = band_len
-    src = expand(src, band)
-
-    pieces = [_slice(x, dim, 0, start), src]
-    if not sv.statically_known_equals(end, dim_size):
-        pieces.append(_slice(x, dim, end, dim_size))
-
-    return npu_cat_loop(pieces, dim)
-
-
-
 overwrite_lowering(aten.slice_scatter, npu_slice_scatter, type_promotion_kind=None)
 
 
@@ -500,10 +390,12 @@ def npu_permute(x, dims):
         except Exception:
             pass
 
-    # Only realize an unrealized producer or plain buffer, never a reinterpret view.
     data = x.data
-    is_realizable = isinstance(data, ir.StorageBox) and isinstance(
-        getattr(data, "data", None), (ir.Pointwise, ir.Reduction, ir.Buffer)
+    inner = getattr(data, "data", None)
+    is_realizable = (
+        isinstance(data, ir.StorageBox)
+        and isinstance(inner, (ir.Pointwise, ir.Reduction, ir.Buffer))
+        and not isinstance(inner, ir.InputBuffer)
     )
     if not is_realizable:
         return result

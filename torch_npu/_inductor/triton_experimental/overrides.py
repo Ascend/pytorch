@@ -6,7 +6,7 @@
 sequences every NPU override, but the overrides themselves now live next to the
 layer they patch:
 
-* decomposition / dispatcher / SDPA overrides -> ``.._inductor.decomposition``
+* decomposition / dispatcher overrides -> ``.._inductor.decomposition``
   (``_register_triton_experimental_decompositions``, called directly by the
   loader ``_load_triton_experimental_backend`` -- NOT from here)
 * FX graph passes (loop-merge fold, int->float->int elision, addmm fusion) ->
@@ -15,9 +15,9 @@ layer they patch:
   check_config) -> ``codegen/triton.py``
 
 What remains here is what doesn't belong to any single layer: plain inductor /
-dynamo ``config`` flag flips and the pointwise autotuning gate that rebinds our
-own heuristics module. Importing this module still has the config side effect of
-turning ``size_asserts`` off.
+dynamo ``config`` flag flips, backend-specific IR adjustments, and the pointwise
+autotuning gate that rebinds our own heuristics module. Importing this module
+still has the config side effect of turning ``size_asserts`` off.
 """
 import logging
 
@@ -27,6 +27,7 @@ from .fx_passes import (
     _install_elide_int_float_int_pass,
     _install_fold_max1_in_loop_merge,
 )
+from .ir import _install_safe_stride_order
 from .codegen.triton import apply_npu_codegen_patches
 
 import torch._inductor.config as inductor_config
@@ -89,10 +90,11 @@ def apply_npu_overrides():
     _disable_recursive_dict_tag_guards()
     _disable_pad_mm_pass()
     _disable_addmm_fusion_pass()
+    _install_safe_stride_order()
     _install_fold_max1_in_loop_merge()
     _install_elide_int_float_int_pass()
 
-    # NOTE: decomposition-table + dispatcher + SDPA overrides are no longer applied
+    # NOTE: decomposition-table + dispatcher overrides are no longer applied
     # here. They live in torch_npu._inductor.decomposition
     # (_register_triton_experimental_decompositions) and are invoked directly by the
     # loader _load_triton_experimental_backend before _activate(), mirroring the

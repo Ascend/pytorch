@@ -411,10 +411,19 @@ class NPUTritonCompileResult(TritonCompileResult):
         # under-launches (sigmoid over [batch,1,1,1] → grid_0==1).
         npu_num_x_nodes = self.inductor_meta.get("npu_num_x_nodes", 0)
         grid_type = self.inductor_meta.get("grid_type", "Grid1D")
+        npu_rsplit_partial = self.inductor_meta.get(
+            "npu_rsplit_partial", "ws_ptr" in fn.arg_names
+        )
         is_simple_1d = (npu_num_x_nodes == 1
                         and grid_type == "Grid1D"
                         and "xnumel" in def_args
                         and "R0_BLOCK" not in set(fn.arg_names))
+        is_unsplit_scalar_reduction = (
+            npu_num_x_nodes == 0
+            and grid_type == "Grid1D"
+            and "R0_BLOCK" in set(fn.arg_names)
+            and not npu_rsplit_partial
+        )
 
         # A5 (910_95) one-program-per-tile: kernel emits group_size=1/group_base=program_id
         # per free-x shape, so the launcher must launch EXACTLY total_blocks (over/under
@@ -440,6 +449,9 @@ class NPUTritonCompileResult(TritonCompileResult):
             # Not memoized: total_blocks depends on multiple <x>numel args, and
             # the recipe arithmetic is cheap relative to correctness clarity.
             grid_0_expr = None
+            grid_0_is_memoized = False
+        elif is_unsplit_scalar_reduction:
+            grid_0_expr = "1"
             grid_0_is_memoized = False
         elif is_simple_1d:
             # Clamp to NPU_CU_COUNT: below it, the full count wastes overhead on idle cores;

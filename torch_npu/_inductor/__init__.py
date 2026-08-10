@@ -288,7 +288,7 @@ def _load_triton_experimental_backend():
         import warnings
         warnings.warn("triton-ascend is not installed, install it first.")
         return
-    # Decomposition / dispatcher / SDPA overrides live in the shared
+    # Decomposition / dispatcher overrides live in the shared
     # decomposition.py alongside the other backends' registrars; call it directly
     # (mirrors _load_triton_backend -> _register_triton_decompositions). Must run
     # after restore_inductor_baseline() (done by _load_backend before this loader)

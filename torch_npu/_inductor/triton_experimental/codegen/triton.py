@@ -60,10 +60,11 @@ from typing import (
     cast,
     Dict,
     Any,
+    Optional,
 )
 
 from .. import config as ncfg
-import re
+import ast
 import math
 import sympy
 import contextlib
@@ -74,6 +75,79 @@ import torch
 
 
 triton_codegen_linearize = ncfg.codegen_linearize
+
+
+def _npu_parse_generated_line(line: str):
+    indent = line[: len(line) - len(line.lstrip())]
+    try:
+        statements = ast.parse(line.strip()).body
+    except SyntaxError:
+        return None
+    return (indent, statements[0]) if len(statements) == 1 else None
+
+
+def _npu_qualified_name(node):
+    if isinstance(node, ast.Name):
+        return node.id
+    base = _npu_qualified_name(node.value) if isinstance(node, ast.Attribute) else None
+    return f"{base}.{node.attr}" if base is not None else None
+
+
+def _npu_is_call(node, name: str) -> bool:
+    return isinstance(node, ast.Call) and _npu_qualified_name(node.func) == name
+
+
+def _npu_assignment_parts(statement):
+    if isinstance(statement, ast.Assign) and len(statement.targets) == 1 and isinstance(
+        statement.targets[0], ast.Name
+    ):
+        return statement.targets[0].id, statement.value
+    return None
+
+
+def _npu_render_generated_line(indent: str, statement) -> str:
+    return f"{indent}{ast.unparse(ast.fix_missing_locations(statement))}"
+
+
+def _npu_replace_raw_line(raw, line: str, rewritten: str):
+    if rewritten == line:
+        return raw
+    return rewritten if isinstance(raw, str) else raw._new_line(rewritten) if hasattr(
+        raw, "_new_line"
+    ) else raw
+
+
+def _npu_parse_tl_load_assignment(line: str):
+    parsed = _npu_parse_generated_line(line)
+    if parsed is None:
+        return None
+    indent, stmt = parsed
+    assignment = _npu_assignment_parts(stmt)
+    if assignment is None:
+        return None
+    target, value = assignment
+    load = value
+    while isinstance(load, ast.Call) and isinstance(
+        load.func, ast.Attribute
+    ) and load.func.attr == "to":
+        load = load.func.value
+    return (indent, target, value, load) if _npu_is_call(load, "tl.load") and load.args else None
+
+
+def _npu_ast_has_name(node, name: str) -> bool:
+    return any(isinstance(item, ast.Name) and item.id == name for item in ast.walk(node))
+
+
+def _npu_ast_replace_name(node, old: str, new: str):
+    class ReplaceName(ast.NodeTransformer):
+        def visit_Name(self, item):
+            if item.id == old:
+                return ast.copy_location(ast.Name(id=new, ctx=item.ctx), item)
+            return item
+
+    return ReplaceName().visit(node)
+
+
 # When set, drop the dead accumulator ``tl.where`` guard in a static single-tile
 # reduction. Coupled 1:1 with npu_triton_heuristics.npu_elide_reduction_where,
 # which pins R0_BLOCK==rnumel so the reduction-axis mask is provably always-true.
@@ -333,15 +407,90 @@ def _npu_rewrite_promoted_rtree_body(kernel, real_sizes, real_ndim):
         _npu_apply_promoted_rtree_lines(
             kernel, prefix, blk_defs, blk_node_names, arange_lines,
             combined_mask, collapsed_shape, collapsed_dim, post_resize,
-            r_slots, real_ndim,
+            r_slots, real_ndim, ordered_names,
             dynamic=dynamic, loop_nodes=loop_nodes, slot_bcast=_slot_bcast,
             flat_recon=flat_recon,
         )
 
+def _npu_preserve_mixed_leaf_mul_where(lines, leaf_names):
+    leaf_names = tuple(leaf_names)
+    dependencies = {}
+    rewritten = []
+
+    def value_dependencies(value):
+        source = value
+        for item in ast.walk(value):
+            if _npu_is_call(item, "tl.load") and item.args:
+                source = item.args[0]
+                break
+        names = {
+            item.id for item in ast.walk(source) if isinstance(item, ast.Name)
+        }
+        result = set(names).intersection(leaf_names)
+        for name in names:
+            result.update(dependencies.get(name, ()))
+        return result
+
+    for raw in lines:
+        line = raw if isinstance(raw, str) else getattr(raw, "line", None)
+        parsed = _npu_parse_generated_line(line) if isinstance(line, str) else None
+        if parsed is None:
+            rewritten.append(raw)
+            continue
+        indent, statement = parsed
+        assignment = _npu_assignment_parts(statement)
+        if assignment is None:
+            rewritten.append(raw)
+            continue
+        lhs, value = assignment
+        deps = value_dependencies(value)
+        mul = (
+            value
+            if isinstance(raw, str)
+            and isinstance(value, ast.BinOp)
+            and isinstance(value.op, ast.Mult)
+            and isinstance(value.left, ast.Name)
+            and isinstance(value.right, ast.Name)
+            else None
+        )
+        if mul is not None:
+            left, right = mul.left.id, mul.right.id
+            left_deps = dependencies.get(left, set())
+            right_deps = dependencies.get(right, set())
+            if left_deps and right_deps and left_deps != right_deps:
+                if left_deps < right_deps:
+                    narrow, missing = left, right_deps - left_deps
+                elif right_deps < left_deps:
+                    narrow, missing = right, left_deps - right_deps
+                else:
+                    narrow, missing = None, set()
+                if narrow is not None:
+                    mask = " & ".join(
+                        [f"{leaf}mask" for leaf in leaf_names if leaf in missing]
+                        + ["xmask"]
+                    )
+                    guarded = f"{lhs}_broadcast_guard"
+                    rewritten.append(
+                        f"{indent}{guarded} = tl.where({mask}, {narrow}, 0.0)"
+                    )
+                    if left == narrow:
+                        mul.left = ast.copy_location(
+                            ast.Name(id=guarded, ctx=ast.Load()), mul.left
+                        )
+                    else:
+                        mul.right = ast.copy_location(
+                            ast.Name(id=guarded, ctx=ast.Load()), mul.right
+                        )
+                    raw = _npu_render_generated_line(indent, statement)
+        dependencies[lhs] = deps
+        rewritten.append(raw)
+    return rewritten
+
+
 def _npu_apply_promoted_rtree_lines(
     kernel, prefix, blk_defs, blk_node_names, arange_lines,
     combined_mask, collapsed_shape, collapsed_dim, post_resize,
-    r_slots, real_ndim,
+    r_slots, real_ndim, leaf_names,
     dynamic=False, loop_nodes=None, slot_bcast=None, flat_recon=None,
 ):
     """In-place edit of kernel.body._lines for one promoted r-tree. Static mode:
@@ -368,6 +517,60 @@ def _npu_apply_promoted_rtree_lines(
             and (" % " in stripped or " // " in stripped)
             and stripped.split(" = ", 1)[0].strip().startswith(prefix)
         )
+
+    def _rewrite_reduction_store_shape(raw):
+        line = raw if isinstance(raw, str) else getattr(raw, "line", None)
+        parsed = _npu_parse_generated_line(line) if isinstance(line, str) else None
+        if parsed is None:
+            return raw
+        indent, statement = parsed
+        store = next(
+            (item for item in ast.walk(statement) if _npu_is_call(item, "tl.store")),
+            None,
+        )
+        if store is None:
+            return raw
+        broadcast = next(
+            (
+                item
+                for item in ast.walk(store)
+                if isinstance(item, ast.Call)
+                and isinstance(item.func, ast.Attribute)
+                and item.func.attr == "broadcast_to"
+                and len(item.args) == real_ndim
+            ),
+            None,
+        )
+        if broadcast is None:
+            return raw
+        for slot in r_slots:
+            if 0 <= slot < len(broadcast.args):
+                broadcast.args[slot] = ast.copy_location(
+                    ast.Constant(value=1), broadcast.args[slot]
+                )
+        rewritten = _npu_render_generated_line(indent, statement)
+        return _npu_replace_raw_line(raw, line, rewritten)
+
+    def _reduction_assignment(statement):
+        assignment = _npu_assignment_parts(statement)
+        if assignment is None:
+            return None
+        result, value = assignment
+        call = value.value if isinstance(value, ast.Subscript) else value
+        if not isinstance(call, ast.Call) or len(call.args) != 2 or call.keywords:
+            return None
+        function = _npu_qualified_name(call.func)
+        if function not in {
+            "tl.sum", "tl.max", "tl.min", "tl.prod", "tl.xor_sum"
+        } and not (function and function.startswith("triton_helpers.")):
+            return None
+        if not (
+            isinstance(call.args[0], ast.Name)
+            and isinstance(call.args[1], ast.Constant)
+            and isinstance(call.args[1].value, int)
+        ):
+            return None
+        return result, function, call.args[0].id
 
     for raw in old_lines:
         line = raw if isinstance(raw, str) else None
@@ -400,6 +603,8 @@ def _npu_apply_promoted_rtree_lines(
             continue
         stripped = line.strip()
         indent = line[:len(line) - len(stripped)] if stripped else ""
+        parsed = _npu_parse_generated_line(line) if stripped else None
+        statement = parsed[1] if parsed is not None else None
 
         # Hoist block constexpr defs before their first use: the group loop is in
         # the header (not kernel.body), so anchor on the first body line
@@ -496,26 +701,28 @@ def _npu_apply_promoted_rtree_lines(
 
         # Outside the r-loop now. Rewrite tl.sum / reduction lines: reshape-
         # collapse then resize. Matches ``X = tl.sum(ACC, D)[SLICE]``.
-        if (not inside_rloop) and ("tl.sum(" in stripped or "triton_helpers." in stripped):
-            import re as _re
-            m = _re.match(
-                r"^(\w+)\s*=\s*(tl\.sum|tl\.max|tl\.min|tl\.prod|tl\.xor_sum|triton_helpers\.\w+)\((\w+),\s*\d+\)(\[[^\]]*\])?\s*$",
-                stripped,
+        reduction = (
+            _reduction_assignment(statement)
+            if not inside_rloop and statement is not None
+            else None
+        )
+        if reduction is not None:
+            res, fn, acc = reduction
+            rshp = f"{acc}_rc"
+            new_lines.append(
+                f"{indent}{rshp} = tl.reshape({acc}, {collapsed_shape})"
             )
-            if m:
-                res, fn, acc, _slc = m.groups()
-                rshp = f"{acc}_rc"
-                new_lines.append(
-                    f"{indent}{rshp} = tl.reshape({acc}, {collapsed_shape})"
-                )
-                new_lines.append(
-                    f"{indent}{res} = {fn}({rshp}, {collapsed_dim}){post_resize}"
-                )
-                continue
+            new_lines.append(
+                f"{indent}{res} = {fn}({rshp}, {collapsed_dim}){post_resize}"
+            )
+            continue
 
         new_lines.append(line)
 
-    kernel.body._lines = new_lines
+    new_lines = [_rewrite_reduction_store_shape(raw) for raw in new_lines]
+    kernel.body._lines = _npu_preserve_mixed_leaf_mul_where(
+        new_lines, leaf_names
+    )
 
 
 # NPU does not require 32-aligned tile sizes; relax the upstream heuristic
@@ -623,9 +830,6 @@ npu_refactor_clamp_stride = ncfg.refactor_clamp_stride
 
 
 
-_CARE_PADDING_RE = None
-
-
 def _rewrite_last_load_line(buffer, transform):
     """Apply ``transform`` to the last non-empty line of ``buffer`` (a plain string
     or a DelayReplaceLine wrapper, whose source is at ``.line``). ``transform``
@@ -672,20 +876,30 @@ def _apply_to_first_buffer(transform, buffers):
 
 
 def _care_padding_transform(line):
-    """Rewrite the trailing `, other=0.0)` of a `tl.load(...)` line to
-    `, other=0.0, care_padding=False)`.  Returns None (leave as-is) if the line
-    already has `care_padding` or lacks the inductor-default `other=0.0` — that
-    protects user-supplied `other=` values."""
-    if "tl.load(" not in line or "care_padding" in line:
+    parsed = _npu_parse_generated_line(line)
+    if parsed is None:
         return None
-    global _CARE_PADDING_RE
-    if _CARE_PADDING_RE is None:
-        import re as _re
-        _CARE_PADDING_RE = _re.compile(r",\s*other=0\.0(\s*\))")
-    new_line, n = _CARE_PADDING_RE.subn(
-        lambda m: f", other=0.0, care_padding=False{m.group(1)}", line, count=1,
+    indent, statement = parsed
+    load = next(
+        (item for item in ast.walk(statement) if _npu_is_call(item, "tl.load")),
+        None,
     )
-    return new_line if n else None
+    if load is None or any(keyword.arg == "care_padding" for keyword in load.keywords):
+        return None
+    other = next(
+        (keyword for keyword in load.keywords if keyword.arg == "other"), None
+    )
+    if (
+        other is None
+        or not isinstance(other.value, ast.Constant)
+        or not isinstance(other.value.value, float)
+        or other.value.value != 0.0
+    ):
+        return None
+    load.keywords.append(
+        ast.keyword(arg="care_padding", value=ast.Constant(value=False))
+    )
+    return _npu_render_generated_line(indent, statement)
 
 
 # Upstream appends ``.to(tl.int1)`` to every bool-pointee ``tl.load`` (triton#2151).
@@ -695,15 +909,55 @@ def _care_padding_transform(line):
 npu_rewrite_int1_cast_as_ne = ncfg.rewrite_int1_cast_as_ne
 
 
-_INT1_CAST_RE = re.compile(r"(tl\.load\([^\n]*\))\.to\(tl\.int1\)")
-
-
 def _int1_cast_transform(line):
     """Rewrite ``tl.load(...).to(tl.int1)`` to ``(tl.load(...) != 0)``."""
-    if "tl.load(" not in line or ".to(tl.int1)" not in line:
+    parsed = _npu_parse_generated_line(line)
+    if parsed is None:
         return None
-    new_line, n = _INT1_CAST_RE.subn(r"(\1 != 0)", line, count=1)
-    return new_line if n else None
+    indent, statement = parsed
+
+    target = None
+    for item in ast.walk(statement):
+        if (
+            isinstance(item, ast.Call)
+            and isinstance(item.func, ast.Attribute)
+            and item.func.attr == "to"
+            and _npu_is_call(item.func.value, "tl.load")
+            and len(item.args) == 1
+            and _npu_qualified_name(item.args[0]) == "tl.int1"
+        ):
+            target = item
+            break
+    if target is None:
+        return None
+
+    replacement = ast.Compare(
+        left=target.func.value,
+        ops=[ast.NotEq()],
+        comparators=[ast.Constant(value=0)],
+    )
+
+    class ReplaceTarget(ast.NodeTransformer):
+        def visit_Call(self, node):
+            if node is target:
+                return ast.copy_location(replacement, node)
+            return self.generic_visit(node)
+
+    rewritten = ReplaceTarget().visit(statement)
+    return _npu_render_generated_line(indent, rewritten)
+
+
+def _masked_index_needs_nonnegative_clamp(indexing):
+    if not isinstance(indexing, IndexingOptions) or not indexing.has_tmpmask():
+        return False
+    try:
+        expr = sympy.expand(indexing.index)
+        origin = sympy.expand(
+            expr.subs({symbol: sympy.Integer(0) for symbol in expr.free_symbols})
+        )
+        return bool(origin.is_number and origin.is_negative)
+    except (AttributeError, TypeError, ValueError):
+        return False
 
 
 def npu_triton_compute_type(dtype):
@@ -1169,34 +1423,6 @@ class NPUTritonKernelOverrides(TritonKernelOverrides):
         return f"extract_slice({x}, {_fmt(offsets)}, {_fmt(sizes)}, {_fmt(strides)})"
 
     @staticmethod
-    def cat_store(output_name, store_index, value, mask):
-        """Direct masked store for the single-kernel concat (``NPUCatLoopKernel``).
-
-        Emits ``tl.store(out_ptr + <flat store index>, value, <mask>)`` where
-        ``mask`` is the ownership boolean VALUE built once at lowering time
-        (``lo <= coord < hi``) -- the very same CSE var used to mask the load, so
-        the ownership bound renders exactly once (rendering it twice desyncs the
-        precomputed-size symbols and corrupts half the output). It is
-        intersected with the ordinary range mask. No ``tl.where``: the caller
-        loaded ``value`` under the same mask, so foreign-lane addresses are never
-        issued and foreign lanes are never stored. Returns ``value`` so the
-        recorded op has a result.
-        """
-        kernel = V.kernel
-        indexing = kernel.indexing(store_index)
-
-        own_mask = str(mask)
-        base_mask = indexing.mask_str
-        full_mask = f"{own_mask} & {base_mask}" if base_mask and base_mask != "None" else own_mask
-
-        out_ptr = kernel.args.output(output_name)
-        kernel.stores.writeline(
-            f"tl.store({out_ptr} + ({indexing.index_str}), {value}, {full_mask})"
-        )
-        return value
-
-
-    @staticmethod
     def index_select(src_name, weight_index, indirect_var, set_indirect, bound):
         """A5 CANN register row gather (``aten.embedding`` fast path).
 
@@ -1411,13 +1637,19 @@ class NPUTritonKernel(TritonKernel):
                 saved_other = self._load_other
                 self._load_other = fill
                 restore_other = True
+        self._npu_capture_prepared_load_index = True
+        self._npu_prepared_load_index = None
         try:
             result_var = super().load(name, index)
             # Seed the pad-lane fact while the chosen ``other`` fill is still
             # live on self._load_other (the seeding reads it).
-            self._maybe_record_select_lane_load(result_var, index)
+            self._maybe_record_select_lane_load(
+                name, result_var, index, self._npu_prepared_load_index
+            )
             self._record_reduction_load_padinfo(result_var, index)
         finally:
+            self._npu_capture_prepared_load_index = False
+            self._npu_prepared_load_index = None
             if restore_other:
                 self._load_other = saved_other
         _bufs = [self.loads, self.compute, self.body]
@@ -1529,7 +1761,13 @@ class NPUTritonKernel(TritonKernel):
         # Masked pad lanes → exact ``other`` fill; else (OOB / non-float other) unknown.
         result_var._npu_pad = ("c", other_val) if covered and other_val is not None else _PAD_TOP
 
-    def _maybe_record_select_lane_load(self, result_var, index: sympy.Expr):
+    def _maybe_record_select_lane_load(
+        self,
+        name: str,
+        result_var,
+        index: sympy.Expr,
+        prepared_index: sympy.Expr | None = None,
+    ):
         """Structurally flag a stride-k select-lane load for the extract_slice
         rewrite, keyed by its result-var name.
 
@@ -1582,7 +1820,13 @@ class NPUTritonKernel(TritonKernel):
         k = min(leaves.values())
         if k not in (2, 4, 8):
             return
-        self._npu_select_lane_loads[var_name] = k
+        if not isinstance(prepared_index, sympy.Expr):
+            prepared_index = index
+        self._npu_select_lane_loads[var_name] = {
+            "lane": k,
+            "index": prepared_index,
+            "pointer": self.args.input(name),
+        }
 
     def index_to_str(self, index: sympy.Expr) -> str:
         # The index carries PyTorch's Max(1, dim) stride clamp from dynamic conv-output
@@ -1606,12 +1850,13 @@ class NPUTritonKernel(TritonKernel):
         # Workspace info filled in when npu_rsplit_partial is set:
         # (ws_inner_name, ws_offset_expr, x_total_numel_str, out_dtype).
         self.npu_rsplit_ws = None
+        self.npu_rsplit_axis = None
 
         # extract_slice select-lane rewrite: result_var name -> lane stride k,
         # populated structurally at load() time (sympy index), consumed at
         # codegen_body time (see _maybe_rewrite_select_lane_load). Structural
         # detection replaces the old regex text classification.
-        self._npu_select_lane_loads: Dict[str, int] = {}
+        self._npu_select_lane_loads: Dict[str, Dict[str, Any]] = {}
 
         if triton_codegen_linearize:
             for tree in self.range_trees:
@@ -1707,9 +1952,28 @@ class NPUTritonKernel(TritonKernel):
             # leave expanded forms like FloorDiv(s1,4)*FloorDiv(s1,4) unreplaced.
             from torch._inductor.utils import sympy_subs
             index = sympy_subs(index, V.graph.sizevars.precomputed_replacements)
+            index = self._canonicalize_range_symbols(index)
         if npu_refactor_clamp_stride:
             index = self._refactor_clamp_stride(index)
         index = self._fold_trivial_modular_indexing(index)
+        return index
+
+    def _canonicalize_range_symbols(self, index: sympy.Expr) -> sympy.Expr:
+        by_name = None
+        subs = None
+        for var in index.free_symbols:
+            if self.range_tree_nodes.get(var) is not None:
+                continue  # already the canonical object
+            if by_name is None:
+                by_name = {s.name: s for s in self.range_tree_nodes}
+            canon = by_name.get(var.name)
+            if canon is not None and canon is not var:
+                if subs is None:
+                    subs = {}
+                subs[var] = canon
+        if subs:
+            from torch._inductor.utils import sympy_subs
+            index = sympy_subs(index, subs)
         return index
 
     def _simplify_compound_indexing(self, index: sympy.Expr) -> sympy.Expr:
@@ -2205,6 +2469,40 @@ class NPUTritonKernel(TritonKernel):
 
         return index
 
+    def _guarded_int_value(self, expr: sympy.Expr) -> Optional[sympy.Integer]:
+        """Return the concrete integer ``expr`` is *provably* equal to under the
+        graph's existing guards, else None.
+
+        Motivation: a dynamic->static reshape (e.g. ``[4, 8, s0, s1]`` viewed as
+        ``[4, 8, 1280]``) guards ``Eq(32*s0*s1, 40960)``, so ``s0*s1 == 1280``
+        holds. But that guard is *nonlinear*, so ``statically_known_lt`` cannot
+        use it: value-range analysis on ``s0*s1`` only yields ``[4, oo)`` and the
+        bound check fails, leaving a symbolic ``% (s0*s1)`` on the address.
+
+        ``statically_known_equals``, in contrast, does discharge the nonlinear
+        guard. So we propose the hint as a *candidate* and then demand a static
+        proof of equality — the hint alone is never trusted. An unguarded
+        symbolic size fails the proof and is left alone.
+        """
+        sizevars = V.graph.sizevars
+        if isinstance(expr, sympy.Integer):
+            return expr
+        inv_precomputed = sizevars.inv_precomputed_replacements
+        expanded = sympy_subs(expr, inv_precomputed) if inv_precomputed else expr
+        try:
+            candidate = expanded.xreplace(sizevars.backed_var_to_val)
+        except Exception:
+            return None
+        if not isinstance(candidate, (sympy.Integer, int)) or isinstance(candidate, bool):
+            return None
+        candidate = sympy.Integer(int(candidate))
+        try:
+            if sizevars.statically_known_equals(expanded, candidate):
+                return candidate
+        except Exception:
+            return None
+        return None
+
     def _fold_trivial_modular_indexing(self, index: sympy.Expr) -> sympy.Expr:
         """Drop ``ModularIndexing(base, 1, modulus)`` when the substitution
         ``v -> upper(v) - 1`` for every iteration var in ``base`` produces a
@@ -2215,6 +2513,11 @@ class NPUTritonKernel(TritonKernel):
 
         Also folds ``FloorDiv(base, divisor)`` to 0 when the max value of
         ``base`` is strictly less than ``divisor``.
+
+        A symbolic modulus/divisor that the guards already pin to a constant
+        (see ``_guarded_int_value``) is resolved to that constant first, so a
+        dynamic->static reshape copy folds too instead of emitting a runtime
+        ``% ks0`` that defeats vectorization on NPU.
         """
         if not isinstance(index, sympy.Basic):
             return index
@@ -2245,11 +2548,28 @@ class NPUTritonKernel(TritonKernel):
             try:
                 if sizevars.statically_known_lt(upper, modulus):
                     replacements[atom] = base
+                    continue
             except Exception:
-                continue
+                pass
+            # Symbolic modulus that the guards pin to a constant (dynamic->static
+            # reshape): retry the bound check against that constant.
+            if not isinstance(modulus, sympy.Integer):
+                const_modulus = self._guarded_int_value(modulus)
+                if const_modulus is None:
+                    continue
+                try:
+                    if sizevars.statically_known_lt(upper, const_modulus):
+                        replacements[atom] = base
+                except Exception:
+                    continue
         for atom in index.atoms(FloorDiv):
             base, divisor = atom.args
-            if not isinstance(divisor, sympy.Integer) or divisor <= 1:
+            if not isinstance(divisor, sympy.Integer):
+                const_divisor = self._guarded_int_value(divisor)
+                if const_divisor is None:
+                    continue
+                divisor = const_divisor
+            if divisor <= 1:
                 continue
             subs = {}
             ok = True
@@ -2741,6 +3061,10 @@ class NPUTritonKernel(TritonKernel):
             tma_compatibility_checker=tma_compatibility_checker,
             mask_constant_index=mask_constant_index,
         )
+        if getattr(self, "_npu_capture_prepared_load_index", False):
+            self._npu_prepared_load_index = (
+                result.index if isinstance(result, IndexingOptions) else None
+            )
         if not triton_codegen_linearize:
             return result
 
@@ -2860,6 +3184,9 @@ class NPUTritonKernel(TritonKernel):
                     new_index_str = f"tl.broadcast_to({new_index_str}, {dense})"
                     new_expand_str = dense
 
+        if _masked_index_needs_nonnegative_clamp(result):
+            new_index_str = f"tl.maximum({new_index_str}, 0)"
+
         if (
             new_mask_vars == result.mask_vars
             and new_expand_str == result.expand_str
@@ -2963,6 +3290,18 @@ class NPUTritonKernel(TritonKernel):
         if not entry.root.is_reduction:
             # x-tree entries: assignments emitted in codegen_range_tree header, skip here
             return
+
+        r_info = getattr(self, '_r_linearize_info', None) or getattr(self, 'linearize_info', None)
+        if r_info and entry.root.is_loop:
+            outer_nodes = r_info.get('outer_nodes', [])
+            prefix = entry.root.prefix
+            expr_str = str(self.rename_indexing(entry.expr))
+            is_outer = any(entry.name == onode.name for onode in outer_nodes)
+            has_index_ref = f"{prefix}index" in expr_str
+
+            if entry.root.is_reduction and is_outer and has_index_ref:
+                return
+
         # Default behavior for r-tree entries
         line = f"{entry.name} = {self.kexpr(self.rename_indexing(entry.expr))}"
         if entry.root.is_loop:
@@ -3041,6 +3380,13 @@ class NPUTritonKernel(TritonKernel):
                 return tree.prefix
         return "r0_"
 
+    def _npu_rsplit_split_tokens(self):
+        axis = getattr(self, "npu_rsplit_axis", None)
+        if axis:
+            return axis, f"{axis}numel", f"{axis}inner", axis
+        rprefix = self._npu_rsplit_rprefix()
+        return rprefix, f"{rprefix}numel", f"{rprefix}offset", f"{rprefix}index"
+
     def _npu_rsplit_x_total_numel(self) -> str:
         """Code string for the total x (output) element count: the product of
         all free non-reduction node lengths. Used as the per-core workspace row
@@ -3093,8 +3439,7 @@ class NPUTritonKernel(TritonKernel):
         the per-node ``<x>numel`` runtime args (present in the launcher's
         def_args). total_blocks = product(factors).
         """
-        # rsplit uses total_thread multi-core cooperation, not one-per-tile.
-        if self.npu_rsplit_partial:
+        if self.npu_rsplit_partial and not device_props.is_a5():
             return None
 
         factors = []
@@ -3108,14 +3453,33 @@ class NPUTritonKernel(TritonKernel):
                     line = entry if isinstance(entry, str) else getattr(entry, "line", None)
                     if not isinstance(line, str):
                         return None
-                    # Strip the ``name : tl.constexpr = expr`` annotation to a
-                    # plain ``name = expr`` so exec doesn't need tl in scope.
-                    stripped = re.sub(r'\s*:\s*tl\.constexpr\s*=', ' =', line)
-                    lines.append(stripped.strip())
+                    parsed = _npu_parse_generated_line(line)
+                    if parsed is None:
+                        return None
+                    _, statement = parsed
+                    if (
+                        isinstance(statement, ast.AnnAssign)
+                        and isinstance(statement.target, ast.Name)
+                        and _npu_qualified_name(statement.annotation)
+                        == "tl.constexpr"
+                        and statement.value is not None
+                    ):
+                        statement = ast.Assign(
+                            targets=[statement.target], value=statement.value
+                        )
+                    elif _npu_assignment_parts(statement) is None:
+                        return None
+                    lines.append(ast.unparse(ast.fix_missing_locations(statement)))
             tree_node_mapping = getattr(tree, 'tree_node_mapping', {})
             for node in tree.nodes.values():
                 if node.name not in tree_node_mapping:
                     factors.append(f"{node.name}_blocks")
+
+        if self.npu_rsplit_partial:
+            lines.append(
+                f"rsplit_nsplit = {device_props.get_npu_vector_core_count()}"
+            )
+            factors.append("rsplit_nsplit")
 
         if not factors:
             return None
@@ -3171,21 +3535,29 @@ class NPUTritonKernel(TritonKernel):
 
         # 3. dispatch shape
         if self.npu_rsplit_partial:
-            # r-axis cross-core split: program_id selects a contiguous chunk of the
-            # reduction axis, not the x-axis. Every core walks ALL x-blocks (group_base=0,
-            # group_size=total_blocks) so (group_base+i)==i enumerates every x tile, and
-            # each core reduces only its own [r_lo, r_hi) slice (rewritten in the body).
-            # Partials land in a per-core workspace row.
             total_blocks_var = emit_total_blocks()
-            rprefix = self._npu_rsplit_rprefix()
-            code.writeline("group_base = 0")
-            code.writeline(f"group_size = {total_blocks_var}")
+            base, numel, _loop_var, _index_var = self._npu_rsplit_split_tokens()
+            if device_props.is_a5():
+                code.writeline("group_size = 1")
+                code.writeline("group_base = group_id")
+                code.writeline(
+                    f"rsplit_nsplit = {device_props.get_npu_vector_core_count()}"
+                )
+                if total_blocks_var == "1":
+                    code.writeline("rsplit_id = group_id")
+                else:
+                    code.writeline(f"rsplit_id = group_id // {total_blocks_var}")
+            else:
+                code.writeline("group_base = 0")
+                code.writeline(f"group_size = {total_blocks_var}")
+                code.writeline("rsplit_nsplit = total_thread")
+                code.writeline("rsplit_id = group_id")
             code.writeline(
-                f"{rprefix}_per_core = ({rprefix}numel + total_thread - 1) // total_thread"
+                f"{base}_per_core = ({numel} + rsplit_nsplit - 1) // rsplit_nsplit"
             )
-            code.writeline(f"{rprefix}_lo = group_id * {rprefix}_per_core")
+            code.writeline(f"{base}_lo = rsplit_id * {base}_per_core")
             code.writeline(
-                f"{rprefix}_hi = tl.minimum({rprefix}_lo + {rprefix}_per_core, {rprefix}numel)"
+                f"{base}_hi = tl.minimum({base}_lo + {base}_per_core, {numel})"
             )
         elif all_blocks_names and device_props.is_a5():
             # A5 (910_95): runtime schedules programs across cores, so launch one per tile,
@@ -3405,6 +3777,7 @@ class NPUTritonKernel(TritonKernel):
             "num_load": self.num_load,
             "num_reduction": self.num_reduction,
             "npu_num_x_nodes": npu_num_x_nodes,
+            "npu_rsplit_partial": self.npu_rsplit_partial,
             **self.inductor_meta_common(),
         }
         # 2.13: upstream codegen_kernel stores inductor_meta on self so that
@@ -3548,45 +3921,36 @@ class NPUTritonKernel(TritonKernel):
           1. r-loop bound:  `for r0_offset in range(0, r0_numel, ...` -> `range(r0_lo, r0_hi, ...`
           2. r ragged mask: `... = r0_index < r0_numel`               -> `< r0_hi`
           3. output store:  `tl.store(out_ptr0 + (EXPR), V, M)`
-                            -> `tl.store(ws_rs + (group_id * (x_total) + (EXPR)), V, M)`
+                            -> `tl.store(ws_rs + (rsplit_id * (x_total) + (EXPR)), V, M)`
              where `ws_rs = (ws_ptr + off).to(tl.pointer_type(<dt>))` is injected
              once just before the first redirected store.
         """
         ws_name, ws_offset, x_total, out_dtype = self.npu_rsplit_ws
-        rprefix = self._npu_rsplit_rprefix()
+        base, numel, loop_var, index_var = self._npu_rsplit_split_tokens()
 
-        # The output buffer inner name (e.g. out_ptr0). Exactly one reduction
         # output for the rsplit path.
-        from torch._inductor.codegen.common import RemovedArg
-        out_ptr = None
-        for buf_name, arg in self.args.output_buffers.items():
-            if isinstance(arg, RemovedArg):
-                continue
-            inner = getattr(arg, "inner_name", arg)
-            out_ptr = inner if isinstance(inner, str) else str(arg)
-            break
-        if out_ptr is None:
+        binding = _npu_rsplit_out_binding(self)
+        if binding is None:
             log.debug("[NPU] rsplit partial: no output buffer found, skip rewrite")
             return src
+        out_ptr = binding[1]
 
         # Upstream emits the reduction loop start as ``... in tl.range(0, Nnumel,``
         # in 2.13 (older versions used the builtin ``range``). Match both forms;
         # the rewritten loop walks only this core's [lo, hi) slice with a plain
         # Python ``range`` over scalar bounds.
         loop_opens = (
-            f"for {rprefix}offset in range(0, {rprefix}numel,",
-            f"for {rprefix}offset in tl.range(0, {rprefix}numel,",
+            f"for {loop_var} in range(0, {numel},",
+            f"for {loop_var} in tl.range(0, {numel},",
         )
-        loop_open_new = f"for {rprefix}offset in range({rprefix}_lo, {rprefix}_hi,"
-        mask_tok = f"{rprefix}index < {rprefix}numel"
-        mask_tok_new = f"{rprefix}index < {rprefix}_hi"
+        loop_open_new = f"for {loop_var} in range({base}_lo, {base}_hi,"
+        mask_tok = f"{index_var} < {numel}"
+        mask_tok_new = f"{index_var} < {base}_hi"
         store_tok = f"tl.store({out_ptr} + ("
 
         # ws_ptr is already typed (allocated with out_dtype), so no pointer cast
-        # is needed — NPU rejects bitwidth-changing pointer casts. Each core
         # writes its [x_total] partial into its own workspace row at offset
-        # group_id * x_total.
-        store_tok_new = f"tl.store({ws_name} + (group_id * ({x_total})) + ("
+        store_tok_new = f"tl.store({ws_name} + (rsplit_id * ({x_total})) + ("
 
         new_lines = []
         for line in src.split("\n"):
@@ -3605,8 +3969,8 @@ class NPUTritonKernel(TritonKernel):
             new_lines.append(line)
         src = "\n".join(new_lines)
 
-        log.debug("[NPU] rsplit partial rewrite: out_ptr=%s ws=%s off=%s x_total=%s rprefix=%s",
-                  out_ptr, ws_name, ws_offset, x_total, rprefix)
+        log.debug("[NPU] rsplit partial rewrite: out_ptr=%s ws=%s off=%s x_total=%s axis=%s",
+                  out_ptr, ws_name, ws_offset, x_total, base)
         return src
 
 
@@ -3834,6 +4198,7 @@ class NPUTritonKernel(TritonKernel):
                         continue
                     _dedup._lines.append(_l)
                 new_indexing = _dedup
+
             self.body.splice(new_indexing)
             self.body.splice(self.loads)
             self.body.splice(self.compute)
@@ -3889,6 +4254,37 @@ class NPUTritonKernel(TritonKernel):
             new_lines.append(line)
         self.body._lines = new_lines
 
+    def _select_index_node_relation(self, index: sympy.Expr, node_name: str):
+        if not isinstance(index, sympy.Expr):
+            return False, False
+
+        direct_names = {symbol.name for symbol in index.free_symbols}
+        if node_name in direct_names:
+            return True, False
+
+        mappings = {}
+        for tree in self.range_trees:
+            for name, expr in (getattr(tree, "tree_node_mapping", {}) or {}).items():
+                mappings[str(name)] = expr
+
+        pending = list(direct_names)
+        visited = set()
+        while pending:
+            name = pending.pop()
+            if name in visited:
+                continue
+            visited.add(name)
+            mapped = mappings.get(name)
+            if mapped is None:
+                continue
+            for symbol in getattr(mapped, "free_symbols", ()):
+                dependency = getattr(symbol, "name", str(symbol))
+                if dependency == node_name:
+                    return False, True
+                if dependency not in visited:
+                    pending.append(dependency)
+        return False, False
+
     def _maybe_rewrite_select_lane_load(self):
         """Rewrite a stride-k select-lane load into a contiguous full load +
         register-level ``extract_slice``.
@@ -3925,15 +4321,17 @@ class NPUTritonKernel(TritonKernel):
         if not targets:
             return
 
-        import re
-
         # slot -> node-name across all free (non-reduction) trees.
         slot_to_name = {}
+        name_to_token = {}
         for tree in self.range_trees:
             if tree.is_reduction:
                 continue
             for nm, slot in (getattr(tree, "var_tensor_dims", {}) or {}).items():
                 slot_to_name[slot] = nm
+            name_to_token.update(
+                getattr(tree, "node_block_constexpr", {}) or {}
+            )
         if not slot_to_name:
             return
         ndim = self.triton_tensor_ndim()
@@ -3941,18 +4339,6 @@ class NPUTritonKernel(TritonKernel):
         inner_name = slot_to_name.get(inner_slot)
         if inner_name is None:
             return
-
-        # Recover the actual per-node tile-size token from the emitted arange
-        # lines (``x3index = x3offset + tl.arange(0, x3_blk)[...]``). The token
-        # differs between static (``real_block_x3``) and dynamic-S (``x3_blk``)
-        # axes, so it must be read back, not assumed.
-        arange_re = re.compile(r"^\s*(\w+)index\s*=.*tl\.arange\(0,\s*([^\)]+)\)")
-        name_to_token = {}
-        for line in self.body._lines:
-            if isinstance(line, str):
-                am = arange_re.match(line)
-                if am:
-                    name_to_token[am.group(1)] = am.group(2).strip()
 
         # Build extract sizes once (real per-slot tile tokens; inner slot -> 1).
         sizes = []
@@ -3968,13 +4354,6 @@ class NPUTritonKernel(TritonKernel):
         strides = ", ".join(["1"] * ndim)
         bcast = self.indexing_size_str(inner_slot)
 
-        # Narrow parse of ONE known line: pull indent/ptr/addr/mask verbatim.
-        # (lhs is already known to be a recorded target, so this only extracts
-        # the pieces to reassemble — it does not decide whether to rewrite.)
-        line_re = re.compile(
-            r"^(\s*)(\w+)\s*=\s*tl\.load\((\w+)\s*\+\s*\(([^()]*)\)\s*,\s*(.*)\)\s*$"
-        )
-
         new_lines = []
         counter = 0
         changed = False
@@ -3982,17 +4361,20 @@ class NPUTritonKernel(TritonKernel):
             if not isinstance(line, str):
                 new_lines.append(line)
                 continue
-            m = line_re.match(line)
-            if not m or m.group(2) not in targets:
+            parsed = _npu_parse_tl_load_assignment(line)
+            if parsed is None or parsed[1] not in targets:
                 new_lines.append(line)
                 continue
-            indent, lhs, ptr, addr, rest = m.groups()
-            # Two cases, by whether the inner tile-slot node appears in the address:
+            indent, lhs, value_ast, load_ast = parsed
+            target = targets[lhs]
+            lane = target["lane"]
+            prepared_index = target["index"]
+            direct_inner, indirect_inner = self._select_index_node_relation(
+                prepared_index, inner_name
+            )
             #   * Case B (strided SLICE, x[:, ::k]): inner axis kept, iterated at stride k,
-            #     so IS in address (``k*x1+...``). Load k*-wide contiguous run, take every k-th.
             #   * Case A (select, x[..., 0]): inner axis absent/broadcast, squeeze to size 1.
-            addr_leaves = set(re.findall(r"x\d+", addr))
-            if inner_name in addr_leaves:
+            if direct_inner:
                 # Case B (strided slice) reads K× the inner bytes, discards K-1/K — a net
                 # loss for a bandwidth-bound plain slice (0.98× vs strided gather). Unlike
                 # Case A, the dropped lanes are REAL distinct elements, no free burst to win.
@@ -4002,8 +4384,9 @@ class NPUTritonKernel(TritonKernel):
                     new_lines.append(line)
                     continue
                 rewritten = self._emit_strided_slice_extract(
-                    indent, lhs, ptr, addr, rest, inner_name, inner_slot,
-                    ndim, slot_to_name, name_to_token, bcast, offsets, counter,
+                    indent, lhs, value_ast, load_ast, target, inner_name,
+                    inner_slot, ndim, slot_to_name, name_to_token, bcast,
+                    offsets, counter,
                 )
                 if rewritten is None:
                     # Precondition unmet (not a clean k*inner term, missing tile
@@ -4015,15 +4398,20 @@ class NPUTritonKernel(TritonKernel):
                     counter += 1
                     changed = True
                 continue
-            lane = targets[lhs]
+            if indirect_inner:
+                new_lines.append(line)
+                continue
 
             lane_var = f"_es_lane{counter}"
             full_var = f"_es_full{counter}"
             counter += 1
             new_lines.append(f"{indent}{lane_var} = tl.arange(0, {lane}){bcast}")
-            new_lines.append(
-                f"{indent}{full_var} = tl.load({ptr} + ({addr} + {lane_var}), {rest})"
-            )
+            original_pointer = ast.unparse(load_ast.args[0])
+            load_ast.args[0] = ast.parse(
+                f"({original_pointer}) + {lane_var}", mode="eval"
+            ).body
+            ast.fix_missing_locations(value_ast)
+            new_lines.append(f"{indent}{full_var} = {ast.unparse(value_ast)}")
             # Emit the slice via the registered first-class op (single source of
             # truth for the extract_slice text; see NPUTritonKernelOverrides).
             slice_expr = self.overrides.extract_slice(
@@ -4040,7 +4428,7 @@ class NPUTritonKernel(TritonKernel):
         self._npu_select_slice_done = True
 
     def _emit_strided_slice_extract(
-        self, indent, lhs, ptr, addr, rest, inner_name, inner_slot,
+        self, indent, lhs, value_ast, load_ast, target, inner_name, inner_slot,
         ndim, slot_to_name, name_to_token, bcast, offsets, counter,
     ):
         """Case B: rewrite a strided SLICE load (``x[:, ::k]`` — inner axis kept
@@ -4063,37 +4451,35 @@ class NPUTritonKernel(TritonKernel):
         unmet (no clean ``k*inner`` term, missing tile token, or no inner mask
         to bound the widened tail) — the caller then leaves the load as-is.
         """
-        import re
-
         inner_tok = name_to_token.get(inner_name)
         if inner_tok is None:
             return None
 
-        # Split the flat address into ``+``-separated terms and pull out the one
-        # carrying the inner node, recovering its integer coefficient k.
-        terms = [t.strip() for t in addr.split("+")]
-        inner_term_idx = None
-        k = None
-        tok_re = re.compile(rf"^(?:(\d+)\s*\*\s*)?{re.escape(inner_name)}$")
-        for i, t in enumerate(terms):
-            tm = tok_re.match(t)
-            if tm:
-                inner_term_idx = i
-                k = int(tm.group(1)) if tm.group(1) else 1
-                break
-        if inner_term_idx is None or k is None or k not in (2, 4, 8):
-            return None  # inner node not a clean scalar-multiple term, or unit
-
-        # Base address = all terms except the inner one, plus k*<inner>offset so
-        # the contiguous burst still starts at this block's inner base.
-        base_terms = [t for i, t in enumerate(terms) if i != inner_term_idx]
-        base_addr = " + ".join(base_terms) if base_terms else "0"
+        prepared_index = target["index"]
+        inner_symbol = next(
+            (s for s in prepared_index.free_symbols if s.name == inner_name),
+            None,
+        )
+        if inner_symbol is None:
+            return None
+        coeff = prepared_index.coeff(inner_symbol, 1)
+        if not isinstance(coeff, (int, sympy.Integer)):
+            return None
+        k = int(coeff)
+        if k not in (2, 4, 8):
+            return None
+        base_index = sympy.expand(prepared_index - coeff * inner_symbol)
+        if base_index.has(inner_symbol):
+            return None
+        base_addr = self.index_to_str(base_index)
 
         # The inner mask token (e.g. ``x1mask``) must be present in ``rest`` so we
         # can replace it with a widened-tail mask. Without it we cannot safely
         # bound the extra lanes the k*-wide load pulls in.
         inner_mask_tok = f"{inner_name}mask"
-        if inner_mask_tok not in rest:
+        if len(load_ast.args) < 2 or not _npu_ast_has_name(
+            load_ast.args[1], inner_mask_tok
+        ):
             return None
 
         # extract_slice geometry: inner slot keeps its real tile block but with
@@ -4122,15 +4508,20 @@ class NPUTritonKernel(TritonKernel):
         inner_off = f"{inner_name}offset"
         inner_numel = f"{inner_name}numel"
         widened_mask = f"({k}*{inner_off} + {lane_var}) < {k}*{inner_numel}"
-        # Substitute the inner mask token in ``rest`` with the widened mask
-        # (word-boundary so x1mask does not clobber x12mask).
-        rest_sub = re.sub(rf"\b{re.escape(inner_mask_tok)}\b", fmask_var, rest)
+        load_ast.args[1] = _npu_ast_replace_name(
+            load_ast.args[1], inner_mask_tok, fmask_var
+        )
+        pointer = target["pointer"]
+        load_ast.args[0] = ast.parse(
+            f"{pointer} + ({base_addr} + {k}*{inner_off} + {lane_var})",
+            mode="eval",
+        ).body
+        ast.fix_missing_locations(value_ast)
 
         out = [
             f"{indent}{lane_var} = tl.arange(0, {k}*{inner_tok}){bcast}",
             f"{indent}{fmask_var} = {widened_mask}",
-            f"{indent}{full_var} = tl.load({ptr} + "
-            f"({base_addr} + {k}*{inner_off} + {lane_var}), {rest_sub})",
+            f"{indent}{full_var} = {ast.unparse(value_ast)}",
         ]
         slice_expr = self.overrides.extract_slice(
             full_var,
@@ -4192,10 +4583,125 @@ class NPUTritonKernel(TritonKernel):
                         arg_types.append(type(node.length))
 
 
+def _npu_rsplit_out_binding(kernel):
+    from torch._inductor.codegen.common import RemovedArg
+
+    bindings = []
+    for outer, arg in kernel.args.output_buffers.items():
+        if isinstance(arg, RemovedArg):
+            continue
+        inner = getattr(arg, "inner_name", arg)
+        inner = inner if isinstance(inner, str) else str(arg)
+        if inner.startswith("REMOVED"):
+            continue
+        bindings.append((outer, inner))
+    seen = set()
+    for arg in kernel.args.inplace_buffers.values():
+        if isinstance(arg, RemovedArg):
+            continue
+        inner = getattr(arg, "inner_name", None)
+        if not isinstance(inner, str) or inner.startswith("REMOVED"):
+            continue
+        if inner in seen:
+            continue
+        seen.add(inner)
+        others = getattr(arg, "other_names", None) or []
+        if not others:
+            return None
+        bindings.append((others[-1], inner))
+    if len(bindings) != 1:
+        return None
+    return bindings[0]
+
+
+def _npu_rsplit_epilogue_is_homogeneous(feats) -> bool:
+    try:
+        red_bufs: set = set()
+        for rnode in feats.reduction_nodes():
+            red_bufs |= set(rnode.get_buffer_names())
+        if not red_bufs:
+            return False
+        for node in feats.scheduler_nodes():
+            if node.is_reduction():
+                continue
+            body = getattr(node, "_body", None)
+            root = getattr(body, "root_block", None)
+            if root is None:
+                return False
+            if getattr(body, "subblocks", None):
+                return False
+            tainted: set = set()
+            for fx in root.graph.nodes:
+                if fx.op in ("placeholder", "output"):
+                    continue
+                if fx.op == "call_module":
+                    if isinstance(fx.target, str) and fx.target.startswith("get_index"):
+                        continue
+                    return False
+                if fx.op != "call_method":
+                    return False
+                target = fx.target
+                args = fx.args
+                if target == "load":
+                    if len(args) >= 2 and args[1] in red_bufs:
+                        tainted.add(fx)
+                    continue
+                hot = [a for a in args if isinstance(a, torch.fx.Node) and a in tainted]
+                if not hot:
+                    continue
+                if target == "store":
+                    continue
+                if target == "neg":
+                    pass
+                elif target == "mul":
+                    if len(hot) != 1:
+                        return False
+                elif target in ("truediv", "div"):
+                    if len(hot) != 1 or len(args) < 3 or args[1] not in tainted:
+                        return False
+                else:
+                    return False
+                tainted.add(fx)
+        return True
+    except Exception:
+        return False
+
+
+def _npu_rsplit_pick_split_axis(kernel, require_dynamic: bool):
+    total_cores = device_props.get_npu_vector_core_count()
+    tree = None
+    for t in kernel.range_trees:
+        if t.is_reduction:
+            tree = t
+            break
+    if tree is None:
+        return None
+    mapping = getattr(tree, "tree_node_mapping", {}) or {}
+    free_r = [n for n in tree.nodes.values() if n.name not in mapping]
+    if len(free_r) < 2:
+        return None
+    node_dyn = getattr(kernel, "_npu_rtree_node_dynamic", {}) or {}
+    best = None
+    for n in free_r:
+        if require_dynamic and not node_dyn.get(n.name, False):
+            continue
+        try:
+            hint = int(V.graph.sizevars.optimization_hint(n.length))
+        except Exception:
+            continue
+        if hint < total_cores:
+            continue
+        if best is None or hint > best[1]:
+            best = (n.name, hint)
+    return best
+
+
 def _npu_rsplit_outer_applicable(kernel) -> bool:
     """True iff the partial+combine r-axis cross-core split should fire for this
     kernel. Conditions (all required):
-      1. We're inside an OUTER reduction (reduction_hint == OUTER).
+      1. We're inside an INNER or OUTER reduction.  INNER is needed for a scalar
+         reduction with no free X axis: the normal group dispatch has only one
+         program, so all vector cores would otherwise be idle.
       2. Exactly one reduction in the schedule, not a welford (multi-output sum
          is fine; welford has tuple semantics that the simple workspace+combine
          path doesn't model).
@@ -4213,8 +4719,14 @@ def _npu_rsplit_outer_applicable(kernel) -> bool:
     if feats is None:
         return False
     try:
-        if feats.get_reduction_hint() != ReductionHint.OUTER:
+        reduction_hint = feats.get_reduction_hint()
+        _sched_nodes = list(feats.scheduler_nodes())
+
+        if reduction_hint not in (ReductionHint.INNER, ReductionHint.OUTER):
             return False
+        if reduction_hint == ReductionHint.INNER and len(_sched_nodes) != 1:
+            if not _npu_rsplit_epilogue_is_homogeneous(feats):
+                return False
     except Exception:
         return False
     rnodes = feats.reduction_nodes()
@@ -4224,7 +4736,12 @@ def _npu_rsplit_outer_applicable(kernel) -> bool:
     try:
         if is_welford_reduction(rnode.node.data.reduction_type):
             return False
+        if rnode.node.data.reduction_type != "sum":
+            return False
     except Exception:
+        return False
+
+    if _npu_rsplit_out_binding(kernel) is None:
         return False
 
     total_cores = device_props.get_npu_vector_core_count()
@@ -4535,15 +5052,10 @@ class NPUTritonScheduling(TritonScheduling):
         total_cores = device_props.get_npu_vector_core_count()
 
         # Real output buffer (outer graph name) + its inner arg name.
-        from torch._inductor.codegen.common import RemovedArg
-        out_outer = None
-        for outer, inner in partial.args.output_buffers.items():
-            if isinstance(inner, RemovedArg):
-                continue
-            out_outer = outer
-            break
-        if out_outer is None:
+        binding = _npu_rsplit_out_binding(partial)
+        if binding is None:
             return None
+        out_outer = binding[0]
 
         # x_total as an int when static (the common case); else symbolic name.
         x_numel_expr = sympy.Integer(1)
@@ -4597,9 +5109,27 @@ class NPUTritonScheduling(TritonScheduling):
             **partial.inductor_meta_common(),
         }
 
-        # Literal combine source. x is a single linear axis split across cores
-        # (standard NPU group dispatch on x); the reduction axis is the static
-        # core count. Mirrors the validated hand-written combine.
+        pre_loop_lines = [
+            f"x0numel = {int(x_total_hint)}",
+            "real_block_x0 = x0numel if x0numel <= XBLOCK else XBLOCK",
+            "x0_blocks = (x0numel + real_block_x0 - 1) // real_block_x0",
+        ]
+        if device_props.is_a5():
+            dispatch = """    group_size = 1
+    group_base = group_id"""
+            inductor_meta["npu_dispatch_recipe"] = {
+                "lines": pre_loop_lines,
+                "factors": ["x0_blocks"],
+            }
+        else:
+            dispatch = """    group_size = x0_blocks // total_thread
+    group_tail = x0_blocks % total_thread
+    group_base = group_id * group_size + group_tail
+    if group_id < group_tail:
+        group_size = group_size + 1
+    if group_id < group_tail:
+        group_base = group_id * group_size"""
+
         imports = TritonKernel.gen_common_triton_imports() + partial.gen_triton_ext_imports()
         src = f'''
 {imports}
@@ -4618,13 +5148,7 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
     x0numel : tl.constexpr = {int(x_total_hint)}
     real_block_x0 : tl.constexpr = x0numel if x0numel <= XBLOCK else XBLOCK
     x0_blocks : tl.constexpr = (x0numel + real_block_x0 - 1) // real_block_x0
-    group_size = x0_blocks // total_thread
-    group_tail = x0_blocks % total_thread
-    group_base = group_id * group_size + group_tail
-    if group_id < group_tail:
-        group_size = group_size + 1
-    if group_id < group_tail:
-        group_base = group_id * group_size
+{dispatch}
     for i in range(group_size):
         x0offset = (group_base + i) * real_block_x0
         x0index = x0offset + tl.arange(0, real_block_x0)[None, :]
@@ -5113,7 +5637,10 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
                         continue
                 skip = False
                 for onode in outer_nodes:
-                    if f"{onode.name} = " in stripped and "//" in stripped:
+                    if (
+                        f"{onode.name} = " in stripped
+                        and ("//" in stripped or "%" in stripped)
+                    ):
                         skip = True
                         break
                 if skip:
@@ -5367,6 +5894,106 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
                 terms.append(sym * o.divisor)
         return sum(terms[1:], terms[0]) if terms else sympy.Integer(0)
 
+    @staticmethod
+    def _fold_reduction_view_decompositions(
+        kernel, tree, tree_node_mapping, matcher
+    ):
+        if not ncfg.fold_flat_rnode:
+            return False
+
+        sizevars = V.graph.sizevars
+        free_nodes = [
+            n for n in tree.nodes.values()
+            if n.name not in tree_node_mapping
+        ]
+        if len(free_nodes) < 2:
+            return False
+
+        def _same(lhs, rhs):
+            if sizevars.statically_known_equals(lhs, rhs):
+                return True
+            try:
+                return sizevars.optimization_hint(lhs) == sizevars.optimization_hint(rhs)
+            except Exception:
+                return False
+
+        def _divisor_hint(node):
+            try:
+                return int(sizevars.optimization_hint(node.divisor))
+            except Exception:
+                return 1 << 60
+
+        chains = []
+
+        def _walk(chain, expected):
+            for node in free_nodes:
+                if node in chain or not _same(node.divisor, expected):
+                    continue
+                next_expected = node.divisor * node.length
+                next_chain = chain + [node]
+                if _same(next_expected, tree.numel):
+                    chains.append(next_chain)
+                    continue
+                _walk(next_chain, next_expected)
+
+        _walk([], sympy.Integer(1))
+        if len(chains) < 2:
+            return False
+
+        def _chain_key(chain):
+            first_hint = _divisor_hint(chain[0])
+            length_hints = tuple(
+                int(sizevars.optimization_hint(node.length))
+                for node in chain
+            )
+            return (len(chain), -first_hint, tuple(-x for x in length_hints))
+
+        basis = max(chains, key=_chain_key)
+        basis_names = {node.name for node in basis}
+        covered_names = set()
+        for chain in chains:
+            covered_names.update(node.name for node in chain)
+        if covered_names != {node.name for node in free_nodes}:
+            return False
+
+        flat_expr = NPUTritonScheduling._flat_node_expr(basis)
+        mapped = []
+        for node in free_nodes:
+            if node.name in basis_names:
+                continue
+            divisor = node.divisor
+            if _same(divisor * node.length, tree.numel):
+                node_expr = (
+                    flat_expr
+                    if _same(divisor, sympy.Integer(1))
+                    else FloorDiv(flat_expr, divisor)
+                )
+            else:
+                node_expr = ModularIndexing(flat_expr, divisor, node.length)
+            tree_node_mapping[node.name] = node_expr
+            matcher[f"{node.name} = {node.name}index"] = (
+                f"{node.name} = {node_expr}"
+            )
+            mapped.append(node.name)
+
+        if not mapped:
+            return False
+
+        flat_subs = getattr(kernel, "_npu_flat_rnode_subs", None)
+        if flat_subs is None:
+            flat_subs = {}
+            kernel._npu_flat_rnode_subs = flat_subs
+        for name in mapped:
+            renamed_expr = kernel.rename_indexing(tree_node_mapping[name])
+            flat_subs[name] = kernel.kexpr(renamed_expr)
+
+        recon_nodes = getattr(tree, "_npu_split_recon_nodes", None)
+        if recon_nodes is None:
+            recon_nodes = set()
+            tree._npu_split_recon_nodes = recon_nodes
+        recon_nodes.update(mapped)
+        return True
+
     def _apply_linearize(self, kernel, node_schedule):
         """
         Post-process a kernel for linearize mode:
@@ -5377,6 +6004,17 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
         """
         if kernel is None:
             return
+
+        kernel._npu_rsplit_candidate = False
+        if _npu_rsplit_outer_applicable(kernel):
+            try:
+                if kernel.features.get_reduction_hint() == ReductionHint.INNER:
+                    if _npu_rsplit_pick_split_axis(kernel, require_dynamic=False):
+                        kernel._npu_rsplit_candidate = True
+                    else:
+                        kernel.npu_rsplit_partial = True
+            except Exception:
+                pass
 
         def indexer(index_var, var_range):
             strides = [sympy.Integer(1)]
@@ -5540,6 +6178,11 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
                     kernel, tree, tree_expr, tree_node_mapping, matcher,
                 )
 
+            if tree.is_reduction and ncfg.fold_flat_rnode:
+                self._fold_reduction_view_decompositions(
+                    kernel, tree, tree_node_mapping, matcher,
+                )
+
             # Reduction-tree variant of the flat-node fold. Two reductions share the flat
             # space but index differently — 2D sub-axes (r0_1,r0_2) vs a flat node (r0_3,
             # length==numel); leaving r0_3 makes codegen emit `for r0_3: for r0_2`, re-run
@@ -5635,7 +6278,11 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
         # tree can hold static nodes (ViT: r0_1=197 seq + r0_2=N batch) that must NOT be
         # looped. Only populated for promoted trees; .get()-guarded below.
         kernel._npu_rtree_node_dynamic = {}
-        if kernel._npu_rtree_real_block and kernel.inside_reduction:
+        if (
+            kernel._npu_rtree_real_block
+            and kernel.inside_reduction
+            and not getattr(kernel, "npu_rsplit_partial", False)
+        ):
             sv = V.graph.sizevars
 
             def _rdiv_key(n):
@@ -5692,6 +6339,30 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
                 if _len_prod != _numel_hint:
                     continue
                 if not is_dynamic:
+                    if (
+                        ncfg.rtree_real_block_autotune
+                        and tree.prefix == "r0_"
+                    ):
+                        inner_first = sorted(free_r, key=_rdiv_key)
+                        tiles = {}
+                        inner_prod = 1
+                        for n in inner_first:
+                            length = int(n.length)
+                            tile = min(
+                                length,
+                                max(1, R_TILE_CAP // inner_prod),
+                            )
+                            tiles[n.name] = tile
+                            inner_prod *= tile
+                        if x_numel * inner_prod <= 1_048_576:
+                            kernel._npu_rtree_promoted[tree.prefix] = [
+                                n.name for n in free_sorted
+                            ]
+                            kernel._npu_rtree_dynamic[tree.prefix] = True
+                            for n in free_r:
+                                kernel._npu_rtree_tile[n.name] = tiles[n.name]
+                                kernel._npu_rtree_node_dynamic[n.name] = True
+                            continue
                     # Static: fully-resident arange tile (no loop). Requires the
                     # whole reduction product to fit one tile (<= R_TILE_CAP) and
                     # the kept-axis*reduction tensor numel under the Triton cap.
@@ -5806,6 +6477,18 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
                 for n in free_r:
                     kernel._npu_rtree_tile[n.name] = tiles[n.name]
                     kernel._npu_rtree_node_dynamic[n.name] = node_is_dyn[n.name]
+
+        if getattr(kernel, "_npu_rsplit_candidate", False):
+            rprefix = next(
+                (t.prefix for t in kernel.range_trees if t.is_reduction), None
+            )
+            if rprefix is not None and kernel._npu_rtree_promoted.get(rprefix):
+                pick = _npu_rsplit_pick_split_axis(kernel, require_dynamic=True)
+                if pick is not None:
+                    kernel.npu_rsplit_axis = pick[0]
+                    kernel.npu_rsplit_partial = True
+            else:
+                kernel.npu_rsplit_partial = True
 
         # Compute old_dense_size BEFORE tensor_dim mutation (matches codegen_body output).
         orig_ndim = sum(int(tree.tensor_dim is not None) for tree in kernel.range_trees)
@@ -5946,6 +6629,8 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
                 # skip building _r_linearize_info entirely — codegen_body falls
                 # through to the standard path for them.
                 if tree.prefix in getattr(kernel, "_npu_rtree_promoted", {}):
+                    continue
+                if getattr(kernel, "npu_rsplit_partial", False):
                     continue
                 all_nodes = list(tree.nodes.values())
                 if len(all_nodes) < 2:
@@ -6259,6 +6944,16 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
                         _set(_get().replace(
                             f"tl.full({old_scalar_rank}, ",
                             f"tl.full({real_scalar_rank}, ",
+                        ))
+                    if (
+                        orig_ndim != real_ndim
+                        and real_ndim > 0
+                        and "tl.broadcast_to(" in _get()
+                        and f", {old_scalar_rank})" in _get()
+                    ):
+                        _set(_get().replace(
+                            f", {old_scalar_rank})",
+                            f", {real_scalar_rank})",
                         ))
                 # Independent dim fixup: upstream tl.sum(_, ndim-nreduce) hardcodes the
                 # last slot. After the hook permutes R off it, the resize slice is right

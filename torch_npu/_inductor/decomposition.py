@@ -268,7 +268,7 @@ def _register_mlir_dvm_decompositions():
 
 
 # ---------------------------------------------------------------------------
-# triton_experimental backend decomposition / dispatcher / SDPA overrides.
+# triton_experimental backend decomposition / dispatcher overrides.
 #
 # Physically these used to live in
 # ``torch_npu/_inductor/triton_experimental/decomposition.py``. They are grouped
@@ -283,84 +283,6 @@ def _register_mlir_dvm_decompositions():
 # (call-time, not import-time) so importing this shared module under other backends
 # never registers these aten dispatcher impls.
 _te_python_dispatcher_lib = None
-
-
-def npu_scaled_dot_product_attention(query, key, value, attn_mask=None, dropout_p=0.0,
-                                     is_causal=False, scale=None, enable_gqa=False):
-    """Python equivalent of ScaledDotProductAttentionKernelNpuOpApi.cpp (V2R5+)."""
-    ATTENMASK_LIMIT = 2048
-    N_LIMIT = 2048
-    D_LIMIT = 512
-    BNSD_DIM = 4
-    TOKEN_MAX = 2147483647
-    LEFT_UP_CAUSAL = 2
-
-    def _convert_boolean_attn_mask(query, attn_mask, is_causal):
-        if attn_mask is None and not is_causal:
-            return None
-        if is_causal:
-            return torch.triu(
-                torch.ones(ATTENMASK_LIMIT, ATTENMASK_LIMIT, dtype=torch.bool, device=query.device), 1
-            )
-        return torch.logical_not(attn_mask)
-
-
-    def _convert_boolean_attn_mask_math(attn_mask, dtype):
-        if attn_mask is None:
-            return None
-        if attn_mask.dtype == torch.bool:
-            new_attn_mask = torch.zeros_like(attn_mask, dtype=dtype)
-            new_attn_mask.masked_fill_(attn_mask.logical_not(), float('-inf'))
-            return new_attn_mask
-        return attn_mask
-
-
-    def _calculate_scale(query, scale):
-        if scale is not None:
-            return scale
-        return 1.0 / (query.size(-1) ** 0.5)
-
-    # Path 1: FlashAttention via npu_fusion_attention
-    if ((query.dtype in (torch.float16, torch.bfloat16, torch.float32)) and
-            ((attn_mask is not None and attn_mask.dtype == torch.bool) or attn_mask is None) and
-            query.dim() == BNSD_DIM and key.dim() == BNSD_DIM and value.dim() == BNSD_DIM and
-            query.size(1) <= N_LIMIT and query.size(3) <= D_LIMIT and key.size(1) <= N_LIMIT and
-            query.size(1) % key.size(1) == 0 and query.size(1) // key.size(1) > 0):
-        # attn_mask must be dim 2 or 4 for FA path
-        if attn_mask is not None and attn_mask.dim() not in (2, 4):
-            atten_mask_math = _convert_boolean_attn_mask_math(attn_mask, query.dtype)
-            return torch.ops.aten._scaled_dot_product_attention_math(
-                query, key, value, atten_mask_math, dropout_p, is_causal, None, scale=scale, enable_gqa=enable_gqa
-            )[0]
-
-        atten_mask = _convert_boolean_attn_mask(query, attn_mask, is_causal)
-        head_num = query.size(1)
-        input_layout = "BNSD"
-        input_scale = _calculate_scale(query, scale)
-        keep_prob = 1.0 - dropout_p
-        next_tockens = 0 if is_causal else TOKEN_MAX
-        sparse_mode = LEFT_UP_CAUSAL if is_causal else 0
-
-        output = torch.ops.npu.npu_fusion_attention_v3(
-            query, key, value, head_num, input_layout,
-            pse=None, padding_mask=None, atten_mask=atten_mask,
-            scale=input_scale, keep_prob=keep_prob,
-            pre_tockens=TOKEN_MAX, next_tockens=next_tockens,
-            inner_precise=0, prefix=None,
-            actual_seq_qlen=None, actual_seq_kvlen=None,
-            sparse_mode=sparse_mode, gen_mask_parallel=True, sync=False
-        )
-        return output[0]
-
-    # Path 2: Math fallback
-    atten_mask_math = _convert_boolean_attn_mask_math(attn_mask, query.dtype)
-    return torch.ops.aten._scaled_dot_product_attention_math(
-        query, key, value, atten_mask_math, dropout_p, is_causal, None, scale=scale, enable_gqa=enable_gqa
-    )[0]
-
-
-def apply_inductor_scaled_dot_product_attention_patch():
-    torch.nn.functional.scaled_dot_product_attention = npu_scaled_dot_product_attention
 
 
 @run_once
@@ -575,7 +497,6 @@ def _register_triton_experimental_decompositions():
             npu_decomps_to_exclude.remove(op)
 
     disable_implicit_decomposition()
-    apply_inductor_scaled_dot_product_attention_patch()
     remove_decompositions(decompositions, npu_decomps_to_exclude)
 
     # Also remove from fast_random_decomps cache (used by select_decomp_table

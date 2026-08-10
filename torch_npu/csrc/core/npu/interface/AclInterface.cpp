@@ -256,7 +256,9 @@ aclError AclrtCreateStreamWithConfig(
           PROF_ERROR(ErrCode::ACL));
     }
     const char* mode = std::getenv("TORCHINDUCTOR_NPU_BACKEND");
-    if (mode != nullptr && std::strcmp(mode, "mlir") == 0) {
+    if (mode != nullptr &&
+        (std::strcmp(mode, "mlir") == 0 || std::strcmp(mode, "default") == 0 ||
+         std::strcmp(mode, "triton_experimental") == 0)) {
       return AclrtSetStreamFailureMode(*stream, ACL_CONTINUE_ON_FAILURE);
     }
     return AclrtSetStreamFailureMode(*stream, ACL_STOP_ON_FAILURE);
