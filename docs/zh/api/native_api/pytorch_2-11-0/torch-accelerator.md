@@ -173,7 +173,7 @@
 
 </div>
 
-### <code><i>class</i></code> torch.accelerator.device_index
+### torch.accelerator.device_index
 
 <div style="margin-left: 2em">
 

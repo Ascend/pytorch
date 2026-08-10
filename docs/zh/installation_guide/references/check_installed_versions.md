@@ -24,7 +24,7 @@
 
     ```text
     torch     2.13.0+cpu
-    torch_npu      2.13.0.rc1
+    torch_npu      2.13.0rc1
     ```
 
     > [!NOTE]

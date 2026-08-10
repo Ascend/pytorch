@@ -104,7 +104,7 @@ Python3.11的调度（即下发）性能优于Python3.10，建议用Python3.11�
     5. 在运行环境中安装生成的TorchNPU插件包，如果使用非root用户进行安装，需要在命令后加`--user`。
 
         ```bash
-        pip3 install --upgrade dist/torch_npu-2.13.0.rc1-cp310-cp310-linux_aarch64.whl
+        pip3 install --upgrade dist/torch_npu-2.13.0rc1-cp310-cp310-linux_aarch64.whl
         ```
 
         请用户根据实际情况更改命令中的TorchNPU包名。
@@ -188,7 +188,7 @@ Python3.11的调度（即下发）性能优于Python3.10，建议用Python3.11�
     3. 安装pytorch/dist目录下生成的插件TorchNPU包，如果使用非root用户安装，需要在命令后加`--user`。
 
         ```bash
-        pip3 install --upgrade dist/torch_npu-2.13.0.rc1-cp310-cp310-linux_aarch64.whl
+        pip3 install --upgrade dist/torch_npu-2.13.0rc1-cp310-cp310-linux_aarch64.whl
         ```
 
         请用户根据实际情况更改命令中的TorchNPU包名。

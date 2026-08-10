@@ -1,21 +1,21 @@
 # 版本配套
 
-TorchNPU 需与特定版本的 PyTorch、CANN、Python 及固件与驱动配合使用。各版本间的匹配关系由昇腾社区统一维护，建议优先使用推荐版本组合以确保最佳兼容性和性能。固件与驱动的版本配套与所使用的昇腾硬件及 CANN 版本相关，具体选择请参考 [固件与驱动安装页面](https://www.hiascend.com/hardware/firmware-drivers/commercial)。
+TorchNPU需与特定版本的PyTorch、CANN、Python及固件与驱动配合使用。各版本间的匹配关系由昇腾社区统一维护，建议优先使用推荐版本组合以确保最佳兼容性和性能。固件与驱动的版本配套与所使用的昇腾硬件及CANN版本相关，具体选择请参考 [固件与驱动安装页面](https://www.hiascend.com/hardware/firmware-drivers/commercial)。
 
 ## 推荐版本组合
 
 |    组件    |               推荐版本               |
 |:--------:|:--------------------------------:|
-| TorchNPU |              2.12.0              |
+| TorchNPU |              2.12.0（安装包版本）             |
 | PyTorch  |              2.12.0              |
 |   CANN   |              9.1.0               |
 |  Python  | 3.10 / 3.11 / 3.12 / 3.13 / 3.14 |
 
 ## TorchNPU 版本配套表
 
-**TorchNPU** 发布版本的分支名称采用 `{PyTorch版本}-{昇腾版本}` 命名规则，前者为 **TorchNPU** 匹配的 PyTorch 版本，后者为 **TorchNPU** 版本号。以下为当前活跃版本的匹配关系：
+**TorchNPU**发布版本的分支名称采用 `{PyTorch版本}-{TorchNPU版本}` 命名规则，前者为**TorchNPU**匹配的PyTorch版本，以下为当前活跃版本的匹配关系：
 
-| TorchNPU 版本  |   GitCode 分支   | PyTorch 版本 |   CANN 版本    |
+| TorchNPU安装包版本  |   GitCode分支   | PyTorch版本 |   CANN版本    |
 |:------------:|:--------------:|:----------:|:------------:|
 |    2.12.0    | v2.12.0-26.1.0 |   2.12.0   |  CANN 9.1.0  |
 |    2.11.0    | v2.11.0-26.1.0 |   2.11.0   |  CANN 9.1.0  |
@@ -47,7 +47,7 @@ TorchNPU 需与特定版本的 PyTorch、CANN、Python 及固件与驱动配合�
 <details>
 <summary>点击展开历史版本（含 EOL）</summary>
 
-|   TorchNPU 版本    |    GitCode 分支     | PyTorch 版本 |    CANN 版本     |
+|   TorchNPU安装包版本    |    GitCode分支     | PyTorch版本 |    CANN版本     |
 |:----------------:|:-----------------:|:----------:|:--------------:|
 |      2.4.0       |  v2.4.0-6.0.rc3   |   2.4.0    |  CANN 8.0.RC3  |
 |   2.3.1.post2    |  v2.3.1-6.0.rc3   |   2.3.1    |  CANN 8.0.RC3  |
@@ -88,9 +88,9 @@ TorchNPU 需与特定版本的 PyTorch、CANN、Python 及固件与驱动配合�
 
 </details>
 
-## PyTorch 与 Python 版本配套表
+## PyTorch与Python版本配套表
 
-|   PyTorch 版本   |                           Python 版本                           |
+|   PyTorch版本   |                           Python版本                           |
 |:--------------:|:-------------------------------------------------------------:|
 | PyTorch 2.13.0 | Python3.10, Python3.11, Python 3.12, Python 3.13, Python 3.14 |
 | PyTorch 2.12.0 | Python3.10, Python3.11, Python 3.12, Python 3.13, Python 3.14 |
@@ -109,7 +109,7 @@ TorchNPU 需与特定版本的 PyTorch、CANN、Python 及固件与驱动配合�
 
 ## 硬件支持
 
-TorchNPU 支持如下昇腾产品系列：
+TorchNPU支持如下昇腾产品系列：
 
 |     产品系列      |
 |:-------------:|
