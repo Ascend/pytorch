@@ -114,7 +114,16 @@ def run_single_file(
         device_group: ASCEND_RT_VISIBLE_DEVICES value, e.g. "0" or "0,1,2,3,4,5,6,7"
         progress: optional progress prefix e.g. "[5/123]" for log output
     """
-    file_path = test_dir / test_file
+    # test_file from scan_all_test_files is "test/nn/test_foo.py" (relative
+    # to pytorch/).  Convert to upstream run_test.py convention: relative
+    # to test_dir without .py, e.g. "nn/test_foo".
+    if test_file.startswith("test/"):
+        rel_file = test_file[5:]        # "nn/test_foo.py"
+    else:
+        rel_file = test_file
+    rel_no_ext = rel_file[:-3] if rel_file.endswith(".py") else rel_file
+
+    file_path = test_dir / rel_file
     if not file_path.exists():
         return {
             "file": test_file,
@@ -156,8 +165,8 @@ def run_single_file(
 
         cmd = [
             sys.executable, "-bb",
-            test_file + ".py",        # relative path, same as run_test.py
-            "--use-pytest",           # trigger run_tests() pytest path in common_utils
+            rel_no_ext + ".py",     # relative to cwd, same as run_test.py
+            "--use-pytest",         # trigger run_tests() pytest path in common_utils
             "-p", "no:xdist",
             "-p", "npu_poisoning_plugin",
             "-p", "timeout",
