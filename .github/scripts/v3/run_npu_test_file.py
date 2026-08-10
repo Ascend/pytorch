@@ -271,24 +271,35 @@ def run_single_file(
             "--hw-classification", "ACCELERATOR",
         ])
 
-        # On retry: use StepcurrentPlugin to skip already-passed (and
-        # now-also-poisoned) cases.  The poisoned case was patched in
-        # the previous attempt's JUnit XML to appear as "skipped" so
-        # that --scs will exclude it.
+        # On retry: use skip_executed_plugin to skip ALL cases that
+        # already ran in the previous attempt (passed, failed, skipped,
+        # and poisoned).  This allows the remaining cases (after the
+        # poisoned one) to execute, instead of re-running failed cases
+        # or skipping everything like --scs did.
         if attempt > 1:
             prev_junit = junit_dir / f"{safe}_attempt{attempt - 1}.xml"
             if prev_junit.exists():
-                cmd.extend(["--scs", str(prev_junit)])
+                skip_file = report_dir / f"{safe}_skip_list.txt"
+                _write_skip_list(prev_junit, skip_file)
+                run_env_skip = os.environ.copy()
+                run_env_skip["SKIP_EXECUTED_FILE"] = str(skip_file)
             else:
-                cmd.append("--sc")
+                run_env_skip = os.environ.copy()
 
         # Pass the poisoned-case marker path to the plugin via env
         run_env = os.environ.copy()
+        if attempt > 1:
+            run_env["SKIP_EXECUTED_FILE"] = run_env_skip.get(
+                "SKIP_EXECUTED_FILE", "")
         if not no_poison_plugin:
             run_env["NPU_POISONED_CASE_FILE"] = str(poisoned_marker)
         # Clean up stale marker from a previous (different) file run
         if poisoned_marker.exists():
             poisoned_marker.unlink()
+
+        # Load skip_executed_plugin on retry
+        if attempt > 1:
+            cmd.extend(["-p", "skip_executed_plugin"])
 
         try:
             cmd_str = " ".join(cmd)
@@ -358,11 +369,11 @@ def run_single_file(
 
             # Mark the poisoned case with a flag (keeps original status,
             # preserving passed+failed+errors+skipped = total_cases).
-            # Also patch the on-disk JUnit XML so that --scs skips it on retry.
+            # The poisoned case will be skipped on retry via
+            # skip_executed_plugin (it's in the JUnit XML skip list).
             if poisoned_case_nodeid:
                 partial_cases = _mark_case_poisoned_in_list(
                     partial_cases, poisoned_case_nodeid)
-                _mark_junit_case_poisoned(junit_file, poisoned_case_nodeid)
 
             if attempt == 1:
                 all_passed = partial_passed
@@ -482,6 +493,30 @@ def _parse_junit(junit_path: Path) -> Tuple[int, int, int, int, List[Dict]]:
         pass
 
     return passed, failed, errors, skipped, cases
+
+
+def _write_skip_list(junit_path: Path, skip_file: Path):
+    """Write (classname, name) pairs from JUnit XML to a skip list file.
+
+    Each line is: classname\\tname
+
+    This file is consumed by skip_executed_plugin.py on retry to skip
+    ALL cases that already ran in the previous attempt, regardless of
+    their status (passed, failed, skipped, or poisoned).
+    """
+    if not junit_path.exists():
+        return
+    try:
+        tree = ET.parse(str(junit_path))
+        root = tree.getroot()
+        with open(skip_file, "w", encoding="utf-8") as f:
+            for tc in root.iter("testcase"):
+                classname = tc.get("classname", "")
+                name = tc.get("name", "")
+                if classname and name:
+                    f.write(f"{classname}\t{name}\n")
+    except ET.ParseError:
+        pass
 
 
 def _merge_junit_xmls(junit_dir: Path, safe_name: str, max_attempts: int):
