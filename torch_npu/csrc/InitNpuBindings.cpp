@@ -17,6 +17,9 @@
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/core/npu/CachingHostAllocator.h"
 #include "torch_npu/csrc/inductor/aoti_package/shape_handling.h"
+#ifndef BUILD_LIBTORCH
+#include "torch_npu/_inductor/experimental/python_wrapper_fast_launch/csrc/bindings.h"
+#endif
 #include "torch_npu/csrc/distributed/Init.h"
 #include "torch_npu/csrc/afd/Init.h"
 #include "torch_npu/csrc/profiler/init.h"
@@ -274,6 +277,7 @@ extern "C"
   BindGetDeviceMemories(module);
   RegisterNpuPluggableAllocator(module);
 #ifndef BUILD_LIBTORCH
+  RegisterNPUFastLaunchBindings(module);
   c10_npu::bind_npu_recovery_functions(module);
 #endif
   initCommMethods();
