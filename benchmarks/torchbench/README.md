@@ -8,16 +8,57 @@
 
 ## 准备环境
 
-1. 安装requirements.txt中的依赖包
+1. 下载pytorch源码
 
     ```shell
+    git clone https://gitcode.com/Ascend/pytorch.git
+    cd pytorch
+    ```
+
+2. 进入`benchmarks/torchbench`目录，安装requirements.txt中的依赖包
+
+    ```shell
+    cd benchmarks/torchbench
     pip install -r requirements.txt
     ```
 
-2. 下载pytorch/benchmark源码，并切换至指定commit id
+3. 安装torch和torch_npu
 
     ```shell
-    git clone  https://github.com/pytorch/benchmark.git --depth=1
+    pip install torch torch_npu
+    ```
+
+4. 安装triton-ascend（使用triton后端时需要）
+
+    ```shell
+    pip install triton-ascend
+    ```
+
+5. 安装torch_mlir和akg（使用mlir或akg后端时需要）
+
+    torch_mlir获取地址：
+
+    ```text
+    https://repo.oepkgs.net/ascend/pytorch/vllm/torch/Torch-MLIR/
+    ```
+
+    akg获取地址：
+
+    ```text
+    https://repo.mindspore.cn/mindspore/akg/newest/scheduler/
+    ```
+
+    下载完成后安装：
+
+    ```shell
+    pip install torch_mlir
+    pip install akg
+    ```
+
+6. 在`benchmarks/torchbench`目录，下载pytorch/benchmark源码，并切换至指定commit id
+
+    ```shell
+    git clone https://github.com/pytorch/benchmark.git --depth=1
     cd benchmark
     git remote set-branches origin '9910b31cc17d175a781412fd9ca6f18a4ee04610'
     git fetch --depth 1 origin 9910b31cc17d175a781412fd9ca6f18a4ee04610
@@ -117,7 +158,7 @@
 
 4. NPU图模式后端指定
 
-    当前NPU图模式后端通过`--npu-backend`参数指定，支持`mlir`、`dvm`、`akg`、`triton`（triton-ascend）三种模式，不显示指定会默认选择三种模式中端到端时间加速比最大的图模式后端，使用示例如下
+    当前NPU图模式后端通过`--npu-backend`参数指定，支持`mlir`、`dvm`、`akg`、`triton`四种模式，不显示指定会默认选择四种模式中端到端时间加速比最大的图模式后端，使用示例如下
 
     ```shell
     python3 torchbench.py --accuracy --cold-start-latency --train --float32 --backend inductor --npu-backend mlir --only BERT_pytorch --iterations 50
@@ -137,7 +178,7 @@
     python3 torchbench.py --accuracy --cold-start-latency --train --float32 --backend inductor --npu-backend mlir --only BERT_pytorch --iterations 50 --disable-aclgraph
     ```
 
-    aclgraph支持两种模式，分别是`max-autotune`和`reduce-overhead`，默认是`max-autotune`模式。用户可通过参数`--aclgraph-mode`指定aclgraph模式。示例如下
+    aclgraph支持两种模式，分别是`max-autotune`和`reduce-overhead`，默认是`reduce-overhead`模式。用户可通过参数`--aclgraph-mode`指定aclgraph模式。示例如下
 
     ```shell
     python3 torchbench.py --accuracy --cold-start-latency --train --float32 --backend inductor --npu-backend mlir --only BERT_pytorch --iterations 50 --aclgraph-mode reduce-overhead
@@ -145,7 +186,7 @@
 
 6. 动态shape指定
 
-    当前NPU图模式后端默认执行静态shape，用户可用过参数`--dynamic-shapes`开启动态shape模式，或者可以通过参数`--dynamic-batch-only`仅针对输入数据的batch轴开启动态shape。示例如下
+    当前NPU图模式后端默认执行静态shape，用户可通过参数`--dynamic-shapes`开启动态shape模式，或者可以通过参数`--dynamic-batch-only`仅针对输入数据的batch轴开启动态shape。示例如下
 
     ```shell
     # 开启动态shape模式
@@ -197,17 +238,58 @@
 
 ## 准备环境
 
-1. 安装requirements.txt中的依赖包
+1. 下载pytorch源码
 
     ```shell
+    git clone https://gitcode.com/Ascend/pytorch.git
+    cd pytorch
+    ```
+
+2. 进入`benchmarks/torchbench`目录，安装requirements.txt中的依赖包
+
+    ```shell
+    cd benchmarks/torchbench
     pip install -r requirements.txt
+    ```
+
+3. 安装torch和torch_npu
+
+    ```shell
+    pip install torch torch_npu
+    ```
+
+4. 安装triton-ascend（使用triton后端时需要）
+
+    ```shell
+    pip install triton-ascend
+    ```
+
+5. 安装torch_mlir和akg（使用mlir或akg后端时需要）
+
+    torch_mlir获取地址：
+
+    ```text
+    https://repo.oepkgs.net/ascend/pytorch/vllm/torch/Torch-MLIR/
+    ```
+
+    akg获取地址：
+
+    ```text
+    https://repo.mindspore.cn/mindspore/akg/newest/scheduler/
+    ```
+
+    下载完成后安装：
+
+    ```shell
+    pip install torch_mlir
+    pip install akg
     ```
 
 ## 运行测试
 
 1. NPU图模式后端指定
 
-    当前NPU图模式后端通过`--npu-backend`参数指定，支持`mlir`、`dvm`、`triton`（triton-ascend）三种模式，使用示例如下
+    当前NPU图模式后端通过`--npu-backend`参数指定，支持`mlir`、`dvm`、`akg`、`triton`四种模式，使用示例如下
 
     ```shell
     python3 huggingface.py --accuracy --cold-start-latency --train --float32 --backend inductor --npu-backend mlir --only AlbertForMaskedLM --iterations 50
@@ -276,7 +358,7 @@
     python3 huggingface.py --accuracy --cold-start-latency --train --float32 --backend inductor --npu-backend mlir --only AlbertForMaskedLM --iterations 50 --disable-aclgraph
     ```
 
-    aclgraph支持两种模式，分别是`max-autotune`和`reduce-overhead`，默认是`max-autotune`模式。用户可通过参数`--aclgraph-mode`指定aclgraph模式。示例如下
+    aclgraph支持两种模式，分别是`max-autotune`和`reduce-overhead`，默认是`reduce-overhead`模式。用户可通过参数`--aclgraph-mode`指定aclgraph模式。示例如下
 
     ```shell
     python3 huggingface.py --accuracy --cold-start-latency --train --float32 --backend inductor --npu-backend mlir --only AlbertForMaskedLM --iterations 50 --aclgraph-mode reduce-overhead
@@ -307,3 +389,159 @@
 | model_name | accuracy | op_compile_time | eager_E2E_avg_time | compile_E2E_avg_time | E2E_speed_up_rate | eager_OP_avg_time | compile_OP_avg_time | OP_speed_up_rate |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | AlbertForMaskedLM | pass_accuracy | 58395.435 | 150.77 | 139.67 | 1.07794325 | 147.834943 | 136.9055115 | 1.0798731 |
+
+## TIMM
+
+## 准备环境
+
+1. 下载pytorch源码
+
+    ```shell
+    git clone https://gitcode.com/Ascend/pytorch.git
+    cd pytorch
+    ```
+
+2. 进入`benchmarks/torchbench`目录，安装requirements.txt中的依赖包
+
+    ```shell
+    cd benchmarks/torchbench
+    pip install -r requirements.txt
+    ```
+
+3. 安装torch和torch_npu
+
+    ```shell
+    pip install torch torch_npu
+    ```
+
+4. 安装triton-ascend（使用triton后端时需要）
+
+    ```shell
+    pip install triton-ascend
+    ```
+
+5. 安装torch_mlir和akg（使用mlir或akg后端时需要）
+
+    torch_mlir获取地址：
+
+    ```text
+    https://repo.oepkgs.net/ascend/pytorch/vllm/torch/Torch-MLIR/
+    ```
+
+    akg获取地址：
+
+    ```text
+    https://repo.mindspore.cn/mindspore/akg/newest/scheduler/
+    ```
+
+    下载完成后安装：
+
+    ```shell
+    pip install torch_mlir
+    pip install akg
+    ```
+
+## 运行测试
+
+1. NPU图模式后端指定
+
+    当前NPU图模式后端通过`--npu-backend`参数指定，支持`mlir`、`dvm`、`akg`、`triton`四种模式，使用示例如下
+
+    ```shell
+    python3 timm_models.py --accuracy --cold-start-latency --train --float32 --backend inductor --npu-backend mlir --only adv_inception_v3 --iterations 50
+    ```
+
+    当前可通过 `--mfusion` 参数开启 MFusion 图算融合优化功能, 配合不同的NPU图模式后端, 进一步提升模型的性能，使用示例如下
+
+    ```shell
+    python3 timm_models.py --accuracy --cold-start-latency --train --float32 --backend inductor --npu-backend mlir --mfusion --only adv_inception_v3 --iterations 50
+    ```
+
+2. 精度和端到端总时间验证
+
+    ```shell
+    # 不使能--only，默认运行timm_models_list.txt目录下的所有模型
+    python3 timm_models.py --accuracy --cold-start-latency --train --float32 --backend inductor --npu-backend mlir --iterations 50
+
+    # 使能--only，运行指定模型
+    python3 timm_models.py --accuracy --cold-start-latency --train --float32 --backend inductor --npu-backend mlir --only adv_inception_v3 --iterations 50
+    ```
+
+    执行上述命令后，会在终端界面分别打印出模型执行（eager模式和图模式）的单步"端到端时间"、单步loss、"端到端时间"平均值以及eager模式和图模式精度比较的结果（pass_accuracy or fail_accuracy）
+
+3. 编译总时间验证
+
+    ```shell
+    # 添加参数--dump-compile-time，会在模型测试结束后输出编译时间的测量结果
+    python3 timm_models.py --accuracy --cold-start-latency --train --float32 --backend inductor --npu-backend mlir --iterations 50 --dump-compile-time
+    ```
+
+    执行上述命令后，会在终端界面打印出图模式下的算子编译时间。
+
+4. 算子总时间验证
+
+    算子时间验证需要开启profile工具，添加参数`--enable-profiler`，profile结果默认输出路径为`./profile`，用户指定输出路径可使用参数`--prof-output-path`。
+
+    ```shell
+    # 不指定profile输出路径
+    python3 timm_models.py --accuracy --cold-start-latency --train --float32 --backend inductor --npu-backend mlir --iterations 50 --enable-profiler
+
+    # 指定profile输出路径
+    python3 timm_models.py --accuracy --cold-start-latency --train --float32 --backend inductor --npu-backend mlir --iterations 50 --enable-profiler --prof-output-path 'your/path/for/profile/output/'
+    ```
+
+    `./profile`下的目录结构示例如下，`step_trace_time.csv`文件中记录了模型执行（eager模式和图模式）的单步算子时间
+
+    ```text
+    ./profile
+    ├── adv_inception_v3
+    │   ├── compile
+    │   │   └── localhost.localdomain_xxxx_ascend_pt
+    │   │       └── ASCEND_PROFILER_OUTPUT
+    |   |           └── step_trace_time.csv
+    │   └── eager
+    │       └── localhost.localdomain_xxxx_ascend_pt
+    │           └── ASCEND_PROFILER_OUTPUT
+    |               └── step_trace_time.csv
+    | ······
+    ```
+
+5. Aclgraph使能关闭与模式指定
+
+    当前NPU图模式后端在静态shape的条件下默认开启aclgraph，如果需要关闭aclgraph，可添加参数`--disable-aclgraph`。示例如下
+
+    ```shell
+    python3 timm_models.py --accuracy --cold-start-latency --train --float32 --backend inductor --npu-backend mlir --only adv_inception_v3 --iterations 50 --disable-aclgraph
+    ```
+
+    aclgraph支持两种模式，分别是`max-autotune`和`reduce-overhead`，默认是`reduce-overhead`模式。用户可通过参数`--aclgraph-mode`指定aclgraph模式。示例如下
+
+    ```shell
+    python3 timm_models.py --accuracy --cold-start-latency --train --float32 --backend inductor --npu-backend mlir --only adv_inception_v3 --iterations 50 --aclgraph-mode reduce-overhead
+    ```
+
+## 结果展示
+
+1. 执行下述命令，测试精度、编译时间、端到端总时间，并保存日志
+
+    ```shell
+    python3 timm_models.py --accuracy --cold-start-latency --train --float32 --backend inductor --npu-backend mlir --iterations 50 --dump-compile-time 2>&1 | tee models.log
+    ```
+
+2. 执行下述命令，打开profile，获取算子总时间
+
+    ```shell
+    python3 timm_models.py --accuracy --cold-start-latency --train --float32 --backend inductor --npu-backend mlir --iterations 50 --enable-profiler
+    ```
+
+3. 执行下述命令，获得模型的测试结果，默认输出到`./analysis.xlsx`文件中
+
+    ```shell
+    python3 extract_log.py --log_file models.log
+    ```
+
+4. `./analysis.xlsx`文件的基本内容如下，展示了模型名称，图模式与eager模式的精度比较结果，算子编译时间（ms），eager模式的端到端时间（ms），图模式的端到端时间（ms），端到端时间加速比，eager模式的算子时间（ms），图模式的算子时间（ms），算子时间加速比
+
+| model_name | accuracy | op_compile_time | eager_E2E_avg_time | compile_E2E_avg_time | E2E_speed_up_rate | eager_OP_avg_time | compile_OP_avg_time | OP_speed_up_rate |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| adv_inception_v3 | pass_accuracy | 58395.435 | 113.26 | 56.3 | 2.011722913 | 80.118958 | 51.9484 | 1.54228108 |
