@@ -1,18 +1,50 @@
 diff --git a/test/test_torch.py b/test/test_torch.py
-index fa254541d1..5d83de2659 100644
+index fa25454..4aff5f0 100644
 --- a/test/test_torch.py
 +++ b/test/test_torch.py
-@@ -52,3 +52,3 @@ from torch.testing._internal.common_device_type import (
+@@ -50,7 +50,7 @@ from torch.testing._internal.common_device_type import (
+     expectedFailureMeta,
+     expectedFailureXLA,
      instantiate_device_type_tests,
 -    onlyCUDA, onlyCPU,
 +    onlyCUDA, onlyCPU, onlyPRIVATEUSE1,
      dtypes, dtypesIfCUDA, dtypesIfCPU, deviceCountAtLeast,
-@@ -259,3 +259,3 @@ class TestTorchDeviceType(TestCase):
+     skipMeta, PYTORCH_CUDA_MEMCHECK, largeTensorTest, onlyNativeDeviceTypes, skipCUDAIfNotRocm,
+     get_all_device_types, skipXLA)
+@@ -257,7 +257,7 @@ class TestTorchDeviceType(TestCase):
+         self.assertEqual(s, storage_type(l))
+
      @skipIfTorchDynamo("Not a suitable test for TorchDynamo")
 -    @onlyNativeDeviceTypes
 +    @onlyPRIVATEUSE1
      @slowTestIf(IS_WINDOWS)
-@@ -9673,6 +9673,8 @@ tensor([[[1.+1.j, 1.+1.j, 1.+1.j,  ..., 1.+1.j, 1.+1.j, 1.+1.j],
+     def test_storage_use_count(self, device):
+         a = torch.randn(10, device=device)
+@@ -7105,8 +7105,8 @@ class TestTorch(TestCase):
+         complexfloat = torch.ComplexFloatStorage().element_size()
+         complexdouble = torch.ComplexDoubleStorage().element_size()
+
+-        self.assertEqual(byte, torch.ByteTensor().element_size())
+-        self.assertEqual(byte, torch.ByteTensor().itemsize)
++        self.assertEqual(byte, torch.ByteTensor().npu().element_size())
++        self.assertEqual(byte, torch.ByteTensor().npu().itemsize)
+         self.assertEqual(char, torch.CharTensor().element_size())
+         self.assertEqual(char, torch.CharTensor().itemsize)
+         self.assertEqual(short, torch.ShortTensor().element_size())
+@@ -7121,8 +7121,8 @@ class TestTorch(TestCase):
+         self.assertEqual(double, torch.DoubleTensor().itemsize)
+         self.assertEqual(bool, torch.BoolTensor().element_size())
+         self.assertEqual(bool, torch.BoolTensor().itemsize)
+-        self.assertEqual(bfloat16, torch.tensor([], dtype=torch.bfloat16).element_size())
+-        self.assertEqual(bfloat16, torch.tensor([], dtype=torch.bfloat16).itemsize)
++        self.assertEqual(bfloat16, torch.tensor([], dtype=torch.bfloat16).npu().element_size())
++        self.assertEqual(bfloat16, torch.tensor([], dtype=torch.bfloat16).npu().itemsize)
+         self.assertEqual(complexfloat, torch.tensor([], dtype=torch.complex64).element_size())
+         self.assertEqual(complexfloat, torch.tensor([], dtype=torch.complex64).itemsize)
+         self.assertEqual(complexdouble, torch.tensor([], dtype=torch.complex128).element_size())
+@@ -9671,10 +9671,12 @@ tensor([[[1.+1.j, 1.+1.j, 1.+1.j,  ..., 1.+1.j, 1.+1.j, 1.+1.j],
+         self.assertEqual(cfloat.dtype, torch.complex64)
+         self.assertEqual(cfloat.real, x.float())
          self.assertEqual(cfloat.imag, torch.zeros_like(cfloat.imag))
 -        cdouble = x.cdouble()
 +        x_npu = x.npu()
@@ -24,3 +56,5 @@ index fa254541d1..5d83de2659 100644
 +        self.assertEqual(cdouble.real.cpu(), x.double())
 +        self.assertEqual(cdouble.imag.cpu(), torch.zeros_like(x.double()))
          chalf = x.chalf()
+         self.assertEqual(chalf.dtype, torch.complex32)
+         self.assertEqual(chalf.real, x.half())
